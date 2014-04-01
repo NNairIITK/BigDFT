@@ -1,7 +1,3 @@
-/local/stephanm/openmpi-1.6.5_intel/bin/mpif90 -I../../../includes -I. -I../../../libABINIT/src -I../../../libxc-2.0.x/src   -C -g -traceback -fpe0 -openmp -c -o driver.o  /local/stephanm/Documents/BigDFT/linear/tmpbranch/tests/libs/overlapgeneral/driver.f90
-/local/stephanm/openmpi-1.6.5_intel/bin/mpif90 -I../../../includes -I. -I../../../libABINIT/src -I../../../libxc-2.0.x/src   -C -g -traceback -fpe0 -openmp -L../../../src  -L../../../libxc-2.0.x/src/.libs -L../../../libABINIT/src  -o driver driver.o -lbigdft-1 -llapack -lblas -lrt  -labinit -lxc     -llapack -lblas -larchive   -lyaml    -lrt
-cp /local/stephanm/Documents/BigDFT/linear/tmpbranch/tests/libs/overlapgeneral/inputdata.fake /local/stephanm/Documents/BigDFT/linear/tmpbranch/Build-intel_debug/tests/libs/overlapgeneral/inputdata.fake
-/local/stephanm/openmpi-1.6.5_intel/bin/mpirun -np 1 ./driver
  initial matrix:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  1.1416146836547143}, 
@@ -81,6 +77,91 @@ cp /local/stephanm/Documents/BigDFT/linear/tmpbranch/tests/libs/overlapgeneral/i
  {coordinates:  [  10,  8 ], value:  7.76170910319666785E-002}, 
  {coordinates:  [  10,  9 ], value:  4.52346403344967493E-002}, 
  {coordinates:  [  10,  10 ], value:  1.1982762867643979}]}
+  #-------------------------------------------------------------------------------- check: 1
+ check number                          :  1
+ imode                                 :  2
+ iorder                                :  0
+ power                                 : -2
+ final result:
+ -  {segment:  1, elements: [
+ {coordinates:  [  1,  1 ], value:  0.97044443718291995}, 
+ {coordinates:  [  1,  2 ], value: -8.07591389290875927E-002}, 
+ {coordinates:  [  1,  3 ], value:  2.00633706358350414E-002}, 
+ {coordinates:  [  1,  4 ], value: -2.21178089278755118E-002}]}
+ -  {segment:  2, elements: [
+ {coordinates:  [  1,  6 ], value:  2.05066215676511822E-002}, 
+ {coordinates:  [  1,  7 ], value: -1.32599064443740724E-002}, 
+ {coordinates:  [  1,  8 ], value: -9.48497539700708242E-002}, 
+ {coordinates:  [  1,  9 ], value:  9.28422364359856624E-003}]}
+ -  {segment:  3, elements: [
+ {coordinates:  [  2,  2 ], value:  1.0551004305563303}, 
+ {coordinates:  [  2,  3 ], value: -6.99863523255469383E-002}, 
+ {coordinates:  [  2,  4 ], value: -6.70291354119624955E-002}, 
+ {coordinates:  [  2,  5 ], value:  5.24561304191945299E-002}]}
+ -  {segment:  4, elements: [
+ {coordinates:  [  2,  7 ], value: -7.1095833627456112E-002}, 
+ {coordinates:  [  2,  8 ], value:  4.16436870289011649E-002}, 
+ {coordinates:  [  2,  9 ], value: -4.19100240600731241E-002}, 
+ {coordinates:  [  2,  10 ], value: -8.12200713861227774E-002}]}
+ -  {segment:  5, elements: [
+ {coordinates:  [  3,  2 ], value: -6.99863523255469383E-002}, 
+ {coordinates:  [  3,  3 ], value:  0.96920940532015731}, 
+ {coordinates:  [  3,  4 ], value:  1.35470439766019208E-002}, 
+ {coordinates:  [  3,  5 ], value: -6.60078759484812733E-002}]}
+ -  {segment:  6, elements: [
+ {coordinates:  [  3,  7 ], value:  1.21933716991456872E-002}, 
+ {coordinates:  [  3,  8 ], value: -4.969617580598195E-002}, 
+ {coordinates:  [  3,  9 ], value: -6.05615066399934412E-002}, 
+ {coordinates:  [  3,  10 ], value:  1.13358775937488464E-002}]}
+ -  {segment:  7, elements: [
+ {coordinates:  [  4,  3 ], value:  1.35470439766019121E-002}, 
+ {coordinates:  [  4,  4 ], value:  0.94825956954503776}, 
+ {coordinates:  [  4,  5 ], value: -5.55032137539137674E-002}]}
+ -  {segment:  8, elements: [
+ {coordinates:  [  4,  7 ], value: -4.32613763109628638E-002}, 
+ {coordinates:  [  4,  8 ], value: -6.82151362720508636E-002}, 
+ {coordinates:  [  4,  9 ], value:  1.85560737346042968E-002}]}
+ -  {segment:  9, elements: [
+ {coordinates:  [  5,  3 ], value: -6.6007875948481301E-002}, 
+ {coordinates:  [  5,  4 ], value: -5.55032137539138021E-002}, 
+ {coordinates:  [  5,  5 ], value:  1.0514539201395121}]}
+ -  {segment:  10, elements: [
+ {coordinates:  [  5,  7 ], value: -4.73242422456089662E-002}, 
+ {coordinates:  [  5,  8 ], value:  5.29031107654096694E-002}, 
+ {coordinates:  [  5,  9 ], value: -7.52271584519147996E-002}]}
+ -  {segment:  11, elements: [
+ {coordinates:  [  6,  2 ], value: -6.16310379065796166E-002}, 
+ {coordinates:  [  6,  3 ], value: -4.58642575585599954E-002}, 
+ {coordinates:  [  6,  4 ], value:  1.81787908199637985E-002}]}
+ -  {segment:  12, elements: [
+ {coordinates:  [  6,  6 ], value:  0.992569073962278}, 
+ {coordinates:  [  6,  7 ], value:  7.52613407404634401E-003}, 
+ {coordinates:  [  6,  8 ], value: -8.77503271292320447E-002}]}
+ -  {segment:  13, elements: [
+ {coordinates:  [  7,  3 ], value:  1.21933716991456872E-002}, 
+ {coordinates:  [  7,  4 ], value: -4.32613763109628638E-002}, 
+ {coordinates:  [  7,  5 ], value: -4.73242422456089731E-002}]}
+ -  {segment:  14, elements: [
+ {coordinates:  [  7,  7 ], value:  0.93835729830912706}, 
+ {coordinates:  [  7,  8 ], value: -3.04783098479457573E-002}, 
+ {coordinates:  [  7,  9 ], value:  6.13397552327108863E-003}]}
+ -  {segment:  15, elements: [
+ {coordinates:  [  8,  3 ], value: -4.96961758059819431E-002}, 
+ {coordinates:  [  8,  4 ], value: -6.82151362720508497E-002}, 
+ {coordinates:  [  8,  5 ], value:  5.29031107654096208E-002}]}
+ -  {segment:  16, elements: [
+ {coordinates:  [  8,  7 ], value: -3.04783098479457608E-002}, 
+ {coordinates:  [  8,  8 ], value:  1.0340930711219694}, 
+ {coordinates:  [  8,  9 ], value: -9.37717300489436523E-002}]}
+ -  {segment:  17, elements: [
+ {coordinates:  [  9,  7 ], value:  6.13397552327111899E-003}, 
+ {coordinates:  [  9,  8 ], value: -9.37717300489436523E-002}, 
+ {coordinates:  [  9,  9 ], value:  1.0113930388405237}]}
+ -  {segment:  18, elements: [
+ {coordinates:  [  10,  8 ], value: -3.10269903113294943E-002}, 
+ {coordinates:  [  10,  9 ], value: -5.51395795317251042E-003}, 
+ {coordinates:  [  10,  10 ], value:  0.93969355596733117}]}
+ error of the result                   :  6.66133814775093924E-016
   #-------------------------------------------------------------------------------- check: 2
  check number                          :  2
  imode                                 :  2
@@ -171,6 +252,7 @@ cp /local/stephanm/Documents/BigDFT/linear/tmpbranch/tests/libs/overlapgeneral/i
  imode                                 :  2
  iorder                                :  6
  power                                 : -2
+ dense taylor
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  0.9824654288573883}, 
@@ -251,6 +333,91 @@ cp /local/stephanm/Documents/BigDFT/linear/tmpbranch/tests/libs/overlapgeneral/i
  {coordinates:  [  10,  9 ], value:  5.08692232130775104E-003}, 
  {coordinates:  [  10,  10 ], value:  0.9536730758069395}]}
  error of the result                   :  2.14574189913241398E-002
+  #-------------------------------------------------------------------------------- check: 4
+ check number                          :  4
+ imode                                 :  2
+ iorder                                :  0
+ power                                 :  1
+ final result:
+ -  {segment:  1, elements: [
+ {coordinates:  [  1,  1 ], value:  0.96735558445410841}, 
+ {coordinates:  [  1,  2 ], value: -0.1731126098926076}, 
+ {coordinates:  [  1,  3 ], value:  5.34185490636404775E-002}, 
+ {coordinates:  [  1,  4 ], value: -2.40900738836028784E-002}]}
+ -  {segment:  2, elements: [
+ {coordinates:  [  1,  6 ], value:  6.0133813041852599E-002}, 
+ {coordinates:  [  1,  7 ], value: -1.09808095329980166E-002}, 
+ {coordinates:  [  1,  8 ], value: -0.20016768414298761}, 
+ {coordinates:  [  1,  9 ], value:  3.53967028554809104E-002}]}
+ -  {segment:  3, elements: [
+ {coordinates:  [  2,  2 ], value:  1.1508419463798578}, 
+ {coordinates:  [  2,  3 ], value: -0.1461572610291958}, 
+ {coordinates:  [  2,  4 ], value: -0.13552119067317281}, 
+ {coordinates:  [  2,  5 ], value:  0.14565347837189924}]}
+ -  {segment:  4, elements: [
+ {coordinates:  [  2,  7 ], value: -0.13854930486679073}, 
+ {coordinates:  [  2,  8 ], value:  0.11951226735267081}, 
+ {coordinates:  [  2,  9 ], value: -9.06914537906595986E-002}, 
+ {coordinates:  [  2,  10 ], value: -0.16231334745125428}]}
+ -  {segment:  5, elements: [
+ {coordinates:  [  3,  2 ], value: -0.1461572610291958}, 
+ {coordinates:  [  3,  3 ], value:  0.95772617833375129}, 
+ {coordinates:  [  3,  4 ], value:  3.44432892085926798E-002}, 
+ {coordinates:  [  3,  5 ], value: -0.13494094993773789}]}
+ -  {segment:  6, elements: [
+ {coordinates:  [  3,  7 ], value:  3.06724606199958692E-002}, 
+ {coordinates:  [  3,  8 ], value: -9.98098936753283733E-002}, 
+ {coordinates:  [  3,  9 ], value: -0.10581594317092337}, 
+ {coordinates:  [  3,  10 ], value:  3.15618932185000867E-002}]}
+ -  {segment:  7, elements: [
+ {coordinates:  [  4,  3 ], value:  3.44432892085926798E-002}, 
+ {coordinates:  [  4,  4 ], value:  0.91558859767022116}, 
+ {coordinates:  [  4,  5 ], value: -0.11598222476215019}]}
+ -  {segment:  8, elements: [
+ {coordinates:  [  4,  7 ], value: -6.97204264970720106E-002}, 
+ {coordinates:  [  4,  8 ], value: -0.14059159606366753}, 
+ {coordinates:  [  4,  9 ], value:  4.81778097971361369E-002}]}
+ -  {segment:  9, elements: [
+ {coordinates:  [  5,  3 ], value: -0.13494094993773789}, 
+ {coordinates:  [  5,  4 ], value: -0.11598222476215019}, 
+ {coordinates:  [  5,  5 ], value:  1.1468999513610851}]}
+ -  {segment:  10, elements: [
+ {coordinates:  [  5,  7 ], value: -9.42745263020407648E-002}, 
+ {coordinates:  [  5,  8 ], value:  0.14660495358868311}, 
+ {coordinates:  [  5,  9 ], value: -0.15798917251552891}]}
+ -  {segment:  11, elements: [
+ {coordinates:  [  6,  2 ], value: -0.13504675179881226}, 
+ {coordinates:  [  6,  3 ], value: -7.30048510617638258E-002}, 
+ {coordinates:  [  6,  4 ], value:  4.79721405080141064E-002}]}
+ -  {segment:  12, elements: [
+ {coordinates:  [  6,  6 ], value:  1.0084011793216696}, 
+ {coordinates:  [  6,  7 ], value:  2.31046761762848246E-002}, 
+ {coordinates:  [  6,  8 ], value: -0.18446931584252166}]}
+ -  {segment:  13, elements: [
+ {coordinates:  [  7,  3 ], value:  3.06724606199958692E-002}, 
+ {coordinates:  [  7,  4 ], value: -6.97204264970720106E-002}, 
+ {coordinates:  [  7,  5 ], value: -9.42745263020407648E-002}]}
+ -  {segment:  14, elements: [
+ {coordinates:  [  7,  7 ], value:  0.89414217557746156}, 
+ {coordinates:  [  7,  8 ], value: -6.14825523746440131E-002}, 
+ {coordinates:  [  7,  9 ], value:  1.98164411458920595E-002}]}
+ -  {segment:  15, elements: [
+ {coordinates:  [  8,  3 ], value: -9.98098936753283733E-002}, 
+ {coordinates:  [  8,  4 ], value: -0.14059159606366753}, 
+ {coordinates:  [  8,  5 ], value:  0.14660495358868311}]}
+ -  {segment:  16, elements: [
+ {coordinates:  [  8,  7 ], value: -6.14825523746440131E-002}, 
+ {coordinates:  [  8,  8 ], value:  1.108385764841646}, 
+ {coordinates:  [  8,  9 ], value: -0.19453672895947746}]}
+ -  {segment:  17, elements: [
+ {coordinates:  [  9,  7 ], value:  1.98164411458920595E-002}, 
+ {coordinates:  [  9,  8 ], value: -0.19453672895947746}, 
+ {coordinates:  [  9,  9 ], value:  1.0438909835768211}]}
+ -  {segment:  18, elements: [
+ {coordinates:  [  10,  8 ], value: -6.58236757286890933E-002}, 
+ {coordinates:  [  10,  9 ], value: -1.6585899203164613E-003}, 
+ {coordinates:  [  10,  10 ], value:  0.89911957898999317}]}
+ error of the result                   :  2.22044604925031308E-016
   #-------------------------------------------------------------------------------- check: 5
  check number                          :  5
  imode                                 :  2
@@ -341,6 +508,7 @@ cp /local/stephanm/Documents/BigDFT/linear/tmpbranch/tests/libs/overlapgeneral/i
  imode                                 :  2
  iorder                                :  6
  power                                 :  1
+ dense taylor
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  1.0227508297903889}, 
@@ -596,6 +764,7 @@ cp /local/stephanm/Documents/BigDFT/linear/tmpbranch/tests/libs/overlapgeneral/i
  imode                                 :  2
  iorder                                :  6
  power                                 :  2
+ dense taylor
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  1.0551218835132419}, 
@@ -676,300 +845,855 @@ cp /local/stephanm/Documents/BigDFT/linear/tmpbranch/tests/libs/overlapgeneral/i
  {coordinates:  [  10,  9 ], value:  1.51109678390871811E-002}, 
  {coordinates:  [  10,  10 ], value:  1.0829242058197328}]}
  error of the result                   :  1.63307665378442657E-003
+  #------------------------------------------------------------------------------- check: 10
+ check number                          :  10
+ imode                                 :  1
+ iorder                                :  0
+ power                                 : -2
+ init: nseq         350
+ nseq         350
+ final result:
+ -  {segment:  1, elements: [
+ {coordinates:  [  1,  1 ], value:  0.97044443718291995}, 
+ {coordinates:  [  1,  2 ], value: -8.07591389290875927E-002}, 
+ {coordinates:  [  1,  3 ], value:  2.00633706358350414E-002}, 
+ {coordinates:  [  1,  4 ], value: -2.21178089278755118E-002}]}
+ -  {segment:  2, elements: [
+ {coordinates:  [  1,  6 ], value:  2.05066215676511822E-002}, 
+ {coordinates:  [  1,  7 ], value: -1.32599064443740724E-002}, 
+ {coordinates:  [  1,  8 ], value: -9.48497539700708242E-002}, 
+ {coordinates:  [  1,  9 ], value:  9.28422364359856624E-003}]}
+ -  {segment:  3, elements: [
+ {coordinates:  [  2,  2 ], value:  1.0551004305563303}, 
+ {coordinates:  [  2,  3 ], value: -6.99863523255469383E-002}, 
+ {coordinates:  [  2,  4 ], value: -6.70291354119624955E-002}, 
+ {coordinates:  [  2,  5 ], value:  5.24561304191945299E-002}]}
+ -  {segment:  4, elements: [
+ {coordinates:  [  2,  7 ], value: -7.1095833627456112E-002}, 
+ {coordinates:  [  2,  8 ], value:  4.16436870289011649E-002}, 
+ {coordinates:  [  2,  9 ], value: -4.19100240600731241E-002}, 
+ {coordinates:  [  2,  10 ], value: -8.12200713861227774E-002}]}
+ -  {segment:  5, elements: [
+ {coordinates:  [  3,  2 ], value: -6.99863523255469383E-002}, 
+ {coordinates:  [  3,  3 ], value:  0.96920940532015731}, 
+ {coordinates:  [  3,  4 ], value:  1.35470439766019208E-002}, 
+ {coordinates:  [  3,  5 ], value: -6.60078759484812733E-002}]}
+ -  {segment:  6, elements: [
+ {coordinates:  [  3,  7 ], value:  1.21933716991456872E-002}, 
+ {coordinates:  [  3,  8 ], value: -4.969617580598195E-002}, 
+ {coordinates:  [  3,  9 ], value: -6.05615066399934412E-002}, 
+ {coordinates:  [  3,  10 ], value:  1.13358775937488464E-002}]}
+ -  {segment:  7, elements: [
+ {coordinates:  [  4,  3 ], value:  1.35470439766019121E-002}, 
+ {coordinates:  [  4,  4 ], value:  0.94825956954503776}, 
+ {coordinates:  [  4,  5 ], value: -5.55032137539137674E-002}]}
+ -  {segment:  8, elements: [
+ {coordinates:  [  4,  7 ], value: -4.32613763109628638E-002}, 
+ {coordinates:  [  4,  8 ], value: -6.82151362720508636E-002}, 
+ {coordinates:  [  4,  9 ], value:  1.85560737346042968E-002}]}
+ -  {segment:  9, elements: [
+ {coordinates:  [  5,  3 ], value: -6.6007875948481301E-002}, 
+ {coordinates:  [  5,  4 ], value: -5.55032137539138021E-002}, 
+ {coordinates:  [  5,  5 ], value:  1.0514539201395121}]}
+ -  {segment:  10, elements: [
+ {coordinates:  [  5,  7 ], value: -4.73242422456089662E-002}, 
+ {coordinates:  [  5,  8 ], value:  5.29031107654096694E-002}, 
+ {coordinates:  [  5,  9 ], value: -7.52271584519147996E-002}]}
+ -  {segment:  11, elements: [
+ {coordinates:  [  6,  2 ], value: -6.16310379065796166E-002}, 
+ {coordinates:  [  6,  3 ], value: -4.58642575585599954E-002}, 
+ {coordinates:  [  6,  4 ], value:  1.81787908199637985E-002}]}
+ -  {segment:  12, elements: [
+ {coordinates:  [  6,  6 ], value:  0.992569073962278}, 
+ {coordinates:  [  6,  7 ], value:  7.52613407404634401E-003}, 
+ {coordinates:  [  6,  8 ], value: -8.77503271292320447E-002}]}
+ -  {segment:  13, elements: [
+ {coordinates:  [  7,  3 ], value:  1.21933716991456872E-002}, 
+ {coordinates:  [  7,  4 ], value: -4.32613763109628638E-002}, 
+ {coordinates:  [  7,  5 ], value: -4.73242422456089731E-002}]}
+ -  {segment:  14, elements: [
+ {coordinates:  [  7,  7 ], value:  0.93835729830912706}, 
+ {coordinates:  [  7,  8 ], value: -3.04783098479457573E-002}, 
+ {coordinates:  [  7,  9 ], value:  6.13397552327108863E-003}]}
+ -  {segment:  15, elements: [
+ {coordinates:  [  8,  3 ], value: -4.96961758059819431E-002}, 
+ {coordinates:  [  8,  4 ], value: -6.82151362720508497E-002}, 
+ {coordinates:  [  8,  5 ], value:  5.29031107654096208E-002}]}
+ -  {segment:  16, elements: [
+ {coordinates:  [  8,  7 ], value: -3.04783098479457608E-002}, 
+ {coordinates:  [  8,  8 ], value:  1.0340930711219694}, 
+ {coordinates:  [  8,  9 ], value: -9.37717300489436523E-002}]}
+ -  {segment:  17, elements: [
+ {coordinates:  [  9,  7 ], value:  6.13397552327111899E-003}, 
+ {coordinates:  [  9,  8 ], value: -9.37717300489436523E-002}, 
+ {coordinates:  [  9,  9 ], value:  1.0113930388405237}]}
+ -  {segment:  18, elements: [
+ {coordinates:  [  10,  8 ], value: -3.10269903113294943E-002}, 
+ {coordinates:  [  10,  9 ], value: -5.51395795317251042E-003}, 
+ {coordinates:  [  10,  10 ], value:  0.93969355596733117}]}
+ error of the result                   :  0.5
+  #------------------------------------------------------------------------------- check: 11
+ check number                          :  11
+ imode                                 :  1
+ iorder                                :  1
+ power                                 : -2
+ init: nseq         350
+ nseq         350
+ final result:
+ -  {segment:  1, elements: [
+ {coordinates:  [  1,  1 ], value:  0.92919265817264285}, 
+ {coordinates:  [  1,  2 ], value: -8.26821810431806054E-002}, 
+ {coordinates:  [  1,  3 ], value: -1.99148566748169912E-003}, 
+ {coordinates:  [  1,  4 ], value: -5.72750016904306769E-002}]}
+ -  {segment:  2, elements: [
+ {coordinates:  [  1,  6 ], value: -7.80730206337539468E-003}, 
+ {coordinates:  [  1,  7 ], value: -4.3163139089608317E-002}, 
+ {coordinates:  [  1,  8 ], value: -9.78829740161692441E-002}, 
+ {coordinates:  [  1,  9 ], value: -1.69841645877959954E-002}]}
+ -  {segment:  3, elements: [
+ {coordinates:  [  2,  2 ], value:  0.9999295036219995}, 
+ {coordinates:  [  2,  3 ], value: -7.31914434425935817E-002}, 
+ {coordinates:  [  2,  4 ], value: -8.06274119748049967E-002}, 
+ {coordinates:  [  2,  5 ], value: -1.31755534752409694E-003}]}
+ -  {segment:  4, elements: [
+ {coordinates:  [  2,  7 ], value: -9.04504953476798906E-002}, 
+ {coordinates:  [  2,  8 ], value: -6.44262994838282633E-003}, 
+ {coordinates:  [  2,  9 ], value: -4.58020281629075779E-002}, 
+ {coordinates:  [  2,  10 ], value: -9.70513154514571902E-002}]}
+ -  {segment:  5, elements: [
+ {coordinates:  [  3,  2 ], value: -7.31914434425935817E-002}, 
+ {coordinates:  [  3,  3 ], value:  0.93412999419882348}, 
+ {coordinates:  [  3,  4 ], value: -2.81786722429315983E-004}, 
+ {coordinates:  [  3,  5 ], value: -7.55101485472978451E-002}]}
+ -  {segment:  6, elements: [
+ {coordinates:  [  3,  7 ], value: -7.8090246837475368E-004}, 
+ {coordinates:  [  3,  8 ], value: -6.24784654290229044E-002}, 
+ {coordinates:  [  3,  9 ], value: -8.88333497051237292E-002}, 
+ {coordinates:  [  3,  10 ], value: -5.20078330634481372E-003}]}
+ -  {segment:  7, elements: [
+ {coordinates:  [  4,  3 ], value: -2.81786722429315983E-004}, 
+ {coordinates:  [  4,  4 ], value:  0.91172832746807619}, 
+ {coordinates:  [  4,  5 ], value: -6.33306939625049997E-002}]}
+ -  {segment:  8, elements: [
+ {coordinates:  [  4,  7 ], value: -7.77569187290086256E-002}, 
+ {coordinates:  [  4,  8 ], value: -7.62648169321268193E-002}, 
+ {coordinates:  [  4,  9 ], value: -3.83040313402611228E-004}]}
+ -  {segment:  9, elements: [
+ {coordinates:  [  5,  3 ], value: -7.55101485472978451E-002}, 
+ {coordinates:  [  5,  4 ], value: -6.33306939625049997E-002}, 
+ {coordinates:  [  5,  5 ], value:  0.99398371284713005}]}
+ -  {segment:  10, elements: [
+ {coordinates:  [  5,  7 ], value: -6.07537914982099539E-002}, 
+ {coordinates:  [  5,  8 ], value: -1.12397073943976567E-003}, 
+ {coordinates:  [  5,  9 ], value: -7.99254184213254726E-002}]}
+ -  {segment:  11, elements: [
+ {coordinates:  [  6,  2 ], value: -5.98906787002134108E-002}, 
+ {coordinates:  [  6,  3 ], value: -7.84862780419593314E-002}, 
+ {coordinates:  [  6,  4 ], value: -6.33275225127077554E-004}]}
+ -  {segment:  12, elements: [
+ {coordinates:  [  6,  6 ], value:  0.95596199971200435}, 
+ {coordinates:  [  6,  7 ], value: -7.34056687317084962E-003}, 
+ {coordinates:  [  6,  8 ], value: -9.14671760012530505E-002}]}
+ -  {segment:  13, elements: [
+ {coordinates:  [  7,  3 ], value: -7.8090246837475368E-004}, 
+ {coordinates:  [  7,  4 ], value: -7.77569187290086256E-002}, 
+ {coordinates:  [  7,  5 ], value: -6.07537914982099539E-002}]}
+ -  {segment:  14, elements: [
+ {coordinates:  [  7,  7 ], value:  0.90163670554008468}, 
+ {coordinates:  [  7,  8 ], value: -4.1411163264367494E-002}, 
+ {coordinates:  [  7,  9 ], value: -8.78514001439146056E-003}]}
+ -  {segment:  15, elements: [
+ {coordinates:  [  8,  3 ], value: -6.24784654290229044E-002}, 
+ {coordinates:  [  8,  4 ], value: -7.62648169321268193E-002}, 
+ {coordinates:  [  8,  5 ], value: -1.12397073943976567E-003}]}
+ -  {segment:  16, elements: [
+ {coordinates:  [  8,  7 ], value: -4.1411163264367494E-002}, 
+ {coordinates:  [  8,  8 ], value:  0.97956483782270465}, 
+ {coordinates:  [  8,  9 ], value: -9.89686436702064409E-002}]}
+ -  {segment:  17, elements: [
+ {coordinates:  [  9,  7 ], value: -8.78514001439146056E-003}, 
+ {coordinates:  [  9,  8 ], value: -9.89686436702064409E-002}, 
+ {coordinates:  [  9,  9 ], value:  0.97664547722275818}]}
+ -  {segment:  18, elements: [
+ {coordinates:  [  10,  8 ], value: -3.88085455159833392E-002}, 
+ {coordinates:  [  10,  9 ], value: -2.26173201672483747E-002}, 
+ {coordinates:  [  10,  10 ], value:  0.90086185661780105}]}
+ error of the result                   :  0.5
   #------------------------------------------------------------------------------- check: 12
  check number                          :  12
  imode                                 :  1
  iorder                                :  6
  power                                 : -2
+ init: nseq         350
+ nseq         350
  final result:
  -  {segment:  1, elements: [
- {coordinates:  [  1,  1 ], value:  0.93592344160012086}, 
- {coordinates:  [  1,  2 ], value: -7.57354715938276524E-002}, 
- {coordinates:  [  1,  3 ], value:  1.35530525486329979E-002}, 
- {coordinates:  [  1,  4 ], value: -2.76023554062208298E-002}]}
+ {coordinates:  [  1,  1 ], value:  0.96074339452403723}, 
+ {coordinates:  [  1,  2 ], value: -7.48337458562755298E-002}, 
+ {coordinates:  [  1,  3 ], value:  1.36493413877330667E-002}, 
+ {coordinates:  [  1,  4 ], value: -3.86547697725979286E-002}]}
  -  {segment:  2, elements: [
- {coordinates:  [  1,  6 ], value: -6.63485914650471624E-003}, 
- {coordinates:  [  1,  7 ], value: -1.7873881882717442E-002}, 
- {coordinates:  [  1,  8 ], value: -8.19708523427581937E-002}, 
- {coordinates:  [  1,  9 ], value:  7.72087567037046978E-005}]}
+ {coordinates:  [  1,  6 ], value:  9.35586588079291223E-003}, 
+ {coordinates:  [  1,  7 ], value: -2.89706165803149465E-002}, 
+ {coordinates:  [  1,  8 ], value: -9.00819792882308623E-002}, 
+ {coordinates:  [  1,  9 ], value: -3.11942442084311208E-003}]}
  -  {segment:  3, elements: [
- {coordinates:  [  2,  2 ], value:  1.0079058500433835}, 
- {coordinates:  [  2,  3 ], value: -7.14871600970076598E-002}, 
- {coordinates:  [  2,  4 ], value: -6.83591007162335229E-002}, 
- {coordinates:  [  2,  5 ], value:  2.01665085146705281E-002}]}
+ {coordinates:  [  2,  2 ], value:  1.0412296787221913}, 
+ {coordinates:  [  2,  3 ], value: -6.88703072957719403E-002}, 
+ {coordinates:  [  2,  4 ], value: -6.76432112366090604E-002}, 
+ {coordinates:  [  2,  5 ], value:  2.53720441030093335E-002}]}
  -  {segment:  4, elements: [
- {coordinates:  [  2,  7 ], value: -7.51597270045505639E-002}, 
- {coordinates:  [  2,  8 ], value:  2.28061826218865366E-002}, 
- {coordinates:  [  2,  9 ], value: -3.75689454849138446E-002}, 
- {coordinates:  [  2,  10 ], value: -8.51980795925393886E-002}]}
+ {coordinates:  [  2,  7 ], value: -7.44340088250472209E-002}, 
+ {coordinates:  [  2,  8 ], value:  1.89790241997963467E-002}, 
+ {coordinates:  [  2,  9 ], value: -4.61622372647265272E-002}, 
+ {coordinates:  [  2,  10 ], value: -8.42280129010563039E-002}]}
  -  {segment:  5, elements: [
- {coordinates:  [  3,  2 ], value: -6.88249895615388046E-002}, 
- {coordinates:  [  3,  3 ], value:  0.95884337145932896}, 
- {coordinates:  [  3,  4 ], value:  1.70909831804519144E-002}, 
- {coordinates:  [  3,  5 ], value: -7.30558803685047997E-002}]}
+ {coordinates:  [  3,  2 ], value: -6.56801317231562459E-002}, 
+ {coordinates:  [  3,  3 ], value:  0.96671320243557701}, 
+ {coordinates:  [  3,  4 ], value:  9.35557164031724717E-003}, 
+ {coordinates:  [  3,  5 ], value: -6.32419057731391787E-002}]}
  -  {segment:  6, elements: [
- {coordinates:  [  3,  7 ], value:  1.52297364071959269E-002}, 
- {coordinates:  [  3,  8 ], value: -5.06962123041706236E-002}, 
- {coordinates:  [  3,  9 ], value: -6.05261544714958966E-002}, 
- {coordinates:  [  3,  10 ], value:  4.36401674788640045E-003}]}
+ {coordinates:  [  3,  7 ], value:  7.07838365656852583E-003}, 
+ {coordinates:  [  3,  8 ], value: -4.76532000621797402E-002}, 
+ {coordinates:  [  3,  9 ], value: -7.90944742590350136E-002}, 
+ {coordinates:  [  3,  10 ], value:  1.89891963282001747E-004}]}
  -  {segment:  7, elements: [
- {coordinates:  [  4,  3 ], value:  1.1353564232705924E-002}, 
- {coordinates:  [  4,  4 ], value:  0.93904701613876573}, 
- {coordinates:  [  4,  5 ], value: -5.34510288417728643E-002}]}
+ {coordinates:  [  4,  3 ], value:  9.99462334570888448E-003}, 
+ {coordinates:  [  4,  4 ], value:  0.9388220163485258}, 
+ {coordinates:  [  4,  5 ], value: -5.44821175405792169E-002}]}
  -  {segment:  8, elements: [
- {coordinates:  [  4,  7 ], value: -5.37005618806876625E-002}, 
- {coordinates:  [  4,  8 ], value: -6.71677545728104064E-002}, 
- {coordinates:  [  4,  9 ], value:  1.50013558060588803E-002}]}
+ {coordinates:  [  4,  7 ], value: -5.38230280772353867E-002}, 
+ {coordinates:  [  4,  8 ], value: -6.63591239767512692E-002}, 
+ {coordinates:  [  4,  9 ], value:  9.90093234624952155E-003}]}
  -  {segment:  9, elements: [
- {coordinates:  [  5,  3 ], value: -7.30800383690434485E-002}, 
- {coordinates:  [  5,  4 ], value: -5.53216036905559844E-002}, 
- {coordinates:  [  5,  5 ], value:  1.0121339712134827}]}
+ {coordinates:  [  5,  3 ], value: -6.34023233677294407E-002}, 
+ {coordinates:  [  5,  4 ], value: -5.52238780694998266E-002}, 
+ {coordinates:  [  5,  5 ], value:  1.0205423643259608}]}
  -  {segment:  10, elements: [
- {coordinates:  [  5,  7 ], value: -4.97276368409621389E-002}, 
- {coordinates:  [  5,  8 ], value:  2.54688723410590977E-002}, 
- {coordinates:  [  5,  9 ], value: -7.29137512497492063E-002}]}
+ {coordinates:  [  5,  7 ], value: -4.94128416037016641E-002}, 
+ {coordinates:  [  5,  8 ], value:  2.55348887444314179E-002}, 
+ {coordinates:  [  5,  9 ], value: -8.04597700154575379E-002}]}
  -  {segment:  11, elements: [
- {coordinates:  [  6,  2 ], value: -5.02524789092460913E-002}, 
- {coordinates:  [  6,  3 ], value: -5.54622339283702206E-002}, 
- {coordinates:  [  6,  4 ], value:  1.28148247196251831E-002}]}
+ {coordinates:  [  6,  2 ], value: -5.34721053289832077E-002}, 
+ {coordinates:  [  6,  3 ], value: -5.90904454000710441E-002}, 
+ {coordinates:  [  6,  4 ], value:  8.15348349651979186E-003}]}
  -  {segment:  12, elements: [
- {coordinates:  [  6,  6 ], value:  0.9586727612904048}, 
- {coordinates:  [  6,  7 ], value:  2.75455921807185328E-003}, 
- {coordinates:  [  6,  8 ], value: -8.29117352693723025E-002}]}
+ {coordinates:  [  6,  6 ], value:  0.98022835999868974}, 
+ {coordinates:  [  6,  7 ], value: -2.6864923481832682E-003}, 
+ {coordinates:  [  6,  8 ], value: -8.4345920098043134E-002}]}
  -  {segment:  13, elements: [
- {coordinates:  [  7,  3 ], value:  7.26986405364816665E-003}, 
- {coordinates:  [  7,  4 ], value: -5.36690178285025438E-002}, 
- {coordinates:  [  7,  5 ], value: -4.9247054928939632E-002}]}
+ {coordinates:  [  7,  3 ], value:  7.44911504940739145E-003}, 
+ {coordinates:  [  7,  4 ], value: -5.39330261802397765E-002}, 
+ {coordinates:  [  7,  5 ], value: -4.88446150005565696E-002}]}
  -  {segment:  14, elements: [
- {coordinates:  [  7,  7 ], value:  0.92534438121690399}, 
- {coordinates:  [  7,  8 ], value: -3.05447136433983461E-002}, 
- {coordinates:  [  7,  9 ], value:  1.86031676101613584E-003}]}
+ {coordinates:  [  7,  7 ], value:  0.92518052150696062}, 
+ {coordinates:  [  7,  8 ], value: -2.98732058383811838E-002}, 
+ {coordinates:  [  7,  9 ], value: -3.21562521503340184E-003}]}
  -  {segment:  15, elements: [
- {coordinates:  [  8,  3 ], value: -5.98870895247420668E-002}, 
- {coordinates:  [  8,  4 ], value: -6.70551605757396668E-002}, 
- {coordinates:  [  8,  5 ], value:  1.48970293930698484E-002}]}
+ {coordinates:  [  8,  3 ], value: -4.85938983442431791E-002}, 
+ {coordinates:  [  8,  4 ], value: -6.71608682777837113E-002}, 
+ {coordinates:  [  8,  5 ], value:  2.50714932869595571E-002}]}
  -  {segment:  16, elements: [
- {coordinates:  [  8,  7 ], value: -3.0586811715047197E-002}, 
- {coordinates:  [  8,  8 ], value:  1.0082525796726549}, 
- {coordinates:  [  8,  9 ], value: -9.10058616336054116E-002}]}
+ {coordinates:  [  8,  7 ], value: -3.05516996479007624E-002}, 
+ {coordinates:  [  8,  8 ], value:  1.0079195560426737}, 
+ {coordinates:  [  8,  9 ], value: -9.65873512451086852E-002}]}
  -  {segment:  17, elements: [
- {coordinates:  [  9,  7 ], value: -3.05730722663837039E-003}, 
- {coordinates:  [  9,  8 ], value: -9.66070442419332681E-002}, 
- {coordinates:  [  9,  9 ], value:  0.9905489859920158}]}
+ {coordinates:  [  9,  7 ], value: -2.52301962183388434E-003}, 
+ {coordinates:  [  9,  8 ], value: -9.48290326291226365E-002}, 
+ {coordinates:  [  9,  9 ], value:  0.99097524201615494}]}
  -  {segment:  18, elements: [
- {coordinates:  [  10,  8 ], value: -3.14454743269235379E-002}, 
- {coordinates:  [  10,  9 ], value: -1.48389309179344734E-002}, 
- {coordinates:  [  10,  10 ], value:  0.91356813517456104}]}
- error of the result                   :  9.37609090476134886E-004
+ {coordinates:  [  10,  8 ], value: -3.53214074654944754E-002}, 
+ {coordinates:  [  10,  9 ], value: -1.68515500953997366E-002}, 
+ {coordinates:  [  10,  10 ], value:  0.91575945581779972}]}
+ error of the result                   :  4.73941367258599866E-002
+  #------------------------------------------------------------------------------- check: 13
+ check number                          :  13
+ imode                                 :  1
+ iorder                                :  0
+ power                                 :  1
+ init: nseq         350
+ final result:
+ -  {segment:  1, elements: [
+ {coordinates:  [  1,  1 ], value:  0.96735558445410841}, 
+ {coordinates:  [  1,  2 ], value: -0.1731126098926076}, 
+ {coordinates:  [  1,  3 ], value:  5.34185490636404775E-002}, 
+ {coordinates:  [  1,  4 ], value: -2.40900738836028784E-002}]}
+ -  {segment:  2, elements: [
+ {coordinates:  [  1,  6 ], value:  6.0133813041852599E-002}, 
+ {coordinates:  [  1,  7 ], value: -1.09808095329980166E-002}, 
+ {coordinates:  [  1,  8 ], value: -0.20016768414298761}, 
+ {coordinates:  [  1,  9 ], value:  3.53967028554809104E-002}]}
+ -  {segment:  3, elements: [
+ {coordinates:  [  2,  2 ], value:  1.1508419463798578}, 
+ {coordinates:  [  2,  3 ], value: -0.1461572610291958}, 
+ {coordinates:  [  2,  4 ], value: -0.13552119067317281}, 
+ {coordinates:  [  2,  5 ], value:  0.14565347837189924}]}
+ -  {segment:  4, elements: [
+ {coordinates:  [  2,  7 ], value: -0.13854930486679073}, 
+ {coordinates:  [  2,  8 ], value:  0.11951226735267081}, 
+ {coordinates:  [  2,  9 ], value: -9.06914537906595986E-002}, 
+ {coordinates:  [  2,  10 ], value: -0.16231334745125428}]}
+ -  {segment:  5, elements: [
+ {coordinates:  [  3,  2 ], value: -0.1461572610291958}, 
+ {coordinates:  [  3,  3 ], value:  0.95772617833375129}, 
+ {coordinates:  [  3,  4 ], value:  3.44432892085926798E-002}, 
+ {coordinates:  [  3,  5 ], value: -0.13494094993773789}]}
+ -  {segment:  6, elements: [
+ {coordinates:  [  3,  7 ], value:  3.06724606199958692E-002}, 
+ {coordinates:  [  3,  8 ], value: -9.98098936753283733E-002}, 
+ {coordinates:  [  3,  9 ], value: -0.10581594317092337}, 
+ {coordinates:  [  3,  10 ], value:  3.15618932185000867E-002}]}
+ -  {segment:  7, elements: [
+ {coordinates:  [  4,  3 ], value:  3.44432892085926798E-002}, 
+ {coordinates:  [  4,  4 ], value:  0.91558859767022116}, 
+ {coordinates:  [  4,  5 ], value: -0.11598222476215019}]}
+ -  {segment:  8, elements: [
+ {coordinates:  [  4,  7 ], value: -6.97204264970720106E-002}, 
+ {coordinates:  [  4,  8 ], value: -0.14059159606366753}, 
+ {coordinates:  [  4,  9 ], value:  4.81778097971361369E-002}]}
+ -  {segment:  9, elements: [
+ {coordinates:  [  5,  3 ], value: -0.13494094993773789}, 
+ {coordinates:  [  5,  4 ], value: -0.11598222476215019}, 
+ {coordinates:  [  5,  5 ], value:  1.1468999513610851}]}
+ -  {segment:  10, elements: [
+ {coordinates:  [  5,  7 ], value: -9.42745263020407648E-002}, 
+ {coordinates:  [  5,  8 ], value:  0.14660495358868311}, 
+ {coordinates:  [  5,  9 ], value: -0.15798917251552891}]}
+ -  {segment:  11, elements: [
+ {coordinates:  [  6,  2 ], value: -0.13504675179881226}, 
+ {coordinates:  [  6,  3 ], value: -7.30048510617638258E-002}, 
+ {coordinates:  [  6,  4 ], value:  4.79721405080141064E-002}]}
+ -  {segment:  12, elements: [
+ {coordinates:  [  6,  6 ], value:  1.0084011793216696}, 
+ {coordinates:  [  6,  7 ], value:  2.31046761762848246E-002}, 
+ {coordinates:  [  6,  8 ], value: -0.18446931584252166}]}
+ -  {segment:  13, elements: [
+ {coordinates:  [  7,  3 ], value:  3.06724606199958692E-002}, 
+ {coordinates:  [  7,  4 ], value: -6.97204264970720106E-002}, 
+ {coordinates:  [  7,  5 ], value: -9.42745263020407648E-002}]}
+ -  {segment:  14, elements: [
+ {coordinates:  [  7,  7 ], value:  0.89414217557746156}, 
+ {coordinates:  [  7,  8 ], value: -6.14825523746440131E-002}, 
+ {coordinates:  [  7,  9 ], value:  1.98164411458920595E-002}]}
+ -  {segment:  15, elements: [
+ {coordinates:  [  8,  3 ], value: -9.98098936753283733E-002}, 
+ {coordinates:  [  8,  4 ], value: -0.14059159606366753}, 
+ {coordinates:  [  8,  5 ], value:  0.14660495358868311}]}
+ -  {segment:  16, elements: [
+ {coordinates:  [  8,  7 ], value: -6.14825523746440131E-002}, 
+ {coordinates:  [  8,  8 ], value:  1.108385764841646}, 
+ {coordinates:  [  8,  9 ], value: -0.19453672895947746}]}
+ -  {segment:  17, elements: [
+ {coordinates:  [  9,  7 ], value:  1.98164411458920595E-002}, 
+ {coordinates:  [  9,  8 ], value: -0.19453672895947746}, 
+ {coordinates:  [  9,  9 ], value:  1.0438909835768211}]}
+ -  {segment:  18, elements: [
+ {coordinates:  [  10,  8 ], value: -6.58236757286890933E-002}, 
+ {coordinates:  [  10,  9 ], value: -1.6585899203164613E-003}, 
+ {coordinates:  [  10,  10 ], value:  0.89911957898999317}]}
+ error of the result                   :  1.0
+  #------------------------------------------------------------------------------- check: 14
+ check number                          :  14
+ imode                                 :  1
+ iorder                                :  1
+ power                                 :  1
+ init: nseq         350
+ final result:
+ -  {segment:  1, elements: [
+ {coordinates:  [  1,  1 ], value:  0.8583853163452857}, 
+ {coordinates:  [  1,  2 ], value: -0.16536436208636121}, 
+ {coordinates:  [  1,  3 ], value: -3.98297133496339825E-003}, 
+ {coordinates:  [  1,  4 ], value: -0.11455000338086135}]}
+ -  {segment:  2, elements: [
+ {coordinates:  [  1,  6 ], value: -1.56146041267507894E-002}, 
+ {coordinates:  [  1,  7 ], value: -8.63262781792166339E-002}, 
+ {coordinates:  [  1,  8 ], value: -0.19576594803233849}, 
+ {coordinates:  [  1,  9 ], value: -3.39683291755919908E-002}]}
+ -  {segment:  3, elements: [
+ {coordinates:  [  2,  2 ], value:  0.99985900724399901}, 
+ {coordinates:  [  2,  3 ], value: -0.14638288688518716}, 
+ {coordinates:  [  2,  4 ], value: -0.16125482394960999}, 
+ {coordinates:  [  2,  5 ], value: -2.63511069504819388E-003}]}
+ -  {segment:  4, elements: [
+ {coordinates:  [  2,  7 ], value: -0.18090099069535978}, 
+ {coordinates:  [  2,  8 ], value: -1.28852598967656527E-002}, 
+ {coordinates:  [  2,  9 ], value: -9.16040563258151558E-002}, 
+ {coordinates:  [  2,  10 ], value: -0.19410263090291438}]}
+ -  {segment:  5, elements: [
+ {coordinates:  [  3,  2 ], value: -0.14638288688518716}, 
+ {coordinates:  [  3,  3 ], value:  0.86825998839764695}, 
+ {coordinates:  [  3,  4 ], value: -5.63573444858631967E-004}, 
+ {coordinates:  [  3,  5 ], value: -0.15102029709459569}]}
+ -  {segment:  6, elements: [
+ {coordinates:  [  3,  7 ], value: -1.56180493674950736E-003}, 
+ {coordinates:  [  3,  8 ], value: -0.12495693085804581}, 
+ {coordinates:  [  3,  9 ], value: -0.17766669941024746}, 
+ {coordinates:  [  3,  10 ], value: -1.04015666126896274E-002}]}
+ -  {segment:  7, elements: [
+ {coordinates:  [  4,  3 ], value: -5.63573444858631967E-004}, 
+ {coordinates:  [  4,  4 ], value:  0.82345665493615239}, 
+ {coordinates:  [  4,  5 ], value: -0.12666138792501}]}
+ -  {segment:  8, elements: [
+ {coordinates:  [  4,  7 ], value: -0.15551383745801725}, 
+ {coordinates:  [  4,  8 ], value: -0.15252963386425364}, 
+ {coordinates:  [  4,  9 ], value: -7.66080626805222455E-004}]}
+ -  {segment:  9, elements: [
+ {coordinates:  [  5,  3 ], value: -0.15102029709459569}, 
+ {coordinates:  [  5,  4 ], value: -0.12666138792501}, 
+ {coordinates:  [  5,  5 ], value:  0.9879674256942601}]}
+ -  {segment:  10, elements: [
+ {coordinates:  [  5,  7 ], value: -0.12150758299641991}, 
+ {coordinates:  [  5,  8 ], value: -2.24794147887953134E-003}, 
+ {coordinates:  [  5,  9 ], value: -0.15985083684265095}]}
+ -  {segment:  11, elements: [
+ {coordinates:  [  6,  2 ], value: -0.11978135740042682}, 
+ {coordinates:  [  6,  3 ], value: -0.15697255608391866}, 
+ {coordinates:  [  6,  4 ], value: -1.26655045025415511E-003}]}
+ -  {segment:  12, elements: [
+ {coordinates:  [  6,  6 ], value:  0.9119239994240087}, 
+ {coordinates:  [  6,  7 ], value: -1.46811337463416992E-002}, 
+ {coordinates:  [  6,  8 ], value: -0.1829343520025061}]}
+ -  {segment:  13, elements: [
+ {coordinates:  [  7,  3 ], value: -1.56180493674950736E-003}, 
+ {coordinates:  [  7,  4 ], value: -0.15551383745801725}, 
+ {coordinates:  [  7,  5 ], value: -0.12150758299641991}]}
+ -  {segment:  14, elements: [
+ {coordinates:  [  7,  7 ], value:  0.80327341108016936}, 
+ {coordinates:  [  7,  8 ], value: -8.2822326528734988E-002}, 
+ {coordinates:  [  7,  9 ], value: -1.75702800287829211E-002}]}
+ -  {segment:  15, elements: [
+ {coordinates:  [  8,  3 ], value: -0.12495693085804581}, 
+ {coordinates:  [  8,  4 ], value: -0.15252963386425364}, 
+ {coordinates:  [  8,  5 ], value: -2.24794147887953134E-003}]}
+ -  {segment:  16, elements: [
+ {coordinates:  [  8,  7 ], value: -8.2822326528734988E-002}, 
+ {coordinates:  [  8,  8 ], value:  0.9591296756454093}, 
+ {coordinates:  [  8,  9 ], value: -0.19793728734041288}]}
+ -  {segment:  17, elements: [
+ {coordinates:  [  9,  7 ], value: -1.75702800287829211E-002}, 
+ {coordinates:  [  9,  8 ], value: -0.19793728734041288}, 
+ {coordinates:  [  9,  9 ], value:  0.95329095444551637}]}
+ -  {segment:  18, elements: [
+ {coordinates:  [  10,  8 ], value: -7.76170910319666785E-002}, 
+ {coordinates:  [  10,  9 ], value: -4.52346403344967493E-002}, 
+ {coordinates:  [  10,  10 ], value:  0.8017237132356021}]}
+ error of the result                   :  1.0
   #------------------------------------------------------------------------------- check: 15
  check number                          :  15
  imode                                 :  1
  iorder                                :  6
  power                                 :  1
+ init: nseq         350
  final result:
  -  {segment:  1, elements: [
- {coordinates:  [  1,  1 ], value:  0.87595329366325891}, 
- {coordinates:  [  1,  2 ], value: -0.1479696649939507}, 
- {coordinates:  [  1,  3 ], value:  3.69315074288745562E-002}, 
- {coordinates:  [  1,  4 ], value: -3.78154802723890057E-002}]}
+ {coordinates:  [  1,  1 ], value:  0.93989564180364638}, 
+ {coordinates:  [  1,  2 ], value: -0.14718777454688384}, 
+ {coordinates:  [  1,  3 ], value:  3.62131245502208127E-002}, 
+ {coordinates:  [  1,  4 ], value: -6.65152885606893757E-002}]}
  -  {segment:  2, elements: [
- {coordinates:  [  1,  6 ], value: -1.25702090316700266E-002}, 
- {coordinates:  [  1,  7 ], value: -2.13589698831581493E-002}, 
- {coordinates:  [  1,  8 ], value: -0.15698138784813606}, 
- {coordinates:  [  1,  9 ], value:  1.04735802635253106E-002}]}
+ {coordinates:  [  1,  6 ], value:  2.8966759083872716E-002}, 
+ {coordinates:  [  1,  7 ], value: -5.02303881187690163E-002}, 
+ {coordinates:  [  1,  8 ], value: -0.17775635082107599}, 
+ {coordinates:  [  1,  9 ], value:  2.69591055042614188E-003}]}
  -  {segment:  3, elements: [
- {coordinates:  [  2,  2 ], value:  1.0215504575589502}, 
- {coordinates:  [  2,  3 ], value: -0.1443765594203808}, 
- {coordinates:  [  2,  4 ], value: -0.13181230522435328}, 
- {coordinates:  [  2,  5 ], value:  5.47882988044244221E-002}]}
+ {coordinates:  [  2,  2 ], value:  1.109361587773247}, 
+ {coordinates:  [  2,  3 ], value: -0.13873241553631538}, 
+ {coordinates:  [  2,  4 ], value: -0.12976098017908783}, 
+ {coordinates:  [  2,  5 ], value:  6.90430326455081789E-002}]}
  -  {segment:  4, elements: [
- {coordinates:  [  2,  7 ], value: -0.14278524734671053}, 
- {coordinates:  [  2,  8 ], value:  6.48546385737558961E-002}, 
- {coordinates:  [  2,  9 ], value: -7.28031650698852395E-002}, 
- {coordinates:  [  2,  10 ], value: -0.16389579071866894}]}
+ {coordinates:  [  2,  7 ], value: -0.14068035056445458}, 
+ {coordinates:  [  2,  8 ], value:  5.52290069429975591E-002}, 
+ {coordinates:  [  2,  9 ], value: -9.43038016835927445E-002}, 
+ {coordinates:  [  2,  10 ], value: -0.16128964000642806}]}
  -  {segment:  5, elements: [
- {coordinates:  [  3,  2 ], value: -0.13600518682296228}, 
- {coordinates:  [  3,  3 ], value:  0.93340976169152257}, 
- {coordinates:  [  3,  4 ], value:  4.49309852651806479E-002}, 
- {coordinates:  [  3,  5 ], value: -0.14662563350019658}]}
+ {coordinates:  [  3,  2 ], value: -0.12870301593049729}, 
+ {coordinates:  [  3,  3 ], value:  0.95281995365654393}, 
+ {coordinates:  [  3,  4 ], value:  2.41679669356984136E-002}, 
+ {coordinates:  [  3,  5 ], value: -0.12054461174297007}]}
  -  {segment:  6, elements: [
- {coordinates:  [  3,  7 ], value:  4.00152038108231647E-002}, 
- {coordinates:  [  3,  8 ], value: -9.74094650261745076E-002}, 
- {coordinates:  [  3,  9 ], value: -0.10383326488433646}, 
- {coordinates:  [  3,  10 ], value:  1.42750996825545626E-002}]}
+ {coordinates:  [  3,  7 ], value:  1.85749605682540668E-002}, 
+ {coordinates:  [  3,  8 ], value: -8.76092275966853379E-002}, 
+ {coordinates:  [  3,  9 ], value: -0.1524107006189751}, 
+ {coordinates:  [  3,  10 ], value:  3.35334303219846867E-003}]}
  -  {segment:  7, elements: [
- {coordinates:  [  4,  3 ], value:  3.01853065204144566E-002}, 
- {coordinates:  [  4,  4 ], value:  0.8942880716952788}, 
- {coordinates:  [  4,  5 ], value: -0.10250395703623742}]}
+ {coordinates:  [  4,  3 ], value:  2.59612652304489905E-002}, 
+ {coordinates:  [  4,  4 ], value:  0.89342320017661514}, 
+ {coordinates:  [  4,  5 ], value: -0.10558871789258593}]}
  -  {segment:  8, elements: [
- {coordinates:  [  4,  7 ], value: -9.35729052561583285E-002}, 
- {coordinates:  [  4,  8 ], value: -0.13104470526236631}, 
- {coordinates:  [  4,  9 ], value:  3.95272227936763615E-002}]}
+ {coordinates:  [  4,  7 ], value: -9.41116838145443224E-002}, 
+ {coordinates:  [  4,  8 ], value: -0.12868075467179577}, 
+ {coordinates:  [  4,  9 ], value:  2.63474041329880074E-002}]}
  -  {segment:  9, elements: [
- {coordinates:  [  5,  3 ], value: -0.14698837095051867}, 
- {coordinates:  [  5,  4 ], value: -0.1080983514245516}, 
- {coordinates:  [  5,  5 ], value:  1.0366458003925936}]}
+ {coordinates:  [  5,  3 ], value: -0.12126948937602795}, 
+ {coordinates:  [  5,  4 ], value: -0.10784566982821209}, 
+ {coordinates:  [  5,  5 ], value:  1.0587494804091695}]}
  -  {segment:  10, elements: [
- {coordinates:  [  5,  7 ], value: -9.42939522928957496E-002}, 
- {coordinates:  [  5,  8 ], value:  6.88945569700734201E-002}, 
- {coordinates:  [  5,  9 ], value: -0.14399413907751929}]}
+ {coordinates:  [  5,  7 ], value: -9.33533268723007043E-002}, 
+ {coordinates:  [  5,  8 ], value:  6.87288329938676446E-002}, 
+ {coordinates:  [  5,  9 ], value: -0.16314483744059194}]}
  -  {segment:  11, elements: [
- {coordinates:  [  6,  2 ], value: -9.53226978857718427E-002}, 
- {coordinates:  [  6,  3 ], value: -9.69157177345966875E-002}, 
- {coordinates:  [  6,  4 ], value:  3.38311843921003802E-002}]}
+ {coordinates:  [  6,  2 ], value: -0.10434975937554254}, 
+ {coordinates:  [  6,  3 ], value: -0.10653851139582693}, 
+ {coordinates:  [  6,  4 ], value:  2.12876443422506077E-002}]}
  -  {segment:  12, elements: [
- {coordinates:  [  6,  6 ], value:  0.91905348577295942}, 
- {coordinates:  [  6,  7 ], value:  1.12205524387052284E-002}, 
- {coordinates:  [  6,  8 ], value: -0.16300740427817159}]}
+ {coordinates:  [  6,  6 ], value:  0.97435027133625696}, 
+ {coordinates:  [  6,  7 ], value: -3.028776775011662E-003}, 
+ {coordinates:  [  6,  8 ], value: -0.16539794011871975}]}
  -  {segment:  13, elements: [
- {coordinates:  [  7,  3 ], value:  1.94113367376075943E-002}, 
- {coordinates:  [  7,  4 ], value: -9.35039961352542442E-002}, 
- {coordinates:  [  7,  5 ], value: -9.26031060437862569E-002}]}
+ {coordinates:  [  7,  3 ], value:  1.95170133771488709E-002}, 
+ {coordinates:  [  7,  4 ], value: -9.44669947977834629E-002}, 
+ {coordinates:  [  7,  5 ], value: -9.16483045774028199E-002}]}
  -  {segment:  14, elements: [
- {coordinates:  [  7,  7 ], value:  0.86419445207059431}, 
- {coordinates:  [  7,  8 ], value: -5.58645559809177253E-002}, 
- {coordinates:  [  7,  9 ], value:  9.9418504123499167E-003}]}
+ {coordinates:  [  7,  7 ], value:  0.86355334254430283}, 
+ {coordinates:  [  7,  8 ], value: -5.39338059666816735E-002}, 
+ {coordinates:  [  7,  9 ], value: -3.20434344616607339E-003}]}
  -  {segment:  15, elements: [
- {coordinates:  [  8,  3 ], value: -0.12036336639655101}, 
- {coordinates:  [  8,  4 ], value: -0.1307400570627133}, 
- {coordinates:  [  8,  5 ], value:  4.06712479764112581E-002}]}
+ {coordinates:  [  8,  3 ], value: -9.07029333250157221E-002}, 
+ {coordinates:  [  8,  4 ], value: -0.13104370311914484}, 
+ {coordinates:  [  8,  5 ], value:  6.73261518353933386E-002}]}
  -  {segment:  16, elements: [
- {coordinates:  [  8,  7 ], value: -5.60562963586297772E-002}, 
- {coordinates:  [  8,  8 ], value:  1.0356384857090961}, 
- {coordinates:  [  8,  9 ], value: -0.17952961006739918}]}
+ {coordinates:  [  8,  7 ], value: -5.59171768459126375E-002}, 
+ {coordinates:  [  8,  8 ], value:  1.0343186391442676}, 
+ {coordinates:  [  8,  9 ], value: -0.19357558890731677}]}
  -  {segment:  17, elements: [
- {coordinates:  [  9,  7 ], value: -2.60582630988940656E-003}, 
- {coordinates:  [  9,  8 ], value: -0.19364472376112102}, 
- {coordinates:  [  9,  9 ], value:  0.99022872537192341}]}
+ {coordinates:  [  9,  7 ], value: -1.46929911727476485E-003}, 
+ {coordinates:  [  9,  8 ], value: -0.1882867141534077}, 
+ {coordinates:  [  9,  9 ], value:  0.99105608332683437}]}
  -  {segment:  18, elements: [
- {coordinates:  [  10,  8 ], value: -5.90753287697052126E-002}, 
- {coordinates:  [  10,  9 ], value: -2.51451178407385914E-002}, 
- {coordinates:  [  10,  10 ], value:  0.8347009216708996}]}
- error of the result                   :  5.45352019345970995E-003
+ {coordinates:  [  10,  8 ], value: -6.88162446648472592E-002}, 
+ {coordinates:  [  10,  9 ], value: -3.0191039748156661E-002}, 
+ {coordinates:  [  10,  10 ], value:  0.84015943421947936}]}
+ error of the result                   :  0.17570948405306699
+  #------------------------------------------------------------------------------- check: 16
+ check number                          :  16
+ imode                                 :  1
+ iorder                                :  0
+ power                                 :  2
+ init: nseq         350
+ final result:
+ -  {segment:  1, elements: [
+ {coordinates:  [  1,  1 ], value:  1.0561169357299092}, 
+ {coordinates:  [  1,  2 ], value:  7.8791764758355573E-002}, 
+ {coordinates:  [  1,  3 ], value: -6.17432837044354105E-003}, 
+ {coordinates:  [  1,  4 ], value:  4.4139733208968232E-002}]}
+ -  {segment:  2, elements: [
+ {coordinates:  [  1,  6 ], value: -2.12747172154649153E-003}, 
+ {coordinates:  [  1,  7 ], value:  3.15561868606860849E-002}, 
+ {coordinates:  [  1,  8 ], value:  9.37389203541247468E-002}, 
+ {coordinates:  [  1,  9 ], value:  7.53679168382909333E-003}]}
+ -  {segment:  3, elements: [
+ {coordinates:  [  2,  2 ], value:  0.98166803643787726}, 
+ {coordinates:  [  2,  3 ], value:  6.99322113226523157E-002}, 
+ {coordinates:  [  2,  4 ], value:  7.32528048921129021E-002}, 
+ {coordinates:  [  2,  5 ], value: -1.63883629636033014E-002}]}
+ -  {segment:  4, elements: [
+ {coordinates:  [  2,  7 ], value:  8.13738583608031307E-002}, 
+ {coordinates:  [  2,  8 ], value: -9.48263754393982063E-003}, 
+ {coordinates:  [  2,  9 ], value:  4.20926251050111888E-002}, 
+ {coordinates:  [  2,  10 ], value:  8.89198067647113122E-002}]}
+ -  {segment:  5, elements: [
+ {coordinates:  [  3,  2 ], value:  6.9932211322652274E-002}, 
+ {coordinates:  [  3,  3 ], value:  1.052735157086236}, 
+ {coordinates:  [  3,  4 ], value: -5.17713930165351627E-003}, 
+ {coordinates:  [  3,  5 ], value:  6.99067614488763783E-002}]}
+ -  {segment:  6, elements: [
+ {coordinates:  [  3,  7 ], value: -4.48381773061314742E-003}, 
+ {coordinates:  [  3,  8 ], value:  5.58382469442813348E-002}, 
+ {coordinates:  [  3,  9 ], value:  7.80919996185654441E-002}, 
+ {coordinates:  [  3,  10 ], value: -1.2274708310773064E-003}]}
+ -  {segment:  7, elements: [
+ {coordinates:  [  4,  3 ], value: -5.17713930165352235E-003}, 
+ {coordinates:  [  4,  4 ], value:  1.0742068999926346}, 
+ {coordinates:  [  4,  5 ], value:  5.80128126220636475E-002}]}
+ -  {segment:  8, elements: [
+ {coordinates:  [  4,  7 ], value:  6.41650486278585452E-002}, 
+ {coordinates:  [  4,  8 ], value:  7.10365404048061283E-002}, 
+ {coordinates:  [  4,  9 ], value: -6.74759355624490222E-003}]}
+ -  {segment:  9, elements: [
+ {coordinates:  [  5,  3 ], value:  6.99067614488763783E-002}, 
+ {coordinates:  [  5,  4 ], value:  5.80128126220636128E-002}, 
+ {coordinates:  [  5,  5 ], value:  0.98722689970939714}]}
+ -  {segment:  10, elements: [
+ {coordinates:  [  5,  7 ], value:  5.38695500201612221E-002}, 
+ {coordinates:  [  5,  8 ], value: -1.66798619224753399E-002}, 
+ {coordinates:  [  5,  9 ], value:  7.56538496694688645E-002}]}
+ -  {segment:  11, elements: [
+ {coordinates:  [  6,  2 ], value:  5.78403353222000996E-002}, 
+ {coordinates:  [  6,  3 ], value:  6.6395967691795163E-002}, 
+ {coordinates:  [  6,  4 ], value: -6.31300132095065532E-003}]}
+ -  {segment:  12, elements: [
+ {coordinates:  [  6,  6 ], value:  1.031012205044183}, 
+ {coordinates:  [  6,  7 ], value:  1.53226092846295747E-003}, 
+ {coordinates:  [  6,  8 ], value:  8.73653704523401353E-002}]}
+ -  {segment:  13, elements: [
+ {coordinates:  [  7,  3 ], value: -4.48381773061314222E-003}, 
+ {coordinates:  [  7,  4 ], value:  6.41650486278585591E-002}, 
+ {coordinates:  [  7,  5 ], value:  5.38695500201612359E-002}]}
+ -  {segment:  14, elements: [
+ {coordinates:  [  7,  7 ], value:  1.0838183459481998}, 
+ {coordinates:  [  7,  8 ], value:  3.5559094144617942E-002}, 
+ {coordinates:  [  7,  9 ], value:  2.83107886080179345E-003}]}
+ -  {segment:  15, elements: [
+ {coordinates:  [  8,  3 ], value:  5.58382469442813695E-002}, 
+ {coordinates:  [  8,  4 ], value:  7.10365404048061283E-002}, 
+ {coordinates:  [  8,  5 ], value: -1.66798619224753225E-002}]}
+ -  {segment:  16, elements: [
+ {coordinates:  [  8,  7 ], value:  3.55590941446179282E-002}, 
+ {coordinates:  [  8,  8 ], value:  1.0022832594405671}, 
+ {coordinates:  [  8,  9 ], value:  9.45579276182827999E-002}]}
+ -  {segment:  17, elements: [
+ {coordinates:  [  9,  7 ], value:  2.83107886080178782E-003}, 
+ {coordinates:  [  9,  8 ], value:  9.4557927618282786E-002}, 
+ {coordinates:  [  9,  9 ], value:  1.0107883195190919}]}
+ -  {segment:  18, elements: [
+ {coordinates:  [  10,  8 ], value:  3.37788410320242136E-002}, 
+ {coordinates:  [  10,  9 ], value:  1.59874054352158977E-002}, 
+ {coordinates:  [  10,  10 ], value:  1.0840789741679775}]}
+ error of the result                   :  0.59148692885201248
+  #------------------------------------------------------------------------------- check: 17
+ check number                          :  17
+ imode                                 :  1
+ iorder                                :  1
+ power                                 :  2
+ init: nseq         350
+ final result:
+ -  {segment:  1, elements: [
+ {coordinates:  [  1,  1 ], value:  1.0708073418273572}, 
+ {coordinates:  [  1,  2 ], value:  8.26821810431806054E-002}, 
+ {coordinates:  [  1,  3 ], value:  1.99148566748169912E-003}, 
+ {coordinates:  [  1,  4 ], value:  5.72750016904306769E-002}]}
+ -  {segment:  2, elements: [
+ {coordinates:  [  1,  6 ], value:  7.80730206337539468E-003}, 
+ {coordinates:  [  1,  7 ], value:  4.3163139089608317E-002}, 
+ {coordinates:  [  1,  8 ], value:  9.78829740161692441E-002}, 
+ {coordinates:  [  1,  9 ], value:  1.69841645877959954E-002}]}
+ -  {segment:  3, elements: [
+ {coordinates:  [  2,  2 ], value:  1.0000704963780005}, 
+ {coordinates:  [  2,  3 ], value:  7.31914434425935817E-002}, 
+ {coordinates:  [  2,  4 ], value:  8.06274119748049967E-002}, 
+ {coordinates:  [  2,  5 ], value:  1.31755534752409694E-003}]}
+ -  {segment:  4, elements: [
+ {coordinates:  [  2,  7 ], value:  9.04504953476798906E-002}, 
+ {coordinates:  [  2,  8 ], value:  6.44262994838282633E-003}, 
+ {coordinates:  [  2,  9 ], value:  4.58020281629075779E-002}, 
+ {coordinates:  [  2,  10 ], value:  9.70513154514571902E-002}]}
+ -  {segment:  5, elements: [
+ {coordinates:  [  3,  2 ], value:  7.31914434425935817E-002}, 
+ {coordinates:  [  3,  3 ], value:  1.0658700058011765}, 
+ {coordinates:  [  3,  4 ], value:  2.81786722429315983E-004}, 
+ {coordinates:  [  3,  5 ], value:  7.55101485472978451E-002}]}
+ -  {segment:  6, elements: [
+ {coordinates:  [  3,  7 ], value:  7.8090246837475368E-004}, 
+ {coordinates:  [  3,  8 ], value:  6.24784654290229044E-002}, 
+ {coordinates:  [  3,  9 ], value:  8.88333497051237292E-002}, 
+ {coordinates:  [  3,  10 ], value:  5.20078330634481372E-003}]}
+ -  {segment:  7, elements: [
+ {coordinates:  [  4,  3 ], value:  2.81786722429315983E-004}, 
+ {coordinates:  [  4,  4 ], value:  1.0882716725319237}, 
+ {coordinates:  [  4,  5 ], value:  6.33306939625049997E-002}]}
+ -  {segment:  8, elements: [
+ {coordinates:  [  4,  7 ], value:  7.77569187290086256E-002}, 
+ {coordinates:  [  4,  8 ], value:  7.62648169321268193E-002}, 
+ {coordinates:  [  4,  9 ], value:  3.83040313402611228E-004}]}
+ -  {segment:  9, elements: [
+ {coordinates:  [  5,  3 ], value:  7.55101485472978451E-002}, 
+ {coordinates:  [  5,  4 ], value:  6.33306939625049997E-002}, 
+ {coordinates:  [  5,  5 ], value:  1.0060162871528699}]}
+ -  {segment:  10, elements: [
+ {coordinates:  [  5,  7 ], value:  6.07537914982099539E-002}, 
+ {coordinates:  [  5,  8 ], value:  1.12397073943976567E-003}, 
+ {coordinates:  [  5,  9 ], value:  7.99254184213254726E-002}]}
+ -  {segment:  11, elements: [
+ {coordinates:  [  6,  2 ], value:  5.98906787002134108E-002}, 
+ {coordinates:  [  6,  3 ], value:  7.84862780419593314E-002}, 
+ {coordinates:  [  6,  4 ], value:  6.33275225127077554E-004}]}
+ -  {segment:  12, elements: [
+ {coordinates:  [  6,  6 ], value:  1.0440380002879956}, 
+ {coordinates:  [  6,  7 ], value:  7.34056687317084962E-003}, 
+ {coordinates:  [  6,  8 ], value:  9.14671760012530505E-002}]}
+ -  {segment:  13, elements: [
+ {coordinates:  [  7,  3 ], value:  7.8090246837475368E-004}, 
+ {coordinates:  [  7,  4 ], value:  7.77569187290086256E-002}, 
+ {coordinates:  [  7,  5 ], value:  6.07537914982099539E-002}]}
+ -  {segment:  14, elements: [
+ {coordinates:  [  7,  7 ], value:  1.0983632944599153}, 
+ {coordinates:  [  7,  8 ], value:  4.1411163264367494E-002}, 
+ {coordinates:  [  7,  9 ], value:  8.78514001439146056E-003}]}
+ -  {segment:  15, elements: [
+ {coordinates:  [  8,  3 ], value:  6.24784654290229044E-002}, 
+ {coordinates:  [  8,  4 ], value:  7.62648169321268193E-002}, 
+ {coordinates:  [  8,  5 ], value:  1.12397073943976567E-003}]}
+ -  {segment:  16, elements: [
+ {coordinates:  [  8,  7 ], value:  4.1411163264367494E-002}, 
+ {coordinates:  [  8,  8 ], value:  1.0204351621772954}, 
+ {coordinates:  [  8,  9 ], value:  9.89686436702064409E-002}]}
+ -  {segment:  17, elements: [
+ {coordinates:  [  9,  7 ], value:  8.78514001439146056E-003}, 
+ {coordinates:  [  9,  8 ], value:  9.89686436702064409E-002}, 
+ {coordinates:  [  9,  9 ], value:  1.0233545227772418}]}
+ -  {segment:  18, elements: [
+ {coordinates:  [  10,  8 ], value:  3.88085455159833392E-002}, 
+ {coordinates:  [  10,  9 ], value:  2.26173201672483747E-002}, 
+ {coordinates:  [  10,  10 ], value:  1.099138143382199}]}
+ error of the result                   :  0.60896588057256085
   #------------------------------------------------------------------------------- check: 18
  check number                          :  18
  imode                                 :  1
  iorder                                :  6
  power                                 :  2
+ init: nseq         350
  final result:
  -  {segment:  1, elements: [
- {coordinates:  [  1,  1 ], value:  1.0684636860336916}, 
- {coordinates:  [  1,  2 ], value:  8.00396758899131616E-002}, 
- {coordinates:  [  1,  3 ], value: -3.54202056271373661E-003}, 
- {coordinates:  [  1,  4 ], value:  4.63843387380014072E-002}]}
+ {coordinates:  [  1,  1 ], value:  1.0593696653489439}, 
+ {coordinates:  [  1,  2 ], value:  7.92364372062700356E-002}, 
+ {coordinates:  [  1,  3 ], value: -3.75618360672211587E-003}, 
+ {coordinates:  [  1,  4 ], value:  5.05172882519370689E-002}]}
  -  {segment:  2, elements: [
- {coordinates:  [  1,  6 ], value:  7.39477058333696136E-003}, 
- {coordinates:  [  1,  7 ], value:  3.37440780929918263E-002}, 
- {coordinates:  [  1,  8 ], value:  9.13570097122461955E-002}, 
- {coordinates:  [  1,  9 ], value:  1.07221522823009261E-002}]}
+ {coordinates:  [  1,  6 ], value:  1.60328218071368548E-003}, 
+ {coordinates:  [  1,  7 ], value:  3.78683131038415888E-002}, 
+ {coordinates:  [  1,  8 ], value:  9.44571715763027758E-002}, 
+ {coordinates:  [  1,  9 ], value:  1.2200498291583527E-002}]}
  -  {segment:  3, elements: [
- {coordinates:  [  2,  2 ], value:  0.99745708031473346}, 
- {coordinates:  [  2,  3 ], value:  7.18735438023660189E-002}, 
- {coordinates:  [  2,  4 ], value:  7.54607560136269645E-002}, 
- {coordinates:  [  2,  5 ], value: -6.02019568673711671E-003}]}
+ {coordinates:  [  2,  2 ], value:  0.98580224986835741}, 
+ {coordinates:  [  2,  3 ], value:  7.05471325109103264E-002}, 
+ {coordinates:  [  2,  4 ], value:  7.52878607936284944E-002}, 
+ {coordinates:  [  2,  5 ], value: -7.73113623434375924E-003}]}
  -  {segment:  4, elements: [
- {coordinates:  [  2,  7 ], value:  8.44311948824476716E-002}, 
- {coordinates:  [  2,  8 ], value: -3.69481831900561131E-003}, 
- {coordinates:  [  2,  9 ], value:  4.20712672930065729E-002}, 
- {coordinates:  [  2,  10 ], value:  9.27144547835851984E-002}]}
+ {coordinates:  [  2,  7 ], value:  8.42610533755607932E-002}, 
+ {coordinates:  [  2,  8 ], value: -2.2234780211420912E-003}, 
+ {coordinates:  [  2,  9 ], value:  4.54286733011773705E-002}, 
+ {coordinates:  [  2,  10 ], value:  9.2366515257761489E-002}]}
  -  {segment:  5, elements: [
- {coordinates:  [  3,  2 ], value:  7.13857675530865932E-002}, 
- {coordinates:  [  3,  3 ], value:  1.0572467854554011}, 
- {coordinates:  [  3,  4 ], value: -6.02628472410379756E-003}, 
- {coordinates:  [  3,  5 ], value:  7.40146729732696351E-002}]}
+ {coordinates:  [  3,  2 ], value:  6.98863559259673278E-002}, 
+ {coordinates:  [  3,  3 ], value:  1.0541579095669014}, 
+ {coordinates:  [  3,  4 ], value: -3.38865750938262267E-003}, 
+ {coordinates:  [  3,  5 ], value:  7.06853971117359509E-002}]}
  -  {segment:  6, elements: [
- {coordinates:  [  3,  7 ], value: -5.11538555877944466E-003}, 
- {coordinates:  [  3,  8 ], value:  5.73447758983310837E-002}, 
- {coordinates:  [  3,  9 ], value:  7.87044675960313911E-002}, 
- {coordinates:  [  3,  10 ], value:  1.74993464470575024E-003}]}
+ {coordinates:  [  3,  7 ], value: -2.23821608116628063E-003}, 
+ {coordinates:  [  3,  8 ], value:  5.68125301301893801E-002}, 
+ {coordinates:  [  3,  9 ], value:  8.53166523586844361E-002}, 
+ {coordinates:  [  3,  10 ], value:  3.18891581940209399E-003}]}
  -  {segment:  7, elements: [
- {coordinates:  [  4,  3 ], value: -3.82923450947117829E-003}, 
- {coordinates:  [  4,  4 ], value:  1.0783543921729077}, 
- {coordinates:  [  4,  5 ], value:  5.93365224431855465E-002}]}
+ {coordinates:  [  4,  3 ], value: -3.54443858783693539E-003}, 
+ {coordinates:  [  4,  4 ], value:  1.0783847541601286}, 
+ {coordinates:  [  4,  5 ], value:  5.95662932192801906E-002}]}
  -  {segment:  8, elements: [
- {coordinates:  [  4,  7 ], value:  6.89014303656450416E-002}, 
- {coordinates:  [  4,  8 ], value:  7.23189686139303345E-002}, 
- {coordinates:  [  4,  9 ], value: -5.15865722319067393E-003}]}
+ {coordinates:  [  4,  7 ], value:  6.89107910310195332E-002}, 
+ {coordinates:  [  4,  8 ], value:  7.21325774043274082E-002}, 
+ {coordinates:  [  4,  9 ], value: -3.22633756286931682E-003}]}
  -  {segment:  9, elements: [
- {coordinates:  [  5,  3 ], value:  7.39970502190139545E-002}, 
- {coordinates:  [  5,  4 ], value:  5.97568509400892012E-002}, 
- {coordinates:  [  5,  5 ], value:  0.99985754626840906}]}
+ {coordinates:  [  5,  3 ], value:  7.06941713756173845E-002}, 
+ {coordinates:  [  5,  4 ], value:  5.97286685936775502E-002}, 
+ {coordinates:  [  5,  5 ], value:  0.99693715711714381}]}
  -  {segment:  10, elements: [
- {coordinates:  [  5,  7 ], value:  5.63233476479717485E-002}, 
- {coordinates:  [  5,  8 ], value: -7.9528403454939018E-003}, 
- {coordinates:  [  5,  9 ], value:  7.67225493220645011E-002}]}
+ {coordinates:  [  5,  7 ], value:  5.62540690656013267E-002}, 
+ {coordinates:  [  5,  8 ], value: -8.00838980427332446E-003}, 
+ {coordinates:  [  5,  9 ], value:  7.9582243773247921E-002}]}
  -  {segment:  11, elements: [
- {coordinates:  [  6,  2 ], value:  5.6325938873608962E-002}, 
- {coordinates:  [  6,  3 ], value:  7.02988402776948823E-002}, 
- {coordinates:  [  6,  4 ], value: -4.31099185983396544E-003}]}
+ {coordinates:  [  6,  2 ], value:  5.72641283498412715E-002}, 
+ {coordinates:  [  6,  3 ], value:  7.16264141494449835E-002}, 
+ {coordinates:  [  6,  4 ], value: -2.58166693268638411E-003}]}
  -  {segment:  12, elements: [
- {coordinates:  [  6,  6 ], value:  1.0431088146909799}, 
- {coordinates:  [  6,  7 ], value:  3.47183457606429786E-003}, 
- {coordinates:  [  6,  8 ], value:  8.76622687258487437E-002}]}
+ {coordinates:  [  6,  6 ], value:  1.0352724139714327}, 
+ {coordinates:  [  6,  7 ], value:  5.54285813611284615E-003}, 
+ {coordinates:  [  6,  8 ], value:  8.8674810698976661E-002}]}
  -  {segment:  13, elements: [
- {coordinates:  [  7,  3 ], value: -2.16753683842977728E-003}, 
- {coordinates:  [  7,  4 ], value:  6.88917131735674315E-002}, 
- {coordinates:  [  7,  5 ], value:  5.63196243401520233E-002}]}
+ {coordinates:  [  7,  3 ], value: -2.33968491033708596E-003}, 
+ {coordinates:  [  7,  4 ], value:  6.89325046612003778E-002}, 
+ {coordinates:  [  7,  5 ], value:  5.61268626517439154E-002}]}
  -  {segment:  14, elements: [
- {coordinates:  [  7,  7 ], value:  1.0896224033042077}, 
- {coordinates:  [  7,  8 ], value:  3.70674599852011746E-002}, 
- {coordinates:  [  7,  9 ], value:  4.81427113439817419E-003}]}
+ {coordinates:  [  7,  7 ], value:  1.0896434829153954}, 
+ {coordinates:  [  7,  8 ], value:  3.69092039167622718E-002}, 
+ {coordinates:  [  7,  9 ], value:  6.71891238830375336E-003}]}
  -  {segment:  15, elements: [
- {coordinates:  [  8,  3 ], value:  6.09418698453475099E-002}, 
- {coordinates:  [  8,  4 ], value:  7.22941090650036922E-002}, 
- {coordinates:  [  8,  5 ], value: -4.34212251283931216E-003}]}
+ {coordinates:  [  8,  3 ], value:  5.69932455010149774E-002}, 
+ {coordinates:  [  8,  4 ], value:  7.23169991089143566E-002}, 
+ {coordinates:  [  8,  5 ], value: -7.90590720312982914E-003}]}
  -  {segment:  16, elements: [
- {coordinates:  [  8,  7 ], value:  3.7069489557688344E-002}, 
- {coordinates:  [  8,  8 ], value:  1.0106080119442853}, 
- {coordinates:  [  8,  9 ], value:  9.54495552047040369E-002}]}
+ {coordinates:  [  8,  7 ], value:  3.70671173966196227E-002}, 
+ {coordinates:  [  8,  8 ], value:  1.0106470699587169}, 
+ {coordinates:  [  8,  9 ], value:  9.76141985735412693E-002}]}
  -  {segment:  17, elements: [
- {coordinates:  [  9,  7 ], value:  6.69716359659229977E-003}, 
- {coordinates:  [  9,  8 ], value:  9.76168084099602457E-002}, 
- {coordinates:  [  9,  9 ], value:  1.0185830608501187}]}
+ {coordinates:  [  9,  7 ], value:  6.5247523491435604E-003}, 
+ {coordinates:  [  9,  8 ], value:  9.72230039192215484E-002}, 
+ {coordinates:  [  9,  9 ], value:  1.0184363546165769}]}
  -  {segment:  18, elements: [
- {coordinates:  [  10,  8 ], value:  3.60188646458975276E-002}, 
- {coordinates:  [  10,  9 ], value:  1.97983146538327319E-002}, 
- {coordinates:  [  10,  10 ], value:  1.0946540885631821}]}
- error of the result                   :  7.56204689784656381E-005
- Size of the global database           :  4
+ {coordinates:  [  10,  8 ], value:  3.75137452104981686E-002}, 
+ {coordinates:  [  10,  9 ], value:  2.06018160895698604E-002}, 
+ {coordinates:  [  10,  10 ], value:  1.0938208712562774}]}
+ error of the result                   :  4.71346458383710767E-002
+ Size of the global database           :  7
  Raw version:
-   140733574491136:
+   140736661610936:
+     Array Id                          : inv_ovrlp_smat%matrix
+     Size (Bytes)                      : 800
+     Allocating Routine Id             : overlapPowerGeneral
+     Address of first element          : 0x49ba330
+   140736661610936:
+     Array Id                          : inv_ovrlp_smat%matrix
+     Size (Bytes)                      : 800
+     Allocating Routine Id             : overlapPowerGeneral
+     Address of first element          : 0x49ba000
+   140736661608392:
      Array Id                          : orbs%norb_par
      Size (Bytes)                      : 4
      Allocating Routine Id             : Main program
-     Address of first element          : 0x4283c50
-   140733574490848:
+     Address of first element          : 0x4825c50
+   140736661608104:
      Array Id                          : orbs%isorb_par
      Size (Bytes)                      : 4
      Allocating Routine Id             : Main program
-     Address of first element          : 0x4283c70
-   Timestamp of Profile initialization : 2014-04-01 11:20:10.610
+     Address of first element          : 0x4825c70
+   140736661610936:
+     Array Id                          : smat%matrix
+     Size (Bytes)                      : 800
+     Allocating Routine Id             : Main program
+     Address of first element          : 0x49b3a60
+   Timestamp of Profile initialization : 2014-04-01 14:19:21.772
    Process Id                          : 0
  Status of the memory at finalization:
+   inv_ovrlp_smat%matrix:
+     Array Id                          : inv_ovrlp_smat%matrix
+     Size (Bytes)                      : 800
+     Allocating Routine Id             : overlapPowerGeneral
+     Address of first element          : 0x49ba330
+     Address of metadata               : 140736661610936
+   inv_ovrlp_smat%matrix:
+     Array Id                          : inv_ovrlp_smat%matrix
+     Size (Bytes)                      : 800
+     Allocating Routine Id             : overlapPowerGeneral
+     Address of first element          : 0x49ba000
+     Address of metadata               : 140736661610936
    orbs%norb_par:
      Array Id                          : orbs%norb_par
      Size (Bytes)                      : 4
      Allocating Routine Id             : Main program
-     Address of first element          : 0x4283c50
-     Address of metadata               : 140733574491136
+     Address of first element          : 0x4825c50
+     Address of metadata               : 140736661608392
    orbs%isorb_par:
      Array Id                          : orbs%isorb_par
      Size (Bytes)                      : 4
      Allocating Routine Id             : Main program
-     Address of first element          : 0x4283c70
-     Address of metadata               : 140733574490848
+     Address of first element          : 0x4825c70
+     Address of metadata               : 140736661608104
+   smat%matrix:
+     Array Id                          : smat%matrix
+     Size (Bytes)                      : 800
+     Allocating Routine Id             : Main program
+     Address of first element          : 0x49b3a60
+     Address of metadata               : 140736661610936
    Timestamp of Profile initialization:
-     2014-04-01 11:20:10.610
+     2014-04-01 14:19:21.772
    Process Id:
      0
  Memory Consumption Report:
-   Tot. No. of Allocations             :  57
-   Tot. No. of Deallocations           :  57
-   Remaining Memory (B)                :  0
+   Tot. No. of Allocations             :  173
+   Tot. No. of Deallocations           :  170
+   Remaining Memory (B)                :  2400
    Memory occupation:
      Peak Value (MB)                   :  0
-     for the array                     : work
+     for the array                     : ovrlp_large_compr
      in the routine                    : overlapPowerGeneral
- Max No. of dictionaries used          :  874 #(  748 still in use)
+ #Use the python script 'memcheck.py' in utils/scripts to checkmalloc.prc file
+ Max No. of dictionaries used          :  919 #(  748 still in use)
  Number of dictionary folders allocated:  1
-cp -f PS_Check.out.yaml tmp

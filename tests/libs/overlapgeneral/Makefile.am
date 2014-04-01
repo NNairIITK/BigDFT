@@ -23,18 +23,50 @@ driver_LDADD = -lbigdft-1 @LINALG_LIBS@
 
 CLEANFILES = test-overlapgeneral.out.yaml 
 
+check: test-overlapgeneral.report
+
+test-overlapgeneral.report: $(srcdir)/test-overlapgeneral.ref.yaml test-overlapgeneral.out.yaml
+	python $(top_srcdir)/tests/fldiff.py $^ | tee $@
+
 test-overlapgeneral.out.yaml: driver
 	cp $(srcdir)/inputdata.fake $(PWD)/inputdata.fake
-	$(run_parallel) ./driver
+	cp $(srcdir)/test-overlapgeneral.ref.yaml $(PWD)
+	$(run_parallel) ./driver > test-overlapgeneral.out.yaml
 
-check: test-overlapgeneral.out.yaml
-	export PYTHONPATH=${PYTHONPATH} ; \
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
-	python $(top_srcdir)/tests/fldiff_yaml.py \
-		-r $(abs_srcdir)/test-overlapgeneral.ref.yaml -d test-overlapgeneral.out.yaml -t $(abs_srcdir)/tols.yaml \
-	        --output fldiff.report.yaml
+##test-overlapgeneral.out.yaml: driver
+##	$(run_parallel) ./driver
+##
+##check: test-overlapgeneral.out.yaml
+##	export PYTHONPATH=${PYTHONPATH} ; \
+##	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+##	python $(top_srcdir)/tests/fldiff_yaml.py \
+##		-r $(abs_srcdir)/test-overlapgeneral.ref.yaml -d test-overlapgeneral.out.yaml -t $(abs_srcdir)/tols.yaml \
+##	        --output fldiff.report.yaml
+##
+##test-overlapgeneral.out.yaml: driver
+##	cp $(srcdir)/inputdata.fake $(PWD)/inputdata.fake
+##	$(run_parallel) ./driver
+##
+##
+##report: 
+##	export PYTHONPATH=${PYTHONPATH} ; \
+##	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+##	python $(top_srcdir)/tests/report.py
 
-report: 
-	export PYTHONPATH=${PYTHONPATH} ; \
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
-	python $(top_srcdir)/tests/report.py
+
+
+##test-overlapgeneral.out.yaml: driver
+##	cp $(srcdir)/inputdata.fake $(PWD)/inputdata.fake
+##	$(run_parallel) ./driver
+##
+##check: test-overlapgeneral.out.yaml
+##	export PYTHONPATH=${PYTHONPATH} ; \
+##	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+##	python $(top_srcdir)/tests/fldiff_yaml.py \
+##		-r $(abs_srcdir)/test-overlapgeneral.ref.yaml -d test-overlapgeneral.out.yaml -t $(abs_srcdir)/tols.yaml \
+##	        --output fldiff.report.yaml
+##
+##report: 
+##	export PYTHONPATH=${PYTHONPATH} ; \
+##	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+##	python $(top_srcdir)/tests/report.py
