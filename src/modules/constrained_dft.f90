@@ -50,7 +50,8 @@ module constrained_dft
          real(gp),intent(out),optional :: econf
        end subroutine LocalHamiltonianApplication
 
-       subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, imode, check_accur, ovrlp, inv_ovrlp, error, &
+       subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, imode, &
+                  check_accur, ovrlp, inv_ovrlp, error, &
           ovrlp_smat, inv_ovrlp_smat, foe_obj)
          use module_base
          use module_types

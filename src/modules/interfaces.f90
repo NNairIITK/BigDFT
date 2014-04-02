@@ -3281,7 +3281,7 @@ module module_interfaces
           integer, intent(in) :: iproc, nproc, norb
           integer, intent(in) :: blocksize_dsyev, blocksize_pdgemm, inversion_method
           type(orbitals_data), intent(in) :: basis_orbs   !number of basis functions
-          type(orbitals_data), optional, intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
+          type(orbitals_data), intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
           type(sparse_matrix),intent(in) :: basis_overlap
           real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(inout) :: coeff
         end subroutine reorthonormalize_coeff
@@ -3913,9 +3913,10 @@ module module_interfaces
           logical,intent(inout) :: can_use_transposed
         end subroutine gramschmidt_subset
 
-        subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, imode, check_accur, ovrlp, inv_ovrlp, error, &
-             ovrlp_smat, inv_ovrlp_smat, &
-             foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
+        subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, &
+                   imode, check_accur, ovrlp, inv_ovrlp, error, &
+                   ovrlp_smat, inv_ovrlp_smat, &
+                   foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
