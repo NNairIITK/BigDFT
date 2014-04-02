@@ -985,16 +985,11 @@ subroutine foe(iproc, nproc, tmprtr, &
               call compress_matrix(iproc,tmb%linmat%inv_ovrlp_large)
           end if
           if (imode==SPARSE) then
-              ! the allocations / deallocations can disappear
-              tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/))
-              tmb%linmat%inv_ovrlp_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/))
               call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, tmb%orbs, &
                    imode=1, check_accur=.true., error=error, &
                    ovrlp_smat=tmb%linmat%ovrlp, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, &
                    foe_nseg=tmb%foe_obj%nseg, foe_kernel_nsegline=tmb%foe_obj%kernel_nsegline, &
                    foe_istsegline=tmb%foe_obj%istsegline, foe_keyg=tmb%foe_obj%keyg)
-              call f_free_ptr(tmb%linmat%ovrlp%matrix)
-              call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix)
            end if
           if (foe_verbosity>=1 .and. iproc==0) then
               call yaml_map('error of S^-1/2',error,fmt='(es9.2)')
