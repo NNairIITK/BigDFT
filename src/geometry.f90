@@ -647,6 +647,7 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   use module_interfaces
   use minpar
   use yaml_output
+  use communications_base
 
   implicit none
   integer, intent(in) :: nproc,iproc
@@ -656,7 +657,7 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   logical, intent(inout) :: fail
 
   real(gp) :: fluct,fnrm
-  real(gp) :: fmax,vmax
+  real(gp) :: fmax,vmax,maxdiff
   integer :: check
   integer :: infocode,iat
   character(len=4) :: fn4
@@ -791,6 +792,13 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
         alpha=alphastart
      endif
      nstep=nstep+1
+
+     ! Check velcur consistency.
+     call check_array_consistency(maxdiff, nproc, velcur(1), &
+          & 3 * runObj%atoms%astruct%nat, bigdft_mpi%mpi_comm)
+     if (iproc==0 .and. maxdiff > epsilon(1.0_gp)) &
+          call yaml_warning('Fire velocities not identical! '//&
+          '(difference:'//trim(yaml_toa(maxdiff))//' )')
 
      !if (iproc==0) write(10,*) epred, vnrm*0.5d0
    end do Big_loop

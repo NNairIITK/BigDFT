@@ -295,6 +295,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_forces
+  use communications_base
   use yaml_output
   implicit none
   logical, intent(in) :: refill_proj
@@ -315,7 +316,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   type(DFT_wavefunction),intent(in) :: tmb
   !local variables
   integer :: ierr,iat,i,j
-  real(gp) :: charge,ucvol
+  real(gp) :: charge,ucvol,maxdiff
   real(gp), dimension(6,4) :: strtens!local,nonlocal,kin,erf
   character(len=16), dimension(4) :: messages
 
@@ -388,6 +389,13 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
 
   ! Apply symmetries when needed
   if (atoms%astruct%sym%symObj >= 0) call symmetrise_forces(iproc,fxyz,atoms)
+
+  ! Check forces consistency.
+  call check_array_consistency(maxdiff, nproc, fxyz(1,1), &
+       & 3 * atoms%astruct%nat, bigdft_mpi%mpi_comm)
+  if (iproc==0 .and. maxdiff > epsilon(1.0_gp)) &
+       call yaml_warning('Output forces not identical! '//&
+       '(difference:'//trim(yaml_toa(maxdiff))//' )')
 
   if (iproc == 0) call write_forces(atoms,fxyz)
 
