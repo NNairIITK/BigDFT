@@ -551,7 +551,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
         end if
   else if (imode==SPARSE) then
       if (iorder==0) then
-          if (iproc==0) call yaml_warning('The compressed matrix will not be filled! You should know what you do.')
+          !!if (iproc==0) call yaml_warning('The compressed matrix will not be filled! You should know what you do.')
           ovrlp_local=f_malloc_ptr((/norb,norb/),id='ovrlp_local')
           inv_ovrlp_local=f_malloc_ptr((/norb,norb/),id='inv_ovrlp_local')
           call uncompress_matrix(iproc, ovrlp_smat, outmat=ovrlp_local)
@@ -577,7 +577,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
           else if (power==-2) then
              call overlap_plus_minus_one_half_exact(norb,blocksize,.false.,inv_ovrlp_local,orbs)
           end if
-          ! These two lines can be deleted as soon as the tests are stabilized ##########
+          !!! These two lines can be deleted as soon as the tests are stabilized ##########
           !!inv_ovrlp_smat%matrix=inv_ovrlp
           call compress_matrix(iproc, inv_ovrlp_smat, inmat=inv_ovrlp_local)
           call f_free_ptr(ovrlp_local)

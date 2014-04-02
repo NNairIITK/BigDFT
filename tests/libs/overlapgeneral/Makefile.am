@@ -29,9 +29,13 @@ test-overlapgeneral.report: $(srcdir)/test-overlapgeneral.ref.yaml test-overlapg
 	python $(top_srcdir)/tests/fldiff.py $^ | tee $@
 
 test-overlapgeneral.out.yaml: driver
-	cp $(srcdir)/inputdata.fake $(PWD)/inputdata.fake
 	cp $(srcdir)/test-overlapgeneral.ref.yaml $(PWD)
+	cp $(srcdir)/inputdata1.fake $(PWD)/inputdata.fake
 	$(run_parallel) ./driver > test-overlapgeneral.out.yaml
+	cp $(srcdir)/inputdata2.fake $(PWD)/inputdata.fake
+	$(run_parallel) ./driver >> test-overlapgeneral.out.yaml
+	cp $(srcdir)/inputdata3.fake $(PWD)/inputdata.fake
+	$(run_parallel) ./driver >> test-overlapgeneral.out.yaml
 
 ##test-overlapgeneral.out.yaml: driver
 ##	$(run_parallel) ./driver

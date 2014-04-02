@@ -42,6 +42,11 @@ program driver
   nproc=mpi_info(2)
 
 
+  if (iproc==0) then
+      call yaml_comment('Program to check the overlapPowergeneral routine',hfill='/')
+      call yaml_map('reading from file',filename)
+  end  if
+
   ! Open file for reading
   inquire(filename, exist=file_exists)
   if_file_exists: if (file_exists) then
@@ -53,6 +58,15 @@ program driver
   else
       stop 'file does not exist!'
   end if if_file_exists
+
+  if (iproc==0) then
+      call yaml_open_sequence('parameters for this test')
+      call yaml_map('number of rows and columns',norb)
+      call yaml_map('number of segments',nseg)
+      call yaml_map('number of non-zero elements',nvctr)
+      call yaml_close_sequence
+  end if
+
 
   ! Fake initialization of the orbitals_data type
   call orbs_init_fake(iproc, nproc, norb, orbs)
@@ -118,6 +132,8 @@ program driver
       keyg_tmp(2,iseg)=iiorb
   end do
 
+  if (iproc==0) call yaml_comment('starting the checks',hfill='=')
+
   do icheck=1,ncheck
       !if (icheck==1 .or. icheck==4 .or. icheck==10 .or. icheck==11 .or.  icheck==13 .or. icheck==14 .or. icheck==16 .or. icheck==17) cycle
       call get_parameters()
@@ -148,12 +164,13 @@ program driver
                imode, check_accur=.true., error=error, &
                ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, &
                foe_nseg=smat_A%nseg, foe_kernel_nsegline=smat_A%nsegline, foe_istsegline=smat_A%istsegline, foe_keyg=keyg_tmp)
-           if (iorder==0) call compress_matrix(iproc, smat_B)
+           !if (iorder==0) call compress_matrix(iproc, smat_B)
       end if
       if (iproc==0) call write_matrix_compressed('final result', smat_B)
       if (iproc==0) call yaml_map('error of the result',error)
   end do
 
+  if (iproc==0) call yaml_comment('checks finished',hfill='=')
 
   call f_free(keyg_tmp)
 
