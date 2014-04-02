@@ -52,6 +52,10 @@ subroutine foe(iproc, nproc, tmprtr, &
   real(kind=8) :: trace_sparse
   integer :: irow, icol, itemp, iflag
   logical :: overlap_calculated, cycle_FOE, evbounds_shrinked, degree_sufficient
+  integer,parameter :: SPARSE=1
+  integer,parameter :: DENSE=2
+  integer,parameter :: imode=SPARSE
+
 
   call f_routine(id='foe')
 
@@ -261,10 +265,12 @@ subroutine foe(iproc, nproc, tmprtr, &
                   npl=nint(3.0d0*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale)
               end if
               npl_check=nint(3.0d0*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale_check)
-              npl_boundaries=nint(3.0d0*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/1.d-3) ! max polynomial degree for given eigenvalue boundaries
+              npl_boundaries=nint(3.0d0*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/1.d-4) ! max polynomial degree for given eigenvalue boundaries
               if (npl>npl_boundaries) then
                   npl=npl_boundaries
                   if (iproc==0) call yaml_warning('very sharp decay of error function, polynomial degree reached limit')
+                  if (iproc==0) write(*,*) 'STOP SINCE THIS WILL CREATE PROBLEMS WITH NPL_CHECK'
+                  stop
               end if
               if (npl>nplx) stop 'npl>nplx'
     
@@ -966,25 +972,42 @@ subroutine foe(iproc, nproc, tmprtr, &
 
         subroutine overlap_minus_onehalf()
           ! Taylor approximation of S^-1/2 up to higher order
-          allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-          call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
-          call uncompress_matrix(iproc,tmb%linmat%ovrlp)
+          if (imode==DENSE) then
+              allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
+              call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
+              call uncompress_matrix(iproc,tmb%linmat%ovrlp)
 
-          tmb%linmat%inv_ovrlp_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),&
-              id='tmb%linmat%inv_ovrlp_large%matrix')
-
-          call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, &
-               tmb%linmat%ovrlp%matrix, tmb%linmat%inv_ovrlp_large%matrix, error, tmb%orbs, check_accur=.true.)
+              tmb%linmat%inv_ovrlp_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),&
+                  id='tmb%linmat%inv_ovrlp_large%matrix')
+              call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, tmb%orbs, &
+                   imode=2, check_accur=.true., ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=tmb%linmat%inv_ovrlp_large%matrix, &
+                   error=error)
+              call compress_matrix(iproc,tmb%linmat%inv_ovrlp_large)
+          end if
+          if (imode==SPARSE) then
+              call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, tmb%orbs, &
+                   imode=1, check_accur=.true., error=error, &
+                   ovrlp_smat=tmb%linmat%ovrlp, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, &
+                   foe_nseg=tmb%foe_obj%nseg, foe_kernel_nsegline=tmb%foe_obj%kernel_nsegline, &
+                   foe_istsegline=tmb%foe_obj%istsegline, foe_keyg=tmb%foe_obj%keyg)
+           end if
           if (foe_verbosity>=1 .and. iproc==0) then
               call yaml_map('error of S^-1/2',error,fmt='(es9.2)')
           end if
-          call compress_matrix(iproc,tmb%linmat%inv_ovrlp_large)
+          !!do i=1,tmb%linmat%inv_ovrlp_large%nvctr
+          !!    write(300+iproc,*) i, tmb%linmat%inv_ovrlp_large%matrix_compr(i)
+          !!end do
+          !!call mpi_finalize(i)
+          !!stop
 
-          call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix)
 
-          iall=-product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
-          deallocate(tmb%linmat%ovrlp%matrix,stat=istat)
-          call memocc(istat,iall,'tmb%linmat%ovrlp%matrix',subname)
+          if (imode==DENSE) then
+              call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix)
+
+              iall=-product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
+              deallocate(tmb%linmat%ovrlp%matrix,stat=istat)
+              call memocc(istat,iall,'tmb%linmat%ovrlp%matrix',subname)
+          end if
       end subroutine overlap_minus_onehalf
 
 

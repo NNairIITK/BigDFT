@@ -562,7 +562,9 @@ module module_types
   end type p2pComms
 
   type,public :: foe_data
-    integer,dimension(:),pointer :: kernel_nseg
+    integer :: nseg
+    integer,dimension(:),pointer :: kernel_nsegline, istsegline
+    integer,dimension(:,:),pointer :: keyg
     integer,dimension(:,:,:),pointer :: kernel_segkeyg
     real(kind=8) :: ef !< Fermi energy for FOE
     real(kind=8) :: evlow, evhigh !< eigenvalue bounds for FOE 

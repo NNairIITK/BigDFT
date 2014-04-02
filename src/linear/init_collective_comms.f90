@@ -757,7 +757,6 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, nor
   if(nproc>1) then
       call mpiallred(norm(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
-
   do iorb=1,orbs%norb
      norm(iorb)=1.d0/sqrt(norm(iorb))
   end do
