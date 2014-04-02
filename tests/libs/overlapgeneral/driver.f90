@@ -20,7 +20,7 @@ program driver
   real(kind=8) :: val, error
   real(kind=8),dimension(:,:),allocatable :: ovrlp, ovrlp2
   integer :: norb, nseg, nvctr, iorb, jorb, iorder, power, blocksize, icheck, imode
-  logical :: file_exists
+  logical :: file_exists, symmetric, check_symmetry, perform_check
   type(orbitals_data) :: orbs
   type(sparse_matrix) :: smat_A, smat_B
   character(len=*),parameter :: filename='inputdata.fake'
@@ -29,6 +29,8 @@ program driver
   character(len=60) :: run_id
   integer,parameter :: ncheck=18
   integer,dimension(:,:),allocatable :: keyg_tmp
+  integer,parameter :: SPARSE=1
+  integer,parameter :: DENSE=2
 
 
 
@@ -58,6 +60,8 @@ program driver
   ! Fake initialization of the sparse_matrix type
   call sparse_matrix_init_fake(iproc, nproc, norb, nseg, nvctr, smat_A)
   call sparse_matrix_init_fake(iproc, nproc, norb, nseg, nvctr, smat_B)
+
+  symmetric = check_symmetry(norb, smat_A)
 
   !!if (iproc==0) then
   !!    do iseg=1,smat_A%nseg
@@ -125,16 +129,23 @@ program driver
           call yaml_map('power',power)
           call yaml_newline()
       end if
-      if (imode==2) then
+      if (.not.symmetric .and. imode==SPARSE .and. iorder==0) then
+          perform_check=.false.
+      else
+          perform_check=.true.
+      end if
+      if (iproc==0) call yaml_map('Can perform this test',perform_check)
+      if (.not.perform_check) cycle
+      if (imode==DENSE) then
           call vcopy(orbs%norb**2, ovrlp(1,1), 1, smat_A%matrix(1,1), 1)
           call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, &
                imode, check_accur=.true., ovrlp=smat_A%matrix, inv_ovrlp=smat_B%matrix, error=error)
           call compress_matrix(iproc, smat_B)
-      else if (imode==1) then
+      else if (imode==SPARSE) then
           call vcopy(orbs%norb**2, ovrlp(1,1), 1, smat_A%matrix(1,1), 1)
           call compress_matrix(iproc, smat_A)
           call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, &
-               imode, check_accur=.true., ovrlp=smat_A%matrix, inv_ovrlp=smat_B%matrix, error=error, &
+               imode, check_accur=.true., error=error, &
                ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, &
                foe_nseg=smat_A%nseg, foe_kernel_nsegline=smat_A%nsegline, foe_istsegline=smat_A%istsegline, foe_keyg=keyg_tmp)
            if (iorder==0) call compress_matrix(iproc, smat_B)
@@ -456,7 +467,18 @@ subroutine sparse_matrix_init_fake(iproc, nproc, norb, nseg, nvctr, smat)
               ! If one arrives here, the diagonal element was in an empty
               ! region. Determine whether it was close to the start or end of a
               ! segment.
-              if (idist_start<=idist_end) then
+              if (istart==iend) then
+                  ! Segment has only length one
+                  if (istart<idiag) then
+                      ! Incrase the first empty region and increase the last one
+                      nempty_arr(0)=nempty_arr(0)+1
+                      nempty_arr(smat%nsegline(jorb))=nempty_arr(smat%nsegline(jorb))-1
+                  else
+                      ! Decrase the first empty region and increase the last one
+                      nempty_arr(0)=nempty_arr(0)-1
+                      nempty_arr(smat%nsegline(jorb))=nempty_arr(smat%nsegline(jorb))+1
+                  end if
+              else if (idist_start<=idist_end) then
                   ! Closer to the start, so decrase the first empty region and increase the last one
                   nempty_arr(0)=nempty_arr(0)-1
                   nempty_arr(smat%nsegline(jorb))=nempty_arr(smat%nsegline(jorb))+1
@@ -585,3 +607,41 @@ subroutine write_matrix_compressed(message, smat)
   call yaml_close_sequence()
 
 end subroutine write_matrix_compressed
+
+
+function check_symmetry(norb, smat)
+  use module_base
+  use sparsematrix_base, only: sparse_matrix
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: norb
+  type(sparse_matrix),intent(in) :: smat
+  logical :: check_symmetry
+
+  ! Local variables
+  integer :: i, iorb, jorb
+  logical,dimension(:,:),allocatable :: lgrid
+
+  lgrid=f_malloc((/norb,norb/),id='lgrid')
+  lgrid=.false.
+
+  do i=1,smat%nvctr
+      iorb=smat%orb_from_index(1,i)
+      jorb=smat%orb_from_index(2,i)
+      lgrid(jorb,iorb)=.true.
+  end do
+
+  check_symmetry=.true.
+  do iorb=1,norb
+      do jorb=1,norb
+          if (lgrid(jorb,iorb) .and. .not.lgrid(iorb,jorb)) then
+              check_symmetry=.false.
+          end if
+      end do
+  end do
+
+  call f_free(lgrid)
+
+end function check_symmetry
+

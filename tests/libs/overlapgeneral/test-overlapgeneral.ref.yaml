@@ -82,6 +82,7 @@
  imode                                 :  2
  iorder                                :  0
  power                                 : -2
+ Can perform this test                 :  Yes
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  0.97044443718291995}, 
@@ -106,29 +107,29 @@
  -  {segment:  5, elements: [
  {coordinates:  [  3,  2 ], value: -6.99863523255469383E-002}, 
  {coordinates:  [  3,  3 ], value:  0.96920940532015731}, 
- {coordinates:  [  3,  4 ], value:  1.35470439766019208E-002}, 
+ {coordinates:  [  3,  4 ], value:  1.35470439766019225E-002}, 
  {coordinates:  [  3,  5 ], value: -6.60078759484812733E-002}]}
  -  {segment:  6, elements: [
  {coordinates:  [  3,  7 ], value:  1.21933716991456872E-002}, 
- {coordinates:  [  3,  8 ], value: -4.969617580598195E-002}, 
+ {coordinates:  [  3,  8 ], value: -4.96961758059819569E-002}, 
  {coordinates:  [  3,  9 ], value: -6.05615066399934412E-002}, 
- {coordinates:  [  3,  10 ], value:  1.13358775937488464E-002}]}
+ {coordinates:  [  3,  10 ], value:  1.13358775937488481E-002}]}
  -  {segment:  7, elements: [
- {coordinates:  [  4,  3 ], value:  1.35470439766019121E-002}, 
+ {coordinates:  [  4,  3 ], value:  1.35470439766019104E-002}, 
  {coordinates:  [  4,  4 ], value:  0.94825956954503776}, 
- {coordinates:  [  4,  5 ], value: -5.55032137539137674E-002}]}
+ {coordinates:  [  4,  5 ], value: -5.55032137539137743E-002}]}
  -  {segment:  8, elements: [
  {coordinates:  [  4,  7 ], value: -4.32613763109628638E-002}, 
- {coordinates:  [  4,  8 ], value: -6.82151362720508636E-002}, 
- {coordinates:  [  4,  9 ], value:  1.85560737346042968E-002}]}
+ {coordinates:  [  4,  8 ], value: -6.82151362720508775E-002}, 
+ {coordinates:  [  4,  9 ], value:  1.85560737346043003E-002}]}
  -  {segment:  9, elements: [
- {coordinates:  [  5,  3 ], value: -6.6007875948481301E-002}, 
- {coordinates:  [  5,  4 ], value: -5.55032137539138021E-002}, 
+ {coordinates:  [  5,  3 ], value: -6.60078759484812871E-002}, 
+ {coordinates:  [  5,  4 ], value: -5.55032137539137951E-002}, 
  {coordinates:  [  5,  5 ], value:  1.0514539201395121}]}
  -  {segment:  10, elements: [
  {coordinates:  [  5,  7 ], value: -4.73242422456089662E-002}, 
- {coordinates:  [  5,  8 ], value:  5.29031107654096694E-002}, 
- {coordinates:  [  5,  9 ], value: -7.52271584519147996E-002}]}
+ {coordinates:  [  5,  8 ], value:  5.29031107654096763E-002}, 
+ {coordinates:  [  5,  9 ], value: -7.52271584519148134E-002}]}
  -  {segment:  11, elements: [
  {coordinates:  [  6,  2 ], value: -6.16310379065796166E-002}, 
  {coordinates:  [  6,  3 ], value: -4.58642575585599954E-002}, 
@@ -167,6 +168,7 @@
  imode                                 :  2
  iorder                                :  1
  power                                 : -2
+ Can perform this test                 :  Yes
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  0.92919265817264285}, 
@@ -246,12 +248,13 @@
  {coordinates:  [  10,  8 ], value: -3.88085455159833392E-002}, 
  {coordinates:  [  10,  9 ], value: -2.26173201672483747E-002}, 
  {coordinates:  [  10,  10 ], value:  0.90086185661780105}]}
- error of the result                   :  5.18185944885448113E-002
+ error of the result                   :  5.18185944885449223E-002
   #-------------------------------------------------------------------------------- check: 3
  check number                          :  3
  imode                                 :  2
  iorder                                :  6
  power                                 : -2
+ Can perform this test                 :  Yes
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  0.9824654288573883}, 
@@ -289,16 +292,16 @@
  {coordinates:  [  4,  5 ], value: -4.24817130084308506E-002}]}
  -  {segment:  8, elements: [
  {coordinates:  [  4,  7 ], value: -2.97000506208036884E-002}, 
- {coordinates:  [  4,  8 ], value: -5.5557232294481923E-002}, 
+ {coordinates:  [  4,  8 ], value: -5.555723229448193E-002}, 
  {coordinates:  [  4,  9 ], value:  2.88569507623528676E-002}]}
  -  {segment:  9, elements: [
- {coordinates:  [  5,  3 ], value: -5.56999806054084556E-002}, 
+ {coordinates:  [  5,  3 ], value: -5.56999806054084418E-002}, 
  {coordinates:  [  5,  4 ], value: -4.24817130084308506E-002}, 
  {coordinates:  [  5,  5 ], value:  1.0634900126841089}]}
  -  {segment:  10, elements: [
- {coordinates:  [  5,  7 ], value: -3.40683623521891854E-002}, 
- {coordinates:  [  5,  8 ], value:  6.46624766572008042E-002}, 
- {coordinates:  [  5,  9 ], value: -6.47959536577125683E-002}]}
+ {coordinates:  [  5,  7 ], value: -3.40683623521891785E-002}, 
+ {coordinates:  [  5,  8 ], value:  6.46624766572007903E-002}, 
+ {coordinates:  [  5,  9 ], value: -6.47959536577125544E-002}]}
  -  {segment:  11, elements: [
  {coordinates:  [  6,  2 ], value: -5.11927376264989867E-002}, 
  {coordinates:  [  6,  3 ], value: -3.77574625837537522E-002}, 
@@ -337,6 +340,7 @@
  imode                                 :  2
  iorder                                :  0
  power                                 :  1
+ Can perform this test                 :  Yes
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  0.96735558445410841}, 
@@ -422,6 +426,7 @@
  imode                                 :  2
  iorder                                :  1
  power                                 :  1
+ Can perform this test                 :  Yes
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  0.8583853163452857}, 
@@ -507,6 +512,7 @@
  imode                                 :  2
  iorder                                :  6
  power                                 :  1
+ Can perform this test                 :  Yes
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  1.0227508297903889}, 
@@ -541,17 +547,17 @@
  -  {segment:  7, elements: [
  {coordinates:  [  4,  3 ], value:  8.16462215994679386E-002}, 
  {coordinates:  [  4,  4 ], value:  0.9764974919057624}, 
- {coordinates:  [  4,  5 ], value: -5.58128991221868292E-002}]}
+ {coordinates:  [  4,  5 ], value: -5.58128991221868431E-002}]}
  -  {segment:  8, elements: [
  {coordinates:  [  4,  7 ], value: -7.14824122995547095E-003}, 
- {coordinates:  [  4,  8 ], value: -8.2107740615469868E-002}, 
+ {coordinates:  [  4,  8 ], value: -8.21077406154698819E-002}, 
  {coordinates:  [  4,  9 ], value:  9.56757127239340338E-002}]}
  -  {segment:  9, elements: [
- {coordinates:  [  5,  3 ], value: -8.72989287422324955E-002}, 
+ {coordinates:  [  5,  3 ], value: -8.72989287422324678E-002}, 
  {coordinates:  [  5,  4 ], value: -5.58128991221868431E-002}, 
  {coordinates:  [  5,  5 ], value:  1.2022547204914815}]}
  -  {segment:  10, elements: [
- {coordinates:  [  5,  7 ], value: -3.30523787950165321E-002}, 
+ {coordinates:  [  5,  7 ], value: -3.3052378795016546E-002}, 
  {coordinates:  [  5,  8 ], value:  0.20069939488234445}, 
  {coordinates:  [  5,  9 ], value: -0.10975396067489691}]}
  -  {segment:  11, elements: [
@@ -592,6 +598,7 @@
  imode                                 :  2
  iorder                                :  0
  power                                 :  2
+ Can perform this test                 :  Yes
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  1.0561169357299092}, 
@@ -616,27 +623,27 @@
  -  {segment:  5, elements: [
  {coordinates:  [  3,  2 ], value:  6.9932211322652274E-002}, 
  {coordinates:  [  3,  3 ], value:  1.052735157086236}, 
- {coordinates:  [  3,  4 ], value: -5.17713930165351627E-003}, 
+ {coordinates:  [  3,  4 ], value: -5.17713930165351541E-003}, 
  {coordinates:  [  3,  5 ], value:  6.99067614488763783E-002}]}
  -  {segment:  6, elements: [
  {coordinates:  [  3,  7 ], value: -4.48381773061314742E-003}, 
- {coordinates:  [  3,  8 ], value:  5.58382469442813348E-002}, 
+ {coordinates:  [  3,  8 ], value:  5.58382469442813417E-002}, 
  {coordinates:  [  3,  9 ], value:  7.80919996185654441E-002}, 
- {coordinates:  [  3,  10 ], value: -1.2274708310773064E-003}]}
+ {coordinates:  [  3,  10 ], value: -1.22747083107730727E-003}]}
  -  {segment:  7, elements: [
- {coordinates:  [  4,  3 ], value: -5.17713930165352235E-003}, 
+ {coordinates:  [  4,  3 ], value: -5.17713930165352148E-003}, 
  {coordinates:  [  4,  4 ], value:  1.0742068999926346}, 
- {coordinates:  [  4,  5 ], value:  5.80128126220636475E-002}]}
+ {coordinates:  [  4,  5 ], value:  5.80128126220636406E-002}]}
  -  {segment:  8, elements: [
  {coordinates:  [  4,  7 ], value:  6.41650486278585452E-002}, 
  {coordinates:  [  4,  8 ], value:  7.10365404048061283E-002}, 
- {coordinates:  [  4,  9 ], value: -6.74759355624490222E-003}]}
+ {coordinates:  [  4,  9 ], value: -6.74759355624489788E-003}]}
  -  {segment:  9, elements: [
  {coordinates:  [  5,  3 ], value:  6.99067614488763783E-002}, 
- {coordinates:  [  5,  4 ], value:  5.80128126220636128E-002}, 
+ {coordinates:  [  5,  4 ], value:  5.80128126220636198E-002}, 
  {coordinates:  [  5,  5 ], value:  0.98722689970939714}]}
  -  {segment:  10, elements: [
- {coordinates:  [  5,  7 ], value:  5.38695500201612221E-002}, 
+ {coordinates:  [  5,  7 ], value:  5.3869550020161229E-002}, 
  {coordinates:  [  5,  8 ], value: -1.66798619224753399E-002}, 
  {coordinates:  [  5,  9 ], value:  7.56538496694688645E-002}]}
  -  {segment:  11, elements: [
@@ -677,6 +684,7 @@
  imode                                 :  2
  iorder                                :  1
  power                                 :  2
+ Can perform this test                 :  Yes
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  1.0708073418273572}, 
@@ -762,6 +770,7 @@
  imode                                 :  2
  iorder                                :  6
  power                                 :  2
+ Can perform this test                 :  Yes
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  1.0551218835132419}, 
@@ -806,7 +815,7 @@
  {coordinates:  [  5,  4 ], value:  5.69400375439116715E-002}, 
  {coordinates:  [  5,  5 ], value:  0.98622716090907248}]}
  -  {segment:  10, elements: [
- {coordinates:  [  5,  7 ], value:  5.2776521363108668E-002}, 
+ {coordinates:  [  5,  7 ], value:  5.2776521363108661E-002}, 
  {coordinates:  [  5,  8 ], value: -1.76562272422022791E-002}, 
  {coordinates:  [  5,  9 ], value:  7.47955865193625502E-002}]}
  -  {segment:  11, elements: [
@@ -847,93 +856,13 @@
  imode                                 :  1
  iorder                                :  0
  power                                 : -2
-  #WARNING: The compressed matrix will not be filled! You should know what you do.
- init: nseq         350
- final result:
- -  {segment:  1, elements: [
- {coordinates:  [  1,  1 ], value:  0.97044443718291995}, 
- {coordinates:  [  1,  2 ], value: -8.07591389290875927E-002}, 
- {coordinates:  [  1,  3 ], value:  2.00633706358350414E-002}, 
- {coordinates:  [  1,  4 ], value: -2.21178089278755118E-002}]}
- -  {segment:  2, elements: [
- {coordinates:  [  1,  6 ], value:  2.05066215676511822E-002}, 
- {coordinates:  [  1,  7 ], value: -1.32599064443740724E-002}, 
- {coordinates:  [  1,  8 ], value: -9.48497539700708242E-002}, 
- {coordinates:  [  1,  9 ], value:  9.28422364359856624E-003}]}
- -  {segment:  3, elements: [
- {coordinates:  [  2,  2 ], value:  1.0551004305563303}, 
- {coordinates:  [  2,  3 ], value: -6.99863523255469383E-002}, 
- {coordinates:  [  2,  4 ], value: -6.70291354119624955E-002}, 
- {coordinates:  [  2,  5 ], value:  5.24561304191945299E-002}]}
- -  {segment:  4, elements: [
- {coordinates:  [  2,  7 ], value: -7.1095833627456112E-002}, 
- {coordinates:  [  2,  8 ], value:  4.16436870289011649E-002}, 
- {coordinates:  [  2,  9 ], value: -4.19100240600731241E-002}, 
- {coordinates:  [  2,  10 ], value: -8.12200713861227774E-002}]}
- -  {segment:  5, elements: [
- {coordinates:  [  3,  2 ], value: -6.99863523255469383E-002}, 
- {coordinates:  [  3,  3 ], value:  0.96920940532015731}, 
- {coordinates:  [  3,  4 ], value:  1.35470439766019208E-002}, 
- {coordinates:  [  3,  5 ], value: -6.60078759484812733E-002}]}
- -  {segment:  6, elements: [
- {coordinates:  [  3,  7 ], value:  1.21933716991456872E-002}, 
- {coordinates:  [  3,  8 ], value: -4.969617580598195E-002}, 
- {coordinates:  [  3,  9 ], value: -6.05615066399934412E-002}, 
- {coordinates:  [  3,  10 ], value:  1.13358775937488464E-002}]}
- -  {segment:  7, elements: [
- {coordinates:  [  4,  3 ], value:  1.35470439766019121E-002}, 
- {coordinates:  [  4,  4 ], value:  0.94825956954503776}, 
- {coordinates:  [  4,  5 ], value: -5.55032137539137674E-002}]}
- -  {segment:  8, elements: [
- {coordinates:  [  4,  7 ], value: -4.32613763109628638E-002}, 
- {coordinates:  [  4,  8 ], value: -6.82151362720508636E-002}, 
- {coordinates:  [  4,  9 ], value:  1.85560737346042968E-002}]}
- -  {segment:  9, elements: [
- {coordinates:  [  5,  3 ], value: -6.6007875948481301E-002}, 
- {coordinates:  [  5,  4 ], value: -5.55032137539138021E-002}, 
- {coordinates:  [  5,  5 ], value:  1.0514539201395121}]}
- -  {segment:  10, elements: [
- {coordinates:  [  5,  7 ], value: -4.73242422456089662E-002}, 
- {coordinates:  [  5,  8 ], value:  5.29031107654096694E-002}, 
- {coordinates:  [  5,  9 ], value: -7.52271584519147996E-002}]}
- -  {segment:  11, elements: [
- {coordinates:  [  6,  2 ], value: -6.16310379065796166E-002}, 
- {coordinates:  [  6,  3 ], value: -4.58642575585599954E-002}, 
- {coordinates:  [  6,  4 ], value:  1.81787908199637985E-002}]}
- -  {segment:  12, elements: [
- {coordinates:  [  6,  6 ], value:  0.992569073962278}, 
- {coordinates:  [  6,  7 ], value:  7.52613407404634401E-003}, 
- {coordinates:  [  6,  8 ], value: -8.77503271292320447E-002}]}
- -  {segment:  13, elements: [
- {coordinates:  [  7,  3 ], value:  1.21933716991456872E-002}, 
- {coordinates:  [  7,  4 ], value: -4.32613763109628638E-002}, 
- {coordinates:  [  7,  5 ], value: -4.73242422456089731E-002}]}
- -  {segment:  14, elements: [
- {coordinates:  [  7,  7 ], value:  0.93835729830912706}, 
- {coordinates:  [  7,  8 ], value: -3.04783098479457573E-002}, 
- {coordinates:  [  7,  9 ], value:  6.13397552327108863E-003}]}
- -  {segment:  15, elements: [
- {coordinates:  [  8,  3 ], value: -4.96961758059819431E-002}, 
- {coordinates:  [  8,  4 ], value: -6.82151362720508497E-002}, 
- {coordinates:  [  8,  5 ], value:  5.29031107654096208E-002}]}
- -  {segment:  16, elements: [
- {coordinates:  [  8,  7 ], value: -3.04783098479457608E-002}, 
- {coordinates:  [  8,  8 ], value:  1.0340930711219694}, 
- {coordinates:  [  8,  9 ], value: -9.37717300489436523E-002}]}
- -  {segment:  17, elements: [
- {coordinates:  [  9,  7 ], value:  6.13397552327111899E-003}, 
- {coordinates:  [  9,  8 ], value: -9.37717300489436523E-002}, 
- {coordinates:  [  9,  9 ], value:  1.0113930388405237}]}
- -  {segment:  18, elements: [
- {coordinates:  [  10,  8 ], value: -3.10269903113294943E-002}, 
- {coordinates:  [  10,  9 ], value: -5.51395795317251042E-003}, 
- {coordinates:  [  10,  10 ], value:  0.93969355596733117}]}
- error of the result                   :  0.5
+ Can perform this test                 :  No
   #------------------------------------------------------------------------------- check: 11
  check number                          :  11
  imode                                 :  1
  iorder                                :  1
  power                                 : -2
+ Can perform this test                 :  Yes
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  0.92919265817264285}, 
@@ -1019,6 +948,7 @@
  imode                                 :  1
  iorder                                :  6
  power                                 : -2
+ Can perform this test                 :  Yes
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  0.96074339452403723}, 
@@ -1104,93 +1034,13 @@
  imode                                 :  1
  iorder                                :  0
  power                                 :  1
-  #WARNING: The compressed matrix will not be filled! You should know what you do.
- init: nseq         350
- final result:
- -  {segment:  1, elements: [
- {coordinates:  [  1,  1 ], value:  0.96735558445410841}, 
- {coordinates:  [  1,  2 ], value: -0.1731126098926076}, 
- {coordinates:  [  1,  3 ], value:  5.34185490636404775E-002}, 
- {coordinates:  [  1,  4 ], value: -2.40900738836028784E-002}]}
- -  {segment:  2, elements: [
- {coordinates:  [  1,  6 ], value:  6.0133813041852599E-002}, 
- {coordinates:  [  1,  7 ], value: -1.09808095329980166E-002}, 
- {coordinates:  [  1,  8 ], value: -0.20016768414298761}, 
- {coordinates:  [  1,  9 ], value:  3.53967028554809104E-002}]}
- -  {segment:  3, elements: [
- {coordinates:  [  2,  2 ], value:  1.1508419463798578}, 
- {coordinates:  [  2,  3 ], value: -0.1461572610291958}, 
- {coordinates:  [  2,  4 ], value: -0.13552119067317281}, 
- {coordinates:  [  2,  5 ], value:  0.14565347837189924}]}
- -  {segment:  4, elements: [
- {coordinates:  [  2,  7 ], value: -0.13854930486679073}, 
- {coordinates:  [  2,  8 ], value:  0.11951226735267081}, 
- {coordinates:  [  2,  9 ], value: -9.06914537906595986E-002}, 
- {coordinates:  [  2,  10 ], value: -0.16231334745125428}]}
- -  {segment:  5, elements: [
- {coordinates:  [  3,  2 ], value: -0.1461572610291958}, 
- {coordinates:  [  3,  3 ], value:  0.95772617833375129}, 
- {coordinates:  [  3,  4 ], value:  3.44432892085926798E-002}, 
- {coordinates:  [  3,  5 ], value: -0.13494094993773789}]}
- -  {segment:  6, elements: [
- {coordinates:  [  3,  7 ], value:  3.06724606199958692E-002}, 
- {coordinates:  [  3,  8 ], value: -9.98098936753283733E-002}, 
- {coordinates:  [  3,  9 ], value: -0.10581594317092337}, 
- {coordinates:  [  3,  10 ], value:  3.15618932185000867E-002}]}
- -  {segment:  7, elements: [
- {coordinates:  [  4,  3 ], value:  3.44432892085926798E-002}, 
- {coordinates:  [  4,  4 ], value:  0.91558859767022116}, 
- {coordinates:  [  4,  5 ], value: -0.11598222476215019}]}
- -  {segment:  8, elements: [
- {coordinates:  [  4,  7 ], value: -6.97204264970720106E-002}, 
- {coordinates:  [  4,  8 ], value: -0.14059159606366753}, 
- {coordinates:  [  4,  9 ], value:  4.81778097971361369E-002}]}
- -  {segment:  9, elements: [
- {coordinates:  [  5,  3 ], value: -0.13494094993773789}, 
- {coordinates:  [  5,  4 ], value: -0.11598222476215019}, 
- {coordinates:  [  5,  5 ], value:  1.1468999513610851}]}
- -  {segment:  10, elements: [
- {coordinates:  [  5,  7 ], value: -9.42745263020407648E-002}, 
- {coordinates:  [  5,  8 ], value:  0.14660495358868311}, 
- {coordinates:  [  5,  9 ], value: -0.15798917251552891}]}
- -  {segment:  11, elements: [
- {coordinates:  [  6,  2 ], value: -0.13504675179881226}, 
- {coordinates:  [  6,  3 ], value: -7.30048510617638258E-002}, 
- {coordinates:  [  6,  4 ], value:  4.79721405080141064E-002}]}
- -  {segment:  12, elements: [
- {coordinates:  [  6,  6 ], value:  1.0084011793216696}, 
- {coordinates:  [  6,  7 ], value:  2.31046761762848246E-002}, 
- {coordinates:  [  6,  8 ], value: -0.18446931584252166}]}
- -  {segment:  13, elements: [
- {coordinates:  [  7,  3 ], value:  3.06724606199958692E-002}, 
- {coordinates:  [  7,  4 ], value: -6.97204264970720106E-002}, 
- {coordinates:  [  7,  5 ], value: -9.42745263020407648E-002}]}
- -  {segment:  14, elements: [
- {coordinates:  [  7,  7 ], value:  0.89414217557746156}, 
- {coordinates:  [  7,  8 ], value: -6.14825523746440131E-002}, 
- {coordinates:  [  7,  9 ], value:  1.98164411458920595E-002}]}
- -  {segment:  15, elements: [
- {coordinates:  [  8,  3 ], value: -9.98098936753283733E-002}, 
- {coordinates:  [  8,  4 ], value: -0.14059159606366753}, 
- {coordinates:  [  8,  5 ], value:  0.14660495358868311}]}
- -  {segment:  16, elements: [
- {coordinates:  [  8,  7 ], value: -6.14825523746440131E-002}, 
- {coordinates:  [  8,  8 ], value:  1.108385764841646}, 
- {coordinates:  [  8,  9 ], value: -0.19453672895947746}]}
- -  {segment:  17, elements: [
- {coordinates:  [  9,  7 ], value:  1.98164411458920595E-002}, 
- {coordinates:  [  9,  8 ], value: -0.19453672895947746}, 
- {coordinates:  [  9,  9 ], value:  1.0438909835768211}]}
- -  {segment:  18, elements: [
- {coordinates:  [  10,  8 ], value: -6.58236757286890933E-002}, 
- {coordinates:  [  10,  9 ], value: -1.6585899203164613E-003}, 
- {coordinates:  [  10,  10 ], value:  0.89911957898999317}]}
- error of the result                   :  1.0
+ Can perform this test                 :  No
   #------------------------------------------------------------------------------- check: 14
  check number                          :  14
  imode                                 :  1
  iorder                                :  1
  power                                 :  1
+ Can perform this test                 :  Yes
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  0.8583853163452857}, 
@@ -1276,6 +1126,7 @@
  imode                                 :  1
  iorder                                :  6
  power                                 :  1
+ Can perform this test                 :  Yes
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  0.93989564180364638}, 
@@ -1361,93 +1212,13 @@
  imode                                 :  1
  iorder                                :  0
  power                                 :  2
-  #WARNING: The compressed matrix will not be filled! You should know what you do.
- init: nseq         350
- final result:
- -  {segment:  1, elements: [
- {coordinates:  [  1,  1 ], value:  1.0561169357299092}, 
- {coordinates:  [  1,  2 ], value:  7.8791764758355573E-002}, 
- {coordinates:  [  1,  3 ], value: -6.17432837044354105E-003}, 
- {coordinates:  [  1,  4 ], value:  4.4139733208968232E-002}]}
- -  {segment:  2, elements: [
- {coordinates:  [  1,  6 ], value: -2.12747172154649153E-003}, 
- {coordinates:  [  1,  7 ], value:  3.15561868606860849E-002}, 
- {coordinates:  [  1,  8 ], value:  9.37389203541247468E-002}, 
- {coordinates:  [  1,  9 ], value:  7.53679168382909333E-003}]}
- -  {segment:  3, elements: [
- {coordinates:  [  2,  2 ], value:  0.98166803643787726}, 
- {coordinates:  [  2,  3 ], value:  6.99322113226523157E-002}, 
- {coordinates:  [  2,  4 ], value:  7.32528048921129021E-002}, 
- {coordinates:  [  2,  5 ], value: -1.63883629636033014E-002}]}
- -  {segment:  4, elements: [
- {coordinates:  [  2,  7 ], value:  8.13738583608031307E-002}, 
- {coordinates:  [  2,  8 ], value: -9.48263754393982063E-003}, 
- {coordinates:  [  2,  9 ], value:  4.20926251050111888E-002}, 
- {coordinates:  [  2,  10 ], value:  8.89198067647113122E-002}]}
- -  {segment:  5, elements: [
- {coordinates:  [  3,  2 ], value:  6.9932211322652274E-002}, 
- {coordinates:  [  3,  3 ], value:  1.052735157086236}, 
- {coordinates:  [  3,  4 ], value: -5.17713930165351627E-003}, 
- {coordinates:  [  3,  5 ], value:  6.99067614488763783E-002}]}
- -  {segment:  6, elements: [
- {coordinates:  [  3,  7 ], value: -4.48381773061314742E-003}, 
- {coordinates:  [  3,  8 ], value:  5.58382469442813348E-002}, 
- {coordinates:  [  3,  9 ], value:  7.80919996185654441E-002}, 
- {coordinates:  [  3,  10 ], value: -1.2274708310773064E-003}]}
- -  {segment:  7, elements: [
- {coordinates:  [  4,  3 ], value: -5.17713930165352235E-003}, 
- {coordinates:  [  4,  4 ], value:  1.0742068999926346}, 
- {coordinates:  [  4,  5 ], value:  5.80128126220636475E-002}]}
- -  {segment:  8, elements: [
- {coordinates:  [  4,  7 ], value:  6.41650486278585452E-002}, 
- {coordinates:  [  4,  8 ], value:  7.10365404048061283E-002}, 
- {coordinates:  [  4,  9 ], value: -6.74759355624490222E-003}]}
- -  {segment:  9, elements: [
- {coordinates:  [  5,  3 ], value:  6.99067614488763783E-002}, 
- {coordinates:  [  5,  4 ], value:  5.80128126220636128E-002}, 
- {coordinates:  [  5,  5 ], value:  0.98722689970939714}]}
- -  {segment:  10, elements: [
- {coordinates:  [  5,  7 ], value:  5.38695500201612221E-002}, 
- {coordinates:  [  5,  8 ], value: -1.66798619224753399E-002}, 
- {coordinates:  [  5,  9 ], value:  7.56538496694688645E-002}]}
- -  {segment:  11, elements: [
- {coordinates:  [  6,  2 ], value:  5.78403353222000996E-002}, 
- {coordinates:  [  6,  3 ], value:  6.6395967691795163E-002}, 
- {coordinates:  [  6,  4 ], value: -6.31300132095065532E-003}]}
- -  {segment:  12, elements: [
- {coordinates:  [  6,  6 ], value:  1.031012205044183}, 
- {coordinates:  [  6,  7 ], value:  1.53226092846295747E-003}, 
- {coordinates:  [  6,  8 ], value:  8.73653704523401353E-002}]}
- -  {segment:  13, elements: [
- {coordinates:  [  7,  3 ], value: -4.48381773061314222E-003}, 
- {coordinates:  [  7,  4 ], value:  6.41650486278585591E-002}, 
- {coordinates:  [  7,  5 ], value:  5.38695500201612359E-002}]}
- -  {segment:  14, elements: [
- {coordinates:  [  7,  7 ], value:  1.0838183459481998}, 
- {coordinates:  [  7,  8 ], value:  3.5559094144617942E-002}, 
- {coordinates:  [  7,  9 ], value:  2.83107886080179345E-003}]}
- -  {segment:  15, elements: [
- {coordinates:  [  8,  3 ], value:  5.58382469442813695E-002}, 
- {coordinates:  [  8,  4 ], value:  7.10365404048061283E-002}, 
- {coordinates:  [  8,  5 ], value: -1.66798619224753225E-002}]}
- -  {segment:  16, elements: [
- {coordinates:  [  8,  7 ], value:  3.55590941446179282E-002}, 
- {coordinates:  [  8,  8 ], value:  1.0022832594405671}, 
- {coordinates:  [  8,  9 ], value:  9.45579276182827999E-002}]}
- -  {segment:  17, elements: [
- {coordinates:  [  9,  7 ], value:  2.83107886080178782E-003}, 
- {coordinates:  [  9,  8 ], value:  9.4557927618282786E-002}, 
- {coordinates:  [  9,  9 ], value:  1.0107883195190919}]}
- -  {segment:  18, elements: [
- {coordinates:  [  10,  8 ], value:  3.37788410320242136E-002}, 
- {coordinates:  [  10,  9 ], value:  1.59874054352158977E-002}, 
- {coordinates:  [  10,  10 ], value:  1.0840789741679775}]}
- error of the result                   :  0.59148692885201248
+ Can perform this test                 :  No
   #------------------------------------------------------------------------------- check: 17
  check number                          :  17
  imode                                 :  1
  iorder                                :  1
  power                                 :  2
+ Can perform this test                 :  Yes
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  1.0708073418273572}, 
@@ -1533,6 +1304,7 @@
  imode                                 :  1
  iorder                                :  6
  power                                 :  2
+ Can perform this test                 :  Yes
  final result:
  -  {segment:  1, elements: [
  {coordinates:  [  1,  1 ], value:  1.0593696653489439}, 
@@ -1615,42 +1387,42 @@
  error of the result                   :  4.71346458383710767E-002
  Size of the global database           :  4
  Raw version:
-   140735833262152:
+   140734455293224:
      Array Id                          : orbs%norb_par
-     Size (Bytes)                      : 4
+     Size (Bytes)                      : 12
      Allocating Routine Id             : Main program
-     Address of first element          : 0x4bcec50
-   140735833261864:
+     Address of first element          : 0x6077250
+   140734455292936:
      Array Id                          : orbs%isorb_par
-     Size (Bytes)                      : 4
+     Size (Bytes)                      : 12
      Allocating Routine Id             : Main program
-     Address of first element          : 0x4bcec70
-   Timestamp of Profile initialization : 2014-04-01 16:31:24.527
+     Address of first element          : 0x6079440
+   Timestamp of Profile initialization : 2014-04-02 11:39:52.023
    Process Id                          : 0
  Status of the memory at finalization:
    orbs%norb_par:
      Array Id                          : orbs%norb_par
-     Size (Bytes)                      : 4
+     Size (Bytes)                      : 12
      Allocating Routine Id             : Main program
-     Address of first element          : 0x4bcec50
-     Address of metadata               : 140735833262152
+     Address of first element          : 0x6077250
+     Address of metadata               : 140734455293224
    orbs%isorb_par:
      Array Id                          : orbs%isorb_par
-     Size (Bytes)                      : 4
+     Size (Bytes)                      : 12
      Allocating Routine Id             : Main program
-     Address of first element          : 0x4bcec70
-     Address of metadata               : 140735833261864
+     Address of first element          : 0x6079440
+     Address of metadata               : 140734455292936
    Timestamp of Profile initialization:
-     2014-04-01 16:31:24.527
+     2014-04-02 11:39:52.023
    Process Id:
      0
  Memory Consumption Report:
-   Tot. No. of Allocations             :  195
-   Tot. No. of Deallocations           :  195
+   Tot. No. of Allocations             :  164
+   Tot. No. of Deallocations           :  164
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  0
-     for the array                     : ovrlp_large_compr
+     for the array                     : work
      in the routine                    : overlapPowerGeneral
  Max No. of dictionaries used          :  909 #(  748 still in use)
  Number of dictionary folders allocated:  1

@@ -1913,7 +1913,7 @@ module module_interfaces
      end subroutine setCommsParameters
      
      subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_orbs, &
-                orbs, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed)
+                orbs, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed, foe_obj)
        use module_base
        use module_types
        use sparsematrix_base, only: sparse_matrix
@@ -1928,6 +1928,7 @@ module module_interfaces
        real(8),dimension(npsidim_orbs), intent(inout) :: lphi
        real(8),dimension(:),pointer:: psit_c, psit_f
        logical,intent(inout):: can_use_transposed
+       type(foe_data),intent(in) :: foe_obj
      end subroutine orthonormalizeLocalized
 
      subroutine optimizeDIIS(iproc, npsidim, orbs, lzd, hphi, phi, ldiis, experimental_mode)
@@ -4232,13 +4233,13 @@ module module_interfaces
           real(kind=8),dimension(norb,norbp),intent(in),optional :: cmatp
         end subroutine check_accuracy_overlap_minus_one_sparse
 
-        subroutine check_accur_overlap_minus_one_sparse(iproc, norb, norbp, isorb, nseq, nout, &
+        subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, norb, norbp, isorb, nseq, nout, &
                    ivectorindex, onedimindices, amat_seq, bmatp, power, &
                    error, &
                    dmat_seq, cmatp)
           use module_base
           implicit none
-          integer,intent(in) :: iproc, norb, norbp, isorb, nseq, nout, power
+          integer,intent(in) :: iproc, nproc, norb, norbp, isorb, nseq, nout, power
           integer,dimension(nseq),intent(in) :: ivectorindex
           integer,dimension(4,nout) :: onedimindices
           real(kind=8),dimension(nseq),intent(in) :: amat_seq

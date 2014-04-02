@@ -563,7 +563,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       !!if (iproc==0) write(*,*) 'WARNING: no ortho in inguess'
       call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
            tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp_large, &
-           tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+           tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed, &
+           tmb%foe_obj)
             
  else
      ! Iterative orthonomalization

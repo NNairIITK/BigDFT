@@ -14,24 +14,46 @@ module sparsematrix
   contains
 
     !> subroutine to compress the matrix to sparse form
-    subroutine compress_matrix(iproc,sparsemat)
+    subroutine compress_matrix(iproc,sparsemat,inmat,outmat)
       implicit none
       
       ! Calling arguments
       integer, intent(in) :: iproc
       type(sparse_matrix),intent(inout) :: sparsemat
+      real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr),target,intent(in),optional :: inmat
+      real(kind=8),dimension(sparsemat%nvctr),target,intent(out),optional :: outmat
     
       ! Local variables
       integer :: jj, irow, jcol, jjj, ierr
+      real(kind=8),dimension(:,:),pointer :: inm
+      real(kind=8),dimension(:),pointer :: outm
+
+      if (present(outmat)) then
+          if (sparsemat%parallel_compression/=0 .and. bigdft_mpi%nproc>1) then
+              stop 'outmat not allowed for the given options'
+          end if
+          outm => outmat
+      else
+          outm => sparsemat%matrix_compr
+      end if
+
+      if (present(inmat)) then
+          if (sparsemat%parallel_compression/=0 .and. bigdft_mpi%nproc>1) then
+              stop 'in not allowed for the given options'
+          end if
+          inm => inmat
+      else
+          inm => sparsemat%matrix
+      end if
     
       call timing(iproc,'compress_uncom','ON')
     
       if (sparsemat%parallel_compression==0.or.bigdft_mpi%nproc==1) then
-         !$omp parallel do default(private) shared(sparsemat)
+         !$omp parallel do default(private) shared(sparsemat,inm,outm)
          do jj=1,sparsemat%nvctr
             irow = sparsemat%orb_from_index(1,jj)
             jcol = sparsemat%orb_from_index(2,jj)
-            sparsemat%matrix_compr(jj)=sparsemat%matrix(irow,jcol)
+            outm(jj)=inm(irow,jcol)
          end do
          !$omp end parallel do
       else if (sparsemat%parallel_compression==1) then
@@ -67,25 +89,47 @@ module sparsematrix
 
 
     !> subroutine to uncompress the matrix from sparse form
-    subroutine uncompress_matrix(iproc,sparsemat)
+    subroutine uncompress_matrix(iproc,sparsemat,inmat,outmat)
       implicit none
       
       ! Calling arguments
       integer, intent(in) :: iproc
       type(sparse_matrix), intent(inout) :: sparsemat
+      real(kind=8),dimension(sparsemat%nvctr),target,intent(out),optional :: inmat
+      real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr),target,intent(out),optional :: outmat
       
       ! Local variables
       integer :: ii, irow, jcol, iii, ierr
+      real(kind=8),dimension(:),pointer :: inm
+      real(kind=8),dimension(:,:),pointer :: outm
+
+      if (present(outmat)) then
+          if (sparsemat%parallel_compression/=0 .and. bigdft_mpi%nproc>1) then
+              stop 'outmat not allowed for the given options'
+          end if
+          outm => outmat
+      else
+          outm => sparsemat%matrix
+      end if
+
+      if (present(inmat)) then
+          if (sparsemat%parallel_compression/=0 .and. bigdft_mpi%nproc>1) then
+              stop 'inmat not allowed for the given options'
+          end if
+          inm => inmat
+      else
+          inm => sparsemat%matrix_compr
+      end if
     
       call timing(iproc,'compress_uncom','ON')
     
       if (sparsemat%parallel_compression==0.or.bigdft_mpi%nproc==1) then
-         call to_zero(sparsemat%nfvctr**2, sparsemat%matrix(1,1))
-         !$omp parallel do default(private) shared(sparsemat)
+         call to_zero(sparsemat%nfvctr**2, outm(1,1))
+         !$omp parallel do default(private) shared(sparsemat,inm,outm)
          do ii=1,sparsemat%nvctr
             irow = sparsemat%orb_from_index(1,ii)
             jcol = sparsemat%orb_from_index(2,ii)
-            sparsemat%matrix(irow,jcol)=sparsemat%matrix_compr(ii)
+            outm(irow,jcol)=inm(ii)
          end do
          !$omp end parallel do
       else if (sparsemat%parallel_compression==1) then
