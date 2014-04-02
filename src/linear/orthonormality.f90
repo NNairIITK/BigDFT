@@ -626,7 +626,6 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
           ! #############################################################################
       else
           inv_ovrlpp=f_malloc_ptr((/norb,norbp/),id='inv_ovrlpp')
-          write(*,*) 'iorder',iorder
           if (iorder>1) then
               call init_onedimindices(norb, norbp, isorb, foe_nseg, &
                    foe_kernel_nsegline, foe_istsegline, foe_keyg, &
@@ -716,11 +715,13 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
                 call get_arrays_for_sequential_acces(norb, norbp, isorb, foe_nseg, &
                      foe_kernel_nsegline, foe_istsegline, foe_keyg, inv_ovrlp_smat, nseq, nmaxsegk, nmaxvalk, &
                      istindexarr, ivectorindex)
+                ovrlp_compr_seq = f_malloc(nseq,id='ovrlp_compr_seq')
+             end if
+             if (iorder<1) then
                 invovrlpp=f_malloc((/norb,norbp/),id='ovrlpminone_sparse')
                 ovrlp_large_compr=f_malloc(inv_ovrlp_smat%nvctr,id='ovrlp_large_compr')
                 call transform_sparse_matrix(ovrlp_smat, inv_ovrlp_smat, &
                      ovrlp_smat%matrix_compr, ovrlp_large_compr, 'small_to_large')
-                ovrlp_compr_seq = f_malloc(nseq,id='ovrlp_compr_seq')
              end if
             invovrlp_compr_seq=f_malloc(nseq,id='ovrlp_large_compr_seq')
             ovrlp_largep=f_malloc((/norb,norbp/),id='ovrlp_largep')
