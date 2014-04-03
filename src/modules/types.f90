@@ -123,6 +123,8 @@ module module_types
   integer, parameter :: KERNELMODE_FOE = 12
   integer, parameter :: MIXINGMODE_DENS = 20
   integer, parameter :: MIXINGMODE_POT = 21
+  integer,parameter :: FOE_ACCURATE = 30
+  integer,parameter :: FOE_FAST = 31
 
   !> How to update the density kernel during teh support function optimization
   integer, parameter :: UPDATE_BY_PURIFICATION = 0

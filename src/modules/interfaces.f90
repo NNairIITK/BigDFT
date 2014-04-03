@@ -3521,7 +3521,7 @@ module module_interfaces
 
         subroutine foe(iproc, nproc, tmprtr, &
                    ebs, itout, it_scc, order_taylor, purification_quickreturn, adjust_FOE_temperature, foe_verbosity, &
-                   tmb)
+                   accuracy_level, tmb)
           use module_base
           use module_types
           implicit none
@@ -3530,6 +3530,7 @@ module module_interfaces
           real(kind=8),intent(out) :: ebs
           logical,intent(in) :: purification_quickreturn, adjust_FOE_temperature
           integer :: foe_verbosity
+          integer,intent(in) :: accuracy_level
           type(DFT_wavefunction),intent(inout) :: tmb
         end subroutine foe
 

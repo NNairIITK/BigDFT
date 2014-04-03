@@ -441,7 +441,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
   integer,parameter :: DENSE=2
 
 
-  write(*,*) 'iorder',iorder
+  !!write(*,*) 'iorder',iorder
 
 
   call f_routine(id='overlapPowerGeneral')

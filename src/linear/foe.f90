@@ -11,7 +11,7 @@
 !> Could still do more tidying - assuming all sparse matrices except for Fermi have the same pattern
 subroutine foe(iproc, nproc, tmprtr, &
            ebs, itout, it_scc, order_taylor, purification_quickreturn, adjust_FOE_temperature, foe_verbosity, &
-           tmb)
+           accuracy_level, tmb)
   use module_base
   use module_types
   use module_interfaces, except_this_one => foe
@@ -26,6 +26,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   real(kind=8),intent(out) :: ebs
   logical,intent(in) :: purification_quickreturn, adjust_FOE_temperature
   integer,intent(in) :: foe_verbosity
+  integer,intent(in) :: accuracy_level
   type(DFT_wavefunction),intent(inout) :: tmb
 
   ! Local variables
@@ -52,18 +53,25 @@ subroutine foe(iproc, nproc, tmprtr, &
   real(kind=8) :: trace_sparse, temp_multiplicator
   integer :: irow, icol, itemp, iflag
   logical :: overlap_calculated, cycle_FOE, evbounds_shrinked, degree_sufficient, reached_limit
-  real(kind=8),parameter :: fscale_limit=5.d-3
-  real(kind=8),parameter :: degree_multiplicator_accurate=3.d0
-  real(kind=8),parameter :: degree_multiplicator_fast=2.d0
-  real(kind=8),parameter :: temp_multiplicator_accurate=1.d0
-  real(kind=8),parameter :: temp_multiplicator_fast=2.d0
+  real(kind=8),parameter :: FSCALE_LIMIT=5.d-3
+  real(kind=8),parameter :: DEGREE_MULTIPLICATOR_ACCURATE=3.d0
+  real(kind=8),parameter :: DEGREE_MULTIPLICATOR_FAST=2.d0
+  real(kind=8),parameter :: TEMP_MULTIPLICATOR_ACCURATE=1.d0
+  real(kind=8),parameter :: TEMP_MULTIPLICATOR_FAST=2.d0
   real(kind=8) :: degree_multiplicator
   integer,parameter :: SPARSE=1
   integer,parameter :: DENSE=2
   integer,parameter :: imode=SPARSE
+  
 
 
   call f_routine(id='foe')
+
+  if (iproc==0) call yaml_comment('FOE calculation of kernel',hfill='~')
+
+  if (accuracy_level/=FOE_ACCURATE .and. accuracy_level/=FOE_FAST) then
+      stop 'wrong value of accuracy_level'
+  end if
 
   tmb%linmat%inv_ovrlp_large%matrix_compr=f_malloc_ptr(tmb%linmat%inv_ovrlp_large%nvctr,&
       id='tmb%linmat%inv_ovrlp_large%matrix_compr')
@@ -158,15 +166,17 @@ subroutine foe(iproc, nproc, tmprtr, &
 
   ! This is to distinguish whether the routine is called from get_coeff of
   ! getLocBasis, to be improved.
-  if (foe_verbosity>=1) then
+  if (accuracy_level==FOE_ACCURATE) then
       ntemp=3
-      degree_multiplicator = degree_multiplicator_accurate
-      temp_multiplicator = temp_multiplicator_accurate
-  else
+      degree_multiplicator = DEGREE_MULTIPLICATOR_ACCURATE
+      temp_multiplicator = TEMP_MULTIPLICATOR_ACCURATE
+  else if (accuracy_level==FOE_FAST) then
       ntemp=1
-      degree_multiplicator = degree_multiplicator_fast
+      degree_multiplicator = DEGREE_MULTIPLICATOR_FAST
       !tmb%foe_obj%fscale = 2.d0*tmb%foe_obj%fscale
-      temp_multiplicator = temp_multiplicator_fast
+      temp_multiplicator = TEMP_MULTIPLICATOR_FAST
+  else
+      stop 'wrong value of accuracy_level'
   end if
   degree_sufficient=.true.
 
@@ -183,7 +193,11 @@ subroutine foe(iproc, nproc, tmprtr, &
       
       !if (foe_verbosity>=1 .and. iproc==0) call yaml_map('decay length of error function',fscale,fmt='(es10.3)')
       !if (foe_verbosity>=1 .and. iproc==0) call yaml_map('decay length of error function',tmb%foe_obj%fscale,fmt='(es10.3)')
-      if (iproc==0) call yaml_map('decay length of error function',fscale,fmt='(es10.3)')
+      if (iproc==0) then
+          call yaml_map('decay length of error function',fscale,fmt='(es10.3)')
+          call yaml_map('decay length multiplicator',temp_multiplicator,fmt='(es10.3)')
+          call yaml_map('polynomial degree multiplicator',degree_multiplicator,fmt='(es10.3)')
+      end if
     
           ! Don't let this value become too small.
           tmb%foe_obj%bisection_shift = max(tmb%foe_obj%bisection_shift,1.d-4)
@@ -286,7 +300,7 @@ subroutine foe(iproc, nproc, tmprtr, &
               !    npl=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale)
               !end if
               npl_check=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale_check)
-              npl_boundaries=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale_limit) ! max polynomial degree for given eigenvalue boundaries
+              npl_boundaries=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/FSCALE_LIMIT) ! max polynomial degree for given eigenvalue boundaries
               if (npl>npl_boundaries) then
                   npl=npl_boundaries
                   if (iproc==0) call yaml_warning('very sharp decay of error function, polynomial degree reached limit')
@@ -307,15 +321,15 @@ subroutine foe(iproc, nproc, tmprtr, &
     
               !if (foe_verbosity>=1 .and. iproc==0) then
               if (iproc==0) then
-                  call yaml_map('bisec/eval bounds',&
-                       (/efarr(1),efarr(2),tmb%foe_obj%evlow,tmb%foe_obj%evhigh/),fmt='(f5.2)')
-                  !call yaml_map('lower bisection bound',efarr(1),fmt='(es10.3)')
-                  !call yaml_map('upper bisection bound',efarr(1),fmt='(es10.3)')
-                  !call yaml_map('lower eigenvalue bound',tmb%foe_obj%evlow,fmt='(es10.3)')
-                  !call yaml_map('upper eigenvalue bound',tmb%foe_obj%evhigh,fmt='(es10.3)')
+                  if (foe_verbosity>=1) then
+                      call yaml_map('bisec/eval bounds',&
+                           (/efarr(1),efarr(2),tmb%foe_obj%evlow,tmb%foe_obj%evhigh/),fmt='(f5.2)')
+                  else
+                      call yaml_map('eval bounds',&
+                           (/tmb%foe_obj%evlow,tmb%foe_obj%evhigh/),fmt='(f5.2)')
+                  end if
                   call yaml_map('pol deg',npl,fmt='(i3)')
-                  call yaml_map('eF',tmb%foe_obj%ef,fmt='(es16.9)')
-                  !call yaml_map('conv crit',charge_tolerance,fmt='(es10.3)')
+                  if (foe_verbosity>=1) call yaml_map('eF',tmb%foe_obj%ef,fmt='(es16.9)')
               end if
     
     
@@ -409,7 +423,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                   eval_bounds_ok(2)=.false.
                   tmb%foe_obj%evhigh=tmb%foe_obj%evhigh*1.2d0
                   if (iproc==0) then
-                      call yaml_map('eval/bisection bounds ok',&
+                      if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
                            (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
                       call yaml_close_map()
                       !call bigdft_utils_flush(unit=6)
@@ -497,7 +511,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                   end if
                   tmb%foe_obj%evbounds_isatur=0
                   if (iproc==0) then
-                      call yaml_map('eval/bisection bounds ok',&
+                      if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
                            (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
                       call yaml_close_map()
                       !call bigdft_utils_flush(unit=6)
@@ -571,7 +585,7 @@ subroutine foe(iproc, nproc, tmprtr, &
               end if
               if (restart) then
                   if (iproc==0) then
-                      call yaml_map('eval/bisection bounds ok',&
+                      if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
                            (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
                       call yaml_close_map()
                   end if
@@ -597,7 +611,7 @@ subroutine foe(iproc, nproc, tmprtr, &
               end if
     
               if (iproc==0) then
-                  call yaml_map('eval/bisection bounds ok',&
+                  if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
                        (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
               end if
               if (restart) then
@@ -782,9 +796,9 @@ subroutine foe(iproc, nproc, tmprtr, &
                           !!if (iproc==0) call yaml_map('Need to change fscale (decrease)',.true.)
                           if (iproc==0) call yaml_map('modify fscale','decrease')
                       end if
-                      if (tmb%foe_obj%fscale<fscale_limit) then
-                          tmb%foe_obj%fscale=fscale_limit
-                          if (iproc==0) call yaml_map('fscale reached limit; reset to',fscale_limit)
+                      if (tmb%foe_obj%fscale<FSCALE_LIMIT) then
+                          tmb%foe_obj%fscale=FSCALE_LIMIT
+                          if (iproc==0) call yaml_map('fscale reached limit; reset to',FSCALE_LIMIT)
                           reached_limit=.true.
                       else
                           reached_limit=.false.
@@ -856,16 +870,16 @@ subroutine foe(iproc, nproc, tmprtr, &
           id='tmb%linmat%denskern_large%matrix')
       call uncompress_matrix(iproc,tmb%linmat%denskern_large)
 
-      if (iproc==0) then
-          tt=0.d0
-          do iorb=1,tmb%orbs%norb
-              do jorb=1,tmb%orbs%norb
-                  !write(*,*) jorb,iorb,tmb%linmat%inv_ovrlp_large%matrix(jorb,iorb)
-                  tt=tt+(tmb%linmat%inv_ovrlp_large%matrix(jorb,iorb)-tmb%linmat%inv_ovrlp_large%matrix(iorb,jorb))**2
-              end do
-          end do
-          write(*,*) 'tt',tt
-      end if
+      !!if (iproc==0) then
+      !!    tt=0.d0
+      !!    do iorb=1,tmb%orbs%norb
+      !!        do jorb=1,tmb%orbs%norb
+      !!            !write(*,*) jorb,iorb,tmb%linmat%inv_ovrlp_large%matrix(jorb,iorb)
+      !!            tt=tt+(tmb%linmat%inv_ovrlp_large%matrix(jorb,iorb)-tmb%linmat%inv_ovrlp_large%matrix(iorb,jorb))**2
+      !!        end do
+      !!    end do
+      !!    write(*,*) 'tt',tt
+      !!end if
     
       ! Calculate S^-1/2 * K * S^-1/2^T
       ! Since S^-1/2 is symmetric, don't use the transpose
@@ -928,14 +942,16 @@ subroutine foe(iproc, nproc, tmprtr, &
       overlap_calculated=.true.
       !tmb%can_use_transposed=.true.
 
-      if (itemp==ntemp) then
-          it_shift=20
-      else
-          it_shift=1
-      end if
-      call purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, 50, order_taylor, purification_quickreturn)
-      if (iproc==0) then
-          call yaml_close_sequence()
+      if (.not.purification_quickreturn) then
+          if (itemp==ntemp) then
+              it_shift=20
+          else
+              it_shift=1
+          end if
+          call purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, 50, order_taylor, purification_quickreturn)
+          if (iproc==0) then
+              call yaml_close_sequence()
+          end if
       end if
     
     
@@ -1011,7 +1027,7 @@ subroutine foe(iproc, nproc, tmprtr, &
 
 
 
-  if (iproc==0) call yaml_comment('FOE calculation of kernel finished',hfill='-')
+  if (iproc==0) call yaml_comment('FOE calculation of kernel finished',hfill='~')
 
 
   iall=-product(shape(chebyshev_polynomials))*kind(chebyshev_polynomials)
