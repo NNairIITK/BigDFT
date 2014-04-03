@@ -497,7 +497,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
                pnrm,denspot%dpbox%nscatterarr)
       end if
   end if
-  call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+  call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
 
   !!write(*,'(a,4i8)') 'iproc, denspot%dpbox%n3d, denspot%dpbox%n3p, denspot%dpbox%nscatterarr(iproc,2)', &
   !!                    iproc, denspot%dpbox%n3d, denspot%dpbox%n3p, denspot%dpbox%nscatterarr(iproc,2)
@@ -790,7 +790,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
            pnrm,denspot%dpbox%nscatterarr)
   end if
   if (iproc==0) call yaml_newline()
-  call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+  call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
   if(iproc==0) call yaml_close_map()
   ! Mix the potential.
   if (input%lin%mixing_after_inputguess .and. input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then

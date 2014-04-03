@@ -152,10 +152,10 @@ ec_i(vwn_consts_type *X, int order, int i, FLOAT x,
 
   /* a couple of handy functions */
   fx  = x*x + X->b[i]*x + X->c[i];  /* X(x) */
-  qx  = atan(X->Q[i]/(2.0*x + X->b[i]));
+  qx  = ATAN(X->Q[i]/(2.0*x + X->b[i]));
   xx0 = x - X->x0[i];
   
-  *zk = X->A[i]*(log(x*x/fx) + (f1 - f2*f3)*qx - f2*log(xx0*xx0/fx));
+  *zk = X->A[i]*(LOG(x*x/fx) + (f1 - f2*f3)*qx - f2*LOG(xx0*xx0/fx));
   
   if(order < 1) return;
 
@@ -384,7 +384,9 @@ const XC(func_info_type) XC(func_info_lda_c_vwn) = {
   1e-32, 0.0, 0.0, 1e-32,
   lda_c_vwn_init,
   NULL,
-  work_lda
+  work_lda,
+  NULL,
+  NULL
 };
 
 const XC(func_info_type) XC(func_info_lda_c_vwn_1) = {
@@ -397,7 +399,9 @@ const XC(func_info_type) XC(func_info_lda_c_vwn_1) = {
   1e-32, 0.0, 0.0, 1e-32,
   lda_c_vwn_init,
   NULL,
-  work_lda
+  work_lda,
+  NULL,
+  NULL
 };
 
 const XC(func_info_type) XC(func_info_lda_c_vwn_2) = {
@@ -410,7 +414,9 @@ const XC(func_info_type) XC(func_info_lda_c_vwn_2) = {
   1e-32, 0.0, 0.0, 1e-32,
   lda_c_vwn_init,
   NULL,
-  work_lda
+  work_lda,
+  NULL,
+  NULL
 };
 
 const XC(func_info_type) XC(func_info_lda_c_vwn_3) = {
@@ -423,7 +429,9 @@ const XC(func_info_type) XC(func_info_lda_c_vwn_3) = {
   1e-32, 0.0, 0.0, 1e-32,
   lda_c_vwn_init,
   NULL,
-  work_lda
+  work_lda,
+  NULL,
+  NULL
 };
 
 const XC(func_info_type) XC(func_info_lda_c_vwn_4) = {
@@ -436,7 +444,9 @@ const XC(func_info_type) XC(func_info_lda_c_vwn_4) = {
   1e-32, 0.0, 0.0, 1e-32,
   lda_c_vwn_init,
   NULL,
-  work_lda
+  work_lda,
+  NULL,
+  NULL
 };
 
 const XC(func_info_type) XC(func_info_lda_c_vwn_rpa) = {
@@ -449,6 +459,8 @@ const XC(func_info_type) XC(func_info_lda_c_vwn_rpa) = {
   1e-32, 0.0, 0.0, 1e-32,
   lda_c_vwn_init,
   NULL,
-  work_lda 
+  work_lda,
+  NULL,
+  NULL
 };
 

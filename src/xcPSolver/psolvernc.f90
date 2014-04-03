@@ -21,7 +21,7 @@
 !!    to 10^-20 and not to zero.
 !! @author Luigi Genovese
 !! @date   February 2007
-subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,xc,hx,hy,hz,&
      rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin)!,&
 !     alpha,beta,gamma,quiet) !optional argument
   use module_base
@@ -43,7 +43,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   integer, intent(in) :: nproc             !< Number of processors
   integer, intent(in) :: n01,n02,n03       !< Global dimension in the three directions. They are the same no matter if the 
                                            !! datacode is in 'G' or in 'D' position.
-  integer, intent(in) :: ixc               !< eXchange-Correlation code. Indicates the XC functional to be used 
+  type(xc_info), intent(in) :: xc               !< eXchange-Correlation code. Indicates the XC functional to be used 
                                            !! for calculating XC energies and potential. 
                                            !! ixc=0 indicates that no XC terms are computed. The XC functional codes follow
                                            !! the ABINIT convention.
@@ -125,27 +125,27 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   
   !calculate the dimensions wrt the geocode
   if (geocode == 'P') then
-     if (iproc==0 .and. wrtmsg) call PSolver_yaml('periodic BC',n01,n02,n03,nproc,ixc)
+     if (iproc==0 .and. wrtmsg) call PSolver_yaml('periodic BC',n01,n02,n03,nproc,xc%ixc)
           !write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           !'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
      call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,.false.)
   else if (geocode == 'S') then
-     if (iproc==0 .and. wrtmsg) call PSolver_yaml('surfaces BC',n01,n02,n03,nproc,ixc)
+     if (iproc==0 .and. wrtmsg) call PSolver_yaml('surfaces BC',n01,n02,n03,nproc,xc%ixc)
           !write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           !'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
      call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
   else if (geocode == 'F') then
-     if (iproc==0 .and. wrtmsg) call PSolver_yaml('free BC',n01,n02,n03,nproc,ixc)
+     if (iproc==0 .and. wrtmsg) call PSolver_yaml('free BC',n01,n02,n03,nproc,xc%ixc)
           !write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           !'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
   else if (geocode == 'W') then
-     if (iproc==0 .and. wrtmsg) call PSolver_yaml('wires BC',n01,n02,n03,nproc,ixc)
+     if (iproc==0 .and. wrtmsg) call PSolver_yaml('wires BC',n01,n02,n03,nproc,xc%ixc)
           !write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           !'PSolver, wires  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
      call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
   else if (geocode == 'H') then
-     if (iproc==0 .and. wrtmsg) call PSolver_yaml('Helmholtz Equation Solver',n01,n02,n03,nproc,ixc)
+     if (iproc==0 .and. wrtmsg) call PSolver_yaml('Helmholtz Equation Solver',n01,n02,n03,nproc,xc%ixc)
           !write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           !'PSolver, Helmholtz Equation Solver, dimensions: ',n01,n02,n03,'   proc',nproc,'  ixc:',ixc,' ... '
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
@@ -176,7 +176,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   istart=iproc*(md2/nproc)
   iend=min((iproc+1)*md2/nproc,m2)
 
-  call xc_dimensions(geocode,xc_isgga(),(ixc/=13),istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s_fake,i3xcsh_fake)
+  call xc_dimensions(geocode,xc_isgga(xc),(xc%ixc/=13),istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s_fake,i3xcsh_fake)
   nwb=nxcl+nxc+nxcr-2
   nxt=nwbr+nwb+nwbl
 
@@ -224,7 +224,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
           ((nspin==2 .and. nproc > 1) .or. i3start <=0 .or. i3start+nxt-1 > n03 )) then
         !allocation of an auxiliary array for avoiding the shift 
         call xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
-             ixc,hx,hy,hz,rhopot_G,pot_ion,sumpion,zf,zfionxc,&
+             xc%ixc,hx,hy,hz,rhopot_G,pot_ion,sumpion,zf,zfionxc,&
              eexcuLOC,vexcuLOC,nproc,nspin)
         do ispin=1,nspin
            do i3=1,nxt
@@ -248,7 +248,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
         call memocc(i_stat,i_all,'rhopot_g',subname)
      else
         call xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
-             ixc,hx,hy,hz,rhopot(1+n01*n02*(i3start-1)),pot_ion,sumpion,zf,zfionxc,&
+             xc%ixc,hx,hy,hz,rhopot(1+n01*n02*(i3start-1)),pot_ion,sumpion,zf,zfionxc,&
              eexcuLOC,vexcuLOC,nproc,nspin)
      end if
   else if (istart+1 <= nlim) then !this condition ensures we have performed good zero padding
@@ -306,7 +306,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 
   ehartreeLOC=0.0_dp
   !recollect the final data
-  if (ixc==0) then !without XC the spin does not exist
+  if (xc%ixc==0) then !without XC the spin does not exist
      do j2=1,nxc
         i2=j2+i3xcsh !in this case the shift is always zero for a parallel run
         ind3=(i2-1)*n01*n02
@@ -453,7 +453,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
                 bigdft_mpi%mpi_comm,ierr)
 
            !if it is the case gather also the results of the XC potential
-           if (ixc /=0 .and. .not. sumpion) then
+           if (xc%ixc /=0 .and. .not. sumpion) then
 !!$              call MPI_ALLGATHERV(pot_ion(istden),gather_arr(iproc,1),&
 !!$                   mpidtypw,pot_ion(istglo),gather_arr(0,1),gather_arr(0,2),&
 !!$                   mpidtypw,bigdft_mpi%mpi_comm,ierr)
@@ -476,7 +476,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      vxc=real(vexcuLOC,gp)
   end if
 
-  if(nspin==1 .and. ixc /= 0) eh=eh*2.0_gp
+  if(nspin==1 .and. xc%ixc /= 0) eh=eh*2.0_gp
   !if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
   !call timing(iproc,'Exchangecorr  ','OF')
   call f_timing(TCAT_EXCHANGECORR,'OF')
@@ -509,9 +509,10 @@ END SUBROUTINE PSolver
 !!    to 10^-20 and not to zero.
 !! @author Anders Bergman
 !! @date   March 2008
-subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
+subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,xc,hx,hy,hz,&
      rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin)
   use module_base
+  use module_xc
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use dictionaries, only: f_err_raise
   implicit none
@@ -530,7 +531,7 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
                                            !! datacode is in 'G' or in 'D' position.
   integer, intent(in) :: n3d               !< Third dimension of the density. For distributed data, it takes into account
                                            !! When there are too many processes and there is no room for the density n3d=0.
-  integer, intent(in) :: ixc               !< eXchange-Correlation code. Indicates the XC functional to be used 
+  type(xc_info), intent(in) :: xc               !< eXchange-Correlation code. Indicates the XC functional to be used 
                                            !! for calculating XC energies and potential. 
                                            !! ixc=0 indicates that no XC terms are computed. The XC functional codes follow
                                            !! the ABINIT convention.
@@ -628,7 +629,7 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
      !print *,'ciao',iproc     
      !substitution of the calling routine
      
-     call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+     call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,xc,hx,hy,hz,&
           rho_diag,karray,pot_ion,eh,exc,vxc,offset,sumpion,2)
      !print *,'Psolver R',eh,exc,vxc
      !open(17)

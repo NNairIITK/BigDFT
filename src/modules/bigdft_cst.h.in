@@ -63,8 +63,8 @@ typedef struct _GObject {guint ref_count;} GObject;
 /* Internal types for Fortran datatypes. */
 /* Basic types, used for minimal bindings only. */
 #define F_TYPE(T) (T.add)
-#define F_DEFINE_TYPE(T) typedef void _ ## T;                                  \
- typedef struct {_ ## T *add; char buf[64];} _ ## T ## _pointer;
+#define F_DEFINE_TYPE(T) typedef void f90_ ## T;                                  \
+ typedef struct {f90_ ## T *add; char buf[64];} f90_ ## T ## _pointer
 
 F_DEFINE_TYPE(dictionary);
 F_DEFINE_TYPE(memory_estimation);
@@ -81,6 +81,7 @@ F_DEFINE_TYPE(run_image);
 F_DEFINE_TYPE(NEB_data);
 F_DEFINE_TYPE(system_fragment);
 /* Advanced types, used for full bindings. */
+F_DEFINE_TYPE(xc_info);
 F_DEFINE_TYPE(communications_arrays);
 F_DEFINE_TYPE(coulomb_operator);
 F_DEFINE_TYPE(denspot_distribution);

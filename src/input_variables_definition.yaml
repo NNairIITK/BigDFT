@@ -100,6 +100,7 @@
        102: Linear on disk
      linear: 100
      linear_restart: 102
+     KEYWORDS: ciao
    output_wf:
      default: 0
      EXCLUSIVE:
@@ -819,3 +820,22 @@
        COMMENT: cutoff radius for the FOE matrix vector multiplications
        RANGE: [2.0,1000]
        default: 14.0
+--- #here starts the document of possible input files
+best:
+  COMMENT: this input file shouldbe used for something
+  dft:
+    hgrids: accurate
+    ixc: PBE
+  lin_general:
+    hybrid: best
+  lin_basis:
+    nit: [100,1]
+structural:
+  COMMENT: for geopt
+  dft:
+    hgrids: fast
+    ixc: PBE
+  geopt:
+    method: FIRE
+
+    

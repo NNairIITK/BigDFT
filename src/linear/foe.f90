@@ -958,7 +958,7 @@ subroutine foe(iproc, nproc, tmprtr, &
       ! Calculate trace(KS).
       sumn=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
 
-      call yaml_map('trace(KS)',sumn)
+      if (iproc==0) call yaml_map('trace(KS)',sumn)
 
 
       !!call check_idempotency(iproc, nproc, tmb, idempotency_diff)
@@ -1129,7 +1129,8 @@ subroutine foe(iproc, nproc, tmprtr, &
           istindexarr = f_malloc((/ nmaxvalk, nmaxsegk, tmb%orbs%norbp /),id='istindexarr')
           ivectorindex = f_malloc(nseq,id='ivectorindex')
           call get_arrays_for_sequential_acces(tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%foe_obj%nseg, &
-               tmb%foe_obj%kernel_nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, tmb%linmat%inv_ovrlp_large, nseq, nmaxsegk, nmaxvalk, &
+               tmb%foe_obj%kernel_nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
+               tmb%linmat%inv_ovrlp_large, nseq, nmaxsegk, nmaxvalk, &
                istindexarr, ivectorindex)
           call sequential_acces_matrix(tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%foe_obj%nseg, &
                tmb%foe_obj%kernel_nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
@@ -1152,7 +1153,8 @@ subroutine foe(iproc, nproc, tmprtr, &
           call to_zero(tmb%linmat%denskern_large%nvctr, tmb%linmat%denskern_large%matrix_compr(1))
           call compress_matrix_distributed(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb_par, &
                tmb%linmat%denskern_large, inv_ovrlpp, tmb%linmat%denskern_large%matrix_compr)
-          call mpiallred(tmb%linmat%denskern_large%matrix_compr(1), tmb%linmat%denskern_large%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          call mpiallred(tmb%linmat%denskern_large%matrix_compr(1), tmb%linmat%denskern_large%nvctr, &
+               mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
           call f_free_ptr(onedimindices)
           call f_free_ptr(inv_ovrlpp)

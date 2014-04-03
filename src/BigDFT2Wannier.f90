@@ -23,7 +23,6 @@ program BigDFT2Wannier
    character :: filetype*4
    !etsf
    character(len=*), parameter :: subname='BigDFT2Wannier'
-   type(locreg_descriptors) :: Glr
    type(local_zone_descriptors) :: lzd
    type(orbitals_data) :: orbs  !< describes the occupied orbitals
    type(orbitals_data) :: orbsp !< describes the projectors
@@ -99,10 +98,7 @@ program BigDFT2Wannier
 
    call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
         & 'posinp'//trim(bigdft_run_id_toa()), bigdft_mpi)
-   call inputs_from_dict(input, atoms, user_inputs, .true.)
-   if (iproc == 0) then
-      call print_general_parameters(input,atoms)
-   end if
+   call inputs_from_dict(input, atoms, user_inputs)
    call dict_free(user_inputs)
 
 !!$   if (input%verbosity > 2) then
@@ -182,7 +178,7 @@ program BigDFT2Wannier
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
    call system_size(atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
-      &   lzd%Glr,shift)
+      &   .false.,lzd%Glr,shift)
    if (iproc == 0) &
         & call print_atoms_and_grid(lzd%Glr, atoms, atoms%astruct%rxyz, shift, input%hx,input%hy,input%hz)
 
@@ -1213,7 +1209,9 @@ subroutine final_deallocations()
   !call deallocate_atoms_scf(atoms,subname)
   call deallocate_atoms_data(atoms)
 !  call free_input_variables(input)
-  call bigdft_free_input(input)
+  call free_input_variables(input)
+  !free all yaml_streams active
+  !call yaml_close_all_streams()
 
 END SUBROUTINE final_deallocations
 END PROGRAM BigDFT2Wannier

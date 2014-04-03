@@ -158,8 +158,8 @@ func(const XC(func_type) *pt, XC(mgga_work_c_t) *r)
     opz13 = CBRT(opz);
     rss   = r->rs*M_CBRT2/opz13;
 
-    XC(gga_x_pbe_enhance) (pt->func_aux[0], r->order, r->xs[is], &ep_f, &ep_dfdx, &ep_d2fdx2);
-    XC(gga_x_rpbe_enhance)(pt->func_aux[1], r->order, r->xs[is], &er_f, &er_dfdx, &er_d2fdx2);
+    XC(gga_x_pbe_enhance) (pt->func_aux[0], r->order, r->xs[is], &ep_f, &ep_dfdx, &ep_d2fdx2, NULL);
+    XC(gga_x_rpbe_enhance)(pt->func_aux[1], r->order, r->xs[is], &er_f, &er_dfdx, &er_d2fdx2, NULL);
   
     XC(mgga_series_w)(r->order, 12, params->a, r->ts[is], &fw1, &dfw1dt);
     XC(mgga_series_w)(r->order, 12, params->b, r->ts[is], &fw2, &dfw2dt);
@@ -171,7 +171,7 @@ func(const XC(func_type) *pt, XC(mgga_work_c_t) *r)
 
     if(params->LC == 1){
       a_cnst = CBRT(2.0/(9.0*M_PI))*pt->cam_omega/2.0;
-      XC(lda_x_attenuation_function)(0, r->order, a_cnst*rss, &f_aa, &df_aa, NULL, NULL);
+      XC(lda_x_attenuation_function)(XC_RSF_ERF, r->order, a_cnst*rss, &f_aa, &df_aa, NULL, NULL);
       
       /* the rest of the SR is evaluated at the HF level */
       if(pt->info->number == XC_HYB_MGGA_X_M11){
