@@ -643,6 +643,9 @@
    purification_quickreturn:
      COMMENT: linear scaling quick return in purification
      default: No
+   adjust_FOE_temperature:
+     COMMENT: linear scaling dynamic adjustment of the decay length of the FOE error function
+     default: Yes
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant

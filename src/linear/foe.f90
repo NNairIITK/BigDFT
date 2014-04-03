@@ -10,7 +10,7 @@
 
 !> Could still do more tidying - assuming all sparse matrices except for Fermi have the same pattern
 subroutine foe(iproc, nproc, tmprtr, &
-           ebs, itout, it_scc, order_taylor, purification_quickreturn, foe_verbosity, &
+           ebs, itout, it_scc, order_taylor, purification_quickreturn, adjust_FOE_temperature, foe_verbosity, &
            tmb)
   use module_base
   use module_types
@@ -24,7 +24,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   integer,intent(in) :: iproc, nproc,itout,it_scc, order_taylor
   real(kind=8),intent(in) :: tmprtr
   real(kind=8),intent(out) :: ebs
-  logical,intent(in) :: purification_quickreturn
+  logical,intent(in) :: purification_quickreturn, adjust_FOE_temperature
   integer,intent(in) :: foe_verbosity
   type(DFT_wavefunction),intent(inout) :: tmb
 
@@ -49,12 +49,14 @@ subroutine foe(iproc, nproc, tmprtr, &
   integer :: jproc, iorder, npl_boundaries
   logical,dimension(2) :: eval_bounds_ok, bisection_bounds_ok
   real(kind=8),dimension(:,:),allocatable :: workmat
-  real(kind=8) :: trace_sparse
+  real(kind=8) :: trace_sparse, temp_multiplicator
   integer :: irow, icol, itemp, iflag
   logical :: overlap_calculated, cycle_FOE, evbounds_shrinked, degree_sufficient, reached_limit
   real(kind=8),parameter :: fscale_limit=5.d-3
   real(kind=8),parameter :: degree_multiplicator_accurate=3.d0
   real(kind=8),parameter :: degree_multiplicator_fast=2.d0
+  real(kind=8),parameter :: temp_multiplicator_accurate=1.d0
+  real(kind=8),parameter :: temp_multiplicator_fast=2.d0
   real(kind=8) :: degree_multiplicator
   integer,parameter :: SPARSE=1
   integer,parameter :: DENSE=2
@@ -159,25 +161,29 @@ subroutine foe(iproc, nproc, tmprtr, &
   if (foe_verbosity>=1) then
       ntemp=3
       degree_multiplicator = degree_multiplicator_accurate
+      temp_multiplicator = temp_multiplicator_accurate
   else
       ntemp=1
       degree_multiplicator = degree_multiplicator_fast
-      tmb%foe_obj%fscale = 2.d0*tmb%foe_obj%fscale
+      !tmb%foe_obj%fscale = 2.d0*tmb%foe_obj%fscale
+      temp_multiplicator = temp_multiplicator_fast
   end if
   degree_sufficient=.true.
 
   temp_loop: do itemp=1,ntemp
 
+      fscale = temp_multiplicator*tmb%foe_obj%fscale
+      fscale_check = 1.25*fscale
       
-      fscale=fscale*0.5d0 ! make the error function sharper, i.e. more "step function-like"
-      fscale_check=1.25*tmb%foe_obj%fscale
+      !fscale=fscale*0.5d0 ! make the error function sharper, i.e. more "step function-like"
+      !fscale_check=1.25*tmb%foe_obj%fscale
 
       evlow_old=1.d100
       evhigh_old=-1.d100
       
       !if (foe_verbosity>=1 .and. iproc==0) call yaml_map('decay length of error function',fscale,fmt='(es10.3)')
       !if (foe_verbosity>=1 .and. iproc==0) call yaml_map('decay length of error function',tmb%foe_obj%fscale,fmt='(es10.3)')
-      if (iproc==0) call yaml_map('decay length of error function',tmb%foe_obj%fscale,fmt='(es10.3)')
+      if (iproc==0) call yaml_map('decay length of error function',fscale,fmt='(es10.3)')
     
           ! Don't let this value become too small.
           tmb%foe_obj%bisection_shift = max(tmb%foe_obj%bisection_shift,1.d-4)
@@ -271,13 +277,14 @@ subroutine foe(iproc, nproc, tmprtr, &
               !!tmb%foe_obj%ef = tmb%foe_obj%evlow+1.d-4*it
     
               ! Determine the degree of the polynomial
-              if (itemp==1 .or. .not.degree_sufficient) then
-                  npl=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/tmb%foe_obj%fscale)
-              else
-                  ! this will probably disappear.. only needed when the degree is
-                  ! increased by the old way via purification etc.
+              !if (itemp==1 .or. .not.degree_sufficient) then
+                  !npl=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/tmb%foe_obj%fscale)
                   npl=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale)
-              end if
+              !else
+              !    ! this will probably disappear.. only needed when the degree is
+              !    ! increased by the old way via purification etc.
+              !    npl=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale)
+              !end if
               npl_check=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale_check)
               npl_boundaries=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale_limit) ! max polynomial degree for given eigenvalue boundaries
               if (npl>npl_boundaries) then
@@ -328,8 +335,10 @@ subroutine foe(iproc, nproc, tmprtr, &
               call timing(iproc, 'chebyshev_coef', 'ON')
     
               !call chebft(tmb%foe_obj%evlow, tmb%foe_obj%evhigh, npl, cc(1,1), tmb%foe_obj%ef, tmb%foe_obj%fscale, temperature)
+              !!call chebft(tmb%foe_obj%evlow, tmb%foe_obj%evhigh, npl, cc(1,1), &
+              !!     tmb%foe_obj%ef, tmb%foe_obj%fscale, tmprtr)
               call chebft(tmb%foe_obj%evlow, tmb%foe_obj%evhigh, npl, cc(1,1), &
-                   tmb%foe_obj%ef, tmb%foe_obj%fscale, tmprtr)
+                   tmb%foe_obj%ef, fscale, tmprtr)
               call chder(tmb%foe_obj%evlow, tmb%foe_obj%evhigh, cc(1,1), cc(1,2), npl)
               call chebft2(tmb%foe_obj%evlow, tmb%foe_obj%evhigh, npl, cc(1,3))
               call evnoise(npl, cc(1,3), tmb%foe_obj%evlow, tmb%foe_obj%evhigh, anoise)
@@ -754,22 +763,24 @@ subroutine foe(iproc, nproc, tmprtr, &
                   call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
                   diff=sqrt(diff)
                   if (iproc==0) call yaml_map('diff from reference kernel',diff,fmt='(es10.3)')
-                  if (foe_verbosity>=1) then
+                  if (adjust_FOE_temperature .and. foe_verbosity>=1) then
                       if (diff<2.d-2) then
                           ! can decrease polynomial degree
                           tmb%foe_obj%fscale=1.25d0*tmb%foe_obj%fscale
-                          if (iproc==0) call yaml_map('Need to change fscale',.true.)
+                          if (iproc==0) call yaml_map('modify fscale','increase')
                           degree_sufficient=.true.
                       else if (diff>=2.d-2 .and. diff < 5.d-2) then
                           ! polynomial degree seems to be appropriate
                           degree_sufficient=.true.
-                          if (iproc==0) call yaml_map('Need to change fscale',.false.)
+                          !!if (iproc==0) call yaml_map('Need to change fscale',.false.)
+                          if (iproc==0) call yaml_map('modify fscale','No')
                       else
                           ! polynomial degree too small, increase and recalculate
                           ! the kernel
                           degree_sufficient=.false.
                           tmb%foe_obj%fscale=0.5*tmb%foe_obj%fscale
-                          if (iproc==0) call yaml_map('Need to change fscale',.true.)
+                          !!if (iproc==0) call yaml_map('Need to change fscale (decrease)',.true.)
+                          if (iproc==0) call yaml_map('modify fscale','decrease')
                       end if
                       if (tmb%foe_obj%fscale<fscale_limit) then
                           tmb%foe_obj%fscale=fscale_limit
@@ -976,10 +987,10 @@ subroutine foe(iproc, nproc, tmprtr, &
 
   end do temp_loop
 
-  if (foe_verbosity>=1) then
-  else
-      tmb%foe_obj%fscale = 0.5d0*tmb%foe_obj%fscale
-  end if
+  !!if (foe_verbosity>=1) then
+  !!else
+  !!    tmb%foe_obj%fscale = 0.5d0*tmb%foe_obj%fscale
+  !!end if
   degree_sufficient=.true.
 
 
