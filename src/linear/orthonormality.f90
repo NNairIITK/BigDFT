@@ -88,15 +88,9 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
       !!end if
 
       if (methTransformOverlap==-1) then
-          write(*,*) 'calling overlap_power_minus_one_half_parallel, iproc', iproc
           call overlap_power_minus_one_half_parallel(iproc, nproc, 0, orbs, ovrlp, inv_ovrlp_half)
       else
           nullify(inv_ovrlp_null)
-          ! do dense..to be chcked
-          write(*,*) 'warning: doing sparse, to be checked'
-          !!if (methTransformOverlap==0) then
-          !!    ovrlp%matrix=f_malloc_ptr((/orbs%norb,orbs%norb/),id='ovrlp%matrix')
-          !!    inv_ovrlp%matrix=f_malloc_ptr((/orbs%norb,orbs%norb/),id='ovrlp%matrix')
           if (methTransformOverlap>1 .and.  .not.associated(foe_obj%kernel_nsegline)) then
               ! this is a bit cheating, to be improved
               ovrlp_associated=associated(ovrlp%matrix)
