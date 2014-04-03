@@ -64,11 +64,11 @@ int main(int argc, const char **argv)
   /* bigdft_dict_set(dict, "nspin", "2"); */
   /* bigdft_dict_set(dict, "itermax", "4"); */
 
-  dict = bigdft_dict_new_from_yaml(yaml);
+  dict = bigdft_dict_new_from_yaml(yaml, NULL);
 
   /* bigdft_dict_dump(dict); */
 
-  run = bigdft_run_new_from_dict(dict, TRUE);
+  run = bigdft_run_new_from_dict(dict);
   bigdft_dict_unref(dict);
 
   atoms = bigdft_run_get_atoms(run);

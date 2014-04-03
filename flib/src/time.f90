@@ -625,8 +625,7 @@ module time_profiling
       group_names=dict_keys(times(ictrl)%dict_timing_groups)
 
       dict_cat=>dict_iter(times(ictrl)%dict_timing_categories)
-      !neglect the first one
-      dict_cat=>dict_next(dict_cat)
+      !neglect the first one by calling dict_next immediately.
       do icat=1,ncat
          !categories are always in order
          dict_cat=>dict_next(dict_cat)

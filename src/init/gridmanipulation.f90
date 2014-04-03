@@ -11,7 +11,7 @@
 !> Calculates the overall size of the simulation cell 
 !! and shifts the atoms such that their position is the most symmetric possible.
 !! Assign these values to the global localisation region descriptor.
-subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
+subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,OCLconv,Glr,shift)
    use module_base
    use module_types
    implicit none
@@ -20,6 +20,7 @@ subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
    real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
    real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
    real(gp), intent(inout) :: hx,hy,hz
+   logical, intent(in) :: OCLconv
    type(locreg_descriptors), intent(out) :: Glr
    real(gp), dimension(3), intent(out) :: shift
    !Local variables

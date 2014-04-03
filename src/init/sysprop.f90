@@ -10,7 +10,7 @@
 
 !> Initialize the objects needed for the computation: basis sets, allocate required space
 subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_run,&
-     & in,atoms,rxyz,&
+     & in,atoms,rxyz,OCLconv,&
      orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,nlpsp,comms,shift,radii_cf,&
      ref_frags, denspot, locregcenters, inwhichlocreg_old, onwhichatom_old,output_grid)
   use module_base
@@ -27,10 +27,12 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   implicit none
   integer, intent(in) :: iproc,nproc 
   logical, intent(in) :: dry_run, dump
-  integer, intent(out) :: inputpsi, input_wf_format, lnpsidim_orbs, lnpsidim_comp
+  integer, intent(out) :: input_wf_format, lnpsidim_orbs, lnpsidim_comp
+  integer, intent(inout) :: inputpsi
   type(input_variables), intent(in) :: in 
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
+  logical, intent(in) :: OCLconv
   type(orbitals_data), intent(inout) :: orbs, lorbs
   type(local_zone_descriptors), intent(inout) :: Lzd, Lzd_lin
   type(DFT_PSP_projectors), intent(out) :: nlpsp
@@ -73,7 +75,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   ! Determine size alat of overall simulation cell and shift atom positions
   ! then calculate the size in units of the grid space
   call system_size(atoms,rxyz,radii_cf,in%crmult,in%frmult,&
-       Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,shift)
+       Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),OCLconv,Lzd%Glr,shift)
   if (iproc == 0 .and. dump) &
        & call print_atoms_and_grid(Lzd%Glr, atoms, rxyz, shift, &
        & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3))
@@ -90,10 +92,11 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
 
   if (present(denspot)) then
-     call initialize_DFT_local_fields(denspot)
+     call initialize_DFT_local_fields(denspot, in%ixc, in%nspin)
 
      !here the initialization of dpbox can be set up
-     call dpbox_set(denspot%dpbox,Lzd,iproc,nproc,bigdft_mpi%mpi_comm,in,atoms%astruct%geocode)
+     call dpbox_set(denspot%dpbox,Lzd,denspot%xc,iproc,nproc,bigdft_mpi%mpi_comm, &
+          & in%PSolver_groupsize, in%SIC%approach, atoms%astruct%geocode, in%nspin)
 
      ! Create the Poisson solver kernels.
      call system_initKernels(.true.,iproc,nproc,atoms%astruct%geocode,in,denspot)
@@ -116,8 +119,8 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   orbs%occup(1:orbs%norb*orbs%nkpts) = in%gen_occup
   if (dump .and. iproc==0) call print_orbitals(orbs, atoms%astruct%geocode)
   ! Create linear orbs data structure.
-  if (in%inputpsiId == INPUT_PSI_LINEAR_AO .or. in%inputpsiId == INPUT_PSI_DISK_LINEAR &
-      .or. in%inputpsiId == INPUT_PSI_MEMORY_LINEAR) then
+  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
+      .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
      call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms%astruct, locregcenters, lorbs)
 
      ! There are needed for the restart (at least if the atoms have moved...)
@@ -150,7 +153,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      end if
   end if
   !In the case in which the number of orbitals is not "trivial" check whether they are too many
-  if (in%inputpsiId /= INPUT_PSI_RANDOM) then
+  if (inputpsi /= INPUT_PSI_RANDOM) then
 
      ! Allocations for readAtomicOrbitals (check inguess.dat and psppar files)
      allocate(scorb(4,2,atoms%natsc+ndebug),stat=i_stat)
@@ -215,8 +218,8 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   !allocate communications arrays (allocate it before Projectors because of the definition
   !of iskpts and nkptsp)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
-  if (in%inputpsiId == INPUT_PSI_LINEAR_AO .or. in%inputpsiId == INPUT_PSI_DISK_LINEAR &
-      .or. in%inputpsiId == INPUT_PSI_MEMORY_LINEAR) then
+  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
+      .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
      if(iproc==0 .and. dump) call print_orbital_distribution(iproc, nproc, lorbs)
   end if
 
@@ -236,7 +239,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
 
   ! fragment initializations - if not a fragment calculation, set to appropriate dummy values
-  if (in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
+  if (inputpsi == INPUT_PSI_DISK_LINEAR) then
      allocate(ref_frags(in%frag%nfrag_ref))
      do ifrag=1,in%frag%nfrag_ref
         ref_frags(ifrag)=fragment_null()
@@ -246,7 +249,6 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      nullify(ref_frags)
   end if
 
-  inputpsi = in%inputPsiId
   call input_check_psi_id(inputpsi, input_wf_format, in%dir_output, &
        orbs, lorbs, iproc, nproc, in%frag%nfrag_ref, in%frag%dirname, ref_frags)
 
@@ -294,7 +296,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
   if (present(denspot)) then
      !here dpbox can be put as input
-     call density_descriptors(iproc,nproc,in%nspin,in%crmult,in%frmult,atoms,&
+     call density_descriptors(iproc,nproc,denspot%xc,in%nspin,in%crmult,in%frmult,atoms,&
           denspot%dpbox,in%rho_commun,rxyz,radii_cf,denspot%rhod)
      !allocate the arrays.
      call allocateRhoPot(iproc,Lzd%Glr,in%nspin,atoms,rxyz,denspot)
@@ -338,7 +340,7 @@ subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
   denspot%pkernel=pkernel_init(verb, iproc,nproc,in%matacc%PSolver_igpu,&
        geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,mpi_env=denspot%dpbox%mpi_env)
   !create the sequential kernel if the exctX parallelisation scheme requires it
-  if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
+  if ((xc_exctXfac(denspot%xc) /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
        .and. denspot%dpbox%mpi_env%nproc > 1) then
      !the communicator of this kernel is bigdft_mpi%mpi_comm
      !this might pose problems when using SIC or exact exchange with taskgroups

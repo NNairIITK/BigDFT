@@ -68,6 +68,7 @@ module yaml_output
 
   type(yaml_stream), dimension(tot_streams), save :: streams    !< Private array containing the streams
   integer, dimension(tot_streams) :: stream_units=6             !< Default units unless otherwise specified
+  type(dictionary), pointer :: stream_files
 
   logical :: module_initialized=.false.  !< Tells if the module has been already referenced or not
 
@@ -233,8 +234,26 @@ contains
          YAML_UNIT_INCONSISTENCY,&
          err_action='This is an internal error of yaml_output module, contact developers')
     !the module is ready for usage
+    call dict_init(stream_files)
     module_initialized=.true.
   end subroutine yaml_output_errors
+
+  function stream_next_free_unit()
+    integer :: stream_next_free_unit
+    type(dictionary), pointer :: iter
+
+    logical :: unit_is_open
+    integer :: ierr
+
+    stream_next_free_unit = 75214
+    unit_is_open = .true.
+    do while (unit_is_open)
+       inquire(unit=stream_next_free_unit,opened=unit_is_open,iostat=ierr)
+       if (f_err_raise(ierr /=0,'error in unit inquiring, ierr='//trim(yaml_toa(ierr)),&
+            YAML_INVALID)) return
+       stream_next_free_unit = stream_next_free_unit + 1
+    end do
+  end function stream_next_free_unit
   
   !> Set the default stream of the module. Return  a STREAM_ALREADY_PRESENT errcode if
   !! The stream has not be initialized.
@@ -292,13 +311,63 @@ contains
     if (present(unit)) then
        unt=unit
     else
-       unt=6
+       if (present(filename)) then
+          if (has_key(stream_files, trim(filename))) then
+             unt=stream_files // trim(filename)
+          else
+             unt=stream_next_free_unit()
+          end if
+       else
+          unt=6
+       end if
     end if
 
-    if (present(position)) then
-       pos(1:len(pos))=position
-    else
-       pos(1:len(pos))='append'
+    !open fortran unit if needed
+    recl_file=0
+    if (present(filename) .and. unt /= 6) then
+       !inquire whether unit exists already
+       inquire(unit=unt,opened=unit_is_open,iostat=ierr)
+       if (f_err_raise(ierr /=0,'error in unit inquiring, ierr='//trim(yaml_toa(ierr)),&
+               YAML_INVALID)) return
+       if (unit_is_open) then
+          if(present(istat)) then
+             istat=YAML_STREAM_ALREADY_PRESENT
+          else
+             call f_err_throw('The unit '//trim(yaml_toa(unt))//' is already present',&
+                  YAML_STREAM_ALREADY_PRESENT)
+          end if
+       end if
+       if (present(position)) then
+          pos(1:len(pos))=position
+       else
+          pos(1:len(pos))='append'
+       end if
+       if (.not. unit_is_open) then
+          !inquire also file opening
+          inquire(file=trim(filename),opened=unit_is_open,iostat=ierr)
+          if (f_err_raise(ierr /=0,'error in file inquiring, ierr='//trim(yaml_toa(ierr)),&
+               YAML_INVALID)) return
+          if (unit_is_open) then
+             if(present(istat)) then
+                istat=YAML_STREAM_ALREADY_PRESENT
+             else
+                call f_err_throw('The file '//trim(filename)//' is already connected',&
+                     YAML_STREAM_ALREADY_PRESENT)
+             end if
+          end if
+          open(unit=unt,file=trim(filename),status='unknown',position=trim(pos),iostat=ierr)
+       end if
+       if (present(istat)) then
+          istat=ierr
+       else
+          if (f_err_raise(ierr /=0,'error in file opening, ierr='//trim(yaml_toa(ierr)),&
+               YAML_INVALID)) return
+       end if
+       if (ierr == 0 .and. .not. unit_is_open) then
+          !inquire the record length for the unit
+          inquire(unit=unt,recl=recl_file)
+          call set(stream_files // trim(filename), trim(yaml_toa(unt)))
+       end if
     end if
 
     if (present(setdefault)) then
@@ -330,47 +399,6 @@ contains
 
     ! set last opened stream as default stream
     if (set_default) default_stream=active_streams
-
-    recl_file=0
-    !open fortran unit if needed
-    if (present(filename) .and. unt /= 6) then
-       !inquire whether unit exists already
-       inquire(unit=unt,opened=unit_is_open,iostat=ierr)
-       if (f_err_raise(ierr /=0,'error in unit inquiring, ierr='//trim(yaml_toa(ierr)),&
-               YAML_INVALID)) return
-       if (unit_is_open) then
-          if(present(istat)) then
-             istat=YAML_STREAM_ALREADY_PRESENT
-          else
-             call f_err_throw('The unit '//trim(yaml_toa(unt))//' is already present',&
-                  YAML_STREAM_ALREADY_PRESENT)
-          end if
-       end if
-       if (.not. unit_is_open) then
-          !inquire also file opening
-          inquire(file=trim(filename),opened=unit_is_open,iostat=ierr)
-          if (f_err_raise(ierr /=0,'error in file inquiring, ierr='//trim(yaml_toa(ierr)),&
-               YAML_INVALID)) return
-          if (unit_is_open) then
-             if(present(istat)) then
-                istat=YAML_STREAM_ALREADY_PRESENT
-             else
-                call f_err_throw('The file '//trim(filename)//' is already connected',&
-                     YAML_STREAM_ALREADY_PRESENT)
-             end if
-          end if
-          open(unit=unt,file=trim(filename),status='unknown',&
-               position=trim(pos),iostat=ierr)
-       end if
-       if (present(istat)) then
-          istat=ierr
-       else
-          if (f_err_raise(ierr /=0,'error in file opening, ierr='//trim(yaml_toa(ierr)),&
-               YAML_INVALID)) return
-       end if
-       !inquire the record length for the unit
-       if (ierr==0 .and. .not. unit_is_open) inquire(unit=unt,recl=recl_file)
-    end if
 
     !set stream non-default attributes
     streams(active_streams)%unit=unt
@@ -549,7 +577,8 @@ contains
     integer, optional, intent(in) :: unit
     integer, optional, intent(out) :: istat !<error code, zero if suceeded
     !local variables
-    integer :: unt,istatus,strm
+    integer :: unt,istatus,strm,funt
+    type(dictionary), pointer :: iter
 
     unt=0
     if (present(unit)) unt=unit
@@ -576,8 +605,22 @@ contains
          'Unit '//trim(yaml_toa(unt))//' inconsistent',&
          err_id=YAML_UNIT_INCONSISTENCY)) return
 
-    !close files which are not stdout
+    !close files which are not stdout and remove them from stream_files
     if (unt /= 6) close(unt)
+    iter => dict_iter(stream_files)
+    do while (associated(iter))
+       funt = iter
+       if (funt == unt) then
+          if (dict_size(stream_files) == 1) then
+             call pop(stream_files, dict_key(iter))
+             call dict_init(stream_files)
+          else
+             call pop(stream_files, dict_key(iter))
+          end if
+          exit
+       end if
+       iter => dict_next(iter)
+    end do
     !reset the stream information
     !reduce the active_stream
     if (strm /= active_streams) then
@@ -612,6 +655,7 @@ contains
        !unit 6 cannot be closed
        if (unt /= 6) call yaml_close_stream(unit=unt)
     end do
+    call dict_free(stream_files)
     stream_units=6
     active_streams=1 !stdout is always kept active
     default_stream=1

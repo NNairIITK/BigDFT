@@ -53,7 +53,7 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   type(run_objects), intent(inout) :: runObj
   type(DFT_global_output), intent(inout) :: outs
   integer, intent(in) :: nproc,iproc
-  integer, intent(inout) :: ncount_bigdft
+  integer, intent(out) :: ncount_bigdft
   !local variables
   logical :: fail
   integer :: ibfgs,ierr

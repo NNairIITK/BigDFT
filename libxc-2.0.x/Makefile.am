@@ -14,10 +14,10 @@
 ##
 ## You should have received a copy of the GNU Lesser General Public License
 ## along with this program; if not, write to the Free Software
-## Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
-## 02111-1307, USA.
+## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+## 02110-1301, USA.
 ##
-## $Id: Makefile.am 9690 2012-11-26 13:02:28Z micael $
+## $Id: Makefile.am 10978 2013-07-11 15:28:46Z micael $
 
 ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = build src testsuite

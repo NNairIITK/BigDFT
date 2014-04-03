@@ -111,7 +111,7 @@ module dictionaries
    type(dictionary), pointer :: dict_present_error=>null() !< local pointer of present error, nullified if success
 
    public :: f_err_initialize,f_err_finalize,f_get_last_error,f_get_error_definitions
-   public :: f_err_define,f_err_check,f_err_raise,f_err_clean,f_get_error_dict,f_err_throw
+   public :: f_err_define,f_err_check,f_err_raise,f_err_clean,f_err_pop,f_get_error_dict,f_err_throw
 
    !public variables of the callback module
    public :: f_err_set_callback,f_err_unset_callback,f_err_open_try,f_err_close_try
@@ -352,11 +352,7 @@ contains
      type(dictionary), pointer :: dict_iter
 
      if (associated(dict)) then
-        if (associated(dict%parent)) then
-           dict_iter=>dict%child
-        else
-           dict_iter=>dict
-        end if
+        dict_iter=>dict%child
      else
         nullify(dict_iter)
      end if
@@ -525,6 +521,7 @@ contains
        integer, intent(in) :: item
        !local variables
        type(dictionary), pointer :: dict_first !<in case of first occurrence
+       type(dictionary), pointer :: dict_update !<dict to update data%item field
 
        if (associated(dict)) then
 !          print *,dict%data%item,trim(dict%data%key)
@@ -544,6 +541,12 @@ contains
                    !the next should now become me
                    dict => dict%next
                 end if
+                ! Update data%item for all next.
+                dict_update => dict_first%next
+                do while( associated(dict_update) )
+                   dict_update%data%item = dict_update%data%item - 1
+                   dict_update => dict_update%next
+                end do
                 deallocate(dict_first)
              else
                 call dict_free(dict)

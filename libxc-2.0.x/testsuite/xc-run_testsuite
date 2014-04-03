@@ -34,7 +34,7 @@ for i in `ls $srcdir/regression/*.data.bz2 | sort`; do
 done
 echo -e "\033[0m"
 
-exit 0 #$ok
+exit $ok
 
 #echo -e "\033[33;1mInternal consistency\033[0m"
 #for i in `grep -E 'XC_LDA|XC_GGA' $srcdir/../src/xc_funcs.h | awk '{printf("%s,%d\n",$2, $3)}'`; do

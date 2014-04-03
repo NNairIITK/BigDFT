@@ -473,95 +473,27 @@ subroutine inputs_set_dict(in, level, val)
   ! This is a patch for Intel, to be corrected properly later.
   call input_set(in, level(1:len(level)), val%child)
 END SUBROUTINE inputs_set_dict
-
-subroutine inputs_set_from_file(dict, fname)
-  use dictionaries, only: dictionary
-  use module_interfaces, only: read_input_dict_from_files
-  use module_defs, only: bigdft_mpi
-  implicit none
-  type(dictionary), pointer :: dict
-  character(len = *), intent(in) :: fname
-  nullify(dict)
-
-  call read_input_dict_from_files(fname, bigdft_mpi,dict)
-end subroutine inputs_set_from_file
-subroutine inputs_dump_to_file(iostat, dict, fname, userOnly)
-  use dictionaries, only: dictionary
-  use module_input_keys, only: input_keys_dump
-  use yaml_output
-  implicit none
-  integer, intent(out) :: iostat
-  type(dictionary), pointer :: dict
-  character(len = *), intent(in) :: fname
-  logical, intent(in) :: userOnly
-
-  integer, parameter :: iunit = 756841 !< Hopefully being unique...
-  integer :: iunit_def
-
-  call yaml_get_default_stream(iunit_def)
-  if (iunit_def == iunit) then
-     iostat = 1
-     return
-  end if
-  
-  open(unit = iunit, file = fname(1:len(fname)), iostat = iostat)
-  if (iostat /= 0) return
-
-  call yaml_set_stream(unit = iunit, tabbing = 40, record_length = 100, istat = iostat)
-  if (iostat /= 0) return
-
-  call yaml_new_document(unit = iunit)
-  call input_keys_dump(dict, userOnly)
-
-  call yaml_close_stream(iunit, iostat)
-  if (iostat /= 0) return
-  close(unit = iunit)
-
-  call yaml_set_default_stream(iunit_def, iostat)
-end subroutine inputs_dump_to_file
-
-subroutine inputs_fill_all(inputs_values)
-  use module_input_keys
-  use dictionaries
-  implicit none
-  type(dictionary), pointer :: inputs_values
-  !local variable
-  type(dictionary), pointer :: input_minimal
-
-  call input_keys_fill_all(inputs_values,input_minimal)
-
-  if (associated(input_minimal)) call dict_free(input_minimal)
-end subroutine inputs_fill_all
-subroutine inputs_get_naming(in, run_name, file_occnum, file_igpop, file_lin)
+subroutine inputs_get_output(in, run_name, dir_output, writing_directory)
   use module_types
   implicit none
   type(input_variables), intent(in) :: in
-  character(len = 100), intent(out) :: run_name, file_occnum, file_igpop, file_lin
-
-  run_name = in%run_name
-  file_occnum = in%file_occnum
-  file_igpop = in%file_igpop
-  file_lin = in%file_lin
-END SUBROUTINE inputs_get_naming
-subroutine inputs_get_output(in, dir_output, writing_directory)
-  use module_types
-  implicit none
-  type(input_variables), intent(in) :: in
-  character(len = 100), intent(out) :: dir_output
+  character(len = 100), intent(out) :: dir_output, run_name
   character(len = 500), intent(out) :: writing_directory
 
+  run_name = in%run_name
   dir_output = in%dir_output
   writing_directory = in%writing_directory
 END SUBROUTINE inputs_get_output
 subroutine inputs_get_dft(in, hx, hy, hz, crmult, frmult, ixc, chg, efield, nspin, mpol, &
      & gnrm, itermax, nrepmax, ncong, idsx, dispcorr, inpsi, outpsi, outgrid, &
-     & rbuf, ncongt, davidson, nvirt, nplottedvirt, sym)
+     & rbuf, ncongt, davidson, nvirt, nplottedvirt, sym, last_run)
   use module_types
   implicit none
   type(input_variables), intent(in) :: in
   real(gp), intent(out) :: hx, hy, hz, crmult, frmult, efield(3), gnrm, rbuf
   integer, intent(out) :: ixc, chg, nspin, mpol, itermax, nrepmax, ncong, idsx, &
-       & dispcorr, inpsi, outpsi, outgrid, ncongt, davidson, nvirt, nplottedvirt, sym
+       & dispcorr, inpsi, outpsi, outgrid, ncongt, davidson, nvirt, nplottedvirt, &
+       & sym, last_run
   
   hx = in%hx
   hy = in%hy
@@ -592,6 +524,7 @@ subroutine inputs_get_dft(in, hx, hy, hz, crmult, frmult, ixc, chg, efield, nspi
   else
      sym = 0
   end if
+  last_run = in%last_run
 END SUBROUTINE inputs_get_dft
 subroutine inputs_get_mix(in, iscf, itrpmax, norbsempty, occopt, alphamix, rpnrm_cv, &
      & gnrm_startmix, Tel, alphadiis)
@@ -682,14 +615,7 @@ subroutine inputs_check_psi_id(inputpsi, input_wf_format, dir_output, ln, orbs, 
   
   call input_check_psi_id(inputpsi, input_wf_format, trim(dir_output), orbs, lorbs, iproc, nproc,0, frag_dir, ref_frags)
 END SUBROUTINE inputs_check_psi_id
-subroutine inputs_set_restart(in, id)
-  use module_types
-  implicit none
-  type(input_variables), intent(inout) :: in
-  integer, intent(in) :: id
 
-  in%inputPsiId = id
-end subroutine inputs_set_restart
 
 subroutine orbs_new(orbs)
   use module_types
@@ -1434,34 +1360,6 @@ subroutine optloop_bcast(optloop, iproc)
   end if
 END SUBROUTINE optloop_bcast
 
-subroutine rst_new(self, rst)
-  use module_types
-  implicit none
-  integer(kind = 8), intent(in) :: self
-  type(restart_objects), pointer :: rst
-
-  allocate(rst)
-  !rst%c_obj = self
-END SUBROUTINE rst_new
-subroutine rst_free(rst)
-  use module_types
-  implicit none
-  type(restart_objects), pointer :: rst
-
-  call free_restart_objects(rst,"rst_free")
-  deallocate(rst)
-END SUBROUTINE rst_free
-subroutine rst_init(rst, iproc, atoms, inputs)
-  use module_types
-  implicit none
-  type(restart_objects), intent(out) :: rst
-  integer, intent(in) :: iproc
-  type(atoms_data), intent(in) :: atoms
-  type(input_variables), intent(in) :: inputs
-  
-  call init_restart_objects(iproc, inputs, atoms, rst, "rst_init")
-end subroutine rst_init
-
 subroutine run_objects_new(runObj)
   use module_types
   implicit none
@@ -1472,6 +1370,10 @@ subroutine run_objects_new(runObj)
   allocate(intern)
   call run_objects_nullify(intern)
   runObj => intern
+
+  ! Allocate persistent structures.
+  allocate(runObj%rst)
+  call restart_objects_new(runObj%rst)
 END SUBROUTINE run_objects_new
 subroutine run_objects_destroy(runObj)
   use module_types
@@ -1480,35 +1382,23 @@ subroutine run_objects_destroy(runObj)
   implicit none
   type(run_objects), pointer :: runObj
 
-  ! We don't do it here, we just destroy the container,
-  !  The caller is responsible to free public attributes.
-  !call run_objects_free(runObj)
-  call run_objects_free_container(runObj)
+  ! The caller is responsible to nullify attributes he wants to keep.
+  call run_objects_free(runObj)
   deallocate(runObj)
 end subroutine run_objects_destroy
-subroutine run_objects_get(runObj, inputs, atoms, rst)
+subroutine run_objects_get(runObj, dict, inputs, atoms)
   use module_types
+  use dictionaries
   implicit none
   type(run_objects), intent(in) :: runObj
+  type(dictionary), pointer :: dict
   type(input_variables), pointer :: inputs
   type(atoms_data), pointer :: atoms
-  type(restart_objects), pointer :: rst
 
+  dict => runObj%user_inputs
   inputs => runObj%inputs
   atoms => runObj%atoms
-  rst => runObj%rst
 END SUBROUTINE run_objects_get
-subroutine run_objects_association(runObj, inputs, atoms, rst)
-  use module_types
-  use module_interfaces, only: run_objects_associate
-  implicit none
-  type(run_objects), intent(out) :: runObj
-  type(input_variables), intent(in), target :: inputs
-  type(atoms_data), intent(in), target :: atoms
-  type(restart_objects), intent(in), target :: rst
-
-  call run_objects_associate(runObj, inputs, atoms, rst)
-END SUBROUTINE run_objects_association
 subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly)
   use dictionaries, only: dictionary
   use module_input_keys, only: input_keys_dump
@@ -1553,7 +1443,7 @@ subroutine run_objects_set_dict(runObj, dict)
   type(dictionary), pointer :: dict
 
   ! Warning, taking ownership here. Use run_objects_nullify_dict()
-! to release this ownership without freeing dict.
+  ! to release this ownership without freeing dict.
   runObj%user_inputs => dict
 END SUBROUTINE run_objects_set_dict
 subroutine run_objects_nullify_dict(runObj)
@@ -1563,6 +1453,14 @@ subroutine run_objects_nullify_dict(runObj)
 
   nullify(runObj%user_inputs)
 END SUBROUTINE run_objects_nullify_dict
+subroutine run_objects_nullify_volatile(runObj)
+  use module_types, only: run_objects
+  implicit none
+  type(run_objects), intent(inout) :: runObj
+
+  nullify(runObj%inputs)
+  nullify(runObj%atoms)
+END SUBROUTINE run_objects_nullify_volatile
 
 subroutine mem_new(mem)
   use module_types, only: memory_estimation
@@ -1605,6 +1503,26 @@ subroutine mem_to_c(mem, submat, ncomponents, norb, norbp, oneorb, allpsi_mpi, &
   peak = mem%peak
 END SUBROUTINE mem_to_c
 
+subroutine dict_move_to_key(dict, exists, key)
+  use dictionaries, only: dictionary, operator(//), has_key
+  implicit none
+  type(dictionary), pointer :: dict
+  logical, intent(out) :: exists
+  character(len = *), intent(in) :: key
+
+  exists = has_key(dict, key(1:len(key)))
+  if (exists) dict => dict // key(1:len(key))
+END SUBROUTINE dict_move_to_key
+subroutine dict_move_to_item(dict, exists, id)
+  use dictionaries, only: dictionary, operator(//), dict_len
+  implicit none
+  type(dictionary), pointer :: dict
+  logical, intent(out) :: exists
+  integer, intent(in) :: id
+
+  exists = (id < dict_len(dict) .and. id >= 0)
+  if (exists) dict => dict // id
+END SUBROUTINE dict_move_to_item
 subroutine dict_insert(dict, key)
   use dictionaries, only: dictionary, operator(//)
   implicit none
@@ -1630,21 +1548,130 @@ subroutine dict_put(dict, val)
   ! This is a patch for Intel, to be corrected properly later.
   call set(dict, val(1:len(val)))
 END SUBROUTINE dict_put
-subroutine dict_dump(dict)
+subroutine dict_dump(dict, unit)
   use dictionaries, only: dictionary
   use yaml_output, only: yaml_dict_dump
   implicit none
   type(dictionary), pointer :: dict
+  integer, intent(in) :: unit
 
-  call yaml_dict_dump(dict)
+  if (unit < 0) then
+     call yaml_dict_dump(dict)
+  else
+     call yaml_dict_dump(dict, unit = unit)
+  end if
 END SUBROUTINE dict_dump
+subroutine dict_dump_to_file(dict, path)
+  use dictionaries, only: dictionary
+  use yaml_output, only: yaml_dict_dump, yaml_set_stream, yaml_close_stream, yaml_get_default_stream
+  implicit none
+  type(dictionary), pointer :: dict
+  character(len = *), intent(in) :: path
+
+  integer :: unit
+
+  call yaml_set_stream(filename = trim(path), &
+       & record_length = 92, setdefault = .true., tabbing = 0)
+  call yaml_get_default_stream(unit = unit)
+  call yaml_dict_dump(dict, unit = unit)
+  call yaml_close_stream(unit = unit)
+END SUBROUTINE dict_dump_to_file
 subroutine dict_parse(dict, buf)
-  use dictionaries, only: dictionary, operator(//)
+  use dictionaries, only: dictionary, operator(//), dict_len
   use yaml_parse, only: yaml_parse_from_string
   implicit none
   type(dictionary), pointer :: dict
   character(len = *), intent(in) :: buf
 
   call yaml_parse_from_string(dict, buf)
-  dict => dict // 0
+  if (dict_len(dict) == 1) then
+     dict => dict // 0
+  end if
 END SUBROUTINE dict_parse
+subroutine dict_pop(dict, exists, key)
+  use dictionaries, only: dictionary, has_key, pop
+  implicit none
+  type(dictionary), pointer :: dict
+  logical, intent(out) :: exists
+  character(len = *), intent(in) :: key
+
+  exists = (has_key(dict, key(1:len(key))))
+  if (exists) call pop(dict, key(1:len(key)))
+END SUBROUTINE dict_pop
+subroutine dict_value(dict, buf)
+  use dictionaries, only: dictionary, max_field_length, wrapper => dict_value
+  implicit none
+  type(dictionary), pointer :: dict
+  character(len = max_field_length), intent(out) :: buf
+  
+  buf = wrapper(dict)
+END SUBROUTINE dict_value
+subroutine dict_key(dict, buf)
+  use dictionaries, only: dictionary, max_field_length, wrapper => dict_key
+  implicit none
+  type(dictionary), pointer :: dict
+  character(len = max_field_length), intent(out) :: buf
+  
+  buf = wrapper(dict)
+END SUBROUTINE dict_key
+subroutine dict_iter(dict, exists)
+  use dictionaries, only: dictionary, wrapper => dict_iter
+  implicit none
+  type(dictionary), pointer :: dict
+  logical, intent(out) :: exists
+
+  type(dictionary), pointer :: start
+
+  start => wrapper(dict)
+  exists = associated(start)
+  if (exists) dict => start
+END SUBROUTINE dict_iter
+subroutine dict_next(dict, exists)
+  use dictionaries, only: dictionary, wrapper => dict_next
+  implicit none
+  type(dictionary), pointer :: dict
+  logical, intent(out) :: exists
+
+  type(dictionary), pointer :: next
+
+  next => wrapper(dict)
+  exists = associated(next)
+  if (exists) dict => next
+END SUBROUTINE dict_next
+subroutine dict_len(dict, ln)
+  use dictionaries, only: dictionary, wrapper => dict_len
+  implicit none
+  type(dictionary), pointer :: dict
+  integer, intent(out) :: ln
+
+  ln = wrapper(dict)
+END SUBROUTINE dict_len
+subroutine dict_size(dict, ln)
+  use dictionaries, only: dictionary, wrapper => dict_size
+  implicit none
+  type(dictionary), pointer :: dict
+  integer, intent(out) :: ln
+
+  ln = wrapper(dict)
+END SUBROUTINE dict_size
+subroutine dict_copy(dict, ref)
+  use dictionaries, only: dictionary, wrapper => dict_copy
+  implicit none
+  type(dictionary), pointer :: dict, ref
+
+  call wrapper(dict, ref)
+END SUBROUTINE dict_copy
+subroutine dict_update(dict, ref)
+  use dictionaries, only: dictionary, wrapper => dict_update
+  implicit none
+  type(dictionary), pointer :: dict, ref
+
+  call wrapper(dict, ref)
+END SUBROUTINE dict_update
+subroutine dict_init(dict)
+  use dictionaries, only: dictionary, wrapper => dict_init
+  implicit none
+  type(dictionary), pointer :: dict
+
+  call wrapper(dict)
+END SUBROUTINE dict_init

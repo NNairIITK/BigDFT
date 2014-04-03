@@ -71,7 +71,7 @@ func(const XC(func_type) *p, XC(gga_work_c_t) *r)
 
   DD = SQRT(opz*opz13*opz13 + omz*omz13*omz13)/M_SQRT2;
 
-  aux1 = exp(a2*r->xt/(alpha*pw.rs[0]));
+  aux1 = EXP(a2*r->xt/(alpha*pw.rs[0]));
   aux2 = a1/(alpha*alpha*r->rs);
 
   t1   = r->xt*r->xt*aux1/DD;
@@ -157,5 +157,6 @@ const XC(func_info_type) XC(func_info_gga_c_lm) = {
   NULL,
   NULL,            /* this is not an LDA                   */
   work_gga_c,
+  NULL
 };
 
