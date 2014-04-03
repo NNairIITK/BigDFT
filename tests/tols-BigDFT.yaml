@@ -857,6 +857,8 @@ sparsity:
  energy: 4.9e-10
  EXC: 1.1e-10
  Epot: 1.1e-9
+ eF: 1.1e-10
+ D eF: 1.1e-10
 
 PBE_densmixlin:
  Ekin: 1.1e-10
@@ -887,7 +889,7 @@ PBE_potmixdiis:
  energy: 4.8e-8
  EXC: 2.0e-8
  EvXC: 2.7e-8
- Omega: 2.0e-9
+ Omega: 2.5e-9
  Epot: 6.2e-8
  EH: 6.3e-8
  Ekin: 1.2e-8

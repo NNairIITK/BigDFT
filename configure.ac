@@ -1108,6 +1108,7 @@ tests/libs/dsygv/Makefile
 tests/libs/ftypes/Makefile
 tests/libs/wrappers/Makefile
 tests/libs/psp/Makefile
+tests/libs/overlapgeneral/Makefile
 tests/DFT/Makefile
 tests/DFT/cubic/Makefile
 tests/DFT/linear/Makefile
