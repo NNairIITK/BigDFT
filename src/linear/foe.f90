@@ -51,7 +51,11 @@ subroutine foe(iproc, nproc, tmprtr, &
   real(kind=8),dimension(:,:),allocatable :: workmat
   real(kind=8) :: trace_sparse
   integer :: irow, icol, itemp, iflag
-  logical :: overlap_calculated, cycle_FOE, evbounds_shrinked, degree_sufficient
+  logical :: overlap_calculated, cycle_FOE, evbounds_shrinked, degree_sufficient, reached_limit
+  real(kind=8),parameter :: fscale_limit=5.d-3
+  real(kind=8),parameter :: degree_multiplicator_accurate=3.d0
+  real(kind=8),parameter :: degree_multiplicator_fast=2.d0
+  real(kind=8) :: degree_multiplicator
   integer,parameter :: SPARSE=1
   integer,parameter :: DENSE=2
   integer,parameter :: imode=SPARSE
@@ -150,7 +154,16 @@ subroutine foe(iproc, nproc, tmprtr, &
       evbounds_shrinked=.false.
   end if
 
-  ntemp=4
+  ! This is to distinguish whether the routine is called from get_coeff of
+  ! getLocBasis, to be improved.
+  if (foe_verbosity>=1) then
+      ntemp=3
+      degree_multiplicator = degree_multiplicator_accurate
+  else
+      ntemp=1
+      degree_multiplicator = degree_multiplicator_fast
+      tmb%foe_obj%fscale = 2.d0*tmb%foe_obj%fscale
+  end if
   degree_sufficient=.true.
 
   temp_loop: do itemp=1,ntemp
@@ -163,7 +176,8 @@ subroutine foe(iproc, nproc, tmprtr, &
       evhigh_old=-1.d100
       
       !if (foe_verbosity>=1 .and. iproc==0) call yaml_map('decay length of error function',fscale,fmt='(es10.3)')
-      if (foe_verbosity>=1 .and. iproc==0) call yaml_map('decay length of error function',tmb%foe_obj%fscale,fmt='(es10.3)')
+      !if (foe_verbosity>=1 .and. iproc==0) call yaml_map('decay length of error function',tmb%foe_obj%fscale,fmt='(es10.3)')
+      if (iproc==0) call yaml_map('decay length of error function',tmb%foe_obj%fscale,fmt='(es10.3)')
     
           ! Don't let this value become too small.
           tmb%foe_obj%bisection_shift = max(tmb%foe_obj%bisection_shift,1.d-4)
@@ -258,14 +272,14 @@ subroutine foe(iproc, nproc, tmprtr, &
     
               ! Determine the degree of the polynomial
               if (itemp==1 .or. .not.degree_sufficient) then
-                  npl=nint(3.0d0*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/tmb%foe_obj%fscale)
+                  npl=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/tmb%foe_obj%fscale)
               else
                   ! this will probably disappear.. only needed when the degree is
                   ! increased by the old way via purification etc.
-                  npl=nint(3.0d0*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale)
+                  npl=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale)
               end if
-              npl_check=nint(3.0d0*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale_check)
-              npl_boundaries=nint(3.0d0*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/1.d-4) ! max polynomial degree for given eigenvalue boundaries
+              npl_check=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale_check)
+              npl_boundaries=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale_limit) ! max polynomial degree for given eigenvalue boundaries
               if (npl>npl_boundaries) then
                   npl=npl_boundaries
                   if (iproc==0) call yaml_warning('very sharp decay of error function, polynomial degree reached limit')
@@ -284,7 +298,8 @@ subroutine foe(iproc, nproc, tmprtr, &
                   call memocc(istat,chebyshev_polynomials,'chebyshev_polynomials',subname)
               end if
     
-              if (foe_verbosity>=1 .and. iproc==0) then
+              !if (foe_verbosity>=1 .and. iproc==0) then
+              if (iproc==0) then
                   call yaml_map('bisec/eval bounds',&
                        (/efarr(1),efarr(2),tmb%foe_obj%evlow,tmb%foe_obj%evhigh/),fmt='(f5.2)')
                   !call yaml_map('lower bisection bound',efarr(1),fmt='(es10.3)')
@@ -739,23 +754,31 @@ subroutine foe(iproc, nproc, tmprtr, &
                   call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
                   diff=sqrt(diff)
                   if (iproc==0) call yaml_map('diff from reference kernel',diff,fmt='(es10.3)')
-                  if (diff<5.d-4) then
-                      ! can decrease polynomial degree
-                      tmb%foe_obj%fscale=1.25d0*tmb%foe_obj%fscale
-                      if (iproc==0) call yaml_map('Need to change fscale',.true.)
-                      degree_sufficient=.true.
-                  else if (diff>=5.d-4 .and. diff < 1.d-3) then
-                      ! polynomial degree seems to be appropriate
-                      degree_sufficient=.true.
-                      if (iproc==0) call yaml_map('Need to change fscale',.false.)
-                  else
-                      ! polynomial degree too small, increase and recalculate
-                      ! the kernel
-                      degree_sufficient=.false.
-                      tmb%foe_obj%fscale=0.6*tmb%foe_obj%fscale
-                      if (iproc==0) call yaml_map('Need to change fscale',.true.)
+                  if (foe_verbosity>=1) then
+                      if (diff<2.d-2) then
+                          ! can decrease polynomial degree
+                          tmb%foe_obj%fscale=1.25d0*tmb%foe_obj%fscale
+                          if (iproc==0) call yaml_map('Need to change fscale',.true.)
+                          degree_sufficient=.true.
+                      else if (diff>=2.d-2 .and. diff < 5.d-2) then
+                          ! polynomial degree seems to be appropriate
+                          degree_sufficient=.true.
+                          if (iproc==0) call yaml_map('Need to change fscale',.false.)
+                      else
+                          ! polynomial degree too small, increase and recalculate
+                          ! the kernel
+                          degree_sufficient=.false.
+                          tmb%foe_obj%fscale=0.5*tmb%foe_obj%fscale
+                          if (iproc==0) call yaml_map('Need to change fscale',.true.)
+                      end if
+                      if (tmb%foe_obj%fscale<fscale_limit) then
+                          tmb%foe_obj%fscale=fscale_limit
+                          if (iproc==0) call yaml_map('fscale reached limit; reset to',fscale_limit)
+                          reached_limit=.true.
+                      else
+                          reached_limit=.false.
+                      end if
                   end if
-
                   exit
               end if
 
@@ -853,23 +876,23 @@ subroutine foe(iproc, nproc, tmprtr, &
      call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix)
     
   
-      ! Purify the kernel
-      if (iproc==0) then
-          call yaml_open_sequence('Final kernel purification')
-          call yaml_newline()
-      end if
-      overlap_calculated=.true.
-      !tmb%can_use_transposed=.true.
+    !!  ! Purify the kernel
+    !!  if (iproc==0) then
+    !!      call yaml_open_sequence('Final kernel purification')
+    !!      call yaml_newline()
+    !!  end if
+    !!  overlap_calculated=.true.
+    !!  !tmb%can_use_transposed=.true.
 
-      if (itemp==ntemp) then
-          it_shift=20
-      else
-          it_shift=1
-      end if
-      call purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, 50, order_taylor, purification_quickreturn)
-      if (iproc==0) then
-          call yaml_close_sequence()
-      end if
+    !!  if (itemp==ntemp) then
+    !!      it_shift=20
+    !!  else
+    !!      it_shift=1
+    !!  end if
+    !!  call purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, 50, order_taylor, purification_quickreturn)
+    !!  if (iproc==0) then
+    !!      call yaml_close_sequence()
+    !!  end if
     
     
       ! Calculate trace(KS).
@@ -892,29 +915,39 @@ subroutine foe(iproc, nproc, tmprtr, &
           call yaml_map('need to repeat with sharper decay (new)',.not.degree_sufficient)
       end if
       if (degree_sufficient) exit temp_loop
-
-
-
-
-      ! Check whether this agrees with the number of electrons. If not,
-      ! calculate a new kernel with a sharper decay of the error function
-      ! (correponds to a lower temperature)
-      if (.not.purification_quickreturn) then
-          if (abs(sumn-tmb%foe_obj%charge)>1.d-5) then
-              cycle_FOE=.true.
-          else
-              cycle_FOE=.false.
-          end if
-          if (foe_verbosity>=1 .and. iproc==0) then
-              call yaml_map('trace(KS)',sumn)
-              call yaml_map('need to repeat with sharper decay',cycle_FOE)
-          end if
-          if (.not.cycle_FOE) exit temp_loop
+      if (reached_limit) then
+          if (iproc==0) call yaml_map('limit reached, exit loop',.true.)
+          exit temp_loop
       end if
+
+
+
+
+    !!  ! Check whether this agrees with the number of electrons. If not,
+    !!  ! calculate a new kernel with a sharper decay of the error function
+    !!  ! (correponds to a lower temperature)
+    !!  if (.not.purification_quickreturn) then
+    !!      if (abs(sumn-tmb%foe_obj%charge)>1.d-5) then
+    !!          cycle_FOE=.true.
+    !!      else
+    !!          cycle_FOE=.false.
+    !!      end if
+    !!      if (foe_verbosity>=1 .and. iproc==0) then
+    !!          call yaml_map('trace(KS)',sumn)
+    !!          call yaml_map('need to repeat with sharper decay',cycle_FOE)
+    !!      end if
+    !!      if (.not.cycle_FOE) exit temp_loop
+    !!  end if
 
     
 
   end do temp_loop
+
+  if (foe_verbosity>=1) then
+  else
+      tmb%foe_obj%fscale = 0.5d0*tmb%foe_obj%fscale
+  end if
+  degree_sufficient=.true.
 
 
   call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix_compr)
