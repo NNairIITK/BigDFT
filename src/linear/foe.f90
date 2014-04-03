@@ -844,25 +844,58 @@ subroutine foe(iproc, nproc, tmprtr, &
       tmb%linmat%denskern_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),&
           id='tmb%linmat%denskern_large%matrix')
       call uncompress_matrix(iproc,tmb%linmat%denskern_large)
-    
-      if (tmb%orbs%norbp>0) then
-          call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
-               1.d0, tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb, &
-               tmb%linmat%inv_ovrlp_large%matrix(tmb%orbs%isorb+1,1), tmb%orbs%norb, &
-               0.d0, workmat(1,1), tmb%orbs%norb)
-          call to_zero(tmb%orbs%norb**2, tmb%linmat%denskern_large%matrix(1,1))
-          call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
-               1.d0, tmb%linmat%inv_ovrlp_large%matrix, tmb%orbs%norb, &
-               workmat(1,1), tmb%orbs%norb, &
-               0.d0, tmb%linmat%denskern_large%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb)
-      else
-          call to_zero(tmb%orbs%norb**2, tmb%linmat%denskern_large%matrix(1,1))
+
+      if (iproc==0) then
+          tt=0.d0
+          do iorb=1,tmb%orbs%norb
+              do jorb=1,tmb%orbs%norb
+                  !write(*,*) jorb,iorb,tmb%linmat%inv_ovrlp_large%matrix(jorb,iorb)
+                  tt=tt+(tmb%linmat%inv_ovrlp_large%matrix(jorb,iorb)-tmb%linmat%inv_ovrlp_large%matrix(iorb,jorb))**2
+              end do
+          end do
+          write(*,*) 'tt',tt
       end if
-      call mpiallred(tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+    
+      ! Calculate S^-1/2 * K * S^-1/2^T
+      ! Since S^-1/2 is symmetric, don't use the transpose
+      call retransform()
+      !!if (tmb%orbs%norbp>0) then
+      !!    !!call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
+      !!    !!     1.d0, tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb, &
+      !!    !!     tmb%linmat%inv_ovrlp_large%matrix(tmb%orbs%isorb+1,1), tmb%orbs%norb, &
+      !!    !!     0.d0, workmat(1,1), tmb%orbs%norb)
+      !!    call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
+      !!         1.d0, tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb, &
+      !!         tmb%linmat%inv_ovrlp_large%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
+      !!         0.d0, workmat(1,1), tmb%orbs%norb)
+      !!    call to_zero(tmb%orbs%norb**2, tmb%linmat%denskern_large%matrix(1,1))
+      !!    call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
+      !!         1.d0, tmb%linmat%inv_ovrlp_large%matrix, tmb%orbs%norb, &
+      !!         workmat(1,1), tmb%orbs%norb, &
+      !!         0.d0, tmb%linmat%denskern_large%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb)
+      !!else
+      !!    call to_zero(tmb%orbs%norb**2, tmb%linmat%denskern_large%matrix(1,1))
+      !!end if
+      !!call mpiallred(tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      !!call compress_matrix(iproc,tmb%linmat%denskern_large)
+
+
+      !!if (iproc==0) then
+      !!    do iorb=1,tmb%orbs%norb
+      !!        do jorb=1,tmb%orbs%norb
+      !!            write(*,*) jorb,iorb,tmb%linmat%denskern_large%matrix(jorb,iorb)
+      !!            !tt=tt+(tmb%linmat%inv_ovrlp_large%matrix(jorb,iorb)-tmb%linmat%inv_ovrlp_large%matrix(iorb,jorb))**2
+      !!        end do
+      !!    end do
+      !!end if
     
     
     
-      call compress_matrix(iproc,tmb%linmat%denskern_large)
+     !!if (iproc==0) then
+     !!    do iorb=1,tmb%linmat%denskern_large%nvctr
+     !!        write(*,*) iorb, tmb%linmat%denskern_large%matrix_compr(iorb)
+     !!    end do
+     !!end if
 
      !iall=-product(shape(tmb%linmat%denskern_large%matrix))*kind(tmb%linmat%denskern_large%matrix)
      !deallocate(tmb%linmat%denskern_large%matrix,stat=istat)
@@ -876,23 +909,23 @@ subroutine foe(iproc, nproc, tmprtr, &
      call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix)
     
   
-    !!  ! Purify the kernel
-    !!  if (iproc==0) then
-    !!      call yaml_open_sequence('Final kernel purification')
-    !!      call yaml_newline()
-    !!  end if
-    !!  overlap_calculated=.true.
-    !!  !tmb%can_use_transposed=.true.
+      ! Purify the kernel
+      if (iproc==0) then
+          call yaml_open_sequence('Final kernel purification')
+          call yaml_newline()
+      end if
+      overlap_calculated=.true.
+      !tmb%can_use_transposed=.true.
 
-    !!  if (itemp==ntemp) then
-    !!      it_shift=20
-    !!  else
-    !!      it_shift=1
-    !!  end if
-    !!  call purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, 50, order_taylor, purification_quickreturn)
-    !!  if (iproc==0) then
-    !!      call yaml_close_sequence()
-    !!  end if
+      if (itemp==ntemp) then
+          it_shift=20
+      else
+          it_shift=1
+      end if
+      call purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, 50, order_taylor, purification_quickreturn)
+      if (iproc==0) then
+          call yaml_close_sequence()
+      end if
     
     
       ! Calculate trace(KS).
@@ -1042,6 +1075,67 @@ subroutine foe(iproc, nproc, tmprtr, &
               call memocc(istat,iall,'tmb%linmat%ovrlp%matrix',subname)
           end if
       end subroutine overlap_minus_onehalf
+
+
+
+      subroutine retransform()
+          real(kind=8),dimension(:,:),pointer :: inv_ovrlpp, tempp
+          integer,dimension(:,:),pointer :: onedimindices
+          real(kind=8),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
+          integer,dimension(:),allocatable :: ivectorindex
+          integer,dimension(:,:,:),allocatable :: istindexarr
+          integer :: nout, nseq, nmaxsegk, nmaxvalk
+
+
+          inv_ovrlpp = f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norbp/),id='inv_ovrlpp')
+          tempp = f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norbp/),id='inv_ovrlpp')
+          call init_onedimindices(tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%foe_obj%nseg, &
+               tmb%foe_obj%kernel_nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
+               tmb%linmat%inv_ovrlp_large, nout, onedimindices)
+          call determine_sequential_length(tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%foe_obj%nseg, &
+               tmb%foe_obj%kernel_nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
+               tmb%linmat%inv_ovrlp_large, nseq, nmaxsegk, nmaxvalk)
+          inv_ovrlp_compr_seq = f_malloc(nseq,id='inv_ovrlp_compr_seq')
+          kernel_compr_seq = f_malloc(nseq,id='inv_ovrlp_compr_seq')
+          istindexarr = f_malloc((/ nmaxvalk, nmaxsegk, tmb%orbs%norbp /),id='istindexarr')
+          ivectorindex = f_malloc(nseq,id='ivectorindex')
+          call get_arrays_for_sequential_acces(tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%foe_obj%nseg, &
+               tmb%foe_obj%kernel_nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, tmb%linmat%inv_ovrlp_large, nseq, nmaxsegk, nmaxvalk, &
+               istindexarr, ivectorindex)
+          call sequential_acces_matrix(tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%foe_obj%nseg, &
+               tmb%foe_obj%kernel_nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
+               tmb%linmat%denskern_large, tmb%linmat%denskern_large%matrix_compr, nseq, nmaxsegk, nmaxvalk, &
+               kernel_compr_seq)
+          call sequential_acces_matrix(tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%foe_obj%nseg, &
+               tmb%foe_obj%kernel_nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
+               tmb%linmat%inv_ovrlp_large, tmb%linmat%inv_ovrlp_large%matrix_compr, nseq, nmaxsegk, nmaxvalk, &
+               inv_ovrlp_compr_seq)
+          call extract_matrix_distributed(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb_par, &
+               tmb%linmat%inv_ovrlp_large, tmb%linmat%inv_ovrlp_large%matrix_compr, inv_ovrlpp)
+
+           tempp=0.d0
+          call sparsemm(nseq, kernel_compr_seq, inv_ovrlpp, tempp, &
+               tmb%orbs%norb, tmb%orbs%norbp, ivectorindex, nout, onedimindices)
+          inv_ovrlpp=0.d0
+          call sparsemm(nseq, inv_ovrlp_compr_seq, tempp, inv_ovrlpp, &
+               tmb%orbs%norb, tmb%orbs%norbp, ivectorindex, nout, onedimindices)
+
+          call to_zero(tmb%linmat%denskern_large%nvctr, tmb%linmat%denskern_large%matrix_compr(1))
+          call compress_matrix_distributed(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb_par, &
+               tmb%linmat%denskern_large, inv_ovrlpp, tmb%linmat%denskern_large%matrix_compr)
+          call mpiallred(tmb%linmat%denskern_large%matrix_compr(1), tmb%linmat%denskern_large%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+          call f_free_ptr(onedimindices)
+          call f_free_ptr(inv_ovrlpp)
+          call f_free_ptr(tempp)
+          call f_free(inv_ovrlp_compr_seq)
+          call f_free(kernel_compr_seq)
+          call f_free(istindexarr)
+          call f_free(ivectorindex)
+
+      end subroutine retransform
+
+
 
 
 end subroutine foe
