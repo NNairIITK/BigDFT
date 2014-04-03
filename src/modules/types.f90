@@ -123,6 +123,8 @@ module module_types
   integer, parameter :: KERNELMODE_FOE = 12
   integer, parameter :: MIXINGMODE_DENS = 20
   integer, parameter :: MIXINGMODE_POT = 21
+  integer,parameter :: FOE_ACCURATE = 30
+  integer,parameter :: FOE_FAST = 31
 
   !> How to update the density kernel during teh support function optimization
   integer, parameter :: UPDATE_BY_PURIFICATION = 0
@@ -380,6 +382,9 @@ module module_types
 
      !> linear scaling: quick return in purification
      logical :: purification_quickreturn
+     
+     !> linear scaling: dynamic adjustment of the decay length of the FOE error function
+     logical :: adjust_FOE_temperature
   end type input_variables
 
   !> Contains all energy terms
@@ -2733,6 +2738,9 @@ end subroutine find_category
        case (PURIFICATION_QUICKRETURN)
            ! linear scaling: quick return in purification
            in%purification_quickreturn = val
+       case (ADJUST_foe_TEMPERATURE)
+           ! linear scaling: dynamic adjustment of the decay length of the FOE error function
+           in%adjust_FOE_temperature = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
