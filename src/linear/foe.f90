@@ -958,6 +958,8 @@ subroutine foe(iproc, nproc, tmprtr, &
       ! Calculate trace(KS).
       sumn=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
 
+      call yaml_map('trace(KS)',sumn)
+
 
       !!call check_idempotency(iproc, nproc, tmb, idempotency_diff)
       !!if (iproc==0) call yaml_map('diff from idempotency',idempotency_diff,fmt='(es12.4)')
