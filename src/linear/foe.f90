@@ -935,14 +935,14 @@ subroutine foe(iproc, nproc, tmprtr, &
     
   
       ! Purify the kernel
-      if (iproc==0) then
-          call yaml_open_sequence('Final kernel purification')
-          call yaml_newline()
-      end if
-      overlap_calculated=.true.
       !tmb%can_use_transposed=.true.
 
       if (.not.purification_quickreturn) then
+          if (iproc==0) then
+              call yaml_open_sequence('Final kernel purification')
+              call yaml_newline()
+          end if
+          overlap_calculated=.true.
           if (itemp==ntemp) then
               it_shift=20
           else
