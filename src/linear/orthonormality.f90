@@ -635,7 +635,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
               ivectorindex = f_malloc(nseq,id='ivectorindex')
               call get_arrays_for_sequential_acces(norb, norbp, isorb, foe_nseg, &
                    foe_kernel_nsegline, foe_istsegline, foe_keyg, inv_ovrlp_smat, nseq, nmaxsegk, nmaxvalk, &
-                   istindexarr, ivectorindex)
+                   ivectorindex)
            end if
             ovrlpminone_sparse=f_malloc(inv_ovrlp_smat%nvctr,id='ovrlpminone_sparse')
             ovrlpminonep=f_malloc_ptr((/norb,norbp/),id='ovrlpminone_sparse')
@@ -710,7 +710,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
                 ivectorindex = f_malloc(nseq,id='ivectorindex')
                 call get_arrays_for_sequential_acces(norb, norbp, isorb, foe_nseg, &
                      foe_kernel_nsegline, foe_istsegline, foe_keyg, inv_ovrlp_smat, nseq, nmaxsegk, nmaxvalk, &
-                     istindexarr, ivectorindex)
+                     ivectorindex)
                 ovrlp_compr_seq = f_malloc(nseq,id='ovrlp_compr_seq')
              end if
              if (iorder<1) then

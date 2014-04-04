@@ -53,28 +53,28 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
 
   if (norbp>0) then
 
-      call init_onedimindices(norb, norbp, isorb, foe_obj%nseg, &
-           foe_obj%nsegline, foe_obj%istsegline, foe_obj%keyg, &
-           kernel, nout, onedimindices)
+      !!call init_onedimindices(norb, norbp, isorb, foe_obj%nseg, &
+      !!     foe_obj%nsegline, foe_obj%istsegline, foe_obj%keyg, &
+      !!     kernel, nout, onedimindices)
+
+      !!call determine_sequential_length(norb, norbp, isorb, foe_obj%nseg, &
+      !!     foe_obj%nsegline, foe_obj%istsegline, foe_obj%keyg, &
+      !!     kernel, nseq, nmaxsegk, nmaxvalk)
     
-      call determine_sequential_length(norb, norbp, isorb, foe_obj%nseg, &
-           foe_obj%nsegline, foe_obj%istsegline, foe_obj%keyg, &
-           kernel, nseq, nmaxsegk, nmaxvalk)
     
+      ham_compr_seq = f_malloc(kernel%smmm%nseq,id='ham_compr_seq')
+      ovrlp_compr_seq = f_malloc(kernel%smmm%nseq,id='ovrlp_compr_seq')
+      !!istindexarr = f_malloc((/ nmaxvalk, nmaxsegk, norbp /),id='istindexarr')
+      !!ivectorindex = f_malloc(nseq,id='ivectorindex')
     
-      ham_compr_seq = f_malloc(nseq,id='ham_compr_seq')
-      ovrlp_compr_seq = f_malloc(nseq,id='ovrlp_compr_seq')
-      istindexarr = f_malloc((/ nmaxvalk, nmaxsegk, norbp /),id='istindexarr')
-      ivectorindex = f_malloc(nseq,id='ivectorindex')
-    
-      call get_arrays_for_sequential_acces(norb, norbp, isorb, foe_obj%nseg, &
-           foe_obj%nsegline, foe_obj%istsegline, foe_obj%keyg, kernel, nseq, nmaxsegk, nmaxvalk, &
-           istindexarr, ivectorindex)
+      !!call get_arrays_for_sequential_acces(norb, norbp, isorb, foe_obj%nseg, &
+      !!     foe_obj%nsegline, foe_obj%istsegline, foe_obj%keyg, kernel, nseq, nmaxsegk, nmaxvalk, &
+      !!     ivectorindex)
     
     
       if (number_of_matmuls==one) then
           matrix = f_malloc((/ orbs%norb, orbs%norbp /),id='matrix')
-          SHS_seq = f_malloc(nseq,id='SHS_seq')
+          SHS_seq = f_malloc(kernel%smmm%nseq,id='SHS_seq')
     
           if (norbp>0) then
               call to_zero(norb*norbp, matrix(1,1))
@@ -106,13 +106,13 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
     
       call sequential_acces_matrix(norb, norbp, isorb, foe_obj%nseg, &
            foe_obj%nsegline, foe_obj%istsegline, foe_obj%keyg, &
-           kernel, ham_compr, nseq, nmaxsegk, nmaxvalk, &
+           kernel, ham_compr, kernel%smmm%nseq, kernel%smmm%nmaxsegk, kernel%smmm%nmaxvalk, &
            ham_compr_seq)
     
     
       call sequential_acces_matrix(norb, norbp, isorb, foe_obj%nseg, &
            foe_obj%nsegline, foe_obj%istsegline, foe_obj%keyg, &
-           kernel, ovrlp_compr, nseq, nmaxsegk, nmaxvalk, &
+           kernel, ovrlp_compr, kernel%smmm%nseq, kernel%smmm%nmaxsegk, kernel%smmm%nmaxvalk, &
            ovrlp_compr_seq)
 
     
@@ -128,11 +128,11 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
       if (calculate_SHS) then
   
           if (norbp>0) then
-              call sparsemm(nseq, ham_compr_seq, matrix(1,1), vectors(1,1,1), &
-                   norb, norbp, ivectorindex, nout, onedimindices)
+              call sparsemm(kernel%smmm%nseq, ham_compr_seq, matrix(1,1), vectors(1,1,1), &
+                   norb, norbp, kernel%smmm%ivectorindex, kernel%smmm%nout, kernel%smmm%onedimindices)
               call to_zero(norbp*norb, matrix(1,1))
-              call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,1), matrix(1,1), &
-                   norb, norbp, ivectorindex, nout, onedimindices)
+              call sparsemm(kernel%smmm%nseq, ovrlp_compr_seq, vectors(1,1,1), matrix(1,1), &
+                   norb, norbp, kernel%smmm%ivectorindex, kernel%smmm%nout, kernel%smmm%onedimindices)
               !call to_zero(kernel%nvctr, SHS(1))
           end if
           call to_zero(kernel%nvctr, SHS(1))
@@ -162,8 +162,8 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
       if (orbs%norbp>0) then
           call sequential_acces_matrix(norb, norbp, isorb, foe_obj%nseg, &
                foe_obj%nsegline, foe_obj%istsegline, foe_obj%keyg, &
-               kernel, SHS, nseq, nmaxsegk, &
-               nmaxvalk, SHS_seq)
+               kernel, SHS, kernel%smmm%nseq, kernel%smmm%nmaxsegk, &
+               kernel%smmm%nmaxvalk, SHS_seq)
       end if
   
   end if
@@ -193,15 +193,15 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
         
           ! apply(3/2 - 1/2 S) H (3/2 - 1/2 S)
           if (number_of_matmuls==three) then
-              call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,3), vectors(1,1,1), &
-                   norb, norbp, ivectorindex, nout, onedimindices)
-              call sparsemm(nseq, ham_compr_seq, vectors(1,1,1), vectors(1,1,3), &
-                   norb, norbp, ivectorindex, nout, onedimindices)
-              call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,3), vectors(1,1,1), &
-                   norb, norbp, ivectorindex, nout, onedimindices)
+              call sparsemm(kernel%smmm%nseq, ovrlp_compr_seq, vectors(1,1,3), vectors(1,1,1), &
+                   norb, norbp, kernel%smmm%ivectorindex, kernel%smmm%nout, kernel%smmm%onedimindices)
+              call sparsemm(kernel%smmm%nseq, ham_compr_seq, vectors(1,1,1), vectors(1,1,3), &
+                   norb, norbp, kernel%smmm%ivectorindex, kernel%smmm%nout, kernel%smmm%onedimindices)
+              call sparsemm(kernel%smmm%nseq, ovrlp_compr_seq, vectors(1,1,3), vectors(1,1,1), &
+                   norb, norbp, kernel%smmm%ivectorindex, kernel%smmm%nout, kernel%smmm%onedimindices)
           else if (number_of_matmuls==one) then
-              call sparsemm(nseq, SHS_seq, vectors(1,1,3), vectors(1,1,1), &
-                   norb, norbp, ivectorindex, nout, onedimindices)
+              call sparsemm(kernel%smmm%nseq, SHS_seq, vectors(1,1,3), vectors(1,1,1), &
+                   norb, norbp, kernel%smmm%ivectorindex, kernel%smmm%nout, kernel%smmm%onedimindices)
           end if
         
         
@@ -211,44 +211,44 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
           call to_zero(norbp*norb, fermi(1,1))
           call to_zero(2*norb*norbp, penalty_ev(1,1,1))
           call compress_polynomial_vector(iproc, nsize_polynomial, orbs, kernel, vectors(1,1,4), chebyshev_polynomials(1,1))
-          call axpy_kernel_vectors(norbp, norb, nout, onedimindices, 0.5d0*cc(1,1), vectors(1,1,4), fermi(:,1))
-          call axpy_kernel_vectors(norbp, norb, nout, onedimindices, 0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,1))
-          call axpy_kernel_vectors(norbp, norb, nout, onedimindices, 0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,2))
+          call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, 0.5d0*cc(1,1), vectors(1,1,4), fermi(:,1))
+          call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, 0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,1))
+          call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, 0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,2))
           call compress_polynomial_vector(iproc, nsize_polynomial, orbs, kernel, vectors(1,1,2), chebyshev_polynomials(1,2))
-          call axpy_kernel_vectors(norbp, norb, nout, onedimindices, cc(2,1), vectors(1,1,2), fermi(:,1))
-          call axpy_kernel_vectors(norbp, norb, nout, onedimindices, cc(2,3), vectors(1,1,2), penalty_ev(:,1,1))
-          call axpy_kernel_vectors(norbp, norb, nout, onedimindices, -cc(2,3), vectors(1,1,2), penalty_ev(:,1,2))
+          call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, cc(2,1), vectors(1,1,2), fermi(:,1))
+          call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, cc(2,3), vectors(1,1,2), penalty_ev(:,1,1))
+          call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, -cc(2,3), vectors(1,1,2), penalty_ev(:,1,2))
         
         
           emergency_stop=.false.
           main_loop: do ipl=3,npl
               ! apply (3/2 - 1/2 S) H (3/2 - 1/2 S)
               if (number_of_matmuls==three) then
-                  call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,1), vectors(1,1,2), &
-                       norb, norbp, ivectorindex, nout, onedimindices)
-                  call sparsemm(nseq, ham_compr_seq, vectors(1,1,2), vectors(1,1,3), &
-                       norb, norbp, ivectorindex, nout, onedimindices)
-                  call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,3), vectors(1,1,2), &
-                       norb, norbp, ivectorindex, nout, onedimindices)
+                  call sparsemm(kernel%smmm%nseq, ovrlp_compr_seq, vectors(1,1,1), vectors(1,1,2), &
+                       norb, norbp, kernel%smmm%ivectorindex, kernel%smmm%nout, kernel%smmm%onedimindices)
+                  call sparsemm(kernel%smmm%nseq, ham_compr_seq, vectors(1,1,2), vectors(1,1,3), &
+                       norb, norbp, kernel%smmm%ivectorindex, kernel%smmm%nout, kernel%smmm%onedimindices)
+                  call sparsemm(kernel%smmm%nseq, ovrlp_compr_seq, vectors(1,1,3), vectors(1,1,2), &
+                       norb, norbp, kernel%smmm%ivectorindex, kernel%smmm%nout, kernel%smmm%onedimindices)
               else if (number_of_matmuls==one) then
-                  call sparsemm(nseq, SHS_seq, vectors(1,1,1), vectors(1,1,2), &
-                       norb, norbp, ivectorindex, nout, onedimindices)
+                  call sparsemm(kernel%smmm%nseq, SHS_seq, vectors(1,1,1), vectors(1,1,2), &
+                       norb, norbp, kernel%smmm%ivectorindex, kernel%smmm%nout, kernel%smmm%onedimindices)
               end if
-              call axbyz_kernel_vectors(norbp, norb, nout, onedimindices, 2.d0, vectors(1,1,2), &
+              call axbyz_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, 2.d0, vectors(1,1,2), &
                    -1.d0, vectors(1,1,4), vectors(1,1,3))
               call compress_polynomial_vector(iproc, nsize_polynomial, orbs, kernel, vectors(1,1,3), chebyshev_polynomials(1,ipl))
-              call axpy_kernel_vectors(norbp, norb, nout, onedimindices, cc(ipl,1), vectors(1,1,3), fermi(:,1))
-              call axpy_kernel_vectors(norbp, norb, nout, onedimindices, cc(ipl,3), vectors(1,1,3), penalty_ev(:,1,1))
+              call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, cc(ipl,1), vectors(1,1,3), fermi(:,1))
+              call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, cc(ipl,3), vectors(1,1,3), penalty_ev(:,1,1))
          
               if (mod(ipl,2)==1) then
                   tt=cc(ipl,3)
               else
                   tt=-cc(ipl,3)
               end if
-              call axpy_kernel_vectors(norbp, norb, nout, onedimindices, tt, vectors(1,1,3), penalty_ev(:,1,2))
+              call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, tt, vectors(1,1,3), penalty_ev(:,1,2))
          
-              call copy_kernel_vectors(norbp, norb, nout, onedimindices, vectors(1,1,1), vectors(1,1,4))
-              call copy_kernel_vectors(norbp, norb, nout, onedimindices, vectors(1,1,3), vectors(1,1,1))
+              call copy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, vectors(1,1,1), vectors(1,1,4))
+              call copy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, vectors(1,1,3), vectors(1,1,1))
 
               ! Check the norm of the columns of the kernel and set a flag if it explodes, which might
               ! be a consequence of the eigenvalue bounds being to small.
@@ -268,9 +268,9 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
       call f_free(vectors)
       call f_free(ham_compr_seq)
       call f_free(ovrlp_compr_seq)
-      call f_free(istindexarr)
-      call f_free(ivectorindex)
-      call f_free_ptr(onedimindices)
+      !!call f_free(istindexarr)
+      !!call f_free(ivectorindex)
+      !!call f_free_ptr(onedimindices)
     
       if (number_of_matmuls==one) then
           call f_free(matrix)
@@ -594,9 +594,59 @@ end subroutine init_onedimindices
 
 
 
+subroutine init_onedimindices_new(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, sparsemat, nout, onedimindices)
+  use module_base
+  use sparsematrix_base, only: sparse_matrix
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: norb, norbp, isorb, nseg
+  integer,dimension(norb),intent(in) :: nsegline, istsegline
+  integer,dimension(2,nseg),intent(in) :: keyg
+  type(sparse_matrix),intent(in) :: sparsemat
+  integer,intent(in) :: nout
+  integer,dimension(4,nout) :: onedimindices
+
+  ! Local variables
+  integer :: i, iii, iseg, iorb, ii, jseg, ilen, itot
+  integer :: isegoffset, istart, iend
+
+
+  ii=0
+  itot=1
+  do i = 1,norbp
+     iii=isorb+i
+     isegoffset=istsegline(iii)-1
+     do iseg=1,nsegline(iii)
+          istart=keyg(1,isegoffset+iseg)
+          iend=keyg(2,isegoffset+iseg)
+          ! keyg is defined in terms of "global coordinates", so get the
+          ! coordinate on a given line by using the mod function
+          istart=mod(istart-1,norb)+1
+          iend=mod(iend-1,norb)+1
+          do iorb=istart,iend
+              ii=ii+1
+              onedimindices(1,ii)=i
+              onedimindices(2,ii)=iorb
+              ilen=0
+              do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
+                  ilen=ilen+sparsemat%keyg(2,jseg)-sparsemat%keyg(1,jseg)+1
+              end do
+              onedimindices(3,ii)=ilen
+              onedimindices(4,ii)=itot
+              itot=itot+ilen
+          end do
+      end do
+  end do
+
+end subroutine init_onedimindices_new
+
+
+
+
 subroutine get_arrays_for_sequential_acces(norb, norbp, isorb, nseg, &
            nsegline, istsegline, keyg, sparsemat, nseq, nmaxsegk, nmaxvalk, &
-           istindexarr, ivectorindex)
+           ivectorindex)
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix
@@ -607,7 +657,6 @@ subroutine get_arrays_for_sequential_acces(norb, norbp, isorb, nseg, &
   integer,dimension(norb),intent(in) :: nsegline, istsegline
   integer,dimension(2,nseg),intent(in) :: keyg
   type(sparse_matrix),intent(in) :: sparsemat
-  integer,dimension(nmaxvalk,nmaxsegk,norbp),intent(out) :: istindexarr
   integer,dimension(nseq),intent(out) :: ivectorindex
 
   ! Local variables
@@ -627,7 +676,7 @@ subroutine get_arrays_for_sequential_acces(norb, norbp, isorb, nseg, &
           istart=mod(istart-1,norb)+1
           iend=mod(iend-1,norb)+1
           do iorb=istart,iend
-              istindexarr(iorb-istart+1,iseg,i)=ii
+              !!istindexarr(iorb-istart+1,iseg,i)=ii
               do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
                   do jorb = sparsemat%keyg(1,jseg),sparsemat%keyg(2,jseg)
                       jjorb = jorb - (iorb-1)*norb

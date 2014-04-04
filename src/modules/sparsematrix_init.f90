@@ -17,7 +17,8 @@ module sparsematrix_init
 
 
     !> Currently assuming square matrices
-    subroutine init_sparse_matrix(iproc, nproc, lzd, orbs, input, sparsemat)
+    subroutine init_sparse_matrix(iproc, nproc, lzd, orbs, input, &
+               nseg, nsegline, istsegline, keyg, sparsemat)
       use module_base
       use module_types
       use module_interfaces
@@ -25,15 +26,17 @@ module sparsematrix_init
       implicit none
       
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc
+      integer,intent(in) :: iproc, nproc, nseg
       type(local_zone_descriptors),intent(in) :: lzd
       type(orbitals_data),intent(in) :: orbs
       type(input_variables),intent(in) :: input
+      integer,dimension(orbs%norb),intent(in) :: nsegline, istsegline
+      integer,dimension(2,nseg),intent(in) :: keyg
       type(sparse_matrix), intent(out) :: sparsemat
       
       ! Local variables
       character(len=*), parameter :: subname='init_sparse_matrix'
-      integer :: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, nseg, irow, irowold, isegline, ilr, segn, ind, iseg
+      integer :: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, iseg, irow, irowold, isegline, ilr, segn, ind
       integer :: nseglinemax, iall, ierr, jorbe, jorbs, jorbold, ii
       integer :: matrixindex_in_compressed
       integer, dimension(:,:,:), pointer :: keygline
@@ -119,7 +122,7 @@ module sparsematrix_init
       allocate(keygline(2,nseglinemax,orbs%norb), stat=istat)
       call memocc(istat, keygline, 'keygline', subname)
     
-      nseg=0
+      iseg=0
       sparsemat%keyv(1)=1
       jjorbold=-1
       irow=0
@@ -151,15 +154,15 @@ module sparsematrix_init
                       ! There was a zero segment in between, i.e. we are in a new segment.
                       ! First determine the end of the previous segment.
                       if(jjorbold>0) then
-                          sparsemat%keyg(2,nseg)=jjorbold
+                          sparsemat%keyg(2,iseg)=jjorbold
                           keygline(2,isegline,irowold)=mod(jjorbold-1,orbs%norb)+1
                       end if
                       ! Now add the new segment.
-                      nseg=nseg+1
-                      sparsemat%keyg(1,nseg)=jjorb
+                      iseg=iseg+1
+                      sparsemat%keyg(1,iseg)=jjorb
                       jjorbold=jjorb
-                      if(nseg>1) then
-                          sparsemat%keyv(nseg) = sparsemat%keyv(nseg-1) + sparsemat%keyg(2,nseg-1) - sparsemat%keyg(1,nseg-1) + 1
+                      if(iseg>1) then
+                          sparsemat%keyv(iseg) = sparsemat%keyv(iseg-1) + sparsemat%keyg(2,iseg-1) - sparsemat%keyg(1,iseg-1) + 1
                       end if
     
                       ! Segments for each row
@@ -180,7 +183,7 @@ module sparsematrix_init
           end do
       end do
       ! Close the last segment
-      sparsemat%keyg(2,nseg)=jjorb
+      sparsemat%keyg(2,iseg)=jjorb
       keygline(2,isegline,orbs%norb)=mod(jjorb-1,orbs%norb)+1
     
       iall=-product(shape(keygline))*kind(keygline)
@@ -270,7 +273,10 @@ module sparsematrix_init
       ! 0 - none, 1 - mpiallred, 2 - allgather
       sparsemat%parallel_compression=0
       sparsemat%can_use_dense=.false.
-    
+
+      ! Initialize the parameters for the spare matrix matrix multiplication
+      call init_sparse_matrix_matrix_multiplication(orbs%norb, orbs%norbp, orbs%isorb, nseg, &
+               nsegline, istsegline, keyg, sparsemat)
     
       call timing(iproc,'init_matrCompr','OF')
     
@@ -523,17 +529,20 @@ module sparsematrix_init
 
     !> Routine that initiakizes the sparsity pattern for a matrix, bases solely on
     !  the distance between the locreg centers
-    subroutine init_sparsity_from_distance(iproc, nproc, orbs, lzd, input, sparsemat)
+    subroutine init_sparsity_from_distance(iproc, nproc, orbs, lzd, input, &
+               nseg, nsegline, istsegline, keyg, sparsemat)
       use module_base
       use module_types
       use yaml_output
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc
+      integer,intent(in) :: iproc, nproc, nseg
       type(orbitals_data),intent(in) :: orbs
       type(local_zone_descriptors),intent(in) :: lzd
       type(input_variables),intent(in) :: input
+      integer,dimension(orbs%norb),intent(in) :: nsegline, istsegline
+      integer,dimension(2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(out) :: sparsemat
     
       ! Local variables
@@ -651,6 +660,9 @@ module sparsematrix_init
       call init_matrix_parallelization(iproc, nproc, sparsemat)
     
     
+      ! Initialize the parameters for the spare matrix matrix multiplication
+      call init_sparse_matrix_matrix_multiplication(orbs%norb, orbs%norbp, orbs%isorb, nseg, &
+               nsegline, istsegline, keyg, sparsemat)
       
     
       contains
@@ -1003,14 +1015,14 @@ module sparsematrix_init
       call determine_sequential_length(norb, norbp, isorb, nseg, &
            nsegline, istsegline, keyg, sparsemat, &
            sparsemat%smmm%nseq, sparsemat%smmm%nmaxsegk, sparsemat%smmm%nmaxvalk)
-      call allocate_sparse_matrix_matrix_multiplication(norbp, sparsemat%smmm)
-      call init_onedimindices(norb, norbp, isorb, nseg, &
+      call allocate_sparse_matrix_matrix_multiplication(sparsemat%smmm)
+      call init_onedimindices_new(norb, norbp, isorb, nseg, &
            nsegline, istsegline, keyg, &
-           sparsemat, nout_dummy, sparsemat%smmm%onedimindices)
+           sparsemat, sparsemat%smmm%nout, sparsemat%smmm%onedimindices)
       call get_arrays_for_sequential_acces(norb, norbp, isorb, nseg, &
            nsegline, istsegline, keyg, sparsemat, &
            sparsemat%smmm%nseq, sparsemat%smmm%nmaxsegk, sparsemat%smmm%nmaxvalk, &
-           sparsemat%smmm%istindexarr, sparsemat%smmm%ivectorindex)
+           sparsemat%smmm%ivectorindex)
     end subroutine init_sparse_matrix_matrix_multiplication
 
 

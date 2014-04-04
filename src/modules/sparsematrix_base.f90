@@ -9,7 +9,6 @@ module sparsematrix_base
       integer :: nout, nseq, nmaxsegk, nmaxvalk
       integer,dimension(:),pointer :: ivectorindex
       integer,dimension(:,:),pointer :: onedimindices
-      integer,dimension(:,:,:),pointer :: istindexarr
   end type sparse_matrix_matrix_multiplication
 
   type,public :: sparse_matrix
@@ -70,7 +69,6 @@ module sparsematrix_base
       type(sparse_matrix_matrix_multiplication),intent(out):: smmm
       nullify(smmm%ivectorindex)
       nullify(smmm%onedimindices)
-      nullify(smmm%istindexarr)
     end subroutine nullify_sparse_matrix_matrix_multiplication
 
 
@@ -99,13 +97,11 @@ module sparsematrix_base
       sparsemat%orb_from_index=f_malloc_ptr((/2,sparsemat%nvctr/),id='sparsemat%orb_from_index')
     end subroutine allocate_sparse_matrix_keys
 
-    subroutine allocate_sparse_matrix_matrix_multiplication(norbp, smmm)
+    subroutine allocate_sparse_matrix_matrix_multiplication(smmm)
       implicit none
-      integer,intent(in) :: norbp
       type(sparse_matrix_matrix_multiplication),intent(inout):: smmm
       smmm%ivectorindex=f_malloc_ptr(smmm%nseq,id='smmm%ivectorindex')
       smmm%onedimindices=f_malloc_ptr((/4,smmm%nout/),id='smmm%onedimindices')
-      smmm%istindexarr=f_malloc_ptr((/smmm%nmaxvalk,smmm%nmaxsegk,norbp/),id='smmm%istindexarr')
     end subroutine allocate_sparse_matrix_matrix_multiplication
 
 
@@ -140,7 +136,6 @@ module sparsematrix_base
       type(sparse_matrix_matrix_multiplication),intent(out):: smmm
       call f_free_ptr(smmm%ivectorindex)
       call f_free_ptr(smmm%onedimindices)
-      call f_free_ptr(smmm%istindexarr)
     end subroutine deallocate_sparse_matrix_matrix_multiplication
 
 

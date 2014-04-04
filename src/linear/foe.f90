@@ -1131,7 +1131,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           call get_arrays_for_sequential_acces(tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%foe_obj%nseg, &
                tmb%foe_obj%nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
                tmb%linmat%inv_ovrlp_large, nseq, nmaxsegk, nmaxvalk, &
-               istindexarr, ivectorindex)
+               ivectorindex)
           call sequential_acces_matrix(tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%foe_obj%nseg, &
                tmb%foe_obj%nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
                tmb%linmat%denskern_large, tmb%linmat%denskern_large%matrix_compr, nseq, nmaxsegk, nmaxvalk, &
