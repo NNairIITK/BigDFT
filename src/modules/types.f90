@@ -570,7 +570,7 @@ module module_types
 
   type,public :: foe_data
     integer :: nseg
-    integer,dimension(:),pointer :: kernel_nsegline, istsegline
+    integer,dimension(:),pointer :: nsegline, istsegline
     integer,dimension(:,:),pointer :: keyg
     real(kind=8) :: ef !< Fermi energy for FOE
     real(kind=8) :: evlow, evhigh !< eigenvalue bounds for FOE 

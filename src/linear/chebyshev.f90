@@ -54,11 +54,11 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
   if (norbp>0) then
 
       call init_onedimindices(norb, norbp, isorb, foe_obj%nseg, &
-           foe_obj%kernel_nsegline, foe_obj%istsegline, foe_obj%keyg, &
+           foe_obj%nsegline, foe_obj%istsegline, foe_obj%keyg, &
            kernel, nout, onedimindices)
     
       call determine_sequential_length(norb, norbp, isorb, foe_obj%nseg, &
-           foe_obj%kernel_nsegline, foe_obj%istsegline, foe_obj%keyg, &
+           foe_obj%nsegline, foe_obj%istsegline, foe_obj%keyg, &
            kernel, nseq, nmaxsegk, nmaxvalk)
     
     
@@ -68,7 +68,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
       ivectorindex = f_malloc(nseq,id='ivectorindex')
     
       call get_arrays_for_sequential_acces(norb, norbp, isorb, foe_obj%nseg, &
-           foe_obj%kernel_nsegline, foe_obj%istsegline, foe_obj%keyg, kernel, nseq, nmaxsegk, nmaxvalk, &
+           foe_obj%nsegline, foe_obj%istsegline, foe_obj%keyg, kernel, nseq, nmaxsegk, nmaxvalk, &
            istindexarr, ivectorindex)
     
     
@@ -105,13 +105,13 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
       end if
     
       call sequential_acces_matrix(norb, norbp, isorb, foe_obj%nseg, &
-           foe_obj%kernel_nsegline, foe_obj%istsegline, foe_obj%keyg, &
+           foe_obj%nsegline, foe_obj%istsegline, foe_obj%keyg, &
            kernel, ham_compr, nseq, nmaxsegk, nmaxvalk, &
            ham_compr_seq)
     
     
       call sequential_acces_matrix(norb, norbp, isorb, foe_obj%nseg, &
-           foe_obj%kernel_nsegline, foe_obj%istsegline, foe_obj%keyg, &
+           foe_obj%nsegline, foe_obj%istsegline, foe_obj%keyg, &
            kernel, ovrlp_compr, nseq, nmaxsegk, nmaxvalk, &
            ovrlp_compr_seq)
 
@@ -161,7 +161,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
   
       if (orbs%norbp>0) then
           call sequential_acces_matrix(norb, norbp, isorb, foe_obj%nseg, &
-               foe_obj%kernel_nsegline, foe_obj%istsegline, foe_obj%keyg, &
+               foe_obj%nsegline, foe_obj%istsegline, foe_obj%keyg, &
                kernel, SHS, nseq, nmaxsegk, &
                nmaxvalk, SHS_seq)
       end if

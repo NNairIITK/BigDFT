@@ -1083,7 +1083,7 @@ subroutine foe(iproc, nproc, tmprtr, &
               call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, tmb%orbs, &
                    imode=1, check_accur=.true., error=error, &
                    ovrlp_smat=tmb%linmat%ovrlp, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, &
-                   foe_nseg=tmb%foe_obj%nseg, foe_kernel_nsegline=tmb%foe_obj%kernel_nsegline, &
+                   foe_nseg=tmb%foe_obj%nseg, foe_kernel_nsegline=tmb%foe_obj%nsegline, &
                    foe_istsegline=tmb%foe_obj%istsegline, foe_keyg=tmb%foe_obj%keyg)
            end if
           if (foe_verbosity>=1 .and. iproc==0) then
@@ -1119,25 +1119,25 @@ subroutine foe(iproc, nproc, tmprtr, &
           inv_ovrlpp = f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norbp/),id='inv_ovrlpp')
           tempp = f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norbp/),id='inv_ovrlpp')
           call init_onedimindices(tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%foe_obj%nseg, &
-               tmb%foe_obj%kernel_nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
+               tmb%foe_obj%nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
                tmb%linmat%inv_ovrlp_large, nout, onedimindices)
           call determine_sequential_length(tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%foe_obj%nseg, &
-               tmb%foe_obj%kernel_nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
+               tmb%foe_obj%nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
                tmb%linmat%inv_ovrlp_large, nseq, nmaxsegk, nmaxvalk)
           inv_ovrlp_compr_seq = f_malloc(nseq,id='inv_ovrlp_compr_seq')
           kernel_compr_seq = f_malloc(nseq,id='inv_ovrlp_compr_seq')
           istindexarr = f_malloc((/ nmaxvalk, nmaxsegk, tmb%orbs%norbp /),id='istindexarr')
           ivectorindex = f_malloc(nseq,id='ivectorindex')
           call get_arrays_for_sequential_acces(tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%foe_obj%nseg, &
-               tmb%foe_obj%kernel_nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
+               tmb%foe_obj%nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
                tmb%linmat%inv_ovrlp_large, nseq, nmaxsegk, nmaxvalk, &
                istindexarr, ivectorindex)
           call sequential_acces_matrix(tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%foe_obj%nseg, &
-               tmb%foe_obj%kernel_nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
+               tmb%foe_obj%nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
                tmb%linmat%denskern_large, tmb%linmat%denskern_large%matrix_compr, nseq, nmaxsegk, nmaxvalk, &
                kernel_compr_seq)
           call sequential_acces_matrix(tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%foe_obj%nseg, &
-               tmb%foe_obj%kernel_nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
+               tmb%foe_obj%nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
                tmb%linmat%inv_ovrlp_large, tmb%linmat%inv_ovrlp_large%matrix_compr, nseq, nmaxsegk, nmaxvalk, &
                inv_ovrlp_compr_seq)
           call extract_matrix_distributed(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb_par, &

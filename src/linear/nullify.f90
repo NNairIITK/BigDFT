@@ -47,7 +47,7 @@ subroutine nullify_foe(foe_obj)
   ! Calling argument
   type(foe_data),intent(out):: foe_obj
 
-  nullify(foe_obj%kernel_nsegline)
+  nullify(foe_obj%nsegline)
   nullify(foe_obj%istsegline)
   nullify(foe_obj%keyg)
 

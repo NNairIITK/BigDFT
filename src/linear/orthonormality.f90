@@ -91,7 +91,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
           call overlap_power_minus_one_half_parallel(iproc, nproc, 0, orbs, ovrlp, inv_ovrlp_half)
       else
           nullify(inv_ovrlp_null)
-          if (methTransformOverlap>1 .and.  .not.associated(foe_obj%kernel_nsegline)) then
+          if (methTransformOverlap>1 .and.  .not.associated(foe_obj%nsegline)) then
               ! this is a bit cheating, to be improved
               ovrlp_associated=associated(ovrlp%matrix)
               inv_ovrlp_associated=associated(inv_ovrlp_half%matrix)
@@ -116,7 +116,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
                    orthpar%blocksize_pdgemm, orbs%norb, orbs, &
                    imode=1, check_accur=.false.,ovrlp=ovrlp%matrix, &
                    inv_ovrlp=inv_ovrlp_null, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
-                   foe_nseg=foe_obj%nseg, foe_kernel_nsegline=foe_obj%kernel_nsegline, &
+                   foe_nseg=foe_obj%nseg, foe_kernel_nsegline=foe_obj%nsegline, &
                    foe_istsegline=foe_obj%istsegline, foe_keyg=foe_obj%keyg)
           end if
       end if
