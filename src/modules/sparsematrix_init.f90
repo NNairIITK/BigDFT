@@ -986,4 +986,32 @@ module sparsematrix_init
     end subroutine check_kernel_cutoff
 
 
+    subroutine init_sparse_matrix_matrix_multiplication(norb, norbp, isorb, nseg, &
+               nsegline, istsegline, keyg, sparsemat)
+      use module_base
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: norb, norbp, isorb, nseg
+      integer,dimension(norb),intent(in) :: nsegline, istsegline
+      integer,dimension(2,nseg),intent(in) :: keyg
+      type(sparse_matrix),intent(inout) :: sparsemat
+
+      integer :: nout_dummy
+
+      call get_nout(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, sparsemat%smmm%nout)
+      call determine_sequential_length(norb, norbp, isorb, nseg, &
+           nsegline, istsegline, keyg, sparsemat, &
+           sparsemat%smmm%nseq, sparsemat%smmm%nmaxsegk, sparsemat%smmm%nmaxvalk)
+      call allocate_sparse_matrix_matrix_multiplication(norbp, sparsemat%smmm)
+      call init_onedimindices(norb, norbp, isorb, nseg, &
+           nsegline, istsegline, keyg, &
+           sparsemat, nout_dummy, sparsemat%smmm%onedimindices)
+      call get_arrays_for_sequential_acces(norb, norbp, isorb, nseg, &
+           nsegline, istsegline, keyg, sparsemat, &
+           sparsemat%smmm%nseq, sparsemat%smmm%nmaxsegk, sparsemat%smmm%nmaxvalk, &
+           sparsemat%smmm%istindexarr, sparsemat%smmm%ivectorindex)
+    end subroutine init_sparse_matrix_matrix_multiplication
+
+
 end module sparsematrix_init

@@ -3718,6 +3718,15 @@ module module_interfaces
           integer,dimension(:,:),pointer :: onedimindices
         end subroutine init_onedimindices
 
+        subroutine get_nout(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, nout)
+          use module_base
+          implicit none
+          integer,intent(in) :: norb, norbp, isorb, nseg
+          integer,dimension(norb),intent(in) :: nsegline, istsegline
+          integer,dimension(2,nseg),intent(in) :: keyg
+          integer,intent(out) :: nout
+        end subroutine get_nout
+
         subroutine enable_sequential_acces_vector(norbp, norb, isorb, foe_obj, b, nseq, bseq, indexarr)
           use module_base
           use module_types

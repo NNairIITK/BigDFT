@@ -499,11 +499,39 @@ subroutine determine_sequential_length(norb, norbp, isorb, nseg, nsegline, istse
 end subroutine determine_sequential_length
 
 
+subroutine get_nout(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, nout)
+  use module_base
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: norb, norbp, isorb, nseg
+  integer,dimension(norb),intent(in) :: nsegline, istsegline
+  integer,dimension(2,nseg),intent(in) :: keyg
+  integer,intent(out) :: nout
+
+  ! Local variables
+  integer :: i, iii, iseg, iorb, ii
+  integer :: isegoffset, istart, iend
+
+  nout=0
+  do i = 1,norbp
+     iii=isorb+i
+     isegoffset=istsegline(iii)-1
+     do iseg=1,nsegline(iii)
+          istart=keyg(1,isegoffset+iseg)
+          iend=keyg(2,isegoffset+iseg)
+          do iorb=istart,iend
+              nout=nout+1
+          end do
+      end do
+  end do
+
+end subroutine get_nout
+
 
 
 subroutine init_onedimindices(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, sparsemat, nout, onedimindices)
   use module_base
-  use module_types
   use sparsematrix_base, only: sparse_matrix
   implicit none
 
@@ -516,9 +544,8 @@ subroutine init_onedimindices(norb, norbp, isorb, nseg, nsegline, istsegline, ke
   integer,dimension(:,:),pointer :: onedimindices
 
   ! Local variables
-  integer :: i, iii, iseg, iorb, istat, ii, jseg, ilen, itot
+  integer :: i, iii, iseg, iorb, ii, jseg, ilen, itot
   integer :: isegoffset, istart, iend
-  character(len=*),parameter :: subname='init_onedimindices'
 
 
   nout=0
@@ -534,7 +561,6 @@ subroutine init_onedimindices(norb, norbp, isorb, nseg, nsegline, istsegline, ke
       end do
   end do
 
-! allocate(onedimindices(4,nout), stat=istat)
   onedimindices = f_malloc_ptr((/ 4, nout /),id='onedimindices')
 
   ii=0
@@ -684,11 +710,9 @@ subroutine chebyshev_fast(iproc, nsize_polynomial, npl, orbs, fermi, chebyshev_p
   ! Local variables
   integer :: ipl, istat, iall
   real(kind=8),dimension(:),allocatable :: kernel_compressed
-  character(len=*),parameter :: subname='chebyshev_fast'
 
 
   if (nsize_polynomial>0) then
-!     allocate(kernel_compressed(nsize_polynomial),stat=istat)
       kernel_compressed = f_malloc(nsize_polynomial,id='kernel_compressed')
 
       call to_zero(nsize_polynomial,kernel_compressed(1))
