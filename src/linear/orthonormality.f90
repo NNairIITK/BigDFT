@@ -663,10 +663,10 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
                call daxpy(norb*norbp,factor,ovrlpminonep,1,invovrlpp,1)
                call vcopy(norb*norbp,ovrlpminonep(1,1),1,ovrlpminoneoldp(1,1),1)
             end do
-            call to_zero(inv_ovrlp_smat%nvctr, inv_ovrlp_smat%matrix_compr(1))
+            !!call to_zero(inv_ovrlp_smat%nvctr, inv_ovrlp_smat%matrix_compr(1))
             call compress_matrix_distributed(iproc, nproc, norb, norbp, orbs%isorb_par, &
                  inv_ovrlp_smat, invovrlpp, inv_ovrlp_smat%matrix_compr)
-            call mpiallred(inv_ovrlp_smat%matrix_compr(1), inv_ovrlp_smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+            !!call mpiallred(inv_ovrlp_smat%matrix_compr(1), inv_ovrlp_smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
             if (iorder>1) then
                 call f_free(ovrlpminone_sparse_seq)
@@ -2372,7 +2372,10 @@ end subroutine diagonalize_localized
      real(kind=8),dimension(smat%nvctr),intent(out) :: matrix_compr
 
      ! Local variables
-     integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb
+     integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, ierr
+
+
+     call to_zero(smat%nvctr, matrix_compr(1))
 
      if (norbp>0) then
          isegstart=smat%istsegline(isorb_par(iproc)+1)
@@ -2395,5 +2398,7 @@ end subroutine diagonalize_localized
          !!$omp end do
          !!$omp end parallel
      end if
+
+     call mpiallred(matrix_compr(1), smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
   end subroutine compress_matrix_distributed
