@@ -1003,6 +1003,7 @@ subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
   sparsemat_out%smmm%nseq = sparsemat_in%smmm%nseq
   sparsemat_out%smmm%nmaxsegk = sparsemat_in%smmm%nmaxsegk
   sparsemat_out%smmm%nmaxvalk = sparsemat_in%smmm%nmaxvalk
+  sparsemat_out%smmm%nseg = sparsemat_in%smmm%nseg
   
   if(associated(sparsemat_out%smmm%ivectorindex)) then
      call f_free_ptr(sparsemat_out%smmm%ivectorindex)
@@ -1013,6 +1014,30 @@ subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
      sparsemat_out%smmm%ivectorindex=f_malloc_ptr(iis1.to.iie1,id='sparsemat_out%smmm%ivectorindex')
      do i1=iis1,iie1
         sparsemat_out%smmm%ivectorindex(i1) = sparsemat_in%smmm%ivectorindex(i1)
+     end do
+  end if
+
+  if(associated(sparsemat_out%smmm%nsegline)) then
+     call f_free_ptr(sparsemat_out%smmm%nsegline)
+  end if
+  if(associated(sparsemat_in%smmm%nsegline)) then
+     iis1=lbound(sparsemat_in%smmm%nsegline,1)
+     iie1=ubound(sparsemat_in%smmm%nsegline,1)
+     sparsemat_out%smmm%nsegline=f_malloc_ptr(iis1.to.iie1,id='sparsemat_out%smmm%nsegline')
+     do i1=iis1,iie1
+        sparsemat_out%smmm%nsegline(i1) = sparsemat_in%smmm%nsegline(i1)
+     end do
+  end if
+
+  if(associated(sparsemat_out%smmm%istsegline)) then
+     call f_free_ptr(sparsemat_out%smmm%istsegline)
+  end if
+  if(associated(sparsemat_in%smmm%istsegline)) then
+     iis1=lbound(sparsemat_in%smmm%istsegline,1)
+     iie1=ubound(sparsemat_in%smmm%istsegline,1)
+     sparsemat_out%smmm%istsegline=f_malloc_ptr(iis1.to.iie1,id='sparsemat_out%smmm%istsegline')
+     do i1=iis1,iie1
+        sparsemat_out%smmm%istsegline(i1) = sparsemat_in%smmm%istsegline(i1)
      end do
   end if
 
@@ -1030,6 +1055,24 @@ subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
         do i2 = iis2,iie2
            sparsemat_out%smmm%onedimindices(i1,i2) = &
                 sparsemat_in%smmm%onedimindices(i1,i2)
+        end do
+     end do
+  end if
+
+  if(associated(sparsemat_out%smmm%keyg)) then
+     call f_free_ptr(sparsemat_out%smmm%keyg)
+  end if
+  if(associated(sparsemat_in%smmm%keyg)) then
+     iis1=lbound(sparsemat_in%smmm%keyg,1)
+     iie1=ubound(sparsemat_in%smmm%keyg,1)
+     iis2=lbound(sparsemat_in%smmm%keyg,2)
+     iie2=ubound(sparsemat_in%smmm%keyg,2)
+     sparsemat_out%smmm%keyg=f_malloc_ptr((/iis1.to.iie1,iis2.to.iie2/),&
+         id='sparsemat_out%smmm%keyg')
+     do i1=iis1,iie1
+        do i2 = iis2,iie2
+           sparsemat_out%smmm%keyg(i1,i2) = &
+                sparsemat_in%smmm%keyg(i1,i2)
         end do
      end do
   end if

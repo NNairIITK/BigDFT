@@ -268,7 +268,7 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
   call nullify_foe(foe_obj)
 
   ! Initialize kernel_locreg
-  if (input%lin%scf_mode==LINEAR_FOE) then ! otherwise don't need to allocate just nullify as above
+  !if (input%lin%scf_mode==LINEAR_FOE) then ! otherwise don't need to allocate just nullify as above
      allocate(kernel_locreg(orbs%norbp,orbs%norb), stat=istat)
      call memocc(istat, kernel_locreg, 'kernel_locreg', subname)
      allocate(foe_obj%nsegline(orbs%norb), stat=istat)
@@ -348,7 +348,7 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
      iall = -product(shape(kernel_locreg))*kind(kernel_locreg) 
      deallocate(kernel_locreg,stat=istat)
      call memocc(istat,iall,'kernel_locreg',subname)
-  end if
+  !end if
 
   call timing(iproc,'init_matrCompr','OF')
 

@@ -635,8 +635,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
                  ovrlp_smat%matrix_compr, ovrlp_large_compr, 'small_to_large')
             call matrix_minus_identity_sparse(norb, inv_ovrlp_smat, ovrlp_large_compr, ovrlpminone_sparse)
           if (iorder>1) then
-              call sequential_acces_matrix(norb, norbp, isorb, foe_nseg, &
-                   foe_kernel_nsegline, foe_istsegline, foe_keyg, &
+              call sequential_acces_matrix(norb, norbp, isorb, inv_ovrlp_smat%smmm%nseg, &
+                   inv_ovrlp_smat%smmm%nsegline, inv_ovrlp_smat%smmm%istsegline, inv_ovrlp_smat%smmm%keyg, &
                    inv_ovrlp_smat, ovrlpminone_sparse, inv_ovrlp_smat%smmm%nseq, &
                    inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
                    ovrlpminone_sparse_seq)
@@ -699,31 +699,35 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
             ovrlp_largep=f_malloc((/norb,norbp/),id='ovrlp_largep')
             call extract_matrix_distributed(iproc, nproc, norb, norbp, orbs%isorb_par, &
                  inv_ovrlp_smat, ovrlp_large_compr, ovrlp_largep)
+            call sequential_acces_matrix(norb, norbp, isorb, foe_nseg, &
+                 foe_kernel_nsegline, foe_istsegline, foe_keyg, &
+                 inv_ovrlp_smat, inv_ovrlp_smat%matrix_compr, inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
+                 invovrlp_compr_seq)
             if (power==1) then
-                call sequential_acces_matrix(norb, norbp, isorb, foe_nseg, &
-                     foe_kernel_nsegline, foe_istsegline, foe_keyg, &
-                     inv_ovrlp_smat, inv_ovrlp_smat%matrix_compr, inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
-                     invovrlp_compr_seq)
-                call check_accur_overlap_minus_one_sparse(iproc, nproc, norb, norbp, isorb, nseq, nout, &
-                     ivectorindex, onedimindices, invovrlp_compr_seq, ovrlp_largep, power, &
-                     error)
+                 !!call sequential_acces_matrix(norb, norbp, isorb, foe_nseg, &
+                 !!     foe_kernel_nsegline, foe_istsegline, foe_keyg, &
+                 !!     inv_ovrlp_smat, inv_ovrlp_smat%matrix_compr, inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
+                 !!     invovrlp_compr_seq)
+                 call check_accur_overlap_minus_one_sparse(iproc, nproc, norb, norbp, isorb, nseq, nout, &
+                      ivectorindex, onedimindices, invovrlp_compr_seq, ovrlp_largep, power, &
+                      error)
              else if (power==2) then
-                call sequential_acces_matrix(norb, norbp, isorb, foe_nseg, &
-                     foe_kernel_nsegline, foe_istsegline, foe_keyg, &
-                     inv_ovrlp_smat, inv_ovrlp_smat%matrix_compr, inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
-                     invovrlp_compr_seq)
+                !!call sequential_acces_matrix(norb, norbp, isorb, foe_nseg, &
+                !!     foe_kernel_nsegline, foe_istsegline, foe_keyg, &
+                !!     inv_ovrlp_smat, inv_ovrlp_smat%matrix_compr, inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
+                !!     invovrlp_compr_seq)
                 call extract_matrix_distributed(iproc, nproc, norb, norbp, orbs%isorb_par, &
                      inv_ovrlp_smat, inv_ovrlp_smat%matrix_compr, invovrlpp)
                 call check_accur_overlap_minus_one_sparse(iproc, nproc, norb, norbp, isorb, inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nout, &
                      inv_ovrlp_smat%smmm%ivectorindex, inv_ovrlp_smat%smmm%onedimindices, invovrlp_compr_seq, invovrlpp, power, &
                      error,cmatp=ovrlp_largep)
              else if (power==-2) then
-                call sequential_acces_matrix(norb, norbp, isorb, foe_nseg, &
-                     foe_kernel_nsegline, foe_istsegline, foe_keyg, &
-                     inv_ovrlp_smat, inv_ovrlp_smat%matrix_compr, inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
-                     invovrlp_compr_seq)
-                call sequential_acces_matrix(norb, norbp, isorb, foe_nseg, &
-                     foe_kernel_nsegline, foe_istsegline, foe_keyg, &
+                !!call sequential_acces_matrix(norb, norbp, isorb, foe_nseg, &
+                !!     foe_kernel_nsegline, foe_istsegline, foe_keyg, &
+                !!     inv_ovrlp_smat, inv_ovrlp_smat%matrix_compr, inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
+                !!     invovrlp_compr_seq)
+                call sequential_acces_matrix(norb, norbp, isorb, inv_ovrlp_smat%smmm%nseg, &
+                     inv_ovrlp_smat%smmm%nsegline, inv_ovrlp_smat%smmm%istsegline, inv_ovrlp_smat%smmm%keyg, &
                      inv_ovrlp_smat, ovrlp_large_compr, inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
                      ovrlp_compr_seq)
                 call extract_matrix_distributed(iproc, nproc, norb, norbp, orbs%isorb_par, &

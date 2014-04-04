@@ -1009,13 +1009,15 @@ module sparsematrix_init
       integer,dimension(2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(inout) :: sparsemat
 
-      integer :: nout_dummy
-
       call get_nout(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, sparsemat%smmm%nout)
       call determine_sequential_length(norb, norbp, isorb, nseg, &
            nsegline, istsegline, keyg, sparsemat, &
            sparsemat%smmm%nseq, sparsemat%smmm%nmaxsegk, sparsemat%smmm%nmaxvalk)
-      call allocate_sparse_matrix_matrix_multiplication(sparsemat%smmm)
+      call allocate_sparse_matrix_matrix_multiplication(norb, nseg, nsegline, istsegline, keyg, sparsemat%smmm)
+      sparsemat%smmm%nseg=nseg
+      call vcopy(norb, nsegline(1), 1, sparsemat%smmm%nsegline(1), 1)
+      call vcopy(norb, istsegline(1), 1, sparsemat%smmm%istsegline(1), 1)
+      call vcopy(2*nseg, keyg(1,1), 1, sparsemat%smmm%keyg(1,1), 1)
       call init_onedimindices_new(norb, norbp, isorb, nseg, &
            nsegline, istsegline, keyg, &
            sparsemat, sparsemat%smmm%nout, sparsemat%smmm%onedimindices)

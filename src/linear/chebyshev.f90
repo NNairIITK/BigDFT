@@ -90,14 +90,14 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
           end if
       end if
     
-      call sequential_acces_matrix(norb, norbp, isorb, foe_obj%nseg, &
-           foe_obj%nsegline, foe_obj%istsegline, foe_obj%keyg, &
+      call sequential_acces_matrix(norb, norbp, isorb, kernel%smmm%nseg, &
+           kernel%smmm%nsegline, kernel%smmm%istsegline, kernel%smmm%keyg, &
            kernel, ham_compr, kernel%smmm%nseq, kernel%smmm%nmaxsegk, kernel%smmm%nmaxvalk, &
            ham_compr_seq)
     
     
-      call sequential_acces_matrix(norb, norbp, isorb, foe_obj%nseg, &
-           foe_obj%nsegline, foe_obj%istsegline, foe_obj%keyg, &
+      call sequential_acces_matrix(norb, norbp, isorb, kernel%smmm%nseg, &
+           kernel%smmm%nsegline, kernel%smmm%istsegline, kernel%smmm%keyg, &
            kernel, ovrlp_compr, kernel%smmm%nseq, kernel%smmm%nmaxsegk, kernel%smmm%nmaxvalk, &
            ovrlp_compr_seq)
 
@@ -146,8 +146,8 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
       end if
   
       if (orbs%norbp>0) then
-          call sequential_acces_matrix(norb, norbp, isorb, foe_obj%nseg, &
-               foe_obj%nsegline, foe_obj%istsegline, foe_obj%keyg, &
+          call sequential_acces_matrix(norb, norbp, isorb, kernel%smmm%nseg, &
+               kernel%smmm%nsegline, kernel%smmm%istsegline, kernel%smmm%keyg, &
                kernel, SHS, kernel%smmm%nseq, kernel%smmm%nmaxsegk, &
                kernel%smmm%nmaxvalk, SHS_seq)
       end if

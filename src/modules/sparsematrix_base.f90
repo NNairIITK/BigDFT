@@ -6,9 +6,9 @@ module sparsematrix_base
 
   !> Contains the parameters needed for the sparse matrix matrix multiplication
   type :: sparse_matrix_matrix_multiplication
-      integer :: nout, nseq, nmaxsegk, nmaxvalk
-      integer,dimension(:),pointer :: ivectorindex
-      integer,dimension(:,:),pointer :: onedimindices
+      integer :: nout, nseq, nmaxsegk, nmaxvalk, nseg
+      integer,dimension(:),pointer :: ivectorindex, nsegline, istsegline
+      integer,dimension(:,:),pointer :: onedimindices, keyg
   end type sparse_matrix_matrix_multiplication
 
   type,public :: sparse_matrix
@@ -69,6 +69,9 @@ module sparsematrix_base
       type(sparse_matrix_matrix_multiplication),intent(out):: smmm
       nullify(smmm%ivectorindex)
       nullify(smmm%onedimindices)
+      nullify(smmm%nsegline)
+      nullify(smmm%istsegline)
+      nullify(smmm%keyg)
     end subroutine nullify_sparse_matrix_matrix_multiplication
 
 
@@ -97,11 +100,17 @@ module sparsematrix_base
       sparsemat%orb_from_index=f_malloc_ptr((/2,sparsemat%nvctr/),id='sparsemat%orb_from_index')
     end subroutine allocate_sparse_matrix_keys
 
-    subroutine allocate_sparse_matrix_matrix_multiplication(smmm)
+    subroutine allocate_sparse_matrix_matrix_multiplication(norb, nseg, nsegline, istsegline, keyg, smmm)
       implicit none
+      integer,intent(in) :: norb, nseg
+      integer,dimension(norb),intent(in) :: nsegline, istsegline
+      integer,dimension(2,nseg),intent(in) :: keyg
       type(sparse_matrix_matrix_multiplication),intent(inout):: smmm
       smmm%ivectorindex=f_malloc_ptr(smmm%nseq,id='smmm%ivectorindex')
       smmm%onedimindices=f_malloc_ptr((/4,smmm%nout/),id='smmm%onedimindices')
+      smmm%nsegline=f_malloc_ptr(norb,id='smmm%nsegline')
+      smmm%istsegline=f_malloc_ptr(norb,id='smmm%istsegline')
+      smmm%keyg=f_malloc_ptr((/2,nseg/),id='smmm%istsegline')
     end subroutine allocate_sparse_matrix_matrix_multiplication
 
 
@@ -136,6 +145,9 @@ module sparsematrix_base
       type(sparse_matrix_matrix_multiplication),intent(out):: smmm
       call f_free_ptr(smmm%ivectorindex)
       call f_free_ptr(smmm%onedimindices)
+      call f_free_ptr(smmm%nsegline)
+      call f_free_ptr(smmm%istsegline)
+      call f_free_ptr(smmm%keyg)
     end subroutine deallocate_sparse_matrix_matrix_multiplication
 
 
