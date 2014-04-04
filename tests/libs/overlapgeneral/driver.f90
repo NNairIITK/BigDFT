@@ -163,7 +163,8 @@ program driver
           call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, &
                imode, check_accur=.true., error=error, &
                ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, &
-               foe_nseg=smat_A%nseg, foe_kernel_nsegline=smat_A%nsegline, foe_istsegline=smat_A%istsegline, foe_keyg=keyg_tmp)
+               foe_nseg=smat_A%nseg, foe_kernel_nsegline=smat_A%nsegline, &
+               foe_istsegline=smat_A%istsegline, foe_keyg=smat_A%keyg)
            !if (iorder==0) call compress_matrix(iproc, smat_B)
       end if
       if (iproc==0) call write_matrix_compressed('final result', smat_B)
