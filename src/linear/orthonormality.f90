@@ -2384,8 +2384,9 @@ end subroutine diagonalize_localized
          else
              isegend=smat%nseg
          end if
-         !!$omp parallel default(private) shared(isegstart, isegend, fermip, tmb)
-         !!$omp do
+         !$omp parallel default(none) shared(isegstart, isegend, matrixp, smat, norb, matrix_compr, isorb_par, iproc) &
+         !$omp private(iseg, ii, jorb, iiorb, jjorb)
+         !$omp do
          do iseg=isegstart,isegend
              ii=smat%keyv(iseg)-1
              do jorb=smat%keyg(1,iseg),smat%keyg(2,iseg)
@@ -2395,8 +2396,8 @@ end subroutine diagonalize_localized
                  matrix_compr(ii)=matrixp(jjorb,iiorb-isorb_par(iproc))
              end do
          end do
-         !!$omp end do
-         !!$omp end parallel
+         !$omp end do
+         !$omp end parallel
      end if
 
      call mpiallred(matrix_compr(1), smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
