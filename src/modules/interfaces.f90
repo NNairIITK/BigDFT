@@ -3718,6 +3718,27 @@ module module_interfaces
           integer,dimension(:,:),pointer :: onedimindices
         end subroutine init_onedimindices
 
+        subroutine init_onedimindices_new(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, sparsemat, nout, onedimindices)
+          use module_base
+          use sparsematrix_base, only: sparse_matrix
+          implicit none
+          integer,intent(in) :: norb, norbp, isorb, nseg
+          integer,dimension(norb),intent(in) :: nsegline, istsegline
+          integer,dimension(2,nseg),intent(in) :: keyg
+          type(sparse_matrix),intent(in) :: sparsemat
+          integer,intent(in) :: nout
+          integer,dimension(4,nout) :: onedimindices
+        end subroutine init_onedimindices_new
+
+        subroutine get_nout(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, nout)
+          use module_base
+          implicit none
+          integer,intent(in) :: norb, norbp, isorb, nseg
+          integer,dimension(norb),intent(in) :: nsegline, istsegline
+          integer,dimension(2,nseg),intent(in) :: keyg
+          integer,intent(out) :: nout
+        end subroutine get_nout
+
         subroutine enable_sequential_acces_vector(norbp, norb, isorb, foe_obj, b, nseq, bseq, indexarr)
           use module_base
           use module_types
@@ -3883,7 +3904,7 @@ module module_interfaces
 
         subroutine get_arrays_for_sequential_acces(norb, norbp, isorb, nseg, &
                    nsegline, istsegline, keyg, sparsemat, nseq, nmaxsegk, nmaxvalk, &
-                   istindexarr, ivectorindex)
+                   ivectorindex)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
@@ -3892,7 +3913,6 @@ module module_interfaces
           integer,dimension(norb),intent(in) :: nsegline, istsegline
           integer,dimension(2,nseg),intent(in) :: keyg
           type(sparse_matrix),intent(in) :: sparsemat
-          integer,dimension(nmaxvalk,nmaxsegk,norbp),intent(out) :: istindexarr
           integer,dimension(nseq),intent(out) :: ivectorindex
         end subroutine get_arrays_for_sequential_acces
 
@@ -3955,8 +3975,8 @@ module module_interfaces
 
         subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, &
                    imode, check_accur, ovrlp, inv_ovrlp, error, &
-                   ovrlp_smat, inv_ovrlp_smat, &
-                   foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
+                   ovrlp_smat, inv_ovrlp_smat)!!, &
+                   !!foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
@@ -3970,9 +3990,9 @@ module module_interfaces
           real(kind=8),dimension(:,:),pointer,optional :: inv_ovrlp
           type(sparse_matrix), optional, intent(inout) :: ovrlp_smat, inv_ovrlp_smat
           real(kind=8),intent(out),optional :: error
-          integer,intent(in),optional :: foe_nseg
-          integer,dimension(:),intent(in),optional :: foe_kernel_nsegline, foe_istsegline
-          integer,dimension(:,:),intent(in),optional :: foe_keyg
+          !!integer,intent(in),optional :: foe_nseg
+          !!integer,dimension(:),intent(in),optional :: foe_kernel_nsegline, foe_istsegline
+          !!integer,dimension(:,:),intent(in),optional :: foe_keyg
         end subroutine overlapPowerGeneral
 
         subroutine overlap_plus_minus_one_half_exact(norb,blocksize,plusminus,inv_ovrlp_half,orbs)

@@ -570,9 +570,8 @@ module module_types
 
   type,public :: foe_data
     integer :: nseg
-    integer,dimension(:),pointer :: kernel_nsegline, istsegline
+    integer,dimension(:),pointer :: nsegline, istsegline
     integer,dimension(:,:),pointer :: keyg
-    integer,dimension(:,:,:),pointer :: kernel_segkeyg
     real(kind=8) :: ef !< Fermi energy for FOE
     real(kind=8) :: evlow, evhigh !< eigenvalue bounds for FOE 
     real(kind=8) :: bisection_shift !< bisection shift to find Fermi energy (FOE)

@@ -268,21 +268,21 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
   call nullify_foe(foe_obj)
 
   ! Initialize kernel_locreg
-  if (input%lin%scf_mode==LINEAR_FOE) then ! otherwise don't need to allocate just nullify as above
+  !if (input%lin%scf_mode==LINEAR_FOE) then ! otherwise don't need to allocate just nullify as above
      allocate(kernel_locreg(orbs%norbp,orbs%norb), stat=istat)
      call memocc(istat, kernel_locreg, 'kernel_locreg', subname)
-     allocate(foe_obj%kernel_nsegline(orbs%norb), stat=istat)
-     call memocc(istat, foe_obj%kernel_nsegline, 'foe_obj%kernel_nsegline', subname)
-     call to_zero(orbs%norb, foe_obj%kernel_nsegline(1))
+     allocate(foe_obj%nsegline(orbs%norb), stat=istat)
+     call memocc(istat, foe_obj%nsegline, 'foe_obj%nsegline', subname)
+     call to_zero(orbs%norb, foe_obj%nsegline(1))
      allocate(foe_obj%istsegline(orbs%norb), stat=istat)
-     call memocc(istat, foe_obj%istsegline, 'foe_obj%kernel_nsegline', subname)
+     call memocc(istat, foe_obj%istsegline, 'foe_obj%nsegline', subname)
      call to_zero(orbs%norb, foe_obj%istsegline(1))
      do iorb=1,orbs%norbp
         iiorb=orbs%isorb+iorb
         ilr=orbs%inwhichlocreg(iiorb)
         iwa=orbs%onwhichatom(iiorb)
         itype=astruct%iatype(iwa)
-        foe_obj%kernel_nsegline(iiorb)=0
+        foe_obj%nsegline(iiorb)=0
         seg_started=.false.
         do jjorb=1,orbs%norb
            jlr=orbs%inwhichlocreg(jjorb)
@@ -296,7 +296,7 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
            if (tt<=cut) then
               kernel_locreg(iorb,jjorb)=.true.
               if (.not.seg_started) then
-                 foe_obj%kernel_nsegline(iiorb)=foe_obj%kernel_nsegline(iiorb)+1
+                 foe_obj%nsegline(iiorb)=foe_obj%nsegline(iiorb)+1
               end if
               seg_started=.true.
            else
@@ -305,24 +305,21 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
            end if
         end do
      end do
-     call mpiallred(foe_obj%kernel_nsegline(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+     call mpiallred(foe_obj%nsegline(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
      ! Total number of segments
-     foe_obj%nseg = sum(foe_obj%kernel_nsegline)
+     foe_obj%nseg = sum(foe_obj%nsegline)
      
      ! Initialize istsegline, which gives the first segment of each line
      foe_obj%istsegline(1)=1
      do iorb=2,orbs%norb
-         foe_obj%istsegline(iorb) = foe_obj%istsegline(iorb-1) + foe_obj%kernel_nsegline(iorb-1)
+         foe_obj%istsegline(iorb) = foe_obj%istsegline(iorb-1) + foe_obj%nsegline(iorb-1)
      end do
 
      allocate(foe_obj%keyg(2,foe_obj%nseg),stat=istat)
      call memocc(istat, foe_obj%keyg, 'foe_obj%keyg', subname)
      call to_zero(2*foe_obj%nseg, foe_obj%keyg(1,1))
 
-     allocate(foe_obj%kernel_segkeyg(2,maxval(foe_obj%kernel_nsegline),orbs%norb), stat=istat)
-     call memocc(istat, foe_obj%kernel_segkeyg, 'foe_obj%kernel_segkeyg', subname)
-     call to_zero(2*maxval(foe_obj%kernel_nsegline)*orbs%norb, foe_obj%kernel_segkeyg(1,1,1))
      do iorb=1,orbs%norbp
         iiorb=orbs%isorb+iorb
         iseg=0
@@ -332,30 +329,26 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
            if(kernel_locreg(iorb,jjorb)) then
               if (.not.seg_started) then
                  iseg=iseg+1
-                 foe_obj%kernel_segkeyg(1,iseg,iiorb)=jjorb
-                 foe_obj%keyg(1,isegstart+iseg)=jjorb
+                 foe_obj%keyg(1,isegstart+iseg)=(iiorb-1)*orbs%norb+jjorb
               end if
               seg_started=.true.
            else
               if (seg_started) then
-                 foe_obj%kernel_segkeyg(2,iseg,iiorb)=jjorb-1
-                 foe_obj%keyg(2,isegstart+iseg)=jjorb-1
+                 foe_obj%keyg(2,isegstart+iseg)=(iiorb-1)*orbs%norb+jjorb-1
               end if
               seg_started=.false.
            end if
         end do
         if (seg_started) then
-           foe_obj%kernel_segkeyg(2,iseg,iiorb)=orbs%norb
-           foe_obj%keyg(2,isegstart+iseg)=orbs%norb
+           foe_obj%keyg(2,isegstart+iseg)=(iiorb-1)*orbs%norb+orbs%norb
         end if
      end do
-     call mpiallred(foe_obj%kernel_segkeyg(1,1,1), 2*maxval(foe_obj%kernel_nsegline)*orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
      call mpiallred(foe_obj%keyg(1,1), 2*foe_obj%nseg, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
      iall = -product(shape(kernel_locreg))*kind(kernel_locreg) 
      deallocate(kernel_locreg,stat=istat)
      call memocc(istat,iall,'kernel_locreg',subname)
-  end if
+  !end if
 
   call timing(iproc,'init_matrCompr','OF')
 
@@ -1486,16 +1479,22 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call check_kernel_cutoff(iproc, tmb%orbs, at, tmb%lzd)
 
      ! Update sparse matrices
-     call init_sparse_matrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, input, tmb%linmat%ham)
+     call init_sparse_matrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, input, &
+          tmb%foe_obj%nseg, tmb%foe_obj%nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
+          tmb%linmat%ham)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ham)
-     call init_sparse_matrix(iproc, nproc, tmb%lzd, tmb%orbs, input, tmb%linmat%ovrlp)
+     call init_sparse_matrix(iproc, nproc, tmb%lzd, tmb%orbs, input, &
+          tmb%foe_obj%nseg, tmb%foe_obj%nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
+          tmb%linmat%ovrlp)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ovrlp)
      !call init_sparse_matrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, tmb%linmat%inv_ovrlp)
      !call init_sparse_matrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, input, tmb%linmat%denskern)
 
-     call init_sparsity_from_distance(iproc, nproc, tmb%orbs, tmb%lzd, input, tmb%linmat%denskern_large)
+     call init_sparsity_from_distance(iproc, nproc, tmb%orbs, tmb%lzd, input, &
+          tmb%foe_obj%nseg, tmb%foe_obj%nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
+          tmb%linmat%denskern_large)
      !allocate(tmb%linmat%denskern_large%matrix_compr(tmb%linmat%denskern_large%nvctr), stat=istat)
      !call memocc(istat, tmb%linmat%denskern_large%matrix_compr, 'tmb%linmat%denskern_large%matrix_compr', subname)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
