@@ -479,7 +479,6 @@ subroutine determine_sequential_length(norb, norbp, isorb, nseg, nsegline, istse
      nmaxsegk=max(nmaxsegk,nsegline(ii))
      isegoffset=istsegline(ii)-1
      do iseg=1,nsegline(ii)
-          !nmaxvalk=max(nmaxvalk,foe_obj%kernel_segkeyg(2,iseg,ii)-foe_obj%kernel_segkeyg(1,iseg,ii)+1)
           istart=keyg(1,isegoffset+iseg)
           iend=keyg(2,isegoffset+iseg)
           ! keyg is defined in terms of "global coordinates", so get the
@@ -487,7 +486,6 @@ subroutine determine_sequential_length(norb, norbp, isorb, nseg, nsegline, istse
           istart=mod(istart-1,norb)+1
           iend=mod(iend-1,norb)+1
           nmaxvalk=max(nmaxvalk,iend-istart+1)
-          !do iorb=foe_obj%kernel_segkeyg(1,iseg,ii),foe_obj%kernel_segkeyg(2,iseg,ii)
           do iorb=istart,iend
               do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
                   do jorb = sparsemat%keyg(1,jseg),sparsemat%keyg(2,jseg)
@@ -528,7 +526,6 @@ subroutine init_onedimindices(norb, norbp, isorb, nseg, nsegline, istsegline, ke
      iii=isorb+i
      isegoffset=istsegline(iii)-1
      do iseg=1,nsegline(iii)
-          !do iorb=foe_obj%kernel_segkeyg(1,iseg,iii),foe_obj%kernel_segkeyg(2,iseg,iii)
           istart=keyg(1,isegoffset+iseg)
           iend=keyg(2,isegoffset+iseg)
           do iorb=istart,iend
@@ -546,7 +543,6 @@ subroutine init_onedimindices(norb, norbp, isorb, nseg, nsegline, istsegline, ke
      iii=isorb+i
      isegoffset=istsegline(iii)-1
      do iseg=1,nsegline(iii)
-          !do iorb=foe_obj%kernel_segkeyg(1,iseg,iii),foe_obj%kernel_segkeyg(2,iseg,iii)
           istart=keyg(1,isegoffset+iseg)
           iend=keyg(2,isegoffset+iseg)
           ! keyg is defined in terms of "global coordinates", so get the
@@ -598,7 +594,6 @@ subroutine get_arrays_for_sequential_acces(norb, norbp, isorb, nseg, &
      iii=isorb+i
      isegoffset=istsegline(iii)-1
      do iseg=1,nsegline(iii)
-          !do iorb=foe_obj%kernel_segkeyg(1,iseg,iii),foe_obj%kernel_segkeyg(2,iseg,iii)
           istart=keyg(1,isegoffset+iseg)
           iend=keyg(2,isegoffset+iseg)
           ! keyg is defined in terms of "global coordinates", so get the
@@ -606,7 +601,6 @@ subroutine get_arrays_for_sequential_acces(norb, norbp, isorb, nseg, &
           istart=mod(istart-1,norb)+1
           iend=mod(iend-1,norb)+1
           do iorb=istart,iend
-              !istindexarr(iorb-foe_obj%kernel_segkeyg(1,iseg,iii)+1,iseg,i)=ii
               istindexarr(iorb-istart+1,iseg,i)=ii
               do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
                   do jorb = sparsemat%keyg(1,jseg),sparsemat%keyg(2,jseg)
@@ -650,7 +644,6 @@ subroutine sequential_acces_matrix(norb, norbp, isorb, nseg, &
      iii=isorb+i
      isegoffset=istsegline(iii)-1
      do iseg=1,nsegline(iii)
-          !do iorb=foe_obj%kernel_segkeyg(1,iseg,iii),foe_obj%kernel_segkeyg(2,iseg,iii)
           istart=keyg(1,isegoffset+iseg)
           iend=keyg(2,isegoffset+iseg)
           ! keyg is defined in terms of "global coordinates", so get the

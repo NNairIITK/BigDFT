@@ -320,9 +320,6 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
      call memocc(istat, foe_obj%keyg, 'foe_obj%keyg', subname)
      call to_zero(2*foe_obj%nseg, foe_obj%keyg(1,1))
 
-     allocate(foe_obj%kernel_segkeyg(2,maxval(foe_obj%kernel_nsegline),orbs%norb), stat=istat)
-     call memocc(istat, foe_obj%kernel_segkeyg, 'foe_obj%kernel_segkeyg', subname)
-     call to_zero(2*maxval(foe_obj%kernel_nsegline)*orbs%norb, foe_obj%kernel_segkeyg(1,1,1))
      do iorb=1,orbs%norbp
         iiorb=orbs%isorb+iorb
         iseg=0
@@ -332,24 +329,20 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
            if(kernel_locreg(iorb,jjorb)) then
               if (.not.seg_started) then
                  iseg=iseg+1
-                 foe_obj%kernel_segkeyg(1,iseg,iiorb)=jjorb
                  foe_obj%keyg(1,isegstart+iseg)=(iiorb-1)*orbs%norb+jjorb
               end if
               seg_started=.true.
            else
               if (seg_started) then
-                 foe_obj%kernel_segkeyg(2,iseg,iiorb)=jjorb-1
                  foe_obj%keyg(2,isegstart+iseg)=(iiorb-1)*orbs%norb+jjorb-1
               end if
               seg_started=.false.
            end if
         end do
         if (seg_started) then
-           foe_obj%kernel_segkeyg(2,iseg,iiorb)=orbs%norb
            foe_obj%keyg(2,isegstart+iseg)=(iiorb-1)*orbs%norb+orbs%norb
         end if
      end do
-     call mpiallred(foe_obj%kernel_segkeyg(1,1,1), 2*maxval(foe_obj%kernel_nsegline)*orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
      call mpiallred(foe_obj%keyg(1,1), 2*foe_obj%nseg, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
      iall = -product(shape(kernel_locreg))*kind(kernel_locreg) 

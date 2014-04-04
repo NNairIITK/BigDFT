@@ -968,7 +968,6 @@ subroutine deallocate_foe(foe_obj, subname)
 
   call checkAndDeallocatePointer(foe_obj%kernel_nsegline, 'foe_obj%kernel_nsegline', subname)
   call checkAndDeallocatePointer(foe_obj%istsegline, 'foe_obj%istsegline', subname)
-  call checkAndDeallocatePointer(foe_obj%kernel_segkeyg, 'foe_obj%kernel_segkeyg', subname)
   call checkAndDeallocatePointer(foe_obj%keyg, 'foe_obj%keyg', subname)
 
 end subroutine deallocate_foe
