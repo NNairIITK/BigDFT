@@ -998,7 +998,45 @@ subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
      end do
   end if
 
+
+  sparsemat_out%smmm%nout = sparsemat_in%smmm%nout
+  sparsemat_out%smmm%nseq = sparsemat_in%smmm%nseq
+  sparsemat_out%smmm%nmaxsegk = sparsemat_in%smmm%nmaxsegk
+  sparsemat_out%smmm%nmaxvalk = sparsemat_in%smmm%nmaxvalk
+  
+  if(associated(sparsemat_out%smmm%ivectorindex)) then
+     call f_free_ptr(sparsemat_out%smmm%ivectorindex)
+  end if
+  if(associated(sparsemat_in%smmm%ivectorindex)) then
+     iis1=lbound(sparsemat_in%smmm%ivectorindex,1)
+     iie1=ubound(sparsemat_in%smmm%ivectorindex,1)
+     sparsemat_out%smmm%ivectorindex=f_malloc_ptr(iis1.to.iie1,id='sparsemat_out%smmm%ivectorindex')
+     do i1=iis1,iie1
+        sparsemat_out%smmm%ivectorindex(i1) = sparsemat_in%smmm%ivectorindex(i1)
+     end do
+  end if
+
+  if(associated(sparsemat_out%smmm%onedimindices)) then
+     call f_free_ptr(sparsemat_out%smmm%onedimindices)
+  end if
+  if(associated(sparsemat_in%smmm%onedimindices)) then
+     iis1=lbound(sparsemat_in%smmm%onedimindices,1)
+     iie1=ubound(sparsemat_in%smmm%onedimindices,1)
+     iis2=lbound(sparsemat_in%smmm%onedimindices,2)
+     iie2=ubound(sparsemat_in%smmm%onedimindices,2)
+     sparsemat_out%smmm%onedimindices=f_malloc_ptr((/iis1.to.iie1,iis2.to.iie2/),&
+         id='sparsemat_out%smmm%onedimindices')
+     do i1=iis1,iie1
+        do i2 = iis2,iie2
+           sparsemat_out%smmm%onedimindices(i1,i2) = &
+                sparsemat_in%smmm%onedimindices(i1,i2)
+        end do
+     end do
+  end if
+
+
   call timing(iproc,'sparse_copy','OF')
 
 end subroutine sparse_copy_pattern
+
 
