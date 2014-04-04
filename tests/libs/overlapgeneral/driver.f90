@@ -48,7 +48,7 @@ program driver
   end  if
 
   ! Open file for reading
-  inquire(filename, exist=file_exists)
+  inquire(file=filename, exist=file_exists)
   if_file_exists: if (file_exists) then
       ! Read the basis quantities
       open(unit=1, file=filename)
