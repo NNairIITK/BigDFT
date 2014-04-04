@@ -196,14 +196,21 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
           !initialize fermi
           call to_zero(norbp*norb, fermi(1,1))
           call to_zero(2*norb*norbp, penalty_ev(1,1,1))
-          call compress_polynomial_vector(iproc, nsize_polynomial, orbs, kernel, vectors(1,1,4), chebyshev_polynomials(1,1))
-          call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, 0.5d0*cc(1,1), vectors(1,1,4), fermi(:,1))
-          call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, 0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,1))
-          call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, 0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,2))
+          call compress_polynomial_vector(iproc, nsize_polynomial, orbs, kernel, &
+               vectors(1,1,4), chebyshev_polynomials(1,1))
+          call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, &
+               0.5d0*cc(1,1), vectors(1,1,4), fermi(:,1))
+          call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, &
+               0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,1))
+          call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, &
+               0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,2))
           call compress_polynomial_vector(iproc, nsize_polynomial, orbs, kernel, vectors(1,1,2), chebyshev_polynomials(1,2))
-          call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, cc(2,1), vectors(1,1,2), fermi(:,1))
-          call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, cc(2,3), vectors(1,1,2), penalty_ev(:,1,1))
-          call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, -cc(2,3), vectors(1,1,2), penalty_ev(:,1,2))
+          call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, &
+               cc(2,1), vectors(1,1,2), fermi(:,1))
+          call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, &
+               cc(2,3), vectors(1,1,2), penalty_ev(:,1,1))
+          call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, &
+               -cc(2,3), vectors(1,1,2), penalty_ev(:,1,2))
         
         
           emergency_stop=.false.
@@ -220,21 +227,27 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
                   call sparsemm(kernel%smmm%nseq, SHS_seq, vectors(1,1,1), vectors(1,1,2), &
                        norb, norbp, kernel%smmm%ivectorindex, kernel%smmm%nout, kernel%smmm%onedimindices)
               end if
-              call axbyz_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, 2.d0, vectors(1,1,2), &
-                   -1.d0, vectors(1,1,4), vectors(1,1,3))
-              call compress_polynomial_vector(iproc, nsize_polynomial, orbs, kernel, vectors(1,1,3), chebyshev_polynomials(1,ipl))
-              call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, cc(ipl,1), vectors(1,1,3), fermi(:,1))
-              call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, cc(ipl,3), vectors(1,1,3), penalty_ev(:,1,1))
+              call axbyz_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, &
+                   2.d0, vectors(1,1,2), -1.d0, vectors(1,1,4), vectors(1,1,3))
+              call compress_polynomial_vector(iproc, nsize_polynomial, orbs, kernel, vectors(1,1,3), &
+                   chebyshev_polynomials(1,ipl))
+              call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, &
+                   cc(ipl,1), vectors(1,1,3), fermi(:,1))
+              call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, &
+                   cc(ipl,3), vectors(1,1,3), penalty_ev(:,1,1))
          
               if (mod(ipl,2)==1) then
                   tt=cc(ipl,3)
               else
                   tt=-cc(ipl,3)
               end if
-              call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, tt, vectors(1,1,3), penalty_ev(:,1,2))
+              call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, &
+                   tt, vectors(1,1,3), penalty_ev(:,1,2))
          
-              call copy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, vectors(1,1,1), vectors(1,1,4))
-              call copy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, vectors(1,1,3), vectors(1,1,1))
+              call copy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, &
+                   vectors(1,1,1), vectors(1,1,4))
+              call copy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, &
+                   vectors(1,1,3), vectors(1,1,1))
 
               ! Check the norm of the columns of the kernel and set a flag if it explodes, which might
               ! be a consequence of the eigenvalue bounds being to small.

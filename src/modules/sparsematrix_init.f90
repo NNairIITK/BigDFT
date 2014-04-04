@@ -12,6 +12,7 @@ module sparsematrix_init
   public :: compressed_index
   public :: matrixindex_in_compressed
   public :: check_kernel_cutoff
+  public :: init_sparse_matrix_matrix_multiplication !< only needed for the test in libs/overlapgeneral
 
   contains
 

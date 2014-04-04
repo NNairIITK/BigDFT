@@ -1120,13 +1120,17 @@ subroutine foe(iproc, nproc, tmprtr, &
           tempp = f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norbp/),id='inv_ovrlpp')
           inv_ovrlp_compr_seq = f_malloc(tmb%linmat%inv_ovrlp_large%smmm%nseq,id='inv_ovrlp_compr_seq')
           kernel_compr_seq = f_malloc(tmb%linmat%inv_ovrlp_large%smmm%nseq,id='inv_ovrlp_compr_seq')
-          call sequential_acces_matrix(tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%linmat%denskern_large%smmm%nseg, &
-               tmb%linmat%denskern_large%smmm%nsegline, tmb%linmat%denskern_large%smmm%istsegline, tmb%linmat%denskern_large%smmm%keyg, &
+          call sequential_acces_matrix(tmb%orbs%norb, tmb%orbs%norbp, &
+               tmb%orbs%isorb, tmb%linmat%denskern_large%smmm%nseg, &
+               tmb%linmat%denskern_large%smmm%nsegline, tmb%linmat%denskern_large%smmm%istsegline, &
+               tmb%linmat%denskern_large%smmm%keyg, &
                tmb%linmat%denskern_large, tmb%linmat%denskern_large%matrix_compr, &
                tmb%linmat%denskern_large%smmm%nseq, tmb%linmat%denskern_large%smmm%nmaxsegk, &
                tmb%linmat%denskern_large%smmm%nmaxvalk, kernel_compr_seq)
-          call sequential_acces_matrix(tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%linmat%inv_ovrlp_large%smmm%nseg, &
-               tmb%linmat%inv_ovrlp_large%smmm%nsegline, tmb%linmat%inv_ovrlp_large%smmm%istsegline, tmb%linmat%inv_ovrlp_large%smmm%keyg, &
+          call sequential_acces_matrix(tmb%orbs%norb, tmb%orbs%norbp, &
+               tmb%orbs%isorb, tmb%linmat%inv_ovrlp_large%smmm%nseg, &
+               tmb%linmat%inv_ovrlp_large%smmm%nsegline, tmb%linmat%inv_ovrlp_large%smmm%istsegline, &
+               tmb%linmat%inv_ovrlp_large%smmm%keyg, &
                tmb%linmat%inv_ovrlp_large, tmb%linmat%inv_ovrlp_large%matrix_compr, &
                tmb%linmat%inv_ovrlp_large%smmm%nseq, tmb%linmat%inv_ovrlp_large%smmm%nmaxsegk, &
                tmb%linmat%inv_ovrlp_large%smmm%nmaxvalk, inv_ovrlp_compr_seq)
@@ -1135,11 +1139,13 @@ subroutine foe(iproc, nproc, tmprtr, &
 
            tempp=0.d0
           call sparsemm(tmb%linmat%denskern_large%smmm%nseq, kernel_compr_seq, inv_ovrlpp, tempp, &
-               tmb%orbs%norb, tmb%orbs%norbp, tmb%linmat%denskern_large%smmm%ivectorindex, tmb%linmat%denskern_large%smmm%nout, &
+               tmb%orbs%norb, tmb%orbs%norbp, tmb%linmat%denskern_large%smmm%ivectorindex, &
+               tmb%linmat%denskern_large%smmm%nout, &
                tmb%linmat%denskern_large%smmm%onedimindices)
           inv_ovrlpp=0.d0
           call sparsemm(tmb%linmat%inv_ovrlp_large%smmm%nseq, inv_ovrlp_compr_seq, tempp, inv_ovrlpp, &
-               tmb%orbs%norb, tmb%orbs%norbp, tmb%linmat%inv_ovrlp_large%smmm%ivectorindex, tmb%linmat%inv_ovrlp_large%smmm%nout, &
+               tmb%orbs%norb, tmb%orbs%norbp, tmb%linmat%inv_ovrlp_large%smmm%ivectorindex, &
+               tmb%linmat%inv_ovrlp_large%smmm%nout, &
                tmb%linmat%inv_ovrlp_large%smmm%onedimindices)
 
           call to_zero(tmb%linmat%denskern_large%nvctr, tmb%linmat%denskern_large%matrix_compr(1))
