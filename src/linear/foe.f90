@@ -1118,20 +1118,8 @@ subroutine foe(iproc, nproc, tmprtr, &
 
           inv_ovrlpp = f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norbp/),id='inv_ovrlpp')
           tempp = f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norbp/),id='inv_ovrlpp')
-          !!call init_onedimindices(tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%foe_obj%nseg, &
-          !!     tmb%foe_obj%nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
-          !!     tmb%linmat%inv_ovrlp_large, nout, onedimindices)
-          !!call determine_sequential_length(tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%foe_obj%nseg, &
-          !!     tmb%foe_obj%nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
-          !!     tmb%linmat%inv_ovrlp_large, nseq, nmaxsegk, nmaxvalk)
           inv_ovrlp_compr_seq = f_malloc(tmb%linmat%inv_ovrlp_large%smmm%nseq,id='inv_ovrlp_compr_seq')
           kernel_compr_seq = f_malloc(tmb%linmat%inv_ovrlp_large%smmm%nseq,id='inv_ovrlp_compr_seq')
-          !!istindexarr = f_malloc((/ nmaxvalk, nmaxsegk, tmb%orbs%norbp /),id='istindexarr')
-          !!ivectorindex = f_malloc(nseq,id='ivectorindex')
-          !!call get_arrays_for_sequential_acces(tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%foe_obj%nseg, &
-          !!     tmb%foe_obj%nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
-          !!     tmb%linmat%inv_ovrlp_large, nseq, nmaxsegk, nmaxvalk, &
-          !!     ivectorindex)
           call sequential_acces_matrix(tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%foe_obj%nseg, &
                tmb%foe_obj%nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
                tmb%linmat%denskern_large, tmb%linmat%denskern_large%matrix_compr, &
@@ -1160,13 +1148,10 @@ subroutine foe(iproc, nproc, tmprtr, &
           call mpiallred(tmb%linmat%denskern_large%matrix_compr(1), tmb%linmat%denskern_large%nvctr, &
                mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
-          !!call f_free_ptr(onedimindices)
           call f_free_ptr(inv_ovrlpp)
           call f_free_ptr(tempp)
           call f_free(inv_ovrlp_compr_seq)
           call f_free(kernel_compr_seq)
-          !!call f_free(istindexarr)
-          !!call f_free(ivectorindex)
 
       end subroutine retransform
 

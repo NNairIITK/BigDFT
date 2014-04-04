@@ -623,19 +623,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
       else
           inv_ovrlpp=f_malloc_ptr((/norb,norbp/),id='inv_ovrlpp')
           if (iorder>1) then
-              !!call init_onedimindices(norb, norbp, isorb, foe_nseg, &
-              !!     foe_kernel_nsegline, foe_istsegline, foe_keyg, &
-              !!     inv_ovrlp_smat, nout, onedimindices)
-              !!call determine_sequential_length(norb, norbp, isorb, foe_nseg, &
-              !!     foe_kernel_nsegline, foe_istsegline, foe_keyg, &
-              !!     inv_ovrlp_smat, nseq, nmaxsegk, nmaxvalk)
               ovrlp_compr_seq = f_malloc(inv_ovrlp_smat%smmm%nseq,id='ovrlp_compr_seq')
               ovrlpminone_sparse_seq = f_malloc(inv_ovrlp_smat%smmm%nseq,id='ovrlpminone_sparse_seq')
-              !!istindexarr = f_malloc((/ nmaxvalk, nmaxsegk, norbp /),id='istindexarr')
-              !!ivectorindex = f_malloc(nseq,id='ivectorindex')
-              !!call get_arrays_for_sequential_acces(norb, norbp, isorb, foe_nseg, &
-              !!     foe_kernel_nsegline, foe_istsegline, foe_keyg, inv_ovrlp_smat, nseq, nmaxsegk, nmaxvalk, &
-              !!     ivectorindex)
            end if
             ovrlpminone_sparse=f_malloc(inv_ovrlp_smat%nvctr,id='ovrlpminone_sparse')
             ovrlpminonep=f_malloc_ptr((/norb,norbp/),id='ovrlpminone_sparse')
@@ -654,8 +643,6 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
            end if
             call extract_matrix_distributed(iproc, nproc, norb, norbp, orbs%isorb_par, &
                  inv_ovrlp_smat, ovrlpminone_sparse, ovrlpminoneoldp)
-            !call sparsemm(nseq, SHS_seq, vectors(1,1,3), vectors(1,1,1), &
-            !     norb, norbp, ivectorindex, nout, onedimindices)
             if (power==1) then
                factor=-1.0d0
             else if (power==2) then
@@ -669,8 +656,6 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
                 call first_order_taylor_dense(norb,isorb,norbp,power,ovrlpminonep,invovrlpp)
             end if
             do i=2,iorder
-               !call dgemm('n', 'n', norb, norbp, norb, 1.d0, ovrlpminone(1,1), &
-               !     norb, ovrlppoweroldp(1,1), norb, 0.d0, ovrlppowerp(1,1), norb)
                call sparsemm(nseq, ovrlpminone_sparse_seq, ovrlpminoneoldp, ovrlpminonep, &
                     norb, norbp, inv_ovrlp_smat%smmm%ivectorindex, &
                     inv_ovrlp_smat%smmm%nout, inv_ovrlp_smat%smmm%onedimindices)
@@ -702,17 +687,6 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
       if (check_accur) then
             ! HERE STARTS LINEAR CHECK ##########################
             if (iorder<=1) then
-                !!call init_onedimindices(norb, norbp, isorb, foe_nseg, &
-                !!     foe_kernel_nsegline, foe_istsegline, foe_keyg, &
-                !!     inv_ovrlp_smat, nout, onedimindices)
-                !!call determine_sequential_length(norb, norbp, isorb, foe_nseg, &
-                !!     foe_kernel_nsegline, foe_istsegline, foe_keyg, &
-                !!     inv_ovrlp_smat, nseq, nmaxsegk, nmaxvalk)
-                !!istindexarr = f_malloc((/ nmaxvalk, nmaxsegk, norbp /),id='istindexarr')
-                !!ivectorindex = f_malloc(nseq,id='ivectorindex')
-                !!call get_arrays_for_sequential_acces(norb, norbp, isorb, foe_nseg, &
-                !!     foe_kernel_nsegline, foe_istsegline, foe_keyg, inv_ovrlp_smat, nseq, nmaxsegk, nmaxvalk, &
-                !!     ivectorindex)
                 ovrlp_compr_seq = f_malloc(inv_ovrlp_smat%smmm%nseq,id='ovrlp_compr_seq')
              end if
              if (iorder<1) then
@@ -764,11 +738,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
              call f_free(invovrlp_compr_seq)
              call f_free(ovrlp_largep)
              call f_free(ovrlp_compr_seq)
-             !!call f_free(istindexarr)
-             !!call f_free(ivectorindex)
              call f_free(invovrlpp)
              call f_free(ovrlp_large_compr)
-             !!call f_free_ptr(onedimindices)
             ! HERE END LINEAR CHECK #############################
         end if
   end if sparse_dense

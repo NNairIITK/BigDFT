@@ -53,23 +53,9 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
 
   if (norbp>0) then
 
-      !!call init_onedimindices(norb, norbp, isorb, foe_obj%nseg, &
-      !!     foe_obj%nsegline, foe_obj%istsegline, foe_obj%keyg, &
-      !!     kernel, nout, onedimindices)
-
-      !!call determine_sequential_length(norb, norbp, isorb, foe_obj%nseg, &
-      !!     foe_obj%nsegline, foe_obj%istsegline, foe_obj%keyg, &
-      !!     kernel, nseq, nmaxsegk, nmaxvalk)
-    
     
       ham_compr_seq = f_malloc(kernel%smmm%nseq,id='ham_compr_seq')
       ovrlp_compr_seq = f_malloc(kernel%smmm%nseq,id='ovrlp_compr_seq')
-      !!istindexarr = f_malloc((/ nmaxvalk, nmaxsegk, norbp /),id='istindexarr')
-      !!ivectorindex = f_malloc(nseq,id='ivectorindex')
-    
-      !!call get_arrays_for_sequential_acces(norb, norbp, isorb, foe_obj%nseg, &
-      !!     foe_obj%nsegline, foe_obj%istsegline, foe_obj%keyg, kernel, nseq, nmaxsegk, nmaxvalk, &
-      !!     ivectorindex)
     
     
       if (number_of_matmuls==one) then
@@ -268,9 +254,6 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
       call f_free(vectors)
       call f_free(ham_compr_seq)
       call f_free(ovrlp_compr_seq)
-      !!call f_free(istindexarr)
-      !!call f_free(ivectorindex)
-      !!call f_free_ptr(onedimindices)
     
       if (number_of_matmuls==one) then
           call f_free(matrix)
