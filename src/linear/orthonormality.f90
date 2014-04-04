@@ -115,9 +115,9 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
               call overlapPowerGeneral(iproc, nproc, methTransformOverlap, -2, &
                    orthpar%blocksize_pdgemm, orbs%norb, orbs, &
                    imode=1, check_accur=.false.,ovrlp=ovrlp%matrix, &
-                   inv_ovrlp=inv_ovrlp_null, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
-                   foe_nseg=foe_obj%nseg, foe_kernel_nsegline=foe_obj%nsegline, &
-                   foe_istsegline=foe_obj%istsegline, foe_keyg=foe_obj%keyg)
+                   inv_ovrlp=inv_ovrlp_null, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half)!!, &
+                   !!foe_nseg=foe_obj%nseg, foe_kernel_nsegline=foe_obj%nsegline, &
+                   !!foe_istsegline=foe_obj%istsegline, foe_keyg=foe_obj%keyg)
           !!end if
       end if
 
@@ -392,8 +392,8 @@ end subroutine setCommsParameters
 !contents of %matrix not guaranteed to be correct though - inv_ovrlp_smat%can_use_dense set accordingly
 !power: -2 -> S^-1/2, 2 -> S^1/2, 1 -> S^-1
 subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, imode, check_accur, ovrlp, inv_ovrlp, error, &
-     ovrlp_smat, inv_ovrlp_smat, &
-     foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
+     ovrlp_smat, inv_ovrlp_smat)!!, &
+     !!foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
   use module_base
   use module_types
   use module_interfaces, except_this_one => overlapPowerGeneral
@@ -411,9 +411,9 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
   real(kind=8),dimension(:,:),pointer,optional :: inv_ovrlp
   type(sparse_matrix), optional, intent(inout) :: ovrlp_smat, inv_ovrlp_smat
   real(kind=8),intent(out),optional :: error
-  integer,intent(in),optional :: foe_nseg
-  integer,dimension(:),intent(in),optional :: foe_kernel_nsegline, foe_istsegline
-  integer,dimension(:,:),intent(in),optional :: foe_keyg
+  !!integer,intent(in),optional :: foe_nseg
+  !!integer,dimension(:),intent(in),optional :: foe_kernel_nsegline, foe_istsegline
+  !!integer,dimension(:,:),intent(in),optional :: foe_keyg
   
   ! Local variables
   integer :: iorb, jorb, info, iiorb, isorb, norbp, ii, ii_inv, iii, ierr, i
@@ -460,10 +460,10 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
   else if (imode==SPARSE .and. (iorder>1 .or. check_accur)) then
       if (.not.present(ovrlp_smat)) stop 'ovrlp_smat not present'
       if (.not.present(inv_ovrlp_smat)) stop 'inv_ovrlp_smat not present'
-      if (.not.present(foe_nseg)) stop 'foe_nseg not present'
-      if (.not.present(foe_kernel_nsegline)) stop 'foe_kernel_nsegline not present'
-      if (.not.present(foe_istsegline)) stop 'foe_istsegline not present'
-      if (.not.present(foe_keyg)) stop 'foe_keyg not present'
+      !!if (.not.present(foe_nseg)) stop 'foe_nseg not present'
+      !!if (.not.present(foe_kernel_nsegline)) stop 'foe_kernel_nsegline not present'
+      !!if (.not.present(foe_istsegline)) stop 'foe_istsegline not present'
+      !!if (.not.present(foe_keyg)) stop 'foe_keyg not present'
   end if
   
   if (check_accur) then
@@ -699,8 +699,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
             ovrlp_largep=f_malloc((/norb,norbp/),id='ovrlp_largep')
             call extract_matrix_distributed(iproc, nproc, norb, norbp, orbs%isorb_par, &
                  inv_ovrlp_smat, ovrlp_large_compr, ovrlp_largep)
-            call sequential_acces_matrix(norb, norbp, isorb, foe_nseg, &
-                 foe_kernel_nsegline, foe_istsegline, foe_keyg, &
+            call sequential_acces_matrix(norb, norbp, isorb, inv_ovrlp_smat%smmm%nseg, &
+                 inv_ovrlp_smat%smmm%nsegline, inv_ovrlp_smat%smmm%istsegline, inv_ovrlp_smat%smmm%keyg, &
                  inv_ovrlp_smat, inv_ovrlp_smat%matrix_compr, inv_ovrlp_smat%smmm%nseq, &
                  inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
                  invovrlp_compr_seq)

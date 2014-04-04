@@ -1082,9 +1082,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           if (imode==SPARSE) then
               call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, tmb%orbs, &
                    imode=1, check_accur=.true., error=error, &
-                   ovrlp_smat=tmb%linmat%ovrlp, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, &
-                   foe_nseg=tmb%foe_obj%nseg, foe_kernel_nsegline=tmb%foe_obj%nsegline, &
-                   foe_istsegline=tmb%foe_obj%istsegline, foe_keyg=tmb%foe_obj%keyg)
+                   ovrlp_smat=tmb%linmat%ovrlp, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large)
            end if
           if (foe_verbosity>=1 .and. iproc==0) then
               call yaml_map('error of S^-1/2',error,fmt='(es9.2)')

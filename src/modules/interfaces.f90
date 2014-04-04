@@ -3975,8 +3975,8 @@ module module_interfaces
 
         subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, &
                    imode, check_accur, ovrlp, inv_ovrlp, error, &
-                   ovrlp_smat, inv_ovrlp_smat, &
-                   foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
+                   ovrlp_smat, inv_ovrlp_smat)!!, &
+                   !!foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
@@ -3990,9 +3990,9 @@ module module_interfaces
           real(kind=8),dimension(:,:),pointer,optional :: inv_ovrlp
           type(sparse_matrix), optional, intent(inout) :: ovrlp_smat, inv_ovrlp_smat
           real(kind=8),intent(out),optional :: error
-          integer,intent(in),optional :: foe_nseg
-          integer,dimension(:),intent(in),optional :: foe_kernel_nsegline, foe_istsegline
-          integer,dimension(:,:),intent(in),optional :: foe_keyg
+          !!integer,intent(in),optional :: foe_nseg
+          !!integer,dimension(:),intent(in),optional :: foe_kernel_nsegline, foe_istsegline
+          !!integer,dimension(:,:),intent(in),optional :: foe_keyg
         end subroutine overlapPowerGeneral
 
         subroutine overlap_plus_minus_one_half_exact(norb,blocksize,plusminus,inv_ovrlp_half,orbs)
