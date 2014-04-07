@@ -5,7 +5,7 @@ module sparsematrix_base
   private
 
   !> Contains the parameters needed for the sparse matrix matrix multiplication
-  type :: sparse_matrix_matrix_multiplication
+  type,public :: sparse_matrix_matrix_multiplication
       integer :: nout, nseq, nmaxsegk, nmaxvalk, nseg
       integer,dimension(:),pointer :: ivectorindex, nsegline, istsegline
       integer,dimension(:,:),pointer :: onedimindices, keyg
@@ -20,7 +20,7 @@ module sparsematrix_base
       integer,dimension(:,:),pointer :: matrixindex_in_compressed_arr, orb_from_index
       integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed
       logical :: store_index, can_use_dense
-      type(sparse_matrix_matrix_multiplication),private :: smmm
+      type(sparse_matrix_matrix_multiplication) :: smmm
   end type sparse_matrix
 
 
