@@ -5,7 +5,7 @@ module sparsematrix_base
   private
 
   !> Contains the parameters needed for the sparse matrix matrix multiplication
-  type :: sparse_matrix_matrix_multiplication
+  type,public :: sparse_matrix_matrix_multiplication
       integer :: nout, nseq, nmaxsegk, nmaxvalk, nseg
       integer,dimension(:),pointer :: ivectorindex, nsegline, istsegline
       integer,dimension(:,:),pointer :: onedimindices, keyg

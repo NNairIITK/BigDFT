@@ -717,7 +717,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0,0,input%lin%order_taylor,&
-           input%purification_quickreturn,input%adjust_FOE_temperature,input%calculate_KS_residue)
+           input%purification_quickreturn,input%adjust_FOE_temperature,&
+           input%calculate_KS_residue,input%calculate_gap)
 
       if (input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
          call deallocate_sparse_matrix(ham_small,subname)
@@ -726,7 +727,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0,0,input%lin%order_taylor,&
-           input%purification_quickreturn,input%adjust_FOE_temperature,input%calculate_KS_residue)
+           input%purification_quickreturn,input%adjust_FOE_temperature,&
+           input%calculate_KS_residue,input%calculate_gap)
 
       call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
       call evaltoocc(iproc,nproc,.false.,input%tel,kswfn%orbs,input%occopt)

@@ -1648,7 +1648,7 @@ module module_interfaces
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
         energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
         calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,order_taylor,purification_quickreturn,&
-        adjust_FOE_temperature,calculate_KS_residue,&
+        adjust_FOE_temperature,calculate_KS_residue,calculate_gap,&
         convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
       use module_base
       use module_types
@@ -1671,7 +1671,7 @@ module module_interfaces
       type(SIC_data),intent(in) :: SIC
       type(DFT_wavefunction),intent(inout) :: tmb
       logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho, purification_quickreturn
-      logical,intent(in) :: calculate_ham, calculate_KS_residue, adjust_FOE_temperature
+      logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap, adjust_FOE_temperature
       type(sparse_matrix), intent(inout) :: ham_small ! for foe only
       type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
       integer, intent(in), optional :: nitdmin ! for dmin only

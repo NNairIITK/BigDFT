@@ -1862,6 +1862,9 @@ contains
     call input_var("adjust_FOE_temperature", .true., "dynamic adjustment of FOE error function decay length", dummy_bool)
     call set(dict // ADJUST_FOE_TEMPERATURE, dummy_bool)
 
+    call input_var("calculate_gap", .false., "calculate the HOMO LUMO gap", dummy_bool)
+    call set(dict // CALCULATE_GAP, dummy_bool)
+
     call input_free(.false.)
 
   END SUBROUTINE read_perf_from_text_format

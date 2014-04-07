@@ -11,7 +11,7 @@
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
     calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,order_taylor,purification_quickreturn, &
-    adjust_FOE_temperature,calculate_KS_residue,&
+    adjust_FOE_temperature,calculate_KS_residue,calculate_gap,&
     convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
   use module_base
   use module_types
@@ -39,7 +39,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   type(SIC_data),intent(in) :: SIC
   type(DFT_wavefunction),intent(inout) :: tmb
   logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho, purification_quickreturn
-  logical,intent(in) :: calculate_ham, calculate_KS_residue, adjust_FOE_temperature
+  logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap, adjust_FOE_temperature
   type(sparse_matrix), intent(inout) :: ham_small ! for foe only
   type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
   integer, intent(in), optional :: nitdmin ! for dmin only
@@ -348,6 +348,25 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call f_free_ptr(tmb%linmat%ovrlp%matrix)
 
   else ! foe
+
+
+      ! TEMPORARY #################################################
+      if (calculate_gap) then
+          tmb%linmat%ham%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ham%matrix')
+          call uncompress_matrix(iproc,tmb%linmat%ham)
+          tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
+          call uncompress_matrix(iproc,tmb%linmat%ovrlp)
+          ! Keep the Hamiltonian and the overlap since they will be overwritten by the diagonalization.
+          matrixElements=f_malloc((/tmb%orbs%norb,tmb%orbs%norb,2/),id='matrixElements')
+          call vcopy(tmb%orbs%norb**2, tmb%linmat%ham%matrix(1,1), 1, matrixElements(1,1,1), 1)
+          call vcopy(tmb%orbs%norb**2, tmb%linmat%ovrlp%matrix(1,1), 1, matrixElements(1,1,2), 1)
+          call diagonalizeHamiltonian2(iproc, tmb%orbs%norb, matrixElements(1,1,1), matrixElements(1,1,2), tmb%orbs%eval)
+          if (iproc==0) call yaml_map('gap',tmb%orbs%eval(orbs%norb+1)-tmb%orbs%eval(orbs%norb))
+          call f_free(matrixElements)
+          call f_free_ptr(tmb%linmat%ham%matrix)
+          call f_free_ptr(tmb%linmat%ovrlp%matrix)
+      end if
+      ! END TEMPORARY #############################################
 
       if (iproc==0) call yaml_map('method','FOE')
       tmprtr=0.d0

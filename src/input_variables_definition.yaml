@@ -647,6 +647,9 @@
    adjust_FOE_temperature:
      COMMENT: linear scaling dynamic adjustment of the decay length of the FOE error function
      default: Yes
+   calculate_gap:
+     COMMENT: linear scaling calculate the HOMO LUMO gap
+     default: No
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
