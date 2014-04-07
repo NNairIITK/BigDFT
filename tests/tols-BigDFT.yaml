@@ -743,13 +743,16 @@ paracetamol:
  EvXC: 1.1e-10
  EH: 1.1e-09
  Ekin: 1.1e-09
- eF: 1.1e-10
+ eF: 1.6e-6
  Epot: 1.1e-09
  Omega: 1.1e-9
  energy: 1.5e-10
  Total charge: 2.1e-11
- charge diff: 1.1e-9
- D eF: 1.1e-9
+ charge diff: 1.6e-6
+ D eF: 1.6e-6
+ Tr(K): 1.6e-6
+ D Tr: 1.6e-6
+ tr(KS) before purification: 1.6e-6
 
 reformatcomplete_write:
  Epot: 1.1e-10
@@ -858,7 +861,7 @@ sparsity:
  EXC: 1.1e-10
  Epot: 1.1e-9
  eF: 1.1e-10
- D eF: 1.1e-10
+ D eF: 1.1e-9
 
 PBE_densmixlin:
  Ekin: 1.1e-10
