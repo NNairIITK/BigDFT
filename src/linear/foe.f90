@@ -53,11 +53,13 @@ subroutine foe(iproc, nproc, tmprtr, &
   real(kind=8) :: trace_sparse, temp_multiplicator, ebs_check
   integer :: irow, icol, itemp, iflag
   logical :: overlap_calculated, cycle_FOE, evbounds_shrinked, degree_sufficient, reached_limit
-  real(kind=8),parameter :: FSCALE_LIMIT=5.d-3
+  real(kind=8),parameter :: FSCALE_LIMIT=1.d-3
   real(kind=8),parameter :: DEGREE_MULTIPLICATOR_ACCURATE=3.d0
   real(kind=8),parameter :: DEGREE_MULTIPLICATOR_FAST=2.d0
   real(kind=8),parameter :: TEMP_MULTIPLICATOR_ACCURATE=1.d0
   real(kind=8),parameter :: TEMP_MULTIPLICATOR_FAST=1.2d0
+  integer,parameter :: NTEMP_ACCURATE=4
+  integer,parameter :: NTEMP_FAST=1
   real(kind=8) :: degree_multiplicator
   integer,parameter :: SPARSE=1
   integer,parameter :: DENSE=2
@@ -169,11 +171,11 @@ subroutine foe(iproc, nproc, tmprtr, &
   ! This is to distinguish whether the routine is called from get_coeff of
   ! getLocBasis, to be improved.
   if (accuracy_level==FOE_ACCURATE) then
-      ntemp=3
+      ntemp = NTEMP_ACCURATE
       degree_multiplicator = DEGREE_MULTIPLICATOR_ACCURATE
       temp_multiplicator = TEMP_MULTIPLICATOR_ACCURATE
   else if (accuracy_level==FOE_FAST) then
-      ntemp=1
+      ntemp = NTEMP_FAST
       degree_multiplicator = DEGREE_MULTIPLICATOR_FAST
       !tmb%foe_obj%fscale = 2.d0*tmb%foe_obj%fscale
       temp_multiplicator = TEMP_MULTIPLICATOR_FAST
