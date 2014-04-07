@@ -20,7 +20,7 @@ module sparsematrix_base
       integer,dimension(:,:),pointer :: matrixindex_in_compressed_arr, orb_from_index
       integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed
       logical :: store_index, can_use_dense
-      type(sparse_matrix_matrix_multiplication) :: smmm
+      type(sparse_matrix_matrix_multiplication),private :: smmm
   end type sparse_matrix
 
 
