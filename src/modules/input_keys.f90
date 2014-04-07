@@ -136,6 +136,7 @@ module module_input_keys
   character(len = *), parameter, public :: METHOD_UPDATEKERNEL = "method_updatekernel"
   character(len = *), parameter, public :: PURIFICATION_QUICKRETURN = "purification_quickreturn"
   character(len = *), parameter, public :: ADJUST_FOE_TEMPERATURE = "adjust_FOE_temperature"
+  character(len = *), parameter, public :: CALCULATE_GAP = "calculate_gap"
 
   !keys for linear input variables
   !level keys
