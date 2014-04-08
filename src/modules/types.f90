@@ -389,6 +389,9 @@ module module_types
 
      !> linear scaling: calculate the HOMO LUMO gap even when FOE is used for the kernel calculation
      logical :: calculate_gap
+
+     !> linear scaling: perform a Loewdin charge analysis at the end of the calculation
+     logical :: loewdin_charge_analysis
   end type input_variables
 
   !> Contains all energy terms
@@ -2754,6 +2757,9 @@ end subroutine find_category
        case (CALCULATE_GAP)
            ! linear scaling: calculate the HOMO LUMO gap even when FOE is used for the kernel calculation
            in%calculate_gap = val
+       case (LOEWDIN_CHARGE_ANALYSIS)
+           ! linear scaling: calculate the HOMO LUMO gap even when FOE is used for the kernel calculation
+           in%loewdin_charge_analysis = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select

@@ -650,6 +650,9 @@
    calculate_gap:
      COMMENT: linear scaling calculate the HOMO LUMO gap
      default: No
+   loewdin_charge_analysis:
+     COMMENT: linear scaling perform a Loewdin charge analysis at the end of the calculation
+     default: No
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
