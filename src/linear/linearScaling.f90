@@ -1141,8 +1141,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   end do outerLoop
 
-  write(*,*) 'calling loewdin_charge_analysis'
-  call loewdin_charge_analysis(iproc, tmb, calculate_overlap_matrix=.true., calculate_ovrlp_half=.true., meth_overlap=0)
+  !write(*,*) 'calling loewdin_charge_analysis'
+  !call loewdin_charge_analysis(iproc, tmb, calculate_overlap_matrix=.true., calculate_ovrlp_half=.true., meth_overlap=0)
 
 
   if (input%write_orbitals) then
