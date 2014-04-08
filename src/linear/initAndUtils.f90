@@ -1715,6 +1715,7 @@ subroutine clean_rho(iproc, npt, rho)
   if (iproc==0) then
       call yaml_newline()
       call yaml_map('Need to correct charge density',.true.)
+      call yaml_warning('set to 1.d-20 instead of 0.d0')
   end if
 
   ncorrection=0
@@ -1724,13 +1725,15 @@ subroutine clean_rho(iproc, npt, rho)
           if (rho(ipt)>=-1.d-9) then
               ! negative, but small, so simply set to zero
               charge_correction=charge_correction+rho(ipt)
-              rho(ipt)=0.d0
+              !rho(ipt)=0.d0
+              rho(ipt)=1.d-20
               ncorrection=ncorrection+1
           else
               ! negative, but non-negligible, so issue a warning
               call yaml_warning('considerable negative rho, value: '//trim(yaml_toa(rho(ipt),fmt='(es12.4)'))) 
               charge_correction=charge_correction+rho(ipt)
-              rho(ipt)=0.d0
+              !rho(ipt)=0.d0
+              rho(ipt)=1.d-20
               ncorrection=ncorrection+1
           end if
       end if
@@ -1764,13 +1767,14 @@ subroutine corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, 
   type(DFT_wavefunction),intent(inout) :: tmb
   type(DFT_local_fields), intent(inout) :: denspot
 
-  if (iproc==0) then
-      !call yaml_open_sequence()
-      !call yaml_open_map()
-      call yaml_newline()
-      call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
-  end if
-  call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+  !!if (iproc==0) then
+  !!    !call yaml_open_sequence()
+  !!    !call yaml_open_map()
+  !!    call yaml_newline()
+  !!    call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+  !!end if
+  !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+  if (iproc==0) call yaml_warning('No increase of FOE cutoff')
   call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
   if (iproc==0) then
       !call yaml_close_map()

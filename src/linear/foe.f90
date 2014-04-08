@@ -946,12 +946,12 @@ subroutine foe(iproc, nproc, tmprtr, &
       end if
 
       if (adjust_FOE_temperature .and. foe_verbosity>=1) then
-          if (diff<5.d-4) then
+          if (diff<1.d-3) then
               ! can decrease polynomial degree
               tmb%foe_obj%fscale=1.25d0*tmb%foe_obj%fscale
               if (iproc==0) call yaml_map('modify fscale','increase')
               degree_sufficient=.true.
-          else if (diff>=5.d-4 .and. diff < 1.d-3) then
+          else if (diff>=1.d-3 .and. diff < 2.d-3) then
               ! polynomial degree seems to be appropriate
               degree_sufficient=.true.
               !!if (iproc==0) call yaml_map('Need to change fscale',.false.)
