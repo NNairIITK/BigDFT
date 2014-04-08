@@ -885,6 +885,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                          denspot%rhov,it_scc+1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
                          at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
                          pnrm,denspot%dpbox%nscatterarr)
+                     call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
                 !!end if
                 !!write(*,'(a,2es16.9)') 'after mix: sum(denspot%rhov), sum(f_fftgr)', &
                 !!                                   sum(denspot%rhov), sum(denspot%mix%f_fftgr(:,:,denspot%mix%i_vrespc(1)))
@@ -1113,6 +1114,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
           deallocate(tmb%psit_f, stat=istat)
           call memocc(istat, iall, 'tmb%psit_f', subname)
+          tmb%can_use_transposed=.false.
       end if
 
       call print_info(.false.)
@@ -1140,6 +1142,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
 
   end do outerLoop
+
+  !write(*,*) 'calling loewdin_charge_analysis'
+  if (input%loewdin_charge_analysis) then
+      call loewdin_charge_analysis(iproc, tmb, at, calculate_overlap_matrix=.true., calculate_ovrlp_half=.true., meth_overlap=0)
+  end if
 
 
   if (input%write_orbitals) then

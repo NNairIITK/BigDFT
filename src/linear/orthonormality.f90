@@ -640,9 +640,9 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
                    inv_ovrlp_smat, ovrlpminone_sparse, inv_ovrlp_smat%smmm%nseq, &
                    inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
                    ovrlpminone_sparse_seq)
+                   call extract_matrix_distributed(iproc, nproc, norb, norbp, orbs%isorb_par, &
+                        inv_ovrlp_smat, ovrlpminone_sparse, ovrlpminoneoldp)
            end if
-            call extract_matrix_distributed(iproc, nproc, norb, norbp, orbs%isorb_par, &
-                 inv_ovrlp_smat, ovrlpminone_sparse, ovrlpminoneoldp)
             if (power==1) then
                factor=-1.0d0
             else if (power==2) then

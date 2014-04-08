@@ -178,6 +178,7 @@ module sparsematrix
       real(kind=8) :: maxdiff
       real(kind=8), parameter :: tol=1.e-10
     
+      call f_routine('check_matrix_compression')
     
       sparsemat%matrix=f_malloc_ptr((/sparsemat%nfvctr,sparsemat%nfvctr/),id='sparsemat%matrix')
       sparsemat%matrix_compr=f_malloc_ptr(sparsemat%nvctr,id='sparsemat%matrix_compr')
@@ -234,6 +235,8 @@ module sparsematrix
     
       call f_free_ptr(sparsemat%matrix)
       call f_free_ptr(sparsemat%matrix_compr)
+
+      call f_release_routine()
     
     contains
        !> define a value for the wavefunction which is dependent of the indices
@@ -272,6 +275,7 @@ module sparsematrix
       ! Local variables
       integer :: imode, icheck, isseg, isstart, isend, ilseg, ilstart, ilend
       integer :: iostart, ioend, ilength, isoffset, iloffset, iscostart, ilcostart, i
+      integer :: ilsegstart
       integer,parameter :: SMALL_TO_LARGE=1
       integer,parameter :: LARGE_TO_SMALL=2
     
@@ -296,20 +300,28 @@ module sparsematrix
           stop 'wrong imode'
       end select
     
+      call timing(bigdft_mpi%iproc,'transform_matr','IR')
     
       icheck=0
+      ilsegstart=1
       sloop: do isseg=1,smat%nseg
           isstart=smat%keyg(1,isseg)
           isend=smat%keyg(2,isseg)
-          lloop: do ilseg=1,lmat%nseg
+          lloop: do ilseg=ilsegstart,lmat%nseg
               ilstart=lmat%keyg(1,ilseg)
               ilend=lmat%keyg(2,ilseg)
     
               !write(*,*) 'isstart, isend, ilstart, ilend', isstart, isend, ilstart, ilend
               ! check whether there is an overlap:
               ! if not, increase loop counters
-              if (ilstart>isend) exit lloop
-              if (isstart>ilend) cycle lloop
+              if (ilstart>isend) then
+                  !ilsegstart=ilseg
+                  exit lloop
+              end if
+              if (isstart>ilend) then
+                  ilsegstart=ilseg
+                  cycle lloop
+              end if
               ! if yes, determine start end end of overlapping segment (in uncompressed form)
               iostart=max(isstart,ilstart)
               ioend=min(isend,ilend)
@@ -347,6 +359,8 @@ module sparsematrix
           write(*,'(a,2i8)') 'ERROR: icheck/=smat%nvctr', icheck, smat%nvctr
           stop
       end if
+
+      call timing(bigdft_mpi%iproc,'transform_matr','RS')
     
     end subroutine transform_sparse_matrix
 

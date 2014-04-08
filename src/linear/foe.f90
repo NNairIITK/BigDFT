@@ -98,33 +98,33 @@ subroutine foe(iproc, nproc, tmprtr, &
 
   fermi_check_compr = f_malloc(tmb%linmat%denskern_large%nvctr,id='fermi_check_compr')
 
-  if (order_taylor==1) then
-      ii=0
-      do iseg=1,tmb%linmat%denskern_large%nseg
-          do jorb=tmb%linmat%denskern_large%keyg(1,iseg),tmb%linmat%denskern_large%keyg(2,iseg)
-              iiorb = (jorb-1)/tmb%orbs%norb + 1
-              jjorb = jorb - (iiorb-1)*tmb%orbs%norb
-              ii=ii+1
-              iismall = matrixindex_in_compressed(tmb%linmat%ovrlp, iiorb, jjorb)
-              if (iismall>0) then
-                  tt=tmb%linmat%ovrlp%matrix_compr(iismall)
-              else
-                  tt=0.d0
-              end if
-              if (iiorb==jjorb) then
-                  tmb%linmat%inv_ovrlp_large%matrix_compr(ii)=1.5d0-.5d0*tt
-              else
-                  tmb%linmat%inv_ovrlp_large%matrix_compr(ii)=-.5d0*tt
-              end if
-          end do  
-      end do
-  else
+  !!if (order_taylor==1) then
+  !!    ii=0
+  !!    do iseg=1,tmb%linmat%denskern_large%nseg
+  !!        do jorb=tmb%linmat%denskern_large%keyg(1,iseg),tmb%linmat%denskern_large%keyg(2,iseg)
+  !!            iiorb = (jorb-1)/tmb%orbs%norb + 1
+  !!            jjorb = jorb - (iiorb-1)*tmb%orbs%norb
+  !!            ii=ii+1
+  !!            iismall = matrixindex_in_compressed(tmb%linmat%ovrlp, iiorb, jjorb)
+  !!            if (iismall>0) then
+  !!                tt=tmb%linmat%ovrlp%matrix_compr(iismall)
+  !!            else
+  !!                tt=0.d0
+  !!            end if
+  !!            if (iiorb==jjorb) then
+  !!                tmb%linmat%inv_ovrlp_large%matrix_compr(ii)=1.5d0-.5d0*tt
+  !!            else
+  !!                tmb%linmat%inv_ovrlp_large%matrix_compr(ii)=-.5d0*tt
+  !!            end if
+  !!        end do  
+  !!    end do
+  !!else
 
         call timing(iproc, 'FOE_auxiliary ', 'OF')
         call overlap_minus_onehalf() ! has internal timer
         call timing(iproc, 'FOE_auxiliary ', 'ON')
 
-  end if
+  !!end if
 
 
   allocate(hamscal_compr(tmb%linmat%denskern_large%nvctr), stat=istat)
@@ -852,18 +852,18 @@ subroutine foe(iproc, nproc, tmprtr, &
 
 
 
-      call timing(iproc, 'FOE_auxiliary ', 'OF')
-      !!call timing(iproc, 'chebyshev_comm', 'ON')
-    
-      !!call mpiallred(tmb%linmat%denskern_large%matrix_compr(1), tmb%linmat%denskern_large%nvctr, &
-      !!     mpi_sum, bigdft_mpi%mpi_comm, ierr)
-    
-    
-      !!call timing(iproc, 'chebyshev_comm', 'OF')
-    
-    
-      call overlap_minus_onehalf() !has internal timer
-      call timing(iproc, 'FOE_auxiliary ', 'ON')
+ !!     call timing(iproc, 'FOE_auxiliary ', 'OF')
+ !!     !!call timing(iproc, 'chebyshev_comm', 'ON')
+ !!   
+ !!     !!call mpiallred(tmb%linmat%denskern_large%matrix_compr(1), tmb%linmat%denskern_large%nvctr, &
+ !!     !!     mpi_sum, bigdft_mpi%mpi_comm, ierr)
+ !!   
+ !!   
+ !!     !!call timing(iproc, 'chebyshev_comm', 'OF')
+ !!   
+ !!   
+ !!     call overlap_minus_onehalf() !has internal timer
+ !!     call timing(iproc, 'FOE_auxiliary ', 'ON')
     
     
     
@@ -946,12 +946,12 @@ subroutine foe(iproc, nproc, tmprtr, &
       end if
 
       if (adjust_FOE_temperature .and. foe_verbosity>=1) then
-          if (diff<5.d-4) then
+          if (diff<1.d-3) then
               ! can decrease polynomial degree
               tmb%foe_obj%fscale=1.25d0*tmb%foe_obj%fscale
               if (iproc==0) call yaml_map('modify fscale','increase')
               degree_sufficient=.true.
-          else if (diff>=5.d-4 .and. diff < 1.d-3) then
+          else if (diff>=1.d-3 .and. diff < 2.d-3) then
               ! polynomial degree seems to be appropriate
               degree_sufficient=.true.
               !!if (iproc==0) call yaml_map('Need to change fscale',.false.)
