@@ -885,6 +885,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                          denspot%rhov,it_scc+1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
                          at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
                          pnrm,denspot%dpbox%nscatterarr)
+                     call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
                 !!end if
                 !!write(*,'(a,2es16.9)') 'after mix: sum(denspot%rhov), sum(f_fftgr)', &
                 !!                                   sum(denspot%rhov), sum(denspot%mix%f_fftgr(:,:,denspot%mix%i_vrespc(1)))
