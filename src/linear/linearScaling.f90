@@ -1113,6 +1113,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
           deallocate(tmb%psit_f, stat=istat)
           call memocc(istat, iall, 'tmb%psit_f', subname)
+          tmb%can_use_transposed=.false.
       end if
 
       call print_info(.false.)
@@ -1142,7 +1143,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   end do outerLoop
 
   !write(*,*) 'calling loewdin_charge_analysis'
-  !call loewdin_charge_analysis(iproc, tmb, calculate_overlap_matrix=.true., calculate_ovrlp_half=.true., meth_overlap=0)
+  call loewdin_charge_analysis(iproc, tmb, at, calculate_overlap_matrix=.true., calculate_ovrlp_half=.true., meth_overlap=0)
 
 
   if (input%write_orbitals) then

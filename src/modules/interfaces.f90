@@ -4305,7 +4305,7 @@ module module_interfaces
           real(kind=8),dimension(norb,norbp),intent(in),optional :: cmatp
         end subroutine check_accur_overlap_minus_one_sparse
 
-        subroutine loewdin_charge_analysis(iproc,tmb,&
+        subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
                    calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap)
           use module_base
           use module_types
@@ -4314,6 +4314,7 @@ module module_interfaces
           use sparsematrix, only: compress_matrix, uncompress_matrix
           implicit none
           integer,intent(in) :: iproc
+          type(atoms_data),intent(inout) :: atoms
           type(dft_wavefunction),intent(inout) :: tmb
           logical,intent(in) :: calculate_overlap_matrix, calculate_ovrlp_half
           integer,intent(in) :: meth_overlap

@@ -2726,7 +2726,7 @@ subroutine check_idempotency(iproc, nproc, tmb, diff)
 end subroutine check_idempotency
 
 
-subroutine loewdin_charge_analysis(iproc,tmb,&
+subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
            calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap)
   use module_base
   use module_types
@@ -2737,6 +2737,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,&
   implicit none
   integer,intent(in) :: iproc
   type(dft_wavefunction),intent(inout) :: tmb
+  type(atoms_data),intent(inout) :: atoms
   logical,intent(in) :: calculate_overlap_matrix, calculate_ovrlp_half
   integer,intent(in) :: meth_overlap
 
@@ -2747,9 +2748,12 @@ subroutine loewdin_charge_analysis(iproc,tmb,&
   real(kind=gp) :: error
 
   ! new variables
+  integer :: iat, iall
   real(kind=8),dimension(:,:),allocatable :: weight_matrix
-  real(kind=gp),dimension(:,:),pointer :: ovrlp_half
+  real(kind=gp),dimension(:,:),pointer :: ovrlp_half, ovrlp
   real(kind=8) :: charge
+  real(kind=8),dimension(:),allocatable :: charge_per_atom
+  logical :: psit_c_associated, psit_f_associated
 
 
   ! needs parallelizing/converting to sparse
@@ -2759,32 +2763,50 @@ subroutine loewdin_charge_analysis(iproc,tmb,&
   ovrlp_half = f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='ovrlp_half')
 
   if (calculate_overlap_matrix) then
-     !if(.not.tmb%can_use_transposed) then
+     if(.not.tmb%can_use_transposed) then
          if(.not.associated(tmb%psit_c)) then
              allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
              call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+             psit_c_associated=.false.
+         else
+             psit_c_associated=.true.
          end if
          if(.not.associated(tmb%psit_f)) then
              allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
              call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+             psit_f_associated=.false.
+         else
+             psit_f_associated=.true.
          end if
          call transpose_localized(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
               tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
          tmb%can_use_transposed=.true.
-     !end if
+     end if
 
      call calculate_overlap_transposed(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
           tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+     if (.not.psit_c_associated) then
+        iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+        deallocate(tmb%psit_c, stat=istat)
+        call memocc(istat, iall, 'tmb%psit_c', subname)
+        tmb%can_use_transposed=.false.
+     end if
+     if (.not.psit_f_associated) then
+        iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+        deallocate(tmb%psit_f, stat=istat)
+        call memocc(istat, iall, 'tmb%psit_f', subname)
+        tmb%can_use_transposed=.false.
+     end if
   end if
 
   if (calculate_ovrlp_half) then
-     tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='tmb%linmat%ovrlp%matrix')
-     call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%ovrlp)
+     ovrlp = f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='ovrlp')
+     call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%ovrlp,outmat=ovrlp)
      call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 2, &
           tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%orbs, &
-          imode=2, check_accur=.true., ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=ovrlp_half, error=error)
+          imode=2, check_accur=.true., ovrlp=ovrlp, inv_ovrlp=ovrlp_half, error=error)
      !!ovrlp_half=tmb%linmat%ovrlp%matrix
-     call f_free_ptr(tmb%linmat%ovrlp%matrix)
+     call f_free_ptr(ovrlp)
   end if
 
   ! optimize this to just change the matrix multiplication?
@@ -2840,20 +2862,27 @@ subroutine loewdin_charge_analysis(iproc,tmb,&
   call f_free(weight_matrixp)
   !call compress_matrix(bigdft_mpi%iproc,weight_matrix)
 
+  charge_per_atom = f_malloc0(atoms%astruct%nat,id='charge_per_atom')
   charge=0.d0
   do iorb=1,tmb%orbs%norb
       do jorb=1,tmb%orbs%norb
           if (iproc==0) write(*,'(a,2i7,es16.7)') 'iorb,jorb,weight_matrix(jorb,iorb)', iorb,jorb,weight_matrix(jorb,iorb)
           if (iorb==jorb) then
               charge = charge + weight_matrix(jorb,iorb)
+              iat=tmb%orbs%onwhichatom(iorb)
+              charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix(jorb,iorb)
           end if
       end do
   end do
   if (iproc==0) then
-      write(*,*) 'charge',charge
+      do iat=1,atoms%astruct%nat
+          write(*,*) 'iat, partial charge', iat, charge_per_atom(iat)
+      end do
+      write(*,*) 'total charge',charge
   end if
 
 
+  call f_free(charge_per_atom)
   call f_free(weight_matrix)
   call f_release_routine()
 
