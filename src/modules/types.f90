@@ -392,6 +392,10 @@ module module_types
 
      !> linear scaling: perform a Loewdin charge analysis at the end of the calculation
      logical :: loewdin_charge_analysis
+
+     !> linear scaling: perform a check of the matrix compression routines
+     logical :: check_matrix_compression
+
   end type input_variables
 
   !> Contains all energy terms
@@ -2760,6 +2764,9 @@ end subroutine find_category
        case (LOEWDIN_CHARGE_ANALYSIS)
            ! linear scaling: calculate the HOMO LUMO gap even when FOE is used for the kernel calculation
            in%loewdin_charge_analysis = val
+       case (CHECK_MATRIX_COMPRESSION)
+           ! linear scaling: perform a check of the matrix compression routines
+           in%check_matrix_compression = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select

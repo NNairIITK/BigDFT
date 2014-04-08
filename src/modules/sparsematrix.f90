@@ -178,6 +178,7 @@ module sparsematrix
       real(kind=8) :: maxdiff
       real(kind=8), parameter :: tol=1.e-10
     
+      call f_routine('check_matrix_compression')
     
       sparsemat%matrix=f_malloc_ptr((/sparsemat%nfvctr,sparsemat%nfvctr/),id='sparsemat%matrix')
       sparsemat%matrix_compr=f_malloc_ptr(sparsemat%nvctr,id='sparsemat%matrix_compr')
@@ -234,6 +235,8 @@ module sparsematrix
     
       call f_free_ptr(sparsemat%matrix)
       call f_free_ptr(sparsemat%matrix_compr)
+
+      call f_release_routine()
     
     contains
        !> define a value for the wavefunction which is dependent of the indices

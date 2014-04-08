@@ -2213,7 +2213,7 @@ module communications_init
       logical :: started
       integer,dimension(:),allocatable :: nel_array
     
-      call f_routine(id='nel_array')
+      call f_routine(id='communication_arrays_repartitionrho_general')
     
       ! only do this if task iproc has to receive a part of the potential
       if (nscatterarr(iproc,1)>0) then
@@ -2328,6 +2328,7 @@ module communications_init
     
       end if
     
+      call f_release_routine()
     
     end subroutine communication_arrays_repartitionrho_general
 

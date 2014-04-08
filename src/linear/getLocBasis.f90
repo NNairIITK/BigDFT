@@ -55,7 +55,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   integer :: isegsmall, iseglarge, iismall, iilarge, i, is, ie
   real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f, evalsmall, work
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements, smallmat
-  real(kind=8),dimension(:,:),allocatable ::KH, KHKH, Kgrad
+  real(kind=8),dimension(:,:),allocatable ::KH, KHKH, Kgrad, ovrlp_fullp
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   type(sparse_matrix) :: gradmat 
   logical :: update_kernel, overlap_calculated
@@ -111,14 +111,24 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   end if
 
   ! Temporaray: check deviation from unity
-  tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
-  call uncompress_matrix(iproc,tmb%linmat%ovrlp)
-  call deviation_from_unity(iproc, tmb%orbs%norb, tmb%linmat%ovrlp%matrix, deviation)
+  !!tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
+  !!call uncompress_matrix(iproc,tmb%linmat%ovrlp)
+  !!call deviation_from_unity(iproc, tmb%orbs%norb, tmb%linmat%ovrlp%matrix, deviation)
+  !!if (iproc==0) then
+  !!    !!write(*,'(a,es16.6)') 'max dev from unity', deviation
+  !!    call yaml_map('max dev from unity',deviation,fmt='(es9.2)')
+  !!end if
+  !!call f_free_ptr(tmb%linmat%ovrlp%matrix)
+  !!! ##########
+  ovrlp_fullp=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/),id='ovrlp_fullp')
+  call extract_matrix_distributed(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb_par, &
+       tmb%linmat%ovrlp, tmb%linmat%ovrlp%matrix_compr, ovrlp_fullp)
+  call deviation_from_unity_parallel(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, ovrlp_fullp, deviation)
+  call f_free(ovrlp_fullp)
   if (iproc==0) then
-      !!write(*,'(a,es16.6)') 'max dev from unity', deviation
       call yaml_map('max dev from unity',deviation,fmt='(es9.2)')
   end if
-  call f_free_ptr(tmb%linmat%ovrlp%matrix)
+
 
 
   ! Calculate the Hamiltonian matrix if it is not already present.
@@ -2759,7 +2769,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
   ! needs parallelizing/converting to sparse
   ! re-use overlap matrix if possible either before or after
 
-  call f_routine(id='calculate_weight_matrix_lowdin')
+  call f_routine(id='loewdin_charge_analysis')
   ovrlp_half = f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='ovrlp_half')
 
   if (calculate_overlap_matrix) then
