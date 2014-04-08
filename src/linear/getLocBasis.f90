@@ -2751,7 +2751,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
   integer :: iat, iall
   real(kind=8),dimension(:,:),allocatable :: weight_matrix
   real(kind=gp),dimension(:,:),pointer :: ovrlp_half, ovrlp
-  real(kind=8) :: charge
+  real(kind=8) :: total_charge
   real(kind=8),dimension(:),allocatable :: charge_per_atom
   logical :: psit_c_associated, psit_f_associated
 
@@ -2863,27 +2863,58 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
   !call compress_matrix(bigdft_mpi%iproc,weight_matrix)
 
   charge_per_atom = f_malloc0(atoms%astruct%nat,id='charge_per_atom')
-  charge=0.d0
+  total_charge=0.d0
+  !!do iorb=1,tmb%orbs%norb
+  !!    do jorb=1,tmb%orbs%norb
+  !!        if (iproc==0) write(*,'(a,2i7,es16.7)') 'iorb,jorb,weight_matrix(jorb,iorb)', iorb,jorb,weight_matrix(jorb,iorb)
+  !!        if (iorb==jorb) then
+  !!            total_charge = total_charge + weight_matrix(jorb,iorb)
+  !!            iat=tmb%orbs%onwhichatom(iorb)
+  !!            charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix(jorb,iorb)
+  !!        end if
+  !!    end do
+  !!end do
+  !!if (iproc==0) then
+  !!    do iat=1,atoms%astruct%nat
+  !!        write(*,*) 'iat, partial total_charge', iat, charge_per_atom(iat)
+  !!    end do
+  !!    write(*,*) 'total total_charge',total_charge
+  !!    if (iproc==0) call write_partial_charges()
+  !!end if
+
   do iorb=1,tmb%orbs%norb
-      do jorb=1,tmb%orbs%norb
-          if (iproc==0) write(*,'(a,2i7,es16.7)') 'iorb,jorb,weight_matrix(jorb,iorb)', iorb,jorb,weight_matrix(jorb,iorb)
-          if (iorb==jorb) then
-              charge = charge + weight_matrix(jorb,iorb)
-              iat=tmb%orbs%onwhichatom(iorb)
-              charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix(jorb,iorb)
-          end if
-      end do
+      total_charge = total_charge + weight_matrix(iorb,iorb)
+      iat=tmb%orbs%onwhichatom(iorb)
+      charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix(iorb,iorb)
   end do
-  if (iproc==0) then
-      do iat=1,atoms%astruct%nat
-          write(*,*) 'iat, partial charge', iat, charge_per_atom(iat)
-      end do
-      write(*,*) 'total charge',charge
-  end if
+  if (iproc==0) call write_partial_charges()
 
 
   call f_free(charge_per_atom)
   call f_free(weight_matrix)
   call f_release_routine()
+
+
+
+  contains
+
+    subroutine write_partial_charges
+      use yaml_output
+      character(len=20) :: atomname
+      real(kind=8),dimension(2) :: charges
+      call yaml_open_sequence('Loewdin charge analysis')
+      do iat=1,atoms%astruct%nat
+          call yaml_sequence(advance='no')
+          call yaml_open_map(flow=.true.)
+          atomname=atoms%astruct%atomnames(atoms%astruct%iatype(iat))
+          charges(1)=charge_per_atom(iat)
+          charges(2)=charge_per_atom(iat)-real(atoms%nelpsp(atoms%astruct%iatype(iat)),kind=8)
+          call yaml_map(trim(atomname),charges,fmt='(1es20.12)')
+          call yaml_close_map(advance='no')
+          call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
+      end do
+      call yaml_map('total charge',total_charge,fmt='(es16.8)')
+      call yaml_close_sequence()
+    end subroutine write_partial_charges
 
 end subroutine loewdin_charge_analysis
