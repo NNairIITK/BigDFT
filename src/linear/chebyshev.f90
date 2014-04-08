@@ -332,6 +332,7 @@ subroutine sparsemm(nseq, a_seq, b, c, norb, norbp, ivectorindex, nout, onedimin
   integer :: iorb, ii0, ii2, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6, iout
   real(kind=8) :: tt
 
+  call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'IR')
 
   !$omp parallel default(private) shared(ivectorindex, a_seq, b, c, onedimindices, nout)
   !$omp do
@@ -382,6 +383,7 @@ subroutine sparsemm(nseq, a_seq, b, c, norb, norbp, ivectorindex, nout, onedimin
   !$omp end do
   !$omp end parallel
 
+  call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'RS')
     
 end subroutine sparsemm
 
