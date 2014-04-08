@@ -2724,3 +2724,137 @@ subroutine check_idempotency(iproc, nproc, tmb, diff)
   call f_free_ptr(tmb%linmat%denskern_large%matrix)
 
 end subroutine check_idempotency
+
+
+subroutine loewdin_charge_analysis(iproc,tmb,&
+           calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => loewdin_charge_analysis
+  use communications, only: transpose_localized
+  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix, only: compress_matrix, uncompress_matrix
+  implicit none
+  integer,intent(in) :: iproc
+  type(dft_wavefunction),intent(inout) :: tmb
+  logical,intent(in) :: calculate_overlap_matrix, calculate_ovrlp_half
+  integer,intent(in) :: meth_overlap
+
+  !local variables
+  integer :: ifrag,iorb,ifrag_ref,isforb,istat,ierr,jorb
+  real(kind=gp), allocatable, dimension(:,:) :: proj_mat, proj_ovrlp_half, weight_matrixp
+  character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
+  real(kind=gp) :: error
+
+  ! new variables
+  real(kind=8),dimension(:,:),allocatable :: weight_matrix
+  real(kind=gp),dimension(:,:),pointer :: ovrlp_half
+  real(kind=8) :: charge
+
+
+  ! needs parallelizing/converting to sparse
+  ! re-use overlap matrix if possible either before or after
+
+  call f_routine(id='calculate_weight_matrix_lowdin')
+  ovrlp_half = f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='ovrlp_half')
+
+  if (calculate_overlap_matrix) then
+     !if(.not.tmb%can_use_transposed) then
+         if(.not.associated(tmb%psit_c)) then
+             allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+             call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+         end if
+         if(.not.associated(tmb%psit_f)) then
+             allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+             call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+         end if
+         call transpose_localized(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+              tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+         tmb%can_use_transposed=.true.
+     !end if
+
+     call calculate_overlap_transposed(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
+          tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+  end if
+
+  if (calculate_ovrlp_half) then
+     tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='tmb%linmat%ovrlp%matrix')
+     call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%ovrlp)
+     call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 2, &
+          tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%orbs, &
+          imode=2, check_accur=.true., ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=ovrlp_half, error=error)
+     !!ovrlp_half=tmb%linmat%ovrlp%matrix
+     call f_free_ptr(tmb%linmat%ovrlp%matrix)
+  end if
+
+  ! optimize this to just change the matrix multiplication?
+  proj_mat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='proj_mat')
+
+  call to_zero(tmb%orbs%norb**2,proj_mat(1,1))
+  call uncompress_matrix(iproc, tmb%linmat%denskern_large,outmat=proj_mat)
+  !!isforb=0
+  !!do ifrag=1,input%frag%nfrag
+  !!   ifrag_ref=input%frag%frag_index(ifrag)
+  !!   if (ifrag==ifrag_charged(1)) then
+  !!      do iorb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+  !!         proj_mat(iorb+isforb,iorb+isforb)=1.0_gp
+  !!      end do
+  !!   end if
+  !!   !!if (nfrag_charged==2) then
+  !!   !!   if (ifrag==ifrag_charged(2)) then
+  !!   !!      do iorb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+  !!   !!         proj_mat(iorb+isforb,iorb+isforb)=-1.0_gp
+  !!   !!      end do
+  !!   !!   end if
+  !!   !!end if
+  !!   isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
+  !!end do
+
+  proj_ovrlp_half=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/),id='proj_ovrlp_half')
+  if (tmb%orbs%norbp>0) then
+     call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, &
+            tmb%orbs%norb, 1.d0, &
+            proj_mat(1,1), tmb%orbs%norb, &
+            ovrlp_half(1,tmb%orbs%isorb+1), tmb%orbs%norb, 0.d0, &
+            proj_ovrlp_half(1,1), tmb%orbs%norb)
+  end if
+  call f_free(proj_mat)
+  weight_matrixp=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/), id='weight_matrixp')
+  if (tmb%orbs%norbp>0) then
+     call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, &
+          tmb%orbs%norb, 1.d0, &
+          ovrlp_half(1,1), tmb%orbs%norb, &
+          proj_ovrlp_half(1,1), tmb%orbs%norb, 0.d0, &
+          weight_matrixp(1,1), tmb%orbs%norb)
+  end if
+  call f_free_ptr(ovrlp_half)
+  call f_free(proj_ovrlp_half)
+  weight_matrix=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/), id='weight_matrix')
+  if (bigdft_mpi%nproc>1) then
+     call mpi_allgatherv(weight_matrixp, tmb%orbs%norb*tmb%orbs%norbp, mpi_double_precision, weight_matrix, &
+          tmb%orbs%norb*tmb%orbs%norb_par(:,0), tmb%orbs%norb*tmb%orbs%isorb_par, &
+          mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+  else
+     call vcopy(tmb%orbs%norb*tmb%orbs%norb,weight_matrixp(1,1),1,weight_matrix(1,1),1)
+  end if
+  call f_free(weight_matrixp)
+  !call compress_matrix(bigdft_mpi%iproc,weight_matrix)
+
+  charge=0.d0
+  do iorb=1,tmb%orbs%norb
+      do jorb=1,tmb%orbs%norb
+          if (iproc==0) write(*,'(a,2i7,es16.7)') 'iorb,jorb,weight_matrix(jorb,iorb)', iorb,jorb,weight_matrix(jorb,iorb)
+          if (iorb==jorb) then
+              charge = charge + weight_matrix(jorb,iorb)
+          end if
+      end do
+  end do
+  if (iproc==0) then
+      write(*,*) 'charge',charge
+  end if
+
+
+  call f_free(weight_matrix)
+  call f_release_routine()
+
+end subroutine loewdin_charge_analysis
