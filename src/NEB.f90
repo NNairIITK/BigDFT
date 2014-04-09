@@ -87,6 +87,10 @@ MODULE NEB_routines
       use dictionaries
       use module_interfaces
       use module_input_dicts
+      use module_atoms, only: atomic_structure, &
+           deallocate_atomic_structure, &
+           read_atomic_file => set_astruct_from_file, &
+           astruct_nullify => nullify_atomic_structure
 
       IMPLICIT NONE
 
@@ -196,6 +200,7 @@ MODULE NEB_routines
       do i = 1, num_of_images
          call astruct_nullify(astruct)
          call read_atomic_file(trim(arr_posinp(i)), bigdft_mpi%iproc, astruct, status = ierr)
+!!!!print *,'i,num_of_images',i,num_of_images,ierr
          if (ierr /= 0) then
             if (i == 1 .or. i == num_of_images) stop "Missing images"
             ! we read the last valid image instead.
@@ -214,7 +219,7 @@ MODULE NEB_routines
          call inputs_from_dict(ins(i), atoms(i), dict, .true.)
 
          call dict_free(dict)
-         call deallocate_atomic_structure(astruct, "NEB")
+         call deallocate_atomic_structure(astruct)
       end do
       bigdft_mpi = bigdft_mpi_svg
 
@@ -526,6 +531,7 @@ MODULE NEB_routines
     SUBROUTINE deallocation
       use yaml_output
       use dynamic_memory
+      use module_atoms, only: deallocate_atoms_data
       IMPLICIT NONE
 
       integer :: i, ierr
@@ -541,7 +547,7 @@ MODULE NEB_routines
 
       if (allocated(atoms)) then
          do i = 1, size(atoms)
-            call deallocate_atoms(atoms(i), "deallocation")
+            call deallocate_atoms_data(atoms(i))
          end do
          deallocate(atoms)
       end if

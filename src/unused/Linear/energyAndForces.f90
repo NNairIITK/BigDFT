@@ -52,7 +52,7 @@
 !!!type(orbitals_data),intent(in):: orbs
 !!!type(atoms_data),intent(in):: atoms
 !!!type(input_variables),intent(in):: in
-!!!type(communications_arrays),intent(in):: comms
+!!!type(comms_cubic),intent(in):: comms
 !!!type(linearParameters),intent(inout):: lin
 !!!type(nonlocal_psp_descriptors),intent(in) :: nlpspd
 !!!real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
@@ -1501,7 +1501,7 @@
 !!!type(orbitals_data),intent(in):: orbs
 !!!type(atoms_data),intent(in):: atoms
 !!!type(input_variables),intent(in):: in
-!!!type(communications_arrays),intent(in):: comms
+!!!type(comms_cubic),intent(in):: comms
 !!!type(linearParameters),intent(inout):: lin
 !!!type(nonlocal_psp_descriptors),intent(in) :: nlpspd
 !!!real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj

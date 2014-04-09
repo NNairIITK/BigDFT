@@ -6,13 +6,14 @@ subroutine calc_transfer_integrals_old(iproc,nproc,input_frag,ref_frags,orbs,ham
   use module_fragments
   use internal_io
   use module_interfaces
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   integer, intent(in) :: iproc, nproc
   type(fragmentInputParameters), intent(in) :: input_frag
   type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
   type(orbitals_data), intent(in) :: orbs
-  type(sparseMatrix), intent(inout) :: ham, ovrlp
+  type(sparse_matrix), intent(inout) :: ham, ovrlp
   !Local variables
   character(len=*), parameter :: subname='calc_transfer_integrals'
   integer :: i_stat, i_all, ifrag, jfrag, ntmb_tot, ind, itmb, ifrag_ref, ierr, ih, jh
@@ -109,12 +110,14 @@ subroutine calc_transfer_integral_old(iproc,nproc,input_frag,orbs,ham,ovrlp,homo
   use module_fragments
   use internal_io
   use module_interfaces
+  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix, only: uncompress_matrix
   implicit none
 
   integer, intent(in) :: iproc, nproc
   type(fragmentInputParameters), intent(in) :: input_frag
   type(orbitals_data), intent(in) :: orbs
-  type(sparseMatrix), intent(inout) :: ham, ovrlp
+  type(sparse_matrix), intent(inout) :: ham, ovrlp
   real(kind=gp), dimension(ovrlp%nfvctr,input_frag%nfrag), intent(in) :: homo_coeffs
   !Local variables
   character(len=*), parameter :: subname='calc_transfer_integral'
@@ -134,9 +137,11 @@ subroutine calc_transfer_integral_old(iproc,nproc,input_frag,orbs,ham,ovrlp,homo
   allocate(homo_ovrlp(input_frag%nfrag,input_frag%nfrag), stat=i_stat)
   call memocc(i_stat, homo_ovrlp, 'homo_ovrlp', subname)
 
-  allocate(ham%matrix(ham%nfvctr,ham%nfvctr), stat=i_stat)
-  call memocc(i_stat, ham%matrix, 'ham%matrix', subname)
-  call uncompressMatrix(iproc,ham)
+  !!allocate(ham%matrix(ham%nfvctr,ham%nfvctr), stat=i_stat)
+  !!call memocc(i_stat, ham%matrix, 'ham%matrix', subname)
+  ham%matrix=f_malloc_ptr((/ham%nfvctr,ham%nfvctr/),id='ham%matrix')
+  
+  call uncompress_matrix(iproc,ham)
 
   !DGEMM(TRANSA,TRANSB,M,N,K,ALPHA,A,LDA,B,LDB,BETA,C,LDC)
   !rows op(a) and c, cols op(b) and c, cols op(a) and rows op(b)
@@ -155,13 +160,15 @@ subroutine calc_transfer_integral_old(iproc,nproc,input_frag,orbs,ham,ovrlp,homo
       call mpiallred(homo_ham(1,1), input_frag%nfrag**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
 
-  i_all=-product(shape(ham%matrix))*kind(ham%matrix)
-  deallocate(ham%matrix, stat=i_stat)
-  call memocc(i_stat, i_all, 'ham%matrix', subname)
+  !!i_all=-product(shape(ham%matrix))*kind(ham%matrix)
+  !!deallocate(ham%matrix, stat=i_stat)
+  !!call memocc(i_stat, i_all, 'ham%matrix', subname)
+  call f_free_ptr(ham%matrix)
 
-  allocate(ovrlp%matrix(ovrlp%nfvctr,ovrlp%nfvctr), stat=i_stat)
-  call memocc(i_stat, ovrlp%matrix, 'ovrlp%matrix', subname)
-  call uncompressMatrix(iproc,ovrlp)
+  !!allocate(ovrlp%matrix(ovrlp%nfvctr,ovrlp%nfvctr), stat=i_stat)
+  !!call memocc(i_stat, ovrlp%matrix, 'ovrlp%matrix', subname)
+  ovrlp%matrix=f_malloc_ptr((/ovrlp%nfvctr,ovrlp%nfvctr/),id='ovrlp%matrix')
+  call uncompress_matrix(iproc,ovrlp)
 
   call to_zero(input_frag%nfrag**2, homo_ovrlp(1,1))
   if (orbs%norbp>0) then
@@ -175,9 +182,10 @@ subroutine calc_transfer_integral_old(iproc,nproc,input_frag,orbs,ham,ovrlp,homo
       call mpiallred(homo_ovrlp(1,1), input_frag%nfrag**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
 
-  i_all=-product(shape(ovrlp%matrix))*kind(ovrlp%matrix)
-  deallocate(ovrlp%matrix, stat=i_stat)
-  call memocc(i_stat, i_all, 'ovrlp%matrix', subname)
+  !!i_all=-product(shape(ovrlp%matrix))*kind(ovrlp%matrix)
+  !!deallocate(ovrlp%matrix, stat=i_stat)
+  !!call memocc(i_stat, i_all, 'ovrlp%matrix', subname)
+  call f_free_ptr(ovrlp%matrix)
 
   i_all = -product(shape(coeff_tmp))*kind(coeff_tmp)
   deallocate(coeff_tmp,stat=i_stat)
@@ -265,11 +273,12 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,homo_coeffs
   use module_fragments
   use internal_io
   use module_interfaces
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   integer, intent(in) :: iproc, nproc, nstates
   type(orbitals_data), intent(in) :: orbs
-  type(sparseMatrix), intent(inout) :: ham, ovrlp
+  type(sparse_matrix), intent(inout) :: ham, ovrlp
   real(kind=gp), dimension(ovrlp%nfvctr,nstates), intent(in) :: homo_coeffs1, homo_coeffs2
   real(kind=gp), dimension(nstates), intent(inout) :: homo_ham, homo_ovrlp
 
@@ -283,7 +292,7 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,homo_coeffs
   !DGEMM(TRANSA,TRANSB,M,N,K,ALPHA,A,LDA,B,LDB,BETA,C,LDC)
   !rows op(a) and c, cols op(b) and c, cols op(a) and rows op(b)
   !ham%matrix=f_malloc_ptr((/ham%nfvctr,ham%nfvctr/), id='ham%matrix')
-  !call uncompressMatrix(iproc,ham)
+  !call uncompress_matrix(iproc,ham)
   if (orbs%norbp>0) then
      do istate=1,nstates
         call dgemm('n', 'n', orbs%norbp, 1, orbs%norb, 1.d0, &
@@ -294,7 +303,7 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,homo_coeffs
              orbs%norb, coeff_tmp(1,istate), orbs%norbp, 0.d0, homo_ham(istate), 1)
      end do
   else
-     call razero(nstates,homo_ham(1))
+     call to_zero(nstates,homo_ham(1))
   end if
 
   if (nproc>1) then
@@ -304,7 +313,7 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,homo_coeffs
   !call f_free_ptr(ham%matrix)
 
   !ovrlp%matrix=f_malloc_ptr((/ovrlp%nfvctr,ovrlp%nfvctr/), id='ovrlp%matrix')
-  !call uncompressMatrix(iproc,ovrlp)
+  !call uncompress_matrix(iproc,ovrlp)
 
   if (orbs%norbp>0) then
      do istate=1,nstates
@@ -314,7 +323,7 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,homo_coeffs
              orbs%norb, coeff_tmp(1,istate), orbs%norbp, 0.d0, homo_ovrlp(istate), 1)
      end do
   else
-     call razero(nstates,homo_ovrlp(1))
+     call to_zero(nstates,homo_ovrlp(1))
   end if
 
   if (nproc>1) then
@@ -338,12 +347,14 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
   use module_fragments
   use internal_io
   use module_interfaces
+  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix, only: uncompress_matrix
   implicit none
 
   integer, intent(in) :: iproc, nproc, meth_overlap
   type(fragmentInputParameters), intent(in) :: input_frag
   type(orbitals_data), intent(in) :: orbs
-  type(sparseMatrix), intent(inout) :: ham, ovrlp
+  type(sparse_matrix), intent(inout) :: ham, ovrlp
   type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
   !Local variables
   integer :: i_stat, i_all, ifrag, jfrag, ntmb_tot, ind, itmb, ierr, i, j, nstates, istate, ih, ifrag_ref
@@ -372,7 +383,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
   homo_coeffs=f_malloc0((/ovrlp%nfvctr,nstates/), id='homo_coeffs')
   !coeffs_tmp=f_malloc((/ovrlp%nfvctr,ovrlp%nfvctr/), id='coeffs_tmp')
   ovrlp%matrix=f_malloc_ptr((/ovrlp%nfvctr,ovrlp%nfvctr/), id='ovrlp%matrix')
-  call uncompressMatrix(iproc,ovrlp)
+  call uncompress_matrix(iproc,ovrlp)
 
   istate=1
   ind=1
@@ -381,14 +392,14 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
 
      norb_tmp=min(ceiling((ref_frags(ifrag_ref)%nelec+1)/2.0_gp)+above_lumo,ref_frags(ifrag_ref)%fbasis%forbs%norb)
 
-     !call razero(ovrlp%nfvctr**2,coeffs_tmp(1,1),1)
+     !call to_zero(ovrlp%nfvctr**2,coeffs_tmp(1,1),1)
      do ih=1,norb_tmp
-        call dcopy(ref_frags(ifrag_ref)%fbasis%forbs%norb,ref_frags(ifrag_ref)%coeff(1,ih),1,homo_coeffs(ind,istate+ih-1),1)
-        !call dcopy(ref_frags(ifrag_ref)%fbasis%forbs%norb,ref_frags(ifrag_ref)%coeff(1,ih),1,coeffs_tmp(ind,ih),1)
+        call vcopy(ref_frags(ifrag_ref)%fbasis%forbs%norb,ref_frags(ifrag_ref)%coeff(1,ih),1,homo_coeffs(ind,istate+ih-1),1)
+        !call vcopy(ref_frags(ifrag_ref)%fbasis%forbs%norb,ref_frags(ifrag_ref)%coeff(1,ih),1,coeffs_tmp(ind,ih),1)
      end do
 
      !call reorthonormalize_coeff(iproc, nproc, norb_tmp, -8, -8, meth_overlap, orbs, ovrlp, coeffs_tmp(1,1))
-     !call dcopy(orbs%norb*norb_tmp,coeffs_tmp(1,1),1,homo_coeffs(1,istate),1)
+     !call vcopy(orbs%norb*norb_tmp,coeffs_tmp(1,1),1,homo_coeffs(1,istate),1)
 
      istate=istate+norb_tmp
      ind=ind+ref_frags(ifrag_ref)%fbasis%forbs%norb
@@ -396,16 +407,16 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
   !call f_free(coeffs_tmp)
 
   ham%matrix=f_malloc_ptr((/ham%nfvctr,ham%nfvctr/), id='ham%matrix')
-  call uncompressMatrix(iproc,ham)
+  call uncompress_matrix(iproc,ham)
   if (separate_site_energies .or. input_frag%nfrag==1) call calc_transfer_integral(iproc,nproc,nstates,&
        orbs,ham,ovrlp,homo_coeffs,homo_coeffs,homo_ham,homo_ovrlp)
 
   ! orthogonalize
   coeffs_tmp=f_malloc0((/orbs%norb,orbs%norb/), id='coeffs_tmp')
-  call dcopy(orbs%norb*nstates,homo_coeffs(1,1),1,coeffs_tmp(1,1),1)
+  call vcopy(orbs%norb*nstates,homo_coeffs(1,1),1,coeffs_tmp(1,1),1)
   call reorthonormalize_coeff(iproc, nproc, nstates, -8, -8, meth_overlap, orbs, ovrlp, coeffs_tmp(1,1))
   coeffs_orthog=f_malloc((/orbs%norb,nstates/), id='coeffs_orthog')
-  call dcopy(orbs%norb*nstates,coeffs_tmp(1,1),1,coeffs_orthog(1,1),1)
+  call vcopy(orbs%norb*nstates,coeffs_tmp(1,1),1,coeffs_orthog(1,1),1)
   call f_free(coeffs_tmp)
 
   ! only calculate site energies separately if specified or if not calculating them below

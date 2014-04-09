@@ -19,6 +19,7 @@ module dynamic_memory
 
   private 
 
+  logical, parameter :: track_origins=.true.!< when true keeps track of all the allocation statuses using dictionaries
   integer, parameter :: namelen=32          !< length of the character variables
   integer, parameter :: error_string_len=80 !< length of error string
   integer, parameter :: ndebug=0            !< size of debug parameters
@@ -42,12 +43,17 @@ module dynamic_memory
   character(len=*), parameter :: prof_enabled='Profiling Enabled'
 
   !error codes
-  integer :: ERR_ALLOCATE
-  integer :: ERR_DEALLOCATE
-  integer :: ERR_MEMLIMIT
-  integer :: ERR_INVALID_MALLOC
-  integer :: ERR_INVALID_RANK
-  integer :: ERR_MALLOC_INTERNAL
+  integer, save :: ERR_ALLOCATE
+  integer, save :: ERR_DEALLOCATE
+  integer, save :: ERR_MEMLIMIT
+  integer, save :: ERR_INVALID_MALLOC
+  integer, save :: ERR_INVALID_RANK
+  integer, save :: ERR_MALLOC_INTERNAL
+
+  !timing categories
+  integer, public, save :: TCAT_ARRAY_ALLOCATIONS
+  integer, public, save :: TCAT_INIT_TO_ZERO
+  integer, public, save :: TCAT_ROUTINE_PROFILING
 
   !> control structure of flib library. 
   !Contains all global variables of interest in a separate instance of f_lib
@@ -65,7 +71,7 @@ module dynamic_memory
   
   !>global variable controlling the different instances of the calls
   !the 0 component is supposed to be unused, it is allocated to avoid segfaults
-  ! if the library routines are called without initialization
+  !if the library routines are called without initialization
   type(mem_ctrl), dimension(0:max_ctrl) :: mems
 
   !> Structure needed to allocate an allocatable array
@@ -140,7 +146,7 @@ module dynamic_memory
      module procedure d1_all,d2_all,d3_all,d4_all,d5_all,d6_all
      module procedure r1_all,r2_all,r3_all
      module procedure d1_ptr,d2_ptr,d3_ptr,d4_ptr,d5_ptr
-     module procedure i1_ptr,i2_ptr
+     module procedure i1_ptr,i2_ptr,i3_ptr
      !strings and pointers for characters
      module procedure c1_all
 !     module procedure c1_ptr
@@ -166,7 +172,7 @@ module dynamic_memory
   end interface
 
   interface f_free_ptr
-     module procedure i1_ptr_free,i2_ptr_free
+     module procedure i1_ptr_free,i2_ptr_free,i3_ptr_free
      module procedure i1_ptr_free_multi
      module procedure d1_ptr_free,d2_ptr_free,d3_ptr_free,d4_ptr_free,d5_ptr_free
   end interface
@@ -179,6 +185,14 @@ module dynamic_memory
 !     module procedure c1_ptr_free
 !  end interface f_free_str_ptr
 
+  !> initialize to zero an array (should be called f_memset)
+  interface to_zero
+     module procedure put_to_zero_simple, &
+           put_to_zero_double, put_to_zero_double_1, put_to_zero_double_2, &
+           put_to_zero_double_3, put_to_zero_double_4, put_to_zero_double_5, &
+           put_to_zero_double_6, put_to_zero_double_7, &
+           put_to_zero_integer
+  end interface
 
   interface f_malloc
      module procedure f_malloc,f_malloc_simple
@@ -238,7 +252,7 @@ module dynamic_memory
   public :: f_malloc_str,f_malloc0_str,f_malloc_str_ptr,f_malloc0_str_ptr
   public :: f_free,f_free_ptr,f_free_str,f_free_str_ptr
   public :: f_routine,f_release_routine,f_malloc_set_status,f_malloc_initialize,f_malloc_finalize
-  public :: f_time
+  public :: f_time,to_zero
   public :: assignment(=),operator(.to.)
 
   !for internal f_lib usage
@@ -262,6 +276,157 @@ contains
     bounds%nlow=nlow
     bounds%nhigh=nhigh
   end function bounds
+
+  subroutine put_to_zero_simple(n,da)
+    implicit none
+    integer, intent(in) :: n
+    real(kind=4), intent(out) :: da
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel, omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
+
+    !call to custom routine
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+    call razero_simple(n,da)
+    if (.not. within_openmp) call f_timer_resume()
+  end subroutine put_to_zero_simple
+
+  subroutine put_to_zero_double(n,da)
+    implicit none
+    integer, intent(in) :: n
+    real(kind=8), intent(out) :: da
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel, omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
+
+    !call to custom routine
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+    call razero(n,da)
+    if (.not. within_openmp) call f_timer_resume()
+  end subroutine put_to_zero_double
+
+  subroutine put_to_zero_double_1(n,da)
+    implicit none
+    integer, intent(in) :: n
+    real(kind=8), dimension(:), intent(out) :: da
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel,omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
+
+    !call to custom routine
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+    call razero(n,da)
+    if (.not. within_openmp) call f_timer_resume()
+  end subroutine put_to_zero_double_1
+
+  subroutine put_to_zero_double_2(n,da)
+    implicit none
+    integer, intent(in) :: n
+    real(kind=8), dimension(:,:), intent(out) :: da
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel,omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
+
+    !call to custom routine
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+    call razero(n,da)
+    if (.not. within_openmp) call f_timer_resume()
+  end subroutine put_to_zero_double_2
+
+ subroutine put_to_zero_double_3(n,da)
+    implicit none
+    integer, intent(in) :: n
+    real(kind=8), dimension(:,:,:), intent(out) :: da
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel,omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
+
+    !call to custom routine
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
+    call razero(n,da)
+    if (.not. within_openmp) call f_timer_resume() 
+  end subroutine put_to_zero_double_3
+
+  subroutine put_to_zero_double_4(n,da)
+    implicit none
+    integer, intent(in) :: n
+    real(kind=8), dimension(:,:,:,:), intent(out) :: da
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel,omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
+
+    !call to custom routine
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
+    call razero(n,da)
+    if (.not. within_openmp) call f_timer_resume() 
+  end subroutine put_to_zero_double_4
+
+  subroutine put_to_zero_double_5(n,da)
+    implicit none
+    integer, intent(in) :: n
+    real(kind=8), dimension(:,:,:,:,:), intent(out) :: da
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel,omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
+
+    !call to custom routine
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
+    call razero(n,da)
+    if (.not. within_openmp) call f_timer_resume() 
+  end subroutine put_to_zero_double_5
+
+  subroutine put_to_zero_double_6(n,da)
+    implicit none
+    integer, intent(in) :: n
+    real(kind=8), dimension(:,:,:,:,:,:), intent(out) :: da
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel,omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
+
+    !call to custom routine
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
+    call razero(n,da)
+    if (.not. within_openmp) call f_timer_resume() 
+  end subroutine put_to_zero_double_6
+
+  subroutine put_to_zero_double_7(n,da)
+    implicit none
+    integer, intent(in) :: n
+    real(kind=8), dimension(:,:,:,:,:,:,:), intent(out) :: da
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel,omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
+
+    !call to custom routine
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
+    call razero(n,da)
+    if (.not. within_openmp) call f_timer_resume() 
+  end subroutine put_to_zero_double_7
+
+  subroutine put_to_zero_integer(n,da)
+    implicit none
+    integer, intent(in) :: n
+    integer, intent(out) :: da
+    logical :: within_openmp
+    !$ logical :: omp_in_parallel, omp_get_nested
+    within_openmp=.false.
+    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
+
+    !call to custom routine
+    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+    call razero_integer(n,da)
+    if (.not. within_openmp) call f_timer_resume()
+  end subroutine put_to_zero_integer
+
 
   pure function mem_ctrl_null() result(mem)
     type(mem_ctrl) :: mem
@@ -342,6 +507,7 @@ contains
     integer :: lgt,ncalls
     integer(kind=8) :: itime
 
+
     if (f_err_raise(ictrl == 0,&
          'ERROR (f_routine): the routine f_malloc_initialize has not been called',&
          ERR_MALLOC_INTERNAL)) return
@@ -350,6 +516,9 @@ contains
 
     !take the time
     itime=f_time()
+
+    !profile the profiling
+    call f_timer_interrupt(TCAT_ROUTINE_PROFILING)
 
     !desactivate profile_routine if the mother routine has desactivated it
     if (present(profile)) mems(ictrl)%profile_routine=mems(ictrl)%profile_routine .and. profile
@@ -408,6 +577,7 @@ contains
        mems(ictrl)%present_routine(1:lgt)=id(1:lgt)
 
     end if
+    call f_timer_resume()
   end subroutine f_routine
 
   !> Close a previously opened routine
@@ -419,6 +589,9 @@ contains
          'ERROR (f_release_routine): the routine f_malloc_initialize has not been called',&
          ERR_MALLOC_INTERNAL)) return
 
+    !profile the profiling
+    call f_timer_interrupt(TCAT_ROUTINE_PROFILING)
+
     if (associated(mems(ictrl)%dict_routine)) then
        call prepend(mems(ictrl)%dict_global,mems(ictrl)%dict_routine)
        nullify(mems(ictrl)%dict_routine)
@@ -427,33 +600,41 @@ contains
 
     call close_routine(mems(ictrl)%dict_codepoint,.not. mems(ictrl)%routine_opened)!trim(dict_key(dict_codepoint)))
 
-    if (f_err_check()) then
+!    if (f_err_check()) then
 !!$       call yaml_warning('ERROR found!')
 !!$       call f_dump_last_error()
 !!$       call yaml_comment('End of ERROR')
-       return
-    end if
+!       call f_timer_resume()
+!       return
+!    end if
     !last_opened_routine=trim(dict_key(dict_codepoint))!repeat(' ',namelen)
     !the main program is opened until there is a subprograms keyword
-    if (f_err_raise(.not. associated(mems(ictrl)%dict_codepoint%parent),'parent not associated(A)',&
-         ERR_MALLOC_INTERNAL)) return
-
-    if (dict_key(mems(ictrl)%dict_codepoint%parent) == subprograms) then
-    
+    if (f_err_raise(.not. associated(mems(ictrl)%dict_codepoint%parent),&
+         'parent not associated(A)',&
+         ERR_MALLOC_INTERNAL)) then
+       call f_timer_resume()
+       return
+    end if
+    if (dict_key(mems(ictrl)%dict_codepoint%parent) == subprograms) then    
        mems(ictrl)%dict_codepoint=>mems(ictrl)%dict_codepoint%parent
-
-       if (f_err_raise(.not. associated(mems(ictrl)%dict_codepoint%parent),'parent not associated(B)',&
-            ERR_MALLOC_INTERNAL)) return
+       if (f_err_raise(.not. associated(mems(ictrl)%dict_codepoint%parent),&
+            'parent not associated(B)',&
+            ERR_MALLOC_INTERNAL)) then
+          call f_timer_resume()
+          return
+       end if
        mems(ictrl)%dict_codepoint=>mems(ictrl)%dict_codepoint%parent
     else !back in the main program
        mems(ictrl)%routine_opened=.false.
     end if
 
-    mems(ictrl)%present_routine(1:len(mems(ictrl)%present_routine))=trim(dict_key(mems(ictrl)%dict_codepoint))
+    mems(ictrl)%present_routine(1:len(mems(ictrl)%present_routine))=&
+         trim(dict_key(mems(ictrl)%dict_codepoint))
     if (.not. has_key(mems(ictrl)%dict_codepoint,prof_enabled)) then
        call yaml_dict_dump(mems(ictrl)%dict_codepoint)
        call f_err_throw('The key '//prof_enabled//' is not present in the codepoint',&
             err_id=ERR_MALLOC_INTERNAL)
+       call f_timer_resume()
        return
     end if
 
@@ -466,6 +647,7 @@ contains
 !!$    call yaml_close_map()
 !!$    call yaml_comment('End of release routine',hfill='=')
     !end debug
+    call f_timer_resume()
   end subroutine f_release_routine
 
   !>create the id of a new routine in the codepoint and points to it.
@@ -563,10 +745,10 @@ contains
     implicit none
     
     call f_err_define(err_name='ERR_ALLOCATE',err_msg='Allocation error',err_id=ERR_ALLOCATE,&
-         err_action='Control the order of the allocation of if the memory limit has been reached',&
+         err_action='Control the order of the allocation or if the memory limit has been reached',&
          callback=f_malloc_callback)
-    call f_err_define(err_name='ERR_DEALLOCATE',err_msg='Dellocation error',err_id=ERR_DEALLOCATE,&
-         err_action='Control the order of the allocation of if the memory limit has been reached',&
+    call f_err_define(err_name='ERR_DEALLOCATE',err_msg='Deallocation error',err_id=ERR_DEALLOCATE,&
+         err_action='Control the order of the allocation or if the memory limit has been reached',&
          callback=f_malloc_callback)
     call f_err_define(err_name='ERR_MEMLIMIT',err_msg='Memory limit reached',err_id=ERR_MEMLIMIT,&
          err_action='Control the size of the arrays needed for this run with bigdft-tool program',&
@@ -716,24 +898,32 @@ contains
   end subroutine f_malloc_finalize
 
   !> Dump all allocations
-  subroutine dump_leaked_memory(dict)
+  subroutine dump_leaked_memory(dict,unit)
     use metadata_interfaces, only: address_toi
      use yaml_output
      implicit none
      type(dictionary), pointer, intent(in) :: dict
+     integer, intent(in), optional :: unit
      !Local variables
      type(dictionary), pointer :: dict_ptr!, dict_tmp
      character(len=256) :: array_id
+     integer :: iunt
+
+     if (present(unit)) then
+        iunt=unit
+     else
+        call yaml_get_default_stream(iunt)
+     end if
      dict_ptr => dict_next(dict)
      do while(associated(dict_ptr))
         if (has_key(dict_ptr,trim(arrayid))) then
            array_id = dict_ptr//arrayid
-           call yaml_open_map(trim(array_id))
-           call yaml_dict_dump(dict_ptr)
-           call yaml_map(metadatadd,trim(dict_key(dict_ptr)))
-           call yaml_close_map()
+           call yaml_open_map(trim(array_id),unit=iunt)
+           call yaml_dict_dump(dict_ptr,unit=iunt)
+           call yaml_map(metadatadd,trim(dict_key(dict_ptr)),unit=iunt)
+           call yaml_close_map(unit=iunt)
         else
-           call yaml_map(trim(dict_key(dict_ptr)),dict_ptr)
+           call yaml_map(trim(dict_key(dict_ptr)),dict_ptr,unit=iunt)
 
 !!$           call yaml_dict_dump(dict_ptr)
 !!$           call yaml_close_map()
@@ -742,27 +932,51 @@ contains
      end do
   end subroutine dump_leaked_memory
 
-  subroutine f_malloc_dump_status()
+  subroutine f_malloc_dump_status(filename)
     use yaml_output
     implicit none
+    character(len=*), intent(in), optional :: filename
+    !local variables
+    integer, parameter :: iunit=97 !<if used switch to default
+    integer :: iunt,iunit_def,istat
 
     if (f_err_raise(ictrl == 0,&
          'ERROR (f_malloc_dump_status): the routine f_malloc_initialize has not been called',&
          ERR_MALLOC_INTERNAL)) return
+    !retrieve current unit
+    call yaml_get_default_stream(iunit_def)
+    iunt=iunit_def
+    !inquire for presence of unit iunit in the case of filename
+    if (present(filename)) then
+       call yaml_set_stream(unit=iunit,filename=filename,position='rewind',setdefault=.false.,&
+            istat=istat)
+       if (istat /= 0) then
+          call yaml_newline()
+          call yaml_warning('Memory allocation status filename '//trim(filename)//&
+               ' not created, dumping in default stream')
+       else
+          iunt=iunit
+       end if
+    end if
 
-    call yaml_newline()
-    call yaml_open_map('Calling sequence of Main program')
-      call yaml_dict_dump(mems(ictrl)%dict_calling_sequence)
-    call yaml_close_map()
+    call yaml_newline(unit=iunt)
+    call yaml_open_map('Calling sequence of Main program',unit=iunt)
+      call yaml_dict_dump(mems(ictrl)%dict_calling_sequence,unit=iunt)
+    call yaml_close_map(unit=iunt)
     if (associated(mems(ictrl)%dict_routine)) then
-       call yaml_open_map('Routine dictionary')
-       call dump_leaked_memory(mems(ictrl)%dict_routine)
-       call yaml_close_map()
+       call yaml_open_map('Routine dictionary',unit=iunt)
+       call dump_leaked_memory(mems(ictrl)%dict_routine,unit=iunt)
+       call yaml_close_map(unit=iunt)
     end if
     call yaml_open_map('Global dictionary (size'//&
-         trim(yaml_toa(dict_size(mems(ictrl)%dict_global)))//')')
-    call dump_leaked_memory(mems(ictrl)%dict_global)
-    call yaml_close_map()
+         trim(yaml_toa(dict_size(mems(ictrl)%dict_global)))//')',unit=iunt)
+    call dump_leaked_memory(mems(ictrl)%dict_global,unit=iunt)
+    call yaml_close_map(unit=iunt)
+
+    !then close the file
+    if (iunt /= iunit_def) then
+       call yaml_close_stream(unit=iunt)
+    end if
 
   end subroutine f_malloc_dump_status
 

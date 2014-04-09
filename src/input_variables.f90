@@ -72,6 +72,8 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
      call read_sic_from_text_format(mpi_env%iproc,dict//SIC_VARIABLES, trim(f0))
      call set_inputfile(f0, radical, TDDFT_VARIABLES)
      call read_tddft_from_text_format(mpi_env%iproc,dict//TDDFT_VARIABLES, trim(f0))
+     call set_inputfile(f0, radical, 'lin')
+     call read_lin_from_text_format(mpi_env%iproc,dict, trim(f0))
   else
      ! We add an overloading input.perf (for automatic test purposes).
      ! This will be changed in far future when only YAML input will be allowed.
@@ -158,6 +160,7 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   use dynamic_memory
   use m_profiling, only: ab7_memocc_set_state => memocc_set_state !< abinit module to be removed
   use module_xc
+  use module_atoms, only: atoms_data,atoms_data_null,set_astruct_from_dict
   implicit none
   type(input_variables), intent(out) :: in
   type(atoms_data), intent(out) :: atoms
@@ -165,16 +168,16 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   logical, intent(in) :: dump
 
   !type(dictionary), pointer :: profs
-  integer :: ierr, ityp, iproc_node, nproc_node, nelec_up, nelec_down, norb_max
+  integer :: ierr, ityp, iproc_node, nproc_node, nelec_up, nelec_down, norb_max, jtype
   type(dictionary), pointer :: dict_minimal, var
   character(max_field_length) :: radical
 
   call f_routine(id='inputs_from_dict')
 
   ! Atoms case.
-  atoms = atoms_null()
+  atoms = atoms_data_null()
   if (.not. has_key(dict, "posinp")) stop "missing posinp"
-  call astruct_set_from_dict(dict // "posinp", atoms%astruct)
+  call set_astruct_from_dict(dict // "posinp", atoms%astruct)
 
   ! Input variables case.
   call default_input_variables(in)
@@ -187,10 +190,16 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   ! presence, we put a barrier here.
   if (bigdft_mpi%nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
 
+  !call yaml_map('Dictionary parsed',dict)
+
   ! Analyse the input dictionary and transfer it to in.
   ! extract also the minimal dictionary which is necessary to do this run
   call input_keys_fill_all(dict,dict_minimal)
 
+  !call yaml_map('Dictionary completed',dict)
+
+  !call yaml_map('Minimal dictionary',dict_minimal)
+  !stop
   ! Transfer dict values into input_variables structure.
   var => dict_iter(dict // PERF_VARIABLES)
   do while(associated(var))
@@ -222,6 +231,42 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
      call input_set(in, TDDFT_VARIABLES, var)
      var => dict_next(var)
   end do
+  var => dict_iter(dict // LIN_GENERAL)
+  do while(associated(var))
+     call input_set(in, LIN_GENERAL, var)
+     var => dict_next(var)
+  end do
+  var => dict_iter(dict // LIN_BASIS)
+  do while(associated(var))
+     call input_set(in, LIN_BASIS, var)
+     var => dict_next(var)
+  end do
+  var => dict_iter(dict // LIN_KERNEL)
+  do while(associated(var))
+     call input_set(in, LIN_KERNEL, var)
+     var => dict_next(var)
+  end do
+  call nullifyInputLinparameters(in%lin)
+  call allocateBasicArraysInputLin(in%lin, atoms%astruct%ntypes)
+
+  !first fill all the types by the default, then override by per-type values
+  do jtype=1,atoms%astruct%ntypes
+     var => dict_iter(dict//LIN_BASIS_PARAMS)
+     do while(associated(var))
+        call basis_params_set_dict(var,in%lin,jtype)
+        var => dict_next(var)
+     end do
+     !then check if the objects exists in separate specifications
+     if (has_key(dict//LIN_BASIS_PARAMS,trim(atoms%astruct%atomnames(jtype)))) then
+        var => &
+             dict_iter(dict//LIN_BASIS_PARAMS//trim(atoms%astruct%atomnames(jtype)))
+     end if
+     do while(associated(var))
+        call basis_params_set_dict(var,in%lin,jtype)
+        var => dict_next(var)
+     end do
+  end do
+
 
   if (.not. in%debug) then
      call ab7_memocc_set_state(1)
@@ -485,6 +530,7 @@ subroutine default_input_variables(in)
   nullify(in%lin%locrad_lowaccuracy)
   nullify(in%lin%locrad_highaccuracy)
   nullify(in%lin%locrad_type)
+  nullify(in%lin%kernel_cutoff_FOE)
   nullify(in%lin%kernel_cutoff)
   !nullify(in%frag%frag_info)
   nullify(in%frag%label)
@@ -591,6 +637,7 @@ subroutine allocateInputFragArrays(input_frag)
   allocate(input_frag%label(input_frag%nfrag_ref), stat=i_stat)
   call memocc(i_stat, input_frag%label, 'input_frag%label', subname)
 
+  !f_malloc0_str_ptr should be used here
   allocate(input_frag%dirname(input_frag%nfrag_ref), stat=i_stat)
   call memocc(i_stat, input_frag%dirname, 'input_frag%dirname', subname)
 
@@ -790,6 +837,9 @@ subroutine input_analyze(in)
   use module_types, only: input_variables
   use module_types, only: output_denspot_FORMAT_CUBE, output_denspot_NONE, WF_FORMAT_NONE
   use module_types, only: bigdft_mpi
+  use module_types, only: KERNELMODE_DIRMIN, KERNELMODE_DIAG, KERNELMODE_FOE, &
+                          MIXINGMODE_DENS, MIXINGMODE_POT, &
+                          LINEAR_DIRECT_MINIMIZATION, LINEAR_MIXDENS_SIMPLE, LINEAR_MIXPOT_SIMPLE, LINEAR_FOE
   use module_defs, only: gp
   use dynamic_memory
   use module_input_keys, only: input_keys_equal
@@ -814,6 +864,7 @@ subroutine input_analyze(in)
      end if
      write(*,'(5x,a)') 'This values will be adjusted if it is larger than the number of orbitals.'
   end if
+  !@todo also the inputguess variable should be checked if BC are nonFree
 
   ! the DFT variables ------------------------------------------------------
   in%SIC%ixc = in%ixc
@@ -859,6 +910,26 @@ subroutine input_analyze(in)
         in%qmass = f_malloc_ptr(in%nnos, id = "in%qmass")
      end if
   end if
+
+  ! determine the scf mode
+  select case (in%lin%kernel_mode)
+  case (KERNELMODE_DIRMIN)
+      in%lin%scf_mode = LINEAR_DIRECT_MINIMIZATION
+  case (KERNELMODE_DIAG)
+      select case (in%lin%mixing_mode)
+      case (MIXINGMODE_DENS)
+          in%lin%scf_mode = LINEAR_MIXDENS_SIMPLE
+      case (MIXINGMODE_POT)
+          in%lin%scf_mode = LINEAR_MIXPOT_SIMPLE
+      case default
+          stop 'wrong value of in%lin%mixing_mode'
+      end select
+  case (KERNELMODE_FOE)
+      in%lin%scf_mode = LINEAR_FOE
+  case default
+      stop 'wrong value of in%lin%kernel_mode'
+  end select
+
   call f_release_routine()
 END SUBROUTINE input_analyze
 
@@ -866,6 +937,7 @@ END SUBROUTINE input_analyze
 subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   use module_base
   use module_types
+  use module_atoms, only: symmetry_data
   use defs_basis
   use m_ab6_kpoints
   use yaml_output

@@ -164,11 +164,16 @@ module module_defs
       end if
       
       ! Summarize on processors
-      fnrm_denpot = nrm_local
-      if (bigdft_mpi%nproc > 1) then
-         call MPI_ALLREDUCE(nrm_local, fnrm_denpot, 1, &
-              & MPI_DOUBLE_PRECISION, MPI_SUM, bigdft_mpi%mpi_comm, ierr)
-         if (ierr /= 0) call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
+      !fnrm_denpot = nrm_local
+      if (bigdft_mpi%nproc>1) then
+          call MPI_ALLREDUCE(nrm_local, fnrm_denpot, 1, &
+               & MPI_DOUBLE_PRECISION, MPI_SUM, bigdft_mpi%mpi_comm, ierr)
+      else
+          fnrm_denpot = nrm_local
+          ierr = 0
+      end if
+      if (ierr /= 0) then
+         call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
       end if
     end function fnrm_denpot
 
@@ -239,10 +244,15 @@ module module_defs
       
       ! Summarize on processors
       fdot_denpot = dot_local
-      if (bigdft_mpi%nproc > 1) then
-         call MPI_ALLREDUCE(dot_local, fdot_denpot, 1, &
-              & MPI_DOUBLE_PRECISION, MPI_SUM, bigdft_mpi%mpi_comm, ierr)
-         if (ierr /= 0) call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
+      if (bigdft_mpi%nproc>1) then
+          call MPI_ALLREDUCE(dot_local, fdot_denpot, 1, &
+               & MPI_DOUBLE_PRECISION, MPI_SUM, bigdft_mpi%mpi_comm, ierr)
+      else
+          fdot_denpot = dot_local
+          ierr = 0
+      end if
+      if (ierr /= 0) then
+         call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
       end if
     end function fdot_denpot
 

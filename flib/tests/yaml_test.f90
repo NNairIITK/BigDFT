@@ -18,8 +18,11 @@ program yaml_test
 
    call f_lib_initialize()
 
-   !First document
-  
+   call profile_dictionary_usage()
+!!$   call f_lib_finalize()
+!!$   stop
+
+   !First document  
    call yaml_new_document()
    call yaml_comment('Yaml Output Module Test',hfill='~')
    call test_yaml_output1()

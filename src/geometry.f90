@@ -488,9 +488,9 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 
 
   ! Set to zero the arrays
-  call razero(runObj%inputs%history**2,product_matrix)
-  call razero(runObj%inputs%history*outs%fdim*3,previous_forces)
-  call razero(runObj%inputs%history*runObj%atoms%astruct%nat*3,previous_pos)
+  call to_zero(runObj%inputs%history**2,product_matrix)
+  call to_zero(runObj%inputs%history*outs%fdim*3,previous_forces)
+  call to_zero(runObj%inputs%history*runObj%atoms%astruct%nat*3,previous_pos)
 
   ! We set the first step and move to the second
   call vcopy(3 * outs%fdim, outs%fxyz (1,1), 1, previous_forces(1,1,1), 1)
@@ -569,7 +569,7 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 
 
      ! The solution that interests us is made of two parts
-     call razero(3 * runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz)
+     call to_zero(3 * runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz)
      do i = 1, maxter
         call axpy(3 * runObj%atoms%astruct%nat, solution(i), previous_pos(1,1,i), 1, runObj%atoms%astruct%rxyz(1,1), 1)
      end do

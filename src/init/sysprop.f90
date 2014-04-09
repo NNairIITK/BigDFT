@@ -21,6 +21,9 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   use gaussians, only: gaussian_basis
   use vdwcorrection
   use yaml_output
+  use module_atoms, only: set_symmetry_data
+  use communications_base, only: comms_cubic
+  use communications_init, only: orbitals_communicators
   implicit none
   integer, intent(in) :: iproc,nproc 
   logical, intent(in) :: dry_run, dump
@@ -31,7 +34,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   type(orbitals_data), intent(inout) :: orbs, lorbs
   type(local_zone_descriptors), intent(inout) :: Lzd, Lzd_lin
   type(DFT_PSP_projectors), intent(out) :: nlpsp
-  type(communications_arrays), intent(out) :: comms
+  type(comms_cubic), intent(out) :: comms
   real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
   real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
   type(system_fragment), dimension(:), pointer :: ref_frags
@@ -249,6 +252,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
   ! See if linear scaling should be activated and build the correct Lzd 
   call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)
+
   lzd_lin=default_lzd()
   call nullify_local_zone_descriptors(lzd_lin)
   lzd_lin%nlr = 0
@@ -266,9 +270,11 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
              input_wf_format,in%dir_output,'minBasis',ref_frags)
         !what to do with derivatives?
      end if
+
      call initLocregs(iproc, nproc, lzd_lin, Lzd_lin%hgrids(1), Lzd_lin%hgrids(2),Lzd_lin%hgrids(3), &
           atoms%astruct, lorbs, Lzd_lin%Glr, 's')
      call update_wavefunctions_size(lzd_lin,lnpsidim_orbs,lnpsidim_comp,lorbs,iproc,nproc)
+
   end if
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
@@ -276,12 +282,14 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        radii_cf,in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
        Lzd%hgrids(3),dry_run,nlpsp,proj_G)
   if (iproc == 0 .and. dump) call print_nlpsp(nlpsp)
-  !calculate the partitioning of the orbitals between the different processors
-
+  !the complicated part of the descriptors has not been filled
   if (dry_run) then
      call f_release_routine()
      return
   end if
+  !calculate the partitioning of the orbitals between the different processors
+!  print *,'here the localization regions should have been filled already'
+!  stop
 
 
   if (present(denspot)) then
@@ -293,7 +301,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   end if
 
   !calculate the irreductible zone for this region, if necessary.
-  call symmetry_set_irreductible_zone(atoms%astruct%sym,atoms%astruct%geocode, &
+  call set_symmetry_data(atoms%astruct%sym,atoms%astruct%geocode, &
        & Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, in%nspin)
 
   ! A message about dispersion forces.
@@ -302,7 +310,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   !check the communication distribution
   if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
      .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
-      call check_communications(iproc,nproc,orbs,Lzd%Glr,comms)
+      call check_communications(iproc,nproc,orbs,Lzd,comms)
   else
       ! Do not call check_communication, since the value of orbs%npsidim_orbs is wrong
       if(iproc==0) call yaml_warning('Do not call check_communications in the linear scaling version!')
@@ -826,10 +834,7 @@ subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
   real(gp) :: ehomo,maxrad,radfine!,rcov,rprb,amu
 
   do ityp=1,atoms%astruct%ntypes
-     !see whether the atom is semicore or not
-     !and consider the ground state electronic configuration
-     !call eleconf(atoms%nzatom(ityp),atoms%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
-     !     neleconf,nsccode,mxpl,mxchg,amu)
+
      call atomic_info(atoms%nzatom(ityp),atoms%nelpsp(ityp),ehomo=ehomo)
           
      if (atoms%radii_cf(ityp, 1) == UNINITIALIZED(1.0_gp)) then
@@ -961,7 +966,7 @@ subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
   end if
   do iat=1,atoms%astruct%nat
      ityp=atoms%astruct%iatype(iat)
-        call count_atomic_shells(nspin,atoms%aocc(1:,iat),occup,nl)
+        call count_atomic_shells(nspin,atoms%aoig(iat)%aocc,occup,nl)
      norbe=norbe+nl(1)+3*nl(2)+5*nl(3)+7*nl(4)
   end do
 end subroutine read_n_orbitals
@@ -1260,7 +1265,7 @@ subroutine kpts_to_procs_via_obj(nproc,nkpts,nobj,nobj_par)
         nproc_left=nproc-nproc_per_kpt*nkpts
         ikpt=0
         jproc=0
-        !print *,'qui',nproc_left,nproc_per_kpt
+        !print *,'here',nproc_left,nproc_per_kpt
         do kproc=0,nproc_left-1
            ikpt=ikpt+1
            if (ikpt > nkpts) stop 'ERROR: also this should not happen3'
@@ -1269,7 +1274,7 @@ subroutine kpts_to_procs_via_obj(nproc,nkpts,nobj,nobj_par)
            end do
            jproc=jproc+nproc_per_kpt+1
         end do
-        !print *,'ciao'
+        !print *,'debug'
         if ((nproc_per_kpt+1)*nproc_left < nproc) then
            do jproc=(nproc_per_kpt+1)*nproc_left,nproc-1,nproc_per_kpt
               ikpt=ikpt+1
@@ -1289,7 +1294,7 @@ subroutine kpts_to_procs_via_obj(nproc,nkpts,nobj,nobj_par)
         nkpts_left=nkpts-nkpt_per_proc*nproc
         ikpt=1
         jproc=-1
-        !print *,'qui',nkpts_left,nkpts_per_proc
+        !print *,'hello',nkpts_left,nkpts_per_proc
         do jkpt=1,nkpts_left
            jproc=jproc+1
            if (jproc > nproc-1) stop 'ERROR: also this should not happen4'

@@ -30,8 +30,8 @@ implicit none
 type(atoms_data), intent(in) :: atoms
 real(gp), dimension(:,:), pointer :: aocc
 */
-void FC_FUNC_(atoms_get_aocc, ATOMS_GET_AOCC)(const _atoms_data *atoms, 
-                                              f90_pointer_double_2D *aocc);
+//void FC_FUNC_(atoms_get_aocc, ATOMS_GET_AOCC)(const _atoms_data *atoms, 
+//                                              f90_pointer_double_2D *aocc);
 /* atoms_get_iasctype src/init/atoms.f90:1742 */
 /* Fortran header:
 subroutine atoms_get_iasctype(atoms, iasctype)
@@ -40,8 +40,8 @@ implicit none
 type(atoms_data), intent(in) :: atoms
 integer, dimension(:), pointer :: iasctype
 */
-void FC_FUNC_(atoms_get_iasctype, ATOMS_GET_IASCTYPE)(const _atoms_data *atoms, 
-                                                      f90_pointer_int *iasctype);
+/*void FC_FUNC_(atoms_get_iasctype, ATOMS_GET_IASCTYPE)(const _atoms_data *atoms, 
+  f90_pointer_int *iasctype);*/
 /* atoms_get_iatype src/init/atoms.f90:1732 */
 /* Fortran header:
 subroutine atoms_get_iatype(atoms, iatype)
@@ -285,9 +285,9 @@ character(len = *), intent(in) :: subname
 integer :: i_stat
 integer, parameter :: nelecmax=32
 */
-void FC_FUNC_(allocate_atoms_nat, ALLOCATE_ATOMS_NAT)(_atoms_data *atoms, 
+void FC_FUNC_(allocate_atoms_nat, ALLOCATE_ATOMS_NAT)(_atoms_data *atoms);/*, 
                                                       const char *subname, 
-                                                      int str_ln_1);
+                                                      int str_ln_1);*/
 /* allocate_atoms_ntypes src/init/atoms.f90:294 */
 /* Fortran header:
 subroutine allocate_atoms_ntypes(atoms, subname)
@@ -299,9 +299,9 @@ character(len = *), intent(in) :: subname
 
 integer :: i_stat
 */
-void FC_FUNC_(allocate_atoms_ntypes, ALLOCATE_ATOMS_NTYPES)(_atoms_data *atoms, 
+void FC_FUNC_(allocate_atoms_ntypes, ALLOCATE_ATOMS_NTYPES)(_atoms_data *atoms); /*, 
                                                             const char *subname, 
-                                                            int str_ln_1);
+                                                            int str_ln_1); */
 /* allocaterhopot src/init/denspotd.f90:436 */
 /* Fortran header:
 subroutine allocateRhoPot(iproc,Glr,nspin,atoms,rxyz,denspot)
@@ -453,9 +453,9 @@ character(len = *), intent(in) :: subname
 integer :: i_stat
 */
 void FC_FUNC_(astruct_set_n_atoms, ASTRUCT_SET_N_ATOMS)(_atomic_structure *astruct, 
-                                                        const int *nat, 
+                                                        const int *nat); /*, 
                                                         const char *subname, 
-                                                        int str_ln_1);
+                                                        int str_ln_1); */
 /* astruct_set_n_types src/init/atoms.f90:329 */
 /* Fortran header:
 subroutine astruct_set_n_types(astruct, ntypes, subname)
@@ -469,9 +469,9 @@ character(len = *), intent(in) :: subname
 integer :: i, i_stat
 */
 void FC_FUNC_(astruct_set_n_types, ASTRUCT_SET_N_TYPES)(_atomic_structure *astruct, 
-                                                        const int *ntypes, 
+                                                        const int *ntypes); /*, 
                                                         const char *subname, 
-                                                        int str_ln_1);
+                                                        int str_ln_1); */
 /* astruct_set_symmetries src/init/atoms.f90:352 */
 /* Fortran header:
 subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)

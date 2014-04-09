@@ -51,7 +51,7 @@ integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,ncong
   ! initializes the wavelet scaling coefficients 
   call wscal_init_per(scal,hx,hy,hz,cprecr)
   !b=x
-  call dcopy(nvctr_c+7*nvctr_f,x,1,b,1) 
+  call vcopy(nvctr_c+7*nvctr_f,x(1),1,b(1),1) 
 
   ! compute the input guess x via a Fourier transform in a cubic box.
   ! Arrays psifscf and ww serve as work arrays for the Fourier

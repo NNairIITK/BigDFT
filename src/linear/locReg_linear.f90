@@ -141,6 +141,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
   use module_base
   use module_types
   use module_interfaces, except_this_one => determine_locregSphere_parallel
+  use communications, only: communicate_locreg_descriptors_basics, communicate_locreg_descriptors_keys
 
   implicit none
   integer, intent(in) :: iproc,nproc
@@ -1764,6 +1765,9 @@ jseg=1
 nseg_k=0
 isoverlap = .false.
 onseg = 0  ! in case they don't overlap
+! Check whether all segments of both localization regions have been processed.
+if(iseg>=nseg_i .and. jseg>=nseg_j) return
+
 segment_loop: do
 
     ! Starting point already in global coordinates
@@ -1943,9 +1947,7 @@ integer :: ii
 end subroutine get_coordinates
 
 subroutine check_overlap(Llr_i, Llr_j, Glr, overlap)
-use module_base
-use module_types
-use module_interfaces
+use locregs, only: locreg_descriptors
 implicit none
 
 ! Calling arguments
@@ -2079,20 +2081,8 @@ integer,dimension(3,8) :: astart,bstart,aend,bend
      if(Jlr%outofzone(ii) > 0) bzones = bzones * 2
   end do
 
-!allocate astart and aend
-!!  allocate(astart(3,azones),stat=i_stat)
-!!  call memocc(i_stat,astart,'astart',subname)
-!!  allocate(aend(3,azones),stat=i_stat)
-!!  call memocc(i_stat,aend,'aend',subname)
-
 !FRACTURE THE FIRST LOCALIZATION REGION
   call fracture_periodic_zone(azones,Glr,Ilr,Ilr%outofzone,astart,aend)
-
-!allocate bstart and bend
-!!  allocate(bstart(3,bzones),stat=i_stat)
-!!  call memocc(i_stat,bstart,'bstart',subname)
-!!  allocate(bend(3,bzones),stat=i_stat)
-!!  call memocc(i_stat,bend,'bend',subname)
 
 !FRACTURE SECOND LOCREG
   call fracture_periodic_zone(bzones,Glr,Jlr,Jlr%outofzone,bstart,bend)
@@ -2110,20 +2100,6 @@ integer,dimension(3,8) :: astart,bstart,aend,bend
       end if
     end do
   end do loop_izones
-
-! Deallocation block
-!!  i_all = -product(shape(astart))*kind(astart)
-!!  deallocate(astart,stat=i_stat)
-!!  call memocc(i_stat,i_all,'astart',subname)
-!!  i_all = -product(shape(aend))*kind(aend)
-!!  deallocate(aend,stat=i_stat)
-!!  call memocc(i_stat,i_all,'aend',subname)
-!!  i_all = -product(shape(bstart))*kind(bstart)
-!!  deallocate(bstart,stat=i_stat)
-!!  call memocc(i_stat,i_all,'bstart',subname)
-!!  i_all = -product(shape(bend))*kind(bend)
-!!  deallocate(bend,stat=i_stat)
-!!  call memocc(i_stat,i_all,'bend',subname)
 
 end subroutine check_overlap_cubic_periodic
 
@@ -2297,7 +2273,8 @@ subroutine Lpsi_to_global2(iproc, ldim, gdim, norb, nspinor, nspin, Glr, Llr, lp
         end if
         if(Gmin > lmax) exit global_loop_c
 
-        if((lmin > Gmax) .or. (lmax < Gmin))  cycle global_loop_c
+        !if((lmin > Gmax) .or. (lmax < Gmin))  cycle global_loop_c
+        if(lmin > Gmax)  cycle global_loop_c
 
         ! Define the offset between the two segments
         offset = lmin - Gmin
@@ -2355,7 +2332,8 @@ subroutine Lpsi_to_global2(iproc, ldim, gdim, norb, nspinor, nspin, Glr, Llr, lp
             isegstart=isegG
         end if
         if(Gmin > lmax)  exit global_loop_f
-        if((lmin > Gmax) .or. (lmax < Gmin))  cycle global_loop_f
+        !if((lmin > Gmax) .or. (lmax < Gmin))  cycle global_loop_f
+        if(lmin > Gmax)  cycle global_loop_f
 
         offset = lmin - Gmin
         if(offset < 0) offset = 0
@@ -2389,6 +2367,7 @@ subroutine Lpsi_to_global2(iproc, ldim, gdim, norb, nspinor, nspin, Glr, Llr, lp
   if(icheck .ne. Llr%wfd%nvctr_f+Llr%wfd%nvctr_c) then
     write(*,*)'There is an error in Lpsi_to_global: sum of fine and coarse points used',icheck
     write(*,*)'is not equal to the sum of fine and coarse points in the region',Llr%wfd%nvctr_f+Llr%wfd%nvctr_c
+    stop
   end if
 
   i_all=-product(shape(keymask))*kind(keymask)

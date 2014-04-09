@@ -17,6 +17,9 @@ program WaCo
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use yaml_output
    use module_input_dicts
+   use module_atoms, only: deallocate_atoms_data
+   use communications_base, only: comms_cubic
+   use communications_init, only: orbitals_communicators
    implicit none
    character :: filetype*4,outputype*4
    type(locreg_descriptors) :: Glr
@@ -24,7 +27,7 @@ program WaCo
    type(atoms_data) :: atoms
    type(input_variables) :: input
    type(workarr_sumrho) :: w
-   type(communications_arrays), target :: commsw
+   type(comms_cubic), target :: commsw
    type(local_zone_descriptors) :: Lzd             !< debug only
    integer :: iiband,ldim,gdim                     !< debug only
    logical, dimension(:),allocatable :: calcbounds !< debug only
@@ -33,7 +36,7 @@ program WaCo
    real(gp) :: tel
    real(gp), dimension(3) :: shift,CM
    real(gp) :: dist,rad,sprdfact,sprddiff,enediff,sprdmult
-   integer :: iproc, nproc, nproctiming, i_stat, ierr, npsidim
+   integer :: iproc, nproc, i_stat, ierr, npsidim
    integer :: nvirtu,nvirtd,nrpts
    integer :: NeglectPoint, CNeglectPoint
    integer :: ncount0,ncount1,ncount_rate,ncount_max,iat,iformat
@@ -72,7 +75,7 @@ program WaCo
 !   integer :: indL,ilr
 !   real(kind=8),dimension(:,:),allocatable :: coeff
 !   type(orbitals_data) :: wannorbs
-!   type(communications_arrays), target :: wanncomms
+!   type(comms_cubic), target :: wanncomms
 !   real(wp), allocatable :: psi2(:)
 !   real(gp),allocatable :: cxyz2(:,:) !debug only
 !   integer, allocatable :: list(:)    !debug only
@@ -120,13 +123,17 @@ program WaCo
    end if
    call dict_free(user_inputs)
 
-   if (input%verbosity > 2) then
-      nproctiming=-nproc !timing in debug mode                                                                                                                                                                 
-   else
-      nproctiming=nproc
-   end if
+!!$   if (input%verbosity > 2) then
+!!$      nproctiming=-nproc !timing in debug mode
+!!$   else
+!!$      nproctiming=nproc
+!!$   end if
 
-   call timing(nproctiming,'WaCo_time.prc','IN')
+   !call timing(nproctiming,'WaCo_time.prc','IN')
+   call f_timing_reset(filename=trim(in%dir_output)//'WaCo_time.yaml',&
+        master=iproc==0,&
+        debug_mode=input%verbosity>2)
+
 
    call cpu_time(tcpu0)
    call system_clock(ncount0,ncount_rate,ncount_max) 
@@ -1295,14 +1302,14 @@ program WaCo
   call deallocate_lr(Glr,subname)
   call deallocate_orbs(orbs,subname)
   !call deallocate_atoms_scf(atoms,subname)
-  call deallocate_atoms(atoms,subname)
+  call deallocate_atoms_data(atoms)
 !  call free_input_variables(input)
   call bigdft_free_input(input)
 
   !#########################################################
   ! Ending timing and MPI
   !#########################################################
-  call timing(bigdft_mpi%mpi_comm,'             ','RE')
+  call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm)
 
   call cpu_time(tcpu1)
   call system_clock(ncount1,ncount_rate,ncount_max)
@@ -3329,7 +3336,7 @@ END SUBROUTINE get_mindist
 !     allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2+ndebug),stat=i_stat)
 !     call memocc(i_stat,psigold,'psigold',subname)
 !
-!     call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
+!     call to_zero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
 !     do iel=1,nvctr_c_old
 !        if (useFormattedInput) then
 !           read(unitwf,*) i1,i2,i3,tt

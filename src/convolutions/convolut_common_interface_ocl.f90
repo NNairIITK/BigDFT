@@ -31,7 +31,7 @@ subroutine init_acceleration_OCL(matacc,GPU)
   !call ocl_create_command_queue(GPU%queue,GPU%context)
   call ocl_build_programs(GPU%context)
   call ocl_create_command_queue_id(GPU%queue,GPU%context,GPU%id_proc)
-  call init_event_list
+  call init_event_list(GPU%context)
 END SUBROUTINE init_acceleration_OCL
 
 

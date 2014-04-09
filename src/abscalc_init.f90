@@ -547,7 +547,7 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 
   allocate(Gocc(PAWD%G%ncoeff+ndebug),stat=i_stat)
   call memocc(i_stat,Gocc,'Gocc',subname)
-  call razero(PAWD%G%ncoeff,Gocc)
+  call to_zero(PAWD%G%ncoeff,Gocc)
 
   ! allocated  : gaenes, Gocc , PAWD%iorbtolr,iorbto_l, iorbto_m,  iorbto_ishell,iorbto_iexpobeg, iorbto_paw_nchannels
 
