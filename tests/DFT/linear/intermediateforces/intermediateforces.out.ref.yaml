@@ -27,8 +27,8 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7.1.15
- Timestamp of this run                 : 2014-03-26 08:35:16.263
+ Version Number                        : 1.7.1.16
+ Timestamp of this run                 : 2014-04-09 08:17:48.457
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -52,6 +52,98 @@
      CFLAGS                            : -g -O2
      FCFLAGS                           : -O2 -i_dynamic -msse4.2 -heap-arrays 1024 -openmp
      CXXFLAGS                          : -g -O2
+ #... (file:input.lin).....................................................Linear Parameters
+ #|1              number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybri
+ #|5              outer loop iterations (low, high)                                          
+ #|6              basis iterations (low, high)                                               
+ #|1              kernel iterations (low, high) - directmin only                             
+ #|6              density iterations (low, high)                                             
+ #|6              DIIS history for basis (low, high)                                         
+ #|0              DIIS history for kernel (low, high) - directmin only                       
+ #|6              DIIS history for density mixing (low, high)                                
+ #|.1d0     .     density mixing parameter (low, high)                                       
+ #|1.d-10   1.d-1 outer loop convergence (low, high)                                         
+ #|4.0d-2   1.0d-3    1.d-3  1basis convergence (low, high) ; early stop TMB optimization, dy
+ #|-0.5d0         factor to reduce the confinement. Only used for hybrid mode.               
+ #|1.d-5    1.d   kernel convergence (low, high) - directmin only                            
+ #|1.d-8    1.d   density convergence (low, high)                                            
+ #|1.d-13         convergence criterion on density to fix TMBS                               
+ #|101            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
+ #|0.5d0    0.5   initial step size for basis optimization (DIIS, SD)                        
+ #|0.2d0          initial step size for kernel update (SD), curve fitting for alpha update - 
+ #|-1.0d0   1.0d  lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted a
+ #|10  1          number of iterations in the preconditioner, order of Taylor approximations 
+ #|1  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
+ #|1.d-2          fscale: length scale over which complementary error function decays from 1 
+ #|0 F F F F      Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
+ #|F F F 0        fragment calculation; calculate transfer_integrals; constrained DFT calcula
+ #|C  4 1.0d-1 9.5d-2 9.5d-2 3.5 3.5 3.5 10.d0 Atom name, number of basis functions per atom,
+ #|N  4 1.0d-1 9.5d-2 9.5d-2 3.5 3.5 3.5 10.d0 Atom name, number of basis functions per atom,
+ #|O  4 1.0d-1 9.5d-2 9.5d-2 3.5 3.5 3.5 10.d0 Atom name, number of basis functions per atom,
+ #|H  1 1.0d-1 9.5d-2 9.5d-2 3.5 3.5 3.5 10.d0 Atom name, number of basis functions per atom,
+ Dictionary for lin:
+   lin_general:
+     hybrid                            : Yes
+     nit: [5, 5]
+     rpnrm_cv: [1.00000000000000004E-010, 1.00000000000000004E-010]
+     conf_damping                      : -0.5
+     taylor_order                      : 1
+     output_wf                         : 0
+     calc_dipole                       : No
+     calc_pulay: [No, No]
+     subspace_diag                     : No
+   lin_basis:
+     nit: [6, 6]
+     idsx: [6, 6]
+     gnrm_cv: [4.00000000000000008E-002, 1.00000000000000002E-003]
+     deltae_cv                         : 1.00000000000000002E-003
+     gnrm_dyn                          : 1.00000000000000005E-004
+     alpha_diis                        : 0.5
+     alpha_sd                          : 0.5
+     nstep_prec                        : 10
+   lin_kernel:
+     nstep: [1, 1]
+     nit: [6, 6]
+     idsx_coeff: [0, 0]
+     idsx: [6, 6]
+     alphamix: [0.10000000000000001, 0.10000000000000001]
+     gnrm_cv_coeff: [1.00000000000000008E-005, 1.00000000000000008E-005]
+     rpnrm_cv: [1.00000000000000002E-008, 1.00000000000000002E-008]
+     linear_method                     : DIAG
+     mixing_method                     : DEN
+     alpha_sd_coeff                    : 0.20000000000000001
+     alpha_fit_coeff                   : No
+     eval_range_foe: [-1.0, 1.0]
+     fscale_foe                        : 1.00000000000000002E-002
+   lin_basis_params:
+     C:
+       nbasis                          : 4
+       ao_confinement                  : 0.10000000000000001
+       confinement: [9.50000000000000011E-002, 9.50000000000000011E-002]
+       rloc: [3.5, 3.5]
+       rloc_kernel                     : 3.5
+       rloc_kernel_foe                 : 10.0
+     N:
+       nbasis                          : 4
+       ao_confinement                  : 0.10000000000000001
+       confinement: [9.50000000000000011E-002, 9.50000000000000011E-002]
+       rloc: [3.5, 3.5]
+       rloc_kernel                     : 3.5
+       rloc_kernel_foe                 : 10.0
+     O:
+       nbasis                          : 4
+       ao_confinement                  : 0.10000000000000001
+       confinement: [9.50000000000000011E-002, 9.50000000000000011E-002]
+       rloc: [3.5, 3.5]
+       rloc_kernel                     : 3.5
+       rloc_kernel_foe                 : 10.0
+     H:
+       nbasis                          : 1
+       ao_confinement                  : 0.10000000000000001
+       confinement: [9.50000000000000011E-002, 9.50000000000000011E-002]
+       rloc: [3.5, 3.5]
+       rloc_kernel                     : 3.5
+       rloc_kernel_foe                 : 10.0
   #------------------------------------------------------------------------ Input parameters
  perf:
    debug                               : No #     debug option
@@ -101,6 +193,10 @@
    method_updatekernel                 : 0 #      linear scaling update density kernel during the sup. func. optimization (0 
     #                                              purification, 1 FOE)
    purification_quickreturn            : No #     linear scaling quick return in purification
+   adjust_FOE_temperature              : Yes #    linear scaling dynamic adjustment of the decay length of the FOE error function
+   calculate_gap                       : No #     linear scaling calculate the HOMO LUMO gap
+   loewdin_charge_analysis             : No #     linear scaling perform a Loewdin charge analysis at the end of the calculation
+   check_matrix_compression            : Yes #    linear scaling perform a check of the matrix compression routines
  dft:
    hgrids: [0.47999999999999998, 0.47999999999999998, 0.47999999999999998] # grid spacing in the three directions (bohr)
    rmult: [3.5, 4.5] #                            c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
@@ -320,98 +416,6 @@
      Fine                              : 0.20000000000000001
      Coarse PSP                        : 0.20000000000000001
      Source                            : Hard-coded
- #... (file:input.lin).....................................................Linear Parameters
- #|1              number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybri
- #|5              outer loop iterations (low, high)                                          
- #|6              basis iterations (low, high)                                               
- #|1              kernel iterations (low, high) - directmin only                             
- #|6              density iterations (low, high)                                             
- #|6              DIIS history for basis (low, high)                                         
- #|0              DIIS history for kernel (low, high) - directmin only                       
- #|6              DIIS history for density mixing (low, high)                                
- #|.1d0     .     density mixing parameter (low, high)                                       
- #|1.d-10   1.d-1 outer loop convergence (low, high)                                         
- #|4.0d-2   1.0d-3    1.d-3  1basis convergence (low, high) ; early stop TMB optimization, dy
- #|-0.5d0         factor to reduce the confinement. Only used for hybrid mode.               
- #|1.d-5    1.d   kernel convergence (low, high) - directmin only                            
- #|1.d-8    1.d   density convergence (low, high)                                            
- #|1.d-13         convergence criterion on density to fix TMBS                               
- #|101            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
- #|0.5d0    0.5   initial step size for basis optimization (DIIS, SD)                        
- #|0.2d0          initial step size for kernel update (SD), curve fitting for alpha update - 
- #|-1.0d0   1.0d  lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted a
- #|10  1          number of iterations in the preconditioner, order of Taylor approximations 
- #|1  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
- #|1.d-2          fscale: length scale over which complementary error function decays from 1 
- #|0 F F F F      Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|F F F 0        fragment calculation; calculate transfer_integrals; constrained DFT calcula
- #|C  4 1.0d-1 9.5d-2 9.5d-2 3.5 3.5 3.5 10.d0 Atom name, number of basis functions per atom,
- #|N  4 1.0d-1 9.5d-2 9.5d-2 3.5 3.5 3.5 10.d0 Atom name, number of basis functions per atom,
- #|O  4 1.0d-1 9.5d-2 9.5d-2 3.5 3.5 3.5 10.d0 Atom name, number of basis functions per atom,
- #|H  1 1.0d-1 9.5d-2 9.5d-2 3.5 3.5 3.5 10.d0 Atom name, number of basis functions per atom,
- Dictionary for lin:
-   lin_general:
-     hybrid                            : Yes
-     nit: [5, 5]
-     rpnrm_cv: [1.00000000000000004E-010, 1.00000000000000004E-010]
-     conf_damping                      : -0.5
-     taylor_order                      : 1
-     output_wf                         : 0
-     calc_dipole                       : No
-     calc_pulay: [No, No]
-     subspace_diag                     : No
-   lin_basis:
-     nit: [6, 6]
-     idsx: [6, 6]
-     gnrm_cv: [4.00000000000000008E-002, 1.00000000000000002E-003]
-     deltae_cv                         : 1.00000000000000002E-003
-     gnrm_dyn                          : 1.00000000000000005E-004
-     alpha_diis                        : 0.5
-     alpha_sd                          : 0.5
-     nstep_prec                        : 10
-   lin_kernel:
-     nstep: [1, 1]
-     nit: [6, 6]
-     idsx_coeff: [0, 0]
-     idsx: [6, 6]
-     alphamix: [0.10000000000000001, 0.10000000000000001]
-     gnrm_cv_coeff: [1.00000000000000008E-005, 1.00000000000000008E-005]
-     rpnrm_cv: [1.00000000000000002E-008, 1.00000000000000002E-008]
-     linear_method                     : DIAG
-     mixing_method                     : DEN
-     alpha_sd_coeff                    : 0.20000000000000001
-     alpha_fit_coeff                   : No
-     eval_range_foe: [-1.0, 1.0]
-     fscale_foe                        : 1.00000000000000002E-002
-   lin_basis_params:
-     C:
-       nbasis                          : 4
-       ao_confinement                  : 0.10000000000000001
-       confinement: [9.50000000000000011E-002, 9.50000000000000011E-002]
-       rloc: [3.5, 3.5]
-       rloc_kernel                     : 3.5
-       rloc_kernel_foe                 : 10.0
-     N:
-       nbasis                          : 4
-       ao_confinement                  : 0.10000000000000001
-       confinement: [9.50000000000000011E-002, 9.50000000000000011E-002]
-       rloc: [3.5, 3.5]
-       rloc_kernel                     : 3.5
-       rloc_kernel_foe                 : 10.0
-     O:
-       nbasis                          : 4
-       ao_confinement                  : 0.10000000000000001
-       confinement: [9.50000000000000011E-002, 9.50000000000000011E-002]
-       rloc: [3.5, 3.5]
-       rloc_kernel                     : 3.5
-       rloc_kernel_foe                 : 10.0
-     H:
-       nbasis                          : 1
-       ao_confinement                  : 0.10000000000000001
-       confinement: [9.50000000000000011E-002, 9.50000000000000011E-002]
-       rloc: [3.5, 3.5]
-       rloc_kernel                     : 3.5
-       rloc_kernel_foe                 : 10.0
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data/
   #-------------------------------------------------- Input Atomic System (file: posinp.xyz)
@@ -733,7 +737,7 @@
  Energies: {Ekin:  6.87239796690E+01, Epot: -6.20385745910E+01, Enl:  7.38914463281E+00}, 
  Orthoconstraint:  Yes,  #WARNING: EXPERIMENTAL: modify eval
  Preconditioning:  Yes, rel D:  3.72E-02, kappa:  6.005E-01, 
- iter:  2, fnrm:  3.23E-01, Omega: -2.512448007146004E+01, D: -9.01E-01, D best: -9.01E-01, 
+ iter:  2, fnrm:  3.23E-01, Omega: -2.512448007146007E+01, D: -9.01E-01, D best: -9.01E-01, 
  Optimization: {algorithm: DIIS, history length:  6, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  Yes}
@@ -769,7 +773,7 @@
  Energies: {Ekin:  6.87250484478E+01, Epot: -6.28500134404E+01, Enl:  7.61582282188E+00}, 
  Orthoconstraint:  Yes,  #WARNING: EXPERIMENTAL: modify eval
  Preconditioning:  Yes, rel D:  5.87E-02, kappa: -1.160E-01, 
- iter:  6, fnrm:  8.36E-02, Omega: -2.564608238364038E+01, D:  2.50E-03, D best:  2.50E-03, 
+ iter:  6, fnrm:  8.36E-02, Omega: -2.564608238364040E+01, D:  2.50E-03, D best:  2.50E-03, 
  Optimization: {algorithm: DIIS, history length:  6, consecutive failures:  1, 
            total failures:  1}, 
  Orthogonalization:  Yes}
@@ -819,7 +823,7 @@
  {e: -1.840741197766E-01, f:  2.0000},  # 00004
  {e: -1.212558076783E-01, f:  2.0000},  # 00005
  {e: -8.217828891641E-02, f:  2.0000},  # 00006
- {e: -2.790844465851E-03, f:  2.0000},  # 00007
+ {e: -2.790844465852E-03, f:  2.0000},  # 00007
  {e:  3.952656917136E-03, f:  2.0000},  # 00008
  {e:  2.831271495636E-02, f:  2.0000},  # 00009
  {e:  7.762820945857E-02, f:  2.0000},  # 00010
@@ -865,12 +869,12 @@
  Energies: {Ekin:  6.00847871238E+01, Epot: -6.30699925008E+01, Enl:  3.83184657075E+00}, 
  Orthoconstraint:  Yes,  #WARNING: EXPERIMENTAL: modify eval
  Preconditioning:  Yes, rel D:  5.52E-02, kappa:  6.588E-01, kappa to history:  Yes, 
- iter:  2, fnrm:  3.78E-01, Omega: -4.743140259684297E+01, D: -2.48E+00, D best: -2.48E+00, 
+ iter:  2, fnrm:  3.78E-01, Omega: -4.743140259684303E+01, D: -2.48E+00, D best: -2.48E+00, 
  exit criterion: energy difference}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
  Energies: {Ekin:  6.00847871238E+01, Epot: -6.30699925008E+01, Enl:  3.83184657075E+00}, 
- iter:  2, fnrm:  3.78E-01, Omega: -4.743140259684297E+01, D: -2.48E+00, D best: -2.48E+00}
+ iter:  2, fnrm:  3.78E-01, Omega: -4.743140259684303E+01, D: -2.48E+00, D best: -2.48E+00}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -904,9 +908,9 @@
  {e: -2.390553587011E-01, f:  2.0000},  # 00013
  {e: -1.425575119929E-01, f:  2.0000},  # 00014
  {e: -1.012898142001E-01, f:  2.0000},  # 00015
- {e: -5.116666860085E-02, f:  2.0000}] # 00016
+ {e: -5.116666860086E-02, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  1, delta:  2.62E-05, energy: -6.30855252838128564E+01, D: -6.309E+01}]
+ iter:  1, delta:  2.62E-05, energy: -6.30855252838128280E+01, D: -6.309E+01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  3.67E-02
@@ -936,7 +940,7 @@
  {e: -1.904793452029E-01, f:  2.0000},  # 00011
  {e: -1.491473828971E-01, f:  2.0000},  # 00012
  {e: -1.302533911677E-01, f:  2.0000},  # 00013
- {e: -4.845878443752E-02, f:  2.0000},  # 00014
+ {e: -4.845878443753E-02, f:  2.0000},  # 00014
  {e:  1.004895674477E-02, f:  2.0000},  # 00015
  {e:  5.065301013303E-02, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
@@ -969,12 +973,12 @@
  {e: -1.817034848434E-01, f:  2.0000},  # 00010
  {e: -1.744100587998E-01, f:  2.0000},  # 00011
  {e: -6.375480076719E-02, f:  2.0000},  # 00012
- {e:  3.475642228889E-03, f:  2.0000},  # 00013
+ {e:  3.475642228890E-03, f:  2.0000},  # 00013
  {e:  4.133161243782E-02, f:  2.0000},  # 00014
  {e:  1.116146458521E-01, f:  2.0000},  # 00015
  {e:  2.437132061475E-01, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  3, delta:  1.12E-05, energy: -5.54455705818177336E+01, D:  2.674E+00}]
+ iter:  3, delta:  1.12E-05, energy: -5.54455705818177620E+01, D:  2.674E+00}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        max dev from unity              :  3.67E-02
@@ -998,17 +1002,17 @@
  {e: -4.098921432387E-01, f:  2.0000},  # 00005
  {e: -3.221066465894E-01, f:  2.0000},  # 00006
  {e: -2.655276018380E-01, f:  2.0000},  # 00007
- {e: -1.871614295448E-01, f:  2.0000},  # 00008
+ {e: -1.871614295447E-01, f:  2.0000},  # 00008
  {e: -9.990489538136E-02, f:  2.0000},  # 00009
- {e: -7.628635430465E-02, f:  2.0000},  # 00010
- {e: -5.760816192369E-02, f:  2.0000},  # 00011
- {e:  2.151436740137E-02, f:  2.0000},  # 00012
- {e:  9.237820739699E-02, f:  2.0000},  # 00013
+ {e: -7.628635430464E-02, f:  2.0000},  # 00010
+ {e: -5.760816192368E-02, f:  2.0000},  # 00011
+ {e:  2.151436740138E-02, f:  2.0000},  # 00012
+ {e:  9.237820739700E-02, f:  2.0000},  # 00013
  {e:  1.387006007591E-01, f:  2.0000},  # 00014
  {e:  1.754651571398E-01, f:  2.0000},  # 00015
  {e:  2.859056277793E-01, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  4, delta:  6.58E-06, energy: -5.43918578335324554E+01, D:  1.054E+00}]
+ iter:  4, delta:  6.58E-06, energy: -5.43918578335325122E+01, D:  1.054E+00}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        max dev from unity              :  3.67E-02
@@ -1032,10 +1036,10 @@
  {e: -2.806286492155E-01, f:  2.0000},  # 00005
  {e: -2.495561193745E-01, f:  2.0000},  # 00006
  {e: -1.364727845475E-01, f:  2.0000},  # 00007
- {e: -8.427136475296E-02, f:  2.0000},  # 00008
- {e: -2.279482490182E-02, f:  2.0000},  # 00009
- {e:  1.160836453223E-02, f:  2.0000},  # 00010
- {e:  7.038127088197E-02, f:  2.0000},  # 00011
+ {e: -8.427136475295E-02, f:  2.0000},  # 00008
+ {e: -2.279482490181E-02, f:  2.0000},  # 00009
+ {e:  1.160836453224E-02, f:  2.0000},  # 00010
+ {e:  7.038127088198E-02, f:  2.0000},  # 00011
  {e:  8.258665431206E-02, f:  2.0000},  # 00012
  {e:  1.060355258690E-01, f:  2.0000},  # 00013
  {e:  1.403217634762E-01, f:  2.0000},  # 00014
@@ -1068,23 +1072,23 @@
  {e: -1.577938561624E-01, f:  2.0000},  # 00007
  {e: -1.088834893001E-01, f:  2.0000},  # 00008
  {e: -3.299210985687E-02, f:  2.0000},  # 00009
- {e: -3.382744732777E-03, f:  2.0000},  # 00010
- {e:  5.844927623357E-02, f:  2.0000},  # 00011
- {e:  7.489316274767E-02, f:  2.0000},  # 00012
+ {e: -3.382744732770E-03, f:  2.0000},  # 00010
+ {e:  5.844927623358E-02, f:  2.0000},  # 00011
+ {e:  7.489316274768E-02, f:  2.0000},  # 00012
  {e:  1.135280269738E-01, f:  2.0000},  # 00013
  {e:  1.298074165414E-01, f:  2.0000},  # 00014
  {e:  1.866317603828E-01, f:  2.0000},  # 00015
  {e:  2.625835303677E-01, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  6, delta:  4.72E-06, energy: -5.39943602886148852E+01, D:  3.807E-02}]
+ iter:  6, delta:  4.72E-06, energy: -5.39943602886148284E+01, D:  3.807E-02}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 7
  summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  7, delta:  4.72E-06, energy: -5.39943602886148852E+01, D:  3.807E-02}]}
+ iter:  7, delta:  4.72E-06, energy: -5.39943602886148284E+01, D:  3.807E-02}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, target function: HYBRID, mean conf prefac:  9.50E-02, 
  iterations to converge support functions:  2, kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter low:  1, delta out:  6.934E-06, energy: -5.39943602886148852E+01, D: -5.399E+01}
+ iter low:  1, delta out:  6.934E-06, energy: -5.39943602886148284E+01, D: -5.399E+01}
    Total charge                        :  3.199997140272E+01
    Poisson Solver:
      BC                                : Free
@@ -1098,23 +1102,23 @@
    Calculate Non Local forces          :  Yes
    Average noise forces: {x:  4.79917576E-01, y: -5.35391090E-02, z:  2.62863214E-02, 
                       total:  4.83609643E-01}
-   Clean forces norm (Ha/Bohr): {maxval:  5.413052296799E-01, fnrm2:  6.546603575131E-01}
-   Raw forces norm (Ha/Bohr): {maxval:  6.512704037775E-01, fnrm2:  9.095938492764E-01}
+   Clean forces norm (Ha/Bohr): {maxval:  5.413052296799E-01, fnrm2:  6.546603575130E-01}
+   Raw forces norm (Ha/Bohr): {maxval:  6.512704037775E-01, fnrm2:  9.095938492763E-01}
     #------------------------------------------------------------------------- Atomic Forces
    Atomic Forces (Ha/Bohr):
-   -  {C: [ 1.332319745470E-01, -7.918320020716E-03, -1.691893125960E-01]} # 0001
-   -  {C: [-2.705421308574E-02,  1.006282448236E-01,  2.464688387496E-01]} # 0002
-   -  {O: [ 1.877834951959E-01,  1.236730579016E-01,  1.833090887243E-01]} # 0003
-   -  {O: [ 3.089679419418E-02,  7.278000362650E-03, -1.558973074349E-01]} # 0004
+   -  {C: [ 1.332319745470E-01, -7.918320020705E-03, -1.691893125960E-01]} # 0001
+   -  {C: [-2.705421308574E-02,  1.006282448236E-01,  2.464688387495E-01]} # 0002
+   -  {O: [ 1.877834951959E-01,  1.236730579016E-01,  1.833090887242E-01]} # 0003
+   -  {O: [ 3.089679419419E-02,  7.278000362647E-03, -1.558973074348E-01]} # 0004
    -  {N: [ 3.907987065407E-01, -3.085352188326E-01, -2.123528699709E-01]} # 0005
-   -  {H: [-1.153951590164E-01, -3.304741814623E-02, -2.823850483744E-02]} # 0006
+   -  {H: [-1.153951590164E-01, -3.304741814623E-02, -2.823850483745E-02]} # 0006
    -  {H: [-2.383564500881E-02, -6.036494522910E-02,  1.383344537794E-02]} # 0007
-   -  {H: [-1.373772676586E-01, -2.407263690952E-03,  4.724230354112E-02]} # 0008
+   -  {H: [-1.373772676586E-01, -2.407263690950E-03,  4.724230354113E-02]} # 0008
    -  {H: [-1.345642132347E-01,  1.203006528214E-01, -7.917104783755E-02]} # 0009
    -  {H: [-1.307124099724E-01,  3.781095961668E-02,  1.098807916284E-01]} # 0010
-   -  {H: [-1.411189525109E-01, -5.446552592619E-03,  4.664314854621E-02]} # 0011
-   -  {H: [-3.265310999005E-02,  2.802880298625E-02, -2.528573890765E-03]} # 0012
-   multiplicator for the confinement   :  0.65879441012758833
+   -  {H: [-1.411189525109E-01, -5.446552592619E-03,  4.664314854620E-02]} # 0011
+   -  {H: [-3.265310999005E-02,  2.802880298624E-02, -2.528573890782E-03]} # 0012
+   multiplicator for the confinement   :  0.65879441012760354
     #WARNING: No orthogonalizing of the support functions
     #========================================================= support function optimization
  - support function optimization: &it_supfun002
@@ -1123,7 +1127,7 @@
  Energies: {Ekin:  6.00847871238E+01, Epot: -5.54642966684E+01, Enl:  3.83184657075E+00}, 
  Orthoconstraint:  Yes,  #WARNING: EXPERIMENTAL: modify eval
  Preconditioning:  Yes, rel D:  0.00E+00, 
- iter:  1, fnrm:  3.31E-01, Omega: -4.875921139648155E+01, D: -3.81E+00, D best: -3.81E+00, 
+ iter:  1, fnrm:  3.31E-01, Omega: -4.875921139648101E+01, D: -3.81E+00, D best: -3.81E+00, 
  Optimization: {algorithm: DIIS, history length:  6, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes, 
@@ -1133,12 +1137,12 @@
  Energies: {Ekin:  5.82091285619E+01, Epot: -5.35488192034E+01, Enl:  3.67642700147E+00}, 
  Orthoconstraint:  Yes,  #WARNING: EXPERIMENTAL: modify eval
  Preconditioning:  Yes, rel D:  1.85E-02, kappa:  4.279E-01, kappa to history:  Yes, 
- iter:  2, fnrm:  2.41E-01, Omega: -4.966263873312052E+01, D: -9.03E-01, D best: -9.03E-01, 
+ iter:  2, fnrm:  2.41E-01, Omega: -4.966263873311992E+01, D: -9.03E-01, D best: -9.03E-01, 
  exit criterion: energy difference}
    -  &final_supfun002  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
  Energies: {Ekin:  5.82091285619E+01, Epot: -5.35488192034E+01, Enl:  3.67642700147E+00}, 
- iter:  2, fnrm:  2.41E-01, Omega: -4.966263873312052E+01, D: -9.03E-01, D best: -9.03E-01}
+ iter:  2, fnrm:  2.41E-01, Omega: -4.966263873311992E+01, D: -9.03E-01, D best: -9.03E-01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
@@ -1165,16 +1169,16 @@
  {e: -2.887866331649E-01, f:  2.0000},  # 00006
  {e: -2.005354716150E-01, f:  2.0000},  # 00007
  {e: -1.525435136920E-01, f:  2.0000},  # 00008
- {e: -5.019674536090E-02, f:  2.0000},  # 00009
- {e: -3.530576167415E-02, f:  2.0000},  # 00010
- {e: -3.430679606718E-02, f:  2.0000},  # 00011
- {e:  4.516835498939E-02, f:  2.0000},  # 00012
- {e:  4.768947120724E-02, f:  2.0000},  # 00013
+ {e: -5.019674536089E-02, f:  2.0000},  # 00009
+ {e: -3.530576167414E-02, f:  2.0000},  # 00010
+ {e: -3.430679606717E-02, f:  2.0000},  # 00011
+ {e:  4.516835498940E-02, f:  2.0000},  # 00012
+ {e:  4.768947120725E-02, f:  2.0000},  # 00013
  {e:  1.077415194041E-01, f:  2.0000},  # 00014
  {e:  1.566286224272E-01, f:  2.0000},  # 00015
  {e:  2.462201903780E-01, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  1, delta:  4.38E-06, energy: -5.49585039010950851E+01, D: -9.641E-01}]
+ iter:  1, delta:  4.38E-06, energy: -5.49585039010949998E+01, D: -9.641E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  6.70E-02
@@ -1199,12 +1203,12 @@
  {e: -2.905256646048E-01, f:  2.0000},  # 00006
  {e: -2.110126480077E-01, f:  2.0000},  # 00007
  {e: -1.677176750199E-01, f:  2.0000},  # 00008
- {e: -4.585929120644E-02, f:  2.0000},  # 00009
- {e: -4.415721339369E-02, f:  2.0000},  # 00010
- {e: -4.114321950909E-02, f:  2.0000},  # 00011
- {e:  3.288729754230E-02, f:  2.0000},  # 00012
- {e:  3.668254475281E-02, f:  2.0000},  # 00013
- {e:  9.744613173390E-02, f:  2.0000},  # 00014
+ {e: -4.585929120643E-02, f:  2.0000},  # 00009
+ {e: -4.415721339368E-02, f:  2.0000},  # 00010
+ {e: -4.114321950908E-02, f:  2.0000},  # 00011
+ {e:  3.288729754231E-02, f:  2.0000},  # 00012
+ {e:  3.668254475282E-02, f:  2.0000},  # 00013
+ {e:  9.744613173391E-02, f:  2.0000},  # 00014
  {e:  1.470765330889E-01, f:  2.0000},  # 00015
  {e:  2.447283282693E-01, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
@@ -1236,13 +1240,13 @@
  {e: -4.506406420347E-02, f:  2.0000},  # 00009
  {e: -4.268185218615E-02, f:  2.0000},  # 00010
  {e: -2.886379387410E-02, f:  2.0000},  # 00011
- {e:  2.527730972438E-02, f:  2.0000},  # 00012
- {e:  3.742115176086E-02, f:  2.0000},  # 00013
- {e:  9.748619640691E-02, f:  2.0000},  # 00014
+ {e:  2.527730972439E-02, f:  2.0000},  # 00012
+ {e:  3.742115176087E-02, f:  2.0000},  # 00013
+ {e:  9.748619640692E-02, f:  2.0000},  # 00014
  {e:  1.483777783873E-01, f:  2.0000},  # 00015
  {e:  2.316207358439E-01, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  3, delta:  3.93E-06, energy: -5.49129387304331118E+01, D:  5.159E-03}]
+ iter:  3, delta:  3.93E-06, energy: -5.49129387304330834E+01, D:  5.159E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        max dev from unity              :  6.70E-02
@@ -1261,22 +1265,22 @@
      Orbitals: [
  {e: -7.244864608308E-01, f:  2.0000},  # 00001
  {e: -6.482203517224E-01, f:  2.0000},  # 00002
- {e: -6.178547705838E-01, f:  2.0000},  # 00003
+ {e: -6.178547705837E-01, f:  2.0000},  # 00003
  {e: -4.145077388674E-01, f:  2.0000},  # 00004
  {e: -3.070723558763E-01, f:  2.0000},  # 00005
- {e: -2.806232976538E-01, f:  2.0000},  # 00006
+ {e: -2.806232976537E-01, f:  2.0000},  # 00006
  {e: -2.014961519925E-01, f:  2.0000},  # 00007
  {e: -1.631550620529E-01, f:  2.0000},  # 00008
- {e: -4.779051811643E-02, f:  2.0000},  # 00009
- {e: -4.538101576135E-02, f:  2.0000},  # 00010
- {e: -2.526070187671E-02, f:  2.0000},  # 00011
+ {e: -4.779051811642E-02, f:  2.0000},  # 00009
+ {e: -4.538101576134E-02, f:  2.0000},  # 00010
+ {e: -2.526070187670E-02, f:  2.0000},  # 00011
  {e:  2.153623009418E-02, f:  2.0000},  # 00012
- {e:  3.430917953737E-02, f:  2.0000},  # 00013
- {e:  9.442120468060E-02, f:  2.0000},  # 00014
+ {e:  3.430917953738E-02, f:  2.0000},  # 00013
+ {e:  9.442120468061E-02, f:  2.0000},  # 00014
  {e:  1.464440863540E-01, f:  2.0000},  # 00015
  {e:  2.301858817548E-01, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  4, delta:  3.56E-06, energy: -5.48965721298065006E+01, D:  1.637E-02}]
+ iter:  4, delta:  3.56E-06, energy: -5.48965721298064437E+01, D:  1.637E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        max dev from unity              :  6.70E-02
@@ -1302,15 +1306,15 @@
  {e: -2.163040600838E-01, f:  2.0000},  # 00007
  {e: -1.859558973348E-01, f:  2.0000},  # 00008
  {e: -8.224234472696E-02, f:  2.0000},  # 00009
- {e: -7.859846669733E-02, f:  2.0000},  # 00010
- {e: -5.262701043097E-02, f:  2.0000},  # 00011
- {e: -2.691668994962E-03, f:  2.0000},  # 00012
- {e:  5.713470094357E-02, f:  2.0000},  # 00013
+ {e: -7.859846669732E-02, f:  2.0000},  # 00010
+ {e: -5.262701043096E-02, f:  2.0000},  # 00011
+ {e: -2.691668994956E-03, f:  2.0000},  # 00012
+ {e:  5.713470094358E-02, f:  2.0000},  # 00013
  {e:  5.828568631311E-02, f:  2.0000},  # 00014
- {e:  1.192275549337E-01, f:  2.0000},  # 00015
+ {e:  1.192275549338E-01, f:  2.0000},  # 00015
  {e:  1.513508169779E-01, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  5, delta:  3.59E-06, energy: -5.48847613475714269E+01, D:  1.181E-02}]
+ iter:  5, delta:  3.59E-06, energy: -5.48847613475713700E+01, D:  1.181E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 6
      Kernel update:
        max dev from unity              :  6.70E-02
@@ -1335,24 +1339,24 @@
  {e: -2.367613843486E-01, f:  2.0000},  # 00006
  {e: -2.221030827059E-01, f:  2.0000},  # 00007
  {e: -1.885061934463E-01, f:  2.0000},  # 00008
- {e: -9.056087812361E-02, f:  2.0000},  # 00009
+ {e: -9.056087812362E-02, f:  2.0000},  # 00009
  {e: -8.680906160799E-02, f:  2.0000},  # 00010
  {e: -6.106481332630E-02, f:  2.0000},  # 00011
- {e: -1.156293693809E-02, f:  2.0000},  # 00012
- {e:  4.910092353806E-02, f:  2.0000},  # 00013
- {e:  6.820172776766E-02, f:  2.0000},  # 00014
+ {e: -1.156293693810E-02, f:  2.0000},  # 00012
+ {e:  4.910092353805E-02, f:  2.0000},  # 00013
+ {e:  6.820172776765E-02, f:  2.0000},  # 00014
  {e:  1.125748427468E-01, f:  2.0000},  # 00015
  {e:  1.418502619617E-01, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  6, delta:  3.67E-06, energy: -5.48807009588403076E+01, D:  4.060E-03}]
+ iter:  6, delta:  3.67E-06, energy: -5.48807009588402508E+01, D:  4.060E-03}]
    -  &final_kernel002  { #-------------------------------------------------------- iter: 7
  summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  7, delta:  3.67E-06, energy: -5.48807009588403076E+01, D:  4.060E-03}]}
+ iter:  7, delta:  3.67E-06, energy: -5.48807009588402508E+01, D:  4.060E-03}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc002
    -  {iter:  2, target function: HYBRID, mean conf prefac:  6.26E-02, 
  iterations to converge support functions:  2, kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter low:  2, delta out:  2.818E-06, energy: -5.48807009588403076E+01, D: -8.863E-01}
+ iter low:  2, delta out:  2.818E-06, energy: -5.48807009588402508E+01, D: -8.863E-01}
    Total charge                        :  3.199997282482E+01
    Poisson Solver:
      BC                                : Free
@@ -1367,22 +1371,22 @@
    Average noise forces: {x:  1.32343837E-01, y:  1.83944019E-01, z: -2.04293688E-01, 
                       total:  3.05100318E-01}
    Clean forces norm (Ha/Bohr): {maxval:  3.149224704251E-01, fnrm2:  2.959992804457E-01}
-   Raw forces norm (Ha/Bohr): {maxval:  3.940381205179E-01, fnrm2:  3.980854578632E-01}
+   Raw forces norm (Ha/Bohr): {maxval:  3.940381205180E-01, fnrm2:  3.980854578633E-01}
     #------------------------------------------------------------------------- Atomic Forces
    Atomic Forces (Ha/Bohr):
-   -  {C: [ 4.256024715349E-02,  1.970291704062E-01, -2.313825268186E-01]} # 0001
-   -  {C: [-4.551745646559E-02, -6.606549077293E-03,  3.248462390238E-02]} # 0002
-   -  {O: [ 3.067305929787E-01,  5.678528313944E-02,  4.321964053953E-02]} # 0003
-   -  {O: [-3.628297575878E-03,  1.284953524081E-01,  5.666287149058E-02]} # 0004
-   -  {N: [-7.916334980418E-02, -2.449661687207E-02, -7.546895336583E-02]} # 0005
-   -  {H: [ 3.033625701556E-02, -1.044175271614E-02, -1.826293992702E-02]} # 0006
-   -  {H: [-3.281591669132E-02, -6.478010542319E-02, -1.974076278236E-02]} # 0007
-   -  {H: [-4.434726807228E-02, -6.159873714343E-02, -4.281301964875E-02]} # 0008
-   -  {H: [-5.938358112315E-02, -1.386659106120E-01,  8.558244103455E-02]} # 0009
-   -  {H: [-6.490582998414E-02, -8.103147851168E-03,  9.469956025369E-02]} # 0010
-   -  {H: [ 1.222416194079E-03, -9.908751842922E-03,  5.140327818537E-02]} # 0011
-   -  {H: [-5.108781362526E-02, -5.770823441547E-02,  2.361578713641E-02]} # 0012
-   multiplicator for the confinement   :  0.42785284013846442
+   -  {C: [ 4.256024715368E-02,  1.970291704062E-01, -2.313825268186E-01]} # 0001
+   -  {C: [-4.551745646566E-02, -6.606549077371E-03,  3.248462390217E-02]} # 0002
+   -  {O: [ 3.067305929787E-01,  5.678528313941E-02,  4.321964053944E-02]} # 0003
+   -  {O: [-3.628297575985E-03,  1.284953524080E-01,  5.666287149049E-02]} # 0004
+   -  {N: [-7.916334980431E-02, -2.449661687191E-02, -7.546895336557E-02]} # 0005
+   -  {H: [ 3.033625701559E-02, -1.044175271615E-02, -1.826293992705E-02]} # 0006
+   -  {H: [-3.281591669129E-02, -6.478010542320E-02, -1.974076278237E-02]} # 0007
+   -  {H: [-4.434726807227E-02, -6.159873714344E-02, -4.281301964873E-02]} # 0008
+   -  {H: [-5.938358112311E-02, -1.386659106120E-01,  8.558244103461E-02]} # 0009
+   -  {H: [-6.490582998418E-02, -8.103147851187E-03,  9.469956025371E-02]} # 0010
+   -  {H: [ 1.222416194037E-03, -9.908751842911E-03,  5.140327818542E-02]} # 0011
+   -  {H: [-5.108781362526E-02, -5.770823441543E-02,  2.361578713644E-02]} # 0012
+   multiplicator for the confinement   :  0.42785284013844083
     #WARNING: No orthogonalizing of the support functions
     #========================================================= support function optimization
  - support function optimization: &it_supfun003
@@ -1391,7 +1395,7 @@
  Energies: {Ekin:  5.82091285619E+01, Epot: -5.73958047687E+01, Enl:  3.67642700147E+00}, 
  Orthoconstraint:  Yes,  #WARNING: EXPERIMENTAL: modify eval
  Preconditioning:  Yes, rel D:  0.00E+00, 
- iter:  1, fnrm:  2.85E-01, Omega: -5.672144067577030E+01, D: -7.96E+00, D best: -7.96E+00, 
+ iter:  1, fnrm:  2.85E-01, Omega: -5.672144067576828E+01, D: -7.96E+00, D best: -7.96E+00, 
  Optimization: {algorithm: DIIS, history length:  6, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes, 
@@ -1402,12 +1406,12 @@
  Orthoconstraint:  Yes,  #WARNING: EXPERIMENTAL: modify eval
  Preconditioning:  Yes, rel D:  1.70E-02, kappa:  5.319E-01, kappa to history:  Yes, 
       mean kappa:  5.395E-01, dynamic conv crit:  1.85E-04, 
- iter:  2, fnrm:  1.43E-01, Omega: -5.768410405675762E+01, D: -9.63E-01, D best: -9.63E-01, 
+ iter:  2, fnrm:  1.43E-01, Omega: -5.768410405675583E+01, D: -9.63E-01, D best: -9.63E-01, 
  exit criterion: energy difference}
    -  &final_supfun003  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
  Energies: {Ekin:  5.53428958542E+01, Epot: -5.46975699204E+01, Enl:  3.53929005171E+00}, 
- iter:  2, fnrm:  1.43E-01, Omega: -5.768410405675762E+01, D: -9.63E-01, D best: -9.63E-01}
+ iter:  2, fnrm:  1.43E-01, Omega: -5.768410405675583E+01, D: -9.63E-01, D best: -9.63E-01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel003
@@ -1426,24 +1430,24 @@
  Poisson Solver: {BC: Free, Box:  [  107,  93,  99 ], MPI tasks:  4}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -7.769835976681E-01, f:  2.0000},  # 00001
- {e: -6.724376641705E-01, f:  2.0000},  # 00002
- {e: -6.516848870948E-01, f:  2.0000},  # 00003
+ {e: -7.769835976680E-01, f:  2.0000},  # 00001
+ {e: -6.724376641704E-01, f:  2.0000},  # 00002
+ {e: -6.516848870947E-01, f:  2.0000},  # 00003
  {e: -4.633367996405E-01, f:  2.0000},  # 00004
- {e: -3.597743863496E-01, f:  2.0000},  # 00005
- {e: -2.765617735623E-01, f:  2.0000},  # 00006
- {e: -2.443106784336E-01, f:  2.0000},  # 00007
- {e: -2.210046599517E-01, f:  2.0000},  # 00008
+ {e: -3.597743863495E-01, f:  2.0000},  # 00005
+ {e: -2.765617735622E-01, f:  2.0000},  # 00006
+ {e: -2.443106784335E-01, f:  2.0000},  # 00007
+ {e: -2.210046599516E-01, f:  2.0000},  # 00008
  {e: -1.425506124857E-01, f:  2.0000},  # 00009
  {e: -1.395761521883E-01, f:  2.0000},  # 00010
- {e: -9.257772268023E-02, f:  2.0000},  # 00011
- {e: -6.096850668231E-02, f:  2.0000},  # 00012
- {e:  2.492483687299E-03, f:  2.0000},  # 00013
- {e:  1.839419367840E-02, f:  2.0000},  # 00014
- {e:  6.821296672074E-02, f:  2.0000},  # 00015
+ {e: -9.257772268022E-02, f:  2.0000},  # 00011
+ {e: -6.096850668226E-02, f:  2.0000},  # 00012
+ {e:  2.492483687348E-03, f:  2.0000},  # 00013
+ {e:  1.839419367847E-02, f:  2.0000},  # 00014
+ {e:  6.821296672079E-02, f:  2.0000},  # 00015
  {e:  1.140885346204E-01, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  1, delta:  4.09E-06, energy: -5.58150307869500324E+01, D: -9.343E-01}]
+ iter:  1, delta:  4.09E-06, energy: -5.58150307869499755E+01, D: -9.343E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  7.57E-02
@@ -1462,22 +1466,22 @@
      Orbitals: [
  {e: -7.736904201589E-01, f:  2.0000},  # 00001
  {e: -6.711563281690E-01, f:  2.0000},  # 00002
- {e: -6.324344456500E-01, f:  2.0000},  # 00003
+ {e: -6.324344456499E-01, f:  2.0000},  # 00003
  {e: -4.424104338295E-01, f:  2.0000},  # 00004
- {e: -3.488216126430E-01, f:  2.0000},  # 00005
- {e: -2.646503712366E-01, f:  2.0000},  # 00006
+ {e: -3.488216126429E-01, f:  2.0000},  # 00005
+ {e: -2.646503712365E-01, f:  2.0000},  # 00006
  {e: -2.194180114077E-01, f:  2.0000},  # 00007
  {e: -2.019993999520E-01, f:  2.0000},  # 00008
  {e: -1.410542010010E-01, f:  2.0000},  # 00009
  {e: -1.365662843378E-01, f:  2.0000},  # 00010
  {e: -1.024964454470E-01, f:  2.0000},  # 00011
- {e: -5.863411387857E-02, f:  2.0000},  # 00012
- {e:  1.466270461262E-03, f:  2.0000},  # 00013
- {e:  3.027865928168E-02, f:  2.0000},  # 00014
- {e:  6.830871611042E-02, f:  2.0000},  # 00015
- {e:  1.121728694203E-01, f:  2.0000}] # 00016
+ {e: -5.863411387853E-02, f:  2.0000},  # 00012
+ {e:  1.466270461301E-03, f:  2.0000},  # 00013
+ {e:  3.027865928173E-02, f:  2.0000},  # 00014
+ {e:  6.830871611046E-02, f:  2.0000},  # 00015
+ {e:  1.121728694202E-01, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  2, delta:  3.39E-06, energy: -5.57874317196625356E+01, D:  2.760E-02}]
+ iter:  2, delta:  3.39E-06, energy: -5.57874317196625640E+01, D:  2.760E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        max dev from unity              :  7.57E-02
@@ -1494,24 +1498,24 @@
  Poisson Solver: {BC: Free, Box:  [  107,  93,  99 ], MPI tasks:  4}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -7.795766206865E-01, f:  2.0000},  # 00001
+ {e: -7.795766206864E-01, f:  2.0000},  # 00001
  {e: -6.765396088356E-01, f:  2.0000},  # 00002
  {e: -6.410642135368E-01, f:  2.0000},  # 00003
  {e: -4.502644818053E-01, f:  2.0000},  # 00004
- {e: -3.556547579803E-01, f:  2.0000},  # 00005
- {e: -2.720583631843E-01, f:  2.0000},  # 00006
+ {e: -3.556547579802E-01, f:  2.0000},  # 00005
+ {e: -2.720583631842E-01, f:  2.0000},  # 00006
  {e: -2.280095566254E-01, f:  2.0000},  # 00007
- {e: -2.102347181008E-01, f:  2.0000},  # 00008
+ {e: -2.102347181007E-01, f:  2.0000},  # 00008
  {e: -1.468467181464E-01, f:  2.0000},  # 00009
- {e: -1.415388929342E-01, f:  2.0000},  # 00010
+ {e: -1.415388929341E-01, f:  2.0000},  # 00010
  {e: -1.015114511045E-01, f:  2.0000},  # 00011
- {e: -6.534214050840E-02, f:  2.0000},  # 00012
- {e: -4.648786168539E-03, f:  2.0000},  # 00013
- {e:  2.232634271852E-02, f:  2.0000},  # 00014
- {e:  6.251205126366E-02, f:  2.0000},  # 00015
+ {e: -6.534214050836E-02, f:  2.0000},  # 00012
+ {e: -4.648786168499E-03, f:  2.0000},  # 00013
+ {e:  2.232634271857E-02, f:  2.0000},  # 00014
+ {e:  6.251205126370E-02, f:  2.0000},  # 00015
  {e:  1.127549123872E-01, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  3, delta:  2.83E-06, energy: -5.57777811874108664E+01, D:  9.651E-03}]
+ iter:  3, delta:  2.83E-06, energy: -5.57777811874108380E+01, D:  9.651E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        max dev from unity              :  7.57E-02
@@ -1529,23 +1533,23 @@
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
  {e: -7.843234096577E-01, f:  2.0000},  # 00001
- {e: -6.818006907512E-01, f:  2.0000},  # 00002
+ {e: -6.818006907511E-01, f:  2.0000},  # 00002
  {e: -6.431922354807E-01, f:  2.0000},  # 00003
- {e: -4.532579788523E-01, f:  2.0000},  # 00004
+ {e: -4.532579788522E-01, f:  2.0000},  # 00004
  {e: -3.591939056136E-01, f:  2.0000},  # 00005
  {e: -2.741116013905E-01, f:  2.0000},  # 00006
- {e: -2.305729957107E-01, f:  2.0000},  # 00007
+ {e: -2.305729957106E-01, f:  2.0000},  # 00007
  {e: -2.135229363151E-01, f:  2.0000},  # 00008
  {e: -1.521863456545E-01, f:  2.0000},  # 00009
  {e: -1.456690098168E-01, f:  2.0000},  # 00010
  {e: -1.038693846626E-01, f:  2.0000},  # 00011
- {e: -7.055616713797E-02, f:  2.0000},  # 00012
- {e: -1.018761109232E-02, f:  2.0000},  # 00013
- {e:  1.952569765432E-02, f:  2.0000},  # 00014
- {e:  5.689435911471E-02, f:  2.0000},  # 00015
+ {e: -7.055616713794E-02, f:  2.0000},  # 00012
+ {e: -1.018761109228E-02, f:  2.0000},  # 00013
+ {e:  1.952569765437E-02, f:  2.0000},  # 00014
+ {e:  5.689435911475E-02, f:  2.0000},  # 00015
  {e:  1.159928837648E-01, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  4, delta:  1.78E-06, energy: -5.57656874355613326E+01, D:  1.209E-02}]
+ iter:  4, delta:  1.78E-06, energy: -5.57656874355614463E+01, D:  1.209E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        max dev from unity              :  7.57E-02
@@ -1562,24 +1566,24 @@
  Poisson Solver: {BC: Free, Box:  [  107,  93,  99 ], MPI tasks:  4}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -7.937574379596E-01, f:  2.0000},  # 00001
- {e: -6.911812887483E-01, f:  2.0000},  # 00002
+ {e: -7.937574379595E-01, f:  2.0000},  # 00001
+ {e: -6.911812887482E-01, f:  2.0000},  # 00002
  {e: -6.485432439214E-01, f:  2.0000},  # 00003
- {e: -4.585612399624E-01, f:  2.0000},  # 00004
- {e: -3.662467079411E-01, f:  2.0000},  # 00005
- {e: -2.799912876715E-01, f:  2.0000},  # 00006
+ {e: -4.585612399623E-01, f:  2.0000},  # 00004
+ {e: -3.662467079410E-01, f:  2.0000},  # 00005
+ {e: -2.799912876714E-01, f:  2.0000},  # 00006
  {e: -2.350408903803E-01, f:  2.0000},  # 00007
- {e: -2.197859090402E-01, f:  2.0000},  # 00008
- {e: -1.623688569622E-01, f:  2.0000},  # 00009
- {e: -1.532806667793E-01, f:  2.0000},  # 00010
- {e: -1.087756886954E-01, f:  2.0000},  # 00011
- {e: -8.086680749357E-02, f:  2.0000},  # 00012
- {e: -2.099868846281E-02, f:  2.0000},  # 00013
- {e:  1.248598908917E-02, f:  2.0000},  # 00014
- {e:  4.690420613723E-02, f:  2.0000},  # 00015
- {e:  1.115656492661E-01, f:  2.0000}] # 00016
+ {e: -2.197859090401E-01, f:  2.0000},  # 00008
+ {e: -1.623688569621E-01, f:  2.0000},  # 00009
+ {e: -1.532806667792E-01, f:  2.0000},  # 00010
+ {e: -1.087756886953E-01, f:  2.0000},  # 00011
+ {e: -8.086680749347E-02, f:  2.0000},  # 00012
+ {e: -2.099868846270E-02, f:  2.0000},  # 00013
+ {e:  1.248598908926E-02, f:  2.0000},  # 00014
+ {e:  4.690420613733E-02, f:  2.0000},  # 00015
+ {e:  1.115656492662E-01, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  5, delta:  3.21E-06, energy: -5.57598817123863881E+01, D:  5.806E-03}]
+ iter:  5, delta:  3.21E-06, energy: -5.57598817123863313E+01, D:  5.806E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 6
      Kernel update:
        max dev from unity              :  7.57E-02
@@ -1596,32 +1600,32 @@
  Poisson Solver: {BC: Free, Box:  [  107,  93,  99 ], MPI tasks:  4}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -8.351462195353E-01, f:  2.0000},  # 00001
- {e: -7.335372996157E-01, f:  2.0000},  # 00002
- {e: -6.754458888577E-01, f:  2.0000},  # 00003
- {e: -4.876516117650E-01, f:  2.0000},  # 00004
- {e: -4.000492519461E-01, f:  2.0000},  # 00005
- {e: -3.074523986294E-01, f:  2.0000},  # 00006
- {e: -2.609741483210E-01, f:  2.0000},  # 00007
- {e: -2.518956549742E-01, f:  2.0000},  # 00008
+ {e: -8.351462195354E-01, f:  2.0000},  # 00001
+ {e: -7.335372996158E-01, f:  2.0000},  # 00002
+ {e: -6.754458888578E-01, f:  2.0000},  # 00003
+ {e: -4.876516117651E-01, f:  2.0000},  # 00004
+ {e: -4.000492519462E-01, f:  2.0000},  # 00005
+ {e: -3.074523986295E-01, f:  2.0000},  # 00006
+ {e: -2.609741483212E-01, f:  2.0000},  # 00007
+ {e: -2.518956549743E-01, f:  2.0000},  # 00008
  {e: -2.068522507376E-01, f:  2.0000},  # 00009
  {e: -1.890738300923E-01, f:  2.0000},  # 00010
  {e: -1.283628726619E-01, f:  2.0000},  # 00011
  {e: -1.226932066168E-01, f:  2.0000},  # 00012
- {e: -6.740680678543E-02, f:  2.0000},  # 00013
- {e: -2.015545879080E-02, f:  2.0000},  # 00014
- {e:  2.891788278709E-03, f:  2.0000},  # 00015
- {e:  9.104008339934E-02, f:  2.0000}] # 00016
+ {e: -6.740680678547E-02, f:  2.0000},  # 00013
+ {e: -2.015545879088E-02, f:  2.0000},  # 00014
+ {e:  2.891788278659E-03, f:  2.0000},  # 00015
+ {e:  9.104008339916E-02, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  6, delta:  2.50E-06, energy: -5.57570616927256850E+01, D:  2.820E-03}]
+ iter:  6, delta:  2.50E-06, energy: -5.57570616927261113E+01, D:  2.820E-03}]
    -  &final_kernel003  { #-------------------------------------------------------- iter: 7
  summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  7, delta:  2.50E-06, energy: -5.57570616927256850E+01, D:  2.820E-03}]}
+ iter:  7, delta:  2.50E-06, energy: -5.57570616927261113E+01, D:  2.820E-03}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc003
    -  {iter:  3, target function: HYBRID, mean conf prefac:  2.68E-02, 
  iterations to converge support functions:  2, kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter low:  3, delta out:  1.826E-06, energy: -5.57570616927256850E+01, D: -8.764E-01}
+ iter low:  3, delta out:  1.826E-06, energy: -5.57570616927261113E+01, D: -8.764E-01}
    Total charge                        :  3.199997409586E+01
    Poisson Solver:
      BC                                : Free
@@ -1635,23 +1639,23 @@
    Calculate Non Local forces          :  Yes
    Average noise forces: {x:  1.81258097E-01, y:  1.04788301E-01, z: -1.20081755E-01, 
                       total:  2.41360133E-01}
-   Clean forces norm (Ha/Bohr): {maxval:  3.928521909865E-01, fnrm2:  3.388690519794E-01}
-   Raw forces norm (Ha/Bohr): {maxval:  4.778830054681E-01, fnrm2:  4.061193426805E-01}
+   Clean forces norm (Ha/Bohr): {maxval:  3.928521909869E-01, fnrm2:  3.388690519808E-01}
+   Raw forces norm (Ha/Bohr): {maxval:  4.778830054684E-01, fnrm2:  4.061193426821E-01}
     #------------------------------------------------------------------------- Atomic Forces
    Atomic Forces (Ha/Bohr):
-   -  {C: [ 1.485624201437E-01,  7.803856602511E-02, -1.419017366950E-01]} # 0001
-   -  {C: [-1.196645670927E-01, -1.058859020850E-02,  9.190080795500E-03]} # 0002
-   -  {O: [ 3.736430396466E-01, -6.258650417765E-02, -1.039550498117E-01]} # 0003
-   -  {O: [-1.321006292785E-02,  1.332795803975E-01, -2.863286027635E-02]} # 0004
-   -  {N: [-1.358777245692E-01,  9.599960351970E-02,  1.346014366282E-01]} # 0005
-   -  {H: [ 5.267294875298E-03, -3.022605644870E-02, -3.790238663089E-02]} # 0006
-   -  {H: [-2.021157194355E-02, -2.472798547096E-02, -5.190286144741E-02]} # 0007
-   -  {H: [-2.224668944976E-02, -4.751418429746E-02, -4.772036573201E-02]} # 0008
-   -  {H: [-2.749281848850E-02, -1.074108331339E-01,  7.193607678085E-02]} # 0009
-   -  {H: [-1.035741775807E-01, -1.993324230706E-02,  7.239749996914E-02]} # 0010
-   -  {H: [-5.913086258828E-02, -8.838380432847E-03,  7.345141621956E-02]} # 0011
-   -  {H: [-2.606428002504E-02,  4.508026534699E-03,  5.043875020015E-02]} # 0012
-   multiplicator for the confinement   :  0.5319319732692761
+   -  {C: [ 1.485624201442E-01,  7.803856602550E-02, -1.419017366950E-01]} # 0001
+   -  {C: [-1.196645670932E-01, -1.058859020903E-02,  9.190080794620E-03]} # 0002
+   -  {O: [ 3.736430396468E-01, -6.258650417797E-02, -1.039550498123E-01]} # 0003
+   -  {O: [-1.321006292835E-02,  1.332795803974E-01, -2.863286027687E-02]} # 0004
+   -  {N: [-1.358777245698E-01,  9.599960352079E-02,  1.346014366291E-01]} # 0005
+   -  {H: [ 5.267294875458E-03, -3.022605644863E-02, -3.790238663089E-02]} # 0006
+   -  {H: [-2.021157194338E-02, -2.472798547099E-02, -5.190286144735E-02]} # 0007
+   -  {H: [-2.224668944960E-02, -4.751418429736E-02, -4.772036573196E-02]} # 0008
+   -  {H: [-2.749281848812E-02, -1.074108331344E-01,  7.193607678130E-02]} # 0009
+   -  {H: [-1.035741775807E-01, -1.993324230723E-02,  7.239749996921E-02]} # 0010
+   -  {H: [-5.913086258837E-02, -8.838380432906E-03,  7.345141621975E-02]} # 0011
+   -  {H: [-2.606428002488E-02,  4.508026534769E-03,  5.043875020035E-02]} # 0012
+   multiplicator for the confinement   :  0.53193197326929342
     #WARNING: No orthogonalizing of the support functions
     #========================================================= support function optimization
  - support function optimization: &it_supfun004
@@ -1661,7 +1665,7 @@
  Orthoconstraint:  Yes,  #WARNING: EXPERIMENTAL: modify eval
  Preconditioning:  Yes, rel D:  0.00E+00, mean kappa:  5.395E-01, 
             dynamic conv crit:  1.85E-04, 
- iter:  1, fnrm:  1.65E-01, Omega: -6.171486772556669E+01, D: -4.99E+00, D best: -4.99E+00, 
+ iter:  1, fnrm:  1.65E-01, Omega: -6.171486772556825E+01, D: -4.99E+00, D best: -4.99E+00, 
  Optimization: {algorithm: DIIS, history length:  6, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes, 
@@ -1672,12 +1676,12 @@
  Orthoconstraint:  Yes,  #WARNING: EXPERIMENTAL: modify eval
  Preconditioning:  Yes, rel D:  5.45E-03, kappa:  6.384E-01, kappa to history:  Yes, 
       mean kappa:  5.327E-01, dynamic conv crit:  1.88E-04, 
- iter:  2, fnrm:  9.67E-02, Omega: -6.205101543468727E+01, D: -3.36E-01, D best: -3.36E-01, 
+ iter:  2, fnrm:  9.67E-02, Omega: -6.205101543468889E+01, D: -3.36E-01, D best: -3.36E-01, 
  exit criterion: energy difference}
    -  &final_supfun004  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
  Energies: {Ekin:  5.40262058975E+01, Epot: -5.57237170562E+01, Enl:  3.52303924913E+00}, 
- iter:  2, fnrm:  9.67E-02, Omega: -6.205101543468727E+01, D: -3.36E-01, D best: -3.36E-01}
+ iter:  2, fnrm:  9.67E-02, Omega: -6.205101543468889E+01, D: -3.36E-01, D best: -3.36E-01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel004
@@ -1696,24 +1700,24 @@
  Poisson Solver: {BC: Free, Box:  [  107,  93,  99 ], MPI tasks:  4}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -8.366629557465E-01, f:  2.0000},  # 00001
+ {e: -8.366629557466E-01, f:  2.0000},  # 00001
  {e: -7.358175842800E-01, f:  2.0000},  # 00002
- {e: -6.718372381914E-01, f:  2.0000},  # 00003
+ {e: -6.718372381915E-01, f:  2.0000},  # 00003
  {e: -4.876595786233E-01, f:  2.0000},  # 00004
  {e: -4.015041935035E-01, f:  2.0000},  # 00005
- {e: -3.102008089250E-01, f:  2.0000},  # 00006
+ {e: -3.102008089251E-01, f:  2.0000},  # 00006
  {e: -2.644246800684E-01, f:  2.0000},  # 00007
  {e: -2.529167941177E-01, f:  2.0000},  # 00008
  {e: -2.100241740343E-01, f:  2.0000},  # 00009
  {e: -1.974802190706E-01, f:  2.0000},  # 00010
- {e: -1.566575025061E-01, f:  2.0000},  # 00011
+ {e: -1.566575025060E-01, f:  2.0000},  # 00011
  {e: -1.282127431191E-01, f:  2.0000},  # 00012
- {e: -7.642059002465E-02, f:  2.0000},  # 00013
- {e: -2.925782645334E-02, f:  2.0000},  # 00014
- {e: -4.923705353101E-03, f:  2.0000},  # 00015
- {e:  6.392728832906E-02, f:  2.0000}] # 00016
+ {e: -7.642059002466E-02, f:  2.0000},  # 00013
+ {e: -2.925782645339E-02, f:  2.0000},  # 00014
+ {e: -4.923705353118E-03, f:  2.0000},  # 00015
+ {e:  6.392728832888E-02, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  1, delta:  2.25E-06, energy: -5.60760708642938965E+01, D: -3.190E-01}]
+ iter:  1, delta:  2.25E-06, energy: -5.60760708642942092E+01, D: -3.190E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  8.69E-02
@@ -1730,24 +1734,24 @@
  Poisson Solver: {BC: Free, Box:  [  107,  93,  99 ], MPI tasks:  4}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -8.371562552992E-01, f:  2.0000},  # 00001
- {e: -7.380244922721E-01, f:  2.0000},  # 00002
- {e: -6.667308378011E-01, f:  2.0000},  # 00003
- {e: -4.851404245002E-01, f:  2.0000},  # 00004
- {e: -4.001309854030E-01, f:  2.0000},  # 00005
+ {e: -8.371562552991E-01, f:  2.0000},  # 00001
+ {e: -7.380244922720E-01, f:  2.0000},  # 00002
+ {e: -6.667308378010E-01, f:  2.0000},  # 00003
+ {e: -4.851404245000E-01, f:  2.0000},  # 00004
+ {e: -4.001309854029E-01, f:  2.0000},  # 00005
  {e: -3.062218705412E-01, f:  2.0000},  # 00006
- {e: -2.609444432983E-01, f:  2.0000},  # 00007
- {e: -2.504129268905E-01, f:  2.0000},  # 00008
- {e: -2.108257265534E-01, f:  2.0000},  # 00009
- {e: -1.978306802215E-01, f:  2.0000},  # 00010
- {e: -1.629916440157E-01, f:  2.0000},  # 00011
- {e: -1.284587056843E-01, f:  2.0000},  # 00012
- {e: -7.752250827298E-02, f:  2.0000},  # 00013
- {e: -2.698409634075E-02, f:  2.0000},  # 00014
- {e: -5.698663290709E-03, f:  2.0000},  # 00015
- {e:  5.971789807499E-02, f:  2.0000}] # 00016
+ {e: -2.609444432981E-01, f:  2.0000},  # 00007
+ {e: -2.504129268904E-01, f:  2.0000},  # 00008
+ {e: -2.108257265533E-01, f:  2.0000},  # 00009
+ {e: -1.978306802214E-01, f:  2.0000},  # 00010
+ {e: -1.629916440156E-01, f:  2.0000},  # 00011
+ {e: -1.284587056842E-01, f:  2.0000},  # 00012
+ {e: -7.752250827291E-02, f:  2.0000},  # 00013
+ {e: -2.698409634068E-02, f:  2.0000},  # 00014
+ {e: -5.698663290619E-03, f:  2.0000},  # 00015
+ {e:  5.971789807511E-02, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  2, delta:  3.27E-06, energy: -5.60778340573964584E+01, D: -1.763E-03}]
+ iter:  2, delta:  3.27E-06, energy: -5.60778340573960321E+01, D: -1.763E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        max dev from unity              :  8.69E-02
@@ -1765,23 +1769,23 @@
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
  {e: -8.390677674532E-01, f:  2.0000},  # 00001
- {e: -7.397463630800E-01, f:  2.0000},  # 00002
- {e: -6.715004681352E-01, f:  2.0000},  # 00003
- {e: -4.891977547372E-01, f:  2.0000},  # 00004
- {e: -4.034967718229E-01, f:  2.0000},  # 00005
+ {e: -7.397463630799E-01, f:  2.0000},  # 00002
+ {e: -6.715004681351E-01, f:  2.0000},  # 00003
+ {e: -4.891977547371E-01, f:  2.0000},  # 00004
+ {e: -4.034967718228E-01, f:  2.0000},  # 00005
  {e: -3.101068491525E-01, f:  2.0000},  # 00006
- {e: -2.656254574267E-01, f:  2.0000},  # 00007
- {e: -2.545364320123E-01, f:  2.0000},  # 00008
- {e: -2.125187406717E-01, f:  2.0000},  # 00009
- {e: -2.001965169535E-01, f:  2.0000},  # 00010
+ {e: -2.656254574266E-01, f:  2.0000},  # 00007
+ {e: -2.545364320122E-01, f:  2.0000},  # 00008
+ {e: -2.125187406716E-01, f:  2.0000},  # 00009
+ {e: -2.001965169534E-01, f:  2.0000},  # 00010
  {e: -1.609298412209E-01, f:  2.0000},  # 00011
- {e: -1.306655233542E-01, f:  2.0000},  # 00012
- {e: -7.896473534084E-02, f:  2.0000},  # 00013
- {e: -3.052899467573E-02, f:  2.0000},  # 00014
- {e: -7.688283642999E-03, f:  2.0000},  # 00015
- {e:  6.439350236682E-02, f:  2.0000}] # 00016
+ {e: -1.306655233541E-01, f:  2.0000},  # 00012
+ {e: -7.896473534079E-02, f:  2.0000},  # 00013
+ {e: -3.052899467568E-02, f:  2.0000},  # 00014
+ {e: -7.688283642927E-03, f:  2.0000},  # 00015
+ {e:  6.439350236668E-02, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  3, delta:  1.85E-06, energy: -5.60618638339625619E+01, D:  1.597E-02}]
+ iter:  3, delta:  1.85E-06, energy: -5.60618638339627040E+01, D:  1.597E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        max dev from unity              :  8.69E-02
@@ -1798,24 +1802,24 @@
  Poisson Solver: {BC: Free, Box:  [  107,  93,  99 ], MPI tasks:  4}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -8.400578706168E-01, f:  2.0000},  # 00001
- {e: -7.416689443644E-01, f:  2.0000},  # 00002
- {e: -6.691502813307E-01, f:  2.0000},  # 00003
- {e: -4.880385377146E-01, f:  2.0000},  # 00004
- {e: -4.034874372317E-01, f:  2.0000},  # 00005
+ {e: -8.400578706171E-01, f:  2.0000},  # 00001
+ {e: -7.416689443648E-01, f:  2.0000},  # 00002
+ {e: -6.691502813306E-01, f:  2.0000},  # 00003
+ {e: -4.880385377147E-01, f:  2.0000},  # 00004
+ {e: -4.034874372319E-01, f:  2.0000},  # 00005
  {e: -3.087566264095E-01, f:  2.0000},  # 00006
- {e: -2.639575858672E-01, f:  2.0000},  # 00007
- {e: -2.534796538160E-01, f:  2.0000},  # 00008
- {e: -2.133766824063E-01, f:  2.0000},  # 00009
- {e: -2.012132190942E-01, f:  2.0000},  # 00010
- {e: -1.673846991763E-01, f:  2.0000},  # 00011
- {e: -1.314188433833E-01, f:  2.0000},  # 00012
- {e: -7.998797747371E-02, f:  2.0000},  # 00013
- {e: -3.031060734874E-02, f:  2.0000},  # 00014
- {e: -8.371355650159E-03, f:  2.0000},  # 00015
- {e:  5.756867456119E-02, f:  2.0000}] # 00016
+ {e: -2.639575858673E-01, f:  2.0000},  # 00007
+ {e: -2.534796538161E-01, f:  2.0000},  # 00008
+ {e: -2.133766824065E-01, f:  2.0000},  # 00009
+ {e: -2.012132190945E-01, f:  2.0000},  # 00010
+ {e: -1.673846991770E-01, f:  2.0000},  # 00011
+ {e: -1.314188433836E-01, f:  2.0000},  # 00012
+ {e: -7.998797747397E-02, f:  2.0000},  # 00013
+ {e: -3.031060734889E-02, f:  2.0000},  # 00014
+ {e: -8.371355650412E-03, f:  2.0000},  # 00015
+ {e:  5.756867455991E-02, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  4, delta:  2.84E-06, energy: -5.60626437633634822E+01, D: -7.799E-04}]
+ iter:  4, delta:  2.84E-06, energy: -5.60626437633647896E+01, D: -7.799E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        max dev from unity              :  8.69E-02
@@ -1833,23 +1837,23 @@
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
  {e: -8.415894008546E-01, f:  2.0000},  # 00001
- {e: -7.427197875708E-01, f:  2.0000},  # 00002
- {e: -6.732263213774E-01, f:  2.0000},  # 00003
- {e: -4.911893626730E-01, f:  2.0000},  # 00004
- {e: -4.059917701604E-01, f:  2.0000},  # 00005
- {e: -3.121240423900E-01, f:  2.0000},  # 00006
- {e: -2.676521613494E-01, f:  2.0000},  # 00007
- {e: -2.567139123429E-01, f:  2.0000},  # 00008
+ {e: -7.427197875710E-01, f:  2.0000},  # 00002
+ {e: -6.732263213771E-01, f:  2.0000},  # 00003
+ {e: -4.911893626729E-01, f:  2.0000},  # 00004
+ {e: -4.059917701603E-01, f:  2.0000},  # 00005
+ {e: -3.121240423898E-01, f:  2.0000},  # 00006
+ {e: -2.676521613493E-01, f:  2.0000},  # 00007
+ {e: -2.567139123428E-01, f:  2.0000},  # 00008
  {e: -2.145920573215E-01, f:  2.0000},  # 00009
- {e: -2.027857287221E-01, f:  2.0000},  # 00010
- {e: -1.661732962333E-01, f:  2.0000},  # 00011
- {e: -1.331162743216E-01, f:  2.0000},  # 00012
- {e: -8.109792952253E-02, f:  2.0000},  # 00013
- {e: -3.333835136083E-02, f:  2.0000},  # 00014
- {e: -9.864727086240E-03, f:  2.0000},  # 00015
- {e:  5.826470756137E-02, f:  2.0000}] # 00016
+ {e: -2.027857287222E-01, f:  2.0000},  # 00010
+ {e: -1.661732962337E-01, f:  2.0000},  # 00011
+ {e: -1.331162743217E-01, f:  2.0000},  # 00012
+ {e: -8.109792952263E-02, f:  2.0000},  # 00013
+ {e: -3.333835136068E-02, f:  2.0000},  # 00014
+ {e: -9.864727086334E-03, f:  2.0000},  # 00015
+ {e:  5.826470756194E-02, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  5, delta:  1.84E-06, energy: -5.60590302176551489E+01, D:  3.614E-03}]
+ iter:  5, delta:  1.84E-06, energy: -5.60590302176536710E+01, D:  3.614E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 6
      Kernel update:
        max dev from unity              :  8.69E-02
@@ -1866,32 +1870,32 @@
  Poisson Solver: {BC: Free, Box:  [  107,  93,  99 ], MPI tasks:  4}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -8.502267255148E-01, f:  2.0000},  # 00001
- {e: -7.556826327854E-01, f:  2.0000},  # 00002
- {e: -6.713735604173E-01, f:  2.0000},  # 00003
- {e: -4.954766982467E-01, f:  2.0000},  # 00004
- {e: -4.123344077696E-01, f:  2.0000},  # 00005
- {e: -3.115159047149E-01, f:  2.0000},  # 00006
- {e: -2.714475136447E-01, f:  2.0000},  # 00007
- {e: -2.606548400413E-01, f:  2.0000},  # 00008
- {e: -2.229838404632E-01, f:  2.0000},  # 00009
- {e: -2.131635980210E-01, f:  2.0000},  # 00010
- {e: -1.876783667419E-01, f:  2.0000},  # 00011
- {e: -1.414988496576E-01, f:  2.0000},  # 00012
- {e: -8.997019726956E-02, f:  2.0000},  # 00013
- {e: -3.814705863809E-02, f:  2.0000},  # 00014
- {e: -1.830116786777E-02, f:  2.0000},  # 00015
- {e:  2.105747200776E-02, f:  2.0000}] # 00016
+ {e: -8.502267255137E-01, f:  2.0000},  # 00001
+ {e: -7.556826327840E-01, f:  2.0000},  # 00002
+ {e: -6.713735604166E-01, f:  2.0000},  # 00003
+ {e: -4.954766982456E-01, f:  2.0000},  # 00004
+ {e: -4.123344077684E-01, f:  2.0000},  # 00005
+ {e: -3.115159047142E-01, f:  2.0000},  # 00006
+ {e: -2.714475136435E-01, f:  2.0000},  # 00007
+ {e: -2.606548400402E-01, f:  2.0000},  # 00008
+ {e: -2.229838404622E-01, f:  2.0000},  # 00009
+ {e: -2.131635980196E-01, f:  2.0000},  # 00010
+ {e: -1.876783667405E-01, f:  2.0000},  # 00011
+ {e: -1.414988496566E-01, f:  2.0000},  # 00012
+ {e: -8.997019726856E-02, f:  2.0000},  # 00013
+ {e: -3.814705863701E-02, f:  2.0000},  # 00014
+ {e: -1.830116786671E-02, f:  2.0000},  # 00015
+ {e:  2.105747200929E-02, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  6, delta:  3.54E-06, energy: -5.61169867987058666E+01, D: -5.796E-02}]
+ iter:  6, delta:  3.54E-06, energy: -5.61169867987040192E+01, D: -5.796E-02}]
    -  &final_kernel004  { #-------------------------------------------------------- iter: 7
  summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  7, delta:  3.54E-06, energy: -5.61169867987058666E+01, D: -5.796E-02}]}
+ iter:  7, delta:  3.54E-06, energy: -5.61169867987040192E+01, D: -5.796E-02}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc004
    -  {iter:  4, target function: HYBRID, mean conf prefac:  1.42E-02, 
  iterations to converge support functions:  2, kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter low:  4, delta out:  1.246E-06, energy: -5.61169867987058666E+01, D: -3.599E-01}
+ iter low:  4, delta out:  1.246E-06, energy: -5.61169867987040192E+01, D: -3.599E-01}
    Total charge                        :  3.199997510843E+01
    Poisson Solver:
      BC                                : Free
@@ -1905,23 +1909,23 @@
    Calculate Non Local forces          :  Yes
    Average noise forces: {x:  1.22392011E-01, y:  1.08502943E-01, z:  1.90680599E-01, 
                       total:  2.51220589E-01}
-   Clean forces norm (Ha/Bohr): {maxval:  1.676057928957E-01, fnrm2:  1.469737819126E-01}
-   Raw forces norm (Ha/Bohr): {maxval:  2.334311588287E-01, fnrm2:  2.114656076862E-01}
+   Clean forces norm (Ha/Bohr): {maxval:  1.676057928954E-01, fnrm2:  1.469737819141E-01}
+   Raw forces norm (Ha/Bohr): {maxval:  2.334311588290E-01, fnrm2:  2.114656076894E-01}
     #------------------------------------------------------------------------- Atomic Forces
    Atomic Forces (Ha/Bohr):
-   -  {C: [ 2.349507269106E-02,  5.242646136888E-02,  2.392551925480E-02]} # 0001
-   -  {C: [-3.007482101094E-02,  2.807894983345E-04,  1.296281082266E-01]} # 0002
-   -  {O: [ 4.974828715947E-02,  5.231731920529E-02,  1.341090441590E-01]} # 0003
-   -  {O: [ 1.028115406247E-01,  1.115591265718E-01,  7.124640485742E-02]} # 0004
-   -  {N: [ 8.439340749991E-02, -8.832433367838E-02, -1.077161963767E-01]} # 0005
-   -  {H: [-4.657819445824E-02, -1.807792015575E-02,  5.175933253730E-02]} # 0006
-   -  {H: [-6.095192912976E-02,  4.372703708675E-02, -4.366614667834E-02]} # 0007
-   -  {H: [ 3.992903006904E-02, -4.155012739518E-02, -5.699946073817E-02]} # 0008
-   -  {H: [-8.414903993574E-02,  8.702519601755E-03, -7.257308895690E-02]} # 0009
-   -  {H: [-6.394885212861E-02, -2.181876437683E-02, -2.869847563619E-02]} # 0010
-   -  {H: [-6.296840795943E-03, -4.621319780227E-02, -3.773414185459E-02]} # 0011
-   -  {H: [-8.377660584933E-03, -5.302890992441E-02, -6.328089879421E-02]} # 0012
-   multiplicator for the confinement   :  0.63838825653665199
+   -  {C: [ 2.349507269245E-02,  5.242646136651E-02,  2.392551925621E-02]} # 0001
+   -  {C: [-3.007482101087E-02,  2.807894978603E-04,  1.296281082275E-01]} # 0002
+   -  {O: [ 4.974828716006E-02,  5.231731920653E-02,  1.341090441606E-01]} # 0003
+   -  {O: [ 1.028115406247E-01,  1.115591265710E-01,  7.124640485793E-02]} # 0004
+   -  {N: [ 8.439340750017E-02, -8.832433368104E-02, -1.077161963759E-01]} # 0005
+   -  {H: [-4.657819445823E-02, -1.807792015577E-02,  5.175933253746E-02]} # 0006
+   -  {H: [-6.095192912870E-02,  4.372703708770E-02, -4.366614667901E-02]} # 0007
+   -  {H: [ 3.992903006826E-02, -4.155012739557E-02, -5.699946073838E-02]} # 0008
+   -  {H: [-8.414903993577E-02,  8.702519603921E-03, -7.257308895895E-02]} # 0009
+   -  {H: [-6.394885212990E-02, -2.181876437587E-02, -2.869847563684E-02]} # 0010
+   -  {H: [-6.296840796493E-03, -4.621319780144E-02, -3.773414185543E-02]} # 0011
+   -  {H: [-8.377660585644E-03, -5.302890992385E-02, -6.328089879517E-02]} # 0012
+   multiplicator for the confinement   :  0.63838825653661135
     #WARNING: No orthogonalizing of the support functions
     #========================================================= support function optimization
  - support function optimization: &it_supfun005
@@ -1931,7 +1935,7 @@
  Orthoconstraint:  Yes,  #WARNING: EXPERIMENTAL: modify eval
  Preconditioning:  Yes, rel D:  0.00E+00, mean kappa:  5.327E-01, 
             dynamic conv crit:  1.88E-04, 
- iter:  1, fnrm:  1.45E-01, Omega: -6.393534829245728E+01, D: -2.22E+00, D best: -2.22E+00, 
+ iter:  1, fnrm:  1.45E-01, Omega: -6.393534829245452E+01, D: -2.22E+00, D best: -2.22E+00, 
  Optimization: {algorithm: DIIS, history length:  6, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  No, normalization:  Yes, Normalization:  Yes, 
@@ -1942,12 +1946,12 @@
  Orthoconstraint:  Yes,  #WARNING: EXPERIMENTAL: modify eval
  Preconditioning:  Yes, rel D:  3.64E-03, kappa:  6.407E-01, kappa to history:  Yes, 
       mean kappa:  6.037E-01, dynamic conv crit:  1.66E-04, 
- iter:  2, fnrm:  7.52E-02, Omega: -6.416818864343442E+01, D: -2.33E-01, D best: -2.33E-01, 
+ iter:  2, fnrm:  7.52E-02, Omega: -6.416818864343004E+01, D: -2.33E-01, D best: -2.33E-01, 
  exit criterion: energy difference}
    -  &final_supfun005  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
  Energies: {Ekin:  5.32627931418E+01, Epot: -5.60209120275E+01, Enl:  3.52794568364E+00}, 
- iter:  2, fnrm:  7.52E-02, Omega: -6.416818864343442E+01, D: -2.33E-01, D best: -2.33E-01}
+ iter:  2, fnrm:  7.52E-02, Omega: -6.416818864343004E+01, D: -2.33E-01, D best: -2.33E-01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel005
@@ -1966,24 +1970,24 @@
  Poisson Solver: {BC: Free, Box:  [  107,  93,  99 ], MPI tasks:  4}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -8.557005425693E-01, f:  2.0000},  # 00001
- {e: -7.623129385208E-01, f:  2.0000},  # 00002
- {e: -6.744889723074E-01, f:  2.0000},  # 00003
- {e: -5.017563789618E-01, f:  2.0000},  # 00004
- {e: -4.185734753984E-01, f:  2.0000},  # 00005
- {e: -3.167059993281E-01, f:  2.0000},  # 00006
- {e: -2.812340997231E-01, f:  2.0000},  # 00007
- {e: -2.689400649904E-01, f:  2.0000},  # 00008
- {e: -2.318664920483E-01, f:  2.0000},  # 00009
- {e: -2.255663543142E-01, f:  2.0000},  # 00010
- {e: -2.045610338519E-01, f:  2.0000},  # 00011
- {e: -1.516039273350E-01, f:  2.0000},  # 00012
- {e: -9.992971827924E-02, f:  2.0000},  # 00013
- {e: -4.948541783582E-02, f:  2.0000},  # 00014
- {e: -3.096250963138E-02, f:  2.0000},  # 00015
- {e: -2.424222016463E-02, f:  2.0000}] # 00016
+ {e: -8.557005425690E-01, f:  2.0000},  # 00001
+ {e: -7.623129385205E-01, f:  2.0000},  # 00002
+ {e: -6.744889723070E-01, f:  2.0000},  # 00003
+ {e: -5.017563789613E-01, f:  2.0000},  # 00004
+ {e: -4.185734753980E-01, f:  2.0000},  # 00005
+ {e: -3.167059993278E-01, f:  2.0000},  # 00006
+ {e: -2.812340997225E-01, f:  2.0000},  # 00007
+ {e: -2.689400649899E-01, f:  2.0000},  # 00008
+ {e: -2.318664920480E-01, f:  2.0000},  # 00009
+ {e: -2.255663543140E-01, f:  2.0000},  # 00010
+ {e: -2.045610338521E-01, f:  2.0000},  # 00011
+ {e: -1.516039273348E-01, f:  2.0000},  # 00012
+ {e: -9.992971827901E-02, f:  2.0000},  # 00013
+ {e: -4.948541783544E-02, f:  2.0000},  # 00014
+ {e: -3.096250963238E-02, f:  2.0000},  # 00015
+ {e: -2.424222016480E-02, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  1, delta:  3.85E-06, energy: -5.63676153626418710E+01, D: -2.506E-01}]
+ iter:  1, delta:  3.85E-06, energy: -5.63676153626448553E+01, D: -2.506E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  8.89E-02
@@ -2000,24 +2004,24 @@
  Poisson Solver: {BC: Free, Box:  [  107,  93,  99 ], MPI tasks:  4}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -8.624631357959E-01, f:  2.0000},  # 00001
- {e: -7.673118452491E-01, f:  2.0000},  # 00002
- {e: -6.929610183126E-01, f:  2.0000},  # 00003
- {e: -5.155025734321E-01, f:  2.0000},  # 00004
- {e: -4.295687323183E-01, f:  2.0000},  # 00005
- {e: -3.319340619993E-01, f:  2.0000},  # 00006
- {e: -2.963342767782E-01, f:  2.0000},  # 00007
- {e: -2.835580627087E-01, f:  2.0000},  # 00008
- {e: -2.378615123864E-01, f:  2.0000},  # 00009
- {e: -2.296120902567E-01, f:  2.0000},  # 00010
- {e: -1.970411898193E-01, f:  2.0000},  # 00011
- {e: -1.596220633815E-01, f:  2.0000},  # 00012
- {e: -1.057241785351E-01, f:  2.0000},  # 00013
- {e: -6.008832083116E-02, f:  2.0000},  # 00014
- {e: -3.673723887665E-02, f:  2.0000},  # 00015
- {e: -9.677587388682E-04, f:  2.0000}] # 00016
+ {e: -8.624631357957E-01, f:  2.0000},  # 00001
+ {e: -7.673118452488E-01, f:  2.0000},  # 00002
+ {e: -6.929610183124E-01, f:  2.0000},  # 00003
+ {e: -5.155025734318E-01, f:  2.0000},  # 00004
+ {e: -4.295687323180E-01, f:  2.0000},  # 00005
+ {e: -3.319340619991E-01, f:  2.0000},  # 00006
+ {e: -2.963342767779E-01, f:  2.0000},  # 00007
+ {e: -2.835580627085E-01, f:  2.0000},  # 00008
+ {e: -2.378615123863E-01, f:  2.0000},  # 00009
+ {e: -2.296120902564E-01, f:  2.0000},  # 00010
+ {e: -1.970411898196E-01, f:  2.0000},  # 00011
+ {e: -1.596220633813E-01, f:  2.0000},  # 00012
+ {e: -1.057241785349E-01, f:  2.0000},  # 00013
+ {e: -6.008832083093E-02, f:  2.0000},  # 00014
+ {e: -3.673723887649E-02, f:  2.0000},  # 00015
+ {e: -9.677587393649E-04, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  2, delta:  3.10E-06, energy: -5.62753797233614677E+01, D:  9.224E-02}]
+ iter:  2, delta:  3.10E-06, energy: -5.62753797233618940E+01, D:  9.224E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        max dev from unity              :  8.89E-02
@@ -2029,29 +2033,29 @@
        Coefficients available          :  Yes
      Hamiltonian update: {
  Energies: {Ekin:  5.32627931418E+01, Epot: -5.81393582517E+01, Enl:  3.52794568364E+00, 
-              EH:  1.60587893251E+02,  EXC: -1.58027418753E+01, EvXC: -2.07045992913E+01}, 
+              EH:  1.60587893250E+02,  EXC: -1.58027418753E+01, EvXC: -2.07045992913E+01}, 
     Total charge:  3.199997522916E+01, 
  Poisson Solver: {BC: Free, Box:  [  107,  93,  99 ], MPI tasks:  4}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -8.847906022844E-01, f:  2.0000},  # 00001
- {e: -7.851053134855E-01, f:  2.0000},  # 00002
- {e: -7.477735894198E-01, f:  2.0000},  # 00003
- {e: -5.576489433670E-01, f:  2.0000},  # 00004
- {e: -4.619209670458E-01, f:  2.0000},  # 00005
- {e: -3.782536851230E-01, f:  2.0000},  # 00006
- {e: -3.458814322738E-01, f:  2.0000},  # 00007
- {e: -3.269814374152E-01, f:  2.0000},  # 00008
- {e: -2.570728747020E-01, f:  2.0000},  # 00009
- {e: -2.520507126573E-01, f:  2.0000},  # 00010
- {e: -1.962222395358E-01, f:  2.0000},  # 00011
- {e: -1.842258382636E-01, f:  2.0000},  # 00012
- {e: -1.258027889990E-01, f:  2.0000},  # 00013
- {e: -1.057738336216E-01, f:  2.0000},  # 00014
- {e: -5.667262244168E-02, f:  2.0000},  # 00015
- {e: -2.714932459100E-02, f:  2.0000}] # 00016
+ {e: -8.847906022854E-01, f:  2.0000},  # 00001
+ {e: -7.851053134865E-01, f:  2.0000},  # 00002
+ {e: -7.477735894229E-01, f:  2.0000},  # 00003
+ {e: -5.576489433695E-01, f:  2.0000},  # 00004
+ {e: -4.619209670476E-01, f:  2.0000},  # 00005
+ {e: -3.782536851255E-01, f:  2.0000},  # 00006
+ {e: -3.458814322768E-01, f:  2.0000},  # 00007
+ {e: -3.269814374177E-01, f:  2.0000},  # 00008
+ {e: -2.570728747029E-01, f:  2.0000},  # 00009
+ {e: -2.520507126585E-01, f:  2.0000},  # 00010
+ {e: -1.962222395368E-01, f:  2.0000},  # 00011
+ {e: -1.842258382648E-01, f:  2.0000},  # 00012
+ {e: -1.258027889999E-01, f:  2.0000},  # 00013
+ {e: -1.057738336242E-01, f:  2.0000},  # 00014
+ {e: -5.667262244273E-02, f:  2.0000},  # 00015
+ {e: -2.714932459534E-02, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  3, delta:  4.01E-06, energy: -5.63756712409286109E+01, D: -1.003E-01}]
+ iter:  3, delta:  4.01E-06, energy: -5.63756712409453513E+01, D: -1.003E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        max dev from unity              :  8.89E-02
@@ -2068,24 +2072,24 @@
  Poisson Solver: {BC: Free, Box:  [  107,  93,  99 ], MPI tasks:  4}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -8.705474364497E-01, f:  2.0000},  # 00001
- {e: -7.748249646384E-01, f:  2.0000},  # 00002
- {e: -7.081098109037E-01, f:  2.0000},  # 00003
- {e: -5.264281300884E-01, f:  2.0000},  # 00004
- {e: -4.390135361008E-01, f:  2.0000},  # 00005
- {e: -3.456808522455E-01, f:  2.0000},  # 00006
- {e: -3.082840731240E-01, f:  2.0000},  # 00007
- {e: -2.956589218525E-01, f:  2.0000},  # 00008
- {e: -2.459333495866E-01, f:  2.0000},  # 00009
- {e: -2.364640214179E-01, f:  2.0000},  # 00010
- {e: -1.931664697836E-01, f:  2.0000},  # 00011
- {e: -1.687418628592E-01, f:  2.0000},  # 00012
- {e: -1.140147745347E-01, f:  2.0000},  # 00013
- {e: -7.307505944729E-02, f:  2.0000},  # 00014
- {e: -4.546613991908E-02, f:  2.0000},  # 00015
- {e:  2.223633102670E-02, f:  2.0000}] # 00016
+ {e: -8.705474364502E-01, f:  2.0000},  # 00001
+ {e: -7.748249646388E-01, f:  2.0000},  # 00002
+ {e: -7.081098109052E-01, f:  2.0000},  # 00003
+ {e: -5.264281300895E-01, f:  2.0000},  # 00004
+ {e: -4.390135361016E-01, f:  2.0000},  # 00005
+ {e: -3.456808522468E-01, f:  2.0000},  # 00006
+ {e: -3.082840731253E-01, f:  2.0000},  # 00007
+ {e: -2.956589218537E-01, f:  2.0000},  # 00008
+ {e: -2.459333495871E-01, f:  2.0000},  # 00009
+ {e: -2.364640214185E-01, f:  2.0000},  # 00010
+ {e: -1.931664697834E-01, f:  2.0000},  # 00011
+ {e: -1.687418628598E-01, f:  2.0000},  # 00012
+ {e: -1.140147745351E-01, f:  2.0000},  # 00013
+ {e: -7.307505944847E-02, f:  2.0000},  # 00014
+ {e: -4.546613991958E-02, f:  2.0000},  # 00015
+ {e:  2.223633102481E-02, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  4, delta:  1.91E-06, energy: -5.62161007892620574E+01, D:  1.596E-01}]
+ iter:  4, delta:  1.91E-06, energy: -5.62161007892654965E+01, D:  1.596E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        max dev from unity              :  8.89E-02
@@ -2102,24 +2106,24 @@
  Poisson Solver: {BC: Free, Box:  [  107,  93,  99 ], MPI tasks:  4}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -8.638908130048E-01, f:  2.0000},  # 00001
- {e: -7.701975817429E-01, f:  2.0000},  # 00002
- {e: -6.872982183239E-01, f:  2.0000},  # 00003
- {e: -5.110639351631E-01, f:  2.0000},  # 00004
- {e: -4.272563371162E-01, f:  2.0000},  # 00005
- {e: -3.284202069479E-01, f:  2.0000},  # 00006
- {e: -2.905185752363E-01, f:  2.0000},  # 00007
- {e: -2.797148184277E-01, f:  2.0000},  # 00008
- {e: -2.403311580847E-01, f:  2.0000},  # 00009
- {e: -2.296553228944E-01, f:  2.0000},  # 00010
- {e: -2.021524186511E-01, f:  2.0000},  # 00011
- {e: -1.609180921084E-01, f:  2.0000},  # 00012
- {e: -1.087722892561E-01, f:  2.0000},  # 00013
- {e: -5.852861805856E-02, f:  2.0000},  # 00014
- {e: -3.861650522343E-02, f:  2.0000},  # 00015
- {e: -1.222636751142E-02, f:  2.0000}] # 00016
+ {e: -8.638908130038E-01, f:  2.0000},  # 00001
+ {e: -7.701975817421E-01, f:  2.0000},  # 00002
+ {e: -6.872982183220E-01, f:  2.0000},  # 00003
+ {e: -5.110639351615E-01, f:  2.0000},  # 00004
+ {e: -4.272563371149E-01, f:  2.0000},  # 00005
+ {e: -3.284202069463E-01, f:  2.0000},  # 00006
+ {e: -2.905185752347E-01, f:  2.0000},  # 00007
+ {e: -2.797148184262E-01, f:  2.0000},  # 00008
+ {e: -2.403311580839E-01, f:  2.0000},  # 00009
+ {e: -2.296553228937E-01, f:  2.0000},  # 00010
+ {e: -2.021524186522E-01, f:  2.0000},  # 00011
+ {e: -1.609180921074E-01, f:  2.0000},  # 00012
+ {e: -1.087722892553E-01, f:  2.0000},  # 00013
+ {e: -5.852861805729E-02, f:  2.0000},  # 00014
+ {e: -3.861650522250E-02, f:  2.0000},  # 00015
+ {e: -1.222636751436E-02, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  5, delta:  3.40E-06, energy: -5.63023883487145014E+01, D: -8.629E-02}]
+ iter:  5, delta:  3.40E-06, energy: -5.63023883487221184E+01, D: -8.629E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 6
      Kernel update:
        max dev from unity              :  8.89E-02
@@ -2130,38 +2134,38 @@
        Kohn-Sham residue               :  2.001E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  5.32627931418E+01, Epot: -5.79312930718E+01, Enl:  3.52794568364E+00, 
+ Energies: {Ekin:  5.32627931418E+01, Epot: -5.79312930717E+01, Enl:  3.52794568364E+00, 
               EH:  1.60739050864E+02,  EXC: -1.57691140501E+01, EvXC: -2.06602318280E+01}, 
     Total charge:  3.199997523102E+01, 
  Poisson Solver: {BC: Free, Box:  [  107,  93,  99 ], MPI tasks:  4}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -8.848058338107E-01, f:  2.0000},  # 00001
- {e: -7.892511862682E-01, f:  2.0000},  # 00002
- {e: -7.241974228132E-01, f:  2.0000},  # 00003
- {e: -5.392929092544E-01, f:  2.0000},  # 00004
- {e: -4.521781643822E-01, f:  2.0000},  # 00005
- {e: -3.613778557036E-01, f:  2.0000},  # 00006
- {e: -3.215625239541E-01, f:  2.0000},  # 00007
- {e: -3.098120179496E-01, f:  2.0000},  # 00008
- {e: -2.610679801011E-01, f:  2.0000},  # 00009
- {e: -2.487814896760E-01, f:  2.0000},  # 00010
- {e: -1.987360809584E-01, f:  2.0000},  # 00011
- {e: -1.843703087584E-01, f:  2.0000},  # 00012
- {e: -1.296875024727E-01, f:  2.0000},  # 00013
- {e: -8.955426709839E-02, f:  2.0000},  # 00014
- {e: -6.100292719684E-02, f:  2.0000},  # 00015
- {e:  9.189551406795E-04, f:  2.0000}] # 00016
+ {e: -8.848058338082E-01, f:  2.0000},  # 00001
+ {e: -7.892511862664E-01, f:  2.0000},  # 00002
+ {e: -7.241974228074E-01, f:  2.0000},  # 00003
+ {e: -5.392929092498E-01, f:  2.0000},  # 00004
+ {e: -4.521781643787E-01, f:  2.0000},  # 00005
+ {e: -3.613778556987E-01, f:  2.0000},  # 00006
+ {e: -3.215625239488E-01, f:  2.0000},  # 00007
+ {e: -3.098120179451E-01, f:  2.0000},  # 00008
+ {e: -2.610679800992E-01, f:  2.0000},  # 00009
+ {e: -2.487814896734E-01, f:  2.0000},  # 00010
+ {e: -1.987360809589E-01, f:  2.0000},  # 00011
+ {e: -1.843703087558E-01, f:  2.0000},  # 00012
+ {e: -1.296875024707E-01, f:  2.0000},  # 00013
+ {e: -8.955426709362E-02, f:  2.0000},  # 00014
+ {e: -6.100292719491E-02, f:  2.0000},  # 00015
+ {e:  9.189551453046E-04, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  6, delta:  2.64E-06, energy: -5.62604351122868849E+01, D:  4.195E-02}]
+ iter:  6, delta:  2.64E-06, energy: -5.62604351122678423E+01, D:  4.195E-02}]
    -  &final_kernel005  { #-------------------------------------------------------- iter: 7
  summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
- iter:  7, delta:  2.64E-06, energy: -5.62604351122868849E+01, D:  4.195E-02}]}
+ iter:  7, delta:  2.64E-06, energy: -5.62604351122678423E+01, D:  4.195E-02}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc005
    -  {iter:  5, target function: HYBRID, mean conf prefac:  9.09E-03, 
  iterations to converge support functions:  2, kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter low:  5, delta out:  1.122E-06, energy: -5.62604351122868849E+01, D: -1.434E-01}
+ iter low:  5, delta out:  1.122E-06, energy: -5.62604351122678423E+01, D: -1.434E-01}
    Total charge                        :  3.199997523102E+01
    Poisson Solver:
      BC                                : Free
@@ -2175,58 +2179,58 @@
    Calculate Non Local forces          :  Yes
    Average noise forces: {x:  1.52959674E-01, y:  6.45790498E-02, z: -8.52492014E-02, 
                       total:  1.86640140E-01}
-   Clean forces norm (Ha/Bohr): {maxval:  3.047009279426E-01, fnrm2:  2.301057386334E-01}
-   Raw forces norm (Ha/Bohr): {maxval:  3.781450885429E-01, fnrm2:  2.724015107375E-01}
+   Clean forces norm (Ha/Bohr): {maxval:  3.047009279305E-01, fnrm2:  2.301057386031E-01}
+   Raw forces norm (Ha/Bohr): {maxval:  3.781450885282E-01, fnrm2:  2.724015107041E-01}
     #------------------------------------------------------------------------- Atomic Forces
    Atomic Forces (Ha/Bohr):
-   -  {C: [ 1.285168860320E-01, -1.458952195766E-03, -1.206811772869E-01]} # 0001
-   -  {C: [-6.263862062934E-02, -1.588327195000E-02, -7.497759205659E-03]} # 0002
-   -  {O: [ 3.038357624075E-01,  2.283617566528E-02, -2.234737632687E-03]} # 0003
-   -  {O: [ 4.243503886218E-02,  1.267035708456E-01,  9.358313190521E-03]} # 0004
-   -  {N: [-1.453901488097E-01,  8.727541815398E-02,  7.477742618090E-02]} # 0005
-   -  {H: [ 5.992363383114E-03, -4.557366821370E-02, -8.036676480374E-03]} # 0006
-   -  {H: [-4.151172172647E-02, -1.102868401002E-02, -7.978569272591E-02]} # 0007
-   -  {H: [-2.625586257848E-02, -5.735754446364E-02, -6.985147584071E-02]} # 0008
-   -  {H: [-3.932966013549E-02, -7.682874539976E-02,  4.085217837923E-02]} # 0009
-   -  {H: [-9.271389856996E-02, -1.471671162049E-02,  5.835103153262E-02]} # 0010
-   -  {H: [-5.181714373018E-02, -1.681940808075E-02,  6.155810057620E-02]} # 0011
-   -  {H: [-2.112299450520E-02,  2.851821269232E-03,  4.319046931278E-02]} # 0012
+   -  {C: [ 1.285168860150E-01, -1.458952194762E-03, -1.206811772897E-01]} # 0001
+   -  {C: [-6.263862061886E-02, -1.588327193479E-02, -7.497759176246E-03]} # 0002
+   -  {O: [ 3.038357623950E-01,  2.283617567270E-02, -2.234737615209E-03]} # 0003
+   -  {O: [ 4.243503888109E-02,  1.267035708487E-01,  9.358313202482E-03]} # 0004
+   -  {N: [-1.453901487903E-01,  8.727541812266E-02,  7.477742614998E-02]} # 0005
+   -  {H: [ 5.992363376654E-03, -4.557366821529E-02, -8.036676477246E-03]} # 0006
+   -  {H: [-4.151172173248E-02, -1.102868400963E-02, -7.978569272447E-02]} # 0007
+   -  {H: [-2.625586258129E-02, -5.735754446670E-02, -6.985147584217E-02]} # 0008
+   -  {H: [-3.932966014574E-02, -7.682874538790E-02,  4.085217836679E-02]} # 0009
+   -  {H: [-9.271389856682E-02, -1.471671161767E-02,  5.835103153035E-02]} # 0010
+   -  {H: [-5.181714372453E-02, -1.681940808116E-02,  6.155810056997E-02]} # 0011
+   -  {H: [-2.112299450770E-02,  2.851821263806E-03,  4.319046930542E-02]} # 0012
     #Eigenvalues and New Occupation Numbers
    Orbitals: [
- {e: -8.848058338107E-01, f:  1.0000},  # 00001
- {e: -7.892511862682E-01, f:  1.0000},  # 00002
- {e: -7.241974228132E-01, f:  1.0000},  # 00003
- {e: -5.392929092544E-01, f:  1.0000},  # 00004
- {e: -4.521781643822E-01, f:  1.0000},  # 00005
- {e: -3.613778557036E-01, f:  1.0000},  # 00006
- {e: -3.215625239541E-01, f:  1.0000},  # 00007
- {e: -3.098120179496E-01, f:  1.0000},  # 00008
- {e: -2.610679801011E-01, f:  1.0000},  # 00009
- {e: -2.487814896760E-01, f:  1.0000},  # 00010
- {e: -1.987360809584E-01, f:  1.0000},  # 00011
- {e: -1.843703087584E-01, f:  1.0000},  # 00012
- {e: -1.296875024727E-01, f:  1.0000},  # 00013
- {e: -8.955426709839E-02, f:  1.0000},  # 00014
- {e: -6.100292719684E-02, f:  1.0000},  # 00015
- {e:  9.189551406795E-04, f:  1.0000},  # 00016
- {e:  3.403276159184E-02, f:  1.0000},  # 00017
- {e:  5.625974131146E-02, f:  1.0000},  # 00018
- {e:  2.082924710270E-01, f:  1.0000},  # 00019
- {e:  4.367764393860E-01, f:  1.0000},  # 00020
- {e:  4.902711337286E-01, f:  1.0000},  # 00021
- {e:  5.370270864628E-01, f:  1.0000},  # 00022
- {e:  5.607814825853E-01, f:  1.0000},  # 00023
- {e:  5.714195415863E-01, f:  1.0000},  # 00024
- {e:  6.071018140934E-01, f:  1.0000},  # 00025
- {e:  6.298870028784E-01, f:  1.0000},  # 00026
- {e:  8.274272449181E-01, f:  1.0000}] # 00027
+ {e: -8.848058338082E-01, f:  1.0000},  # 00001
+ {e: -7.892511862664E-01, f:  1.0000},  # 00002
+ {e: -7.241974228074E-01, f:  1.0000},  # 00003
+ {e: -5.392929092498E-01, f:  1.0000},  # 00004
+ {e: -4.521781643787E-01, f:  1.0000},  # 00005
+ {e: -3.613778556987E-01, f:  1.0000},  # 00006
+ {e: -3.215625239488E-01, f:  1.0000},  # 00007
+ {e: -3.098120179451E-01, f:  1.0000},  # 00008
+ {e: -2.610679800992E-01, f:  1.0000},  # 00009
+ {e: -2.487814896734E-01, f:  1.0000},  # 00010
+ {e: -1.987360809589E-01, f:  1.0000},  # 00011
+ {e: -1.843703087558E-01, f:  1.0000},  # 00012
+ {e: -1.296875024707E-01, f:  1.0000},  # 00013
+ {e: -8.955426709362E-02, f:  1.0000},  # 00014
+ {e: -6.100292719491E-02, f:  1.0000},  # 00015
+ {e:  9.189551453046E-04, f:  1.0000},  # 00016
+ {e:  3.403276159272E-02, f:  1.0000},  # 00017
+ {e:  5.625974129975E-02, f:  1.0000},  # 00018
+ {e:  2.082924710300E-01, f:  1.0000},  # 00019
+ {e:  4.367764393897E-01, f:  1.0000},  # 00020
+ {e:  4.902711337356E-01, f:  1.0000},  # 00021
+ {e:  5.370270864668E-01, f:  1.0000},  # 00022
+ {e:  5.607814825897E-01, f:  1.0000},  # 00023
+ {e:  5.714195415907E-01, f:  1.0000},  # 00024
+ {e:  6.071018140989E-01, f:  1.0000},  # 00025
+ {e:  6.298870028836E-01, f:  1.0000},  # 00026
+ {e:  8.274272449207E-01, f:  1.0000}] # 00027
     #========================================================================= final results
    self consistency summary:
    -  {iter:  5, 
- Energies: {Ekin:  5.32627931418E+01, Epot: -5.79312930718E+01, Enl:  3.52794568364E+00, 
+ Energies: {Ekin:  5.32627931418E+01, Epot: -5.79312930717E+01, Enl:  3.52794568364E+00, 
               EH:  1.60738782854E+02,  EXC: -1.57691135369E+01, EvXC: -2.06602311573E+01}, 
         iter low:  5,            delta out:  1.122E-06, 
-          energy: -5.62604351122868849E+01,                       D:  0.000E+00,  #FINAL
+          energy: -5.62604351122678423E+01,                       D:  0.000E+00,  #FINAL
  }
  Total charge                          :  3.199997523102E+01
   #---------------------------------------------------------------------- Forces Calculation
@@ -2238,26 +2242,26 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  1.52959674E-01, y:  6.45790498E-02, z: -8.52492014E-02, 
                     total:  1.86640140E-01}
- Clean forces norm (Ha/Bohr): {maxval:  3.047009279426E-01, fnrm2:  2.301057386334E-01}
- Raw forces norm (Ha/Bohr): {maxval:  3.781450885429E-01, fnrm2:  2.724015107375E-01}
+ Clean forces norm (Ha/Bohr): {maxval:  3.047009279305E-01, fnrm2:  2.301057386031E-01}
+ Raw forces norm (Ha/Bohr): {maxval:  3.781450885282E-01, fnrm2:  2.724015107041E-01}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C: [ 1.285168860320E-01, -1.458952195766E-03, -1.206811772869E-01]} # 0001
- -  {C: [-6.263862062934E-02, -1.588327195000E-02, -7.497759205659E-03]} # 0002
- -  {O: [ 3.038357624075E-01,  2.283617566528E-02, -2.234737632687E-03]} # 0003
- -  {O: [ 4.243503886218E-02,  1.267035708456E-01,  9.358313190521E-03]} # 0004
- -  {N: [-1.453901488097E-01,  8.727541815398E-02,  7.477742618090E-02]} # 0005
- -  {H: [ 5.992363383114E-03, -4.557366821370E-02, -8.036676480374E-03]} # 0006
- -  {H: [-4.151172172647E-02, -1.102868401002E-02, -7.978569272591E-02]} # 0007
- -  {H: [-2.625586257848E-02, -5.735754446364E-02, -6.985147584071E-02]} # 0008
- -  {H: [-3.932966013549E-02, -7.682874539976E-02,  4.085217837923E-02]} # 0009
- -  {H: [-9.271389856996E-02, -1.471671162049E-02,  5.835103153262E-02]} # 0010
- -  {H: [-5.181714373018E-02, -1.681940808075E-02,  6.155810057620E-02]} # 0011
- -  {H: [-2.112299450520E-02,  2.851821269232E-03,  4.319046931278E-02]} # 0012
+ -  {C: [ 1.285168860150E-01, -1.458952194762E-03, -1.206811772897E-01]} # 0001
+ -  {C: [-6.263862061886E-02, -1.588327193479E-02, -7.497759176246E-03]} # 0002
+ -  {O: [ 3.038357623950E-01,  2.283617567270E-02, -2.234737615209E-03]} # 0003
+ -  {O: [ 4.243503888109E-02,  1.267035708487E-01,  9.358313202482E-03]} # 0004
+ -  {N: [-1.453901487903E-01,  8.727541812266E-02,  7.477742614998E-02]} # 0005
+ -  {H: [ 5.992363376654E-03, -4.557366821529E-02, -8.036676477246E-03]} # 0006
+ -  {H: [-4.151172173248E-02, -1.102868400963E-02, -7.978569272447E-02]} # 0007
+ -  {H: [-2.625586258129E-02, -5.735754446670E-02, -6.985147584217E-02]} # 0008
+ -  {H: [-3.932966014574E-02, -7.682874538790E-02,  4.085217836679E-02]} # 0009
+ -  {H: [-9.271389856682E-02, -1.471671161767E-02,  5.835103153035E-02]} # 0010
+ -  {H: [-5.181714372453E-02, -1.681940808116E-02,  6.155810056997E-02]} # 0011
+ -  {H: [-2.112299450770E-02,  2.851821263806E-03,  4.319046930542E-02]} # 0012
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  30.97
-   Elapsed time (s)                    :  15.83
+   CPU time (s)                        :  32.08
+   Elapsed time (s)                    :  16.33
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -2291,12 +2295,12 @@
  - EXPERIMENTAL: modify eval
  - density optimization not converged
  Memory Consumption Report:
-   Tot. No. of Allocations             :  33390
-   Tot. No. of Deallocations           :  33390
+   Tot. No. of Allocations             :  33626
+   Tot. No. of Deallocations           :  33626
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  151
      for the array                     : psir_noconf
      in the routine                    : psi_to_vlocpsi
- Max No. of dictionaries used          :  4051 #(  765 still in use)
+ Max No. of dictionaries used          :  4209 #(  775 still in use)
  Number of dictionary folders allocated:  1
