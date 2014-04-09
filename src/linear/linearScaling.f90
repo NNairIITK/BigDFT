@@ -1143,10 +1143,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   end do outerLoop
 
-  !write(*,*) 'calling loewdin_charge_analysis'
-  if (input%loewdin_charge_analysis) then
-      call loewdin_charge_analysis(iproc, tmb, at, calculate_overlap_matrix=.true., calculate_ovrlp_half=.true., meth_overlap=0)
-  end if
 
 
   if (input%write_orbitals) then
@@ -1217,6 +1213,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   ! print the final summary
   call print_info(.true.)
+
+
+  if (input%loewdin_charge_analysis) then
+      call loewdin_charge_analysis(iproc, tmb, at, calculate_overlap_matrix=.true., calculate_ovrlp_half=.true., meth_overlap=0)
+  end if
 
   if (iproc==0) call yaml_close_sequence()
 
