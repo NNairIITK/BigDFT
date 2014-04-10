@@ -1467,3 +1467,26 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
     end function cosine_taylor
 
 end subroutine check_communication_sumrho
+
+
+
+subroutine check_negative_rho(ndimrho, rho, rho_negative)
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: ndimrho
+  real(kind=8),dimension(ndimrho),intent(in) :: rho
+  logical,intent(out) :: rho_negative
+
+  ! Local variables
+  integer :: i
+
+  rho_negative=.false.
+  do i=1,ndimrho
+      if (rho(i)<0.d0) then
+          rho_negative=.true.
+          exit
+      end if
+  end do
+
+end subroutine check_negative_rho
