@@ -134,8 +134,6 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   ! Calculate the Hamiltonian matrix if it is not already present.
   if(calculate_ham) then
 
-      write(*,*) 'iproc, sum(denspot%rhov)', iproc, sum(denspot%rhov)
-
       call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
       call start_onesided_communication(iproc, nproc, max(denspot%dpbox%ndimpot,1), denspot%rhov, &
            tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
@@ -372,11 +370,6 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           matrixElements=f_malloc((/tmb%orbs%norb,tmb%orbs%norb,2/),id='matrixElements')
           call vcopy(tmb%orbs%norb**2, tmb%linmat%ham%matrix(1,1), 1, matrixElements(1,1,1), 1)
           call vcopy(tmb%orbs%norb**2, tmb%linmat%ovrlp%matrix(1,1), 1, matrixElements(1,1,2), 1)
-          !do iorb=1,tmb%orbs%norb
-          !    do jorb=1,tmb%orbs%norb
-          !        write(*,'(a,2i8,es16.8)') 'iorb, jorb, val', iorb, jorb, matrixElements(jorb,iorb,1)
-          !    end do
-          !end do
           call diagonalizeHamiltonian2(iproc, tmb%orbs%norb, matrixElements(1,1,1), matrixElements(1,1,2), tmb%orbs%eval)
           if (iproc==0) call yaml_map('gap',tmb%orbs%eval(orbs%norb+1)-tmb%orbs%eval(orbs%norb))
           call f_free(matrixElements)
@@ -487,6 +480,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   logical :: energy_diff, energy_increased_previous, complete_reset, even
   real(kind=8),dimension(3),save :: kappa_history
   integer,save :: nkappa_history
+  logical,save :: has_already_converged
   logical,dimension(6) :: exit_loop
   logical :: associated_psit_c, associated_psit_f
   logical :: associated_psitlarge_c, associated_psitlarge_f
@@ -557,6 +551,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   if (itout==0) then
       nkappa_history=0
       kappa_history=0.d0
+      has_already_converged=.false.
   end if
 
   iterLoop: do
@@ -983,7 +978,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       exit_loop(2) = (it_tot>=3*nit_basis)
       exit_loop(3) = energy_diff
       exit_loop(4) = (fnrm<conv_crit .and. experimental_mode)
-      exit_loop(5) = (experimental_mode .and. fnrm<dynamic_convcrit)
+      exit_loop(5) = (experimental_mode .and. fnrm<dynamic_convcrit .and. &
+                      (it>1 .or. has_already_converged)) ! first overall convergence not allowed in a first iteration
       exit_loop(6) = (itout==0 .and. it>1 .and. ratio_deltas<kappa_conv .and.  ratio_deltas>0.d0)
 
       if(any(exit_loop)) then
@@ -1006,6 +1002,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           if (exit_loop(5)) then
               if (iproc==0) call yaml_map('exit criterion','dynamic gradient')
               infoBasisFunctions=it
+              has_already_converged=.true.
           end if
           if (exit_loop(6)) then
               infoBasisFunctions=it
