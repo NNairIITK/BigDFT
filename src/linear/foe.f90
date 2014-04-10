@@ -298,12 +298,14 @@ subroutine foe(iproc, nproc, tmprtr, &
               !if (itemp==1 .or. .not.degree_sufficient) then
                   !npl=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/tmb%foe_obj%fscale)
                   npl=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale)
+npl=max(npl,120)
               !else
               !    ! this will probably disappear.. only needed when the degree is
               !    ! increased by the old way via purification etc.
               !    npl=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale)
               !end if
               npl_check=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale_check)
+npl_check=max(npl_check,nint(0.8d0*real(npl,kind=8)))
               npl_boundaries=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/FSCALE_LIMIT) ! max polynomial degree for given eigenvalue boundaries
               if (npl>npl_boundaries) then
                   npl=npl_boundaries

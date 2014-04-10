@@ -881,11 +881,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 !!         denspot, mixdiis, rhopotold, pnrm)
                 !!else
                     ! use it_scc+1 since we already have the density from the input guess as iteration 1
+                    write(*,*) 'before mixing: iproc, sum(denspot%rhov)', iproc, sum(denspot%rhov)
                     call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0-alpha_mix,denspot%mix,&
                          denspot%rhov,it_scc+1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
                          at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
                          pnrm,denspot%dpbox%nscatterarr)
-                    !!call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+                    write(*,*) 'after mixing: iproc, sum(denspot%rhov)', iproc, sum(denspot%rhov)
+                    call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
                 !!end if
                 !!write(*,'(a,2es16.9)') 'after mix: sum(denspot%rhov), sum(f_fftgr)', &
                 !!                                   sum(denspot%rhov), sum(denspot%mix%f_fftgr(:,:,denspot%mix%i_vrespc(1)))
@@ -916,7 +918,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              if (iproc==0) call yaml_newline()
              
 
+             do istat=1,size(denspot%rhov)
+                 if (denspot%rhov(istat)<0.d0) then
+                     write(*,*) 'ERROR: negative rho'
+                 end if
+             end do
              call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+             write(*,*) 'after updatepot: iproc, sum(denspot%rhov)', iproc, sum(denspot%rhov)
              if (iproc==0) call yaml_close_map()
 
 

@@ -134,6 +134,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   ! Calculate the Hamiltonian matrix if it is not already present.
   if(calculate_ham) then
 
+      write(*,*) 'iproc, sum(denspot%rhov)', iproc, sum(denspot%rhov)
+
       call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
       call start_onesided_communication(iproc, nproc, max(denspot%dpbox%ndimpot,1), denspot%rhov, &
            tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
@@ -370,6 +372,11 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           matrixElements=f_malloc((/tmb%orbs%norb,tmb%orbs%norb,2/),id='matrixElements')
           call vcopy(tmb%orbs%norb**2, tmb%linmat%ham%matrix(1,1), 1, matrixElements(1,1,1), 1)
           call vcopy(tmb%orbs%norb**2, tmb%linmat%ovrlp%matrix(1,1), 1, matrixElements(1,1,2), 1)
+          !do iorb=1,tmb%orbs%norb
+          !    do jorb=1,tmb%orbs%norb
+          !        write(*,'(a,2i8,es16.8)') 'iorb, jorb, val', iorb, jorb, matrixElements(jorb,iorb,1)
+          !    end do
+          !end do
           call diagonalizeHamiltonian2(iproc, tmb%orbs%norb, matrixElements(1,1,1), matrixElements(1,1,2), tmb%orbs%eval)
           if (iproc==0) call yaml_map('gap',tmb%orbs%eval(orbs%norb+1)-tmb%orbs%eval(orbs%norb))
           call f_free(matrixElements)
@@ -2917,8 +2924,8 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
           call yaml_sequence(advance='no')
           call yaml_open_map(flow=.true.)
           atomname=atoms%astruct%atomnames(atoms%astruct%iatype(iat))
-          charges(1)=charge_per_atom(iat)
-          charges(2)=charge_per_atom(iat)-real(atoms%nelpsp(atoms%astruct%iatype(iat)),kind=8)
+          charges(1)=-charge_per_atom(iat)
+          charges(2)=-(charge_per_atom(iat)-real(atoms%nelpsp(atoms%astruct%iatype(iat)),kind=8))
           total_charge = total_charge + charges(1)
           total_net_charge = total_net_charge + charges(2)
           call yaml_map(trim(atomname),charges,fmt='(1es20.12)')
