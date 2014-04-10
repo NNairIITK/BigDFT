@@ -122,19 +122,20 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
       !disassociate work array for transposition in serial
       if (nproc > 1) then
          allocate(psiw(max(KSwfn%orbs%npsidim_orbs,KSwfn%orbs%npsidim_comp)+ndebug),stat=i_stat)
-         call memocc(i_stat,psiw,'psiw',subname)
       else
-         psiw => null()
+         !psiw => null()
+         allocate(psiw(1+ndebug),stat=i_stat)
       endif
+      call memocc(i_stat,psiw,'psiw',subname)
 
       !transpose the wavefunction psi 
       call transpose_v(iproc,nproc,KSwfn%orbs,KSwfn%lzd%glr%wfd,KSwfn%comms,KSwfn%psi(1),psiw(1))
 
-      if (nproc > 1) then
+      !if (nproc > 1) then
          i_all=-product(shape(psiw))*kind(psiw)
          deallocate(psiw,stat=i_stat)
          call memocc(i_stat,i_all,'psiw',subname)
-      end if
+      !end if
    end if
 
    allocate(VTwfn%orbs%eval(VTwfn%orbs%norb*VTwfn%orbs%nkpts+ndebug),stat=i_stat)
@@ -269,7 +270,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
       !check for convergence or whether max. numb. of iterations exceeded
       if (endloop) then 
          if (iproc == 0) then 
-            !if (verbose > 1) call yaml_map('Minimization iterations required',iter)
+            if (verbose > 1) call yaml_map('Minimization iterations required',iter)
             call write_energies(iter,0,energs,gnrm,0.d0,' ')
             call yaml_close_map()
             call yaml_comment('End of Virtual Wavefunction Optimisation',hfill='-')
