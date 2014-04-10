@@ -503,8 +503,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                else
                    if (ratio_deltas<=1.d0 .and. ratio_deltas>0.d0) then
                        !if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',ratio_deltas
-                       if (iproc==0) call yaml_map('multiplicator for the confinement',ratio_deltas)
-                       tmb%confdatarr(:)%prefac=ratio_deltas*tmb%confdatarr(:)%prefac
+                       !if (iproc==0) call yaml_map('multiplicator for the confinement',ratio_deltas)
+                       if (iproc==0) call yaml_map('multiplicator for the confinement',ratio_deltas**2)
+                       tmb%confdatarr(:)%prefac=(ratio_deltas**2)*tmb%confdatarr(:)%prefac
                    else if (ratio_deltas>1.d0) then
                        !if (iproc==0) write(*,*) 'WARNING: ratio_deltas>1!. Using 0.5 instead'
                        !if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',0.5d0
@@ -885,7 +886,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                          denspot%rhov,it_scc+1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
                          at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
                          pnrm,denspot%dpbox%nscatterarr)
-                     call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+                    call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
                 !!end if
                 !!write(*,'(a,2es16.9)') 'after mix: sum(denspot%rhov), sum(f_fftgr)', &
                 !!                                   sum(denspot%rhov), sum(denspot%mix%f_fftgr(:,:,denspot%mix%i_vrespc(1)))
@@ -1143,8 +1144,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   end do outerLoop
 
-  !write(*,*) 'calling loewdin_charge_analysis'
-  call loewdin_charge_analysis(iproc, tmb, at, calculate_overlap_matrix=.true., calculate_ovrlp_half=.true., meth_overlap=0)
 
 
   if (input%write_orbitals) then
@@ -1215,6 +1214,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   ! print the final summary
   call print_info(.true.)
+
+
+  if (input%loewdin_charge_analysis) then
+      call loewdin_charge_analysis(iproc, tmb, at, calculate_overlap_matrix=.true., calculate_ovrlp_half=.true., meth_overlap=0)
+  end if
 
   if (iproc==0) call yaml_close_sequence()
 

@@ -298,12 +298,14 @@ subroutine foe(iproc, nproc, tmprtr, &
               !if (itemp==1 .or. .not.degree_sufficient) then
                   !npl=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/tmb%foe_obj%fscale)
                   npl=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale)
+npl=max(npl,80)
               !else
               !    ! this will probably disappear.. only needed when the degree is
               !    ! increased by the old way via purification etc.
               !    npl=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale)
               !end if
               npl_check=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale_check)
+npl_check=max(npl_check,nint(0.8d0*real(npl,kind=8)))
               npl_boundaries=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/FSCALE_LIMIT) ! max polynomial degree for given eigenvalue boundaries
               if (npl>npl_boundaries) then
                   npl=npl_boundaries
@@ -946,12 +948,12 @@ subroutine foe(iproc, nproc, tmprtr, &
       end if
 
       if (adjust_FOE_temperature .and. foe_verbosity>=1) then
-          if (diff<1.d-3) then
+          if (diff<5.d-3) then
               ! can decrease polynomial degree
               tmb%foe_obj%fscale=1.25d0*tmb%foe_obj%fscale
               if (iproc==0) call yaml_map('modify fscale','increase')
               degree_sufficient=.true.
-          else if (diff>=1.d-3 .and. diff < 2.d-3) then
+          else if (diff>=5.d-3 .and. diff < 1.d-2) then
               ! polynomial degree seems to be appropriate
               degree_sufficient=.true.
               !!if (iproc==0) call yaml_map('Need to change fscale',.false.)
