@@ -1002,11 +1002,11 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
           call yaml_newline()
       end if
   end if
-  if (present(psidiff)) then
-      do i=1,tmb%npsidim_orbs
-          psidiff(i)=tmb%psi(i)-psidiff(i)
-      end do 
-  end if
+  !!if (present(psidiff)) then
+  !!    do i=1,tmb%npsidim_orbs
+  !!        psidiff(i)=tmb%psi(i)-psidiff(i)
+  !!    end do 
+  !!end if
 
   ! The transposed quantities can now not be used any more...
   if(tmb%can_use_transposed) then
@@ -1099,6 +1099,11 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
       !!if(iproc==0) then
       !!     write(*,'(1x,a)',advance='no') 'Orthonormalization... '
       !!end if
+      if (present(psidiff)) then
+          do i=1,tmb%npsidim_orbs
+              psidiff(i)=tmb%psi(i)-psidiff(i)
+          end do 
+      end if
 
       ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
       call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
@@ -1134,6 +1139,11 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
       call untranspose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
       if (iproc == 0) then
           call yaml_map('Normalization',.true.)
+      end if
+      if (present(psidiff)) then
+          do i=1,tmb%npsidim_orbs
+              psidiff(i)=tmb%psi(i)-psidiff(i)
+          end do 
       end if
   end if
 

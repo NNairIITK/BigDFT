@@ -58,6 +58,8 @@ subroutine foe(iproc, nproc, tmprtr, &
   real(kind=8),parameter :: DEGREE_MULTIPLICATOR_FAST=2.d0
   real(kind=8),parameter :: TEMP_MULTIPLICATOR_ACCURATE=1.d0
   real(kind=8),parameter :: TEMP_MULTIPLICATOR_FAST=1.2d0
+  real(kind=8),parameter :: CHECK_RATIO=1.25d0
+  integer,parameter :: NPL_MIN=80
   integer,parameter :: NTEMP_ACCURATE=4
   integer,parameter :: NTEMP_FAST=1
   real(kind=8) :: degree_multiplicator
@@ -187,7 +189,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   temp_loop: do itemp=1,ntemp
 
       fscale = temp_multiplicator*tmb%foe_obj%fscale
-      fscale_check = 1.25*fscale
+      fscale_check = CHECK_RATIO*fscale
       
       !fscale=fscale*0.5d0 ! make the error function sharper, i.e. more "step function-like"
       !fscale_check=1.25*tmb%foe_obj%fscale
@@ -298,12 +300,17 @@ subroutine foe(iproc, nproc, tmprtr, &
               !if (itemp==1 .or. .not.degree_sufficient) then
                   !npl=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/tmb%foe_obj%fscale)
                   npl=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale)
+                  if(npl<=NPL_MIN) then
+                      if (iproc==0) call yaml_map('increase npl to minimal value; original value',npl)
+                      npl=NPL_MIN ! this is the minimal degree
+                  end if
               !else
               !    ! this will probably disappear.. only needed when the degree is
               !    ! increased by the old way via purification etc.
               !    npl=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale)
               !end if
               npl_check=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale_check)
+              npl_check=max(npl_check,nint(real(npl,kind=8)/CHECK_RATIO)) ! this is necessary if npl was set to the minimal value
               npl_boundaries=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/FSCALE_LIMIT) ! max polynomial degree for given eigenvalue boundaries
               if (npl>npl_boundaries) then
                   npl=npl_boundaries
@@ -946,12 +953,12 @@ subroutine foe(iproc, nproc, tmprtr, &
       end if
 
       if (adjust_FOE_temperature .and. foe_verbosity>=1) then
-          if (diff<1.d-3) then
+          if (diff<5.d-3) then
               ! can decrease polynomial degree
               tmb%foe_obj%fscale=1.25d0*tmb%foe_obj%fscale
               if (iproc==0) call yaml_map('modify fscale','increase')
               degree_sufficient=.true.
-          else if (diff>=1.d-3 .and. diff < 2.d-3) then
+          else if (diff>=5.d-3 .and. diff < 1.d-2) then
               ! polynomial degree seems to be appropriate
               degree_sufficient=.true.
               !!if (iproc==0) call yaml_map('Need to change fscale',.false.)

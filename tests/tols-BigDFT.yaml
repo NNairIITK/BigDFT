@@ -856,12 +856,14 @@ sparsity:
  Clean forces norm (Ha/Bohr): 7.7e-11
  Raw forces norm (Ha/Bohr): 1.4e-11
  Total ionic charge: 2.2e-11
- charge diff: 1.1e-10
+ charge diff: 2.1e-10
  energy: 4.9e-10
  EXC: 1.1e-10
  Epot: 1.1e-9
  eF: 1.1e-10
  D eF: 1.1e-9
+ ebs_check: 2.1e-10
+ ebs: 2.1e-10
 
 PBE_densmixlin:
  Ekin: 1.1e-10
