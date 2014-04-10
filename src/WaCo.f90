@@ -117,10 +117,7 @@ program WaCo
 
    call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
         & 'posinp'//trim(bigdft_run_id_toa()), bigdft_mpi)
-   call inputs_from_dict(input, atoms, user_inputs, .true.)
-   if (iproc == 0) then
-      call print_general_parameters(input,atoms)
-   end if
+   call inputs_from_dict(input, atoms, user_inputs)
    call dict_free(user_inputs)
 
 !!$   if (input%verbosity > 2) then
@@ -130,9 +127,9 @@ program WaCo
 !!$   end if
 
    !call timing(nproctiming,'WaCo_time.prc','IN')
-   call f_timing_reset(filename=trim(in%dir_output)//'WaCo_time.yaml',&
+   call f_timing_reset(filename=trim(input%dir_output)//'WaCo_time.yaml',&
         master=iproc==0,&
-        debug_mode=input%verbosity>2)
+        verbose_mode=input%verbosity>2)
 
 
    call cpu_time(tcpu0)
@@ -163,7 +160,7 @@ program WaCo
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
    call system_size(atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
-        Glr,shift)
+        .false.,Glr,shift)
    if (iproc == 0) &
         & call print_atoms_and_grid(Glr, atoms, atoms%astruct%rxyz, shift, input%hx,input%hy,input%hz)
    
@@ -1304,7 +1301,10 @@ program WaCo
   !call deallocate_atoms_scf(atoms,subname)
   call deallocate_atoms_data(atoms)
 !  call free_input_variables(input)
-  call bigdft_free_input(input)
+  call free_input_variables(input)
+  call f_lib_finalize()
+  !free all yaml_streams active
+  call yaml_close_all_streams()
 
   !#########################################################
   ! Ending timing and MPI

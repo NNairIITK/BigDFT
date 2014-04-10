@@ -92,12 +92,13 @@ AgBulk:
 SiBulk:
  Residues per orbital: 8.0e-10
  maxval: 1.2e-11
- Enl: 2.1e-11
+ Ekin: 2.1e-11
+ Enl: 2.9e-11
  Epot: 1.0e-10
  EvXC: 1.1e-10
  Atomic Forces (Ha/Bohr): 1.5e-11
  Clean forces norm (Ha/Bohr): 1.2e-11
- Average noise forces: 1.75e-11
+ Average noise forces: 1.85e-11
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
   - Residues per orbital
@@ -859,6 +860,8 @@ sparsity:
  energy: 4.9e-10
  EXC: 1.1e-10
  Epot: 1.1e-9
+ eF: 1.1e-10
+ D eF: 1.1e-10
 
 PBE_densmixlin:
  Ekin: 1.1e-10
@@ -889,7 +892,7 @@ PBE_potmixdiis:
  energy: 4.8e-8
  EXC: 2.0e-8
  EvXC: 2.7e-8
- Omega: 2.0e-9
+ Omega: 2.5e-9
  Epot: 6.2e-8
  EH: 6.3e-8
  Ekin: 1.2e-8

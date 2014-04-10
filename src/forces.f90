@@ -3997,12 +3997,10 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian_stress'
   integer :: i_all,i_stat,iorb,npot,oidx
-  real(wp) :: exctXcoeff,kinstr(6)
+  real(wp) :: kinstr(6)
   real(gp) :: ekin,kx,ky,kz,etest
   type(workarr_locham) :: wrk_lh
   real(wp), dimension(:,:), allocatable :: psir,hpsi
-
-  exctXcoeff=xc_exctXfac()
 
   !initialise the work arrays
   call initialize_work_arrays_locham(lr,orbs%nspinor,wrk_lh)  

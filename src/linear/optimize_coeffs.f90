@@ -197,7 +197,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      ! instead of twice could add some criterion to check accuracy?
      if (present(num_extra)) then
         call reorthonormalize_coeff(iproc, nproc, orbs%norb+num_extra, -8, -8, tmb%orthpar%methTransformOverlap, &
-             tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
+             tmb%orbs, tmb%linmat%ovrlp, tmb%coeff, orbs)
         !call reorthonormalize_coeff(iproc, nproc, orbs%norb+num_extra, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
      else
         call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, tmb%orthpar%methTransformOverlap, &
@@ -356,7 +356,8 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='tmb%linmat%ovrlp%matrix')
   call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%ovrlp)
   call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orthpar%methTransformOverlap, 2, &
-        tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%linmat%ovrlp%matrix, ovrlp_half, error, tmb%orbs)
+       tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%orbs, imode=2, check_accur=.true., &
+       ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=ovrlp_half, error=error)
   call f_free_ptr(tmb%linmat%ovrlp%matrix)
 
   do ifrag=1,input%frag%nfrag
@@ -1038,7 +1039,8 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
      call timing(iproc,'dirmin_dgesv','OF')
      inv_ovrlp=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='inv_ovrlp')
      call overlapPowerGeneral(iproc, nproc, tmb%orthpar%methTransformOverlap, 1, -8, &
-          tmb%orbs%norb, tmb%linmat%ovrlp%matrix, inv_ovrlp, error, tmb%orbs)
+          tmb%orbs%norb, tmb%orbs, imode=2, check_accur=.true., &
+          ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=inv_ovrlp, error=error)
 
      !!!DEBUG checking S^-1 etc.
      !!!test dense version of S^-1
@@ -1340,8 +1342,8 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_
      !   call f_free(ipiv)
      !end if
      inv_ovrlp=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='inv_ovrlp')
-     call overlapPowerGeneral(iproc, nproc, tmb%orthpar%methTransformOverlap, 1, -8, tmb%orbs%norb, &
-          tmb%linmat%ovrlp%matrix, inv_ovrlp, error, tmb%orbs)
+     call overlapPowerGeneral(iproc, nproc, tmb%orthpar%methTransformOverlap, 1, -8, tmb%orbs%norb, tmb%orbs, &
+          imode=2, check_accur=.true., ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=inv_ovrlp, error=error)
 
      if (tmb%orbs%norbp>0) then
         call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, inv_ovrlp(1,1), &

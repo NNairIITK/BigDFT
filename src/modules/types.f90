@@ -15,6 +15,7 @@ module module_types
   use m_ab7_mixing, only : ab7_mixing_object
   use module_base, only : gp,wp,dp,tp,uninitialized,mpi_environment,mpi_environment_null,&
        bigdft_mpi,ndebug,memocc!,vcopy
+  use module_xc, only : xc_info
   use gaussians, only: gaussian_basis
   use Poisson_Solver, only: coulomb_operator
   use dictionaries, only: dictionary
@@ -123,6 +124,8 @@ module module_types
   integer, parameter :: KERNELMODE_FOE = 12
   integer, parameter :: MIXINGMODE_DENS = 20
   integer, parameter :: MIXINGMODE_POT = 21
+  integer,parameter :: FOE_ACCURATE = 30
+  integer,parameter :: FOE_FAST = 31
 
   !> How to update the density kernel during teh support function optimization
   integer, parameter :: UPDATE_BY_PURIFICATION = 0
@@ -411,6 +414,9 @@ module module_types
 
      !> linear scaling: quick return in purification
      logical :: purification_quickreturn
+     
+     !> linear scaling: dynamic adjustment of the decay length of the FOE error function
+     logical :: adjust_FOE_temperature
   end type input_variables
 
 
@@ -522,6 +528,7 @@ module module_types
   !! So they are declared as kind=8 variables either if the GPU works in simple precision
   !! Also other information concerning the GPU runs can be stored in this structure
   type, public :: GPU_pointers
+     logical :: OCLconv  !< True if OCL is used for convolutions for this MPI process
      logical :: useDynamic,full_locham
      integer :: id_proc,ndevices
      real(kind=8) :: keys,work1,work2,work3,rhopot,r,d
@@ -601,7 +608,9 @@ module module_types
 
   !> Fermi Operator Expansion parameters
   type, public :: foe_data
-    integer, dimension(:), pointer :: kernel_nseg
+    integer :: nseg
+    integer,dimension(:),pointer :: kernel_nsegline, istsegline
+    integer,dimension(:,:),pointer :: keyg
     integer, dimension(:,:,:), pointer :: kernel_segkeyg
     real(kind=8) :: ef                     !< Fermi energy for FOE
     real(kind=8) :: evlow, evhigh          !< Eigenvalue bounds for FOE 
@@ -733,6 +742,7 @@ module module_types
      real(gp) :: psoffset                 !< offset of the Poisson Solver in the case of Periodic BC
      type(rho_descriptors) :: rhod        !< descriptors of the density for parallel communication
      type(denspot_distribution) :: dpbox  !< distribution of density and potential box
+     type(xc_info) :: xc !< structure about the used xc functionals
      character(len=3) :: PSquiet
      !real(gp), dimension(3) :: hgrids    !< grid spacings of denspot grid (half of the wvl grid)
      type(coulomb_operator) :: pkernel    !< kernel of the Poisson Solver used for V_H[rho]
@@ -1472,6 +1482,9 @@ subroutine deallocate_orbs(orbs,subname)
 
     !Nullify LZD for cubic version (new input guess)
     call nullify_local_zone_descriptors(rst%tmb%lzd)
+
+    !Nullify GPU data
+    rst%GPU%OCLconv=.false.
   END SUBROUTINE restart_objects_new
 
   subroutine restart_objects_set_mode(rst, inputpsiid)
@@ -2558,7 +2571,7 @@ end subroutine find_category
     integer, dimension(2) :: dummy_int !<to use as filling for input variables
     real(gp), dimension(3) :: dummy_gp !< to fill the input variables
     logical, dimension(2) :: dummy_log !< to fill the input variables
-    character(len=256) :: dummy_char, dummy_char2
+    character(len=256) :: dummy_char
     character(len = max_field_length) :: str
     integer :: i, ipos
 
@@ -2770,6 +2783,9 @@ end subroutine find_category
        case (PURIFICATION_QUICKRETURN)
            ! linear scaling: quick return in purification
            in%purification_quickreturn = val
+       case (ADJUST_foe_TEMPERATURE)
+           ! linear scaling: dynamic adjustment of the decay length of the FOE error function
+           in%adjust_FOE_temperature = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select

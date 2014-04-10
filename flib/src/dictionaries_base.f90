@@ -296,8 +296,7 @@ contains
       implicit none
       type(dictionary), pointer :: dict
       !local variables
-      type(dictionary), pointer :: dict_it0,dict_it,dict_it2,dict_tmp
-
+!!$      type(dictionary), pointer :: dict_it0,dict_it,dict_it2,dict_tmp
 !!$      !find last brother
 !!$      dict_it0=>dict
 !!$      general_loop: do while(associated(dict_it0))
@@ -742,14 +741,6 @@ contains
 end module dictionaries_base
 
 !> Routines for bindings only (external of module)
-subroutine dict_new(dict)
-  use dictionaries_base
-  implicit none
-  type(dictionary), pointer :: dict
-
-  call dict_init(dict)
-end subroutine dict_new
-
 subroutine dict_free(dict)
   use dictionaries_base, mod_dict_free => dict_free
   implicit none

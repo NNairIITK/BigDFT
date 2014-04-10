@@ -11,7 +11,7 @@
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
     calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,order_taylor,purification_quickreturn, &
-    calculate_KS_residue,&
+    adjust_FOE_temperature,calculate_KS_residue,&
     convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
   use module_base
   use module_types
@@ -39,7 +39,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   type(SIC_data),intent(in) :: SIC
   type(DFT_wavefunction),intent(inout) :: tmb
   logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho, purification_quickreturn
-  logical,intent(in) :: calculate_ham, calculate_KS_residue
+  logical,intent(in) :: calculate_ham, calculate_KS_residue, adjust_FOE_temperature
   type(sparse_matrix), intent(inout) :: ham_small ! for foe only
   type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
   integer, intent(in), optional :: nitdmin ! for dmin only
@@ -124,7 +124,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   ! Calculate the Hamiltonian matrix if it is not already present.
   if(calculate_ham) then
 
-      call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
+      call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
       call start_onesided_communication(iproc, nproc, max(denspot%dpbox%ndimpot,1), denspot%rhov, &
            tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
 
@@ -144,17 +144,22 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
            tmb%ham_descr%lzd,nlpsp,tmb%ham_descr%psi,tmb%hpsi,energs%eproj)
       ! only kinetic as waiting for communications
       call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
-           tmb%ham_descr%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%ham_descr%psi,tmb%hpsi,&
-           energs,SIC,GPU,3,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
-      call full_local_potential(iproc,nproc,tmb%orbs,tmb%ham_descr%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work, &
-           tmb%ham_descr%comgp)
+           tmb%ham_descr%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,&
+           & tmb%ham_descr%psi,tmb%hpsi,energs,SIC,GPU,3,denspot%xc,&
+           & pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,&
+           & potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
+      call full_local_potential(iproc,nproc,tmb%orbs,tmb%ham_descr%lzd,2,denspot%dpbox,&
+           & denspot%xc,denspot%rhov,denspot%pot_work,tmb%ham_descr%comgp)
       !call wait_p2p_communication(iproc, nproc, tmb%ham_descr%comgp)
       ! only potential
       call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
-           tmb%ham_descr%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%ham_descr%psi,tmb%hpsi,&
-           energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
+           tmb%ham_descr%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,&
+           & tmb%ham_descr%psi,tmb%hpsi,energs,SIC,GPU,2,denspot%xc,&
+           & pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,&
+           & potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
       call timing(iproc,'glsynchham1','ON')
-      call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,tmb%ham_descr%lzd,GPU,tmb%hpsi,&
+      call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,&
+           & tmb%orbs,tmb%ham_descr%lzd,GPU,denspot%xc,tmb%hpsi,&
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
       call timing(iproc,'glsynchham1','OF')
       deallocate(confdatarrtmp)
@@ -347,8 +352,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       if (iproc==0) call yaml_map('method','FOE')
       tmprtr=0.d0
       call foe(iproc, nproc, tmprtr, &
-           energs%ebs, itout,it_scc, order_taylor, purification_quickreturn, &
-           1, tmb)
+           energs%ebs, itout,it_scc, order_taylor, purification_quickreturn, adjust_FOE_temperature, &
+           1, FOE_ACCURATE, tmb)
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
 
@@ -384,7 +389,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     correction_orthoconstraint,nit_basis,&
     ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
     gnrm_dynamic, can_use_ham, order_taylor, kappa_conv, method_updatekernel,&
-    purification_quickreturn)
+    purification_quickreturn, adjust_FOE_temperature)
   !
   ! Purpose:
   ! ========
@@ -422,7 +427,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   integer, intent(in) :: extra_states
   integer,intent(in) :: itout
   real(kind=8),intent(in) :: conv_crit, early_stop, gnrm_dynamic, kappa_conv
-  logical,intent(in) :: experimental_mode, purification_quickreturn
+  logical,intent(in) :: experimental_mode, purification_quickreturn, adjust_FOE_temperature
   logical,intent(out) :: can_use_ham
   integer,intent(in) :: method_updatekernel
  
@@ -476,7 +481,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   it=0
   it_tot=0
   !ortho=.true.
-  call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
+  call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
   call start_onesided_communication(iproc, nproc, max(denspot%dpbox%ndimpot,1), denspot%rhov, &
        tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
 
@@ -550,24 +555,30 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
            tmb%ham_descr%lzd,nlpsp,tmb%ham_descr%psi,tmb%hpsi,energs%eproj)
       ! only kinetic because waiting for communications
       call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
-           tmb%ham_descr%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%ham_descr%psi,tmb%hpsi,&
-           energs,SIC,GPU,3,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
-      call full_local_potential(iproc,nproc,tmb%orbs,tmb%ham_descr%lzd,2,denspot%dpbox,denspot%rhov,denspot%pot_work, &
-           tmb%ham_descr%comgp)
+           tmb%ham_descr%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,&
+           & tmb%ham_descr%psi,tmb%hpsi,energs,SIC,GPU,3,denspot%xc,&
+           & pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,&
+           & potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
+      call full_local_potential(iproc,nproc,tmb%orbs,tmb%ham_descr%lzd,2,denspot%dpbox,&
+           & denspot%xc,denspot%rhov,denspot%pot_work,tmb%ham_descr%comgp)
       ! only potential
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           call vcopy(tmb%ham_descr%npsidim_orbs, tmb%hpsi(1), 1, hpsi_noconf(1), 1)
           call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
-               tmb%ham_descr%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%ham_descr%psi,tmb%hpsi,&
-               energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%ham_descr%comgp,&
+               tmb%ham_descr%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,&
+               & tmb%ham_descr%psi,tmb%hpsi,energs,SIC,GPU,2,denspot%xc,&
+               & pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,&
+               & potential=denspot%rhov,comgp=tmb%ham_descr%comgp,&
                hpsi_noconf=hpsi_noconf,econf=econf)
           if (nproc>1) then
               call mpiallred(econf, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
           end if
       else
           call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
-               tmb%ham_descr%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,tmb%ham_descr%psi,tmb%hpsi,&
-               energs,SIC,GPU,2,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
+               tmb%ham_descr%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,&
+               & denspot%pot_work,tmb%ham_descr%psi,tmb%hpsi,energs,SIC,GPU,2,denspot%xc,&
+               & pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,&
+               & potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
       end if
 
 
@@ -576,7 +587,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       !!end if
 
       call timing(iproc,'glsynchham2','ON')
-      call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,tmb%ham_descr%lzd,GPU,tmb%hpsi,&
+      call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,tmb%ham_descr%lzd,GPU,denspot%xc,tmb%hpsi,&
            energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
       call timing(iproc,'glsynchham2','OF')
 
@@ -656,7 +667,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               if (iproc==0) call yaml_newline()
               if (iproc==0) call yaml_open_map(flow=.true.)
               call foe(iproc, nproc, 0.d0, &
-                   energs%ebs, -1, -10, order_taylor, purification_quickreturn, 0, tmb)
+                   energs%ebs, -1, -10, order_taylor, purification_quickreturn, adjust_FOE_temperature, 0, &
+                   FOE_FAST, tmb)
               if (iproc==0) call yaml_close_map()
               if (.not.associated_psit_c) then
                   iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
@@ -1902,7 +1914,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   type(orbitals_data), intent(in) :: basis_orbs   !number of basis functions
   type(sparse_matrix),intent(in) :: basis_overlap
   real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(inout) :: coeff
-  type(orbitals_data), optional, intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
+  type(orbitals_data), intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
   ! Local variables
   integer :: ierr, istat, iall, ind, iorb, korb, llorb, jorb
   integer :: npts_per_proc, ind_start, ind_end, indc
@@ -1918,6 +1930,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
 
   call mpi_barrier(bigdft_mpi%mpi_comm, ierr) ! to check timings
   call timing(iproc,'renormCoefCom1','ON')
+
 
   !if (present(orbs)) then
   !   communication_strategy=ALLREDUCE
@@ -2004,8 +2017,14 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
 
   call timing(iproc,'renormCoefCom1','OF')
 
-  call overlapPowerGeneral(iproc, nproc, inversion_method, -2, &
-       blocksize_dsyev, norb, ovrlp_coeff, ovrlp_coeff2, error, orbs)
+  if (norb==orbs%norb) then
+      call overlapPowerGeneral(iproc, nproc, inversion_method, -2, &
+           blocksize_dsyev, norb, orbs, imode=2, check_accur=.false., ovrlp=ovrlp_coeff, inv_ovrlp=ovrlp_coeff2)
+  else
+      ! It is not possible to use the standard parallelization scheme, so do serial
+      call overlapPowerGeneral(iproc, 1, inversion_method, -2, &
+           blocksize_dsyev, norb, orbs, imode=2, check_accur=.false., ovrlp=ovrlp_coeff, inv_ovrlp=ovrlp_coeff2)
+  end if
 
   call timing(iproc,'renormCoefCom2','ON')
 
@@ -2462,10 +2481,12 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
         subroutine calculate_overlap_onehalf()
           ! Taylor approximation of S^1/2 and S^-1/2 up to higher order
 
-          call overlapPowerGeneral(iproc, nproc, order_taylor, 2, -1, tmb%orbs%norb, &
-               tmb%linmat%ovrlp%matrix, ovrlp_onehalf, error, tmb%orbs, check_accur=.true.)
-          call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, &
-               tmb%linmat%ovrlp%matrix, ovrlp_minusonehalf, error, tmb%orbs, check_accur=.true.)
+          call overlapPowerGeneral(iproc, nproc, order_taylor, 2, -1, tmb%orbs%norb, tmb%orbs, &
+               imode=2, check_accur=.true., ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=ovrlp_onehalf, &
+               error=error)
+          call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, tmb%orbs, &
+               imode=2, check_accur=.true., ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=ovrlp_minusonehalf, &
+               error=error)
           if (iproc==0) then
               call yaml_map('error of S^-1/2',error,fmt='(es9.2)')
           end if

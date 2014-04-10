@@ -265,13 +265,14 @@ end module module_exctx_op2p
 
 !> Routine which applies the op2p module to calculate the exact exchange
 !! Defines the interface module in the same file
-subroutine exact_exchange_potential_op2p(iproc,nproc,lr,orbs,pkernel,psi,dpsir,eexctX)
+subroutine exact_exchange_potential_op2p(iproc,nproc,xc,lr,orbs,pkernel,psi,dpsir,eexctX)
   use module_base
   use module_types
   use module_xc
   use module_exctx_op2p
   implicit none
   integer, intent(in) :: iproc,nproc
+  type(xc_info), intent(in) :: xc
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(in) :: orbs
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi !> wavefunctions in wavelet form
@@ -314,7 +315,7 @@ subroutine exact_exchange_potential_op2p(iproc,nproc,lr,orbs,pkernel,psi,dpsir,e
 
   if (nproc>1) call mpiallred(eexctX,1,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
 
-  exctXfac = xc_exctXfac()
+  exctXfac = xc_exctXfac(xc)
   eexctX=-exctXfac*eexctX
 
   i_all=-product(shape(psir))*kind(psir)

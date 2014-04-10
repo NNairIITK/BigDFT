@@ -1096,7 +1096,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
       ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
       call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
            tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp_large, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
-           tmb%can_use_transposed)
+           tmb%can_use_transposed, tmb%foe_obj)
       if (iproc == 0) then
           call yaml_map('Orthogonalization',.true.)
       end if

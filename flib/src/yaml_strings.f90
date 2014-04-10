@@ -439,7 +439,7 @@ contains
     character(len=*), intent(in) :: str
     character(len=max_value_length) :: clean_zero
     !local variables
-    integer :: idot,iexpo,i,iend
+    integer :: idot,iexpo,i
 
     !first fill with all the values up to the dot if it exist
     idot=scan(str,'.')

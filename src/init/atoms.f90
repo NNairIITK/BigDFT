@@ -107,6 +107,18 @@ subroutine astruct_set_displacement(astruct, randdis)
   end select
 END SUBROUTINE astruct_set_displacement
 
+!> For bindings only, use input_dicts module for Fortran usage.
+subroutine astruct_merge_to_dict(dict, astruct)
+  use module_input_dicts, only: wrapper => astruct_merge_to_dict
+  use module_types, only: atomic_structure
+  use dictionaries, only: dictionary, dict_len, dict_size
+  implicit none
+  type(dictionary), pointer :: dict
+  type(atomic_structure), intent(in) :: astruct
+
+  call wrapper(dict, astruct, astruct%rxyz)
+END SUBROUTINE astruct_merge_to_dict
+
 !> Find extra information
 subroutine find_extra_info(line,extra)
   implicit none

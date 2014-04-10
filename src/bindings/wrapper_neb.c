@@ -52,8 +52,8 @@ static void bigdft_image_dispose(GObject *obj)
 static void bigdft_image_finalize(GObject *obj)
 {
   BigDFT_Image *image = BIGDFT_IMAGE(obj);
-  _run_objects_pointer run;
-  _DFT_global_output_pointer outs;
+  f90_run_objects_pointer run;
+  f90_DFT_global_output_pointer outs;
 
   if (F_TYPE(image->data))
     {
@@ -68,38 +68,36 @@ static void bigdft_image_finalize(GObject *obj)
   G_OBJECT_CLASS(bigdft_image_parent_class)->finalize(obj);
 #endif
 }
-BigDFT_Image* bigdft_image_new(BigDFT_Atoms *atoms, BigDFT_Inputs *ins, BigDFT_Restart *rst, BigDFT_ImageAlgo algo)
-{
-  BigDFT_Image *image;
-  _run_objects_pointer run;
-  _DFT_global_output_pointer outs;
-  int algo_;
-  /* long self; */
+/* BigDFT_Image* bigdft_image_new(BigDFT_Atoms *atoms, BigDFT_Inputs *ins, BigDFT_Restart *rst, BigDFT_ImageAlgo algo) */
+/* { */
+/*   BigDFT_Image *image; */
+/*   f90_run_objects_pointer run; */
+/*   f90_DFT_global_output_pointer outs; */
+/*   int algo_; */
 
-#ifdef HAVE_GLIB
-  image = BIGDFT_IMAGE(g_object_new(BIGDFT_IMAGE_TYPE, NULL));
-#else
-  image = g_malloc(sizeof(BigDFT_Image));
-  bigdft_image_init(image);
-#endif
-  /* self = *((long*)&image); */
-  algo_ = algo + 1;
-  FC_FUNC_(image_new, IMAGE_NEW)(&image->data, &run, &outs,
-                                 F_TYPE(atoms->data), F_TYPE(ins->data),
-                                 F_TYPE(rst->data), (int*)&algo_);
-  image->run = bigdft_run_new_from_fortran(run, FALSE);
-  image->run->atoms = atoms;
-  g_object_ref(G_OBJECT(atoms));
-  image->run->inputs = ins;
-  bigdft_inputs_ref(ins);
-  image->run->restart = rst;
-  g_object_ref(G_OBJECT(rst));
-  image->outs = bigdft_goutput_new_from_fortran(outs);
-  FC_FUNC_(image_get_attributes, IMAGE_GET_ATTRIBUTES)(F_TYPE(image->data), &image->error, &image->F,
-                                                       (int*)&image->id);
+/* #ifdef HAVE_GLIB */
+/*   image = BIGDFT_IMAGE(g_object_new(BIGDFT_IMAGE_TYPE, NULL)); */
+/* #else */
+/*   image = g_malloc(sizeof(BigDFT_Image)); */
+/*   bigdft_image_init(image); */
+/* #endif */
+/*   algo_ = algo + 1; */
+/*   FC_FUNC_(image_new, IMAGE_NEW)(&image->data, &run, &outs, */
+/*                                  F_TYPE(atoms->data), F_TYPE(ins->data), */
+/*                                  F_TYPE(rst->data), (int*)&algo_); */
+/*   image->run = bigdft_run_new_from_fortran(run, FALSE); */
+/*   image->run->atoms = atoms; */
+/*   g_object_ref(G_OBJECT(atoms)); */
+/*   image->run->inputs = ins; */
+/*   bigdft_inputs_ref(ins); */
+/*   image->run->restart = rst; */
+/*   g_object_ref(G_OBJECT(rst)); */
+/*   image->outs = bigdft_goutput_new_from_fortran(outs); */
+/*   FC_FUNC_(image_get_attributes, IMAGE_GET_ATTRIBUTES)(F_TYPE(image->data), &image->error, &image->F, */
+/*                                                        (int*)&image->id); */
 
-  return image;
-}
+/*   return image; */
+/* } */
 /* void FC_FUNC_(image_new_wrapper, IMAGE_NEW_WRAPPER)(double *self, void *obj) */
 /* { */
 /*   BigDFT_Image *image; */
@@ -158,7 +156,7 @@ void bigdft_image_update_pos(BigDFT_Image *image, guint iteration,
 {
   const BigDFT_Image *m1, *p1;
   gboolean optimization;
-  _NEB_data_pointer neb;
+  f90_NEB_data_pointer neb;
 
   m1 = (imgm1)?imgm1:image;
   p1 = (imgp1)?imgp1:image;
@@ -191,7 +189,7 @@ gboolean bigdft_image_update_pos_from_file(BigDFT_Image *image, guint iteration,
                                            const gchar *filem1, const gchar *filep1,
                                            double k_before, double k_after, gboolean climbing)
 {
-  _NEB_data_pointer neb;
+  f90_NEB_data_pointer neb;
   gchar *filem1_, *filep1_;
 
   filem1_ = g_strdup((filem1)?filem1:" ");

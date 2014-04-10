@@ -247,7 +247,7 @@ module time_profiling
       !! print out their information on the counters.
       logical, intent(in), optional :: verbose_mode 
       !local variables
-      integer :: icat,ictr,i,iunit_def
+      integer :: ictr,i,iunit_def
       integer(kind=8) :: itns
 
       !global timer
@@ -382,7 +382,6 @@ module time_profiling
       integer, intent(in) :: cat_id
       character(len=2), intent(in) :: action      ! possibilities: INitialize, ON, OFf, REsults
       !Local variables
-      integer :: i
       integer(kind=8) :: itns
       real(kind=8) :: t1
 
@@ -605,7 +604,7 @@ module time_profiling
       character(len=*), intent(in) :: message
       real(kind=8), dimension(ncat+1,0:nproc), intent(inout) :: timeall
       !local variables
-      integer :: ncls,i,ierr,j,icls,icat,jproc,iextra,iproc,iunit_def,nextra
+      integer :: ncls,i,j,icls,icat,jproc,iunit_def,nextra
       real(kind=8) :: total_pc,pc
       type(dictionary), pointer :: dict_cat
       character(len=max_field_length) :: name
@@ -625,8 +624,7 @@ module time_profiling
       group_names=dict_keys(times(ictrl)%dict_timing_groups)
 
       dict_cat=>dict_iter(times(ictrl)%dict_timing_categories)
-      !neglect the first one
-      dict_cat=>dict_next(dict_cat)
+      !neglect the first one by calling dict_next immediately.
       do icat=1,ncat
          !categories are always in order
          dict_cat=>dict_next(dict_cat)
@@ -734,7 +732,7 @@ module time_profiling
   character(len=10), dimension(ncounters), intent(in) :: pcnames
   !local variables
   logical :: parallel
-  integer :: i,ierr,iproc,jproc,icat,nthreads,namelen,iunit_def,nproc
+  integer :: i,ierr,iproc,jproc,nthreads,namelen,iunit_def,nproc
   real(kind=8) :: pc
   
   character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
@@ -826,8 +824,7 @@ subroutine sum_results(ncat,mpi_comm,message,timesum)
   character(len=*), intent(in) :: message
   real(kind=8), dimension(ncat+1), intent(inout) :: timesum
    !local variables
-  integer :: i,ierr,j,icls,icat,jproc,iextra,iproc,iunit_def,nproc
-  integer, dimension(ncat) :: isort
+  integer :: i,ierr,iproc,nproc
   real(kind=8), dimension(:,:), allocatable :: timeall
 
   ! Not initialised case.

@@ -49,7 +49,7 @@
 !!   (retranspose v and psi)\n
 subroutine constrained_davidson(iproc,nproc,in,at,& 
      orbs,orbsv,nvirt,Lzd,comms,commsv,&
-     hx,hy,hz,rxyz,rhopot,psi,v,dpcom,GPU)
+     hx,hy,hz,rxyz,rhopot,psi,v,dpcom,xc,GPU)
   use module_base
   use module_types
   use module_interfaces, except_this_one => constrained_davidson
@@ -65,6 +65,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   type(orbitals_data), intent(in) :: orbs
   type(comms_cubic), intent(in) :: comms, commsv
   type(denspot_distribution), intent(in) :: dpcom
+  type(xc_info), intent(in) :: xc
   real(gp), intent(in) :: hx,hy,hz
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(dp), dimension(*), intent(in) :: rhopot
@@ -119,7 +120,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      call free_gpu(GPU,orbs%norbp)
      call prepare_gpu_for_locham(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,in%nspin,&
           hx,hy,hz,Lzd%Glr%wfd,orbsv,GPU)
-  else if (OCLconv) then
+  else if (GPU%OCLconv) then
      call free_gpu_OCL(GPU,orbs,in%nspin)   
      call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%astruct%geocode,&
           in%nspin,Lzd%Glr%wfd,orbsv,GPU) 
@@ -128,7 +129,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   GPU%full_locham=.true.
   !verify whether the calculation of the exact exchange term
   !should be performed
-  exctX = (xc_exctXfac() /= 0.0_gp)
+  exctX = (xc_exctXfac(xc) /= 0.0_gp)
 
   !check the size of the rhopot array related to NK SIC
   nrhodim=in%nspin
@@ -185,11 +186,12 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
 
 
   ! prepare the v array starting from a set of gaussians
-  call psivirt_from_gaussians(iproc,nproc,at,orbsv,Lzd,commsv,rxyz,hx,hy,hz,in%nspin,v)
+  call psivirt_from_gaussians(iproc,nproc,at,orbsv,Lzd,commsv,rxyz,hx,hy,hz,in%nspin,&
+       & v, max(orbsv%npsidim_orbs, orbsv%npsidim_comp))
 
 
   ! allocate the potential in the full box
-   call full_local_potential(iproc,nproc,orbsv,Lzd,0,dpcom,rhopot,pot)
+   call full_local_potential(iproc,nproc,orbsv,Lzd,0,dpcom,xc,rhopot,pot)
 !!$   call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*dpcom%nscatterarr(iproc,2),&
 !!$        Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
 !!$        in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*dpcom%nscatterarr(iproc,1)*nrhodim,i3rho_add,&
@@ -963,7 +965,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   deallocate(g,stat=i_stat)
   call memocc(i_stat,i_all,'g',subname)
 
-  call free_full_potential(dpcom%mpi_env%nproc,0,pot,subname)
+  call free_full_potential(dpcom%mpi_env%nproc,0,xc,pot,subname)
 
   i_all=-product(shape(ndimovrlp))*kind(ndimovrlp)
   deallocate(ndimovrlp,stat=i_stat)
@@ -1037,7 +1039,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
 
   if (GPUconv) then
      call free_gpu(GPU,orbsv%norbp)
-  else if (OCLconv) then
+  else if (GPU%OCLconv) then
      call free_gpu_OCL(GPU,orbsv,in%nspin)
   end if
 

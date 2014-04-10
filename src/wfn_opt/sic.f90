@@ -10,18 +10,19 @@
 
 !> Construct a Self-Interaction-Corrected potential based on the 
 !! Perdew-Zunger prescription (Phys. Rev. B 23, 10, 5048 (1981))
-subroutine PZ_SIC_potential(iorb,lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSICi,eSIC_DCi)
+subroutine PZ_SIC_potential(iorb,lr,orbs,xc,hxh,hyh,hzh,pkernel,psir,vpsir,eSICi,eSIC_DCi)
   use module_base
   use module_types
   use module_interfaces
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use module_xc
   implicit none
-  integer, intent(in) :: iorb,ixc
+  integer, intent(in) :: iorb
   real(gp), intent(in) :: hxh,hyh,hzh
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(in) :: orbs
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor), intent(in) :: psir
+  type(xc_info), intent(in) :: xc
   type(coulomb_operator), intent(in) :: pkernel
   real(gp), intent(out) :: eSICi,eSIC_DCi
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspinor), intent(out) :: vpsir
@@ -70,7 +71,7 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSIC
   !initialize the charge density
   !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
   !otherwise use libXC routine
-  call xc_init_rho(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspinn,rhopoti,nproc)
+  call xc_init_rho(xc,lr%d%n1i*lr%d%n2i*lr%d%n3i*nspinn,rhopoti,nproc)
 
   allocate(vSICi(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinn+ndebug),stat=i_stat)
   call memocc(i_stat,vSICi,'vSICi',subname)
@@ -124,12 +125,12 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSIC
      if(orbs%nspinor==4) then
         !this wrapper can be inserted inside the XC_potential routine
         call PSolverNC(lr%geocode,'D',0,1,lr%d%n1i,lr%d%n2i,lr%d%n3i,lr%d%n3i,&
-             ixc,hxh,hyh,hzh,&
+             xc,hxh,hyh,hzh,&
              rhopoti,pkernel%kernel,rhopoti,ehi,eexi,vexi,0.d0,.false.,4)
         !the potential is here ready to be applied to psir
      else
         call XC_potential(lr%geocode,'D',0,1,bigdft_mpi%mpi_comm,&
-             lr%d%n1i,lr%d%n2i,lr%d%n3i,ixc,hxh,hyh,hzh,&
+             lr%d%n1i,lr%d%n2i,lr%d%n3i,xc,hxh,hyh,hzh,&
              rhopoti,eexi,vexi,orbs%nspin,rhocore_fake,vSICi,xcstr) 
 
         call H_potential('D',pkernel,rhopoti,rhopoti,ehi,0.0_dp,.false.,&
@@ -197,18 +198,18 @@ end subroutine PZ_SIC_potential
 !! the output potential is orbital-dependent and is given by the NK Hamiltonian
 !! @ param poti the density in the input, the orbital-wise potential in the output
 !!              unless wxdsave is present. In this case poti in unchanged on exit
-subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_DC,potandrho,wxdsave)
+subroutine NK_SIC_potential(lr,orbs,xc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_DC,potandrho,wxdsave)
   use module_base
   use module_types
   use module_xc
   use module_interfaces, except_this_one => NK_SIC_potential
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
-  integer, intent(in) :: ixc
   real(gp), intent(in) :: hxh,hyh,hzh,fref
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(in) :: orbs
   type(coulomb_operator), intent(in) :: pkernel
+  type(xc_info), intent(in) :: xc
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
   real(wp), dimension((lr%d%n1i*lr%d%n2i*lr%d%n3i*((orbs%nspinor/3)*3+1)),max(orbs%norbp,orbs%nspin)), intent(inout) :: poti
   real(gp), intent(out) :: eSIC_DC
@@ -284,7 +285,7 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
 
      !put the XC potential in the wxd term, which is the same for all the orbitals
      call XC_potential(lr%geocode,'D',0,1,bigdft_mpi%mpi_comm,&
-          lr%d%n1i,lr%d%n2i,lr%d%n3i,ixc,hxh,hyh,hzh,&
+          lr%d%n1i,lr%d%n2i,lr%d%n3i,xc,hxh,hyh,hzh,&
           deltarho,eexu,vexu,orbs%nspin,rhocore_fake,wxd,xcstr)
 
      if (.not. virtual) then
@@ -315,7 +316,7 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
         !initialize the charge density
         !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
         !otherwise use libXC routine
-        call xc_init_rho(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,ni,1)
+        call xc_init_rho(xc,lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,ni,1)
 
         !occupation number and k-point weight of the given orbital
         fi=orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)
@@ -358,7 +359,7 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
 
         !calculate its vXC and fXC
         call XC_potential(lr%geocode,'D',0,1,bigdft_mpi%mpi_comm,&
-             lr%d%n1i,lr%d%n2i,lr%d%n3i,ixc,hxh,hyh,hzh,&
+             lr%d%n1i,lr%d%n2i,lr%d%n3i,xc,hxh,hyh,hzh,&
              deltarho,eexi,vexi,orbs%nspin,rhocore_fake,vxci,xcstr,fxci)
 
         !copy the relevant part of Vxc[rhoref] in the potential
@@ -419,11 +420,11 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
                 deltarho(1,1),1)
            call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,-fi,ni(1,1),1,deltarho(1,1),1)
 
-           call xc_clean_rho(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,deltarho,1)
+           call xc_clean_rho(xc,lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,deltarho,1)
 
            !calculate its XC potential
            call XC_potential(lr%geocode,'D',0,1,bigdft_mpi%mpi_comm,&
-                lr%d%n1i,lr%d%n2i,lr%d%n3i,ixc,hxh,hyh,hzh,&
+                lr%d%n1i,lr%d%n2i,lr%d%n3i,xc,hxh,hyh,hzh,&
                 deltarho,eexi,vexi,orbs%nspin,rhocore_fake,vxci,xcstr) 
            !saves the values for the double-counting term
            eSIC_DC=eSIC_DC+eexi-eexu+eSIC_DCi

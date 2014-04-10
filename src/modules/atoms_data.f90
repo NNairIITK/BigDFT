@@ -341,7 +341,8 @@ module module_atoms
       character, intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
 
       character(len = *), parameter :: subname = "symmetry_set_irreductible_zone"
-      integer :: i_stat, nsym, i_all, i_third
+      integer :: i_stat, nsym, i_third
+!!$      integer :: i_all
       integer, dimension(:,:,:), allocatable :: irrzon
       real(dp), dimension(:,:,:), allocatable :: phnons
 
@@ -629,7 +630,7 @@ module module_atoms
       character(len=*), parameter :: subname='astruct_set_from_dict'
       type(dictionary), pointer :: pos, at
       character(len = max_field_length) :: str
-      integer :: iat, ityp, units, igspin, igchrg, nsgn, ntyp
+      integer :: iat, ierr, ityp, units, igspin, igchrg, nsgn, ntyp
       character(len=20), dimension(100) :: atomnames
 
       call nullify_atomic_structure(astruct)
@@ -691,7 +692,7 @@ module module_atoms
             str = dict_key(at)
             if (trim(str) == "Frozen") then
                str = dict_value(at)
-               call frozen_ftoi(str(1:4), astruct%ifrztyp(iat))
+               call frozen_ftoi(str(1:4), astruct%ifrztyp(iat),ierr)
             else if (trim(str) == "IGSpin") then
                igspin = at
             else if (trim(str) == "IGChg") then

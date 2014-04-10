@@ -17,23 +17,11 @@ subroutine standard_inputfile_names(in, radical)
   type(input_variables), intent(inout) :: in
   character(len = *), intent(in) :: radical
 
-  !set prefix name of the run (as input by defaut for input.dft)
-  in%run_name=repeat(' ',len(in%run_name))
-  if (trim(radical) /= 'input') in%run_name=trim(radical)
-
-  call set_inputfile(in%file_occnum, radical, "occ")
   call set_inputfile(in%file_lin, radical,    "lin")
   call set_inputfile(in%file_frag, radical,   "frag")
 
-  if (trim(radical) == "input") then
-     in%dir_output="data" // trim(bigdft_run_id_toa())
-  else
-     in%dir_output="data-"//trim(radical)!//trim(bigdft_run_id_toa())
-  end if
-
   in%files = INPUTS_NONE
 END SUBROUTINE standard_inputfile_names
-
 
 
 !> Set and check the input file
@@ -58,6 +46,32 @@ subroutine set_inputfile(filename, radical, ext)
   if (.not. exists .and. (trim(radical) /= "input" .and. trim(radical) /= "")) &
        & write(filename, "(A,A,A)") "default", ".", trim(ext)
 end subroutine set_inputfile
+
+subroutine input_variables_from_old_text_format(in, atoms, run_name)
+  use module_types
+  implicit none
+  type(input_variables), intent(inout) :: in
+  type(atoms_data), intent(inout) :: atoms
+  character(len = *), intent(in) :: run_name
+
+  integer :: ierr
+
+  call set_inputfile(in%file_lin, run_name,    "lin")
+  call set_inputfile(in%file_frag, run_name,   "frag")
+
+  ! To avoid race conditions where procs create the default file and other test its
+  ! presence, we put a barrier here.
+  if (bigdft_mpi%nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
+
+  ! Linear scaling (if given)
+  !in%lin%fragment_calculation=.false. ! to make sure that if we're not doing a linear calculation we don't read fragment information
+  call lin_input_variables_new(bigdft_mpi%iproc,in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
+       & in%inputPsiId == INPUT_PSI_DISK_LINEAR, trim(in%file_lin),in,atoms)
+
+  ! Fragment information (if given)
+  call fragment_input_variables(bigdft_mpi%iproc,(in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
+       & in%inputPsiId == INPUT_PSI_DISK_LINEAR).and.in%lin%fragment_calculation,trim(in%file_frag),in,atoms)
+END SUBROUTINE input_variables_from_old_text_format
 
 !> Read linear input parameters
 subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)

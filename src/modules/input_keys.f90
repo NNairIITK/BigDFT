@@ -136,6 +136,7 @@ module module_input_keys
   character(len = *), parameter, public :: EVBOUNDSSHRINK_NSATUR = "evboundsshrink_nsatur"
   character(len = *), parameter, public :: METHOD_UPDATEKERNEL = "method_updatekernel"
   character(len = *), parameter, public :: PURIFICATION_QUICKRETURN = "purification_quickreturn"
+  character(len = *), parameter, public :: ADJUST_FOE_TEMPERATURE = "adjust_FOE_temperature"
 
   !keys for linear input variables
   !level keys
@@ -221,15 +222,8 @@ contains
   end subroutine abort_excl
 
   subroutine warn_illegal()
-    use yaml_output
-    use dictionaries
     implicit none
     
-    integer :: ierr
-    character(len = max_field_length) :: val
-
-    ierr = f_get_last_error(val)
-    call yaml_warning(trim(val))
   end subroutine warn_illegal
 
   subroutine input_keys_init()

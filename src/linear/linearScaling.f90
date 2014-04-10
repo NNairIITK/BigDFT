@@ -286,7 +286,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      !if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
      !if (iproc==0) call yaml_map('update potential',.true.)
      if (iproc==0) call yaml_open_map('update pot',flow=.true.)
-     call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+     call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
   end if
 
   call timing(iproc,'linscalinit','OF') !lr408t
@@ -418,7 +418,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                      infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,update_phi,&
                      .true.,ham_small,input%lin%extra_states,itout,0,0,input%lin%order_taylor,&
-                     input%purification_quickreturn,input%calculate_KS_residue,&
+                     input%purification_quickreturn,input%adjust_FOE_temperature,input%calculate_KS_residue,&
                      convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
              end if
           end if
@@ -560,7 +560,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    nit_basis,&
                    ratio_deltas,orthonormalization_on,input%lin%extra_states,itout,conv_crit_TMB,input%experimental_mode,&
                    input%lin%early_stop, input%lin%gnrm_dynamic, can_use_ham, input%lin%order_taylor, input%kappa_conv,&
-                   input%method_updatekernel,input%purification_quickreturn)
+                   input%method_updatekernel,input%purification_quickreturn, input%adjust_FOE_temperature)
                reduce_conf=.true.
            !!else
            !!    cut=cut-0.5d0
@@ -761,13 +761,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,update_phi,&
                         .false.,ham_small,input%lin%extra_states,itout,it_scc,cdft_it,input%lin%order_taylor,&
-                        input%purification_quickreturn,input%calculate_KS_residue,&
+                        input%purification_quickreturn,input%adjust_FOE_temperature,input%calculate_KS_residue,&
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,update_phi,&
                         .false.,ham_small,input%lin%extra_states,itout,it_scc,cdft_it,input%lin%order_taylor,&
-                        input%purification_quickreturn,input%calculate_KS_residue,&
+                        input%purification_quickreturn,input%adjust_FOE_temperature,input%calculate_KS_residue,&
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
                 end if
              else
@@ -775,13 +775,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,update_phi,&
                         .true.,ham_small,input%lin%extra_states,itout,it_scc,cdft_it,input%lin%order_taylor,&
-                        input%purification_quickreturn,input%calculate_KS_residue,&
+                        input%purification_quickreturn,input%adjust_FOE_temperature,input%calculate_KS_residue,&
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,update_phi,&
                         .true.,ham_small,input%lin%extra_states,itout,it_scc,cdft_it,input%lin%order_taylor,&
-                        input%purification_quickreturn,input%calculate_KS_residue,&
+                        input%purification_quickreturn,input%adjust_FOE_temperature,input%calculate_KS_residue,&
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
                 end if
              end if
@@ -910,7 +910,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              if (iproc==0) call yaml_newline()
              
 
-             call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+             call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
              if (iproc==0) call yaml_close_map()
 
 
@@ -1038,7 +1038,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  rhopotOld_out(1), 1, denspot%rhov(1), 1)
             call timing(iproc,'constraineddft','OF')
 
-            call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+            call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
 
             call timing(iproc,'constraineddft','ON')
             ! reset coeffs as well
@@ -1136,6 +1136,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   end do outerLoop
 
+
   if (input%write_orbitals) then
       call build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
                energs, nlpsp, input, &
@@ -1156,7 +1157,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.false.,&
            .true.,ham_small,input%lin%extra_states,itout,0,0,input%lin%order_taylor,&
-           input%purification_quickreturn,input%calculate_KS_residue)
+           input%purification_quickreturn,input%adjust_FOE_temperature,input%calculate_KS_residue)
 
        !!if (input%lin%scf_mode==LINEAR_FOE) then
        !!    call f_free_ptr(tmb%coeff)
@@ -1176,7 +1177,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
           infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.false.,&
           .true.,ham_small,input%lin%extra_states,itout,0,0,input%lin%order_taylor,&
-          input%purification_quickreturn,input%calculate_KS_residue)
+          input%purification_quickreturn,input%adjust_FOE_temperature,input%calculate_KS_residue)
       !!call scalprod_on_boundary(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
       call pulay_correction_new(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
       !!if (input%lin%scf_mode==LINEAR_FOE) then
@@ -1760,7 +1761,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       !call vcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),&
       !     denspot%rhov(1),1,denspot%rho_work(1),1)
       call vcopy(denspot%dpbox%ndimpot,denspot%rhov(ioffset+1),1,denspot%rho_work(1),1)
-      call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+      call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
 
       ! Density already present in denspot%rho_work
       call vcopy(denspot%dpbox%ndimpot,denspot%rho_work(1),1,denspot%pot_work(1),1)
