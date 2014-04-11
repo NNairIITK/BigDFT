@@ -711,6 +711,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                   deallocate(tmb%psit_f, stat=istat)
                   call memocc(istat, iall, 'tmb%psit_f', subname)
               end if
+              if (associated_psit_c .and. associated_psit_f) then
+                  tmb%can_use_transposed=.true.
+              end if
               if (.not.associated_psitlarge_c) then
                   iall=-product(shape(tmb%ham_descr%psit_c))*kind(tmb%ham_descr%psit_c)
                   deallocate(tmb%ham_descr%psit_c, stat=istat)
@@ -720,6 +723,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                   iall=-product(shape(tmb%ham_descr%psit_f))*kind(tmb%ham_descr%psit_f)
                   deallocate(tmb%ham_descr%psit_f, stat=istat)
                   call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
+              end if
+              if (associated_psitlarge_c .and. associated_psitlarge_f) then
+                  tmb%ham_descr%can_use_transposed=.true.
               end if
               !@ENDNEW
           end if
