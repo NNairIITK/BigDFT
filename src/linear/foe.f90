@@ -1798,11 +1798,10 @@ subroutine uncompress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, ve
       else
           isegend=fermi%nseg
       end if
-      ii=0
-      !!$omp parallel default(private) shared(isegstart, isegend, orbs, fermi, vector, vector_compressed)
-      !!$omp do
+      !$omp parallel do default(private) &
+      !$omp shared(isegstart, isegend, fermi, orbs, vector, vector_compressed)
       do iseg=isegstart,isegend
-          !ii=fermi%keyv(iseg)-1
+          ii=fermi%keyv(iseg)-fermi%keyv(isegstart)
           do jorb=fermi%keyg(1,iseg),fermi%keyg(2,iseg)
               ii=ii+1
               iiorb = (jorb-1)/orbs%norb + 1
@@ -1811,8 +1810,7 @@ subroutine uncompress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, ve
               !write(*,*) 'ii, iiorb-orbs%isorb, jjorb', ii, iiorb-orbs%isorb, jjorb
           end do
       end do
-      !!$omp end do
-      !!$omp end parallel
+      !$omp end parallel do
   end if
 end subroutine uncompress_polynomial_vector
 

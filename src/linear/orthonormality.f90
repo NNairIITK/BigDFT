@@ -640,8 +640,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
                    inv_ovrlp_smat, ovrlpminone_sparse, inv_ovrlp_smat%smmm%nseq, &
                    inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
                    ovrlpminone_sparse_seq)
-                   call extract_matrix_distributed(iproc, nproc, norb, norbp, orbs%isorb_par, &
-                        inv_ovrlp_smat, ovrlpminone_sparse, ovrlpminoneoldp)
+              call extract_matrix_distributed(iproc, nproc, norb, norbp, orbs%isorb_par, &
+                   inv_ovrlp_smat, ovrlpminone_sparse, ovrlpminoneoldp)
            end if
             if (power==1) then
                factor=-1.0d0
@@ -2304,8 +2304,8 @@ end subroutine diagonalize_localized
            else
                isegend=smat%nseg
            end if
-           !!!$omp parallel default(private) shared(isegstart, isegend, fermip, tmb, sumn) 
-           !!!$omp do reduction(+:sumn)
+           !$omp parallel do default(private) &
+           !$omp shared(isegstart, isegend, smat, norb, isorb_par, matrixp, matrix_compr, iproc)
            do iseg=isegstart,isegend
                ii=smat%keyv(iseg)-1
                do jorb=smat%keyg(1,iseg),smat%keyg(2,iseg)
@@ -2315,8 +2315,7 @@ end subroutine diagonalize_localized
                    matrixp(jjorb,iiorb-isorb_par(iproc)) = matrix_compr(ii)
                end do
            end do
-           !!!$omp end do
-           !!!$omp end parallel
+           !$omp end parallel do
        end if
 
    end subroutine extract_matrix_distributed
