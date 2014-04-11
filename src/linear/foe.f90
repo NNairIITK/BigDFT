@@ -58,6 +58,8 @@ subroutine foe(iproc, nproc, tmprtr, &
   real(kind=8),parameter :: DEGREE_MULTIPLICATOR_FAST=2.d0
   real(kind=8),parameter :: TEMP_MULTIPLICATOR_ACCURATE=1.d0
   real(kind=8),parameter :: TEMP_MULTIPLICATOR_FAST=1.2d0
+  real(kind=8),parameter :: CHECK_RATIO=1.25d0
+  integer,parameter :: NPL_MIN=80
   integer,parameter :: NTEMP_ACCURATE=4
   integer,parameter :: NTEMP_FAST=1
   real(kind=8) :: degree_multiplicator
@@ -187,7 +189,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   temp_loop: do itemp=1,ntemp
 
       fscale = temp_multiplicator*tmb%foe_obj%fscale
-      fscale_check = 1.25*fscale
+      fscale_check = CHECK_RATIO*fscale
       
       !fscale=fscale*0.5d0 ! make the error function sharper, i.e. more "step function-like"
       !fscale_check=1.25*tmb%foe_obj%fscale
@@ -298,14 +300,20 @@ subroutine foe(iproc, nproc, tmprtr, &
               !if (itemp==1 .or. .not.degree_sufficient) then
                   !npl=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/tmb%foe_obj%fscale)
                   npl=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale)
-npl=max(npl,80)
+                  if(npl<=NPL_MIN) then
+                      if (iproc==0) then
+                          call yaml_map('increase npl to minimal value; original value',npl)
+                          call yaml_newline()
+                      end if
+                      npl=NPL_MIN ! this is the minimal degree
+                  end if
               !else
               !    ! this will probably disappear.. only needed when the degree is
               !    ! increased by the old way via purification etc.
               !    npl=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale)
               !end if
               npl_check=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale_check)
-npl_check=max(npl_check,nint(0.8d0*real(npl,kind=8)))
+              npl_check=max(npl_check,nint(real(npl,kind=8)/CHECK_RATIO)) ! this is necessary if npl was set to the minimal value
               npl_boundaries=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/FSCALE_LIMIT) ! max polynomial degree for given eigenvalue boundaries
               if (npl>npl_boundaries) then
                   npl=npl_boundaries
@@ -1191,20 +1199,26 @@ npl_check=max(npl_check,nint(0.8d0*real(npl,kind=8)))
           !!     tmb%linmat%denskern_large, tmb%linmat%denskern_large%matrix_compr, &
           !!     tmb%linmat%denskern_large%smmm%nseq, tmb%linmat%denskern_large%smmm%nmaxsegk, &
           !!     tmb%linmat%denskern_large%smmm%nmaxvalk, kernel_compr_seq)
-          call sequential_acces_matrix(tmb%orbs%norb, tmb%orbs%norbp, &
-               tmb%orbs%isorb, tmb%linmat%denskern_large%smmm%nseg, &
-               tmb%linmat%denskern_large%smmm%nsegline, tmb%linmat%denskern_large%smmm%istsegline, &
-               tmb%linmat%denskern_large%smmm%keyg, &
-               tmb%linmat%denskern_large, matrix_compr, &
-               tmb%linmat%denskern_large%smmm%nseq, tmb%linmat%denskern_large%smmm%nmaxsegk, &
-               tmb%linmat%denskern_large%smmm%nmaxvalk, kernel_compr_seq)
-          call sequential_acces_matrix(tmb%orbs%norb, tmb%orbs%norbp, &
-               tmb%orbs%isorb, tmb%linmat%inv_ovrlp_large%smmm%nseg, &
-               tmb%linmat%inv_ovrlp_large%smmm%nsegline, tmb%linmat%inv_ovrlp_large%smmm%istsegline, &
-               tmb%linmat%inv_ovrlp_large%smmm%keyg, &
-               tmb%linmat%inv_ovrlp_large, tmb%linmat%inv_ovrlp_large%matrix_compr, &
-               tmb%linmat%inv_ovrlp_large%smmm%nseq, tmb%linmat%inv_ovrlp_large%smmm%nmaxsegk, &
-               tmb%linmat%inv_ovrlp_large%smmm%nmaxvalk, inv_ovrlp_compr_seq)
+          !call sequential_acces_matrix(tmb%orbs%norb, tmb%orbs%norbp, &
+          !     tmb%orbs%isorb, tmb%linmat%denskern_large%smmm%nseg, &
+          !     tmb%linmat%denskern_large%smmm%nsegline, tmb%linmat%denskern_large%smmm%istsegline, &
+          !     tmb%linmat%denskern_large%smmm%keyg, &
+          !     tmb%linmat%denskern_large, matrix_compr, &
+          !     tmb%linmat%denskern_large%smmm%nseq, tmb%linmat%denskern_large%smmm%nmaxsegk, &
+          !     tmb%linmat%denskern_large%smmm%nmaxvalk, kernel_compr_seq)
+          call sequential_acces_matrix_fast(tmb%linmat%denskern_large%smmm%nseq, &
+               tmb%linmat%denskern_large%nvctr, tmb%linmat%denskern_large%smmm%indices_extract_sequential, &
+               matrix_compr, kernel_compr_seq)
+          !call sequential_acces_matrix(tmb%orbs%norb, tmb%orbs%norbp, &
+          !     tmb%orbs%isorb, tmb%linmat%inv_ovrlp_large%smmm%nseg, &
+          !     tmb%linmat%inv_ovrlp_large%smmm%nsegline, tmb%linmat%inv_ovrlp_large%smmm%istsegline, &
+          !     tmb%linmat%inv_ovrlp_large%smmm%keyg, &
+          !     tmb%linmat%inv_ovrlp_large, tmb%linmat%inv_ovrlp_large%matrix_compr, &
+          !     tmb%linmat%inv_ovrlp_large%smmm%nseq, tmb%linmat%inv_ovrlp_large%smmm%nmaxsegk, &
+          !     tmb%linmat%inv_ovrlp_large%smmm%nmaxvalk, inv_ovrlp_compr_seq)
+          call sequential_acces_matrix_fast(tmb%linmat%inv_ovrlp_large%smmm%nseq, &
+               tmb%linmat%inv_ovrlp_large%nvctr, tmb%linmat%inv_ovrlp_large%smmm%indices_extract_sequential, &
+               tmb%linmat%inv_ovrlp_large%matrix_compr, inv_ovrlp_compr_seq)
           call extract_matrix_distributed(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb_par, &
                tmb%linmat%inv_ovrlp_large, tmb%linmat%inv_ovrlp_large%matrix_compr, inv_ovrlpp)
 
@@ -1790,11 +1804,10 @@ subroutine uncompress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, ve
       else
           isegend=fermi%nseg
       end if
-      ii=0
-      !!$omp parallel default(private) shared(isegstart, isegend, orbs, fermi, vector, vector_compressed)
-      !!$omp do
+      !$omp parallel do default(private) &
+      !$omp shared(isegstart, isegend, fermi, orbs, vector, vector_compressed)
       do iseg=isegstart,isegend
-          !ii=fermi%keyv(iseg)-1
+          ii=fermi%keyv(iseg)-fermi%keyv(isegstart)
           do jorb=fermi%keyg(1,iseg),fermi%keyg(2,iseg)
               ii=ii+1
               iiorb = (jorb-1)/orbs%norb + 1
@@ -1803,8 +1816,7 @@ subroutine uncompress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, ve
               !write(*,*) 'ii, iiorb-orbs%isorb, jjorb', ii, iiorb-orbs%isorb, jjorb
           end do
       end do
-      !!$omp end do
-      !!$omp end parallel
+      !$omp end parallel do
   end if
 end subroutine uncompress_polynomial_vector
 

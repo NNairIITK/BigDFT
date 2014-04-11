@@ -304,6 +304,10 @@ module sparsematrix
     
       icheck=0
       ilsegstart=1
+      !$omp parallel default(private) &
+      !$omp shared(smat, lmat, imode, lmatrix_compr, smatrix_compr, icheck) &
+      !$omp firstprivate(ilsegstart)
+      !$omp do reduction(+:icheck)
       sloop: do isseg=1,smat%nseg
           isstart=smat%keyg(1,isseg)
           isend=smat%keyg(2,isseg)
@@ -311,7 +315,6 @@ module sparsematrix
               ilstart=lmat%keyg(1,ilseg)
               ilend=lmat%keyg(2,ilseg)
     
-              !write(*,*) 'isstart, isend, ilstart, ilend', isstart, isend, ilstart, ilend
               ! check whether there is an overlap:
               ! if not, increase loop counters
               if (ilstart>isend) then
@@ -325,7 +328,6 @@ module sparsematrix
               ! if yes, determine start end end of overlapping segment (in uncompressed form)
               iostart=max(isstart,ilstart)
               ioend=min(isend,ilend)
-              !write(*,*) 'iostart, ioend', iostart, ioend
               ilength=ioend-iostart+1
     
               ! offset with respect to the starting point of the segment
@@ -352,6 +354,8 @@ module sparsematrix
               icheck=icheck+ilength
           end do lloop
       end do sloop
+      !$omp end do 
+      !$omp end parallel
     
       ! all elements of the small matrix must have been processed, no matter in
       ! which direction the transformation has been executed

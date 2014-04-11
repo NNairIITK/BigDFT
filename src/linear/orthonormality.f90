@@ -635,13 +635,15 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
                  ovrlp_smat%matrix_compr, ovrlp_large_compr, 'small_to_large')
             call matrix_minus_identity_sparse(norb, inv_ovrlp_smat, ovrlp_large_compr, ovrlpminone_sparse)
           if (iorder>1) then
-              call sequential_acces_matrix(norb, norbp, isorb, inv_ovrlp_smat%smmm%nseg, &
-                   inv_ovrlp_smat%smmm%nsegline, inv_ovrlp_smat%smmm%istsegline, inv_ovrlp_smat%smmm%keyg, &
-                   inv_ovrlp_smat, ovrlpminone_sparse, inv_ovrlp_smat%smmm%nseq, &
-                   inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
-                   ovrlpminone_sparse_seq)
-                   call extract_matrix_distributed(iproc, nproc, norb, norbp, orbs%isorb_par, &
-                        inv_ovrlp_smat, ovrlpminone_sparse, ovrlpminoneoldp)
+              !call sequential_acces_matrix(norb, norbp, isorb, inv_ovrlp_smat%smmm%nseg, &
+              !     inv_ovrlp_smat%smmm%nsegline, inv_ovrlp_smat%smmm%istsegline, inv_ovrlp_smat%smmm%keyg, &
+              !     inv_ovrlp_smat, ovrlpminone_sparse, inv_ovrlp_smat%smmm%nseq, &
+              !     inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
+              !     ovrlpminone_sparse_seq)
+              call sequential_acces_matrix_fast(inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%nvctr, &
+                   inv_ovrlp_smat%smmm%indices_extract_sequential, ovrlpminone_sparse, ovrlpminone_sparse_seq)
+              call extract_matrix_distributed(iproc, nproc, norb, norbp, orbs%isorb_par, &
+                   inv_ovrlp_smat, ovrlpminone_sparse, ovrlpminoneoldp)
            end if
             if (power==1) then
                factor=-1.0d0
@@ -699,11 +701,13 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
             ovrlp_largep=f_malloc((/norb,norbp/),id='ovrlp_largep')
             call extract_matrix_distributed(iproc, nproc, norb, norbp, orbs%isorb_par, &
                  inv_ovrlp_smat, ovrlp_large_compr, ovrlp_largep)
-            call sequential_acces_matrix(norb, norbp, isorb, inv_ovrlp_smat%smmm%nseg, &
-                 inv_ovrlp_smat%smmm%nsegline, inv_ovrlp_smat%smmm%istsegline, inv_ovrlp_smat%smmm%keyg, &
-                 inv_ovrlp_smat, inv_ovrlp_smat%matrix_compr, inv_ovrlp_smat%smmm%nseq, &
-                 inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
-                 invovrlp_compr_seq)
+            !call sequential_acces_matrix(norb, norbp, isorb, inv_ovrlp_smat%smmm%nseg, &
+            !     inv_ovrlp_smat%smmm%nsegline, inv_ovrlp_smat%smmm%istsegline, inv_ovrlp_smat%smmm%keyg, &
+            !     inv_ovrlp_smat, inv_ovrlp_smat%matrix_compr, inv_ovrlp_smat%smmm%nseq, &
+            !     inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
+            !     invovrlp_compr_seq)
+            call sequential_acces_matrix_fast(inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%nvctr, &
+                 inv_ovrlp_smat%smmm%indices_extract_sequential, inv_ovrlp_smat%matrix_compr, invovrlp_compr_seq)
             if (power==1) then
                  !!call sequential_acces_matrix(norb, norbp, isorb, foe_nseg, &
                  !!     foe_kernel_nsegline, foe_istsegline, foe_keyg, &
@@ -731,11 +735,13 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
                 !!     foe_kernel_nsegline, foe_istsegline, foe_keyg, &
                 !!     inv_ovrlp_smat, inv_ovrlp_smat%matrix_compr, inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
                 !!     invovrlp_compr_seq)
-                call sequential_acces_matrix(norb, norbp, isorb, inv_ovrlp_smat%smmm%nseg, &
-                     inv_ovrlp_smat%smmm%nsegline, inv_ovrlp_smat%smmm%istsegline, inv_ovrlp_smat%smmm%keyg, &
-                     inv_ovrlp_smat, ovrlp_large_compr, inv_ovrlp_smat%smmm%nseq, &
-                     inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
-                     ovrlp_compr_seq)
+                !call sequential_acces_matrix(norb, norbp, isorb, inv_ovrlp_smat%smmm%nseg, &
+                !     inv_ovrlp_smat%smmm%nsegline, inv_ovrlp_smat%smmm%istsegline, inv_ovrlp_smat%smmm%keyg, &
+                !     inv_ovrlp_smat, ovrlp_large_compr, inv_ovrlp_smat%smmm%nseq, &
+                !     inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
+                !     ovrlp_compr_seq)
+                call sequential_acces_matrix_fast(inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%nvctr, &
+                     inv_ovrlp_smat%smmm%indices_extract_sequential, ovrlp_large_compr, ovrlp_compr_seq)
                 call extract_matrix_distributed(iproc, nproc, norb, norbp, orbs%isorb_par, &
                      inv_ovrlp_smat, inv_ovrlp_smat%matrix_compr, invovrlpp)
                 call check_accur_overlap_minus_one_sparse(iproc, nproc, norb, norbp, isorb, &
@@ -1396,10 +1402,14 @@ subroutine max_matrix_diff_parallel(iproc, norb, norbp, mat1, mat2, deviation)
   call timing(iproc,'dev_from_unity','ON') 
   deviation=0.d0
   do iorb=1,norbp
+     !$omp parallel default(private) shared(norb, mat1, mat2, deviation)
+     !$omp do reduction(max:deviation)
      do jorb=1,norb
         error=abs(mat1(jorb,iorb)-mat2(jorb,iorb))
         deviation=max(error,deviation)
      end do
+     !$omp end do
+     !$omp end parallel
   end do
   call mpiallred(deviation, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
   call timing(iproc,'dev_from_unity','OF') 
@@ -1458,6 +1468,8 @@ subroutine deviation_from_unity_parallel(iproc, nproc, norb, norbp, isorb, ovrlp
   deviation=0.d0
   do iorb=1,norbp
      iiorb=iorb+isorb
+     !$omp parallel default(private) shared(norb, iiorb, ovrlp, iorb, deviation)
+     !$omp do reduction(max:deviation)
      do jorb=1,norb
         if(iiorb==jorb) then
            error=abs(ovrlp(jorb,iorb)-1.d0)
@@ -1466,6 +1478,8 @@ subroutine deviation_from_unity_parallel(iproc, nproc, norb, norbp, isorb, ovrlp
         end if
         deviation=max(error,deviation)
      end do
+     !$omp end do
+     !$omp end parallel
   end do
   if (nproc>1) then
       call mpiallred(deviation, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
@@ -2304,8 +2318,8 @@ end subroutine diagonalize_localized
            else
                isegend=smat%nseg
            end if
-           !!!$omp parallel default(private) shared(isegstart, isegend, fermip, tmb, sumn) 
-           !!!$omp do reduction(+:sumn)
+           !$omp parallel do default(private) &
+           !$omp shared(isegstart, isegend, smat, norb, isorb_par, matrixp, matrix_compr, iproc)
            do iseg=isegstart,isegend
                ii=smat%keyv(iseg)-1
                do jorb=smat%keyg(1,iseg),smat%keyg(2,iseg)
@@ -2315,8 +2329,7 @@ end subroutine diagonalize_localized
                    matrixp(jjorb,iiorb-isorb_par(iproc)) = matrix_compr(ii)
                end do
            end do
-           !!!$omp end do
-           !!!$omp end parallel
+           !$omp end parallel do
        end if
 
    end subroutine extract_matrix_distributed
@@ -2339,8 +2352,10 @@ end subroutine diagonalize_localized
      ! Local variables
      integer :: ii, iseg, jorb, iiorb, jjorb
 
-     ii=0
+     !$omp parallel do default(private) &
+     !$omp shared(smat, norb, ovrlpminone_compr, ovrlp_compr)
      do iseg=1,smat%nseg
+         ii=smat%keyv(iseg)-1
          do jorb=smat%keyg(1,iseg),smat%keyg(2,iseg)
              iiorb = (jorb-1)/norb + 1
              jjorb = jorb - (iiorb-1)*norb
@@ -2352,6 +2367,7 @@ end subroutine diagonalize_localized
              end if
          end do
      end do
+     !$omp end parallel do
 
    end subroutine matrix_minus_identity_sparse
 
@@ -2384,7 +2400,8 @@ end subroutine diagonalize_localized
          else
              isegend=smat%nseg
          end if
-         !$omp parallel default(none) shared(isegstart, isegend, matrixp, smat, norb, matrix_compr, isorb_par, iproc) &
+         !$omp parallel default(none) &
+         !$omp shared(isegstart, isegend, matrixp, smat, norb, matrix_compr, isorb_par, iproc) &
          !$omp private(iseg, ii, jorb, iiorb, jjorb)
          !$omp do
          do iseg=isegstart,isegend

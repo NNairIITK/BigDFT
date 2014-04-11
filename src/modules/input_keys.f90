@@ -155,6 +155,7 @@ module module_input_keys
   character(len=*), parameter, public :: GNRM_CV_COEFF   ='gnrm_cv_coeff'
   character(len=*), parameter, public :: DELTAE_CV       ='deltae_cv'
   character(len=*), parameter, public :: GNRM_DYN        ='gnrm_dyn'
+  character(len=*), parameter, public :: MIN_GNRM_FOR_DYNAMIC = 'min_gnrm_for_dynamic'
   character(len=*), parameter, public :: CONF_DAMPING    ='conf_damping'
   character(len=*), parameter, public :: TAYLOR_ORDER    ='taylor_order'
   character(len=*), parameter, public :: CALC_DIPOLE     ='calc_dipole'

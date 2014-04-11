@@ -1569,7 +1569,7 @@ module module_interfaces
           nit_precond,target_function,&
           correction_orthoconstraint,nit_basis,&
           ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
-          gnrm_dynamic, can_use_ham, order_taylor, kappa_conv, method_updatekernel,&
+          gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, kappa_conv, method_updatekernel,&
           purification_quickreturn, adjust_FOE_temperature)
         use module_base
         use module_types
@@ -1596,7 +1596,7 @@ module module_interfaces
         logical, intent(inout) :: ortho_on
         integer, intent(in) :: extra_states
         integer,intent(in) :: itout
-        real(kind=8),intent(in) :: conv_crit, early_stop, gnrm_dynamic, kappa_conv
+        real(kind=8),intent(in) :: conv_crit, early_stop, gnrm_dynamic, min_gnrm_for_dynamic, kappa_conv
         logical,intent(in) :: experimental_mode, purification_quickreturn, adjust_FOE_temperature
         logical,intent(out) :: can_use_ham
         integer,intent(in) :: method_updatekernel
@@ -3916,20 +3916,30 @@ module module_interfaces
           integer,dimension(nseq),intent(out) :: ivectorindex
         end subroutine get_arrays_for_sequential_acces
 
-        subroutine sequential_acces_matrix(norb, norbp, isorb, nseg, &
-                   nsegline, istsegline, keyg, sparsemat, a, nseq, nmaxsegk, nmaxvalk, &
-                   a_seq)
+        !!subroutine sequential_acces_matrix(norb, norbp, isorb, nseg, &
+        !!           nsegline, istsegline, keyg, sparsemat, a, nseq, nmaxsegk, nmaxvalk, &
+        !!           a_seq)
+        !!  use module_base
+        !!  use module_types
+        !!  use sparsematrix_base, only: sparse_matrix
+        !!  implicit none
+        !!  integer,intent(in) :: norb, norbp, isorb, nseg, nseq, nmaxsegk, nmaxvalk
+        !!  integer,dimension(norb),intent(in) :: nsegline, istsegline
+        !!  integer,dimension(2,nseg),intent(in) :: keyg
+        !!  type(sparse_matrix),intent(in) :: sparsemat
+        !!  real(kind=8),dimension(sparsemat%nvctr),intent(in) :: a
+        !!  real(kind=8),dimension(nseq),intent(out) :: a_seq
+        !!end subroutine sequential_acces_matrix
+
+
+        subroutine sequential_acces_matrix_fast(nseq, nvctr, indices_extract_sequential, a, a_seq)
           use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
           implicit none
-          integer,intent(in) :: norb, norbp, isorb, nseg, nseq, nmaxsegk, nmaxvalk
-          integer,dimension(norb),intent(in) :: nsegline, istsegline
-          integer,dimension(2,nseg),intent(in) :: keyg
-          type(sparse_matrix),intent(in) :: sparsemat
-          real(kind=8),dimension(sparsemat%nvctr),intent(in) :: a
+          integer,intent(in) :: nseq, nvctr
+          integer,dimension(nseq),intent(in) :: indices_extract_sequential
+          real(kind=8),dimension(nvctr),intent(in) :: a
           real(kind=8),dimension(nseq),intent(out) :: a_seq
-        end subroutine sequential_acces_matrix
+        end subroutine sequential_acces_matrix_fast
 
         subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, &
                    orbs, at, minorbs_type, maxorbs_type, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, &

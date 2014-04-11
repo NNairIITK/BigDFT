@@ -7,7 +7,7 @@ module sparsematrix_base
   !> Contains the parameters needed for the sparse matrix matrix multiplication
   type,public :: sparse_matrix_matrix_multiplication
       integer :: nout, nseq, nmaxsegk, nmaxvalk, nseg
-      integer,dimension(:),pointer :: ivectorindex, nsegline, istsegline
+      integer,dimension(:),pointer :: ivectorindex, nsegline, istsegline, indices_extract_sequential
       integer,dimension(:,:),pointer :: onedimindices, keyg
   end type sparse_matrix_matrix_multiplication
 
@@ -72,6 +72,7 @@ module sparsematrix_base
       nullify(smmm%nsegline)
       nullify(smmm%istsegline)
       nullify(smmm%keyg)
+      nullify(smmm%indices_extract_sequential)
     end subroutine nullify_sparse_matrix_matrix_multiplication
 
 
@@ -111,6 +112,7 @@ module sparsematrix_base
       smmm%nsegline=f_malloc_ptr(norb,id='smmm%nsegline')
       smmm%istsegline=f_malloc_ptr(norb,id='smmm%istsegline')
       smmm%keyg=f_malloc_ptr((/2,nseg/),id='smmm%istsegline')
+      smmm%indices_extract_sequential=f_malloc_ptr((/smmm%nseq/),id='smmm%indices_extract_sequential')
     end subroutine allocate_sparse_matrix_matrix_multiplication
 
 
@@ -148,6 +150,7 @@ module sparsematrix_base
       call f_free_ptr(smmm%nsegline)
       call f_free_ptr(smmm%istsegline)
       call f_free_ptr(smmm%keyg)
+      call f_free_ptr(smmm%indices_extract_sequential)
     end subroutine deallocate_sparse_matrix_matrix_multiplication
 
 
