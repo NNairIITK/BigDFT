@@ -1199,20 +1199,26 @@ subroutine foe(iproc, nproc, tmprtr, &
           !!     tmb%linmat%denskern_large, tmb%linmat%denskern_large%matrix_compr, &
           !!     tmb%linmat%denskern_large%smmm%nseq, tmb%linmat%denskern_large%smmm%nmaxsegk, &
           !!     tmb%linmat%denskern_large%smmm%nmaxvalk, kernel_compr_seq)
-          call sequential_acces_matrix(tmb%orbs%norb, tmb%orbs%norbp, &
-               tmb%orbs%isorb, tmb%linmat%denskern_large%smmm%nseg, &
-               tmb%linmat%denskern_large%smmm%nsegline, tmb%linmat%denskern_large%smmm%istsegline, &
-               tmb%linmat%denskern_large%smmm%keyg, &
-               tmb%linmat%denskern_large, matrix_compr, &
-               tmb%linmat%denskern_large%smmm%nseq, tmb%linmat%denskern_large%smmm%nmaxsegk, &
-               tmb%linmat%denskern_large%smmm%nmaxvalk, kernel_compr_seq)
-          call sequential_acces_matrix(tmb%orbs%norb, tmb%orbs%norbp, &
-               tmb%orbs%isorb, tmb%linmat%inv_ovrlp_large%smmm%nseg, &
-               tmb%linmat%inv_ovrlp_large%smmm%nsegline, tmb%linmat%inv_ovrlp_large%smmm%istsegline, &
-               tmb%linmat%inv_ovrlp_large%smmm%keyg, &
-               tmb%linmat%inv_ovrlp_large, tmb%linmat%inv_ovrlp_large%matrix_compr, &
-               tmb%linmat%inv_ovrlp_large%smmm%nseq, tmb%linmat%inv_ovrlp_large%smmm%nmaxsegk, &
-               tmb%linmat%inv_ovrlp_large%smmm%nmaxvalk, inv_ovrlp_compr_seq)
+          !call sequential_acces_matrix(tmb%orbs%norb, tmb%orbs%norbp, &
+          !     tmb%orbs%isorb, tmb%linmat%denskern_large%smmm%nseg, &
+          !     tmb%linmat%denskern_large%smmm%nsegline, tmb%linmat%denskern_large%smmm%istsegline, &
+          !     tmb%linmat%denskern_large%smmm%keyg, &
+          !     tmb%linmat%denskern_large, matrix_compr, &
+          !     tmb%linmat%denskern_large%smmm%nseq, tmb%linmat%denskern_large%smmm%nmaxsegk, &
+          !     tmb%linmat%denskern_large%smmm%nmaxvalk, kernel_compr_seq)
+          call sequential_acces_matrix_fast(tmb%linmat%denskern_large%smmm%nseq, &
+               tmb%linmat%denskern_large%nvctr, tmb%linmat%denskern_large%smmm%indices_extract_sequential, &
+               matrix_compr, kernel_compr_seq)
+          !call sequential_acces_matrix(tmb%orbs%norb, tmb%orbs%norbp, &
+          !     tmb%orbs%isorb, tmb%linmat%inv_ovrlp_large%smmm%nseg, &
+          !     tmb%linmat%inv_ovrlp_large%smmm%nsegline, tmb%linmat%inv_ovrlp_large%smmm%istsegline, &
+          !     tmb%linmat%inv_ovrlp_large%smmm%keyg, &
+          !     tmb%linmat%inv_ovrlp_large, tmb%linmat%inv_ovrlp_large%matrix_compr, &
+          !     tmb%linmat%inv_ovrlp_large%smmm%nseq, tmb%linmat%inv_ovrlp_large%smmm%nmaxsegk, &
+          !     tmb%linmat%inv_ovrlp_large%smmm%nmaxvalk, inv_ovrlp_compr_seq)
+          call sequential_acces_matrix_fast(tmb%linmat%inv_ovrlp_large%smmm%nseq, &
+               tmb%linmat%inv_ovrlp_large%nvctr, tmb%linmat%inv_ovrlp_large%smmm%indices_extract_sequential, &
+               tmb%linmat%inv_ovrlp_large%matrix_compr, inv_ovrlp_compr_seq)
           call extract_matrix_distributed(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb_par, &
                tmb%linmat%inv_ovrlp_large, tmb%linmat%inv_ovrlp_large%matrix_compr, inv_ovrlpp)
 
@@ -1798,11 +1804,10 @@ subroutine uncompress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, ve
       else
           isegend=fermi%nseg
       end if
-      ii=0
-      !!$omp parallel default(private) shared(isegstart, isegend, orbs, fermi, vector, vector_compressed)
-      !!$omp do
+      !$omp parallel do default(private) &
+      !$omp shared(isegstart, isegend, fermi, orbs, vector, vector_compressed)
       do iseg=isegstart,isegend
-          !ii=fermi%keyv(iseg)-1
+          ii=fermi%keyv(iseg)-fermi%keyv(isegstart)
           do jorb=fermi%keyg(1,iseg),fermi%keyg(2,iseg)
               ii=ii+1
               iiorb = (jorb-1)/orbs%norb + 1
@@ -1811,8 +1816,7 @@ subroutine uncompress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, ve
               !write(*,*) 'ii, iiorb-orbs%isorb, jjorb', ii, iiorb-orbs%isorb, jjorb
           end do
       end do
-      !!$omp end do
-      !!$omp end parallel
+      !$omp end parallel do
   end if
 end subroutine uncompress_polynomial_vector
 
