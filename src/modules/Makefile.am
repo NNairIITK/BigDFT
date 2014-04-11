@@ -44,6 +44,13 @@ libmodules_a_SOURCES = base.f90 \
 	constrained_dft.f90 \
 	diis_module.f90 \
 	ao_inguess.f90 \
+	atoms_data.f90 \
+	communications_base.f90 \
+	communications_init.f90 \
+	communications.f90 \
+	sparsematrix_base.f90 \
+	sparsematrix_init.f90 \
+	sparsematrix.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
 	$(BLACS) \
@@ -70,7 +77,14 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	MODULE_INPUT_DICTS.@MODULE_EXT@ \
 	PSP_PROJECTORS.@MODULE_EXT@ \
 	LOCREGS.@MODULE_EXT@ \
-	AO_INGUESS.@MODULE_EXT@
+	AO_INGUESS.@MODULE_EXT@ \
+	MODULE_ATOMS.@MODULE_EXT@ \
+	COMMUNICATIONS_BASE.@MODULE_EXT@ \
+	COMMUNICATIONS_INIT.@MODULE_EXT@ \
+	COMMUNICATIONS.@MODULE_EXT@ \
+	SPARSEMATRIX_BASE.@MODULE_EXT@ \
+	SPARSEMATRIX_INIT.@MODULE_EXT@ \
+	SPARSEMATRIX.@MODULE_EXT@
 else
 modules = module_base.@MODULE_EXT@ \
 	module_defs.@MODULE_EXT@ \
@@ -91,13 +105,23 @@ modules = module_base.@MODULE_EXT@ \
 	module_input_dicts.@MODULE_EXT@ \
 	psp_projectors.@MODULE_EXT@ \
 	locregs.@MODULE_EXT@ \
-	ao_inguess.@MODULE_EXT@
+	ao_inguess.@MODULE_EXT@ \
+	module_atoms.@MODULE_EXT@ \
+	communications_base.@MODULE_EXT@ \
+	communications_init.@MODULE_EXT@ \
+	communications.@MODULE_EXT@ \
+	sparsematrix_base.@MODULE_EXT@ \
+	sparsematrix_init.@MODULE_EXT@ \
+	sparsematrix.@MODULE_EXT@
+
 
 endif
 
 AO_INCLUDES = eleconf-inc.f90
+ATOMS_INCLUDES = astruct-inc.f90
 
-EXTRA_DIST = configure.inc.in bigdft_cst.h.in BigDFT.py $(AO_INCLUDES)
+EXTRA_DIST = configure.inc.in bigdft_cst.h.in BigDFT.py \
+	$(AO_INCLUDES) $(ATOMS_INCLUDES)
 CLEANFILES = $(modules)
 
 AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
@@ -120,20 +144,27 @@ endif
 $(modules): $(libmodules_a_OBJECTS)
 input_keys.o: defs.o $(top_builddir)/flib/src/dynamic_memory.o base.o
 base.o: defs.o $(top_builddir)/flib/src/dynamic_memory.o
-types.o: base.o gaussians.o locregs.o psp_projectors.o
+types.o: base.o gaussians.o locregs.o psp_projectors.o ao_inguess.o atoms_data.o communications_base.o sparsematrix_base.o xc.o
 input.o: base.o types.o input_keys.o
-interfaces.o: base.o types.o xc.o fragments.o diis_module.o constrained_dft.o
+interfaces.o: base.o types.o xc.o fragments.o diis_module.o constrained_dft.o sparsematrix_base.o
 gaussians.o: base.o
 op2p_module.o : base.o
 BigDFT_API.o: base.o types.o interfaces.o xc.o
 vdwcorrection.o: base.o types.o
 private_api.o: base.o types.o interfaces.o
-fragments.o diis_module.o: base.o types.o
-constrained_dft.o: base.o types.o fragments.o
-input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o types.o defs.o ao_inguess.o interfaces.o
+fragments.o diis_module.o: base.o types.o communications.o sparsematrix_base.o sparsematrix.o
+constrained_dft.o: base.o types.o fragments.o sparsematrix_base.o sparsematrix.o
+input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o types.o defs.o ao_inguess.o interfaces.o atoms_data.o
 psp_projectors.o: locregs.o
 locregs.o: base.o
 ao_inguess.o: $(AO_INCLUDES) base.o
+atoms_data.o: $(ATOMS_INCLUDES) ao_inguess.o
+communications_base.o: base.o
+communications_init.o: base.o types.o communications_base.o
+communications.o: base.o types.o communications_base.o
+sparsematrix_base.o: base.o
+sparsematrix_init.o: base.o types.o interfaces.o sparsematrix_base.o
+sparsematrix.o: base.o types.o sparsematrix_base.o
 
 # Copy modules in a common include directory.
 all: all-am insmod

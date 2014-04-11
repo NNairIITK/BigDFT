@@ -17,7 +17,9 @@ program wvl
   use yaml_output
   use module_input_dicts
   use module_interfaces, only: inputs_from_dict
-  
+  use module_atoms, only: deallocate_atoms_data
+  use communications_init, only: orbitals_communicators
+  use communications, only: transpose_v, untranspose_v
   implicit none
 
   type(input_variables)             :: inputs
@@ -25,10 +27,11 @@ program wvl
 
   type(local_zone_descriptors)          :: Lzd
   type(orbitals_data)               :: orbs
-  type(communications_arrays)       :: comms
+  type(comms_cubic)       :: comms
   type(workarr_sumrho)              :: wisf
   real(wp), dimension(:), pointer   :: psi, psir
 
+  type(xc_info)                        :: xc
   type(rho_descriptors)                :: rhodsc
   type(denspot_distribution)           :: dpcom
   type(GPU_pointers)                   :: GPU
@@ -61,11 +64,12 @@ program wvl
    iproc=mpi_info(1)
    nproc=mpi_info(2)
    call user_dict_from_files(user_inputs, 'input', 'posinp', bigdft_mpi)
-   call inputs_from_dict(inputs, atoms, user_inputs, .true.)
+   call inputs_from_dict(inputs, atoms, user_inputs)
    if (iproc == 0) then
       call print_general_parameters(inputs,atoms)
    end if
    call dict_free(user_inputs)
+   GPU%OCLconv = .false.
 
 !!$  ! Start MPI in parallel version
 !!$  call MPI_INIT(ierr)
@@ -88,7 +92,7 @@ program wvl
   
   call lzd_set_hgrids(Lzd,(/inputs%hx,inputs%hy,inputs%hz/)) 
   call system_size(atoms,atoms%astruct%rxyz,radii_cf,inputs%crmult,inputs%frmult, &
-       & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,shift)
+       & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),GPU%OCLconv,Lzd%Glr,shift)
   call print_atoms_and_grid(Lzd%Glr, atoms, atoms%astruct%rxyz, shift, &
        & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3))
 
@@ -102,7 +106,8 @@ program wvl
   call check_linear_and_create_Lzd(iproc,nproc,inputs%linear,Lzd,atoms,orbs,inputs%nspin,atoms%astruct%rxyz)
 
   !grid spacings and box of the density
-  call dpbox_set(dpcom,Lzd,iproc,nproc,MPI_COMM_WORLD,inputs,atoms%astruct%geocode)
+  call dpbox_set(dpcom,Lzd,xc,iproc,nproc,MPI_COMM_WORLD,inputs%PSolver_groupsize, &
+       & inputs%SIC%approach,atoms%astruct%geocode, inputs%nspin)
 
   ! Read wavefunctions from disk and store them in psi.
   allocate(orbs%eval(orbs%norb*orbs%nkpts))
@@ -149,7 +154,7 @@ program wvl
   !---------------------------!
   allocate(w(max(orbs%npsidim_orbs,orbs%npsidim_comp)))
   ! Transpose the psi wavefunction
-  call transpose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psi, work=w)
+  call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),work_add=w(1))
   !write(*,*) "Proc", iproc, " treats ", comms%nvctr_par(iproc, 0) * orbs%norb, "components of all orbitals."
   call yaml_comment("Proc" // trim(yaml_toa(iproc)) // " treats " // &
                    & trim(yaml_toa(comms%nvctr_par(iproc, 0) * orbs%norb)) // "components of all orbitals.")
@@ -188,7 +193,7 @@ program wvl
   deallocate(ovrlp)
 
   ! Retranspose the psi wavefunction
-  call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psi, work=w)
+  call untranspose_v(iproc,nproc,orbs,Lzd%glr%wfd,comms,psi(1),work_add=w(1))
   deallocate(w)
 
   call bigdft_utils_flush(unit=6)
@@ -218,7 +223,9 @@ program wvl
   !if (iproc == 0) write(*,*) "System has", sum(rhor), "electrons."
   if (iproc == 0) call yaml_map("Number of electrons", sum(rhor))
   deallocate(rhor)
-  call density_descriptors(iproc,nproc,inputs%nspin,inputs%crmult,inputs%frmult,atoms,&
+
+  call xc_init(xc, inputs%ixc, XC_ABINIT, inputs%nspin)
+  call density_descriptors(iproc,nproc,xc,inputs%nspin,inputs%crmult,inputs%frmult,atoms,&
        dpcom,inputs%rho_commun,atoms%astruct%rxyz,radii_cf,rhodsc)
 
 !!$  ! Equivalent BigDFT routine.
@@ -228,7 +235,7 @@ program wvl
 !!$       & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
 !!$       & atoms%astruct%rxyz,inputs%crmult,inputs%frmult,radii_cf,inputs%nspin,'D',inputs%ixc, &
 !!$       & inputs%rho_commun,n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
-  call local_potential_dimensions(Lzd,orbs,dpcom%ngatherarr(0,1))
+  call local_potential_dimensions(iproc,Lzd,orbs,xc,dpcom%ngatherarr(0,1))
 
   allocate(rhor(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * dpcom%n3d))
   allocate(irrzon(1,2,1))
@@ -236,7 +243,7 @@ program wvl
 
   !call sumrho(iproc,nproc,orbs,Lzd%Glr,inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
   !     & psi,rhor,nscatterarr,inputs%nspin,GPU,atoms%symObj,irrzon,phnons,rhodsc)
-  call sumrho(dpcom,orbs,Lzd,GPU,atoms%astruct%sym,rhodsc,psi,rho_p)
+  call sumrho(dpcom,orbs,Lzd,GPU,atoms%astruct%sym,rhodsc,xc,psi,rho_p)
   call communicate_density(dpcom,orbs%nspin,rhodsc,rho_p,rhor,.false.)
 
   call deallocate_rho_descriptors(rhodsc,"main")
@@ -257,7 +264,7 @@ program wvl
        & dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, &
        & pkernel,pot_ion,psoffset,rholoc_tmp)
   !allocate the potential in the full box
-  call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,pot_ion,potential)
+  call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,xc,pot_ion,potential)
 !!$  call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3p, &
 !!$       & Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,inputs%nspin, &
 !!$       & Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3d,0, &
@@ -271,7 +278,7 @@ program wvl
      end do
   end do
   epot_sum = epot_sum * inputs%hx / 2._gp * inputs%hy / 2._gp * inputs%hz / 2._gp
-  call free_full_potential(dpcom%mpi_env%nproc,0,potential,"main")
+  call free_full_potential(dpcom%mpi_env%nproc,0,xc,potential,"main")
   call mpiallred(epot_sum,1,MPI_SUM,MPI_COMM_WORLD,ierr)
   
   !if (iproc == 0) write(*,*) "System pseudo energy is", epot_sum, "Ht."
@@ -295,7 +302,8 @@ program wvl
 
   call deallocate_orbs(orbs,"main")
 
-  call deallocate_atoms(atoms,"main") 
+  call deallocate_atoms_data(atoms) 
+  call xc_end(xc)
   call dpbox_free(dpcom,'main')
   call pkernel_free(pkernel,'main')
   call free_input_variables(inputs)

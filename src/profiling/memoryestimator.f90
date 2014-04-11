@@ -116,16 +116,56 @@ subroutine MemoryEstimator(nproc,idsx,lr,norb,nspinor,nkpt,nprojel,nspin,itrpmax
 
   if (nproc > 1) then 
      mem%kernel=19.d0*omemker
-     mem%density=omemwf+nden*omemden+npotden*omempot+omemker+omemproj
-     mem%psolver=12.d0*omemden+omemwf+omemker+omemproj
-     mem%ham=nden*omemden+npotham*omempot+omemwf+omemker+omemproj
+     mem%density=mem%psistorage+nden*omemden+npotden*omempot+omemker+omemproj
+     mem%psolver=12.d0*omemden+mem%psistorage+omemker+omemproj
+     mem%ham=nden*omemden+npotham*omempot+mem%psistorage+omemker+omemproj
   else
      mem%kernel=11.d0*omemker
-     mem%density=omemwf+nden*omemden+(npotden-1.d0)*omempot+omemker+omemproj
-     mem%psolver=8.d0*omemden+omemwf+omemker+omemproj
-     mem%ham=nden*omemden+(npotham-1.d0)*omempot+omemwf+omemker+omemproj
+     mem%density=mem%psistorage+nden*omemden+(npotden-1.d0)*omempot+omemker+omemproj
+     mem%psolver=8.d0*omemden+mem%psistorage+omemker+omemproj
+     mem%ham=nden*omemden+(npotham-1.d0)*omempot+mem%psistorage+omemker+omemproj
   end if
   !estimation of the memory peak
-  mem%peak=max(mem%kernel,mem%density,mem%psolver,mem%ham)
+  mem%peak=max(mem%kernel,mem%density,mem%psolver,mem%ham+mem%submat)
 
 END SUBROUTINE MemoryEstimator
+
+!> old timing routine, should disappear as soon as the f_timing routine is called
+subroutine timing(iproc,category,action)
+  use yaml_output, only: yaml_toa
+  use module_types, only: find_category
+  use time_profiling 
+
+  implicit none
+
+  include 'mpif.h'
+  !Variables
+  integer, intent(in) :: iproc
+  character(len=*), intent(in) :: category
+  character(len=2), intent(in) :: action  
+  !Local variables
+  integer :: cat_id
+  character(len=max_field_length) :: cattmp
+
+  !this is ti ensure that timing routines have been properly called
+  call check_initialization()
+
+  !modification of the timing to see if it works
+  select case(action)
+  case('PR')
+     call f_timing_checkpoint(ctr_name=category,mpi_comm=iproc)
+  case default
+     !find category in the old scheme
+     call find_category(category,cat_id)
+
+     if (cat_id /= TIMING_UNINITIALIZED) then
+        cattmp=times(ictrl)%dict_timing_categories//cat_id//catname
+        if (f_err_raise(trim(cattmp)/=trim(category),'Error in category '//&
+             trim(yaml_toa(cat_id))//' (name='//trim(category)//' ), found '//&
+             trim(cattmp)//' instead',err_id=TIMING_INVALID)) return
+        
+        call f_timing(cat_id,action)
+     end if
+  end select
+
+END SUBROUTINE timing

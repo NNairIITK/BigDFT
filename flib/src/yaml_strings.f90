@@ -243,8 +243,8 @@ contains
        write(zi,yaml_dble_fmt) zeta(2)
     end if
     
-    zr=yaml_adjust(zr)
-    zi=yaml_adjust(zi)
+    zr=yaml_adjust(zr,clean=.not. present(fmt))
+    zi=yaml_adjust(zi,clean=.not. present(fmt))
     rpos=len(trim(zr))
     ipos=min(len(trim(zi)),max_value_length-rpos-2)
     

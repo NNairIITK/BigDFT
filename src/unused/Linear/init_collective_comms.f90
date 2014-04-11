@@ -227,3 +227,249 @@
 
 
 
+! This subroutine distributes the components to the processes such that each process has the same grid points
+! as indicated by npts_par_c, npts_par_f.
+subroutine assign_weight_to_process2(iproc, nproc, lzd, weight_c, weight_f, weight_tot_c, weight_tot_f, &
+           npts_par_c, npts_par_f, &
+           istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
+           weightp_c, weightp_f, nptsp_c, nptsp_f)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(local_zone_descriptors),intent(in) :: lzd
+  real(kind=8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(in) :: weight_c, weight_f
+  real(kind=8),intent(in) :: weight_tot_c, weight_tot_f
+  integer,dimension(0:nproc-1),intent(in) :: npts_par_c, npts_par_f
+  integer,dimension(2,0:nproc-1),intent(out) :: istartend_c, istartend_f
+  integer,intent(out) :: istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
+  real(kind=8),intent(out) :: weightp_c, weightp_f
+  integer,intent(out) :: nptsp_c, nptsp_f
+  
+  ! Local variables
+  integer :: jproc, i1, i2, i3, ii, istartp_c, iendp_c, ii2, istartp_f, iendp_f, istart, iend, jj, j0, j1
+  integer :: i, iseg, i0, iitot, ierr, iiseg, jprocdone
+  real(kind=8) :: tt, tt2, weight_c_ideal, weight_f_ideal
+
+  ! Ideal weight per process
+  weight_c_ideal=weight_tot_c/dble(nproc)
+  weight_f_ideal=weight_tot_f/dble(nproc)
+
+  jproc=0
+  tt=0.d0
+  tt2=0.d0
+  iitot=0
+  ii2=0
+  iiseg=1
+  weightp_c=0.d0
+    do iseg=1,lzd%glr%wfd%nseg_c
+       jj=lzd%glr%wfd%keyvloc(iseg)
+       j0=lzd%glr%wfd%keygloc(1,iseg)
+       j1=lzd%glr%wfd%keygloc(2,iseg)
+       ii=j0-1
+       i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
+       ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
+       i2=ii/(lzd%glr%d%n1+1)
+       i0=ii-i2*(lzd%glr%d%n1+1)
+       i1=i0+j1-j0
+       do i=i0,i1
+           tt=tt+weight_c(i,i2,i3)
+           iitot=iitot+1
+           !if(tt>weight_c_ideal) then
+           if(iitot==npts_par_c(jproc)) then
+               if(iproc==jproc) then
+                   weightp_c=tt
+                   nptsp_c=iitot
+                   istartp_c=ii2+1
+                   iendp_c=istartp_c+iitot-1
+                   istartp_seg_c=iiseg
+                   iendp_seg_c=iseg
+               end if
+               istartend_c(1,jproc)=ii2+1
+               istartend_c(2,jproc)=istartend_c(1,jproc)+iitot-1
+               tt2=tt2+tt
+               tt=0.d0
+               ii2=ii2+iitot
+               iitot=0
+               jproc=jproc+1
+               iiseg=iseg
+           end if
+       end do
+   end do
+
+   jprocdone=jproc
+   do jproc=jprocdone,nproc-1
+      ! these processes do nothing
+      istartend_c(1,jproc)=lzd%glr%wfd%nvctr_c+1
+      istartend_c(2,jproc)=lzd%glr%wfd%nvctr_c
+      if(iproc==jproc) then
+          weightp_c=0.d0
+          nptsp_c=0
+          istartp_seg_c=lzd%glr%wfd%nseg_c+1
+          iendp_seg_c=lzd%glr%wfd%nseg_c
+      end if
+   end do
+  !if(iproc==nproc-1) then
+  !    ! Take the rest
+  !    istartp_c=ii2+1
+  !    iendp_c=istartp_c+iitot-1
+  !    weightp_c=weight_tot_c-tt2
+  !    nptsp_c=lzd%glr%wfd%nvctr_c-ii2
+  !    istartp_seg_c=iiseg
+  !    iendp_seg_c=lzd%glr%wfd%nseg_c
+  !end if
+  !istartend_c(1,nproc-1)=ii2+1
+  !istartend_c(2,nproc-1)=istartend_c(1,nproc-1)+iitot-1
+
+  ! some check
+  ii=istartend_c(2,iproc)-istartend_c(1,iproc)+1
+  if(nproc>1) call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if(ii/=lzd%glr%wfd%nvctr_c) stop 'assign_weight_to_process2: ii/=lzd%glr%wfd%nvctr_c'
+
+
+  jproc=0
+  tt=0.d0
+  tt2=0.d0
+  iitot=0
+  ii2=0
+  weightp_f=0.d0
+  istart=lzd%glr%wfd%nseg_c+min(1,lzd%glr%wfd%nseg_f)
+  iend=istart+lzd%glr%wfd%nseg_f-1
+  iiseg=istart
+    do iseg=istart,iend
+       jj=lzd%glr%wfd%keyvloc(iseg)
+       j0=lzd%glr%wfd%keygloc(1,iseg)
+       j1=lzd%glr%wfd%keygloc(2,iseg)
+       ii=j0-1
+       i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
+       ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
+       i2=ii/(lzd%glr%d%n1+1)
+       i0=ii-i2*(lzd%glr%d%n1+1)
+       i1=i0+j1-j0
+       do i=i0,i1
+           tt=tt+weight_f(i,i2,i3)
+           iitot=iitot+1
+           !if(tt>weight_f_ideal) then
+           if(iitot==npts_par_f(jproc)) then
+               if(iproc==jproc) then
+                   weightp_f=tt
+                   nptsp_f=iitot
+                   istartp_f=ii2+1
+                   iendp_f=istartp_f+iitot-1
+                   istartp_seg_f=iiseg
+                   iendp_seg_f=iseg
+               end if
+               istartend_f(1,jproc)=ii2+1
+               istartend_f(2,jproc)=istartend_f(1,jproc)+iitot-1
+               tt2=tt2+tt
+               tt=0.d0
+               ii2=ii2+iitot
+               iitot=0
+               jproc=jproc+1
+               iiseg=iseg
+           end if
+       end do
+   end do
+
+   jprocdone=jproc
+   do jproc=jprocdone,nproc-1
+      ! these processes do nothing
+      istartend_f(1,jproc)=lzd%glr%wfd%nvctr_f+1
+      istartend_f(2,jproc)=lzd%glr%wfd%nvctr_f
+      if(iproc==jproc) then
+          weightp_f=0.d0
+          nptsp_f=0
+          istartp_seg_f=lzd%glr%wfd%nseg_f+1
+          iendp_seg_f=lzd%glr%wfd%nseg_f
+      end if
+   end do
+  !if(iproc==nproc-1) then
+  !    ! Take the rest
+  !    istartp_f=ii2+1
+  !    iendp_f=istartp_f+iitot-1
+  !    weightp_f=weight_tot_f-tt2
+  !    nptsp_f=lzd%glr%wfd%nvctr_f-ii2
+  !    istartp_seg_f=iiseg
+  !    iendp_seg_f=iend
+  !end if
+  !istartend_f(1,nproc-1)=ii2+1
+  !istartend_f(2,nproc-1)=istartend_f(1,nproc-1)+iitot-1
+
+  ! some check
+  ii=istartend_f(2,iproc)-istartend_f(1,iproc)+1
+  if(nproc>1) call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if(ii/=lzd%glr%wfd%nvctr_f) stop 'assign_weight_to_process2: ii/=lzd%glr%wfd%nvctr_f'
+
+
+
+end subroutine assign_weight_to_process2
+
+
+
+
+subroutine check_gridpoint(nseg, n1, n2, noffset1, noffset2, noffset3, keyg, itarget1, itarget2, itarget3, iseg_start, found)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in) :: nseg, n1, n2, noffset1, noffset2, noffset3, itarget1, itarget2, itarget3
+  integer,dimension(2,nseg),intent(in) :: keyg
+  integer,intent(inout) :: iseg_start
+  logical,intent(out) :: found
+  
+  ! Local variables
+  integer :: j0, j1, ii, i1, i2, i3, i0, ii1, ii2, ii3, iseg, i
+  logical :: equal_possible, larger_possible, smaller_possible
+  !integer :: iproc
+  
+  !call mpi_comm_rank(bigdft_mpi%mpi_comm, iproc, i)
+
+  found=.false.
+  loop_segments: do iseg=iseg_start,nseg
+     j0=keyg(1,iseg)
+     j1=keyg(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     ii2=i2+noffset2
+     ii3=i3+noffset3
+     equal_possible = (ii2==itarget2 .and. ii3==itarget3)
+     larger_possible = (ii2>itarget2 .and. ii3>itarget3)
+     smaller_possible = (ii2<itarget2 .and. ii3<itarget3)
+     ! check whether quick exit is possible since there is no chance to find the point anymore...
+     if(ii3>itarget3) then
+            exit loop_segments
+     end if
+     if(ii3>=itarget3 .and. ii2>itarget2) then
+         exit loop_segments
+     end if
+     larger_possible = (ii3>=itarget3 .and. ii2>=itarget2)
+
+     do i=i0,i1
+        ii1=i+noffset1
+        if(equal_possible .and. ii1==itarget1) then
+            found=.true.
+            ! no need to search in smaller segments from now on, since the itargets will never decrease any more...
+            iseg_start=iseg
+            exit loop_segments
+        end if
+        if(larger_possible .and. ii1>itarget1) then
+            ! there is no chance to find the point anymore...
+            exit loop_segments
+        end if
+        if(smaller_possible .and. ii1<itarget1) then
+            ! no need to search in these segments from now on, since the itargets will never decrease any more...
+            iseg_start=iseg
+        end if
+     end do
+  end do loop_segments
+
+
+end subroutine check_gridpoint
+

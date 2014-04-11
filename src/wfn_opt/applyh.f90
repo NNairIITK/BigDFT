@@ -10,7 +10,7 @@
 
 !> Calculate the action of the local hamiltonian on the orbitals
 subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
-     ipotmethod,confdatarr,pot,psi,hpsi,pkernel,ixc,alphaSIC,ekin_sum,epot_sum,eSIC_DC,&
+     ipotmethod,confdatarr,pot,psi,hpsi,pkernel,xc,alphaSIC,ekin_sum,epot_sum,eSIC_DC,&
      dpbox,potential,comgp)
   use module_base
   use module_types
@@ -18,7 +18,7 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
   use module_xc
   implicit none
   !Arguments
-  integer, intent(in) :: iproc,nproc,ixc,npsidim_orbs
+  integer, intent(in) :: iproc,nproc,npsidim_orbs
   integer, intent(in) :: ipotmethod !< Method which has to be chosen for applying the potential to the wavefunctions in the real space form:
                                     !! 0 is the traditional potential application
                                     !! 1 is the application of the exact exchange (which has to be precomputed and stored in the potential array)
@@ -28,6 +28,7 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: Lzd
   type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
+  type(xc_info), intent(in) :: xc
   real(wp), dimension(npsidim_orbs), intent(in) :: psi              !< This dimension will be modified
   real(wp), dimension(:),pointer :: pot                             !< the potential, with the dimension compatible with the ipotmethod flag
   real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
@@ -53,7 +54,7 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
   ekin=0.d0
 
   !some checks
-  exctXcoeff=xc_exctXfac()
+  exctXcoeff=xc_exctXfac(xc)
 
   if (exctXcoeff /= 0.0_gp .neqv. ipotmethod ==1) then
      if (iproc==0) write(*,*)&
@@ -122,7 +123,7 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
       eSIC_DCi=0.0_gp
       if (ipotmethod == 2) then
          !in this scheme the application of the potential is already done
-         call PZ_SIC_potential(iorb,Lzd%Llr(ilr),orbs,ixc,&
+         call PZ_SIC_potential(iorb,Lzd%Llr(ilr),orbs,xc,&
               0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psir,vsicpsir,eSICi,eSIC_DCi)
       !NonKoopmans' correction scheme
       else if (ipotmethod == 3) then 
@@ -212,14 +213,15 @@ END SUBROUTINE local_hamiltonian
 !!                   2 is the application of the Perdew-Zunger SIC
 !!                   3 is the application of the Non-Koopman's correction SIC
 subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
-     ipotmethod,confdatarr,pot,psi,vpsi,pkernel,ixc,alphaSIC,epot_sum,evSIC,vpsi_noconf,econf_sum)
+     ipotmethod,confdatarr,pot,psi,vpsi,pkernel,xc,alphaSIC,epot_sum,evSIC,vpsi_noconf,econf_sum)
   use module_base
   use module_types
   use module_interfaces, except_this_one => psi_to_vlocpsi
   use module_xc
   implicit none
-  integer, intent(in) :: iproc,ipotmethod,ixc,npsidim_orbs
+  integer, intent(in) :: iproc,ipotmethod,npsidim_orbs
   real(gp), intent(in) :: alphaSIC
+  type(xc_info), intent(in) :: xc
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: Lzd
   type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
@@ -240,7 +242,7 @@ subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
   real(wp), dimension(:,:), allocatable :: psir,vsicpsir,psir_noconf
 
   !some checks
-  exctXcoeff=xc_exctXfac()
+  exctXcoeff=xc_exctXfac(xc)
 
   if (exctXcoeff /= 0.0_gp .neqv. ipotmethod ==1) then
      if (iproc==0) write(*,*)&
@@ -324,7 +326,7 @@ subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
      eSIC_DCi=0.0_gp
      if (ipotmethod == 2) then
         !in this scheme the application of the potential is already done
-        call PZ_SIC_potential(iorb,Lzd%Llr(ilr),orbs,ixc,&
+        call PZ_SIC_potential(iorb,Lzd%Llr(ilr),orbs,xc,&
              0.5_gp*Lzd%hgrids(1),0.5_gp*Lzd%hgrids(2),0.5_gp*Lzd%hgrids(3),&
              pkernel,psir,vsicpsir,eSICi,eSIC_DCi)
      !NonKoopmans' correction scheme
@@ -618,7 +620,7 @@ subroutine transpose_for_kpoints(nspinor,n1,n2,n3,x,ww,direct)
   end if
   
   !for mixed precision code it should be changed
-  call dcopy(nspinor*n1*n2*n3,ww,1,x,1)
+  call vcopy(nspinor*n1*n2*n3,ww(1),1,x(1),1)
 END SUBROUTINE transpose_for_kpoints
 
 
@@ -2242,7 +2244,7 @@ END SUBROUTINE ncplx_kpt
 !!  allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
 !!  call memocc(i_stat,psir,'psir',subname)
 !!
-!!  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir)
+!!  call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir)
 !!
 !!  ekin_sum=0.0_gp
 !!  epot_sum=0.0_gp

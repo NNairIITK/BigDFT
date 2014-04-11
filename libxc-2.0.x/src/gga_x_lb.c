@@ -132,18 +132,18 @@ XC(gga_lb_modified)(const XC(func_type) *func, int np, const FLOAT *rho, const F
 	x =  gdm/POW(rho[is], 4.0/3.0);
 	
 	if(x < 300.0) /* the actual functional */	   
-	  f = -params->beta*x*x/(1.0 + 3.0*params->beta*x*asinh(params->gamm*x));
+	  f = -params->beta*x*x/(1.0 + 3.0*params->beta*x*ASINH(params->gamm*x));
 	else          /* asymptotic expansion */
-	  f = -x/(3.0*log(2.0*params->gamm*x));
+	  f = -x/(3.0*LOG(2.0*params->gamm*x));
 
 	vrho[is] += f * CBRT(rho[is]);
 	
       }else if(r > 0.0){
 	/* the aymptotic expansion of LB94 */
 	x = r + (3.0/params->aa)*
-	  log(2.0*params->gamm * params->aa * 1.0 / CBRT(params->qtot));
+	  LOG(2.0*params->gamm * params->aa * 1.0 / CBRT(params->qtot));
 	
-	/* x = x + POW(qtot*exp(-aa*r), 1.0/3.0)/(beta*aa*aa); */
+	/* x = x + POW(qtot*EXP(-aa*r), 1.0/3.0)/(beta*aa*aa); */
 	
 	vrho[is] -= 1.0/x;
       }
@@ -161,8 +161,9 @@ XC(gga_lb_modified)(const XC(func_type) *func, int np, const FLOAT *rho, const F
 
 static void 
 gga_x_lb(const XC(func_type) *p, int np, const FLOAT *rho, const FLOAT *sigma,
-	  FLOAT *zk, FLOAT *vrho, FLOAT *vsigma,
-	  FLOAT *v2rho2, FLOAT *v2rhosigma, FLOAT *v2sigma2)
+	 FLOAT *zk, FLOAT *vrho, FLOAT *vsigma,
+	 FLOAT *v2rho2, FLOAT *v2rhosigma, FLOAT *v2sigma2,
+	 FLOAT *v3rho3, FLOAT *v3rho2sigma, FLOAT *v3rhosigma2, FLOAT *v3sigma3)
 {
   XC(gga_lb_modified)(p, np, rho, sigma, 0.0, vrho);
 }
@@ -175,11 +176,12 @@ XC(func_info_type) XC(func_info_gga_x_lb) = {
   XC_FAMILY_GGA,
   "R van Leeuwen and EJ Baerends, Phys. Rev. A. 49, 2421 (1994)",
   XC_FLAGS_3D | XC_FLAGS_HAVE_VXC,
-  MIN_DENS, 1e-32, 0.0, 1e-32,
+  1e-32, 1e-32, 0.0, 1e-32,
   gga_lb_init,
   NULL,
   NULL,
-  gga_x_lb
+  gga_x_lb,
+  NULL
 };
 
 XC(func_info_type) XC(func_info_gga_x_lbm) = {
@@ -190,10 +192,11 @@ XC(func_info_type) XC(func_info_gga_x_lbm) = {
   "PRT Schipper, OV Gritsenko, SJA van Gisbergen, and EJ Baerends, J. Chem. Phys. 112, 1344 (2000)\n"
   "R van Leeuwen and EJ Baerends, Phys. Rev. A. 49, 2421 (1994)",
   XC_FLAGS_3D | XC_FLAGS_HAVE_VXC,
-  MIN_DENS, 1e-32, 0.0, 1e-32,
+  1e-32, 1e-32, 0.0, 1e-32,
   gga_lb_init,
   NULL,
   NULL,
-  gga_x_lb
+  gga_x_lb,
+  NULL
 };
 

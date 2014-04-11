@@ -50,26 +50,34 @@ module constrained_dft
          real(gp),intent(out),optional :: econf
        end subroutine LocalHamiltonianApplication
 
-       subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovrlp, inv_ovrlp, error, &
-            orbs, ovrlp_smat, inv_ovrlp_smat, check_accur)
+       subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, &
+                  imode, check_accur, ovrlp, inv_ovrlp, error, &
+                  ovrlp_smat, inv_ovrlp_smat)!!, &
+                  !!foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
          use module_base
          use module_types
+         use sparsematrix_base, only: sparse_matrix
+         use sparsematrix, only: compress_matrix, uncompress_matrix, transform_sparse_matrix
          implicit none
-  
-         ! Calling arguments
-         integer,intent(in) :: iproc, nproc, iorder, power, blocksize, norb
-         real(kind=8),dimension(:,:),pointer :: ovrlp
-         real(kind=8),dimension(:,:),pointer :: inv_ovrlp
-         real(kind=8),intent(out) :: error
-         type(orbitals_data), optional, intent(in) :: orbs
-         type(sparseMatrix), optional, intent(inout) :: ovrlp_smat, inv_ovrlp_smat
-         logical,intent(in),optional :: check_accur
+         integer,intent(in) :: iproc, nproc, iorder, blocksize, norb, power
+         type(orbitals_data),intent(in) :: orbs
+         integer,intent(in) :: imode
+         logical,intent(in) :: check_accur
+         real(kind=8),dimension(:,:),pointer,optional :: ovrlp
+         real(kind=8),dimension(:,:),pointer,optional :: inv_ovrlp
+         type(sparse_matrix), optional, intent(inout) :: ovrlp_smat, inv_ovrlp_smat
+         real(kind=8),intent(out),optional :: error
+         !!integer,intent(in),optional :: foe_nseg
+         !!integer,dimension(:),intent(in),optional :: foe_kernel_nsegline, foe_istsegline
+         !!integer,dimension(:,:),intent(in),optional :: foe_keyg
        end subroutine overlapPowerGeneral
+
   end interface
+
 
   type, public :: cdft_data
      real(wp), dimension(:), pointer :: weight_function ! the weight function defining the constraint
-     type(sparseMatrix) :: weight_matrix ! matrix elements of the weight function between tmbs
+     type(sparse_matrix) :: weight_matrix ! matrix elements of the weight function between tmbs
      integer :: ndim_dens ! the dimension of the weight function
      real(gp) :: charge ! defines the value of the charge which is to be constrained
      real(gp) :: lag_mult ! the Lagrange multiplier used to enforce the constraint
@@ -124,8 +132,11 @@ contains
   subroutine calculate_weight_matrix_lowdin(weight_matrix,nfrag_charged,ifrag_charged,tmb,input,ref_frags,&
        calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap,ovrlp_half)
     use module_fragments
+    use communications, only: transpose_localized
+    use sparsematrix_base, only: sparse_matrix
+    use sparsematrix, only: compress_matrix, uncompress_matrix
     implicit none
-    type(sparseMatrix), intent(inout) :: weight_matrix
+    type(sparse_matrix), intent(inout) :: weight_matrix
     type(input_variables),intent(in) :: input
     type(dft_wavefunction), intent(inout) :: tmb
     logical, intent(in) :: calculate_overlap_matrix, calculate_ovrlp_half
@@ -165,16 +176,17 @@ contains
 
     if (calculate_ovrlp_half) then
        tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='tmb%linmat%ovrlp%matrix')
-       call uncompressMatrix(bigdft_mpi%iproc,tmb%linmat%ovrlp)
+       call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%ovrlp)
        call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 2, &
-             tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%linmat%ovrlp%matrix, ovrlp_half, error, tmb%orbs)
+            tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%orbs, &
+            imode=2, check_accur=.true., ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=ovrlp_half, error=error)
        call f_free_ptr(tmb%linmat%ovrlp%matrix)
     end if
 
     ! optimize this to just change the matrix multiplication?
     proj_mat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='proj_mat')
 
-    call razero(tmb%orbs%norb**2,proj_mat(1,1))
+    call to_zero(tmb%orbs%norb**2,proj_mat(1,1))
     isforb=0
     do ifrag=1,input%frag%nfrag
        ifrag_ref=input%frag%frag_index(ifrag)
@@ -220,7 +232,7 @@ contains
        call vcopy(tmb%orbs%norb*tmb%orbs%norb,weight_matrixp(1,1),1,weight_matrix%matrix(1,1),1)
     end if
     call f_free(weight_matrixp)
-    call compress_matrix_for_allreduce(bigdft_mpi%iproc,weight_matrix)
+    call compress_matrix(bigdft_mpi%iproc,weight_matrix)
     call f_free_ptr(weight_matrix%matrix)
     call f_release_routine()
 
@@ -229,9 +241,11 @@ contains
 
   !> CDFT: calculates the weight matrix w_ab given w(r)
   !! for the moment putting densities in global box and ignoring parallelization
-  subroutine calculate_weight_matrix_using_density(cdft,tmb,at,input,GPU,denspot)
+  subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,denspot)
     use module_fragments
+    use communications, only: transpose_localized, start_onesided_communication
     implicit none
+    integer,intent(in) :: iproc
     type(cdft_data), intent(inout) :: cdft
     type(atoms_data), intent(in) :: at
     type(input_variables),intent(in) :: input
@@ -246,7 +260,7 @@ contains
     type(energy_terms) :: energs
     character(len=*),parameter :: subname='calculate_weight_matrix_using_density'
 
-    call local_potential_dimensions(tmb%ham_descr%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
+    call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
     call start_onesided_communication(bigdft_mpi%iproc,bigdft_mpi%nproc,max(denspot%dpbox%ndimpot,1),cdft%weight_function, &
          tmb%ham_descr%comgp%nrecvbuf,tmb%ham_descr%comgp%recvbuf,tmb%ham_descr%comgp,tmb%ham_descr%lzd)
 
@@ -256,7 +270,7 @@ contains
     call small_to_large_locreg(bigdft_mpi%iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
          tmb%orbs, tmb%psi, tmb%ham_descr%psi)
 
-    if (tmb%ham_descr%npsidim_orbs > 0) call razero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
+    if (tmb%ham_descr%npsidim_orbs > 0) call to_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
 
     call full_local_potential(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%orbs,tmb%ham_descr%lzd,2, &
          denspot%dpbox,cdft%weight_function,denspot%pot_work,tmb%ham_descr%comgp)
@@ -314,7 +328,7 @@ contains
     ! debug
     !allocate(cdft%weight_matrix%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
     !call memocc(istat, cdft%weight_matrix%matrix, 'cdft%weight_matrix%matrix', subname)
-    !call uncompressMatrix(bigdft_mpi%iproc,cdft%weight_matrix)
+    !call uncompress_matrix(bigdft_mpi%iproc,cdft%weight_matrix)
     !do iorb=1,tmb%orbs%norb
     !   do jorb=1,tmb%orbs%norb
     !      write(87,*) iorb,jorb,cdft%weight_matrix%matrix(iorb,jorb)
@@ -394,30 +408,34 @@ contains
   end subroutine calculate_weight_function
 
   subroutine nullify_cdft_data(cdft)
+    use sparsematrix_base, only: sparse_matrix_null
     implicit none
     type(cdft_data), intent(out) :: cdft
     cdft%charge=0
     cdft%lag_mult=0.0_gp
     cdft%ndim_dens=0
     nullify(cdft%weight_function)
-    call nullify_sparsematrix(cdft%weight_matrix)
+    !call nullify_sparse_matrix(cdft%weight_matrix)
+    cdft%weight_matrix=sparse_matrix_null()
   end subroutine nullify_cdft_data
 
   subroutine cdft_data_free(cdft)
+    use sparsematrix_base, only: deallocate_sparse_matrix
     implicit none
     type(cdft_data), intent(inout) :: cdft
 
     character(len=200), parameter :: subname='cdft_data_free'
 
     !if (associated(cdft%weight_function)) call f_free_ptr(cdft%weight_function)
-    call deallocate_sparseMatrix(cdft%weight_matrix, subname)
+    call deallocate_sparse_matrix(cdft%weight_matrix, subname)
     call nullify_cdft_data(cdft)
   end subroutine cdft_data_free
 
   subroutine cdft_data_allocate(cdft,ham)
+    use sparsematrix_base, only: sparse_matrix
     implicit none
     type(cdft_data), intent(inout) :: cdft
-    type(sparseMatrix), intent(in) :: ham
+    type(sparse_matrix), intent(in) :: ham
 
     character(len=200), parameter :: subname='cdft_data_allocate'
     integer :: istat
@@ -425,8 +443,9 @@ contains
     call f_routine(id='cdft_data_allocate')
     call sparse_copy_pattern(ham, cdft%weight_matrix, bigdft_mpi%iproc, subname)
     !cdft%weight_matrix%matrix_compr=f_malloc_ptr(cdft%weight_matrix%nvctr,id='cdft%weight_matrix%matrix_compr')
-    allocate(cdft%weight_matrix%matrix_compr(cdft%weight_matrix%nvctr), stat=istat)
-    call memocc(istat, cdft%weight_matrix%matrix_compr, 'cdft%weight_matrix%matrix_compr', subname)
+    !!allocate(cdft%weight_matrix%matrix_compr(cdft%weight_matrix%nvctr), stat=istat)
+    !!call memocc(istat, cdft%weight_matrix%matrix_compr, 'cdft%weight_matrix%matrix_compr', subname)
+    cdft%weight_matrix%matrix_compr=f_malloc_ptr(cdft%weight_matrix%nvctr,id='cdft%weight_matrix%matrix_compr')
     call f_release_routine()
 
   end subroutine cdft_data_allocate

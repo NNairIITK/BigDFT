@@ -1844,7 +1844,391 @@ contains
     call input_var("intermediate_forces", .false., "linear scaling: calculate intermediate forces", dummy_bool)
     call set(dict // INTERMEDIATE_FORCES, dummy_bool)
 
+    call input_var("kappa_conv", 0.1d0, "exit kappa for extended input guess (experimental mode)", dummy_real)
+    call set(dict // KAPPA_CONV, dummy_real)
+
+    call input_var("evbounds_nsatur", 3, "number of FOE cycles before the eigenvalue bounds are shrinked", dummy_int)
+    call set(dict // EVBOUNDS_NSATUR, dummy_int)
+
+    call input_var("evboundsshrink_nsatur", 4, "maximal number of unsuccessful eigenvalue bounds shrinkings", dummy_int)
+    call set(dict // EVBOUNDSSHRINK_NSATUR, dummy_int)
+
+    call input_var("method_updatekernel", 0, (/0,1/), "kernel update during the sup. fun. opt. (0: purific., 1: FOE)", dummy_int)
+    call set(dict // METHOD_UPDATEKERNEL, dummy_int)
+
+    call input_var("purification_quickreturn", .false., "linear scaling: quick return in purification", dummy_bool)
+    call set(dict // PURIFICATION_QUICKRETURN, dummy_bool)
+
+    call input_var("adjust_FOE_temperature", .true., "dynamic adjustment of FOE error function decay length", dummy_bool)
+    call set(dict // ADJUST_FOE_TEMPERATURE, dummy_bool)
+
+    call input_var("calculate_gap", .false., "calculate the HOMO LUMO gap", dummy_bool)
+    call set(dict // CALCULATE_GAP, dummy_bool)
+
+    call input_var("loewdin_charge_analysis", .false., "perform a Loewdin charge analysis at the end", dummy_bool)
+    call set(dict // LOEWDIN_CHARGE_ANALYSIS, dummy_bool)
+
+    call input_var("check_matrix_compression", .true., "perform a check of the matrix compression routines", dummy_bool)
+    call set(dict // CHECK_MATRIX_COMPRESSION, dummy_bool)
+
     call input_free(.false.)
 
   END SUBROUTINE read_perf_from_text_format
+
+  !> Read the linear input variables
+  subroutine read_lin_from_text_format(iproc,dict,filename)
+    use module_base
+    use module_input
+    use module_input_keys
+    use dictionaries
+    implicit none
+    character(len=*), intent(in) :: filename
+    type(dictionary), pointer :: dict
+    integer, intent(in) :: iproc
+    !local variables
+    !n(c) character(len=*), parameter :: subname='perf_input_variables'
+    logical :: exists, dummy_bool
+    integer :: dummy_int,ios
+    double precision :: dummy_real
+    character(len=256) :: comments,dummy_char
+    type(dictionary), pointer :: dict_basis
+
+    ! This name seems to be too long..
+    !call input_set_file(iproc,(iproc == 0),trim(filename),exists,'Parameters for Localized basis generation (O(N) approach)')
+    call input_set_file(iproc,(iproc == 0),trim(filename),exists,'Parameters for O(N) approach')
+!    call input_set_file(iproc, (iproc == 0), filename, exists, LIN_GENERAL)
+!    call input_set_file(iproc, (iproc == 0), filename, exists, LIN_BASIS)
+!    call input_set_file(iproc, (iproc == 0), filename, exists, LIN_KERNEL)
+    !if (exists) in%files = in%files + INPUTS_PERF
+    if (.not. exists) then
+       call input_free(.false.)
+       return
+    end if
+
+    if (.not. associated(dict)) call dict_init(dict)
+
+
+
+    ! General variables #######################################################
+
+    comments='number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybrid mode)'
+    call input_var(dummy_int,'2',ranges=(/1,2/),comment=comments)
+    call dict_set(dict//LIN_GENERAL//HYBRID,dummy_int==1)
+
+    ! number of iterations
+    comments = 'outer loop iterations (low, high)'
+    call input_var(dummy_int,'15',dict//LIN_GENERAL//NIT//0,ranges=(/0,100000/))
+    call input_var(dummy_int,'1',dict//LIN_GENERAL//NIT//1,ranges=(/0,100000/),comment=comments)
+
+    comments = 'basis iterations (low, high)'
+    call input_var(dummy_int,'12',dict//LIN_BASIS//NIT//0,ranges=(/0,100000/))
+    call input_var(dummy_int,'50',dict//LIN_BASIS//NIT//1,ranges=(/0,100000/),comment=comments)
+
+    comments = 'kernel iterations (low, high) - directmin only'
+    call input_var(dummy_int,'1',dict//LIN_KERNEL//NSTEP//0,ranges=(/0,1000/))
+    call input_var(dummy_int,'1',dict//LIN_KERNEL//NSTEP//1,ranges=(/0,1000/),comment=comments)
+
+    comments = 'density iterations (low, high)'
+    call input_var(dummy_int,'15',dict//LIN_KERNEL//NIT//0,ranges=(/0,1000/))
+    call input_var(dummy_int,'15',dict//LIN_KERNEL//NIT//1,ranges=(/0,1000/),comment=comments)
+
+    ! DIIS history lengths
+    comments = 'DIIS history for basis (low, high)'
+    call input_var(dummy_int,'5',dict//LIN_BASIS//IDSX//0,ranges=(/0,100/))
+    call input_var(dummy_int,'0',dict//LIN_BASIS//IDSX//1,ranges=(/0,100/),comment=comments)
+
+    comments = 'DIIS history for kernel (low, high) - directmin only'
+    call input_var(dummy_int,'0',dict//LIN_KERNEL//IDSX_COEFF//0,ranges=(/0,100/))
+    call input_var(dummy_int,'0',dict//LIN_KERNEL//IDSX_COEFF//1,ranges=(/0,100/),comment=comments)
+
+    comments = 'DIIS history for density mixing (low, high)'
+    call input_var(dummy_int,'0',dict//LIN_KERNEL//IDSX//0,ranges=(/0,100/))
+    call input_var(dummy_int,'0',dict//LIN_KERNEL//IDSX//1,ranges=(/0,100/),comment=comments)
+
+    ! mixing parameters
+    comments = 'density mixing parameter (low, high)'
+    call input_var(dummy_real,'.5d0',dict//LIN_KERNEL//ALPHAMIX//0,ranges=(/0.d0,1.d0/))
+    call input_var(dummy_real,'.5d0',dict//LIN_KERNEL//ALPHAMIX//1,ranges=(/0.d0,1.d0/),comment=comments)
+
+    ! Convergence criteria
+    comments = 'outer loop convergence (low, high)'
+    call input_var(dummy_real,'1.d-8' ,dict//LIN_GENERAL//RPNRM_CV//0,ranges=(/0.d0,1.d0/))
+    call input_var(dummy_real,'1.d-12',dict//LIN_GENERAL//RPNRM_CV//1,ranges=(/0.d0,1.d0/),comment=comments)
+
+    comments = 'basis convergence (low, high) ; early stop TMB optimization, dynamic gnrm, activate dyn (exp. mode only)'
+    call input_var(dummy_real,'1.d-3',dict//LIN_BASIS//GNRM_CV//0,ranges=(/0.0_gp,1.0_gp/))
+    call input_var(dummy_real,'1.d-5',dict//LIN_BASIS//GNRM_CV//1,ranges=(/0.0_gp,1.0_gp/))
+    call input_var(dummy_real,'1.d-4',dict//LIN_BASIS//DELTAE_CV,ranges=(/0.0_gp,1.0_gp/))
+    call input_var(dummy_real,'1.d-4',dict//LIN_BASIS//GNRM_DYN,ranges=(/0.0_gp,1.0_gp/))
+    call input_var(dummy_real,'1.d-3',dict//LIN_BASIS//MIN_GNRM_FOR_DYNAMIC,ranges=(/1.d-7,1.0_gp/),comment=comments)
+
+    comments = 'factor to reduce the confinement. Only used for hybrid mode.'
+    call input_var(dummy_real,'0.5d0',dict//LIN_GENERAL//CONF_DAMPING,ranges=(/-1.d100,1.d0/),comment=comments)
+
+    comments = 'kernel convergence (low, high) - directmin only'
+    call input_var(dummy_real,'1.d-5',dict//LIN_KERNEL//GNRM_CV_COEFF//0,ranges=(/0.d0,1.d0/))
+    call input_var(dummy_real,'1.d-5',dict//LIN_KERNEL//GNRM_CV_COEFF//1,ranges=(/0.d0,1.d0/),comment=comments)
+
+    comments = 'density convergence (low, high)'
+    call input_var(dummy_real,'1.d-13',dict//LIN_KERNEL//RPNRM_CV//0,ranges=(/0.d0,1.d0/))
+    call input_var(dummy_real,'1.d-13',dict//LIN_KERNEL//RPNRM_CV//1,ranges=(/0.d0,1.d0/),comment=comments)
+
+    comments = 'convergence criterion on density to fix TMBS'
+    call input_var(dummy_real,'1.d-10',dict//LIN_BASIS//FIX_BASIS,ranges=(/1.d-14,1.d-6/),comment=comments)
+    !call input_var(in%lin%support_functions_converged,'1.d-10',ranges=(/0.d0,1.d0/),comment=comments)
+
+    comments='mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing), 103 (FOE)'
+    call input_var(dummy_int,'100',ranges=(/100,103/),comment=comments)
+    select case(dummy_int)
+    case(100)
+       call dict_set(dict//LIN_KERNEL//LINEAR_METHOD,'DIRMIN')
+    case(101) 
+       call dict_set(dict//LIN_KERNEL//LINEAR_METHOD,'DIAG')
+       call dict_set(dict//LIN_KERNEL//MIXING_METHOD,'DEN')
+    case(102)      
+       call dict_set(dict//LIN_KERNEL//LINEAR_METHOD,'DIAG')
+       call dict_set(dict//LIN_KERNEL//MIXING_METHOD,'POT')
+    case(103)
+       call dict_set(dict//LIN_KERNEL//LINEAR_METHOD,'FOE')
+    end select
+
+    comments = 'initial step size for basis optimization (DIIS, SD)' ! DELETE ONE
+    call input_var(dummy_real,'1.d0',dict//LIN_BASIS//ALPHA_DIIS,ranges=(/0.0_gp,10.0_gp/))
+    call input_var(dummy_real,'1.d0',dict//LIN_BASIS//ALPHA_SD,ranges=(/0.0_gp,10.0_gp/),comment=comments)
+
+    comments = 'initial step size for kernel update (SD), curve fitting for alpha update - directmin only'
+    call input_var(dummy_real,'1.d0',dict//LIN_KERNEL//ALPHA_SD_COEFF,ranges=(/0.0_gp,10.0_gp/))
+    call input_var(dummy_bool,'F',dict//LIN_KERNEL//ALPHA_FIT_COEFF,comment=comments)
+
+    comments = 'lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted automatically if chosen too small'
+    call input_var(dummy_real,'-.5d0',dict//LIN_KERNEL//EVAL_RANGE_FOE//0,ranges=(/-10.d0,-1.d-10/))
+    call input_var(dummy_real,'-.5d0',dict//LIN_KERNEL//EVAL_RANGE_FOE//1,ranges=(/1.d-10,10.d0/),comment=comments)
+
+    comments='number of iterations in the preconditioner, order of Taylor approximations'
+    call input_var(dummy_int,'5',dict//LIN_BASIS//NSTEP_PREC,ranges=(/1,100/))
+    call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/1,100/),comment=comments)
+    !call input_var(in%lin%order_taylor,'1',ranges=(/1,100/),comment=comments)
+
+    comments = '0-> exact Loewdin, 1-> taylor expansion; &
+               &in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
+    call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-1,10000/))
+    call input_var(dummy_int,'1',ranges=(/0,1/),comment=comments)
+    !call input_var(in%lin%correctionOrthoconstraint,'1',ranges=(/0,1/),comment=comments)
+
+    comments='fscale: length scale over which complementary error function decays from 1 to 0'
+    call input_var(dummy_real,'1.d-2',dict//LIN_KERNEL//FSCALE_FOE,ranges=(/0.d0,1.d0/),comment=comments)
+
+    !plot basis functions: true or false
+    comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ;'//&
+             'calculate dipole ; pulay correction (old and new); diagonalization at the end (dmin, FOE)'
+    call input_var(dummy_int,'0',dict//LIN_GENERAL//OUTPUT_WF,ranges=(/0,3/))
+    call input_var(dummy_bool,'F',dict//LIN_GENERAL//CALC_DIPOLE)
+    call input_var(dummy_bool,'T',dict//LIN_GENERAL//CALC_PULAY//0)
+    call input_var(dummy_bool,'F',dict//LIN_GENERAL//CALC_PULAY//1)
+
+!    in%lin%pulay_correction=dummy_bool
+!    call input_var(in%lin%new_pulay_correction,'F')
+    call input_var(dummy_bool,'F',dict//LIN_GENERAL//SUBSPACE_DIAG,comment=comments)
+
+
+
+
+
+
+
+
+  !fragment calculation and transfer integrals: true or false
+  comments='fragment calculation; calculate transfer_integrals; constrained DFT calculation; extra states to optimize (dmin only)'
+  !these should becode dummy variables to build dictionary
+  !!call input_var(in%lin%fragment_calculation,'F')
+  !!call input_var(in%lin%calc_transfer_integrals,'F')
+  !!call input_var(in%lin%constrained_dft,'F')
+  !!call input_var(in%lin%extra_states,'0',ranges=(/0,10000/),comment=comments)
+  call input_var(dummy_bool,'F')
+  call input_var(dummy_bool,'F')
+  call input_var(dummy_bool,'F')
+  call input_var(dummy_int,'0',ranges=(/0,10000/),comment=comments)
+
+  ! Now read in the parameters specific for each atom type.
+  comments = 'Atom name, number of basis functions per atom, prefactor for confinement potential,'//&
+       'localization radius, kernel cutoff, kernel cutoff FOE'
+  read_basis: do !while(itype <= atoms%astruct%ntypes) 
+  !!   if (exists) then
+        call input_var(dummy_char,'C',input_iostat=ios)
+        if (ios /= 0) exit read_basis
+  !!      dict_basis=>dict//BASIS_PARAMS//trim(atomname)
+  !!   else
+  !!      call input_var(atomname,'C')!trim(atoms%astruct%atomnames(1)))
+  !!      dict_basis=>dict//BASIS_PARAMS! default values
+  !!      !itype = itype + 1
+  !!   end if
+
+     !number of basis functions for this atom type
+     !!call input_var(npt,'1',dict_basis//NBASIS,ranges=(/1,100/),input_iostat=ios)
+     !!call input_var(ppao,'1.2d-2',dict_basis//AO_CONFINEMENT,&
+     !!     ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
+     !!call input_var(ppl,'1.2d-2',dict_basis//CONFINEMENT//0,&
+     !!     ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
+     !!call input_var(pph,'5.d-5',dict_basis//CONFINEMENT//1,&
+     !!     ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
+     !!call input_var(lrl,'10.d0',dict_basis//RLOC//0,&
+     !!     ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
+     !!call input_var(lrh,'10.d0',dict_basis//RLOC//1,&
+     !!     ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
+     !!call input_var(kco,'12.d0',dict_basis//RLOC_KERNEL,&
+     !!     ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
+     !!call input_var(kco_FOE,'20.d0',dict_basis//RLOC_KERNEL_FOE,&
+     !!     ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
+     dict_basis=>dict//LIN_BASIS_PARAMS//trim(dummy_char)
+     call input_var(dummy_int,'1',dict_basis//NBASIS,ranges=(/1,100/))
+     call input_var(dummy_real,'1.2d-2',dict_basis//AO_CONFINEMENT,&
+          ranges=(/0.0_gp,1.0_gp/))
+     call input_var(dummy_real,'1.2d-2',dict_basis//CONFINEMENT//0,&
+          ranges=(/0.0_gp,1.0_gp/))
+     call input_var(dummy_real,'5.d-5',dict_basis//CONFINEMENT//1,&
+          ranges=(/0.0_gp,1.0_gp/))
+     call input_var(dummy_real,'10.d0',dict_basis//RLOC//0,&
+          ranges=(/1.0_gp,10000.0_gp/))
+     call input_var(dummy_real,'10.d0',dict_basis//RLOC//1,&
+          ranges=(/1.0_gp,10000.0_gp/))
+     call input_var(dummy_real,'12.d0',dict_basis//RLOC_KERNEL,&
+          ranges=(/1.0_gp,10000.0_gp/))
+     call input_var(dummy_real,'20.d0',dict_basis//RLOC_KERNEL_FOE,&
+          ranges=(/1.0_gp,10000.0_gp/),comment=comments)
+
+  !!   if (.not. exists) exit read_basis !default has been filled
+  end do read_basis
+
+
+    call input_free(.false.)
+
+
+
+  !!   ! General variables #######################################################
+
+  !!   comments='number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybrid mode)'
+  !!   call input_var(dummy_int,'2',ranges=(/1,2/),comment=comments)
+  !!   call dict_set(dict//LIN_GENERAL//HYBRID,dummy_int==1)
+
+  !!   ! number of iterations
+  !!   comments = 'outer loop iterations (low, high)'
+  !!   call input_var(dummy_int,'15',dict//LIN_GENERAL//NIT//0,ranges=(/0,100000/))
+  !!   call input_var(dummy_int,'1',dict//LIN_GENERAL//NIT//1,ranges=(/0,100000/),comment=comments)
+
+  !!   ! Convergence criteria
+  !!   comments = 'outer loop convergence (low, high)'
+  !!   call input_var(dummy_real,'1.d-8' ,dict//LIN_GENERAL//RPNRM_CV//0,ranges=(/0.d0,1.d0/))
+  !!   call input_var(dummy_real,'1.d-12',dict//LIN_GENERAL//RPNRM_CV//1,ranges=(/0.d0,1.d0/),comment=comments)
+
+  !!   comments = 'factor to reduce the confinement. Only used for hybrid mode.'
+  !!   call input_var(dummy_real,'0.5d0',dict//LIN_GENERAL//CONF_DAMPING,ranges=(/-1.d100,1.d0/),comment=comments)
+
+  !!   comments = '0-> exact Loewdin, 1-> taylor expansion; &
+  !!              &in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
+  !!   call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-1,10000/))
+  !!   call input_var(in%lin%correctionOrthoconstraint,'1',ranges=(/0,1/),comment=comments)
+
+  !!   !plot basis functions: true or false
+  !!   comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ;'//&
+  !!            'calculate dipole ; pulay correction (old and new); diagonalization at the end (dmin, FOE)'
+  !!   call input_var(dummy_int,'0',dict//LIN_GENERAL//OUTPUT_WF,ranges=(/0,3/))
+  !!   call input_var(dummy_bool,'F',dict//LIN_GENERAL//CALC_DIPOLE)
+  !!   call input_var(dummy_bool,'T',dict//LIN_GENERAL//CALC_PULAY)
+  !!   in%lin%pulay_correction=dummy_bool
+  !!   call input_var(in%lin%new_pulay_correction,'F')
+  !!   call input_var(dummy_bool,'F',dict//LIN_GENERAL//SUBSPACE_DIAG,comment=comments)
+
+
+  !!   ! Basis variables #######################################################
+
+  !!   comments = 'basis iterations (low, high)'
+  !!   call input_var(dummy_int,'12',dict//LIN_BASIS//NIT//0,ranges=(/0,100000/))
+  !!   call input_var(dummy_int,'50',dict//LIN_BASIS//NIT//1,ranges=(/0,100000/),comment=comments)
+
+  !!   ! DIIS history lengths
+  !!   comments = 'DIIS history for basis (low, high)'
+  !!   call input_var(dummy_int,'5',dict//LIN_BASIS//IDSX//0,ranges=(/0,100/))
+  !!   call input_var(dummy_int,'0',dict//LIN_BASIS//IDSX//1,ranges=(/0,100/),comment=comments)
+
+  !!   comments = 'basis convergence (low, high) ; early stop TMB optimization, dynamic gnrm (experimental mode only)'
+  !!   call input_var(dummy_real,'1.d-3',dict//LIN_BASIS//GNRM_CV//0,ranges=(/0.0_gp,1.0_gp/))
+  !!   call input_var(dummy_real,'1.d-5',dict//LIN_BASIS//GNRM_CV//1,ranges=(/0.0_gp,1.0_gp/))
+  !!   call input_var(dummy_real,'1.d-4',dict//LIN_BASIS//DELTAE_CV,ranges=(/0.0_gp,1.0_gp/))
+  !!   call input_var(dummy_real,'1.d-4',dict//LIN_BASIS//GNRM_DYN,ranges=(/0.0_gp,1.0_gp/),comment=comments)
+
+  !!   comments = 'initial step size for basis optimization (DIIS, SD)' ! DELETE ONE
+  !!   call input_var(dummy_real,'1.d0',dict//LIN_BASIS//ALPHA_DIIS,ranges=(/0.0_gp,10.0_gp/))
+  !!   call input_var(dummy_real,'1.d0',dict//LIN_BASIS//ALPHA_SD,ranges=(/0.0_gp,10.0_gp/),comment=comments)
+
+  !!   comments='number of iterations in the preconditioner, order of Taylor approximations'
+  !!   call input_var(dummy_int,'5',dict//LIN_BASIS//NSTEP_PREC,ranges=(/1,100/))
+  !!   call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/1,100/),comment=comments)
+  !!   !call input_var(in%lin%order_taylor,'1',ranges=(/1,100/),comment=comments)
+
+
+  !!   ! Kernel variables #######################################################
+
+  !!   comments = 'kernel iterations (low, high) - directmin only'
+  !!   call input_var(dummy_int,'1',dict//LIN_KERNEL//NSTEP//0,ranges=(/0,1000/))
+  !!   call input_var(dummy_int,'1',dict//LIN_KERNEL//NSTEP//1,ranges=(/0,1000/),comment=comments)
+
+  !!   comments = 'density iterations (low, high)'
+  !!   call input_var(dummy_int,'15',dict//LIN_KERNEL//NIT//0,ranges=(/0,1000/))
+  !!   call input_var(dummy_int,'15',dict//LIN_KERNEL//NIT//1,ranges=(/0,1000/),comment=comments)
+
+  !!   comments = 'DIIS history for kernel (low, high) - directmin only'
+  !!   call input_var(dummy_int,'0',dict//LIN_KERNEL//IDSX_COEFF//0,ranges=(/0,100/))
+  !!   call input_var(dummy_int,'0',dict//LIN_KERNEL//IDSX_COEFF//1,ranges=(/0,100/),comment=comments)
+
+  !!   comments = 'DIIS history for density mixing (low, high)'
+  !!   call input_var(dummy_int,'0',dict//LIN_KERNEL//IDSX//0,ranges=(/0,100/))
+  !!   call input_var(dummy_int,'0',dict//LIN_KERNEL//IDSX//1,ranges=(/0,100/),comment=comments)
+
+  !!   ! mixing parameters
+  !!   comments = 'density mixing parameter (low, high)'
+  !!   call input_var(dummy_real,'.5d0',dict//LIN_KERNEL//ALPHAMIX//0,ranges=(/0.d0,1.d0/))
+  !!   call input_var(dummy_real,'.5d0',dict//LIN_KERNEL//ALPHAMIX//1,ranges=(/0.d0,1.d0/),comment=comments)
+
+  !!   comments = 'kernel convergence (low, high) - directmin only'
+  !!   call input_var(dummy_real,'1.d-5',dict//LIN_KERNEL//GNRM_CV_COEFF//0,ranges=(/0.d0,1.d0/))
+  !!   call input_var(dummy_real,'1.d-5',dict//LIN_KERNEL//GNRM_CV_COEFF//1,ranges=(/0.d0,1.d0/),comment=comments)
+
+  !!   comments = 'density convergence (low, high)'
+  !!   call input_var(dummy_real,'1.d-13',dict//LIN_KERNEL//RPNRM_CV//0,ranges=(/0.d0,1.d0/))
+  !!   call input_var(dummy_real,'1.d-13',dict//LIN_KERNEL//RPNRM_CV//1,ranges=(/0.d0,1.d0/),comment=comments)
+
+  !!   comments='mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing), 103 (FOE)'
+  !!   call input_var(dummy_int,'100',ranges=(/100,103/),comment=comments)
+  !!   select case(dummy_int)
+  !!   case(100)
+  !!      call dict_set(dict//LIN_KERNEL//LINEAR_METHOD,'DIRMIN')
+  !!   case(101) 
+  !!      call dict_set(dict//LIN_KERNEL//LINEAR_METHOD,'DIAG')
+  !!      call dict_set(dict//LIN_KERNEL//MIXING_METHOD,'DEN')
+  !!   case(102)      
+  !!      call dict_set(dict//LIN_KERNEL//LINEAR_METHOD,'DIAG')
+  !!      call dict_set(dict//LIN_KERNEL//MIXING_METHOD,'POT')
+  !!   case(103)
+  !!      call dict_set(dict//LIN_KERNEL//LINEAR_METHOD,'FOE')
+  !!   end select
+
+  !!   comments = 'initial step size for kernel update (SD), curve fitting for alpha update - directmin only'
+  !!   call input_var(dummy_real,'1.d0',dict//LIN_KERNEL//ALPHA_SD_COEFF,ranges=(/0.0_gp,10.0_gp/))
+  !!   call input_var(dummy_bool,'F',dict//LIN_KERNEL//ALPHA_FIT_COEFF,comment=comments)
+
+  !!   comments = 'lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted automatically if chosen too small'
+  !!   call input_var(dummy_real,'-.5d0',dict//LIN_KERNEL//EVAL_RANGE_FOE//0,ranges=(/-10.d0,-1.d-10/))
+  !!   call input_var(dummy_real,'-.5d0',dict//LIN_KERNEL//EVAL_RANGE_FOE//1,ranges=(/1.d-10,10.d0/),comment=comments)
+
+  !!   comments='fscale: length scale over which complementary error function decays from 1 to 0'
+  !!   call input_var(dummy_real,'1.d-2',dict//LIN_KERNEL//FSCALE_FOE,ranges=(/0.d0,1.d0/),comment=comments)
+
+
+  !! !these variables seems deprecated, put them to their default value
+
+  !! comments = 'convergence criterion on density to fix TMBS'
+  !! call input_var(in%lin%support_functions_converged,'1.d-10',ranges=(/0.d0,1.d0/),comment=comments)
+
+
+  END SUBROUTINE read_lin_from_text_format
 end module input_old_text_format

@@ -71,29 +71,29 @@ inline void magicfilter_pot_generic(cl_kernel kernel, cl_command_queue command_q
     oclErrorCheck(ciErrNum,"Failed to enqueue magic filter pot kernel!");
 }
 
-cl_program magicfilterProgram;
+//cl_program magicfilterProgram;
 
-void create_magicfilter_kernels(struct bigdft_kernels * kernels){
+void create_magicfilter_kernels(bigdft_context * context, struct bigdft_kernels * kernels){
     cl_int ciErrNum = CL_SUCCESS;
-    kernels->magicfiltergrow1d_kernel_d=clCreateKernel(magicfilterProgram,"magicfiltergrow1dKernel_d",&ciErrNum);
+    kernels->magicfiltergrow1d_kernel_d=clCreateKernel((*context)->magicfilterProgram,"magicfiltergrow1dKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create magicfiltergrow1dKernel_d kernel!");
-    kernels->magicfiltergrow1d_den_kernel_d=clCreateKernel(magicfilterProgram,"magicfiltergrow1d_denKernel_d",&ciErrNum);
+    kernels->magicfiltergrow1d_den_kernel_d=clCreateKernel((*context)->magicfilterProgram,"magicfiltergrow1d_denKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create magicfiltergrow1d_denKernel_d kernel!");
-    kernels->magicfiltershrink1d_kernel_d=clCreateKernel(magicfilterProgram,"magicfiltershrink1dKernel_d",&ciErrNum);
+    kernels->magicfiltershrink1d_kernel_d=clCreateKernel((*context)->magicfilterProgram,"magicfiltershrink1dKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create magicfiltershrink1dKernel_d kernel!");
-    kernels->magicfiltergrow1d_pot_kernel_d=clCreateKernel(magicfilterProgram,"magicfiltergrow1d_potKernel_d",&ciErrNum);
+    kernels->magicfiltergrow1d_pot_kernel_d=clCreateKernel((*context)->magicfilterProgram,"magicfiltergrow1d_potKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create magicfiltergrow1d_potKernel_d kernel!");
-    kernels->magicfilter1d_kernel_d=clCreateKernel(magicfilterProgram,"magicfilter1dKernel_d",&ciErrNum);
+    kernels->magicfilter1d_kernel_d=clCreateKernel((*context)->magicfilterProgram,"magicfilter1dKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create magicfilter1dKernel_d kernel!");
-    kernels->magicfilter1d_den_kernel_d=clCreateKernel(magicfilterProgram,"magicfilter1d_denKernel_d",&ciErrNum);
+    kernels->magicfilter1d_den_kernel_d=clCreateKernel((*context)->magicfilterProgram,"magicfilter1d_denKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create magicfilter1d_denKernel_d kernel!");
-    kernels->magicfilter1d_pot_kernel_d=clCreateKernel(magicfilterProgram,"magicfilter1d_potKernel_d",&ciErrNum);
+    kernels->magicfilter1d_pot_kernel_d=clCreateKernel((*context)->magicfilterProgram,"magicfilter1d_potKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create magicfilter1d_potKernel_d kernel!");
-    kernels->magicfilter1d_t_kernel_d=clCreateKernel(magicfilterProgram,"magicfilter1d_tKernel_d",&ciErrNum);
+    kernels->magicfilter1d_t_kernel_d=clCreateKernel((*context)->magicfilterProgram,"magicfilter1d_tKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create magicfilter1d_tKernel_d kernel!");
-    kernels->magicfilter1d_straight_kernel_d=clCreateKernel(magicfilterProgram,"magicfilter1d_straightKernel_d",&ciErrNum);
+    kernels->magicfilter1d_straight_kernel_d=clCreateKernel((*context)->magicfilterProgram,"magicfilter1d_straightKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create magicfilter1d_straightKernel_d kernel!");
-    kernels->magicfilter1d_block_kernel_d=clCreateKernel(magicfilterProgram,"magicfilter1d_blockKernel_d",&ciErrNum);
+    kernels->magicfilter1d_block_kernel_d=clCreateKernel((*context)->magicfilterProgram,"magicfilter1d_blockKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create magicfilter1d_blockKernel_d kernel!");
 }
 
@@ -103,15 +103,15 @@ void build_magicfilter_programs(bigdft_context * context){
     cl_int ciErrNum=CL_SUCCESS;
     char * code = generate_magicfilter_program(&infos);
 
-    magicfilterProgram = clCreateProgramWithSource((*context)->context, 1, (const char**) &code, NULL, &ciErrNum);
+    (*context)->magicfilterProgram = clCreateProgramWithSource((*context)->context, 1, (const char**) &code, NULL, &ciErrNum);
     free(code);
     oclErrorCheck(ciErrNum,"Failed to create program!");
-    ciErrNum = clBuildProgram(magicfilterProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
+    ciErrNum = clBuildProgram((*context)->magicfilterProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
     if (ciErrNum != CL_SUCCESS)
     {
         fprintf(stderr,"Error %d: Failed to build magicfilter program!\n", ciErrNum);
         char cBuildLog[10240];
-        clGetProgramBuildInfo(magicfilterProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG, sizeof(cBuildLog), cBuildLog, NULL );
+        clGetProgramBuildInfo((*context)->magicfilterProgram, oclGetFirstDev((*context)->context), CL_PROGRAM_BUILD_LOG, sizeof(cBuildLog), cBuildLog, NULL );
 	fprintf(stderr, "%s\n", cBuildLog);
         exit(1);
     }
@@ -376,7 +376,7 @@ void FC_FUNC_(potential_application_d_generic,POTENTIAL_APPLICATION_D_GENERIC)(b
     magicfilter_generic((*command_queue)->kernels.magicfiltershrink1d_kernel_d, (*command_queue)->command_queue,  &n1, &ndat, tmp, out);
   }
   ndat = n1*n2*n3;
-  dot_d_async_(command_queue, &ndat, psi, out, tmp, tmp_dot, epot);
+  FC_FUNC_(dot_d_async, DOT_D_ASYNC)(command_queue, &ndat, psi, out, tmp, tmp_dot, epot);
 }
 
 void FC_FUNC_(potential_application_d,POTENTIAL_APPLICATION_D)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_mem *tmp, cl_mem *psi, cl_mem *out, cl_mem *pot) {
@@ -421,8 +421,8 @@ void clean_magicfilter_kernels(struct bigdft_kernels * kernels){
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
 }
 
-void clean_magicfilter_programs(){
+void clean_magicfilter_programs(bigdft_context * context){
   cl_int ciErrNum;
-  ciErrNum = clReleaseProgram(magicfilterProgram);
+  ciErrNum = clReleaseProgram((*context)->magicfilterProgram);
   oclErrorCheck(ciErrNum,"Failed to release program!");
 }

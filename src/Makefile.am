@@ -66,7 +66,7 @@ binaries_sources = bigdft memguess splsad NEB frequencies $(minima_hopping_sourc
 local_binaries = test_forces
 scripts_sources = NEB_driver.sh bigdft-tool
 sub_dirs_bin = tools tools/bader
-check_PROGRAMS = MDanalysis bart BigDFT2Wannier WaCo NEB_images
+EXTRA_PROGRAMS = MDanalysis bart BigDFT2Wannier WaCo NEB_images
 else
 binaries_sources =
 local_binaries =
@@ -180,7 +180,6 @@ low_level = \
 	linear/cleanup.f90 \
 	linear/nullify.f90 \
 	linear/filterModule.f90 \
-	linear/communicatetypes.f90 \
 	linear/misc.f90 \
 	linear/getLocBasis.f90 \
 	linear/convolutions_aux.f90 \
@@ -201,16 +200,13 @@ low_level = \
 	linear/derivativeBasis.f90 \
 	linear/parallelLinAlg.f90 \
 	linear/locReg_linear.f90 \
-	linear/communicatePotential.f90 \
 	linear/hpsiortho_linear.f90 \
 	linear/init_collective_comms.f90 \
 	linear/optimize_coeffs.f90 \
 	linear/foe.f90 \
 	linear/chebyshev.f90 \
-	linear/communications_onesided.f90 \
 	linear/pulay.f90 \
-	linear/transferintegrals.f90 \
-	linear/sparse_matrices.f90
+	linear/transferintegrals.f90
 
 # C objects
 c_level = posfiles.c \

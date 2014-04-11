@@ -78,7 +78,7 @@
      COMMENT: wfn. diis history
      RANGE: [0, 15]
      default: 6
-     low memory: 2
+     low_memory: 2
    dispersion:
      COMMENT: dispersion correction potential (values 1,2,3,4,5), 0=none
      RANGE: [0, 5]
@@ -98,6 +98,9 @@
        100: Linear AO
        101: Linear restart
        102: Linear on disk
+     linear: 100
+     linear_restart: 102
+     KEYWORDS: ciao
    output_wf:
      default: 0
      EXCLUSIVE:
@@ -558,7 +561,7 @@
      COMMENT: input guess to be used during the optimization
      EXCLUSIVE:
        0: wavelet input guess
-       1: real space input guess
+       1: real space input guess (Free BC only)
      default: 0
    store_index:
      COMMENT: store indices or recalculate them for linear scaling
@@ -613,6 +616,7 @@
    experimental_mode:
      COMMENT: activate the experimental mode in linear scaling
      default: No
+     best: Yes
    write_orbitals:
      COMMENT: linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
      default: No
@@ -625,4 +629,226 @@
    intermediate_forces:
      COMMENT: linear scaling calculate intermediate forces
      default: No
+   kappa_conv:
+     COMMENT: exit kappa for extended input guess (experimental mode)
+     default: 0.1
+   evbounds_nsatur:
+     COMMENT: number of FOE cycles before the eigenvalue bounds are shrinked
+     default: 3
+   evboundsshrink_nsatur:
+     COMMENT: maximal number of unsuccessful eigenvalue bounds shrinkings
+     default: 4
+   method_updatekernel:
+     COMMENT: linear scaling update density kernel during the sup. func. optimization (0 purification, 1 FOE)
+     default: 0
+   purification_quickreturn:
+     COMMENT: linear scaling quick return in purification
+     default: No
+   adjust_FOE_temperature:
+     COMMENT: linear scaling dynamic adjustment of the decay length of the FOE error function
+     default: Yes
+   calculate_gap:
+     COMMENT: linear scaling calculate the HOMO LUMO gap
+     default: No
+   loewdin_charge_analysis:
+     COMMENT: linear scaling perform a Loewdin charge analysis at the end of the calculation
+     default: No
+   check_matrix_compression:
+     COMMENT: linear scaling perform a check of the matrix compression routines
+     default: Yes
+ lin_general:
+     hybrid: 
+       COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
+       default: No
+       best: Yes
+     nit:
+       COMMENT: number of iteration with low/high accuracy
+       RANGE: [0,1000]
+       PROFILE_FROM: hybrid
+       default: [100,100]
+       Yes: [100, 1]
+     rpnrm_cv:
+       COMMENT: convergence criterion for low/high accuracy
+       RANGE: [1.e-15,1.e-5]
+       default: [1.e-12,1.e-12]
+     conf_damping:
+       COMMENT: how the confinement should be decreased, only relevant for hybrid mode; negative -> automatic
+       RANGE: [-1.0,1.0]
+       default: -0.5
+     taylor_order:
+       COMMENT: order of the Taylor approximation; 0 -> exact
+       RANGE: [0,100]
+       default: 0
+       best: 6
+     output_wf:
+       COMMENT: output basis functions; 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
+       EXCLUSIVE:
+         0: no output
+         1: formatted output
+         2: Fortran bin
+         3: ETSF
+       default: 0
+     calc_dipole:
+       COMMENT: calculate dipole
+       default: No
+# this is now an array!
+     calc_pulay:
+       COMMENT: calculate Pulay forces (old/new version)
+       default: [No,No]
+       new: [ No, Yes]
+       old: [ Yes, No] 
+# this name might be misleading
+     subspace_diag: #called calc_ks, to be renamed
+       COMMENT: diagonalization at the end
+       default: No
+ lin_basis:
+     nit:
+       COMMENT: maximal number of iterations in the optimization of the support functions
+       RANGE: [0,100]
+       default: [4,5]
+       best: [10,1]
+     idsx:
+       COMMENT: DIIS history for optimization of the support function (low/high accuracy); 0 -> SD
+       RANGE: [0,20]
+       default: [6,0]
+     gnrm_cv:
+       COMMENT: convergence criterion for the optimization of the support functions (low/high accuracy)
+       RANGE: [1.e-6,1.e-1]
+       default: [1.e-2,1.e-4]
+       best: [1.e-3,1.e-3]
+     deltae_cv:
+       COMMENT: total relative energy difference to stop the optimization ('experimental_mode' only)
+       RANGE: [1.e-6,1.e-2]
+       default: 1.e-4
+     gnrm_dyn:
+       COMMENT: dynamic convergence criterion ('experimental_mode' only)
+       RANGE: [1.e-7,1.e-1]
+       default: 1.e-4
+     min_gnrm_for_dynamic:
+       COMMENT: minimal gnrm to active the dynamic gnrm criterion
+       RANGE: [1.e-7,1.0]
+       default: 1.e-3
+     alpha_diis:
+       COMMENT: multiplactor for DIIS
+       RANGE: [0.1,10]
+       default: 1.0
+       best: 0.5
+     alpha_sd:
+       COMMENT: initial step size for SD
+       RANGE: [1.e-4,10.0]
+       default: 1.0
+       best: 0.5
+     nstep_prec:
+       COMMENT: number of iterations in the preconditioner
+       RANGE: [1,30]
+       default: 5
+       best: 6
+     fix_basis:
+       COMMENT: fix the support functions if the density change is below this threshold
+       RANGE: [1.e-14,1.e-6]
+       default: 1.e-10
+ lin_kernel:
+     nstep:
+       COMMENT: don't know what this variable stands for...
+       default: [1,1]
+     nit:
+       COMMENT: number of iterations in the optimization of the density kernel
+       RANGE: [0,100]
+       default: [5,5]
+       best: [3,1]
+# check whether there are different DIIS histories...
+     idsx_coeff:
+       COMMENT: DIIS history for directmin?
+       default: [0,0]
+     idsx:
+       COMMENT: mixing method; 0 -> linear mixing, >=1 -> Pulay mixing
+       RANGE: [0,20]
+       default: [0,0]
+       best: [6,0]
+     alphamix:
+       COMMENT: mixing parameter (low/high accuracy)
+       RANGE: [0.0,1.0]
+       default: [0.5,0.5]
+     gnrm_cv_coeff:
+       COMMENT: convergence criterion for directmin (low/high)?
+       default: [1.e-5,1.e-5]
+     rpnrm_cv:
+       COMMENT: convergence criterion (change in density/potential) for the kernel optimization
+       RANGE: [1.e-14,1.e-5]
+       default: [1.e-10,1.e-10]
+     linear_method:
+       COMMENT: method to optimize the density kernel
+       EXCLUSIVE:
+         DIRMIN: direct minimization
+         DIAG: diagonalization
+         FOE: Fermi Operator Expansion
+       default: DIAG
+       best: FOE
+     mixing_method:
+       COMMENT: quantity to be mixed
+       EXCLUSIVE:
+         DEN: density mixing
+         POT: potential mixing
+       default: DEN
+     alpha_sd_coeff:
+       COMMENT: step size for direct minimization?
+       default: 0.2
+     alpha_fit_coeff:
+       COMMENT: don't know exactly what this means
+       default: No
+     eval_range_foe:
+       COMMENT: lower and upper bound of the eigenvalue spectrum, will be adjusted automatically if chosen unproperly
+       RANGE: [-10.0,10.0]
+       default: [-0.5,0.5]
+     fscale_foe: 
+       COMMENT: decay length of the error function
+       RANGE: [1.e-4,1.0]
+       default: 5.e-2
+ lin_basis_params:
+     nbasis:
+       COMMENT: number of support functions per atom
+       EXCLUSIVE:
+         1: s orbital type
+         4: s,p orbital types
+         9: s,p,d orbital types
+         16: s,p,d,f orbital types
+       default: 4
+     ao_confinement:
+       COMMENT: prefactor for the input guess confining potential
+       RANGE: [0.0,10.0]
+       default: 8.3e-3
+     confinement:
+       COMMENT: prefactor for the confining potential (low/high accuracy)
+       RANGE: [0.0,10.0]
+       default: [8.3e-3,0.0]
+     rloc:
+       COMMENT: localization radius for the support functions
+       RANGE: [2.0,1000.0]
+       default: [7.0,7.0]
+     rloc_kernel:
+       COMMENT: localization radius for the density kernel
+       RANGE: [2.0,1000.0] 
+       default: 9.0
+     rloc_kernel_foe:
+       COMMENT: cutoff radius for the FOE matrix vector multiplications
+       RANGE: [2.0,1000]
+       default: 14.0
+--- #here starts the document of possible input files
+best:
+  COMMENT: this input file shouldbe used for something
+  dft:
+    hgrids: accurate
+    ixc: PBE
+  lin_general:
+    hybrid: best
+  lin_basis:
+    nit: [100,1]
+structural:
+  COMMENT: for geopt
+  dft:
+    hgrids: fast
+    ixc: PBE
+  geopt:
+    method: FIRE
 
+    

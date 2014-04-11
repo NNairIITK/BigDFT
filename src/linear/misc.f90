@@ -655,19 +655,22 @@ end subroutine plotGrid
 
 
 
-subroutine local_potential_dimensions(Lzd,orbs,ndimfirstproc)
+subroutine local_potential_dimensions(iproc,Lzd,orbs,xc,ndimfirstproc)
   use module_base
   use module_types
   use module_xc
   implicit none
-  integer, intent(in) :: ndimfirstproc
+  integer, intent(in) :: iproc, ndimfirstproc
   type(local_zone_descriptors), intent(inout) :: Lzd
   type(orbitals_data), intent(inout) :: orbs
+  type(xc_info), intent(in) :: xc
   !local variables
   character(len=*), parameter :: subname='local_potential_dimensions'
   logical :: newvalue
   integer :: i_all,i_stat,ii,iilr,ilr,iorb,iorb2,nilr,ispin
   integer, dimension(:,:), allocatable :: ilrtable
+
+  call timing(iproc, 'calc_bounds   ', 'ON')
   
   if(Lzd%nlr > 1) then
      allocate(ilrtable(orbs%norbp,2),stat=i_stat)
@@ -720,7 +723,7 @@ subroutine local_potential_dimensions(Lzd,orbs,ndimfirstproc)
              lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i*orbs%nspin
      end do
      !part which refers to exact exchange (only meaningful for one region)
-     if (xc_exctXfac() /= 0.0_gp) then
+     if (xc_exctXfac(xc) /= 0.0_gp) then
         lzd%ndimpotisf = lzd%ndimpotisf + &
              max(max(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i*orbs%norbp,ndimfirstproc*orbs%norb),1)
      end if
@@ -745,7 +748,7 @@ subroutine local_potential_dimensions(Lzd,orbs,ndimfirstproc)
           lzd%Glr%d%n1i*lzd%Glr%d%n2i*lzd%Glr%d%n3i*orbs%nspin
           
      !part which refers to exact exchange (only meaningful for one region)
-     if (xc_exctXfac() /= 0.0_gp) then
+     if (xc_exctXfac(xc) /= 0.0_gp) then
         lzd%ndimpotisf = lzd%ndimpotisf + &
              max(max(lzd%Glr%d%n1i*lzd%Glr%d%n2i*lzd%Glr%d%n3i*orbs%norbp,ndimfirstproc*orbs%norb),1)
      end if
@@ -757,6 +760,9 @@ subroutine local_potential_dimensions(Lzd,orbs,ndimfirstproc)
   i_all=-product(shape(ilrtable))*kind(ilrtable)
   deallocate(ilrtable,stat=i_stat)
   call memocc(i_stat,i_all,'ilrtable',subname)
+
+
+  call timing(iproc, 'calc_bounds   ', 'OF')
 
 end subroutine local_potential_dimensions
 
@@ -853,6 +859,11 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   use module_base
   use module_types
   use module_interfaces, except_this_one => build_ks_orbitals
+  use communications_base, only: comms_cubic
+  use communications_init, only: orbitals_communicators
+  use communications, only: transpose_v, untranspose_v
+  use sparsematrix_base, only: sparse_matrix
+  use yaml_output
   implicit none
   
   ! Calling arguments
@@ -865,13 +876,15 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   type(energy_terms),intent(inout) :: energs
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
   type(input_variables),intent(in) :: input
-  real(kind=8),intent(out) :: energy, energyDiff, energyold
+  real(kind=8),intent(out) :: energy, energyDiff
+  real(kind=8), intent(inout) :: energyold
 
   ! Local variables
   type(orbitals_data) :: orbs
-  type(communications_arrays) :: comms
-  type(sparseMatrix) :: ham_small ! for FOE
+  type(comms_cubic) :: comms
+  type(sparse_matrix) :: ham_small ! for FOE
   real(gp) :: fnrm
+  logical :: rho_negative
   integer :: infoCoeff, nvctrp, npsidim_global
   real(kind=8),dimension(:),pointer :: phi_global, phiwork_global
   character(len=*),parameter :: subname='build_ks_orbitals'
@@ -886,13 +899,22 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
        max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%psi, tmb%collcom_sr)
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-       tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
-  call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+       tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+       denspot%rhov, rho_negative)
+  if (rho_negative) then
+      call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+      !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+      !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+      !!call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+  end if
+
+  call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
 
   tmb%can_use_transposed=.false.
   call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
        energs, nlpsp, input%SIC, tmb, fnrm, .true., .false., .true., ham_small, 0, 0, 0, 0, &
-       input%lin%order_taylor,input%calculate_KS_residue)
+       input%lin%order_taylor,input%purification_quickreturn,input%adjust_FOE_temperature,&
+       input%calculate_KS_residue,input%calculate_gap)
 
 
   !call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
@@ -932,7 +954,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   call small_to_large_locreg(iproc, tmb%npsidim_orbs, &
        tmb%orbs%norbp*(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f), tmb%lzd, &
        KSwfn%lzd, tmb%orbs, tmb%psi, phi_global, to_global=.true.)
-  call transpose_v(iproc, nproc, orbs, tmb%lzd%glr%wfd, comms, phi_global, work=phiwork_global)
+  call transpose_v(iproc, nproc, orbs, tmb%lzd%glr%wfd, comms, phi_global(1), phiwork_global(1))
 
 
   ! WARNING: WILL NOT WORK WITH K-POINTS, CHECK THIS
@@ -940,7 +962,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   call dgemm('n', 'n', nvctrp, KSwfn%orbs%norb, tmb%orbs%norb, 1.d0, phi_global, nvctrp, tmb%coeff(1,1), &
              tmb%orbs%norb, 0.d0, phiwork_global, nvctrp)
   
-  call untranspose_v(iproc, nproc, KSwfn%orbs, tmb%lzd%glr%wfd, KSwfn%comms, phiwork_global, work=phi_global)  
+  call untranspose_v(iproc, nproc, KSwfn%orbs, tmb%lzd%glr%wfd, KSwfn%comms, phiwork_global(1), phi_global(1))  
 
   !!ist=1
   !!do iorb=1,KSwfn%orbs%norbp
@@ -975,19 +997,27 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
        at, rxyz, KSwfn%Lzd%Glr%wfd, phiwork_global)
 
    call deallocate_orbitals_data(orbs, subname)
-   call deallocate_communications_arrays(comms, subname)
+   call deallocate_comms_cubic(comms, subname)
 
   ! To get consistent values of the energy and the Kohn-Sham residue with those
   ! which will be calculated by the cubic restart.
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
        max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%psi, tmb%collcom_sr)
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-       tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
-  call updatePotential(input%ixc,input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+       tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+       denspot%rhov, rho_negative)
+  if (rho_negative) then
+      call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+      !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+      !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+      !!call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+  end if
+  call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
   tmb%can_use_transposed=.false.
   call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
        energs, nlpsp, input%SIC, tmb, fnrm, .true., .false., .true., ham_small, 0, 0, 0, 0, &
-       input%lin%order_taylor, input%calculate_KS_residue, updatekernel=.false.)
+       input%lin%order_taylor, input%purification_quickreturn, input%adjust_FOE_temperature, &
+       input%calculate_KS_residue, input%calculate_gap, updatekernel=.false.)
   energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
   energyDiff=energy-energyold
   energyold=energy

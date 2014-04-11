@@ -729,14 +729,14 @@ end module deallocatePointers
 !!$      character(len=*),intent(in):: subname
 !!$    end subroutine deallocate_orbitals_data
 !!$    
-!!$    subroutine deallocate_communications_arrays(comms, subname)
+!!$    subroutine deallocate_comms_cubic(comms, subname)
 !!$      
 !!$      use module_types
 !!$      use deallocatePointers
 !!$      implicit none
-!!$      type(communications_arrays),intent(inout):: comms
+!!$      type(comms_cubic),intent(inout):: comms
 !!$      character(len=*),intent(in):: subname
-!!$    end subroutine deallocate_communications_arrays
+!!$    end subroutine deallocate_comms_cubic
 !!$    
 !!$  end interface
 !!$
@@ -822,14 +822,13 @@ subroutine deallocate_orbitals_data(orbs, subname)
 end subroutine deallocate_orbitals_data
 
 
-subroutine deallocate_communications_arrays(comms, subname)
-  
-  use module_types
+subroutine deallocate_comms_cubic(comms, subname)
+  use communications_base, only: comms_cubic
   use deallocatePointers
   implicit none
   
   ! Calling arguments
-  type(communications_arrays),intent(inout):: comms
+  type(comms_cubic),intent(inout):: comms
   character(len=*),intent(in):: subname
   
   call checkAndDeallocatePointer(comms%ncntd, 'comms%ncntd', subname)
@@ -838,7 +837,7 @@ subroutine deallocate_communications_arrays(comms, subname)
   call checkAndDeallocatePointer(comms%ndsplt, 'comms%ndsplt', subname)
   call checkAndDeallocatePointer(comms%nvctr_par, 'comms%nvctr_par', subname)
   
-end subroutine deallocate_communications_arrays
+end subroutine deallocate_comms_cubic
 
 
 subroutine deallocate_convolutions_bounds(bounds, subname)
@@ -967,85 +966,39 @@ subroutine deallocate_foe(foe_obj, subname)
   type(foe_data),intent(inout):: foe_obj
   character(len=*),intent(in):: subname
 
-  call checkAndDeallocatePointer(foe_obj%kernel_nseg, 'foe_obj%kernel_nseg', subname)
-  call checkAndDeallocatePointer(foe_obj%kernel_segkeyg, 'foe_obj%kernel_segkeyg', subname)
+  call checkAndDeallocatePointer(foe_obj%nsegline, 'foe_obj%nsegline', subname)
+  call checkAndDeallocatePointer(foe_obj%istsegline, 'foe_obj%istsegline', subname)
+  call checkAndDeallocatePointer(foe_obj%keyg, 'foe_obj%keyg', subname)
 
 end subroutine deallocate_foe
 
-subroutine deallocate_sparseMatrix(sparsemat, subname)
-  
-  use module_types
-  use deallocatePointers
-  use module_interfaces, exceptThisOne => deallocate_sparseMatrix
-  implicit none
-  
-  ! Calling arguments
-  type(sparseMatrix),intent(inout):: sparsemat
-  character(len=*),intent(in):: subname
-
-  call checkAndDeallocatePointer(sparseMat%keyg, 'sparseMat%keyg', subname)
-  call checkAndDeallocatePointer(sparseMat%keyv, 'sparseMat%keyv', subname)
-  call checkAndDeallocatePointer(sparseMat%nsegline, 'sparseMat%nsegline', subname)
-  call checkAndDeallocatePointer(sparseMat%istsegline, 'sparseMat%istsegline', subname)
-  call checkAndDeallocatePointer(sparseMat%matrix_compr, 'sparseMat%matrix_compr', subname)
-  call checkAndDeallocatePointer(sparseMat%matrix, 'sparseMat%matrix', subname)
-  !call checkAndDeallocatePointer(sparseMat%matrixindex_in_compressed, 'sparseMat%matrixindex_in_compressed', subname)
-  call checkAndDeallocatePointer(sparseMat%matrixindex_in_compressed_arr, 'sparseMat%matrixindex_in_compressed_arr', subname)
-  call checkAndDeallocatePointer(sparseMat%orb_from_index, 'sparseMat%orb_from_index', subname)
-  call checkAndDeallocatePointer(sparseMat%matrixindex_in_compressed_fortransposed, &
-       'sparseMat%matrixindex_in_compressed_fortransposed', subname)
-  call f_free_ptr(sparseMat%isvctr_par)
-  call f_free_ptr(sparseMat%nvctr_par)
-  call f_free_ptr(sparseMat%isfvctr_par)
-  call f_free_ptr(sparseMat%nfvctr_par)
-  call f_free_ptr(sparseMat%matrixp)
-  call f_free_ptr(sparseMat%matrix_comprp)
-
-end subroutine deallocate_sparseMatrix
-
-
-
-subroutine deallocate_collective_comms(collcom, subname)
-  
-  use module_types
-  use deallocatePointers
-  use module_interfaces, exceptThisOne => deallocate_collective_comms
-  implicit none
-  
-  ! Calling arguments
-  type(collective_comms),intent(inout):: collcom
-  character(len=*),intent(in):: subname
-
-  ! Local variables
-
-  call checkAndDeallocatePointer(collcom%nsendcounts_c, 'collcom%nsendcounts_c', subname)
-  call checkAndDeallocatePointer(collcom%nsenddspls_c, 'collcom%nsenddspls_c', subname)
-  call checkAndDeallocatePointer(collcom%nrecvcounts_c, 'collcom%nrecvcounts_c', subname)
-  call checkAndDeallocatePointer(collcom%nrecvdspls_c, 'collcom%nrecvdspls_c', subname)
-  call checkAndDeallocatePointer(collcom%isendbuf_c, 'collcom%isendbuf_c', subname)
-  call checkAndDeallocatePointer(collcom%iextract_c, 'collcom%iextract_c', subname)
-  call checkAndDeallocatePointer(collcom%iexpand_c, 'collcom%iexpand_c', subname)
-  call checkAndDeallocatePointer(collcom%irecvbuf_c, 'collcom%irecvbuf_c', subname)
-  call checkAndDeallocatePointer(collcom%norb_per_gridpoint_c, 'collcom%norb_per_gridpoint_c', subname)
-  call checkAndDeallocatePointer(collcom%indexrecvorbital_c, 'collcom%indexrecvorbital_c', subname)
-  call checkAndDeallocatePointer(collcom%isptsp_c, 'collcom%isptsp_c', subname)
-  call checkAndDeallocatePointer(collcom%psit_c, 'collcom%psit_c', subname)
-  call checkAndDeallocatePointer(collcom%nsendcounts_f, 'collcom%nsendcounts_f', subname)
-  call checkAndDeallocatePointer(collcom%nsenddspls_f, 'collcom%nsenddspls_f', subname)
-  call checkAndDeallocatePointer(collcom%nrecvcounts_f, 'collcom%nrecvcounts_f', subname)
-  call checkAndDeallocatePointer(collcom%nrecvdspls_f, 'collcom%nrecvdspls_f', subname)
-  call checkAndDeallocatePointer(collcom%isendbuf_f, 'collcom%isendbuf_f', subname)
-  call checkAndDeallocatePointer(collcom%iextract_f, 'collcom%iextract_f', subname)
-  call checkAndDeallocatePointer(collcom%iexpand_f, 'collcom%iexpand_f', subname)
-  call checkAndDeallocatePointer(collcom%irecvbuf_f, 'collcom%irecvbuf_f', subname)
-  call checkAndDeallocatePointer(collcom%norb_per_gridpoint_f, 'collcom%norb_per_gridpoint_f', subname)
-  call checkAndDeallocatePointer(collcom%indexrecvorbital_f, 'collcom%indexrecvorbital_f', subname)
-  call checkAndDeallocatePointer(collcom%isptsp_f, 'collcom%isptsp_f', subname)
-  call checkAndDeallocatePointer(collcom%psit_f, 'collcom%psit_f', subname)
-  call checkAndDeallocatePointer(collcom%nsendcounts_repartitionrho, 'collcom%nsendcounts_repartitionrho', subname)
-  call checkAndDeallocatePointer(collcom%nrecvcounts_repartitionrho, 'collcom%nrecvcounts_repartitionrho', subname)
-  call checkAndDeallocatePointer(collcom%nsenddspls_repartitionrho, 'collcom%nsenddspls_repartitionrho', subname)
-  call checkAndDeallocatePointer(collcom%nrecvdspls_repartitionrho, 'collcom%nrecvdspls_repartitionrho', subname)
-
-end subroutine deallocate_collective_comms
-
+!!subroutine deallocate_sparse_matrix(sparsemat, subname)
+!!  use module_base 
+!!  use deallocatePointers
+!!  use module_interfaces, exceptThisOne => deallocate_sparse_matrix
+!!  use sparsematrix_base, only: sparse_matrix
+!!  implicit none
+!!  
+!!  ! Calling arguments
+!!  type(sparse_matrix),intent(inout):: sparsemat
+!!  character(len=*),intent(in):: subname
+!!
+!!  call checkAndDeallocatePointer(sparseMat%keyg, 'sparseMat%keyg', subname)
+!!  call checkAndDeallocatePointer(sparseMat%keyv, 'sparseMat%keyv', subname)
+!!  call checkAndDeallocatePointer(sparseMat%nsegline, 'sparseMat%nsegline', subname)
+!!  call checkAndDeallocatePointer(sparseMat%istsegline, 'sparseMat%istsegline', subname)
+!!  call checkAndDeallocatePointer(sparseMat%matrix_compr, 'sparseMat%matrix_compr', subname)
+!!  call checkAndDeallocatePointer(sparseMat%matrix, 'sparseMat%matrix', subname)
+!!  !call checkAndDeallocatePointer(sparseMat%matrixindex_in_compressed, 'sparseMat%matrixindex_in_compressed', subname)
+!!  call checkAndDeallocatePointer(sparseMat%matrixindex_in_compressed_arr, 'sparseMat%matrixindex_in_compressed_arr', subname)
+!!  call checkAndDeallocatePointer(sparseMat%orb_from_index, 'sparseMat%orb_from_index', subname)
+!!  call checkAndDeallocatePointer(sparseMat%matrixindex_in_compressed_fortransposed, &
+!!       'sparseMat%matrixindex_in_compressed_fortransposed', subname)
+!!  call f_free_ptr(sparseMat%isvctr_par)
+!!  call f_free_ptr(sparseMat%nvctr_par)
+!!  call f_free_ptr(sparseMat%isfvctr_par)
+!!  call f_free_ptr(sparseMat%nfvctr_par)
+!!  call f_free_ptr(sparseMat%matrixp)
+!!  call f_free_ptr(sparseMat%matrix_comprp)
+!!
+!!end subroutine deallocate_sparse_matrix

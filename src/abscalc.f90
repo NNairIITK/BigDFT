@@ -276,6 +276,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use m_ab6_kpoints
    use lanczos_interface, only: xabs_lanczos,xabs_cg,xabs_chebychev
    use esatto, only: binary_search
+   use module_atoms, only: set_symmetry_data,atoms_data
+   use communications_base, only: comms_cubic
+   use communications_init, only: orbitals_communicators
    implicit none
    integer, intent(in) :: nproc,iproc
    real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -313,7 +316,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    real(kind=8) :: tel,psoffset
    !real(gp) :: edisp ! Dispersion energy
    type(DFT_PSP_projectors) :: nlpsp
-   type(communications_arrays) :: comms
+   type(comms_cubic) :: comms
    type(gaussian_basis) :: Gvirt
    type(rho_descriptors)  :: rhodsc
    type(energy_terms) :: energs
@@ -344,6 +347,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    ! Arrays for the symmetrisation, not used here...
    type(symmetry_data) :: symObj
    type(denspot_distribution) :: dpcom
+   type(xc_info) :: xc
    character(len=5) :: gridformat
 
    !for xabsorber
@@ -430,7 +434,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       call print_dft_parameters(in,atoms)
    end if
    !time initialization
-   call timing(nproc,trim(in%dir_output)//'time.prc','IN')
+   !call timing(nproc,trim(in%dir_output)//'time.prc','IN')
+   call f_timing_reset(filename=trim(in%dir_output)//'time.yaml',master=iproc==0)
    call cpu_time(tcpu0)
    call system_clock(ncount0,ncount_rate,ncount_max)
  
@@ -450,9 +455,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    end if
 
    if (ixc < 0) then
-      call xc_init(ixc, XC_MIXED, nspin)
+      call xc_init(xc, ixc, XC_MIXED, nspin)
    else
-      call xc_init(ixc, XC_ABINIT, nspin)
+      call xc_init(xc, ixc, XC_ABINIT, nspin)
    end if
 
    !character string for quieting the Poisson solver
@@ -469,7 +474,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
 
-   call system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,KSwfn%Lzd%Glr,shift)
+   call system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,.false.,KSwfn%Lzd%Glr,shift)
    if (iproc == 0) call print_atoms_and_grid(KSwfn%Lzd%Glr, atoms, rxyz, shift, hx, hy, hz)
 
    if ( KSwfn%orbs%nspinor.gt.1) then
@@ -528,9 +533,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    if (iproc==0 .and. verbose > 0) call print_memory_estimation(mem)
 
    !complete dpbox initialization
-   call dpbox_set(dpcom,KSwfn%Lzd,iproc,nproc,MPI_COMM_WORLD,in,atoms%astruct%geocode)
+   call dpbox_set(dpcom,KSwfn%Lzd,xc,iproc,nproc,MPI_COMM_WORLD,in%PSolver_groupsize, &
+        & in%SIC%approach,atoms%astruct%geocode,nspin)
 
-  call density_descriptors(iproc,nproc,in%nspin,in%crmult,in%frmult,atoms,&
+  call density_descriptors(iproc,nproc,xc,in%nspin,in%crmult,in%frmult,atoms,&
        dpcom,in%rho_commun,rxyz,radii_cf,rhodsc)
 
 !!$
@@ -571,7 +577,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    !     (verbose > 1))
 
    !calculate the irreductible zone for this region, if necessary.
-   call symmetry_set_irreductible_zone(atoms%astruct%sym,atoms%astruct%geocode,&
+   call set_symmetry_data(atoms%astruct%sym,atoms%astruct%geocode,&
         KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,KSwfn%Lzd%Glr%d%n3i, in%nspin)
 
 !!$   !calculate the irreductible zone for this region, if necessary.
@@ -669,19 +675,17 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       end if
 
       atoms_clone = atoms
-      nullify(atoms_clone%aocc)
-      nullify(atoms_clone%iasctype)
+      nullify(atoms_clone%aoig)
+      call allocate_atoms_nat(atoms_clone)
 
-
-      allocate(atoms_clone%aocc(lbound(atoms%aocc,1 ):ubound(atoms%aocc,1),&
-         &   lbound(atoms%aocc,2):ubound(atoms%aocc,2)),stat=i_stat)
-      call memocc(i_stat,atoms%aocc,'atoms_clone%aocc',subname)
-
-      allocate(atoms_clone%iasctype(lbound(atoms%iasctype,1 ):ubound(atoms%iasctype,1)),stat=i_stat)
-      call memocc(i_stat,atoms%iasctype,'atoms_clone%iasctype',subname)
-
-      atoms_clone%aocc=0.0_gp
-      atoms_clone%iasctype=0
+!!$      allocate(atoms_clone%aocc(lbound(atoms%aocc,1 ):ubound(atoms%aocc,1),&
+!!$         &   lbound(atoms%aocc,2):ubound(atoms%aocc,2)),stat=i_stat)
+!!$      call memocc(i_stat,atoms%aocc,'atoms_clone%aocc',subname)
+!!$
+!!$      allocate(atoms_clone%iasctype(lbound(atoms%iasctype,1 ):ubound(atoms%iasctype,1)),stat=i_stat)
+!!$      call memocc(i_stat,atoms%iasctype,'atoms_clone%iasctype',subname)
+!!$         atoms_clone%aoig%aocc=0.0_gp
+!!$         atoms_clone%aiasctype=0
 
       read(in%extraOrbital,*,iostat=ierr)iat
       !control the spin
@@ -709,7 +713,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       print *, "noccmax, nelecmax,lmax ", noccmax, nelecmax,lmax
 
       call read_eleconf(in%extraOrbital ,nsp,nspinor,noccmax, nelecmax,lmax, &
-         &   atoms_clone%aocc(1,iat), atoms_clone%iasctype(iat))
+         &   atoms_clone%aoig(iat)%aocc, atoms_clone%aoig(iat)%iasctype)
 
       nspin=in%nspin
       symObj%symObj = -1
@@ -772,14 +776,16 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       deallocate(KSwfn%psi,stat=i_stat)
       call memocc(i_stat,i_all,'psi',subname)
 
-      i_all=-product(shape(atoms_clone%aocc))*kind(atoms_clone%aocc)
-      deallocate(atoms_clone%aocc,stat=i_stat)
-      call memocc(i_stat,i_all,'atoms_clone%aocc',subname)
-      nullify(atoms_clone%aocc)
-      i_all=-product(shape(atoms_clone%iasctype))*kind(atoms_clone%iasctype)
-      deallocate(atoms_clone%iasctype,stat=i_stat)
-      call memocc(i_stat,i_all,'atoms_clone%iasctype',subname)
-      nullify(atoms_clone%iasctype)
+      deallocate(atoms_clone%aoig)
+      nullify(atoms_clone%aoig)
+!!$      i_all=-product(shape(atoms_clone%aocc))*kind(atoms_clone%aocc)
+!!$      deallocate(atoms_clone%aocc,stat=i_stat)
+!!$      call memocc(i_stat,i_all,'atoms_clone%aocc',subname)
+!!$      nullify(atoms_clone%aocc)
+!!$      i_all=-product(shape(atoms_clone%iasctype))*kind(atoms_clone%iasctype)
+!!$      deallocate(atoms_clone%iasctype,stat=i_stat)
+!!$      call memocc(i_stat,i_all,'atoms_clone%iasctype',subname)
+!!$      nullify(atoms_clone%iasctype)
 
    endif
 
@@ -1225,18 +1231,18 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       if (in%iabscalc_type==2) then
          call xabs_lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpsp,KSwfn%Lzd,dpcom,&
-             rhopot(1,1,1,1),energs,in%nspin,GPU,&
+             rhopot(1,1,1,1),energs,xc,in%nspin,GPU,&
              in%iat_absorber,in,PAWD,orbs)
 
       else if (in%iabscalc_type==1) then
          call xabs_chebychev(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpsp,KSwfn%Lzd,dpcom,&
-            &   rhopot(1,1,1,1) ,energs,in%nspin,GPU &
+            &   rhopot(1,1,1,1) ,energs,xc,in%nspin,GPU &
             &   , in%iat_absorber, in, PAWD, orbs)
       else if (in%iabscalc_type==3) then
          call xabs_cg(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpsp,KSwfn%Lzd,dpcom,&
-            &   rhopot(1,1,1,1) ,energs,in%nspin,GPU &
+            &   rhopot(1,1,1,1) ,energs,xc,in%nspin,GPU &
             &   , in%iat_absorber, in, rhoXanes(1,1,1,1), PAWD, PPD, orbs)
       else
          if (iproc == 0) write(*,*)' iabscalc_type not known, does not perform calculation'
@@ -1383,11 +1389,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       !! call deallocate_atomdatapaw(atoms,subname)
      
       ! Free the libXC stuff if necessary.
-      call xc_end()
+      call xc_end(xc)
 
       !end of wavefunction minimisation
       call timing(bigdft_mpi%mpi_comm,'LAST','PR')
-      call timing(bigdft_mpi%mpi_comm,'              ','RE')
+      call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm)
       call cpu_time(tcpu1)
       call system_clock(ncount1,ncount_rate,ncount_max)
       tel=dble(ncount1-ncount0)/dble(ncount_rate)
@@ -1686,7 +1692,10 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    use module_base
    use module_interfaces, except_this_one => extract_potential_for_spectra
    use module_types
+   use module_xc
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use communications_base, only: comms_cubic
+   use communications_init, only: orbitals_communicators
    implicit none
    !Arguments
    integer, intent(in) :: iproc,nproc,ixc
@@ -1696,9 +1705,9 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    type(rho_descriptors),intent(in) :: rhod
    type(denspot_distribution), intent(in) :: dpcom
    type(orbitals_data), intent(inout) :: orbs
-   type(DFT_PSP_projectors), intent(in) :: nlpsp
+   type(DFT_PSP_projectors), intent(inout) :: nlpsp
    type(local_zone_descriptors), intent(inout) :: Lzd
-   type(communications_arrays), intent(in) :: comms
+   type(comms_cubic), intent(in) :: comms
    type(GPU_pointers), intent(inout) :: GPU
    type(input_variables):: input
    type(symmetry_data), intent(in) :: symObj
@@ -1710,6 +1719,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    real(wp), dimension(:), pointer :: psi,hpsi,psit
    real(wp), dimension(:,:,:,:), pointer :: rhocore
    type(coulomb_operator), intent(in) :: pkernel,pkernelseq
+   type(xc_info) :: xc
    integer, intent(in) ::potshortcut
 
   !local variables
@@ -1718,7 +1728,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   integer :: i_stat,i_all,nspin_ig
   real(gp) :: hxh,hyh,hzh,eks,ehart,eexcu,vexcu
   type(orbitals_data) :: orbse
-  type(communications_arrays) :: commse
+  type(comms_cubic) :: commse
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(wp), dimension(:), allocatable :: potxc
   !real(wp), dimension(:,:,:), allocatable :: mom_vec
@@ -1766,7 +1776,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
 
   if(potshortcut<=0) then
      call nullify_local_zone_descriptors(Lzde)
-     call create_LzdLIG(iproc,nproc,orbs%nspin,input%linear,hx,hy,hz,Lzd%Glr,at,orbse,rxyz,Lzde)
+     call create_LzdLIG(iproc,nproc,orbs%nspin,input%linear,hx,hy,hz,Lzd%Glr,at,orbse,rxyz,nlpsp,Lzde)
   else
      call nullify_local_zone_descriptors(Lzde)
      Lzde = Lzd
@@ -1785,7 +1795,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   if (GPUconv .and. potshortcut ==0 ) then
      call prepare_gpu_for_locham(Lzde%Glr%d%n1,Lzde%Glr%d%n2,Lzde%Glr%d%n3,nspin_ig,&
           hx,hy,hz,Lzd%Glr%wfd,orbse,GPU)
-  else if (OCLconv .and. potshortcut ==0) then
+  else if (GPU%OCLconv .and. potshortcut ==0) then
      call allocate_data_OCL(Lzde%Glr%d%n1,Lzde%Glr%d%n2,Lzde%Glr%d%n3,at%astruct%geocode,&
           nspin_ig,Lzde%Glr%wfd,orbse,GPU)
      if (iproc == 0) write(*,*)&
@@ -1793,9 +1803,9 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   else if (GPUconv .and. potshortcut >0 ) then
      switchGPUconv=.true.
      GPUconv=.false.
-  else if (OCLconv .and. potshortcut >0 ) then
+  else if (GPU%OCLconv .and. potshortcut >0 ) then
      switchOCLconv=.true.
-     OCLconv=.false.
+     GPU%OCLconv=.false.
   end if
 
   call timing(iproc,'wavefunction  ','ON')   
@@ -1810,7 +1820,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   !spin adaptation for the IG in the spinorial case
   nullify(rho_p)
   orbse%nspin=nspin
-  call sumrho(dpcom,orbse,Lzde,GPU,symObj,rhod,psi,rho_p)
+  call sumrho(dpcom,orbse,Lzde,GPU,symObj,rhod,xc,psi,rho_p)
   call communicate_density(dpcom,orbse%nspin,rhod,rho_p,rhopot,.false.)
   orbse%nspin=nspin_ig
 
@@ -1827,11 +1837,16 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   endif
   !---
 
+  if (ixc < 0) then
+     call xc_init(xc, ixc, XC_MIXED, nspin)
+  else
+     call xc_init(xc, ixc, XC_ABINIT, nspin)
+  end if
   if(orbs%nspinor==4) then
      !this wrapper can be inserted inside the poisson solver 
      call PSolverNC(at%astruct%geocode,'D',iproc,nproc,Lzde%Glr%d%n1i,Lzde%Glr%d%n2i,Lzde%Glr%d%n3i,&
           dpcom%nscatterarr(iproc,1),& !this is n3d
-          ixc,hxh,hyh,hzh,&
+          xc,hxh,hyh,hzh,&
           rhopot,pkernel%kernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
   else
      !Allocate XC potential
@@ -1844,16 +1859,18 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
      end if
 
      call XC_potential(at%astruct%geocode,'D',iproc,nproc,MPI_COMM_WORLD,&
-          Lzde%Glr%d%n1i,Lzde%Glr%d%n2i,Lzde%Glr%d%n3i,ixc,hxh,hyh,hzh,&
+          Lzde%Glr%d%n1i,Lzde%Glr%d%n2i,Lzde%Glr%d%n3i,xc,hxh,hyh,hzh,&
           rhopot,eexcu,vexcu,nspin,rhocore,potxc,xcstr)
      if( iand(potshortcut,4)==0) then
         call H_potential('D',pkernel,rhopot,pot_ion,ehart,0.0_dp,.true.)
      endif
 
+     call xc_end(xc)
+
      !sum the two potentials in rhopot array
      !fill the other part, for spin, polarised
      if (nspin == 2) then
-        call dcopy(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*dpcom%nscatterarr(iproc,2),rhopot(1),1,&
+        call vcopy(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*dpcom%nscatterarr(iproc,2),rhopot(1),1,&
              rhopot(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*dpcom%nscatterarr(iproc,2)+1),1)
      end if
      !spin up and down together with the XC part
@@ -1871,7 +1888,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
      GPUconv=.true.
   end if
   if (switchOCLconv) then
-     OCLconv=.true.
+     GPU%OCLconv=.true.
   end if
 
   call deallocate_orbs(orbse,subname)
@@ -1880,9 +1897,23 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   call memocc(i_stat,i_all,'orbse%eval',subname)
 
 
+  !in the case of multiple nlr restore the nl projectors
+  if (Lzde%nlr > 1) then
+     if (Lzd%nlr /=1) then
+        call f_err_throw('The cubic localization region should have always nlr=1',&
+             err_name='BIGDFT_RUNTIME_ERROR')
+     else
+        call update_nlpsp(nlpsp,Lzd%nlr,Lzd%llr,Lzd%Glr,(/.true./))
+        if (iproc == 0) call print_nlpsp(nlpsp)
+     end if
+  end if
+  
+
   !deallocate the gaussian basis descriptors
   call deallocate_gwf(G,subname)
   if(potshortcut<=0) call deallocate_local_zone_descriptors(Lzde, subname)  
+
+
 
   i_all=-product(shape(psigau))*kind(psigau)
   deallocate(psigau,stat=i_stat)

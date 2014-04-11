@@ -499,7 +499,11 @@ subroutine print_dft_parameters(in,atoms)
   call yaml_open_map('DFT parameters')
     call yaml_open_map('eXchange Correlation')
       call yaml_map('XC ID',in%ixc,fmt='(i8)',label='ixc')
-      call xc_dump()
+      if (in%ixc < 0) then
+         call xc_dump(in%ixc, XC_MIXED, in%nspin)
+      else
+         call xc_dump(in%ixc, XC_ABINIT, in%nspin)
+      end if
       if (in%nspin>=2) then
          call yaml_map('Polarisation',in%mpol)
          !write(*,'(1x,a,i7,1x,a)')&
@@ -1594,6 +1598,7 @@ subroutine print_memory_estimation(mem)
      call yaml_map('Density Construction',trim(MibdotKib(mem%density)))
      call yaml_map('Poisson Solver',trim(MibdotKib(mem%psolver)))
      call yaml_map('Hamiltonian application',trim(MibdotKib(mem%ham)))
+     call yaml_map('Orbitals Orthonormalization',trim(MibdotKib(mem%ham+mem%submat)))
 !           call yaml_comment('Wfn, Work, Den, Ker ',tabbing=50)
   call yaml_close_map()
   call yaml_map('Estimated Memory Peak (MB)',yaml_toa(mega(mem%peak)))
@@ -1728,22 +1733,47 @@ subroutine print_nlpsp(nlpsp)
   use yaml_output
   implicit none
   type(DFT_PSP_projectors), intent(in) :: nlpsp
+  !local variables
+  integer :: iat,ilr,sizemask,maxmask,totmask,totpack
 
   call yaml_open_map('NonLocal PSP Projectors Descriptors')
   if (nlpsp%on_the_fly) then
      call yaml_map('Creation strategy','On-the-fly')
-     !write(*,'(44x,a)') '------  On-the-fly projectors application'
   else
      call yaml_map('Creation strategy','Once-and-for-all')
-     !write(*,'(44x,a)') '------'
   end if
   call yaml_map('Total number of projectors',nlpsp%nproj)
   call yaml_map('Total number of components',nlpsp%nprojel)
   call yaml_map('Percent of zero components',nint(100.0_gp*nlpsp%zerovol))
+  !calculate the amount of memory spent in the descriptor for the wavefunction
+  maxmask=0
+  totmask=0
+  totpack=0
+  do iat=1,nlpsp%natoms
+     if (nlpsp%pspd(iat)%mproj>0) then
+        totpack=max(totpack,nlpsp%pspd(iat)%plr%wfd%nvctr_c+&
+             7*nlpsp%pspd(iat)%plr%wfd%nvctr_f)
+     end if
+     sizemask=0
+     if (associated(nlpsp%pspd(iat)%tolr)) then
+        do ilr=1,nlpsp%pspd(iat)%nlr
+           sizemask=sizemask+&
+                nlpsp%pspd(iat)%tolr(ilr)%nmseg_c+nlpsp%pspd(iat)%tolr(ilr)%nmseg_f
+        end do
+     end if
+     maxmask=max(maxmask,sizemask)
+     totmask=totmask+sizemask
+  end do
+  totpack=totpack*4
+  if (associated(nlpsp%scpr)) totpack=totpack+size(nlpsp%scpr)
+  if (associated(nlpsp%cproj)) totpack=totpack+size(nlpsp%cproj)*2
+  if (totpack /=0) &
+       call yaml_map('Size of workspaces',totpack)
+  if (maxmask /=0) &
+       call yaml_map('Maximum size of masking arrays for a projector',3*maxmask)
+  if (totmask /=0) &
+       call yaml_map('Cumulative size of masking arrays',3*totmask)
 
-!!$     write(*,'(1x,a,i21)') 'Total number of projectors =',nlpspd%nproj
-!!$     write(*,'(1x,a,i21)') 'Total number of components =',nlpspd%nprojel
-!!$     write(*,'(1x,a,i21)') 'Percent of zero components =',nint(100.0_gp*zerovol)
   call yaml_close_map()
 END SUBROUTINE print_nlpsp
 

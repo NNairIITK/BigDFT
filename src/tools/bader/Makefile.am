@@ -29,6 +29,6 @@ dipole_mod.o chgcar_mod.o : charge_mod.o
 
 bader_mod.o voronoi_mod.o dipole_mod.o: io_mod.o
 
-io_mod.o : chgcar_mod.o
+io_mod.o : chgcar_mod.o cube_mod.o
 
 dipole_mod.o : bader_mod.o

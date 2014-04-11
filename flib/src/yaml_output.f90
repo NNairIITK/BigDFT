@@ -63,10 +63,12 @@ module yaml_output
      integer :: ievt_flow=0                                       !< Events which track is kept of in the flowrite
      integer, dimension(tot_max_flow_events) :: flow_events=0     !< Set of events in the flow
      type(dictionary), pointer :: dict_warning=>null()            !< Dictionary of warnings emitted in the stream
+     !character(len=tot_max_record_length), dimension(:), pointer :: buffer !<
   end type yaml_stream
 
   type(yaml_stream), dimension(tot_streams), save :: streams    !< Private array containing the streams
   integer, dimension(tot_streams) :: stream_units=6             !< Default units unless otherwise specified
+  type(dictionary), pointer :: stream_files
 
   logical :: module_initialized=.false.  !< Tells if the module has been already referenced or not
 
@@ -101,6 +103,12 @@ module yaml_output
   !> fake structure needed to document common arguments of the module
   !! @param
   type, private :: doc
+     !>integer indicating the value of the column where the following 
+     !! data have to be aligned. This is used when the field is opened with 
+     !! flow=.true. so that the output is forced to start from the columns indicated
+     !! by the value of tabbing. Should the cursor be already above this value,
+     !! then the field is ignored.
+     integer :: tabbing
      integer:: unit !< unit of the yaml_stream to be used for output. 
                     !! its value is specified by the user according to the specification of the @link yaml_set_stream @endlink routine
      character(len=1) :: mapname !<key of the mapping (or sequence). It represents the identifier of the value field which is associated to it
@@ -122,7 +130,7 @@ module yaml_output
      character(len=1) :: tag !< tag description. Unused and should be probably removed
      !> scalar value of the mapping may be of any scalar type
      !! it is internally converted to character with the usage of @link yaml_toa @endlink function
-     character(len=1) :: mapvalue           
+     character(len=1) :: mapvalue
   end type doc
 
 
@@ -226,8 +234,26 @@ contains
          YAML_UNIT_INCONSISTENCY,&
          err_action='This is an internal error of yaml_output module, contact developers')
     !the module is ready for usage
+    call dict_init(stream_files)
     module_initialized=.true.
   end subroutine yaml_output_errors
+
+  function stream_next_free_unit()
+    integer :: stream_next_free_unit
+    type(dictionary), pointer :: iter
+
+    logical :: unit_is_open
+    integer :: ierr
+
+    stream_next_free_unit = 75214
+    unit_is_open = .true.
+    do while (unit_is_open)
+       inquire(unit=stream_next_free_unit,opened=unit_is_open,iostat=ierr)
+       if (f_err_raise(ierr /=0,'error in unit inquiring, ierr='//trim(yaml_toa(ierr)),&
+            YAML_INVALID)) return
+       stream_next_free_unit = stream_next_free_unit + 1
+    end do
+  end function stream_next_free_unit
   
   !> Set the default stream of the module. Return  a STREAM_ALREADY_PRESENT errcode if
   !! The stream has not be initialized.
@@ -274,7 +300,7 @@ contains
     !local variables
     integer, parameter :: NO_ERRORS           = 0
     logical :: unit_is_open,set_default
-    integer :: istream,unt,ierr
+    integer :: istream,unt,ierr,recl_file
     character(len=15) :: pos
         
     !check that the module has been initialized
@@ -285,13 +311,63 @@ contains
     if (present(unit)) then
        unt=unit
     else
-       unt=6
+       if (present(filename)) then
+          if (has_key(stream_files, trim(filename))) then
+             unt=stream_files // trim(filename)
+          else
+             unt=stream_next_free_unit()
+          end if
+       else
+          unt=6
+       end if
     end if
 
-    if (present(position)) then
-       pos(1:len(pos))=position
-    else
-       pos(1:len(pos))='append'
+    !open fortran unit if needed
+    recl_file=0
+    if (present(filename) .and. unt /= 6) then
+       !inquire whether unit exists already
+       inquire(unit=unt,opened=unit_is_open,iostat=ierr)
+       if (f_err_raise(ierr /=0,'error in unit inquiring, ierr='//trim(yaml_toa(ierr)),&
+               YAML_INVALID)) return
+       if (unit_is_open) then
+          if(present(istat)) then
+             istat=YAML_STREAM_ALREADY_PRESENT
+          else
+             call f_err_throw('The unit '//trim(yaml_toa(unt))//' is already present',&
+                  YAML_STREAM_ALREADY_PRESENT)
+          end if
+       end if
+       if (present(position)) then
+          pos(1:len(pos))=position
+       else
+          pos(1:len(pos))='append'
+       end if
+       if (.not. unit_is_open) then
+          !inquire also file opening
+          inquire(file=trim(filename),opened=unit_is_open,iostat=ierr)
+          if (f_err_raise(ierr /=0,'error in file inquiring, ierr='//trim(yaml_toa(ierr)),&
+               YAML_INVALID)) return
+          if (unit_is_open) then
+             if(present(istat)) then
+                istat=YAML_STREAM_ALREADY_PRESENT
+             else
+                call f_err_throw('The file '//trim(filename)//' is already connected',&
+                     YAML_STREAM_ALREADY_PRESENT)
+             end if
+          end if
+          open(unit=unt,file=trim(filename),status='unknown',position=trim(pos),iostat=ierr)
+       end if
+       if (present(istat)) then
+          istat=ierr
+       else
+          if (f_err_raise(ierr /=0,'error in file opening, ierr='//trim(yaml_toa(ierr)),&
+               YAML_INVALID)) return
+       end if
+       if (ierr == 0 .and. .not. unit_is_open) then
+          !inquire the record length for the unit
+          inquire(unit=unt,recl=recl_file)
+          call set(stream_files // trim(filename), trim(yaml_toa(unt)))
+       end if
     end if
 
     if (present(setdefault)) then
@@ -324,29 +400,6 @@ contains
     ! set last opened stream as default stream
     if (set_default) default_stream=active_streams
 
-    !open fortran unit if needed
-    if (present(filename) .and. unt /= 6) then
-       !inquire whether unit exists already
-       inquire(unit=unt,opened=unit_is_open,iostat=ierr)
-       if (f_err_raise(ierr /=0,'error in unit inquiring, ierr='//trim(yaml_toa(ierr)),&
-               YAML_INVALID)) return
-       if (unit_is_open) then
-          if(present(istat)) then
-             istat=YAML_STREAM_ALREADY_PRESENT
-          else
-             call f_err_throw('The unit '//trim(yaml_toa(unt))//' is already present',&
-                  YAML_STREAM_ALREADY_PRESENT)
-          end if
-       end if
-       open(unit=unt,file=trim(filename),status='unknown',position=trim(pos),iostat=ierr)
-       if (present(istat)) then
-          istat=ierr
-       else
-          if (f_err_raise(ierr /=0,'error in file opening, ierr='//trim(yaml_toa(ierr)),&
-               YAML_INVALID)) return
-       end if
-    end if
-
     !set stream non-default attributes
     streams(active_streams)%unit=unt
 
@@ -354,8 +407,10 @@ contains
        streams(active_streams)%tabref=tabbing
        if (tabbing==0) streams(active_streams)%pp_allowed=.false.
     end if
+    !protect the record length to be lower than the maximum allowed by the processor
     if (present(record_length)) then
-       streams(active_streams)%max_record_length=record_length
+       if (recl_file<=0) recl_file=record_length
+       streams(active_streams)%max_record_length=min(record_length,recl_file)
     end if
   end subroutine yaml_set_stream
 
@@ -522,7 +577,8 @@ contains
     integer, optional, intent(in) :: unit
     integer, optional, intent(out) :: istat !<error code, zero if suceeded
     !local variables
-    integer :: unt,istatus,strm
+    integer :: unt,istatus,strm,funt
+    type(dictionary), pointer :: iter
 
     unt=0
     if (present(unit)) unt=unit
@@ -549,8 +605,22 @@ contains
          'Unit '//trim(yaml_toa(unt))//' inconsistent',&
          err_id=YAML_UNIT_INCONSISTENCY)) return
 
-    !close files which are not stdout
+    !close files which are not stdout and remove them from stream_files
     if (unt /= 6) close(unt)
+    iter => dict_iter(stream_files)
+    do while (associated(iter))
+       funt = iter
+       if (funt == unt) then
+          if (dict_size(stream_files) == 1) then
+             call pop(stream_files, dict_key(iter))
+             call dict_init(stream_files)
+          else
+             call pop(stream_files, dict_key(iter))
+          end if
+          exit
+       end if
+       iter => dict_next(iter)
+    end do
     !reset the stream information
     !reduce the active_stream
     if (strm /= active_streams) then
@@ -585,6 +655,7 @@ contains
        !unit 6 cannot be closed
        if (unt /= 6) call yaml_close_stream(unit=unt)
     end do
+    call dict_free(stream_files)
     stream_units=6
     active_streams=1 !stdout is always kept active
     default_stream=1
@@ -754,53 +825,55 @@ contains
   !! Therefore the yaml_open_map routine is necessary each time that
   !! the value of a map is another map. See also @link yaml_map @endlink and @link yaml_close_map @endlink routines
   !! @ingroup FLIB_YAML
-  subroutine yaml_open_map(mapname,label,tag,flow,unit)
+  subroutine yaml_open_map(mapname,label,tag,flow,tabbing,advance,unit)
     implicit none
-    integer, optional, intent(in) :: unit !< @copydoc doc::unit
-    character(len=*), optional, intent(in) :: mapname !< @copydoc doc::mapname
-    logical, optional, intent(in) :: flow !< @copydoc doc::flow
-    character(len=*), optional, intent(in) :: label !< @copydoc doc::label
-    character(len=*), optional, intent(in) :: tag !< @copydoc doc::tag
-    !local variables
-    logical :: doflow
-    integer :: msg_lgt
-    integer :: unt,strm
-    character(len=3) :: adv
-    character(len=tot_max_record_length) :: towrite
-
-    unt=0
-    if (present(unit)) unt=unit
-    call get_stream(unt,strm)
-
-    doflow=streams(strm)%flowrite
-    !override if already active
-    if (present(flow)) doflow=flow .or. doflow
-
-    msg_lgt=0
-    !put the message
-    if (present(mapname)) then
-       call buffer_string(towrite,len(towrite),trim(mapname),msg_lgt)
-       !put the semicolon
-       call buffer_string(towrite,len(towrite),':',msg_lgt)
-    end if
-    !put the optional tag description
-    if (present(tag) .and. len_trim(tag) > 0) then
-       call buffer_string(towrite,len(towrite),' !',msg_lgt)
-       call buffer_string(towrite,len(towrite),trim(tag),msg_lgt)
-    end if
-    !put the optional name
-    if (present(label) .and. len_trim(label) > 0) then
-       call buffer_string(towrite,len(towrite),' &',msg_lgt)
-       call buffer_string(towrite,len(towrite),trim(label),msg_lgt)
-    end if
-
-    call open_level(streams(strm),doflow)
-
-    if (doflow .or. msg_lgt==0) then
-       adv='no '
-    else
-       adv='yes'
-    end if
+    include 'yaml_open-inc.f90'
+!!$    integer, optional, intent(in) :: unit !< @copydoc doc::unit
+!!$    integer, optional, intent(in) :: tabbing !< @copydoc doc::tabbing
+!!$    character(len=*), optional, intent(in) :: mapname !< @copydoc doc::mapname
+!!$    logical, optional, intent(in) :: flow !< @copydoc doc::flow
+!!$    character(len=*), optional, intent(in) :: label !< @copydoc doc::label
+!!$    character(len=*), optional, intent(in) :: tag !< @copydoc doc::tag
+!!$    !local variables
+!!$    logical :: doflow
+!!$    integer :: msg_lgt
+!!$    integer :: unt,strm
+!!$    character(len=3) :: adv
+!!$    character(len=tot_max_record_length) :: towrite
+!!$
+!!$    unt=0
+!!$    if (present(unit)) unt=unit
+!!$    call get_stream(unt,strm)
+!!$
+!!$    doflow=streams(strm)%flowrite
+!!$    !override if already active
+!!$    if (present(flow)) doflow=flow .or. doflow
+!!$
+!!$    msg_lgt=0
+!!$    !put the message
+!!$    if (present(mapname)) then
+!!$       call buffer_string(towrite,len(towrite),trim(mapname),msg_lgt)
+!!$       !put the semicolon
+!!$       call buffer_string(towrite,len(towrite),':',msg_lgt)
+!!$    end if
+!!$    !put the optional tag description
+!!$    if (present(tag) .and. len_trim(tag) > 0) then
+!!$       call buffer_string(towrite,len(towrite),' !',msg_lgt)
+!!$       call buffer_string(towrite,len(towrite),trim(tag),msg_lgt)
+!!$    end if
+!!$    !put the optional name
+!!$    if (present(label) .and. len_trim(label) > 0) then
+!!$       call buffer_string(towrite,len(towrite),' &',msg_lgt)
+!!$       call buffer_string(towrite,len(towrite),trim(label),msg_lgt)
+!!$    end if
+!!$
+!!$    call open_level(streams(strm),doflow)
+!!$
+!!$    if (doflow .or. msg_lgt==0) then
+!!$       adv='no '
+!!$    else
+!!$       adv='yes'
+!!$    end if
 
     call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=MAPPING_START)
 
@@ -838,57 +911,9 @@ contains
 
 
   !> Open a yaml sequence
-  subroutine yaml_open_sequence(mapname,label,tag,flow,advance,unit)
-    use yaml_strings
+  subroutine yaml_open_sequence(mapname,label,tag,flow,tabbing,advance,unit)
     implicit none
-    character(len=*), optional, intent(in) :: mapname !< Key of the sequence. @copydoc doc::mapname
-    character(len=*), optional, intent(in) :: label   !< @copydoc doc::label
-    character(len=*), optional, intent(in) :: tag     !< @copydoc doc::tag
-    logical, optional, intent(in) :: flow             !< @copydoc doc::flow
-    character(len=*), optional, intent(in) :: advance !< @copydoc doc::advance
-    integer, optional, intent(in) :: unit             !< @copydoc doc::unit
-    !local variables
-    logical :: doflow
-    integer :: msg_lgt
-    integer :: unt,strm
-    character(len=3) :: adv
-    character(len=tot_max_record_length) :: towrite
-
-    unt=0
-    if (present(unit)) unt=unit
-    call get_stream(unt,strm)
-
-    doflow=streams(strm)%flowrite
-    !override if already active
-    if (present(flow)) doflow=flow .or. doflow
-
-    msg_lgt=0
-    !put the message
-    if (present(mapname) .and. len_trim(mapname)>0) then
-       call buffer_string(towrite,len(towrite),trim(mapname),msg_lgt)
-       !put the semicolon
-       call buffer_string(towrite,len(towrite),':',msg_lgt)
-    end if
-    !put the optional tag
-    if (present(tag).and. len_trim(tag)>0) then
-       call buffer_string(towrite,len(towrite),' !',msg_lgt)
-       call buffer_string(towrite,len(towrite),trim(tag),msg_lgt)
-    end if
-    !put the optional name
-    if (present(label).and. len_trim(label)>0) then
-       call buffer_string(towrite,len(towrite),' &',msg_lgt)
-       call buffer_string(towrite,len(towrite),trim(label),msg_lgt)
-    end if
-
-    call open_level(streams(strm),doflow)
-
-    if (doflow .or. msg_lgt==0) then
-       adv='no '
-    else
-       adv='yes'
-       if (present(advance)) adv = advance
-    end if
-
+    include 'yaml_open-inc.f90'
     call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=SEQUENCE_START)
 
   end subroutine yaml_open_sequence

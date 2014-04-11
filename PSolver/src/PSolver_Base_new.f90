@@ -12,9 +12,10 @@
 !! General version, for each boundary condition
 subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,geocode,ncplx,&
      n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,pot,zf,scal,hx,hy,hz,offset,strten)
-  use Poisson_Solver, only: dp, gp
+  use Poisson_Solver, only: dp, gp, TCAT_PSOLV_COMMUN,TCAT_PSOLV_COMPUT
   use wrapper_mpi
   use memory_profiling
+  use time_profiling, only: f_timing
   implicit none
   !to be preprocessed
   include 'perfdata.inc'
@@ -89,8 +90,8 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   else
      n1dim=n1/2
   end if
-
-  call timing(iproc,'PSolv_comput  ','ON')
+  call f_timing(TCAT_PSOLV_COMPUT,'ON')
+  !call timing(iproc,'PSolv_comput  ','ON')
   ! check input
   if (mod(n1,2) /= 0 .and. .not. perx) stop 'Parallel convolution:ERROR:n1' !this can be avoided
   if (mod(n2,2) /= 0 .and. .not. perz) stop 'Parallel convolution:ERROR:n2' !this can be avoided
@@ -136,7 +137,7 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
 
   if (lzt < n2dim) then
     if (iproc==0) print*,'PSolver error: lzt < n2dim',lzt,n2dim
-    call mpi_finalize
+    call mpi_finalize(i_stat)
     stop
   endif
   !if (iproc==0) print*,'lzt n2dim',lzt,n2dim
@@ -299,16 +300,19 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
     !Interprocessor data transposition
     !input: I1,J2,j3,jp3,(Jp2)
     if (nproc > 1 .and. iproc < n3pr1*n3pr2) then
-       call timing(iproc,'PSolv_comput  ','OF')
-       call timing(iproc,'PSolv_commun  ','ON')
+       call f_timing(TCAT_PSOLV_COMPUT,'OF')
+       !call timing(iproc,'PSolv_comput  ','OF')
+       !call timing(iproc,'PSolv_commun  ','ON')
+       call f_timing(TCAT_PSOLV_COMMUN,'ON')
        !communication scheduling
-        call MPI_ALLTOALL(zmpi2,2*n1dim*(md2/nproc)*(nd3/n3pr2), &
-             MPI_double_precision, &
-             zmpi1,2*n1dim*(md2/nproc)*(nd3/n3pr2), &
-             MPI_double_precision,planes_comm,ierr)
-
-       call timing(iproc,'PSolv_commun  ','OF')
-       call timing(iproc,'PSolv_comput  ','ON')
+       call MPI_ALLTOALL(zmpi2,2*n1dim*(md2/nproc)*(nd3/n3pr2), &
+            MPI_double_precision, &
+            zmpi1,2*n1dim*(md2/nproc)*(nd3/n3pr2), &
+            MPI_double_precision,planes_comm,ierr)
+       call f_timing(TCAT_PSOLV_COMMUN,'OF')
+        !call timing(iproc,'PSolv_commun  ','OF')
+       !call timing(iproc,'PSolv_comput  ','ON')
+       call f_timing(TCAT_PSOLV_COMPUT,'ON')
     endif
 
     !output: I1,J2,j3,Jp2,(jp3)
@@ -391,14 +395,14 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
           !!   is a good idea: this will break OMP parallelization, moreover
           !!   the granularity of the external loop will impose too many communications
           if (n3pr1 > 1 .and. inplane_comm/=MPI_COMM_NULL) then
-            call timing(iproc,'PSolv_comput  ','OF')
-            call timing(iproc,'PSolv_commun  ','ON')
+            call f_timing(TCAT_PSOLV_COMPUT,'OF')
+            call f_timing(TCAT_PSOLV_COMMUN,'ON')
 
             call MPI_ALLTOALL(zt,2*(n1p/n3pr1)*(lzt/n3pr1),MPI_double_precision,zt_t,2*(n1p/n3pr1)*(lzt/n3pr1), &
                             MPI_double_precision,inplane_comm,ierr)
 
-            call timing(iproc,'PSolv_commun  ','OF')
-            call timing(iproc,'PSolv_comput  ','ON')
+            call f_timing(TCAT_PSOLV_COMMUN,'OF')
+            call f_timing(TCAT_PSOLV_COMPUT,'ON')
           endif
         
           do j=1,n1p/n3pr1,lot
@@ -461,14 +465,14 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
 
         !LG: this MPI_ALLTOALL is inside a loop. I think that it will rapidly become unoptimal
         if (n3pr1 > 1 .and. inplane_comm/=MPI_COMM_NULL) then
-            call timing(iproc,'PSolv_comput  ','OF')
-            call timing(iproc,'PSolv_commun  ','ON')
+            call f_timing(TCAT_PSOLV_COMPUT,'OF')
+            call f_timing(TCAT_PSOLV_COMMUN,'ON')
 
             call MPI_ALLTOALL(zt_t,2*(n1p/n3pr1)*(lzt/n3pr1),MPI_double_precision,zt,2*(n1p/n3pr1)*(lzt/n3pr1), &
                             MPI_double_precision,inplane_comm,ierr)
 
-            call timing(iproc,'PSolv_commun  ','OF')
-            call timing(iproc,'PSolv_comput  ','ON')
+            call f_timing(TCAT_PSOLV_COMMUN,'OF')
+            call f_timing(TCAT_PSOLV_COMPUT,'ON')
           endif
 
           lot=ncache/(4*n1)
@@ -523,15 +527,15 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
     !Interprocessor data transposition
     !input: I1,J2,j3,Jp2,(jp3)
     if (nproc > 1 .and. iproc < n3pr1*n3pr2) then
-       call timing(iproc,'PSolv_comput  ','OF')
-       call timing(iproc,'PSolv_commun  ','ON')
+       call f_timing(TCAT_PSOLV_COMPUT,'OF')
+       call f_timing(TCAT_PSOLV_COMMUN,'ON')
        !communication scheduling
        call MPI_ALLTOALL(zmpi1,2*n1dim*(md2/nproc)*(nd3/n3pr2), &
             MPI_double_precision, &
             zmpi2,2*n1dim*(md2/nproc)*(nd3/n3pr2), &
             MPI_double_precision,planes_comm,ierr)
-       call timing(iproc,'PSolv_commun  ','OF')
-       call timing(iproc,'PSolv_comput  ','ON')
+       call f_timing(TCAT_PSOLV_COMMUN,'OF')
+       call f_timing(TCAT_PSOLV_COMPUT,'ON')
     endif
     !output: I1,J2,j3,jp3,(Jp2)
     nd3=nd3*n3pr1
@@ -663,7 +667,7 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
      deallocate(zmpi1,stat=i_stat)
      call memocc(i_stat,i_all,'zmpi1',subname)
   end if
-  call timing(iproc,'PSolv_comput  ','OF')
+  call f_timing(TCAT_PSOLV_COMPUT,'OF')
   !call system_clock(ncount1,ncount_rate,ncount_max)
   !write(*,*) 'TIMING:PS ', real(ncount1-ncount0)/real(ncount_rate)
 END SUBROUTINE G_PoissonSolver

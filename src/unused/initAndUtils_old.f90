@@ -227,8 +227,8 @@
 !!!call memocc(istat, lin%locrad_lowaccuracy, 'lin%locrad_lowaccuracy', subname)
 !!!allocate(lin%locrad_highaccuracy(lin%lzd%nlr), stat=istat)
 !!!call memocc(istat, lin%locrad_highaccuracy, 'lin%locrad_highaccuracy', subname)
-!!!call dcopy(lin%lzd%nlr, input%lin%locrad_lowaccuracy(1), 1 , lin%locrad_lowaccuracy(1), 1)
-!!!call dcopy(lin%lzd%nlr, input%lin%locrad_highaccuracy(1), 1 , lin%locrad_highaccuracy(1), 1)
+!!!call vcopy(lin%lzd%nlr, input%lin%locrad_lowaccuracy(1), 1 , lin%locrad_lowaccuracy(1), 1)
+!!!call vcopy(lin%lzd%nlr, input%lin%locrad_highaccuracy(1), 1 , lin%locrad_highaccuracy(1), 1)
 !!!
 !!!
 !!!! for onwhichatom
@@ -460,8 +460,8 @@
 !!!!!call memocc(istat, lin%lig%lzdig%cutoffweight, 'lin%lig%lzdig%cutoffweight', subname)
 !!!!!allocate(lin%lig%lzdGauss%cutoffweight(lin%orbs%norb,lin%orbs%norb), stat=istat)
 !!!!!call memocc(istat, lin%lig%lzdGauss%cutoffweight, 'lin%lig%lzdGauss%cutoffweight', subname)
-!!!!!call dcopy(lin%orbs%norb**2, lin%lzd%cutoffweight, 1, lin%lig%lzdig%cutoffweight, 1)
-!!!!!call dcopy(lin%orbs%norb**2, lin%lzd%cutoffweight, 1, lin%lig%lzdGauss%cutoffweight, 1)
+!!!!!call vcopy(lin%orbs%norb**2, lin%lzd%cutoffweight, 1, lin%lig%lzdig%cutoffweight, 1)
+!!!!!call vcopy(lin%orbs%norb**2, lin%lzd%cutoffweight, 1, lin%lig%lzdGauss%cutoffweight, 1)
 !!!
 !!!
 !!!
@@ -1570,11 +1570,11 @@ end do
 
 !!allocate(comsr%sendBuf(comsr%nsendBuf), stat=istat)
 !!call memocc(istat, comsr%sendBuf, 'comsr%sendBuf', subname)
-!!call razero(comsr%nSendBuf, comsr%sendBuf)
+!!call to_zero(comsr%nSendBuf, comsr%sendBuf)
 !!
 !!allocate(comsr%recvBuf(comsr%nrecvBuf), stat=istat)
 !!call memocc(istat, comsr%recvBuf, 'comsr%recvBuf', subname)
-!!call razero(comsr%nrecvBuf, comsr%recvBuf)
+!!call to_zero(comsr%nrecvBuf, comsr%recvBuf)
 
 
 ! Determine the size of the auxiliary array
@@ -1995,11 +1995,11 @@ end subroutine initCoefficients
 !!
 !!lrout%Localnorb = lrin%Localnorb
 !!
-!!call dcopy(3, lrin%outofzone(1), 1, lrout%outofzone(1), 1)
+!!call vcopy(3, lrin%outofzone(1), 1, lrout%outofzone(1), 1)
 !!
 !!ii=size(lrin%projflg)
 !!allocate(lrout%projflg(ii))
-!!call dcopy(ii, lrin%projflg(1), 1, lrout%projflg(1), 1)
+!!call vcopy(ii, lrin%projflg(1), 1, lrout%projflg(1), 1)
 !!
 !!lrout%Glr = lrin%Glr
 !!
@@ -2647,7 +2647,7 @@ end subroutine initCommsCompression
 
 
 
-subroutine uncompressMatrix(norb, mad, lmat, mat)
+subroutine uncompress_matrix(norb, mad, lmat, mat)
   use module_base
   use module_types
   implicit none
@@ -2671,11 +2671,11 @@ subroutine uncompressMatrix(norb, mad, lmat, mat)
       end do
   end do
   if(jj/=mad%nvctr) then
-      write(*,'(a,2(2x,i0))') 'ERROR in uncompressMatrix: jj/=mad%nvctr',jj,mad%nvctr
+      write(*,'(a,2(2x,i0))') 'ERROR in uncompress_matrix: jj/=mad%nvctr',jj,mad%nvctr
       stop
   end if
   
-end subroutine uncompressMatrix
+end subroutine uncompress_matrix
 
 
 

@@ -71,6 +71,8 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
      call read_sic_from_text_format(mpi_env%iproc,dict//SIC_VARIABLES, trim(f0))
      call set_inputfile(f0, radical, TDDFT_VARIABLES)
      call read_tddft_from_text_format(mpi_env%iproc,dict//TDDFT_VARIABLES, trim(f0))
+     call set_inputfile(f0, radical, 'lin')
+     call read_lin_from_text_format(mpi_env%iproc,dict, trim(f0))
   else
      ! We add an overloading input.perf (for automatic test purposes).
      ! This will be changed in far future when only YAML input will be allowed.
@@ -87,10 +89,11 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
   call f_release_routine()
 end subroutine read_input_dict_from_files
 
+
 !> Fill the input_variables structure with the information
 !! contained in the dictionary dict
 !! the dictionary should be completes to fill all the information
-subroutine inputs_from_dict(in, atoms, dict, dump)
+subroutine inputs_from_dict(in, atoms, dict)
   use module_types
   use module_defs
   use yaml_output
@@ -101,39 +104,56 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   use dynamic_memory
   use m_profiling, only: ab7_memocc_set_state => memocc_set_state !< abinit module to be removed
   use module_xc
+  use module_atoms, only: atoms_data,atoms_data_null,set_astruct_from_dict
   implicit none
   type(input_variables), intent(out) :: in
   type(atoms_data), intent(out) :: atoms
   type(dictionary), pointer :: dict
-  logical, intent(in) :: dump
 
   !type(dictionary), pointer :: profs
-  integer :: ierr, ityp, iproc_node, nproc_node, nelec_up, nelec_down, norb_max
+  integer :: ierr, ityp, nelec_up, nelec_down, norb_max, jtype
+  character(len = max_field_length) :: writing_dir, output_dir, run_name, msg
   type(dictionary), pointer :: dict_minimal, var
-  character(max_field_length) :: radical
 
   call f_routine(id='inputs_from_dict')
 
+  ! Open log as soon as possible.
+  call create_log_file(dict, writing_dir, output_dir, run_name)
+
   ! Atoms case.
-  atoms = atoms_null()
+  atoms = atoms_data_null()
   if (.not. has_key(dict, "posinp")) stop "missing posinp"
-  call astruct_set_from_dict(dict // "posinp", atoms%astruct)
+  call set_astruct_from_dict(dict // "posinp", atoms%astruct)
 
   ! Input variables case.
   call default_input_variables(in)
 
-  ! Setup radical for output dir.
-  write(radical, "(A)") "input"
-  if (has_key(dict, "radical")) radical = dict // "radical"
-  call standard_inputfile_names(in,trim(radical))
-  ! To avoid race conditions where procs create the default file and other test its
-  ! presence, we put a barrier here.
-  if (bigdft_mpi%nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
+  !call yaml_map('Dictionary parsed',dict)
 
   ! Analyse the input dictionary and transfer it to in.
   ! extract also the minimal dictionary which is necessary to do this run
   call input_keys_fill_all(dict,dict_minimal)
+  if (bigdft_mpi%iproc == 0) then
+     if (associated(dict_minimal)) then
+        call yaml_set_stream(unit=99971,filename=trim(writing_dir)//'/input_minimal.yaml',&
+             record_length=92,istat=ierr,setdefault=.false.,tabbing=0)
+        if (ierr==0) then
+           call yaml_comment('Minimal input file',hfill='-',unit=99971)
+           call yaml_comment('This file indicates the minimal set of input variables which has to be given '//&
+                'to perform the run. The code would produce the same output if this file is used as input.',unit=99971)
+           call yaml_dict_dump(dict_minimal,unit=99971)
+           call yaml_close_stream(unit=99971)
+        else
+           call yaml_warning('Failed to create input_minimal.yaml, error code='//trim(yaml_toa(ierr)))
+        end if
+     end if
+  end if
+  if (associated(dict_minimal)) call dict_free(dict_minimal)
 
+  !call yaml_map('Dictionary completed',dict)
+
+  !call yaml_map('Minimal dictionary',dict_minimal)
+  !stop
   ! Transfer dict values into input_variables structure.
   var => dict_iter(dict // PERF_VARIABLES)
   do while(associated(var))
@@ -165,6 +185,42 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
      call input_set(in, TDDFT_VARIABLES, var)
      var => dict_next(var)
   end do
+  var => dict_iter(dict // LIN_GENERAL)
+  do while(associated(var))
+     call input_set(in, LIN_GENERAL, var)
+     var => dict_next(var)
+  end do
+  var => dict_iter(dict // LIN_BASIS)
+  do while(associated(var))
+     call input_set(in, LIN_BASIS, var)
+     var => dict_next(var)
+  end do
+  var => dict_iter(dict // LIN_KERNEL)
+  do while(associated(var))
+     call input_set(in, LIN_KERNEL, var)
+     var => dict_next(var)
+  end do
+  call nullifyInputLinparameters(in%lin)
+  call allocateBasicArraysInputLin(in%lin, atoms%astruct%ntypes)
+
+  !first fill all the types by the default, then override by per-type values
+  do jtype=1,atoms%astruct%ntypes
+     var => dict_iter(dict//LIN_BASIS_PARAMS)
+     do while(associated(var))
+        call basis_params_set_dict(var,in%lin,jtype)
+        var => dict_next(var)
+     end do
+     !then check if the objects exists in separate specifications
+     if (has_key(dict//LIN_BASIS_PARAMS,trim(atoms%astruct%atomnames(jtype)))) then
+        var => &
+             dict_iter(dict//LIN_BASIS_PARAMS//trim(atoms%astruct%atomnames(jtype)))
+     end if
+     do while(associated(var))
+        call basis_params_set_dict(var,in%lin,jtype)
+        var => dict_next(var)
+     end do
+  end do
+
 
   if (.not. in%debug) then
      call ab7_memocc_set_state(1)
@@ -175,37 +231,16 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
      call ab7_memocc_set_state(0)
      call f_malloc_set_status(output_level=0)
   end if
-  !here the logfile should be opened in the usual way, differentiating between 
-  ! logfiles in case of multiple taskgroups
-  if (trim(in%writing_directory) /= '.' .or. bigdft_mpi%ngroup > 1) then
-     call create_log_file(bigdft_mpi%iproc,in)
-  else
-     !use stdout, do not crash if unit is present
-     if (bigdft_mpi%iproc==0) call yaml_set_stream(record_length=92,istat=ierr)
-  end if
-
-  !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
-  if (bigdft_mpi%iproc==0 .and. dump) then
-     !start writing on logfile
-     call yaml_new_document()
-     !welcome screen
-     call print_logo()
-  end if
-  if (bigdft_mpi%nproc >1) call processor_id_per_node(bigdft_mpi%iproc,bigdft_mpi%nproc,iproc_node,nproc_node)
-  if (bigdft_mpi%iproc ==0 .and. dump) then
-     if (bigdft_mpi%nproc >1) call yaml_map('MPI tasks of root process node',nproc_node)
-     call print_configure_options()
-  end if
 
   ! Cross check values of input_variables.
   call input_analyze(in)
 
   ! Initialise XC calculation
-  if (in%ixc < 0) then
-     call xc_init(in%ixc, XC_MIXED, in%nspin)
-  else
-     call xc_init(in%ixc, XC_ABINIT, in%nspin)
-  end if
+!!$  if (in%ixc < 0) then
+!!$     call xc_init(in%xcObj, in%ixc, XC_MIXED, in%nspin)
+!!$  else
+!!$     call xc_init(in%xcObj, in%ixc, XC_ABINIT, in%nspin)
+!!$  end if
 
   ! Shake atoms, if required.
   call astruct_set_displacement(atoms%astruct, in%randdis)
@@ -234,24 +269,6 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
        & in%gen_nkpt, in%nspin, in%norbsempty, nelec_up, nelec_down, norb_max)
   in%gen_norb = in%gen_norbu + in%gen_norbd
   
-  if (bigdft_mpi%iproc == 0 .and. dump) then
-     call input_keys_dump(dict)
-     if (associated(dict_minimal)) then
-        call yaml_set_stream(unit=71,filename=trim(in%writing_directory)//'/input_minimal.yaml',&
-             record_length=92,istat=ierr,setdefault=.false.,tabbing=0)
-        if (ierr==0) then
-           call yaml_comment('Minimal input file',hfill='-',unit=71)
-           call yaml_comment('This file indicates the minimal set of input variables which has to be given '//&
-                'to perform the run. The code would produce the same output if this file is used as input.',unit=71)
-           call yaml_dict_dump(dict_minimal,unit=71)
-           call yaml_close_stream(unit=71)
-        else
-           call yaml_warning('Failed to create input_minimal.yaml, error code='//trim(yaml_toa(ierr)))
-        end if
-     end if
-  end if
-  if (associated(dict_minimal)) call dict_free(dict_minimal)
-
   if (in%gen_nkpt > 1 .and. in%gaussian_help) then
      if (bigdft_mpi%iproc==0) call yaml_warning('Gaussian projection is not implemented with k-point support')
      call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
@@ -271,19 +288,10 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   end if
 
   ! Stop the code if it is trying to run GPU with spin=4
-  if (in%nspin == 4 .and. (GPUconv .or. OCLconv)) then
+  if (in%nspin == 4 .and. in%matacc%iacceleration /= 0) then
      if (bigdft_mpi%iproc==0) call yaml_warning('GPU calculation not implemented with non-collinear spin')
      call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if
-
-  ! Linear scaling (if given)
-  !in%lin%fragment_calculation=.false. ! to make sure that if we're not doing a linear calculation we don't read fragment information
-  call lin_input_variables_new(bigdft_mpi%iproc,dump .and. (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
-       & in%inputPsiId == INPUT_PSI_DISK_LINEAR), trim(in%file_lin),in,atoms)
-
-  ! Fragment information (if given)
-  call fragment_input_variables(bigdft_mpi%iproc,dump .and. (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
-       & in%inputPsiId == INPUT_PSI_DISK_LINEAR).and.in%lin%fragment_calculation,trim(in%file_frag),in,atoms)
 
 !!$  ! Stop code for unproper input variables combination.
 !!$  if (in%ncount_cluster_x > 0 .and. .not. in%disableSym .and. atoms%geocode == 'S') then
@@ -300,13 +308,37 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
 !!$     call dict_free(profs)
 !!$  end if
 
-  !check whether a directory name should be associated for the data storage
-  call check_for_data_writing_directory(bigdft_mpi%iproc,in)
-  
+  !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
+
+  ! Warn for all INPUT_VAR_ILLEGAL errors.
+  do while (f_err_pop(INPUT_VAR_ILLEGAL, add_msg = msg) /= 0)
+     call yaml_warning(trim(msg))
+  end do
   !check if an error has been found and raise an exception to be handled
   if (f_err_check()) then
      call f_err_throw('Error in reading input variables from dictionary',&
           err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+  end if
+
+  in%run_name          = run_name
+  in%writing_directory = writing_dir
+  in%dir_output        = output_dir
+  call input_variables_from_old_text_format(in, atoms, trim(in%run_name))
+
+  if (bigdft_mpi%iproc==0) then
+     call input_keys_dump(dict)
+  end if
+
+  !check whether a directory name should be associated for the data storage
+  call check_for_data_writing_directory(bigdft_mpi%iproc,in)
+
+  ! Generate the description of input variables.
+  !if (bigdft_mpi%iproc == 0) then
+  !   call input_keys_dump_def(trim(in%writing_directory) // "/input_help.yaml")
+  !end if
+
+  if (bigdft_mpi%iproc == 0) then
+     call print_general_parameters(in,atoms)
   end if
 
   call f_release_routine()
@@ -522,6 +554,7 @@ subroutine allocateInputFragArrays(input_frag)
   allocate(input_frag%label(input_frag%nfrag_ref), stat=i_stat)
   call memocc(i_stat, input_frag%label, 'input_frag%label', subname)
 
+  !f_malloc0_str_ptr should be used here
   allocate(input_frag%dirname(input_frag%nfrag_ref), stat=i_stat)
   call memocc(i_stat, input_frag%dirname, 'input_frag%dirname', subname)
 
@@ -663,7 +696,7 @@ subroutine free_input_variables(in)
   call deallocateInputFragArrays(in%frag)
 
   ! Free the libXC stuff if necessary, related to the choice of in%ixc.
-  call xc_end()
+!!$  call xc_end(in%xcObj)
 
 !!$  if (associated(in%Gabs_coeffs) ) then
 !!$     i_all=-product(shape(in%Gabs_coeffs))*kind(in%Gabs_coeffs)
@@ -714,6 +747,9 @@ subroutine input_analyze(in)
   use module_types, only: input_variables
   use module_types, only: output_denspot_FORMAT_CUBE, output_denspot_NONE, WF_FORMAT_NONE
   use module_types, only: bigdft_mpi
+  use module_types, only: KERNELMODE_DIRMIN, KERNELMODE_DIAG, KERNELMODE_FOE, &
+                          MIXINGMODE_DENS, MIXINGMODE_POT, &
+                          LINEAR_DIRECT_MINIMIZATION, LINEAR_MIXDENS_SIMPLE, LINEAR_MIXPOT_SIMPLE, LINEAR_FOE
   use module_defs, only: gp
   use dynamic_memory
   use module_input_keys, only: input_keys_equal
@@ -738,6 +774,7 @@ subroutine input_analyze(in)
      end if
      write(*,'(5x,a)') 'This values will be adjusted if it is larger than the number of orbitals.'
   end if
+  !@todo also the inputguess variable should be checked if BC are nonFree
 
   ! the DFT variables ------------------------------------------------------
   in%SIC%ixc = in%ixc
@@ -783,12 +820,33 @@ subroutine input_analyze(in)
         in%qmass = f_malloc_ptr(in%nnos, id = "in%qmass")
      end if
   end if
+
+  ! determine the scf mode
+  select case (in%lin%kernel_mode)
+  case (KERNELMODE_DIRMIN)
+      in%lin%scf_mode = LINEAR_DIRECT_MINIMIZATION
+  case (KERNELMODE_DIAG)
+      select case (in%lin%mixing_mode)
+      case (MIXINGMODE_DENS)
+          in%lin%scf_mode = LINEAR_MIXDENS_SIMPLE
+      case (MIXINGMODE_POT)
+          in%lin%scf_mode = LINEAR_MIXPOT_SIMPLE
+      case default
+          stop 'wrong value of in%lin%mixing_mode'
+      end select
+  case (KERNELMODE_FOE)
+      in%lin%scf_mode = LINEAR_FOE
+  case default
+      stop 'wrong value of in%lin%kernel_mode'
+  end select
+
   call f_release_routine()
 END SUBROUTINE input_analyze
 
 subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   use module_base
   use module_types
+  use module_atoms, only: symmetry_data
   use defs_basis
   use m_ab6_kpoints
   use yaml_output

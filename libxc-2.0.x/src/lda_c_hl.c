@@ -48,7 +48,7 @@ hl_f(int func, int order, int i, FLOAT rs, FLOAT *zk, FLOAT *drs, FLOAT *d2rs, F
   x2  = x*x;
   x3  = x2*x;
   
-  a   = log(1.0 + 1.0/x);
+  a   = LOG(1.0 + 1.0/x);
   *zk = -c[func][i]*((1.0 + x3)*a - x2 + 0.5*x - 1.0/3.0);
   
   if(order < 1) return;
@@ -143,6 +143,8 @@ const XC(func_info_type) XC(func_info_lda_c_hl) = {
   NULL,     /* init */
   NULL,     /* end  */
   work_lda, /* lda  */
+  NULL,
+  NULL
 };
 
 const XC(func_info_type) XC(func_info_lda_c_gl) = {
@@ -156,6 +158,8 @@ const XC(func_info_type) XC(func_info_lda_c_gl) = {
   NULL,     /* init */
   NULL,     /* end  */
   work_lda, /* lda  */
+  NULL,
+  NULL
 };
 
 const XC(func_info_type) XC(func_info_lda_c_vbh) = {
@@ -169,4 +173,6 @@ const XC(func_info_type) XC(func_info_lda_c_vbh) = {
   NULL,     /* init */
   NULL,     /* end  */
   work_lda, /* lda  */
+  NULL,
+  NULL
 };

@@ -96,7 +96,7 @@ function GetBottom(atoms,nspin)
          if (ity.eq.atoms%astruct%iatype(iat)) exit
       end do
       call iguess_generator(atoms%nzatom(ity),atoms%nelpsp(ity),&
-         &   real(atoms%nelpsp(ity),gp),nspin_ig,atoms%aocc(1:,iat),atoms%psppar(0:,0:,ity),&
+         &   real(atoms%nelpsp(ity),gp),nspin_ig,atoms%aoig(iat)%aocc,atoms%psppar(0:,0:,ity),&
          &   atoms%npspcode(ity),  &
          &   atoms%nlcc_ngv(ity),atoms%nlcc_ngc(ity),atoms%nlccpar(0:,ity),&
          &   ng-1,expo,psi,.false., gaenes_aux=gaenes_aux  )

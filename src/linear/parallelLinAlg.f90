@@ -375,8 +375,8 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
   
       ! Copy the global array mat to the local array lmat.
       ! The same for loverlap and overlap, respectively.
-      !call dcopy(norb**2, ham(1,1), 1, mat(1,1), 1)
-      !call dcopy(norb**2, ovrlp(1,1), 1, overlap(1,1), 1)
+      !call vcopy(norb**2, ham(1,1), 1, mat(1,1), 1)
+      !call vcopy(norb**2, ovrlp(1,1), 1, overlap(1,1), 1)
       do i=1,n
           do j=1,n
               call pdelset(la(1,1), j, i, desc_la, a(j,i))
@@ -575,8 +575,8 @@ subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, 
   
       ! Copy the global array mat to the local array la.
       ! The same for lb and b, respectively.
-      !call dcopy(n**2, a(1,1), 1, mat(1,1), 1)
-      !call dcopy(n**2, b(1,1), 1, b(1,1), 1)
+      !call vcopy(n**2, a(1,1), 1, mat(1,1), 1)
+      !call vcopy(n**2, b(1,1), 1, b(1,1), 1)
       do i=1,n
           do j=1,n
               call pdelset(la(1,1), j, i, desc_la, a(j,i))

@@ -735,7 +735,7 @@ subroutine precond_preconditioner_wrapper(hybrid_on,&
 !!$  if (hybrid_on) then
 !!$     do idx=1,ncplx
 !!$        !b=x
-!!$        call dcopy(nvctr_c+7*nvctr_f,x(1,idx),1,b(1,idx),1) 
+!!$        call vcopy(nvctr_c+7*nvctr_f,x(1,idx),1,b(1,idx),1) 
 !!$
 !!$        call prec_fft_fast(n1,n2,n3,&
 !!$             nseg_c,nvctr_c,nseg_f,nvctr_f,&
@@ -755,7 +755,7 @@ subroutine precond_preconditioner_wrapper(hybrid_on,&
 !!$        call wscal_per_self(nvctr_c,nvctr_f,scal,&
 !!$             x(1,idx),x(nvctr_c+1,idx))
 !!$        !b=x
-!!$        call dcopy(nvctr_c+7*nvctr_f,x(1,idx),1,b(1,idx),1) 
+!!$        call vcopy(nvctr_c+7*nvctr_f,x(1,idx),1,b(1,idx),1) 
 !!$
 !!$        !if GPU is swithced on and there is no call to GPU preconditioner
 !!$        !do not do the FFT preconditioning
