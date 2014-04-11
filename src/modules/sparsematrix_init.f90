@@ -1026,6 +1026,10 @@ module sparsematrix_init
            nsegline, istsegline, keyg, sparsemat, &
            sparsemat%smmm%nseq, sparsemat%smmm%nmaxsegk, sparsemat%smmm%nmaxvalk, &
            sparsemat%smmm%ivectorindex)
+      call init_sequential_acces_matrix(norb, norbp, isorb, nseg, &
+           nsegline, istsegline, keyg, sparsemat, sparsemat%smmm%nseq, &
+           sparsemat%smmm%nmaxsegk, sparsemat%smmm%nmaxvalk, &
+           sparsemat%smmm%indices_extract_sequential)
     end subroutine init_sparse_matrix_matrix_multiplication
 
 

@@ -90,16 +90,20 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
           end if
       end if
     
-      call sequential_acces_matrix(norb, norbp, isorb, kernel%smmm%nseg, &
-           kernel%smmm%nsegline, kernel%smmm%istsegline, kernel%smmm%keyg, &
-           kernel, ham_compr, kernel%smmm%nseq, kernel%smmm%nmaxsegk, kernel%smmm%nmaxvalk, &
-           ham_compr_seq)
+      !!call sequential_acces_matrix(norb, norbp, isorb, kernel%smmm%nseg, &
+      !!     kernel%smmm%nsegline, kernel%smmm%istsegline, kernel%smmm%keyg, &
+      !!     kernel, ham_compr, kernel%smmm%nseq, kernel%smmm%nmaxsegk, kernel%smmm%nmaxvalk, &
+      !!     ham_compr_seq)
+      call sequential_acces_matrix_fast(kernel%smmm%nseq, kernel%nvctr, &
+           kernel%smmm%indices_extract_sequential, ham_compr, ham_compr_seq)
     
     
-      call sequential_acces_matrix(norb, norbp, isorb, kernel%smmm%nseg, &
-           kernel%smmm%nsegline, kernel%smmm%istsegline, kernel%smmm%keyg, &
-           kernel, ovrlp_compr, kernel%smmm%nseq, kernel%smmm%nmaxsegk, kernel%smmm%nmaxvalk, &
-           ovrlp_compr_seq)
+      !!call sequential_acces_matrix(norb, norbp, isorb, kernel%smmm%nseg, &
+      !!     kernel%smmm%nsegline, kernel%smmm%istsegline, kernel%smmm%keyg, &
+      !!     kernel, ovrlp_compr, kernel%smmm%nseq, kernel%smmm%nmaxsegk, kernel%smmm%nmaxvalk, &
+      !!     ovrlp_compr_seq)
+      call sequential_acces_matrix_fast(kernel%smmm%nseq, kernel%nvctr, &
+           kernel%smmm%indices_extract_sequential, ovrlp_compr, ovrlp_compr_seq)
 
     
       vectors = f_malloc((/ norb, norbp, 4 /),id='vectors')
@@ -146,10 +150,12 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
       end if
   
       if (orbs%norbp>0) then
-          call sequential_acces_matrix(norb, norbp, isorb, kernel%smmm%nseg, &
-               kernel%smmm%nsegline, kernel%smmm%istsegline, kernel%smmm%keyg, &
-               kernel, SHS, kernel%smmm%nseq, kernel%smmm%nmaxsegk, &
-               kernel%smmm%nmaxvalk, SHS_seq)
+          !!call sequential_acces_matrix(norb, norbp, isorb, kernel%smmm%nseg, &
+          !!     kernel%smmm%nsegline, kernel%smmm%istsegline, kernel%smmm%keyg, &
+          !!     kernel, SHS, kernel%smmm%nseq, kernel%smmm%nmaxsegk, &
+          !!     kernel%smmm%nmaxvalk, SHS_seq)
+          call sequential_acces_matrix_fast(kernel%smmm%nseq, kernel%nvctr, &
+               kernel%smmm%indices_extract_sequential, SHS, SHS_seq)
       end if
   
   end if
@@ -691,9 +697,82 @@ end subroutine get_arrays_for_sequential_acces
 
 
 
-subroutine sequential_acces_matrix(norb, norbp, isorb, nseg, &
-           nsegline, istsegline, keyg, sparsemat, a, nseq, nmaxsegk, nmaxvalk, &
-           a_seq)
+!!subroutine sequential_acces_matrix(norb, norbp, isorb, nseg, &
+!!           nsegline, istsegline, keyg, sparsemat, a, nseq, nmaxsegk, nmaxvalk, &
+!!           a_seq)
+!!  use module_base
+!!  use module_types
+!!  use sparsematrix_base, only: sparse_matrix
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  integer,intent(in) :: norb, norbp, isorb, nseg, nseq, nmaxsegk, nmaxvalk
+!!  integer,dimension(norb),intent(in) :: nsegline, istsegline
+!!  integer,dimension(2,nseg),intent(in) :: keyg
+!!  type(sparse_matrix),intent(in) :: sparsemat
+!!  real(kind=8),dimension(sparsemat%nvctr),intent(in) :: a
+!!  real(kind=8),dimension(nseq),intent(out) :: a_seq
+!!
+!!  ! Local variables
+!!  integer :: i,iseg,jorb,jj,iorb,jseg,ii,iii
+!!  integer :: isegoffset, istart, iend
+!!
+!!
+!!  ii=1
+!!  do i = 1,norbp
+!!     iii=isorb+i
+!!     isegoffset=istsegline(iii)-1
+!!     do iseg=1,nsegline(iii)
+!!          istart=keyg(1,isegoffset+iseg)
+!!          iend=keyg(2,isegoffset+iseg)
+!!          ! keyg is defined in terms of "global coordinates", so get the
+!!          ! coordinate on a given line by using the mod function
+!!          istart=mod(istart-1,norb)+1
+!!          iend=mod(iend-1,norb)+1
+!!          do iorb=istart,iend
+!!              do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
+!!                  jj=1
+!!                  do jorb = sparsemat%keyg(1,jseg),sparsemat%keyg(2,jseg)
+!!                      a_seq(ii)=a(sparsemat%keyv(jseg)+jj-1)
+!!                      jj = jj+1
+!!                      ii = ii+1
+!!                  end do
+!!              end do
+!!          end do
+!!     end do
+!!  end do 
+!!
+!!end subroutine sequential_acces_matrix
+
+
+
+subroutine sequential_acces_matrix_fast(nseq, nvctr, indices_extract_sequential, a, a_seq)
+  use module_base
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: nseq, nvctr
+  integer,dimension(nseq),intent(in) :: indices_extract_sequential
+  real(kind=8),dimension(nvctr),intent(in) :: a
+  real(kind=8),dimension(nseq),intent(out) :: a_seq
+
+  ! Local variables
+  integer :: iseq, ii
+
+  !$omp parallel do default(none) private(iseq, ii) &
+  !$omp shared(nseq, indices_extract_sequential, a_seq, a)
+  do iseq=1,nseq
+      ii=indices_extract_sequential(iseq)
+      a_seq(iseq)=a(ii)
+  end do
+  !$omp end parallel do
+
+end subroutine sequential_acces_matrix_fast
+
+
+subroutine init_sequential_acces_matrix(norb, norbp, isorb, nseg, &
+           nsegline, istsegline, keyg, sparsemat, nseq, nmaxsegk, nmaxvalk, &
+           indices_extract_sequential)
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix
@@ -704,8 +783,7 @@ subroutine sequential_acces_matrix(norb, norbp, isorb, nseg, &
   integer,dimension(norb),intent(in) :: nsegline, istsegline
   integer,dimension(2,nseg),intent(in) :: keyg
   type(sparse_matrix),intent(in) :: sparsemat
-  real(kind=8),dimension(sparsemat%nvctr),intent(in) :: a
-  real(kind=8),dimension(nseq),intent(out) :: a_seq
+  integer,dimension(nseq),intent(out) :: indices_extract_sequential
 
   ! Local variables
   integer :: i,iseg,jorb,jj,iorb,jseg,ii,iii
@@ -727,7 +805,7 @@ subroutine sequential_acces_matrix(norb, norbp, isorb, nseg, &
               do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
                   jj=1
                   do jorb = sparsemat%keyg(1,jseg),sparsemat%keyg(2,jseg)
-                      a_seq(ii)=a(sparsemat%keyv(jseg)+jj-1)
+                      indices_extract_sequential(ii)=sparsemat%keyv(jseg)+jj-1
                       jj = jj+1
                       ii = ii+1
                   end do
@@ -736,7 +814,7 @@ subroutine sequential_acces_matrix(norb, norbp, isorb, nseg, &
      end do
   end do 
 
-end subroutine sequential_acces_matrix
+end subroutine init_sequential_acces_matrix
 
 
 

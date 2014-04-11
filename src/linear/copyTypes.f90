@@ -1041,6 +1041,18 @@ subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
      end do
   end if
 
+  if(associated(sparsemat_out%smmm%indices_extract_sequential)) then
+     call f_free_ptr(sparsemat_out%smmm%indices_extract_sequential)
+  end if
+  if(associated(sparsemat_in%smmm%indices_extract_sequential)) then
+     iis1=lbound(sparsemat_in%smmm%indices_extract_sequential,1)
+     iie1=ubound(sparsemat_in%smmm%indices_extract_sequential,1)
+     sparsemat_out%smmm%indices_extract_sequential=f_malloc_ptr(iis1.to.iie1,id='sparsemat_out%smmm%indices_extract_sequential')
+     do i1=iis1,iie1
+        sparsemat_out%smmm%indices_extract_sequential(i1) = sparsemat_in%smmm%indices_extract_sequential(i1)
+     end do
+  end if
+
   if(associated(sparsemat_out%smmm%onedimindices)) then
      call f_free_ptr(sparsemat_out%smmm%onedimindices)
   end if
