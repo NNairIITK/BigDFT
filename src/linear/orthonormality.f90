@@ -1402,10 +1402,14 @@ subroutine max_matrix_diff_parallel(iproc, norb, norbp, mat1, mat2, deviation)
   call timing(iproc,'dev_from_unity','ON') 
   deviation=0.d0
   do iorb=1,norbp
+     !$omp parallel default(private) shared(norb, mat1, mat2, deviation)
+     !$omp do reduction(max:deviation)
      do jorb=1,norb
         error=abs(mat1(jorb,iorb)-mat2(jorb,iorb))
         deviation=max(error,deviation)
      end do
+     !$omp end do
+     !$omp end parallel
   end do
   call mpiallred(deviation, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
   call timing(iproc,'dev_from_unity','OF') 
@@ -1464,6 +1468,8 @@ subroutine deviation_from_unity_parallel(iproc, nproc, norb, norbp, isorb, ovrlp
   deviation=0.d0
   do iorb=1,norbp
      iiorb=iorb+isorb
+     !$omp parallel default(private) shared(norb, iiorb, ovrlp, iorb, deviation)
+     !$omp do reduction(max:deviation)
      do jorb=1,norb
         if(iiorb==jorb) then
            error=abs(ovrlp(jorb,iorb)-1.d0)
@@ -1472,6 +1478,8 @@ subroutine deviation_from_unity_parallel(iproc, nproc, norb, norbp, isorb, ovrlp
         end if
         deviation=max(error,deviation)
      end do
+     !$omp end do
+     !$omp end parallel
   end do
   if (nproc>1) then
       call mpiallred(deviation, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
@@ -2344,8 +2352,10 @@ end subroutine diagonalize_localized
      ! Local variables
      integer :: ii, iseg, jorb, iiorb, jjorb
 
-     ii=0
+     !$omp parallel do default(private) &
+     !$omp shared(smat, norb, ovrlpminone_compr, ovrlp_compr)
      do iseg=1,smat%nseg
+         ii=smat%keyv(iseg)-1
          do jorb=smat%keyg(1,iseg),smat%keyg(2,iseg)
              iiorb = (jorb-1)/norb + 1
              jjorb = jorb - (iiorb-1)*norb
@@ -2357,6 +2367,7 @@ end subroutine diagonalize_localized
              end if
          end do
      end do
+     !$omp end parallel do
 
    end subroutine matrix_minus_identity_sparse
 
@@ -2389,7 +2400,8 @@ end subroutine diagonalize_localized
          else
              isegend=smat%nseg
          end if
-         !$omp parallel default(none) shared(isegstart, isegend, matrixp, smat, norb, matrix_compr, isorb_par, iproc) &
+         !$omp parallel default(none) &
+         !$omp shared(isegstart, isegend, matrixp, smat, norb, matrix_compr, isorb_par, iproc) &
          !$omp private(iseg, ii, jorb, iiorb, jjorb)
          !$omp do
          do iseg=isegstart,isegend
