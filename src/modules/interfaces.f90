@@ -1569,7 +1569,7 @@ module module_interfaces
           nit_precond,target_function,&
           correction_orthoconstraint,nit_basis,&
           ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
-          gnrm_dynamic, can_use_ham, order_taylor, kappa_conv, method_updatekernel,&
+          gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, kappa_conv, method_updatekernel,&
           purification_quickreturn, adjust_FOE_temperature)
         use module_base
         use module_types
@@ -1596,7 +1596,7 @@ module module_interfaces
         logical, intent(inout) :: ortho_on
         integer, intent(in) :: extra_states
         integer,intent(in) :: itout
-        real(kind=8),intent(in) :: conv_crit, early_stop, gnrm_dynamic, kappa_conv
+        real(kind=8),intent(in) :: conv_crit, early_stop, gnrm_dynamic, min_gnrm_for_dynamic, kappa_conv
         logical,intent(in) :: experimental_mode, purification_quickreturn, adjust_FOE_temperature
         logical,intent(out) :: can_use_ham
         integer,intent(in) :: method_updatekernel
