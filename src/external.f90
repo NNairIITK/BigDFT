@@ -265,6 +265,7 @@ subroutine bigdft_get_eigenvalues(rst,eval,istat)
 
 end subroutine bigdft_get_eigenvalues
 
+!> Abort bigdft program
 subroutine bigdft_severe_abort()
   use module_base
   use yaml_output, only: yaml_toa,yaml_comment
