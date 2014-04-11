@@ -2906,6 +2906,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
       charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix(iorb,iorb)
   end do
   if (iproc==0) call write_partial_charges()
+  if (iproc==0) call calculate_dipole()
 
 
   call f_free(charge_per_atom)
@@ -2939,5 +2940,30 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
       call yaml_map('total net charge',total_net_charge,fmt='(es16.8)')
       call yaml_close_sequence()
     end subroutine write_partial_charges
+
+
+    subroutine calculate_dipole()
+      use yaml_output
+      real(kind=8),dimension(3) :: dipole_elec, dipole_cores, dipole_net
+
+      dipole_cores(1:3)=0_gp
+      do iat=1,atoms%astruct%nat
+         dipole_cores(1:3)=dipole_cores(1:3)+atoms%nelpsp(atoms%astruct%iatype(iat))*atoms%astruct%rxyz(1:3,iat)
+      end do
+
+      dipole_elec=0.d0
+      do iat=1,atoms%astruct%nat
+          dipole_elec(1:3) = dipole_elec(1:3) + -charge_per_atom(iat)*atoms%astruct%rxyz(1:3,iat)
+      end do
+
+      dipole_net=dipole_cores+dipole_elec
+
+      if (iproc==0) then
+          call yaml_map('core dipole', dipole_cores)
+          call yaml_map('electronic dipole', dipole_elec)
+          call yaml_map('net dipole', dipole_net)
+      end if
+
+    end subroutine calculate_dipole
 
 end subroutine loewdin_charge_analysis
