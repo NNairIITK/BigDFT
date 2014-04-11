@@ -14,6 +14,7 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
   use module_types
   use module_interfaces, except_this_one => call_bigdft
   use yaml_output
+  use communications_base
   implicit none
   integer, intent(in) :: iproc,nproc
   type(run_objects), intent(inout) :: runObj
@@ -26,7 +27,6 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
   logical :: exists
   integer :: i_stat,i_all,ierr,inputPsiId_orig,iat,iorb,istep,i,jproc
   real(gp) :: maxdiff
-  real(gp), dimension(:,:,:), allocatable :: rxyz_glob
 
   !temporary interface, not needed anymore since all arguments are structures
 !!$  interface
@@ -58,30 +58,12 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
   call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
   call f_routine(id=subname)
 
-  if (nproc > 1) then
-     !check that the positions are identical for all the processes
-     rxyz_glob=f_malloc((/3,runObj%atoms%astruct%nat,nproc/),id='rxyz_glob')
-     
-     !gather the results for all the processors
-     call MPI_GATHER(runObj%atoms%astruct%rxyz,3*runObj%atoms%astruct%nat,mpidtypg,&
-          rxyz_glob,3*runObj%atoms%astruct%nat,mpidtypg,0,bigdft_mpi%mpi_comm,ierr)
-     if (iproc==0) then
-        maxdiff=0.0_gp
-        do jproc=2,nproc
-           do iat=1,runObj%atoms%astruct%nat
-              do i=1,3
-                 maxdiff=max(maxdiff,&
-                      abs(rxyz_glob(i,iat,jproc)-runObj%atoms%astruct%rxyz(i,iat)))
-              end do
-           end do
-        end do
-        if (maxdiff > epsilon(1.0_gp)) &
-             call yaml_warning('Input positions not identical! '//&
-             '(difference:'//trim(yaml_toa(maxdiff))//' )')
-     end if
+  call check_array_consistency(maxdiff, nproc, runObj%atoms%astruct%rxyz(1,1), &
+       & 3 * runObj%atoms%astruct%nat, bigdft_mpi%mpi_comm)
+  if (iproc==0 .and. maxdiff > epsilon(1.0_gp)) &
+       call yaml_warning('Input positions not identical! '//&
+       '(difference:'//trim(yaml_toa(maxdiff))//' )')
 
-     call f_free(rxyz_glob)
-  end if
   !fill the rxyz array with the positions
   !wrap the atoms in the periodic directions when needed
   select case(runObj%atoms%astruct%geocode)

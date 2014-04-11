@@ -557,7 +557,7 @@ contains
                    dict_update%data%item = dict_update%data%item - 1
                    dict_update => dict_update%next
                 end do
-                deallocate(dict_first)
+                call dict_destroy(dict_first)
              else
                 call dict_free(dict)
              end if

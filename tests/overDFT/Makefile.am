@@ -100,14 +100,14 @@ InputGenPot.xabs.post-out:
 IO-wf_plain.cube: 
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	$(run_serial) $(abs_top_builddir)/src/bigdft-tool --name plain-read -a export-wf data-plain-read/wavefunction-k002-DI.b0003 >> log-plain.yaml
-	mv temp.perf plain-read.perf
+	cp check.perf plain-read.perf
 	mv wavefunction-k002-DI.b0003.cube wf_plain.cube
 	rm -f wavefunction-k002-DI.b0003_avg_*
 
 IO-wf_binary.cube: 
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	$(run_serial) $(abs_top_builddir)/src/bigdft-tool --name binary-read -a export-wf data-binary-read/wavefunction-k002-DI.bin.b0003 >> log-binary.yaml
-	mv temp.perf binary-read.perf
+	cp check.perf binary-read.perf
 	mv wavefunction-k002-DI.b0003.cube wf_binary.cube
 	rm -f wavefunction-k002-DI.b0003_avg_*
 
