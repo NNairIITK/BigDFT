@@ -301,7 +301,10 @@ subroutine foe(iproc, nproc, tmprtr, &
                   !npl=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/tmb%foe_obj%fscale)
                   npl=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale)
                   if(npl<=NPL_MIN) then
-                      if (iproc==0) call yaml_map('increase npl to minimal value; original value',npl)
+                      if (iproc==0) then
+                          call yaml_map('increase npl to minimal value; original value',npl)
+                          call yaml_newline()
+                      end if
                       npl=NPL_MIN ! this is the minimal degree
                   end if
               !else
