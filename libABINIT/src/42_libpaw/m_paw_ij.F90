@@ -1,0 +1,2980 @@
+!{\src2tex{textfont=tt}}
+!!****m* ABINIT/m_paw_ij
+!! NAME
+!!  m_paw_ij
+!!
+!! FUNCTION
+!!  This module contains the definition of the paw_ij_type structured datatype,
+!!  as well as related functions and methods.
+!!  paw_ij_type variables contain various arrays given on (i,j) (partial waves) channels
+!!  for a given atom.
+!!
+!! COPYRIGHT
+!! Copyright (C) 2013-2014 ABINIT group (MT, FJ)
+!! This file is distributed under the terms of the
+!! GNU General Public License, see ~abinit/COPYING
+!! or http://www.gnu.org/copyleft/gpl.txt .
+!!
+!! INPUTS
+!!
+!! OUTPUT
+!!
+!! NOTES
+!!  * Routines tagged with "@type_name" are strongly connected to the definition of the data type.
+!!    Strongly connected means that the proper functioning of the implementation relies on the
+!!    assumption that the tagged procedure is consistent with the type declaration.
+!!    Every time a developer changes the structure "type_name" adding new entries, he/she has to make sure
+!!    that all the strongly connected routines are changed accordingly to accommodate the modification of the data type
+!!    Typical examples of strongly connected routines are creation, destruction or reset methods.
+!!
+!! PARENTS
+!!
+!! CHILDREN
+!!
+!! SOURCE
+
+#if defined HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include "abi_common.h"
+
+MODULE m_paw_ij
+
+ use defs_basis
+ use m_errors
+ use m_profiling
+ use m_xmpi
+ use m_paral_atom, only : get_my_atmtab, free_my_atmtab, get_my_natom
+ use m_pawtab,only : pawtab_type
+ use m_pawio, only : pawio_print_ij
+
+ implicit none
+
+ private
+
+!public procedures.
+ public :: paw_ij_init
+ public :: paw_ij_destroy
+ public :: paw_ij_nullify
+ public :: paw_ij_copy
+ public :: paw_ij_print
+ public :: paw_ij_gather
+ public :: paw_ij_redistribute
+ public :: paw_ij_reset_flags
+
+!private procedures.
+ private :: paw_ij_isendreceive_getbuffer
+ private :: paw_ij_isendreceive_fillbuffer
+
+!!***
+
+!----------------------------------------------------------------------
+
+!!****t* m_paw_ij/paw_ij_type
+!! NAME
+!! paw_ij_type
+!!
+!! FUNCTION
+!! For PAW, various arrays given on (i,j) (partial waves) channels
+!!
+!! SOURCE
+
+ type,public :: paw_ij_type
+
+! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
+! declared in another part of ABINIT, that might need to take into account your modification.
+
+!Integer scalars
+
+  integer :: cplex
+   ! cplex=1 if all on-site PAW quantities are real, 2 if they are complex
+   ! cplex=2 is useful for RF calculations
+
+  integer :: cplex_dij
+   ! cplex=1 if dij are real, 2 if they are complex
+
+  integer :: has_dij
+   ! 1 if dij is allocated
+   ! 2 if dij is already computed
+
+  integer :: has_dij0
+   ! 1 if dij0 is allocated
+   ! 2 if dij0 is already computed
+
+  integer :: has_dijexxc
+   ! 1 if dijexxc is associated and used, 0 otherwise
+   ! 2 if dijexxc is already computed
+
+  integer :: has_dijfock
+   ! 1 if dijfock is allocated
+   ! 2 if dijfock is already computed
+
+  integer :: has_dijfr
+   ! 1 if dijfr is allocated
+   ! 2 if dijfr is already computed
+
+  integer :: has_dijhartree
+   ! 1 if dijhartree is allocated
+   ! 2 if dijhartree is already computed
+
+  integer :: has_dijhat
+   ! 1 if dijhat is allocated
+   ! 2 if dijhat is already computed
+
+  integer :: has_dijso
+   ! 1 if dijso is associated and used, 0 otherwise
+   ! 2 if dijso is already computed
+
+  integer :: has_dijU
+   ! 1 if dijU is associated and used, 0 otherwise
+   ! 2 if dijU is already computed
+
+  integer :: has_dijxc
+   ! 1 if dijxc is associated and used, 0 otherwise
+   ! 2 if dijxc is already computed
+
+  integer :: has_dijxc_hat
+   ! 1 if dijxc_hat is associated and used, 0 otherwise
+   ! 2 if dijxc_hat is already computed
+
+  integer :: has_dijxc_val
+   ! 1 if dijxc_val is associated and used, 0 otherwise
+   ! 2 if dijxc_val is already computed
+
+  integer :: has_exexch_pot
+   ! 1 if PAW+(local exact exchange) potential is allocated
+
+  integer :: has_pawu_occ
+   ! 1 if PAW+U occupations are allocated
+
+  integer :: itypat
+   ! itypat=type of the atom
+
+  integer :: lmn_size
+   ! Number of (l,m,n) elements for the paw basis
+
+  integer :: lmn2_size
+   ! lmn2_size=lmn_size*(lmn_size+1)/2
+   ! where lmn_size is the number of (l,m,n) elements for the paw basis
+
+  integer :: ndij
+   ! Number of components of dij
+   ! Usually ndij=nspden, except for nspinor==2 (where ndij=nspinor**2)
+
+  integer :: nspden
+   ! Number of spin-density components (may be different from dtset%nspden if spin-orbit)
+
+  integer :: nsppol
+   ! Number of independant spin-components
+
+!Real (real(dp)) arrays
+
+  real(dp), pointer :: dij(:,:)
+   ! dij(cplex_dij*lmn2_size,ndij)
+   ! Dij term (non-local operator)
+   ! May be complex if cplex_dij=2
+   !  dij(:,:,1) contains Dij^up-up
+   !  dij(:,:,2) contains Dij^dn-dn
+   !  dij(:,:,3) contains Dij^up-dn (only if nspinor=2)
+   !  dij(:,:,4) contains Dij^dn-up (only if nspinor=2)
+
+  real(dp), pointer :: dij0(:)
+   ! dij0(lmn2_size)
+   ! Atomic part of Dij (read from PAW dataset)
+
+  real(dp), pointer :: dijexxc(:,:)
+   ! dijexxc(cplex_dij*lmn2_size,ndij)
+   ! Onsite matrix elements of the Fock operator (Local Exact exchange implementation)
+
+  real(dp), pointer :: dijfock(:,:)
+   ! dijfock(cplex_dij*lmn2_size,ndij)
+   ! Dij_fock term
+   ! Contains all contributions to Dij from Fock exchange
+   ! Same storage as Dij (see above)
+
+  real(dp), pointer :: dijfr(:,:)
+   ! dijhat(cplex_dij*lmn2_size,ndij)
+   ! For response function calculation only
+   ! RF Frozen part of Dij (depends on q vector but not on 1st-order wave function)
+   ! Same storage as Dij (see above)
+
+  real(dp), pointer :: dijhartree(:)
+   ! dijhartree(cplex*lmn2_size)
+   ! Dij_hartree term
+   ! Contains all contributions to Dij from hartree
+   ! Warning: Dimensioned by cplex, not cplex_dij
+   ! Same storage as Dij (see above)
+
+  real(dp), pointer :: dijhat(:,:)
+   ! dijhat(cplex_dij*lmn2_size,ndij)
+   ! Dij_hat term (non-local operator) i.e \sum_LM \int_FFT Q_{ij}^{LM} vtrial
+   ! Same storage as Dij (see above)
+
+  real(dp), pointer :: dijU(:,:)
+   ! dijU(cplex_dij*lmn2_size,ndij)
+   ! Onsite matrix elements of the U part of the PAW Hamiltonian.
+   ! Same storage as Dij (see above)
+
+  real(dp), pointer :: dijso(:,:)
+   ! dijso(cplex_dij*lmn2_size,ndij)
+   ! Onsite matrix elements of L.S i.e <phi_i|L.S|phi_j>
+   ! Same storage as Dij (see above)
+
+  real(dp), pointer :: dijxc(:,:)
+   ! dijxc(cplex_dij*lmn2_size,ndij)
+   ! Onsite matrix elements of vxc i.e
+   ! <phi_i|vxc[n1+nc]|phi_j> - <tphi_i|vxc(tn1+nhat+tnc]|tphi_j>
+   ! Same storage as Dij (see above)
+
+  real(dp), pointer :: dijxc_hat(:,:)
+   ! dijxc_hat(cplex_dij*lmn2_size,ndij)
+   ! Dij_hat term i.e \sum_LM \int_FFT Q_{ij}^{LM} Vxc
+   ! Same storage as Dij (see above)
+
+  real(dp), pointer :: dijxc_val(:,:)
+   ! dijxc_val(cplex_dij*lmn2_size,ndij)
+   ! Onsite matrix elements of valence-only vxc i.e
+   ! <phi_i|vxc[n1]|phi_j> - <tphi_i|vxc(tn1+nhat]|tphi_j>
+   ! Same storage as Dij (see above)
+
+  real(dp), pointer :: noccmmp(:,:,:,:)
+   ! noccmmp(cplex_dij,2*lpawu+1,2*lpawu+1,nocc_nspden)
+   ! cplex_dij=1 if collinear
+   ! cplex_dij=2 if spin orbit is used
+   ! cplex_dij=2 is used if non-collinear (for coherence, it is not necessary in this case, however)
+   ! gives occupation matrix for lda+u (computed in setnoccmmp)
+   ! Stored as: noccmmp(:,:,1)=   n^{up,up}_{m,mp}
+   !            noccmmp(:,:,2)=   n^{dn,dn}_{m,mp}
+   !            noccmmp(:,:,3)=   n^{up,dn}_{m,mp}
+   !            noccmmp(:,:,4)=   n^{dn,up}_{m,mp}
+   ! noccmmp(m,mp,:) is computed from rhoij(klmn) with  m=klmntomn(2)>mp=klmntomn(1)
+
+  real(dp), pointer :: nocctot(:)
+   ! nocctot(nspden)
+   ! gives trace of occupation matrix for lda+u (computed in pawdenpot)
+   ! for each value of ispden (1 or 2)
+
+  real(dp), pointer :: vpawx(:,:,:)
+   ! vpawx(2*lexexch+1,2*lexexch+1,nspden)
+   ! exact exchange potential
+
+ end type paw_ij_type
+!!***
+
+CONTAINS
+
+!===========================================================
+!!***
+
+!----------------------------------------------------------------------
+
+!!****f* m_paw_ij/paw_ij_init
+!! NAME
+!! paw_ij_init
+!!
+!! FUNCTION
+!!  Initialize a Paw_ij data type.
+!!
+!! INPUTS
+!!  cplex=1 if all on-site PAW quantities are real, 2 if they are complex
+!!  mpi_atmtab(:)=--optional-- indexes of the atoms treated by current proc
+!!  mpi_comm_atom=--optional-- MPI communicator over atoms
+!!  natom=Number of atoms.
+!!  ntypat=Number of types of atoms in cell.
+!!  nspinor=number of spinor components
+!!  nsppol=Number of independent spin polarizations.
+!!  nspden=Number of spin-density components
+!!  pawspnorb=1 if spin-orbit coupling is activated
+!!  typat(natom)=Type of each atom
+!!  Pawtab(ntypat)<type(pawtab_type)>=PAW tabulated starting data
+!!
+!! OPTIONAL INPUTS
+!!  has_dij=1 to allocate Paw_ij%dij, 0 otherwise (default)
+!!  has_dij0=1 to allocate Paw_ij%dij0, 0 otherwise (default)
+!!  has_dijfr=1 to allocate Paw_ij%dijfr, 0 otherwise (default)
+!!  has_dijhat=1 to allocate Paw_ij%dijhat, 0 otherwise (default)
+!!  has_dijxc=1 to allocate Paw_ij%dijxc, 0 otherwise (default)
+!!  has_dijxc_hat=1 to allocate Paw_ij%dijxc_hat, 0 otherwise (default)
+!!  has_dijxc_val=1 to allocate Paw_ij%dijxc_val, 0 otherwise (default)
+!!  has_dijhartree=1 to allocate Paw_ij%dijhartree, 0 otherwise (default)
+!!  has_dijfock=1 to allocate Paw_ij%dijfock, 0 otherwise (default)
+!!  has_dijso=1 to allocate Paw_ij%dijso, used only if pawspnorb>0. 0 otherwise (default)
+!!  has_dijU=1 to allocate Paw_ij%dijU, used only if Pawtab(itypat)%usepawu>0. 0 otherwise (default).
+!!  has_dijexxc=to allocate Paw_ij%dijxx, 0 otherwise (default)
+!!  has_exexch_pot=1 to allocate potential used in PAW+(local exact exchange) formalism, 0 otherwise (default)
+!!  has_pawu_occ=1 to allocate occupations used in PAW+U formalism, 0 otherwise (default)
+!!
+!! OUTPUT
+!!  Paw_ij(natom)<type(paw_ij_type)>=data structure containing PAW arrays given on (i,j) channels.
+!!   In output all the basic dimensions are defined and the arrays are allocated
+!!   according to the input variables.
+!!
+!! PARENTS
+!!      bethe_salpeter,d2frnl,ldau_self,m_energy,nstpaw3,paw_qpscgw,respfn
+!!      rhofermi3,scfcv,scfcv3,screening,sigma
+!!
+!! CHILDREN
+!!
+!! SOURCE
+
+subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat,typat,Pawtab,&
+&                      has_dij,has_dij0,has_dijfock,has_dijfr,has_dijhartree,has_dijhat,& ! Optional
+&                      has_dijxc,has_dijxc_hat,has_dijxc_val,has_dijso,has_dijU,has_dijexxc,&  ! Optional
+&                      has_exexch_pot,has_pawu_occ,& ! Optional
+&                      mpi_atmtab,mpi_comm_atom) ! optional arguments (parallelism)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'paw_ij_init'
+!End of the abilint section
+
+ implicit none
+
+!Arguments ------------------------------------
+!scalars
+ integer,intent(in) :: cplex,nspinor,nspden,nsppol,natom,ntypat,pawspnorb
+ integer,optional,intent(in) :: has_dij,has_dij0,has_dijfr,has_dijhat,has_dijxc,has_dijxc_hat,has_dijxc_val
+ integer,optional,intent(in) :: has_dijso,has_dijhartree,has_dijfock,has_dijU,has_dijexxc,has_exexch_pot,has_pawu_occ
+ integer,optional,intent(in) :: mpi_comm_atom
+!arrays
+ integer,intent(in) :: typat(natom)
+ integer,optional,target,intent(in) :: mpi_atmtab(:)
+ type(Paw_ij_type),intent(inout) :: Paw_ij(:)
+ type(Pawtab_type),intent(in) :: Pawtab(ntypat)
+
+!Local variables-------------------------------
+!scalars
+ integer :: cplex_dij,iat,iat_tot,itypat,lmn2_size,my_natom,ndij
+ logical :: my_atmtab_allocated,paral_atom
+!arrays
+ integer,pointer :: my_atmtab(:)
+
+! *************************************************************************
+
+ DBG_ENTER("COLL")
+
+!@Paw_ij_type
+
+!Set up parallelism over atoms
+ my_natom=size(paw_ij);if (my_natom==0) return
+ paral_atom=(present(mpi_comm_atom).and.(my_natom/=natom))
+ nullify(my_atmtab);if (present(mpi_atmtab)) my_atmtab => mpi_atmtab
+ my_atmtab_allocated = .False.
+ if (paral_atom) then
+   call get_my_atmtab(mpi_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,natom,my_natom_ref=my_natom)
+ end if
+
+ do iat=1,my_natom
+  iat_tot=iat;if (paral_atom) iat_tot=my_atmtab(iat)
+  itypat=typat(iat_tot)
+
+  cplex_dij              =max(cplex,nspinor)
+  lmn2_size              =Pawtab(itypat)%lmn2_size
+  Paw_ij(iat)%cplex      =cplex
+  Paw_ij(iat)%cplex_dij  =cplex_dij
+  Paw_ij(iat)%itypat     =itypat
+  Paw_ij(iat)%nspden     =nspden
+  Paw_ij(iat)%nsppol     =nsppol
+  Paw_ij(iat)%lmn_size   =Pawtab(itypat)%lmn_size
+  Paw_ij(iat)%lmn2_size  =lmn2_size
+  Paw_ij(iat)%ndij       =MAX(nspinor**2,nspden)
+
+  ndij=Paw_ij(iat)%ndij
+
+  ! ==================================
+  ! === Allocations (all optional) ===
+  ! ==================================
+
+  ! === Allocation for total Dij ===
+  Paw_ij(iat)%has_dij=0
+  nullify(Paw_ij(iat)%dij)
+  if (PRESENT(has_dij)) then
+    if (has_dij/=0) then
+      Paw_ij(iat)%has_dij=1
+      ABI_ALLOCATE(Paw_ij(iat)%dij,(cplex_dij*lmn2_size,ndij))
+      Paw_ij(iat)%dij(:,:)=zero
+    end if
+  end if
+
+  ! === Allocation for atomic Dij ===
+  Paw_ij(iat)%has_dij0=0
+  nullify(Paw_ij(iat)%dij0)
+  if (PRESENT(has_dij0)) then
+    if (has_dij0/=0) then
+      Paw_ij(iat)%has_dij0=1
+      ABI_ALLOCATE(Paw_ij(iat)%dij0,(lmn2_size))
+      Paw_ij(iat)%dij0(:)=zero
+    end if
+  end if
+
+  ! === Allocation for total Dij local exact exchange ===
+  Paw_ij(iat)%has_dijexxc=0
+  nullify(Paw_ij(iat)%dijexxc)
+  if (PRESENT(has_dijexxc)) then
+    if (has_dijexxc/=0.and.Pawtab(itypat)%useexexch>0) then
+      Paw_ij(iat)%has_dijexxc=1
+      ABI_ALLOCATE(Paw_ij(iat)%dijexxc,(cplex_dij*lmn2_size,ndij))
+      Paw_ij(iat)%dijexxc(:,:)=zero
+    end if
+  end if
+
+ ! === Allocation for total Dij_Fock ===
+  Paw_ij(iat)%has_dijfock=0
+  nullify(Paw_ij(iat)%dijfock)
+  if (PRESENT(has_dijfock)) then
+    if (has_dijfock/=0) then
+      Paw_ij(iat)%has_dijfock=1
+      ABI_ALLOCATE(Paw_ij(iat)%dijfock,(cplex_dij*lmn2_size,ndij))
+      Paw_ij(iat)%dijfock(:,:)=zero
+    end if
+  end if
+
+  ! === Allocation for frozen part of 1st-order Dij ===
+  Paw_ij(iat)%has_dijfr=0
+  nullify(Paw_ij(iat)%dijfr)
+  if (PRESENT(has_dijfr)) then
+    if (has_dijfr/=0) then
+      Paw_ij(iat)%has_dijfr=1
+      ABI_ALLOCATE(Paw_ij(iat)%dijfr,(cplex_dij*lmn2_size,ndij))
+      Paw_ij(iat)%dijfr(:,:)=zero
+    end if
+  end if
+
+  ! === Allocation for total Dij_Hartree ===
+  Paw_ij(iat)%has_dijhartree=0
+  nullify(Paw_ij(iat)%dijhartree)
+  if (PRESENT(has_dijhartree)) then
+    if (has_dijhartree/=0) then
+      Paw_ij(iat)%has_dijhartree=1
+      ABI_ALLOCATE(Paw_ij(iat)%dijhartree,(cplex*lmn2_size))
+      Paw_ij(iat)%dijhartree(:)=zero
+    end if
+  end if
+
+  ! === Allocation for total Dij_hat ===
+  Paw_ij(iat)%has_dijhat=0
+  nullify(Paw_ij(iat)%dijhat)
+  if (PRESENT(has_dijhat)) then
+    if (has_dijhat/=0) then
+      Paw_ij(iat)%has_dijhat=1
+      ABI_ALLOCATE(Paw_ij(iat)%dijhat,(cplex_dij*lmn2_size,ndij))
+      Paw_ij(iat)%dijhat(:,:)=zero
+    end if
+  end if
+
+  ! === Allocation for total Dij_SO ===
+  Paw_ij(iat)%has_dijso=0
+  nullify(Paw_ij(iat)%dijso)
+  if (PRESENT(has_dijso)) then
+    if (has_dijso/=0.and.pawspnorb>0) then
+      Paw_ij(iat)%has_dijso=1
+      ABI_ALLOCATE(Paw_ij(iat)%dijso,(cplex_dij*lmn2_size,ndij))
+      Paw_ij(iat)%dijso(:,:)=zero
+     end if
+  end if
+
+  ! === Allocation for total Dij_U_val ===
+  Paw_ij(iat)%has_dijU=0
+  nullify(Paw_ij(iat)%dijU)
+  if (PRESENT(has_dijU)) then
+    if (has_dijU/=0.and.Pawtab(itypat)%usepawu>0) then
+      Paw_ij(iat)%has_dijU=1
+      ABI_ALLOCATE(Paw_ij(iat)%dijU,(cplex_dij*lmn2_size,ndij))
+       Paw_ij(iat)%dijU(:,:)=zero
+    end if
+  end if
+
+  ! === Allocation for total Dij_XC ===
+  Paw_ij(iat)%has_dijxc=0
+  nullify(Paw_ij(iat)%dijxc)
+  if (PRESENT(has_dijxc)) then
+    if (has_dijxc/=0) then
+      Paw_ij(iat)%has_dijxc=1
+      ABI_ALLOCATE(Paw_ij(iat)%dijxc,(cplex_dij*lmn2_size,ndij))
+      Paw_ij(iat)%dijxc(:,:)=zero
+    end if
+  end if
+
+  ! === Allocation for total Dij_XC_hat ===
+  Paw_ij(iat)%has_dijxc_hat=0
+  nullify(Paw_ij(iat)%dijxc_hat)
+  if (PRESENT(has_dijxc_hat)) then
+    if (has_dijxc_hat/=0) then
+      Paw_ij(iat)%has_dijxc_hat=1
+      ABI_ALLOCATE(Paw_ij(iat)%dijxc_hat,(cplex_dij*lmn2_size,ndij))
+     Paw_ij(iat)%dijxc_hat(:,:)=zero
+    end if
+  end if
+
+  ! === Allocation for total Dij_XC_val ===
+  Paw_ij(iat)%has_dijxc_val=0
+  nullify(Paw_ij(iat)%dijxc_val)
+  if (PRESENT(has_dijxc_val)) then
+    if (has_dijxc_val/=0) then
+      Paw_ij(iat)%has_dijxc_val=1
+      ABI_ALLOCATE(Paw_ij(iat)%dijxc_val,(cplex_dij*lmn2_size,ndij))
+      Paw_ij(iat)%dijxc_val(:,:)=zero
+    end if
+  end if
+
+  ! === Allocation for PAW+U occupations ===
+  Paw_ij(iat)%has_pawu_occ=0
+  nullify(Paw_ij(iat)%noccmmp)
+  nullify(Paw_ij(iat)%nocctot)
+  if (PRESENT(has_pawu_occ)) then
+    if (has_pawu_occ/=0.and.Pawtab(itypat)%usepawu>0) then
+      Paw_ij(iat)%has_pawu_occ=1
+      ABI_ALLOCATE(Paw_ij(iat)%noccmmp,(cplex_dij,2*Pawtab(itypat)%lpawu+1,2*Pawtab(itypat)%lpawu+1,ndij))
+      ABI_ALLOCATE(Paw_ij(iat)%nocctot,(ndij))
+     Paw_ij(iat)%noccmmp(:,:,:,:)=zero
+     Paw_ij(iat)%nocctot(:)=zero
+    end if
+  end if
+
+  ! === Allocation for PAW+LEXX potential ===
+  Paw_ij(iat)%has_exexch_pot=0
+  nullify(Paw_ij(iat)%vpawx)
+  if (PRESENT(has_exexch_pot)) then
+    if (has_exexch_pot/=0.and.Pawtab(itypat)%useexexch>0) then
+      Paw_ij(iat)%has_exexch_pot=1
+    ! TODO solve issue with first dimension
+      ABI_ALLOCATE(Paw_ij(iat)%vpawx,(1,lmn2_size,nspden))
+      Paw_ij(iat)%vpawx(:,:,:)=zero
+     end if
+  end if
+
+ end do
+
+!Destroy atom table used for parallelism
+ call free_my_atmtab(my_atmtab,my_atmtab_allocated)
+
+ DBG_EXIT("COLL")
+
+end subroutine paw_ij_init
+!!***
+
+!----------------------------------------------------------------------
+
+!!****f* m_paw_ij/paw_ij_destroy
+!! NAME
+!!  paw_ij_destroy
+!!
+!! FUNCTION
+!!  Deallocate pointers and nullify flags in a paw_ij structure
+!!
+!! SIDE EFFECTS
+!!  paw_ij(:)<type(paw_ij_type)>=paw arrays given on (i,j) channels
+!!
+!! PARENTS
+!!      bethe_salpeter,d2frnl,ldau_self,m_energy,m_paral_pert,m_paw_ij,nstpaw3
+!!      pawprt,respfn,rhofermi3,scfcv,scfcv3,screening,sigma
+!!
+!! CHILDREN
+!!
+!! SOURCE
+
+subroutine paw_ij_destroy(Paw_ij)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'paw_ij_destroy'
+!End of the abilint section
+
+ implicit none
+
+!Arguments ------------------------------------
+!arrays
+ type(Paw_ij_type),intent(inout) :: Paw_ij(:)
+
+!Local variables-------------------------------
+ integer :: iat,natom
+
+! *************************************************************************
+
+ DBG_ENTER("COLL")
+
+!@Paw_ij_type
+
+ natom=SIZE(Paw_ij);if (natom==0) return
+ do iat=1,natom
+  if (associated(Paw_ij(iat)%dij       ))  then
+    ABI_DEALLOCATE(Paw_ij(iat)%dij)
+  end if
+  if (associated(Paw_ij(iat)%dij0      ))  then
+    ABI_DEALLOCATE(Paw_ij(iat)%dij0)
+  end if
+  if (associated(Paw_ij(iat)%dijexxc   ))  then
+    ABI_DEALLOCATE(Paw_ij(iat)%dijexxc)
+  end if
+  if (associated(Paw_ij(iat)%dijfock   ))  then
+    ABI_DEALLOCATE(Paw_ij(iat)%dijfock)
+  end if
+  if (associated(Paw_ij(iat)%dijfr     ))  then
+    ABI_DEALLOCATE(Paw_ij(iat)%dijfr)
+  end if
+  if (associated(Paw_ij(iat)%dijhartree))  then
+    ABI_DEALLOCATE(Paw_ij(iat)%dijhartree)
+  end if
+  if (associated(Paw_ij(iat)%dijhat    ))  then
+    ABI_DEALLOCATE(Paw_ij(iat)%dijhat)
+  end if
+  if (associated(Paw_ij(iat)%dijU      ))  then
+    ABI_DEALLOCATE(Paw_ij(iat)%dijU)
+  end if
+  if (associated(Paw_ij(iat)%dijso     ))  then
+    ABI_DEALLOCATE(Paw_ij(iat)%dijso)
+  end if
+  if (associated(Paw_ij(iat)%dijxc     ))  then
+    ABI_DEALLOCATE(Paw_ij(iat)%dijxc)
+  end if
+  if (associated(Paw_ij(iat)%dijxc_hat ))  then
+    ABI_DEALLOCATE(Paw_ij(iat)%dijxc_hat)
+  end if
+  if (associated(Paw_ij(iat)%dijxc_val ))  then
+    ABI_DEALLOCATE(Paw_ij(iat)%dijxc_val)
+  end if
+  if (associated(Paw_ij(iat)%noccmmp   ))  then
+    ABI_DEALLOCATE(Paw_ij(iat)%noccmmp)
+  end if
+  if (associated(Paw_ij(iat)%nocctot   ))  then
+    ABI_DEALLOCATE(Paw_ij(iat)%nocctot)
+  end if
+  if (associated(Paw_ij(iat)%vpawx     ))  then
+    ABI_DEALLOCATE(Paw_ij(iat)%vpawx)
+  end if
+
+  ! === Reset all has_* flags ===
+  Paw_ij(iat)%has_dij       =0
+  Paw_ij(iat)%has_dij0      =0
+  Paw_ij(iat)%has_dijexxc   =0
+  Paw_ij(iat)%has_dijfock   =0
+  Paw_ij(iat)%has_dijfr     =0
+  Paw_ij(iat)%has_dijhartree=0
+  Paw_ij(iat)%has_dijhat    =0
+  Paw_ij(iat)%has_dijso     =0
+  Paw_ij(iat)%has_dijU      =0
+  Paw_ij(iat)%has_dijxc     =0
+  Paw_ij(iat)%has_dijxc_hat =0
+  Paw_ij(iat)%has_dijxc_val =0
+  Paw_ij(iat)%has_exexch_pot=0
+  Paw_ij(iat)%has_pawu_occ  =0
+ end do
+
+ DBG_EXIT("COLL")
+
+end subroutine paw_ij_destroy
+!!***
+
+!----------------------------------------------------------------------
+
+!!****f* m_paw_ij/paw_ij_nullify
+!! NAME
+!!  paw_ij_nullify
+!!
+!! FUNCTION
+!!  Nullify pointers and flags in a paw_ij structure
+!!
+!! SIDE EFFECTS
+!!  Paw_ij(:)<type(paw_ij_type)>=PAW arrays given on (i,j) channels. Nullified in output
+!!
+!! PARENTS
+!!      bethe_salpeter,d2frnl,ldau_self,m_energy,m_paw_ij,nstpaw3,paw_qpscgw
+!!      pawprt,respfn,rhofermi3,scfcv,scfcv3,screening,sigma
+!!
+!! CHILDREN
+!!
+!! SOURCE
+
+subroutine paw_ij_nullify(Paw_ij)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'paw_ij_nullify'
+!End of the abilint section
+
+ implicit none
+
+!Arguments ------------------------------------
+!arrays
+ type(Paw_ij_type),intent(inout) :: Paw_ij(:)
+
+!Local variables-------------------------------
+ integer :: iat,natom
+
+! *************************************************************************
+
+ !@Paw_ij_type
+
+ natom=SIZE(Paw_ij(:));if (natom==0) return
+
+ do iat=1,natom
+  nullify(Paw_ij(iat)%dij       )
+  nullify(Paw_ij(iat)%dij0      )
+  nullify(Paw_ij(iat)%dijexxc   )
+  nullify(Paw_ij(iat)%dijfock   )
+  nullify(Paw_ij(iat)%dijfr     )
+  nullify(Paw_ij(iat)%dijhartree)
+  nullify(Paw_ij(iat)%dijhat    )
+  nullify(Paw_ij(iat)%dijU      )
+  nullify(Paw_ij(iat)%dijso     )
+  nullify(Paw_ij(iat)%dijxc     )
+  nullify(Paw_ij(iat)%dijxc_hat )
+  nullify(Paw_ij(iat)%dijxc_val )
+  nullify(Paw_ij(iat)%noccmmp   )
+  nullify(Paw_ij(iat)%nocctot   )
+  nullify(Paw_ij(iat)%vpawx     )
+
+  ! === Set all has_* flags to zero ===
+  Paw_ij(iat)%has_dij       =0
+  Paw_ij(iat)%has_dij0      =0
+  Paw_ij(iat)%has_dijexxc   =0
+  Paw_ij(iat)%has_dijfock   =0
+  Paw_ij(iat)%has_dijfr     =0
+  Paw_ij(iat)%has_dijhartree=0
+  Paw_ij(iat)%has_dijhat    =0
+  Paw_ij(iat)%has_dijso     =0
+  Paw_ij(iat)%has_dijU      =0
+  Paw_ij(iat)%has_dijxc     =0
+  Paw_ij(iat)%has_dijxc_hat =0
+  Paw_ij(iat)%has_dijxc_val =0
+  Paw_ij(iat)%has_exexch_pot=0
+  Paw_ij(iat)%has_pawu_occ  =0
+ end do !iat
+
+end subroutine paw_ij_nullify
+!!***
+
+!----------------------------------------------------------------------
+
+!!****f* m_paw_ij/paw_ij_copy
+!! NAME
+!!  paw_ij_copy
+!!
+!! FUNCTION
+!!  Copy one paw_ij datastructure into another
+!!  Can take into accound changes of dimensions
+!!  Can copy a shared paw_ij into distributed ones (when parallelism is activated)
+!!
+!! INPUTS
+!!  mpi_atmtab(:)=--optional-- indexes of the atoms treated by current proc
+!!  mpi_comm_atom=--optional-- MPI communicator over atoms
+!!  paw_ij_in(:)<type(paw_ij_type)>= input paw_ij datastructure
+!!
+!! SIDE EFFECTS
+!!  paw_ij_cpy(:)<type(paw_ij_type)>= output paw_ij datastructure
+!!
+!! NOTES
+!!  paw_ij_cpy must have been allocated in the calling function.
+!!
+!! PARENTS
+!!      m_paw_ij
+!!
+!! CHILDREN
+!!
+!! SOURCE
+
+subroutine paw_ij_copy(paw_ij_in,paw_ij_cpy, &
+&                      mpi_atmtab,mpi_comm_atom) ! optional arguments (parallelism)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'paw_ij_copy'
+!End of the abilint section
+
+ implicit none
+
+!Arguments ------------------------------------
+!scalars
+ integer,optional,intent(in) :: mpi_comm_atom
+!arrays
+ integer,optional,target,intent(in) :: mpi_atmtab(:)
+ type(paw_ij_type),intent(in) :: paw_ij_in(:)
+ type(paw_ij_type),intent(inout),target :: paw_ij_cpy(:)
+
+!Local variables-------------------------------
+!scalars
+integer :: ij,ij1,my_paw_ij, npaw_ij_in,npaw_ij_max,npaw_ij_out,paral_case
+logical :: my_atmtab_allocated,paral_atom
+character(len=500) :: msg
+!arrays
+ integer,pointer :: my_atmtab(:)
+ type(paw_ij_type),pointer :: paw_ij_out(:)
+
+! *************************************************************************
+
+ DBG_ENTER("COLL")
+
+!@Paw_ij_type
+
+!Retrieve sizes
+ npaw_ij_in=size(paw_ij_in);npaw_ij_out=size(paw_ij_cpy)
+
+!Set up parallelism over atoms
+ paral_atom=(present(mpi_comm_atom));if (paral_atom) paral_atom=(xcomm_size(mpi_comm_atom)>1)
+ nullify(my_atmtab);if (present(mpi_atmtab)) my_atmtab => mpi_atmtab
+ my_atmtab_allocated=.false.
+
+!Determine in which case we are (parallelism, ...)
+!No parallelism: a single copy operation
+ paral_case=0;npaw_ij_max=npaw_ij_in
+ paw_ij_out => paw_ij_cpy
+ if (paral_atom) then
+   if (npaw_ij_out<npaw_ij_in) then ! Parallelism: the copy operation is a scatter
+     call get_my_natom(mpi_comm_atom,my_paw_ij,npaw_ij_in)
+     if (my_paw_ij==npaw_ij_out) then
+       call get_my_atmtab(mpi_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,npaw_ij_in)
+       paral_case=1;npaw_ij_max=npaw_ij_out
+       paw_ij_out => paw_ij_cpy
+     else
+       msg=' npaw_ij_out should be equal to my_paw_ij !'
+       MSG_BUG(msg)
+     end if
+   else                            ! Parallelism: the copy operation is a gather
+     call get_my_natom(mpi_comm_atom,my_paw_ij,npaw_ij_out)
+     if (my_paw_ij==npaw_ij_in) then
+       paral_case=2;npaw_ij_max=npaw_ij_in
+     else
+       msg=' npaw_ij_in should be equal to my_paw_ij !'
+       MSG_BUG(msg)
+     end if
+   end if
+ end if
+
+!First case: a simple copy or a scatter
+ if (npaw_ij_max>0.and.((paral_case==0).or.(paral_case==1))) then
+   call paw_ij_nullify(paw_ij_out)
+
+!  Loop on paw_ij components
+   do ij1=1,npaw_ij_max
+     ij=ij1; if (paral_case==1) ij=my_atmtab(ij1)
+
+     paw_ij_out(ij1)%cplex=paw_ij_in(ij)%cplex
+     paw_ij_out(ij1)%cplex_dij=paw_ij_in(ij)%cplex_dij
+     paw_ij_out(ij1)%has_dij=paw_ij_in(ij)%has_dij
+     paw_ij_out(ij1)%has_dij0=paw_ij_in(ij)%has_dij0
+     paw_ij_out(ij1)%has_dijexxc=paw_ij_in(ij)%has_dijexxc
+     paw_ij_out(ij1)%has_dijfock=paw_ij_in(ij)%has_dijfock
+     paw_ij_out(ij1)%has_dijfr=paw_ij_in(ij)%has_dijfr
+     paw_ij_out(ij1)%has_dijhartree=paw_ij_in(ij)%has_dijhartree
+     paw_ij_out(ij1)%has_dijhat=paw_ij_in(ij)%has_dijhat
+     paw_ij_out(ij1)%has_dijso=paw_ij_in(ij)%has_dijso
+     paw_ij_out(ij1)%has_dijU=paw_ij_in(ij)%has_dijU
+     paw_ij_out(ij1)%has_dijxc=paw_ij_in(ij)%has_dijxc
+     paw_ij_out(ij1)%has_dijxc_hat=paw_ij_in(ij)%has_dijxc_hat
+     paw_ij_out(ij1)%has_dijxc_val=paw_ij_in(ij)%has_dijxc_val
+     paw_ij_out(ij1)%has_exexch_pot=paw_ij_in(ij)%has_exexch_pot
+     paw_ij_out(ij1)%has_pawu_occ=paw_ij_in(ij)%has_pawu_occ
+     paw_ij_out(ij1)%itypat=paw_ij_in(ij)%itypat
+     paw_ij_out(ij1)%lmn_size=paw_ij_in(ij)%lmn_size
+     paw_ij_out(ij1)%lmn2_size=paw_ij_in(ij)%lmn2_size
+     paw_ij_out(ij1)%ndij=paw_ij_in(ij)%ndij
+     paw_ij_out(ij1)%nspden=paw_ij_in(ij)%nspden
+     paw_ij_out(ij1)%nsppol=paw_ij_in(ij)%nsppol
+     if (paw_ij_in(ij)%has_dij>=1) then
+       sz1=size(paw_ij_in(ij)%dij,1);sz2=size(paw_ij_in(ij)%dij,2)
+       ABI_ALLOCATE(paw_ij_out(ij1)%dij,(sz1,sz2))
+       if (paw_ij_in(ij)%has_dij==2) &
+&          paw_ij_out(ij1)%dij(:,:)=paw_ij_in(ij)%dij(:,:)
+     end if
+     if (paw_ij_in(ij)%has_dij0>=1) then
+       sz1=size(paw_ij_in(ij)%dij0,1)
+       ABI_ALLOCATE(paw_ij_out(ij1)%dij0,(sz1))
+      if (paw_ij_in(ij)%has_dij0 ==2) &
+&         paw_ij_out(ij1)%dij0(:)=paw_ij_in(ij)%dij0(:)
+     end if
+     if (paw_ij_in(ij)%has_dijexxc>=1) then
+       sz1=size(paw_ij_in(ij)%dijexxc,1);sz2=size(paw_ij_in(ij)%dijexxc,2)
+       ABI_ALLOCATE(paw_ij_out(ij1)%dijexxc,(sz1,sz2))
+       if (paw_ij_in(ij)%has_dijexxc==2) &
+&          paw_ij_out(ij1)%dijexxc(:,:)=paw_ij_in(ij)%dijexxc(:,:)
+     end if
+     if (paw_ij_in(ij)%has_dijfock>=1) then
+       sz1=size(paw_ij_in(ij)%dijfock,1);sz2=size(paw_ij_in(ij)%dijfock,2)
+       ABI_ALLOCATE(paw_ij_out(ij1)%dijfock,(sz1,sz2))
+       if (paw_ij_in(ij)%has_dijfock==2) &
+&          paw_ij_out(ij1)%dijfock(:,:)=paw_ij_in(ij)%dijfock(:,:)
+     end if
+     if (paw_ij_in(ij)%has_dijfr>=1) then
+       sz1=size(paw_ij_in(ij)%dijfr,1);sz2=size(paw_ij_in(ij)%dijfr,2)
+       ABI_ALLOCATE(paw_ij_out(ij1)%dijfr,(sz1,sz2))
+       if (paw_ij_in(ij)%has_dijfr==2) &
+&          paw_ij_out(ij1)%dijfr(:,:)=paw_ij_in(ij)%dijfr(:,:)
+     end if
+     if (paw_ij_in(ij)%has_dijhartree>=1) then
+       sz1=size(paw_ij_in(ij)%dijhartree,1)
+       ABI_ALLOCATE(paw_ij_out(ij1)%dijhartree,(sz1))
+       if (paw_ij_in(ij)%has_dijhartree==2) &
+&          paw_ij_out(ij1)%dijhartree(:)=paw_ij_in(ij)%dijhartree(:)
+     end if
+     if (paw_ij_in(ij)%has_dijhat>=1) then
+       sz1=size(paw_ij_in(ij)%dijhat,1);sz2=size(paw_ij_in(ij)%dijhat,2)
+       ABI_ALLOCATE(paw_ij_out(ij1)%dijhat,(sz1,sz2))
+       if (paw_ij_in(ij)%has_dijhat==2) &
+ &         paw_ij_out(ij1)%dijhat(:,:)=paw_ij_in(ij)%dijhat(:,:)
+     end if
+     if (paw_ij_in(ij)%has_dijU>=1) then
+       sz1=size(paw_ij_in(ij)%dijU,1);sz2=size(paw_ij_in(ij)%dijU,2)
+       ABI_ALLOCATE(paw_ij_out(ij1)%dijU,(sz1,sz2))
+       if (paw_ij_in(ij)%has_dijU==2) &
+&          paw_ij_out(ij1)%dijU(:,:)=paw_ij_in(ij)%dijU(:,:)
+     end if
+     if (paw_ij_in(ij)%has_dijso>=1) then
+       sz1=size(paw_ij_in(ij)%dijso,1);sz2=size(paw_ij_in(ij)%dijso,2)
+       ABI_ALLOCATE(paw_ij_out(ij1)%dijso,(sz1,sz2))
+       if (paw_ij_in(ij)%has_dijso==2) &
+&          paw_ij_out(ij1)%dijso(:,:)=paw_ij_in(ij)%dijso(:,:)
+     end if
+     if (paw_ij_in(ij)%has_dijxc>=1) then
+       sz1=size(paw_ij_in(ij)%dijxc,1);sz2=size(paw_ij_in(ij)%dijxc,2)
+       ABI_ALLOCATE(paw_ij_out(ij1)%dijxc,(sz1,sz2))
+       if (paw_ij_in(ij)%has_dijxc==2) &
+&          paw_ij_out(ij1)%dijxc(:,:)=paw_ij_in(ij)%dijxc(:,:)
+     end if
+     if (paw_ij_in(ij)%has_dijxc_hat>=1) then
+       sz1=size(paw_ij_in(ij)%dijxc_hat,1);sz2=size(paw_ij_in(ij)%dijxc_hat,2)
+       ABI_ALLOCATE(paw_ij_out(ij1)%dijxc_hat,(sz1,sz2))
+       if (paw_ij_in(ij)%has_dijxc_hat==2) &
+&          paw_ij_out(ij1)%dijxc_hat(:,:)=paw_ij_in(ij)%dijxc_hat(:,:)
+     end if
+     if (paw_ij_in(ij)%has_dijxc_val>=1) then
+       sz1=size(paw_ij_in(ij)%dijxc_val,1);sz2=size(paw_ij_in(ij)%dijxc_val,2)
+       ABI_ALLOCATE(paw_ij_out(ij1)%dijxc_val,(sz1,sz2))
+       if (paw_ij_in(ij)%has_dijxc_val==2) &
+&          paw_ij_out(ij1)%dijxc_val(:,:)=paw_ij_in(ij)%dijxc_val(:,:)
+     end if
+     if (paw_ij_in(ij)%has_pawu_occ>=1) then
+       sz1=size(paw_ij_in(ij)%noccmmp,1);sz2=size(paw_ij_in(ij)%noccmmp,2)
+       sz3=size(paw_ij_in(ij)%noccmmp,3);sz4=size(paw_ij_in(ij)%noccmmp,4)
+       ABI_ALLOCATE(paw_ij_out(ij1)%noccmmp,(sz1,sz2,sz3,sz4))
+       sz1=size(paw_ij_in(ij)%nocctot,1)
+       ABI_ALLOCATE(paw_ij_out(ij1)%nocctot,(sz1))
+       if (paw_ij_in(ij)%has_pawu_occ==2) then
+         paw_ij_out(ij1)%noccmmp(:,:,:,:)=paw_ij_in(ij)%noccmmp(:,:,:,:)
+         paw_ij_out(ij1)%nocctot(:)=paw_ij_in(ij)%nocctot(:)
+        end if
+     end if
+     if (paw_ij_in(ij)%has_exexch_pot >= 1) then
+       sz1=size(paw_ij_in(ij)%vpawx,1);sz2=size(paw_ij_in(ij)%vpawx,2)
+       sz3=size(paw_ij_in(ij)%vpawx,3)
+       ABI_ALLOCATE(paw_ij_out(ij1)%vpawx,(sz1,sz2,sz3))
+       if (paw_ij_in(ij)%has_exexch_pot==2) &
+&          paw_ij_out(ij1)%vpawx(:,:,:)=paw_ij_in(ij)%vpawx(:,:,:)
+     end if
+
+   end do
+ end if
+
+!Second case: a gather
+ if (paral_case==2) then
+   call paw_ij_gather(paw_ij_in,paw_ij_cpy,-1,mpi_comm_atom)
+ end if
+
+!Destroy atom table used for parallelism
+ call free_my_atmtab(my_atmtab,my_atmtab_allocated)
+
+ DBG_EXIT("COLL")
+
+end subroutine paw_ij_copy
+!!***
+
+!----------------------------------------------------------------------
+
+!!****f* m_paw_ij/paw_ij_print
+!! NAME
+!! paw_ij_print
+!!
+!! FUNCTION
+!!  Print out the content of a paw_ij datastructure (Dij only)
+!!
+!! INPUTS
+!!  [enunit]=governs the units to be used for the output of total Dij (0:Ha, 1:Ha+eV)
+!!  [ipert]=only for DFPT: index of the perturbation (0 for ground state)
+!!  [unit]=the unit number for output
+!!  [pawprtvol]=verbosity level
+!!  [pawspnorb]=1 if spin-orbit coupling is activated
+!!  [mode_paral]=either "COLL" or "PERS"
+!!  [mpi_atmtab(:)]=indexes of the atoms treated by current proc (can be computed here)
+!!  [mpi_comm_atom]=MPI communicator over atoms (needed if parallelism over atoms is activated)
+!!  [natom]=total number of atom (needed if parallelism over atoms is activated)
+!!          if Paw_ij is distributed, natom is different from size(Paw_ij).
+!!
+!! OUTPUT
+!! (Only writing)
+!!
+!! NOTES
+!!
+!! PARENTS
+!!      m_pawdij,sigma
+!!
+!! CHILDREN
+!!
+!! SOURCE
+
+subroutine paw_ij_print(Paw_ij,unit,pawprtvol,pawspnorb,mode_paral,enunit,ipert, &
+&                       mpi_atmtab,mpi_comm_atom,natom)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'paw_ij_print'
+ use interfaces_14_hidewrite
+!End of the abilint section
+
+ implicit none
+
+!Arguments ------------------------------------
+!scalars
+ integer,optional,intent(in) :: enunit,ipert
+ integer,optional,intent(in) :: mpi_comm_atom,natom
+ integer,optional,intent(in) :: pawprtvol,pawspnorb
+ integer,optional,intent(in) :: unit
+ character(len=4),optional,intent(in) :: mode_paral
+!arrays
+ integer,optional,target,intent(in) :: mpi_atmtab(:)
+ type(Paw_ij_type),intent(in) :: Paw_ij(:)
+
+!Local variables-------------------------------
+ character(len=7),parameter :: dspin(6)=(/"up     ","down   ","up-up  ","dwn-dwn","up-dwn ","dwn-up "/)
+!scalars
+ integer :: cplex,cplex_dij,iatom,iatom_tot,idij,klmn,lmn2_size,lmn_size,my_natom,nspden,nsploop
+ integer :: nsppol,my_unt,opt_sym,tmp_cplex_dij,my_ipert,my_enunit,my_prtvol,size_paw_ij
+ logical :: my_atmtab_allocated,paral_atom
+ character(len=4) :: my_mode
+ character(len=2000) :: msg
+!arrays
+ integer,allocatable :: idum(:)
+ integer,pointer :: my_atmtab(:)
+ real(dp),allocatable :: dijsym(:)
+ real(dp),pointer :: dij2p(:),dij2p_(:)
+
+! *************************************************************************
+
+ DBG_ENTER("COLL")
+
+!@Paw_ij_type
+
+ size_paw_ij=SIZE(Paw_ij);if (size_paw_ij==0) return
+
+ my_unt   =std_out   ; if (PRESENT(unit      )) my_unt   =unit
+ my_prtvol=0         ; if (PRESENT(pawprtvol )) my_prtvol=pawprtvol
+ my_mode  ='COLL'    ; if (PRESENT(mode_paral)) my_mode  =mode_paral
+ my_ipert =0         ; if (PRESENT(ipert))      my_ipert =ipert
+ my_enunit=0         ; if (PRESENT(enunit))     my_enunit=enunit
+ my_natom=size_paw_ij; if (PRESENT(natom))      my_natom=natom
+
+!Set up parallelism over atoms
+ paral_atom=(present(mpi_comm_atom).and.my_natom/=size_paw_ij)
+ nullify(my_atmtab);if (present(mpi_atmtab)) my_atmtab => mpi_atmtab
+ my_atmtab_allocated = .False.
+ if (paral_atom) then
+   call get_my_atmtab(mpi_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,my_natom,my_natom_ref=size_paw_ij)
+ end if
+
+ if (abs(my_prtvol)>=1) then
+   if (my_ipert==0) then
+     write(msg,'(4a)')ch10,' ==== Values of psp strength Dij (Hartree) ============'
+   else
+     write(msg,'(4a)')ch10,' ==== Values of psp strength Dij(1) (Hartree) ========='
+   end if
+   call wrtout(my_unt,msg,my_mode)
+ end if
+
+ nsppol = Paw_ij(1)%nsppol
+ nspden = Paw_ij(1)%nspden
+ nsploop= nsppol; if (Paw_ij(1)%ndij==4) nsploop=4
+
+ do iatom=1,size_paw_ij
+
+  iatom_tot=iatom;if (paral_atom) iatom_tot=my_atmtab(iatom)
+
+  lmn_size  = Paw_ij(iatom)%lmn_size
+  lmn2_size = Paw_ij(iatom)%lmn2_size
+  cplex_dij = Paw_ij(iatom)%cplex_dij
+  cplex     = Paw_ij(iatom)%cplex
+
+  ! ====================================
+  ! === Loop over density components ===
+  ! ====================================
+  do idij=1,nsploop
+
+   ! * Print title.
+   if (ABS(my_prtvol)>=1) then
+    if (iatom_tot==1.or.iatom_tot==my_natom.or.my_prtvol<0) then
+     if (nspden==2.and.nsppol==1) then
+      write(msg,'(2a,i3,3a)')ch10,&
+&      ' >>>>>>>>>> Atom ',iatom_tot,':',ch10,&
+&      ' (antiferromagnetism case: only one spin component)'
+     else if (paw_ij(iatom)%ndij==1) then
+       write(msg, '(2a,i3,a)') ch10,&
+&      ' >>>>>>>>>> Atom ',iatom_tot,':'
+     else
+      write(msg,'(2a,i3,3a)') ch10,&
+&      ' >>>>>>>>>> Atom ',iatom_tot,' (component ',TRIM(dspin(idij+2*(nsploop/4))),'):'
+     end if
+     call wrtout(my_unt,msg,my_mode)
+    end if
+   end if
+
+   if (abs(my_prtvol)>=1.and.idij<=2.and.my_ipert<=0) then
+    if (Paw_ij(iatom)%has_dij0/=0) then
+     if (iatom_tot==1.or.iatom_tot==my_natom.or.my_prtvol<0) then
+      write(msg,'(a)') '   ************ Dij atomic (Dij0) ***********'
+      call wrtout(my_unt,msg,my_mode)
+      call pawio_print_ij(my_unt,Paw_ij(iatom)%dij0,lmn2_size,1,lmn_size,-1,idum,0,my_prtvol,idum,-1.d0,1,&
+&                   mode_paral=my_mode)
+     end if
+    end if
+   end if
+   
+   if ((abs(my_prtvol)>=1).and.(idij<=2.or.nspden==4).and.my_ipert<=0) then
+    if (Paw_ij(iatom)%has_dijexxc/=0) then
+     if (iatom_tot==1.or.iatom_tot==my_natom.or.my_prtvol<0) then
+      write(msg,'(a)') '   ************* Dij_Local Exact exchange **********'
+      call wrtout(my_unt,msg,my_mode)
+      if (idij<=nsppol.or.idij==2) then
+       opt_sym=2; tmp_cplex_dij=1
+       dij2p => Paw_ij(iatom)%dijexxc(1:cplex_dij*lmn2_size:cplex_dij,idij)
+      else
+       opt_sym=2; tmp_cplex_dij=cplex_dij
+       dij2p => Paw_ij(iatom)%dijexxc(1:cplex_dij*lmn2_size:1,idij)
+      end if
+      call pawio_print_ij(my_unt,dij2p,lmn2_size,tmp_cplex_dij,lmn_size,-1,idum,0,&
+&                   my_prtvol,idum,-1.d0,1,opt_sym=opt_sym,mode_paral=my_mode)
+     end if
+    end if
+   end if
+
+   if ((abs(my_prtvol)>=1).and.(idij<=2.or.nspden==4).and.my_ipert<=0) then
+    if (Paw_ij(iatom)%has_dijfock/=0) then
+     if (iatom_tot==1.or.iatom_tot==my_natom.or.my_prtvol<0) then
+      write(msg,'(a)') '   ************* Dij_Fock **********'
+      call wrtout(my_unt,msg,my_mode)
+      if (idij<=nsppol.or.idij==2) then
+       opt_sym=2; tmp_cplex_dij=1
+       dij2p => Paw_ij(iatom)%dijfock(1:cplex_dij*lmn2_size:cplex_dij,idij)
+      else
+       opt_sym=2; tmp_cplex_dij=cplex_dij
+       dij2p => Paw_ij(iatom)%dijfock(1:cplex_dij*lmn2_size:1,idij)
+      end if
+      call pawio_print_ij(my_unt,dij2p,lmn2_size,tmp_cplex_dij,lmn_size,-1,idum,0,&
+&                   my_prtvol,idum,-1.d0,1,opt_sym=opt_sym,mode_paral=my_mode)
+     end if
+    end if
+   end if
+
+   if ((abs(my_prtvol)>=1).and.(idij<=2.or.nspden==4).and.my_ipert>0) then
+    if (Paw_ij(iatom)%has_dijfr/=0) then
+     if (iatom_tot==1.or.iatom_tot==my_natom.or.my_prtvol<0) then
+      write(msg,'(a)') '   ************** Dij(1) Frozen **************'
+      call wrtout(my_unt,msg,my_mode)
+      dij2p =>  Paw_ij(iatom)%dijfr(:,idij)
+      call pawio_print_ij(my_unt,dij2p,lmn2_size,cplex,lmn_size,-1,idum,0, &
+&                   my_prtvol,idum,-1.d0,1,opt_sym=1,mode_paral=my_mode)
+     end if
+    end if
+   end if
+
+   if (abs(my_prtvol)>=1.and.idij<=2) then
+    if (Paw_ij(iatom)%has_dijhartree/=0) then
+     if (iatom_tot==1.or.iatom_tot==my_natom.or.my_prtvol<0) then
+      if (my_ipert==0) then
+       write(msg,'(a)') '   ************** Dij Hartree ***************'
+       call wrtout(my_unt,msg,my_mode)
+       call pawio_print_ij(my_unt,Paw_ij(iatom)%dijhartree,lmn2_size,cplex,lmn_size,-1,idum,0, &
+&                    my_prtvol,idum,-1.d0,1,mode_paral=my_mode)
+      else
+       write(msg,'(a)') '   ************* Dij(1) Hartree *************'
+       call wrtout(my_unt,msg,my_mode)
+       call pawio_print_ij(my_unt,Paw_ij(iatom)%dijhartree,lmn2_size,cplex,lmn_size,-1,idum,0, &
+&                    my_prtvol,idum,-1.d0,1,mode_paral=my_mode,opt_sym=1)
+      end if
+     end if
+    end if
+   end if
+
+   if ((abs(my_prtvol)>=1).and.(idij<=2.or.nspden==4)) then
+    if (Paw_ij(iatom)%has_dijhat/=0) then
+     if (iatom_tot==1.or.iatom_tot==my_natom.or.my_prtvol<0) then
+      if (my_ipert==0) then
+       write(msg,'(a)') '   **************** Dij_hat *****************'
+      else
+       write(msg,'(a)') '   ***** Dij_hat(1) (incl. frozen Dij) ******'
+      end if
+      call wrtout(my_unt,msg,my_mode)
+      !if ((idij<=nsppol.or.idij==2).and.cplex==1)then
+      if ((idij<=nsppol.or.idij==2))then
+       opt_sym=2; tmp_cplex_dij=1
+       dij2p => Paw_ij(iatom)%dijhat(1:cplex_dij*lmn2_size:cplex_dij,idij)
+      else
+        opt_sym=1; tmp_cplex_dij=cplex_dij
+        dij2p => Paw_ij(iatom)%dijhat(1:cplex_dij*lmn2_size:1,idij)
+      end if
+      call pawio_print_ij(my_unt,dij2p,lmn2_size,tmp_cplex_dij,lmn_size,-1,idum,0,&
+&                   my_prtvol,idum,-1.d0,1,opt_sym=opt_sym,mode_paral=my_mode)
+     end if
+    end if
+   end if
+
+   if (abs(my_prtvol)>=1.and.my_ipert<=0) then
+    if (Paw_ij(iatom)%has_dijso/=0) then
+     if (iatom_tot==1.or.iatom_tot==my_natom.or.my_prtvol<0) then
+      write(msg,'(a)') '   ************** Dij SpinOrbit ************'
+      call wrtout(my_unt,msg,my_mode)
+      dij2p =>  Paw_ij(iatom)%dijso(:,idij)
+      call pawio_print_ij(my_unt,dij2p,lmn2_size,cplex_dij,lmn_size,-1,idum,0,&
+&                   my_prtvol,idum,-1.d0,1,opt_sym=3,mode_paral=my_mode)
+     end if
+    end if
+   end if
+
+   if ((abs(my_prtvol)>=1).and.(idij<=2.or.nspden==4).and.my_ipert<=0) then
+    if (Paw_ij(iatom)%has_dijU/=0) then
+     if (iatom_tot==1.or.iatom_tot==my_natom.or.my_prtvol<0) then
+      write(msg,'(a)') '   ************* Dij_LDA+U (dijpawu) **********'
+      call wrtout(my_unt,msg,my_mode)
+      if (idij<=nsppol.or.idij==2) then
+       opt_sym=2; tmp_cplex_dij=1
+       dij2p  => Paw_ij(iatom)%dijU(1:cplex_dij*lmn2_size:cplex_dij,idij)
+       call pawio_print_ij(my_unt,dij2p,lmn2_size,tmp_cplex_dij,lmn_size,-1,idum,0,&
+&                    my_prtvol,idum,-1.d0,1,opt_sym=opt_sym,mode_paral=my_mode)
+      else
+       opt_sym=2; tmp_cplex_dij=cplex_dij
+       dij2p => Paw_ij(iatom)%dijU(1:cplex_dij*lmn2_size:1,idij)
+       dij2p_ => Paw_ij(iatom)%dijU(1:cplex_dij*lmn2_size:1,7-idij)
+       if(idij<=2) then
+        call pawio_print_ij(my_unt,dij2p,lmn2_size,tmp_cplex_dij,lmn_size,-1,idum,0,&
+&                     my_prtvol,idum,-1.d0,1,opt_sym=opt_sym,mode_paral=my_mode)
+       else
+        call pawio_print_ij(my_unt,dij2p,lmn2_size,tmp_cplex_dij,lmn_size,-1,idum,0,&
+&                     my_prtvol,idum,-1.d0,1,opt_sym=opt_sym,mode_paral=my_mode,&
+&                     asym_ij=dij2p_)
+       end if
+      end if
+     end if
+    end if
+   end if
+
+   if ((abs(my_prtvol)>=1).and.(idij<=2.or.nspden==4)) then
+    if (Paw_ij(iatom)%has_dijxc/=0) then
+     if (iatom_tot==1.or.iatom_tot==my_natom.or.my_prtvol<0) then
+      if (my_ipert<=0) then
+       write(msg,'(a)') '   ***************** Dij_xc *****************'
+      else
+       write(msg,'(a)') '   **************** Dij(1)_xc ***************'
+      end if
+      call wrtout(my_unt,msg,my_mode)
+      if (idij<=nsppol.or.idij==2) then
+       opt_sym=2; tmp_cplex_dij=1
+       dij2p => Paw_ij(iatom)%dijxc(1:cplex_dij*lmn2_size:cplex_dij,idij)
+      else
+       opt_sym=1; tmp_cplex_dij=cplex_dij
+       dij2p => Paw_ij(iatom)%dijxc(1:cplex_dij*lmn2_size:1,idij)
+      end if
+      call pawio_print_ij(my_unt,dij2p,lmn2_size,tmp_cplex_dij,lmn_size,-1,idum,0,&
+&                   my_prtvol,idum,-1.d0,1,opt_sym=opt_sym,mode_paral=my_mode)
+     end if
+    end if
+   end if
+
+   if ((abs(my_prtvol)>=1).and.(idij<=2.or.nspden==4)) then
+    if (Paw_ij(iatom)%has_dijxc_hat/=0) then
+     if (iatom_tot==1.or.iatom_tot==my_natom.or.my_prtvol<0) then
+      if (my_ipert<=0) then
+       write(msg,'(a)') '   *************** Dijhat_xc ****************'
+      else
+       write(msg,'(a)') '   ************** Dij(1)hat_xc **************'
+      end if
+      call wrtout(my_unt,msg,my_mode)
+      if (idij<=nsppol.or.idij==2) then
+       opt_sym=2; tmp_cplex_dij=1
+       dij2p => Paw_ij(iatom)%dijxc_hat(1:cplex_dij*lmn2_size:cplex_dij,idij)
+      else
+       opt_sym=1; tmp_cplex_dij=cplex_dij
+       dij2p => Paw_ij(iatom)%dijxc_hat(1:cplex_dij*lmn2_size:1,idij)
+      end if
+      call pawio_print_ij(my_unt,dij2p,lmn2_size,tmp_cplex_dij,lmn_size,-1,idum,0,&
+&                   my_prtvol,idum,-1.d0,1,opt_sym=opt_sym,mode_paral=my_mode)
+     end if
+    end if
+   end if
+
+   if ((abs(my_prtvol)>=1).and.(idij<=2.or.nspden==4).and.my_ipert==0) then
+    if (Paw_ij(iatom)%has_dijxc_val/=0) then
+     if (iatom_tot==1.or.iatom_tot==my_natom.or.my_prtvol<0) then
+      write(msg, '(a)') '   *************** Dij_xc_val ***************'
+      call wrtout(my_unt,msg,my_mode)
+      if (idij<=nsppol.or.idij==2) then
+       opt_sym=2; tmp_cplex_dij=1
+       dij2p => Paw_ij(iatom)%dijxc_val(1:cplex_dij*lmn2_size:cplex_dij,idij)
+      else
+       opt_sym=1; tmp_cplex_dij=cplex_dij
+       dij2p => Paw_ij(iatom)%dijxc_val(1:cplex_dij*lmn2_size:1,idij)
+      end if
+      call pawio_print_ij(my_unt,dij2p,lmn2_size,tmp_cplex_dij,lmn_size,-1,idum,0,&
+&                   my_prtvol,idum,-1.d0,1,opt_sym=opt_sym,mode_paral=my_mode)
+     end if
+    end if
+   end if
+
+   if (idij>=3.and.Paw_ij(iatom)%has_dijso/=0.and.my_ipert<=0) then
+    ABI_ALLOCATE(dijsym,(Paw_ij(iatom)%cplex_dij*Paw_ij(iatom)%lmn2_size))
+    dijsym(:)=Paw_ij(iatom)%dij(:,3)
+    if (idij==3) then
+     do klmn=1,Paw_ij(iatom)%cplex_dij*Paw_ij(iatom)%lmn2_size,2
+       dijsym(klmn)=dijsym(klmn)-two*Paw_ij(iatom)%dijso(klmn,3)
+!      todo:  should do a similar thing for LDA+U (just for printing),
+!      current printing is not correct for the upper triangular part for the LDA+U part in total dij.
+     end do
+    end if
+   end if
+
+   if (abs(my_prtvol)>=1) then
+
+    if (iatom_tot==1.or.iatom_tot==my_natom.or.pawprtvol<0) then
+     if (my_ipert<=0) then
+      write(msg,'(a)') '   **********    TOTAL Dij in Ha   **********'
+     else
+      write(msg,'(a)') '   **********  TOTAL Dij(1) in Ha  **********'
+     end if
+     call wrtout(my_unt,msg,my_mode)
+     if (idij<=2.or.Paw_ij(iatom)%has_dijso==0) then
+      if (my_ipert==0) then
+       call pawio_print_ij(my_unt,paw_ij(iatom)%dij(:,idij),lmn2_size,cplex_dij,lmn_size,&
+&           -1,idum,0,my_prtvol,idum,50.d0*dble(3-2*idij),1,mode_paral=my_mode)
+      else
+       call pawio_print_ij(my_unt,paw_ij(iatom)%dij(:,idij),lmn2_size,cplex_dij,lmn_size,&
+&           -1,idum,0,my_prtvol,idum,50.d0*dble(3-2*idij),1,opt_sym=1,mode_paral=my_mode)
+      end if
+     else
+      if (my_ipert==0) then
+       call pawio_print_ij(my_unt,paw_ij(iatom)%dij(:,idij),lmn2_size,cplex_dij,lmn_size,&
+&           -1,idum,0,my_prtvol,idum,50.d0*dble(3-2*idij),1,asym_ij=dijsym,mode_paral=my_mode)
+      else
+       call pawio_print_ij(my_unt,paw_ij(iatom)%dij(:,idij),lmn2_size,cplex_dij,lmn_size,&
+&           -1,idum,0,my_prtvol,idum,50.d0*dble(3-2*idij),1,mode_paral=my_mode)
+      end if
+     end if
+    end if
+
+    if (my_enunit>0) then
+     if (my_ipert<=0) then
+      write(msg,'(a)') '   **********    TOTAL Dij in eV   **********'
+     else
+      write(msg,'(a)') '   **********  TOTAL Dij(1) in eV  **********'
+     end if
+     call wrtout(my_unt,msg,my_mode)
+     if (idij<=2.or.Paw_ij(iatom)%has_dijso==0) then
+      if (my_ipert==0) then
+       call pawio_print_ij(my_unt,paw_ij(iatom)%dij(:,idij),lmn2_size,cplex_dij,lmn_size,&
+&           -1,idum,0,my_prtvol,idum,-1.d0,2,mode_paral=my_mode)
+      else
+       call pawio_print_ij(my_unt,paw_ij(iatom)%dij(:,idij),lmn2_size,cplex_dij,lmn_size,&
+&           -1,idum,0,my_prtvol,idum,-1.d0,2,opt_sym=1,mode_paral=my_mode)
+      end if
+     else
+      if (my_ipert==0) then
+       call pawio_print_ij(my_unt,paw_ij(iatom)%dij(:,idij),lmn2_size,cplex_dij,lmn_size,&
+&           -1,idum,0,my_prtvol,idum,-1.d0,2,asym_ij=dijsym,mode_paral=my_mode)
+      else
+       call pawio_print_ij(my_unt,paw_ij(iatom)%dij(:,idij),lmn2_size,cplex_dij,lmn_size,&
+&            -1,idum,0,my_prtvol,idum,-1.d0,2,opt_sym=1,mode_paral=my_mode)
+      end if
+     end if
+    end if
+
+   end if
+
+   if (abs(my_prtvol)==0) then
+    if (iatom_tot==1.or.iatom_tot==my_natom) then
+     if (idij==1) then
+      if (my_ipert<=0) then
+       write(msg, '(2a,i6,a)') ch10,' ****** Psp strength Dij in Ha (atom ',iatom_tot,') *****'
+      else
+       write(msg, '(2a,i6,a)') ch10,' **** Psp strength  Dij(1) in Ha (atom ',iatom_tot,') *****'
+      end if
+      if (nspden==2.and.nsppol==1) then
+       write(msg,'(4a)') trim(msg),') *****',ch10,' (antiferromagnetism case: only one spin component)'
+      end if
+      call wrtout(my_unt,msg,my_mode)
+     end if
+     if (paw_ij(iatom)%ndij/=1) then
+      write(msg,'(3a)') ' Component ',trim(dspin(idij+2*(nsploop/4))),':'
+      call wrtout(my_unt,msg,my_mode)
+     end if
+     if (idij<=2.or.pawspnorb==0) then
+      if (my_ipert==0) then
+       call pawio_print_ij(my_unt,paw_ij(iatom)%dij(:,idij),lmn2_size,cplex_dij,lmn_size,-1,&
+&           idum,0,my_prtvol,idum,50.d0*dble(3-2*idij),1,mode_paral=my_mode)
+      else
+       call pawio_print_ij(my_unt,paw_ij(iatom)%dij(:,idij),lmn2_size,cplex_dij,lmn_size,-1,&
+&           idum,0,my_prtvol,idum,50.d0*dble(3-2*idij),1,opt_sym=1,mode_paral=my_mode)
+      end if
+     else
+      if (my_ipert==0) then
+       call pawio_print_ij(my_unt,paw_ij(iatom)%dij(:,idij),lmn2_size,cplex_dij,lmn_size,-1,&
+&           idum,0,my_prtvol,idum,50.d0*dble(3-2*idij),1,asym_ij=dijsym,mode_paral=my_mode)
+      else
+       call pawio_print_ij(my_unt,paw_ij(iatom)%dij(:,idij),lmn2_size,cplex_dij,lmn_size,-1,&
+&           idum,0,my_prtvol,idum,50.d0*dble(3-2*idij),1,opt_sym=1,mode_paral=my_mode)
+      end if
+     end if
+    end if
+   end if
+
+   if (allocated(dijsym)) then
+     ABI_DEALLOCATE(dijsym)
+   end if
+
+  end do !idij
+ end do !iat
+
+ write(msg,'(a)')' '
+ call wrtout(my_unt,msg,my_mode)
+
+ DBG_EXIT("COLL")
+
+end subroutine paw_ij_print
+!!***
+
+!----------------------------------------------------------------------
+
+!!****f* m_paw_ij/paw_ij_gather
+!! NAME
+!! paw_ij_gather
+!!
+!! FUNCTION
+!!   (All)Gather paw_ij datastructures
+!!
+!! COPYRIGHT
+!! Copyright (C) 2012-2014 ABINIT group (MT)
+!! This file is distributed under the terms of the
+!! GNU General Public License, see ~ABINIT/COPYING
+!! or http://www.gnu.org/copyleft/gpl.txt .
+!!
+!! INPUTS
+!!  master=master communicator receiving data ; if -1 do a ALLGATHER
+!!  mpi_comm_atom= communicator
+!!  paw_ij_in(:)<type(paw_ij_type)>= input paw_ij datastructures on every process
+!!
+!! OUTPUT
+!!  paw_ij_gathered(:)<type(paw_ij_type)>= output paw_oij datastructure
+!!
+!! PARENTS
+!!      m_paw_ij,outkss,pawprt
+!!
+!! CHILDREN
+!!
+!! SOURCE
+
+subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,mpi_comm_atom)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'paw_ij_gather'
+!End of the abilint section
+
+ implicit none
+
+!Arguments ------------------------------------
+!scalars
+ integer,intent(in) :: master,mpi_comm_atom
+!arrays
+ type(paw_ij_type),intent(in) :: paw_ij_in(:)
+ type(paw_ij_type),intent(inout) :: paw_ij_gathered(:)
+
+!Local variables-------------------------------
+!scalars
+ integer :: buf_dp_size,buf_dp_size_all,buf_int_size,buf_int_size_all
+ integer :: cplx_lmn2_size,cplxdij_lmn2_size
+ integer :: iat,ii,ierr,ij,indx_dp,indx_int,lmn2_size
+ integer :: me_atom,ndij,nocc,nocc1,nocc2,nocc3,nocc4,npaw_ij_in,npaw_ij_in_sum
+ integer :: npaw_ij_out,nproc_atom,nspden
+ logical :: my_atmtab_allocated,paral_atom
+ character(len=500) :: msg
+!arrays
+ integer,allocatable :: buf_int(:),buf_int_all(:)
+ integer,pointer :: my_atmtab(:)
+ real(dp),allocatable :: buf_dp(:),buf_dp_all(:)
+
+! *************************************************************************
+
+ DBG_ENTER("COLL")
+
+!@Paw_ij_type
+
+ npaw_ij_in=size(paw_ij_in);npaw_ij_out=size(paw_ij_gathered)
+
+ nproc_atom=xcomm_size(mpi_comm_atom)
+ me_atom=xcomm_rank(mpi_comm_atom)
+
+!Special case 1 process
+ if (nproc_atom==1) then
+   if (master==-1.or.me_atom==master) then
+     call paw_ij_destroy(paw_ij_gathered)
+     call paw_ij_nullify(paw_ij_gathered)
+     do iat=1,npaw_ij_in
+       paw_ij_gathered(iat)%cplex      =paw_ij_in(iat)%cplex
+       paw_ij_gathered(iat)%cplex_dij  =paw_ij_in(iat)%cplex_dij
+       Paw_ij_gathered(iat)%has_dij    =paw_ij_in(iat)%has_dij
+       Paw_ij_gathered(iat)%has_dij0   =paw_ij_in(iat)%has_dij0
+       Paw_ij_gathered(iat)%has_dijexxc =paw_ij_in(iat)%has_dijexxc
+       Paw_ij_gathered(iat)%has_dijfock =paw_ij_in(iat)%has_dijfock
+       Paw_ij_gathered(iat)%has_dijfr  =paw_ij_in(iat)%has_dijfr
+       Paw_ij_gathered(iat)%has_dijhartree=paw_ij_in(iat)%has_dijhartree
+       Paw_ij_gathered(iat)%has_dijhat =paw_ij_in(iat)%has_dijhat
+       Paw_ij_gathered(iat)%has_dijso  =paw_ij_in(iat)%has_dijso
+       Paw_ij_gathered(iat)%has_dijU   =paw_ij_in(iat)%has_dijU
+       Paw_ij_gathered(iat)%has_dijxc  =paw_ij_in(iat)%has_dijxc
+       Paw_ij_gathered(iat)%has_dijxc_hat =paw_ij_in(iat)%has_dijxc_hat
+       Paw_ij_gathered(iat)%has_dijxc_val =paw_ij_in(iat)%has_dijxc_val
+       Paw_ij_gathered(iat)%has_exexch_pot=paw_ij_in(iat)%has_exexch_pot
+       Paw_ij_gathered(iat)%has_pawu_occ  =paw_ij_in(iat)%has_pawu_occ
+       paw_ij_gathered(iat)%itypat     =paw_ij_in(iat)%itypat
+       paw_ij_gathered(iat)%lmn_size   =paw_ij_in(iat)%lmn_size
+       paw_ij_gathered(iat)%lmn2_size  =paw_ij_in(iat)%lmn2_size
+       paw_ij_gathered(iat)%ndij       =paw_ij_in(iat)%ndij
+       paw_ij_gathered(iat)%nspden     =paw_ij_in(iat)%nspden
+       paw_ij_gathered(iat)%nsppol     =paw_ij_in(iat)%nsppol
+       lmn2_size=paw_ij_gathered(iat)%lmn2_size
+       cplxdij_lmn2_size=paw_ij_gathered(iat)%cplex_dij*paw_ij_gathered(iat)%lmn2_size
+       ndij=paw_ij_gathered(iat)%ndij
+       cplx_lmn2_size=paw_ij_gathered(iat)%cplex*lmn2_size
+       nspden=paw_ij_gathered(iat)%nspden
+       if (paw_ij_gathered(iat)%has_dij>=1) then
+         ABI_ALLOCATE(paw_ij_gathered(iat)%dij,(cplxdij_lmn2_size,ndij))
+         if (paw_ij_in(iat)%has_dij==2) then
+           paw_ij_gathered(iat)%dij=paw_ij_in(iat)%dij
+         end if
+       end if
+       if (paw_ij_gathered(iat)%has_dij0 >=1) then
+         ABI_ALLOCATE(paw_ij_gathered(iat)%dij0,(lmn2_size))
+         if (paw_ij_in(iat)%has_dij0==2) then
+           paw_ij_gathered(iat)%dij0=paw_ij_in(iat)%dij0
+         end if
+       end if   
+       if (paw_ij_gathered(iat)%has_dijexxc >=1) then
+         ABI_ALLOCATE(paw_ij_gathered(iat)%dijexxc,(cplxdij_lmn2_size,ndij)) 
+         if (paw_ij_in(iat)%has_dijexxc==2) then
+           paw_ij_gathered(iat)%dijexxc(:,:)=paw_ij_in(iat)%dijexxc(:,:)
+         end if
+       end if
+       if (paw_ij_gathered(iat)%has_dijfock >=1) then
+         ABI_ALLOCATE(paw_ij_gathered(iat)%dijfock,(cplxdij_lmn2_size,ndij)) 
+         if (paw_ij_in(iat)%has_dijfock==2) then
+           paw_ij_gathered(iat)%dijfock(:,:)=paw_ij_in(iat)%dijfock(:,:)
+         end if
+       end if   
+       if (paw_ij_gathered(iat)%has_dijfr >=1) then
+         ABI_ALLOCATE(paw_ij_gathered(iat)%dijfr,(cplxdij_lmn2_size,ndij))
+         if (paw_ij_in(iat)%has_dijfr==2) then
+           paw_ij_gathered(iat)%dijfr(:,:)=paw_ij_in(iat)%dijfr(:,:)
+         end if
+       end if
+         if (paw_ij_gathered(iat)%has_dijhartree >=1) then
+         ABI_ALLOCATE(paw_ij_gathered(iat)%dijhartree,(cplx_lmn2_size))
+         if (paw_ij_in(iat)%has_dijhartree==2) then
+           paw_ij_gathered(iat)%dijhartree(:)=paw_ij_in(iat)%dijhartree(:)
+         end if
+       end if
+       if (paw_ij_gathered(iat)%has_dijhat >=1) then
+         ABI_ALLOCATE(paw_ij_gathered(iat)%dijhat,(cplxdij_lmn2_size,ndij))
+         if (paw_ij_in(iat)%has_dijhat==2) then
+           paw_ij_gathered(iat)%dijhat(:,:)=paw_ij_in(iat)%dijhat(:,:)
+         end if
+       end if
+       if (paw_ij_gathered(iat)%has_dijU >=1) then
+         ABI_ALLOCATE(paw_ij_gathered(iat)%dijU,(cplxdij_lmn2_size,ndij))
+         if (paw_ij_in(iat)%has_dijU==2) then
+         paw_ij_gathered(iat)%dijU(:,:)=paw_ij_in(iat)%dijU(:,:)
+         end if
+       end if
+       if (paw_ij_gathered(iat)%has_dijso >=1) then
+         ABI_ALLOCATE(paw_ij_gathered(iat)%dijso,(cplxdij_lmn2_size,ndij))
+         if (paw_ij_in(iat)%has_dijso==2) then
+           paw_ij_gathered(iat)%dijso(:,:)=paw_ij_in(iat)%dijso(:,:)
+         end if
+       end if
+       if (paw_ij_gathered(iat)%has_dijxc >=1) then
+         ABI_ALLOCATE(paw_ij_gathered(iat)%dijxc,(cplxdij_lmn2_size,ndij))
+         if (paw_ij_in(iat)%has_dijxc==2) then
+           paw_ij_gathered(iat)%dijxc(:,:)=paw_ij_in(iat)%dijxc(:,:)
+         end if
+       end if
+       if (paw_ij_gathered(iat)%has_dijxc_hat >=1) then
+         ABI_ALLOCATE(paw_ij_gathered(iat)%dijxc_hat,(cplxdij_lmn2_size,ndij))
+         if (paw_ij_in(iat)%has_dijxc_hat==2) then
+           paw_ij_gathered(iat)%dijxc_hat(:,:)=paw_ij_in(iat)%dijxc_hat(:,:)
+         end if
+       end if
+       if (paw_ij_gathered(iat)%has_dijxc_val >=1) then
+         ABI_ALLOCATE(paw_ij_gathered(iat)%dijxc_val,(cplxdij_lmn2_size,ndij))
+         if (paw_ij_in(iat)%has_dijxc_val==2) then
+           paw_ij_gathered(iat)%dijxc_val(:,:)=paw_ij_in(iat)%dijxc_val(:,:)
+         end if
+       end if
+       if (paw_ij_gathered(iat)%has_pawu_occ >=1) then
+         ABI_ALLOCATE(paw_ij_gathered(iat)%nocctot,(ndij))
+         if (paw_ij_gathered(iat)%has_pawu_occ==2) then
+           paw_ij_gathered(iat)%nocctot(:)=paw_ij_in(iat)%nocctot(:)
+           if (associated(paw_ij_in(iat)%noccmmp)) then
+             sz1=size(paw_ij_in(iat)%noccmmp,1);sz2=size(paw_ij_in(iat)%noccmmp,2)
+             sz3=size(paw_ij_in(iat)%noccmmp,3);sz4=size(paw_ij_in(iat)%noccmmp,4)
+             ABI_ALLOCATE(paw_ij_gathered(iat)%noccmmp,(sz1,sz2,sz3,sz4))
+             paw_ij_gathered(iat)%noccmmp(:,:,:,:)=paw_ij_in(iat)%noccmmp(:,:,:,:)
+           end if
+         end if
+       end if
+       if (paw_ij_in(iat)%has_exexch_pot >=1) then
+         sz1=size(paw_ij_in(iat)%vpawx,1);sz2=size(paw_ij_in(iat)%vpawx,2)
+         sz3=size(paw_ij_in(iat)%vpawx,3)
+         ABI_ALLOCATE(paw_ij_gathered(iat)%vpawx,(sz1,sz2,sz3))
+         if (paw_ij_in(iat)%has_exexch_pot==2) then
+           paw_ij_gathered(iat)%vpawx(:,:,:)=paw_ij_in(iat)%vpawx(:,:,:)
+         end if
+       end if
+     end do !  iat
+   end if
+   return
+ end if !nproc_atom =1
+
+!Test on sizes
+ npaw_ij_in_sum=npaw_ij_in
+ call xsum_mpi(npaw_ij_in_sum,mpi_comm_atom,ierr)
+  if (master==-1) then
+   if (npaw_ij_out/=npaw_ij_in_sum) then
+     msg='Wrong sizes sum[npaw_ij_ij]/=npaw_ij_out !'
+     MSG_BUG(msg)
+   end if
+ else
+   if (me_atom==master.and.npaw_ij_out/=npaw_ij_in_sum) then
+     msg='(2) paw_ij_gathered wrongly allocated !'
+     MSG_BUG(msg)
+   end if
+ end if
+
+!Retrieve table of atoms
+ paral_atom=.true.;nullify(my_atmtab)
+ call get_my_atmtab(mpi_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,npaw_ij_in_sum)
+
+!Compute sizes of buffers
+ buf_int_size=0;buf_dp_size=0
+ do ij=1,npaw_ij_in
+   lmn2_size=paw_ij_in(ij)%lmn2_size
+   cplxdij_lmn2_size=paw_ij_in(ij)%cplex_dij*paw_ij_in(ij)%lmn2_size
+   ndij=paw_ij_in(ij)%ndij
+   cplx_lmn2_size=paw_ij_in(ij)%cplex*lmn2_size
+   buf_int_size=buf_int_size+23
+   if (paw_ij_in(ij)%has_dij==2) then
+     buf_dp_size=buf_dp_size +cplxdij_lmn2_size*ndij
+   end if
+   if (paw_ij_in(ij)%has_dij0==2) then
+     buf_dp_size=buf_dp_size +lmn2_size
+   end if
+   if (paw_ij_in(ij)%has_dijexxc==2) then
+     buf_dp_size=buf_dp_size +cplxdij_lmn2_size*ndij
+   end if
+   if (paw_ij_in(ij)%has_dijfock==2) then
+     buf_dp_size=buf_dp_size +cplxdij_lmn2_size*ndij
+   end if
+   if (paw_ij_in(ij)%has_dijfr==2) then
+     buf_dp_size=buf_dp_size +cplxdij_lmn2_size*ndij
+   end if
+   if (paw_ij_in(ij)%has_dijhartree==2) then
+     buf_dp_size=buf_dp_size +cplx_lmn2_size
+   end if
+   if (paw_ij_in(ij)%has_dijhat==2) then
+     buf_dp_size=buf_dp_size +cplxdij_lmn2_size*ndij
+   end if
+   if (paw_ij_in(ij)%has_dijso==2) then
+     buf_dp_size=buf_dp_size +cplxdij_lmn2_size*ndij
+   end if
+   if (paw_ij_in(ij)%has_dijU==2) then
+     buf_dp_size=buf_dp_size +cplxdij_lmn2_size*ndij
+   end if
+   if (paw_ij_in(ij)%has_dijxc==2) then
+     buf_dp_size=buf_dp_size +cplxdij_lmn2_size*ndij
+   end if
+   if (paw_ij_in(ij)%has_dijxc_hat==2) then
+     buf_dp_size=buf_dp_size +cplxdij_lmn2_size*ndij
+   end if
+   if (paw_ij_in(ij)%has_dijxc_val==2) then
+     buf_dp_size=buf_dp_size +cplxdij_lmn2_size*ndij
+   end if
+   if (paw_ij_in(ij)%has_pawu_occ>=1) then
+     buf_int_size=buf_int_size+4
+     buf_dp_size=buf_dp_size &
+&        +size(paw_ij_in(ij)%nocctot) &
+&        +size(paw_ij_in(ij)%noccmmp)
+   end if
+   if (paw_ij_in(ij)%has_exexch_pot>=1) then
+     buf_int_size=buf_int_size+3
+     buf_dp_size=buf_dp_size +size(paw_ij_in(ij)%vpawx)
+   end if
+ end do
+
+!Fill input buffers
+ ABI_ALLOCATE(buf_int,(buf_int_size))
+ ABI_ALLOCATE(buf_dp ,(buf_dp_size))
+ indx_int=1;indx_dp=1
+ do ij=1,npaw_ij_in
+   nspden=paw_ij_in(ij)%nspden
+   buf_int(indx_int)=my_atmtab(ij) ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij_in(ij)%cplex ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij_in(ij)%cplex_dij ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij_in(ij)%itypat ;indx_int=indx_int+1
+   buf_int(indx_int)=nspden ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij_in(ij)%nsppol ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij_in(ij)%lmn_size ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij_in(ij)%lmn2_size ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij_in(ij)%ndij ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij_in(ij)%has_dij ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij_in(ij)%has_dij0 ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij_in(ij)%has_dijexxc ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij_in(ij)%has_dijfock ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij_in(ij)%has_dijfr ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij_in(ij)%has_dijhartree ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij_in(ij)%has_dijhat ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij_in(ij)%has_dijso ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij_in(ij)%has_dijU ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij_in(ij)%has_dijxc ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij_in(ij)%has_dijxc_hat ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij_in(ij)%has_dijxc_val ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij_in(ij)%has_exexch_pot ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij_in(ij)%has_pawu_occ ;indx_int=indx_int+1
+   lmn2_size=paw_ij_in(ij)%lmn2_size
+   cplxdij_lmn2_size=paw_ij_in(ij)%cplex_dij*paw_ij_in(ij)%lmn2_size
+   ndij=paw_ij_in(ij)%ndij
+   cplx_lmn2_size=paw_ij_in(ij)%cplex*lmn2_size
+   if (paw_ij_in(ij)%has_dij==2) then
+     ii=paw_ij_in(ij)%cplex_dij*paw_ij_in(ij)%lmn2_size*paw_ij_in(ij)%ndij
+     buf_dp(indx_dp:indx_dp+ii-1)=reshape(paw_ij_in(ij)%dij,(/ii/))
+     indx_dp=indx_dp+ii
+   end if
+   if (paw_ij_in(ij)%has_dij0==2) then
+     buf_dp(indx_dp:indx_dp+lmn2_size-1)=paw_ij_in(ij)%dij0(:)
+     indx_dp=indx_dp+lmn2_size
+   end if
+   if (paw_ij_in(ij)%has_dijexxc==2) then
+     ii=cplxdij_lmn2_size*ndij
+     buf_dp(indx_dp:indx_dp+ii-1)=reshape(paw_ij_in(ij)%dijexxc,(/ii/))
+     indx_dp=indx_dp+ii
+   end if
+   if (paw_ij_in(ij)%has_dijfock==2) then
+     ii=cplxdij_lmn2_size*ndij
+     buf_dp(indx_dp:indx_dp+ii-1)=reshape(paw_ij_in(ij)%dijfock,(/ii/))
+     indx_dp=indx_dp+ii
+   end if
+   if (paw_ij_in(ij)%has_dijfr==2) then
+     ii=cplxdij_lmn2_size*ndij
+     buf_dp(indx_dp:indx_dp+ii-1)=reshape(paw_ij_in(ij)%dijfr,(/ii/))
+     indx_dp=indx_dp+ii
+   end if
+   if (paw_ij_in(ij)%has_dijhartree==2) then
+     buf_dp(indx_dp:indx_dp+lmn2_size-1)=paw_ij_in(ij)%dijhartree(:)
+     indx_dp=indx_dp+lmn2_size
+   end if
+   if (paw_ij_in(ij)%has_dijhat==2) then
+     ii=cplxdij_lmn2_size*ndij
+     buf_dp(indx_dp:indx_dp+ii-1)=reshape(paw_ij_in(ij)%dijhat,(/ii/))
+     indx_dp=indx_dp+ii
+   end if
+   if (paw_ij_in(ij)%has_dijU==2) then
+     ii=cplxdij_lmn2_size*ndij
+     buf_dp(indx_dp:indx_dp+ii-1)=reshape(paw_ij_in(ij)%dijU,(/ii/))
+     indx_dp=indx_dp+ii
+   end if
+   if (paw_ij_in(ij)%has_dijso==2) then
+     ii=cplxdij_lmn2_size*ndij
+     buf_dp(indx_dp:indx_dp+ii-1)=reshape(paw_ij_in(ij)%dijso,(/ii/))
+     indx_dp=indx_dp+ii
+   end if
+   if (paw_ij_in(ij)%has_dijxc==2) then
+     ii=cplxdij_lmn2_size*ndij
+     buf_dp(indx_dp:indx_dp+ii-1)=reshape(paw_ij_in(ij)%dijxc,(/ii/))
+     indx_dp=indx_dp+ii
+   end if
+   if (paw_ij_in(ij)%has_dijxc_hat==2) then
+     ii=cplxdij_lmn2_size*ndij
+     buf_dp(indx_dp:indx_dp+ii-1)=reshape(paw_ij_in(ij)%dijxc_hat,(/ii/))
+     indx_dp=indx_dp+ii
+   end if
+   if (paw_ij_in(ij)%has_dijxc_val==2) then
+     ii=cplxdij_lmn2_size*ndij
+     buf_dp(indx_dp:indx_dp+ii-1)=reshape(paw_ij_in(ij)%dijxc_val,(/ii/))
+     indx_dp=indx_dp+ii
+   end if
+   if (paw_ij_in(ij)%has_pawu_occ>=1)then
+     buf_int(indx_int)=size(paw_ij_in(ij)%noccmmp,1) ;indx_int=indx_int+1
+     buf_int(indx_int)=size(paw_ij_in(ij)%noccmmp,2) ;indx_int=indx_int+1
+     buf_int(indx_int)=size(paw_ij_in(ij)%noccmmp,3) ;indx_int=indx_int+1
+     buf_int(indx_int)=size(paw_ij_in(ij)%noccmmp,4) ;indx_int=indx_int+1
+     nocc=paw_ij_in(ij)%ndij
+     buf_dp(indx_dp:indx_dp+nocc-1)=paw_ij_in(ij)%nocctot(1:nocc)
+     indx_dp=indx_dp+nocc
+     nocc=size(paw_ij_in(ij)%noccmmp)
+     buf_dp(indx_dp:indx_dp+nocc-1)=reshape(paw_ij_in(ij)%noccmmp,(/nocc/))
+     indx_dp=indx_dp+nocc
+   end if
+   if (paw_ij_in(ij)%has_exexch_pot>=1) then
+     sz1=size(paw_ij_in(ij)%vpawx,1);sz2=size(paw_ij_in(ij)%vpawx,2)
+     sz3=size(paw_ij_in(ij)%vpawx,3)
+     buf_int(indx_int)=sz1; indx_int=indx_int+1
+     buf_int(indx_int)=sz2; indx_int=indx_int+1
+     buf_int(indx_int)=sz3; indx_int=indx_int+1
+     ii=sz1*sz2*sz3
+     buf_dp(indx_dp:indx_dp+ii-1)=reshape(paw_ij_in(ij)%vpawx,(/(ii)/))
+     indx_dp=indx_dp+ii
+   end if
+ end do
+
+!Check
+ if ((indx_int-1/=buf_int_size).or.(indx_dp-1 /=buf_dp_size)) then
+   write(msg,*) 'Wrong buffer sizes: buf_int_size=',buf_int_size, &
+     ' indx_int_size=',indx_int,' buf_dp_size=',buf_dp_size , ' indx_dp=', indx_dp
+   MSG_BUG(msg)
+ end if
+
+!Communicate
+ if (master==-1) then
+   call xallgatherv_mpi(buf_int,buf_int_size,buf_dp,buf_dp_size, &
+&  buf_int_all,buf_int_size_all,buf_dp_all,buf_dp_size_all,mpi_comm_atom,ierr)
+ else
+   call xgatherv_mpi(buf_int,buf_int_size,buf_dp,buf_dp_size, &
+&  buf_int_all,buf_int_size_all,buf_dp_all,buf_dp_size_all,master,mpi_comm_atom,ierr)
+ end if
+
+!Retrieve data from output buffer
+ if (master==-1.or.me_atom==master) then
+   indx_int=1;indx_dp=1
+   call paw_ij_destroy(paw_ij_gathered)
+   call paw_ij_nullify(paw_ij_gathered)
+   do ij=1,npaw_ij_out
+     iat=buf_int_all(indx_int) ;indx_int=indx_int+1
+     paw_ij_gathered(iat)%cplex=buf_int_all(indx_int) ;indx_int=indx_int+1
+     paw_ij_gathered(iat)%cplex_dij=buf_int_all(indx_int) ;indx_int=indx_int+1
+     paw_ij_gathered(iat)%itypat=buf_int_all(indx_int) ;indx_int=indx_int+1
+     paw_ij_gathered(iat)%nspden=buf_int_all(indx_int) ;indx_int=indx_int+1
+     paw_ij_gathered(iat)%nsppol=buf_int_all(indx_int) ;indx_int=indx_int+1
+     paw_ij_gathered(iat)%lmn_size=buf_int_all(indx_int) ;indx_int=indx_int+1
+     paw_ij_gathered(iat)%lmn2_size=buf_int_all(indx_int) ;indx_int=indx_int+1
+     paw_ij_gathered(iat)%ndij=buf_int_all(indx_int) ;indx_int=indx_int+1
+     paw_ij_gathered(iat)%has_dij=buf_int_all(indx_int) ;indx_int=indx_int+1
+     paw_ij_gathered(iat)%has_dij0=buf_int_all(indx_int) ;indx_int=indx_int+1
+     paw_ij_gathered(iat)%has_dijexxc=buf_int_all(indx_int) ;indx_int=indx_int+1  
+     paw_ij_gathered(iat)%has_dijfock=buf_int_all(indx_int) ;indx_int=indx_int+1  
+     paw_ij_gathered(iat)%has_dijfr=buf_int_all(indx_int) ;indx_int=indx_int+1 
+     paw_ij_gathered(iat)%has_dijhartree=buf_int_all(indx_int) ;indx_int=indx_int+1  
+     paw_ij_gathered(iat)%has_dijhat=buf_int_all(indx_int) ;indx_int=indx_int+1  
+     paw_ij_gathered(iat)%has_dijso=buf_int_all(indx_int) ;indx_int=indx_int+1    
+     paw_ij_gathered(iat)%has_dijU=buf_int_all(indx_int) ;indx_int=indx_int+1
+     paw_ij_gathered(iat)%has_dijxc=buf_int_all(indx_int) ;indx_int=indx_int+1
+     paw_ij_gathered(iat)%has_dijxc_hat=buf_int_all(indx_int) ;indx_int=indx_int+1
+     paw_ij_gathered(iat)%has_dijxc_val=buf_int_all(indx_int) ;indx_int=indx_int+1
+     paw_ij_gathered(iat)%has_exexch_pot=buf_int_all(indx_int) ;indx_int=indx_int+1
+     paw_ij_gathered(iat)%has_pawu_occ=buf_int_all(indx_int) ;indx_int=indx_int+1
+     if (paw_ij_gathered(iat)%has_pawu_occ>=1) then
+       nocc1=buf_int_all(indx_int) ;indx_int=indx_int+1
+       nocc2=buf_int_all(indx_int) ;indx_int=indx_int+1
+       nocc3=buf_int_all(indx_int) ;indx_int=indx_int+1
+       nocc4=buf_int_all(indx_int) ;indx_int=indx_int+1
+     else
+       nocc1=0;nocc2=0;nocc3=0;nocc4=0
+     end if
+     lmn2_size=paw_ij_gathered(iat)%lmn2_size
+     cplxdij_lmn2_size=paw_ij_gathered(iat)%cplex_dij*paw_ij_gathered(iat)%lmn2_size
+     ndij=paw_ij_gathered(iat)%ndij
+     cplx_lmn2_size=paw_ij_gathered(iat)%cplex*lmn2_size
+     if (paw_ij_gathered(iat)%has_dij>=1) then
+       ABI_ALLOCATE(paw_ij_gathered(iat)%dij,(cplxdij_lmn2_size,ndij))
+       if (paw_ij_gathered(iat)%has_dij==2) then
+         paw_ij_gathered(iat)%dij(:,:)= &
+ &         reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
+ &                (/cplxdij_lmn2_size,ndij/))
+         indx_dp=indx_dp+cplxdij_lmn2_size*ndij
+       end if
+     end if
+     if (paw_ij_gathered(iat)%has_dij0 >=1) then
+       ABI_ALLOCATE(paw_ij_gathered(iat)%dij0,(lmn2_size))
+       if (paw_ij_gathered(iat)%has_dij0==2) then
+         paw_ij_gathered(iat)%dij0(:)=buf_dp_all(indx_dp:indx_dp+lmn2_size-1)
+         indx_dp=indx_dp+lmn2_size
+       end if
+     end if
+     if (paw_ij_gathered(iat)%has_dijexxc >=1) then
+       ABI_ALLOCATE(paw_ij_gathered(iat)%dijexxc,(cplxdij_lmn2_size,ndij))
+       if (paw_ij_gathered(iat)%has_dijexxc==2) then
+         paw_ij_gathered(iat)%dijexxc(:,:)= &
+&          reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
+&                  (/cplxdij_lmn2_size,ndij/))
+         indx_dp=indx_dp+cplxdij_lmn2_size*ndij
+       end if
+     end if   
+     if (paw_ij_gathered(iat)%has_dijfock >=1) then
+        ABI_ALLOCATE(paw_ij_gathered(iat)%dijfock,(cplxdij_lmn2_size,ndij)) 
+        if (paw_ij_gathered(iat)%has_dijfock==2) then
+          paw_ij_gathered(iat)%dijfock(:,:)= &      
+&           reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
+&                  (/cplxdij_lmn2_size,ndij/))
+          indx_dp=indx_dp+cplxdij_lmn2_size*ndij
+        end if
+      end if   
+      if (paw_ij_gathered(iat)%has_dijfr >=1) then
+         ABI_ALLOCATE(paw_ij_gathered(iat)%dijfr,(cplxdij_lmn2_size,ndij))
+         if (paw_ij_gathered(iat)%has_dijfr==2) then
+           paw_ij_gathered(iat)%dijfr(:,:)= &
+&            reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
+&                   (/cplxdij_lmn2_size,ndij/))
+           indx_dp=indx_dp+cplxdij_lmn2_size*ndij
+         end if
+       end if
+       if (paw_ij_gathered(iat)%has_dijhartree >=1) then
+         ABI_ALLOCATE(paw_ij_gathered(iat)%dijhartree,(cplx_lmn2_size))
+         if (paw_ij_gathered(iat)%has_dijhartree==2) then
+           paw_ij_gathered(iat)%dijhartree(:)=buf_dp_all(indx_dp:indx_dp+cplx_lmn2_size-1)
+           indx_dp=indx_dp+cplx_lmn2_size
+         end if
+       end if
+       if (paw_ij_gathered(iat)%has_dijhat >=1) then
+         ABI_ALLOCATE(paw_ij_gathered(iat)%dijhat,(cplxdij_lmn2_size,ndij))
+         if (paw_ij_gathered(iat)%has_dijhat==2) then
+           paw_ij_gathered(iat)%dijhat(:,:)= &
+&            reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
+&                   (/cplxdij_lmn2_size,ndij/))
+           indx_dp=indx_dp+cplxdij_lmn2_size*ndij
+         end if
+       end if
+       if (paw_ij_gathered(iat)%has_dijU >=1) then
+         ABI_ALLOCATE(paw_ij_gathered(iat)%dijU,(cplxdij_lmn2_size,ndij))
+         if (paw_ij_gathered(iat)%has_dijU==2) then
+           paw_ij_gathered(iat)%dijU(:,:)= &
+&            reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
+&                   (/cplxdij_lmn2_size,ndij/))
+           indx_dp=indx_dp+cplxdij_lmn2_size*ndij
+         end if
+       end if
+       if (paw_ij_gathered(iat)%has_dijso >=1) then
+         ABI_ALLOCATE(paw_ij_gathered(iat)%dijso,(cplxdij_lmn2_size,ndij))
+         if (paw_ij_gathered(iat)%has_dijso==2) then
+           paw_ij_gathered(iat)%dijso(:,:)= &
+&            reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
+&                   (/cplxdij_lmn2_size,ndij/))
+           indx_dp=indx_dp+cplxdij_lmn2_size*ndij
+         end if
+       end if
+       if (paw_ij_gathered(iat)%has_dijxc >=1) then
+         ABI_ALLOCATE(paw_ij_gathered(iat)%dijxc,(cplxdij_lmn2_size,ndij))
+         if (paw_ij_gathered(iat)%has_dijxc==2) then
+           paw_ij_gathered(iat)%dijxc(:,:)= &
+&            reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
+&                   (/cplxdij_lmn2_size,ndij/))
+           indx_dp=indx_dp+cplxdij_lmn2_size*ndij
+         end if
+       end if
+       if (paw_ij_gathered(iat)%has_dijxc_hat >=1) then
+         ABI_ALLOCATE(paw_ij_gathered(iat)%dijxc_hat,(cplxdij_lmn2_size,ndij))
+         if (paw_ij_gathered(iat)%has_dijxc_hat==2) then
+           paw_ij_gathered(iat)%dijxc_hat(:,:)= &
+&            reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
+&                   (/cplxdij_lmn2_size,ndij/))
+             indx_dp=indx_dp+cplxdij_lmn2_size*ndij
+         end if
+       end if
+       if (paw_ij_gathered(iat)%has_dijxc_val >=1) then
+         ABI_ALLOCATE(paw_ij_gathered(iat)%dijxc_val,(cplxdij_lmn2_size,ndij))
+         if (paw_ij_gathered(iat)%has_dijxc_val==2) then
+           paw_ij_gathered(iat)%dijxc_val(:,:)= &
+&            reshape(buf_dp_all(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
+&                   (/cplxdij_lmn2_size,ndij/))
+           indx_dp=indx_dp+cplxdij_lmn2_size*ndij
+         end if
+       end if
+      if (paw_ij_gathered(iat)%has_pawu_occ >=1) then
+        nocc=paw_ij_gathered(iat)%ndij
+        ABI_ALLOCATE(paw_ij_gathered(iat)%nocctot,(nocc))
+        paw_ij_gathered(iat)%nocctot(1:nocc)=buf_dp_all(indx_dp:indx_dp+nocc-1)
+        indx_dp=indx_dp+nocc
+        nocc=nocc1*nocc2*nocc3*nocc4
+        ABI_ALLOCATE(paw_ij_gathered(iat)%noccmmp,(nocc1,nocc2,nocc3,nocc4))
+        paw_ij_gathered(iat)%noccmmp(1:nocc1,1:nocc2,1:nocc3,1:nocc4)= &
+&         reshape(buf_dp_all(indx_dp:indx_dp+nocc-1),(/nocc1,nocc2,nocc3,nocc4/))
+        indx_dp=indx_dp+nocc
+      end if
+      if (paw_ij_gathered(iat)%has_exexch_pot >=1) then
+        sz1=buf_int_all(indx_int);indx_int=indx_int+1
+        sz2=buf_int_all(indx_int);indx_int=indx_int+1
+        sz3=buf_int_all(indx_int);indx_int=indx_int+1
+        ABI_ALLOCATE(paw_ij_gathered(iat)%vpawx,(sz1,sz2,sz3))
+        if (paw_ij_gathered(iat)%has_exexch_pot == 2) then
+          paw_ij_gathered(iat)%vpawx(:,:,:)=&
+&           reshape(buf_dp_all(indx_dp:indx_dp+sz1*sz2*sz3-1),(/sz1,sz2,sz3/))
+          indx_dp=indx_dp+sz1*sz2*sz3
+        end if
+      end if
+    end do
+    if ((indx_int/=1+buf_int_size_all).or.(indx_dp /=1+buf_dp_size_all)) then
+      write(msg,*) 'Wrong buffer sizes: buf_int_size_all=',buf_int_size_all, &
+&       ' indx_int=',indx_int, ' buf_dp_size_all=',buf_dp_size_all,' indx_dp=',indx_dp
+      MSG_BUG(msg)
+    end if
+  end if
+
+!Free memory
+ call free_my_atmtab(my_atmtab,my_atmtab_allocated)
+ ABI_DEALLOCATE(buf_int)
+ ABI_DEALLOCATE(buf_dp)
+ ABI_DEALLOCATE(buf_int_all)
+ ABI_DEALLOCATE(buf_dp_all)
+
+ DBG_EXIT("COLL")
+
+end subroutine paw_ij_gather
+!!***
+
+!----------------------------------------------------------------------
+
+!!****f* m_paw_ij/paw_ij_redistribute
+!! NAME
+!! paw_ij_redistribute
+!!
+!! FUNCTION
+!!
+!! COPYRIGHT
+!! Copyright (C) 2012-2014 ABINIT group (MT)
+!! This file is distributed under the terms of the
+!! GNU General Public License, see ~ABINIT/COPYING
+!! or http://www.gnu.org/copyleft/gpl.txt .
+!!
+!! FUNCTION
+!!   Redistribute an array of paw_ij datastructures
+!!   Input paw_ij is given on a MPI communicator
+!!   Output paw_ij is redistributed on another MPI communicator
+!!
+!! INPUTS
+!!  mpi_comm_in= input MPI (atom) communicator
+!!  mpi_comm_out= output MPI (atom) communicator
+!!  mpi_atmtab_in= --optional-- indexes of the input paw_ij treated by current proc
+!!                 if not present, will be calculated in the present routine
+!!  mpi_atmtab_out= --optional-- indexes of the output paw_ij treated by current proc
+!!                  if not present, will be calculated in the present routine
+!!  natom= --optional-- total number of atoms
+!!  ----- Optional arguments used only for asynchronous communications -----
+!!    RecvAtomProc(:)= rank of processor from which I expect atom (in mpi_comm_in)
+!!    RecvAtomList(:)= indexes of atoms to be received by me
+!!      RecvAtomList(irecv) are the atoms I expect from RecvAtomProc(irecv)
+!!    SendAtomProc(:)= ranks of process destination of atom (in mpi_comm_in)
+!!    SendAtomList(:)= indexes of atoms to be sent by me
+!!      SendAtomList(isend) are the atoms sent to SendAtomProc(isend)
+!!
+!! OUTPUT
+!!  [paw_ij_out(:)]<type(paw_ij_type)>= --optional--
+!!                    if present, the redistributed datastructure does not replace
+!!                    the input one but is delivered in paw_ij_out
+!!                    if not present, input and output datastructure are the same.
+!!
+!! SIDE EFFECTS
+!!  paw_ij(:)<type(paw_ij_type)>= input (and eventually output) paw_ij datastructures
+!!
+!! PARENTS
+!!      m_paral_pert
+!!
+!! CHILDREN
+!!
+!! SOURCE
+
+subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
+&                 natom,mpi_atmtab_in,mpi_atmtab_out,paw_ij_out,&
+&                 SendAtomProc,SendAtomList,RecvAtomProc,RecvAtomList)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'paw_ij_redistribute'
+!End of the abilint section
+
+ implicit none
+
+!Arguments ------------------------------------
+!scalars
+ integer,intent(in) :: mpi_comm_in,mpi_comm_out
+ integer,optional,intent(in) :: natom
+!arrays
+ integer,intent(in),optional,target :: mpi_atmtab_in(:),mpi_atmtab_out(:)
+ type(paw_ij_type),allocatable,intent(inout) :: paw_ij(:)
+ type(paw_ij_type),pointer,optional :: paw_ij_out(:)      !vz_i
+ integer,intent(in),optional :: SendAtomProc(:),SendAtomList(:),RecvAtomProc(:),RecvAtomList(:)
+
+!Local variables-------------------------------
+!scalars
+ integer :: algo_option,i1,i2,iatom,iat_in,iat_out,ierr,iircv,iisend,imsg,imsg_current
+ integer :: imsg1,iproc_rcv,iproc_send,me_in,my_natom_in,my_natom_out,my_tag,natom_tot
+ integer :: nb_dp,nb_int,nb_msg,nbrecv,nbrecvmsg,nbsendreq,nbsent,nbsend,next,npaw_ij_sent,ireq
+ logical :: flag,in_place,message_yet_prepared,my_atmtab_in_allocated,my_atmtab_out_allocated,paral_atom
+!arrays
+ integer :: buf_size(3),request1(3)
+ integer,pointer :: my_atmtab_in(:),my_atmtab_out(:)
+ integer,allocatable :: atmtab_send(:),atm_indx_in(:),atm_indx_out(:),From(:),buf_int1(:),request(:)
+ integer,allocatable,target:: buf_int(:)
+ integer,pointer :: buf_ints(:)
+ real(dp),allocatable :: buf_dp1(:)
+ real(dp),allocatable,target :: buf_dp(:)
+ real(dp),pointer :: buf_dps(:)
+ type(coeffi1_type),target,allocatable :: tab_buf_int(:),tab_buf_atom(:)
+ type(coeff1_type),target,allocatable :: tab_buf_dp(:)
+ type(paw_ij_type),allocatable :: paw_ij_all(:)
+ type(paw_ij_type),pointer :: paw_ij_out1(:)
+
+! *************************************************************************
+
+ DBG_ENTER("COLL")
+
+!@Paw_ij_type
+
+ in_place=(.not.present(paw_ij_out))
+ my_natom_in=size(paw_ij)
+
+!If not "in_place", destroy the output datastructure
+ if (.not.in_place) then
+   if (associated(paw_ij_out)) then
+     call paw_ij_destroy(paw_ij_out)
+     ABI_DATATYPE_DEALLOCATE(paw_ij_out)
+   end if
+ end if
+
+!Special sequential case
+ if (mpi_comm_in==xmpi_self.and.mpi_comm_out==xmpi_self) then
+   if ((.not.in_place).and.(my_natom_in>0)) then
+     ABI_DATATYPE_ALLOCATE(paw_ij_out,(my_natom_in))
+     call paw_ij_nullify(paw_ij_out)
+     call paw_ij_copy(paw_ij,paw_ij_out)
+   end if
+   return
+ end if
+
+!Get total natom
+ if (present(natom)) then
+   natom_tot=natom
+ else
+   call xsum_mpi(my_natom_in,natom_tot,mpi_comm_in,ierr)
+ end if
+
+!Select input distribution
+ if (present(mpi_atmtab_in)) then
+   my_atmtab_in => mpi_atmtab_in
+   my_atmtab_in_allocated=.false.
+ else
+   call get_my_atmtab(mpi_comm_in,my_atmtab_in,my_atmtab_in_allocated,&
+&                     paral_atom,natom_tot,my_natom_in)
+ end if
+
+!Select output distribution
+ if (present(mpi_atmtab_out)) then
+   my_natom_out=size(mpi_atmtab_out)
+   my_atmtab_out => mpi_atmtab_out
+   my_atmtab_out_allocated=.false.
+ else
+   call get_my_natom(mpi_comm_out,my_natom_out,natom_tot)
+   call get_my_atmtab(mpi_comm_out,my_atmtab_out,my_atmtab_out_allocated,&
+&                     paral_atom,natom_tot)
+ end if
+
+!Select algo according to optional input arguments
+ algo_option=1
+ if (present(SendAtomProc).and.present(SendAtomList).and.&
+&    present(RecvAtomProc).and.present(RecvAtomList)) algo_option=2
+
+
+!Brute force algorithm (allgather + scatter)
+!---------------------------------------------------------
+ if (algo_option==1) then
+
+   ABI_DATATYPE_ALLOCATE(paw_ij_all,(natom_tot))
+   call paw_ij_nullify(paw_ij_all)
+   call paw_ij_copy(paw_ij,paw_ij_all,mpi_comm_atom=mpi_comm_in,mpi_atmtab=my_atmtab_in)
+   if (in_place) then
+    call paw_ij_destroy(paw_ij)
+    ABI_DATATYPE_DEALLOCATE(paw_ij)
+    ABI_DATATYPE_ALLOCATE(paw_ij,(my_natom_out))
+    call paw_ij_nullify(paw_ij)
+    call paw_ij_copy(paw_ij_all,paw_ij,mpi_comm_atom=mpi_comm_out,mpi_atmtab=my_atmtab_out)
+   else
+     ABI_DATATYPE_ALLOCATE(paw_ij_out,(my_natom_out))
+     call paw_ij_nullify(paw_ij_out)
+     call paw_ij_copy(paw_ij_all,paw_ij_out,mpi_comm_atom=mpi_comm_out,mpi_atmtab=my_atmtab_out)
+   end if
+   call paw_ij_destroy(paw_ij_all)
+   ABI_DATATYPE_DEALLOCATE(paw_ij_all)
+
+
+!Asynchronous algorithm (asynchronous communications)
+!---------------------------------------------------------
+ else if (algo_option==2) then
+
+   nbsend=size(SendAtomProc) ; nbrecv=size(RecvAtomProc)
+
+   if (in_place) then
+     if (my_natom_out > 0) then
+       ABI_DATATYPE_ALLOCATE(paw_ij_out1,(my_natom_out))
+       call paw_ij_nullify(paw_ij_out1)
+     else
+       ABI_DATATYPE_ALLOCATE(paw_ij_out1,(0))
+     end if
+   else
+     ABI_DATATYPE_ALLOCATE(paw_ij_out,(my_natom_out))
+     call paw_ij_nullify(paw_ij_out)
+      paw_ij_out1=>paw_ij_out
+   end if
+
+   me_in=xcomm_rank(mpi_comm_in)
+
+!  Dimension put to the maximum to send
+   ABI_ALLOCATE(atmtab_send,(nbsend))
+   ABI_ALLOCATE(atm_indx_in,(natom_tot))
+   atm_indx_in=-1
+   do iatom=1,my_natom_in
+     atm_indx_in(my_atmtab_in(iatom))=iatom
+   end do
+   ABI_ALLOCATE(atm_indx_out,(natom_tot))
+   atm_indx_out=-1
+   do iatom=1,my_natom_out
+     atm_indx_out(my_atmtab_out(iatom))=iatom
+   end do
+
+   ABI_DATATYPE_ALLOCATE(tab_buf_int,(nbsend))
+   ABI_DATATYPE_ALLOCATE(tab_buf_dp,(nbsend))
+   ABI_DATATYPE_ALLOCATE(tab_buf_atom,(nbsend))
+   ABI_ALLOCATE(request,(3*nbsend))
+
+!  A send buffer in an asynchrone communication couldn't be deallocate before it has been receive
+   nbsent=0 ; ireq=0 ; iisend=0 ; nbsendreq=0 ; nb_msg=0
+   do iisend=1,nbsend
+     iproc_rcv=SendAtomProc(iisend) ! SendAtomProc is sorted by growing process
+     next=-1
+     if (iisend < nbsend) next=SendAtomProc(iisend+1)
+     if (iproc_rcv /= me_in) then
+       nbsent=nbsent+1
+       atmtab_send(nbsent)=SendAtomList(iisend) ! we groups the atoms sends to the same process
+       if (iproc_rcv /= next) then
+         if (nbsent > 0 ) then
+!          Check if message has been yet prepared
+           message_yet_prepared=.false.
+           do imsg=1,nb_msg
+             if (size(tab_buf_atom(imsg)%value) /= nbsent) then
+               cycle
+             else
+               do imsg1=1,nbsent
+                 if (tab_buf_atom(imsg)%value(imsg1)/=atmtab_send(imsg1)) exit
+                 message_yet_prepared=.true.
+                 imsg_current=imsg
+               end do
+             end if
+           enddo
+!          Create the message
+           if (.not.message_yet_prepared) then
+             nb_msg=nb_msg+1
+             call paw_ij_isendreceive_fillbuffer( &
+&                   paw_ij,atmtab_send,atm_indx_in,nbsent,buf_int,nb_int,buf_dp,nb_dp)
+             ABI_ALLOCATE(tab_buf_int(nb_msg)%value,(nb_int))
+             ABI_ALLOCATE(tab_buf_dp(nb_msg)%value,(nb_dp))
+             tab_buf_int(nb_msg)%value(1:nb_int)=buf_int(1:nb_int)
+             tab_buf_dp(nb_msg)%value(1:nb_dp)=buf_dp(1:nb_dp)
+             ABI_DEALLOCATE(buf_int)
+             ABI_DEALLOCATE(buf_dp)
+             ABI_ALLOCATE(tab_buf_atom(nb_msg)%value, (nbsent))
+             tab_buf_atom(nb_msg)%value(1:nbsent)=atmtab_send(1:nbsent)
+             imsg_current=nb_msg
+           end if
+!          Communicate
+           buf_size(1)=size(tab_buf_int(imsg_current)%value)
+           buf_size(2)=size(tab_buf_dp(imsg_current)%value)
+           buf_size(3)=nbsent
+           buf_ints=>tab_buf_int(imsg_current)%value
+           buf_dps=>tab_buf_dp(imsg_current)%value
+           my_tag=200
+           ireq=ireq+1
+           call xisend_mpi(buf_size,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
+           my_tag=201
+           ireq=ireq+1
+           call xisend_mpi(buf_ints,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
+           my_tag=202
+           ireq=ireq+1
+           call xisend_mpi(buf_dps,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
+           nbsendreq=ireq
+           nbsent=0
+         end if
+       end if
+     else ! Just a renumbering, not a sending
+       iat_in=atm_indx_in(SendAtomList(iisend))
+       iat_out=atm_indx_out(my_atmtab_in(iat_in))
+       call paw_ij_copy(paw_ij(iat_in:iat_in),paw_ij_out1(iat_out:iat_out))
+       nbsent=0
+     end if
+   end do
+
+   ABI_ALLOCATE(From,(nbrecv))
+   From(:)=-1 ; nbrecvmsg=0
+   do iircv=1,nbrecv
+     iproc_send=RecvAtomProc(iircv) !receive from (RcvAtomProc is sorted by growing process)
+     next=-1
+     if (iircv < nbrecv) next=RecvAtomProc(iircv+1)
+     if (iproc_send /= me_in .and. iproc_send/=next) then
+       nbrecvmsg=nbrecvmsg+1
+       From(nbrecvmsg)=iproc_send
+     end if
+   end do
+
+   do while (nbrecvmsg > 0)
+     do i1=1,nbrecvmsg
+       iproc_send=From(i1)
+       flag=.false.
+       my_tag=200
+       call xmpi_iprobe(iproc_send,my_tag,mpi_comm_in,flag,ierr)
+       if (flag) then
+         call xirecv_mpi(buf_size,iproc_send,my_tag,mpi_comm_in,request1(1),ierr)
+         call xmpi_wait(request1(1),ierr)
+         nb_int=buf_size(1)
+         nb_dp=buf_size(2)
+         npaw_ij_sent=buf_size(3)
+         ABI_ALLOCATE(buf_int1,(nb_int))
+         ABI_ALLOCATE(buf_dp1,(nb_dp))
+         my_tag=201
+         call xirecv_mpi(buf_int1,iproc_send,my_tag,mpi_comm_in,request1(2),ierr)
+         my_tag=202
+         call xirecv_mpi(buf_dp1,iproc_send,my_tag,mpi_comm_in,request1(3),ierr)
+         call xmpi_waitall(request1(2:3),ierr)
+         call paw_ij_isendreceive_getbuffer(paw_ij_out1,npaw_ij_sent,atm_indx_out,buf_int1,buf_dp1)
+  !      Remove i1 of the array from
+         do i2=i1,nbrecvmsg-1
+           From(i2)=From(i2+1)
+         end do
+         nbrecvmsg=nbrecvmsg-1
+         ABI_DEALLOCATE(buf_int1)
+         ABI_DEALLOCATE(buf_dp1)
+       end if
+     end do
+   end do
+
+   if (in_place) then
+     call paw_ij_destroy(paw_ij)
+     ABI_DATATYPE_DEALLOCATE(paw_ij)
+     ABI_DATATYPE_ALLOCATE(paw_ij,(my_natom_out))
+     call paw_ij_copy(paw_ij_out1,paw_ij)
+     call paw_ij_destroy(paw_ij_out1)
+    ABI_DATATYPE_DEALLOCATE(paw_ij_out1)
+  end if
+
+!  Wait for deallocating arrays that all sending operations has been realized
+   if (nbsendreq > 0) then
+     call xmpi_waitall(request(1:nbsendreq),ierr)
+   end if
+
+!  Deallocate buffers
+   do i1=1,nb_msg
+     ABI_DEALLOCATE(tab_buf_int(i1)%value)
+     ABI_DEALLOCATE(tab_buf_dp(i1)%value)
+     ABI_DEALLOCATE(tab_buf_atom(i1)%value)
+   end do
+   ABI_DATATYPE_DEALLOCATE(tab_buf_int)
+   ABI_DATATYPE_DEALLOCATE(tab_buf_dp)
+   ABI_DATATYPE_DEALLOCATE(tab_buf_atom)
+   ABI_DEALLOCATE(From)
+   ABI_DEALLOCATE(request)
+   ABI_DEALLOCATE(atmtab_send)
+   ABI_DEALLOCATE(atm_indx_in)
+   ABI_DEALLOCATE(atm_indx_out)
+
+ end if !algo_option
+
+!Eventually release temporary pointers
+ call free_my_atmtab(my_atmtab_in,my_atmtab_in_allocated)
+ call free_my_atmtab(my_atmtab_out,my_atmtab_out_allocated)
+
+ DBG_EXIT("COLL")
+
+end subroutine paw_ij_redistribute
+!!***
+
+!----------------------------------------------------------------------
+
+!!****f* m_paw_ij/paw_ij_reset_flags
+!! NAME
+!! paw_ij_reset_flags
+!!
+!! FUNCTION
+!!  Set all paw_ij flags to 1 (force the recomputation of all arrays)
+!!
+!! SIDE EFFECTS
+!!  Paw_ij<type(paw_ij_type)>=paw_ij structure
+!!
+!! PARENTS
+!!      nstpaw3,scfcv,scfcv3
+!!
+!! CHILDREN
+!!
+!! SOURCE
+
+subroutine paw_ij_reset_flags(Paw_ij,all,dijhartree,self_consistent)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'paw_ij_reset_flags'
+!End of the abilint section
+
+ implicit none
+
+!Arguments ------------------------------------
+!scalars
+ logical,optional,intent(in) :: all,dijhartree,self_consistent
+!arrays
+ type(Paw_ij_type),intent(inout) :: Paw_ij(:)
+
+!Local variables-------------------------------
+ integer :: iat,natom
+ logical :: all_,dijhartree_,self_consistent_
+
+! *************************************************************************
+
+ DBG_ENTER("COLL")
+
+!@Paw_ij_type
+
+ natom=SIZE(Paw_ij);if (natom==0) return
+ all_=.true.;if (present(all)) all_=all
+ dijhartree_=.false.;if (present(dijhartree)) dijhartree_=dijhartree
+ self_consistent_=.false.;if (present(self_consistent)) self_consistent_=self_consistent
+
+ if (dijhartree_) then
+   do iat=1,natom
+     if (Paw_ij(iat)%has_dijhartree>0) Paw_ij(iat)%has_dijhartree=1
+   end do
+
+ else if (self_consistent_) then
+   do iat=1,natom
+     if (Paw_ij(iat)%has_dij       >0) Paw_ij(iat)%has_dij       =1
+     if (Paw_ij(iat)%has_dijexxc   >0) Paw_ij(iat)%has_dijexxc   =1
+     if (Paw_ij(iat)%has_dijfock   >0) Paw_ij(iat)%has_dijfock   =1
+     if (Paw_ij(iat)%has_dijhartree>0) Paw_ij(iat)%has_dijhartree=1
+     if (Paw_ij(iat)%has_dijhat    >0) Paw_ij(iat)%has_dijhat    =1
+     if (Paw_ij(iat)%has_dijso     >0) Paw_ij(iat)%has_dijso     =1
+     if (Paw_ij(iat)%has_dijU      >0) Paw_ij(iat)%has_dijU      =1
+     if (Paw_ij(iat)%has_dijxc     >0) Paw_ij(iat)%has_dijxc     =1
+     if (Paw_ij(iat)%has_dijxc_hat >0) Paw_ij(iat)%has_dijxc_hat =1
+     if (Paw_ij(iat)%has_dijxc_val >0) Paw_ij(iat)%has_dijxc_val =1
+     if (Paw_ij(iat)%has_exexch_pot>0) Paw_ij(iat)%has_exexch_pot=1
+     if (Paw_ij(iat)%has_pawu_occ  >0) Paw_ij(iat)%has_pawu_occ  =1
+   end do
+
+ else if (all_) then
+   do iat=1,natom
+     if (Paw_ij(iat)%has_dij       >0) Paw_ij(iat)%has_dij       =1
+     if (Paw_ij(iat)%has_dij0      >0) Paw_ij(iat)%has_dij0      =1
+     if (Paw_ij(iat)%has_dijexxc   >0) Paw_ij(iat)%has_dijexxc   =1
+     if (Paw_ij(iat)%has_dijfock   >0) Paw_ij(iat)%has_dijfock   =1
+     if (Paw_ij(iat)%has_dijfr     >0) Paw_ij(iat)%has_dijfr     =1
+     if (Paw_ij(iat)%has_dijhartree>0) Paw_ij(iat)%has_dijhartree=1
+     if (Paw_ij(iat)%has_dijhat    >0) Paw_ij(iat)%has_dijhat    =1
+     if (Paw_ij(iat)%has_dijso     >0) Paw_ij(iat)%has_dijso     =1
+     if (Paw_ij(iat)%has_dijU      >0) Paw_ij(iat)%has_dijU      =1
+     if (Paw_ij(iat)%has_dijxc     >0) Paw_ij(iat)%has_dijxc     =1
+     if (Paw_ij(iat)%has_dijxc_hat >0) Paw_ij(iat)%has_dijxc_hat =1
+     if (Paw_ij(iat)%has_dijxc_val >0) Paw_ij(iat)%has_dijxc_val =1
+     if (Paw_ij(iat)%has_exexch_pot>0) Paw_ij(iat)%has_exexch_pot=1
+     if (Paw_ij(iat)%has_pawu_occ  >0) Paw_ij(iat)%has_pawu_occ  =1
+   end do
+ end if
+
+ DBG_EXIT("COLL")
+
+end subroutine paw_ij_reset_flags
+!!***
+
+!----------------------------------------------------------------------
+
+!!****f* m_paw_ij/paw_ij_isendreceive_getbuffer
+!! NAME
+!!  paw_ij_isendreceive_getbuffer
+!!
+!! FUNCTION
+!!  Fill a paw_ij structure with the buffers received in a receive operation
+!!  This buffer should have been first extracted by a call to paw_ij_isendreceive_fillbuffer
+!!
+!! INPUTS
+!!  atm_indx_recv(1:total number of atoms)= array for receive operation
+!!                 Given an index of atom in global numbering, give its index
+!!                 in the table of atoms treated by current processor
+!!                 or -1 if the atoms is not treated by current processor
+!!  buf_int= buffer of receive integers
+!!  buf_dp= buffer of receive double precision numbers
+!!  npaw_ij_send= number of sent atoms
+!!
+!! OUTPUT
+!!  paw_ij= output datastructure filled with buffers receive in a receive operation
+!!
+!! PARENTS
+!!  paw_ij_redistribute
+!!
+!! CHILDREN
+!!
+!! SOURCE
+
+subroutine paw_ij_isendreceive_getbuffer(paw_ij,npaw_ij_send,atm_indx_recv,buf_int,buf_dp)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'paw_ij_isendreceive_getbuffer'
+!End of the abilint section
+
+implicit none
+
+!Arguments ------------------------------------
+!scalars
+ integer,intent(in) :: npaw_ij_send
+!arrays
+ integer,intent(in):: atm_indx_recv(:),buf_int(:)
+ real(dp),intent(in):: buf_dp(:)
+ type(paw_ij_type),target,intent(inout) :: paw_ij(:)
+
+!Local variables-------------------------------
+!scalars
+ integer :: buf_dp_size,buf_int_size,cplx_lmn2_size,cplxdij_lmn2_size,ndij,nocc
+ integer :: nocc1,nocc2,nocc3,nocc4,iat,iatom_tot,ij,indx_dp,indx_int,lmn2_size
+ character(len=500) :: msg
+ type(Paw_ij_type),pointer :: paw_ij1
+!arrays
+
+! *********************************************************************
+
+ DBG_ENTER("COLL")
+
+ buf_int_size=size(buf_int)
+ buf_dp_size=size(buf_dp)
+ indx_int=1;indx_dp=1
+
+ do ij=1,npaw_ij_send
+   iatom_tot=buf_int(indx_int) ;indx_int=indx_int+1
+   iat= atm_indx_recv(iatom_tot)
+   paw_ij1=>paw_ij(iat)
+   paw_ij1%cplex=buf_int(indx_int) ;indx_int=indx_int+1
+   paw_ij1%cplex_dij=buf_int(indx_int) ;indx_int=indx_int+1
+   paw_ij1%itypat=buf_int(indx_int) ;indx_int=indx_int+1
+   paw_ij1%nspden=buf_int(indx_int) ;indx_int=indx_int+1
+   paw_ij1%nsppol=buf_int(indx_int) ;indx_int=indx_int+1
+   paw_ij1%lmn_size=buf_int(indx_int) ;indx_int=indx_int+1
+   paw_ij1%lmn2_size=buf_int(indx_int) ;indx_int=indx_int+1
+   paw_ij1%ndij=buf_int(indx_int) ;indx_int=indx_int+1
+   paw_ij1%has_dij=buf_int(indx_int) ;indx_int=indx_int+1
+   paw_ij1%has_dij0=buf_int(indx_int) ;indx_int=indx_int+1
+   paw_ij1%has_dijexxc=buf_int(indx_int) ;indx_int=indx_int+1
+   paw_ij1%has_dijfr=buf_int(indx_int) ;indx_int=indx_int+1
+   paw_ij1%has_dijhartree=buf_int(indx_int) ;indx_int=indx_int+1
+   paw_ij1%has_dijhat=buf_int(indx_int) ;indx_int=indx_int+1
+   paw_ij1%has_dijso=buf_int(indx_int) ;indx_int=indx_int+1
+   paw_ij1%has_dijU=buf_int(indx_int) ;indx_int=indx_int+1
+   paw_ij1%has_dijxc=buf_int(indx_int) ;indx_int=indx_int+1
+   paw_ij1%has_dijxc_hat=buf_int(indx_int) ;indx_int=indx_int+1
+   paw_ij1%has_dijxc_val=buf_int(indx_int) ;indx_int=indx_int+1
+   paw_ij1%has_exexch_pot=buf_int(indx_int) ;indx_int=indx_int+1
+   paw_ij1%has_pawu_occ=buf_int(indx_int) ;indx_int=indx_int+1
+   if (paw_ij1%has_pawu_occ>=1) then
+     nocc1=buf_int(indx_int) ;indx_int=indx_int+1
+     nocc2=buf_int(indx_int) ;indx_int=indx_int+1
+     nocc3=buf_int(indx_int) ;indx_int=indx_int+1
+     nocc4=buf_int(indx_int) ;indx_int=indx_int+1
+   else
+     nocc1=0;nocc2=0;nocc3=0;nocc4=0
+   end if
+   lmn2_size=paw_ij1%lmn2_size
+   cplxdij_lmn2_size=paw_ij1%cplex_dij*paw_ij1%lmn2_size
+   ndij=paw_ij1%ndij
+   cplx_lmn2_size=paw_ij1%cplex*lmn2_size
+   if (paw_ij1%has_dij>=1) then
+     ABI_ALLOCATE(paw_ij1%dij,(cplxdij_lmn2_size,ndij))
+     if (paw_ij1%has_dij==2) then
+       paw_ij1%dij(:,:)= &
+ &       reshape(buf_dp(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
+ &              (/cplxdij_lmn2_size,ndij/))
+       indx_dp=indx_dp+cplxdij_lmn2_size*ndij
+     end if
+   end if
+   if (paw_ij1%has_dij0 >=1) then
+     ABI_ALLOCATE(paw_ij1%dij0,(lmn2_size))
+     if (paw_ij1%has_dij0==2) then
+       paw_ij1%dij0(:)=buf_dp(indx_dp:indx_dp+lmn2_size-1)
+       indx_dp=indx_dp+lmn2_size
+     end if
+   end if
+   if (paw_ij1%has_dijexxc >=1) then
+      ABI_ALLOCATE(paw_ij1%dijexxc,(cplxdij_lmn2_size,ndij))
+      if (paw_ij1%has_dijexxc==2) then
+        paw_ij1%dijexxc(:,:)= &
+&         reshape(buf_dp(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
+&                (/cplxdij_lmn2_size,ndij/))
+        indx_dp=indx_dp+cplxdij_lmn2_size*ndij
+      end if
+    end if
+    if (paw_ij1%has_dijfr >=1) then
+       ABI_ALLOCATE(paw_ij1%dijfr,(cplxdij_lmn2_size,ndij))
+       if (paw_ij1%has_dijfr==2) then
+         paw_ij1%dijfr(:,:)= &
+&          reshape(buf_dp(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
+&                 (/cplxdij_lmn2_size,ndij/))
+         indx_dp=indx_dp+cplxdij_lmn2_size*ndij
+       end if
+     end if
+     if (paw_ij1%has_dijhartree >=1) then
+       ABI_ALLOCATE(paw_ij1%dijhartree,(cplx_lmn2_size))
+       if (paw_ij1%has_dijhartree==2) then
+         paw_ij1%dijhartree(:)=buf_dp(indx_dp:indx_dp+cplx_lmn2_size-1)
+         indx_dp=indx_dp+cplx_lmn2_size
+       end if
+     end if
+     if (paw_ij1%has_dijhat >=1) then
+       ABI_ALLOCATE(paw_ij1%dijhat,(cplxdij_lmn2_size,ndij))
+       if (paw_ij1%has_dijhat==2) then
+         paw_ij1%dijhat(:,:)= &
+&          reshape(buf_dp(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
+&                 (/cplxdij_lmn2_size,ndij/))
+         indx_dp=indx_dp+cplxdij_lmn2_size*ndij
+       end if
+     end if
+     if (paw_ij1%has_dijU >=1) then
+       ABI_ALLOCATE(paw_ij1%dijU,(cplxdij_lmn2_size,ndij))
+       if (paw_ij1%has_dijU==2) then
+         paw_ij1%dijU(:,:)= &
+&          reshape(buf_dp(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
+&                 (/cplxdij_lmn2_size,ndij/))
+         indx_dp=indx_dp+cplxdij_lmn2_size*ndij
+       end if
+     end if
+     if (paw_ij1%has_dijso >=1) then
+       ABI_ALLOCATE(paw_ij1%dijso,(cplxdij_lmn2_size,ndij))
+       if (paw_ij1%has_dijso==2) then
+         paw_ij1%dijso(:,:)= &
+&          reshape(buf_dp(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
+&                 (/cplxdij_lmn2_size,ndij/))
+         indx_dp=indx_dp+cplxdij_lmn2_size*ndij
+       end if
+     end if
+     if (paw_ij1%has_dijxc >=1) then
+       ABI_ALLOCATE(paw_ij1%dijxc,(cplxdij_lmn2_size,ndij))
+       if (paw_ij1%has_dijxc==2) then
+         paw_ij1%dijxc(:,:)= &
+&          reshape(buf_dp(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
+&                 (/cplxdij_lmn2_size,ndij/))
+         indx_dp=indx_dp+cplxdij_lmn2_size*ndij
+       end if
+     end if
+     if (paw_ij1%has_dijxc_hat >=1) then
+       ABI_ALLOCATE(paw_ij1%dijxc_hat,(cplxdij_lmn2_size,ndij))
+       if (paw_ij1%has_dijxc_hat==2) then
+         paw_ij1%dijxc_hat(:,:)= &
+&          reshape(buf_dp(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
+&                 (/cplxdij_lmn2_size,ndij/))
+           indx_dp=indx_dp+cplxdij_lmn2_size*ndij
+       end if
+     end if
+     if (paw_ij1%has_dijxc_val >=1) then
+       ABI_ALLOCATE(paw_ij1%dijxc_val,(cplxdij_lmn2_size,ndij))
+       if (paw_ij1%has_dijxc_val==2) then
+         paw_ij1%dijxc_val(:,:)= &
+&          reshape(buf_dp(indx_dp:indx_dp+cplxdij_lmn2_size*ndij-1), &
+&                 (/cplxdij_lmn2_size,ndij/))
+         indx_dp=indx_dp+cplxdij_lmn2_size*ndij
+       end if
+     end if
+    if (paw_ij1%has_pawu_occ >=1) then
+      nocc=paw_ij1%ndij
+      ABI_ALLOCATE(paw_ij1%nocctot,(nocc))
+      paw_ij1%nocctot(1:nocc)=buf_dp(indx_dp:indx_dp+nocc-1)
+      indx_dp=indx_dp+nocc
+      nocc=nocc1*nocc2*nocc3*nocc4
+      ABI_ALLOCATE(paw_ij1%noccmmp,(nocc1,nocc2,nocc3,nocc4))
+      paw_ij1%noccmmp(1:nocc1,1:nocc2,1:nocc3,1:nocc4)= &
+&       reshape(buf_dp(indx_dp:indx_dp+nocc-1),(/nocc1,nocc2,nocc3,nocc4/))
+      indx_dp=indx_dp+nocc
+    end if
+    if (paw_ij1%has_exexch_pot >=1) then
+      sz1=buf_int(indx_int);indx_int=indx_int+1
+      sz2=buf_int(indx_int);indx_int=indx_int+1
+      sz3=buf_int(indx_int);indx_int=indx_int+1
+      ABI_ALLOCATE(paw_ij1%vpawx,(sz1,sz2,sz3))
+      if (paw_ij1%has_exexch_pot == 2) then
+        paw_ij1%vpawx(:,:,:)=&
+&         reshape(buf_dp(indx_dp:indx_dp+sz1*sz2*sz3-1),(/sz1,sz2,sz3/))
+        indx_dp=indx_dp+sz1*sz2*sz3
+      end if
+    end if
+  end do
+  if ((indx_int/=1+buf_int_size).or.(indx_dp /=1+buf_dp_size)) then
+     write(msg,'(a,i10,a,i10)') 'Wrong buffer sizes: buf_int_size=',buf_int_size,' buf_dp_size=',buf_dp_size
+    MSG_BUG(msg)
+  end if
+
+ DBG_EXIT("COLL")
+
+end subroutine paw_ij_isendreceive_getbuffer
+!!***
+
+!----------------------------------------------------------------------
+
+!!****f* m_paw_an/paw_ij_isendreceive_fillbuffer
+!! NAME
+!!  paw_ij_isendreceive_fillbuffer
+!!
+!! FUNCTION
+!!  Extract from paw_ij and from the global index of atoms
+!!  the buffers to send in a sending operation
+!!  This function has to be coupled with a call to paw_ij_isendreceive_getbuffer
+!!
+!! INPUTS
+!!  atm_indx_send(1:total number of atoms)= array for send operation,
+!!                 Given an index of atom in global numbering, give its index
+!!                 in the table of atoms treated by current processor
+!!                 or -1 if the atoms is not treated by current processor
+!!  npaw_ij_send= number of sent atoms
+!!  paw_ij= data structure from which are extract buffer int and buffer dp
+!!
+!! OUTPUT
+!!  buf_int= buffer of integers to be sent
+!!  buf_int_size= size of buffer of integers
+!!  buf_dp= buffer of double precision numbers to be sent
+!!  buf_dp_size= size of buffer of double precision numbers
+!!
+!! PARENTS
+!!  paw_ij_redistribute
+!!
+!! CHILDREN
+!!
+!! SOURCE
+
+subroutine paw_ij_isendreceive_fillbuffer(paw_ij,atmtab_send,atm_indx_send,npaw_ij_send,&
+&                                         buf_int,buf_int_size,buf_dp,buf_dp_size)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'paw_ij_isendreceive_fillbuffer'
+!End of the abilint section
+
+implicit none
+
+!Arguments ------------------------------------
+!scalars
+ integer,intent(out) :: buf_int_size,buf_dp_size
+ integer,intent(in) :: npaw_ij_send
+!arrays
+ integer,intent(in) :: atmtab_send(:),atm_indx_send(:)
+ integer,allocatable,intent(out) :: buf_int(:)
+ real(dp),allocatable,intent(out):: buf_dp(:)
+ type(paw_ij_type),target,intent(in) :: paw_ij(:)
+
+!Local variables-------------------------------
+!scalars
+ integer :: cplx_lmn2_size,cplxdij_lmn2_size,ndij,nocc,nspden
+ integer :: iatom_tot,ii,ij,indx_dp,indx_int,ipaw_ij_send,lmn2_size
+ character(len=500) :: msg
+ type(Paw_ij_type),pointer :: paw_ij1
+!arrays
+
+! *********************************************************************
+
+ DBG_ENTER("COLL")
+
+!Compute sizes of buffers
+ buf_int_size=0;buf_dp_size=0
+ do ipaw_ij_send=1,npaw_ij_send
+   iatom_tot=atmtab_send(ipaw_ij_send)
+   ij = atm_indx_send(iatom_tot)
+   paw_ij1=>paw_ij(ij)
+   lmn2_size=paw_ij1%lmn2_size
+   cplxdij_lmn2_size=paw_ij1%cplex_dij*paw_ij1%lmn2_size
+   ndij=paw_ij1%ndij
+   cplx_lmn2_size=paw_ij1%cplex*lmn2_size
+   buf_int_size=buf_int_size+22
+   if (paw_ij1%has_dij==2) then
+     buf_dp_size=buf_dp_size +cplxdij_lmn2_size*ndij
+   end if
+   if (paw_ij1%has_dij0==2) then
+     buf_dp_size=buf_dp_size +lmn2_size
+   end if
+   if (paw_ij1%has_dijexxc==2) then
+     buf_dp_size=buf_dp_size +cplxdij_lmn2_size*ndij
+   end if
+   if (paw_ij1%has_dijfr==2) then
+     buf_dp_size=buf_dp_size +cplxdij_lmn2_size*ndij
+   end if
+   if (paw_ij1%has_dijhartree==2) then
+     buf_dp_size=buf_dp_size +cplx_lmn2_size
+   end if
+   if (paw_ij1%has_dijhat==2) then
+     buf_dp_size=buf_dp_size +cplxdij_lmn2_size*ndij
+   end if
+   if (paw_ij1%has_dijso==2) then
+     buf_dp_size=buf_dp_size +cplxdij_lmn2_size*ndij
+   end if
+   if (paw_ij1%has_dijU==2) then
+     buf_dp_size=buf_dp_size +cplxdij_lmn2_size*ndij
+   end if
+   if (paw_ij1%has_dijxc==2) then
+     buf_dp_size=buf_dp_size +cplxdij_lmn2_size*ndij
+   end if
+   if (paw_ij1%has_dijxc_hat==2) then
+     buf_dp_size=buf_dp_size +cplxdij_lmn2_size*ndij
+   end if
+   if (paw_ij1%has_dijxc_val==2) then
+     buf_dp_size=buf_dp_size +cplxdij_lmn2_size*ndij
+   end if
+   if (paw_ij1%has_pawu_occ>=1) then
+     buf_int_size=buf_int_size+4
+     buf_dp_size=buf_dp_size &
+&         +size(paw_ij1%nocctot) &
+&         +size(paw_ij1%noccmmp)
+   end if
+   if (paw_ij1%has_exexch_pot>=1) then
+     buf_int_size=buf_int_size+3
+     buf_dp_size=buf_dp_size +size(paw_ij1%vpawx)
+   end if
+ end do
+
+!Fill input buffers
+ ABI_ALLOCATE(buf_int,(buf_int_size))
+ ABI_ALLOCATE(buf_dp,(buf_dp_size))
+ indx_int=1;indx_dp=1
+ do ipaw_ij_send=1,npaw_ij_send
+   iatom_tot=atmtab_send(ipaw_ij_send)
+   ij = atm_indx_send(iatom_tot)
+   paw_ij1=>paw_ij(ij)
+   nspden=paw_ij1%nspden
+   buf_int(indx_int)=iatom_tot ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij1%cplex ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij1%cplex_dij ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij1%itypat ;indx_int=indx_int+1
+   buf_int(indx_int)=nspden ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij1%nsppol ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij1%lmn_size ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij1%lmn2_size ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij1%ndij ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij1%has_dij ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij1%has_dij0 ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij1%has_dijexxc ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij1%has_dijfr ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij1%has_dijhartree ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij1%has_dijhat ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij1%has_dijso ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij1%has_dijU ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij1%has_dijxc ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij1%has_dijxc_hat ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij1%has_dijxc_val ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij1%has_exexch_pot ;indx_int=indx_int+1
+   buf_int(indx_int)=paw_ij1%has_pawu_occ ;indx_int=indx_int+1
+   lmn2_size=paw_ij1%lmn2_size
+   cplxdij_lmn2_size=paw_ij1%cplex_dij*paw_ij1%lmn2_size
+   ndij=paw_ij1%ndij
+   cplx_lmn2_size=paw_ij1%cplex*lmn2_size
+   if (paw_ij1%has_dij==2) then
+     ii=paw_ij1%cplex_dij*paw_ij1%lmn2_size*paw_ij1%ndij
+     buf_dp(indx_dp:indx_dp+ii-1)=reshape(paw_ij1%dij,(/ii/))
+     indx_dp=indx_dp+ii
+   end if
+   if (paw_ij1%has_dij0==2) then
+     buf_dp(indx_dp:indx_dp+lmn2_size-1)=paw_ij1%dij0(:)
+     indx_dp=indx_dp+lmn2_size
+   end if
+   if (paw_ij1%has_dijexxc==2) then
+     ii=cplxdij_lmn2_size*ndij
+     buf_dp(indx_dp:indx_dp+ii-1)=reshape(paw_ij1%dijexxc,(/ii/))
+     indx_dp=indx_dp+ii
+   end if
+   if (paw_ij1%has_dijfr==2) then
+     ii=cplxdij_lmn2_size*ndij
+     buf_dp(indx_dp:indx_dp+ii-1)=reshape(paw_ij1%dijfr,(/ii/))
+     indx_dp=indx_dp+ii
+   end if
+   if (paw_ij1%has_dijhartree==2) then
+     buf_dp(indx_dp:indx_dp+lmn2_size-1)=paw_ij1%dijhartree(:)
+     indx_dp=indx_dp+lmn2_size
+   end if
+   if (paw_ij1%has_dijhat==2) then
+     ii=cplxdij_lmn2_size*ndij
+     buf_dp(indx_dp:indx_dp+ii-1)=reshape(paw_ij1%dijhat,(/ii/))
+     indx_dp=indx_dp+ii
+   end if
+   if (paw_ij1%has_dijU==2) then
+     ii=cplxdij_lmn2_size*ndij
+     buf_dp(indx_dp:indx_dp+ii-1)=reshape(paw_ij1%dijU,(/ii/))
+     indx_dp=indx_dp+ii
+   end if
+   if (paw_ij1%has_dijso==2) then
+     ii=cplxdij_lmn2_size*ndij
+     buf_dp(indx_dp:indx_dp+ii-1)=reshape(paw_ij1%dijso,(/ii/))
+     indx_dp=indx_dp+ii
+   end if
+   if (paw_ij1%has_dijxc==2) then
+     ii=cplxdij_lmn2_size*ndij
+     buf_dp(indx_dp:indx_dp+ii-1)=reshape(paw_ij1%dijxc,(/ii/))
+     indx_dp=indx_dp+ii
+   end if
+   if (paw_ij1%has_dijxc_hat==2) then
+     ii=cplxdij_lmn2_size*ndij
+     buf_dp(indx_dp:indx_dp+ii-1)=reshape(paw_ij1%dijxc_hat,(/ii/))
+     indx_dp=indx_dp+ii
+   end if
+   if (paw_ij1%has_dijxc_val==2) then
+     ii=cplxdij_lmn2_size*ndij
+     buf_dp(indx_dp:indx_dp+ii-1)=reshape(paw_ij1%dijxc_val,(/ii/))
+     indx_dp=indx_dp+ii
+   end if
+   if (paw_ij1%has_pawu_occ>=1)then
+     buf_int(indx_int)=size(paw_ij1%noccmmp,1) ;indx_int=indx_int+1
+     buf_int(indx_int)=size(paw_ij1%noccmmp,2) ;indx_int=indx_int+1
+     buf_int(indx_int)=size(paw_ij1%noccmmp,3) ;indx_int=indx_int+1
+     buf_int(indx_int)=size(paw_ij1%noccmmp,4) ;indx_int=indx_int+1
+     nocc=paw_ij1%ndij
+     buf_dp(indx_dp:indx_dp+nocc-1)=paw_ij1%nocctot(1:nocc)
+     indx_dp=indx_dp+nocc
+     nocc=size(paw_ij1%noccmmp)
+     buf_dp(indx_dp:indx_dp+nocc-1)=reshape(paw_ij1%noccmmp,(/nocc/))
+     indx_dp=indx_dp+nocc
+   end if
+   if (paw_ij1%has_exexch_pot>=1) then
+     sz1=size(paw_ij1%vpawx,1);sz2=size(paw_ij1%vpawx,2)
+     sz3=size(paw_ij1%vpawx,3)
+     buf_int(indx_int)=sz1; indx_int=indx_int+1
+     buf_int(indx_int)=sz2; indx_int=indx_int+1
+     buf_int(indx_int)=sz3; indx_int=indx_int+1
+     ii=sz1*sz2*sz3
+     buf_dp(indx_dp:indx_dp+ii-1)=reshape(paw_ij1%vpawx,(/(ii)/))
+     indx_dp=indx_dp+ii
+   end if
+ end do
+ if ((indx_int-1/=buf_int_size).or.(indx_dp-1/=buf_dp_size)) then
+   write(msg,'(a,i10,a,i10)') 'Wrong buffer sizes: buf_int_size=',buf_int_size,' buf_dp_size=',buf_dp_size
+   MSG_BUG(msg)
+ end if
+
+ DBG_EXIT("COLL")
+
+end subroutine paw_ij_isendreceive_fillbuffer
+!!***
+
+!----------------------------------------------------------------------
+
+END MODULE m_paw_ij
+!!***

@@ -1,5 +1,5 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/m_gaussfit
+!!****m* ABINIT/m_gaussfit
 !! NAME
 !!  m_gaussfit
 !!
@@ -7,7 +7,7 @@
 !!  Module to fit PAW related data to sums of gaussians
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2012-2013 ABINIT group (T. Rangel)
+!!  Copyright (C) 2012-2014 ABINIT group (T. Rangel)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -15,20 +15,18 @@
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
-#include "abi_common_for_bigdft.h"
+#include "abi_common.h"
 
 module m_gaussfit
-    
+
  use defs_basis
- use m_pawrad, only: pawrad_type
- use m_errors
-use interfaces_12_hide_mpi
-use interfaces_14_hidewrite
-use interfaces_16_hideleave
  use m_profiling
+ use m_errors
+
+ use m_pawrad, only : pawrad_type, pawrad_init, pawrad_deducer0, pawrad_destroy
 
  implicit none
 
@@ -77,7 +75,7 @@ CONTAINS
 !!  Fits a given input function f(r) to a sum of gaussians
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2011-2013 ABINIT group (T. Rangel)
+!!  Copyright (C) 2011-2014 ABINIT group (T. Rangel)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -113,8 +111,11 @@ CONTAINS
 !! NOTES
 !!
 !! PARENTS
+!!      m_gaussfit
 !!
 !! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_destroy
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -376,9 +377,9 @@ CONTAINS
 !communicate
  if(nproc>1) then
    call xcast_mpi(nparam_out,master,comm_mpi,ierr)
+   !
    call xcast_mpi(param_tmp(1:nparam_out),master,comm_mpi,ierr)
  end if !nproc>1
- 
 
  param_out(:)=param_tmp
 
@@ -421,9 +422,11 @@ end subroutine gaussfit_main
 !! NOTES
 !!
 !! PARENTS
-!!      gaussfit_main
+!!      m_gaussfit
 !!
 !! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_destroy
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -479,9 +482,11 @@ end subroutine gaussfit_main
 !! NOTES
 !!
 !! PARENTS
-!!      gaussfit_main
+!!      m_gaussfit
 !!
 !! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_destroy
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -525,9 +530,11 @@ end subroutine gaussfit_main
 !! NOTES
 !!
 !! PARENTS
-!!      gaussfit_main
+!!      m_gaussfit
 !!
 !! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_destroy
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -563,7 +570,7 @@ end subroutine gaussfit_main
 !! FUNCTION
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2013 ABINIT group (T. Rangel)
+!!  Copyright (C) 2014 ABINIT group (T. Rangel)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -577,9 +584,11 @@ end subroutine gaussfit_main
 !! NOTES
 !!
 !! PARENTS
-!!      gaussfit_main
+!!      m_gaussfit
 !!
 !! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_destroy
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -627,7 +636,7 @@ end subroutine gaussfit_main
 !! FUNCTION
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2013 ABINIT group (T. Rangel)
+!!  Copyright (C) 2013-2014 ABINIT group (T. Rangel)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -641,9 +650,11 @@ end subroutine gaussfit_main
 !! NOTES
 !!
 !! PARENTS
-!!      gaussfit_main
+!!      m_gaussfit
 !!
 !! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_destroy
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -703,7 +714,7 @@ end subroutine gaussfit_main
 !!  Set task to a processor
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2013 ABINIT group (T. Rangel)
+!!  Copyright (C) 2013-2014 ABINIT group (T. Rangel)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -717,9 +728,11 @@ end subroutine gaussfit_main
 !! NOTES
 !!
 !! PARENTS
-!!      gaussfit_main
+!!      m_gaussfit
 !!
 !! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_destroy
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -765,8 +778,7 @@ end subroutine gaussfit_main
  if(jproc==-1) then
 !  One should not get here!
    message = "Error in accomodate_mpi. Contact the ABINIT group"
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   MSG_ERROR(message)
  end if
 
 !assign this term for jproc
@@ -784,7 +796,7 @@ end subroutine gaussfit_main
 !!  Set charge for each processor
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2013 ABINIT group (T. Rangel)
+!!  Copyright (C) 2013-2014 ABINIT group (T. Rangel)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -798,9 +810,11 @@ end subroutine gaussfit_main
 !! NOTES
 !!
 !! PARENTS
-!!      gaussfit_main
+!!      m_gaussfit
 !!
 !! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_destroy
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -889,7 +903,7 @@ end subroutine gaussfit_main
 !!  Fits a given input function f(r) to a sum of gaussians
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2011-2013 ABINIT group (T. Rangel)
+!!  Copyright (C) 2011-2014 ABINIT group (T. Rangel)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -927,9 +941,11 @@ end subroutine gaussfit_main
 !! NOTES
 !!
 !! PARENTS
-!!      gaussfit_main
+!!      m_gaussfit
 !!
 !! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_destroy
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -1013,7 +1029,7 @@ end subroutine gaussfit_fit
 !!   The Gaussians expressions are defined in the comments of "gaussfit_main"
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2011-2013 ABINIT group (T. Rangel)
+!!  Copyright (C) 2011-2014 ABINIT group (T. Rangel)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -1029,6 +1045,8 @@ end subroutine gaussfit_fit
 !! PARENTS
 !!
 !! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_destroy
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -1137,7 +1155,7 @@ end subroutine gaussfit_calc_deriv_r
 !!   The Gaussians expressions are defined in the comments of "gaussfit_main"
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2011-2013 ABINIT group (T. Rangel)
+!!  Copyright (C) 2011-2014 ABINIT group (T. Rangel)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -1151,9 +1169,11 @@ end subroutine gaussfit_calc_deriv_r
 !! NOTES
 !!
 !! PARENTS
-!!      gaussfit_main
+!!      m_gaussfit
 !!
 !! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_destroy
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -1251,7 +1271,7 @@ end subroutine gaussfit_calc_deriv_c3
 !!   The Gaussians expressions are defined in the comments of "gaussfit_main"
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2011-2013 ABINIT group (T. Rangel)
+!!  Copyright (C) 2011-2014 ABINIT group (T. Rangel)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -1265,9 +1285,11 @@ end subroutine gaussfit_calc_deriv_c3
 !! NOTES
 !!
 !! PARENTS
-!!      gaussfit_main
+!!      m_gaussfit
 !!
 !! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_destroy
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 subroutine gaussfit_calc_deriv_c2(nparam,nterm,nx,opt,&
@@ -1384,7 +1406,7 @@ end subroutine gaussfit_calc_deriv_c2
 !!   The Gaussians expressions are defined in the comments of "gaussfit_main"
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2011-2013 ABINIT group (T. Rangel)
+!!  Copyright (C) 2011-2014 ABINIT group (T. Rangel)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -1398,9 +1420,11 @@ end subroutine gaussfit_calc_deriv_c2
 !! NOTES
 !!
 !! PARENTS
-!!      gaussfit_main
+!!      m_gaussfit
 !!
 !! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_destroy
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 !
@@ -1546,7 +1570,7 @@ end subroutine gaussfit_calc_deriv_c
 !!   The Gaussians expressions are defined in the comments of "gaussfit_main"
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2011-2013 ABINIT group (T. Rangel)
+!!  Copyright (C) 2011-2014 ABINIT group (T. Rangel)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -1560,9 +1584,11 @@ end subroutine gaussfit_calc_deriv_c
 !! NOTES
 !!
 !! PARENTS
-!!      gaussfit_main
+!!      m_gaussfit
 !!
 !! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_destroy
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 subroutine gaussfit_calc_deriv_c4(nparam,nterm,nx,opt,&
@@ -1691,7 +1717,7 @@ end subroutine gaussfit_calc_deriv_c4
 !!  
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2011-2013 ABINIT group (T. Rangel)
+!!  Copyright (C) 2011-2014 ABINIT group (T. Rangel)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -1716,9 +1742,11 @@ end subroutine gaussfit_calc_deriv_c4
 !! NOTES
 !!
 !! PARENTS
-!!      gaussfit_main
+!!      m_gaussfit
 !!
 !! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_destroy
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -1819,17 +1847,16 @@ subroutine gaussfit_rlsf(&
        chisq=-1.d0
        exit iter_loop
      end if
-!    
+!
      do ii=1,nparam
        do jj=1,nparam
          deltapar(ii)=deltapar(ii)+beta(jj)*tmp1(jj,ii)
        end do
      end do 
-!    
-     workpar(1:nparam)=parameters(1:nparam)+deltapar(1:nparam)*weight(1:nparam)
 !    apply constrains
-     call gaussfit_apply_constrains(constrains,limit,nparam,workpar,workpar)
-!    
+     workpar(1:nparam)=parameters(1:nparam)+deltapar(1:nparam)*weight(1:nparam)
+     call gaussfit_apply_constrains(constrains,limit,nparam,workpar)
+!
      if(option==1) then
        call gaussfit_calc_deriv_c2(nparam,nterm,nx,1,workpar,x,yfit)
      elseif(option==2) then
@@ -1887,7 +1914,7 @@ end subroutine gaussfit_rlsf
 !!  
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2011-2013 ABINIT group (T. Rangel)
+!!  Copyright (C) 2011-2014 ABINIT group (T. Rangel)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -1904,9 +1931,11 @@ end subroutine gaussfit_rlsf
 !! NOTES
 !!
 !! PARENTS
-!!      gaussfit_main
+!!      m_gaussfit
 !!
 !! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_destroy
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 subroutine gaussfit_chisq_alpha_beta(alpha,beta,chisq,&
@@ -1983,7 +2012,7 @@ end subroutine gaussfit_chisq_alpha_beta
 !!  Sets parameters for LSF
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2011-2013 ABINIT group (T. Rangel)
+!!  Copyright (C) 2011-2014 ABINIT group (T. Rangel)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -1997,9 +2026,10 @@ end subroutine gaussfit_chisq_alpha_beta
 !! NOTES
 !!
 !! PARENTS
-!!      gaussfit_main
 !!
 !! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_destroy
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -2068,7 +2098,7 @@ end subroutine gaussfit_set_param1
 !!  Sets parameters for LSF
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2011-2013 ABINIT group (T. Rangel)
+!!  Copyright (C) 2011-2014 ABINIT group (T. Rangel)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -2084,6 +2114,8 @@ end subroutine gaussfit_set_param1
 !! PARENTS
 !!
 !! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_destroy
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 subroutine gaussfit_set_param2(nterm,nparam,nx,param,rpaw,x,y)
@@ -2138,7 +2170,7 @@ subroutine gaussfit_set_param2(nterm,nparam,nx,param,rpaw,x,y)
 !!  readable.
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2011-2013 ABINIT group (T. Rangel)
+!!  Copyright (C) 2011-2014 ABINIT group (T. Rangel)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -2152,9 +2184,11 @@ subroutine gaussfit_set_param2(nterm,nparam,nx,param,rpaw,x,y)
 !! NOTES
 !!
 !! PARENTS
-!!      gaussfit_main
+!!      m_gaussfit
 !!
 !! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_destroy
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
  subroutine gaussfit_param2_findsign()
@@ -2197,7 +2231,7 @@ end subroutine gaussfit_set_param2
 !!  Sets parameters for LSF
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2011-2013 ABINIT group (T. Rangel)
+!!  Copyright (C) 2011-2014 ABINIT group (T. Rangel)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -2211,9 +2245,10 @@ end subroutine gaussfit_set_param2
 !! NOTES
 !!
 !! PARENTS
-!!      gaussfit_main
 !!
 !! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_destroy
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -2262,7 +2297,7 @@ end subroutine gaussfit_set_param3
 !!  Sets parameters for LSF
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2011-2013 ABINIT group (T. Rangel)
+!!  Copyright (C) 2011-2014 ABINIT group (T. Rangel)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -2276,9 +2311,11 @@ end subroutine gaussfit_set_param3
 !! NOTES
 !!
 !! PARENTS
-!!      gaussfit_main
+!!      m_gaussfit
 !!
 !! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_destroy
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
  
@@ -2313,7 +2350,7 @@ end subroutine gaussfit_set_param4
 !!  Sets parameters for LSF
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2011-2013 ABINIT group (T. Rangel)
+!!  Copyright (C) 2011-2014 ABINIT group (T. Rangel)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -2327,9 +2364,11 @@ end subroutine gaussfit_set_param4
 !! NOTES
 !!
 !! PARENTS
-!!      gaussfit_main
+!!      m_gaussfit
 !!
 !! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_destroy
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -2388,7 +2427,7 @@ end subroutine gaussfit_set_param5
 !!  It will also constraint the Delta use in the LSF algorithm, to jump slowly at each step.
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2011-2013 ABINIT group (T. Rangel)
+!!  Copyright (C) 2011-2014 ABINIT group (T. Rangel)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -2402,9 +2441,11 @@ end subroutine gaussfit_set_param5
 !! NOTES
 !!
 !! PARENTS
-!!      gaussfit_main
+!!      m_gaussfit
 !!
 !! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_destroy
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -2473,7 +2514,7 @@ end subroutine gaussfit_constrains_init
 !!  Apply constrains to get new set of parameters
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2011-2013 ABINIT group (T. Rangel)
+!!  Copyright (C) 2011-2014 ABINIT group (T. Rangel)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -2487,13 +2528,15 @@ end subroutine gaussfit_constrains_init
 !! NOTES
 !!
 !! PARENTS
-!!      gaussfit_main
+!!      m_gaussfit
 !!
 !! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_destroy
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
-subroutine gaussfit_apply_constrains(const,limit,nparam,param_in,param_out)
+subroutine gaussfit_apply_constrains(const,limit,nparam,ioparams)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -2505,26 +2548,22 @@ subroutine gaussfit_apply_constrains(const,limit,nparam,param_in,param_out)
  implicit none
 
 !Arguments -------------------------------
- integer,parameter::positive=2
- integer,parameter::restricted=3
- integer,intent(in)::nparam
- integer,intent(in)::const(nparam)
- real(dp),intent(in)::limit(nparam),param_in(nparam)
- real(dp),intent(out)::param_out(nparam)
+ integer,parameter:: positive=2
+ integer,parameter:: restricted=3
+ integer,intent(in):: nparam
+ integer,intent(in):: const(nparam)
+ real(dp),intent(in):: limit(nparam)
+ real(dp),intent(inout):: ioparams(nparam)
  !
 !Local variables-------------------------------
  integer::ii
 ! *********************************************************************
 
-!
- param_out=param_in
  do ii=1,nparam
-   if(const(ii)==positive) param_out(ii)=abs(param_in(ii))
-!  
+   if(const(ii)==positive) ioparams(ii)=abs(ioparams(ii))
+
    if(const(ii)==restricted) then
-     if(param_in(ii)<limit(ii)) then
-       param_out(ii)=limit(ii)
-     end if
+     if(ioparams(ii)<limit(ii)) ioparams(ii)=limit(ii)
    end if
  end do
  
@@ -2541,7 +2580,7 @@ end subroutine gaussfit_apply_constrains
 !! Fit tproj to Gaussians
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2011-2013 ABINIT group (T. Rangel)
+!!  Copyright (C) 2011-2014 ABINIT group (T. Rangel)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -2564,17 +2603,18 @@ end subroutine gaussfit_apply_constrains
 !!    nx is the number of points, f(x) and y(x) are the fitted and original functions.
 !!
 !! PARENTS
-!!      pspatm_abinit
+!!      m_pawpsp
 !!
 !! CHILDREN
-!!      gaussfit_main,leave_new,pawrad_deducer0,pawrad_destroy,pawrad_init,wrtout
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_destroy
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
 subroutine gaussfit_projector(basis_size,mparam,nparam_array,nterm_bounds,orbitals,param,pawrad,&
 & rpaw,tproj,comm_mpi)
 
- use m_pawrad, only : pawrad_init, pawrad_destroy, pawrad_deducer0
+ use m_pawrad, only : pawrad_type, pawrad_init, pawrad_deducer0, pawrad_destroy
  use m_paw_numeric, only: paw_splint, paw_spline
 
 !This section has been created automatically by the script Abilint (TD).
@@ -2582,7 +2622,6 @@ subroutine gaussfit_projector(basis_size,mparam,nparam_array,nterm_bounds,orbita
 #undef ABI_FUNC
 #define ABI_FUNC 'gaussfit_projector'
  use interfaces_14_hidewrite
- use interfaces_16_hideleave
 !End of the abilint section
 
  implicit none
@@ -2611,8 +2650,8 @@ subroutine gaussfit_projector(basis_size,mparam,nparam_array,nterm_bounds,orbita
  !integer::i,nterm ,unitp
  !real(dp),allocatable::y(:)
  !end debug
-!************************************************************************
 
+!************************************************************************
 
  option=4  !see gaussfit_main
  nparam_array(:)=0
@@ -2694,11 +2733,9 @@ subroutine gaussfit_projector(basis_size,mparam,nparam_array,nterm_bounds,orbita
    elseif(ibasis<100) then
      write(outfile,'("wfn",i2,".fit")')ibasis
      write(message,'(a,a,a,a)')ch10,&
-&     "gaussfit_projector : bug, ib (basis index) is too big!",ch10,&
+&     "ib (basis index) is too big!",ch10,&
 &     "Action: check your pseudopotentials"
-     call wrtout(ab_out,message,'COLL')
-     call wrtout(std_out,  message,'COLL')
-     call leave_new('COLL')
+     MSG_BUG(message)
    end if
 !  
    if(present(comm_mpi)) then

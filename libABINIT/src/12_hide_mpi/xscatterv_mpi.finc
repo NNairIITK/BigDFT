@@ -1,30 +1,26 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/xgather_mpi
+!!****f* ABINIT/xscatterv_mpi
 !! NAME
-!!  xgather_mpi
+!!  xscatterv_mpi
 !!
 !! FUNCTION
 !!  This module contains functions that calls MPI routine,
 !!  if we compile the code using the MPI CPP flags.
-!!  xgather_mpi is the generic function.
+!!  xscatterv_mpi is the generic function.
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2001-2013 ABINIT group (MT)
+!!  Copyright (C) 2001-2014 ABINIT group (MT)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~ABINIT/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
 !!***
 
-!!****f* ABINIT/xgather_mpi_int
+!!****f* ABINIT/xscatterv_mpi_int
 !! NAME
-!!  xgather_mpi_int
+!!  xscatterv_mpi_int
 !!
 !! FUNCTION
 !!  Gathers data from all tasks and delivers it to all.
@@ -32,8 +28,9 @@
 !!
 !! INPUTS
 !!  xval= buffer array
-!!  sendcont= number of sent elements
 !!  recvcount= number of received elements
+!!  displs= relative offsets for incoming data (array)
+!!  sendcounts= number of sent elements (array)
 !!  root= rank of receiving process
 !!  spaceComm= MPI communicator
 !!
@@ -46,56 +43,53 @@
 !! PARENTS
 !!
 !! CHILDREN
-!!      mpi_gather
+!!      mpi_scatterv
 !!
 !! SOURCE
-subroutine xgather_mpi_int(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
+subroutine xscatterv_mpi_int(xval,sendcounts,displs,recvbuf,recvcount,root,spaceComm,ier)
 
 
  use defs_basis
-#if defined HAVE_MPI && defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xgather_mpi_int'
+#define ABI_FUNC 'xscatterv_mpi_int'
 !End of the abilint section
 
  implicit none
 
-#if defined HAVE_MPI && defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
- integer :: sendcount,recvcount
  integer,intent(in) :: xval(:)
  integer,intent(inout)   :: recvbuf(:)
- integer,intent(in) :: root,spaceComm
+ integer,intent(in) :: sendcounts(:),displs(:)
+ integer,intent(in) :: recvcount,root,spaceComm
  integer,intent(out)   :: ier
 
 !Local variables-------------------
+ integer :: dd
 
 ! *************************************************************************
 
  ier=0
 #if defined HAVE_MPI
  if (spaceComm /= MPI_COMM_SELF .and. spaceComm /= MPI_COMM_NULL) then
-   call MPI_gather(xval,sendcount,MPI_INTEGER,recvbuf,recvcount,MPI_INTEGER,root,spaceComm,ier)
+   call MPI_SCATTERV(xval,sendcounts,displs,MPI_INTEGER,recvbuf,recvcount,&
+&   MPI_INTEGER,root,spaceComm,ier)
  else if (spaceComm == MPI_COMM_SELF) then
-   recvbuf=xval
- end if
-#else
- recvbuf=xval
 #endif
-end subroutine xgather_mpi_int
+   dd=0;if (size(displs)>0) dd=displs(1)
+   recvbuf(1:recvcount)=xval(dd+1:dd+recvcount)
+#if defined HAVE_MPI
+ end if
+#endif
+end subroutine xscatterv_mpi_int
 !!***
 
-!!****f* ABINIT/xgather_mpi_int2d
+!!****f* ABINIT/xscatterv_mpi_int2d
 !! NAME
-!!  xgather_mpi_int2d
+!!  xscatterv_mpi_int2d
 !!
 !! FUNCTION
 !!  Gathers data from all tasks and delivers it to all.
@@ -103,8 +97,9 @@ end subroutine xgather_mpi_int
 !!
 !! INPUTS
 !!  xval= buffer array
-!!  sendcont= number of sent elements
 !!  recvcount= number of received elements
+!!  displs= relative offsets for incoming data (array)
+!!  sendcounts= number of sent elements (array)
 !!  root= rank of receiving process
 !!  spaceComm= MPI communicator
 !!
@@ -117,56 +112,54 @@ end subroutine xgather_mpi_int
 !! PARENTS
 !!
 !! CHILDREN
-!!      mpi_gather
+!!      mpi_scatterv
 !!
 !! SOURCE
-subroutine xgather_mpi_int2d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
+subroutine xscatterv_mpi_int2d(xval,sendcounts,displs,recvbuf,recvcount,root,spaceComm,ier)
 
 
  use defs_basis
-#if defined HAVE_MPI && defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xgather_mpi_int2d'
+#define ABI_FUNC 'xscatterv_mpi_int2d'
 !End of the abilint section
 
  implicit none
 
-#if defined HAVE_MPI && defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
- integer :: sendcount,recvcount
  integer,intent(in) :: xval(:,:)
  integer,intent(inout)   :: recvbuf(:,:)
- integer,intent(in) :: root,spaceComm
+ integer,intent(in) :: sendcounts(:),displs(:)
+ integer,intent(in) :: recvcount,root,spaceComm
  integer,intent(out)   :: ier
 
 !Local variables-------------------
+ integer :: cc,dd,sz1
 
 ! *************************************************************************
 
  ier=0
 #if defined HAVE_MPI
  if (spaceComm /= MPI_COMM_SELF .and. spaceComm /= MPI_COMM_NULL) then
-   call MPI_gather(xval,sendcount,MPI_INTEGER,recvbuf,recvcount,MPI_INTEGER,root,spaceComm,ier)
+   call MPI_SCATTERV(xval,sendcounts,displs,MPI_INTEGER,recvbuf,recvcount,&
+&   MPI_INTEGER,root,spaceComm,ier)
  else if (spaceComm == MPI_COMM_SELF) then
-   recvbuf=xval
- end if
-#else
- recvbuf=xval
 #endif
-end subroutine xgather_mpi_int2d
+   sz1=size(recvbuf,1);cc=recvcount/sz1
+   dd=0;if (size(displs)>0) dd=displs(1)/sz1
+   recvbuf(:,1:cc)=xval(:,dd+1:dd+cc)
+#if defined HAVE_MPI
+ end if
+#endif
+end subroutine xscatterv_mpi_int2d
 !!***
 
-!!****f* ABINIT/xgather_mpi_dp
+!!****f* ABINIT/xscatterv_mpi_dp
 !! NAME
-!!  xgather_mpi_dp
+!!  xscatterv_mpi_dp
 !!
 !! FUNCTION
 !!  Gathers data from all tasks and delivers it to all.
@@ -174,8 +167,9 @@ end subroutine xgather_mpi_int2d
 !!
 !! INPUTS
 !!  xval= buffer array
-!!  sendcont= number of sent elements
 !!  recvcount= number of received elements
+!!  displs= relative offsets for incoming data (array)
+!!  sendcounts= number of sent elements (array)
 !!  root= rank of receiving process
 !!  spaceComm= MPI communicator
 !!
@@ -188,57 +182,52 @@ end subroutine xgather_mpi_int2d
 !! PARENTS
 !!
 !! CHILDREN
-!!      mpi_gather
+!!      mpi_scatterv
 !!
 !! SOURCE
-subroutine xgather_mpi_dp(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
+subroutine xscatterv_mpi_dp(xval,sendcounts,displs,recvbuf,recvcount,root,spaceComm,ier)
 
 
  use defs_basis
-#if defined HAVE_MPI && defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xgather_mpi_dp'
+#define ABI_FUNC 'xscatterv_mpi_dp'
 !End of the abilint section
 
  implicit none
 
-#if defined HAVE_MPI && defined HAVE_MPI1
- include 'mpif.h'
-#endif
-
 !Arguments-------------------------
- integer :: sendcount,recvcount
  real(dp),intent(in) :: xval(:)
  real(dp),intent(inout)   :: recvbuf(:)
- integer,intent(in) :: root,spaceComm
+ integer,intent(in) :: sendcounts(:),displs(:)
+ integer,intent(in) :: recvcount,root,spaceComm
  integer,intent(out)   :: ier
 
 !Local variables-------------------
+ integer :: dd
 
 ! *************************************************************************
 
  ier=0
 #if defined HAVE_MPI
  if (spaceComm /= MPI_COMM_SELF .and. spaceComm /= MPI_COMM_NULL) then
-   call MPI_gather(xval,sendcount,MPI_DOUBLE_PRECISION,recvbuf,recvcount,MPI_DOUBLE_PRECISION,&
-&   root,spaceComm,ier)
+   call MPI_SCATTERV(xval,sendcounts,displs,MPI_DOUBLE_PRECISION,recvbuf,recvcount,&
+&   MPI_DOUBLE_PRECISION,root,spaceComm,ier)
  else if (spaceComm == MPI_COMM_SELF) then
-   recvbuf=xval
- end if
-#else
- recvbuf=xval
 #endif
-end subroutine xgather_mpi_dp
+   dd=0;if (size(displs)>0) dd=displs(1)
+   recvbuf(1:recvcount)=xval(dd+1:dd+recvcount)
+#if defined HAVE_MPI
+ end if
+#endif
+end subroutine xscatterv_mpi_dp
 !!***
 
-!!****f* ABINIT/xgather_mpi_dp2d
+!!****f* ABINIT/xscatterv_mpi_dp2d
 !! NAME
-!!  xgather_mpi_dp2d
+!!  xscatterv_mpi_dp2d
 !!
 !! FUNCTION
 !!  Gathers data from all tasks and delivers it to all.
@@ -246,8 +235,9 @@ end subroutine xgather_mpi_dp
 !!
 !! INPUTS
 !!  xval= buffer array
-!!  sendcont= number of sent elements
 !!  recvcount= number of received elements
+!!  displs= relative offsets for incoming data (array)
+!!  sendcounts= number of sent elements (array)
 !!  root= rank of receiving process
 !!  spaceComm= MPI communicator
 !!
@@ -260,57 +250,53 @@ end subroutine xgather_mpi_dp
 !! PARENTS
 !!
 !! CHILDREN
-!!      mpi_gather
+!!      mpi_scatterv
 !!
 !! SOURCE
-subroutine xgather_mpi_dp2d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
+subroutine xscatterv_mpi_dp2d(xval,sendcounts,displs,recvbuf,recvcount,root,spaceComm,ier)
 
 
  use defs_basis
-#if defined HAVE_MPI && defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xgather_mpi_dp2d'
+#define ABI_FUNC 'xscatterv_mpi_dp2d'
 !End of the abilint section
 
  implicit none
 
-#if defined HAVE_MPI && defined HAVE_MPI1
- include 'mpif.h'
-#endif
-
 !Arguments-------------------------
- integer :: sendcount,recvcount
  real(dp),intent(in) :: xval(:,:)
  real(dp),intent(inout)   :: recvbuf(:,:)
- integer,intent(in) :: root,spaceComm
+ integer,intent(in) :: sendcounts(:),displs(:)
+ integer,intent(in) :: recvcount,root,spaceComm
  integer,intent(out)   :: ier
 
 !Local variables-------------------
+ integer :: cc,dd,sz1 
 
 ! *************************************************************************
 
  ier=0
 #if defined HAVE_MPI
  if (spaceComm /= MPI_COMM_SELF .and. spaceComm /= MPI_COMM_NULL) then
-   call MPI_gather(xval,sendcount,MPI_DOUBLE_PRECISION,recvbuf,recvcount,MPI_DOUBLE_PRECISION,&
-&   root,spaceComm,ier)
+   call MPI_SCATTERV(xval,sendcounts,displs,MPI_DOUBLE_PRECISION,recvbuf,recvcount,&
+&   MPI_DOUBLE_PRECISION,root,spaceComm,ier)
  else if (spaceComm == MPI_COMM_SELF) then
-   recvbuf=xval
- end if
-#else
- recvbuf=xval
 #endif
-end subroutine xgather_mpi_dp2d
+   sz1=size(recvbuf,1);cc=recvcount/sz1
+   dd=0;if (size(displs)>0) dd=displs(1)/sz1
+   recvbuf(:,1:cc)=xval(:,dd+1:dd+cc)
+#if defined HAVE_MPI
+ end if
+#endif
+end subroutine xscatterv_mpi_dp2d
 !!***
 
-!!****f* ABINIT/xgather_mpi_dp3d
+!!****f* ABINIT/xscatterv_mpi_dp3d
 !! NAME
-!!  xgather_mpi_dp3d
+!!  xscatterv_mpi_dp3d
 !!
 !! FUNCTION
 !!  Gathers data from all tasks and delivers it to all.
@@ -318,8 +304,9 @@ end subroutine xgather_mpi_dp2d
 !!
 !! INPUTS
 !!  xval= buffer array
-!!  sendcont= number of sent elements
 !!  recvcount= number of received elements
+!!  displs= relative offsets for incoming data (array)
+!!  sendcounts= number of sent elements (array)
 !!  root= rank of receiving process
 !!  spaceComm= MPI communicator
 !!
@@ -332,57 +319,53 @@ end subroutine xgather_mpi_dp2d
 !! PARENTS
 !!
 !! CHILDREN
-!!      mpi_gather
+!!      mpi_scatterv
 !!
 !! SOURCE
-subroutine xgather_mpi_dp3d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
+subroutine xscatterv_mpi_dp3d(xval,sendcounts,displs,recvbuf,recvcount,root,spaceComm,ier)
 
 
  use defs_basis
-#if defined HAVE_MPI && defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xgather_mpi_dp3d'
+#define ABI_FUNC 'xscatterv_mpi_dp3d'
 !End of the abilint section
 
  implicit none
 
-#if defined HAVE_MPI && defined HAVE_MPI1
- include 'mpif.h'
-#endif
-
 !Arguments-------------------------
- integer :: sendcount,recvcount
  real(dp),intent(in) :: xval(:,:,:)
  real(dp),intent(inout)   :: recvbuf(:,:,:)
- integer,intent(in) :: root,spaceComm
+ integer,intent(in) :: sendcounts(:),displs(:)
+ integer,intent(in) :: recvcount,root,spaceComm
  integer,intent(out)   :: ier
 
 !Local variables-------------------
+ integer :: cc,dd,sz12
 
 ! *************************************************************************
 
  ier=0
 #if defined HAVE_MPI
  if (spaceComm /= MPI_COMM_SELF .and. spaceComm /= MPI_COMM_NULL) then
-   call MPI_gather(xval,sendcount,MPI_DOUBLE_PRECISION,recvbuf,recvcount,MPI_DOUBLE_PRECISION,&
-&   root,spaceComm,ier)
+   call MPI_SCATTERV(xval,sendcounts,displs,MPI_DOUBLE_PRECISION,recvbuf,recvcount,&
+&   MPI_DOUBLE_PRECISION,root,spaceComm,ier)
  else if (spaceComm == MPI_COMM_SELF) then
-   recvbuf=xval
- end if
-#else
- recvbuf=xval
 #endif
-end subroutine xgather_mpi_dp3d
+   sz12=size(recvbuf,1)*size(recvbuf,2);cc=recvcount/sz12
+   dd=0;if (size(displs)>0) dd=displs(1)/sz12
+   recvbuf(:,:,1:cc)=xval(:,:,dd+1:dd+cc)
+#if defined HAVE_MPI
+ end if
+#endif
+end subroutine xscatterv_mpi_dp3d
 !!***
 
-!!****f* ABINIT/xgather_mpi_dp4d
+!!****f* ABINIT/xscatterv_mpi_dp4d
 !! NAME
-!!  xgather_mpi_dp4d
+!!  xscatterv_mpi_dp4d
 !!
 !! FUNCTION
 !!  Gathers data from all tasks and delivers it to all.
@@ -390,8 +373,9 @@ end subroutine xgather_mpi_dp3d
 !!
 !! INPUTS
 !!  xval= buffer array
-!!  sendcont= number of sent elements
 !!  recvcount= number of received elements
+!!  displs= relative offsets for incoming data (array)
+!!  sendcounts= number of sent elements (array)
 !!  root= rank of receiving process
 !!  spaceComm= MPI communicator
 !!
@@ -404,50 +388,46 @@ end subroutine xgather_mpi_dp3d
 !! PARENTS
 !!
 !! CHILDREN
-!!      mpi_gather
+!!      mpi_scatterv
 !!
 !! SOURCE
-subroutine xgather_mpi_dp4d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
+subroutine xscatterv_mpi_dp4d(xval,sendcounts,displs,recvbuf,recvcount,root,spaceComm,ier)
 
 
  use defs_basis
-#if defined HAVE_MPI && defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xgather_mpi_dp4d'
+#define ABI_FUNC 'xscatterv_mpi_dp4d'
 !End of the abilint section
 
  implicit none
 
-#if defined HAVE_MPI && defined HAVE_MPI1
- include 'mpif.h'
-#endif
-
 !Arguments-------------------------
- integer :: sendcount,recvcount
  real(dp),intent(in) :: xval(:,:,:,:)
  real(dp),intent(inout)   :: recvbuf(:,:,:,:)
- integer,intent(in) :: root,spaceComm
+ integer,intent(in) :: sendcounts(:),displs(:)
+ integer,intent(in) :: recvcount,root,spaceComm
  integer,intent(out)   :: ier
 
 !Local variables-------------------
+ integer :: cc,dd,sz123
 
 ! *************************************************************************
 
  ier=0
 #if defined HAVE_MPI
  if (spaceComm /= MPI_COMM_SELF .and. spaceComm /= MPI_COMM_NULL) then
-   call MPI_gather(xval,sendcount,MPI_DOUBLE_PRECISION,recvbuf,recvcount,MPI_DOUBLE_PRECISION,&
-&   root,spaceComm,ier)
+   call MPI_SCATTERV(xval,sendcounts,displs,MPI_DOUBLE_PRECISION,recvbuf,recvcount,&
+&   MPI_DOUBLE_PRECISION,root,spaceComm,ier)
  else if (spaceComm == MPI_COMM_SELF) then
-   recvbuf=xval
- end if
-#else
- recvbuf=xval
 #endif
-end subroutine xgather_mpi_dp4d
+   sz123=size(recvbuf,1)*size(recvbuf,2)*size(recvbuf,2);cc=recvcount/sz123
+   dd=0;if (size(displs)>0) dd=displs(1)/sz123
+   recvbuf(:,:,:,1:cc)=xval(:,:,:,dd+1:dd+cc)
+#if defined HAVE_MPI
+ end if
+#endif
+end subroutine xscatterv_mpi_dp4d
 !!***

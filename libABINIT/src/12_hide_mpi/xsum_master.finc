@@ -9,19 +9,78 @@
 !!  xsum_master is the generic function.
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2001-2011 ABINIT group (AR,XG,MB)
+!!  Copyright (C) 2001-2014 ABINIT group (AR,XG,MB)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~ABINIT/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
 !!
-!! TODO
+!! SOURCE
+
+!!***
+
+!!****f* ABINIT/xsum_master_int
+!! NAME
+!!  xsum_master_int
+!!
+!! FUNCTION
+!!  Reduces values on all processes to a single value.
+!!  Target: integer scalars.
+!!
+!! INPUTS
+!!  master= master MPI node
+!!  spaceComm= MPI communicator
+!!
+!! OUTPUT
+!!  ier= exit status, a non-zero value meaning there is an error
+!!
+!! SIDE EFFECTS
+!!  xval= buffer array
+!!
+!! PARENTS
+!!
+!! CHILDREN
+!!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
+subroutine xsum_master_int(xval,master,spaceComm,ier)
+
+ use defs_basis
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xsum_master_int'
+!End of the abilint section
+
+ implicit none
+
+!Arguments-------------------------
+ integer,intent(inout) :: xval
+ integer ,intent(in) :: master
+ integer ,intent(in) :: spaceComm
+ integer ,intent(out)   :: ier
+
+!Local variables-------------------
+#if defined HAVE_MPI
+ integer :: xsum
+ integer :: nproc_space_comm
 #endif
 
+! *************************************************************************
+
+ ier=0
+#if defined HAVE_MPI
+ if (spaceComm /= MPI_COMM_NULL) then
+   call MPI_COMM_SIZE(spaceComm,nproc_space_comm,ier)
+   if (nproc_space_comm /= 1) then
+!    Accumulate xval on all proc. in spaceComm
+     call MPI_REDUCE(xval,xsum,1,MPI_INTEGER,MPI_SUM,master,spaceComm,ier)
+     xval = xsum
+   end if
+ end if
+#endif
+end subroutine xsum_master_int
 !!***
 
 !!****f* ABINIT/xsum_master_dp1d
@@ -45,21 +104,22 @@
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
 
 subroutine xsum_master_dp1d(xval,master,spaceComm,ier)
- use defs_basis
 
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+ use defs_basis
+ use m_profiling
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xsum_master_dp1d'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  real(dp),intent(inout) :: xval(:)
@@ -83,10 +143,10 @@ subroutine xsum_master_dp1d(xval,master,spaceComm,ier)
    if (nproc_space_comm /= 1) then
      n1 = size(xval,dim=1)
 !    Accumulate xval on all proc. in spaceComm
-     allocate(xsum(n1))
+     ABI_ALLOCATE(xsum,(n1))
      call MPI_REDUCE(xval,xsum,n1,MPI_DOUBLE_PRECISION,MPI_SUM,master,spaceComm,ier)
      xval (:) = xsum(:)
-     deallocate(xsum)
+     ABI_DEALLOCATE(xsum)
    end if
  end if
 #endif
@@ -114,20 +174,22 @@ end subroutine xsum_master_dp1d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
 
 subroutine xsum_master_dp2d(xval,master,spaceComm,ier)
+
  use defs_basis
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+ use m_profiling
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xsum_master_dp2d'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  real(dp),intent(inout) :: xval(:,:)
@@ -152,10 +214,10 @@ subroutine xsum_master_dp2d(xval,master,spaceComm,ier)
      n1 = size(xval,dim=1)
      n2 = size(xval,dim=2)
 !    Accumulate xval on all proc. in spaceComm
-     allocate(xsum(n1,n2))
+     ABI_ALLOCATE(xsum,(n1,n2))
      call MPI_REDUCE(xval,xsum,n1*n2,MPI_DOUBLE_PRECISION,MPI_SUM,master,spaceComm,ier)
      xval (:,:) = xsum(:,:)
-     deallocate(xsum)
+     ABI_DEALLOCATE(xsum)
    end if
  end if
 #endif
@@ -183,19 +245,21 @@ end subroutine xsum_master_dp2d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
 subroutine xsum_master_dp3d(xval,master,spaceComm,ier)
+
  use defs_basis
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+ use m_profiling
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xsum_master_dp3d'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  real(dp),intent(inout) :: xval(:,:,:)
@@ -221,10 +285,10 @@ subroutine xsum_master_dp3d(xval,master,spaceComm,ier)
      n2 = size(xval,dim=2)
      n3 = size(xval,dim=3)
 !    Accumulate xval on all proc. in spaceComm
-     allocate(xsum(n1,n2,n3))
+     ABI_ALLOCATE(xsum,(n1,n2,n3))
      call MPI_REDUCE(xval,xsum,n1*n2*n3,MPI_DOUBLE_PRECISION,MPI_SUM,master,spaceComm,ier)
      xval (:,:,:) = xsum(:,:,:)
-     deallocate(xsum)
+     ABI_DEALLOCATE(xsum)
    end if
  end if
 #endif
@@ -252,19 +316,21 @@ end subroutine xsum_master_dp3d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
 subroutine xsum_master_dp4d(xval,master,spaceComm,ier)
+
  use defs_basis
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+ use m_profiling
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xsum_master_dp4d'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  real(dp),intent(inout) :: xval(:,:,:,:)
@@ -291,10 +357,10 @@ subroutine xsum_master_dp4d(xval,master,spaceComm,ier)
      n3 = size(xval,dim=3)
      n4 = size(xval,dim=4)
 !    Accumulate xval on all proc. in spaceComm
-     allocate(xsum(n1,n2,n3,n4))
+     ABI_ALLOCATE(xsum,(n1,n2,n3,n4))
      call MPI_REDUCE(xval,xsum,n1*n2*n3*n4,MPI_DOUBLE_PRECISION,MPI_SUM,master,spaceComm,ier)
      xval (:,:,:,:) = xsum(:,:,:,:)
-     deallocate(xsum)
+     ABI_DEALLOCATE(xsum)
    end if
  end if
 #endif
@@ -323,20 +389,21 @@ end subroutine xsum_master_dp4d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
 subroutine xsum_master_dp5d(xval,master,spaceComm,ier)
- use defs_basis
 
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+ use defs_basis
+ use m_profiling
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xsum_master_dp5d'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments ------------------------------------
  real(dp),intent(inout) :: xval(:,:,:,:,:)
@@ -363,10 +430,10 @@ subroutine xsum_master_dp5d(xval,master,spaceComm,ier)
      n4 = size(xval,dim=4)
      n5 = size(xval,dim=5)
 !    Accumulate xval on all proc. in spaceComm
-     allocate(xsum(n1,n2,n3,n4,n5))
+     ABI_ALLOCATE(xsum,(n1,n2,n3,n4,n5))
      call MPI_reduce(xval,xsum,n1*n2*n3*n4*n5,MPI_DOUBLE_PRECISION,MPI_SUM,master,spaceComm,ier)
      xval (:,:,:,:,:) = xsum(:,:,:,:,:)
-     deallocate(xsum)
+     ABI_DEALLOCATE(xsum)
    end if
  end if
 #endif
@@ -395,20 +462,21 @@ end subroutine xsum_master_dp5d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
 subroutine xsum_master_dp6d(xval,master,spaceComm,ier)
- use defs_basis
 
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+ use defs_basis
+ use m_profiling
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xsum_master_dp6d'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments ------------------------------------
  real(dp),intent(inout) :: xval(:,:,:,:,:,:)
@@ -436,10 +504,10 @@ subroutine xsum_master_dp6d(xval,master,spaceComm,ier)
      n5 = size(xval,dim=5)
      n6 = size(xval,dim=6)
 !    Accumulate xval on all proc. in spaceComm
-     allocate(xsum(n1,n2,n3,n4,n5,n6))
+     ABI_ALLOCATE(xsum,(n1,n2,n3,n4,n5,n6))
      call MPI_reduce(xval,xsum,n1*n2*n3*n4*n5*n6,MPI_DOUBLE_PRECISION,MPI_SUM,master,spaceComm,ier)
      xval (:,:,:,:,:,:) = xsum(:,:,:,:,:,:)
-     deallocate(xsum)
+     ABI_DEALLOCATE(xsum)
    end if
  end if
 #endif
@@ -468,20 +536,22 @@ end subroutine xsum_master_dp6d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
 subroutine xsum_master_dp7d(xval,master,spaceComm,ier)
- use defs_basis
 
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+ use defs_basis
+ use m_profiling
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xsum_master_dp7d'
+!End of the abilint section
 
  implicit none
 
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 !Arguments ------------------------------------
  real(dp),intent(inout) :: xval(:,:,:,:,:,:,:)
  integer ,intent(in) :: master
@@ -509,10 +579,10 @@ subroutine xsum_master_dp7d(xval,master,spaceComm,ier)
      n6 = size(xval,dim=6)
      n7 = size(xval,dim=7)
 !    Accumulate xval on all proc. in spaceComm
-     allocate(xsum(n1,n2,n3,n4,n5,n6,n7))
+     ABI_ALLOCATE(xsum,(n1,n2,n3,n4,n5,n6,n7))
      call MPI_reduce(xval,xsum,n1*n2*n3*n4*n5*n6*n7,MPI_DOUBLE_PRECISION,MPI_SUM,master,spaceComm,ier)
      xval (:,:,:,:,:,:,:) = xsum(:,:,:,:,:,:,:)
-     deallocate(xsum)
+     ABI_DEALLOCATE(xsum)
    end if
  end if
 #endif
@@ -541,20 +611,22 @@ end subroutine xsum_master_dp7d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
 subroutine xsum_master_int4d(xval,master,spaceComm,ier)
- use defs_basis
 
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+ use defs_basis
+ use m_profiling
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xsum_master_int4d'
+!End of the abilint section
 
  implicit none
 
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 !Arguments ------------------------------------
  integer ,intent(inout) :: xval(:,:,:,:)
  integer ,intent(in) :: master
@@ -580,15 +652,85 @@ subroutine xsum_master_int4d(xval,master,spaceComm,ier)
      n3 = size(xval,dim=3)
      n4 = size(xval,dim=4)
 !    Accumulate xval on all proc. in spaceComm
-     allocate(xsum(n1,n2,n3,n4))
+     ABI_ALLOCATE(xsum,(n1,n2,n3,n4))
      call MPI_reduce(xval,xsum,n1*n2*n3*n4,MPI_INTEGER,MPI_SUM,master,spaceComm,ier)
      xval (:,:,:,:) = xsum(:,:,:,:)
-     deallocate(xsum)
+     ABI_DEALLOCATE(xsum)
    end if
  end if
 #endif
 
 end subroutine xsum_master_int4d
+!!***
+
+!!****f* ABINIT/xsum_master_c1cplx
+!! NAME
+!!  xsum_master_c1cplx
+!!
+!! FUNCTION
+!!  Reduces values on all processes to a single value.
+!!  Target: one-dimensional complex arrays.
+!!
+!! INPUTS
+!!  master= master MPI node
+!!  spaceComm= MPI communicator
+!!
+!! OUTPUT
+!!  ier= exit status, a non-zero value meaning there is an error
+!!
+!! SIDE EFFECTS
+!!  xval= buffer array
+!!
+!! PARENTS
+!!
+!! CHILDREN
+!!      mpi_comm_size,mpi_reduce
+!!
+!! SOURCE
+
+subroutine xsum_master_c1cplx(xval,master,spaceComm,ier)
+
+ use defs_basis
+ use m_profiling
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xsum_master_c1cplx'
+!End of the abilint section
+
+ implicit none
+
+!Arguments-------------------------
+ complex(spc),intent(inout) :: xval(:)
+ integer ,intent(in) :: master
+ integer ,intent(in) :: spaceComm
+ integer ,intent(out)   :: ier
+
+!Local variables-------------------
+#if defined HAVE_MPI
+ integer :: n1,nproc_space_comm
+ complex(spc),allocatable :: xsum(:)
+#endif
+
+! *************************************************************************
+
+ ier=0
+#if defined HAVE_MPI
+ if (spaceComm /= MPI_COMM_NULL) then
+   call MPI_COMM_SIZE(spaceComm,nproc_space_comm,ier)
+   if (nproc_space_comm /= 1) then
+     n1 = size(xval,dim=1)
+!    Collect xval from processors on master in spaceComm
+     ABI_ALLOCATE(xsum,(n1))
+     call MPI_REDUCE(xval,xsum,n1,MPI_COMPLEX,MPI_SUM,master,spaceComm,ier)
+     xval = xsum
+     ABI_DEALLOCATE(xsum)
+   end if
+ end if
+#endif
+
+end subroutine xsum_master_c1cplx
 !!***
 
 !!****f* ABINIT/xsum_master_c2cplx
@@ -612,21 +754,22 @@ end subroutine xsum_master_int4d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
 
 subroutine xsum_master_c2cplx(xval,master,spaceComm,ier)
- use defs_basis
 
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+ use defs_basis
+ use m_profiling
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xsum_master_c2cplx'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  complex(spc),intent(inout) :: xval(:,:)
@@ -651,10 +794,10 @@ subroutine xsum_master_c2cplx(xval,master,spaceComm,ier)
      n1 = size(xval,dim=1)
      n2 = size(xval,dim=2)
 !    Collect xval from processors on master in spaceComm
-     allocate(xsum(n1,n2))
+     ABI_ALLOCATE(xsum,(n1,n2))
      call MPI_REDUCE(xval,xsum,n1*n2,MPI_COMPLEX,MPI_SUM,master,spaceComm,ier)
      xval (:,:) = xsum(:,:)
-     deallocate(xsum)
+     ABI_DEALLOCATE(xsum)
    end if
  end if
 #endif
@@ -682,20 +825,21 @@ end subroutine xsum_master_c2cplx
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
 subroutine xsum_master_c3cplx(xval,master,spaceComm,ier)
- use defs_basis
 
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+ use defs_basis
+ use m_profiling
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xsum_master_c3cplx'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  complex(spc),intent(inout) :: xval(:,:,:)
@@ -721,10 +865,10 @@ subroutine xsum_master_c3cplx(xval,master,spaceComm,ier)
      n2 = size(xval,dim=2)
      n3 = size(xval,dim=3)
 !    Collect xval from processors on master in spaceComm
-     allocate(xsum(n1,n2,n3))
+     ABI_ALLOCATE(xsum,(n1,n2,n3))
      call MPI_REDUCE(xval,xsum,n1*n2*n3,MPI_COMPLEX,MPI_SUM,master,spaceComm,ier)
      xval (:,:,:) = xsum(:,:,:)
-     deallocate(xsum)
+     ABI_DEALLOCATE(xsum)
    end if
  end if
 #endif
@@ -752,19 +896,21 @@ end subroutine xsum_master_c3cplx
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
 subroutine xsum_master_c4cplx(xval,master,spaceComm,ier)
- use defs_basis
 
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+ use defs_basis
+ use m_profiling
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xsum_master_c4cplx'
+!End of the abilint section
 
  implicit none
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  complex(spc),intent(inout) :: xval(:,:,:,:)
@@ -791,10 +937,10 @@ subroutine xsum_master_c4cplx(xval,master,spaceComm,ier)
      n3 = size(xval,dim=3)
      n4 = size(xval,dim=4)
 !    Collect xval from processors on master in spaceComm
-     allocate(xsum(n1,n2,n3,n4))
+     ABI_ALLOCATE(xsum,(n1,n2,n3,n4))
      call MPI_REDUCE(xval,xsum,n1*n2*n3*n4,MPI_COMPLEX,MPI_SUM,master,spaceComm,ier)
      xval (:,:,:,:) = xsum(:,:,:,:)
-     deallocate(xsum)
+     ABI_DEALLOCATE(xsum)
    end if
  end if
 #endif
@@ -824,20 +970,22 @@ end subroutine xsum_master_c4cplx
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
 subroutine xsum_master_c5cplx(xval,master,spaceComm,ier)
 
- use defs_basis
 
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+ use defs_basis
+ use m_profiling
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xsum_master_c5cplx'
+!End of the abilint section
 
  implicit none
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  complex(spc) ,intent(inout) :: xval(:,:,:,:,:)
@@ -865,10 +1013,10 @@ subroutine xsum_master_c5cplx(xval,master,spaceComm,ier)
      n4 = size(xval,dim=4)
      n5 = size(xval,dim=5)
 !    Collect xval from processors on master in spaceComm
-     allocate(xsum(n1,n2,n3,n4,n5))
+     ABI_ALLOCATE(xsum,(n1,n2,n3,n4,n5))
      call MPI_REDUCE(xval,xsum,n1*n2*n3*n4*n5,MPI_COMPLEX,MPI_SUM,master,spaceComm,ier)
      xval = xsum
-     deallocate(xsum)
+     ABI_DEALLOCATE(xsum)
    end if
  end if
 #endif
@@ -896,19 +1044,21 @@ end subroutine xsum_master_c5cplx
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
 subroutine xsum_master_c1dpc(xval,master,spaceComm,ier)
- use defs_basis
 
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+ use defs_basis
+ use m_profiling
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xsum_master_c1dpc'
+!End of the abilint section
 
  implicit none
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  complex(dpc) ,intent(inout) :: xval(:)
@@ -932,10 +1082,10 @@ subroutine xsum_master_c1dpc(xval,master,spaceComm,ier)
    if (nproc_space_comm /= 1) then
      n1 = size(xval,dim=1)
 !    Collect xval from processors on master in spaceComm
-     allocate(xsum(n1))
+     ABI_ALLOCATE(xsum,(n1))
      call MPI_REDUCE(xval,xsum,n1,MPI_DOUBLE_COMPLEX,MPI_SUM,master,spaceComm,ier)
      xval (:) = xsum(:)
-     deallocate(xsum)
+     ABI_DEALLOCATE(xsum)
    end if
  end if
 #endif
@@ -964,19 +1114,21 @@ end subroutine xsum_master_c1dpc
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
 subroutine xsum_master_c2dpc(xval,master,spaceComm,ier)
- use defs_basis
 
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+ use defs_basis
+ use m_profiling
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xsum_master_c2dpc'
+!End of the abilint section
 
  implicit none
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  complex(dpc) ,intent(inout) :: xval(:,:)
@@ -1001,10 +1153,10 @@ subroutine xsum_master_c2dpc(xval,master,spaceComm,ier)
      n1 = size(xval,dim=1)
      n2 = size(xval,dim=2)
 !    Collect xval from processors on master in spaceComm
-     allocate(xsum(n1,n2))
+     ABI_ALLOCATE(xsum,(n1,n2))
      call MPI_REDUCE(xval,xsum,n1*n2,MPI_DOUBLE_COMPLEX,MPI_SUM,master,spaceComm,ier)
      xval (:,:) = xsum(:,:)
-     deallocate(xsum)
+     ABI_DEALLOCATE(xsum)
    end if
  end if
 #endif
@@ -1032,19 +1184,21 @@ end subroutine xsum_master_c2dpc
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
 subroutine xsum_master_c3dpc(xval,master,spaceComm,ier)
- use defs_basis
 
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+ use defs_basis
+ use m_profiling
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xsum_master_c3dpc'
+!End of the abilint section
 
  implicit none
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  complex(dpc) ,intent(inout) :: xval(:,:,:)
@@ -1070,10 +1224,10 @@ subroutine xsum_master_c3dpc(xval,master,spaceComm,ier)
      n2 = size(xval,dim=2)
      n3 = size(xval,dim=3)
 !    Collect xval from processors on master in spaceComm
-     allocate(xsum(n1,n2,n3))
+     ABI_ALLOCATE(xsum,(n1,n2,n3))
      call MPI_REDUCE(xval,xsum,n1*n2*n3,MPI_DOUBLE_COMPLEX,MPI_SUM,master,spaceComm,ier)
      xval (:,:,:) = xsum(:,:,:)
-     deallocate(xsum)
+     ABI_DEALLOCATE(xsum)
    end if
  end if
 #endif
@@ -1101,19 +1255,21 @@ end subroutine xsum_master_c3dpc
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
 subroutine xsum_master_c4dpc(xval,master,spaceComm,ier)
- use defs_basis
 
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+ use defs_basis
+ use m_profiling
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xsum_master_c4dpc'
+!End of the abilint section
 
  implicit none
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  complex(dpc) ,intent(inout) :: xval(:,:,:,:)
@@ -1140,10 +1296,10 @@ subroutine xsum_master_c4dpc(xval,master,spaceComm,ier)
      n3 = size(xval,dim=3)
      n4 = size(xval,dim=4)
 !    Collect xval from processors on master in spaceComm
-     allocate(xsum(n1,n2,n3,n4))
+     ABI_ALLOCATE(xsum,(n1,n2,n3,n4))
      call MPI_REDUCE(xval,xsum,n1*n2*n3*n4,MPI_DOUBLE_COMPLEX,MPI_SUM,master,spaceComm,ier)
      xval (:,:,:,:) = xsum(:,:,:,:)
-     deallocate(xsum)
+     ABI_DEALLOCATE(xsum)
    end if
  end if
 #endif
@@ -1171,20 +1327,22 @@ end subroutine xsum_master_c4dpc
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
 subroutine xsum_master_c5dpc(xval,master,spaceComm,ier)
 
- use defs_basis
 
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+ use defs_basis
+ use m_profiling
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xsum_master_c5dpc'
+!End of the abilint section
 
  implicit none
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  complex(dpc) ,intent(inout) :: xval(:,:,:,:,:)
@@ -1212,10 +1370,10 @@ subroutine xsum_master_c5dpc(xval,master,spaceComm,ier)
      n4 = size(xval,dim=4)
      n5 = size(xval,dim=5)
 !    Collect xval from processors on master in spaceComm
-     allocate(xsum(n1,n2,n3,n4,n5))
+     ABI_ALLOCATE(xsum,(n1,n2,n3,n4,n5))
      call MPI_REDUCE(xval,xsum,n1*n2*n3*n4*n5,MPI_DOUBLE_COMPLEX,MPI_SUM,master,spaceComm,ier)
      xval (:,:,:,:,:) = xsum(:,:,:,:,:)
-     deallocate(xsum)
+     ABI_DEALLOCATE(xsum)
    end if
  end if
 #endif

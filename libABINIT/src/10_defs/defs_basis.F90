@@ -5,10 +5,10 @@
 !!
 !! FUNCTION
 !! This module contains definitions for a number of named constants and
-!! physical constants.
+!! physical constants, as well as associated datatypes and methods.
 !!
 !! COPYRIGHT
-!! Copyright (C) 2000-2011 ABINIT group (HM, XG,XW)
+!! Copyright (C) 2000-2014 ABINIT group (HM, XG,XW, EB)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -54,8 +54,9 @@ module defs_basis
 !nb of bytes related to GW arrays, that can be tuned from sp to dp independently
 !of other variables in ABINIT. Presently single precision is the default.
 #if defined HAVE_GW_DPC
- integer, parameter :: gwp=kind(1.0d00)
+ integer, parameter :: gwp=kind(1.0d0)
  integer, parameter :: gwpc=kind((1.0_dp,1.0_dp))
+
 #else
  integer, parameter :: gwp=kind(1.0)
  integer, parameter :: gwpc=kind((1.0,1.0))
@@ -70,21 +71,19 @@ module defs_basis
 !To modify sp/spc and / or dp/dpc, insert instructions such as 'dp='
 ! but do not modify the other declarations in this module
 
-!Default logical type
- integer, parameter :: lgt=kind(.true.)
-
 !The default lengths
  integer, parameter :: fnlen=264     ! maximum length of file name variables
  integer, parameter :: strlen=2000000 ! maximum length of input string
 
 !Some constants:
- !integer, parameter :: integer_not_used=0
- !logical, parameter :: logical_not_used=.true.
 
 !UNIX unit numbers : standard input, standard output, ab_out, and a number for temporary access to a file.
- integer, parameter :: std_in=5,ab_in=5  ! Please, use these named constants instead of write(6,*),
+                                         ! Please, use these named constants instead of write(std_out,*),
+                                         ! it makes the code more readable and easier to change.
+!Default values
+ integer, parameter :: std_in=5,ab_in=5
  integer, parameter :: std_out_default=6,ab_out_default=7
- integer, parameter :: std_err=0         
+ integer, parameter :: std_err=0
  integer, parameter :: dev_null=-1       ! Fake unit number used to skip the printing in wrtout.
  integer, parameter :: ab_xml_out = 50   ! this unit is used to print output into an XML file
  integer, parameter :: tmp_unit=9,tmp_unit2=10
@@ -92,11 +91,11 @@ module defs_basis
 ! These vars should be private and only modifiable via an appropriate method (see below)
  integer, public, save :: ab_out = ab_out_default
  integer, public, save :: std_out =  std_out_default
+!It should be put to xmpi_world (but it is not possible for the moment - v6.9)
+ integer, public, save :: abinit_comm_output = -1 !This default value has to be changed at start !!!
 
-!The 3x3 identity matrix
-!WARNING : this seem not to work ?!
-! integer, dimension(3,3), parameter :: &
-!& identity3by3=reshape((/1,0,0,0,1,0,0,0,1/),(/3,3/))
+! the maximum length of a record in a file connected for sequential access.
+ integer,public,parameter :: ABI_RECL=524288  ! 2**19
 
 !Real constants
  real(dp), parameter :: zero=0._dp
@@ -164,6 +163,7 @@ module defs_basis
  real(dp), parameter :: tol14=0.00000000000001_dp
  real(dp), parameter :: tol15=0.000000000000001_dp
  real(dp), parameter :: tol16=0.0000000000000001_dp
+ real(dp), parameter :: tol20=0.00000000000000000001_dp
 
 !real constants derived from sqrt(n.)
  real(dp), parameter :: sqrt2=1.4142135623730950488016887242096939_dp
@@ -174,7 +174,7 @@ module defs_basis
 
 !Conversion factors of common use, not directly related to physical quantities.
  real(dp), parameter :: b2Mb=one/1024.0_dp**2  ! conversion factor bytes --> Mbytes
- real(dp), parameter :: b2Gb=b2Mb/1000.0_dp    ! conversion factor bytes --> Gbytes
+ real(dp), parameter :: b2Gb=b2Mb/1024.0_dp    ! conversion factor bytes --> Gbytes
 
 !Real physical constants
 !Revised fundamental constants from http://physics.nist.gov/cuu/Constants/index.html
@@ -182,6 +182,7 @@ module defs_basis
  real(dp), parameter :: Bohr_Ang=0.52917720859_dp    ! 1 Bohr, in Angstrom
  real(dp), parameter :: Ha_cmm1=219474.6313705_dp  ! 1 Hartree, in cm^-1
  real(dp), parameter :: Ha_eV=27.21138386_dp ! 1 Hartree, in eV
+ real(dp), parameter :: Ha_meV=Ha_eV*1000_dp ! 1 Hartree, in meV
  real(dp), parameter :: Ha_K=315774.65_dp ! 1Hartree, in Kelvin
  real(dp), parameter :: Ha_THz=6579.683920722_dp ! 1 Hartree, in THz
  real(dp), parameter :: Ha_J=4.35974394d-18    !1 Hartree, in J
@@ -200,42 +201,42 @@ module defs_basis
  real(dp), parameter :: InvFineStruct=137.035999679_dp  ! Inverse of fine structure constant
  real(dp), parameter :: Sp_Lt=2.99792458d8/2.1876912633d6 ! speed of light in atomic units
  real(dp), parameter :: Time_Sec=2.418884326505D-17 !  Atomic unit of time, in seconds
- real(dp), parameter :: BField_Tesla=0.0 ! Atomic unit of induction field, in Tesla.
+ real(dp), parameter :: BField_Tesla=4.254383d-6 ! Tesla in a.u.
+!EB suppress *0.5_dp  ! Atomic unit of induction field (in Tesla) * mu_B (in atomic units).
 
 !Complex constants
  complex(dpc), parameter :: czero=(0._dp,0._dp)
  complex(dpc), parameter :: cone =(1._dp,0._dp)
- complex(dpc), parameter :: j_dpc=(0._dp,1.0_dp)
+ complex(dpc) ,parameter :: j_dpc=(0._dp,1.0_dp)
 
 !Character constants
  character(len=1), parameter :: ch10 = char(10)
+ character(len=fnlen),parameter :: ABI_NOFILE="__None__"
 
 !Define fake communicator for sequential abinit
  integer, parameter :: abinit_comm_serial = -12345
 
  ! Error codes used by the bindings.
- integer, parameter, public :: AB6_NO_ERROR                 =  0
- integer, parameter, public :: AB6_ERROR_OBJ                =  1
- integer, parameter, public :: AB6_ERROR_ARG                =  2
- integer, parameter, public :: AB6_ERROR_INVARS_ATT         =  3
- integer, parameter, public :: AB6_ERROR_INVARS_ID          =  4
- integer, parameter, public :: AB6_ERROR_INVARS_SIZE        =  5
- integer, parameter, public :: AB6_ERROR_SYM_NOT_PRIMITIVE  =  6
- integer, parameter, public :: AB6_ERROR_SYM_BRAVAIS_XRED   =  7
- integer, parameter, public :: AB6_ERROR_MIXING_ARG         =  8
- integer, parameter, public :: AB6_ERROR_MIXING_CONVERGENCE =  9
- integer, parameter, public :: AB6_ERROR_MIXING_INTERNAL    = 10
- integer, parameter, public :: AB6_ERROR_MIXING_INC_NNSLOOP = 11
+ integer, parameter, public :: AB7_NO_ERROR                 =  0
+ integer, parameter, public :: AB7_ERROR_OBJ                =  1
+ integer, parameter, public :: AB7_ERROR_ARG                =  2
+ integer, parameter, public :: AB7_ERROR_INVARS_ATT         =  3
+ integer, parameter, public :: AB7_ERROR_INVARS_ID          =  4
+ integer, parameter, public :: AB7_ERROR_INVARS_SIZE        =  5
+ integer, parameter, public :: AB7_ERROR_SYM_NOT_PRIMITIVE  =  6
+ integer, parameter, public :: AB7_ERROR_SYM_BRAVAIS_XRED   =  7
+ integer, parameter, public :: AB7_ERROR_MIXING_ARG         =  8
+ integer, parameter, public :: AB7_ERROR_MIXING_CONVERGENCE =  9
+ integer, parameter, public :: AB7_ERROR_MIXING_INTERNAL    = 10
+ integer, parameter, public :: AB7_ERROR_MIXING_INC_NNSLOOP = 11
 
-! Values of optdriver corresponding to the different run-levels. 
+! Values of optdriver corresponding to the different run-levels.
  integer, parameter, public :: RUNL_GSTATE     = 0
  integer, parameter, public :: RUNL_RESPFN     = 1
  integer, parameter, public :: RUNL_SUSCEP     = 2
  integer, parameter, public :: RUNL_SCREENING  = 3
  integer, parameter, public :: RUNL_SIGMA      = 4
  integer, parameter, public :: RUNL_NONLINEAR  = 5
- integer, parameter, public :: RUNL_RDM        = 7
- integer, parameter, public :: RUNL_SCGW       = 8 
  integer, parameter, public :: RUNL_BSE        = 99 !9
 
 ! Flags defining the method used for performing IO (input variable accesswff)
@@ -245,118 +246,207 @@ module defs_basis
  integer, parameter, public :: IO_MODE_NETCDF         =  2 ! Only for legacy code, should not be used for new implementations.
  integer, parameter, public :: IO_MODE_ETSF           =  3
 
+! FFT libraries (correspond to fftalga = ngfft(7)/100)
+ integer,parameter,public :: FFT_SG     = 1
+ !integer,parameter,public :: FFT_MACHD  = 2 ! NOT USED ANYMORE
+ integer,parameter,public :: FFT_FFTW3  = 3
+ integer,parameter,public :: FFT_SG2002 = 4
+ integer,parameter,public :: FFT_DFTI   = 5
+
+!Parameters for LOG/STATUS files treatment
+!This variables tell the code if some lines have to be written in a LOG/STATUS file
+ logical, public, save :: do_write_log   =.true.
+ logical, public, save :: do_write_status=.true.
+! Max. numbers of CPU core for the writing of LOG/STATUS file for each CPU
+! (if more than NPROC_NO_EXTRA_LOG cpu core are used, no *_LOG_Pxxx is written;
+!  the same for the *_STATUS_Pxxx file)
+ integer, parameter, public :: NPROC_NO_EXTRA_LOG    = 100
+ integer, parameter, public :: NPROC_NO_EXTRA_STATUS = 100
+!Name of the file that (if present in current directory)
+!will avoid creation of LOG/STATUS files
+ character(len=fnlen),parameter :: ABI_NO_LOG_FILE="_NOLOG"
+!Name of the file that (if present in current directory)
+!will enforce creation of LOG/STATUS files
+ character(len=fnlen),parameter :: ABI_ENFORCE_LOG_FILE="_LOG"
+
 !A collection of small datatypes for ragged arrays
+!A small datatype for ragged real 1D-arrays
+ type coeff1_type
+  real(dp), allocatable :: value(:) 
+ end type coeff1_type
 !A small datatype for ragged integer 1D-arrays
  type coeffi1_type
-  integer :: size
-  integer, pointer :: value(:)  ! SET2NULL
+  !integer :: size
+  integer, allocatable :: value(:) 
  end type coeffi1_type
+
 !A small datatype for ragged real 2D-arrays
  type coeff2_type
-  real(dp), pointer :: value(:,:)  ! SET2NULL
+  real(dp), allocatable :: value(:,:)  
  end type coeff2_type
+
 !A small datatype for ragged complex 2D-arrays
  type coeff2c_type
-  complex(dpc), pointer :: value(:,:) ! SET2NULL
+  complex(dpc), allocatable :: value(:,:) 
  end type coeff2c_type
-!A small datatype for ragged gwpc 2D-arrays
- type coeff2_gwpc_type
-  complex(gwpc),pointer :: value(:,:) ! SET2NULL
- end type coeff2_gwpc_type
+
 !A small datatype for ragged real 3D-arrays
  type coeff3_type
-  real(dp), pointer :: value(:,:,:) ! SET2NULL
+  real(dp), allocatable :: value(:,:,:) 
  end type coeff3_type
+
 !A small datatype for ragged real 4D-arrays
  type coeff4_type
-  real(dp), pointer :: value(:,:,:,:)  ! SET2NULL
+  real(dp), allocatable :: value(:,:,:,:)  
  end type coeff4_type
+
 !A small datatype for ragged real 5D-arrays.
  type coeff5_type
-  real(dp), pointer :: value(:,:,:,:,:)  ! SET2NULL
+  real(dp), allocatable :: value(:,:,:,:,:)  
  end type coeff5_type
 
 
 CONTAINS  !==============================================================================
 !!***
 
-!!****f* defs_basis/get_reclen
+!!****f* defs_basis/abi_log_status_state
 !! NAME
-!!  get_reclen
+!!  abi_log_status_state
 !!
 !! FUNCTION
-!!  Return the record lenght used to store a variable of particular type and kind in processor-dependent units.
-!!  The returned value can be used as the value of the lenght to be supplied to a RECL= specifier.
+!!  Change values of do_write_log and do_write_status flags.
+!!  These flags tell the code to write (or not) a LOG/STATUS file.
 !!
 !! INPUTS
-!!  rcl=string defining the type and kind of the variable. Possible values are:
-!!   i1b, i2b, i4b, dp, gwp, spc, dpc, gwpc (and corresponding capital versions).
+!!  new_do_write_log=new value for do_write_log
+!!  new_do_write_status=new value for do_write_status
 !!
 !! PARENTS
+!!      iofn1
 !!
 !! CHILDREN
 !!
 !! SOURCE
 
-function get_reclen(str) result(rcl)
+ subroutine abi_log_status_state(new_do_write_log,new_do_write_status)
 
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'abi_log_status_state'
+!End of the abilint section
 
  implicit none
 
 !Arguments ------------------------------------
 !scalars
- character(len=*),intent(in) :: str
- integer :: rcl
-
+ logical,optional,intent(in) :: new_do_write_log,new_do_write_status
 !Local variables ------------------------------
-!scalars
- integer(i1b)  :: v_i1b 
- integer(i2b)  :: v_i2b
- integer(i4b)  :: v_i4b 
- !real(sp)    :: v_sp 
- real(dp)      :: v_dp 
- real(gwp)     :: v_gwp
- complex(spc)  :: v_spc 
- complex(dpc)  :: v_dpc 
- complex(gwpc) :: v_gwpc
 
 !************************************************************************
 
- SELECT CASE (str)
+ if (PRESENT(new_do_write_log))    do_write_log   =new_do_write_log
+ if (PRESENT(new_do_write_status)) do_write_status=new_do_write_status
 
- CASE ("i1b","I1B")
-  inquire(iolength=rcl) v_i1b
+ end subroutine abi_log_status_state
+!!***
 
- CASE ("i2b","I2B")
-  inquire(iolength=rcl) v_i2b
+!----------------------------------------------------------------------
 
- CASE ("i4b","I4B")
-  inquire(iolength=rcl) v_i4b
+!!****f* defs_basis/abi_io_redirect
+!! NAME
+!!  abi_io_redirect
+!!
+!! FUNCTION
+!!  Redirect unit numbers (and|or) change the MPI communicator for the IO (output and log file).
+!!  This routine can be used in client code (e.g. bigdft)
+!!  that wants to call the abinit routines packed in an external library.
+!!
+!! INPUTS
+!!  new_ab_out=new value for output file unit
+!!  new_std_out=new value for standard output unit
+!!  new_io_comm=new value for IO MPI communicator
+!!
+!! PARENTS
+!!      abinit,aim,anaddb,band2eps,bsepostproc,conducti,cut3d,driver,fftprof
+!!      initmpi_world,ioprof,kss2wfk,lapackprof,lwf,m_io_redirect,macroave
+!!      memory_eval,mpi_setup,mrgddb,mrggkk,mrgscr,optic,ujdet,vdw_kernelgen
+!!
+!! CHILDREN
+!!
+!! SOURCE
 
- !CASE ("sp","SP")
- ! inquire(iolength=rcl) v_sp
+ subroutine abi_io_redirect(new_ab_out,new_std_out,new_io_comm,new_leave_comm)
 
- CASE ("dp","DP")
-  inquire(iolength=rcl) v_dp
 
- CASE ("gwp","GWP")
-  inquire(iolength=rcl) v_gwp
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'abi_io_redirect'
+!End of the abilint section
 
- CASE ("spc","SPC")
-  inquire(iolength=rcl) v_spc
+ implicit none
 
- CASE ("dpc","DPC")
-  inquire(iolength=rcl) v_dpc
+!Arguments ------------------------------------
+!scalars
+ integer,optional,intent(in) :: new_std_out,new_ab_out,new_io_comm,new_leave_comm
 
- CASE ("gwpc","GWPC")
-  inquire(iolength=rcl) v_gwpc
+!************************************************************************
 
- CASE DEFAULT
-  write(*,*)" Unknown kind: "//TRIM(str)
-  STOP
- END SELECT
+ if (PRESENT(new_ab_out))  ab_out  = new_ab_out
+ if (PRESENT(new_std_out)) std_out = new_std_out
+ if (PRESENT(new_io_comm)) abinit_comm_output = new_io_comm
+ if (.FALSE.) then
+   ! Not used anymore
+   write(std_out,*)new_leave_comm
+ end if
 
-end function get_reclen
+ end subroutine abi_io_redirect
+!!***
+
+!----------------------------------------------------------------------
+
+!!****f* defs_basis/abi_io_restore
+!! NAME
+!!  abi_io_restore
+!!
+!! FUNCTION
+!!  Restore default values for  unit numbers (and|or) MPI communicator for the IO (output and log file).
+!!  This routine can be used in client code (e.g. bigdft)
+!!  that wants to call the abinit routines packed in an external library.
+!!
+!! PARENTS
+!!
+!! CHILDREN
+!!
+!! NOTES
+!!  This routine is not usuable for the I/O communicator (put it to a fake zero value)
+
+!! SOURCE
+
+ subroutine abi_io_restore()
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'abi_io_restore'
+!End of the abilint section
+
+ implicit none
+
+!Arguments ------------------------------------
+!Local variables ------------------------------
+
+!************************************************************************
+
+   ab_out             = ab_out_default
+   std_out            = std_out_default
+!  abinit_comm_output = -1
+!  abinit_leave_output = -1
+
+ end subroutine abi_io_restore
 !!***
 
 !----------------------------------------------------------------------
@@ -375,7 +465,7 @@ end function get_reclen
 !!   Only printing.
 !!
 !! PARENTS
-!!      abinit,leave_new
+!!      abinit,leave_new,m_errors
 !!
 !! CHILDREN
 !!
@@ -383,42 +473,51 @@ end function get_reclen
 
  subroutine print_kinds(unit)
 
- !Arguments ------------------------------------
+!Arguments-------------------------------------
+!scalars
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'print_kinds'
+!End of the abilint section
 
  integer,optional,intent(in) :: unit
 
- !Local variables-------------------------------
+!Local variables-------------------------------
+!scalars
  integer :: my_unt
- !character(len=500) :: msg
+
  ! *********************************************************************
 
- my_unt=std_out; if (PRESENT(unit)) my_unt = unit
+   my_unt=std_out; if (PRESENT(unit)) my_unt = unit
 
- write(my_unt,'(a)')' DATA TYPE INFORMATION: '
+   write(my_unt,'(a)')' DATA TYPE INFORMATION: '
 
- write(my_unt,'(a,/,2(a,i6,/),2(a,e14.8,/),a,e14.8)')&
-& ' REAL:      Data type name: REAL(DP) ',&
-& '            Kind value: ',KIND(0.0_dp),&
-& '            Precision:  ',PRECISION(0.0_dp),&
-& '            Smallest nonnegligible quantity relative to 1: ',EPSILON(0.0_dp),&
-& '            Smallest positive number:                      ',TINY(0.0_dp),&
-& '            Largest representable number:                  ',HUGE(0.0_dp)
+   write(my_unt,'(a,/,2(a,i6,/),2(a,e15.8,/),a,e15.8)')&
+&   ' REAL:      Data type name: REAL(DP) ',&
+&   '            Kind value: ',KIND(0.0_dp),&
+&   '            Precision:  ',PRECISION(0.0_dp),&
+&   '            Smallest nonnegligible quantity relative to 1: ',EPSILON(0.0_dp),&
+&   '            Smallest positive number:                      ',TINY(0.0_dp),&
+&   '            Largest representable number:                  ',HUGE(0.0_dp)
 
- write(my_unt,'(a,/,2(a,i0,/),a,i0)')&
-  ' INTEGER:   Data type name: INTEGER(default) ', &
-& '            Kind value: ',KIND(0),              &
-& '            Bit size:   ',BIT_SIZE(0),          &
-  '            Largest representable number: ',HUGE(0)
+   write(my_unt,'(a,/,2(a,i0,/),a,i0)')&
+   ' INTEGER:   Data type name: INTEGER(default) ', &
+&   '            Kind value: ',KIND(0),              &
+&   '            Bit size:   ',BIT_SIZE(0),          &
+   '            Largest representable number: ',HUGE(0)
 
- write(my_unt,'(a,/,a,i0)')&
-& ' LOGICAL:   Data type name: LOGICAL ',&
-& '            Kind value: ',KIND(.TRUE.)
+   write(my_unt,'(a,/,a,i0)')&
+&   ' LOGICAL:   Data type name: LOGICAL ',&
+&   '            Kind value: ',KIND(.TRUE.)
 
- write(my_unt,'(2a,i0)')&
-& ' CHARACTER: Data type name: CHARACTER ',&
-& '            Kind value: ',KIND('C')
+   write(my_unt,'(2a,i0)')&
+&   ' CHARACTER: Data type name: CHARACTER ',&
+&   '            Kind value: ',KIND('C')
 
 end subroutine print_kinds
+!!***
 
 !----------------------------------------------------------------------
 

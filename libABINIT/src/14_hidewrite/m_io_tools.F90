@@ -7,7 +7,7 @@
 !!  This module contains basic tools to deal with Fortran IO
 !!
 !! COPYRIGHT
-!! Copyright (C) 2008-2013 ABINIT group (MG)
+!! Copyright (C) 2008-2014 ABINIT group (MG)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -19,10 +19,10 @@
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
-!#include "abi_common.h"
+#include "abi_common.h"
 
 MODULE m_io_tools
 
@@ -32,9 +32,8 @@ MODULE m_io_tools
 
  private
 
-! === List of available public routines and functions ===
  public :: get_unit           ! Get a free unit if no argument is specified or report the unit associated to a file name
- public :: file_exist         ! Return .TRUE. if file exists.
+ public :: file_exists        ! Return .TRUE. if file exists.
  public :: delete_file        ! Delete a file if present.
  public :: is_open            ! .TRUE. if file is open
  public :: is_connected       ! .TRUE. if file is connected to a logical unit number
@@ -45,6 +44,8 @@ MODULE m_io_tools
  public :: isncfile           ! .TRUE. if we have a NETCDF file.
  public :: iomode_from_fname  ! Automatic selection of the IO mode based on the file extension.
  public :: mvrecord           ! Moves forward or backward in a Fortran binary file by nn records.
+ public :: open_file          ! Helper function to open a file in sequential mode with improved error handling.
+ public :: close_unit         ! Helper function to close a Fortran unit with improved error handling.
 
  interface get_unit
   module procedure get_free_unit
@@ -69,7 +70,7 @@ MODULE m_io_tools
   integer,parameter :: STDIN=std_in
   integer,parameter :: STDOUT=std_out_default
   integer,parameter :: MIN_UNIT_NUMBER=10  ! Fortran does not define the range for logical unit numbers (they not be negative)
-  integer,parameter :: MAX_UNIT_NUMBER=99  ! The following values should be safe
+  integer,parameter :: MAX_UNIT_NUMBER=1024  ! The following values should be safe
   integer,parameter :: IO_MAX_LEN=500
   character(len=1),parameter :: BLANK=' '
 
@@ -94,7 +95,8 @@ CONTAINS  !===========================================================
 !!  If the file name is supplied, the function reports the unit number
 !!  associated to the file
 !!
-!! INPUTS
+!! TODO
+!!   One should define an abinit-specific function with a list of reserved units!
 !!
 !! OUTPUT
 !!  The unit number (free unit or unit associated to the file)
@@ -122,11 +124,11 @@ integer function get_free_unit()
  logical :: isopen
 ! *********************************************************************
 
- do iunt=MIN_UNIT_NUMBER,MAX_UNIT_NUMBER
-  inquire(unit=iunt,opened=isopen)
-  if (.not.isopen) then
-   get_free_unit=iunt ; RETURN
-  end if
+ do iunt=MAX_UNIT_NUMBER,MIN_UNIT_NUMBER,-1
+   inquire(unit=iunt,opened=isopen)
+   if (.not.isopen) then
+      get_free_unit=iunt; RETURN
+   end if
  end do
  get_free_unit=IO_NO_AVAILABLE_UNIT
 
@@ -178,9 +180,9 @@ end function get_unit_from_fname
 
 !----------------------------------------------------------------------
 
-!!****f* m_io_tools/file_exist
+!!****f* m_io_tools/file_exists
 !! NAME
-!!  file_exist
+!!  file_exists
 !!
 !! FUNCTION
 !!  Return .TRUE. if file existent (function version of inquire).
@@ -193,24 +195,24 @@ end function get_unit_from_fname
 !! CHILDREN
 !!
 !! SOURCE
-function file_exist(fname)
+function file_exists(fname)
 
 !Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'file_exist'
+#define ABI_FUNC 'file_exists'
 !End of the abilint section
 
- logical :: file_exist
+ logical :: file_exists
  character(len=*),intent(in) :: fname
 
 ! *********************************************************************
 
- inquire(file=fname,exist=file_exist)
+ inquire(file=fname,exist=file_exists)
 
-end function file_exist
+end function file_exists
 !!***
 
 !----------------------------------------------------------------------
@@ -236,7 +238,7 @@ end function file_exist
 !!  The specified file is deleted.
 !!
 !! PARENTS
-!!      ioprof
+!!      abinit,ioprof
 !!
 !! CHILDREN
 !!
@@ -447,7 +449,9 @@ subroutine prompt_int0D(msg,ivalue)
   write(STDOUT,'(a)',ADVANCE='NO')PS//TRIM(msg)//BLANK
   call flush_unit(STDOUT)
   read(STDIN,*,IOSTAT=ios)ivalue
-  if (ios==IO_EOT) call prompt_exit()
+  if (ios==IO_EOT) then
+    call prompt_exit()
+  endif
   PS=PS2
  end do
  write(STDOUT,*)
@@ -497,7 +501,10 @@ subroutine prompt_rdp0D(msg,rvalue)
   write(STDOUT,'(a)',ADVANCE='NO')PS//TRIM(msg)//BLANK
   call flush_unit(STDOUT)
   read(STDIN,*,IOSTAT=ios)rvalue
-  if (ios==IO_EOT) call prompt_exit()
+  if (ios==IO_EOT) then
+    call prompt_exit()
+  endif
+
   PS=PS2
  end do
  write(STDOUT,*)
@@ -546,7 +553,10 @@ subroutine prompt_string(msg,string)
   write(STDOUT,'(a)',ADVANCE='NO')PS//TRIM(msg)//BLANK
   call flush_unit(STDOUT)
   read(STDIN,'(a)',IOSTAT=ios)string
-  if (ios==IO_EOT) call prompt_exit()
+  if (ios==IO_EOT) then
+    call prompt_exit()
+  endif
+
   PS=PS2
  end do
  write(STDOUT,*)
@@ -595,7 +605,10 @@ subroutine prompt_int1D(msg,ivect)
   write(STDOUT,'(a)',ADVANCE='NO')PS//TRIM(msg)//BLANK
   call flush_unit(STDOUT)
   read(STDIN,*,IOSTAT=ios)ivect(:)
-  if (ios==IO_EOT) call prompt_exit()
+  if (ios==IO_EOT) then
+    call prompt_exit()
+  endif
+
   PS=PS2
  end do
  write(STDOUT,*)
@@ -644,7 +657,10 @@ subroutine prompt_int2D(msg,iarr)
   write(STDOUT,'(a)',ADVANCE='NO')PS//TRIM(msg)//BLANK
   call flush_unit(STDOUT)
   read(STDIN,*,IOSTAT=ios)iarr(:,:)
-  if (ios==IO_EOT) call prompt_exit()
+  if (ios==IO_EOT) then
+    call prompt_exit()
+  endif
+
   PS=PS2
  end do
  write(STDOUT,*)
@@ -692,7 +708,10 @@ subroutine prompt_rdp1D(msg,rvect)
   write(STDOUT,'(a)',ADVANCE='NO')PS//TRIM(msg)//BLANK
   call flush_unit(STDOUT)
   read(STDIN,*,IOSTAT=ios)rvect(:)
-  if (ios==IO_EOT) call prompt_exit()
+  if (ios==IO_EOT) then
+    call prompt_exit()
+  endif
+
   PS=PS2
  end do
  write(STDOUT,*)
@@ -741,7 +760,10 @@ subroutine prompt_rdp2D(msg,rarr)
   write(STDOUT,'(a)',ADVANCE='NO')PS//TRIM(msg)//BLANK
   call flush_unit(STDOUT)
   read(STDIN,*,IOSTAT=ios)rarr(:,:)
-  if (ios==IO_EOT) call prompt_exit()
+  if (ios==IO_EOT) then
+    call prompt_exit()
+  endif
+
   PS=PS2
  end do
  write(STDOUT,*)
@@ -863,7 +885,7 @@ end subroutine read_line
 !! Wrapper for the standard flush_unit routine
 !!
 !! INPUTS
-!!  [unit]=the unit number to be flushed (if not specified ALL open units are flushed)
+!!  unit=Fortran logical Unit number
 !!
 !! OUTPUT
 !!
@@ -873,10 +895,10 @@ end subroutine read_line
 !! PARENTS
 !!      abinit,anaddb,bsepostproc,calc_sigc_me,cut3d,defs_scalapack
 !!      dfpt_write_cg,exc_build_block,exc_diago,exc_iterative_diago,fftprof
-!!      m_atprj,m_bands_sym,m_bse_io,m_errors,m_green,m_header,m_hu
-!!      m_io_redirect,m_io_tools,m_shirley,m_wfs,m_xc_vdw,mrgddb,mrggkk,mrgscr
-!!      newvtr3,optic,pawmkaewf,prep_calc_ucrpa,spectral,testkgrid
-!!      vdw_kernelgen,vtorho,wrtout_myproc
+!!      impurity_solve,m_atprj,m_bands_sym,m_bse_io,m_chi0,m_errors,m_green
+!!      m_header,m_hu,m_io_redirect,m_io_tools,m_matlu,m_pawrhoij,m_shirley
+!!      m_wfs,m_xc_vdw,mrgddb,mrggkk,mrgscr,optic,pawmkaewf,prep_calc_ucrpa
+!!      qmc_prep_ctqmc,testkgrid,vdw_kernelgen,vtorho,wrtout
 !!
 !! CHILDREN
 !!
@@ -892,29 +914,24 @@ subroutine flush_unit(unit)
 #define ABI_FUNC 'flush_unit'
 !End of the abilint section
 
- integer,optional,intent(in) :: unit
+ integer,intent(in) :: unit
 
 !Local variables-------------------------------
- integer :: unt
  logical :: isopen
 !************************************************************************
 
- if (PRESENT(unit)) then
-  unt=unit
-  inquire(unit=unt,opened=isopen)
-! FLUSH on unconnected unit is illegal: F95 std., 9.3.5.
+ inquire(unit=unit,opened=isopen)
+
+!FLUSH on unconnected unit is illegal: F95 std., 9.3.5.
 #if defined HAVE_FC_FLUSH
-  if (isopen) call flush(unt)
+ if (isopen) then
+   call flush(unit)
+ endif
 #elif defined HAVE_FC_FLUSH_
-  if (isopen) call flush_(unt)
+ if (isopen) then
+   call flush_(unit)
+  end if
 #endif
- else
-#if defined HAVE_FC_FLUSH
-  call flush()
-#elif defined HAVE_FC_FLUSH_
-  call flush_()
-#endif
- end if
 
 end subroutine flush_unit
 !!***
@@ -928,16 +945,13 @@ end subroutine flush_unit
 !! FUNCTION
 !!  Returns the name of a non-existent file to be used for temporary storage.
 !!
-!! INPUTS
-!!  [prefix]=Prefix to be used for the temporary file. Cannot be larger than fnlen chars. Defaults to none.
-!!
 !! PARENTS
 !!
 !! CHILDREN
 !!
 !! SOURCE
 
-function pick_aname(prefix) result(aname)
+function pick_aname() result(aname)
 
 !Arguments ------------------------------------
 
@@ -948,20 +962,19 @@ function pick_aname(prefix) result(aname)
 !End of the abilint section
 
  character(len=fnlen) :: aname
- character(len=*),optional,intent(in) :: prefix
 
 !Local variables-------------------------------
  integer :: ii,spt,ept
  real(dp) :: xrand(fnlen)
 !************************************************************************
 
- aname="__TMP_FILE__"; if (PRESENT(prefix)) aname = prefix
+ aname="__TMP_FILE__"
 
  spt=LEN(aname); ept=spt
 
- do while (file_exist(aname))
+ do while (file_exists(aname))
    call RANDOM_NUMBER(xrand(spt:ept))
-   xrand = xrand*127
+   xrand(spt:ept) = 64+xrand(spt:ept)*26
    do ii=spt,ept
     aname(ii:ii) = ACHAR(NINT(xrand(ii)))
    end do
@@ -1148,6 +1161,173 @@ subroutine mvrecord(funt,nrec,ierr)
  end if
 
 end subroutine mvrecord
+!!***
+
+!----------------------------------------------------------------------
+
+!!****f* m_io_tools/open_file
+!! NAME
+!! open_file
+!!
+!! FUNCTION
+!!  Open a file in sequential mode and associate it to the unit number number.
+!!  The main differences wrt the intrinsic open:
+!!
+!!    * Function statement that returns the value of iostat
+!!    * Emulate iomsg (F2003)
+!!    * Accepts either unit (user-specied unit number, input) or
+!!      newunit (free unit not associated to any file, output). 
+!!
+!!  See Fortran intrinsic for a more detailed description of the variables
+!!
+!! OUTPUT
+!!  iostat=Exit status
+!!  iomsg=Error message
+!!
+!! PARENTS
+!!
+!! CHILDREN
+!!
+!! SOURCE
+
+function open_file(file,iomsg,unit,newunit,form,status,action) result(iostat)
+
+ use defs_basis
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'open_file'
+!End of the abilint section
+
+ implicit none
+
+!Arguments ------------------------------------
+!scalars
+ character(len=*),intent(in) :: file
+ character(len=*),optional,intent(in) :: form,status,action
+ character(len=*),intent(out) :: iomsg
+ integer,optional,intent(in) :: unit
+ integer,optional,intent(out) :: newunit
+ integer :: iostat
+
+!Local variables-------------------------------
+!scalars
+ character(len=500) :: my_form,my_status,my_action,msg
+
+! *************************************************************************
+
+ my_form = "formatted"; if (present(form)) my_form = form
+ my_status = "unknown"; if (present(status)) my_status = status
+ my_action = "readwrite"; if (present(action)) my_action = action ! default is system dependent. Enforce RW mode
+
+ iomsg = ""  ! iomsg is not changed if open succeeds
+
+ if (present(unit)) then
+#ifdef HAVE_FC_IOMSG
+   open(file=trim(file),unit=unit,form=my_form,status=my_status,access="sequential",iostat=iostat, iomsg=iomsg)
+#else
+   open(file=trim(file),unit=unit,form=my_form,status=my_status,access="sequential",iostat=iostat)
+   iomsg = "IOMSG not supported by the compiler"
+#endif
+   if (present(newunit)) iostat = -666 ! wrong call
+
+ else if (present(newunit)) then
+   ! Get free unit (emulate newunit of F2008)
+   newunit = get_unit()
+#ifdef HAVE_FC_IOMSG
+   open(file=trim(file),unit=newunit,form=my_form,status=my_status,access="sequential",iostat=iostat, iomsg=iomsg)
+#else
+   open(file=trim(file),unit=newunit,form=my_form,status=my_status,access="sequential",iostat=iostat)
+   iomsg = "IOMSG not supported by the compiler"
+#endif
+   if (present(unit)) iostat = -666  ! wrong call
+
+ else 
+   iomsg = "Either unit or newunit must be specified"
+   iostat = -1
+ end if
+
+ if (iostat /= 0) then
+   write(msg, "(a,i0,2a)")"Fortran open returned iostat ",iostat," while opening file: "//trim(file)
+   iomsg = trim(msg)//ch10//" IOMSG: "//trim(iomsg)
+ end if
+
+end function open_file
+!!***
+
+!----------------------------------------------------------------------
+
+!!****f* m_io_tools/close_unit
+!! NAME
+!! close_unit
+!!
+!! FUNCTION
+!!  close a Fortran unit 
+!!  The main differences wrt the intrinsic open:
+!!
+!!    * Function statement that returns the value of iostat
+!!    * Emulate iomsg (F2003)
+!!
+!!  See Fortran intrinsic for a more detailed description of the variables
+!!
+!! OUTPUT
+!!  iostat=Exit status
+!!  iomsg=Error message
+!!
+!! PARENTS
+!!
+!! CHILDREN
+!!
+!! SOURCE
+
+function close_unit(unit,iomsg,status) result(iostat)
+
+ use defs_basis
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'close_unit'
+!End of the abilint section
+
+ implicit none
+
+!Arguments ------------------------------------
+!scalars
+ integer,intent(inout) :: unit
+ character(len=*),optional,intent(in) :: status
+ character(len=*),intent(out) :: iomsg
+ integer :: iostat
+
+!Local variables-------------------------------
+ character(len=500) :: msg
+
+! *************************************************************************
+
+ iomsg = "" ! iomsg is not changed if close succeeds
+
+ if (present(status)) then ! Use Fortran default e.g delete for scratch files.
+#ifdef HAVE_FC_IOMSG
+   close(unit=unit,iostat=iostat,iomsg=iomsg)
+#else
+   close(unit=unit,iostat=iostat)
+#endif
+ else
+#ifdef HAVE_FC_IOMSG
+   close(unit=unit,iostat=iostat,status=status,iomsg=iomsg)
+#else
+   close(unit=unit,iostat=iostat,status=status)
+#endif
+ end if
+
+ ! TODO: Add more info for example the filename.
+ if (iostat /= 0) then
+   write(msg,'(2(a,i0),a)')"Fortran close returned iostat ",iostat," while closing unit: ",unit,ch10
+   iomsg = trim(msg)//ch10//"IOMSG: "//trim(msg)
+ end if
+
+end function close_unit
 !!***
 
 !----------------------------------------------------------------------

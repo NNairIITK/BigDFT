@@ -1,5 +1,5 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/m_atompaw
+!!****m* ABINIT/m_atompaw
 !! NAME
 !!  m_atompaw
 !!
@@ -7,7 +7,7 @@
 !!  atompaw related operations
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2012-2013 ABINIT group (T. Rangel)
+!!  Copyright (C) 2012-2014 ABINIT group (T. Rangel)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -15,21 +15,19 @@
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
-#include "abi_common_for_bigdft.h"
+#include "abi_common.h"
 
 module m_atompaw
     
  use defs_basis
- use m_pawrad, only: pawrad_type
- use m_pawtab, only: pawtab_type
  use m_errors
-use interfaces_12_hide_mpi
-use interfaces_14_hidewrite
-use interfaces_16_hideleave
  use m_profiling
+
+ use m_pawrad, only : pawrad_type, simp_gen, poisson, pawrad_deducer0, bound_deriv, pawrad_ifromr
+ use m_pawtab, only : pawtab_type
 
  implicit none
 
@@ -47,8 +45,6 @@ CONTAINS
 !===========================================================
 !!***
 
-
-!{\src2tex{textfont=tt}}
 !!****f* m_atompaw/atompaw_shpfun
 !! NAME
 !! atompaw_shpfun
@@ -58,7 +54,7 @@ CONTAINS
 !! of compensation density (PAW)
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2013 ABINIT group (MT)
+!! Copyright (C) 1998-2014 ABINIT group (MT)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -85,17 +81,17 @@ CONTAINS
 !!   type  3: g(r)=alpha1.jl(q1.r)+alpha2.jl(q2.r)
 !!
 !! PARENTS
-!!      atompaw_dij0,pawinit,atompaw_kij,psp7calc
+!!      m_atompaw,m_pawpsp,pawinit
 !!
 !! CHILDREN
-!!      jbessel,simp_gen
+!!      atompaw_shpfun,atompaw_vhnzc,bound_deriv,paw_spline,paw_splint,simp_gen
 !!
 !! SOURCE
 
 subroutine atompaw_shpfun(ll,mesh,norm,pawtab,shapefunc)
 
- use m_pawrad, only : pawrad_ifromr,simp_gen
- use m_paw_numeric, only: jbessel
+ use m_pawrad, only : pawrad_type, simp_gen, poisson, pawrad_deducer0, bound_deriv, pawrad_ifromr
+ use m_paw_numeric, only : jbessel, solvbes, paw_spline, paw_splint
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -130,7 +126,7 @@ subroutine atompaw_shpfun(ll,mesh,norm,pawtab,shapefunc)
 
 !***************************************************************************
 
-! DBG_ENTER("COLL")
+ DBG_ENTER("COLL")
 
 !Index for shape function cut-off radius
  ishp=pawrad_ifromr(mesh,pawtab%rshp)-1
@@ -191,13 +187,12 @@ subroutine atompaw_shpfun(ll,mesh,norm,pawtab,shapefunc)
    norm=one
  end if
 
-! DBG_EXIT("COLL")
+ DBG_EXIT("COLL")
 
 end subroutine atompaw_shpfun
 !!***
 
 
-!{\src2tex{textfont=tt}}
 !!****f* m_atompaw/atompaw_atompaw_shapebes
 !! NAME
 !! atompaw_shapebes
@@ -209,7 +204,7 @@ end subroutine atompaw_shpfun
 !!              Intg_0_rc[Shape(r).r^(l+2).dr]=1
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2013 ABINIT group (MT)
+!! Copyright (C) 1998-2014 ABINIT group (MT)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~ABINIT/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -224,16 +219,16 @@ end subroutine atompaw_shpfun
 !!  ql(2)= ql factors
 !!
 !! PARENTS
-!!      psp17in,psp7in
+!!      m_pawpsp
 !!
 !! CHILDREN
-!!      jbessel,solvbes
+!!      atompaw_shpfun,atompaw_vhnzc,bound_deriv,paw_spline,paw_splint,simp_gen
 !!
 !! SOURCE
 
  subroutine atompaw_shapebes(al,ql,ll,rc)
 
-use m_paw_numeric, only: jbessel, solvbes
+ use m_paw_numeric, only : jbessel, solvbes, paw_spline, paw_splint
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -281,7 +276,6 @@ end subroutine atompaw_shapebes
 !!***
 
 
-!{\src2tex{textfont=tt}}
 !!****f* m_atompaw/atompaw_vhnzc
 !! NAME
 !! atompaw_vhnzc
@@ -290,7 +284,7 @@ end subroutine atompaw_shapebes
 !! PAW: compute Hartree potential for n_{Zc}
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2013 ABINIT group (JWZ, MT, GJ)
+!! Copyright (C) 1998-2014 ABINIT group (JWZ, MT, GJ)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~ABINIT/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -305,16 +299,16 @@ end subroutine atompaw_shapebes
 !!  vhnzc(radmesh_core%mesh_size)=Hartree potential due to Z_nc
 !!
 !! PARENTS
-!!      atompaw_dij0,atompaw_kij,psp17in
+!!      m_atompaw,m_pawpsp
 !!
 !! CHILDREN
-!!      pawrad_deducer0,poisson
+!!      atompaw_shpfun,atompaw_vhnzc,bound_deriv,paw_spline,paw_splint,simp_gen
 !!
 !! SOURCE
 
  subroutine atompaw_vhnzc(ncore,radmesh_core,vhnzc,znucl)
 
- use m_pawrad, only : poisson, pawrad_deducer0
+ use m_pawrad, only : pawrad_type, simp_gen, poisson, pawrad_deducer0, bound_deriv, pawrad_ifromr
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -337,7 +331,7 @@ end subroutine atompaw_shapebes
   real(dp),allocatable :: nwk(:)
 ! *********************************************************************
 
-! DBG_ENTER("COLL")
+ DBG_ENTER("COLL")
 
  ABI_ALLOCATE(nwk,(radmesh_core%mesh_size))
 
@@ -348,13 +342,12 @@ end subroutine atompaw_shapebes
 
  ABI_DEALLOCATE(nwk)
 
-! DBG_EXIT("COLL")
+ DBG_EXIT("COLL")
 
  end subroutine atompaw_vhnzc
 !!***
 
 
-!{\src2tex{textfont=tt}}
 !!****f* m_atompaw/atompaw_dij0
 !! NAME
 !! atompaw_dij0
@@ -363,7 +356,7 @@ end subroutine atompaw_shapebes
 !!  PAW: Compute "frozen" values of pseudopotential strengths Dij = Dij0
 !!
 !! COPYRIGHT
-!!  Copyright (C) 1998-2013 ABINIT group (MT,GJ)
+!!  Copyright (C) 1998-2014 ABINIT group (MT,GJ)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~ABINIT/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -388,18 +381,18 @@ end subroutine atompaw_shapebes
 !!  pawtab%dij0(pawtab%lmn2_size)= Frozen part of the Dij term
 !!
 !! PARENTS
-!!      psp7calc
+!!      m_pawpsp
 !!
 !! CHILDREN
-!!      bound_deriv,atompaw_shpfun,atompaw_vhnzc,simp_gen,spline,splint
+!!      atompaw_shpfun,atompaw_vhnzc,bound_deriv,paw_spline,paw_splint,simp_gen
 !!
 !! SOURCE
 
 
  subroutine atompaw_dij0(indlmn,kij,lmnmax,ncore,opt_init,pawtab,radmesh,radmesh_core,radmesh_vloc,vhtnzc,znucl)
 
- use m_paw_numeric, only: paw_splint, paw_spline
- use m_pawrad, only : simp_gen, bound_deriv
+ use m_paw_numeric, only : jbessel, solvbes, paw_spline, paw_splint
+ use m_pawrad, only : pawrad_type, simp_gen, poisson, pawrad_deducer0, bound_deriv, pawrad_ifromr
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -428,7 +421,7 @@ end subroutine atompaw_shapebes
 
 ! *********************************************************************
 
-! DBG_ENTER("COLL")
+ DBG_ENTER("COLL")
 
  lmn2_size=pawtab%lmn2_size
  meshsz=min(radmesh%mesh_size,radmesh_core%mesh_size,radmesh_vloc%mesh_size)
@@ -543,13 +536,12 @@ end subroutine atompaw_shapebes
  ABI_DEALLOCATE(ff)
  ABI_DEALLOCATE(vhtnzc_sph)
 
-! DBG_EXIT("COLL")
+ DBG_EXIT("COLL")
 
  end subroutine atompaw_dij0
 !!***
 
 
-!{\src2tex{textfont=tt}}
 !!****f* m_atompaw/atompaw_kij
 !! NAME
 !! atompaw_kij
@@ -558,7 +550,7 @@ end subroutine atompaw_shapebes
 !! PAW: deduce kinetic part of psp strength (Dij) from the knowledge of frozen Dij (Dij0)
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2013 ABINIT group (MT,GJ)
+!! Copyright (C) 1998-2014 ABINIT group (MT,GJ)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~ABINIT/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -585,17 +577,17 @@ end subroutine atompaw_shapebes
 !!  kij(pawtab%lmn2_size)= kinetic part of Dij
 !!
 !! PARENTS
-!!      psp7calc
+!!      m_pawpsp
 !!
 !! CHILDREN
-!!      bound_deriv,atompaw_shpfun,atompaw_vhnzc,simp_gen,spline,paw_splint
+!!      atompaw_shpfun,atompaw_vhnzc,bound_deriv,paw_spline,paw_splint,simp_gen
 !!
 !! SOURCE
 
  subroutine atompaw_kij(indlmn,kij,lmnmax,ncore,opt_init,opt_vhnzc,pawtab,radmesh,radmesh_core,radmesh_vloc,vhtnzc,znucl)
 
- use m_paw_numeric, only: paw_splint, paw_spline
- use m_pawrad, only : simp_gen, bound_deriv
+ use m_paw_numeric, only : jbessel, solvbes, paw_spline, paw_splint
+ use m_pawrad, only : pawrad_type, simp_gen, poisson, pawrad_deducer0, bound_deriv, pawrad_ifromr
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -624,7 +616,7 @@ end subroutine atompaw_shapebes
 
 ! *********************************************************************
 
-! DBG_ENTER("COLL")
+ DBG_ENTER("COLL")
 
  lmn2_size=pawtab%lmn2_size
  meshsz=min(radmesh%mesh_size,radmesh_core%mesh_size,radmesh_vloc%mesh_size)
@@ -729,7 +721,7 @@ end subroutine atompaw_shapebes
  ABI_DEALLOCATE(ff)
  ABI_DEALLOCATE(vhtnzc_sph)
 
-! DBG_EXIT("COLL")
+ DBG_EXIT("COLL")
 
  end subroutine atompaw_kij
 !!***

@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/xcast_mpi
+!!****f* ABINIT/xcast_mpi_intv
 !! NAME
-!!  xcast_mpi
+!!  xcast_mpi_intv
 !!
 !! FUNCTION
 !!  This module contains functions that calls MPI routine,
@@ -9,29 +9,30 @@
 !!  xcast_mpi is the generic function.
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2001-2011 ABINIT group (Rshaltaf,AR,XG)
+!!  Copyright (C) 2001-2014 ABINIT group (Rshaltaf,AR,XG)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~ABINIT/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
 !!
+!! PARENTS
+!!
+!! CHILDREN
+!!      mpi_bcast
+!!
 !! SOURCE
-
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
 
 subroutine xcast_mpi_intv(xval,master,spaceComm,ier)
 
+
  use defs_basis
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xcast_mpi_intv'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  integer,intent(inout) :: xval
@@ -71,20 +72,20 @@ end subroutine xcast_mpi_intv
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_bcast
 !!
 !! SOURCE
 subroutine xcast_mpi_int1d(xval,master,spaceComm,ier)
 
  use defs_basis
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xcast_mpi_int1d'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments ------------------------------------
  integer,intent(inout) :: xval(:)
@@ -96,9 +97,9 @@ subroutine xcast_mpi_int1d(xval,master,spaceComm,ier)
 ! *************************************************************************
 
  ier=0
- n=size(xval)
 #if defined HAVE_MPI
  if (spaceComm /= MPI_COMM_SELF .and. spaceComm /= MPI_COMM_NULL) then
+   n=size(xval)
    call MPI_BCAST(xval,n,MPI_INTEGER,master,spaceComm,ier)
  end if
 #endif
@@ -126,20 +127,20 @@ end subroutine xcast_mpi_int1d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_bcast
 !!
 !! SOURCE
 subroutine xcast_mpi_int2d(xval,master,spaceComm,ier)
 
  use defs_basis
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xcast_mpi_int2d'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  integer,intent(inout) :: xval(:,:)
@@ -185,20 +186,21 @@ end subroutine xcast_mpi_int2d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_bcast
 !!
 !! SOURCE
 subroutine xcast_mpi_int3d(xval,master,spaceComm,ier)
 
+
  use defs_basis
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xcast_mpi_int3d'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  integer,intent(inout) :: xval(:,:,:)
@@ -245,20 +247,21 @@ end subroutine xcast_mpi_int3d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_bcast
 !!
 !! SOURCE
 subroutine xcast_mpi_dpv(xval,master,spaceComm,ier)
 
+
  use defs_basis
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xcast_mpi_dpv'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments ------------------------------------
  real(dp),intent(inout) :: xval
@@ -299,20 +302,21 @@ end subroutine xcast_mpi_dpv
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_bcast
 !!
 !! SOURCE
 subroutine xcast_mpi_dp1d(xval,master,spaceComm,ier)
 
+
  use defs_basis
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xcast_mpi_dp1d'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  real(dp),intent(inout) :: xval(:)
@@ -358,20 +362,21 @@ end subroutine xcast_mpi_dp1d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_bcast
 !!
 !! SOURCE
 subroutine xcast_mpi_dp2d(xval,master,spaceComm,ier)
 
+
  use defs_basis
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xcast_mpi_dp2d'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  real(dp),intent(inout) :: xval(:,:)
@@ -418,20 +423,21 @@ end subroutine xcast_mpi_dp2d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_bcast
 !!
 !! SOURCE
 subroutine xcast_mpi_dp3d(xval,master,spaceComm,ier)
 
+
  use defs_basis
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xcast_mpi_dp3d'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  real(dp),intent(inout) :: xval(:,:,:)
@@ -479,20 +485,21 @@ end subroutine xcast_mpi_dp3d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_bcast
 !!
 !! SOURCE
 subroutine xcast_mpi_dp4d(xval,master,spaceComm,ier)
 
+
  use defs_basis
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xcast_mpi_dp4d'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  real(dp),intent(inout) :: xval(:,:,:,:)
@@ -541,20 +548,21 @@ end subroutine xcast_mpi_dp4d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_bcast
 !!
 !! SOURCE
 subroutine xcast_mpi_spv(xval,master,spaceComm,ier)
 
-use defs_basis
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+ use defs_basis
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xcast_mpi_spv'
+!End of the abilint section
 
 implicit none
 
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  real,intent(inout) :: xval
@@ -596,20 +604,21 @@ end subroutine xcast_mpi_spv
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_bcast
 !!
 !! SOURCE
 subroutine xcast_mpi_sp1d(xval,master,spaceComm,ier)
 
+
  use defs_basis
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xcast_mpi_sp1d'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  real,intent(inout) :: xval(:)
@@ -655,20 +664,21 @@ end subroutine xcast_mpi_sp1d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_bcast
 !!
 !! SOURCE
 subroutine xcast_mpi_sp2d(xval,master,spaceComm,ier)
 
+
  use defs_basis
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xcast_mpi_sp2d'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  real,intent(inout) :: xval(:,:)
@@ -715,20 +725,21 @@ end subroutine xcast_mpi_sp2d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_bcast
 !!
 !! SOURCE
 subroutine xcast_mpi_sp3d(xval,master,spaceComm,ier)
 
+
  use defs_basis
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xcast_mpi_sp3d'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  real,intent(inout) :: xval(:,:,:)
@@ -776,20 +787,21 @@ end subroutine xcast_mpi_sp3d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_bcast
 !!
 !! SOURCE
 subroutine xcast_mpi_sp4d(xval,master,spaceComm,ier)
 
+
  use defs_basis
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xcast_mpi_sp4d'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  real,intent(inout) :: xval(:,:,:,:)
@@ -838,20 +850,21 @@ end subroutine xcast_mpi_sp4d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_bcast
 !!
 !! SOURCE
 subroutine xcast_mpi_cplxv(xval,master,spaceComm,ier)
 
+
  use defs_basis
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xcast_mpi_cplxv'
+!End of the abilint section
 
 implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  complex,intent(inout) :: xval
@@ -893,20 +906,21 @@ end subroutine xcast_mpi_cplxv
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_bcast
 !!
 !! SOURCE
 subroutine xcast_mpi_cplx1d(xval,master,spaceComm,ier)
 
+
  use defs_basis
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xcast_mpi_cplx1d'
+!End of the abilint section
 
 implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  complex,intent(inout) :: xval(:)
@@ -952,20 +966,21 @@ end subroutine xcast_mpi_cplx1d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_bcast
 !!
 !! SOURCE
 subroutine xcast_mpi_cplx2d(xval,master,spaceComm,ier)
 
+
  use defs_basis
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xcast_mpi_cplx2d'
+!End of the abilint section
 
 implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  complex,intent(inout) :: xval(:,:)
@@ -1012,20 +1027,21 @@ end subroutine xcast_mpi_cplx2d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_bcast
 !!
 !! SOURCE
 subroutine xcast_mpi_cplx3d(xval,master,spaceComm,ier)
 
+
  use defs_basis
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xcast_mpi_cplx3d'
+!End of the abilint section
 
 implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  complex,intent(inout) :: xval(:,:,:)
@@ -1073,20 +1089,21 @@ end subroutine xcast_mpi_cplx3d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_bcast
 !!
 !! SOURCE
 subroutine xcast_mpi_cplx4d(xval,master,spaceComm,ier)
 
+
  use defs_basis
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xcast_mpi_cplx4d'
+!End of the abilint section
 
 implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  complex,intent(inout) :: xval(:,:,:,:)
@@ -1135,20 +1152,21 @@ end subroutine xcast_mpi_cplx4d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_bcast
 !!
 !! SOURCE
 subroutine xcast_mpi_dcv(xval,master,spaceComm,ier)
 
+
 use defs_basis
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xcast_mpi_dcv'
+!End of the abilint section
 
 implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  complex(dpc),intent(inout):: xval
@@ -1190,20 +1208,20 @@ end subroutine xcast_mpi_dcv
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_bcast
 !!
 !! SOURCE
 subroutine xcast_mpi_dc1d(xval,master,spaceComm,ier)
 
-use defs_basis
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+ use defs_basis
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xcast_mpi_dc1d'
+!End of the abilint section
 
 implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  complex(dpc),intent(inout):: xval(:)
@@ -1249,20 +1267,21 @@ end subroutine xcast_mpi_dc1d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_bcast
 !!
 !! SOURCE
 subroutine xcast_mpi_dc2d(xval,master,spaceComm,ier)
 
+
 use defs_basis
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xcast_mpi_dc2d'
+!End of the abilint section
 
 implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  complex(dpc),intent(inout):: xval(:,:)
@@ -1309,20 +1328,22 @@ end subroutine xcast_mpi_dc2d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_bcast
 !!
 !! SOURCE
 subroutine xcast_mpi_dc3d(xval,master,spaceComm,ier)
 
+
 use defs_basis
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xcast_mpi_dc3d'
+!End of the abilint section
 
 implicit none
 
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  complex(dpc),intent(inout):: xval(:,:,:)
@@ -1370,20 +1391,21 @@ end subroutine xcast_mpi_dc3d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_bcast
 !!
 !! SOURCE
 subroutine xcast_mpi_dc4d(xval,master,spaceComm,ier)
 
+
  use defs_basis
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xcast_mpi_dc4d'
+!End of the abilint section
 
 implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  complex(dpc),intent(inout) :: xval(:,:,:,:)
@@ -1432,21 +1454,21 @@ end subroutine xcast_mpi_dc4d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_bcast
 !!
 !! SOURCE
 subroutine xcast_mpi_ch0d(xval,master,spaceComm,ier)
 
+
  use defs_basis
 
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xcast_mpi_ch0d'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  character(len=*),intent(inout) :: xval
@@ -1495,21 +1517,21 @@ end subroutine xcast_mpi_ch0d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_bcast
 !!
 !! SOURCE
 subroutine xcast_mpi_ch1d(xval,master,spaceComm,ier)
 
+
  use defs_basis
 
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xcast_mpi_ch1d'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  Character(len=*),intent(inout) :: xval(:)
@@ -1535,4 +1557,57 @@ subroutine xcast_mpi_ch1d(xval,master,spaceComm,ier)
 #endif
 
 end subroutine xcast_mpi_ch1d
+!!***
+
+
+!!****f* ABINIT/xcast_mpi_log0d
+!! NAME
+!!  xcast_mpi_log0d
+!!
+!! FUNCTION
+!!  Broadcasts data from master to slaves.
+!!  Target: logical scalar
+!!
+!! INPUTS
+!!  spaceComm= MPI communicator
+!!  master= master MPI node
+!!
+!! OUTPUT
+!!  ier= exit status, a non-zero value meaning there is an error
+!!
+!! PARENTS
+!!
+!! CHILDREN
+!!      mpi_bcast
+!!
+!! SOURCE
+
+subroutine xcast_mpi_log0d(xval,master,spaceComm,ier)
+
+
+ use defs_basis
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xcast_mpi_log0d'
+!End of the abilint section
+
+ implicit none
+
+!Arguments-------------------------
+ logical,intent(inout) :: xval
+ integer,intent(in) :: spaceComm,master
+ integer,intent(out) :: ier
+
+! *************************************************************************
+
+ ier=0
+#if defined HAVE_MPI
+ if (spaceComm /= MPI_COMM_SELF .and. spaceComm /= MPI_COMM_NULL) then
+   call MPI_BCAST(xval,1,MPI_LOGICAL,master,spaceComm,ier)
+ end if
+#endif
+
+end subroutine xcast_mpi_log0d
 !!***

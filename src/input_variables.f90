@@ -889,7 +889,7 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
      else
         call kpoints_get_auto_k_grid(sym%symObj, in%gen_nkpt, in%gen_kpt, in%gen_wkpt, &
              & kptrlen_, ierror)
-        if (ierror /= AB6_NO_ERROR) then
+        if (ierror /= AB7_NO_ERROR) then
            if (iproc==0) &
                 & call yaml_warning("ERROR: cannot generate automatic k-point grid." // &
                 & " Error code is " // trim(yaml_toa(ierror,fmt='(i0)')))
@@ -929,7 +929,7 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
      else
         call kpoints_get_mp_k_grid(sym%symObj, in%gen_nkpt, in%gen_kpt, in%gen_wkpt, &
              & ngkpt_, nshiftk, shiftk_, ierror)
-        if (ierror /= AB6_NO_ERROR) then
+        if (ierror /= AB7_NO_ERROR) then
            if (iproc==0) &
                 & call yaml_warning("ERROR: cannot generate MP k-point grid." // &
                 & " Error code is " // trim(yaml_toa(ierror,fmt='(i0)')))

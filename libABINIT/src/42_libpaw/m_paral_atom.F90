@@ -8,7 +8,7 @@
 !!  of PAW data over atomic sites
 !!
 !! COPYRIGHT
-!! Copyright (C) 2012-2013 ABINIT group (MT)
+!! Copyright (C) 2012-2014 ABINIT group (MT)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -23,19 +23,16 @@
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
-#include "abi_common_for_bigdft.h"
+#include "abi_common.h"
 
 MODULE m_paral_atom
 
  use defs_basis
  use m_profiling
  use m_errors
-use interfaces_12_hide_mpi
-use interfaces_14_hidewrite
-use interfaces_16_hideleave
  use m_xmpi
 
  implicit none
@@ -46,7 +43,7 @@ use interfaces_16_hideleave
  public :: get_my_natom
  public :: get_my_atmtab
  public :: free_my_atmtab
-
+ public :: get_proc_atmtab
 !!***
 
 CONTAINS
@@ -62,7 +59,7 @@ CONTAINS
 !! Given the total number of atoms, return the number of atoms treated by current process
 !!
 !! COPYRIGHT
-!! Copyright (C) 2012-2013 ABINIT group (MD,MT)
+!! Copyright (C) 2012-2014 ABINIT group (MD,MT)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -76,7 +73,7 @@ CONTAINS
 !!  my_natom=number of atoms treated by current process
 !!
 !! PARENTS
-!!      initmpi_atom,m_pawrhoij
+!!      initmpi_atom,m_paw_an,m_paw_ij,m_pawfgrtab,m_pawrhoij
 !!
 !! CHILDREN
 !!
@@ -117,7 +114,7 @@ subroutine get_my_natom(comm_atom,my_natom,natom)
    endif
  endif
 
-end  subroutine get_my_natom
+end subroutine get_my_natom
 !!***
 
 !----------------------------------------------------------------------
@@ -131,7 +128,7 @@ end  subroutine get_my_natom
 !! containing the indexes of atoms treated by current processor.
 !!
 !! COPYRIGHT
-!! Copyright (C) 2012-2013 ABINIT group (MT)
+!! Copyright (C) 2012-2014 ABINIT group (MT)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -152,13 +149,14 @@ end  subroutine get_my_natom
 !!  paral_atom=flag controlling parallelism over atoms
 !!
 !! PARENTS
-!!      calc_efg,calc_fc,denfgr,expibi,expibr,initmpi_atom,initrhoij
-!!      m_hamiltonian,m_paw_toolbox,m_pawrhoij,make_efg_onsite,make_fc_paw
-!!      nhatgrid,paw_mknewh0,pawaccrhoij,pawdenpot,pawdij,pawdijfr,pawenergy3
-!!      pawgrnl,pawmkaewf,pawmknhat,pawmknhat_psipsi,pawnhatfr,pawprt,pawsushat
-!!      pawtwdij,pawtwdij_1,pawtwdij_2a,pawtwdij_2b,pawtwdij_2c,pawtwdij_2d
-!!      pawtwdij_2e,pawtwdij_2f,pawuj_red,qijb_kk,setnoccmmp,setrhoijpbe0
-!!      symdij,symrhoij,twexpibi,twqijb_kk
+!!      accrho3,calc_efg,calc_fc,denfgr,eltxccore,ewald3,ewald4,expibi,expibr
+!!      initmpi_atom,initrhoij,m_hamiltonian,m_paw_an,m_paw_ij,m_paw_pwaves_lmn
+!!      m_pawdij,m_pawfgrtab,m_pawrhoij,make_efg_onsite,make_fc_paw,newfermie1
+!!      nhatgrid,paw_mknewh0,pawaccrhoij,pawdenpot,pawenergy3,pawgrnl,pawmkaewf
+!!      pawmknhat,pawmknhat_psipsi,pawnhatfr,pawprt,pawsushat,pawtwdij
+!!      pawtwdij_1,pawtwdij_2a,pawtwdij_2b,pawtwdij_2c,pawtwdij_2d,pawtwdij_2e
+!!      pawtwdij_2f,pawuj_red,qijb_kk,setnoccmmp,setrhoijpbe0,twexpibi
+!!      twqijb_kk
 !!
 !! CHILDREN
 !!
@@ -187,7 +185,7 @@ subroutine get_my_atmtab(comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,nato
 !Local variables ---------------------------------------
 !scalars
  integer :: iatom,me,my_natom,natom_bef,nmod,nproc
- character(len=100) :: msg
+ character(len=500) :: msg
 !arrays
 
 ! *************************************************************************
@@ -231,14 +229,13 @@ subroutine get_my_atmtab(comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,nato
      if (present(my_natom_ref).and.(my_natom>0)) then
        if (my_natom_ref/=size(my_atmtab)) then
          msg='my_atmtab should have a size equal to my_natom !'
-         call wrtout(std_out,msg,'COLL')
-         call leave_new('COLL')
+         MSG_BUG(msg)
        end if
      end if
    end if
  endif
 
-end  subroutine get_my_atmtab
+end subroutine get_my_atmtab
 !!***
 
 !----------------------------------------------------------------------
@@ -251,7 +248,7 @@ end  subroutine get_my_atmtab
 !! Cleanly deallocate a table of atom indexes (my_atmtab)
 !!
 !! COPYRIGHT
-!! Copyright (C) 2012-2013 ABINIT group (MT)
+!! Copyright (C) 2012-2014 ABINIT group (MT)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -267,13 +264,13 @@ end  subroutine get_my_atmtab
 !!               nothing is done if my_atmtab(:) is already associated to a target
 !!
 !! PARENTS
-!!      calc_efg,calc_fc,denfgr,expibi,expibr,initrhoij,m_hamiltonian
-!!      m_paw_toolbox,m_pawrhoij,make_efg_onsite,make_fc_paw,nhatgrid
-!!      paw_mknewh0,pawaccrhoij,pawdenpot,pawdij,pawdijfr,pawenergy3,pawgrnl
-!!      pawmkaewf,pawmknhat,pawmknhat_psipsi,pawnhatfr,pawprt,pawsushat
-!!      pawtwdij,pawtwdij_1,pawtwdij_2a,pawtwdij_2b,pawtwdij_2c,pawtwdij_2d
-!!      pawtwdij_2e,pawtwdij_2f,pawuj_red,qijb_kk,setnoccmmp,setrhoijpbe0
-!!      symdij,symrhoij,twexpibi,twqijb_kk
+!!      calc_efg,calc_fc,denfgr,eltxccore,ewald3,ewald4,expibi,expibr,initrhoij
+!!      m_hamiltonian,m_paw_an,m_paw_ij,m_paw_pwaves_lmn,m_pawdij,m_pawfgrtab
+!!      m_pawrhoij,make_efg_onsite,make_fc_paw,newfermie1,nhatgrid,paw_mknewh0
+!!      pawaccrhoij,pawdenpot,pawenergy3,pawgrnl,pawmkaewf,pawmknhat
+!!      pawmknhat_psipsi,pawnhatfr,pawprt,pawsushat,pawtwdij,pawtwdij_1
+!!      pawtwdij_2a,pawtwdij_2b,pawtwdij_2c,pawtwdij_2d,pawtwdij_2e,pawtwdij_2f
+!!      pawuj_red,qijb_kk,setnoccmmp,setrhoijpbe0,twexpibi,twqijb_kk
 !!
 !! CHILDREN
 !!
@@ -307,7 +304,96 @@ subroutine free_my_atmtab(my_atmtab,my_atmtab_allocated)
    my_atmtab_allocated=.false.
  end if
 
-end  subroutine free_my_atmtab
+end subroutine free_my_atmtab
+!!***
+
+!----------------------------------------------------------------------
+
+!!****f* m_paral_atom/get_proc_atmtab
+!! NAME
+!! get_proc_atmtab
+!!
+!! FUNCTION
+!!  Given the total number of atoms and the size of a communicator,
+!!  return a table containing the indexes of atoms treated by a processor (with index iproc)
+!!
+!! COPYRIGHT
+!! Copyright (C) 2012-2013 ABINIT group (MD)
+!! This file is distributed under the terms of the
+!! GNU General Public License, see ~abinit/COPYING
+!! or http://www.gnu.org/copyleft/gpl.txt .
+!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
+!!
+!! INPUTS
+!!  comm_atom_size= size of communicator (over atoms)
+!!  iproc= rank of the processor
+!!  natom= total number of atoms
+!!
+!! OUTPUT
+!!  atmtab(natom_out)= indexes of atoms treated by process iproc
+!!  natom_out= number of atoms treated by process iproc
+!!
+!! NOTES
+!! In case of modification of the distribution of atom over proc,
+!!   get_atmtab must be modified accordingly
+!!
+!! PARENTS
+!!
+!! CHILDREN
+!!
+!! SOURCE
+
+ subroutine get_proc_atmtab(iproc,atmtab,natom_out,natom,comm_atom_size)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'get_proc_atmtab'
+!End of the abilint section
+
+ implicit none
+
+!Arguments ---------------------------------------------
+!scalars
+ integer, intent(in) :: comm_atom_size,iproc,natom
+!arrays
+ integer,intent(out) :: natom_out
+ integer,allocatable, intent(out):: atmtab(:)
+
+!Local variables ---------------------------------------
+!scalars
+ integer :: iatom,natom_bef,nmod,nproc
+!arrays
+
+! *************************************************************************
+
+ nproc=comm_atom_size
+
+ natom_out=natom/nproc ; if (iproc<=(mod(natom,nproc)-1)) natom_out=natom/nproc+1
+
+! Get table of atoms
+ if (natom_out>0) then
+   ABI_ALLOCATE(atmtab,(natom_out))
+!  The atoms are distributed contigously by egal part
+!  The rest is distributed on all the procs
+!  (see get_my_atmtab)
+   nmod=mod(natom,nproc)
+   if (iproc<=(nmod-1)) then
+     natom_bef=iproc*(natom/nproc)+iproc
+   else
+     natom_bef=iproc*(natom/nproc)+nmod
+   end if
+   do iatom=1,natom_out
+     atmtab(iatom)=iatom+natom_bef
+   end do
+
+ else
+   natom_out=0
+   ABI_ALLOCATE(atmtab,(0))
+ end if
+
+end subroutine get_proc_atmtab
 !!***
 
 !----------------------------------------------------------------------

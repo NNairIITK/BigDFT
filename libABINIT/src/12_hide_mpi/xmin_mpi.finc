@@ -1,7 +1,7 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/xmin_mpi
+!!****f* ABINIT/xmin_mpi_intv
 !! NAME
-!!  xmin_mpi
+!!  xmin_mpi_intv
 !!
 !! FUNCTION
 !!  This module contains functions that calls MPI routine,
@@ -9,28 +9,28 @@
 !!  xmin_mpi is the generic function.
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2001-2011 ABINIT group (AR,XG,MB)
+!!  Copyright (C) 2001-2014 ABINIT group (AR,XG,MB)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~ABINIT/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
 !!
+!! PARENTS
+!!
+!! CHILDREN
+!!      mpi_allreduce
+!!
 !! SOURCE
-
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
 
 subroutine xmin_mpi_intv(xval,xmin,spaceComm,ier)
 
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xmin_mpi_intv'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  integer ,intent(inout) :: xval,xmin
@@ -76,20 +76,20 @@ end subroutine xmin_mpi_intv
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_allreduce
 !!
 !! SOURCE
 subroutine xmin_mpi_dpv(xval,xmin,spaceComm,ier)
+
  use defs_basis
 
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xmin_mpi_dpv'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  real(dp),intent(inout) :: xval,xmin

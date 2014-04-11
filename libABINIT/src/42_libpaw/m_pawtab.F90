@@ -9,14 +9,10 @@
 !!  pawtab_type variables define TABulated data for PAW (from pseudopotential)
 !!
 !! COPYRIGHT
-!! Copyright (C) 2013-2013 ABINIT group (MT)
+!! Copyright (C) 2013-2014 ABINIT group (MT)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
-!!
-!! INPUTS
-!!
-!! OUTPUT
 !!
 !! PARENTS
 !!
@@ -25,18 +21,15 @@
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
-#include "abi_common_for_bigdft.h"
+#include "abi_common.h"
 
 MODULE m_pawtab
 
  use defs_basis
  use m_errors
-use interfaces_12_hide_mpi
-use interfaces_14_hidewrite
-use interfaces_16_hideleave
  use m_profiling
  use m_xmpi
 
@@ -50,6 +43,7 @@ use interfaces_16_hideleave
  public :: pawtab_set_flags
  public :: pawtab_print
  public :: pawtab_bcast
+ public :: wvlpaw_allocate
  public :: wvlpaw_destroy
  public :: wvlpaw_nullify
  public :: wvlpaw_rholoc_destroy
@@ -126,7 +120,7 @@ use interfaces_16_hideleave
   real(dp),pointer :: pfac(:,:)
    !factors of Gaussians
 
-!Other pointers
+!Other scalars
 
   type(wvlpaw_rholoc_type) :: rholoc
    ! local density
@@ -167,6 +161,11 @@ use interfaces_16_hideleave
   integer :: has_nabla
    ! if 1, onsite matrix elements of the nabla operator are allocated.
    ! if 2, onsite matrix elements of the nabla operator are computed and stored.
+
+  integer :: has_tproj
+   ! Flag controling use of projectors in real space (0 if tnval is unknown)
+   ! if 1, tproj() is allocated.
+   ! if 2, tproj() is computed and stored.
 
   integer :: has_tvale
    ! Flag controling use of pseudized valence density (0 if tnval is unknown)
@@ -260,6 +259,11 @@ use interfaces_16_hideleave
    ! usepawu=1 ; use PAW+U formalism (Full localized limit)
    ! usepawu=2 ; use PAW+U formalism (Around Mean Field)
 
+  integer :: usepotzero
+   ! usepotzero=0 if it is the Kresse-Joubert convention
+   ! usepotzero=1 if it is the new convention
+   ! usepotzero=2 if it is the PWscf convention
+
   integer :: usetcore
    ! Flag controling use of pseudized core density (0 if tncore=zero)
 
@@ -268,6 +272,9 @@ use interfaces_16_hideleave
    ! 1 if compensation charge density is included in XC terms
 
 !Real (real(dp)) scalars
+
+  real(dp) :: beta
+   ! contains the integral of the difference between vH[nZc] and vH[tnZc]
 
   real(dp) :: dncdq0
    ! Gives 1/q d(tNcore(q))/dq for q=0
@@ -315,20 +322,20 @@ use interfaces_16_hideleave
    ! Value of U parameter for paw+u for a given type.
 
 !Objects
-  type(wvlpaw_type) :: wvl
+  type(wvlpaw_type), pointer :: wvl
    !variable containing objects needed
    !for wvl+paw implementation
-
+   !Warning: it is a pointer; it has to be allocated before use
 
 !Integer arrays
 
   integer, pointer :: indklmn(:,:)
-   ! indklmn(6,lmn2_size)
-   ! Array giving klm, kln, abs(il-jl), (il+jl), ilm and jlm for each klmn=(ilmn,jlmn)
+   ! indklmn(8,lmn2_size)
+   ! Array giving klm, kln, abs(il-jl), (il+jl), ilm and jlm, ilmn and jlmn for each klmn=(ilmn,jlmn)
    ! Note: ilmn=(il,im,in) and ilmn<=jlmn
 
   integer, pointer :: indlmn(:,:) 
-   ! indlmn(6,lmn2_size,ntypat)
+   ! indlmn(6,lmn2_size)
    ! For each type of psp,
    ! array giving l,m,n,lm,ln,spin for i=lmn (if useylm=1)
 
@@ -381,15 +388,20 @@ use interfaces_16_hideleave
    ! fk(6,4)
    ! Slater integrals used for local exact exchange
 
+  real(dp), pointer :: gammaij(:)
+   ! gammaij(lmn2_size)
+   ! background contribution from the densities
+
   real(dp), pointer :: gnorm(:)
    ! gnorm(l_size)
    ! Give the the normalization factor of each radial shape function
 
   real(dp), pointer :: kij(:)
-   ! Onsite matrix elements <phi|\kinetic|phj>-<tphi|\kinetic|tphj>
+  ! kij(lmn2_size))
+  ! Onsite matrix elements <phi|\kinetic|phj>-<tphi|\kinetic|tphj>
 
   real(dp), pointer :: nabla_ij(:,:,:)
-   ! nabla_ij(3,lmn_size,lmn_size))
+   ! nabla_ij(3,lmn_size,lmn_size)
    ! Onsite matrix elements <phi|\nabla|phj>-<tphi|\nabla|tphj>
 
   real(dp), pointer :: phi(:,:)
@@ -562,6 +574,7 @@ subroutine pawtab_nullify_0D(Pawtab)
  nullify(Pawtab%dshpfunc)
  nullify(Pawtab%eijkl)
  nullify(Pawtab%fk)
+ nullify(Pawtab%gammaij)
  nullify(Pawtab%gnorm)
  nullify(Pawtab%kij)
  nullify(Pawtab%nabla_ij)
@@ -589,19 +602,16 @@ subroutine pawtab_nullify_0D(Pawtab)
  nullify(Pawtab%Vex)
  nullify(Pawtab%vhtnzc)
  nullify(Pawtab%VHnZC)
- nullify(Pawtab%wvl%parg)
- nullify(Pawtab%wvl%pfac)
- nullify(Pawtab%wvl%pngau)
- nullify(Pawtab%wvl%rholoc%d)
- nullify(Pawtab%wvl%rholoc%rad)
  nullify(Pawtab%zioneff)
 
- call wvlpaw_nullify(Pawtab%wvl)
+ nullify(Pawtab%wvl)
+!call wvlpaw_nullify(Pawtab%wvl)
 
  ! === Reset all flags and sizes ===
 
 !Flags controlling optional arrays
  Pawtab%has_kij=0
+ Pawtab%has_tproj=0
  Pawtab%has_tvale=0
  Pawtab%has_vhtnzc=0
  Pawtab%has_vhnzc=0
@@ -613,6 +623,7 @@ subroutine pawtab_nullify_0D(Pawtab)
  Pawtab%usexcnhat=0
  Pawtab%useexexch=0
  Pawtab%usepawu=0
+ Pawtab%usepotzero=0
  Pawtab%mqgrid=0
  Pawtab%mqgrid_shp=0
 
@@ -695,6 +706,7 @@ end subroutine pawtab_nullify_1D
 !!  All associated pointers in Pawtab are deallocated
 !!
 !! PARENTS
+!!      m_pawtab
 !!
 !! CHILDREN
 !!
@@ -753,6 +765,9 @@ subroutine pawtab_destroy_0D(Pawtab)
  end if
  if (associated(Pawtab%fk))  then
    ABI_DEALLOCATE(Pawtab%fk)
+ end if
+ if (associated(Pawtab%gammaij))  then
+   ABI_DEALLOCATE(Pawtab%gammaij)
  end if
  if (associated(Pawtab%gnorm))  then
    ABI_DEALLOCATE(Pawtab%gnorm)
@@ -823,8 +838,8 @@ subroutine pawtab_destroy_0D(Pawtab)
  if (associated(Pawtab%tvalespl))  then
    ABI_DEALLOCATE(Pawtab%tvalespl)
  end if
- if (associated(Pawtab%Vee))  then
-   ABI_DEALLOCATE(Pawtab%Vee)
+ if (associated(Pawtab%vee))  then
+   ABI_DEALLOCATE(Pawtab%vee)
  end if
  if (associated(Pawtab%Vex))  then
    ABI_DEALLOCATE(Pawtab%Vex)
@@ -846,6 +861,7 @@ subroutine pawtab_destroy_0D(Pawtab)
 !CAUTION: do not reset these flags
 !They are set from input data and must be kept
 !Pawtab%has_kij=0
+!Pawtab%has_tproj=0
 !Pawtab%has_tvale=0
 !Pawtab%has_vhtnzc=0
 !Pawtab%has_vhnzc=0
@@ -857,6 +873,7 @@ subroutine pawtab_destroy_0D(Pawtab)
  Pawtab%usexcnhat=0
  Pawtab%useexexch=0
  Pawtab%usepawu=0
+ Pawtab%usepotzero=0
  Pawtab%mqgrid=0
  Pawtab%mqgrid_shp=0
 
@@ -940,7 +957,7 @@ end subroutine pawtab_destroy_1D
 !!
 !! SOURCE
 
-subroutine pawtab_set_flags_0D(Pawtab,has_kij,has_tvale,has_vhnzc,&
+subroutine pawtab_set_flags_0D(Pawtab,has_kij,has_tproj,has_tvale,has_vhnzc,&
 &                              has_vhtnzc,has_nabla,has_shapefncg,has_wvl)
 
 
@@ -953,7 +970,7 @@ subroutine pawtab_set_flags_0D(Pawtab,has_kij,has_tvale,has_vhnzc,&
  implicit none
 
 !Arguments ------------------------------------
- integer,intent(in),optional :: has_kij,has_tvale,has_vhnzc,has_vhtnzc
+ integer,intent(in),optional :: has_kij,has_tproj,has_tvale,has_vhnzc,has_vhtnzc
  integer,intent(in),optional :: has_nabla,has_shapefncg,has_wvl
  type(pawtab_type),intent(inout) :: Pawtab
 
@@ -964,6 +981,7 @@ subroutine pawtab_set_flags_0D(Pawtab,has_kij,has_tvale,has_vhnzc,&
  !@pawtab_type
 
  Pawtab%has_kij      =0
+ Pawtab%has_tproj    =0
  Pawtab%has_tvale    =0
  Pawtab%has_vhnzc    =0
  Pawtab%has_vhtnzc   =0
@@ -971,7 +989,8 @@ subroutine pawtab_set_flags_0D(Pawtab,has_kij,has_tvale,has_vhnzc,&
  Pawtab%has_shapefncg=0
  Pawtab%has_wvl      =0
  if (present(has_kij))      Pawtab%has_kij=has_kij
- if (present(has_tvale))    Pawtab%has_nabla=has_tvale
+ if (present(has_tproj))    Pawtab%has_tproj=has_tproj
+ if (present(has_tvale))    Pawtab%has_tvale=has_tvale
  if (present(has_vhnzc))    Pawtab%has_vhnzc=has_vhnzc
  if (present(has_vhtnzc))   Pawtab%has_vhtnzc=has_vhtnzc
  if (present(has_nabla))    Pawtab%has_nabla=has_nabla
@@ -996,7 +1015,7 @@ end subroutine pawtab_set_flags_0D
 !!
 !! SOURCE
 
-subroutine pawtab_set_flags_1D(Pawtab,has_kij,has_tvale,has_vhnzc,&
+subroutine pawtab_set_flags_1D(Pawtab,has_kij,has_tproj,has_tvale,has_vhnzc,&
 &                              has_vhtnzc,has_nabla,has_shapefncg,has_wvl)
 
 
@@ -1009,7 +1028,7 @@ subroutine pawtab_set_flags_1D(Pawtab,has_kij,has_tvale,has_vhnzc,&
  implicit none
 
 !Arguments ------------------------------------
- integer,intent(in),optional :: has_kij,has_tvale,has_vhnzc,has_vhtnzc
+ integer,intent(in),optional :: has_kij,has_tproj,has_tvale,has_vhnzc,has_vhtnzc
  integer,intent(in),optional :: has_nabla,has_shapefncg,has_wvl
  type(pawtab_type),intent(inout) :: Pawtab(:)
 
@@ -1025,14 +1044,16 @@ subroutine pawtab_set_flags_1D(Pawtab,has_kij,has_tvale,has_vhnzc,&
 
  do ii=1,nn
    Pawtab(ii)%has_kij      =0
+   Pawtab(ii)%has_tproj    =0
    Pawtab(ii)%has_tvale    =0
    Pawtab(ii)%has_vhnzc    =0
    Pawtab(ii)%has_vhtnzc   =0
    Pawtab(ii)%has_nabla    =0
    Pawtab(ii)%has_shapefncg=0
-   Pawtab%has_wvl          =0
+   Pawtab(ii)%has_wvl          =0
    if (present(has_kij))      Pawtab(ii)%has_kij=has_kij
-   if (present(has_tvale))    Pawtab(ii)%has_nabla=has_tvale
+   if (present(has_tproj))    Pawtab(ii)%has_tproj=has_tproj
+   if (present(has_tvale))    Pawtab(ii)%has_tvale=has_tvale
    if (present(has_vhnzc))    Pawtab(ii)%has_vhnzc=has_vhnzc
    if (present(has_vhtnzc))   Pawtab(ii)%has_vhtnzc=has_vhtnzc
    if (present(has_nabla))    Pawtab(ii)%has_nabla=has_nabla
@@ -1059,6 +1080,7 @@ end subroutine pawtab_set_flags_1D
 !!  Only writing
 !!
 !! PARENTS
+!!      bethe_salpeter,screening,sigma
 !!
 !! CHILDREN
 !!
@@ -1092,7 +1114,7 @@ subroutine pawtab_print(Pawtab,header,unit,prtvol,mode_paral)
 
 ! *************************************************************************
 
- my_unt   =std_out; if (PRESENT(unit      )) my_unt   =unit
+ my_unt   =ab_out ; if (PRESENT(unit      )) my_unt   =unit
  my_prtvol=0      ; if (PRESENT(prtvol    )) my_prtvol=prtvol
  my_mode  ='COLL' ; if (PRESENT(mode_paral)) my_mode  =mode_paral
 
@@ -1109,107 +1131,120 @@ subroutine pawtab_print(Pawtab,header,unit,prtvol,mode_paral)
 
   ! Print out integer values (dimensions)
   write(msg,'(a)')'                                 '
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a)')'  ****************************** '
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,i4,a)')'  **** Atom type ',ityp,' ****   '
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a)')'  ****************************** '
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,i4)')'  Number of (n,l) elements ....................... ',Pawtab(ityp)%basis_size
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,i4)')'  Number of (l,m,n) elements ..................... ',Pawtab(ityp)%lmn_size
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,i4)')'  Number of (i,j) elements (packed form) ......... ',Pawtab(ityp)%ij_size
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,i4)')'  Max L+1 leading to non-zero Gaunt .............. ',Pawtab(ityp)%l_size
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,i4)')'  Max L+1 leading to non-zero Gaunt (pawlcutd) ... ',Pawtab(ityp)%lcut_size
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,i4)')'  lmn2_size ...................................... ',Pawtab(ityp)%lmn2_size
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,i4)')'  lmnmix_sz ...................................... ',Pawtab(ityp)%lmnmix_sz
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,i4)')'  Size of radial mesh ............................ ',Pawtab(ityp)%mesh_size
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
+  write(msg,'(a,i4)')'  Size of radial mesh for [pseudo] core density... ',Pawtab(ityp)%core_mesh_size
+  call wrtout(my_unt,msg,my_mode)
+  write(msg,'(a,i4)')'  Size of radial mesh for pseudo valence density.. ',Pawtab(ityp)%tnvale_mesh_size
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,i4)')'  No of Q-points for tcorespl and tvalespl ....... ',Pawtab(ityp)%mqgrid
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,i4)')'  No of Q-points for the radial shape functions .. ',Pawtab(ityp)%mqgrid_shp
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,i4)')'  Radial shape function type ..................... ',Pawtab(ityp)%shape_type
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,i4)')'  shape_lambda ................................... ',Pawtab(ityp)%shape_lambda
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,i4)')'  Use pseudized core density ..................... ',Pawtab(ityp)%usetcore
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,i4)')'  Option for the use of hat density in XC terms .. ',Pawtab(ityp)%usexcnhat
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,i4)')'  Use LDA+U ...................................... ',Pawtab(ityp)%usepawu
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   if (Pawtab(ityp)%usepawu/=0) then
     write(msg,'(a,i4)')'  L on which U is applied ........................ ',Pawtab(ityp)%lpawu
-    call wrtout(ab_out,msg,'COLL')
+    call wrtout(my_unt,msg,my_mode)
   end if
   write(msg,'(a,i4)')'  Use Local Exact exchange ....................... ',Pawtab(ityp)%useexexch
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   if (Pawtab(ityp)%useexexch/=0) then
     write(msg,'(a,i4)')'  L on which local exact-exchange is applied ..... ',Pawtab(ityp)%lexexch
-    call wrtout(ab_out,msg,'COLL')
+    call wrtout(my_unt,msg,my_mode)
   end if
   if (Pawtab(ityp)%usepawu/=0.or.Pawtab(ityp)%useexexch/=0) then
     write(msg,'(a,i4)')'  Number of (i,j) elements for PAW+U or EXX ..... ',Pawtab(ityp)%ij_proj
-    call wrtout(ab_out,msg,'COLL')
+    call wrtout(my_unt,msg,my_mode)
     write(msg,'(a,i4)')'  Number of projectors on which U or EXX acts .... ',Pawtab(ityp)%nproju
-    call wrtout(ab_out,msg,'COLL')
+    call wrtout(my_unt,msg,my_mode)
   end if
+  write(msg,'(a,i4)')'  Use potential zero ............................. ',Pawtab(ityp)%usepotzero
+  call wrtout(my_unt,msg,my_mode)
 
   ! "Has" flags
   write(msg,'(a,i4)')'  Has kij   ...................................... ',Pawtab(ityp)%has_kij
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
+  write(msg,'(a,i4)')'  Has tproj ...................................... ',Pawtab(ityp)%has_tproj
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,i4)')'  Has tvale ...................................... ',Pawtab(ityp)%has_tvale
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,i4)')'  Has vhtnzc ..................................... ',Pawtab(ityp)%has_vhtnzc
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,i4)')'  Has vhnzc ...................................... ',Pawtab(ityp)%has_vhnzc
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,i4)')'  Has nabla ...................................... ',Pawtab(ityp)%has_nabla
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,i4)')'  Has shapefuncg ................................. ',Pawtab(ityp)%has_shapefncg
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,i4)')'  Has wvl ........................................ ',Pawtab(ityp)%has_wvl
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   !
   ! Real scalars
+  write(msg,'(a,es16.8)')'  beta ............................................',Pawtab(ityp)%beta
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,es16.8)')'  1/q d(tNcore(q))/dq for q=0 .....................',Pawtab(ityp)%dncdq0
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
+  write(msg,'(a,es16.8)')'  d^2(tNcore(q))/dq^2 for q=0 .....................',Pawtab(ityp)%d2ncdq0
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,es16.8)')'  1/q d(tNvale(q))/dq for q=0 .....................',Pawtab(ityp)%dnvdq0
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,es16.8)')'  XC energy for the core density ..................',Pawtab(ityp)%exccore
-  call wrtout(ab_out,msg,'COLL')
-  write(msg,'(a,es16.8)')'  Mixing of exact exchange (PBE0) .................',Pawtab(ityp)%exchmix
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,es16.8)')'  Radius of the PAW sphere ........................',Pawtab(ityp)%rpaw
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,es16.8)')'  Compensation charge radius (if >rshp, g(r)=0) ...',Pawtab(ityp)%rshp !(if r>rshp, g(r)=zero)
-  call wrtout(ab_out,msg,'COLL')
+  call wrtout(my_unt,msg,my_mode)
   if (Pawtab(ityp)%shape_type==2) then
    write(msg,'(a,es16.8)')'  Sigma parameter in gaussian shape function ......',Pawtab(ityp)%shape_sigma !(shape_type=2)
-   call wrtout(ab_out,msg,'COLL')
+   call wrtout(my_unt,msg,my_mode)
   end if
   if (Pawtab(ityp)%usepawu/=0) then
    write(msg,'(a,es16.8)')'  Value of the U parameter [eV] ...................',Pawtab(ityp)%upawu*Ha_eV
-   call wrtout(ab_out,msg,'COLL')
+   call wrtout(my_unt,msg,my_mode)
    write(msg,'(a,es16.8)')'  Value of the J parameter [eV] ...................',Pawtab(ityp)%jpawu*Ha_eV
-   call wrtout(ab_out,msg,'COLL')
+   call wrtout(my_unt,msg,my_mode)
   end if
-
- if (associated(Pawtab(ityp)%wvl%pngau)) then
+  if (Pawtab(ityp)%useexexch/=0) then
+    write(msg,'(a,es16.8)')'  Mixing of exact exchange (PBE0) .................',Pawtab(ityp)%exchmix
+    call wrtout(my_unt,msg,my_mode)
+  end if
+ if (associated(Pawtab(ityp)%wvl)) then
    write(msg,'(a,es16.8)')'  WARNING: This Pawtab structure contains WVL data.'
-   call wrtout(ab_out,msg,'COLL')
+   call wrtout(my_unt,msg,my_mode)
  end if
 
  end do ! ityp
- !
+
  ! The other (huge) arrays are not reported..
 
 end subroutine pawtab_print
@@ -1226,27 +1261,27 @@ end subroutine pawtab_print
 !!
 !! INPUTS
 !! comm_mpi= communicator used to broadcast data
+!! [only_from_file]= (optional, default=FALSE)
+!!    If true, only data obtained at the level of the reading
+!!    of the PAW dataset file are broadcasted
 !!
 !! SIDE EFFECTS
 !!  pawtab=<type pawtab_type>=a pawtab datastructure
 !!
 !! PARENTS
+!!      m_pawpsp
 !!
 !! CHILDREN
-!!
-!! NOTES
-!!      IMPORTANT: NOT ALL THER DATA aRE BROADCASTED !!!!
-!!      Only data from pseudopotential file are broadcasted
 !!
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
-#include "abi_common_for_bigdft.h"
+#include "abi_common.h"
 
-subroutine pawtab_bcast(pawtab,comm_mpi)
+subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -1260,661 +1295,1315 @@ subroutine pawtab_bcast(pawtab,comm_mpi)
 !Arguments ------------------------------------
 !scalars
  integer,intent(in) :: comm_mpi
+ logical,optional,intent(in) :: only_from_file
  type(pawtab_type),intent(inout) :: pawtab
 
 !Local variables-------------------------------
 !scalars
- integer :: ierr,ii,indx,me,nn,nn_int,nn_scalars,isz1
- integer :: isz1_tvalespl,isz1_tproj
- integer :: isz2,isz2_tcoredens,isz2_rholoc_d,isz2_tvalespl
- character (len=500) :: message
+ integer :: ierr,ii,me,nn_dpr,nn_dpr_arr,nn_int,nn_int_arr
+ integer :: siz_indklmn,siz_indlmn,siz_klmntomn,siz_kmix,siz_lnproju,siz_orbitals
+ integer :: siz_coredens,siz_dij0,siz_dltij,siz_dshpfunc,siz_eijkl,siz_fk,siz_gammaij,siz_gnorm
+ integer :: siz_kij,siz_nabla_ij,siz_phi,siz_phiphj,siz_phiphjint,siz_ph0phiint
+ integer :: siz_qgrid_shp,siz_qijl,siz_rad_for_spline,siz_rhoij0,siz_shape_alpha
+ integer :: siz_shape_q,siz_shapefunc,siz_shapefncg,siz_sij,siz_tcoredens,siz_tcorespl
+ integer :: siz_tphi,siz_tphitphj,siz_tproj,siz_tvalespl,siz_vee,siz_vex,siz_vhtnzc
+ integer :: siz_vhnzc,siz_zioneff
+ integer :: siz_wvlpaw,siz_wvl_pngau,siz_wvl_parg,siz_wvl_pfac
+ integer :: siz_wvl_rholoc_rad,siz_wvl_rholoc_d
+ logical :: full_broadcast
+ character (len=500) :: msg,msg0
 !arrays
+ integer :: nn(4)
  integer,allocatable :: list_int(:)
  real(dp),allocatable :: list_dpr(:)
-
 
 !*************************************************************************
 
  me=xcomm_rank(comm_mpi)
- nn_scalars=7 !number of scalar variables passed in list_dpr: see below
- nn_int=0
+ full_broadcast=.true.;if (present(only_from_file)) full_broadcast=(.not.only_from_file)
 
-!Calculate the size of the integers
- if(me==0) then
-  if(pawtab%wvl%ptotgau>0) then
-    if(associated(pawtab%wvl%pngau)) then
-      nn_int=nn_int+size(pawtab%wvl%pngau)
-    else
-      message='wvl%pngau is not associated '
-      call wrtout(std_out,message,'COLL')
-      call leave_new('COLL')
-    end if
-  end if
-  if(associated(pawtab%orbitals)) then
-    nn_int=nn_int+size(pawtab%orbitals)
-  end if
-  if(associated(pawtab%indlmn)) then
-    nn_int=nn_int+size(pawtab%indlmn)
-  end if
- end if
+ nn_int=0 ; nn_int_arr=0 ; nn_dpr=0 ; nn_dpr_arr=0
+ 
+!=========================================================================
+!Compute the amount of data to communicate
+!=========================================================================
 
-!Calculate the size of the reals
- if(me==0) then
-   nn=nn_scalars 
+ if (me==0) then
+   msg=''
+
+!Integers (read from psp file)
+!-------------------------------------------------------------------------
+!  basis_size,has_kij,has_shapefncg,has_nabla,has_tproj,has_tvale,has_vhtnzc
+!  has_vhnzc,has_wvl,ij_size,l_size,lmn_size,lmn2_size,mesh_size,core_mesh_size
+!  tnvale_mesh_size,mqgrid,shape_lambda,shape_type,usetcore,usexcnhat
+   nn_int=nn_int+21
+
+!Integers (depending on the parameters of the calculation)
+!-------------------------------------------------------------------------
+!  ij_proj,lcut_size,lexexch,lmnmix_sz,lpawu,mqgrid_shp,nproju,useexexch,usepawu,usepotzero
+   if (full_broadcast) nn_int=nn_int+10
+
+!Reals (read from psp file)
+!-------------------------------------------------------------------------
+!  beta,dncdq0,d2ncdq0,dnvdq0,exccore,rpaw,rshp,rcore,shape_sigma
+   nn_dpr=nn_dpr+9
+
+!Reals (depending on the parameters of the calculation)
+!-------------------------------------------------------------------------
+!  exchmix,f4of2_sla,f6of2_sla,jpawu,upawu
+   if (full_broadcast) nn_dpr=nn_dpr+5
+
+!Integers arrays (read from psp file)
+!-------------------------------------------------------------------------
+   siz_indlmn=0 ; siz_orbitals=0
+   nn_int=nn_int+2
+   if (associated(pawtab%indlmn)) then
+     siz_indlmn=size(pawtab%indlmn)                   !(6,lmn_size)
+     if (siz_indlmn/=6*pawtab%lmn_size) msg=trim(msg)//' indlmn'
+     nn_int_arr=nn_int_arr+siz_indlmn
+   end if
+   if (associated(pawtab%orbitals)) then
+     siz_orbitals=size(pawtab%orbitals)                      !(basis_size)
+     if (siz_orbitals/=pawtab%basis_size) msg=trim(msg)//' orbitals'
+     nn_int_arr=nn_int_arr+siz_orbitals
+   end if
+
+!Integers arrays (depending on the parameters of the calculation)
+!-------------------------------------------------------------------------
+   siz_indklmn=0 ; siz_klmntomn=0 ; siz_kmix=0 ; siz_lnproju=0
+   if (full_broadcast) then
+     nn_int=nn_int+4
+     if (associated(pawtab%indklmn)) then
+       siz_indklmn=size(pawtab%indklmn)               !(6,lmn2_size)
+       if (siz_indklmn/=8*pawtab%lmn2_size) msg=trim(msg)//' indklmn'
+       nn_int_arr=nn_int_arr+siz_indklmn
+     end if
+     if (associated(pawtab%klmntomn)) then
+       siz_klmntomn=size(pawtab%klmntomn)                    !(4,lmn2_size)
+       if (siz_klmntomn/=4*pawtab%lmn2_size) msg=trim(msg)//' klmntomn'
+       nn_int_arr=nn_int_arr+siz_klmntomn
+     end if
+     if (associated(pawtab%kmix)) then
+       siz_kmix=size(pawtab%kmix)                            !(lmnmix_sz)
+       if (siz_kmix/=6*pawtab%lmnmix_sz) msg=trim(msg)//' kmix'
+       nn_int_arr=nn_int_arr+siz_kmix
+     end if
+     if (associated(pawtab%lnproju)) then
+       siz_lnproju=size(pawtab%lnproju)                      !(nproju)
+       if (siz_lnproju/=pawtab%nproju) msg=trim(msg)//' lnproju'
+       nn_int_arr=nn_int_arr+siz_lnproju
+     end if
+   end if ! full_broadcast
+
+!Reals arrays (read from psp file)
+!-------------------------------------------------------------------------
+   siz_coredens=0 ; siz_dij0=0     ; siz_kij=0
+   siz_phi=0      ; siz_rhoij0=0   ; siz_shape_alpha=0
+   siz_shape_q=0  ; siz_shapefunc=0; siz_tcoredens=0
+   siz_tcorespl=0 ; siz_tphi=0     ; siz_tproj=0
+   siz_tvalespl=0 ; siz_vhtnzc=0   ; siz_vhnzc=0
+   nn_int=nn_int+15
    if (associated(pawtab%coredens)) then
-     nn=nn+size(pawtab%coredens)
-   end if
-   isz2_tcoredens=0
-   if (associated(pawtab%tcoredens)) then
-     nn=nn+size(pawtab%tcoredens)
-     isz2_tcoredens=size(pawtab%tcoredens,2)
-   end if
-   if (associated(pawtab%rhoij0)) then
-     nn=nn+size(pawtab%rhoij0)
+     siz_coredens=size(pawtab%coredens)             !(core_mesh_size)
+     if (siz_coredens/=pawtab%core_mesh_size) &
+&      msg=trim(msg)//' coredens'
+     nn_dpr=nn_dpr+siz_coredens
    end if
    if (associated(pawtab%dij0)) then
-     nn=nn+size(pawtab%dij0)
+     siz_dij0=size(pawtab%dij0)                     !(lmn2_size)
+     if (siz_dij0/=pawtab%lmn2_size) msg=trim(msg)//' dij0'
+     nn_dpr=nn_dpr+siz_dij0
    end if
    if (associated(pawtab%kij)) then
-     nn=nn+size(pawtab%kij)
-   end if
-   if (associated(pawtab%vhtnzc)) then
-     nn=nn+size(pawtab%vhtnzc)
-   end if
-   if (associated(pawtab%vhnzc)) then
-     nn=nn+size(pawtab%vhnzc)
-   end if
-   if (associated(pawtab%shape_alpha)) then
-     nn=nn+size(pawtab%shape_alpha)
-   end if
-   if (associated(pawtab%shape_q)) then
-     nn=nn+size(pawtab%shape_q)
-   end if
-   if (associated(pawtab%shapefunc)) then
-     nn=nn+size(pawtab%shapefunc)
+     siz_kij=size(pawtab%kij)                       !(lmn2_size)
+     if (siz_kij/=pawtab%lmn2_size) msg=trim(msg)//' kij'
+     nn_dpr=nn_dpr+siz_kij
    end if
    if (associated(pawtab%phi)) then
-     nn=nn+size(pawtab%phi)
+     siz_phi=size(pawtab%phi)                       !(mesh_size, basis_size)
+     if (siz_phi/=pawtab%mesh_size*pawtab%basis_size) msg=trim(msg)//' phi'
+     nn_dpr=nn_dpr+siz_phi
    end if
-   if (associated(pawtab%tphi)) then
-     nn=nn+size(pawtab%tphi)
+   if (associated(pawtab%rhoij0)) then
+     siz_rhoij0=size(pawtab%rhoij0)                 !(lmn2_size)
+     if (siz_rhoij0/=pawtab%lmn2_size) msg=trim(msg)//' rhoij0'
+     nn_dpr=nn_dpr+siz_rhoij0
+   end if
+   if (associated(pawtab%shape_alpha)) then
+     siz_shape_alpha=size(pawtab%shape_alpha)       !(2,l_size)
+     if (siz_shape_alpha/=pawtab%l_size*2) msg=trim(msg)//' shape_alpha'
+     nn_dpr=nn_dpr+siz_shape_alpha
+   end if
+   if (associated(pawtab%shape_q)) then
+     siz_shape_q=size(pawtab%shape_q)               !(2,l_size)
+     if (siz_shape_q/=pawtab%l_size*2) msg=trim(msg)//' shape_q'
+     nn_dpr=nn_dpr+siz_shape_q
+   end if
+   if (associated(pawtab%shapefunc)) then
+     siz_shapefunc=size(pawtab%shapefunc)           !(mesh_size,l_size)
+     if (siz_shapefunc/=pawtab%mesh_size*pawtab%l_size) msg=trim(msg)//' shapefunc'
+     nn_dpr=nn_dpr+siz_shapefunc
+   end if
+   if (associated(pawtab%tcoredens)) then
+     siz_tcoredens=size(pawtab%tcoredens)           !(core_mesh_size,1 or 6)
+     if (siz_tcoredens/=pawtab%core_mesh_size.and.siz_tcoredens/=6*pawtab%core_mesh_size) &
+&      msg=trim(msg)//' tcoredens'
+     nn_dpr=nn_dpr+siz_tcoredens
    end if
    if (associated(pawtab%tcorespl)) then
-     nn=nn+size(pawtab%tcorespl)
+     siz_tcorespl=size(pawtab%tcorespl)             !(mqgrid,2)
+     if (siz_tcorespl/=pawtab%mqgrid*2) msg=trim(msg)//' tcorespl'
+     nn_dpr=nn_dpr+siz_tcorespl
    end if
-   isz1_tvalespl=0 ; isz2_tvalespl=0
+   if (associated(pawtab%tphi)) then
+     siz_tphi=size(pawtab%tphi)                     !(mesh_size, basis_size)
+     if (siz_tphi/=pawtab%mesh_size*pawtab%basis_size) msg=trim(msg)//' tphi'
+     nn_dpr=nn_dpr+siz_tphi
+   end if
+   if (associated(pawtab%tproj)) then
+     siz_tproj=size(pawtab%tproj)                   !(???,basis_size)
+    if (mod(siz_tproj,pawtab%basis_size)/=0) msg=trim(msg)//' tproj'
+     nn_dpr=nn_dpr+siz_tproj
+   end if
    if (associated(pawtab%tvalespl)) then
-     nn=nn+size(pawtab%tvalespl)
-     isz1_tvalespl=size(pawtab%tvalespl,1)
-     isz2_tvalespl=size(pawtab%tvalespl,2)
+     siz_tvalespl=size(pawtab%tvalespl)             !(mqgrid or mesh_size or tnvale_mesh_size,2)
+     if (siz_tvalespl/=2*pawtab%mqgrid.and.siz_tvalespl/=2*pawtab%mesh_size.and. &
+&        siz_tvalespl/=2*pawtab%tnvale_mesh_size) msg=trim(msg)//' tvalespl'
+     nn_dpr=nn_dpr+siz_tvalespl
    end if
-   isz2_rholoc_d=0
-   if (pawtab%wvl%rholoc%msz>0) then
-     if (associated(pawtab%wvl%rholoc%d)) then
-       nn=nn+size(pawtab%wvl%rholoc%d)
-       isz2_rholoc_d=size(pawtab%wvl%rholoc%d,2)
-     end if
-     if (associated(pawtab%wvl%rholoc%rad)) then
-       nn=nn+size(pawtab%wvl%rholoc%rad)
-     end if
+   if (associated(pawtab%vhtnzc)) then
+     siz_vhtnzc=size(pawtab%vhtnzc)                 !(mesh_size)
+     if (siz_vhtnzc/=pawtab%mesh_size) msg=trim(msg)//' vhtnzc'
+     nn_dpr=nn_dpr+siz_vhtnzc
    end if
-   if(pawtab%wvl%ptotgau>0) then
+   if (associated(pawtab%vhnzc)) then
+     siz_vhnzc=size(pawtab%vhnzc)                   !(mesh_size)
+     if (siz_vhnzc/=pawtab%mesh_size) msg=trim(msg)//' vhnzc'
+     nn_dpr=nn_dpr+siz_vhnzc
+   end if
+
+!Reals arrays (depending on the parameters of the calculation)
+!-------------------------------------------------------------------------
+   siz_dltij=0    ; siz_dshpfunc=0 ; siz_eijkl=0
+   siz_fk=0       ; siz_gammaij=0  ; siz_gnorm=0    ; siz_nabla_ij=0
+   siz_phiphj=0   ; siz_phiphjint=0; siz_ph0phiint=0
+   siz_qgrid_shp=0; siz_qijl=0     ; siz_rad_for_spline=0
+   siz_shapefncg=0; siz_sij=0      ; siz_tphitphj=0
+   siz_vee=0      ; siz_vex=0      ; siz_zioneff=0
+   if (full_broadcast) then
+     nn_int=nn_int+18
+     if (associated(pawtab%dltij)) then
+       siz_dltij=size(pawtab%dltij)                   !(lmn2_size)
+       if (siz_dltij/=pawtab%lmn2_size) msg=trim(msg)//' dltij'
+       nn_dpr=nn_dpr+siz_dltij
+     end if
+     if (associated(pawtab%dshpfunc)) then
+       siz_dshpfunc=size(pawtab%dshpfunc)             !(mesh_size,l_size,4)
+       if (siz_dshpfunc/=pawtab%mesh_size*pawtab%l_size*4) msg=trim(msg)//' dshpfunc'
+       nn_dpr=nn_dpr+siz_dshpfunc
+     end if
+     if (associated(pawtab%eijkl)) then
+       siz_eijkl=size(pawtab%eijkl)                   !(lmn2_size,lmn2_size)
+       if (siz_eijkl/=pawtab%lmn2_size*pawtab%lmn2_size) msg=trim(msg)//' eijkl  '
+       nn_dpr=nn_dpr+siz_eijkl
+     end if
+     if (associated(pawtab%fk)) then
+       siz_fk=size(pawtab%fk)                         !(6,4)
+       if (siz_fk/=24) msg=trim(msg)//' fk'
+       nn_dpr=nn_dpr+siz_fk
+     end if
+     if (associated(pawtab%gammaij)) then
+       siz_gammaij=size(pawtab%gammaij)                   !(l_size)
+       if (siz_gammaij/=pawtab%l_size) msg=trim(msg)//' gammaij'
+       nn_dpr=nn_dpr+siz_gammaij
+     end if
+     if (associated(pawtab%gnorm)) then
+       siz_gnorm=size(pawtab%gnorm)                   !(l_size)
+       if (siz_gnorm/=pawtab%l_size) msg=trim(msg)//' gnorm'
+       nn_dpr=nn_dpr+siz_gnorm
+     end if
+     if (associated(pawtab%nabla_ij)) then
+       siz_nabla_ij=size(pawtab%nabla_ij)             !(3,lmn_size,lmn_size)
+       if (siz_nabla_ij/=pawtab%lmn_size) msg=trim(msg)//' nabla_ij'
+       nn_dpr=nn_dpr+siz_nabla_ij
+     end if
+     if (associated(pawtab%phiphj)) then
+       siz_phiphj=size(pawtab%phiphj)                 !(mesh_size,ij_size)
+       if (siz_phiphj/=pawtab%mesh_size*pawtab%ij_size) msg=trim(msg)//' phiphj'
+       nn_dpr=nn_dpr+siz_phiphj
+     end if
+     if (associated(pawtab%phiphjint)) then
+       siz_phiphjint=size(pawtab%phiphjint)           !(ij_proj)
+       if (siz_phiphjint/=pawtab%ij_proj) msg=trim(msg)//' phiphjint'
+       nn_dpr=nn_dpr+siz_phiphjint
+     end if
+     if (associated(pawtab%ph0phiint)) then
+       siz_ph0phiint=size(pawtab%ph0phiint)           !(ij_proj)
+       if (siz_ph0phiint/=pawtab%ij_proj) msg=trim(msg)//' ph0phiint'
+       nn_dpr=nn_dpr+siz_ph0phiint
+     end if
+     if (associated(pawtab%qgrid_shp)) then
+       siz_qgrid_shp=size(pawtab%qgrid_shp)           !(mqgrid_shp)
+       if (siz_qgrid_shp/=pawtab%mqgrid_shp) msg=trim(msg)//' qgrid_shp'
+       nn_dpr=nn_dpr+siz_qgrid_shp
+     end if
+     if (associated(pawtab%qijl)) then
+       siz_qijl=size(pawtab%qijl)                     !(l_size**2,lmn2_size)
+       if (siz_qijl/=pawtab%l_size**2*pawtab%lmn2_size) msg=trim(msg)//' qijl'
+       nn_dpr=nn_dpr+siz_qijl
+     end if
+     if (associated(pawtab%rad_for_spline)) then
+       siz_rad_for_spline=size(pawtab%rad_for_spline) !(mesh_size)
+       if (siz_rad_for_spline/=pawtab%mesh_size) msg=trim(msg)//' rad_for_spline'
+       nn_dpr=nn_dpr+siz_rad_for_spline
+     end if
+     if (associated(pawtab%shapefncg)) then
+       siz_shapefncg=size(pawtab%shapefncg)           !(mqgrid_shp,2,l_size)
+       if (siz_shapefncg/=2*pawtab%mqgrid_shp*pawtab%l_size) msg=trim(msg)//' shapefncg'
+       nn_dpr=nn_dpr+siz_shapefncg
+     end if
+     if (associated(pawtab%sij)) then
+       siz_sij=size(pawtab%sij)                       !(lmn2_size)
+       if (siz_sij/=pawtab%lmn2_size) msg=trim(msg)//' sij'
+       nn_dpr=nn_dpr+siz_sij
+     end if
+     if (associated(pawtab%tphitphj)) then
+       siz_tphitphj=size(pawtab%tphitphj)             !(mesh_size,ij_size)
+       if (siz_tphitphj/=pawtab%mesh_size*pawtab%ij_size) msg=trim(msg)//' tphitphj'
+       nn_dpr=nn_dpr+siz_tphitphj
+     end if
+     if (associated(pawtab%vee)) then
+       siz_vee=size(pawtab%vee)                       !(2*lpawu+1,2*lpawu+1,2*lpawu+1,2*lpawu+1)
+       if (siz_vee/=(2*pawtab%lpawu+1)**4) msg=trim(msg)//' vee'
+       nn_dpr=nn_dpr+siz_vee
+     end if
+     if (associated(pawtab%vex)) then
+       siz_vex=size(pawtab%vex)                       !(2*lexexch+1,2*lexexch+1,2*lexexch+1,2*lexexch+1,4)
+       if (siz_vex/=4*(2*pawtab%lpawu+1)**4) msg=trim(msg)//' vex'
+       nn_dpr=nn_dpr+siz_vex
+     end if
+     if (associated(pawtab%zioneff)) then
+       siz_zioneff=size(pawtab%zioneff)               !(ij_proj)
+       if (siz_zioneff/=pawtab%ij_proj) msg=trim(msg)//' zioneff'
+       nn_dpr=nn_dpr+siz_zioneff
+     end if
+   end if ! full_broadcast
+
+!Datastructures (read from psp file)
+!-------------------------------------------------------------------------
+   siz_wvl_pngau=0 ; siz_wvl_parg=0 ; siz_wvl_pfac=0
+   siz_wvlpaw=0
+   nn_int=nn_int+1
+   if (associated(pawtab%wvl)) then
+     siz_wvlpaw=1
+     nn_int=nn_int+3
+!    wvl%npspcode_init_guess,wvl%ptotgau
+     nn_int=nn_int+2
+     if (associated(pawtab%wvl%pngau)) then
+       siz_wvl_pngau=size(pawtab%wvl%pngau)         !(basis_size)
+       if (siz_wvl_pngau/=pawtab%basis_size) msg=trim(msg)//' wvl_pngau'
+       nn_int_arr=nn_int_arr+siz_wvl_pngau
+     end if
      if (associated(pawtab%wvl%parg)) then
-       nn=nn+size(pawtab%wvl%parg)
+       siz_wvl_parg=size(pawtab%wvl%parg)          !(2,ptotgau)
+       if (siz_wvl_parg/=2*pawtab%wvl%ptotgau) msg=trim(msg)//' wvl_parg'
+       nn_dpr_arr=nn_dpr_arr+siz_wvl_parg
      end if
      if (associated(pawtab%wvl%pfac)) then
-       nn=nn+size(pawtab%wvl%pfac)
+       siz_wvl_pfac=size(pawtab%wvl%pfac )         !(2,ptotgau)
+       if (siz_wvl_pfac/=2*pawtab%wvl%ptotgau) msg=trim(msg)//' wvl_pfac'
+       nn_dpr_arr=nn_dpr_arr+siz_wvl_pfac
      end if
    end if
-   isz1_tproj=0
-   if(associated(pawtab%tproj)) then
-     nn=nn+size(pawtab%tproj)
-     isz1_tproj=size(pawtab%tproj,1)
+
+!Datastructures (depending on the parameters of the calculation)
+!-------------------------------------------------------------------------
+   siz_wvl_rholoc_rad=0 ; siz_wvl_rholoc_d=0
+   if (full_broadcast) then
+     nn_int=nn_int+2
+     if (associated(pawtab%wvl)) then
+!      wvl%rholoc%msz
+       nn_int=nn_int+1
+       if (pawtab%wvl%rholoc%msz>0) then
+         if (associated(pawtab%wvl%rholoc%rad)) then
+           siz_wvl_rholoc_rad=size(pawtab%wvl%rholoc%rad) !(msz)
+           if (siz_wvl_rholoc_rad/=pawtab%wvl%rholoc%msz) msg=trim(msg)//' wvl_rholoc_rad'
+           nn_dpr_arr=nn_dpr_arr+siz_wvl_rholoc_rad
+         end if
+         if (associated(pawtab%wvl%rholoc%d)) then
+           siz_wvl_rholoc_d=size(pawtab%wvl%rholoc%d)     !(msz,4)
+           if (siz_wvl_rholoc_d/=4*pawtab%wvl%rholoc%msz) msg=trim(msg)//' wvl_rholoc_d'
+           nn_dpr_arr=nn_dpr_arr+siz_wvl_rholoc_d
+         end if
+       end if
+     end if
+   end if ! full_broadcast
+
+!  Are the sizes OK ?
+   if (trim(msg)/='') then
+     write(msg0,'(3a)') &
+&     'There is a problem with the size of the following array(s):',ch10,trim(msg) 
+     MSG_BUG(msg0)
    end if
+
+ end if ! me=0
+
+!Broadcast the sizes of buffers
+!=========================================================================
+
+ if (me==0) then
+   nn(1)=nn_int ; nn(2)=nn_int_arr
+   nn(3)=nn_dpr ; nn(4)=nn_dpr_arr
+ end if
+ call xcast_mpi(nn,0,comm_mpi,ierr)
+ if (me/=0) then
+   nn_int=nn(1) ; nn_int_arr=nn(2)
+   nn_dpr=nn(3) ; nn_dpr_arr=nn(4)
  end if
 
-!Broadcast the integers
- ABI_ALLOCATE(list_int,(27))
- if(me==0) then
-   list_int(1)=pawtab%basis_size
-   list_int(2)=pawtab%lmn_size
-   list_int(3)=pawtab%l_size
-   list_int(4)=pawtab%lmn2_size
-   list_int(5)=pawtab%shape_type
-   list_int(6)=pawtab%shape_lambda
-   list_int(7)=pawtab%has_vhnzc
-   list_int(8)=pawtab%usetcore
-   list_int(9)=pawtab%usexcnhat
-   list_int(10)=pawtab%has_tvale
-   list_int(11)=pawtab%has_vhtnzc
-   list_int(12)=pawtab%mqgrid
-   list_int(13)=pawtab%has_shapefncg
-   list_int(14)=pawtab%has_kij
-   list_int(15)=pawtab%core_mesh_size
-   list_int(16)=pawtab%tnvale_mesh_size
-   list_int(17)=pawtab%has_wvl
-   list_int(18)=pawtab%wvl%ptotgau
-   list_int(19)=pawtab%wvl%rholoc%msz
-   list_int(20)=pawtab%wvl%npspcode_init_guess
-   list_int(21)=isz2_tcoredens
-   list_int(22)=isz1_tvalespl
-   list_int(23)=isz2_tvalespl
-   list_int(24)=isz2_rholoc_d
-   list_int(25)=isz1_tproj
-   list_int(26)=nn
-   list_int(27)=nn_int
- end if
+!Broadcast all the integer: sizes, integer scalars, integer arrays
+!=========================================================================
+
+ ABI_ALLOCATE(list_int,(nn_int+nn_int_arr))
+
+!Fill the buffer of the sender
+!-------------------------------------------------------------------------
+ if (me==0) then
+   ii=1
+
+!First the data read from a psp file
+!...................................
+
+!Sizes of arrays (read from psp file)
+   list_int(ii)=siz_indlmn  ;ii=ii+1
+   list_int(ii)=siz_orbitals  ;ii=ii+1
+   list_int(ii)=siz_coredens  ;ii=ii+1
+   list_int(ii)=siz_dij0  ;ii=ii+1
+   list_int(ii)=siz_kij  ;ii=ii+1
+   list_int(ii)=siz_phi  ;ii=ii+1
+   list_int(ii)=siz_rhoij0  ;ii=ii+1
+   list_int(ii)=siz_shape_alpha  ;ii=ii+1
+   list_int(ii)=siz_shape_q  ;ii=ii+1
+   list_int(ii)=siz_shapefunc  ;ii=ii+1
+   list_int(ii)=siz_tcoredens  ;ii=ii+1
+   list_int(ii)=siz_tcorespl  ;ii=ii+1
+   list_int(ii)=siz_tphi  ;ii=ii+1
+   list_int(ii)=siz_tproj  ;ii=ii+1
+   list_int(ii)=siz_tvalespl  ;ii=ii+1
+   list_int(ii)=siz_vhtnzc  ;ii=ii+1
+   list_int(ii)=siz_vhnzc  ;ii=ii+1
+   list_int(ii)=siz_wvlpaw  ;ii=ii+1
+!Integers (read from psp file)
+   list_int(ii)=pawtab%basis_size  ;ii=ii+1
+   list_int(ii)=pawtab%has_kij  ;ii=ii+1
+   list_int(ii)=pawtab%has_shapefncg  ;ii=ii+1
+   list_int(ii)=pawtab%has_nabla  ;ii=ii+1
+   list_int(ii)=pawtab%has_tproj  ;ii=ii+1
+   list_int(ii)=pawtab%has_tvale  ;ii=ii+1
+   list_int(ii)=pawtab%has_vhtnzc  ;ii=ii+1
+   list_int(ii)=pawtab%has_vhnzc  ;ii=ii+1
+   list_int(ii)=pawtab%has_wvl  ;ii=ii+1
+   list_int(ii)=pawtab%ij_size  ;ii=ii+1
+   list_int(ii)=pawtab%l_size  ;ii=ii+1
+   list_int(ii)=pawtab%lmn_size  ;ii=ii+1
+   list_int(ii)=pawtab%lmn2_size  ;ii=ii+1
+   list_int(ii)=pawtab%mesh_size  ;ii=ii+1
+   list_int(ii)=pawtab%core_mesh_size  ;ii=ii+1
+   list_int(ii)=pawtab%tnvale_mesh_size  ;ii=ii+1
+   list_int(ii)=pawtab%mqgrid  ;ii=ii+1
+   list_int(ii)=pawtab%shape_lambda  ;ii=ii+1
+   list_int(ii)=pawtab%shape_type  ;ii=ii+1
+   list_int(ii)=pawtab%usetcore  ;ii=ii+1
+   list_int(ii)=pawtab%usexcnhat  ;ii=ii+1
+!Integer arrays (read from psp file)
+   if (siz_indlmn>0) then
+     list_int(ii:ii+siz_indlmn-1)=reshape(pawtab%indlmn,(/siz_indlmn/))
+     ii=ii+siz_indlmn
+   end if
+   if (siz_orbitals>0) then
+     list_int(ii:ii+siz_orbitals-1)=pawtab%orbitals(1:siz_orbitals)
+     ii=ii+siz_orbitals
+   end if
+!Integers in datastructures (read from psp file)
+   if (siz_wvlpaw==1) then
+     list_int(ii)=siz_wvl_pngau  ;ii=ii+1
+     list_int(ii)=siz_wvl_parg  ;ii=ii+1
+     list_int(ii)=siz_wvl_pfac  ;ii=ii+1
+     list_int(ii)=pawtab%wvl%npspcode_init_guess  ;ii=ii+1
+     list_int(ii)=pawtab%wvl%ptotgau  ;ii=ii+1
+     if (siz_wvl_pngau>0) then
+       list_int(ii:ii+siz_wvl_pngau-1)=pawtab%wvl%pngau(1:siz_wvl_pngau)
+       ii=ii+siz_wvl_pngau
+     end if
+   end if
+
+!Then the data initialized later
+!...................................
+   if (full_broadcast) then
+
+!Sizes of arrays
+     list_int(ii)=siz_indklmn  ;ii=ii+1
+     list_int(ii)=siz_klmntomn  ;ii=ii+1
+     list_int(ii)=siz_kmix  ;ii=ii+1
+     list_int(ii)=siz_lnproju  ;ii=ii+1
+     list_int(ii)=siz_dltij  ;ii=ii+1
+     list_int(ii)=siz_dshpfunc  ;ii=ii+1
+     list_int(ii)=siz_eijkl  ;ii=ii+1
+     list_int(ii)=siz_fk  ;ii=ii+1
+     list_int(ii)=siz_gammaij ;ii=ii+1
+     list_int(ii)=siz_gnorm  ;ii=ii+1
+     list_int(ii)=siz_nabla_ij  ;ii=ii+1
+     list_int(ii)=siz_phiphj  ;ii=ii+1
+     list_int(ii)=siz_phiphjint  ;ii=ii+1
+     list_int(ii)=siz_ph0phiint  ;ii=ii+1
+     list_int(ii)=siz_qgrid_shp  ;ii=ii+1
+     list_int(ii)=siz_qijl  ;ii=ii+1
+     list_int(ii)=siz_rad_for_spline  ;ii=ii+1
+     list_int(ii)=siz_shapefncg  ;ii=ii+1
+     list_int(ii)=siz_sij  ;ii=ii+1
+     list_int(ii)=siz_tphitphj  ;ii=ii+1
+     list_int(ii)=siz_vee  ;ii=ii+1
+     list_int(ii)=siz_vex  ;ii=ii+1
+     list_int(ii)=siz_zioneff  ;ii=ii+1
+!Integers
+     list_int(ii)=pawtab%ij_proj  ;ii=ii+1
+     list_int(ii)=pawtab%lcut_size  ;ii=ii+1
+     list_int(ii)=pawtab%lexexch  ;ii=ii+1
+     list_int(ii)=pawtab%lmnmix_sz  ;ii=ii+1
+     list_int(ii)=pawtab%lpawu  ;ii=ii+1
+     list_int(ii)=pawtab%mqgrid_shp  ;ii=ii+1
+     list_int(ii)=pawtab%nproju  ;ii=ii+1
+     list_int(ii)=pawtab%useexexch  ;ii=ii+1
+     list_int(ii)=pawtab%usepawu  ;ii=ii+1
+     list_int(ii)=pawtab%usepotzero ;ii=ii+1
+!Integer arrays
+     if (siz_indklmn>0) then
+       list_int(ii:ii+siz_indklmn-1)=reshape(pawtab%indklmn,(/siz_indklmn/))
+       ii=ii+siz_indklmn
+     end if
+     if (siz_klmntomn>0) then
+       list_int(ii:ii+siz_klmntomn-1)=reshape(pawtab%klmntomn,(/siz_klmntomn/))
+       ii=ii+siz_klmntomn
+     end if
+     if (siz_kmix>0) then
+       list_int(ii:ii+siz_kmix-1)=pawtab%kmix(1:siz_kmix)
+       ii=ii+siz_kmix
+     end if
+     if (siz_lnproju>0) then
+       list_int(ii:ii+siz_lnproju-1)=pawtab%lnproju(1:siz_lnproju)
+       ii=ii+siz_lnproju
+     end if
+!Integers in datastructures
+     if (siz_wvlpaw==1) then
+       list_int(ii)=siz_wvl_rholoc_rad  ;ii=ii+1
+       list_int(ii)=siz_wvl_rholoc_d  ;ii=ii+1
+       list_int(ii)=pawtab%wvl%rholoc%msz  ;ii=ii+1
+     end if
+   end if ! full_broadcast
+   ii=ii-1
+
+   if (ii/=nn_int+nn_int_arr) then
+     msg='the number of loaded integers is not correct!'
+     MSG_BUG(msg)
+   end if
+
+ end if ! me=0
+
+!Perfom the communication
+!-------------------------------------------------------------------------
 
  call xcast_mpi(list_int,0,comm_mpi,ierr)
 
- if(me/=0) then
-   pawtab%basis_size=list_int(1)
-   pawtab%lmn_size=list_int(2)
-   pawtab%l_size=list_int(3)
-   pawtab%lmn2_size=list_int(4)
-   pawtab%shape_type=list_int(5)
-   pawtab%shape_lambda=list_int(6)
-   pawtab%has_vhnzc=list_int(7)
-   pawtab%usetcore=list_int(8)
-   pawtab%usexcnhat=list_int(9)
-   pawtab%has_tvale=list_int(10)
-   pawtab%has_vhtnzc=list_int(11)
-   pawtab%mqgrid=list_int(12)
-   pawtab%has_shapefncg=list_int(13)
-   pawtab%has_kij=list_int(14)
-   pawtab%core_mesh_size=list_int(15)
-   pawtab%tnvale_mesh_size=list_int(16)
-   pawtab%has_wvl=list_int(17)
-   pawtab%wvl%ptotgau=list_int(18)
-   pawtab%wvl%rholoc%msz=list_int(19)
-   pawtab%wvl%npspcode_init_guess=list_int(20)
-   isz2_tcoredens=list_int(21)
-   isz1_tvalespl=list_int(22)
-   isz2_tvalespl=list_int(23)
-   isz2_rholoc_d=list_int(24)
-   isz1_tproj=list_int(25)
-   nn=list_int(26)
-   nn_int=list_int(27)
- end if
+!Fill the receiver from the buffer
+!-------------------------------------------------------------------------
+ if (me/=0) then
+   ii=1
+
+!First the data read from a psp file
+!...................................
+
+!Sizes of arrays (read from psp file)
+   siz_indlmn=list_int(ii)  ;ii=ii+1
+   siz_orbitals=list_int(ii)  ;ii=ii+1
+   siz_coredens=list_int(ii)  ;ii=ii+1
+   siz_dij0=list_int(ii)  ;ii=ii+1
+   siz_kij=list_int(ii)  ;ii=ii+1
+   siz_phi=list_int(ii)  ;ii=ii+1
+   siz_rhoij0=list_int(ii)  ;ii=ii+1
+   siz_shape_alpha=list_int(ii)  ;ii=ii+1
+   siz_shape_q=list_int(ii)  ;ii=ii+1
+   siz_shapefunc=list_int(ii)  ;ii=ii+1
+   siz_tcoredens=list_int(ii)  ;ii=ii+1
+   siz_tcorespl=list_int(ii)  ;ii=ii+1
+   siz_tphi=list_int(ii)  ;ii=ii+1
+   siz_tproj=list_int(ii)  ;ii=ii+1
+   siz_tvalespl=list_int(ii)  ;ii=ii+1
+   siz_vhtnzc=list_int(ii)  ;ii=ii+1
+   siz_vhnzc=list_int(ii)  ;ii=ii+1
+   siz_wvlpaw=list_int(ii)  ;ii=ii+1
+!Integers (read from psp file)
+   pawtab%basis_size=list_int(ii)  ;ii=ii+1
+   pawtab%has_kij=list_int(ii)  ;ii=ii+1
+   pawtab%has_shapefncg=list_int(ii)  ;ii=ii+1
+   pawtab%has_nabla=list_int(ii)  ;ii=ii+1
+   pawtab%has_tproj=list_int(ii)  ;ii=ii+1
+   pawtab%has_tvale=list_int(ii)  ;ii=ii+1
+   pawtab%has_vhtnzc=list_int(ii)  ;ii=ii+1
+   pawtab%has_vhnzc=list_int(ii)  ;ii=ii+1
+   pawtab%has_wvl=list_int(ii)  ;ii=ii+1
+   pawtab%ij_size=list_int(ii)  ;ii=ii+1
+   pawtab%l_size=list_int(ii)  ;ii=ii+1
+   pawtab%lmn_size=list_int(ii)  ;ii=ii+1
+   pawtab%lmn2_size=list_int(ii)  ;ii=ii+1
+   pawtab%mesh_size=list_int(ii)  ;ii=ii+1
+   pawtab%core_mesh_size=list_int(ii)  ;ii=ii+1
+   pawtab%tnvale_mesh_size=list_int(ii)  ;ii=ii+1
+   pawtab%mqgrid=list_int(ii)  ;ii=ii+1
+   pawtab%shape_lambda=list_int(ii)  ;ii=ii+1
+   pawtab%shape_type=list_int(ii)  ;ii=ii+1
+   pawtab%usetcore=list_int(ii)  ;ii=ii+1
+   pawtab%usexcnhat=list_int(ii)  ;ii=ii+1
+!Integer arrays (read from psp file)
+   if (associated(pawtab%indlmn)) then
+     ABI_DEALLOCATE(pawtab%indlmn)
+   end if
+   if (siz_indlmn>0) then
+     ABI_ALLOCATE(pawtab%indlmn,(6,pawtab%lmn_size))
+     pawtab%indlmn=reshape(list_int(ii:ii+siz_indlmn-1),(/6,pawtab%lmn_size/))
+     ii=ii+siz_indlmn
+   end if
+   if (associated(pawtab%orbitals)) then
+     ABI_DEALLOCATE(pawtab%orbitals)
+   end if
+   if (siz_orbitals>0) then
+     ABI_ALLOCATE(pawtab%orbitals,(pawtab%basis_size))
+     pawtab%orbitals=list_int(ii:ii+pawtab%basis_size-1)
+     ii=ii+siz_orbitals
+   end if
+!Integers in datastructures (read from psp file)
+   if (siz_wvlpaw==1) then
+     call wvlpaw_allocate(pawtab%wvl)
+     siz_wvl_pngau=list_int(ii)  ;ii=ii+1
+     siz_wvl_parg=list_int(ii)  ;ii=ii+1
+     siz_wvl_pfac=list_int(ii)  ;ii=ii+1
+     pawtab%wvl%npspcode_init_guess=list_int(ii)  ;ii=ii+1
+     pawtab%wvl%ptotgau=list_int(ii)  ;ii=ii+1
+     if (associated(pawtab%wvl%pngau)) then
+       ABI_DEALLOCATE(pawtab%wvl%pngau)
+     end if
+     if (siz_wvl_pngau>0) then
+       ABI_ALLOCATE(pawtab%wvl%pngau,(pawtab%basis_size))
+       pawtab%wvl%pngau=list_int(ii:ii+pawtab%basis_size-1)
+       ii=ii+siz_wvl_pngau
+     end if
+   end if
+
+!Then the data initialized later
+!...................................
+   if (full_broadcast) then
+
+!Sizes of arrays
+     siz_indklmn=list_int(ii)  ;ii=ii+1
+     siz_klmntomn=list_int(ii)  ;ii=ii+1
+     siz_kmix=list_int(ii)  ;ii=ii+1
+     siz_lnproju=list_int(ii)  ;ii=ii+1
+     siz_dltij=list_int(ii)  ;ii=ii+1
+     siz_dshpfunc=list_int(ii)  ;ii=ii+1
+     siz_eijkl=list_int(ii)  ;ii=ii+1
+     siz_fk=list_int(ii)  ;ii=ii+1
+     siz_gammaij=list_int(ii)  ;ii=ii+1
+     siz_gnorm=list_int(ii)  ;ii=ii+1
+     siz_nabla_ij=list_int(ii)  ;ii=ii+1
+     siz_phiphj=list_int(ii)  ;ii=ii+1
+     siz_phiphjint=list_int(ii)  ;ii=ii+1
+     siz_ph0phiint=list_int(ii)  ;ii=ii+1
+     siz_qgrid_shp=list_int(ii)  ;ii=ii+1
+     siz_qijl=list_int(ii)  ;ii=ii+1
+     siz_rad_for_spline=list_int(ii)  ;ii=ii+1
+     siz_shapefncg=list_int(ii)  ;ii=ii+1
+     siz_sij=list_int(ii)  ;ii=ii+1
+     siz_tphitphj=list_int(ii)  ;ii=ii+1
+     siz_vee=list_int(ii)  ;ii=ii+1
+     siz_vex=list_int(ii)  ;ii=ii+1
+     siz_zioneff=list_int(ii)  ;ii=ii+1
+!Integers
+     pawtab%ij_proj=list_int(ii)  ;ii=ii+1
+     pawtab%lcut_size=list_int(ii)  ;ii=ii+1
+     pawtab%lexexch=list_int(ii)  ;ii=ii+1
+     pawtab%lmnmix_sz=list_int(ii)  ;ii=ii+1
+     pawtab%lpawu=list_int(ii)  ;ii=ii+1
+     pawtab%mqgrid_shp=list_int(ii)  ;ii=ii+1
+     pawtab%nproju=list_int(ii)  ;ii=ii+1
+     pawtab%useexexch=list_int(ii)  ;ii=ii+1
+     pawtab%usepawu=list_int(ii)  ;ii=ii+1
+     pawtab%usepotzero=list_int(ii) ;ii=ii+1
+!Integer arrays
+     if (associated(pawtab%indklmn)) then
+       ABI_DEALLOCATE(pawtab%indklmn)
+     end if
+     if (siz_indklmn>0) then
+       ABI_ALLOCATE(pawtab%indklmn,(8,pawtab%lmn2_size))
+       pawtab%indklmn=reshape(list_int(ii:ii+siz_indklmn-1),(/8,pawtab%lmn2_size/))
+       ii=ii+siz_indklmn
+     end if
+     if (associated(pawtab%klmntomn)) then
+       ABI_DEALLOCATE(pawtab%klmntomn)
+     end if
+     if (siz_klmntomn>0) then
+       ABI_ALLOCATE(pawtab%klmntomn,(4,pawtab%lmn2_size))
+       pawtab%klmntomn=reshape(list_int(ii:ii+siz_klmntomn-1),(/4,pawtab%lmn2_size/))
+       ii=ii+siz_klmntomn
+     end if
+     if (associated(pawtab%kmix)) then
+       ABI_DEALLOCATE(pawtab%kmix)
+     end if
+     if (siz_kmix>0) then
+       ABI_ALLOCATE(pawtab%kmix,(pawtab%lmnmix_sz))
+       pawtab%kmix=list_int(ii:ii+pawtab%lmnmix_sz-1)
+       ii=ii+siz_kmix
+     end if
+     if (associated(pawtab%lnproju)) then
+       ABI_DEALLOCATE(pawtab%lnproju)
+     end if
+     if (siz_lnproju>0) then
+       ABI_ALLOCATE(pawtab%lnproju,(pawtab%nproju))
+       pawtab%lnproju=list_int(ii:ii+pawtab%nproju-1)
+       ii=ii+siz_lnproju
+     end if
+!Integers in datastructures
+     if (siz_wvlpaw==1) then
+       siz_wvl_rholoc_rad=list_int(ii)  ;ii=ii+1
+       siz_wvl_rholoc_d=list_int(ii)  ;ii=ii+1
+       pawtab%wvl%rholoc%msz=list_int(ii)  ;ii=ii+1
+     end if
+   end if ! full_broadcast
+   ii=ii-1
+
+   if (ii/=nn_int+nn_int_arr) then
+     msg='the number of broadcasted integers is not correct!'
+     MSG_BUG(msg)
+   end if
+
+ end if ! me/=0
  ABI_DEALLOCATE(list_int)
 
-!Broadcast integer arrays:
- if(nn_int>0) then
-   ABI_ALLOCATE(list_int,(nn_int))
-   if(me==0) then
-     indx=1
-     if(pawtab%wvl%ptotgau>0) then
-       isz1=pawtab%basis_size
-       if(.not. associated(pawtab%wvl%pngau)) then
-         message='wvl%pngau is not associated'
-         call wrtout(std_out,message,'COLL')
-         call leave_new('COLL')
-       end if
-       if(size(pawtab%wvl%pngau) /= isz1) then
-         message='pngau invalid size'
-         call wrtout(std_out,message,'COLL')
-         call leave_new('COLL')
-       end if
-       list_int(1:isz1)=pawtab%wvl%pngau(1:isz1)
-       indx=indx+isz1
+!Broadcast all the reals
+!=========================================================================
+
+ ABI_ALLOCATE(list_dpr,(nn_dpr+nn_dpr_arr))
+
+!Fill the buffer of the sender
+!-------------------------------------------------------------------------
+ if (me==0) then
+   ii=1
+
+!First the data read from a psp file
+!...................................
+
+!Reals (read from psp file)
+   list_dpr(ii)=pawtab%beta    ;ii=ii+1
+   list_dpr(ii)=pawtab%dncdq0  ;ii=ii+1
+   list_dpr(ii)=pawtab%d2ncdq0  ;ii=ii+1
+   list_dpr(ii)=pawtab%dnvdq0  ;ii=ii+1
+   list_dpr(ii)=pawtab%exccore  ;ii=ii+1
+   list_dpr(ii)=pawtab%rpaw  ;ii=ii+1
+   list_dpr(ii)=pawtab%rshp  ;ii=ii+1
+   list_dpr(ii)=pawtab%rcore  ;ii=ii+1
+   list_dpr(ii)=pawtab%shape_sigma  ;ii=ii+1
+!Reals arrays (read from psp file)
+   if (siz_coredens>0) then
+     list_dpr(ii:ii+siz_coredens-1)=pawtab%coredens(1:siz_coredens)
+     ii=ii+siz_coredens
+   end if
+   if (siz_dij0>0) then
+     list_dpr(ii:ii+siz_dij0-1)=pawtab%dij0(1:siz_dij0)
+     ii=ii+siz_dij0
+   end if
+   if (siz_kij>0) then
+     list_dpr(ii:ii+siz_kij-1)=pawtab%kij(1:siz_kij)
+     ii=ii+siz_kij
+   end if
+   if (siz_phi>0) then
+     list_dpr(ii:ii+siz_phi-1)=reshape(pawtab%phi,(/siz_phi/))
+     ii=ii+siz_phi
+   end if
+   if (siz_rhoij0>0) then
+     list_dpr(ii:ii+siz_rhoij0-1)=pawtab%rhoij0(1:siz_rhoij0)
+     ii=ii+siz_rhoij0
+   end if
+   if (siz_shape_alpha>0) then
+     list_dpr(ii:ii+siz_shape_alpha-1)=reshape(pawtab%shape_alpha,(/siz_shape_alpha/))
+     ii=ii+siz_shape_alpha
+   end if
+   if (siz_shape_q>0) then
+     list_dpr(ii:ii+siz_shape_q-1)=reshape(pawtab%shape_q,(/siz_shape_q/))
+     ii=ii+siz_shape_q
+   end if
+   if (siz_shapefunc>0) then
+     list_dpr(ii:ii+siz_shapefunc-1)=reshape(pawtab%shapefunc,(/siz_shapefunc/))
+     ii=ii+siz_shapefunc
+   end if
+   if (siz_tcoredens>0) then
+     list_dpr(ii:ii+siz_tcoredens-1)=reshape(pawtab%tcoredens,(/siz_tcoredens/))
+     ii=ii+siz_tcoredens
+   end if
+   if (siz_tcorespl>0) then
+     list_dpr(ii:ii+siz_tcorespl-1)=reshape(pawtab%tcorespl,(/siz_tcorespl/))
+     ii=ii+siz_tcorespl
+   end if
+   if (siz_tphi>0) then
+     list_dpr(ii:ii+siz_tphi-1)=reshape(pawtab%tphi,(/siz_tphi/))
+     ii=ii+siz_tphi
+   end if
+   if (siz_tproj>0) then
+     list_dpr(ii:ii+siz_tproj-1)=reshape(pawtab%tproj,(/siz_tproj/))
+     ii=ii+siz_tproj
+   end if
+   if (siz_tvalespl>0) then
+     list_dpr(ii:ii+siz_tvalespl-1)=reshape(pawtab%tvalespl,(/siz_tvalespl/))
+     ii=ii+siz_tvalespl
+   end if
+   if (siz_vhtnzc>0) then
+     list_dpr(ii:ii+siz_vhtnzc-1)=pawtab%vhtnzc(1:siz_vhtnzc)
+     ii=ii+siz_vhtnzc
+   end if
+   if (siz_vhnzc>0) then
+     list_dpr(ii:ii+siz_vhnzc-1)=pawtab%vhnzc(1:siz_vhnzc)
+     ii=ii+siz_vhnzc
+   end if
+!Reals in datastructures (read from psp file)
+   if (siz_wvlpaw==1) then
+     if (siz_wvl_parg>0) then
+       list_dpr(ii:ii+siz_wvl_parg-1)=reshape(pawtab%wvl%parg,(/siz_wvl_parg/))
+       ii=ii+siz_wvl_parg
      end if
-     isz1=pawtab%basis_size
-     if(.not.associated(pawtab%orbitals)) then
-       message='pawtab%orbitals is not associated'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+     if (siz_wvl_pfac>0) then
+       list_dpr(ii:ii+siz_wvl_pfac-1)=reshape(pawtab%wvl%parg,(/siz_wvl_pfac/))
+       ii=ii+siz_wvl_pfac
      end if
-     if(size(pawtab%orbitals)/=isz1) then
-       message='pawtab%orbitals: wrong size'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
-     end if
-     list_int(indx:indx+isz1-1)=pawtab%orbitals(:)
-     indx=indx+isz1
-     isz1=6*pawtab%lmn_size
-     if(.not.associated(pawtab%indlmn)) then
-       message='pawtab%indlmn is not associated'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
-     end if
-     if(size(pawtab%orbitals)/=isz1) then
-       message='pawtab%orbitals: wrong size'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
-     end if
-     list_int(indx:indx+isz1-1)=reshape(pawtab%indlmn,(/6*pawtab%lmn_size/))
-     indx=indx+isz1
    end if
 
-   call xcast_mpi(list_int,0,comm_mpi,ierr)
+!Then the data initialized later
+!...................................
+   if (full_broadcast) then
 
-   if(me/=0) then
-     indx=1
-     if(pawtab%wvl%ptotgau>0) then
-       if(associated(pawtab%wvl%pngau)) then
-         ABI_DEALLOCATE(pawtab%wvl%pngau)
+!Reals
+     list_dpr(ii)=pawtab%exchmix  ;ii=ii+1
+     list_dpr(ii)=pawtab%f4of2_sla  ;ii=ii+1
+     list_dpr(ii)=pawtab%f6of2_sla  ;ii=ii+1
+     list_dpr(ii)=pawtab%jpawu  ;ii=ii+1
+     list_dpr(ii)=pawtab%upawu  ;ii=ii+1
+!Reals arrays
+     if (siz_dltij>0) then
+       list_dpr(ii:ii+siz_dltij-1)=pawtab%dltij(1:siz_dltij)
+       ii=ii+siz_dltij
+     end if
+     if (siz_dshpfunc>0) then
+       list_dpr(ii:ii+siz_dshpfunc-1)=reshape(pawtab%dshpfunc,(/siz_dshpfunc/))
+       ii=ii+siz_dshpfunc
+     end if
+     if (siz_eijkl>0) then
+       list_dpr(ii:ii+siz_eijkl-1)=reshape(pawtab%eijkl,(/siz_eijkl/))
+       ii=ii+siz_eijkl
+     end if
+     if (siz_fk>0) then
+       list_dpr(ii:ii+siz_fk-1)=reshape(pawtab%fk,(/siz_fk/))
+       ii=ii+siz_fk
+     end if
+     if (siz_gammaij>0) then
+       list_dpr(ii:ii+siz_gammaij-1)=pawtab%gammaij(1:siz_gammaij)
+       ii=ii+siz_gammaij
+     end if
+     if (siz_gnorm>0) then
+       list_dpr(ii:ii+siz_gnorm-1)=pawtab%gnorm(1:siz_gnorm)
+       ii=ii+siz_gnorm
+     end if
+     if (siz_nabla_ij>0) then
+       list_dpr(ii:ii+siz_nabla_ij-1)=reshape(pawtab%nabla_ij,(/siz_nabla_ij/))
+       ii=ii+siz_nabla_ij
+     end if
+     if (siz_phiphj>0) then
+       list_dpr(ii:ii+siz_phiphj-1)=reshape(pawtab%phiphj,(/siz_phiphj/))
+       ii=ii+siz_phiphj
+     end if
+     if (siz_phiphjint>0) then
+       list_dpr(ii:ii+siz_phiphjint-1)=pawtab%phiphjint(1:siz_phiphjint)
+       ii=ii+siz_phiphjint
+     end if
+     if (siz_ph0phiint>0) then
+       list_dpr(ii:ii+siz_ph0phiint-1)=pawtab%ph0phiint(1:siz_ph0phiint)
+       ii=ii+siz_ph0phiint
+     end if
+     if (siz_qgrid_shp>0) then
+       list_dpr(ii:ii+siz_qgrid_shp-1)=pawtab%qgrid_shp(1:siz_qgrid_shp)
+       ii=ii+siz_qgrid_shp
+     end if
+     if (siz_qijl>0) then
+       list_dpr(ii:ii+siz_qijl-1)=reshape(pawtab%qijl,(/siz_qijl/))
+       ii=ii+siz_qijl
+     end if
+     if (siz_rad_for_spline>0) then
+       list_dpr(ii:ii+siz_rad_for_spline-1)=pawtab%rad_for_spline(1:siz_rad_for_spline)
+       ii=ii+siz_rad_for_spline
+     end if
+     if (siz_shapefncg>0) then
+       list_dpr(ii:ii+siz_shapefncg-1)=reshape(pawtab%shapefncg,(/siz_shapefncg/))
+       ii=ii+siz_shapefncg
+     end if
+     if (siz_sij>0) then
+       list_dpr(ii:ii+siz_sij-1)=pawtab%sij(1:siz_sij)
+       ii=ii+siz_sij
+     end if
+     if (siz_tphitphj>0) then
+       list_dpr(ii:ii+siz_tphitphj-1)=reshape(pawtab%tphitphj,(/siz_tphitphj/))
+       ii=ii+siz_tphitphj
+     end if
+     if (siz_vee>0) then
+       list_dpr(ii:ii+siz_vee-1)=reshape(pawtab%vee,(/siz_vee/))
+       ii=ii+siz_vee
+     end if
+     if (siz_vex>0) then
+       list_dpr(ii:ii+siz_vex-1)=reshape(pawtab%vex,(/siz_vex/))
+       ii=ii+siz_vex
+     end if
+     if (siz_zioneff>0) then
+       list_dpr(ii:ii+siz_zioneff-1)=pawtab%zioneff(1:siz_zioneff)
+       ii=ii+siz_zioneff
+     end if
+!Reals in datastructures
+     if (siz_wvlpaw==1) then
+       if (siz_wvl_rholoc_rad>0) then
+         list_dpr(ii:ii+siz_wvl_rholoc_rad-1)=pawtab%wvl%rholoc%rad(1:siz_wvl_rholoc_rad)
+         ii=ii+siz_wvl_rholoc_rad
        end if
-       isz1=pawtab%basis_size
-       ABI_ALLOCATE(pawtab%wvl%pngau,(isz1))
-       pawtab%wvl%pngau(:)=list_int(indx:indx+isz1-1)
-       indx=indx+isz1
+       if (siz_wvl_rholoc_d>0) then
+         list_dpr(ii:ii+siz_wvl_rholoc_d-1)=reshape(pawtab%wvl%rholoc%d,(/siz_wvl_rholoc_d/))
+         ii=ii+siz_wvl_rholoc_d
+       end if
      end if
-     if(associated(pawtab%orbitals)) then
-       ABI_DEALLOCATE(pawtab%orbitals)
-     end if
-     isz1=pawtab%basis_size
-     ABI_ALLOCATE(pawtab%orbitals,(isz1))
-     pawtab%orbitals(:)=list_int(indx:indx+isz1-1)
-     indx=indx+isz1
-     if(associated(pawtab%indlmn)) then
-       ABI_DEALLOCATE(pawtab%indlmn)
-     end if
-     isz1=6*pawtab%lmn_size
-     ABI_ALLOCATE(pawtab%indlmn,(6,pawtab%lmn_size))
-     pawtab%indlmn(:,:)=reshape(list_int(indx:indx+isz1-1),(/6,pawtab%lmn_size/))
-     indx=indx+isz1
-   end if
-   ABI_DEALLOCATE(list_int)
- end if
 
-!Broadcast the reals
- ABI_ALLOCATE(list_dpr,(nn))
- if(me==0) then
-   list_dpr(1)=pawtab%shape_sigma
-   list_dpr(2)=pawtab%rshp
-   list_dpr(3)=pawtab%rpaw
-   list_dpr(4)=pawtab%dncdq0
-   list_dpr(5)=pawtab%dnvdq0
-   list_dpr(6)=pawtab%exccore
-   list_dpr(7)=pawtab%rcore
-   indx=nn_scalars+1
-   if (associated(pawtab%coredens)) then
-     isz1=size(pawtab%coredens)
-     if(isz1/=pawtab%core_mesh_size) then
-       message='coredens: sz1 /= pawtab%core_mesh_size'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
-     end if
-     list_dpr(indx:indx+isz1-1)=pawtab%coredens(:)
-     indx=indx+isz1
+   end if ! full_broadcast
+   ii=ii-1
+
+   if (ii/=nn_dpr+nn_dpr_arr) then
+     msg='the number of loaded reals is not correct!'
+     MSG_BUG(msg)
    end if
-   if (associated(pawtab%tcoredens)) then
-     isz1=size(pawtab%tcoredens,1)
-     if(isz1/=pawtab%core_mesh_size) then
-       message='tcoredens: sz1 /= pawtab%core_mesh_size '
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
-     end if
-     if(isz2_tcoredens /=1 .and. isz2_tcoredens /=6) then
-       message='tcoredens: sz2 /= 1 and 6 '
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
-     end if
-     do ii=1,isz2_tcoredens
-       list_dpr(indx:indx+isz1-1)=pawtab%tcoredens(1:isz1,ii)
-       indx=indx+isz1
-     end do
-   end if
-   if (associated(pawtab%rhoij0)) then
-     isz1=size(pawtab%rhoij0)
-     if(isz1/=pawtab%lmn2_size) then
-       message='rhoij0: sz1 /= pawtab%lmn2_size '
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
-     end if
-     list_dpr(indx:indx+isz1-1)=pawtab%rhoij0(:)
-     indx=indx+isz1
-   end if
-   if (associated(pawtab%dij0)) then
-     isz1=size(pawtab%dij0)
-     if(isz1/=pawtab%lmn2_size) then
-       message='dij0: sz1 /= pawtab%lmn2_size'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
-     end if
-     list_dpr(indx:indx+isz1-1)=pawtab%dij0(:)
-     indx=indx+isz1
-   end if
-   if (associated(pawtab%kij)) then
-     isz1=size(pawtab%kij)
-     if(isz1/=pawtab%lmn2_size) then
-       message='kij: sz1 /= pawtab%lmn2_size'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
-     end if
-     list_dpr(indx:indx+isz1-1)=pawtab%kij(:)
-     indx=indx+isz1
-   end if
-   if (associated(pawtab%vhtnzc)) then
-     isz1=size(pawtab%vhtnzc)
-     if(isz1/=pawtab%mesh_size) then
-       message='vhtnzc: sz1 /= pawtab%mesh_size'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
-     end if
-     list_dpr(indx:indx+isz1-1)=pawtab%vhtnzc(:)
-     indx=indx+isz1
-   end if
-   if (associated(pawtab%vhnzc)) then
-     isz1=size(pawtab%vhnzc)
-     if(isz1/=pawtab%mesh_size) then
-       message='vhnzc: sz1 /= pawtab%mesh_size'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
-     end if
-     list_dpr(indx:indx+isz1-1)=pawtab%vhnzc(:)
-     indx=indx+isz1
-   end if
-   if (associated(pawtab%shape_alpha)) then
-     isz1=size(pawtab%shape_alpha)
-     if(isz1/=2*pawtab%l_size) then
-       message='shape_alpha: sz1 /= 2*pawtab%l_size'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
-     end if
-     list_dpr(indx:indx+isz1-1)=reshape(pawtab%shape_alpha(:,:),(/isz1/))
-     indx=indx+isz1
-   end if
-   if (associated(pawtab%shape_q)) then
-     isz1=size(pawtab%shape_q)
-     if(isz1/=2*pawtab%l_size) then
-       message='shape_q: sz1 /= 2*pawtab%l_size'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
-     end if
-     list_dpr(indx:indx+isz1-1)=reshape(pawtab%shape_q(:,:),(/isz1/))
-     indx=indx+isz1
-   end if
-   if (associated(pawtab%shapefunc)) then
-     isz1=size(pawtab%shapefunc)
-     if(isz1/=pawtab%mesh_size*pawtab%l_size) then
-       message='shapefunc: sz1 /= pawtab%mesh_size*pawtab%l_size'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
-     end if
-     list_dpr(indx:indx+isz1-1)=reshape(pawtab%shapefunc(:,:),(/isz1/))
-     indx=indx+isz1
-   end if
-   if (associated(pawtab%phi)) then
-     isz1=size(pawtab%phi)
-     if(isz1/=pawtab%mesh_size*pawtab%basis_size) then
-       message='phi: sz1 /= pawtab%mesh_size*pawtab%basis_size'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
-     end if
-     list_dpr(indx:indx+isz1-1)=reshape(pawtab%phi(:,:),(/isz1/))
-     indx=indx+isz1
-   end if
-   if (associated(pawtab%tphi)) then
-     isz1=size(pawtab%tphi)
-     if(isz1/=pawtab%mesh_size*pawtab%basis_size) then
-       message='tphi: sz1 /= pawtab%mesh_size*pawtab%basis_size'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
-     end if
-     list_dpr(indx:indx+isz1-1)=reshape(pawtab%tphi(:,:),(/isz1/))
-     indx=indx+isz1
-   end if
-   if (associated(pawtab%tcorespl)) then
-     isz1=size(pawtab%tcorespl)
-     if(isz1/=2*pawtab%mqgrid) then
-       message='tcorespl: sz1 /= 2*pawtab%mqgrid'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
-     end if
-     list_dpr(indx:indx+isz1-1)=reshape(pawtab%tcorespl(:,:),(/isz1/))
-     indx=indx+isz1
-   end if
-!  tvalespl:
-   if (associated(pawtab%tvalespl)) then
-     if(isz2_tvalespl /=1 .and. isz2_tvalespl /=2) then
-       message='tvalespl: sz2 /= 1 and 2'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
-     end if
-     do ii=1,isz2_tvalespl
-       list_dpr(indx:indx+isz1_tvalespl-1)=pawtab%tvalespl(1:isz1_tvalespl,ii)
-       indx=indx+isz1_tvalespl
-     end do
-   end if
-!  rholoc:
-   if(pawtab%wvl%rholoc%msz<0) then
-     message='pawtab%wvl%rholoc%msz < 0'
-     call wrtout(std_out,message,'COLL')
-     call leave_new('COLL')
-   end if
-   if(pawtab%wvl%rholoc%msz>0) then
-     if(.not. associated(pawtab%wvl%rholoc%d) .or. &
-&       .not. associated(pawtab%wvl%rholoc%rad)) then
-       message='rholoc%msz>0 and pawtab%wvl%rholoc not associated'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
-     end if
-     if( size(pawtab%wvl%rholoc%rad,1) .ne. pawtab%wvl%rholoc%msz .or.&
-&        size(pawtab%wvl%rholoc%d,1) .ne. pawtab%wvl%rholoc%msz ) then
-       message='wrong size in pawtab%wvl%rholoc'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
-     end if
-     isz1=pawtab%wvl%rholoc%msz
-     do ii=1,isz2_rholoc_d
-       list_dpr(indx:indx+isz1-1)=pawtab%wvl%rholoc%d(1:isz1,ii)
-       indx=indx+isz1
-     end do
-     list_dpr(indx:indx+isz1-1)=pawtab%wvl%rholoc%rad(1:isz1)
-     indx=indx+isz1
-   end if
-   if(pawtab%wvl%ptotgau>0) then
-     if(.not. associated(pawtab%wvl%parg) .or. &
-&       .not. associated(pawtab%wvl%pfac)) then
-       message='wvl%ptotgau>0 and related arrays not associated'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
-     end if
-     if(size(pawtab%wvl%parg,1) .ne. 2 .or. &
-&       size(pawtab%wvl%parg,2) .ne. pawtab%wvl%ptotgau .or. &
-&       size(pawtab%wvl%pfac,1) .ne. 2 .or. &
-&       size(pawtab%wvl%pfac,2) .ne. pawtab%wvl%ptotgau) then
-       message='wrong size in pawtab%wvl objects'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
-     end if
-     isz2=pawtab%wvl%ptotgau
-     do ii=1,isz2
-       list_dpr(indx:indx+1)=pawtab%wvl%parg(1:2,ii)
-       indx=indx+2
-     end do
-     do ii=1,isz2
-       list_dpr(indx:indx+1)=pawtab%wvl%pfac(1:2,ii)
-       indx=indx+2
-     end do
-   end if
-!  tproj
-   if(isz1_tproj>0) then
-     isz2=pawtab%basis_size; isz1=isz1_tproj
-     do ii=1,isz2
-       list_dpr(indx:indx+isz1-1)=pawtab%tproj(:,ii)
-       indx=indx+isz1
-     end do
-   end if
- end if
+
+ end if ! me=0
+ 
+!Perfom the communication
+!-------------------------------------------------------------------------
 
  call xcast_mpi(list_dpr,0,comm_mpi,ierr)
 
- if(me/=0) then
-   pawtab%shape_sigma=list_dpr(1)
-   pawtab%rshp       =list_dpr(2)
-   pawtab%rpaw       =list_dpr(3)
-   pawtab%dncdq0     =list_dpr(4)
-   pawtab%dnvdq0     =list_dpr(5)
-   pawtab%exccore    =list_dpr(6)
-   pawtab%rcore      =list_dpr(7)
-   indx=nn_scalars+1
+!Fill the receiver from the buffer
+!-------------------------------------------------------------------------
+ if (me/=0) then
+   ii=1
+
+!First the data read from a psp file
+!...................................
+
+!Reals (read from psp file)
+   pawtab%beta=list_dpr(ii)    ;ii=ii+1
+   pawtab%dncdq0=list_dpr(ii)  ;ii=ii+1
+   pawtab%d2ncdq0=list_dpr(ii)  ;ii=ii+1
+   pawtab%dnvdq0=list_dpr(ii)  ;ii=ii+1
+   pawtab%exccore=list_dpr(ii)  ;ii=ii+1
+   pawtab%rpaw=list_dpr(ii)  ;ii=ii+1
+   pawtab%rshp=list_dpr(ii)  ;ii=ii+1
+   pawtab%rcore=list_dpr(ii)  ;ii=ii+1
+   pawtab%shape_sigma=list_dpr(ii)  ;ii=ii+1
+!Reals arrays (read from psp file)
    if (associated(pawtab%coredens)) then
      ABI_DEALLOCATE(pawtab%coredens)
-     isz1=pawtab%core_mesh_size
-     ABI_ALLOCATE(pawtab%coredens,(isz1))
-     pawtab%coredens(:)=list_dpr(indx:indx+isz1-1)
-     indx=indx+isz1
    end if
-!  tcoredens:
-   if (associated(pawtab%tcoredens)) then
-     ABI_DEALLOCATE(pawtab%tcoredens)
-   end if
-   if(isz2_tcoredens>0) then
-     isz1=pawtab%core_mesh_size
-     ABI_ALLOCATE(pawtab%tcoredens,(isz1,isz2_tcoredens))
-     do ii=1,isz2_tcoredens
-       pawtab%tcoredens(:,ii)=list_dpr(indx:indx+isz1-1)
-       indx=indx+isz1
-     end do
-   end if
-   if (associated(pawtab%rhoij0)) then
-     ABI_DEALLOCATE(pawtab%rhoij0)
-     isz1=pawtab%lmn2_size
-     ABI_ALLOCATE(pawtab%rhoij0,(isz1))
-     pawtab%rhoij0(:)=list_dpr(indx:indx+isz1-1)
-     indx=indx+isz1
+   if (siz_coredens>0) then
+     ABI_ALLOCATE(pawtab%coredens,(pawtab%core_mesh_size))
+     pawtab%coredens=list_dpr(ii:ii+pawtab%core_mesh_size-1)
+     ii=ii+siz_coredens
    end if
    if (associated(pawtab%dij0)) then
      ABI_DEALLOCATE(pawtab%dij0)
-     isz1=pawtab%lmn2_size
-     ABI_ALLOCATE(pawtab%dij0,(isz1))
-     pawtab%dij0(:)=list_dpr(indx:indx+isz1-1)
-     indx=indx+isz1
+   end if
+   if (siz_dij0>0) then
+     ABI_ALLOCATE(pawtab%dij0,(pawtab%lmn2_size))
+     pawtab%dij0=list_dpr(ii:ii+pawtab%lmn2_size-1)
+     ii=ii+siz_dij0
    end if
    if (associated(pawtab%kij)) then
      ABI_DEALLOCATE(pawtab%kij)
-     isz1=pawtab%lmn2_size
-     ABI_ALLOCATE(pawtab%kij,(isz1))
-     pawtab%kij(:)=list_dpr(indx:indx+isz1-1)
-     indx=indx+isz1
    end if
-   if (associated(pawtab%vhtnzc)) then
-     ABI_DEALLOCATE(pawtab%vhtnzc)
-     isz1=pawtab%mesh_size
-     ABI_ALLOCATE(pawtab%vhtnzc,(isz1))
-     pawtab%vhtnzc(:)=list_dpr(indx:indx+isz1-1)
-     indx=indx+isz1
-   end if
-   if (associated(pawtab%vhnzc)) then
-     ABI_DEALLOCATE(pawtab%vhnzc)
-     isz1=pawtab%mesh_size
-     ABI_ALLOCATE(pawtab%vhnzc,(isz1))
-     pawtab%vhnzc(:)=list_dpr(indx:indx+isz1-1)
-     indx=indx+isz1
-   end if
-   if (associated(pawtab%shape_alpha)) then
-     ABI_DEALLOCATE(pawtab%shape_alpha)
-     isz1=pawtab%l_size
-     ABI_ALLOCATE(pawtab%shape_alpha,(2,isz1))
-     pawtab%shape_alpha(:,:)=reshape(list_dpr(indx:indx+2*isz1-1),(/2,isz1/))
-     indx=indx+2*isz1
-   end if
-   if (associated(pawtab%shape_q)) then
-     ABI_DEALLOCATE(pawtab%shape_q)
-     isz1=pawtab%l_size
-     ABI_ALLOCATE(pawtab%shape_q,(2,isz1))
-     pawtab%shape_q(:,:)=reshape(list_dpr(indx:indx+2*isz1-1),(/2,isz1/))
-     indx=indx+2*isz1
-   end if
-   if (associated(pawtab%shapefunc)) then
-     ABI_DEALLOCATE(pawtab%shapefunc)
-     isz1=pawtab%mesh_size
-     isz2=pawtab%l_size
-     ABI_ALLOCATE(pawtab%shapefunc,(isz1,isz2))
-     pawtab%shapefunc(:,:)=reshape(list_dpr(indx:indx+isz1*isz2-1),(/isz1,isz2/))
-     indx=indx+isz1*isz2
+   if (siz_kij>0) then
+     ABI_ALLOCATE(pawtab%kij,(pawtab%lmn2_size))
+     pawtab%kij=list_dpr(ii:ii+pawtab%lmn2_size-1)
+     ii=ii+siz_kij
    end if
    if (associated(pawtab%phi)) then
      ABI_DEALLOCATE(pawtab%phi)
-     isz1=pawtab%mesh_size
-     isz2=pawtab%basis_size
-     ABI_ALLOCATE(pawtab%phi,(isz1,isz2))
-     pawtab%phi(:,:)=reshape(list_dpr(indx:indx+isz1*isz2-1),(/isz1,isz2/))
-     indx=indx+isz1*isz2
    end if
-   if (associated(pawtab%tphi)) then
-     ABI_DEALLOCATE(pawtab%tphi)
-     isz1=pawtab%mesh_size
-     isz2=pawtab%basis_size
-     ABI_ALLOCATE(pawtab%tphi,(isz1,isz2))
-     pawtab%tphi(:,:)=reshape(list_dpr(indx:indx+isz1*isz2-1),(/isz1,isz2/))
-     indx=indx+isz1*isz2
+   if (siz_phi>0) then
+     ABI_ALLOCATE(pawtab%phi,(pawtab%mesh_size,pawtab%basis_size))
+     pawtab%phi=reshape(list_dpr(ii:ii+siz_phi-1),(/pawtab%mesh_size,pawtab%basis_size/))
+     ii=ii+siz_phi
+   end if
+   if (associated(pawtab%rhoij0)) then
+     ABI_DEALLOCATE(pawtab%rhoij0)
+   end if
+   if (siz_rhoij0>0) then
+     ABI_ALLOCATE(pawtab%rhoij0,(pawtab%lmn2_size))
+     pawtab%rhoij0=list_dpr(ii:ii+pawtab%lmn2_size-1)
+     ii=ii+siz_rhoij0
+   end if
+   if (associated(pawtab%shape_alpha)) then
+     ABI_DEALLOCATE(pawtab%shape_alpha)
+   end if
+   if (siz_shape_alpha>0) then
+     ABI_ALLOCATE(pawtab%shape_alpha,(2,pawtab%l_size))
+     pawtab%shape_alpha=reshape(list_dpr(ii:ii+siz_shape_alpha-1),(/2,pawtab%l_size/))
+     ii=ii+siz_shape_alpha
+   end if
+   if (associated(pawtab%shape_q)) then
+     ABI_DEALLOCATE(pawtab%shape_q)
+   end if
+   if (siz_shape_q>0) then
+     ABI_ALLOCATE(pawtab%shape_q,(2,pawtab%l_size))
+     pawtab%shape_q=reshape(list_dpr(ii:ii+siz_shape_q-1),(/2,pawtab%l_size/))
+     ii=ii+siz_shape_q
+   end if
+   if (associated(pawtab%shapefunc)) then
+     ABI_DEALLOCATE(pawtab%shapefunc)
+   end if
+   if (siz_shapefunc>0) then
+     ABI_ALLOCATE(pawtab%shapefunc,(pawtab%mesh_size,pawtab%l_size))
+     pawtab%shapefunc=reshape(list_dpr(ii:ii+siz_shapefunc-1),(/pawtab%mesh_size,pawtab%l_size/))
+     ii=ii+siz_shapefunc
+   end if
+   if (associated(pawtab%tcoredens)) then
+     ABI_DEALLOCATE(pawtab%tcoredens)
+   end if
+   if (siz_tcoredens>0) then
+     sz2=siz_tcoredens/pawtab%core_mesh_size
+     ABI_ALLOCATE(pawtab%tcoredens,(pawtab%core_mesh_size,sz2))
+     pawtab%tcoredens=reshape(list_dpr(ii:ii+siz_tcoredens-1),(/pawtab%core_mesh_size,sz2/))
+     ii=ii+siz_tcoredens
    end if
    if (associated(pawtab%tcorespl)) then
      ABI_DEALLOCATE(pawtab%tcorespl)
-     isz1=pawtab%mqgrid
-     ABI_ALLOCATE(pawtab%tcorespl,(isz1,2))
-     pawtab%tcorespl(:,:)=reshape(list_dpr(indx:indx+2*isz1-1),(/isz1,2/))
-     indx=indx+2*isz1
    end if
-!  tvalespl:
+   if (siz_tcorespl>0) then
+     ABI_ALLOCATE(pawtab%tcorespl,(pawtab%mqgrid,2))
+     pawtab%tcorespl=reshape(list_dpr(ii:ii+siz_tcorespl-1),(/pawtab%mqgrid,2/))
+     ii=ii+siz_tcorespl
+   end if
+   if (associated(pawtab%tphi)) then
+     ABI_DEALLOCATE(pawtab%tphi)
+   end if
+   if (siz_tphi>0) then
+     ABI_ALLOCATE(pawtab%tphi,(pawtab%mesh_size,pawtab%basis_size))
+     pawtab%tphi=reshape(list_dpr(ii:ii+siz_tphi-1),(/pawtab%mesh_size,pawtab%basis_size/))
+     ii=ii+siz_tphi
+   end if
+   if (associated(pawtab%tproj)) then
+     ABI_DEALLOCATE(pawtab%tproj)
+   end if
+   if (siz_tproj>0) then
+     sz1=siz_tproj/pawtab%basis_size
+     ABI_ALLOCATE(pawtab%tproj,(sz1,pawtab%basis_size))
+     pawtab%tproj=reshape(list_dpr(ii:ii+siz_tproj-1),(/sz1,pawtab%basis_size/))
+     ii=ii+siz_tproj
+   end if
    if (associated(pawtab%tvalespl)) then
      ABI_DEALLOCATE(pawtab%tvalespl)
    end if
-   if(isz2_tvalespl>0) then
-     ABI_ALLOCATE(pawtab%tvalespl,(isz1_tvalespl,isz2_tvalespl))
-     do ii=1,isz2_tvalespl
-       pawtab%tvalespl(1:isz1_tvalespl,ii)=list_dpr(indx:indx+isz1_tvalespl-1)
-       indx=indx+isz1_tvalespl
-     end do
+   if (siz_tvalespl>0) then
+     sz1=siz_tvalespl/2
+     ABI_ALLOCATE(pawtab%tvalespl,(sz1,2))
+     pawtab%tvalespl=reshape(list_dpr(ii:ii+siz_tvalespl-1),(/sz1,2/))
+     ii=ii+siz_tvalespl
    end if
-!  rholoc:
-   if(pawtab%wvl%rholoc%msz>0) then
-     if(associated(pawtab%wvl%rholoc%d)) then
-       ABI_DEALLOCATE(pawtab%wvl%rholoc%d)
-     end if
-     if(associated(pawtab%wvl%rholoc%rad)) then
-       ABI_DEALLOCATE(pawtab%wvl%rholoc%rad)
-     end if
-     isz1=pawtab%wvl%rholoc%msz
-     ABI_ALLOCATE(pawtab%wvl%rholoc%d,(isz1,isz2_rholoc_d))
-     ABI_ALLOCATE(pawtab%wvl%rholoc%rad,(isz1))
-     do ii=1,isz2_rholoc_d
-       pawtab%wvl%rholoc%d(1:isz1,ii)=&
-&       list_dpr(indx:indx+isz1-1)
-       indx=indx+isz1
-     end do
-     pawtab%wvl%rholoc%rad(1:isz1)=&
-&     list_dpr(indx:indx+isz1-1)
-     indx=indx+isz1
+   if (associated(pawtab%vhtnzc)) then
+     ABI_DEALLOCATE(pawtab%vhtnzc)
    end if
-   if(pawtab%wvl%ptotgau>0) then
-     if(associated(pawtab%wvl%parg)) then
+   if (siz_vhtnzc>0) then
+     ABI_ALLOCATE(pawtab%vhtnzc,(pawtab%mesh_size))
+     pawtab%vhtnzc=list_dpr(ii:ii+pawtab%mesh_size-1)
+     ii=ii+siz_vhtnzc
+   end if
+   if (associated(pawtab%vhnzc)) then
+     ABI_DEALLOCATE(pawtab%vhnzc)
+   end if
+   if (siz_vhnzc>0) then
+     ABI_ALLOCATE(pawtab%vhnzc,(pawtab%mesh_size))
+     pawtab%vhnzc=list_dpr(ii:ii+pawtab%mesh_size-1)
+     ii=ii+siz_vhnzc
+   end if
+!Reals in datastructures (read from psp file)
+   if (siz_wvlpaw==1) then
+     if (associated(pawtab%wvl%parg)) then
        ABI_DEALLOCATE(pawtab%wvl%parg)
      end if
-     if(associated(pawtab%wvl%pfac)) then
+     if (siz_wvl_parg>0) then
+       ABI_ALLOCATE(pawtab%wvl%parg,(2,pawtab%wvl%ptotgau))
+       pawtab%wvl%parg=reshape(list_dpr(ii:ii+siz_wvl_parg-1),(/2,pawtab%wvl%ptotgau/))
+       ii=ii+siz_wvl_parg
+     end if
+     if (associated(pawtab%wvl%pfac)) then
        ABI_DEALLOCATE(pawtab%wvl%pfac)
      end if
-     isz2=pawtab%wvl%ptotgau
-     ABI_ALLOCATE(pawtab%wvl%parg,(2,isz2))
-     ABI_ALLOCATE(pawtab%wvl%pfac,(2,isz2))
-     do ii=1,isz2
-       pawtab%wvl%parg(1:2,ii)=list_dpr(indx:indx+1)
-       indx=indx+2
-     end do
-     do ii=1,isz2
-       pawtab%wvl%pfac(1:2,ii)=list_dpr(indx:indx+1)
-       indx=indx+2
-     end do
-   end if
-!  tproj
-   if(isz1_tproj>0) then
-     if(associated(pawtab%tproj)) then
-       ABI_DEALLOCATE(pawtab%tproj)
+     if (siz_wvl_pfac>0) then
+       ABI_ALLOCATE(pawtab%wvl%pfac,(2,pawtab%wvl%ptotgau))
+       pawtab%wvl%pfac=reshape(list_dpr(ii:ii+siz_wvl_pfac-1),(/2,pawtab%wvl%ptotgau/))
+       ii=ii+siz_wvl_pfac
      end if
-     isz1=isz1_tproj; isz2=pawtab%basis_size
-     ABI_ALLOCATE(pawtab%tproj,(isz1,isz2))
-     do ii=1,isz2
-       pawtab%tproj(:,ii)=list_dpr(indx:indx+isz1-1)
-       indx=indx+isz1
-     end do
    end if
- end if
+
+!Then the data initialized later
+!...................................
+   if (full_broadcast) then
+
+!Reals
+     pawtab%exchmix=list_dpr(ii)  ;ii=ii+1
+     pawtab%f4of2_sla=list_dpr(ii)  ;ii=ii+1
+     pawtab%f6of2_sla=list_dpr(ii)  ;ii=ii+1
+     pawtab%jpawu=list_dpr(ii)  ;ii=ii+1
+     pawtab%upawu=list_dpr(ii)  ;ii=ii+1
+!Reals arrays
+     if (associated(pawtab%dltij)) then
+       ABI_DEALLOCATE(pawtab%dltij)
+     end if
+     if (siz_dltij>0) then
+       ABI_ALLOCATE(pawtab%dltij,(pawtab%lmn2_size))
+       pawtab%dltij=list_dpr(ii:ii+pawtab%lmn2_size-1)
+       ii=ii+siz_dltij
+     end if
+     if (associated(pawtab%dshpfunc)) then
+       ABI_DEALLOCATE(pawtab%dshpfunc)
+     end if
+     if (siz_dshpfunc>0) then
+       ABI_ALLOCATE(pawtab%dshpfunc,(pawtab%mesh_size,pawtab%l_size,4))
+       pawtab%dshpfunc=reshape(list_dpr(ii:ii+siz_dshpfunc-1),(/pawtab%mesh_size,pawtab%l_size,4/))
+       ii=ii+siz_dshpfunc
+     end if
+     if (associated(pawtab%eijkl)) then
+       ABI_DEALLOCATE(pawtab%eijkl)
+     end if
+     if (siz_eijkl>0) then
+       ABI_ALLOCATE(pawtab%eijkl,(pawtab%lmn2_size,pawtab%lmn2_size))
+       pawtab%eijkl=reshape(list_dpr(ii:ii+siz_eijkl-1),(/pawtab%lmn2_size,pawtab%lmn2_size/))
+       ii=ii+siz_eijkl
+     end if
+     if (associated(pawtab%fk)) then
+       ABI_DEALLOCATE(pawtab%fk)
+     end if
+     if (siz_fk>0) then
+       ABI_ALLOCATE(pawtab%fk,(6,4))
+       pawtab%fk=reshape(list_dpr(ii:ii+siz_fk-1),(/6,4/))
+       ii=ii+siz_fk
+     end if
+     if (associated(pawtab%gammaij)) then
+       ABI_DEALLOCATE(pawtab%gammaij)
+     end if
+     if (siz_gammaij>0) then
+       ABI_ALLOCATE(pawtab%gammaij,(pawtab%l_size))
+       pawtab%gammaij=list_dpr(ii:ii+pawtab%l_size-1)
+       ii=ii+siz_gammaij
+     end if
+     if (associated(pawtab%gnorm)) then
+       ABI_DEALLOCATE(pawtab%gnorm)
+     end if
+     if (siz_gnorm>0) then
+       ABI_ALLOCATE(pawtab%gnorm,(pawtab%l_size))
+       pawtab%gnorm=list_dpr(ii:ii+pawtab%l_size-1)
+       ii=ii+siz_gnorm
+     end if
+     if (associated(pawtab%nabla_ij)) then
+       ABI_DEALLOCATE(pawtab%nabla_ij)
+     end if
+     if (siz_nabla_ij>0) then
+       ABI_ALLOCATE(pawtab%nabla_ij,(3,pawtab%lmn_size,pawtab%lmn_size))
+       pawtab%nabla_ij=reshape(list_dpr(ii:ii+siz_nabla_ij-1),(/3,pawtab%lmn_size,pawtab%lmn_size/))
+       ii=ii+siz_nabla_ij
+     end if
+     if (associated(pawtab%phiphj)) then
+       ABI_DEALLOCATE(pawtab%phiphj)
+     end if
+     if (siz_phiphj>0) then
+       ABI_ALLOCATE(pawtab%phiphj,(pawtab%mesh_size,pawtab%ij_size))
+       pawtab%phiphj=reshape(list_dpr(ii:ii+siz_phiphj-1),(/pawtab%mesh_size,pawtab%ij_size/))
+       ii=ii+siz_phiphj
+     end if
+     if (associated(pawtab%phiphjint)) then
+       ABI_DEALLOCATE(pawtab%phiphjint)
+     end if
+     if (siz_phiphjint>0) then
+       ABI_ALLOCATE(pawtab%phiphjint,(pawtab%ij_proj))
+       pawtab%phiphjint=list_dpr(ii:ii+pawtab%ij_proj-1)
+       ii=ii+siz_phiphjint
+     end if
+     if (associated(pawtab%ph0phiint)) then
+       ABI_DEALLOCATE(pawtab%ph0phiint)
+     end if
+     if (siz_ph0phiint>0) then
+       ABI_ALLOCATE(pawtab%ph0phiint,(pawtab%ij_proj))
+       pawtab%ph0phiint=list_dpr(ii:ii+pawtab%ij_proj-1)
+       ii=ii+siz_ph0phiint
+     end if
+     if (associated(pawtab%qgrid_shp)) then
+       ABI_DEALLOCATE(pawtab%qgrid_shp)
+     end if
+     if (siz_qgrid_shp>0) then
+       ABI_ALLOCATE(pawtab%qgrid_shp,(pawtab%mqgrid_shp))
+       pawtab%qgrid_shp=list_dpr(ii:ii+pawtab%mqgrid_shp-1)
+       ii=ii+siz_qgrid_shp
+     end if
+     if (associated(pawtab%qijl)) then
+       ABI_DEALLOCATE(pawtab%qijl)
+     end if
+     if (siz_qijl>0) then
+       ABI_ALLOCATE(pawtab%qijl,(pawtab%l_size**2,pawtab%lmn2_size))
+       pawtab%qijl=reshape(list_dpr(ii:ii+siz_qijl-1),(/pawtab%l_size**2,pawtab%lmn2_size/))
+       ii=ii+siz_qijl
+     end if
+     if (associated(pawtab%rad_for_spline)) then
+       ABI_DEALLOCATE(pawtab%rad_for_spline)
+     end if
+     if (siz_rad_for_spline>0) then
+       ABI_ALLOCATE(pawtab%rad_for_spline,(pawtab%mesh_size))
+       pawtab%rad_for_spline=list_dpr(ii:ii+pawtab%mesh_size-1)
+       ii=ii+siz_rad_for_spline
+     end if
+     if (associated(pawtab%shapefncg)) then
+       ABI_DEALLOCATE(pawtab%shapefncg)
+     end if
+     if (siz_shapefncg>0) then
+       ABI_ALLOCATE(pawtab%shapefncg,(pawtab%mqgrid_shp,2,pawtab%l_size))
+       pawtab%shapefncg=reshape(list_dpr(ii:ii+siz_shapefncg-1),(/pawtab%mqgrid_shp,2,pawtab%l_size/))
+       ii=ii+siz_shapefncg
+     end if
+     if (associated(pawtab%sij)) then
+       ABI_DEALLOCATE(pawtab%sij)
+     end if
+     if (siz_sij>0) then
+       ABI_ALLOCATE(pawtab%sij,(pawtab%lmn2_size))
+       pawtab%sij=list_dpr(ii:ii+pawtab%lmn2_size-1)
+       ii=ii+siz_sij
+     end if
+     if (associated(pawtab%tphitphj)) then
+       ABI_DEALLOCATE(pawtab%tphitphj)
+     end if
+     if (siz_tphitphj>0) then
+       ABI_ALLOCATE(pawtab%tphitphj,(pawtab%mesh_size,pawtab%ij_size))
+       pawtab%tphitphj=reshape(list_dpr(ii:ii+siz_tphitphj-1),(/pawtab%mesh_size,pawtab%ij_size/))
+       ii=ii+siz_tphitphj
+     end if
+     if (associated(pawtab%vee)) then
+       ABI_DEALLOCATE(pawtab%vee)
+     end if
+     if (siz_vee>0) then
+       sz1=2*pawtab%lpawu+1
+       ABI_ALLOCATE(pawtab%vee,(sz1,sz1,sz1,sz1))
+       pawtab%vee=reshape(list_dpr(ii:ii+siz_vee-1),(/sz1,sz1,sz1,sz1/))
+       ii=ii+siz_vee
+     end if
+     if (associated(pawtab%vex)) then
+       ABI_DEALLOCATE(pawtab%vex)
+     end if
+     if (siz_vex>0) then
+       sz1=2*pawtab%lexexch+1
+       ABI_ALLOCATE(pawtab%vex,(sz1,sz1,sz1,sz1,4))
+       pawtab%vex=reshape(list_dpr(ii:ii+siz_vex-1),(/sz1,sz1,sz1,sz1,4/))
+       ii=ii+siz_vex
+     end if
+     if (associated(pawtab%zioneff)) then
+       ABI_DEALLOCATE(pawtab%zioneff)
+     end if
+     if (siz_zioneff>0) then
+       ABI_ALLOCATE(pawtab%zioneff,(pawtab%ij_proj))
+       pawtab%zioneff=list_dpr(ii:ii+pawtab%ij_proj-1)
+       ii=ii+siz_zioneff
+     end if
+!Reals in datastructures
+     if (siz_wvlpaw==1) then
+       if (associated(pawtab%wvl%rholoc%rad)) then
+         ABI_DEALLOCATE(pawtab%wvl%rholoc%rad)
+       end if
+       if (siz_wvl_rholoc_rad>0) then
+         sz1=pawtab%wvl%rholoc%msz
+         ABI_ALLOCATE(pawtab%wvl%rholoc%rad,(sz1))
+         pawtab%wvl%rholoc%rad=list_dpr(ii:ii+sz1-1)
+         ii=ii+siz_wvl_rholoc_rad
+       end if
+       if (associated(pawtab%wvl%rholoc%d)) then
+         ABI_DEALLOCATE(pawtab%wvl%rholoc%d)
+       end if
+       if (siz_wvl_rholoc_d>0) then
+         sz1=pawtab%wvl%rholoc%msz
+         ABI_ALLOCATE(pawtab%wvl%rholoc%d,(sz1,4))
+         pawtab%wvl%rholoc%d=reshape(list_dpr(ii:ii+siz_wvl_rholoc_d-1),(/sz1,4/))
+         ii=ii+siz_wvl_rholoc_d
+       end if
+     end if
+
+   end if ! full_broadcast
+   ii=ii-1
+
+   if (ii/=nn_dpr+nn_dpr_arr) then
+     msg='the number of broadcasted reals is not correct!'
+     MSG_BUG(msg)
+   end if
+
+ end if ! me/=0
  ABI_DEALLOCATE(list_dpr)
 
 end subroutine pawtab_bcast
+!!***
+
+!----------------------------------------------------------------------
+
+!!****f* m_pawtab/wvlpaw_allocate
+!! NAME
+!!  wvlpaw_allocate
+!!
+!! FUNCTION
+!!  Allocate (if necessary) and nullify content of a wvlpaw pointer
+!!
+!! SIDE EFFECTS
+!!  wvlpaw<type(wvlpaw_type)>=datastructure to be allocated.
+!!  All associated pointer are nullified.
+!!
+!! PARENTS
+!!      m_pawpsp,m_pawtab
+!!
+!! CHILDREN
+!!
+!! SOURCE
+
+subroutine wvlpaw_allocate(wvlpaw)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'wvlpaw_allocate'
+!End of the abilint section
+
+ implicit none
+
+!Arguments ------------------------------------
+ type(wvlpaw_type),pointer :: wvlpaw
+
+! *************************************************************************
+
+ !@wvlpaw_type
+
+ if (.not.associated(wvlpaw)) then
+   ABI_DATATYPE_ALLOCATE(wvlpaw,)
+   call wvlpaw_nullify(wvlpaw)
+ end if
+
+end subroutine wvlpaw_allocate
 !!***
 
 !----------------------------------------------------------------------
@@ -1931,6 +2620,7 @@ end subroutine pawtab_bcast
 !!  All associated pointers are deallocated.
 !!
 !! PARENTS
+!!      m_pawpsp,m_pawtab
 !!
 !! CHILDREN
 !!
@@ -1948,11 +2638,13 @@ subroutine wvlpaw_destroy(wvlpaw)
  implicit none
 
 !Arguments ------------------------------------
- type(wvlpaw_type),intent(inout) :: wvlpaw
+ type(wvlpaw_type),pointer :: wvlpaw
 
 ! *************************************************************************
 
  !@wvlpaw_type
+
+ if (.not.associated(wvlpaw)) return
 
  if(associated(wvlpaw%pngau)) then
    ABI_DEALLOCATE(wvlpaw%pngau)
@@ -1968,6 +2660,8 @@ subroutine wvlpaw_destroy(wvlpaw)
  wvlpaw%ptotgau=0
 
  call wvlpaw_rholoc_destroy(wvlpaw%rholoc)
+
+ ABI_DATATYPE_DEALLOCATE(wvlpaw)
 
 end subroutine wvlpaw_destroy
 !!***
@@ -1985,6 +2679,7 @@ end subroutine wvlpaw_destroy
 !!  wvlpaw=datastructure to be nullified
 !!
 !! PARENTS
+!!      m_pawtab
 !!
 !! CHILDREN
 !!
@@ -2002,11 +2697,13 @@ subroutine wvlpaw_nullify(wvlpaw)
  implicit none
 
 !Arguments ------------------------------------
- type(wvlpaw_type),intent(inout) :: wvlpaw
+ type(wvlpaw_type),pointer :: wvlpaw
 
 ! *************************************************************************
 
  !@wvlpaw_type
+
+ if (.not.associated(wvlpaw)) return
 
  nullify(wvlpaw%pngau)
  nullify(wvlpaw%parg)
@@ -2034,6 +2731,7 @@ end subroutine wvlpaw_nullify
 !!  All associated pointers are deallocated.
 !!
 !! PARENTS
+!!      m_pawpsp,m_pawtab,psp7wvl1
 !!
 !! CHILDREN
 !!
@@ -2082,6 +2780,7 @@ end subroutine wvlpaw_rholoc_destroy
 !!  wvlpaw_rholoc<type(wvlpaw_rholoc_type)>=datastructure to be nullified.
 !!
 !! PARENTS
+!!      m_pawpsp,m_pawtab
 !!
 !! CHILDREN
 !!

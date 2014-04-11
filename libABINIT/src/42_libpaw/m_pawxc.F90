@@ -1,5 +1,5 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/m_pawxc
+!!****m* ABINIT/m_pawxc
 !! NAME
 !!  m_pawxc
 !!
@@ -7,7 +7,7 @@
 !!  XC+PAW related operations
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2013 ABINIT group (T. Rangel)
+!!  Copyright (C) 2013-2014 ABINIT group (T. Rangel)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -15,22 +15,19 @@
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
-#include "abi_common_for_bigdft.h"
+#include "abi_common.h"
 
 module m_pawxc
 
  use defs_basis
- use m_pawang, only : pawang_type
- use m_pawrad, only: pawrad_type
- use m_pawtab, only: pawtab_type
  use m_errors
-use interfaces_12_hide_mpi
-use interfaces_14_hidewrite
-use interfaces_16_hideleave
  use m_profiling
+
+ use m_pawang, only : pawang_type
+ use m_pawrad, only : pawrad_type, nderiv_gen, pawrad_deducer0, simp_gen
 
  implicit none
 
@@ -73,7 +70,7 @@ CONTAINS
 !! Returns Fxc, Vxc_pos, Vxc_el from input rhor_pos and rhor_el for positron and electrons.
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2013 ABINIT group (GJ,MT,TRangel)
+!! Copyright (C) 1998-2014 ABINIT group (GJ,MT,TRangel)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -119,8 +116,10 @@ CONTAINS
 !!         [5] B. Barbiellini, M.J. Puska, T. Torsti and R.M.Nieminen, Phys. Rev. B 51, 7341 (1994)
 !!
 !! PARENTS
+!!      m_pawxc
 !!
 !! CHILDREN
+!!      drivexc
 !!
 !! SOURCE
 
@@ -133,7 +132,7 @@ subroutine pawxc_xcpositron_wrapper(fnxc,grhoe2,ixcpositron,ngr,npt,posdensity0_
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawxc_xcpositron_wrapper'
- use interfaces_41_xc_lowlevel
+ !use interfaces_41_xc_lowlevel
 !End of the abilint section
 
  implicit none
@@ -200,18 +199,15 @@ subroutine pawxc_xcpositron_wrapper(fnxc,grhoe2,ixcpositron,ngr,npt,posdensity0_
 
  if (gga.and.ixcpositron==2) then 
    msg = 'xcpositron: GGA not yet implemented for ixcpositron=2 !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_ERROR(msg)
  end if
  if (posdensity0_limit.and.ixcpositron==2) then
    msg = 'xcpositron: ixcpositron=2 cannot be treated in the zero positron density limit !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_ERROR(msg)
  end if
  if (ixcpositron/=1.and.ixcpositron/=11.and.ixcpositron/=2.and.ixcpositron/=3.and.ixcpositron/=31) then
    msg = 'xcpositron: unknown electron-positron correlation !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_ERROR(msg)
  end if
 
 !Compute density radii for rhor_el, rhor_pos
@@ -311,8 +307,7 @@ subroutine pawxc_xcpositron_wrapper(fnxc,grhoe2,ixcpositron,ngr,npt,posdensity0_
      nqtf2=(rhoe*sqrt(four*kf/pi))**2
      eps=grhoe2(ipt)/nqtf2
      if (eps<zero) then 
-       call wrtout(std_out,'pawxc_xcpositron_wrapper: problem, negative GGA espilon !','COLL')
-       call leave_new('COLL')
+       MSG_ERROR('pawxc_xcpositron_wrapper: problem, negative GGA espilon !')
      end if
      expgga=exp(-alpha_gga*eps*third)
 
@@ -446,7 +441,7 @@ end subroutine pawxc_xcpositron_wrapper
 !! needed for the allocations depending on the routine which is called from the drivexc routine
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2013 ABINIT group (TD,TRangel,MT)
+!! Copyright (C) 1998-2014 ABINIT group (TD,TRangel,MT)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -468,8 +463,10 @@ end subroutine pawxc_xcpositron_wrapper
 !!  nvxcdgr size of the array dvxcdgr(npts,nvxcdgr) for allocation
 !!
 !! PARENTS
+!!      m_pawxc
 !!
 !! CHILDREN
+!!      drivexc
 !!
 !! SOURCE
 
@@ -483,7 +480,7 @@ subroutine pawxc_size_dvxc_wrapper(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawxc_size_dvxc_wrapper'
- use interfaces_41_xc_lowlevel
+ !use interfaces_41_xc_lowlevel
 !End of the abilint section
 
  implicit none
@@ -588,7 +585,7 @@ end subroutine pawxc_size_dvxc_wrapper
 !! norm of the gradient
 !!
 !! COPYRIGHT
-!! Copyright (C) 2013 ABINIT group (TRangel,MT,)
+!! Copyright (C) 2013-2014 ABINIT group (TRangel,MT,)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -629,8 +626,10 @@ end subroutine pawxc_size_dvxc_wrapper
 !!    described above.
 !!
 !! PARENTS
+!!      m_pawxc
 !!
 !! CHILDREN
+!!      drivexc
 !!
 !! SOURCE
 
@@ -641,7 +640,7 @@ subroutine pawxc_xcmult_wrapper (depsxc,nfft,ngrad,nspden,nspgrad,rhonow)
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawxc_xcmult_wrapper'
- use interfaces_41_xc_lowlevel
+ !use interfaces_41_xc_lowlevel
 !End of the abilint section
 
  implicit none
@@ -704,7 +703,7 @@ end subroutine pawxc_xcmult_wrapper
 !! set it to the value of xc_denpos
 !!
 !! COPYRIGHT
-!! Copyright (C) 2013 ABINIT group (DCA, XG, GMR, TRangel,MT)
+!! Copyright (C) 2013-2014 ABINIT group (DCA, XG, GMR, TRangel,MT)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -742,9 +741,10 @@ end subroutine pawxc_xcmult_wrapper
 !!  charge at the new real space grid points (future work).
 !!
 !! PARENTS
+!!      m_pawxc
 !!
 !! CHILDREN
-!!      wrtout
+!!      drivexc
 !!
 !! SOURCE
 
@@ -755,8 +755,7 @@ subroutine pawxc_mkdenpos_wrapper(iwarn,nfft,nspden,option,rhonow,xc_denpos)
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawxc_mkdenpos_wrapper'
- use interfaces_14_hidewrite
- use interfaces_41_xc_lowlevel
+ !use interfaces_41_xc_lowlevel
 !End of the abilint section
 
  implicit none
@@ -854,19 +853,16 @@ subroutine pawxc_mkdenpos_wrapper(iwarn,nfft,nspden,option,rhonow,xc_denpos)
    end if  ! option
 
  else
-   call wrtout(std_out,'nspden>2 not allowed !','COLL')
-   call leave_new('COLL')
+   MSG_BUG('nspden>2 not allowed !')
  end if ! End choice between non-spin polarized and spin-polarized.
 
  if (numneg>0) then
    if (iwarn==0) then
-     write(message, '(a,a,a,a,i10,a,a,a,es10.2,a,e10.2,a,a,a,a)' ) ch10,&
-&     ' pawxc_mkdenpos_wrapper : WARNING -',ch10,&
-&     '  Density went too small (lower than xc_denpos) at',numneg,' points',ch10,&
-&     '  and was set to xc_denpos=',xc_denpos,'.  Lowest was ',worst,'.',ch10,&
-&     '  Likely due to too low boxcut or too low ecut for',&
-&     ' pseudopotential core charge.'
-     call wrtout(std_out,message,'COLL')
+     write(message,'(a,i10,a,a,a,es10.2,a,e10.2,a,a,a,a)')&
+&     'Density went too small (lower than xc_denpos) at',numneg,' points',ch10,&
+&     'and was set to xc_denpos=',xc_denpos,'.  Lowest was ',worst,'.',ch10,&
+&     'Likely due to too low boxcut or too low ecut for','pseudopotential core charge.'
+     MSG_WARNING(message)
    end if
    iwarn=iwarn+1
  end if
@@ -888,7 +884,7 @@ end subroutine pawxc_mkdenpos_wrapper
 !! Driver of XC functionals.
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2013 ABINIT group (FJ, MT)
+!! Copyright (C) 1998-2014 ABINIT group (FJ, MT)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -944,18 +940,17 @@ end subroutine pawxc_mkdenpos_wrapper
 !!                          kxc(:,3)=d2Exc/drho_dn drho_dn
 !!
 !! PARENTS
-!!      pawdenpot,psp7calc
+!!      m_pawpsp,pawdenpot
 !!
 !! CHILDREN
-!!      drivexc_main,pawxc_mkdenpos_wrapper,nderiv_gen,pawrad_deducer0,simp_gen,pawxc_size_dvxc_wrapper
-!!      timab,pawxc_xcmult_wrapper
+!!      drivexc
 !!
 !! SOURCE
 
 subroutine pawxc(corexc,enxc,enxcdc,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,option,&
 &                pawang,pawrad,rhor,usecore,usexcnhat,vxc,xclevel,xc_denpos)
 
- use m_pawrad, only : pawrad_deducer0, simp_gen, nderiv_gen
+ use m_pawrad, only : pawrad_type, nderiv_gen, pawrad_deducer0, simp_gen
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -996,7 +991,7 @@ subroutine pawxc(corexc,enxc,enxcdc,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,op
 
 ! *************************************************************************
 
-! DBG_ENTER("COLL")
+ DBG_ENTER("COLL")
 
 ! call timab(81,1,tsec)
 
@@ -1005,45 +1000,37 @@ subroutine pawxc(corexc,enxc,enxcdc,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,op
 !----------------------------------------------------------------------
  if(nspden==4.and.nkxc>0) then
    msg='  Kxc for nspden=4 not implemented !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_ERROR(msg)
  end if
  if(nspden==4.and.xclevel==2) then
    msg='  GGA for nspden=4 not implemented !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_ERROR(msg)
  end if
  if(pawang%angl_size==0) then
    msg='  pawang%angl_size=0 !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(msg)
  end if
  if(.not.associated(pawang%ylmr)) then
    msg='  pawang%ylmr must be allocated !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(msg)
  end if
  if(xclevel==2.and.(.not.associated(pawang%ylmrgr))) then
    msg='  pawang%ylmrgr must be allocated !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(msg)
  end if
  if(option==4.or.option==5) then
    if (pawang%angl_size/=1) then
      msg='  When option=4 or 5, pawang%angl_size must be 1 !'
-     call wrtout(std_out,msg,'COLL')
-     call leave_new('COLL')
+     MSG_BUG(msg)
    end if
    if (pawang%ylm_size/=1) then
      msg='  When option=4 or 5, pawang%ylm_size must be 1 !'
-     call wrtout(std_out,msg,'COLL')
-     call leave_new('COLL')
+     MSG_BUG(msg)
    end if
    if (abs(pawang%anginit(1,1)-one)>tol12.or.abs(pawang%anginit(2,1))>tol12.or. &
 &   abs(pawang%anginit(3,1))>tol12) then
      msg='  When option=4 or 5, pawang%anginit must be (1 0 0) !'
-     call wrtout(std_out,msg,'COLL')
-     call leave_new('COLL')
+     MSG_BUG(msg)
    end if
  end if
 
@@ -1066,7 +1053,7 @@ subroutine pawxc(corexc,enxc,enxcdc,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,op
  mgga=0 !metaGGA contributions are not taken into account here
 
  if (xclevel==0.or.ixc==0) then
-   msg='  Note that no xc is applied (ixc=0).'
+   msg='Note that no xc is applied (ixc=0).'
    MSG_WARNING(msg)
 
  else
@@ -1464,7 +1451,7 @@ subroutine pawxc(corexc,enxc,enxcdc,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,op
 
 ! call timab(81,2,tsec)
 
-! DBG_EXIT("COLL")
+ DBG_EXIT("COLL")
 
  end subroutine pawxc
 !!***
@@ -1481,7 +1468,7 @@ subroutine pawxc(corexc,enxc,enxcdc,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,op
 !! Driver of XC functionals.
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2013 ABINIT group (MT,GJ)
+!! Copyright (C) 1998-2014 ABINIT group (MT,GJ)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -1539,7 +1526,7 @@ subroutine pawxc(corexc,enxc,enxcdc,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,op
 !!      pawdenpot
 !!
 !! CHILDREN
-!!      pawxc_mkdenpos_wrapper,simp_gen,wrtout,xcpositron
+!!      drivexc
 !!
 !! SOURCE
 
@@ -1547,13 +1534,12 @@ subroutine pawxcpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmselec
 &                        nhat,nhat_ep,nspden,option,pawang,pawrad,posdensity0_limit,&
 &                        rhor,rhor_ep,usecore,usexcnhat,vxc,xc_denpos)
 
- use m_pawrad, only : simp_gen
+ use m_pawrad, only : pawrad_type, nderiv_gen, pawrad_deducer0, simp_gen
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawxcpositron'
- use interfaces_14_hidewrite
 !End of the abilint section
 
  implicit none
@@ -1585,28 +1571,24 @@ subroutine pawxcpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmselec
 
 ! *************************************************************************
 
-! DBG_ENTER("COLL")
+ DBG_ENTER("COLL")
 
 !----- Check options
  if(ixcpositron==3.or.ixcpositron==31) then
    msg='  GGA is not implemented (use pawxcdev/=0) !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_ERROR(msg)
  end if
  if(calctype/=1.and.calctype/=2) then
    msg='  Invalid value for calctype'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(msg)
  end if
  if(pawang%angl_size==0) then
    msg='  pawang%angl_size=0 !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(msg)
  end if
  if(.not.associated(pawang%ylmr)) then
    msg='  pawang%ylmr must be allocated !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(msg)
  end if
 
 !----------------------------------------------------------------------
@@ -1625,10 +1607,8 @@ subroutine pawxcpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmselec
  if (option<3) vxc(:,:,:)=zero
 
  if (ixcpositron==0) then ! No xc at all is applied (usually for testing)
-   write(msg, '(a,a,a,a)' ) ch10,&
-&   ' pawxcpositron : WARNING -',ch10,&
-&   '  Note that no xc is applied (ixcpositron=0).'
-   call wrtout(std_out,msg,'COLL')
+   msg = 'Note that no xc is applied (ixcpositron=0). Returning'
+   MSG_WARNING(msg)
    return
  end if
 
@@ -1764,7 +1744,7 @@ subroutine pawxcpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmselec
    ABI_DEALLOCATE(rhoarrdc)
  end if
 
-! DBG_EXIT("COLL")
+ DBG_EXIT("COLL")
 
  end subroutine pawxcpositron
 !!***
@@ -1781,7 +1761,7 @@ subroutine pawxcpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmselec
 !! LDA+GGA - USE THE DENSITY OVER A WHOLE SPHERICAL GRID (r,theta,phi)
 !!
 !! COPYRIGHT
-!! Copyright (C) 2009-2013 ABINIT group (MT)
+!! Copyright (C) 2009-2014 ABINIT group (MT)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -1826,10 +1806,10 @@ subroutine pawxcpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmselec
 !!      Input  if option==3
 !!
 !! PARENTS
-!!      pawxc3
+!!      m_pawxc
 !!
 !! CHILDREN
-!!      nderiv_gen,pawrad_deducer0,simp_gen,timab
+!!      drivexc
 !!
 !! SOURCE
 
@@ -1837,7 +1817,7 @@ subroutine pawxc3_gga(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselec
 &                 option,pawang,pawrad,rhor1,usecore,usexcnhat,vxc1,xclevel,&
 &                 d2enxc_im) ! optional
 
- use m_pawrad, only : pawrad_deducer0, simp_gen, nderiv_gen
+ use m_pawrad, only : pawrad_type, nderiv_gen, pawrad_deducer0, simp_gen
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1889,7 +1869,7 @@ subroutine pawxc3_gga(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselec
 
 ! *************************************************************************
 
-! DBG_ENTER("COLL")
+ DBG_ENTER("COLL")
 
 ! call timab(81,1,tsec)
 
@@ -1899,40 +1879,33 @@ subroutine pawxc3_gga(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselec
 
  if(option<0.or.option>3) then
    msg='  Wrong option !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(msg)
  end if
  if(option/=3) then
    if (xclevel==1.and.nkxc/=2*min(nspden,2)-1) then
      msg='  nkxc must be 1 or 3 !'
-     call wrtout(std_out,msg,'COLL')
-     call leave_new('COLL')
+     MSG_BUG(msg)
    end if
    if(xclevel==2.and.nkxc/=23) then
      msg='  nkxc should be 23 for GGA !'
-     call wrtout(std_out,msg,'COLL')
-     call leave_new('COLL')
+     MSG_BUG(msg)
    end if
  end if
  if(nspden==4.and.option/=3) then
    msg='  nspden=4 not implemented (for vxc) !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_ERROR(msg)
  end if
  if(pawang%angl_size==0) then
    msg='  pawang%angl_size=0 !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(msg)
  end if
  if(.not.associated(pawang%ylmr)) then
    msg='  pawang%ylmr must be allocated !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(msg)
  end if
  if(xclevel==2.and.(.not.associated(pawang%ylmrgr))) then
    msg='  pawang%ylmrgr must be allocated !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(msg)
  end if
 
 !----------------------------------------------------------------------
@@ -1952,7 +1925,7 @@ subroutine pawxc3_gga(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselec
 
 !Special case: no XC applied
  if (ixc==0.or.(nkxc==0.and.option/=3)) then
-   msg='  Note that no xc is applied (ixc=0).'
+   msg='Note that no xc is applied (ixc=0). Returning'
    MSG_WARNING(msg)
    return
  end if
@@ -2621,7 +2594,7 @@ subroutine pawxc3_gga(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselec
 
 ! call timab(81,2,tsec)
 
-! DBG_EXIT("COLL")
+ DBG_EXIT("COLL")
 
  end subroutine pawxc3_gga
 !!***
@@ -2638,7 +2611,7 @@ subroutine pawxc3_gga(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselec
 !! LDA ONLY - USE THE DENSITY OVER A WHOLE SPHERICAL GRID (r,theta,phi)
 !!
 !! COPYRIGHT
-!! Copyright (C) 2009-2013 ABINIT group (MT)
+!! Copyright (C) 2009-2014 ABINIT group (MT)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -2686,7 +2659,7 @@ subroutine pawxc3_gga(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselec
 !!      pawdenpot,pawenergy3
 !!
 !! CHILDREN
-!!      pawxc3_gga,simp_gen,timab
+!!      drivexc
 !!
 !! SOURCE
 
@@ -2694,7 +2667,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 &                 option,pawang,pawrad,rhor1,usecore,usexcnhat,vxc1,xclevel,&
 &                 d2enxc_im) ! optional
 
- use m_pawrad, only : simp_gen
+ use m_pawrad, only : pawrad_type, nderiv_gen, pawrad_deducer0, simp_gen
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2732,7 +2705,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 
 ! *************************************************************************
 
-! DBG_ENTER("COLL")
+ DBG_ENTER("COLL")
 
 ! call timab(81,1,tsec)
 
@@ -2742,8 +2715,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 
  if(option<0.or.option>3) then
    msg='  Wrong option !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(msg)
  end if
 !if(xclevel==2) then
  if (.true.) then
@@ -2757,28 +2729,23 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
    end if
    return
    msg='  GGA is not implemented !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_ERROR(msg)
  end if
  if(option/=3.and.nkxc/=2*min(nspden,2)-1) then
    msg='  nkxc must be 1 or 3 !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(msg)
  end if
  if(nspden==4.and.option/=3) then
    msg='  nspden=4 not implemented (for vxc) !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_ERROR(msg)
  end if
  if(pawang%angl_size==0) then
    msg='  pawang%angl_size=0 !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(msg)
  end if
  if(.not.associated(pawang%ylmr)) then
    msg='  pawang%ylmr must be allocated !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(msg)
  end if
 
 !----------------------------------------------------------------------
@@ -2797,7 +2764,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 
 !Special case: no XC applied
  if (ixc==0.or.(nkxc==0.and.option/=3)) then
-   msg='  Note that no xc is applied (ixc=0).'
+   msg='Note that no xc is applied (ixc=0). Returning'
    MSG_WARNING(msg)
    return
  end if
@@ -3067,7 +3034,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 
 ! call timab(81,2,tsec)
 
-! DBG_EXIT("COLL")
+ DBG_EXIT("COLL")
 
  end subroutine pawxc3
 !!***
@@ -3083,7 +3050,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !! Driver of XC functionals. Only treat collinear spins. LDA and GGA
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2013 ABINIT group (FJ,MT)
+!! Copyright (C) 1998-2014 ABINIT group (FJ,MT)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -3116,16 +3083,16 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !!                          kxc(:,3)=d2Exc/drho_dn drho_dn
 !!
 !! PARENTS
-!!      pawxcm
+!!      m_pawxc
 !!
 !! CHILDREN
-!!      drivexc_main,nderiv_gen,pawrad_deducer0,pawxc_size_dvxc_wrapper
+!!      drivexc
 !!
 !! SOURCE
 
  subroutine pawxcsph(exc,exexch,ixc,kxc,nkxc,nrad,nspden,pawrad,rho_updn,vxc,xclevel)
 
- use m_pawrad, only : pawrad_deducer0, nderiv_gen
+ use m_pawrad, only : pawrad_type, nderiv_gen, pawrad_deducer0, simp_gen
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -3159,18 +3126,15 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
    write(msg, '(a,a,a,i0)' )&
 &   ' Only non-spin-polarised or collinear spin-densities are allowed,',ch10,&
 &   ' while the argument nspden=',nspden
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(msg)
  end if
  if(nkxc>3)then
    msg=' nkxc>3 not allowed (GGA) !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_ERROR(msg)
  end if
  if(nrad/=pawrad%mesh_size)then
    msg=' nrad is not equal to radial mesh size !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(msg)
  end if
 
 !Compute sizes of arrays and flags
@@ -3351,7 +3315,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !! Driver of XC functionals. Only treat collinear spins. LDA and GGA
 !!
 !! COPYRIGHT
-!! Copyright (C) 2012-2013 ABINIT group (MT)
+!! Copyright (C) 2012-2014 ABINIT group (MT)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -3379,14 +3343,14 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !! PARENTS
 !!
 !! CHILDREN
-!!      drivexc_main,nderiv_gen,pawrad_deducer0,pawxc_size_dvxc_wrapper
+!!      drivexc
 !!
 !! SOURCE
 
 
  subroutine pawxcsph3(cplex_den,cplex_vxc,ixc,nrad,nspden,pawrad,rho_updn,rho1_updn,vxc1,xclevel)
 
- use m_pawrad, only : pawrad_deducer0, nderiv_gen
+ use m_pawrad, only : pawrad_type, nderiv_gen, pawrad_deducer0, simp_gen
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -3423,13 +3387,11 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
    write(msg, '(a,a,a,i0)' )&
 &   ' Only non-spin-polarised or collinear spin-densities are allowed,',ch10,&
 &   ' while the argument nspden=',nspden
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(msg)
  end if
  if(nrad/=pawrad%mesh_size)then
    msg=' nrad is not equal to radial mesh size !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(msg)
  end if
 
 !Compute sizes of arrays and flags
@@ -3640,7 +3602,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !! Driver of XC functionals. LDA and GGA
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2013 ABINIT group (MT)
+!! Copyright (C) 1998-2014 ABINIT group (MT)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -3670,16 +3632,16 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !!  vxcp(nrad)= electron-positron XC potential for the positron
 !!
 !! PARENTS
-!!      pawxcmpositron
+!!      m_pawxc
 !!
 !! CHILDREN
-!!      nderiv_gen,pawrad_deducer0,xcpositron
+!!      drivexc
 !!
 !! SOURCE
 
  subroutine pawxcsphpositron(calctype,fxc,ixcpositron,nrad,pawrad,posdensity0_limit,rho,rho_ep,vxce,vxcp)
 
- use m_pawrad, only : nderiv_gen, pawrad_deducer0
+ use m_pawrad, only : pawrad_type, nderiv_gen, pawrad_deducer0, simp_gen
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -3709,8 +3671,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 
  if(nrad/=pawrad%mesh_size)then
    write(message,'(a)')' nrad is not equal to radial mesh size !'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(message)
  end if
 
 !Need gradient of density for GGA
@@ -3779,7 +3740,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !!    With L1>0, L2>0
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2013 ABINIT group (MT)
+!! Copyright (C) 1998-2014 ABINIT group (MT)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -3811,9 +3772,10 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !!    sum2(cplexsum*nrad,lm_size,nsums)=second order sums
 !!
 !! PARENTS
-!!      pawxcm,pawxcm3,pawxcmpositron,poslifetime
+!!      m_pawxc,poslifetime
 !!
 !! CHILDREN
+!!      drivexc
 !!
 !! SOURCE
 
@@ -3847,17 +3809,15 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 
 !************************************************************************
 
-! DBG_ENTER("COLL")
+ DBG_ENTER("COLL")
 
  if(nsums/=1.and.nsums/=3) then
    msg='  nsums must be 1 or 3 !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(msg)
  end if
  if(pawang%gnt_option==0) then
    msg='  pawang%gnt_option=0 !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(msg)
  end if
 
  if (option>=1) then
@@ -3932,7 +3892,6 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !  SUM2(r,L)= Sum_L1_L2{Rho1_L1(r)*Rho2_L2(r)*Gaunt_(L,L1,L2)}  (L1>0, L2>0)
 !  --------------------------------------------------
    sum2=zero
-
 !  ===== All input/output densities are REAL ====
    if (cplex1==1.and.cplex2==1.and.cplexsum==1) then
 !    One sum to compute
@@ -4107,7 +4066,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 
  end if !option
 
-! DBG_EXIT("COLL")
+ DBG_EXIT("COLL")
 
  end subroutine pawxcsum
 !!***
@@ -4125,7 +4084,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !! Driver of XC functionals.
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2013 ABINIT group (FJ, MT, GJ)
+!! Copyright (C) 1998-2014 ABINIT group (FJ, MT, GJ)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -4182,17 +4141,17 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !!                          kxc(:,3)=d2Exc/drho_dn drho_dn
 !!
 !! PARENTS
-!!      pawdenpot,psp7calc
+!!      m_pawpsp,pawdenpot
 !!
 !! CHILDREN
-!!      pawxc_mkdenpos_wrapper,pawxcsph,pawxcsum,simp_gen,timab
+!!      drivexc
 !!
 !! SOURCE
 
  subroutine pawxcm(corexc,enxc,enxcdc,exexch,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,option,&
 &                  pawang,pawrad,pawxcdev,rhor,usecore,usexcnhat,vxc,xclevel,xc_denpos)
 
- use m_pawrad, only: simp_gen
+ use m_pawrad, only : pawrad_type, nderiv_gen, pawrad_deducer0, simp_gen
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -4236,19 +4195,17 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 
 !************************************************************************
 
-! DBG_ENTER("COLL")
+ DBG_ENTER("COLL")
 
 ! call timab(81,1,tsec)
 
  if(nkxc>3) then
    msg=' Kxc not implemented for GGA !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_ERROR(msg)
  end if
  if(nkxc>0.and.nspden==4) then
    msg=' Kxc not implemented for non-collinear magnetism !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_ERROR(msg)
  end if
 
 !----------------------------------------------------------------------
@@ -4270,7 +4227,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
  if (nkxc/=0) kxc(:,:,:)=zero
 
  if (xclevel==0.or.ixc==0) then ! No xc at all is applied (usually for testing)
-   msg='  Note that no xc is applied (ixc=0).'
+   msg='Note that no xc is applied (ixc=0). Returning'
    MSG_WARNING(msg)
    return
  end if
@@ -4938,7 +4895,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !----- End of routine
 ! call timab(81,2,tsec)
 
-! DBG_EXIT("COLL")
+ DBG_EXIT("COLL")
 
  end subroutine pawxcm
 !!***
@@ -4956,7 +4913,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !! LDA+GGA - USE A DEVELOPMENT OF THE DENSITY OVER (L,M) MOMENTS
 !!
 !! COPYRIGHT
-!! Copyright (C) 2009-2013 ABINIT group (MT)
+!! Copyright (C) 2009-2014 ABINIT group (MT)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -5002,7 +4959,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !!      pawdenpot,pawenergy3
 !!
 !! CHILDREN
-!!      pawxcsum,simp_gen,timab
+!!      drivexc
 !!
 !! SOURCE
 
@@ -5010,7 +4967,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 &                   option,pawang,pawrad,rhor1,usecore,usexcnhat,vxc1,xclevel,&
 &                   d2enxc_im) ! optional
 
- use m_pawrad, only : simp_gen
+ use m_pawrad, only : pawrad_type, nderiv_gen, pawrad_deducer0, simp_gen
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -5055,7 +5012,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !lmselect and lm_size are not necessarily the same for densities, kxc and vxc1
 !This is not taken into account for the moment, but has to be programmed...
 
-! DBG_ENTER("COLL")
+ DBG_ENTER("COLL")
 
 ! call timab(81,1,tsec)
 
@@ -5065,23 +5022,19 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 
  if(option<0.or.option>3) then
    msg='  Wrong option !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(msg)
  end if
  if(option/=3.and.nkxc/=2*min(nspden,2)-1) then
    msg='  nkxc must be 1 or 3 !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(msg)
  end if
  if(xclevel==2) then
    msg='  GGA is not implemented !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_ERROR(msg)
  end if
  if(nspden==4.and.option/=3) then
    msg='  nspden=4 not implemented (for vxc) !'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_ERROR(msg)
  end if
 
 !----------------------------------------------------------------------
@@ -5102,7 +5055,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 
 !Special case: no XC applied
  if (ixc==0.or.(nkxc==0.and.option/=3)) then
-   msg='  Note that no xc is applied (ixc=0).'
+   msg='Note that no xc is applied (ixc=0). Returning'
    MSG_WARNING(msg)
    return
  end if
@@ -5168,7 +5121,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 &         +kxc(:,1  ,ikxc(ii))*rho1_updn(:,ilm,irho(ii)))
        end do
 
-!      === At least one of Vxc1 or Rho1 is COMPLEX
+!    === At least one of Vxc1 or Rho1 is COMPLEX
      else
        call pawxcsum(1,cplex_den,cplex_vxc,lmselect,lmselect,lm_size,nrad,1,2,pawang,&
 &       kxc(:,:,ikxc(ii)),rho1_updn(:,:,irho(ii)),v1sum,v2sum)
@@ -5280,7 +5233,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !----- End of routine
 ! call timab(81,2,tsec)
 
-! DBG_EXIT("COLL")
+ DBG_EXIT("COLL")
 
  end subroutine pawxcm3
 !!***
@@ -5297,7 +5250,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !! Driver of XC functionals.
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2013 ABINIT group (MT,GJ)
+!! Copyright (C) 1998-2014 ABINIT group (MT,GJ)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -5355,7 +5308,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !!      pawdenpot
 !!
 !! CHILDREN
-!!      pawxc_mkdenpos_wrapper,pawxcsphpositron,pawxcsum,simp_gen
+!!      drivexc
 !!
 !! SOURCE
 
@@ -5363,7 +5316,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
  &                         nhat,nhat_ep,nspden,option,pawang,pawrad,pawxcdev,posdensity0_limit,&
  &                         rhor,rhor_ep,usecore,usexcnhat,vxc,xc_denpos)
 
- use m_pawrad, only : simp_gen
+ use m_pawrad, only : pawrad_type, nderiv_gen, pawrad_deducer0, simp_gen
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -5407,13 +5360,12 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 
 !************************************************************************
 
-! DBG_ENTER("COLL")
+ DBG_ENTER("COLL")
 
 !----- Check options
  if(calctype/=1.and.calctype/=2) then
    msg='  Invalid value for calctype'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(msg)
  end if
 
 !----------------------------------------------------------------------
@@ -5432,7 +5384,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
  if (option<3) vxc(:,:,:)=zero
 
  if (ixcpositron==0) then ! No xc at all is applied (usually for testing)
-   msg='  Note that no xc is applied (ixc=0).'
+   msg='Note that no xc is applied (ixc=0). Returning'
    MSG_WARNING(msg)
    return
  end if
@@ -5799,7 +5751,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !if (option==0.or.option==2) deallocate(vxc_ep)
 
 !----- End of routine
-! DBG_EXIT("COLL")
+ DBG_EXIT("COLL")
  end subroutine pawxcmpositron
 !!***
 
@@ -5813,7 +5765,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !! Wrapper for drivexc routines
 !!
 !! COPYRIGHT
-!! Copyright (C) 2013 ABINIT group (TRangel)
+!! Copyright (C) 2013-2014 ABINIT group (TRangel)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -5823,6 +5775,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !! OUTPUT
 !!
 !! PARENTS
+!!      m_pawxc
 !!
 !! NOTES
 !! PENDING. Need to manage properly optional arguments:
@@ -5831,6 +5784,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !! numerous if/then sentences.
 !!
 !! CHILDREN
+!!      drivexc
 !!
 !! SOURCE
 
@@ -5842,7 +5796,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawxc_drivexc_main_wrapper'
- use interfaces_41_xc_lowlevel
+ !use interfaces_41_xc_lowlevel
 !End of the abilint section
 
  implicit none
@@ -5863,12 +5817,10 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 
 #if defined HAVE_LIBPAW_ABINIT
 if(.not. present(dvxc) .or. .not. present(grho2) .or. .not. present(vxcgrho)) then
- call wrtout(std_out,'dvxc, grho2 and vxcgrho should be present in pawxc_drivexc_main_wrapper','COLL')
- call leave_new('COLL')
+ MSG_ERROR('dvxc, grho2 and vxcgrho should be present in pawxc_drivexc_main_wrapper')
 end if
 if(mgga==1) then
- call wrtout(std_out,'MGGA is not yet coded in pawxc_drivexc_main_wrapper','COLL')
- call leave_new('COLL')
+ MSG_ERROR('MGGA is not yet coded in pawxc_drivexc_main_wrapper')
 end if
 
 !Call to main XC driver
@@ -5898,7 +5850,7 @@ contains
 !! FUNCTION
 !!
 !! COPYRIGHT
-!! Copyright (C) 2013 ABINIT group (TRangel,MT)
+!! Copyright (C) 2013-2014 ABINIT group (TRangel,MT)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -5914,8 +5866,10 @@ contains
 !! This was copied from drivexc_main (In ABINIT):
 !!
 !! PARENTS
+!!      m_pawxc
 !!
 !! CHILDREN
+!!      drivexc
 !!
 !! SOURCE
 
@@ -5930,7 +5884,7 @@ subroutine pawxc_libxc()
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
 #define ABI_FUNC 'pawxc_libxc'
- use interfaces_41_xc_lowlevel
+ !use interfaces_41_xc_lowlevel
 !End of the abilint section
 
 implicit none
@@ -5949,23 +5903,19 @@ implicit none
  if (mgga==1) then
    if (.not.present(lrho)) then
      msg=' lrho argument must be present in case of metaGGA !'
-     call wrtout(std_out,msg,'COLL')
-     call leave_new('COLL')
+     MSG_BUG(msg)
    end if
    if (.not.present(tau)) then
      msg=' tau argument must be present in case of metaGGA !'
-     call wrtout(std_out,msg,'COLL')
-     call leave_new('COLL')
+     MSG_BUG(msg)
    end if
    if (.not.present(vxclrho)) then
      msg=' vxclrho argument must be present in case of metaGGA !'
-     call wrtout(std_out,msg,'COLL')
-     call leave_new('COLL')
+     MSG_BUG(msg)
    end if
    if (.not.present(vxctau)) then
      msg=' vxctau argument must be present in case of metaGGA !'
-     call wrtout(std_out,msg,'COLL')
-     call leave_new('COLL')
+     MSG_BUG(msg)
    end if
  end if
 
@@ -6048,8 +5998,7 @@ implicit none
      end if
    end if
  else
-      call wrtout(std_out,'IXC should be < 0 to use libxc','COLL')
-      call leave_new('COLL')
+      MSG_ERROR('IXC should be < 0 to use libxc')
  end if
 #endif
 

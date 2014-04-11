@@ -14,21 +14,24 @@ EXTRA_DIST = 72_geomoptim/isokinetic.F90 \
 	72_geomoptim/others.F90 \
 	72_geomoptim/quenched.F90 \
 	72_geomoptim/velocity_verlet.F90 \
-	12_hide_mpi/xallgather_mpi.F90 \
-	12_hide_mpi/xallgatherv_mpi.F90 \
-	12_hide_mpi/xalltoall_mpi.F90 \
-	12_hide_mpi/xalltoallv_mpi.F90 \
-	12_hide_mpi/xcast_mpi.F90 \
-	12_hide_mpi/xexch_mpi.F90 \
-	12_hide_mpi/xgather_mpi.F90 \
-        12_hide_mpi/xgatherv_mpi.F90 \
-	12_hide_mpi/xmax_mpi.F90 \
-	12_hide_mpi/xmin_mpi.F90 \
-	12_hide_mpi/xrecv_mpi.F90 \
-	12_hide_mpi/xsend_mpi.F90 \
-	12_hide_mpi/xsum_master.F90 \
-	12_hide_mpi/xsum_mpi.F90 \
-        42_libpaw/abi_common_for_bigdft.h
+	xallgather_mpi.finc \
+	xallgatherv_mpi.finc \
+	xalltoall_mpi.finc \
+	xalltoallv_mpi.finc \
+	xcast_mpi.finc \
+	xexch_mpi.finc \
+	xgather_mpi.finc \
+	xgatherv_mpi.finc \
+	xirecv_mpi.finc \
+	xisend_mpi.finc \
+	xmax_mpi.finc \
+	xmin_mpi.finc \
+	xmpi_ialltoall.finc \
+	xrecv_mpi.finc \
+	xscatterv_mpi.finc \
+	xsend_mpi.finc \
+	xsum_master.finc \
+	xsum_mpi.finc
 
 lib_LIBRARIES = libabinit.a
 
@@ -40,10 +43,17 @@ else
 LIBXC_DEFS =
 endif
 
-# Don't use the HAVE_CONFIG_H
-DEFS = -DHAVE_MPI -DHAVE_MPI1 $(LIBXC_DEFS)
+# Special treatment for libpaw
+# Deactivate temporarily libXC in libpaw
+LIBPAW_DEFS = -DHAVE_DFT_BIGDFT -UHAVE_DFT_LIBXC
+
 # Force HAVE_MPI and HAVE_MPI1.
-AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@ -I$(srcdir)/72_geomoptim
+# Don't use the HAVE_CONFIG_H
+MPI_DEFS = -DHAVE_MPI -DHAVE_MPI1
+
+DEFS = $(MPI_DEFS) $(LIBXC_DEFS) $(EXTRA_DEFS)
+
+AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@ -I$(srcdir)/72_geomoptim -I$(srcdir)/incs
 
 # Hack for XLF strange DEFS option.
 PPFCCOMPILE = $(FC) $(DEFS:-D%=@FCDEFS@%) $(DEFAULT_INCLUDES) $(INCLUDES) \
@@ -56,15 +66,15 @@ libabinit_a_SOURCES = \
 	10_defs/defs_parameters.F90 \
 	12_hide_mpi/interfaces_12_hide_mpi.F90 \
 	12_hide_mpi/m_xmpi.F90 \
-	14_hidewrite/wrtout.F90 \
+	12_hide_mpi/m_xomp.F90 \
 	14_hidewrite/interfaces_14_hidewrite.F90 \
+	14_hidewrite/wrtout.F90 \
 	14_hidewrite/m_fstrings.F90 \
 	14_hidewrite/m_io_tools.F90 \
-	16_hideleave/leave_new.F90 \
-	16_hideleave/m_build_info.F90 \
-	16_hideleave/m_build_info_fake.F90 \
-	16_hideleave/m_errors.F90 \
 	16_hideleave/interfaces_16_hideleave.F90 \
+	16_hideleave/leave_new.F90 \
+	16_hideleave/m_errors.F90 \
+	16_hideleave/m_xieee.F90 \
 	18_timing/interfaces_18_timing.F90 \
 	18_timing/timab.F90 \
 	18_memory/m_profiling.F90 \
@@ -146,23 +156,26 @@ libabinit_a_SOURCES = \
 	42_geometry/symspgr.F90 \
 	42_geometry/symzat.F90 \
 	42_geometry/xredxcart.F90 \
-        42_libpaw/interfaces_42_libpaw.F90   \
-        42_libpaw/m_atompaw.F90              \
-        42_libpaw/m_gaussfit.F90             \
-        42_libpaw/m_paral_atom.F90           \
-        42_libpaw/m_paw_numeric.F90          \
-        42_libpaw/m_pawang.F90               \
-        42_libpaw/m_pawcprj.F90              \
-        42_libpaw/m_pawio.F90                \
-        42_libpaw/m_pawpsp.F90               \
-        42_libpaw/m_pawrad.F90               \
-        42_libpaw/m_pawrhoij.F90             \
-        42_libpaw/m_pawtab.F90               \
-        42_libpaw/m_pawxc.F90                \
-        42_libpaw/m_sphharm.F90              \
-        42_libpaw/m_xml_converters.F90       \
-        42_libpaw/m_xml_pawpseudo.F90        \
-        42_libpaw/m_xml_pawpseudo_types.F90  \
+	interfaces_42_libpaw.F90 \
+	m_atompaw.F90 \
+	m_gaussfit.F90 \
+	m_paral_atom.F90 \
+	m_paw_an.F90 \
+	m_pawang.F90 \
+	m_pawcprj.F90 \
+	m_pawdij.F90 \
+	m_pawfgrtab.F90 \
+	m_paw_finegrid.F90 \
+	m_paw_ij.F90 \
+	m_pawio.F90 \
+	m_paw_numeric.F90 \
+	m_pawpsp.F90 \
+	m_pawrad.F90 \
+	m_pawrhoij.F90 \
+	m_pawtab.F90 \
+	m_pawxc.F90 \
+	m_pawxmlps.F90 \
+	m_sphharm.F90 \
 	42_geometry/interfaces_42_geometry.F90 \
 	50_abitypes_defs/defs_abitypes.F90 \
 	56_mixing/aprxdr.F90 \
