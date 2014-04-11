@@ -196,7 +196,7 @@ module module_types
     real(kind=8), dimension(:,:), pointer :: locrad_type
     real(kind=8), dimension(:), pointer :: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy, potentialPrefac_ao
     real(kind=8), dimension(:),pointer :: kernel_cutoff, locrad_kernel
-    real(kind=8) :: early_stop, gnrm_dynamic
+    real(kind=8) :: early_stop, gnrm_dynamic, min_gnrm_for_dynamic
     integer, dimension(:), pointer :: norbsPerType
     integer :: kernel_mode, mixing_mode
     integer :: scf_mode, nlevel_accuracy
@@ -2917,6 +2917,8 @@ end subroutine find_category
           in%lin%early_stop = val
        case (GNRM_DYN)
           in%lin%gnrm_dynamic = val
+       case (MIN_GNRM_FOR_DYNAMIC)
+           in%lin%min_gnrm_for_dynamic = val
        case (ALPHA_DIIS)
           in%lin%alphaDIIS = val
        case (ALPHA_SD)

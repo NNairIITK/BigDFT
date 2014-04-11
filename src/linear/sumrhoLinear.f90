@@ -1471,6 +1471,7 @@ end subroutine check_communication_sumrho
 
 
 subroutine check_negative_rho(ndimrho, rho, rho_negative)
+  use module_base
   implicit none
 
   ! Calling arguments
@@ -1479,14 +1480,21 @@ subroutine check_negative_rho(ndimrho, rho, rho_negative)
   logical,intent(out) :: rho_negative
 
   ! Local variables
-  integer :: i
+  integer :: i, irho, ierr
 
-  rho_negative=.false.
+  irho=0
   do i=1,ndimrho
       if (rho(i)<0.d0) then
-          rho_negative=.true.
+          irho=1
           exit
       end if
   end do
+
+  call mpiallred(irho, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (irho>0) then
+      rho_negative=.true.
+  else
+      rho_negative=.false.
+  end if
 
 end subroutine check_negative_rho
