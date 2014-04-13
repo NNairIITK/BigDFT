@@ -196,7 +196,7 @@ module module_types
     real(kind=8), dimension(:,:), pointer :: locrad_type
     real(kind=8), dimension(:), pointer :: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy, potentialPrefac_ao
     real(kind=8), dimension(:),pointer :: kernel_cutoff, locrad_kernel
-    real(kind=8) :: early_stop, gnrm_dynamic
+    real(kind=8) :: early_stop, gnrm_dynamic, min_gnrm_for_dynamic
     integer, dimension(:), pointer :: norbsPerType
     integer :: kernel_mode, mixing_mode
     integer :: scf_mode, nlevel_accuracy
@@ -386,6 +386,16 @@ module module_types
      
      !> linear scaling: dynamic adjustment of the decay length of the FOE error function
      logical :: adjust_FOE_temperature
+
+     !> linear scaling: calculate the HOMO LUMO gap even when FOE is used for the kernel calculation
+     logical :: calculate_gap
+
+     !> linear scaling: perform a Loewdin charge analysis at the end of the calculation
+     logical :: loewdin_charge_analysis
+
+     !> linear scaling: perform a check of the matrix compression routines
+     logical :: check_matrix_compression
+
   end type input_variables
 
   !> Contains all energy terms
@@ -570,9 +580,8 @@ module module_types
 
   type,public :: foe_data
     integer :: nseg
-    integer,dimension(:),pointer :: kernel_nsegline, istsegline
+    integer,dimension(:),pointer :: nsegline, istsegline
     integer,dimension(:,:),pointer :: keyg
-    integer,dimension(:,:,:),pointer :: kernel_segkeyg
     real(kind=8) :: ef !< Fermi energy for FOE
     real(kind=8) :: evlow, evhigh !< eigenvalue bounds for FOE 
     real(kind=8) :: bisection_shift !< bisection shift to find Fermi energy (FOE)
@@ -1026,7 +1035,7 @@ module module_types
   !>timing categories
   character(len=*), parameter, private :: tgrp_pot='Potential'
   integer, save, public :: TCAT_EXCHANGECORR=TIMING_UNINITIALIZED
-  integer, parameter, private :: ncls_max=6,ncat_bigdft=138   ! define timimg categories and classes
+  integer, parameter, private :: ncls_max=6,ncat_bigdft=140   ! define timimg categories and classes
   character(len=14), dimension(ncls_max), parameter, private :: clss = (/ &
        'Communications'    ,  &
        'Convolutions  '    ,  &
@@ -1180,6 +1189,8 @@ module module_types
        'readisffiles  ','Initialization' ,'Miscellaneous ' ,  &
        'purify_kernel ','Linear Algebra' ,'dgemm         ' ,  &
        'potential_dims','Other         ' ,'auxiliary     ' ,  &
+       'sparse_matmul ','Linear Algebra' ,'self-made     ' ,  &
+       'transform_matr','Other         ' ,'small to large' ,  &
        'calc_bounds   ','Other         ' ,'Miscellaneous ' /),(/3,ncat_bigdft/))
   integer, dimension(ncat_bigdft), private, save :: cat_ids !< id of the categories to be converted
 
@@ -2747,6 +2758,15 @@ end subroutine find_category
        case (ADJUST_foe_TEMPERATURE)
            ! linear scaling: dynamic adjustment of the decay length of the FOE error function
            in%adjust_FOE_temperature = val
+       case (CALCULATE_GAP)
+           ! linear scaling: calculate the HOMO LUMO gap even when FOE is used for the kernel calculation
+           in%calculate_gap = val
+       case (LOEWDIN_CHARGE_ANALYSIS)
+           ! linear scaling: calculate the HOMO LUMO gap even when FOE is used for the kernel calculation
+           in%loewdin_charge_analysis = val
+       case (CHECK_MATRIX_COMPRESSION)
+           ! linear scaling: perform a check of the matrix compression routines
+           in%check_matrix_compression = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
@@ -2897,6 +2917,8 @@ end subroutine find_category
           in%lin%early_stop = val
        case (GNRM_DYN)
           in%lin%gnrm_dynamic = val
+       case (MIN_GNRM_FOR_DYNAMIC)
+           in%lin%min_gnrm_for_dynamic = val
        case (ALPHA_DIIS)
           in%lin%alphaDIIS = val
        case (ALPHA_SD)
