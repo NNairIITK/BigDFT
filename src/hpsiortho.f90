@@ -709,8 +709,8 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
   real(wp) :: hp,eproj
   real(wp), dimension(:), allocatable :: scpr
 
-  !quick return if no orbitals on this processo
   eproj_sum=0.0_gp
+  !quick return if no orbitals on this task
   if (orbs%norbp == 0) then
      return
   end if
@@ -766,15 +766,11 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
            do iat=1,at%astruct%nat
               iatype=at%astruct%iatype(iat)
 
-              ! Check if atom has projectors, if not cycle
-!!$              if(at%npspcode(iatype)==7) then
-!!$                 call numb_proj_paw_tr(iatype,at%astruct%ntypes,proj_G(iatype),mproj) 
-!!$              else
-!!$                 call numb_proj(iatype,at%astruct%ntypes,at%psppar,at%npspcode,mproj) 
-!!$              end if
               mproj=nl%pspd(iat)%mproj
+              !no projector on this atom
               if(mproj == 0) cycle
-
+              !projector not overlapping with the locreg
+              if(nl%pspd(iat)%tolr(ilr)%strategy == PSP_APPLY_SKIP) cycle
               !check if the atom projector intersect with the given localisation region
               !this part can be moved at the place of the analysis between psp and lrs
               call check_overlap(Lzd%Llr(ilr), nl%pspd(iat)%plr, Lzd%Glr, overlap)
@@ -836,9 +832,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
               end if
            end do
 
-           !if (iproj /= nlpspd%nproj) stop &
-           !     'NonLocal HamiltonianApplication: incorrect number of projectors created'     
-           !for the moment, localization region method is not implemented with
+           !for the moment, localization region method is not tested with
            !once-and-for-all calculation
         else if (Lzd%nlr == 1) then
 
@@ -856,13 +850,11 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
               do iat=1,at%astruct%nat
                  iatype=at%astruct%iatype(iat)
                  ! Check if atom has projectors, if not cycle
-!!$                 if(at%npspcode(iatype)==7) then
-!!$                    call numb_proj_paw_tr(iatype,at%astruct%ntypes,proj_G(iatype),mproj) 
-!!$                 else
-!!$                    call numb_proj(iatype,at%astruct%ntypes,at%psppar,at%npspcode,mproj) 
-!!$                 end if
                  mproj=nl%pspd(iat)%mproj
                  if(mproj == 0) cycle
+                 !projector not overlapping with the locreg
+                 if(nl%pspd(iat)%tolr(ilr)%strategy == PSP_APPLY_SKIP) cycle
+
                  !check if the atom intersect with the given localisation region
                  call check_overlap(Lzd%Llr(ilr), nl%pspd(iat)%plr, Lzd%Glr, overlap)
                  if(.not. overlap) stop 'ERROR all atoms should be in global'
@@ -918,33 +910,41 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
   call timing(iproc,'ApplyProj     ','OF')
 contains
 
-  !> count the number of projectors given a set of psppar
-  pure function nproj(psppar)
-    use module_base, only: gp
-    implicit none
-    real(gp), dimension(0:4,0:6), intent(in) :: psppar
-    integer :: nproj
-    !local variables
-    integer :: i,l,m
-    nproj = 0
-    !count over all the channels
-    do l=1,4
-       !loop over all the projectors of the channel
-       do i=1,3
-          !loop over all the components of the projector
-          if (psppar(l,i) /= 0.0_gp) nproj=nproj+2*l-1
-       end do
-    end do
-  end function nproj
+!!$  !> count the number of projectors given a set of psppar
+!!$  pure function nproj(psppar)
+!!$    use module_base, only: gp
+!!$    implicit none
+!!$    real(gp), dimension(0:4,0:6), intent(in) :: psppar
+!!$    integer :: nproj
+!!$    !local variables
+!!$    integer :: i,l,m
+!!$    nproj = 0
+!!$    !count over all the channels
+!!$    do l=1,4
+!!$       !loop over all the projectors of the channel
+!!$       do i=1,3
+!!$          !loop over all the components of the projector
+!!$          if (psppar(l,i) /= 0.0_gp) nproj=nproj+2*l-1
+!!$       end do
+!!$    end do
+!!$  end function nproj
 
   !>code factorization useful for routine restructuring
   subroutine nl_psp_application()
     implicit none
     !local variables
     integer :: ncplx_p,ncplx_w,n_w,nvctr_p
+    real(gp), dimension(3,3,4) :: hij
     real(gp) :: eproj
+    type(nlpsp_to_wfd) :: tolr 
+    integer, dimension(:), allocatable :: nbsegs_cf,keyag_lin_cf
+    real(wp), dimension(:,:), allocatable :: psi_pack
+    real(wp), dimension(:,:,:), allocatable :: pdpsi,hpdpsi
+    real(wp), dimension(:,:,:,:), allocatable :: scpr
+
 
     if (newmethod) then
+
        if (all(orbs%kpts(:,ikpt) == 0.0_gp)) then
           ncplx_p=1
        else
@@ -957,10 +957,35 @@ contains
           ncplx_w=1
           n_w=1
        end if
+       
+       !extract hij parameters
+       call hgh_hij_matrix(at%npspcode(iatype),at%psppar(0,0,iatype),hij)
 
-       call NL_HGH_application(at%npspcode(iatype),at%psppar(0,0,iatype),&
+!!$       !allocate temporary workspace
+!!$       keyag_lin_cf=f_malloc(Lzd%Llr(ilr)%wfd%nseg_c+Lzd%Llr(ilr)%wfd%nseg_f,id='keyag_lin_cf')
+!!$       nbsegs_cf=f_malloc0(nl%pspd(iat)%plr%wfd%nseg_c+nl%pspd(iat)%plr%wfd%nseg_f,id='nbsegs_cf')  
+!!$       call nullify_nlpsp_to_wfd(tolr)
+!!$       call init_tolr(tolr,Lzd%Llr(ilr)%wfd,nl%pspd(iat)%plr%wfd,keyag_lin_cf,nbsegs_cf)
+!!$       call f_free(keyag_lin_cf,nbsegs_cf)
+
+!!$       !create other workspaces  
+!!$       psi_pack=f_malloc0(&
+!!$            (/nl%pspd(iat)%plr%wfd%nvctr_c+7*nl%pspd(iat)%plr%wfd%nvctr_f,n_w*ncplx_w/),id='psi_pack')
+!!$       scpr=f_malloc((/ncplx_w,n_w,ncplx_p,mproj/),id='scpr')
+!!$       pdpsi=f_malloc((/max(ncplx_w,ncplx_p),n_w,mproj/),id='pdpsi')
+!!$       hpdpsi=f_malloc((/max(ncplx_w,ncplx_p),n_w,mproj/),id='hpdpsi')
+       
+       call NL_HGH_application(hij,&
             ncplx_p,mproj,nl%pspd(iat)%plr%wfd,nl%proj(istart_c),&
-            ncplx_w,n_w,Lzd%Llr(ilr)%wfd,psi(ispsi),hpsi(ispsi),eproj)
+            ncplx_w,n_w,Lzd%Llr(ilr)%wfd,nl%pspd(iat)%tolr(ilr),nl%wpack,nl%scpr,nl%cproj,nl%hcproj,&
+            psi(ispsi),hpsi(ispsi),eproj)
+
+!!$       !free workspaces
+!!$       call f_free(psi_pack)
+!!$       call f_free(scpr)     
+!!$       call f_free(pdpsi)
+!!$       call f_free(hpdpsi)
+!!$       call deallocate_nlpsp_to_wfd(tolr)
 
        nvctr_p=nl%pspd(iat)%plr%wfd%nvctr_c+7*nl%pspd(iat)%plr%wfd%nvctr_f
        istart_c=istart_c+nvctr_p*ncplx_p*mproj

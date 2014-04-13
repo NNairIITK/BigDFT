@@ -79,7 +79,7 @@ program conv_check_ocl
    call ocl_create_gpu_context(context,device_number)
    call ocl_build_programs(context)
    call ocl_create_command_queue(queue,context)
-   call init_event_list
+   call init_event_list(context)
 
    hx=0.1e0_gp
    !n(c) hy=0.1e0_gp
@@ -1918,7 +1918,7 @@ program conv_check_ocl
    !Need in order to have the last lines (TD,2011-11-10)
    call flush(6)
 
-   call print_event_list
+   call print_event_list(context)
    call ocl_clean_command_queue(queue)
    call ocl_clean(context)
 

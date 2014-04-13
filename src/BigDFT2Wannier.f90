@@ -108,9 +108,9 @@ program BigDFT2Wannier
 !!$   end if
 
    !call timing(nproctiming,'b2w_time.prc','IN')
-   call f_timing_reset(filename=trim(in%dir_output)//'b2w_time.yaml',&
+   call f_timing_reset(filename=trim(input%dir_output)//'b2w_time.yaml',&
         master=iproc==0,&
-        debug_mode=input%verbosity>2)
+        verbose_mode=input%verbosity>2)
 
 
    call cpu_time(tcpu0)

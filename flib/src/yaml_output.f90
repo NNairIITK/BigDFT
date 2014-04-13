@@ -63,6 +63,7 @@ module yaml_output
      integer :: ievt_flow=0                                       !< Events which track is kept of in the flowrite
      integer, dimension(tot_max_flow_events) :: flow_events=0     !< Set of events in the flow
      type(dictionary), pointer :: dict_warning=>null()            !< Dictionary of warnings emitted in the stream
+     !character(len=tot_max_record_length), dimension(:), pointer :: buffer !<
   end type yaml_stream
 
   type(yaml_stream), dimension(tot_streams), save :: streams    !< Private array containing the streams
