@@ -539,6 +539,8 @@ geopt_foe:
  Tr(K) : 1.3e-6
  D Tr: 7.1e-06
  decay length of error function: 1.1e-5
+ ebs: 2.1e-7
+ ebs_check: 1.1e-8
 
 geopt_diag:
  Epot: 1.1e-10
@@ -650,6 +652,8 @@ foe:
  D Tr: 7.0e-8
  tr(KS) before purification: 7.0e-8
  decay length of error function: 1.1e-5
+ ebs: 7.1e-8
+ diff: 7.1e-8
 
 onlyhigh:
  EH: 1.1e-10
@@ -823,18 +827,18 @@ explicit_locregcenters:
  EH: 1.1e-9
 
 intermediateforces:
- Atomic Forces (Ha/Bohr): 4.2e-7
- Average noise forces: 1.3e-7
- Clean forces norm (Ha/Bohr): 4.9e-7
- Raw forces norm (Ha/Bohr): 5.5e-7
- e: 1.3e-7
+ Atomic Forces (Ha/Bohr): 1.3e-6
+ Average noise forces: 4.5e-7
+ Clean forces norm (Ha/Bohr): 1.5e-6
+ Raw forces norm (Ha/Bohr): 1.6e-6
+ e: 1.6e-6
  energy: 2.8e-7
  Omega: 5.5e-7
  EXC: 7.8e-8
- EvXC: 1.1e-7
+ EvXC: 1.1e-6
  EH: 6.9e-7
  Ekin: 2.1e-9
- Enl: 2.1e-10
+ Enl: 1.6e-6
  Epot: 5.5e-7
  multiplicator for the confinement: 1.6e-11
 
@@ -852,7 +856,7 @@ DIIShistory:
  EvXC: 8.5e-8
  energy: 5.1e-9
  multiplicator for the confinement: 5.4e-9
- Omega: 2.3e-8
+ Omega: 2.4e-8
  Total charge: 2.01e-11
  Locreg:
  EH: 7.7e-9

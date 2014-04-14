@@ -1114,19 +1114,28 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
 
       quadropole_cores(1:3,1:3)=0._gp
       do iat=1,at%astruct%nat
-         do i=1,3
-             do j=1,3
-                 if (i==j) then
-                     delta_term = at%astruct%rxyz(1,iat)**2 + at%astruct%rxyz(2,iat)**2 + at%astruct%rxyz(3,iat)**2
-                 else
-                     delta_term=0.d0
-                 end if
-                 q=at%nelpsp(at%astruct%iatype(iat))
-                 rj=at%astruct%rxyz(j,iat)
-                 ri=at%astruct%rxyz(i,iat)
-                 quadropole_cores(j,i) = quadropole_cores(j,i) + q*(3.d0*rj*ri-delta_term)
-             end do
-         end do
+          do i=1,3
+              do j=1,3
+                  if (i==j) then
+                      delta_term = at%astruct%rxyz(1,iat)**2 + at%astruct%rxyz(2,iat)**2 + at%astruct%rxyz(3,iat)**2
+                  else
+                      delta_term=0.d0
+                  end if
+                  q=at%nelpsp(at%astruct%iatype(iat))
+                  rj=at%astruct%rxyz(j,iat)
+                  ri=at%astruct%rxyz(i,iat)
+                  quadropole_cores(j,i) = quadropole_cores(j,i) + q*(3.d0*rj*ri-delta_term)
+              end do
+          end do
+      end do
+
+      ele_rho=0.d0
+      do iat=1,at%astruct%nat
+          i1=nint((at%astruct%rxyz(1,iat)/at%astruct%cell_dim(1))*real(nc1,dp))+nl1
+          i2=nint((at%astruct%rxyz(2,iat)/at%astruct%cell_dim(2))*real(nc2,dp))+nl2
+          i3=nint((at%astruct%rxyz(3,iat)/at%astruct%cell_dim(3))*real(nc3,dp))+nl3
+          if (bigdft_mpi%iproc==0) write(*,*) 'iat,i1,i2,i3',iat,i1,i2,i3
+          ele_rho(i1,i2,i3,1)=real(at%nelpsp(at%astruct%iatype(iat)))/product(box%hgrids)
       end do
 
       quadropole_el(1:3,1:3)=0._gp
@@ -1144,7 +1153,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
                               ri=x
                           case (2)
                               ri=y
-                          case(3)
+                          case (3)
                               ri=z
                           case default
                               stop 'wrong value of i'
@@ -1155,19 +1164,16 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
                                   rj=x
                               case (2)
                                   rj=y
-                              case(3)
+                              case (3)
                                   rj=z
                               case default
                                   stop 'wrong value of j'
                               end select
                               if (i==j) then
-                                  !delta_term = at%astruct%rxyz(1,iat)**2 + at%astruct%rxyz(2,iat)**2 + at%astruct%rxyz(3,iat)**2
                                   delta_term = x**2 + y**2 + z**2
                               else
                                   delta_term=0.d0
                               end if
-                              !!quadropole_el(j,i) = quadropole_el(j,i) + &
-                              !!                       q*(3.d0*at%astruct%rxyz(j,iat)*at%astruct%rxyz(i,iat)-delta_term)
                               quadropole_el(j,i) = quadropole_el(j,i) + q*(3.d0*rj*ri-delta_term)
                           end do
                       end do
@@ -1212,19 +1218,19 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
       if (calculate_quadropole) then
           call yaml_open_sequence('core quadropole')
           do i=1,3
-             call yaml_sequence(trim(yaml_toa(quadropole_cores(i,1:3),fmt='(es12.5)')))
+             call yaml_sequence(trim(yaml_toa(quadropole_cores(i,1:3),fmt='(es15.8)')))
           end do
           call yaml_close_sequence()
 
           call yaml_open_sequence('electronic quadropole')
           do i=1,3
-             call yaml_sequence(trim(yaml_toa(quadropole_el(i,1:3),fmt='(es12.5)')))
+             call yaml_sequence(trim(yaml_toa(quadropole_el(i,1:3),fmt='(es15.8)')))
           end do
           call yaml_close_sequence()
 
           call yaml_open_sequence('Quadropole Moment (AU)')
           do i=1,3
-             call yaml_sequence(trim(yaml_toa(tmpquadrop(i,1:3),fmt='(es12.5)')))
+             call yaml_sequence(trim(yaml_toa(tmpquadrop(i,1:3),fmt='(es15.8)')))
           end do
           call yaml_close_sequence()
       end if
