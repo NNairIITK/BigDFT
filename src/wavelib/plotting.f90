@@ -1025,7 +1025,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
 
   character(len=*), parameter :: subname='calc_dipole'
   integer :: i_all,i_stat,ierr,n3p,nc1,nc2,nc3
-  real(gp) :: q,qtot, delta_term,x,y,z,vali,valj
+  real(gp) :: q,qtot, delta_term,x,y,z,ri,rj
   integer  :: iat,i1,i2,i3, nl1,nl2,nl3, ispin,n1i,n2i,n3i, i, j
   real(gp), dimension(3) :: dipole_el,dipole_cores,tmpdip
   real(gp), dimension(3,3) :: quadropole_el,quadropole_cores,tmpquadrop
@@ -1121,9 +1121,10 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
                  else
                      delta_term=0.d0
                  end if
-                 quadropole_cores(j,i) = quadropole_cores(j,i) + &
-                                         at%nelpsp(at%astruct%iatype(iat))* &
-                                           (3.d0*at%astruct%rxyz(j,iat)*at%astruct%rxyz(i,iat)-delta_term)
+                 q=at%nelpsp(at%astruct%iatype(iat))
+                 rj=at%astruct%rxyz(j,iat)
+                 ri=at%astruct%rxyz(i,iat)
+                 quadropole_cores(j,i) = quadropole_cores(j,i) + q*(3.d0*rj*ri-delta_term)
              end do
          end do
       end do
@@ -1140,22 +1141,22 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
                       do i=1,3
                           select case (i)
                           case (1)
-                              vali=x
+                              ri=x
                           case (2)
-                              vali=y
+                              ri=y
                           case(3)
-                              vali=z
+                              ri=z
                           case default
                               stop 'wrong value of i'
                           end select
                           do j=1,3
                               select case (j)
                               case (1)
-                                  valj=x
+                                  rj=x
                               case (2)
-                                  valj=y
+                                  rj=y
                               case(3)
-                                  valj=z
+                                  rj=z
                               case default
                                   stop 'wrong value of j'
                               end select
@@ -1167,7 +1168,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
                               end if
                               !!quadropole_el(j,i) = quadropole_el(j,i) + &
                               !!                       q*(3.d0*at%astruct%rxyz(j,iat)*at%astruct%rxyz(i,iat)-delta_term)
-                              quadropole_el(j,i) = quadropole_el(j,i) + q*(3.d0*valj*vali-delta_term)
+                              quadropole_el(j,i) = quadropole_el(j,i) + q*(3.d0*rj*ri-delta_term)
                           end do
                       end do
                   end do

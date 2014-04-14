@@ -2972,7 +2972,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
       use yaml_output
       real(kind=8),dimension(3,3) :: quadropole_elec, quadropole_cores, quadropole_net
       integer :: i, j
-      real(kind=8) :: delta_term
+      real(kind=8) :: delta_term, rj, ri, q
 
       quadropole_cores(1:3,1:3)=0._gp
       do iat=1,atoms%astruct%nat
@@ -2983,9 +2983,13 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
                  else
                      delta_term=0.d0
                  end if
-                 quadropole_cores(j,i) = quadropole_cores(j,i) + &
-                                         atoms%nelpsp(atoms%astruct%iatype(iat))* &
-                                           (3.d0*atoms%astruct%rxyz(j,iat)*atoms%astruct%rxyz(i,iat)-delta_term)
+                 q=atoms%nelpsp(atoms%astruct%iatype(iat))
+                 rj=atoms%astruct%rxyz(j,iat)
+                 ri=atoms%astruct%rxyz(i,iat)
+                 quadropole_cores(j,i) = quadropole_cores(j,i) + q*(3.d0*rj*ri-delta_term)
+                 !!quadropole_cores(j,i) = quadropole_cores(j,i) + &
+                 !!                        atoms%nelpsp(atoms%astruct%iatype(iat))* &
+                 !!                          (3.d0*atoms%astruct%rxyz(j,iat)*atoms%astruct%rxyz(i,iat)-delta_term)
              end do
          end do
       end do
@@ -3000,9 +3004,13 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
                  else
                      delta_term=0.d0
                  end if
-                 quadropole_elec(j,i) = quadropole_elec(j,i) + &
-                                        -charge_per_atom(iat)* &
-                                          (3.d0*atoms%astruct%rxyz(j,iat)*atoms%astruct%rxyz(i,iat)-delta_term)
+                 q=-charge_per_atom(iat)
+                 rj=atoms%astruct%rxyz(j,iat)
+                 ri=atoms%astruct%rxyz(i,iat)
+                 quadropole_elec(j,i) = quadropole_elec(j,i) + q*(3.d0*rj*ri-delta_term)
+                 !!quadropole_elec(j,i) = quadropole_elec(j,i) + &
+                 !!                       -charge_per_atom(iat)* &
+                 !!                         (3.d0*atoms%astruct%rxyz(j,iat)*atoms%astruct%rxyz(i,iat)-delta_term)
              end do
          end do
       end do

@@ -60,7 +60,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   real(kind=8),parameter :: TEMP_MULTIPLICATOR_ACCURATE=1.d0
   real(kind=8),parameter :: TEMP_MULTIPLICATOR_FAST=1.2d0
   real(kind=8),parameter :: CHECK_RATIO=1.25d0
-  integer,parameter :: NPL_MIN=80
+  !!integer,parameter :: NPL_MIN=80
   integer,parameter :: NTEMP_ACCURATE=4
   integer,parameter :: NTEMP_FAST=1
   real(kind=8) :: degree_multiplicator
@@ -301,13 +301,13 @@ subroutine foe(iproc, nproc, tmprtr, &
               !if (itemp==1 .or. .not.degree_sufficient) then
                   !npl=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/tmb%foe_obj%fscale)
                   npl=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale)
-                  if(npl<=NPL_MIN) then
-                      if (iproc==0) then
-                          call yaml_map('increase npl to minimal value; original value',npl)
-                          call yaml_newline()
-                      end if
-                      npl=NPL_MIN ! this is the minimal degree
-                  end if
+                  !!if(npl<=NPL_MIN) then
+                  !!    if (iproc==0) then
+                  !!        call yaml_map('increase npl to minimal value; original value',npl)
+                  !!        call yaml_newline()
+                  !!    end if
+                  !!    npl=NPL_MIN ! this is the minimal degree
+                  !!end if
               !else
               !    ! this will probably disappear.. only needed when the degree is
               !    ! increased by the old way via purification etc.

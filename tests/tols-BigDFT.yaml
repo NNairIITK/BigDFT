@@ -669,6 +669,7 @@ linearcubic_cubic:
  EH: 1.01e-9
  energy: 1.83e-10
  EKS: 2.44e-10
+ Epot: 1.1e-9
 
 linearcubic_linear:
  Epsilon: 1.1e-10
@@ -709,6 +710,7 @@ experimentalfoe_long:
  ebs_check: 2.1e-9
  diff: 4.6e-10
  decay length of error function: 1.1e-5
+ ebs: 2.1e-9
 
 experimentalfoe_short:
  EH: 2.0e-05
@@ -821,19 +823,19 @@ explicit_locregcenters:
  EH: 1.1e-9
 
 intermediateforces:
- Atomic Forces (Ha/Bohr): 2.8e-7
+ Atomic Forces (Ha/Bohr): 4.2e-7
  Average noise forces: 1.3e-7
- Clean forces norm (Ha/Bohr): 1.2e-7
- Raw forces norm (Ha/Bohr): 1.3e-7
+ Clean forces norm (Ha/Bohr): 4.9e-7
+ Raw forces norm (Ha/Bohr): 5.5e-7
  e: 1.3e-7
  energy: 2.8e-7
- Omega: 9.8e-9
+ Omega: 5.5e-7
  EXC: 7.8e-8
  EvXC: 1.1e-7
  EH: 6.9e-7
  Ekin: 2.1e-9
  Enl: 2.1e-10
- Epot: 8.9e-8
+ Epot: 5.5e-7
  multiplicator for the confinement: 1.6e-11
 
 DIIShistory:
@@ -871,6 +873,7 @@ sparsity:
  ebs_check: 2.1e-10
  ebs: 2.1e-10
  diff: 1.1e-9
+ D Tr: 1.1e-10
 
 PBE_densmixlin:
  Ekin: 1.1e-10
