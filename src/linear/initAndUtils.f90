@@ -1225,21 +1225,22 @@ subroutine update_lrmask_array(nlr,orbs,lr_mask)
   !local variables
   integer :: ikpt,isorb,ieorb,nspinor,ilr,iorb
 
-  !create the masking array according to the locregs which are known by the 
-  !task
-  ikpt=orbs%iokpt(1)
-  loop_kpt: do
-     call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
+  !create the masking array according to the locregs which are known by the task
+  if (orbs%norbp>0) then
+      ikpt=orbs%iokpt(1)
+      loop_kpt: do
+         call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
 
-     !activate all the localization regions which are present in the orbitals
-     do iorb=isorb,ieorb
-        ilr=orbs%inwhichlocreg(iorb+orbs%isorb)
-        lr_mask(ilr)=.true.
-     end do
-     !last k-point has been treated
-     if (ieorb == orbs%norbp) exit loop_kpt
-     ikpt=ikpt+1
-  end do loop_kpt
+         !activate all the localization regions which are present in the orbitals
+         do iorb=isorb,ieorb
+            ilr=orbs%inwhichlocreg(iorb+orbs%isorb)
+            lr_mask(ilr)=.true.
+         end do
+         !last k-point has been treated
+         if (ieorb == orbs%norbp) exit loop_kpt
+         ikpt=ikpt+1
+      end do loop_kpt
+  end if
  
 end subroutine update_lrmask_array
 

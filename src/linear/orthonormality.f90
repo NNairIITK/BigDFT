@@ -1333,20 +1333,28 @@ subroutine check_accur_overlap_minus_one(iproc,nproc,norb,norbp,isorb,power,ovrl
 
   tmpp=f_malloc((/norb,norbp/),id='tmpp')
   if (power==1) then
-     call dgemm('n', 'n', norb, norbp, norb, 1.d0, inv_ovrlp(1,1), &
-          norb, ovrlp(1,isorb+1), norb, 0.d0, tmpp(1,1), norb)
+     if (norbp>0) then
+        call dgemm('n', 'n', norb, norbp, norb, 1.d0, inv_ovrlp(1,1), &
+             norb, ovrlp(1,isorb+1), norb, 0.d0, tmpp(1,1), norb)
+     end if
      call deviation_from_unity_parallel(iproc, nproc, norb, norbp, isorb, tmpp, error)
   else if (power==2) then
-     call dgemm('n', 'n', norb, norbp, norb, 1.d0, inv_ovrlp(1,1), &
-          norb, inv_ovrlp(1,isorb+1), norb, 0.d0, tmpp(1,1), norb)
+     if (norbp>0) then
+        call dgemm('n', 'n', norb, norbp, norb, 1.d0, inv_ovrlp(1,1), &
+             norb, inv_ovrlp(1,isorb+1), norb, 0.d0, tmpp(1,1), norb)
+     end if
      call max_matrix_diff_parallel(iproc, norb, norbp, tmpp, ovrlp(1,isorb+1), error)
      error=0.5d0*error
   else if (power==-2) then
-     call dgemm('n', 'n', norb, norbp, norb, 1.d0, inv_ovrlp(1,1), &
-          norb, inv_ovrlp(1,isorb+1), norb, 0.d0, tmpp(1,1), norb)
+     if (norbp>0) then
+        call dgemm('n', 'n', norb, norbp, norb, 1.d0, inv_ovrlp(1,1), &
+             norb, inv_ovrlp(1,isorb+1), norb, 0.d0, tmpp(1,1), norb)
+     end if
      tmp2p=f_malloc((/norb,norbp/),id='tmp2p')
-     call dgemm('n', 'n', norb, norbp, norb, 1.d0, ovrlp(1,1), &
-          norb, tmpp(1,1), norb, 0.d0, tmp2p(1,1), norb)
+     if (norbp>0) then
+        call dgemm('n', 'n', norb, norbp, norb, 1.d0, ovrlp(1,1), &
+             norb, tmpp(1,1), norb, 0.d0, tmp2p(1,1), norb)
+     end if
      call deviation_from_unity_parallel(iproc, nproc, norb, norbp, isorb, tmp2p, error)
      error=0.5d0*error
      call f_free(tmp2p)
@@ -1402,7 +1410,7 @@ subroutine max_matrix_diff_parallel(iproc, norb, norbp, mat1, mat2, deviation)
   call timing(iproc,'dev_from_unity','ON') 
   deviation=0.d0
   do iorb=1,norbp
-     !$omp parallel default(private) shared(norb, mat1, mat2, deviation)
+     !$omp parallel default(private) shared(iorb, norb, mat1, mat2, deviation)
      !$omp do reduction(max:deviation)
      do jorb=1,norb
         error=abs(mat1(jorb,iorb)-mat2(jorb,iorb))
