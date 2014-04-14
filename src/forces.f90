@@ -364,6 +364,23 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
           iproc,nproc,ngatherarr,rho,strtens(1,4)) !shouud not be reduced for the moment
   end if
 
+  !add to the forces the ionic and dispersion contribution 
+  if (.not. experimental_modulebase_var_onlyfion) then !normal case
+     if (iproc==0) then
+        do iat=1,atoms%astruct%nat
+           fxyz(1,iat)=fxyz(1,iat)+fion(1,iat)+fdisp(1,iat)+fpulay(1,iat)
+           fxyz(2,iat)=fxyz(2,iat)+fion(2,iat)+fdisp(2,iat)+fpulay(2,iat)
+           fxyz(3,iat)=fxyz(3,iat)+fion(3,iat)+fdisp(3,iat)+fpulay(3,iat)
+        enddo
+     end if
+  else
+     if (iproc==0) then
+        call vcopy(3*atoms%astruct%nat,fion(1,1),1,fxyz(1,1),1)
+     else
+        call to_zero(3*atoms%astruct%nat,fxyz)
+     end if
+  end if
+
   ! Add up all the force contributions
   if (nproc > 1) then
      !TD: fxyz(1,1) not used in case of no atoms
@@ -371,17 +388,6 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
        if (atoms%astruct%geocode == 'P') &
             call mpiallred(strtens(1,1),6*3,MPI_SUM,bigdft_mpi%mpi_comm,ierr) !do not reduce erfstr
      call mpiallred(charge,1,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
-  end if
-
-  !add to the forces the ionic and dispersion contribution 
-  if (.not. experimental_modulebase_var_onlyfion) then !normal case
-     do iat=1,atoms%astruct%nat
-        fxyz(1,iat)=fxyz(1,iat)+fion(1,iat)+fdisp(1,iat)+fpulay(1,iat)
-        fxyz(2,iat)=fxyz(2,iat)+fion(2,iat)+fdisp(2,iat)+fpulay(2,iat)
-        fxyz(3,iat)=fxyz(3,iat)+fion(3,iat)+fdisp(3,iat)+fpulay(3,iat)
-     enddo
-  else
-     call vcopy(3*atoms%astruct%nat,fion(1,1),1,fxyz(1,1),1)
   end if
 
   !clean the center mass shift and the torque in isolated directions
