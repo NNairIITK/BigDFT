@@ -829,13 +829,13 @@ explicit_locregcenters:
 
 intermediateforces:
  Atomic Forces (Ha/Bohr): 1.3e-6
- Average noise forces: 4.5e-7
+ Average noise forces: 1.6e-6
  Clean forces norm (Ha/Bohr): 1.5e-6
  Raw forces norm (Ha/Bohr): 1.6e-6
  e: 1.6e-6
  energy: 2.8e-7
  Omega: 5.5e-7
- EXC: 7.8e-8
+ EXC: 1.6e-6
  EvXC: 1.1e-6
  EH: 6.9e-7
  Ekin: 2.1e-9

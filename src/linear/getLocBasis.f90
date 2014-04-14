@@ -2971,8 +2971,32 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
     subroutine calculate_quadropole()
       use yaml_output
       real(kind=8),dimension(3,3) :: quadropole_elec, quadropole_cores, quadropole_net
+      real(kind=8),dimension(3) :: charge_center_cores, charge_center_charge
       integer :: i, j
-      real(kind=8) :: delta_term, rj, ri, q
+      real(kind=8) :: delta_term, rj, ri, q, qtot
+
+
+      ! charge center of the cores
+      charge_center_cores(1:3)=0.d0
+      qtot=0.d0
+      do iat=1,atoms%astruct%nat
+          q=atoms%nelpsp(atoms%astruct%iatype(iat))
+          charge_center_cores(1:3) = charge_center_cores(1:3) + q*atoms%astruct%rxyz(1:3,iat)
+          qtot=qtot+q
+      end do
+      charge_center_cores=charge_center_cores/qtot
+
+
+      ! charge center of the charge
+      charge_center_charge(1:3)=0.d0
+      qtot=0.d0
+      do iat=1,atoms%astruct%nat
+          q=-charge_per_atom(iat)
+          charge_center_charge(1:3) = charge_center_cores(1:3) + q*atoms%astruct%rxyz(1:3,iat)
+          qtot=qtot+q
+      end do
+      charge_center_charge=charge_center_charge/qtot
+
 
       quadropole_cores(1:3,1:3)=0._gp
       do iat=1,atoms%astruct%nat
@@ -3005,8 +3029,8 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
                      delta_term=0.d0
                  end if
                  q=-charge_per_atom(iat)
-                 rj=atoms%astruct%rxyz(j,iat)
-                 ri=atoms%astruct%rxyz(i,iat)
+                 rj=atoms%astruct%rxyz(j,iat)+(charge_center_cores(j)-charge_center_charge(j))
+                 ri=atoms%astruct%rxyz(i,iat)+(charge_center_cores(i)-charge_center_charge(i))
                  quadropole_elec(j,i) = quadropole_elec(j,i) + q*(3.d0*rj*ri-delta_term)
                  !!quadropole_elec(j,i) = quadropole_elec(j,i) + &
                  !!                       -charge_per_atom(iat)* &
@@ -3039,4 +3063,80 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
 
     end subroutine calculate_quadropole
 
+
+    !subroutine support_function_multipoles()
+
+    !  ist=1
+    !  istr=1
+    !  do iorb=1,orbs%norbp
+    !      iiorb=orbs%isorb+iorb
+    !      ilr=orbs%inWhichLocreg(iiorb)
+    !      call initialize_work_arrays_sumrho(lzd%Llr(ilr), w)
+    !      ! Transform the support function to real space
+    !      call daub_to_isf(lzd%Llr(ilr), w, lphi(ist), psir(istr))
+    !      call deallocate_work_arrays_sumrho(w)
+    !  ! Calculate the charge center
+    !      ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
+    !      istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
+    !  end do
+    !  if(istr/=collcom_sr%ndimpsi_c+1) then
+    !      write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=collcom_sr%ndimpsi_c+1'
+    !      stop
+    !  end if
+
+
+    !  
+
+    !end subroutine support_function_multipoles
+
+
 end subroutine loewdin_charge_analysis
+
+
+subroutine charge_center(n1, n2, n3, hgrids, phir, charge_center_elec)
+  ! Calling arguments
+  integer,intent(in) :: n1, n2, n3
+  real(kind=8),dimension(3),intent(in) :: hgrids
+  real(kind=8),dimension(n1*n2*n3),intent(in) :: phir
+  real(kind=8),dimension(3),intent(out) :: charge_center_elec
+
+  integer :: i1, i2, i3, jj, iz, iy, ix
+  real(kind=8) :: q, x, y, z, qtot
+
+  qtot=0.d0
+  jj=0.d0
+  do i3=1,n3i
+      do i2=1,n2i
+          do i1=1,n1i
+              jj=jj+1
+              ! z component of point jj
+              iz=jj/(n2i*n1i)
+              ! Subtract the 'lower' xy layers
+              ii=jj-iz*(n2i*n1i)
+              ! y component of point jj
+              iy=ii/n1i
+              ! Subtract the 'lower' y rows
+              ii=ii-iy*n1i
+              ! x component
+              ix=ii
+
+              ! Shift the values due to the convolutions bounds
+              ix=ix-14
+              iy=iy-14
+              iz=iz-14
+
+              q= -phir(jj)**2 * product(hgrids)
+              x=ix*hgrids(1)
+              y=iy*hgrids(2)
+              z=iz*hgrids(3)
+              charge_center_elec(1) = charge_center_elec(1) + q*x
+              charge_center_elec(2) = charge_center_elec(2) + q*y
+              charge_center_elec(3) = charge_center_elec(3) + q*z
+              qtot=qtot+q
+          end do
+      end do
+  end do
+  charge_center_elec(1:3)=charge_center_elec(1:3)/qtot
+
+
+end subroutine charge_center
