@@ -1402,7 +1402,7 @@ subroutine max_matrix_diff_parallel(iproc, norb, norbp, mat1, mat2, deviation)
   call timing(iproc,'dev_from_unity','ON') 
   deviation=0.d0
   do iorb=1,norbp
-     !$omp parallel default(private) shared(norb, mat1, mat2, deviation)
+     !$omp parallel default(private) shared(iorb, norb, mat1, mat2, deviation)
      !$omp do reduction(max:deviation)
      do jorb=1,norb
         error=abs(mat1(jorb,iorb)-mat2(jorb,iorb))
