@@ -1214,13 +1214,13 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
                           select case (i)
                           case (1)
                               !ri=x-charge_center_cores(1)
-                              ri=x-charge_center_elec(1,ispin)
+                              ri=x+(charge_center_cores(1)-charge_center_elec(1,ispin))
                           case (2)
                               !ri=y-charge_center_cores(2)
-                              ri=y-charge_center_elec(2,ispin)
+                              ri=y+(charge_center_cores(2)-charge_center_elec(2,ispin))
                           case (3)
                               !ri=z-charge_center_cores(3)
-                              ri=z-charge_center_elec(3,ispin)
+                              ri=z+(charge_center_cores(3)-charge_center_elec(3,ispin))
                           case default
                               stop 'wrong value of i'
                           end select
@@ -1228,13 +1228,13 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
                               select case (j)
                               case (1)
                                   !rj=x-charge_center_cores(1)
-                                  rj=x-charge_center_elec(1,ispin)
+                                  rj=x+(charge_center_cores(1)-charge_center_elec(1,ispin))
                               case (2)
                                   !rj=y-charge_center_cores(2)
-                                  rj=y-charge_center_elec(2,ispin)
+                                  rj=y+(charge_center_cores(2)-charge_center_elec(2,ispin))
                               case (3)
                                   !rj=z-charge_center_cores(3)
-                                  rj=z-charge_center_elec(3,ispin)
+                                  rj=z+(charge_center_cores(3)-charge_center_elec(3,ispin))
                               case default
                                   stop 'wrong value of j'
                               end select
@@ -1242,9 +1242,9 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
                                   !delta_term = (x-charge_center_cores(1))**2 + &
                                   !             (y-charge_center_cores(2))**2 + &
                                   !             (z-charge_center_cores(3))**2
-                                  delta_term = (x-charge_center_elec(1,ispin))**2 + &
-                                               (y-charge_center_elec(2,ispin))**2 + &
-                                               (z-charge_center_elec(3,ispin))**2
+                                  delta_term = (x+(charge_center_cores(1)-charge_center_elec(1,ispin)))**2 + &
+                                               (y+(charge_center_cores(2)-charge_center_elec(2,ispin)))**2 + &
+                                               (z+(charge_center_cores(3)-charge_center_elec(3,ispin)))**2
                               else
                                   delta_term=0.d0
                               end if
