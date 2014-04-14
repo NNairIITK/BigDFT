@@ -538,6 +538,21 @@ contains
        dict_tmp => dict_next(dict_tmp)
     end do
 
+    !then add other information to the minimal dictionary which is associated
+    !to specific system parameters
+    !! basis set
+    if (LIN_BASIS_PARAMS .in. dict) then
+      dict_tmp => dict_iter(dict//LIN_BASIS_PARAMS)
+      do while(associated(dict_tmp))
+       category=dict_key(dict_tmp)
+       if (.not. (category .in. parameters//LIN_BASIS_PARAMS) .and. &
+       index(category,ATTRS) == 0 ) then
+           call dict_copy(minimal//LIN_BASIS_PARAMS//category,dict_tmp)
+       end if
+          dict_tmp => dict_next(dict_tmp)
+      end do
+    end if
+
     contains
       
       subroutine minimal_category(vars,input,minim)

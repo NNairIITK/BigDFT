@@ -334,7 +334,7 @@ subroutine sparsemm(nseq, a_seq, b, c, norb, norbp, ivectorindex, nout, onedimin
 
   !Local variables
   !character(len=*), parameter :: subname='sparsemm'
-  integer :: i,jorb,jjorb,m,mp1,ii
+  integer :: i,jorb,jjorb,m,mp1
   integer :: iorb, ii0, ii2, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6, iout
   real(kind=8) :: tt
 
@@ -361,28 +361,26 @@ subroutine sparsemm(nseq, a_seq, b, c, norb, norbp, ivectorindex, nout, onedimin
       mp1=m+1
       do jorb=mp1,ilen,7
 
-         ii = ii0+ii2
+         jjorb0=ivectorindex(ii0+ii2+0)
+         tt = tt + b(jjorb0,i)*a_seq(ii0+ii2+0)
 
-         jjorb0=ivectorindex(ii+0)
-         tt = tt + b(jjorb0,i)*a_seq(ii+0)
+         jjorb1=ivectorindex(ii0+ii2+1)
+         tt = tt + b(jjorb1,i)*a_seq(ii0+ii2+1)
 
-         jjorb1=ivectorindex(ii+1)
-         tt = tt + b(jjorb1,i)*a_seq(ii+1)
+         jjorb2=ivectorindex(ii0+ii2+2)
+         tt = tt + b(jjorb2,i)*a_seq(ii0+ii2+2)
 
-         jjorb2=ivectorindex(ii+2)
-         tt = tt + b(jjorb2,i)*a_seq(ii+2)
+         jjorb3=ivectorindex(ii0+ii2+3)
+         tt = tt + b(jjorb3,i)*a_seq(ii0+ii2+3)
 
-         jjorb3=ivectorindex(ii+3)
-         tt = tt + b(jjorb3,i)*a_seq(ii+3)
+         jjorb4=ivectorindex(ii0+ii2+4)
+         tt = tt + b(jjorb4,i)*a_seq(ii0+ii2+4)
 
-         jjorb4=ivectorindex(ii+4)
-         tt = tt + b(jjorb4,i)*a_seq(ii+4)
+         jjorb5=ivectorindex(ii0+ii2+5)
+         tt = tt + b(jjorb5,i)*a_seq(ii0+ii2+5)
 
-         jjorb5=ivectorindex(ii+5)
-         tt = tt + b(jjorb5,i)*a_seq(ii+5)
-
-         jjorb6=ivectorindex(ii+6)
-         tt = tt + b(jjorb6,i)*a_seq(ii+6)
+         jjorb6=ivectorindex(ii0+ii2+6)
+         tt = tt + b(jjorb6,i)*a_seq(ii0+ii2+6)
 
          ii2=ii2+7
       end do

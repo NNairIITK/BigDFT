@@ -53,7 +53,8 @@ subroutine foe(iproc, nproc, tmprtr, &
   real(kind=8) :: trace_sparse, temp_multiplicator, ebs_check
   integer :: irow, icol, itemp, iflag
   logical :: overlap_calculated, cycle_FOE, evbounds_shrinked, degree_sufficient, reached_limit
-  real(kind=8),parameter :: FSCALE_LIMIT=1.d-3
+  real(kind=8),parameter :: FSCALE_LOWER_LIMIT=1.d-3
+  real(kind=8),parameter :: FSCALE_UPPER_LIMIT=5.d-2
   real(kind=8),parameter :: DEGREE_MULTIPLICATOR_ACCURATE=3.d0
   real(kind=8),parameter :: DEGREE_MULTIPLICATOR_FAST=2.d0
   real(kind=8),parameter :: TEMP_MULTIPLICATOR_ACCURATE=1.d0
@@ -314,7 +315,7 @@ subroutine foe(iproc, nproc, tmprtr, &
               !end if
               npl_check=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale_check)
               npl_check=max(npl_check,nint(real(npl,kind=8)/CHECK_RATIO)) ! this is necessary if npl was set to the minimal value
-              npl_boundaries=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/FSCALE_LIMIT) ! max polynomial degree for given eigenvalue boundaries
+              npl_boundaries=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/FSCALE_LOWER_LIMIT) ! max polynomial degree for given eigenvalue boundaries
               if (npl>npl_boundaries) then
                   npl=npl_boundaries
                   if (iproc==0) call yaml_warning('very sharp decay of error function, polynomial degree reached limit')
@@ -810,9 +811,9 @@ subroutine foe(iproc, nproc, tmprtr, &
                   !!!!%%        !!if (iproc==0) call yaml_map('Need to change fscale (decrease)',.true.)
                   !!!!%%        if (iproc==0) call yaml_map('modify fscale','decrease')
                   !!!!%%    end if
-                  !!!!%%    if (tmb%foe_obj%fscale<FSCALE_LIMIT) then
-                  !!!!%%        tmb%foe_obj%fscale=FSCALE_LIMIT
-                  !!!!%%        if (iproc==0) call yaml_map('fscale reached limit; reset to',FSCALE_LIMIT)
+                  !!!!%%    if (tmb%foe_obj%fscale<FSCALE_LOWER_LIMIT) then
+                  !!!!%%        tmb%foe_obj%fscale=FSCALE_LOWER_LIMIT
+                  !!!!%%        if (iproc==0) call yaml_map('fscale reached limit; reset to',FSCALE_LOWER_LIMIT)
                   !!!!%%        reached_limit=.true.
                   !!!!%%    else
                   !!!!%%        reached_limit=.false.
@@ -974,9 +975,13 @@ subroutine foe(iproc, nproc, tmprtr, &
               !!if (iproc==0) call yaml_map('Need to change fscale (decrease)',.true.)
               if (iproc==0) call yaml_map('modify fscale','decrease')
           end if
-          if (tmb%foe_obj%fscale<FSCALE_LIMIT) then
-              tmb%foe_obj%fscale=FSCALE_LIMIT
-              if (iproc==0) call yaml_map('fscale reached limit; reset to',FSCALE_LIMIT)
+          if (tmb%foe_obj%fscale<FSCALE_LOWER_LIMIT) then
+              tmb%foe_obj%fscale=FSCALE_LOWER_LIMIT
+              if (iproc==0) call yaml_map('fscale reached lower limit; reset to',FSCALE_LOWER_LIMIT)
+              reached_limit=.true.
+          else if (tmb%foe_obj%fscale>FSCALE_UPPER_LIMIT) then
+              tmb%foe_obj%fscale=FSCALE_UPPER_LIMIT
+              if (iproc==0) call yaml_map('fscale reached upper limit; reset to',FSCALE_UPPER_LIMIT)
               reached_limit=.true.
           else
               reached_limit=.false.

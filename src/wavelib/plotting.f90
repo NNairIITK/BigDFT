@@ -1011,7 +1011,7 @@ END SUBROUTINE read_cube_field
 
 !> Calculate the dipole of a Field given in the rho array.
 !! The parallel distribution used is the one of the potential
-subroutine calc_dipole(box,nspin,at,rxyz,rho)
+subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
   use module_base
   use module_types
   use yaml_output
@@ -1021,11 +1021,14 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho)
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(dp), dimension(box%ndims(1),box%ndims(2),max(box%n3p, 1),nspin), target, intent(in) :: rho
+  logical,intent(in) :: calculate_quadropole
+
   character(len=*), parameter :: subname='calc_dipole'
   integer :: i_all,i_stat,ierr,n3p,nc1,nc2,nc3
-  real(gp) :: q,qtot
-  integer  :: iat,i1,i2,i3, nl1,nl2,nl3, ispin,n1i,n2i,n3i
+  real(gp) :: q,qtot, delta_term,x,y,z,vali,valj
+  integer  :: iat,i1,i2,i3, nl1,nl2,nl3, ispin,n1i,n2i,n3i, i, j
   real(gp), dimension(3) :: dipole_el,dipole_cores,tmpdip
+  real(gp), dimension(3,3) :: quadropole_el,quadropole_cores,tmpquadrop
   real(dp), dimension(:,:,:,:), pointer :: ele_rho
 !!$  real(dp), dimension(:,:,:,:), pointer :: rho_buf
   
@@ -1106,6 +1109,75 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho)
 
   end do
 
+
+  if (calculate_quadropole) then
+
+      quadropole_cores(1:3,1:3)=0._gp
+      do iat=1,at%astruct%nat
+         do i=1,3
+             do j=1,3
+                 if (i==j) then
+                     delta_term = at%astruct%rxyz(1,iat)**2 + at%astruct%rxyz(2,iat)**2 + at%astruct%rxyz(3,iat)**2
+                 else
+                     delta_term=0.d0
+                 end if
+                 quadropole_cores(j,i) = quadropole_cores(j,i) + &
+                                         at%nelpsp(at%astruct%iatype(iat))*(3.d0*at%astruct%rxyz(j,iat)*at%astruct%rxyz(i,iat)-delta_term)
+             end do
+         end do
+      end do
+
+      quadropole_el(1:3,1:3)=0._gp
+      do ispin=1,nspin
+          do i3=0,nc3 - 1
+              do i2=0,nc2 - 1
+                  do i1=0,nc1 - 1
+                      q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(box%hgrids)
+                      x=at%astruct%cell_dim(1)/real(nc1,dp)*i1
+                      y=at%astruct%cell_dim(2)/real(nc2,dp)*i2
+                      z=at%astruct%cell_dim(3)/real(nc3,dp)*i3
+                      do i=1,3
+                          select case (i)
+                          case (1)
+                              vali=x
+                          case (2)
+                              vali=y
+                          case(3)
+                              vali=z
+                          case default
+                              stop 'wrong value of i'
+                          end select
+                          do j=1,3
+                              select case (j)
+                              case (1)
+                                  valj=x
+                              case (2)
+                                  valj=y
+                              case(3)
+                                  valj=z
+                              case default
+                                  stop 'wrong value of j'
+                              end select
+                              if (i==j) then
+                                  !delta_term = at%astruct%rxyz(1,iat)**2 + at%astruct%rxyz(2,iat)**2 + at%astruct%rxyz(3,iat)**2
+                                  delta_term = x**2 + y**2 + z**2
+                              else
+                                  delta_term=0.d0
+                              end if
+                              !!quadropole_el(j,i) = quadropole_el(j,i) + &
+                              !!                       q*(3.d0*at%astruct%rxyz(j,iat)*at%astruct%rxyz(i,iat)-delta_term)
+                              quadropole_el(j,i) = quadropole_el(j,i) + q*(3.d0*valj*vali-delta_term)
+                          end do
+                      end do
+                  end do
+              end do
+          end do
+      end do
+
+      tmpquadrop=quadropole_cores+quadropole_el
+
+  end if
+
   if(box%mpi_env%iproc + box%mpi_env%igroup==0) then
      !dipole_el=dipole_el        !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
      !dipole_cores=dipole_cores  !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
@@ -1133,6 +1205,29 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho)
      !     write(*,98) "Total (cores-el.): ", dipole_cores+dipole_el , sqrt(sum((dipole_cores+dipole_el)**2))
      !97 format (20x,3a15  ,"    ==> ",a15)
      !98 format (a20,3f15.7,"    ==> ",f15.5)
+
+
+      if (calculate_quadropole) then
+          call yaml_open_sequence('core quadropole')
+          do i=1,3
+             call yaml_sequence(trim(yaml_toa(quadropole_cores(i,1:3),fmt='(es12.5)')))
+          end do
+          call yaml_close_sequence()
+
+          call yaml_open_sequence('electronic quadropole')
+          do i=1,3
+             call yaml_sequence(trim(yaml_toa(quadropole_el(i,1:3),fmt='(es12.5)')))
+          end do
+          call yaml_close_sequence()
+
+          call yaml_open_sequence('Quadropole Moment (AU)')
+          do i=1,3
+             call yaml_sequence(trim(yaml_toa(tmpquadrop(i,1:3),fmt='(es12.5)')))
+          end do
+          call yaml_close_sequence()
+      end if
+
+
 
   endif
 
