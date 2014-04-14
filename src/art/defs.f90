@@ -1,20 +1,20 @@
 !> @file
+!! Define some module for BigDFT+ART
 !! @author
 !!    Copyright (C) 2001 Normand Mousseau
-!!    Copyright (C) 2010 BigDFT group
+!!    Copyright (C) 2010-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-!> ART Module defs
-!! This module defines almost all variables used accross the program ART
+!> Module which defines almost all variables used across the program ART
 module defs
 
   implicit none
 
-  real(kind=8), parameter :: VERSION_NUMBER  = 1.6    !< Version of the code
-  character(len=20), parameter :: BIGREVNO ="1.6-dev.12-538" !< Bigdft version
+  real(kind=8), parameter :: VERSION_NUMBER  = 1.6           !< Version of the code
+  character(len=20), parameter :: BIGREVNO ="1.6-dev.12-538" !< BigDFT version
  
   real(kind=8) :: t1                 !< Initial Date (cputime)
 

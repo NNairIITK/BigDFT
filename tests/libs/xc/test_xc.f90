@@ -1,3 +1,14 @@
+!> @file
+!! Test of the libxc library
+!! @author
+!!    Copyright (C) 2012-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Program to test the libxc library used by BigDFT
 program test_xc
 
   use module_base
@@ -33,7 +44,7 @@ program test_xc
      end if
 !!$     if (funcs(ifunc) < 0) then
 !!$        call test(funcs(ifunc), exc, dt, option = XC_LIBXC)
-!!$        write(*,"(1x,A,I7,3x,A,F17.8,1x,A,1x,A,F17.8,3x,A,F7.5,1x,A)") &
+!!$        write(*,"(1x,A,I7,3x,A,F17.8,1x,A,1x,A,F17.8,3x,A,F10.5,1x,A)") &
 !!$             & "ixc = ", funcs(ifunc), "nosp = ", exc(1), "|", "scol = ", &
 !!$             & exc(2), "time = ", dt, "s"
 !!$     end if
@@ -53,7 +64,7 @@ program test_xc
      do ifunc = 1, n_funcs, 1
         if (ixc_prev * funcs(ifunc) > 0 .or. (ixc_prev < 0 .and. funcs(ifunc) > 0)) &
              & write(*,"(1x,A,A,A)") repeat("-", 41), "+", repeat("-", 44)
-        write(*,"(1x,A,I7,3x,A,F17.8,1x,A,1x,A,F17.8,3x,A,F7.5,1x,A)") &
+        write(*,"(1x,A,I7,3x,A,F17.8,1x,A,1x,A,F17.8,3x,A,F10.5,1x,A)") &
              & "ixc = ", funcs(ifunc), "nosp = ", exc(1, ifunc), "|", "scol = ", &
              & exc(2, ifunc), "time = ", dt(ifunc), "s"
         ixc_prev = funcs(ifunc)
@@ -76,6 +87,7 @@ contains
     integer, intent(in), optional :: option
 
     integer :: i, n, type
+    type(xc_info) :: xc
     integer, parameter :: n_rho = 100000, n_runs = 2
     real(dp), dimension(n_rho, 2) :: rho, vxc
     real(dp), dimension(n_rho, 3) :: rhogr, vxcgr
@@ -95,15 +107,15 @@ contains
     call system_clock(start)
     do n = 1, n_runs, 1
        do i = 1, 2, 1
-          call xc_init(ixc, type, i)
+          call xc_init(xc, ixc, type, i)
 !!$          if (i == 1 .and. n == 1) call xc_dump()
 
-          call gauss(rho, n_rho, i, type)
-          if (xc_isgga()) call gaussgr(rhogr, rho, n_rho)
-          call xc_getvxc(n_rho, exc, i, rho(1,1), vxc(1,1), rhogr, vxcgr)
+          call gauss(xc, rho, n_rho, i, type)
+          if (xc_isgga(xc)) call gaussgr(rhogr, rho, n_rho)
+          call xc_getvxc(xc, n_rho, exc, i, rho(1,1), vxc(1,1), rhogr, vxcgr)
           excs(i) = sum(exc)
 
-          call xc_end()
+          call xc_end(xc)
        end do
     end do
     call system_clock(end)
@@ -111,21 +123,22 @@ contains
     dt = real(end - start) / real(countPerSecond) / real(n_runs)
   end subroutine test
 
-  subroutine gauss(rho, n_rho, nspin, type)
+  subroutine gauss(xc, rho, n_rho, nspin, type)
     use module_base
     use module_xc
 
     implicit none
 
+    type(xc_info), intent(in) :: xc
     integer, intent(in) :: n_rho, nspin, type
     real(dp), intent(out) :: rho(n_rho * 2)
 
     integer :: j, delta
     real(dp) :: sigma
 
-    call xc_init_rho(n_rho * 2, rho, 1)
+    call xc_init_rho(xc, n_rho * 2, rho, 1)
     delta = 0
-    if (nspin == 2 ) delta = real(n_rho) * 0.005
+    if (nspin == 2 ) delta = int(real(n_rho) * 0.005)
     sigma = 1.d0 / (real(n_rho, dp) * 0.25d0)
     do j = 5, n_rho - 5
        if (type == XC_LIBXC .and. nspin == 2) then
@@ -136,7 +149,7 @@ contains
           rho(j + n_rho) = exp(-((sigma * (n_rho / 2 - j - delta)) ** 2)) / nspin / n_rho
        end if
     end do
-    call xc_clean_rho(n_rho * 2, rho, 1)
+    call xc_clean_rho(xc, n_rho * 2, rho, 1)
     rho = rho / sum(rho(1:nspin * n_rho))
   end subroutine gauss
 

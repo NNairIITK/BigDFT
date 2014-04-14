@@ -17,7 +17,7 @@
 !!  real(wp),dimension(orbs%npsidim),intent(inout):: psit                 !> Eigenvectors
 !!  integer, optional, dimension(natsc+1,nspin), intent(in) :: norbsc_arr !> semicore description
 !!  type(orbitals_data),intent(in),optional,target :: orbse                      !> description of orbitals for input guess
-!!  type(communications_arrays), optional, target, intent(in) :: commse   !> communicators
+!!  type(comms_cubic), optional, target, intent(in) :: commse   !> communicators
 !!  !Local variables
 !!  integer :: ilr,ilr2,ikptp,ikpt,ii,jj                       !> loop integers
 !!  integer :: i_stat,i_all                                    !> error handling for allocation/deallocation and memocc
@@ -127,7 +127,7 @@
 !!  call memocc(i_stat,hamovr,'hamovr',subname)
 !!
 !!  ! put it to zero
-!!  call razero(nspin*ndim_hamovr*2*orbse%nkpts,hamovr)
+!!  call to_zero(nspin*ndim_hamovr*2*orbse%nkpts,hamovr)
 !!
 !!  ! First build the number of semicore states for each atom (hence each locreg)
 !!  ! ONLY WORKS FOR INPUT GUESS where each atom has it's locreg
@@ -302,7 +302,7 @@
 !!  Gpsidim = (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbse%norb*orbse%nspinor
 !!  allocate(psi(Gpsidim+ndebug),stat=i_stat)
 !!  call memocc(i_stat,psi,'psi',subname)
-!!  call razero(Gpsidim+ndebug,psi)
+!!  call to_zero(Gpsidim+ndebug,psi)
 !!
 !!! WATCH OUT, does not work for nspinor > 1
 !!  psishift1 = 1
@@ -331,7 +331,7 @@
 !!!    FOR NOW, just transform the Lpsi to psi in global region.
 !!     nvctrp=Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f
 !!     if (nvctrp == 0) cycle
-!!     call build_eigenvectors(iproc,orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
+!!     call build_eigenvectors(orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
 !!          natsceff,nspin,orbse%nspinor,orbse%nspinor,ndim_hamovr,norbgrp,hamovr(1,1,ikpt),&
 !!          psi(ispsie:),psit(ispsi:))
 !!     ispsi=ispsi+nvctrp*orbs%norb*orbse%nspinor

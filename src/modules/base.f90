@@ -10,8 +10,14 @@
 
 !> Modules which contains the low level definitions, as well as some profiling procedures
 module module_base 
+  use wrapper_linalg
+  use wrapper_MPI
   use module_defs
-  use m_profiling
+  use dictionaries, dict_set => set !error_handling
+  use dynamic_memory
+  use time_profiling
+  use memory_profiling, only: memocc,ndebug
+  !use m_profiling
 
   implicit none  
 end module module_base

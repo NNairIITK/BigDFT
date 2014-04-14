@@ -228,6 +228,7 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
   call memocc(i_stat,CP2K%nam,'CP2K%nam',subname)
 
   !assign shell IDs and count the number of exponents and coefficients
+  CP2K%ncplx=1
   CP2K%nexpo=0
   CP2K%ncoeff=0
   ishell=0
@@ -243,9 +244,9 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
   end do
 
   !allocate and assign the exponents and the coefficients
-  allocate(CP2K%xp(CP2K%nexpo+ndebug),stat=i_stat)
+  allocate(CP2K%xp(CP2K%ncplx,CP2K%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,CP2K%xp,'CP2K%xp',subname)
-  allocate(CP2K%psiat(CP2K%nexpo+ndebug),stat=i_stat)
+  allocate(CP2K%psiat(CP2K%ncplx,CP2K%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,CP2K%psiat,'CP2K%psiat',subname)
 
   ishell=0
@@ -256,8 +257,8 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
         ishell=ishell+1
         do ig=1,CP2K%ndoc(ishell)
            iexpo=iexpo+1
-           CP2K%psiat(iexpo)=contcoeff(ig,isat,ityp)
-           CP2K%xp(iexpo)=sqrt(0.5_gp/expo(ig,isat,ityp))
+           CP2K%psiat(1,iexpo)=contcoeff(ig,isat,ityp)
+           CP2K%xp(1,iexpo)=sqrt(0.5_gp/expo(ig,isat,ityp))
         end do
      end do
   end do
@@ -430,7 +431,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
   use yaml_output
   use gaussians
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: iproc,nproc
   real(gp), intent(in) :: hx,hy,hz
   type(grid_dimensions), intent(in) :: grid
@@ -459,7 +460,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
   call memocc(i_stat,tpsi,'tpsi',subname)
 
   !initialize the wavefunction
-  call razero((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor,psi)
+  call to_zero((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor,psi(1,1,1))
   !this can be changed to be passed only once to all the gaussian basis
   !eks=0.d0
   !loop over the atoms
@@ -500,7 +501,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
            end do loop_calc
            if (maycalc) then
               call crtonewave(geocode,grid%n1,grid%n2,grid%n3,ng,nterm,lx,ly,lz,fac_arr,&
-                   G%xp(iexpo),G%psiat(iexpo),&
+                   G%xp(1,iexpo),G%psiat(1,iexpo),&
                    rx,ry,rz,hx,hy,hz,&
                    0,grid%n1,0,grid%n2,0,grid%n3,&
                    grid%nfl1,grid%nfu1,grid%nfl2,grid%nfu2,grid%nfl3,grid%nfu3,  & 
@@ -667,6 +668,7 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   use module_types
   use gaussians
   implicit none
+  integer,parameter:: ncplx_g=1 !this is true for NC pseudos
   integer, intent(in) :: ncplx
   real(gp), intent(in) :: hx,hy,hz,kx,ky,kz
   type(locreg_descriptors), intent(in) :: lr
@@ -679,7 +681,8 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   logical :: perx,pery,perz
   integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,i,nterm,ig
   integer :: nterms_max,nterms,iterm,n_gau,ml1,mu1,ml2,mu2,ml3,mu3 !n(c) iscoeff
-  real(gp) :: rx,ry,rz,gau_a
+  real(gp) :: rx,ry,rz,gau_cut
+  real(gp),dimension(ncplx_g):: gau_a
   integer, dimension(nterm_max) :: lx,ly,lz
   real(gp), dimension(nterm_max) :: fac_arr
   real(wp), allocatable, dimension(:,:,:) :: work
@@ -708,6 +711,7 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   !initialize the wavefunction
   call to_zero((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx,psi(1))
 
+  gau_cut=1.0_gp !only meaningful for PAW
   !calculate the number of terms for this orbital
   nterms=0
   !loop over the atoms
@@ -747,22 +751,22 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
               !gauss_to_daub are zero outside [ml:mr] 
               do ig=1,ng
                  do i=1,nterm
-                    !print *,iat,ig,i,fac_arr(i),wfn_gau(icoeff),G%xp(iexpo+ig-1)
-                    gau_a=G%xp(iexpo+ig-1)
+                    !print *,iat,ig,i,fac_arr(i),wfn_gau(icoeff),G%xp(1,iexpo+ig-1)
+                    gau_a(1)=G%xp(1,iexpo+ig-1)
                     n_gau=lx(i)
-                    call gauss_to_daub_k(hx,kx*hx,ncplx,fac_arr(i),rx,gau_a,n_gau,&
+                    call gauss_to_daub_k(hx,kx*hx,ncplx,ncplx_g,ncplx,fac_arr(i),rx,gau_a,n_gau,&
                          lr%ns1,lr%d%n1,ml1,mu1,&
-                         wx(1,0,1,iterm),work,nw,perx) 
+                         wx(1,0,1,iterm),work,nw,perx,gau_cut) 
                     !print *,'x',gau_a,nterm,ncplx,kx,ky,kz,ml1,mu1,lr%d%n1
                     n_gau=ly(i)
-                    call gauss_to_daub_k(hy,ky*hy,ncplx,wfn_gau(icoeff),ry,gau_a,n_gau,&
+                    call gauss_to_daub_k(hy,ky*hy,ncplx,ncplx_g,ncplx,wfn_gau(icoeff),ry,gau_a,n_gau,&
                          lr%ns2,lr%d%n2,ml2,mu2,&
-                         wy(1,0,1,iterm),work,nw,pery) 
+                         wy(1,0,1,iterm),work,nw,pery,gau_cut) 
                     !print *,'y',ml2,mu2,lr%d%n2
                     n_gau=lz(i) 
-                    call gauss_to_daub_k(hz,kz*hz,ncplx,G%psiat(iexpo+ig-1),rz,gau_a,n_gau,&
+                    call gauss_to_daub_k(hz,kz*hz,ncplx,ncplx_g,ncplx,G%psiat(:,iexpo+ig-1),rz,gau_a,n_gau,&
                          lr%ns3,lr%d%n3,ml3,mu3,&
-                         wz(1,0,1,iterm),work,nw,perz)
+                         wz(1,0,1,iterm),work,nw,perz,gau_cut)
                     !print *,'z',ml3,mu3,lr%d%n3
                     iterm=iterm+1
                  end do
@@ -861,7 +865,7 @@ subroutine gaussians_c_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi,
   perz=(lr%geocode /= 'F')
 
   !initialize the wavefunction
-  call razero((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx,psi)
+  call to_zero((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx,psi)
 
   !calculate the number of terms for this orbital
   nterms=0
@@ -998,7 +1002,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(inout) :: psi
   !local variables
   integer :: iseg,i,i0,i1,i2,i3,jj,ind_c,ind_f,iterm,nvctr
-  real(wp) :: re_cmplx_prod,im_cmplx_prod
+!  real(wp) :: re_cmplx_prod,im_cmplx_prod
   !!$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
 
   !the filling of the wavefunction should be different if ncplx==1 or 2
@@ -1174,65 +1178,38 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
 
   !!$omp end parallel
 
+contains 
+  !> Real part of the complex product
+  pure function re_cmplx_prod(a,b,c)
+    use module_base, only: wp
+    implicit none
+    real(wp), dimension(2), intent(in) :: a,b,c
+    real(wp) :: re_cmplx_prod
+
+    re_cmplx_prod=a(1)*b(1)*c(1) &
+         -a(1)*b(2)*c(2) &
+         -a(2)*b(1)*c(2) &
+         -a(2)*b(2)*c(1)
+
+  END FUNCTION re_cmplx_prod
+
+
+  !>   Imaginary part of the complex product
+  pure function im_cmplx_prod(a,b,c)
+    use module_base, only: wp
+    implicit none
+    real(wp), dimension(2), intent(in) :: a,b,c
+    real(wp) :: im_cmplx_prod
+
+    im_cmplx_prod=-a(2)*b(2)*c(2) &
+         +a(2)*b(1)*c(1) &
+         +a(1)*b(2)*c(1) &
+         +a(1)*b(1)*c(2)
+
+  END FUNCTION im_cmplx_prod
+
+
 END SUBROUTINE wfn_from_tensprod
-
-
-function re_re_cmplx_prod(a,b,c)
-  use module_base
-  implicit none
-  real(wp), dimension(2,2), intent(in) :: a,b,c
-  real(wp) :: re_re_cmplx_prod
-  real(wp) :: re_cmplx_prod
-  
-  re_re_cmplx_prod=re_cmplx_prod( a(1,1),b(1,1),c(1,1)) &
-       -re_cmplx_prod( a(1,1),b(1,2),c(1,2)) &
-       -re_cmplx_prod( a(1,2),b(1,1),c(1,2)) &
-       -re_cmplx_prod( a(1,2),b(1,2),c(1,1))
-END FUNCTION re_re_cmplx_prod
-
-
-function im_re_cmplx_prod(a,b,c)
-  use module_base
-  implicit none
-  real(wp), dimension(2,2), intent(in) :: a,b,c
-  real(wp) :: im_re_cmplx_prod
-  real(wp) :: re_cmplx_prod
-  
-  im_re_cmplx_prod=-re_cmplx_prod(a(1,2),b(1,2),c(1,2)) &
-                   +re_cmplx_prod(a(1,2),b(1,1),c(1,1)) &
-                   +re_cmplx_prod(a(1,1),b(1,2),c(1,1)) &
-                   +re_cmplx_prod(a(1,1),b(1,1),c(1,2))
-  
-END FUNCTION im_re_cmplx_prod
-
-
-function re_im_cmplx_prod(a,b,c)
-  use module_base
-  implicit none
-  real(wp), dimension(2,2), intent(in) :: a,b,c
-  real(wp) :: re_im_cmplx_prod
-  real(wp) :: im_cmplx_prod
-  
-  re_im_cmplx_prod=im_cmplx_prod( a(1,1),b(1,1),c(1,1)) &
-       -im_cmplx_prod( a(1,1),b(1,2),c(1,2)) &
-       -im_cmplx_prod( a(1,2),b(1,1),c(1,2)) &
-       -im_cmplx_prod( a(1,2),b(1,2),c(1,1))
-  
-END FUNCTION re_im_cmplx_prod
-
-
-function im_im_cmplx_prod(a,b,c)
-  use module_base
-  implicit none
-  real(wp), dimension(2,2), intent(in) :: a,b,c
-  real(wp) :: im_im_cmplx_prod
-  real(wp) :: im_cmplx_prod
-  
-  im_im_cmplx_prod=-im_cmplx_prod(a(1,2),b(1,2),c(1,2)) &
-                   +im_cmplx_prod(a(1,2),b(1,1),c(1,1)) &
-                   +im_cmplx_prod(a(1,1),b(1,2),c(1,1)) &
-                   +im_cmplx_prod(a(1,1),b(1,1),c(1,2))  
-END FUNCTION im_im_cmplx_prod
 
 
 !> Accumulate 3d projector in real form from a tensor produc decomposition
@@ -1251,8 +1228,8 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(inout) :: psi
   !local variables
   integer :: iseg,i,i0,i1,i2,i3,jj,ind_c,ind_f,iterm,nvctr
-  real(wp) :: re_cmplx_prod,im_cmplx_prod
-  real(wp) :: re_re_cmplx_prod,re_im_cmplx_prod,im_re_cmplx_prod,im_im_cmplx_prod 
+  !real(wp) :: re_cmplx_prod,im_cmplx_prod
+  !real(wp) :: re_re_cmplx_prod,re_im_cmplx_prod,im_re_cmplx_prod,im_im_cmplx_prod 
 
   !!$omp parallel default(private) shared(lr%nseg_c,lr%wfd%keyv,lr%wfd%keyg,lr%d) &
   !!$omp shared(psi,wx,wy,wz,lr%wfd%nvctr_c) &
@@ -1520,10 +1497,98 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
         end do
 
      end do
-
+     
   end if
 
-  !!$omp end parallel
+!!$omp end parallel
+
+contains 
+  !> Real part of the complex product
+  pure function re_cmplx_prod(a,b,c)
+    use module_base, only: wp
+    implicit none
+    real(wp), dimension(2), intent(in) :: a,b,c
+    real(wp) :: re_cmplx_prod
+
+    re_cmplx_prod=a(1)*b(1)*c(1) &
+         -a(1)*b(2)*c(2) &
+         -a(2)*b(1)*c(2) &
+         -a(2)*b(2)*c(1)
+
+  END FUNCTION re_cmplx_prod
+
+
+  !>   Imaginary part of the complex product
+  pure function im_cmplx_prod(a,b,c)
+    use module_base, only: wp
+    implicit none
+    real(wp), dimension(2), intent(in) :: a,b,c
+    real(wp) :: im_cmplx_prod
+
+    im_cmplx_prod=-a(2)*b(2)*c(2) &
+         +a(2)*b(1)*c(1) &
+         +a(1)*b(2)*c(1) &
+         +a(1)*b(1)*c(2)
+
+  END FUNCTION im_cmplx_prod
+
+  pure function re_re_cmplx_prod(a,b,c)
+    use module_base
+    implicit none
+    real(wp), dimension(2,2), intent(in) :: a,b,c
+    real(wp) :: re_re_cmplx_prod
+    !  real(wp) :: re_cmplx_prod
+
+    re_re_cmplx_prod=re_cmplx_prod( a(1,1),b(1,1),c(1,1)) &
+         -re_cmplx_prod( a(1,1),b(1,2),c(1,2)) &
+         -re_cmplx_prod( a(1,2),b(1,1),c(1,2)) &
+         -re_cmplx_prod( a(1,2),b(1,2),c(1,1))
+  END FUNCTION re_re_cmplx_prod
+
+
+  pure function im_re_cmplx_prod(a,b,c)
+    use module_base
+    implicit none
+    real(wp), dimension(2,2), intent(in) :: a,b,c
+    real(wp) :: im_re_cmplx_prod
+    !real(wp) :: re_cmplx_prod
+
+    im_re_cmplx_prod=-re_cmplx_prod(a(1,2),b(1,2),c(1,2)) &
+         +re_cmplx_prod(a(1,2),b(1,1),c(1,1)) &
+         +re_cmplx_prod(a(1,1),b(1,2),c(1,1)) &
+         +re_cmplx_prod(a(1,1),b(1,1),c(1,2))
+
+  END FUNCTION im_re_cmplx_prod
+
+
+  pure function re_im_cmplx_prod(a,b,c)
+    use module_base
+    implicit none
+    real(wp), dimension(2,2), intent(in) :: a,b,c
+    real(wp) :: re_im_cmplx_prod
+    !real(wp) :: im_cmplx_prod
+
+    re_im_cmplx_prod=im_cmplx_prod( a(1,1),b(1,1),c(1,1)) &
+         -im_cmplx_prod( a(1,1),b(1,2),c(1,2)) &
+         -im_cmplx_prod( a(1,2),b(1,1),c(1,2)) &
+         -im_cmplx_prod( a(1,2),b(1,2),c(1,1))
+
+  END FUNCTION re_im_cmplx_prod
+
+
+  pure function im_im_cmplx_prod(a,b,c)
+    use module_base
+    implicit none
+    real(wp), dimension(2,2), intent(in) :: a,b,c
+    real(wp) :: im_im_cmplx_prod
+    !real(wp) :: im_cmplx_prod
+
+    im_im_cmplx_prod=-im_cmplx_prod(a(1,2),b(1,2),c(1,2)) &
+         +im_cmplx_prod(a(1,2),b(1,1),c(1,1)) &
+         +im_cmplx_prod(a(1,1),b(1,2),c(1,1)) &
+         +im_cmplx_prod(a(1,1),b(1,1),c(1,2))  
+  END FUNCTION im_im_cmplx_prod
+
 
 END SUBROUTINE wfn_from_tensprod_cossin
 
@@ -1559,7 +1624,7 @@ END SUBROUTINE segments_to_grid
 !!!  use module_base
 !!!  use module_types
 !!!  implicit none
-!!!  character(len=1), intent(in) :: geocode
+!!!  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
 !!!  integer, intent(in) :: iproc,nproc,norb,norbp,n1i,n2i,n3i 
 !!!  real(gp), intent(in) :: hx,hy,hz
 !!!  type(wavefunctions_descriptors), intent(in) :: wfd
@@ -1584,7 +1649,7 @@ END SUBROUTINE segments_to_grid
 !!!  call memocc(i_stat,tpsi,'tpsi',subname)
 !!!
 !!!  !initialize the wavefunction
-!!!  call razero((wfd%nvctr_c+7*wfd%nvctr_f)*norbp,psi)
+!!!  call to_zero((wfd%nvctr_c+7*wfd%nvctr_f)*norbp,psi)
 !!!  !this can be changed to be passed only once to all the gaussian basis
 !!!  !eks=0.d0
 !!!  !loop over the atoms
@@ -1608,7 +1673,7 @@ END SUBROUTINE segments_to_grid
 !!!           call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
            !this kinetic energy is not reliable
 !!eks=eks+ek*occup(iorb)*cimu(m,ishell,iat,iorb)
-!!!           call crtonewave(geocode,n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,G%xp(iexpo),G%psiat(iexpo),&
+!!!           call crtonewave(geocode,n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,G%xp(1,iexpo),G%psiat(1,iexpo),&
 !!!                rx,ry,rz,hx,hy,hz,0,n1,0,n2,0,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
 !!!                wfd%nseg_c,wfd%nvctr_c,wfd%keyg,wfd%keyv,wfd%nseg_f,wfd%nvctr_f,&
 !!!                wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),&
@@ -1675,7 +1740,7 @@ END SUBROUTINE segments_to_grid
 !!!     call ext_buffers(pery,nbl2,nbr2)
 !!!     call ext_buffers(perz,nbl3,nbr3)
 !!!
-!!!     call razero(n1i*n2i*n3pi,pot_ion)
+!!!     call to_zero(n1i*n2i*n3pi,pot_ion)
 !!!
 !!!     do iat=1,nat
 !!!        ityp=iatype(iat)
@@ -1767,7 +1832,7 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   use gaussians
   use yaml_output
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: norb,norbp,iproc,nproc,nat,ntypes
   integer, intent(in) :: nvctr_c,nvctr_f,n1,n2,n3,nseg_c,nseg_f
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
@@ -2083,7 +2148,7 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   call memocc(i_stat,tpsi,'tpsi',subname)
 
   !initialize the wavefunction
-  call razero((nvctr_c+7*nvctr_f)*norbp,psi)
+  call to_zero((nvctr_c+7*nvctr_f)*norbp,psi)
   !this can be changed to be passed only once to all the gaussian basis
   !eks=0.d0
   !loop over the atoms
@@ -2274,7 +2339,7 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
      nseg_c,mvctr_c,keyg_c,keyv_c,nseg_f,mvctr_f,keyg_f,keyv_f,psi_c,psi_f)
   use module_base
   implicit none
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: n1,n2,n3,nterm,ntp,nseg_c,nseg_f,mvctr_c,mvctr_f
   integer, intent(in) :: nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f
   real(gp), intent(in) :: rx,ry,rz,hx,hy,hz

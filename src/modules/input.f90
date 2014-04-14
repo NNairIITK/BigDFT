@@ -1,7 +1,7 @@
 !> @file
 !!  Module to handle input variables
 !! @author
-!!    Copyright (C) 2010-2011 BigDFT group
+!!    Copyright (C) 2010-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -13,12 +13,19 @@
 !!   - for each call to input_var remove keywords inthe previous line
 !!   - Check if all keywords were used.
 
-!> Define all basic operations to handle input variables
+
+!> Module which defines all basic operations to handle input variables
 module module_input
 
    use module_base
    implicit none
    private
+
+   !> Error ids for this module.
+   integer, parameter, public :: INPUT_VAR_NOT_IN_LIST      = 1
+   integer, parameter, public :: INPUT_VAR_NOT_IN_RANGE     = 2
+   integer, parameter, public :: INPUT_VAR_CONVERSION_ERROR = 3
+   integer, parameter, public :: INPUT_VAR_ARG_ERROR        = 99
 
    !> Max line of a file
    integer, parameter :: nmax_lines=500
@@ -42,7 +49,6 @@ module module_input
    public :: input_set_file,input_set_stdout
    public :: input_var
    public :: input_free
-   public :: case_insensitive_equiv
    public :: read_fraction_string
    public :: read_fraction_string_old
 
@@ -121,7 +127,7 @@ module module_input
          nlines_total=nlines
 
          !broadcast all the lines
-         if (lmpinit) call MPI_BCAST(lines,nmax_lines*nlines,MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
+         if (lmpinit) call MPI_BCAST(lines,max_length*nlines,MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
          if (ierr /=0) stop 'input_file BCAST (2) '
 
          !!$    write(0,*) "Setup input file '", trim(filename), "' with ", i - 1, "lines."
@@ -244,6 +250,7 @@ module module_input
          end if
       end if
 
+
       if (allocated(inout_lines)) deallocate(inout_lines)
       deallocate(parsed_lines)
       if (lmpinit) call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
@@ -295,10 +302,10 @@ module module_input
 
       if (present(default) .and. iline_parsed==0) then
          !case without file, write default and continue the line
-         do i=1,len_trim(default)
+         do i=1,len(default)
             inout_lines(iline_written)(i+ipos:i+ipos)=default(i:i)
          end do
-         ipos=ipos+len_trim(default)+1
+         ipos=ipos+len(default)+1
          inout_lines(iline_written)(ipos:ipos)=' '
       end if
       if (present(line_comment) .and. iline_parsed==0) then
@@ -482,10 +489,11 @@ module module_input
 
 
    !> Routines for compulsory file
-   subroutine var_double_compulsory(var,default,ranges,exclusive,comment,input_iostat)
+   subroutine var_double_compulsory(var,default,dict,ranges,exclusive,comment,input_iostat)
       implicit none
       character(len=*), intent(in) :: default
       real(kind=8), intent(out) :: var
+      type(dictionary), pointer, optional :: dict
       character(len=*), intent(in), optional :: comment
       integer, intent(out), optional :: input_iostat
       real(kind=8), dimension(2), intent(in), optional :: ranges
@@ -573,20 +581,26 @@ module module_input
                   call leave()
                end if
             end if
-         end if 
+         end if
 
          !increment the line if comment is present, do not touch the input file
          if (present(comment)) then
             call process_line(line_comment=comment)
          end if
-      end if   
-   END SUBROUTINE var_double_compulsory
+      end if
+
+      if (present(dict)) then
+         if (associated(dict)) call dict_set(dict,var) !for the moment the format is the default one
+      end if
+
+    END SUBROUTINE var_double_compulsory
 
 
-   subroutine var_real_compulsory(var,default,ranges,exclusive,comment,input_iostat)
+   subroutine var_real_compulsory(var,default,dict,ranges,exclusive,comment,input_iostat)
       implicit none
       character(len=*), intent(in) :: default
       real(kind=4), intent(out) :: var
+      type(dictionary), pointer, optional :: dict
       character(len=*), intent(in), optional :: comment
       integer, intent(out), optional :: input_iostat
       real(kind=4), dimension(2), intent(in), optional :: ranges
@@ -683,13 +697,18 @@ module module_input
             call process_line(line_comment=comment)
          end if
       end if   
+
+      if (present(dict)) then
+         if (associated(dict)) call dict_set(dict,var) !for the moment the format is the default one
+      end if
+
    END SUBROUTINE var_real_compulsory
 
-
-   subroutine var_int_compulsory(var,default,ranges,exclusive,comment,input_iostat)
+   subroutine var_int_compulsory(var,default,dict,ranges,exclusive,comment,input_iostat)
       implicit none
       character(len=*), intent(in) :: default
       integer, intent(out) :: var
+      type(dictionary), pointer, optional :: dict
       character(len=*), intent(in), optional :: comment
       integer, intent(out), optional :: input_iostat
       integer, dimension(2), intent(in), optional :: ranges
@@ -784,13 +803,19 @@ module module_input
             call process_line(line_comment=comment)
          end if
       end if   
+
+      if (present(dict)) then
+         if (associated(dict)) call dict_set(dict,var) !for the moment the format is the default one
+      end if
+      
    END SUBROUTINE var_int_compulsory
 
 
-   subroutine var_char_compulsory(var,default,exclusive,comment,input_iostat)
+   subroutine var_char_compulsory(var,default,dict,exclusive,comment,input_iostat)
       implicit none
       character(len=*), intent(in) :: default
       character(len=*), intent(out) :: var
+      type(dictionary), pointer, optional :: dict
       character(len=*), intent(in), optional :: comment
       integer, intent(out), optional :: input_iostat
       character(len=*), dimension(:), intent(in), optional :: exclusive
@@ -821,7 +846,7 @@ module module_input
          else
             call process_line(default=default)
          end if
-         read(default,*,iostat=ierror) var
+         read(default,'(a)',iostat=ierror) var
          if (present(input_iostat) .and. ierror /= 0) then
             input_iostat=-2
             return
@@ -868,13 +893,18 @@ module module_input
             call process_line(line_comment=comment)
          end if
       end if   
+
+      if (present(dict)) then
+         if (associated(dict)) call dict_set(dict,var) !for the moment the format is the default one
+      end if
+
    END SUBROUTINE var_char_compulsory
 
-
-   subroutine var_logical_compulsory(var,default,comment,input_iostat)
+   subroutine var_logical_compulsory(var,default,dict,comment,input_iostat)
       implicit none
       character(len=*), intent(in) :: default
       logical, intent(out) :: var
+      type(dictionary), pointer, optional :: dict
       character(len=*), intent(in), optional :: comment
       integer, intent(out), optional :: input_iostat
       !Local variables
@@ -914,6 +944,11 @@ module module_input
             call process_line(line_comment=comment)
          end if
       end if   
+      
+      if (present(dict)) then
+         if (associated(dict)) call dict_set(dict,var) !for the moment the format is the default one
+      end if
+
    END SUBROUTINE var_logical_compulsory
 
 
@@ -1188,3 +1223,999 @@ module module_input
    END SUBROUTINE var_ids
 
 END MODULE module_input
+
+module input_old_text_format
+  implicit none
+  public
+contains
+  subroutine read_dft_from_text_format(iproc,dict,filename)
+    use module_base
+    use module_types
+    use module_input
+    use module_input_keys
+    use dictionaries
+    !  use yaml_output
+    implicit none
+    type(dictionary), pointer :: dict
+    character(len=*), intent(in) :: filename
+    integer, intent(in) :: iproc
+    !local variables
+    logical :: exists
+    integer :: ierror
+    real(gp), dimension(2), parameter :: hgrid_rng=(/0.0_gp,2.0_gp/)
+    real(gp), dimension(2), parameter :: xrmult_rng=(/0.0_gp,100.0_gp/)
+
+    logical :: dummy_bool
+    integer :: dummy_int
+    real(gp) :: dummy_real
+    real(gp), dimension(3) :: dummy_real3
+
+    !dft parameters, needed for the SCF part
+    call input_set_file(iproc,(iproc == 0),trim(filename),exists, DFT_VARIABLES)
+    !if (exists) in%files = in%files + INPUTS_DFT
+    !call the variable, its default value, the line ends if there is a comment
+    if (.not. exists) then
+       call input_free(.false.)
+       return
+    end if
+
+    if (.not. associated(dict)) call dict_init(dict)
+
+    !grid spacings
+    call input_var(dummy_real3(1),'0.45',dict//HGRIDS//0,ranges=hgrid_rng)
+    call input_var(dummy_real3(2),'0.45',dict//HGRIDS//1,ranges=hgrid_rng)
+    call input_var(dummy_real3(3),'0.45',dict//HGRIDS//2,ranges=hgrid_rng,&
+         comment='hx,hy,hz: grid spacing in the three directions')
+!!$    call set(dict//HGRIDS//0, dummy_real3(1), fmt = "(F7.5)")
+!!$    call set(dict//HGRIDS//1, dummy_real3(2), fmt = "(F7.5)")
+!!$    call set(dict//HGRIDS//2, dummy_real3(3), fmt = "(F7.5)")
+!!$  call input_var(dummy_real3,'0.45',ranges=hgrid_rng,key='hx,hy,hz',comment='grid spacing in the three directions'
+
+    !coarse and fine radii around atoms
+    call input_var(dummy_real,'5.0',dict//RMULT//0,ranges=xrmult_rng)
+    !call set(dict//RMULT//0, dummy_real, fmt = "(F5.2)")
+    call input_var(dummy_real,'8.0',dict//RMULT//1,ranges=xrmult_rng,&
+         comment='c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius')
+    !call set(dict//RMULT//1, dummy_real, fmt = "(F5.2)")
+
+    !XC functional (ABINIT XC codes)
+    call input_var(dummy_int,'1',dict//IXC,comment='ixc: exchange-correlation parameter (LDA=1,PBE=11)')
+    !call set(dict//IXC, dummy_int)
+
+    !charge and electric field
+    call input_var(dummy_int,'0',dict//NCHARGE,ranges=(/-500,500/))
+    !call set(dict//NCHARGE, dummy_int)
+    call input_var(dummy_real3(1),'0.',dict//ELECFIELD//0)
+    call input_var(dummy_real3(2),'0.',dict//ELECFIELD//1)
+    call input_var(dummy_real3(3),'0.',dict//ELECFIELD//2,&
+         comment='charge of the system, Electric field (Ex,Ey,Ez)')
+!!$    call set(dict//ELECFIELD//0, dummy_real3(1), fmt = "(F6.4)")
+!!$    call set(dict//ELECFIELD//1, dummy_real3(2), fmt = "(F6.4)")
+!!$    call set(dict//ELECFIELD//2, dummy_real3(3), fmt = "(F6.4)")
+    !call input_var(in%elecfield(3),'0.',comment='ncharge: charge of the system, Electric field (Ex,Ey,Ez)')
+
+    !spin and polarization
+    call input_var(dummy_int,'1',dict//NSPIN,exclusive=(/1,2,4/))
+    !call set(dict//NSPIN, dummy_int)
+    call input_var(dummy_int,'0',dict//MPOL,comment='nspin=1 non-spin polarization, mpol=total magnetic moment')
+    !call set(dict//MPOL, dummy_int)
+
+    !convergence parameters
+    call input_var(dummy_real,'1.e-4',dict//GNRM_CV,ranges=(/1.e-20_gp,1.0_gp/),&
+         comment='gnrm_cv: convergence criterion gradient')
+    !call set(dict//GNRM_CV, dummy_real, fmt = "(E8.1)")
+    call input_var(dummy_int,'50',dict//ITERMAX,ranges=(/0,10000/))
+    !call set(dict//ITERMAX, dummy_int)
+    call input_var(dummy_int,'1',dict//NREPMAX,ranges=(/0,1000/),&
+         comment='itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs')
+    !call set(dict//NREPMAX, dummy_int)
+
+    !convergence parameters
+    call input_var(dummy_int,'6',dict//NCONG,ranges=(/0,20/))
+    !call set(dict//NCONG, dummy_int)
+    call input_var(dummy_int,'6',dict//IDSX,ranges=(/0,15/),&
+         comment='ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history')
+    !call set(dict//IDSX, dummy_int)
+
+    !dispersion parameter
+    call input_var(dummy_int,'0',dict//DISPERSION,ranges=(/0,5/),&
+         comment='dispersion correction potential (values 1,2,3,4,5), 0=none')
+    !call set(dict//DISPERSION, dummy_int)
+
+    ! Now the variables which are to be used only for the last run
+    call input_var(dummy_int,'0',dict//INPUTPSIID,&
+         exclusive=(/-2,-1,0,2,10,12,13,100,101,102/),input_iostat=ierror)
+    ! Validate inputPsiId value (Can be added via error handling exception)
+    if (ierror /=0 .and. iproc == 0) then
+       write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', dummy_int, ').'
+       call input_psi_help()
+       call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierror)
+    end if
+    !call set(dict//INPUTPSIID, dummy_int)
+
+    call input_var(dummy_int,'0',dict//OUTPUT_WF,exclusive=(/0,1,2,3/),input_iostat=ierror)
+    ! Validate output_wf value.
+    if (ierror /=0 .and. iproc == 0) then
+       write( *,'(1x,a,I0,a)')'ERROR: illegal value of output_wf (', dummy_int, ').'
+       call output_wf_format_help()
+       call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierror)
+    end if
+    !call set(dict//OUTPUT_WF, dummy_int)
+
+    call input_var(dummy_int,'0',dict//OUTPUT_DENSPOT,exclusive=(/0,1,2,10,11,12,20,21,22/),&
+         comment='InputPsiId, output_wf, output_denspot')
+    !call set(dict//OUTPUT_DENSPOT, dummy_int)
+
+    ! Tail treatment.
+    call input_var(dummy_real,'0.0',dict//RBUF,ranges=(/0.0_gp,10.0_gp/))
+    !call set(dict//RBUF, dummy_real, fmt = "(F5.2)")
+    call input_var(dummy_int,'30',dict//NCONGT,ranges=(/1,50/),&
+         comment='rbuf, ncongt: length of the tail (AU),# tail CG iterations')
+    !call set(dict//NCONGT, dummy_int)
+
+    !davidson treatment
+    call input_var(dummy_int,'0',dict//NORBV,ranges=(/-9999,9999/))
+    !call set(dict//NORBV, dummy_int)
+    call input_var(dummy_int,'0',dict//NVIRT)
+    !call set(dict//NVIRT, dummy_int)
+    call input_var(dummy_int,'0',dict//NPLOT,&
+         comment='Davidson subspace dim., # of opt. orbs, # of plotted orbs')
+    !call set(dict//NPLOT, dummy_int)
+
+    ! Line to disable automatic behaviours (currently only symmetries).
+    call input_var(dummy_bool,'F',dict//DISABLE_SYM,comment='disable the symmetry detection')
+    !call set(dict//DISABLE_SYM, dummy_bool)
+
+    call input_free(.false.)
+
+    !  call yaml_dict_dump(dict)
+
+  end subroutine read_dft_from_text_format
+
+  !> Read the input variables needed for the geometry optimisation
+  !! Every argument should be considered as mandatory
+  subroutine read_geopt_from_text_format(iproc,dict,filename)
+    use module_base
+    use module_types
+    use module_input
+    use module_input_keys
+    use dictionaries
+    implicit none
+    integer, intent(in) :: iproc
+    character(len=*), intent(in) :: filename
+    type(dictionary), pointer :: dict
+    !local variables
+    character(len=*), parameter :: subname='read_geopt_from_text_format'
+    integer :: i
+    logical :: exists
+
+    character(len = 5) :: dummy_str
+    integer :: dummy_int, ionmov_
+    real(gp) :: dummy_real
+
+    !geometry input parameters
+    call input_set_file(iproc,(iproc == 0),trim(filename),exists,GEOPT_VARIABLES)  
+    !if (exists) in%files = in%files + INPUTS_GEOPT
+    !call the variable, its default value, the line ends if there is a comment
+    if (.not. exists) then
+       call input_free(.false.)
+       return
+    end if
+
+    call input_var(dummy_str,"BFGS",dict // GEOPT_METHOD, comment = "")
+    !call set(dict // GEOPT_METHOD, dummy_str)
+    call input_var(dummy_int,'1',dict // NCOUNT_CLUSTER_X,comment="")
+    !call set(dict // NCOUNT_CLUSTER_X, dummy_int)
+
+    call input_var(dummy_real,'1.0',dict // FRAC_FLUCT)
+    !call set(dict // FRAC_FLUCT, dummy_real, fmt = "(E8.2)")
+    call input_var(dummy_real,'0.0',dict // FORCEMAX,comment="")
+    !call set(dict // FORCEMAX, dummy_real, fmt = "(E8.2)")
+    call input_var(dummy_real,'0.0',dict // RANDDIS,comment="")
+    !call set(dict // RANDDIS, dummy_real, fmt = "(E8.2)")
+
+    if (input_keys_equal(trim(dummy_str),"AB6MD")) then
+       call input_var(ionmov_,'6',dict // IONMOV,comment="")
+       !call set(dict // IONMOV, ionmov_)
+       call input_var(dummy_real,'20.670689',dict // DTION,comment="")
+       !call set(dict // DTION, dummy_real)
+       if (ionmov_ == 6) then
+          call input_var(dummy_real,'300',dict // MDITEMP,comment="")
+          !call set(dict // MDITEMP, dummy_real)
+       elseif (ionmov_ > 7) then
+          call input_var(dummy_real,'300',dict // MDITEMP)
+          !call set(dict // MDITEMP, dummy_real)
+          call input_var(dummy_real,'300',dict // MDFTEMP,comment="")
+          !call set(dict // MDFTEMP, dummy_real)
+       end if
+
+       if (ionmov_ == 8) then
+          call input_var(dummy_real,'1.e5',dict // NOSEINERT,comment="")
+          !call set(dict // NOSEINERT, dummy_real)
+       else if (ionmov_ == 9) then
+          call input_var(dummy_real,'1.e-3',dict // FRICTION,comment="")
+          !call set(dict // FRICTION, dummy_real)
+          call input_var(dummy_real,'1.e4',dict // MDWALL,comment="")
+          !call set(dict // MDWALL, dummy_real)
+       else if (ionmov_ == 13) then
+          !here no dictionary
+          call input_var(dummy_int,'0',ranges=(/0,100/),comment="")
+          do i=1,dummy_int-1
+             call input_var(dummy_real,'0.0',dict // QMASS // (i-1))
+             !call set(dict // QMASS // (i-1), dummy_real)
+          end do
+          if (dummy_int > 0) then
+             call input_var(dummy_real,'0.0',dict // QMASS // (dummy_int-1),comment="")
+             !call set(dict // QMASS // (dummy_int-1), dummy_real)
+          end if
+          call input_var(dummy_real,'10',dict // BMASS)
+          !call set(dict // BMASS, dummy_real)
+          call input_var(dummy_real,'1.0',dict // VMASS,comment="")
+          !call set(dict // VMASS, dummy_real)
+       end if
+    else if (input_keys_equal(trim(dummy_str),"DIIS")) then
+       call input_var(dummy_real,'2.0',dict // BETAX)
+       !call set(dict // BETAX, dummy_real, fmt = "(F6.3)")
+       call input_var(dummy_int,'4',dict // HISTORY,comment="")
+       !call set(dict // HISTORY, dummy_int)
+    else
+       call input_var(dummy_real,'4.0',dict // BETAX,comment="")
+       !call set(dict // BETAX, dummy_real, fmt = "(F6.3)")
+    end if
+    if (input_keys_equal(trim(dummy_str),"FIRE")) then
+       call input_var(dummy_real,'0.75',dict // DTINIT)
+       !call set(dict // DTINIT, dummy_real, fmt = "(F6.3)")
+       call input_var(dummy_real, '1.5',dict // DTMAX,comment="")
+       !call set(dict // DTMAX, dummy_real, fmt = "(F6.3)")
+    endif
+
+    call input_free(.false.)
+
+  END SUBROUTINE read_geopt_from_text_format
+
+  !> Read the input variables needed for the geometry optimisation
+  !!    Every argument should be considered as mandatory
+  subroutine read_mix_from_text_format(iproc,dict,filename)
+    use module_base
+    use module_types
+    use module_input
+    use module_input_keys
+    use dictionaries
+    implicit none
+    !Arguments
+    integer, intent(in) :: iproc
+    type(dictionary), pointer :: dict
+    character(len=*), intent(in) :: filename
+    !local variables
+    !n(c) character(len=*), parameter :: subname='mix_input_variables'
+    logical :: exists
+    integer :: dummy_int
+    real(gp) :: dummy_real
+
+    !Mix parameters, needed for the SCF poart with Davidson
+    call input_set_file(iproc,(iproc == 0),trim(filename),exists,MIX_VARIABLES)
+    !if (exists) in%files = in%files + INPUTS_MIX
+    !call the variable, its default value, the line ends if there is a comment
+    if (.not.exists) then
+       call input_free(.false.)
+       return
+    end if
+
+    if (.not. associated(dict)) call dict_init(dict)
+
+    !Controls the self-consistency: 0 direct minimisation otherwise ABINIT convention
+    call input_var(dummy_int,'0',dict // ISCF,comment="")
+    !call set(dict // ISCF, dummy_int)
+    call input_var(dummy_int,'1',dict // ITRPMAX,comment="")
+    !call set(dict // ITRPMAX, dummy_int)
+    call input_var(dummy_real,'1.e-4',dict // RPNRM_CV,comment="")
+    !call set(dict // RPNRM_CV, dummy_real, fmt = "(E8.1)")
+    call input_var(dummy_int,'0',dict // NORBSEMPTY)
+    !call set(dict // NORBSEMPTY, dummy_int)
+    call input_var(dummy_real,'0.0',dict // TEL) 
+    !call set(dict // TEL, dummy_real, fmt = "(E9.2)")
+    call input_var(dummy_int,'1',dict // OCCOPT,comment="")
+    !call set(dict // OCCOPT, dummy_int)
+    call input_var(dummy_real,'0.0',dict // ALPHAMIX)
+    !call set(dict // ALPHAMIX, dummy_real, fmt = "(F6.3)")
+    call input_var(dummy_real,'2.0',dict // ALPHADIIS,comment="")
+    !call set(dict // ALPHADIIS, dummy_real, fmt = "(F6.3)")
+
+    call input_free(.false.)
+  END SUBROUTINE read_mix_from_text_format
+
+  !> Read Self-Interaction Correction (SIC) input parameters
+  subroutine read_sic_from_text_format(iproc,dict,filename)
+    use module_input
+    use module_input_keys
+    use dictionaries
+    implicit none
+    integer, intent(in) :: iproc
+    type(dictionary), pointer :: dict
+    character(len=*), intent(in) :: filename
+    !local variables
+    logical :: exists
+    !n(c) character(len=*), parameter :: subname='sic_input_variables'
+    double precision :: dummy_real
+    character(len = 4) :: dummy_str
+
+    !Self-Interaction Correction input parameters
+    call input_set_file(iproc,(iproc == 0),trim(filename),exists,'SIC Parameters')  
+    !if (exists) in%files = in%files + INPUTS_SIC
+    if (.not.exists) then
+       call input_free(.false.)
+       return
+    end if
+
+    call input_var(dummy_str,'NONE',dict // SIC_APPROACH,comment='')
+    !call set(dict // SIC_APPROACH, dummy_str)
+    call input_var(dummy_real,'0.0',dict // SIC_ALPHA,comment='')
+    !call set(dict // SIC_ALPHA, dummy_real, fmt = "(E8.2)")
+    
+    if (input_keys_equal(trim(dummy_str),'NK')) then
+       call input_var(dummy_real,'0.0',dict // SIC_FREF,comment='')
+       !call set(dict // SIC_FREF, dummy_real, fmt = "(E8.2)")
+    end if
+
+    call input_free(.false.)
+  END SUBROUTINE read_sic_from_text_format
+
+  subroutine read_tddft_from_text_format(iproc,dict,filename)
+    use module_input
+    use module_input_keys
+    use dictionaries
+    implicit none
+    integer, intent(in) :: iproc
+    type(dictionary), pointer :: dict
+    character(len=*), intent(in) :: filename
+    !local variables
+    logical :: exists
+    !n(c) character(len=*), parameter :: subname='tddft_input_variables'
+    character(len = 4) :: dummy_str
+
+    !TD-DFT parameters
+    call input_set_file(iproc,(iproc == 0),trim(filename),exists,'TD-DFT Parameters')  
+    !if (exists) in%files = in%files + INPUTS_TDDFT
+    !call the variable, its default value, the line ends if there is a comment
+    if (.not. exists) then
+       call input_free(.false.)
+       return
+    end if
+
+    if (.not. associated(dict)) call dict_init(dict)
+
+    call input_var(dummy_str,"NONE",dict // TDDFT_APPROACH,comment="")
+    !call set(dict // TDDFT_APPROACH, dummy_str)
+
+    call input_free(.false.)
+
+  END SUBROUTINE read_tddft_from_text_format
+
+  subroutine read_kpt_from_text_format(iproc,dict,filename)
+    use module_base
+    use module_types
+    use dictionaries
+    use module_input
+    use module_input_keys
+    implicit none
+    character(len=*), intent(in) :: filename
+    integer, intent(in) :: iproc
+    type(dictionary), pointer :: dict
+    !local variables
+    logical :: exists
+    character(len=*), parameter :: subname='read_kpt_from_text_format'
+
+    integer :: dummy_int, nseg, i, ierror
+    integer, dimension(3) :: dummy_int3
+    real(gp) :: dummy_real
+    real(gp), dimension(3) :: dummy_real3
+    character(len = max_field_length) :: dummy_str
+
+    !kpt parameters, needed for the SCF part
+    call input_set_file(iproc,(iproc == 0),trim(filename),exists, KPT_VARIABLES)
+    !if (exists) in%files = in%files + INPUTS_KPT
+    !call the variable, its default value, the line ends if there is a comment
+    if (.not. exists) then
+       call input_free(.false.)
+       return
+    end if
+
+    if (.not. associated(dict)) call dict_init(dict)
+
+    !if the file does exist, we fill up the dictionary.
+    call input_var(dummy_str, 'manual',dict//KPT_METHOD, comment='K-point sampling method')
+    !call set(dict//KPT_METHOD, trim(dummy_str))
+
+    if (input_keys_equal(trim(dummy_str),'auto')) then
+       call input_var(dummy_real,'0.0',dict//KPTRLEN, comment='Equivalent length of K-space resolution (Bohr)')
+       !call set(dict//KPTRLEN, dummy_real)
+    else if (input_keys_equal(trim(dummy_str),'mpgrid')) then
+       !take the points of Monckorst-pack grid
+       call input_var(dummy_int3(1),'1',dict//NGKPT//0)
+       call input_var(dummy_int3(2),'1',dict//NGKPT//1)
+       call input_var(dummy_int3(3),'1',dict//NGKPT//2, comment='No. of Monkhorst-Pack grid points')
+       !call set(dict//NGKPT//0, dummy_int3(1))
+       !call set(dict//NGKPT//1, dummy_int3(2))
+       !call set(dict//NGKPT//2, dummy_int3(3))
+       !shift
+       !no dict here
+       call input_var(dummy_int,'1',ranges=(/1,8/),comment='No. of different shifts')
+       !read the shifts
+       do i=1,dummy_int
+          call input_var(dummy_real3(1),'0.',dict//SHIFTK//(i-1)//0)
+          call input_var(dummy_real3(2),'0.',dict//SHIFTK//(i-1)//1)
+          call input_var(dummy_real3(3),'0.',dict//SHIFTK//(i-1)//2,comment=' ')
+          !call set(dict//SHIFTK//(i-1)//0, dummy_real3(1), fmt = "(F6.4)")
+          !call set(dict//SHIFTK//(i-1)//1, dummy_real3(2), fmt = "(F6.4)")
+          !call set(dict//SHIFTK//(i-1)//2, dummy_real3(3), fmt = "(F6.4)")
+       end do
+    else if (input_keys_equal(trim(dummy_str),'manual')) then
+       call input_var(dummy_int,'1',ranges=(/1,10000/),&
+            comment='Number of K-points')
+       do i=1,dummy_int
+          call input_var(dummy_real3(1),'0.',dict//KPT//(i-1)//0)
+          call input_var(dummy_real3(2),'0.',dict//KPT//(i-1)//1)
+          call input_var(dummy_real3(3),'0.',dict//KPT//(i-1)//2)
+          !call set(dict//KPT//(i-1)//0, dummy_real3(1), fmt = "(F6.4)")
+          !call set(dict//KPT//(i-1)//1, dummy_real3(2), fmt = "(F6.4)")
+          !call set(dict//KPT//(i-1)//2, dummy_real3(3), fmt = "(F6.4)")
+          call input_var(dummy_real,'1.',dict//WKPT//(i-1),comment='K-pt coords, K-pt weigth')
+          !call set(dict//WKPT//(i-1), dummy_real, fmt = "(F6.4)")
+       end do
+    end if
+
+    ! Now read the band structure definition. do it only if the file exists
+    !no dictionary here
+    call input_var(dummy_str,'bands',comment='For doing band structure calculation',&
+         input_iostat=ierror)
+    call set(dict//BANDS, (ierror==0))
+    if (ierror==0) then
+       call input_var(nseg,'1',ranges=(/1,1000/),&
+            comment='# of segments of the BZ path')
+       !number of points for each segment, parallel granularity
+       do i=1,nseg
+          call input_var(dummy_int,'1',dict//ISEG)
+          !call set(dict//ISEG, dummy_int)
+       end do
+       call input_var(dummy_int,'1',dict//NGRANULARITY,&
+            comment='points for each segment, # of points done for each group')
+       !call set(dict//NGRANULARITY, dummy_int)
+
+       call input_var(dummy_real3(1),'0.',dict//KPTV//0//0)
+       call input_var(dummy_real3(2),'0.',dict//KPTV//0//1)
+       call input_var(dummy_real3(3),'0.',dict//KPTV//0//2,comment=' ')
+!       call set(dict//KPTV//0//0, dummy_real3(1))
+!       call set(dict//KPTV//0//1, dummy_real3(2))
+!       call set(dict//KPTV//0//2, dummy_real3(3))
+       do i=1,nseg
+          call input_var(dummy_real3(1),'0.5',dict//KPTV//(i-1)//0)
+          call input_var(dummy_real3(2),'0.5',dict//KPTV//(i-1)//1)
+          call input_var(dummy_real3(3),'0.5',dict//KPTV//(i-1)//2,comment=' ')
+          !call set(dict//KPTV//(i-1)//0, dummy_real3(1))
+          !call set(dict//KPTV//(i-1)//1, dummy_real3(2))
+          !call set(dict//KPTV//(i-1)//2, dummy_real3(3))
+       end do
+
+       !read an optional line to see if there is a file associated
+       !no dict for the moment
+       call input_var(dummy_str,' ',&
+            comment=' ',input_iostat=ierror)
+       if (ierror == 0) then
+          !since a file for the local potential is already given, do not perform ground state calculation
+          call set(dict//BAND_STRUCTURE_FILENAME, dummy_str)
+       end if
+    end if
+
+    call input_free(.false.)
+
+  end subroutine read_kpt_from_text_format
+
+  !> Read the input variables which can be used for performances
+  subroutine read_perf_from_text_format(iproc,dict,filename)
+    use module_input
+    use module_input_keys
+    use dictionaries
+    implicit none
+    character(len=*), intent(in) :: filename
+    type(dictionary), pointer :: dict
+    integer, intent(in) :: iproc
+    !local variables
+    !n(c) character(len=*), parameter :: subname='perf_input_variables'
+    logical :: exists, dummy_bool
+    integer :: dummy_int, blocks(2)
+    double precision :: dummy_real
+    character(len = 7) :: dummy_str
+    character(len = max_field_length) :: dummy_path
+
+    call input_set_file(iproc, (iproc == 0), filename, exists, PERF_VARIABLES)
+    !if (exists) in%files = in%files + INPUTS_PERF
+    if (.not. exists) then
+       call input_free(.false.)
+       return
+    end if
+
+    if (.not. associated(dict)) call dict_init(dict)
+
+    call input_var("debug", .false., "Debug option", dummy_bool)
+    call set(dict // DEBUG, dummy_bool)
+    call input_var("fftcache", 8*1024, "Cache size for the FFT", dummy_int)
+    call set(dict // FFTCACHE, dummy_int)
+    call input_var("accel", "NO", "Acceleration", dummy_str)
+    call set(dict // ACCEL, dummy_str)
+
+    !determine desired OCL platform which is used for acceleration
+    call input_var("OCL_platform"," ", "Chosen OCL platform", dummy_str)
+    call set(dict // OCL_PLATFORM, dummy_str)
+    call input_var("OCL_devices"," ", "Chosen OCL devices", dummy_str)
+    call set(dict // OCL_DEVICES, dummy_str)
+
+    !!@TODO to relocate
+    call input_var("blas", .false., "CUBLAS acceleration", dummy_bool)
+    call set(dict // BLAS, dummy_bool)
+    call input_var("projrad", 15.0d0, "Radius ", dummy_real)
+    call set(dict // PROJRAD, dummy_real, fmt = "(F6.3)")
+    call input_var("exctxpar", "OP2P", "Exact exchange parallelisation scheme", dummy_str)
+    call set(dict // EXCTXPAR, dummy_str)
+    call input_var("ig_diag", .true.,"Input guess", dummy_bool)
+    call set(dict // IG_DIAG, dummy_bool)
+    call input_var("ig_norbp", 5, "Input guess: ", dummy_int)
+    call set(dict // IG_NORBP, dummy_int)
+    call input_var("ig_blocks", (/ 300, 800 /), "Input guess: ", blocks)
+    call set(dict // IG_BLOCKS // 0, blocks(1))
+    call set(dict // IG_BLOCKS // 1, blocks(2))
+    call input_var("ig_tol", 1d-4, "Input guess: Tolerance criterion", dummy_real)
+    call set(dict // IG_TOL, dummy_real, fmt = "(E8.1)")
+    call input_var("methortho", 0, "Orthogonalisation ", dummy_int)
+    call set(dict // METHORTHO, dummy_int)
+    call input_var("rho_commun", "DEF","Density communication scheme (DBL, RSC, MIX)",dummy_str)
+    call set(dict // RHO_COMMUN, dummy_str)
+    call input_var("psolver_groupsize",0, "Size of ", dummy_int)
+    call set(dict // PSOLVER_GROUPSIZE, dummy_int)
+    call input_var("psolver_accel",0, "Acceleration ", dummy_int)
+    call set(dict // PSOLVER_ACCEL, dummy_int)
+    call input_var("unblock_comms", "OFF", "Overlap Com)",dummy_str)
+    call set(dict // UNBLOCK_COMMS, dummy_str)
+    call input_var("linear", 'OFF', "Linear Input Guess approach",dummy_str)
+    call set(dict // LINEAR, dummy_str)
+    call input_var("tolsym", 1d-8, "Tolerance for symmetry detection",dummy_real)
+    call set(dict // TOLSYM, dummy_real, fmt = "(E8.1)")
+    call input_var("signaling", .false., "Expose calculation results on Network",dummy_bool)
+    call set(dict // SIGNALING, dummy_bool)
+    call input_var("signalTimeout", 0, "Time out on startup for signal connection",dummy_int)  
+    call set(dict // SIGNALTIMEOUT, dummy_int)
+    call input_var("domain", "", "Domain to add to the hostname to find the IP", dummy_str)
+    call set(dict // DOMAIN, dummy_str)
+    call input_var("inguess_geopt", 0,"0= wavlet input ",dummy_int)
+    call set(dict // INGUESS_GEOPT, dummy_int)
+    call input_var("store_index", .true., "linear scaling: store ", dummy_bool)
+    call set(dict // STORE_INDEX, dummy_bool)
+    !verbosity of the output
+    call input_var("verbosity", 2, "rbosity of the output 0=low, 2=high",dummy_int)
+    call set(dict // VERBOSITY, dummy_int)
+    call input_var("outdir", ".","Writing directory", dummy_path)
+    call set(dict // OUTDIR, dummy_path)
+
+    !If false, apply the projectors in the once-and-for-all scheme, otherwise on-the-fly
+    call input_var("psp_onfly", .true., "Calculate ",dummy_bool)
+    call set(dict // PSP_ONFLY, dummy_bool)
+
+    !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
+    call input_var("pdsyev_blocksize",-8,"SCALAPACK linear scaling blocksize",dummy_int) !ranges=(/-100,1000/)
+    call set(dict // PDSYEV_BLOCKSIZE, dummy_int)
+    call input_var("pdgemm_blocksize",-8,"SCALAPACK linear scaling blocksize",dummy_int) !ranges=(/-100,1000/)
+    call set(dict // PDGEMM_BLOCKSIZE, dummy_int)
+
+    !max number of process uses for pdsyev/pdsygv, pdgemm
+    call input_var("maxproc_pdsyev",4,"SCALAPACK linear scaling max num procs",dummy_int) !ranges=(/1,100000/)
+    call set(dict // MAXPROC_PDSYEV, dummy_int)
+    call input_var("maxproc_pdgemm",4,"SCALAPACK linear scaling max num procs",dummy_int) !ranges=(/1,100000/)
+    call set(dict // MAXPROC_PDGEMM, dummy_int)
+
+    !FOE: if the determinant of the interpolation matrix to find the Fermi energy
+    !is smaller than this value, switch from cubic to linear interpolation.
+    call input_var("ef_interpol_det",1.d-20,"FOE: max ",dummy_real)
+    call set(dict // EF_INTERPOL_DET, dummy_real, fmt = "(E9.2)")
+    call input_var("ef_interpol_chargediff",10.d0,"FOE: max ",dummy_real)
+    call set(dict // EF_INTERPOL_CHARGEDIFF, dummy_real, fmt = "(E9.2)")
+
+    !determines whether a mixing step shall be preformed after the input guess !(linear version)
+    call input_var("mixing_after_inputguess",.true.,"mixing  (T/F)",dummy_bool)
+    call set(dict // MIXING_AFTER_INPUTGUESS, dummy_bool)
+
+    !determines whether the input guess support functions are orthogonalized iteratively (T) or in the standard way (F)
+    call input_var("iterative_orthogonalization",.false.," orbitals",dummy_bool)
+    call set(dict // ITERATIVE_ORTHOGONALIZATION, dummy_bool)
+
+    call input_var("check_sumrho", 2, (/0,1,2/), "linear sumrho: 0=no check, 1=light check, 2=full check", dummy_int)
+    call set(dict // CHECK_SUMRHO, dummy_int)
+
+    call input_var("experimental_mode", .false., "linear scaling: activate the experimental mode", dummy_bool)
+    call set(dict // EXPERIMENTAL_MODE, dummy_bool)
+
+    call input_var("write_orbitals", .false., "linear scaling: write KS orbitals for cubic restart", dummy_bool)
+    call set(dict // WRITE_ORBITALS, dummy_bool)
+
+    call input_var("explicit_locregcenters", .false., "linear scaling: explicitely specify localization centers", dummy_bool)
+    call set(dict // EXPLICIT_LOCREGCENTERS, dummy_bool)
+
+    call input_var("calculate_KS_residue", .true., "linear scaling: calculate Kohn-Sham residue", dummy_bool)
+    call set(dict // CALCULATE_KS_RESIDUE, dummy_bool)
+
+    call input_var("intermediate_forces", .false., "linear scaling: calculate intermediate forces", dummy_bool)
+    call set(dict // INTERMEDIATE_FORCES, dummy_bool)
+
+    call input_var("kappa_conv", 0.1d0, "exit kappa for extended input guess (experimental mode)", dummy_real)
+    call set(dict // KAPPA_CONV, dummy_real)
+
+    call input_var("evbounds_nsatur", 3, "number of FOE cycles before the eigenvalue bounds are shrinked", dummy_int)
+    call set(dict // EVBOUNDS_NSATUR, dummy_int)
+
+    call input_var("evboundsshrink_nsatur", 4, "maximal number of unsuccessful eigenvalue bounds shrinkings", dummy_int)
+    call set(dict // EVBOUNDSSHRINK_NSATUR, dummy_int)
+
+    call input_var("method_updatekernel", 0, (/0,1/), "kernel update during the sup. fun. opt. (0: purific., 1: FOE)", dummy_int)
+    call set(dict // METHOD_UPDATEKERNEL, dummy_int)
+
+    call input_var("purification_quickreturn", .false., "linear scaling: quick return in purification", dummy_bool)
+    call set(dict // PURIFICATION_QUICKRETURN, dummy_bool)
+
+    call input_free(.false.)
+
+  END SUBROUTINE read_perf_from_text_format
+
+  !> Read the linear input variables
+  subroutine read_lin_from_text_format(iproc,dict,filename)
+    use module_base
+    use module_input
+    use module_input_keys
+    use dictionaries
+    implicit none
+    character(len=*), intent(in) :: filename
+    type(dictionary), pointer :: dict
+    integer, intent(in) :: iproc
+    !local variables
+    !n(c) character(len=*), parameter :: subname='perf_input_variables'
+    logical :: exists, dummy_bool
+    integer :: dummy_int,ios
+    double precision :: dummy_real
+    character(len=256) :: comments,dummy_char
+    type(dictionary), pointer :: dict_basis
+
+    ! This name seems to be too long..
+    !call input_set_file(iproc,(iproc == 0),trim(filename),exists,'Parameters for Localized basis generation (O(N) approach)')
+    call input_set_file(iproc,(iproc == 0),trim(filename),exists,'Parameters for O(N) approach')
+!    call input_set_file(iproc, (iproc == 0), filename, exists, LIN_GENERAL)
+!    call input_set_file(iproc, (iproc == 0), filename, exists, LIN_BASIS)
+!    call input_set_file(iproc, (iproc == 0), filename, exists, LIN_KERNEL)
+    !if (exists) in%files = in%files + INPUTS_PERF
+    if (.not. exists) then
+       call input_free(.false.)
+       return
+    end if
+
+    if (.not. associated(dict)) call dict_init(dict)
+
+
+
+    ! General variables #######################################################
+
+    comments='number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybrid mode)'
+    call input_var(dummy_int,'2',ranges=(/1,2/),comment=comments)
+    call dict_set(dict//LIN_GENERAL//HYBRID,dummy_int==1)
+
+    ! number of iterations
+    comments = 'outer loop iterations (low, high)'
+    call input_var(dummy_int,'15',dict//LIN_GENERAL//NIT//0,ranges=(/0,100000/))
+    call input_var(dummy_int,'1',dict//LIN_GENERAL//NIT//1,ranges=(/0,100000/),comment=comments)
+
+    comments = 'basis iterations (low, high)'
+    call input_var(dummy_int,'12',dict//LIN_BASIS//NIT//0,ranges=(/0,100000/))
+    call input_var(dummy_int,'50',dict//LIN_BASIS//NIT//1,ranges=(/0,100000/),comment=comments)
+
+    comments = 'kernel iterations (low, high) - directmin only'
+    call input_var(dummy_int,'1',dict//LIN_KERNEL//NSTEP//0,ranges=(/0,1000/))
+    call input_var(dummy_int,'1',dict//LIN_KERNEL//NSTEP//1,ranges=(/0,1000/),comment=comments)
+
+    comments = 'density iterations (low, high)'
+    call input_var(dummy_int,'15',dict//LIN_KERNEL//NIT//0,ranges=(/0,1000/))
+    call input_var(dummy_int,'15',dict//LIN_KERNEL//NIT//1,ranges=(/0,1000/),comment=comments)
+
+    ! DIIS history lengths
+    comments = 'DIIS history for basis (low, high)'
+    call input_var(dummy_int,'5',dict//LIN_BASIS//IDSX//0,ranges=(/0,100/))
+    call input_var(dummy_int,'0',dict//LIN_BASIS//IDSX//1,ranges=(/0,100/),comment=comments)
+
+    comments = 'DIIS history for kernel (low, high) - directmin only'
+    call input_var(dummy_int,'0',dict//LIN_KERNEL//IDSX_COEFF//0,ranges=(/0,100/))
+    call input_var(dummy_int,'0',dict//LIN_KERNEL//IDSX_COEFF//1,ranges=(/0,100/),comment=comments)
+
+    comments = 'DIIS history for density mixing (low, high)'
+    call input_var(dummy_int,'0',dict//LIN_KERNEL//IDSX//0,ranges=(/0,100/))
+    call input_var(dummy_int,'0',dict//LIN_KERNEL//IDSX//1,ranges=(/0,100/),comment=comments)
+
+    ! mixing parameters
+    comments = 'density mixing parameter (low, high)'
+    call input_var(dummy_real,'.5d0',dict//LIN_KERNEL//ALPHAMIX//0,ranges=(/0.d0,1.d0/))
+    call input_var(dummy_real,'.5d0',dict//LIN_KERNEL//ALPHAMIX//1,ranges=(/0.d0,1.d0/),comment=comments)
+
+    ! Convergence criteria
+    comments = 'outer loop convergence (low, high)'
+    call input_var(dummy_real,'1.d-8' ,dict//LIN_GENERAL//RPNRM_CV//0,ranges=(/0.d0,1.d0/))
+    call input_var(dummy_real,'1.d-12',dict//LIN_GENERAL//RPNRM_CV//1,ranges=(/0.d0,1.d0/),comment=comments)
+
+    comments = 'basis convergence (low, high) ; early stop TMB optimization, dynamic gnrm (experimental mode only)'
+    call input_var(dummy_real,'1.d-3',dict//LIN_BASIS//GNRM_CV//0,ranges=(/0.0_gp,1.0_gp/))
+    call input_var(dummy_real,'1.d-5',dict//LIN_BASIS//GNRM_CV//1,ranges=(/0.0_gp,1.0_gp/))
+    call input_var(dummy_real,'1.d-4',dict//LIN_BASIS//DELTAE_CV,ranges=(/0.0_gp,1.0_gp/))
+    call input_var(dummy_real,'1.d-4',dict//LIN_BASIS//GNRM_DYN,ranges=(/0.0_gp,1.0_gp/),comment=comments)
+
+    comments = 'factor to reduce the confinement. Only used for hybrid mode.'
+    call input_var(dummy_real,'0.5d0',dict//LIN_GENERAL//CONF_DAMPING,ranges=(/-1.d100,1.d0/),comment=comments)
+
+    comments = 'kernel convergence (low, high) - directmin only'
+    call input_var(dummy_real,'1.d-5',dict//LIN_KERNEL//GNRM_CV_COEFF//0,ranges=(/0.d0,1.d0/))
+    call input_var(dummy_real,'1.d-5',dict//LIN_KERNEL//GNRM_CV_COEFF//1,ranges=(/0.d0,1.d0/),comment=comments)
+
+    comments = 'density convergence (low, high)'
+    call input_var(dummy_real,'1.d-13',dict//LIN_KERNEL//RPNRM_CV//0,ranges=(/0.d0,1.d0/))
+    call input_var(dummy_real,'1.d-13',dict//LIN_KERNEL//RPNRM_CV//1,ranges=(/0.d0,1.d0/),comment=comments)
+
+    comments = 'convergence criterion on density to fix TMBS'
+    call input_var(dummy_real,'1.d-10',dict//LIN_BASIS//FIX_BASIS,ranges=(/1.d-14,1.d-6/),comment=comments)
+    !call input_var(in%lin%support_functions_converged,'1.d-10',ranges=(/0.d0,1.d0/),comment=comments)
+
+    comments='mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing), 103 (FOE)'
+    call input_var(dummy_int,'100',ranges=(/100,103/),comment=comments)
+    select case(dummy_int)
+    case(100)
+       call dict_set(dict//LIN_KERNEL//LINEAR_METHOD,'DIRMIN')
+    case(101) 
+       call dict_set(dict//LIN_KERNEL//LINEAR_METHOD,'DIAG')
+       call dict_set(dict//LIN_KERNEL//MIXING_METHOD,'DEN')
+    case(102)      
+       call dict_set(dict//LIN_KERNEL//LINEAR_METHOD,'DIAG')
+       call dict_set(dict//LIN_KERNEL//MIXING_METHOD,'POT')
+    case(103)
+       call dict_set(dict//LIN_KERNEL//LINEAR_METHOD,'FOE')
+    end select
+
+    comments = 'initial step size for basis optimization (DIIS, SD)' ! DELETE ONE
+    call input_var(dummy_real,'1.d0',dict//LIN_BASIS//ALPHA_DIIS,ranges=(/0.0_gp,10.0_gp/))
+    call input_var(dummy_real,'1.d0',dict//LIN_BASIS//ALPHA_SD,ranges=(/0.0_gp,10.0_gp/),comment=comments)
+
+    comments = 'initial step size for kernel update (SD), curve fitting for alpha update - directmin only'
+    call input_var(dummy_real,'1.d0',dict//LIN_KERNEL//ALPHA_SD_COEFF,ranges=(/0.0_gp,10.0_gp/))
+    call input_var(dummy_bool,'F',dict//LIN_KERNEL//ALPHA_FIT_COEFF,comment=comments)
+
+    comments = 'lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted automatically if chosen too small'
+    call input_var(dummy_real,'-.5d0',dict//LIN_KERNEL//EVAL_RANGE_FOE//0,ranges=(/-10.d0,-1.d-10/))
+    call input_var(dummy_real,'-.5d0',dict//LIN_KERNEL//EVAL_RANGE_FOE//1,ranges=(/1.d-10,10.d0/),comment=comments)
+
+    comments='number of iterations in the preconditioner, order of Taylor approximations'
+    call input_var(dummy_int,'5',dict//LIN_BASIS//NSTEP_PREC,ranges=(/1,100/))
+    call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/1,100/),comment=comments)
+    !call input_var(in%lin%order_taylor,'1',ranges=(/1,100/),comment=comments)
+
+    comments = '0-> exact Loewdin, 1-> taylor expansion; &
+               &in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
+    call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-1,10000/))
+    call input_var(dummy_int,'1',ranges=(/0,1/),comment=comments)
+    !call input_var(in%lin%correctionOrthoconstraint,'1',ranges=(/0,1/),comment=comments)
+
+    comments='fscale: length scale over which complementary error function decays from 1 to 0'
+    call input_var(dummy_real,'1.d-2',dict//LIN_KERNEL//FSCALE_FOE,ranges=(/0.d0,1.d0/),comment=comments)
+
+    !plot basis functions: true or false
+    comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ;'//&
+             'calculate dipole ; pulay correction (old and new); diagonalization at the end (dmin, FOE)'
+    call input_var(dummy_int,'0',dict//LIN_GENERAL//OUTPUT_WF,ranges=(/0,3/))
+    call input_var(dummy_bool,'F',dict//LIN_GENERAL//CALC_DIPOLE)
+    call input_var(dummy_bool,'T',dict//LIN_GENERAL//CALC_PULAY//0)
+    call input_var(dummy_bool,'F',dict//LIN_GENERAL//CALC_PULAY//1)
+
+!    in%lin%pulay_correction=dummy_bool
+!    call input_var(in%lin%new_pulay_correction,'F')
+    call input_var(dummy_bool,'F',dict//LIN_GENERAL//SUBSPACE_DIAG,comment=comments)
+
+
+
+
+
+
+
+
+  !fragment calculation and transfer integrals: true or false
+  comments='fragment calculation; calculate transfer_integrals; constrained DFT calculation; extra states to optimize (dmin only)'
+  !these should becode dummy variables to build dictionary
+  !!call input_var(in%lin%fragment_calculation,'F')
+  !!call input_var(in%lin%calc_transfer_integrals,'F')
+  !!call input_var(in%lin%constrained_dft,'F')
+  !!call input_var(in%lin%extra_states,'0',ranges=(/0,10000/),comment=comments)
+  call input_var(dummy_bool,'F')
+  call input_var(dummy_bool,'F')
+  call input_var(dummy_bool,'F')
+  call input_var(dummy_int,'0',ranges=(/0,10000/),comment=comments)
+
+  ! Now read in the parameters specific for each atom type.
+  comments = 'Atom name, number of basis functions per atom, prefactor for confinement potential,'//&
+       'localization radius, kernel cutoff, kernel cutoff FOE'
+  read_basis: do !while(itype <= atoms%astruct%ntypes) 
+  !!   if (exists) then
+        call input_var(dummy_char,'C',input_iostat=ios)
+        if (ios /= 0) exit read_basis
+  !!      dict_basis=>dict//BASIS_PARAMS//trim(atomname)
+  !!   else
+  !!      call input_var(atomname,'C')!trim(atoms%astruct%atomnames(1)))
+  !!      dict_basis=>dict//BASIS_PARAMS! default values
+  !!      !itype = itype + 1
+  !!   end if
+
+     !number of basis functions for this atom type
+     !!call input_var(npt,'1',dict_basis//NBASIS,ranges=(/1,100/),input_iostat=ios)
+     !!call input_var(ppao,'1.2d-2',dict_basis//AO_CONFINEMENT,&
+     !!     ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
+     !!call input_var(ppl,'1.2d-2',dict_basis//CONFINEMENT//0,&
+     !!     ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
+     !!call input_var(pph,'5.d-5',dict_basis//CONFINEMENT//1,&
+     !!     ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
+     !!call input_var(lrl,'10.d0',dict_basis//RLOC//0,&
+     !!     ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
+     !!call input_var(lrh,'10.d0',dict_basis//RLOC//1,&
+     !!     ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
+     !!call input_var(kco,'12.d0',dict_basis//RLOC_KERNEL,&
+     !!     ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
+     !!call input_var(kco_FOE,'20.d0',dict_basis//RLOC_KERNEL_FOE,&
+     !!     ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
+     dict_basis=>dict//LIN_BASIS_PARAMS//trim(dummy_char)
+     call input_var(dummy_int,'1',dict_basis//NBASIS,ranges=(/1,100/))
+     call input_var(dummy_real,'1.2d-2',dict_basis//AO_CONFINEMENT,&
+          ranges=(/0.0_gp,1.0_gp/))
+     call input_var(dummy_real,'1.2d-2',dict_basis//CONFINEMENT//0,&
+          ranges=(/0.0_gp,1.0_gp/))
+     call input_var(dummy_real,'5.d-5',dict_basis//CONFINEMENT//1,&
+          ranges=(/0.0_gp,1.0_gp/))
+     call input_var(dummy_real,'10.d0',dict_basis//RLOC//0,&
+          ranges=(/1.0_gp,10000.0_gp/))
+     call input_var(dummy_real,'10.d0',dict_basis//RLOC//1,&
+          ranges=(/1.0_gp,10000.0_gp/))
+     call input_var(dummy_real,'12.d0',dict_basis//RLOC_KERNEL,&
+          ranges=(/1.0_gp,10000.0_gp/))
+     call input_var(dummy_real,'20.d0',dict_basis//RLOC_KERNEL_FOE,&
+          ranges=(/1.0_gp,10000.0_gp/),comment=comments)
+
+  !!   if (.not. exists) exit read_basis !default has been filled
+  end do read_basis
+
+
+    call input_free(.false.)
+
+
+
+  !!   ! General variables #######################################################
+
+  !!   comments='number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybrid mode)'
+  !!   call input_var(dummy_int,'2',ranges=(/1,2/),comment=comments)
+  !!   call dict_set(dict//LIN_GENERAL//HYBRID,dummy_int==1)
+
+  !!   ! number of iterations
+  !!   comments = 'outer loop iterations (low, high)'
+  !!   call input_var(dummy_int,'15',dict//LIN_GENERAL//NIT//0,ranges=(/0,100000/))
+  !!   call input_var(dummy_int,'1',dict//LIN_GENERAL//NIT//1,ranges=(/0,100000/),comment=comments)
+
+  !!   ! Convergence criteria
+  !!   comments = 'outer loop convergence (low, high)'
+  !!   call input_var(dummy_real,'1.d-8' ,dict//LIN_GENERAL//RPNRM_CV//0,ranges=(/0.d0,1.d0/))
+  !!   call input_var(dummy_real,'1.d-12',dict//LIN_GENERAL//RPNRM_CV//1,ranges=(/0.d0,1.d0/),comment=comments)
+
+  !!   comments = 'factor to reduce the confinement. Only used for hybrid mode.'
+  !!   call input_var(dummy_real,'0.5d0',dict//LIN_GENERAL//CONF_DAMPING,ranges=(/-1.d100,1.d0/),comment=comments)
+
+  !!   comments = '0-> exact Loewdin, 1-> taylor expansion; &
+  !!              &in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
+  !!   call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-1,10000/))
+  !!   call input_var(in%lin%correctionOrthoconstraint,'1',ranges=(/0,1/),comment=comments)
+
+  !!   !plot basis functions: true or false
+  !!   comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ;'//&
+  !!            'calculate dipole ; pulay correction (old and new); diagonalization at the end (dmin, FOE)'
+  !!   call input_var(dummy_int,'0',dict//LIN_GENERAL//OUTPUT_WF,ranges=(/0,3/))
+  !!   call input_var(dummy_bool,'F',dict//LIN_GENERAL//CALC_DIPOLE)
+  !!   call input_var(dummy_bool,'T',dict//LIN_GENERAL//CALC_PULAY)
+  !!   in%lin%pulay_correction=dummy_bool
+  !!   call input_var(in%lin%new_pulay_correction,'F')
+  !!   call input_var(dummy_bool,'F',dict//LIN_GENERAL//SUBSPACE_DIAG,comment=comments)
+
+
+  !!   ! Basis variables #######################################################
+
+  !!   comments = 'basis iterations (low, high)'
+  !!   call input_var(dummy_int,'12',dict//LIN_BASIS//NIT//0,ranges=(/0,100000/))
+  !!   call input_var(dummy_int,'50',dict//LIN_BASIS//NIT//1,ranges=(/0,100000/),comment=comments)
+
+  !!   ! DIIS history lengths
+  !!   comments = 'DIIS history for basis (low, high)'
+  !!   call input_var(dummy_int,'5',dict//LIN_BASIS//IDSX//0,ranges=(/0,100/))
+  !!   call input_var(dummy_int,'0',dict//LIN_BASIS//IDSX//1,ranges=(/0,100/),comment=comments)
+
+  !!   comments = 'basis convergence (low, high) ; early stop TMB optimization, dynamic gnrm (experimental mode only)'
+  !!   call input_var(dummy_real,'1.d-3',dict//LIN_BASIS//GNRM_CV//0,ranges=(/0.0_gp,1.0_gp/))
+  !!   call input_var(dummy_real,'1.d-5',dict//LIN_BASIS//GNRM_CV//1,ranges=(/0.0_gp,1.0_gp/))
+  !!   call input_var(dummy_real,'1.d-4',dict//LIN_BASIS//DELTAE_CV,ranges=(/0.0_gp,1.0_gp/))
+  !!   call input_var(dummy_real,'1.d-4',dict//LIN_BASIS//GNRM_DYN,ranges=(/0.0_gp,1.0_gp/),comment=comments)
+
+  !!   comments = 'initial step size for basis optimization (DIIS, SD)' ! DELETE ONE
+  !!   call input_var(dummy_real,'1.d0',dict//LIN_BASIS//ALPHA_DIIS,ranges=(/0.0_gp,10.0_gp/))
+  !!   call input_var(dummy_real,'1.d0',dict//LIN_BASIS//ALPHA_SD,ranges=(/0.0_gp,10.0_gp/),comment=comments)
+
+  !!   comments='number of iterations in the preconditioner, order of Taylor approximations'
+  !!   call input_var(dummy_int,'5',dict//LIN_BASIS//NSTEP_PREC,ranges=(/1,100/))
+  !!   call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/1,100/),comment=comments)
+  !!   !call input_var(in%lin%order_taylor,'1',ranges=(/1,100/),comment=comments)
+
+
+  !!   ! Kernel variables #######################################################
+
+  !!   comments = 'kernel iterations (low, high) - directmin only'
+  !!   call input_var(dummy_int,'1',dict//LIN_KERNEL//NSTEP//0,ranges=(/0,1000/))
+  !!   call input_var(dummy_int,'1',dict//LIN_KERNEL//NSTEP//1,ranges=(/0,1000/),comment=comments)
+
+  !!   comments = 'density iterations (low, high)'
+  !!   call input_var(dummy_int,'15',dict//LIN_KERNEL//NIT//0,ranges=(/0,1000/))
+  !!   call input_var(dummy_int,'15',dict//LIN_KERNEL//NIT//1,ranges=(/0,1000/),comment=comments)
+
+  !!   comments = 'DIIS history for kernel (low, high) - directmin only'
+  !!   call input_var(dummy_int,'0',dict//LIN_KERNEL//IDSX_COEFF//0,ranges=(/0,100/))
+  !!   call input_var(dummy_int,'0',dict//LIN_KERNEL//IDSX_COEFF//1,ranges=(/0,100/),comment=comments)
+
+  !!   comments = 'DIIS history for density mixing (low, high)'
+  !!   call input_var(dummy_int,'0',dict//LIN_KERNEL//IDSX//0,ranges=(/0,100/))
+  !!   call input_var(dummy_int,'0',dict//LIN_KERNEL//IDSX//1,ranges=(/0,100/),comment=comments)
+
+  !!   ! mixing parameters
+  !!   comments = 'density mixing parameter (low, high)'
+  !!   call input_var(dummy_real,'.5d0',dict//LIN_KERNEL//ALPHAMIX//0,ranges=(/0.d0,1.d0/))
+  !!   call input_var(dummy_real,'.5d0',dict//LIN_KERNEL//ALPHAMIX//1,ranges=(/0.d0,1.d0/),comment=comments)
+
+  !!   comments = 'kernel convergence (low, high) - directmin only'
+  !!   call input_var(dummy_real,'1.d-5',dict//LIN_KERNEL//GNRM_CV_COEFF//0,ranges=(/0.d0,1.d0/))
+  !!   call input_var(dummy_real,'1.d-5',dict//LIN_KERNEL//GNRM_CV_COEFF//1,ranges=(/0.d0,1.d0/),comment=comments)
+
+  !!   comments = 'density convergence (low, high)'
+  !!   call input_var(dummy_real,'1.d-13',dict//LIN_KERNEL//RPNRM_CV//0,ranges=(/0.d0,1.d0/))
+  !!   call input_var(dummy_real,'1.d-13',dict//LIN_KERNEL//RPNRM_CV//1,ranges=(/0.d0,1.d0/),comment=comments)
+
+  !!   comments='mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing), 103 (FOE)'
+  !!   call input_var(dummy_int,'100',ranges=(/100,103/),comment=comments)
+  !!   select case(dummy_int)
+  !!   case(100)
+  !!      call dict_set(dict//LIN_KERNEL//LINEAR_METHOD,'DIRMIN')
+  !!   case(101) 
+  !!      call dict_set(dict//LIN_KERNEL//LINEAR_METHOD,'DIAG')
+  !!      call dict_set(dict//LIN_KERNEL//MIXING_METHOD,'DEN')
+  !!   case(102)      
+  !!      call dict_set(dict//LIN_KERNEL//LINEAR_METHOD,'DIAG')
+  !!      call dict_set(dict//LIN_KERNEL//MIXING_METHOD,'POT')
+  !!   case(103)
+  !!      call dict_set(dict//LIN_KERNEL//LINEAR_METHOD,'FOE')
+  !!   end select
+
+  !!   comments = 'initial step size for kernel update (SD), curve fitting for alpha update - directmin only'
+  !!   call input_var(dummy_real,'1.d0',dict//LIN_KERNEL//ALPHA_SD_COEFF,ranges=(/0.0_gp,10.0_gp/))
+  !!   call input_var(dummy_bool,'F',dict//LIN_KERNEL//ALPHA_FIT_COEFF,comment=comments)
+
+  !!   comments = 'lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted automatically if chosen too small'
+  !!   call input_var(dummy_real,'-.5d0',dict//LIN_KERNEL//EVAL_RANGE_FOE//0,ranges=(/-10.d0,-1.d-10/))
+  !!   call input_var(dummy_real,'-.5d0',dict//LIN_KERNEL//EVAL_RANGE_FOE//1,ranges=(/1.d-10,10.d0/),comment=comments)
+
+  !!   comments='fscale: length scale over which complementary error function decays from 1 to 0'
+  !!   call input_var(dummy_real,'1.d-2',dict//LIN_KERNEL//FSCALE_FOE,ranges=(/0.d0,1.d0/),comment=comments)
+
+
+  !! !these variables seems deprecated, put them to their default value
+
+  !! comments = 'convergence criterion on density to fix TMBS'
+  !! call input_var(in%lin%support_functions_converged,'1.d-10',ranges=(/0.d0,1.d0/),comment=comments)
+
+
+  END SUBROUTINE read_lin_from_text_format
+end module input_old_text_format

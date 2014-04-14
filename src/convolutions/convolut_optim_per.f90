@@ -1,7 +1,7 @@
 !> @file
 !!  Optimzed convolution routines
 !! @author
-!!    Copyright (C) 2010-2011 BigDFT group 
+!!    Copyright (C) 2010-2013 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -48,12 +48,12 @@ subroutine ana_rot_per(n,ndat,x,y)
   !write(*,*) 'ana_rot_per executed'
 
   call fill_mod_arr(mod_arr,-7,2*n+8,2*n+2)
-
-!dee
-!call system_clock(istart_test,count_rate_test,count_max_test)
-
-!$omp parallel default (private) shared(x,y,cg,ch,ndat,n,mod_arr)
-!$omp do 
+  
+  !dee
+  !call system_clock(istart_test,count_rate_test,count_max_test)
+  
+  !$omp parallel default (private) shared(x,y,cg,ch,ndat,n,mod_arr)
+  !$omp do 
 
   do j=0,ndat/8-1
      do i=0,n
@@ -324,16 +324,17 @@ subroutine syn_rot_per_temp(n,ndat,x,y)
        -0.14329423835127266284_wp, 0.0076074873249766081919_wp, &
        0.031695087811525991431_wp, -0.00054213233180001068935_wp, &
        -0.0033824159510050025955_wp/)
-  real(wp), dimension(-6:9), parameter :: cg=(/&
-                                    -0.0033824159510050025955_wp, & 
-       0.00054213233180001068935_wp, 0.031695087811525991431_wp, & 
-       -0.0076074873249766081919_wp, -0.14329423835127266284_wp, & 
-       0.061273359067811077843_wp, 0.48135965125905339159_wp,  & 
-       -0.77718575169962802862_wp,0.36444189483617893676_wp, &
-       0.051945838107881800736_wp,-0.027219029917103486322_wp, &
-       -0.049137179673730286787_wp,0.0038087520138944894631_wp, &
-       0.014952258337062199118_wp,-0.00030292051472413308126_wp, &
-       -0.0018899503327676891843_wp  /)
+
+!!$  real(wp), dimension(-6:9), parameter :: cg=(/&
+!!$                                    -0.0033824159510050025955_wp, & 
+!!$       0.00054213233180001068935_wp, 0.031695087811525991431_wp, & 
+!!$       -0.0076074873249766081919_wp, -0.14329423835127266284_wp, & 
+!!$       0.061273359067811077843_wp, 0.48135965125905339159_wp,  & 
+!!$       -0.77718575169962802862_wp,0.36444189483617893676_wp, &
+!!$       0.051945838107881800736_wp,-0.027219029917103486322_wp, &
+!!$       -0.049137179673730286787_wp,0.0038087520138944894631_wp, &
+!!$       0.014952258337062199118_wp,-0.00030292051472413308126_wp, &
+!!$       -0.0018899503327676891843_wp  /)
   
   do j=1,ndat
 
@@ -416,6 +417,7 @@ subroutine syn_rot_per_temp(n,ndat,x,y)
   end do
 
 END SUBROUTINE syn_rot_per_temp
+
 
 subroutine syn_rot_per_simple(n,ndat,x,y)
   use module_base

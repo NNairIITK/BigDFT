@@ -1,3 +1,14 @@
+!> @file
+!!  Time-Dependent DFT ai la Casida
+!! @author
+!!    Copyright (C) 2011-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Calculate the coupling matrix for the TD-DFT a la Casida
 subroutine tddft_casida(iproc,nproc,atoms,rxyz,hxh,hyh,hzh,n3p,n3parr,Glr,orbs,orbsv,i3s,fxc,pkernelseq,psi,psiv)
   use module_base
   use module_types
@@ -8,7 +19,7 @@ subroutine tddft_casida(iproc,nproc,atoms,rxyz,hxh,hyh,hzh,n3p,n3parr,Glr,orbs,o
   type(orbitals_data), intent(in) :: orbs,orbsv
   type(locreg_descriptors), intent(in) :: Glr
   integer, dimension(0:nproc-1), intent(in) :: n3parr
-  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   real(wp), dimension(Glr%d%n1i,Glr%d%n2i,n3p), intent(in) :: fxc
   type(coulomb_operator), intent(in) :: pkernelseq
   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
@@ -34,7 +45,7 @@ subroutine tddft_casida(iproc,nproc,atoms,rxyz,hxh,hyh,hzh,n3p,n3parr,Glr,orbs,o
 
   call center_of_charge(atoms,rxyz,chargec)
 
-  call coupling_matrix_prelim(iproc,nproc,atoms%geocode,orbs%nspin,Glr,orbs,orbsv,&
+  call coupling_matrix_prelim(iproc,nproc,atoms%astruct%geocode,orbs%nspin,Glr,orbs,orbsv,&
        i3s,n3p,hxh,hyh,hzh,chargec,pkernelseq,fxc,psirocc,psirvirt)
 
   i_all=-product(shape(psirocc))*kind(psirocc)

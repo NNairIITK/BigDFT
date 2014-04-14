@@ -1,3 +1,14 @@
+!> @file
+!!  Routines related to the initialization of the Kohn-Sham wavefunctions
+!! @author
+!!    Copyright (C) 2013-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+
 subroutine glr_get_psi_size(glr, psisize)
   use module_types
   implicit none
@@ -7,10 +18,11 @@ subroutine glr_get_psi_size(glr, psisize)
   psisize = glr%wfd%nvctr_c + 7 * glr%wfd%nvctr_f
 END SUBROUTINE glr_get_psi_size
 
+
 subroutine kswfn_free_scf_data(KSwfn, freePsit)
   use module_base
   use module_types
-  use m_profiling
+  use memory_profiling
   implicit none
   type(DFT_wavefunction), intent(inout) :: KSwfn
   logical, intent(in) :: freePsit
@@ -31,6 +43,7 @@ subroutine kswfn_free_scf_data(KSwfn, freePsit)
      nullify(KSwfn%psit)
   end if
 end subroutine kswfn_free_scf_data
+
 
 subroutine kswfn_emit_psi(Wfn, iter, psi_or_hpsi, iproc, nproc)
   use module_base
@@ -84,6 +97,7 @@ subroutine kswfn_emit_psi(Wfn, iter, psi_or_hpsi, iproc, nproc)
   call timing(iproc,'wf_signals    ','OF')
 END SUBROUTINE kswfn_emit_psi
 
+
 subroutine kswfn_mpi_copy(psic, jproc, psiStart, psiSize)
   use module_base
   use module_types
@@ -102,9 +116,13 @@ subroutine kswfn_mpi_copy(psic, jproc, psiStart, psiSize)
   call MPI_RECV(psic, psiSize, MPI_DOUBLE_PRECISION, jproc, 123, bigdft_mpi%mpi_comm, status, ierr)
 END SUBROUTINE kswfn_mpi_copy
 
+
 subroutine kswfn_init_comm(wfn, in, atoms, dpbox, iproc, nproc)
   use module_types
   use module_interfaces, except_this_one => kswfn_init_comm
+  use communications_base, only: comms_linear_null
+  use communications_init, only: init_comms_linear, init_comms_linear_sumrho, &
+                                 initialize_communication_potential
   implicit none
   integer, intent(in) :: iproc, nproc
   type(DFT_wavefunction), intent(inout) :: wfn
@@ -124,13 +142,16 @@ subroutine kswfn_init_comm(wfn, in, atoms, dpbox, iproc, nproc)
   call initialize_communication_potential(iproc, nproc, dpbox%nscatterarr, &
        & wfn%orbs, wfn%lzd, wfn%comgp)
 
-  call nullify_collective_comms(wfn%collcom)
-  call nullify_collective_comms(wfn%collcom_sr)
+  !call nullify_comms_linear(wfn%collcom)
+  !call nullify_comms_linear(wfn%collcom_sr)
+  wfn%collcom=comms_linear_null()
+  wfn%collcom_sr=comms_linear_null()
 
-  call init_collective_comms(iproc, nproc, wfn%npsidim_orbs, wfn%orbs, wfn%lzd, wfn%collcom)
-  call init_collective_comms_sumro(iproc, nproc, wfn%lzd, wfn%orbs, dpbox%nscatterarr, wfn%collcom_sr)
+  call init_comms_linear(iproc, nproc, wfn%npsidim_orbs, wfn%orbs, wfn%lzd, wfn%collcom)
+  call init_comms_linear_sumrho(iproc, nproc, wfn%lzd, wfn%orbs, dpbox%nscatterarr, wfn%collcom_sr)
 
 END SUBROUTINE kswfn_init_comm
+
 
 subroutine kswfn_emit_lzd(Wfn, iproc, nproc)
   use module_base

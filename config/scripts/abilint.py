@@ -45,13 +45,12 @@
 # Call after a ';' is not detected.
 # Handle the preprocessing directives (?)
 # Unify the detection and the creation of the interfaces by means of the class Fortran_Interface
-# Improve the experimental edition
 
 
 #Description
 #-----------
 # The script abilint uses class to implement the notion of project, files, routines and so on.
-# The class Project (maybe Package is more appropriate) 
+# The class Project (maybe Package is more appropriate)
 # contains all the information about directories, files and routines.
 # There are lists of:
 # - directories (abilint.dirs) which are only names of directories,
@@ -84,7 +83,7 @@
 # Routine   subroutine fortran
 # Function  function fortran
 
-# The classes 'Module', 'Routine', 'Function' 
+# The classes 'Module', 'Routine', 'Function'
 #              contain methods to handle the code and specially to analyze it into:
 # Comment      lines of comments
 # Header       header of the routine (ex. subroutine foo(one,two))
@@ -106,9 +105,6 @@
 # The class Variable is created to have all information for a given variable.
 # A structure has a 'dict_vars' dictionary.
 #
-#Edition of the files
-#--------------------
-# Vim is used to help the edition
 
 
 #Usage (and help)
@@ -120,7 +116,7 @@ abilint [options] <source> <dest>
       <source> is the directory that contains the bigdft project
       <dest>   is the directory of destination
     options:
-      --beautify  beautify the code (experimental, use vim)
+      --beautify  beautify the code (experimental)
       --graph=<routine1,routine2,...> or --graph=all (experimental)
                   build the graph of calls for the <routine> in the file 'routine.dot'
       --graph=directories
@@ -169,6 +165,8 @@ abilint_start = "!This section has been created automatically by the script Abil
                 + "!Do not modify the following lines by hand.\n"
 abilint_end =  "!End of the abilint section\n"
 
+#i# use_before = abilint_start + "#ifdef HAVE_FORTRAN_INTERFACES\n"
+#i# notuse_before = abilint_start + "#ifndef HAVE_FORTRAN_INTERFACES\n"
 use_before = abilint_start
 notuse_before = abilint_start
 
@@ -192,9 +190,9 @@ intrinsic_routines = [ "cpu_time",
 intrinsic_functions = [ "abs", "achar", "acos", "adjustl", "adjustr", "aimag", "aint", "all",
                        "allocated", "anint", "any", "asin", "associated", "atan", "atan2",
                        "bit_size", "btest", "ceiling", "char", "cmplx", "conjg", "cos", "cosh",
-                       "count", 
+                       "count",
                        "dabs", "dble", "dcmplx", "dfloat", "digits", "dim", "dot_product", "dprod",
-                       "dreal", "eoshift", "epsilon", "exp", "exponent", 
+                       "dreal", "eoshift", "epsilon", "exp", "exponent",
                        "float", "floor", "fraction", "huge", "iachar", "iand",
                        "ibclr", "ibits", "ibset", "ichar", "ieor", "index", "int", "ior", "ishft",
                        "ishftc", "kind", "lbound", "len", "len_trim", "lge", "lgt", "ll", "llt",
@@ -233,7 +231,7 @@ re_arguments = re.compile("[\n ]*!Argument[^\n]+\n")
 #Detect !Local
 re_local_variables = re.compile("[\n ]*!Local[^\n]+\n")
 #Remove use replaced by the system of interfaces
-re_use_replaced = re.compile('^[ ]+use[ ]*(defs_berry|defs_dyson|defs_interfaces|defs_xc|defs_xderive|defs_xfuncmpi)[ ]*?\n',re.MULTILINE+re.IGNORECASE)
+re_use_replaced = re.compile('^[ ]+use[ ]*(defs_interfaces|defs_xc|defs_xfuncmpi)[ ]*?\n',re.MULTILINE+re.IGNORECASE)
 
 
 #Function to split variable in declaration statements (critics and robust but ugly)
@@ -645,20 +643,20 @@ class Project:
         #Determine the list of functions
         self.set_functions()
     #
-    def analyze_execution(self,edition=False):
+    def analyze_execution(self):
         "Analyze the execution statements of all routines"
         self.message.section("Analyze the execution statements of routines...")
         for (name,routine) in self.routines.items():
             self.message.write("(%s)" % name)
-            routine.analyze_execution(self,edition=edition)
+            routine.analyze_execution(self)
         self.message.done()
     #
-    def analyze_comments(self,exclude="a"*40,edition=False):
+    def analyze_comments(self,exclude="a"*40):
         "Analyze the comments of all the files except the files which contain exclude"
         self.message.section("Analyze the comments...")
         for file in self.files.values():
             if isinstance(file,File_F90) and exclude not in file.name:
-                file.analyze_comments(self,edition=edition)
+                file.analyze_comments(self)
         self.message.done()
     #
     def analyze_directories(self):
@@ -799,7 +797,7 @@ class Project:
                 self.message.write("(%s)" % inside_name,verbose=-10)
                 depfile = self.add_file(dir,inside_name,create=True)
                 #Add header of the file
-                depfile.add_code(head_dependencies % {"dir": dir, 
+                depfile.add_code(head_dependencies % {"dir": dir,
                                                       "message": "(inside the directory)"})
                 #Add to clean files .mod
                 depfile.add_code("CLEANFILES += ")
@@ -1037,7 +1035,7 @@ class Project:
         "Remove code except comments of files"
         re_file = re.compile(pattern_file)
         for (dir,files) in self.dirsfiles.items():
-            for file in files: 
+            for file in files:
                 if re_file.match(file):
                     fullname = "%s/%s" % (dir,file)
                     self.files[fullname].remove_code()
@@ -1046,7 +1044,7 @@ class Project:
         "Remove files which correspond to the given pattern (do not clean properly!)"
         self.message.section("Remove the files with pattern '%s'..." % pattern)
         for (dir,files) in self.dirsfiles.items():
-            for file in files: 
+            for file in files:
                 if pattern in file:
                     fullname = "%s/%s" % (dir,file)
                     self.message.write("[%s]" % (fullname))
@@ -1115,7 +1113,7 @@ class Project:
         #Do for each routine stored in self.routines
         unused = list()
         for (name,routine) in self.routines.items():
-            #Only routine (not program) and not in lib directory 
+            #Only routine (not program) and not in lib directory
             if len(routine.calling) == 0 and routine.nogeneric and routine.rank < 100 and routine.rank >= 0:
                 unused.append((routine.dir,routine.file,name))
             if len(routine.calling) != 0 and (not routine.nogeneric) and routine.rank < 100 and routine.rank >= 0:
@@ -1169,7 +1167,7 @@ class Structure:
     def analyze(self):
         "Check only if it is already analyzed"
         if self.is_analyzed:
-            self.message.fatal("The structure %s is already analyzed" % self.name) 
+            self.message.fatal("The structure %s is already analyzed" % self.name)
     #Ancestry (debugging)
     def ancestry(self,n):
         if self.parent:
@@ -1254,7 +1252,7 @@ class File(Structure):
     def analyze(self,project=None):
         "Do nothing"
         if self.is_analyzed:
-            self.message.fatal("The file %s/%s is already analyzed" % (self.dir,self.file)) 
+            self.message.fatal("The file %s/%s is already analyzed" % (self.dir,self.file))
     #Interface
     def interface(self):
         "Do nothing"
@@ -1332,7 +1330,7 @@ class File_F90(File):
                         + "Analysis Error in %s/%s\n" % (self.dir,self.file))
         self.message.write("]\n",verbose=10)
     #
-    def analyze_comments(self,project,edition=False):
+    def analyze_comments(self,project):
         "Analyze comments to detect headers and footers (robodoc or doxygen style)"
         temp_structs = self.children
         self.children = []
@@ -1351,7 +1349,7 @@ class File_F90(File):
         #Finally, analyze comment
         for struct in self.children:
             if isinstance(struct,Comment):
-                struct.analyze_comment(edition=edition)
+                struct.analyze_comment()
     #
     def build_robodoc_structure(self):
         "Build the robodoc structure around each routine"
@@ -1602,7 +1600,7 @@ class Comment(Structure):
         self.file = self.parent.name
         self.dir = self.parent.dir
     #
-    def analyze_comment(self,edition=False):
+    def analyze_comment(self):
         "Analyze the comment"
         pass
     #
@@ -1637,7 +1635,7 @@ class Robodoc_Header(Comment):
         self.sections = dict()
         self.categories = []
     #
-    def analyze_comment(self,edition=False):
+    def analyze_comment(self):
         "Analyze the robodoc header"
         iter_code = iter(self.code.splitlines())
         #First line
@@ -1988,10 +1986,10 @@ class Routine(Module):
         self.Execution = Execution(parent=self)
         self.Execution.analyze(line,iter_code,project)
     #
-    def analyze_execution(self,project,edition=False):
+    def analyze_execution(self,project):
         "Analyze the execution statements of the routine"
         #Analyze the execution statements
-        self.Execution.analyze_execution(self.Declaration.dict_vars,self.Implicit.dict,project,edition=edition)
+        self.Execution.analyze_execution(self.Declaration.dict_vars,self.Implicit.dict,project)
     #
     def beautify(self):
         "Beautify the code of the routines (experimental)"
@@ -2201,7 +2199,7 @@ class Generic_Routine(Routine):
         "Do nothing"
         return
     #
-    def analyze_execution(self,project,edition=False):
+    def analyze_execution(self,project):
         "Do nothing"
         return
     #
@@ -2395,48 +2393,77 @@ class Use(Code):
         #Remove empty preprocessing directives
         self.code = self.re_empty_preproc.sub('',self.code)
         #Add preprocessing commands, comments and implicit none
-        if modules or else_modules:
-            text_use = ""
-            #Add modules
-            for module in modules:
-                #Special and ugly
-                if "contract" in module:
-                    text_use += "#if defined DEBUG_CONTRACT\n"
-                if "cuda" in module:
-                    text_use += "#if defined HAVE_GPU_CUDA\n"
-                if prefix in module:
-                    if module == self.parent.module and self.parent.has_interface:
-                        #We except the given subroutine
-                        text_use += indent + "use %s, except_this_one => %s\n" \
-                               % (self.parent.module,self.parent.name)
-                    else:
-                        text_use += indent + "use %s\n" % module
-                if "contract" in module:
-                    text_use += "#endif\n"
-                if "cuda" in module:
-                    text_use += "#endif\n"
-            if else_modules:
-                text_use += "#else\n"
-                for name in else_modules:
-                    text_use += indent + "use %s\n" % name
-            if text_use != "":
-                text_use = "\n\n" + use_before + text_use + use_after + "\n"
-            #Add text_use inside use statements
-            self.code += text_use
-        else:
-            #Be sure to have 2 \n
-            self.code += (2-self.code[-2:].count("\n"))*"\n"
-        #
+        #if True: # Old code
+        if False: # New code
+          if modules or else_modules:
+              text_use = ""
+              #Add modules
+              for module in modules:
+                  #Special and ugly
+                  if "cuda" in module:
+                      text_use += "#if defined HAVE_GPU_CUDA\n"
+                  if prefix in module:
+                      if module == self.parent.module and self.parent.has_interface:
+                          #We except the given subroutine
+                          text_use += indent + "use %s, except_this_one => %s\n" \
+                                 % (self.parent.module,self.parent.name)
+                      else:
+                          text_use += indent + "use %s\n" % module
+                  if "cuda" in module:
+                      text_use += "#endif\n"
+              if else_modules:
+                  text_use += "#else\n"
+                  for name in else_modules:
+                      text_use += indent + "use %s\n" % name
+              if text_use != "":
+                  text_use = "\n\n" + use_before + text_use + use_after + "\n"
+              #Add text_use inside use statements
+              self.code += text_use
+          else:
+              #Be sure to have 2 \n
+              self.code += (2-self.code[-2:].count("\n"))*"\n"
+
         # MG Add CPP variable with the name of the procedure.
-        #self.code += "\n #undef ABI_FUNC \n #def ABI_FUNC " + str(self.parent.name) 
-        #print self.code + "\n #undef ABI_FUNC \n #define ABI_FUNC " + str(self.parent.name) 
-        #
+        #self.code += "\n #undef ABI_FUNC \n #def ABI_FUNC " + str(self.parent.name)
+        #print self.code + "\n #undef ABI_FUNC \n #define ABI_FUNC " + str(self.parent.name)
+
+        else: # New code that adds the definition of ABI_FUNC
+          #print "parent.name:" + self.parent.name
+          text_use = \
+            "\n\n" + use_before + "#undef ABI_FUNC\n#define ABI_FUNC '" + self.parent.name.strip() + "'\n"
+          if modules or else_modules:
+              #text_use = ""
+              #Add modules
+              for module in modules:
+                  #Special and ugly
+                  if "cuda" in module:
+                      text_use += "#if defined HAVE_GPU_CUDA\n"
+                  if prefix in module:
+                      if module == self.parent.module and self.parent.has_interface:
+                          #We except the given subroutine
+                          text_use += indent + "use %s, except_this_one => %s\n" \
+                                 % (self.parent.module,self.parent.name)
+                      else:
+                          text_use += indent + "use %s\n" % module
+                  if "cuda" in module:
+                      text_use += "#endif\n"
+              if else_modules:
+                  text_use += "#else\n"
+                  for name in else_modules:
+                      text_use += indent + "use %s\n" % name
+              #if text_use != "":
+              #    text_use = "\n\n" + use_before + text_use + use_after + "\n"
+              #Add text_use inside use statements
+              #self.code += text_use
+          text_use += use_after + "\n"
+          self.code += text_use
+
         #Remove multiple \n
         self.code = self.re_multi_n.sub('\n\n',self.code)
     #
     #Analyze the code
     def analyze(self,iter_code):
-        """Analyze use statements 
+        """Analyze use statements
            (special treatment for preprocessing commands which needs to be clarify)
            only is ignored."""
         Code.analyze(self)
@@ -2530,7 +2557,7 @@ class Implicit(Code):
             self.message.error("No implicit statement in %s (%s/%s)" \
                 % (self.parent.name,self.dir,self.file))
             return line
-    #    
+    #
     #Build a dictionary
     def implicit(self):
         "Give the type of variables given by implicit statement"
@@ -2727,7 +2754,7 @@ class Declaration(Code):
     #Analyze all variables xxxx :: var -> dict[var] == xxx
     def analyze_variables(self,dict_implicit,project):
         "Analyze all variables xxxx :: var -> dict[var] == xxx"
-        #First, we build a long line without continuation, comments and interface
+        #First, we build a long line without continuation, comments and interface and define types
         code = self.code
         #We add the include files at the end of declaration
         for struct in self.includes:
@@ -3037,7 +3064,7 @@ class Execution(Code):
                 self.message.fatal("\n%s\n--> No detected end of the routine!\n" % line\
                         + "Analysis Error in %s/%s\n" % (self.parent.dir,self.parent.file))
     #
-    def analyze_execution(self,dict_vars,dict_implicit,project,edition=False):
+    def analyze_execution(self,dict_vars,dict_implicit,project):
         "Analyze the execution statements (initialization, undeclared variables)"
         if dict_vars == None:
             self.message.fatal("No dictionary of variables\n" \
@@ -3118,28 +3145,6 @@ class Execution(Code):
             if declaration:
                 self.message.error("%s/%s: [%s]\n--> Undeclared variables\n%s" \
                     % (self.dir,self.file,self.parent.name,build_declaration(undeclared)))
-                #Edition using vim
-                if edition:
-                    for var in dict_vars.values():
-                        var.display_information()
-                    #Edit inside vim the whole file: put in the register "a the declarations
-                    vim_message = "Register v = %s" % declaration \
-                            + "Register a = !Arguments\n" \
-                            + "Register l = !Local variables\n" \
-                            + "Edit the routine %s (use reg v, reg a or reg l)\n" % self.parent.name \
-                            + "Create a file EXIT to stop all editions"
-                    vim_commands = """let @a ="%s!Arguments\\n"\n""" % indent \
-                            + """let @l = "%s!Local variables\\n"\n""" % indent \
-                            + """let @v ="%s"\n""" % declaration.replace("\n","\\n") \
-                            + """let @/ ="%s"\n""" % self.parent.name \
-                            + """echo "%s"\n""" % vim_message.replace("\n","\\n")
-                    open("temp.vim","w").write(vim_commands)
-                    #subprocess.call(["vim", "%s/%s" % (self.parent.dir,self.parent.file)])
-                    os.system("vim -S temp.vim %s/%s" % (self.parent.dir,self.parent.file))
-                    os.remove("temp.vim")
-                    if os.path.exists("EXIT"):
-                        self.message.write("\nThe file 'EXIT' has been edited.\nSTOP EDITION and abilint.\n",verbose=-10)
-                        sys.exit(1)
             self.message.done()
 
 
@@ -3834,7 +3839,7 @@ head_interface = \
 !! NOTES
 !! THIS FILE IS GENERATED AUTOMATICALLY BY abilint.
 !! To do that: config/scripts/abilint . .
-!! 
+!!
 %(warning)s!!
 !! SOURCE
 
@@ -3933,12 +3938,10 @@ if __name__ == "__main__":
     lint = False
     dump_dtset = False
     dependencies = False
-    edition = False
     nocache = False
     for opt,arg in optlist:
         if   opt == "-b" or opt == "--beautify":
             beautify = True
-            edition = True
             #Complete analysis
             lint = True
         elif opt == "-d" or opt == "--dependencies":
@@ -3990,9 +3993,9 @@ if __name__ == "__main__":
         #Unused routines
         #bigdft.unused_routines()
         #Analyze all the comments in order to detect the robodoc structure
-        bigdft.analyze_comments(edition=edition)
+        bigdft.analyze_comments()
         #Analyze the code (body)
-        bigdft.analyze_execution(edition=edition)
+        bigdft.analyze_execution()
     if NEW == OLD:
         #Backup before changing to optimize the minimal number of copies
         bigdft.backup()
@@ -4004,8 +4007,6 @@ if __name__ == "__main__":
     if graph:
         #Build in the file bigdft.dot some graph
         bigdft.graph(graph_arg,graph_excluded=graph_excluded)
-    if edition:
-        bigdft.message.write("The files have been edited: copy nothing.\n",verbose=-10)
     else:
         #We copy everything
         bigdft.copy_all(NEW,only_if_changed=(NEW == OLD))

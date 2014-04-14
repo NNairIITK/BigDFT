@@ -225,376 +225,20 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   !   is located.
   allocate(orbs%isorb_par(0:nproc-1), stat=i_stat)
   call memocc(i_stat, orbs%isorb_par, 'orbs%isorb_par', subname)
-  allocate(orbs%onWhichMPI(sum(orbs%norb_par(:,0))), stat=i_stat)
-  call memocc(i_stat, orbs%onWhichMPI, 'orbs%onWhichMPI', subname)
   iiorb=0
   orbs%isorb_par=0
   do jproc=0,nproc-1
-      do iorb=1,orbs%norb_par(jproc,0)
-          iiorb=iiorb+1
-          orbs%onWhichMPI(iiorb)=jproc
-      end do
       if(iproc==jproc) then
           orbs%isorb_par(jproc)=orbs%isorb
       end if
   end do
+
   !this mpiflag is added to make memguess working
   call MPI_Initialized(mpiflag,ierr)
   if(nproc >1 .and. mpiflag /= 0) &
        call mpiallred(orbs%isorb_par(0),nproc,mpi_sum,bigdft_mpi%mpi_comm,ierr)
 
 END SUBROUTINE orbitals_descriptors
-
-
-!> Partition the orbitals between processors to ensure load balancing
-!! the criterion will depend on GPU computation
-!! and/or on the sizes of the different localisation region.
-!!
-!! Calculate the number of elements to be sent to each process
-!! and the array of displacements.
-!! Cubic strategy: 
-!!    - the components are equally distributed among the wavefunctions
-!!    - each processor has all the orbitals in transposed form
-!!    - each wavefunction is equally distributed in its transposed form
-!!    - this holds for each k-point, which regroups different processors
-subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: iproc,nproc
-  type(locreg_descriptors), intent(in) :: lr
-  type(orbitals_data), intent(inout) :: orbs
-  type(communications_arrays), intent(out) :: comms
-  integer, dimension(0:nproc-1,orbs%nkpts), intent(in), optional :: basedist
-  !local variables
-  character(len=*), parameter :: subname='orbitals_communicators'
-  logical :: yesorb,yescomp
-  integer :: jproc,nvctr_tot,ikpts,iorbp,jorb,norb_tot,ikpt,i_stat,i_all
-  integer :: nkptsp,ierr,kproc,jkpts,jkpte,jsorb,lubo,lubc,info,jkpt
-  integer, dimension(:), allocatable :: mykpts
-  logical, dimension(:), allocatable :: GPU_for_comp
-  integer, dimension(:,:), allocatable :: nvctr_par,norb_par !<for all the components and orbitals (with k-pts)
-  
-  !check of allocation of important arrays
-  if (.not. associated(orbs%norb_par)) then
-     write(*,*)'ERROR: norb_par array not allocated'
-     stop
-  end if
-
-  allocate(nvctr_par(0:nproc-1,0:orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,nvctr_par,'nvctr_par',subname)
-  allocate(norb_par(0:nproc-1,0:orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,norb_par,'norb_par',subname)
-  allocate(mykpts(orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,mykpts,'mykpts',subname)
-
-  !initialise the arrays
-  do ikpts=0,orbs%nkpts
-     do jproc=0,nproc-1
-        nvctr_par(jproc,ikpts)=0 
-        norb_par(jproc,ikpts)=0 
-     end do
-  end do
-
-  !calculate the same k-point distribution for the orbitals
-  !assign the k-point to the given orbital, counting one orbital after each other
-  jorb=1
-  ikpts=1
-  do jproc=0,nproc-1
-     do iorbp=1,orbs%norb_par(jproc,0)
-        norb_par(jproc,ikpts)=norb_par(jproc,ikpts)+1
-        if (mod(jorb,orbs%norb)==0) then
-           ikpts=ikpts+1
-        end if
-        jorb=jorb+1
-     end do
-  end do
-  !some checks
-  if (orbs%norb /= 0) then
-     !check the distribution
-     do ikpts=1,orbs%nkpts
-        !print *,'partition',ikpts,orbs%nkpts,'ikpts',norb_par(:,ikpts)
-        norb_tot=0
-        do jproc=0,nproc-1
-           norb_tot=norb_tot+norb_par(jproc,ikpts)
-        end do
-        if(norb_tot /= orbs%norb) then
-           write(*,*)'ERROR: partition of orbitals incorrect, kpoint:',ikpts
-           stop
-        end if
-     end do
-  end if
-
-
-  !balance the components between processors
-  !in the most symmetric way
-  !here the components are taken into account for all the k-points
-
-  !create an array which indicate which processor has a GPU associated 
-  !from the viewpoint of the BLAS routines (deprecated, not used anymore)
-  allocate(GPU_for_comp(0:nproc-1+ndebug),stat=i_stat)
-  call memocc(i_stat,GPU_for_comp,'GPU_for_comp',subname)
-
-  if (nproc > 1 .and. .not. GPUshare) then
-     call MPI_ALLGATHER(GPUblas,1,MPI_LOGICAL,GPU_for_comp(0),1,MPI_LOGICAL,&
-          bigdft_mpi%mpi_comm,ierr)
-  else
-     GPU_for_comp(0)=GPUblas
-  end if
-
-  i_all=-product(shape(GPU_for_comp))*kind(GPU_for_comp)
-  deallocate(GPU_for_comp,stat=i_stat)
-  call memocc(i_stat,i_all,'GPU_for_comp',subname)
-
-  !old k-point repartition
-!!$  !decide the repartition for the components in the same way as the orbitals
-!!$  call parallel_repartition_with_kpoints(nproc,orbs%nkpts,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),nvctr_par)
-
-!!$  ikpts=1
-!!$  ncomp_res=(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
-!!$  do jproc=0,nproc-1
-!!$     loop_comps: do
-!!$        if (nvctr_par(jproc,0) >= ncomp_res) then
-!!$           nvctr_par(jproc,ikpts)= ncomp_res
-!!$           ikpts=ikpts+1
-!!$           nvctr_par(jproc,0)=nvctr_par(jproc,0)-ncomp_res
-!!$           ncomp_res=(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
-!!$        else
-!!$           nvctr_par(jproc,ikpts)= nvctr_par(jproc,0)
-!!$           ncomp_res=ncomp_res-nvctr_par(jproc,0)
-!!$           nvctr_par(jproc,0)=0
-!!$           exit loop_comps
-!!$        end if
-!!$        if (nvctr_par(jproc,0) == 0 ) then
-!!$           ncomp_res=(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
-!!$           exit loop_comps
-!!$        end if
-!!$
-!!$     end do loop_comps
-!!$  end do
-
-  !new k-point repartition
-  if (present(basedist)) then
-     do jkpt=1,orbs%nkpts
-        do jproc=0,nproc-1
-           nvctr_par(jproc,jkpt)=basedist(jproc,jkpt)
-        end do
-     end do
-  else
-     !first try the naive repartition
-     call kpts_to_procs_via_obj(nproc,orbs%nkpts,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),nvctr_par(0,1))
-  end if
-  !then silently check whether the distribution agree
-  info=-1
-  call check_kpt_distributions(nproc,orbs%nkpts,orbs%norb,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),&
-       norb_par(0,1),nvctr_par(0,1),info,lubo,lubc)
-  if (info/=0 .and. .not. present(basedist)) then !redo the distribution based on the orbitals scheme
-     info=-1
-     call components_kpt_distribution(nproc,orbs%nkpts,orbs%norb,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),norb_par(0,1),nvctr_par(0,1))
-     call check_kpt_distributions(nproc,orbs%nkpts,orbs%norb,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),&
-          norb_par(0,1),nvctr_par(0,1),info,lubo,lubc)
-  end if
-  if (info /=0) then
-     if (iproc==0) then
-        write(*,*)'ERROR for nproc,nkpts,norb,nvctr',nproc,orbs%nkpts,orbs%norb,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
-        call print_distribution_schemes(6,nproc,orbs%nkpts,norb_par(0,1),nvctr_par(0,1))
-     end if
-     call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
-     stop
-  end if
-
-!write(*,'(a,i2,3x,8i7,i10)') 'iproc, nvctr_par(jproc), sum', iproc, (nvctr_par(jproc,1), jproc=0,nproc-1), sum(nvctr_par(:,1))
-!write(*,*) 'iproc, (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norbp', iproc, (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norbp
-  !some checks
-  !check the distribution
-  do ikpts=1,orbs%nkpts
-     !print *,'iproc,cpts:',lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nvctr_par(:,ikpts)
-     nvctr_tot=0
-     do jproc=0,nproc-1
-        nvctr_tot=nvctr_tot+nvctr_par(jproc,ikpts)
-     end do
-     if(nvctr_tot /= lr%wfd%nvctr_c+7*lr%wfd%nvctr_f) then
-        write(*,*)'ERROR: partition of components incorrect, kpoint:',ikpts
-        stop
-     end if
-  end do
-
-  !this function which associates a given k-point to a processor in the component distribution
-  !the association is chosen such that each k-point is associated to only
-  !one processor
-  !if two processors treat the same k-point the processor which highest rank is chosen
-  do ikpts=1,orbs%nkpts
-     loop_jproc: do jproc=nproc-1,0,-1
-        if (nvctr_par(jproc,ikpts) /= 0) then
-           orbs%ikptproc(ikpts)=jproc
-           exit loop_jproc
-        end if
-     end do loop_jproc
-  end do
-  
-  !print*,'check',orbs%ikptproc(:)
-
-!write(*,*) 'orbs%norb_par',orbs%norb_par
-
-  !calculate the number of k-points treated by each processor in both
-  ! the component distribution and the orbital distribution.
-  !to have a correct distribution, a k-point should be divided between the same processors
-  nkptsp=0
-  orbs%iskpts=-1
-  do ikpts=1,orbs%nkpts
-     if (nvctr_par(iproc,ikpts) /= 0 .or. norb_par(iproc,ikpts) /= 0) then
-        if (orbs%iskpts == -1) orbs%iskpts=ikpts-1
-        nkptsp=nkptsp+1
-        mykpts(nkptsp) = ikpts
-     end if
-  end do
-  orbs%nkptsp=nkptsp
-
-!!$  allocate(orbs%ikptsp(orbs%nkptsp+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,orbs%ikptsp,'orbs%ikptsp',subname)
-!!$  orbs%ikptsp(1:orbs%nkptsp)=mykpts(1:orbs%nkptsp)
-
-  !print the distribution scheme used for this set of orbital
-  !in the case of multiple k-points
-  if (iproc == 0 .and. verbose > 1 .and. orbs%nkpts > 1) then
-     call print_distribution_schemes(6,nproc,orbs%nkpts,norb_par(0,1),nvctr_par(0,1))
-  end if
-
-  !print *,iproc,orbs%nkptsp,orbs%norbp,orbs%norb,orbs%nkpts
-  !call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
-  !call MPI_FINALIZE(ierr)
-  !stop
-  !check that for any processor the orbital k-point repartition is contained into the components
-  do jproc=0,nproc-1
-     jsorb=0
-     do kproc=0,jproc-1
-        jsorb=jsorb+orbs%norb_par(kproc,0)
-     end do
-     jkpts=min(jsorb/orbs%norb+1,orbs%nkpts)
-     if (nvctr_par(jproc,jkpts) == 0 .and. orbs%norb_par(jproc,0) /=0 ) then
-        if (iproc ==0) write(*,*)'ERROR, jproc: ',jproc,' the orbital k-points distribution starts before the components one'
-        !print *,jsorb,jkpts,jproc,orbs%iskpts,nvctr_par(jproc,jkpts)
-        stop
-     end if
-     jkpte=min((jsorb+orbs%norb_par(jproc,0)-1)/orbs%norb+1,orbs%nkpts)
-     if (nvctr_par(jproc,jkpte) == 0 .and. orbs%norb_par(jproc,0) /=0) then
-        if (iproc ==0) write(*,*)'ERROR, jproc: ',jproc,&
-             ' the orbital k-points distribution ends after the components one'
-        print *,jsorb,jkpte,jproc,orbs%iskpts,orbs%nkptsp,nvctr_par(jproc,jkpte)
-        stop
-     end if
-  end do
-
-  !before printing the distribution schemes, check that the two distributions contain
-  !the same k-points
-  yesorb=.false.
-  kpt_components: do ikpts=1,orbs%nkptsp
-     ikpt=orbs%iskpts+ikpts
-     do jorb=1,orbs%norbp
-        if (orbs%iokpt(jorb) == ikpt) yesorb=.true.
-     end do
-     if (.not. yesorb .and. orbs%norbp /= 0) then
-        write(*,*)' ERROR: processor ', iproc,' kpt ',ikpt,&
-             ' not found in the orbital distribution'
-        call MPI_ABORT(bigdft_mpi%mpi_comm, ierr)
-     end if
-  end do kpt_components
-
-  yescomp=.false.
-  kpt_orbitals: do jorb=1,orbs%norbp
-     ikpt=orbs%iokpt(jorb)   
-     do ikpts=1,orbs%nkptsp
-        if (orbs%iskpts+ikpts == ikpt) yescomp=.true.
-     end do
-     if (.not. yescomp) then
-        write(*,*)' ERROR: processor ', iproc,' kpt,',ikpt,&
-             'not found in the component distribution'
-        call MPI_ABORT(bigdft_mpi%mpi_comm, ierr)
-     end if
-  end do kpt_orbitals
-
-  !print *,'AAAAiproc',iproc,orbs%iskpts,orbs%iskpts+orbs%nkptsp
-
-  !allocate communication arrays
-  allocate(comms%nvctr_par(0:nproc-1,0:orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,comms%nvctr_par,'nvctr_par',subname)
-
-  allocate(comms%ncntd(0:nproc-1+ndebug),stat=i_stat)
-  call memocc(i_stat,comms%ncntd,'ncntd',subname)
-
-  allocate(comms%ncntt(0:nproc-1+ndebug),stat=i_stat)
-  call memocc(i_stat,comms%ncntt,'ncntt',subname)
-  allocate(comms%ndspld(0:nproc-1+ndebug),stat=i_stat)
-  call memocc(i_stat,comms%ndspld,'ndspld',subname)
-  allocate(comms%ndsplt(0:nproc-1+ndebug),stat=i_stat)
-  call memocc(i_stat,comms%ndsplt,'ndsplt',subname)
-
-  !assign the partition of the k-points to the communication array
-  !calculate the number of componenets associated to the k-point
-  do jproc=0,nproc-1
-     comms%nvctr_par(jproc,0)=0
-     do ikpt=1,orbs%nkpts
-        comms%nvctr_par(jproc,0)=comms%nvctr_par(jproc,0)+&
-             nvctr_par(jproc,ikpt) 
-        comms%nvctr_par(jproc,ikpt)=nvctr_par(jproc,ikpt)
-     end do
-  end do
-!!$  do ikpts=1,orbs%nkptsp
-!!$     ikpt=orbs%iskpts+ikpts!orbs%ikptsp(ikpts)
-!!$     do jproc=0,nproc-1
-!!$        comms%nvctr_par(jproc,ikpts)=nvctr_par(jproc,ikpt) 
-!!$     end do
-!!$  end do
-
-  !with this distribution the orbitals and the components are ordered following k-points
-  !there must be no overlap for the components
-  !here we will print out the k-points components distribution, in the transposed and in the direct way
-
-  do jproc=0,nproc-1
-     comms%ncntd(jproc)=0
-     do ikpts=1,orbs%nkpts
-        comms%ncntd(jproc)=comms%ncntd(jproc)+&
-             nvctr_par(jproc,ikpts)*norb_par(iproc,ikpts)*orbs%nspinor
-     end do
-  end do
-  comms%ndspld(0)=0
-  do jproc=1,nproc-1
-     comms%ndspld(jproc)=comms%ndspld(jproc-1)+comms%ncntd(jproc-1)
-  end do
-  !receive buffer
-  do jproc=0,nproc-1
-     comms%ncntt(jproc)=0
-     do ikpts=1,orbs%nkpts
-        comms%ncntt(jproc)=comms%ncntt(jproc)+&
-             nvctr_par(iproc,ikpts)*norb_par(jproc,ikpts)*orbs%nspinor
-     end do
-  end do
-  comms%ndsplt(0)=0
-  do jproc=1,nproc-1
-     comms%ndsplt(jproc)=comms%ndsplt(jproc-1)+comms%ncntt(jproc-1)
-  end do
-
-  !print *,'iproc,comms',iproc,comms%ncntd,comms%ndspld,comms%ncntt,comms%ndsplt
-
-  i_all=-product(shape(nvctr_par))*kind(nvctr_par)
-  deallocate(nvctr_par,stat=i_stat)
-  call memocc(i_stat,i_all,'nvctr_par',subname)
-  i_all=-product(shape(norb_par))*kind(norb_par)
-  deallocate(norb_par,stat=i_stat)
-  call memocc(i_stat,i_all,'norb_par',subname)
-  i_all=-product(shape(mykpts))*kind(mykpts)
-  deallocate(mykpts,stat=i_stat)
-  call memocc(i_stat,i_all,'mykpts',subname)
-
-  !calculate the dimension of the wavefunction
-  !for the given processor (this is only the cubic strategy)
-  orbs%npsidim_orbs=(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor
-  orbs%npsidim_comp=sum(comms%ncntt(0:nproc-1))
-    
-!!$  orbs%npsidim=max((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor,&
-!!$       sum(comms%ncntt(0:nproc-1)))
-
-END SUBROUTINE orbitals_communicators
 
 
 subroutine repartitionOrbitals(iproc,nproc,norb,norb_par,norbp,isorb_par,isorb,onWhichMPI)
@@ -693,44 +337,199 @@ subroutine lzd_set_hgrids(Lzd, hgrids)
   Lzd%hgrids = hgrids
 END SUBROUTINE lzd_set_hgrids
 
-
-subroutine inputs_parse_params(in, iproc, dump)
-  use module_types
-  use module_xc
+!> Fill the arrays occup and spinsgn
+!! if iunit /=0 this means that the file 'input.occ' does exist and it opens
+subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,norbdempty,nspin,occup,spinsgn)
+  use module_base
+  use module_input
+  use yaml_output
   implicit none
-  type(input_variables), intent(inout) :: in
-  integer, intent(in) :: iproc
-  logical, intent(in) :: dump
+  ! Arguments
+  logical, intent(in) :: verb
+  integer, intent(in) :: nelec,nspin,norb,norbu,iunit,norbuempty,norbdempty
+  real(gp), dimension(norb), intent(out) :: occup,spinsgn
+  ! Local variables
+  integer :: iorb,nt,ne,it,ierror,iorb1,i
+  real(gp) :: rocc
+  character(len=20) :: string
+  character(len=100) :: line
 
-  ! Parse all values independant from atoms.
-  call perf_input_variables(iproc,dump,trim(in%file_perf),in)
-  call dft_input_variables_new(iproc,dump,trim(in%file_dft),in)
-  call mix_input_variables_new(iproc,dump,trim(in%file_mix),in)
-  call geopt_input_variables_new(iproc,dump,trim(in%file_geopt),in)
-  call tddft_input_variables_new(iproc,dump,trim(in%file_tddft),in)
-  call sic_input_variables_new(iproc,dump,trim(in%file_sic),in)
-
-  ! Initialise XC calculation
-  if (in%ixc < 0) then
-     call xc_init(in%ixc, XC_MIXED, in%nspin)
-  else
-     call xc_init(in%ixc, XC_ABINIT, in%nspin)
+  do iorb=1,norb
+     spinsgn(iorb)=1.0_gp
+  end do
+  if (nspin/=1) then
+     do iorb=1,norbu
+        spinsgn(iorb)=1.0_gp
+     end do
+     do iorb=norbu+1,norb
+        spinsgn(iorb)=-1.0_gp
+     end do
   end if
-end subroutine inputs_parse_params
+  ! write(*,'(1x,a,5i4,30f6.2)')'Spins: ',norb,norbu,norbd,norbup,norbdp,(spinsgn(iorb),iorb=1,norb)
 
-subroutine inputs_parse_add(in, atoms, iproc, dump)
-  use module_types
-  implicit none
-  type(input_variables), intent(inout) :: in
-  type(atoms_data), intent(in) :: atoms
-  integer, intent(in) :: iproc
-  logical, intent(in) :: dump
+  ! First fill the occupation numbers by default
+  nt=0
+  if (nspin==1) then
+     ne=(nelec+1)/2
+     do iorb=1,ne
+        it=min(2,nelec-nt)
+        occup(iorb)=real(it,gp)
+        nt=nt+it
+     enddo
+     do iorb=ne+1,norb
+        occup(iorb)=0._gp
+     end do
+  else
+     if (norbuempty+norbdempty == 0) then
+        if (norb > nelec) then
+           do iorb=1,min(norbu,norb/2+1)
+              it=min(1,nelec-nt)
+              occup(iorb)=real(it,gp)
+              nt=nt+it
+           enddo
+           do iorb=min(norbu,norb/2+1)+1,norbu
+              occup(iorb)=0.0_gp
+           end do
+           do iorb=norbu+1,norbu+min(norb-norbu,norb/2+1)
+              it=min(1,nelec-nt)
+              occup(iorb)=real(it,gp)
+              nt=nt+it
+           enddo
+           do iorb=norbu+min(norb-norbu,norb/2+1)+1,norb
+              occup(iorb)=0.0_gp
+           end do
+        else
+           do iorb=1,norb
+              occup(iorb)=1.0_gp
+           end do
+        end if
+     else
+        do iorb=1,norbu-norbuempty
+           occup(iorb)=1.0_gp
+        end do
+        do iorb=norbu-norbuempty+1,norbu
+           occup(iorb)=0.0_gp
+        end do
+        do iorb=1,norb-norbu-norbdempty
+           occup(norbu+iorb)=1.0_gp
+        end do
+        do iorb=norb-norbu-norbdempty+1,norb-norbu
+           occup(norbu+iorb)=0.0_gp
+        end do
+     end if
+  end if
+  ! Then read the file "input.occ" if does exist
+  if (iunit /= 0) then
+     nt=0
+     do
+        read(unit=iunit,fmt='(a100)',iostat=ierror) line
+        if (ierror /= 0) then
+           exit
+        end if
+        !Transform the line in case there are slashes (to ease the parsing)
+        do i=1,len(line)
+           if (line(i:i) == '/') then
+              line(i:i) = ':'
+           end if
+        end do
+        read(line,*,iostat=ierror) iorb,string
+        call read_fraction_string(string,rocc,ierror) 
+        if (ierror /= 0) then
+           exit
+        end if
 
-  ! Read k-points input variables (if given)
-  call kpt_input_variables_new(iproc,dump,trim(in%file_kpt),in,atoms%sym,atoms%geocode, &
-       & (/ atoms%alat1, atoms%alat2, atoms%alat3 /))
+        if (ierror/=0) then
+           exit
+        else
+           nt=nt+1
+           if (iorb<0 .or. iorb>norb) then
+              !if (iproc==0) then
+              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "[name].occ"'
+              write(*,'(10x,a,i0,a)') 'The orbital index ',iorb,' is incorrect'
+              !end if
+              stop
+           elseif (rocc<0._gp .or. rocc>2._gp) then
+              !if (iproc==0) then
+              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "[name].occ"'
+              write(*,'(10x,a,f5.2,a)') 'The occupation number ',rocc,' is not between 0. and 2.'
+              !end if
+              stop
+           else
+              occup(iorb)=rocc
+           end if
+        end if
+     end do
+     if (verb) then
+        call yaml_comment('('//adjustl(trim(yaml_toa(nt)))//'lines read)')
+        !write(*,'(1x,a,i0,a)') &
+        !     'The occupation numbers are read from the file "[name].occ" (',nt,' lines read)'
+     end if
+     close(unit=iunit)
 
-  ! Linear scaling (if given)
-  call lin_input_variables_new(iproc,dump .and. (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
-       & in%inputPsiId == INPUT_PSI_DISK_LINEAR), trim(in%file_lin),in,atoms)
-end subroutine inputs_parse_add
+     if (nspin/=1) then
+!!!        !Check if the polarisation is respected (mpol)
+!!!        rup=sum(occup(1:norbu))
+!!!        rdown=sum(occup(norbu+1:norb))
+!!!        if (abs(rup-rdown-real(norbu-norbd,gp))>1.e-6_gp) then
+!!!           if (iproc==0) then
+!!!              write(*,'(1x,a,f13.6,a,i0)') 'From the file "input.occ", the polarization ',rup-rdown,&
+!!!                             ' is not equal to ',norbu-norbd
+!!!           end if
+!!!           stop
+!!!        end if
+        !Fill spinsgn
+        do iorb=1,norbu
+           spinsgn(iorb)=1.0_gp
+        end do
+        do iorb=norbu+1,norb
+           spinsgn(iorb)=-1.0_gp
+        end do
+     end if
+  end if
+  if (verb) then 
+     call yaml_sequence(advance='no')
+     call yaml_open_map('Occupation Numbers',flow=.true.)
+     !write(*,'(1x,a,t28,i8)') 'Total Number of Orbitals',norb
+     iorb1=1
+     rocc=occup(1)
+     do iorb=1,norb
+        if (occup(iorb) /= rocc) then
+           if (iorb1 == iorb-1) then
+              call yaml_map('Orbital No.'//trim(yaml_toa(iorb1)),rocc,fmt='(f6.4)')
+              !write(*,'(1x,a,i0,a,f6.4)') 'occup(',iorb1,')= ',rocc
+           else
+           call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1))//'-'//&
+                adjustl(trim(yaml_toa(iorb-1))),rocc,fmt='(f6.4)')
+           !write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',iorb-1,')= ',rocc
+           end if
+           rocc=occup(iorb)
+           iorb1=iorb
+        end if
+     enddo
+     if (iorb1 == norb) then
+        call yaml_map('Orbital No.'//trim(yaml_toa(norb)),occup(norb),fmt='(f6.4)')
+        !write(*,'(1x,a,i0,a,f6.4)') 'occup(',norb,')= ',occup(norb)
+     else
+        call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1))//'-'//&
+             adjustl(trim(yaml_toa(norb))),occup(norb),fmt='(f6.4)')
+        !write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',norb,')= ',occup(norb)
+     end if
+     call yaml_close_map()
+  endif
+
+  !Check if sum(occup)=nelec
+  rocc=sum(occup)
+  if (abs(rocc-real(nelec,gp))>1.e-6_gp) then
+     call yaml_warning('ERROR in determining the occupation numbers: the total number of electrons ' &
+        & // trim(yaml_toa(rocc,fmt='(f13.6)')) // ' is not equal to' // trim(yaml_toa(nelec)))
+     !if (iproc==0) then
+     !write(*,'(1x,a,f13.6,a,i0)') 'ERROR in determining the occupation numbers: the total number of electrons ',rocc,&
+     !     ' is not equal to ',nelec
+     !end if
+     stop
+  end if
+
+END SUBROUTINE occupation_input_variables
+
+
+

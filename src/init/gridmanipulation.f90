@@ -1,7 +1,7 @@
 !> @file
 !!  Routines to manipulate the grid
 !! @author
-!!    Copyright (C) 2010-2011 BigDFT group
+!!    Copyright (C) 2010-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -11,29 +11,29 @@
 !> Calculates the overall size of the simulation cell 
 !! and shifts the atoms such that their position is the most symmetric possible.
 !! Assign these values to the global localisation region descriptor.
-subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
+subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,OCLconv,Glr,shift)
    use module_base
    use module_types
-   use yaml_output
    implicit none
    type(atoms_data), intent(inout) :: atoms
-   integer, intent(in) :: iproc
    real(gp), intent(in) :: crmult,frmult
-   real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
-   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+   real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
+   real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
    real(gp), intent(inout) :: hx,hy,hz
+   logical, intent(in) :: OCLconv
    type(locreg_descriptors), intent(out) :: Glr
    real(gp), dimension(3), intent(out) :: shift
    !Local variables
+   !character(len=*), parameter :: subname='system_size'
    integer, parameter :: lupfil=14
    real(gp), parameter ::eps_mach=1.e-12_gp
    integer :: iat,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
    real(gp) :: rad,cxmin,cxmax,cymin,cymax,czmin,czmax,alatrue1,alatrue2,alatrue3
-   character(len=*), parameter :: subname='system_size'
 
    !check the geometry code with the grid spacings
-   if (atoms%geocode == 'F' .and. (hx/=hy .or. hx/=hz .or. hy/=hz)) then
-      write(*,'(1x,a)')'ERROR: The values of the grid spacings must be equal in the Free BC case'
+   if (atoms%astruct%geocode == 'F' .and. (hx/=hy .or. hx/=hz .or. hy/=hz)) then
+      write(*,'(1x,a,3(1x,F6.4))') 'ERROR: The values of the grid spacings must be equal' // &
+           & ' in the Free BC case, while hgrids = ', hx, hy, hz
       stop
    end if
 
@@ -47,9 +47,9 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
    czmax=-1.e10_gp 
    czmin=1.e10_gp
 
-   do iat=1,atoms%nat
+   do iat=1,atoms%astruct%nat
 
-      rad=radii_cf(atoms%iatype(iat),1)*crmult
+      rad=radii_cf(atoms%astruct%iatype(iat),1)*crmult
 
       cxmax=max(cxmax,rxyz(1,iat)+rad) 
       cxmin=min(cxmin,rxyz(1,iat)-rad)
@@ -71,17 +71,17 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
    !!  czmin=czmin-eps_mach
 
    !define the box sizes for free BC, and calculate dimensions for the fine grid with ISF
-   if (atoms%geocode == 'F') then
-      atoms%alat1=(cxmax-cxmin)
-      atoms%alat2=(cymax-cymin)
-      atoms%alat3=(czmax-czmin)
+   if (atoms%astruct%geocode == 'F') then
+      atoms%astruct%cell_dim(1)=(cxmax-cxmin)
+      atoms%astruct%cell_dim(2)=(cymax-cymin)
+      atoms%astruct%cell_dim(3)=(czmax-czmin)
 
       ! grid sizes n1,n2,n3
-      n1=int(atoms%alat1/hx)
+      n1=int(atoms%astruct%cell_dim(1)/hx)
       !if (mod(n1,2)==1) n1=n1+1
-      n2=int(atoms%alat2/hy)
+      n2=int(atoms%astruct%cell_dim(2)/hy)
       !if (mod(n2,2)==1) n2=n2+1
-      n3=int(atoms%alat3/hz)
+      n3=int(atoms%astruct%cell_dim(3)/hz)
       !if (mod(n3,2)==1) n3=n3+1
       alatrue1=real(n1,gp)*hx
       alatrue2=real(n2,gp)*hy
@@ -91,11 +91,11 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
       n2i=2*n2+31
       n3i=2*n3+31
 
-   else if (atoms%geocode == 'P') then 
+   else if (atoms%astruct%geocode == 'P') then 
       !define the grid spacings, controlling the FFT compatibility
-      call correct_grid(atoms%alat1,hx,n1)
-      call correct_grid(atoms%alat2,hy,n2)
-      call correct_grid(atoms%alat3,hz,n3)
+      call correct_grid(atoms%astruct%cell_dim(1),hx,n1)
+      call correct_grid(atoms%astruct%cell_dim(2),hy,n2)
+      call correct_grid(atoms%astruct%cell_dim(3),hz,n3)
       alatrue1=(cxmax-cxmin)
       alatrue2=(cymax-cymin)
       alatrue3=(czmax-czmin)
@@ -104,13 +104,13 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
       n2i=2*n2+2
       n3i=2*n3+2
 
-   else if (atoms%geocode == 'S') then
-      call correct_grid(atoms%alat1,hx,n1)
-      atoms%alat2=(cymax-cymin)
-      call correct_grid(atoms%alat3,hz,n3)
+   else if (atoms%astruct%geocode == 'S') then
+      call correct_grid(atoms%astruct%cell_dim(1),hx,n1)
+      atoms%astruct%cell_dim(2)=(cymax-cymin)
+      call correct_grid(atoms%astruct%cell_dim(3),hz,n3)
 
       alatrue1=(cxmax-cxmin)
-      n2=int(atoms%alat2/hy)
+      n2=int(atoms%astruct%cell_dim(2)/hy)
       alatrue2=real(n2,gp)*hy
       alatrue3=(czmax-czmin)
 
@@ -121,20 +121,20 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
    end if
 
    !balanced shift taking into account the missing space
-   cxmin=cxmin+0.5_gp*(atoms%alat1-alatrue1)
-   cymin=cymin+0.5_gp*(atoms%alat2-alatrue2)
-   czmin=czmin+0.5_gp*(atoms%alat3-alatrue3)
+   cxmin=cxmin+0.5_gp*(atoms%astruct%cell_dim(1)-alatrue1)
+   cymin=cymin+0.5_gp*(atoms%astruct%cell_dim(2)-alatrue2)
+   czmin=czmin+0.5_gp*(atoms%astruct%cell_dim(3)-alatrue3)
 
    !correct the box sizes for the isolated case
-   if (atoms%geocode == 'F') then
-      atoms%alat1=alatrue1
-      atoms%alat2=alatrue2
-      atoms%alat3=alatrue3
-   else if (atoms%geocode == 'S') then
+   if (atoms%astruct%geocode == 'F') then
+      atoms%astruct%cell_dim(1)=alatrue1
+      atoms%astruct%cell_dim(2)=alatrue2
+      atoms%astruct%cell_dim(3)=alatrue3
+   else if (atoms%astruct%geocode == 'S') then
       cxmin=0.0_gp
-      atoms%alat2=alatrue2
+      atoms%astruct%cell_dim(2)=alatrue2
       czmin=0.0_gp
-   else if (atoms%geocode == 'P') then
+   else if (atoms%astruct%geocode == 'P') then
       !for the moment we do not put the shift, at the end it will be tested
       !here we should put the center of mass
       cxmin=0.0_gp
@@ -148,14 +148,14 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
    shift(3)=czmin
 
    !here we can put a modulo operation for periodic directions
-   do iat=1,atoms%nat
+   do iat=1,atoms%astruct%nat
       rxyz(1,iat)=rxyz(1,iat)-shift(1)
       rxyz(2,iat)=rxyz(2,iat)-shift(2)
       rxyz(3,iat)=rxyz(3,iat)-shift(3)
    enddo
 
    ! fine grid size (needed for creation of input wavefunction, preconditioning)
-   if (atoms%nat == 0) then
+   if (atoms%astruct%nat == 0) then
       !For homogeneous gaz, we fill the box with the fine grid
       nfl1=0 
       nfl2=0 
@@ -175,8 +175,8 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
       nfu3=0
    end if
 
-   do iat=1,atoms%nat
-      rad=radii_cf(atoms%iatype(iat),2)*frmult
+   do iat=1,atoms%astruct%nat
+      rad=radii_cf(atoms%astruct%iatype(iat),2)*frmult
       if (rad > 0.0_gp) then
          nfl1=min(nfl1,ceiling((rxyz(1,iat)-rad)/hx - eps_mach))
          nfu1=max(nfu1,floor((rxyz(1,iat)+rad)/hx + eps_mach))
@@ -217,49 +217,8 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
       nfu3=n3/2
    end if
 
-   if (iproc == 0) then
-      if (atoms%ntypes > 0) then
-         call yaml_comment('Atom Positions',hfill='-')
-         call yaml_open_sequence('Atomic positions within the cell (Atomic and Grid Units)')
-         do iat=1,atoms%nat
-            call yaml_sequence(advance='no')
-            call yaml_open_map(trim(atoms%atomnames(atoms%iatype(iat))),flow=.true.)
-              call yaml_map('AU',rxyz(1:3,iat),fmt='(1pg12.5)')
-              call yaml_map('GU',(/rxyz(1,iat)/hx,rxyz(2,iat)/hy,rxyz(3,iat)/hz/),fmt='(1pg12.5)')
-            call yaml_close_map(advance='no')
-            call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
-         enddo
-         call yaml_close_sequence()
-         call yaml_map('Rigid Shift Applied (AU)',(/-cxmin,-cymin,-czmin/),fmt='(1pg12.5)')
-      end if
-      call yaml_comment('Grid properties',hfill='-')
-      call yaml_map('Box Grid spacings',(/hx,hy,hz/),fmt='(f7.4)')
-      call yaml_open_map('Sizes of the simulation domain')
-        call yaml_map('AU',(/atoms%alat1,atoms%alat2,atoms%alat3/),fmt='(1pg12.5)')
-        call yaml_map('Angstroem',(/atoms%alat1*Bohr_Ang,atoms%alat2*Bohr_Ang,atoms%alat3*Bohr_Ang/),fmt='(1pg12.5)')
-        call yaml_map('Grid Spacing Units',(/n1,n2,n3/),fmt='(i4)')
-        call yaml_open_map('High resolution region boundaries (GU)',flow=.false.)
-          call yaml_map('From',(/nfl1,nfl2,nfl3/),fmt='(i4)')
-          call yaml_map('To',(/nfu1,nfu2,nfu3/),fmt='(i4)')
-        call yaml_close_map()
-      call yaml_close_map()
-!!$      write(*,'(1x,a,19x,a)') 'Shifted atomic positions, Atomic Units:','grid spacing units:'
-!!$      do iat=1,atoms%nat
-!!$         write(*,'(1x,i5,1x,a6,3(1x,1pe12.5),3x,3(1x,0pf9.3))') &
-!!$            &   iat,trim(atoms%atomnames(atoms%iatype(iat))),&
-!!$            &   (rxyz(j,iat),j=1,3),rxyz(1,iat)/hx,rxyz(2,iat)/hy,rxyz(3,iat)/hz
-!!$      enddo
-!!$      write(*,'(1x,a,3(1x,1pe12.5),a,3(1x,0pf7.4))') &
-!!$         &   '   Shift of=',-cxmin,-cymin,-czmin,' H grids=',hx,hy,hz
-!!$      write(*,'(1x,a,3(1x,1pe12.5),3x,3(1x,i9))')&
-!!$         &   '  Box Sizes=',atoms%alat1,atoms%alat2,atoms%alat3,n1,n2,n3
-!!$      write(*,'(1x,a,3x,3(3x,i4,a1,i0))')&
-!!$         &   '      Extremes for the high resolution grid points:',&
-!!$         &   nfl1,'<',nfu1,nfl2,'<',nfu2,nfl3,'<',nfu3
-   endif
-
    !assign the values
-   Glr%geocode=atoms%geocode
+   Glr%geocode=atoms%astruct%geocode
    Glr%d%n1  =n1  
    Glr%d%n2  =n2  
    Glr%d%n3  =n3  
@@ -287,19 +246,12 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
    Glr%hybrid_on=(Glr%hybrid_on.and.(nfu3-nfl3+lupfil < n3+1))
 
   !allocate projflg
-!   allocate(Glr%projflg(atoms%nat),stat=i_stat)
+!   allocate(Glr%projflg(atoms%astruct%nat),stat=i_stat)
 !   call memocc(i_stat,Glr%projflg,'Glr%projflg',subname)
 !   Glr%projflg = 1 
    
    !OCL convolutions not compatible with hybrid boundary conditions
    if (OCLConv) Glr%hybrid_on = .false.
-
-!!$   if (Glr%hybrid_on) then
-!!$      if (iproc == 0) write(*,*)'wavelet localization is ON'
-!!$   else
-!!$      if (iproc == 0) write(*,*)'wavelet localization is OFF'
-!!$   endif
-   if (iproc==0) call yaml_map('High Res. box is treated separately',Glr%hybrid_on)
 END SUBROUTINE system_size
 
 
@@ -307,7 +259,7 @@ END SUBROUTINE system_size
 !!   allow the fft for the preconditioner and for Poisson Solver
 subroutine correct_grid(a,h,n)
    use module_base
-   use Poisson_Solver
+   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    implicit none
    real(gp), intent(in) :: a
    integer, intent(inout) :: n
@@ -449,6 +401,74 @@ subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
    !mseg=nend
 END SUBROUTINE segkeys
 
+subroutine export_grids(fname, atoms, rxyz, hx, hy, hz, n1, n2, n3, logrid_c, logrid_f)
+  use module_types
+  implicit none
+  character(len = *), intent(in) :: fname
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz
+  real(gp), intent(in) :: hx, hy, hz
+  integer, intent(in) :: n1, n2, n3
+  logical, dimension(0:n1,0:n2,0:n3), intent(in) :: logrid_c
+  logical, dimension(0:n1,0:n2,0:n3), intent(in), optional :: logrid_f
+
+  integer :: nvctr, iat, i3, i2, i1
+
+  nvctr = 0
+  do i3=0,n3  
+     do i2=0,n2  
+        do i1=0,n1
+           if (logrid_c(i1,i2,i3)) nvctr = nvctr + 1
+        enddo
+     enddo
+  end do
+  if (present(logrid_f)) then
+     do i3=0,n3  
+        do i2=0,n2  
+           do i1=0,n1
+              if (logrid_f(i1,i2,i3)) nvctr = nvctr + 1
+           enddo
+        enddo
+     end do
+  end if
+
+  ! Create the file grid.xyz to visualize the grid of functions
+  open(unit=22,file=fname,status='unknown')
+  write(22,*) nvctr+atoms%astruct%nat,' atomic'
+  if (atoms%astruct%geocode=='F') then
+     write(22,*)'complete simulation grid with low and high resolution points'
+  else if (atoms%astruct%geocode =='S') then
+     write(22,'(a,2x,3(1x,1pe24.17))')'surface',atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),atoms%astruct%cell_dim(3)
+  else if (atoms%astruct%geocode =='P') then
+     write(22,'(a,2x,3(1x,1pe24.17))')'periodic',atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),&
+          atoms%astruct%cell_dim(3)
+  end if
+  do iat=1,atoms%astruct%nat
+     write(22,'(a6,2x,3(1x,e12.5),3x)') &
+          &   trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),rxyz(1,iat),rxyz(2,iat),rxyz(3,iat)
+  enddo
+  do i3=0,n3  
+     do i2=0,n2  
+        do i1=0,n1
+           if (logrid_c(i1,i2,i3))&
+                &   write(22,'(a4,2x,3(1x,e10.3))') &
+                &   '  g ',real(i1,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
+        enddo
+     enddo
+  end do
+  if (present(logrid_f)) then
+     do i3=0,n3 
+        do i2=0,n2 
+           do i1=0,n1
+              if (logrid_f(i1,i2,i3))&
+                   &   write(22,'(a4,2x,3(1x,e10.3))') &
+                   &   '  G ',real(i1,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
+           enddo
+        enddo
+     enddo
+  end if
+  close(22)
+END SUBROUTINE export_grids
 
 !> Set up an array logrid(i1,i2,i3) that specifies whether the grid point
 !! i1,i2,i3 is the center of a scaling function/wavelet
@@ -457,7 +477,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
    use module_base
    implicit none
    !Arguments
-   character, intent(in) :: geocode(1)
+   character(len=*), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
    integer, intent(in) :: n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,ntypes
    real(gp), intent(in) :: rmult,hx,hy,hz
    integer, dimension(nat), intent(in) :: iatype
@@ -470,7 +490,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
    real(gp) :: dx,dy2,dz2,rad
 
    !some checks
-   if (geocode(1) /= 'F') then
+   if (geocode(1:1) /= 'F') then
       !the nbuf value makes sense only in the case of free BC
       if (nbuf /=0) then
          write(*,'(1x,a)')'ERROR: a nonzero value of nbuf is allowed only for Free BC (tails)'
@@ -483,7 +503,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
       end if
    end if
 
-   if (geocode(1) == 'F') then
+   if (geocode(1:1) == 'F') then
       do i3=nl3,nu3 
          do i2=nl2,nu2 
             do i1=nl1,nu1
@@ -523,7 +543,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
          mu3=floor((rxyz(3,iat)+rad)/hz + eps_mach)
 
          !for Free BC, there must be no incoherences with the previously calculated delimiters
-         if (geocode(1) == 'F') then
+         if (geocode(1:1) == 'F') then
            if (ml1 < nl1) then
                write(*,'(a,i0,3x,i0)')  'ERROR: ml1 < nl1  ', ml1, nl1
                stop

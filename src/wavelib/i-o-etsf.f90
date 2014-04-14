@@ -417,8 +417,8 @@ subroutine read_waves_from_list_etsf(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_ol
    real(gp), intent(in) :: hx,hy,hz
    type(wavefunctions_descriptors), intent(in) :: wfd
    type(atoms_data), intent(in) :: at
-   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-   real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+   real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
    real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor,norb), intent(out) :: psi
    real(wp), dimension(norb), intent(out) :: eval
    integer, dimension(norb*nspinor), intent(in) :: iorbparr
@@ -444,7 +444,7 @@ subroutine read_waves_from_list_etsf(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_ol
 
    ! We read the basis set description and the atomic definition.
    call etsf_read_descr(ncid, orbsd, n1_old, n2_old, n3_old, hx_old, hy_old, hz_old, &
-      &   lstat, error, nvctr_old, nvctr_c_old, nvctr_f_old, rxyz_old, at%nat)
+      &   lstat, error, nvctr_old, nvctr_c_old, nvctr_f_old, rxyz_old, at%astruct%nat)
    if (.not. lstat) call etsf_error(error)
    orbsd%isorb = isorb
 
@@ -496,7 +496,7 @@ subroutine read_waves_from_list_etsf(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_ol
 
       allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2+ndebug),stat=i_stat)
       call memocc(i_stat,psigold,'psigold',subname)
-      call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
+      call to_zero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
 
       do iorb = 1, norb, 1
          do ispinor = 1, nspinor, 1
@@ -544,24 +544,24 @@ subroutine read_waves_from_list_etsf(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_ol
 
    subroutine calc_displ(at, rxyz, rxyz_old, displ, perx, pery, perz)
       type(atoms_data), intent(in) :: at
-      real(gp), intent(in) :: rxyz_old(3,at%nat), rxyz(3, at%nat)
+      real(gp), intent(in) :: rxyz_old(3,at%astruct%nat), rxyz(3, at%astruct%nat)
       logical, intent(out) :: perx, pery, perz
       real(gp), intent(out) :: displ
 
       integer :: iat
       real(gp) :: tx,ty,tz,mindist
 
-      perx=(at%geocode /= 'F')
-      pery=(at%geocode == 'P')
-      perz=(at%geocode /= 'F')
+      perx=(at%astruct%geocode /= 'F')
+      pery=(at%astruct%geocode == 'P')
+      perz=(at%astruct%geocode /= 'F')
 
       tx=0.0_gp 
       ty=0.0_gp
       tz=0.0_gp
-      do iat=1,at%nat
-         tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
-         ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
-         tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
+      do iat=1,at%astruct%nat
+         tx=tx+mindist(perx,at%astruct%cell_dim(1),rxyz(1,iat),rxyz_old(1,iat))**2
+         ty=ty+mindist(pery,at%astruct%cell_dim(2),rxyz(2,iat),rxyz_old(2,iat))**2
+         tz=tz+mindist(perz,at%astruct%cell_dim(3),rxyz(3,iat),rxyz_old(3,iat))**2
       enddo
       displ=sqrt(tx+ty+tz)
    END SUBROUTINE calc_displ
@@ -751,7 +751,7 @@ subroutine readwavetoisf_etsf(lstat, filename, iorbp, hx, hy, hz, &
       if (associated(lr%bounds%kb%ibyz_f)) then
          call deallocate_bounds(lr%geocode, lr%hybrid_on, lr%bounds, subname)
       end if
-      call deallocate_wfd(lr%wfd, subname)
+      call deallocate_wfd(lr%wfd)
    END SUBROUTINE deallocate_local
 END SUBROUTINE readwavetoisf_etsf
 
@@ -773,8 +773,8 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
    type(wavefunctions_descriptors), intent(in) :: wfd
    type(orbitals_data), intent(inout) :: orbs
    type(atoms_data), intent(in) :: at
-   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-   real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+   real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
    real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(out) :: psi
    character(len = *), intent(in) :: filename
    ! Local variables
@@ -795,9 +795,9 @@ subroutine read_one_wave_etsf(iproc,filename,iorbp,isorb,nspinor,n1,n2,n3,&
    type(wavefunctions_descriptors), intent(in) :: wfd
    type(atoms_data), intent(in) :: at
    real(gp), intent(in) :: hx,hy,hz
-   real(gp), dimension(3,at%nat), intent(in) :: rxyz
+   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(wp), intent(out) :: eval
-   real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+   real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
    real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor), intent(out) :: psi
    character(len = *), intent(in) :: filename
 
@@ -892,7 +892,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
    type(atoms_data), intent(in) :: at
    type(orbitals_data), intent(in) :: orbs
    type(wavefunctions_descriptors), intent(in) :: wfd
-   real(gp), dimension(3,at%nat), intent(in) :: rxyz
+   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(in) :: psi
    character(len = *), intent(in) :: filename
 
@@ -990,13 +990,15 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
 
    contains
 
-   subroutine etsf_write_global(ncid,orbs, n1,n2,n3,hx,hy,hz,rxyz,at,wfd,gcoord,nvctr)
+     subroutine etsf_write_global(ncid,orbs, n1,n2,n3,hx,hy,hz,rxyz,at,wfd,gcoord,nvctr)
+       use ao_inguess, only: atomic_info
+       implicit none
       integer, intent(in) :: ncid, n1, n2, n3
       real(gp), intent(in) :: hx, hy, hz
       type(atoms_data), intent(in) :: at
       type(orbitals_data), intent(in) :: orbs
       type(wavefunctions_descriptors), intent(in) :: wfd
-      real(gp), intent(in) :: rxyz(3,at%nat)
+      real(gp), intent(in) :: rxyz(3,at%astruct%nat)
       integer, target, intent(in) :: nvctr(wfd%nvctr_c)
       integer, target, intent(in) :: gcoord(3,wfd%nvctr_c)
 
@@ -1046,13 +1048,13 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
       dims%max_number_of_basis_grid_points = wfd%nvctr_c
       dims%number_of_localization_regions = 1
 
-      dims%number_of_atoms               = at%nat
-      dims%number_of_atom_species        = at%ntypes
-      !!$    if (at%geocode == 'P') then
+      dims%number_of_atoms               = at%astruct%nat
+      dims%number_of_atom_species        = at%astruct%ntypes
+      !!$    if (at%astruct%geocode == 'P') then
       dims%number_of_grid_points_vector1 = n1 + 1
       dims%number_of_grid_points_vector2 = n2 + 1
       dims%number_of_grid_points_vector3 = n3 + 1
-      !!$    else if (at%geocode == 'S') then
+      !!$    else if (at%astruct%geocode == 'S') then
       !!$       dims%number_of_grid_points_vector1 = n1 + 1
       !!$       dims%number_of_grid_points_vector2 = n2
       !!$       dims%number_of_grid_points_vector3 = n3 + 1
@@ -1092,26 +1094,27 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
       rprimd = reshape((/ (hx * dims%number_of_grid_points_vector1),0.0_gp,0.0_gp, &
          &   0.0_gp,(hy * dims%number_of_grid_points_vector2),0.0_gp, &
          & 0.0_gp,0.0_gp,(hz * dims%number_of_grid_points_vector3) /), (/ 3, 3 /))
-      allocate(xred(3, at%nat),stat=i_stat)
+      allocate(xred(3, at%astruct%nat),stat=i_stat)
       call memocc(i_stat,xred,'xred',subname)
-      do iat = 1, at%nat, 1
+      do iat = 1, at%astruct%nat, 1
          xred(:, iat) = rxyz(:, iat) / &
             &   (/ hx * dims%number_of_grid_points_vector1, &
             &    hy * dims%number_of_grid_points_vector2, &
             &   hz * dims%number_of_grid_points_vector3 /)
       end do
-      allocate(znucl(at%ntypes),stat=i_stat)
+      allocate(znucl(at%astruct%ntypes),stat=i_stat)
       call memocc(i_stat,znucl,'znucl',subname)
       znucl = real(at%nzatom)
-      allocate(spnames(at%ntypes),stat=i_stat)
+      allocate(spnames(at%astruct%ntypes),stat=i_stat)
       call memocc(i_stat,spnames,'spnames',subname)
-      do iat = 1, at%ntypes, 1
-         call nzsymbol(at%nzatom(iat), spnames(iat))
+      do iat = 1, at%astruct%ntypes, 1
+         !call nzsymbol(at%nzatom(iat), spnames(iat))
+         call atomic_info(at%nzatom(iat),at%nelpsp(iat),symbol=spnames(iat))
       end do
       symId = reshape((/1,0,0,0,1,0,0,0,1/), (/3,3,1/))
       transId = reshape((/0.d0,0.d0,0.d0/), (/3,1/))
       geo%chemical_symbols              => spnames
-      geo%atom_species                  => at%iatype
+      geo%atom_species                  => at%astruct%iatype
       geo%atomic_numbers                => znucl
       geo%reduced_atom_positions        => xred
       geo%primitive_vectors             => rprimd

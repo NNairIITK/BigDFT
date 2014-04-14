@@ -1,18 +1,18 @@
 !> @file
+!! Part of ART (minimization at constant volume)
+!! Modified by Laurent in 2011 for working with QM/MM and FIRE
 !! @author
 !!    Copyright (C) 2001 Normand Mousseau
-!!    Copyright (C) 2010-2011 BigDFT group
+!!    Copyright (C) 2010-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! Modified by Laurent in 2011 for working with QM/MM and FIRE
 
 
-!> ART min_converge
-!!   Minimizes the energy at constant volume.
-!!   This minimization is done with only a minimal knowledge of the 
-!!   physics of the problem so that it is portable
+!> Minimizes the energy at constant volume.
+!! This minimization is done with only a minimal knowledge of the 
+!! physics of the problem so that it is portable
 subroutine min_converge ( success )
 
    use defs
@@ -60,7 +60,7 @@ subroutine min_converge ( success )
       !now passivate the quantum box, this will take a few steps. should make
       !a separate sub-routine
 
-      !we should also make sure that the set we send to bigDFT forces did not
+      !we should also make sure that the set we send to BigDFT forces did not
       !change in size since the last time
 
 
@@ -195,7 +195,7 @@ subroutine check_min( stage )
 END SUBROUTINE check_min
 
 
-!>  This module defines a number of parameters used during the minimization
+!>  Module defining a number of parameters used during the minimization
 MODULE minimization_sd
    implicit none
    save

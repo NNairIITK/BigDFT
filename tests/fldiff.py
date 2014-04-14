@@ -8,7 +8,7 @@
 # 4 - compare each floating point expressions
 
 # Use diff because difflib has some troubles (TD)
-# Date: 17/11/2011
+# Date: 11/09/2013
 #----------------------------------------------------------------------------
 
 #import difflib
@@ -34,12 +34,15 @@ re_float = re.compile("([- ]?[0-9]+[.][0-9]*([DEde][-+]?[0-9]+)?)")
 
 #Maximum discrepancy between float results (default)
 max_discrepancy = 1.1e-10
+#Use for non-significant discrepancy (float <= min_digits digits)
+min_digits = 5
 
 def usage():
-    print "fldiff.py [--mode=m] [--discrepancy=d] [--help] file1 file2"
-    print "  --mode=[bigdft,neb,psolver] to compare 'bigdft', 'NEB' or 'PS_Check' output files"
-    print "  --discrepancy=%7.1e Maximal discrepancy between results" % max_discrepancy
-    print "  --help   display this message"
+    print "fldiff.py [--mode=m] [--discrepancy=d] [--mindigits=e] [--help] file1 file2"
+    print "  --mode=[bigdft,neb,psolver,pseudo] to compare 'bigdft', 'NEB', 'PS_Check' or pseudo output files"
+    print "  --discrepancy=%7.1e                maximal discrepancy between results" % max_discrepancy
+    print "  --mindigits=%d                        minimal number of digits for relevant float comparison" % min_digits
+    print "  --help                               display this message"
     sys.exit(1)
 
 def n_digits(figure):
@@ -54,7 +57,7 @@ def n_digits(figure):
 
 #Check arguments
 try:
-    optlist, args = getopt.getopt(sys.argv[1:],"md:h",["mode=","discrepancy=","help"])
+    optlist, args = getopt.getopt(sys.argv[1:],"mde:h",["mode=","discrepancy=","mindigits=","help"])
 except getopt.error:
     sys.stderr.write("Error in arguments\n")
     usage()
@@ -62,13 +65,17 @@ except getopt.error:
 bigdft  = False
 neb     = False
 psolver = False
+pseudo  = False
 for opt,arg in optlist:
     if opt == "-m" or opt == "--mode":
         bigdft  = (arg == "bigdft")
         neb     = (arg == "neb")
         psolver = (arg == "psolver")
+        pseudo  = (arg == "pseudo")
     elif opt == "-d" or opt == "--discrepancy":
         max_discrepancy=float(arg)
+    elif opt == "-e" or opt == "--mindigits":
+        min_digits=int(arg)
     elif opt == "-h" or opt == "--help":
         usage()
 if len(args) != 2:
@@ -131,10 +138,15 @@ if bigdft:
             or "Communication overlap ratio" in line \
             or "Timestamp" in line \
             or "Logfile already existing" in line \
-	    or "Gathering the potential" in line \
+	        or "Gathering the potential" in line \
             or "<BigDFT>" in line \
+            or "logfiles" in line \
             or "alpha" in line \
-            or "wavefunctions need NO reformatting" in line 
+            or "wavefunctions need NO reformatting" in line \
+            or "WARNING:" in line \
+            or "/logfiles/" in line \
+            or "--" in line \
+            or "Version Number" in line
 #	    or "GEOPT" in line
 elif neb:
     # Test if the line should not be compared (NEB output)
@@ -144,7 +156,8 @@ elif neb:
             or "datadir" in line \
             or "workdir" in line \
             or "Reading atomic input" in line \
-            or "Start job" in line
+            or "Start job" in line \
+            or "--with" in line
 elif psolver:
     #Remove some lines (PS_Check)
     def line_junk(line):
@@ -159,6 +172,14 @@ elif psolver:
             or "Max diff at" in line \
             or "result" in line \
             or "for the array" in line
+elif pseudo:
+    #Remove lines containing the word time
+    def line_junk(line):
+        "True if the line must not be compared"
+        return "time" in line \
+            or "date" in line \
+            or "changes" in line \
+            or "nodes" in line
 else:
     def line_junk(line):
         "Always False except for Hostname"
@@ -182,8 +203,6 @@ except IOError:
     sys.exit(1)
 
 maximum = 0.0
-#Use for non-significant discrepancy (float <= min_digits digits)
-min_digits = 5
 ns_discrepancy = False #Non significant discrepancy.
 context_discrepancy = ""
 context_lines = ""
@@ -248,8 +267,10 @@ if bigdft or psolver:
     time = None
 #Open 2 temporary files
 t1 = tempfile.NamedTemporaryFile()
+nl_t1 = 0
 for line in original1:
     if not line_junk(line):
+        nl_t1 += 1
         t1.write(line)
     else:
         #Only for BigDFT and PSolver
@@ -264,10 +285,13 @@ for line in original1:
             if "Remaining Memory" in line:
                 memory = int(line.split()[-1])
 t1.flush()
+
 t2 = tempfile.NamedTemporaryFile()
+nl_t2 = 0
 for line in original2:
     if not line_junk(line):
         t2.write(line)
+        nl_t2 += 1
 t2.flush()
 
 #Generate comparison using the unix diff command
@@ -276,14 +300,14 @@ compare = iter(commands.getoutput("diff -b -d %s %s" %(t1.name,t2.name)).splitli
 t1.close()
 t2.close()
 
+print max_discrepancy
 try:
     line = compare.next()
     EOF = False
     #Display the maximum discrepancy
-    print max_discrepancy
 except StopIteration:
     #Nothing to compare
-    print 'Nothing to compare'
+    print '%sNothing to compare (all lines are identical)%s' % (start_success,end),
     EOF = True
 
 context_lines = None
@@ -430,6 +454,9 @@ else:
 if (bigdft or psolver) and time != None:
     print "%sMax discrepancy %s: %s (%s%s) -- time %7.2f%s " % \
         (start,context_discrepancy,maximum,message,max_discrepancy,time,end)
+elif nl_t1 == 0 and nl_t2 == 0:
+    #No lines in the output as waited
+    print "%sNo output as reference%s" % (start,end)
 else:
     print "%sMax discrepancy %s: %s (%s%s)%s" % \
         (start,context_discrepancy,maximum,message,max_discrepancy,end)

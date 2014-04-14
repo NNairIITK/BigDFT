@@ -10,16 +10,16 @@
 
 !> Calculates the potential and energy and writes them. This is subroutine is copied
 !! from cluster.
-subroutine updatePotential(ixc,nspin,denspot,ehart,eexcu,vexcu)
+subroutine updatePotential(nspin,denspot,ehart,eexcu,vexcu)
 
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => updatePotential
-use Poisson_Solver
+  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
 implicit none
 
 ! Calling arguments
-integer, intent(in) :: ixc,nspin
+integer, intent(in) :: nspin
 type(DFT_local_fields), intent(inout) :: denspot
 real(kind=8),intent(out) :: ehart, eexcu, vexcu
 
@@ -35,7 +35,7 @@ if(nspin==4) then
    !this wrapper can be inserted inside the poisson solver 
    call PSolverNC(denspot%pkernel%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
         denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
-        denspot%dpbox%n3d,ixc,&
+        denspot%dpbox%n3d,denspot%xc,&
         denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
         denspot%rhov,denspot%pkernel%kernel,denspot%V_ext,ehart,eexcu,vexcu,0.d0,.true.,4)
 
@@ -54,17 +54,17 @@ else
 
    call XC_potential(denspot%pkernel%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
         denspot%pkernel%mpi_env%mpi_comm,&
-        denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),ixc,&
+        denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),denspot%xc,&
         denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
         denspot%rhov,eexcu,vexcu,nspin,denspot%rho_C,denspot%V_XC,xcstr)
-   
+    
    call H_potential('D',denspot%pkernel,denspot%rhov,denspot%V_ext,ehart,0.0_dp,.true.,&
         quiet=denspot%PSquiet) !optional argument
    
    !sum the two potentials in rhopot array
    !fill the other part, for spin, polarised
    if (nspin == 2) then
-      call dcopy(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,denspot%rhov(1),1,&
+      call vcopy(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,denspot%rhov(1),1,&
            denspot%rhov(1+denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p),1)
    end if
    !spin up and down together with the XC part

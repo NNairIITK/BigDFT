@@ -1,12 +1,16 @@
+/*! @file
+
+@brief Old README for the atom program
+
+@details
+
 Building atom.x (e.g. with the G95 compiler):
-
+<pre>
 g95 hcth.f90 xc_b97.f90 atom.f -o atom.x
+</pre>
 
-***********************************************************
-*                                                         *
-*             Using the program atom                      *
-*                                                         *
-***********************************************************
+
+@section Using         Using the program atom
 
 The program performs an all electron calculation for an spin
 unpolarised atom. The program calculates eigenvalues and charge
@@ -15,7 +19,7 @@ have well defined unoccupied wavefunctions the atom is put into an
 additional parabolic confining potential. The program reads its input
 from a file named 'atom.dat'. The file 'atom.dat' must have the
 following structure:
-
+<pre>
  Ne                             element symbol (1.st line)
  PADE                           XC functional
  r                              r=relativistic/n=nonrelativistic calc. 
@@ -25,6 +29,7 @@ following structure:
  2    0     2.00      0.00      n,l,occup(up)  1.st orbital
  2    1     6.00      0.00	n,l,occup(up)  2.nd orbital
  3    0     0.00      0.00      n,l,occup(up)  3.st orbital
+</pre>
 
 If strings are read from 'atom.dat' they must stand in column 1 to 10;
 for numbers free format is used.
@@ -64,11 +69,12 @@ valence orbital is needed.
 To calculate different configurations of the same atom each additional
 configuration  has to be included in the file 'atom.dat'. Example for
 a Ne(1+)-Ion:
-
+<pre>
  NEXT CONFIGURATION
  2    0     2.00      0.00      n,l,occup(up)  1.st orbital
  2    1     5.00      0.00	n,l,occup(up)  2.nd orbital
  3    0     0.00      0.00      n,l,occup(up)  3.st orbital
+</pre>
 
 Each configuration for an atom has the same list of orbitals only
 differing in the occupation numbers. Between different configurations
@@ -109,8 +115,7 @@ atom. All files named 'ae.*' are only thought for plotting and can be
 deleted.
 
 
-Informations/hints
-------------------
+@section Informations    Informations/hints
 
 Always plot all calculated wavefunctions! If rmax for the integration
 grid is too small bumpy wavefunctions may occur. In this case simply
@@ -147,6 +152,4 @@ If one is interested in calculating dcharge and ddcharge by
 integrating only up to rcov modify the source code: search for the
 strings 'ddd' and 'dddd'.
 
-
-
-
+*/

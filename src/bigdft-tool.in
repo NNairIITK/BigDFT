@@ -1,13 +1,26 @@
 #!/usr/bin/env python
 
+##@file
+## This script is used to wrap the @ref memguess executable  but also to perform
+## some useful manipulations of atomic position files.
+##@author
+## Copyright (C) 2012-2013 BigDFT group
+## This file is distributed under the terms of the
+## GNU General Public License, see ~/COPYING file
+## or http://www.gnu.org/copyleft/gpl.txt .
+## For the list of contributors, see ~/AUTHORS
+
+
 import sys
 import os.path
 import os
 from optparse import OptionParser, OptionGroup
 
 actions = ["memory-estimation", "rotate", "convert-field",
-           "export-wf", "export-grid", "atomic-wf", "GPU-test","convert-positions"]
+           "export-wf", "export-grid", "atomic-wf", "GPU-test","convert-positions","manual"]
 
+srcdir = "@srcdir@"
+inputvarfile= srcdir+'/input_variables_definition.yaml'
 abs_top_builddir = "@abs_top_builddir@"
 bindir = "@prefix@"
 
@@ -19,6 +32,7 @@ def toHelp(list):
   return ret
 
 def parse():
+  "Parse the command line"
   parser = OptionParser("usage: bigdft-tool -a ACTION")
   parser.add_option("-a", "--action", default=actions[0],
                     help="perform one of the action: %s " % toHelp(actions) +
@@ -94,8 +108,35 @@ def parse():
                     " the allowed formats are xyz, ascii and yaml")
   parser.add_option_group(group)
 
+  # Manual
+  group = OptionGroup(parser, "bigdft-tool -a %s [options]" % actions[8],
+                      "Input file manual: helps in identifying the input variables which are interesting")
+  group.add_option("--profile", type="str", default="single-point", metavar="NAME", \
+                     help="Write a input file corresponding to profile named NAME")
+  parser.add_option_group(group)
+
 
   return parser
+
+def closest_keys(allkeys,searchfor):
+  from difflib import SequenceMatcher
+  matching_keys=[]
+  # weight the keys which matches the most
+  for k in allkeys:
+    s=SequenceMatcher(lambda x: x == " ",searchfor,k)
+    matching_keys.append([k,s.ratio()])
+    matching_keys.sort(key=lambda x: x[1])
+    matching_keys.reverse()
+  return matching_keys
+
+#find the fields which have this key
+def find_files(parameters,key):
+  files=[]
+  for f in parameters:
+    if key in parameters[f].keys():
+      files.append(f)
+  return files
+    
 
 if __name__ == "__main__":
   parser = parse()
@@ -112,6 +153,7 @@ if __name__ == "__main__":
   elif os.path.isfile(os.path.join(bindir, "bin", "memguess")):
     memguess = os.path.join(bindir, "bin", "memguess")
 
+  command=None 
   # Run memguess
   if options.action == actions[0]:
     command = "%s %d %s dd" % (memguess, options.n_proc, options.name)
@@ -136,10 +178,47 @@ if __name__ == "__main__":
   if options.action == actions[7]:
     if len(args) < 2:
       parser.print_help()
-      raise ValueError("Action '%s' requires two mandatory arguments" % actions[2])
+      raise ValueError("Action '%s' requires two mandatory arguments" % actions[7])
     command = "%s 1 dd convert-positions %s %s" % (memguess, args[0], args[1])
+# input manual
+  if options.action == actions[8]:
+    #to parse and document the input variables
+    import yaml
+    try:
+      fulldoc = [a for a in yaml.load_all(open(inputvarfile, "r").read(), Loader = yaml.CLoader)]
+    except Exception,e:
+      print str(e)
+      print 'Error in opening input variable definition file, cannot proceed'
+      sys.exit(1)
+    params=fulldoc[0]
+    files=params.keys()
+    print 'Possible fields',files
+    allkeys=[]
+    for f in files:
+      allkeys += params[f].keys()
+    print ' Possible keys',allkeys
+    # try to see if a key matches a expression
+    searchfor='idsx'
+    matching_keys=closest_keys(allkeys,searchfor)
+    print 'matching',searchfor,'in:',matching_keys
+    print 'keys wich matches the most with',searchfor
+    foundkeys=[]
+    doc=[]
+    for (i,ratio) in matching_keys:
+      if ratio > 0.5 and i not in foundkeys:
+        for f in find_files(params,i):
+          dc={}
+          dc['Key found']=i
+          dc['Similarity']=ratio
+          dc['Field']=f
+          dc['Description']=params[f][i]
+          doc.append(dc)
+        foundkeys.append(i)
+    sys.stdout.write(yaml.dump(doc,default_flow_style=False,explicit_start=True))
 
+    #sys.stdout.write(yaml.dump(params,default_flow_style=False,explicit_start=True))
 
   #print command
   #print 
-  os.system(command)
+  if command is not None:
+    os.system(command)

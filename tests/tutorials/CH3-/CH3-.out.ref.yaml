@@ -26,17 +26,33 @@
        ggggg       i         BBBB
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7-dev.23
- Timestamp of this run                 : 2013-02-16 19:30:47.675
+ Version Number                        : 1.7-dev.26
+ Timestamp of this run                 : 2013-04-15 16:32:51.575
  Root process Hostname                 : athelas
  Number of MPI tasks                   :  2
  OpenMP parallelization                :  Yes
  Maximal OpenMP threads per MPI task   :  2
+  #------------------------------------------------------------------ Code compiling options
+ Compilation options:
+   Configure arguments:
+     " 'FC=mpif90' 'FCFLAGS=-O2 -fopenmp' '--enable-dgemmsy' '--with-etsf-io' 
+      '--with-etsf-io-path=/opt' '--enable-minima-hopping' 
+      '--with-ext-linalg=-Wl,--start-group  /opt/intel/mkl/lib/intel64/libmkl_intel_lp64.a 
+      /opt/intel/mkl/lib/intel64/libmkl_sequential.a 
+      /opt/intel/mkl/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread 
+      -lscalapack-openmpi -lblacs-openmpi -lblacsCinit-openmpi -lblacsF77init-openmpi'"
+   Compilers (CC, FC, CXX)             :  [ gcc, mpif90, g++ ]
+   Compiler flags:
+     CFLAGS                            : -g -O2
+     FCFLAGS                           : -O2 -fopenmp
+     CXXFLAGS                          : -g -O2
+     CPPFLAGS                          : 
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
  #|accel NO                     Acceleration (NO, CUDAGPU, OCLGPU, OCLCPU, OCLACC)           
  #|OCL_platform                 Chosen OCL platform                                          
+ #|OCL_devices                  Chosen OCL devices                                           
  #|blas F                       CUBLAS acceleration                                          
  #|projrad  1.50E+01            Radius of the projector as a function of the maxrad          
  #|exctxpar OP2P                Exact exchange parallelisation scheme                        
@@ -57,6 +73,13 @@
  #|verbosity 0                  verbosity of the output 0=low, 2=high                        
  #|outdir ./                    Writing directory                                            
  #|psp_onfly T                  Calculate pseudopotential projectors on the fly              
+ #|pdsyev_blocksize -8          SCALAPACK linear scaling blocksize                           
+ #|pdgemm_blocksize -8          SCALAPACK linear scaling blocksize                           
+ #|maxproc_pdsyev 4             SCALAPACK linear scaling max num procs                       
+ #|maxproc_pdgemm 4             SCALAPACK linear scaling max num procs                       
+ #|ef_interpol_det  1.00E-20    FOE: max determinant of cubic interpolation matrix           
+ #|ef_interpol_chargediff  1.00EFOE: max charge difference for interpolation                 
+ #|mixing_after_inputguess T    mixing step after linear input guess (T/F)                   
  #... (file:input.dft)............................................DFT Calculation Parameters
  #|0.450 0.450 0.450  hx,hy,hz: grid spacing in the three directions                         
  #|5.0  9.0       c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius       
@@ -236,7 +259,7 @@
      MPI tasks  0- 0                   :  4
      MPI tasks  1- 1                   :  3
    Deviation from normalization        :  3.69E-06
-   EKS                                 : -6.70929059287888219E+00
+   EKS                                 : -6.70929059287892482E+00
    Accuracy estimation for this run:
      Energy                            :  2.90E-04
      Convergence Criterion             :  7.26E-05
@@ -245,22 +268,22 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.08129433261532260E+00, gnrm:  2.59E-01, D: -3.72E-01}
-       -  {iter:  2, EKS: -7.32934116439842764E+00, gnrm:  1.15E-01, D: -2.48E-01}
-       -  {iter:  3, EKS: -7.35612423641457891E+00, gnrm:  4.06E-02, D: -2.68E-02}
-       -  {iter:  4, EKS: -7.36368343124217173E+00, gnrm:  1.89E-02, D: -7.56E-03}
-       -  {iter:  5, EKS: -7.36479738542268780E+00, gnrm:  7.57E-03, D: -1.11E-03}
-       -  {iter:  6, EKS: -7.36519195947153005E+00, gnrm:  4.11E-03, D: -3.95E-04}
-       -  {iter:  7, EKS: -7.36530905498378896E+00, gnrm:  3.00E-03, D: -1.17E-04}
-       -  {iter:  8, EKS: -7.36535649829856798E+00, gnrm:  1.91E-03, D: -4.74E-05}
-       -  {iter:  9, EKS: -7.36537555623487261E+00, gnrm:  9.38E-04, D: -1.91E-05}
-       -  {iter:  10, EKS: -7.36538157513282155E+00, gnrm:  7.84E-04, D: -6.02E-06}
-       -  {iter:  11, EKS: -7.36538287126742741E+00, gnrm:  3.58E-04, D: -1.30E-06}
-       -  {iter:  12, EKS: -7.36538313943379830E+00, gnrm:  1.48E-04, D: -2.68E-07}
-       -  {iter:  13, EKS: -7.36538319968115029E+00, gnrm:  5.88E-05, D: -6.02E-08}
+       -  {iter:  1, EKS: -7.08129433261532082E+00, gnrm:  2.59E-01, D: -3.72E-01}
+       -  {iter:  2, EKS: -7.32934116439840633E+00, gnrm:  1.15E-01, D: -2.48E-01}
+       -  {iter:  3, EKS: -7.35612423641456825E+00, gnrm:  4.06E-02, D: -2.68E-02}
+       -  {iter:  4, EKS: -7.36368343124214508E+00, gnrm:  1.89E-02, D: -7.56E-03}
+       -  {iter:  5, EKS: -7.36479738542270024E+00, gnrm:  7.57E-03, D: -1.11E-03}
+       -  {iter:  6, EKS: -7.36519195947150163E+00, gnrm:  4.11E-03, D: -3.95E-04}
+       -  {iter:  7, EKS: -7.36530905498378186E+00, gnrm:  3.00E-03, D: -1.17E-04}
+       -  {iter:  8, EKS: -7.36535649829856620E+00, gnrm:  1.91E-03, D: -4.74E-05}
+       -  {iter:  9, EKS: -7.36537555623487084E+00, gnrm:  9.38E-04, D: -1.91E-05}
+       -  {iter:  10, EKS: -7.36538157513281444E+00, gnrm:  7.84E-04, D: -6.02E-06}
+       -  {iter:  11, EKS: -7.36538287126744162E+00, gnrm:  3.58E-04, D: -1.30E-06}
+       -  {iter:  12, EKS: -7.36538313943379652E+00, gnrm:  1.48E-04, D: -2.68E-07}
+       -  {iter:  13, EKS: -7.36538319968117872E+00, gnrm:  5.88E-05, D: -6.02E-08}
        -  &FINAL001  {iter:  14, EKS: -7.36538320959210235E+00, gnrm:  5.88E-05, 
                          D: -9.91E-09}
-       Non-Hermiticity of Hamiltonian in the Subspace:  2.07E-32
+       Non-Hermiticity of Hamiltonian in the Subspace:  1.16E-32
  Last Iteration                        : *FINAL001
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -269,18 +292,18 @@
    MPI tasks                           :  2
  Average noise forces: {x: -2.46983734E-04, y:  3.26246470E-04, z:  3.26246470E-04, 
                     total:  5.23330185E-04}
- Clean forces norm (Ha/Bohr): {maxval:  1.066874232985E-02, fnrm2:  2.945790922429E-04}
- Raw forces norm (Ha/Bohr): {maxval:  1.092864082062E-02, fnrm2:  2.948544820834E-04}
+ Clean forces norm (Ha/Bohr): {maxval:  1.066874232985E-02, fnrm2:  2.945790922430E-04}
+ Raw forces norm (Ha/Bohr): {maxval:  1.092864082062E-02, fnrm2:  2.948544820835E-04}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [ -6.122325332442E-03,  6.178154879329E-03,  6.178154879207E-03 ]} # 0001
- -  {H:  [ -3.586850523002E-03, -4.882502701156E-03, -4.882502701113E-03 ]} # 0002
- -  {H:  [  4.854587927713E-03,  3.577132637113E-03, -4.872784815225E-03 ]} # 0003
- -  {H:  [  4.854587927731E-03, -4.872784815286E-03,  3.577132637132E-03 ]} # 0004
+ -  {C: [-6.122325332442E-03,  6.178154879330E-03,  6.178154879212E-03]} # 0001
+ -  {H: [-3.586850523001E-03, -4.882502701157E-03, -4.882502701115E-03]} # 0002
+ -  {H: [ 4.854587927713E-03,  3.577132637114E-03, -4.872784815228E-03]} # 0003
+ -  {H: [ 4.854587927730E-03, -4.872784815287E-03,  3.577132637131E-03]} # 0004
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  31.29
-   Elapsed time (s)                    :  16.36
+   CPU time (s)                        :  26.26
+   Elapsed time (s)                    :  13.95
  Wavefunction Optimization Finished, exit signal:  0
 ---
   #----------------------------------------------------------- Geometry minimization using SDCG
@@ -411,9 +434,9 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36538320959199933E+00, gnrm:  1.87E-05}
-       -  &FINAL001  {iter:  2, EKS: -7.36538321021058184E+00, gnrm:  1.87E-05, D: -6.19E-10}
-       Non-Hermiticity of Hamiltonian in the Subspace:  7.67E-31
+       -  {iter:  1, EKS: -7.36538320959200643E+00, gnrm:  1.87E-05}
+       -  &FINAL001  {iter:  2, EKS: -7.36538321021058717E+00, gnrm:  1.87E-05, D: -6.19E-10}
+       Non-Hermiticity of Hamiltonian in the Subspace:  7.40E-31
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -422,24 +445,24 @@
    MPI tasks                           :  2
  Average noise forces: {x: -2.48837334E-04, y:  3.28517706E-04, z:  3.28517706E-04, 
                     total:  5.27036797E-04}
- Clean forces norm (Ha/Bohr): {maxval:  1.067377668657E-02, fnrm2:  2.947262248106E-04}
- Raw forces norm (Ha/Bohr): {maxval:  1.093552376181E-02, fnrm2:  2.950055358080E-04}
+ Clean forces norm (Ha/Bohr): {maxval:  1.067377668657E-02, fnrm2:  2.947262248110E-04}
+ Raw forces norm (Ha/Bohr): {maxval:  1.093552376182E-02, fnrm2:  2.950055358083E-04}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [ -6.125134763618E-03,  6.181109644836E-03,  6.181109644774E-03 ]} # 0001
- -  {H:  [ -3.585765213380E-03, -4.883437429101E-03, -4.883437429085E-03 ]} # 0002
- -  {H:  [  4.855449988492E-03,  3.576336648418E-03, -4.874008864122E-03 ]} # 0003
- -  {H:  [  4.855449988506E-03, -4.874008864153E-03,  3.576336648433E-03 ]} # 0004
+ -  {C: [-6.125134763617E-03,  6.181109644837E-03,  6.181109644788E-03]} # 0001
+ -  {H: [-3.585765213380E-03, -4.883437429102E-03, -4.883437429091E-03]} # 0002
+ -  {H: [ 4.855449988492E-03,  3.576336648418E-03, -4.874008864128E-03]} # 0003
+ -  {H: [ 4.855449988505E-03, -4.874008864153E-03,  3.576336648431E-03]} # 0004
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  6.06
-   Elapsed time (s)                    :  3.15
+   CPU time (s)                        :  4.79
+   Elapsed time (s)                    :  2.62
  FORCES norm(Ha/Bohr): { maxval:  1.06738E-02, fnrm2:  2.94726E-04, fluct:  5.27037E-04}
  Geometry:
    Ncount_BigDFT                       :  1
    Iteration                           :  1
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -7.36538321021058E+00, -7.36538321021058E+00 ]
+   etot                                :  [ -7.36538321021059E+00, -7.36538321021059E+00 ]
    Forces                              :  [  1.07E-02,  1.72E-02,  5.27E-04,  5.27E-04 ]
    b/b0                                :  1.00E+0
    nsat                                :  0
@@ -555,7 +578,7 @@
    Total number of projectors          :  1
    Total number of components          :  10993
    Percent of zero components          :  0
- Ion-Ion interaction energy            :  6.55504387247106E+00
+ Ion-Ion interaction energy            :  6.55504387247100E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -6.999997781421
  Poisson Solver:
@@ -572,19 +595,19 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.34627091389926434E+00, gnrm:  1.35E-01}
-       -  {iter:  2, EKS: -7.36397502927287206E+00, gnrm:  3.97E-02, D: -1.77E-02}
-       -  {iter:  3, EKS: -7.36537144227419027E+00, gnrm:  1.91E-02, D: -1.40E-03}
-       -  {iter:  4, EKS: -7.36572184214062275E+00, gnrm:  6.38E-03, D: -3.50E-04}
-       -  {iter:  5, EKS: -7.36579578182498018E+00, gnrm:  1.97E-03, D: -7.39E-05}
-       -  {iter:  6, EKS: -7.36580566633409717E+00, gnrm:  8.54E-04, D: -9.88E-06}
+       -  {iter:  1, EKS: -7.34627091389923947E+00, gnrm:  1.35E-01}
+       -  {iter:  2, EKS: -7.36397502927286141E+00, gnrm:  3.97E-02, D: -1.77E-02}
+       -  {iter:  3, EKS: -7.36537144227418139E+00, gnrm:  1.91E-02, D: -1.40E-03}
+       -  {iter:  4, EKS: -7.36572184214062808E+00, gnrm:  6.38E-03, D: -3.50E-04}
+       -  {iter:  5, EKS: -7.36579578182498729E+00, gnrm:  1.97E-03, D: -7.39E-05}
+       -  {iter:  6, EKS: -7.36580566633409539E+00, gnrm:  8.54E-04, D: -9.88E-06}
        -  {iter:  7, EKS: -7.36580879315847348E+00, gnrm:  4.17E-04, D: -3.13E-06}
-       -  {iter:  8, EKS: -7.36580988042457818E+00, gnrm:  3.36E-04, D: -1.09E-06}
-       -  {iter:  9, EKS: -7.36581013603403534E+00, gnrm:  1.46E-04, D: -2.56E-07}
-       -  {iter:  10, EKS: -7.36581022094124194E+00, gnrm:  1.10E-04, D: -8.49E-08}
-       -  {iter:  11, EKS: -7.36581024133512230E+00, gnrm:  6.13E-05, D: -2.04E-08}
-       -  &FINAL001  {iter:  12, EKS: -7.36581024624237912E+00, gnrm:  6.13E-05, D: -4.91E-09}
-       Non-Hermiticity of Hamiltonian in the Subspace:  3.29E-32
+       -  {iter:  8, EKS: -7.36580988042457285E+00, gnrm:  3.36E-04, D: -1.09E-06}
+       -  {iter:  9, EKS: -7.36581013603404955E+00, gnrm:  1.46E-04, D: -2.56E-07}
+       -  {iter:  10, EKS: -7.36581022094124371E+00, gnrm:  1.10E-04, D: -8.49E-08}
+       -  {iter:  11, EKS: -7.36581024133512052E+00, gnrm:  6.13E-05, D: -2.04E-08}
+       -  &FINAL001  {iter:  12, EKS: -7.36581024624238090E+00, gnrm:  6.13E-05, D: -4.91E-09}
+       Non-Hermiticity of Hamiltonian in the Subspace:  2.02E-31
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -593,24 +616,24 @@
    MPI tasks                           :  2
  Average noise forces: {x: -6.74881388E-05, y:  1.42065152E-04, z:  1.42065152E-04, 
                     total:  2.11942595E-04}
- Clean forces norm (Ha/Bohr): {maxval:  5.018768825045E-03, fnrm2:  7.625389022016E-05}
- Raw forces norm (Ha/Bohr): {maxval:  5.061287947741E-03, fnrm2:  7.630014404930E-05}
+ Clean forces norm (Ha/Bohr): {maxval:  5.018768825063E-03, fnrm2:  7.625389022039E-05}
+ Raw forces norm (Ha/Bohr): {maxval:  5.061287947759E-03, fnrm2:  7.630014404952E-05}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [  8.059979644560E-04, -8.886587611985E-04, -8.886587610381E-04 ]} # 0001
- -  {H:  [  3.779418294393E-03,  2.334955874885E-03,  2.334955874869E-03 ]} # 0002
- -  {H:  [ -2.292708129392E-03, -3.732799355532E-03,  2.286502241763E-03 ]} # 0003
- -  {H:  [ -2.292708129458E-03,  2.286502241845E-03, -3.732799355594E-03 ]} # 0004
+ -  {C: [ 8.059979644479E-04, -8.886587612013E-04, -8.886587610666E-04]} # 0001
+ -  {H: [ 3.779418294402E-03,  2.334955874897E-03,  2.334955874883E-03]} # 0002
+ -  {H: [-2.292708129398E-03, -3.732799355536E-03,  2.286502241771E-03]} # 0003
+ -  {H: [-2.292708129452E-03,  2.286502241840E-03, -3.732799355587E-03]} # 0004
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  26.10
-   Elapsed time (s)                    :  13.59
+   CPU time (s)                        :  19.59
+   Elapsed time (s)                    :  10.22
  FORCES norm(Ha/Bohr): { maxval:  5.01877E-03, fnrm2:  7.62539E-05, fluct:  4.64018E-04}
  Geometry:
    Ncount_BigDFT                       :  2
    Iteration                           :  2
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -7.36581024624238E+00, -4.27036031797279E-04 ]
+   etot                                :  [ -7.36581024624238E+00, -4.27036031793726E-04 ]
    Forces                              :  [  5.02E-03,  8.73E-03,  4.64E-04,  4.64E-04 ]
    b/b0                                :  1.00E+0
    nsat                                :  0
@@ -726,7 +749,7 @@
    Total number of projectors          :  1
    Total number of components          :  10989
    Percent of zero components          :  0
- Ion-Ion interaction energy            :  6.62173271315201E+00
+ Ion-Ion interaction energy            :  6.62173271315208E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -6.999998593282
  Poisson Solver:
@@ -743,17 +766,17 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36462604391957765E+00, gnrm:  3.53E-02}
-       -  {iter:  2, EKS: -7.36581730161410508E+00, gnrm:  8.67E-03, D: -1.19E-03}
-       -  {iter:  3, EKS: -7.36589599520766480E+00, gnrm:  3.56E-03, D: -7.87E-05}
-       -  {iter:  4, EKS: -7.36591009318630707E+00, gnrm:  9.72E-04, D: -1.41E-05}
-       -  {iter:  5, EKS: -7.36591310681015354E+00, gnrm:  5.13E-04, D: -3.01E-06}
-       -  {iter:  6, EKS: -7.36591430736751196E+00, gnrm:  2.69E-04, D: -1.20E-06}
-       -  {iter:  7, EKS: -7.36591457025660201E+00, gnrm:  1.34E-04, D: -2.63E-07}
-       -  {iter:  8, EKS: -7.36591465779631083E+00, gnrm:  1.03E-04, D: -8.75E-08}
+       -  {iter:  1, EKS: -7.36462604391955100E+00, gnrm:  3.53E-02}
+       -  {iter:  2, EKS: -7.36581730161411041E+00, gnrm:  8.67E-03, D: -1.19E-03}
+       -  {iter:  3, EKS: -7.36589599520768079E+00, gnrm:  3.56E-03, D: -7.87E-05}
+       -  {iter:  4, EKS: -7.36591009318626799E+00, gnrm:  9.72E-04, D: -1.41E-05}
+       -  {iter:  5, EKS: -7.36591310681014821E+00, gnrm:  5.13E-04, D: -3.01E-06}
+       -  {iter:  6, EKS: -7.36591430736752617E+00, gnrm:  2.69E-04, D: -1.20E-06}
+       -  {iter:  7, EKS: -7.36591457025658247E+00, gnrm:  1.34E-04, D: -2.63E-07}
+       -  {iter:  8, EKS: -7.36591465779628951E+00, gnrm:  1.03E-04, D: -8.75E-08}
        -  {iter:  9, EKS: -7.36591467921796106E+00, gnrm:  4.99E-05, D: -2.14E-08}
-       -  &FINAL001  {iter:  10, EKS: -7.36591468482026901E+00, gnrm:  4.99E-05, D: -5.60E-09}
-       Non-Hermiticity of Hamiltonian in the Subspace:  4.70E-32
+       -  &FINAL001  {iter:  10, EKS: -7.36591468482029743E+00, gnrm:  4.99E-05, D: -5.60E-09}
+       Non-Hermiticity of Hamiltonian in the Subspace:  1.37E-31
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -762,24 +785,24 @@
    MPI tasks                           :  2
  Average noise forces: {x: -1.28325840E-04, y:  2.07981562E-04, z:  2.07981562E-04, 
                     total:  3.20905253E-04}
- Clean forces norm (Ha/Bohr): {maxval:  3.533565243014E-03, fnrm2:  1.888623868745E-05}
- Raw forces norm (Ha/Bohr): {maxval:  3.692294284412E-03, fnrm2:  1.899083344778E-05}
+ Clean forces norm (Ha/Bohr): {maxval:  3.533565243030E-03, fnrm2:  1.888623868766E-05}
+ Raw forces norm (Ha/Bohr): {maxval:  3.692294284431E-03, fnrm2:  1.899083344798E-05}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [ -1.931484296915E-03,  2.092301572292E-03,  2.092301571951E-03 ]} # 0001
- -  {H:  [ -6.733332414936E-05, -1.081719948113E-03, -1.081719948087E-03 ]} # 0002
- -  {H:  [  9.994088104579E-04,  3.746105071325E-06, -1.014327729075E-03 ]} # 0003
- -  {H:  [  9.994088106069E-04, -1.014327729250E-03,  3.746105211896E-06 ]} # 0004
+ -  {C: [-1.931484296886E-03,  2.092301572294E-03,  2.092301572003E-03]} # 0001
+ -  {H: [-6.733332416822E-05, -1.081719948136E-03, -1.081719948112E-03]} # 0002
+ -  {H: [ 9.994088104645E-04,  3.746105079218E-06, -1.014327729088E-03]} # 0003
+ -  {H: [ 9.994088105902E-04, -1.014327729237E-03,  3.746105197768E-06]} # 0004
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  22.44
-   Elapsed time (s)                    :  11.59
+   CPU time (s)                        :  16.66
+   Elapsed time (s)                    :  8.60
  FORCES norm(Ha/Bohr): { maxval:  3.53357E-03, fnrm2:  1.88862E-05, fluct:  4.35395E-04}
  Geometry:
    Ncount_BigDFT                       :  3
    Iteration                           :  3
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -7.36591468482027E+00, -1.04438577889887E-04 ]
+   etot                                :  [ -7.36591468482030E+00, -1.04438577916532E-04 ]
    Forces                              :  [  3.53E-03,  4.35E-03,  4.35E-04,  4.35E-04 ]
    b/b0                                :  1.00E+0
    nsat                                :  0
@@ -895,7 +918,7 @@
    Total number of projectors          :  1
    Total number of components          :  11005
    Percent of zero components          :  0
- Ion-Ion interaction energy            :  6.59304501581113E+00
+ Ion-Ion interaction energy            :  6.59304501581102E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -6.999998437076
  Poisson Solver:
@@ -912,16 +935,16 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36403418825302403E+00, gnrm:  4.36E-02}
-       -  {iter:  2, EKS: -7.36580462608546860E+00, gnrm:  1.30E-02, D: -1.77E-03}
-       -  {iter:  3, EKS: -7.36593944911296639E+00, gnrm:  5.85E-03, D: -1.35E-04}
-       -  {iter:  4, EKS: -7.36597353411016975E+00, gnrm:  1.75E-03, D: -3.41E-05}
-       -  {iter:  5, EKS: -7.36597934583507907E+00, gnrm:  5.82E-04, D: -5.81E-06}
-       -  {iter:  6, EKS: -7.36598016631040942E+00, gnrm:  2.48E-04, D: -8.20E-07}
-       -  {iter:  7, EKS: -7.36598043060396002E+00, gnrm:  1.24E-04, D: -2.64E-07}
-       -  {iter:  8, EKS: -7.36598051731839831E+00, gnrm:  7.97E-05, D: -8.67E-08}
-       -  &FINAL001  {iter:  9, EKS: -7.36598054329610186E+00, gnrm:  7.97E-05, D: -2.60E-08}
-       Non-Hermiticity of Hamiltonian in the Subspace:  1.07E-31
+       -  {iter:  1, EKS: -7.36403418825299827E+00, gnrm:  4.36E-02}
+       -  {iter:  2, EKS: -7.36580462608545528E+00, gnrm:  1.30E-02, D: -1.77E-03}
+       -  {iter:  3, EKS: -7.36593944911296905E+00, gnrm:  5.85E-03, D: -1.35E-04}
+       -  {iter:  4, EKS: -7.36597353411015821E+00, gnrm:  1.75E-03, D: -3.41E-05}
+       -  {iter:  5, EKS: -7.36597934583507818E+00, gnrm:  5.82E-04, D: -5.81E-06}
+       -  {iter:  6, EKS: -7.36598016631041741E+00, gnrm:  2.48E-04, D: -8.20E-07}
+       -  {iter:  7, EKS: -7.36598043060396268E+00, gnrm:  1.24E-04, D: -2.64E-07}
+       -  {iter:  8, EKS: -7.36598051731842407E+00, gnrm:  7.97E-05, D: -8.67E-08}
+       -  &FINAL001  {iter:  9, EKS: -7.36598054329609564E+00, gnrm:  7.97E-05, D: -2.60E-08}
+       Non-Hermiticity of Hamiltonian in the Subspace:  3.10E-32
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -930,24 +953,24 @@
    MPI tasks                           :  2
  Average noise forces: {x: -1.33458931E-04, y:  2.15878637E-04, z:  2.15878637E-04, 
                     total:  3.33194324E-04}
- Clean forces norm (Ha/Bohr): {maxval:  1.610998633887E-03, fnrm2:  7.174439672819E-06}
- Raw forces norm (Ha/Bohr): {maxval:  1.630976124966E-03, fnrm2:  7.287133460269E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  1.610998633948E-03, fnrm2:  7.174439672928E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  1.630976125028E-03, fnrm2:  7.287133460372E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [ -5.951010923775E-04,  3.280538977117E-04,  3.280538983418E-04 ]} # 0001
- -  {H:  [  1.413214073271E-03,  5.468741086961E-04,  5.468741086688E-04 ]} # 0002
- -  {H:  [ -4.090564902978E-04, -1.290339375499E-03,  4.154113687657E-04 ]} # 0003
- -  {H:  [ -4.090564905955E-04,  4.154113690908E-04, -1.290339375776E-03 ]} # 0004
+ -  {C: [-5.951010924433E-04,  3.280538977146E-04,  3.280538982321E-04]} # 0001
+ -  {H: [ 1.413214073305E-03,  5.468741087362E-04,  5.468741087203E-04]} # 0002
+ -  {H: [-4.090564903054E-04, -1.290339375508E-03,  4.154113687902E-04]} # 0003
+ -  {H: [-4.090564905564E-04,  4.154113690571E-04, -1.290339375742E-03]} # 0004
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  20.49
-   Elapsed time (s)                    :  10.49
+   CPU time (s)                        :  15.37
+   Elapsed time (s)                    :  7.94
  FORCES norm(Ha/Bohr): { maxval:  1.61100E-03, fnrm2:  7.17444E-06, fluct:  4.14955E-04}
  Geometry:
    Ncount_BigDFT                       :  4
    Iteration                           :  4
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -7.36598054329610E+00, -6.58584758328473E-05 ]
+   etot                                :  [ -7.36598054329610E+00, -6.58584757982084E-05 ]
    Forces                              :  [  1.61E-03,  2.68E-03,  4.15E-04,  4.15E-04 ]
    b/b0                                :  1.00E+0
    nsat                                :  0
@@ -1063,7 +1086,7 @@
    Total number of projectors          :  1
    Total number of components          :  11047
    Percent of zero components          :  0
- Ion-Ion interaction energy            :  6.60671802390165E+00
+ Ion-Ion interaction energy            :  6.60671802390178E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -6.999998705318
  Poisson Solver:
@@ -1080,14 +1103,14 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36584868219886602E+00, gnrm:  1.45E-02}
+       -  {iter:  1, EKS: -7.36584868219886957E+00, gnrm:  1.45E-02}
        -  {iter:  2, EKS: -7.36599994639753319E+00, gnrm:  3.63E-03, D: -1.51E-04}
-       -  {iter:  3, EKS: -7.36601039161427984E+00, gnrm:  1.56E-03, D: -1.04E-05}
-       -  {iter:  4, EKS: -7.36601294592574085E+00, gnrm:  4.17E-04, D: -2.55E-06}
-       -  {iter:  5, EKS: -7.36601332912234597E+00, gnrm:  1.78E-04, D: -3.83E-07}
+       -  {iter:  3, EKS: -7.36601039161430826E+00, gnrm:  1.56E-03, D: -1.04E-05}
+       -  {iter:  4, EKS: -7.36601294592571065E+00, gnrm:  4.17E-04, D: -2.55E-06}
+       -  {iter:  5, EKS: -7.36601332912232820E+00, gnrm:  1.78E-04, D: -3.83E-07}
        -  {iter:  6, EKS: -7.36601341485697603E+00, gnrm:  7.52E-05, D: -8.57E-08}
-       -  &FINAL001  {iter:  7, EKS: -7.36601343032867462E+00, gnrm:  7.52E-05, D: -1.55E-08}
-       Non-Hermiticity of Hamiltonian in the Subspace:  4.05E-32
+       -  &FINAL001  {iter:  7, EKS: -7.36601343032868883E+00, gnrm:  7.52E-05, D: -1.55E-08}
+       Non-Hermiticity of Hamiltonian in the Subspace:  1.63E-31
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -1096,24 +1119,24 @@
    MPI tasks                           :  2
  Average noise forces: {x: -1.40146657E-04, y:  2.20606260E-04, z:  2.20606260E-04, 
                     total:  3.42016563E-04}
- Clean forces norm (Ha/Bohr): {maxval:  1.562862208721E-03, fnrm2:  3.383480131098E-06}
- Raw forces norm (Ha/Bohr): {maxval:  1.735810826011E-03, fnrm2:  3.501960406517E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  1.562862208761E-03, fnrm2:  3.383480131302E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  1.735810826047E-03, fnrm2:  3.501960406714E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [ -5.643269271709E-04,  1.030551649583E-03,  1.030551648517E-03 ]} # 0001
- -  {H:  [  2.872253210761E-04, -3.797763218020E-04, -3.797763217706E-04 ]} # 0002
- -  {H:  [  1.385508027872E-04, -4.897669332312E-04, -1.610083939978E-04 ]} # 0003
- -  {H:  [  1.385508033076E-04, -1.610083945497E-04, -4.897669327481E-04 ]} # 0004
+ -  {C: [-5.643269270294E-04,  1.030551649561E-03,  1.030551648677E-03]} # 0001
+ -  {H: [ 2.872253210047E-04, -3.797763218737E-04, -3.797763218469E-04]} # 0002
+ -  {H: [ 1.385508027973E-04, -4.897669332115E-04, -1.610083940182E-04]} # 0003
+ -  {H: [ 1.385508032275E-04, -1.610083944753E-04, -4.897669328122E-04]} # 0004
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  16.48
-   Elapsed time (s)                    :  8.56
+   CPU time (s)                        :  12.40
+   Elapsed time (s)                    :  6.33
  FORCES norm(Ha/Bohr): { maxval:  1.56286E-03, fnrm2:  3.38348E-06, fluct:  4.00367E-04}
  Geometry:
    Ncount_BigDFT                       :  5
    Iteration                           :  5
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -7.36601343032867E+00, -3.28870325727593E-05 ]
+   etot                                :  [ -7.36601343032869E+00, -3.28870325931874E-05 ]
    Forces                              :  [  1.56E-03,  1.84E-03,  4.00E-04,  4.00E-04 ]
    b/b0                                :  1.00E+0
    nsat                                :  0
@@ -1229,7 +1252,7 @@
    Total number of projectors          :  1
    Total number of components          :  11048
    Percent of zero components          :  0
- Ion-Ion interaction energy            :  6.60060511786084E+00
+ Ion-Ion interaction energy            :  6.60060511786085E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -6.999998735603
  Poisson Solver:
@@ -1246,15 +1269,15 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36537264778969902E+00, gnrm:  2.58E-02}
-       -  {iter:  2, EKS: -7.36599117384638280E+00, gnrm:  7.53E-03, D: -6.19E-04}
-       -  {iter:  3, EKS: -7.36603623859283108E+00, gnrm:  3.23E-03, D: -4.51E-05}
-       -  {iter:  4, EKS: -7.36604744021538860E+00, gnrm:  8.29E-04, D: -1.12E-05}
-       -  {iter:  5, EKS: -7.36604885755753980E+00, gnrm:  2.93E-04, D: -1.42E-06}
-       -  {iter:  6, EKS: -7.36604903552366697E+00, gnrm:  1.17E-04, D: -1.78E-07}
-       -  {iter:  7, EKS: -7.36604908551239479E+00, gnrm:  5.85E-05, D: -5.00E-08}
-       -  &FINAL001  {iter:  8, EKS: -7.36604909796846297E+00, gnrm:  5.85E-05, D: -1.25E-08}
-       Non-Hermiticity of Hamiltonian in the Subspace:  3.11E-31
+       -  {iter:  1, EKS: -7.36537264778964751E+00, gnrm:  2.58E-02}
+       -  {iter:  2, EKS: -7.36599117384635793E+00, gnrm:  7.53E-03, D: -6.19E-04}
+       -  {iter:  3, EKS: -7.36603623859287016E+00, gnrm:  3.23E-03, D: -4.51E-05}
+       -  {iter:  4, EKS: -7.36604744021537261E+00, gnrm:  8.29E-04, D: -1.12E-05}
+       -  {iter:  5, EKS: -7.36604885755753092E+00, gnrm:  2.93E-04, D: -1.42E-06}
+       -  {iter:  6, EKS: -7.36604903552367407E+00, gnrm:  1.17E-04, D: -1.78E-07}
+       -  {iter:  7, EKS: -7.36604908551241078E+00, gnrm:  5.85E-05, D: -5.00E-08}
+       -  &FINAL001  {iter:  8, EKS: -7.36604909796844343E+00, gnrm:  5.85E-05, D: -1.25E-08}
+       Non-Hermiticity of Hamiltonian in the Subspace:  1.33E-31
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -1263,24 +1286,24 @@
    MPI tasks                           :  2
  Average noise forces: {x: -1.33298022E-04, y:  2.00686013E-04, z:  2.00686013E-04, 
                     total:  3.13557195E-04}
- Clean forces norm (Ha/Bohr): {maxval:  1.012861351225E-03, fnrm2:  2.392594609423E-06}
- Raw forces norm (Ha/Bohr): {maxval:  1.046293641035E-03, fnrm2:  2.492080446131E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  1.012861351410E-03, fnrm2:  2.392594610096E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  1.046293641225E-03, fnrm2:  2.492080446793E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [ -9.243261405074E-04,  1.030641839505E-04,  1.030641858541E-04 ]} # 0001
- -  {H:  [  8.501172116392E-04,  3.893512831373E-04,  3.893512830329E-04 ]} # 0002
- -  {H:  [  3.710446487595E-05, -4.941274537085E-04,  1.711985632258E-06 ]} # 0003
- -  {H:  [  3.710446399221E-05,  1.711986620689E-06, -4.941274545192E-04 ]} # 0004
+ -  {C: [-9.243261407554E-04,  1.030641839851E-04,  1.030641855399E-04]} # 0001
+ -  {H: [ 8.501172117416E-04,  3.893512832516E-04,  3.893512831757E-04]} # 0002
+ -  {H: [ 3.710446487255E-05, -4.941274537211E-04,  1.711985677113E-06]} # 0003
+ -  {H: [ 3.710446414126E-05,  1.711986484430E-06, -4.941274543927E-04]} # 0004
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  17.64
-   Elapsed time (s)                    :  9.29
+   CPU time (s)                        :  13.38
+   Elapsed time (s)                    :  6.78
  FORCES norm(Ha/Bohr): { maxval:  1.01286E-03, fnrm2:  2.39259E-06, fluct:  3.83005E-04}
  Geometry:
    Ncount_BigDFT                       :  6
    Iteration                           :  6
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -7.36604909796846E+00, -3.56676397883504E-05 ]
+   etot                                :  [ -7.36604909796844E+00, -3.56676397545996E-05 ]
    Forces                              :  [  1.01E-03,  1.55E-03,  3.83E-04,  3.83E-04 ]
    b/b0                                :  1.00E+0
    nsat                                :  0
@@ -1396,7 +1419,7 @@
    Total number of projectors          :  1
    Total number of components          :  11049
    Percent of zero components          :  0
- Ion-Ion interaction energy            :  6.60425695279147E+00
+ Ion-Ion interaction energy            :  6.60425695279159E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -6.999998851921
  Poisson Solver:
@@ -1413,14 +1436,14 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36574135631649085E+00, gnrm:  1.76E-02}
-       -  {iter:  2, EKS: -7.36602428970934575E+00, gnrm:  5.08E-03, D: -2.83E-04}
-       -  {iter:  3, EKS: -7.36604513405985628E+00, gnrm:  2.17E-03, D: -2.08E-05}
-       -  {iter:  4, EKS: -7.36605018072845397E+00, gnrm:  5.83E-04, D: -5.05E-06}
-       -  {iter:  5, EKS: -7.36605089344545405E+00, gnrm:  2.24E-04, D: -7.13E-07}
-       -  {iter:  6, EKS: -7.36605101906261162E+00, gnrm:  9.90E-05, D: -1.26E-07}
-       -  &FINAL001  {iter:  7, EKS: -7.36605105079647160E+00, gnrm:  9.90E-05, D: -3.17E-08}
-       Non-Hermiticity of Hamiltonian in the Subspace:  2.38E-31
+       -  {iter:  1, EKS: -7.36574135631638782E+00, gnrm:  1.76E-02}
+       -  {iter:  2, EKS: -7.36602428970931555E+00, gnrm:  5.08E-03, D: -2.83E-04}
+       -  {iter:  3, EKS: -7.36604513405980477E+00, gnrm:  2.17E-03, D: -2.08E-05}
+       -  {iter:  4, EKS: -7.36605018072843265E+00, gnrm:  5.83E-04, D: -5.05E-06}
+       -  {iter:  5, EKS: -7.36605089344545938E+00, gnrm:  2.24E-04, D: -7.13E-07}
+       -  {iter:  6, EKS: -7.36605101906261694E+00, gnrm:  9.90E-05, D: -1.26E-07}
+       -  &FINAL001  {iter:  7, EKS: -7.36605105079645384E+00, gnrm:  9.90E-05, D: -3.17E-08}
+       Non-Hermiticity of Hamiltonian in the Subspace:  1.13E-31
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -1429,24 +1452,24 @@
    MPI tasks                           :  2
  Average noise forces: {x: -1.12329408E-04, y:  2.23342184E-04, z:  2.23342184E-04, 
                     total:  3.35233289E-04}
- Clean forces norm (Ha/Bohr): {maxval:  1.442116176585E-03, fnrm2:  3.401375997457E-06}
- Raw forces norm (Ha/Bohr): {maxval:  1.581347710135E-03, fnrm2:  3.516238076654E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  1.442116177073E-03, fnrm2:  3.401375999802E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  1.581347710606E-03, fnrm2:  3.516238079004E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [  5.324124254361E-04,  9.476908996286E-04,  9.476908962166E-04 ]} # 0001
- -  {H:  [ -1.042429375057E-04, -5.559643583269E-04, -5.559643581626E-04 ]} # 0002
- -  {H:  [ -2.140847447704E-04, -5.303417333742E-04,  1.386151938478E-04 ]} # 0003
- -  {H:  [ -2.140847431599E-04,  1.386151920725E-04, -5.303417319019E-04 ]} # 0004
+ -  {C: [ 5.324124258860E-04,  9.476908995469E-04,  9.476908967880E-04]} # 0001
+ -  {H: [-1.042429377084E-04, -5.559643585465E-04, -5.559643584186E-04]} # 0002
+ -  {H: [-2.140847447424E-04, -5.303417333345E-04,  1.386151937696E-04]} # 0003
+ -  {H: [-2.140847434352E-04,  1.386151923341E-04, -5.303417321390E-04]} # 0004
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  15.83
-   Elapsed time (s)                    :  8.35
+   CPU time (s)                        :  11.81
+   Elapsed time (s)                    :  5.99
  FORCES norm(Ha/Bohr): { maxval:  1.44212E-03, fnrm2:  3.40138E-06, fluct:  3.73451E-04}
  Geometry:
    Ncount_BigDFT                       :  7
    Iteration                           :  7
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -7.36605105079647E+00, -1.95282800863339E-06 ]
+   etot                                :  [ -7.36605105079645E+00, -1.95282801040975E-06 ]
    Forces                              :  [  1.44E-03,  1.84E-03,  3.73E-04,  3.73E-04 ]
    b/b0                                :  1.00E+0
    nsat                                :  0
@@ -1562,7 +1585,7 @@
    Total number of projectors          :  1
    Total number of components          :  11060
    Percent of zero components          :  0
- Ion-Ion interaction energy            :  6.60249783478930E+00
+ Ion-Ion interaction energy            :  6.60249783478920E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -6.999998894138
  Poisson Solver:
@@ -1579,15 +1602,15 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36545911599028535E+00, gnrm:  2.37E-02}
-       -  {iter:  2, EKS: -7.36600675472753075E+00, gnrm:  7.15E-03, D: -5.48E-04}
-       -  {iter:  3, EKS: -7.36604768294461287E+00, gnrm:  2.99E-03, D: -4.09E-05}
-       -  {iter:  4, EKS: -7.36605693228496072E+00, gnrm:  8.42E-04, D: -9.25E-06}
-       -  {iter:  5, EKS: -7.36605844195668347E+00, gnrm:  3.08E-04, D: -1.51E-06}
-       -  {iter:  6, EKS: -7.36605868073089454E+00, gnrm:  1.26E-04, D: -2.39E-07}
-       -  {iter:  7, EKS: -7.36605873568044878E+00, gnrm:  5.38E-05, D: -5.49E-08}
-       -  &FINAL001  {iter:  8, EKS: -7.36605874570429009E+00, gnrm:  5.38E-05, D: -1.00E-08}
-       Non-Hermiticity of Hamiltonian in the Subspace:  1.60E-32
+       -  {iter:  1, EKS: -7.36545911598985370E+00, gnrm:  2.37E-02}
+       -  {iter:  2, EKS: -7.36600675472749522E+00, gnrm:  7.15E-03, D: -5.48E-04}
+       -  {iter:  3, EKS: -7.36604768294460044E+00, gnrm:  2.99E-03, D: -4.09E-05}
+       -  {iter:  4, EKS: -7.36605693228496250E+00, gnrm:  8.42E-04, D: -9.25E-06}
+       -  {iter:  5, EKS: -7.36605844195664616E+00, gnrm:  3.08E-04, D: -1.51E-06}
+       -  {iter:  6, EKS: -7.36605868073088743E+00, gnrm:  1.26E-04, D: -2.39E-07}
+       -  {iter:  7, EKS: -7.36605873568043101E+00, gnrm:  5.38E-05, D: -5.49E-08}
+       -  &FINAL001  {iter:  8, EKS: -7.36605874570430075E+00, gnrm:  5.38E-05, D: -1.00E-08}
+       Non-Hermiticity of Hamiltonian in the Subspace:  1.08E-31
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -1596,24 +1619,24 @@
    MPI tasks                           :  2
  Average noise forces: {x: -1.60035138E-04, y:  2.23516922E-04, z:  2.23516922E-04, 
                     total:  3.54303365E-04}
- Clean forces norm (Ha/Bohr): {maxval:  2.173701402904E-03, fnrm2:  8.151855332704E-06}
- Raw forces norm (Ha/Bohr): {maxval:  2.187736949362E-03, fnrm2:  8.278806021364E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  2.173701403863E-03, fnrm2:  8.151855339764E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  2.187736950305E-03, fnrm2:  8.278806028423E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [ -2.017115259531E-03, -5.728105383184E-04, -5.728105323281E-04 ]} # 0001
- -  {H:  [  1.088666217120E-03,  8.858843408495E-04,  8.858843405961E-04 ]} # 0002
- -  {H:  [  4.642245226398E-04,  3.259087376087E-05, -3.456646794147E-04 ]} # 0003
- -  {H:  [  4.642245197713E-04, -3.456646762919E-04,  3.259087114672E-05 ]} # 0004
+ -  {C: [-2.017115260336E-03, -5.728105381381E-04, -5.728105333142E-04]} # 0001
+ -  {H: [ 1.088666217476E-03,  8.858843412302E-04,  8.858843410258E-04]} # 0002
+ -  {H: [ 4.642245225848E-04,  3.259087367712E-05, -3.456646792839E-04]} # 0003
+ -  {H: [ 4.642245202751E-04, -3.456646767693E-04,  3.259087157228E-05]} # 0004
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  17.59
-   Elapsed time (s)                    :  9.29
+   CPU time (s)                        :  13.26
+   Elapsed time (s)                    :  6.71
  FORCES norm(Ha/Bohr): { maxval:  2.17370E-03, fnrm2:  8.15186E-06, fluct:  3.69621E-04}
  Geometry:
    Ncount_BigDFT                       :  8
    Iteration                           :  8
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -7.36605874570429E+00, -7.69490781848958E-06 ]
+   etot                                :  [ -7.36605874570430E+00, -7.69490784691129E-06 ]
    Forces                              :  [  2.17E-03,  2.86E-03,  3.70E-04,  3.70E-04 ]
    b/b0                                :  1.00E+0
    nsat                                :  0
@@ -1746,15 +1769,15 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36530592562030240E+00, gnrm:  2.66E-02}
-       -  {iter:  2, EKS: -7.36598774573833825E+00, gnrm:  8.08E-03, D: -6.82E-04}
-       -  {iter:  3, EKS: -7.36604008850875136E+00, gnrm:  3.32E-03, D: -5.23E-05}
-       -  {iter:  4, EKS: -7.36605174188952194E+00, gnrm:  9.13E-04, D: -1.17E-05}
-       -  {iter:  5, EKS: -7.36605387762681207E+00, gnrm:  3.79E-04, D: -2.14E-06}
-       -  {iter:  6, EKS: -7.36605425988788998E+00, gnrm:  1.54E-04, D: -3.82E-07}
-       -  {iter:  7, EKS: -7.36605433300807544E+00, gnrm:  5.85E-05, D: -7.31E-08}
-       -  &FINAL001  {iter:  8, EKS: -7.36605434553297389E+00, gnrm:  5.85E-05, D: -1.25E-08}
-       Non-Hermiticity of Hamiltonian in the Subspace:  2.14E-32
+       -  {iter:  1, EKS: -7.36530592561960695E+00, gnrm:  2.66E-02}
+       -  {iter:  2, EKS: -7.36598774573828052E+00, gnrm:  8.08E-03, D: -6.82E-04}
+       -  {iter:  3, EKS: -7.36604008850874159E+00, gnrm:  3.32E-03, D: -5.23E-05}
+       -  {iter:  4, EKS: -7.36605174188949974E+00, gnrm:  9.13E-04, D: -1.17E-05}
+       -  {iter:  5, EKS: -7.36605387762679165E+00, gnrm:  3.79E-04, D: -2.14E-06}
+       -  {iter:  6, EKS: -7.36605425988784468E+00, gnrm:  1.54E-04, D: -3.82E-07}
+       -  {iter:  7, EKS: -7.36605433300805323E+00, gnrm:  5.85E-05, D: -7.31E-08}
+       -  &FINAL001  {iter:  8, EKS: -7.36605434553292682E+00, gnrm:  5.85E-05, D: -1.25E-08}
+       Non-Hermiticity of Hamiltonian in the Subspace:  2.08E-31
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -1762,19 +1785,19 @@
    Box                                 :  [  105,  105,  105 ]
    MPI tasks                           :  2
  Average noise forces: {x: -1.38116434E-04, y:  2.40272301E-04, z:  2.40272301E-04, 
-                    total:  3.66793820E-04}
- Clean forces norm (Ha/Bohr): {maxval:  3.685672576600E-03, fnrm2:  2.296969982447E-05}
- Raw forces norm (Ha/Bohr): {maxval:  3.763362015153E-03, fnrm2:  2.310605167187E-05}
+                    total:  3.66793821E-04}
+ Clean forces norm (Ha/Bohr): {maxval:  3.685672578344E-03, fnrm2:  2.296969984610E-05}
+ Raw forces norm (Ha/Bohr): {maxval:  3.763362016911E-03, fnrm2:  2.310605169354E-05}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [  2.717712926769E-03,  1.760428758252E-03,  1.760428747973E-03 ]} # 0001
- -  {H:  [ -1.068520015792E-03, -1.512997465221E-03, -1.512997464757E-03 ]} # 0002
- -  {H:  [ -8.245964579388E-04, -8.727682027101E-04,  6.253369150452E-04 ]} # 0003
- -  {H:  [ -8.245964530389E-04,  6.253369096796E-04, -8.727681982614E-04 ]} # 0004
+ -  {C: [ 2.717712928159E-03,  1.760428757956E-03,  1.760428749776E-03]} # 0001
+ -  {H: [-1.068520016395E-03, -1.512997465889E-03, -1.512997465541E-03]} # 0002
+ -  {H: [-8.245964578424E-04, -8.727682025782E-04,  6.253369147811E-04]} # 0003
+ -  {H: [-8.245964539215E-04,  6.253369105111E-04, -8.727681990165E-04]} # 0004
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  18.22
-   Elapsed time (s)                    :  9.60
+   CPU time (s)                        :  14.34
+   Elapsed time (s)                    :  7.63
 ---
   #--------------------------------------------------------------------------- Input parameters
  DFT parameters:
@@ -1886,7 +1909,7 @@
    Total number of projectors          :  1
    Total number of components          :  11060
    Percent of zero components          :  0
- Ion-Ion interaction energy            :  6.60249783478930E+00
+ Ion-Ion interaction energy            :  6.60249783478920E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -6.999998894138
  Poisson Solver:
@@ -1903,15 +1926,15 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36531238701890878E+00, gnrm:  2.65E-02}
-       -  {iter:  2, EKS: -7.36599189954206146E+00, gnrm:  8.08E-03, D: -6.80E-04}
-       -  {iter:  3, EKS: -7.36604434095882787E+00, gnrm:  3.34E-03, D: -5.24E-05}
-       -  {iter:  4, EKS: -7.36605598269144046E+00, gnrm:  9.60E-04, D: -1.16E-05}
-       -  {iter:  5, EKS: -7.36605821278661210E+00, gnrm:  3.90E-04, D: -2.23E-06}
-       -  {iter:  6, EKS: -7.36605864149277600E+00, gnrm:  1.69E-04, D: -4.29E-07}
-       -  {iter:  7, EKS: -7.36605872975486342E+00, gnrm:  6.12E-05, D: -8.83E-08}
-       -  &FINAL001  {iter:  8, EKS: -7.36605874314896880E+00, gnrm:  6.12E-05, D: -1.34E-08}
-       Non-Hermiticity of Hamiltonian in the Subspace:  4.12E-33
+       -  {iter:  1, EKS: -7.36531238701825508E+00, gnrm:  2.65E-02}
+       -  {iter:  2, EKS: -7.36599189954198685E+00, gnrm:  8.08E-03, D: -6.80E-04}
+       -  {iter:  3, EKS: -7.36604434095880833E+00, gnrm:  3.34E-03, D: -5.24E-05}
+       -  {iter:  4, EKS: -7.36605598269141737E+00, gnrm:  9.60E-04, D: -1.16E-05}
+       -  {iter:  5, EKS: -7.36605821278660500E+00, gnrm:  3.90E-04, D: -2.23E-06}
+       -  {iter:  6, EKS: -7.36605864149277423E+00, gnrm:  1.69E-04, D: -4.29E-07}
+       -  {iter:  7, EKS: -7.36605872975483145E+00, gnrm:  6.12E-05, D: -8.83E-08}
+       -  &FINAL001  {iter:  8, EKS: -7.36605874314897768E+00, gnrm:  6.12E-05, D: -1.34E-08}
+       Non-Hermiticity of Hamiltonian in the Subspace:  1.47E-31
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -1920,18 +1943,18 @@
    MPI tasks                           :  2
  Average noise forces: {x: -1.59573882E-04, y:  2.22580221E-04, z:  2.22580221E-04, 
                     total:  3.52913209E-04}
- Clean forces norm (Ha/Bohr): {maxval:  2.167356844700E-03, fnrm2:  8.107919994111E-06}
- Raw forces norm (Ha/Bohr): {maxval:  2.180804524114E-03, fnrm2:  8.234191846316E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  2.167356845648E-03, fnrm2:  8.107920001072E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  2.180804525044E-03, fnrm2:  8.234191853293E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [ -2.012475391288E-03, -5.689369466548E-04, -5.689369406687E-04 ]} # 0001
- -  {H:  [  1.086270418779E-03,  8.825730214679E-04,  8.825730212113E-04 ]} # 0002
- -  {H:  [  4.631024876861E-04,  3.379622502569E-05, -3.474323029593E-04 ]} # 0003
- -  {H:  [  4.631024848230E-04, -3.474322998387E-04,  3.379622241672E-05 ]} # 0004
+ -  {C: [-2.012475392095E-03, -5.689369464778E-04, -5.689369416021E-04]} # 0001
+ -  {H: [ 1.086270419136E-03,  8.825730218452E-04,  8.825730216193E-04]} # 0002
+ -  {H: [ 4.631024876373E-04,  3.379622494133E-05, -3.474323028505E-04]} # 0003
+ -  {H: [ 4.631024853223E-04, -3.474323003087E-04,  3.379622283327E-05]} # 0004
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  18.26
-   Elapsed time (s)                    :  9.64
+   CPU time (s)                        :  13.48
+   Elapsed time (s)                    :  7.11
 ---
   #--------------------------------------------------------------------------- Input parameters
  DFT parameters:
@@ -2043,7 +2066,7 @@
    Total number of projectors          :  1
    Total number of components          :  11060
    Percent of zero components          :  0
- Ion-Ion interaction energy            :  6.60249783478930E+00
+ Ion-Ion interaction energy            :  6.60249783478920E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -6.999998894138
  Poisson Solver:
@@ -2058,9 +2081,9 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36605874314902742E+00, gnrm:  4.11E-05}
-       -  &FINAL001  {iter:  2, EKS: -7.36605874649859516E+00, gnrm:  4.11E-05, D: -3.35E-09}
-       Non-Hermiticity of Hamiltonian in the Subspace:  4.55E-32
+       -  {iter:  1, EKS: -7.36605874314901143E+00, gnrm:  4.11E-05}
+       -  &FINAL001  {iter:  2, EKS: -7.36605874649862002E+00, gnrm:  4.11E-05, D: -3.35E-09}
+       Non-Hermiticity of Hamiltonian in the Subspace:  6.77E-32
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -2069,24 +2092,24 @@
    MPI tasks                           :  2
  Average noise forces: {x: -1.46462829E-04, y:  2.24799406E-04, z:  2.24799406E-04, 
                     total:  3.50029864E-04}
- Clean forces norm (Ha/Bohr): {maxval:  2.152349043570E-03, fnrm2:  8.018776546192E-06}
- Raw forces norm (Ha/Bohr): {maxval:  2.157845084005E-03, fnrm2:  8.143342073096E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  2.152349044508E-03, fnrm2:  8.018776553061E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  2.157845084920E-03, fnrm2:  8.143342079974E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [ -1.996499740155E-03, -5.685926484336E-04, -5.685926424649E-04 ]} # 0001
- -  {H:  [  1.084291556399E-03,  8.810594815964E-04,  8.810594813430E-04 ]} # 0002
- -  {H:  [  4.561040933065E-04,  3.366980398209E-05, -3.461366402564E-04 ]} # 0003
- -  {H:  [  4.561040904493E-04, -3.461366371449E-04,  3.366980137828E-05 ]} # 0004
+ -  {C: [-1.996499740948E-03, -5.685926482562E-04, -5.685926434108E-04]} # 0001
+ -  {H: [ 1.084291556755E-03,  8.810594819714E-04,  8.810594817584E-04]} # 0002
+ -  {H: [ 4.561040932524E-04,  3.366980389782E-05, -3.461366401389E-04]} # 0003
+ -  {H: [ 4.561040909403E-04, -3.461366376130E-04,  3.366980179134E-05]} # 0004
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  6.06
-   Elapsed time (s)                    :  3.18
+   CPU time (s)                        :  4.46
+   Elapsed time (s)                    :  2.38
  FORCES norm(Ha/Bohr): { maxval:  2.15235E-03, fnrm2:  8.01878E-06, fluct:  3.65703E-04}
  Geometry:
    Ncount_BigDFT                       :  11
    Iteration                           :  1
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -7.36605874649860E+00, -7.94305066165180E-10 ]
+   etot                                :  [ -7.36605874649862E+00, -7.94319277019895E-10 ]
    Forces                              :  [  2.15E-03,  2.83E-03,  3.66E-04,  3.66E-04 ]
    b/b0                                :  2.50E-1
    nsat                                :  0
@@ -2202,7 +2225,7 @@
    Total number of projectors          :  1
    Total number of components          :  11056
    Percent of zero components          :  0
- Ion-Ion interaction energy            :  6.60275447004337E+00
+ Ion-Ion interaction energy            :  6.60275447004327E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -6.999998904792
  Poisson Solver:
@@ -2219,14 +2242,14 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36593615216086572E+00, gnrm:  1.12E-02}
-       -  {iter:  2, EKS: -7.36605479979207534E+00, gnrm:  3.29E-03, D: -1.19E-04}
-       -  {iter:  3, EKS: -7.36606354337718461E+00, gnrm:  1.36E-03, D: -8.74E-06}
-       -  {iter:  4, EKS: -7.36606545157697479E+00, gnrm:  3.86E-04, D: -1.91E-06}
-       -  {iter:  5, EKS: -7.36606577964945242E+00, gnrm:  1.49E-04, D: -3.28E-07}
-       -  {iter:  6, EKS: -7.36606584062552994E+00, gnrm:  6.35E-05, D: -6.10E-08}
-       -  &FINAL001  {iter:  7, EKS: -7.36606585340903219E+00, gnrm:  6.35E-05, D: -1.28E-08}
-       Non-Hermiticity of Hamiltonian in the Subspace:  6.73E-32
+       -  {iter:  1, EKS: -7.36593615216075381E+00, gnrm:  1.12E-02}
+       -  {iter:  2, EKS: -7.36605479979210376E+00, gnrm:  3.29E-03, D: -1.19E-04}
+       -  {iter:  3, EKS: -7.36606354337716507E+00, gnrm:  1.36E-03, D: -8.74E-06}
+       -  {iter:  4, EKS: -7.36606545157698722E+00, gnrm:  3.86E-04, D: -1.91E-06}
+       -  {iter:  5, EKS: -7.36606577964946485E+00, gnrm:  1.49E-04, D: -3.28E-07}
+       -  {iter:  6, EKS: -7.36606584062553882E+00, gnrm:  6.35E-05, D: -6.10E-08}
+       -  &FINAL001  {iter:  7, EKS: -7.36606585340902154E+00, gnrm:  6.35E-05, D: -1.28E-08}
+       Non-Hermiticity of Hamiltonian in the Subspace:  8.39E-32
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -2235,24 +2258,24 @@
    MPI tasks                           :  2
  Average noise forces: {x: -1.45389248E-04, y:  2.30030310E-04, z:  2.30030310E-04, 
                     total:  3.56322776E-04}
- Clean forces norm (Ha/Bohr): {maxval:  6.207941409119E-04, fnrm2:  7.754469026700E-07}
- Raw forces norm (Ha/Bohr): {maxval:  7.444121902945E-04, fnrm2:  9.037460399132E-07}
+ Clean forces norm (Ha/Bohr): {maxval:  6.207941410262E-04, fnrm2:  7.754469029299E-07}
+ Raw forces norm (Ha/Bohr): {maxval:  7.444121903738E-04, fnrm2:  9.037460401679E-07}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [ -5.961552106056E-04,  1.224424967510E-04,  1.224424977190E-04 ]} # 0001
- -  {H:  [  4.447984293158E-04,  1.713943911864E-04,  1.713943911655E-04 ]} # 0002
- -  {H:  [  7.567839088681E-05, -2.413499870358E-04, -5.248690140642E-05 ]} # 0003
- -  {H:  [  7.567839040303E-05, -5.248690090158E-05, -2.413499874780E-04 ]} # 0004
+ -  {C: [-5.961552107608E-04,  1.224424967723E-04,  1.224424975218E-04]} # 0001
+ -  {H: [ 4.447984293916E-04,  1.713943912681E-04,  1.713943912581E-04]} # 0002
+ -  {H: [ 7.567839087501E-05, -2.413499870547E-04, -5.248690137650E-05]} # 0003
+ -  {H: [ 7.567839049411E-05, -5.248690098557E-05, -2.413499874034E-04]} # 0004
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  15.84
-   Elapsed time (s)                    :  8.34
+   CPU time (s)                        :  11.54
+   Elapsed time (s)                    :  6.21
  FORCES norm(Ha/Bohr): { maxval:  6.20794E-04, fnrm2:  7.75447E-07, fluct:  3.63827E-04}
  Geometry:
    Ncount_BigDFT                       :  12
    Iteration                           :  2
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -7.36606585340903E+00, -7.10691043703804E-06 ]
+   etot                                :  [ -7.36606585340902E+00, -7.10691040151090E-06 ]
    Forces                              :  [  6.21E-04,  8.81E-04,  3.64E-04,  3.64E-04 ]
    b/b0                                :  3.00E-1
    nsat                                :  0
@@ -2368,7 +2391,7 @@
    Total number of projectors          :  1
    Total number of components          :  11056
    Percent of zero components          :  0
- Ion-Ion interaction energy            :  6.60294906812179E+00
+ Ion-Ion interaction energy            :  6.60294906812177E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -6.999998922715
  Poisson Solver:
@@ -2379,19 +2402,19 @@
  Input Hamiltonian:
    Reformating wavefunctions           :  Yes
    Reformatting for:
-
+     Molecule was shifted: [ 1.732694428109E-06,  2.606534655450E-07,  2.606534665503E-07]
   #---------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36605208506110998E+00, gnrm:  3.72E-03}
-       -  {iter:  2, EKS: -7.36606564168535805E+00, gnrm:  1.13E-03, D: -1.36E-05}
-       -  {iter:  3, EKS: -7.36606668498741790E+00, gnrm:  4.87E-04, D: -1.04E-06}
-       -  {iter:  4, EKS: -7.36606694215720559E+00, gnrm:  1.26E-04, D: -2.57E-07}
-       -  {iter:  5, EKS: -7.36606697765019902E+00, gnrm:  4.94E-05, D: -3.55E-08}
-       -  &FINAL001  {iter:  6, EKS: -7.36606698397588211E+00, gnrm:  4.94E-05, D: -6.33E-09}
-       Non-Hermiticity of Hamiltonian in the Subspace:  1.76E-31
+       -  {iter:  1, EKS: -7.36605208506109488E+00, gnrm:  3.72E-03}
+       -  {iter:  2, EKS: -7.36606564168537137E+00, gnrm:  1.13E-03, D: -1.36E-05}
+       -  {iter:  3, EKS: -7.36606668498741524E+00, gnrm:  4.87E-04, D: -1.04E-06}
+       -  {iter:  4, EKS: -7.36606694215718694E+00, gnrm:  1.26E-04, D: -2.57E-07}
+       -  {iter:  5, EKS: -7.36606697765022655E+00, gnrm:  4.94E-05, D: -3.55E-08}
+       -  &FINAL001  {iter:  6, EKS: -7.36606698397587945E+00, gnrm:  4.94E-05, D: -6.33E-09}
+       Non-Hermiticity of Hamiltonian in the Subspace:  5.65E-32
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -2400,24 +2423,24 @@
    MPI tasks                           :  2
  Average noise forces: {x: -1.43325077E-04, y:  2.27778110E-04, z:  2.27778110E-04, 
                     total:  3.52573131E-04}
- Clean forces norm (Ha/Bohr): {maxval:  4.476554725749E-04, fnrm2:  4.308657744319E-07}
- Raw forces norm (Ha/Bohr): {maxval:  6.212699913013E-04, fnrm2:  5.568578717754E-07}
+ Clean forces norm (Ha/Bohr): {maxval:  4.476554725409E-04, fnrm2:  4.308657743952E-07}
+ Raw forces norm (Ha/Bohr): {maxval:  6.212699912576E-04, fnrm2:  5.568578717258E-07}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [ -2.674982637365E-04,  2.538110527729E-04,  2.538110527824E-04 ]} # 0001
- -  {H:  [  2.811610474454E-04,  1.400282250082E-05,  1.400282252398E-05 ]} # 0002
- -  {H:  [ -6.831391840360E-06, -2.746274514176E-04,  6.813576138907E-06 ]} # 0003
- -  {H:  [ -6.831391868478E-06,  6.813576143865E-06, -2.746274514453E-04 ]} # 0004
+ -  {C: [-2.674982637327E-04,  2.538110527707E-04,  2.538110527287E-04]} # 0001
+ -  {H: [ 2.811610474444E-04,  1.400282250820E-05,  1.400282254457E-05]} # 0002
+ -  {H: [-6.831391848559E-06, -2.746274514171E-04,  6.813576160092E-06]} # 0003
+ -  {H: [-6.831391863090E-06,  6.813576138249E-06, -2.746274514334E-04]} # 0004
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  14.48
-   Elapsed time (s)                    :  7.72
+   CPU time (s)                        :  10.03
+   Elapsed time (s)                    :  5.34
  FORCES norm(Ha/Bohr): { maxval:  4.47655E-04, fnrm2:  4.30866E-07, fluct:  3.61576E-04}
  Geometry:
    Ncount_BigDFT                       :  13
    Iteration                           :  3
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -7.36606698397588E+00, -1.13056684991619E-06 ]
+   etot                                :  [ -7.36606698397588E+00, -1.13056685790980E-06 ]
    Forces                              :  [  4.48E-04,  6.56E-04,  3.62E-04,  3.62E-04 ]
    b/b0                                :  3.60E-1
    nsat                                :  0
@@ -2533,7 +2556,7 @@
    Total number of projectors          :  1
    Total number of components          :  11056
    Percent of zero components          :  0
- Ion-Ion interaction energy            :  6.60311196143800E+00
+ Ion-Ion interaction energy            :  6.60311196143807E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -6.999998942359
  Poisson Solver:
@@ -2544,19 +2567,19 @@
  Input Hamiltonian:
    Reformating wavefunctions           :  Yes
    Reformatting for:
-
+     Molecule was shifted: [ 6.747038417511E-07,  6.324525018907E-07,  6.324525018479E-07]
   #---------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36605560602499665E+00, gnrm:  3.42E-03}
-       -  {iter:  2, EKS: -7.36606688364973117E+00, gnrm:  1.03E-03, D: -1.13E-05}
-       -  {iter:  3, EKS: -7.36606773194934306E+00, gnrm:  4.45E-04, D: -8.48E-07}
-       -  {iter:  4, EKS: -7.36606795590696706E+00, gnrm:  1.05E-04, D: -2.24E-07}
-       -  {iter:  5, EKS: -7.36606798061065504E+00, gnrm:  4.09E-05, D: -2.47E-08}
-       -  &FINAL001  {iter:  6, EKS: -7.36606798437988886E+00, gnrm:  4.09E-05, D: -3.77E-09}
-       Non-Hermiticity of Hamiltonian in the Subspace:  7.14E-32
+       -  {iter:  1, EKS: -7.36605560602501441E+00, gnrm:  3.42E-03}
+       -  {iter:  2, EKS: -7.36606688364970630E+00, gnrm:  1.03E-03, D: -1.13E-05}
+       -  {iter:  3, EKS: -7.36606773194937325E+00, gnrm:  4.45E-04, D: -8.48E-07}
+       -  {iter:  4, EKS: -7.36606795590694396E+00, gnrm:  1.05E-04, D: -2.24E-07}
+       -  {iter:  5, EKS: -7.36606798061067103E+00, gnrm:  4.09E-05, D: -2.47E-08}
+       -  &FINAL001  {iter:  6, EKS: -7.36606798437990840E+00, gnrm:  4.09E-05, D: -3.77E-09}
+       Non-Hermiticity of Hamiltonian in the Subspace:  4.70E-32
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -2564,25 +2587,25 @@
    Box                                 :  [  105,  105,  105 ]
    MPI tasks                           :  2
  Average noise forces: {x: -1.44099883E-04, y:  2.22587347E-04, z:  2.22587347E-04, 
-                    total:  3.46200852E-04}
- Clean forces norm (Ha/Bohr): {maxval:  4.043247719649E-04, fnrm2:  3.393245510883E-07}
- Raw forces norm (Ha/Bohr): {maxval:  5.751162222173E-04, fnrm2:  4.607247964168E-07}
+                    total:  3.46200853E-04}
+ Clean forces norm (Ha/Bohr): {maxval:  4.043247719826E-04, fnrm2:  3.393245511003E-07}
+ Raw forces norm (Ha/Bohr): {maxval:  5.751162222390E-04, fnrm2:  4.607247964330E-07}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [ -2.419733959420E-04,  2.290495545482E-04,  2.290495545554E-04 ]} # 0001
- -  {H:  [  2.450943104049E-04,  8.330551861478E-06,  8.330551888563E-06 ]} # 0002
- -  {H:  [ -1.560457216012E-06, -2.404293522157E-04,  3.049245802231E-06 ]} # 0003
- -  {H:  [ -1.560457246835E-06,  3.049245805974E-06, -2.404293522462E-04 ]} # 0004
+ -  {C: [-2.419733959369E-04,  2.290495545343E-04,  2.290495546059E-04]} # 0001
+ -  {H: [ 2.450943104020E-04,  8.330551856492E-06,  8.330551871280E-06]} # 0002
+ -  {H: [-1.560457206468E-06, -2.404293522061E-04,  3.049245777859E-06]} # 0003
+ -  {H: [-1.560457258621E-06,  3.049245815236E-06, -2.404293522550E-04]} # 0004
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  17.30
-   Elapsed time (s)                    :  10.21
+   CPU time (s)                        :  10.07
+   Elapsed time (s)                    :  5.34
  FORCES norm(Ha/Bohr): { maxval:  4.04325E-04, fnrm2:  3.39325E-07, fluct:  3.58501E-04}
  Geometry:
    Ncount_BigDFT                       :  14
    Iteration                           :  4
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -7.36606798437989E+00, -1.00040400674573E-06 ]
+   etot                                :  [ -7.36606798437991E+00, -1.00040402895019E-06 ]
    Forces                              :  [  4.04E-04,  5.83E-04,  3.59E-04,  3.59E-04 ]
    b/b0                                :  4.32E-1
    nsat                                :  0
@@ -2698,7 +2721,7 @@
    Total number of projectors          :  1
    Total number of components          :  11064
    Percent of zero components          :  0
- Ion-Ion interaction energy            :  6.60322605445301E+00
+ Ion-Ion interaction energy            :  6.60322605445299E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -6.999998962703
  Poisson Solver:
@@ -2709,19 +2732,19 @@
  Input Hamiltonian:
    Reformating wavefunctions           :  Yes
    Reformatting for:
-
+     Molecule was shifted: [ 7.650920286576E-07,  7.167708133776E-07,  7.167708137976E-07]
   #---------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36605461761992242E+00, gnrm:  3.68E-03}
-       -  {iter:  2, EKS: -7.36606769245244752E+00, gnrm:  1.11E-03, D: -1.31E-05}
-       -  {iter:  3, EKS: -7.36606867724175007E+00, gnrm:  4.79E-04, D: -9.85E-07}
-       -  {iter:  4, EKS: -7.36606893764583948E+00, gnrm:  1.13E-04, D: -2.60E-07}
-       -  {iter:  5, EKS: -7.36606896635374842E+00, gnrm:  4.39E-05, D: -2.87E-08}
-       -  &FINAL001  {iter:  6, EKS: -7.36606897071480216E+00, gnrm:  4.39E-05, D: -4.36E-09}
-       Non-Hermiticity of Hamiltonian in the Subspace:  9.75E-32
+       -  {iter:  1, EKS: -7.36605461761993663E+00, gnrm:  3.68E-03}
+       -  {iter:  2, EKS: -7.36606769245242265E+00, gnrm:  1.11E-03, D: -1.31E-05}
+       -  {iter:  3, EKS: -7.36606867724173409E+00, gnrm:  4.79E-04, D: -9.85E-07}
+       -  {iter:  4, EKS: -7.36606893764584481E+00, gnrm:  1.13E-04, D: -2.60E-07}
+       -  {iter:  5, EKS: -7.36606896635377684E+00, gnrm:  4.39E-05, D: -2.87E-08}
+       -  &FINAL001  {iter:  6, EKS: -7.36606897071480748E+00, gnrm:  4.39E-05, D: -4.36E-09}
+       Non-Hermiticity of Hamiltonian in the Subspace:  4.41E-32
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -2730,24 +2753,24 @@
    MPI tasks                           :  2
  Average noise forces: {x: -1.45040161E-04, y:  2.22675206E-04, z:  2.22675206E-04, 
                     total:  3.46706133E-04}
- Clean forces norm (Ha/Bohr): {maxval:  3.620106879472E-04, fnrm2:  2.632976763823E-07}
- Raw forces norm (Ha/Bohr): {maxval:  5.341871795792E-04, fnrm2:  3.850481394733E-07}
+ Clean forces norm (Ha/Bohr): {maxval:  3.620106879319E-04, fnrm2:  2.632976763725E-07}
+ Raw forces norm (Ha/Bohr): {maxval:  5.341871795587E-04, fnrm2:  3.850481394576E-07}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [ -2.071300448368E-04,  2.099391372318E-04,  2.099391373049E-04 ]} # 0001
- -  {H:  [  2.085178160647E-04, -7.524549454564E-07, -7.524549801093E-07 ]} # 0002
- -  {H:  [ -6.938856122133E-07, -2.106653629025E-04,  1.478680578009E-06 ]} # 0003
- -  {H:  [ -6.938856157406E-07,  1.478680616194E-06, -2.106653629028E-04 ]} # 0004
+ -  {C: [-2.071300448447E-04,  2.099391372482E-04,  2.099391372541E-04]} # 0001
+ -  {H: [ 2.085178160712E-04, -7.524549435764E-07, -7.524549573106E-07]} # 0002
+ -  {H: [-6.938856185536E-07, -2.106653629065E-04,  1.478680598724E-06]} # 0003
+ -  {H: [-6.938856079151E-07,  1.478680601818E-06, -2.106653628955E-04]} # 0004
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  15.87
-   Elapsed time (s)                    :  8.52
+   CPU time (s)                        :  10.17
+   Elapsed time (s)                    :  5.30
  FORCES norm(Ha/Bohr): { maxval:  3.62011E-04, fnrm2:  2.63298E-07, fluct:  3.56142E-04}
  Geometry:
    Ncount_BigDFT                       :  15
    Iteration                           :  5
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -7.36606897071480E+00, -9.86334913299913E-07 ]
+   etot                                :  [ -7.36606897071481E+00, -9.86334899089059E-07 ]
    Forces                              :  [  3.62E-04,  5.13E-04,  3.56E-04,  3.56E-04 ]
    b/b0                                :  5.18E-1
    nsat                                :  0
@@ -2863,7 +2886,7 @@
    Total number of projectors          :  1
    Total number of components          :  11068
    Percent of zero components          :  0
- Ion-Ion interaction energy            :  6.60328510466856E+00
+ Ion-Ion interaction energy            :  6.60328510466863E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -6.999998983541
  Poisson Solver:
@@ -2874,19 +2897,19 @@
  Input Hamiltonian:
    Reformating wavefunctions           :  Yes
    Reformatting for:
-
+     Molecule was shifted: [ 8.022898143925E-07,  8.186475962652E-07,  8.186475962285E-07]
   #---------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36605367955655943E+00, gnrm:  3.92E-03}
-       -  {iter:  2, EKS: -7.36606847741892956E+00, gnrm:  1.18E-03, D: -1.48E-05}
-       -  {iter:  3, EKS: -7.36606959266137551E+00, gnrm:  5.10E-04, D: -1.12E-06}
-       -  {iter:  4, EKS: -7.36606988752006586E+00, gnrm:  1.20E-04, D: -2.95E-07}
-       -  {iter:  5, EKS: -7.36606992001712158E+00, gnrm:  4.66E-05, D: -3.25E-08}
-       -  &FINAL001  {iter:  6, EKS: -7.36606992490793289E+00, gnrm:  4.66E-05, D: -4.89E-09}
-       Non-Hermiticity of Hamiltonian in the Subspace:  2.11E-31
+       -  {iter:  1, EKS: -7.36605367955653811E+00, gnrm:  3.92E-03}
+       -  {iter:  2, EKS: -7.36606847741889226E+00, gnrm:  1.18E-03, D: -1.48E-05}
+       -  {iter:  3, EKS: -7.36606959266135952E+00, gnrm:  5.10E-04, D: -1.12E-06}
+       -  {iter:  4, EKS: -7.36606988752005698E+00, gnrm:  1.20E-04, D: -2.95E-07}
+       -  {iter:  5, EKS: -7.36606992001709138E+00, gnrm:  4.66E-05, D: -3.25E-08}
+       -  &FINAL001  {iter:  6, EKS: -7.36606992490797197E+00, gnrm:  4.66E-05, D: -4.89E-09}
+       Non-Hermiticity of Hamiltonian in the Subspace:  3.64E-32
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -2895,24 +2918,24 @@
    MPI tasks                           :  2
  Average noise forces: {x: -1.46008490E-04, y:  2.22962246E-04, z:  2.22962245E-04, 
                     total:  3.47480654E-04}
- Clean forces norm (Ha/Bohr): {maxval:  3.123185213861E-04, fnrm2:  1.939626044021E-07}
- Raw forces norm (Ha/Bohr): {maxval:  4.846266648626E-04, fnrm2:  3.162407526360E-07}
+ Clean forces norm (Ha/Bohr): {maxval:  3.123185213940E-04, fnrm2:  1.939626044089E-07}
+ Raw forces norm (Ha/Bohr): {maxval:  4.846266648714E-04, fnrm2:  3.162407526407E-07}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [ -1.829279669118E-04,  1.789975108052E-04,  1.789975107309E-04 ]} # 0001
- -  {H:  [  1.797925046897E-04,  5.038659976347E-07,  5.038660919500E-07 ]} # 0002
- -  {H:  [  1.567731138828E-06, -1.790090678958E-04, -4.923088681912E-07 ]} # 0003
- -  {H:  [  1.567731083294E-06, -4.923089069663E-07, -1.790090679547E-04 ]} # 0004
+ -  {C: [-1.829279668942E-04,  1.789975107946E-04,  1.789975107733E-04]} # 0001
+ -  {H: [ 1.797925046819E-04,  5.038660103898E-07,  5.038660540484E-07]} # 0002
+ -  {H: [ 1.567731122385E-06, -1.790090679152E-04, -4.923088785931E-07]} # 0003
+ -  {H: [ 1.567731089837E-06, -4.923088896987E-07, -1.790090679487E-04]} # 0004
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  15.11
-   Elapsed time (s)                    :  8.04
+   CPU time (s)                        :  10.34
+   Elapsed time (s)                    :  5.48
  FORCES norm(Ha/Bohr): { maxval:  3.12319E-04, fnrm2:  1.93963E-07, fluct:  3.54410E-04}
  Geometry:
    Ncount_BigDFT                       :  16
    Iteration                           :  6
    Geometry Method                     : GEOPT_SD
-   etot                                :  [ -7.36606992490793E+00, -9.54193130731085E-07 ]
+   etot                                :  [ -7.36606992490797E+00, -9.54193164481865E-07 ]
    Forces                              :  [  3.12E-04,  4.40E-04,  3.54E-04,  3.54E-04 ]
    b/b0                                :  6.22E-1
    nsat                                :  0
@@ -3028,7 +3051,7 @@
    Total number of projectors          :  1
    Total number of components          :  11020
    Percent of zero components          :  0
- Ion-Ion interaction energy            :  6.60346794348661E+00
+ Ion-Ion interaction energy            :  6.60346794348652E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -6.999999098496
  Poisson Solver:
@@ -3045,15 +3068,15 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36557480825152577E+00, gnrm:  2.24E-02}
-       -  {iter:  2, EKS: -7.36604032094552341E+00, gnrm:  6.59E-03, D: -4.66E-04}
-       -  {iter:  3, EKS: -7.36607466909968789E+00, gnrm:  2.82E-03, D: -3.43E-05}
-       -  {iter:  4, EKS: -7.36608352671753774E+00, gnrm:  6.44E-04, D: -8.86E-06}
-       -  {iter:  5, EKS: -7.36608443166658322E+00, gnrm:  2.44E-04, D: -9.05E-07}
-       -  {iter:  6, EKS: -7.36608455089428471E+00, gnrm:  1.01E-04, D: -1.19E-07}
-       -  {iter:  7, EKS: -7.36608458341651495E+00, gnrm:  5.61E-05, D: -3.25E-08}
-       -  &FINAL001  {iter:  8, EKS: -7.36608459244186609E+00, gnrm:  5.61E-05, D: -9.03E-09}
-       Non-Hermiticity of Hamiltonian in the Subspace:  2.41E-32
+       -  {iter:  1, EKS: -7.36557480825151067E+00, gnrm:  2.24E-02}
+       -  {iter:  2, EKS: -7.36604032094550121E+00, gnrm:  6.59E-03, D: -4.66E-04}
+       -  {iter:  3, EKS: -7.36607466909967457E+00, gnrm:  2.82E-03, D: -3.43E-05}
+       -  {iter:  4, EKS: -7.36608352671756705E+00, gnrm:  6.44E-04, D: -8.86E-06}
+       -  {iter:  5, EKS: -7.36608443166655746E+00, gnrm:  2.44E-04, D: -9.05E-07}
+       -  {iter:  6, EKS: -7.36608455089431047E+00, gnrm:  1.01E-04, D: -1.19E-07}
+       -  {iter:  7, EKS: -7.36608458341651939E+00, gnrm:  5.61E-05, D: -3.25E-08}
+       -  &FINAL001  {iter:  8, EKS: -7.36608459244188651E+00, gnrm:  5.61E-05, D: -9.03E-09}
+       Non-Hermiticity of Hamiltonian in the Subspace:  2.39E-31
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -3062,18 +3085,18 @@
    MPI tasks                           :  2
  Average noise forces: {x: -1.49909317E-04, y:  2.28457645E-04, z:  2.28457645E-04, 
                     total:  3.56172141E-04}
- Clean forces norm (Ha/Bohr): {maxval:  3.630285174326E-05, fnrm2:  2.803925088297E-09}
- Raw forces norm (Ha/Bohr): {maxval:  2.095062518506E-04, fnrm2:  1.312098748703E-07}
+ Clean forces norm (Ha/Bohr): {maxval:  3.630285154460E-05, fnrm2:  2.803925064406E-09}
+ Raw forces norm (Ha/Bohr): {maxval:  2.095062517752E-04, fnrm2:  1.312098748538E-07}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [  1.058253099731E-05,  2.455511221745E-05,  2.455511242842E-05 ]} # 0001
- -  {H:  [  7.153356415604E-06, -9.552464771003E-06, -9.552464930542E-06 ]} # 0002
- -  {H:  [ -8.867943730930E-06, -2.224918872818E-05,  7.246541171105E-06 ]} # 0003
- -  {H:  [ -8.867943681982E-06,  7.246541281729E-06, -2.224918866899E-05 ]} # 0004
+ -  {C: [ 1.058253078688E-05,  2.455511222469E-05,  2.455511221818E-05]} # 0001
+ -  {H: [ 7.153356518022E-06, -9.552464701988E-06, -9.552464780492E-06]} # 0002
+ -  {H: [-8.867943693406E-06, -2.224918870041E-05,  7.246541181114E-06]} # 0003
+ -  {H: [-8.867943611491E-06,  7.246541177705E-06, -2.224918861880E-05]} # 0004
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  17.83
-   Elapsed time (s)                    :  9.27
+   CPU time (s)                        :  12.75
+   Elapsed time (s)                    :  6.61
 ---
   #--------------------------------------------------------------------------- Input parameters
  DFT parameters:
@@ -3185,7 +3208,7 @@
    Total number of projectors          :  1
    Total number of components          :  11020
    Percent of zero components          :  0
- Ion-Ion interaction energy            :  6.60348141996430E+00
+ Ion-Ion interaction energy            :  6.60348141996421E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -6.999999108948
  Poisson Solver:
@@ -3200,12 +3223,12 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36608069980738378E+00, gnrm:  1.97E-03}
-       -  {iter:  2, EKS: -7.36608442501557548E+00, gnrm:  5.92E-04, D: -3.73E-06}
-       -  {iter:  3, EKS: -7.36608470576974916E+00, gnrm:  2.56E-04, D: -2.81E-07}
-       -  {iter:  4, EKS: -7.36608477990672128E+00, gnrm:  6.10E-05, D: -7.41E-08}
-       -  &FINAL001  {iter:  5, EKS: -7.36608478880755690E+00, gnrm:  6.10E-05, D: -8.90E-09}
-       Non-Hermiticity of Hamiltonian in the Subspace:  6.59E-32
+       -  {iter:  1, EKS: -7.36608069980739266E+00, gnrm:  1.97E-03}
+       -  {iter:  2, EKS: -7.36608442501549554E+00, gnrm:  5.92E-04, D: -3.73E-06}
+       -  {iter:  3, EKS: -7.36608470576973851E+00, gnrm:  2.56E-04, D: -2.81E-07}
+       -  {iter:  4, EKS: -7.36608477990664845E+00, gnrm:  6.10E-05, D: -7.41E-08}
+       -  &FINAL001  {iter:  5, EKS: -7.36608478880749651E+00, gnrm:  6.10E-05, D: -8.90E-09}
+       Non-Hermiticity of Hamiltonian in the Subspace:  1.85E-31
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -3214,23 +3237,23 @@
    MPI tasks                           :  2
  Average noise forces: {x: -1.57940516E-04, y:  2.35777027E-04, z:  2.35777027E-04, 
                     total:  3.68953682E-04}
- Clean forces norm (Ha/Bohr): {maxval:  3.776214428716E-05, fnrm2:  2.235810801659E-09}
- Raw forces norm (Ha/Bohr): {maxval:  2.152333064457E-04, fnrm2:  1.399259321749E-07}
+ Clean forces norm (Ha/Bohr): {maxval:  3.776214402375E-05, fnrm2:  2.235810768395E-09}
+ Raw forces norm (Ha/Bohr): {maxval:  2.152333063170E-04, fnrm2:  1.399259321371E-07}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [  1.364425226744E-05,  2.489793081820E-05,  2.489793088189E-05 ]} # 0001
- -  {H:  [ -7.095002353904E-06, -1.693721586865E-05, -1.693721648202E-05 ]} # 0002
- -  {H:  [ -3.274625246723E-06, -9.003660904757E-06,  1.042945921819E-06 ]} # 0003
- -  {H:  [ -3.274624666816E-06,  1.042945955213E-06, -9.003660321690E-06 ]} # 0004
+ -  {C: [ 1.364425203772E-05,  2.489793075512E-05,  2.489793067134E-05]} # 0001
+ -  {H: [-7.095002247947E-06, -1.693721589834E-05, -1.693721619165E-05]} # 0002
+ -  {H: [-3.274625063490E-06, -9.003660723741E-06,  1.042945910906E-06]} # 0003
+ -  {H: [-3.274624726283E-06,  1.042945866963E-06, -9.003660390593E-06]} # 0004
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  11.82
-   Elapsed time (s)                    :  6.10
+   CPU time (s)                        :  8.43
+   Elapsed time (s)                    :  4.38
  Geometry:
    Ncount_BigDFT                       :  18
    Iteration                           :  1
    Geometry Method                     : GEOPT_CG
-   etot                                :  [ -7.36608478880756E+00, -1.48638996240180E-05 ]
+   etot                                :  [ -7.36608478880750E+00, -1.48638995245420E-05 ]
    Forces                              :  [  3.78E-05,  4.73E-05,  3.57E-04,  3.57E-04 ]
    b/b0                                :  4.36E+0
    FORCES norm(Ha/Bohr): { maxval:  3.77621E-05, fnrm2:  2.23581E-09, fluct:  3.57319E-04}
@@ -3345,7 +3368,7 @@
    Total number of projectors          :  1
    Total number of components          :  11020
    Percent of zero components          :  0
- Ion-Ion interaction energy            :  6.60299986317786E+00
+ Ion-Ion interaction energy            :  6.60299986317846E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -6.999999104977
  Poisson Solver:
@@ -3362,32 +3385,32 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36608013421486518E+00, gnrm:  3.13E-03}
-       -  {iter:  2, EKS: -7.36608640717007113E+00, gnrm:  6.55E-04, D: -6.27E-06}
-       -  {iter:  3, EKS: -7.36608675473943642E+00, gnrm:  2.65E-04, D: -3.48E-07}
-       -  {iter:  4, EKS: -7.36608682808940252E+00, gnrm:  8.22E-05, D: -7.33E-08}
-       -  &FINAL001  {iter:  5, EKS: -7.36608684194533048E+00, gnrm:  8.22E-05, D: -1.39E-08}
-       Non-Hermiticity of Hamiltonian in the Subspace:  4.97E-32
+       -  {iter:  1, EKS: -7.36608013421491847E+00, gnrm:  3.13E-03}
+       -  {iter:  2, EKS: -7.36608640717010843E+00, gnrm:  6.55E-04, D: -6.27E-06}
+       -  {iter:  3, EKS: -7.36608675473948082E+00, gnrm:  2.65E-04, D: -3.48E-07}
+       -  {iter:  4, EKS: -7.36608682808938653E+00, gnrm:  8.22E-05, D: -7.33E-08}
+       -  &FINAL001  {iter:  5, EKS: -7.36608684194528607E+00, gnrm:  8.22E-05, D: -1.39E-08}
+       Non-Hermiticity of Hamiltonian in the Subspace:  3.06E-31
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
    MPI tasks                           :  2
- Average noise forces: {x: -1.66631350E-04, y:  2.30334191E-04, z:  2.30334205E-04, 
-                    total:  3.65887541E-04}
- Clean forces norm (Ha/Bohr): {maxval:  3.345426652360E-04, fnrm2:  1.916086120787E-07}
- Raw forces norm (Ha/Bohr): {maxval:  4.077320990206E-04, fnrm2:  3.264319183319E-07}
+ Average noise forces: {x: -1.66631350E-04, y:  2.30334196E-04, z:  2.30334203E-04, 
+                    total:  3.65887542E-04}
+ Clean forces norm (Ha/Bohr): {maxval:  3.345426609767E-04, fnrm2:  1.916086072977E-07}
+ Raw forces norm (Ha/Bohr): {maxval:  4.077320971697E-04, fnrm2:  3.264319143557E-07}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [ -2.517753449562E-04, -1.557690108811E-04, -1.557690141989E-04 ]} # 0001
- -  {H:  [  1.415451072586E-04,  1.586262246808E-04,  1.586262163479E-04 ]} # 0002
- -  {H:  [  5.511511381272E-05,  2.706142382529E-05, -2.991863588568E-05 ]} # 0003
- -  {H:  [  5.511512388488E-05, -2.991863762495E-05,  2.706143373665E-05 ]} # 0004
+ -  {C: [-2.517753412972E-04, -1.557690107598E-04, -1.557690110868E-04]} # 0001
+ -  {H: [ 1.415451057653E-04,  1.586262208358E-04,  1.586262168244E-04]} # 0002
+ -  {H: [ 5.511511567460E-05,  2.706142585033E-05, -2.991863575524E-05]} # 0003
+ -  {H: [ 5.511511985735E-05, -2.991863592635E-05,  2.706143001769E-05]} # 0004
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  12.09
-   Elapsed time (s)                    :  6.25
+   CPU time (s)                        :  8.75
+   Elapsed time (s)                    :  4.48
 ---
   #--------------------------------------------------------------------------- Input parameters
  DFT parameters:
@@ -3499,7 +3522,7 @@
    Total number of projectors          :  1
    Total number of components          :  11020
    Percent of zero components          :  0
- Ion-Ion interaction energy            :  6.60343538038967E+00
+ Ion-Ion interaction energy            :  6.60343538038949E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -6.999999108441
  Poisson Solver:
@@ -3516,40 +3539,40 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36608048017551109E+00, gnrm:  2.16E-03}
-       -  {iter:  2, EKS: -7.36608446037314213E+00, gnrm:  5.78E-04, D: -3.98E-06}
-       -  {iter:  3, EKS: -7.36608472774377976E+00, gnrm:  2.33E-04, D: -2.67E-07}
-       -  {iter:  4, EKS: -7.36608478050049076E+00, gnrm:  6.79E-05, D: -5.28E-08}
-       -  &FINAL001  {iter:  5, EKS: -7.36608478906759157E+00, gnrm:  6.79E-05, D: -8.57E-09}
-       Non-Hermiticity of Hamiltonian in the Subspace:  2.92E-32
+       -  {iter:  1, EKS: -7.36608048017561767E+00, gnrm:  2.16E-03}
+       -  {iter:  2, EKS: -7.36608446037313680E+00, gnrm:  5.78E-04, D: -3.98E-06}
+       -  {iter:  3, EKS: -7.36608472774380463E+00, gnrm:  2.33E-04, D: -2.67E-07}
+       -  {iter:  4, EKS: -7.36608478050060977E+00, gnrm:  6.79E-05, D: -5.28E-08}
+       -  &FINAL001  {iter:  5, EKS: -7.36608478906758091E+00, gnrm:  6.79E-05, D: -8.57E-09}
+       Non-Hermiticity of Hamiltonian in the Subspace:  3.91E-31
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
    MPI tasks                           :  2
- Average noise forces: {x: -1.58022972E-04, y:  2.41504580E-04, z:  2.41504838E-04, 
-                    total:  3.76324739E-04}
- Clean forces norm (Ha/Bohr): {maxval:  3.229109654897E-05, fnrm2:  1.447357436676E-09}
- Raw forces norm (Ha/Bohr): {maxval:  2.223420957651E-04, fnrm2:  1.451737887765E-07}
+ Average noise forces: {x: -1.58023081E-04, y:  2.41504425E-04, z:  2.41504551E-04, 
+                    total:  3.76324500E-04}
+ Clean forces norm (Ha/Bohr): {maxval:  3.229121100851E-05, fnrm2:  1.447365258495E-09}
+ Raw forces norm (Ha/Bohr): {maxval:  2.223421290156E-04, fnrm2:  1.451736275448E-07}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [ -6.635399759543E-06,  2.234604680693E-05,  2.234592979646E-05 ]} # 0001
- -  {H:  [  6.879032083941E-06, -8.115645850523E-06, -8.115808519373E-06 ]} # 0002
- -  {H:  [ -1.219281617051E-07, -9.516352608209E-06, -4.713986974305E-06 ]} # 0003
- -  {H:  [ -1.217041626924E-07, -4.714048348201E-06, -9.516134302782E-06 ]} # 0004
+ -  {C: [-6.635701280614E-06,  2.234605467701E-05,  2.234599779116E-05]} # 0001
+ -  {H: [ 6.879147554357E-06, -8.115642310296E-06, -8.115721620859E-06]} # 0002
+ -  {H: [-1.217777002872E-07, -9.516233457762E-06, -4.714149071389E-06]} # 0003
+ -  {H: [-1.216685734555E-07, -4.714178908956E-06, -9.516127098910E-06]} # 0004
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  12.07
-   Elapsed time (s)                    :  6.25
+   CPU time (s)                        :  8.72
+   Elapsed time (s)                    :  4.47
  Geometry:
    Ncount_BigDFT                       :  20
    Iteration                           :  2
    Geometry Method                     : GEOPT_CG
-   etot                                :  [ -7.36608478906759E+00, -2.60034660470865E-10 ]
+   etot                                :  [ -7.36608478906758E+00, -2.60084398462368E-10 ]
    Forces                              :  [  3.23E-05,  3.80E-05,  3.61E-04,  3.61E-04 ]
    b/b0                                :  3.82E-1
-   FORCES norm(Ha/Bohr): { maxval:  3.22911E-05, fnrm2:  1.44736E-09, fluct:  3.61120E-04}
+   FORCES norm(Ha/Bohr): { maxval:  3.22912E-05, fnrm2:  1.44737E-09, fluct:  3.61120E-04}
 ---
   #--------------------------------------------------------------------------- Input parameters
  DFT parameters:
@@ -3661,7 +3684,7 @@
    Total number of projectors          :  1
    Total number of components          :  11020
    Percent of zero components          :  0
- Ion-Ion interaction energy            :  6.60295245492310E+00
+ Ion-Ion interaction energy            :  6.60295244439518E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -6.999999110959
  Poisson Solver:
@@ -3678,32 +3701,32 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36608071225315264E+00, gnrm:  3.09E-03}
-       -  {iter:  2, EKS: -7.36608663617581350E+00, gnrm:  6.29E-04, D: -5.92E-06}
-       -  {iter:  3, EKS: -7.36608694358478822E+00, gnrm:  2.55E-04, D: -3.07E-07}
-       -  {iter:  4, EKS: -7.36608701313898528E+00, gnrm:  6.75E-05, D: -6.96E-08}
-       -  &FINAL001  {iter:  5, EKS: -7.36608702192108744E+00, gnrm:  6.75E-05, D: -8.78E-09}
-       Non-Hermiticity of Hamiltonian in the Subspace:  1.40E-31
+       -  {iter:  1, EKS: -7.36608071218810601E+00, gnrm:  3.09E-03}
+       -  {iter:  2, EKS: -7.36608663617138681E+00, gnrm:  6.29E-04, D: -5.92E-06}
+       -  {iter:  3, EKS: -7.36608694358446137E+00, gnrm:  2.55E-04, D: -3.07E-07}
+       -  {iter:  4, EKS: -7.36608701313991965E+00, gnrm:  6.75E-05, D: -6.96E-08}
+       -  &FINAL001  {iter:  5, EKS: -7.36608702192160614E+00, gnrm:  6.75E-05, D: -8.78E-09}
+       Non-Hermiticity of Hamiltonian in the Subspace:  2.38E-31
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
    MPI tasks                           :  2
- Average noise forces: {x: -1.58627291E-04, y:  2.31988865E-04, z:  2.31989526E-04, 
-                    total:  3.64418154E-04}
- Clean forces norm (Ha/Bohr): {maxval:  1.476356463622E-04, fnrm2:  3.889378361750E-08}
- Raw forces norm (Ha/Bohr): {maxval:  3.018647360439E-04, fnrm2:  1.730643385050E-07}
+ Average noise forces: {x: -1.58624626E-04, y:  2.31979872E-04, z:  2.31980703E-04, 
+                    total:  3.64405653E-04}
+ Clean forces norm (Ha/Bohr): {maxval:  1.476495400641E-04, fnrm2:  3.889968505807E-08}
+ Raw forces norm (Ha/Bohr): {maxval:  3.018650601918E-04, fnrm2:  1.730609347118E-07}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [ -7.527987151009E-05, -8.980417431409E-05, -8.980220096406E-05 ]} # 0001
- -  {H:  [  6.288302774353E-05,  8.039651901972E-05,  8.039622795655E-05 ]} # 0002
- -  {H:  [  6.198793757137E-06,  1.142073599167E-06,  8.264546375571E-06 ]} # 0003
- -  {H:  [  6.198050009415E-06,  8.265581695199E-06,  1.141426631938E-06 ]} # 0004
+ -  {C: [-7.527617018743E-05, -8.981654231989E-05, -8.981577594591E-05]} # 0001
+ -  {H: [ 6.288135197763E-05,  8.040247640363E-05,  8.040201807894E-05]} # 0002
+ -  {H: [ 6.197380906607E-06,  1.144826293732E-06,  8.268837550958E-06]} # 0003
+ -  {H: [ 6.197437303189E-06,  8.269239622524E-06,  1.144920316012E-06]} # 0004
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  11.97
-   Elapsed time (s)                    :  6.20
+   CPU time (s)                        :  8.73
+   Elapsed time (s)                    :  4.50
 ---
   #--------------------------------------------------------------------------- Input parameters
  DFT parameters:
@@ -3815,7 +3838,7 @@
    Total number of projectors          :  1
    Total number of components          :  11020
    Percent of zero components          :  0
- Ion-Ion interaction energy            :  6.60331937117252E+00
+ Ion-Ion interaction energy            :  6.60331938386636E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -6.999999109046
  Poisson Solver:
@@ -3832,40 +3855,40 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36608192161962982E+00, gnrm:  1.87E-03}
-       -  {iter:  2, EKS: -7.36608461105866930E+00, gnrm:  4.67E-04, D: -2.69E-06}
-       -  {iter:  3, EKS: -7.36608477973904030E+00, gnrm:  1.91E-04, D: -1.69E-07}
-       -  {iter:  4, EKS: -7.36608481764537437E+00, gnrm:  4.88E-05, D: -3.79E-08}
-       -  &FINAL001  {iter:  5, EKS: -7.36608482223027217E+00, gnrm:  4.88E-05, D: -4.58E-09}
-       Non-Hermiticity of Hamiltonian in the Subspace:  3.91E-32
+       -  {iter:  1, EKS: -7.36608192139083862E+00, gnrm:  1.87E-03}
+       -  {iter:  2, EKS: -7.36608461103098833E+00, gnrm:  4.67E-04, D: -2.69E-06}
+       -  {iter:  3, EKS: -7.36608477973098985E+00, gnrm:  1.91E-04, D: -1.69E-07}
+       -  {iter:  4, EKS: -7.36608481764030820E+00, gnrm:  4.88E-05, D: -3.79E-08}
+       -  &FINAL001  {iter:  5, EKS: -7.36608482222645655E+00, gnrm:  4.88E-05, D: -4.59E-09}
+       Non-Hermiticity of Hamiltonian in the Subspace:  4.52E-32
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
    MPI tasks                           :  2
- Average noise forces: {x: -1.60826490E-04, y:  2.40168882E-04, z:  2.40168648E-04, 
-                    total:  3.75802117E-04}
- Clean forces norm (Ha/Bohr): {maxval:  3.107065424268E-05, fnrm2:  2.005743870945E-09}
- Raw forces norm (Ha/Bohr): {maxval:  2.286565918633E-04, fnrm2:  1.449924266365E-07}
+ Average noise forces: {x: -1.60826055E-04, y:  2.40165220E-04, z:  2.40164975E-04, 
+                    total:  3.75797243E-04}
+ Clean forces norm (Ha/Bohr): {maxval:  3.106793687124E-05, fnrm2:  2.005385762298E-09}
+ Raw forces norm (Ha/Bohr): {maxval:  2.286535508045E-04, fnrm2:  1.449882774578E-07}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [ -3.064305499026E-05, -3.632653917419E-06, -3.632156583639E-06 ]} # 0001
- -  {H:  [  2.217400815129E-05,  1.374296894865E-05,  1.374314858961E-05 ]} # 0002
- -  {H:  [  4.234743612605E-06, -7.920457153474E-06, -2.190118740774E-06 ]} # 0003
- -  {H:  [  4.234303226371E-06, -2.189857877753E-06, -7.920873265199E-06 ]} # 0004
+ -  {C: [-3.063976913587E-05, -3.634775434550E-06, -3.634509083275E-06]} # 0001
+ -  {H: [ 2.217126488325E-05,  1.374269988402E-05,  1.374285894544E-05]} # 0002
+ -  {H: [ 4.234401475224E-06, -7.919404885692E-06, -2.188659273523E-06]} # 0003
+ -  {H: [ 4.234102777393E-06, -2.188519563778E-06, -7.919690588644E-06]} # 0004
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  12.11
-   Elapsed time (s)                    :  6.29
+   CPU time (s)                        :  8.71
+   Elapsed time (s)                    :  4.53
  Geometry:
    Ncount_BigDFT                       :  22
    Iteration                           :  3
    Geometry Method                     : GEOPT_CG
-   etot                                :  [ -7.36608482223027E+00, -3.31626806016061E-08 ]
+   etot                                :  [ -7.36608482222646E+00, -3.31588756452561E-08 ]
    Forces                              :  [  3.11E-05,  4.48E-05,  3.64E-04,  3.64E-04 ]
    b/b0                                :  9.61E-1
-   FORCES norm(Ha/Bohr): { maxval:  3.10707E-05, fnrm2:  2.00574E-09, fluct:  3.64056E-04}
+   FORCES norm(Ha/Bohr): { maxval:  3.10679E-05, fnrm2:  2.00539E-09, fluct:  3.64055E-04}
 ---
   #--------------------------------------------------------------------------- Input parameters
  DFT parameters:
@@ -3977,9 +4000,9 @@
    Total number of projectors          :  1
    Total number of components          :  11020
    Percent of zero components          :  0
- Ion-Ion interaction energy            :  6.60299013650557E+00
+ Ion-Ion interaction energy            :  6.60299025741870E+00
   #------------------------------------------------------------------- Ionic Potential Creation
- Total ionic charge                    : -6.999999123239
+ Total ionic charge                    : -6.999999123238
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
@@ -3994,33 +4017,33 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36607068934017839E+00, gnrm:  5.63E-03}
-       -  {iter:  2, EKS: -7.36609057175960480E+00, gnrm:  1.17E-03, D: -1.99E-05}
-       -  {iter:  3, EKS: -7.36609163558171431E+00, gnrm:  4.78E-04, D: -1.06E-06}
-       -  {iter:  4, EKS: -7.36609188927742231E+00, gnrm:  1.19E-04, D: -2.54E-07}
-       -  {iter:  5, EKS: -7.36609191771965932E+00, gnrm:  4.32E-05, D: -2.84E-08}
-       -  &FINAL001  {iter:  6, EKS: -7.36609192188798190E+00, gnrm:  4.32E-05, D: -4.17E-09}
-       Non-Hermiticity of Hamiltonian in the Subspace:  1.54E-32
+       -  {iter:  1, EKS: -7.36607069352705235E+00, gnrm:  5.63E-03}
+       -  {iter:  2, EKS: -7.36609057208954621E+00, gnrm:  1.17E-03, D: -1.99E-05}
+       -  {iter:  3, EKS: -7.36609163562469949E+00, gnrm:  4.78E-04, D: -1.06E-06}
+       -  {iter:  4, EKS: -7.36609188924701375E+00, gnrm:  1.19E-04, D: -2.54E-07}
+       -  {iter:  5, EKS: -7.36609191768229277E+00, gnrm:  4.32E-05, D: -2.84E-08}
+       -  &FINAL001  {iter:  6, EKS: -7.36609192184988526E+00, gnrm:  4.32E-05, D: -4.17E-09}
+       Non-Hermiticity of Hamiltonian in the Subspace:  1.29E-31
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
    MPI tasks                           :  2
- Average noise forces: {x: -1.59790168E-04, y:  2.39091189E-04, z:  2.39090743E-04, 
-                    total:  3.73981120E-04}
- Clean forces norm (Ha/Bohr): {maxval:  1.329623071119E-04, fnrm2:  3.090354947615E-08}
- Raw forces norm (Ha/Bohr): {maxval:  2.157709443121E-04, fnrm2:  1.723798284530E-07}
+ Average noise forces: {x: -1.59789232E-04, y:  2.39090060E-04, z:  2.39089642E-04, 
+                    total:  3.73979294E-04}
+ Clean forces norm (Ha/Bohr): {maxval:  1.329599261166E-04, fnrm2:  3.090186400591E-08}
+ Raw forces norm (Ha/Bohr): {maxval:  2.157638066461E-04, fnrm2:  1.723767956001E-07}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [  1.329565945340E-04, -8.699676376419E-07, -8.730628575654E-07 ]} # 0001
- -  {H:  [ -3.772366065633E-05, -2.169834530753E-05, -2.169793385982E-05 ]} # 0002
- -  {H:  [ -4.761707305169E-05, -2.684651698452E-05,  4.941645416652E-05 ]} # 0003
- -  {H:  [ -4.761586082599E-05,  4.941482992970E-05, -2.684545744914E-05 ]} # 0004
+ -  {C: [ 1.329543932332E-04, -8.566698295244E-07, -8.587140001981E-07]} # 0001
+ -  {H: [-3.772837726923E-05, -2.170779693536E-05, -2.170758236551E-05]} # 0002
+ -  {H: [-4.761343688374E-05, -2.684395985327E-05,  4.940949927889E-05]} # 0003
+ -  {H: [-4.761257908021E-05,  4.940842661815E-05, -2.684320291318E-05]} # 0004
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  14.03
-   Elapsed time (s)                    :  7.28
+   CPU time (s)                        :  10.02
+   Elapsed time (s)                    :  5.18
 ---
   #--------------------------------------------------------------------------- Input parameters
  DFT parameters:
@@ -4132,9 +4155,9 @@
    Total number of projectors          :  1
    Total number of components          :  11020
    Percent of zero components          :  0
- Ion-Ion interaction energy            :  6.60323840223358E+00
+ Ion-Ion interaction energy            :  6.60323844587115E+00
   #------------------------------------------------------------------- Ionic Potential Creation
- Total ionic charge                    : -6.999999112540
+ Total ionic charge                    : -6.999999112539
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
@@ -4149,40 +4172,40 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36607513480132248E+00, gnrm:  3.41E-03}
-       -  {iter:  2, EKS: -7.36608416582777537E+00, gnrm:  8.61E-04, D: -9.03E-06}
-       -  {iter:  3, EKS: -7.36608474441295868E+00, gnrm:  3.57E-04, D: -5.79E-07}
-       -  {iter:  4, EKS: -7.36608488481034662E+00, gnrm:  8.62E-05, D: -1.40E-07}
-       -  &FINAL001  {iter:  5, EKS: -7.36608490017961337E+00, gnrm:  8.62E-05, D: -1.54E-08}
-       Non-Hermiticity of Hamiltonian in the Subspace:  1.49E-31
+       -  {iter:  1, EKS: -7.36607513690466131E+00, gnrm:  3.41E-03}
+       -  {iter:  2, EKS: -7.36608416599337357E+00, gnrm:  8.61E-04, D: -9.03E-06}
+       -  {iter:  3, EKS: -7.36608474443479100E+00, gnrm:  3.56E-04, D: -5.78E-07}
+       -  {iter:  4, EKS: -7.36608488479574053E+00, gnrm:  8.61E-05, D: -1.40E-07}
+       -  &FINAL001  {iter:  5, EKS: -7.36608490016165707E+00, gnrm:  8.61E-05, D: -1.54E-08}
+       Non-Hermiticity of Hamiltonian in the Subspace:  9.91E-32
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
    MPI tasks                           :  2
- Average noise forces: {x: -1.66812017E-04, y:  2.42027480E-04, z:  2.42027158E-04, 
-                    total:  3.80763306E-04}
- Clean forces norm (Ha/Bohr): {maxval:  1.980408699983E-05, fnrm2:  1.120072787203E-09}
- Raw forces norm (Ha/Bohr): {maxval:  2.244359995614E-04, fnrm2:  1.476347484224E-07}
+ Average noise forces: {x: -1.66812084E-04, y:  2.42027248E-04, z:  2.42026883E-04, 
+                    total:  3.80763013E-04}
+ Clean forces norm (Ha/Bohr): {maxval:  1.980205662265E-05, fnrm2:  1.119734511270E-09}
+ Raw forces norm (Ha/Bohr): {maxval:  2.244318977891E-04, fnrm2:  1.476341585783E-07}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [ -3.195655450356E-06, -1.770734080090E-06, -1.770744984277E-06 ]} # 0001
- -  {H:  [  1.388504541251E-05,  7.949805187643E-06,  7.950092604700E-06 ]} # 0002
- -  {H:  [ -5.344554153897E-06, -1.621460660206E-05,  1.003554119874E-05 ]} # 0003
- -  {H:  [ -5.344835808252E-06,  1.003553549451E-05, -1.621488881917E-05 ]} # 0004
+ -  {C: [-3.196762696193E-06, -1.765863032890E-06, -1.765904855950E-06]} # 0001
+ -  {H: [ 1.388338061548E-05,  7.946472259219E-06,  7.946721536167E-06]} # 0002
+ -  {H: [-5.343195306769E-06, -1.621398317019E-05,  1.003339586846E-05]} # 0003
+ -  {H: [-5.343422612518E-06,  1.003337394386E-05, -1.621421254867E-05]} # 0004
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  12.13
-   Elapsed time (s)                    :  6.29
+   CPU time (s)                        :  8.71
+   Elapsed time (s)                    :  4.52
  Geometry:
    Ncount_BigDFT                       :  24
    Iteration                           :  4
    Geometry Method                     : GEOPT_CG
-   etot                                :  [ -7.36608490017961E+00, -7.79493412039756E-08 ]
+   etot                                :  [ -7.36608490016166E+00, -7.79352005153555E-08 ]
    Forces                              :  [  1.98E-05,  3.35E-05,  3.67E-04,  3.67E-04 ]
    b/b0                                :  9.85E-1
-   FORCES norm(Ha/Bohr): { maxval:  1.98041E-05, fnrm2:  1.12007E-09, fluct:  3.67398E-04}
+   FORCES norm(Ha/Bohr): { maxval:  1.98021E-05, fnrm2:  1.11973E-09, fluct:  3.67397E-04}
 ---
   #--------------------------------------------------------------------------- Input parameters
  DFT parameters:
@@ -4294,9 +4317,9 @@
    Total number of projectors          :  1
    Total number of components          :  11020
    Percent of zero components          :  0
- Ion-Ion interaction energy            :  6.60409430038111E+00
+ Ion-Ion interaction energy            :  6.60409411528692E+00
   #------------------------------------------------------------------- Ionic Potential Creation
- Total ionic charge                    : -6.999999129673
+ Total ionic charge                    : -6.999999129670
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
@@ -4311,32 +4334,32 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36608391979722743E+00, gnrm:  4.39E-03}
-       -  {iter:  2, EKS: -7.36609162175027610E+00, gnrm:  4.60E-04, D: -7.70E-06}
-       -  {iter:  3, EKS: -7.36609179001044456E+00, gnrm:  1.37E-04, D: -1.68E-07}
-       -  {iter:  4, EKS: -7.36609181382917644E+00, gnrm:  4.22E-05, D: -2.38E-08}
-       -  &FINAL001  {iter:  5, EKS: -7.36609181715526784E+00, gnrm:  4.22E-05, D: -3.33E-09}
-       Non-Hermiticity of Hamiltonian in the Subspace:  3.95E-31
+       -  {iter:  1, EKS: -7.36608391995936440E+00, gnrm:  4.39E-03}
+       -  {iter:  2, EKS: -7.36609162175134369E+00, gnrm:  4.60E-04, D: -7.70E-06}
+       -  {iter:  3, EKS: -7.36609178999875258E+00, gnrm:  1.37E-04, D: -1.68E-07}
+       -  {iter:  4, EKS: -7.36609181381494782E+00, gnrm:  4.22E-05, D: -2.38E-08}
+       -  &FINAL001  {iter:  5, EKS: -7.36609181714026118E+00, gnrm:  4.22E-05, D: -3.33E-09}
+       Non-Hermiticity of Hamiltonian in the Subspace:  2.50E-31
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
    MPI tasks                           :  2
- Average noise forces: {x: -1.44383135E-04, y:  2.30243749E-04, z:  2.30243953E-04, 
-                    total:  3.56189488E-04}
- Clean forces norm (Ha/Bohr): {maxval:  1.040910460536E-04, fnrm2:  2.065111843983E-08}
- Raw forces norm (Ha/Bohr): {maxval:  2.205140475530E-04, fnrm2:  1.494659262308E-07}
+ Average noise forces: {x: -1.44384935E-04, y:  2.30240666E-04, z:  2.30240952E-04, 
+                    total:  3.56186286E-04}
+ Clean forces norm (Ha/Bohr): {maxval:  1.040463633978E-04, fnrm2:  2.063502526972E-08}
+ Raw forces norm (Ha/Bohr): {maxval:  2.204773967632E-04, fnrm2:  1.494473235911E-07}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [  3.690422953719E-05,  3.536154108626E-05,  3.535891011641E-05 ]} # 0001
- -  {H:  [ -7.001400852788E-05, -5.446532940335E-05, -5.446569903513E-05 ]} # 0002
- -  {H:  [  1.655401469201E-05,  4.504978658173E-05, -2.594461801036E-05 ]} # 0003
- -  {H:  [  1.655576429868E-05, -2.594599826464E-05,  4.505140692907E-05 ]} # 0004
+ -  {C: [ 3.688084420382E-05,  3.533460732658E-05,  3.533289826083E-05]} # 0001
+ -  {H: [-6.998930198888E-05, -5.443846519039E-05, -5.443892771834E-05]} # 0002
+ -  {H: [ 1.655354941526E-05,  4.504532256023E-05, -2.594056810294E-05]} # 0003
+ -  {H: [ 1.655490836981E-05, -2.594146469641E-05,  4.504659756046E-05]} # 0004
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  12.13
-   Elapsed time (s)                    :  6.35
+   CPU time (s)                        :  8.66
+   Elapsed time (s)                    :  4.48
 ---
   #--------------------------------------------------------------------------- Input parameters
  DFT parameters:
@@ -4448,7 +4471,7 @@
    Total number of projectors          :  1
    Total number of components          :  11020
    Percent of zero components          :  0
- Ion-Ion interaction energy            :  6.60341844351902E+00
+ Ion-Ion interaction energy            :  6.60341847179522E+00
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -6.999999116141
  Poisson Solver:
@@ -4465,41 +4488,41 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {iter:  1, EKS: -7.36608530218670499E+00, gnrm:  1.85E-03}
-       -  {iter:  2, EKS: -7.36608698144410656E+00, gnrm:  2.81E-04, D: -1.68E-06}
-       -  {iter:  3, EKS: -7.36608704373506118E+00, gnrm:  1.00E-04, D: -6.23E-08}
-       -  {iter:  4, EKS: -7.36608705474019043E+00, gnrm:  3.42E-05, D: -1.10E-08}
-       -  &FINAL001  {iter:  5, EKS: -7.36608705683345466E+00, gnrm:  3.42E-05, D: -2.09E-09}
-       Non-Hermiticity of Hamiltonian in the Subspace:  6.59E-32
+       -  {iter:  1, EKS: -7.36608530234505743E+00, gnrm:  1.85E-03}
+       -  {iter:  2, EKS: -7.36608698144258156E+00, gnrm:  2.81E-04, D: -1.68E-06}
+       -  {iter:  3, EKS: -7.36608704372142853E+00, gnrm:  1.00E-04, D: -6.23E-08}
+       -  {iter:  4, EKS: -7.36608705472399627E+00, gnrm:  3.41E-05, D: -1.10E-08}
+       -  &FINAL001  {iter:  5, EKS: -7.36608705681669385E+00, gnrm:  3.41E-05, D: -2.09E-09}
+       Non-Hermiticity of Hamiltonian in the Subspace:  3.14E-31
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  105,  105,  105 ]
    MPI tasks                           :  2
- Average noise forces: {x: -1.69508023E-04, y:  2.44780388E-04, z:  2.44780436E-04, 
-                    total:  3.85445029E-04}
- Clean forces norm (Ha/Bohr): {maxval:  1.703600068872E-05, fnrm2:  4.653302649431E-10}
- Raw forces norm (Ha/Bohr): {maxval:  2.145943501802E-04, fnrm2:  1.505391664631E-07}
+ Average noise forces: {x: -1.69508070E-04, y:  2.44781162E-04, z:  2.44781188E-04, 
+                    total:  3.85446018E-04}
+ Clean forces norm (Ha/Bohr): {maxval:  1.704158697217E-05, fnrm2:  4.655343102633E-10}
+ Raw forces norm (Ha/Bohr): {maxval:  2.145935234711E-04, fnrm2:  1.505401951907E-07}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C:  [ -2.847133478340E-06,  1.187720086049E-05,  1.187649991126E-05 ]} # 0001
- -  {H:  [ -1.635206469979E-06, -6.977075611986E-06, -6.977123641590E-06 ]} # 0002
- -  {H:  [  2.240962160641E-06, -5.652329410013E-06,  7.525718720887E-07 ]} # 0003
- -  {H:  [  2.241377787679E-06,  7.522041615048E-07, -5.651948141755E-06 ]} # 0004
+ -  {C: [-2.851661173629E-06,  1.188058130152E-05,  1.188004642326E-05]} # 0001
+ -  {H: [-1.633740353409E-06, -6.978027783517E-06, -6.978115650936E-06]} # 0002
+ -  {H: [ 2.242516580013E-06, -5.651727853292E-06,  7.494549259018E-07]} # 0003
+ -  {H: [ 2.242884947024E-06,  7.491743352903E-07, -5.651385698223E-06]} # 0004
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  12.10
-   Elapsed time (s)                    :  6.32
+   CPU time (s)                        :  8.67
+   Elapsed time (s)                    :  4.50
  Geometry:
    Ncount_BigDFT                       :  26
    Iteration                           :  5
    Geometry Method                     : GEOPT_CG
-   etot                                :  [ -7.36608705683345E+00, -2.15665384128982E-06 ]
+   etot                                :  [ -7.36608705681669E+00, -2.15665503677798E-06 ]
    Forces                              :  [  1.70E-05,  2.16E-05,  3.71E-04,  3.71E-04 ]
-   b/b0                                :  8.41E-1
-   FORCES norm(Ha/Bohr): { maxval:  1.70360E-05, fnrm2:  4.65330E-10, fluct:  3.71007E-04}
- Average CG stepsize in terms of betax :  1.50625
+   b/b0                                :  8.42E-1
+   FORCES norm(Ha/Bohr): { maxval:  1.70416E-05, fnrm2:  4.65534E-10, fluct:  3.71007E-04}
+ Average CG stepsize in terms of betax :  1.50624
  End of minimization using             : SDCG
  Memory Consumption Report:
    Tot. No. of Allocations  : 29557

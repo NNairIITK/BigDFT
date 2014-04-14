@@ -1,30 +1,44 @@
-!again assuming all matrices have same sparsity, still some tidying to be done
-subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, ham_compr, &
-           ovrlp_compr, calculate_SHS, SHS, fermi, penalty_ev)
+!> @file
+!!  Linear version: Define Chebyshev polynomials
+!! @author
+!!    Copyright (C) 2012-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+ 
+!> Again assuming all matrices have same sparsity, still some tidying to be done
+subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_compr, &
+           ovrlp_compr, calculate_SHS, nsize_polynomial, SHS, fermi, penalty_ev, chebyshev_polynomials, &
+           emergency_stop)
   use module_base
   use module_types
   use module_interfaces, except_this_one => chebyshev_clean
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, npl
+  integer,intent(in) :: iproc, nproc, npl, nsize_polynomial
   real(8),dimension(npl,3),intent(in) :: cc
   type(orbitals_data),intent(in) :: orbs
   type(foe_data),intent(in) :: foe_obj
-  type(sparseMatrix), intent(in) :: sparsemat
-  real(kind=8),dimension(sparsemat%nvctr),intent(in) :: ham_compr, ovrlp_compr
+  type(sparse_matrix), intent(in) :: kernel
+  real(kind=8),dimension(kernel%nvctr),intent(in) :: ham_compr, ovrlp_compr
   logical,intent(in) :: calculate_SHS
-  real(kind=8),dimension(sparsemat%nvctr),intent(inout) :: SHS
+  real(kind=8),dimension(kernel%nvctr),intent(inout) :: SHS
   real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: fermi
   real(kind=8),dimension(orbs%norb,orbs%norbp,2),intent(out) :: penalty_ev
+  real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
+  logical,intent(out) :: emergency_stop
   ! Local variables
-  integer :: istat, iorb,iiorb, jorb, iall,ipl,norb,norbp,isorb, ierr,i,j, nseq, nmaxsegk, nmaxvalk
+  integer :: istat, iorb,iiorb, jorb, iall,ipl,norb,norbp,isorb, ierr, nseq, nmaxsegk, nmaxvalk
   integer :: isegstart, isegend, iseg, ii, jjorb, nout
   character(len=*),parameter :: subname='chebyshev_clean'
   real(8), dimension(:,:,:), allocatable :: vectors
   real(kind=8),dimension(:),allocatable :: ham_compr_seq, ovrlp_compr_seq, SHS_seq
   real(kind=8),dimension(:,:),allocatable :: matrix
-  real(kind=8) :: tt1, tt2, time1,time2 , tt, time_to_zero, time_vcopy, time_sparsemm, time_axpy, time_axbyz, time_copykernel
+  real(kind=8) :: tt, ddot
   integer,dimension(:,:,:),allocatable :: istindexarr
   integer,dimension(:),allocatable :: ivectorindex
   integer,parameter :: one=1, three=3
@@ -33,88 +47,96 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, ham_
 
   call timing(iproc, 'chebyshev_comp', 'ON')
 
-
   norb = orbs%norb
   norbp = orbs%norbp
   isorb = orbs%isorb
 
-  call init_onedimindices(norbp, isorb, foe_obj, sparsemat, nout, onedimindices)
+  if (norbp>0) then
 
-  call determine_sequential_length(norbp, isorb, norb, foe_obj, sparsemat, nseq, nmaxsegk, nmaxvalk)
-
-
-  allocate(ham_compr_seq(nseq), stat=istat)
-  call memocc(istat, ham_compr_seq, 'ham_compr_seq', subname)
-  allocate(ovrlp_compr_seq(nseq), stat=istat)
-  call memocc(istat, ovrlp_compr_seq, 'ovrlp_compr_seq', subname)
-  allocate(istindexarr(nmaxvalk,nmaxsegk,norbp), stat=istat)
-  call memocc(istat, istindexarr, 'istindexarr', subname)
-  allocate(ivectorindex(nseq), stat=istat)
-  call memocc(istat, ivectorindex, 'ivectorindex', subname)
-
-  call get_arrays_for_sequential_acces(norbp, isorb, norb, foe_obj, sparsemat, nseq, nmaxsegk, nmaxvalk, &
-       istindexarr, ivectorindex)
-
-
-  if (number_of_matmuls==one) then
-      allocate(matrix(orbs%norb,orbs%norbp), stat=istat)
-      call memocc(istat, matrix, 'matrix', subname)
-      allocate(SHS_seq(nseq), stat=istat)
-      call memocc(istat, SHS_seq, 'SHS_seq', subname)
-
-      call to_zero(norb*norbp, matrix(1,1))
-      if (orbs%norbp>0) then
-          isegstart=sparsemat%istsegline(orbs%isorb_par(iproc)+1)
-          if (orbs%isorb+orbs%norbp<orbs%norb) then
-              isegend=sparsemat%istsegline(orbs%isorb_par(iproc+1)+1)-1
-          else
-              isegend=sparsemat%nseg
+      call init_onedimindices(norbp, isorb, foe_obj, kernel, nout, onedimindices)
+    
+      call determine_sequential_length(norbp, isorb, norb, foe_obj, kernel, nseq, nmaxsegk, nmaxvalk)
+    
+    
+      ham_compr_seq = f_malloc(nseq,id='ham_compr_seq')
+      ovrlp_compr_seq = f_malloc(nseq,id='ovrlp_compr_seq')
+      istindexarr = f_malloc((/ nmaxvalk, nmaxsegk, norbp /),id='istindexarr')
+      ivectorindex = f_malloc(nseq,id='ivectorindex')
+    
+      call get_arrays_for_sequential_acces(norbp, isorb, norb, foe_obj, kernel, nseq, nmaxsegk, nmaxvalk, &
+           istindexarr, ivectorindex)
+    
+    
+      if (number_of_matmuls==one) then
+          matrix = f_malloc((/ orbs%norb, orbs%norbp /),id='matrix')
+          SHS_seq = f_malloc(nseq,id='SHS_seq')
+    
+          if (norbp>0) then
+              call to_zero(norb*norbp, matrix(1,1))
           end if
-          do iseg=isegstart,isegend
-              ii=sparsemat%keyv(iseg)-1
-              do jorb=sparsemat%keyg(1,iseg),sparsemat%keyg(2,iseg)
-                  ii=ii+1
-                  iiorb = (jorb-1)/orbs%norb + 1
-                  jjorb = jorb - (iiorb-1)*orbs%norb
-                  matrix(jjorb,iiorb-orbs%isorb)=ovrlp_compr(ii)
-              end do
-          end do
-      end if
-  end if
-
-  call sequential_acces_matrix(norbp, isorb, norb, foe_obj, sparsemat, ham_compr, nseq, nmaxsegk, nmaxvalk, &
-       ham_compr_seq)
-
-
-  call sequential_acces_matrix(norbp, isorb, norb, foe_obj, sparsemat, ovrlp_compr, nseq, nmaxsegk, nmaxvalk, &
-       ovrlp_compr_seq)
-
-  allocate(vectors(norb,norbp,4), stat=istat)
-  call memocc(istat, vectors, 'vectors', subname)
-  call to_zero(norb*norbp, vectors(1,1,1))
-
-
-  if (number_of_matmuls==one) then
-
-      if (calculate_SHS) then
-
-          call sparsemm(nseq, ham_compr_seq, matrix(1,1), vectors(1,1,1), &
-               norb, norbp, ivectorindex, nout, onedimindices)
-          call to_zero(norbp*norb, matrix(1,1))
-          call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,1), matrix(1,1), &
-               norb, norbp, ivectorindex, nout, onedimindices)
-          call to_zero(sparsemat%nvctr, SHS(1))
-          
+          !write(*,*) 'WARNING CHEBYSHEV: MODIFYING MATRIX MULTIPLICATION'
           if (orbs%norbp>0) then
-              isegstart=sparsemat%istsegline(orbs%isorb_par(iproc)+1)
+              isegstart=kernel%istsegline(orbs%isorb_par(iproc)+1)
               if (orbs%isorb+orbs%norbp<orbs%norb) then
-                  isegend=sparsemat%istsegline(orbs%isorb_par(iproc+1)+1)-1
+                  isegend=kernel%istsegline(orbs%isorb_par(iproc+1)+1)-1
               else
-                  isegend=sparsemat%nseg
+                  isegend=kernel%nseg
               end if
               do iseg=isegstart,isegend
-                  ii=sparsemat%keyv(iseg)-1
-                  do jorb=sparsemat%keyg(1,iseg),sparsemat%keyg(2,iseg)
+                  ii=kernel%keyv(iseg)-1
+                  do jorb=kernel%keyg(1,iseg),kernel%keyg(2,iseg)
+                      ii=ii+1
+                      iiorb = (jorb-1)/orbs%norb + 1
+                      jjorb = jorb - (iiorb-1)*orbs%norb
+                      matrix(jjorb,iiorb-orbs%isorb)=ovrlp_compr(ii)
+                      !if (jjorb==iiorb) then
+                      !    matrix(jjorb,iiorb-orbs%isorb)=1.d0
+                      !else
+                      !    matrix(jjorb,iiorb-orbs%isorb)=0.d0
+                      !end if
+                  end do
+              end do
+          end if
+      end if
+    
+      call sequential_acces_matrix(norbp, isorb, norb, foe_obj, kernel, ham_compr, nseq, nmaxsegk, nmaxvalk, &
+           ham_compr_seq)
+    
+    
+      call sequential_acces_matrix(norbp, isorb, norb, foe_obj, kernel, ovrlp_compr, nseq, nmaxsegk, nmaxvalk, &
+           ovrlp_compr_seq)
+    
+      vectors = f_malloc((/ norb, norbp, 4 /),id='vectors')
+      if (norbp>0) then
+          call to_zero(norb*norbp, vectors(1,1,1))
+      end if
+    
+  end if
+    
+  if (number_of_matmuls==one) then
+  
+      if (calculate_SHS) then
+  
+          if (norbp>0) then
+              call sparsemm(nseq, ham_compr_seq, matrix(1,1), vectors(1,1,1), &
+                   norb, norbp, ivectorindex, nout, onedimindices)
+              call to_zero(norbp*norb, matrix(1,1))
+              call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,1), matrix(1,1), &
+                   norb, norbp, ivectorindex, nout, onedimindices)
+              !call to_zero(kernel%nvctr, SHS(1))
+          end if
+          call to_zero(kernel%nvctr, SHS(1))
+          
+          if (orbs%norbp>0) then
+              isegstart=kernel%istsegline(orbs%isorb_par(iproc)+1)
+              if (orbs%isorb+orbs%norbp<orbs%norb) then
+                  isegend=kernel%istsegline(orbs%isorb_par(iproc+1)+1)-1
+              else
+                  isegend=kernel%nseg
+              end if
+              do iseg=isegstart,isegend
+                  ii=kernel%keyv(iseg)-1
+                  do jorb=kernel%keyg(1,iseg),kernel%keyg(2,iseg)
                       ii=ii+1
                       iiorb = (jorb-1)/orbs%norb + 1
                       jjorb = jorb - (iiorb-1)*orbs%norb
@@ -122,119 +144,130 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, sparsemat, ham_
                   end do
               end do
           end if
+  
+          call mpiallred(SHS(1), kernel%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  
+      end if
+  
+      if (orbs%norbp>0) then
+          call sequential_acces_matrix(norbp, isorb, norb, foe_obj, kernel, SHS, nseq, nmaxsegk, &
+               nmaxvalk, SHS_seq)
+      end if
+  
+  end if
 
-          call mpiallred(SHS(1), sparsemat%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  !!if (iproc==0) then
+  !!    do istat=1,kernel%nvctr
+  !!        write(300,*) ham_compr(istat), SHS(istat)
+  !!    end do
+  !!end if
+    
+  if (norbp>0) then
+    
+      ! No need to set to zero the 3rd and 4th entry since they will be overwritten
+      ! by copies of the 1st entry.
+      if (norbp>0) then
+          call to_zero(2*norb*norbp, vectors(1,1,1))
+      end if
+      do iorb=1,norbp
+          iiorb=isorb+iorb
+          vectors(iiorb,iorb,1)=1.d0
+      end do
+    
+      if (norbp>0) then
+    
+          call vcopy(norb*norbp, vectors(1,1,1), 1, vectors(1,1,3), 1)
+          call vcopy(norb*norbp, vectors(1,1,1), 1, vectors(1,1,4), 1)
+        
+          ! apply(3/2 - 1/2 S) H (3/2 - 1/2 S)
+          if (number_of_matmuls==three) then
+              call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,3), vectors(1,1,1), &
+                   norb, norbp, ivectorindex, nout, onedimindices)
+              call sparsemm(nseq, ham_compr_seq, vectors(1,1,1), vectors(1,1,3), &
+                   norb, norbp, ivectorindex, nout, onedimindices)
+              call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,3), vectors(1,1,1), &
+                   norb, norbp, ivectorindex, nout, onedimindices)
+          else if (number_of_matmuls==one) then
+              call sparsemm(nseq, SHS_seq, vectors(1,1,3), vectors(1,1,1), &
+                   norb, norbp, ivectorindex, nout, onedimindices)
+          end if
+        
+        
+          call vcopy(norb*norbp, vectors(1,1,1), 1, vectors(1,1,2), 1)
+        
+          !initialize fermi
+          call to_zero(norbp*norb, fermi(1,1))
+          call to_zero(2*norb*norbp, penalty_ev(1,1,1))
+          call compress_polynomial_vector(iproc, nsize_polynomial, orbs, kernel, vectors(1,1,4), chebyshev_polynomials(1,1))
+          call axpy_kernel_vectors(norbp, norb, nout, onedimindices, 0.5d0*cc(1,1), vectors(1,1,4), fermi(:,1))
+          call axpy_kernel_vectors(norbp, norb, nout, onedimindices, 0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,1))
+          call axpy_kernel_vectors(norbp, norb, nout, onedimindices, 0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,2))
+          call compress_polynomial_vector(iproc, nsize_polynomial, orbs, kernel, vectors(1,1,2), chebyshev_polynomials(1,2))
+          call axpy_kernel_vectors(norbp, norb, nout, onedimindices, cc(2,1), vectors(1,1,2), fermi(:,1))
+          call axpy_kernel_vectors(norbp, norb, nout, onedimindices, cc(2,3), vectors(1,1,2), penalty_ev(:,1,1))
+          call axpy_kernel_vectors(norbp, norb, nout, onedimindices, -cc(2,3), vectors(1,1,2), penalty_ev(:,1,2))
+        
+        
+          emergency_stop=.false.
+          main_loop: do ipl=3,npl
+              ! apply (3/2 - 1/2 S) H (3/2 - 1/2 S)
+              if (number_of_matmuls==three) then
+                  call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,1), vectors(1,1,2), &
+                       norb, norbp, ivectorindex, nout, onedimindices)
+                  call sparsemm(nseq, ham_compr_seq, vectors(1,1,2), vectors(1,1,3), &
+                       norb, norbp, ivectorindex, nout, onedimindices)
+                  call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,3), vectors(1,1,2), &
+                       norb, norbp, ivectorindex, nout, onedimindices)
+              else if (number_of_matmuls==one) then
+                  call sparsemm(nseq, SHS_seq, vectors(1,1,1), vectors(1,1,2), &
+                       norb, norbp, ivectorindex, nout, onedimindices)
+              end if
+              call axbyz_kernel_vectors(norbp, norb, nout, onedimindices, 2.d0, vectors(1,1,2), &
+                   -1.d0, vectors(1,1,4), vectors(1,1,3))
+              call compress_polynomial_vector(iproc, nsize_polynomial, orbs, kernel, vectors(1,1,3), chebyshev_polynomials(1,ipl))
+              call axpy_kernel_vectors(norbp, norb, nout, onedimindices, cc(ipl,1), vectors(1,1,3), fermi(:,1))
+              call axpy_kernel_vectors(norbp, norb, nout, onedimindices, cc(ipl,3), vectors(1,1,3), penalty_ev(:,1,1))
+         
+              if (mod(ipl,2)==1) then
+                  tt=cc(ipl,3)
+              else
+                  tt=-cc(ipl,3)
+              end if
+              call axpy_kernel_vectors(norbp, norb, nout, onedimindices, tt, vectors(1,1,3), penalty_ev(:,1,2))
+         
+              call copy_kernel_vectors(norbp, norb, nout, onedimindices, vectors(1,1,1), vectors(1,1,4))
+              call copy_kernel_vectors(norbp, norb, nout, onedimindices, vectors(1,1,3), vectors(1,1,1))
 
+              ! Check the norm of the columns of the kernel and set a flag if it explodes, which might
+              ! be a consequence of the eigenvalue bounds being to small.
+              do iorb=1,norbp
+                  tt=ddot(norb, fermi(1,iorb), 1, fermi(1,iorb), 1)
+                  if (abs(tt)>1.d3) then
+                      emergency_stop=.true.
+                      exit main_loop
+                  end if
+              end do
+          end do main_loop
+    
       end if
 
-      call sequential_acces_matrix(norbp, isorb, norb, foe_obj, sparsemat, SHS, nseq, nmaxsegk, &
-           nmaxvalk, SHS_seq)
+ 
+    
+      call f_free(vectors)
+      call f_free(ham_compr_seq)
+      call f_free(ovrlp_compr_seq)
+      call f_free(istindexarr)
+      call f_free(ivectorindex)
+      call f_free_ptr(onedimindices)
+    
+      if (number_of_matmuls==one) then
+          call f_free(matrix)
+          call f_free(SHS_seq)
+      end if
 
   end if
 
-
-  ! No need to set to zero the 3rd and 4th entry since they will be overwritten
-  ! by copies of the 1st entry.
-  call to_zero(2*norb*norbp, vectors(1,1,1))
-  do iorb=1,norbp
-      iiorb=isorb+iorb
-      vectors(iiorb,iorb,1)=1.d0
-  end do
-
-
-  call vcopy(norb*norbp, vectors(1,1,1), 1, vectors(1,1,3), 1)
-  call vcopy(norb*norbp, vectors(1,1,1), 1, vectors(1,1,4), 1)
-
-  ! apply(3/2 - 1/2 S) H (3/2 - 1/2 S)
-  if (number_of_matmuls==three) then
-      call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,3), vectors(1,1,1), &
-           norb, norbp, ivectorindex, nout, onedimindices)
-      call sparsemm(nseq, ham_compr_seq, vectors(1,1,1), vectors(1,1,3), &
-           norb, norbp, ivectorindex, nout, onedimindices)
-      call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,3), vectors(1,1,1), &
-           norb, norbp, ivectorindex, nout, onedimindices)
-  else if (number_of_matmuls==one) then
-      call sparsemm(nseq, SHS_seq, vectors(1,1,3), vectors(1,1,1), &
-           norb, norbp, ivectorindex, nout, onedimindices)
-  end if
-
-
-  call vcopy(norb*norbp, vectors(1,1,1), 1, vectors(1,1,2), 1)
-
-  !initialize fermi
-  call to_zero(norbp*norb, fermi(1,1))
-  call to_zero(2*norb*norbp, penalty_ev(1,1,1))
-  call axpy_kernel_vectors(norbp, norb, nout, onedimindices, 0.5d0*cc(1,1), vectors(1,1,4), fermi(:,1))
-  call axpy_kernel_vectors(norbp, norb, nout, onedimindices, 0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,1))
-  call axpy_kernel_vectors(norbp, norb, nout, onedimindices, 0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,2))
-  call axpy_kernel_vectors(norbp, norb, nout, onedimindices, cc(2,1), vectors(1,1,2), fermi(:,1))
-  call axpy_kernel_vectors(norbp, norb, nout, onedimindices, cc(2,3), vectors(1,1,2), penalty_ev(:,1,1))
-  call axpy_kernel_vectors(norbp, norb, nout, onedimindices, -cc(2,3), vectors(1,1,2), penalty_ev(:,1,2))
-
-
-  do ipl=3,npl
-      ! apply (3/2 - 1/2 S) H (3/2 - 1/2 S)
-      if (number_of_matmuls==three) then
-          call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,1), vectors(1,1,2), &
-               norb, norbp, ivectorindex, nout, onedimindices)
-          call sparsemm(nseq, ham_compr_seq, vectors(1,1,2), vectors(1,1,3), &
-               norb, norbp, ivectorindex, nout, onedimindices)
-          call sparsemm(nseq, ovrlp_compr_seq, vectors(1,1,3), vectors(1,1,2), &
-               norb, norbp, ivectorindex, nout, onedimindices)
-      else if (number_of_matmuls==one) then
-          call sparsemm(nseq, SHS_seq, vectors(1,1,1), vectors(1,1,2), &
-               norb, norbp, ivectorindex, nout, onedimindices)
-      end if
-      call axbyz_kernel_vectors(norbp, norb, nout, onedimindices, 2.d0, vectors(1,1,2), &
-           -1.d0, vectors(1,1,4), vectors(1,1,3))
-      call axpy_kernel_vectors(norbp, norb, nout, onedimindices, cc(ipl,1), vectors(1,1,3), fermi(:,1))
-      call axpy_kernel_vectors(norbp, norb, nout, onedimindices, cc(ipl,3), vectors(1,1,3), penalty_ev(:,1,1))
- 
-      if (mod(ipl,2)==1) then
-          tt=cc(ipl,3)
-      else
-          tt=-cc(ipl,3)
-      end if
-      call axpy_kernel_vectors(norbp, norb, nout, onedimindices, tt, vectors(1,1,3), penalty_ev(:,1,2))
- 
-      call copy_kernel_vectors(norbp, norb, nout, onedimindices, vectors(1,1,1), vectors(1,1,4))
-      call copy_kernel_vectors(norbp, norb, nout, onedimindices, vectors(1,1,3), vectors(1,1,1))
-  end do
-
-
- 
   call timing(iproc, 'chebyshev_comp', 'OF')
-
-  iall=-product(shape(vectors))*kind(vectors)
-  deallocate(vectors, stat=istat)
-  call memocc(istat, iall, 'vectors', subname)
-
-
-  iall=-product(shape(ham_compr_seq))*kind(ham_compr_seq)
-  deallocate(ham_compr_seq, stat=istat)
-  call memocc(istat, iall, 'ham_compr_seq', subname)
-  iall=-product(shape(ovrlp_compr_seq))*kind(ovrlp_compr_seq)
-  deallocate(ovrlp_compr_seq, stat=istat)
-  call memocc(istat, iall, 'ovrlp_compr_seq', subname)
-  iall=-product(shape(istindexarr))*kind(istindexarr)
-  deallocate(istindexarr, stat=istat)
-  call memocc(istat, iall, 'istindexarr', subname)
-  iall=-product(shape(ivectorindex))*kind(ivectorindex)
-  deallocate(ivectorindex, stat=istat)
-  call memocc(istat, iall, 'ivectorindex', subname)
-
-  iall=-product(shape(onedimindices))*kind(onedimindices)
-  deallocate(onedimindices, stat=istat)
-  call memocc(istat, iall, 'onedimindices', subname)
-
-  if (number_of_matmuls==one) then
-      iall=-product(shape(matrix))*kind(matrix)
-      deallocate(matrix, stat=istat)
-      call memocc(istat, iall, 'matrix', subname)
-      iall=-product(shape(SHS_seq))*kind(SHS_seq)
-      deallocate(SHS_seq, stat=istat)
-      call memocc(istat, iall, 'SHS_seq', subname)
-  end if
 
 end subroutine chebyshev_clean
 
@@ -286,10 +319,10 @@ subroutine sparsemm(nseq, a_seq, b, c, norb, norbp, ivectorindex, nout, onedimin
   integer,dimension(4,nout) :: onedimindices
 
   !Local variables
+  !character(len=*), parameter :: subname='sparsemm'
   integer :: i,jorb,jjorb,m,mp1
   integer :: iorb, ii0, ii2, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6, iout
-  character(len=*),parameter :: subname='sparsemm'
-  real(8) :: tt
+  real(kind=8) :: tt
 
 
   !$omp parallel default(private) shared(ivectorindex, a_seq, b, c, onedimindices, nout)
@@ -387,7 +420,7 @@ subroutine axpy_kernel_vectors(norbp, norb, nout, onedimindices, a, x, y)
   integer,dimension(4,nout),intent(in) :: onedimindices
   real(kind=8),intent(in) :: a
   real(kind=8),dimension(norb,norbp),intent(in) :: x
-  real(kind=8),dimension(norb,norbp),intent(out) :: y
+  real(kind=8),dimension(norb,norbp),intent(inout) :: y
 
   ! Local variables
   integer :: i, jorb, iorb
@@ -411,12 +444,13 @@ end subroutine axpy_kernel_vectors
 subroutine determine_sequential_length(norbp, isorb, norb, foe_obj, sparsemat, nseq, nmaxsegk, nmaxvalk)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: norbp, isorb, norb
   type(foe_data),intent(in) :: foe_obj
-  type(sparseMatrix),intent(in) :: sparsemat
+  type(sparse_matrix),intent(in) :: sparsemat
   integer,intent(out) :: nseq, nmaxsegk, nmaxvalk
 
   ! Local variables
@@ -448,12 +482,13 @@ end subroutine determine_sequential_length
 subroutine init_onedimindices(norbp, isorb, foe_obj, sparsemat, nout, onedimindices)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: norbp, isorb
   type(foe_data),intent(in) :: foe_obj
-  type(sparseMatrix),intent(in) :: sparsemat
+  type(sparse_matrix),intent(in) :: sparsemat
   integer,intent(out) :: nout
   integer,dimension(:,:),pointer :: onedimindices
 
@@ -472,8 +507,8 @@ subroutine init_onedimindices(norbp, isorb, foe_obj, sparsemat, nout, onedimindi
       end do
   end do
 
-  allocate(onedimindices(4,nout), stat=istat)
-  call memocc(istat, onedimindices, 'onedimindices', subname)
+! allocate(onedimindices(4,nout), stat=istat)
+  onedimindices = f_malloc_ptr((/ 4, nout /),id='onedimindices')
 
   ii=0
   itot=1
@@ -503,12 +538,13 @@ subroutine get_arrays_for_sequential_acces(norbp, isorb, norb, foe_obj, sparsema
            istindexarr, ivectorindex)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: norbp, isorb, norb, nseq, nmaxsegk, nmaxvalk
   type(foe_data),intent(in) :: foe_obj
-  type(sparseMatrix),intent(in) :: sparsemat
+  type(sparse_matrix),intent(in) :: sparsemat
   integer,dimension(nmaxvalk,nmaxsegk,norbp),intent(out) :: istindexarr
   integer,dimension(nseq),intent(out) :: ivectorindex
 
@@ -541,12 +577,13 @@ end subroutine get_arrays_for_sequential_acces
 subroutine sequential_acces_matrix(norbp, isorb, norb, foe_obj, sparsemat, a, nseq, nmaxsegk, nmaxvalk, a_seq)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: norbp, isorb, norb, nseq, nmaxsegk, nmaxvalk
   type(foe_data),intent(in) :: foe_obj
-  type(sparseMatrix),intent(in) :: sparsemat
+  type(sparse_matrix),intent(in) :: sparsemat
   real(kind=8),dimension(sparsemat%nvctr),intent(in) :: a
   real(kind=8),dimension(nseq),intent(out) :: a_seq
 
@@ -572,3 +609,46 @@ subroutine sequential_acces_matrix(norbp, isorb, norb, foe_obj, sparsemat, a, ns
   end do 
 
 end subroutine sequential_acces_matrix
+
+
+
+subroutine chebyshev_fast(iproc, nsize_polynomial, npl, orbs, fermi, chebyshev_polynomials, cc, kernelp)
+  use module_base
+  use module_types
+  use sparsematrix_base, only: sparse_matrix
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nsize_polynomial, npl
+  type(orbitals_data),intent(in) :: orbs
+  type(sparse_matrix),intent(in) :: fermi
+  real(kind=8),dimension(nsize_polynomial,npl),intent(in) :: chebyshev_polynomials
+  real(kind=8),dimension(npl),intent(in) :: cc
+  real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: kernelp
+
+  ! Local variables
+  integer :: ipl, istat, iall
+  real(kind=8),dimension(:),allocatable :: kernel_compressed
+  character(len=*),parameter :: subname='chebyshev_fast'
+
+
+  if (nsize_polynomial>0) then
+!     allocate(kernel_compressed(nsize_polynomial),stat=istat)
+      kernel_compressed = f_malloc(nsize_polynomial,id='kernel_compressed')
+
+      call to_zero(nsize_polynomial,kernel_compressed(1))
+      !write(*,*) 'ipl, first element', 1, chebyshev_polynomials(1,1)
+      call daxpy(nsize_polynomial, 0.5d0*cc(1), chebyshev_polynomials(1,1), 1, kernel_compressed(1), 1)
+      do ipl=2,npl
+      !write(*,*) 'ipl, first element', ipl, chebyshev_polynomials(1,ipl)
+          call daxpy(nsize_polynomial, cc(ipl), chebyshev_polynomials(1,ipl), 1, kernel_compressed(1), 1)
+      end do
+
+      call uncompress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, kernel_compressed, kernelp)
+
+      iall=-product(shape(kernel_compressed))*kind(kernel_compressed)
+!     deallocate(kernel_compressed, stat=istat)
+      call f_free(kernel_compressed)
+  end if
+
+end subroutine chebyshev_fast

@@ -1,7 +1,7 @@
 !> @file
-!! Check psuedopotentials
+!! Check pseudopotentials
 !! @author
-!!    Copyright (C) 2011-2012 BigDFT group
+!!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -9,7 +9,7 @@
 
 
 !> Program to check pseudopotentials
-program krachboum
+program psp_test
   use module_base
 
   implicit none
@@ -23,12 +23,15 @@ program krachboum
 
   integer :: nzatom_d, nelpsp_d, npspcode_d
   real(gp) :: psppar_d(0:4,0:6)
+  !ALEX: If psp_from_file supports NLCC, it needs additional arguments:
+  real(gp):: rcore, qcore
+  logical:: donlcc, pawpatch
 
   call get_command_argument(1, value = path, status = istat)
   if (istat /= 0) stop "argument"
 
-  call psp_from_file(path, nzatom, nelpsp, npspcode, ixcpsp, psppar, radii_cf, &
-       & read_radii, exists)
+  call psp_from_file(path, nzatom, nelpsp, npspcode, ixcpsp, psppar, &
+         donlcc, rcore, qcore, radii_cf, exists, pawpatch)
   if (.not. exists) stop "psp file"
 
   i = index(path, "/", back = .true.)
@@ -57,4 +60,4 @@ program krachboum
 
   write(*,"(A,F12.6,A)") "OK (checksum is:", sum(psppar) + nzatom + nelpsp + npspcode, ")"
 
-end program krachboum
+end program psp_test

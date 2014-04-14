@@ -1,6 +1,15 @@
+!> @file
+!!  Routines used by the linear scaling version
+!! @author
+!!    Copyright (C) 2012-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 !> Determines the the wavefunction descriptors,wfd, and fine grid upper limit of locreg 
 !! taking into account the pediodicity
-!!          
 !! @warning
 !!    We assign Llr%nfl and llr%nfu with respect to the origin of the local zone, like in determine_locreg. 
 subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
@@ -100,7 +109,7 @@ subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
    Llr(ilr)%wfd%nvctr_f= nvctr_f
 
    !allocate the wavefunction descriptors following the needs
-   call allocate_wfd(Llr(ilr)%wfd,subname)
+   call allocate_wfd(Llr(ilr)%wfd)
 
    !Now, fill the descriptors:
    !coarse part
@@ -128,21 +137,20 @@ subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
 END SUBROUTINE determine_wfd_periodicity
 
 
-subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,at,orbs,Glr,Llr,calculateBounds)!,outofzone)
+subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs,Glr,Llr,calculateBounds)!,outofzone)
   use module_base
   use module_types
   use module_interfaces, except_this_one => determine_locregSphere_parallel
+  use communications, only: communicate_locreg_descriptors_basics, communicate_locreg_descriptors_keys
 
   implicit none
   integer, intent(in) :: iproc,nproc
   integer, intent(in) :: nlr
   real(gp), intent(in) :: hx,hy,hz
-  type(atoms_data),intent(in) :: at
+  type(atomic_structure),intent(in) :: astruct
   type(orbitals_data),intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: Glr
-  real(gp), dimension(nlr), intent(in) :: locrad
-  real(gp), dimension(3,nlr), intent(in) :: cxyz
-  type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
+  type(locreg_descriptors), dimension(nlr), intent(inout) :: Llr
   logical,dimension(nlr),intent(in) :: calculateBounds
 !  integer, dimension(3,nlr),intent(out) :: outofzone
   !local variables
@@ -153,11 +161,13 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
   integer :: Lnbl1,Lnbl2,Lnbl3,Lnbr1,Lnbr2,Lnbr3
   integer :: ilr,isx,isy,isz,iex,iey,iez
   integer :: ln1,ln2,ln3
-  integer :: ii, ierr, iall, istat, iorb, iat, norb, norbu, norbd, nspin, iilr
+  integer :: ii, ierr, iall, istat, iorb, iat, norb, norbu, norbd, nspin, jproc, iiorb
   integer,dimension(3) :: outofzone
-  integer,dimension(:),allocatable :: rootarr, norbsperatom, norbsperlocreg
+  integer,dimension(:),allocatable :: rootarr, norbsperatom, norbsperlocreg, onwhichmpi, onwhichmpider
   real(8),dimension(:,:),allocatable :: locregCenter
   type(orbitals_data) :: orbsder
+
+  call f_routine(id='determine_locregSphere_parallel')
 
   allocate(rootarr(nlr), stat=istat)
   call memocc(istat, rootarr, 'rootarr', subname)
@@ -166,7 +176,15 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
   ii=ceiling(dble(nlr)/dble(nproc))
   !determine the limits of the different localisation regions
   rootarr=1000000000
-  iilr=0
+
+  onwhichmpi=f_malloc(nlr,id='onwhichmpi')
+  iiorb=0
+  do jproc=0,nproc-1
+      do iorb=1,orbs%norb_par(jproc,0)
+          iiorb=iiorb+1
+          onWhichMPI(iiorb)=jproc
+      end do
+  end do
 
   call timing(iproc,'wfd_creation  ','ON')  
   do ilr=1,nlr
@@ -179,29 +197,18 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
      yperiodic = .false.
      zperiodic = .false. 
 
-     !if(mod(ilr-1,nproc)==iproc) then
-     if(orbs%onwhichmpi(ilr)==iproc) then
-     !if (ilr>orbs%isorb .and. iilr<orbs%norbp) then
-     !    iilr=iilr+1
-     !if(calculateBounds(ilr) .or. (mod(ilr-1,nproc)==iproc)) then 
+     if(calculateBounds(ilr)) then 
          ! This makes sure that each locreg is only handled once by one specific processor.
     
-         llr(ilr)%locregCenter(1)=cxyz(1,ilr)
-         llr(ilr)%locregCenter(2)=cxyz(2,ilr)
-         llr(ilr)%locregCenter(3)=cxyz(3,ilr)
-
-         llr(ilr)%locrad=locrad(ilr)
-  
          ! Determine the extrema of this localization regions (using only the coarse part, since this is always larger or equal than the fine part).
          call determine_boxbounds_sphere(glr%d%n1, glr%d%n2, glr%d%n3, glr%ns1, glr%ns2, glr%ns3, hx, hy, hz, &
               llr(ilr)%locrad, llr(ilr)%locregCenter, &
-               glr%wfd%nseg_c, glr%wfd%keygloc, glr%wfd%keyvloc, isx, isy, isz, iex, iey, iez)
+              glr%wfd%nseg_c, glr%wfd%keygloc, glr%wfd%keyvloc, isx, isy, isz, iex, iey, iez)
     
          ln1 = iex-isx
          ln2 = iey-isy
          ln3 = iez-isz
-    
-    
+  
          ! Localization regions should have free boundary conditions by default
          Llr(ilr)%geocode='F'
     
@@ -384,20 +391,28 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
      ! Communicate those parts of the locregs that all processes need.
      call communicate_locreg_descriptors_basics(iproc, nlr, rootarr, orbs, llr)
 
-
      ! Now communicate those parts of the locreg that only some processes need (the keys).
      ! For this we first need to create orbsder that describes the derivatives.
-     call create_orbsder()
+     !call create_orbsder()
+
+     !iiorb=0
+     !onwhichmpider=f_malloc(orbsder%norb,id='onwhichmpider')
+     !do jproc=0,nproc-1
+     !   do iorb=1,orbsder%norb_par(jproc,0)
+     !     iiorb=iiorb+1
+     !     onWhichMPIder(iiorb)=jproc
+     !   end do
+     !end do
 
      ! Now communicate the keys
-     call communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, orbsder, rootarr)
+     call communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, rootarr, onwhichmpi)
 
-     call deallocate_orbitals_data(orbsder, subname)
+     !call deallocate_orbitals_data(orbsder, subname)
+     !call f_free(onwhichmpider)
   end if
   call timing(iproc,'comm_llr      ','OF')
 
-
-!create the bound arrays for the locregs we need on the MPI tasks
+  !create the bound arrays for the locregs we need on the MPI tasks
   call timing(iproc,'calc_bounds   ','ON') 
   do ilr=1,nlr
          if (Llr(ilr)%geocode=='F' .and. calculateBounds(ilr) ) then
@@ -406,20 +421,20 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,
                  Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
          end if
   end do
+
   call timing(iproc,'calc_bounds   ','OF') 
 
+  iall = -product(shape(rootarr))*kind(rootarr)
+  deallocate(rootarr,stat=istat)
+  call memocc(istat,iall,'rootarr',subname)
 
-
-iall = -product(shape(rootarr))*kind(rootarr)
-deallocate(rootarr,stat=istat)
-call memocc(istat,iall,'rootarr',subname)
-
-
+  call f_free(onwhichmpi)
+  call f_release_routine()
 
 contains 
   subroutine create_orbsder()
     call nullify_orbitals_data(orbsder)
-    allocate(norbsperatom(at%nat), stat=istat)
+    allocate(norbsperatom(astruct%nat), stat=istat)
     call memocc(istat, norbsperatom, 'norbsperatom', subname)
     allocate(locregCenter(3,nlr), stat=istat)
     call memocc(istat, locregCenter, 'locregCenter', subname)
@@ -439,21 +454,20 @@ contains
     iall=-product(shape(orbsder%onwhichatom))*kind(orbsder%inWhichLocreg)
     deallocate(orbsder%onwhichatom, stat=istat)
     call memocc(istat, iall, 'orbsder%onwhichatom', subname)
-                 
-    call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, at%nat, at%nat, &
-         nspin, norbsPerAtom, cxyz, orbsder%onwhichatom)
-
 
     do ilr=1,nlr
         locregCenter(:,ilr)=llr(ilr)%locregCenter
     end do
+                 
+    call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, astruct%nat, astruct%nat, &
+         nspin, norbsPerAtom, locregCenter, orbsder%onwhichatom)
 
     iall=-product(shape(orbsder%inWhichLocreg))*kind(orbsder%inWhichLocreg)
     deallocate(orbsder%inWhichLocreg, stat=istat)
     norbsPerLocreg=3
 
     call memocc(istat, iall, 'orbsder%inWhichLocreg', subname)
-    call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, at%nat, nlr, &
+    call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, astruct%nat, nlr, &
          nspin, norbsPerLocreg, locregCenter, orbsder%inwhichlocreg)
 
     iall=-product(shape(locregCenter))*kind(locregCenter)
@@ -575,7 +589,7 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
         llr(ilr)%wfd%nseg_f, llr(ilr)%wfd%nvctr_f)
 
    !allocate the wavefunction descriptors following the needs
-   call allocate_wfd(Llr(ilr)%wfd,subname)
+   call allocate_wfd(Llr(ilr)%wfd)
 
    !Now, fill the descriptors:
    !coarse part
@@ -780,7 +794,7 @@ subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, 
   iiimin=0
   isegmin=0
 
-  ! Initialize the retun values
+  ! Initialize the return values
   ixmax=0
   iymax=0
   izmax=0
@@ -842,6 +856,10 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
   integer :: i_stat, i_all
   integer :: ngridp,ngridlob,loc
   integer, allocatable :: keyg_loc(:,:)
+
+  !should be initialized
+  ngridp=-1000
+  ngridlob=-1000
 
   !dimensions of the localisation region (O:nIl)
   ! must be smaller or equal to simulation box dimensions
@@ -1602,8 +1620,6 @@ type(locreg_descriptors),intent(in) :: glr, llr_i, llr_j, olr
 end subroutine check_overlapregion
 
 
-
-
 !> Gives the dimensions of the overlap box resulting from the overlap of two wavefunction descriptors and
 !> the number of segments of the resulting overlap descriptor.
 !> Calling arguments: *_i refers to overlap region i (input)
@@ -1749,6 +1765,9 @@ jseg=1
 nseg_k=0
 isoverlap = .false.
 onseg = 0  ! in case they don't overlap
+! Check whether all segments of both localization regions have been processed.
+if(iseg>=nseg_i .and. jseg>=nseg_j) return
+
 segment_loop: do
 
     ! Starting point already in global coordinates
@@ -1928,9 +1947,7 @@ integer :: ii
 end subroutine get_coordinates
 
 subroutine check_overlap(Llr_i, Llr_j, Glr, overlap)
-use module_base
-use module_types
-use module_interfaces
+use locregs, only: locreg_descriptors
 implicit none
 
 ! Calling arguments
@@ -2064,20 +2081,8 @@ integer,dimension(3,8) :: astart,bstart,aend,bend
      if(Jlr%outofzone(ii) > 0) bzones = bzones * 2
   end do
 
-!allocate astart and aend
-!!  allocate(astart(3,azones),stat=i_stat)
-!!  call memocc(i_stat,astart,'astart',subname)
-!!  allocate(aend(3,azones),stat=i_stat)
-!!  call memocc(i_stat,aend,'aend',subname)
-
 !FRACTURE THE FIRST LOCALIZATION REGION
   call fracture_periodic_zone(azones,Glr,Ilr,Ilr%outofzone,astart,aend)
-
-!allocate bstart and bend
-!!  allocate(bstart(3,bzones),stat=i_stat)
-!!  call memocc(i_stat,bstart,'bstart',subname)
-!!  allocate(bend(3,bzones),stat=i_stat)
-!!  call memocc(i_stat,bend,'bend',subname)
 
 !FRACTURE SECOND LOCREG
   call fracture_periodic_zone(bzones,Glr,Jlr,Jlr%outofzone,bstart,bend)
@@ -2095,20 +2100,6 @@ integer,dimension(3,8) :: astart,bstart,aend,bend
       end if
     end do
   end do loop_izones
-
-! Deallocation block
-!!  i_all = -product(shape(astart))*kind(astart)
-!!  deallocate(astart,stat=i_stat)
-!!  call memocc(i_stat,i_all,'astart',subname)
-!!  i_all = -product(shape(aend))*kind(aend)
-!!  deallocate(aend,stat=i_stat)
-!!  call memocc(i_stat,i_all,'aend',subname)
-!!  i_all = -product(shape(bstart))*kind(bstart)
-!!  deallocate(bstart,stat=i_stat)
-!!  call memocc(i_stat,i_all,'bstart',subname)
-!!  i_all = -product(shape(bend))*kind(bend)
-!!  deallocate(bend,stat=i_stat)
-!!  call memocc(i_stat,i_all,'bend',subname)
 
 end subroutine check_overlap_cubic_periodic
 
@@ -2195,3 +2186,194 @@ subroutine fracture_periodic_zone_ISF(nzones,Glr,Llr,outofzone,astart,aend)
   end do
 
 END SUBROUTINE fracture_periodic_zone_ISF
+
+!> Tranform wavefunction between localisation region and the global region
+!! @warning 
+!! WARNING: Make sure psi is set to zero where Glr does not collide with Llr (or everywhere)
+subroutine Lpsi_to_global2(iproc, ldim, gdim, norb, nspinor, nspin, Glr, Llr, lpsi, psi)
+
+  use module_base
+  use module_types
+
+ implicit none
+
+  ! Subroutine Scalar Arguments
+  integer,intent(in):: iproc
+  integer :: Gdim          ! dimension of psi 
+  integer :: Ldim          ! dimension of lpsi
+  integer :: norb          ! number of orbitals
+  integer :: nspinor       ! number of spinors
+  integer :: nspin         ! number of spins 
+  type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
+  type(locreg_descriptors), intent(in) :: Llr  ! Localization grid descriptors 
+  
+  !Subroutine Array Arguments
+  real(wp),dimension(Gdim),intent(inout) :: psi       !Wavefunction (compressed format)
+  real(wp),dimension(Ldim),intent(in) :: lpsi         !Wavefunction in localization region
+  
+  !local variables
+  integer :: igrid,isegloc,isegG,ix!,iorbs
+  integer :: lmin,lmax,Gmin,Gmax
+  integer :: icheck      ! check to make sure the dimension of loc_psi does not overflow 
+  integer :: offset      ! gives the difference between the starting point of Lseg and Gseg
+  integer :: length      ! Length of the overlap between Lseg and Gseg
+  integer :: lincrement  ! Increment for writing orbitals in loc_psi
+  integer :: Gincrement  ! Increment for reading orbitals in psi
+  integer :: nseg        ! total number of segments in Llr
+  integer, allocatable :: keymask(:,:)  ! shift for every segment of Llr (with respect to Glr)
+  character(len=*), parameter :: subname='Lpsi_to_global'
+  integer :: i_all
+  integer :: start,Gstart,Lindex
+  integer :: lfinc,Gfinc,spinshift,ispin,Gindex,isegstart
+  integer :: istart
+  !integer :: i_stat
+
+  call f_routine(id=subname)
+
+  if(nspin/=1) stop 'not fully implemented for nspin/=1!'
+
+! Define integers
+  nseg = Llr%wfd%nseg_c + Llr%wfd%nseg_f
+  lincrement = Llr%wfd%nvctr_c + 7*Llr%wfd%nvctr_f
+  Gincrement = Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
+  icheck = 0
+  spinshift = Gdim / nspin
+ 
+! Get the keymask: shift for every segment of Llr (with respect to Glr)
+! allocate(keymask(2,nseg),stat=i_stat)
+  keymask = f_malloc((/2,nseg/),id='keymask')
+
+  call shift_locreg_indexes(Glr,Llr,keymask,nseg)
+
+!####################################################
+! Do coarse region
+!####################################################
+  isegstart=1
+
+ 
+  !$omp parallel default(private) &
+  !$omp shared(Glr,Llr, keymask,lpsi,icheck,psi,norb) &
+  !$omp firstprivate(isegstart,nseg,lincrement,Gincrement,spinshift,nspin) 
+
+  !$omp do reduction(+:icheck)
+  local_loop_c: do isegloc = 1,Llr%wfd%nseg_c
+     lmin = keymask(1,isegloc)
+     lmax = keymask(2,isegloc)
+     istart = llr%wfd%keyvloc(isegloc)-1
+
+     
+     global_loop_c: do isegG = isegstart,Glr%wfd%nseg_c
+        Gmin = Glr%wfd%keygloc(1,isegG)
+        Gmax = Glr%wfd%keygloc(2,isegG)
+
+        ! For each segment in Llr check if there is a collision with the segment in Glr
+        !if not, cycle
+        if(lmin > Gmax) then
+            isegstart=isegG
+        end if
+        if(Gmin > lmax) exit global_loop_c
+
+        !if((lmin > Gmax) .or. (lmax < Gmin))  cycle global_loop_c
+        if(lmin > Gmax)  cycle global_loop_c
+
+        ! Define the offset between the two segments
+        offset = lmin - Gmin
+        if(offset < 0) then
+           offset = 0
+        end if
+
+        ! Define the length of the two segments
+        length = min(lmax,Gmax)-max(lmin,Gmin)
+
+        !Find the common elements and write them to the new global wavefunction
+        icheck = icheck + (length + 1)
+
+        ! WARNING: index goes from 0 to length because it is the offset of the element
+
+        do ix = 0,length     
+           istart = istart + 1
+           do ispin=1,nspin
+              Gindex = Glr%wfd%keyvloc(isegG)+offset+ix+spinshift*(ispin-1)
+              Lindex = istart+lincrement*norb*(ispin-1)
+              psi(Gindex) = lpsi(Lindex) 
+           end do
+        end do
+     end do global_loop_c
+  end do local_loop_c
+  !$omp end do
+ 
+
+ 
+!##############################################################
+! Now do fine region
+!##############################################################
+
+  start = Llr%wfd%nvctr_c
+  Gstart = Glr%wfd%nvctr_c
+  lfinc  = Llr%wfd%nvctr_f
+  Gfinc = Glr%wfd%nvctr_f
+
+  isegstart=Glr%wfd%nseg_c+1
+
+  !$omp do reduction(+:icheck)
+  local_loop_f: do isegloc = Llr%wfd%nseg_c+1,nseg
+     lmin = keymask(1,isegloc)
+     lmax = keymask(2,isegloc)
+     istart = llr%wfd%keyvloc(isegloc)-1
+
+     global_loop_f: do isegG = isegstart,Glr%wfd%nseg_c+Glr%wfd%nseg_f
+
+        Gmin = Glr%wfd%keygloc(1,isegG)
+        Gmax = Glr%wfd%keygloc(2,isegG)
+
+        ! For each segment in Llr check if there is a collision with the segment in Glr
+        ! if not, cycle
+        if(lmin > Gmax) then
+            isegstart=isegG
+        end if
+        if(Gmin > lmax)  exit global_loop_f
+        !if((lmin > Gmax) .or. (lmax < Gmin))  cycle global_loop_f
+        if(lmin > Gmax)  cycle global_loop_f
+
+        offset = lmin - Gmin
+        if(offset < 0) offset = 0
+
+        length = min(lmax,Gmax)-max(lmin,Gmin)
+
+        !Find the common elements and write them to the new global wavefunction
+        ! First set to zero those elements which are not copied. WARNING: will not work for npsin>1!!
+ 
+        icheck = icheck + (length + 1)
+
+        ! WARNING: index goes from 0 to length because it is the offset of the element
+        do ix = 0,length
+        istart = istart + 1
+           do igrid=1,7
+              do ispin = 1, nspin
+                 Gindex = Gstart + (Glr%wfd%keyvloc(isegG)+offset+ix-1)*7+igrid + spinshift*(ispin-1)
+                 Lindex = start+(istart-1)*7+igrid + lincrement*norb*(ispin-1) 
+                 psi(Gindex) = lpsi(Lindex) 
+              end do
+           end do
+        end do
+     end do global_loop_f
+  end do local_loop_f
+  !$omp end do
+
+  !$omp end parallel
+
+
+  !Check if the number of elements in loc_psi is valid
+  if(icheck .ne. Llr%wfd%nvctr_f+Llr%wfd%nvctr_c) then
+    write(*,*)'There is an error in Lpsi_to_global: sum of fine and coarse points used',icheck
+    write(*,*)'is not equal to the sum of fine and coarse points in the region',Llr%wfd%nvctr_f+Llr%wfd%nvctr_c
+    stop
+  end if
+
+  i_all=-product(shape(keymask))*kind(keymask)
+! deallocate(keymask,stat=i_stat)
+  call f_free(keymask)
+
+  call f_release_routine()
+
+END SUBROUTINE Lpsi_to_global2

@@ -85,8 +85,8 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
      call to_zero(w%nyc*nspinor,w%y_c(1,1))
      call to_zero(w%nyf*nspinor,w%y_f(1,1))
 
-!!        call razero(w%nw1*nspinor,w%w1)
-!!        call razero(w%nw2*nspinor,w%w2)
+!!        call to_zero(w%nw1*nspinor,w%w1)
+!!        call to_zero(w%nw2*nspinor,w%w2)
 
   case('S')
      w%nw1=0
@@ -167,8 +167,6 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
   end select
 
 END SUBROUTINE initialize_work_arrays_locham
-
-
 
 !>
 !!
@@ -341,6 +339,7 @@ subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor), intent(inout) :: hpsi
   real(wp), dimension(6), optional :: k_strten
   !Local variables
+  logical, parameter :: transpose=.false.
   logical :: usekpts
   integer :: idx,i,i_f,iseg_f,ipsif,isegf
   real(gp) :: ekino
@@ -527,26 +526,35 @@ subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
                    psi(1,idx),psi(ipsif,idx),w%x_c(1,idx),w%y_c(1,idx))
            end do
 
-           !Transposition of the work arrays (use psir as workspace)
-           call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
-                w%x_c,w%y_c,.true.)
+           if (transpose) then
+              !Transposition of the work arrays (use psir as workspace)
+              call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
+                   w%x_c,w%y_c,.true.)
 
-           call to_zero(nspinor*w%nyc,w%y_c(1,1))
+              call to_zero(nspinor*w%nyc,w%y_c(1,1))
+              ! compute the kinetic part and add  it to psi_out
+              ! the kinetic energy is calculated at the same time
+              do idx=1,nspinor,2
+                 !print *,'AAA',2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,hgridh
 
-           ! compute the kinetic part and add  it to psi_out
-           ! the kinetic energy is calculated at the same time
-           do idx=1,nspinor,2
-              !print *,'AAA',2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,hgridh
-              
-              call convolut_kinetic_per_T_k(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
-                   hgridh,w%x_c(1,idx),w%y_c(1,idx),kstrteno,kptv(1),kptv(2),kptv(3))
-              kstrten=kstrten+kstrteno
-              !ekin=ekin+ekino
-           end do
+                 call convolut_kinetic_per_T_k(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
+                      hgridh,w%x_c(1,idx),w%y_c(1,idx),kstrteno,kptv(1),kptv(2),kptv(3))
+                 kstrten=kstrten+kstrteno
+                 !ekin=ekin+ekino
+              end do
 
-           !Transposition of the work arrays (use psir as workspace)
-           call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
-                w%y_c,w%x_c,.false.)
+              !Transposition of the work arrays (use psir as workspace)
+              call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
+                   w%y_c,w%x_c,.false.)
+
+           else
+              call to_zero(nspinor*w%nyc,w%y_c(1,1))
+              do idx=1,nspinor,2
+                 call convolut_kinetic_per_T_k_notranspose(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
+                      hgridh,w%x_c(1,idx),w%y_c(1,idx),kstrteno,kptv(1),kptv(2),kptv(3))
+                 kstrten=kstrten+kstrteno
+              end do
+           end if
 
            do idx=1,nspinor
 
@@ -616,7 +624,7 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   i_f=min(1,lr%wfd%nvctr_f)
   iseg_f=min(1,lr%wfd%nseg_f)
 
-  !call razero((2*n1+31)*(2*n2+31)*(2*n3+31)*nspinor,psir)
+  !call to_zero((2*n1+31)*(2*n2+31)*(2*n3+31)*nspinor,psir)
   !call MPI_COMM_RANK(bigdft_mpi%mpi_comm,iproc,ierr)
   select case(lr%geocode)
   case('F')
@@ -1150,6 +1158,17 @@ subroutine deallocate_work_arrays_sumrho(w)
   call memocc(i_stat,i_all,'w2',subname)
   
 END SUBROUTINE deallocate_work_arrays_sumrho
+
+subroutine psig_to_psir_free(n1,n2,n3,work,psig_psir)
+ implicit none
+ integer, intent(in) :: n1,n2,n3 !< dimensions in the daubechies grid
+ real(kind=8),dimension((2*n1+31)*(2*n2+31)*(2*n3+31)), intent(inout):: work !< enlarged buffer 
+ real(kind=8),dimension((2*n1+31)*(2*n2+31)*(2*n3+31)), intent(inout):: psig_psir  !< final result, containing psig data but big enough to contain psir (used as work array)
+
+ call synthese_free_self(n1,n2,n3,psig_psir,work)
+ call convolut_magic_n_free_self(2*n1+15,2*n2+15,2*n3+15,work,psig_psir)
+	
+end subroutine psig_to_psir_free
 
 !transform a daubechies function in compressed form to a function in real space via
 !the Magic Filter operation

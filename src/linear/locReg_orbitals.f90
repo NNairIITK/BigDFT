@@ -14,6 +14,7 @@
 subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
   use module_base
   use module_types
+  use ao_inguess, only: count_atomic_shells, ao_nspin_ig
   implicit none
 
   integer,intent(in):: iproc,nproc,nspin,nspinor
@@ -27,7 +28,7 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
   integer, dimension(:), allocatable :: Localnorb
   integer, parameter :: lmax=3,noccmax=2,nelecmax=32
   integer, dimension(lmax+1) :: nmoments
-  real(gp), dimension(noccmax,lmax) :: occup              !dummy variable
+  real(gp), dimension(noccmax,lmax+1) :: occup              !dummy variable
 
 
 ! in the non-collinear case the number of orbitals double
@@ -45,7 +46,8 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
 ! NOTES: K-Points??
   nmoments = 0
   do ilr = 1, Lzd%nlr
-     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,atoms%aocc(1,ilr),occup,nmoments)
+     call count_atomic_shells(ao_nspin_ig(nspin,nspinor=nspinor),&
+          atoms%aoig(ilr)%aocc,occup,nmoments)
      Lnorb=(nmoments(1)+3*nmoments(2)+5*nmoments(3)+7*nmoments(4))
      Localnorb(ilr) = Lnorb
   end do
@@ -77,7 +79,7 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
           jat=jat+1
           iiOrb=0
       end if
-      if(jat > atoms%nat) then
+      if(jat > atoms%astruct%nat) then
         jat = 1
       end if
       jorb=jorb+1

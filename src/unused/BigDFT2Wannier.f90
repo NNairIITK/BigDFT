@@ -514,7 +514,7 @@
 !!$   if (iproc==0) write(*,*) 'Cubic code not parallelized'
 !!$end if
 
-!!>
+
 !subroutine angularpart(l, mr, np, nx, ny, nz, ix, iy, iz, &
 !                    xx, yy, zz, n_proj, ylm)
 !
@@ -755,7 +755,7 @@
 !!   type(input_variables),intent(in) :: input
 !!   type(locreg_descriptors), intent(in) :: Glr
 !!   type(orbitals_data), intent(inout) :: orbsv,orbsp
-!!   type(communications_arrays), target :: commsv,commsp
+!!   type(comms_cubic), target :: commsv,commsp
 !!   type(atoms_data), intent(in) :: atoms
 !!   type(workarr_sumrho), intent(in) :: w
 !!   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
@@ -802,7 +802,7 @@
 !!   allocate(psi_etsf2(npsidim),stat=i_stat) !!doing this because psi_etsfv does not incorporate enough space for transpose
 !!   call memocc(i_stat,psi_etsf2,'psi_etsf2',subname)
 !!
-!!   call razero(npsidim,psi_etsf2)
+!!   call to_zero(npsidim,psi_etsf2)
 !!   if(nproc > 1) then
 !!     allocate(pwork(npsidim),stat=i_stat)
 !!     call memocc(i_stat,pwork,'pwork',subname)
@@ -886,7 +886,7 @@
 !!   call timing(iproc,'ApplyProj     ','ON')
 !!
 !!   ! Scalar product of amnk=<sph_daub|psi> in parallel.
-!!   call razero(orbsp%norb*orbsv%norb,amnk)
+!!   call to_zero(orbsp%norb*orbsv%norb,amnk)
 !!   nvctrp=commsv%nvctr_par(iproc,1)
 !!   call gemm('T','N',orbsv%norb,orbsp%norb,nvctrp,1.0_wp,psi_etsf2(1),max(1,nvctrp),&
 !!        sph_daub(1),max(1,nvctrp),0.0_wp,amnk(1,1),orbsv%norb)
@@ -1052,7 +1052,7 @@
 !!END SUBROUTINE read_cube_header_1
 !!
 !!
-!!!>
+!!
 !!subroutine read_cube_header_2(n_at, Z, at_pos)
 !!
 !!   ! This routine reads the first lines of a .cube file

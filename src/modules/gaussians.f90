@@ -1,7 +1,7 @@
 !> @file
-!!  Define the fortran types
+!!  Define operations over gaussian functions
 !! @author
-!!    Copyright (C) 2008-2011 BigDFT group (LG)
+!!    Copyright (C) 2008-2013 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -32,10 +32,11 @@ module gaussians
      integer :: ncoeff !< number of total basis elements
      integer :: nshltot !< total number of shells (m quantum number ignored) 
      integer :: nexpo !< number of exponents (sum of the contractions)
+     integer :: ncplx !< number of complex comp. (real or complex gaussians)
      !storage units
      integer, dimension(:), pointer :: nshell !< number of shells for any of the centers
      integer, dimension(:), pointer :: ndoc,nam !< degree of contraction, angular momentum of any shell
-     real(gp), dimension(:), pointer :: xp,psiat !<factors and values of the exponents (complex numbers are allowed)
+     real(gp), dimension(:,:), pointer :: xp,psiat !<factors and values of the exponents (complex numbers are allowed)
      real(gp), dimension(:,:), pointer :: rxyz !<positions of the centers
   end type gaussian_basis
 
@@ -54,7 +55,7 @@ module gaussians
   end type gaussian_basis_new
 
   public :: gaudim_check,normalize_shell,gaussian_overlap,kinetic_overlap,gauint0
-  public :: initialize_real_space_conversion,finalize_real_space_conversion,scfdotf
+  public :: initialize_real_space_conversion,finalize_real_space_conversion,scfdotf,mp_exp
 
 contains
 
@@ -125,8 +126,8 @@ contains
     call memocc(i_stat,G%sd,'G%sd',subname)
 
     do iexpo=1,G%nexpo
-       G%sd(EXPO_,iexpo)=0.5_gp/Gold%xp(iexpo)**2
-       G%sd(COEFF_,iexpo)=Gold%psiat(iexpo)
+       G%sd(EXPO_,iexpo)=0.5_gp/Gold%xp(1,iexpo)**2
+       G%sd(COEFF_,iexpo)=Gold%psiat(1,iexpo)
     end do
 
   end subroutine gaussian_basis_convert
@@ -162,6 +163,8 @@ contains
   end subroutine gaussian_basis_free
 
   !> Prepare the array for the evaluation with the interpolating Scaling Functions
+  !! one might add also the function to be converted and the 
+  !! prescription for integrating knowing the scaling relation of the function
   subroutine initialize_real_space_conversion(npoints,isf_m)
     implicit none
     integer, intent(in), optional :: npoints,isf_m
@@ -206,7 +209,34 @@ contains
 
   end subroutine finalize_real_space_conversion
 
-  !> this function calculates the scalar product between a ISF and a 
+  !> multipole-preserving gaussian function
+  !! chooses between traditional exponential and scfdotf 
+  !! according to the value of the exponent in units of the grid spacing
+  !! the function is supposed to be x**pow*exp(-expo*x**2)
+  !! where x=hgrid*j-x0
+  !! this function is also elemental to ease its evaluation, though 
+  !! the usage for vector argument is discouraged: dedicated routines has to be 
+  !! written to meet performance
+  elemental pure function mp_exp(hgrid,x0,expo,j,pow,modified)
+    implicit none
+    logical, intent(in) :: modified !< switch to scfdotf if true
+    integer, intent(in) :: j,pow
+    real(gp), intent(in) :: hgrid,x0,expo
+    real(gp) :: mp_exp
+    !local variables
+    real(gp) :: x
+
+    !added failsafe to avoid segfaults
+    if (modified .and. allocated(scf_data)) then
+       mp_exp=scfdotf(j,hgrid,expo,x0,pow)
+    else
+       x=hgrid*j-x0
+       mp_exp=exp(-expo*x**2)
+       if (pow /=0) mp_exp=mp_exp*(x**pow)
+    end if
+  end function mp_exp
+
+  !> This function calculates the scalar product between a ISF and a 
   !input function, which is a gaussian times a power centered
   ! here pure specifier is redundant
   ! we should add here the threshold from which the 
@@ -306,8 +336,8 @@ contains
                       jovrlp=jovrlp+1
                       !if ((jovrlp >= iovrlp .and. A%ncoeff == B%ncoeff) .or. &
                       !     A%ncoeff /= B%ncoeff ) then
-                      call gbasovrlp(A%xp(iexpo:),A%psiat(iexpo:),&
-                           B%xp(jexpo:),B%psiat(jexpo:),&
+                      call gbasovrlp(A%xp(1,iexpo:),A%psiat(1,iexpo:),&
+                           B%xp(1,jexpo:),B%psiat(1,jexpo:),&
                            ngA,ngB,lA,mA,lB,mB,dx,dy,dz,&
                            niw,nrw,iw,rw,ovrlp(iovrlp,jovrlp))
                       !end if
@@ -386,8 +416,8 @@ contains
                       jovrlp=jovrlp+1
                       if (jovrlp >= iovrlp .and. A%ncoeff == B%ncoeff .or. &
                            A%ncoeff /= B%ncoeff ) then
-                         call kineticovrlp(A%xp(iexpo:),A%psiat(iexpo:),&
-                              B%xp(jexpo:),B%psiat(jexpo:),&
+                         call kineticovrlp(A%xp(1,iexpo:),A%psiat(1,iexpo:),&
+                              B%xp(1,jexpo:),B%psiat(1,jexpo:),&
                               ngA,ngB,lA,mA,lB,mB,dx,dy,dz,&
                               niw,nrw,iw,rw,ovrlp(iovrlp,jovrlp))
                       end if
@@ -407,10 +437,10 @@ contains
 
   END SUBROUTINE kinetic_overlap
 
-  !>   Calculates the scalar product between two shells
-  !!   by considering only the nonzero coefficients
-  !!   actual building block for calculating overlap matrix
-  !!   inserted work arrays for calculation
+  !> Calculates the scalar product between two shells
+  !! by considering only the nonzero coefficients
+  !! actual building block for calculating overlap matrix
+  !! inserted work arrays for calculation
   subroutine gbasovrlp(expo1,coeff1,expo2,coeff2,ng1,ng2,l1,m1,l2,m2,dx,dy,dz,&
        niw,nrw,iw,rw,ovrlp)
     implicit none
@@ -443,10 +473,10 @@ contains
 
   END SUBROUTINE gbasovrlp
 
-  !>   Calculates the scalar product between two shells
-  !!   by considering only the nonzero coefficients
-  !!   actual building block for calculating overlap matrix
-  !!   inserted work arrays for calculation
+  !> Calculates the scalar product between two shells
+  !! by considering only the nonzero coefficients
+  !! actual building block for calculating overlap matrix
+  !! inserted work arrays for calculation
   subroutine kineticovrlp(expo1,coeff1,expo2,coeff2,ng1,ng2,l1,m1,l2,m2,dx,dy,dz,&
        niw,nrw,iw,rw,ovrlp)
     implicit none
@@ -479,9 +509,9 @@ contains
 
   END SUBROUTINE kineticovrlp
 
-  !>   Calculates a dot product between two differents gaussians times spherical harmonics
-  !!   valid only for shell which belongs to different atoms, and with also dy/=0/=dx dz/=0
-  !!   to be rearranged when only some of them is zero
+  !> Calculates a dot product between two differents gaussians times spherical harmonics
+  !! valid only for shell which belongs to different atoms, and with also dy/=0/=dx dz/=0
+  !! to be rearranged when only some of them is zero
   subroutine gprod(a1,a2,dx,dy,dz,l1,m1,l2,m2,niw,nrw,iw,rw,ovrlp)
     implicit none
     integer, intent(in) :: l1,l2,m1,m2,niw,nrw 
@@ -548,6 +578,7 @@ contains
 
     !loop on each shell (intensive calculation)
     wvfnct=0.0_gp
+    psi=0.0_gp
     do iat=1,G%nat
        r(1)=G%rxyz(1,iat)
        r(2)=G%rxyz(2,iat)
@@ -870,9 +901,8 @@ contains
 
   END SUBROUTINE kinetic
 
-  !>   Calculates @f$\int \exp^{-a1*x^2} x^l1 \exp^{-a2*(x-d)^2} (x-d)^l2 dx@f$
-  !!   Uses gauint0 if d==0
-  !!
+  !> Calculates @f$\int e^{-a1*x^2} x^l1 \exp^{-a2*(x-d)^2} (x-d)^l2 dx@f$
+  !! Uses the function gauint0 if d==0.0
   pure function govrlp(a1,a2,d,l1,l2)
     implicit none
     integer, intent(in) :: l1,l2

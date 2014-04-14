@@ -25,14 +25,14 @@
              g     i        B     B
             g               B    B
        ggggg       i         BBBB
-
+ 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7-dev.22
- Timestamp of this run                 : 2012-12-28 00:07:47.015
- Root process Hostname                 : athelas
- Number of MPI tasks                   :  2
+ Timestamp of this run                 : 2013-01-15 17:03:24.653
+ Root process Hostname                 : localhost
+ Number of MPI tasks                   :  1
  OpenMP parallelization                :  Yes
- Maximal OpenMP threads per MPI task   :  2
+ Maximal OpenMP threads per MPI task   :  4
  #... (file:input.perf)..................................................Performance Options
  #|debug F                      Debug option                                                 
  #|fftcache 8192                Cache size for the FFT                                       
@@ -132,9 +132,6 @@
   #---------------------------------------------------------------------- Occupation Numbers
  Total Number of Electrons             :  2
  Spin treatment                        : Averaged
- Orbitals Repartition:
-   MPI tasks  0- 0                     :  1
-   MPI tasks  1- 1                     :  0
  Total Number of Orbitals              :  1
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
@@ -161,30 +158,39 @@
    Fine resolution grid:
      No. of segments                   :  73
      No. of points                     :  423
+ Need to reformat wavefunctions        :  No
+ Need to reformat wavefunctions        :  No
  Reading Waves Time:
  - 
-    {Process:  0, Timing:  [  4.000E-02,  3.700E-02 ]}
+    {Process:  0, Timing:  [  1.200E-01,  3.180E-02 ]}
   #======================================================================================== 
   #Calculating amnk=<virt|sph_har> in pre-check mode
   #======================================================================================== 
  Virtual band                          :  1
- amnk_guess(nb)                        :  4.51392003851665946E-01
+ amnk_guess(nb)                        :  4.51392003851798063E-01
  Virtual band                          :  2
- amnk_guess(nb)                        :  2.24696340252168419E-01
+ amnk_guess(nb)                        :  2.24696340303118636E-01
+ Need to reformat wavefunctions        :  No
  Reading Waves Time:
  - 
-    {Process:  0, Timing:  [  2.000E-02,  1.700E-02 ]}
+    {Process:  0, Timing:  [  3.600E-02,  9.600E-03 ]}
+ Need to reformat wavefunctions        :  No
  Reading Waves Time:
  - 
-    {Process:  0, Timing:  [  2.000E-02,  1.300E-02 ]}
+    {Process:  0, Timing:  [  3.600E-02,  9.300E-03 ]}
+ Need to reformat wavefunctions        :  No
  Reading Waves Time:
  - 
-    {Process:  0, Timing:  [  2.000E-02,  1.400E-02 ]}
+    {Process:  0, Timing:  [  3.600E-02,  8.900E-03 ]}
+ Need to reformat wavefunctions        :  No
+ Reading Waves Time:
+ - 
+    {Process:  0, Timing:  [  3.600E-02,  8.700E-03 ]}
  Memory Consumption Report:
-   Tot. No. of Allocations  : 233
-   Tot. No. of Deallocations: 233
+   Tot. No. of Allocations  : 236
+   Tot. No. of Deallocations: 236
    Remaining Memory (B)     : 0
    Memory occupation: 
-      Peak Value (MB): 44
+      Peak Value (MB): 45
       for the array: psifscf
       in the routine: readmywaves

@@ -1,4 +1,14 @@
+!> @file
+!! Determine the derivative of the support functions
+!! @author
+!!    Copyright (C) 2013-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 
+
+!> Calculate all derviative for the support functions
 subroutine get_derivative_supportfunctions(ndim, hgrid, lzd, lorbs, phi, phid)
   use module_base
   use module_types
@@ -376,8 +386,8 @@ end subroutine get_one_derivative_supportfunction
 !!  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%sparsemat, &
 !!       tmb%collcom, psit_c, phidr_c, psit_f, phidr_f, overlap_compr)
 !!
-!!  call uncompressMatrix(tmb%orbs%norb, tmb%sparsemat, matrix_compr, matrix)
-!!  call uncompressMatrix(tmb%orbs%norb, tmb%sparsemat, overlap_compr, overlap)
+!!  call uncompress_matrix(tmb%orbs%norb, tmb%sparsemat, matrix_compr, matrix)
+!!  call uncompress_matrix(tmb%orbs%norb, tmb%sparsemat, overlap_compr, overlap)
 !!
 !!  iall = -product(shape(matrix_compr))*kind(matrix_compr)
 !!  deallocate(matrix_compr,stat=istat)

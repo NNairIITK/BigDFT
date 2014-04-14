@@ -1,7 +1,7 @@
 !> @file
 !!  Partial DOS analysis routines
 !! @author
-!!    Copyright (C) 2007-2011 BigDFT group
+!!    Copyright (C) 2007-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -19,7 +19,7 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt
    type(locreg_descriptors), intent(in) :: lr
    type(orbitals_data), intent(in) :: orbs,orbsv
    type(atoms_data), intent(in) :: at
-   real(gp), dimension(3,at%nat), intent(in) :: rxyz
+   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(wp), dimension(:), pointer :: psi,psivirt
    !local variables
    character(len=*), parameter :: subname='local_analysis'
@@ -48,12 +48,12 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt
    !allocate(radii_cf_fake(atc%ntypes,3+ndebug),stat=i_stat)
    !call memocc(i_stat,radii_cf_fake,'radii_cf_fake',subname)
 
-   allocate(radii_cf_fake(at%ntypes,3+ndebug),stat=i_stat)
+   allocate(radii_cf_fake(at%astruct%ntypes,3+ndebug),stat=i_stat)
    call memocc(i_stat,radii_cf_fake,'radii_cf_fake',subname)
 
 
    !call read_system_variables('input.occup',iproc,inc,atc,radii_cf_fake,nelec,&
-  !     norb,norbu,norbd,iunit)
+   !     norb,norbu,norbd,iunit)
 
    !shift the positions with the same value of the original positions
    !  do iat=1,atc%nat
@@ -70,7 +70,7 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt
 
    allocate(thetaphi(2,G%nat+ndebug),stat=i_stat)
    call memocc(i_stat,thetaphi,'thetaphi',subname)
-   call razero(2*G%nat,thetaphi)
+   call to_zero(2*G%nat,thetaphi)
    allocate(allpsigau(G%ncoeff*orbs%nspinor,orbs%norbp+norbpv+ndebug),stat=i_stat)
    call memocc(i_stat,allpsigau,'allpsigau',subname)
 !print *,'there'
@@ -87,7 +87,9 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt
    !calculate dual coefficients
    allocate(dualcoeffs(G%ncoeff*orbs%nspinor,orbs%norbp+norbpv+ndebug),stat=i_stat)
    call memocc(i_stat,dualcoeffs,'dualcoeffs',subname)
-   call dcopy(G%ncoeff*orbs%nspinor*(orbs%norbp+norbpv),allpsigau,1,dualcoeffs,1)
+   if (G%ncoeff*orbs%nspinor*(orbs%norbp+norbpv)>0) then
+       call vcopy(G%ncoeff*orbs%nspinor*(orbs%norbp+norbpv),allpsigau(1,1),1,dualcoeffs(1,1),1)
+   end if
    !build dual coefficients
    call dual_gaussian_coefficients(orbs%nspinor*(orbs%norbp+norbpv),G,dualcoeffs)
 
@@ -152,7 +154,7 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
   real(wp), dimension(2) :: msumiat
   real(wp), dimension(3) :: mi,mtot
   real(wp), dimension(:,:), allocatable :: mchg,magn
-  
+ 
   !allocate both for spins up and down
   allocate(mchg(G%ncoeff,2+ndebug),stat=i_stat)
   call memocc(i_stat,mchg,'mchg',subname)
@@ -283,9 +285,9 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
         rad=0.0_wp
         radnorm=0.0_wp
         do ig=1,ng
-           r=G%xp(iexpo)
-           rad=rad+(G%psiat(iexpo))**2*r
-           radnorm=radnorm+(G%psiat(iexpo))**2
+           r=G%xp(1,iexpo)
+           rad=rad+(G%psiat(1,iexpo))**2*r
+           radnorm=radnorm+(G%psiat(1,iexpo))**2
            iexpo=iexpo+1
         end do
         rad=rad/radnorm
@@ -406,7 +408,7 @@ subroutine gaussian_pdos(iproc,nproc,orbs,G,coeff,duals) !n(c) Gocc (arg:4)
    real(wp), dimension(G%ncoeff,orbs%norbp), intent(in) :: coeff,duals
    !local variables
    character(len=*), parameter :: subname='gaussian_pdos'
-   integer :: icoeff,i_all,i_stat,ierr,iorb !n(c) ispin
+   integer :: icoeff,i_all,i_stat,ierr,iorb,ikpt !n(c) ispin
    integer :: jproc!,nspin
    real(wp) :: rsum,tnorm
    integer, dimension(:), allocatable :: norb_displ
@@ -415,7 +417,7 @@ subroutine gaussian_pdos(iproc,nproc,orbs,G,coeff,duals) !n(c) Gocc (arg:4)
 
 
    !allocate both for spins up and down
-   allocate(pdos(G%ncoeff+1,orbs%norb+ndebug),stat=i_stat)
+   allocate(pdos(G%ncoeff+1,orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
    call memocc(i_stat,pdos,'pdos',subname)
 
    !for any of the orbitals calculate the Mulliken charge
@@ -442,7 +444,7 @@ subroutine gaussian_pdos(iproc,nproc,orbs,G,coeff,duals) !n(c) Gocc (arg:4)
       allocate(work(max((G%ncoeff+1)*orbs%norb_par(iproc,0),1)+ndebug),stat=i_stat)
       call memocc(i_stat,work,'work',subname)
 
-      call vcopy((G%ncoeff+1)*orbs%norb_par(iproc,0),pdos(1,min(orbs%isorb+1,orbs%norb)),1,&
+      call vcopy((G%ncoeff+1)*orbs%norb_par(iproc,0),pdos(1,min(orbs%isorb+1,orbs%norb*orbs%nkpts)),1,&
            work(1),1)
 
       norb_displ(0)=0
@@ -468,7 +470,7 @@ subroutine gaussian_pdos(iproc,nproc,orbs,G,coeff,duals) !n(c) Gocc (arg:4)
    if (iproc == 0) then
       !renormalize the density of states to 10 (such as to gain a digit)
       tnorm=5.0_wp*real(orbs%nspin,wp)
-      do iorb=1,orbs%norb
+      do iorb=1,orbs%norb*orbs%nkpts
          rsum=0.0_wp
          do icoeff=1,G%ncoeff
             rsum=rsum+pdos(icoeff,iorb)
@@ -485,18 +487,22 @@ subroutine gaussian_pdos(iproc,nproc,orbs,G,coeff,duals) !n(c) Gocc (arg:4)
       end if
      write(12,'(a,a13,5x,i6,a)')  & 
           '# band', ' energy (eV),  ',G%ncoeff,' partial densities of states ' 
-      do iorb=1,orbs%norbu
-        write(12,'(i5,es14.5,5x,1000es14.5)')iorb,orbs%eval(iorb)*Ha_eV,pdos(1:G%ncoeff,iorb)
-      end do
-      close(unit=12)
-      if (orbs%norbd /= 0) then
-         open(unit=12,file='pdos-down.dat',status='unknown')
-        write(12,'(a,a13,5x,i6,a)')  & 
-          '# band', ' energy (eV),  ',G%ncoeff,' partial densities of states ' 
-         do iorb=orbs%norbu+1,orbs%norbu+orbs%norbd
-           write(12,'(i5,es14.5,5x,1000es14.5)')iorb-orbs%norbu,orbs%eval(iorb)*Ha_eV,pdos(1:G%ncoeff+1,iorb)
-         end do
-      end if
+     do ikpt=1,orbs%nkpts
+        do iorb=1,orbs%norbu
+           write(12,'(i5,es14.5,5x,1000es14.5)')iorb,orbs%eval(iorb+(ikpt-1)*orbs%norb)*Ha_eV,&
+                pdos(1:G%ncoeff,iorb+(ikpt-1)*orbs%norb)
+        end do
+        close(unit=12)
+        if (orbs%norbd /= 0) then
+           open(unit=12,file='pdos-down.dat',status='unknown')
+           write(12,'(a,a13,5x,i6,a)')  & 
+                '# band', ' energy (eV),  ',G%ncoeff,' partial densities of states ' 
+           do iorb=orbs%norbu+1,orbs%norbu+orbs%norbd
+              write(12,'(i5,es14.5,5x,1000es14.5)')iorb-orbs%norbu,&
+                   orbs%eval(iorb+(ikpt-1)*orbs%norb)*Ha_eV,pdos(1:G%ncoeff+1,iorb+(ikpt-1)*orbs%norb)
+           end do
+        end if
+     end do
    end if
 
    i_all=-product(shape(pdos))*kind(pdos)
@@ -576,20 +582,13 @@ END SUBROUTINE shell_name
 
 
 !> Perform a total DOS output.
-!! @author
-!!    Copyright (C) 2007-2011 BigDFT group
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-!!
 subroutine global_analysis(orbs,wf,occopt)
    use module_base
    use module_types
    implicit none
    type(orbitals_data), intent(in) :: orbs
    real(gp), intent(in) :: wf
-  integer , intent(in) :: occopt
+   integer , intent(in) :: occopt
 
    integer, parameter :: DOS = 123456
    integer :: ikpt, iorb, index, i
@@ -614,18 +613,18 @@ subroutine global_analysis(orbs,wf,occopt)
    write(DOS, "(A)") '# set output "dos.png"'
    write(DOS, "(A)")
    write(DOS, "(A)") "# This is the smearing value used in the calculation."
-  write(DOS, "(A,F12.8,A)") "w = ", wf*Ha_eV,"  # eV"
+   write(DOS, "(A,F12.8,A)") "w = ", wf*Ha_eV,"  # eV"
   !write(DOS, "(A,F12.8,A)") "T = ", wf*Ha_K," K"
    write(DOS, "(A)")
    write(DOS, "(A)") "# This is the smearing function used in the calculation."
-  if (occopt == SMEARING_DIST_FERMI) then
-     write(DOS, "(A,F6.4,A,F12.6,A)") 'set title "Density of states, Fermi-Dirac smearing w = ', &
+   if (occopt == SMEARING_DIST_FERMI) then
+     write(DOS, "(A,F7.4,A,F12.6,A)") 'set title "Density of states, Fermi-Dirac smearing w = ', &
           & wf*Ha_eV, 'eV, E_f = ', orbs%efermi*Ha_eV , 'eV"'
      write(DOS, "(A)") "f(eb,E)  = 1 / (1 + exp((eb-E)/w))"
      write(DOS, "(A)") "df(eb,E) = 1 / (2 + exp((eb-E)/w) + exp((E-eb)/w)) / w"
    !elseif (occopt == SMEARING_DIST_ERF) then  
    else  ! to be changed for cold smearing and ... 
-     write(DOS, "(A,F6.4,A,F12.6,A)") 'set title "Density of states, erf smearing w = ', &
+     write(DOS, "(A,F7.4,A,F12.6,A)") 'set title "Density of states, erf smearing w = ', &
           & wf*Ha_eV, 'eV,  E_f = ', orbs%efermi*Ha_eV , 'eV"'
      write(DOS, "(A)") "f(eb,E)  = 0.5 * (1 - erf((E - eb) / w))"
      write(DOS, "(A)") "df(eb,E) = exp(-((E - eb) / w) ** 2) / w / sqrt(pi)"

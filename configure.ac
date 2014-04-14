@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.7-dev.24],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.7.1.15],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -21,6 +21,16 @@ AC_CONFIG_MACRO_DIR([config/m4])
 dnl Init something, don't know exactly what...
 AM_INIT_AUTOMAKE(-Wno-portability)
 
+dnl Versioning
+BIGDFT_MAJOR_VERSION=$(echo $PACKAGE_VERSION | cut -d'.' -f1)
+BIGDFT_MINOR_VERSION=$(echo $PACKAGE_VERSION | cut -d'.' -f2 | cut -d'-' -f1)
+BIGDFT_MICRO_VERSION=$(echo $PACKAGE_VERSION | cut -d'.' -f3)
+BIGDFT_NANO_VERSION=$(echo $PACKAGE_VERSION | cut -d'.' -f4)
+AC_SUBST(BIGDFT_MAJOR_VERSION)
+AC_SUBST(BIGDFT_MINOR_VERSION)
+AC_SUBST(BIGDFT_MICRO_VERSION)
+AC_SUBST(BIGDFT_NANO_VERSION)
+
 dnl This is a hack for usage inside ABINIT.
 dnl if test -n "$FCFLAGS" ; then
 dnl   FCFLAGS=`echo $FCFLAGS | sed 's/-qsuffix=[[a-zA-Z:0-9=]]*//'`
@@ -28,6 +38,9 @@ dnl fi
 dnl if test -n "$F90FLAGS" ; then
 dnl   F90FLAGS=`echo $F90FLAGS | sed 's/-qsuffix=[[a-zA-Z:0-9=]]*//'`
 dnl fi
+
+dnl Check for sed and put it in the SED variable
+AC_PROG_SED()
 
 dnl We defined CC for the ABINIT part.
 AC_PROG_CC()
@@ -80,22 +93,33 @@ if test "$ar" = ":" ; then
   AC_MSG_ERROR(["No 'ar' program found."])
 fi
 
+dnl Search for pkg-config
+PKG_PROG_PKG_CONFIG()
+
+dnl Produce dynamic excecutables.
+AC_ARG_ENABLE(dynamic-libraries, AS_HELP_STRING([--enable-dynamic-libraries],
+                                               [Build dynamical libraries (disabled by default).]),
+              ac_build_dynamic=$enableval, ac_build_dynamic="no")
+
+dnl Basics for minimal bindings.
+AX_FC_POINTER()
+
 dnl Look for GLib and friends for bindings.
-AC_ARG_ENABLE(bindings, AS_HELP_STRING([--disable-bindings], [Don't build C bindings (enabled by default).]),
-              ac_build_bindings=$enableval, ac_build_bindings="yes")
-if test x"$ac_build_bindings" = x"yes" ; then
-  AX_FC_POINTER()
-  if test $F90_1D_POINTER_SIZE = 0 ; then
-    ac_build_bindings="warn"
-  fi
+AC_ARG_ENABLE(bindings, AS_HELP_STRING([--enable-bindings], [Build C bindings (disabled by default).]),
+              ac_build_bindings=$enableval, ac_build_bindings="no")
+if test x"$ac_build_bindings" = x"yes" -a $F90_1D_POINTER_SIZE = 0 ; then
+  ac_build_bindings="warn"
 fi
-AM_CONDITIONAL(BUILD_BINDINGS, test "$ac_build_bindings" = "yes")
 AC_ARG_WITH(gobject, AS_HELP_STRING([--with-gobject],
                      [Build GObject bindings (default is yes).]),
-            ac_use_glib=$withval, ac_use_glib="yes")
-if test x"$ac_use_glib" = x"yes" -a x"$ac_build_bindings" = x"yes" ; then
+            ac_use_glib=$withval, ac_use_glib=$ac_build_bindings)
+if test x"$ac_use_glib" = x"yes"; then
   PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0 gthread-2.0 gio-2.0 >= 2.22, [have_glib=yes], [have_glib=no])
-  PKG_CHECK_MODULES(GDBUS, gio-2.0 gio-unix-2.0 >= 2.30, [have_gdbus=yes], [have_gdbus=no])
+  PKG_CHECK_MODULES(GDBUS, glib-2.0 gobject-2.0 gthread-2.0 gio-2.0 >= 2.22 gio-unix-2.0 >= 2.30, [have_gdbus=yes], [have_gdbus=no])
+  dnl Merge GLIB_LIBS and GDBUS_LIBS if GDBUS is available.
+  if test "$have_gdbus" = "yes" ; then
+    GLIB_LIBS=$GDBUS_LIBS
+  fi
   PKG_CHECK_MODULES([GOBJECT_INTROSPECTION],
                     [gobject-introspection-1.0 >= 0.9],
                     [enable_introspection=yes],
@@ -109,20 +133,70 @@ if test x"$ac_use_glib" = x"yes" -a x"$ac_build_bindings" = x"yes" ; then
     AC_SUBST(typelibsdir)
     AC_SUBST([G_IR_SCANNER], [$($PKG_CONFIG --variable=g_ir_scanner gobject-introspection-1.0)])
     AC_SUBST([G_IR_COMPILER], [$($PKG_CONFIG --variable=g_ir_compiler gobject-introspection-1.0)])
+    dnl Force dynamic library building.
+    ac_build_dynamic="yes"
   fi
 else
   have_glib=no
   have_gdbus=no
+  enable_introspection=no
 fi
+dnl Test for library building tools.
+if test x"$ac_build_dynamic" = x"yes" ; then
+  AX_FLAG_PIC()
+  if test -z "$ax_flag_pic" ; then
+    AC_MSG_WARN(["No available position-independent code flag, bindings disabled."])
+    ac_build_dynamic=no
+    ac_build_bindings=warn
+    have_glib=no
+    have_gdbus=no
+    enable_introspection=no
+  else
+    case $CFLAGS   in *"$ax_flag_pic"*) ;; *) CFLAGS="$CFLAGS $ax_flag_pic";; esac
+    case $CXXFLAGS in *"$ax_flag_pic"*) ;; *) CXXFLAGS="$CXXFLAGS $ax_flag_pic";; esac
+    case $FCFLAGS  in *"$ax_flag_pic"*) ;; *) FCFLAGS="$FCFLAGS $ax_flag_pic";; esac
+
+    eval "set x $ac_configure_args"
+    shift
+    ac_configure_args=
+    for ac_arg ; do
+      case $ac_arg in
+        CFLAGS=* | CXXFLAGS=* | FCFLAGS=*) ;;
+        *) ac_configure_args="$ac_configure_args '$ac_arg'"
+      esac
+    done
+    ac_configure_args="$ac_configure_args 'CFLAGS=$CFLAGS' 'CXXFLAGS=$CXXFLAGS' 'FCFLAGS=$FCFLAGS'"
+  fi
+else
+  ax_flag_pic=""
+fi
+AM_CONDITIONAL([BUILD_DYNAMIC_LIBS], [test "x$ac_build_dynamic" = "xyes"])
 AM_CONDITIONAL([WITH_GOBJECT_INTROSPECTION], [test "x$enable_introspection" = "xyes"])
 if test x"$have_glib" = x"yes" ; then
   AC_DEFINE([HAVE_GLIB], [], [If set, we can call glib.h])
+  AC_SUBST([GLIB_TRUE], [""])
+  AC_SUBST([GLIB_END_TRUE], [""])
+  AC_SUBST([GLIB_FALSE], ["/*"])
+  AC_SUBST([GLIB_END_FALSE], ["*/"])
+else
+  AC_SUBST([GLIB_TRUE], ["/*"])
+  AC_SUBST([GLIB_END_TRUE], ["*/"])
+  AC_SUBST([GLIB_FALSE], [""])
+  AC_SUBST([GLIB_END_FALSE], [""])
 fi
 AM_CONDITIONAL(HAVE_GLIB, test "$have_glib" = "yes")
 if test x"$have_gdbus" = x"yes" ; then
   AC_DEFINE([HAVE_GDBUS], [], [If set, we can use gdbus])
 fi
 AM_CONDITIONAL(HAVE_GDBUS, test "$have_gdbus" = "yes")
+AM_CONDITIONAL(BUILD_BINDINGS, test "$ac_build_bindings" = "yes")
+if test x"$ac_build_bindings" = x"yes" ; then
+  AC_SUBST([BUILD_BINDINGS_START], [""])
+  AC_SUBST([BUILD_BINDINGS_END], [""])
+else
+  AC_SUBST([BUILD_BINDINGS_START], ["/*"])
+  AC_SUBST([BUILD_BINDINGS_END], ["*/"])
+fi
 
 dnl Enable or not MPI.
 ac_use_mpi="yes"
@@ -190,8 +264,12 @@ end
     fi
 
     dnl Test for MPI2.
-    AC_MSG_CHECKING([for MPI 2 capabilities])
-    AC_LINK_IFELSE([[
+    AC_ARG_WITH(mpi2, AS_HELP_STRING([--with-mpi2],
+                [Use MPI2 capabilities like MPI_IN_PLACE.]),
+                ac_with_mpi2=$withval, ac_with_mpi2="auto")
+    if test x"$ac_with_mpi2" == x"yes" -o x"$ac_with_mpi2" == x"auto" ; then
+      AC_MSG_CHECKING([for MPI 2 capabilities])
+      AC_LINK_IFELSE([[
 program main
 implicit none
 
@@ -203,16 +281,13 @@ include "mpif.h"
 call MPI_ALLREDUCE(MPI_IN_PLACE,rho,3,&
               MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 end
-]], withmpi2=yes, withmpi2=no)
-    AC_MSG_RESULT([$withmpi2])
-
-    if test x"$withmpi2" = x"yes" ; then
-      ac_with_mpi2="yes"
-      AC_DEFINE([HAVE_MPI2], [1], [use MPI2 capabilities.])
-    else
-      ac_with_mpi2="no"
+]], ac_with_mpi2="yes", ac_with_mpi2="no")
+      AC_MSG_RESULT([$ac_with_mpi2])
     fi
 
+    if test x"$ac_with_mpi2" = x"yes" ; then
+      AC_DEFINE([HAVE_MPI2], [1], [use MPI2 capabilities.])
+    fi
 
   else
     AC_MSG_WARN([MPI is not working and has been disabled.])
@@ -251,7 +326,7 @@ ac_with_memory_limit="no"
 AC_MSG_CHECKING([for memory limit in GB])
 AC_ARG_WITH(memory-limit, AS_HELP_STRING([--with-memory-limit], [Memory limit value in GB. It stops EVERYTHING if some process passes such limit (disabled by default).]),
               ac_with_memory_limit=$withval, ac_with_memory_limit="no")
-if test `echo "$ac_with_memory_limit" | sed "s/[.].*//"` -ge "0" 2> /dev/null ; then
+if test `echo "$ac_with_memory_limit" | $SED "s/[.].*//"` -ge "0" 2> /dev/null ; then
   MEMORY_LIMIT=$ac_with_memory_limit
 else
   ac_with_memory_limit="undefined"
@@ -332,6 +407,9 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   dnl Optional Cuda installation dir.
   AC_ARG_WITH(cuda-path, AS_HELP_STRING([--with-cuda-path], [give the path to the NVidia Cuda tools (default is /usr/local/cuda).]),
                          [ac_with_cuda_path=$withval], [ac_with_cuda_path="/usr/local/cuda"])
+  if test x"$ac_with_cuda_path" = x"no" ; then
+    ac_with_cuda_path="/usr"
+  fi
   CUDA_PATH=$ac_with_cuda_path
   AC_SUBST(CUDA_PATH)
   dnl Test the existence of things.
@@ -379,17 +457,12 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   AC_LANG_POP(C)
 
   dnl Add the flags.
-  AC_ARG_WITH(cuda-cflags, AS_HELP_STRING([--with-nvcc-flags], [specify the flags for the NVidia Cuda Compiler (default is '-O3 --compiler-options -fno-strict-aliasing').]),
-                         [ac_with_nvcc_flags=$withval],
-                         [ac_with_nvcc_flags="no"])
-  if test x"$ac_with_nvcc_flags" != x"no" ; then
-    NVCC_FLAGS="$ac_with_nvcc_flags"
-  else
-    if test -z "NVCC_FLAGS" ; then
-      NVCC_FLAGS="-O3 --compiler-options -fno-strict-aliasing"
-    fi
+  AC_MSG_CHECKING([for NVCC flags])
+  if test -z "$NVCC_FLAGS" ; then
+    NVCC_FLAGS="-O3 --compiler-options '-fno-strict-aliasing $ax_flag_pic'"
   fi
   AC_SUBST(NVCC_FLAGS)
+  AC_MSG_RESULT([$NVCC_FLAGS])
   LIBCUDA_LIBS="-lcudart -lcublas -lcufft"
   LDFLAGS="$LDFLAGS -L$ac_cuda_lib_path"
 fi
@@ -519,98 +592,6 @@ end]], ac_use_etsfio=yes, ac_use_etsfio=no)
 fi
 AM_CONDITIONAL(HAVE_ETSF_IO, test "$ac_use_etsfio" = "yes")
 
-dnl Archive input file support
-ac_use_archive="yes"
-AC_ARG_WITH([archives],
-            AS_HELP_STRING([--with-archives], [add support of archives for output files.]),
-            [ac_use_archive=$withval], [ac_use_archive=yes])
-AC_ARG_WITH([archives-path],
-            AS_HELP_STRING([--with-archives-path], [give a path to find libarchive.]),
-            [ac_path_archive=$withval])
-if test x"$ac_use_archive" != x"no" ; then
-   if test x"$ac_path_archive" == x"" ; then
-      PKG_CHECK_MODULES([LIB_ARCHIVE],
-                        [libarchive >= 2.4],
-                        [ac_use_archive=yes],
-                        [ac_use_archive=warn])
-   else
-      LDFLAGS_SVG="$LDFLAGS"
-      AC_LANG_PUSH(C)
-      LDFLAGS="-L$ac_path_archive/lib"
-      AC_CHECK_LIB([archive], [archive_read_data_block],
-                   [ac_use_archive=yes], [ac_use_archive=warn])
-      if test x"$ac_use_archive" = x"yes" ; then
-         LIB_ARCHIVE_CFLAGS="-I$ac_path_archive/include"
-         LIB_ARCHIVE_LIBS="-L$ac_path_archive/lib -larchive"
-      fi
-      AC_LANG_POP(C)
-      LDFLAGS="$LDFLAGS_SVG"
-   fi
-   if test x"$ac_use_archive" = x"yes" ; then
-      AC_DEFINE([HAVE_LIB_ARCHIVE], [1], [libarchive is linkable.])
-   else
-      AC_MSG_WARN([libarchive is not available])
-   fi
-fi
-AC_LANG_PUSH(C)
-AC_CHECK_FUNCS([strndup])
-AC_LANG_POP(C)
-AM_CONDITIONAL(HAVE_LIB_ARCHIVE, test x"$ac_use_archive" = x"yes")
-AC_SUBST(LIB_ARCHIVE_CFLAGS)
-AC_SUBST(LIB_ARCHIVE_LIBS)
-
-dnl Yaml input file support
-ac_use_libyaml="yes"
-AC_ARG_WITH([yaml],
-            AS_HELP_STRING([--without-yaml], [add support of YAML for input files (default = yes).]),
-            [ac_use_libyaml=$withval], [ac_use_libyaml=yes])
-AC_ARG_WITH([yaml-path],
-            AS_HELP_STRING([--with-yaml-path], [give a path to find libyaml.]),
-            [ac_path_yaml=$withval])
-AC_ARG_ENABLE(internal-libyaml, AS_HELP_STRING([--disable-internal-libyaml], [Do not build and link with internal libyaml library (default = yes).]), ac_internal_libyaml=$enableval, ac_internal_libyaml="yes")
-ac_build_libyaml=$ac_internal_libyaml
-if test x"$ac_use_libyaml" != x"no" ; then
-   if test x"$ac_path_yaml" == x"" ; then
-      ac_path_yaml="/usr"
-   fi
-   LDFLAGS_SVG="$LDFLAGS"
-   AC_LANG_PUSH(C)
-   LDFLAGS="-L$ac_path_yaml/lib"
-   AC_CHECK_LIB([yaml], [yaml_parser_parse],
-                [ac_use_libyaml=yes], [ac_use_libyaml=warn])
-   if test x"$ac_use_libyaml" = x"yes"; then
-      if test x"$ac_path_yaml" != x"/usr" ; then
-         LIB_YAML_CFLAGS="-I$ac_path_yaml/include"
-         LIB_YAML_LIBS="-L$ac_path_yaml/lib "
-      fi
-      LIB_YAML_LIBS=$LIB_YAML_LIBS"-lyaml"
-   fi
-   AC_LANG_POP(C)
-   LDFLAGS="$LDFLAGS_SVG"
-   if test x"$ac_use_libyaml" != x"yes" ; then
-      if test x"$ac_internal_libyaml" = x"yes" ; then
-         AC_MSG_WARN([libyaml is not available, building internal one.])
-         ac_use_libyaml="yes"
-         LIB_YAML_CFLAGS="-I\$(top_srcdir)"/yaml-0.1.4/include
-         LIB_YAML_LIBS="\$(top_builddir)/yaml-0.1.4/src/.libs/libyaml.a"
-         if ! test -d ${srcdir}/PyYAML-3.10 ; then
-            tar -xzf ${srcdir}/PyYAML-3.10.tar.gz
-         fi
-      else
-         AC_MSG_WARN([libyaml is not available.])
-      fi
-   else
-      ac_build_libyaml="no"
-   fi
-   AC_DEFINE([HAVE_YAML], [], [If set, we can call yaml.h])
-else
-   ac_build_libyaml="no"
-fi
-AM_CONDITIONAL(BUILD_LIBYAML, test x"$ac_build_libyaml" = x"yes")
-AM_CONDITIONAL(HAVE_LIB_YAML, test x"$ac_use_libyaml" = x"yes")
-AC_SUBST(LIB_YAML_CFLAGS)
-AC_SUBST(LIB_YAML_LIBS)
-
 dnl Test libraries required for benching.
 AC_LANG_PUSH(C++)
 AC_CHECK_LIB(config++, config_init, withconfig=yes, withconfig=no)
@@ -618,8 +599,6 @@ AM_CONDITIONAL(HAVE_LIBCONFIG, test "$withconfig" = "yes")
 AC_LANG_POP(C++)
 
 dnl AM_CONDITIONAL for the different libraries, set default values.
-dnl the common routines from ABINIT.
-ac_build_lib_ABINIT="yes"
 dnl the BigDFT library.
 ac_build_lib_BigDFT="yes"
 dnl the standalone executable (required linking tests)
@@ -640,8 +619,6 @@ AC_MSG_RESULT([$ac_build_bin_cluster])
 
 
 dnl ---------------------------------------
-dnl Test the linking part only if required.
-if test "$ac_build_bin_cluster" = "yes" ; then
 
 dnl Substitute Lapack and Blas by another specific library
 withlinalg=no
@@ -720,103 +697,244 @@ fi
 dnl Test for Scalapack
 if test x"$withmpi" = x"yes" ; then
 dnl Test for blacs
-dnl Get the lapack library
-ac_blacs=yes
-AC_ARG_WITH(blacs, AS_HELP_STRING([--with-blacs], [Link with blacs library (default = no).]), ac_blacs=$withval, ac_blacs=yes)
+ac_blacs=-lblacs
+AC_ARG_WITH(blacs, AS_HELP_STRING([--with-blacs], [Link with blacs library (default = no).]), ac_blacs=$withval, ac_blacs=-lblacs)
 AC_ARG_WITH(blacs-path, AS_HELP_STRING([--with-blacs-path], [Give the path of the Blacs library (default = /usr/lib).]),
             ac_blacs_dir=$withval, ac_blacs_dir=)
 if test -n "$ac_blacs_dir" ; then
   LDFLAGS="$LDFLAGS -L$ac_blacs_dir"
 fi
 withblacs=no
-if test	x"$ac_blacs" = x"yes" ; then
-  ac_blacs=blacs
-fi
 if test "$ac_blacs" != "no" ; then
-  AC_CHECK_LIB($ac_blacs, blacs_get, withblacs=yes, withblacs=no,$LINALG_LIBS)
+  case $ac_blacs in
+    -l*)
+    AC_MSG_CHECKING([for blacs libraries])
+    AC_LANG_CONFTEST([AC_LANG_CALL([], [blacs_get])])
+    LIBS_SVG=$LIBS
+    for ac_lib in $ac_blacs '-lblacs -lblacsF77init' '-lblacs-openmpi' '-lblacs-openmpi -lblacsF77init-openmpi'; do
+      LIBS="$ac_lib $LIBS_SVG"
+      AC_LINK_IFELSE([], [ac_blacs=$ac_lib], [ac_blacs="no"])
+      if test x"$ac_blacs" != x"no" ; then
+        break
+      fi
+    done
+    rm conftest*
+    LIBS=$LIBS_SVG
+    AC_MSG_RESULT([$ac_blacs])
+    if test x"$ac_blacs" != x"no" ; then
+      withblacs=yes
+    else
+      withblacs=warn
+    fi
+    ;;
+    *)
+    AC_CHECK_LIB($ac_blacs, blacs_get, withblacs=yes, withblacs=warn,$LINALG_LIBS)
+    ac_blacs=-l$ac_blacs
+    ;;
+  esac
   if test "$withblacs" = "yes"; then
-    LINALG_LIBS="-l$ac_blacs $LINALG_LIBS"
+    LINALG_LIBS="$ac_blacs $LINALG_LIBS"
   fi
 fi
 dnl get the scalapack library
-ac_scalapack=yes
-AC_ARG_WITH(scalapack, AS_HELP_STRING([--with-scalapack], [Link with scalapack library (default = no).]), ac_scalapack=$withval, ac_scalapack=yes)
+ac_scalapack=-lscalapack
+AC_ARG_WITH(scalapack, AS_HELP_STRING([--with-scalapack], [Link with scalapack library (default = no).]), ac_scalapack=$withval, ac_scalapack=-lscalapack)
 AC_ARG_WITH(scalapack-path, AS_HELP_STRING([--with-scalapack-path], [Give the path of the Scalapack library (default = /usr/lib).]),
             ac_scalapack_dir=$withval, ac_scalapack_dir=)
 if test -n "$ac_scalapack_dir" ; then
   LDFLAGS="$LDFLAGS -L$ac_scalapack_dir"
 fi
 withscalapack=no
-if test	x"$ac_scalapack" = x"yes" ; then
-  ac_scalapack=scalapack
-fi
 if test "$ac_scalapack" != "no" ; then
-  AC_CHECK_LIB($ac_scalapack, pdsygvx, withscalapack=yes, withscalapack=warn,$LINALG_LIBS)
+  case $ac_scalapack in
+    -l*)
+    AC_MSG_CHECKING([for scalapack libraries])
+    AC_LANG_CONFTEST([AC_LANG_CALL([], [pdsygvx])])
+    LIBS_SVG=$LIBS
+    for ac_lib in $ac_scalapack '-lscalapack-openmpi'; do
+      LIBS="$ac_lib $LIBS_SVG"
+      AC_LINK_IFELSE([], [ac_scalapack=$ac_lib], [ac_scalapack="no"])
+      if test x"$ac_scalapack" != x"no" ; then
+        break
+      fi
+    done
+    rm conftest*
+    LIBS=$LIBS_SVG
+    AC_MSG_RESULT([$ac_scalapack])
+    if test x"$ac_scalapack" != x"no" ; then
+      withscalapack=yes
+    else
+      withscalapack=warn
+    fi
+    ;;
+    *)
+    AC_CHECK_LIB($ac_scalapack, pdsygvx, withscalapack=yes, withscalapack=warn,$LINALG_LIBS)
+    ac_scalapack=-l$ac_scalapack
+    ;;
+  esac
   if test "$withscalapack" = "yes"; then
-    LINALG_LIBS="-l$ac_scalapack $LINALG_LIBS"
+    LINALG_LIBS="$ac_scalapack $LINALG_LIBS"
   fi
 fi
    
 fi #end $withmpi = yes
 
 fi #end $withlinalg = no
-
-dnl Fallbacks for linear algebra libraries
-if [ test $withlinalg = "no" && test $withblas = "no" ] ; then
-  AC_MSG_ERROR(["No blas library. Use --with-blas-path or check your Blas installation."])
-fi
-if [ test $withlinalg = "no" && test $withlapack = "no" ] ; then
-  AC_MSG_ERROR(["No lapack library. Use --with-lapack-path or check your Lapack installation. Linalg: $LINALG_LIBS"])
-fi
 AC_SUBST(LINALG_LIBS, $LINALG_LIBS)
-
-fi # End of the if library compilation
 AM_CONDITIONAL(USE_BLACS, test x"$withscalapack" = x"yes")
 
-dnl Test the libXC library
-ac_internal_libxc="yes"
-ac_use_libxc="no"
-ac_build_libxc="no"
-AC_ARG_WITH(libxc, AS_HELP_STRING([--without-libxc], [Do not link with libXC library (default = yes).]), ac_use_libxc=$enableval, ac_use_libxc="yes")
-AC_ARG_ENABLE(internal-libxc, AS_HELP_STRING([--disable-internal-libxc], [Do not build and link with internal libXC library (default = yes).]), ac_internal_libxc=$enableval, ac_internal_libxc="yes")
-AC_ARG_WITH(libxc-path, AS_HELP_STRING([--with-libxc-path], [Give the path for an external libXC library, lib and module files (default = None).]),
-            ac_libxc_dir=$withval, ac_libxc_dir=)
-if test x"$ac_use_libxc" = x"yes" ; then
-  ac_build_libxc=$ac_internal_libxc
-  if test "$ac_internal_libxc" = "yes" ; then
-    ac_build_libxc="yes"
-    ac_use_libxc="yes"
-    ac_libxc_dir="$top_builddir"/libxc-1.1.0/src
-    AC_SUBST(LIBXC_DIR, "\$(top_builddir)"/libxc-1.1.0/src)
-    AC_SUBST(LIBXC_INCLUDE, "-I\$(top_builddir)"/libxc-1.1.0/src)
-    LDFLAGS="$LDFLAGS -L\$(top_builddir)/libxc-1.1.0/src/.libs"
-    LIBXC_LIBS="-lxc"
-  else
-    if test -n "$ac_libxc_dir" ; then
-      LDFLAGS="$LDFLAGS -L$ac_libxc_dir/lib"
-      
-      dnl Test the given implementation of libXC.
-      ac_libxc_libname="xc"
-      AC_CHECK_LIB($ac_libxc_libname, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
-      if test x"$withlibxc" = x"no" ; then
-        ac_libxc_libname="dft_xc"
-        AC_CHECK_LIB($ac_libxc_libname, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
+dnl Error on the linking part only if required.
+if test "$ac_build_bin_cluster" = "yes" ; then
+  if [ test $withlinalg = "no" && test $withblas = "no" ] ; then
+    AC_MSG_ERROR(["No blas library. Use --with-blas-path or check your Blas installation."])
+  fi
+  if [ test $withlinalg = "no" && test $withlapack = "no" ] ; then
+    AC_MSG_ERROR(["No lapack library. Use --with-lapack-path or check your Lapack installation. Linalg: $LINALG_LIBS"])
+  fi
+fi # End of the if library compilation
+
+dnl Archive input file support
+ac_use_archive="yes"
+AC_ARG_WITH([archives],
+            AS_HELP_STRING([--with-archives], [add support of archives for output files.]),
+            [ac_use_archive=$withval], [ac_use_archive=$ac_build_lib_BigDFT])
+AC_ARG_WITH([archives-path],
+            AS_HELP_STRING([--with-archives-path], [give a path to find libarchive.]),
+            [ac_path_archive=$withval])
+if test x"$ac_use_archive" != x"no" ; then
+   if test x"$ac_path_archive" == x"" ; then
+      PKG_CHECK_MODULES([LIB_ARCHIVE],
+                        [libarchive >= 2.4],
+                        [ac_use_archive=yes],
+                        [ac_use_archive=warn])
+   else
+      LDFLAGS_SVG="$LDFLAGS"
+      AC_LANG_PUSH(C)
+      LDFLAGS="-L$ac_path_archive/lib"
+      AC_CHECK_LIB([archive], [archive_read_data_block],
+                   [ac_use_archive=yes], [ac_use_archive=warn])
+      if test x"$ac_use_archive" = x"yes" ; then
+         LIB_ARCHIVE_CFLAGS="-I$ac_path_archive/include"
+         LIB_ARCHIVE_LIBS="-L$ac_path_archive/lib -larchive"
       fi
-      AC_CHECK_FILE($ac_libxc_dir/include/libxc_funcs_m.$ax_fc_mod_ext, funcs="yes", funcs="no")
-      AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_lib_m.$ax_fc_mod_ext, lib="yes", lib="no")
-      AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_types_m.$ax_fc_mod_ext, types="yes", types="no")
-      if test "$withlibxc" = "yes" -a "$funcs" = "yes" -a "$lib" = "yes" -a "$types" = "yes"; then
-        ac_use_libxc="yes"
-        AC_SUBST(LIBXC_DIR, $ac_libxc_dir/include)
-        AC_SUBST(LIBXC_INCLUDE, "-I"$ac_libxc_dir/include)
-        LIBXC_LIBS="-l"$ac_libxc_libname
+      AC_LANG_POP(C)
+      LDFLAGS="$LDFLAGS_SVG"
+   fi
+   if test x"$ac_use_archive" = x"yes" ; then
+      AC_DEFINE([HAVE_LIB_ARCHIVE], [1], [libarchive is linkable.])
+   else
+      AC_MSG_WARN([libarchive is not available])
+   fi
+fi
+AC_LANG_PUSH(C)
+AC_CHECK_FUNCS([strndup])
+AC_LANG_POP(C)
+AM_CONDITIONAL(HAVE_LIB_ARCHIVE, test x"$ac_use_archive" = x"yes")
+AC_SUBST(LIB_ARCHIVE_CFLAGS)
+AC_SUBST(LIB_ARCHIVE_LIBS)
+
+dnl Yaml input file support
+AC_ARG_WITH([yaml-path],
+            AS_HELP_STRING([--with-yaml-path], [give a path to find libyaml.]),
+            [ac_path_yaml=$withval])
+AC_ARG_ENABLE(internal-libyaml, AS_HELP_STRING([--disable-internal-libyaml], [Do not build and link with internal libyaml library (default = auto).]), ac_build_libyaml=$enableval, ac_build_libyaml="auto")
+
+ac_use_libyaml="no"
+if test x"$ac_path_yaml" == x"" ; then
+   ac_path_yaml="/usr"
+fi
+dnl auto-detect if build = no or build = auto
+if test x"$ac_build_libyaml" != x"yes" ; then
+   LDFLAGS_SVG="$LDFLAGS"
+   AC_LANG_PUSH(C)
+   LDFLAGS="-L$ac_path_yaml/lib"
+   AC_CHECK_LIB([yaml], [yaml_parser_parse],
+                [ac_use_libyaml=yes], [ac_use_libyaml=no])
+   if test x"$ac_use_libyaml" = x"yes"; then
+      if test x"$ac_path_yaml" != x"/usr" ; then
+         LIB_YAML_CFLAGS="-I$ac_path_yaml/include"
+         LIB_YAML_LIBS="-L$ac_path_yaml/lib "
+      fi
+      LIB_YAML_LIBS=$LIB_YAML_LIBS"-lyaml"
+   else
+      AC_MSG_WARN([libyaml is not available, building internal one.])
+   fi
+   AC_LANG_POP(C)
+   LDFLAGS="$LDFLAGS_SVG"
+fi
+dnl internal if yes or auto and not detected.
+if test x"$ac_use_libyaml" != x"yes" ; then
+   ac_use_libyaml="yes"
+   ac_build_libyaml="yes"
+   LIB_YAML_CFLAGS="-I\$(top_srcdir)"/yaml-0.1.4/include
+   LIB_YAML_LIBS="\$(top_builddir)/yaml-0.1.4/src/.libs/libyaml.a"
+   tar -xzf ${srcdir}/PyYAML-3.10.tar.gz
+fi
+AC_DEFINE([HAVE_YAML], [], [If set, we can call yaml.h])
+AM_CONDITIONAL(BUILD_LIBYAML, test x"$ac_build_libyaml" = x"yes")
+AM_CONDITIONAL(HAVE_LIB_YAML, test x"$ac_use_libyaml" = x"yes")
+AC_SUBST(LIB_YAML_CFLAGS)
+AC_SUBST(LIB_YAML_LIBS)
+
+dnl Test the libXC library
+ac_use_libxc="yes"
+ac_build_libxc="auto"
+AC_ARG_WITH(libxc, AS_HELP_STRING([--without-libxc], [Do not link with libXC library (default = yes).]), ac_use_libxc=$withval, ac_use_libxc=$ac_build_lib_BigDFT)
+AC_ARG_ENABLE(internal-libxc, AS_HELP_STRING([--disable-internal-libxc], [Do not build and link with internal libXC library (default = yes).]), ac_build_libxc=$enableval, ac_build_libxc="auto")
+AC_ARG_WITH(libxc-libs, AS_HELP_STRING([--with-libxc-libs], [Give the compiler include flags for an external libXC library (default = None).]), ac_libxc_libdir=$withval, ac_libxc_libdir=)
+AC_ARG_WITH(libxc-incs, AS_HELP_STRING([--with-libxc-incs], [Give the linker flags for an external libXC modules (default = None).]), ac_libxc_incdir=$withval, ac_libxc_incdir=)
+if test x"$ac_use_libxc" != x"no" ; then
+  if test x"$ac_build_libxc" != x"yes" ; then
+    dnl Run the detection.
+    if test -n "$ac_libxc_libdir" -a -n "$ac_libxc_incdir" ; then
+      dnl Test the modules for compilation
+      AC_MSG_CHECKING([for libXC modules])
+      FCFLAGS_SVG=$FCFLAGS
+      FCFLAGS="$FCFLAGS $ac_libxc_incdir"
+      AC_COMPILE_IFELSE([[program main
+  use xc_f90_types_m
+  use libxc_funcs_m
+  use xc_f90_lib_m
+
+  write(*,*) XC_FAMILY_GGA
+end program]], withlibxcmod=yes, withlibxcmod=no)
+      AC_MSG_RESULT($withlibxcmod)
+      FCFLAGS=$FCFLAGS_SVG
+        
+      dnl Test the library of libXC.
+      LIBS_SVG=$LIBS
+      LIBS="$LIBS $ac_libxc_libdir"
+      AC_CHECK_LIB(xc, xc_f90_lda_vxc, ac_use_libxc=yes, ac_use_libxc=no)
+      LIBS=$LIBS_SVG
+  
+      if test "$ac_use_libxc" = "yes" -a "$withlibxcmod" = "yes" ; then
+        AC_SUBST(LIBXC_INCLUDE, $ac_libxc_incdir)
+        LIBXC_LIBS=$ac_libxc_libdir
+        ac_build_libxc="no"
+      else
+        ac_use_libxc="no"
       fi
     else
       LIBXC_CFLAGS="-I/usr/include"
       PKG_CHECK_MODULES(LIBXC, libxc >= 1.0, ac_use_libxc="yes", ac_use_libxc="no")
       AC_SUBST(LIBXC_INCLUDE, $LIBXC_CFLAGS)
     fi
+
+    if test "$ac_use_libxc" = "no" ; then
+      AC_MSG_WARN([No working libXC build the internal one.])
+      ac_build_libxc="yes"
+    fi
   fi
+
+  if test x"$ac_build_libxc" = x"yes" ; then
+    ac_use_libxc="yes"
+    AC_SUBST(LIBXC_INCLUDE, "-I\$(top_builddir)"/libxc-2.0.x/src)
+    LDFLAGS="$LDFLAGS -L\$(top_builddir)/libxc-2.0.x/src/.libs"
+    LIBXC_LIBS="-lxcf90 -lxc"
+  fi
+else
+  ac_use_libxc="no"
+  ac_build_libxc="no"
 fi
 AM_CONDITIONAL(BUILD_LIBXC, test x"$ac_build_libxc" = x"yes")
 AM_CONDITIONAL(USE_LIBXC, test x"$ac_use_libxc" = x"yes")
@@ -826,7 +944,7 @@ fi
 
 dnl Test the ABINIT library
 ac_internal_libabinit="yes"
-AC_ARG_ENABLE(internal-libabinit, AS_HELP_STRING([--disable-internal-libabinit], [Do not build and link with internal libABINIT library (default = yes).]), ac_internal_libabinit=$enableval, ac_internal_libabinit="yes")
+AC_ARG_ENABLE(internal-libabinit, AS_HELP_STRING([--disable-internal-libabinit], [Do not build and link with internal libABINIT library (default = yes).]), ac_internal_libabinit=$enableval, ac_internal_libabinit=$ac_build_lib_BigDFT)
 AC_ARG_WITH(libabinit-path, AS_HELP_STRING([--with-libabinit-path], [Give the path for an external libABINIT library, lib and module files (default = None).]),
             ac_libabinit_dir=$withval, ac_libabinit_dir=)
 ac_use_libabinit="no"
@@ -906,11 +1024,8 @@ dnl Agregate all flags.
 LDFLAGS="$LDFLAGS $LDFLAGS_MIC"
 
 dnl Agregate all the optional libs.
-dnl We always add rt library. To be tested later if necessary.
-LIBS_SHORT_DEPS="$LIBABINIT_LIBS \$(top_builddir)/src/libdft_common.a $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $GDBUS_LIBS $MPI_LDFLAGS $MPI_LIBS"
+LIBS_SHORT_DEPS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS"
 AC_SUBST(LIBS_SHORT_DEPS, [$LIBS_SHORT_DEPS])
-LIBS_DEPENDENCIES="\$(top_builddir)/src/libbigdft.a $LIBS_SHORT_DEPS"
-AC_SUBST(LIBS_DEPENDENCIES, [$LIBS_DEPENDENCIES])
 
 dnl Test for the documentation.
 AC_CHECK_PROG(ac_have_pdflatex, [pdflatex], [yes], [no])
@@ -936,21 +1051,35 @@ AC_SUBST(moduledir)
 docdir="${docdir}"
 AC_SUBST(docdir)
 
+AC_SUBST(CONFIG_ARGS, [$ac_configure_args])
+
 dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
 bigdft.pc
 libABINIT/src/Makefile
 config/Doxyfile
+PyYAML-3.10/Makefile
+flib/Makefile
+flib/src/Makefile
+flib/tests/Makefile
+wrappers/Makefile
+PSolver/Makefile
+PSolver/src/configure.inc
+PSolver/src/Makefile
+PSolver/tests/Makefile
 src/bigdft-tool
 src/Makefile
 src/modules/Makefile
 src/modules/bigdft_cst.h
 src/modules/configure.inc
-src/PSolver/Makefile
+src/modules/configure.c
+src/convolutions/Makefile
+src/xcPSolver/Makefile
 src/CUDA/Makefile
 src/OpenCL/Makefile
 src/convolutions-c/Makefile
+src/bindings/Makefile
 src/art/Makefile
 src/tools/Makefile
 src/tools/bader/Makefile
@@ -959,20 +1088,26 @@ utils/PSPfiles/Makefile
 pseudo/Makefile
 pseudo/src/Makefile
 pseudo/tests/Makefile
+pseudo/tests/atoms/Makefile
+pseudo/tests/H-pseudo/Makefile
+pseudo/tests/C-pseudo/Makefile
+pseudo/tests/pawpatchtest/Makefile
+pseudo/tests/tutorials/Makefile
+pseudo/tests/tutorials/oxygen.NLCC/Makefile
 doc/Makefile
 tests/Makefile
 tests/libs/Makefile
 tests/libs/fft/Makefile
-tests/libs/PSolver/Makefile
 tests/libs/OP2P/Makefile
 tests/libs/xc/Makefile
+tests/libs/xcPSolver/Makefile
 tests/libs/OpenCL/Makefile
 tests/libs/CUDA/Makefile
 tests/libs/IO-wf/Makefile
 tests/libs/dsygv/Makefile
 tests/libs/ftypes/Makefile
+tests/libs/wrappers/Makefile
 tests/libs/psp/Makefile
-tests/libs/yaml/Makefile
 tests/DFT/Makefile
 tests/DFT/cubic/Makefile
 tests/DFT/linear/Makefile
@@ -984,7 +1119,7 @@ tests/tutorials/Makefile
 # Call libXC ./configure script recursively.
 # Call S_GPU ./configure script recursively.
 if test x"$ac_build_libxc" != x"skip" ; then
-   AC_CONFIG_SUBDIRS([libxc-1.1.0])
+   AC_CONFIG_SUBDIRS([libxc-2.0.x])
 fi
 if test x"$ac_build_libsgpu" != x"skip" ; then
    AC_CONFIG_SUBDIRS([S_GPU])
@@ -994,7 +1129,6 @@ if test x"$ac_build_libyaml" != x"skip" ; then
 fi
 
 AC_OUTPUT
-
 
 echo "
 BigDFT configure summary:
@@ -1010,7 +1144,6 @@ Basics:
   Linked libraries:          $LIBS_DEPENDENCIES $LIBS
 
 Build:
-  Library ABINIT:            $ac_build_lib_ABINIT
   Library BigDFT:            $ac_build_lib_BigDFT
   Main binaries (bigdft,...):$ac_build_bin_cluster
   Minima hopping binary:     $ac_build_bin_minima_hopping
@@ -1054,7 +1187,7 @@ Options:
    | C flags:                $LIB_YAML_CFLAGS
    | linked libraries:       $LIB_YAML_LIBS
   With GLib and co.:         $have_glib
-   | linked libraries:       $GDBUS_LIBS $GLIB_LIBS
+   | linked libraries:       $GLIB_LIBS
 
 Installation paths:
   Source code location:      ${srcdir}
@@ -1066,16 +1199,13 @@ Installation paths:
   Documentation:             $docdir
 "
 
-if test x"$ac_use_mpi" = x"warn" -o x"$ac_use_archive" = x"warn" -o x"$ac_use_etsfio" = x"warn" -o x"$ac_build_bindings" = x"warn" -o x"$withscalapack" = x"warn" -o x"$ac_use_libyaml" = x"warn" ; then
+if test x"$ac_use_mpi" = x"warn" -o x"$ac_use_archive" = x"warn" -o x"$ac_use_etsfio" = x"warn" -o x"$ac_build_bindings" = x"warn" -o x"$withscalapack" = x"warn" ; then
   echo "Warnings:"
   if test x"$ac_use_mpi" = x"warn" ; then
     echo "  MPI:                       disabled by tests"
   fi
   if test x"$ac_use_archive" = x"warn" ; then
     echo "  libarchive:                disabled by tests"
-  fi
-  if test x"$ac_use_libyaml" = x"warn" ; then
-    echo "  libyaml:                   disabled by tests"
   fi
   if test x"$ac_use_etsfio" = x"warn" ; then
     echo "  ETSF_IO:                   disabled by tests"
@@ -1091,4 +1221,4 @@ fi
 
 dnl Do not touch this line. On the Cray machine in Basel, the preprocessor
 dnl in Fortran sources does not allow C comments (/*  */), so we remove them.
-sed -n '1h;1!H;${;g;s%/\*[[^*]]*\*/%%g;p;}' config.h > config.inc
+$SED -n '1h;1!H;${;g;s%/\*[[^*]]*\*/%%g;p;}' config.h > config.inc

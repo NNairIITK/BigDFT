@@ -18,7 +18,7 @@ subroutine plot_density_cube_old(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,n
   real(gp), intent(in) :: hxh,hyh,hzh
   type(atoms_data), intent(in) :: at
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(dp), dimension(n1i*n2i*n3p,nspin), target, intent(in) :: rho
   !local variables
   character(len=*), parameter :: subname='plot_density_cube_old'
@@ -31,7 +31,7 @@ subroutine plot_density_cube_old(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,n
 
   !conditions for periodicity in the three directions
   !value of the buffer in the x and z direction
-  if (at%geocode /= 'F') then
+  if (at%astruct%geocode /= 'F') then
      nl1=1
      nl3=1
      nbxz = 1
@@ -41,7 +41,7 @@ subroutine plot_density_cube_old(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,n
      nbxz = 0
   end if
   !value of the buffer in the y direction
-  if (at%geocode == 'P') then
+  if (at%astruct%geocode == 'P') then
      nl2=1
      nby = 1
   else
@@ -128,19 +128,19 @@ contains
         write(22,*)'Case for '//trim(message)
         !number of atoms
 !        if (geocode=='P') then
-           write(22,'(i5,3(f12.6),a)') at%nat,0.0_gp,0.0_gp,0.0_gp,' modified'
+           write(22,'(i5,3(f12.6),a)') at%astruct%nat,0.0_gp,0.0_gp,0.0_gp,' modified'
 !        else if (geocode=='S') then
-!           write(22,'(i5,3(f12.6))') at%nat,0.0_gp,-hyh,0.0_gp
+!           write(22,'(i5,3(f12.6))') at%astruct%nat,0.0_gp,-hyh,0.0_gp
 !        else if (geocode=='F') then
-!           write(22,'(i5,3(f12.6))') at%nat,-hxh,-hyh,-hzh
+!           write(22,'(i5,3(f12.6))') at%astruct%nat,-hxh,-hyh,-hzh
 !        end if
         !grid and grid spacings
         write(22,'(i5,3(f12.6))') 2*(n1+nbxz),hxh,0.0_gp,0.0_gp
         write(22,'(i5,3(f12.6))') 2*(n2+nby) ,0.0_gp,hyh,0.0_gp
         write(22,'(i5,3(f12.6))') 2*(n3+nbxz),0.0_gp,0.0_gp,hzh
         !atomic number and positions
-        do iat=1,at%nat
-           write(22,'(i5,4(f12.6))') at%nzatom(at%iatype(iat)),0.0_gp,(rxyz(j,iat),j=1,3)
+        do iat=1,at%astruct%nat
+           write(22,'(i5,4(f12.6))') at%nzatom(at%astruct%iatype(iat)),0.0_gp,(rxyz(j,iat),j=1,3)
         end do
 
         !the loop is reverted for a cube file
@@ -245,7 +245,7 @@ contains
 
         do iat=1,nat
            read(22,'(i5,4(f12.6))') idum , dum1 , (rxyz(j,iat),j=1,3)
-           ! write(22,'(i5,4(f12.6))') at%nzatom(at%iatype(iat)),0.0_gp,(rxyz(j,iat),j=1,3)
+           ! write(22,'(i5,4(f12.6))') at%nzatom(at%astruct%iatype(iat)),0.0_gp,(rxyz(j,iat),j=1,3)
         end do
 
         do i1=1,n1i
@@ -283,14 +283,14 @@ subroutine write_cube_fields(filename,message,at,factor,rxyz,n1i,n2i,n3i,n1s,n2s
   real(gp), intent(in) :: hxh,hyh,hzh,a,b,factor
   type(atoms_data), intent(in) :: at
   real(wp), dimension(n1i,n2i,n3i), intent(in) :: x,y
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   !local variables
   character(len=3) :: advancestring
   integer :: nl1,nl2,nl3,nbx,nby,nbz,i1,i2,i3,icount,j,iat,nc1,nc2,nc3
   real(dp) :: later_avg
   !conditions for periodicity in the three directions
   !value of the buffer in the x and z direction
-  if (at%geocode /= 'F') then
+  if (at%astruct%geocode /= 'F') then
      nl1=1
      nl3=1
      nbx = 1
@@ -306,7 +306,7 @@ subroutine write_cube_fields(filename,message,at,factor,rxyz,n1i,n2i,n3i,n1s,n2s
      nc3=n3i-31
   end if
   !value of the buffer in the y direction
-  if (at%geocode == 'P') then
+  if (at%astruct%geocode == 'P') then
      nl2=1
      nby = 1
      nc2=n2i
@@ -321,18 +321,29 @@ subroutine write_cube_fields(filename,message,at,factor,rxyz,n1i,n2i,n3i,n1s,n2s
 !!$  nc2=2*(n2+nby)
 !!$  nc3=2*(n3+nbz)
 
+! A nonstandrd .CUBE file where the field is written with the maximum number of
+! decimal places can be obtained by uncommenting the writes to unit 23
   open(unit=22,file=trim(filename)//'.cube',status='unknown')
+!  open(unit=23,file=trim(filename)//'.CUBE',status='unknown')
   write(22,*)'CUBE file for ISF field'
   write(22,*)'Case for '//trim(message)
-  write(22,'(i5,3(f12.6))') at%nat,0.0_gp,0.0_gp,0.0_gp
+  write(22,'(i5,3(f12.6))') at%astruct%nat,0.0_gp,0.0_gp,0.0_gp
+!  write(23,*)'CUBE file for ISF field'
+!  write(23,*)'Case for '//trim(message)
+!  write(23,'(i5,3(f12.6))') at%astruct%nat,0.0_gp,0.0_gp,0.0_gp
   !grid and grid spacings
   write(22,'(i5,3(f12.6))') nc1,hxh,0.0_gp,0.0_gp
   write(22,'(i5,3(f12.6))') nc2,0.0_gp,hyh,0.0_gp
   write(22,'(i5,3(f12.6))') nc3,0.0_gp,0.0_gp,hzh
+!  write(23,'(i5,3(f12.6))') nc1,hxh,0.0_gp,0.0_gp
+!  write(23,'(i5,3(f12.6))') nc2,0.0_gp,hyh,0.0_gp
+!  write(23,'(i5,3(f12.6))') nc3,0.0_gp,0.0_gp,hzh
   !atomic number and positions
-  do iat=1,at%nat
-     write(22,'(i5,4(f12.6))') at%nzatom(at%iatype(iat)), at%nelpsp(at%iatype(iat))*1. &
+  do iat=1,at%astruct%nat
+     write(22,'(i5,4(f12.6))') at%nzatom(at%astruct%iatype(iat)), at%nelpsp(at%astruct%iatype(iat))*1. &
           ,(rxyz(j,iat),j=1,3)
+!     write(23,'(i5,f12.6,3(f19.12))') at%nzatom(at%astruct%iatype(iat)), at%nelpsp(at%astruct%iatype(iat))*1. &
+!          ,(rxyz(j,iat),j=1,3)
   end do
 
 
@@ -352,10 +363,13 @@ subroutine write_cube_fields(filename,message,at,factor,rxyz,n1i,n2i,n3i,n1s,n2s
            !ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
            write(22,'(1x,1pe13.6)',advance=advancestring)&
                 a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
+!           write(23,'(1x,e24.17)',advance=advancestring)&
+!                a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
         end do
      end do
   end do
   close(22)
+!  close(23)
   !average in x direction
   open(unit=23,file=trim(filename)//'_avg_x',status='unknown')
   !  do i1=0,2*n1+1
@@ -369,7 +383,7 @@ subroutine write_cube_fields(filename,message,at,factor,rxyz,n1i,n2i,n3i,n1s,n2s
      end do
      later_avg=later_avg/real(nc2*nc3,dp) !2D integration/2D Volume
      !to be checked with periodic/isolated BC
-     write(23,*)i1+n1s,at%alat1/real(factor*nc1,dp)*(i1+2*n1s),later_avg
+     write(23,*)i1+n1s,at%astruct%cell_dim(1)/real(factor*nc1,dp)*(i1+2*n1s),later_avg
   end do
   close(23)
   !average in y direction
@@ -384,7 +398,7 @@ subroutine write_cube_fields(filename,message,at,factor,rxyz,n1i,n2i,n3i,n1s,n2s
      end do
      later_avg=later_avg/real(nc1*nc3,dp) !2D integration/2D Volume
      !to be checked with periodic/isolated BC
-     write(23,*)i2+n2s,at%alat2/real(factor*nc2,dp)*(i2+n2s),later_avg
+     write(23,*)i2+n2s,at%astruct%cell_dim(2)/real(factor*nc2,dp)*(i2+n2s),later_avg
   end do
   close(23)
   !average in z direction
@@ -399,7 +413,7 @@ subroutine write_cube_fields(filename,message,at,factor,rxyz,n1i,n2i,n3i,n1s,n2s
      end do
      later_avg=later_avg/real(nc1*nc2,dp) !2D integration/2D Volume
      !to be checked with periodic/isolated BC
-     write(23,*)i3+n3s,at%alat3/real(factor*nc3+2,dp)*(i3+n3s),later_avg
+     write(23,*)i3+n3s,at%astruct%cell_dim(3)/real(factor*nc3+2,dp)*(i3+n3s),later_avg
   end do
   close(23)
 END SUBROUTINE write_cube_fields
@@ -413,7 +427,7 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
   type(atoms_data), intent(in) :: at
   type(denspot_distribution), intent(in) :: box
   character(len=*), intent(in) :: filename
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(dp), dimension(max(box%ndimpot,1),nspin), target, intent(in) :: rho
   !local variables
   character(len=*), parameter :: subname='plot_density'
@@ -558,7 +572,7 @@ subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   use module_interfaces, except_this_one => read_density
   implicit none
   character(len=*), intent(in) :: filename
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(out) :: nspin
   integer, intent(out) ::  n1i,n2i,n3i
   real(gp), intent(out) :: hxh,hyh,hzh
@@ -626,7 +640,8 @@ END SUBROUTINE read_density
 
 subroutine plot_wf(orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi)
   use module_base
-  use module_types
+  use locregs, only: locreg_descriptors
+  use module_types, only: atoms_data,workarr_sumrho
   implicit none
   !Arguments
   character(len=*) :: orbname
@@ -634,7 +649,7 @@ subroutine plot_wf(orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi)
   real(dp), intent(in) :: factor
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   type(locreg_descriptors), intent(in) :: lr
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(in) :: psi
   !Local variables
@@ -660,7 +675,7 @@ subroutine plot_wf(orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi)
   call memocc(i_stat,psir,'psir',subname)
   !initialisation
   if (lr%geocode == 'F') then
-     call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
+     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
   end if
 
   call daub_to_isf(lr,w,psi,psir)
@@ -688,7 +703,7 @@ subroutine read_potential_from_disk(iproc,nproc,filename,geocode,ngatherarr,n1i,
   integer, intent(in) :: iproc,nproc,n1i,n2i,n3i,n3p,nspin
   real(gp), intent(in) :: hxh,hyh,hzh
   character(len=*), intent(in) :: filename
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
   real(dp), dimension(n1i,n2i,max(n3p,1),nspin), intent(out) :: pot
   !local variables
@@ -740,7 +755,7 @@ subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   use module_types
   implicit none
   character(len=*), intent(in) :: filename
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(out) :: nspin
   integer, intent(out) ::  n1i,n2i,n3i
   real(gp), intent(out) :: hxh,hyh,hzh
@@ -803,7 +818,7 @@ contains
     use module_types
     implicit none
     character(len=*), intent(in) :: filename
-    character(len=1), intent(in) :: geocode
+    character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
     integer, intent(in) :: nspin
     integer, intent(out) :: n1i,n2i,n3i
     real(gp), intent(out) :: hxh,hyh,hzh
@@ -882,7 +897,7 @@ contains
           end if
        end do
        iatypes(iat) = j
-       ! write(22,'(i5,4(f12.6))') at%nzatom(at%iatype(iat)),0.0_gp,(rxyz(j,iat),j=1,3)
+       ! write(22,'(i5,4(f12.6))') at%nzatom(at%astruct%iatype(iat)),0.0_gp,(rxyz(j,iat),j=1,3)
     end do
 
     do j = 1, nat, 1
@@ -911,7 +926,7 @@ subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
   use module_types
   implicit none
   character(len=*), intent(in) :: filename
-  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: n1i,n2i,n3i
   real(dp), dimension(n1i*n2i*n3i) :: rho
   !local variables
@@ -959,7 +974,7 @@ subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
   if (n3i /= 2*n3+(1-nbz)+2*nl3) stop 'n3i not valid'
 
   !zero the pointer
-  call razero(n1i*n2i*n3i,rho)
+  call to_zero(n1i*n2i*n3i,rho)
 
   do iat=1,nat
      !read(22,'(i5,4(f12.6))')! idum , dum1 , (rxyz(j,iat),j=1,3)
@@ -1004,7 +1019,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho)
   integer, intent(in) :: nspin
   type(denspot_distribution), intent(in) :: box
   type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(dp), dimension(box%ndims(1),box%ndims(2),max(box%n3p, 1),nspin), target, intent(in) :: rho
   character(len=*), parameter :: subname='calc_dipole'
   integer :: i_all,i_stat,ierr,n3p,nc1,nc2,nc3
@@ -1047,7 +1062,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho)
      ele_rho => rho
   end if
 
-  if (at%geocode /= 'F') then
+  if (at%astruct%geocode /= 'F') then
      nl1=1
      nl3=1
      nc1=n1i
@@ -1059,7 +1074,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho)
      nc3=n3i-31
   end if
   !value of the buffer in the y direction
-  if (at%geocode == 'P') then
+  if (at%astruct%geocode == 'P') then
      nl2=1
      nc2=n2i
   else
@@ -1069,8 +1084,8 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho)
 
   qtot=0.d0
   dipole_cores(1:3)=0_gp
-  do iat=1,at%nat
-     dipole_cores(1:3)=dipole_cores(1:3)+at%nelpsp(at%iatype(iat)) * rxyz(1:3,iat)
+  do iat=1,at%astruct%nat
+     dipole_cores(1:3)=dipole_cores(1:3)+at%nelpsp(at%astruct%iatype(iat)) * rxyz(1:3,iat)
   end do
 
   dipole_el   (1:3)=0_gp
@@ -1082,9 +1097,9 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho)
               !q= ( ele_rho(ind,ispin) ) * hxh*hyh*hzh 
               q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(box%hgrids)
               qtot=qtot+q
-              dipole_el(1)=dipole_el(1)+ q* at%alat1/real(nc1,dp)*i1 
-              dipole_el(2)=dipole_el(2)+ q* at%alat2/real(nc2,dp)*i2
-              dipole_el(3)=dipole_el(3)+ q* at%alat3/real(nc3,dp)*i3
+              dipole_el(1)=dipole_el(1)+ q* at%astruct%cell_dim(1)/real(nc1,dp)*i1 
+              dipole_el(2)=dipole_el(2)+ q* at%astruct%cell_dim(2)/real(nc2,dp)*i2
+              dipole_el(3)=dipole_el(3)+ q* at%astruct%cell_dim(3)/real(nc3,dp)*i3
            end do
         end do
      end do

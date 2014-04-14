@@ -1,9 +1,9 @@
 SUBDIRS = fft \
-	PSolver \
+	xcPSolver \
 	OP2P \
 	psp \
 	IO-wf \
-	yaml
+	wrappers
 
 if USE_BLACS
 SUBDIRS += dsygv
@@ -21,7 +21,7 @@ if USE_LIBXC
 SUBDIRS += xc
 endif
 
-if HAVE_GLIB
+if BUILD_BINDINGS
 SUBDIRS += ftypes
 endif
 

@@ -1,16 +1,17 @@
+/*! @file
 
-__________________________________
- 
-   About the input variable iXC
-__________________________________
+@brief Input variable iXC
 
+@details
+
+@section Intro     About the input variable iXC
 
 In short, iXC is a six digit number to access functionals from libXC. Each functional has a certain
 three digit code, and seperate values can be specified for both, exchange and correlation, e.g.
-
+<pre>
  Teter93 (PADE)  LDA    -000020 = -20
    PBE           GGA    -101130 = -130101
-
+</pre>
 In the input file "atom.dat" for the all electron calculation, the corresponding output and any
 pseudopotential file psppar, the input variable iXC is used to determine the type of exchange 
 correlation functionals to be used. The conventions for this input variable have been taken from 
@@ -34,8 +35,7 @@ while ixc=-101130 gives access to the PBE GGA.
 
 And here is a list of recognized three digit codes:
 
-
-
+<pre>
   XC_LDA_X             =   1  !  Exchange                     
   XC_LDA_C_WIGNER      =   2  !  Wigner parametrization       
   XC_LDA_C_RPA         =   3  !  Random Phase Approximation   
@@ -111,3 +111,5 @@ And here is a list of recognized three digit codes:
   XC_GGA_XC_SB98_2a    = 179  !  Schmider-Becke 98 parameterization 2a    
   XC_GGA_XC_SB98_2b    = 180  !  Schmider-Becke 98 parameterization 2b    
   XC_GGA_XC_SB98_2c    = 181  !  Schmider-Becke 98 parameterization 2c    
+</pre>
+*/

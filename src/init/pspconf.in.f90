@@ -1,3 +1,14 @@
+!> @file
+!! Contains all data related to builtin pseudopotentials
+!! @author
+!!    Copyright (C) 2012-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+!> Routine containing the data for the builtin pseudopotentials
+!! The file pspconf.f90 is generated from the file pspconf.in.f90.
 subroutine psp_from_data(symbol, nzatom, nelpsp, npspcode, ixc, psppar, exists)
   use module_base
   use module_xc

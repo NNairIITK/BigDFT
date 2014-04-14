@@ -247,14 +247,14 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,nlpspd,hx,hy,hz,at,rxyz,&
   if(useTMO) then
      allocate(scalprod(2,0:3,7,3,4,at%nat,max(linorbs%norbp,1)*linorbs%nspinor+ndebug),stat=i_stat)   
      call memocc(i_stat,scalprod,'scalprod',subname)
-     call razero(2*4*7*3*4*at%nat*max(linorbs%norbp,1)*linorbs%nspinor,scalprod)
+     call to_zero(2*4*7*3*4*at%nat*max(linorbs%norbp,1)*linorbs%nspinor,scalprod)
      allocate(nonzeroValue(max(linorbs%norbp,1),at%nat), stat=i_stat)
      call memocc(i_stat,nonzeroValue,'nonzeroValue',subname)
      nonzeroValue=.false.
   else
      allocate(scalprod(2,0:3,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)   
      call memocc(i_stat,scalprod,'scalprod',subname)
-     call razero(2*4*7*3*4*at%nat*orbs%norbp*orbs%nspinor,scalprod)
+     call to_zero(2*4*7*3*4*at%nat*orbs%norbp*orbs%nspinor,scalprod)
   end if
 
   !##############################################################################################
@@ -768,7 +768,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,nlpspd,hx,hy,hz,at,rxyz,&
      ! loop over all my orbitals for calculating forces
      !do iorb=1,orbs%norbp
      do iorb=1,maxval(orbs%norb_par)
-        call razero(3*at%nat,fxyz_orb)
+        call to_zero(3*at%nat,fxyz_orb)
         timecomp1=0.d0
         timecomp2=0.d0
         timecomm1=0.d0
@@ -799,7 +799,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,nlpspd,hx,hy,hz,at,rxyz,&
                  jst=(ii-1)*ncount*linorbs%norbp*linorbs%nspinor+1
                  do jorb=1,linorbs%norbp*linorbs%nspinor
                     if(nonzeroValue(jorb,jat)) then
-                       call dcopy(ncount, scalprod(1,0,1,1,1,jat,jorb), 1, temparr(jst), 1)
+                       call vcopy(ncount, scalprod(1,0,1,1,1,jat,jorb), 1, temparr(jst), 1)
                        jst=jst+ncount
                     end if
                  end do
@@ -824,7 +824,8 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,nlpspd,hx,hy,hz,at,rxyz,&
                  jst=(ii-1)*ncount*linorbs%norbp*linorbs%nspinor+1
                  call my_iallgatherv(iproc, nproc, temparr(jst), sendcounts2(iproc,ii), &
                       scalprodGlobal(1,0,1,1,1,1,ii), &
-                      sendcounts2(0,ii), displs, mpi_comm_world, tag2, requests2(1,1,ii))
+                      sendcounts2(0,ii), sum(sendcounts2(:,ii)), displs, &
+                      & mpi_comm_world, tag2, requests2(1,1,ii))
                  call mpi_barrier(mpi_comm_world, ierr)
                  t2=mpi_wtime()
                  timecomm1=timecomm1+t2-t1
@@ -877,8 +878,8 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,nlpspd,hx,hy,hz,at,rxyz,&
            t2=mpi_wtime()
            timecomm1=timecomm1+t2-t1
 
-           call razero(3*linorbs%norb*linorbs%norb, fxyz_tmo(1,1,1,ioverlap))
-           call razero(3*linorbs%norb*linorbs%norbp, fxyz_tmo_temp(1,1,1,ioverlap))
+           call to_zero(3*linorbs%norb*linorbs%norb, fxyz_tmo(1,1,1,ioverlap))
+           call to_zero(3*linorbs%norb*linorbs%norbp, fxyz_tmo_temp(1,1,1,ioverlap))
            jorb=0
            t1=mpi_wtime()
            do itmorb = 1,linorbs%norbp
@@ -960,7 +961,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,nlpspd,hx,hy,hz,at,rxyz,&
               ! Copy scalprod to temporary array for communication.
               do jorb=1,linorbs%norbp*linorbs%nspinor
                  if(nonzeroValue(jorb,iat+nitoverlaps)) then
-                    call dcopy(ncount, scalprod(1,0,1,1,1,iat+nitoverlaps,jorb), 1, temparr(jst), 1)
+                    call vcopy(ncount, scalprod(1,0,1,1,1,iat+nitoverlaps,jorb), 1, temparr(jst), 1)
                     jst=jst+ncount
                  end if
               end do
@@ -978,7 +979,8 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,nlpspd,hx,hy,hz,at,rxyz,&
               tag2 = tag2x + (ii-1)*nproc
               jst=(ii-1)*ncount*linorbs%norbp*linorbs%nspinor+1
               call my_iallgatherv(iproc, nproc, temparr(jst), sendcounts2(iproc,ii), &
-                   scalprodGlobal(1,0,1,1,1,1,ii), sendcounts2(0,ii), displs, mpi_comm_world, tag2, requests2(1,1,ii))
+                   scalprodGlobal(1,0,1,1,1,1,ii), sendcounts2(0,ii), sum(sendcounts2(:, ii)), &
+                   & displs, mpi_comm_world, tag2, requests2(1,1,ii))
               t2=mpi_wtime()
               timecomm1=timecomm1+t2-t1
            end if
@@ -995,7 +997,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,nlpspd,hx,hy,hz,at,rxyz,&
            !tag1=tag1x+(ii-1)*nproc**2
            tag1=tag1x+(ii-1)*nproc
            call my_iallgatherv(iproc, nproc, fxyz_tmo_temp(1,1,1,ioverlap), sendcounts1(iproc), &
-                fxyz_tmo(1,1,1,ii), sendcounts1, displs, mpi_comm_world, tag1, requests1(1,1,ii))
+                fxyz_tmo(1,1,1,ii), sendcounts1, sum(sendcounts1), displs, mpi_comm_world, tag1, requests1(1,1,ii))
            t2=mpi_wtime()
            timecomm2=timecomm2+t2-t1
            !call mpiallred(fxyz_tmo(1,1,1), 3*linorbs%norb**2, mpi_sum, mpi_comm_world, ierr)
@@ -1116,7 +1118,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,nlpspd,hx,hy,hz,at,rxyz,&
         ! loop over all my orbitals for calculating forces
         do iorb=isorb,ieorb
            ! loop over all projectors
-           call razero(3*at%nat,fxyz_orb)
+           call to_zero(3*at%nat,fxyz_orb)
            jorb = iorb + kptshft
            do ispinor=1,orbs%nspinor,ncplx
               do iat=1,at%nat
@@ -1257,17 +1259,17 @@ end function dsum
 
 
 
-subroutine my_iallgatherv(iproc, nproc, sendbuf, sendcount, recvbuf, recvcounts, displs, comm, tagx, requests)
+subroutine my_iallgatherv(iproc, nproc, sendbuf, sendcount, recvbuf, recvcounts, recvcounts_sum, displs, comm, tagx, requests)
   use module_base
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, sendcount, comm
+  integer,intent(in):: iproc, nproc, sendcount, comm, recvcounts_sum
   integer,dimension(0:nproc-1),intent(in):: recvcounts, displs
   real(8),dimension(sendcount),intent(in):: sendbuf
   integer,dimension(2,0:nproc*nproc-1),intent(in):: requests
   integer,intent(in):: tagx
-  real(8),dimension(sum(recvcounts)),intent(out):: recvbuf
+  real(8),dimension(recvcounts_sum),intent(out):: recvbuf
   
   ! Local variables
   integer:: jproc, kproc, tag, tag0, ierr

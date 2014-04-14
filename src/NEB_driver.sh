@@ -53,7 +53,7 @@ if [ -f $job_name.NEB.tar ] ; then
 else
     i=0
 fi
-neb_iter=`printf "%03d" $i`
+neb_iter=`printf "%04d" $i`
 if test x"$DEBUG" != x ; then
     echo "Current iter is "${neb_iter}"."
 fi
@@ -61,7 +61,7 @@ fi
 # Save and remove the possible output from previous run.
 cd $datadir
 if [ -f gen_output_file ] ; then
-    j=`printf "%03d" $((${i}-1))`
+    j=`printf "%04d" $((${i}-1))`
     cp -f -p gen_output_file $job_name.NEB.it${j}.forces
     tar -rf $job_name.NEB.tar --remove-files $job_name.NEB.it${j}.forces
 fi
@@ -93,7 +93,7 @@ for ((count=${min};count<=${max};count++)) ; do
 	mkdir $dir
     fi
     # Empty the working directory.
-    rm -f $dir/OK $dir/FAILED
+    rm -f $dir/OK $dir/FAILED $dir/FAILURES
     if [ ! -f $dir/RESTART ] ; then
         touch $dir/START
     fi
@@ -140,7 +140,7 @@ while [ ${jobs_done} -lt $((${max} - ${min} + 1)) ] ; do
 	# Job has finished
 	if test $res -gt 0 && [ ! -f OK ] && [ ! -f FAILED ] ; then
 	    if test x"$DEBUG" != x ; then
-		echo "Job "${count}" finished ("$jobs_done"/"$((${max} - ${min} + 1))")."
+		echo "Job "${count}" finished ("$(($jobs_done + 1))"/"$((${max} - ${min} + 1))")."
 	    fi
 
 	    if test x"$res" == x"1" ; then
@@ -152,7 +152,17 @@ while [ ${jobs_done} -lt $((${max} - ${min} + 1)) ] ; do
 		touch FAILED
 	    fi
 	    if test x"$res" == x"3" ; then
-		touch START
+                if [ ! -f FAILURES ] ; then
+                    echo -n "1" > FAILURES
+                else
+                    echo -n $((`cat FAILURES` + 1)) > FAILURES
+                fi
+                if test -f FAILURES -a `cat FAILURES` -gt 3 ; then
+		    jobs_done=$(($jobs_done + 1))
+		    touch FAILED
+                else
+		    touch START
+                fi
 	    fi
 	fi
 
@@ -162,7 +172,7 @@ while [ ${jobs_done} -lt $((${max} - ${min} + 1)) ] ; do
     wait_jobs $iter
 
     if [ ${jobs_done} -lt $((${max} - ${min} + 1)) ] ; then
-	sleep 10s
+	sleep 10s 2> /dev/null
     fi
     iter=$(($iter + 1))
 done

@@ -1,2 +1,4 @@
 ef_interpol_det  1.d-12
 mixing_after_inputguess  F
+store_index F
+evbounds_nsatur 100

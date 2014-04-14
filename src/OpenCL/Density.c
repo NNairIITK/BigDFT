@@ -22,15 +22,15 @@ void FC_FUNC_(ocl_locden,OCL_LOCDEN)(bigdft_command_queue *command_queue,
                                      cl_mem *psi, cl_mem *out, cl_mem *work,
                                      cl_mem *pot)
 {
-   uncompress_d_(command_queue, dimensions,
+   FC_FUNC_(uncompress_d, UNCOMPRESS_D)(command_queue, dimensions,
                  nseg_c, nvctr_c, keyg_c, keyv_c,
                  nseg_f, nvctr_f, keyg_f, keyv_f,
                  psi_c, psi_f, out);
-   syn_self_d_(command_queue, dimensions, out, psi);
-   magicfilter_den_d_(command_queue, dimensions, work, psi, out);
+   FC_FUNC_(syn_self_d, SYN_SELF_D)(command_queue, dimensions, out, psi);
+   FC_FUNC_(magicfilter_den_d, MAGIC_FILTER_DEN_D)(command_queue, dimensions, work, psi, out);
    cl_uint offset=0;
    cl_uint ndat = 8 * dimensions[0] * dimensions[1] * dimensions[2];
-   axpy_offset_self_d_(command_queue, &ndat, hfac, &offset, out, iaddjmp, pot);
+   FC_FUNC_(axpy_offset_self_d, AXPY_OFFSET_SELF_D)(command_queue, &ndat, hfac, &offset, out, iaddjmp, pot);
 }
 
 
@@ -44,13 +44,13 @@ void FC_FUNC_(ocl_locden_generic,OCL_LOCDEN_GENERIC)(bigdft_command_queue *comma
                                      cl_mem *psi, cl_mem *out, cl_mem *work,
                                      cl_mem *pot)
 {
-   uncompress_d_(command_queue, dimensions,
+   FC_FUNC_(uncompress_d, UNCOMPRESS_D)(command_queue, dimensions,
                  nseg_c, nvctr_c, keyg_c, keyv_c,
                  nseg_f, nvctr_f, keyg_f, keyv_f,
                  psi_c, psi_f, out);
-   syn_self_d_generic_(command_queue, dimensions, periodic, out, psi);
-   magicfilter_den_d_generic_(command_queue, dimensions, periodic, work, psi, out);
+   FC_FUNC_(syn_self_d_generic, SYN_SELF_D_GENERIC)(command_queue, dimensions, periodic, out, psi);
+   FC_FUNC_(magicfilter_den_d_generic, MAGICFILTER_DEN_D_GENERIC)(command_queue, dimensions, periodic, work, psi, out);
    cl_uint ndat = (dimensions[0]*2 + (periodic[0]?0:14+15)) * (dimensions[1]*2 + (periodic[1]?0:14+15)) * (dimensions[2]*2 + (periodic[2]?0:14+15));
-   axpy_self_d_(command_queue, &ndat, hfac, out, pot);
+   FC_FUNC_(axpy_self_d, AXPY_SELF_D)(command_queue, &ndat, hfac, out, pot);
 }
  

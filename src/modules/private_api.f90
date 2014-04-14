@@ -1,3 +1,14 @@
+!> @file
+!!  Define interface for private API
+!! @author
+!!    Copyright (C) 2013-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Module defining the inetrfaces for a private API
 module module_private_api
 
   implicit none
@@ -30,7 +41,7 @@ module module_private_api
 
      subroutine atoms_set_n_atoms(atoms, rxyz, nat)
        use module_types
-       use m_profiling
+       use memory_profiling
        implicit none
        type(atoms_data), intent(inout) :: atoms
        real(gp), dimension(:,:), pointer :: rxyz
@@ -57,7 +68,7 @@ module module_private_api
        implicit none
        type(atoms_data), intent(inout) :: atoms
        real(gp), intent(in) :: alat1, alat2, alat3
-       character, intent(in) :: geocode(1)
+       character(len=1), intent(in) :: geocode
        character, intent(in) :: format(5)
        character, intent(in) :: units(20)
      END SUBROUTINE atoms_sync
@@ -192,7 +203,7 @@ module module_private_api
        use module_types
        implicit none
        type(atoms_data), intent(in) :: atoms
-       character, intent(out) :: geocode(1)
+       character(len=1), intent(out) :: geocode !< @copydoc poisson_solver::doc::geocode
        character, intent(out) :: format(5)
        character, intent(out) :: units(20)
      END SUBROUTINE atoms_copy_geometry_data
@@ -229,7 +240,7 @@ module module_private_api
        character, intent(in) :: filename(filelen)
        type(atoms_data), intent(in) :: atoms
        real(gp), intent(in) :: energy
-       real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+       real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
        real(gp), dimension(:,:), pointer :: forces
      END SUBROUTINE atoms_write
 

@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-subroutine optimizeDIIS(iproc, npsidim, orbs, lzd, hphi, phi, ldiis)
+subroutine optimizeDIIS(iproc, npsidim, orbs, lzd, hphi, phi, ldiis, experimental_mode)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => optimizeDIIS
@@ -21,12 +21,14 @@ type(local_zone_descriptors),intent(in):: lzd
 real(8),dimension(npsidim),intent(in):: hphi
 real(8),dimension(npsidim),intent(inout):: phi
 type(localizedDIISParameters),intent(inout):: ldiis
+logical,intent(in) :: experimental_mode                       
+
 
 ! Local variables
 integer:: iorb, jorb, ist, ilr, ncount, jst, i, j, mi, ist1, ist2, jlr, istat, info
-integer:: mj, jj, k, jjst, isthist, iall
+integer:: mj, jj, k, jjst, isthist, iall, ierr
 real(8):: ddot
-real(8),dimension(:,:),allocatable:: mat
+real(8),dimension(:,:),allocatable:: mat, totmat
 real(8),dimension(:),allocatable:: rhs
 integer,dimension(:),allocatable:: ipiv
 character(len=*),parameter:: subname='optimizeDIIS'
@@ -63,8 +65,9 @@ do iorb=1,orbs%norbp
     ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
     ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
     jst=jst+(ldiis%mis-1)*ncount
-    call dcopy(ncount, phi(ist), 1, ldiis%phiHist(jst), 1)
-    call dcopy(ncount, hphi(ist), 1, ldiis%hphiHist(jst), 1)
+    call vcopy(ncount, phi(ist), 1, ldiis%phiHist(jst), 1)
+    call vcopy(ncount, hphi(ist), 1, ldiis%hphiHist(jst), 1)
+    !!if (iproc==0 .and. iorb==1) write(*,*) 'copy to: jst, val', jst, ldiis%phiHist(jst)
 
 
     !ilr=onWhichAtom(iorb)
@@ -115,6 +118,13 @@ do iorb=1,orbs%norbp
     end do
 end do
 
+! Sum up all partial matrices
+allocate(totmat(ldiis%isx,ldiis%isx))
+totmat=0.d0
+do iorb=1,orbs%norbp
+    totmat(:,:)=totmat(:,:)+ldiis%mat(:,:,iorb)
+end do
+call mpiallred(totmat(1,1), ldiis%isx**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
 ist=1
 do iorb=1,orbs%norbp
@@ -124,7 +134,12 @@ do iorb=1,orbs%norbp
         mat(i,min(ldiis%isx,ldiis%is)+1)=1.d0
         rhs(i)=0.d0
         do j=i,min(ldiis%isx,ldiis%is)
-            mat(i,j)=ldiis%mat(i,j,iorb)
+            if (experimental_mode) then
+                !if (iproc==0) write(*,*) 'WARNING: TAKING ONE SINGLE MATRIX!!'
+                mat(i,j)=totmat(i,j)
+            else
+                mat(i,j)=ldiis%mat(i,j,iorb)
+            end if
             !if(iproc==0) write(*,'(a,2i8,es14.3)') 'i, j, mat(i,j)', i, j, mat(i,j)
             !!write(*,'(a,3i8,es14.3)') 'proc, i, j, mat(i,j)', iproc, i, j, mat(i,j)
         end do
@@ -132,12 +147,28 @@ do iorb=1,orbs%norbp
     mat(min(ldiis%isx,ldiis%is)+1,min(ldiis%isx,ldiis%is)+1)=0.d0
     rhs(min(ldiis%isx,ldiis%is)+1)=1.d0
 
+    !!if (iorb==1) then
+    !!  do i=1,min(ldiis%isx,ldiis%is)
+    !!    do j=1,min(ldiis%isx,ldiis%is)
+    !!      if (iproc==0) write(*,'(a,2i6,es14.5)') 'i,j,mat(i,j)',i,j,mat(i,j)
+    !!    end do
+    !!  end do
+    !!  write(*,*) '----------------------'
+    !!end if
+
     !make the matrix symmetric (hermitian) to use DGESV (ZGESV) (no work array, more stable)
     do i=1,min(ldiis%isx,ldiis%is)+1
        do j=1,min(ldiis%isx,ldiis%is)+1
           mat(j,i) = mat(i,j)
        end do
     end do
+    !!if (iorb==1) then
+    !!  do i=1,min(ldiis%isx,ldiis%is)
+    !!    do j=1,min(ldiis%isx,ldiis%is)
+    !!      if (iproc==0) write(*,'(a,2i6,es14.5)') 'i,j,mat(i,j)',i,j,mat(i,j)
+    !!    end do
+    !!  end do
+    !!end if
     ! solve linear system, supposing it is general. More stable, no need of work array
     if(ldiis%is>1) then
      call dgesv(min(ldiis%isx,ldiis%is)+1,1,mat(1,1),ldiis%isx+1,  & 
@@ -168,7 +199,7 @@ do iorb=1,orbs%norbp
     !ilr=onWhichAtom(iorb)
     ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
     ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-    call razero(ncount, phi(ist))
+    call to_zero(ncount, phi(ist))
     isthist=max(1,ldiis%is-ldiis%isx+1)
     jj=0
     jst=0
@@ -197,6 +228,7 @@ do iorb=1,orbs%norbp
     ist=ist+ncount
 end do
 
+deallocate(totmat)
 
 iall=-product(shape(mat))*kind(mat)
 deallocate(mat, stat=istat)
@@ -242,8 +274,17 @@ ldiis%is=0
 ldiis%switchSD=.false.
 ldiis%trmin=1.d100
 ldiis%trold=1.d100
+ldiis%DIISHistMin=0
+ldiis%DIISHistMax=isx
+ldiis%icountSDSatur=0
+ldiis%icountSwitch=0
+ldiis%icountDIISFailureTot=0
+ldiis%icountDIISFailureCons=0
+
 allocate(ldiis%mat(ldiis%isx,ldiis%isx,orbs%norbp), stat=istat)
 call memocc(istat, ldiis%mat, 'ldiis%mat', subname)
+if (ldiis%isx**2*orbs%norbp>0) call to_zero(ldiis%isx**2*orbs%norbp,ldiis%mat(1,1,1))
+
 ii=0
 do iorb=1,orbs%norbp
     ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
@@ -253,6 +294,8 @@ allocate(ldiis%phiHist(ii), stat=istat)
 call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
 allocate(ldiis%hphiHist(ii), stat=istat)
 call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
+allocate(ldiis%energy_hist(isx), stat=istat)
+call memocc(istat, ldiis%energy_hist, 'ldiis%energy_hist', subname)
 
 end subroutine initializeDIIS
 
@@ -281,6 +324,10 @@ call memocc(istat, iall, 'ldiis%phiHist', subname)
 iall=-product(shape(ldiis%hphiHist))*kind(ldiis%hphiHist)
 deallocate(ldiis%hphiHist, stat=istat)
 call memocc(istat, iall, 'ldiis%hphiHist', subname)
+
+iall=-product(shape(ldiis%energy_hist))*kind(ldiis%energy_hist)
+deallocate(ldiis%energy_hist, stat=istat)
+call memocc(istat, iall, 'ldiis%energy_hist', subname)
 
 end subroutine deallocateDIIS
 
@@ -388,8 +435,8 @@ end subroutine deallocateDIIS
 !!    !ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
 !!    ncount=matmin%mlr(ilr)%norbinlr
 !!    jst=jst+(ldiis%mis-1)*ncount
-!!    call dcopy(ncount, lcoeff(1,iorb), 1, ldiis%phiHist(jst), 1)
-!!    call dcopy(ncount, lgrad(1,iorb), 1, ldiis%hphiHist(jst), 1)
+!!    call vcopy(ncount, lcoeff(1,iorb), 1, ldiis%phiHist(jst), 1)
+!!    call vcopy(ncount, lgrad(1,iorb), 1, ldiis%hphiHist(jst), 1)
 !!
 !!
 !!    !ilr=onWhichAtom(iorb)
@@ -473,7 +520,7 @@ end subroutine deallocateDIIS
 !!    ilr=onWhichAtomp(iorb)
 !!    !ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
 !!    ncount=matmin%mlr(ilr)%norbinlr
-!!    call razero(ncount, lcoeff(1,iorb))
+!!    call to_zero(ncount, lcoeff(1,iorb))
 !!    isthist=max(1,ldiis%is-ldiis%isx+1)
 !!    jj=0
 !!    jst=0

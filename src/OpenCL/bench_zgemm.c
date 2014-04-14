@@ -76,7 +76,7 @@ int main(){
   ocl_create_gpu_context_(&context,&device_number);
   ocl_build_programs_(&context);
   ocl_create_command_queue_(&queue,&context);
-  init_event_list_();
+  init_event_list_(&context);
  
   cl_mem cmPinnedBufIn = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, size_in*sizeof(double), NULL, NULL);
   cl_mem cmPinnedBufOut = clCreateBuffer(context, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, size_out*sizeof(double), NULL, NULL);
@@ -105,7 +105,7 @@ int main(){
 
   ocl_release_mem_object_(&cmPinnedBufIn);
   ocl_release_mem_object_(&cmPinnedBufOut);
-  print_event_list_();
+  print_event_list_(&context);
   ocl_clean_command_queue_(&queue);
   ocl_clean_(&context);
   return 0;

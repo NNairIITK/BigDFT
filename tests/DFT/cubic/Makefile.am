@@ -14,7 +14,8 @@ TESTDIRS = C \
 	  ElectField \
 	  ElectronGas \
 	  NLCC \
-	  taskgroups
+	  taskgroups \
+	  CH4-D3 
 
 EXTRA_TESTDIRS =
 
@@ -52,6 +53,8 @@ GPU.psp: HGH/psppar.Si
 OCL.psp: HGH/psppar.Si
 O2-Spin.psp: HGH-K/psppar.O
 ElectField.psp: HGH-K/psppar.H HGH-K/psppar.O
+#PAW.psp: PAW/psppar.H
+
 #SIC.psp: HGH/psppar.H \
 #	HGH/psppar.C \
 #	HGH/psppar.O \
@@ -68,24 +71,18 @@ SIC.post-in:
           *) mode="";; \
         esac ; \
         case $* in \
-          Ca2.out*)             prec="4.e-10" ;; \
-          NaCl.out*)            prec="2.e-9" ;; \
-          SiBulk.out*)          prec="2.e-7" ;; \
-          AgBulk.out*)          prec="6.e-8" ;; \
-          SiH4.out*)            prec="5.e-9" ;; \
-	  SIC*.out*)            prec="1.e-9" ;; \
-	  Mn2.out*)             prec="5.e-10" ;; \
-          ElecField.out*)       prec="1.e-9" ;; \
           *)                    prec="1.1e-10" ;; \
         esac ; \
+    echo "python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*.out $<" ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
 
 %.report.yaml: %.ref.yaml
-	export PYTHONPATH=${PYTHONPATH} ; \
+	@export PYTHONPATH=${PYTHONPATH} ; \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
-	name=`basename $< .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
+	name=`basename $< .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"`; \
 	tols=`basename $< .out.ref.yaml` ;\
 	if test -n "$$name" ; then log=log-$$name.yaml ; else log=log.yaml ; fi ;\
+	echo "python $(abs_top_srcdir)/tests/fldiff_yaml.py -r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@" ; \
 	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
 		-r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@ 
 

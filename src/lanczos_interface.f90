@@ -1,62 +1,93 @@
 !> @file
 !!    Define routines for Lanczos diagonalization
 !! @author
-!!    Copyright (C) 2009-2011 BigDFT group
+!!    Copyright (C) 2009-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!> Interface for routines which handle diagonalization
+!> Module defining the interfaces for routines which handle diagonalization
 module lanczos_interface
    use module_base
    use module_types
+   use module_abscalc
+   use communications_base, only: comms_cubic
    implicit none
 
    private
 
+   !> Contains the arguments needed for the application of the hamiltonian
+   type, public :: lanczos_args
+      !arguments for the hamiltonian
+      integer :: iproc,nproc,ndimpot,nspin, in_iat_absorber, Labsorber
+      real(gp) :: hx,hy,hz
+      type(energy_terms) :: energs
+      !real(gp) :: ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC
+      type(atoms_data), pointer :: at
+      type(orbitals_data), pointer :: orbs
+      type(comms_cubic) :: comms
+      type(DFT_PSP_projectors), pointer :: nlpsp
+      type(local_zone_descriptors), pointer :: Lzd
+      type(gaussian_basis), pointer :: Gabsorber    
+      type(SIC_data), pointer :: SIC
+      type(xc_info), pointer :: xc
+      integer, dimension(:,:), pointer :: ngatherarr 
+      real(gp), dimension(:,:),  pointer :: rxyz,radii_cf
+      !real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), pointer :: psi
+      real(wp), dimension(:), pointer :: potential
+      real(wp), dimension(:), pointer :: Gabs_coeffs
+      !real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp) :: hpsi
+      type(GPU_pointers), pointer :: GPU
+      type(pcproj_data_type), pointer :: PPD
+      type(pawproj_data_type), pointer :: PAWD
+      ! removed from orbs, not sure if needed here or not
+      integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
+      integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
+   end type lanczos_args
+
    !calculate the allocation dimensions
    public :: EP_inizializza,EP_initialize_start,EP_allocate_for_eigenprob,&
-        get_EP_dim,set_EP_shift,&
+      &   get_EP_dim,set_EP_shift,&
       &   EP_mat_mult,EP_make_dummy_vectors, EP_normalizza,EP_copy,EP_scalare,&
-      EP_copia_per_prova,&
+      &   EP_copia_per_prova,&
       &   EP_set_all_random,EP_GramSchmidt,EP_add_from_vect_with_fact,&
-      EP_Moltiplica, &
+      &   EP_Moltiplica, &
       &   EP_free,  EP_norma2_initialized_state ,EP_store_occupied_orbitals,EP_occprojections,&
       &   EP_multbyfact,EP_precondition,EP_Moltiplica4spectra,EP_ApplySinv,EP_ApplyS,&
-      &   EP_scalare_multik
+      &   EP_scalare_multik,xabs_lanczos,xabs_cg,xabs_chebychev
 
 
    character(len=*), parameter :: subname='lanczos_interface'
    integer :: i_all,i_stat,ierr
    type(lanczos_args), pointer :: ha
 
-   real(8), pointer :: matrix(:,:)
+   real(kind=8), pointer :: matrix(:,:)
    real(wp), pointer :: Qvect   (:,:)
    real(wp), pointer :: dumQvect(:,:)
    real(wp), pointer :: occQvect(:)
 
-   real(8), pointer :: passed_matrix(:,:)
+   real(kind=8), pointer :: passed_matrix(:,:)
 
-   real(8) EP_shift
-   integer EP_dim
-   integer EP_dim_tot
+   real(kind=8) :: EP_shift
+   integer :: EP_dim
+   integer :: EP_dim_tot
 
    real(wp), dimension(:), pointer :: Qvect_tmp,wrk, wrk1, wrk2
-   real(wp), dimension(:), pointer ::  EP_norma2_initialized_state
+   real(wp), dimension(:), pointer :: EP_norma2_initialized_state
 
-   logical EP_doorthoocc
-   integer EP_norb
+   logical :: EP_doorthoocc
+   integer :: EP_norb
    real(wp), dimension(:), pointer :: EP_occprojections
 
    real(wp), dimension(:,:,:,:,:,:), allocatable :: psi_gross
-   logical , allocatable ::logrid(:,:,:)
+   logical , allocatable :: logrid(:,:,:)
 
    contains
 
    !!!  subroutine settapointer(p)
-   !!!    real(8), intent(inout), TARGET :: p(:,:)
+   !!!    real(kind=8), intent(inout), TARGET :: p(:,:)
    !!!    passed_matrix => p 
    !!!    return
    !!!  END SUBROUTINE settapointer
@@ -81,7 +112,7 @@ END FUNCTION get_EP_dim
 
 
 subroutine set_EP_shift(shift)
-   real(8) shift
+   real(kind=8) shift
    EP_shift=shift
    return
 END SUBROUTINE set_EP_shift
@@ -147,7 +178,7 @@ nullify(Qvect,dumQvect)
      implicit none
      !Arguments
      integer , intent(in):: m,k
-     real(8), intent (in) :: EV(1)
+     real(kind=8), intent (in) :: EV(1)
 
      call gemm('N','N', EP_dim , k, m  ,1.0_wp ,&
         &   Qvect(1,0)  , EP_dim ,&
@@ -237,7 +268,6 @@ nullify(Qvect,dumQvect)
      enddo
   END SUBROUTINE EP_allocate_for_eigenprob
 
-
   subroutine EP_make_dummy_vectors(nd)
      implicit none
      integer, intent(in):: nd
@@ -266,7 +296,6 @@ nullify(Qvect,dumQvect)
 
   END SUBROUTINE EP_store_occupied_orbitals
 
-
   subroutine EP_normalizza(j)
      implicit none
      integer, intent(in)::j
@@ -278,7 +307,6 @@ nullify(Qvect,dumQvect)
      endif
      return 
   END SUBROUTINE EP_normalizza
-
 
   subroutine EP_multbyfact(j, fact)
      implicit none
@@ -292,8 +320,6 @@ nullify(Qvect,dumQvect)
      endif
      return 
   END SUBROUTINE EP_multbyfact
-
-
 
   subroutine EP_normalizza_interno(Q)
      implicit none
@@ -316,7 +342,6 @@ nullify(Qvect,dumQvect)
 
   END SUBROUTINE EP_normalizza_interno
 
-
   subroutine EP_multbyfact_interno(Q, fact)
      implicit none
      !Arguments
@@ -327,28 +352,26 @@ nullify(Qvect,dumQvect)
 
   END SUBROUTINE EP_multbyfact_interno
 
-
   subroutine EP_copy(i,j)
      implicit none
      !Arguments
      integer, intent(in) :: i,j
 
      if( i.ge.0 .and. j.ge.0) then
-        call dcopy(EP_dim,Qvect(1,j),1,Qvect(1,i),1)
+        call vcopy(EP_dim,Qvect(1,j),1,Qvect(1,i),1)
         !Qvect(:,i)=Qvect(:,j)
      else  if( i.lt.0 .and. j.ge.0) then
-        call dcopy(EP_dim,Qvect(1,j),1,dumQvect(1,-i),1)
+        call vcopy(EP_dim,Qvect(1,j),1,dumQvect(1,-i),1)
         !dumQvect(:,-i)=Qvect(:,j)
      else  if( i.ge.0 .and. j.lt.0) then
-        call dcopy(EP_dim,dumQvect(1,-j),1,Qvect(1,i),1)
+        call vcopy(EP_dim,dumQvect(1,-j),1,Qvect(1,i),1)
         !Qvect(:,i)=dumQvect(:,-j)
      else 
-        call dcopy(EP_dim,dumQvect(1,-j),1,dumQvect(1,-i),1)
+        call vcopy(EP_dim,dumQvect(1,-j),1,dumQvect(1,-i),1)
         !dumQvect(:,-i)=dumQvect(:,-j)
      endif
 
   END SUBROUTINE EP_copy
-
 
   subroutine   EP_scalare_multik(i,j, scalari)
      use module_base
@@ -370,7 +393,6 @@ nullify(Qvect,dumQvect)
 
   END SUBROUTINE EP_scalare_multik
 
-
   subroutine EP_scalare_interna_multik(a,b, scalari)
      implicit none
      !Arguments
@@ -380,8 +402,8 @@ nullify(Qvect,dumQvect)
      real(wp) :: ovrlp_local ( ha%orbs%nkpts  )
      real(wp) :: ovrlp_global( ha%orbs%nkpts  )
      integer :: ik, ipos, ic, iorb
-     call razero(ha%orbs%nkpts,ovrlp_local)
-     call razero(ha%orbs%nkpts,ovrlp_global)
+     call to_zero(ha%orbs%nkpts,ovrlp_local)
+     call to_zero(ha%orbs%nkpts,ovrlp_global)
      if(ha%orbs%nspinor==1) then
         ipos=1
         do ik = 1, ha%orbs%nkptsp  !! this supposes norb=1 for chebychev
@@ -420,7 +442,7 @@ nullify(Qvect,dumQvect)
 
 
 
-  real(8) function   EP_scalare(i,j)
+  real(kind=8) function   EP_scalare(i,j)
   implicit none
   !Arguments
   integer, intent(in) :: i,j
@@ -437,10 +459,10 @@ nullify(Qvect,dumQvect)
   END FUNCTION EP_scalare
 
 
-  real(8) function EP_scalare_interna(a,b)
+  real(kind=8) function EP_scalare_interna(a,b)
   implicit none
   !Arguments
-  real(8), intent(in):: a,b
+  real(kind=8), intent(in):: a,b
   !Local variables
   real(wp) :: sump, sumtot
 
@@ -458,9 +480,9 @@ nullify(Qvect,dumQvect)
 
   END FUNCTION EP_scalare_interna
 
-  !  real(8) function EP_scalare_interna(a,b)
+  !  real(kind=8) function EP_scalare_interna(a,b)
   !    implicit none
-  !    real(8), intent(in):: a(EP_dim), b(EP_dim)
+  !    real(kind=8), intent(in):: a(EP_dim), b(EP_dim)
   !    ! ::::::::::::::::::::::::::::::::::::::::::::::
   !    integer i,j
   !
@@ -481,14 +503,15 @@ nullify(Qvect,dumQvect)
 
   subroutine  EP_copia_per_prova(psi)
      use module_interfaces
+     use communications, only: transpose_v
      !Arguments
      real(wp), dimension(*), target :: psi ! per testare happlication
      !Local variables
      integer :: i
 
      if( ha%nproc/=1) then
-        call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-           &   psi(1),work=wrk,outadd=Qvect(1,0))  
+        call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lzd%glr%wfd,ha%comms,&
+           &   psi(1),wrk(1),out_add=Qvect(1,0))  
      else
         do i=1, EP_dim_tot
            Qvect(i,0)= psi(i)
@@ -499,20 +522,22 @@ nullify(Qvect,dumQvect)
 
   subroutine EP_initialize_start()
      use module_interfaces
+     use communications, only: transpose_v
      !Local variables
      integer :: i
 
-     if ( ha%at%paw_NofL(ha%at%iatype(ha%in_iat_absorber )).gt.0  ) then
+     if ( ha%at%paw_NofL(ha%at%astruct%iatype(ha%in_iat_absorber )).gt.0  ) then
         if (ha%iproc == 0) write(*,*) "USING PTILDES TO BUILD INITIAL WAVE"
         !!if(EP_dim_tot.gt.0) then
-        call razero(EP_dim_tot  ,  Qvect_tmp  )
+        call to_zero(EP_dim_tot  ,  Qvect_tmp  )
         call applyPAWprojectors(ha%orbs,ha%at,&
            &   ha%hx,ha%hy,ha%hz,ha%Lzd%Glr,ha%PAWD,Qvect_tmp,Qvect_tmp, ha%at%paw_S_matrices, &
            &   .true. ,    ha%in_iat_absorber, ha%Labsorber+1, &
            &   ha%Gabs_coeffs               ) 
         !!end if
      else
-        STOP " ha%at%paw_NofL(ha%at%iatype(ha%in_iat_absorber )).gt.0  is false" 
+        STOP " ha%at%paw_NofL(ha%at%astruct%iatype(ha%in_iat_absorber )).gt.0  is false" 
+        !!$       Note G%psiat and G%xp have now 2 dimenstions.
         !!$       call gaussians_to_wavelets_nonorm(ha%iproc,ha%nproc,ha%Lzd%Glr%geocode,ha%orbs,ha%Lzd%Glr%d,&
         !!$            ha%hx,ha%hy,ha%hz,ha%Lzd%Glr%wfd,EP_Gabsorber,ha%Gabs_coeffs,Qvect_tmp )
      endif
@@ -522,7 +547,7 @@ nullify(Qvect,dumQvect)
      !!$    if(exist) then
      !!$       if(  sum( ha%at%paw_NofL ).gt.0 ) then
      !!$          if(  associated( ha%PAWD) ) then
-     !!$             call razero(EP_dim_tot  ,  wrk  )
+     !!$             call to_zero(EP_dim_tot  ,  wrk  )
      !!$             call applyPAWprojectors(ha%orbs,ha%at,&
      !!$                  ha%hx,ha%hy,ha%hz,ha%Lzd%Glr,ha%PAWD,Qvect_tmp,wrk, ha%at%paw_S_matrices, &
      !!$                  .false.)      
@@ -541,8 +566,8 @@ nullify(Qvect,dumQvect)
      end if
 
      if( ha%nproc/=1) then
-        call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-           &   Qvect_tmp,work=wrk,outadd=Qvect(1,0))  
+        call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lzd%glr%wfd,ha%comms,&
+           &   Qvect_tmp(1),wrk(1),out_add=Qvect(1,0))
      else
         do i=1, EP_dim_tot
            Qvect(i,0)= Qvect_tmp(i)
@@ -839,13 +864,14 @@ nullify(Qvect,dumQvect)
   subroutine EP_precondition(p,i, ene, gamma)
      use module_interfaces
      use module_base
+     use communications, only: transpose_v, untranspose_v
      !Arguments
      implicit none
      integer, intent(in) :: p,i
      real(gp) ene, gamma
      !Local variables
      integer :: k
-     real(wp), parameter :: b2=24.8758460293923314d0,a2=3.55369228991319019d0
+     !!$ real(wp), parameter :: b2=24.8758460293923314d0,a2=3.55369228991319019d0
      integer :: nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b 
      type(workarr_precond) :: w
      logical :: dopcproj
@@ -875,10 +901,10 @@ nullify(Qvect,dumQvect)
      if( ha%nproc > 1) then
         if(i>=0) then
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   Qvect(1,i), wrk(1),out_add=Qvect_tmp(1) )  
         else
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   dumQvect(1,-i), wrk(1),out_add=Qvect_tmp(1) )  
         endif
      else
         if(i>=0) then
@@ -908,18 +934,18 @@ nullify(Qvect,dumQvect)
      !!$       wrk(ind+7)=Qvect_tmp(ind+7)*scal(7)       !  2 2 2
      !!$    enddo
 
-     call dcopy(EP_dim_tot, Qvect_tmp(1),1,wrk(1),1) 
+     call vcopy(EP_dim_tot, Qvect_tmp(1),1,wrk(1),1) 
 
 
      if( dopcproj) then
 
-        call razero(EP_dim_tot  ,  wrk1  )
+        call to_zero(EP_dim_tot  ,  wrk1  )
         ha%PPD%iproj_to_factor(:) =  1.0_gp
         call applyPCprojectors(ha%orbs,ha%at,ha%hx,ha%hy,ha%hz,&
            &   ha%Lzd%Glr,ha%PPD,wrk,wrk1 )
 
 
-        call razero(EP_dim_tot  ,  wrk2  )
+        call to_zero(EP_dim_tot  ,  wrk2  )
         !!$       do k=1, ha%PPD%mprojtot
         !!$          print *, ha%PPD%iproj_to_ene(k), ha%PPD%iproj_to_l(k)
         !!$       end do
@@ -947,7 +973,7 @@ nullify(Qvect,dumQvect)
 
      if( dopcproj) then
 
-        call razero(EP_dim_tot  ,  wrk1  )
+        call to_zero(EP_dim_tot  ,  wrk1  )
         ha%PPD%iproj_to_factor(:) =  1.0_gp
         call applyPCprojectors(ha%orbs,ha%at,ha%hx,ha%hy,ha%hz,&
            &   ha%Lzd%Glr,ha%PPD,wrk,wrk1)
@@ -964,8 +990,8 @@ nullify(Qvect,dumQvect)
 
      if(p<0) then
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lzd%glr%wfd,ha%comms,&
+              &   wrk(1),Qvect_tmp(1),out_add=dumQvect(1,-p))  
         else
            do k=1, EP_dim_tot
               dumQvect(k,-p) =  wrk(k)
@@ -973,8 +999,8 @@ nullify(Qvect,dumQvect)
         endif
      else
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=Qvect(1,p))  
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lzd%glr%wfd,ha%comms,&
+              &   wrk(1),Qvect_tmp(1),out_add=Qvect(1,p))  
         else
            do k=1, EP_dim_tot
               Qvect(k,p) =  wrk(k)
@@ -989,6 +1015,8 @@ nullify(Qvect,dumQvect)
 
   subroutine EP_Moltiplica4spectra(p,i, ene, gamma)
      use module_interfaces
+     use gaussians, only: gaussian_basis
+     use communications, only: transpose_v, untranspose_v
      !Arguments
      implicit none
      integer, intent(in) :: p,i
@@ -1000,10 +1028,10 @@ nullify(Qvect,dumQvect)
      if( ha%nproc > 1) then
         if(i>=0) then
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   Qvect(1,i),wrk(1),out_add=Qvect_tmp(1) )  
         else
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   dumQvect(1,-i),wrk(1),out_add=Qvect_tmp(1) )  
         endif
      else
 
@@ -1021,31 +1049,25 @@ nullify(Qvect,dumQvect)
      call default_confinement_data(confdatarr,ha%orbs%norbp)
 
      call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%rxyz,&
-          ha%proj,ha%Lzd,ha%nlpspd,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
-          ha%energs,ha%SIC,ha%GPU)
-
+          ha%Lzd,ha%nlpsp,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
+          ha%energs,ha%SIC,ha%GPU,ha%xc)
 
      call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
      call vcopy(EP_dim_tot,wrk(1),1,Qvect_tmp(1),1)
      !Qvect_tmp   =  wrk
 
      call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%rxyz,&
-          ha%proj,ha%Lzd,ha%nlpspd,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
-          ha%energs,ha%SIC,ha%GPU)
+          ha%Lzd,ha%nlpsp,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
+          ha%energs,ha%SIC,ha%GPU,ha%xc)
 
      call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
 
-
-
-
      if(  ha%iproc ==0 ) write(*,*)" done "
-
-
 
      if(p<0) then
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lzd%glr%wfd,ha%comms,&
+              &   wrk(1),Qvect_tmp(1),out_add=dumQvect(1,-p))  
         else
            do k=1, EP_dim_tot
               dumQvect(k,-p) =  wrk(k)
@@ -1063,11 +1085,10 @@ nullify(Qvect,dumQvect)
            end do
         endif
 
-
      else
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=Qvect(1,p))  
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lzd%glr%wfd,ha%comms,&
+              &   wrk(1),Qvect_tmp(1),Qvect(1,p))  
         else
            do k=1, EP_dim_tot
               Qvect(k,p) =  wrk(k)
@@ -1086,13 +1107,12 @@ nullify(Qvect,dumQvect)
 
      endif
 
-
-     return 
   END SUBROUTINE EP_Moltiplica4spectra
 
 
   subroutine EP_Moltiplica(p,i)
      use module_interfaces
+     use communications, only: transpose_v, untranspose_v
      !Arguments
      implicit none
      integer, intent(in) :: p,i
@@ -1103,10 +1123,10 @@ nullify(Qvect,dumQvect)
      if( ha%nproc > 1) then
         if(i>=0) then
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   Qvect(1,i),wrk(1),out_add=Qvect_tmp(1) )  
         else
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   dumQvect(1,-i),wrk(1),out_add=Qvect_tmp(1) )  
         endif
      else
         if(i>=0) then
@@ -1128,8 +1148,8 @@ nullify(Qvect,dumQvect)
      call default_confinement_data(confdatarr,ha%orbs%norbp)
 
      call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%rxyz,&
-          ha%proj,ha%Lzd,ha%nlpspd,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
-          ha%energs,ha%SIC,ha%GPU)
+          ha%Lzd,ha%nlpsp,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
+          ha%energs,ha%SIC,ha%GPU,ha%xc)
 
      if(  ha%iproc ==0 ) write(*,*)" done "
 
@@ -1139,7 +1159,7 @@ nullify(Qvect,dumQvect)
            call applyPAWprojectors(ha%orbs,ha%at,&
               &   ha%hx,ha%hy,ha%hz,ha%Lzd%Glr,ha%PAWD,Qvect_tmp,wrk,ha%at%paw_H_matrices, .false.  )
 
-           !!$          call razero(EP_dim_tot  ,  wrk1  )
+           !!$          call to_zero(EP_dim_tot  ,  wrk1  )
            !!$          call applyPAWprojectors(ha%orbs,ha%at,&
            !!$               ha%hx,ha%hy,ha%hz,ha%Lzd%Glr,ha%PAWD,wrk,wrk1, ha%at%paw_S_matrices )
            !!$          do k=1, EP_dim_tot
@@ -1168,8 +1188,8 @@ nullify(Qvect,dumQvect)
 
      if(p<0) then
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lzd%glr%wfd,ha%comms,&
+              &   wrk(1),Qvect_tmp(1),out_add=dumQvect(1,-p))  
         else
            do k=1, EP_dim_tot
               dumQvect(k,-p) =  wrk(k)
@@ -1177,8 +1197,8 @@ nullify(Qvect,dumQvect)
         endif
      else
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=Qvect(1,p))  
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lzd%glr%wfd,ha%comms,&
+              &   wrk(1),Qvect_tmp(1),out_add=Qvect(1,p))  
         else
            do k=1, EP_dim_tot
               Qvect(k,p) =  wrk(k)
@@ -1190,6 +1210,7 @@ nullify(Qvect,dumQvect)
 
   subroutine EP_ApplySinv(p,i)
      use module_interfaces
+     use communications, only: transpose_v, untranspose_v
      !Arguments
      implicit none
      integer, intent(in) :: p,i
@@ -1199,10 +1220,10 @@ nullify(Qvect,dumQvect)
      if( ha%nproc > 1) then
         if(i>=0) then
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   Qvect(1,i),wrk(1),out_add=Qvect_tmp(1) )  
         else
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   dumQvect(1,-i),wrk(1),out_add=Qvect_tmp(1) )  
         endif
      else
         if(i>=0) then
@@ -1215,7 +1236,7 @@ nullify(Qvect,dumQvect)
            enddo
         endif
      endif
-     call razero(EP_dim_tot  ,  wrk  )
+     call to_zero(EP_dim_tot  ,  wrk  )
      if(  sum( ha%at%paw_NofL ).gt.0 ) then
         if(  associated( ha%PAWD) ) then
            call applyPAWprojectors(ha%orbs,ha%at,&
@@ -1232,8 +1253,8 @@ nullify(Qvect,dumQvect)
 
      if(p<0) then
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lzd%glr%wfd,ha%comms,&
+              &   wrk(1),Qvect_tmp(1),out_add=dumQvect(1,-p))  
         else
            do k=1, EP_dim_tot
               dumQvect(k,-p) =  wrk(k)
@@ -1241,8 +1262,8 @@ nullify(Qvect,dumQvect)
         endif
      else
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=Qvect(1,p))  
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lzd%glr%wfd,ha%comms,&
+              &   wrk(1),Qvect_tmp(1),out_add=Qvect(1,p))  
         else
            do k=1, EP_dim_tot
               Qvect(k,p) =  wrk(k)
@@ -1257,6 +1278,7 @@ nullify(Qvect,dumQvect)
 
   subroutine EP_ApplyS(p,i)
      use module_interfaces
+     use communications, only: transpose_v, untranspose_v
      !Arguments
      implicit none
      integer, intent(in) :: p,i
@@ -1266,10 +1288,10 @@ nullify(Qvect,dumQvect)
      if( ha%nproc > 1) then
         if(i>=0) then
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   Qvect(1,i),wrk(1),out_add=Qvect_tmp(1) )  
         else
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   dumQvect(1,-i),wrk(1),out_add=Qvect_tmp(1) )  
         endif
      else
         if(i>=0) then
@@ -1282,7 +1304,7 @@ nullify(Qvect,dumQvect)
            enddo
         endif
      endif
-     call razero(EP_dim_tot  ,  wrk  )
+     call to_zero(EP_dim_tot  ,  wrk  )
      if(  sum( ha%at%paw_NofL ).gt.0 ) then
         if(  associated( ha%PAWD) ) then
            call applyPAWprojectors(ha%orbs,ha%at,&
@@ -1297,8 +1319,8 @@ nullify(Qvect,dumQvect)
 
      if(p<0) then
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lzd%glr%wfd,ha%comms,&
+              &   wrk(1),Qvect_tmp(1),out_add=dumQvect(1,-p))  
         else
            do k=1, EP_dim_tot
               dumQvect(k,-p) =  wrk(k)
@@ -1306,8 +1328,8 @@ nullify(Qvect,dumQvect)
         endif
      else
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=Qvect(1,p))  
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lzd%glr%wfd,ha%comms,&
+              &   wrk(1),Qvect_tmp(1),out_add=Qvect(1,p))  
         else
            do k=1, EP_dim_tot
               Qvect(k,p) =  wrk(k)
@@ -1323,7 +1345,7 @@ nullify(Qvect,dumQvect)
      implicit none
      !Arguments
      integer, intent(in) :: p,i
-     real(8), intent(in) :: fact
+     real(kind=8), intent(in) :: fact
 
      if(i.ge.0  .and. p<0) then
         call axpy(EP_dim, fact,   Qvect(1,i)  , 1,  dumQvect(1,-p)  , 1)
@@ -1348,7 +1370,7 @@ nullify(Qvect,dumQvect)
      use module_types
      use gaussians
      implicit none
-     character(len=1), intent(in) :: geocode
+     character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
      integer, intent(in) :: iproc,nproc
      real(gp), intent(in) :: hx,hy,hz
      type(grid_dimensions), intent(in) :: grid
@@ -1375,7 +1397,7 @@ nullify(Qvect,dumQvect)
      call memocc(i_stat,tpsi,'tpsi',subname)
 
      !initialize the wavefunction
-     call razero((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor,psi)
+     call to_zero((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor,psi)
      !this can be changed to be passed only once to all the gaussian basis
      !eks=0.d0
      !loop over the atoms
@@ -1422,7 +1444,7 @@ nullify(Qvect,dumQvect)
               end do loop_calc
               if (maycalc) then
                  call crtonewave(geocode,grid%n1,grid%n2,grid%n3,ng,nterm,lx,ly,lz,fac_arr,&
-                    &   G%xp(iexpo),G%psiat(iexpo),&
+                    &   G%xp(1,iexpo),G%psiat(1,iexpo),&
                     &   rx,ry,rz,hx,hy,hz,&
                     &   0,grid%n1,0,grid%n2,0,grid%n3,&
                     &   grid%nfl1,grid%nfu1,grid%nfl2,grid%nfu2,grid%nfl3,grid%nfu3,  & 
@@ -1535,12 +1557,12 @@ nullify(Qvect,dumQvect)
      !!$
      !!$
      !!$  ! coarse grid quantities
-     !!$  call fill_logrid(ha%at%geocode,n1/2,n2/2,n3/2,0,n1/2,0,n2/2,0,n3/2,0,ha%at%nat,&
-     !!$       ha%at%ntypes,ha%at%iatype,ha%rxyz,ha%radii_cf(1,1),8.0_gp,2.0_gp*ha%hx,2.0_gp*ha%hy,2.0_gp*ha%hz,logrid)
+     !!$  call fill_logrid(ha%at%astruct%geocode,n1/2,n2/2,n3/2,0,n1/2,0,n2/2,0,n3/2,0,ha%at%astruct%nat,&
+     !!$       ha%at%astruct%ntypes,ha%at%astruct%iatype,ha%rxyz,ha%radii_cf(1,1),8.0_gp,2.0_gp*ha%hx,2.0_gp*ha%hy,2.0_gp*ha%hz,logrid)
 
      !!$
-     do ia =1, ha%at%nat
-        iat=ha%at%iatype(ia)
+     do ia =1, ha%at%astruct%nat
+        iat=ha%at%astruct%iatype(ia)
         radius_gross = ha%radii_cf(  iat ,1 )*8
         if(ha%iproc==0) print *, " for atomo " , ia , " fine degrees of freedo,g will be thrown beyond radius =  " ,  radius_gross
      enddo
@@ -1552,8 +1574,8 @@ nullify(Qvect,dumQvect)
               ry = ha%hy*(iy-1)           *2.0  
               rz = ha%hz*(iz-1)           *2.0  
               isgross=.true.
-              do ia =1, ha%at%nat
-                 iat=ha%at%iatype(ia)
+              do ia =1, ha%at%astruct%nat
+                 iat=ha%at%astruct%iatype(ia)
                  radius_gross = ha%radii_cf(  iat ,1 )*8
                  rxc = rx  -  ha%rxyz(1,ia )
                  ryc = ry  -  ha%rxyz(2,ia )
@@ -1624,494 +1646,611 @@ nullify(Qvect,dumQvect)
 
   END SUBROUTINE lowpass_projector
 
-END MODULE lanczos_interface
+  !> Lanczos diagonalization
+  subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
+       radii_cf,nlpsp,Lzd,dpcom,potential,&
+       energs,xc,nspin,GPU,in_iat_absorber,&
+       in , PAWD , orbs )! add to interface
+    use module_base
+    use module_types
+    use module_xc
+    use lanczos_base
+    use module_interfaces
+    use communications_init, only: orbitals_communicators
+    implicit none
+    integer, intent(in) :: iproc,nproc,nspin
+    real(gp), intent(in) :: hx,hy,hz
+    type(atoms_data), intent(in), target :: at
+    type(DFT_PSP_projectors), intent(in), target :: nlpsp
+    type(local_zone_descriptors), intent(inout), target :: Lzd
+    type(denspot_distribution), intent(in), target :: dpcom
+    type(xc_info), intent(in) :: xc
+    real(gp), dimension(3,at%astruct%nat), intent(in), target :: rxyz
+    real(gp), dimension(at%astruct%ntypes,3), intent(in), target ::  radii_cf
+    real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
+    type(energy_terms), intent(inout) :: energs
+    type(GPU_pointers), intent(inout) , target :: GPU
+    integer, intent(in) :: in_iat_absorber
+
+    type(input_variables),intent(in), target :: in
+    type(pawproj_data_type), target ::PAWD
+    type(orbitals_data), intent(inout), target :: orbs
+
+    !local variables
+    character(len=*), parameter :: subname='lanczos'
+    integer :: i_stat,i_all
+    type(lanczos_args) :: ha
+    integer :: i
+
+    real(wp), pointer :: Gabs_coeffs(:)
+    real(wp), dimension(:), pointer :: pot
+
+    if(iproc==0) write(*,*) " IN ROUTINE LANCZOS "
+
+    if (GPUconv) then
+       call prepare_gpu_for_locham(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,in%nspin,&
+            &   hx,hy,hz,Lzd%Glr%wfd,orbs,GPU)
+    end if
+    GPU%full_locham=.true.
+    if (GPU%OCLconv) then
+       call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%astruct%geocode,&
+            &   in%nspin,Lzd%Glr%wfd,orbs,GPU)
+       if (iproc == 0) write(*,*) 'GPU data allocated'
+    end if
 
 
-subroutine applyPAWprojectors(orbs,at,&
-      &   hx,hy,hz,Glr,PAWD,psi,hpsi,  paw_matrix, dosuperposition , &
-      &   sup_iatom, sup_l, sup_arraym)
+    allocate(orbs%eval(orbs%norb+ndebug),stat=i_stat)
+    call memocc(i_stat,orbs%eval,'orbs%eval',subname)
+    orbs%occup(1:orbs%norb)=1.0_gp
+    orbs%spinsgn(1:orbs%norb)=1.0_gp
+    orbs%eval(1:orbs%norb)=1.0_gp
+    !call allocate_comms(nproc,ha%comms,subname)
+    call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,ha%comms)  
 
-   use module_base
-   use module_types
-   use module_interfaces, except_this_one => applyPAWprojectors
+    call local_potential_dimensions(iproc,Lzd,orbs,xc,dpcom%ngatherarr(0,1))
 
-   implicit none
-
-   type(orbitals_data), intent(inout) :: orbs
-   type(atoms_data) :: at
-   real(gp), intent(in) :: hx,hy,hz
-   type(locreg_descriptors), intent(in) :: Glr
-   type(pawproj_data_type) ::PAWD
-   real(wp), dimension(:), pointer :: psi, hpsi, paw_matrix
-   logical ::  dosuperposition
-   integer , optional :: sup_iatom, sup_l
-   real(wp) , dimension(:), pointer, optional :: sup_arraym 
-   ! local variables
-   character(len=*), parameter :: subname='applyPAWprojectors'
-   integer :: ikpt, istart_ck, ispsi_k, isorb,ieorb, ispsi, iproj, istart_c,&
-      &   mproj, mdone, ispinor, istart_c_i, mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, &
-      &   jseg_c, iproj_old, iorb, ncplx, l, jorb, lsign, ncplx_global
-   real(gp) :: eproj_spinor
-   real(gp) :: kx,ky,kz
-
-   integer , parameter :: dotbuffersize = 1000
-   real(dp)  :: dotbuffer(dotbuffersize), dotbufferbis(dotbuffersize)
-   integer :: ibuffer, ichannel, nchannels, imatrix
-   logical :: lfound_sup
-   integer :: iat, old_istart_c, iatat , m, nspinor
-
-   if (orbs%norbp.gt.0) then
+    allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
+    call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
 
 
-      !apply the projectors  k-point of the processor
-      !starting k-point
-      ikpt=orbs%iokpt(1)
-      istart_ck=1
-      ispsi_k=1
-      imatrix=1
+    if(   at%paw_NofL( at%astruct%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
+       Gabs_coeffs(:)=in%Gabs_coeffs(:)
+    else     
+       print * ," You are asking for a spectra for atom " , in_iat_absorber
+       print *, " but at%paw_NofL( at%astruct%iatype(   in_iat_absorber ) )=0 " 
+       print *, " this mean that the pseudopotential file is not pawpatched. "
+       print *, " You'll have to generated the patch with pseudo"
+       STOP     
+    endif
 
-      !!$ check that the coarse wavelets cover the whole box
-      if(Glr%wfd%nvctr_c .ne. &
-           ((Glr%d%n1+1)*(Glr%d%n2+1)*(Glr%d%n3+1))) then
-         print *," WARNING : coarse wavelets dont cover the whole box "
-      endif
+    call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,xc,potential,pot)
 
-      if(dosuperposition) then 
-         lfound_sup=.false.
-      endif
-      ncplx_global=min(orbs%nspinor,2)
+!!$   call full_local_potential(iproc,nproc,ndimpot,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
+!!$        in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*in%nspin,0,&
+!!$        orbs,Lzd,0,ngatherarr,potential,pot)
 
-      loop_kpt: do
+    ha%in_iat_absorber=in_iat_absorber
+    ha%Labsorber  = in%L_absorber
+    ha%iproc=iproc
+    ha%nproc=nproc
+    ha%at=>at !!
+    ha%hx=hx 
+    ha%hy=hy
+    ha%hz=hz
+    ha%rxyz=>rxyz
 
-         call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
+    ha%radii_cf=>radii_cf
+    ha%nlpsp=>nlpsp !!
+    ha%Lzd=>Lzd !!!
+    ha%ngatherarr=>dpcom%ngatherarr
+    ha%ndimpot=dpcom%ndimpot
+    ha%potential=>pot
+    ha%energs = energs
+    ha%nspin=nspin
+    ha%GPU=>GPU !!
+    ha%Gabs_coeffs=>Gabs_coeffs
+    ha%PAWD=> PAWD
+    ha%SIC=>in%SIC
+    ha%orbs=>orbs
 
-         ! loop over all my orbitals
-         do iorb=isorb,ieorb
-            istart_c=istart_ck
-            iproj=1
-            iat=0
+    call EP_inizializza(ha) 
 
-            do iatat=1, at%nat
-               if (  at%paw_NofL(at%iatype(iatat)).gt.0  ) then
-                  iat=iat+1
-                  istart_c_i=istart_c
-                  iproj_old=iproj
-                  ispsi=ispsi_k
-                  !!!! do iorb=isorb,ieorb
-
-
-                  mproj= PAWD%ilr_to_mproj(iat)
-
-                  if( ikpt .ne. orbs%iokpt(iorb) ) then
-                     STOP " ikpt .ne. orbs%iokpt(iorb) in applypawprojectors " 
-                  end if
-                  kx=orbs%kpts(1,ikpt)
-                  ky=orbs%kpts(2,ikpt)
-                  kz=orbs%kpts(3,ikpt)
-                  call ncplx_kpt(orbs%iokpt(iorb),orbs,ncplx)
-
-                  do ispinor=1,orbs%nspinor,ncplx_global
-                     eproj_spinor=0.0_gp
-                     if (ispinor >= 2) istart_c=istart_c_i
-                     call plr_segs_and_vctrs(PAWD%paw_nlpspd%plr(iat),&
-                          mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
-                     jseg_c=1
-!!$                     mbvctr_c=PAWD%paw_nlpspd%nvctr_p(2*iat-1)-PAWD%paw_nlpspd%nvctr_p(2*iat-2)
-!!$                     mbvctr_f=PAWD%paw_nlpspd%nvctr_p(2*iat  )-PAWD%paw_nlpspd%nvctr_p(2*iat-1)
-!!$                     mbseg_c=PAWD%paw_nlpspd%nseg_p(2*iat-1)-PAWD%paw_nlpspd%nseg_p(2*iat-2)
-!!$                     mbseg_f=PAWD%paw_nlpspd%nseg_p(2*iat  )-PAWD%paw_nlpspd%nseg_p(2*iat-1)
-!!$                     jseg_c=PAWD%paw_nlpspd%nseg_p(2*iat-2)+1
-                     mdone=0
-                     iproj=iproj_old
-                     if(mproj>0) then
-                        if(  PAWD%DistProjApply) then
-                           jorb=1
-                           do while(jorb<=PAWD%G%ncoeff .and. PAWD%iorbtolr(jorb)/= iat) 
-                              jorb=jorb+1
-                           end do
-                           if(jorb<PAWD%G%ncoeff) then
-                              call fillPawProjOnTheFly(PAWD,Glr,iat,hx,hy,hz,&
-                                 &   kx,ky,kz,&
-                                 &   jorb,istart_c,at%geocode,at,iatat ) 
-                           endif
-                        end if
-                     endif
-
-                     do while(mdone< mproj)
-                        lsign = PAWD%iproj_to_l(iproj)
-                        l=abs(lsign)
-                        ibuffer = 0
-                        nchannels =  PAWD% iproj_to_paw_nchannels(iproj)
-                        imatrix=PAWD%iprojto_imatrixbeg(iproj)
-                        !!$
-                        !!$                    if(.not. dosuperposition) then
-                        !!$                       print *, "applying paw for l= ", l,&
-                        !!$                            "  primo elemento ", paw_matrix(PAWD%iprojto_imatrixbeg(iproj))
-                        !!$                    end if
-                        old_istart_c=istart_c
-                        do ichannel=1, nchannels
-                           do m=1,2*l-1
-                              ibuffer=ibuffer+1
-                              if(ibuffer.gt.dotbuffersize ) then
-                                 STOP 'ibuffer.gt.dotbuffersize'
-                              end if
-
-                              if( .not. dosuperposition .and. lsign>0 ) then
-                                 call wpdot_wrap(ncplx,  &
-                                      Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,&
-                                      Glr%wfd%nseg_c,Glr%wfd%nseg_f,&
-                                      Glr%wfd%keyvglob(1),Glr%wfd%keyglob(1,1),&
-                                      psi(ispsi+&
-                                      (ispinor-1)*(orbs%npsidim_orbs/orbs%nspinor)),&
-                                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-!!$                                      PAWD%paw_nlpspd%keyv_p(jseg_c),&
-!!$                                      PAWD%paw_nlpspd%keyg_p(1,jseg_c),&
-                                      PAWD%paw_nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
-                                      PAWD%paw_nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
-                                      PAWD%paw_proj(istart_c),&
-                                      dotbuffer( ibuffer ) )
-                              end if
-                              ibuffer=ibuffer + (ncplx-1)
-
-                              !!$                          !! TTTTTTTTTTTTTTTTTTTt TEST TTTTTTTTTTTTTTTTTTT
-                              !!$                          call wpdot_wrap(ncplx,  &
-                              !!$                               mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,PAWD%paw_nlpspd%keyv_p(jseg_c),&
-                              !!$                               PAWD%paw_nlpspd%keyg_p(1,jseg_c),PAWD%paw_proj(istart_c),& 
-                              !!$                               mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,PAWD%paw_nlpspd%keyv_p(jseg_c),&
-                              !!$                               PAWD%paw_nlpspd%keyg_p(1,jseg_c),&
-                              !!$                               PAWD%paw_proj(istart_c),&
-                              !!$                               eproj_spinor)
-                              !!$                          print *, "TEST:  THE PROJECTOR ichannel = ", ichannel, " m=",m, " HAS SQUARED MODULUS  " ,eproj_spinor 
-
-                              !!$                          !! plot -------------------------------------------------------------
-                              !!$                          Plr%d%n1 = Glr%d%n1
-                              !!$                          Plr%d%n2 = Glr%d%n2
-                              !!$                          Plr%d%n3 = Glr%d%n3
-                              !!$                          Plr%geocode = at%geocode
-                              !!$                          Plr%wfd%nvctr_c  =PAWD%paw_nlpspd%nvctr_p(2*iat-1)-PAWD%paw_nlpspd%nvctr_p(2*iat-2)
-                              !!$                          Plr%wfd%nvctr_f  =PAWD%paw_nlpspd%nvctr_p(2*iat  )-PAWD%paw_nlpspd%nvctr_p(2*iat-1)
-                              !!$                          Plr%wfd%nseg_c   =PAWD%paw_nlpspd%nseg_p(2*iat-1)-PAWD%paw_nlpspd%nseg_p(2*iat-2)
-                              !!$                          Plr%wfd%nseg_f   =PAWD%paw_nlpspd%nseg_p(2*iat  )-PAWD%paw_nlpspd%nseg_p(2*iat-1)
-                              !!$                          call allocate_wfd(Plr%wfd,subname)
-                              !!$                          Plr%wfd%keyv(:)  = PAWD%paw_nlpspd%keyv_p( PAWD%paw_nlpspd%nseg_p(2*iat-2)+1:&
-                              !!$                               PAWD%paw_nlpspd%nseg_p(2*iat)   )
-                              !!$                          Plr%wfd%keyg(1:2, :)  = PAWD%paw_nlpspd%keyg_p( 1:2,  PAWD%paw_nlpspd%nseg_p(2*iat-2)+1:&
-                              !!$                               PAWD%paw_nlpspd%nseg_p(2*iat)   )
-                              !!$
-                              !!$                          !! ---------------  use this to plot projectors
-                              !!$                          write(orbname,'(A,i4.4)')'paw_',iproj
-                              !!$                          Plr%bounds = Glr%bounds
-                              !!$                          Plr%d          = Glr%d
-                              !!$                          call plot_wf_cube(orbname,at,Plr,hx,hy,hz,rxyz, PAWD%paw_proj(istart_c) ,"1234567890" ) 
-                              !!$                          !! END plot ----------------------------------------------------------
+    if(.true.) then
+       LB_nsteps =in%nsteps
+       call LB_allocate_for_lanczos( )
+       call EP_allocate_for_eigenprob(LB_nsteps)
+       call EP_make_dummy_vectors(10)
 
 
-                              !! TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
-
-                              istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
-                              iproj=iproj+1
-                              mdone=mdone+1
-                           end do
-                        end do
-
-                        !!$                    call DGEMM('N','N', nchannels ,(2*l-1)  , nchannels  ,&
-                        !!$                         1.0d0 , paw_matrix(imatrix) , nchannels ,&
-                        !!$                         dotbuffer  ,(2*l-1), 0.0D0 , dotbufferbis  ,(2*l-1))
+       call LB_passeggia(0,LB_nsteps,      get_EP_dim, EP_initialize_start , EP_normalizza,&
+            &   EP_Moltiplica, EP_GramSchmidt ,EP_set_all_random, EP_copy,   EP_mat_mult, &
+            &   EP_scalare,EP_add_from_vect_with_fact     )
 
 
-                        if( .not. dosuperposition) then
-                           if(lsign>0) then
-                              call DGEMM('N','N',(2*l-1)*ncplx  , nchannels , nchannels  ,&
-                                 &   1.0d0 ,dotbuffer , (2*l-1)*ncplx ,&
-                                 &   paw_matrix(imatrix)  ,nchannels , 0.0D0 , dotbufferbis  ,(2*l-1)*ncplx )
-                           else
-                              dotbufferbis=0.0_wp
-                           endif
-                        else
-                           !print *,'here',nchannels
-                           if( sup_iatom .eq. iatat .and. (-sup_l) .eq. lsign ) then
-                              do ichannel=1, nchannels
-                                 do m=1,2*l-1
-                                    dotbufferbis((ichannel-1)*(2*l-1)*ncplx+m*ncplx           ) = 0.0_gp ! keep this before
-                                    dotbufferbis((ichannel-1)*(2*l-1)*ncplx+m*ncplx -(ncplx-1)) = sup_arraym(m)
-                                 end do
-                              enddo
-                              lfound_sup=.true.
-                           else
-                              do ichannel=1, nchannels
-                                 do m=1,2*l-1
-                                    dotbufferbis((ichannel-1)*(2*l-1)*ncplx+m*ncplx           ) = 0.0_gp 
-                                    dotbufferbis((ichannel-1)*(2*l-1)*ncplx+m*ncplx -(ncplx-1)) = 0.0_gp
-                                 end do
-                              enddo
-                           endif
-                        endif
+       if(ha%iproc==0) then
+          open(unit=22,file="alphabeta")
+          write(22,*) LB_nsteps, EP_norma2_initialized_state
+          print *, " alpha and beta from lanczos "
+          WRITE(*,'(I5,1000(1ES23.16))')    LB_nsteps, EP_norma2_initialized_state
+          do i=0, LB_nsteps-1
+             write(22,*) LB_alpha(i), LB_beta(i)
+             WRITE(*,'(2ES23.16)')  LB_alpha(i), LB_beta(i)
+          enddo
+
+          close(unit=22)
+       endif
+
+       call LB_de_allocate_for_lanczos( )
+
+    endif
+
+    call deallocate_comms(ha%comms,subname)
+
+    call EP_free(ha%iproc)
+
+    if (GPUconv) then
+       call free_gpu(GPU,orbs%norbp)
+    else if (GPU%OCLconv) then
+       call free_gpu_OCL(GPU,orbs,in%nspin)
+    end if
+
+    i_all=-product(shape(orbs%eval))*kind(orbs%eval)
+    deallocate(orbs%eval,stat=i_stat)
+    call memocc(i_stat,i_all,'orbs%eval',subname)
+
+    i_all=-product(shape(Gabs_coeffs))*kind(Gabs_coeffs)
+    deallocate(Gabs_coeffs,stat=i_stat)
+    call memocc(i_stat,i_all,'Gabs_coeffs',subname)
+
+    call free_full_potential(dpcom%mpi_env%nproc,0,xc,pot,subname)
+
+  END SUBROUTINE xabs_lanczos
 
 
-                        ibuffer=0
-                        iproj    =  iproj  - nchannels * ( 2*l-1 )
-                        istart_c = old_istart_c
+  !> Chebychev polynomials to calculate the density of states
+  subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
+       radii_cf,nlpsp,Lzd,dpcom,potential,&
+       energs,xc,nspin,GPU,in_iat_absorber,in, PAWD , orbs  )
 
-                        do ichannel=1, nchannels
-                           do m=1,2*l-1
-                              ibuffer=ibuffer+1
+    use module_base
+    use module_types
+    use module_xc
+    use lanczos_base
+    ! per togliere il bug 
+    use module_interfaces
+    use communications_init, only: orbitals_communicators
 
-                              call waxpy_wrap(ncplx,dotbufferbis( ibuffer ) ,&
-                                   mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-!!$                                 &   PAWD%paw_nlpspd%keyv_p(jseg_c),PAWD%paw_nlpspd%keyg_p(1,jseg_c),&
-                                   PAWD%paw_nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
-                                   PAWD%paw_nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
-                                   PAWD%paw_proj(istart_c),&
-                                   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,Glr%wfd%nseg_c,Glr%wfd%nseg_f,&
-                                   Glr%wfd%keyvglob(1),Glr%wfd%keyglob(1,1),&
-                                   hpsi(ispsi+(ispinor-1)*(orbs%npsidim_orbs/orbs%nspinor)  )&
-                                   )
+    implicit none
+    integer  :: iproc,nproc,nspin
+    real(gp)  :: hx,hy,hz
+    type(atoms_data), target :: at
+    type(DFT_PSP_projectors), target :: nlpsp
+    type(local_zone_descriptors), target :: Lzd
+    type(denspot_distribution), intent(in), target :: dpcom
+    type(xc_info), intent(in), target :: xc
+    real(gp), dimension(3,at%astruct%nat), target :: rxyz
+    real(gp), dimension(at%astruct%ntypes,3), intent(in), target ::  radii_cf
+    real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
+    type(energy_terms), intent(inout) :: energs
+    type(GPU_pointers), intent(inout) , target :: GPU
+    integer, intent(in) :: in_iat_absorber 
 
+    type(input_variables),intent(in), target :: in
+    type(pawproj_data_type), target ::PAWD
+    type(orbitals_data), intent(inout), target :: orbs
 
-                              istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
-                              iproj=iproj+1
-                              ibuffer=ibuffer + (ncplx-1)
-                           end do
-                        end do
-                     end do
+    !Local variables
+    character(len=*), parameter :: subname='chebychev'
+    integer :: i_stat,i_all
+    type(lanczos_args) :: ha
+    integer :: i
 
-                     mdone=0
-                     !!$ iproj=iproj_old
-                     istart_c=istart_c_i
-                     ispsi=ispsi+(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*nspinor
+    real(wp), dimension(:), pointer  :: pot
 
-                  end do
+    real(gp) :: eval_min, eval_max, fact_cheb, cheb_shift
+    real(gp) :: Pi
+    logical:: dopaw
+    real(gp) :: GetBottom
 
-                  if( PAWD%DistProjApply ) then
-                     istart_c=1
-                  else
-                     istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*mproj*ncplx
-                  endif
-               end if
-            end do
+    if (iproc==0) print *, " IN ROUTINE  chebychev  "
 
-            ispsi_k=ispsi
-         end do
-         istart_ck=istart_c
+    Pi=acos(-1.0_gp)
 
-         if(  dosuperposition ) then
-            if(.not. lfound_sup) then
-               print *, " initial state not found in routine ",subname
-               STOP 
-            endif
-         endif
+    if (GPUconv) then
+       call prepare_gpu_for_locham(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,in%nspin,&
+            &   hx,hy,hz,Lzd%Glr%wfd,orbs,GPU)
+    end if
 
+    GPU%full_locham=.true.
 
-         if (ieorb == orbs%norbp) exit loop_kpt
-         ikpt=ikpt+1
+    if (GPU%OCLconv) then
+       call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%astruct%geocode,&
+            &   in%nspin,Lzd%Glr%wfd,orbs,GPU)
+       if (iproc == 0) write(*,*)&
+            &   'GPU data allocated'
+    end if
 
+    allocate(orbs%eval(orbs%norb *orbs%nkpts  +ndebug),stat=i_stat)
+    call memocc(i_stat,orbs%eval,'orbs%eval',subname)
+    orbs%occup(1:orbs%norb*orbs%nkpts )=1.0_gp
+    orbs%spinsgn(1:orbs%norb*orbs%nkpts )=1.0_gp
+    orbs%eval(1:orbs%norb*orbs%nkpts )=1.0_gp
 
-      end do loop_kpt
-   end if
-END SUBROUTINE applyPAWprojectors
+    call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,ha%comms)  
 
+    call local_potential_dimensions(iproc,Lzd,orbs,xc,dpcom%ngatherarr(0,1))
 
-subroutine applyPCprojectors(orbs,at,&
-      &   hx,hy,hz,Glr,PPD,psi,hpsi, dotest)
+    if(   at%paw_NofL( at%astruct%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
+    else
+       print * ," You are asking for a spactra for atom " , in_iat_absorber
+       print *, " but at%paw_NofL( at%astruct%iatype(   in_iat_absorber ) )=0 " 
+       print *, " this mean that the pseudopotential file is not pawpatched. "
+       print *, " You'll have to generated the patch with pseudo"
+       STOP     
+    endif
 
-   use module_base
-   use module_types
-   use module_interfaces, except_this_one => applyPCprojectors
+    call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,xc,potential,pot)
+!!$   call full_local_potential(iproc,nproc,ndimpot,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
+!!$        in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*in%nspin,0,&
+!!$        orbs,Lzd,0,ngatherarr,potential,pot)
 
-   implicit none
+    !associate hamapp_arg pointers
+    ha%in_iat_absorber=in_iat_absorber
+    ha%Labsorber  = in%L_absorber
+    ha%iproc=iproc
+    ha%nproc=nproc
+    ha%at=>at !!
+    ha%hx=hx 
+    ha%hy=hy
+    ha%hz=hz
+    ha%rxyz=>rxyz
 
-   type(orbitals_data), intent(inout) :: orbs
-   type(atoms_data) :: at
-   real(gp), intent(in) :: hx,hy,hz
-   type(locreg_descriptors), intent(in) :: Glr
-   type(pcproj_data_type) ::PPD
-   real(wp), dimension(:), pointer :: psi, hpsi
-   logical, optional :: dotest
+    ha%radii_cf=>radii_cf
+    ha%nlpsp=>nlpsp !!
+    ha%Lzd=>Lzd !!!
+    ha%ngatherarr=>dpcom%ngatherarr
+    ha%ndimpot=dpcom%ndimpot
+    ha%potential=>pot
+    ha%energs = energs
+    ha%nspin=nspin
+    ha%GPU=>GPU !!
+    ha%Gabs_coeffs=>in%Gabs_coeffs
+    ha%PAWD=> PAWD
+    ha%SIC=>in%SIC
+    ha%orbs=>orbs
+    ha%xc=>xc
 
+    call EP_inizializza(ha)  
 
-   ! local variables
-   character(len=*), parameter :: subname='applyPCprojectors'
-   character(len=11) :: orbname
-   type(locreg_descriptors) :: Plr
-   integer :: ikpt, istart_ck, ispsi_k, isorb,ieorb, ispsi, iproj, istart_c,&
-      &   mproj, mdone, ispinor, istart_c_i, mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, &
-      &   jseg_c, iproj_old, iorb, ncplx, l, i, jorb
-   real(gp) eproj_spinor,psppar_aux(0:4, 0:6)
-   integer :: iat , nspinor
-
-   !apply the projectors  k-point of the processor
-   !starting k-point
-   ikpt=orbs%iokpt(1)
-   istart_ck=1
-   ispsi_k=1
-   loop_kpt: do
-
-      call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
-
-      ! loop over all my orbitals
-      istart_c=1
-      iproj=1
-
-      do iat=1,at%nat
-         istart_c_i=istart_c
-         iproj_old=iproj
-         ispsi=ispsi_k
-         do iorb=isorb,ieorb
-
-            mproj= PPD%ilr_to_mproj(iat)
-
-            call ncplx_kpt(orbs%iokpt(iorb),orbs,ncplx)
-
-
-            do ispinor=1,orbs%nspinor,ncplx
-               eproj_spinor=0.0_gp
-
-               if (ispinor >= 2) istart_c=istart_c_i
-
-               call plr_segs_and_vctrs(PPD%pc_nlpspd%plr(iat),&
-                    mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
-               jseg_c=1
-
-!!$               mbvctr_c=PPD%pc_nlpspd%nvctr_p(2*iat-1)-PPD%pc_nlpspd%nvctr_p(2*iat-2)
-!!$               mbvctr_f=PPD%pc_nlpspd%nvctr_p(2*iat  )-PPD%pc_nlpspd%nvctr_p(2*iat-1)
+!!$  if(.false.) then
 !!$
-!!$               mbseg_c=PPD%pc_nlpspd%nseg_p(2*iat-1)-PPD%pc_nlpspd%nseg_p(2*iat-2)
-!!$               mbseg_f=PPD%pc_nlpspd%nseg_p(2*iat  )-PPD%pc_nlpspd%nseg_p(2*iat-1)
-!!$               jseg_c=PPD%pc_nlpspd%nseg_p(2*iat-2)+1
+!!$     ! trova il valore massimo 
+!!$     shift =-0.0
+!!$     tol   =1.0D-8
+!!$     accontentati_di=1
+!!$     
+!!$     cercacount = LB_cerca( 10, shift, tol, set_EP_shift, EP_allocate_for_eigenprob, EP_make_dummy_vectors, &
+!!$          get_EP_dim, EP_initialize_start , EP_normalizza, EP_Moltiplica, EP_GramSchmidt, &
+!!$          EP_set_all_random, EP_copy , EP_mat_mult,  EP_scalare,EP_add_from_vect_with_fact,accontentati_di)
+!!$     
+!!$     if(iproc==0) then
+!!$        print *, " maximal eigenvalues " 
+!!$        print *, LB_eval
+!!$     endif
+!!$     eval_max = LB_eval(0)
+!!$     
+!!$     ! trova il valore minimo 
+!!$     shift =-10000
+!!$     
+!!$     
+!!$     cercacount = LB_cerca( 10, shift, tol, set_EP_shift, EP_allocate_for_eigenprob, EP_make_dummy_vectors, &
+!!$          get_EP_dim, EP_initialize_start , EP_normalizza, EP_Moltiplica, EP_GramSchmidt, &
+!!$          EP_set_all_random, EP_copy , EP_mat_mult,  EP_scalare,EP_add_from_vect_with_fact,accontentati_di)
+!!$     
+!!$     if(iproc==0) then
+!!$        print *, " minima eigenvalues" 
+!!$        print *, LB_eval
+!!$     endif
+!!$     eval_min = LB_eval(0)+10000
+!!$
+!!$  else
 
-               mdone=0
-               iproj=iproj_old
+    eval_min = GetBottom(  at, nspin)-1.0 - in%abscalc_bottomshift
+    eval_max = 4.0*Pi*Pi*(1.0/hx/hx + 1.0/hy/hy + 1.0/hz/hz  )/2.0*1.1 +2
 
-               if(mproj>0) then
-                  if(  PPD%DistProjApply) then
-                     jorb=1
-                     do while( jorb<=PPD%G%ncoeff         .and. PPD%iorbtolr(jorb)/= iat) 
-                        jorb=jorb+1
-                     end do
-                     if(jorb<PPD%G%ncoeff) then
-                        call fillPcProjOnTheFly(PPD,Glr,iat,at,hx,hy,hz,&
-                             jorb,PPD%ecut_pc,istart_c) 
-                     endif
-                  end if
-               endif
+    !   endif
 
+    cheb_shift=0.5*(eval_min+ eval_max) 
+    fact_cheb = (2-0.0001)/(eval_max-eval_min)
 
-               do while(mdone< mproj)
+    LB_nsteps = in%nsteps
+    LB_norbp  = orbs%norbp
+    LB_nproc=nproc
+    LB_iproc=iproc
 
-                  l = PPD%iproj_to_l(iproj)
-
-                  i=1
-                  psppar_aux=0.0_gp
-                  !! psppar_aux(l,i)=1.0_gp/PPD%iproj_to_ene(iproj)
-                  !! psppar_aux(l,i)=1.0_gp  ! *iorb
-                  psppar_aux(l,i)=PPD%iproj_to_factor(iproj)  
-
-
-                  call applyprojector(ncplx,l,i, psppar_aux(0,0), 2 ,&
-                       Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c,&
-                       Glr%wfd%nseg_f,&
-                       Glr%wfd%keyvglob(1),Glr%wfd%keyglob(1,1),&
-                       mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                       PPD%pc_nlpspd%plr(iat)%wfd%keyvglob(jseg_c),&
-                       PPD%pc_nlpspd%plr(iat)%wfd%keyglob(1,jseg_c),&
-!!$                       PPD%pc_nlpspd%keyv_p(jseg_c),PPD%pc_nlpspd%keyg_p(1,jseg_c),&
-                       PPD%pc_proj(istart_c),&
-                       psi(ispsi+ (ispinor-1)*(orbs%npsidim_orbs/orbs%nspinor)  ),&
-                       hpsi(ispsi+(ispinor-1)*(orbs%npsidim_orbs/orbs%nspinor)  ),&
-                       eproj_spinor)
-
-
-                  if(iorb==1) then         
-                     if( present(dotest) ) then
-                        eproj_spinor=0.0_gp
-!!$                        call wpdot_wrap(ncplx,  &
-!!$                             mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-!!$                             PPD%pc_nlpspd%keyv_p(jseg_c),&
-!!$                             PPD%pc_nlpspd%keyg_p(1,jseg_c),&
-!!$                             PPD%pc_proj(istart_c),& 
-!!$                             mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-!!$                             PPD%pc_nlpspd%keyv_p(jseg_c),&
-!!$                             PPD%pc_nlpspd%keyg_p(1,jseg_c),&
-!!$                             PPD%pc_proj(istart_c),&
-!!$                             eproj_spinor)
-                        print *, " IL PROIETTORE HA MODULO QUADRO  " ,eproj_spinor 
-                        if(dotest) then
-                           !! ---------------  use this to plot projectors
-                           write(orbname,'(A,i4.4)')'pc_',iproj                     
-                           Plr%d%n1=Glr%d%n1
-                           Plr%d%n2=Glr%d%n2
-                           Plr%d%n3=Glr%d%n3
-                           Plr%geocode=at%geocode
-                           
-                           call plr_segs_and_vctrs(PPD%pc_nlpspd%plr(iat),&
-                                Plr%wfd%nseg_c,Plr%wfd%nseg_f,&
-                                Plr%wfd%nvctr_c,Plr%wfd%nvctr_f)                  
-!!$                           Plr%wfd%nvctr_c  =PPD%pc_nlpspd%nvctr_p(2*iat-1)-PPD%pc_nlpspd%nvctr_p(2*iat-2)
-!!$                           Plr%wfd%nvctr_f  =PPD%pc_nlpspd%nvctr_p(2*iat  )-PPD%pc_nlpspd%nvctr_p(2*iat-1)
-!!$                           Plr%wfd%nseg_c   =PPD%pc_nlpspd%nseg_p(2*iat-1 )-PPD%pc_nlpspd%nseg_p(2*iat-2)
-!!$                           Plr%wfd%nseg_f   =PPD%pc_nlpspd%nseg_p(2*iat  ) -PPD%pc_nlpspd%nseg_p(2*iat-1)
-                           call allocate_wfd(Plr%wfd,subname)
-!!$                           Plr%wfd%keyv(:)=PPD%pc_nlpspd%keyv_p(PPD%pc_nlpspd%nseg_p(2*iat-2)+1:&
-!!$                              &   PPD%pc_nlpspd%nseg_p(2*iat)   )
-!!$                           Plr%wfd%keyg(1:2, :)  = PPD%pc_nlpspd%keyg_p( 1:2,  PPD%pc_nlpspd%nseg_p(2*iat-2)+1:&
-!!$                              &   PPD%pc_nlpspd%nseg_p(2*iat)   )
-                           Plr%bounds = Glr%bounds
-                           Plr%d          = Glr%d                    
-                           !! call plot_wf_cube(orbname,at,Plr,hx,hy,hz,rxyz, PPD%pc_proj(istart_c) ,"1234567890" ) 
-                           call deallocate_wfd(Plr%wfd,subname)
-                        endif
-                     endif
-
-                  endif
-                  istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx
-                  iproj=iproj+(2*l-1)
-                  mdone=mdone+(2*l-1)
-               end do
-            end  do
-            istart_c=istart_c_i
-
-            if( present(dotest) ) then
-               if(dotest) then
-                  eproj_spinor=0.0_gp
-!!$                  call wpdot_wrap(ncplx,  &
-!!$                     &   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c, Glr%wfd%nseg_f,&
-!!$                     &   Glr%wfd%keyv(1),Glr%wfd%keyg(1,1), hpsi(ispsi + 0 ), &
-!!$                     &   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c, Glr%wfd%nseg_f,&
-!!$                     &   Glr%wfd%keyv(1),Glr%wfd%keyg(1,1), hpsi(ispsi + 0 ),  &
-!!$                     &   eproj_spinor)
-                  print *, "hpsi  HA MODULO QUADRO  " ,eproj_spinor 
-                  eproj_spinor=0.0_gp
-!!$                  call wpdot_wrap(ncplx,  &
-!!$                     &   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c, Glr%wfd%nseg_f,&
-!!$                     &   Glr%wfd%keyv(1),Glr%wfd%keyg(1,1), psi(ispsi + 0 ), &
-!!$                     &   Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c, Glr%wfd%nseg_f,&
-!!$                     &   Glr%wfd%keyv(1),Glr%wfd%keyg(1,1), psi(ispsi + 0 ),  &
-!!$                     &   eproj_spinor)
-                  print *, "psi  HA MODULO QUADRO  " ,eproj_spinor         
-                  !! CECCARE IPROJ = mproj tot, istart_c=nelproj 
-                  write(orbname,'(A,i4.4)')'pcorb_',iorb
-                  !! call plot_wf_cube(orbname,at,Glr,hx,hy,hz,rxyz,hpsi(ispsi + 0 ),"dopoprec.." ) ! solo spinore 1
-               end if
-            endif
-
-            ispsi=ispsi+(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*nspinor
-
-         end do
+    call LB_allocate_for_chebychev( )
+    call EP_allocate_for_eigenprob(6) 
+    call EP_make_dummy_vectors(4)
 
 
-         if( PPD%DistProjApply ) then
-            istart_c=1
-         else
-            istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*mproj
-         endif
+    !! call set_EP_shift(-cheb_shift) 
+    call set_EP_shift(0.0_gp) 
 
-      end do
+    if( sum( ha%at%paw_NofL ).gt.0 ) then
+       dopaw=.true.
+    else
+       dopaw=.false.
+    endif
+    if(ha%iproc==0) then
+       print *, "weigths ", orbs%kwgts
+    endif
 
-      !! istart_ck=istart_c  non si incrementa
+    call LB_passeggia_Chebychev (LB_nsteps, cheb_shift,  fact_cheb,     get_EP_dim, EP_initialize_start , EP_normalizza,&
+         &   EP_Moltiplica, EP_GramSchmidt ,EP_set_all_random, EP_copy,   EP_mat_mult, &
+         &   EP_scalare_multik,EP_add_from_vect_with_fact  , EP_multbyfact, EP_ApplySinv, EP_ApplyS, dopaw, &
+         &   in%abscalc_S_do_cg,  in%abscalc_Sinv_do_cg, in%xabs_res_prefix, orbs%nkpts , orbs%norb_par, &
+         &   orbs%kwgts(   orbs%iskpts+1    :    orbs%iskpts + orbs%norb_par(ha%iproc,0))   )
 
-      if (ieorb == orbs%norbp) exit loop_kpt
-      ikpt=ikpt+1
-      ispsi_k=ispsi
-   end do loop_kpt
+    if(ha%iproc==0) then
+       print *, "coefficients from Chebychev "
+       WRITE(*,'(I5,2ES23.16)')   2*LB_nsteps, cheb_shift,  fact_cheb
+       print *,"... " 
+       do i=0, 2*LB_nsteps-1
+          if(i>2*LB_nsteps-1 -10) then
+             WRITE(*,'(1ES23.16)')   LB_alpha_cheb(1, i)
+          endif
+       enddo
+    endif
 
-END SUBROUTINE applyPCprojectors  
+    call free_full_potential(dpcom%mpi_env%nproc,0,xc,pot,subname)
+    nullify(ha%potential)
+
+
+    !deallocate communication and orbitals descriptors
+    call deallocate_comms(ha%comms,subname)
+
+    call EP_free(ha%iproc)
+    call  LB_de_allocate_for_cheb( )
+
+!!$ this free is already executed by bigdft
+!!$
+    if (GPUconv) then
+       call free_gpu(GPU,orbs%norbp)
+    else if (GPU%OCLconv) then
+       call free_gpu_OCL(GPU,orbs,in%nspin)
+    end if
+
+    i_all=-product(shape(orbs%eval))*kind(orbs%eval)
+    deallocate(orbs%eval,stat=i_stat)
+    call memocc(i_stat,i_all,'orbs%eval',subname)
+
+
+!!$  i_all=-product(shape(Gabsorber%nshell))*kind(Gabsorber%nshell)
+!!$  deallocate(Gabsorber%nshell,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'Gabsorber%nshell',subname)
+!!$
+!!$  i_all=-product(shape(Gabsorber%nam))*kind(Gabsorber%nam)
+!!$  deallocate(Gabsorber%nam,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'Gabsorber%nam',subname)
+!!$
+!!$  i_all=-product(shape(Gabsorber%ndoc))*kind(Gabsorber%ndoc)
+!!$  deallocate(Gabsorber%ndoc,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'Gabsorber%ndoc',subname)
+!!$
+!!$  i_all=-product(shape(Gabsorber%xp))*kind(Gabsorber%xp)
+!!$  deallocate(Gabsorber%xp,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'Gabsorber%xp',subname)
+!!$
+!!$  i_all=-product(shape(Gabsorber%psiat))*kind(Gabsorber%psiat)
+!!$  deallocate(Gabsorber%psiat,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'Gabsorber%psiat',subname)
+!!$
+!!$  if( associated(Gabsorber%rxyz)) then
+!!$     i_all=-product(shape(Gabsorber%rxyz))*kind(Gabsorber%rxyz)
+!!$     deallocate(Gabsorber%rxyz,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'Gabsorber%rxyz',subname)
+!!$  endif
+
+  END SUBROUTINE xabs_chebychev
+
+
+  !> Finds the spectra solving  (H-omega)x=b
+  subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
+       &   radii_cf,nlpsp,Lzd,dpcom,potential,&
+       &   energs,xc,nspin,GPU,in_iat_absorber,&
+       &   in , rhoXanes, PAWD , PPD, orbs )
+    use module_base
+    use module_types
+    use lanczos_base
+    use module_xc
+    ! per togliere il bug 
+    use module_interfaces
+    use communications_init, only: orbitals_communicators
+
+    implicit none
+
+    integer  :: iproc,nproc,nspin
+    real(gp)  :: hx,hy,hz
+    type(atoms_data), target :: at
+    type(DFT_PSP_projectors), target :: nlpsp
+    type(local_zone_descriptors), target :: Lzd
+    type(pcproj_data_type), target ::PPD
+    type(denspot_distribution), intent(in), target :: dpcom
+    type(xc_info), intent(in) :: xc
+    real(gp), dimension(3,at%astruct%nat), target :: rxyz
+    real(gp), dimension(at%astruct%ntypes,3), intent(in), target ::  radii_cf
+    real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
+    real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: rhoXanes
+    type(energy_terms), intent(inout) :: energs
+    type(GPU_pointers), intent(inout) , target :: GPU
+    integer, intent(in) :: in_iat_absorber
+    type(pawproj_data_type), target ::PAWD
+    type(input_variables),intent(in), target :: in
+    type(orbitals_data), intent(inout), target :: orbs
+
+    !local variables
+    character(len=*), parameter :: subname='xabs_cg'
+    integer :: i_stat,i_all
+    type(lanczos_args) :: ha
+    integer :: i,j
+    real(gp) Ene,gamma,  res 
+
+    real(wp),   pointer  :: Gabs_coeffs(:)
+    real(wp), dimension(:), pointer  :: pot
+
+    logical:: useold
+    real(gp) , pointer ::potentialclone(:,:)
+
+    if( iand( in%potshortcut,16)>0) then
+       allocate(potentialclone(max(dpcom%ndimpot,1),nspin+ndebug),stat=i_stat)
+       call memocc(i_stat,potentialclone,'potentialclone',subname)
+       potentialclone=potential
+    endif
+
+    if(iproc==0) print *, " IN ROUTINE xabs_cg "
+
+    if (GPUconv) then
+       call prepare_gpu_for_locham(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,in%nspin,&
+            &   hx,hy,hz,Lzd%Glr%wfd,orbs,GPU)
+    end if
+    GPU%full_locham=.true.
+    if (GPU%OCLconv) then
+       call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%astruct%geocode,&
+            &   in%nspin,Lzd%Glr%wfd,orbs,GPU)
+       if (iproc == 0) write(*,*)&
+            &   'GPU data allocated'
+    end if
+
+    allocate(orbs%eval(orbs%norb+ndebug),stat=i_stat)
+    call memocc(i_stat,orbs%eval,'orbs%eval',subname)
+
+    orbs%occup(1:orbs%norb)=1.0_gp
+    orbs%spinsgn(1:orbs%norb)=1.0_gp
+    orbs%eval(1:orbs%norb)=1.0_gp
+    !call allocate_comms(nproc,ha%comms,subname)
+    call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,ha%comms)  
+
+    call local_potential_dimensions(iproc,Lzd,orbs,xc,dpcom%ngatherarr(0,1))
+
+    allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
+    call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
+
+    if(   at%paw_NofL( at%astruct%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
+       Gabs_coeffs(:)=in%Gabs_coeffs(:)
+    else
+       print * ," You are asking for a spactra for atom " , in_iat_absorber
+       print *, " but at%paw_NofL( at%astruct%iatype(   in_iat_absorber ) )=0 " 
+       print *, " this mean that the pseudopotential file is not pawpatched. "
+       print *, " You'll have to generated the patch with pseudo"
+       STOP     
+    endif
+
+    call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,xc,potential,pot)
+!!$   call full_local_potential(iproc,nproc,ndimpot,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
+!!$        in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*in%nspin,0,&
+!!$        orbs,Lzd,0,ngatherarr,potential,pot)
+
+    ha%in_iat_absorber=in_iat_absorber
+    ha%Labsorber  = in%L_absorber
+    ha%iproc=iproc
+    ha%nproc=nproc
+    ha%at=>at !!
+    ha%hx=hx 
+    ha%hy=hy
+    ha%hz=hz
+    ha%rxyz=>rxyz
+
+    ha%radii_cf=>radii_cf
+    ha%nlpsp=>nlpsp !!
+    ha%Lzd=>Lzd !!!
+    ha%ngatherarr=>dpcom%ngatherarr
+    ha%ndimpot=dpcom%ndimpot
+    ha%potential=>pot
+    ha%energs = energs
+    ha%nspin=nspin
+    ha%GPU=>GPU !!
+    ha%Gabs_coeffs=>Gabs_coeffs
+    ha%PAWD=> PAWD 
+    ha%PPD=> PPD
+    ha%SIC=>in%SIC
+    ha%orbs=>orbs
+
+
+    call EP_inizializza(ha) 
+
+
+    if(.true.) then
+       LB_nsteps =in%nsteps
+       call LB_allocate_for_lanczos( )
+       call EP_allocate_for_eigenprob(10)
+       call EP_make_dummy_vectors(10)
+
+
+       do i=0,0
+
+          ene = 0.22_gp + i*0.03_gp
+
+          if( iand( in%potshortcut,16)>0) then
+             potential=potentialclone
+             do j=1, dpcom%ndimpot
+
+                if( mod(j-1,100)==0) then
+                   print *, " dirac_hara punto",j
+                endif
+                call dirac_hara (rhoXanes(j,1), ene , potential(j,1))
+             enddo
+          endif
+
+          gamma = 0.03_gp
+
+          if(i==0) then
+             useold=.false.
+          else
+             useold=.true.
+          endif
+
+          res =  LB_cg(    get_EP_dim, EP_initialize_start , EP_normalizza,&
+               &   EP_Moltiplica4spectra,  EP_copy,  &
+               &   EP_scalare,EP_add_from_vect_with_fact   , EP_multbyfact  ,EP_precondition, Ene, gamma, 1.0D-2, useold )
+
+          print *, ene, res
+          open(unit=22,file="cgspectra.dat", position="append")
+          write(22,*) ene, res
+          close(unit=22)
+
+       enddo
+
+       call LB_de_allocate_for_lanczos( )
+
+    endif
+
+    call deallocate_comms(ha%comms,subname)
+
+    call EP_free(ha%iproc)
+
+    if (GPUconv) then
+       call free_gpu(GPU,orbs%norbp)
+    else if (GPU%OCLconv) then
+       call free_gpu_OCL(GPU,orbs,in%nspin)
+    end if
+
+    i_all=-product(shape(orbs%eval))*kind(orbs%eval)
+    deallocate(orbs%eval,stat=i_stat)
+    call memocc(i_stat,i_all,'orbs%eval',subname)
+
+    i_all=-product(shape(Gabs_coeffs))*kind(Gabs_coeffs)
+    deallocate(Gabs_coeffs,stat=i_stat)
+    call memocc(i_stat,i_all,'Gabs_coeffs',subname)
+
+    if( iand( in%potshortcut,16)>0) then
+       i_all=-product(shape(potentialclone))*kind(potentialclone)
+       deallocate(potentialclone,stat=i_stat)
+       call memocc(i_stat,i_all,'potentialclone',subname)
+    endif
+
+    call free_full_potential(dpcom%mpi_env%nproc,0,xc,pot,subname)
+    nullify(ha%potential)
+
+  END SUBROUTINE xabs_cg
+
+END MODULE lanczos_interface

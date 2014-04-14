@@ -1,7 +1,9 @@
 # Give here the list of existing tests
 TESTDIRS = \
+	   GEOPT-all \
 	   GEOPT-BFGS \
 	   GEOPT-LBFGS \
+	   GEOPT-newIG \
 	   NH3 \
 	   H2O-slab \
 	   H2-freq \
@@ -97,17 +99,20 @@ InputGenPot.xabs.post-out:
 
 #introduce specific targets for export-wavefunctions
 IO-wf_plain.cube: 
-	$(abs_top_builddir)/src/bigdft-tool --name plain-read -a export-wf data-plain-read/wavefunction-k002-DI.b0003 >> IO-wf_plain.out.out
+	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
+	$(run_serial) $(abs_top_builddir)/src/bigdft-tool --name plain-read -a export-wf data-plain-read/wavefunction-k002-DI.b0003 >> log-plain.yaml
 	mv wavefunction-k002-DI.b0003.cube wf_plain.cube
 	rm -f wavefunction-k002-DI.b0003_avg_*
 
 IO-wf_binary.cube: 
-	$(abs_top_builddir)/src/bigdft-tool --name binary-read -a export-wf data-binary-read/wavefunction-k002-DI.bin.b0003 >> IO-wf_binary.out.out
+	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
+	$(run_serial) $(abs_top_builddir)/src/bigdft-tool --name binary-read -a export-wf data-binary-read/wavefunction-k002-DI.bin.b0003 >> log-binary.yaml
 	mv wavefunction-k002-DI.b0003.cube wf_binary.cube
 	rm -f wavefunction-k002-DI.b0003_avg_*
 
 IO-wf_ETSF.cube: 
-	$(abs_top_builddir)/src/bigdft-tool --name read -a export-wf data-read/wavefunction.etsf --i-band 3 --i-spin 2 --i-kpt 2 --i-complex 2 >> IO-wf-ETSF_write.out.out
+	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
+	$(run_serial) $(abs_top_builddir)/src/bigdft-tool --name read -a export-wf data-read/wavefunction.etsf --i-band 3 --i-spin 2 --i-kpt 2 --i-complex 2 >> IO-wf-ETSF_write.out.out
 	mv wavefunction-k002-DI.b0003.cube wf_etsf.cube
 	rm -f wavefunction-k002-DI.b0003_avg_*
 

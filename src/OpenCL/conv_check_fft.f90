@@ -11,7 +11,7 @@
 !> Program test for the convolution in GPU
 program conv_check_fft
   use module_base
-  use Poisson_Solver
+  use Poisson_Solver, only: H_potential, coulomb_operator, pkernel_free, pkernel_init, pkernel_set
   implicit none
   integer  :: n1,n2,n3 !n(c) n1bis,n2bis,n3bis
   real(gp) :: hx,r2,sigma2,x,y,z,maxdiff,arg !n(c) epot,hy,hz
@@ -49,13 +49,15 @@ program conv_check_fft
   integer(kind=8) :: tsc0, tsc1
   !objects for the 3D Poisson solver
   real(kind=8), dimension(:), allocatable :: rhopot,rhopot2
-  real(kind=8), dimension(:), pointer :: pkernel,pkernel2
+  type(coulomb_operator) :: pkernel,pkernel2
  
 !!!  !Use arguments
 !!!  call getarg(1,chain)
 !!!  read(unit=chain,fmt=*) n1
 !!!  call getarg(2,chain)
 !!!  read(unit=chain,fmt=*) n2*n3
+
+  call f_lib_initialize()
 
   read(unit=2,fmt=*,iostat=ierror) n1,n2,n3,ntimes
   if (ierror /= 0) then
@@ -68,10 +70,10 @@ program conv_check_fft
   end if
 
   call ocl_create_gpu_context(context,device_number)
-  call customize_fft((/n1,n2,n3/))
+  call customize_fft(context, (/n1,n2,n3/))
   call ocl_build_programs(context)
   call ocl_create_command_queue(queue,context)
-  call init_event_list
+  call init_event_list(context)
 
   hx=0.1e0_gp
   !n(c) hy=0.1e0_gp
@@ -258,19 +260,18 @@ program conv_check_fft
    call compare_3D_cplx_results(n1, n2, n3, psi_in, psi_cuda, maxdiff, 3.d-7)
    call compare_time(CPUtime,GPUtime,n1*n2*n3,5 * (log(real(n1,kind=8))+&
      log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)
-
    
    !Poisson Solver
     write(*,'(a,i6,i6,i6)')'CPU 3D Poisson Solver, dimensions:',n1,n2,n3
    !calculate the kernel in parallel for each processor
-   call createKernel(0,1,'P',n1,n2,n3,0.2d0,0.2d0,0.2d0,16,pkernel,.false.,0) 
+    pkernel = pkernel_init(.false., 0, 1, 0, 'P', (/ n1,n2,n3 /), (/ 0.2d0,0.2d0,0.2d0 /), 16)
+    call pkernel_set(pkernel,.false.)
 
    !call to_zero(size(pkernel),pkernel(1))
    !pkernel(1:size(pkernel))=1.0_dp
 
    call nanosec(tsc0);
-   call H_potential('P','D',0,1,n1,n2,n3,0.2d0,0.2d0,0.2d0,&
-        rhopot,pkernel,rhopot,ehartree,0.0d0,.false.,quiet='yes') !optional argument
+   call H_potential('D',pkernel,rhopot,rhopot,ehartree,0.0d0,.false.,quiet='yes') !optional argument
    call nanosec(tsc1);
    CPUtime=real(tsc1-tsc0,kind=8)*1d-9*ntimes
    call print_time(CPUtime,n1*n2*n3,5 *( log(real(n1,kind=8))+&
@@ -280,14 +281,15 @@ program conv_check_fft
    write(*,'(a,i6,i6,i6)')'GPU 3D Poisson Solver, dimensions:',n1,n2,n3
 
    !transpose the kernel before copying
-   call transpose_kernel_forGPU('P',n1,n2,n3,pkernel,pkernel2)
+   pkernel2 = pkernel_init(.false., 0, 1, 0, 'P', (/ n1,n2,n3 /), (/ 0.2d0,0.2d0,0.2d0 /), 16)
+   call transpose_kernel_forGPU('P',n1,n2,n3,pkernel%kernel,pkernel2%kernel)
    !pkernel2(1:size(pkernel2))=1.0_dp
    call ocl_create_read_write_buffer(context, 2*n1*n2*n3*8, psi_GPU)
    call ocl_create_read_buffer(context, n1*n2*n3*8, work_GPU)
    call ocl_create_read_write_buffer(context, 2*n1*n2*n3*8, work2_GPU)
    call ocl_create_read_write_buffer(context, n1*n2*n3*8, k_GPU)
    call ocl_enqueue_write_buffer(queue, work_GPU, n1*n2*n3*8, rhopot2)!v_cuda)!
-   call ocl_enqueue_write_buffer(queue, k_GPU, n1*n2*n3*8, pkernel2)!v_cuda)!
+   call ocl_enqueue_write_buffer(queue, k_GPU, n1*n2*n3*8, pkernel2%kernel)!v_cuda)!
 
    call nanosec(tsc0);
    do i=1,ntimes
@@ -311,23 +313,21 @@ program conv_check_fft
 
 
 
-   i_all=-product(shape(pkernel))*kind(pkernel)
-   deallocate(pkernel,stat=i_stat)
-   call memocc(i_stat,i_all,'pkernel',subname)
+   call pkernel_free(pkernel,subname)
   i_all=-product(shape(rhopot))*kind(rhopot)
   deallocate(rhopot,stat=i_stat)
   call memocc(i_stat,i_all,'rhopot',subname)
   i_all=-product(shape(rhopot2))*kind(rhopot2)
   deallocate(rhopot2,stat=i_stat)
   call memocc(i_stat,i_all,'rhopot2',subname)
-  i_all=-product(shape(pkernel2))*kind(pkernel2)
-  deallocate(pkernel2,stat=i_stat)
-  call memocc(i_stat,i_all,'pkernel2',subname)
+   call pkernel_free(pkernel2,subname)
 
 
-  call print_event_list
+  call print_event_list(context)
   call ocl_clean_command_queue(queue)
   call ocl_clean(context)
+
+    call f_lib_finalize()
 
 contains
 
@@ -543,10 +543,10 @@ contains
 
   subroutine transpose_kernel_forGPU(geocode,n01,n02,n03,pkernel,pkernel2)
     use module_base
-    use Poisson_Solver
+    use Poisson_Solver, only: P_FFT_dimensions, S_FFT_dimensions, F_FFT_dimensions
     implicit none
     integer, intent(in) :: n01,n02,n03
-    character(len=*), intent(in) :: geocode
+    character(len=*), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
     real(dp), dimension(*), intent(in) :: pkernel
     real(dp), dimension(:), pointer :: pkernel2
     !local variables
@@ -558,11 +558,11 @@ contains
     nproc=1
     !calculate the dimensions wrt the geocode
     if (geocode == 'P') then
-       call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+       call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,.false.)
     else if (geocode == 'S') then
-       call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+       call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
     else if (geocode == 'F') then
-       call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+       call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
     else
        stop 'ERROR(transpose_kernel_forGPU): geometry code not admitted'
     end if
