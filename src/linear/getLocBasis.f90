@@ -2907,6 +2907,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
   end do
   if (iproc==0) call write_partial_charges()
   if (iproc==0) call calculate_dipole()
+  if (iproc==0) call calculate_quadropole()
 
 
   call f_free(charge_per_atom)
@@ -2946,7 +2947,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
       use yaml_output
       real(kind=8),dimension(3) :: dipole_elec, dipole_cores, dipole_net
 
-      dipole_cores(1:3)=0_gp
+      dipole_cores(1:3)=0._gp
       do iat=1,atoms%astruct%nat
          dipole_cores(1:3)=dipole_cores(1:3)+atoms%nelpsp(atoms%astruct%iatype(iat))*atoms%astruct%rxyz(1:3,iat)
       end do
@@ -2965,5 +2966,67 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
       end if
 
     end subroutine calculate_dipole
+
+
+    subroutine calculate_quadropole()
+      use yaml_output
+      real(kind=8),dimension(3,3) :: quadropole_elec, quadropole_cores, quadropole_net
+      integer :: i, j
+      real(kind=8) :: delta_term
+
+      quadropole_cores(1:3,1:3)=0._gp
+      do iat=1,atoms%astruct%nat
+         do i=1,3
+             do j=1,3
+                 if (i==j) then
+                     delta_term = atoms%astruct%rxyz(1,iat)**2 + atoms%astruct%rxyz(2,iat)**2 + atoms%astruct%rxyz(3,iat)**2
+                 else
+                     delta_term=0.d0
+                 end if
+                 quadropole_cores(j,i) = quadropole_cores(j,i) + &
+                                         atoms%nelpsp(atoms%astruct%iatype(iat))*(3.d0*atoms%astruct%rxyz(j,iat)*atoms%astruct%rxyz(i,iat)-delta_term)
+             end do
+         end do
+      end do
+
+
+      quadropole_elec(1:3,1:3)=0._gp
+      do iat=1,atoms%astruct%nat
+         do i=1,3
+             do j=1,3
+                 if (i==j) then
+                     delta_term = atoms%astruct%rxyz(1,iat)**2 + atoms%astruct%rxyz(2,iat)**2 + atoms%astruct%rxyz(3,iat)**2
+                 else
+                     delta_term=0.d0
+                 end if
+                 quadropole_elec(j,i) = quadropole_elec(j,i) + &
+                                        -charge_per_atom(iat)*(3.d0*atoms%astruct%rxyz(j,iat)*atoms%astruct%rxyz(i,iat)-delta_term)
+             end do
+         end do
+      end do
+
+      quadropole_net=quadropole_cores+quadropole_elec
+
+      if (iproc==0) then
+          call yaml_open_sequence('core quadropole')
+          do i=1,3
+             call yaml_sequence(trim(yaml_toa(quadropole_cores(i,1:3),fmt='(es12.5)')))
+          end do
+          call yaml_close_sequence()
+
+          call yaml_open_sequence('electronic quadropole')
+          do i=1,3
+             call yaml_sequence(trim(yaml_toa(quadropole_elec(i,1:3),fmt='(es12.5)')))
+          end do
+          call yaml_close_sequence()
+
+          call yaml_open_sequence('net quadropole')
+          do i=1,3
+             call yaml_sequence(trim(yaml_toa(quadropole_net(i,1:3),fmt='(es12.5)')))
+          end do
+          call yaml_close_sequence()
+      end if
+
+    end subroutine calculate_quadropole
 
 end subroutine loewdin_charge_analysis

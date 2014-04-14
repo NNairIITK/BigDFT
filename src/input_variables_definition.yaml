@@ -802,8 +802,8 @@
        default: [-0.5,0.5]
      fscale_foe: 
        COMMENT: decay length of the error function
-       RANGE: [1.e-4,1.0]
-       default: 5.e-2
+       RANGE: [1.e-3,5.e-2]
+       default: 2.e-2
  lin_basis_params:
      nbasis:
        COMMENT: number of support functions per atom
