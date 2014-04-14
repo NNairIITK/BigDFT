@@ -2984,7 +2984,8 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
                      delta_term=0.d0
                  end if
                  quadropole_cores(j,i) = quadropole_cores(j,i) + &
-                                         atoms%nelpsp(atoms%astruct%iatype(iat))*(3.d0*atoms%astruct%rxyz(j,iat)*atoms%astruct%rxyz(i,iat)-delta_term)
+                                         atoms%nelpsp(atoms%astruct%iatype(iat))* &
+                                           (3.d0*atoms%astruct%rxyz(j,iat)*atoms%astruct%rxyz(i,iat)-delta_term)
              end do
          end do
       end do
@@ -3000,7 +3001,8 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
                      delta_term=0.d0
                  end if
                  quadropole_elec(j,i) = quadropole_elec(j,i) + &
-                                        -charge_per_atom(iat)*(3.d0*atoms%astruct%rxyz(j,iat)*atoms%astruct%rxyz(i,iat)-delta_term)
+                                        -charge_per_atom(iat)* &
+                                          (3.d0*atoms%astruct%rxyz(j,iat)*atoms%astruct%rxyz(i,iat)-delta_term)
              end do
          end do
       end do

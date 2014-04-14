@@ -1122,7 +1122,8 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
                      delta_term=0.d0
                  end if
                  quadropole_cores(j,i) = quadropole_cores(j,i) + &
-                                         at%nelpsp(at%astruct%iatype(iat))*(3.d0*at%astruct%rxyz(j,iat)*at%astruct%rxyz(i,iat)-delta_term)
+                                         at%nelpsp(at%astruct%iatype(iat))* &
+                                           (3.d0*at%astruct%rxyz(j,iat)*at%astruct%rxyz(i,iat)-delta_term)
              end do
          end do
       end do
