@@ -541,6 +541,7 @@ geopt_foe:
  decay length of error function: 1.1e-5
  ebs: 2.1e-7
  ebs_check: 1.1e-8
+ diff: 2.1e-7
 
 geopt_diag:
  Epot: 1.1e-10
@@ -712,7 +713,7 @@ experimentalfoe_long:
  diff from idempotency: 1.1e-6
  delta out: 1.1e-10
  ebs_check: 2.1e-9
- diff: 4.6e-10
+ diff: 1.3e-8
  decay length of error function: 1.1e-5
  ebs: 2.1e-9
 
