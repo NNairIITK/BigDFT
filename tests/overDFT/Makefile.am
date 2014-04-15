@@ -99,6 +99,7 @@ InputGenPot.xabs.post-out:
 # Introduce specific targets for export-wavefunctions
 IO-wf_plain.cube: 
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
+    rm plain-read.perf ;\
 	$(run_serial) $(abs_top_builddir)/src/bigdft-tool --name plain-read -a export-wf data-plain-read/wavefunction-k002-DI.b0003 >> log-plain.yaml
 	cp check.perf plain-read.perf
 	mv wavefunction-k002-DI.b0003.cube wf_plain.cube
@@ -106,6 +107,7 @@ IO-wf_plain.cube:
 
 IO-wf_binary.cube: 
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
+    rm binary-read.perf ;\
 	$(run_serial) $(abs_top_builddir)/src/bigdft-tool --name binary-read -a export-wf data-binary-read/wavefunction-k002-DI.bin.b0003 >> log-binary.yaml
 	cp check.perf binary-read.perf
 	mv wavefunction-k002-DI.b0003.cube wf_binary.cube
