@@ -1220,13 +1220,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   ! print the final summary
   call print_info(.true.)
 
+  if (iproc==0) call yaml_close_sequence()
 
   if (input%loewdin_charge_analysis) then
       call loewdin_charge_analysis(iproc, tmb, at, denspot, calculate_overlap_matrix=.true., &
            calculate_ovrlp_half=.true., meth_overlap=0)
+      call support_function_multipoles(iproc, tmb, at, denspot)
   end if
 
-  if (iproc==0) call yaml_close_sequence()
 
   ! Deallocate everything that is not needed any more.
   if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) call DIIS_free(ldiis_coeff)!call deallocateDIIS(ldiis_coeff)
