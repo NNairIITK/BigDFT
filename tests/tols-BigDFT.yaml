@@ -842,6 +842,7 @@ intermediateforces:
  Enl: 1.6e-6
  Epot: 5.5e-7
  multiplicator for the confinement: 1.6e-11
+ D: 4.6e-7
 
 DIIShistory:
  Atomic Forces (Ha/Bohr): 1.9e-9
