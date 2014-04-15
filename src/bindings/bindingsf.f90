@@ -196,6 +196,7 @@ subroutine deallocate_double_2D(array)
   end if
 end subroutine deallocate_double_2D
 
+
 subroutine glr_new(glr)
   use module_types
   implicit none
@@ -220,6 +221,7 @@ subroutine glr_copy(glr, d, wfd, from)
   call copy_locreg_descriptors(from, glr)
 end subroutine glr_copy
 
+
 subroutine glr_init(glr, d, wfd)
   use module_types
   implicit none
@@ -232,6 +234,7 @@ subroutine glr_init(glr, d, wfd)
   wfd => glr%wfd
 end subroutine glr_init
 
+
 subroutine glr_get_data(glr, d, wfd)
   use module_types
   implicit none
@@ -243,6 +246,7 @@ subroutine glr_get_data(glr, d, wfd)
   wfd => glr%wfd
 end subroutine glr_get_data
 
+
 subroutine glr_free(glr)
   use module_types
   implicit none
@@ -251,6 +255,7 @@ subroutine glr_free(glr)
   deallocate(glr)
 end subroutine glr_free
 
+
 subroutine glr_empty(glr)
   use locregs
   implicit none
@@ -258,6 +263,7 @@ subroutine glr_empty(glr)
 
   call deallocate_locreg_descriptors(glr)
 end subroutine glr_empty
+
 
 subroutine glr_get_dimensions(glr , n, ni, ns, nsi, nfl, nfu, norb)
   use module_types
@@ -290,6 +296,7 @@ subroutine glr_get_dimensions(glr , n, ni, ns, nsi, nfl, nfu, norb)
   norb = glr%Localnorb
 end subroutine glr_get_dimensions
 
+
 subroutine glr_set_dimensions(glr, n, ni, ns, nsi, nfl, nfu)
   use module_types
   implicit none
@@ -318,6 +325,7 @@ subroutine glr_set_dimensions(glr, n, ni, ns, nsi, nfl, nfu)
   glr%nsi3 = nsi(3)
 end subroutine glr_set_dimensions
 
+
 subroutine glr_get_locreg_data(glr, locrad, locregCenter)
   use module_types
   implicit none
@@ -328,6 +336,7 @@ subroutine glr_get_locreg_data(glr, locrad, locregCenter)
   locrad = glr%locrad
   locregCenter = glr%locregCenter
 end subroutine glr_get_locreg_data
+
 
 subroutine glr_set_wfd_dims(glr, nseg_c, nseg_f, nvctr_c, nvctr_f)
   use module_types
@@ -341,6 +350,7 @@ subroutine glr_set_wfd_dims(glr, nseg_c, nseg_f, nvctr_c, nvctr_f)
   glr%wfd%nvctr_f = nvctr_f
   call allocate_wfd(glr%wfd)
 END SUBROUTINE glr_set_wfd_dims
+
 
 subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       &   crmult,frmult,Glr)
@@ -360,6 +370,7 @@ subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       &   crmult,frmult,Glr)
 end subroutine glr_set_wave_descriptors
 
+
 subroutine glr_set_bounds(lr)
   use module_types
   implicit none
@@ -369,6 +380,7 @@ subroutine glr_set_bounds(lr)
        & lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3, &
        & lr%wfd,lr%bounds)
 END SUBROUTINE glr_set_bounds
+
 
 subroutine glr_wfd_get_data(wfd, nvctr_c, nvctr_f, nseg_c, nseg_f, &
      & keyglob, keygloc, keyvglob, keyvloc)
@@ -389,6 +401,7 @@ subroutine glr_wfd_get_data(wfd, nvctr_c, nvctr_f, nseg_c, nseg_f, &
   keyvloc => wfd%keyvloc
 END SUBROUTINE glr_wfd_get_data
 
+
 subroutine lzd_new(lzd)
   use module_types
   implicit none
@@ -396,6 +409,7 @@ subroutine lzd_new(lzd)
 
   allocate(lzd)
 end subroutine lzd_new
+
 
 subroutine lzd_init(lzd, glr)
   use module_types
@@ -407,6 +421,8 @@ subroutine lzd_init(lzd, glr)
   lzd%nlr = 0
   glr => lzd%glr
 end subroutine lzd_init
+
+
 subroutine lzd_get_data(lzd, glr)
   use module_types
   implicit none
@@ -1688,6 +1704,7 @@ subroutine dict_next(dict, exists)
   exists = associated(next)
   if (exists) dict => next
 END SUBROUTINE dict_next
+
 subroutine dict_len(dict, ln)
   use dictionaries, only: dictionary, wrapper => dict_len
   implicit none
@@ -1696,6 +1713,7 @@ subroutine dict_len(dict, ln)
 
   ln = wrapper(dict)
 END SUBROUTINE dict_len
+
 subroutine dict_size(dict, ln)
   use dictionaries, only: dictionary, wrapper => dict_size
   implicit none
@@ -1704,6 +1722,7 @@ subroutine dict_size(dict, ln)
 
   ln = wrapper(dict)
 END SUBROUTINE dict_size
+
 subroutine dict_copy(dict, ref)
   use dictionaries, only: dictionary, wrapper => dict_copy
   implicit none
@@ -1711,6 +1730,7 @@ subroutine dict_copy(dict, ref)
 
   call wrapper(dict, ref)
 END SUBROUTINE dict_copy
+
 subroutine dict_update(dict, ref)
   use dictionaries, only: dictionary, wrapper => dict_update
   implicit none
@@ -1718,6 +1738,7 @@ subroutine dict_update(dict, ref)
 
   call wrapper(dict, ref)
 END SUBROUTINE dict_update
+
 subroutine dict_init(dict)
   use dictionaries, only: dictionary, wrapper => dict_init
   implicit none

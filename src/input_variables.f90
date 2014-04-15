@@ -117,22 +117,21 @@ subroutine merge_input_file_to_dict(dict, fname, mpi_env)
   else
      call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm, ierr)
   end if
-  fbuf=f_malloc_str(1,int(cbuf_len),id='fbuf')
-  fbuf(:) = " "
+  fbuf=f_malloc0_str(1,int(cbuf_len),id='fbuf')
 
   if (mpi_env%iproc == 0) then
-     call copyCBuffer(fbuf(1), cbuf, cbuf_len)
+     call copyCBuffer(fbuf, cbuf, cbuf_len)
      call freeCBuffer(cbuf)
-     if (mpi_env%nproc > 1) &
+     if (mpi_env%nproc > 1 .and. cbuf_len > 0) &
           & call mpi_bcast(fbuf(1), int(cbuf_len), MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
   else
-     call mpi_bcast(fbuf(1), int(cbuf_len), MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
+     if (cbuf_len > 0) call mpi_bcast(fbuf(1), int(cbuf_len), MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
   end if
 
   call f_err_open_try()
   call yaml_parse_from_char_array(udict, fbuf)
-  ! Handle with possible partial dictionary.
   call f_free_str(1,fbuf)
+  ! Handle with possible partial dictionary.
   call dict_update(dict, udict // 0)
   call dict_free(udict)
 

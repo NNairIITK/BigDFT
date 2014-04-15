@@ -1946,7 +1946,7 @@ contains
       character(len=*), intent(in) :: val
       if (verb) then
          call yaml_comment('call yaml_scalar("'//trim(val)//'",advance="'//trim(advc(flowrite))//&
-              ',unit='//trim(adjustl(yaml_toa(unt)))//'")')
+              '",unit='//trim(adjustl(yaml_toa(unt)))//')')
       else
          call yaml_scalar(trim(val),advance=advc(flowrite),unit=unt)
       end if
