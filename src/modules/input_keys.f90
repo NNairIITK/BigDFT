@@ -137,6 +137,9 @@ module module_input_keys
   character(len = *), parameter, public :: METHOD_UPDATEKERNEL = "method_updatekernel"
   character(len = *), parameter, public :: PURIFICATION_QUICKRETURN = "purification_quickreturn"
   character(len = *), parameter, public :: ADJUST_FOE_TEMPERATURE = "adjust_FOE_temperature"
+  character(len = *), parameter, public :: CALCULATE_GAP = "calculate_gap"
+  character(len = *), parameter, public :: LOEWDIN_CHARGE_ANALYSIS = "loewdin_charge_analysis"
+  character(len = *), parameter, public :: CHECK_MATRIX_COMPRESSION = "check_matrix_compression"
 
   !keys for linear input variables
   !level keys
@@ -153,6 +156,7 @@ module module_input_keys
   character(len=*), parameter, public :: GNRM_CV_COEFF   ='gnrm_cv_coeff'
   character(len=*), parameter, public :: DELTAE_CV       ='deltae_cv'
   character(len=*), parameter, public :: GNRM_DYN        ='gnrm_dyn'
+  character(len=*), parameter, public :: MIN_GNRM_FOR_DYNAMIC = 'min_gnrm_for_dynamic'
   character(len=*), parameter, public :: CONF_DAMPING    ='conf_damping'
   character(len=*), parameter, public :: TAYLOR_ORDER    ='taylor_order'
   character(len=*), parameter, public :: CALC_DIPOLE     ='calc_dipole'
@@ -546,6 +550,21 @@ contains
 !stop
        dict_tmp => dict_next(dict_tmp)
     end do
+
+    !then add other information to the minimal dictionary which is associated
+    !to specific system parameters
+    !! basis set
+    if (LIN_BASIS_PARAMS .in. dict) then
+      dict_tmp => dict_iter(dict//LIN_BASIS_PARAMS)
+      do while(associated(dict_tmp))
+       category=dict_key(dict_tmp)
+       if (.not. (category .in. parameters//LIN_BASIS_PARAMS) .and. &
+       index(category,ATTRS) == 0 ) then
+           call dict_copy(minimal//LIN_BASIS_PARAMS//category,dict_tmp)
+       end if
+          dict_tmp => dict_next(dict_tmp)
+      end do
+    end if
 
     contains
       

@@ -1866,6 +1866,15 @@ contains
     call input_var("adjust_FOE_temperature", .true., "dynamic adjustment of FOE error function decay length", dummy_bool)
     call set(dict // ADJUST_FOE_TEMPERATURE, dummy_bool)
 
+    call input_var("calculate_gap", .false., "calculate the HOMO LUMO gap", dummy_bool)
+    call set(dict // CALCULATE_GAP, dummy_bool)
+
+    call input_var("loewdin_charge_analysis", .false., "perform a Loewdin charge analysis at the end", dummy_bool)
+    call set(dict // LOEWDIN_CHARGE_ANALYSIS, dummy_bool)
+
+    call input_var("check_matrix_compression", .true., "perform a check of the matrix compression routines", dummy_bool)
+    call set(dict // CHECK_MATRIX_COMPRESSION, dummy_bool)
+
     call input_free(.false.)
 
   END SUBROUTINE read_perf_from_text_format
@@ -1950,11 +1959,12 @@ contains
     call input_var(dummy_real,'1.d-8' ,dict//LIN_GENERAL//RPNRM_CV//0,ranges=(/0.d0,1.d0/))
     call input_var(dummy_real,'1.d-12',dict//LIN_GENERAL//RPNRM_CV//1,ranges=(/0.d0,1.d0/),comment=comments)
 
-    comments = 'basis convergence (low, high) ; early stop TMB optimization, dynamic gnrm (experimental mode only)'
+    comments = 'basis convergence (low, high) ; early stop TMB optimization, dynamic gnrm, activate dyn (exp. mode only)'
     call input_var(dummy_real,'1.d-3',dict//LIN_BASIS//GNRM_CV//0,ranges=(/0.0_gp,1.0_gp/))
     call input_var(dummy_real,'1.d-5',dict//LIN_BASIS//GNRM_CV//1,ranges=(/0.0_gp,1.0_gp/))
     call input_var(dummy_real,'1.d-4',dict//LIN_BASIS//DELTAE_CV,ranges=(/0.0_gp,1.0_gp/))
-    call input_var(dummy_real,'1.d-4',dict//LIN_BASIS//GNRM_DYN,ranges=(/0.0_gp,1.0_gp/),comment=comments)
+    call input_var(dummy_real,'1.d-4',dict//LIN_BASIS//GNRM_DYN,ranges=(/0.0_gp,1.0_gp/))
+    call input_var(dummy_real,'1.d-3',dict//LIN_BASIS//MIN_GNRM_FOR_DYNAMIC,ranges=(/1.d-7,1.0_gp/),comment=comments)
 
     comments = 'factor to reduce the confinement. Only used for hybrid mode.'
     call input_var(dummy_real,'0.5d0',dict//LIN_GENERAL//CONF_DAMPING,ranges=(/-1.d100,1.d0/),comment=comments)

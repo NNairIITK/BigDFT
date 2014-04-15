@@ -539,6 +539,7 @@ geopt_foe:
  tr(KS) before purification: 2.6e-07
  Tr(K) : 1.3e-6
  D Tr: 7.1e-06
+ decay length of error function: 1.1e-5
 
 geopt_diag:
  Epot: 1.1e-10
@@ -651,6 +652,7 @@ foe:
  charge diff: 4.2e-11
  D Tr: 7.0e-8
  tr(KS) before purification: 7.0e-8
+ decay length of error function: 1.1e-5
 
 onlyhigh:
  EH: 1.1e-10
@@ -707,6 +709,9 @@ experimentalfoe_long:
  mean kappa: 1.1e-4
  diff from idempotency: 1.1e-6
  delta out: 1.1e-10
+ ebs_check: 2.1e-9
+ diff: 4.6e-10
+ decay length of error function: 1.1e-5
 
 experimentalfoe_short:
  EH: 2.0e-05
@@ -729,6 +734,7 @@ experimentalfoe_short:
  Clean forces norm (Ha/Bohr): 5.1e-07
  diff from idempotency: 3.1e-09
  D: 1.1e-4
+ decay length of error function: 1.1e-5
 
 
 
@@ -746,13 +752,16 @@ paracetamol:
  EvXC: 1.1e-10
  EH: 1.1e-09
  Ekin: 1.1e-09
- eF: 1.1e-10
+ eF: 1.6e-6
  Epot: 1.1e-09
  Omega: 1.1e-9
  energy: 1.5e-10
  Total charge: 2.1e-11
- charge diff: 1.1e-9
- D eF: 1.1e-9
+ charge diff: 1.6e-6
+ D eF: 1.6e-6
+ Tr(K): 1.6e-6
+ D Tr: 1.6e-6
+ tr(KS) before purification: 1.6e-6
 
 reformatcomplete_write:
  Epot: 1.1e-10
@@ -816,10 +825,10 @@ explicit_locregcenters:
 
 intermediateforces:
  Atomic Forces (Ha/Bohr): 2.8e-7
- Average noise forces: 1.5e-8
- Clean forces norm (Ha/Bohr): 9.1e-9
- Raw forces norm (Ha/Bohr): 1.1e-8
- e: 3.7e-9
+ Average noise forces: 1.3e-7
+ Clean forces norm (Ha/Bohr): 1.2e-7
+ Raw forces norm (Ha/Bohr): 1.3e-7
+ e: 1.3e-7
  energy: 2.8e-7
  Omega: 9.8e-9
  EXC: 7.8e-8
@@ -844,7 +853,7 @@ DIIShistory:
  EvXC: 8.5e-8
  energy: 5.1e-9
  multiplicator for the confinement: 5.4e-9
- Omega: 1.7e-8
+ Omega: 2.3e-8
  Total charge: 2.01e-11
  Locreg:
  EH: 7.7e-9
@@ -856,12 +865,15 @@ sparsity:
  Clean forces norm (Ha/Bohr): 7.7e-11
  Raw forces norm (Ha/Bohr): 1.4e-11
  Total ionic charge: 2.2e-11
- charge diff: 1.1e-10
+ charge diff: 1.1e-9
  energy: 4.9e-10
  EXC: 1.1e-10
  Epot: 1.1e-9
- eF: 1.1e-10
- D eF: 1.1e-10
+ eF: 1.1e-9
+ D eF: 1.1e-9
+ ebs_check: 2.1e-10
+ ebs: 2.1e-10
+ diff: 1.1e-9
 
 PBE_densmixlin:
  Ekin: 1.1e-10
@@ -877,6 +889,7 @@ PBE_potmixlin:
  Ekin: 1.1e-10
  Epot: 1.1e-10
  EXC: 1.1e-10
+ EvXC: 1.1e-10
  energy: 1.1e-10
  Omega: 1.1e-10
  Keys to ignore:

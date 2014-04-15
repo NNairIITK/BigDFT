@@ -957,9 +957,10 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   logical,intent(out) :: complete_reset
 
   ! Local variables
-  integer :: istat, iall, i
+  integer :: istat, iall, i, iorb, ilr, ist, iiorb, ncount
   character(len=*), parameter :: subname='hpsitopsi_linear'
   real(kind=8), dimension(:), allocatable :: norm
+  real(kind=8) :: ddot, dnrm2, tt
 
   call DIISorSD(iproc, it, trH, tmb, ldiis, alpha, alphaDIIS, lphiold, trH_ref, kernel_best, complete_reset)
   if(iproc==0) then
@@ -995,11 +996,11 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
           call yaml_newline()
       end if
   end if
-  if (present(psidiff)) then
-      do i=1,tmb%npsidim_orbs
-          psidiff(i)=tmb%psi(i)-psidiff(i)
-      end do 
-  end if
+  !!if (present(psidiff)) then
+  !!    do i=1,tmb%npsidim_orbs
+  !!        psidiff(i)=tmb%psi(i)-psidiff(i)
+  !!    end do 
+  !!end if
 
   ! The transposed quantities can now not be used any more...
   if(tmb%can_use_transposed) then
@@ -1092,6 +1093,11 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
       !!if(iproc==0) then
       !!     write(*,'(1x,a)',advance='no') 'Orthonormalization... '
       !!end if
+      if (present(psidiff)) then
+          do i=1,tmb%npsidim_orbs
+              psidiff(i)=tmb%psi(i)-psidiff(i)
+          end do 
+      end if
 
       ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
       call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
@@ -1101,32 +1107,50 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
           call yaml_map('Orthogonalization',.true.)
       end if
   else if (experimental_mode .or. .not.ldiis%switchSD) then
-      ! Wasteful to do it transposed...
-      !if (iproc==0) write(*,*) 'normalize...'
-      if (iproc==0) call yaml_map('normalization',.true.)
-      if(associated(tmb%psit_c)) then
-          iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-          deallocate(tmb%psit_c, stat=istat)
-          call memocc(istat, iall, 'tmb%psit_c', subname)
-      end if
-      if(associated(tmb%psit_f)) then
-          iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-          deallocate(tmb%psit_f, stat=istat)
-          call memocc(istat, iall, 'tmb%psit_f', subname)
-      end if
-      allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-      call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
-      allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-      call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
-      tmb%can_use_transposed=.true.
+      !!! Wasteful to do it transposed...
+      !!!if (iproc==0) write(*,*) 'normalize...'
+      !!if (iproc==0) call yaml_map('normalization',.true.)
+      !!if(associated(tmb%psit_c)) then
+      !!    iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+      !!    deallocate(tmb%psit_c, stat=istat)
+      !!    call memocc(istat, iall, 'tmb%psit_c', subname)
+      !!end if
+      !!if(associated(tmb%psit_f)) then
+      !!    iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+      !!    deallocate(tmb%psit_f, stat=istat)
+      !!    call memocc(istat, iall, 'tmb%psit_f', subname)
+      !!end if
+      !!allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+      !!call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+      !!allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+      !!call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+      !!tmb%can_use_transposed=.true.
 
-      call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
-      allocate(norm(tmb%orbs%norb))
-      call normalize_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
-      deallocate(norm)
-      call untranspose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
+      !!call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+      !!allocate(norm(tmb%orbs%norb))
+      !!call normalize_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
+      !!deallocate(norm)
+      !!call untranspose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
+
+      ! ##########################
+      ist=1
+      do iorb=1,tmb%orbs%norbp
+          iiorb=tmb%orbs%isorb+iorb
+          ilr=tmb%orbs%inwhichlocreg(iiorb)
+          ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+          tt=dnrm2(ncount, tmb%psi(ist), 1)
+          tt=1.d0/tt
+          call dscal(ncount, tt, tmb%psi(ist), 1)
+          ist=ist+ncount
+      end do
+      ! ##########################
       if (iproc == 0) then
           call yaml_map('Normalization',.true.)
+      end if
+      if (present(psidiff)) then
+          do i=1,tmb%npsidim_orbs
+              psidiff(i)=tmb%psi(i)-psidiff(i)
+          end do 
       end if
   end if
 

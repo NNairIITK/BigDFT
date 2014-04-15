@@ -50,9 +50,10 @@ module constrained_dft
          real(gp),intent(out),optional :: econf
        end subroutine LocalHamiltonianApplication
 
-       subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, imode, &
-                  check_accur, ovrlp, inv_ovrlp, error, &
-          ovrlp_smat, inv_ovrlp_smat, foe_obj)
+       subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, &
+                  imode, check_accur, ovrlp, inv_ovrlp, error, &
+                  ovrlp_smat, inv_ovrlp_smat)!!, &
+                  !!foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
          use module_base
          use module_types
          use sparsematrix_base, only: sparse_matrix
@@ -65,8 +66,10 @@ module constrained_dft
          real(kind=8),dimension(:,:),pointer,optional :: ovrlp
          real(kind=8),dimension(:,:),pointer,optional :: inv_ovrlp
          type(sparse_matrix), optional, intent(inout) :: ovrlp_smat, inv_ovrlp_smat
-         type(foe_data),intent(in),optional :: foe_obj
          real(kind=8),intent(out),optional :: error
+         !!integer,intent(in),optional :: foe_nseg
+         !!integer,dimension(:),intent(in),optional :: foe_kernel_nsegline, foe_istsegline
+         !!integer,dimension(:,:),intent(in),optional :: foe_keyg
        end subroutine overlapPowerGeneral
 
   end interface

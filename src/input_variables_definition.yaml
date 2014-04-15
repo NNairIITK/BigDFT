@@ -650,6 +650,15 @@
    adjust_FOE_temperature:
      COMMENT: linear scaling dynamic adjustment of the decay length of the FOE error function
      default: Yes
+   calculate_gap:
+     COMMENT: linear scaling calculate the HOMO LUMO gap
+     default: No
+   loewdin_charge_analysis:
+     COMMENT: linear scaling perform a Loewdin charge analysis at the end of the calculation
+     default: No
+   check_matrix_compression:
+     COMMENT: linear scaling perform a check of the matrix compression routines
+     default: Yes
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
@@ -718,6 +727,10 @@
        COMMENT: dynamic convergence criterion ('experimental_mode' only)
        RANGE: [1.e-7,1.e-1]
        default: 1.e-4
+     min_gnrm_for_dynamic:
+       COMMENT: minimal gnrm to active the dynamic gnrm criterion
+       RANGE: [1.e-7,1.0]
+       default: 1.e-3
      alpha_diis:
        COMMENT: multiplactor for DIIS
        RANGE: [0.1,10]

@@ -72,8 +72,8 @@ program driver
   call orbs_init_fake(iproc, nproc, norb, orbs)
 
   ! Fake initialization of the sparse_matrix type
-  call sparse_matrix_init_fake(iproc, nproc, norb, nseg, nvctr, smat_A)
-  call sparse_matrix_init_fake(iproc, nproc, norb, nseg, nvctr, smat_B)
+  call sparse_matrix_init_fake(iproc, nproc, norb, orbs%norbp, orbs%isorb, nseg, nvctr, smat_A)
+  call sparse_matrix_init_fake(iproc, nproc, norb, orbs%norbp, orbs%isorb, nseg, nvctr, smat_B)
 
   symmetric = check_symmetry(norb, smat_A)
 
@@ -162,8 +162,9 @@ program driver
           call compress_matrix(iproc, smat_A)
           call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, &
                imode, check_accur=.true., error=error, &
-               ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, &
-               foe_nseg=smat_A%nseg, foe_kernel_nsegline=smat_A%nsegline, foe_istsegline=smat_A%istsegline, foe_keyg=keyg_tmp)
+               ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B)!!, &
+               !!foe_nseg=smat_A%nseg, foe_kernel_nsegline=smat_A%nsegline, &
+               !!foe_istsegline=smat_A%istsegline, foe_keyg=smat_A%keyg)
            !if (iorder==0) call compress_matrix(iproc, smat_B)
       end if
       if (iproc==0) call write_matrix_compressed('final result', smat_B)
@@ -303,14 +304,15 @@ end subroutine orbs_init_fake
 
 
 !> Fake initialization of the sparse_matrix type
-subroutine sparse_matrix_init_fake(iproc, nproc, norb, nseg, nvctr, smat)
+subroutine sparse_matrix_init_fake(iproc, nproc, norb, norbp, isorb, nseg, nvctr, smat)
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null
+  use sparsematrix_init, only: init_sparse_matrix_matrix_multiplication
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, norb, nseg, nvctr
+  integer,intent(in) :: iproc, nproc, norb, norbp, isorb, nseg, nvctr
   type(sparse_matrix) :: smat
 
   ! Local variables
@@ -350,6 +352,10 @@ subroutine sparse_matrix_init_fake(iproc, nproc, norb, nseg, nvctr, smat)
   call init_orbs_from_index(smat)
 
   call f_free(nvctr_per_segment)
+
+  ! Initialize the parameters for the spare matrix matrix multiplication
+  call init_sparse_matrix_matrix_multiplication(norb, norbp, isorb, smat%nseg, &
+       smat%nsegline, smat%istsegline, smat%keyg, smat)
 
   !!if (iproc==0) then
   !!    do jorb=1,norb

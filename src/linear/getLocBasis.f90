@@ -11,7 +11,7 @@
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
     calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,order_taylor,purification_quickreturn, &
-    adjust_FOE_temperature,calculate_KS_residue,&
+    adjust_FOE_temperature,calculate_KS_residue,calculate_gap,&
     convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
   use module_base
   use module_types
@@ -39,7 +39,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   type(SIC_data),intent(in) :: SIC
   type(DFT_wavefunction),intent(inout) :: tmb
   logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho, purification_quickreturn
-  logical,intent(in) :: calculate_ham, calculate_KS_residue, adjust_FOE_temperature
+  logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap, adjust_FOE_temperature
   type(sparse_matrix), intent(inout) :: ham_small ! for foe only
   type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
   integer, intent(in), optional :: nitdmin ! for dmin only
@@ -55,7 +55,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   integer :: isegsmall, iseglarge, iismall, iilarge, i, is, ie
   real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f, evalsmall, work
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements, smallmat
-  real(kind=8),dimension(:,:),allocatable ::KH, KHKH, Kgrad
+  real(kind=8),dimension(:,:),allocatable ::KH, KHKH, Kgrad, ovrlp_fullp
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   type(sparse_matrix) :: gradmat 
   logical :: update_kernel, overlap_calculated
@@ -111,14 +111,24 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   end if
 
   ! Temporaray: check deviation from unity
-  tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
-  call uncompress_matrix(iproc,tmb%linmat%ovrlp)
-  call deviation_from_unity(iproc, tmb%orbs%norb, tmb%linmat%ovrlp%matrix, deviation)
+  !!tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
+  !!call uncompress_matrix(iproc,tmb%linmat%ovrlp)
+  !!call deviation_from_unity(iproc, tmb%orbs%norb, tmb%linmat%ovrlp%matrix, deviation)
+  !!if (iproc==0) then
+  !!    !!write(*,'(a,es16.6)') 'max dev from unity', deviation
+  !!    call yaml_map('max dev from unity',deviation,fmt='(es9.2)')
+  !!end if
+  !!call f_free_ptr(tmb%linmat%ovrlp%matrix)
+  !!! ##########
+  ovrlp_fullp=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/),id='ovrlp_fullp')
+  call extract_matrix_distributed(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb_par, &
+       tmb%linmat%ovrlp, tmb%linmat%ovrlp%matrix_compr, ovrlp_fullp)
+  call deviation_from_unity_parallel(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, ovrlp_fullp, deviation)
+  call f_free(ovrlp_fullp)
   if (iproc==0) then
-      !!write(*,'(a,es16.6)') 'max dev from unity', deviation
       call yaml_map('max dev from unity',deviation,fmt='(es9.2)')
   end if
-  call f_free_ptr(tmb%linmat%ovrlp%matrix)
+
 
 
   ! Calculate the Hamiltonian matrix if it is not already present.
@@ -349,6 +359,25 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   else ! foe
 
+
+      ! TEMPORARY #################################################
+      if (calculate_gap) then
+          tmb%linmat%ham%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ham%matrix')
+          call uncompress_matrix(iproc,tmb%linmat%ham)
+          tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
+          call uncompress_matrix(iproc,tmb%linmat%ovrlp)
+          ! Keep the Hamiltonian and the overlap since they will be overwritten by the diagonalization.
+          matrixElements=f_malloc((/tmb%orbs%norb,tmb%orbs%norb,2/),id='matrixElements')
+          call vcopy(tmb%orbs%norb**2, tmb%linmat%ham%matrix(1,1), 1, matrixElements(1,1,1), 1)
+          call vcopy(tmb%orbs%norb**2, tmb%linmat%ovrlp%matrix(1,1), 1, matrixElements(1,1,2), 1)
+          call diagonalizeHamiltonian2(iproc, tmb%orbs%norb, matrixElements(1,1,1), matrixElements(1,1,2), tmb%orbs%eval)
+          if (iproc==0) call yaml_map('gap',tmb%orbs%eval(orbs%norb+1)-tmb%orbs%eval(orbs%norb))
+          call f_free(matrixElements)
+          call f_free_ptr(tmb%linmat%ham%matrix)
+          call f_free_ptr(tmb%linmat%ovrlp%matrix)
+      end if
+      ! END TEMPORARY #############################################
+
       if (iproc==0) call yaml_map('method','FOE')
       tmprtr=0.d0
       call foe(iproc, nproc, tmprtr, &
@@ -388,7 +417,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     nit_precond,target_function,&
     correction_orthoconstraint,nit_basis,&
     ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
-    gnrm_dynamic, can_use_ham, order_taylor, kappa_conv, method_updatekernel,&
+    gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, kappa_conv, method_updatekernel,&
     purification_quickreturn, adjust_FOE_temperature)
   !
   ! Purpose:
@@ -426,7 +455,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   logical, intent(inout) :: ortho_on
   integer, intent(in) :: extra_states
   integer,intent(in) :: itout
-  real(kind=8),intent(in) :: conv_crit, early_stop, gnrm_dynamic, kappa_conv
+  real(kind=8),intent(in) :: conv_crit, early_stop, gnrm_dynamic, min_gnrm_for_dynamic, kappa_conv
   logical,intent(in) :: experimental_mode, purification_quickreturn, adjust_FOE_temperature
   logical,intent(out) :: can_use_ham
   integer,intent(in) :: method_updatekernel
@@ -451,6 +480,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   logical :: energy_diff, energy_increased_previous, complete_reset, even
   real(kind=8),dimension(3),save :: kappa_history
   integer,save :: nkappa_history
+  logical,save :: has_already_converged
   logical,dimension(6) :: exit_loop
   logical :: associated_psit_c, associated_psit_f
   logical :: associated_psitlarge_c, associated_psitlarge_f
@@ -521,6 +551,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   if (itout==0) then
       nkappa_history=0
       kappa_history=0.d0
+      has_already_converged=.false.
   end if
 
   iterLoop: do
@@ -680,6 +711,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                   deallocate(tmb%psit_f, stat=istat)
                   call memocc(istat, iall, 'tmb%psit_f', subname)
               end if
+              if (associated_psit_c .and. associated_psit_f) then
+                  tmb%can_use_transposed=.true.
+              end if
               if (.not.associated_psitlarge_c) then
                   iall=-product(shape(tmb%ham_descr%psit_c))*kind(tmb%ham_descr%psit_c)
                   deallocate(tmb%ham_descr%psit_c, stat=istat)
@@ -689,6 +723,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                   iall=-product(shape(tmb%ham_descr%psit_f))*kind(tmb%ham_descr%psit_f)
                   deallocate(tmb%ham_descr%psit_f, stat=istat)
                   call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
+              end if
+              if (associated_psitlarge_c .and. associated_psitlarge_f) then
+                  tmb%ham_descr%can_use_transposed=.true.
               end if
               !@ENDNEW
           end if
@@ -947,7 +984,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       exit_loop(2) = (it_tot>=3*nit_basis)
       exit_loop(3) = energy_diff
       exit_loop(4) = (fnrm<conv_crit .and. experimental_mode)
-      exit_loop(5) = (experimental_mode .and. fnrm<dynamic_convcrit)
+      exit_loop(5) = (experimental_mode .and. fnrm<dynamic_convcrit .and. fnrm<min_gnrm_for_dynamic &
+                     .and. (it>1 .or. has_already_converged)) ! first overall convergence not allowed in a first iteration
       exit_loop(6) = (itout==0 .and. it>1 .and. ratio_deltas<kappa_conv .and.  ratio_deltas>0.d0)
 
       if(any(exit_loop)) then
@@ -970,6 +1008,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           if (exit_loop(5)) then
               if (iproc==0) call yaml_map('exit criterion','dynamic gradient')
               infoBasisFunctions=it
+              has_already_converged=.true.
           end if
           if (exit_loop(6)) then
               infoBasisFunctions=it
@@ -2705,3 +2744,200 @@ subroutine check_idempotency(iproc, nproc, tmb, diff)
   call f_free_ptr(tmb%linmat%denskern_large%matrix)
 
 end subroutine check_idempotency
+
+
+subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
+           calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => loewdin_charge_analysis
+  use communications, only: transpose_localized
+  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix, only: compress_matrix, uncompress_matrix
+  implicit none
+  integer,intent(in) :: iproc
+  type(dft_wavefunction),intent(inout) :: tmb
+  type(atoms_data),intent(inout) :: atoms
+  logical,intent(in) :: calculate_overlap_matrix, calculate_ovrlp_half
+  integer,intent(in) :: meth_overlap
+
+  !local variables
+  integer :: ifrag,iorb,ifrag_ref,isforb,istat,ierr,jorb
+  real(kind=gp), allocatable, dimension(:,:) :: proj_mat, proj_ovrlp_half, weight_matrixp
+  character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
+  real(kind=gp) :: error
+
+  ! new variables
+  integer :: iat, iall
+  real(kind=8),dimension(:,:),allocatable :: weight_matrix
+  real(kind=gp),dimension(:,:),pointer :: ovrlp_half, ovrlp
+  real(kind=8) :: total_charge, total_net_charge
+  real(kind=8),dimension(:),allocatable :: charge_per_atom
+  logical :: psit_c_associated, psit_f_associated
+
+
+  ! needs parallelizing/converting to sparse
+  ! re-use overlap matrix if possible either before or after
+
+  call f_routine(id='loewdin_charge_analysis')
+  ovrlp_half = f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='ovrlp_half')
+
+  if (calculate_overlap_matrix) then
+     if(.not.tmb%can_use_transposed) then
+         if(.not.associated(tmb%psit_c)) then
+             allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+             call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+             psit_c_associated=.false.
+         else
+             psit_c_associated=.true.
+         end if
+         if(.not.associated(tmb%psit_f)) then
+             allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+             call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+             psit_f_associated=.false.
+         else
+             psit_f_associated=.true.
+         end if
+         call transpose_localized(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+              tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+         tmb%can_use_transposed=.true.
+     end if
+
+     call calculate_overlap_transposed(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
+          tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+     if (.not.psit_c_associated) then
+        iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+        deallocate(tmb%psit_c, stat=istat)
+        call memocc(istat, iall, 'tmb%psit_c', subname)
+        tmb%can_use_transposed=.false.
+     end if
+     if (.not.psit_f_associated) then
+        iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+        deallocate(tmb%psit_f, stat=istat)
+        call memocc(istat, iall, 'tmb%psit_f', subname)
+        tmb%can_use_transposed=.false.
+     end if
+  end if
+
+  if (calculate_ovrlp_half) then
+     ovrlp = f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='ovrlp')
+     call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%ovrlp,outmat=ovrlp)
+     call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 2, &
+          tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%orbs, &
+          imode=2, check_accur=.true., ovrlp=ovrlp, inv_ovrlp=ovrlp_half, error=error)
+     !!ovrlp_half=tmb%linmat%ovrlp%matrix
+     call f_free_ptr(ovrlp)
+  end if
+
+  ! optimize this to just change the matrix multiplication?
+  proj_mat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='proj_mat')
+
+  call to_zero(tmb%orbs%norb**2,proj_mat(1,1))
+  call uncompress_matrix(iproc, tmb%linmat%denskern_large,outmat=proj_mat)
+  !!isforb=0
+  !!do ifrag=1,input%frag%nfrag
+  !!   ifrag_ref=input%frag%frag_index(ifrag)
+  !!   if (ifrag==ifrag_charged(1)) then
+  !!      do iorb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+  !!         proj_mat(iorb+isforb,iorb+isforb)=1.0_gp
+  !!      end do
+  !!   end if
+  !!   !!if (nfrag_charged==2) then
+  !!   !!   if (ifrag==ifrag_charged(2)) then
+  !!   !!      do iorb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+  !!   !!         proj_mat(iorb+isforb,iorb+isforb)=-1.0_gp
+  !!   !!      end do
+  !!   !!   end if
+  !!   !!end if
+  !!   isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
+  !!end do
+
+  proj_ovrlp_half=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/),id='proj_ovrlp_half')
+  if (tmb%orbs%norbp>0) then
+     call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, &
+            tmb%orbs%norb, 1.d0, &
+            proj_mat(1,1), tmb%orbs%norb, &
+            ovrlp_half(1,tmb%orbs%isorb+1), tmb%orbs%norb, 0.d0, &
+            proj_ovrlp_half(1,1), tmb%orbs%norb)
+  end if
+  call f_free(proj_mat)
+  weight_matrixp=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/), id='weight_matrixp')
+  if (tmb%orbs%norbp>0) then
+     call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, &
+          tmb%orbs%norb, 1.d0, &
+          ovrlp_half(1,1), tmb%orbs%norb, &
+          proj_ovrlp_half(1,1), tmb%orbs%norb, 0.d0, &
+          weight_matrixp(1,1), tmb%orbs%norb)
+  end if
+  call f_free_ptr(ovrlp_half)
+  call f_free(proj_ovrlp_half)
+  weight_matrix=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/), id='weight_matrix')
+  if (bigdft_mpi%nproc>1) then
+     call mpi_allgatherv(weight_matrixp, tmb%orbs%norb*tmb%orbs%norbp, mpi_double_precision, weight_matrix, &
+          tmb%orbs%norb*tmb%orbs%norb_par(:,0), tmb%orbs%norb*tmb%orbs%isorb_par, &
+          mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+  else
+     call vcopy(tmb%orbs%norb*tmb%orbs%norb,weight_matrixp(1,1),1,weight_matrix(1,1),1)
+  end if
+  call f_free(weight_matrixp)
+  !call compress_matrix(bigdft_mpi%iproc,weight_matrix)
+
+  charge_per_atom = f_malloc0(atoms%astruct%nat,id='charge_per_atom')
+  !!do iorb=1,tmb%orbs%norb
+  !!    do jorb=1,tmb%orbs%norb
+  !!        if (iproc==0) write(*,'(a,2i7,es16.7)') 'iorb,jorb,weight_matrix(jorb,iorb)', iorb,jorb,weight_matrix(jorb,iorb)
+  !!        if (iorb==jorb) then
+  !!            total_charge = total_charge + weight_matrix(jorb,iorb)
+  !!            iat=tmb%orbs%onwhichatom(iorb)
+  !!            charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix(jorb,iorb)
+  !!        end if
+  !!    end do
+  !!end do
+  !!if (iproc==0) then
+  !!    do iat=1,atoms%astruct%nat
+  !!        write(*,*) 'iat, partial total_charge', iat, charge_per_atom(iat)
+  !!    end do
+  !!    write(*,*) 'total total_charge',total_charge
+  !!    if (iproc==0) call write_partial_charges()
+  !!end if
+
+  do iorb=1,tmb%orbs%norb
+      iat=tmb%orbs%onwhichatom(iorb)
+      charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix(iorb,iorb)
+  end do
+  if (iproc==0) call write_partial_charges()
+
+
+  call f_free(charge_per_atom)
+  call f_free(weight_matrix)
+  call f_release_routine()
+
+
+
+  contains
+
+    subroutine write_partial_charges
+      use yaml_output
+      character(len=20) :: atomname
+      real(kind=8),dimension(2) :: charges
+      call yaml_open_sequence('Loewdin charge analysis (charge / net charge')
+      total_charge=0.d0
+      total_net_charge=0.d0
+      do iat=1,atoms%astruct%nat
+          call yaml_sequence(advance='no')
+          call yaml_open_map(flow=.true.)
+          atomname=atoms%astruct%atomnames(atoms%astruct%iatype(iat))
+          charges(1)=-charge_per_atom(iat)
+          charges(2)=-(charge_per_atom(iat)-real(atoms%nelpsp(atoms%astruct%iatype(iat)),kind=8))
+          total_charge = total_charge + charges(1)
+          total_net_charge = total_net_charge + charges(2)
+          call yaml_map(trim(atomname),charges,fmt='(1es20.12)')
+          call yaml_close_map(advance='no')
+          call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
+      end do
+      call yaml_map('total charge',total_charge,fmt='(es16.8)')
+      call yaml_map('total net charge',total_net_charge,fmt='(es16.8)')
+      call yaml_close_sequence()
+    end subroutine write_partial_charges
+
+end subroutine loewdin_charge_analysis

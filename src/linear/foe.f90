@@ -36,13 +36,13 @@ subroutine foe(iproc, nproc, tmprtr, &
   integer,parameter :: nplx=50000
   real(kind=8),dimension(:,:),allocatable :: cc, fermip, chebyshev_polynomials, cc_check, fermip_check
   real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
-  real(kind=8) :: anoise, scale_factor, shift_value, sumn, sumnder, charge_diff, ef_interpol, ddot
+  real(kind=8) :: anoise, scale_factor, shift_value, sumn, sumn_check, charge_diff, ef_interpol, ddot
   real(kind=8) :: evlow_old, evhigh_old, m, b, det, determinant, sumn_old, ef_old, bound_low, bound_up, tt
   real(kind=8) :: fscale, error, tt_ovrlp, tt_ham, idempotency_diff, diff, fscale_check
   logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS, interpolation_possible, emergency_stop
   character(len=*),parameter :: subname='foe'
   real(kind=8),dimension(2) :: efarr, sumnarr, allredarr
-  real(kind=8),dimension(:),allocatable :: hamscal_compr, SHS
+  real(kind=8),dimension(:),allocatable :: hamscal_compr, SHS, fermi_check_compr
   real(kind=8),dimension(4,4) :: interpol_matrix, tmp_matrix
   real(kind=8),dimension(4) :: interpol_vector, interpol_solution
   integer,dimension(4) :: ipiv
@@ -50,14 +50,18 @@ subroutine foe(iproc, nproc, tmprtr, &
   integer :: jproc, iorder, npl_boundaries
   logical,dimension(2) :: eval_bounds_ok, bisection_bounds_ok
   real(kind=8),dimension(:,:),allocatable :: workmat
-  real(kind=8) :: trace_sparse, temp_multiplicator
+  real(kind=8) :: trace_sparse, temp_multiplicator, ebs_check
   integer :: irow, icol, itemp, iflag
   logical :: overlap_calculated, cycle_FOE, evbounds_shrinked, degree_sufficient, reached_limit
-  real(kind=8),parameter :: FSCALE_LIMIT=5.d-3
+  real(kind=8),parameter :: FSCALE_LIMIT=1.d-3
   real(kind=8),parameter :: DEGREE_MULTIPLICATOR_ACCURATE=3.d0
   real(kind=8),parameter :: DEGREE_MULTIPLICATOR_FAST=2.d0
   real(kind=8),parameter :: TEMP_MULTIPLICATOR_ACCURATE=1.d0
-  real(kind=8),parameter :: TEMP_MULTIPLICATOR_FAST=2.d0
+  real(kind=8),parameter :: TEMP_MULTIPLICATOR_FAST=1.2d0
+  real(kind=8),parameter :: CHECK_RATIO=1.25d0
+  integer,parameter :: NPL_MIN=80
+  integer,parameter :: NTEMP_ACCURATE=4
+  integer,parameter :: NTEMP_FAST=1
   real(kind=8) :: degree_multiplicator
   integer,parameter :: SPARSE=1
   integer,parameter :: DENSE=2
@@ -94,33 +98,35 @@ subroutine foe(iproc, nproc, tmprtr, &
   allocate(SHS(tmb%linmat%denskern_large%nvctr), stat=istat)
   call memocc(istat, SHS, 'SHS', subname)
 
-  if (order_taylor==1) then
-      ii=0
-      do iseg=1,tmb%linmat%denskern_large%nseg
-          do jorb=tmb%linmat%denskern_large%keyg(1,iseg),tmb%linmat%denskern_large%keyg(2,iseg)
-              iiorb = (jorb-1)/tmb%orbs%norb + 1
-              jjorb = jorb - (iiorb-1)*tmb%orbs%norb
-              ii=ii+1
-              iismall = matrixindex_in_compressed(tmb%linmat%ovrlp, iiorb, jjorb)
-              if (iismall>0) then
-                  tt=tmb%linmat%ovrlp%matrix_compr(iismall)
-              else
-                  tt=0.d0
-              end if
-              if (iiorb==jjorb) then
-                  tmb%linmat%inv_ovrlp_large%matrix_compr(ii)=1.5d0-.5d0*tt
-              else
-                  tmb%linmat%inv_ovrlp_large%matrix_compr(ii)=-.5d0*tt
-              end if
-          end do  
-      end do
-  else
+  fermi_check_compr = f_malloc(tmb%linmat%denskern_large%nvctr,id='fermi_check_compr')
+
+  !!if (order_taylor==1) then
+  !!    ii=0
+  !!    do iseg=1,tmb%linmat%denskern_large%nseg
+  !!        do jorb=tmb%linmat%denskern_large%keyg(1,iseg),tmb%linmat%denskern_large%keyg(2,iseg)
+  !!            iiorb = (jorb-1)/tmb%orbs%norb + 1
+  !!            jjorb = jorb - (iiorb-1)*tmb%orbs%norb
+  !!            ii=ii+1
+  !!            iismall = matrixindex_in_compressed(tmb%linmat%ovrlp, iiorb, jjorb)
+  !!            if (iismall>0) then
+  !!                tt=tmb%linmat%ovrlp%matrix_compr(iismall)
+  !!            else
+  !!                tt=0.d0
+  !!            end if
+  !!            if (iiorb==jjorb) then
+  !!                tmb%linmat%inv_ovrlp_large%matrix_compr(ii)=1.5d0-.5d0*tt
+  !!            else
+  !!                tmb%linmat%inv_ovrlp_large%matrix_compr(ii)=-.5d0*tt
+  !!            end if
+  !!        end do  
+  !!    end do
+  !!else
 
         call timing(iproc, 'FOE_auxiliary ', 'OF')
         call overlap_minus_onehalf() ! has internal timer
         call timing(iproc, 'FOE_auxiliary ', 'ON')
 
-  end if
+  !!end if
 
 
   allocate(hamscal_compr(tmb%linmat%denskern_large%nvctr), stat=istat)
@@ -167,11 +173,11 @@ subroutine foe(iproc, nproc, tmprtr, &
   ! This is to distinguish whether the routine is called from get_coeff of
   ! getLocBasis, to be improved.
   if (accuracy_level==FOE_ACCURATE) then
-      ntemp=3
+      ntemp = NTEMP_ACCURATE
       degree_multiplicator = DEGREE_MULTIPLICATOR_ACCURATE
       temp_multiplicator = TEMP_MULTIPLICATOR_ACCURATE
   else if (accuracy_level==FOE_FAST) then
-      ntemp=1
+      ntemp = NTEMP_FAST
       degree_multiplicator = DEGREE_MULTIPLICATOR_FAST
       !tmb%foe_obj%fscale = 2.d0*tmb%foe_obj%fscale
       temp_multiplicator = TEMP_MULTIPLICATOR_FAST
@@ -183,7 +189,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   temp_loop: do itemp=1,ntemp
 
       fscale = temp_multiplicator*tmb%foe_obj%fscale
-      fscale_check = 1.25*fscale
+      fscale_check = CHECK_RATIO*fscale
       
       !fscale=fscale*0.5d0 ! make the error function sharper, i.e. more "step function-like"
       !fscale_check=1.25*tmb%foe_obj%fscale
@@ -294,12 +300,20 @@ subroutine foe(iproc, nproc, tmprtr, &
               !if (itemp==1 .or. .not.degree_sufficient) then
                   !npl=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/tmb%foe_obj%fscale)
                   npl=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale)
+                  if(npl<=NPL_MIN) then
+                      if (iproc==0) then
+                          call yaml_map('increase npl to minimal value; original value',npl)
+                          call yaml_newline()
+                      end if
+                      npl=NPL_MIN ! this is the minimal degree
+                  end if
               !else
               !    ! this will probably disappear.. only needed when the degree is
               !    ! increased by the old way via purification etc.
               !    npl=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale)
               !end if
               npl_check=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale_check)
+              npl_check=max(npl_check,nint(real(npl,kind=8)/CHECK_RATIO)) ! this is necessary if npl was set to the minimal value
               npl_boundaries=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/FSCALE_LIMIT) ! max polynomial degree for given eigenvalue boundaries
               if (npl>npl_boundaries) then
                   npl=npl_boundaries
@@ -528,38 +542,38 @@ subroutine foe(iproc, nproc, tmprtr, &
               end if
             
     
-              sumn=0.d0
-              sumnder=0.d0
-              if (tmb%orbs%norbp>0) then
-                  !do jproc=0,nproc-1
-                  !    if (iproc==jproc) then
-                          isegstart=tmb%linmat%denskern_large%istsegline(tmb%orbs%isorb_par(iproc)+1)
-                          if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
-                              isegend=tmb%linmat%denskern_large%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
-                          else
-                              isegend=tmb%linmat%denskern_large%nseg
-                          end if
-                          !$omp parallel default(private) shared(isegstart, isegend, fermip, tmb, sumn) 
-                          !$omp do reduction(+:sumn)
-                          do iseg=isegstart,isegend
-                              ii=tmb%linmat%denskern_large%keyv(iseg)-1
-                              do jorb=tmb%linmat%denskern_large%keyg(1,iseg),tmb%linmat%denskern_large%keyg(2,iseg)
-                                  ii=ii+1
-                                  iiorb = (jorb-1)/tmb%orbs%norb + 1
-                                  jjorb = jorb - (iiorb-1)*tmb%orbs%norb
-                                  if (jjorb==iiorb) sumn = sumn + fermip(jjorb,iiorb-tmb%orbs%isorb)
-                              end do  
-                          end do
-                          !$omp end do
-                          !$omp end parallel
-                  !    end if
-                  !    call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-                  !end do
-              end if
+              !!sumn=0.d0
+              !!if (tmb%orbs%norbp>0) then
+              !!    !do jproc=0,nproc-1
+              !!    !    if (iproc==jproc) then
+              !!            isegstart=tmb%linmat%denskern_large%istsegline(tmb%orbs%isorb_par(iproc)+1)
+              !!            if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
+              !!                isegend=tmb%linmat%denskern_large%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
+              !!            else
+              !!                isegend=tmb%linmat%denskern_large%nseg
+              !!            end if
+              !!            !$omp parallel default(private) shared(isegstart, isegend, fermip, tmb, sumn) 
+              !!            !$omp do reduction(+:sumn)
+              !!            do iseg=isegstart,isegend
+              !!                ii=tmb%linmat%denskern_large%keyv(iseg)-1
+              !!                do jorb=tmb%linmat%denskern_large%keyg(1,iseg),tmb%linmat%denskern_large%keyg(2,iseg)
+              !!                    ii=ii+1
+              !!                    iiorb = (jorb-1)/tmb%orbs%norb + 1
+              !!                    jjorb = jorb - (iiorb-1)*tmb%orbs%norb
+              !!                    if (jjorb==iiorb) sumn = sumn + fermip(jjorb,iiorb-tmb%orbs%isorb)
+              !!                end do  
+              !!            end do
+              !!            !$omp end do
+              !!            !$omp end parallel
+              !!    !    end if
+              !!    !    call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+              !!    !end do
+              !!end if
     
-              if (nproc>1) then
-                  call mpiallred(sumn, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-              end if
+              !!if (nproc>1) then
+              !!    call mpiallred(sumn, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+              !!end if
+              call calculate_trace_distributed(fermip, sumn)
     
     
               ! Make sure that the bounds for the bisection are negative and positive
@@ -777,33 +791,33 @@ subroutine foe(iproc, nproc, tmprtr, &
                   call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
                   diff=sqrt(diff)
                   if (iproc==0) call yaml_map('diff from reference kernel',diff,fmt='(es10.3)')
-                  if (adjust_FOE_temperature .and. foe_verbosity>=1) then
-                      if (diff<2.d-2) then
-                          ! can decrease polynomial degree
-                          tmb%foe_obj%fscale=1.25d0*tmb%foe_obj%fscale
-                          if (iproc==0) call yaml_map('modify fscale','increase')
-                          degree_sufficient=.true.
-                      else if (diff>=2.d-2 .and. diff < 5.d-2) then
-                          ! polynomial degree seems to be appropriate
-                          degree_sufficient=.true.
-                          !!if (iproc==0) call yaml_map('Need to change fscale',.false.)
-                          if (iproc==0) call yaml_map('modify fscale','No')
-                      else
-                          ! polynomial degree too small, increase and recalculate
-                          ! the kernel
-                          degree_sufficient=.false.
-                          tmb%foe_obj%fscale=0.5*tmb%foe_obj%fscale
-                          !!if (iproc==0) call yaml_map('Need to change fscale (decrease)',.true.)
-                          if (iproc==0) call yaml_map('modify fscale','decrease')
-                      end if
-                      if (tmb%foe_obj%fscale<FSCALE_LIMIT) then
-                          tmb%foe_obj%fscale=FSCALE_LIMIT
-                          if (iproc==0) call yaml_map('fscale reached limit; reset to',FSCALE_LIMIT)
-                          reached_limit=.true.
-                      else
-                          reached_limit=.false.
-                      end if
-                  end if
+                  !!!!%%if (adjust_FOE_temperature .and. foe_verbosity>=1) then
+                  !!!!%%    if (diff<2.d-2) then
+                  !!!!%%        ! can decrease polynomial degree
+                  !!!!%%        tmb%foe_obj%fscale=1.25d0*tmb%foe_obj%fscale
+                  !!!!%%        if (iproc==0) call yaml_map('modify fscale','increase')
+                  !!!!%%        degree_sufficient=.true.
+                  !!!!%%    else if (diff>=2.d-2 .and. diff < 5.d-2) then
+                  !!!!%%        ! polynomial degree seems to be appropriate
+                  !!!!%%        degree_sufficient=.true.
+                  !!!!%%        !!if (iproc==0) call yaml_map('Need to change fscale',.false.)
+                  !!!!%%        if (iproc==0) call yaml_map('modify fscale','No')
+                  !!!!%%    else
+                  !!!!%%        ! polynomial degree too small, increase and recalculate
+                  !!!!%%        ! the kernel
+                  !!!!%%        degree_sufficient=.false.
+                  !!!!%%        tmb%foe_obj%fscale=0.5*tmb%foe_obj%fscale
+                  !!!!%%        !!if (iproc==0) call yaml_map('Need to change fscale (decrease)',.true.)
+                  !!!!%%        if (iproc==0) call yaml_map('modify fscale','decrease')
+                  !!!!%%    end if
+                  !!!!%%    if (tmb%foe_obj%fscale<FSCALE_LIMIT) then
+                  !!!!%%        tmb%foe_obj%fscale=FSCALE_LIMIT
+                  !!!!%%        if (iproc==0) call yaml_map('fscale reached limit; reset to',FSCALE_LIMIT)
+                  !!!!%%        reached_limit=.true.
+                  !!!!%%    else
+                  !!!!%%        reached_limit=.false.
+                  !!!!%%    end if
+                  !!!!%%end if
                   exit
               end if
 
@@ -817,58 +831,65 @@ subroutine foe(iproc, nproc, tmprtr, &
     
     
     
-      call to_zero(tmb%linmat%denskern_large%nvctr, tmb%linmat%denskern_large%matrix_compr(1))
-    
-      if (tmb%orbs%norbp>0) then
-          isegstart=tmb%linmat%denskern_large%istsegline(tmb%orbs%isorb_par(iproc)+1)
-          if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
-              isegend=tmb%linmat%denskern_large%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
-          else
-              isegend=tmb%linmat%denskern_large%nseg
-          end if
-          !$omp parallel default(private) shared(isegstart, isegend, fermip, tmb)
-          !$omp do
-          do iseg=isegstart,isegend
-              ii=tmb%linmat%denskern_large%keyv(iseg)-1
-              do jorb=tmb%linmat%denskern_large%keyg(1,iseg),tmb%linmat%denskern_large%keyg(2,iseg)
-                  ii=ii+1
-                  iiorb = (jorb-1)/tmb%orbs%norb + 1
-                  jjorb = jorb - (iiorb-1)*tmb%orbs%norb
-                  tmb%linmat%denskern_large%matrix_compr(ii)=fermip(jjorb,iiorb-tmb%orbs%isorb)
-              end do
-          end do
-          !$omp end do
-          !$omp end parallel
-      end if
+      !!call to_zero(tmb%linmat%denskern_large%nvctr, tmb%linmat%denskern_large%matrix_compr(1))
+      !!if (tmb%orbs%norbp>0) then
+      !!    isegstart=tmb%linmat%denskern_large%istsegline(tmb%orbs%isorb_par(iproc)+1)
+      !!    if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
+      !!        isegend=tmb%linmat%denskern_large%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
+      !!    else
+      !!        isegend=tmb%linmat%denskern_large%nseg
+      !!    end if
+      !!    !$omp parallel default(private) shared(isegstart, isegend, fermip, tmb)
+      !!    !$omp do
+      !!    do iseg=isegstart,isegend
+      !!        ii=tmb%linmat%denskern_large%keyv(iseg)-1
+      !!        do jorb=tmb%linmat%denskern_large%keyg(1,iseg),tmb%linmat%denskern_large%keyg(2,iseg)
+      !!            ii=ii+1
+      !!            iiorb = (jorb-1)/tmb%orbs%norb + 1
+      !!            jjorb = jorb - (iiorb-1)*tmb%orbs%norb
+      !!            tmb%linmat%denskern_large%matrix_compr(ii)=fermip(jjorb,iiorb-tmb%orbs%isorb)
+      !!        end do
+      !!    end do
+      !!    !$omp end do
+      !!    !$omp end parallel
+      !!end if
 
-      call timing(iproc, 'FOE_auxiliary ', 'OF')
-      call timing(iproc, 'chebyshev_comm', 'ON')
+     call compress_matrix_distributed(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb_par, &
+          tmb%linmat%denskern_large, fermip, tmb%linmat%denskern_large%matrix_compr)
+
+     call compress_matrix_distributed(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb_par, &
+          tmb%linmat%denskern_large, fermip_check, fermi_check_compr)
+
+
+
+ !!     call timing(iproc, 'FOE_auxiliary ', 'OF')
+ !!     !!call timing(iproc, 'chebyshev_comm', 'ON')
+ !!   
+ !!     !!call mpiallred(tmb%linmat%denskern_large%matrix_compr(1), tmb%linmat%denskern_large%nvctr, &
+ !!     !!     mpi_sum, bigdft_mpi%mpi_comm, ierr)
+ !!   
+ !!   
+ !!     !!call timing(iproc, 'chebyshev_comm', 'OF')
+ !!   
+ !!   
+ !!     call overlap_minus_onehalf() !has internal timer
+ !!     call timing(iproc, 'FOE_auxiliary ', 'ON')
     
-      call mpiallred(tmb%linmat%denskern_large%matrix_compr(1), tmb%linmat%denskern_large%nvctr, &
-           mpi_sum, bigdft_mpi%mpi_comm, ierr)
     
     
-      call timing(iproc, 'chebyshev_comm', 'OF')
-    
-    
-      call overlap_minus_onehalf() !has internal timer
-      call timing(iproc, 'FOE_auxiliary ', 'ON')
-    
-    
-    
-      tmb%linmat%inv_ovrlp_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),&
-          id='tmb%linmat%inv_ovrlp_large%matrix')
+    !!  tmb%linmat%inv_ovrlp_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),&
+    !!      id='tmb%linmat%inv_ovrlp_large%matrix')
     
       allocate(workmat(tmb%orbs%norb,tmb%orbs%norbp), stat=istat)
       call memocc(istat, workmat, 'workmat', subname)
     
-      call uncompress_matrix(iproc,tmb%linmat%inv_ovrlp_large)
+    !!  call uncompress_matrix(iproc,tmb%linmat%inv_ovrlp_large)
     
-      !!allocate(tmb%linmat%denskern_large%matrix(tmb%orbs%norb,tmb%orbs%norb))
-      !!call memocc(istat, tmb%linmat%denskern_large%matrix, 'tmb%linmat%denskern_large%matrix', subname)
-      tmb%linmat%denskern_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),&
-          id='tmb%linmat%denskern_large%matrix')
-      call uncompress_matrix(iproc,tmb%linmat%denskern_large)
+    !!  !!allocate(tmb%linmat%denskern_large%matrix(tmb%orbs%norb,tmb%orbs%norb))
+    !!  !!call memocc(istat, tmb%linmat%denskern_large%matrix, 'tmb%linmat%denskern_large%matrix', subname)
+    !!  tmb%linmat%denskern_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),&
+    !!      id='tmb%linmat%denskern_large%matrix')
+    !!  call uncompress_matrix(iproc,tmb%linmat%denskern_large)
 
       !!if (iproc==0) then
       !!    tt=0.d0
@@ -883,7 +904,9 @@ subroutine foe(iproc, nproc, tmprtr, &
     
       ! Calculate S^-1/2 * K * S^-1/2^T
       ! Since S^-1/2 is symmetric, don't use the transpose
-      call retransform()
+      call retransform(tmb%linmat%denskern_large%matrix_compr)
+
+      call retransform(fermi_check_compr)
       !!if (tmb%orbs%norbp>0) then
       !!    !!call dgemm('n', 't', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
       !!    !!     1.d0, tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb, &
@@ -913,7 +936,52 @@ subroutine foe(iproc, nproc, tmprtr, &
       !!        end do
       !!    end do
       !!end if
+
+      call calculate_trace_distributed(fermip_check, sumn_check)
     
+
+      ! Calculate trace(KH). Since they have the same sparsity pattern and K is
+      ! symmetric, this is a simple ddot.
+      ebs=ddot(tmb%linmat%denskern_large%nvctr, tmb%linmat%denskern_large%matrix_compr,1 , hamscal_compr, 1)
+      ebs=ebs/scale_factor+shift_value*sumn
+
+      ebs_check=ddot(tmb%linmat%denskern_large%nvctr, fermi_check_compr,1 , hamscal_compr, 1)
+      ebs_check=ebs_check/scale_factor+shift_value*sumn_check
+      diff=abs(ebs_check-ebs)
+
+      if (iproc==0) then
+          call yaml_map('ebs',ebs)
+          call yaml_map('ebs_check',ebs_check)
+          call yaml_map('diff',ebs_check-ebs)
+      end if
+
+      if (adjust_FOE_temperature .and. foe_verbosity>=1) then
+          if (diff<5.d-3) then
+              ! can decrease polynomial degree
+              tmb%foe_obj%fscale=1.25d0*tmb%foe_obj%fscale
+              if (iproc==0) call yaml_map('modify fscale','increase')
+              degree_sufficient=.true.
+          else if (diff>=5.d-3 .and. diff < 1.d-2) then
+              ! polynomial degree seems to be appropriate
+              degree_sufficient=.true.
+              !!if (iproc==0) call yaml_map('Need to change fscale',.false.)
+              if (iproc==0) call yaml_map('modify fscale','No')
+          else
+              ! polynomial degree too small, increase and recalculate
+              ! the kernel
+              degree_sufficient=.false.
+              tmb%foe_obj%fscale=0.5*tmb%foe_obj%fscale
+              !!if (iproc==0) call yaml_map('Need to change fscale (decrease)',.true.)
+              if (iproc==0) call yaml_map('modify fscale','decrease')
+          end if
+          if (tmb%foe_obj%fscale<FSCALE_LIMIT) then
+              tmb%foe_obj%fscale=FSCALE_LIMIT
+              if (iproc==0) call yaml_map('fscale reached limit; reset to',FSCALE_LIMIT)
+              reached_limit=.true.
+          else
+              reached_limit=.false.
+          end if
+      end if
     
     
      !!if (iproc==0) then
@@ -925,13 +993,13 @@ subroutine foe(iproc, nproc, tmprtr, &
      !iall=-product(shape(tmb%linmat%denskern_large%matrix))*kind(tmb%linmat%denskern_large%matrix)
      !deallocate(tmb%linmat%denskern_large%matrix,stat=istat)
      !call memocc(istat,iall,'tmb%linmat%denskern_large%matrix',subname)
-     call f_free_ptr(tmb%linmat%denskern_large%matrix)
+   !!  call f_free_ptr(tmb%linmat%denskern_large%matrix)
 
      iall=-product(shape(workmat))*kind(workmat)
      deallocate(workmat,stat=istat)
      call memocc(istat,iall,'workmat',subname)
 
-     call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix)
+   !!  call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix)
     
   
       ! Purify the kernel
@@ -1056,6 +1124,8 @@ subroutine foe(iproc, nproc, tmprtr, &
   deallocate(SHS, stat=istat)
   call memocc(istat, iall, 'SHS', subname)
 
+  call f_free(fermi_check_compr)
+
 
   call timing(iproc, 'FOE_auxiliary ', 'OF')
 
@@ -1082,9 +1152,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           if (imode==SPARSE) then
               call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, tmb%orbs, &
                    imode=1, check_accur=.true., error=error, &
-                   ovrlp_smat=tmb%linmat%ovrlp, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, &
-                   foe_nseg=tmb%foe_obj%nseg, foe_kernel_nsegline=tmb%foe_obj%kernel_nsegline, &
-                   foe_istsegline=tmb%foe_obj%istsegline, foe_keyg=tmb%foe_obj%keyg)
+                   ovrlp_smat=tmb%linmat%ovrlp, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large)
            end if
           if (foe_verbosity>=1 .and. iproc==0) then
               call yaml_map('error of S^-1/2',error,fmt='(es9.2)')
@@ -1107,7 +1175,11 @@ subroutine foe(iproc, nproc, tmprtr, &
 
 
 
-      subroutine retransform()
+      subroutine retransform(matrix_compr)
+          ! Calling arguments
+          real(kind=8),dimension(tmb%linmat%denskern_large%nvctr),intent(inout) :: matrix_compr
+
+          ! Local variables
           real(kind=8),dimension(:,:),pointer :: inv_ovrlpp, tempp
           integer,dimension(:,:),pointer :: onedimindices
           real(kind=8),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
@@ -1118,55 +1190,98 @@ subroutine foe(iproc, nproc, tmprtr, &
 
           inv_ovrlpp = f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norbp/),id='inv_ovrlpp')
           tempp = f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norbp/),id='inv_ovrlpp')
-          call init_onedimindices(tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%foe_obj%nseg, &
-               tmb%foe_obj%kernel_nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
-               tmb%linmat%inv_ovrlp_large, nout, onedimindices)
-          call determine_sequential_length(tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%foe_obj%nseg, &
-               tmb%foe_obj%kernel_nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
-               tmb%linmat%inv_ovrlp_large, nseq, nmaxsegk, nmaxvalk)
-          inv_ovrlp_compr_seq = f_malloc(nseq,id='inv_ovrlp_compr_seq')
-          kernel_compr_seq = f_malloc(nseq,id='inv_ovrlp_compr_seq')
-          istindexarr = f_malloc((/ nmaxvalk, nmaxsegk, tmb%orbs%norbp /),id='istindexarr')
-          ivectorindex = f_malloc(nseq,id='ivectorindex')
-          call get_arrays_for_sequential_acces(tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%foe_obj%nseg, &
-               tmb%foe_obj%kernel_nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
-               tmb%linmat%inv_ovrlp_large, nseq, nmaxsegk, nmaxvalk, &
-               istindexarr, ivectorindex)
-          call sequential_acces_matrix(tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%foe_obj%nseg, &
-               tmb%foe_obj%kernel_nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
-               tmb%linmat%denskern_large, tmb%linmat%denskern_large%matrix_compr, nseq, nmaxsegk, nmaxvalk, &
-               kernel_compr_seq)
-          call sequential_acces_matrix(tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%foe_obj%nseg, &
-               tmb%foe_obj%kernel_nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
-               tmb%linmat%inv_ovrlp_large, tmb%linmat%inv_ovrlp_large%matrix_compr, nseq, nmaxsegk, nmaxvalk, &
-               inv_ovrlp_compr_seq)
+          inv_ovrlp_compr_seq = f_malloc(tmb%linmat%inv_ovrlp_large%smmm%nseq,id='inv_ovrlp_compr_seq')
+          kernel_compr_seq = f_malloc(tmb%linmat%inv_ovrlp_large%smmm%nseq,id='inv_ovrlp_compr_seq')
+          !!call sequential_acces_matrix(tmb%orbs%norb, tmb%orbs%norbp, &
+          !!     tmb%orbs%isorb, tmb%linmat%denskern_large%smmm%nseg, &
+          !!     tmb%linmat%denskern_large%smmm%nsegline, tmb%linmat%denskern_large%smmm%istsegline, &
+          !!     tmb%linmat%denskern_large%smmm%keyg, &
+          !!     tmb%linmat%denskern_large, tmb%linmat%denskern_large%matrix_compr, &
+          !!     tmb%linmat%denskern_large%smmm%nseq, tmb%linmat%denskern_large%smmm%nmaxsegk, &
+          !!     tmb%linmat%denskern_large%smmm%nmaxvalk, kernel_compr_seq)
+          !call sequential_acces_matrix(tmb%orbs%norb, tmb%orbs%norbp, &
+          !     tmb%orbs%isorb, tmb%linmat%denskern_large%smmm%nseg, &
+          !     tmb%linmat%denskern_large%smmm%nsegline, tmb%linmat%denskern_large%smmm%istsegline, &
+          !     tmb%linmat%denskern_large%smmm%keyg, &
+          !     tmb%linmat%denskern_large, matrix_compr, &
+          !     tmb%linmat%denskern_large%smmm%nseq, tmb%linmat%denskern_large%smmm%nmaxsegk, &
+          !     tmb%linmat%denskern_large%smmm%nmaxvalk, kernel_compr_seq)
+          call sequential_acces_matrix_fast(tmb%linmat%denskern_large%smmm%nseq, &
+               tmb%linmat%denskern_large%nvctr, tmb%linmat%denskern_large%smmm%indices_extract_sequential, &
+               matrix_compr, kernel_compr_seq)
+          !call sequential_acces_matrix(tmb%orbs%norb, tmb%orbs%norbp, &
+          !     tmb%orbs%isorb, tmb%linmat%inv_ovrlp_large%smmm%nseg, &
+          !     tmb%linmat%inv_ovrlp_large%smmm%nsegline, tmb%linmat%inv_ovrlp_large%smmm%istsegline, &
+          !     tmb%linmat%inv_ovrlp_large%smmm%keyg, &
+          !     tmb%linmat%inv_ovrlp_large, tmb%linmat%inv_ovrlp_large%matrix_compr, &
+          !     tmb%linmat%inv_ovrlp_large%smmm%nseq, tmb%linmat%inv_ovrlp_large%smmm%nmaxsegk, &
+          !     tmb%linmat%inv_ovrlp_large%smmm%nmaxvalk, inv_ovrlp_compr_seq)
+          call sequential_acces_matrix_fast(tmb%linmat%inv_ovrlp_large%smmm%nseq, &
+               tmb%linmat%inv_ovrlp_large%nvctr, tmb%linmat%inv_ovrlp_large%smmm%indices_extract_sequential, &
+               tmb%linmat%inv_ovrlp_large%matrix_compr, inv_ovrlp_compr_seq)
           call extract_matrix_distributed(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb_par, &
                tmb%linmat%inv_ovrlp_large, tmb%linmat%inv_ovrlp_large%matrix_compr, inv_ovrlpp)
 
            tempp=0.d0
-          call sparsemm(nseq, kernel_compr_seq, inv_ovrlpp, tempp, &
-               tmb%orbs%norb, tmb%orbs%norbp, ivectorindex, nout, onedimindices)
+          call sparsemm(tmb%linmat%denskern_large%smmm%nseq, kernel_compr_seq, inv_ovrlpp, tempp, &
+               tmb%orbs%norb, tmb%orbs%norbp, tmb%linmat%denskern_large%smmm%ivectorindex, &
+               tmb%linmat%denskern_large%smmm%nout, &
+               tmb%linmat%denskern_large%smmm%onedimindices)
           inv_ovrlpp=0.d0
-          call sparsemm(nseq, inv_ovrlp_compr_seq, tempp, inv_ovrlpp, &
-               tmb%orbs%norb, tmb%orbs%norbp, ivectorindex, nout, onedimindices)
+          call sparsemm(tmb%linmat%inv_ovrlp_large%smmm%nseq, inv_ovrlp_compr_seq, tempp, inv_ovrlpp, &
+               tmb%orbs%norb, tmb%orbs%norbp, tmb%linmat%inv_ovrlp_large%smmm%ivectorindex, &
+               tmb%linmat%inv_ovrlp_large%smmm%nout, &
+               tmb%linmat%inv_ovrlp_large%smmm%onedimindices)
 
-          call to_zero(tmb%linmat%denskern_large%nvctr, tmb%linmat%denskern_large%matrix_compr(1))
+          !!call to_zero(tmb%linmat%denskern_large%nvctr, tmb%linmat%denskern_large%matrix_compr(1))
+          call to_zero(tmb%linmat%denskern_large%nvctr, matrix_compr(1))
+          !!call compress_matrix_distributed(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb_par, &
+          !!     tmb%linmat%denskern_large, inv_ovrlpp, tmb%linmat%denskern_large%matrix_compr)
           call compress_matrix_distributed(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb_par, &
-               tmb%linmat%denskern_large, inv_ovrlpp, tmb%linmat%denskern_large%matrix_compr)
-          call mpiallred(tmb%linmat%denskern_large%matrix_compr(1), tmb%linmat%denskern_large%nvctr, &
-               mpi_sum, bigdft_mpi%mpi_comm, ierr)
+               tmb%linmat%denskern_large, inv_ovrlpp, matrix_compr)
+          !!call mpiallred(tmb%linmat%denskern_large%matrix_compr(1), tmb%linmat%denskern_large%nvctr, &
+          !!     mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
-          call f_free_ptr(onedimindices)
           call f_free_ptr(inv_ovrlpp)
           call f_free_ptr(tempp)
           call f_free(inv_ovrlp_compr_seq)
           call f_free(kernel_compr_seq)
-          call f_free(istindexarr)
-          call f_free(ivectorindex)
 
       end subroutine retransform
 
 
+
+
+      subroutine calculate_trace_distributed(matrixp, trace)
+          real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp),intent(in) :: matrixp
+          real(kind=8),intent(out) :: trace
+          trace=0.d0
+          if (tmb%orbs%norbp>0) then
+              isegstart=tmb%linmat%denskern_large%istsegline(tmb%orbs%isorb_par(iproc)+1)
+              if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
+                  isegend=tmb%linmat%denskern_large%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
+              else
+                  isegend=tmb%linmat%denskern_large%nseg
+              end if
+              !$omp parallel default(private) shared(isegstart, isegend, matrixp, tmb, trace) 
+              !$omp do reduction(+:trace)
+              do iseg=isegstart,isegend
+                  ii=tmb%linmat%denskern_large%keyv(iseg)-1
+                  do jorb=tmb%linmat%denskern_large%keyg(1,iseg),tmb%linmat%denskern_large%keyg(2,iseg)
+                      ii=ii+1
+                      iiorb = (jorb-1)/tmb%orbs%norb + 1
+                      jjorb = jorb - (iiorb-1)*tmb%orbs%norb
+                      if (jjorb==iiorb) trace = trace + matrixp(jjorb,iiorb-tmb%orbs%isorb)
+                  end do  
+              end do
+              !$omp end do
+              !$omp end parallel
+          end if
+    
+          if (nproc>1) then
+              call mpiallred(trace, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          end if
+      end subroutine calculate_trace_distributed
 
 
 end subroutine foe
@@ -1689,11 +1804,10 @@ subroutine uncompress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, ve
       else
           isegend=fermi%nseg
       end if
-      ii=0
-      !!$omp parallel default(private) shared(isegstart, isegend, orbs, fermi, vector, vector_compressed)
-      !!$omp do
+      !$omp parallel do default(private) &
+      !$omp shared(isegstart, isegend, fermi, orbs, vector, vector_compressed)
       do iseg=isegstart,isegend
-          !ii=fermi%keyv(iseg)-1
+          ii=fermi%keyv(iseg)-fermi%keyv(isegstart)
           do jorb=fermi%keyg(1,iseg),fermi%keyg(2,iseg)
               ii=ii+1
               iiorb = (jorb-1)/orbs%norb + 1
@@ -1702,8 +1816,7 @@ subroutine uncompress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, ve
               !write(*,*) 'ii, iiorb-orbs%isorb, jjorb', ii, iiorb-orbs%isorb, jjorb
           end do
       end do
-      !!$omp end do
-      !!$omp end parallel
+      !$omp end parallel do
   end if
 end subroutine uncompress_polynomial_vector
 
