@@ -725,6 +725,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      call memocc(i_stat,fpulay,'fpulay',subname)
 
 
+     tmb%can_use_transposed=.false.
+     call loewdin_charge_analysis(iproc, tmb, atoms, denspot, calculate_overlap_matrix=.true., &
+          calculate_ovrlp_half=.true., meth_overlap=0)
 
      call linearScaling(iproc,nproc,KSwfn,tmb,atoms,in,&
           rxyz,denspot,denspot0,nlpsp,GPU,energs,energy,fpulay,infocode,ref_frags,cdft,&

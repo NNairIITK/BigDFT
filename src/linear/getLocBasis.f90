@@ -2746,7 +2746,7 @@ subroutine check_idempotency(iproc, nproc, tmb, diff)
 end subroutine check_idempotency
 
 
-subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
+subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
            calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap)
   use module_base
   use module_types
@@ -2754,10 +2754,12 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
   use communications, only: transpose_localized
   use sparsematrix_base, only: sparse_matrix
   use sparsematrix, only: compress_matrix, uncompress_matrix
+  use yaml_output
   implicit none
   integer,intent(in) :: iproc
   type(dft_wavefunction),intent(inout) :: tmb
   type(atoms_data),intent(inout) :: atoms
+  type(DFT_local_fields), intent(inout) :: denspot
   logical,intent(in) :: calculate_overlap_matrix, calculate_ovrlp_half
   integer,intent(in) :: meth_overlap
 
@@ -2905,9 +2907,14 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
       iat=tmb%orbs%onwhichatom(iorb)
       charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix(iorb,iorb)
   end do
-  if (iproc==0) call write_partial_charges()
-  if (iproc==0) call calculate_dipole()
-  if (iproc==0) call calculate_quadropole()
+  if (iproc==0) then
+      call write_partial_charges()
+      call yaml_open_sequence('Multipole analysis (based on the Loewdin charges)')
+      call calculate_dipole()
+      call calculate_quadropole()
+      call yaml_close_sequence()
+  end if
+  call support_function_multipoles()
 
 
   call f_free(charge_per_atom)
@@ -2922,7 +2929,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
       use yaml_output
       character(len=20) :: atomname
       real(kind=8),dimension(2) :: charges
-      call yaml_open_sequence('Loewdin charge analysis (charge / net charge')
+      call yaml_open_sequence('Loewdin charge analysis (charge / net charge)')
       total_charge=0.d0
       total_net_charge=0.d0
       do iat=1,atoms%astruct%nat
@@ -2960,9 +2967,9 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
       dipole_net=dipole_cores+dipole_elec
 
       if (iproc==0) then
-          call yaml_map('core dipole', dipole_cores)
-          call yaml_map('electronic dipole', dipole_elec)
-          call yaml_map('net dipole', dipole_net)
+          !!call yaml_map('core dipole', dipole_cores)
+          !!call yaml_map('electronic dipole', dipole_elec)
+          call yaml_map('net dipole', dipole_net,fmt='(es12.5)')
       end if
 
     end subroutine calculate_dipole
@@ -2992,7 +2999,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
       qtot=0.d0
       do iat=1,atoms%astruct%nat
           q=-charge_per_atom(iat)
-          charge_center_charge(1:3) = charge_center_cores(1:3) + q*atoms%astruct%rxyz(1:3,iat)
+          charge_center_charge(1:3) = charge_center_charge(1:3) + q*atoms%astruct%rxyz(1:3,iat)
           qtot=qtot+q
       end do
       charge_center_charge=charge_center_charge/qtot
@@ -3000,6 +3007,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
 
       quadropole_cores(1:3,1:3)=0._gp
       do iat=1,atoms%astruct%nat
+         q=atoms%nelpsp(atoms%astruct%iatype(iat))
          do i=1,3
              do j=1,3
                  if (i==j) then
@@ -3007,7 +3015,6 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
                  else
                      delta_term=0.d0
                  end if
-                 q=atoms%nelpsp(atoms%astruct%iatype(iat))
                  rj=atoms%astruct%rxyz(j,iat)
                  ri=atoms%astruct%rxyz(i,iat)
                  quadropole_cores(j,i) = quadropole_cores(j,i) + q*(3.d0*rj*ri-delta_term)
@@ -3021,14 +3028,16 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
 
       quadropole_elec(1:3,1:3)=0._gp
       do iat=1,atoms%astruct%nat
+         q=-charge_per_atom(iat)
          do i=1,3
              do j=1,3
                  if (i==j) then
-                     delta_term = atoms%astruct%rxyz(1,iat)**2 + atoms%astruct%rxyz(2,iat)**2 + atoms%astruct%rxyz(3,iat)**2
+                     delta_term = (atoms%astruct%rxyz(1,iat)+(charge_center_cores(1)-charge_center_charge(1)))**2 + &
+                                  (atoms%astruct%rxyz(2,iat)+(charge_center_cores(2)-charge_center_charge(2)))**2 + &
+                                  (atoms%astruct%rxyz(3,iat)+(charge_center_cores(3)-charge_center_charge(3)))**2
                  else
                      delta_term=0.d0
                  end if
-                 q=-charge_per_atom(iat)
                  rj=atoms%astruct%rxyz(j,iat)+(charge_center_cores(j)-charge_center_charge(j))
                  ri=atoms%astruct%rxyz(i,iat)+(charge_center_cores(i)-charge_center_charge(i))
                  quadropole_elec(j,i) = quadropole_elec(j,i) + q*(3.d0*rj*ri-delta_term)
@@ -3042,17 +3051,17 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
       quadropole_net=quadropole_cores+quadropole_elec
 
       if (iproc==0) then
-          call yaml_open_sequence('core quadropole')
-          do i=1,3
-             call yaml_sequence(trim(yaml_toa(quadropole_cores(i,1:3),fmt='(es12.5)')))
-          end do
-          call yaml_close_sequence()
+          !!call yaml_open_sequence('core quadropole')
+          !!do i=1,3
+          !!   call yaml_sequence(trim(yaml_toa(quadropole_cores(i,1:3),fmt='(es12.5)')))
+          !!end do
+          !!call yaml_close_sequence()
 
-          call yaml_open_sequence('electronic quadropole')
-          do i=1,3
-             call yaml_sequence(trim(yaml_toa(quadropole_elec(i,1:3),fmt='(es12.5)')))
-          end do
-          call yaml_close_sequence()
+          !!call yaml_open_sequence('electronic quadropole')
+          !!do i=1,3
+          !!   call yaml_sequence(trim(yaml_toa(quadropole_elec(i,1:3),fmt='(es12.5)')))
+          !!end do
+          !!call yaml_close_sequence()
 
           call yaml_open_sequence('net quadropole')
           do i=1,3
@@ -3064,44 +3073,101 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
     end subroutine calculate_quadropole
 
 
-    !subroutine support_function_multipoles()
+    subroutine support_function_multipoles()
+      use yaml_output
+      integer :: ist, istr, iorb, iiorb, ilr, i
+      real(kind=8),dimension(3) :: charge_center_elec
+      real(kind=8),dimension(:),allocatable :: phir
+      type(workarr_sumrho) :: w
+      character(len=20) :: atomname
+      real(kind=8),dimension(:,:),allocatable :: dipole_net
+      real(kind=8),dimension(:,:,:),allocatable :: quadropole_net
 
-    !  ist=1
-    !  istr=1
-    !  do iorb=1,orbs%norbp
-    !      iiorb=orbs%isorb+iorb
-    !      ilr=orbs%inWhichLocreg(iiorb)
-    !      call initialize_work_arrays_sumrho(lzd%Llr(ilr), w)
-    !      ! Transform the support function to real space
-    !      call daub_to_isf(lzd%Llr(ilr), w, lphi(ist), psir(istr))
-    !      call deallocate_work_arrays_sumrho(w)
-    !  ! Calculate the charge center
-    !      ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
-    !      istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
-    !  end do
-    !  if(istr/=collcom_sr%ndimpsi_c+1) then
-    !      write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=collcom_sr%ndimpsi_c+1'
-    !      stop
-    !  end if
+      call f_routine(id='support_function_multipoles')
+
+      phir = f_malloc(tmb%collcom_sr%ndimpsi_c,id='phir')
+      dipole_net = f_malloc((/3,tmb%orbs%norb/),id='dipole_net')
+      quadropole_net = f_malloc((/3,3,tmb%orbs%norb/),id='quadropole_net')
+
+      call to_zero(3*tmb%orbs%norb, dipole_net(1,1))
+      call to_zero(9*tmb%orbs%norb, quadropole_net(1,1,1))
+
+      ist=1
+      istr=1
+      do iorb=1,tmb%orbs%norbp
+          iiorb=tmb%orbs%isorb+iorb
+          ilr=tmb%orbs%inwhichlocreg(iiorb)
+          iat=tmb%orbs%onwhichatom(iiorb)
+          call initialize_work_arrays_sumrho(tmb%lzd%Llr(ilr), w)
+          ! Transform the support function to real space
+          call daub_to_isf(tmb%lzd%llr(ilr), w, tmb%psi(ist), phir(istr))
+          call deallocate_work_arrays_sumrho(w)
+          ! Calculate the charge center
+          call charge_center(tmb%lzd%llr(ilr)%d%n1i, tmb%lzd%llr(ilr)%d%n2i, tmb%lzd%llr(ilr)%d%n3i, &
+               denspot%dpbox%hgrids, phir(istr), charge_center_elec)
+          !write(*,*) 'ilr, tmb%lzd%llr(ilr)%locregcenter', iat, tmb%lzd%llr(ilr)%locregcenter
+          atomname=trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))
+          call calculate_multipoles(tmb%lzd%llr(ilr)%d%n1i, tmb%lzd%llr(ilr)%d%n2i, tmb%lzd%llr(ilr)%d%n3i, &
+               denspot%dpbox%hgrids, phir(istr), charge_center_elec, tmb%lzd%llr(ilr)%locregcenter, &
+               dipole_net(:,iiorb), quadropole_net(:,:,iiorb))
+          !write(*,*) 'charge_center', charge_center_elec
+          ist = ist + tmb%lzd%Llr(ilr)%wfd%nvctr_c + 7*tmb%lzd%Llr(ilr)%wfd%nvctr_f
+          istr = istr + tmb%lzd%Llr(ilr)%d%n1i*tmb%lzd%Llr(ilr)%d%n2i*tmb%lzd%Llr(ilr)%d%n3i
+      end do
+      if(istr/=tmb%collcom_sr%ndimpsi_c+1) then
+          write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=tmb%collcom_sr%ndimpsi_c+1'
+          stop
+      end if
 
 
-    !  
+      call mpiallred(dipole_net(1,1), 3*tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(quadropole_net(1,1,1), 9*tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
-    !end subroutine support_function_multipoles
+      if (iproc==0) then
+          call yaml_open_sequence('Support functions moments')
+          do iorb=1,tmb%orbs%norb
+              iat=tmb%orbs%onwhichatom(iorb)
+              atomname=trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))
+              call yaml_open_sequence(trim(yaml_toa(iorb))//' (atom number ='//trim(yaml_toa(iat))//', type = '//trim(atomname)//')')
+              call yaml_sequence(advance='no')
+              call yaml_map('net dipole',dipole_net(:,iorb),fmt='(es18.10)')
+              call yaml_sequence(advance='no')
+              call yaml_open_sequence('net quadropole')
+              do i=1,3
+                 call yaml_sequence(trim(yaml_toa(quadropole_net(i,1:3,iorb),fmt='(es15.8)')))
+              end do
+              call yaml_close_sequence()
+              call yaml_close_sequence()
+          end do
+          call yaml_close_sequence()
+      end if
+
+      call f_free(phir)
+      call f_free(dipole_net)
+      call f_free(quadropole_net)
+      call f_release_routine()
+
+      
+
+    end subroutine support_function_multipoles
 
 
 end subroutine loewdin_charge_analysis
 
 
-subroutine charge_center(n1, n2, n3, hgrids, phir, charge_center_elec)
+subroutine charge_center(n1i, n2i, n3i, hgrids, phir, charge_center_elec)
+  implicit none
   ! Calling arguments
-  integer,intent(in) :: n1, n2, n3
+  integer,intent(in) :: n1i, n2i, n3i
   real(kind=8),dimension(3),intent(in) :: hgrids
-  real(kind=8),dimension(n1*n2*n3),intent(in) :: phir
+  real(kind=8),dimension(n1i*n2i*n3i),intent(in) :: phir
   real(kind=8),dimension(3),intent(out) :: charge_center_elec
 
-  integer :: i1, i2, i3, jj, iz, iy, ix
+  integer :: i1, i2, i3, jj, iz, iy, ix, ii
   real(kind=8) :: q, x, y, z, qtot
+
+  charge_center_elec=0.d0
+
 
   qtot=0.d0
   jj=0.d0
@@ -3140,3 +3206,149 @@ subroutine charge_center(n1, n2, n3, hgrids, phir, charge_center_elec)
 
 
 end subroutine charge_center
+
+
+subroutine calculate_multipoles(n1i, n2i, n3i, hgrids, phir, charge_center_elec, rxyz_center, &
+           dipole_net, quadropole_net)
+  use yaml_output
+  implicit none
+  ! Calling arguments
+  integer,intent(in) :: n1i, n2i, n3i
+  real(kind=8),dimension(3),intent(in) :: hgrids
+  real(kind=8),dimension(n1i*n2i*n3i),intent(in) :: phir
+  real(kind=8),dimension(3),intent(in) :: charge_center_elec, rxyz_center
+  real(kind=8),dimension(3),intent(out) :: dipole_net
+  real(kind=8),dimension(3,3),intent(out) :: quadropole_net
+
+  integer :: i1, i2, i3, jj, iz, iy, ix, ii, i, j
+  real(kind=8) :: q, x, y, z, qtot, ri, rj, delta_term
+  real(kind=8),dimension(3) :: dipole_center, dipole_el
+  real(kind=8),dimension(3,3) :: quadropole_center, quadropole_el
+
+
+  !!call yaml_map('rxyz_center',rxyz_center,fmt='(es16.6)')
+  !!call yaml_map('charge_center_elec',charge_center_elec,fmt='(es16.6)')
+  !!call yaml_map('sum phir',sum(phir),fmt='(es16.6)')
+
+  ! Dipole and quadropole of the support function
+  dipole_el=0.d0
+  quadropole_el=0.d0
+  qtot=0.d0
+  jj=0
+  do i3=1,n3i
+      do i2=1,n2i
+          do i1=1,n1i
+              jj=jj+1
+              ! z component of point jj
+              iz=jj/(n2i*n1i)
+              ! Subtract the 'lower' xy layers
+              ii=jj-iz*(n2i*n1i)
+              ! y component of point jj
+              iy=ii/n1i
+              ! Subtract the 'lower' y rows
+              ii=ii-iy*n1i
+              ! x component
+              ix=ii
+
+              ! Shift the values due to the convolutions bounds
+              ix=ix-14
+              iy=iy-14
+              iz=iz-14
+
+              q = phir(jj) * product(hgrids)
+              x = ix*hgrids(1) + (rxyz_center(1)-charge_center_elec(1))
+              y = iy*hgrids(2) + (rxyz_center(2)-charge_center_elec(2))
+              z = iz*hgrids(3) + (rxyz_center(3)-charge_center_elec(3))
+
+              ! Dipole part
+              dipole_el(1) = dipole_el(1) + q*x
+              dipole_el(2) = dipole_el(2) + q*y
+              dipole_el(3) = dipole_el(3) + q*z
+              qtot=qtot+q
+
+              ! Quadrupole part
+              do i=1,3
+                  ri=get_r(i, x, y, z)
+                  do j=1,3
+                      rj=get_r(j, x, y, z)
+                      if (i==j) then
+                          delta_term = x**2 + y**2 + z**2
+                      else
+                          delta_term=0.d0
+                      end if
+                      quadropole_el(j,i) = quadropole_el(j,i) + q*(3.d0*rj*ri-delta_term)
+                  end do
+              end do
+          end do
+      end do
+  end do
+
+  ! Dipole of the center
+  dipole_center(1) = -qtot*rxyz_center(1)
+  dipole_center(2) = -qtot*rxyz_center(2)
+  dipole_center(3) = -qtot*rxyz_center(3)
+
+  ! Quadropole of the center
+  quadropole_center=0.d0
+  do i=1,3
+      ri=rxyz_center(i)
+      do j=1,3
+          rj=rxyz_center(j)
+          if (i==j) then
+              delta_term = rxyz_center(1)**2 + rxyz_center(2)**2 + rxyz_center(3)**2
+          else
+              delta_term=0.d0
+          end if
+          quadropole_center(j,i) = quadropole_center(j,i) + -qtot*(3.d0*rj*ri-delta_term)
+      end do
+  end do
+
+  ! Net dipole and quadropole
+  dipole_net = dipole_el + dipole_center
+  quadropole_net = quadropole_el + quadropole_center
+
+
+!  call yaml_open_sequence(trim(yaml_toa(it))//'('//trim(atomname)//')')
+!  !call yaml_map('qtot',qtot)
+!  call yaml_sequence(advance='no')
+!  !call yaml_map('center dipole',dipole_center,fmt='(es16.6)')
+!  !call yaml_map('electronic dipole',dipole_el,fmt='(es18.10)')
+!  call yaml_map('net dipole',dipole_net,fmt='(es18.10)')
+!  call yaml_sequence(advance='no')
+!  !call yaml_open_sequence('center quadropole')
+!  !do i=1,3
+!  !   call yaml_sequence(trim(yaml_toa(quadropole_center(i,1:3),fmt='(es15.8)')))
+!  !end do
+!  !call yaml_close_sequence()
+!  !call yaml_open_sequence('electronic quadropole')
+!  !do i=1,3
+!  !   call yaml_sequence(trim(yaml_toa(quadropole_el(i,1:3),fmt='(es15.8)')))
+!  !end do
+!  !call yaml_close_sequence()
+!  call yaml_open_sequence('net quadropole')
+!  do i=1,3
+!     call yaml_sequence(trim(yaml_toa(quadropole_net(i,1:3),fmt='(es15.8)')))
+!  end do
+!  call yaml_close_sequence()
+!  call yaml_close_sequence()
+
+  contains
+
+    function get_r(i, x, y, z)
+      integer,intent(in) :: i
+      real(kind=8),intent(in) :: x, y, z
+      real(kind=8) :: get_r
+
+      select case (i)
+      case (1)
+          get_r=x
+      case (2)
+          get_r=y
+      case (3)
+          get_r=z
+      case default
+          stop 'wrong value of i'
+      end select
+    end function get_r
+
+end subroutine calculate_multipoles

@@ -431,6 +431,11 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   call gaussians_to_wavelets_new(iproc,nproc,tmb%lzd,orbs_gauss,G,&
        psigau(1,1,min(tmb%orbs%isorb+1,tmb%orbs%norb)),tmb%psi)
 
+  tmb%can_use_transposed=.false.
+  call loewdin_charge_analysis(iproc, tmb, at, denspot, calculate_overlap_matrix=.true., &
+       calculate_ovrlp_half=.true., meth_overlap=0)
+
+
   iall=-product(shape(psigau))*kind(psigau)
   deallocate(psigau,stat=istat)
   call memocc(istat,iall,'psigau',subname)
