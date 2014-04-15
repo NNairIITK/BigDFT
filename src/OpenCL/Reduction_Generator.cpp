@@ -22,7 +22,7 @@ static void generate_reductionKernel(std::stringstream &program,struct bigdft_de
   size_t max_wgs = infos->MAX_WORK_GROUP_SIZE;
   cl_device_type device_type = infos->DEVICE_TYPE;
   size_t cutoff;
-  if( infos->DEVICE_TYPE == CL_DEVICE_TYPE_CPU )
+  if( infos->DEVICE_TYPE != CL_DEVICE_TYPE_GPU or strcasestr(infos->NAME,"Mali") )
     cutoff = 4;
   else
     cutoff = 64;
@@ -63,7 +63,7 @@ static void generate_reductionKernel(std::stringstream &program,struct bigdft_de
 static void generate_reduction_dotKernel(std::stringstream &program,struct bigdft_device_infos * infos){
   size_t max_wgs = infos->MAX_WORK_GROUP_SIZE;
   size_t cutoff;
-  if( infos->DEVICE_TYPE == CL_DEVICE_TYPE_CPU )
+  if( infos->DEVICE_TYPE != CL_DEVICE_TYPE_GPU or strcasestr(infos->NAME,"Mali") )
     cutoff = 4;
   else
     cutoff = 64;
@@ -103,7 +103,7 @@ static void generate_reduction_dotKernel(std::stringstream &program,struct bigdf
 static void generate_dotKernel(std::stringstream &program,struct bigdft_device_infos * infos){
   size_t max_wgs = infos->MAX_WORK_GROUP_SIZE;
   size_t cutoff;
-  if( infos->DEVICE_TYPE == CL_DEVICE_TYPE_CPU )
+  if( infos->DEVICE_TYPE != CL_DEVICE_TYPE_GPU or strcasestr(infos->NAME,"Mali") )
     cutoff = 4;
   else
     cutoff = 64;
