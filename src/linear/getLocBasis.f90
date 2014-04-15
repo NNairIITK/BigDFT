@@ -3067,6 +3067,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
           do i=1,3
              call yaml_sequence(trim(yaml_toa(quadropole_net(i,1:3),fmt='(es12.5)')))
           end do
+          call yaml_map('trace',quadropole_net(1,1)+quadropole_net(2,2)+quadropole_net(3,3),fmt='(es12.2)')
           call yaml_close_sequence()
       end if
 
