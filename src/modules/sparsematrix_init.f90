@@ -44,7 +44,7 @@ module sparsematrix_init
       logical,dimension(:),allocatable :: lut
       logical,dimension(:,:),allocatable :: kernel_locreg
       logical :: segment_started, newline, overlap, seg_started
-      integer :: nseg_mult, nvctr_mult
+      integer :: nseg_mult, nvctr_mult, ivctr_mult
       integer,dimension(:),allocatable :: nsegline_mult, istsegline_mult
       integer,dimension(:,:),allocatable :: keyg_mult
       real(kind=8) :: tt, cut
@@ -91,29 +91,6 @@ module sparsematrix_init
           iiorb=orbs%isorb+iorb
           call create_lookup_table(iiorb)
           call nseg_perline(orbs%norb, lut, sparsemat%nseg, sparsemat%nvctr, sparsemat%nsegline(iiorb))
-          !!! Always start a new segment for each line
-          !!segment_started=.false.
-          !!isegline=0
-          !!newline=.true.
-          !!do jorb=1,orbs%norb
-          !!    overlap=lut(jorb)
-          !!    if (overlap) then
-          !!        if (segment_started) then
-          !!            ! there is no "hole" in between, i.e. we are in the same segment
-          !!            sparsemat%nvctr=sparsemat%nvctr+1
-          !!        else
-          !!            ! there was a "hole" in between, i.e. we are in a new segment
-          !!            sparsemat%nseg=sparsemat%nseg+1
-          !!            isegline=isegline+1
-          !!            sparsemat%nvctr=sparsemat%nvctr+1
-          !!            newline=.false.
-          !!        end if
-          !!        segment_started=.true.
-          !!    else
-          !!        segment_started=.false.
-          !!    end if
-          !!end do
-          !!sparsemat%nsegline(iiorb)=isegline
       end do
 
       call mpiallred(sparsemat%nvctr, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -144,37 +121,39 @@ module sparsematrix_init
       sparsemat%keyg=0
       do iorb=1,orbs%norbp
           iiorb=orbs%isorb+iorb
-          ! Always start a new segment for each line
-          segment_started=.false.
           call create_lookup_table(iiorb)
-          iseg=sparsemat%istsegline(iiorb)-1
-          do jorb=1,orbs%norb
-              overlap=lut(jorb)
-              ijorb=(iiorb-1)*orbs%norb+jorb
-              if (overlap) then
-                  if (segment_started) then
-                      ! there is no "hole" in between, i.e. we are in the same segment
-                      ivctr=ivctr+1
-                  else
-                      ! there was a "hole" in between, i.e. we are in a new segment.
-                      iseg=iseg+1
-                      ivctr=ivctr+1
-                      ! open the current segment
-                      sparsemat%keyg(1,iseg)=ijorb
-                  end if
-                  segment_started=.true.
-              else
-                  if (segment_started) then
-                      ! close the previous segment
-                      sparsemat%keyg(2,iseg)=ijorb-1
-                  end if
-                  segment_started=.false.
-              end if
-          end do
-          ! close the last segment on the line if necessary
-          if (segment_started) then
-              sparsemat%keyg(2,iseg)=iiorb*orbs%norb
-          end if
+          call keyg_per_line(orbs%norb, sparsemat%nseg, iiorb, sparsemat%istsegline(iiorb), &
+               lut, ivctr, sparsemat%keyg)
+          !!! Always start a new segment for each line
+          !!segment_started=.false.
+          !!iseg=sparsemat%istsegline(iiorb)-1
+          !!do jorb=1,orbs%norb
+          !!    overlap=lut(jorb)
+          !!    ijorb=(iiorb-1)*orbs%norb+jorb
+          !!    if (overlap) then
+          !!        if (segment_started) then
+          !!            ! there is no "hole" in between, i.e. we are in the same segment
+          !!            ivctr=ivctr+1
+          !!        else
+          !!            ! there was a "hole" in between, i.e. we are in a new segment.
+          !!            iseg=iseg+1
+          !!            ivctr=ivctr+1
+          !!            ! open the current segment
+          !!            sparsemat%keyg(1,iseg)=ijorb
+          !!        end if
+          !!        segment_started=.true.
+          !!    else
+          !!        if (segment_started) then
+          !!            ! close the previous segment
+          !!            sparsemat%keyg(2,iseg)=ijorb-1
+          !!        end if
+          !!        segment_started=.false.
+          !!    end if
+          !!end do
+          !!! close the last segment on the line if necessary
+          !!if (segment_started) then
+          !!    sparsemat%keyg(2,iseg)=iiorb*orbs%norb
+          !!end if
       end do
     
       ! check whether the number of elements agrees
@@ -382,29 +361,39 @@ module sparsematrix_init
 
       keyg_mult = f_malloc0((/2,nseg_mult/),id='keyg_mult')
 
+      ivctr_mult=0
       do iorb=1,orbs%norbp
          iiorb=orbs%isorb+iorb
-         iseg=0
-         seg_started=.false.
-         isegstart=istsegline_mult(iiorb)-1
-         do jjorb=1,orbs%norb
-            if(kernel_locreg(iorb,jjorb)) then
-               if (.not.seg_started) then
-                  iseg=iseg+1
-                  keyg_mult(1,isegstart+iseg)=(iiorb-1)*orbs%norb+jjorb
-               end if
-               seg_started=.true.
-            else
-               if (seg_started) then
-                  keyg_mult(2,isegstart+iseg)=(iiorb-1)*orbs%norb+jjorb-1
-               end if
-               seg_started=.false.
-            end if
-         end do
-         if (seg_started) then
-            keyg_mult(2,isegstart+iseg)=(iiorb-1)*orbs%norb+orbs%norb
-         end if
+         call create_lookup_table(iiorb)
+         call keyg_per_line(orbs%norb, nseg_mult, iiorb, istsegline_mult(iiorb), &
+              lut, ivctr_mult, keyg_mult)
+         !!iseg=0
+         !!seg_started=.false.
+         !!isegstart=istsegline_mult(iiorb)-1
+         !!do jjorb=1,orbs%norb
+         !!   if(kernel_locreg(iorb,jjorb)) then
+         !!      if (.not.seg_started) then
+         !!         iseg=iseg+1
+         !!         keyg_mult(1,isegstart+iseg)=(iiorb-1)*orbs%norb+jjorb
+         !!      end if
+         !!      seg_started=.true.
+         !!   else
+         !!      if (seg_started) then
+         !!         keyg_mult(2,isegstart+iseg)=(iiorb-1)*orbs%norb+jjorb-1
+         !!      end if
+         !!      seg_started=.false.
+         !!   end if
+         !!end do
+         !!if (seg_started) then
+         !!   keyg_mult(2,isegstart+iseg)=(iiorb-1)*orbs%norb+orbs%norb
+         !!end if
       end do
+      ! check whether the number of elements agrees
+      call mpiallred(ivctr_mult, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      if (ivctr_mult/=nvctr_mult) then
+          write(*,'(a,2i8)') 'ERROR: ivctr_mult/=nvctr_mult', ivctr_mult, nvctr_mult
+          stop
+      end if
       call mpiallred(keyg_mult(1,1), 2*nseg_mult, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
 
@@ -1209,6 +1198,8 @@ module sparsematrix_init
 
     subroutine nseg_perline(norb, lut, nseg, nvctr, nsegline)
       implicit none
+
+      ! Calling arguments
       integer,intent(in) :: norb
       logical,dimension(norb),intent(in) :: lut
       integer,intent(out) :: nseg, nvctr, nsegline
@@ -1241,6 +1232,53 @@ module sparsematrix_init
       end do
 
     end subroutine nseg_perline
+
+
+    subroutine keyg_per_line(norb, nseg, iline, istseg, lut, ivctr, keyg)
+      implicit none
+      
+      ! Calling arguments
+      integer,intent(in) :: norb, nseg, iline, istseg
+      logical,dimension(norb),intent(in) :: lut
+      integer,intent(inout) :: ivctr
+      integer,dimension(2,nseg),intent(out) :: keyg
+      
+      ! Local variables
+      integer :: iseg, jorb, ijorb
+      logical :: segment_started, overlap
+
+      ! Always start a new segment for each line
+      segment_started=.false.
+      !iseg=sparsemat%istsegline(iline)-1
+      iseg=istseg-1
+      do jorb=1,norb
+          overlap=lut(jorb)
+          ijorb=(iline-1)*norb+jorb
+          if (overlap) then
+              if (segment_started) then
+                  ! there is no "hole" in between, i.e. we are in the same segment
+                  ivctr=ivctr+1
+              else
+                  ! there was a "hole" in between, i.e. we are in a new segment.
+                  iseg=iseg+1
+                  ivctr=ivctr+1
+                  ! open the current segment
+                  keyg(1,iseg)=ijorb
+              end if
+              segment_started=.true.
+          else
+              if (segment_started) then
+                  ! close the previous segment
+                  keyg(2,iseg)=ijorb-1
+              end if
+              segment_started=.false.
+          end if
+      end do
+      ! close the last segment on the line if necessary
+      if (segment_started) then
+          keyg(2,iseg)=iline*norb
+      end if
+    end subroutine keyg_per_line
 
 
 end module sparsematrix_init
