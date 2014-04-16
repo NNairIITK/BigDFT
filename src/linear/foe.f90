@@ -17,7 +17,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   use module_interfaces, except_this_one => foe
   use yaml_output
   use sparsematrix_init, only: matrixindex_in_compressed
-  use sparsematrix, only: compress_matrix, uncompress_matrix
+  use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed
   implicit none
 
   ! Calling arguments
@@ -855,11 +855,9 @@ subroutine foe(iproc, nproc, tmprtr, &
       !!    !$omp end parallel
       !!end if
 
-     call compress_matrix_distributed(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb_par, &
-          tmb%linmat%denskern_large, fermip, tmb%linmat%denskern_large%matrix_compr)
+     call compress_matrix_distributed(iproc, tmb%linmat%denskern_large, fermip, tmb%linmat%denskern_large%matrix_compr)
 
-     call compress_matrix_distributed(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb_par, &
-          tmb%linmat%denskern_large, fermip_check, fermi_check_compr)
+     call compress_matrix_distributed(iproc, tmb%linmat%denskern_large, fermip_check, fermi_check_compr)
 
 
 
@@ -1242,8 +1240,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           call to_zero(tmb%linmat%denskern_large%nvctr, matrix_compr(1))
           !!call compress_matrix_distributed(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb_par, &
           !!     tmb%linmat%denskern_large, inv_ovrlpp, tmb%linmat%denskern_large%matrix_compr)
-          call compress_matrix_distributed(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb_par, &
-               tmb%linmat%denskern_large, inv_ovrlpp, matrix_compr)
+          call compress_matrix_distributed(iproc, tmb%linmat%denskern_large, inv_ovrlpp, matrix_compr)
           !!call mpiallred(tmb%linmat%denskern_large%matrix_compr(1), tmb%linmat%denskern_large%nvctr, &
           !!     mpi_sum, bigdft_mpi%mpi_comm, ierr)
 

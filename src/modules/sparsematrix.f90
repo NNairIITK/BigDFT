@@ -10,6 +10,7 @@ module sparsematrix
   public :: uncompress_matrix
   public :: check_matrix_compression
   public :: transform_sparse_matrix
+  public :: compress_matrix_distributed
 
   contains
 
@@ -367,5 +368,54 @@ module sparsematrix
       call timing(bigdft_mpi%iproc,'transform_matr','RS')
     
     end subroutine transform_sparse_matrix
+
+
+
+
+   subroutine compress_matrix_distributed(iproc, smat, matrixp, matrix_compr)
+     use module_base
+     use module_types
+     use sparsematrix_base, only: sparse_matrix
+     implicit none
+
+     ! Calling arguments
+     integer,intent(in) :: iproc
+     type(sparse_matrix),intent(in) :: smat
+     real(kind=8),dimension(smat%nfvctr,smat%nfvctrp),intent(in) :: matrixp
+     real(kind=8),dimension(smat%nvctr),intent(out) :: matrix_compr
+
+     ! Local variables
+     integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, ierr
+
+
+     call to_zero(smat%nvctr, matrix_compr(1))
+
+     if (smat%nfvctrp>0) then
+         isegstart=smat%istsegline(smat%isfvctr_par(iproc)+1)
+         if (smat%isfvctr_par(iproc)+smat%nfvctrp<smat%nfvctr) then
+             isegend=smat%istsegline(smat%isfvctr_par(iproc+1)+1)-1
+         else
+             isegend=smat%nseg
+         end if
+         !$omp parallel default(none) &
+         !$omp shared(isegstart, isegend, matrixp, smat, matrix_compr,iproc) &
+         !$omp private(iseg, ii, jorb, iiorb, jjorb)
+         !$omp do
+         do iseg=isegstart,isegend
+             ii=smat%keyv(iseg)-1
+             do jorb=smat%keyg(1,iseg),smat%keyg(2,iseg)
+                 ii=ii+1
+                 iiorb = (jorb-1)/smat%nfvctr + 1
+                 jjorb = jorb - (iiorb-1)*smat%nfvctr
+                 matrix_compr(ii)=matrixp(jjorb,iiorb-smat%isfvctr_par(iproc))
+             end do
+         end do
+         !$omp end do
+         !$omp end parallel
+     end if
+
+     call mpiallred(matrix_compr(1), smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+  end subroutine compress_matrix_distributed
 
 end module sparsematrix
