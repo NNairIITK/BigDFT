@@ -1,18 +1,29 @@
+!> @file
+!!  File defining the structures and the routines for the communication between processes
+!! @author
+!!    Copyright (C) 2013-2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Module defining structures and routines related to basic communications
 module communications_base
   use module_base
   implicit none
 
   private
 
-
   !> Contains the information needed for communicating the wavefunctions
   !! between processors for the transposition
   type, public :: comms_cubic
-     integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt
+     integer, dimension(:), pointer :: ncntd,ncntt
+     integer, dimension(:), pointer :: ndspld,ndsplt
      integer, dimension(:,:), pointer :: nvctr_par
   end type comms_cubic
 
-
+  !> Contains the information needed for communicating in the linear version
   type,public:: comms_linear
     integer :: nptsp_c, ndimpsi_c, ndimind_c, ndimind_f, nptsp_f, ndimpsi_f
     integer,dimension(:),pointer :: nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c
@@ -21,7 +32,7 @@ module communications_base
     integer,dimension(:),pointer :: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
     integer,dimension(:),pointer :: isendbuf_f, iextract_f, iexpand_f, irecvbuf_f
     integer,dimension(:),pointer :: norb_per_gridpoint_f, indexrecvorbital_f
-    integer,dimension(:),pointer :: isptsp_c, isptsp_f !<starting index of a given gridpoint (basically summation of norb_per_gridpoint_*)
+    integer,dimension(:),pointer :: isptsp_c, isptsp_f !< starting index of a given gridpoint (basically summation of norb_per_gridpoint_*)
     real(kind=8),dimension(:),pointer :: psit_c, psit_f
     integer,dimension(:),pointer :: nsendcounts_repartitionrho, nrecvcounts_repartitionrho
     integer,dimension(:),pointer :: nsenddspls_repartitionrho, nrecvdspls_repartitionrho
@@ -29,7 +40,11 @@ module communications_base
     integer,dimension(:,:),pointer :: commarr_repartitionrho
   end type comms_linear
 
-
+  interface check_array_consistency
+     module procedure check_array_consistency1
+     module procedure check_array_consistency2
+  end interface
+       
   !> Public routines
   public :: comms_linear_null
   public :: allocate_MPI_communication_arrays
@@ -46,12 +61,12 @@ module communications_base
   contains
 
     !> Creators and destructors
-
     pure function comms_linear_null() result(comms)
       implicit none
       type(comms_linear) :: comms
       call nullify_comms_linear(comms)
     end function comms_linear_null
+
 
     pure subroutine nullify_comms_linear(comms)
       implicit none
@@ -86,6 +101,7 @@ module communications_base
       nullify(comms%nrecvdspls_repartitionrho)
       nullify(comms%commarr_repartitionrho)
     end subroutine nullify_comms_linear
+
 
     subroutine allocate_MPI_communication_arrays(nproc, comms, only_coarse)
       implicit none
@@ -215,17 +231,18 @@ module communications_base
 
     subroutine deallocate_MPI_comms_cubic_repartitionp2p(commarr_repartitionrho)
       implicit none
-      integer,dimension(:,:),pointer,intent(inout) :: commarr_repartitionrho
+      integer, dimension(:,:), pointer,intent(inout) :: commarr_repartitionrho
       call f_free_ptr(commarr_repartitionrho)
     end subroutine deallocate_MPI_comms_cubic_repartitionp2p
 
 
-    subroutine check_array_consistency(maxdiff, nproc, array, ndims, mpi_comm)
+    !> Check the consistency of arrays after a gather (example: atomic coordinates)
+    subroutine check_array_consistency1(maxdiff, nproc, array, ndims, mpi_comm)
       use dynamic_memory
       implicit none
       integer, intent(in) :: mpi_comm
       integer, intent(in) :: ndims, nproc
-      real(gp), intent(in) :: array
+      real(gp), dimension(:), intent(in) :: array
       real(gp), intent(out) :: maxdiff
 
       integer :: ierr, jproc, i
@@ -249,6 +266,39 @@ module communications_base
       end do
 
       call f_free(rxyz_glob)
-    END SUBROUTINE check_array_consistency
+    END SUBROUTINE check_array_consistency1
+
+
+    !> Check the consistency of arrays after a gather (example: atomic coordinates)
+    subroutine check_array_consistency2(maxdiff, nproc, array, ndims, mpi_comm)
+      use dynamic_memory
+      implicit none
+      integer, intent(in) :: mpi_comm
+      integer, intent(in) :: ndims, nproc
+      real(gp), dimension(:,:), intent(in) :: array
+      real(gp), intent(out) :: maxdiff
+
+      integer :: ierr, jproc, i
+      real(gp), dimension(:,:), allocatable :: rxyz_glob
+
+      maxdiff=0.0_gp
+
+      if (nproc == 1) return
+
+      !check that the positions are identical for all the processes
+      rxyz_glob=f_malloc((/ndims,nproc/),id='rxyz_glob')
+
+      !gather the results for all the processors
+      call MPI_GATHER(array,ndims,mpidtypg,&
+           rxyz_glob,ndims,mpidtypg,0,mpi_comm,ierr)
+      do jproc=2,nproc
+         do i=1,ndims
+            maxdiff=max(maxdiff,&
+                 abs(rxyz_glob(i,jproc)-rxyz_glob(i,1)))
+         end do
+      end do
+
+      call f_free(rxyz_glob)
+    END SUBROUTINE check_array_consistency2
 
 end module communications_base

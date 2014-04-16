@@ -25,7 +25,7 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
   character(len=*), parameter :: subname='call_bigdft'
   character(len=40) :: comment
   logical :: exists
-  integer :: i_stat,i_all,ierr,inputPsiId_orig,iat,iorb,istep,i,jproc
+  integer :: i_stat,i_all,ierr,inputPsiId_orig,iat,iorb,istep
   real(gp) :: maxdiff
 
   !temporary interface, not needed anymore since all arguments are structures
@@ -58,7 +58,8 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
   call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
   call f_routine(id=subname)
 
-  call check_array_consistency(maxdiff, nproc, runObj%atoms%astruct%rxyz(1,1), &
+  !Check the consistency between MPI processes of the atomic coordinates
+  call check_array_consistency(maxdiff, nproc, runObj%atoms%astruct%rxyz, &
        & 3 * runObj%atoms%astruct%nat, bigdft_mpi%mpi_comm)
   if (iproc==0 .and. maxdiff > epsilon(1.0_gp)) &
        call yaml_warning('Input positions not identical! '//&
@@ -271,7 +272,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   integer :: i, input_wf_format, output_denspot
   integer :: n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
-  integer :: iat,i_all,i_stat,ierr,inputpsi,igroup,ikpt,nproctiming,ifrag
+  integer :: i_all,i_stat,ierr,inputpsi,igroup,ikpt,nproctiming,ifrag
   real :: tcpu0,tcpu1
   real(kind=8) :: tel
   type(grid_dimensions) :: d_old
@@ -311,7 +312,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
   ! testing
   real(kind=8),dimension(:,:),pointer :: locregcenters
-  integer :: ilr, nlr, iorb, jorb, ioffset, linear_iscf
+  integer :: ilr, nlr, ioffset, linear_iscf
   character(len=20) :: comment
 
   !debug

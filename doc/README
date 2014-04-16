@@ -16,7 +16,7 @@ At the beginning of each Fortran file, it is important to add the following line
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-@endvarbatim
+@endverbatim
 
 Then before each routine or module inside the corresponding file, you add some lines of comment as:
 @verbatim
@@ -46,7 +46,7 @@ All variables and routines inside the modules should be commented.
 
 Finally in the README file, you find the different pages related to the documentation of BigDFT.
 
-@section 1 Some tips for doxygen
+@section Tips Some tips for doxygen
 - Add @verbatim @file @endverbatim following by @verbatim @brief short description@endverbatim in the second line 
   at the beginning of each file without specifying the name in order to permit to
   doxygen to determine automatically the name. 

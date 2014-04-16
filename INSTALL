@@ -245,7 +245,7 @@ Clean the source tree of the &#8217;make&#8217; action by <tt>make clean</tt>.
 See the file @ref README-MAIN "README" for more explanations.
 
 
-@section Building Building a library
+@section Library Building a library
 <p>
 To avoid to create the binary executables, use <tt>--disable--build-binary</tt> option.
 </p>

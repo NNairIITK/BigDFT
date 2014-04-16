@@ -1,10 +1,22 @@
+!> @file
+!!  File defining the structures and the routines for the communication between processes
+!! @author
+!!    Copyright (C) 2014-2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Module defining routines related to communications (maily transpositions)
 module communications
+
   use module_base
   use communications_base, only: comms_linear, comms_cubic
+
   implicit none
 
   private
-
 
   public :: transpose_localized
   public :: untranspose_localized
@@ -946,7 +958,7 @@ module communications
       ! Local variables
       !character(len=*), parameter :: subname='start_onesided_communication'
       integer :: jproc, joverlap, mpisource, istsource, mpidest, istdest, ierr, nit
-      integer :: ioffset_send, mpi_type, ist, i2, i3, ist2, ist3, info, nsize, size_of_double
+      integer :: ioffset_send, ist, i2, i3, ist2, ist3, info, nsize, size_of_double
     
     
       call timing(iproc, 'Pot_comm start', 'ON')
@@ -1227,8 +1239,8 @@ module communications
        integer,dimension(orbs%norb),intent(in) :: onwhichmpi
     
        ! Local variables
-       integer:: ierr, istat, iall, jorb, ilr, jlr, itask, jtask, root, icomm, nrecv, nalloc, max_sim_comms
-       integer :: maxrecvdim, maxsenddim, nsend
+       integer:: ierr, istat, iall, jorb, ilr, jlr, jtask, root, icomm, nrecv, nalloc, max_sim_comms
+       integer :: maxrecvdim, maxsenddim
        logical :: isoverlap
        character(len=*),parameter:: subname='communicate_wavefunctions_descriptors2'
        integer,dimension(:),allocatable :: requests
@@ -1430,16 +1442,11 @@ module communications
       !> size of the buffers, optional.
       real(wp), optional :: out_add
       !local variables
-      integer :: ierr, i_all, i_stat
-      integer :: psishift1,totshift,iorb,ilr,ldim,Gdim,ldimtot
-      real(wp), dimension(:), pointer :: workarr
-      logical :: to_global
       character(len=*), parameter :: subname='transpose_v'
+      integer :: ierr
       external :: switch_waves_v,psitransspi,MPI_ALLTOALLV
-
     
       call timing(iproc,'Un-TransSwitch','ON')
-
     
       if (nproc > 1) then
          call switch_waves_v(nproc,orbs,&
@@ -1895,7 +1902,7 @@ subroutine toglobal_and_transpose(iproc,nproc,orbs,Lzd,comms,psi,&
   real(wp), dimension(*), intent(out), optional :: outadd
   !local variables
   character(len=*), parameter :: subname='toglobal_and_transpose'
-  integer :: ierr,i_all,i_stat
+  integer :: i_all,i_stat
   integer :: psishift1,totshift,iorb,ilr,ldim,Gdim
   real(wp) :: workdum
   real(wp), dimension(:), pointer :: workarr

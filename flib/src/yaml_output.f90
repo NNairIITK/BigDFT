@@ -100,22 +100,25 @@ module yaml_output
  
   !> Fake structure needed to document common arguments of the module
   type, private :: doc
-     !>integer indicating the value of the column where the following 
+     !> integer indicating the value of the column where the following 
      !! data have to be aligned. This is used when the field is opened with 
      !! flow=.true. so that the output is forced to start from the columns indicated
      !! by the value of tabbing. Should the cursor be already above this value,
      !! then the field is ignored.
      integer :: tabbing
-     integer:: unit !< unit of the yaml_stream to be used for output. 
-                    !! its value is specified by the user according to the specification of the @link yaml_set_stream @endlink routine
-     character(len=1) :: mapname !<key of the mapping (or sequence). It represents the identifier of the value field which is associated to it
-     logical :: flow !< logical variable controlling the flow of the output. Default is .false..
-                     !! When .true., the output is written in compact yaml flow style. See yaml specifications in
-                     !! http://www.yaml.org/spec/1.2/spec.html#id2759963 . Of course also nested field inside will be written
-                     !! in compact flow style, until the mapping or sequencing is closed.
-     character(len=1) :: label !< define a anchor of the mapping, which can be used to deepcopy its value in another mapping
+     !> unit of the yaml_stream to be used for output. 
+     !! its value is specified by the user according to the specification of the @link yaml_set_stream @endlink routine
+     integer:: unit
+     !> key of the mapping (or sequence). It represents the identifier of the value field which is associated to it
+     character(len=1) :: mapname
+     !> logical variable controlling the flow of the output. Default is .false..
+     !! When .true., the output is written in compact yaml flow style. See yaml specifications in
+     !! http://www.yaml.org/spec/1.2/spec.html#id2759963 . Of course also nested field inside will be written
+     !! in compact flow style, until the mapping or sequencing is closed.
+     logical :: flow 
+     !> define a anchor of the mapping, which can be used to deepcopy its value in another mapping
      !! see http://www.yaml.org/spec/1.2/spec.html#id2760395.
-
+     character(len=1) :: label 
      !> define whether the i/o should be advancing (advance='yes') or not (advance='no').
      !! if the mapping (in the case of @link yaml_open_map @endlink) or sequencing @link yaml_open_sequence @endlink)
      !!has been opened with the value of flow  = .true.
@@ -124,7 +127,8 @@ module yaml_output
      !! Otherwise, if absent, the output is always advancing.
      !! non-advancing i/o is useful for example when one wants to leave a comment after the end of a mapping.
      character(len=1) :: advance 
-     character(len=1) :: tag !< tag description. Unused and should be probably removed
+     !> tag description. Unused and should be probably removed
+     character(len=1) :: tag 
      !> scalar value of the mapping may be of any scalar type
      !! it is internally converted to character with the usage of @link yaml_toa @endlink function
      character(len=1) :: mapvalue
@@ -578,7 +582,7 @@ contains
   !! should this stream be the default stream, stdout becomes the default
   subroutine yaml_close_stream(unit,istat)
     implicit none
-    integer, optional, intent(in) :: unit
+    integer, optional, intent(in) :: unit   !< @copydoc doc::unit
     integer, optional, intent(out) :: istat !<error code, zero if suceeded
     !local variables
     integer :: unt,istatus,strm,funt
@@ -670,9 +674,9 @@ contains
   !> Display a warning (yaml comment starting with '\#WARNING: ')
   subroutine yaml_warning(message,level,unit)
     implicit none
-    integer, optional, intent(in) :: unit !< @copydoc doc::unit
-    character(len=*), intent(in) :: message
-    integer, optional, intent(in) :: level
+    character(len=*), intent(in) :: message !< Warning message
+    integer, optional, intent(in) :: level  !< Level of the message (if < Wall then abort)
+    integer, optional, intent(in) :: unit   !< @copydoc doc::unit
     !local variables
     integer :: unt,strm
 !!$    integer :: item

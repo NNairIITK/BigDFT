@@ -399,7 +399,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   if (atoms%astruct%sym%symObj >= 0) call symmetrise_forces(fxyz,atoms)
 
   ! Check forces consistency.
-  call check_array_consistency(maxdiff, nproc, fxyz(1,1), &
+  call check_array_consistency(maxdiff, nproc, fxyz, &
        & 3 * atoms%astruct%nat, bigdft_mpi%mpi_comm)
   if (iproc==0 .and. maxdiff > epsilon(1.0_gp)) &
        call yaml_warning('Output forces not identical! '//&
