@@ -53,10 +53,12 @@ MODULE m_pawtab
    module procedure pawtab_nullify_0D
    module procedure pawtab_nullify_1D
  end interface pawtab_nullify
+
  interface pawtab_destroy
    module procedure pawtab_destroy_0D
    module procedure pawtab_destroy_1D
  end interface pawtab_destroy
+
  interface pawtab_set_flags
    module procedure pawtab_set_flags_0D
    module procedure pawtab_set_flags_1D
@@ -329,186 +331,186 @@ MODULE m_pawtab
 
 !Integer arrays
 
-  integer, pointer :: indklmn(:,:)
+  integer, allocatable :: indklmn(:,:)
    ! indklmn(8,lmn2_size)
    ! Array giving klm, kln, abs(il-jl), (il+jl), ilm and jlm, ilmn and jlmn for each klmn=(ilmn,jlmn)
    ! Note: ilmn=(il,im,in) and ilmn<=jlmn
 
-  integer, pointer :: indlmn(:,:) 
+  integer, allocatable :: indlmn(:,:) 
    ! indlmn(6,lmn2_size)
    ! For each type of psp,
    ! array giving l,m,n,lm,ln,spin for i=lmn (if useylm=1)
 
-  integer, pointer :: klmntomn(:,:)
+  integer, allocatable :: klmntomn(:,:)
    ! klmntomn(4,lmn2_size)
    ! Array giving im, jm ,in, and jn for each klmn=(ilmn,jlmn)
    ! Note: ilmn=(il,im,in) and ilmn<=jlmn
    ! NB: klmntomn is an application and not a bijection
 
-  integer, pointer :: kmix(:)
+  integer, allocatable :: kmix(:)
    ! kmix(lmnmix_sz)
    ! Indirect array selecting the klmn=(lmn,lmn_prime) verifying l<=lmix and l_prime<=lmix
 
-  integer, pointer :: lnproju(:)
+  integer, allocatable :: lnproju(:)
    ! lnproju(nproju) gives ln (index for phi) for each projectors on which U acts (PAW+U only)
    ! nproju is 1 or 2 and  is the number of projectors for correlated orbitals
    ! Also used for local exact-exchange
 
-  integer, pointer :: orbitals(:)
+  integer, allocatable :: orbitals(:)
    ! gives the l quantum number per basis element
 
 !Real (real(dp)) arrays
 
-  real(dp), pointer :: coredens(:)
+  real(dp), allocatable :: coredens(:)
    ! coredens(mesh_size)
    ! Gives the core density of the atom
 
-  real(dp), pointer :: dij0(:)
+  real(dp), allocatable :: dij0(:)
    ! dij0(lmn2_size)
    ! Part of the Dij term (non-local operator) completely
    ! calculated in the atomic data part
 
-  real(dp), pointer :: dltij(:)
+  real(dp), allocatable :: dltij(:)
    ! dltij(lmn2_size)
    ! Factor used to compute sums over klmn=(ilmn,jlmn)
    ! ((ilmn,ilmn) term has to be added once)
    ! dltij(klmn)=1 if ilmn=jlmn, else dltij(klmn)=2
 
-  real(dp), pointer :: dshpfunc(:,:,:)
+  real(dp), allocatable :: dshpfunc(:,:,:)
    ! shapefunc(mesh_size,l_size,4)
    ! Gives the 4 first derivatives of  radial shape function
    ! for each l component; used only if shape_type=-1
 
-  real(dp), pointer :: eijkl(:,:)
+  real(dp), allocatable :: eijkl(:,:)
    ! eijkl(lmn2_size,lmn2_size)
    ! Part of the Dij term (non-local operator) that depends only from
    ! the projected occupation coeffs in the self-consistent loop
 
-  real(dp), pointer :: fk(:,:)
+  real(dp), allocatable :: fk(:,:)
    ! fk(6,4)
    ! Slater integrals used for local exact exchange
 
-  real(dp), pointer :: gammaij(:)
+  real(dp), allocatable :: gammaij(:)
    ! gammaij(lmn2_size)
    ! background contribution from the densities
 
-  real(dp), pointer :: gnorm(:)
+  real(dp), allocatable :: gnorm(:)
    ! gnorm(l_size)
    ! Give the the normalization factor of each radial shape function
 
-  real(dp), pointer :: kij(:)
+  real(dp), allocatable :: kij(:)
   ! kij(lmn2_size))
   ! Onsite matrix elements <phi|\kinetic|phj>-<tphi|\kinetic|tphj>
 
-  real(dp), pointer :: nabla_ij(:,:,:)
+  real(dp), allocatable :: nabla_ij(:,:,:)
    ! nabla_ij(3,lmn_size,lmn_size)
    ! Onsite matrix elements <phi|\nabla|phj>-<tphi|\nabla|tphj>
 
-  real(dp), pointer :: phi(:,:)
+  real(dp), allocatable :: phi(:,:)
    ! phi(mesh_size, basis_size)
    ! Gives the paw electron wavefunctions on the radial grid
 
-  real(dp), pointer :: phiphj(:,:)
+  real(dp), allocatable :: phiphj(:,:)
    ! phiphj(mesh_size,ij_size)
    ! Useful product Phi(:,i)*Phi(:,j)
 
-  real(dp), pointer :: phiphjint(:)
+  real(dp), allocatable :: phiphjint(:)
    ! phiphjint(ij_proj)
    ! Integration of Phi(:,i)*Phi(:,j) for LDA+U/local exact-exchange occupation matrix
 
-  real(dp), pointer :: ph0phiint(:)
+  real(dp), allocatable :: ph0phiint(:)
    ! ph0phjint(ij_proj)
    ! Integration of Phi(:,1)*Phi(:,j) for LDA+DMFT projections
 
-  real(dp), pointer :: qgrid_shp(:)
+  real(dp), allocatable :: qgrid_shp(:)
    ! qgrid_shp(mqgrid_shp)
    ! Grid of points in reciprocal space on which the shape functions are given
 
-  real(dp), pointer :: qijl(:,:)
+  real(dp), allocatable :: qijl(:,:)
    ! qijl(l_size**2,lmn2_size)
    ! The qijl are the moments of the charge density difference between
    ! the AE and PS partial wave for each channel (i,j). They take part
    ! to the building of the compensation charge
 
-  real(dp), pointer :: rad_for_spline(:)
+  real(dp), allocatable :: rad_for_spline(:)
    ! rad_for_spline(mesh_size)
    ! Radial mesh used to spline quantities on radial mesh;
    ! Allocated and used only when
    !     shape_type=-1 (numerical shape function)
    !  or usedvloc=1 (use of vloc derivative)
 
-  real(dp), pointer :: rhoij0(:)
+  real(dp), allocatable :: rhoij0(:)
    ! rhoij0(lmn2_size)
    ! Initial guess for rhoij
 
-  real(dp), pointer :: shape_alpha(:,:)
+  real(dp), allocatable :: shape_alpha(:,:)
    ! shape_alpha(2,l_size)
    ! Alpha_i parameters in Bessel shapefunctions (shape_type=3)
 
-  real(dp), pointer :: shape_q(:,:)
+  real(dp), allocatable :: shape_q(:,:)
    ! shape_q(2,l_size)
    ! Q_i parameters in Bessel shapefunctions (shape_type=3)
 
-  real(dp), pointer :: shapefunc(:,:)
+  real(dp), allocatable :: shapefunc(:,:)
    ! shapefunc(mesh_size,l_size)
    ! Gives the normalized radial shape function for each l component
 
-  real(dp), pointer :: shapefncg(:,:,:)
+  real(dp), allocatable :: shapefncg(:,:,:)
    ! shapefncg(mqgrid_shp,2,l_size)
    ! Gives the spherical Fourier transform of the radial shape function
    ! for each l component (for each qgrid_shp(i)) + second derivative
 
-  real(dp), pointer :: sij(:)
+  real(dp), allocatable :: sij(:)
    ! sij(lmn2_size)
    ! Nonlocal part of the overlap operator
 
-  real(dp), pointer :: tcoredens(:,:)
+  real(dp), allocatable :: tcoredens(:,:)
    ! tcoredens(mesh_size,1)
    ! Gives the pseudo core density of the atom
    ! In PAW+WVL:
    !  tcoredens(mesh_size,2:6) 
    !  are the first to the fifth derivatives of the pseudo core density.
 
-  real(dp), pointer :: tcorespl(:,:)
+  real(dp), allocatable :: tcorespl(:,:)
    ! tcorespl(mqgrid,2)
    ! Gives the pseudo core density in reciprocal space on a regular grid
 
-  real(dp), pointer :: tphi(:,:)
+  real(dp), allocatable :: tphi(:,:)
    ! tphi(mesh_size,basis_size)
    ! Gives, on the radial grid, the paw atomic pseudowavefunctions
 
-  real(dp), pointer :: tphitphj(:,:)
+  real(dp), allocatable :: tphitphj(:,:)
    ! tphitphj(mesh_size,ij_size)
    ! Useful product tPhi(:,i)*tPhi(:,j)
 
-  real(dp), pointer :: tproj(:,:)
+  real(dp), allocatable :: tproj(:,:)
    ! non-local projectors
 
-  real(dp), pointer :: tvalespl(:,:)
+  real(dp), allocatable :: tvalespl(:,:)
    ! tvalespl(mqgrid,2)
    ! Gives the pseudo valence density in reciprocal space on a regular grid
 
-  real(dp), pointer :: Vee(:,:,:,:)
+  real(dp), allocatable :: Vee(:,:,:,:)
    ! PAW+U:
    ! Screened interaction matrix deduced from U and J parameters
    ! computed on the basis of orbitals on which U acts.
 
-  real(dp), pointer :: Vex(:,:,:,:,:)
+  real(dp), allocatable :: Vex(:,:,:,:,:)
    ! Local exact-exchange:
    ! Screened interaction matrix deduced from calculation of Slater integrals
    ! computed on the basis of orbitals on which local exact exchange acts.
 
-  real(dp), pointer :: vhtnzc(:)
+  real(dp), allocatable :: vhtnzc(:)
    ! vhtnzc(mesh_size)
    ! Hartree potential for pseudized Zc density, v_H[\tilde{n}_{Zc}]
    ! read in from PAW file
 
-  real(dp), pointer :: VHnZC(:)
+  real(dp), allocatable :: VHnZC(:)
    ! VHnZC(mesh_size)
    ! Hartree potential for Zc density, v_H[n_{Zc}]
    ! constructed from core density in PAW file (see psp7in.F90)
 
-  real(dp), pointer :: zioneff(:)
+  real(dp), allocatable :: zioneff(:)
    ! zioneff(ij_proj)
    ! "Effective charge"*n "seen" at r_paw, deduced from Phi at r_paw, n:
    ! pricipal quantum number
@@ -562,48 +564,6 @@ subroutine pawtab_nullify_0D(Pawtab)
 ! *************************************************************************
 
  !@Pawtab_type
-
- nullify(Pawtab%indklmn)
- nullify(Pawtab%indlmn)
- nullify(Pawtab%klmntomn)
- nullify(Pawtab%kmix)
- nullify(Pawtab%lnproju)
- nullify(Pawtab%coredens)
- nullify(Pawtab%dij0)
- nullify(Pawtab%dltij)
- nullify(Pawtab%dshpfunc)
- nullify(Pawtab%eijkl)
- nullify(Pawtab%fk)
- nullify(Pawtab%gammaij)
- nullify(Pawtab%gnorm)
- nullify(Pawtab%kij)
- nullify(Pawtab%nabla_ij)
- nullify(Pawtab%orbitals)
- nullify(Pawtab%phi)
- nullify(Pawtab%phiphj)
- nullify(Pawtab%phiphjint)
- nullify(Pawtab%ph0phiint)
- nullify(Pawtab%qgrid_shp)
- nullify(Pawtab%qijl)
- nullify(Pawtab%rad_for_spline)
- nullify(Pawtab%rhoij0)
- nullify(Pawtab%shape_alpha)
- nullify(Pawtab%shape_q)
- nullify(Pawtab%shapefunc)
- nullify(Pawtab%shapefncg)
- nullify(Pawtab%sij)
- nullify(Pawtab%tcoredens)
- nullify(Pawtab%tcorespl)
- nullify(Pawtab%tphi)
- nullify(Pawtab%tphitphj)
- nullify(Pawtab%tproj)
- nullify(Pawtab%tvalespl)
- nullify(Pawtab%Vee)
- nullify(Pawtab%Vex)
- nullify(Pawtab%vhtnzc)
- nullify(Pawtab%VHnZC)
- nullify(Pawtab%zioneff)
-
  nullify(Pawtab%wvl)
 !call wvlpaw_nullify(Pawtab%wvl)
 
@@ -733,128 +693,130 @@ subroutine pawtab_destroy_0D(Pawtab)
 
  !@Pawtab_type
 
- if (associated(Pawtab%indklmn))  then
+ if (allocated(Pawtab%indklmn))  then
   ABI_DEALLOCATE(Pawtab%indklmn)
  end if
- if (associated(Pawtab%indlmn))  then
+ if (allocated(Pawtab%indlmn))  then
   ABI_DEALLOCATE(Pawtab%indlmn)
  end if
- if (associated(Pawtab%klmntomn))  then
+ if (allocated(Pawtab%klmntomn))  then
    ABI_DEALLOCATE(Pawtab%klmntomn)
  end if
- if (associated(Pawtab%kmix))  then
+ if (allocated(Pawtab%kmix))  then
    ABI_DEALLOCATE(Pawtab%kmix)
  end if
- if (associated(Pawtab%lnproju))  then
+ if (allocated(Pawtab%lnproju))  then
    ABI_DEALLOCATE(Pawtab%lnproju)
  end if
- if (associated(Pawtab%coredens))  then
+ if (allocated(Pawtab%coredens))  then
    ABI_DEALLOCATE(Pawtab%coredens)
  end if
- if (associated(Pawtab%dij0))  then
+ if (allocated(Pawtab%dij0))  then
    ABI_DEALLOCATE(Pawtab%dij0)
  end if
- if (associated(Pawtab%dltij))  then
+ if (allocated(Pawtab%dltij))  then
    ABI_DEALLOCATE(Pawtab%dltij)
  end if
- if (associated(Pawtab%dshpfunc))  then
+ if (allocated(Pawtab%dshpfunc))  then
    ABI_DEALLOCATE(Pawtab%dshpfunc)
  end if
- if (associated(Pawtab%eijkl))  then
+ if (allocated(Pawtab%eijkl))  then
    ABI_DEALLOCATE(Pawtab%eijkl)
  end if
- if (associated(Pawtab%fk))  then
+ if (allocated(Pawtab%fk))  then
    ABI_DEALLOCATE(Pawtab%fk)
  end if
- if (associated(Pawtab%gammaij))  then
+ if (allocated(Pawtab%gammaij))  then
    ABI_DEALLOCATE(Pawtab%gammaij)
  end if
- if (associated(Pawtab%gnorm))  then
+ if (allocated(Pawtab%gnorm))  then
    ABI_DEALLOCATE(Pawtab%gnorm)
  end if
- if (associated(Pawtab%kij))  then
+ if (allocated(Pawtab%kij))  then
    ABI_DEALLOCATE(Pawtab%kij)
  end if
- if (associated(Pawtab%nabla_ij))  then
+ if (allocated(Pawtab%nabla_ij))  then
    ABI_DEALLOCATE(Pawtab%nabla_ij)
  end if
- if (associated(Pawtab%orbitals)) then
+ if (allocated(Pawtab%orbitals)) then
    ABI_DEALLOCATE(Pawtab%orbitals)
  end if
- if (associated(Pawtab%phi))  then
+ if (allocated(Pawtab%phi))  then
    ABI_DEALLOCATE(Pawtab%phi)
  end if
- if (associated(Pawtab%phiphj))  then
+ if (allocated(Pawtab%phiphj))  then
    ABI_DEALLOCATE(Pawtab%phiphj)
  end if
- if (associated(Pawtab%phiphjint))  then
+ if (allocated(Pawtab%phiphjint))  then
    ABI_DEALLOCATE(Pawtab%phiphjint)
  end if
- if (associated(Pawtab%ph0phiint))  then
+ if (allocated(Pawtab%ph0phiint))  then
    ABI_DEALLOCATE(Pawtab%ph0phiint)
  end if
- if (associated(Pawtab%qgrid_shp))  then
+ if (allocated(Pawtab%qgrid_shp))  then
    ABI_DEALLOCATE(Pawtab%qgrid_shp)
  end if
- if (associated(Pawtab%qijl))  then
+ if (allocated(Pawtab%qijl))  then
    ABI_DEALLOCATE(Pawtab%qijl)
  end if
- if (associated(Pawtab%rad_for_spline))  then
+ if (allocated(Pawtab%rad_for_spline))  then
    ABI_DEALLOCATE(Pawtab%rad_for_spline)
  end if
- if (associated(Pawtab%rhoij0))  then
+ if (allocated(Pawtab%rhoij0))  then
    ABI_DEALLOCATE(Pawtab%rhoij0)
  end if
- if (associated(Pawtab%shape_alpha))  then
+ if (allocated(Pawtab%shape_alpha))  then
    ABI_DEALLOCATE(Pawtab%shape_alpha)
  end if
- if (associated(Pawtab%shape_q))  then
+ if (allocated(Pawtab%shape_q))  then
    ABI_DEALLOCATE(Pawtab%shape_q)
  end if
- if (associated(Pawtab%shapefunc))  then
+ if (allocated(Pawtab%shapefunc))  then
    ABI_DEALLOCATE(Pawtab%shapefunc)
  end if
- if (associated(Pawtab%shapefncg))  then
+ if (allocated(Pawtab%shapefncg))  then
    ABI_DEALLOCATE(Pawtab%shapefncg)
  end if
- if (associated(Pawtab%sij))  then
+ if (allocated(Pawtab%sij))  then
    ABI_DEALLOCATE(Pawtab%sij)
  end if
- if (associated(Pawtab%tcoredens))  then
+ if (allocated(Pawtab%tcoredens))  then
    ABI_DEALLOCATE(Pawtab%tcoredens)
  end if
- if (associated(Pawtab%tcorespl))  then
+ if (allocated(Pawtab%tcorespl))  then
    ABI_DEALLOCATE(Pawtab%tcorespl)
  end if
- if (associated(Pawtab%tphi))  then
+ if (allocated(Pawtab%tphi))  then
    ABI_DEALLOCATE(Pawtab%tphi)
  end if
- if (associated(Pawtab%tphitphj))  then
+ if (allocated(Pawtab%tphitphj))  then
    ABI_DEALLOCATE(Pawtab%tphitphj)
  end if
- if (associated(Pawtab%tproj)) then
+ if (allocated(Pawtab%tproj)) then
    ABI_DEALLOCATE(Pawtab%tproj)
  end if
- if (associated(Pawtab%tvalespl))  then
+ if (allocated(Pawtab%tvalespl))  then
    ABI_DEALLOCATE(Pawtab%tvalespl)
  end if
- if (associated(Pawtab%vee))  then
+ if (allocated(Pawtab%vee))  then
    ABI_DEALLOCATE(Pawtab%vee)
  end if
- if (associated(Pawtab%Vex))  then
+ if (allocated(Pawtab%Vex))  then
    ABI_DEALLOCATE(Pawtab%Vex)
  end if
- if (associated(Pawtab%vhtnzc))  then
+ if (allocated(Pawtab%vhtnzc))  then
    ABI_DEALLOCATE(Pawtab%vhtnzc)
  end if
- if (associated(Pawtab%VHnZC))  then
+ if (allocated(Pawtab%VHnZC))  then
    ABI_DEALLOCATE(Pawtab%VHnZC)
  end if
- if (associated(Pawtab%zioneff))  then
+ if (allocated(Pawtab%zioneff))  then
    ABI_DEALLOCATE(Pawtab%zioneff)
  end if
 
+ ! MGPAW: Check this one!
  call wvlpaw_destroy(Pawtab%wvl)
+ !Pawtab%wvl => null()
 
  ! === Reset all flags and sizes ===
 
@@ -1275,12 +1237,6 @@ end subroutine pawtab_print
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "abi_common.h"
-
 subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
 
 
@@ -1357,12 +1313,12 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
 !-------------------------------------------------------------------------
    siz_indlmn=0 ; siz_orbitals=0
    nn_int=nn_int+2
-   if (associated(pawtab%indlmn)) then
+   if (allocated(pawtab%indlmn)) then
      siz_indlmn=size(pawtab%indlmn)                   !(6,lmn_size)
      if (siz_indlmn/=6*pawtab%lmn_size) msg=trim(msg)//' indlmn'
      nn_int_arr=nn_int_arr+siz_indlmn
    end if
-   if (associated(pawtab%orbitals)) then
+   if (allocated(pawtab%orbitals)) then
      siz_orbitals=size(pawtab%orbitals)                      !(basis_size)
      if (siz_orbitals/=pawtab%basis_size) msg=trim(msg)//' orbitals'
      nn_int_arr=nn_int_arr+siz_orbitals
@@ -1373,22 +1329,22 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
    siz_indklmn=0 ; siz_klmntomn=0 ; siz_kmix=0 ; siz_lnproju=0
    if (full_broadcast) then
      nn_int=nn_int+4
-     if (associated(pawtab%indklmn)) then
+     if (allocated(pawtab%indklmn)) then
        siz_indklmn=size(pawtab%indklmn)               !(6,lmn2_size)
        if (siz_indklmn/=8*pawtab%lmn2_size) msg=trim(msg)//' indklmn'
        nn_int_arr=nn_int_arr+siz_indklmn
      end if
-     if (associated(pawtab%klmntomn)) then
+     if (allocated(pawtab%klmntomn)) then
        siz_klmntomn=size(pawtab%klmntomn)                    !(4,lmn2_size)
        if (siz_klmntomn/=4*pawtab%lmn2_size) msg=trim(msg)//' klmntomn'
        nn_int_arr=nn_int_arr+siz_klmntomn
      end if
-     if (associated(pawtab%kmix)) then
+     if (allocated(pawtab%kmix)) then
        siz_kmix=size(pawtab%kmix)                            !(lmnmix_sz)
        if (siz_kmix/=6*pawtab%lmnmix_sz) msg=trim(msg)//' kmix'
        nn_int_arr=nn_int_arr+siz_kmix
      end if
-     if (associated(pawtab%lnproju)) then
+     if (allocated(pawtab%lnproju)) then
        siz_lnproju=size(pawtab%lnproju)                      !(nproju)
        if (siz_lnproju/=pawtab%nproju) msg=trim(msg)//' lnproju'
        nn_int_arr=nn_int_arr+siz_lnproju
@@ -1403,80 +1359,80 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
    siz_tcorespl=0 ; siz_tphi=0     ; siz_tproj=0
    siz_tvalespl=0 ; siz_vhtnzc=0   ; siz_vhnzc=0
    nn_int=nn_int+15
-   if (associated(pawtab%coredens)) then
+   if (allocated(pawtab%coredens)) then
      siz_coredens=size(pawtab%coredens)             !(core_mesh_size)
      if (siz_coredens/=pawtab%core_mesh_size) &
 &      msg=trim(msg)//' coredens'
      nn_dpr=nn_dpr+siz_coredens
    end if
-   if (associated(pawtab%dij0)) then
+   if (allocated(pawtab%dij0)) then
      siz_dij0=size(pawtab%dij0)                     !(lmn2_size)
      if (siz_dij0/=pawtab%lmn2_size) msg=trim(msg)//' dij0'
      nn_dpr=nn_dpr+siz_dij0
    end if
-   if (associated(pawtab%kij)) then
+   if (allocated(pawtab%kij)) then
      siz_kij=size(pawtab%kij)                       !(lmn2_size)
      if (siz_kij/=pawtab%lmn2_size) msg=trim(msg)//' kij'
      nn_dpr=nn_dpr+siz_kij
    end if
-   if (associated(pawtab%phi)) then
+   if (allocated(pawtab%phi)) then
      siz_phi=size(pawtab%phi)                       !(mesh_size, basis_size)
      if (siz_phi/=pawtab%mesh_size*pawtab%basis_size) msg=trim(msg)//' phi'
      nn_dpr=nn_dpr+siz_phi
    end if
-   if (associated(pawtab%rhoij0)) then
+   if (allocated(pawtab%rhoij0)) then
      siz_rhoij0=size(pawtab%rhoij0)                 !(lmn2_size)
      if (siz_rhoij0/=pawtab%lmn2_size) msg=trim(msg)//' rhoij0'
      nn_dpr=nn_dpr+siz_rhoij0
    end if
-   if (associated(pawtab%shape_alpha)) then
+   if (allocated(pawtab%shape_alpha)) then
      siz_shape_alpha=size(pawtab%shape_alpha)       !(2,l_size)
      if (siz_shape_alpha/=pawtab%l_size*2) msg=trim(msg)//' shape_alpha'
      nn_dpr=nn_dpr+siz_shape_alpha
    end if
-   if (associated(pawtab%shape_q)) then
+   if (allocated(pawtab%shape_q)) then
      siz_shape_q=size(pawtab%shape_q)               !(2,l_size)
      if (siz_shape_q/=pawtab%l_size*2) msg=trim(msg)//' shape_q'
      nn_dpr=nn_dpr+siz_shape_q
    end if
-   if (associated(pawtab%shapefunc)) then
+   if (allocated(pawtab%shapefunc)) then
      siz_shapefunc=size(pawtab%shapefunc)           !(mesh_size,l_size)
      if (siz_shapefunc/=pawtab%mesh_size*pawtab%l_size) msg=trim(msg)//' shapefunc'
      nn_dpr=nn_dpr+siz_shapefunc
    end if
-   if (associated(pawtab%tcoredens)) then
+   if (allocated(pawtab%tcoredens)) then
      siz_tcoredens=size(pawtab%tcoredens)           !(core_mesh_size,1 or 6)
      if (siz_tcoredens/=pawtab%core_mesh_size.and.siz_tcoredens/=6*pawtab%core_mesh_size) &
 &      msg=trim(msg)//' tcoredens'
      nn_dpr=nn_dpr+siz_tcoredens
    end if
-   if (associated(pawtab%tcorespl)) then
+   if (allocated(pawtab%tcorespl)) then
      siz_tcorespl=size(pawtab%tcorespl)             !(mqgrid,2)
      if (siz_tcorespl/=pawtab%mqgrid*2) msg=trim(msg)//' tcorespl'
      nn_dpr=nn_dpr+siz_tcorespl
    end if
-   if (associated(pawtab%tphi)) then
+   if (allocated(pawtab%tphi)) then
      siz_tphi=size(pawtab%tphi)                     !(mesh_size, basis_size)
      if (siz_tphi/=pawtab%mesh_size*pawtab%basis_size) msg=trim(msg)//' tphi'
      nn_dpr=nn_dpr+siz_tphi
    end if
-   if (associated(pawtab%tproj)) then
+   if (allocated(pawtab%tproj)) then
      siz_tproj=size(pawtab%tproj)                   !(???,basis_size)
     if (mod(siz_tproj,pawtab%basis_size)/=0) msg=trim(msg)//' tproj'
      nn_dpr=nn_dpr+siz_tproj
    end if
-   if (associated(pawtab%tvalespl)) then
+   if (allocated(pawtab%tvalespl)) then
      siz_tvalespl=size(pawtab%tvalespl)             !(mqgrid or mesh_size or tnvale_mesh_size,2)
      if (siz_tvalespl/=2*pawtab%mqgrid.and.siz_tvalespl/=2*pawtab%mesh_size.and. &
 &        siz_tvalespl/=2*pawtab%tnvale_mesh_size) msg=trim(msg)//' tvalespl'
      nn_dpr=nn_dpr+siz_tvalespl
    end if
-   if (associated(pawtab%vhtnzc)) then
+   if (allocated(pawtab%vhtnzc)) then
      siz_vhtnzc=size(pawtab%vhtnzc)                 !(mesh_size)
      if (siz_vhtnzc/=pawtab%mesh_size) msg=trim(msg)//' vhtnzc'
      nn_dpr=nn_dpr+siz_vhtnzc
    end if
-   if (associated(pawtab%vhnzc)) then
+   if (allocated(pawtab%vhnzc)) then
      siz_vhnzc=size(pawtab%vhnzc)                   !(mesh_size)
      if (siz_vhnzc/=pawtab%mesh_size) msg=trim(msg)//' vhnzc'
      nn_dpr=nn_dpr+siz_vhnzc
@@ -1492,97 +1448,97 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
    siz_vee=0      ; siz_vex=0      ; siz_zioneff=0
    if (full_broadcast) then
      nn_int=nn_int+18
-     if (associated(pawtab%dltij)) then
+     if (allocated(pawtab%dltij)) then
        siz_dltij=size(pawtab%dltij)                   !(lmn2_size)
        if (siz_dltij/=pawtab%lmn2_size) msg=trim(msg)//' dltij'
        nn_dpr=nn_dpr+siz_dltij
      end if
-     if (associated(pawtab%dshpfunc)) then
+     if (allocated(pawtab%dshpfunc)) then
        siz_dshpfunc=size(pawtab%dshpfunc)             !(mesh_size,l_size,4)
        if (siz_dshpfunc/=pawtab%mesh_size*pawtab%l_size*4) msg=trim(msg)//' dshpfunc'
        nn_dpr=nn_dpr+siz_dshpfunc
      end if
-     if (associated(pawtab%eijkl)) then
+     if (allocated(pawtab%eijkl)) then
        siz_eijkl=size(pawtab%eijkl)                   !(lmn2_size,lmn2_size)
        if (siz_eijkl/=pawtab%lmn2_size*pawtab%lmn2_size) msg=trim(msg)//' eijkl  '
        nn_dpr=nn_dpr+siz_eijkl
      end if
-     if (associated(pawtab%fk)) then
+     if (allocated(pawtab%fk)) then
        siz_fk=size(pawtab%fk)                         !(6,4)
        if (siz_fk/=24) msg=trim(msg)//' fk'
        nn_dpr=nn_dpr+siz_fk
      end if
-     if (associated(pawtab%gammaij)) then
+     if (allocated(pawtab%gammaij)) then
        siz_gammaij=size(pawtab%gammaij)                   !(l_size)
        if (siz_gammaij/=pawtab%l_size) msg=trim(msg)//' gammaij'
        nn_dpr=nn_dpr+siz_gammaij
      end if
-     if (associated(pawtab%gnorm)) then
+     if (allocated(pawtab%gnorm)) then
        siz_gnorm=size(pawtab%gnorm)                   !(l_size)
        if (siz_gnorm/=pawtab%l_size) msg=trim(msg)//' gnorm'
        nn_dpr=nn_dpr+siz_gnorm
      end if
-     if (associated(pawtab%nabla_ij)) then
+     if (allocated(pawtab%nabla_ij)) then
        siz_nabla_ij=size(pawtab%nabla_ij)             !(3,lmn_size,lmn_size)
        if (siz_nabla_ij/=pawtab%lmn_size) msg=trim(msg)//' nabla_ij'
        nn_dpr=nn_dpr+siz_nabla_ij
      end if
-     if (associated(pawtab%phiphj)) then
+     if (allocated(pawtab%phiphj)) then
        siz_phiphj=size(pawtab%phiphj)                 !(mesh_size,ij_size)
        if (siz_phiphj/=pawtab%mesh_size*pawtab%ij_size) msg=trim(msg)//' phiphj'
        nn_dpr=nn_dpr+siz_phiphj
      end if
-     if (associated(pawtab%phiphjint)) then
+     if (allocated(pawtab%phiphjint)) then
        siz_phiphjint=size(pawtab%phiphjint)           !(ij_proj)
        if (siz_phiphjint/=pawtab%ij_proj) msg=trim(msg)//' phiphjint'
        nn_dpr=nn_dpr+siz_phiphjint
      end if
-     if (associated(pawtab%ph0phiint)) then
+     if (allocated(pawtab%ph0phiint)) then
        siz_ph0phiint=size(pawtab%ph0phiint)           !(ij_proj)
        if (siz_ph0phiint/=pawtab%ij_proj) msg=trim(msg)//' ph0phiint'
        nn_dpr=nn_dpr+siz_ph0phiint
      end if
-     if (associated(pawtab%qgrid_shp)) then
+     if (allocated(pawtab%qgrid_shp)) then
        siz_qgrid_shp=size(pawtab%qgrid_shp)           !(mqgrid_shp)
        if (siz_qgrid_shp/=pawtab%mqgrid_shp) msg=trim(msg)//' qgrid_shp'
        nn_dpr=nn_dpr+siz_qgrid_shp
      end if
-     if (associated(pawtab%qijl)) then
+     if (allocated(pawtab%qijl)) then
        siz_qijl=size(pawtab%qijl)                     !(l_size**2,lmn2_size)
        if (siz_qijl/=pawtab%l_size**2*pawtab%lmn2_size) msg=trim(msg)//' qijl'
        nn_dpr=nn_dpr+siz_qijl
      end if
-     if (associated(pawtab%rad_for_spline)) then
+     if (allocated(pawtab%rad_for_spline)) then
        siz_rad_for_spline=size(pawtab%rad_for_spline) !(mesh_size)
        if (siz_rad_for_spline/=pawtab%mesh_size) msg=trim(msg)//' rad_for_spline'
        nn_dpr=nn_dpr+siz_rad_for_spline
      end if
-     if (associated(pawtab%shapefncg)) then
+     if (allocated(pawtab%shapefncg)) then
        siz_shapefncg=size(pawtab%shapefncg)           !(mqgrid_shp,2,l_size)
        if (siz_shapefncg/=2*pawtab%mqgrid_shp*pawtab%l_size) msg=trim(msg)//' shapefncg'
        nn_dpr=nn_dpr+siz_shapefncg
      end if
-     if (associated(pawtab%sij)) then
+     if (allocated(pawtab%sij)) then
        siz_sij=size(pawtab%sij)                       !(lmn2_size)
        if (siz_sij/=pawtab%lmn2_size) msg=trim(msg)//' sij'
        nn_dpr=nn_dpr+siz_sij
      end if
-     if (associated(pawtab%tphitphj)) then
+     if (allocated(pawtab%tphitphj)) then
        siz_tphitphj=size(pawtab%tphitphj)             !(mesh_size,ij_size)
        if (siz_tphitphj/=pawtab%mesh_size*pawtab%ij_size) msg=trim(msg)//' tphitphj'
        nn_dpr=nn_dpr+siz_tphitphj
      end if
-     if (associated(pawtab%vee)) then
+     if (allocated(pawtab%vee)) then
        siz_vee=size(pawtab%vee)                       !(2*lpawu+1,2*lpawu+1,2*lpawu+1,2*lpawu+1)
        if (siz_vee/=(2*pawtab%lpawu+1)**4) msg=trim(msg)//' vee'
        nn_dpr=nn_dpr+siz_vee
      end if
-     if (associated(pawtab%vex)) then
+     if (allocated(pawtab%vex)) then
        siz_vex=size(pawtab%vex)                       !(2*lexexch+1,2*lexexch+1,2*lexexch+1,2*lexexch+1,4)
        if (siz_vex/=4*(2*pawtab%lpawu+1)**4) msg=trim(msg)//' vex'
        nn_dpr=nn_dpr+siz_vex
      end if
-     if (associated(pawtab%zioneff)) then
+     if (allocated(pawtab%zioneff)) then
        siz_zioneff=size(pawtab%zioneff)               !(ij_proj)
        if (siz_zioneff/=pawtab%ij_proj) msg=trim(msg)//' zioneff'
        nn_dpr=nn_dpr+siz_zioneff
@@ -1655,7 +1611,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
    nn(1)=nn_int ; nn(2)=nn_int_arr
    nn(3)=nn_dpr ; nn(4)=nn_dpr_arr
  end if
- call xcast_mpi(nn,0,comm_mpi,ierr)
+ call xmpi_bcast(nn,0,comm_mpi,ierr)
  if (me/=0) then
    nn_int=nn(1) ; nn_int_arr=nn(2)
    nn_dpr=nn(3) ; nn_dpr_arr=nn(4)
@@ -1812,7 +1768,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
 !Perfom the communication
 !-------------------------------------------------------------------------
 
- call xcast_mpi(list_int,0,comm_mpi,ierr)
+ call xmpi_bcast(list_int,0,comm_mpi,ierr)
 
 !Fill the receiver from the buffer
 !-------------------------------------------------------------------------
@@ -1864,7 +1820,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
    pawtab%usetcore=list_int(ii)  ;ii=ii+1
    pawtab%usexcnhat=list_int(ii)  ;ii=ii+1
 !Integer arrays (read from psp file)
-   if (associated(pawtab%indlmn)) then
+   if (allocated(pawtab%indlmn)) then
      ABI_DEALLOCATE(pawtab%indlmn)
    end if
    if (siz_indlmn>0) then
@@ -1872,7 +1828,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
      pawtab%indlmn=reshape(list_int(ii:ii+siz_indlmn-1),(/6,pawtab%lmn_size/))
      ii=ii+siz_indlmn
    end if
-   if (associated(pawtab%orbitals)) then
+   if (allocated(pawtab%orbitals)) then
      ABI_DEALLOCATE(pawtab%orbitals)
    end if
    if (siz_orbitals>0) then
@@ -1938,7 +1894,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
      pawtab%usepawu=list_int(ii)  ;ii=ii+1
      pawtab%usepotzero=list_int(ii) ;ii=ii+1
 !Integer arrays
-     if (associated(pawtab%indklmn)) then
+     if (allocated(pawtab%indklmn)) then
        ABI_DEALLOCATE(pawtab%indklmn)
      end if
      if (siz_indklmn>0) then
@@ -1946,7 +1902,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        pawtab%indklmn=reshape(list_int(ii:ii+siz_indklmn-1),(/8,pawtab%lmn2_size/))
        ii=ii+siz_indklmn
      end if
-     if (associated(pawtab%klmntomn)) then
+     if (allocated(pawtab%klmntomn)) then
        ABI_DEALLOCATE(pawtab%klmntomn)
      end if
      if (siz_klmntomn>0) then
@@ -1954,7 +1910,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        pawtab%klmntomn=reshape(list_int(ii:ii+siz_klmntomn-1),(/4,pawtab%lmn2_size/))
        ii=ii+siz_klmntomn
      end if
-     if (associated(pawtab%kmix)) then
+     if (allocated(pawtab%kmix)) then
        ABI_DEALLOCATE(pawtab%kmix)
      end if
      if (siz_kmix>0) then
@@ -1962,7 +1918,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        pawtab%kmix=list_int(ii:ii+pawtab%lmnmix_sz-1)
        ii=ii+siz_kmix
      end if
-     if (associated(pawtab%lnproju)) then
+     if (allocated(pawtab%lnproju)) then
        ABI_DEALLOCATE(pawtab%lnproju)
      end if
      if (siz_lnproju>0) then
@@ -2195,7 +2151,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
 !Perfom the communication
 !-------------------------------------------------------------------------
 
- call xcast_mpi(list_dpr,0,comm_mpi,ierr)
+ call xmpi_bcast(list_dpr,0,comm_mpi,ierr)
 
 !Fill the receiver from the buffer
 !-------------------------------------------------------------------------
@@ -2216,7 +2172,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
    pawtab%rcore=list_dpr(ii)  ;ii=ii+1
    pawtab%shape_sigma=list_dpr(ii)  ;ii=ii+1
 !Reals arrays (read from psp file)
-   if (associated(pawtab%coredens)) then
+   if (allocated(pawtab%coredens)) then
      ABI_DEALLOCATE(pawtab%coredens)
    end if
    if (siz_coredens>0) then
@@ -2224,7 +2180,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
      pawtab%coredens=list_dpr(ii:ii+pawtab%core_mesh_size-1)
      ii=ii+siz_coredens
    end if
-   if (associated(pawtab%dij0)) then
+   if (allocated(pawtab%dij0)) then
      ABI_DEALLOCATE(pawtab%dij0)
    end if
    if (siz_dij0>0) then
@@ -2232,7 +2188,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
      pawtab%dij0=list_dpr(ii:ii+pawtab%lmn2_size-1)
      ii=ii+siz_dij0
    end if
-   if (associated(pawtab%kij)) then
+   if (allocated(pawtab%kij)) then
      ABI_DEALLOCATE(pawtab%kij)
    end if
    if (siz_kij>0) then
@@ -2240,7 +2196,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
      pawtab%kij=list_dpr(ii:ii+pawtab%lmn2_size-1)
      ii=ii+siz_kij
    end if
-   if (associated(pawtab%phi)) then
+   if (allocated(pawtab%phi)) then
      ABI_DEALLOCATE(pawtab%phi)
    end if
    if (siz_phi>0) then
@@ -2248,7 +2204,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
      pawtab%phi=reshape(list_dpr(ii:ii+siz_phi-1),(/pawtab%mesh_size,pawtab%basis_size/))
      ii=ii+siz_phi
    end if
-   if (associated(pawtab%rhoij0)) then
+   if (allocated(pawtab%rhoij0)) then
      ABI_DEALLOCATE(pawtab%rhoij0)
    end if
    if (siz_rhoij0>0) then
@@ -2256,7 +2212,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
      pawtab%rhoij0=list_dpr(ii:ii+pawtab%lmn2_size-1)
      ii=ii+siz_rhoij0
    end if
-   if (associated(pawtab%shape_alpha)) then
+   if (allocated(pawtab%shape_alpha)) then
      ABI_DEALLOCATE(pawtab%shape_alpha)
    end if
    if (siz_shape_alpha>0) then
@@ -2264,7 +2220,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
      pawtab%shape_alpha=reshape(list_dpr(ii:ii+siz_shape_alpha-1),(/2,pawtab%l_size/))
      ii=ii+siz_shape_alpha
    end if
-   if (associated(pawtab%shape_q)) then
+   if (allocated(pawtab%shape_q)) then
      ABI_DEALLOCATE(pawtab%shape_q)
    end if
    if (siz_shape_q>0) then
@@ -2272,7 +2228,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
      pawtab%shape_q=reshape(list_dpr(ii:ii+siz_shape_q-1),(/2,pawtab%l_size/))
      ii=ii+siz_shape_q
    end if
-   if (associated(pawtab%shapefunc)) then
+   if (allocated(pawtab%shapefunc)) then
      ABI_DEALLOCATE(pawtab%shapefunc)
    end if
    if (siz_shapefunc>0) then
@@ -2280,7 +2236,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
      pawtab%shapefunc=reshape(list_dpr(ii:ii+siz_shapefunc-1),(/pawtab%mesh_size,pawtab%l_size/))
      ii=ii+siz_shapefunc
    end if
-   if (associated(pawtab%tcoredens)) then
+   if (allocated(pawtab%tcoredens)) then
      ABI_DEALLOCATE(pawtab%tcoredens)
    end if
    if (siz_tcoredens>0) then
@@ -2289,7 +2245,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
      pawtab%tcoredens=reshape(list_dpr(ii:ii+siz_tcoredens-1),(/pawtab%core_mesh_size,sz2/))
      ii=ii+siz_tcoredens
    end if
-   if (associated(pawtab%tcorespl)) then
+   if (allocated(pawtab%tcorespl)) then
      ABI_DEALLOCATE(pawtab%tcorespl)
    end if
    if (siz_tcorespl>0) then
@@ -2297,7 +2253,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
      pawtab%tcorespl=reshape(list_dpr(ii:ii+siz_tcorespl-1),(/pawtab%mqgrid,2/))
      ii=ii+siz_tcorespl
    end if
-   if (associated(pawtab%tphi)) then
+   if (allocated(pawtab%tphi)) then
      ABI_DEALLOCATE(pawtab%tphi)
    end if
    if (siz_tphi>0) then
@@ -2305,7 +2261,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
      pawtab%tphi=reshape(list_dpr(ii:ii+siz_tphi-1),(/pawtab%mesh_size,pawtab%basis_size/))
      ii=ii+siz_tphi
    end if
-   if (associated(pawtab%tproj)) then
+   if (allocated(pawtab%tproj)) then
      ABI_DEALLOCATE(pawtab%tproj)
    end if
    if (siz_tproj>0) then
@@ -2314,7 +2270,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
      pawtab%tproj=reshape(list_dpr(ii:ii+siz_tproj-1),(/sz1,pawtab%basis_size/))
      ii=ii+siz_tproj
    end if
-   if (associated(pawtab%tvalespl)) then
+   if (allocated(pawtab%tvalespl)) then
      ABI_DEALLOCATE(pawtab%tvalespl)
    end if
    if (siz_tvalespl>0) then
@@ -2323,7 +2279,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
      pawtab%tvalespl=reshape(list_dpr(ii:ii+siz_tvalespl-1),(/sz1,2/))
      ii=ii+siz_tvalespl
    end if
-   if (associated(pawtab%vhtnzc)) then
+   if (allocated(pawtab%vhtnzc)) then
      ABI_DEALLOCATE(pawtab%vhtnzc)
    end if
    if (siz_vhtnzc>0) then
@@ -2331,7 +2287,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
      pawtab%vhtnzc=list_dpr(ii:ii+pawtab%mesh_size-1)
      ii=ii+siz_vhtnzc
    end if
-   if (associated(pawtab%vhnzc)) then
+   if (allocated(pawtab%vhnzc)) then
      ABI_DEALLOCATE(pawtab%vhnzc)
    end if
    if (siz_vhnzc>0) then
@@ -2370,7 +2326,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
      pawtab%jpawu=list_dpr(ii)  ;ii=ii+1
      pawtab%upawu=list_dpr(ii)  ;ii=ii+1
 !Reals arrays
-     if (associated(pawtab%dltij)) then
+     if (allocated(pawtab%dltij)) then
        ABI_DEALLOCATE(pawtab%dltij)
      end if
      if (siz_dltij>0) then
@@ -2378,7 +2334,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        pawtab%dltij=list_dpr(ii:ii+pawtab%lmn2_size-1)
        ii=ii+siz_dltij
      end if
-     if (associated(pawtab%dshpfunc)) then
+     if (allocated(pawtab%dshpfunc)) then
        ABI_DEALLOCATE(pawtab%dshpfunc)
      end if
      if (siz_dshpfunc>0) then
@@ -2386,7 +2342,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        pawtab%dshpfunc=reshape(list_dpr(ii:ii+siz_dshpfunc-1),(/pawtab%mesh_size,pawtab%l_size,4/))
        ii=ii+siz_dshpfunc
      end if
-     if (associated(pawtab%eijkl)) then
+     if (allocated(pawtab%eijkl)) then
        ABI_DEALLOCATE(pawtab%eijkl)
      end if
      if (siz_eijkl>0) then
@@ -2394,7 +2350,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        pawtab%eijkl=reshape(list_dpr(ii:ii+siz_eijkl-1),(/pawtab%lmn2_size,pawtab%lmn2_size/))
        ii=ii+siz_eijkl
      end if
-     if (associated(pawtab%fk)) then
+     if (allocated(pawtab%fk)) then
        ABI_DEALLOCATE(pawtab%fk)
      end if
      if (siz_fk>0) then
@@ -2402,7 +2358,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        pawtab%fk=reshape(list_dpr(ii:ii+siz_fk-1),(/6,4/))
        ii=ii+siz_fk
      end if
-     if (associated(pawtab%gammaij)) then
+     if (allocated(pawtab%gammaij)) then
        ABI_DEALLOCATE(pawtab%gammaij)
      end if
      if (siz_gammaij>0) then
@@ -2410,7 +2366,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        pawtab%gammaij=list_dpr(ii:ii+pawtab%l_size-1)
        ii=ii+siz_gammaij
      end if
-     if (associated(pawtab%gnorm)) then
+     if (allocated(pawtab%gnorm)) then
        ABI_DEALLOCATE(pawtab%gnorm)
      end if
      if (siz_gnorm>0) then
@@ -2418,7 +2374,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        pawtab%gnorm=list_dpr(ii:ii+pawtab%l_size-1)
        ii=ii+siz_gnorm
      end if
-     if (associated(pawtab%nabla_ij)) then
+     if (allocated(pawtab%nabla_ij)) then
        ABI_DEALLOCATE(pawtab%nabla_ij)
      end if
      if (siz_nabla_ij>0) then
@@ -2426,7 +2382,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        pawtab%nabla_ij=reshape(list_dpr(ii:ii+siz_nabla_ij-1),(/3,pawtab%lmn_size,pawtab%lmn_size/))
        ii=ii+siz_nabla_ij
      end if
-     if (associated(pawtab%phiphj)) then
+     if (allocated(pawtab%phiphj)) then
        ABI_DEALLOCATE(pawtab%phiphj)
      end if
      if (siz_phiphj>0) then
@@ -2434,7 +2390,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        pawtab%phiphj=reshape(list_dpr(ii:ii+siz_phiphj-1),(/pawtab%mesh_size,pawtab%ij_size/))
        ii=ii+siz_phiphj
      end if
-     if (associated(pawtab%phiphjint)) then
+     if (allocated(pawtab%phiphjint)) then
        ABI_DEALLOCATE(pawtab%phiphjint)
      end if
      if (siz_phiphjint>0) then
@@ -2442,7 +2398,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        pawtab%phiphjint=list_dpr(ii:ii+pawtab%ij_proj-1)
        ii=ii+siz_phiphjint
      end if
-     if (associated(pawtab%ph0phiint)) then
+     if (allocated(pawtab%ph0phiint)) then
        ABI_DEALLOCATE(pawtab%ph0phiint)
      end if
      if (siz_ph0phiint>0) then
@@ -2450,7 +2406,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        pawtab%ph0phiint=list_dpr(ii:ii+pawtab%ij_proj-1)
        ii=ii+siz_ph0phiint
      end if
-     if (associated(pawtab%qgrid_shp)) then
+     if (allocated(pawtab%qgrid_shp)) then
        ABI_DEALLOCATE(pawtab%qgrid_shp)
      end if
      if (siz_qgrid_shp>0) then
@@ -2458,7 +2414,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        pawtab%qgrid_shp=list_dpr(ii:ii+pawtab%mqgrid_shp-1)
        ii=ii+siz_qgrid_shp
      end if
-     if (associated(pawtab%qijl)) then
+     if (allocated(pawtab%qijl)) then
        ABI_DEALLOCATE(pawtab%qijl)
      end if
      if (siz_qijl>0) then
@@ -2466,7 +2422,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        pawtab%qijl=reshape(list_dpr(ii:ii+siz_qijl-1),(/pawtab%l_size**2,pawtab%lmn2_size/))
        ii=ii+siz_qijl
      end if
-     if (associated(pawtab%rad_for_spline)) then
+     if (allocated(pawtab%rad_for_spline)) then
        ABI_DEALLOCATE(pawtab%rad_for_spline)
      end if
      if (siz_rad_for_spline>0) then
@@ -2474,7 +2430,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        pawtab%rad_for_spline=list_dpr(ii:ii+pawtab%mesh_size-1)
        ii=ii+siz_rad_for_spline
      end if
-     if (associated(pawtab%shapefncg)) then
+     if (allocated(pawtab%shapefncg)) then
        ABI_DEALLOCATE(pawtab%shapefncg)
      end if
      if (siz_shapefncg>0) then
@@ -2482,7 +2438,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        pawtab%shapefncg=reshape(list_dpr(ii:ii+siz_shapefncg-1),(/pawtab%mqgrid_shp,2,pawtab%l_size/))
        ii=ii+siz_shapefncg
      end if
-     if (associated(pawtab%sij)) then
+     if (allocated(pawtab%sij)) then
        ABI_DEALLOCATE(pawtab%sij)
      end if
      if (siz_sij>0) then
@@ -2490,7 +2446,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        pawtab%sij=list_dpr(ii:ii+pawtab%lmn2_size-1)
        ii=ii+siz_sij
      end if
-     if (associated(pawtab%tphitphj)) then
+     if (allocated(pawtab%tphitphj)) then
        ABI_DEALLOCATE(pawtab%tphitphj)
      end if
      if (siz_tphitphj>0) then
@@ -2498,7 +2454,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        pawtab%tphitphj=reshape(list_dpr(ii:ii+siz_tphitphj-1),(/pawtab%mesh_size,pawtab%ij_size/))
        ii=ii+siz_tphitphj
      end if
-     if (associated(pawtab%vee)) then
+     if (allocated(pawtab%vee)) then
        ABI_DEALLOCATE(pawtab%vee)
      end if
      if (siz_vee>0) then
@@ -2507,7 +2463,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        pawtab%vee=reshape(list_dpr(ii:ii+siz_vee-1),(/sz1,sz1,sz1,sz1/))
        ii=ii+siz_vee
      end if
-     if (associated(pawtab%vex)) then
+     if (allocated(pawtab%vex)) then
        ABI_DEALLOCATE(pawtab%vex)
      end if
      if (siz_vex>0) then
@@ -2516,7 +2472,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
        pawtab%vex=reshape(list_dpr(ii:ii+siz_vex-1),(/sz1,sz1,sz1,sz1,4/))
        ii=ii+siz_vex
      end if
-     if (associated(pawtab%zioneff)) then
+     if (allocated(pawtab%zioneff)) then
        ABI_DEALLOCATE(pawtab%zioneff)
      end if
      if (siz_zioneff>0) then

@@ -364,7 +364,7 @@ end function assert_eqn
 !! PARENTS
 !!
 !! CHILDREN
-!!      msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -416,7 +416,7 @@ end subroutine assert1
 !! PARENTS
 !!
 !! CHILDREN
-!!      msg_hndl
+!!      signal
 !!
 !! SOURCE
 subroutine assert2(l1,l2,message,file,line)
@@ -467,7 +467,7 @@ end subroutine assert2
 !! PARENTS
 !!
 !! CHILDREN
-!!      msg_hndl
+!!      signal
 !!
 !! SOURCE
 subroutine assert3(l1,l2,l3,message,file,line)
@@ -518,7 +518,7 @@ end subroutine assert3
 !! PARENTS
 !!
 !! CHILDREN
-!!      msg_hndl
+!!      signal
 !!
 !! SOURCE
 subroutine assert4(l1,l2,l3,l4,message,file,line)
@@ -567,7 +567,7 @@ end subroutine assert4
 !! PARENTS
 !!
 !! CHILDREN
-!!      msg_hndl
+!!      signal
 !!
 !! SOURCE
 subroutine assert_v(n,message,file,line)
@@ -620,7 +620,7 @@ end subroutine assert_v
 !! PARENTS
 !!
 !! CHILDREN
-!!      msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -696,7 +696,7 @@ end subroutine netcdf_check
 !! PARENTS
 !!
 !! CHILDREN
-!!      msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -785,7 +785,7 @@ end subroutine sentinel
 !!      arw,m_errors,m_pspsiesta_io,m_xc_vdw,pspsiesta_xc
 !!
 !! CHILDREN
-!!      msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -862,7 +862,7 @@ end subroutine die
 !!      m_errors
 !!
 !! CHILDREN
-!!      msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -1012,7 +1012,7 @@ end subroutine show_backtrace
 !! PARENTS
 !!
 !! CHILDREN
-!!      msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -1095,7 +1095,7 @@ end subroutine check_mpi_ierr
 !! PARENTS
 !!
 !! CHILDREN
-!!      msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -1139,7 +1139,7 @@ end subroutine unused_int
 !! PARENTS
 !!
 !! CHILDREN
-!!      msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -1183,7 +1183,7 @@ end subroutine unused_int_d1
 !! PARENTS
 !!
 !! CHILDREN
-!!      msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -1227,7 +1227,7 @@ end subroutine unused_real_dp
 !! PARENTS
 !!
 !! CHILDREN
-!!      msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -1271,7 +1271,7 @@ end subroutine unused_real_sp_d1
 !! PARENTS
 !!
 !! CHILDREN
-!!      msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -1315,7 +1315,7 @@ end subroutine unused_real_dp_d1
 !! PARENTS
 !!
 !! CHILDREN
-!!      msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -1359,7 +1359,7 @@ end subroutine unused_cplx_spc
 !! PARENTS
 !!
 !! CHILDREN
-!!      msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -1403,7 +1403,7 @@ end subroutine unused_cplx_spc_d1
 !! PARENTS
 !!
 !! CHILDREN
-!!      msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -1447,7 +1447,7 @@ end subroutine unused_cplx_dpc
 !! PARENTS
 !!
 !! CHILDREN
-!!      msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -1491,7 +1491,7 @@ end subroutine unused_cplx_dpc_d1
 !! PARENTS
 !!
 !! CHILDREN
-!!      msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -1535,7 +1535,7 @@ end subroutine unused_logical_d0
 !! PARENTS
 !!
 !! CHILDREN
-!!      msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -1583,7 +1583,7 @@ end subroutine unused_ch_d0
 !! PARENTS
 !!
 !! CHILDREN
-!!      msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -1647,7 +1647,7 @@ end subroutine abietsf_msg_hndl
 !! PARENTS
 !!
 !! CHILDREN
-!!      msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -1706,7 +1706,7 @@ end subroutine abietsf_warn
 !! PARENTS
 !!
 !! CHILDREN
-!!      msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -1751,8 +1751,10 @@ end subroutine bigdft_lib_error
 !!  Simple command line argument parser (supports --version, --build, --help)
 !!
 !! PARENTS
+!!      abinit,anaddb,fftprof,mrgddb,mrggkk,mrgscr,optic
 !!
 !! CHILDREN
+!!      signal
 !!
 !! SOURCE
 
@@ -1870,6 +1872,7 @@ end subroutine args_parser
 !! PARENTS
 !!
 !! CHILDREN
+!!      signal
 !!
 !! SOURCE
 

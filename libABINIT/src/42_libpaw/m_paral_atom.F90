@@ -149,14 +149,13 @@ end subroutine get_my_natom
 !!  paral_atom=flag controlling parallelism over atoms
 !!
 !! PARENTS
-!!      accrho3,calc_efg,calc_fc,denfgr,eltxccore,ewald3,ewald4,expibi,expibr
+!!      accrho3,calc_efg,calc_fc,denfgr,eltxccore,ewald3,ewald4,expibr
 !!      initmpi_atom,initrhoij,m_hamiltonian,m_paw_an,m_paw_ij,m_paw_pwaves_lmn
 !!      m_pawdij,m_pawfgrtab,m_pawrhoij,make_efg_onsite,make_fc_paw,newfermie1
 !!      nhatgrid,paw_mknewh0,pawaccrhoij,pawdenpot,pawenergy3,pawgrnl,pawmkaewf
 !!      pawmknhat,pawmknhat_psipsi,pawnhatfr,pawprt,pawsushat,pawtwdij
 !!      pawtwdij_1,pawtwdij_2a,pawtwdij_2b,pawtwdij_2c,pawtwdij_2d,pawtwdij_2e
-!!      pawtwdij_2f,pawuj_red,qijb_kk,setnoccmmp,setrhoijpbe0,twexpibi
-!!      twqijb_kk
+!!      pawtwdij_2f,pawuj_red,setnoccmmp,setrhoijpbe0,twexpibi,twqijb_kk
 !!
 !! CHILDREN
 !!
@@ -264,13 +263,13 @@ end subroutine get_my_atmtab
 !!               nothing is done if my_atmtab(:) is already associated to a target
 !!
 !! PARENTS
-!!      calc_efg,calc_fc,denfgr,eltxccore,ewald3,ewald4,expibi,expibr,initrhoij
+!!      calc_efg,calc_fc,denfgr,eltxccore,ewald3,ewald4,expibr,initrhoij
 !!      m_hamiltonian,m_paw_an,m_paw_ij,m_paw_pwaves_lmn,m_pawdij,m_pawfgrtab
 !!      m_pawrhoij,make_efg_onsite,make_fc_paw,newfermie1,nhatgrid,paw_mknewh0
 !!      pawaccrhoij,pawdenpot,pawenergy3,pawgrnl,pawmkaewf,pawmknhat
 !!      pawmknhat_psipsi,pawnhatfr,pawprt,pawsushat,pawtwdij,pawtwdij_1
 !!      pawtwdij_2a,pawtwdij_2b,pawtwdij_2c,pawtwdij_2d,pawtwdij_2e,pawtwdij_2f
-!!      pawuj_red,qijb_kk,setnoccmmp,setrhoijpbe0,twexpibi,twqijb_kk
+!!      pawuj_red,setnoccmmp,setrhoijpbe0,twexpibi,twqijb_kk
 !!
 !! CHILDREN
 !!
@@ -338,6 +337,7 @@ end subroutine free_my_atmtab
 !!   get_atmtab must be modified accordingly
 !!
 !! PARENTS
+!!      m_paral_pert
 !!
 !! CHILDREN
 !!

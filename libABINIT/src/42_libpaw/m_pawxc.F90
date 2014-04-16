@@ -25,6 +25,9 @@ module m_pawxc
  use defs_basis
  use m_errors
  use m_profiling
+#if defined HAVE_DFT_LIBXC
+ use libxc_functionals
+#endif
 
  use m_pawang, only : pawang_type
  use m_pawrad, only : pawrad_type, nderiv_gen, pawrad_deducer0, simp_gen
@@ -472,9 +475,6 @@ end subroutine pawxc_xcpositron_wrapper
 
 subroutine pawxc_size_dvxc_wrapper(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
 
-#if defined HAVE_DFT_LIBXC
- use libxc_functionals
-#endif
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -950,7 +950,6 @@ end subroutine pawxc_mkdenpos_wrapper
 subroutine pawxc(corexc,enxc,enxcdc,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,option,&
 &                pawang,pawrad,rhor,usecore,usexcnhat,vxc,xclevel,xc_denpos)
 
- use m_pawrad, only : pawrad_type, nderiv_gen, pawrad_deducer0, simp_gen
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1010,11 +1009,11 @@ subroutine pawxc(corexc,enxc,enxcdc,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,op
    msg='  pawang%angl_size=0 !'
    MSG_BUG(msg)
  end if
- if(.not.associated(pawang%ylmr)) then
+ if(.not.allocated(pawang%ylmr)) then
    msg='  pawang%ylmr must be allocated !'
    MSG_BUG(msg)
  end if
- if(xclevel==2.and.(.not.associated(pawang%ylmrgr))) then
+ if(xclevel==2.and.(.not.allocated(pawang%ylmrgr))) then
    msg='  pawang%ylmrgr must be allocated !'
    MSG_BUG(msg)
  end if
@@ -1534,7 +1533,6 @@ subroutine pawxcpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmselec
 &                        nhat,nhat_ep,nspden,option,pawang,pawrad,posdensity0_limit,&
 &                        rhor,rhor_ep,usecore,usexcnhat,vxc,xc_denpos)
 
- use m_pawrad, only : pawrad_type, nderiv_gen, pawrad_deducer0, simp_gen
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1586,7 +1584,7 @@ subroutine pawxcpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmselec
    msg='  pawang%angl_size=0 !'
    MSG_BUG(msg)
  end if
- if(.not.associated(pawang%ylmr)) then
+ if(.not.allocated(pawang%ylmr)) then
    msg='  pawang%ylmr must be allocated !'
    MSG_BUG(msg)
  end if
@@ -1817,7 +1815,6 @@ subroutine pawxc3_gga(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselec
 &                 option,pawang,pawrad,rhor1,usecore,usexcnhat,vxc1,xclevel,&
 &                 d2enxc_im) ! optional
 
- use m_pawrad, only : pawrad_type, nderiv_gen, pawrad_deducer0, simp_gen
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1899,11 +1896,11 @@ subroutine pawxc3_gga(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselec
    msg='  pawang%angl_size=0 !'
    MSG_BUG(msg)
  end if
- if(.not.associated(pawang%ylmr)) then
+ if(.not.allocated(pawang%ylmr)) then
    msg='  pawang%ylmr must be allocated !'
    MSG_BUG(msg)
  end if
- if(xclevel==2.and.(.not.associated(pawang%ylmrgr))) then
+ if(xclevel==2.and.(.not.allocated(pawang%ylmrgr))) then
    msg='  pawang%ylmrgr must be allocated !'
    MSG_BUG(msg)
  end if
@@ -2667,7 +2664,6 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 &                 option,pawang,pawrad,rhor1,usecore,usexcnhat,vxc1,xclevel,&
 &                 d2enxc_im) ! optional
 
- use m_pawrad, only : pawrad_type, nderiv_gen, pawrad_deducer0, simp_gen
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2743,7 +2739,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
    msg='  pawang%angl_size=0 !'
    MSG_BUG(msg)
  end if
- if(.not.associated(pawang%ylmr)) then
+ if(.not.allocated(pawang%ylmr)) then
    msg='  pawang%ylmr must be allocated !'
    MSG_BUG(msg)
  end if
@@ -3092,7 +3088,6 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 
  subroutine pawxcsph(exc,exexch,ixc,kxc,nkxc,nrad,nspden,pawrad,rho_updn,vxc,xclevel)
 
- use m_pawrad, only : pawrad_type, nderiv_gen, pawrad_deducer0, simp_gen
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -3350,7 +3345,6 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 
  subroutine pawxcsph3(cplex_den,cplex_vxc,ixc,nrad,nspden,pawrad,rho_updn,rho1_updn,vxc1,xclevel)
 
- use m_pawrad, only : pawrad_type, nderiv_gen, pawrad_deducer0, simp_gen
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -3641,7 +3635,6 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 
  subroutine pawxcsphpositron(calctype,fxc,ixcpositron,nrad,pawrad,posdensity0_limit,rho,rho_ep,vxce,vxcp)
 
- use m_pawrad, only : pawrad_type, nderiv_gen, pawrad_deducer0, simp_gen
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -4151,7 +4144,6 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
  subroutine pawxcm(corexc,enxc,enxcdc,exexch,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,option,&
 &                  pawang,pawrad,pawxcdev,rhor,usecore,usexcnhat,vxc,xclevel,xc_denpos)
 
- use m_pawrad, only : pawrad_type, nderiv_gen, pawrad_deducer0, simp_gen
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -4505,9 +4497,13 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !  V2SUM3(r,L)=Sum_L1_L2{(m_0.m_L1)*(m_0.m_L2)*Gaunt_(L,L1,L2)}/|m_0|^2
    if (pawxcdev>=1)  then
      ABI_ALLOCATE(v1sum,(nrad,nsums))
+   else
+     ABI_ALLOCATE(v1sum,(0,0))
    end if
    if (pawxcdev>=2)  then
      ABI_ALLOCATE(v2sum,(nrad,lm_size,nsums))
+   else 
+     ABI_ALLOCATE(v2sum,(0,0,0))
    end if
    if (nspden/=4) then
      call pawxcsum(1,1,1,lmselect,lmselect,lm_size,nrad,nsums,pawxcdev,pawang,&
@@ -4826,10 +4822,12 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
  if (nspden==4  .and.option/=4.and.option/=5)  then
    ABI_DEALLOCATE(v0sum)
  end if
- if (pawxcdev>=1.and.option/=4.and.option/=5)  then
+ !if (pawxcdev>=1.and.option/=4.and.option/=5)  then
+ if (allocated(v1sum))  then
    ABI_DEALLOCATE(v1sum)
  end if
- if (pawxcdev>=2.and.option/=4.and.option/=5)  then
+ !if (pawxcdev>=2.and.option/=4.and.option/=5)  then
+ if (allocated(v2sum))  then
    ABI_DEALLOCATE(v2sum)
  end if
  if (option/=4.and.option/=5.and.(option/=3.or.pawxcdev>=2))  then
@@ -4967,7 +4965,6 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 &                   option,pawang,pawrad,rhor1,usecore,usexcnhat,vxc1,xclevel,&
 &                   d2enxc_im) ! optional
 
- use m_pawrad, only : pawrad_type, nderiv_gen, pawrad_deducer0, simp_gen
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -5316,7 +5313,6 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
  &                         nhat,nhat_ep,nspden,option,pawang,pawrad,pawxcdev,posdensity0_limit,&
  &                         rhor,rhor_ep,usecore,usexcnhat,vxc,xc_denpos)
 
- use m_pawrad, only : pawrad_type, nderiv_gen, pawrad_deducer0, simp_gen
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -5876,9 +5872,6 @@ contains
 
 subroutine pawxc_libxc()
 
-#if defined HAVE_DFT_LIBXC
- use libxc_functionals
-#endif
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.

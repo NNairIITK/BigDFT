@@ -1,12 +1,12 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/xsum_master
+!!****f* ABINIT/xmpi_sum_master
 !! NAME
-!!  xsum_master
+!!  xmpi_sum_master
 !!
 !! FUNCTION
 !!  This module contains functions that calls MPI routine,
 !!  if we compile the code using the MPI  CPP flags.
-!!  xsum_master is the generic function.
+!!  xmpi_sum_master is the generic function.
 !!
 !! COPYRIGHT
 !!  Copyright (C) 2001-2014 ABINIT group (AR,XG,MB)
@@ -18,9 +18,9 @@
 
 !!***
 
-!!****f* ABINIT/xsum_master_int
+!!****f* ABINIT/xmpi_sum_master_int
 !! NAME
-!!  xsum_master_int
+!!  xmpi_sum_master_int
 !!
 !! FUNCTION
 !!  Reduces values on all processes to a single value.
@@ -43,14 +43,14 @@
 !!
 !! SOURCE
 
-subroutine xsum_master_int(xval,master,spaceComm,ier)
+subroutine xmpi_sum_master_int(xval,master,spaceComm,ier)
 
  use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xsum_master_int'
+#define ABI_FUNC 'xmpi_sum_master_int'
 !End of the abilint section
 
  implicit none
@@ -80,12 +80,12 @@ subroutine xsum_master_int(xval,master,spaceComm,ier)
    end if
  end if
 #endif
-end subroutine xsum_master_int
+end subroutine xmpi_sum_master_int
 !!***
 
-!!****f* ABINIT/xsum_master_dp1d
+!!****f* ABINIT/xmpi_sum_master_dp1d
 !! NAME
-!!  xsum_master_dp1d
+!!  xmpi_sum_master_dp1d
 !!
 !! FUNCTION
 !!  Reduces values on all processes to a single value.
@@ -108,7 +108,7 @@ end subroutine xsum_master_int
 !!
 !! SOURCE
 
-subroutine xsum_master_dp1d(xval,master,spaceComm,ier)
+subroutine xmpi_sum_master_dp1d(xval,master,spaceComm,ier)
 
  use defs_basis
  use m_profiling
@@ -116,7 +116,7 @@ subroutine xsum_master_dp1d(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xsum_master_dp1d'
+#define ABI_FUNC 'xmpi_sum_master_dp1d'
 !End of the abilint section
 
  implicit none
@@ -150,12 +150,12 @@ subroutine xsum_master_dp1d(xval,master,spaceComm,ier)
    end if
  end if
 #endif
-end subroutine xsum_master_dp1d
+end subroutine xmpi_sum_master_dp1d
 !!***
 
-!!****f* ABINIT/xsum_master_dp2d
+!!****f* ABINIT/xmpi_sum_master_dp2d
 !! NAME
-!!  xsum_master_dp2d
+!!  xmpi_sum_master_dp2d
 !!
 !! FUNCTION
 !!  Reduces values on all processes to a single value.
@@ -178,7 +178,7 @@ end subroutine xsum_master_dp1d
 !!
 !! SOURCE
 
-subroutine xsum_master_dp2d(xval,master,spaceComm,ier)
+subroutine xmpi_sum_master_dp2d(xval,master,spaceComm,ier)
 
  use defs_basis
  use m_profiling
@@ -186,7 +186,7 @@ subroutine xsum_master_dp2d(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xsum_master_dp2d'
+#define ABI_FUNC 'xmpi_sum_master_dp2d'
 !End of the abilint section
 
  implicit none
@@ -221,12 +221,12 @@ subroutine xsum_master_dp2d(xval,master,spaceComm,ier)
    end if
  end if
 #endif
-end subroutine xsum_master_dp2d
+end subroutine xmpi_sum_master_dp2d
 !!***
 
-!!****f* ABINIT/xsum_master_dp3d
+!!****f* ABINIT/xmpi_sum_master_dp3d
 !! NAME
-!!  xsum_master_dp3d
+!!  xmpi_sum_master_dp3d
 !!
 !! FUNCTION
 !!  Reduces values on all processes to a single value.
@@ -248,7 +248,7 @@ end subroutine xsum_master_dp2d
 !!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
-subroutine xsum_master_dp3d(xval,master,spaceComm,ier)
+subroutine xmpi_sum_master_dp3d(xval,master,spaceComm,ier)
 
  use defs_basis
  use m_profiling
@@ -256,7 +256,7 @@ subroutine xsum_master_dp3d(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xsum_master_dp3d'
+#define ABI_FUNC 'xmpi_sum_master_dp3d'
 !End of the abilint section
 
  implicit none
@@ -292,12 +292,12 @@ subroutine xsum_master_dp3d(xval,master,spaceComm,ier)
    end if
  end if
 #endif
-end subroutine xsum_master_dp3d
+end subroutine xmpi_sum_master_dp3d
 !!***
 
-!!****f* ABINIT/xsum_master_dp4d
+!!****f* ABINIT/xmpi_sum_master_dp4d
 !! NAME
-!!  xsum_master_dp4d
+!!  xmpi_sum_master_dp4d
 !!
 !! FUNCTION
 !!  Reduces values on all processes to a single value.
@@ -319,7 +319,7 @@ end subroutine xsum_master_dp3d
 !!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
-subroutine xsum_master_dp4d(xval,master,spaceComm,ier)
+subroutine xmpi_sum_master_dp4d(xval,master,spaceComm,ier)
 
  use defs_basis
  use m_profiling
@@ -327,7 +327,7 @@ subroutine xsum_master_dp4d(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xsum_master_dp4d'
+#define ABI_FUNC 'xmpi_sum_master_dp4d'
 !End of the abilint section
 
  implicit none
@@ -365,12 +365,12 @@ subroutine xsum_master_dp4d(xval,master,spaceComm,ier)
  end if
 #endif
 
-end subroutine xsum_master_dp4d
+end subroutine xmpi_sum_master_dp4d
 !!***
 
-!!****f* ABINIT/xsum_master_dp5d
+!!****f* ABINIT/xmpi_sum_master_dp5d
 !! NAME
-!!  xsum_master_dp5d
+!!  xmpi_sum_master_dp5d
 !!
 !! FUNCTION
 !!  Reduces values on all processes to a single value.
@@ -392,7 +392,7 @@ end subroutine xsum_master_dp4d
 !!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
-subroutine xsum_master_dp5d(xval,master,spaceComm,ier)
+subroutine xmpi_sum_master_dp5d(xval,master,spaceComm,ier)
 
  use defs_basis
  use m_profiling
@@ -400,7 +400,7 @@ subroutine xsum_master_dp5d(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xsum_master_dp5d'
+#define ABI_FUNC 'xmpi_sum_master_dp5d'
 !End of the abilint section
 
  implicit none
@@ -438,12 +438,12 @@ subroutine xsum_master_dp5d(xval,master,spaceComm,ier)
  end if
 #endif
 
-end subroutine xsum_master_dp5d
+end subroutine xmpi_sum_master_dp5d
 !!***
 
-!!****f* ABINIT/xsum_master_dp6d
+!!****f* ABINIT/xmpi_sum_master_dp6d
 !! NAME
-!!  xsum_master_dp6d
+!!  xmpi_sum_master_dp6d
 !!
 !! FUNCTION
 !!  Reduces values on all processes to a single value.
@@ -465,7 +465,7 @@ end subroutine xsum_master_dp5d
 !!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
-subroutine xsum_master_dp6d(xval,master,spaceComm,ier)
+subroutine xmpi_sum_master_dp6d(xval,master,spaceComm,ier)
 
  use defs_basis
  use m_profiling
@@ -473,7 +473,7 @@ subroutine xsum_master_dp6d(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xsum_master_dp6d'
+#define ABI_FUNC 'xmpi_sum_master_dp6d'
 !End of the abilint section
 
  implicit none
@@ -512,12 +512,12 @@ subroutine xsum_master_dp6d(xval,master,spaceComm,ier)
  end if
 #endif
 
-end subroutine xsum_master_dp6d
+end subroutine xmpi_sum_master_dp6d
 !!***
 
-!!****f* ABINIT/xsum_master_dp7d
+!!****f* ABINIT/xmpi_sum_master_dp7d
 !! NAME
-!!  xsum_master_dp7d
+!!  xmpi_sum_master_dp7d
 !!
 !! FUNCTION
 !!  Reduces values on all processes to a single value.
@@ -539,7 +539,7 @@ end subroutine xsum_master_dp6d
 !!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
-subroutine xsum_master_dp7d(xval,master,spaceComm,ier)
+subroutine xmpi_sum_master_dp7d(xval,master,spaceComm,ier)
 
  use defs_basis
  use m_profiling
@@ -547,7 +547,7 @@ subroutine xsum_master_dp7d(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xsum_master_dp7d'
+#define ABI_FUNC 'xmpi_sum_master_dp7d'
 !End of the abilint section
 
  implicit none
@@ -587,12 +587,12 @@ subroutine xsum_master_dp7d(xval,master,spaceComm,ier)
  end if
 #endif
 
-end subroutine xsum_master_dp7d
+end subroutine xmpi_sum_master_dp7d
 !!***
 
-!!****f* ABINIT/xsum_master_int4d
+!!****f* ABINIT/xmpi_sum_master_int4d
 !! NAME
-!!  xsum_master_int4d
+!!  xmpi_sum_master_int4d
 !!
 !! FUNCTION
 !!  Reduces values on all processes to a single value.
@@ -614,7 +614,7 @@ end subroutine xsum_master_dp7d
 !!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
-subroutine xsum_master_int4d(xval,master,spaceComm,ier)
+subroutine xmpi_sum_master_int4d(xval,master,spaceComm,ier)
 
  use defs_basis
  use m_profiling
@@ -622,7 +622,7 @@ subroutine xsum_master_int4d(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xsum_master_int4d'
+#define ABI_FUNC 'xmpi_sum_master_int4d'
 !End of the abilint section
 
  implicit none
@@ -660,12 +660,12 @@ subroutine xsum_master_int4d(xval,master,spaceComm,ier)
  end if
 #endif
 
-end subroutine xsum_master_int4d
+end subroutine xmpi_sum_master_int4d
 !!***
 
-!!****f* ABINIT/xsum_master_c1cplx
+!!****f* ABINIT/xmpi_sum_master_c1cplx
 !! NAME
-!!  xsum_master_c1cplx
+!!  xmpi_sum_master_c1cplx
 !!
 !! FUNCTION
 !!  Reduces values on all processes to a single value.
@@ -688,7 +688,7 @@ end subroutine xsum_master_int4d
 !!
 !! SOURCE
 
-subroutine xsum_master_c1cplx(xval,master,spaceComm,ier)
+subroutine xmpi_sum_master_c1cplx(xval,master,spaceComm,ier)
 
  use defs_basis
  use m_profiling
@@ -696,7 +696,7 @@ subroutine xsum_master_c1cplx(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xsum_master_c1cplx'
+#define ABI_FUNC 'xmpi_sum_master_c1cplx'
 !End of the abilint section
 
  implicit none
@@ -730,12 +730,12 @@ subroutine xsum_master_c1cplx(xval,master,spaceComm,ier)
  end if
 #endif
 
-end subroutine xsum_master_c1cplx
+end subroutine xmpi_sum_master_c1cplx
 !!***
 
-!!****f* ABINIT/xsum_master_c2cplx
+!!****f* ABINIT/xmpi_sum_master_c2cplx
 !! NAME
-!!  xsum_master_c2cplx
+!!  xmpi_sum_master_c2cplx
 !!
 !! FUNCTION
 !!  Reduces values on all processes to a single value.
@@ -758,7 +758,7 @@ end subroutine xsum_master_c1cplx
 !!
 !! SOURCE
 
-subroutine xsum_master_c2cplx(xval,master,spaceComm,ier)
+subroutine xmpi_sum_master_c2cplx(xval,master,spaceComm,ier)
 
  use defs_basis
  use m_profiling
@@ -766,7 +766,7 @@ subroutine xsum_master_c2cplx(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xsum_master_c2cplx'
+#define ABI_FUNC 'xmpi_sum_master_c2cplx'
 !End of the abilint section
 
  implicit none
@@ -801,12 +801,12 @@ subroutine xsum_master_c2cplx(xval,master,spaceComm,ier)
    end if
  end if
 #endif
-end subroutine xsum_master_c2cplx
+end subroutine xmpi_sum_master_c2cplx
 !!***
 
-!!****f* ABINIT/xsum_master_c3cplx
+!!****f* ABINIT/xmpi_sum_master_c3cplx
 !! NAME
-!!  xsum_master_c3cplx
+!!  xmpi_sum_master_c3cplx
 !!
 !! FUNCTION
 !!  Reduces values on all processes to a single value.
@@ -828,7 +828,7 @@ end subroutine xsum_master_c2cplx
 !!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
-subroutine xsum_master_c3cplx(xval,master,spaceComm,ier)
+subroutine xmpi_sum_master_c3cplx(xval,master,spaceComm,ier)
 
  use defs_basis
  use m_profiling
@@ -836,7 +836,7 @@ subroutine xsum_master_c3cplx(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xsum_master_c3cplx'
+#define ABI_FUNC 'xmpi_sum_master_c3cplx'
 !End of the abilint section
 
  implicit none
@@ -872,12 +872,12 @@ subroutine xsum_master_c3cplx(xval,master,spaceComm,ier)
    end if
  end if
 #endif
-end subroutine xsum_master_c3cplx
+end subroutine xmpi_sum_master_c3cplx
 !!***
 
-!!****f* ABINIT/xsum_master_c4cplx
+!!****f* ABINIT/xmpi_sum_master_c4cplx
 !! NAME
-!!  xsum_master_c4cplx
+!!  xmpi_sum_master_c4cplx
 !!
 !! FUNCTION
 !!  Reduces values on all processes to a single value.
@@ -899,7 +899,7 @@ end subroutine xsum_master_c3cplx
 !!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
-subroutine xsum_master_c4cplx(xval,master,spaceComm,ier)
+subroutine xmpi_sum_master_c4cplx(xval,master,spaceComm,ier)
 
  use defs_basis
  use m_profiling
@@ -907,7 +907,7 @@ subroutine xsum_master_c4cplx(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xsum_master_c4cplx'
+#define ABI_FUNC 'xmpi_sum_master_c4cplx'
 !End of the abilint section
 
  implicit none
@@ -944,14 +944,14 @@ subroutine xsum_master_c4cplx(xval,master,spaceComm,ier)
    end if
  end if
 #endif
-end subroutine xsum_master_c4cplx
+end subroutine xmpi_sum_master_c4cplx
 !!***
 
 !----------------------------------------------------------------------
 
-!!****f* ABINIT/xsum_master_c5cplx
+!!****f* ABINIT/xmpi_sum_master_c5cplx
 !! NAME
-!!  xsum_master_c5cplx
+!!  xmpi_sum_master_c5cplx
 !!
 !! FUNCTION
 !!  Reduces values on all processes to a single value.
@@ -973,7 +973,7 @@ end subroutine xsum_master_c4cplx
 !!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
-subroutine xsum_master_c5cplx(xval,master,spaceComm,ier)
+subroutine xmpi_sum_master_c5cplx(xval,master,spaceComm,ier)
 
 
  use defs_basis
@@ -982,7 +982,7 @@ subroutine xsum_master_c5cplx(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xsum_master_c5cplx'
+#define ABI_FUNC 'xmpi_sum_master_c5cplx'
 !End of the abilint section
 
  implicit none
@@ -1020,12 +1020,12 @@ subroutine xsum_master_c5cplx(xval,master,spaceComm,ier)
    end if
  end if
 #endif
-end subroutine xsum_master_c5cplx
+end subroutine xmpi_sum_master_c5cplx
 !!***
 
-!!****f* ABINIT/xsum_master_c1dpc
+!!****f* ABINIT/xmpi_sum_master_c1dpc
 !! NAME
-!!  xsum_master_c1dpc
+!!  xmpi_sum_master_c1dpc
 !!
 !! FUNCTION
 !!  Reduces values on all processes to a single value.
@@ -1047,7 +1047,7 @@ end subroutine xsum_master_c5cplx
 !!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
-subroutine xsum_master_c1dpc(xval,master,spaceComm,ier)
+subroutine xmpi_sum_master_c1dpc(xval,master,spaceComm,ier)
 
  use defs_basis
  use m_profiling
@@ -1055,7 +1055,7 @@ subroutine xsum_master_c1dpc(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xsum_master_c1dpc'
+#define ABI_FUNC 'xmpi_sum_master_c1dpc'
 !End of the abilint section
 
  implicit none
@@ -1090,12 +1090,12 @@ subroutine xsum_master_c1dpc(xval,master,spaceComm,ier)
  end if
 #endif
 
-end subroutine xsum_master_c1dpc
+end subroutine xmpi_sum_master_c1dpc
 !!***
 
-!!****f* ABINIT/xsum_master_c2dpc
+!!****f* ABINIT/xmpi_sum_master_c2dpc
 !! NAME
-!!  xsum_master_c2dpc
+!!  xmpi_sum_master_c2dpc
 !!
 !! FUNCTION
 !!  Reduces values on all processes to a single value.
@@ -1117,7 +1117,7 @@ end subroutine xsum_master_c1dpc
 !!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
-subroutine xsum_master_c2dpc(xval,master,spaceComm,ier)
+subroutine xmpi_sum_master_c2dpc(xval,master,spaceComm,ier)
 
  use defs_basis
  use m_profiling
@@ -1125,7 +1125,7 @@ subroutine xsum_master_c2dpc(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xsum_master_c2dpc'
+#define ABI_FUNC 'xmpi_sum_master_c2dpc'
 !End of the abilint section
 
  implicit none
@@ -1160,12 +1160,12 @@ subroutine xsum_master_c2dpc(xval,master,spaceComm,ier)
    end if
  end if
 #endif
-end subroutine xsum_master_c2dpc
+end subroutine xmpi_sum_master_c2dpc
 !!***
 
-!!****f* ABINIT/xsum_master_c3dpc
+!!****f* ABINIT/xmpi_sum_master_c3dpc
 !! NAME
-!!  xsum_master_c3dpc
+!!  xmpi_sum_master_c3dpc
 !!
 !! FUNCTION
 !!  Reduces values on all processes to a single value.
@@ -1187,7 +1187,7 @@ end subroutine xsum_master_c2dpc
 !!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
-subroutine xsum_master_c3dpc(xval,master,spaceComm,ier)
+subroutine xmpi_sum_master_c3dpc(xval,master,spaceComm,ier)
 
  use defs_basis
  use m_profiling
@@ -1195,7 +1195,7 @@ subroutine xsum_master_c3dpc(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xsum_master_c3dpc'
+#define ABI_FUNC 'xmpi_sum_master_c3dpc'
 !End of the abilint section
 
  implicit none
@@ -1231,12 +1231,12 @@ subroutine xsum_master_c3dpc(xval,master,spaceComm,ier)
    end if
  end if
 #endif
-end subroutine xsum_master_c3dpc
+end subroutine xmpi_sum_master_c3dpc
 !!***
 
-!!****f* ABINIT/xsum_master_c4dpc
+!!****f* ABINIT/xmpi_sum_master_c4dpc
 !! NAME
-!!  xsum_master_c4dpc
+!!  xmpi_sum_master_c4dpc
 !!
 !! FUNCTION
 !!  Reduces values on all processes to a single value.
@@ -1258,7 +1258,7 @@ end subroutine xsum_master_c3dpc
 !!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
-subroutine xsum_master_c4dpc(xval,master,spaceComm,ier)
+subroutine xmpi_sum_master_c4dpc(xval,master,spaceComm,ier)
 
  use defs_basis
  use m_profiling
@@ -1266,7 +1266,7 @@ subroutine xsum_master_c4dpc(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xsum_master_c4dpc'
+#define ABI_FUNC 'xmpi_sum_master_c4dpc'
 !End of the abilint section
 
  implicit none
@@ -1303,12 +1303,12 @@ subroutine xsum_master_c4dpc(xval,master,spaceComm,ier)
    end if
  end if
 #endif
-end subroutine xsum_master_c4dpc
+end subroutine xmpi_sum_master_c4dpc
 !!***
 
-!!****f* ABINIT/xsum_master_c5dpc
+!!****f* ABINIT/xmpi_sum_master_c5dpc
 !! NAME
-!!  xsum_master_c5dpc
+!!  xmpi_sum_master_c5dpc
 !!
 !! FUNCTION
 !!  Reduces values on all processes to a single value.
@@ -1330,7 +1330,7 @@ end subroutine xsum_master_c4dpc
 !!      mpi_comm_size,mpi_reduce
 !!
 !! SOURCE
-subroutine xsum_master_c5dpc(xval,master,spaceComm,ier)
+subroutine xmpi_sum_master_c5dpc(xval,master,spaceComm,ier)
 
 
  use defs_basis
@@ -1339,7 +1339,7 @@ subroutine xsum_master_c5dpc(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xsum_master_c5dpc'
+#define ABI_FUNC 'xmpi_sum_master_c5dpc'
 !End of the abilint section
 
  implicit none
@@ -1377,5 +1377,5 @@ subroutine xsum_master_c5dpc(xval,master,spaceComm,ier)
    end if
  end if
 #endif
-end subroutine xsum_master_c5dpc
+end subroutine xmpi_sum_master_c5dpc
 !!***

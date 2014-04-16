@@ -1,12 +1,12 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/xcast_mpi_intv
+!!****f* ABINIT/xmpi_bcast_intv
 !! NAME
-!!  xcast_mpi_intv
+!!  xmpi_bcast_intv
 !!
 !! FUNCTION
 !!  This module contains functions that calls MPI routine,
 !!  if we compile the code using the MPI CPP flags.
-!!  xcast_mpi is the generic function.
+!!  xmpi_bcast is the generic function.
 !!
 !! COPYRIGHT
 !!  Copyright (C) 2001-2014 ABINIT group (Rshaltaf,AR,XG)
@@ -21,7 +21,7 @@
 !!
 !! SOURCE
 
-subroutine xcast_mpi_intv(xval,master,spaceComm,ier)
+subroutine xmpi_bcast_intv(xval,master,spaceComm,ier)
 
 
  use defs_basis
@@ -29,7 +29,7 @@ subroutine xcast_mpi_intv(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcast_mpi_intv'
+#define ABI_FUNC 'xmpi_bcast_intv'
 !End of the abilint section
 
  implicit none
@@ -48,12 +48,12 @@ subroutine xcast_mpi_intv(xval,master,spaceComm,ier)
  end if
 #endif
 
-end subroutine xcast_mpi_intv
+end subroutine xmpi_bcast_intv
 !!***
 
-!!****f* ABINIT/xcast_mpi_int1d
+!!****f* ABINIT/xmpi_bcast_int1d
 !! NAME
-!!  xcast_mpi_int1d
+!!  xmpi_bcast_int1d
 !!
 !! FUNCTION
 !!  Broadcasts data from master to slaves.
@@ -75,14 +75,14 @@ end subroutine xcast_mpi_intv
 !!      mpi_bcast
 !!
 !! SOURCE
-subroutine xcast_mpi_int1d(xval,master,spaceComm,ier)
+subroutine xmpi_bcast_int1d(xval,master,spaceComm,ier)
 
  use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcast_mpi_int1d'
+#define ABI_FUNC 'xmpi_bcast_int1d'
 !End of the abilint section
 
  implicit none
@@ -103,12 +103,12 @@ subroutine xcast_mpi_int1d(xval,master,spaceComm,ier)
    call MPI_BCAST(xval,n,MPI_INTEGER,master,spaceComm,ier)
  end if
 #endif
-end subroutine xcast_mpi_int1d
+end subroutine xmpi_bcast_int1d
 !!***
 
-!!****f* ABINIT/xcast_mpi_int2d
+!!****f* ABINIT/xmpi_bcast_int2d
 !! NAME
-!!  xcast_mpi_int2d
+!!  xmpi_bcast_int2d
 !!
 !! FUNCTION
 !!  Broadcasts data from master to slaves.
@@ -130,14 +130,14 @@ end subroutine xcast_mpi_int1d
 !!      mpi_bcast
 !!
 !! SOURCE
-subroutine xcast_mpi_int2d(xval,master,spaceComm,ier)
+subroutine xmpi_bcast_int2d(xval,master,spaceComm,ier)
 
  use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcast_mpi_int2d'
+#define ABI_FUNC 'xmpi_bcast_int2d'
 !End of the abilint section
 
  implicit none
@@ -162,12 +162,12 @@ subroutine xcast_mpi_int2d(xval,master,spaceComm,ier)
    call MPI_BCAST(xval,n1*n2,MPI_INTEGER,master,spaceComm,ier)
  end if
 #endif
-end subroutine xcast_mpi_int2d
+end subroutine xmpi_bcast_int2d
 !!***
 
-!!****f* ABINIT/xcast_mpi_int3d
+!!****f* ABINIT/xmpi_bcast_int3d
 !! NAME
-!!  xcast_mpi_int3d
+!!  xmpi_bcast_int3d
 !!
 !! FUNCTION
 !!  Broadcasts data from master to slaves.
@@ -189,7 +189,7 @@ end subroutine xcast_mpi_int2d
 !!      mpi_bcast
 !!
 !! SOURCE
-subroutine xcast_mpi_int3d(xval,master,spaceComm,ier)
+subroutine xmpi_bcast_int3d(xval,master,spaceComm,ier)
 
 
  use defs_basis
@@ -197,7 +197,7 @@ subroutine xcast_mpi_int3d(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcast_mpi_int3d'
+#define ABI_FUNC 'xmpi_bcast_int3d'
 !End of the abilint section
 
  implicit none
@@ -223,12 +223,12 @@ subroutine xcast_mpi_int3d(xval,master,spaceComm,ier)
    call MPI_BCAST(xval,n1*n2*n3,MPI_INTEGER,master,spaceComm,ier)
  end if
 #endif
-end subroutine xcast_mpi_int3d
+end subroutine xmpi_bcast_int3d
 !!***
 
-!!****f* ABINIT/xcast_mpi_dpv
+!!****f* ABINIT/xmpi_bcast_dpv
 !! NAME
-!!  xcast_mpi_dpv
+!!  xmpi_bcast_dpv
 !!
 !! FUNCTION
 !!  Broadcasts data from master to slaves.
@@ -250,7 +250,7 @@ end subroutine xcast_mpi_int3d
 !!      mpi_bcast
 !!
 !! SOURCE
-subroutine xcast_mpi_dpv(xval,master,spaceComm,ier)
+subroutine xmpi_bcast_dpv(xval,master,spaceComm,ier)
 
 
  use defs_basis
@@ -258,7 +258,7 @@ subroutine xcast_mpi_dpv(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcast_mpi_dpv'
+#define ABI_FUNC 'xmpi_bcast_dpv'
 !End of the abilint section
 
  implicit none
@@ -278,12 +278,12 @@ subroutine xcast_mpi_dpv(xval,master,spaceComm,ier)
  end if
 #endif
 
-end subroutine xcast_mpi_dpv
+end subroutine xmpi_bcast_dpv
 !!***
 
-!!****f* ABINIT/xcast_mpi_dp1d
+!!****f* ABINIT/xmpi_bcast_dp1d
 !! NAME
-!!  xcast_mpi_dp1d
+!!  xmpi_bcast_dp1d
 !!
 !! FUNCTION
 !!  Broadcasts data from master to slaves.
@@ -305,7 +305,7 @@ end subroutine xcast_mpi_dpv
 !!      mpi_bcast
 !!
 !! SOURCE
-subroutine xcast_mpi_dp1d(xval,master,spaceComm,ier)
+subroutine xmpi_bcast_dp1d(xval,master,spaceComm,ier)
 
 
  use defs_basis
@@ -313,7 +313,7 @@ subroutine xcast_mpi_dp1d(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcast_mpi_dp1d'
+#define ABI_FUNC 'xmpi_bcast_dp1d'
 !End of the abilint section
 
  implicit none
@@ -338,12 +338,12 @@ subroutine xcast_mpi_dp1d(xval,master,spaceComm,ier)
  end if
 #endif
 
-end subroutine xcast_mpi_dp1d
+end subroutine xmpi_bcast_dp1d
 !!***
 
-!!****f* ABINIT/xcast_mpi_dp2d
+!!****f* ABINIT/xmpi_bcast_dp2d
 !! NAME
-!!  xcast_mpi_dp2d
+!!  xmpi_bcast_dp2d
 !!
 !! FUNCTION
 !!  Broadcasts data from master to slaves.
@@ -365,7 +365,7 @@ end subroutine xcast_mpi_dp1d
 !!      mpi_bcast
 !!
 !! SOURCE
-subroutine xcast_mpi_dp2d(xval,master,spaceComm,ier)
+subroutine xmpi_bcast_dp2d(xval,master,spaceComm,ier)
 
 
  use defs_basis
@@ -373,7 +373,7 @@ subroutine xcast_mpi_dp2d(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcast_mpi_dp2d'
+#define ABI_FUNC 'xmpi_bcast_dp2d'
 !End of the abilint section
 
  implicit none
@@ -399,12 +399,12 @@ subroutine xcast_mpi_dp2d(xval,master,spaceComm,ier)
  end if
 #endif
 
-end subroutine xcast_mpi_dp2d
+end subroutine xmpi_bcast_dp2d
 !!***
 
-!!****f* ABINIT/xcast_mpi_dp3d
+!!****f* ABINIT/xmpi_bcast_dp3d
 !! NAME
-!!  xcast_mpi_dp3d
+!!  xmpi_bcast_dp3d
 !!
 !! FUNCTION
 !!  Broadcasts data from master to slaves.
@@ -426,7 +426,7 @@ end subroutine xcast_mpi_dp2d
 !!      mpi_bcast
 !!
 !! SOURCE
-subroutine xcast_mpi_dp3d(xval,master,spaceComm,ier)
+subroutine xmpi_bcast_dp3d(xval,master,spaceComm,ier)
 
 
  use defs_basis
@@ -434,7 +434,7 @@ subroutine xcast_mpi_dp3d(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcast_mpi_dp3d'
+#define ABI_FUNC 'xmpi_bcast_dp3d'
 !End of the abilint section
 
  implicit none
@@ -461,12 +461,12 @@ subroutine xcast_mpi_dp3d(xval,master,spaceComm,ier)
  end if
 #endif
 
-end subroutine xcast_mpi_dp3d
+end subroutine xmpi_bcast_dp3d
 !!***
 
-!!****f* ABINIT/xcast_mpi_dp4d
+!!****f* ABINIT/xmpi_bcast_dp4d
 !! NAME
-!!  xcast_mpi_dp4d
+!!  xmpi_bcast_dp4d
 !!
 !! FUNCTION
 !!  Broadcasts data from master to slaves.
@@ -488,7 +488,7 @@ end subroutine xcast_mpi_dp3d
 !!      mpi_bcast
 !!
 !! SOURCE
-subroutine xcast_mpi_dp4d(xval,master,spaceComm,ier)
+subroutine xmpi_bcast_dp4d(xval,master,spaceComm,ier)
 
 
  use defs_basis
@@ -496,7 +496,7 @@ subroutine xcast_mpi_dp4d(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcast_mpi_dp4d'
+#define ABI_FUNC 'xmpi_bcast_dp4d'
 !End of the abilint section
 
  implicit none
@@ -524,12 +524,12 @@ subroutine xcast_mpi_dp4d(xval,master,spaceComm,ier)
  end if
 #endif
 
-end subroutine xcast_mpi_dp4d
+end subroutine xmpi_bcast_dp4d
 !!***
 
-!!****f* ABINIT/xcast_mpi_spv
+!!****f* ABINIT/xmpi_bcast_spv
 !! NAME
-!!  xcast_mpi_spv
+!!  xmpi_bcast_spv
 !!
 !! FUNCTION
 !!  Broadcasts data from master to slaves.
@@ -551,14 +551,14 @@ end subroutine xcast_mpi_dp4d
 !!      mpi_bcast
 !!
 !! SOURCE
-subroutine xcast_mpi_spv(xval,master,spaceComm,ier)
+subroutine xmpi_bcast_spv(xval,master,spaceComm,ier)
 
  use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcast_mpi_spv'
+#define ABI_FUNC 'xmpi_bcast_spv'
 !End of the abilint section
 
 implicit none
@@ -580,12 +580,12 @@ implicit none
  end if
 #endif
 
-end subroutine xcast_mpi_spv
+end subroutine xmpi_bcast_spv
 !!***
 
-!!****f* ABINIT/xcast_mpi_sp1d
+!!****f* ABINIT/xmpi_bcast_sp1d
 !! NAME
-!!  xcast_mpi_sp1d
+!!  xmpi_bcast_sp1d
 !!
 !! FUNCTION
 !!  Broadcasts data from master to slaves.
@@ -607,7 +607,7 @@ end subroutine xcast_mpi_spv
 !!      mpi_bcast
 !!
 !! SOURCE
-subroutine xcast_mpi_sp1d(xval,master,spaceComm,ier)
+subroutine xmpi_bcast_sp1d(xval,master,spaceComm,ier)
 
 
  use defs_basis
@@ -615,7 +615,7 @@ subroutine xcast_mpi_sp1d(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcast_mpi_sp1d'
+#define ABI_FUNC 'xmpi_bcast_sp1d'
 !End of the abilint section
 
  implicit none
@@ -640,12 +640,12 @@ subroutine xcast_mpi_sp1d(xval,master,spaceComm,ier)
  end if
 #endif
 
-end subroutine xcast_mpi_sp1d
+end subroutine xmpi_bcast_sp1d
 !!***
 
-!!****f* ABINIT/xcast_mpi_sp2d
+!!****f* ABINIT/xmpi_bcast_sp2d
 !! NAME
-!!  xcast_mpi_sp2d
+!!  xmpi_bcast_sp2d
 !!
 !! FUNCTION
 !!  Broadcasts data from master to slaves.
@@ -667,7 +667,7 @@ end subroutine xcast_mpi_sp1d
 !!      mpi_bcast
 !!
 !! SOURCE
-subroutine xcast_mpi_sp2d(xval,master,spaceComm,ier)
+subroutine xmpi_bcast_sp2d(xval,master,spaceComm,ier)
 
 
  use defs_basis
@@ -675,7 +675,7 @@ subroutine xcast_mpi_sp2d(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcast_mpi_sp2d'
+#define ABI_FUNC 'xmpi_bcast_sp2d'
 !End of the abilint section
 
  implicit none
@@ -701,12 +701,12 @@ subroutine xcast_mpi_sp2d(xval,master,spaceComm,ier)
  end if
 #endif
 
-end subroutine xcast_mpi_sp2d
+end subroutine xmpi_bcast_sp2d
 !!***
 
-!!****f* ABINIT/xcast_mpi_sp3d
+!!****f* ABINIT/xmpi_bcast_sp3d
 !! NAME
-!!  xcast_mpi_sp3d
+!!  xmpi_bcast_sp3d
 !!
 !! FUNCTION
 !!  Broadcasts data from master to slaves.
@@ -728,7 +728,7 @@ end subroutine xcast_mpi_sp2d
 !!      mpi_bcast
 !!
 !! SOURCE
-subroutine xcast_mpi_sp3d(xval,master,spaceComm,ier)
+subroutine xmpi_bcast_sp3d(xval,master,spaceComm,ier)
 
 
  use defs_basis
@@ -736,7 +736,7 @@ subroutine xcast_mpi_sp3d(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcast_mpi_sp3d'
+#define ABI_FUNC 'xmpi_bcast_sp3d'
 !End of the abilint section
 
  implicit none
@@ -763,12 +763,12 @@ subroutine xcast_mpi_sp3d(xval,master,spaceComm,ier)
  end if
 #endif
 
-end subroutine xcast_mpi_sp3d
+end subroutine xmpi_bcast_sp3d
 !!***
 
-!!****f* ABINIT/xcast_mpi_sp4d
+!!****f* ABINIT/xmpi_bcast_sp4d
 !! NAME
-!!  xcast_mpi_sp4d
+!!  xmpi_bcast_sp4d
 !!
 !! FUNCTION
 !!  Broadcasts data from master to slaves.
@@ -790,7 +790,7 @@ end subroutine xcast_mpi_sp3d
 !!      mpi_bcast
 !!
 !! SOURCE
-subroutine xcast_mpi_sp4d(xval,master,spaceComm,ier)
+subroutine xmpi_bcast_sp4d(xval,master,spaceComm,ier)
 
 
  use defs_basis
@@ -798,7 +798,7 @@ subroutine xcast_mpi_sp4d(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcast_mpi_sp4d'
+#define ABI_FUNC 'xmpi_bcast_sp4d'
 !End of the abilint section
 
  implicit none
@@ -826,12 +826,12 @@ subroutine xcast_mpi_sp4d(xval,master,spaceComm,ier)
  end if
 #endif
 
-end subroutine xcast_mpi_sp4d
+end subroutine xmpi_bcast_sp4d
 !!***
 
-!!****f* ABINIT/xcast_mpi_cplxv
+!!****f* ABINIT/xmpi_bcast_cplxv
 !! NAME
-!!  xcast_mpi_cplxv
+!!  xmpi_bcast_cplxv
 !!
 !! FUNCTION
 !!  Broadcasts data from master to slaves.
@@ -853,7 +853,7 @@ end subroutine xcast_mpi_sp4d
 !!      mpi_bcast
 !!
 !! SOURCE
-subroutine xcast_mpi_cplxv(xval,master,spaceComm,ier)
+subroutine xmpi_bcast_cplxv(xval,master,spaceComm,ier)
 
 
  use defs_basis
@@ -861,7 +861,7 @@ subroutine xcast_mpi_cplxv(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcast_mpi_cplxv'
+#define ABI_FUNC 'xmpi_bcast_cplxv'
 !End of the abilint section
 
 implicit none
@@ -882,12 +882,12 @@ implicit none
  end if
 #endif
 
-end subroutine xcast_mpi_cplxv
+end subroutine xmpi_bcast_cplxv
 !!***
 
-!!****f* ABINIT/xcast_mpi_cplx1d
+!!****f* ABINIT/xmpi_bcast_cplx1d
 !! NAME
-!!  xcast_mpi_cplx1d
+!!  xmpi_bcast_cplx1d
 !!
 !! FUNCTION
 !!  Broadcasts data from master to slaves.
@@ -909,7 +909,7 @@ end subroutine xcast_mpi_cplxv
 !!      mpi_bcast
 !!
 !! SOURCE
-subroutine xcast_mpi_cplx1d(xval,master,spaceComm,ier)
+subroutine xmpi_bcast_cplx1d(xval,master,spaceComm,ier)
 
 
  use defs_basis
@@ -917,7 +917,7 @@ subroutine xcast_mpi_cplx1d(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcast_mpi_cplx1d'
+#define ABI_FUNC 'xmpi_bcast_cplx1d'
 !End of the abilint section
 
 implicit none
@@ -942,12 +942,12 @@ implicit none
  end if
 #endif
 
-end subroutine xcast_mpi_cplx1d
+end subroutine xmpi_bcast_cplx1d
 !!***
 
-!!****f* ABINIT/xcast_mpi_cplx2d
+!!****f* ABINIT/xmpi_bcast_cplx2d
 !! NAME
-!!  xcast_mpi_cplx2d
+!!  xmpi_bcast_cplx2d
 !!
 !! FUNCTION
 !!  Broadcasts data from master to slaves.
@@ -969,7 +969,7 @@ end subroutine xcast_mpi_cplx1d
 !!      mpi_bcast
 !!
 !! SOURCE
-subroutine xcast_mpi_cplx2d(xval,master,spaceComm,ier)
+subroutine xmpi_bcast_cplx2d(xval,master,spaceComm,ier)
 
 
  use defs_basis
@@ -977,7 +977,7 @@ subroutine xcast_mpi_cplx2d(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcast_mpi_cplx2d'
+#define ABI_FUNC 'xmpi_bcast_cplx2d'
 !End of the abilint section
 
 implicit none
@@ -1003,12 +1003,12 @@ implicit none
  end if
 #endif
 
-end subroutine xcast_mpi_cplx2d
+end subroutine xmpi_bcast_cplx2d
 !!***
 
-!!****f* ABINIT/xcast_mpi_cplx3d
+!!****f* ABINIT/xmpi_bcast_cplx3d
 !! NAME
-!!  xcast_mpi_cplx3d
+!!  xmpi_bcast_cplx3d
 !!
 !! FUNCTION
 !!  Broadcasts data from master to slaves.
@@ -1030,7 +1030,7 @@ end subroutine xcast_mpi_cplx2d
 !!      mpi_bcast
 !!
 !! SOURCE
-subroutine xcast_mpi_cplx3d(xval,master,spaceComm,ier)
+subroutine xmpi_bcast_cplx3d(xval,master,spaceComm,ier)
 
 
  use defs_basis
@@ -1038,7 +1038,7 @@ subroutine xcast_mpi_cplx3d(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcast_mpi_cplx3d'
+#define ABI_FUNC 'xmpi_bcast_cplx3d'
 !End of the abilint section
 
 implicit none
@@ -1065,12 +1065,12 @@ implicit none
  end if
 #endif
 
-end subroutine xcast_mpi_cplx3d
+end subroutine xmpi_bcast_cplx3d
 !!***
 
-!!****f* ABINIT/xcast_mpi_cplx4d
+!!****f* ABINIT/xmpi_bcast_cplx4d
 !! NAME
-!!  xcast_mpi_cplx4d
+!!  xmpi_bcast_cplx4d
 !!
 !! FUNCTION
 !!  Broadcasts data from master to slaves.
@@ -1092,7 +1092,7 @@ end subroutine xcast_mpi_cplx3d
 !!      mpi_bcast
 !!
 !! SOURCE
-subroutine xcast_mpi_cplx4d(xval,master,spaceComm,ier)
+subroutine xmpi_bcast_cplx4d(xval,master,spaceComm,ier)
 
 
  use defs_basis
@@ -1100,7 +1100,7 @@ subroutine xcast_mpi_cplx4d(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcast_mpi_cplx4d'
+#define ABI_FUNC 'xmpi_bcast_cplx4d'
 !End of the abilint section
 
 implicit none
@@ -1128,12 +1128,12 @@ implicit none
  end if
 #endif
 
-end subroutine xcast_mpi_cplx4d
+end subroutine xmpi_bcast_cplx4d
 !!***
 
-!!****f* ABINIT/xcast_mpi_dcv
+!!****f* ABINIT/xmpi_bcast_dcv
 !! NAME
-!!  xcast_mpi_dcv
+!!  xmpi_bcast_dcv
 !!
 !! FUNCTION
 !!  Broadcasts data from master to slaves.
@@ -1155,7 +1155,7 @@ end subroutine xcast_mpi_cplx4d
 !!      mpi_bcast
 !!
 !! SOURCE
-subroutine xcast_mpi_dcv(xval,master,spaceComm,ier)
+subroutine xmpi_bcast_dcv(xval,master,spaceComm,ier)
 
 
 use defs_basis
@@ -1163,7 +1163,7 @@ use defs_basis
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcast_mpi_dcv'
+#define ABI_FUNC 'xmpi_bcast_dcv'
 !End of the abilint section
 
 implicit none
@@ -1184,12 +1184,12 @@ implicit none
  end if
 #endif
 
-end subroutine xcast_mpi_dcv
+end subroutine xmpi_bcast_dcv
 !!***
 
-!!****f* ABINIT/xcast_mpi_dc1d
+!!****f* ABINIT/xmpi_bcast_dc1d
 !! NAME
-!!  xcast_mpi_dc1d
+!!  xmpi_bcast_dc1d
 !!
 !! FUNCTION
 !!  Broadcasts data from master to slaves.
@@ -1211,14 +1211,14 @@ end subroutine xcast_mpi_dcv
 !!      mpi_bcast
 !!
 !! SOURCE
-subroutine xcast_mpi_dc1d(xval,master,spaceComm,ier)
+subroutine xmpi_bcast_dc1d(xval,master,spaceComm,ier)
 
  use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcast_mpi_dc1d'
+#define ABI_FUNC 'xmpi_bcast_dc1d'
 !End of the abilint section
 
 implicit none
@@ -1243,12 +1243,12 @@ implicit none
  end if
 #endif
 
-end subroutine xcast_mpi_dc1d
+end subroutine xmpi_bcast_dc1d
 !!***
 
-!!****f* ABINIT/xcast_mpi_dc2d
+!!****f* ABINIT/xmpi_bcast_dc2d
 !! NAME
-!!  xcast_mpi_dc2d
+!!  xmpi_bcast_dc2d
 !!
 !! FUNCTION
 !!  Broadcasts data from master to slaves.
@@ -1270,7 +1270,7 @@ end subroutine xcast_mpi_dc1d
 !!      mpi_bcast
 !!
 !! SOURCE
-subroutine xcast_mpi_dc2d(xval,master,spaceComm,ier)
+subroutine xmpi_bcast_dc2d(xval,master,spaceComm,ier)
 
 
 use defs_basis
@@ -1278,7 +1278,7 @@ use defs_basis
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcast_mpi_dc2d'
+#define ABI_FUNC 'xmpi_bcast_dc2d'
 !End of the abilint section
 
 implicit none
@@ -1304,12 +1304,12 @@ implicit none
  end if
 #endif
 
-end subroutine xcast_mpi_dc2d
+end subroutine xmpi_bcast_dc2d
 !!***
 
-!!****f* ABINIT/xcast_mpi_dc3d
+!!****f* ABINIT/xmpi_bcast_dc3d
 !! NAME
-!!  xcast_mpi_dc3d
+!!  xmpi_bcast_dc3d
 !!
 !! FUNCTION
 !!  Broadcasts data from master to slaves.
@@ -1331,7 +1331,7 @@ end subroutine xcast_mpi_dc2d
 !!      mpi_bcast
 !!
 !! SOURCE
-subroutine xcast_mpi_dc3d(xval,master,spaceComm,ier)
+subroutine xmpi_bcast_dc3d(xval,master,spaceComm,ier)
 
 
 use defs_basis
@@ -1339,7 +1339,7 @@ use defs_basis
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcast_mpi_dc3d'
+#define ABI_FUNC 'xmpi_bcast_dc3d'
 !End of the abilint section
 
 implicit none
@@ -1367,12 +1367,12 @@ implicit none
  end if
 #endif
 
-end subroutine xcast_mpi_dc3d
+end subroutine xmpi_bcast_dc3d
 !!***
 
-!!****f* ABINIT/xcast_mpi_dc4d
+!!****f* ABINIT/xmpi_bcast_dc4d
 !! NAME
-!!  xcast_mpi_dc4d
+!!  xmpi_bcast_dc4d
 !!
 !! FUNCTION
 !!  Broadcasts data from master to slaves.
@@ -1394,7 +1394,7 @@ end subroutine xcast_mpi_dc3d
 !!      mpi_bcast
 !!
 !! SOURCE
-subroutine xcast_mpi_dc4d(xval,master,spaceComm,ier)
+subroutine xmpi_bcast_dc4d(xval,master,spaceComm,ier)
 
 
  use defs_basis
@@ -1402,7 +1402,7 @@ subroutine xcast_mpi_dc4d(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcast_mpi_dc4d'
+#define ABI_FUNC 'xmpi_bcast_dc4d'
 !End of the abilint section
 
 implicit none
@@ -1430,12 +1430,12 @@ implicit none
  end if
 #endif
 
-end subroutine xcast_mpi_dc4d
+end subroutine xmpi_bcast_dc4d
 !!***
 
-!!****f* ABINIT/xcast_mpi_ch0d
+!!****f* ABINIT/xmpi_bcast_ch0d
 !! NAME
-!!  xcast_mpi_ch0d
+!!  xmpi_bcast_ch0d
 !!
 !! FUNCTION
 !!  Broadcasts data from master to slaves.
@@ -1457,7 +1457,7 @@ end subroutine xcast_mpi_dc4d
 !!      mpi_bcast
 !!
 !! SOURCE
-subroutine xcast_mpi_ch0d(xval,master,spaceComm,ier)
+subroutine xmpi_bcast_ch0d(xval,master,spaceComm,ier)
 
 
  use defs_basis
@@ -1465,7 +1465,7 @@ subroutine xcast_mpi_ch0d(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcast_mpi_ch0d'
+#define ABI_FUNC 'xmpi_bcast_ch0d'
 !End of the abilint section
 
  implicit none
@@ -1493,12 +1493,12 @@ subroutine xcast_mpi_ch0d(xval,master,spaceComm,ier)
  end if
 #endif
 
-end subroutine xcast_mpi_ch0d
+end subroutine xmpi_bcast_ch0d
 !!***
 
-!!****f* ABINIT/xcast_mpi_ch1d
+!!****f* ABINIT/xmpi_bcast_ch1d
 !! NAME
-!!  xcast_mpi_ch1d
+!!  xmpi_bcast_ch1d
 !!
 !! FUNCTION
 !!  Broadcasts data from master to slaves.
@@ -1520,7 +1520,7 @@ end subroutine xcast_mpi_ch0d
 !!      mpi_bcast
 !!
 !! SOURCE
-subroutine xcast_mpi_ch1d(xval,master,spaceComm,ier)
+subroutine xmpi_bcast_ch1d(xval,master,spaceComm,ier)
 
 
  use defs_basis
@@ -1528,7 +1528,7 @@ subroutine xcast_mpi_ch1d(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcast_mpi_ch1d'
+#define ABI_FUNC 'xmpi_bcast_ch1d'
 !End of the abilint section
 
  implicit none
@@ -1556,13 +1556,13 @@ subroutine xcast_mpi_ch1d(xval,master,spaceComm,ier)
  end if
 #endif
 
-end subroutine xcast_mpi_ch1d
+end subroutine xmpi_bcast_ch1d
 !!***
 
 
-!!****f* ABINIT/xcast_mpi_log0d
+!!****f* ABINIT/xmpi_bcast_log0d
 !! NAME
-!!  xcast_mpi_log0d
+!!  xmpi_bcast_log0d
 !!
 !! FUNCTION
 !!  Broadcasts data from master to slaves.
@@ -1582,7 +1582,7 @@ end subroutine xcast_mpi_ch1d
 !!
 !! SOURCE
 
-subroutine xcast_mpi_log0d(xval,master,spaceComm,ier)
+subroutine xmpi_bcast_log0d(xval,master,spaceComm,ier)
 
 
  use defs_basis
@@ -1590,7 +1590,7 @@ subroutine xcast_mpi_log0d(xval,master,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xcast_mpi_log0d'
+#define ABI_FUNC 'xmpi_bcast_log0d'
 !End of the abilint section
 
  implicit none
@@ -1609,5 +1609,5 @@ subroutine xcast_mpi_log0d(xval,master,spaceComm,ier)
  end if
 #endif
 
-end subroutine xcast_mpi_log0d
+end subroutine xmpi_bcast_log0d
 !!***

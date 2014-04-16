@@ -96,11 +96,11 @@ module m_pawcprj
 
 !Real (real(dp)) arrays
 
-  real(dp), pointer :: cp (:,:)
+  real(dp), allocatable :: cp (:,:)
    ! cp(2,nlmn)
    ! <p_lmn|Cnk> projected scalars for a given atom and wave function
 
-  real(dp), pointer :: dcp (:,:,:)
+  real(dp), allocatable :: dcp (:,:,:)
    ! dcp(2,ncpgr,nlmn)
    ! derivatives of <p_lmn|Cnk> projected scalars for a given atom and wave function
 
@@ -132,13 +132,12 @@ CONTAINS
 !!      cgwf,cgwf3,check_completeness,classify_bands,cohsex_me,ctocprj,d2frnl
 !!      datafordmft,debug_tools,energy,exc_build_block,exc_build_ham,exc_plot
 !!      extrapwf,getgh1c,getgsc,initberry,initorbmag,ks_ddiago,loper3
-!!      m_cprj_bspline,m_electronpositron,m_pawcprj,m_shirley,m_wfs,mag_loc_k
-!!      make_grad_berry,nstpaw3,optics_paw,optics_paw_core,outkss
-!!      partial_dos_fractions_paw,paw_symcprj,pawmkaewf,pawmkrhoij,posdoppler
-!!      prep_calc_ucrpa,rhofermi3,scfcv,scfcv3,setup_positron,sigma
-!!      smatrix_pawinit,store_bfield_cprj,suscep_stat,update_eb_field_vars
-!!      update_orbmag,vtorho,vtorho3,vtowfk,vtowfk3,wfd_pawrhoij,wfd_vnlpsi
-!!      wfkfermi3
+!!      m_electronpositron,m_pawcprj,m_shirley,m_wfs,mag_loc_k,make_grad_berry
+!!      nstpaw3,optics_paw,optics_paw_core,outkss,partial_dos_fractions_paw
+!!      paw_symcprj,pawmkaewf,pawmkrhoij,posdoppler,prep_calc_ucrpa,scfcv
+!!      scfcv3,setup_positron,sigma,smatrix_pawinit,store_bfield_cprj
+!!      suscep_stat,update_eb_field_vars,update_orbmag,vtorho,vtowfk,vtowfk3
+!!      wfd_pawrhoij,wfd_vnlpsi,wfkfermi3
 !!
 !! CHILDREN
 !!      xsum_mpi
@@ -179,8 +178,12 @@ CONTAINS
 
  do jj=1,n2dim
    do ii=1,n1dim
-     nullify (cprj(ii,jj)%cp)
-     nullify (cprj(ii,jj)%dcp)
+     if (allocated(cprj(ii,jj)%cp)) then
+       ABI_DEALLOCATE(cprj(ii,jj)%cp)
+     end if
+     if (allocated(cprj(ii,jj)%dcp)) then
+       ABI_DEALLOCATE(cprj(ii,jj)%dcp)
+     end if
      nn=nlmn(ii)
      cprj(ii,jj)%nlmn=nn
      ABI_ALLOCATE(cprj(ii,jj)%cp,(2,nn))
@@ -213,14 +216,13 @@ end subroutine pawcprj_alloc
 !!      calc_sigx_me,calc_vhxc_me,calc_wf_qp,cchi0,cchi0q0,cchi0q0_intraband
 !!      cgwf,cgwf3,check_completeness,classify_bands,cohsex_me,ctocprj,d2frnl
 !!      datafordmft,debug_tools,energy,exc_build_block,exc_build_ham,exc_plot
-!!      extrapwf,getgh1c,getgsc,ks_ddiago,loper3,m_bfield,m_cprj_bspline
-!!      m_efield,m_electronpositron,m_pawcprj,m_scf_history,m_shirley,m_wfs
-!!      mag_loc_k,make_grad_berry,nstpaw3,optics_paw,optics_paw_core,outkss
+!!      extrapwf,getgh1c,getgsc,ks_ddiago,loper3,m_bfield,m_efield
+!!      m_electronpositron,m_pawcprj,m_scf_history,m_shirley,m_wfs,mag_loc_k
+!!      make_grad_berry,nstpaw3,optics_paw,optics_paw_core,outkss
 !!      partial_dos_fractions_paw,paw_symcprj,pawmkaewf,pawmkrhoij,posdoppler
-!!      prep_calc_ucrpa,rhofermi3,scfcv,scfcv3,setup_positron,sigma
-!!      smatrix_pawinit,store_bfield_cprj,suscep_stat,update_eb_field_vars
-!!      update_orbmag,vtorho,vtorho3,vtowfk,vtowfk3,wfd_pawrhoij,wfd_vnlpsi
-!!      wfkfermi3
+!!      prep_calc_ucrpa,scfcv,scfcv3,setup_positron,sigma,smatrix_pawinit
+!!      store_bfield_cprj,suscep_stat,update_eb_field_vars,update_orbmag,vtorho
+!!      vtowfk,vtowfk3,wfd_pawrhoij,wfd_vnlpsi,wfkfermi3
 !!
 !! CHILDREN
 !!      xsum_mpi
@@ -254,10 +256,10 @@ end subroutine pawcprj_alloc
 
  do jj=1,n2dim
    do ii=1,n1dim
-     if (associated(cprj(ii,jj)%cp))  then
+     if (allocated(cprj(ii,jj)%cp))  then
        ABI_DEALLOCATE(cprj(ii,jj)%cp)
      end if
-     if (associated(cprj(ii,jj)%dcp))  then
+     if (allocated(cprj(ii,jj)%dcp))  then
        ABI_DEALLOCATE(cprj(ii,jj)%dcp)
      end if
    end do
@@ -309,14 +311,16 @@ end subroutine pawcprj_destroy
 
 ! *************************************************************************
 
+ ! MGPAW: This one could be removed/renamed, 
+ ! variables can be initialized in the datatype declaration
+ ! Do we need to expose this in the public API?
+
  n1dim=size(cprj,dim=1);n2dim=size(cprj,dim=2)
 
  do jj=1,n2dim
    do ii=1,n1dim
      cprj(ii,jj)%nlmn=0
      cprj(ii,jj)%ncpgr=0
-     nullify(cprj(ii,jj)%cp)
-     nullify(cprj(ii,jj)%dcp)
    end do
  end do
 
@@ -336,7 +340,7 @@ end subroutine pawcprj_nullify
 !!  cprj(:,:) <type(pawcprj_type)>= cprj datastructure
 !!
 !! PARENTS
-!!      cgwf3
+!!      cgwf3,ctocprj
 !!
 !! CHILDREN
 !!      xsum_mpi
@@ -988,7 +992,6 @@ end subroutine pawcprj_output
 !! PARENTS
 !!      d2frnl,datafordmft,nstpaw3,optics_paw,optics_paw_core
 !!      partial_dos_fractions_paw,pawmkaewf,pawmkrhoij,rhofermi3,suscep_stat
-!!      vtorho3
 !!
 !! CHILDREN
 !!      xsum_mpi
@@ -1078,7 +1081,6 @@ end subroutine pawcprj_diskinit_r
 !!  uncp=unit number for cprj data (if used)
 !!
 !! PARENTS
-!!      ctocprj,scfcv,vtorho,vtorho3
 !!
 !! CHILDREN
 !!      xsum_mpi
@@ -1149,7 +1151,6 @@ end subroutine pawcprj_diskinit_w
 !!  uncp=unit number for cprj data (if used)
 !!
 !! PARENTS
-!!      vtowfk3
 !!
 !! CHILDREN
 !!      xsum_mpi
@@ -1236,10 +1237,9 @@ end subroutine pawcprj_diskskip
 !!  cprj_k(dimcp,nspinor*nband) <type(pawcprj_type)>= output cprj datastructure
 !!
 !! PARENTS
-!!      berry_linemin,berryphase_new,cgwf,d2frnl,datafordmft,extrapwf,mag_loc_k
-!!      make_grad_berry,nstpaw3,optics_paw,optics_paw_core
-!!      partial_dos_fractions_paw,pawmkaewf,pawmkrhoij,posdoppler,rhofermi3
-!!      smatrix_pawinit,store_bfield_cprj,suscep_stat,update_orbmag,vtorho3
+!!      berry_linemin,berryphase_new,cgwf,datafordmft,extrapwf,mag_loc_k
+!!      make_grad_berry,nstpaw3,optics_paw,optics_paw_core,pawmkrhoij
+!!      posdoppler,smatrix_pawinit,store_bfield_cprj,suscep_stat,update_orbmag
 !!      vtowfk3,wfkfermi3
 !!
 !! CHILDREN
@@ -1762,8 +1762,6 @@ end subroutine pawcprj_put
      if (ncpgr>0) then
        ABI_ALLOCATE(cprj(kk,jj)%dcp,(2,ncpgr,nlmn(ii)))
        cprj(kk,jj)%dcp(:,:,:)=cprj_tmp(kk,jj)%dcp(:,:,:)
-     else
-       nullify(cprj(kk,jj)%dcp)
      end if
    end do
  end do
@@ -1894,9 +1892,9 @@ subroutine pawcprj_mpi_exch(natom,n2dim,nlmn,ncpgr,Cprj_send,Cprj_recv,sender,re
  end if
 
 !=== Transmit data ===
- call xexch_mpi(buffer_cp,2*ntotcp,sender,buffer_cp,receiver,spaceComm,ierr)
+ call xmpi_exch(buffer_cp,2*ntotcp,sender,buffer_cp,receiver,spaceComm,ierr)
  if (ncpgr/=0) then
-   call xexch_mpi(buffer_cpgr,2*ncpgr*ntotcp,sender,buffer_cpgr,receiver,spaceComm,ierr)
+   call xmpi_exch(buffer_cpgr,2*ncpgr*ntotcp,sender,buffer_cpgr,receiver,spaceComm,ierr)
  end if
 
 !=== UnPack buffers into Cprj_recv ===
@@ -2016,10 +2014,10 @@ subroutine pawcprj_mpi_send(natom,n2dim,nlmn,ncpgr,cprj_out,receiver,spaceComm,i
 
 !=== Transmit data ===
  tag = 2*ntotcp
- call xsend_mpi(buffer_cp,receiver,tag,spaceComm,ierr)
+ call xmpi_send(buffer_cp,receiver,tag,spaceComm,ierr)
  if (ncpgr/=0) then
    tag=tag*ncpgr
-   call xsend_mpi(buffer_cpgr,receiver,tag,spaceComm,ierr)
+   call xmpi_send(buffer_cpgr,receiver,tag,spaceComm,ierr)
  end if
 
 !=== Clean up ===
@@ -2116,10 +2114,10 @@ subroutine pawcprj_mpi_recv(natom,n2dim,nlmn,ncpgr,cprj_in,sender,spaceComm,ierr
 
 !=== Receive data ===
  tag = 2*ntotcp
- call xrecv_mpi(buffer_cp,sender,tag,spaceComm,ierr)
+ call xmpi_recv(buffer_cp,sender,tag,spaceComm,ierr)
  if (ncpgr/=0) then
    tag=tag*ncpgr
-   call xrecv_mpi(buffer_cpgr,sender,tag,spaceComm,ierr)
+   call xmpi_recv(buffer_cpgr,sender,tag,spaceComm,ierr)
  end if
 
 !=== UnPack buffers into cprj_in ===
@@ -2159,7 +2157,6 @@ end subroutine pawcprj_mpi_recv
 !!  ierr=Error status.
 !!
 !! PARENTS
-!!      ctocprj
 !!
 !! CHILDREN
 !!      xsum_mpi
@@ -2256,7 +2253,7 @@ end subroutine pawcprj_mpi_sum
 !!      suscep_stat
 !!
 !! CHILDREN
-!!      xallgather_mpi
+!!      xsum_mpi
 !!
 !! SOURCE
 
@@ -2451,9 +2448,9 @@ subroutine pawcprj_bcast(Cprj,natom,n2dim,nlmn,ncpgr,master,spaceComm,ierr)
  end if
 
 !=== Transmit data ===
- call xcast_mpi(buffer_cp,master,spaceComm,ierr)
+ call xmpi_bcast(buffer_cp,master,spaceComm,ierr)
  if (ncpgr/=0) then
-   call xcast_mpi(buffer_cpgr,master,spaceComm,ierr)
+   call xmpi_bcast(buffer_cpgr,master,spaceComm,ierr)
  end if
 
 !=== UnPack the received buffer ===
@@ -2687,7 +2684,7 @@ end subroutine pawcprj_bcast
      end if
 
 !    Main call to MPI_ALLTOALL
-     call xalltoallv_mpi(sbuf,scount,sdispl,rbuf,rcount,rdispl,spaceComm,ierr)
+     call xmpi_alltoallv(sbuf,scount,sdispl,rbuf,rcount,rdispl,spaceComm,ierr)
 
 !    Retrieving of output cprj for received buffer
      buf_indx=0
@@ -2712,7 +2709,6 @@ end subroutine pawcprj_bcast
        end do
      else
        cprjout(iatom,iband)%nlmn=0;cprjout(iatom,iband)%ncpgr=0
-       nullify(cprjout(iatom,iband)%cp);nullify(cprjout(iatom,iband)%dcp)
      end if
      if (buf_indx/=rbufsize) then
        MSG_BUG('  Error: wrong buffer size for receiving !')
@@ -2788,7 +2784,7 @@ end subroutine pawcprj_bcast
  integer,intent(out) :: ierr
 !arrays
  type(pawcprj_type),intent(in) :: cprj(:,:)
- type(pawcprj_type),intent(out) :: cprj_gat(:,:)
+ type(pawcprj_type),intent(inout) :: cprj_gat(:,:)
 
 !Local variables-------------------------------
 !scalars
@@ -2914,7 +2910,7 @@ subroutine pawcprj_getdim(dimcprj,natom,nattyp,ntypat,typat,Pawtab,sort_mode)
  character(len=*),intent(in) :: sort_mode
 !arrays
  integer,intent(in) :: nattyp(:),typat(natom)
- integer,intent(out) :: dimcprj(natom)
+ integer,intent(inout) :: dimcprj(natom)
  type(Pawtab_type),intent(in) :: Pawtab(ntypat)
 
 !Local variables-------------------------------

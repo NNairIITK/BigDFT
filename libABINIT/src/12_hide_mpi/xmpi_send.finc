@@ -1,13 +1,13 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/xsend_mpi
+!!****f* ABINIT/xmpi_send
 !! NAME
-!!  xsend_mpi
+!!  xmpi_send
 !!
 !! FUNCTION
 !!  This module contains functions that calls MPI routine MPI_SEND,
 !!  to send data from one processor to another,
 !!  if we compile the code using the MPI CPP flags.
-!!  xsend_mpi is the generic function.
+!!  xmpi_send is the generic function.
 !!
 !! COPYRIGHT
 !!  Copyright (C) 2001-2014 ABINIT group
@@ -18,9 +18,9 @@
 !! SOURCE
 !!***
 
-!!****f* ABINIT/xsend_mpi_intv
+!!****f* ABINIT/xmpi_send_intv
 !! NAME
-!!  xsend_mpi_intv
+!!  xmpi_send_intv
 !!
 !! FUNCTION
 !!  Sends data from one processor to another.
@@ -44,7 +44,7 @@
 !!
 !! SOURCE
 
-subroutine xsend_mpi_intv(xval,dest,tag,spaceComm,ier)
+subroutine xmpi_send_intv(xval,dest,tag,spaceComm,ier)
 
 
  use defs_basis
@@ -52,7 +52,7 @@ subroutine xsend_mpi_intv(xval,dest,tag,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xsend_mpi_intv'
+#define ABI_FUNC 'xmpi_send_intv'
 !End of the abilint section
 
  implicit none
@@ -71,18 +71,18 @@ subroutine xsend_mpi_intv(xval,dest,tag,spaceComm,ier)
  ier=0
 #if defined HAVE_MPI
  if (spaceComm /= MPI_COMM_SELF .and. spaceComm /= MPI_COMM_NULL) then
-   my_tag = MOD(tag,xmpi_tag_ub+1)
+   my_tag = MOD(tag,xmpi_tag_ub)
    call MPI_SEND(xval,1,MPI_INTEGER,dest,my_tag,spaceComm,ier)
  end if
 #endif
 
- end subroutine xsend_mpi_intv
+ end subroutine xmpi_send_intv
 
 !!***
 
-!!****f* ABINIT/xsend_mpi_int1d
+!!****f* ABINIT/xmpi_send_int1d
 !! NAME
-!!  xsend_mpi_int1d
+!!  xmpi_send_int1d
 !!
 !! FUNCTION
 !!  Sends data from one processor to another.
@@ -106,7 +106,7 @@ subroutine xsend_mpi_intv(xval,dest,tag,spaceComm,ier)
 !!
 !! SOURCE
 
-subroutine xsend_mpi_int1d(xval,dest,tag,spaceComm,ier)
+subroutine xmpi_send_int1d(xval,dest,tag,spaceComm,ier)
 
 
  use defs_basis
@@ -114,7 +114,7 @@ subroutine xsend_mpi_int1d(xval,dest,tag,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xsend_mpi_int1d'
+#define ABI_FUNC 'xmpi_send_int1d'
 !End of the abilint section
 
  implicit none
@@ -134,17 +134,17 @@ subroutine xsend_mpi_int1d(xval,dest,tag,spaceComm,ier)
 #if defined HAVE_MPI
  if (spaceComm /= MPI_COMM_SELF .and. spaceComm /= MPI_COMM_NULL) then
    n1=size(xval,dim=1)
-   my_tag = MOD(tag,xmpi_tag_ub+1)
+   my_tag = MOD(tag,xmpi_tag_ub)
    call MPI_SEND(xval,n1,MPI_INTEGER,dest,my_tag,spaceComm,ier)
  end if
 #endif
 
- end subroutine xsend_mpi_int1d
+ end subroutine xmpi_send_int1d
 !!***
 
-!!****f* ABINIT/xsend_mpi_dp1d
+!!****f* ABINIT/xmpi_send_dp1d
 !! NAME
-!!  xsend_mpi_dp1d
+!!  xmpi_send_dp1d
 !!
 !! FUNCTION
 !!  Sends data from one proc to another.
@@ -167,7 +167,7 @@ subroutine xsend_mpi_int1d(xval,dest,tag,spaceComm,ier)
 !!      mpi_send
 !!
 !! SOURCE
-subroutine xsend_mpi_dp1d(xval,dest,tag,spaceComm,ier)
+subroutine xmpi_send_dp1d(xval,dest,tag,spaceComm,ier)
 
 
  use defs_basis
@@ -175,7 +175,7 @@ subroutine xsend_mpi_dp1d(xval,dest,tag,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xsend_mpi_dp1d'
+#define ABI_FUNC 'xmpi_send_dp1d'
 !End of the abilint section
 
  implicit none
@@ -196,17 +196,17 @@ subroutine xsend_mpi_dp1d(xval,dest,tag,spaceComm,ier)
 #if defined HAVE_MPI
  if (spaceComm /= MPI_COMM_SELF .and. spaceComm /= MPI_COMM_NULL) then
    n1=size(xval,dim=1)
-   my_tag = MOD(tag,xmpi_tag_ub+1)
+   my_tag = MOD(tag,xmpi_tag_ub)
    call MPI_SEND(xval,n1,MPI_DOUBLE_PRECISION,dest,my_tag,spaceComm,ier)
  end if
 #endif
 
-end subroutine xsend_mpi_dp1d
+end subroutine xmpi_send_dp1d
 !!***
 
-!!****f* ABINIT/xsend_mpi_dp2d
+!!****f* ABINIT/xmpi_send_dp2d
 !! NAME
-!!  xsend_mpi_dp2d
+!!  xmpi_send_dp2d
 !!
 !! FUNCTION
 !!  Sends data from one proc to another.
@@ -229,7 +229,7 @@ end subroutine xsend_mpi_dp1d
 !!      mpi_send
 !!
 !! SOURCE
-subroutine xsend_mpi_dp2d(xval,dest,tag,spaceComm,ier)
+subroutine xmpi_send_dp2d(xval,dest,tag,spaceComm,ier)
 
 
  use defs_basis
@@ -237,7 +237,7 @@ subroutine xsend_mpi_dp2d(xval,dest,tag,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xsend_mpi_dp2d'
+#define ABI_FUNC 'xmpi_send_dp2d'
 !End of the abilint section
 
  implicit none
@@ -259,17 +259,17 @@ subroutine xsend_mpi_dp2d(xval,dest,tag,spaceComm,ier)
  if (spaceComm /= MPI_COMM_SELF .and. spaceComm /= MPI_COMM_NULL) then
    n1=size(xval,dim=1)
    n2=size(xval,dim=2)
-   my_tag = MOD(tag,xmpi_tag_ub+1)
+   my_tag = MOD(tag,xmpi_tag_ub)
    call MPI_SEND(xval,n1*n2,MPI_DOUBLE_PRECISION,dest,my_tag,spaceComm,ier)
  end if
 #endif
 
-end subroutine xsend_mpi_dp2d
+end subroutine xmpi_send_dp2d
 !!***
 
-!!****f* ABINIT/xsend_mpi_dp3d
+!!****f* ABINIT/xmpi_send_dp3d
 !! NAME
-!!  xsend_mpi_dp3d
+!!  xmpi_send_dp3d
 !!
 !! FUNCTION
 !!  Sends data from one proc to another.
@@ -292,7 +292,7 @@ end subroutine xsend_mpi_dp2d
 !!      mpi_send
 !!
 !! SOURCE
-subroutine xsend_mpi_dp3d(xval,dest,tag,spaceComm,ier)
+subroutine xmpi_send_dp3d(xval,dest,tag,spaceComm,ier)
 
 
  use defs_basis
@@ -300,7 +300,7 @@ subroutine xsend_mpi_dp3d(xval,dest,tag,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xsend_mpi_dp3d'
+#define ABI_FUNC 'xmpi_send_dp3d'
 !End of the abilint section
 
  implicit none
@@ -323,11 +323,11 @@ subroutine xsend_mpi_dp3d(xval,dest,tag,spaceComm,ier)
    n1=size(xval,dim=1)
    n2=size(xval,dim=2)
    n3=size(xval,dim=3)
-   my_tag = MOD(tag,xmpi_tag_ub+1)
+   my_tag = MOD(tag,xmpi_tag_ub)
    call MPI_SEND(xval,n1*n2*n3,MPI_DOUBLE_PRECISION,dest,my_tag,spaceComm,ier)
  end if
 #endif
 
-end subroutine xsend_mpi_dp3d
+end subroutine xmpi_send_dp3d
 !!***
 !

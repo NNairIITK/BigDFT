@@ -1,12 +1,12 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/xscatterv_mpi
+!!****f* ABINIT/xmpi_scatterv
 !! NAME
-!!  xscatterv_mpi
+!!  xmpi_scatterv
 !!
 !! FUNCTION
 !!  This module contains functions that calls MPI routine,
 !!  if we compile the code using the MPI CPP flags.
-!!  xscatterv_mpi is the generic function.
+!!  xmpi_scatterv is the generic function.
 !!
 !! COPYRIGHT
 !!  Copyright (C) 2001-2014 ABINIT group (MT)
@@ -18,9 +18,9 @@
 
 !!***
 
-!!****f* ABINIT/xscatterv_mpi_int
+!!****f* ABINIT/xmpi_scatterv_int
 !! NAME
-!!  xscatterv_mpi_int
+!!  xmpi_scatterv_int
 !!
 !! FUNCTION
 !!  Gathers data from all tasks and delivers it to all.
@@ -46,7 +46,7 @@
 !!      mpi_scatterv
 !!
 !! SOURCE
-subroutine xscatterv_mpi_int(xval,sendcounts,displs,recvbuf,recvcount,root,spaceComm,ier)
+subroutine xmpi_scatterv_int(xval,sendcounts,displs,recvbuf,recvcount,root,spaceComm,ier)
 
 
  use defs_basis
@@ -54,7 +54,7 @@ subroutine xscatterv_mpi_int(xval,sendcounts,displs,recvbuf,recvcount,root,space
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xscatterv_mpi_int'
+#define ABI_FUNC 'xmpi_scatterv_int'
 !End of the abilint section
 
  implicit none
@@ -84,12 +84,12 @@ subroutine xscatterv_mpi_int(xval,sendcounts,displs,recvbuf,recvcount,root,space
 #if defined HAVE_MPI
  end if
 #endif
-end subroutine xscatterv_mpi_int
+end subroutine xmpi_scatterv_int
 !!***
 
-!!****f* ABINIT/xscatterv_mpi_int2d
+!!****f* ABINIT/xmpi_scatterv_int2d
 !! NAME
-!!  xscatterv_mpi_int2d
+!!  xmpi_scatterv_int2d
 !!
 !! FUNCTION
 !!  Gathers data from all tasks and delivers it to all.
@@ -115,7 +115,7 @@ end subroutine xscatterv_mpi_int
 !!      mpi_scatterv
 !!
 !! SOURCE
-subroutine xscatterv_mpi_int2d(xval,sendcounts,displs,recvbuf,recvcount,root,spaceComm,ier)
+subroutine xmpi_scatterv_int2d(xval,sendcounts,displs,recvbuf,recvcount,root,spaceComm,ier)
 
 
  use defs_basis
@@ -123,7 +123,7 @@ subroutine xscatterv_mpi_int2d(xval,sendcounts,displs,recvbuf,recvcount,root,spa
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xscatterv_mpi_int2d'
+#define ABI_FUNC 'xmpi_scatterv_int2d'
 !End of the abilint section
 
  implicit none
@@ -154,12 +154,12 @@ subroutine xscatterv_mpi_int2d(xval,sendcounts,displs,recvbuf,recvcount,root,spa
 #if defined HAVE_MPI
  end if
 #endif
-end subroutine xscatterv_mpi_int2d
+end subroutine xmpi_scatterv_int2d
 !!***
 
-!!****f* ABINIT/xscatterv_mpi_dp
+!!****f* ABINIT/xmpi_scatterv_dp
 !! NAME
-!!  xscatterv_mpi_dp
+!!  xmpi_scatterv_dp
 !!
 !! FUNCTION
 !!  Gathers data from all tasks and delivers it to all.
@@ -185,7 +185,7 @@ end subroutine xscatterv_mpi_int2d
 !!      mpi_scatterv
 !!
 !! SOURCE
-subroutine xscatterv_mpi_dp(xval,sendcounts,displs,recvbuf,recvcount,root,spaceComm,ier)
+subroutine xmpi_scatterv_dp(xval,sendcounts,displs,recvbuf,recvcount,root,spaceComm,ier)
 
 
  use defs_basis
@@ -193,7 +193,7 @@ subroutine xscatterv_mpi_dp(xval,sendcounts,displs,recvbuf,recvcount,root,spaceC
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xscatterv_mpi_dp'
+#define ABI_FUNC 'xmpi_scatterv_dp'
 !End of the abilint section
 
  implicit none
@@ -222,12 +222,12 @@ subroutine xscatterv_mpi_dp(xval,sendcounts,displs,recvbuf,recvcount,root,spaceC
 #if defined HAVE_MPI
  end if
 #endif
-end subroutine xscatterv_mpi_dp
+end subroutine xmpi_scatterv_dp
 !!***
 
-!!****f* ABINIT/xscatterv_mpi_dp2d
+!!****f* ABINIT/xmpi_scatterv_dp2d
 !! NAME
-!!  xscatterv_mpi_dp2d
+!!  xmpi_scatterv_dp2d
 !!
 !! FUNCTION
 !!  Gathers data from all tasks and delivers it to all.
@@ -253,7 +253,7 @@ end subroutine xscatterv_mpi_dp
 !!      mpi_scatterv
 !!
 !! SOURCE
-subroutine xscatterv_mpi_dp2d(xval,sendcounts,displs,recvbuf,recvcount,root,spaceComm,ier)
+subroutine xmpi_scatterv_dp2d(xval,sendcounts,displs,recvbuf,recvcount,root,spaceComm,ier)
 
 
  use defs_basis
@@ -261,7 +261,7 @@ subroutine xscatterv_mpi_dp2d(xval,sendcounts,displs,recvbuf,recvcount,root,spac
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xscatterv_mpi_dp2d'
+#define ABI_FUNC 'xmpi_scatterv_dp2d'
 !End of the abilint section
 
  implicit none
@@ -291,12 +291,12 @@ subroutine xscatterv_mpi_dp2d(xval,sendcounts,displs,recvbuf,recvcount,root,spac
 #if defined HAVE_MPI
  end if
 #endif
-end subroutine xscatterv_mpi_dp2d
+end subroutine xmpi_scatterv_dp2d
 !!***
 
-!!****f* ABINIT/xscatterv_mpi_dp3d
+!!****f* ABINIT/xmpi_scatterv_dp3d
 !! NAME
-!!  xscatterv_mpi_dp3d
+!!  xmpi_scatterv_dp3d
 !!
 !! FUNCTION
 !!  Gathers data from all tasks and delivers it to all.
@@ -322,7 +322,7 @@ end subroutine xscatterv_mpi_dp2d
 !!      mpi_scatterv
 !!
 !! SOURCE
-subroutine xscatterv_mpi_dp3d(xval,sendcounts,displs,recvbuf,recvcount,root,spaceComm,ier)
+subroutine xmpi_scatterv_dp3d(xval,sendcounts,displs,recvbuf,recvcount,root,spaceComm,ier)
 
 
  use defs_basis
@@ -330,7 +330,7 @@ subroutine xscatterv_mpi_dp3d(xval,sendcounts,displs,recvbuf,recvcount,root,spac
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xscatterv_mpi_dp3d'
+#define ABI_FUNC 'xmpi_scatterv_dp3d'
 !End of the abilint section
 
  implicit none
@@ -360,12 +360,12 @@ subroutine xscatterv_mpi_dp3d(xval,sendcounts,displs,recvbuf,recvcount,root,spac
 #if defined HAVE_MPI
  end if
 #endif
-end subroutine xscatterv_mpi_dp3d
+end subroutine xmpi_scatterv_dp3d
 !!***
 
-!!****f* ABINIT/xscatterv_mpi_dp4d
+!!****f* ABINIT/xmpi_scatterv_dp4d
 !! NAME
-!!  xscatterv_mpi_dp4d
+!!  xmpi_scatterv_dp4d
 !!
 !! FUNCTION
 !!  Gathers data from all tasks and delivers it to all.
@@ -391,7 +391,7 @@ end subroutine xscatterv_mpi_dp3d
 !!      mpi_scatterv
 !!
 !! SOURCE
-subroutine xscatterv_mpi_dp4d(xval,sendcounts,displs,recvbuf,recvcount,root,spaceComm,ier)
+subroutine xmpi_scatterv_dp4d(xval,sendcounts,displs,recvbuf,recvcount,root,spaceComm,ier)
 
 
  use defs_basis
@@ -399,7 +399,7 @@ subroutine xscatterv_mpi_dp4d(xval,sendcounts,displs,recvbuf,recvcount,root,spac
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xscatterv_mpi_dp4d'
+#define ABI_FUNC 'xmpi_scatterv_dp4d'
 !End of the abilint section
 
  implicit none
@@ -429,5 +429,5 @@ subroutine xscatterv_mpi_dp4d(xval,sendcounts,displs,recvbuf,recvcount,root,spac
 #if defined HAVE_MPI
  end if
 #endif
-end subroutine xscatterv_mpi_dp4d
+end subroutine xmpi_scatterv_dp4d
 !!***

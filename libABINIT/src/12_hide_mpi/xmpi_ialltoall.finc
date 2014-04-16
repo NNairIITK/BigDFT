@@ -49,8 +49,8 @@ subroutine xmpi_ialltoall_dp4d(xval, sendsize, recvbuf, recvsize, comm, request)
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(in)    :: xval(:,:,:,:)
- real(dp),intent(inout) :: recvbuf(:,:,:,:)
+ real(dp), ABI_ASYNC intent(in)    :: xval(:,:,:,:)
+ real(dp), ABI_ASYNC intent(inout) :: recvbuf(:,:,:,:)
  integer,intent(in)    :: sendsize,recvsize,comm
  integer,intent(out) :: request
 

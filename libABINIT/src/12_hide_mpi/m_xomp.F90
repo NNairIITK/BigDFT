@@ -290,7 +290,7 @@ end function xomp_get_num_threads
 !!  See description.
 !!
 !! PARENTS
-!!      lapackprof,m_fft,m_fft_prof
+!!      lapackprof,m_errors,m_fft,m_fft_prof
 !!
 !! CHILDREN
 !!      omp_set_num_threads

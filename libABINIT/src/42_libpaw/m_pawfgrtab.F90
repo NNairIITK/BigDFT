@@ -45,6 +45,7 @@ MODULE m_pawfgrtab
  use m_errors
  use m_profiling
  use m_xmpi
+
  use m_paral_atom, only : get_my_atmtab, free_my_atmtab, get_my_natom
 
  implicit none
@@ -126,47 +127,47 @@ MODULE m_pawfgrtab
   !integer :: ngfftf(18)
   ! Info on the dense FFT mesh.
 
-  integer, pointer :: ifftsph(:)
+  integer, allocatable :: ifftsph(:)
    ! ifftsph(nfgd)
    ! Array giving the FFT index (fine grid) of a point in the paw
    ! sphere around considered atom (ifftsph=ix+n1*(iy-1+n2*(iz-1))
 
 !Real (real(dp)) arrays
 
-  real(dp), pointer :: expiqr(:,:)
+  real(dp), allocatable :: expiqr(:,:)
    ! expiqr(2,nfgd)
    ! Gives exp(-i.q.r) on the fine rectangular grid
    ! where q is the phonons wavevector
 
-  real(dp), pointer :: gylm(:,:)
+  real(dp), allocatable :: gylm(:,:)
    ! gylm(nfgd,l_size*l_size)
    ! Gives g_l(r)*Y_lm(r) on the fine rectangular grid
    ! around considered atom
 
-  real(dp), pointer :: gylmgr(:,:,:)
+  real(dp), allocatable :: gylmgr(:,:,:)
    ! gylmgr(3,nfgd,l_size*l_size)
    ! Gives the gradient of g_l(r)*Y_lm(r) wrt cart. coordinates
    ! on the fine rectangular grid around considered atom
 
-  real(dp), pointer :: gylmgr2(:,:,:)
+  real(dp), allocatable :: gylmgr2(:,:,:)
    ! gylmgr(6,nfgd,l_size*l_size)
    ! Gives the second gradient of g_l(r)*Y_lm(r) wrt cart. coordinates
    ! on the fine rectangular grid around considered atom
 
-  real(dp), pointer :: nhatfr(:,:)
+  real(dp), allocatable :: nhatfr(:,:)
    ! nhatfr(nfgd,nspden)
    ! Gives the "frozen part" of 1st-order compensation charge density
    ! on the fine rectangular grid around considered atom
    ! Only used in response function calculations
 
-  real(dp), pointer :: nhatfrgr(:,:,:)
+  real(dp), allocatable :: nhatfrgr(:,:,:)
    ! nhatfrgr(3,nfgd,nspden)
    ! Gives the gradients (wrt cart. coordinates)
    ! of "frozen part" of 1st-order compensation charge density
    ! on the fine rectangular grid around considered atom
    ! Only used in response function calculations
 
-  real(dp), pointer :: rfgd(:,:)
+  real(dp), allocatable :: rfgd(:,:)
    ! r(3,nfgd)
    ! Gives all R vectors (r-r_atom) on the Fine rectangular GriD
    ! around considered atom in Cartesian coordinates.
@@ -196,8 +197,6 @@ CONTAINS
 !!      respfn,scfcv,screening,sigma
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,get_my_natom,pawfgrtab_copy
-!!      pawfgrtab_destroy,pawfgrtab_nullify,xsum_mpi
 !!
 !! SOURCE
 
@@ -303,8 +302,6 @@ end subroutine pawfgrtab_init
 !!      m_pawfgrtab,m_wfs,pawgrnl,pawmkaewf,respfn,scfcv,screening,sigma
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,get_my_natom,pawfgrtab_copy
-!!      pawfgrtab_destroy,pawfgrtab_nullify,xsum_mpi
 !!
 !! SOURCE
 
@@ -335,28 +332,28 @@ subroutine pawfgrtab_destroy(Pawfgrtab)
 
  natom=SIZE(Pawfgrtab);if (natom==0) return
  do iat=1,natom
-  if (associated(Pawfgrtab(iat)%ifftsph))  then
+  if (allocated(Pawfgrtab(iat)%ifftsph))  then
     ABI_DEALLOCATE(Pawfgrtab(iat)%ifftsph)
   end if
-  if (associated(Pawfgrtab(iat)%gylm   ))  then
+  if (allocated(Pawfgrtab(iat)%gylm   ))  then
     ABI_DEALLOCATE(Pawfgrtab(iat)%gylm)
   end if
-  if (associated(Pawfgrtab(iat)%gylmgr ))  then
+  if (allocated(Pawfgrtab(iat)%gylmgr ))  then
     ABI_DEALLOCATE(Pawfgrtab(iat)%gylmgr)
   end if
-  if (associated(Pawfgrtab(iat)%gylmgr2))  then
+  if (allocated(Pawfgrtab(iat)%gylmgr2))  then
     ABI_DEALLOCATE(Pawfgrtab(iat)%gylmgr2)
   end if
-  if (associated(Pawfgrtab(iat)%nhatfr ))  then
+  if (allocated(Pawfgrtab(iat)%nhatfr ))  then
     ABI_DEALLOCATE(Pawfgrtab(iat)%nhatfr)
   end if
-  if (associated(Pawfgrtab(iat)%nhatfrgr))  then
+  if (allocated(Pawfgrtab(iat)%nhatfrgr))  then
     ABI_DEALLOCATE(Pawfgrtab(iat)%nhatfrgr)
   end if
-  if (associated(Pawfgrtab(iat)%rfgd   ))  then
+  if (allocated(Pawfgrtab(iat)%rfgd   ))  then
     ABI_DEALLOCATE(Pawfgrtab(iat)%rfgd)
   end if
-  if (associated(Pawfgrtab(iat)%expiqr))   then
+  if (allocated(Pawfgrtab(iat)%expiqr))   then
     ABI_DEALLOCATE(Pawfgrtab(iat)%expiqr)
   end if
   Pawfgrtab(iat)%gylm_allocated=0
@@ -389,8 +386,6 @@ end subroutine pawfgrtab_destroy
 !!      m_pawfgrtab,pawgrnl
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,get_my_natom,pawfgrtab_copy
-!!      pawfgrtab_destroy,pawfgrtab_nullify,xsum_mpi
 !!
 !! SOURCE
 
@@ -419,16 +414,12 @@ subroutine pawfgrtab_nullify(Pawfgrtab)
 
 !@Pawfgrtab_type
 
+! MGPAW: This one could be removed/renamed, 
+! variables can be initialized in the datatype declaration
+! Do we need to expose this in the public API?
+
  natom=SIZE(Pawfgrtab);if (natom==0) return
  do iat=1,natom
-  nullify(Pawfgrtab(iat)%ifftsph )
-  nullify(Pawfgrtab(iat)%gylm    )
-  nullify(Pawfgrtab(iat)%gylmgr  )
-  nullify(Pawfgrtab(iat)%gylmgr2 )
-  nullify(Pawfgrtab(iat)%nhatfr  )
-  nullify(Pawfgrtab(iat)%nhatfrgr)
-  nullify(Pawfgrtab(iat)%rfgd    )
-  nullify(Pawfgrtab(iat)%expiqr  )
   Pawfgrtab(iat)%nfgd              = 0
   Pawfgrtab(iat)%gylm_allocated    = 0
   Pawfgrtab(iat)%gylmgr_allocated  = 0
@@ -470,8 +461,6 @@ end subroutine pawfgrtab_nullify
 !!      m_pawfgrtab
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,get_my_natom,pawfgrtab_copy
-!!      pawfgrtab_destroy,pawfgrtab_nullify,xsum_mpi
 !!
 !! SOURCE
 
@@ -638,8 +627,6 @@ end subroutine pawfgrtab_copy
 !!      exc_plot,m_wfs,pawmkaewf,sigma
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,get_my_natom,pawfgrtab_copy
-!!      pawfgrtab_destroy,pawfgrtab_nullify,xsum_mpi
 !!
 !! SOURCE
 
@@ -763,8 +750,6 @@ end subroutine pawfgrtab_print
 !!      m_pawfgrtab,pawgrnl
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,get_my_natom,pawfgrtab_copy
-!!      pawfgrtab_destroy,pawfgrtab_nullify,xsum_mpi
 !!
 !! SOURCE
 
@@ -938,7 +923,7 @@ subroutine pawfgrtab_gather(pawfgrtab,pawfgrtab_gathered,mpi_comm_atom,istat, &
  end if
 
 !Communicate
- call xallgatherv_mpi(buf_int,buf_int_size,buf_dp,buf_dp_size, &
+ call xmpi_allgatherv(buf_int,buf_int_size,buf_dp,buf_dp_size, &
 &     buf_int_all,buf_int_size_all,buf_dp_all,buf_dp_size_all,mpi_comm_atom,ierr)
 
 !Retrieve output datastructures
@@ -1087,8 +1072,6 @@ end subroutine pawfgrtab_gather
 !!      m_paral_pert
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,get_my_natom,pawfgrtab_copy
-!!      pawfgrtab_destroy,pawfgrtab_nullify,xsum_mpi
 !!
 !! SOURCE
 
@@ -1303,13 +1286,13 @@ subroutine pawfgrtab_redistribute(pawfgrtab,mpi_comm_in,mpi_comm_out,&
            buf_dps=>tab_buf_dp(imsg_current)%value
            my_tag=400
            ireq=ireq+1
-           call xisend_mpi(buf_size,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
+           call xmpi_isend(buf_size,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
            my_tag=401
            ireq=ireq+1
-           call xisend_mpi(buf_ints,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
+           call xmpi_isend(buf_ints,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
            my_tag=402
            ireq=ireq+1
-           call xisend_mpi(buf_dps,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
+           call xmpi_isend(buf_dps,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
            nbsendreq=ireq
            nbsent=0
          end if
@@ -1341,7 +1324,7 @@ subroutine pawfgrtab_redistribute(pawfgrtab,mpi_comm_in,mpi_comm_out,&
        my_tag=400
        call xmpi_iprobe(iproc_send,my_tag,mpi_comm_in,flag,ierr)
        if (flag) then
-         call xirecv_mpi(buf_size,iproc_send,my_tag,mpi_comm_in,request1(1),ierr)
+         call xmpi_irecv(buf_size,iproc_send,my_tag,mpi_comm_in,request1(1),ierr)
          call xmpi_wait(request1(1),ierr)
          nb_int=buf_size(1)
          nb_dp=buf_size(2)
@@ -1349,9 +1332,9 @@ subroutine pawfgrtab_redistribute(pawfgrtab,mpi_comm_in,mpi_comm_out,&
          ABI_ALLOCATE(buf_int1,(nb_int))
          ABI_ALLOCATE(buf_dp1,(nb_dp))
          my_tag=401
-         call xirecv_mpi(buf_int1,iproc_send,my_tag,mpi_comm_in,request1(2),ierr)
+         call xmpi_irecv(buf_int1,iproc_send,my_tag,mpi_comm_in,request1(2),ierr)
          my_tag=402
-         call xirecv_mpi(buf_dp1,iproc_send,my_tag,mpi_comm_in,request1(3),ierr)
+         call xmpi_irecv(buf_dp1,iproc_send,my_tag,mpi_comm_in,request1(3),ierr)
          call xmpi_waitall(request1(2:3),ierr)
          call pawfgrtab_isendreceive_getbuffer(pawfgrtab_out1,npawfgrtab_sent,atm_indx_out, buf_int1,buf_dp1)
 !        Remove i1 of the array from
@@ -1429,7 +1412,7 @@ end subroutine pawfgrtab_redistribute
 !!  pawfgrtab= output datastructure filled with buffers receive in a receive operation
 !!
 !! PARENTS
-!!  pawfgrtab_redistribute
+!!      m_pawfgrtab
 !!
 !! CHILDREN
 !!
@@ -1586,7 +1569,7 @@ end subroutine pawfgrtab_isendreceive_getbuffer
 !!  buf_dp_size= size of buffer of double precision numbers
 !!
 !! PARENTS
-!!  pawfgrtab_redistribute
+!!      m_pawfgrtab
 !!
 !! CHILDREN
 !!

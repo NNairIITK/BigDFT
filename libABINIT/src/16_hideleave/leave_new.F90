@@ -28,10 +28,10 @@
 !!  By default, it uses "call exit(1)", that is not completely portable.
 !!
 !! PARENTS
-!!      m_errors,m_matlu,m_paw_dmft,qmc_prep_ctqmc,spectral_function,testkgrid
+!!      m_errors,testkgrid
 !!
 !! CHILDREN
-!!      exit
+!!      dump_config,print_kinds,wrtout,xmpi_abort,xmpi_show_info
 !!
 !! SOURCE
 

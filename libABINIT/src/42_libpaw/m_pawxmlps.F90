@@ -34,6 +34,7 @@ module m_pawxmlps
 #if defined HAVE_TRIO_FOX
  use fox_sax
 #endif
+ use m_pawrad
 
  use m_paw_numeric,   only : paw_spline,paw_splint
 
@@ -46,14 +47,15 @@ module m_pawxmlps
  public :: nullify_paw_setup
  public :: copy_paw_setup
 !Procedures used for the Fortran reader
-public  ::  rdpawpsxml
-public  ::  rdpawpsxml_core
-public  ::  getecutfromxml
-private ::  paw_rdfromline
+ public  ::  rdpawpsxml
+ public  ::  rdpawpsxml_core
+ public  ::  getecutfromxml
+ private ::  paw_rdfromline
+
 !Procedures used for the FoX reader
 !(called from xml_parser in response to events)
 #if defined HAVE_TRIO_FOX
-public  :: paw_begin_element1
+public :: paw_begin_element1
 public :: paw_end_element1
 public :: pawdata_chunk
 #endif
@@ -82,15 +84,15 @@ integer,parameter,private :: XML_RECL = 50000
 !! SOURCE
 
 type, public :: radial_grid_t
-      logical           :: tread=.false.
-      character(len=20) :: eq
-      character(len=4)  :: id
-      real(dpxml)       :: aa
-      real(dpxml)       :: bb
-      real(dpxml)       :: dd
-      integer           :: nn
-      integer           :: istart
-      integer           :: iend
+  logical           :: tread=.false.
+  character(len=20) :: eq
+  character(len=4)  :: id
+  real(dpxml)       :: aa
+  real(dpxml)       :: bb
+  real(dpxml)       :: dd
+  integer           :: nn
+  integer           :: istart
+  integer           :: iend
 end type radial_grid_t
 !!***
 
@@ -106,10 +108,10 @@ end type radial_grid_t
 !! SOURCE
 
 type, public              :: radialfunc_t
-      logical             :: tread=.false.
-      character(len=6)    :: grid=' '  !vz_z
-      character(len=6)    :: state=' ' !vz_z
-      real(dpxml),pointer :: data(:)
+  logical             :: tread=.false.
+  character(len=6)    :: grid=' '  !vz_z
+  character(len=6)    :: state=' ' !vz_z
+  real(dpxml),allocatable :: data(:)
 end type radialfunc_t
 !!***
 
@@ -125,12 +127,12 @@ end type radialfunc_t
 !! SOURCE
 
 type, public :: shape_function_t
-      logical              :: tread=.false.
-      character(len=20)    :: gtype
-      real(dpxml)          :: rc=0 !vz_z
-      character(len=6)     :: grid
-      integer              :: lamb
-      real(dpxml), pointer :: data(:,:)
+  logical              :: tread=.false.
+  character(len=20)    :: gtype
+  real(dpxml)          :: rc=0 !vz_z
+  character(len=6)     :: grid
+  integer              :: lamb
+  real(dpxml), allocatable :: data(:,:)
 end type shape_function_t
 !!***
 
@@ -146,13 +148,13 @@ end type shape_function_t
 !! SOURCE
 
 type, public :: state_t
-      logical          :: tread=.false.
-      character(len=6) :: id
-      real(dpxml)      :: ff
-      real(dpxml)      :: rc
-      real(dpxml)      :: ee
-      integer          :: nn
-      integer          :: ll
+  logical          :: tread=.false.
+  character(len=6) :: id
+  real(dpxml)      :: ff
+  real(dpxml)      :: rc
+  real(dpxml)      :: ee
+  integer          :: nn
+  integer          :: ll
 end type state_t
 !!***
 
@@ -168,9 +170,9 @@ end type state_t
 !! SOURCE
 
 type, public :: valence_states_t
-      logical               :: tread=.false.
-      integer               :: nval
-      type(state_t),pointer :: state(:)
+  logical               :: tread=.false.
+  integer               :: nval
+  type(state_t),allocatable :: state(:)
 end type valence_states_t
 !!***
 
@@ -186,9 +188,9 @@ end type valence_states_t
 !! SOURCE
 
 type, public :: generator_t
-      logical           :: tread=.false.
-      character(len=20) :: gen
-      character(len=20) :: name
+  logical           :: tread=.false.
+  character(len=20) :: gen
+  character(len=20) :: name
 end type generator_t
 !!***
 
@@ -204,9 +206,9 @@ end type generator_t
 !! SOURCE
 
 type, public :: xc_functional_t
-      logical           :: tread=.false.
-      character(len=12) :: functionaltype
-      character(len=100) :: name
+  logical           :: tread=.false.
+  character(len=12) :: functionaltype
+  character(len=100) :: name
 end type xc_functional_t
 !!***
 
@@ -221,12 +223,12 @@ end type xc_functional_t
 !!
 !! SOURCE
 
-type, public            :: atom_t
-      logical           :: tread=.false.
-      character(len=2)  :: symbol
-      real(dpxml)       :: znucl
-      real(dpxml)       :: zion
-      real(dpxml)       :: zval
+type, public :: atom_t
+  logical           :: tread=.false.
+  character(len=2)  :: symbol
+  real(dpxml)       :: znucl
+  real(dpxml)       :: zion
+  real(dpxml)       :: zval
 end type atom_t
 !!***
 
@@ -242,29 +244,29 @@ end type atom_t
 !! SOURCE
 
 type, public :: paw_setup_t
-      character(len=3)             :: version
-      logical                      :: tread=.false.
-      integer                      :: ngrid
-      real(dpxml)                  :: rpaw
-      character(len=4)             :: idgrid
-      type(atom_t)                 :: atom
-      type(xc_functional_t)        :: xc_functional
-      type(generator_t)            :: generator
-      type(valence_states_t)       :: valence_states
-      type(radial_grid_t), pointer :: radial_grid(:)
-      type(shape_function_t)       :: shape_function
-      type(radialfunc_t)           :: ae_core_density
-      type(radialfunc_t)           :: pseudo_core_density
-      type(radialfunc_t)           :: pseudo_valence_density
-      type(radialfunc_t)           :: zero_potential
-      type(radialfunc_t)           :: ae_core_kinetic_energy_density
-      type(radialfunc_t)           :: pseudo_core_kinetic_energy_density
-      type(radialfunc_t),pointer   :: ae_partial_wave(:)
-      type(radialfunc_t),pointer   :: pseudo_partial_wave(:)
-      type(radialfunc_t),pointer   :: projector_function(:)
-      type(radialfunc_t)           :: kresse_joubert_local_ionic_potential
-      type(radialfunc_t)           :: blochl_local_ionic_potential
-      type(radialfunc_t)           :: kinetic_energy_differences
+  character(len=3)             :: version
+  logical                      :: tread=.false.
+  integer                      :: ngrid
+  real(dpxml)                  :: rpaw
+  character(len=4)             :: idgrid
+  type(atom_t)                 :: atom
+  type(xc_functional_t)        :: xc_functional
+  type(generator_t)            :: generator
+  type(valence_states_t)       :: valence_states
+  type(radial_grid_t), allocatable :: radial_grid(:)
+  type(shape_function_t)       :: shape_function
+  type(radialfunc_t)           :: ae_core_density
+  type(radialfunc_t)           :: pseudo_core_density
+  type(radialfunc_t)           :: pseudo_valence_density
+  type(radialfunc_t)           :: zero_potential
+  type(radialfunc_t)           :: ae_core_kinetic_energy_density
+  type(radialfunc_t)           :: pseudo_core_kinetic_energy_density
+  type(radialfunc_t),allocatable :: ae_partial_wave(:)
+  type(radialfunc_t),allocatable :: pseudo_partial_wave(:)
+  type(radialfunc_t),allocatable :: projector_function(:)
+  type(radialfunc_t)           :: kresse_joubert_local_ionic_potential
+  type(radialfunc_t)           :: blochl_local_ionic_potential
+  type(radialfunc_t)           :: kinetic_energy_differences
 end type paw_setup_t
 !!***
 
@@ -276,22 +278,22 @@ end type paw_setup_t
 !-------------------------------------------------------------------------
 
 !Public variables (common to both readers)
-integer,public,allocatable :: ipsp2xml(:)
-integer,public :: npsp_pawxml
+integer,save,public,allocatable :: ipsp2xml(:)
+integer,save,public :: npsp_pawxml
 type(paw_setup_t),public,target,allocatable,save :: paw_setup(:)
 type(paw_setup_t),public,target,save :: paw_setuploc
 
 !Private variables (for the FoX reader)
 #if defined HAVE_TRIO_FOX
-logical,private  :: in_valenceStates = .false.,in_data=.false.
-logical,private  :: in_generator =.false.
+logical,private,save  :: in_valenceStates = .false.,in_data=.false.
+logical,private,save  :: in_generator =.false.
 integer,private,save :: ndata
-integer,private  :: ii,ival,igrid,ishpf,lmax,mesh_size
+integer,private,save  :: ii,ival,igrid,ishpf,lmax,mesh_size
 !Pointers to make it easier to manage the data
-type(radialfunc_t),private,pointer  :: rp
-type(state_t),private,pointer   :: valstate (:)
-type(radial_grid_t),private,pointer   :: grids (:)
-type(radialfunc_t),private,pointer :: shpf(:)
+type(radialfunc_t),private,save,pointer  :: rp
+type(state_t),private,save,pointer   :: valstate (:)
+type(radial_grid_t),private,save,pointer   :: grids (:)
+type(radialfunc_t),private,save,pointer :: shpf(:)
 #endif
 !!***
 
@@ -839,13 +841,13 @@ select case(name)
           end do
         end if
         ABI_DATATYPE_DEALLOCATE(valstate)
-        if(.not.associated(paw_setuploc%ae_partial_wave)) then
+        if(.not.allocated(paw_setuploc%ae_partial_wave)) then
           ABI_DATATYPE_ALLOCATE(paw_setuploc%ae_partial_wave,(paw_setuploc%valence_states%nval))
         end if
-        if(.not.associated(paw_setuploc%pseudo_partial_wave)) then
+        if(.not.allocated(paw_setuploc%pseudo_partial_wave)) then
           ABI_DATATYPE_ALLOCATE(paw_setuploc%pseudo_partial_wave,(paw_setuploc%valence_states%nval))
         end if
-        if(.not.associated(paw_setuploc%projector_function)) then
+        if(.not.allocated(paw_setuploc%projector_function)) then
           ABI_DATATYPE_ALLOCATE(paw_setuploc%projector_function,(paw_setuploc%valence_states%nval))
         end if
 
@@ -1066,83 +1068,65 @@ subroutine destroy_paw_setup(paw_setupin)
  paw_setupin%blochl_local_ionic_potential%tread=.false.
  paw_setupin%kinetic_energy_differences%tread=.false.
 
- if(associated( paw_setupin%shape_function%data)) then
+ if(allocated( paw_setupin%shape_function%data)) then
    ABI_DEALLOCATE(paw_setupin%shape_function%data)
-   nullify(paw_setupin%shape_function%data)
  end if
- if(associated( paw_setupin%ae_core_density%data)) then
+ if(allocated( paw_setupin%ae_core_density%data)) then
    ABI_DEALLOCATE(paw_setupin%ae_core_density%data)
-   nullify(paw_setupin%ae_core_density%data)
  end if
- if(associated( paw_setupin%pseudo_core_density%data)) then
+ if(allocated( paw_setupin%pseudo_core_density%data)) then
    ABI_DEALLOCATE(paw_setupin%pseudo_core_density%data)
-   nullify(paw_setupin%pseudo_core_density%data)
  end if
- if(associated( paw_setupin%pseudo_valence_density%data)) then
+ if(allocated( paw_setupin%pseudo_valence_density%data)) then
    ABI_DEALLOCATE(paw_setupin%pseudo_valence_density%data)
-   nullify(paw_setupin%pseudo_valence_density%data)
  end if
- if(associated( paw_setupin%zero_potential%data)) then
+ if(allocated( paw_setupin%zero_potential%data)) then
    ABI_DEALLOCATE(paw_setupin%zero_potential%data)
-   nullify(paw_setupin%zero_potential%data)
  end if
- if(associated( paw_setupin%ae_core_kinetic_energy_density%data)) then
+ if(allocated( paw_setupin%ae_core_kinetic_energy_density%data)) then
    ABI_DEALLOCATE(paw_setupin%ae_core_kinetic_energy_density%data)
-   nullify(paw_setupin%ae_core_kinetic_energy_density%data)
  end if
- if(associated( paw_setupin%pseudo_core_kinetic_energy_density%data)) then
+ if(allocated( paw_setupin%pseudo_core_kinetic_energy_density%data)) then
    ABI_DEALLOCATE(paw_setupin%pseudo_core_kinetic_energy_density%data)
-   nullify(paw_setupin%pseudo_core_kinetic_energy_density%data)
  end if
- if(associated( paw_setupin%kresse_joubert_local_ionic_potential%data)) then
+ if(allocated( paw_setupin%kresse_joubert_local_ionic_potential%data)) then
    ABI_DEALLOCATE(paw_setupin%kresse_joubert_local_ionic_potential%data)
-   nullify(paw_setupin%kresse_joubert_local_ionic_potential%data)
  end if
- if(associated( paw_setupin%blochl_local_ionic_potential%data)) then
+ if(allocated( paw_setupin%blochl_local_ionic_potential%data)) then
    ABI_DEALLOCATE(paw_setupin%blochl_local_ionic_potential%data)
-   nullify(paw_setupin%blochl_local_ionic_potential%data)
  end if
- if(associated( paw_setupin%kinetic_energy_differences%data)) then
+ if(allocated( paw_setupin%kinetic_energy_differences%data)) then
    ABI_DEALLOCATE(paw_setupin%kinetic_energy_differences%data)
-   nullify(paw_setupin%kinetic_energy_differences%data)
  end if
- if (associated( paw_setupin%ae_partial_wave)) then
+ if (allocated( paw_setupin%ae_partial_wave)) then
    do ii=1,paw_setupin%valence_states%nval
-     if(associated( paw_setupin%ae_partial_wave(ii)%data)) then
+     if(allocated( paw_setupin%ae_partial_wave(ii)%data)) then
        ABI_DEALLOCATE(paw_setupin%ae_partial_wave(ii)%data)
-       nullify(paw_setupin%ae_partial_wave(ii)%data)
      end if
    end do
    ABI_DATATYPE_DEALLOCATE(paw_setupin%ae_partial_wave)
-   nullify(paw_setupin%ae_partial_wave)
  end if
- if (associated( paw_setupin%pseudo_partial_wave)) then
+ if (allocated( paw_setupin%pseudo_partial_wave)) then
    do ii=1,paw_setupin%valence_states%nval
-     if(associated( paw_setupin%pseudo_partial_wave(ii)%data)) then
+     if(allocated( paw_setupin%pseudo_partial_wave(ii)%data)) then
        ABI_DEALLOCATE(paw_setupin%pseudo_partial_wave(ii)%data)
-       nullify(paw_setupin%pseudo_partial_wave(ii)%data)
      end if
    end do
    ABI_DATATYPE_DEALLOCATE(paw_setupin%pseudo_partial_wave)
-   nullify(paw_setupin%pseudo_partial_wave)
  end if
- if (associated( paw_setupin%projector_function)) then
+ if (allocated( paw_setupin%projector_function)) then
    do ii=1,paw_setupin%valence_states%nval
-     if(associated( paw_setupin%projector_function(ii)%data)) then
+     if(allocated( paw_setupin%projector_function(ii)%data)) then
        ABI_DEALLOCATE(paw_setupin%projector_function(ii)%data)
-       nullify(paw_setupin%projector_function(ii)%data)
      end if
    end do
    ABI_DATATYPE_DEALLOCATE(paw_setupin%projector_function)
-   nullify(paw_setupin%projector_function)
  end if
- if(associated(paw_setupin%valence_states%state)) then
+ if(allocated(paw_setupin%valence_states%state)) then
    ABI_DATATYPE_DEALLOCATE(paw_setupin%valence_states%state)
-   nullify(paw_setupin%valence_states%state)
  end if
- if(associated( paw_setupin%radial_grid)) then
+ if(allocated( paw_setupin%radial_grid)) then
    ABI_DATATYPE_DEALLOCATE(paw_setupin%radial_grid)
-   nullify(paw_setupin%radial_grid)
  end if
 
 end subroutine destroy_paw_setup
@@ -1193,21 +1177,11 @@ subroutine nullify_paw_setup(paw_setupin)
 
 ! *********************************************************************
 
- nullify(paw_setupin%radial_grid)
- nullify(paw_setupin%valence_states%state)
- nullify(paw_setupin%shape_function%data)
- nullify(paw_setupin%pseudo_partial_wave)
- nullify(paw_setupin%ae_partial_wave)
- nullify(paw_setupin%projector_function)
- nullify(paw_setupin%ae_core_density%data)
- nullify(paw_setupin%pseudo_core_density%data)
- nullify(paw_setupin%pseudo_valence_density%data)
- nullify(paw_setupin%zero_potential%data)
- nullify(paw_setupin%ae_core_kinetic_energy_density%data)
- nullify(paw_setupin%pseudo_core_kinetic_energy_density%data)
- nullify(paw_setupin%kresse_joubert_local_ionic_potential%data)
- nullify(paw_setupin%blochl_local_ionic_potential%data)
- nullify(paw_setupin%kinetic_energy_differences%data)
+ ! MGPAW: This one could be removed/renamed, 
+ ! variables can be initialized in the datatype declaration
+ ! Do we need to expose this in the public API?
+
+ ABI_UNUSED(paw_setupin%ngrid)
 
 end subroutine nullify_paw_setup
 !!***
@@ -1322,146 +1296,110 @@ subroutine copy_paw_setup(paw_setupin,paw_setupout)
  paw_setupout%kinetic_energy_differences%grid=paw_setupin%kinetic_energy_differences%grid
  paw_setupout%kinetic_energy_differences%state=paw_setupin%kinetic_energy_differences%state
 
-!pointers
- if (associated(paw_setupin%shape_function%data)) then
+! allocatable arrays
+ if (allocated(paw_setupin%shape_function%data)) then
    sz1=size(paw_setupin%shape_function%data,1)
    sz2=size(paw_setupin%shape_function%data,2)
    ABI_ALLOCATE(paw_setupout%shape_function%data,(sz1,sz2))
    paw_setupout%shape_function%data=paw_setupin%shape_function%data
- else
-   nullify(paw_setupout%shape_function%data)
  end if
- if (associated(paw_setupin%ae_core_density%data)) then
+ if (allocated(paw_setupin%ae_core_density%data)) then
    sz1=size(paw_setupin%ae_core_density%data,1)
    ABI_ALLOCATE(paw_setupout%ae_core_density%data,(sz1))
    paw_setupout%ae_core_density%data=paw_setupin%ae_core_density%data
- else
-   nullify(paw_setupout%ae_core_density%data)
  end if
- if (associated(paw_setupin%pseudo_core_density%data)) then
+ if (allocated(paw_setupin%pseudo_core_density%data)) then
    sz1=size(paw_setupin%pseudo_core_density%data,1)
    ABI_ALLOCATE(paw_setupout%pseudo_core_density%data,(sz1))
    paw_setupout%pseudo_core_density%data=paw_setupin%pseudo_core_density%data
- else
-   nullify(paw_setupout%pseudo_core_density%data)
  end if
- if (associated(paw_setupin%pseudo_valence_density%data)) then
+ if (allocated(paw_setupin%pseudo_valence_density%data)) then
    sz1=size(paw_setupin%pseudo_valence_density%data,1)
    ABI_ALLOCATE(paw_setupout%pseudo_valence_density%data,(sz1))
    paw_setupout%pseudo_valence_density%data=paw_setupin%pseudo_valence_density%data
- else
-   nullify(paw_setupout%pseudo_valence_density%data)
  end if
- if (associated(paw_setupin%zero_potential%data)) then
+ if (allocated(paw_setupin%zero_potential%data)) then
    sz1=size(paw_setupin%zero_potential%data,1)
    ABI_ALLOCATE(paw_setupout%zero_potential%data,(sz1))
    paw_setupout%zero_potential%data=paw_setupin%zero_potential%data
- else
-   nullify(paw_setupout%zero_potential%data)
  end if
- if (associated(paw_setupin%ae_core_kinetic_energy_density%data)) then
+ if (allocated(paw_setupin%ae_core_kinetic_energy_density%data)) then
    sz1=size(paw_setupin%ae_core_kinetic_energy_density%data,1)
    ABI_ALLOCATE(paw_setupout%ae_core_kinetic_energy_density%data,(sz1))
    paw_setupout%ae_core_kinetic_energy_density%data=paw_setupin%ae_core_kinetic_energy_density%data
- else
-   nullify(paw_setupout%ae_core_kinetic_energy_density%data)
  end if
- if (associated(paw_setupin%pseudo_core_kinetic_energy_density%data)) then
+ if (allocated(paw_setupin%pseudo_core_kinetic_energy_density%data)) then
    sz1=size(paw_setupin%pseudo_core_kinetic_energy_density%data,1)
    ABI_ALLOCATE(paw_setupout%pseudo_core_kinetic_energy_density%data,(sz1))
    paw_setupout%pseudo_core_kinetic_energy_density%data=paw_setupin%pseudo_core_kinetic_energy_density%data
- else
-   nullify(paw_setupout%pseudo_core_kinetic_energy_density%data)
  end if
- if (associated(paw_setupin%kresse_joubert_local_ionic_potential%data)) then
+ if (allocated(paw_setupin%kresse_joubert_local_ionic_potential%data)) then
    sz1=size(paw_setupin%kresse_joubert_local_ionic_potential%data,1)
    ABI_ALLOCATE(paw_setupout%kresse_joubert_local_ionic_potential%data,(sz1))
    paw_setupout%kresse_joubert_local_ionic_potential%data=paw_setupin%kresse_joubert_local_ionic_potential%data
- else
-   nullify(paw_setupout%kresse_joubert_local_ionic_potential%data)
  end if
- if (associated(paw_setupin%blochl_local_ionic_potential%data)) then
+ if (allocated(paw_setupin%blochl_local_ionic_potential%data)) then
    sz1=size(paw_setupin%blochl_local_ionic_potential%data,1)
    ABI_ALLOCATE(paw_setupout%blochl_local_ionic_potential%data,(sz1))
    paw_setupout%blochl_local_ionic_potential%data=paw_setupin%blochl_local_ionic_potential%data
- else
-   nullify(paw_setupout%blochl_local_ionic_potential%data)
  end if
- if (associated(paw_setupin%kinetic_energy_differences%data)) then
+ if (allocated(paw_setupin%kinetic_energy_differences%data)) then
    sz1=size(paw_setupin%kinetic_energy_differences%data,1)
    ABI_ALLOCATE(paw_setupout%kinetic_energy_differences%data,(sz1))
    paw_setupout%kinetic_energy_differences%data=paw_setupin%kinetic_energy_differences%data
- else
-   nullify(paw_setupout%kinetic_energy_differences%data)
  end if
- if(associated( paw_setupin%radial_grid)) then
+ if(allocated( paw_setupin%radial_grid)) then
    sz1=size(paw_setupin%radial_grid,1)
    ABI_DATATYPE_ALLOCATE(paw_setupout%radial_grid,(sz1))
    paw_setupout%radial_grid=paw_setupin%radial_grid
- else
-   nullify(paw_setupout%radial_grid)
  end if
- if(associated(paw_setupin%valence_states%state)) then
+ if(allocated(paw_setupin%valence_states%state)) then
    sz1=size(paw_setupin%valence_states%state,1)
    ABI_DATATYPE_ALLOCATE(paw_setupout%valence_states%state,(sz1))
    paw_setupout%valence_states%state=paw_setupin%valence_states%state
- else
-   nullify(paw_setupout%valence_states%state)
  end if
 
- if (associated( paw_setupin%ae_partial_wave)) then
+ if (allocated( paw_setupin%ae_partial_wave)) then
    sz1=size(paw_setupin%ae_partial_wave,1)
    ABI_DATATYPE_ALLOCATE(paw_setupout%ae_partial_wave,(sz1))
    do ii=1,paw_setupin%valence_states%nval
      paw_setupout%ae_partial_wave(ii)%tread=paw_setupin%ae_partial_wave(ii)%tread
      paw_setupout%ae_partial_wave(ii)%grid=paw_setupin%ae_partial_wave(ii)%grid
      paw_setupout%ae_partial_wave(ii)%state=paw_setupin%ae_partial_wave(ii)%state
-     if(associated( paw_setupin%ae_partial_wave(ii)%data)) then
+     if(allocated( paw_setupin%ae_partial_wave(ii)%data)) then
        sz1=size(paw_setupin%ae_partial_wave(ii)%data,1)
        ABI_ALLOCATE(paw_setupout%ae_partial_wave(ii)%data,(sz1))
        paw_setupout%ae_partial_wave(ii)%data=paw_setupin%ae_partial_wave(ii)%data
-     else
-       nullify(paw_setupout%ae_partial_wave(ii)%data)
      end if
    end do
- else
-   nullify(paw_setupout%ae_partial_wave)
  end if 
- if (associated( paw_setupin%pseudo_partial_wave)) then
+ if (allocated( paw_setupin%pseudo_partial_wave)) then
    sz1=size(paw_setupin%pseudo_partial_wave,1)
    ABI_DATATYPE_ALLOCATE(paw_setupout%pseudo_partial_wave,(sz1))
    do ii=1,paw_setupin%valence_states%nval
      paw_setupout%pseudo_partial_wave(ii)%tread=paw_setupin%pseudo_partial_wave(ii)%tread
      paw_setupout%pseudo_partial_wave(ii)%grid=paw_setupin%pseudo_partial_wave(ii)%grid
      paw_setupout%pseudo_partial_wave(ii)%state=paw_setupin%pseudo_partial_wave(ii)%state
-     if(associated( paw_setupin%pseudo_partial_wave(ii)%data)) then
+     if(allocated( paw_setupin%pseudo_partial_wave(ii)%data)) then
        sz1=size(paw_setupin%pseudo_partial_wave(ii)%data,1)
        ABI_ALLOCATE(paw_setupout%pseudo_partial_wave(ii)%data,(sz1))
        paw_setupout%pseudo_partial_wave(ii)%data=paw_setupin%pseudo_partial_wave(ii)%data
-     else
-       nullify(paw_setupout%pseudo_partial_wave(ii)%data)
      end if
    end do
- else
-   nullify(paw_setupout%pseudo_partial_wave)
  end if 
-  if (associated( paw_setupin%projector_function)) then
+  if (allocated( paw_setupin%projector_function)) then
    sz1=size(paw_setupin%projector_function,1)
    ABI_DATATYPE_ALLOCATE(paw_setupout%projector_function,(sz1))
    do ii=1,paw_setupin%valence_states%nval
      paw_setupout%projector_function(ii)%tread=paw_setupin%projector_function(ii)%tread
      paw_setupout%projector_function(ii)%grid=paw_setupin%projector_function(ii)%grid
      paw_setupout%projector_function(ii)%state=paw_setupin%projector_function(ii)%state
-     if(associated( paw_setupin%projector_function(ii)%data)) then
+     if(allocated( paw_setupin%projector_function(ii)%data)) then
        sz1=size(paw_setupin%projector_function(ii)%data,1)
        ABI_ALLOCATE(paw_setupout%projector_function(ii)%data,(sz1))
        paw_setupout%projector_function(ii)%data=paw_setupin%projector_function(ii)%data
-     else
-       nullify(paw_setupout%projector_function(ii)%data)
      end if
    end do
- else
-   nullify(paw_setupout%projector_function)
  end if 
 
 end subroutine copy_paw_setup
@@ -1899,13 +1837,13 @@ end subroutine copy_paw_setup
    end do
  end if
  ABI_DATATYPE_DEALLOCATE(valstate)
- if(.not.associated(paw_setup%ae_partial_wave)) then
+ if(.not.allocated(paw_setup%ae_partial_wave)) then
    ABI_DATATYPE_ALLOCATE(paw_setup%ae_partial_wave,(paw_setup%valence_states%nval))
  end if
- if(.not.associated(paw_setup%pseudo_partial_wave)) then
+ if(.not.allocated(paw_setup%pseudo_partial_wave)) then
    ABI_DATATYPE_ALLOCATE(paw_setup%pseudo_partial_wave,(paw_setup%valence_states%nval))
  end if
- if(.not.associated(paw_setup%projector_function)) then
+ if(.not.allocated(paw_setup%projector_function)) then
    ABI_DATATYPE_ALLOCATE(paw_setup%projector_function,(paw_setup%valence_states%nval))
  end if
 
@@ -2143,7 +2081,7 @@ end subroutine copy_paw_setup
 !!  paw_setup=pseudopotential data structure
 !!
 !! PARENTS
-!!      pawps_read_corewf
+!!      m_pawpsp
 !!
 !! CHILDREN
 !!      paw_rdfromline
@@ -2152,7 +2090,6 @@ end subroutine copy_paw_setup
 
  subroutine rdpawpsxml_core(energy_cor,filename,lcor,ncor,nphicor,pawrad,phi_cor)
 
- use m_pawrad
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.

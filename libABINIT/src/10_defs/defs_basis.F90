@@ -370,7 +370,7 @@ CONTAINS  !=====================================================================
 !!
 !! PARENTS
 !!      abinit,aim,anaddb,band2eps,bsepostproc,conducti,cut3d,driver,fftprof
-!!      initmpi_world,ioprof,kss2wfk,lapackprof,lwf,m_io_redirect,macroave
+!!      initmpi_world,ioprof,kss2wfk,lapackprof,m_io_redirect,macroave
 !!      memory_eval,mpi_setup,mrgddb,mrggkk,mrgscr,optic,ujdet,vdw_kernelgen
 !!
 !! CHILDREN

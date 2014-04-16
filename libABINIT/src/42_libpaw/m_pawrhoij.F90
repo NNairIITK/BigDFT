@@ -59,6 +59,7 @@ MODULE m_pawrhoij
  public :: symrhoij
 
  public :: pawrhoij_mpisum_unpacked
+
  interface pawrhoij_mpisum_unpacked
    module procedure pawrhoij_mpisum_unpacked_1D
    module procedure pawrhoij_mpisum_unpacked_2D
@@ -133,31 +134,31 @@ MODULE m_pawrhoij
 
 !Integer arrays
 
-  integer, pointer :: kpawmix(:)
+  integer, allocatable :: kpawmix(:)
    ! kpawmix(lmnmix_sz)
    ! Indirect array selecting the elements of rhoij
    ! being mixed during SCF cycle
 
-  integer, pointer :: rhoijselect(:)
+  integer, allocatable :: rhoijselect(:)
    ! rhoijselect(lmn2_size)
    ! Indirect array selecting the non-zero elements of rhoij:
    ! rhoijselect(isel,ispden)=klmn if rhoij(klmn,ispden) is non-zero
 
 !Real (real(dp)) arrays
 
-  real(dp), pointer :: grhoij (:,:,:)
+  real(dp), allocatable :: grhoij (:,:,:)
    ! grhoij(ngrhoij,cplex*lmn2_size,nspden)
    ! Gradients of Rho_ij wrt xred, strains, ... (non-packed storage)
 
-  real(dp), pointer :: rhoij_ (:,:)
+  real(dp), allocatable :: rhoij_ (:,:)
    ! rhoij_(cplex*lmn2_size,nspden)
    ! Array used to (temporary) store Rho_ij in a non-packed storage mode
 
-  real(dp), pointer :: rhoijp (:,:)
+  real(dp), allocatable :: rhoijp (:,:)
    ! rhoijp(cplex*lmn2_size,nspden)
    ! Augmentation waves occupancies Rho_ij in PACKED STORAGE (only non-zero elements are stored)
 
-  real(dp), pointer :: rhoijres (:,:)
+  real(dp), allocatable :: rhoijres (:,:)
    ! rhoijres(cplex*lmn2_size,nspden)
    ! Rho_ij residuals during SCF cycle (non-packed storage)
 
@@ -211,8 +212,6 @@ CONTAINS
 !!      sigma,vtorho,vtorho3
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,pawio_print_ij,pawrhoij_destroy
-!!      pawrhoij_gather,pawrhoij_nullify,wrtout
 !!
 !! SOURCE
 
@@ -308,13 +307,6 @@ subroutine pawrhoij_alloc(pawrhoij,cplex,nspden,nspinor,nsppol,typat,&          
      pawrhoij(irhoij)%use_rhoij_=0
      pawrhoij(irhoij)%use_rhoijres=0
 
-     nullify(pawrhoij(irhoij)%kpawmix)
-     nullify(pawrhoij(irhoij)%grhoij)
-     nullify(pawrhoij(irhoij)%rhoij_)
-     nullify(pawrhoij(irhoij)%rhoijp)
-     nullify(pawrhoij(irhoij)%rhoijres)
-     nullify(pawrhoij(irhoij)%rhoijselect)
-
 !    Arrays allocations
      has_rhoijp=.true.; if (present(use_rhoijp)) has_rhoijp=(use_rhoijp>0)
      if (has_rhoijp) then
@@ -386,8 +378,6 @@ end subroutine pawrhoij_alloc
 !!      setup_positron,setup_screening,setup_sigma,sigma,vtorho,vtorho3
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,pawio_print_ij,pawrhoij_destroy
-!!      pawrhoij_gather,pawrhoij_nullify,wrtout
 !!
 !! SOURCE
 
@@ -422,29 +412,23 @@ subroutine pawrhoij_destroy(pawrhoij)
      pawrhoij(irhoij)%use_rhoij_=0
      pawrhoij(irhoij)%use_rhoijp=0
      pawrhoij(irhoij)%use_rhoijres=0
-     if (associated(pawrhoij(irhoij)%rhoijp))       then
+     if (allocated(pawrhoij(irhoij)%rhoijp))       then
        ABI_DEALLOCATE(pawrhoij(irhoij)%rhoijp)
-       nullify(pawrhoij(irhoij)%rhoijp)
      end if
-     if (associated(pawrhoij(irhoij)%rhoijselect))  then
+     if (allocated(pawrhoij(irhoij)%rhoijselect))  then
        ABI_DEALLOCATE(pawrhoij(irhoij)%rhoijselect)
-       nullify(pawrhoij(irhoij)%rhoijselect)
      end if
-     if (associated(pawrhoij(irhoij)%grhoij))       then
+     if (allocated(pawrhoij(irhoij)%grhoij))       then
        ABI_DEALLOCATE(pawrhoij(irhoij)%grhoij)
-       nullify(pawrhoij(irhoij)%grhoij)
      end if
-     if (associated(pawrhoij(irhoij)%kpawmix))      then
+     if (allocated(pawrhoij(irhoij)%kpawmix))      then
        ABI_DEALLOCATE(pawrhoij(irhoij)%kpawmix)
-       nullify(pawrhoij(irhoij)%kpawmix)
      end if
-     if (associated(pawrhoij(irhoij)%rhoij_))       then
+     if (allocated(pawrhoij(irhoij)%rhoij_))       then
        ABI_DEALLOCATE(pawrhoij(irhoij)%rhoij_)
-       nullify(pawrhoij(irhoij)%rhoij_)
      end if
-     if (associated(pawrhoij(irhoij)%rhoijres))     then
+     if (allocated(pawrhoij(irhoij)%rhoijres))     then
        ABI_DEALLOCATE(pawrhoij(irhoij)%rhoijres)
-       nullify(pawrhoij(irhoij)%rhoijres)
      end if
    end do
  end if
@@ -465,11 +449,10 @@ end subroutine pawrhoij_destroy
 !! pawrhoij(:)<type(pawrhoij_type)>= rhoij datastructure
 !!
 !! PARENTS
-!!      d2frnl,m_pawrhoij,m_scf_history,outscfcv,pawgrnl,pawmkrho,pawprt
+!!      d2frnl,loper3,m_pawrhoij,m_scf_history,outscfcv,pawgrnl,pawmkrho,pawprt
+!!      respfn
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,pawio_print_ij,pawrhoij_destroy
-!!      pawrhoij_gather,pawrhoij_nullify,wrtout
 !!
 !! SOURCE
 
@@ -494,6 +477,10 @@ subroutine pawrhoij_nullify(pawrhoij)
 
 ! *************************************************************************
 
+ ! MGPAW: This one could be removed/renamed, 
+ ! variables can be initialized in the datatype declaration
+ ! Do we need to expose this in the public API?
+
  nrhoij=size(pawrhoij)
 
  if (nrhoij>0) then
@@ -504,13 +491,6 @@ subroutine pawrhoij_nullify(pawrhoij)
      pawrhoij(irhoij)%use_rhoij_=0
      pawrhoij(irhoij)%use_rhoijp=0
      pawrhoij(irhoij)%use_rhoijres=0
-     nullify(pawrhoij(irhoij)%kpawmix)
-     nullify(pawrhoij(irhoij)%rhoijp)
-     nullify(pawrhoij(irhoij)%rhoijselect)
-     nullify(pawrhoij(irhoij)%grhoij)
-     nullify(pawrhoij(irhoij)%rhoij_)
-     nullify(pawrhoij(irhoij)%rhoijres)
-
    end do
  end if
 
@@ -550,12 +530,10 @@ end subroutine pawrhoij_nullify
 !!
 !! PARENTS
 !!      bethe_salpeter,gstate,inwffil,ioarr,loper3,m_electronpositron,m_header
-!!      m_pawrhoij,outscfcv,pawmkrho,respfn,screening,setup_bse,setup_positron
-!!      setup_screening,setup_sigma,sigma
+!!      m_pawrhoij,m_wfs,outscfcv,pawmkrho,respfn,screening,setup_bse
+!!      setup_positron,setup_screening,setup_sigma,sigma
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,pawio_print_ij,pawrhoij_destroy
-!!      pawrhoij_gather,pawrhoij_nullify,wrtout
 !!
 !! SOURCE
 
@@ -703,7 +681,7 @@ subroutine pawrhoij_copy(pawrhoij_in,pawrhoij_cpy, &
      end if
      if (use_rhoijp>0) then
        if (change_dim) then
-         if(associated(pawrhoij_out(irhoij)%rhoijp)) then
+         if(allocated(pawrhoij_out(irhoij)%rhoijp)) then
            ABI_DEALLOCATE(pawrhoij_out(irhoij)%rhoijp)
          end if
          ABI_ALLOCATE(pawrhoij_out(irhoij)%rhoijp,(cplex_out*lmn2_size_out,nspden_out))
@@ -779,7 +757,7 @@ subroutine pawrhoij_copy(pawrhoij_in,pawrhoij_cpy, &
 !    Optional pointer: indexes for non-zero elements selection
      if (use_rhoijp>0) then
        if (change_dim) then
-         if(associated(pawrhoij_out(irhoij)%rhoijselect)) then
+         if(allocated(pawrhoij_out(irhoij)%rhoijselect)) then
            ABI_DEALLOCATE(pawrhoij_out(irhoij)%rhoijselect)
          end if
          ABI_ALLOCATE(pawrhoij_out(irhoij)%rhoijselect,(lmn2_size_out))
@@ -796,7 +774,6 @@ subroutine pawrhoij_copy(pawrhoij_in,pawrhoij_cpy, &
      if (pawrhoij_out(irhoij)%lmnmix_sz/=lmnmix) then
        if (pawrhoij_out(irhoij)%lmnmix_sz>0)  then
          ABI_DEALLOCATE(pawrhoij_out(irhoij)%kpawmix)
-         nullify(pawrhoij_out(irhoij)%kpawmix)
        end if
        if (lmnmix>0)  then
          ABI_ALLOCATE(pawrhoij_out(irhoij)%kpawmix,(lmnmix))
@@ -964,7 +941,7 @@ subroutine pawrhoij_copy(pawrhoij_in,pawrhoij_cpy, &
      end if
      if (use_rhoij_>0) then
        if (change_dim) then
-         if(associated(pawrhoij_out(irhoij)%rhoij_)) then
+         if(allocated(pawrhoij_out(irhoij)%rhoij_)) then
            ABI_DEALLOCATE(pawrhoij_out(irhoij)%rhoij_)
          end if
          ABI_ALLOCATE(pawrhoij_out(irhoij)%rhoij_,(cplex_out*lmn2_size_out,nspden_out))
@@ -1095,8 +1072,6 @@ end subroutine pawrhoij_copy
 !!      d2frnl,m_pawrhoij,pawgrnl,pawprt
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,pawio_print_ij,pawrhoij_destroy
-!!      pawrhoij_gather,pawrhoij_nullify,wrtout
 !!
 !! SOURCE
 
@@ -1277,11 +1252,11 @@ end subroutine pawrhoij_copy
 
 !Communicate
  if (master==-1) then
-   call xallgatherv_mpi(buf_int,buf_int_size,buf_dp,buf_dp_size, &
+   call xmpi_allgatherv(buf_int,buf_int_size,buf_dp,buf_dp_size, &
 &       buf_int_all,buf_int_size_all,buf_dp_all,buf_dp_size_all,&
 &       mpi_comm_atom,ierr)
  else
-   call xgatherv_mpi(buf_int,buf_int_size,buf_dp,buf_dp_size, &
+   call xmpi_gatherv(buf_int,buf_int_size,buf_dp,buf_dp_size, &
 &       buf_int_all,buf_int_size_all,buf_dp_all,buf_dp_size_all,&
 &       master,mpi_comm_atom,ierr)
  end if
@@ -1397,7 +1372,7 @@ end subroutine pawrhoij_gather
 !! CHILDREN
 !!  free_my_atmtab,get_my_atmtab
 !!  pawrhoij_copy,pawrhoij_destroy
-!!  xallgather_mpi,xgatherv_mpi,xcast_mpi,xscatterv_mpi
+!!  xallgather_mpi,xmpi_gatherv,xmpi_bcast,xmpi_scatterv
 !!  xcomm_rank,xcomm_size,xsum_mpi
 !!
 !! SOURCE
@@ -1483,7 +1458,7 @@ end subroutine pawrhoij_gather
      disp_int(ii)=disp_int(ii-1)+count_int(ii-1)
    end do
    ABI_ALLOCATE(atmtab,(nrhoij_in))
-   call xgatherv_mpi(my_atmtab,nrhoij_out,atmtab,count_int,disp_int,&
+   call xmpi_gatherv(my_atmtab,nrhoij_out,atmtab,count_int,disp_int,&
 &                    master,mpi_comm_atom_,ierr)
    ABI_DEALLOCATE(disp_int)
    ABI_DEALLOCATE(count_int)
@@ -1623,12 +1598,12 @@ end subroutine pawrhoij_gather
 
 !Communicate
  if (paral_atom) then
-   call xscatterv_mpi(buf_int_all,count_int,disp_int,buf_int,buf_int_size,master,mpicomm,ierr)
-   call xscatterv_mpi(buf_dp_all ,count_dp ,disp_dp ,buf_dp ,buf_dp_size ,master,mpicomm,ierr)
+   call xmpi_scatterv(buf_int_all,count_int,disp_int,buf_int,buf_int_size,master,mpicomm,ierr)
+   call xmpi_scatterv(buf_dp_all ,count_dp ,disp_dp ,buf_dp ,buf_dp_size ,master,mpicomm,ierr)
  else
    buf_int=buf_int_all;buf_dp=buf_dp_all
-   call xcast_mpi(buf_int,master,mpicomm,ierr)
-   call xcast_mpi(buf_dp ,master,mpicomm,ierr)
+   call xmpi_bcast(buf_int,master,mpicomm,ierr)
+   call xmpi_bcast(buf_dp ,master,mpicomm,ierr)
  end if
 
 !Retrieve data from output buffer
@@ -1761,8 +1736,6 @@ end subroutine pawrhoij_bcast
 !!      m_paral_pert
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,pawio_print_ij,pawrhoij_destroy
-!!      pawrhoij_gather,pawrhoij_nullify,wrtout
 !!
 !! SOURCE
 
@@ -1980,13 +1953,13 @@ end subroutine pawrhoij_bcast
            buf_dps=>tab_buf_dp(imsg_current)%value
            my_tag=100
            ireq=ireq+1
-           call xisend_mpi(buf_size,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
+           call xmpi_isend(buf_size,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
            my_tag=101
            ireq=ireq+1
-           call xisend_mpi(buf_ints,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
+           call xmpi_isend(buf_ints,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
            my_tag=102
            ireq=ireq+1
-           call xisend_mpi(buf_dps,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
+           call xmpi_isend(buf_dps,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
            nbsendreq=ireq
            nbsent=0
          end if
@@ -2019,7 +1992,7 @@ end subroutine pawrhoij_bcast
        my_tag=100
        call xmpi_iprobe(iproc_send,my_tag,mpi_comm_in,flag,ierr)
        if (flag) then
-         call xirecv_mpi(buf_size,iproc_send,my_tag,mpi_comm_in,request1(1),ierr)
+         call xmpi_irecv(buf_size,iproc_send,my_tag,mpi_comm_in,request1(1),ierr)
          call xmpi_wait(request1(1),ierr)
          nb_int=buf_size(1)
          nb_dp=buf_size(2)
@@ -2027,9 +2000,9 @@ end subroutine pawrhoij_bcast
          ABI_ALLOCATE(buf_int1,(nb_int))
          ABI_ALLOCATE(buf_dp1,(nb_dp))
          my_tag=101
-         call xirecv_mpi(buf_int1,iproc_send,my_tag,mpi_comm_in,request1(2),ierr)
+         call xmpi_irecv(buf_int1,iproc_send,my_tag,mpi_comm_in,request1(2),ierr)
          my_tag=102
-         call xirecv_mpi(buf_dp1,iproc_send,my_tag,mpi_comm_in,request1(3),ierr)
+         call xmpi_irecv(buf_dp1,iproc_send,my_tag,mpi_comm_in,request1(3),ierr)
          call xmpi_waitall(request1(2:3),ierr)
          call pawrhoij_isendreceive_getbuffer(pawrhoij_out1,npawrhoij_sent,atm_indx_out,buf_int1,buf_dp1)
  !       Remove i1 of the array from
@@ -2124,19 +2097,13 @@ end subroutine pawrhoij_redistribute
 !! PARENTS
 !!      m_header,m_qparticles
 !!
-!! TODO
-!!   One routine for reading, another one for writing! Otherwise we have to use intent(inout) everywhere!
-!!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,pawio_print_ij,pawrhoij_destroy
-!!      pawrhoij_gather,pawrhoij_nullify,wrtout
 !!
 !! SOURCE
 
 subroutine pawrhoij_io(pawrhoij,unitfi,nsppol_in,nspinor_in,nspden_in,nlmn_type,typat,&
 &                   headform,rdwr_mode,form,natinc,mpi_atmtab)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2413,8 +2380,6 @@ end subroutine pawrhoij_io
 !!      paw_qpscgw
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,pawio_print_ij,pawrhoij_destroy
-!!      pawrhoij_gather,pawrhoij_nullify,wrtout
 !!
 !! SOURCE
 
@@ -2480,8 +2445,6 @@ end subroutine pawrhoij_unpack
 !!      energy,nstpaw3,pawmkrhoij,rhofermi3,vtorho3
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,pawio_print_ij,pawrhoij_destroy
-!!      pawrhoij_gather,pawrhoij_nullify,wrtout
 !!
 !! SOURCE
 
@@ -2511,7 +2474,7 @@ subroutine pawrhoij_init_unpacked(rhoij)
 
  do iat=1,nrhoij
 
-   if (associated(rhoij(iat)%rhoij_))  then
+   if (allocated(rhoij(iat)%rhoij_))  then
      ABI_DEALLOCATE(rhoij(iat)%rhoij_)
    end if
    ABI_ALLOCATE(rhoij(iat)%rhoij_,(rhoij(iat)%cplex*rhoij(iat)%lmn2_size,nsp2))
@@ -2540,8 +2503,6 @@ end subroutine pawrhoij_init_unpacked
 !!      energy,pawmkrho,rhofermi3
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,pawio_print_ij,pawrhoij_destroy
-!!      pawrhoij_gather,pawrhoij_nullify,wrtout
 !!
 !! SOURCE
 
@@ -2570,10 +2531,9 @@ subroutine pawrhoij_destroy_unpacked(rhoij)
 
  do iat=1,nrhoij
 
-   if (associated(rhoij(iat)%rhoij_))  then
+   if (allocated(rhoij(iat)%rhoij_))  then
      ABI_DEALLOCATE(rhoij(iat)%rhoij_)
    end if
-   nullify(rhoij(iat)%rhoij_)
    rhoij(iat)%use_rhoij_=0
 
  end do
@@ -2605,8 +2565,6 @@ end subroutine pawrhoij_destroy_unpacked
 !! PARENTS
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,pawio_print_ij,pawrhoij_destroy
-!!      pawrhoij_gather,pawrhoij_nullify,wrtout
 !!
 !! SOURCE
 
@@ -2710,8 +2668,6 @@ end subroutine pawrhoij_mpisum_unpacked_1D
 !! PARENTS
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,pawio_print_ij,pawrhoij_destroy
-!!      pawrhoij_gather,pawrhoij_nullify,wrtout
 !!
 !! SOURCE
 
@@ -2866,8 +2822,6 @@ end subroutine pawrhoij_mpisum_unpacked_2D
 !!      d2frnl,energy,paw_qpscgw,pawmkrho
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,pawio_print_ij,pawrhoij_destroy
-!!      pawrhoij_gather,pawrhoij_nullify,wrtout
 !!
 !! SOURCE
 
@@ -2897,7 +2851,7 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
  real(dp),intent(in) :: gprimd(3,3),rprimd(3,3)
  type(pawrhoij_type),intent(inout) :: pawrhoij(:)
  type(pawrhoij_type),target,intent(inout) :: pawrhoij_unsym(:)
- type(pawtab_type),intent(in) :: pawtab(ntypat)
+ type(pawtab_type),target,intent(in) :: pawtab(ntypat)
 
 !Local variables ---------------------------------------
  character(len=8),parameter :: dspin(6)=(/"up      ","down    ","dens (n)","magn (x)","magn (y)","magn (z)"/)
@@ -2915,8 +2869,9 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
 !arrays
  integer,parameter :: alpha(6)=(/1,2,3,3,3,2/),beta(6)=(/1,2,3,2,1,1/)
  integer :: nsym_used(2)
- integer,allocatable :: idum(:)
- integer,pointer :: indlmn(:,:),my_atmtab(:)
+ integer, ABI_CONTIGUOUS pointer :: indlmn(:,:)
+ integer,pointer :: my_atmtab(:)
+ integer :: idum(0)
  real(dp) :: ro(2),sumrho(2,2),sum1(2),xsym(3)
  real(dp),allocatable :: rotgr(:,:,:),rotmag(:,:),rotmaggr(:,:,:)
  real(dp),allocatable :: sumgr(:,:),summag(:,:),summaggr(:,:,:),symrec_cart(:,:,:),work1(:,:,:)
@@ -3674,7 +3629,7 @@ end subroutine symrhoij
 !!  pawrhoij= output datastructure filled with buffers receive in a receive operation
 !!
 !! PARENTS
-!!  pawrhoij_redistribute
+!!      m_pawrhoij
 !!
 !! CHILDREN
 !!
@@ -3826,7 +3781,7 @@ end subroutine pawrhoij_isendreceive_getbuffer
 !!  buf_dp_size= size of buffer of double precision numbers
 !!
 !! PARENTS
-!!  pawrhoij_redistribute
+!!      m_pawrhoij
 !!
 !! CHILDREN
 !!

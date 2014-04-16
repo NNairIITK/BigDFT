@@ -56,6 +56,12 @@ contains
 !! INPUTS
 !!  halt= If the value is true, the exceptions will cause halting; otherwise, execution will continue after this exception.
 !!
+!! PARENTS
+!!      m_errors
+!!
+!! CHILDREN
+!!      ieee_set_flag
+!!
 !! SOURCE
 
 subroutine xieee_halt_ifexc(halt)
@@ -107,6 +113,12 @@ end subroutine xieee_halt_ifexc
 
 !! INPUTS
 !!  flag= If the value is true, the exceptions will be signalled
+!!
+!! PARENTS
+!!      m_errors
+!!
+!! CHILDREN
+!!      ieee_set_flag
 !!
 !! SOURCE
 

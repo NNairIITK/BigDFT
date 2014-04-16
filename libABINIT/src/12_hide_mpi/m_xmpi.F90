@@ -197,22 +197,22 @@ MODULE m_xmpi
 
 !MPI generic interfaces.
  public :: xallgather_mpi
- public :: xallgatherv_mpi
+ public :: xmpi_allgatherv
  public :: xmpi_alltoall
  public :: xmpi_ialltoall
- public :: xalltoallv_mpi
- public :: xcast_mpi
- public :: xexch_mpi
- public :: xgather_mpi
- public :: xgatherv_mpi
- public :: xmax_mpi
- public :: xmin_mpi
- public :: xrecv_mpi 
- public :: xirecv_mpi
- public :: xscatterv_mpi
- public :: xsend_mpi
- public :: xisend_mpi
- public :: xsum_master
+ public :: xmpi_alltoallv
+ public :: xmpi_bcast
+ public :: xmpi_exch
+ public :: xmpi_gather
+ public :: xmpi_gatherv
+ public :: xmpi_max
+ public :: xmpi_min
+ public :: xmpi_recv 
+ public :: xmpi_irecv
+ public :: xmpi_scatterv
+ public :: xmpi_send
+ public :: xmpi_isend
+ public :: xmpi_sum_master
  public :: xsum_mpi
 
 #ifdef HAVE_MPI_IO
@@ -259,17 +259,17 @@ end interface xallgather_mpi
 
 !----------------------------------------------------------------------
 
-interface xallgatherv_mpi
-  module procedure xallgatherv_mpi_int2d
-  module procedure xallgatherv_mpi_int
-  module procedure xallgatherv_mpi_int1_dp1
-  module procedure xallgatherv_mpi_dp
-  module procedure xallgatherv_mpi_dp2d
-  module procedure xallgatherv_mpi_dp3d
-  module procedure xallgatherv_mpi_dp4d
-  module procedure xallgatherv_mpi_coeff2d
-  module procedure xallgatherv_mpi_coeff2d_indx
-end interface xallgatherv_mpi
+interface xmpi_allgatherv
+  module procedure xmpi_allgatherv_int2d
+  module procedure xmpi_allgatherv_int
+  module procedure xmpi_allgatherv_int1_dp1
+  module procedure xmpi_allgatherv_dp
+  module procedure xmpi_allgatherv_dp2d
+  module procedure xmpi_allgatherv_dp3d
+  module procedure xmpi_allgatherv_dp4d
+  module procedure xmpi_allgatherv_coeff2d
+  module procedure xmpi_allgatherv_coeff2d_indx
+end interface xmpi_allgatherv
 
 !----------------------------------------------------------------------
 
@@ -295,168 +295,169 @@ end interface xmpi_ialltoall
 
 !----------------------------------------------------------------------
 
-interface xalltoallv_mpi
-  module procedure xalltoallv_mpi_dp2d
-  module procedure xalltoallv_mpi_int2d
-  module procedure xalltoallv_mpi_dp1d
-  module procedure xalltoallv_mpi_dp1d2
-end interface xalltoallv_mpi
+interface xmpi_alltoallv
+  module procedure xmpi_alltoallv_dp2d
+  module procedure xmpi_alltoallv_int2d
+  module procedure xmpi_alltoallv_dp1d
+  module procedure xmpi_alltoallv_dp1d2
+end interface xmpi_alltoallv
 
 !----------------------------------------------------------------------
 
-interface xcast_mpi
-  module procedure xcast_mpi_intv
-  module procedure xcast_mpi_int1d
-  module procedure xcast_mpi_int2d
-  module procedure xcast_mpi_int3d
-  module procedure xcast_mpi_dpv
-  module procedure xcast_mpi_dp1d
-  module procedure xcast_mpi_dp2d
-  module procedure xcast_mpi_dp3d
-  module procedure xcast_mpi_dp4d
-  module procedure xcast_mpi_spv
-  module procedure xcast_mpi_sp1d
-  module procedure xcast_mpi_sp2d
-  module procedure xcast_mpi_sp3d
-  module procedure xcast_mpi_sp4d
-  module procedure xcast_mpi_cplxv
-  module procedure xcast_mpi_cplx1d
-  module procedure xcast_mpi_cplx2d
-  module procedure xcast_mpi_cplx3d
-  module procedure xcast_mpi_cplx4d
-  module procedure xcast_mpi_dcv
-  module procedure xcast_mpi_dc1d
-  module procedure xcast_mpi_dc2d
-  module procedure xcast_mpi_dc3d
-  module procedure xcast_mpi_dc4d
-  module procedure xcast_mpi_ch0d
-  module procedure xcast_mpi_ch1d
-  module procedure xcast_mpi_log0d
-end interface xcast_mpi
+interface xmpi_bcast
+  module procedure xmpi_bcast_intv
+  module procedure xmpi_bcast_int1d
+  module procedure xmpi_bcast_int2d
+  module procedure xmpi_bcast_int3d
+  module procedure xmpi_bcast_dpv
+  module procedure xmpi_bcast_dp1d
+  module procedure xmpi_bcast_dp2d
+  module procedure xmpi_bcast_dp3d
+  module procedure xmpi_bcast_dp4d
+  module procedure xmpi_bcast_spv
+  module procedure xmpi_bcast_sp1d
+  module procedure xmpi_bcast_sp2d
+  module procedure xmpi_bcast_sp3d
+  module procedure xmpi_bcast_sp4d
+  module procedure xmpi_bcast_cplxv
+  module procedure xmpi_bcast_cplx1d
+  module procedure xmpi_bcast_cplx2d
+  module procedure xmpi_bcast_cplx3d
+  module procedure xmpi_bcast_cplx4d
+  module procedure xmpi_bcast_dcv
+  module procedure xmpi_bcast_dc1d
+  module procedure xmpi_bcast_dc2d
+  module procedure xmpi_bcast_dc3d
+  module procedure xmpi_bcast_dc4d
+  module procedure xmpi_bcast_ch0d
+  module procedure xmpi_bcast_ch1d
+  module procedure xmpi_bcast_log0d
+end interface xmpi_bcast
 
 !----------------------------------------------------------------------
 
-interface xexch_mpi
-  module procedure xexch_mpi_intn
-  module procedure xexch_mpi_int2d
-  module procedure xexch_mpi_dpn
-  module procedure xexch_mpi_dp2d
-  module procedure xexch_mpi_dp3d
-  module procedure xexch_mpi_dp4d_tag
-  module procedure xexch_mpi_dp5d_tag
-  module procedure xexch_mpi_spc_1d
-  module procedure xexch_mpi_dpc_1d
-  module procedure xexch_mpi_dpc_2d
-end interface xexch_mpi
+interface xmpi_exch
+  module procedure xmpi_exch_intn
+  module procedure xmpi_exch_int2d
+  module procedure xmpi_exch_dpn
+  module procedure xmpi_exch_dp2d
+  module procedure xmpi_exch_dp3d
+  module procedure xmpi_exch_dp4d_tag
+  module procedure xmpi_exch_dp5d_tag
+  module procedure xmpi_exch_spc_1d
+  module procedure xmpi_exch_dpc_1d
+  module procedure xmpi_exch_dpc_2d
+end interface xmpi_exch
 
 !----------------------------------------------------------------------
 
-interface xgather_mpi
-  module procedure xgather_mpi_int
-  module procedure xgather_mpi_int2d
-  module procedure xgather_mpi_dp
-  module procedure xgather_mpi_dp2d
-  module procedure xgather_mpi_dp3d
-  module procedure xgather_mpi_dp4d
-end interface xgather_mpi
+interface xmpi_gather
+  module procedure xmpi_gather_int
+  module procedure xmpi_gather_int2d
+  module procedure xmpi_gather_dp
+  module procedure xmpi_gather_dp2d
+  module procedure xmpi_gather_dp3d
+  module procedure xmpi_gather_dp4d
+end interface xmpi_gather
 
 !----------------------------------------------------------------------
 
-interface xgatherv_mpi
-  module procedure xgatherv_mpi_int
-  module procedure xgatherv_mpi_int1_dp1
-  module procedure xgatherv_mpi_int2d
-  module procedure xgatherv_mpi_dp
-  module procedure xgatherv_mpi_dp2d
-  module procedure xgatherv_mpi_dp3d
-  module procedure xgatherv_mpi_dp4d
-end interface xgatherv_mpi
+interface xmpi_gatherv
+  module procedure xmpi_gatherv_int
+  module procedure xmpi_gatherv_int1_dp1
+  module procedure xmpi_gatherv_int2d
+  module procedure xmpi_gatherv_dp
+  module procedure xmpi_gatherv_dp2d
+  module procedure xmpi_gatherv_dp3d
+  module procedure xmpi_gatherv_dp4d
+end interface xmpi_gatherv
 
 !----------------------------------------------------------------------
 
-interface xmax_mpi
-  module procedure xmax_mpi_int
-  module procedure xmax_mpi_intv
-  module procedure xmax_mpi_dpv
-  module procedure xmax_mpi_dp0d_ip
-end interface xmax_mpi
+interface xmpi_max
+  module procedure xmpi_max_int0d_i4b
+  module procedure xmpi_max_int0d_i8b
+  module procedure xmpi_max_int
+  module procedure xmpi_max_dpv
+  module procedure xmpi_max_dp0d_ip
+end interface xmpi_max
 
 !----------------------------------------------------------------------
 
-interface xmin_mpi
-  module procedure xmin_mpi_intv
-  module procedure xmin_mpi_dpv
-end interface xmin_mpi
+interface xmpi_min
+  module procedure xmpi_min_intv
+  module procedure xmpi_min_dpv
+end interface xmpi_min
 
 !----------------------------------------------------------------------
 
-interface xrecv_mpi
-  module procedure xrecv_mpi_intv
-  module procedure xrecv_mpi_int1d
-  module procedure xrecv_mpi_dp1d
-  module procedure xrecv_mpi_dp2d
-  module procedure xrecv_mpi_dp3d
-end interface xrecv_mpi
+interface xmpi_recv
+  module procedure xmpi_recv_intv
+  module procedure xmpi_recv_int1d
+  module procedure xmpi_recv_dp1d
+  module procedure xmpi_recv_dp2d
+  module procedure xmpi_recv_dp3d
+end interface xmpi_recv
 
 !----------------------------------------------------------------------
 
-interface xirecv_mpi
-  module procedure xirecv_mpi_intv
-  module procedure xirecv_mpi_int1d
-  module procedure xirecv_mpi_dp1d
-end interface xirecv_mpi
+interface xmpi_irecv
+  module procedure xmpi_irecv_intv
+  module procedure xmpi_irecv_int1d
+  module procedure xmpi_irecv_dp1d
+end interface xmpi_irecv
 
 !----------------------------------------------------------------------
 
-interface xscatterv_mpi
-  module procedure xscatterv_mpi_int
-  module procedure xscatterv_mpi_int2d
-  module procedure xscatterv_mpi_dp
-  module procedure xscatterv_mpi_dp2d
-  module procedure xscatterv_mpi_dp3d
-  module procedure xscatterv_mpi_dp4d
-end interface xscatterv_mpi
+interface xmpi_scatterv
+  module procedure xmpi_scatterv_int
+  module procedure xmpi_scatterv_int2d
+  module procedure xmpi_scatterv_dp
+  module procedure xmpi_scatterv_dp2d
+  module procedure xmpi_scatterv_dp3d
+  module procedure xmpi_scatterv_dp4d
+end interface xmpi_scatterv
 
 !----------------------------------------------------------------------
 
-interface xisend_mpi
-  module procedure xisend_mpi_int1d
-  module procedure xisend_mpi_dp1d
-end interface xisend_mpi
+interface xmpi_isend
+  module procedure xmpi_isend_int1d
+  module procedure xmpi_isend_dp1d
+end interface xmpi_isend
 
 !----------------------------------------------------------------------
 
-interface xsend_mpi
-  module procedure xsend_mpi_intv 
-  module procedure xsend_mpi_int1d
-  module procedure xsend_mpi_dp1d
-  module procedure xsend_mpi_dp2d
-  module procedure xsend_mpi_dp3d
-end interface xsend_mpi
+interface xmpi_send
+  module procedure xmpi_send_intv 
+  module procedure xmpi_send_int1d
+  module procedure xmpi_send_dp1d
+  module procedure xmpi_send_dp2d
+  module procedure xmpi_send_dp3d
+end interface xmpi_send
 
 !----------------------------------------------------------------------
 
-interface xsum_master
-  module procedure xsum_master_int
-  module procedure xsum_master_dp1d
-  module procedure xsum_master_dp2d
-  module procedure xsum_master_dp3d
-  module procedure xsum_master_dp4d
-  module procedure xsum_master_dp5d
-  module procedure xsum_master_dp6d
-  module procedure xsum_master_dp7d
-  module procedure xsum_master_int4d
-  module procedure xsum_master_c1cplx
-  module procedure xsum_master_c2cplx
-  module procedure xsum_master_c3cplx
-  module procedure xsum_master_c4cplx
-  module procedure xsum_master_c5cplx
-  module procedure xsum_master_c1dpc
-  module procedure xsum_master_c2dpc
-  module procedure xsum_master_c3dpc
-  module procedure xsum_master_c4dpc
-  module procedure xsum_master_c5dpc
-end interface xsum_master
+interface xmpi_sum_master
+  module procedure xmpi_sum_master_int
+  module procedure xmpi_sum_master_dp1d
+  module procedure xmpi_sum_master_dp2d
+  module procedure xmpi_sum_master_dp3d
+  module procedure xmpi_sum_master_dp4d
+  module procedure xmpi_sum_master_dp5d
+  module procedure xmpi_sum_master_dp6d
+  module procedure xmpi_sum_master_dp7d
+  module procedure xmpi_sum_master_int4d
+  module procedure xmpi_sum_master_c1cplx
+  module procedure xmpi_sum_master_c2cplx
+  module procedure xmpi_sum_master_c3cplx
+  module procedure xmpi_sum_master_c4cplx
+  module procedure xmpi_sum_master_c5cplx
+  module procedure xmpi_sum_master_c1dpc
+  module procedure xmpi_sum_master_c2dpc
+  module procedure xmpi_sum_master_c3dpc
+  module procedure xmpi_sum_master_c4dpc
+  module procedure xmpi_sum_master_c5dpc
+end interface xmpi_sum_master
 
 !----------------------------------------------------------------------
 
@@ -526,7 +527,7 @@ CONTAINS  !===========================================================
 !!
 !! PARENTS
 !!      abinit,aim,anaddb,bsepostproc,conducti,cut3d,fftprof,ioprof,kss2wfk
-!!      lapackprof,lwf,mrgddb,mrggkk,mrgscr,optic,ujdet,vdw_kernelgen
+!!      lapackprof,mrgddb,mrggkk,mrgscr,optic,ujdet,vdw_kernelgen
 !!
 !! CHILDREN
 !!      mpi_type_commit,mpi_type_size,xmpi_abort,xmpio_type_struct
@@ -611,8 +612,8 @@ end subroutine xmpi_init
 !!  None
 !!
 !! PARENTS
-!!      abinit,aim,anaddb,bsepostproc,conducti,cut3d,fftprof,ioprof,kss2wfk
-!!      lapackprof,lwf,mrgddb,mrggkk,mrgscr,optic,ujdet,vdw_kernelgen
+!!      aim,bsepostproc,conducti,cut3d,ioprof,kss2wfk,lapackprof,ujdet
+!!      vdw_kernelgen
 !!
 !! CHILDREN
 !!      mpi_type_commit,mpi_type_size,xmpi_abort,xmpio_type_struct
@@ -660,7 +661,7 @@ end subroutine xmpi_end
 !!  [exit_status]=optional, shell return code, default 1
 !!
 !! PARENTS
-!!      initmpi_grid,leave_new,m_initcuda,m_xmpi,xsum_mpi
+!!      initmpi_grid,leave_new,m_initcuda,m_xmpi
 !!
 !! CHILDREN
 !!      mpi_type_commit,mpi_type_size,xmpi_abort,xmpio_type_struct
@@ -744,9 +745,10 @@ end subroutine xmpi_abort
 !!  By default, it uses "call exit(1)", that is not completely portable.
 !!
 !! PARENTS
+!!      m_xmpi
 !!
 !! CHILDREN
-!!      exit
+!!      mpi_type_commit,mpi_type_size,xmpi_abort,xmpio_type_struct
 !!
 !! SOURCE
 
@@ -1237,7 +1239,7 @@ end subroutine xcomm_free_3D
 !! SIDE EFFECTS
 !!
 !! PARENTS
-!!      m_wfs
+!!      m_wfs,m_xmpi,pawprt
 !!
 !! CHILDREN
 !!      mpi_type_commit,mpi_type_size,xmpi_abort,xmpio_type_struct
@@ -1506,7 +1508,7 @@ end function xmpi_subcomm
 !!  mpierr=error code returned
 !!
 !! PARENTS
-!!      m_wfs,pawprt
+!!      m_wfs,m_xmpi,pawprt
 !!
 !! CHILDREN
 !!      mpi_type_commit,mpi_type_size,xmpi_abort,xmpio_type_struct
@@ -1620,7 +1622,7 @@ end subroutine xmpi_comm_split
 !!                xmpi_undefined when no correspondence exists
 !!
 !! PARENTS
-!!      pawprt
+!!      m_xmpi,pawprt
 !!
 !! CHILDREN
 !!      mpi_type_commit,mpi_type_size,xmpi_abort,xmpio_type_struct
@@ -1687,6 +1689,7 @@ end subroutine xmpi_group_translate_ranks
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_type_commit,mpi_type_size,xmpi_abort,xmpio_type_struct
 !!
 !! SOURCE
 
@@ -1740,13 +1743,12 @@ end subroutine xmpi_comm_translate_ranks
 !!
 !! PARENTS
 !!      alloc_hamilt_gpu,atomden,calc_optical_mels,cohsex_me,datafordmft
-!!      defs_scalapack,denfgr,dfpt_write_cg,dmft_solve,exc_build_block
-!!      exc_diago,exc_diago_driver,exc_iterative_diago,exc_spectra
-!!      fermisolverec,getcgqphase,gstateimg,haydock,haydock_psherm,iofn1
-!!      ks_ddiago,m_bse_io,m_green,m_io_kss,m_io_redirect,m_melemts,m_screen
-!!      m_screening,m_shexc,m_vcoul,m_wfk,m_wfs,mlwfovlp,mlwfovlp_pw,nselt3
-!!      nstpaw3,outkss,outwf,pawmkaewf,scfcv3,setup_bse,sigma,tddft,vtorho
-!!      vtorhorec
+!!      defs_scalapack,denfgr,dfpt_write_cg,exc_build_block,exc_diago
+!!      exc_diago_driver,exc_iterative_diago,exc_spectra,fermisolverec
+!!      getcgqphase,gstateimg,haydock,haydock_psherm,iofn1,ks_ddiago,m_bse_io
+!!      m_green,m_header,m_io_kss,m_io_redirect,m_melemts,m_screen,m_screening
+!!      m_vcoul,m_wffile,m_wfk,m_wfs,mlwfovlp,mlwfovlp_pw,nselt3,nstpaw3,outkss
+!!      outwf,pawmkaewf,scfcv3,setup_bse,sigma,tddft,vtorho,vtorhorec
 !!
 !! CHILDREN
 !!      mpi_type_commit,mpi_type_size,xmpi_abort,xmpio_type_struct
@@ -1865,9 +1867,10 @@ end subroutine xmpi_name
 !!  mpierr= status error
 !!
 !! PARENTS
+!!      m_paw_an,m_paw_ij,m_pawfgrtab,m_pawrhoij
 !!
 !! CHILDREN
-!!      mpi_iprobe
+!!      mpi_type_commit,mpi_type_size,xmpi_abort,xmpio_type_struct
 !!
 !! SOURCE
 
@@ -1921,9 +1924,10 @@ end subroutine xmpi_iprobe
 !!  mpierr= status error
 !!
 !! PARENTS
+!!      m_paw_an,m_paw_ij,m_pawfgrtab,m_pawrhoij
 !!
 !! CHILDREN
-!!      mpi_wait
+!!      mpi_type_commit,mpi_type_size,xmpi_abort,xmpio_type_struct
 !!
 !! SOURCE
 
@@ -1976,9 +1980,10 @@ end subroutine xmpi_wait
 !!  mpierr= status error
 !!
 !! PARENTS
+!!      m_paw_an,m_paw_ij,m_pawfgrtab,m_pawrhoij
 !!
 !! CHILDREN
-!!      mpi_waitall
+!!      mpi_type_commit,mpi_type_size,xmpi_abort,xmpio_type_struct
 !!
 !! SOURCE
 
@@ -2033,7 +2038,7 @@ end subroutine xmpi_waitall
 !! PARENTS
 !!
 !! CHILDREN
-!!      mpi_request_free
+!!      mpi_type_commit,mpi_type_size,xmpi_abort,xmpio_type_struct
 !!
 !! SOURCE
 
@@ -2411,7 +2416,7 @@ end subroutine xmpi_split_work2_i4b
 !!    +2 if ntasks>nprocs.
 !!
 !! PARENTS
-!!      exc_build_block
+!!      exc_build_block,m_shirley
 !!
 !! CHILDREN
 !!      mpi_type_commit,mpi_type_size,xmpi_abort,xmpio_type_struct
@@ -2568,35 +2573,35 @@ end subroutine xmpi_distab_4D
 
 #include "xallgather_mpi.finc"
 
-#include "xallgatherv_mpi.finc"
+#include "xmpi_allgatherv.finc"
 
 #include "xalltoall_mpi.finc"
 
-#include "xalltoallv_mpi.finc"
+#include "xmpi_alltoallv.finc"
 
-#include "xcast_mpi.finc"
+#include "xmpi_bcast.finc"
 
-#include "xexch_mpi.finc"
+#include "xmpi_exch.finc"
 
-#include "xgather_mpi.finc"
+#include "xmpi_gather.finc"
 
-#include "xgatherv_mpi.finc"
+#include "xmpi_gatherv.finc"
 
-#include "xmax_mpi.finc"
+#include "xmpi_max.finc"
 
-#include "xmin_mpi.finc"
+#include "xmpi_min.finc"
 
-#include "xrecv_mpi.finc"
+#include "xmpi_recv.finc"
 
-#include "xirecv_mpi.finc"
+#include "xmpi_irecv.finc"
 
-#include "xscatterv_mpi.finc"
+#include "xmpi_scatterv.finc"
 
-#include "xsend_mpi.finc"
+#include "xmpi_send.finc"
 
-#include "xisend_mpi.finc"
+#include "xmpi_isend.finc"
 
-#include "xsum_master.finc"
+#include "xmpi_sum_master.finc"
 
 #include "xsum_mpi.finc"
 
@@ -2849,7 +2854,7 @@ subroutine xmpio_get_info_frm(bsize_frm,mpi_type_frm,comm)
  !
  ! Broadcast data.
  xvals = (/bsize_frm,mpi_type_frm/)
- call xcast_mpi(xvals,master,comm,mpierr)
+ call xmpi_bcast(xvals,master,comm,mpierr)
 
  bsize_frm    = xvals(1)
  mpi_type_frm = xvals(2)

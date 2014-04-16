@@ -30,7 +30,7 @@ module m_pawio
 
  private
 
- public:: pawio_print_ij
+ public :: pawio_print_ij
 !!***
 
 CONTAINS !===========================================================

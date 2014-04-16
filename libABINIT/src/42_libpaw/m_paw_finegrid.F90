@@ -35,9 +35,9 @@ MODULE m_paw_finegrid
  use m_errors
  use m_profiling
 
- use m_pawtab, only : pawtab_type
- use m_sphharm, only : initylmr
- use m_paw_numeric, only: jbessel, paw_splint, paw_sort_dp
+ use m_pawtab,      only : pawtab_type
+ use m_sphharm,     only : initylmr
+ use m_paw_numeric, only : jbessel, paw_splint, paw_sort_dp
 
  implicit none
 
@@ -1061,7 +1061,7 @@ end subroutine pawrfgd_fft
 !!  rfgd(3,nfgd)= cartesian coordinates of r-R.
 !!
 !! PARENTS
-!!      nhatgrid_wvl
+!!      wvl_nhatgrid
 !!
 !! CHILDREN
 !!

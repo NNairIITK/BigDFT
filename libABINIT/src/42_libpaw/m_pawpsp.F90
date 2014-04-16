@@ -12,10 +12,6 @@
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
 !!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!!
 !! PARENTS
 !!
 !! CHILDREN
@@ -34,24 +30,27 @@ module m_pawpsp
  use m_profiling
  use m_errors
  use m_xmpi
- use m_fstrings, only : basename
+#if defined HAVE_DFT_LIBXC
+ use libxc_functionals
+#endif
+#if defined HAVE_TRIO_FOX
+ use fox_sax
+#endif
 
+ use m_fstrings, only : basename
+ use m_gaussfit, only: gaussfit_projector
  use m_pawang, only: pawang_type
  use m_pawtab, only: pawtab_type, wvlpaw_type, wvlpaw_allocate, wvlpaw_rholoc_destroy, &
 &                    pawtab_destroy, wvlpaw_destroy, wvlpaw_rholoc_nullify, pawtab_bcast, &
 &                    pawtab_set_flags, wvlpaw_allocate, wvlpaw_destroy, wvlpaw_rholoc_nullify, &
 &                    wvlpaw_rholoc_destroy
- use m_pawxmlps, only: rdpawpsxml_core
+ use m_pawxmlps, only: rdpawpsxml_core, paw_setup_t, paw_setup, ipsp2xml
  use m_pawrad, only: pawrad_type, pawrad_init, pawrad_destroy, pawrad_copy, pawrad_nullify, &
 &      pawrad_bcast, pawrad_ifromr, simp_gen, nderiv_gen, bound_deriv, pawrad_deducer0, poisson
  use m_paw_numeric, only: paw_splint, paw_spline, paw_smooth, jbessel_4spline
  use m_atompaw, only: atompaw_shapebes, atompaw_vhnzc, atompaw_shpfun, &
 &                     atompaw_dij0, atompaw_kij
  use m_pawxc, only: pawxc, pawxcm
-
-#if defined HAVE_DFT_LIBXC
- use libxc_functionals
-#endif
 
  implicit none
 
@@ -513,7 +512,7 @@ end subroutine pawpsp_lo
 !!  yp1,ypn=derivatives of n(q) wrt q at q=0 and q=qmax (needed for spline fitter).
 !!
 !! PARENTS
-!!      m_pawpsp
+!!      eltfrxc3,m_pawpsp
 !!
 !! CHILDREN
 !!      wrtout
@@ -924,7 +923,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
  pawtab%usexcnhat=usexcnhat_in
 
 !indlmn calculation (indices for (l,m,n) basis)
- if (associated(pawtab%indlmn)) then
+ if (allocated(pawtab%indlmn)) then
    ABI_DEALLOCATE(pawtab%indlmn)
  end if
  ABI_ALLOCATE(pawtab%indlmn,(6,pawtab%lmn_size))
@@ -1237,6 +1236,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
  else
    ABI_ALLOCATE(pawtab%tcoredens,(pawtab%core_mesh_size,1))
  end if
+ pawtab%tcoredens=zero
  read (tmp_unit,*)
  if (pspversion==1) iread1=1
  if (pspversion>1) read (tmp_unit,*) iread1
@@ -1251,7 +1251,8 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
  read (tmp_unit,*) (tncore(ir),ir=1,core_mesh%mesh_size)
  if (maxval(abs(tncore(:)))<tol6) then
    pawtab%usetcore=0
-   pawtab%tcoredens(1:pawtab%core_mesh_size,:)=zero
+   !JB:I've added initialization just after allocation
+   !pawtab%tcoredens(1:pawtab%core_mesh_size,:)=zero
  else
    pawtab%usetcore=1
    pawtab%tcoredens(1:pawtab%core_mesh_size,1)=tncore(1:pawtab%core_mesh_size)
@@ -1962,7 +1963,7 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
 !==========================================================
 !Initializations
 
- has_dij0=(associated(pawtab%dij0))
+ has_dij0=(allocated(pawtab%dij0))
  
 !Allocate/initialize some dummy variables
  tmp_lmselect(1)=.true.
@@ -2822,12 +2823,6 @@ end subroutine pawpsp_vhar2rho
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "abi_common.h"
-
 subroutine pawpsp_wvl_calc(pawtab,tnvale,usewvl,vale_mesh,vloc_mesh,vlocr)
 
 
@@ -2874,7 +2869,7 @@ subroutine pawpsp_wvl_calc(pawtab,tnvale,usewvl,vale_mesh,vloc_mesh,vlocr)
 
  if (pawtab%has_tvale/=0) then
    if(usewvl==1) then
-     if(associated(pawtab%tvalespl)) then
+     if(allocated(pawtab%tvalespl)) then
        ABI_DEALLOCATE(pawtab%tvalespl)
      end if
      ABI_ALLOCATE(pawtab%tvalespl,(vale_mesh%mesh_size,2))
@@ -3010,7 +3005,6 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
 & pawxcdev, qgrid_ff,qgrid_vl,usexcnhat_in,vlspl,xcccrc,&
 & xclevel,xc_denpos,zion,znucl)
 
- use m_pawxmlps, only : paw_setup, ipsp2xml
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -3088,7 +3082,7 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
  pawtab%ij_size=pawtab%basis_size*(pawtab%basis_size+1)/2
 
 !indlmn calculation (indices for (l,m,n) basis)
- if (associated(pawtab%indlmn)) then
+ if (allocated(pawtab%indlmn)) then
    ABI_DEALLOCATE(pawtab%indlmn)
  end if
  ABI_ALLOCATE(pawtab%indlmn,(6,pawtab%lmn_size))
@@ -4057,14 +4051,8 @@ end subroutine pawpsp_fill_hgh
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "abi_common.h"
-
  subroutine pawpsp_wvl_sin2gauss(basis_size,mparam,nparam,&
-&param,wvl)
+& param,wvl)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -4387,7 +4375,6 @@ subroutine pawpsp_wvl(filpsp,gth_hasGeometry,gth_psppar,&
 & gth_radii_cf,gth_radii_cov,gth_semicore,pawrad, pawtab,&
 & usewvl, wvl_crmult, wvl_frmult, wvl_ngauss, zion, znuclpsp, comm_mpi)
 
- use m_gaussfit, only: gaussfit_projector
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -4490,7 +4477,7 @@ implicit none
 
 !Projectors in real space are no more needed
  call pawrad_destroy(tproj_mesh)
- if(associated(pawtab%tproj)) then 
+ if(allocated(pawtab%tproj)) then 
    ABI_DEALLOCATE(pawtab%tproj)
    pawtab%has_tproj=0
  end if
@@ -4522,7 +4509,7 @@ end subroutine pawpsp_wvl
 !! This is done instead of: call pawpsxml2ab( psxml, pspheads,1)
 !! since pspheads does not exist in PAW library.
 !! should we include it to avoid the following code replica?
- ! check pspheads commented out in pawpsp_17in, and routine pawpsp_read_xml_2
+!! check pspheads commented out in pawpsp_17in, and routine pawpsp_read_xml_2
 !!
 !! PARENTS
 !!      m_pawpsp,pawpsxml2ab,pspatm_abinit
@@ -4535,7 +4522,6 @@ end subroutine pawpsp_wvl
 subroutine pawpsp_read_header_xml(lloc,lmax,pspcod,pspxc,&
 & psxml,r2well,zion,znucl)
 
- use m_pawxmlps, only : paw_setup_t
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -4733,7 +4719,6 @@ end subroutine pawpsp_read_header_xml
 subroutine pawpsp_read_pawheader(basis_size,lmax,lmn_size,&
 & l_size,mesh_size,pspversion,psxml,rpaw,rshp,shape_type)
 
- use m_pawxmlps, only : paw_setup_t
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -4840,12 +4825,6 @@ end subroutine pawpsp_read_pawheader
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "abi_common.h"
-
 subroutine pawpsp_bcast(comm_mpi,epsatm,ffspl,pawrad,pawtab,vlspl,xcccrc)
 
 
@@ -4856,10 +4835,6 @@ subroutine pawpsp_bcast(comm_mpi,epsatm,ffspl,pawrad,pawtab,vlspl,xcccrc)
 !End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments ------------------------------------
  integer,intent(in) :: comm_mpi
@@ -4893,7 +4868,7 @@ subroutine pawpsp_bcast(comm_mpi,epsatm,ffspl,pawrad,pawtab,vlspl,xcccrc)
    siz2_ffspl=size(ffspl,2); list_int(4)=siz2_ffspl
    siz3_ffspl=size(ffspl,3); list_int(5)=siz3_ffspl
  end if
- call xcast_mpi(list_int,0,comm_mpi,ierr)
+ call xmpi_bcast(list_int,0,comm_mpi,ierr)
  if (me/=0) then
    siz1_vlspl=list_int(1)
    siz2_vlspl=list_int(2)
@@ -4915,7 +4890,7 @@ subroutine pawpsp_bcast(comm_mpi,epsatm,ffspl,pawrad,pawtab,vlspl,xcccrc)
    list_dpr(ii:ii+siz_vlspl-1)=reshape(vlspl,(/siz_vlspl/)) ;ii=ii+siz_vlspl
    list_dpr(ii:ii+siz_ffspl-1)=reshape(ffspl,(/siz_ffspl/)) ;ii=ii+siz_ffspl
  end if
- call xcast_mpi(list_dpr,0,comm_mpi,ierr)
+ call xmpi_bcast(list_dpr,0,comm_mpi,ierr)
  if (me/=0) then
    ii=1
    epsatm=list_dpr(ii) ;ii=ii+1
@@ -5004,10 +4979,6 @@ subroutine pawpsp_main( &
 & wvl_crmult,wvl_frmult,wvl_ngauss,&
 & psxml,comm_mpi,xc_denpos)
 
- use m_pawxmlps, only: paw_setup_t
-#if defined HAVE_TRIO_FOX
- use fox_sax
-#endif
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.

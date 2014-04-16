@@ -114,49 +114,49 @@ MODULE m_pawang
    !  gnt_option==2, Gaunt coeffs are computed up to l_size_max
 
   integer :: use_ls_ylm
-   ! Flag: use_ls_ylm=1 if pawang%ls_ylm pointer is allocated
+   ! Flag: use_ls_ylm=1 if pawang%ls_ylm is allocated
 
   integer :: ylm_size
    ! Size of ylmr/ylmrgr arrays
 
 !Integer arrays
 
-  integer, pointer :: gntselect(:,:)
+  integer, allocatable :: gntselect(:,:)
    ! gntselect(l_size_max**2,l_max**2*(l_max**2+1)/2)
    ! Selection rules for Gaunt coefficients stored as (LM,ij) where ij is in packed form.
    ! (if gntselect>0, Gaunt coeff. is non-zero)
 
 !Real (real(dp)) arrays
 
-  real(dp), pointer :: anginit(:,:)
+  real(dp), allocatable :: anginit(:,:)
    ! anginit(3,angl_size)
    ! For each point of the angular mesh, gives the coordinates
    ! of the corresponding point on an unitary sphere
    ! Not used in present version (5.3)
 
-  real(dp), pointer :: angwgth(:)
+  real(dp), allocatable :: angwgth(:)
    ! angwgth(angl_size)
    ! For each point of the angular mesh, gives the weight
    ! of the corresponding point on an unitary sphere
 
-  real(dp), pointer :: ls_ylm(:,:,:)
+  real(dp), allocatable :: ls_ylm(:,:,:)
    ! ls_ylm(2,l_max**2*(l_max**2+1)/2,2)
    ! LS operator in the real spherical harmonics basis
    ! ls_ylm(ilm1m2,ispin)= <sigma, y_lm1| LS |y_lm2, sigma_prime>
 
-  real(dp), pointer :: realgnt(:)
+  real(dp), allocatable :: realgnt(:)
    ! realgnt(ngnt)
    ! Non zero real Gaunt coefficients
 
-  real(dp), pointer :: ylmr(:,:)
+  real(dp), allocatable :: ylmr(:,:)
    ! ylmr(ylm_size,angl_size)
    ! Real Ylm calculated in real space
 
-  real(dp), pointer :: ylmrgr(:,:,:)
+  real(dp), allocatable :: ylmrgr(:,:,:)
    ! ylmrgr(1:3,ylm_size,angl_size)
    ! First gradients of real Ylm calculated in real space (cart. coordinates)
 
-  real(dp), pointer :: zarot(:,:,:,:)
+  real(dp), allocatable :: zarot(:,:,:,:)
    !  zarot(l_size_max,l_size_max,l_max,nsym)
    !  Coeffs of the transformation of real spherical
    !  harmonics under the symmetry operations symrec.
@@ -184,7 +184,7 @@ CONTAINS
 !!  lmax=maximum value of angular momentum l
 !!  nphi,ntheta=dimensions of paw angular mesh
 !!  nsym=number of symetries
-!   pawxcdev=choice of XC development (0=no dev. (use of angular mesh) ; 1 or 2=dev. on moments)
+!!  pawxcdev=choice of XC development (0=no dev. (use of angular mesh) ; 1 or 2=dev. on moments)
 !!  use_ls_ylm=flag activated if pawang%ls_ylm has to be allocated
 !!  use_ylm=flag activated if pawang%ylmr and pawang%ylmrgr have to be allocated
 !!  xclevel=XC functional level (1=LDA, 2=GGA)
@@ -244,9 +244,6 @@ subroutine pawang_init(Pawang,gnt_option,lmax,nphi,nsym,ntheta,pawxcdev,use_ls_y
    ABI_ALLOCATE(Pawang%anginit,(3,Pawang%angl_size))
    ABI_ALLOCATE(Pawang%angwgth,(Pawang%angl_size))
    call initang(pawang)
- else
-   nullify(Pawang%anginit)
-   nullify(Pawang%angwgth)
  end if
 
  if (use_ylm>0.and.Pawang%angl_size>0) then
@@ -259,13 +256,10 @@ subroutine pawang_init(Pawang,gnt_option,lmax,nphi,nsym,ntheta,pawxcdev,use_ls_y
      call initylmr(ll,0,pawang%angl_size,pawang%angwgth,2,pawang%anginit,pawang%ylmr,&
 &                  ylmr_gr=pawang%ylmrgr)
    else
-     nullify(Pawang%ylmrgr)
      call initylmr(ll,0,pawang%angl_size,pawang%angwgth,1,pawang%anginit,pawang%ylmr)
    end if
  else
    Pawang%ylm_size=0
-   nullify(Pawang%ylmr)
-   nullify(Pawang%ylmrgr)
  end if
 
  Pawang%gnt_option=gnt_option
@@ -285,29 +279,22 @@ subroutine pawang_init(Pawang,gnt_option,lmax,nphi,nsym,ntheta,pawxcdev,use_ls_y
      ABI_ALLOCATE(pawang%gntselect,(sz2,sz3))
      call realgaunt(2*Pawang%l_max-1,Pawang%ngnt,Pawang%gntselect,rgnt_tmp)
    end if
-   if (associated(pawang%realgnt))  then
+   if (allocated(pawang%realgnt))  then
      ABI_DEALLOCATE(pawang%realgnt)
    end if
    ABI_ALLOCATE(Pawang%realgnt,(Pawang%ngnt))
    Pawang%realgnt(1:Pawang%ngnt)=rgnt_tmp(1:Pawang%ngnt)
    ABI_DEALLOCATE(rgnt_tmp)
- else
-   nullify(Pawang%gntselect)
-   nullify(Pawang%realgnt)
  end if
 
  Pawang%use_ls_ylm=use_ls_ylm
  if (use_ls_ylm>0) then
    ABI_ALLOCATE(pawang%ls_ylm,(2,Pawang%l_max**2*(Pawang%l_max**2+1)/2,2))
    call pawang_lsylm(pawang)
- else
-   nullify(pawang%ls_ylm)
  end if
 
  if (nsym>0) then
    ABI_ALLOCATE(Pawang%zarot,(Pawang%l_size_max,Pawang%l_size_max,Pawang%l_max,nsym))
- else
-   nullify(Pawang%zarot)
  end if
 
 end subroutine pawang_init
@@ -351,16 +338,11 @@ subroutine pawang_nullify(Pawang)
 
 ! *************************************************************************
 
- !@Pawang_type
- nullify(pawang%angwgth)
- nullify(pawang%anginit)
- nullify(pawang%zarot)
- nullify(pawang%gntselect)
- nullify(pawang%realgnt)
- nullify(pawang%ylmr)
- nullify(pawang%ylmrgr)
- nullify(pawang%ls_ylm)
+ ! MGPAW: This one could be removed/renamed, 
+ ! variables can be initialized in the datatype declaration
+ ! Do we need to expose this in the public API?
 
+ !@Pawang_type
  pawang%angl_size =0
  pawang%ylm_size  =0
  pawang%use_ls_ylm=0
@@ -406,33 +388,31 @@ subroutine pawang_destroy(Pawang)
 !scalars
  type(Pawang_type),intent(inout) :: Pawang
 
-!Local variables-------------------------------
-
 ! *************************************************************************
 
  !@Pawang_type
- if (associated(pawang%angwgth))    then
+ if (allocated(pawang%angwgth))    then
    ABI_DEALLOCATE(pawang%angwgth)
  end if
- if (associated(pawang%anginit))    then
+ if (allocated(pawang%anginit))    then
    ABI_DEALLOCATE(pawang%anginit)
  end if
- if (associated(pawang%zarot))      then
+ if (allocated(pawang%zarot))      then
    ABI_DEALLOCATE(pawang%zarot)
  end if
- if (associated(pawang%gntselect))  then
+ if (allocated(pawang%gntselect))  then
    ABI_DEALLOCATE(pawang%gntselect)
  end if
- if (associated(pawang%realgnt))    then
+ if (allocated(pawang%realgnt))    then
    ABI_DEALLOCATE(pawang%realgnt)
  end if
- if (associated(pawang%ylmr))       then
+ if (allocated(pawang%ylmr))       then
    ABI_DEALLOCATE(pawang%ylmr)
  end if
- if (associated(pawang%ylmrgr))     then
+ if (allocated(pawang%ylmrgr))     then
    ABI_DEALLOCATE(pawang%ylmrgr)
  end if
- if (associated(pawang%ls_ylm))     then
+ if (allocated(pawang%ls_ylm))     then
    ABI_DEALLOCATE(pawang%ls_ylm)
  end if
 
@@ -818,6 +798,9 @@ subroutine realgaunt(l_max,ngnt,gntselect,realgnt)
  type(coeff3_type), allocatable :: coeff(:)
 
 !************************************************************************
+
+! Initialize output arrays with zeros.
+gntselect = 0; realgnt = zero
 
 !Compute matrix cc where Sl=cc*Yl (Sl=real sph. harm.)
 !------------------------------------------------

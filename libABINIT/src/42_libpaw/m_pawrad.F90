@@ -65,6 +65,7 @@ MODULE m_pawrad
    module procedure pawrad_nullify_0D
    module procedure pawrad_nullify_1D
  end interface pawrad_nullify
+
  interface pawrad_destroy
    module procedure pawrad_destroy_0D
    module procedure pawrad_destroy_1D
@@ -129,17 +130,17 @@ MODULE m_pawrad
 
 !Real (real(dp)) arrays
 
-  real(dp), pointer :: rad(:) => null()
+  real(dp), allocatable :: rad(:) 
    ! rad(mesh_size)
    ! Coordinates of all the points of the mesh
  
-  real(dp), pointer :: radfact(:) => null()
+  real(dp), allocatable :: radfact(:)
    ! radfact(mesh_size)
    ! Factor used to compute radial integrals
    ! Before being integrated on the present mesh,
    ! any function is multiplied by this factor
 
-  real(dp), pointer :: simfact(:) => null()
+  real(dp), allocatable :: simfact(:) 
    ! simfact(mesh_size)
    ! Factor used to compute radial integrals by the a Simpson scheme
    ! Integral[f] = Sum_i [simfact(i)*f(i)]
@@ -190,8 +191,8 @@ CONTAINS
 !!    %rmax = Max. value of r = rad(mesh_size)
 !!
 !! PARENTS
-!!      m_atom,m_gaussfit,m_paw_pwij,m_pawpsp,mkcore_paw,mkcore_wvl
-!!      optics_paw_core,wvl_initro
+!!      eltfrxc3,m_atom,m_gaussfit,m_paw_pwij,m_pawpsp,m_pawxmlps,mkcore_paw
+!!      mkcore_wvl,wvl_initro
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -364,11 +365,11 @@ subroutine pawrad_nullify_0D(Rmesh)
  
 ! *************************************************************************
 
- !@pawrad_type
- nullify(Rmesh%rad    )
- nullify(Rmesh%radfact)
- nullify(Rmesh%simfact)
+ ! MGPAW: This one could be removed/renamed, 
+ ! variables can be initialized in the datatype declaration
+ ! Do we need to expose this in the public API?
 
+ !@pawrad_type
  Rmesh%int_meshsz=0
  Rmesh%mesh_size=0
  Rmesh%mesh_type=-1
@@ -463,13 +464,13 @@ subroutine pawrad_destroy_0D(Rmesh)
 
  !@Pawrad_type
 
- if (associated(Rmesh%rad    ))  then
+ if (allocated(Rmesh%rad    ))  then
    ABI_DEALLOCATE(Rmesh%rad)
  end if
- if (associated(Rmesh%radfact))  then
+ if (allocated(Rmesh%radfact))  then
    ABI_DEALLOCATE(Rmesh%radfact)
  end if
- if (associated(Rmesh%simfact))  then
+ if (allocated(Rmesh%simfact))  then
    ABI_DEALLOCATE(Rmesh%simfact)
  end if
 
@@ -780,11 +781,7 @@ subroutine pawrad_copy(mesh1,mesh2)
  mesh2%rstep     =mesh1%rstep
  mesh2%stepint   =mesh1%stepint
  mesh2%rmax      =mesh1%rmax
-!If you need the following lines, please put ierr as a local variable (integer)
-!those lines are not useful and the behavior is undefined. => problems with g95 (PMA)
-!if (associated(mesh2%rad)) deallocate(mesh2%rad,STAT=ierr)
-!if (associated(mesh2%radfact)) deallocate(mesh2%radfact,STAT=ierr)
-!if (associated(mesh2%simfact)) deallocate(mesh2%simfact,STAT=ierr)
+
  ABI_ALLOCATE(mesh2%rad,(mesh1%mesh_size))
  ABI_ALLOCATE(mesh2%radfact,(mesh1%mesh_size))
  ABI_ALLOCATE(mesh2%simfact,(mesh1%mesh_size))
@@ -879,13 +876,6 @@ end subroutine pawrad_deducer0
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "abi_common.h"
-
-
 subroutine pawrad_bcast(pawrad,comm_mpi)
 
 !Arguments ------------------------------------
@@ -918,7 +908,7 @@ subroutine pawrad_bcast(pawrad,comm_mpi)
 
 !calculate the size of the reals
  if(me==0) then
-   if (associated(pawrad%rad)) then
+   if (allocated(pawrad%rad)) then
      if_rad=1 !communicate rad
      isz1=size(pawrad%rad)
      if(isz1/=pawrad%mesh_size) then
@@ -926,7 +916,7 @@ subroutine pawrad_bcast(pawrad,comm_mpi)
        MSG_BUG(message)
      end if
    end if
-   if (associated(pawrad%radfact)) then
+   if (allocated(pawrad%radfact)) then
      if_radfact=1 !communicate radfact
      isz1=size(pawrad%radfact)
      if(isz1/=pawrad%mesh_size) then
@@ -934,7 +924,7 @@ subroutine pawrad_bcast(pawrad,comm_mpi)
        MSG_BUG(message)
      end if
    end if
-   if (associated(pawrad%simfact)) then
+   if (allocated(pawrad%simfact)) then
      if_simfact=1 !communicate simfact
      isz1=size(pawrad%simfact)
      if(isz1/=pawrad%mesh_size) then
@@ -954,7 +944,7 @@ subroutine pawrad_bcast(pawrad,comm_mpi)
    list_int(5)=if_radfact
    list_int(6)=if_simfact
  end if
- call xcast_mpi(list_int,0,comm_mpi,ierr)
+ call xmpi_bcast(list_int,0,comm_mpi,ierr)
  if(me/=0) then
    pawrad%int_meshsz =list_int(1)
    pawrad%mesh_size =list_int(2)
@@ -990,7 +980,7 @@ subroutine pawrad_bcast(pawrad,comm_mpi)
      indx=indx+isz1
    end if
  end if
- call xcast_mpi(list_dpr,0,comm_mpi,ierr)
+ call xmpi_bcast(list_dpr,0,comm_mpi,ierr)
  if(me/=0) then
    pawrad%lstep=list_dpr(1)
    pawrad%rmax=list_dpr(2)
@@ -998,13 +988,13 @@ subroutine pawrad_bcast(pawrad,comm_mpi)
    pawrad%stepint=list_dpr(4)
    indx=5
 !  Deallocate all arrays:
-   if (associated(pawrad%rad)) then
+   if (allocated(pawrad%rad)) then
      ABI_DEALLOCATE(pawrad%rad)
    end if
-   if (associated(pawrad%radfact)) then
+   if (allocated(pawrad%radfact)) then
      ABI_DEALLOCATE(pawrad%radfact)
    end if
-   if (associated(pawrad%simfact)) then
+   if (allocated(pawrad%simfact)) then
      ABI_DEALLOCATE(pawrad%simfact)
    end if
 !  Communicate if flag is set to 1:
@@ -1399,7 +1389,7 @@ end subroutine nderiv_lin
 !!  yp1,ypn= derivatives of func at r(1) and r(n)
 !!
 !! PARENTS
-!!      m_atompaw,m_pawpsp,optics_paw_core
+!!      m_atompaw,m_pawpsp,m_pawxmlps
 !!
 !! CHILDREN
 !!      poisson,simp_gen

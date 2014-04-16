@@ -1,13 +1,13 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/xexch_mpi_intn
+!!****f* ABINIT/xmpi_exch_intn
 !! NAME
-!!  xexch_mpi_intn
+!!  xmpi_exch_intn
 !!
 !! FUNCTION
 !!  This module contains functions that calls MPI routine,
 !!  if we compile the code using the MPI CPP flags.
-!!  xexch_mpi is the generic function.
-!!  Note that there exist two versions of the xexch_mpi,
+!!  xmpi_exch is the generic function.
+!!  Note that there exist two versions of the xmpi_exch,
 !!  irrespective of the kind of data that is exchanged : in a first version,
 !!  one suppose that there will be no confusion between different messages exchanged
 !!  between a pair (sender,receiver), so that no message tag is to be specified
@@ -35,14 +35,14 @@
 
 !--------------------------------------------------------------------
 
-subroutine xexch_mpi_intn(vsend,n1,sender,vrecv,recever,spaceComm,ier)
+subroutine xmpi_exch_intn(vsend,n1,sender,vrecv,recever,spaceComm,ier)
 
  use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xexch_mpi_intn'
+#define ABI_FUNC 'xmpi_exch_intn'
 !End of the abilint section
 
  implicit none
@@ -66,7 +66,7 @@ subroutine xexch_mpi_intn(vsend,n1,sender,vrecv,recever,spaceComm,ier)
 #if defined HAVE_MPI
  if (sender==recever.or.spaceComm==MPI_COMM_NULL.or.(n1==0)) return
  call MPI_COMM_RANK(spaceComm,me,ier)
- tag = MOD(n1,xmpi_tag_ub+1)
+ tag = MOD(n1,xmpi_tag_ub)
  if (recever==me) then
    call MPI_RECV(vrecv,n1,MPI_INTEGER,sender,tag,spaceComm,statux,ier)
  end if
@@ -75,14 +75,14 @@ subroutine xexch_mpi_intn(vsend,n1,sender,vrecv,recever,spaceComm,ier)
  end if
 #endif
 
-end subroutine xexch_mpi_intn
+end subroutine xmpi_exch_intn
 !!***
 
 !--------------------------------------------------------------------
 
-!!****f* ABINIT/xexch_mpi_int2d
+!!****f* ABINIT/xmpi_exch_int2d
 !! NAME
-!!  xexch_mpi_int2d
+!!  xmpi_exch_int2d
 !!
 !! FUNCTION
 !!  Sends and receives data.
@@ -107,14 +107,14 @@ end subroutine xexch_mpi_intn
 !!      mpi_comm_rank,mpi_recv,mpi_send
 !!
 !! SOURCE
-subroutine xexch_mpi_int2d(vsend,nt,sender,vrecv,recever,spaceComm,ier)
+subroutine xmpi_exch_int2d(vsend,nt,sender,vrecv,recever,spaceComm,ier)
 
  use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xexch_mpi_int2d'
+#define ABI_FUNC 'xmpi_exch_int2d'
 !End of the abilint section
 
  implicit none
@@ -138,7 +138,7 @@ subroutine xexch_mpi_int2d(vsend,nt,sender,vrecv,recever,spaceComm,ier)
 #if defined HAVE_MPI
  if (sender==recever.or.spaceComm==MPI_COMM_NULL.or.(nt==0)) return
  call MPI_COMM_RANK(spaceComm,me,ier)
- tag = MOD(nt, xmpi_tag_ub+1)
+ tag = MOD(nt, xmpi_tag_ub)
 
  if (recever==me) then
    call MPI_RECV(vrecv,nt,MPI_INTEGER,sender,tag,spaceComm,statux,ier)
@@ -148,14 +148,14 @@ subroutine xexch_mpi_int2d(vsend,nt,sender,vrecv,recever,spaceComm,ier)
  end if
 #endif
 
-end subroutine xexch_mpi_int2d
+end subroutine xmpi_exch_int2d
 !!***
 
 !--------------------------------------------------------------------
 
-!!****f* ABINIT/xexch_mpi_dpn
+!!****f* ABINIT/xmpi_exch_dpn
 !! NAME
-!!  xexch_mpi_dpn
+!!  xmpi_exch_dpn
 !!
 !! FUNCTION
 !!  Sends and receives data.
@@ -180,14 +180,14 @@ end subroutine xexch_mpi_int2d
 !!      mpi_comm_rank,mpi_recv,mpi_send
 !!
 !! SOURCE
-subroutine xexch_mpi_dpn(vsend,n1,sender,vrecv,recever,spaceComm,ier)
+subroutine xmpi_exch_dpn(vsend,n1,sender,vrecv,recever,spaceComm,ier)
 
  use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xexch_mpi_dpn'
+#define ABI_FUNC 'xmpi_exch_dpn'
 !End of the abilint section
 
  implicit none
@@ -211,7 +211,7 @@ subroutine xexch_mpi_dpn(vsend,n1,sender,vrecv,recever,spaceComm,ier)
 #if defined HAVE_MPI
  if (sender==recever.or.spaceComm==MPI_COMM_NULL.or.(n1==0)) return
  call MPI_COMM_RANK(spaceComm,me,ier)
- tag = MOD(n1, xmpi_tag_ub+1)
+ tag = MOD(n1, xmpi_tag_ub)
  if (recever==me) then
    call MPI_RECV(vrecv,n1,MPI_DOUBLE_PRECISION,sender,tag,spaceComm,statux,ier)
  end if
@@ -220,14 +220,14 @@ subroutine xexch_mpi_dpn(vsend,n1,sender,vrecv,recever,spaceComm,ier)
  end if
 #endif
 
-end subroutine xexch_mpi_dpn
+end subroutine xmpi_exch_dpn
 !!***
 
 !--------------------------------------------------------------------
 
-!!****f* ABINIT/xexch_mpi_dp2d
+!!****f* ABINIT/xmpi_exch_dp2d
 !! NAME
-!!  xexch_mpi_dp2d
+!!  xmpi_exch_dp2d
 !!
 !! FUNCTION
 !!  Sends and receives data.
@@ -252,14 +252,14 @@ end subroutine xexch_mpi_dpn
 !!      mpi_comm_rank,mpi_recv,mpi_send
 !!
 !! SOURCE
-subroutine xexch_mpi_dp2d(vsend,nt,sender,vrecv,recever,spaceComm,ier)
+subroutine xmpi_exch_dp2d(vsend,nt,sender,vrecv,recever,spaceComm,ier)
 
  use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xexch_mpi_dp2d'
+#define ABI_FUNC 'xmpi_exch_dp2d'
 !End of the abilint section
 
  implicit none
@@ -283,7 +283,7 @@ subroutine xexch_mpi_dp2d(vsend,nt,sender,vrecv,recever,spaceComm,ier)
 #if defined HAVE_MPI
  if (sender==recever.or.spaceComm==MPI_COMM_NULL.or.(nt==0)) return
  call MPI_COMM_RANK(spaceComm,me,ier)
- tag=MOD(nt, xmpi_tag_ub+1)
+ tag=MOD(nt, xmpi_tag_ub)
  if (recever==me) then
    call MPI_RECV(vrecv,nt,MPI_DOUBLE_PRECISION,sender,tag,spaceComm,statux,ier)
  end if
@@ -292,14 +292,14 @@ subroutine xexch_mpi_dp2d(vsend,nt,sender,vrecv,recever,spaceComm,ier)
  end if
 #endif
 
-end subroutine xexch_mpi_dp2d
+end subroutine xmpi_exch_dp2d
 !!***
 
 !--------------------------------------------------------------------
 
-!!****f* ABINIT/xexch_mpi_dp3d
+!!****f* ABINIT/xmpi_exch_dp3d
 !! NAME
-!!  xexch_mpi_dp3d
+!!  xmpi_exch_dp3d
 !!
 !! FUNCTION
 !!  Sends and receives data.
@@ -324,14 +324,14 @@ end subroutine xexch_mpi_dp2d
 !!      mpi_comm_rank,mpi_recv,mpi_send
 !!
 !! SOURCE
-subroutine xexch_mpi_dp3d(vsend,nt,sender,vrecv,recever,spaceComm,ier)
+subroutine xmpi_exch_dp3d(vsend,nt,sender,vrecv,recever,spaceComm,ier)
 
  use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xexch_mpi_dp3d'
+#define ABI_FUNC 'xmpi_exch_dp3d'
 !End of the abilint section
 
  implicit none
@@ -356,7 +356,7 @@ subroutine xexch_mpi_dp3d(vsend,nt,sender,vrecv,recever,spaceComm,ier)
 #if defined HAVE_MPI
  if (sender==recever.or.spaceComm==MPI_COMM_NULL.or.(nt==0)) return
  call MPI_COMM_RANK(spaceComm,me,ier)
- tag=MOD(nt, xmpi_tag_ub+1)
+ tag=MOD(nt, xmpi_tag_ub)
  if (recever==me) then
    call MPI_RECV(vrecv,nt,MPI_DOUBLE_PRECISION,sender,tag,spaceComm,statux,ier)
  end if
@@ -365,14 +365,14 @@ subroutine xexch_mpi_dp3d(vsend,nt,sender,vrecv,recever,spaceComm,ier)
  end if
 #endif
 
-end subroutine xexch_mpi_dp3d
+end subroutine xmpi_exch_dp3d
 !!***
 
 !--------------------------------------------------------------------
 
-!!****f* ABINIT/xexch_mpi_dp4d_tag
+!!****f* ABINIT/xmpi_exch_dp4d_tag
 !! NAME
-!!  xexch_mpi_dp4d_tag
+!!  xmpi_exch_dp4d_tag
 !!
 !! FUNCTION
 !!  Sends and receives data.
@@ -397,14 +397,14 @@ end subroutine xexch_mpi_dp3d
 !!      mpi_comm_rank,mpi_recv,mpi_send
 !!
 !! SOURCE
-subroutine xexch_mpi_dp4d_tag(vsend,mtag,sender,vrecv,recever,spaceComm,ier)
+subroutine xmpi_exch_dp4d_tag(vsend,mtag,sender,vrecv,recever,spaceComm,ier)
 
  use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xexch_mpi_dp4d_tag'
+#define ABI_FUNC 'xmpi_exch_dp4d_tag'
 !End of the abilint section
 
  implicit none
@@ -433,7 +433,7 @@ subroutine xexch_mpi_dp4d_tag(vsend,mtag,sender,vrecv,recever,spaceComm,ier)
  n2 =size(vsend,dim=2)
  n3 =size(vsend,dim=3)
  n4 =size(vsend,dim=4)
- tag = MOD(mtag, xmpi_tag_ub+1)
+ tag = MOD(mtag, xmpi_tag_ub)
  if (recever==me) then
    call MPI_RECV(vrecv,n1*n2*n3*n4,MPI_DOUBLE_PRECISION,sender,tag,spaceComm,statux,ier)
  end if
@@ -442,14 +442,14 @@ subroutine xexch_mpi_dp4d_tag(vsend,mtag,sender,vrecv,recever,spaceComm,ier)
  end if
 #endif
 
-end subroutine xexch_mpi_dp4d_tag
+end subroutine xmpi_exch_dp4d_tag
 !!***
 
 !--------------------------------------------------------------------
 
-!!****f* ABINIT/xexch_mpi_dp5d_tag
+!!****f* ABINIT/xmpi_exch_dp5d_tag
 !! NAME
-!!  xexch_mpi_dp5d_tag
+!!  xmpi_exch_dp5d_tag
 !!
 !! FUNCTION
 !!  Sends and receives data.
@@ -474,14 +474,14 @@ end subroutine xexch_mpi_dp4d_tag
 !!      mpi_comm_rank,mpi_recv,mpi_send
 !!
 !! SOURCE
-subroutine xexch_mpi_dp5d_tag(vsend,mtag,sender,vrecv,recever,spaceComm,ier)
+subroutine xmpi_exch_dp5d_tag(vsend,mtag,sender,vrecv,recever,spaceComm,ier)
 
  use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xexch_mpi_dp5d_tag'
+#define ABI_FUNC 'xmpi_exch_dp5d_tag'
 !End of the abilint section
 
  implicit none
@@ -511,7 +511,7 @@ subroutine xexch_mpi_dp5d_tag(vsend,mtag,sender,vrecv,recever,spaceComm,ier)
  n3 =size(vsend,dim=3)
  n4 =size(vsend,dim=4)
  n5 =size(vsend,dim=5)
- tag = MOD(mtag,xmpi_tag_ub+1)
+ tag = MOD(mtag,xmpi_tag_ub)
  if (recever==me) then
    call MPI_RECV(vrecv,n1*n2*n3*n4*n5,MPI_DOUBLE_PRECISION,sender,tag,spaceComm,statux,ier)
  end if
@@ -520,14 +520,14 @@ subroutine xexch_mpi_dp5d_tag(vsend,mtag,sender,vrecv,recever,spaceComm,ier)
  end if
 #endif
 
-end subroutine xexch_mpi_dp5d_tag
+end subroutine xmpi_exch_dp5d_tag
 !!***
 
 !--------------------------------------------------------------------
 
-!!****f* ABINIT/xexch_mpi_spc_1d
+!!****f* ABINIT/xmpi_exch_spc_1d
 !! NAME
-!!  xexch_mpi_spc_1d
+!!  xmpi_exch_spc_1d
 !!
 !! FUNCTION
 !!  Sends and receives data.
@@ -540,14 +540,14 @@ end subroutine xexch_mpi_dp5d_tag
 !!
 !! SOURCE
 
-subroutine xexch_mpi_spc_1d(vsend,n1,sender,vrecv,recever,spaceComm,ier)
+subroutine xmpi_exch_spc_1d(vsend,n1,sender,vrecv,recever,spaceComm,ier)
 
  use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xexch_mpi_spc_1d'
+#define ABI_FUNC 'xmpi_exch_spc_1d'
 !End of the abilint section
 
  implicit none
@@ -572,7 +572,7 @@ subroutine xexch_mpi_spc_1d(vsend,n1,sender,vrecv,recever,spaceComm,ier)
 #if defined HAVE_MPI
  if (sender==recever.or.spaceComm==MPI_COMM_NULL.or.(n1==0)) return
  call MPI_COMM_RANK(spaceComm,me,ier)
- tag= MOD(n1, xmpi_tag_ub+1)
+ tag= MOD(n1, xmpi_tag_ub)
  if (recever==me) then
    call MPI_RECV(vrecv,n1,MPI_COMPLEX,sender, tag,spaceComm,statux,ier)
  end if
@@ -581,14 +581,14 @@ subroutine xexch_mpi_spc_1d(vsend,n1,sender,vrecv,recever,spaceComm,ier)
  end if
 #endif
 
-end subroutine xexch_mpi_spc_1d
+end subroutine xmpi_exch_spc_1d
 !!***
 
 !--------------------------------------------------------------------
 
-!!****f* ABINIT/xexch_mpi_dpc_1d
+!!****f* ABINIT/xmpi_exch_dpc_1d
 !! NAME
-!!  xexch_mpi_dpc_1d
+!!  xmpi_exch_dpc_1d
 !!
 !! FUNCTION
 !!  Sends and receives data.
@@ -601,14 +601,14 @@ end subroutine xexch_mpi_spc_1d
 !!
 !! SOURCE
 
-subroutine xexch_mpi_dpc_1d(vsend,n1,sender,vrecv,recever,spaceComm,ier)
+subroutine xmpi_exch_dpc_1d(vsend,n1,sender,vrecv,recever,spaceComm,ier)
 
  use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xexch_mpi_dpc_1d'
+#define ABI_FUNC 'xmpi_exch_dpc_1d'
 !End of the abilint section
 
  implicit none
@@ -633,7 +633,7 @@ subroutine xexch_mpi_dpc_1d(vsend,n1,sender,vrecv,recever,spaceComm,ier)
 #if defined HAVE_MPI
  if (sender==recever.or.spaceComm==MPI_COMM_NULL.or.(n1==0)) return
  call MPI_COMM_RANK(spaceComm,me,ier)
- tag = MOD(n1, xmpi_tag_ub+1)
+ tag = MOD(n1, xmpi_tag_ub)
  if (recever==me) then
    call MPI_RECV(vrecv,n1,MPI_DOUBLE_COMPLEX,sender, tag,spaceComm,statux,ier)
  end if
@@ -642,14 +642,14 @@ subroutine xexch_mpi_dpc_1d(vsend,n1,sender,vrecv,recever,spaceComm,ier)
  end if
 #endif
 
-end subroutine xexch_mpi_dpc_1d
+end subroutine xmpi_exch_dpc_1d
 !!***
 
 !--------------------------------------------------------------------
 
-!!****f* ABINIT/xexch_mpi_dpc_2d
+!!****f* ABINIT/xmpi_exch_dpc_2d
 !! NAME
-!!  xexch_mpi_dpc_2d
+!!  xmpi_exch_dpc_2d
 !!
 !! FUNCTION
 !!  Sends and receives data.
@@ -662,14 +662,14 @@ end subroutine xexch_mpi_dpc_1d
 !!
 !! SOURCE
 
-subroutine xexch_mpi_dpc_2d(vsend,nt,sender,vrecv,recever,spaceComm,ier)
+subroutine xmpi_exch_dpc_2d(vsend,nt,sender,vrecv,recever,spaceComm,ier)
 
  use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xexch_mpi_dpc_2d'
+#define ABI_FUNC 'xmpi_exch_dpc_2d'
 !End of the abilint section
 
  implicit none
@@ -693,7 +693,7 @@ subroutine xexch_mpi_dpc_2d(vsend,nt,sender,vrecv,recever,spaceComm,ier)
 #if defined HAVE_MPI
  if (sender==recever.or.spaceComm==MPI_COMM_NULL.or.(nt==0)) return
  call MPI_COMM_RANK(spaceComm,me,ier)
- tag=MOD(nt, xmpi_tag_ub+1)
+ tag=MOD(nt, xmpi_tag_ub)
  if (recever==me) then
    call MPI_RECV(vrecv,nt,MPI_DOUBLE_COMPLEX,sender, tag,spaceComm,statux,ier)
  end if
@@ -702,5 +702,5 @@ subroutine xexch_mpi_dpc_2d(vsend,nt,sender,vrecv,recever,spaceComm,ier)
  end if
 #endif
 
-end subroutine xexch_mpi_dpc_2d
+end subroutine xmpi_exch_dpc_2d
 !!***

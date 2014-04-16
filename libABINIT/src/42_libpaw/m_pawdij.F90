@@ -38,7 +38,7 @@ MODULE m_pawdij
  use m_errors
 
  use m_paral_atom,   only : get_my_atmtab, free_my_atmtab
- use m_xmpi,         only : xcomm_size, xsum_mpi, xallgatherv_mpi, xmpi_self
+ use m_xmpi,         only : xcomm_size, xsum_mpi, xmpi_allgatherv, xmpi_self
  use m_pawio,        only : pawio_print_ij
  use m_pawang,       only : pawang_type
  use m_pawrad,       only : pawrad_type, pawrad_deducer0, simp_gen, nderiv_gen
@@ -205,7 +205,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
  real(dp),intent(in),target :: vtrial(cplex*nfft,nspden)
  real(dp),intent(in),optional :: atvshift(:,:,:)
  type(paw_an_type),intent(in) :: paw_an(my_natom)
- type(paw_ij_type),intent(inout) :: paw_ij(my_natom)
+ type(paw_ij_type),target,intent(inout) :: paw_ij(my_natom)
  type(pawfgrtab_type),intent(inout) :: pawfgrtab(my_natom)
  type(pawrad_type),intent(in) :: pawrad(ntypat)
  type(pawrhoij_type),intent(inout) :: pawrhoij(my_natom)
@@ -1806,14 +1806,14 @@ subroutine pawdijhat(cplex,cplex_dij,dijhat,gprimd,iatom,ipert,mpi_comm_grid,&
  if ((pawfgrtab%gylm_allocated==0).or.((ipert==iatom).and.(pawfgrtab%gylmgr_allocated==0))) then
    optgr0=0;optgr1=0
    if (pawfgrtab%gylm_allocated==0) then
-     if (associated(pawfgrtab%gylm))  then
+     if (allocated(pawfgrtab%gylm))  then
        ABI_DEALLOCATE(pawfgrtab%gylm)
      end if
      ABI_ALLOCATE(pawfgrtab%gylm,(nfgd,lm_size))
      pawfgrtab%gylm_allocated=2;optgr0=1
    end if
    if ((ipert==iatom).and.(pawfgrtab%gylmgr_allocated==0)) then
-     if (associated(pawfgrtab%gylmgr))  then
+     if (allocated(pawfgrtab%gylmgr))  then
        ABI_DEALLOCATE(pawfgrtab%gylmgr)
      end if
      ABI_ALLOCATE(pawfgrtab%gylmgr,(3,nfgd,lm_size))
@@ -1827,7 +1827,7 @@ subroutine pawdijhat(cplex,cplex_dij,dijhat,gprimd,iatom,ipert,mpi_comm_grid,&
 
 !Eventually compute exp(-i.q.r) factors for the current atom (if not already done)
  if ((ipert==iatom).and.qne0.and.(pawfgrtab%expiqr_allocated==0)) then
-   if (associated(pawfgrtab%expiqr))  then
+   if (allocated(pawfgrtab%expiqr))  then
      ABI_DEALLOCATE(pawfgrtab%expiqr)
    end if
    ABI_ALLOCATE(pawfgrtab%expiqr,(2,nfgd))
@@ -2299,7 +2299,7 @@ subroutine pawdijso(cplex_dij,dijso,ndij,nspden,&
  real(dp),intent(out) :: dijso(:,:)
  real(dp),intent(in) :: vh1(:,:,:),vxc1(:,:,:)
  type(pawrad_type),intent(in) :: pawrad
- type(pawtab_type),intent(in) :: pawtab
+ type(pawtab_type),target,intent(in) :: pawtab
 
 !Local variables ---------------------------------------
 !scalars
@@ -2309,7 +2309,7 @@ subroutine pawdijso(cplex_dij,dijso,ndij,nspden,&
  real(dp) :: fact
  character(len=500) :: msg
 !arrays
- integer,pointer :: indklmn(:,:)
+ integer,ABI_CONTIGUOUS pointer :: indklmn(:,:)
  real(dp),allocatable :: dijso_rad(:),dv1dr(:),ff(:)
 
 ! *************************************************************************
@@ -2944,14 +2944,14 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
 &     ((need_dijfr_1).and.(pawfgrtab(iatom)%gylmgr_allocated==0))) then
        optgr0=0;optgr1=0;optgr2=0
        if ((need_dijfr_2.or. need_dijfr_4).and.(pawfgrtab(iatom)%gylm_allocated==0)) then
-         if (associated(pawfgrtab(iatom)%gylm))  then
+         if (allocated(pawfgrtab(iatom)%gylm))  then
            ABI_DEALLOCATE(pawfgrtab(iatom)%gylm)
          end if
          ABI_ALLOCATE(pawfgrtab(iatom)%gylm,(nfgd,lm_size))
          pawfgrtab(iatom)%gylm_allocated=2;optgr0=1
        end if
        if ((need_dijfr_1).and.(pawfgrtab(iatom)%gylmgr_allocated==0)) then
-         if (associated(pawfgrtab(iatom)%gylmgr))  then
+         if (allocated(pawfgrtab(iatom)%gylmgr))  then
            ABI_DEALLOCATE(pawfgrtab(iatom)%gylmgr)
          end if
          ABI_ALLOCATE(pawfgrtab(iatom)%gylmgr,(3,nfgd,lm_size))
@@ -2968,7 +2968,7 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
    has_phase=.false.
    if (need_dijfr_2) then
      if (qne0.and.(pawfgrtab(iatom)%expiqr_allocated==0)) then
-       if (associated(pawfgrtab(iatom)%expiqr))  then
+       if (allocated(pawfgrtab(iatom)%expiqr))  then
          ABI_DEALLOCATE(pawfgrtab(iatom)%expiqr)
        end if
        ABI_ALLOCATE(pawfgrtab(iatom)%expiqr,(2,nfgd))
@@ -3904,7 +3904,7 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
  integer,optional,target,intent(in) :: mpi_atmtab(:)
  real(dp),intent(in) :: gprimd(3,3),rprimd(3,3)
  type(paw_ij_type),intent(inout) :: paw_ij(my_natom)
- type(pawtab_type),intent(in) :: pawtab(ntypat)
+ type(pawtab_type),target,intent(in) :: pawtab(ntypat)
 
 !Local variables ---------------------------------------
 !scalars
@@ -3924,8 +3924,9 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
  character(len=500) :: msg
 !arrays
  integer :: nsym_used(2)
- integer,pointer :: indlmn(:,:),my_atmtab(:)
- integer,allocatable :: idum(:)
+ integer, ABI_CONTIGUOUS pointer :: indlmn(:,:)
+ integer,pointer :: my_atmtab(:)
+ integer :: idum(0)
  real(dp) :: sumdij(2,2)
  real(dp),allocatable :: dijnew(:,:),dijtmp(:,:),rotmag(:,:),summag(:,:)
  real(dp),allocatable :: symrec_cart(:,:,:),work(:,:),factsym(:)
@@ -4049,7 +4050,7 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
 !  Parallelism: gather all Dij
    if (paral_atom) then
      ABI_DATATYPE_ALLOCATE(tmp_dij,(natom))
-     call xallgatherv_mpi(my_tmp_dij,tmp_dij,mpi_comm_atom,my_atmtab,ierr)
+     call xmpi_allgatherv(my_tmp_dij,tmp_dij,mpi_comm_atom,my_atmtab,ierr)
      do iatom=1,my_natom
        ABI_DEALLOCATE(my_tmp_dij(iatom)%value)
      end do

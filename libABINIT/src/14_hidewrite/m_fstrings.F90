@@ -1389,9 +1389,9 @@ end function indent
 !!  string=character string ('####...' if error)
 !!
 !! PARENTS
-!!      aim,anaddb,driver,dtfil_init1,gaus_dos,get_all_gkq,iofn1,m_atprj
-!!      m_green,m_io_redirect,m_phonon_supercell,m_self,mrgscr,optic,pawmkaewf
-!!      prtfatbands,read_wfrspa,scfcv,tddft,tetrahedron
+!!      aim,anaddb,dtfil_init1,gaus_dos,get_all_gkq,iofn1,m_atprj,m_green
+!!      m_io_redirect,m_phonon_supercell,m_self,mrgscr,optic,pawmkaewf
+!!      prtfatbands,read_wfrspa,scfcv,tetrahedron
 !!
 !! CHILDREN
 !!

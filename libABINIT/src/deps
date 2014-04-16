@@ -600,10 +600,10 @@ m_pawdij.o: 42_libpaw/m_pawdij.F90 \
 	m_errors.o \
 	m_paral_atom.o \
 	m_paw_an.o \
-	m_paw_finegrid.o \
-	m_paw_ij.o \
 	m_pawang.o \
 	m_pawfgrtab.o \
+	m_paw_finegrid.o \
+	m_paw_ij.o \
 	m_pawio.o \
 	m_pawrad.o \
 	m_pawrhoij.o \
@@ -636,15 +636,14 @@ m_pawpsp.o: 42_libpaw/m_pawpsp.F90 \
 	m_errors.o \
 	m_fstrings.o \
 	m_gaussfit.o \
-	m_paw_numeric.o \
 	m_pawang.o \
+	m_paw_numeric.o \
 	m_pawrad.o \
 	m_pawtab.o \
 	m_pawxc.o \
 	m_pawxmlps.o \
 	m_profiling.o \
-	m_xmpi.o \
-	$(mpi_include)
+	m_xmpi.o
 	$(PPFCCOMPILE) -c -o m_pawpsp.o `test -f '42_libpaw/m_pawpsp.F90' || echo '$(srcdir)/'`42_libpaw/m_pawpsp.F90
 
 m_pawrad.o: 42_libpaw/m_pawrad.F90 \

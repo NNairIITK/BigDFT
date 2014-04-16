@@ -247,18 +247,6 @@
 /* Dummy use of unused arguments to silence compiler warnings */
 #define ABI_UNUSED(var) if (.FALSE.) call unused_var(var)
 
-#if defined HAVE_DEV_TIMER
-#  define ABI_TIMER_START(key) call abi_timer(1,ABI_FUNC//":"//key)
-#  define ABI_TIMER_STOP(key)  call abi_timer(2,ABI_FUNC//":"//key)
-#  define DEV_TIMER_START(key) call abi_timer(1,ABI_FUNC//":"//key)
-#  define DEV_TIMER_STOP(key)  call abi_timer(2,ABI_FUNC//":"//key)
-#else
-#  define ABI_TIMER_START(key) 
-#  define ABI_TIMER_STOP(key) 
-#  define DEV_TIMER_START(key) 
-#  define DEV_TIMER_STOP(key) 
-#endif
-
 #ifdef HAVE_TIMER_PAPI
 #ifdef HAVE_FC_LONG_LINES
 #  define XPAPI_CHECK(check,msg) if (check/=PAPI_OK) call xpapi_handle_error(check,msg,__FILE__,__LINE__)
@@ -287,6 +275,12 @@
 
 /* F2003 support  */
 #define ABI_CHECK_CNULL(cptr,msg) if (.not.C_ASSOCIATED(cptr)) MSG_ERROR(msg)
+
+#ifdef HAVE_FC_ASYNC
+#define ABI_ASYNC asynchronous,
+#else
+#define ABI_ASYNC 
+#endif
 
 
 /* F2008 support  */

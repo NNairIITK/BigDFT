@@ -26,7 +26,7 @@
 
 MODULE m_io_tools
 
- use defs_basis,  only : dp, std_in, std_out, std_out_default, fnlen
+ use defs_basis,  only : dp, std_in, std_out, std_out_default, dev_null, fnlen
 
  implicit none
 
@@ -893,12 +893,12 @@ end subroutine read_line
 !!  Available only if the compiler implements this intrinsic procedure.
 !!
 !! PARENTS
-!!      abinit,anaddb,bsepostproc,calc_sigc_me,cut3d,defs_scalapack
-!!      dfpt_write_cg,exc_build_block,exc_diago,exc_iterative_diago,fftprof
-!!      impurity_solve,m_atprj,m_bands_sym,m_bse_io,m_chi0,m_errors,m_green
-!!      m_header,m_hu,m_io_redirect,m_io_tools,m_matlu,m_pawrhoij,m_shirley
-!!      m_wfs,m_xc_vdw,mrgddb,mrggkk,mrgscr,optic,pawmkaewf,prep_calc_ucrpa
-!!      qmc_prep_ctqmc,testkgrid,vdw_kernelgen,vtorho,wrtout
+!!      abinit,anaddb,bsepostproc,cut3d,defs_scalapack,dfpt_write_cg,exc_diago
+!!      exc_iterative_diago,fftprof,impurity_solve,m_bands_sym,m_bse_io,m_chi0
+!!      m_errors,m_green,m_header,m_hu,m_io_redirect,m_io_tools,m_matlu
+!!      m_pawrhoij,m_shirley,m_wfs,m_xc_vdw,mrgddb,mrggkk,mrgscr,optic
+!!      pawmkaewf,prep_calc_ucrpa,qmc_prep_ctqmc,testkgrid,vdw_kernelgen,vtorho
+!!      wrtout
 !!
 !! CHILDREN
 !!
@@ -919,6 +919,8 @@ subroutine flush_unit(unit)
 !Local variables-------------------------------
  logical :: isopen
 !************************************************************************
+
+ if (unit == dev_null) return
 
  inquire(unit=unit,opened=isopen)
 

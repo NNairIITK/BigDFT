@@ -26,8 +26,9 @@ module m_atompaw
  use m_errors
  use m_profiling
 
- use m_pawrad, only : pawrad_type, simp_gen, poisson, pawrad_deducer0, bound_deriv, pawrad_ifromr
- use m_pawtab, only : pawtab_type
+ use m_paw_numeric, only : jbessel, solvbes, paw_spline, paw_splint
+ use m_pawrad,      only : pawrad_type, simp_gen, poisson, pawrad_deducer0, bound_deriv, pawrad_ifromr
+ use m_pawtab,      only : pawtab_type
 
  implicit none
 
@@ -90,8 +91,7 @@ CONTAINS
 
 subroutine atompaw_shpfun(ll,mesh,norm,pawtab,shapefunc)
 
- use m_pawrad, only : pawrad_type, simp_gen, poisson, pawrad_deducer0, bound_deriv, pawrad_ifromr
- use m_paw_numeric, only : jbessel, solvbes, paw_spline, paw_splint
+ use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -228,7 +228,7 @@ end subroutine atompaw_shpfun
 
  subroutine atompaw_shapebes(al,ql,ll,rc)
 
- use m_paw_numeric, only : jbessel, solvbes, paw_spline, paw_splint
+ use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -308,7 +308,7 @@ end subroutine atompaw_shapebes
 
  subroutine atompaw_vhnzc(ncore,radmesh_core,vhnzc,znucl)
 
- use m_pawrad, only : pawrad_type, simp_gen, poisson, pawrad_deducer0, bound_deriv, pawrad_ifromr
+ use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -391,8 +391,7 @@ end subroutine atompaw_shapebes
 
  subroutine atompaw_dij0(indlmn,kij,lmnmax,ncore,opt_init,pawtab,radmesh,radmesh_core,radmesh_vloc,vhtnzc,znucl)
 
- use m_paw_numeric, only : jbessel, solvbes, paw_spline, paw_splint
- use m_pawrad, only : pawrad_type, simp_gen, poisson, pawrad_deducer0, bound_deriv, pawrad_ifromr
+ use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -586,8 +585,7 @@ end subroutine atompaw_shapebes
 
  subroutine atompaw_kij(indlmn,kij,lmnmax,ncore,opt_init,opt_vhnzc,pawtab,radmesh,radmesh_core,radmesh_vloc,vhtnzc,znucl)
 
- use m_paw_numeric, only : jbessel, solvbes, paw_spline, paw_splint
- use m_pawrad, only : pawrad_type, simp_gen, poisson, pawrad_deducer0, bound_deriv, pawrad_ifromr
+ use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.

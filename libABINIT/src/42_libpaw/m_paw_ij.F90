@@ -45,9 +45,10 @@ MODULE m_paw_ij
  use m_errors
  use m_profiling
  use m_xmpi
+
  use m_paral_atom, only : get_my_atmtab, free_my_atmtab, get_my_natom
- use m_pawtab,only : pawtab_type
- use m_pawio, only : pawio_print_ij
+ use m_pawtab,     only : pawtab_type
+ use m_pawio,      only : pawio_print_ij
 
  implicit none
 
@@ -170,7 +171,7 @@ MODULE m_paw_ij
 
 !Real (real(dp)) arrays
 
-  real(dp), pointer :: dij(:,:)
+  real(dp), allocatable :: dij(:,:)
    ! dij(cplex_dij*lmn2_size,ndij)
    ! Dij term (non-local operator)
    ! May be complex if cplex_dij=2
@@ -179,66 +180,66 @@ MODULE m_paw_ij
    !  dij(:,:,3) contains Dij^up-dn (only if nspinor=2)
    !  dij(:,:,4) contains Dij^dn-up (only if nspinor=2)
 
-  real(dp), pointer :: dij0(:)
+  real(dp), allocatable :: dij0(:)
    ! dij0(lmn2_size)
    ! Atomic part of Dij (read from PAW dataset)
 
-  real(dp), pointer :: dijexxc(:,:)
+  real(dp), allocatable :: dijexxc(:,:)
    ! dijexxc(cplex_dij*lmn2_size,ndij)
    ! Onsite matrix elements of the Fock operator (Local Exact exchange implementation)
 
-  real(dp), pointer :: dijfock(:,:)
+  real(dp), allocatable :: dijfock(:,:)
    ! dijfock(cplex_dij*lmn2_size,ndij)
    ! Dij_fock term
    ! Contains all contributions to Dij from Fock exchange
    ! Same storage as Dij (see above)
 
-  real(dp), pointer :: dijfr(:,:)
+  real(dp), allocatable :: dijfr(:,:)
    ! dijhat(cplex_dij*lmn2_size,ndij)
    ! For response function calculation only
    ! RF Frozen part of Dij (depends on q vector but not on 1st-order wave function)
    ! Same storage as Dij (see above)
 
-  real(dp), pointer :: dijhartree(:)
+  real(dp), allocatable :: dijhartree(:)
    ! dijhartree(cplex*lmn2_size)
    ! Dij_hartree term
    ! Contains all contributions to Dij from hartree
    ! Warning: Dimensioned by cplex, not cplex_dij
    ! Same storage as Dij (see above)
 
-  real(dp), pointer :: dijhat(:,:)
+  real(dp), allocatable :: dijhat(:,:)
    ! dijhat(cplex_dij*lmn2_size,ndij)
    ! Dij_hat term (non-local operator) i.e \sum_LM \int_FFT Q_{ij}^{LM} vtrial
    ! Same storage as Dij (see above)
 
-  real(dp), pointer :: dijU(:,:)
+  real(dp), allocatable :: dijU(:,:)
    ! dijU(cplex_dij*lmn2_size,ndij)
    ! Onsite matrix elements of the U part of the PAW Hamiltonian.
    ! Same storage as Dij (see above)
 
-  real(dp), pointer :: dijso(:,:)
+  real(dp), allocatable :: dijso(:,:)
    ! dijso(cplex_dij*lmn2_size,ndij)
    ! Onsite matrix elements of L.S i.e <phi_i|L.S|phi_j>
    ! Same storage as Dij (see above)
 
-  real(dp), pointer :: dijxc(:,:)
+  real(dp), allocatable :: dijxc(:,:)
    ! dijxc(cplex_dij*lmn2_size,ndij)
    ! Onsite matrix elements of vxc i.e
    ! <phi_i|vxc[n1+nc]|phi_j> - <tphi_i|vxc(tn1+nhat+tnc]|tphi_j>
    ! Same storage as Dij (see above)
 
-  real(dp), pointer :: dijxc_hat(:,:)
+  real(dp), allocatable :: dijxc_hat(:,:)
    ! dijxc_hat(cplex_dij*lmn2_size,ndij)
    ! Dij_hat term i.e \sum_LM \int_FFT Q_{ij}^{LM} Vxc
    ! Same storage as Dij (see above)
 
-  real(dp), pointer :: dijxc_val(:,:)
+  real(dp), allocatable :: dijxc_val(:,:)
    ! dijxc_val(cplex_dij*lmn2_size,ndij)
    ! Onsite matrix elements of valence-only vxc i.e
    ! <phi_i|vxc[n1]|phi_j> - <tphi_i|vxc(tn1+nhat]|tphi_j>
    ! Same storage as Dij (see above)
 
-  real(dp), pointer :: noccmmp(:,:,:,:)
+  real(dp), allocatable :: noccmmp(:,:,:,:)
    ! noccmmp(cplex_dij,2*lpawu+1,2*lpawu+1,nocc_nspden)
    ! cplex_dij=1 if collinear
    ! cplex_dij=2 if spin orbit is used
@@ -250,12 +251,12 @@ MODULE m_paw_ij
    !            noccmmp(:,:,4)=   n^{dn,up}_{m,mp}
    ! noccmmp(m,mp,:) is computed from rhoij(klmn) with  m=klmntomn(2)>mp=klmntomn(1)
 
-  real(dp), pointer :: nocctot(:)
+  real(dp), allocatable :: nocctot(:)
    ! nocctot(nspden)
    ! gives trace of occupation matrix for lda+u (computed in pawdenpot)
    ! for each value of ispden (1 or 2)
 
-  real(dp), pointer :: vpawx(:,:,:)
+  real(dp), allocatable :: vpawx(:,:,:)
    ! vpawx(2*lexexch+1,2*lexexch+1,nspden)
    ! exact exchange potential
 
@@ -390,7 +391,6 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
 
   ! === Allocation for total Dij ===
   Paw_ij(iat)%has_dij=0
-  nullify(Paw_ij(iat)%dij)
   if (PRESENT(has_dij)) then
     if (has_dij/=0) then
       Paw_ij(iat)%has_dij=1
@@ -401,7 +401,6 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
 
   ! === Allocation for atomic Dij ===
   Paw_ij(iat)%has_dij0=0
-  nullify(Paw_ij(iat)%dij0)
   if (PRESENT(has_dij0)) then
     if (has_dij0/=0) then
       Paw_ij(iat)%has_dij0=1
@@ -412,7 +411,6 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
 
   ! === Allocation for total Dij local exact exchange ===
   Paw_ij(iat)%has_dijexxc=0
-  nullify(Paw_ij(iat)%dijexxc)
   if (PRESENT(has_dijexxc)) then
     if (has_dijexxc/=0.and.Pawtab(itypat)%useexexch>0) then
       Paw_ij(iat)%has_dijexxc=1
@@ -423,7 +421,6 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
 
  ! === Allocation for total Dij_Fock ===
   Paw_ij(iat)%has_dijfock=0
-  nullify(Paw_ij(iat)%dijfock)
   if (PRESENT(has_dijfock)) then
     if (has_dijfock/=0) then
       Paw_ij(iat)%has_dijfock=1
@@ -434,7 +431,6 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
 
   ! === Allocation for frozen part of 1st-order Dij ===
   Paw_ij(iat)%has_dijfr=0
-  nullify(Paw_ij(iat)%dijfr)
   if (PRESENT(has_dijfr)) then
     if (has_dijfr/=0) then
       Paw_ij(iat)%has_dijfr=1
@@ -445,7 +441,6 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
 
   ! === Allocation for total Dij_Hartree ===
   Paw_ij(iat)%has_dijhartree=0
-  nullify(Paw_ij(iat)%dijhartree)
   if (PRESENT(has_dijhartree)) then
     if (has_dijhartree/=0) then
       Paw_ij(iat)%has_dijhartree=1
@@ -456,7 +451,6 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
 
   ! === Allocation for total Dij_hat ===
   Paw_ij(iat)%has_dijhat=0
-  nullify(Paw_ij(iat)%dijhat)
   if (PRESENT(has_dijhat)) then
     if (has_dijhat/=0) then
       Paw_ij(iat)%has_dijhat=1
@@ -467,7 +461,6 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
 
   ! === Allocation for total Dij_SO ===
   Paw_ij(iat)%has_dijso=0
-  nullify(Paw_ij(iat)%dijso)
   if (PRESENT(has_dijso)) then
     if (has_dijso/=0.and.pawspnorb>0) then
       Paw_ij(iat)%has_dijso=1
@@ -478,7 +471,6 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
 
   ! === Allocation for total Dij_U_val ===
   Paw_ij(iat)%has_dijU=0
-  nullify(Paw_ij(iat)%dijU)
   if (PRESENT(has_dijU)) then
     if (has_dijU/=0.and.Pawtab(itypat)%usepawu>0) then
       Paw_ij(iat)%has_dijU=1
@@ -489,7 +481,6 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
 
   ! === Allocation for total Dij_XC ===
   Paw_ij(iat)%has_dijxc=0
-  nullify(Paw_ij(iat)%dijxc)
   if (PRESENT(has_dijxc)) then
     if (has_dijxc/=0) then
       Paw_ij(iat)%has_dijxc=1
@@ -500,7 +491,6 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
 
   ! === Allocation for total Dij_XC_hat ===
   Paw_ij(iat)%has_dijxc_hat=0
-  nullify(Paw_ij(iat)%dijxc_hat)
   if (PRESENT(has_dijxc_hat)) then
     if (has_dijxc_hat/=0) then
       Paw_ij(iat)%has_dijxc_hat=1
@@ -511,7 +501,6 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
 
   ! === Allocation for total Dij_XC_val ===
   Paw_ij(iat)%has_dijxc_val=0
-  nullify(Paw_ij(iat)%dijxc_val)
   if (PRESENT(has_dijxc_val)) then
     if (has_dijxc_val/=0) then
       Paw_ij(iat)%has_dijxc_val=1
@@ -522,8 +511,6 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
 
   ! === Allocation for PAW+U occupations ===
   Paw_ij(iat)%has_pawu_occ=0
-  nullify(Paw_ij(iat)%noccmmp)
-  nullify(Paw_ij(iat)%nocctot)
   if (PRESENT(has_pawu_occ)) then
     if (has_pawu_occ/=0.and.Pawtab(itypat)%usepawu>0) then
       Paw_ij(iat)%has_pawu_occ=1
@@ -536,7 +523,6 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
 
   ! === Allocation for PAW+LEXX potential ===
   Paw_ij(iat)%has_exexch_pot=0
-  nullify(Paw_ij(iat)%vpawx)
   if (PRESENT(has_exexch_pot)) then
     if (has_exexch_pot/=0.and.Pawtab(itypat)%useexexch>0) then
       Paw_ij(iat)%has_exexch_pot=1
@@ -602,49 +588,49 @@ subroutine paw_ij_destroy(Paw_ij)
 
  natom=SIZE(Paw_ij);if (natom==0) return
  do iat=1,natom
-  if (associated(Paw_ij(iat)%dij       ))  then
+  if (allocated(Paw_ij(iat)%dij       ))  then
     ABI_DEALLOCATE(Paw_ij(iat)%dij)
   end if
-  if (associated(Paw_ij(iat)%dij0      ))  then
+  if (allocated(Paw_ij(iat)%dij0      ))  then
     ABI_DEALLOCATE(Paw_ij(iat)%dij0)
   end if
-  if (associated(Paw_ij(iat)%dijexxc   ))  then
+  if (allocated(Paw_ij(iat)%dijexxc   ))  then
     ABI_DEALLOCATE(Paw_ij(iat)%dijexxc)
   end if
-  if (associated(Paw_ij(iat)%dijfock   ))  then
+  if (allocated(Paw_ij(iat)%dijfock   ))  then
     ABI_DEALLOCATE(Paw_ij(iat)%dijfock)
   end if
-  if (associated(Paw_ij(iat)%dijfr     ))  then
+  if (allocated(Paw_ij(iat)%dijfr     ))  then
     ABI_DEALLOCATE(Paw_ij(iat)%dijfr)
   end if
-  if (associated(Paw_ij(iat)%dijhartree))  then
+  if (allocated(Paw_ij(iat)%dijhartree))  then
     ABI_DEALLOCATE(Paw_ij(iat)%dijhartree)
   end if
-  if (associated(Paw_ij(iat)%dijhat    ))  then
+  if (allocated(Paw_ij(iat)%dijhat    ))  then
     ABI_DEALLOCATE(Paw_ij(iat)%dijhat)
   end if
-  if (associated(Paw_ij(iat)%dijU      ))  then
+  if (allocated(Paw_ij(iat)%dijU      ))  then
     ABI_DEALLOCATE(Paw_ij(iat)%dijU)
   end if
-  if (associated(Paw_ij(iat)%dijso     ))  then
+  if (allocated(Paw_ij(iat)%dijso     ))  then
     ABI_DEALLOCATE(Paw_ij(iat)%dijso)
   end if
-  if (associated(Paw_ij(iat)%dijxc     ))  then
+  if (allocated(Paw_ij(iat)%dijxc     ))  then
     ABI_DEALLOCATE(Paw_ij(iat)%dijxc)
   end if
-  if (associated(Paw_ij(iat)%dijxc_hat ))  then
+  if (allocated(Paw_ij(iat)%dijxc_hat ))  then
     ABI_DEALLOCATE(Paw_ij(iat)%dijxc_hat)
   end if
-  if (associated(Paw_ij(iat)%dijxc_val ))  then
+  if (allocated(Paw_ij(iat)%dijxc_val ))  then
     ABI_DEALLOCATE(Paw_ij(iat)%dijxc_val)
   end if
-  if (associated(Paw_ij(iat)%noccmmp   ))  then
+  if (allocated(Paw_ij(iat)%noccmmp   ))  then
     ABI_DEALLOCATE(Paw_ij(iat)%noccmmp)
   end if
-  if (associated(Paw_ij(iat)%nocctot   ))  then
+  if (allocated(Paw_ij(iat)%nocctot   ))  then
     ABI_DEALLOCATE(Paw_ij(iat)%nocctot)
   end if
-  if (associated(Paw_ij(iat)%vpawx     ))  then
+  if (allocated(Paw_ij(iat)%vpawx     ))  then
     ABI_DEALLOCATE(Paw_ij(iat)%vpawx)
   end if
 
@@ -712,24 +698,13 @@ subroutine paw_ij_nullify(Paw_ij)
 
  !@Paw_ij_type
 
+ ! MGPAW: This one could be removed/renamed, 
+ ! variables can be initialized in the datatype declaration
+ ! Do we need to expose this in the public API?
+
  natom=SIZE(Paw_ij(:));if (natom==0) return
 
  do iat=1,natom
-  nullify(Paw_ij(iat)%dij       )
-  nullify(Paw_ij(iat)%dij0      )
-  nullify(Paw_ij(iat)%dijexxc   )
-  nullify(Paw_ij(iat)%dijfock   )
-  nullify(Paw_ij(iat)%dijfr     )
-  nullify(Paw_ij(iat)%dijhartree)
-  nullify(Paw_ij(iat)%dijhat    )
-  nullify(Paw_ij(iat)%dijU      )
-  nullify(Paw_ij(iat)%dijso     )
-  nullify(Paw_ij(iat)%dijxc     )
-  nullify(Paw_ij(iat)%dijxc_hat )
-  nullify(Paw_ij(iat)%dijxc_val )
-  nullify(Paw_ij(iat)%noccmmp   )
-  nullify(Paw_ij(iat)%nocctot   )
-  nullify(Paw_ij(iat)%vpawx     )
 
   ! === Set all has_* flags to zero ===
   Paw_ij(iat)%has_dij       =0
@@ -1041,7 +1016,7 @@ subroutine paw_ij_print(Paw_ij,unit,pawprtvol,pawspnorb,mode_paral,enunit,ipert,
  character(len=4),optional,intent(in) :: mode_paral
 !arrays
  integer,optional,target,intent(in) :: mpi_atmtab(:)
- type(Paw_ij_type),intent(in) :: Paw_ij(:)
+ type(Paw_ij_type),target,intent(in) :: Paw_ij(:)
 
 !Local variables-------------------------------
  character(len=7),parameter :: dspin(6)=(/"up     ","down   ","up-up  ","dwn-dwn","up-dwn ","dwn-up "/)
@@ -1052,7 +1027,7 @@ subroutine paw_ij_print(Paw_ij,unit,pawprtvol,pawspnorb,mode_paral,enunit,ipert,
  character(len=4) :: my_mode
  character(len=2000) :: msg
 !arrays
- integer,allocatable :: idum(:)
+ integer :: idum(0)
  integer,pointer :: my_atmtab(:)
  real(dp),allocatable :: dijsym(:)
  real(dp),pointer :: dij2p(:),dij2p_(:)
@@ -1628,7 +1603,7 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,mpi_comm_atom)
          ABI_ALLOCATE(paw_ij_gathered(iat)%nocctot,(ndij))
          if (paw_ij_gathered(iat)%has_pawu_occ==2) then
            paw_ij_gathered(iat)%nocctot(:)=paw_ij_in(iat)%nocctot(:)
-           if (associated(paw_ij_in(iat)%noccmmp)) then
+           if (allocated(paw_ij_in(iat)%noccmmp)) then
              sz1=size(paw_ij_in(iat)%noccmmp,1);sz2=size(paw_ij_in(iat)%noccmmp,2)
              sz3=size(paw_ij_in(iat)%noccmmp,3);sz4=size(paw_ij_in(iat)%noccmmp,4)
              ABI_ALLOCATE(paw_ij_gathered(iat)%noccmmp,(sz1,sz2,sz3,sz4))
@@ -1848,10 +1823,10 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,mpi_comm_atom)
 
 !Communicate
  if (master==-1) then
-   call xallgatherv_mpi(buf_int,buf_int_size,buf_dp,buf_dp_size, &
+   call xmpi_allgatherv(buf_int,buf_int_size,buf_dp,buf_dp_size, &
 &  buf_int_all,buf_int_size_all,buf_dp_all,buf_dp_size_all,mpi_comm_atom,ierr)
  else
-   call xgatherv_mpi(buf_int,buf_int_size,buf_dp,buf_dp_size, &
+   call xmpi_gatherv(buf_int,buf_int_size,buf_dp,buf_dp_size, &
 &  buf_int_all,buf_int_size_all,buf_dp_all,buf_dp_size_all,master,mpi_comm_atom,ierr)
  end if
 
@@ -2304,13 +2279,13 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
            buf_dps=>tab_buf_dp(imsg_current)%value
            my_tag=200
            ireq=ireq+1
-           call xisend_mpi(buf_size,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
+           call xmpi_isend(buf_size,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
            my_tag=201
            ireq=ireq+1
-           call xisend_mpi(buf_ints,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
+           call xmpi_isend(buf_ints,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
            my_tag=202
            ireq=ireq+1
-           call xisend_mpi(buf_dps,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
+           call xmpi_isend(buf_dps,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
            nbsendreq=ireq
            nbsent=0
          end if
@@ -2342,7 +2317,7 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
        my_tag=200
        call xmpi_iprobe(iproc_send,my_tag,mpi_comm_in,flag,ierr)
        if (flag) then
-         call xirecv_mpi(buf_size,iproc_send,my_tag,mpi_comm_in,request1(1),ierr)
+         call xmpi_irecv(buf_size,iproc_send,my_tag,mpi_comm_in,request1(1),ierr)
          call xmpi_wait(request1(1),ierr)
          nb_int=buf_size(1)
          nb_dp=buf_size(2)
@@ -2350,9 +2325,9 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
          ABI_ALLOCATE(buf_int1,(nb_int))
          ABI_ALLOCATE(buf_dp1,(nb_dp))
          my_tag=201
-         call xirecv_mpi(buf_int1,iproc_send,my_tag,mpi_comm_in,request1(2),ierr)
+         call xmpi_irecv(buf_int1,iproc_send,my_tag,mpi_comm_in,request1(2),ierr)
          my_tag=202
-         call xirecv_mpi(buf_dp1,iproc_send,my_tag,mpi_comm_in,request1(3),ierr)
+         call xmpi_irecv(buf_dp1,iproc_send,my_tag,mpi_comm_in,request1(3),ierr)
          call xmpi_waitall(request1(2:3),ierr)
          call paw_ij_isendreceive_getbuffer(paw_ij_out1,npaw_ij_sent,atm_indx_out,buf_int1,buf_dp1)
   !      Remove i1 of the array from
@@ -2525,7 +2500,7 @@ end subroutine paw_ij_reset_flags
 !!  paw_ij= output datastructure filled with buffers receive in a receive operation
 !!
 !! PARENTS
-!!  paw_ij_redistribute
+!!      m_paw_ij
 !!
 !! CHILDREN
 !!
@@ -2757,7 +2732,7 @@ end subroutine paw_ij_isendreceive_getbuffer
 !!  buf_dp_size= size of buffer of double precision numbers
 !!
 !! PARENTS
-!!  paw_ij_redistribute
+!!      m_paw_ij
 !!
 !! CHILDREN
 !!

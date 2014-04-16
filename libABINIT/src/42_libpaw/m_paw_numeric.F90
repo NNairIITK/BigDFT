@@ -68,7 +68,8 @@ CONTAINS
 !!    Work space, real(dp) DIAG(N) - should be removed ...
 !!
 !! PARENTS
-!!      m_atompaw,m_gaussfit,m_paw_pwaves_lmn,m_paw_pwij,m_pawpsp
+!!      eltfrxc3,m_atompaw,m_gaussfit,m_paw_pwaves_lmn,m_paw_pwij,m_pawpsp
+!!      m_pawxmlps
 !!
 !! CHILDREN
 !!      jbessel
@@ -247,6 +248,7 @@ end subroutine paw_spline
 !!
 !! PARENTS
 !!      m_atompaw,m_gaussfit,m_paw_finegrid,m_paw_pwaves_lmn,m_pawpsp
+!!      m_pawxmlps
 !!
 !! CHILDREN
 !!      jbessel
@@ -373,6 +375,7 @@ subroutine paw_smooth(a,mesh,it)
 
  DBG_ENTER("COLL")
 
+ asm(1:4) = zero ! ?? Correct me ...
  do k=1,it
    asm(5)=0.2_dp*(a(3)+a(4)+a(5)+a(6)+a(7))
    asm(mesh-4)=0.2_dp*(a(mesh-2)+a(mesh-3)+a(mesh-4)+&

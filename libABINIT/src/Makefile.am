@@ -14,24 +14,24 @@ EXTRA_DIST = 72_geomoptim/isokinetic.F90 \
 	72_geomoptim/others.F90 \
 	72_geomoptim/quenched.F90 \
 	72_geomoptim/velocity_verlet.F90 \
-	xallgather_mpi.finc \
-	xallgatherv_mpi.finc \
-	xalltoall_mpi.finc \
-	xalltoallv_mpi.finc \
-	xcast_mpi.finc \
-	xexch_mpi.finc \
-	xgather_mpi.finc \
-	xgatherv_mpi.finc \
-	xirecv_mpi.finc \
-	xisend_mpi.finc \
-	xmax_mpi.finc \
-	xmin_mpi.finc \
-	xmpi_ialltoall.finc \
-	xrecv_mpi.finc \
-	xscatterv_mpi.finc \
-	xsend_mpi.finc \
-	xsum_master.finc \
-	xsum_mpi.finc
+	12_hide_mpi/xallgather_mpi.finc \
+	12_hide_mpi/xalltoall_mpi.finc \
+	12_hide_mpi/xmpi_allgatherv.finc \
+	12_hide_mpi/xmpi_alltoallv.finc \
+	12_hide_mpi/xmpi_bcast.finc \
+	12_hide_mpi/xmpi_exch.finc \
+	12_hide_mpi/xmpi_gather.finc \
+	12_hide_mpi/xmpi_gatherv.finc \
+	12_hide_mpi/xmpi_ialltoall.finc \
+	12_hide_mpi/xmpi_irecv.finc \
+	12_hide_mpi/xmpi_isend.finc \
+	12_hide_mpi/xmpi_max.finc \
+	12_hide_mpi/xmpi_min.finc \
+	12_hide_mpi/xmpi_recv.finc \
+	12_hide_mpi/xmpi_scatterv.finc \
+	12_hide_mpi/xmpi_send.finc \
+	12_hide_mpi/xmpi_sum_master.finc \
+	12_hide_mpi/xsum_mpi.finc
 
 lib_LIBRARIES = libabinit.a
 
@@ -156,26 +156,26 @@ libabinit_a_SOURCES = \
 	42_geometry/symspgr.F90 \
 	42_geometry/symzat.F90 \
 	42_geometry/xredxcart.F90 \
-	interfaces_42_libpaw.F90 \
-	m_atompaw.F90 \
-	m_gaussfit.F90 \
-	m_paral_atom.F90 \
-	m_paw_an.F90 \
-	m_pawang.F90 \
-	m_pawcprj.F90 \
-	m_pawdij.F90 \
-	m_pawfgrtab.F90 \
-	m_paw_finegrid.F90 \
-	m_paw_ij.F90 \
-	m_pawio.F90 \
-	m_paw_numeric.F90 \
-	m_pawpsp.F90 \
-	m_pawrad.F90 \
-	m_pawrhoij.F90 \
-	m_pawtab.F90 \
-	m_pawxc.F90 \
-	m_pawxmlps.F90 \
-	m_sphharm.F90 \
+	42_libpaw/interfaces_42_libpaw.F90 \
+	42_libpaw/m_atompaw.F90 \
+	42_libpaw/m_gaussfit.F90 \
+	42_libpaw/m_paral_atom.F90 \
+	42_libpaw/m_paw_an.F90 \
+	42_libpaw/m_pawang.F90 \
+	42_libpaw/m_pawcprj.F90 \
+	42_libpaw/m_pawdij.F90 \
+	42_libpaw/m_pawfgrtab.F90 \
+	42_libpaw/m_paw_finegrid.F90 \
+	42_libpaw/m_paw_ij.F90 \
+	42_libpaw/m_pawio.F90 \
+	42_libpaw/m_paw_numeric.F90 \
+	42_libpaw/m_pawpsp.F90 \
+	42_libpaw/m_pawrad.F90 \
+	42_libpaw/m_pawrhoij.F90 \
+	42_libpaw/m_pawtab.F90 \
+	42_libpaw/m_pawxc.F90 \
+	42_libpaw/m_pawxmlps.F90 \
+	42_libpaw/m_sphharm.F90 \
 	42_geometry/interfaces_42_geometry.F90 \
 	50_abitypes_defs/defs_abitypes.F90 \
 	56_mixing/aprxdr.F90 \

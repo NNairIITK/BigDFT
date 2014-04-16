@@ -1,12 +1,12 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/xgather_mpi
+!!****f* ABINIT/xmpi_gather
 !! NAME
-!!  xgather_mpi
+!!  xmpi_gather
 !!
 !! FUNCTION
 !!  This module contains functions that calls MPI routine,
 !!  if we compile the code using the MPI CPP flags.
-!!  xgather_mpi is the generic function.
+!!  xmpi_gather is the generic function.
 !!
 !! COPYRIGHT
 !!  Copyright (C) 2001-2014 ABINIT group (MT)
@@ -18,9 +18,9 @@
 
 !!***
 
-!!****f* ABINIT/xgather_mpi_int
+!!****f* ABINIT/xmpi_gather_int
 !! NAME
-!!  xgather_mpi_int
+!!  xmpi_gather_int
 !!
 !! FUNCTION
 !!  Gathers data from all tasks and delivers it to all.
@@ -45,7 +45,7 @@
 !!      mpi_gather
 !!
 !! SOURCE
-subroutine xgather_mpi_int(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
+subroutine xmpi_gather_int(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
 
 
  use defs_basis
@@ -53,7 +53,7 @@ subroutine xgather_mpi_int(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xgather_mpi_int'
+#define ABI_FUNC 'xmpi_gather_int'
 !End of the abilint section
 
  implicit none
@@ -79,12 +79,12 @@ subroutine xgather_mpi_int(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
 #else
  recvbuf=xval
 #endif
-end subroutine xgather_mpi_int
+end subroutine xmpi_gather_int
 !!***
 
-!!****f* ABINIT/xgather_mpi_int2d
+!!****f* ABINIT/xmpi_gather_int2d
 !! NAME
-!!  xgather_mpi_int2d
+!!  xmpi_gather_int2d
 !!
 !! FUNCTION
 !!  Gathers data from all tasks and delivers it to all.
@@ -109,7 +109,7 @@ end subroutine xgather_mpi_int
 !!      mpi_gather
 !!
 !! SOURCE
-subroutine xgather_mpi_int2d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
+subroutine xmpi_gather_int2d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
 
 
  use defs_basis
@@ -117,7 +117,7 @@ subroutine xgather_mpi_int2d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xgather_mpi_int2d'
+#define ABI_FUNC 'xmpi_gather_int2d'
 !End of the abilint section
 
  implicit none
@@ -143,12 +143,12 @@ subroutine xgather_mpi_int2d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier
 #else
  recvbuf=xval
 #endif
-end subroutine xgather_mpi_int2d
+end subroutine xmpi_gather_int2d
 !!***
 
-!!****f* ABINIT/xgather_mpi_dp
+!!****f* ABINIT/xmpi_gather_dp
 !! NAME
-!!  xgather_mpi_dp
+!!  xmpi_gather_dp
 !!
 !! FUNCTION
 !!  Gathers data from all tasks and delivers it to all.
@@ -173,7 +173,7 @@ end subroutine xgather_mpi_int2d
 !!      mpi_gather
 !!
 !! SOURCE
-subroutine xgather_mpi_dp(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
+subroutine xmpi_gather_dp(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
 
 
  use defs_basis
@@ -181,7 +181,7 @@ subroutine xgather_mpi_dp(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xgather_mpi_dp'
+#define ABI_FUNC 'xmpi_gather_dp'
 !End of the abilint section
 
  implicit none
@@ -209,12 +209,12 @@ subroutine xgather_mpi_dp(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
 #else
  recvbuf=xval
 #endif
-end subroutine xgather_mpi_dp
+end subroutine xmpi_gather_dp
 !!***
 
-!!****f* ABINIT/xgather_mpi_dp2d
+!!****f* ABINIT/xmpi_gather_dp2d
 !! NAME
-!!  xgather_mpi_dp2d
+!!  xmpi_gather_dp2d
 !!
 !! FUNCTION
 !!  Gathers data from all tasks and delivers it to all.
@@ -239,7 +239,7 @@ end subroutine xgather_mpi_dp
 !!      mpi_gather
 !!
 !! SOURCE
-subroutine xgather_mpi_dp2d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
+subroutine xmpi_gather_dp2d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
 
 
  use defs_basis
@@ -247,7 +247,7 @@ subroutine xgather_mpi_dp2d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xgather_mpi_dp2d'
+#define ABI_FUNC 'xmpi_gather_dp2d'
 !End of the abilint section
 
  implicit none
@@ -274,12 +274,12 @@ subroutine xgather_mpi_dp2d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
 #else
  recvbuf=xval
 #endif
-end subroutine xgather_mpi_dp2d
+end subroutine xmpi_gather_dp2d
 !!***
 
-!!****f* ABINIT/xgather_mpi_dp3d
+!!****f* ABINIT/xmpi_gather_dp3d
 !! NAME
-!!  xgather_mpi_dp3d
+!!  xmpi_gather_dp3d
 !!
 !! FUNCTION
 !!  Gathers data from all tasks and delivers it to all.
@@ -304,7 +304,7 @@ end subroutine xgather_mpi_dp2d
 !!      mpi_gather
 !!
 !! SOURCE
-subroutine xgather_mpi_dp3d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
+subroutine xmpi_gather_dp3d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
 
 
  use defs_basis
@@ -312,7 +312,7 @@ subroutine xgather_mpi_dp3d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xgather_mpi_dp3d'
+#define ABI_FUNC 'xmpi_gather_dp3d'
 !End of the abilint section
 
  implicit none
@@ -339,12 +339,12 @@ subroutine xgather_mpi_dp3d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
 #else
  recvbuf=xval
 #endif
-end subroutine xgather_mpi_dp3d
+end subroutine xmpi_gather_dp3d
 !!***
 
-!!****f* ABINIT/xgather_mpi_dp4d
+!!****f* ABINIT/xmpi_gather_dp4d
 !! NAME
-!!  xgather_mpi_dp4d
+!!  xmpi_gather_dp4d
 !!
 !! FUNCTION
 !!  Gathers data from all tasks and delivers it to all.
@@ -369,7 +369,7 @@ end subroutine xgather_mpi_dp3d
 !!      mpi_gather
 !!
 !! SOURCE
-subroutine xgather_mpi_dp4d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
+subroutine xmpi_gather_dp4d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
 
 
  use defs_basis
@@ -377,7 +377,7 @@ subroutine xgather_mpi_dp4d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xgather_mpi_dp4d'
+#define ABI_FUNC 'xmpi_gather_dp4d'
 !End of the abilint section
 
  implicit none
@@ -406,5 +406,5 @@ subroutine xgather_mpi_dp4d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
  recvbuf=xval
 #endif
 
-end subroutine xgather_mpi_dp4d
+end subroutine xmpi_gather_dp4d
 !!***

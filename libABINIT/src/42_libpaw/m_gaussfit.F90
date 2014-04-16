@@ -25,8 +25,10 @@ module m_gaussfit
  use defs_basis
  use m_profiling
  use m_errors
+ use m_xmpi
 
- use m_pawrad, only : pawrad_type, pawrad_init, pawrad_deducer0, pawrad_destroy
+ use m_paw_numeric, only: paw_splint, paw_spline
+ use m_pawrad,      only : pawrad_type, pawrad_init, pawrad_deducer0, pawrad_destroy
 
  implicit none
 
@@ -121,8 +123,7 @@ CONTAINS
 
  subroutine gaussfit_main(mparam,nparam_out,nterm_bounds,nr,&
 &param_out,pawrad,option,outfile,rpaw,y,comm_mpi)
-    
- use m_xmpi
+
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -181,7 +182,7 @@ CONTAINS
      call gaussfit_mpi_main(nproc,nterm_bounds,proc_dist)
    end if
 !  send distribution to all processors
-   call xcast_mpi(proc_dist(nterm_bounds(1):nterm_bounds(2)),&
+   call xmpi_bcast(proc_dist(nterm_bounds(1):nterm_bounds(2)),&
 &    master,comm_mpi,ierr)
  end if
 !Set size of chisq treated by each proc
@@ -287,7 +288,7 @@ CONTAINS
      disp(ii)=disp(ii-1)+counts(ii-1)
    end do
 !  communicate all info to master
-   call xgatherv_mpi(send_buf,counts(me+1),recv_buf,&
+   call xmpi_gatherv(send_buf,counts(me+1),recv_buf,&
 &    counts,disp,master,comm_mpi,ierr)
 !  fill in chisq_array with all received info:
    if(master==me) then
@@ -376,15 +377,15 @@ CONTAINS
 
 !communicate
  if(nproc>1) then
-   call xcast_mpi(nparam_out,master,comm_mpi,ierr)
+   call xmpi_bcast(nparam_out,master,comm_mpi,ierr)
    !
-   call xcast_mpi(param_tmp(1:nparam_out),master,comm_mpi,ierr)
+   call xmpi_bcast(param_tmp(1:nparam_out),master,comm_mpi,ierr)
  end if !nproc>1
 
  param_out(:)=param_tmp
 
  if(modify_y) then 
-!   call xscatterv_mpi(y_out,nr,mpi_displ,y_out,nr,0,comm_mpi,ierr)
+!   call xmpi_scatterv(y_out,nr,mpi_displ,y_out,nr,0,comm_mpi,ierr)
    y=y_out !at output modify y for the fitted y
  end if
  
@@ -820,7 +821,6 @@ end subroutine gaussfit_main
 
  subroutine gaussfit_mpi_main(nproc,nterm_bounds,proc_dist)
 
-! use m_special_funcs, only : factorial
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2614,8 +2614,6 @@ end subroutine gaussfit_apply_constrains
 subroutine gaussfit_projector(basis_size,mparam,nparam_array,nterm_bounds,orbitals,param,pawrad,&
 & rpaw,tproj,comm_mpi)
 
- use m_pawrad, only : pawrad_type, pawrad_init, pawrad_deducer0, pawrad_destroy
- use m_paw_numeric, only: paw_splint, paw_spline
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
