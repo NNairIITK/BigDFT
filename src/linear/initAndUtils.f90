@@ -1996,7 +1996,7 @@ subroutine init_sparse_matrix_wrapper(iproc, nproc, orbs, lzd, astruct, input, s
 
   call determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero)
   call determine_sparsity_pattern_distance(orbs, lzd, astruct, input, nnonzero_mult, nonzero_mult)
-  call init_sparse_matrix_new(iproc, nproc, lzd, astruct, orbs, input, nnonzero, nonzero, nnonzero_mult, nonzero_mult, smat)
+  call init_sparse_matrix_new(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, input, nnonzero, nonzero, nnonzero_mult, nonzero_mult, smat)
   call f_free_ptr(nonzero)
   call f_free_ptr(nonzero_mult)
 
