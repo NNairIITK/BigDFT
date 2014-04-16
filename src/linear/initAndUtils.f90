@@ -1480,13 +1480,11 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call check_kernel_cutoff(iproc, tmb%orbs, at, tmb%lzd)
 
      ! Update sparse matrices
-     call init_sparse_matrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, input, &
-          tmb%foe_obj%nseg, tmb%foe_obj%nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
+     call init_sparse_matrix(iproc, nproc, tmb%ham_descr%lzd, at%astruct, tmb%orbs, input, &
           tmb%linmat%ham)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ham)
-     call init_sparse_matrix(iproc, nproc, tmb%lzd, tmb%orbs, input, &
-          tmb%foe_obj%nseg, tmb%foe_obj%nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
+     call init_sparse_matrix(iproc, nproc, tmb%lzd, at%astruct, tmb%orbs, input, &
           tmb%linmat%ovrlp)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ovrlp)
