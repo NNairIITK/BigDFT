@@ -11,6 +11,7 @@ module sparsematrix
   public :: check_matrix_compression
   public :: transform_sparse_matrix
   public :: compress_matrix_distributed
+  public :: uncompress_matrix_distributed
 
   contains
 
@@ -374,8 +375,6 @@ module sparsematrix
 
    subroutine compress_matrix_distributed(iproc, smat, matrixp, matrix_compr)
      use module_base
-     use module_types
-     use sparsematrix_base, only: sparse_matrix
      implicit none
 
      ! Calling arguments
@@ -417,5 +416,48 @@ module sparsematrix
      call mpiallred(matrix_compr(1), smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
   end subroutine compress_matrix_distributed
+
+
+  subroutine uncompress_matrix_distributed(iproc, smat, matrix_compr, matrixp)
+    use module_base
+    implicit none
+
+    ! Calling arguments
+    integer,intent(in) :: iproc
+    type(sparse_matrix),intent(in) :: smat
+    real(kind=8),dimension(smat%nvctr),intent(in) :: matrix_compr
+    real(kind=8),dimension(smat%nfvctr,smat%nfvctrp),intent(out) :: matrixp
+
+    ! Local variables
+    integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb
+
+
+       if (smat%nfvctrp>0) then
+
+           call to_zero(smat%nfvctr*smat%nfvctrp,matrixp(1,1))
+
+           isegstart=smat%istsegline(smat%isfvctr_par(iproc)+1)
+           if (smat%isfvctr_par(iproc)+smat%nfvctrp<smat%nfvctr) then
+               isegend=smat%istsegline(smat%isfvctr_par(iproc+1)+1)-1
+           else
+               isegend=smat%nseg
+           end if
+           !$omp parallel do default(private) &
+           !$omp shared(isegstart, isegend, smat, matrixp, matrix_compr, iproc)
+           do iseg=isegstart,isegend
+               ii=smat%keyv(iseg)-1
+               do jorb=smat%keyg(1,iseg),smat%keyg(2,iseg)
+                   ii=ii+1
+                   iiorb = (jorb-1)/smat%nfvctr + 1
+                   jjorb = jorb - (iiorb-1)*smat%nfvctr
+                   matrixp(jjorb,iiorb-smat%isfvctr_par(iproc)) = matrix_compr(ii)
+               end do
+           end do
+           !$omp end parallel do
+       end if
+
+   end subroutine uncompress_matrix_distributed
+
+
 
 end module sparsematrix

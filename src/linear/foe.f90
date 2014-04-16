@@ -17,7 +17,8 @@ subroutine foe(iproc, nproc, tmprtr, &
   use module_interfaces, except_this_one => foe
   use yaml_output
   use sparsematrix_init, only: matrixindex_in_compressed
-  use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed
+  use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, &
+                          uncompress_matrix_distributed
   implicit none
 
   ! Calling arguments
@@ -1222,8 +1223,8 @@ subroutine foe(iproc, nproc, tmprtr, &
           call sequential_acces_matrix_fast(tmb%linmat%inv_ovrlp_large%smmm%nseq, &
                tmb%linmat%inv_ovrlp_large%nvctr, tmb%linmat%inv_ovrlp_large%smmm%indices_extract_sequential, &
                tmb%linmat%inv_ovrlp_large%matrix_compr, inv_ovrlp_compr_seq)
-          call extract_matrix_distributed(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb_par, &
-               tmb%linmat%inv_ovrlp_large, tmb%linmat%inv_ovrlp_large%matrix_compr, inv_ovrlpp)
+          call uncompress_matrix_distributed(iproc, tmb%linmat%inv_ovrlp_large, &
+               tmb%linmat%inv_ovrlp_large%matrix_compr, inv_ovrlpp)
 
            tempp=0.d0
           call sparsemm(tmb%linmat%denskern_large%smmm%nseq, kernel_compr_seq, inv_ovrlpp, tempp, &
