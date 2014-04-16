@@ -44,8 +44,8 @@ LIBXC_DEFS =
 endif
 
 # Special treatment for libpaw
-# Deactivate temporarily libXC in libpaw
-LIBPAW_DEFS = -DHAVE_DFT_BIGDFT -UHAVE_DFT_LIBXC
+# Deactivate temporarily some mandatory code sections
+LIBPAW_DEFS = -UHAVE_DFT_BIGDFT -UHAVE_DFT_LIBXC
 
 # Force HAVE_MPI and HAVE_MPI1.
 # Don't use the HAVE_CONFIG_H
