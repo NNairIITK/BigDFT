@@ -4331,6 +4331,41 @@ module module_interfaces
           integer,intent(in) :: meth_overlap
         end subroutine loewdin_charge_analysis
 
+        subroutine init_sparse_matrix_wrapper(iproc, nproc, orbs, lzd, astruct, input, smat)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc
+          type(orbitals_data),intent(in) :: orbs
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(atomic_structure),intent(in) :: astruct
+          type(input_variables),intent(in) :: input
+          type(sparse_matrix), intent(out) :: smat
+        end subroutine init_sparse_matrix_wrapper
+
+        subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc
+          type(orbitals_data),intent(in) :: orbs
+          type(local_zone_descriptors),intent(in) :: lzd
+          integer,intent(out) :: nnonzero
+          integer,dimension(:),pointer,intent(out) :: nonzero
+        end subroutine determine_sparsity_pattern
+
+        subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, input, nnonzero, nonzero)
+          use module_base
+          use module_types
+          implicit none
+          type(orbitals_data),intent(in) :: orbs
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(atomic_structure),intent(in) :: astruct
+          type(input_variables),intent(in) :: input
+          integer,intent(out) :: nnonzero
+          integer,dimension(:),pointer,intent(out) :: nonzero
+        end subroutine determine_sparsity_pattern_distance
+
   
   end interface
 END MODULE module_interfaces
