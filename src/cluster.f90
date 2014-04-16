@@ -481,18 +481,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,in, atoms, rxyz, .false.)
 
      call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%ham_descr%lzd, atoms%astruct, in, tmb%linmat%ham)
-     !!call determine_sparsity_pattern(iproc, nproc, tmb%orbs, tmb%ham_descr%lzd, nnonzero, nonzero)
-     !!call init_sparse_matrix(iproc, nproc, tmb%ham_descr%lzd, atoms%astruct, tmb%orbs, in, &
-     !!     tmb%linmat%ham)
-     !!call f_free_ptr(nonzero)
 
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ham)
 
      call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%lzd, atoms%astruct, in, tmb%linmat%ovrlp)
-     !!call determine_sparsity_pattern(iproc, nproc, tmb%orbs, tmb%lzd, nnonzero, nonzero)
-     !!call init_sparse_matrix(iproc, nproc, tmb%lzd, atoms%astruct, tmb%orbs, in, &
-     !!     tmb%linmat%ovrlp)
 
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ovrlp)
