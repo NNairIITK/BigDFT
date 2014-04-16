@@ -32,8 +32,6 @@ subroutine run_objects_free(runObj, subname)
   type(run_objects), intent(inout) :: runObj
   character(len = *), intent(in) :: subname
 
-  integer :: i_all, i_stat
-
   if (associated(runObj%user_inputs)) then
      call dict_free(runObj%user_inputs)
   end if
@@ -65,8 +63,6 @@ subroutine run_objects_free_container(runObj)
   implicit none
   type(run_objects), intent(inout) :: runObj
 
-  integer :: i_all, i_stat
-
   ! User inputs are always owned by run objects.
   if (associated(runObj%user_inputs)) then
      call dict_free(runObj%user_inputs)
@@ -88,8 +84,6 @@ subroutine run_objects_init_from_files(runObj, radical, posinp)
   type(run_objects), intent(out) :: runObj
   character(len = *), intent(in) :: radical, posinp
 
-  integer(kind = 8) :: dummy
-
   call run_objects_nullify(runObj)
 
   ! Allocate persistent structures.
@@ -107,6 +101,7 @@ subroutine run_objects_init_from_files(runObj, radical, posinp)
      call bigdft_signals_start(runObj%inputs%gmainloop, runObj%inputs%signalTimeout)
   end if
 END SUBROUTINE run_objects_init_from_files
+
 
 subroutine run_objects_update(runObj, dict)
   use module_types

@@ -54,6 +54,7 @@ subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
   end if
 end subroutine bigdft_init
 
+
 subroutine bigdft_mpi_init(ierr)
   use wrapper_mpi, only: wmpi_init_thread,MPI_SUCCESS
   use module_types, only: bigdft_init_errors,bigdft_init_timing_categories
@@ -66,6 +67,7 @@ subroutine bigdft_mpi_init(ierr)
      call bigdft_init_timing_categories()
   end if
 end subroutine bigdft_mpi_init
+
 
 subroutine bigdft_init_mpi_env(mpi_info,mpi_groupsize, ierr)
   use BigDFT_API

@@ -34,7 +34,7 @@ module communications_init
       type(comms_linear),intent(inout) :: collcom
       
       ! Local variables
-      integer :: iorb, iiorb, ilr, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, ierr
+      integer :: iorb, iiorb, ilr, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
       integer :: ipt, nvalp_c, nvalp_f
       real(kind=8),dimension(:,:,:),allocatable :: weight_c, weight_f
       real(kind=8) :: weight_c_tot, weight_f_tot, weightp_c, weightp_f

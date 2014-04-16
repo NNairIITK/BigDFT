@@ -40,12 +40,15 @@ module dictionaries
    interface operator(.index.)
       module procedure find_index
    end interface
+
    interface operator(.item.)
       module procedure item_char,item_dict
    end interface
+
    interface operator(.is.)
       module procedure dict_cont_new_with_value, dict_cont_new_with_dict
    end interface 
+
    interface operator(.in.)
       module procedure key_in_dictionary
    end interface operator(.in.)
@@ -53,6 +56,7 @@ module dictionaries
    interface operator(==)
       module procedure dicts_are_equal
    end interface
+
    interface operator(/=)
       module procedure dicts_are_not_equal
    end interface
@@ -61,6 +65,7 @@ module dictionaries
       module procedure get_value,get_integer,get_real,get_double,get_long,get_lg
       module procedure get_rvec,get_dvec,get_ilvec,get_ivec,get_lvec
    end interface
+
    interface pop
       module procedure pop_dict,pop_item,pop_last
    end interface
@@ -94,8 +99,8 @@ module dictionaries
    public :: operator(.is.),operator(.item.),operator(==),operator(/=),operator(.in.)
    public :: dictionary,max_field_length,dict_get_num
 
-   !header of error handling part
-   !some parameters
+   !> Header of error handling part
+   !! Some parameters
    character(len=*), parameter :: errid='Id'
    character(len=*), parameter :: errmsg='Message'
    character(len=*), parameter :: erract='Action'
@@ -897,7 +902,7 @@ contains
 
 
    !! here the dictionary has to be associated
-   subroutine get_value(val,dict)
+   recursive subroutine get_value(val,dict)
      implicit none
      character(len=*), intent(out) :: val
      type(dictionary), intent(in) :: dict
@@ -935,7 +940,7 @@ contains
      !take value
      val=dict
      !look at conversion
-     read(val,*,iostat=ierror)ival
+     read(val,*,iostat=ierror) ival
      !is the value existing?
      if (ierror/=0) then
         if (f_err_check(err_id=DICT_VALUE_ABSENT))then
@@ -947,7 +952,7 @@ contains
    end subroutine get_integer
 
    !> Set and get routines for different types
-   subroutine get_long(ival,dict)
+   recursive subroutine get_long(ival,dict)
      implicit none
      integer(kind=8), intent(out) :: ival
      type(dictionary), intent(in) :: dict
@@ -964,8 +969,8 @@ contains
 
    end subroutine get_long
 
-   !>routine to retrieve an array from a dictionary
-   subroutine get_dvec(arr,dict)
+   !> Routine to retrieve an array from a dictionary
+   recursive subroutine get_dvec(arr,dict)
      use yaml_strings, only: yaml_toa
      implicit none
      double precision, dimension(:), intent(out) :: arr
@@ -975,8 +980,8 @@ contains
      include 'dict_getvec-inc.f90'
    end subroutine get_dvec
 
-   !>routine to retrieve an array from a dictionary
-   subroutine get_rvec(arr,dict)
+   !> Routine to retrieve an array from a dictionary
+   recursive subroutine get_rvec(arr,dict)
      use yaml_strings, only: yaml_toa
      implicit none
      real, dimension(:), intent(out) :: arr
@@ -986,8 +991,8 @@ contains
      include 'dict_getvec-inc.f90'
    end subroutine get_rvec
 
-   !>routine to retrieve an array from a dictionary
-   subroutine get_ivec(arr,dict)
+   !> Routine to retrieve an array from a dictionary
+   recursive subroutine get_ivec(arr,dict)
      use yaml_strings, only: yaml_toa
      implicit none
      integer, dimension(:), intent(out) :: arr
@@ -997,8 +1002,8 @@ contains
      include 'dict_getvec-inc.f90'
    end subroutine get_ivec
 
-   !>routine to retrieve an array from a dictionary
-   subroutine get_ilvec(arr,dict)
+   !> Routine to retrieve an array from a dictionary
+   recursive subroutine get_ilvec(arr,dict)
      use yaml_strings, only: yaml_toa
      implicit none
      integer(kind=8), dimension(:), intent(out) :: arr
@@ -1008,8 +1013,8 @@ contains
      include 'dict_getvec-inc.f90'
    end subroutine get_ilvec
 
-   !>routine to retrieve an array from a dictionary
-   subroutine get_lvec(arr,dict)
+   !> Routine to retrieve an array from a dictionary
+   recursive subroutine get_lvec(arr,dict)
      use yaml_strings, only: yaml_toa
      implicit none
      logical, dimension(:), intent(out) :: arr
@@ -1053,7 +1058,7 @@ contains
 
 
    !> Set and get routines for different types
-   subroutine get_real(rval,dict)
+   recursive subroutine get_real(rval,dict)
      real(kind=4), intent(out) :: rval
      type(dictionary), intent(in) :: dict
      !local variables
@@ -1073,7 +1078,7 @@ contains
 
 
    !> Set and get routines for different types
-   subroutine get_lg(ival,dict)
+   recursive subroutine get_lg(ival,dict)
      logical, intent(out) :: ival
      type(dictionary), intent(in) :: dict
      !local variables
@@ -1094,7 +1099,7 @@ contains
 
 
    !> Set and get routines for different types
-   subroutine get_double(dval,dict)
+   recursive subroutine get_double(dval,dict)
      real(kind=8), intent(out) :: dval
      type(dictionary), intent(in) :: dict
      !local variables

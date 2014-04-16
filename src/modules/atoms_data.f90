@@ -6,6 +6,8 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
 !> Handling of input guess creation from basis of atomic orbitals
 module module_atoms
   use module_defs, only: dp,gp
@@ -416,8 +418,9 @@ module module_atoms
     END SUBROUTINE set_symmetry_data
 
 
-
     ! allocations, and setters
+
+
     !> Read atomic file
     subroutine set_astruct_from_file(file,iproc,astruct,status,comment,energy,fxyz)
       use module_base
@@ -495,8 +498,9 @@ module module_atoms
       if (.not. file_exists) then
          inquire(FILE = file//'.yaml', EXIST = file_exists)
          if (file_exists) then
-            write(filename, "(A)") file//'.yaml'!"posinp.ascii"
+            write(filename, "(A)") file//'.yaml'!"posinp.yaml
             write(astruct%inputfile_format, "(A)") "yaml"
+            ! Pb if toto.yaml because means that there is no key posinp!!
          end if
       end if
       ! Test the name directly
@@ -554,8 +558,8 @@ module module_atoms
          else
             call read_ascii_positions(i_stat,99,astruct,comment_,energy_,fxyz_,archiveGetLine)
          end if
-      else if (astruct%inputfile_format == "yaml") then
-         !read atomic positions
+      else if (astruct%inputfile_format == "yaml" .and. index(file,'posinp') /= 0) then
+         ! Pb if toto.yaml because means that there is already no key posinp in the file toto.yaml!!
          write(*,*) "Atomic input file in YAML not yet supported, call 'set_astruct_from_dict()' instead."
          stop
       end if

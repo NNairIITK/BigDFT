@@ -7,6 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+
 !>  Modules which contains all interfaces to parse input dictionary.
 module module_input_dicts
 
@@ -62,6 +63,7 @@ contains
     end if
   end function file_exists
 
+
   !> Routine to read YAML input files and create input dictionary.
   !! Update the input dictionary with the result of yaml_parse
   subroutine merge_input_file_to_dict(dict, fname, mpi_env)
@@ -69,10 +71,11 @@ contains
     !use yaml_output, only :yaml_map
     use dictionaries
     use yaml_parse, only: yaml_parse_from_char_array
+    use yaml_output
     implicit none
-    type(dictionary), pointer :: dict !<dictionary of the input files. Should be initialized on entry
-    character(len = *), intent(in) :: fname !<name of the file where the dictionaryt has to be read from 
-    type(mpi_environment), intent(in) :: mpi_env !<environment of the reading. Used for broadcasting the result
+    type(dictionary), pointer :: dict            !< Dictionary of the input files. Should be initialized on entry
+    character(len = *), intent(in) :: fname      !< Name of the file where the dictionaryt has to be read from 
+    type(mpi_environment), intent(in) :: mpi_env !< Environment of the reading. Used for broadcasting the result
     !local variables
     integer(kind = 8) :: cbuf, cbuf_len
     integer :: ierr
@@ -104,7 +107,10 @@ contains
     call yaml_parse_from_char_array(udict, fbuf)
     call f_free_str(1,fbuf)
     ! Handle with possible partial dictionary.
-    call dict_update(dict, udict // 0)
+    if (dict_len(udict) > 0) then
+       call dict_update(dict, udict // 0)
+    end if
+
     call dict_free(udict)
     ierr = 0
     if (f_err_check()) ierr = f_get_last_error(val)
@@ -114,6 +120,7 @@ contains
     call f_release_routine()
 
   end subroutine merge_input_file_to_dict
+
 
   subroutine user_dict_from_files(dict,radical,posinp, mpi_env)
     use dictionaries
@@ -129,7 +136,6 @@ contains
     character(len = max_field_length) :: str
 
     nullify(dict)
-
 
     !read the input file(s) and transform them into a dictionary
     call read_input_dict_from_files(trim(radical), mpi_env, dict)
@@ -176,6 +182,7 @@ contains
        end if
     end if
   end subroutine user_dict_from_files
+
 
   subroutine psp_dict_fill_all(dict, atomname, run_ixc)
     use module_defs, only: gp, UNINITIALIZED, bigdft_mpi
@@ -793,8 +800,6 @@ contains
   end subroutine astruct_merge_to_dict
 
 
-
-
   subroutine astruct_file_merge_to_dict(dict, key, filename)
     use module_base, only: gp, UNINITIALIZED, bigdft_mpi,f_routine,f_release_routine
     use module_atoms, only: set_astruct_from_file,atomic_structure,&
@@ -818,6 +823,7 @@ contains
     end if
     call f_release_routine()
   end subroutine astruct_file_merge_to_dict
+
 
   subroutine aocc_to_dict(dict, nspin, noncoll, nstart, aocc, nelecmax, lmax, nsccode)
     use module_defs, only: gp
@@ -963,6 +969,7 @@ contains
     close(unit = 91)
 
   end subroutine atomic_data_file_merge_to_dict
+
 
   subroutine occupation_set_from_dict(dict, key, norbu, norbd, occup, &
        & nkpts, nspin, norbsempty, nelec_up, nelec_down, norb_max)
@@ -1142,6 +1149,7 @@ contains
       end do
     end subroutine fill_for_kpt
   end subroutine occupation_set_from_dict
+
 
   subroutine occupation_data_file_merge_to_dict(dict, key, filename)
     use module_defs, only: gp, UNINITIALIZED
