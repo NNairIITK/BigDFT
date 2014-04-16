@@ -44,7 +44,7 @@ module sparsematrix_init
       logical,dimension(:),allocatable :: lut
       logical,dimension(:,:),allocatable :: kernel_locreg
       logical :: segment_started, newline, overlap, seg_started
-      integer :: nseg_mult
+      integer :: nseg_mult, nvctr_mult
       integer,dimension(:),allocatable :: nsegline_mult, istsegline_mult
       integer,dimension(:,:),allocatable :: keyg_mult
       real(kind=8) :: tt, cut
@@ -59,16 +59,17 @@ module sparsematrix_init
       call determine_overlaps(iproc, nproc, lzd, orbs, 's', noverlaps, overlaps)
 
       nnonzero=0
-      do iorb=1,orbs%norb
-          nnonzero=nnonzero+noverlaps(iorb)
+      do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          nnonzero=nnonzero+noverlaps(iiorb)
       end do
       nonzero = f_malloc(nnonzero,id='nonzero')
       ii=0
-      do iorb=1,orbs%norb
-          do jorb=1,noverlaps(iorb)
+      do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          do jorb=1,noverlaps(iiorb)
               ii=ii+1
-              nonzero(ii)=(iorb-1)*orbs%norb+overlaps(jorb,iorb)
-              write(300,*) nonzero(ii)
+              nonzero(ii)=(iiorb-1)*orbs%norb+overlaps(jorb,iiorb)
           end do
       end do
     
@@ -124,8 +125,6 @@ module sparsematrix_init
           sparsemat%istsegline(jorb)=ist
           ist=ist+sparsemat%nsegline(jorb)
       end do
-
-      write(*,*) 'nseg',sparsemat%nseg
 
     
       if (iproc==0) then
@@ -193,6 +192,7 @@ module sparsematrix_init
           sparsemat%keyv(iseg) = sparsemat%keyv(iseg-1) + sparsemat%keyg(2,iseg-1) - sparsemat%keyg(1,iseg-1) + 1
       end do
     
+      call f_free(nonzero)
 
     
       iall=-product(shape(noverlaps))*kind(noverlaps)
@@ -279,12 +279,68 @@ module sparsematrix_init
       sparsemat%parallel_compression=0
       sparsemat%can_use_dense=.false.
 
+      ! NEW
+      do iorb=1,orbs%norbp
+         iiorb=orbs%isorb+iorb
+         ilr=orbs%inwhichlocreg(iiorb)
+         iwa=orbs%onwhichatom(iiorb)
+         itype=astruct%iatype(iwa)
+         do jjorb=1,orbs%norb
+            jlr=orbs%inwhichlocreg(jjorb)
+            jwa=orbs%onwhichatom(jjorb)
+            jtype=astruct%iatype(jwa)
+            tt = (lzd%llr(ilr)%locregcenter(1)-lzd%llr(jlr)%locregcenter(1))**2 + &
+                 (lzd%llr(ilr)%locregcenter(2)-lzd%llr(jlr)%locregcenter(2))**2 + &
+                 (lzd%llr(ilr)%locregcenter(3)-lzd%llr(jlr)%locregcenter(3))**2
+            cut = input%lin%kernel_cutoff_FOE(itype)+input%lin%kernel_cutoff_FOE(jtype)!+2.d0*incr
+            tt=sqrt(tt)
+            if (tt<=cut) then
+               nnonzero=nnonzero+1
+            end if
+         end do
+      end do
+      !call mpiallred(nnonzero, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      nonzero = f_malloc(nnonzero,id='nonzero')
+
+      ii=0
+      do iorb=1,orbs%norbp
+         iiorb=orbs%isorb+iorb
+         ilr=orbs%inwhichlocreg(iiorb)
+         iwa=orbs%onwhichatom(iiorb)
+         itype=astruct%iatype(iwa)
+         do jjorb=1,orbs%norb
+            jlr=orbs%inwhichlocreg(jjorb)
+            jwa=orbs%onwhichatom(jjorb)
+            jtype=astruct%iatype(jwa)
+            tt = (lzd%llr(ilr)%locregcenter(1)-lzd%llr(jlr)%locregcenter(1))**2 + &
+                 (lzd%llr(ilr)%locregcenter(2)-lzd%llr(jlr)%locregcenter(2))**2 + &
+                 (lzd%llr(ilr)%locregcenter(3)-lzd%llr(jlr)%locregcenter(3))**2
+            cut = input%lin%kernel_cutoff_FOE(itype)+input%lin%kernel_cutoff_FOE(jtype)!+2.d0*incr
+            tt=sqrt(tt)
+            if (tt<=cut) then
+               ii=ii+1
+               nonzero(ii)=(iiorb-1)*orbs%norb+jjorb
+            end if
+         end do
+      end do
+
+      nsegline_mult = f_malloc0(orbs%norb,id='nsegline_mult')
+      istsegline_mult = f_malloc(orbs%norb,id='istsegline_mult')
+      nseg_mult=0
+      nvctr_mult=0
+      do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          call create_lookup_table(iiorb)
+          call nseg_perline(orbs%norb, lut, nseg_mult, nvctr_mult, nsegline_mult(iiorb))
+      end do
+      call mpiallred(nvctr_mult, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(nseg_mult, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(nsegline_mult(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
 
 
       ! Now start the initialization of the sparse matrix matrix multiplication.
       kernel_locreg = f_malloc((/orbs%norbp,orbs%norb/),id='kernel_locreg')
-      nsegline_mult = f_malloc0(orbs%norb,id='nsegline_mult')
-      istsegline_mult = f_malloc(orbs%norb,id='istsegline_mult')
       do iorb=1,orbs%norbp
          iiorb=orbs%isorb+iorb
          ilr=orbs%inwhichlocreg(iiorb)
@@ -303,9 +359,9 @@ module sparsematrix_init
             tt=sqrt(tt)
             if (tt<=cut) then
                kernel_locreg(iorb,jjorb)=.true.
-               if (.not.seg_started) then
-                  nsegline_mult(iiorb)=nsegline_mult(iiorb)+1
-               end if
+               !!if (.not.seg_started) then
+               !!   nsegline_mult(iiorb)=nsegline_mult(iiorb)+1
+               !!end if
                seg_started=.true.
             else
                kernel_locreg(iorb,jjorb)=.false.
@@ -313,11 +369,10 @@ module sparsematrix_init
             end if
          end do
       end do
-      call mpiallred(nsegline_mult(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
 
-      ! Total number of segments
-      nseg_mult = sum(nsegline_mult)
+      !!! Total number of segments
+      !!nseg_mult = sum(nsegline_mult)
 
       ! Initialize istsegline, which gives the first segment of each line
       istsegline_mult(1)=1
@@ -364,6 +419,7 @@ module sparsematrix_init
       call f_free(keyg_mult)
 
       call f_free(lut)
+      call f_free(nonzero)
     
       call timing(iproc,'init_matrCompr','OF')
 
