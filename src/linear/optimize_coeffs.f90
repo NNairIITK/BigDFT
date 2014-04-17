@@ -958,7 +958,7 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
   integer :: itmp, itrials
   integer :: ncount1, ncount_rate, ncount_max, ncount2
   real(kind=4) :: tr0, tr1
-  real(kind=8) :: tel, deviation, time, error, maxerror
+  real(kind=8) :: deviation, time, error, maxerror
 
 
   call f_routine(id='calculate_coeff_gradient')
