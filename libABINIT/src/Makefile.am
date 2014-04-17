@@ -14,9 +14,9 @@ EXTRA_DIST = 72_geomoptim/isokinetic.F90 \
 	72_geomoptim/others.F90 \
 	72_geomoptim/quenched.F90 \
 	72_geomoptim/velocity_verlet.F90 \
-	12_hide_mpi/xallgather_mpi.finc \
-	12_hide_mpi/xalltoall_mpi.finc \
+	12_hide_mpi/xmpi_allgather.finc \
 	12_hide_mpi/xmpi_allgatherv.finc \
+	12_hide_mpi/xmpi_alltoall.finc \
 	12_hide_mpi/xmpi_alltoallv.finc \
 	12_hide_mpi/xmpi_bcast.finc \
 	12_hide_mpi/xmpi_exch.finc \
@@ -30,8 +30,9 @@ EXTRA_DIST = 72_geomoptim/isokinetic.F90 \
 	12_hide_mpi/xmpi_recv.finc \
 	12_hide_mpi/xmpi_scatterv.finc \
 	12_hide_mpi/xmpi_send.finc \
+	12_hide_mpi/xmpi_sum.finc \
 	12_hide_mpi/xmpi_sum_master.finc \
-	12_hide_mpi/xsum_mpi.finc
+	incs/abi_common.h
 
 lib_LIBRARIES = libabinit.a
 

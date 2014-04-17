@@ -232,7 +232,7 @@ subroutine wrtout_myproc(unit,message,mpicomm,do_flush) ! optional argument
  use defs_basis
  use m_profiling
 
- use m_xmpi,      only : xsum_mpi
+ use m_xmpi,      only : xmpi_sum
  use m_io_tools,  only : flush_unit
 
 !This section has been created automatically by the script Abilint (TD).
@@ -269,7 +269,7 @@ subroutine wrtout_myproc(unit,message,mpicomm,do_flush) ! optional argument
 !this can be done by passing mpicomm optional argument to the routine In that case, no printing is done.
  if (present(mpicomm)) then
    buf(1)=iexit;buf(2)=ncomment;buf(3)=nwarning
-   call xsum_mpi(buf,mpicomm,ierr)
+   call xmpi_sum(buf,mpicomm,ierr)
    iexit=buf(1);ncomment=buf(2);nwarning=buf(3)
    if (iexit/=0) iexit=1
    return

@@ -995,7 +995,7 @@ subroutine paw_an_gather(Paw_an_in,paw_an_gathered,master,mpi_comm_atom,mpi_atmt
 
 !Test on sizes
  npaw_an_in_sum=my_natom
- call xsum_mpi(npaw_an_in_sum,mpi_comm_atom,ierr)
+ call xmpi_sum(npaw_an_in_sum,mpi_comm_atom,ierr)
  if (master==-1) then
    if (natom/=npaw_an_in_sum) then
      msg='Wrong sizes sum[npaw_an_in]/=natom !'
@@ -1429,7 +1429,7 @@ subroutine paw_an_redistribute(paw_an,mpi_comm_in,mpi_comm_out,&
  if (present(natom)) then
    natom_tot=natom
  else
-   call xsum_mpi(my_natom_in,natom_tot,mpi_comm_in,ierr)
+   call xmpi_sum(my_natom_in,natom_tot,mpi_comm_in,ierr)
  end if
 
 !Select input distribution

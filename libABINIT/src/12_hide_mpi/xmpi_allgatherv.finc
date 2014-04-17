@@ -216,7 +216,7 @@ subroutine xmpi_allgatherv_int1_dp1(buf_int,buf_int_size,buf_dp,buf_dp_size,&
      ABI_ALLOCATE(disp_dp,(nproc))
      ABI_ALLOCATE(count_size,(2*nproc))
      buf_size(1)=buf_int_size; buf_size(2)=buf_dp_size
-     call xallgather_mpi(buf_size,2,count_size,spaceComm,ier)
+     call xmpi_allgather(buf_size,2,count_size,spaceComm,ier)
      do iproc=1,nproc
        count_int(iproc)=count_size(2*iproc-1)
        count_dp(iproc)=count_size(2*iproc)

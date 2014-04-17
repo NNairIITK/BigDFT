@@ -15,8 +15,6 @@
 !!
 !! PARENTS
 !!
-!! CHILDREN
-!!
 !! TODO
 !!  Get rid of xmpi_paral. Sequential code is the **exception**. Developers should code parallel
 !!  code or code that is compatible both with MPI and seq (thanks to the wrappers provided by this module)
@@ -147,14 +145,17 @@ MODULE m_xmpi
  public :: xmpi_end                   ! Terminate the MPI environment.
  public :: xmpi_abort                 ! Abort all tasks in a group.
  public :: xmpi_show_info             ! Printout of the basic variables stored in this module (useful for debugging).
+ public :: xgroup_free                ! Hides MPI_GROUP_FREE from MPI library.
+ public :: xgroup_incl                ! Hides MPI_GROUP_INCL from MPI library.
+ public :: xmpi_group_translate_ranks ! Hides MPI_GROUP_TRANSLATE_RANKS from MPI library.
+ public :: xcomm_create               ! Hides MPI_COMM_CREATE from MPI library.
  public :: xcomm_rank                 ! The rank of the node inside the communicator.
  public :: xcomm_size                 ! The number of processors inside the communicator.
  public :: xcomm_free                 ! Hides MPI_COMM_FREE from MPI library.
- public :: xgroup_free                ! Hides MPI_GROUP_FREE from MPI library.
- public :: xgroup_incl                ! Hides MPI_GROUP_INCL from MPI library.
- public :: xcomm_create               ! Hides MPI_COMM_CREATE from MPI library.
- public :: xmpi_subcomm               ! Creates a sub-communicator from an input communicator.
  public :: xcomm_group                ! Return the group associated to the communicator.
+ public :: xmpi_comm_translate_ranks  ! Wraps MPI_GROUP_TRANSLATE_RANKS with an easier API.
+ public :: xmpi_comm_split            ! Hides MPI_COMM_SPLIT from MPI library.
+ public :: xmpi_subcomm               ! Creates a sub-communicator from an input communicator.
  public :: xmpi_barrier               ! Hides MPI_BARRIER from MPI library.
  public :: xmpi_name                  ! Return the name of this processor (usually the hostname).
  public :: xmpi_iprobe                ! Hides MPI_IPROBE from MPI library.
@@ -162,10 +163,7 @@ MODULE m_xmpi
  public :: xmpi_waitall               ! Hides MPI_WAITALL from MPI library.
  public :: xmpi_request_free          ! Hides MPI_REQUEST_FREE from MPI library.
  public :: xmpi_comm_set_errhandler   ! Hides MPI_COMM_SET_ERRHANDLER from MPI library.
- public :: xerror_string              ! Return a string describing the error from ierr.
- public :: xmpi_comm_split            ! Hides MPI_COMM_SPLIT from MPI library.
- public :: xmpi_group_translate_ranks ! Hides MPI_GROUP_TRANSLATE_RANKS from MPI library.
- public :: xmpi_comm_translate_ranks  ! Wraps MPI_GROUP_TRANSLATE_RANKS with an easier API.
+ public :: xmpi_error_string          ! Return a string describing the error from ierr.
  public :: xmpi_split_work
  public :: xmpi_distab
 
@@ -196,7 +194,7 @@ MODULE m_xmpi
  end interface xmpi_distab
 
 !MPI generic interfaces.
- public :: xallgather_mpi
+ public :: xmpi_allgather
  public :: xmpi_allgatherv
  public :: xmpi_alltoall
  public :: xmpi_ialltoall
@@ -213,7 +211,7 @@ MODULE m_xmpi
  public :: xmpi_send
  public :: xmpi_isend
  public :: xmpi_sum_master
- public :: xsum_mpi
+ public :: xmpi_sum
 
 #ifdef HAVE_MPI_IO
  public :: xmpio_max_address
@@ -247,15 +245,15 @@ MODULE m_xmpi
 
 !----------------------------------------------------------------------
 
-interface xallgather_mpi
-  module procedure xallgather_mpi_int  
-  module procedure xallgather_mpi_char
-  module procedure xallgather_mpi_int1d
-  module procedure xallgather_mpi_dp1d
-  module procedure xallgather_mpi_dp2d
-  module procedure xallgather_mpi_dp3d
-  module procedure xallgather_mpi_dp4d
-end interface xallgather_mpi
+interface xmpi_allgather
+  module procedure xmpi_allgather_int  
+  module procedure xmpi_allgather_char
+  module procedure xmpi_allgather_int1d
+  module procedure xmpi_allgather_dp1d
+  module procedure xmpi_allgather_dp2d
+  module procedure xmpi_allgather_dp3d
+  module procedure xmpi_allgather_dp4d
+end interface xmpi_allgather
 
 !----------------------------------------------------------------------
 
@@ -467,46 +465,46 @@ end interface xmpi_sum_master
 !   Rationale: The array descriptor is already passed to the routine
 !   so it does not make sense to pass the dimension explicitly.
 
-interface xsum_mpi
-  module procedure xsum_mpi_int
-  module procedure xsum_mpi_intv
-  module procedure xsum_mpi_intv2
-  module procedure xsum_mpi_intn   !?
-  module procedure xsum_mpi_int2t  !?
-  module procedure xsum_mpi_int2d
-  module procedure xsum_mpi_int3d
-  module procedure xsum_mpi_int4d
-  module procedure xsum_mpi_dp
-  module procedure xsum_mpi_dpvt
-  module procedure xsum_mpi_dpv
-  module procedure xsum_mpi_dpn    !?
-  module procedure xsum_mpi_dp2d
-  module procedure xsum_mpi_dp3d
-  module procedure xsum_mpi_dp4d
-  module procedure xsum_mpi_dp5d
-  module procedure xsum_mpi_dp6d
-  module procedure xsum_mpi_dp7d
-  module procedure xsum_mpi_dp2t   !?
-  module procedure xsum_mpi_dp2d2t
-  module procedure xsum_mpi_dp3d2t !?
-  module procedure xsum_mpi_dp4d2t !?
-  module procedure xsum_mpi_c0dc
-  module procedure xsum_mpi_c1dc
-  module procedure xsum_mpi_c2dc
-  module procedure xsum_mpi_c3dc
-  module procedure xsum_mpi_c4dc
-  module procedure xsum_mpi_c5dc
-  module procedure xsum_mpi_c6dc
-  module procedure xsum_mpi_c1cplx
-  module procedure xsum_mpi_c2cplx
-  module procedure xsum_mpi_c3cplx
-  module procedure xsum_mpi_c4cplx
-  module procedure xsum_mpi_c5cplx
-  module procedure xsum_mpi_c6cplx
-  module procedure xsum_mpi_log1d !?  These ones will be renamed with xlor_mpi
-  module procedure xsum_mpi_log2d !?
-  module procedure xsum_mpi_log3d !?
-end interface xsum_mpi
+interface xmpi_sum
+  module procedure xmpi_sum_int
+  module procedure xmpi_sum_intv
+  module procedure xmpi_sum_intv2
+  module procedure xmpi_sum_intn   !?
+  module procedure xmpi_sum_int2t  !?
+  module procedure xmpi_sum_int2d
+  module procedure xmpi_sum_int3d
+  module procedure xmpi_sum_int4d
+  module procedure xmpi_sum_dp
+  module procedure xmpi_sum_dpvt
+  module procedure xmpi_sum_dpv
+  module procedure xmpi_sum_dpn    !?
+  module procedure xmpi_sum_dp2d
+  module procedure xmpi_sum_dp3d
+  module procedure xmpi_sum_dp4d
+  module procedure xmpi_sum_dp5d
+  module procedure xmpi_sum_dp6d
+  module procedure xmpi_sum_dp7d
+  module procedure xmpi_sum_dp2t   !?
+  module procedure xmpi_sum_dp2d2t
+  module procedure xmpi_sum_dp3d2t !?
+  module procedure xmpi_sum_dp4d2t !?
+  module procedure xmpi_sum_c0dc
+  module procedure xmpi_sum_c1dc
+  module procedure xmpi_sum_c2dc
+  module procedure xmpi_sum_c3dc
+  module procedure xmpi_sum_c4dc
+  module procedure xmpi_sum_c5dc
+  module procedure xmpi_sum_c6dc
+  module procedure xmpi_sum_c1cplx
+  module procedure xmpi_sum_c2cplx
+  module procedure xmpi_sum_c3cplx
+  module procedure xmpi_sum_c4cplx
+  module procedure xmpi_sum_c5cplx
+  module procedure xmpi_sum_c6cplx
+  module procedure xmpi_sum_log1d !?  These ones will be renamed with xlor_mpi
+  module procedure xmpi_sum_log2d !?
+  module procedure xmpi_sum_log3d !?
+end interface xmpi_sum
 !!***
 
 !----------------------------------------------------------------------
@@ -2078,9 +2076,9 @@ end subroutine xmpi_request_free
 
 !----------------------------------------------------------------------
 
-!!****f* m_xmpi/xerror_string
+!!****f* m_xmpi/xmpi_error_string
 !! NAME
-!!  xerror_string
+!!  xmpi_error_string
 !!
 !! FUNCTION
 !!  Hides MPI_ERROR_STRING from MPI library.
@@ -2096,13 +2094,13 @@ end subroutine xmpi_request_free
 !!
 !! SOURCE
 
-subroutine xerror_string(mpierr,err_string,ilen,ierror)
+subroutine xmpi_error_string(mpierr,err_string,ilen,ierror)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'xerror_string'
+#define ABI_FUNC 'xmpi_error_string'
 !End of the abilint section
 
  implicit none
@@ -2122,7 +2120,7 @@ subroutine xerror_string(mpierr,err_string,ilen,ierror)
  err_string="Sorry, no MPI_Error_string routine is available to interpret the error message"
 #endif
 
-end subroutine xerror_string
+end subroutine xmpi_error_string
 !!***
 
 !----------------------------------------------------------------------
@@ -2571,11 +2569,11 @@ end subroutine xmpi_distab_4D
 
 ! Include files providing wrappers for some of the most commonly used MPI primitives.
 
-#include "xallgather_mpi.finc"
+#include "xmpi_allgather.finc"
 
 #include "xmpi_allgatherv.finc"
 
-#include "xalltoall_mpi.finc"
+#include "xmpi_alltoall.finc"
 
 #include "xmpi_alltoallv.finc"
 
@@ -2603,7 +2601,7 @@ end subroutine xmpi_distab_4D
 
 #include "xmpi_sum_master.finc"
 
-#include "xsum_mpi.finc"
+#include "xmpi_sum.finc"
 
 !------------------------------------------------------------------------------------
 

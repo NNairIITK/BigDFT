@@ -38,7 +38,7 @@ MODULE m_pawdij
  use m_errors
 
  use m_paral_atom,   only : get_my_atmtab, free_my_atmtab
- use m_xmpi,         only : xcomm_size, xsum_mpi, xmpi_allgatherv, xmpi_self
+ use m_xmpi,         only : xcomm_size, xmpi_sum, xmpi_allgatherv, xmpi_self
  use m_pawio,        only : pawio_print_ij
  use m_pawang,       only : pawang_type
  use m_pawrad,       only : pawrad_type, pawrad_deducer0, simp_gen, nderiv_gen
@@ -1913,7 +1913,7 @@ subroutine pawdijhat(cplex,cplex_dij,dijhat,gprimd,iatom,ipert,mpi_comm_grid,&
 
 !      Reduction in case of parallelism
        if (xcomm_size(mpi_comm_grid)>1) then
-         call xsum_mpi(prod,mpi_comm_grid,ier)
+         call xmpi_sum(prod,mpi_comm_grid,ier)
        end if
 
 !      ----------------------------------------------------------
@@ -3126,7 +3126,7 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
 
 !        --- Reduction in case of parallelization ---
          if (present(mpi_comm_grid)) then
-           call xsum_mpi(intv,mpi_comm_grid,ier)
+           call xmpi_sum(intv,mpi_comm_grid,ier)
          end if
 
          paw_ij1(iatom)%dijfr(:,ispden)=zero
@@ -3294,7 +3294,7 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
 
 !      --- Reduction in case of parallelization ---
        if (present(mpi_comm_grid)) then
-         call xsum_mpi(intv,mpi_comm_grid,ier)
+         call xmpi_sum(intv,mpi_comm_grid,ier)
        end if
        
        paw_ij1(iatom)%dijfr(:,ispden)=zero

@@ -140,7 +140,7 @@ CONTAINS
 !!      wfd_pawrhoij,wfd_vnlpsi,wfkfermi3
 !!
 !! CHILDREN
-!!      xsum_mpi
+!!      xmpi_sum
 !!
 !! SOURCE
 
@@ -225,7 +225,7 @@ end subroutine pawcprj_alloc
 !!      vtowfk,vtowfk3,wfd_pawrhoij,wfd_vnlpsi,wfkfermi3
 !!
 !! CHILDREN
-!!      xsum_mpi
+!!      xmpi_sum
 !!
 !! SOURCE
 
@@ -284,7 +284,7 @@ end subroutine pawcprj_destroy
 !!      suscep_stat
 !!
 !! CHILDREN
-!!      xsum_mpi
+!!      xmpi_sum
 !!
 !! SOURCE
 
@@ -343,7 +343,7 @@ end subroutine pawcprj_nullify
 !!      cgwf3,ctocprj
 !!
 !! CHILDREN
-!!      xsum_mpi
+!!      xmpi_sum
 !!
 !! SOURCE
 
@@ -411,7 +411,7 @@ end subroutine pawcprj_set_zero
 !!      setup_positron,update_orbmag,wfkfermi3
 !!
 !! CHILDREN
-!!      xsum_mpi
+!!      xmpi_sum
 !!
 !! SOURCE
 
@@ -522,7 +522,7 @@ end subroutine pawcprj_copy
 !!      cgwf3,getdc1,wfkfermi3
 !!
 !! CHILDREN
-!!      xsum_mpi
+!!      xmpi_sum
 !!
 !! SOURCE
 
@@ -652,7 +652,7 @@ end subroutine pawcprj_axpby
 !!      corrmetalwf1,extrapwf
 !!
 !! CHILDREN
-!!      xsum_mpi
+!!      xmpi_sum
 !!
 !! SOURCE
 
@@ -811,7 +811,7 @@ end subroutine pawcprj_zaxpby
 !!      extrapwf,getdc1
 !!
 !! CHILDREN
-!!      xsum_mpi
+!!      xmpi_sum
 !!
 !! SOURCE
 
@@ -921,7 +921,7 @@ end subroutine pawcprj_lincom
 !! PARENTS
 !!
 !! CHILDREN
-!!      xsum_mpi
+!!      xmpi_sum
 !!
 !! SOURCE
 
@@ -994,7 +994,7 @@ end subroutine pawcprj_output
 !!      partial_dos_fractions_paw,pawmkaewf,pawmkrhoij,rhofermi3,suscep_stat
 !!
 !! CHILDREN
-!!      xsum_mpi
+!!      xmpi_sum
 !!
 !! SOURCE
 
@@ -1083,7 +1083,7 @@ end subroutine pawcprj_diskinit_r
 !! PARENTS
 !!
 !! CHILDREN
-!!      xsum_mpi
+!!      xmpi_sum
 !!
 !! SOURCE
 
@@ -1153,7 +1153,7 @@ end subroutine pawcprj_diskinit_w
 !! PARENTS
 !!
 !! CHILDREN
-!!      xsum_mpi
+!!      xmpi_sum
 !!
 !! SOURCE
 
@@ -1243,7 +1243,7 @@ end subroutine pawcprj_diskskip
 !!      vtowfk3,wfkfermi3
 !!
 !! CHILDREN
-!!      xsum_mpi
+!!      xmpi_sum
 !!
 !! SOURCE
 
@@ -1482,7 +1482,7 @@ end subroutine pawcprj_get
 !!      vtowfk,vtowfk3
 !!
 !! CHILDREN
-!!      xsum_mpi
+!!      xmpi_sum
 !!
 !! SOURCE
 
@@ -1634,7 +1634,7 @@ end subroutine pawcprj_get
          end if
        end do !iatom
      end do !ispinor
-     call xallgather_mpi(buffer1,lmndim,buffer2,mpi_comm_band,ierr)
+     call xmpi_allgather(buffer1,lmndim,buffer2,mpi_comm_band,ierr)
      jj=1
      do ii=1,nproc_band
        do ispinor=1,nspinor
@@ -1694,7 +1694,7 @@ end subroutine pawcprj_put
 !!      ks_ddiago,scfcv
 !!
 !! CHILDREN
-!!      xsum_mpi
+!!      xmpi_sum
 !!
 !! SOURCE
 
@@ -1803,7 +1803,7 @@ end subroutine pawcprj_reorder
 !!      outkss
 !!
 !! CHILDREN
-!!      xsum_mpi
+!!      xmpi_sum
 !!
 !! SOURCE
 
@@ -1947,7 +1947,7 @@ end subroutine pawcprj_mpi_exch
 !!      berryphase_new,posdoppler
 !!
 !! CHILDREN
-!!      xsum_mpi
+!!      xmpi_sum
 !!
 !! SOURCE
 
@@ -2058,7 +2058,7 @@ end subroutine pawcprj_mpi_send
 !!      berryphase_new
 !!
 !! CHILDREN
-!!      xsum_mpi
+!!      xmpi_sum
 !!
 !! SOURCE
 
@@ -2159,7 +2159,7 @@ end subroutine pawcprj_mpi_recv
 !! PARENTS
 !!
 !! CHILDREN
-!!      xsum_mpi
+!!      xmpi_sum
 !!
 !! SOURCE
 
@@ -2206,7 +2206,7 @@ subroutine pawcprj_mpi_sum(cprj,spaceComm,ierr)
    end do
  end do
 
- call xsum_mpi(buffer_cprj,spaceComm,ierr)
+ call xmpi_sum(buffer_cprj,spaceComm,ierr)
 
  ipck=0
  do jj=1,n2dim
@@ -2253,7 +2253,7 @@ end subroutine pawcprj_mpi_sum
 !!      suscep_stat
 !!
 !! CHILDREN
-!!      xsum_mpi
+!!      xmpi_sum
 !!
 !! SOURCE
 
@@ -2324,7 +2324,7 @@ subroutine pawcprj_mpi_allgather(cprj_loc,cprj_gat,natom,n2dim,nlmn,ncpgr,nproc,
  end do
 
 !=== allgather data ===
- call xallgather_mpi(buffer_cpgr,2*(ncpgr+1)*ntotcp,buffer_cpgr_all,spaceComm,ierr)
+ call xmpi_allgather(buffer_cpgr,2*(ncpgr+1)*ntotcp,buffer_cpgr_all,spaceComm,ierr)
 
 !=== unpack gathered data into cprj(natom,n2dim*nproc)
 
@@ -2379,7 +2379,7 @@ end subroutine pawcprj_mpi_allgather
 !! PARENTS
 !!
 !! CHILDREN
-!!      xsum_mpi
+!!      xmpi_sum
 !!
 !! SOURCE
 
@@ -2508,7 +2508,7 @@ end subroutine pawcprj_bcast
 !! PARENTS
 !!
 !! CHILDREN
-!!      xsum_mpi
+!!      xmpi_sum
 !!
 !! SOURCE
 
@@ -2586,7 +2586,7 @@ end subroutine pawcprj_bcast
      iatom=(iblock_atom-1)*np+1+me
      if (iatom<=natom) cprjsz_atom(iatom)=2*cprjin(iblock_atom,1)%nlmn*(1+cprjin(iblock_atom,1)%ncpgr)
    end do
-   call xsum_mpi(cprjsz_atom,spaceComm,ierr)
+   call xmpi_sum(cprjsz_atom,spaceComm,ierr)
  end if
  do iblock_atom=1,nba
    iashft=(iblock_atom-1)*np
@@ -2762,7 +2762,7 @@ end subroutine pawcprj_bcast
 !!      energy,pawmkrhoij
 !!
 !! CHILDREN
-!!      xsum_mpi
+!!      xmpi_sum
 !!
 !! SOURCE
  subroutine pawcprj_gather_spin(cprj,cprj_gat,natom,n2size,nspinor,nspinortot,&
@@ -2831,7 +2831,7 @@ end subroutine pawcprj_bcast
    end do
  end do
 
- call xallgather_mpi(buffer1,lmndim,buffer2,spaceComm_spin,ierr)
+ call xmpi_allgather(buffer1,lmndim,buffer2,spaceComm_spin,ierr)
 
  jj=1
  do ispinor=1,nspinortot
@@ -2890,7 +2890,7 @@ end subroutine pawcprj_bcast
 !!      outkss,respfn,scfcv,smatrix_pawinit
 !!
 !! CHILDREN
-!!      xsum_mpi
+!!      xmpi_sum
 !!
 !! SOURCE
 
@@ -2965,7 +2965,7 @@ end subroutine pawcprj_getdim
 !! PARENTS
 !!
 !! CHILDREN
-!!  xsum_mpi
+!!  xmpi_sum
 !!
 !! SOURCE
 
@@ -3037,7 +3037,7 @@ function paw_overlap(cprj1,cprj2,typat,pawtab,spinor_comm) result(onsite)
    end do
  end do
  if (present(spinor_comm)) then
-   call xsum_mpi(onsite,spinor_comm,isp)
+   call xmpi_sum(onsite,spinor_comm,isp)
  end if
 
 end function paw_overlap

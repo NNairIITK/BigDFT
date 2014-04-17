@@ -1149,7 +1149,7 @@ subroutine pawfgrtab_redistribute(pawfgrtab,mpi_comm_in,mpi_comm_out,&
  if (present(natom)) then
    natom_tot=natom
  else
-   call xsum_mpi(my_natom_in,natom_tot,mpi_comm_in,ierr)
+   call xmpi_sum(my_natom_in,natom_tot,mpi_comm_in,ierr)
  end if
 
 !Select input distribution

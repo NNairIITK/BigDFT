@@ -100,9 +100,7 @@ CONTAINS  !===========================================================
 !!
 !! OUTPUT
 !!  The unit number (free unit or unit associated to the file)
-!!  Raises:
-!!   IO_NO_AVAILABLE_UNIT if no logical unit is free (!)
-!!   IO_FILE_NOT_ASSOCIATED if the file is not linked to a logical unit
+!!  Negative value if fail.
 !!
 !! PARENTS
 !!
@@ -130,6 +128,7 @@ integer function get_free_unit()
       get_free_unit=iunt; RETURN
    end if
  end do
+
  get_free_unit=IO_NO_AVAILABLE_UNIT
 
 end function get_free_unit

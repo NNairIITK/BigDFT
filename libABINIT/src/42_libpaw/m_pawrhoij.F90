@@ -1125,7 +1125,7 @@ end subroutine pawrhoij_copy
 
 !Test on sizes
  nrhoij_in_sum=nrhoij_in
- call xsum_mpi(nrhoij_in_sum,mpi_comm_atom,ierr)
+ call xmpi_sum(nrhoij_in_sum,mpi_comm_atom,ierr)
  if (master==-1) then
    if (nrhoij_out/=nrhoij_in_sum) then
      msg='Wrong sizes sum[nrhoij_ij]/=nrhoij_out !'
@@ -1372,8 +1372,8 @@ end subroutine pawrhoij_gather
 !! CHILDREN
 !!  free_my_atmtab,get_my_atmtab
 !!  pawrhoij_copy,pawrhoij_destroy
-!!  xallgather_mpi,xmpi_gatherv,xmpi_bcast,xmpi_scatterv
-!!  xcomm_rank,xcomm_size,xsum_mpi
+!!  xmpi_allgather,xmpi_gatherv,xmpi_bcast,xmpi_scatterv
+!!  xcomm_rank,xcomm_size,xmpi_sum
 !!
 !! SOURCE
 
@@ -1438,7 +1438,7 @@ end subroutine pawrhoij_gather
  nrhoij_in=0;if (me==master) nrhoij_in=size(pawrhoij_in)
  nrhoij_out=size(pawrhoij_out);nrhoij_out_all=nrhoij_out
  if (paral_atom) then
-   call xsum_mpi(nrhoij_out_all,mpi_comm_atom_,ierr)
+   call xmpi_sum(nrhoij_out_all,mpi_comm_atom_,ierr)
  end if
  if (me==master.and.nrhoij_in/=nrhoij_out_all) then
    msg='pawrhoij_in or pawrhoij_out wrongly allocated !'
@@ -1452,7 +1452,7 @@ end subroutine pawrhoij_gather
 &                     nrhoij_out_all,my_natom_ref=nrhoij_out)
    ABI_ALLOCATE(disp_int,(nproc_atom))
    ABI_ALLOCATE(count_int,(nproc_atom))
-   call xallgather_mpi(nrhoij_out,count_int,mpi_comm_atom_,ierr)
+   call xmpi_allgather(nrhoij_out,count_int,mpi_comm_atom_,ierr)
    disp_int(1)=0
    do ii=2,nproc_atom
      disp_int(ii)=disp_int(ii-1)+count_int(ii-1)
@@ -1499,7 +1499,7 @@ end subroutine pawrhoij_gather
    ABI_ALLOCATE(count_siz,(2*nproc_atom))
    buf_size(1)=buf_int_size
    buf_size(2)=buf_dp_size
-   call xallgather_mpi(buf_size,2,count_siz,mpi_comm_atom_,ierr)
+   call xmpi_allgather(buf_size,2,count_siz,mpi_comm_atom_,ierr)
    do iproc=1,nproc_atom
      count_int(iproc)=count_siz(2*iproc-1)
      count_dp(iproc)=count_siz(2*iproc)
@@ -1814,7 +1814,7 @@ end subroutine pawrhoij_bcast
  if (present(natom)) then
    natom_tot=natom
  else
-   call xsum_mpi(my_natom_in,natom_tot,mpi_comm_in,ierr)
+   call xmpi_sum(my_natom_in,natom_tot,mpi_comm_in,ierr)
  end if
 
 !Select input distribution
@@ -2621,9 +2621,9 @@ subroutine pawrhoij_mpisum_unpacked_1D(pawrhoij,comm1,comm2)
  end do
 
 !Build sum of pawrhoij%rhoij_
- call xsum_mpi(buffer1,buffer2,bufdim,comm1,ierr)      ! Sum over the first communicator.
+ call xmpi_sum(buffer1,buffer2,bufdim,comm1,ierr)      ! Sum over the first communicator.
  if (PRESENT(comm2)) then
-   call xsum_mpi(buffer2,comm2,ierr) ! Sum over the second communicator.
+   call xmpi_sum(buffer2,comm2,ierr) ! Sum over the second communicator.
  end if
 
 !Unpack the MPI packet filling rhoij_
@@ -2727,9 +2727,9 @@ subroutine pawrhoij_mpisum_unpacked_2D(pawrhoij,comm1,comm2)
  end do
 
 !Build sum of pawrhoij%rhoij_
- call xsum_mpi(buffer1,buffer2,bufdim,comm1,ierr)      ! Sum over the first communicator.
+ call xmpi_sum(buffer1,buffer2,bufdim,comm1,ierr)      ! Sum over the first communicator.
  if (PRESENT(comm2)) then
-   call xsum_mpi(buffer2,comm2,ierr) ! Sum over the second communicator.
+   call xmpi_sum(buffer2,comm2,ierr) ! Sum over the second communicator.
  end if
 
 !Unpack the MPI packet filling rhoij_
