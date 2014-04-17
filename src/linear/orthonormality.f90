@@ -397,11 +397,11 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
   use module_base
   use module_types
   use module_interfaces, except_this_one => overlapPowerGeneral
-  use sparsematrix_base, only: sparse_matrix, SPARSE_FULL
+  use sparsematrix_base, only: sparse_matrix, SPARSE_FULL, DENSE_PARALLEL, SPARSEMM_SEQ
   use sparsematrix, only: compress_matrix, uncompress_matrix, transform_sparse_matrix, &
                           compress_matrix_distributed, uncompress_matrix_distributed, &
                           sequential_acces_matrix_fast, sparsemm, &
-                          sparsematrix_malloc_ptr, assignment(=)
+                          sparsematrix_malloc_ptr, sparsematrix_malloc, assignment(=)
 
   use yaml_output
   implicit none
@@ -628,16 +628,14 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
       else
           inv_ovrlpp=f_malloc_ptr((/norb,norbp/),id='inv_ovrlpp')
           if (iorder>1) then
-              ovrlp_compr_seq = f_malloc(inv_ovrlp_smat%smmm%nseq,id='ovrlp_compr_seq')
-              ovrlpminone_sparse_seq = f_malloc(inv_ovrlp_smat%smmm%nseq,id='ovrlpminone_sparse_seq')
+              ovrlp_compr_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='ovrlp_compr_seq')
+              ovrlpminone_sparse_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='ovrlpminone_sparse_seq')
            end if
-            !ovrlpminone_sparse=f_malloc(inv_ovrlp_smat%nvctr,id='ovrlpminone_sparse')
             ovrlpminone_sparse = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=SPARSE_FULL, id='ovrlpminone_sparse')
-
-            ovrlpminonep=f_malloc_ptr((/norb,norbp/),id='ovrlpminone_sparse')
-            ovrlpminoneoldp=f_malloc((/norb,norbp/),id='ovrlpminone_sparse')
-            invovrlpp=f_malloc((/norb,norbp/),id='ovrlpminone_sparse')
-            ovrlp_large_compr=f_malloc(inv_ovrlp_smat%nvctr,id='ovrlp_large_compr')
+            ovrlpminonep = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlpminone_sparse')
+            ovrlpminoneoldp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlpminone_sparse')
+            invovrlpp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlpminone_sparse')
+            ovrlp_large_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='ovrlp_large_compr')
             call transform_sparse_matrix(ovrlp_smat, inv_ovrlp_smat, &
                  ovrlp_smat%matrix_compr, ovrlp_large_compr, 'small_to_large')
             call matrix_minus_identity_sparse(norb, inv_ovrlp_smat, ovrlp_large_compr, ovrlpminone_sparse)
@@ -685,35 +683,22 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
                 ovrlp_compr_seq = f_malloc(inv_ovrlp_smat%smmm%nseq,id='ovrlp_compr_seq')
              end if
              if (iorder<1) then
-                invovrlpp=f_malloc((/norb,norbp/),id='invovrlpp')
-                ovrlp_large_compr=f_malloc(inv_ovrlp_smat%nvctr,id='ovrlp_large_compr')
+                invovrlpp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='invovrlpp')
+                ovrlp_large_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='ovrlp_large_compr')
                 call transform_sparse_matrix(ovrlp_smat, inv_ovrlp_smat, &
                      ovrlp_smat%matrix_compr, ovrlp_large_compr, 'small_to_large')
              end if
-            invovrlp_compr_seq=f_malloc(inv_ovrlp_smat%smmm%nseq,id='ovrlp_large_compr_seq')
-            ovrlp_largep=f_malloc((/norb,norbp/),id='ovrlp_largep')
+            invovrlp_compr_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='ovrlp_large_compr_seq')
+            ovrlp_largep = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlp_largep')
             call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, ovrlp_large_compr, ovrlp_largep)
-            !call sequential_acces_matrix(norb, norbp, isorb, inv_ovrlp_smat%smmm%nseg, &
-            !     inv_ovrlp_smat%smmm%nsegline, inv_ovrlp_smat%smmm%istsegline, inv_ovrlp_smat%smmm%keyg, &
-            !     inv_ovrlp_smat, inv_ovrlp_smat%matrix_compr, inv_ovrlp_smat%smmm%nseq, &
-            !     inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
-            !     invovrlp_compr_seq)
             call sequential_acces_matrix_fast(inv_ovrlp_smat, inv_ovrlp_smat%matrix_compr, invovrlp_compr_seq)
             if (power==1) then
-                 !!call sequential_acces_matrix(norb, norbp, isorb, foe_nseg, &
-                 !!     foe_kernel_nsegline, foe_istsegline, foe_keyg, &
-                 !!     inv_ovrlp_smat, inv_ovrlp_smat%matrix_compr, inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
-                 !!     invovrlp_compr_seq)
                  call check_accur_overlap_minus_one_sparse(iproc, nproc, inv_ovrlp_smat, norb, norbp, isorb, &
                       inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nout, &
                       inv_ovrlp_smat%smmm%ivectorindex, inv_ovrlp_smat%smmm%onedimindices, &
                       invovrlp_compr_seq, ovrlp_largep, power, &
                       error)
              else if (power==2) then
-                !!call sequential_acces_matrix(norb, norbp, isorb, foe_nseg, &
-                !!     foe_kernel_nsegline, foe_istsegline, foe_keyg, &
-                !!     inv_ovrlp_smat, inv_ovrlp_smat%matrix_compr, inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
-                !!     invovrlp_compr_seq)
                 call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, inv_ovrlp_smat%matrix_compr, invovrlpp)
                 call check_accur_overlap_minus_one_sparse(iproc, nproc, inv_ovrlp_smat, norb, norbp, isorb, &
                      inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nout, &
@@ -721,15 +706,6 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
                      invovrlp_compr_seq, invovrlpp, power, &
                      error,cmatp=ovrlp_largep)
              else if (power==-2) then
-                !!call sequential_acces_matrix(norb, norbp, isorb, foe_nseg, &
-                !!     foe_kernel_nsegline, foe_istsegline, foe_keyg, &
-                !!     inv_ovrlp_smat, inv_ovrlp_smat%matrix_compr, inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
-                !!     invovrlp_compr_seq)
-                !call sequential_acces_matrix(norb, norbp, isorb, inv_ovrlp_smat%smmm%nseg, &
-                !     inv_ovrlp_smat%smmm%nsegline, inv_ovrlp_smat%smmm%istsegline, inv_ovrlp_smat%smmm%keyg, &
-                !     inv_ovrlp_smat, ovrlp_large_compr, inv_ovrlp_smat%smmm%nseq, &
-                !     inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
-                !     ovrlp_compr_seq)
                 call sequential_acces_matrix_fast(inv_ovrlp_smat, ovrlp_large_compr, ovrlp_compr_seq)
                 call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, inv_ovrlp_smat%matrix_compr, invovrlpp)
                 call check_accur_overlap_minus_one_sparse(iproc, nproc, inv_ovrlp_smat, norb, norbp, isorb, &

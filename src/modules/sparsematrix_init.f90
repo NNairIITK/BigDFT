@@ -15,42 +15,6 @@ module sparsematrix_init
   contains
 
 
-    subroutine determine_overlaps(iproc, nproc, lzd, orbs, locregShape, noverlaps, overlaps) 
-      use module_base
-      use module_types
-      implicit none
-    
-      ! Calling arguments
-      integer,intent(in) :: iproc, nproc
-      type(local_zone_descriptors),intent(in) :: lzd
-      type(orbitals_data),intent(in) :: orbs
-      character(len=1),intent(in) :: locregShape
-      integer,dimension(:),pointer,intent(out):: noverlaps
-      integer,dimension(:,:),pointer,intent(out):: overlaps
-    
-      ! Local variables
-      integer ::  istat
-      character(len=*),parameter :: subname='determine_overlaps'
-    
-    
-      call timing(iproc,'init_commOrtho','ON')
-    
-      ! Allocate the arrays that count the number of overlaps per process (comon%noverlaps)
-      ! and per orbital (noverlaps)
-      allocate(noverlaps(orbs%norb), stat=istat)
-      call memocc(istat, noverlaps, 'noverlaps',subname)
-    
-      ! Count how many overlaping regions each orbital / process has.
-      if(locregShape=='c') then
-         stop "ERROR: locregShape=='c' is deprecated!"
-      else if(locregShape=='s') then
-         call determine_overlap_from_descriptors(iproc, nproc, orbs, orbs, lzd, lzd, noverlaps, overlaps)
-      end if
-    
-      call timing(iproc,'init_commOrtho','OF')
-    
-    end subroutine determine_overlaps
-
 
     !> Count for each orbital and each process the number of overlapping orbitals.
     subroutine determine_overlap_from_descriptors(iproc, nproc, orbs, orbsig, lzd, lzdig, op_noverlaps, op_overlaps)
