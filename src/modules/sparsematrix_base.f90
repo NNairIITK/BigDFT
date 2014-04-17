@@ -32,6 +32,13 @@ module sparsematrix_base
   public :: allocate_sparse_matrix_matrices
   public :: allocate_sparse_matrix_matrix_multiplication
 
+  !> Public constants
+  integer,parameter,public :: SPARSE_FULL     = 51
+  integer,parameter,public :: SPARSE_PARALLEL = 52
+  integer,parameter,public :: DENSE_FULL      = 53
+  integer,parameter,public :: DENSE_PARALLEL  = 54
+
+
 
   contains
 
