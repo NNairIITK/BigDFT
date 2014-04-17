@@ -195,7 +195,7 @@ module module_types
     real(kind=8), dimension(:), pointer :: locrad, locrad_lowaccuracy, locrad_highaccuracy, kernel_cutoff_FOE
     real(kind=8), dimension(:,:), pointer :: locrad_type
     real(kind=8), dimension(:), pointer :: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy, potentialPrefac_ao
-    real(kind=8), dimension(:),pointer :: kernel_cutoff, locrad_kernel
+    real(kind=8), dimension(:),pointer :: kernel_cutoff, locrad_kernel, locrad_mult
     real(kind=8) :: early_stop, gnrm_dynamic, min_gnrm_for_dynamic
     integer, dimension(:), pointer :: norbsPerType
     integer :: kernel_mode, mixing_mode

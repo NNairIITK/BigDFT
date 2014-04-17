@@ -852,8 +852,8 @@ module sparsematrix_init
 
     !> Currently assuming square matrices
     subroutine init_sparse_matrix(iproc, nproc, norb, norbp, isorb, store_index, &
-               nnonzero, nonzero, nnonzero_mult, nonzero_mult, &
-               sparsemat)
+               nnonzero, nonzero, nnonzero_mult, nonzero_mult, sparsemat, &
+               allocate_full_)
       use module_base
       use yaml_output
       implicit none
@@ -864,17 +864,21 @@ module sparsematrix_init
       integer,dimension(nnonzero),intent(in) :: nonzero
       integer,dimension(nnonzero_mult),intent(in) :: nonzero_mult
       type(sparse_matrix), intent(out) :: sparsemat
+      logical,intent(in),optional :: allocate_full_
       
       ! Local variables
       integer :: jproc, iorb, jorb, iiorb, iseg, ilr, segn, ind
-      integer :: ierr, jorbs, jorbold, ii
+      integer :: ierr, jorbs, jorbold, ii, jst_line, jst_seg
       integer :: matrixindex_in_compressed, ist, ivctr
       logical,dimension(:),allocatable :: lut
       integer :: nseg_mult, nvctr_mult, ivctr_mult
       integer,dimension(:),allocatable :: nsegline_mult, istsegline_mult
       integer,dimension(:,:),allocatable :: keyg_mult
+      logical :: allocate_full
       
       call timing(iproc,'init_matrCompr','ON')
+
+      call set_value_from_optional()
 
       lut = f_malloc(norb,id='lut')
     
@@ -954,6 +958,7 @@ module sparsematrix_init
       do iseg=2,sparsemat%nseg
           sparsemat%keyv(iseg) = sparsemat%keyv(iseg-1) + sparsemat%keyg(2,iseg-1) - sparsemat%keyg(1,iseg-1) + 1
       end do
+
     
     
       if (store_index) then
@@ -986,17 +991,12 @@ module sparsematrix_init
       ! parallelization of matrices, following same idea as norb/norbp/isorb
     
       !most equal distribution, but want corresponding to norbp for second column
+
+
       do jproc=0,nproc-1
-         jorbs=sparsemat%isfvctr_par(jproc)+1
-         jorbold=0
-         do ii=1,sparsemat%nvctr
-            jorb = sparsemat%orb_from_index(2,ii)
-            if (jorb/=jorbold .and. jorb==jorbs) then
-               sparsemat%isvctr_par(jproc)=ii-1
-               exit
-            end if
-            jorbold=jorb
-         end do
+          jst_line = sparsemat%isfvctr_par(jproc)+1
+          jst_seg = sparsemat%istsegline(jst_line)
+          sparsemat%isvctr_par(jproc) = sparsemat%keyv(jst_seg)-1
       end do
       do jproc=0,nproc-1
          if (jproc==nproc-1) then
@@ -1007,6 +1007,7 @@ module sparsematrix_init
          if (iproc==jproc) sparsemat%isvctr=sparsemat%isvctr_par(jproc)
          if (iproc==jproc) sparsemat%nvctrp=sparsemat%nvctr_par(jproc)
       end do
+
     
       ! 0 - none, 1 - mpiallred, 2 - allgather
       sparsemat%parallel_compression=0
@@ -1052,6 +1053,9 @@ module sparsematrix_init
       call mpiallred(keyg_mult(1,1), 2*nseg_mult, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
 
+      ! Allocate the matrices
+      call allocate_sparse_matrix_matrices(sparsemat, allocate_full)
+
 
       ! Initialize the parameters for the spare matrix matrix multiplication
       call init_sparse_matrix_matrix_multiplication(norb, norbp, isorb, nseg_mult, &
@@ -1088,6 +1092,15 @@ module sparsematrix_init
               lut(jjorb)=.true.
           end do
         end subroutine create_lookup_table
+
+
+        subroutine set_value_from_optional()
+          if (present(allocate_full_))then
+              allocate_full = allocate_full_
+          else
+              allocate_full = .false.
+          end if
+        end subroutine set_value_from_optional
 
 
     
