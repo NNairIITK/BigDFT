@@ -399,7 +399,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
   use module_interfaces, except_this_one => overlapPowerGeneral
   use sparsematrix_base, only: sparse_matrix
   use sparsematrix, only: compress_matrix, uncompress_matrix, transform_sparse_matrix, &
-                          compress_matrix_distributed, uncompress_matrix_distributed
+                          compress_matrix_distributed, uncompress_matrix_distributed, &
+                          sequential_acces_matrix_fast
   use yaml_output
   implicit none
   
@@ -641,8 +642,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
               !     inv_ovrlp_smat, ovrlpminone_sparse, inv_ovrlp_smat%smmm%nseq, &
               !     inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
               !     ovrlpminone_sparse_seq)
-              call sequential_acces_matrix_fast(inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%nvctr, &
-                   inv_ovrlp_smat%smmm%indices_extract_sequential, ovrlpminone_sparse, ovrlpminone_sparse_seq)
+              call sequential_acces_matrix_fast(inv_ovrlp_smat, ovrlpminone_sparse, ovrlpminone_sparse_seq)
               call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, ovrlpminone_sparse, ovrlpminoneoldp)
            end if
             if (power==1) then
@@ -703,8 +703,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
             !     inv_ovrlp_smat, inv_ovrlp_smat%matrix_compr, inv_ovrlp_smat%smmm%nseq, &
             !     inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
             !     invovrlp_compr_seq)
-            call sequential_acces_matrix_fast(inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%nvctr, &
-                 inv_ovrlp_smat%smmm%indices_extract_sequential, inv_ovrlp_smat%matrix_compr, invovrlp_compr_seq)
+            call sequential_acces_matrix_fast(inv_ovrlp_smat, inv_ovrlp_smat%matrix_compr, invovrlp_compr_seq)
             if (power==1) then
                  !!call sequential_acces_matrix(norb, norbp, isorb, foe_nseg, &
                  !!     foe_kernel_nsegline, foe_istsegline, foe_keyg, &
@@ -736,8 +735,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
                 !     inv_ovrlp_smat, ovrlp_large_compr, inv_ovrlp_smat%smmm%nseq, &
                 !     inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
                 !     ovrlp_compr_seq)
-                call sequential_acces_matrix_fast(inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%nvctr, &
-                     inv_ovrlp_smat%smmm%indices_extract_sequential, ovrlp_large_compr, ovrlp_compr_seq)
+                call sequential_acces_matrix_fast(inv_ovrlp_smat, ovrlp_large_compr, ovrlp_compr_seq)
                 call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, inv_ovrlp_smat%matrix_compr, invovrlpp)
                 call check_accur_overlap_minus_one_sparse(iproc, nproc, norb, norbp, isorb, &
                      inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nout, &

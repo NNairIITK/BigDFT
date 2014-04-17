@@ -16,6 +16,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
   use module_types
   use module_interfaces, except_this_one => chebyshev_clean
   use sparsematrix_base, only: sparse_matrix
+  use sparsematrix, only: sequential_acces_matrix_fast
   implicit none
 
   ! Calling arguments
@@ -94,16 +95,14 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
       !!     kernel%smmm%nsegline, kernel%smmm%istsegline, kernel%smmm%keyg, &
       !!     kernel, ham_compr, kernel%smmm%nseq, kernel%smmm%nmaxsegk, kernel%smmm%nmaxvalk, &
       !!     ham_compr_seq)
-      call sequential_acces_matrix_fast(kernel%smmm%nseq, kernel%nvctr, &
-           kernel%smmm%indices_extract_sequential, ham_compr, ham_compr_seq)
+      call sequential_acces_matrix_fast(kernel, ham_compr, ham_compr_seq)
     
     
       !!call sequential_acces_matrix(norb, norbp, isorb, kernel%smmm%nseg, &
       !!     kernel%smmm%nsegline, kernel%smmm%istsegline, kernel%smmm%keyg, &
       !!     kernel, ovrlp_compr, kernel%smmm%nseq, kernel%smmm%nmaxsegk, kernel%smmm%nmaxvalk, &
       !!     ovrlp_compr_seq)
-      call sequential_acces_matrix_fast(kernel%smmm%nseq, kernel%nvctr, &
-           kernel%smmm%indices_extract_sequential, ovrlp_compr, ovrlp_compr_seq)
+      call sequential_acces_matrix_fast(kernel, ovrlp_compr, ovrlp_compr_seq)
 
     
       vectors = f_malloc((/ norb, norbp, 4 /),id='vectors')
@@ -154,8 +153,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
           !!     kernel%smmm%nsegline, kernel%smmm%istsegline, kernel%smmm%keyg, &
           !!     kernel, SHS, kernel%smmm%nseq, kernel%smmm%nmaxsegk, &
           !!     kernel%smmm%nmaxvalk, SHS_seq)
-          call sequential_acces_matrix_fast(kernel%smmm%nseq, kernel%nvctr, &
-               kernel%smmm%indices_extract_sequential, SHS, SHS_seq)
+          call sequential_acces_matrix_fast(kernel, SHS, SHS_seq)
       end if
   
   end if
@@ -743,31 +741,6 @@ end subroutine get_arrays_for_sequential_acces
 !!  end do 
 !!
 !!end subroutine sequential_acces_matrix
-
-
-
-subroutine sequential_acces_matrix_fast(nseq, nvctr, indices_extract_sequential, a, a_seq)
-  use module_base
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in) :: nseq, nvctr
-  integer,dimension(nseq),intent(in) :: indices_extract_sequential
-  real(kind=8),dimension(nvctr),intent(in) :: a
-  real(kind=8),dimension(nseq),intent(out) :: a_seq
-
-  ! Local variables
-  integer :: iseq, ii
-
-  !$omp parallel do default(none) private(iseq, ii) &
-  !$omp shared(nseq, indices_extract_sequential, a_seq, a)
-  do iseq=1,nseq
-      ii=indices_extract_sequential(iseq)
-      a_seq(iseq)=a(ii)
-  end do
-  !$omp end parallel do
-
-end subroutine sequential_acces_matrix_fast
 
 
 subroutine init_sequential_acces_matrix(norb, norbp, isorb, nseg, &

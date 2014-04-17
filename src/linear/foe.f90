@@ -1142,6 +1142,7 @@ subroutine foe(iproc, nproc, tmprtr, &
 
 
       subroutine retransform(matrix_compr)
+          use sparsematrix, only: sequential_acces_matrix_fast
           ! Calling arguments
           real(kind=8),dimension(tmb%linmat%denskern_large%nvctr),intent(inout) :: matrix_compr
 
@@ -1172,9 +1173,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           !     tmb%linmat%denskern_large, matrix_compr, &
           !     tmb%linmat%denskern_large%smmm%nseq, tmb%linmat%denskern_large%smmm%nmaxsegk, &
           !     tmb%linmat%denskern_large%smmm%nmaxvalk, kernel_compr_seq)
-          call sequential_acces_matrix_fast(tmb%linmat%denskern_large%smmm%nseq, &
-               tmb%linmat%denskern_large%nvctr, tmb%linmat%denskern_large%smmm%indices_extract_sequential, &
-               matrix_compr, kernel_compr_seq)
+          call sequential_acces_matrix_fast(tmb%linmat%denskern_large, matrix_compr, kernel_compr_seq)
           !call sequential_acces_matrix(tmb%orbs%norb, tmb%orbs%norbp, &
           !     tmb%orbs%isorb, tmb%linmat%inv_ovrlp_large%smmm%nseg, &
           !     tmb%linmat%inv_ovrlp_large%smmm%nsegline, tmb%linmat%inv_ovrlp_large%smmm%istsegline, &
@@ -1182,9 +1181,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           !     tmb%linmat%inv_ovrlp_large, tmb%linmat%inv_ovrlp_large%matrix_compr, &
           !     tmb%linmat%inv_ovrlp_large%smmm%nseq, tmb%linmat%inv_ovrlp_large%smmm%nmaxsegk, &
           !     tmb%linmat%inv_ovrlp_large%smmm%nmaxvalk, inv_ovrlp_compr_seq)
-          call sequential_acces_matrix_fast(tmb%linmat%inv_ovrlp_large%smmm%nseq, &
-               tmb%linmat%inv_ovrlp_large%nvctr, tmb%linmat%inv_ovrlp_large%smmm%indices_extract_sequential, &
-               tmb%linmat%inv_ovrlp_large%matrix_compr, inv_ovrlp_compr_seq)
+          call sequential_acces_matrix_fast(tmb%linmat%inv_ovrlp_large, tmb%linmat%inv_ovrlp_large%matrix_compr, inv_ovrlp_compr_seq)
           call uncompress_matrix_distributed(iproc, tmb%linmat%inv_ovrlp_large, &
                tmb%linmat%inv_ovrlp_large%matrix_compr, inv_ovrlpp)
 

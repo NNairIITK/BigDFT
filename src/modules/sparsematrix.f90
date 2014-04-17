@@ -12,6 +12,7 @@ module sparsematrix
   public :: transform_sparse_matrix
   public :: compress_matrix_distributed
   public :: uncompress_matrix_distributed
+  public :: sequential_acces_matrix_fast
 
   contains
 
@@ -458,6 +459,27 @@ module sparsematrix
 
    end subroutine uncompress_matrix_distributed
 
+   subroutine sequential_acces_matrix_fast(smat, a, a_seq)
+     use module_base
+     implicit none
+   
+     ! Calling arguments
+     type(sparse_matrix),intent(in) :: smat
+     real(kind=8),dimension(smat%nvctr),intent(in) :: a
+     real(kind=8),dimension(smat%smmm%nseq),intent(out) :: a_seq
+   
+     ! Local variables
+     integer :: iseq, ii
+   
+     !$omp parallel do default(none) private(iseq, ii) &
+     !$omp shared(smat, a_seq, a)
+     do iseq=1,smat%smmm%nseq
+         ii=smat%smmm%indices_extract_sequential(iseq)
+         a_seq(iseq)=a(ii)
+     end do
+     !$omp end parallel do
+   
+   end subroutine sequential_acces_matrix_fast
 
 
 end module sparsematrix
