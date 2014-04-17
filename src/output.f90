@@ -212,7 +212,7 @@ subroutine print_general_parameters(in,atoms)
         call yaml_comment('Code: '//atoms%astruct%geocode)
      end select
      !Symmetries
-     if (atoms%astruct%geocode /= 'F' .and. .not. in%disableSym) then
+     if ((atoms%astruct%geocode /= 'F' .and. .not. in%disableSym) .or. atoms%astruct%nat /= 0) then
      !if (.not. in%disableSym) then
         call symmetry_get_matrices(atoms%astruct%sym%symObj, nSym, sym, transNon, symAfm, ierr)
         call symmetry_get_group(atoms%astruct%sym%symObj, spaceGroup, &

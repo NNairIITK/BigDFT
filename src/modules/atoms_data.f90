@@ -788,6 +788,7 @@ module module_atoms
 
 end module module_atoms
 
+
 !> Allocation of the arrays inside the structure atoms_data, considering the part which is associated to astruct%nat
 !! this routine is external to the module as it has to be called from C
 subroutine astruct_set_n_atoms(astruct, nat)
@@ -821,6 +822,7 @@ subroutine astruct_set_n_atoms(astruct, nat)
 
   if (astruct%nat > 0) call to_zero(3 * astruct%nat, astruct%rxyz(1,1))
 END SUBROUTINE astruct_set_n_atoms
+
 
 !> allocation of the memoey space associated to the number of types astruct%ntypes
 subroutine astruct_set_n_types(astruct, ntypes)
@@ -860,6 +862,7 @@ subroutine astruct_set_from_file(lstat, astruct, filename)
   lstat = (status == 0)
 END SUBROUTINE astruct_set_from_file
 
+
 !> Calculate the symmetries and update
 subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
   use module_base
@@ -879,7 +882,7 @@ subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
   real(gp), dimension(:,:), allocatable :: xRed
 
   ! Calculate the symmetries, if needed
-  if (astruct%geocode /= 'F') then
+  if (astruct%geocode /= 'F' .and. astruct%nat /= 0) then
      if (astruct%sym%symObj < 0) then
         call symmetry_new(astruct%sym%symObj)
      end if
@@ -933,6 +936,7 @@ subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
      astruct%sym%symObj = -1
   end if
 END SUBROUTINE astruct_set_symmetries
+
 
 !> Allocation of the arrays inside the structure atoms_data
 subroutine allocate_atoms_nat(atoms)

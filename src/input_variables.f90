@@ -821,6 +821,7 @@ subroutine frequencies_input_variables_default(in)
 END SUBROUTINE frequencies_input_variables_default
 
 
+!> Cross check values of input_variables.
 subroutine input_analyze(in)
   use module_types, only: input_variables
   use module_types, only: output_denspot_FORMAT_CUBE, output_denspot_NONE, WF_FORMAT_NONE
@@ -922,6 +923,7 @@ subroutine input_analyze(in)
 END SUBROUTINE input_analyze
 
 
+!> Analyse the kpt input and calculates k points if needed
 subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   use module_base
   use module_types
