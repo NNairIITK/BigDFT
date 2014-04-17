@@ -39,7 +39,7 @@ program driver
   real(kind=8) :: ddot, dnrm2
   logical, parameter :: timer_on=.false.        !time the different methods
   logical, parameter :: ortho_check=.false.     !check deviation from orthonormality of input overlap matrix
-  logical, parameter :: print_matrices=.false.  !output calculated matrices
+  logical, parameter :: print_matrices=.true.  !output calculated matrices
 
   ! Initialize
   call f_lib_initialize()
