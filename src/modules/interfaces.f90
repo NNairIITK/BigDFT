@@ -3639,19 +3639,6 @@ module module_interfaces
           integer, intent(in) :: iproc
         end subroutine build_linear_combination_transposed
 
-        subroutine sparsemm(nseq, a_seq, b, c, norb, norbp, ivectorindex, nout, onedimindices)
-          use module_base
-          use module_types
-          implicit none
-          integer, intent(in) :: norb,norbp,nseq
-          real(kind=8), dimension(norb,norbp),intent(in) :: b
-          real(kind=8), dimension(nseq),intent(in) :: a_seq
-          real(kind=8), dimension(norb,norbp), intent(out) :: c
-          integer,dimension(nseq),intent(in) :: ivectorindex
-          integer,intent(in) :: nout
-          integer,dimension(4,nout) :: onedimindices
-        end subroutine sparsemm
-
         subroutine axpy_kernel_vectors(norbp, norb, nout, onedimindices, a, x, y)
           use module_base
           use module_types
@@ -4274,22 +4261,6 @@ module module_interfaces
           real(kind=8),dimension(norb,norbp),intent(in),optional :: cmatp
         end subroutine check_accuracy_overlap_minus_one_sparse
 
-        subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, norb, norbp, isorb, nseq, nout, &
-                   ivectorindex, onedimindices, amat_seq, bmatp, power, &
-                   error, &
-                   dmat_seq, cmatp)
-          use module_base
-          implicit none
-          integer,intent(in) :: iproc, nproc, norb, norbp, isorb, nseq, nout, power
-          integer,dimension(nseq),intent(in) :: ivectorindex
-          integer,dimension(4,nout) :: onedimindices
-          real(kind=8),dimension(nseq),intent(in) :: amat_seq
-          real(kind=8),dimension(norb,norbp),intent(in) :: bmatp
-          real(kind=8),intent(out) :: error
-          real(kind=8),dimension(nseq),intent(in),optional :: dmat_seq
-          real(kind=8),dimension(norb,norbp),intent(in),optional :: cmatp
-        end subroutine check_accur_overlap_minus_one_sparse
-
         subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
                    calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap)
           use module_base
@@ -4341,6 +4312,24 @@ module module_interfaces
           logical,intent(in) :: store_index
           type(sparse_matrix), intent(out) :: smat
         end subroutine init_sparse_matrix_wrapper
+
+        subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, smat, norb, norbp, isorb, nseq, nout, &
+                   ivectorindex, onedimindices, amat_seq, bmatp, power, &
+                   error, &
+                   dmat_seq, cmatp)
+          use module_base
+          use sparsematrix_base, only: sparse_matrix
+          implicit none
+          integer,intent(in) :: iproc, nproc, norb, norbp, isorb, nseq, nout, power
+          type(sparse_matrix) :: smat
+          integer,dimension(nseq),intent(in) :: ivectorindex
+          integer,dimension(4,nout) :: onedimindices
+          real(kind=8),dimension(nseq),intent(in) :: amat_seq
+          real(kind=8),dimension(norb,norbp),intent(in) :: bmatp
+          real(kind=8),intent(out) :: error
+          real(kind=8),dimension(nseq),intent(in),optional :: dmat_seq
+          real(kind=8),dimension(norb,norbp),intent(in),optional :: cmatp
+        end subroutine check_accur_overlap_minus_one_sparse
   
   end interface
 END MODULE module_interfaces

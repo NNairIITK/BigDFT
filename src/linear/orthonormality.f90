@@ -400,7 +400,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
   use sparsematrix_base, only: sparse_matrix
   use sparsematrix, only: compress_matrix, uncompress_matrix, transform_sparse_matrix, &
                           compress_matrix_distributed, uncompress_matrix_distributed, &
-                          sequential_acces_matrix_fast
+                          sequential_acces_matrix_fast, sparsemm
   use yaml_output
   implicit none
   
@@ -657,9 +657,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
                 call first_order_taylor_dense(norb,isorb,norbp,power,ovrlpminonep,invovrlpp)
             end if
             do i=2,iorder
-               call sparsemm(inv_ovrlp_smat%smmm%nseq, ovrlpminone_sparse_seq, ovrlpminoneoldp, ovrlpminonep, &
-                    norb, norbp, inv_ovrlp_smat%smmm%ivectorindex, &
-                    inv_ovrlp_smat%smmm%nout, inv_ovrlp_smat%smmm%onedimindices)
+               call sparsemm(inv_ovrlp_smat, ovrlpminone_sparse_seq, ovrlpminoneoldp, ovrlpminonep)
                factor=newfactor(power,i,factor)
                call daxpy(norb*norbp,factor,ovrlpminonep,1,invovrlpp,1)
                call vcopy(norb*norbp,ovrlpminonep(1,1),1,ovrlpminoneoldp(1,1),1)
@@ -709,7 +707,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
                  !!     foe_kernel_nsegline, foe_istsegline, foe_keyg, &
                  !!     inv_ovrlp_smat, inv_ovrlp_smat%matrix_compr, inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
                  !!     invovrlp_compr_seq)
-                 call check_accur_overlap_minus_one_sparse(iproc, nproc, norb, norbp, isorb, &
+                 call check_accur_overlap_minus_one_sparse(iproc, nproc, inv_ovrlp_smat, norb, norbp, isorb, &
                       inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nout, &
                       inv_ovrlp_smat%smmm%ivectorindex, inv_ovrlp_smat%smmm%onedimindices, &
                       invovrlp_compr_seq, ovrlp_largep, power, &
@@ -720,7 +718,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
                 !!     inv_ovrlp_smat, inv_ovrlp_smat%matrix_compr, inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nmaxsegk, inv_ovrlp_smat%smmm%nmaxvalk, &
                 !!     invovrlp_compr_seq)
                 call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, inv_ovrlp_smat%matrix_compr, invovrlpp)
-                call check_accur_overlap_minus_one_sparse(iproc, nproc, norb, norbp, isorb, &
+                call check_accur_overlap_minus_one_sparse(iproc, nproc, inv_ovrlp_smat, norb, norbp, isorb, &
                      inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nout, &
                      inv_ovrlp_smat%smmm%ivectorindex, inv_ovrlp_smat%smmm%onedimindices, &
                      invovrlp_compr_seq, invovrlpp, power, &
@@ -737,7 +735,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
                 !     ovrlp_compr_seq)
                 call sequential_acces_matrix_fast(inv_ovrlp_smat, ovrlp_large_compr, ovrlp_compr_seq)
                 call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, inv_ovrlp_smat%matrix_compr, invovrlpp)
-                call check_accur_overlap_minus_one_sparse(iproc, nproc, norb, norbp, isorb, &
+                call check_accur_overlap_minus_one_sparse(iproc, nproc, inv_ovrlp_smat, norb, norbp, isorb, &
                      inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nout, &
                      inv_ovrlp_smat%smmm%ivectorindex, inv_ovrlp_smat%smmm%onedimindices, &
                      invovrlp_compr_seq, invovrlpp, power, &
@@ -1255,13 +1253,16 @@ end subroutine overlap_plus_minus_one_half_exact
 
 
 
-subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, norb, norbp, isorb, nseq, nout, &
+subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, smat, norb, norbp, isorb, nseq, nout, &
            ivectorindex, onedimindices, amat_seq, bmatp, power, &
            error, &
            dmat_seq, cmatp)
   use module_base
+  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix, only: sparsemm
   implicit none
   integer,intent(in) :: iproc, nproc, norb, norbp, isorb, nseq, nout, power
+  type(sparse_matrix) :: smat
   integer,dimension(nseq),intent(in) :: ivectorindex
   integer,dimension(4,nout) :: onedimindices
   real(kind=8),dimension(nseq),intent(in) :: amat_seq
@@ -1278,28 +1279,24 @@ subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, norb, norbp, isorb
   if (power==1) then
      !!call dgemm('n', 'n', norb, norbp, norb, 1.d0, inv_ovrlp(1,1), &
      !!     norb, ovrlp(1,isorb+1), norb, 0.d0, tmpp(1,1), norb)
-     call sparsemm(nseq, amat_seq, bmatp, tmpp, &
-          norb, norbp, ivectorindex, nout, onedimindices)
+     call sparsemm(smat, amat_seq, bmatp, tmpp)
      call deviation_from_unity_parallel(iproc, nproc, norb, norbp, isorb, tmpp, error)
   else if (power==2) then
       if (.not.present(cmatp)) stop 'cmatp not present'
      !!call dgemm('n', 'n', norb, norbp, norb, 1.d0, inv_ovrlp(1,1), &
      !!     norb, inv_ovrlp(1,isorb+1), norb, 0.d0, tmpp(1,1), norb)
-     call sparsemm(nseq, amat_seq, bmatp, tmpp, &
-          norb, norbp, ivectorindex, nout, onedimindices)
+     call sparsemm(smat, amat_seq, bmatp, tmpp)
      call max_matrix_diff_parallel(iproc, norb, norbp, tmpp, cmatp, error)
      error=0.5d0*error
   else if (power==-2) then
      if (.not.present(dmat_seq)) stop 'dmat_seq not present'
      !!call dgemm('n', 'n', norb, norbp, norb, 1.d0, inv_ovrlp(1,1), &
      !!     norb, inv_ovrlp(1,isorb+1), norb, 0.d0, tmpp(1,1), norb)
-     call sparsemm(nseq, amat_seq, bmatp, tmpp, &
-          norb, norbp, ivectorindex, nout, onedimindices)
+     call sparsemm(smat, amat_seq, bmatp, tmpp)
      tmp2p=f_malloc0((/norb,norbp/),id='tmp2p')
      !!call dgemm('n', 'n', norb, norbp, norb, 1.d0, ovrlp(1,1), &
      !!     norb, tmpp(1,1), norb, 0.d0, tmp2p(1,1), norb)
-     call sparsemm(nseq, dmat_seq, tmpp, tmp2p, &
-          norb, norbp, ivectorindex, nout, onedimindices)
+     call sparsemm(smat, dmat_seq, tmpp, tmp2p)
      call deviation_from_unity_parallel(iproc, nproc, norb, norbp, isorb, tmp2p, error)
      error=0.5d0*error
      call f_free(tmp2p)

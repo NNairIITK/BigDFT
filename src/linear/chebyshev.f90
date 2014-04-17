@@ -16,7 +16,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
   use module_types
   use module_interfaces, except_this_one => chebyshev_clean
   use sparsematrix_base, only: sparse_matrix
-  use sparsematrix, only: sequential_acces_matrix_fast
+  use sparsematrix, only: sequential_acces_matrix_fast, sparsemm
   implicit none
 
   ! Calling arguments
@@ -117,11 +117,9 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
       if (calculate_SHS) then
   
           if (norbp>0) then
-              call sparsemm(kernel%smmm%nseq, ham_compr_seq, matrix(1,1), vectors(1,1,1), &
-                   norb, norbp, kernel%smmm%ivectorindex, kernel%smmm%nout, kernel%smmm%onedimindices)
+              call sparsemm(kernel, ham_compr_seq, matrix(1,1), vectors(1,1,1))
               call to_zero(norbp*norb, matrix(1,1))
-              call sparsemm(kernel%smmm%nseq, ovrlp_compr_seq, vectors(1,1,1), matrix(1,1), &
-                   norb, norbp, kernel%smmm%ivectorindex, kernel%smmm%nout, kernel%smmm%onedimindices)
+              call sparsemm(kernel, ovrlp_compr_seq, vectors(1,1,1), matrix(1,1))
               !call to_zero(kernel%nvctr, SHS(1))
           end if
           call to_zero(kernel%nvctr, SHS(1))
@@ -183,15 +181,11 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
         
           ! apply(3/2 - 1/2 S) H (3/2 - 1/2 S)
           if (number_of_matmuls==three) then
-              call sparsemm(kernel%smmm%nseq, ovrlp_compr_seq, vectors(1,1,3), vectors(1,1,1), &
-                   norb, norbp, kernel%smmm%ivectorindex, kernel%smmm%nout, kernel%smmm%onedimindices)
-              call sparsemm(kernel%smmm%nseq, ham_compr_seq, vectors(1,1,1), vectors(1,1,3), &
-                   norb, norbp, kernel%smmm%ivectorindex, kernel%smmm%nout, kernel%smmm%onedimindices)
-              call sparsemm(kernel%smmm%nseq, ovrlp_compr_seq, vectors(1,1,3), vectors(1,1,1), &
-                   norb, norbp, kernel%smmm%ivectorindex, kernel%smmm%nout, kernel%smmm%onedimindices)
+              call sparsemm(kernel, ovrlp_compr_seq, vectors(1,1,3), vectors(1,1,1))
+              call sparsemm(kernel, ham_compr_seq, vectors(1,1,1), vectors(1,1,3))
+              call sparsemm(kernel, ovrlp_compr_seq, vectors(1,1,3), vectors(1,1,1))
           else if (number_of_matmuls==one) then
-              call sparsemm(kernel%smmm%nseq, SHS_seq, vectors(1,1,3), vectors(1,1,1), &
-                   norb, norbp, kernel%smmm%ivectorindex, kernel%smmm%nout, kernel%smmm%onedimindices)
+              call sparsemm(kernel, SHS_seq, vectors(1,1,3), vectors(1,1,1))
           end if
         
         
@@ -221,15 +215,11 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
           main_loop: do ipl=3,npl
               ! apply (3/2 - 1/2 S) H (3/2 - 1/2 S)
               if (number_of_matmuls==three) then
-                  call sparsemm(kernel%smmm%nseq, ovrlp_compr_seq, vectors(1,1,1), vectors(1,1,2), &
-                       norb, norbp, kernel%smmm%ivectorindex, kernel%smmm%nout, kernel%smmm%onedimindices)
-                  call sparsemm(kernel%smmm%nseq, ham_compr_seq, vectors(1,1,2), vectors(1,1,3), &
-                       norb, norbp, kernel%smmm%ivectorindex, kernel%smmm%nout, kernel%smmm%onedimindices)
-                  call sparsemm(kernel%smmm%nseq, ovrlp_compr_seq, vectors(1,1,3), vectors(1,1,2), &
-                       norb, norbp, kernel%smmm%ivectorindex, kernel%smmm%nout, kernel%smmm%onedimindices)
+                  call sparsemm(kernel, ovrlp_compr_seq, vectors(1,1,1), vectors(1,1,2))
+                  call sparsemm(kernel, ham_compr_seq, vectors(1,1,2), vectors(1,1,3))
+                  call sparsemm(kernel, ovrlp_compr_seq, vectors(1,1,3), vectors(1,1,2))
               else if (number_of_matmuls==one) then
-                  call sparsemm(kernel%smmm%nseq, SHS_seq, vectors(1,1,1), vectors(1,1,2), &
-                       norb, norbp, kernel%smmm%ivectorindex, kernel%smmm%nout, kernel%smmm%onedimindices)
+                  call sparsemm(kernel, SHS_seq, vectors(1,1,1), vectors(1,1,2))
               end if
               call axbyz_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, &
                    2.d0, vectors(1,1,2), -1.d0, vectors(1,1,4), vectors(1,1,3))
@@ -315,81 +305,6 @@ end subroutine axbyz_kernel_vectors
 
 
 
-subroutine sparsemm(nseq, a_seq, b, c, norb, norbp, ivectorindex, nout, onedimindices)
-  use module_base
-  use module_types
-
-  implicit none
-
-  !Calling Arguments
-  integer, intent(in) :: norb,norbp,nseq
-  real(kind=8), dimension(norb,norbp),intent(in) :: b
-  real(kind=8), dimension(nseq),intent(in) :: a_seq
-  real(kind=8), dimension(norb,norbp), intent(out) :: c
-  integer,dimension(nseq),intent(in) :: ivectorindex
-  integer,intent(in) :: nout
-  integer,dimension(4,nout) :: onedimindices
-
-  !Local variables
-  !character(len=*), parameter :: subname='sparsemm'
-  integer :: i,jorb,jjorb,m,mp1
-  integer :: iorb, ii0, ii2, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6, iout
-  real(kind=8) :: tt
-
-  call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'IR')
-
-  !$omp parallel default(private) shared(ivectorindex, a_seq, b, c, onedimindices, nout)
-  !$omp do
-  do iout=1,nout
-      i=onedimindices(1,iout)
-      iorb=onedimindices(2,iout)
-      ilen=onedimindices(3,iout)
-      ii0=onedimindices(4,iout)
-      ii2=0
-      tt=0.d0
-
-      m=mod(ilen,7)
-      if (m/=0) then
-          do jorb=1,m
-             jjorb=ivectorindex(ii0+ii2)
-             tt = tt + b(jjorb,i)*a_seq(ii0+ii2)
-             ii2=ii2+1
-          end do
-      end if
-      mp1=m+1
-      do jorb=mp1,ilen,7
-
-         jjorb0=ivectorindex(ii0+ii2+0)
-         tt = tt + b(jjorb0,i)*a_seq(ii0+ii2+0)
-
-         jjorb1=ivectorindex(ii0+ii2+1)
-         tt = tt + b(jjorb1,i)*a_seq(ii0+ii2+1)
-
-         jjorb2=ivectorindex(ii0+ii2+2)
-         tt = tt + b(jjorb2,i)*a_seq(ii0+ii2+2)
-
-         jjorb3=ivectorindex(ii0+ii2+3)
-         tt = tt + b(jjorb3,i)*a_seq(ii0+ii2+3)
-
-         jjorb4=ivectorindex(ii0+ii2+4)
-         tt = tt + b(jjorb4,i)*a_seq(ii0+ii2+4)
-
-         jjorb5=ivectorindex(ii0+ii2+5)
-         tt = tt + b(jjorb5,i)*a_seq(ii0+ii2+5)
-
-         jjorb6=ivectorindex(ii0+ii2+6)
-         tt = tt + b(jjorb6,i)*a_seq(ii0+ii2+6)
-
-         ii2=ii2+7
-      end do
-      c(iorb,i)=tt
-  end do 
-  !$omp end do
-  !$omp end parallel
-
-  call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'RS')
-    
-end subroutine sparsemm
 
 
 

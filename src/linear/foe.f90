@@ -1142,7 +1142,7 @@ subroutine foe(iproc, nproc, tmprtr, &
 
 
       subroutine retransform(matrix_compr)
-          use sparsematrix, only: sequential_acces_matrix_fast
+          use sparsematrix, only: sequential_acces_matrix_fast, sparsemm
           ! Calling arguments
           real(kind=8),dimension(tmb%linmat%denskern_large%nvctr),intent(inout) :: matrix_compr
 
@@ -1186,15 +1186,9 @@ subroutine foe(iproc, nproc, tmprtr, &
                tmb%linmat%inv_ovrlp_large%matrix_compr, inv_ovrlpp)
 
            tempp=0.d0
-          call sparsemm(tmb%linmat%denskern_large%smmm%nseq, kernel_compr_seq, inv_ovrlpp, tempp, &
-               tmb%orbs%norb, tmb%orbs%norbp, tmb%linmat%denskern_large%smmm%ivectorindex, &
-               tmb%linmat%denskern_large%smmm%nout, &
-               tmb%linmat%denskern_large%smmm%onedimindices)
+          call sparsemm(tmb%linmat%denskern_large, kernel_compr_seq, inv_ovrlpp, tempp)
           inv_ovrlpp=0.d0
-          call sparsemm(tmb%linmat%inv_ovrlp_large%smmm%nseq, inv_ovrlp_compr_seq, tempp, inv_ovrlpp, &
-               tmb%orbs%norb, tmb%orbs%norbp, tmb%linmat%inv_ovrlp_large%smmm%ivectorindex, &
-               tmb%linmat%inv_ovrlp_large%smmm%nout, &
-               tmb%linmat%inv_ovrlp_large%smmm%onedimindices)
+          call sparsemm(tmb%linmat%inv_ovrlp_large, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
 
           !!call to_zero(tmb%linmat%denskern_large%nvctr, tmb%linmat%denskern_large%matrix_compr(1))
           call to_zero(tmb%linmat%denskern_large%nvctr, matrix_compr(1))

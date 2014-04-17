@@ -13,6 +13,7 @@ module sparsematrix
   public :: compress_matrix_distributed
   public :: uncompress_matrix_distributed
   public :: sequential_acces_matrix_fast
+  public :: sparsemm
 
   contains
 
@@ -480,6 +481,78 @@ module sparsematrix
      !$omp end parallel do
    
    end subroutine sequential_acces_matrix_fast
+
+
+   subroutine sparsemm(smat, a_seq, b, c)
+     use module_base
+     implicit none
+   
+     !Calling Arguments
+     type(sparse_matrix),intent(in) :: smat
+     real(kind=8), dimension(smat%nfvctr,smat%nfvctrp),intent(in) :: b
+     real(kind=8), dimension(smat%smmm%nseq),intent(in) :: a_seq
+     real(kind=8), dimension(smat%nfvctr,smat%nfvctrp), intent(out) :: c
+   
+     !Local variables
+     !character(len=*), parameter :: subname='sparsemm'
+     integer :: i,jorb,jjorb,m,mp1
+     integer :: iorb, ii0, ii2, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6, iout
+     real(kind=8) :: tt
+   
+     call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'IR')
+   
+     !$omp parallel default(private) shared(smat, a_seq, b, c)
+     !$omp do
+     do iout=1,smat%smmm%nout
+         i=smat%smmm%onedimindices(1,iout)
+         iorb=smat%smmm%onedimindices(2,iout)
+         ilen=smat%smmm%onedimindices(3,iout)
+         ii0=smat%smmm%onedimindices(4,iout)
+         ii2=0
+         tt=0.d0
+   
+         m=mod(ilen,7)
+         if (m/=0) then
+             do jorb=1,m
+                jjorb=smat%smmm%ivectorindex(ii0+ii2)
+                tt = tt + b(jjorb,i)*a_seq(ii0+ii2)
+                ii2=ii2+1
+             end do
+         end if
+         mp1=m+1
+         do jorb=mp1,ilen,7
+   
+            jjorb0=smat%smmm%ivectorindex(ii0+ii2+0)
+            tt = tt + b(jjorb0,i)*a_seq(ii0+ii2+0)
+   
+            jjorb1=smat%smmm%ivectorindex(ii0+ii2+1)
+            tt = tt + b(jjorb1,i)*a_seq(ii0+ii2+1)
+   
+            jjorb2=smat%smmm%ivectorindex(ii0+ii2+2)
+            tt = tt + b(jjorb2,i)*a_seq(ii0+ii2+2)
+   
+            jjorb3=smat%smmm%ivectorindex(ii0+ii2+3)
+            tt = tt + b(jjorb3,i)*a_seq(ii0+ii2+3)
+   
+            jjorb4=smat%smmm%ivectorindex(ii0+ii2+4)
+            tt = tt + b(jjorb4,i)*a_seq(ii0+ii2+4)
+   
+            jjorb5=smat%smmm%ivectorindex(ii0+ii2+5)
+            tt = tt + b(jjorb5,i)*a_seq(ii0+ii2+5)
+   
+            jjorb6=smat%smmm%ivectorindex(ii0+ii2+6)
+            tt = tt + b(jjorb6,i)*a_seq(ii0+ii2+6)
+   
+            ii2=ii2+7
+         end do
+         c(iorb,i)=tt
+     end do 
+     !$omp end do
+     !$omp end parallel
+   
+     call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'RS')
+       
+   end subroutine sparsemm
 
 
 end module sparsematrix
