@@ -29,6 +29,7 @@ module sparsematrix_base
   public :: sparse_matrix_null
   public :: allocate_sparse_matrix_keys
   public :: allocate_sparse_matrix_basic
+  public :: allocate_sparse_matrix_matrices
   public :: allocate_sparse_matrix_matrix_multiplication
 
 
@@ -100,6 +101,19 @@ module sparsematrix_base
       sparsemat%keyg=f_malloc_ptr((/2,sparsemat%nseg/),id='sparsemat%keyg')
       sparsemat%orb_from_index=f_malloc_ptr((/2,sparsemat%nvctr/),id='sparsemat%orb_from_index')
     end subroutine allocate_sparse_matrix_keys
+
+
+    subroutine allocate_sparse_matrix_matrices(sparsemat,allocate_full)
+      implicit none
+      type(sparse_matrix),intent(inout) :: sparsemat
+      logical,intent(in) :: allocate_full
+      integer :: istat
+      sparsemat%matrix_compr = f_malloc_ptr(sparsemat%nvctr,id='sparsemat%matrix_compr')
+      sparsemat%matrix_comprp = f_malloc_ptr(sparsemat%nvctrp,id='sparsemat%matrix_comprp')
+      if (allocate_full) sparsemat%matrix = f_malloc_ptr((/sparsemat%nfvctr,sparsemat%nfvctr/),id='sparsemat%matrix')
+      sparsemat%matrixp = f_malloc_ptr((/sparsemat%nfvctr,sparsemat%nfvctrp/),id='sparsemat%matrixp')
+    end subroutine allocate_sparse_matrix_matrices
+
 
     subroutine allocate_sparse_matrix_matrix_multiplication(norb, nseg, nsegline, istsegline, keyg, smmm)
       implicit none

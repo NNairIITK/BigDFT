@@ -1731,7 +1731,8 @@ subroutine support_function_multipoles(iproc, tmb, atoms, denspot)
       do iorb=1,tmb%orbs%norb
           iat=tmb%orbs%onwhichatom(iorb)
           atomname=trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))
-          call yaml_open_sequence('number'//trim(yaml_toa(iorb))//' (atom number ='//trim(yaml_toa(iat))//', type = '//trim(atomname)//')')
+          call yaml_open_sequence('number'//trim(yaml_toa(iorb))// &
+               ' (atom number ='//trim(yaml_toa(iat))//', type = '//trim(atomname)//')')
           call yaml_sequence(advance='no')
           call yaml_map('net dipole',dipole_net(:,iorb),fmt='(es18.10)')
           call yaml_sequence(advance='no')

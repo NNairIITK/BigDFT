@@ -524,6 +524,8 @@ fructose:
  Total charge: 2.1e-10
  charge diff: 5.4e-6
  multiplicator for the confinement: 1.4e-11
+ ebs: 1.1e-8
+ ebs_check: 1.1e-8
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -831,7 +833,7 @@ intermediateforces:
  Atomic Forces (Ha/Bohr): 1.3e-6
  Average noise forces: 1.6e-6
  Clean forces norm (Ha/Bohr): 1.5e-6
- Raw forces norm (Ha/Bohr): 1.6e-6
+ Raw forces norm (Ha/Bohr): 1.7e-6
  e: 1.6e-6
  energy: 2.8e-7
  Omega: 5.5e-7
@@ -842,6 +844,7 @@ intermediateforces:
  Enl: 1.6e-6
  Epot: 5.5e-7
  multiplicator for the confinement: 1.6e-11
+ D: 4.6e-7
 
 DIIShistory:
  Atomic Forces (Ha/Bohr): 1.9e-9

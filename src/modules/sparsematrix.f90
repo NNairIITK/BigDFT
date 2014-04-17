@@ -10,6 +10,10 @@ module sparsematrix
   public :: uncompress_matrix
   public :: check_matrix_compression
   public :: transform_sparse_matrix
+  public :: compress_matrix_distributed
+  public :: uncompress_matrix_distributed
+  public :: sequential_acces_matrix_fast
+  public :: sparsemm
 
   contains
 
@@ -181,7 +185,7 @@ module sparsematrix
       call f_routine('check_matrix_compression')
     
       sparsemat%matrix=f_malloc_ptr((/sparsemat%nfvctr,sparsemat%nfvctr/),id='sparsemat%matrix')
-      sparsemat%matrix_compr=f_malloc_ptr(sparsemat%nvctr,id='sparsemat%matrix_compr')
+      !!sparsemat%matrix_compr=f_malloc_ptr(sparsemat%nvctr,id='sparsemat%matrix_compr')
     
       call to_zero(sparsemat%nfvctr**2,sparsemat%matrix(1,1))
       do iseg = 1, sparsemat%nseg
@@ -234,7 +238,7 @@ module sparsematrix
       end if
     
       call f_free_ptr(sparsemat%matrix)
-      call f_free_ptr(sparsemat%matrix_compr)
+      !!call f_free_ptr(sparsemat%matrix_compr)
 
       call f_release_routine()
     
@@ -367,5 +371,188 @@ module sparsematrix
       call timing(bigdft_mpi%iproc,'transform_matr','RS')
     
     end subroutine transform_sparse_matrix
+
+
+
+
+   subroutine compress_matrix_distributed(iproc, smat, matrixp, matrix_compr)
+     use module_base
+     implicit none
+
+     ! Calling arguments
+     integer,intent(in) :: iproc
+     type(sparse_matrix),intent(in) :: smat
+     real(kind=8),dimension(smat%nfvctr,smat%nfvctrp),intent(in) :: matrixp
+     real(kind=8),dimension(smat%nvctr),intent(out) :: matrix_compr
+
+     ! Local variables
+     integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, ierr
+
+
+     call to_zero(smat%nvctr, matrix_compr(1))
+
+     if (smat%nfvctrp>0) then
+         isegstart=smat%istsegline(smat%isfvctr_par(iproc)+1)
+         if (smat%isfvctr_par(iproc)+smat%nfvctrp<smat%nfvctr) then
+             isegend=smat%istsegline(smat%isfvctr_par(iproc+1)+1)-1
+         else
+             isegend=smat%nseg
+         end if
+         !$omp parallel default(none) &
+         !$omp shared(isegstart, isegend, matrixp, smat, matrix_compr,iproc) &
+         !$omp private(iseg, ii, jorb, iiorb, jjorb)
+         !$omp do
+         do iseg=isegstart,isegend
+             ii=smat%keyv(iseg)-1
+             do jorb=smat%keyg(1,iseg),smat%keyg(2,iseg)
+                 ii=ii+1
+                 iiorb = (jorb-1)/smat%nfvctr + 1
+                 jjorb = jorb - (iiorb-1)*smat%nfvctr
+                 matrix_compr(ii)=matrixp(jjorb,iiorb-smat%isfvctr_par(iproc))
+             end do
+         end do
+         !$omp end do
+         !$omp end parallel
+     end if
+
+     call mpiallred(matrix_compr(1), smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+  end subroutine compress_matrix_distributed
+
+
+  subroutine uncompress_matrix_distributed(iproc, smat, matrix_compr, matrixp)
+    use module_base
+    implicit none
+
+    ! Calling arguments
+    integer,intent(in) :: iproc
+    type(sparse_matrix),intent(in) :: smat
+    real(kind=8),dimension(smat%nvctr),intent(in) :: matrix_compr
+    real(kind=8),dimension(smat%nfvctr,smat%nfvctrp),intent(out) :: matrixp
+
+    ! Local variables
+    integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb
+
+
+       if (smat%nfvctrp>0) then
+
+           call to_zero(smat%nfvctr*smat%nfvctrp,matrixp(1,1))
+
+           isegstart=smat%istsegline(smat%isfvctr_par(iproc)+1)
+           if (smat%isfvctr_par(iproc)+smat%nfvctrp<smat%nfvctr) then
+               isegend=smat%istsegline(smat%isfvctr_par(iproc+1)+1)-1
+           else
+               isegend=smat%nseg
+           end if
+           !$omp parallel do default(private) &
+           !$omp shared(isegstart, isegend, smat, matrixp, matrix_compr, iproc)
+           do iseg=isegstart,isegend
+               ii=smat%keyv(iseg)-1
+               do jorb=smat%keyg(1,iseg),smat%keyg(2,iseg)
+                   ii=ii+1
+                   iiorb = (jorb-1)/smat%nfvctr + 1
+                   jjorb = jorb - (iiorb-1)*smat%nfvctr
+                   matrixp(jjorb,iiorb-smat%isfvctr_par(iproc)) = matrix_compr(ii)
+               end do
+           end do
+           !$omp end parallel do
+       end if
+
+   end subroutine uncompress_matrix_distributed
+
+   subroutine sequential_acces_matrix_fast(smat, a, a_seq)
+     use module_base
+     implicit none
+   
+     ! Calling arguments
+     type(sparse_matrix),intent(in) :: smat
+     real(kind=8),dimension(smat%nvctr),intent(in) :: a
+     real(kind=8),dimension(smat%smmm%nseq),intent(out) :: a_seq
+   
+     ! Local variables
+     integer :: iseq, ii
+   
+     !$omp parallel do default(none) private(iseq, ii) &
+     !$omp shared(smat, a_seq, a)
+     do iseq=1,smat%smmm%nseq
+         ii=smat%smmm%indices_extract_sequential(iseq)
+         a_seq(iseq)=a(ii)
+     end do
+     !$omp end parallel do
+   
+   end subroutine sequential_acces_matrix_fast
+
+
+   subroutine sparsemm(smat, a_seq, b, c)
+     use module_base
+     implicit none
+   
+     !Calling Arguments
+     type(sparse_matrix),intent(in) :: smat
+     real(kind=8), dimension(smat%nfvctr,smat%nfvctrp),intent(in) :: b
+     real(kind=8), dimension(smat%smmm%nseq),intent(in) :: a_seq
+     real(kind=8), dimension(smat%nfvctr,smat%nfvctrp), intent(out) :: c
+   
+     !Local variables
+     !character(len=*), parameter :: subname='sparsemm'
+     integer :: i,jorb,jjorb,m,mp1
+     integer :: iorb, ii0, ii2, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6, iout
+     real(kind=8) :: tt
+   
+     call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'IR')
+   
+     !$omp parallel default(private) shared(smat, a_seq, b, c)
+     !$omp do
+     do iout=1,smat%smmm%nout
+         i=smat%smmm%onedimindices(1,iout)
+         iorb=smat%smmm%onedimindices(2,iout)
+         ilen=smat%smmm%onedimindices(3,iout)
+         ii0=smat%smmm%onedimindices(4,iout)
+         ii2=0
+         tt=0.d0
+   
+         m=mod(ilen,7)
+         if (m/=0) then
+             do jorb=1,m
+                jjorb=smat%smmm%ivectorindex(ii0+ii2)
+                tt = tt + b(jjorb,i)*a_seq(ii0+ii2)
+                ii2=ii2+1
+             end do
+         end if
+         mp1=m+1
+         do jorb=mp1,ilen,7
+   
+            jjorb0=smat%smmm%ivectorindex(ii0+ii2+0)
+            tt = tt + b(jjorb0,i)*a_seq(ii0+ii2+0)
+   
+            jjorb1=smat%smmm%ivectorindex(ii0+ii2+1)
+            tt = tt + b(jjorb1,i)*a_seq(ii0+ii2+1)
+   
+            jjorb2=smat%smmm%ivectorindex(ii0+ii2+2)
+            tt = tt + b(jjorb2,i)*a_seq(ii0+ii2+2)
+   
+            jjorb3=smat%smmm%ivectorindex(ii0+ii2+3)
+            tt = tt + b(jjorb3,i)*a_seq(ii0+ii2+3)
+   
+            jjorb4=smat%smmm%ivectorindex(ii0+ii2+4)
+            tt = tt + b(jjorb4,i)*a_seq(ii0+ii2+4)
+   
+            jjorb5=smat%smmm%ivectorindex(ii0+ii2+5)
+            tt = tt + b(jjorb5,i)*a_seq(ii0+ii2+5)
+   
+            jjorb6=smat%smmm%ivectorindex(ii0+ii2+6)
+            tt = tt + b(jjorb6,i)*a_seq(ii0+ii2+6)
+   
+            ii2=ii2+7
+         end do
+         c(iorb,i)=tt
+     end do 
+     !$omp end do
+     !$omp end parallel
+   
+     call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'RS')
+       
+   end subroutine sparsemm
+
 
 end module sparsematrix

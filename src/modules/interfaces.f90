@@ -2685,7 +2685,7 @@ module module_interfaces
          type(confpot_data), dimension(orbs%norbp), intent(out) :: confdatarr
        end subroutine define_confinement_data
 
-       subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locregCenter, glr_tmp, &
+       subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, locregCenter, glr_tmp, &
                   useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, astruct, input, &
                   orbs_KS, orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbcollcom, lfoe, lbcollcom_sr)
          use module_base
@@ -2698,7 +2698,7 @@ module module_interfaces
          real(8),intent(in):: hx, hy, hz
          type(atomic_structure),intent(in) :: astruct
          type(input_variables),intent(in) :: input
-         real(8),dimension(nlr),intent(in):: locrad, locrad_kernel
+         real(8),dimension(nlr),intent(in):: locrad, locrad_kernel, locrad_mult
          type(orbitals_data),intent(in):: orbs_KS, orbs
          real(8),dimension(3,nlr),intent(in):: locregCenter
          type(locreg_descriptors),intent(in):: glr_tmp
@@ -3639,19 +3639,6 @@ module module_interfaces
           integer, intent(in) :: iproc
         end subroutine build_linear_combination_transposed
 
-        subroutine sparsemm(nseq, a_seq, b, c, norb, norbp, ivectorindex, nout, onedimindices)
-          use module_base
-          use module_types
-          implicit none
-          integer, intent(in) :: norb,norbp,nseq
-          real(kind=8), dimension(norb,norbp),intent(in) :: b
-          real(kind=8), dimension(nseq),intent(in) :: a_seq
-          real(kind=8), dimension(norb,norbp), intent(out) :: c
-          integer,dimension(nseq),intent(in) :: ivectorindex
-          integer,intent(in) :: nout
-          integer,dimension(4,nout) :: onedimindices
-        end subroutine sparsemm
-
         subroutine axpy_kernel_vectors(norbp, norb, nout, onedimindices, a, x, y)
           use module_base
           use module_types
@@ -3705,39 +3692,6 @@ module module_interfaces
           logical,intent(out) :: emergency_stop
         end subroutine chebyshev_clean
 
-        subroutine init_onedimindices(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, sparsemat, nout, onedimindices)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer,intent(in) :: norb, norbp, isorb, nseg
-          integer,dimension(norb),intent(in) :: nsegline, istsegline
-          integer,dimension(2,nseg),intent(in) :: keyg
-          type(sparse_matrix),intent(in) :: sparsemat
-          integer,intent(out) :: nout
-          integer,dimension(:,:),pointer :: onedimindices
-        end subroutine init_onedimindices
-
-        subroutine init_onedimindices_new(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, sparsemat, nout, onedimindices)
-          use module_base
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer,intent(in) :: norb, norbp, isorb, nseg
-          integer,dimension(norb),intent(in) :: nsegline, istsegline
-          integer,dimension(2,nseg),intent(in) :: keyg
-          type(sparse_matrix),intent(in) :: sparsemat
-          integer,intent(in) :: nout
-          integer,dimension(4,nout) :: onedimindices
-        end subroutine init_onedimindices_new
-
-        subroutine get_nout(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, nout)
-          use module_base
-          implicit none
-          integer,intent(in) :: norb, norbp, isorb, nseg
-          integer,dimension(norb),intent(in) :: nsegline, istsegline
-          integer,dimension(2,nseg),intent(in) :: keyg
-          integer,intent(out) :: nout
-        end subroutine get_nout
 
         subroutine enable_sequential_acces_vector(norbp, norb, isorb, foe_obj, b, nseq, bseq, indexarr)
           use module_base
@@ -3888,58 +3842,6 @@ module module_interfaces
           integer,intent(in) :: nfl2,nfu2,nfl3,nfu3
           integer,intent(inout) :: ib(2,nfl2:nfu2,nfl3:nfu3)
         end subroutine squares_1d
-
-        subroutine determine_sequential_length(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, &
-                   sparsemat, nseq, nmaxsegk, nmaxvalk)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer,intent(in) :: norb, norbp, isorb, nseg
-          integer,dimension(norb),intent(in) :: nsegline, istsegline
-          integer,dimension(2,nseg),intent(in) :: keyg
-          type(sparse_matrix),intent(in) :: sparsemat
-          integer,intent(out) :: nseq, nmaxsegk, nmaxvalk
-        end subroutine determine_sequential_length
-
-        subroutine get_arrays_for_sequential_acces(norb, norbp, isorb, nseg, &
-                   nsegline, istsegline, keyg, sparsemat, nseq, nmaxsegk, nmaxvalk, &
-                   ivectorindex)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer,intent(in) :: norb, norbp, isorb, nseg, nseq, nmaxsegk, nmaxvalk
-          integer,dimension(norb),intent(in) :: nsegline, istsegline
-          integer,dimension(2,nseg),intent(in) :: keyg
-          type(sparse_matrix),intent(in) :: sparsemat
-          integer,dimension(nseq),intent(out) :: ivectorindex
-        end subroutine get_arrays_for_sequential_acces
-
-        !!subroutine sequential_acces_matrix(norb, norbp, isorb, nseg, &
-        !!           nsegline, istsegline, keyg, sparsemat, a, nseq, nmaxsegk, nmaxvalk, &
-        !!           a_seq)
-        !!  use module_base
-        !!  use module_types
-        !!  use sparsematrix_base, only: sparse_matrix
-        !!  implicit none
-        !!  integer,intent(in) :: norb, norbp, isorb, nseg, nseq, nmaxsegk, nmaxvalk
-        !!  integer,dimension(norb),intent(in) :: nsegline, istsegline
-        !!  integer,dimension(2,nseg),intent(in) :: keyg
-        !!  type(sparse_matrix),intent(in) :: sparsemat
-        !!  real(kind=8),dimension(sparsemat%nvctr),intent(in) :: a
-        !!  real(kind=8),dimension(nseq),intent(out) :: a_seq
-        !!end subroutine sequential_acces_matrix
-
-
-        subroutine sequential_acces_matrix_fast(nseq, nvctr, indices_extract_sequential, a, a_seq)
-          use module_base
-          implicit none
-          integer,intent(in) :: nseq, nvctr
-          integer,dimension(nseq),intent(in) :: indices_extract_sequential
-          real(kind=8),dimension(nvctr),intent(in) :: a
-          real(kind=8),dimension(nseq),intent(out) :: a_seq
-        end subroutine sequential_acces_matrix_fast
 
         subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, &
                    orbs, at, minorbs_type, maxorbs_type, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, &
@@ -4299,22 +4201,6 @@ module module_interfaces
           real(kind=8),dimension(norb,norbp),intent(in),optional :: cmatp
         end subroutine check_accuracy_overlap_minus_one_sparse
 
-        subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, norb, norbp, isorb, nseq, nout, &
-                   ivectorindex, onedimindices, amat_seq, bmatp, power, &
-                   error, &
-                   dmat_seq, cmatp)
-          use module_base
-          implicit none
-          integer,intent(in) :: iproc, nproc, norb, norbp, isorb, nseq, nout, power
-          integer,dimension(nseq),intent(in) :: ivectorindex
-          integer,dimension(4,nout) :: onedimindices
-          real(kind=8),dimension(nseq),intent(in) :: amat_seq
-          real(kind=8),dimension(norb,norbp),intent(in) :: bmatp
-          real(kind=8),intent(out) :: error
-          real(kind=8),dimension(nseq),intent(in),optional :: dmat_seq
-          real(kind=8),dimension(norb,norbp),intent(in),optional :: cmatp
-        end subroutine check_accur_overlap_minus_one_sparse
-
         subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
                    calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap)
           use module_base
@@ -4331,6 +4217,59 @@ module module_interfaces
           integer,intent(in) :: meth_overlap
         end subroutine loewdin_charge_analysis
 
+
+        subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc
+          type(orbitals_data),intent(in) :: orbs
+          type(local_zone_descriptors),intent(in) :: lzd
+          integer,intent(out) :: nnonzero
+          integer,dimension(:),pointer,intent(out) :: nonzero
+        end subroutine determine_sparsity_pattern
+
+        subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonzero, nonzero)
+          use module_base
+          use module_types
+          implicit none
+          type(orbitals_data),intent(in) :: orbs
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(atomic_structure),intent(in) :: astruct
+          real(kind=8),dimension(lzd%nlr),intent(in) :: cutoff
+          integer,intent(out) :: nnonzero
+          integer,dimension(:),pointer,intent(out) :: nonzero
+        end subroutine determine_sparsity_pattern_distance
+
+        subroutine init_sparse_matrix_wrapper(iproc, nproc, orbs, lzd, astruct, store_index, imode, smat)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc, imode
+          type(orbitals_data),intent(in) :: orbs
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(atomic_structure),intent(in) :: astruct
+          logical,intent(in) :: store_index
+          type(sparse_matrix), intent(out) :: smat
+        end subroutine init_sparse_matrix_wrapper
+
+        subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, smat, norb, norbp, isorb, nseq, nout, &
+                   ivectorindex, onedimindices, amat_seq, bmatp, power, &
+                   error, &
+                   dmat_seq, cmatp)
+          use module_base
+          use sparsematrix_base, only: sparse_matrix
+          implicit none
+          integer,intent(in) :: iproc, nproc, norb, norbp, isorb, nseq, nout, power
+          type(sparse_matrix) :: smat
+          integer,dimension(nseq),intent(in) :: ivectorindex
+          integer,dimension(4,nout) :: onedimindices
+          real(kind=8),dimension(nseq),intent(in) :: amat_seq
+          real(kind=8),dimension(norb,norbp),intent(in) :: bmatp
+          real(kind=8),intent(out) :: error
+          real(kind=8),dimension(nseq),intent(in),optional :: dmat_seq
+          real(kind=8),dimension(norb,norbp),intent(in),optional :: cmatp
+        end subroutine check_accur_overlap_minus_one_sparse
   
   end interface
 END MODULE module_interfaces

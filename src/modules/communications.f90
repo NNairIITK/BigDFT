@@ -1070,7 +1070,7 @@ module communications
       call memocc(istat, worksend_log, 'worksend_log', subname)
       allocate(worksend_int(11,orbs%norbp), stat=istat)
       call memocc(istat, worksend_int, 'worksend_int', subname)
-      allocate(worksend_dbl(5,orbs%norbp), stat=istat)
+      allocate(worksend_dbl(6,orbs%norbp), stat=istat)
       call memocc(istat, worksend_dbl, 'worksend_dbl', subname)
     
       allocate(workrecv_char(orbs%norb), stat=istat)
@@ -1079,7 +1079,7 @@ module communications
       call memocc(istat, workrecv_log, 'workrecv_log', subname)
       allocate(workrecv_int(11,orbs%norb), stat=istat)
       call memocc(istat, workrecv_int, 'workrecv_int', subname)
-      allocate(workrecv_dbl(5,orbs%norb), stat=istat)
+      allocate(workrecv_dbl(6,orbs%norb), stat=istat)
       call memocc(istat, workrecv_dbl, 'workrecv_dbl', subname)
     
     
@@ -1101,6 +1101,7 @@ module communications
               worksend_dbl(1:3,iilr)=llr(ilr)%locregCenter(1:3)
               worksend_dbl(4,iilr)=llr(ilr)%locrad
               worksend_dbl(5,iilr)=llr(ilr)%locrad_kernel
+              worksend_dbl(6,iilr)=llr(ilr)%locrad_mult
           end if
       end do
     
@@ -1110,8 +1111,8 @@ module communications
            orbs%isorb_par, mpi_logical, bigdft_mpi%mpi_comm, ierr)
       call mpi_allgatherv(worksend_int, 11*orbs%norbp, mpi_integer, workrecv_int, 11*orbs%norb_par(:,0), &
            11*orbs%isorb_par, mpi_integer, bigdft_mpi%mpi_comm, ierr)
-      call mpi_allgatherv(worksend_dbl, 5*orbs%norbp, mpi_double_precision, workrecv_dbl, 5*orbs%norb_par(:,0), &
-           5*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+      call mpi_allgatherv(worksend_dbl, 6*orbs%norbp, mpi_double_precision, workrecv_dbl, 6*orbs%norb_par(:,0), &
+           6*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
     
       do ilr=1,nlr
           iilr=workrecv_int(11,ilr)
@@ -1128,6 +1129,7 @@ module communications
           llr(iilr)%locregCenter(1:3)=workrecv_dbl(1:3,ilr)
           llr(iilr)%locrad=workrecv_dbl(4,ilr)
           llr(iilr)%locrad_kernel=workrecv_dbl(5,ilr)
+          llr(iilr)%locrad_mult=workrecv_dbl(6,ilr)
       end do
     
     
