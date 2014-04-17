@@ -35,7 +35,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   integer :: isegstart, isegend, iismall, iseglarge, isegsmall, is, ie, iilarge, nsize_polynomial
   integer :: iismall_ovrlp, iismall_ham, ntemp, it_shift, npl_check
   integer,parameter :: nplx=50000
-  real(kind=8),dimension(:,:),allocatable :: cc, fermip, chebyshev_polynomials, cc_check, fermip_check
+  real(kind=8),dimension(:,:),allocatable :: cc, chebyshev_polynomials, cc_check, fermip_check
   real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
   real(kind=8) :: anoise, scale_factor, shift_value, sumn, sumn_check, charge_diff, ef_interpol, ddot
   real(kind=8) :: evlow_old, evhigh_old, m, b, det, determinant, sumn_old, ef_old, bound_low, bound_up, tt
@@ -92,8 +92,6 @@ subroutine foe(iproc, nproc, tmprtr, &
   allocate(penalty_ev(tmb%orbs%norb,tmb%orbs%norbp,2), stat=istat)
   call memocc(istat, penalty_ev, 'penalty_ev', subname)
 
-  allocate(fermip(tmb%orbs%norb,tmb%orbs%norbp), stat=istat)
-  call memocc(istat, fermip, 'fermip', subname)
   allocate(fermip_check(tmb%orbs%norb,tmb%orbs%norbp), stat=istat)
   call memocc(istat, fermip_check, 'fermip_check', subname)
 
@@ -221,7 +219,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           calculate_SHS=.true.
     
           if (tmb%orbs%norbp>0) then
-              call to_zero(tmb%orbs%norb*tmb%orbs%norbp, fermip(1,1))
+              call to_zero(tmb%orbs%norb*tmb%orbs%norbp, tmb%linmat%denskern_large%matrixp(1,1))
           end if
     
           if (iproc==0) then
@@ -407,13 +405,13 @@ subroutine foe(iproc, nproc, tmprtr, &
                   call chebyshev_clean(iproc, nproc, npl, cc, tmb%orbs, tmb%foe_obj, &
                        tmb%linmat%denskern_large, hamscal_compr, &
                        tmb%linmat%inv_ovrlp_large%matrix_compr, calculate_SHS, &
-                       nsize_polynomial, SHS, fermip, penalty_ev, chebyshev_polynomials, &
+                       nsize_polynomial, SHS, tmb%linmat%denskern_large%matrixp, penalty_ev, chebyshev_polynomials, &
                        emergency_stop)
               else
                   ! The Chebyshev polynomials are already available
                   if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','from memory')
                   call chebyshev_fast(iproc, nsize_polynomial, npl, tmb%orbs, &
-                      tmb%linmat%denskern_large, chebyshev_polynomials, cc, fermip)
+                      tmb%linmat%denskern_large, chebyshev_polynomials, cc, tmb%linmat%denskern_large%matrixp)
               end if 
 
 
@@ -543,39 +541,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                   tmb%foe_obj%evbounds_isatur=tmb%foe_obj%evbounds_isatur+1
               end if
             
-    
-              !!sumn=0.d0
-              !!if (tmb%orbs%norbp>0) then
-              !!    !do jproc=0,nproc-1
-              !!    !    if (iproc==jproc) then
-              !!            isegstart=tmb%linmat%denskern_large%istsegline(tmb%orbs%isorb_par(iproc)+1)
-              !!            if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
-              !!                isegend=tmb%linmat%denskern_large%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
-              !!            else
-              !!                isegend=tmb%linmat%denskern_large%nseg
-              !!            end if
-              !!            !$omp parallel default(private) shared(isegstart, isegend, fermip, tmb, sumn) 
-              !!            !$omp do reduction(+:sumn)
-              !!            do iseg=isegstart,isegend
-              !!                ii=tmb%linmat%denskern_large%keyv(iseg)-1
-              !!                do jorb=tmb%linmat%denskern_large%keyg(1,iseg),tmb%linmat%denskern_large%keyg(2,iseg)
-              !!                    ii=ii+1
-              !!                    iiorb = (jorb-1)/tmb%orbs%norb + 1
-              !!                    jjorb = jorb - (iiorb-1)*tmb%orbs%norb
-              !!                    if (jjorb==iiorb) sumn = sumn + fermip(jjorb,iiorb-tmb%orbs%isorb)
-              !!                end do  
-              !!            end do
-              !!            !$omp end do
-              !!            !$omp end parallel
-              !!    !    end if
-              !!    !    call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
-              !!    !end do
-              !!end if
-    
-              !!if (nproc>1) then
-              !!    call mpiallred(sumn, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-              !!end if
-              call calculate_trace_distributed(fermip, sumn)
+              call calculate_trace_distributed(tmb%linmat%denskern_large%matrixp, sumn)
     
     
               ! Make sure that the bounds for the bisection are negative and positive
@@ -787,7 +753,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                   diff=0.d0
                   do iorb=1,tmb%orbs%norbp
                       do jorb=1,tmb%orbs%norb
-                          diff = diff + (fermip(jorb,iorb)-fermip_check(jorb,iorb))**2
+                          diff = diff + (tmb%linmat%denskern_large%matrixp(jorb,iorb)-fermip_check(jorb,iorb))**2
                       end do
                   end do
                   call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -856,7 +822,7 @@ subroutine foe(iproc, nproc, tmprtr, &
       !!    !$omp end parallel
       !!end if
 
-     call compress_matrix_distributed(iproc, tmb%linmat%denskern_large, fermip, tmb%linmat%denskern_large%matrix_compr)
+     call compress_matrix_distributed(iproc, tmb%linmat%denskern_large, tmb%linmat%denskern_large%matrixp, tmb%linmat%denskern_large%matrix_compr)
 
      call compress_matrix_distributed(iproc, tmb%linmat%denskern_large, fermip_check, fermi_check_compr)
 
@@ -1115,10 +1081,6 @@ subroutine foe(iproc, nproc, tmprtr, &
   iall=-product(shape(hamscal_compr))*kind(hamscal_compr)
   deallocate(hamscal_compr, stat=istat)
   call memocc(istat, iall, 'hamscal_compr', subname)
-
-  iall=-product(shape(fermip))*kind(fermip)
-  deallocate(fermip, stat=istat)
-  call memocc(istat, iall, 'fermip', subname)
 
   iall=-product(shape(fermip_check))*kind(fermip_check)
   deallocate(fermip_check, stat=istat)
