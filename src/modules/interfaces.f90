@@ -2685,7 +2685,7 @@ module module_interfaces
          type(confpot_data), dimension(orbs%norbp), intent(out) :: confdatarr
        end subroutine define_confinement_data
 
-       subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locregCenter, glr_tmp, &
+       subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, locregCenter, glr_tmp, &
                   useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, astruct, input, &
                   orbs_KS, orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbcollcom, lfoe, lbcollcom_sr)
          use module_base
@@ -2698,7 +2698,7 @@ module module_interfaces
          real(8),intent(in):: hx, hy, hz
          type(atomic_structure),intent(in) :: astruct
          type(input_variables),intent(in) :: input
-         real(8),dimension(nlr),intent(in):: locrad, locrad_kernel
+         real(8),dimension(nlr),intent(in):: locrad, locrad_kernel, locrad_mult
          type(orbitals_data),intent(in):: orbs_KS, orbs
          real(8),dimension(3,nlr),intent(in):: locregCenter
          type(locreg_descriptors),intent(in):: glr_tmp
@@ -4331,17 +4331,6 @@ module module_interfaces
           integer,intent(in) :: meth_overlap
         end subroutine loewdin_charge_analysis
 
-        subroutine init_sparse_matrix_wrapper(iproc, nproc, orbs, lzd, astruct, input, smat)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in) :: iproc, nproc
-          type(orbitals_data),intent(in) :: orbs
-          type(local_zone_descriptors),intent(in) :: lzd
-          type(atomic_structure),intent(in) :: astruct
-          type(input_variables),intent(in) :: input
-          type(sparse_matrix), intent(out) :: smat
-        end subroutine init_sparse_matrix_wrapper
 
         subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero)
           use module_base
@@ -4354,18 +4343,29 @@ module module_interfaces
           integer,dimension(:),pointer,intent(out) :: nonzero
         end subroutine determine_sparsity_pattern
 
-        subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, input, nnonzero, nonzero)
+        subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonzero, nonzero)
           use module_base
           use module_types
           implicit none
           type(orbitals_data),intent(in) :: orbs
           type(local_zone_descriptors),intent(in) :: lzd
           type(atomic_structure),intent(in) :: astruct
-          type(input_variables),intent(in) :: input
+          real(kind=8),dimension(lzd%nlr),intent(in) :: cutoff
           integer,intent(out) :: nnonzero
           integer,dimension(:),pointer,intent(out) :: nonzero
         end subroutine determine_sparsity_pattern_distance
 
+        subroutine init_sparse_matrix_wrapper(iproc, nproc, orbs, lzd, astruct, store_index, imode, smat)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc, imode
+          type(orbitals_data),intent(in) :: orbs
+          type(local_zone_descriptors),intent(in) :: lzd
+          type(atomic_structure),intent(in) :: astruct
+          logical,intent(in) :: store_index
+          type(sparse_matrix), intent(out) :: smat
+        end subroutine init_sparse_matrix_wrapper
   
   end interface
 END MODULE module_interfaces

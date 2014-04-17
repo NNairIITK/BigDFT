@@ -1111,7 +1111,7 @@ module communications
            orbs%isorb_par, mpi_logical, bigdft_mpi%mpi_comm, ierr)
       call mpi_allgatherv(worksend_int, 11*orbs%norbp, mpi_integer, workrecv_int, 11*orbs%norb_par(:,0), &
            11*orbs%isorb_par, mpi_integer, bigdft_mpi%mpi_comm, ierr)
-      call mpi_allgatherv(worksend_dbl, 6*orbs%norbp, mpi_double_precision, workrecv_dbl, 5*orbs%norb_par(:,0), &
+      call mpi_allgatherv(worksend_dbl, 6*orbs%norbp, mpi_double_precision, workrecv_dbl, 6*orbs%norb_par(:,0), &
            6*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
     
       do ilr=1,nlr
