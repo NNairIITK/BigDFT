@@ -1107,4 +1107,222 @@ module sparsematrix_init
     end subroutine init_sparse_matrix
 
 
+    subroutine determine_sequential_length(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, &
+               sparsemat, nseq, nmaxsegk, nmaxvalk)
+      use module_base
+      use module_types
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: norb, norbp, isorb, nseg
+      integer,dimension(norb),intent(in) :: nsegline, istsegline
+      integer,dimension(2,nseg),intent(in) :: keyg
+      type(sparse_matrix),intent(in) :: sparsemat
+      integer,intent(out) :: nseq, nmaxsegk, nmaxvalk
+    
+      ! Local variables
+      integer :: i,iseg,jorb,iorb,jseg,ii
+      integer :: isegoffset, istart, iend
+    
+      nseq=0
+      nmaxsegk=0
+      nmaxvalk=0
+      do i = 1,norbp
+         ii=isorb+i
+         nmaxsegk=max(nmaxsegk,nsegline(ii))
+         isegoffset=istsegline(ii)-1
+         do iseg=1,nsegline(ii)
+              istart=keyg(1,isegoffset+iseg)
+              iend=keyg(2,isegoffset+iseg)
+              ! keyg is defined in terms of "global coordinates", so get the
+              ! coordinate on a given line by using the mod function
+              istart=mod(istart-1,norb)+1
+              iend=mod(iend-1,norb)+1
+              nmaxvalk=max(nmaxvalk,iend-istart+1)
+              do iorb=istart,iend
+                  do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
+                      do jorb = sparsemat%keyg(1,jseg),sparsemat%keyg(2,jseg)
+                          nseq=nseq+1
+                      end do
+                  end do
+              end do
+         end do
+      end do 
+    
+    end subroutine determine_sequential_length
+
+
+    subroutine get_nout(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, nout)
+      use module_base
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: norb, norbp, isorb, nseg
+      integer,dimension(norb),intent(in) :: nsegline, istsegline
+      integer,dimension(2,nseg),intent(in) :: keyg
+      integer,intent(out) :: nout
+    
+      ! Local variables
+      integer :: i, iii, iseg, iorb, ii
+      integer :: isegoffset, istart, iend
+    
+      nout=0
+      do i = 1,norbp
+         iii=isorb+i
+         isegoffset=istsegline(iii)-1
+         do iseg=1,nsegline(iii)
+              istart=keyg(1,isegoffset+iseg)
+              iend=keyg(2,isegoffset+iseg)
+              do iorb=istart,iend
+                  nout=nout+1
+              end do
+          end do
+      end do
+    
+    end subroutine get_nout
+
+
+    subroutine init_onedimindices_new(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, sparsemat, nout, onedimindices)
+      use module_base
+      use sparsematrix_base, only: sparse_matrix
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: norb, norbp, isorb, nseg
+      integer,dimension(norb),intent(in) :: nsegline, istsegline
+      integer,dimension(2,nseg),intent(in) :: keyg
+      type(sparse_matrix),intent(in) :: sparsemat
+      integer,intent(in) :: nout
+      integer,dimension(4,nout) :: onedimindices
+    
+      ! Local variables
+      integer :: i, iii, iseg, iorb, ii, jseg, ilen, itot
+      integer :: isegoffset, istart, iend
+    
+    
+      ii=0
+      itot=1
+      do i = 1,norbp
+         iii=isorb+i
+         isegoffset=istsegline(iii)-1
+         do iseg=1,nsegline(iii)
+              istart=keyg(1,isegoffset+iseg)
+              iend=keyg(2,isegoffset+iseg)
+              ! keyg is defined in terms of "global coordinates", so get the
+              ! coordinate on a given line by using the mod function
+              istart=mod(istart-1,norb)+1
+              iend=mod(iend-1,norb)+1
+              do iorb=istart,iend
+                  ii=ii+1
+                  onedimindices(1,ii)=i
+                  onedimindices(2,ii)=iorb
+                  ilen=0
+                  do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
+                      ilen=ilen+sparsemat%keyg(2,jseg)-sparsemat%keyg(1,jseg)+1
+                  end do
+                  onedimindices(3,ii)=ilen
+                  onedimindices(4,ii)=itot
+                  itot=itot+ilen
+              end do
+          end do
+      end do
+    
+    end subroutine init_onedimindices_new
+
+
+    subroutine get_arrays_for_sequential_acces(norb, norbp, isorb, nseg, &
+               nsegline, istsegline, keyg, sparsemat, nseq, nmaxsegk, nmaxvalk, &
+               ivectorindex)
+      use module_base
+      use module_types
+      use sparsematrix_base, only: sparse_matrix
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: norb, norbp, isorb, nseg, nseq, nmaxsegk, nmaxvalk
+      integer,dimension(norb),intent(in) :: nsegline, istsegline
+      integer,dimension(2,nseg),intent(in) :: keyg
+      type(sparse_matrix),intent(in) :: sparsemat
+      integer,dimension(nseq),intent(out) :: ivectorindex
+    
+      ! Local variables
+      integer :: i,iseg,jorb,jjorb,iorb,jseg,ii,iii
+      integer :: isegoffset, istart, iend
+    
+    
+      ii=1
+      do i = 1,norbp
+         iii=isorb+i
+         isegoffset=istsegline(iii)-1
+         do iseg=1,nsegline(iii)
+              istart=keyg(1,isegoffset+iseg)
+              iend=keyg(2,isegoffset+iseg)
+              ! keyg is defined in terms of "global coordinates", so get the
+              ! coordinate on a given line by using the mod function
+              istart=mod(istart-1,norb)+1
+              iend=mod(iend-1,norb)+1
+              do iorb=istart,iend
+                  !!istindexarr(iorb-istart+1,iseg,i)=ii
+                  do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
+                      do jorb = sparsemat%keyg(1,jseg),sparsemat%keyg(2,jseg)
+                          jjorb = jorb - (iorb-1)*norb
+                          ivectorindex(ii)=jjorb
+                          ii = ii+1
+                      end do
+                  end do
+              end do
+         end do
+      end do 
+    
+    end subroutine get_arrays_for_sequential_acces
+
+
+    subroutine init_sequential_acces_matrix(norb, norbp, isorb, nseg, &
+               nsegline, istsegline, keyg, sparsemat, nseq, nmaxsegk, nmaxvalk, &
+               indices_extract_sequential)
+      use module_base
+      use module_types
+      use sparsematrix_base, only: sparse_matrix
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: norb, norbp, isorb, nseg, nseq, nmaxsegk, nmaxvalk
+      integer,dimension(norb),intent(in) :: nsegline, istsegline
+      integer,dimension(2,nseg),intent(in) :: keyg
+      type(sparse_matrix),intent(in) :: sparsemat
+      integer,dimension(nseq),intent(out) :: indices_extract_sequential
+    
+      ! Local variables
+      integer :: i,iseg,jorb,jj,iorb,jseg,ii,iii
+      integer :: isegoffset, istart, iend
+    
+    
+      ii=1
+      do i = 1,norbp
+         iii=isorb+i
+         isegoffset=istsegline(iii)-1
+         do iseg=1,nsegline(iii)
+              istart=keyg(1,isegoffset+iseg)
+              iend=keyg(2,isegoffset+iseg)
+              ! keyg is defined in terms of "global coordinates", so get the
+              ! coordinate on a given line by using the mod function
+              istart=mod(istart-1,norb)+1
+              iend=mod(iend-1,norb)+1
+              do iorb=istart,iend
+                  do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
+                      jj=1
+                      do jorb = sparsemat%keyg(1,jseg),sparsemat%keyg(2,jseg)
+                          indices_extract_sequential(ii)=sparsemat%keyv(jseg)+jj-1
+                          jj = jj+1
+                          ii = ii+1
+                      end do
+                  end do
+              end do
+         end do
+      end do 
+    
+    end subroutine init_sequential_acces_matrix
+
+
+
 end module sparsematrix_init

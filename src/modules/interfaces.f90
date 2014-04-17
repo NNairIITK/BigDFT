@@ -3692,39 +3692,6 @@ module module_interfaces
           logical,intent(out) :: emergency_stop
         end subroutine chebyshev_clean
 
-        subroutine init_onedimindices(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, sparsemat, nout, onedimindices)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer,intent(in) :: norb, norbp, isorb, nseg
-          integer,dimension(norb),intent(in) :: nsegline, istsegline
-          integer,dimension(2,nseg),intent(in) :: keyg
-          type(sparse_matrix),intent(in) :: sparsemat
-          integer,intent(out) :: nout
-          integer,dimension(:,:),pointer :: onedimindices
-        end subroutine init_onedimindices
-
-        subroutine init_onedimindices_new(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, sparsemat, nout, onedimindices)
-          use module_base
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer,intent(in) :: norb, norbp, isorb, nseg
-          integer,dimension(norb),intent(in) :: nsegline, istsegline
-          integer,dimension(2,nseg),intent(in) :: keyg
-          type(sparse_matrix),intent(in) :: sparsemat
-          integer,intent(in) :: nout
-          integer,dimension(4,nout) :: onedimindices
-        end subroutine init_onedimindices_new
-
-        subroutine get_nout(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, nout)
-          use module_base
-          implicit none
-          integer,intent(in) :: norb, norbp, isorb, nseg
-          integer,dimension(norb),intent(in) :: nsegline, istsegline
-          integer,dimension(2,nseg),intent(in) :: keyg
-          integer,intent(out) :: nout
-        end subroutine get_nout
 
         subroutine enable_sequential_acces_vector(norbp, norb, isorb, foe_obj, b, nseq, bseq, indexarr)
           use module_base
@@ -3875,33 +3842,6 @@ module module_interfaces
           integer,intent(in) :: nfl2,nfu2,nfl3,nfu3
           integer,intent(inout) :: ib(2,nfl2:nfu2,nfl3:nfu3)
         end subroutine squares_1d
-
-        subroutine determine_sequential_length(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, &
-                   sparsemat, nseq, nmaxsegk, nmaxvalk)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer,intent(in) :: norb, norbp, isorb, nseg
-          integer,dimension(norb),intent(in) :: nsegline, istsegline
-          integer,dimension(2,nseg),intent(in) :: keyg
-          type(sparse_matrix),intent(in) :: sparsemat
-          integer,intent(out) :: nseq, nmaxsegk, nmaxvalk
-        end subroutine determine_sequential_length
-
-        subroutine get_arrays_for_sequential_acces(norb, norbp, isorb, nseg, &
-                   nsegline, istsegline, keyg, sparsemat, nseq, nmaxsegk, nmaxvalk, &
-                   ivectorindex)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer,intent(in) :: norb, norbp, isorb, nseg, nseq, nmaxsegk, nmaxvalk
-          integer,dimension(norb),intent(in) :: nsegline, istsegline
-          integer,dimension(2,nseg),intent(in) :: keyg
-          type(sparse_matrix),intent(in) :: sparsemat
-          integer,dimension(nseq),intent(out) :: ivectorindex
-        end subroutine get_arrays_for_sequential_acces
 
         subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, &
                    orbs, at, minorbs_type, maxorbs_type, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, &
