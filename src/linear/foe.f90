@@ -822,7 +822,8 @@ subroutine foe(iproc, nproc, tmprtr, &
       !!    !$omp end parallel
       !!end if
 
-     call compress_matrix_distributed(iproc, tmb%linmat%denskern_large, tmb%linmat%denskern_large%matrixp, tmb%linmat%denskern_large%matrix_compr)
+     call compress_matrix_distributed(iproc, tmb%linmat%denskern_large, tmb%linmat%denskern_large%matrixp, &
+          tmb%linmat%denskern_large%matrix_compr)
 
      call compress_matrix_distributed(iproc, tmb%linmat%denskern_large, fermip_check, fermi_check_compr)
 
@@ -1181,7 +1182,8 @@ subroutine foe(iproc, nproc, tmprtr, &
           !     tmb%linmat%inv_ovrlp_large, tmb%linmat%inv_ovrlp_large%matrix_compr, &
           !     tmb%linmat%inv_ovrlp_large%smmm%nseq, tmb%linmat%inv_ovrlp_large%smmm%nmaxsegk, &
           !     tmb%linmat%inv_ovrlp_large%smmm%nmaxvalk, inv_ovrlp_compr_seq)
-          call sequential_acces_matrix_fast(tmb%linmat%inv_ovrlp_large, tmb%linmat%inv_ovrlp_large%matrix_compr, inv_ovrlp_compr_seq)
+          call sequential_acces_matrix_fast(tmb%linmat%inv_ovrlp_large, &
+               tmb%linmat%inv_ovrlp_large%matrix_compr, inv_ovrlp_compr_seq)
           call uncompress_matrix_distributed(iproc, tmb%linmat%inv_ovrlp_large, &
                tmb%linmat%inv_ovrlp_large%matrix_compr, inv_ovrlpp)
 
