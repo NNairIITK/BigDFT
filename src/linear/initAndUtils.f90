@@ -1512,6 +1512,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      !call init_sparse_matrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, tmb%linmat%inv_ovrlp)
      !call init_sparse_matrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, input, tmb%linmat%denskern)
 
+     call check_kernel_cutoff(iproc, tmb%orbs, at, tmb%lzd)
      !call init_sparsity_from_distance(iproc, nproc, tmb%orbs, tmb%lzd, input, &
      !     tmb%foe_obj%nseg, tmb%foe_obj%nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
      !     tmb%linmat%denskern_large)
