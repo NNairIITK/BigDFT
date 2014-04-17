@@ -309,7 +309,7 @@ subroutine sparse_matrix_init_fake(iproc, nproc, norb, norbp, isorb, nseg, nvctr
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
-  use sparsematrix_init, only: init_sparse_matrix, init_sparse_matrix_matrix_multiplication
+  use sparsematrix_init, only: init_sparse_matrix
   implicit none
 
   ! Calling arguments
