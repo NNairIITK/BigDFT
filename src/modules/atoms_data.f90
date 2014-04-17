@@ -17,7 +17,9 @@ module module_atoms
 
   !> Quantities used for the symmetry operators. To be used in atomic_structure derived type.
   type, public :: symmetry_data
-     integer :: symObj    !< The symmetry object from ABINIT
+     integer :: symObj                             !< The symmetry object from ABINIT
+     integer :: nSym                               !< Number of symmetry (0 if disable)
+     character(len=15) :: spaceGroup               !< Space group (disabled if not useful)
      integer, dimension(:,:,:), pointer :: irrzon
      real(dp), dimension(:,:,:), pointer :: phnons
   end type symmetry_data
@@ -878,11 +880,16 @@ subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
   !local variables
   character(len=*), parameter :: subname='astruct_set_symmetries'
   integer :: i_stat, ierr, i_all
-  real(gp) :: rprimd(3, 3)
+  real(gp), dimension(3,3) :: rprimd
   real(gp), dimension(:,:), allocatable :: xRed
+  integer, dimension(3, 3, AB6_MAX_SYMMETRIES) :: sym
+  integer, dimension(AB6_MAX_SYMMETRIES) :: symAfm
+  real(gp), dimension(3, AB6_MAX_SYMMETRIES) :: transNon
+  real(gp), dimension(3) :: genAfm
+  integer :: spaceGroupId, pointGroupMagn
 
-  ! Calculate the symmetries, if needed
-  if (astruct%geocode /= 'F' .and. astruct%nat /= 0) then
+  ! Calculate the symmetries, if needed (for periodic systems only)
+  if (astruct%geocode /= 'F') then
      if (astruct%sym%symObj < 0) then
         call symmetry_new(astruct%sym%symObj)
      end if
@@ -928,13 +935,25 @@ subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
      end if
      if (disableSym) then
         call symmetry_set_n_sym(astruct%sym%symObj, 1, &
-             & reshape((/ 1, 0, 0, 0, 1, 0, 0, 0, 1 /), (/ 3 ,3, 1 /)), &
-             & reshape((/ 0.d0, 0.d0, 0.d0 /), (/ 3, 1/)), (/ 1 /), ierr)
+          & reshape((/ 1, 0, 0, 0, 1, 0, 0, 0, 1 /), (/ 3 ,3, 1 /)), &
+          & reshape((/ 0.d0, 0.d0, 0.d0 /), (/ 3, 1/)), (/ 1 /), ierr)
      end if
   else
      call deallocate_symmetry_data(astruct%sym)
      astruct%sym%symObj = -1
   end if
+
+  ! Generate symmetries for atoms
+  if (.not. disableSym) then
+     call symmetry_get_matrices(astruct%sym%symObj, astruct%sym%nSym, sym, transNon, symAfm, ierr)
+     call symmetry_get_group(astruct%sym%symObj, astruct%sym%spaceGroup, &
+          & spaceGroupId, pointGroupMagn, genAfm, ierr)
+     if (ierr == AB6_ERROR_SYM_NOT_PRIMITIVE) write(astruct%sym%spaceGroup, "(A)") "not prim."
+  else 
+     astruct%sym%nSym = 0
+     astruct%sym%spaceGroup = 'disabled'
+  end if
+
 END SUBROUTINE astruct_set_symmetries
 
 

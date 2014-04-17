@@ -1700,7 +1700,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
   type(fragment_transformation) :: frag_trans
   ! DEBUG
   ! character(len=12) :: orbname
-  real(wp), dimension(:), allocatable :: gpsi
+  ! real(wp), dimension(:), allocatable :: gpsi
 
 
   call io_read_descr_linear(unitwf, useFormattedInput, iorb_old, eval, n_old(1), n_old(2), n_old(3), &
@@ -2884,14 +2884,14 @@ subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,
   character(len=*), parameter :: subname='reformatmywaves'
   logical :: reformat
   integer :: iorb,j,i_stat,i_all,jstart,jstart_old,iiorb,ilr,iiat
-  integer:: idir,jstart_old_der,ncount,ilr_old,i,k
+  integer:: idir,jstart_old_der,ncount,ilr_old,i
   integer, dimension(3) :: ns_old,ns,n_old,n
   real(gp), dimension(3) :: centre_old_box,centre_new_box,da
   real(gp) :: tt,tol
   real(wp), dimension(:,:,:,:,:,:), pointer :: phigold
   real(wp), dimension(:), allocatable :: phi_old_der
   integer, dimension(0:6) :: reformat_reason
-  character(len=12) :: orbname, dummy
+  character(len=12) :: orbname!, dummy
   real(wp), allocatable, dimension(:,:,:) :: psirold
   logical :: psirold_ok
   integer, dimension(3) :: nl, nr

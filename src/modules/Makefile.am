@@ -119,9 +119,10 @@ endif
 
 AO_INCLUDES = eleconf-inc.f90
 ATOMS_INCLUDES = astruct-inc.f90
+COMMS_INCLUDES = check_array-inc.f90
 
 EXTRA_DIST = configure.inc.in bigdft_cst.h.in BigDFT.py \
-	$(AO_INCLUDES) $(ATOMS_INCLUDES)
+	$(AO_INCLUDES) $(ATOMS_INCLUDES) $(COMMS_INCLUDES)
 CLEANFILES = $(modules)
 
 AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@

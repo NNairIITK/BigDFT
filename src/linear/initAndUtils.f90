@@ -513,7 +513,7 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
   !Local variables
   character(len=*), parameter :: subname='check_linear_and_create_Lzd'
   logical :: linear
-  integer :: iat,ityp,nspin_ig,i_all,i_stat,ilr
+  integer :: iat,ityp,nspin_ig,ilr
   real(gp) :: rcov
   real(gp), dimension(:), allocatable :: locrad
   logical,dimension(:),allocatable :: calculateBounds,lr_mask
@@ -1155,7 +1155,7 @@ subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,input, at, 
   logical,intent(in):: lowaccur_converged
 
   ! Local variables
-  integer:: iorb, ilr, istat, iall
+  integer:: iorb, ilr, istat
   logical, dimension(:), allocatable :: lr_mask
   real(8),dimension(:,:),allocatable:: locrad_tmp
   real(8),dimension(:,:),allocatable:: locregCenter

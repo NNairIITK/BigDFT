@@ -1,7 +1,7 @@
 # Definitions of the input variables
 ##inputvar: #name of the variable as declared in the code
 ## COMMENT: This is the description of the variable as will appear in the logfile
-## RANGE: [from,to] #always put two numbers (also .inf) can be put
+## RANGE: [from,to] #always put two numbers (also .inf can be put)
 ## EXCLUSIVE: #here follows a list of allowed values (either RANGE or EXCLUSIVE)
 ##  - Value1:  comments of value1
 ##  - Value2:  comment of value2

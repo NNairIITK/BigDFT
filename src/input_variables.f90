@@ -291,7 +291,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   end if
 
   ! Cross check values of input_variables.
-  call input_analyze(in)
+  call input_analyze(in,atoms%astruct)
 
   ! Initialise XC calculation
 !!$  if (in%ixc < 0) then
@@ -822,18 +822,21 @@ END SUBROUTINE frequencies_input_variables_default
 
 
 !> Cross check values of input_variables.
-subroutine input_analyze(in)
+!! and change if necessary
+subroutine input_analyze(in,astruct)
   use module_types, only: input_variables
   use module_types, only: output_denspot_FORMAT_CUBE, output_denspot_NONE, WF_FORMAT_NONE
   use module_types, only: bigdft_mpi
   use module_types, only: KERNELMODE_DIRMIN, KERNELMODE_DIAG, KERNELMODE_FOE, &
                           MIXINGMODE_DENS, MIXINGMODE_POT, &
                           LINEAR_DIRECT_MINIMIZATION, LINEAR_MIXDENS_SIMPLE, LINEAR_MIXPOT_SIMPLE, LINEAR_FOE
+  use module_atoms, only: atomic_structure
   use module_defs, only: gp
   use dynamic_memory
   use module_input_keys, only: input_keys_equal
   implicit none
   type(input_variables), intent(inout) :: in
+  type(atomic_structure), intent(in) :: astruct
 
   integer :: ierr
 
@@ -888,6 +891,11 @@ subroutine input_analyze(in)
   else
      in%last_run=0
   end if
+
+  if (astruct%geocode == 'F' .or. astruct%nat == 0) then
+     !Disable the symmetry
+     in%disableSym = .true.
+  end if
   
   ! the GEOPT variables ----------------------------------------------------
   !target stress tensor
@@ -900,7 +908,7 @@ subroutine input_analyze(in)
      end if
   end if
 
-  ! determine the scf mode
+  ! Determine the SCF mode
   select case (in%lin%kernel_mode)
   case (KERNELMODE_DIRMIN)
       in%lin%scf_mode = LINEAR_DIRECT_MINIMIZATION

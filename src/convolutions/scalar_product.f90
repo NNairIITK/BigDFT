@@ -1,3 +1,13 @@
+!> @file
+!! Routines associated to the convolutions for the scalar products
+!! @author
+!!    Copyright (C) 2013-2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 !> Applies one real projector operator in the form |p> hp <p| onto a set of wavefunctions described by the same descriptors
 !! accumulate the result on the array hpsi and calculate the energy in the form \sum_w <psi_w|p> hp <p|psi_w>
 subroutine apply_oneproj_operator(wfd_p,proj,hp,n_w,wfd_w,psi,hpsi,scpr)
@@ -1161,7 +1171,8 @@ subroutine count_wblas_segs(maseg,mbseg,keyag_lin,keyag,keybg,nbsegs)
   integer, dimension(mbseg), intent(inout) :: nbsegs !>number of common segments for each segment of b
   !local variables
   integer :: ibseg,jb1,jb0,length,ja0,ja1,imask
-  integer :: iaseg0,ibsegs,ibsege
+  integer :: iaseg0
+  !$omp integer :: ibsegs,ibsege
 
   !$omp parallel default (none) &
   !$omp shared (maseg,keyag,keyag_lin,keybg,mbseg,nbsegs)&
@@ -1246,7 +1257,8 @@ subroutine fill_wblas_segs(maseg,mbseg,mask_segs,isegs_offset,keyag_lin,keyag,ke
   integer, dimension(3,mask_segs), intent(out) :: amask !>masking array and positions in compressed storage
   !local variables
   integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,iboff,length,ja0,ja1,imask
-  integer :: iaseg0,ibsegs,ibsege
+  integer :: iaseg0
+  !$omp integer :: ibsegs,ibsege
 
   !$omp parallel default (none) &
   !$omp shared (maseg,keyav,keyag,keyag_lin,keybg,mbseg,keybv,isegs_offset,amask)&

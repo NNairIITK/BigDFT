@@ -134,7 +134,6 @@ subroutine print_general_parameters(in,atoms)
   use module_base
   use module_types
   use defs_basis
-  use m_ab6_symmetry
   use yaml_output
   use module_input_keys, only: input_keys_equal
   implicit none
@@ -142,17 +141,8 @@ subroutine print_general_parameters(in,atoms)
   type(input_variables), intent(in) :: in
   type(atoms_data), intent(in) :: atoms
 
-  integer :: nSym, ierr, iat, i
-  integer :: sym(3, 3, AB6_MAX_SYMMETRIES)
-  integer :: symAfm(AB6_MAX_SYMMETRIES)
-  real(gp) :: transNon(3, AB6_MAX_SYMMETRIES)
-  real(gp) :: genAfm(3)
-  character(len=15) :: spaceGroup
+  integer :: iat, i
   character(len=len(in%run_name)) :: prefix
-  integer :: spaceGroupId, pointGroupMagn
-  !integer, parameter :: maxLen = 50, width = 24
-  !character(len = width), dimension(maxLen) :: at, fixed, add
-  !integer :: ityp,lg
   character(len = 11) :: potden
   character(len = 12) :: dos
 
@@ -171,10 +161,6 @@ subroutine print_general_parameters(in,atoms)
      call yaml_map('Number of atoms', atoms%astruct%nat, fmt='(i0)')
      if (atoms%astruct%nat > 0) then
         call yaml_map('Types of atoms',atoms%astruct%atomnames)
-        !call yaml_map('Types of atoms',flow=.true.)
-        !do ityp=1,atoms%astruct%ntypes
-        !   call yaml_sequence(trim(atoms%astruct%atomnames(ityp)))
-        !end do
         ! Fixed positions
         if (maxval(atoms%astruct%ifrztyp) /= 0) then
            call yaml_open_sequence('Fixed atoms',flow=.true.)
@@ -190,7 +176,6 @@ subroutine print_general_parameters(in,atoms)
         end if
      end if
      !Boundary Conditions
-     !call yaml_map('Geometry Code',trim(atoms%astruct%geocode))
      select case(atoms%astruct%geocode)
      case('P')
         call yaml_map('Boundary Conditions','Periodic',advance='no')
@@ -211,110 +196,11 @@ subroutine print_general_parameters(in,atoms)
         call yaml_map('Boundary Conditions','Free',advance='no')
         call yaml_comment('Code: '//atoms%astruct%geocode)
      end select
+
      !Symmetries
-     if ((atoms%astruct%geocode /= 'F' .and. .not. in%disableSym) .or. atoms%astruct%nat /= 0) then
-     !if (.not. in%disableSym) then
-        call symmetry_get_matrices(atoms%astruct%sym%symObj, nSym, sym, transNon, symAfm, ierr)
-        call symmetry_get_group(atoms%astruct%sym%symObj, spaceGroup, &
-             & spaceGroupId, pointGroupMagn, genAfm, ierr)
-        if (ierr == AB6_ERROR_SYM_NOT_PRIMITIVE) write(spaceGroup, "(A)") "not prim."
-     else 
-        nSym = 0
-        spaceGroup = 'disabled'
-     end if
-     call yaml_map('Number of Symmetries',nSym)
-     call yaml_map('Space group',trim(spaceGroup))
+     call yaml_map('Number of Symmetries',atoms%astruct%sym%nSym)
+     call yaml_map('Space group',trim(atoms%astruct%sym%spaceGroup))
   call yaml_close_map()
-
-  !write(*,'(1x,a,a,a)') '--- (file: posinp.', &
-  !     & atoms%astruct%inputfile_format, ') --------------------------------------- in atomic system'
-  !write(*, "(A)")   "   Atomic system                  Fixed positions           Additional data"
-  !do i = 1, maxLen
-  !   write(at(i), "(a)") " "
-  !   write(fixed(i), "(a)") " "
-  !   write(add(i), "(a)") " "
-  !end do
-  !write(fixed(1), '(a)') "No fixed atom"
-  !write(add(1), '(a)') "No symmetry for open BC"
-  
-  ! The atoms column
-  !write(at(1), '(a,a)')  "Bound. C.= ", atoms%astruct%geocode
-  !write(at(2), '(a,i5)') "N. types = ", atoms%astruct%ntypes
-  !write(at(3), '(a,i5)') "N. atoms = ", atoms%astruct%nat
-  !lg = 12
-  !i = 4
-  !write(at(i),'(a)' )    "Types    = "
-  !do ityp=1,atoms%astruct%ntypes - 1
-  !   if (lg + 4 + len(trim(atoms%astruct%atomnames(ityp))) >= width) then
-  !      i = i + 1
-  !      lg = 12
-  !      write(at(i),'(a)') "           "
-  !   end if
-  !   write(at(i)(lg:),'(3a)') "'", trim(atoms%astruct%atomnames(ityp)), "', "
-  !   lg = lg + 4 + len(trim(atoms%astruct%atomnames(ityp)))
-  !end do
-  !!Case no atom
-  !if (atoms%astruct%ntypes > 0) then
-  !   if (lg + 2 + len(trim(atoms%astruct%atomnames(ityp))) >= width) then
-  !      i = i + 1
-  !      lg = 12
-  !      write(at(i),'(a)') "           "
-  !   end if
-  !   write(at(i)(lg:),'(3a)') "'", trim(atoms%astruct%atomnames(ityp)), "'"
-  !end if
-
-  ! The fixed atom column
-  !i = 1
-  !do iat=1,atoms%astruct%nat
-  !   if (atoms%astruct%ifrztyp(iat)/=0) then
-  !      if (i > maxLen) exit
-  !      write(fixed(i),'(a,i4,a,a,a,i3)') &
-  !           "at.", iat,' (', &
-  !           & trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),&
-  !           ') ',atoms%astruct%ifrztyp(iat)
-  !      i = i + 1
-  !   end if
-  !end do
-  !if (i > maxLen) write(fixed(maxLen), '(a)') " (...)"
-
-  ! The additional data column
-  !if (atoms%astruct%geocode /= 'F' .and. .not. in%disableSym) then
-  !   call symmetry_get_matrices(atoms%astruct%sym%symObj, nSym, sym, transNon, symAfm, ierr)
-  !   call symmetry_get_group(atoms%astruct%sym%symObj, spaceGroup, &
-  !        & spaceGroupId, pointGroupMagn, genAfm, ierr)
-  !   if (ierr == AB6_ERROR_SYM_NOT_PRIMITIVE) write(spaceGroup, "(A)") "not prim."
-  !   write(add(1), '(a,i0)')       "N. sym.   = ", nSym
-  !   write(add(2), '(a,a,a)')      "Sp. group = ", trim(spaceGroup)
-  !else if (atoms%astruct%geocode /= 'F' .and. in%disableSym) then
-  !   write(add(1), '(a)')          "N. sym.   = disabled"
-  !   write(add(2), '(a)')          "Sp. group = disabled"
-  !else
-  !   write(add(1), '(a)')          "N. sym.   = free BC"
-  !   write(add(2), '(a)')          "Sp. group = free BC"
-  !end if
-  !i = 3
-  !if (in%nvirt > 0) then
-  !   write(add(i), '(a,i5,a)')     "Virt. orb.= ", in%nvirt, " orb."
-  !   write(add(i + 1), '(a,i5,a)') "Plot dens.= ", abs(in%nplot), " orb."
-  !else
-  !   write(add(i), '(a)')          "Virt. orb.= none"
-  !   write(add(i + 1), '(a)')      "Plot dens.= none"
-  !end if
-  !i = i + 2
-  !if (in%nspin==4) then
-  !   write(add(i),'(a)')           "Spin pol. = non-coll."
-  !else if (in%nspin==2) then
-  !   write(add(i),'(a)')           "Spin pol. = collinear"
-  !else if (in%nspin==1) then
-  !   write(add(i),'(a)')           "Spin pol. = no"
-  !end if
-
-  ! Printing
-  !do i = 1, maxLen
-  !   if (len(trim(at(i))) > 0 .or. len(trim(fixed(i))) > 0 .or. len(trim(add(i))) > 0) then
-  !      write(*,"(1x,a,1x,a,1x,a,1x,a,1x,a)") at(i), "|", fixed(i), "|", add(i)
-  !   end if
-  !end do
 
   !Geometry imput Parameters
   if (in%ncount_cluster_x > 0) then

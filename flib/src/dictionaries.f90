@@ -952,7 +952,7 @@ contains
    end subroutine get_integer
 
    !> Set and get routines for different types
-   recursive subroutine get_long(ival,dict)
+   subroutine get_long(ival,dict)
      implicit none
      integer(kind=8), intent(out) :: ival
      type(dictionary), intent(in) :: dict
@@ -970,7 +970,7 @@ contains
    end subroutine get_long
 
    !> Routine to retrieve an array from a dictionary
-   recursive subroutine get_dvec(arr,dict)
+   subroutine get_dvec(arr,dict)
      use yaml_strings, only: yaml_toa
      implicit none
      double precision, dimension(:), intent(out) :: arr
@@ -981,7 +981,7 @@ contains
    end subroutine get_dvec
 
    !> Routine to retrieve an array from a dictionary
-   recursive subroutine get_rvec(arr,dict)
+   subroutine get_rvec(arr,dict)
      use yaml_strings, only: yaml_toa
      implicit none
      real, dimension(:), intent(out) :: arr
@@ -992,7 +992,7 @@ contains
    end subroutine get_rvec
 
    !> Routine to retrieve an array from a dictionary
-   recursive subroutine get_ivec(arr,dict)
+   subroutine get_ivec(arr,dict)
      use yaml_strings, only: yaml_toa
      implicit none
      integer, dimension(:), intent(out) :: arr
@@ -1003,7 +1003,7 @@ contains
    end subroutine get_ivec
 
    !> Routine to retrieve an array from a dictionary
-   recursive subroutine get_ilvec(arr,dict)
+   subroutine get_ilvec(arr,dict)
      use yaml_strings, only: yaml_toa
      implicit none
      integer(kind=8), dimension(:), intent(out) :: arr
@@ -1014,7 +1014,7 @@ contains
    end subroutine get_ilvec
 
    !> Routine to retrieve an array from a dictionary
-   recursive subroutine get_lvec(arr,dict)
+   subroutine get_lvec(arr,dict)
      use yaml_strings, only: yaml_toa
      implicit none
      logical, dimension(:), intent(out) :: arr
@@ -1058,7 +1058,7 @@ contains
 
 
    !> Set and get routines for different types
-   recursive subroutine get_real(rval,dict)
+   subroutine get_real(rval,dict)
      real(kind=4), intent(out) :: rval
      type(dictionary), intent(in) :: dict
      !local variables
@@ -1078,7 +1078,7 @@ contains
 
 
    !> Set and get routines for different types
-   recursive subroutine get_lg(ival,dict)
+   subroutine get_lg(ival,dict)
      logical, intent(out) :: ival
      type(dictionary), intent(in) :: dict
      !local variables
@@ -1099,7 +1099,7 @@ contains
 
 
    !> Set and get routines for different types
-   recursive subroutine get_double(dval,dict)
+   subroutine get_double(dval,dict)
      real(kind=8), intent(out) :: dval
      type(dictionary), intent(in) :: dict
      !local variables

@@ -41,6 +41,7 @@ module communications_base
   end type comms_linear
 
   interface check_array_consistency
+     module procedure check_array_consistency0
      module procedure check_array_consistency1
      module procedure check_array_consistency2
   end interface
@@ -237,68 +238,57 @@ module communications_base
 
 
     !> Check the consistency of arrays after a gather (example: atomic coordinates)
-    subroutine check_array_consistency1(maxdiff, nproc, array, ndims, mpi_comm)
+    subroutine check_array_consistency0(maxdiff, nproc, array, ndims, mpi_comm)
       use dynamic_memory
       implicit none
       integer, intent(in) :: mpi_comm
       integer, intent(in) :: ndims, nproc
-      real(gp), dimension(:), intent(in) :: array
+      real(gp), intent(in) :: array
       real(gp), intent(out) :: maxdiff
 
       integer :: ierr, jproc, i
       real(gp), dimension(:,:), allocatable :: rxyz_glob
 
-      maxdiff=0.0_gp
+      include 'check_array-inc.f90'
 
-      if (nproc == 1) return
+    END SUBROUTINE check_array_consistency0
 
-      !check that the positions are identical for all the processes
-      rxyz_glob=f_malloc((/ndims,nproc/),id='rxyz_glob')
 
-      !gather the results for all the processors
-      call MPI_GATHER(array,ndims,mpidtypg,&
-           rxyz_glob,ndims,mpidtypg,0,mpi_comm,ierr)
-      do jproc=2,nproc
-         do i=1,ndims
-            maxdiff=max(maxdiff,&
-                 abs(rxyz_glob(i,jproc)-rxyz_glob(i,1)))
-         end do
-      end do
+    !> Check the consistency of arrays after a gather (example: atomic coordinates)
+    subroutine check_array_consistency1(maxdiff, nproc, array, mpi_comm)
+      use dynamic_memory
+      implicit none
+      integer, intent(in) :: mpi_comm
+      integer, intent(in) :: nproc
+      real(gp), dimension(:), intent(in) :: array
+      real(gp), intent(out) :: maxdiff
 
-      call f_free(rxyz_glob)
+      integer :: ierr, jproc, i, ndims
+      real(gp), dimension(:,:), allocatable :: rxyz_glob
+
+      ndims = size(array)
+
+      include 'check_array-inc.f90'
+
     END SUBROUTINE check_array_consistency1
 
 
     !> Check the consistency of arrays after a gather (example: atomic coordinates)
-    subroutine check_array_consistency2(maxdiff, nproc, array, ndims, mpi_comm)
+    subroutine check_array_consistency2(maxdiff, nproc, array, mpi_comm)
       use dynamic_memory
       implicit none
       integer, intent(in) :: mpi_comm
-      integer, intent(in) :: ndims, nproc
+      integer, intent(in) :: nproc
       real(gp), dimension(:,:), intent(in) :: array
       real(gp), intent(out) :: maxdiff
 
-      integer :: ierr, jproc, i
+      integer :: ierr, jproc, i, ndims
       real(gp), dimension(:,:), allocatable :: rxyz_glob
 
-      maxdiff=0.0_gp
+      ndims = size(array)
 
-      if (nproc == 1) return
+      include 'check_array-inc.f90'
 
-      !check that the positions are identical for all the processes
-      rxyz_glob=f_malloc((/ndims,nproc/),id='rxyz_glob')
-
-      !gather the results for all the processors
-      call MPI_GATHER(array,ndims,mpidtypg,&
-           rxyz_glob,ndims,mpidtypg,0,mpi_comm,ierr)
-      do jproc=2,nproc
-         do i=1,ndims
-            maxdiff=max(maxdiff,&
-                 abs(rxyz_glob(i,jproc)-rxyz_glob(i,1)))
-         end do
-      end do
-
-      call f_free(rxyz_glob)
     END SUBROUTINE check_array_consistency2
 
 end module communications_base

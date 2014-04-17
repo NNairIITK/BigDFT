@@ -59,8 +59,7 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
   call f_routine(id=subname)
 
   !Check the consistency between MPI processes of the atomic coordinates
-  call check_array_consistency(maxdiff, nproc, runObj%atoms%astruct%rxyz, &
-       & 3 * runObj%atoms%astruct%nat, bigdft_mpi%mpi_comm)
+  call check_array_consistency(maxdiff, nproc, runObj%atoms%astruct%rxyz, bigdft_mpi%mpi_comm)
   if (iproc==0 .and. maxdiff > epsilon(1.0_gp)) &
        call yaml_warning('Input positions not identical! '//&
        '(difference:'//trim(yaml_toa(maxdiff))//' )')

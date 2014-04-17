@@ -18,7 +18,7 @@ module module_types
   use module_xc, only : xc_info
   use gaussians, only: gaussian_basis
   use Poisson_Solver, only: coulomb_operator
-  use dictionaries, only: dictionary
+  use dictionaries, only: dictionary, max_field_length
   use locregs
   use psp_projectors
   use module_atoms, only: atoms_data,symmetry_data,atomic_structure
@@ -256,8 +256,8 @@ module module_types
      character(len=100) :: file_igpop
      character(len=100) :: file_lin   
      character(len=100) :: file_frag   !< Fragments
-     character(len=100) :: dir_output  !< Strings of the directory which contains all data output files
-     character(len=100) :: run_name    !< Contains the prefix (by default input) used for input files as input.dft
+     character(len=max_field_length) :: dir_output  !< Strings of the directory which contains all data output files
+     character(len=max_field_length) :: run_name    !< Contains the prefix (by default input) used for input files as input.dft
      integer :: files                  !< Existing files.
 
      !> Miscellaneous variables
