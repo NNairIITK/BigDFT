@@ -1673,6 +1673,7 @@ subroutine print_nlpsp(nlpsp)
   call yaml_close_map()
 END SUBROUTINE print_nlpsp
 
+
 subroutine print_orbitals(orbs, geocode)
   use module_types, only: orbitals_data
   use module_defs, only: gp
@@ -1723,13 +1724,9 @@ subroutine print_orbitals(orbs, geocode)
   call yaml_close_map()
   
   call yaml_map('Total Number of Orbitals',orbs%norb,fmt='(i8)')
-!!$     if (verb) then
-!!$        if (iunit /= 0) then
-!!$           call yaml_map('Occupation numbers coming from', trim(radical) // '.occ')
-!!$        else
-!!$           call yaml_map('Occupation numbers coming from','System properties')
-!!$        end if
-!!$     end if
+
+  !No orbs finished
+  if (orbs%norb == 0) return
 
   call yaml_open_sequence('Input Occupation Numbers')
   do ikpts=1,orbs%nkpts

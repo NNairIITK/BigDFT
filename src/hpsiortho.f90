@@ -940,12 +940,11 @@ contains
     integer :: ncplx_p,ncplx_w,n_w,nvctr_p
     real(gp), dimension(3,3,4) :: hij
     real(gp) :: eproj
-    type(nlpsp_to_wfd) :: tolr 
-    integer, dimension(:), allocatable :: nbsegs_cf,keyag_lin_cf
-    real(wp), dimension(:,:), allocatable :: psi_pack
-    real(wp), dimension(:,:,:), allocatable :: pdpsi,hpdpsi
-    real(wp), dimension(:,:,:,:), allocatable :: scpr
-
+!!$    type(nlpsp_to_wfd) :: tolr 
+!!$    integer, dimension(:), allocatable :: nbsegs_cf,keyag_lin_cf
+!!$    real(wp), dimension(:,:), allocatable :: psi_pack
+!!$    real(wp), dimension(:,:,:), allocatable :: pdpsi,hpdpsi
+!!$    real(wp), dimension(:,:,:,:), allocatable :: scpr
 
     if (newmethod) then
 
@@ -2598,6 +2597,9 @@ subroutine check_communications(iproc,nproc,orbs,lzd,comms)
    character(len = 25) :: filename
    logical :: abort
 
+   !if no orb, no check!
+   if (orbs%norb == 0) return
+
    !allocate the "wavefunction" amd fill it, and also the workspace
    allocate(psi(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
    call memocc(i_stat,psi,'psi',subname)
@@ -2621,7 +2623,7 @@ subroutine check_communications(iproc,nproc,orbs,lzd,comms)
    end do
 
    !transpose the hpsi wavefunction
-   call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi_add=psi(1),work_add=pwork(1))
+   call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),pwork(1))
 
    !check the results of the transposed wavefunction
    maxdiff=0.0_wp

@@ -365,8 +365,10 @@ restartdisk_read:
  EH: 1.0e-10
  Epot: 1.1e-10
 
-H2-freq:
+H2-freq: &freq
  (F) Frequencies (Hartree): 5.e-10
+
+C6H6-freq: *freq
 
 rotate_read1:
  eBS: 2.6e-11

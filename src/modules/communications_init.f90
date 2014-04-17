@@ -2816,25 +2816,27 @@ module communications_init
       !call MPI_FINALIZE(ierr)
       !stop
       !check that for any processor the orbital k-point repartition is contained into the components
-      do jproc=0,nproc-1
-         jsorb=0
-         do kproc=0,jproc-1
-            jsorb=jsorb+orbs%norb_par(kproc,0)
+      if (orbs%norb /= 0) then
+         do jproc=0,nproc-1
+            jsorb=0
+            do kproc=0,jproc-1
+               jsorb=jsorb+orbs%norb_par(kproc,0)
+            end do
+            jkpts=min(jsorb/orbs%norb+1,orbs%nkpts)
+            if (nvctr_par(jproc,jkpts) == 0 .and. orbs%norb_par(jproc,0) /=0 ) then
+               if (iproc ==0) write(*,*)'ERROR, jproc: ',jproc,' the orbital k-points distribution starts before the components one'
+               !print *,jsorb,jkpts,jproc,orbs%iskpts,nvctr_par(jproc,jkpts)
+               stop
+            end if
+            jkpte=min((jsorb+orbs%norb_par(jproc,0)-1)/orbs%norb+1,orbs%nkpts)
+            if (nvctr_par(jproc,jkpte) == 0 .and. orbs%norb_par(jproc,0) /=0) then
+               if (iproc ==0) write(*,*)'ERROR, jproc: ',jproc,&
+                    ' the orbital k-points distribution ends after the components one'
+               print *,jsorb,jkpte,jproc,orbs%iskpts,orbs%nkptsp,nvctr_par(jproc,jkpte)
+               stop
+            end if
          end do
-         jkpts=min(jsorb/orbs%norb+1,orbs%nkpts)
-         if (nvctr_par(jproc,jkpts) == 0 .and. orbs%norb_par(jproc,0) /=0 ) then
-            if (iproc ==0) write(*,*)'ERROR, jproc: ',jproc,' the orbital k-points distribution starts before the components one'
-            !print *,jsorb,jkpts,jproc,orbs%iskpts,nvctr_par(jproc,jkpts)
-            stop
-         end if
-         jkpte=min((jsorb+orbs%norb_par(jproc,0)-1)/orbs%norb+1,orbs%nkpts)
-         if (nvctr_par(jproc,jkpte) == 0 .and. orbs%norb_par(jproc,0) /=0) then
-            if (iproc ==0) write(*,*)'ERROR, jproc: ',jproc,&
-                 ' the orbital k-points distribution ends after the components one'
-            print *,jsorb,jkpte,jproc,orbs%iskpts,orbs%nkptsp,nvctr_par(jproc,jkpte)
-            stop
-         end if
-      end do
+      end if
     
       !before printing the distribution schemes, check that the two distributions contain
       !the same k-points

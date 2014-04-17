@@ -1437,8 +1437,8 @@ module communications
       type(comms_cubic), intent(in) :: comms
       !>address of the wavefunction elements (choice)
       !if out_add is absent, it is used for transpose
-      real(wp),intent(inout) :: psi_add
-      real(wp),intent(inout) :: work_add
+      real(wp), intent(inout) :: psi_add
+      real(wp), intent(inout) :: work_add
       !> size of the buffers, optional.
       real(wp), optional :: out_add
       !local variables

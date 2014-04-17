@@ -1356,7 +1356,7 @@ subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par
   integer :: ikpt,jsproc,jeproc,kproc,icount,ivctr,jproc,numproc
   real(gp) :: strprc,endprc
 
-  ! This variable qas not initialized...
+  ! This variable is not initialized...
   icount=0
 
   !for any of the k-points find the processors which have such k-point associated
