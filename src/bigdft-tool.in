@@ -19,8 +19,8 @@ from optparse import OptionParser, OptionGroup
 actions = ["memory-estimation", "rotate", "convert-field",
            "export-wf", "export-grid", "atomic-wf", "GPU-test","convert-positions","manual"]
 
-srcdir = "@srcdir@"
-inputvarfile= srcdir+'/input_variables_definition.yaml'
+abs_srcdir = "@abs_srcdir@"
+inputvarfile= abs_srcdir+'/input_variables_definition.yaml'
 abs_top_builddir = "@abs_top_builddir@"
 bindir = "@prefix@"
 
