@@ -397,11 +397,12 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
   use module_base
   use module_types
   use module_interfaces, except_this_one => overlapPowerGeneral
-  use sparsematrix_base, only: sparse_matrix, SPARSE_FULL, DENSE_PARALLEL, SPARSEMM_SEQ
+  use sparsematrix_base, only: sparse_matrix, SPARSE_FULL, DENSE_PARALLEL, DENSE_FULL, SPARSEMM_SEQ
   use sparsematrix, only: compress_matrix, uncompress_matrix, transform_sparse_matrix, &
                           compress_matrix_distributed, uncompress_matrix_distributed, &
                           sequential_acces_matrix_fast, sparsemm, &
-                          sparsematrix_malloc_ptr, sparsematrix_malloc, assignment(=)
+                          sparsematrix_malloc_ptr, sparsematrix_malloc, sparsematrix_malloc0, &
+                          assignment(=)
 
   use yaml_output
   implicit none
@@ -520,13 +521,13 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
       else if (iorder<0) then
           ! sign approach as used in CP2K
           ! use 4 submatrices
-          Amat12p=f_malloc((/norb,norbp/),id='Amat12p')
-          Amat21p=f_malloc((/norb,norbp/),id='Amat21p')
-          Amat11p=f_malloc_ptr((/norb,norbp/),id='Amat11p')
+          Amat12p = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='Amat12p')
+          Amat21p = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='Amat21p')
+          Amat11p = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='Amat11p')
           ! save some memory but keep code clear - Amat22 and Amat11 should be identical as only combining S and I
           Amat22p=>Amat11p
           Amat12=>inv_ovrlp
-          Amat21=f_malloc0((/norb,norb/),id='Amat21')
+          Amat21=sparsematrix_malloc0(inv_ovrlp_smat, iaction=DENSE_FULL, id='Amat21')
 
           call vcopy(norb*norb,ovrlp(1,1),1,Amat12(1,1),1)
           do iorb=1,norb
@@ -581,15 +582,15 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
           if (iorder>1) then
               if (nproc>1) then
                   ovrlpminone => inv_ovrlp
-                  ovrlpminonep=f_malloc_ptr((/norb,norbp/),id='ovrlpminonep')
+                  ovrlpminonep = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlpminonep')
               else
-                  ovrlpminone=f_malloc_ptr((/norb,norb/),id='ovrlpminone')
+                  ovrlpminone = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_FULL, id='ovrlpminone')
                   ovrlpminonep => ovrlpminone
               end if
 
               call matrix_minus_identity_dense(norb,isorb,norbp,ovrlp(1,isorb+1),ovrlpminonep)
 
-              ovrlppoweroldp=f_malloc_ptr((/norb,norbp/),id='ovrlppoweroldp')
+              ovrlppoweroldp = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlppoweroldp')
               call vcopy(norb*norbp,ovrlpminonep(1,1),1,ovrlppoweroldp(1,1),1)
 
               if(nproc > 1) then
@@ -600,7 +601,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
                   nullify(ovrlpminonep)
               end if
 
-              ovrlppowerp=f_malloc_ptr((/norb,norbp/),id='ovrlppowerp')
+              ovrlppowerp = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlppowerp')
 
               if (power==1) then
                   factor=-1.0d0
@@ -612,7 +613,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
           end if
 
           if (nproc>1) then
-              inv_ovrlpp=f_malloc_ptr((/norb,norbp/),id='inv_ovrlpp')
+              inv_ovrlpp = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='inv_ovrlpp')
           else
               inv_ovrlpp => inv_ovrlp
           end if
@@ -654,8 +655,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
   else if (imode==SPARSE) then
       if (iorder==0) then
           !!if (iproc==0) call yaml_warning('The compressed matrix will not be filled! You should know what you do.')
-          ovrlp_local=f_malloc_ptr((/norb,norb/),id='ovrlp_local')
-          inv_ovrlp_local=f_malloc_ptr((/norb,norb/),id='inv_ovrlp_local')
+          ovrlp_local = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_FULL, id='ovrlp_local')
+          inv_ovrlp_local = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_FULL, id='inv_ovrlp_local')
           call uncompress_matrix(iproc, ovrlp_smat, outmat=ovrlp_local)
           !!write(*,*) ovrlp_smat%matrix_compr
           !!write(*,*) '==============='
@@ -695,25 +696,25 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
           ! #############################################################################
       else if (iorder<0) then ! could improve timing for checking, but for now just making sure it works
           ! use 4 submatrices
-          Amat12p=f_malloc((/norb,norbp/),id='Amat12p')
-          Amat21p=f_malloc0((/norb,norbp/),id='Amat21p')
-          Amat11p=f_malloc_ptr((/norb,norbp/),id='Amat11p')
+          Amat12p = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='Amat12p')
+          Amat21p = sparsematrix_malloc0(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='Amat21p')
+          Amat11p = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='Amat11p')
           ! save some memory but keep code clear - Amat22 and Amat11 should be identical as only combining S and I
           Amat22p=>Amat11p
           Amat12_compr=>inv_ovrlp_smat%matrix_compr
 
           call transform_sparse_matrix(ovrlp_smat, inv_ovrlp_smat, &
                ovrlp_smat%matrix_compr, Amat12_compr, 'small_to_large')
-          Amat12_seq = f_malloc(inv_ovrlp_smat%smmm%nseq,id='Amat12_seq')
+          Amat12_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='Amat12_seq')
           call sequential_acces_matrix_fast(inv_ovrlp_smat, Amat12_compr, Amat12_seq)
           call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, Amat12_compr, Amat12p)
 
           do iorb=1,norbp
               Amat21p(iorb+isorb,iorb)=1.0d0
           end do
-          Amat21_compr=f_malloc(inv_ovrlp_smat%nvctr,id='Amat21_compr')
+          Amat21_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='Amat21_compr')
           call compress_matrix_distributed(iproc, inv_ovrlp_smat, Amat21p, Amat21_compr)
-          Amat21_seq = f_malloc(inv_ovrlp_smat%smmm%nseq,id='Amat21_seq')
+          Amat21_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='Amat21_seq')
           call sequential_acces_matrix_fast(inv_ovrlp_smat, Amat21_compr, Amat21_seq)
 
           ! calculate Xn+1=0.5*Xn*(3I-Xn**2)
@@ -767,14 +768,14 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
           call f_free(Amat21_seq)
 
       else
-          ovrlp_large_compr=f_malloc(inv_ovrlp_smat%nvctr,id='ovrlp_large_compr')
+          ovrlp_large_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='ovrlp_large_compr')
           call transform_sparse_matrix(ovrlp_smat, inv_ovrlp_smat, &
                ovrlp_smat%matrix_compr, ovrlp_large_compr, 'small_to_large')
 
           if (iorder>1) then
-              ovrlpminone_sparse_seq = f_malloc(inv_ovrlp_smat%smmm%nseq,id='ovrlpminone_sparse_seq')
-              ovrlpminone_sparse=sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=SPARSE_FULL, id='ovrlpminone_sparse')
-              ovrlpminoneoldp=f_malloc((/norb,norbp/),id='ovrlpminoneoldp')
+              ovrlpminone_sparse_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='ovrlpminone_sparse_seq')
+              ovrlpminone_sparse = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=SPARSE_FULL, id='ovrlpminone_sparse')
+              ovrlpminoneoldp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlpminoneoldp')
 
               call matrix_minus_identity_sparse(norb, inv_ovrlp_smat, ovrlp_large_compr, ovrlpminone_sparse)
               call sequential_acces_matrix_fast(inv_ovrlp_smat, ovrlpminone_sparse, ovrlpminone_sparse_seq)
@@ -791,8 +792,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
               end if
           end if
 
-          ovrlpminonep=f_malloc_ptr((/norb,norbp/),id='ovrlpminonep')
-          invovrlpp=f_malloc((/norb,norbp/),id='invovrlpp')
+          ovrlpminonep = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlpminonep')
+          invovrlpp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='invovrlpp')
 
           if (norbp>0) then
               call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, ovrlp_large_compr, ovrlpminonep)

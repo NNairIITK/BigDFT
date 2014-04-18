@@ -17,13 +17,27 @@ module sparsematrix
      type(sparse_matrix), pointer :: smat !<information of the sparse matrix
   end type sparse_matrix_info
 
+  type, public :: sparse_matrix_info0_ptr
+     character(len=32) :: id !< name of the sparse matrix array
+     integer :: iaction !< action for allocation
+     type(sparse_matrix), pointer :: smat !<information of the sparse matrix
+  end type sparse_matrix_info0_ptr
+
+  type, public :: sparse_matrix_info0
+     character(len=32) :: id !< name of the sparse matrix array
+     integer :: iaction !< action for allocation
+     type(sparse_matrix), pointer :: smat !<information of the sparse matrix
+  end type sparse_matrix_info0
+
 !!  interface sparsematrix_allocate
 !!    module procedure sparsematrix_allocate_1D, sparsematrix_allocate_2D
 !!  end interface sparsematrix_allocate
 
   interface assignment(=)
      module procedure allocate_smat_d1_ptr,allocate_smat_d2_ptr, &
-                      allocate_smat_d1,allocate_smat_d2
+                      allocate_smat_d1,allocate_smat_d2, &
+                      allocate0_smat_d1_ptr,allocate0_smat_d2_ptr, &
+                      allocate0_smat_d1,allocate0_smat_d2
   end interface
 
 
@@ -38,6 +52,8 @@ module sparsematrix
   public :: sparsemm
   public :: sparsematrix_malloc_ptr
   public :: sparsematrix_malloc
+  public :: sparsematrix_malloc0_ptr
+  public :: sparsematrix_malloc0
   public :: assignment(=)
 
   contains
@@ -652,6 +668,89 @@ module sparsematrix
    end subroutine allocate_smat_d2
 
 
+   subroutine allocate0_smat_d1_ptr(smat_ptr,smat_info0_ptr)
+     implicit none
+     double precision,dimension(:),pointer,intent(inout) :: smat_ptr
+     type(sparse_matrix_info0_ptr), intent(in) :: smat_info0_ptr
+
+     select case (smat_info0_ptr%iaction)
+     case (SPARSE_FULL)
+         smat_ptr = f_malloc_ptr(smat_info0_ptr%smat%nvctr,id=smat_info0_ptr%id)
+         call to_zero(smat_info0_ptr%smat%nvctr,smat_ptr(1))
+     case (SPARSE_PARALLEL)
+         smat_ptr = f_malloc_ptr(smat_info0_ptr%smat%nvctrp,id=smat_info0_ptr%id)
+         call to_zero(smat_info0_ptr%smat%nvctrp,smat_ptr(1))
+     case (SPARSEMM_SEQ)
+         smat_ptr = f_malloc_ptr(smat_info0_ptr%smat%smmm%nseq,id=smat_info0_ptr%id)
+         call to_zero(smat_info0_ptr%smat%smmm%nseq,smat_ptr(1))
+     case default
+         call f_err_throw('The action specified for the 1d matrix allocation is invalid',&
+              err_name='BIGDFT_RUNTIME_ERROR')
+     end select
+   end subroutine allocate0_smat_d1_ptr
+
+
+   subroutine allocate0_smat_d2_ptr(smat_ptr,smat_info0_ptr)
+     implicit none
+     double precision,dimension(:,:),pointer,intent(inout) :: smat_ptr
+     type(sparse_matrix_info0_ptr), intent(in) :: smat_info0_ptr
+
+     select case (smat_info0_ptr%iaction)
+     case (DENSE_FULL)
+         smat_ptr = f_malloc_ptr((/smat_info0_ptr%smat%nfvctr,smat_info0_ptr%smat%nfvctr/),id=smat_info0_ptr%id)
+         call to_zero(smat_info0_ptr%smat%nfvctr*smat_info0_ptr%smat%nfvctr,smat_ptr(1,1))
+     case (DENSE_PARALLEL)
+         smat_ptr = f_malloc_ptr((/smat_info0_ptr%smat%nfvctr,smat_info0_ptr%smat%nvctrp/),id=smat_info0_ptr%id)
+         call to_zero(smat_info0_ptr%smat%nfvctr*smat_info0_ptr%smat%nvctrp,smat_ptr(1,1))
+     case default
+        call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
+             err_name='BIGDFT_RUNTIME_ERROR')
+     end select
+   end subroutine allocate0_smat_d2_ptr
+
+
+   subroutine allocate0_smat_d1(smat,smat_info0)
+     implicit none
+     double precision,dimension(:),allocatable,intent(inout) :: smat
+     type(sparse_matrix_info0), intent(in) :: smat_info0
+
+     select case (smat_info0%iaction)
+     case (SPARSE_FULL)
+         smat = f_malloc(smat_info0%smat%nvctr,id=smat_info0%id)
+         call to_zero(smat_info0%smat%nvctr,smat(1))
+     case (SPARSE_PARALLEL)
+         smat = f_malloc(smat_info0%smat%nvctrp,id=smat_info0%id)
+         call to_zero(smat_info0%smat%nvctrp,smat(1))
+     case (SPARSEMM_SEQ)
+         smat = f_malloc(smat_info0%smat%smmm%nseq,id=smat_info0%id)
+         call to_zero(smat_info0%smat%smmm%nseq,smat(1))
+     case default
+         call f_err_throw('The action specified for the 1d matrix allocation is invalid',&
+              err_name='BIGDFT_RUNTIME_ERROR')
+     end select
+   end subroutine allocate0_smat_d1
+
+
+   subroutine allocate0_smat_d2(smat,smat_info0)
+     implicit none
+     double precision,dimension(:,:),allocatable,intent(inout) :: smat
+     type(sparse_matrix_info0), intent(in) :: smat_info0
+
+     select case (smat_info0%iaction)
+     case (DENSE_FULL)
+         smat = f_malloc((/smat_info0%smat%nfvctr,smat_info0%smat%nfvctr/),id=smat_info0%id)
+         call to_zero(smat_info0%smat%nfvctr*smat_info0%smat%nfvctr,smat(1,1))
+     case (DENSE_PARALLEL)
+         smat = f_malloc((/smat_info0%smat%nfvctr,smat_info0%smat%nvctrp/),id=smat_info0%id)
+         call to_zero(smat_info0%smat%nfvctr*smat_info0%smat%nvctrp,smat(1,1))
+     case default
+        call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
+             err_name='BIGDFT_RUNTIME_ERROR')
+     end select
+   end subroutine allocate0_smat_d2
+
+
+
    function sparsematrix_malloc_ptr(smat, iaction, id) result(smat_info_ptr)
      implicit none
 
@@ -681,27 +780,34 @@ module sparsematrix
      smat_info%smat=>smat
    end function sparsematrix_malloc
 
-   !!!function sparsematrix_allocate_2D(smat, iaction, id)! result(array)
-   !!!  implicit none
 
-   !!!  ! Calling arguments
-   !!!  type(sparse_matrix),intent(in) :: smat
-   !!!  integer :: iaction
-   !!!  character(len=*),intent(in) :: id
-   !!!  real(kind=8),dimension(:,:),pointer :: sparsematrix_allocate_2D!array
+   function sparsematrix_malloc0_ptr(smat, iaction, id) result(smat_info0_ptr)
+     implicit none
 
-   !!!  select case (iaction)
-   !!!  case (DENSE_FULL)
-   !!!      sparsematrix_allocate_2D = f_malloc_ptr((/smat%nfvctr,smat%nfvctr/),id=id)
-   !!!      !array = f_malloc_ptr((/smat%nfvctr,smat%nfvctr/),id=id)
-   !!!  case (DENSE_PARALLEL)
-   !!!      sparsematrix_allocate_2D = f_malloc_ptr((/smat%nfvctr,smat%nvctrp/),id=id)
-   !!!      !array = f_malloc_ptr((/smat%nfvctr,smat%nvctrp/),id=id)
-   !!!  case default
-   !!!      stop 'wrong iaction'
-   !!!  end select
+     ! Calling arguments
+     type(sparse_matrix),intent(in), target :: smat
+     integer :: iaction
+     character(len=*),intent(in) :: id
+     type(sparse_matrix_info0_ptr) :: smat_info0_ptr
 
-   !!!end function sparsematrix_allocate_2D
+     smat_info0_ptr%id(1:len(smat_info0_ptr%id))=id
+     smat_info0_ptr%iaction=iaction
+     smat_info0_ptr%smat=>smat
+   end function sparsematrix_malloc0_ptr
 
+
+   function sparsematrix_malloc0(smat, iaction, id) result(smat_info0)
+     implicit none
+
+     ! Calling arguments
+     type(sparse_matrix),intent(in), target :: smat
+     integer :: iaction
+     character(len=*),intent(in) :: id
+     type(sparse_matrix_info0) :: smat_info0
+
+     smat_info0%id(1:len(smat_info0%id))=id
+     smat_info0%iaction=iaction
+     smat_info0%smat=>smat
+   end function sparsematrix_malloc0
 
 end module sparsematrix
