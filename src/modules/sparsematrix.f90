@@ -622,6 +622,7 @@ module sparsematrix
 
      select case (smat_info_ptr%iaction)
      case (DENSE_FULL)
+         write(*,*) 'smat_info_ptr%smat%nfvctr',smat_info_ptr%smat%nfvctr
          smat_ptr = f_malloc_ptr((/smat_info_ptr%smat%nfvctr,smat_info_ptr%smat%nfvctr/),id=smat_info_ptr%id)
      case (DENSE_PARALLEL)
          smat_ptr = f_malloc_ptr((/smat_info_ptr%smat%nfvctr,smat_info_ptr%smat%nvctrp/),id=smat_info_ptr%id)

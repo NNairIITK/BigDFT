@@ -1950,7 +1950,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   integer, intent(in) :: iproc, nproc, norb
   integer, intent(in) :: blocksize_dsyev, blocksize_pdgemm, inversion_method
   type(orbitals_data), intent(in) :: basis_orbs   !number of basis functions
-  type(sparse_matrix),intent(in) :: basis_overlap
+  type(sparse_matrix),intent(inout) :: basis_overlap
   real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(inout) :: coeff
   type(orbitals_data), intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
   ! Local variables
@@ -2055,13 +2055,17 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
 
   call timing(iproc,'renormCoefCom1','OF')
 
+  ! Not clean to use twice basis_overlap, but it should not matter as everything
+  ! is done using the dense version
   if (norb==orbs%norb) then
       call overlapPowerGeneral(iproc, nproc, inversion_method, -2, &
-           blocksize_dsyev, norb, orbs, imode=2, check_accur=.false., ovrlp=ovrlp_coeff, inv_ovrlp=ovrlp_coeff2)
+           blocksize_dsyev, norb, orbs, imode=2, ovrlp_smat=basis_overlap, inv_ovrlp_smat=basis_overlap, &
+           check_accur=.false., ovrlp=ovrlp_coeff, inv_ovrlp=ovrlp_coeff2)
   else
       ! It is not possible to use the standard parallelization scheme, so do serial
       call overlapPowerGeneral(iproc, 1, inversion_method, -2, &
-           blocksize_dsyev, norb, orbs, imode=2, check_accur=.false., ovrlp=ovrlp_coeff, inv_ovrlp=ovrlp_coeff2)
+           blocksize_dsyev, norb, orbs, imode=2, ovrlp_smat=basis_overlap, inv_ovrlp_smat=basis_overlap, &
+           check_accur=.false., ovrlp=ovrlp_coeff, inv_ovrlp=ovrlp_coeff2)
   end if
 
   call timing(iproc,'renormCoefCom2','ON')
@@ -2520,11 +2524,11 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           ! Taylor approximation of S^1/2 and S^-1/2 up to higher order
 
           call overlapPowerGeneral(iproc, nproc, order_taylor, 2, -1, tmb%orbs%norb, tmb%orbs, &
-               imode=2, check_accur=.true., ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=ovrlp_onehalf, &
-               error=error)
+               imode=2, ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=ovrlp_onehalf, &
+               check_accur=.true., error=error)
           call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, tmb%orbs, &
-               imode=2, check_accur=.true., ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=ovrlp_minusonehalf, &
-               error=error)
+               imode=2, ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=ovrlp_minusonehalf, &
+               check_accur=.true., error=error)
           if (iproc==0) then
               call yaml_map('error of S^-1/2',error,fmt='(es9.2)')
           end if

@@ -355,8 +355,8 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='tmb%linmat%ovrlp%matrix')
   call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%ovrlp)
   call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orthpar%methTransformOverlap, 2, &
-       tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%orbs, imode=2, check_accur=.true., &
-       ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=ovrlp_half, error=error)
+       tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%orbs, imode=2, &
+       ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=ovrlp_half, check_accur=.true., error=error)
   call f_free_ptr(tmb%linmat%ovrlp%matrix)
 
   do ifrag=1,input%frag%nfrag
@@ -410,7 +410,8 @@ subroutine find_eval_from_coeffs(iproc, nproc, meth_overlap, ksorbs, basis_orbs,
   ! Calling arguments
   integer, intent(in) :: iproc, nproc, meth_overlap
   type(orbitals_data), intent(in) :: basis_orbs, ksorbs
-  type(sparse_matrix),intent(in) :: ham, ovrlp
+  type(sparse_matrix),intent(in) :: ham
+  type(sparse_matrix),intent(inout) :: ovrlp
   real(kind=8),dimension(basis_orbs%norb,ksorbs%norb),intent(inout) :: coeff
   real(kind=8),dimension(ksorbs%norb),intent(inout) :: eval
   logical, intent(in) :: diag, calc_overlap
@@ -1039,8 +1040,8 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
      call timing(iproc,'dirmin_dgesv','OF')
      inv_ovrlp=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='inv_ovrlp')
      call overlapPowerGeneral(iproc, nproc, tmb%orthpar%methTransformOverlap, 1, -8, &
-          tmb%orbs%norb, tmb%orbs, imode=2, check_accur=.true., &
-          ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=inv_ovrlp, error=error)
+          tmb%orbs%norb, tmb%orbs, imode=2, &
+          ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=inv_ovrlp, check_accur=.true., error=error)
 
      !!!DEBUG checking S^-1 etc.
      !!!test dense version of S^-1
@@ -1344,7 +1345,7 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_
      !end if
      inv_ovrlp=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='inv_ovrlp')
      call overlapPowerGeneral(iproc, nproc, tmb%orthpar%methTransformOverlap, 1, -8, tmb%orbs%norb, tmb%orbs, &
-          imode=2, check_accur=.true., ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=inv_ovrlp, error=error)
+          imode=2, ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=inv_ovrlp, check_accur=.true., error=error)
 
      if (tmb%orbs%norbp>0) then
         call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, inv_ovrlp(1,1), &

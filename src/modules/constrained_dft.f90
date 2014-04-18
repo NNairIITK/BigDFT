@@ -177,9 +177,12 @@ contains
     if (calculate_ovrlp_half) then
        tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='tmb%linmat%ovrlp%matrix')
        call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%ovrlp)
+       ! Maybe not clean here to use twice tmb%linmat%ovrlp, but it should not
+       ! matter as dense is used
        call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 2, &
             tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%orbs, &
-            imode=2, check_accur=.true., ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=ovrlp_half, error=error)
+            imode=2, ovrlp_smat=tmb%linmat%ovrlp, inv_ovrlp_smat=tmb%linmat%ovrlp, &
+            check_accur=.true., ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=ovrlp_half, error=error)
        call f_free_ptr(tmb%linmat%ovrlp%matrix)
     end if
 
