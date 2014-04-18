@@ -404,7 +404,6 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
                           sequential_acces_matrix_fast, sparsemm, &
                           sparsematrix_malloc_ptr, sparsematrix_malloc, sparsematrix_malloc0, &
                           assignment(=)
-
   use yaml_output
   implicit none
   
