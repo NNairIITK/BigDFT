@@ -16,11 +16,11 @@ subroutine foe(iproc, nproc, tmprtr, &
   use module_types
   use module_interfaces, except_this_one => foe
   use yaml_output
-  use sparsematrix_base, only: SPARSE_FULL, DENSE_FULL, DENSE_PARALLEL, SPARSEMM_SEQ
+  use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, assignment(=), &
+                               SPARSE_FULL, DENSE_FULL, DENSE_PARALLEL, SPARSEMM_SEQ
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, &
-                          uncompress_matrix_distributed, &
-                          sparsematrix_malloc_ptr, sparsematrix_malloc, assignment(=)
+                          uncompress_matrix_distributed
   implicit none
 
   ! Calling arguments

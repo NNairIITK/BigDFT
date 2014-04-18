@@ -233,7 +233,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   use yaml_output
   use gaussians, only: gaussian_basis
   use psp_projectors
-  use sparsematrix_base, only: sparse_matrix_null
+  use sparsematrix_base, only: sparse_matrix_null, matrices_null, allocate_matrices
   use sparsematrix_init, only: init_sparse_matrix, check_kernel_cutoff
   use sparsematrix, only: check_matrix_compression
   implicit none
@@ -466,6 +466,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
           in%store_index, imode=1, smat=tmb%linmat%ham)
      call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%ham_descr%lzd, atoms%astruct, &
           in%store_index, imode=1, smat=tmb%linmat%m)
+     tmb%linmat%ham_ = matrices_null()
+     call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
+          matname='tmb%linmat%ham_', mat=tmb%linmat%ham_)
 
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ham)
@@ -476,6 +479,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
           in%store_index, imode=1, smat=tmb%linmat%ovrlp)
      call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%lzd, atoms%astruct, &
           in%store_index, imode=1, smat=tmb%linmat%s)
+     tmb%linmat%ovrlp_ = matrices_null()
+     call allocate_matrices(tmb%linmat%s, allocate_full=.false., &
+          matname='tmb%linmat%ovrlp_', mat=tmb%linmat%ovrlp_)
 
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ovrlp)
@@ -499,6 +505,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
           in%store_index, imode=2, smat=tmb%linmat%denskern_large)
      call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%lzd, atoms%astruct, &
           in%store_index, imode=2, smat=tmb%linmat%l)
+     tmb%linmat%kernel_ = matrices_null()
+     call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
+          matname='tmb%linmat%kernel_', mat=tmb%linmat%kernel_)
 
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)

@@ -398,12 +398,13 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
   use module_base
   use module_types
   use module_interfaces, except_this_one => overlapPowerGeneral
-  use sparsematrix_base, only: sparse_matrix, SPARSE_FULL, DENSE_PARALLEL, DENSE_FULL, SPARSEMM_SEQ
+  use sparsematrix_base, only: sparse_matrix, &
+                          sparsematrix_malloc_ptr, sparsematrix_malloc, sparsematrix_malloc0, &
+                          assignment(=), &
+                          SPARSE_FULL, DENSE_PARALLEL, DENSE_FULL, SPARSEMM_SEQ
   use sparsematrix, only: compress_matrix, uncompress_matrix, transform_sparse_matrix, &
                           compress_matrix_distributed, uncompress_matrix_distributed, &
-                          sequential_acces_matrix_fast, sparsemm, &
-                          sparsematrix_malloc_ptr, sparsematrix_malloc, sparsematrix_malloc0, &
-                          assignment(=)
+                          sequential_acces_matrix_fast, sparsemm
   use yaml_output
   implicit none
   
