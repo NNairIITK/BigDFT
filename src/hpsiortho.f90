@@ -2597,8 +2597,6 @@ subroutine check_communications(iproc,nproc,orbs,lzd,comms)
    character(len = 25) :: filename
    logical :: abort
 
-   !if no orb, no check!
-   if (orbs%norb == 0) return
 
    !allocate the "wavefunction" amd fill it, and also the workspace
    allocate(psi(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
