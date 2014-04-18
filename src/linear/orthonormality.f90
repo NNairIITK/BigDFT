@@ -1640,7 +1640,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, meth_overlap
   type(orbitals_data),intent(in) :: orbs
-  type(sparse_matrix),intent(in) :: ovrlp
+  type(sparse_matrix),intent(inout) :: ovrlp
   type(sparse_matrix),intent(inout) :: inv_ovrlp_half
 
   ! Local variables
@@ -1733,7 +1733,8 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
      !!call overlapPowerGeneral(iproc, nproc, meth_overlap, -2, -8, n, orbs, imode=2, check_accur=.true.,&
      !!     ovrlp=ovrlp_tmp, inv_ovrlp=ovrlp_tmp_inv_half, error=error)
      call overlapPowerGeneral(iproc, 1, meth_overlap, -2, -8, n, orbs, imode=2, &
-          ovrlp=ovrlp_tmp, inv_ovrlp=ovrlp_tmp_inv_half, check_accur=.true., error=error)
+          ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, check_accur=.true., &
+          ovrlp=ovrlp_tmp, inv_ovrlp=ovrlp_tmp_inv_half, error=error)
 
 
      !if (iiorb==orbs%norb) then
