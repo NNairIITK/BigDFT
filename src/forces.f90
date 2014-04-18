@@ -295,6 +295,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_forces
+  use communications_base
   use yaml_output
   implicit none
   logical, intent(in) :: refill_proj
@@ -315,7 +316,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   type(DFT_wavefunction),intent(in) :: tmb
   !local variables
   integer :: ierr,iat,i,j
-  real(gp) :: charge,ucvol
+  real(gp) :: charge,ucvol,maxdiff
   real(gp), dimension(6,4) :: strtens!local,nonlocal,kin,erf
   character(len=16), dimension(4) :: messages
 
@@ -363,6 +364,23 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
           iproc,nproc,ngatherarr,rho,strtens(1,4)) !shouud not be reduced for the moment
   end if
 
+  !add to the forces the ionic and dispersion contribution 
+  if (.not. experimental_modulebase_var_onlyfion) then !normal case
+     if (iproc==0) then
+        do iat=1,atoms%astruct%nat
+           fxyz(1,iat)=fxyz(1,iat)+fion(1,iat)+fdisp(1,iat)+fpulay(1,iat)
+           fxyz(2,iat)=fxyz(2,iat)+fion(2,iat)+fdisp(2,iat)+fpulay(2,iat)
+           fxyz(3,iat)=fxyz(3,iat)+fion(3,iat)+fdisp(3,iat)+fpulay(3,iat)
+        enddo
+     end if
+  else
+     if (iproc==0) then
+        call vcopy(3*atoms%astruct%nat,fion(1,1),1,fxyz(1,1),1)
+     else
+        call to_zero(3*atoms%astruct%nat,fxyz)
+     end if
+  end if
+
   ! Add up all the force contributions
   if (nproc > 1) then
      !TD: fxyz(1,1) not used in case of no atoms
@@ -372,22 +390,18 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
      call mpiallred(charge,1,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
   end if
 
-  !add to the forces the ionic and dispersion contribution 
-  if (.not. experimental_modulebase_var_onlyfion) then !normal case
-     do iat=1,atoms%astruct%nat
-        fxyz(1,iat)=fxyz(1,iat)+fion(1,iat)+fdisp(1,iat)+fpulay(1,iat)
-        fxyz(2,iat)=fxyz(2,iat)+fion(2,iat)+fdisp(2,iat)+fpulay(2,iat)
-        fxyz(3,iat)=fxyz(3,iat)+fion(3,iat)+fdisp(3,iat)+fpulay(3,iat)
-     enddo
-  else
-     call vcopy(3*atoms%astruct%nat,fion(1,1),1,fxyz(1,1),1)
-  end if
-
   !clean the center mass shift and the torque in isolated directions
   call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
 
   ! Apply symmetries when needed
   if (atoms%astruct%sym%symObj >= 0) call symmetrise_forces(iproc,fxyz,atoms)
+
+  ! Check forces consistency.
+  call check_array_consistency(maxdiff, nproc, fxyz(1,1), &
+       & 3 * atoms%astruct%nat, bigdft_mpi%mpi_comm)
+  if (iproc==0 .and. maxdiff > epsilon(1.0_gp)) &
+       call yaml_warning('Output forces not identical! '//&
+       '(difference:'//trim(yaml_toa(maxdiff))//' )')
 
   if (iproc == 0) call write_forces(atoms,fxyz)
 
