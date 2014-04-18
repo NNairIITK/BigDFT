@@ -166,7 +166,10 @@ contains
        end if
 
        call calculate_overlap_transposed(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
-            tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+            tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+       ! This can then be deleted if the transition to the new type has been completed.
+       tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
+
     end if   
 
     if (calculate_ovrlp_half) then
@@ -243,6 +246,7 @@ contains
   subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,denspot)
     use module_fragments
     use communications, only: transpose_localized, start_onesided_communication
+    use sparsematrix_base, only : matrices_null, allocate_matrices, deallocate_matrices
     implicit none
     integer,intent(in) :: iproc
     type(cdft_data), intent(inout) :: cdft
@@ -258,6 +262,7 @@ contains
     type(confpot_data),dimension(:),allocatable :: confdatarrtmp
     type(energy_terms) :: energs
     character(len=*),parameter :: subname='calculate_weight_matrix_using_density'
+    type(matrices) :: weight_
 
     call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
     call start_onesided_communication(bigdft_mpi%iproc,bigdft_mpi%nproc,max(denspot%dpbox%ndimpot,1),cdft%weight_function, &
@@ -315,8 +320,17 @@ contains
     call memocc(istat, hpsit_f, 'hpsit_f', subname)
     call transpose_localized(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,  &
          tmb%ham_descr%collcom,tmb%hpsi,hpsit_c,hpsit_f,tmb%ham_descr%lzd)
+
+    weight_ = matrices_null()
+    call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
+         matname='weight_', mat=weight_)
+
     call calculate_overlap_transposed(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%orbs,tmb%ham_descr%collcom, &
-         tmb%ham_descr%psit_c,hpsit_c,tmb%ham_descr%psit_f, hpsit_f,cdft%weight_matrix)
+         tmb%ham_descr%psit_c,hpsit_c,tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, weight_)
+    ! This can then be deleted if the transition to the new type has been completed.
+    cdft%weight_matrix%matrix_compr=weight_%matrix_compr
+    call deallocate_matrices(weight_)
+
     iall=-product(shape(hpsit_c))*kind(hpsit_c)
     deallocate(hpsit_c, stat=istat)
     call memocc(istat, iall, 'hpsit_c', subname)

@@ -54,7 +54,10 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
        tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
-       tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+       tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+  ! This can then be deleted if the transition to the new type has been completed.
+  tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
+
 
   call f_free_ptr(tmb%psit_c)
   call f_free_ptr(tmb%psit_f)
@@ -87,7 +90,10 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
       call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
            phi_delta_large(1,idir), delta_phit_c, delta_phit_f, tmb%ham_descr%lzd)
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
-           hphit_c, delta_phit_c, hphit_f, delta_phit_f, tmb%linmat%ham)
+           hphit_c, delta_phit_c, hphit_f, delta_phit_f, tmb%linmat%m, tmb%linmat%ham_)
+      ! This can then be deleted if the transition to the new type has been completed.
+      tmb%linmat%ham%matrix_compr=tmb%linmat%ham_%matrix_compr
+
       tmb%linmat%ham%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ham%matrix')
       call uncompress_matrix(iproc,tmb%linmat%ham)
 
@@ -430,7 +436,8 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   use module_interfaces, except_this_one => pulay_correction
   use yaml_output
   use communications, only: transpose_localized, start_onesided_communication
-  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
+  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
+                               matrices_null, allocate_matrices, deallocate_matrices
   implicit none
 
   ! Calling arguments
@@ -456,6 +463,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   type(energy_terms) :: energs
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   character(len=*),parameter :: subname='pulay_correction'
+  type(matrices) :: ham_
 
   ! Begin by updating the Hpsi
   call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
@@ -521,6 +529,10 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
 
   ! DOVRLP AND DHAM SHOULD HAVE DIFFERENT SPARSITIES, BUT TO MAKE LIFE EASIER KEEPING THEM THE SAME FOR NOW
   ! also array of structure a bit inelegant at the moment
+
+  ham_ = matrices_null()
+  call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
+       matname='ham_', mat=ham_)
   do jdir = 1, 3
     !call nullify_sparse_matrix(dovrlp(jdir))
     !call nullify_sparse_matrix(dham(jdir))
@@ -542,11 +554,16 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
          lhphilarge, psit_c, psit_f, tmb%ham_descr%lzd)
 
     call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom,&
-         psit_c, lpsit_c, psit_f, lpsit_f, dovrlp(jdir))
+         psit_c, lpsit_c, psit_f, lpsit_f, tmb%linmat%m, ham_)
+    ! This can then be deleted if the transition to the new type has been completed.
+    dovrlp(jdir)%matrix_compr=ham_%matrix_compr
 
     call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom,&
-         psit_c, hpsit_c, psit_f, hpsit_f, dham(jdir))
+         psit_c, hpsit_c, psit_f, hpsit_f, tmb%linmat%m, ham_)
+    ! This can then be deleted if the transition to the new type has been completed.
+    dham(jdir)%matrix_compr=ham_%matrix_compr
   end do
+  call deallocate_matrices(ham_)
 
 
   !DEBUG

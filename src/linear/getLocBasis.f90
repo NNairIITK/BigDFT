@@ -106,7 +106,10 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       end if
 
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
-           tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+           tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+      ! This can then be deleted if the transition to the new type has been completed.
+      tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
+
     
   end if
 
@@ -221,8 +224,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
 
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
-           tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%ham)
-      !call memocc(istat, iall, 'tmb%linmat%ham%matrix', subname)
+           tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, tmb%linmat%ham_)
+      ! This can then be deleted if the transition to the new type has been completed.
+      tmb%linmat%ham%matrix_compr=tmb%linmat%ham_%matrix_compr
 
 
       if (scf_mode==LINEAR_FOE) then
@@ -668,7 +672,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                    tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
-                   tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%ham)
+                   tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, tmb%linmat%ham_)
+              ! This can then be deleted if the transition to the new type has been completed.
+              tmb%linmat%ham%matrix_compr=tmb%linmat%ham_%matrix_compr
 
               if(associated(tmb%psit_c)) then
                   iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
@@ -693,7 +699,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
                    tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
-                   tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+                   tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+              ! This can then be deleted if the transition to the new type has been completed.
+              tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
               if (iproc==0) call yaml_newline()
               if (iproc==0) call yaml_open_map(flow=.true.)
               call foe(iproc, nproc, 0.d0, &
@@ -1017,7 +1025,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               ! Calculate the Hamiltonian matrix, since we have all quantities ready. This matrix can then be used in the first
               ! iteration of get_coeff.
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
-                   tmb%ham_descr%psit_c, hpsit_c_tmp, tmb%ham_descr%psit_f, hpsit_f_tmp, tmb%linmat%ham)
+                   tmb%ham_descr%psit_c, hpsit_c_tmp, tmb%ham_descr%psit_f, hpsit_f_tmp, tmb%linmat%m, tmb%linmat%ham_)
+              ! This can then be deleted if the transition to the new type has been completed.
+              tmb%linmat%ham%matrix_compr=tmb%linmat%ham_%matrix_compr
           end if
 
           if (iproc==0) then
@@ -1913,7 +1923,9 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
      !call timing(iproc,'renormCoefComp','OF')
 
      call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
-          tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+          tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+     ! This can then be deleted if the transition to the new type has been completed.
+     tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
 
      !call timing(iproc,'renormCoefComp','ON')
      overlap_calculated=.true.
@@ -2260,7 +2272,9 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
      !call timing(iproc,'renormCoefComp','OF')
 
      call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
-          tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+          tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+     ! This can then be deleted if the transition to the new type has been completed.
+     tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
 
      !call timing(iproc,'renormCoefComp','ON')
      overlap_calculated=.true.
@@ -2542,7 +2556,8 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   use module_base
   use module_types
   use module_interfaces, except_this_one => get_KS_residue
-  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
+  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
+                               matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: uncompress_matrix
   implicit none
 
@@ -2557,24 +2572,27 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   ! Local variables
   integer :: iorb, istat, ierr,  jorb
   real(kind=8) :: norbtot, scale_factor
-  type(sparse_matrix) :: gradmat 
+  type(matrices) :: gradmat 
   real(kind=8),dimension(:,:),allocatable ::KH, KHKH, Kgrad
   character(len=*),parameter :: subname='get_KS_residue'
 
   call f_routine(id='get_KS_residue')
  
   !call nullify_sparse_matrix(gradmat)
-  gradmat=sparse_matrix_null()
-  call sparse_copy_pattern(tmb%linmat%ham, gradmat, iproc, subname)
-  gradmat%matrix_compr=f_malloc_ptr(gradmat%nvctr,id='gradmat%matrix_compr')
+  gradmat=matrices_null()
+  !call sparse_copy_pattern(tmb%linmat%ham, gradmat, iproc, subname)
+  !gradmat%matrix_compr=f_malloc_ptr(gradmat%nvctr,id='gradmat%matrix_compr')
+  call allocate_matrices(tmb%linmat%m, allocate_full=.true., &
+       matname='gradmat', mat=gradmat)
+
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
-       hpsit_c, hpsit_c, hpsit_f, hpsit_f, gradmat)
+       hpsit_c, hpsit_c, hpsit_f, hpsit_f, tmb%linmat%m, gradmat)
 
 
-  gradmat%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='gradmat%matrix')
+  !gradmat%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='gradmat%matrix')
   tmb%linmat%ham%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ham%matrix')
   tmb%linmat%denskern_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern_large%matrix')
-  call uncompress_matrix(iproc,gradmat)
+  call uncompress_matrix(iproc, tmb%linmat%m, inmat=gradmat%matrix_compr, outmat=gradmat%matrix)
   call uncompress_matrix(iproc,tmb%linmat%ham)
   call uncompress_matrix(iproc,tmb%linmat%denskern_large)
   KH=f_malloc0((/tmb%orbs%norb,tmb%orbs%norb/),id='KH')
@@ -2655,11 +2673,11 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   !!if (iproc==0) write(*,*) 'KSgrad',sqrt(KSgrad/norbtot)
   call timing(iproc,'ks_residue','OF')
 
-  call f_free_ptr(gradmat%matrix)
+  !call f_free_ptr(gradmat%matrix)
   call f_free_ptr(tmb%linmat%ham%matrix)
   call f_free_ptr(tmb%linmat%denskern_large%matrix)
-  call f_free_ptr(gradmat%matrix_compr)
-  call deallocate_sparse_matrix(gradmat, subname)
+  !call f_free_ptr(gradmat%matrix_compr)
+  call deallocate_matrices(gradmat)
 
 
   call f_free(KHKH)

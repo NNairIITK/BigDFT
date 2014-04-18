@@ -357,7 +357,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       tmb%can_use_transposed=.true.
 
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
-           tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+           tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+      ! This can then be deleted if the transition to the new type has been completed.
+      tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
+
   end if
   ! ###########################################################################
 
@@ -821,7 +824,8 @@ end subroutine calculate_energy_and_gradient_linear
 subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, hpsit_f)
   use module_base
   use module_types
-  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
+  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
+                               matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: uncompress_matrix
   implicit none
 
@@ -836,6 +840,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   real(kind=8), dimension(:), allocatable :: ksres
   real(kind=8), dimension(:,:), allocatable :: coeff_tmp, grad_coeff
   type(sparse_matrix) :: grad_ovrlp
+  type(matrices) :: grad_ovrlp_
   character(len=256) :: subname='calculate_residue_ks'
 
 
@@ -868,8 +873,16 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   !!allocate(grad_ovrlp%matrix_compr(grad_ovrlp%nvctr), stat=istat)
   !!call memocc(istat, grad_ovrlp%matrix_compr, 'grad_ovrlp%matrix_compr', subname)
   grad_ovrlp%matrix_compr=f_malloc_ptr(grad_ovrlp%nvctr,id='grad_ovrlp%matrix_compr')
+  grad_ovrlp_ = matrices_null()
+  call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
+       matname='grad_ovrlp_', mat=grad_ovrlp_)
+
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, hpsit_c, hpsit_c, &
-       hpsit_f, hpsit_f, grad_ovrlp)
+       hpsit_f, hpsit_f, tmb%linmat%m, grad_ovrlp_)
+  ! This can then be deleted if the transition to the new type has been completed.
+  grad_ovrlp%matrix_compr=grad_ovrlp_%matrix_compr
+
+  call deallocate_matrices(grad_ovrlp_)
 
   allocate(grad_coeff(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
   call memocc(istat, grad_coeff, 'grad_coeff', subname)

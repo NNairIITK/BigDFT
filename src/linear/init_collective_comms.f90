@@ -295,7 +295,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
 
 
 subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
-           psit_c1, psit_c2, psit_f1, psit_f2, ovrlp)
+           psit_c1, psit_c2, psit_f1, psit_f2, smat, ovrlp)
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix
@@ -307,7 +307,8 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
   type(comms_linear),intent(in) :: collcom
   real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psit_c1, psit_c2
   real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psit_f1, psit_f2
-  type(sparse_matrix),intent(inout) :: ovrlp
+  type(sparse_matrix),intent(inout) :: smat
+  type(matrices),intent(inout) :: ovrlp
 
   ! Local variables
   integer :: i0, ipt, ii, iiorb, j, jjorb, i, ierr, istat, m, tid, norb, nthreads
@@ -317,7 +318,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
 
   call timing(iproc,'ovrlptransComp','ON') !lr408t
 
-  call to_zero(ovrlp%nvctr, ovrlp%matrix_compr(1))
+  call to_zero(smat%nvctr, ovrlp%matrix_compr(1))
 
   nthreads=1
   !$  nthreads = OMP_GET_max_threads()
@@ -335,7 +336,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
   end do
 
   !$omp parallel default(private) &
-  !$omp shared(collcom, ovrlp, psit_c1, psit_c2, psit_f1, psit_f2, n)
+  !$omp shared(collcom, smat, ovrlp, psit_c1, psit_c2, psit_f1, psit_f2, n)
   tid=0
   !$ tid = OMP_GET_THREAD_NUM()
   istart = 1
@@ -365,7 +366,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
               if(m/=0) then
                   do j=1,m
                       jjorb=collcom%indexrecvorbital_c(i0+j)
-                      ind0 = ovrlp%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                      ind0 = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
                       !ind0 = collcom%matrixindex_in_compressed(jjorb,iiorb)
                       ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_c1(i0+i)*psit_c2(i0+j)
                   end do
@@ -373,22 +374,22 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
               do j=m+1,ii,4
 
                   jjorb=collcom%indexrecvorbital_c(i0+j+0)
-                  ind0 = ovrlp%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                  ind0 = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
                   !ind0 = collcom%matrixindex_in_compressed(jjorb,iiorb)
                   ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_c1(i0+i)*psit_c2(i0+j+0)
 
                   jjorb=collcom%indexrecvorbital_c(i0+j+1)
-                  ind1 = ovrlp%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                  ind1 = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
                   !ind1 = collcom%matrixindex_in_compressed(jjorb,iiorb)
                   ovrlp%matrix_compr(ind1) = ovrlp%matrix_compr(ind1) + psit_c1(i0+i)*psit_c2(i0+j+1)
 
                   jjorb=collcom%indexrecvorbital_c(i0+j+2)
-                  ind2 = ovrlp%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                  ind2 = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
                   !ind2 = collcom%matrixindex_in_compressed(jjorb,iiorb)
                   ovrlp%matrix_compr(ind2) = ovrlp%matrix_compr(ind2) + psit_c1(i0+i)*psit_c2(i0+j+2)
 
                   jjorb=collcom%indexrecvorbital_c(i0+j+3)
-                  ind3 = ovrlp%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                  ind3 = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
                   !ind3 = collcom%matrixindex_in_compressed(jjorb,iiorb)
                   ovrlp%matrix_compr(ind3) = ovrlp%matrix_compr(ind3) + psit_c1(i0+i)*psit_c2(i0+j+3)
 
@@ -412,7 +413,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
 
               do j=1,ii
                   jjorb=collcom%indexrecvorbital_f(i0+j)
-                  ind0 = ovrlp%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                  ind0 = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
                   !ind0 = collcom%matrixindex_in_compressed(jjorb,iiorb)
                   ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(7*(i0+i)-6)*psit_f2(7*(i0+j)-6)
                   ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(7*(i0+i)-5)*psit_f2(7*(i0+j)-5)
@@ -433,10 +434,11 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
   call timing(iproc,'ovrlptransComm','ON') !lr408t
 
   if(nproc>1) then
-      call mpiallred(ovrlp%matrix_compr(1), ovrlp%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(ovrlp%matrix_compr(1), smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   end if
 
-  ovrlp%can_use_dense=.false.
+
+  smat%can_use_dense=.false.
   call timing(iproc,'ovrlptransComm','OF') !lr408t
 
 end subroutine calculate_overlap_transposed

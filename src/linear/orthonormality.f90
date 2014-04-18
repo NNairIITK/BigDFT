@@ -14,7 +14,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
   use module_types
   use module_interfaces, exceptThisOne => orthonormalizeLocalized
   use communications, only: transpose_localized, untranspose_localized
-  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_base, only: sparse_matrix, matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: compress_matrix, uncompress_matrix
   implicit none
 
@@ -41,6 +41,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
   real(kind=8),dimension(:,:),pointer :: inv_ovrlp_null
   real(kind=8) :: error
   logical :: ovrlp_associated, inv_ovrlp_associated
+  type(matrices) :: ovrlp_
 
   if(orthpar%nItOrtho>1) write(*,*) 'WARNING: might create memory problems...'
 
@@ -72,7 +73,14 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
           can_use_transposed=.true.
 
       end if
-      call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
+
+      ovrlp_ = matrices_null()
+      call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
+      call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
+      ! This can then be deleted if the transition to the new type has been completed.
+      ovrlp%matrix_compr=ovrlp_%matrix_compr
+      call deallocate_matrices(ovrlp_)
+
       !!do ii=1,ovrlp%nvctr
       !!   irow = ovrlp%orb_from_index(ii,1)
       !!   jcol = ovrlp%orb_from_index(ii,2)
@@ -166,6 +174,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   use module_interfaces, exceptThisOne => orthoconstraintNonorthogonal
   use yaml_output
   use communications, only: transpose_localized, untranspose_localized
+  use sparsematrix_base, only: matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: uncompress_matrix
   implicit none
@@ -193,6 +202,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   character(len=*),parameter :: subname='orthoconstraintNonorthogonal'
   real(kind=8),dimension(:,:),allocatable :: tmp_mat, tmp_mat2, tmp_mat3
   integer,dimension(:),allocatable :: ipiv
+  type(matrices) :: lagmat_
 
   ! removed option for correction orthoconstrain for now
   !if (correction_orthoconstraint==0) stop 'correction_orthoconstraint not working'
@@ -219,7 +229,13 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
      call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lhphi, hpsit_c, hpsit_f, lzd)
   end if
 
-  call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat)
+  lagmat_ = matrices_null()
+  call allocate_matrices(lagmat, allocate_full=.false., &
+       matname='lagmat_', mat=lagmat_)
+  call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_)
+  ! This can then be deleted if the transition to the new type has been completed.
+  lagmat%matrix_compr=lagmat_%matrix_compr
+  call deallocate_matrices(lagmat_)
 
   !call nullify_sparse_matrix(tmp_mat)
   !call sparse_copy_pattern(lagmat,tmp_mat,iproc,subname)
@@ -1813,7 +1829,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   use module_types
   use module_interfaces, exceptThisOne => orthonormalize_subset
   use communications, only: transpose_localized, untranspose_localized
-  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_base, only: sparse_matrix, matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
 
@@ -1840,6 +1856,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   character(len=*),parameter :: subname='orthonormalize_subset'
   real(kind=8),dimension(:,:),pointer :: inv_ovrlp_null
   real(kind=8) :: error
+  type(matrices) :: ovrlp_
 
   if(orthpar%nItOrtho>1) write(*,*) 'WARNING: might create memory problems...'
 
@@ -1871,7 +1888,13 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
           can_use_transposed=.true.
 
       end if
-      call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
+
+      ovrlp_ = matrices_null()
+      call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
+      call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
+      ! This can then be deleted if the transition to the new type has been completed.
+      ovrlp%matrix_compr=ovrlp_%matrix_compr
+      call deallocate_matrices(ovrlp_)
 
       ! For the "higher" TMBs: delete off-diagonal elements and
       ! set diagonal elements to 1
@@ -2018,7 +2041,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   use module_types
   use module_interfaces, exceptThisOne => gramschmidt_subset
   use communications, only: transpose_localized, untranspose_localized
-  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_base, only: sparse_matrix, matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
 
@@ -2043,6 +2066,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   real(kind=8),dimension(:),allocatable :: psittemp_c, psittemp_f, norm
   !type(sparse_matrix) :: inv_ovrlp_half
   character(len=*),parameter :: subname='gramschmidt_subset'
+  type(matrices) :: ovrlp_
 
   if(orthpar%nItOrtho>1) write(*,*) 'WARNING: might create memory problems...'
 
@@ -2074,7 +2098,14 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
           can_use_transposed=.true.
 
       end if
-      call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp)
+
+
+      ovrlp_ = matrices_null()
+      call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
+      call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
+      ! This can then be deleted if the transition to the new type has been completed.
+      ovrlp%matrix_compr=ovrlp_%matrix_compr
+      call deallocate_matrices(ovrlp_)
 
       ! For the "higher" TMBs: delete off-diagonal elements and
       ! set diagonal elements to 1

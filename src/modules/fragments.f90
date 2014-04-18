@@ -1125,7 +1125,10 @@ contains
        !call timing(iproc,'renormCoefComp','OF')
 
        call calculate_overlap_transposed(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs, tmb%collcom, &
-            tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+            tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+       ! This can then be deleted if the transition to the new type has been completed.
+       tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
+
 
        !call timing(iproc,'renormCoefComp','ON')
        overlap_calculated=.true.

@@ -3606,19 +3606,18 @@ module module_interfaces
         end subroutine nonlocal_forces_linear
 
         subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
-                   psit_c1, psit_c2, psit_f1, psit_f2, ovrlp)
+                   psit_c1, psit_c2, psit_f1, psit_f2, smat, ovrlp)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
           implicit none
-          
-          ! Calling arguments
           integer,intent(in) :: iproc, nproc
           type(orbitals_data),intent(in) :: orbs
           type(comms_linear),intent(in) :: collcom
           real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psit_c1, psit_c2
           real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psit_f1, psit_f2
-          type(sparse_matrix),intent(inout) :: ovrlp
+          type(sparse_matrix),intent(inout) :: smat
+          type(matrices),intent(inout) :: ovrlp
         end subroutine calculate_overlap_transposed
 
         subroutine build_linear_combination_transposed(collcom, sparsemat, psitwork_c, psitwork_f, &
