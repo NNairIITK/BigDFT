@@ -1812,7 +1812,7 @@ end subroutine corrections_for_negative_charge
 subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero)
       use module_base
       use module_types
-      use module_interfaces
+      use module_interfaces, except_this_one => determine_sparsity_pattern
       implicit none
     
       ! Calling arguments
