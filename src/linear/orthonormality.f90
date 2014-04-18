@@ -724,13 +724,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
 
           ! calculate Xn+1=0.5*Xn*(3I-Xn**2)
           do its=1,abs(iorder)
-          !!write(*,*) 'Amat12_seq',Amat12_seq
-          !!write(*,*) 'Amat21p',Amat21p
-          !!write(*,*) 'Amat11p',Amat11p
               call sparsemm(inv_ovrlp_smat, Amat12_seq, Amat21p, Amat11p)
-              !call sparsemm(inv_ovrlp_smat%smmm%nseq, Amat21_seq, Amat12p, Amat22p, &
-              !     norb, norbp, inv_ovrlp_smat%smmm%ivectorindex, &
-              !     inv_ovrlp_smat%smmm%nout, inv_ovrlp_smat%smmm%onedimindices)
 
               call vscal(norb*norbp,-0.5d0,Amat11p(1,1),1)
               !call vscal(norb*norbp,-0.5d0,Amat22p(1,1),1)
