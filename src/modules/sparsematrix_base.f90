@@ -4,6 +4,12 @@ module sparsematrix_base
 
   private
 
+  !> Contains the matrices
+  type,public :: matrices
+      real(kind=8),dimension(:),pointer :: matrix_compr,matrix_comprp
+      real(kind=8),dimension(:,:),pointer :: matrix,matrixp
+  end type matrices
+
   !> Contains the parameters needed for the sparse matrix matrix multiplication
   type,public :: sparse_matrix_matrix_multiplication
       integer :: nout, nseq, nmaxsegk, nmaxvalk, nseg
