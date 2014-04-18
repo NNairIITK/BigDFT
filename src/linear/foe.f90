@@ -1114,14 +1114,15 @@ subroutine foe(iproc, nproc, tmprtr, &
               tmb%linmat%inv_ovrlp_large%matrix=sparsematrix_malloc_ptr(tmb%linmat%inv_ovrlp_large, &
                                                 iaction=DENSE_FULL, id='tmb%linmat%inv_ovrlp_large%matrix')
               call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, tmb%orbs, &
-                   imode=2, check_accur=.true., ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=tmb%linmat%inv_ovrlp_large%matrix, &
+                   imode=2, ovrlp_smat=tmb%linmat%ovrlp, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, &
+                   check_accur=.true., ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=tmb%linmat%inv_ovrlp_large%matrix, &
                    error=error)
               call compress_matrix(iproc,tmb%linmat%inv_ovrlp_large)
           end if
           if (imode==SPARSE) then
               call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, tmb%orbs, &
-                   imode=1, check_accur=.true., error=error, &
-                   ovrlp_smat=tmb%linmat%ovrlp, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large)
+                   imode=1, ovrlp_smat=tmb%linmat%ovrlp, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, &
+                   check_accur=.true., error=error)
            end if
           if (foe_verbosity>=1 .and. iproc==0) then
               call yaml_map('error of S^-1/2',error,fmt='(es9.2)')

@@ -3321,7 +3321,7 @@ module module_interfaces
           integer, intent(in) :: blocksize_dsyev, blocksize_pdgemm, inversion_method
           type(orbitals_data), intent(in) :: basis_orbs   !number of basis functions
           type(orbitals_data), intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
-          type(sparse_matrix),intent(in) :: basis_overlap
+          type(sparse_matrix),intent(inout) :: basis_overlap
           real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(inout) :: coeff
         end subroutine reorthonormalize_coeff
 
@@ -3885,10 +3885,9 @@ module module_interfaces
           logical,intent(inout) :: can_use_transposed
         end subroutine gramschmidt_subset
 
-        subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, &
-                   imode, check_accur, ovrlp, inv_ovrlp, error, &
-                   ovrlp_smat, inv_ovrlp_smat)!!, &
-                   !!foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
+        subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, imode, &
+                   ovrlp_smat, inv_ovrlp_smat, check_accur, &
+                   ovrlp, inv_ovrlp, error)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
@@ -3897,10 +3896,10 @@ module module_interfaces
           integer,intent(in) :: iproc, nproc, iorder, blocksize, norb, power
           type(orbitals_data),intent(in) :: orbs
           integer,intent(in) :: imode
+          type(sparse_matrix), optional, intent(inout) :: ovrlp_smat, inv_ovrlp_smat
           logical,intent(in) :: check_accur
           real(kind=8),dimension(:,:),pointer,optional :: ovrlp
           real(kind=8),dimension(:,:),pointer,optional :: inv_ovrlp
-          type(sparse_matrix), optional, intent(inout) :: ovrlp_smat, inv_ovrlp_smat
           real(kind=8),intent(out),optional :: error
           !!integer,intent(in),optional :: foe_nseg
           !!integer,dimension(:),intent(in),optional :: foe_kernel_nsegline, foe_istsegline

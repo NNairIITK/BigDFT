@@ -1213,7 +1213,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
      call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%ovrlp,outmat=ovrlp)
      call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 2, &
           tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%orbs, &
-          imode=2, check_accur=.true., ovrlp=ovrlp, inv_ovrlp=ovrlp_half, error=error)
+          imode=2, ovrlp=ovrlp, inv_ovrlp=ovrlp_half, check_accur=.true., error=error)
      !!ovrlp_half=tmb%linmat%ovrlp%matrix
      call f_free_ptr(ovrlp)
   end if
