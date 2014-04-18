@@ -3893,11 +3893,6 @@ module module_interfaces
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix, SPARSE_FULL, DENSE_PARALLEL, DENSE_FULL, SPARSEMM_SEQ
-          use sparsematrix, only: compress_matrix, uncompress_matrix, transform_sparse_matrix, &
-                                  compress_matrix_distributed, uncompress_matrix_distributed, &
-                                  sequential_acces_matrix_fast, sparsemm, &
-                                  sparsematrix_malloc_ptr, sparsematrix_malloc, sparsematrix_malloc0, &
-                                  assignment(=)
           use yaml_output
           implicit none
           integer,intent(in) :: iproc, nproc, iorder, blocksize, norb, power
