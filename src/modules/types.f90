@@ -592,30 +592,6 @@ module module_types
     integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
   end type foe_data
 
-!!$  type, public :: sparse_matrix_metadata
-!!$     integer :: nvctr, nseg, full_dim1, full_dim2
-!!$     integer,dimension(:),pointer :: noverlaps
-!!$     integer,dimension(:,:),pointer :: overlaps
-!!$     integer,dimension(:),pointer :: keyv, nsegline, istsegline
-!!$     integer,dimension(:,:),pointer :: keyg
-!!$     integer,dimension(:,:),pointer :: matrixindex_in_compressed, orb_from_index
-!!$  end type sparse_matrix_metadata
-
-  !!type,public :: sparse_matrix
-  !!    integer :: nvctr, nseg, nvctrp, isvctr, parallel_compression, nfvctr, nfvctrp, isfvctr
-  !!    integer,dimension(:),pointer :: keyv, nsegline, istsegline, isvctr_par, nvctr_par, isfvctr_par, nfvctr_par
-  !!    integer,dimension(:,:),pointer :: keyg
-  !!    !type(sparse_matrix_metadata), pointer :: pattern
-  !!    real(kind=8),dimension(:),pointer :: matrix_compr,matrix_comprp
-  !!    real(kind=8),dimension(:,:),pointer :: matrix,matrixp
-  !!    !integer,dimension(:,:),pointer :: matrixindex_in_compressed, orb_from_index
-  !!    integer,dimension(:,:),pointer :: matrixindex_in_compressed_arr, orb_from_index
-  !!    integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed
-  !!    logical :: store_index, can_use_dense
-  !!    !!contains
-  !!    !!  procedure,pass :: matrixindex_in_compressed
-  !!end type sparse_matrix
-
   type,public :: linear_matrices !may not keep
       type(sparse_matrix) :: ham, ovrlp, denskern_large, inv_ovrlp_large
   end type linear_matrices

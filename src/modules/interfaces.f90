@@ -3885,26 +3885,30 @@ module module_interfaces
           logical,intent(inout) :: can_use_transposed
         end subroutine gramschmidt_subset
 
+
         subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, imode, &
                    ovrlp_smat, inv_ovrlp_smat, check_accur, &
                    ovrlp, inv_ovrlp, error)
+             !!foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
           use module_base
           use module_types
-          use sparsematrix_base, only: sparse_matrix
-          use sparsematrix, only: compress_matrix, uncompress_matrix, transform_sparse_matrix
+          use sparsematrix_base, only: sparse_matrix, SPARSE_FULL, DENSE_PARALLEL, DENSE_FULL, SPARSEMM_SEQ
+          use sparsematrix, only: compress_matrix, uncompress_matrix, transform_sparse_matrix, &
+                                  compress_matrix_distributed, uncompress_matrix_distributed, &
+                                  sequential_acces_matrix_fast, sparsemm, &
+                                  sparsematrix_malloc_ptr, sparsematrix_malloc, sparsematrix_malloc0, &
+                                  assignment(=)
+          use yaml_output
           implicit none
           integer,intent(in) :: iproc, nproc, iorder, blocksize, norb, power
           type(orbitals_data),intent(in) :: orbs
           integer,intent(in) :: imode
-          type(sparse_matrix), optional, intent(inout) :: ovrlp_smat, inv_ovrlp_smat
+          type(sparse_matrix),intent(inout) :: ovrlp_smat, inv_ovrlp_smat
           logical,intent(in) :: check_accur
-          real(kind=8),dimension(:,:),pointer,optional :: ovrlp
-          real(kind=8),dimension(:,:),pointer,optional :: inv_ovrlp
+          real(kind=8),dimension(:,:),pointer,optional :: ovrlp, inv_ovrlp
           real(kind=8),intent(out),optional :: error
-          !!integer,intent(in),optional :: foe_nseg
-          !!integer,dimension(:),intent(in),optional :: foe_kernel_nsegline, foe_istsegline
-          !!integer,dimension(:,:),intent(in),optional :: foe_keyg
         end subroutine overlapPowerGeneral
+
 
         subroutine overlap_plus_minus_one_half_exact(norb,blocksize,plusminus,inv_ovrlp_half,orbs)
           use module_base

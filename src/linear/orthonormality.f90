@@ -412,14 +412,10 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
   integer,intent(in) :: iproc, nproc, iorder, blocksize, norb, power
   type(orbitals_data),intent(in) :: orbs
   integer,intent(in) :: imode
-  type(sparse_matrix), optional, intent(inout) :: ovrlp_smat, inv_ovrlp_smat
+  type(sparse_matrix),intent(inout) :: ovrlp_smat, inv_ovrlp_smat
   logical,intent(in) :: check_accur
-  real(kind=8),dimension(:,:),pointer,optional :: ovrlp
-  real(kind=8),dimension(:,:),pointer,optional :: inv_ovrlp
+  real(kind=8),dimension(:,:),pointer,optional :: ovrlp, inv_ovrlp
   real(kind=8),intent(out),optional :: error
-  !!integer,intent(in),optional :: foe_nseg
-  !!integer,dimension(:),intent(in),optional :: foe_kernel_nsegline, foe_istsegline
-  !!integer,dimension(:,:),intent(in),optional :: foe_keyg
   
   ! Local variables
   integer :: iorb, jorb, info, iiorb, isorb, norbp, ii, ii_inv, iii, ierr, i, its, maxits
