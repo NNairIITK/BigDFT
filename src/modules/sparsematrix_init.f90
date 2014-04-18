@@ -8,319 +8,12 @@ module sparsematrix_init
 
   !> Public routines
   public :: init_sparse_matrix
-  public :: init_sparsity_from_distance
   public :: compressed_index
   public :: matrixindex_in_compressed
   public :: check_kernel_cutoff
-  public :: init_sparse_matrix_matrix_multiplication !< only needed for the test in libs/overlapgeneral
 
   contains
 
-
-    !> Currently assuming square matrices
-    subroutine init_sparse_matrix(iproc, nproc, lzd, orbs, input, &
-               nseg, nsegline, istsegline, keyg, sparsemat)
-      use module_base
-      use module_types
-      use module_interfaces
-      use yaml_output
-      implicit none
-      
-      ! Calling arguments
-      integer,intent(in) :: iproc, nproc, nseg
-      type(local_zone_descriptors),intent(in) :: lzd
-      type(orbitals_data),intent(in) :: orbs
-      type(input_variables),intent(in) :: input
-      integer,dimension(orbs%norb),intent(in) :: nsegline, istsegline
-      integer,dimension(2,nseg),intent(in) :: keyg
-      type(sparse_matrix), intent(out) :: sparsemat
-      
-      ! Local variables
-      character(len=*), parameter :: subname='init_sparse_matrix'
-      integer :: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, iseg, irow, irowold, isegline, ilr, segn, ind
-      integer :: nseglinemax, iall, ierr, jorbe, jorbs, jorbold, ii
-      integer :: matrixindex_in_compressed
-      integer, dimension(:,:,:), pointer :: keygline
-      integer, dimension(:), pointer :: noverlaps
-      integer, dimension(:,:), pointer :: overlaps
-      
-      call timing(iproc,'init_matrCompr','ON')
-    
-      sparsemat=sparse_matrix_null()
-      call determine_overlaps(iproc, nproc, lzd, orbs, 's', noverlaps, overlaps)
-    
-      sparsemat%nfvctr=orbs%norb
-      sparsemat%nfvctrp=orbs%norbp
-      sparsemat%isfvctr=orbs%isorb
-      sparsemat%nfvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%nfvctr_par')
-      sparsemat%isfvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%isfvctr_par')
-      call vcopy(nproc,orbs%isorb_par(0),1,sparsemat%isfvctr_par(0),1)
-      call vcopy(nproc,orbs%norb_par(0,0),1,sparsemat%nfvctr_par(0),1)
-    
-      sparsemat%nseg=0
-      sparsemat%nvctr=0
-      jjorbold=-1
-      irowold=0
-      call allocate_sparse_matrix_basic(input%store_index, orbs%norb, nproc, sparsemat)
-      sparsemat%nsegline=0
-      do jproc=0,nproc-1
-          do iorb=1,orbs%norb_par(jproc,0)
-              iiorb=orbs%isorb_par(jproc)+iorb
-              ilr=orbs%inWhichLocreg(iiorb)
-              ijorb=(iiorb-1)*orbs%norb
-              do jorb=1,noverlaps(iiorb)
-                  jjorb=overlaps(jorb,iiorb)+ijorb
-                  if(jjorb==jjorbold+1 .and. jorb/=1) then
-                      ! There was no zero element in between, i.e. we are in the same segment.
-                      jjorbold=jjorb
-                      sparsemat%nvctr=sparsemat%nvctr+1
-    
-                      ! Segments for each row
-                      irow=(jjorb-1)/orbs%norb+1
-                      if(irow/=irowold) then
-                          ! We are in a new line
-                          sparsemat%nsegline(irow)=sparsemat%nsegline(irow)+1
-                          irowold=irow
-                      end if
-    
-                  else
-                      ! There was a zero segment in between, i.e. we are in a new segment
-                      sparsemat%nseg=sparsemat%nseg+1
-                      sparsemat%nvctr=sparsemat%nvctr+1
-                      jjorbold=jjorb
-                      
-                      ! Segments for each row
-                      irow=(jjorb-1)/orbs%norb+1
-                      sparsemat%nsegline(irow)=sparsemat%nsegline(irow)+1
-                      irowold=irow
-                      if (jorb==1) then
-                          ! Starting segment for this line
-                          sparsemat%istsegline(iiorb)=sparsemat%nseg
-                      end if
-                  end if
-              end do
-          end do
-      end do
-    
-      if (iproc==0) then
-          !!write(*,'(a,i0)') 'total elements: ',orbs%norb**2
-          !!write(*,'(a,i0)') 'non-zero elements: ',sparsemat%nvctr
-          !!write(*,'(a,f5.2,a)') 'sparsity: ',1.d2*dble(orbs%norb**2-sparsemat%nvctr)/dble(orbs%norb**2),'%'
-          call yaml_map('total elements',orbs%norb**2)
-          call yaml_map('non-zero elements',sparsemat%nvctr)
-          call yaml_map('sparsity in %',1.d2*dble(orbs%norb**2-sparsemat%nvctr)/dble(orbs%norb**2),fmt='(f5.2)')
-      end if
-    
-      nseglinemax=0
-      do iorb=1,orbs%norb
-          if(sparsemat%nsegline(iorb)>nseglinemax) then
-              nseglinemax=sparsemat%nsegline(iorb)
-          end if
-      end do
-    
-      call allocate_sparse_matrix_keys(sparsemat)
-    
-      allocate(keygline(2,nseglinemax,orbs%norb), stat=istat)
-      call memocc(istat, keygline, 'keygline', subname)
-    
-      iseg=0
-      sparsemat%keyv(1)=1
-      jjorbold=-1
-      irow=0
-      isegline=0
-      irowold=0
-      keygline=0
-      sparsemat%keyg=0
-      do jproc=0,nproc-1
-          do iorb=1,orbs%norb_par(jproc,0)
-              iiorb=orbs%isorb_par(jproc)+iorb
-              ilr=orbs%inWhichLocreg(iiorb)
-              ijorb=(iiorb-1)*orbs%norb
-              do jorb=1,noverlaps(iiorb)
-                  jjorb=overlaps(jorb,iiorb)+ijorb
-                  if(jjorb==jjorbold+1 .and. jorb/=1) then
-                      ! There was no zero element in between, i.e. we are in the same segment.
-    
-                      ! Segments for each row
-                      irow=(jjorb-1)/orbs%norb+1
-                      if(irow/=irowold) then
-                          ! We are in a new line, so close the last segment and start the new one
-                          keygline(2,isegline,irowold)=mod(jjorbold-1,orbs%norb)+1
-                          isegline=1
-                          keygline(1,isegline,irow)=mod(jjorb-1,orbs%norb)+1
-                          irowold=irow
-                      end if
-                      jjorbold=jjorb
-                  else
-                      ! There was a zero segment in between, i.e. we are in a new segment.
-                      ! First determine the end of the previous segment.
-                      if(jjorbold>0) then
-                          sparsemat%keyg(2,iseg)=jjorbold
-                          keygline(2,isegline,irowold)=mod(jjorbold-1,orbs%norb)+1
-                      end if
-                      ! Now add the new segment.
-                      iseg=iseg+1
-                      sparsemat%keyg(1,iseg)=jjorb
-                      jjorbold=jjorb
-                      if(iseg>1) then
-                          sparsemat%keyv(iseg) = sparsemat%keyv(iseg-1) + sparsemat%keyg(2,iseg-1) - sparsemat%keyg(1,iseg-1) + 1
-                      end if
-    
-                      ! Segments for each row
-                      irow=(jjorb-1)/orbs%norb+1
-                      if(irow/=irowold) then
-                          ! We are in a new line
-                          isegline=1
-                          keygline(1,isegline,irow)=mod(jjorb-1,orbs%norb)+1
-                          irowold=irow
-                      else
-                          ! We are in the same line
-                          isegline=isegline+1
-                          keygline(1,isegline,irow)=mod(jjorb-1,orbs%norb)+1
-                          irowold=irow
-                      end if
-                  end if
-              end do
-          end do
-      end do
-      ! Close the last segment
-      sparsemat%keyg(2,iseg)=jjorb
-      keygline(2,isegline,orbs%norb)=mod(jjorb-1,orbs%norb)+1
-    
-      iall=-product(shape(keygline))*kind(keygline)
-      deallocate(keygline, stat=istat)
-      call memocc(istat, iall, 'keygline', subname)
-    
-      iall=-product(shape(noverlaps))*kind(noverlaps)
-      deallocate(noverlaps, stat=istat)
-      call memocc(istat, iall, 'noverlaps', subname)
-    
-      iall=-product(shape(overlaps))*kind(overlaps)
-      deallocate(overlaps, stat=istat)
-      call memocc(istat, iall, 'overlaps', subname)
-    
-      if (input%store_index) then
-          ! store the indices of the matrices in the sparse format
-          sparsemat%store_index=.true.
-    
-          !!! initialize sparsemat%matrixindex_in_compressed
-          do iorb=1,orbs%norb
-             do jorb=1,orbs%norb
-                sparsemat%matrixindex_in_compressed_arr(iorb,jorb)=compressed_index(iorb,jorb,orbs%norb,sparsemat)
-             end do
-          end do
-    
-      else
-          ! Otherwise alwyas calculate them on-the-fly
-          sparsemat%store_index=.false.
-          !!nullify(sparsemat%matrixindex_in_compressed_arr)
-      end if
-    
-      !!allocate(sparsemat%orb_from_index(2,sparsemat%nvctr), stat=istat)
-      !!call memocc(istat, sparsemat%orb_from_index, 'sparsemat%orb_from_index', subname)
-    
-      ind = 0
-      do iseg = 1, sparsemat%nseg
-         do segn = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
-            ind=ind+1
-            iorb = (segn - 1) / sparsemat%nfvctr + 1
-            jorb = segn - (iorb-1)*sparsemat%nfvctr
-            sparsemat%orb_from_index(1,ind) = jorb
-            sparsemat%orb_from_index(2,ind) = iorb
-         end do
-      end do
-    
-      ! parallelization of matrices, following same idea as norb/norbp/isorb
-    
-      !most equal distribution, but want corresponding to norbp for second column
-      !call kpts_to_procs_via_obj(nproc,1,sparsemat%nvctr,sparsemat%nvctr_par)
-      !sparsemat%nvctrp=sparsemat%nvctr_par(iproc)
-      !sparsemat%isvctr=0
-      !do jproc=0,iproc-1
-      !    sparsemat%isvctr=sparsemat%isvctr+sparsemat%nvctr_par(jproc)
-      !end do
-      !sparsemat%isvctr_par=0
-      !do jproc=0,nproc-1
-      !    if(iproc==jproc) then
-      !       sparsemat%isvctr_par(jproc)=sparsemat%isvctr
-      !    end if
-      !end do
-      !if(nproc >1) call mpiallred(sparsemat%isvctr_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      do jproc=0,nproc-1
-         jorbs=sparsemat%isfvctr_par(jproc)+1
-         jorbold=0
-         do ii=1,sparsemat%nvctr
-            jorb = sparsemat%orb_from_index(2,ii)
-            if (jorb/=jorbold .and. jorb==jorbs) then
-               sparsemat%isvctr_par(jproc)=ii-1
-               exit
-            end if
-            jorbold=jorb
-         end do
-      end do
-      do jproc=0,nproc-1
-         if (jproc==nproc-1) then
-            sparsemat%nvctr_par(jproc)=sparsemat%nvctr-sparsemat%isvctr_par(jproc)
-         else
-            sparsemat%nvctr_par(jproc)=sparsemat%isvctr_par(jproc+1)-sparsemat%isvctr_par(jproc)
-         end if
-         if (iproc==jproc) sparsemat%isvctr=sparsemat%isvctr_par(jproc)
-         if (iproc==jproc) sparsemat%nvctrp=sparsemat%nvctr_par(jproc)
-      end do
-      !do jproc=0,nproc-1
-      !   write(*,*) iproc,jproc,sparsemat%isvctr_par(jproc),sparsemat%isvctr,sparsemat%nvctr_par(jproc),sparsemat%nvctrp,sparsemat%nvctr
-      !end do
-    
-      ! 0 - none, 1 - mpiallred, 2 - allgather
-      sparsemat%parallel_compression=0
-      sparsemat%can_use_dense=.false.
-
-      ! Initialize the parameters for the spare matrix matrix multiplication
-      call init_sparse_matrix_matrix_multiplication(orbs%norb, orbs%norbp, orbs%isorb, nseg, &
-               nsegline, istsegline, keyg, sparsemat)
-    
-      call timing(iproc,'init_matrCompr','OF')
-    
-    
-    end subroutine init_sparse_matrix
-
-
-
-    subroutine determine_overlaps(iproc, nproc, lzd, orbs, locregShape, noverlaps, overlaps) 
-      use module_base
-      use module_types
-      implicit none
-    
-      ! Calling arguments
-      integer,intent(in) :: iproc, nproc
-      type(local_zone_descriptors),intent(in) :: lzd
-      type(orbitals_data),intent(in) :: orbs
-      character(len=1),intent(in) :: locregShape
-      integer,dimension(:),pointer,intent(out):: noverlaps
-      integer,dimension(:,:),pointer,intent(out):: overlaps
-    
-      ! Local variables
-      integer ::  istat
-      character(len=*),parameter :: subname='determine_overlaps'
-    
-    
-      call timing(iproc,'init_commOrtho','ON')
-    
-      ! Allocate the arrays that count the number of overlaps per process (comon%noverlaps)
-      ! and per orbital (noverlaps)
-      allocate(noverlaps(orbs%norb), stat=istat)
-      call memocc(istat, noverlaps, 'noverlaps',subname)
-    
-      ! Count how many overlaping regions each orbital / process has.
-      if(locregShape=='c') then
-         stop "ERROR: locregShape=='c' is deprecated!"
-      else if(locregShape=='s') then
-         call determine_overlap_from_descriptors(iproc, nproc, orbs, orbs, lzd, lzd, noverlaps, overlaps)
-      end if
-    
-      call timing(iproc,'init_commOrtho','OF')
-    
-    end subroutine determine_overlaps
 
 
     !> Count for each orbital and each process the number of overlapping orbitals.
@@ -527,171 +220,6 @@ module sparsematrix_init
     end subroutine determine_overlap_from_descriptors
 
 
-
-    !> Routine that initiakizes the sparsity pattern for a matrix, bases solely on
-    !  the distance between the locreg centers
-    subroutine init_sparsity_from_distance(iproc, nproc, orbs, lzd, input, &
-               nseg, nsegline, istsegline, keyg, sparsemat)
-      use module_base
-      use module_types
-      use yaml_output
-      implicit none
-    
-      ! Calling arguments
-      integer,intent(in) :: iproc, nproc, nseg
-      type(orbitals_data),intent(in) :: orbs
-      type(local_zone_descriptors),intent(in) :: lzd
-      type(input_variables),intent(in) :: input
-      integer,dimension(orbs%norb),intent(in) :: nsegline, istsegline
-      integer,dimension(2,nseg),intent(in) :: keyg
-      type(sparse_matrix),intent(out) :: sparsemat
-    
-      ! Local variables
-      integer :: iorb, jorb, isegline, iseg, ivctr, ijorb, istat
-      logical :: segment_started, overlap, newline
-      character(len=*),parameter :: subname='init_sparsity_from_distance'
-    
-    
-      !call nullify_sparse_matrix(sparsemat)
-      sparsemat=sparse_matrix_null()
-    
-      sparsemat%nfvctr=orbs%norb
-      sparsemat%nfvctrp=orbs%norbp
-      sparsemat%isfvctr=orbs%isorb
-    
-      sparsemat%nfvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%nfvctr_par')
-      sparsemat%isfvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%isfvctr_par')
-    
-      call vcopy(nproc,orbs%isorb_par(0),1,sparsemat%isfvctr_par(0),1)
-      call vcopy(nproc,orbs%norb_par(0,0),1,sparsemat%nfvctr_par(0),1)
-    
-      sparsemat%nsegline=f_malloc_ptr(orbs%norb,id='sparsemat%nsegline')
-      sparsemat%istsegline=f_malloc_ptr(orbs%norb,id='sparsemat%istsegline')
-    
-      sparsemat%nseg=0
-      sparsemat%nvctr=0
-    
-      do iorb=1,orbs%norb
-          ! Always start a new segment for each line
-          segment_started=.false.
-          isegline=0
-          newline=.true.
-          do jorb=1,orbs%norb
-              overlap=check_overlap(iorb,jorb)
-              if (overlap) then
-                  if (segment_started) then
-                      ! there is no "hole" in between, i.e. we are in the same segment
-                      sparsemat%nvctr=sparsemat%nvctr+1
-                  else
-                      ! there was a "hole" in between, i.e. we are in a new segment
-                      sparsemat%nseg=sparsemat%nseg+1
-                      isegline=isegline+1
-                      sparsemat%nvctr=sparsemat%nvctr+1
-                      if (newline) sparsemat%istsegline(iorb)=sparsemat%nseg
-                      newline=.false.
-                  end if
-                  segment_started=.true.
-              else
-                  segment_started=.false.
-              end if
-          end do
-          sparsemat%nsegline(iorb)=isegline
-      end do
-    
-      if (iproc==0) then
-          call yaml_map('total elements',orbs%norb**2)
-          call yaml_map('non-zero elements',sparsemat%nvctr)
-          call yaml_map('sparsity in %',1.d2*dble(orbs%norb**2-sparsemat%nvctr)/dble(orbs%norb**2),fmt='(f5.2)')
-      end if
-    
-    
-      sparsemat%keyv=f_malloc_ptr(sparsemat%nseg,id='sparsemat%keyv')
-      sparsemat%keyg=f_malloc_ptr((/2,sparsemat%nseg/),id='sparsemat%keyg')
-    
-    
-      iseg=0
-      ivctr=0
-      do iorb=1,orbs%norb
-          ! Always start a new segment for each line
-          segment_started=.false.
-          do jorb=1,orbs%norb
-              overlap=check_overlap(iorb,jorb)
-              ijorb=(iorb-1)*orbs%norb+jorb
-              if (overlap) then
-                  if (segment_started) then
-                      ! there is no "hole" in between, i.e. we are in the same segment
-                      ivctr=ivctr+1
-                  else
-                      ! there was a "hole" in between, i.e. we are in a new segment.
-                      iseg=iseg+1
-                      ivctr=ivctr+1
-                      ! open the current segment
-                      sparsemat%keyg(1,iseg)=ijorb
-                      ! start of  the current segment
-                      sparsemat%keyv(iseg)=ivctr
-                  end if
-                  segment_started=.true.
-              else
-                  if (segment_started) then
-                      ! close the previous segment
-                      sparsemat%keyg(2,iseg)=ijorb-1
-                  end if
-                  segment_started=.false.
-              end if
-          end do
-          ! close the last segment on the line if necessary
-          if (segment_started) then
-              sparsemat%keyg(2,iseg)=iorb*orbs%norb
-          end if
-      end do
-    
-      ! check whether the number of segments and elements agrees
-      if (iseg/=sparsemat%nseg) then
-          write(*,'(a,2i8)') 'ERROR: iseg/=sparsemat%nseg', iseg, sparsemat%nseg
-          stop
-      end if
-      if (ivctr/=sparsemat%nvctr) then
-          write(*,'(a,2i8)') 'ERROR: ivctr/=sparsemat%nvctr', ivctr, sparsemat%nvctr
-          stop
-      end if
-    
-    
-      call init_indices_in_compressed(input%store_index, orbs%norb, sparsemat)
-      call init_orbs_from_index(sparsemat)
-      call init_matrix_parallelization(iproc, nproc, sparsemat)
-    
-    
-      ! Initialize the parameters for the spare matrix matrix multiplication
-      call init_sparse_matrix_matrix_multiplication(orbs%norb, orbs%norbp, orbs%isorb, nseg, &
-               nsegline, istsegline, keyg, sparsemat)
-      
-    
-      contains
-    
-        function check_overlap(iiorb,jjorb)
-          ! Calling arguments
-          integer,intent(in) :: iiorb, jjorb
-          logical :: check_overlap
-    
-          ! Local variables
-          integer :: ilr, jlr
-          real(kind=8) :: maxdist, dist
-          
-          ilr=orbs%inwhichlocreg(iiorb)
-          jlr=orbs%inwhichlocreg(jjorb)
-          maxdist = (lzd%llr(ilr)%locrad_kernel+lzd%llr(jlr)%locrad_kernel)**2
-          dist = (lzd%llr(ilr)%locregcenter(1) - lzd%llr(jlr)%locregcenter(1))**2 &
-                +(lzd%llr(ilr)%locregcenter(2) - lzd%llr(jlr)%locregcenter(2))**2 &
-                +(lzd%llr(ilr)%locregcenter(3) - lzd%llr(jlr)%locregcenter(3))**2
-          if (dist<=maxdist) then
-              check_overlap=.true.
-          else
-              check_overlap=.false.
-          end if
-        end function check_overlap
-    
-    
-    end subroutine init_sparsity_from_distance
 
 
     subroutine init_matrix_parallelization(iproc, nproc, sparsemat)
@@ -1031,6 +559,567 @@ module sparsematrix_init
            sparsemat%smmm%nmaxsegk, sparsemat%smmm%nmaxvalk, &
            sparsemat%smmm%indices_extract_sequential)
     end subroutine init_sparse_matrix_matrix_multiplication
+
+
+    subroutine nseg_perline(norb, lut, nseg, nvctr, nsegline)
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: norb
+      logical,dimension(norb),intent(in) :: lut
+      integer,intent(out) :: nseg, nvctr, nsegline
+
+      ! Local variables
+      integer :: jorb
+      logical :: segment_started, newline, overlap
+
+      ! Always start a new segment for each line
+      segment_started=.false.
+      nsegline=0
+      newline=.true.
+      do jorb=1,norb
+          overlap=lut(jorb)
+          if (overlap) then
+              if (segment_started) then
+                  ! there is no "hole" in between, i.e. we are in the same segment
+                  nvctr=nvctr+1
+              else
+                  ! there was a "hole" in between, i.e. we are in a new segment
+                  nseg=nseg+1
+                  nsegline=nsegline+1
+                  nvctr=nvctr+1
+                  newline=.false.
+              end if
+              segment_started=.true.
+          else
+              segment_started=.false.
+          end if
+      end do
+
+    end subroutine nseg_perline
+
+
+    subroutine keyg_per_line(norb, nseg, iline, istseg, lut, ivctr, keyg)
+      implicit none
+      
+      ! Calling arguments
+      integer,intent(in) :: norb, nseg, iline, istseg
+      logical,dimension(norb),intent(in) :: lut
+      integer,intent(inout) :: ivctr
+      integer,dimension(2,nseg),intent(out) :: keyg
+      
+      ! Local variables
+      integer :: iseg, jorb, ijorb
+      logical :: segment_started, overlap
+
+      ! Always start a new segment for each line
+      segment_started=.false.
+      !iseg=sparsemat%istsegline(iline)-1
+      iseg=istseg-1
+      do jorb=1,norb
+          overlap=lut(jorb)
+          ijorb=(iline-1)*norb+jorb
+          if (overlap) then
+              if (segment_started) then
+                  ! there is no "hole" in between, i.e. we are in the same segment
+                  ivctr=ivctr+1
+              else
+                  ! there was a "hole" in between, i.e. we are in a new segment.
+                  iseg=iseg+1
+                  ivctr=ivctr+1
+                  ! open the current segment
+                  keyg(1,iseg)=ijorb
+              end if
+              segment_started=.true.
+          else
+              if (segment_started) then
+                  ! close the previous segment
+                  keyg(2,iseg)=ijorb-1
+              end if
+              segment_started=.false.
+          end if
+      end do
+      ! close the last segment on the line if necessary
+      if (segment_started) then
+          keyg(2,iseg)=iline*norb
+      end if
+    end subroutine keyg_per_line
+
+
+
+    !> Currently assuming square matrices
+    subroutine init_sparse_matrix(iproc, nproc, norb, norbp, isorb, store_index, &
+               nnonzero, nonzero, nnonzero_mult, nonzero_mult, sparsemat, &
+               allocate_full_)
+      use module_base
+      use yaml_output
+      implicit none
+      
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, norb, norbp, isorb, nnonzero, nnonzero_mult
+      logical,intent(in) :: store_index
+      integer,dimension(nnonzero),intent(in) :: nonzero
+      integer,dimension(nnonzero_mult),intent(in) :: nonzero_mult
+      type(sparse_matrix), intent(out) :: sparsemat
+      logical,intent(in),optional :: allocate_full_
+      
+      ! Local variables
+      integer :: jproc, iorb, jorb, iiorb, iseg, ilr, segn, ind
+      integer :: ierr, jorbs, jorbold, ii, jst_line, jst_seg
+      integer :: matrixindex_in_compressed, ist, ivctr
+      logical,dimension(:),allocatable :: lut
+      integer :: nseg_mult, nvctr_mult, ivctr_mult
+      integer,dimension(:),allocatable :: nsegline_mult, istsegline_mult
+      integer,dimension(:,:),allocatable :: keyg_mult
+      logical :: allocate_full
+      
+      call timing(iproc,'init_matrCompr','ON')
+
+      call set_value_from_optional()
+
+      lut = f_malloc(norb,id='lut')
+    
+      sparsemat=sparse_matrix_null()
+    
+      sparsemat%nfvctr=norb
+      sparsemat%nfvctrp=norbp
+      sparsemat%isfvctr=isorb
+      sparsemat%nfvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%nfvctr_par')
+      sparsemat%isfvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%isfvctr_par')
+
+      ! Same as isorb_par and norb_par
+      call to_zero(nproc, sparsemat%nfvctr_par(0))
+      call to_zero(nproc, sparsemat%isfvctr_par(0))
+      do jproc=0,nproc-1
+          if (iproc==jproc) then
+              sparsemat%isfvctr_par(jproc)=isorb
+              sparsemat%nfvctr_par(jproc)=norbp
+          end if
+      end do
+      call mpiallred(sparsemat%isfvctr_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(sparsemat%nfvctr_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+      call allocate_sparse_matrix_basic(store_index, norb, nproc, sparsemat)
+    
+
+      sparsemat%nseg=0
+      sparsemat%nvctr=0
+      sparsemat%nsegline=0
+      do iorb=1,norbp
+          iiorb=isorb+iorb
+          call create_lookup_table(nnonzero, nonzero, iiorb)
+          call nseg_perline(norb, lut, sparsemat%nseg, sparsemat%nvctr, sparsemat%nsegline(iiorb))
+      end do
+
+      call mpiallred(sparsemat%nvctr, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(sparsemat%nseg, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(sparsemat%nsegline(1), sparsemat%nfvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      ist=1
+      do jorb=1,sparsemat%nfvctr
+          ! Starting segment for this line
+          sparsemat%istsegline(jorb)=ist
+          ist=ist+sparsemat%nsegline(jorb)
+      end do
+
+    
+      if (iproc==0) then
+          call yaml_map('total elements',norb**2)
+          call yaml_map('non-zero elements',sparsemat%nvctr)
+          call yaml_map('sparsity in %',1.d2*dble(norb**2-sparsemat%nvctr)/dble(norb**2),fmt='(f5.2)')
+      end if
+    
+      call allocate_sparse_matrix_keys(sparsemat)
+    
+
+
+      ivctr=0
+      sparsemat%keyg=0
+      do iorb=1,norbp
+          iiorb=isorb+iorb
+          call create_lookup_table(nnonzero, nonzero, iiorb)
+          call keyg_per_line(norb, sparsemat%nseg, iiorb, sparsemat%istsegline(iiorb), &
+               lut, ivctr, sparsemat%keyg)
+      end do
+    
+      ! check whether the number of elements agrees
+      call mpiallred(ivctr, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      if (ivctr/=sparsemat%nvctr) then
+          write(*,'(a,2i8)') 'ERROR: ivctr/=sparsemat%nvctr', ivctr, sparsemat%nvctr
+          stop
+      end if
+      call mpiallred(sparsemat%keyg(1,1), 2*sparsemat%nseg, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+
+      ! start of the segments
+      sparsemat%keyv(1)=1
+      do iseg=2,sparsemat%nseg
+          sparsemat%keyv(iseg) = sparsemat%keyv(iseg-1) + sparsemat%keyg(2,iseg-1) - sparsemat%keyg(1,iseg-1) + 1
+      end do
+
+    
+    
+      if (store_index) then
+          ! store the indices of the matrices in the sparse format
+          sparsemat%store_index=.true.
+    
+          ! initialize sparsemat%matrixindex_in_compressed
+          do iorb=1,norb
+             do jorb=1,norb
+                sparsemat%matrixindex_in_compressed_arr(iorb,jorb)=compressed_index(iorb,jorb,norb,sparsemat)
+             end do
+          end do
+    
+      else
+          ! Otherwise alwyas calculate them on-the-fly
+          sparsemat%store_index=.false.
+      end if
+    
+      ind = 0
+      do iseg = 1, sparsemat%nseg
+         do segn = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
+            ind=ind+1
+            iorb = (segn - 1) / sparsemat%nfvctr + 1
+            jorb = segn - (iorb-1)*sparsemat%nfvctr
+            sparsemat%orb_from_index(1,ind) = jorb
+            sparsemat%orb_from_index(2,ind) = iorb
+         end do
+      end do
+    
+      ! parallelization of matrices, following same idea as norb/norbp/isorb
+    
+      !most equal distribution, but want corresponding to norbp for second column
+
+
+      do jproc=0,nproc-1
+          jst_line = sparsemat%isfvctr_par(jproc)+1
+          jst_seg = sparsemat%istsegline(jst_line)
+          sparsemat%isvctr_par(jproc) = sparsemat%keyv(jst_seg)-1
+      end do
+      do jproc=0,nproc-1
+         if (jproc==nproc-1) then
+            sparsemat%nvctr_par(jproc)=sparsemat%nvctr-sparsemat%isvctr_par(jproc)
+         else
+            sparsemat%nvctr_par(jproc)=sparsemat%isvctr_par(jproc+1)-sparsemat%isvctr_par(jproc)
+         end if
+         if (iproc==jproc) sparsemat%isvctr=sparsemat%isvctr_par(jproc)
+         if (iproc==jproc) sparsemat%nvctrp=sparsemat%nvctr_par(jproc)
+      end do
+
+    
+      ! 0 - none, 1 - mpiallred, 2 - allgather
+      sparsemat%parallel_compression=0
+      sparsemat%can_use_dense=.false.
+
+
+      nsegline_mult = f_malloc0(norb,id='nsegline_mult')
+      istsegline_mult = f_malloc(norb,id='istsegline_mult')
+      nseg_mult=0
+      nvctr_mult=0
+      do iorb=1,norbp
+          iiorb=isorb+iorb
+          call create_lookup_table(nnonzero_mult, nonzero_mult, iiorb)
+          call nseg_perline(norb, lut, nseg_mult, nvctr_mult, nsegline_mult(iiorb))
+      end do
+      call mpiallred(nvctr_mult, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(nseg_mult, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(nsegline_mult(1), norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+
+
+      ! Initialize istsegline, which gives the first segment of each line
+      istsegline_mult(1)=1
+      do iorb=2,norb
+          istsegline_mult(iorb) = istsegline_mult(iorb-1) + nsegline_mult(iorb-1)
+      end do
+
+      keyg_mult = f_malloc0((/2,nseg_mult/),id='keyg_mult')
+
+      ivctr_mult=0
+      do iorb=1,norbp
+         iiorb=isorb+iorb
+         call create_lookup_table(nnonzero_mult, nonzero_mult, iiorb)
+         call keyg_per_line(norb, nseg_mult, iiorb, istsegline_mult(iiorb), &
+              lut, ivctr_mult, keyg_mult)
+      end do
+      ! check whether the number of elements agrees
+      call mpiallred(ivctr_mult, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      if (ivctr_mult/=nvctr_mult) then
+          write(*,'(a,2i8)') 'ERROR: ivctr_mult/=nvctr_mult', ivctr_mult, nvctr_mult
+          stop
+      end if
+      call mpiallred(keyg_mult(1,1), 2*nseg_mult, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+
+      ! Allocate the matrices
+      call allocate_sparse_matrix_matrices(sparsemat, allocate_full)
+
+
+      ! Initialize the parameters for the spare matrix matrix multiplication
+      call init_sparse_matrix_matrix_multiplication(norb, norbp, isorb, nseg_mult, &
+               nsegline_mult, istsegline_mult, keyg_mult, sparsemat)
+
+      call f_free(nsegline_mult)
+      call f_free(istsegline_mult)
+      call f_free(keyg_mult)
+      call f_free(lut)
+    
+      call timing(iproc,'init_matrCompr','OF')
+
+
+
+      contains
+
+        subroutine create_lookup_table(nnonzero, nonzero, iiorb)
+          implicit none
+
+          ! Calling arguments
+          integer :: nnonzero, iiorb
+          integer,dimension(nnonzero) :: nonzero
+
+          ! Local variables
+          integer :: ist, iend, i, jjorb
+
+          lut = .false.
+          ist=(iiorb-1)*norb+1
+          iend=iiorb*norb
+          do i=1,nnonzero
+              if (nonzero(i)<ist) cycle
+              if (nonzero(i)>iend) exit
+              jjorb=mod(nonzero(i)-1,norb)+1
+              lut(jjorb)=.true.
+          end do
+        end subroutine create_lookup_table
+
+
+        subroutine set_value_from_optional()
+          if (present(allocate_full_))then
+              allocate_full = allocate_full_
+          else
+              allocate_full = .false.
+          end if
+        end subroutine set_value_from_optional
+
+
+    
+    end subroutine init_sparse_matrix
+
+
+    subroutine determine_sequential_length(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, &
+               sparsemat, nseq, nmaxsegk, nmaxvalk)
+      use module_base
+      use module_types
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: norb, norbp, isorb, nseg
+      integer,dimension(norb),intent(in) :: nsegline, istsegline
+      integer,dimension(2,nseg),intent(in) :: keyg
+      type(sparse_matrix),intent(in) :: sparsemat
+      integer,intent(out) :: nseq, nmaxsegk, nmaxvalk
+    
+      ! Local variables
+      integer :: i,iseg,jorb,iorb,jseg,ii
+      integer :: isegoffset, istart, iend
+    
+      nseq=0
+      nmaxsegk=0
+      nmaxvalk=0
+      do i = 1,norbp
+         ii=isorb+i
+         nmaxsegk=max(nmaxsegk,nsegline(ii))
+         isegoffset=istsegline(ii)-1
+         do iseg=1,nsegline(ii)
+              istart=keyg(1,isegoffset+iseg)
+              iend=keyg(2,isegoffset+iseg)
+              ! keyg is defined in terms of "global coordinates", so get the
+              ! coordinate on a given line by using the mod function
+              istart=mod(istart-1,norb)+1
+              iend=mod(iend-1,norb)+1
+              nmaxvalk=max(nmaxvalk,iend-istart+1)
+              do iorb=istart,iend
+                  do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
+                      do jorb = sparsemat%keyg(1,jseg),sparsemat%keyg(2,jseg)
+                          nseq=nseq+1
+                      end do
+                  end do
+              end do
+         end do
+      end do 
+    
+    end subroutine determine_sequential_length
+
+
+    subroutine get_nout(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, nout)
+      use module_base
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: norb, norbp, isorb, nseg
+      integer,dimension(norb),intent(in) :: nsegline, istsegline
+      integer,dimension(2,nseg),intent(in) :: keyg
+      integer,intent(out) :: nout
+    
+      ! Local variables
+      integer :: i, iii, iseg, iorb, ii
+      integer :: isegoffset, istart, iend
+    
+      nout=0
+      do i = 1,norbp
+         iii=isorb+i
+         isegoffset=istsegline(iii)-1
+         do iseg=1,nsegline(iii)
+              istart=keyg(1,isegoffset+iseg)
+              iend=keyg(2,isegoffset+iseg)
+              do iorb=istart,iend
+                  nout=nout+1
+              end do
+          end do
+      end do
+    
+    end subroutine get_nout
+
+
+    subroutine init_onedimindices_new(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, sparsemat, nout, onedimindices)
+      use module_base
+      use sparsematrix_base, only: sparse_matrix
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: norb, norbp, isorb, nseg
+      integer,dimension(norb),intent(in) :: nsegline, istsegline
+      integer,dimension(2,nseg),intent(in) :: keyg
+      type(sparse_matrix),intent(in) :: sparsemat
+      integer,intent(in) :: nout
+      integer,dimension(4,nout) :: onedimindices
+    
+      ! Local variables
+      integer :: i, iii, iseg, iorb, ii, jseg, ilen, itot
+      integer :: isegoffset, istart, iend
+    
+    
+      ii=0
+      itot=1
+      do i = 1,norbp
+         iii=isorb+i
+         isegoffset=istsegline(iii)-1
+         do iseg=1,nsegline(iii)
+              istart=keyg(1,isegoffset+iseg)
+              iend=keyg(2,isegoffset+iseg)
+              ! keyg is defined in terms of "global coordinates", so get the
+              ! coordinate on a given line by using the mod function
+              istart=mod(istart-1,norb)+1
+              iend=mod(iend-1,norb)+1
+              do iorb=istart,iend
+                  ii=ii+1
+                  onedimindices(1,ii)=i
+                  onedimindices(2,ii)=iorb
+                  ilen=0
+                  do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
+                      ilen=ilen+sparsemat%keyg(2,jseg)-sparsemat%keyg(1,jseg)+1
+                  end do
+                  onedimindices(3,ii)=ilen
+                  onedimindices(4,ii)=itot
+                  itot=itot+ilen
+              end do
+          end do
+      end do
+    
+    end subroutine init_onedimindices_new
+
+
+    subroutine get_arrays_for_sequential_acces(norb, norbp, isorb, nseg, &
+               nsegline, istsegline, keyg, sparsemat, nseq, nmaxsegk, nmaxvalk, &
+               ivectorindex)
+      use module_base
+      use module_types
+      use sparsematrix_base, only: sparse_matrix
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: norb, norbp, isorb, nseg, nseq, nmaxsegk, nmaxvalk
+      integer,dimension(norb),intent(in) :: nsegline, istsegline
+      integer,dimension(2,nseg),intent(in) :: keyg
+      type(sparse_matrix),intent(in) :: sparsemat
+      integer,dimension(nseq),intent(out) :: ivectorindex
+    
+      ! Local variables
+      integer :: i,iseg,jorb,jjorb,iorb,jseg,ii,iii
+      integer :: isegoffset, istart, iend
+    
+    
+      ii=1
+      do i = 1,norbp
+         iii=isorb+i
+         isegoffset=istsegline(iii)-1
+         do iseg=1,nsegline(iii)
+              istart=keyg(1,isegoffset+iseg)
+              iend=keyg(2,isegoffset+iseg)
+              ! keyg is defined in terms of "global coordinates", so get the
+              ! coordinate on a given line by using the mod function
+              istart=mod(istart-1,norb)+1
+              iend=mod(iend-1,norb)+1
+              do iorb=istart,iend
+                  !!istindexarr(iorb-istart+1,iseg,i)=ii
+                  do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
+                      do jorb = sparsemat%keyg(1,jseg),sparsemat%keyg(2,jseg)
+                          jjorb = jorb - (iorb-1)*norb
+                          ivectorindex(ii)=jjorb
+                          ii = ii+1
+                      end do
+                  end do
+              end do
+         end do
+      end do 
+    
+    end subroutine get_arrays_for_sequential_acces
+
+
+    subroutine init_sequential_acces_matrix(norb, norbp, isorb, nseg, &
+               nsegline, istsegline, keyg, sparsemat, nseq, nmaxsegk, nmaxvalk, &
+               indices_extract_sequential)
+      use module_base
+      use module_types
+      use sparsematrix_base, only: sparse_matrix
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: norb, norbp, isorb, nseg, nseq, nmaxsegk, nmaxvalk
+      integer,dimension(norb),intent(in) :: nsegline, istsegline
+      integer,dimension(2,nseg),intent(in) :: keyg
+      type(sparse_matrix),intent(in) :: sparsemat
+      integer,dimension(nseq),intent(out) :: indices_extract_sequential
+    
+      ! Local variables
+      integer :: i,iseg,jorb,jj,iorb,jseg,ii,iii
+      integer :: isegoffset, istart, iend
+    
+    
+      ii=1
+      do i = 1,norbp
+         iii=isorb+i
+         isegoffset=istsegline(iii)-1
+         do iseg=1,nsegline(iii)
+              istart=keyg(1,isegoffset+iseg)
+              iend=keyg(2,isegoffset+iseg)
+              ! keyg is defined in terms of "global coordinates", so get the
+              ! coordinate on a given line by using the mod function
+              istart=mod(istart-1,norb)+1
+              iend=mod(iend-1,norb)+1
+              do iorb=istart,iend
+                  do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
+                      jj=1
+                      do jorb = sparsemat%keyg(1,jseg),sparsemat%keyg(2,jseg)
+                          indices_extract_sequential(ii)=sparsemat%keyv(jseg)+jj-1
+                          jj = jj+1
+                          ii = ii+1
+                      end do
+                  end do
+              end do
+         end do
+      end do 
+    
+    end subroutine init_sequential_acces_matrix
+
 
 
 end module sparsematrix_init

@@ -14,6 +14,7 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
   use module_types
   use module_interfaces, except_this_one => call_bigdft
   use yaml_output
+  use communications_base
   implicit none
   integer, intent(in) :: iproc,nproc
   type(run_objects), intent(inout) :: runObj
@@ -26,7 +27,6 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
   logical :: exists
   integer :: i_stat,i_all,ierr,inputPsiId_orig,iat,iorb,istep,i,jproc
   real(gp) :: maxdiff
-  real(gp), dimension(:,:,:), allocatable :: rxyz_glob
 
   !temporary interface, not needed anymore since all arguments are structures
 !!$  interface
@@ -58,30 +58,12 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
   call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
   call f_routine(id=subname)
 
-  if (nproc > 1) then
-     !check that the positions are identical for all the processes
-     rxyz_glob=f_malloc((/3,runObj%atoms%astruct%nat,nproc/),id='rxyz_glob')
-     
-     !gather the results for all the processors
-     call MPI_GATHER(runObj%atoms%astruct%rxyz,3*runObj%atoms%astruct%nat,mpidtypg,&
-          rxyz_glob,3*runObj%atoms%astruct%nat,mpidtypg,0,bigdft_mpi%mpi_comm,ierr)
-     if (iproc==0) then
-        maxdiff=0.0_gp
-        do jproc=2,nproc
-           do iat=1,runObj%atoms%astruct%nat
-              do i=1,3
-                 maxdiff=max(maxdiff,&
-                      abs(rxyz_glob(i,iat,jproc)-runObj%atoms%astruct%rxyz(i,iat)))
-              end do
-           end do
-        end do
-        if (maxdiff > epsilon(1.0_gp)) &
-             call yaml_warning('Input positions not identical! '//&
-             '(difference:'//trim(yaml_toa(maxdiff))//' )')
-     end if
+  call check_array_consistency(maxdiff, nproc, runObj%atoms%astruct%rxyz(1,1), &
+       & 3 * runObj%atoms%astruct%nat, bigdft_mpi%mpi_comm)
+  if (iproc==0 .and. maxdiff > epsilon(1.0_gp)) &
+       call yaml_warning('Input positions not identical! '//&
+       '(difference:'//trim(yaml_toa(maxdiff))//' )')
 
-     call f_free(rxyz_glob)
-  end if
   !fill the rxyz array with the positions
   !wrap the atoms in the periodic directions when needed
   do iat=1,runObj%atoms%astruct%nat
@@ -252,7 +234,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   use gaussians, only: gaussian_basis
   use psp_projectors
   use sparsematrix_base, only: sparse_matrix_null
-  use sparsematrix_init, only: init_sparse_matrix, init_sparsity_from_distance, check_kernel_cutoff
+  use sparsematrix_init, only: init_sparse_matrix, check_kernel_cutoff
   use sparsematrix, only: check_matrix_compression
   implicit none
   integer, intent(in) :: nproc,iproc
@@ -480,16 +462,25 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
      call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,in, atoms, rxyz, .false.)
 
-     call init_sparse_matrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, in, &
-          tmb%foe_obj%nseg, tmb%foe_obj%nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
-          tmb%linmat%ham)
+     call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%ham_descr%lzd, atoms%astruct, &
+          in%store_index, imode=1, smat=tmb%linmat%ham)
+     call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%ham_descr%lzd, atoms%astruct, &
+          in%store_index, imode=1, smat=tmb%linmat%m)
+
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ham)
-     call init_sparse_matrix(iproc, nproc, tmb%lzd, tmb%orbs, in, &
-          tmb%foe_obj%nseg, tmb%foe_obj%nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
-          tmb%linmat%ovrlp)
+     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
+
+     call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%lzd, atoms%astruct, &
+          in%store_index, imode=1, smat=tmb%linmat%ovrlp)
+     call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%lzd, atoms%astruct, &
+          in%store_index, imode=1, smat=tmb%linmat%s)
+
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ovrlp)
+     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%s)
 
      if (in%check_matrix_compression) then
          if (iproc==0) call yaml_open_map('Checking Compression/Uncompression of small sparse matrices')
@@ -500,21 +491,20 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
 
 
-     !!allocate(tmb%linmat%ovrlp%matrix_compr(tmb%linmat%ovrlp%nvctr), stat=i_stat)
-     !!call memocc(i_stat, tmb%linmat%ovrlp%matrix_compr, 'tmb%linmat%ovrlp%matrix_compr', subname)
-     !!allocate(tmb%linmat%ham%matrix_compr(tmb%linmat%ham%nvctr), stat=i_stat)
-     !!call memocc(i_stat, tmb%linmat%ham%matrix_compr, 'tmb%linmat%ham%matrix_compr', subname)
-     tmb%linmat%ovrlp%matrix_compr=f_malloc_ptr(tmb%linmat%ovrlp%nvctr,id='tmb%linmat%ovrlp%matrix_compr')
-     tmb%linmat%ham%matrix_compr=f_malloc_ptr(tmb%linmat%ham%nvctr,id='tmb%linmat%ham%matrix_compr')
-
 
      ! check the extent of the kernel cutoff (must be at least shamop radius)
      call check_kernel_cutoff(iproc, tmb%orbs, atoms, tmb%lzd)
-     call init_sparsity_from_distance(iproc, nproc, tmb%orbs, tmb%lzd, in, &
-          tmb%foe_obj%nseg, tmb%foe_obj%nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
-          tmb%linmat%denskern_large)
+
+     call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%lzd, atoms%astruct, &
+          in%store_index, imode=2, smat=tmb%linmat%denskern_large)
+     call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%lzd, atoms%astruct, &
+          in%store_index, imode=2, smat=tmb%linmat%l)
+
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
+     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
+
      !call nullify_sparse_matrix(tmb%linmat%inv_ovrlp_large)
      tmb%linmat%inv_ovrlp_large=sparse_matrix_null()
      call sparse_copy_pattern(tmb%linmat%denskern_large, tmb%linmat%inv_ovrlp_large, iproc, subname)
@@ -526,11 +516,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
          if (iproc ==0) call yaml_close_map()
      end if
 
-
-     !!allocate(tmb%linmat%denskern_large%matrix_compr(tmb%linmat%denskern_large%nvctr), stat=i_stat)
-     !!call memocc(i_stat, tmb%linmat%denskern_large%matrix_compr, 'tmb%linmat%denskern_large%matrix_compr', subname)
-     tmb%linmat%denskern_large%matrix_compr=f_malloc_ptr(tmb%linmat%denskern_large%nvctr,&
-         id='tmb%linmat%denskern_large%matrix_compr')
 
 
 
@@ -723,7 +708,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      ! Allococation of array for Pulay forces (only needed for linear version)
      allocate(fpulay(3,atoms%astruct%nat),stat=i_stat)
      call memocc(i_stat,fpulay,'fpulay',subname)
-
 
 
      call linearScaling(iproc,nproc,KSwfn,tmb,atoms,in,&

@@ -23,7 +23,7 @@ module module_types
   use psp_projectors
   use module_atoms, only: atoms_data,symmetry_data,atomic_structure
   use communications_base, only: comms_linear, comms_cubic
-  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_base, only: matrices, sparse_matrix
 
   implicit none
 
@@ -195,7 +195,7 @@ module module_types
     real(kind=8), dimension(:), pointer :: locrad, locrad_lowaccuracy, locrad_highaccuracy, kernel_cutoff_FOE
     real(kind=8), dimension(:,:), pointer :: locrad_type
     real(kind=8), dimension(:), pointer :: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy, potentialPrefac_ao
-    real(kind=8), dimension(:),pointer :: kernel_cutoff, locrad_kernel
+    real(kind=8), dimension(:),pointer :: kernel_cutoff, locrad_kernel, locrad_mult
     real(kind=8) :: early_stop, gnrm_dynamic, min_gnrm_for_dynamic
     integer, dimension(:), pointer :: norbsPerType
     integer :: kernel_mode, mixing_mode
@@ -592,32 +592,12 @@ module module_types
     integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
   end type foe_data
 
-!!$  type, public :: sparse_matrix_metadata
-!!$     integer :: nvctr, nseg, full_dim1, full_dim2
-!!$     integer,dimension(:),pointer :: noverlaps
-!!$     integer,dimension(:,:),pointer :: overlaps
-!!$     integer,dimension(:),pointer :: keyv, nsegline, istsegline
-!!$     integer,dimension(:,:),pointer :: keyg
-!!$     integer,dimension(:,:),pointer :: matrixindex_in_compressed, orb_from_index
-!!$  end type sparse_matrix_metadata
-
-  !!type,public :: sparse_matrix
-  !!    integer :: nvctr, nseg, nvctrp, isvctr, parallel_compression, nfvctr, nfvctrp, isfvctr
-  !!    integer,dimension(:),pointer :: keyv, nsegline, istsegline, isvctr_par, nvctr_par, isfvctr_par, nfvctr_par
-  !!    integer,dimension(:,:),pointer :: keyg
-  !!    !type(sparse_matrix_metadata), pointer :: pattern
-  !!    real(kind=8),dimension(:),pointer :: matrix_compr,matrix_comprp
-  !!    real(kind=8),dimension(:,:),pointer :: matrix,matrixp
-  !!    !integer,dimension(:,:),pointer :: matrixindex_in_compressed, orb_from_index
-  !!    integer,dimension(:,:),pointer :: matrixindex_in_compressed_arr, orb_from_index
-  !!    integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed
-  !!    logical :: store_index, can_use_dense
-  !!    !!contains
-  !!    !!  procedure,pass :: matrixindex_in_compressed
-  !!end type sparse_matrix
-
-  type,public :: linear_matrices !may not keep
+  type,public :: linear_matrices
       type(sparse_matrix) :: ham, ovrlp, denskern_large, inv_ovrlp_large
+      type(sparse_matrix) :: s !< small: sparsity pattern given by support function cutoff
+      type(sparse_matrix) :: m !< medium: sparsity pattern given by SHAMOP cutoff
+      type(sparse_matrix) :: l !< medium: sparsity pattern given by kernel cutoff
+      type(matrices) :: ham_, ovrlp_, kernel_
   end type linear_matrices
 
   type,public:: workarrays_quartic_convolutions

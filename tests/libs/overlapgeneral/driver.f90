@@ -82,6 +82,7 @@ program driver
   call sparse_matrix_init_fake(iproc, nproc, norb, orbs%norbp, orbs%isorb, nseg, nvctr, smat_A)
   call sparse_matrix_init_fake(iproc, nproc, norb, orbs%norbp, orbs%isorb, nseg, nvctr, smat_B)
 
+
   symmetric = check_symmetry(norb, smat_A)
 
   !!if (iproc==0) then
@@ -193,7 +194,8 @@ program driver
           if (timer_on) call cpu_time(tr0)
           if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
           call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, &
-               imode, check_accur=.true., ovrlp=smat_A%matrix, inv_ovrlp=smat_B%matrix, error=error)
+               imode, ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, check_accur=.true., &
+               ovrlp=smat_A%matrix, inv_ovrlp=smat_B%matrix, error=error)
           if (timer_on) call cpu_time(tr1)
           if (timer_on) call system_clock(ncount2,ncount_rate,ncount_max)
           if (timer_on) time=real(tr1-tr0,kind=8)
@@ -205,8 +207,8 @@ program driver
           if (timer_on) call cpu_time(tr0)
           if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
           call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, &
-               imode, check_accur=.true., error=error, &
-               ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B)!!, &
+               imode, ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, &
+               check_accur=.true., error=error)
                !!foe_nseg=smat_A%nseg, foe_kernel_nsegline=smat_A%nsegline, &
                !!foe_istsegline=smat_A%istsegline, foe_keyg=smat_A%keyg)
            !if (iorder==0) call compress_matrix(iproc, smat_B)
@@ -382,8 +384,8 @@ end subroutine orbs_init_fake
 subroutine sparse_matrix_init_fake(iproc, nproc, norb, norbp, isorb, nseg, nvctr, smat)
   use module_base
   use module_types
-  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null
-  use sparsematrix_init, only: init_sparse_matrix_matrix_multiplication
+  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
+  use sparsematrix_init, only: init_sparse_matrix
   implicit none
 
   ! Calling arguments
@@ -392,7 +394,8 @@ subroutine sparse_matrix_init_fake(iproc, nproc, norb, norbp, isorb, nseg, nvctr
 
   ! Local variables
   integer,dimension(:),allocatable :: nvctr_per_segment
-  integer :: jseg, jorb
+  integer :: jseg, jorb, nnonzero
+  integer ,dimension(:),pointer :: nonzero
 
 
   ! Some checks whether the arguments are reasonable
@@ -426,11 +429,19 @@ subroutine sparse_matrix_init_fake(iproc, nproc, norb, norbp, isorb, nseg, nvctr
   smat%keyg = keyg_init()
   call init_orbs_from_index(smat)
 
+  call init_nonzero_arrays(norbp, isorb, smat, nnonzero, nonzero)
+
+  call deallocate_sparse_matrix(smat, 'sparse_matrix_init_fake')
+  call init_sparse_matrix(iproc, nproc, norb, norbp, isorb, .false., &
+             nnonzero, nonzero, nnonzero, nonzero, smat, allocate_full_=.true.)
+  call f_free_ptr(nonzero)
+
+
   call f_free(nvctr_per_segment)
 
-  ! Initialize the parameters for the spare matrix matrix multiplication
-  call init_sparse_matrix_matrix_multiplication(norb, norbp, isorb, smat%nseg, &
-       smat%nsegline, smat%istsegline, smat%keyg, smat)
+  !!! Initialize the parameters for the spare matrix matrix multiplication
+  !!call init_sparse_matrix_matrix_multiplication(norb, norbp, isorb, smat%nseg, &
+  !!     smat%nsegline, smat%istsegline, smat%keyg, smat)
 
   !!if (iproc==0) then
   !!    do jorb=1,norb
@@ -645,6 +656,48 @@ subroutine sparse_matrix_init_fake(iproc, nproc, norb, norbp, isorb, nseg, nvctr
       end do
 
     end subroutine init_orbs_from_index
+
+
+
+    subroutine init_nonzero_arrays(norbp, isorb, sparsemat, nnonzero, nonzero)
+      use sparsematrix_base, only : sparse_matrix
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: norbp, isorb
+      type(sparse_matrix),intent(in) :: sparsemat
+      integer,intent(out) :: nnonzero
+      integer,dimension(:),pointer :: nonzero
+
+      ! Local variables
+      integer :: iorb, iiorb, iseg, iiseg, ilen, i, ii
+
+      nnonzero=0
+      do iorb=1,norbp
+          iiorb=isorb+iorb
+          do iseg=1,sparsemat%nsegline(iiorb)
+              iiseg=sparsemat%istsegline(iiorb)+iseg-1
+              ilen=sparsemat%keyg(2,iiseg)-sparsemat%keyg(1,iiseg)+1
+              nnonzero=nnonzero+ilen
+          end do
+      end do
+
+
+      nonzero = f_malloc_ptr(nnonzero,id='nonzero')
+      ii=0
+      do iorb=1,norbp
+          iiorb=isorb+iorb
+          do iseg=1,sparsemat%nsegline(iiorb)
+              iiseg=sparsemat%istsegline(iiorb)+iseg-1
+              do i=sparsemat%keyg(1,iiseg),sparsemat%keyg(2,iiseg)
+                  ii=ii+1
+                  nonzero(ii)=i
+              end do
+          end do
+      end do
+
+
+    end subroutine init_nonzero_arrays
 
 
 

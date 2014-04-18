@@ -1136,7 +1136,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
                   ri=at%astruct%rxyz(2,iat)
               case (3)
                   !ri=at%astruct%rxyz(3,iat)-charge_center_cores(3)
-                  ri=at%astruct%rxyz(2,iat)
+                  ri=at%astruct%rxyz(3,iat)
               case default
                   stop 'wrong value of i'
               end select
@@ -1290,22 +1290,23 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
 
 
       if (calculate_quadropole) then
-          call yaml_open_sequence('core quadropole')
-          do i=1,3
-             call yaml_sequence(trim(yaml_toa(quadropole_cores(i,1:3),fmt='(es15.8)')))
-          end do
-          call yaml_close_sequence()
+          !call yaml_open_sequence('core quadropole')
+          !do i=1,3
+          !   call yaml_sequence(trim(yaml_toa(quadropole_cores(i,1:3),fmt='(es15.8)')))
+          !end do
+          !call yaml_close_sequence()
 
-          call yaml_open_sequence('electronic quadropole')
-          do i=1,3
-             call yaml_sequence(trim(yaml_toa(quadropole_el(i,1:3),fmt='(es15.8)')))
-          end do
-          call yaml_close_sequence()
+          !call yaml_open_sequence('electronic quadropole')
+          !do i=1,3
+          !   call yaml_sequence(trim(yaml_toa(quadropole_el(i,1:3),fmt='(es15.8)')))
+          !end do
+          !call yaml_close_sequence()
 
           call yaml_open_sequence('Quadropole Moment (AU)')
           do i=1,3
              call yaml_sequence(trim(yaml_toa(tmpquadrop(i,1:3),fmt='(es15.8)')))
           end do
+          call yaml_map('trace',tmpquadrop(1,1)+tmpquadrop(2,2)+tmpquadrop(3,3),fmt='(es12.2)')
           call yaml_close_sequence()
       end if
 

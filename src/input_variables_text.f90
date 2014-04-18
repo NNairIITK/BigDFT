@@ -418,6 +418,9 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   allocate(in%lin%locrad_kernel(nlr),stat=istat)
   call memocc(istat,in%lin%locrad_kernel,'in%lin%locrad_kernel',subname)
 
+  allocate(in%lin%locrad_mult(nlr),stat=istat)
+  call memocc(istat,in%lin%locrad_mult,'in%lin%locrad_mult',subname)
+
   allocate(in%lin%locrad_lowaccuracy(nlr),stat=istat)
   call memocc(istat,in%lin%locrad_lowaccuracy,'in%lin%locrad_lowaccuracy',subname)
 
@@ -432,6 +435,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
           iiorb=iiorb+1
           in%lin%locrad(iiorb)=in%lin%locrad_type(itype,1)
           in%lin%locrad_kernel(iiorb)=in%lin%kernel_cutoff(itype)
+          in%lin%locrad_mult(iiorb)=in%lin%kernel_cutoff_FOE(itype)
           in%lin%locrad_lowaccuracy(iiorb)=in%lin%locrad_type(itype,1) 
           !locradType_lowaccur(itype)
           in%lin%locrad_highaccuracy(iiorb)=in%lin%locrad_type(itype,2)

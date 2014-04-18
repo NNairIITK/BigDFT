@@ -22,7 +22,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use yaml_output
   use communications, only: transpose_localized, start_onesided_communication
   use sparsematrix_base, only: sparse_matrix
-  use sparsematrix, only: uncompress_matrix
+  use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed
   implicit none
 
   ! Calling arguments
@@ -121,8 +121,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   !!call f_free_ptr(tmb%linmat%ovrlp%matrix)
   !!! ##########
   ovrlp_fullp=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/),id='ovrlp_fullp')
-  call extract_matrix_distributed(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb_par, &
-       tmb%linmat%ovrlp, tmb%linmat%ovrlp%matrix_compr, ovrlp_fullp)
+  call uncompress_matrix_distributed(iproc, tmb%linmat%ovrlp, tmb%linmat%ovrlp%matrix_compr, ovrlp_fullp)
   call deviation_from_unity_parallel(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, ovrlp_fullp, deviation)
   call f_free(ovrlp_fullp)
   if (iproc==0) then
@@ -1951,7 +1950,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   integer, intent(in) :: iproc, nproc, norb
   integer, intent(in) :: blocksize_dsyev, blocksize_pdgemm, inversion_method
   type(orbitals_data), intent(in) :: basis_orbs   !number of basis functions
-  type(sparse_matrix),intent(in) :: basis_overlap
+  type(sparse_matrix),intent(inout) :: basis_overlap
   real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(inout) :: coeff
   type(orbitals_data), intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
   ! Local variables
@@ -2056,13 +2055,17 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
 
   call timing(iproc,'renormCoefCom1','OF')
 
+  ! Not clean to use twice basis_overlap, but it should not matter as everything
+  ! is done using the dense version
   if (norb==orbs%norb) then
       call overlapPowerGeneral(iproc, nproc, inversion_method, -2, &
-           blocksize_dsyev, norb, orbs, imode=2, check_accur=.false., ovrlp=ovrlp_coeff, inv_ovrlp=ovrlp_coeff2)
+           blocksize_dsyev, norb, orbs, imode=2, ovrlp_smat=basis_overlap, inv_ovrlp_smat=basis_overlap, &
+           check_accur=.false., ovrlp=ovrlp_coeff, inv_ovrlp=ovrlp_coeff2)
   else
       ! It is not possible to use the standard parallelization scheme, so do serial
       call overlapPowerGeneral(iproc, 1, inversion_method, -2, &
-           blocksize_dsyev, norb, orbs, imode=2, check_accur=.false., ovrlp=ovrlp_coeff, inv_ovrlp=ovrlp_coeff2)
+           blocksize_dsyev, norb, orbs, imode=2, ovrlp_smat=basis_overlap, inv_ovrlp_smat=basis_overlap, &
+           check_accur=.false., ovrlp=ovrlp_coeff, inv_ovrlp=ovrlp_coeff2)
   end if
 
   call timing(iproc,'renormCoefCom2','ON')
@@ -2521,11 +2524,11 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           ! Taylor approximation of S^1/2 and S^-1/2 up to higher order
 
           call overlapPowerGeneral(iproc, nproc, order_taylor, 2, -1, tmb%orbs%norb, tmb%orbs, &
-               imode=2, check_accur=.true., ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=ovrlp_onehalf, &
-               error=error)
+               imode=2, ovrlp_smat=tmb%linmat%ovrlp, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, check_accur=.true., &
+               ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=ovrlp_onehalf, error=error)
           call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, tmb%orbs, &
-               imode=2, check_accur=.true., ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=ovrlp_minusonehalf, &
-               error=error)
+               imode=2, ovrlp_smat=tmb%linmat%ovrlp, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, check_accur=.true., &
+               ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=ovrlp_minusonehalf, error=error)
           if (iproc==0) then
               call yaml_map('error of S^-1/2',error,fmt='(es9.2)')
           end if
@@ -2744,399 +2747,3 @@ subroutine check_idempotency(iproc, nproc, tmb, diff)
   call f_free_ptr(tmb%linmat%denskern_large%matrix)
 
 end subroutine check_idempotency
-
-
-subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
-           calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => loewdin_charge_analysis
-  use communications, only: transpose_localized
-  use sparsematrix_base, only: sparse_matrix
-  use sparsematrix, only: compress_matrix, uncompress_matrix
-  implicit none
-  integer,intent(in) :: iproc
-  type(dft_wavefunction),intent(inout) :: tmb
-  type(atoms_data),intent(inout) :: atoms
-  logical,intent(in) :: calculate_overlap_matrix, calculate_ovrlp_half
-  integer,intent(in) :: meth_overlap
-
-  !local variables
-  integer :: ifrag,iorb,ifrag_ref,isforb,istat,ierr,jorb
-  real(kind=gp), allocatable, dimension(:,:) :: proj_mat, proj_ovrlp_half, weight_matrixp
-  character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
-  real(kind=gp) :: error
-
-  ! new variables
-  integer :: iat, iall
-  real(kind=8),dimension(:,:),allocatable :: weight_matrix
-  real(kind=gp),dimension(:,:),pointer :: ovrlp_half, ovrlp
-  real(kind=8) :: total_charge, total_net_charge
-  real(kind=8),dimension(:),allocatable :: charge_per_atom
-  logical :: psit_c_associated, psit_f_associated
-
-
-  ! needs parallelizing/converting to sparse
-  ! re-use overlap matrix if possible either before or after
-
-  call f_routine(id='loewdin_charge_analysis')
-  ovrlp_half = f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='ovrlp_half')
-
-  if (calculate_overlap_matrix) then
-     if(.not.tmb%can_use_transposed) then
-         if(.not.associated(tmb%psit_c)) then
-             allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-             call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
-             psit_c_associated=.false.
-         else
-             psit_c_associated=.true.
-         end if
-         if(.not.associated(tmb%psit_f)) then
-             allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-             call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
-             psit_f_associated=.false.
-         else
-             psit_f_associated=.true.
-         end if
-         call transpose_localized(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-              tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
-         tmb%can_use_transposed=.true.
-     end if
-
-     call calculate_overlap_transposed(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
-          tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
-     if (.not.psit_c_associated) then
-        iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-        deallocate(tmb%psit_c, stat=istat)
-        call memocc(istat, iall, 'tmb%psit_c', subname)
-        tmb%can_use_transposed=.false.
-     end if
-     if (.not.psit_f_associated) then
-        iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-        deallocate(tmb%psit_f, stat=istat)
-        call memocc(istat, iall, 'tmb%psit_f', subname)
-        tmb%can_use_transposed=.false.
-     end if
-  end if
-
-  if (calculate_ovrlp_half) then
-     ovrlp = f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='ovrlp')
-     call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%ovrlp,outmat=ovrlp)
-     call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 2, &
-          tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%orbs, &
-          imode=2, check_accur=.true., ovrlp=ovrlp, inv_ovrlp=ovrlp_half, error=error)
-     !!ovrlp_half=tmb%linmat%ovrlp%matrix
-     call f_free_ptr(ovrlp)
-  end if
-
-  ! optimize this to just change the matrix multiplication?
-  proj_mat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='proj_mat')
-
-  call to_zero(tmb%orbs%norb**2,proj_mat(1,1))
-  call uncompress_matrix(iproc, tmb%linmat%denskern_large,outmat=proj_mat)
-  !!isforb=0
-  !!do ifrag=1,input%frag%nfrag
-  !!   ifrag_ref=input%frag%frag_index(ifrag)
-  !!   if (ifrag==ifrag_charged(1)) then
-  !!      do iorb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
-  !!         proj_mat(iorb+isforb,iorb+isforb)=1.0_gp
-  !!      end do
-  !!   end if
-  !!   !!if (nfrag_charged==2) then
-  !!   !!   if (ifrag==ifrag_charged(2)) then
-  !!   !!      do iorb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
-  !!   !!         proj_mat(iorb+isforb,iorb+isforb)=-1.0_gp
-  !!   !!      end do
-  !!   !!   end if
-  !!   !!end if
-  !!   isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
-  !!end do
-
-  proj_ovrlp_half=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/),id='proj_ovrlp_half')
-  if (tmb%orbs%norbp>0) then
-     call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, &
-            tmb%orbs%norb, 1.d0, &
-            proj_mat(1,1), tmb%orbs%norb, &
-            ovrlp_half(1,tmb%orbs%isorb+1), tmb%orbs%norb, 0.d0, &
-            proj_ovrlp_half(1,1), tmb%orbs%norb)
-  end if
-  call f_free(proj_mat)
-  weight_matrixp=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/), id='weight_matrixp')
-  if (tmb%orbs%norbp>0) then
-     call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, &
-          tmb%orbs%norb, 1.d0, &
-          ovrlp_half(1,1), tmb%orbs%norb, &
-          proj_ovrlp_half(1,1), tmb%orbs%norb, 0.d0, &
-          weight_matrixp(1,1), tmb%orbs%norb)
-  end if
-  call f_free_ptr(ovrlp_half)
-  call f_free(proj_ovrlp_half)
-  weight_matrix=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/), id='weight_matrix')
-  if (bigdft_mpi%nproc>1) then
-     call mpi_allgatherv(weight_matrixp, tmb%orbs%norb*tmb%orbs%norbp, mpi_double_precision, weight_matrix, &
-          tmb%orbs%norb*tmb%orbs%norb_par(:,0), tmb%orbs%norb*tmb%orbs%isorb_par, &
-          mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-  else
-     call vcopy(tmb%orbs%norb*tmb%orbs%norb,weight_matrixp(1,1),1,weight_matrix(1,1),1)
-  end if
-  call f_free(weight_matrixp)
-  !call compress_matrix(bigdft_mpi%iproc,weight_matrix)
-
-  charge_per_atom = f_malloc0(atoms%astruct%nat,id='charge_per_atom')
-  !!do iorb=1,tmb%orbs%norb
-  !!    do jorb=1,tmb%orbs%norb
-  !!        if (iproc==0) write(*,'(a,2i7,es16.7)') 'iorb,jorb,weight_matrix(jorb,iorb)', iorb,jorb,weight_matrix(jorb,iorb)
-  !!        if (iorb==jorb) then
-  !!            total_charge = total_charge + weight_matrix(jorb,iorb)
-  !!            iat=tmb%orbs%onwhichatom(iorb)
-  !!            charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix(jorb,iorb)
-  !!        end if
-  !!    end do
-  !!end do
-  !!if (iproc==0) then
-  !!    do iat=1,atoms%astruct%nat
-  !!        write(*,*) 'iat, partial total_charge', iat, charge_per_atom(iat)
-  !!    end do
-  !!    write(*,*) 'total total_charge',total_charge
-  !!    if (iproc==0) call write_partial_charges()
-  !!end if
-
-  do iorb=1,tmb%orbs%norb
-      iat=tmb%orbs%onwhichatom(iorb)
-      charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix(iorb,iorb)
-  end do
-  if (iproc==0) call write_partial_charges()
-  if (iproc==0) call calculate_dipole()
-  if (iproc==0) call calculate_quadropole()
-
-
-  call f_free(charge_per_atom)
-  call f_free(weight_matrix)
-  call f_release_routine()
-
-
-
-  contains
-
-    subroutine write_partial_charges
-      use yaml_output
-      character(len=20) :: atomname
-      real(kind=8),dimension(2) :: charges
-      call yaml_open_sequence('Loewdin charge analysis (charge / net charge')
-      total_charge=0.d0
-      total_net_charge=0.d0
-      do iat=1,atoms%astruct%nat
-          call yaml_sequence(advance='no')
-          call yaml_open_map(flow=.true.)
-          atomname=atoms%astruct%atomnames(atoms%astruct%iatype(iat))
-          charges(1)=-charge_per_atom(iat)
-          charges(2)=-(charge_per_atom(iat)-real(atoms%nelpsp(atoms%astruct%iatype(iat)),kind=8))
-          total_charge = total_charge + charges(1)
-          total_net_charge = total_net_charge + charges(2)
-          call yaml_map(trim(atomname),charges,fmt='(1es20.12)')
-          call yaml_close_map(advance='no')
-          call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
-      end do
-      call yaml_map('total charge',total_charge,fmt='(es16.8)')
-      call yaml_map('total net charge',total_net_charge,fmt='(es16.8)')
-      call yaml_close_sequence()
-    end subroutine write_partial_charges
-
-
-    subroutine calculate_dipole()
-      use yaml_output
-      real(kind=8),dimension(3) :: dipole_elec, dipole_cores, dipole_net
-
-      dipole_cores(1:3)=0._gp
-      do iat=1,atoms%astruct%nat
-         dipole_cores(1:3)=dipole_cores(1:3)+atoms%nelpsp(atoms%astruct%iatype(iat))*atoms%astruct%rxyz(1:3,iat)
-      end do
-
-      dipole_elec=0.d0
-      do iat=1,atoms%astruct%nat
-          dipole_elec(1:3) = dipole_elec(1:3) + -charge_per_atom(iat)*atoms%astruct%rxyz(1:3,iat)
-      end do
-
-      dipole_net=dipole_cores+dipole_elec
-
-      if (iproc==0) then
-          call yaml_map('core dipole', dipole_cores)
-          call yaml_map('electronic dipole', dipole_elec)
-          call yaml_map('net dipole', dipole_net)
-      end if
-
-    end subroutine calculate_dipole
-
-
-    subroutine calculate_quadropole()
-      use yaml_output
-      real(kind=8),dimension(3,3) :: quadropole_elec, quadropole_cores, quadropole_net
-      real(kind=8),dimension(3) :: charge_center_cores, charge_center_charge
-      integer :: i, j
-      real(kind=8) :: delta_term, rj, ri, q, qtot
-
-
-      ! charge center of the cores
-      charge_center_cores(1:3)=0.d0
-      qtot=0.d0
-      do iat=1,atoms%astruct%nat
-          q=atoms%nelpsp(atoms%astruct%iatype(iat))
-          charge_center_cores(1:3) = charge_center_cores(1:3) + q*atoms%astruct%rxyz(1:3,iat)
-          qtot=qtot+q
-      end do
-      charge_center_cores=charge_center_cores/qtot
-
-
-      ! charge center of the charge
-      charge_center_charge(1:3)=0.d0
-      qtot=0.d0
-      do iat=1,atoms%astruct%nat
-          q=-charge_per_atom(iat)
-          charge_center_charge(1:3) = charge_center_cores(1:3) + q*atoms%astruct%rxyz(1:3,iat)
-          qtot=qtot+q
-      end do
-      charge_center_charge=charge_center_charge/qtot
-
-
-      quadropole_cores(1:3,1:3)=0._gp
-      do iat=1,atoms%astruct%nat
-         do i=1,3
-             do j=1,3
-                 if (i==j) then
-                     delta_term = atoms%astruct%rxyz(1,iat)**2 + atoms%astruct%rxyz(2,iat)**2 + atoms%astruct%rxyz(3,iat)**2
-                 else
-                     delta_term=0.d0
-                 end if
-                 q=atoms%nelpsp(atoms%astruct%iatype(iat))
-                 rj=atoms%astruct%rxyz(j,iat)
-                 ri=atoms%astruct%rxyz(i,iat)
-                 quadropole_cores(j,i) = quadropole_cores(j,i) + q*(3.d0*rj*ri-delta_term)
-                 !!quadropole_cores(j,i) = quadropole_cores(j,i) + &
-                 !!                        atoms%nelpsp(atoms%astruct%iatype(iat))* &
-                 !!                          (3.d0*atoms%astruct%rxyz(j,iat)*atoms%astruct%rxyz(i,iat)-delta_term)
-             end do
-         end do
-      end do
-
-
-      quadropole_elec(1:3,1:3)=0._gp
-      do iat=1,atoms%astruct%nat
-         do i=1,3
-             do j=1,3
-                 if (i==j) then
-                     delta_term = atoms%astruct%rxyz(1,iat)**2 + atoms%astruct%rxyz(2,iat)**2 + atoms%astruct%rxyz(3,iat)**2
-                 else
-                     delta_term=0.d0
-                 end if
-                 q=-charge_per_atom(iat)
-                 rj=atoms%astruct%rxyz(j,iat)+(charge_center_cores(j)-charge_center_charge(j))
-                 ri=atoms%astruct%rxyz(i,iat)+(charge_center_cores(i)-charge_center_charge(i))
-                 quadropole_elec(j,i) = quadropole_elec(j,i) + q*(3.d0*rj*ri-delta_term)
-                 !!quadropole_elec(j,i) = quadropole_elec(j,i) + &
-                 !!                       -charge_per_atom(iat)* &
-                 !!                         (3.d0*atoms%astruct%rxyz(j,iat)*atoms%astruct%rxyz(i,iat)-delta_term)
-             end do
-         end do
-      end do
-
-      quadropole_net=quadropole_cores+quadropole_elec
-
-      if (iproc==0) then
-          call yaml_open_sequence('core quadropole')
-          do i=1,3
-             call yaml_sequence(trim(yaml_toa(quadropole_cores(i,1:3),fmt='(es12.5)')))
-          end do
-          call yaml_close_sequence()
-
-          call yaml_open_sequence('electronic quadropole')
-          do i=1,3
-             call yaml_sequence(trim(yaml_toa(quadropole_elec(i,1:3),fmt='(es12.5)')))
-          end do
-          call yaml_close_sequence()
-
-          call yaml_open_sequence('net quadropole')
-          do i=1,3
-             call yaml_sequence(trim(yaml_toa(quadropole_net(i,1:3),fmt='(es12.5)')))
-          end do
-          call yaml_close_sequence()
-      end if
-
-    end subroutine calculate_quadropole
-
-
-    !subroutine support_function_multipoles()
-
-    !  ist=1
-    !  istr=1
-    !  do iorb=1,orbs%norbp
-    !      iiorb=orbs%isorb+iorb
-    !      ilr=orbs%inWhichLocreg(iiorb)
-    !      call initialize_work_arrays_sumrho(lzd%Llr(ilr), w)
-    !      ! Transform the support function to real space
-    !      call daub_to_isf(lzd%Llr(ilr), w, lphi(ist), psir(istr))
-    !      call deallocate_work_arrays_sumrho(w)
-    !  ! Calculate the charge center
-    !      ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
-    !      istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
-    !  end do
-    !  if(istr/=collcom_sr%ndimpsi_c+1) then
-    !      write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=collcom_sr%ndimpsi_c+1'
-    !      stop
-    !  end if
-
-
-    !  
-
-    !end subroutine support_function_multipoles
-
-
-end subroutine loewdin_charge_analysis
-
-
-subroutine charge_center(n1, n2, n3, hgrids, phir, charge_center_elec)
-  ! Calling arguments
-  integer,intent(in) :: n1, n2, n3
-  real(kind=8),dimension(3),intent(in) :: hgrids
-  real(kind=8),dimension(n1*n2*n3),intent(in) :: phir
-  real(kind=8),dimension(3),intent(out) :: charge_center_elec
-
-  integer :: i1, i2, i3, jj, iz, iy, ix
-  real(kind=8) :: q, x, y, z, qtot
-
-  qtot=0.d0
-  jj=0.d0
-  do i3=1,n3i
-      do i2=1,n2i
-          do i1=1,n1i
-              jj=jj+1
-              ! z component of point jj
-              iz=jj/(n2i*n1i)
-              ! Subtract the 'lower' xy layers
-              ii=jj-iz*(n2i*n1i)
-              ! y component of point jj
-              iy=ii/n1i
-              ! Subtract the 'lower' y rows
-              ii=ii-iy*n1i
-              ! x component
-              ix=ii
-
-              ! Shift the values due to the convolutions bounds
-              ix=ix-14
-              iy=iy-14
-              iz=iz-14
-
-              q= -phir(jj)**2 * product(hgrids)
-              x=ix*hgrids(1)
-              y=iy*hgrids(2)
-              z=iz*hgrids(3)
-              charge_center_elec(1) = charge_center_elec(1) + q*x
-              charge_center_elec(2) = charge_center_elec(2) + q*y
-              charge_center_elec(3) = charge_center_elec(3) + q*z
-              qtot=qtot+q
-          end do
-      end do
-  end do
-  charge_center_elec(1:3)=charge_center_elec(1:3)/qtot
-
-
-end subroutine charge_center

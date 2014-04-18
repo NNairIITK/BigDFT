@@ -50,26 +50,21 @@ module constrained_dft
          real(gp),intent(out),optional :: econf
        end subroutine LocalHamiltonianApplication
 
-       subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, &
-                  imode, check_accur, ovrlp, inv_ovrlp, error, &
-                  ovrlp_smat, inv_ovrlp_smat)!!, &
-                  !!foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
+       subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, imode, &
+                  ovrlp_smat, inv_ovrlp_smat, check_accur, &
+                  ovrlp, inv_ovrlp, error)
          use module_base
          use module_types
-         use sparsematrix_base, only: sparse_matrix
-         use sparsematrix, only: compress_matrix, uncompress_matrix, transform_sparse_matrix
+         use sparsematrix_base, only: sparse_matrix, SPARSE_FULL, DENSE_PARALLEL, DENSE_FULL, SPARSEMM_SEQ
+         use yaml_output
          implicit none
          integer,intent(in) :: iproc, nproc, iorder, blocksize, norb, power
          type(orbitals_data),intent(in) :: orbs
          integer,intent(in) :: imode
+         type(sparse_matrix),intent(inout) :: ovrlp_smat, inv_ovrlp_smat
          logical,intent(in) :: check_accur
-         real(kind=8),dimension(:,:),pointer,optional :: ovrlp
-         real(kind=8),dimension(:,:),pointer,optional :: inv_ovrlp
-         type(sparse_matrix), optional, intent(inout) :: ovrlp_smat, inv_ovrlp_smat
+         real(kind=8),dimension(:,:),pointer,optional :: ovrlp, inv_ovrlp
          real(kind=8),intent(out),optional :: error
-         !!integer,intent(in),optional :: foe_nseg
-         !!integer,dimension(:),intent(in),optional :: foe_kernel_nsegline, foe_istsegline
-         !!integer,dimension(:,:),intent(in),optional :: foe_keyg
        end subroutine overlapPowerGeneral
 
   end interface
@@ -177,9 +172,13 @@ contains
     if (calculate_ovrlp_half) then
        tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='tmb%linmat%ovrlp%matrix')
        call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%ovrlp)
+       ! Maybe not clean here to use twice tmb%linmat%ovrlp, but it should not
+       ! matter as dense is used
+       write(*,*) 'associated(tmb%linmat%ovrlp%matrix)', associated(tmb%linmat%ovrlp%matrix)
        call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 2, &
             tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%orbs, &
-            imode=2, check_accur=.true., ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=ovrlp_half, error=error)
+            imode=2, ovrlp_smat=tmb%linmat%ovrlp, inv_ovrlp_smat=tmb%linmat%ovrlp, &
+            check_accur=.true., ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=ovrlp_half, error=error)
        call f_free_ptr(tmb%linmat%ovrlp%matrix)
     end if
 
