@@ -16,9 +16,11 @@ subroutine foe(iproc, nproc, tmprtr, &
   use module_types
   use module_interfaces, except_this_one => foe
   use yaml_output
+  use sparsematrix_base, only: SPARSE_FULL, DENSE_FULL, DENSE_PARALLEL, SPARSEMM_SEQ
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, &
-                          uncompress_matrix_distributed
+                          uncompress_matrix_distributed, &
+                          sparsematrix_malloc_ptr, sparsematrix_malloc, assignment(=)
   implicit none
 
   ! Calling arguments
@@ -79,8 +81,8 @@ subroutine foe(iproc, nproc, tmprtr, &
       stop 'wrong value of accuracy_level'
   end if
 
-  tmb%linmat%inv_ovrlp_large%matrix_compr=f_malloc_ptr(tmb%linmat%inv_ovrlp_large%nvctr,&
-      id='tmb%linmat%inv_ovrlp_large%matrix_compr')
+  tmb%linmat%inv_ovrlp_large%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%inv_ovrlp_large, &
+                                          iaction=SPARSE_FULL, id='tmb%linmat%inv_ovrlp_large%matrix_compr')
 
 
   call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -98,7 +100,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   allocate(SHS(tmb%linmat%denskern_large%nvctr), stat=istat)
   call memocc(istat, SHS, 'SHS', subname)
 
-  fermi_check_compr = f_malloc(tmb%linmat%denskern_large%nvctr,id='fermi_check_compr')
+  fermi_check_compr = sparsematrix_malloc(tmb%linmat%denskern_large, iaction=SPARSE_FULL, id='fermi_check_compr')
 
   !!if (order_taylor==1) then
   !!    ii=0
@@ -1109,8 +1111,8 @@ subroutine foe(iproc, nproc, tmprtr, &
               call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
               call uncompress_matrix(iproc,tmb%linmat%ovrlp)
 
-              tmb%linmat%inv_ovrlp_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),&
-                  id='tmb%linmat%inv_ovrlp_large%matrix')
+              tmb%linmat%inv_ovrlp_large%matrix=sparsematrix_malloc_ptr(tmb%linmat%inv_ovrlp_large, &
+                                                iaction=DENSE_FULL, id='tmb%linmat%inv_ovrlp_large%matrix')
               call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, tmb%orbs, &
                    imode=2, check_accur=.true., ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=tmb%linmat%inv_ovrlp_large%matrix, &
                    error=error)
@@ -1156,32 +1158,11 @@ subroutine foe(iproc, nproc, tmprtr, &
           integer :: nout, nseq, nmaxsegk, nmaxvalk
 
 
-          inv_ovrlpp = f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norbp/),id='inv_ovrlpp')
-          tempp = f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norbp/),id='inv_ovrlpp')
-          inv_ovrlp_compr_seq = f_malloc(tmb%linmat%inv_ovrlp_large%smmm%nseq,id='inv_ovrlp_compr_seq')
-          kernel_compr_seq = f_malloc(tmb%linmat%inv_ovrlp_large%smmm%nseq,id='inv_ovrlp_compr_seq')
-          !!call sequential_acces_matrix(tmb%orbs%norb, tmb%orbs%norbp, &
-          !!     tmb%orbs%isorb, tmb%linmat%denskern_large%smmm%nseg, &
-          !!     tmb%linmat%denskern_large%smmm%nsegline, tmb%linmat%denskern_large%smmm%istsegline, &
-          !!     tmb%linmat%denskern_large%smmm%keyg, &
-          !!     tmb%linmat%denskern_large, tmb%linmat%denskern_large%matrix_compr, &
-          !!     tmb%linmat%denskern_large%smmm%nseq, tmb%linmat%denskern_large%smmm%nmaxsegk, &
-          !!     tmb%linmat%denskern_large%smmm%nmaxvalk, kernel_compr_seq)
-          !call sequential_acces_matrix(tmb%orbs%norb, tmb%orbs%norbp, &
-          !     tmb%orbs%isorb, tmb%linmat%denskern_large%smmm%nseg, &
-          !     tmb%linmat%denskern_large%smmm%nsegline, tmb%linmat%denskern_large%smmm%istsegline, &
-          !     tmb%linmat%denskern_large%smmm%keyg, &
-          !     tmb%linmat%denskern_large, matrix_compr, &
-          !     tmb%linmat%denskern_large%smmm%nseq, tmb%linmat%denskern_large%smmm%nmaxsegk, &
-          !     tmb%linmat%denskern_large%smmm%nmaxvalk, kernel_compr_seq)
+          inv_ovrlpp = sparsematrix_malloc_ptr(tmb%linmat%inv_ovrlp_large, iaction=DENSE_PARALLEL, id='inv_ovrlpp')
+          tempp = sparsematrix_malloc_ptr(tmb%linmat%inv_ovrlp_large, iaction=DENSE_PARALLEL, id='inv_ovrlpp')
+          inv_ovrlp_compr_seq = sparsematrix_malloc(tmb%linmat%inv_ovrlp_large, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
+          kernel_compr_seq = sparsematrix_malloc(tmb%linmat%inv_ovrlp_large, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
           call sequential_acces_matrix_fast(tmb%linmat%denskern_large, matrix_compr, kernel_compr_seq)
-          !call sequential_acces_matrix(tmb%orbs%norb, tmb%orbs%norbp, &
-          !     tmb%orbs%isorb, tmb%linmat%inv_ovrlp_large%smmm%nseg, &
-          !     tmb%linmat%inv_ovrlp_large%smmm%nsegline, tmb%linmat%inv_ovrlp_large%smmm%istsegline, &
-          !     tmb%linmat%inv_ovrlp_large%smmm%keyg, &
-          !     tmb%linmat%inv_ovrlp_large, tmb%linmat%inv_ovrlp_large%matrix_compr, &
-          !     tmb%linmat%inv_ovrlp_large%smmm%nseq, tmb%linmat%inv_ovrlp_large%smmm%nmaxsegk, &
-          !     tmb%linmat%inv_ovrlp_large%smmm%nmaxvalk, inv_ovrlp_compr_seq)
           call sequential_acces_matrix_fast(tmb%linmat%inv_ovrlp_large, &
                tmb%linmat%inv_ovrlp_large%matrix_compr, inv_ovrlp_compr_seq)
           call uncompress_matrix_distributed(iproc, tmb%linmat%inv_ovrlp_large, &

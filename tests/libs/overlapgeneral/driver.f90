@@ -3,7 +3,7 @@ program driver
   use module_base
   use module_types
   use module_interfaces
-  use sparsematrix, only: compress_matrix
+  use sparsematrix, only: compress_matrix, uncompress_matrix
   use sparsematrix_base, only: deallocate_sparse_matrix
   use yaml_output
   implicit none
@@ -11,7 +11,7 @@ program driver
   ! Variables
   integer :: iproc, nproc, istat, nthread, ithread
   integer :: omp_get_num_threads
-  real(kind=8) :: t1, t2
+  real(kind=8) :: t1, t2, tt
   real(kind=8),dimension(:),allocatable :: eval, work
   real(kind=8),dimension(:,:),allocatable :: A_init, S_init, A, S
   integer,parameter :: itype=1
@@ -27,12 +27,19 @@ program driver
   integer :: nconfig, ierr, iel, ilen, iseg, istart, iend, info, lwork, iiorb
   integer, dimension(4) :: mpi_info
   character(len=60) :: run_id
-  integer,parameter :: ncheck=18
+  integer,parameter :: ncheck=30
   integer,dimension(:,:),allocatable :: keyg_tmp
   integer,parameter :: SPARSE=1
   integer,parameter :: DENSE=2
 
-
+  integer :: ncount1, ncount_rate, ncount_max, ncount2
+  real(kind=4) :: tr0, tr1
+  real(kind=8) :: time, time2
+  real :: rn
+  real(kind=8) :: ddot, dnrm2
+  logical, parameter :: timer_on=.false.        !time the different methods
+  logical, parameter :: ortho_check=.false.     !check deviation from orthonormality of input overlap matrix
+  logical, parameter :: print_matrices=.true.  !output calculated matrices
 
   ! Initialize
   call f_lib_initialize()
@@ -89,19 +96,42 @@ program driver
 
   ! Initialize an overlap matrix
   allocate(ovrlp(orbs%norb,orbs%norb))
-  allocate(ovrlp2(orbs%norb,orbs%norb))
-  do iorb=1,orbs%norb
-      do jorb=iorb,orbs%norb
-          val = 2.d-1*(sin(real((iorb-1)*n+jorb,kind=8)))**2
-          if (jorb/=iorb) then
-              ovrlp(jorb,iorb) = val
-              ovrlp(iorb,jorb) = val
-          else
-              val = val + 1.d0
-              ovrlp(jorb,iorb) = val
-          end if
+  if (orbs%norb<30) then
+      do iorb=1,orbs%norb
+          do jorb=iorb,orbs%norb
+              val = 2.d-1*(sin(real((iorb-1)*n+jorb,kind=8)))**2
+              if (jorb/=iorb) then
+                  ovrlp(jorb,iorb) = val
+                  ovrlp(iorb,jorb) = val
+              else
+                  val = val + 1.d0
+                  ovrlp(jorb,iorb) = val
+              end if
+          end do
       end do
-  end do
+  else
+      ! above approach has problems for testing larger matrices
+      allocate(ovrlp2(orbs%norb,orbs%norb))
+      ! randomly generate vectors
+      do iorb=1,orbs%norb
+          do jorb=1,orbs%norb
+              call random_number(rn)
+              ovrlp2(jorb,iorb)=2.0d0*real(rn,kind=8)-1.0d0
+          end do
+          tt=dnrm2(orbs%norb, ovrlp2(1,iorb), 1)
+          call dscal(orbs%norb, 1/tt, ovrlp2(1,iorb), 1)
+      end do
+
+      ! calculate overlap from random vectors
+      do iorb=1,orbs%norb
+          do jorb=iorb,orbs%norb
+             ovrlp(jorb,iorb)=ddot(orbs%norb,ovrlp2(1,iorb),1,ovrlp2(1,jorb),1)
+             ovrlp(iorb,jorb)=ovrlp(jorb,iorb)
+          end do
+      end do
+      deallocate(ovrlp2)
+  end if
+
   !!lwork=100*orbs%norb
   !!allocate(work(lwork))
   !!allocate(eval(orbs%norb))
@@ -114,7 +144,11 @@ program driver
 
   call vcopy(orbs%norb**2, ovrlp(1,1), 1, smat_A%matrix(1,1), 1)
   call compress_matrix(iproc, smat_A)
-  if (iproc==0) call write_matrix_compressed('initial matrix', smat_A)
+  ! uncomment for sparse and dense modes to be testing the same matrix
+  !call uncompress_matrix(iproc, smat_A)
+
+  if (print_matrices.and.iproc==0) call write_matrix_compressed('initial matrix', smat_A)
+
 
 
   ! Check of the overlap manipulation routine
@@ -133,6 +167,8 @@ program driver
       keyg_tmp(2,iseg)=iiorb
   end do
 
+  if (ortho_check) call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norb, 0, ovrlp, error)
+  if (ortho_check.and.iproc==0) call yaml_map('deviation from unity',error)
   if (iproc==0) call yaml_comment('starting the checks',hfill='=')
 
   do icheck=1,ncheck
@@ -155,21 +191,35 @@ program driver
       if (.not.perform_check) cycle
       if (imode==DENSE) then
           call vcopy(orbs%norb**2, ovrlp(1,1), 1, smat_A%matrix(1,1), 1)
+          if (timer_on) call cpu_time(tr0)
+          if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
           call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, &
                imode, check_accur=.true., ovrlp=smat_A%matrix, inv_ovrlp=smat_B%matrix, error=error)
+          if (timer_on) call cpu_time(tr1)
+          if (timer_on) call system_clock(ncount2,ncount_rate,ncount_max)
+          if (timer_on) time=real(tr1-tr0,kind=8)
+          if (timer_on) time2=dble(ncount2-ncount1)/dble(ncount_rate)
           call compress_matrix(iproc, smat_B)
       else if (imode==SPARSE) then
           call vcopy(orbs%norb**2, ovrlp(1,1), 1, smat_A%matrix(1,1), 1)
           call compress_matrix(iproc, smat_A)
+          if (timer_on) call cpu_time(tr0)
+          if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
           call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, &
                imode, check_accur=.true., error=error, &
                ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B)!!, &
                !!foe_nseg=smat_A%nseg, foe_kernel_nsegline=smat_A%nsegline, &
                !!foe_istsegline=smat_A%istsegline, foe_keyg=smat_A%keyg)
            !if (iorder==0) call compress_matrix(iproc, smat_B)
+          if (timer_on) call cpu_time(tr1)
+          if (timer_on) call system_clock(ncount2,ncount_rate,ncount_max)
+          if (timer_on) time=real(tr1-tr0,kind=8)
+          if (timer_on) time2=dble(ncount2-ncount1)/dble(ncount_rate)
       end if
-      if (iproc==0) call write_matrix_compressed('final result', smat_B)
+      if (print_matrices.and.iproc==0) call write_matrix_compressed('final result', smat_B)
       if (iproc==0) call yaml_map('error of the result',error)
+      if (timer_on.and.iproc==0) call yaml_map('time taken (cpu)',time)
+      if (timer_on.and.iproc==0) call yaml_map('time taken (system)',time2)
   end do
 
   if (iproc==0) call yaml_comment('checks finished',hfill='=')
@@ -180,6 +230,7 @@ program driver
   call deallocate_sparse_matrix(smat_A, 'driver')
   call deallocate_sparse_matrix(smat_B, 'driver')
 
+  deallocate(ovrlp)
 
   call bigdft_finalize(ierr)
 
@@ -200,35 +251,59 @@ program driver
       case (3)
           imode = 2 ; iorder=6 ; power= -2 ; blocksize=-1
       case (4)
-          imode = 2 ; iorder=0 ; power= 1 ; blocksize=-1
+          imode = 2 ; iorder=-1 ; power= -2 ; blocksize=-1
       case (5)
-          imode = 2 ; iorder=1 ; power= 1 ; blocksize=-1
+          imode = 2 ; iorder=-6 ; power= -2 ; blocksize=-1
       case (6)
-          imode = 2 ; iorder=6 ; power= 1 ; blocksize=-1
+          imode = 2 ; iorder=0 ; power= 1 ; blocksize=-1
       case (7)
-          imode = 2 ; iorder=0 ; power= 2 ; blocksize=-1
+          imode = 2 ; iorder=1 ; power= 1 ; blocksize=-1
       case (8)
-          imode = 2 ; iorder=1 ; power= 2 ; blocksize=-1
+          imode = 2 ; iorder=6 ; power= 1 ; blocksize=-1
       case (9)
-          imode = 2 ; iorder=6 ; power= 2 ; blocksize=-1
+          imode = 2 ; iorder=-1 ; power= 1 ; blocksize=-1
       case (10)
-          imode = 1 ; iorder=0 ; power= -2 ; blocksize=-1
+          imode = 2 ; iorder=-6 ; power= 1 ; blocksize=-1
       case (11)
-          imode = 1 ; iorder=1 ; power= -2 ; blocksize=-1
+          imode = 2 ; iorder=0 ; power= 2 ; blocksize=-1
       case (12)
-          imode = 1 ; iorder=6 ; power= -2 ; blocksize=-1
+          imode = 2 ; iorder=1 ; power= 2 ; blocksize=-1
       case (13)
-          imode = 1 ; iorder=0 ; power= 1 ; blocksize=-1
+          imode = 2 ; iorder=6 ; power= 2 ; blocksize=-1
       case (14)
-          imode = 1 ; iorder=1 ; power= 1 ; blocksize=-1
+          imode = 2 ; iorder=-1 ; power= 2 ; blocksize=-1
       case (15)
-          imode = 1 ; iorder=6 ; power= 1 ; blocksize=-1
+          imode = 2 ; iorder=-6 ; power= 2 ; blocksize=-1
       case (16)
-          imode = 1 ; iorder=0 ; power= 2 ; blocksize=-1
+          imode = 1 ; iorder=0 ; power= -2 ; blocksize=-1
       case (17)
-          imode = 1 ; iorder=1 ; power= 2 ; blocksize=-1
+          imode = 1 ; iorder=1 ; power= -2 ; blocksize=-1
       case (18)
+          imode = 1 ; iorder=6 ; power= -2 ; blocksize=-1
+      case (19)
+          imode = 1 ; iorder=-1 ; power= -2 ; blocksize=-1
+      case (20)
+          imode = 1 ; iorder=-6 ; power= -2 ; blocksize=-1
+      case (21)
+          imode = 1 ; iorder=0 ; power= 1 ; blocksize=-1
+      case (22)
+          imode = 1 ; iorder=1 ; power= 1 ; blocksize=-1
+      case (23)
+          imode = 1 ; iorder=6 ; power= 1 ; blocksize=-1
+      case (24)
+          imode = 1 ; iorder=-1 ; power= 1 ; blocksize=-1
+      case (25)
+          imode = 1 ; iorder=-6 ; power= 1 ; blocksize=-1
+      case (26)
+          imode = 1 ; iorder=0 ; power= 2 ; blocksize=-1
+      case (27)
+          imode = 1 ; iorder=1 ; power= 2 ; blocksize=-1
+      case (28)
           imode = 1 ; iorder=6 ; power= 2 ; blocksize=-1
+      case (29)
+          imode = 1 ; iorder=-1 ; power= 2 ; blocksize=-1
+      case (30)
+          imode = 1 ; iorder=-6 ; power= 2 ; blocksize=-1
       case default
           stop 'wrong icheck'
       end select

@@ -677,7 +677,7 @@
        default: -0.5
      taylor_order:
        COMMENT: order of the Taylor approximation; 0 -> exact
-       RANGE: [0,100]
+       RANGE: [-100,100]
        default: 0
        best: 6
      output_wf:
