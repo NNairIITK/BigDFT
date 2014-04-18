@@ -38,7 +38,7 @@ real(8):: tt
   do i=1,Glr%d%n1i*Glr%d%n2i*n3d
       rhopot(i)=tt*rhopotOld(i)+alphaMix*rhopot(i)
   end do
-  call mpiallred(pnrm, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(pnrm, 1, mpi_sum, bigdft_mpi%mpi_comm)
   pnrm=sqrt(pnrm)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
   pnrm=pnrm/alphaMix
 
@@ -158,7 +158,7 @@ do i=1,Glr%d%n1i*Glr%d%n2i*n3p
     tt = rhopotold(ioffset+i) - rhopot(ioffset+i)
     pnrm=pnrm+tt**2
 end do
-call mpiallred(pnrm, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+call mpiallred(pnrm, 1, mpi_sum, bigdft_mpi%mpi_comm)
 pnrm=sqrt(pnrm)/(glr%d%n1i*glr%d%n2i*glr%d%n3i)
 
 
@@ -199,7 +199,7 @@ do j=i,mixdiis%is
 end do
 
 ! Sum up over all processes.
-call mpiallred(mixdiis%mat(1,min(mixdiis%isx,mixdiis%is)), min(mixdiis%is,mixdiis%isx), mpi_sum, bigdft_mpi%mpi_comm, ierr)
+call mpiallred(mixdiis%mat(1,min(mixdiis%isx,mixdiis%is)), min(mixdiis%is,mixdiis%isx), mpi_sum, bigdft_mpi%mpi_comm)
 
 
 ! Copy the matrix to an auxiliary array and fill with the zeros and ones.

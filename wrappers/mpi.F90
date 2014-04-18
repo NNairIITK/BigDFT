@@ -17,6 +17,7 @@ module wrapper_MPI
   ! TO BE REMOVED with f_malloc
   !use memory_profiling!, only: ndebug
   use dynamic_memory
+  use dictionaries, only: f_err_throw,f_err_define
   use time_profiling, only: TIMING_UNINITIALIZED
    
   ! TO BE REMOVED with f_malloc
@@ -36,18 +37,26 @@ module wrapper_MPI
   logical :: mpi_thread_funneled_is_supported=.false. !< Control the OMP_NESTED based overlap, checked by bigdft_mpi_init below
 
   !timing categories for MPI wrapper
-  integer, parameter :: smallsize=128 !< limit for a communication with small size
+  integer, parameter :: smallsize=5 !< limit for a communication with small size
   character(len=*), parameter, public :: tgrp_mpi_name='Communications'
   !timing categories
   integer, public, save :: TCAT_ALLRED_SMALL=TIMING_UNINITIALIZED
   integer, public, save :: TCAT_ALLRED_LARGE=TIMING_UNINITIALIZED
   integer, public, save :: TCAT_ALLGATHERV  =TIMING_UNINITIALIZED
   
+  !error codes
+  integer, public, save :: ERR_MPI_WRAPPERS
+
+  !> Interface for MPITYPE routine
+  interface mpitype
+     module procedure mpitype_i,mpitype_d,mpitype_r,mpitype_l
+     module procedure mpitype_d1,mpitype_d2
+  end interface mpitype
 
   !> Interface for MPI_ALLREDUCE routine, to be updated little by little
   interface mpiallred
      module procedure mpiallred_int,mpiallred_real, &
-          & mpiallred_double,mpiallred_double_1,mpiallred_double_2,&
+          & mpiallred_double,&!,mpiallred_double_1,mpiallred_double_2,&
           & mpiallred_log
   end interface mpiallred
 
@@ -71,6 +80,7 @@ module wrapper_MPI
   public :: mpi_environment_free
   public :: mpi_environment_set
   public :: mpi_environment_set1 !to be removed
+
   
 contains
 
@@ -390,6 +400,7 @@ end subroutine create_group_comm1
 #endif
   end subroutine wmpi_init_thread
 
+  !> initialize timings and also mpi errors
   subroutine mpi_initialize_timing_categories()
     use time_profiling, only: f_timing_category_group,f_timing_category
     use yaml_output, only: yaml_toa
@@ -410,7 +421,48 @@ end subroutine create_group_comm1
          'Variable allgather operations',&
          TCAT_ALLGATHERV)
 
+    call f_err_define(err_name='ERR_MPI_WRAPPERS',err_msg='Error of MPI library',&
+         err_id=ERR_MPI_WRAPPERS,&
+         err_action='Some MPI library returned an error code, inspect runtime behaviour')
+
   end subroutine mpi_initialize_timing_categories
+
+  function mpitype_i(data) result(mt)
+    implicit none
+    integer, intent(in) :: data
+    integer :: mt
+    mt=MPI_INTEGER
+  end function mpitype_i
+  function mpitype_r(data) result(mt)
+    implicit none
+    real, intent(in) :: data
+    integer :: mt
+    mt=MPI_REAL
+  end function mpitype_r
+  function mpitype_d(data) result(mt)
+    implicit none
+    double precision, intent(in) :: data
+    integer :: mt
+    mt=MPI_DOUBLE_PRECISION
+  end function mpitype_d
+  function mpitype_d1(data) result(mt)
+    implicit none
+    double precision, dimension(:), intent(in) :: data
+    integer :: mt
+    mt=MPI_DOUBLE_PRECISION
+  end function mpitype_d1
+  function mpitype_d2(data) result(mt)
+    implicit none
+    double precision, dimension(:,:), intent(in) :: data
+    integer :: mt
+    mt=MPI_DOUBLE_PRECISION
+  end function mpitype_d2
+  function mpitype_l(data) result(mt)
+    implicit none
+    logical, intent(in) :: data
+    integer :: mt
+    mt=MPI_LOGICAL
+  end function mpitype_l
 
 
   !interface for MPI_ALLGATHERV operations
@@ -424,8 +476,8 @@ end subroutine create_group_comm1
 #ifdef HAVE_MPI2
     call f_timer_interrupt(TCAT_ALLGATHERV)
     !case with MPI_IN_PLACE
-    call MPI_ALLGATHERV(MPI_IN_PLACE,counts(me),MPI_DOUBLE_PRECISION,&
-         buffer,counts,displs,MPI_DOUBLE_PRECISION,mpi_comm,ierr)
+    call MPI_ALLGATHERV(MPI_IN_PLACE,counts(me),mpitype(buffer),&
+         buffer,counts,displs,mpitype(buffer),mpi_comm,ierr)
     call f_timer_resume()
 #else
     !local variables
@@ -438,8 +490,8 @@ end subroutine create_group_comm1
     call dcopy(sum(counts),buffer,1,copybuf,1) 
     ierr=0 !put just for MPIfake compatibility
     call f_timer_interrupt(TCAT_ALLGATHERV)
-    call MPI_ALLGATHERV(copybuf(1+displs(me+1)),counts(me),MPI_DOUBLE_PRECISION,&
-         buffer,counts,displs,MPI_DOUBLE_PRECISION,mpi_comm,ierr)
+    call MPI_ALLGATHERV(copybuf(1+displs(me+1)),counts(me),mpitype(buffer),&
+         buffer,counts,displs,mpitype(buffer),mpi_comm,ierr)
     call f_timer_resume()
     call f_free(copybuf)
 #endif
@@ -448,124 +500,53 @@ end subroutine create_group_comm1
   end subroutine mpiallgatherv_double
 
   !interface for MPI_ALLREDUCE operations
-  subroutine mpiallred_int(buffer,ntot,mpi_op,mpi_comm,ierr)
+  subroutine mpiallred_int(sendbuf,count,op,comm,recvbuf)
     implicit none
-    integer, intent(in) :: ntot,mpi_op,mpi_comm
-    integer, intent(inout) :: buffer
-    integer, intent(out) :: ierr
-    integer :: tcat
-#ifdef HAVE_MPI2
-    !case with MPI_IN_PLACE
-    tcat=TCAT_ALLRED_LARGE
-    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
-    call f_timer_interrupt(tcat)
-    call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
-         MPI_INTEGER,mpi_op,mpi_comm,ierr)
-    call f_timer_resume()
-#else
-    !local variables
-    integer :: i_all,i_stat
+    integer, intent(inout) :: sendbuf
+    integer, intent(inout), optional :: recvbuf
     integer, dimension(:), allocatable :: copybuf
-    tcat=TCAT_ALLRED_LARGE
-    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
 
-    !case without mpi_in_place
-!   allocate(copybuf(ntot+ndebug),stat=i_stat)
-    copybuf = f_malloc(ntot,id='copybuf')
+    integer, intent(in) :: op,count
+    integer, intent(in), optional :: comm
+    !local variables
+    logical :: in_place
+    integer :: tcat,ierr,ntot,ntotrecv,mpi_comm
+    ntot=count
 
-    !not appropriate for integers, to be seen if it works
-    call scopy(ntot,buffer,1,copybuf,1) 
-    ierr=0 !put just for MPIfake compatibility
-    call f_timer_interrupt(tcat)
-    call MPI_ALLREDUCE(copybuf,buffer,ntot,&
-         MPI_INTEGER,mpi_op,mpi_comm,ierr)
-    call f_timer_resume()
-!  i_all=-product(shape(copybuf))*kind(copybuf)
-!   deallocate(copybuf,stat=i_stat)
-    call f_free(copybuf)
-#endif
-    if (ierr /=0) stop 'MPIALLRED_INT'
-
+    include 'allreduce-inc.f90'
   end subroutine mpiallred_int
 
-  subroutine mpiallred_real(buffer,ntot,mpi_op,mpi_comm,ierr)
+  !interface for MPI_ALLREDUCE operations
+  subroutine mpiallred_real(sendbuf,count,op,comm,recvbuf)
     implicit none
-    integer, intent(in) :: ntot,mpi_op,mpi_comm
-    real(kind=4), intent(inout) :: buffer
-    integer, intent(out) :: ierr
-    integer :: tcat
-#ifdef HAVE_MPI2
-    tcat=TCAT_ALLRED_LARGE
-    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
-    call f_timer_interrupt(tcat)
-    !case with MPI_IN_PLACE
-    call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
-         MPI_REAL,mpi_op,mpi_comm,ierr)
-    call f_timer_resume()
-#else
+    real, intent(inout) :: sendbuf
+    real, intent(inout), optional :: recvbuf
+    real, dimension(:), allocatable :: copybuf
+
+    integer, intent(in) :: op,count
+    integer, intent(in), optional :: comm
     !local variables
-    character(len=*), parameter :: subname='mpi_allred'
-    integer :: i_all,i_stat
-    real(kind=4), dimension(:), allocatable :: copybuf
+    logical :: in_place
+    integer :: tcat,ierr,ntot,ntotrecv,mpi_comm
+    ntot=count
 
-    !case without mpi_in_place
-!   allocate(copybuf(ntot+ndebug),stat=i_stat)
-    copybuf = f_malloc(ntot,id='copybuf')
-
-    call scopy(ntot,buffer,1,copybuf,1) 
-    ierr=0 !put just for MPIfake compatibility
-    tcat=TCAT_ALLRED_LARGE
-    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
-    call f_timer_interrupt(tcat)
-    call MPI_ALLREDUCE(copybuf,buffer,ntot,&
-         MPI_REAL,mpi_op,mpi_comm,ierr)
-    call f_timer_resume()
-!  i_all=-product(shape(copybuf))*kind(copybuf)
-!   deallocate(copybuf,stat=i_stat)
-    call f_free(copybuf)
-#endif
-    if (ierr /=0) stop 'MPIALLRED_REAL'
-
+    include 'allreduce-inc.f90'
   end subroutine mpiallred_real
 
-  subroutine mpiallred_double(buffer,ntot,mpi_op,mpi_comm,ierr)
+  subroutine mpiallred_double(sendbuf,count,op,comm,recvbuf)
     implicit none
-    integer, intent(in) :: ntot,mpi_op,mpi_comm
-    real(kind=8), intent(inout) :: buffer
-    integer, intent(out) :: ierr
-    integer :: tcat
-#ifdef HAVE_MPI2
-    tcat=TCAT_ALLRED_LARGE
-    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
-    call f_timer_interrupt(tcat)
-    !case with MPI_IN_PLACE
-    call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
-         MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
-    call f_timer_resume()
-#else
+    double precision, intent(inout) :: sendbuf
+    double precision, intent(inout), optional :: recvbuf
+    double precision, dimension(:), allocatable :: copybuf
+
+    integer, intent(in) :: op,count
+    integer, intent(in), optional :: comm
     !local variables
-    character(len=*), parameter :: subname='mpi_allred'
-    integer :: i_all,i_stat
-    real(kind=8), dimension(:), allocatable :: copybuf
+    logical :: in_place
+    integer :: tcat,ierr,ntot,ntotrecv,mpi_comm
+    ntot=count
 
-    !case without mpi_in_place
-!   allocate(copybuf(ntot+ndebug),stat=i_stat)
-    copybuf = f_malloc(ntot,id='copybuf')
-
-    call dcopy(ntot,buffer,1,copybuf,1) 
-    ierr=0 !put just for MPIfake compatibility
-    tcat=TCAT_ALLRED_LARGE
-    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
-    call f_timer_interrupt(tcat)
-    call MPI_ALLREDUCE(copybuf,buffer,ntot,&
-         MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
-    call f_timer_resume()
-
-!  i_all=-product(shape(copybuf))*kind(copybuf)
-!   deallocate(copybuf,stat=i_stat)
-    call f_free(copybuf)
-#endif
-    if (ierr /=0) stop 'MPIALLRED_DBL'
+    include 'allreduce-inc.f90'
   end subroutine mpiallred_double
 
   subroutine mpiallred_double_1(buffer,ntot,mpi_op,mpi_comm,ierr)
@@ -580,7 +561,7 @@ end subroutine create_group_comm1
     call f_timer_interrupt(tcat)
     !case with MPI_IN_PLACE
     call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
-         MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+         mpitype(buffer),mpi_op,mpi_comm,ierr)
     call f_timer_resume()
 #else
     !local variables
@@ -598,7 +579,7 @@ end subroutine create_group_comm1
     if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
     call f_timer_interrupt(tcat)
     call MPI_ALLREDUCE(copybuf,buffer,ntot,&
-         MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+         mpitype(buffer),mpi_op,mpi_comm,ierr)
     call f_timer_resume()
 
 !  i_all=-product(shape(copybuf))*kind(copybuf)
@@ -620,7 +601,7 @@ end subroutine create_group_comm1
     call f_timer_interrupt(tcat)
     !case with MPI_IN_PLACE
     call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
-         MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+         mpitype(buffer),mpi_op,mpi_comm,ierr)
     call f_timer_resume()
 #else
     !local variables
@@ -638,7 +619,7 @@ end subroutine create_group_comm1
     if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
     call f_timer_interrupt(tcat)
     call MPI_ALLREDUCE(copybuf,buffer,ntot,&
-         MPI_DOUBLE_PRECISION,mpi_op,mpi_comm,ierr)
+         mpitype(buffer),mpi_op,mpi_comm,ierr)
     call f_timer_resume()
 
 !  i_all=-product(shape(copybuf))*kind(copybuf)
@@ -648,48 +629,19 @@ end subroutine create_group_comm1
     if (ierr /=0) stop 'MPIALLRED_DBL'
   end subroutine mpiallred_double_2
 
-  subroutine mpiallred_log(buffer,ntot,mpi_op,mpi_comm,ierr)
+  subroutine mpiallred_log(sendbuf,count,op,comm,recvbuf)
     implicit none
-    integer, intent(in) :: ntot,mpi_op,mpi_comm
-    logical, intent(inout) :: buffer
-    integer, intent(out) :: ierr
-    integer :: tcat
-#ifdef HAVE_MPI2
-    tcat=TCAT_ALLRED_LARGE
-    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
-    call f_timer_interrupt(tcat)
-    !case with MPI_IN_PLACE
-    call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
-         MPI_LOGICAL,mpi_op,mpi_comm,ierr)
-    call f_timer_resume()
-#else
-    !local variables
-    character(len=*), parameter :: subname='mpi_allred'
-    integer :: i_all,i_stat
+    logical, intent(inout) :: sendbuf
+    logical, intent(inout), optional :: recvbuf
     logical, dimension(:), allocatable :: copybuf
 
-    !case without mpi_in_place
-!   allocate(copybuf(ntot+ndebug),stat=i_stat)
-    copybuf = f_malloc(ntot,id='copybuf')
-
-    !not appropriate for logical, to be seen if it works
-    call scopy(ntot,buffer,1,copybuf,1) 
-    ierr=0 !put just for MPIfake compatibility
-    tcat=TCAT_ALLRED_LARGE
-    if (ntot<=smallsize) tcat=TCAT_ALLRED_SMALL
-    call f_timer_interrupt(tcat)
-    call MPI_ALLREDUCE(copybuf,buffer,ntot,&
-         MPI_LOGICAL,mpi_op,mpi_comm,ierr)
-    call f_timer_resume()
-
-!  i_all=-product(shape(copybuf))*kind(copybuf)
-!   deallocate(copybuf,stat=i_stat)
-    call f_free(copybuf)
-#endif
-
-    !inform and stop if an error occurs
-    if (ierr /=0) stop 'MPIALLRED_LOG'
-
+    integer, intent(in) :: op,count
+    integer, intent(in), optional :: comm
+    !local variables
+    logical :: in_place
+    integer :: tcat,ierr,ntot,ntotrecv,mpi_comm
+    ntot=count
+    include 'allreduce-inc.f90'
   end subroutine mpiallred_log
 
 end module wrapper_MPI

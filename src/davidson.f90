@@ -666,7 +666,7 @@ subroutine davidson(iproc,nproc,in,at,&
    if(nproc > 1)then
       !sum up the contributions of nproc sets with 
       !commsv%nvctr_par(iproc,1) wavelet coefficients each
-      call mpiallred(e(1,1,1),2*orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+      call mpiallred(e(1,1,1),2*orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
 
    end if
 
@@ -778,7 +778,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
       if(nproc > 1)then
          !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-         call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+         call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
       end if
 
       gnrm=0._dp
@@ -858,7 +858,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
          if(nproc > 1)then
             !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-            call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+            call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
          end if
 
          gnrm=0._dp
@@ -973,7 +973,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
          if(nproc > 1)then
             !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-            call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+            call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
          end if
 
          gnrm=0.0_dp
@@ -1025,7 +1025,7 @@ subroutine davidson(iproc,nproc,in,at,&
       if(nproc > 1)then
          !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
          call mpiallred(hamovr(1),8*ndimovrlp(nspin,orbsv%nkpts),&
-            &   MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+            &   MPI_SUM,bigdft_mpi%mpi_comm)
       end if
 
       !if(iproc==0)write(*,'(1x,a)')"done."

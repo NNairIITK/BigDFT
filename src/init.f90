@@ -992,7 +992,7 @@ subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
        & orbs,d%n1,d%n2,d%n3,hx,hy,hz,atoms,rxyz_old,rxyz,wfd,psi)
 
   !reduce the value for all the eigenvectors
-  if (nproc > 1) call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+  if (nproc > 1) call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
 
   if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) then
      !recalculate orbitals occupation numbers
@@ -2512,7 +2512,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
     !$OMP END PARALLEL DO
   end do
 
- call MPIALLRED(shift(1,1),lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*5, MPI_SUM,bigdft_mpi%mpi_comm,ierr) 
+ call mpiallred(shift(1,1),lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*5, MPI_SUM,bigdft_mpi%mpi_comm) 
 
 !Interpolation
  do iorb = 1,orbs%norbp

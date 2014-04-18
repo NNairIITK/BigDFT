@@ -66,7 +66,7 @@ module sparsematrix
             sparsemat%matrix_compr(jjj)=sparsemat%matrix(irow,jcol)
          end do
          !$omp end parallel do
-         call mpiallred(sparsemat%matrix_compr(1), sparsemat%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+         call mpiallred(sparsemat%matrix_compr(1), sparsemat%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
       else
          sparsemat%matrix_comprp=f_malloc_ptr((sparsemat%nvctrp),id='sparsemat%matrix_comprp')
          !$omp parallel do default(private) shared(sparsemat)
@@ -142,7 +142,7 @@ module sparsematrix
             sparsemat%matrix(irow,jcol)=sparsemat%matrix_compr(iii)
          end do
          !$omp end parallel do
-         call mpiallred(sparsemat%matrix(1,1), sparsemat%nfvctr**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+         call mpiallred(sparsemat%matrix(1,1), sparsemat%nfvctr**2,mpi_sum,bigdft_mpi%mpi_comm)
       else
          sparsemat%matrixp=f_malloc_ptr((/sparsemat%nfvctr,sparsemat%nfvctrp/),id='sparsemat%matrixp')
          call to_zero(sparsemat%nfvctr*sparsemat%nfvctrp, sparsemat%matrixp(1,1))

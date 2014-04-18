@@ -2,13 +2,17 @@
 noinst_LIBRARIES = libwrappers.a
 module_DATA = $(modules)
 
+MPI_INCLUDES = allreduce-inc.f90
+
 if USE_MPI
 #mpi_source =
-mpi_include =
+mpi_include = $(MPI_INCLUDES)
 else
 #mpi_source = MPIfake.f90
-mpi_include = mpif.h
+mpi_include = $(MPI_INCLUDES) mpif.h
 endif
+
+EXTRA_DIST = $(MPI_INCLUDES)
 
 #Fake mpif.h for serial compilation
 mpif.h:

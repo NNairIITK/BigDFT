@@ -303,6 +303,7 @@ contains
     use BigDFT_API
     use module_interfaces
     use m_ab6_symmetry
+    use module_atoms, only: deallocate_atomic_structure,set_astruct_from_file
     implicit none
     character(len=1), intent(in) :: whichone
     character(len=40), intent(in) :: contcar
@@ -372,7 +373,7 @@ contains
     else if (whichone == 'B') then
        !open the first file to check box features
 !print *,'here'
-       call read_atomic_file(trim(contcar),0,atoms%astruct)
+       call set_astruct_from_file(trim(contcar),0,atoms%astruct)
        nat=atoms%astruct%nat
 !print *,'nat',nat
        allocate(iatype(nrep**3*nat),pos(3,nrep**3*nat))
@@ -382,7 +383,7 @@ contains
        factor=atoms%astruct%cell_dim(1) * Bohr_Ang
 
        deallocate(atoms%astruct%rxyz)
-       call deallocate_atomic_structure(atoms%astruct,"box_features") 
+       call deallocate_atomic_structure(atoms%astruct) 
 !       call deallocate_atoms(atoms, "box_features")
 
     end if
@@ -404,6 +405,7 @@ subroutine read_pos(iunit,whichone,nat,pos,nrep)
   use BigDFT_API
   use module_interfaces
   use m_ab6_symmetry
+  use module_atoms, only: deallocate_atomic_structure,set_astruct_from_file
   implicit none
   character(len=1), intent(in) :: whichone
   integer, intent(in) :: iunit,nat,nrep
@@ -437,9 +439,9 @@ subroutine read_pos(iunit,whichone,nat,pos,nrep)
   else if (whichone == 'B') then
      !use the BigDFT call with iunit to control the posout
      write(fn4,'(i5.5)') iunit
-     call read_atomic_file('posmd_'//fn4,0,atoms%astruct)
-     call allocate_atoms_nat(atoms, subname)
-     call allocate_atoms_ntypes(atoms, subname)
+     call set_astruct_from_file('posmd_'//fn4,0,atoms%astruct)
+     call allocate_atoms_nat(atoms)
+     call allocate_atoms_ntypes(atoms)
      !transform the positions in reduced coordinates
      alat(1) = atoms%astruct%cell_dim(1)
      if (atoms%astruct%geocode == 'F') alat(1) = 1.d0
@@ -452,7 +454,7 @@ subroutine read_pos(iunit,whichone,nat,pos,nrep)
         pos(2,iat)=atoms%astruct%rxyz(2,iat)/alat(2)
         pos(3,iat)=atoms%astruct%rxyz(3,iat)/alat(3)
      enddo
-     call deallocate_atomic_structure(atoms%astruct, 'distance')
+     call deallocate_atomic_structure(atoms%astruct)
   end if
 
   !replica of the atom positions

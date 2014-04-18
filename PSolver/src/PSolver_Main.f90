@@ -356,11 +356,11 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       !call f_timing(TCAT_PSOLV_COMPUT,'ON')
 
       eh=ehartreeLOC
-      call mpiallred(eh,1,MPI_SUM,kernel%mpi_env%mpi_comm,ierr)
+      call mpiallred(eh,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
       !reduce also the value of the stress tensor
    
       if (present(stress_tensor)) then
-         call mpiallred(stress_tensor(1),6,MPI_SUM,kernel%mpi_env%mpi_comm,ierr)
+         call mpiallred(stress_tensor(1),6,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
       end if
    
       !call timing(kernel%mpi_env%iproc,'PSolv_commun  ','OF')

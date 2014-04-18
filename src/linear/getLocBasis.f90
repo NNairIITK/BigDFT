@@ -602,7 +602,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                & potential=denspot%rhov,comgp=tmb%ham_descr%comgp,&
                hpsi_noconf=hpsi_noconf,econf=econf)
           if (nproc>1) then
-              call mpiallred(econf, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+              call mpiallred(econf, 1, mpi_sum, bigdft_mpi%mpi_comm)
           end if
       else
           call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
@@ -1146,7 +1146,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       reducearr(1)=reducearr(1)+alpha(iorb)
       reducearr(2)=reducearr(2)+alphaDIIS(iorb)
   end do
-  call mpiallred(reducearr(1), 2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(reducearr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
   reducearr(1)=reducearr(1)/dble(tmb%orbs%norb)
   reducearr(2)=reducearr(2)/dble(tmb%orbs%norb)
 
@@ -2045,7 +2045,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   if (nproc>1) then
       call timing(iproc,'renormCoefCom1','OF')
       call timing(iproc,'renormCoefComm','ON')
-      call mpiallred(ovrlp_coeff(1,1), norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(ovrlp_coeff(1,1), norb**2, mpi_sum, bigdft_mpi%mpi_comm)
       call timing(iproc,'renormCoefComm','OF')
       call timing(iproc,'renormCoefCom1','ON')
   end if
@@ -2094,7 +2094,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
      end if
 
      if (nproc>1) then
-         call mpiallred(coeff_tmp(1,1), basis_orbs%norb*orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+         call mpiallred(coeff_tmp(1,1), basis_orbs%norb*orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
      end if
      call vcopy(basis_orbs%norb*orbs%norb,coeff_tmp(1,1),1,coeff(1,1),1)
   else
@@ -2189,7 +2189,7 @@ subroutine estimate_energy_change(npsidim_orbs, orbs, lzd, psidiff, hpsi_nopreco
       delta_energy=delta_energy+4.0d0*tt
       ist=ist+ncount
   end do
-  call mpiallred(delta_energy, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(delta_energy, 1, mpi_sum, bigdft_mpi%mpi_comm)
 
 end subroutine estimate_energy_change
 
@@ -2319,7 +2319,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
                      ksksk, tmb%orbs%norb, &
                      0.d0, kernel_prime(1,tmb%orbs%isorb+1), tmb%orbs%norb) 
       end if
-      call mpiallred(kernel_prime(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(kernel_prime(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
 
@@ -2356,7 +2356,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
                          ksksk, tmb%orbs%norb, &
                          0.d0, tmb%linmat%denskern_large%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb) 
           end if
-          call mpiallred(tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          call mpiallred(tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
       end if
 
 
@@ -2369,7 +2369,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
                          tmb%linmat%ovrlp%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
                          0.d0, ks(1,tmb%orbs%isorb+1), tmb%orbs%norb) 
           end if
-          call mpiallred(ks(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          call mpiallred(ks(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
           if (tmb%orbs%norbp>0) then
               call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
                          1.d0, ks(1,1), tmb%orbs%norb, &
@@ -2403,7 +2403,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
           chargediff=2.d0*tr_KS-tmb%foe_obj%charge
 
-          call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm)
           diff=sqrt(diff)
           if (iproc==0) then
               call yaml_newline()
@@ -2427,7 +2427,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
                   !                                                                     +2.d0*k(jorb,iorb) )
               end do
           end do
-          call mpiallred(tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          call mpiallred(tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
 
           if (diff<1.d-10) exit
 
@@ -2602,19 +2602,19 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
            tmb%orbs%norb, tmb%linmat%ham%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
            0.d0, KH(1,tmb%orbs%isorb+1), tmb%orbs%norb)
   end if
-  call mpiallred(KH(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(KH(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
   if (tmb%orbs%norbp>0) then
       call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, scale_factor, KH, &
            tmb%orbs%norb, KH(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
            0.d0, KHKH(1,tmb%orbs%isorb+1), tmb%orbs%norb)
   end if
-  call mpiallred(KHKH(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(KHKH(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
   if (tmb%orbs%norbp>0) then
       call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.0d0, tmb%linmat%denskern_large%matrix, &
            tmb%orbs%norb, gradmat%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
            0.d0, Kgrad(1,tmb%orbs%isorb+1), tmb%orbs%norb)
   end if
-  call mpiallred(Kgrad(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(Kgrad(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
   !!if (iproc==0) then
   !!  do iorb=1,tmb%orbs%norb
   !!    do jorb=1,tmb%orbs%norb
@@ -2704,7 +2704,7 @@ subroutine check_idempotency(iproc, nproc, tmb, diff)
                  tmb%linmat%ovrlp%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
                  0.d0, ks(1,tmb%orbs%isorb+1), tmb%orbs%norb) 
   end if
-  call mpiallred(ks(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(ks(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
   if (tmb%orbs%norbp>0) then
       call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
                  1.d0, ks(1,1), tmb%orbs%norb, &
@@ -2733,7 +2733,7 @@ subroutine check_idempotency(iproc, nproc, tmb, diff)
           end do
       end do
   end do
-  call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm)
   diff=sqrt(diff)
 
 
