@@ -566,8 +566,12 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
           if (power==1) then
               call dgemm('n', 'n', norb, norbp, norb, 1.0d0, Amat21(1,1), &
                    norb, Amat21p(1,1), norb, 0.0d0, Amat12p(1,1), norb)
-              call mpi_allgatherv(Amat12p, norb*norbp, mpi_double_precision, inv_ovrlp, &
-                   norb*orbs%norb_par(:,0), norb*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+              if (nproc>1) then
+                  call mpi_allgatherv(Amat12p, norb*norbp, mpi_double_precision, inv_ovrlp, &
+                       norb*orbs%norb_par(:,0), norb*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+              else
+                  call vcopy(norb**2, Amat12p(1,1), 1, inv_ovrlp(1,1), 1)
+              end if
           !else if (power==2) then
           !   call vcopy(norb**2,Amat12(1,1),1,inv_ovrlp(1,1),1)
           else if (power==-2) then
@@ -720,6 +724,9 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
 
           ! calculate Xn+1=0.5*Xn*(3I-Xn**2)
           do its=1,abs(iorder)
+          !!write(*,*) 'Amat12_seq',Amat12_seq
+          !!write(*,*) 'Amat21p',Amat21p
+          !!write(*,*) 'Amat11p',Amat11p
               call sparsemm(inv_ovrlp_smat, Amat12_seq, Amat21p, Amat11p)
               !call sparsemm(inv_ovrlp_smat%smmm%nseq, Amat21_seq, Amat12p, Amat22p, &
               !     norb, norbp, inv_ovrlp_smat%smmm%ivectorindex, &

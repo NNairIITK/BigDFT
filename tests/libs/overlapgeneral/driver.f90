@@ -194,7 +194,8 @@ program driver
           if (timer_on) call cpu_time(tr0)
           if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
           call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, &
-               imode, check_accur=.true., ovrlp=smat_A%matrix, inv_ovrlp=smat_B%matrix, error=error)
+               imode, ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, check_accur=.true., &
+               ovrlp=smat_A%matrix, inv_ovrlp=smat_B%matrix, error=error)
           if (timer_on) call cpu_time(tr1)
           if (timer_on) call system_clock(ncount2,ncount_rate,ncount_max)
           if (timer_on) time=real(tr1-tr0,kind=8)
@@ -206,8 +207,8 @@ program driver
           if (timer_on) call cpu_time(tr0)
           if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
           call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, &
-               imode, check_accur=.true., error=error, &
-               ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B)!!, &
+               imode, ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, &
+               check_accur=.true., error=error)
                !!foe_nseg=smat_A%nseg, foe_kernel_nsegline=smat_A%nsegline, &
                !!foe_istsegline=smat_A%istsegline, foe_keyg=smat_A%keyg)
            !if (iorder==0) call compress_matrix(iproc, smat_B)
