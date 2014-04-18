@@ -490,8 +490,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
      if (in%check_matrix_compression) then
          if (iproc==0) call yaml_open_map('Checking Compression/Uncompression of small sparse matrices')
-         call check_matrix_compression(iproc,tmb%linmat%ham)
-         call check_matrix_compression(iproc,tmb%linmat%ovrlp)
+         !call check_matrix_compression(iproc,tmb%linmat%ham)
+         !call check_matrix_compression(iproc,tmb%linmat%ovrlp)
+         call check_matrix_compression(iproc, tmb%linmat%m, tmb%linmat%ham_)
+         call check_matrix_compression(iproc, tmb%linmat%s, tmb%linmat%ovrlp_)
          if (iproc ==0) call yaml_close_map()
      end if
 
@@ -521,7 +523,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
      if (in%check_matrix_compression) then
          if (iproc==0) call yaml_open_map('Checking Compression/Uncompression of large sparse matrices')
-         call check_matrix_compression(iproc,tmb%linmat%denskern_large)
+         !call check_matrix_compression(iproc,tmb%linmat%denskern_large)
+         call check_matrix_compression(iproc, tmb%linmat%l, tmb%linmat%kernel_)
          if (iproc ==0) call yaml_close_map()
      end if
 

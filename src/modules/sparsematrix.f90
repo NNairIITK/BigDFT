@@ -173,11 +173,12 @@ module sparsematrix
 
 
 
-    subroutine check_matrix_compression(iproc,sparsemat)
+    subroutine check_matrix_compression(iproc, sparsemat, mat)
       use yaml_output
       implicit none
       integer,intent(in) :: iproc
       type(sparse_matrix),intent(inout) :: sparsemat
+      type(matrices),intent(inout) :: mat
       !Local variables
       integer :: i_stat, i_all, jorb, irow, icol, iseg, ii
       character(len=*),parameter :: subname='check_matrix_compression'
@@ -186,26 +187,25 @@ module sparsematrix
     
       call f_routine('check_matrix_compression')
     
-      sparsemat%matrix=f_malloc_ptr((/sparsemat%nfvctr,sparsemat%nfvctr/),id='sparsemat%matrix')
-      !!sparsemat%matrix_compr=f_malloc_ptr(sparsemat%nvctr,id='sparsemat%matrix_compr')
+      mat%matrix = sparsematrix_malloc_ptr(sparsemat, iaction=DENSE_FULL, id='mat%matrix')
     
-      call to_zero(sparsemat%nfvctr**2,sparsemat%matrix(1,1))
+      call to_zero(sparsemat%nfvctr**2,mat%matrix(1,1))
       do iseg = 1, sparsemat%nseg
          do jorb = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
             call get_indices(jorb,irow,icol)
             !print *,'irow,icol',irow, icol,test_value_matrix(sparsemat%nfvctr, irow, icol)
-            sparsemat%matrix(irow,icol) = test_value_matrix(sparsemat%nfvctr, irow, icol)
+            mat%matrix(irow,icol) = test_value_matrix(sparsemat%nfvctr, irow, icol)
          end do
       end do
       
-      call compress_matrix(iproc,sparsemat)
+      call compress_matrix(iproc, sparsemat, inmat=mat%matrix, outmat=mat%matrix_compr)
     
       maxdiff = 0.d0
       do iseg = 1, sparsemat%nseg
          ii=0
          do jorb = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
             call get_indices(jorb,irow,icol)
-            maxdiff = max(abs(sparsemat%matrix_compr(sparsemat%keyv(iseg)+ii)&
+            maxdiff = max(abs(mat%matrix_compr(sparsemat%keyv(iseg)+ii)&
                  -test_value_matrix(sparsemat%nfvctr, irow, icol)),maxdiff)
             ii=ii+1
          end do
@@ -221,13 +221,13 @@ module sparsematrix
         end if
       end if
     
-      call uncompress_matrix(iproc,sparsemat)
+      call uncompress_matrix(iproc, sparsemat, inmat=mat%matrix_compr, outmat=mat%matrix)
     
       maxdiff = 0.d0
       do iseg = 1, sparsemat%nseg
          do jorb = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
             call get_indices(jorb,irow,icol)
-            maxdiff = max(abs(sparsemat%matrix(irow,icol)-test_value_matrix(sparsemat%nfvctr, irow, icol)),maxdiff) 
+            maxdiff = max(abs(mat%matrix(irow,icol)-test_value_matrix(sparsemat%nfvctr, irow, icol)),maxdiff) 
          end do
       end do
     
@@ -239,7 +239,7 @@ module sparsematrix
         end if
       end if
     
-      call f_free_ptr(sparsemat%matrix)
+      call f_free_ptr(mat%matrix)
       !!call f_free_ptr(sparsemat%matrix_compr)
 
       call f_release_routine()
