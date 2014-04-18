@@ -2575,8 +2575,6 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   call uncompress_matrix(iproc,tmb%linmat%denskern_large)
   KH=f_malloc0((/tmb%orbs%norb,tmb%orbs%norb/),id='KH')
   KHKH=f_malloc0((/tmb%orbs%norb,tmb%orbs%norb/),id='KHKH')
-  Kgrad=f_malloc0((/tmb%orbs%norb,tmb%orbs%norb/),id='Kgrad')
-
 
   ! scale_factor takes into account the occupancies which are present in the kernel
   if (KSorbs%nspin==1) then
@@ -2608,6 +2606,8 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
            0.d0, KHKH(1,tmb%orbs%isorb+1), tmb%orbs%norb)
   end if
   call mpiallred(KHKH(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call f_free(KH)
+  Kgrad=f_malloc0((/tmb%orbs%norb,tmb%orbs%norb/),id='Kgrad')
   if (tmb%orbs%norbp>0) then
       call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.0d0, tmb%linmat%denskern_large%matrix, &
            tmb%orbs%norb, gradmat%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
@@ -2657,7 +2657,7 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   call f_free_ptr(gradmat%matrix_compr)
   call deallocate_sparse_matrix(gradmat, subname)
 
-  call f_free(KH)
+
   call f_free(KHKH)
   call f_free(Kgrad)
 
