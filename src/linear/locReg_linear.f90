@@ -386,7 +386,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
   ! This communication is uneffective. Instead of using bcast we should be using mpialltoallv.
   call timing(iproc,'comm_llr      ','ON')
   if (nproc > 1) then
-     call mpiallred(rootarr(1), nlr, mpi_min, bigdft_mpi%mpi_comm, ierr)
+     call mpiallred(rootarr(1), nlr, mpi_min, bigdft_mpi%mpi_comm)
      
      ! Communicate those parts of the locregs that all processes need.
      call communicate_locreg_descriptors_basics(iproc, nlr, rootarr, orbs, llr)
