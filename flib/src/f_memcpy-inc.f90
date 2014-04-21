@@ -41,7 +41,6 @@ subroutine f_memcpy_d0(dest,src,n)
   include 'f_memcpy-base-inc.f90'
 end subroutine f_memcpy_d0
 
-
 subroutine f_memcpy_r0(dest,src,n)
   implicit none
   integer, intent(in) :: n !<nelems

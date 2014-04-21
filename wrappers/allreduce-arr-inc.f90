@@ -1,17 +1,29 @@
 !> @file
-!! Include fortran file for allreduce operations
+!! Include fortran file for allreduce operations for arrays
 !! @author
 !!    Copyright (C) 2012-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-  integer, intent(in) :: op,count
+  integer, intent(in) :: op
   integer, intent(in), optional :: comm
   !local variables
   logical :: in_place
   integer :: tcat,ierr,ntot,ntotrecv,mpi_comm
-  ntot=count
+
+  ntot=size(sendbuf)
+  if (present(recvbuf)) then
+     ntotrecv=size(recvbuf)
+  else
+     ntotrecv=ntot
+  end if
+  if (ntot /= ntotrecv) then
+     call f_err_throw('Error in allreduce; the size of send ('//trim(yaml_toa(ntot))//&
+          ') and of receive buffer ('//trim(yaml_toa(ntotrecv))//&
+          ') does not coincide',err_id=ERR_MPI_WRAPPERS)
+     return
+  end if
 
   if (ntot <= 0) return
   in_place=have_mpi2 .and. .not. present(recvbuf)
@@ -36,8 +48,7 @@
      call f_timer_resume()
   else
      !case without mpi_in_place
-     copybuf = f_malloc(ntot,id='copybuf')
-     call f_memcpy(src=sendbuf,dest=copybuf(1),n=ntot)
+     copybuf = f_malloc(src=sendbuf,id='copybuf')
      call f_timer_interrupt(tcat)
      call MPI_ALLREDUCE(copybuf,sendbuf,ntot,&
           mpitype(sendbuf),op,mpi_comm,ierr)

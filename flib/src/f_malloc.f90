@@ -105,6 +105,7 @@ module module_f_malloc
      module procedure f_malloc_bounds,f_malloc_bound
      !here also the procedures for the copying of arrays have to be defined
      module procedure f_malloc_i2
+     module procedure f_malloc_d1,f_malloc_d2
   end interface
 
   interface f_malloc0
@@ -461,7 +462,6 @@ contains
     m%put_to_zero=.true.
   end function f_malloc0_str_ptr
 
-  !> Define the allocation information for  arrays of different rank
   function f_malloc_i2(src,id,routine_id,profile) result(m)
     implicit none
     integer, dimension(:,:), intent(in) :: src
@@ -470,7 +470,23 @@ contains
     include 'f_malloc-inc.f90'
   end function f_malloc_i2
 
-  !> Define the allocation information for  arrays of different rank
+  function f_malloc_d1(src,id,routine_id,profile) result(m)
+    implicit none
+    double precision, dimension(:), intent(in) :: src
+    type(malloc_information_all) :: m
+    include 'f_malloc-base-inc.f90'
+    include 'f_malloc-inc.f90'
+  end function f_malloc_d1
+
+  function f_malloc_d2(src,id,routine_id,profile) result(m)
+    implicit none
+    double precision, dimension(:,:), intent(in) :: src
+    type(malloc_information_all) :: m
+    include 'f_malloc-base-inc.f90'
+    include 'f_malloc-inc.f90'
+  end function f_malloc_d2
+
+
   function f_malloc_ptr_i2(src,id,routine_id,profile) result(m)
     implicit none
     integer, dimension(:,:), intent(in) :: src
