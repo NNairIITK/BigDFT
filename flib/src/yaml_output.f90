@@ -365,7 +365,8 @@ contains
        end if
        if (ierr == 0 .and. .not. unit_is_open) then
           !inquire the record length for the unit
-          inquire(unit=unt,recl=recl_file)
+          !this line crashes on Mira!
+          !inquire(unit=unt,recl=recl_file)
           call set(stream_files // trim(filename), trim(yaml_toa(unt)))
        end if
     end if
@@ -408,10 +409,11 @@ contains
        if (tabbing==0) streams(active_streams)%pp_allowed=.false.
     end if
     !protect the record length to be lower than the maximum allowed by the processor
-    if (present(record_length)) then
-       if (recl_file<=0) recl_file=record_length
-       streams(active_streams)%max_record_length=min(record_length,recl_file)
-    end if
+    !commented for Mira
+    !if (present(record_length)) then
+    !   if (recl_file<=0) recl_file=record_length
+    !   streams(active_streams)%max_record_length=min(record_length,recl_file)
+    !end if
   end subroutine yaml_set_stream
 
 

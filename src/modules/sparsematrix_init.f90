@@ -789,11 +789,14 @@ module sparsematrix_init
     
       !most equal distribution, but want corresponding to norbp for second column
 
-
       do jproc=0,nproc-1
           jst_line = sparsemat%isfvctr_par(jproc)+1
-          jst_seg = sparsemat%istsegline(jst_line)
-          sparsemat%isvctr_par(jproc) = sparsemat%keyv(jst_seg)-1
+          if (sparsemat%nfvctr_par(jproc)==0) then
+             sparsemat%isvctr_par(jproc) = sparsemat%nvctr
+          else
+             jst_seg = sparsemat%istsegline(jst_line)
+             sparsemat%isvctr_par(jproc) = sparsemat%keyv(jst_seg)-1
+          end if
       end do
       do jproc=0,nproc-1
          if (jproc==nproc-1) then

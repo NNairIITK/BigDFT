@@ -145,9 +145,6 @@ contains
     character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
     real(kind=gp) :: error
 
-    ! needs parallelizing/converting to sparse
-    ! re-use overlap matrix if possible either before or after
-
     call f_routine(id='calculate_weight_matrix_lowdin')
 
     if (calculate_overlap_matrix) then
@@ -182,7 +179,6 @@ contains
        call f_free_ptr(tmb%linmat%ovrlp%matrix)
     end if
 
-    ! optimize this to just change the matrix multiplication?
     proj_mat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='proj_mat')
 
     call to_zero(tmb%orbs%norb**2,proj_mat(1,1))
