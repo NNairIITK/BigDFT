@@ -568,9 +568,9 @@ module module_types
   type, public :: local_zone_descriptors
      logical :: linear                         !< if true, use linear part of the code
      integer :: nlr                            !< Number of localization regions 
-     integer :: lintyp                         !< if 0 cubic, 1 locreg and 2 TMB
-     integer :: ndimpotisf                      !< total dimension of potential in isf (including exctX)
-     real(gp), dimension(3) :: hgrids          !<grid spacings of wavelet grid
+     integer :: lintyp                         !< If 0 cubic, 1 locreg and 2 TMB
+     integer :: ndimpotisf                     !< Total dimension of potential in isf (including exctX)
+     real(gp), dimension(3) :: hgrids          !< Grid spacings of wavelet grid
      type(locreg_descriptors) :: Glr           !< Global region descriptors
      type(locreg_descriptors), dimension(:), pointer :: Llr                !< Local region descriptors (dimension = nlr)
   end type local_zone_descriptors
@@ -869,84 +869,78 @@ module module_types
 
   !> Used to store results of a DFT calculation.
   type, public :: DFT_global_output
-     real(gp) :: energy, fnoise, pressure
-     type(energy_terms) :: energs
+     real(gp) :: energy, fnoise, pressure      !< Total energy, noise over forces and pressure
+     type(energy_terms) :: energs              !< All energy terms
      integer :: fdim                           !< Dimension of allocated forces (second dimension)
-     real(gp), dimension(:,:), pointer :: fxyz
-     real(gp), dimension(6) :: strten
+     real(gp), dimension(:,:), pointer :: fxyz !< Atomic forces
+     real(gp), dimension(6) :: strten          !< Stress Tensor
   end type DFT_global_output
 
-!> type paw_ij_objects
-
- type paw_ij_objects
-
-!Integer scalars
-
-  integer :: cplex
-   ! cplex=1 if all on-site PAW quantities are real, 2 if they are complex
-   ! cplex=2 is useful for RF calculations
-
-  integer :: cplex_dij
-   ! cplex=1 if dij are real, 2 if they are complex
-
-  !!!!$integer :: has_dijexxcore !> does this makes sense?
-   ! 1 if dijexxcore is allocated
-   ! 2 if dijexxcore is already computed
-
-  integer :: has_dij
-   ! 1 if dij is allocated
-   ! 2 if dij is already computed
-
-  integer :: has_dijfr
-   ! 1 if dijfr is allocated
-   ! 2 if dijfr is already computed
-
-  integer :: has_dijhartree
-   ! 1 if dijhartree is allocated
-   ! 2 if dijhartree is already computed
-
-  integer :: has_dijhat
-   ! 1 if dijhat is allocated
-   ! 2 if dijhat is already computed
-
-  integer :: has_dijso
-   ! 1 if dijso is associated and used, 0 otherwise
-   ! 2 if dijso is already computed
-
-  integer :: has_dijU
-   ! 1 if dijU is associated and used, 0 otherwise
-   ! 2 if dijU is already computed
-
-  integer :: has_dijxc
-   ! 1 if dijxc is associated and used, 0 otherwise
-   ! 2 if dijxc is already computed
-
-  integer :: has_dijxc_val
-   ! 1 if dijxc_val is associated and used, 0 otherwise
-   ! 2 if dijxc_val is already computed
-
-  integer :: has_exexch_pot
-   ! 1 if PAW+(local exact exchange) potential is allocated
-
-  integer :: has_pawu_occ
-   ! 1 if PAW+U occupations are allocated
-
-  integer :: lmn_size
-   ! Number of (l,m,n) elements for the paw basis
-
-  integer :: lmn2_size
-   ! lmn2_size=lmn_size*(lmn_size+1)/2
-   ! where lmn_size is the number of (l,m,n) elements for the paw basis
-
-  integer :: ndij
-   ! Number of components of dij
-   ! Usually ndij=nspden, except for nspinor==2 (where ndij=nspinor**2)
-
-  integer :: nspden
-   ! Number of spin-density components (may be different from dtset%nspden if spin-orbit)
-
-  integer :: nsppol
-   ! Number of independant spin-components
+  !> type paw_ij_objects
+  type paw_ij_objects
+     !Integer scalars
+     !> cplex=1 if all on-site PAW quantities are real, 2 if they are complex
+     !! cplex=2 is useful for RF calculations
+     integer :: cplex
+     !> cplex=1 if dij are real, 2 if they are complex
+     integer :: cplex_dij
+     !!!!$integer :: has_dijexxcore !> does this makes sense?
+     ! 1 if dijexxcore is allocated
+     ! 2 if dijexxcore is already computed
+     !> 1 if dij is allocated
+     !! 2 if dij is already computed
+     integer :: has_dij
+   
+    integer :: has_dijfr
+     ! 1 if dijfr is allocated
+     ! 2 if dijfr is already computed
+   
+    integer :: has_dijhartree
+     ! 1 if dijhartree is allocated
+     ! 2 if dijhartree is already computed
+   
+    integer :: has_dijhat
+     ! 1 if dijhat is allocated
+     ! 2 if dijhat is already computed
+   
+    integer :: has_dijso
+     ! 1 if dijso is associated and used, 0 otherwise
+     ! 2 if dijso is already computed
+   
+    integer :: has_dijU
+     ! 1 if dijU is associated and used, 0 otherwise
+     ! 2 if dijU is already computed
+   
+    integer :: has_dijxc
+     ! 1 if dijxc is associated and used, 0 otherwise
+     ! 2 if dijxc is already computed
+   
+    integer :: has_dijxc_val
+     ! 1 if dijxc_val is associated and used, 0 otherwise
+     ! 2 if dijxc_val is already computed
+   
+    integer :: has_exexch_pot
+     ! 1 if PAW+(local exact exchange) potential is allocated
+   
+    integer :: has_pawu_occ
+     ! 1 if PAW+U occupations are allocated
+   
+    integer :: lmn_size
+     ! Number of (l,m,n) elements for the paw basis
+   
+    integer :: lmn2_size
+     ! lmn2_size=lmn_size*(lmn_size+1)/2
+     ! where lmn_size is the number of (l,m,n) elements for the paw basis
+   
+    integer :: ndij
+     ! Number of components of dij
+     ! Usually ndij=nspden, except for nspinor==2 (where ndij=nspinor**2)
+   
+    integer :: nspden
+     ! Number of spin-density components (may be different from dtset%nspden if spin-orbit)
+   
+    integer :: nsppol
+     ! Number of independant spin-components
 
 !Real (real(dp)) arrays
 
