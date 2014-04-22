@@ -1000,7 +1000,9 @@ contains
     nstates_max,cdft)
     use yaml_output
     use module_base
+    use module_interfaces
     use communications, only: transpose_localized
+    use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
     use sparsematrix, only: uncompress_matrix
     implicit none
     type(DFT_wavefunction), intent(inout) :: tmb
@@ -1139,8 +1141,8 @@ contains
     jsforb=0
     call to_zero(tmb%orbs%norb*tmb%orbs%norb,coeff_final(1,1))
     !*call to_zero(tmb%linmat%denskern%nvctr,kernel_final(1))
-    tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%ovrlp%matrix')
-    call uncompress_matrix(iproc,tmb%linmat%ovrlp)
+    !!tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%ovrlp%matrix')
+    !!call uncompress_matrix(iproc,tmb%linmat%ovrlp)
     do ifrag=1,input%frag%nfrag
        ! find reference fragment this corresponds to
        ifrag_ref=input%frag%frag_index(ifrag)
@@ -1205,10 +1207,13 @@ contains
        ! don't worry about this for now
 
        ! reorthonormalize the coeffs for each fragment - don't need unoccupied states here
+       tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, &
+                                  iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
        call reorthonormalize_coeff(bigdft_mpi%iproc, bigdft_mpi%nproc, &
             ceiling((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp), &
             tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, tmb%orthpar%methTransformOverlap,&
-            tmb%orbs, tmb%linmat%ovrlp, tmb%coeff, ksorbs)
+            tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%ovrlp_, tmb%coeff, ksorbs)
+       call f_free_ptr(tmb%linmat%ovrlp_%matrix)
 
        !! debug
        !!output final kernel
@@ -1241,7 +1246,7 @@ contains
        isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
        jsforb=jsforb+ceiling(jstate_max)
     end do
-    call f_free_ptr(tmb%linmat%ovrlp%matrix)
+    !!call f_free_ptr(tmb%linmat%ovrlp%matrix)
 
     !*call vcopy(tmb%linmat%denskern%nvctr,kernel_final(1),1,tmb%linmat%denskern%matrix_compr(1),1)
     call vcopy(tmb%orbs%norb*tmb%orbs%norb,coeff_final(1,1),1,tmb%coeff(1,1),1)

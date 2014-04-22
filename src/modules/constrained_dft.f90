@@ -128,7 +128,8 @@ contains
        calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap,ovrlp_half)
     use module_fragments
     use communications, only: transpose_localized
-    use sparsematrix_base, only: sparse_matrix
+    use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, &
+                                 DENSE_FULL, assignment(=)
     use sparsematrix, only: compress_matrix, uncompress_matrix
     implicit none
     type(sparse_matrix), intent(inout) :: weight_matrix
@@ -170,16 +171,15 @@ contains
     end if   
 
     if (calculate_ovrlp_half) then
-       tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='tmb%linmat%ovrlp%matrix')
+       tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
        call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%ovrlp)
        ! Maybe not clean here to use twice tmb%linmat%ovrlp, but it should not
        ! matter as dense is used
-       write(*,*) 'associated(tmb%linmat%ovrlp%matrix)', associated(tmb%linmat%ovrlp%matrix)
        call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 2, &
             tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%orbs, &
             imode=2, ovrlp_smat=tmb%linmat%ovrlp, inv_ovrlp_smat=tmb%linmat%ovrlp, &
-            check_accur=.true., ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=ovrlp_half, error=error)
-       call f_free_ptr(tmb%linmat%ovrlp%matrix)
+            check_accur=.true., ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=ovrlp_half, error=error)
+       call f_free_ptr(tmb%linmat%ovrlp_%matrix)
     end if
 
     proj_mat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='proj_mat')

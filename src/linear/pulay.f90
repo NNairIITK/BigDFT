@@ -144,12 +144,12 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
     subroutine construct_chi()
 
       tempmat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='tempmat')
-      tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
+      tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
       call uncompress_matrix(iproc,tmb%linmat%ovrlp)
       call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, &
-                 tmb%linmat%ovrlp%matrix, tmb%orbs%norb, energykernel, tmb%orbs%norb, &
+                 tmb%linmat%ovrlp_%matrix, tmb%orbs%norb, energykernel, tmb%orbs%norb, &
                  0.d0, tempmat, tmb%orbs%norb)
-      call f_free_ptr(tmb%linmat%ovrlp%matrix)
+      call f_free_ptr(tmb%linmat%ovrlp_%matrix)
       isize=sum(tmb%ham_descr%collcom%nrecvcounts_c)
       hphit_c=f_malloc(isize,id='hphit_c')
       isize=7*sum(tmb%ham_descr%collcom%nrecvcounts_f)
