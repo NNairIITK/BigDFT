@@ -253,7 +253,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                       iismall_ovrlp = matrixindex_in_compressed(tmb%linmat%ovrlp, irow, icol)
                       iismall_ham = matrixindex_in_compressed(tmb%linmat%ham, irow, icol)
                       if (iismall_ovrlp>0) then
-                          tt_ovrlp=tmb%linmat%ovrlp%matrix_compr(iismall_ovrlp)
+                          tt_ovrlp=tmb%linmat%ovrlp_%matrix_compr(iismall_ovrlp)
                       else
                           tt_ovrlp=0.d0
                       end if
@@ -263,8 +263,6 @@ subroutine foe(iproc, nproc, tmprtr, &
                           tt_ham=0.d0
                       end if
                       hamscal_compr(ii)=scale_factor*(tt_ham-shift_value*tt_ovrlp)
-                      !hamscal_compr(ii)=scale_factor*(ham%matrix_compr(ii)-shift_value*tt)
-                      !hamscal_compr(ii)=scale_factor*(ham%matrix_compr(ii)-shift_value*tmb%linmat%ovrlp%matrix_compr(iismall))
                   end do
                   !$omp end do
                   !$omp end parallel
@@ -462,7 +460,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                               jjorb = jorb - (iiorb-1)*tmb%orbs%norb
                               iismall = matrixindex_in_compressed(tmb%linmat%ovrlp, iiorb, jjorb)
                               if (iismall>0) then
-                                  tt=tmb%linmat%ovrlp%matrix_compr(iismall)
+                                  tt=tmb%linmat%ovrlp_%matrix_compr(iismall)
                               else
                                   tt=0.d0
                               end if
@@ -876,7 +874,7 @@ subroutine foe(iproc, nproc, tmprtr, &
     
     
       ! Calculate trace(KS).
-      tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
+      !tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
       sumn = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%l, &
              tmb%linmat%ovrlp_, tmb%linmat%kernel_)
 
@@ -955,15 +953,16 @@ subroutine foe(iproc, nproc, tmprtr, &
         subroutine overlap_minus_onehalf()
           ! Taylor approximation of S^-1/2 up to higher order
           if (imode==DENSE) then
-              allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-              call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
-              call uncompress_matrix(iproc,tmb%linmat%ovrlp)
+              tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, &
+                                         id='tmb%linmat%ovrlp_%matrix')
+              call uncompress_matrix(iproc, tmb%linmat%s, &
+                   inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
 
               tmb%linmat%inv_ovrlp_large%matrix=sparsematrix_malloc_ptr(tmb%linmat%inv_ovrlp_large, &
                                                 iaction=DENSE_FULL, id='tmb%linmat%inv_ovrlp_large%matrix')
               call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, tmb%orbs, &
                    imode=2, ovrlp_smat=tmb%linmat%ovrlp, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, &
-                   check_accur=.true., ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=tmb%linmat%inv_ovrlp_large%matrix, &
+                   check_accur=.true., ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=tmb%linmat%inv_ovrlp_large%matrix, &
                    error=error)
               call compress_matrix(iproc,tmb%linmat%inv_ovrlp_large)
           end if
@@ -985,9 +984,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           if (imode==DENSE) then
               call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix)
 
-              iall=-product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
-              deallocate(tmb%linmat%ovrlp%matrix,stat=istat)
-              call memocc(istat,iall,'tmb%linmat%ovrlp%matrix',subname)
+              call f_free_ptr(tmb%linmat%ovrlp_%matrix)
           end if
       end subroutine overlap_minus_onehalf
 
