@@ -2319,7 +2319,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
 
 
   tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
-  tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large, &
+  tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%l, &
         tmb%linmat%ovrlp_, tmb%linmat%kernel_)
   if (iproc==0) then
       call yaml_map('tr(KS) before purification',tr_KS)
@@ -2419,14 +2419,14 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           diff=0.d0
           do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
               iiorb=iorb-tmb%orbs%isorb
-              jsegstart=tmb%linmat%denskern_large%istsegline(iorb)
+              jsegstart=tmb%linmat%l%istsegline(iorb)
               if (iorb<tmb%orbs%norb) then
-                  jsegend=tmb%linmat%denskern_large%istsegline(iorb+1)-1
+                  jsegend=tmb%linmat%l%istsegline(iorb+1)-1
               else
-                  jsegend=tmb%linmat%denskern_large%nseg
+                  jsegend=tmb%linmat%l%nseg
               end if
               do jseg=jsegstart,jsegend
-                  do jorb=tmb%linmat%denskern_large%keyg(1,jseg),tmb%linmat%denskern_large%keyg(2,jseg)
+                  do jorb=tmb%linmat%l%keyg(1,jseg),tmb%linmat%l%keyg(2,jseg)
                       jjorb=jorb-(iorb-1)*tmb%orbs%norb
                       diff = diff + (ksk(jjorb,iiorb)-tmb%linmat%kernel_%matrix(jjorb,iorb))**2
                   end do
@@ -2436,7 +2436,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           call compress_matrix(iproc,tmb%linmat%l, &
                inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
           tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
-          tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large, &
+          tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%l, &
                 tmb%linmat%ovrlp_, tmb%linmat%kernel_)
           chargediff=2.d0*tr_KS-tmb%foe_obj%charge
 
@@ -2453,15 +2453,11 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
               call yaml_close_map()
           end if
 
-          !call vcopy(tmb%orbs%norb*tmb%orbs%norbp, tmb%linmat%denskern_large%matrix(1,tmb%orbs%isorb+1), 1, k(1,1), 1)
           call to_zero(tmb%orbs%norb**2, tmb%linmat%kernel_%matrix(1,1))
           do iorb=1,tmb%orbs%norbp
               iiorb=iorb+tmb%orbs%isorb
               do jorb=1,tmb%orbs%norb
                   tmb%linmat%kernel_%matrix(jorb,iiorb) = 3.d0*ksk(jorb,iorb) - 2.d0*ksksk(jorb,iorb)
-                  !tmb%linmat%denskern_large%matrix(jorb,iiorb) = k(jorb,iorb) - alpha*( 4.d0*ksksk(jorb,iorb) &
-                  !                                                                     -6.d0*ksk(jorb,iorb) &
-                  !                                                                     +2.d0*k(jorb,iorb) )
               end do
           end do
           call mpiallred(tmb%linmat%kernel_%matrix(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -2473,7 +2469,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
       call compress_matrix(iproc,tmb%linmat%l, &
            inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
       tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
-      tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large, &
+      tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%l, &
             tmb%linmat%ovrlp_, tmb%linmat%kernel_)
       chargediff=2.d0*tr_KS-tmb%foe_obj%charge
 
@@ -2531,7 +2527,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   call compress_matrix(iproc, tmb%linmat%l, inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
 
   tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
-  tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large, &
+  tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%l, &
         tmb%linmat%ovrlp_, tmb%linmat%kernel_)
   if (iproc==0) then
       call yaml_newline()
@@ -2704,81 +2700,3 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
 end subroutine get_KS_residue
 
 
-
-
-subroutine check_idempotency(iproc, nproc, tmb, diff)
-  use module_base
-  use module_types
-  use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
-  use sparsematrix, only: uncompress_matrix
-  implicit none
-
-  ! Calling variables
-  integer,intent(in) :: iproc, nproc
-  type(DFT_wavefunction),intent(inout) :: tmb
-  real(kind=8),intent(out) :: diff
-
-  ! Local variables
-  integer :: iorb, iiorb, jsegstart, jsegend, jseg, jorb, jjorb, ierr
-  real(kind=8),dimension(:,:),allocatable :: ks, ksk, ksksk
-
-
-  tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
-  tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='tmb%linmat%kernel_%matrix')
-  call uncompress_matrix(iproc,tmb%linmat%ovrlp)
-  call uncompress_matrix(iproc,tmb%linmat%denskern_large)
-
-
-  call dscal(tmb%orbs%norb**2, 0.5d0, tmb%linmat%kernel_%matrix, 1)
-
-  ks=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
-  ksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/))
-  ksksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
-
-  call to_zero(tmb%orbs%norb**2, ks(1,1))
-  if (tmb%orbs%norbp>0) then
-      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
-                 1.d0, tmb%linmat%kernel_%matrix(1,1), tmb%orbs%norb, &
-                 tmb%linmat%ovrlp%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
-                 0.d0, ks(1,tmb%orbs%isorb+1), tmb%orbs%norb) 
-  end if
-  call mpiallred(ks(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  if (tmb%orbs%norbp>0) then
-      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
-                 1.d0, ks(1,1), tmb%orbs%norb, &
-                 tmb%linmat%kernel_%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
-                 0.d0, ksk(1,1), tmb%orbs%norb)
-  end if
-  !!if (tmb%orbs%norbp>0) then
-  !!    call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, ks(1,1), tmb%orbs%norb, &
-  !!               ksk(1,1), tmb%orbs%norb, 0.d0, ksksk(1,1), tmb%orbs%norb)
-  !!end if
-
-
-  diff=0.d0
-  do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
-      iiorb=iorb-tmb%orbs%isorb
-      jsegstart=tmb%linmat%denskern_large%istsegline(iorb)
-      if (iorb<tmb%orbs%norb) then
-          jsegend=tmb%linmat%denskern_large%istsegline(iorb+1)-1
-      else
-          jsegend=tmb%linmat%denskern_large%nseg
-      end if
-      do jseg=jsegstart,jsegend
-          do jorb=tmb%linmat%denskern_large%keyg(1,jseg),tmb%linmat%denskern_large%keyg(2,jseg)
-              jjorb=jorb-(iorb-1)*tmb%orbs%norb
-              diff = diff + (ksk(jjorb,iiorb)-tmb%linmat%kernel_%matrix(jjorb,iorb))**2
-          end do
-      end do
-  end do
-  call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  diff=sqrt(diff)
-
-
-  call f_free(ks)
-  call f_free(ksk)
-  call f_free(ksksk)
-  call f_free_ptr(tmb%linmat%ovrlp%matrix)
-  call f_free_ptr(tmb%linmat%kernel_%matrix)
-
-end subroutine check_idempotency

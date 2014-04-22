@@ -98,21 +98,13 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           call timing(iproc,'eglincomms','ON')
-          allocate(kernel_compr_tmp(tmb%linmat%denskern_large%nvctr), stat=istat)
+          allocate(kernel_compr_tmp(tmb%linmat%l%nvctr), stat=istat)
           call memocc(istat, kernel_compr_tmp, 'kernel_compr_tmp', subname)
           call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
-          !ii=0
-          !do iseg=1,tmb%linmat%denskern%nseg
-          !    do jorb=tmb%linmat%denskern%keyg(1,iseg), tmb%linmat%denskern%keyg(2,iseg)
-          !        ii=ii+1
-          !        iiorb = (jorb-1)/tmb%orbs%norb + 1
-          !        jjorb = jorb - (iiorb-1)*tmb%orbs%norb
-              do ii=1,tmb%linmat%denskern_large%nvctr
-                      iiorb = tmb%linmat%denskern_large%orb_from_index(1,ii)
-                      jjorb = tmb%linmat%denskern_large%orb_from_index(2,ii)
+              do ii=1,tmb%linmat%l%nvctr
+                      iiorb = tmb%linmat%l%orb_from_index(1,ii)
+                      jjorb = tmb%linmat%l%orb_from_index(2,ii)
                   if(iiorb==jjorb) then
-                  !if(iiorb==jjorb .or. mod(iiorb-1,9)+1>4 .or.  mod(jjorb-1,9)+1>4) then
-                  !if(iiorb==jjorb .or. mod(iiorb-1,9)+1>4) then
                       tmb%linmat%kernel_%matrix_compr(ii)=0.d0
                   else
                       tmb%linmat%kernel_%matrix_compr(ii)=kernel_compr_tmp(ii)
@@ -123,21 +115,14 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           ist=1
           do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
               ilr=tmb%orbs%inwhichlocreg(iorb)
-              !ii=0
-              !do iseg=1,tmb%linmat%denskern%nseg
-              !    do jorb=tmb%linmat%denskern%keyg(1,iseg), tmb%linmat%denskern%keyg(2,iseg)
-              !        ii=ii+1
-              !        iiorb = (jorb-1)/tmb%orbs%norb + 1
-              !        jjorb = jorb - (iiorb-1)*tmb%orbs%norb
-              do ii=1,tmb%linmat%denskern_large%nvctr
-                      iiorb = tmb%linmat%denskern_large%orb_from_index(1,ii)
-                      jjorb = tmb%linmat%denskern_large%orb_from_index(2,ii)
+              do ii=1,tmb%linmat%l%nvctr
+                      iiorb = tmb%linmat%l%orb_from_index(1,ii)
+                      jjorb = tmb%linmat%l%orb_from_index(2,ii)
                       if(iiorb==jjorb .and. iiorb==iorb) then
                           ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
                           call dscal(ncount, kernel_compr_tmp(ii), tmb%hpsi(ist), 1)
                           ist=ist+ncount
                       end if
-                  !end do
               end do
           end do
           call timing(iproc,'eglincomms','OF')
