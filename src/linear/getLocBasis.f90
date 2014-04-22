@@ -392,6 +392,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call foe(iproc, nproc, tmprtr, &
            energs%ebs, itout,it_scc, order_taylor, purification_quickreturn, adjust_FOE_temperature, &
            1, FOE_ACCURATE, tmb)
+      tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
 
@@ -713,6 +714,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               call foe(iproc, nproc, 0.d0, &
                    energs%ebs, -1, -10, order_taylor, purification_quickreturn, adjust_FOE_temperature, 0, &
                    FOE_FAST, tmb)
+              tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
               if (iproc==0) call yaml_close_map()
               if (.not.associated_psit_c) then
                   iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)

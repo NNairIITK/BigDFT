@@ -221,7 +221,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           calculate_SHS=.true.
     
           if (tmb%orbs%norbp>0) then
-              call to_zero(tmb%orbs%norb*tmb%orbs%norbp, tmb%linmat%denskern_large%matrixp(1,1))
+              call to_zero(tmb%orbs%norb*tmb%orbs%norbp, tmb%linmat%kernel_%matrixp(1,1))
           end if
     
           if (iproc==0) then
@@ -407,13 +407,13 @@ subroutine foe(iproc, nproc, tmprtr, &
                   call chebyshev_clean(iproc, nproc, npl, cc, tmb%orbs, tmb%foe_obj, &
                        tmb%linmat%denskern_large, hamscal_compr, &
                        tmb%linmat%inv_ovrlp_large%matrix_compr, calculate_SHS, &
-                       nsize_polynomial, SHS, tmb%linmat%denskern_large%matrixp, penalty_ev, chebyshev_polynomials, &
+                       nsize_polynomial, SHS, tmb%linmat%kernel_%matrixp, penalty_ev, chebyshev_polynomials, &
                        emergency_stop)
               else
                   ! The Chebyshev polynomials are already available
                   if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','from memory')
                   call chebyshev_fast(iproc, nsize_polynomial, npl, tmb%orbs, &
-                      tmb%linmat%denskern_large, chebyshev_polynomials, cc, tmb%linmat%denskern_large%matrixp)
+                      tmb%linmat%denskern_large, chebyshev_polynomials, cc, tmb%linmat%kernel_%matrixp)
               end if 
 
 
@@ -543,7 +543,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                   tmb%foe_obj%evbounds_isatur=tmb%foe_obj%evbounds_isatur+1
               end if
             
-              call calculate_trace_distributed(tmb%linmat%denskern_large%matrixp, sumn)
+              call calculate_trace_distributed(tmb%linmat%kernel_%matrixp, sumn)
     
     
               ! Make sure that the bounds for the bisection are negative and positive
@@ -755,7 +755,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                   diff=0.d0
                   do iorb=1,tmb%orbs%norbp
                       do jorb=1,tmb%orbs%norb
-                          diff = diff + (tmb%linmat%denskern_large%matrixp(jorb,iorb)-fermip_check(jorb,iorb))**2
+                          diff = diff + (tmb%linmat%kernel_%matrixp(jorb,iorb)-fermip_check(jorb,iorb))**2
                       end do
                   end do
                   call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -824,8 +824,8 @@ subroutine foe(iproc, nproc, tmprtr, &
       !!    !$omp end parallel
       !!end if
 
-     call compress_matrix_distributed(iproc, tmb%linmat%denskern_large, tmb%linmat%denskern_large%matrixp, &
-          tmb%linmat%denskern_large%matrix_compr)
+     call compress_matrix_distributed(iproc, tmb%linmat%denskern_large, tmb%linmat%kernel_%matrixp, &
+          tmb%linmat%kernel_%matrix_compr)
 
      call compress_matrix_distributed(iproc, tmb%linmat%denskern_large, fermip_check, fermi_check_compr)
 
@@ -873,7 +873,7 @@ subroutine foe(iproc, nproc, tmprtr, &
     
       ! Calculate S^-1/2 * K * S^-1/2^T
       ! Since S^-1/2 is symmetric, don't use the transpose
-      call retransform(tmb%linmat%denskern_large%matrix_compr)
+      call retransform(tmb%linmat%kernel_%matrix_compr)
 
       call retransform(fermi_check_compr)
       !!if (tmb%orbs%norbp>0) then
@@ -911,7 +911,7 @@ subroutine foe(iproc, nproc, tmprtr, &
 
       ! Calculate trace(KH). Since they have the same sparsity pattern and K is
       ! symmetric, this is a simple ddot.
-      ebs=ddot(tmb%linmat%denskern_large%nvctr, tmb%linmat%denskern_large%matrix_compr,1 , hamscal_compr, 1)
+      ebs=ddot(tmb%linmat%denskern_large%nvctr, tmb%linmat%kernel_%matrix_compr,1 , hamscal_compr, 1)
       ebs=ebs/scale_factor+shift_value*sumn
 
       ebs_check=ddot(tmb%linmat%denskern_large%nvctr, fermi_check_compr,1 , hamscal_compr, 1)
@@ -989,7 +989,9 @@ subroutine foe(iproc, nproc, tmprtr, &
           else
               it_shift=1
           end if
+          tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
           call purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, 50, order_taylor, purification_quickreturn)
+          tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
           if (iproc==0) then
               call yaml_close_sequence()
           end if
@@ -1063,7 +1065,7 @@ subroutine foe(iproc, nproc, tmprtr, &
 
   ! Calculate trace(KH). Since they have the same sparsity pattern and K is
   ! symmetric, this is a simple ddot.
-  ebs=ddot(tmb%linmat%denskern_large%nvctr, tmb%linmat%denskern_large%matrix_compr,1 , hamscal_compr, 1)
+  ebs=ddot(tmb%linmat%denskern_large%nvctr, tmb%linmat%kernel_%matrix_compr,1 , hamscal_compr, 1)
   ebs=ebs*scale_factor-shift_value*sumn
 
 

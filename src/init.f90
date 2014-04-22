@@ -836,6 +836,10 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
      call f_free_ptr(tmb_old%linmat%denskern_large%matrix_compr)
   end if
 
+  if (associated(tmb_old%linmat%kernel_%matrix_compr)) then
+     call f_free_ptr(tmb_old%linmat%kernel_%matrix_compr)
+  end if
+
   ! destroy it all together here - don't have all comms arrays
   !call destroy_DFT_wavefunction(tmb_old)
 
