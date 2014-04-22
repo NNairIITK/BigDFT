@@ -21,6 +21,8 @@ subroutine run_objects_nullify(runObj)
   nullify(runObj%radii_cf)
 END SUBROUTINE run_objects_nullify
 
+
+!> Freed the run_objects structure
 subroutine run_objects_free(runObj, subname)
   use module_types
   use module_base
@@ -76,7 +78,7 @@ subroutine run_objects_free_container(runObj)
 END SUBROUTINE run_objects_free_container
 
 
-!> read all input files and create the object to run BigDFT
+!> Read all input files and create the object to run BigDFT
 subroutine run_objects_init_from_files(runObj, radical, posinp)
   use module_types
   use module_input_dicts, only: user_dict_from_files
@@ -118,6 +120,8 @@ subroutine run_objects_update(runObj, dict)
   call run_objects_parse(runObj)
 END SUBROUTINE run_objects_update
 
+
+!> Parse the input dictiionary and create all run_objects
 subroutine run_objects_parse(runObj)
   use module_types
   use module_interfaces, only: atoms_new, inputs_new, inputs_from_dict, create_log_file
@@ -161,6 +165,7 @@ subroutine run_objects_parse(runObj)
   runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /), "run_objects_parse")
   call read_radii_variables(runObj%atoms, runObj%radii_cf, &
        & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
+
 END SUBROUTINE run_objects_parse
 
 
@@ -185,6 +190,7 @@ subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
   call read_radii_variables(runObj%atoms, runObj%radii_cf, &
        & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
 END SUBROUTINE run_objects_associate
+
 
 subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
   use module_types
@@ -230,7 +236,6 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
   call deallocate_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
   call nullify_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
 END SUBROUTINE run_objects_system_setup
-
 
 
 !> Read the options in the command line using get_command statement
@@ -312,7 +317,7 @@ contains
     write(*,*)' --help : prints this help screen'
   end subroutine help_screen
 
-end subroutine command_line_information
+END SUBROUTINE command_line_information
 
 
 !> Initialization of acceleration (OpenCL)
@@ -401,6 +406,7 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
 
 END SUBROUTINE init_material_acceleration
 
+
 subroutine release_material_acceleration(GPU)
   use module_base
   use module_types
@@ -477,6 +483,7 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
   end if
   call f_release_routine()
 END SUBROUTINE processor_id_per_node
+
 
 subroutine create_log_file(dict, writing_directory, dir_output, run_name)
 

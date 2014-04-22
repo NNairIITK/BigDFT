@@ -1208,24 +1208,26 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
      end if
   end if
 
-  if (atoms%astruct%inputfile_format == "xyz") then
-     call wtxyz(iunit,energy,rxyz,atoms,comment)
-     if (present(forces)) call wtxyz_forces(9,forces,atoms)
-  else if (atoms%astruct%inputfile_format == "ascii") then
-     call wtascii(iunit,energy,rxyz,atoms,comment)
-     if (present(forces)) call wtascii_forces(9,forces,atoms)
-  else if (atoms%astruct%inputfile_format == 'yaml') then
-     call yaml_new_document(unit = iunit)
-     if (len_trim(comment) > 0) call yaml_comment(comment, unit = iunit)
-     if (present(forces)) then
-        call wtyaml(iunit,energy,rxyz,atoms,.true.,forces, .false., dummy, dummy)
-     else
-        call wtyaml(iunit,energy,rxyz,atoms,.false.,rxyz, .false., dummy, dummy)
-     end if
-  else
-     write(*,*) "Error, unknown file format."
-     stop
-  end if
+  select case(atoms%astruct%inputfile_format)
+     case('xyz')
+        call wtxyz(iunit,energy,rxyz,atoms,comment)
+        if (present(forces)) call wtxyz_forces(9,forces,atoms)
+     case('ascii')
+        call wtascii(iunit,energy,rxyz,atoms,comment)
+        if (present(forces)) call wtascii_forces(9,forces,atoms)
+     case('yaml')
+        call yaml_new_document(unit = iunit)
+        if (len_trim(comment) > 0) call yaml_comment(comment, unit = iunit)
+        if (present(forces)) then
+           call wtyaml(iunit,energy,rxyz,atoms,.true.,forces, .false., dummy, dummy)
+        else
+           call wtyaml(iunit,energy,rxyz,atoms,.false.,rxyz, .false., dummy, dummy)
+        end if
+     case default
+        call f_err_throw('Writing the atomic file. Error, unknown file format ("'//&
+             trim(atoms%astruct%inputfile_format)//'")', &
+             err_name='BIGDFT_RUNTIME_ERROR')
+  end select
 
   if (iunit /= 6) then
      if (atoms%astruct%inputfile_format == 'yaml') then
@@ -1526,6 +1528,7 @@ subroutine initialize_atomic_file(iproc,atoms,rxyz)
   nullify(atoms%astruct%sym%phnons)
 
 END SUBROUTINE initialize_atomic_file
+
 
 !> Check the position of atoms, verify no atoms have the same coordinates
 subroutine check_atoms_positions(astruct, simplify)

@@ -27,7 +27,7 @@ module module_atoms
   !>Structure of the system. This derived type contains the information about the physical properties
   type, public :: atomic_structure
      character(len=1) :: geocode          !< @copydoc poisson_solver::doc::geocode
-     character(len=5) :: inputfile_format !< Can be xyz ascii or yaml
+     character(len=5) :: inputfile_format !< Can be xyz, ascii or yaml
      character(len=20) :: units           !< Can be angstroem or bohr 
      integer :: nat                       !< Number of atoms
      integer :: ntypes                    !< Number of atomic species in the structure
@@ -429,9 +429,10 @@ module module_atoms
       use m_ab6_symmetry
       !use position_files
       implicit none
-      character(len=*), intent(in) :: file
+      !Arguments
+      character(len=*), intent(in) :: file  !< File name containing the atomic positions
       integer, intent(in) :: iproc
-      type(atomic_structure), intent(inout) :: astruct
+      type(atomic_structure), intent(inout) :: astruct !< Contains all info
       integer, intent(out), optional :: status
       real(gp), intent(out), optional :: energy
       real(gp), dimension(:,:), pointer, optional :: fxyz
@@ -453,7 +454,7 @@ module module_atoms
       if (present(status)) status = 0
       nullify(fxyz_)
 
-      ! Extract from archive
+      ! Extract from archive (posout_)
       if (index(file, "posout_") == 1 .or. index(file, "posmd_") == 1) then
          write(arFile, "(A)") "posout.tar.bz2"
          if (index(file, "posmd_") == 1) write(arFile, "(A)") "posmd.tar.bz2"
@@ -562,8 +563,8 @@ module module_atoms
          end if
       else if (astruct%inputfile_format == "yaml" .and. index(file,'posinp') /= 0) then
          ! Pb if toto.yaml because means that there is already no key posinp in the file toto.yaml!!
-         write(*,*) "Atomic input file in YAML not yet supported, call 'set_astruct_from_dict()' instead."
-         stop
+         call f_err_throw("Atomic input file in YAML not yet supported, call 'set_astruct_from_dict()' instead.",&
+              err_name='BIGDFT_RUNTIME_ERROR')
       end if
 
       !Check the number of atoms
@@ -613,8 +614,8 @@ module module_atoms
     END SUBROUTINE set_astruct_from_file
 
 
-    !> allocate the astruct variable from the dictionary of input data
-    !retrieve also other information like the energy and the forces if requested
+    !> Allocate the astruct variable from the dictionary of input data
+    !! retrieve also other information like the energy and the forces if requested
     !! and presend in the dictionary
     subroutine set_astruct_from_dict(dict, astruct, comment, energy, fxyz)
       use module_defs, only: gp, Bohr_Ang, UNINITIALIZED
@@ -774,11 +775,12 @@ module module_atoms
          if (has_key(pos, "Format")) astruct%inputfile_format = pos // "Format"
       end if
 
-    end subroutine set_astruct_from_dict
+    END SUBROUTINE set_astruct_from_dict
+
 
     include 'astruct-inc.f90'
 
-    !> terminate the allocation of the memory in the pointers of atoms
+    !> Terminate the allocation of the memory in the pointers of atoms
     subroutine allocate_atoms_data(atoms)
       implicit none
       type(atoms_data), intent(inout) :: atoms
@@ -788,7 +790,7 @@ module module_atoms
       call allocate_atoms_ntypes(atoms)
     end subroutine allocate_atoms_data
 
-end module module_atoms
+END MODULE module_atoms
 
 
 !> Allocation of the arrays inside the structure atoms_data, considering the part which is associated to astruct%nat
@@ -1018,6 +1020,8 @@ END SUBROUTINE allocate_atoms_ntypes
 
 
 ! Init and free routines
+
+
 !> Allocate a new atoms_data type, for bindings.
 subroutine atoms_new(atoms)
   use module_atoms, only: atoms_data,nullify_atoms_data
@@ -1030,6 +1034,7 @@ subroutine atoms_new(atoms)
   call nullify_atoms_data(intern)
   atoms => intern
 END SUBROUTINE atoms_new
+
 
 !> Free an allocated atoms_data type.
 subroutine atoms_free(atoms)

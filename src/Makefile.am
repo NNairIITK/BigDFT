@@ -62,7 +62,7 @@ else
 lib_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft memguess splsad NEB frequencies $(minima_hopping_sources) abscalc
+binaries_sources = bigdft memguess splsad NEB frequencies global abscalc
 local_binaries = test_forces
 scripts_sources = NEB_driver.sh bigdft-tool
 sub_dirs_bin = tools tools/bader
@@ -305,6 +305,10 @@ frequencies_LDADD = $(bigdft_library) @LINALG_LIBS@
 bart_SOURCES = art.f90
 bart_FCFLAGS = -I. -Iart -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 bart_LDADD = art/libart.a $(bigdft_library) @LINALG_LIBS@
+
+
+global_SOURCES = global.f90
+global_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libbigdft-1.* input_variables_definition-inc.h
 clean-local:

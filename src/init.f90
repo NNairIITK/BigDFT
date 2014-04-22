@@ -150,9 +150,11 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
    call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,Glr%wfd%nseg_c,Glr%wfd%nvctr_c)
    if (Glr%wfd%nseg_c == 0) then
       ! Check if the number of seg_c (Glr%wfd%nseg_c) > 0
-      call yaml_warning('There is no coarse grid points (nseg_c=0)!')
-      !write( *,*) ' ERROR: there is no coarse grid points (nseg_c=0)!'
-      stop
+      !call yaml_warning('There is no coarse grid points (nseg_c=0)!')
+      call f_err_throw('There are no coarse grid points (nseg_c=0)! '//&
+           'Control if the atomic positions have been specified.', &
+           err_name='BIGDFT_RUNTIME_ERROR')
+      !stop
    end if
 
    if (Glr%geocode == 'F') then
@@ -442,7 +444,10 @@ END SUBROUTINE createProjectorsArrays
         !write(*,'(1x,a)')'Reading local potential from file:'//trim(band_structure_filename)
         call read_density(trim(band_structure_filename),atoms%astruct%geocode,&
                      n1i,n2i,n3i,nspin,hxh,hyh,hzh,denspot%Vloc_KS)
-                if (nspin /= input_spin) stop
+                !if (nspin /= input_spin) stop
+                if (f_err_raise(nspin /= input_spin,&
+                     'The value nspin reading from the file is not the same',&
+                     err_name='BIGDFT_RUNTIME_ERROR')) return
              else
                 allocate(denspot%Vloc_KS(1,1,1,input_spin+ndebug),stat=i_stat)
                 call memocc(i_stat,denspot%Vloc_KS,'Vloc_KS',subname)
@@ -544,13 +549,14 @@ END SUBROUTINE createProjectorsArrays
           !import gaussians form CP2K (data in files gaubasis.dat and gaucoeff.dat)
           !and calculate eigenvalues
           if (nspin /= 1) then
-             if (iproc==0) then
-        call yaml_warning('Gaussian importing is possible only for non-spin polarised calculations')
-        call yaml_comment('The reading rules of CP2K files for spin-polarised orbitals are not implemented')
-        !write(*,'(1x,a)') 'Gaussian importing is possible only for non-spin polarised calculations'
-        !write(*,'(1x,a)') 'The reading rules of CP2K files for spin-polarised orbitals are not implemented'
-             end if
-             stop
+             !if (iproc==0) then
+             !   call yaml_warning('Gaussian importing is possible only for non-spin polarised calculations')
+             !   call yaml_comment('The reading rules of CP2K files for spin-polarised orbitals are not implemented')
+             !end if
+             !stop
+             call f_err_throw('Gaussian importing is possible only for non-spin polarised calculations. ' // &
+                  'The reading rules of CP2K files for spin-polarised orbitals are not implemented', &
+                  err_name='BIGDFT_RUNTIME_ERROR')
           end if
 
           call parse_cp2k_files(iproc,'gaubasis.dat','gaucoeff.dat',&
@@ -1810,7 +1816,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
              KSwfn%Lzd%Glr%d,KSwfn%Lzd%Glr%wfd,KSwfn%psi, KSwfn%orbs,KSwfn%lzd,displ)
         call timing(iproc,'restart_rsp   ','OF')
     else
-        stop 'Wrong value of inguess_geopt in input.perf'
+        !stop 'Wrong value of inguess_geopt in input.perf'
+        call f_err_throw('Wrong value of inguess_geopt in input.perf', &
+             err_name='BIGDFT_RUNTIME_ERROR')
     end if
 
      if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) &
@@ -1860,11 +1868,13 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         KSwfn%gbd%rxyz=>rxyz
      else
         !        if (iproc == 0) then
-        call yaml_warning('The atom number does not coincide with the number of gaussian centers')
+        !call yaml_warning('The atom number does not coincide with the number of gaussian centers')
         !write( *,*)&
         !     &   ' ERROR: the atom number does not coincide with the number of gaussian centers'
         !        end if
-        stop
+        !stop
+        call f_err_throw('The atom number does not coincide with the number of gaussian centers',&
+             err_name='BIGDFT_RUNTIME_ERROR')
      end if
      call restart_from_gaussians(iproc,nproc,KSwfn%orbs,KSwfn%Lzd,&
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
@@ -1880,7 +1890,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      ! By doing an LCAO input guess
      tmb%can_use_transposed=.false.
-     if (.not.present(locregcenters)) stop 'locregcenters not present!'
+     !if (.not.present(locregcenters)) stop 'locregcenters not present!'
+     if (f_err_raise(.not.present(locregcenters),'locregcenters not present!', &
+        err_name='BIGDFT_RUNTIME_ERROR')) return
      call inputguessConfinement(iproc,nproc,atoms,in,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
           rxyz,nlpsp,GPU,KSwfn%orbs,kswfn,tmb,denspot,denspot0,energs,locregcenters)
      if(tmb%can_use_transposed) then
@@ -2159,21 +2171,17 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      end if
 
   case default
-     !     if (iproc == 0) then
-     !write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
-     call yaml_warning('Illegal value of inputPsiId (' // trim(yaml_toa(in%inputPsiId,fmt='(i0)')) // ')')
      call input_psi_help()
-     stop
-     !     end if
+     call f_err_throw('Illegal value of inputPsiId (' // trim(yaml_toa(in%inputPsiId,fmt='(i0)')) // ')', &
+          err_name='BIGDFT_RUNTIME_ERROR')
 
   end select
 
   !save the previous potential if the rho_work is associated
   if (denspot%rhov_is==KS_POTENTIAL .and. in%iscf==SCF_KIND_GENERALIZED_DIRMIN) then
      if (associated(denspot%rho_work)) then
-        call yaml_warning('The reference potential should be empty to correct the hamiltonian!')
-        !write(*,*)'ERROR: the reference potential should be empty to correct the hamiltonian!'
-        stop
+        call f_err_throw('The reference potential should be empty to correct the hamiltonian!',&
+             err_name='BIGDFT_RUNTIME_ERROR')
      end if
      call yaml_newline()
      call yaml_comment('Saving the KS potential obtained from IG')
