@@ -1057,7 +1057,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   call deallocate_foe(wfn%foe_obj, subname)
   call deallocate_sparse_matrix(wfn%linmat%ovrlp, subname)
   call deallocate_sparse_matrix(wfn%linmat%ham, subname)
-  call deallocate_sparse_matrix(wfn%linmat%denskern_large, subname)
+  !call deallocate_sparse_matrix(wfn%linmat%denskern_large, subname)
   call deallocate_sparse_matrix(wfn%linmat%inv_ovrlp_large, subname)
 
   call deallocate_sparse_matrix(wfn%linmat%s, subname)
@@ -1405,7 +1405,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      call deallocate_foe(tmb%foe_obj, subname)
 
-     call deallocate_sparse_matrix(tmb%linmat%denskern_large, subname)
+     !call deallocate_sparse_matrix(tmb%linmat%denskern_large, subname)
      call deallocate_sparse_matrix(tmb%linmat%inv_ovrlp_large, subname)
      call deallocate_sparse_matrix(tmb%linmat%ovrlp, subname)
      call deallocate_sparse_matrix(tmb%linmat%ham, subname)
@@ -1523,14 +1523,14 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%s)
 
      call check_kernel_cutoff(iproc, tmb%orbs, at, tmb%lzd)
-     call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%lzd, at%astruct, &
-          input%store_index, imode=2, smat=tmb%linmat%denskern_large)
+     !!call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%lzd, at%astruct, &
+     !!     input%store_index, imode=2, smat=tmb%linmat%denskern_large)
      call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%lzd, at%astruct, &
           input%store_index, imode=2, smat=tmb%linmat%l)
      call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
           matname='tmb%linmat%kernel_', mat=tmb%linmat%kernel_)
-     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
-          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
+     !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+     !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
 
