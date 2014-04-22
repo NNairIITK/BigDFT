@@ -3587,7 +3587,7 @@ module module_interfaces
 
 
         subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
-             orbs,nlpsp,lzd,collcom,phi,denskern,fsep,refill,strten)
+             orbs,nlpsp,lzd,collcom,phi,denskern,denskern_mat,fsep,refill,strten)
           use module_base
           use module_types
           implicit none
@@ -3603,6 +3603,7 @@ module module_interfaces
           real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
           real(wp), dimension(npsidim_orbs), intent(in) :: phi
           type(sparse_matrix),intent(in) :: denskern
+          type(matrices),intent(in) :: denskern_mat
           real(gp), dimension(3,at%astruct%nat), intent(inout) :: fsep
           real(gp), dimension(6), intent(out) :: strten
         end subroutine nonlocal_forces_linear

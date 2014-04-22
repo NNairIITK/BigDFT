@@ -346,7 +346,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   else if (imode==1) then
       !linear version of nonlocal forces
       call nonlocal_forces_linear(iproc,nproc,tmb%npsidim_orbs,tmb%lzd%glr,hx,hy,hz,atoms,rxyz,&
-           tmb%orbs,nlpsp,tmb%lzd,tmb%collcom,tmb%psi,tmb%linmat%denskern_large,fxyz,refill_proj,&
+           tmb%orbs,nlpsp,tmb%lzd,tmb%collcom,tmb%psi,tmb%linmat%l,tmb%linmat%kernel_,fxyz,refill_proj,&
            strtens(1,2))
   else
       stop 'wrong imode'
@@ -4201,10 +4201,10 @@ END SUBROUTINE erf_stress
 !! belonging to iproc and adds them to the force array
 !! recalculate the projectors at the end if refill flag is .true.
 subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
-     orbs,nlpsp,lzd,collcom,phi,denskern,fsep,refill,strten)
+     orbs,nlpsp,lzd,collcom,phi,denskern,denskern_mat,fsep,refill,strten)
   use module_base
   use module_types
-  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_base, only: sparse_matrix, matrices
   implicit none
   !Arguments-------------
   type(atoms_data), intent(in) :: at
@@ -4219,6 +4219,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), dimension(npsidim_orbs), intent(in) :: phi
   type(sparse_matrix),intent(in) :: denskern
+  type(matrices),intent(in) :: denskern_mat
   real(gp), dimension(3,at%astruct%nat), intent(inout) :: fsep
   real(gp), dimension(6), intent(out) :: strten
   !local variables--------------
@@ -4678,7 +4679,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                   ind=ii
                   !write(100+iproc,'(a,3i8,es20.10)') 'iorbout, jorb, ind, denskern%matrix_compr(ind)', iorbout, jorb, ind, denskern%matrix_compr(ind)
                   !if (kernel(jorb,iorbout)==0.d0) cycle
-                  if (denskern%matrix_compr(ind)==0.d0) cycle
+                  if (denskern_mat%matrix_compr(ind)==0.d0) cycle
                   !do iat=1,at%astruct%nat
                   do iat=1,nat_par(iproc)
                      iiat=isat_par(iproc)+iat
@@ -4702,7 +4703,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                        !fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
                                        !     kernel(jorb,iorbout)*at%psppar(l,i,ityp)*sp0*spi
                                        fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
-                                            denskern%matrix_compr(ind)*at%psppar(l,i,ityp)*sp0*spi
+                                            denskern_mat%matrix_compr(ind)*at%psppar(l,i,ityp)*sp0*spi
                                        !if (kernel(jorb,iorbout)/=0.d0) then
                                            !!write(110+iproc,'(a,10i6,es18.8)') 'iorbout,jorb,icplx,0,m,i,l,iat,iiat,&
                                            !!                                    &idir,fxyz_orb(idir,iat)', &
@@ -4754,7 +4755,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                              !fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
                                              !     kernel(jorb,iorbout)*hij*(sp0j*spi+spj*sp0i)
                                              fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
-                                                  denskern%matrix_compr(ind)*hij*(sp0j*spi+spj*sp0i)
+                                                  denskern_mat%matrix_compr(ind)*hij*(sp0j*spi+spj*sp0i)
                                           end do
                                           sp0i=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
                                           !!Enl=Enl+2.0_gp*sp0i*sp0j*hij&
