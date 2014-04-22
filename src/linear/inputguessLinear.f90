@@ -464,7 +464,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      !tmb%linmat%denskern%matrix_compr(ii)=1.d0*tmb%orbs%occup(iorb)
      tmb%linmat%kernel_%matrix_compr(ii)=1.d0*tmb%orbs%occup(iorb)
   end do
-  !!tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
+  tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
  !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
 
   !Calculate the density in the new scheme
@@ -753,7 +753,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
     call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
   end if
 
-  !!tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
+  tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
        tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
        denspot%rhov, rho_negative)

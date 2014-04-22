@@ -780,10 +780,10 @@ subroutine foe(iproc, nproc, tmprtr, &
     
     
 
-     call compress_matrix_distributed(iproc, tmb%linmat%denskern_large, tmb%linmat%kernel_%matrixp, &
+     call compress_matrix_distributed(iproc, tmb%linmat%l, tmb%linmat%kernel_%matrixp, &
           tmb%linmat%kernel_%matrix_compr)
 
-     call compress_matrix_distributed(iproc, tmb%linmat%denskern_large, fermip_check, fermi_check_compr)
+     call compress_matrix_distributed(iproc, tmb%linmat%l, fermip_check, fermi_check_compr)
 
 
     
@@ -877,7 +877,7 @@ subroutine foe(iproc, nproc, tmprtr, &
     
       ! Calculate trace(KS).
       tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
-      sumn = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large, &
+      sumn = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%l, &
              tmb%linmat%ovrlp_, tmb%linmat%kernel_)
 
 
@@ -996,7 +996,7 @@ subroutine foe(iproc, nproc, tmprtr, &
       subroutine retransform(matrix_compr)
           use sparsematrix, only: sequential_acces_matrix_fast, sparsemm
           ! Calling arguments
-          real(kind=8),dimension(tmb%linmat%denskern_large%nvctr),intent(inout) :: matrix_compr
+          real(kind=8),dimension(tmb%linmat%l%nvctr),intent(inout) :: matrix_compr
 
           ! Local variables
           real(kind=8),dimension(:,:),pointer :: inv_ovrlpp, tempp
@@ -1011,19 +1011,19 @@ subroutine foe(iproc, nproc, tmprtr, &
           tempp = sparsematrix_malloc_ptr(tmb%linmat%inv_ovrlp_large, iaction=DENSE_PARALLEL, id='inv_ovrlpp')
           inv_ovrlp_compr_seq = sparsematrix_malloc(tmb%linmat%inv_ovrlp_large, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
           kernel_compr_seq = sparsematrix_malloc(tmb%linmat%inv_ovrlp_large, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
-          call sequential_acces_matrix_fast(tmb%linmat%denskern_large, matrix_compr, kernel_compr_seq)
+          call sequential_acces_matrix_fast(tmb%linmat%l, matrix_compr, kernel_compr_seq)
           call sequential_acces_matrix_fast(tmb%linmat%inv_ovrlp_large, &
                tmb%linmat%inv_ovrlp_large%matrix_compr, inv_ovrlp_compr_seq)
           call uncompress_matrix_distributed(iproc, tmb%linmat%inv_ovrlp_large, &
                tmb%linmat%inv_ovrlp_large%matrix_compr, inv_ovrlpp)
 
            tempp=0.d0
-          call sparsemm(tmb%linmat%denskern_large, kernel_compr_seq, inv_ovrlpp, tempp)
+          call sparsemm(tmb%linmat%l, kernel_compr_seq, inv_ovrlpp, tempp)
           inv_ovrlpp=0.d0
           call sparsemm(tmb%linmat%inv_ovrlp_large, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
 
-          call to_zero(tmb%linmat%denskern_large%nvctr, matrix_compr(1))
-          call compress_matrix_distributed(iproc, tmb%linmat%denskern_large, inv_ovrlpp, matrix_compr)
+          call to_zero(tmb%linmat%l%nvctr, matrix_compr(1))
+          call compress_matrix_distributed(iproc, tmb%linmat%l, inv_ovrlpp, matrix_compr)
 
           call f_free_ptr(inv_ovrlpp)
           call f_free_ptr(tempp)
@@ -1040,17 +1040,17 @@ subroutine foe(iproc, nproc, tmprtr, &
           real(kind=8),intent(out) :: trace
           trace=0.d0
           if (tmb%orbs%norbp>0) then
-              isegstart=tmb%linmat%denskern_large%istsegline(tmb%orbs%isorb_par(iproc)+1)
+              isegstart=tmb%linmat%l%istsegline(tmb%orbs%isorb_par(iproc)+1)
               if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
-                  isegend=tmb%linmat%denskern_large%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
+                  isegend=tmb%linmat%l%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
               else
-                  isegend=tmb%linmat%denskern_large%nseg
+                  isegend=tmb%linmat%l%nseg
               end if
               !$omp parallel default(private) shared(isegstart, isegend, matrixp, tmb, trace) 
               !$omp do reduction(+:trace)
               do iseg=isegstart,isegend
-                  ii=tmb%linmat%denskern_large%keyv(iseg)-1
-                  do jorb=tmb%linmat%denskern_large%keyg(1,iseg),tmb%linmat%denskern_large%keyg(2,iseg)
+                  ii=tmb%linmat%l%keyv(iseg)-1
+                  do jorb=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
                       ii=ii+1
                       iiorb = (jorb-1)/tmb%orbs%norb + 1
                       jjorb = jorb - (iiorb-1)*tmb%orbs%norb

@@ -45,7 +45,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern_large,tmb%linmat%ham, &
           tmb%linmat%kernel_, tmb%linmat%ham_, energy0,&
           tmb%coeff,orbs,tmb%orbs,.true.)
-     !!tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
+     tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
      !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
   else
      energy0=energy
@@ -218,7 +218,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern_large,tmb%linmat%ham,&
           tmb%linmat%kernel_, tmb%linmat%ham_, energy,&
           tmb%coeff,orbs,tmb%orbs,.true.)
-     !!tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
+     tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
      !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
      !write(127,*) ldiis_coeff%alpha_coeff,energy
      !close(127)
@@ -875,7 +875,7 @@ subroutine find_alpha_sd(iproc,nproc,alpha,tmb,orbs,coeffp,grad,energy0,fnrm,pre
   call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern_large,tmb%linmat%ham,&
        tmb%linmat%kernel_, tmb%linmat%ham_, energy1,&
        coeff_tmp,orbs,tmb%orbs,.true.)
-  !!tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
+  tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
   !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
   call f_free(coeff_tmp)
 
@@ -922,20 +922,20 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,denskern_mat,ham
 
   if (calculate_kernel) then 
      call calculate_density_kernel(iproc, nproc, .true., orbs, tmb_orbs, coeff, denskern, denskern_mat)
-     denskern%matrix_compr = denskern_mat%matrix_compr
+     !denskern%matrix_compr = denskern_mat%matrix_compr
   end if
 
   call timing(iproc,'calc_energy','ON')
   energy=0.0_gp
   do iorbp=1,tmb_orbs%norbp
      iorb=iorbp+tmb_orbs%isorb
-     !$omp parallel default(private) shared(iorb,denskern,ham,tmb_orbs,energy)
+     !$omp parallel default(private) shared(iorb,denskern,ham,denskern_mat,tmb_orbs,energy)
      !$omp do reduction(+:energy)
      do jorb=1,tmb_orbs%norb
         ind_ham = matrixindex_in_compressed(ham,iorb,jorb)
         ind_denskern = matrixindex_in_compressed(denskern,jorb,iorb)
         if (ind_ham==0.or.ind_denskern==0) cycle
-        energy = energy + denskern%matrix_compr(ind_denskern)*ham%matrix_compr(ind_ham)
+        energy = energy + denskern_mat%matrix_compr(ind_denskern)*ham%matrix_compr(ind_ham)
      end do
      !$omp end do
      !$omp end parallel
