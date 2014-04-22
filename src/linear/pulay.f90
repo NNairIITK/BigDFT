@@ -4,6 +4,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   use module_interfaces, except_this_one => pulay_correction_new
   use yaml_output
   use communications, only: transpose_localized
+  use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
   use sparsematrix, only: compress_matrix, uncompress_matrix
   implicit none
 
@@ -82,7 +83,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   isize=7*sum(tmb%ham_descr%collcom%nrecvcounts_f)
   delta_phit_f=f_malloc(isize,id='delta_phit_f')
   !fpulay=f_malloc((/3,at%astruct%nat/),id='fpulay')
-  tmb%linmat%denskern_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern_large%matrix')
+  tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='tmb%linmat%kernel_%matrix')
   call uncompress_matrix(iproc,tmb%linmat%denskern_large)
   call to_zero(3*at%astruct%nat, fpulay(1,1))
   do idir=1,3
@@ -102,7 +103,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
           iat=tmb%orbs%onwhichatom(iiorb)
           tt=0.d0
           do jorb=1,tmb%orbs%norb
-              tt = tt -2.d0*tmb%linmat%denskern_large%matrix(jorb,iiorb)*tmb%linmat%ham%matrix(jorb,iiorb)
+              tt = tt -2.d0*tmb%linmat%kernel_%matrix(jorb,iiorb)*tmb%linmat%ham%matrix(jorb,iiorb)
               !if (iproc==0) write(*,*) 'kern, ovrlp', tmb%linmat%denskern%matrix(jorb,iiorb), tmb%linmat%ham%matrix(iiorb,jorb)
           end do  
           fpulay(idir,iat)=fpulay(idir,iat)+tt
@@ -110,7 +111,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
       call f_free_ptr(tmb%linmat%ham%matrix)
   end do
   call mpiallred(fpulay(1,1), 3*at%astruct%nat, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  call f_free_ptr(tmb%linmat%denskern_large%matrix)
+  call f_free_ptr(tmb%linmat%kernel_%matrix)
 
   if(iproc==0) then
        call yaml_comment('new Pulay correction',hfill='-')
@@ -158,10 +159,10 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
       isize=size(tmb%linmat%denskern_large%matrix_compr)
       denskern_tmp=f_malloc(isize,id='denskern_tmp')
       denskern_tmp=tmb%linmat%denskern_large%matrix_compr
-      tmb%linmat%denskern_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
-      tmb%linmat%denskern_large%matrix=tempmat
+      tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='tmb%linmat%kernel_%matrix')
+      tmb%linmat%kernel_%matrix=tempmat
       call compress_matrix(iproc,tmb%linmat%denskern_large)
-      call f_free_ptr(tmb%linmat%denskern_large%matrix)
+      call f_free_ptr(tmb%linmat%kernel_%matrix)
       call build_linear_combination_transposed(tmb%ham_descr%collcom, &
            tmb%linmat%denskern_large, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, .false., hphit_c, hphit_f, iproc)
       tmb%linmat%denskern_large%matrix_compr=denskern_tmp
