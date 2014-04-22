@@ -989,9 +989,9 @@ subroutine foe(iproc, nproc, tmprtr, &
           else
               it_shift=1
           end if
-          tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
+          !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
           call purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, 50, order_taylor, purification_quickreturn)
-          tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
+          !tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
           if (iproc==0) then
               call yaml_close_sequence()
           end if
@@ -999,7 +999,10 @@ subroutine foe(iproc, nproc, tmprtr, &
     
     
       ! Calculate trace(KS).
-      sumn=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
+      tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
+      sumn = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large, &
+             tmb%linmat%ovrlp_, tmb%linmat%kernel_)
+
 
       if (iproc==0) call yaml_map('trace(KS)',sumn)
 
@@ -1766,17 +1769,18 @@ end subroutine uncompress_polynomial_vector
 !< Calculates the trace of the matrix product amat*bmat.
 !< WARNING: It is mandatory that the sparsity pattern of amat is contained
 !< within the sparsity pattern of bmat!
-function trace_sparse(iproc, nproc, orbs, amat, bmat)
+function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat)
   use module_base
   use module_types
-  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_base, only: sparse_matrix, matrices
   use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: iproc,  nproc
   type(orbitals_data),intent(in) :: orbs
-  type(sparse_matrix),intent(in) :: amat, bmat
+  type(sparse_matrix),intent(in) :: asmat, bsmat
+  type(matrices),intent(in) :: amat, bmat
 
   ! Local variables
   integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, iilarge
@@ -1785,21 +1789,21 @@ function trace_sparse(iproc, nproc, orbs, amat, bmat)
 
       sumn=0.d0
       if (orbs%norbp>0) then
-          isegstart=amat%istsegline(orbs%isorb_par(iproc)+1)
+          isegstart=asmat%istsegline(orbs%isorb_par(iproc)+1)
           if (orbs%isorb+orbs%norbp<orbs%norb) then
-              isegend=amat%istsegline(orbs%isorb_par(iproc+1)+1)-1
+              isegend=asmat%istsegline(orbs%isorb_par(iproc+1)+1)-1
           else
-              isegend=amat%nseg
+              isegend=asmat%nseg
           end if
-          !$omp parallel default(private) shared(isegstart, isegend, orbs, bmat, amat, sumn)
+          !$omp parallel default(private) shared(isegstart, isegend, orbs, bsmat, asmat, amat, bmat, sumn)
           !$omp do reduction(+:sumn)
           do iseg=isegstart,isegend
-              ii=amat%keyv(iseg)-1
-              do jorb=amat%keyg(1,iseg),amat%keyg(2,iseg)
+              ii=asmat%keyv(iseg)-1
+              do jorb=asmat%keyg(1,iseg),asmat%keyg(2,iseg)
                   ii=ii+1
                   iiorb = (jorb-1)/orbs%norb + 1
                   jjorb = jorb - (iiorb-1)*orbs%norb
-                  iilarge = matrixindex_in_compressed(bmat, iiorb, jjorb)
+                  iilarge = matrixindex_in_compressed(bsmat, iiorb, jjorb)
                   sumn = sumn + amat%matrix_compr(ii)*bmat%matrix_compr(iilarge)
               end do  
           end do
