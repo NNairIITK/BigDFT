@@ -8,7 +8,7 @@
 !!  spherical harmonics Ylm (resp. Slm) (and gradients).
 !!
 !! COPYRIGHT
-!! Copyright (C) 2013-2013 ABINIT group (MT, FJ, TRangel)
+!! Copyright (C) 2013-2014 ABINIT group (MT, FJ, TRangel)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -24,18 +24,15 @@
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
-#include "abi_common_for_bigdft.h"
+#include "abi_common.h"
 
 MODULE m_sphharm
 
  use defs_basis
  use m_errors
-use interfaces_12_hide_mpi
-use interfaces_14_hidewrite
-use interfaces_16_hideleave
  use m_profiling
 
  implicit none
@@ -121,8 +118,7 @@ function ylmc(il,im,kcart)
 
  if (ABS(im)>ABS(il)) then
    write(msg,'(3(a,i0))')' m is,',im,' however it should be between ',-il,' and ',il
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_ERROR(msg)
  end if
 
  ylmc = czero
@@ -168,8 +164,7 @@ function ylmc(il,im,kcart)
   else if (ABS(im)==1) then
    ylmc = -SQRT(three/(eight*pi))*sinth*CMPLX(cosphi,sinphi)
   else 
-   call wrtout(std_out,"wrong im",'COLL')
-   call leave_new('COLL')
+   MSG_ERROR("wrong im")
   end if
 
  case (2)
@@ -180,8 +175,7 @@ function ylmc(il,im,kcart)
   else if (ABS(im)==2) then
    ylmc = SQRT(15.d0/(32.d0*pi))*(sinth)**2*CMPLX(costwophi,sintwophi)
   else 
-   call wrtout(std_out,"wrong im",'COLL')
-   call leave_new('COLL')
+   MSG_ERROR("wrong im")
   end if
 
  case (3)
@@ -194,14 +188,12 @@ function ylmc(il,im,kcart)
   else if (ABS(im)==3) then
    ylmc=-SQRT(35.d0/(64.d0*pi))*sinth**3*CMPLX(costhreephi,sinthreephi)
   else 
-   call wrtout(std_out,"wrong im",'COLL')
-   call leave_new('COLL')
+   MSG_ERROR("wrong im")
   end if
 
  case default
   !write(msg,'(a,i6,a,i6)')' The maximum allowed value for l is,',LMAX,' however l=',il
-  !call wrtout(std_out,msg,'COLL')
-  !call leave_new('COLL')
+  !MSG_ERROR(msg)
  end select
 !
 !=== Treat the case im < 0 ===
@@ -291,8 +283,7 @@ subroutine ylmcd(il,im,kcart,dth,dphi)
 
  if (ABS(im)>ABS(il))then
    write(msg,'(3(a,i0))')' m is,',im,' however it should be between ',-il,' and ',il
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_ERROR(msg)
  end if
 
  dphi=czero; dth=czero
@@ -370,8 +361,7 @@ subroutine ylmcd(il,im,kcart,dth,dphi)
 
  case default
    write(msg,'(2(a,i0))')' The maximum allowed value for l is,',LMAX,' however, l=',il
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_ERROR(msg)
  end select
 !
 !=== Treat the case im < 0 ===
@@ -565,10 +555,10 @@ end subroutine ylm_cmplx
 !! $Yr_{l-m}(%theta ,%phi)=(Im{Y_{l-m}}-(-1)^m Im{Y_{lm}})/sqrt{2}
 !!
 !! PARENTS
-!!      debug_tools,denfgr,m_paw_toolbox,m_pawang,mlwfovlp_ylmfar,pawgylm
-!!      pawtwdij,pawtwdij_1,pawtwdij_2a,pawtwdij_2b,pawtwdij_2c,pawtwdij_2d
-!!      pawtwdij_2e,pawtwdij_2f,pspnl_operat_rec,qijb_kk,smatrix_pawinit
-!!      twqijb_kk
+!!      debug_tools,denfgr,m_paw_finegrid,m_paw_pwaves_lmn,m_pawang
+!!      mlwfovlp_ylmfar,pawtwdij,pawtwdij_1,pawtwdij_2a,pawtwdij_2b,pawtwdij_2c
+!!      pawtwdij_2d,pawtwdij_2e,pawtwdij_2f,pspnl_operat_rec,qijb_kk
+!!      smatrix_pawinit,twqijb_kk
 !!
 !! CHILDREN
 !!      wrtout
@@ -1020,8 +1010,7 @@ subroutine plm_coeff(blm,mpsang,xx)
 
  if (abs(xx).gt.1.d0) then
    message = ' plm_coeff :  xx > 1 !'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   MSG_ERROR(message)
  end if
 
  blm=zero
@@ -1131,8 +1120,7 @@ function ass_leg_pol(l,m,xarg)
  x=xarg
  if (m.lt.0.or.m.gt.l.or.abs(x).gt.1.d0) then
    if (m.lt.0.or.m.gt.l.or.abs(x).gt.1.d0+1.d-10) then
-    call wrtout(std_out,'Bad choice of l, m or x !','COLL')
-    call leave_new('COLL')
+    MSG_BUG('Bad choice of l, m or x !')
    endif
    x=1.d0
  endif
@@ -1215,8 +1203,7 @@ subroutine plm_d2theta(mpsang,plm_d2t,xx)
 !************************************************************************
  if (abs(xx).gt.1.d0) then
    message = ' plm_d2theta : xx > 1 !'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   MSG_ERROR(message)
  end if
 
  plm_d2t=zero
@@ -1242,9 +1229,9 @@ subroutine plm_d2theta(mpsang,plm_d2t,xx)
          ilm=il*il+il+1+im
          ilmm1=(il-1)*(il-1)+il+im
          ilmm2=(il-2)*(il-2)+il-1+im
-         plm_d2t(ilm)=dfloat(2*il-1)/dfloat(il-im)*(xx*(plm_d2t(ilmm1)-(-1)**im*ass_leg_pol(il-1,im,xx))-&
+         plm_d2t(ilm)=dble(2*il-1)/dble(il-im)*(xx*(plm_d2t(ilmm1)-(-1)**im*ass_leg_pol(il-1,im,xx))-&
 &         2.d0*sqrx*(-1)**im*plm_dtheta(il-1,im,xx))-&
-&         dfloat(il+im-1)/dfloat(il-im)*plm_d2t(ilmm2)
+&         dble(il+im-1)/dble(il-im)*plm_d2t(ilmm2)
          plm_d2t(ilm-2*im)=plm_d2t(ilm)
        end do
      end do
@@ -1308,8 +1295,7 @@ function plm_dphi(ll,mm,xx)
 
  if (mm.lt.0.or.mm.gt.ll.or.abs(xx).gt.1.d0) then
    message = ' plm_dphi : mm < 0 or mm > ll or xx > 1 !'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   MSG_ERROR(message)
  end if
 
  plm_dphi=zero
@@ -1404,8 +1390,7 @@ function plm_dtheta(ll,mm,xx)
 
  if (mm.lt.0.or.mm.gt.ll.or.abs(xx).gt.1.d0) then
    message = ' plm_dtheta : mm < 0 or mm > ll or xx > 1 !'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   MSG_ERROR(message)
  end if
 
  plm_dtheta=zero
@@ -1506,8 +1491,7 @@ subroutine pl_deriv(mpsang,pl_d2,xx)
 
  if (abs(xx).gt.1.d0) then
    message = ' pl_deriv : xx > 1 !'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   MSG_ERROR(message)
  end if
 
  pl_d2=zero; pl_d1=zero; pl=zero
@@ -1600,18 +1584,15 @@ subroutine mat_mlms2jmj(lcor,mat_mlms,mat_jmj,ndij,option,optspin,prtvol,unitfi,
 
  if(ndij/=4) then
    message=" ndij/=4 !"
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(message)
  end if
  if (option/=1.and.option/=2) then
    message=' option=/1 and =/2 !'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(message)
  end if
  if (optspin/=1.and.optspin/=2) then
    message=' optspin=/1 and =/2 !'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(message)
  end if
  
  if (unitfi/=-1) then
@@ -1706,8 +1687,7 @@ subroutine mat_mlms2jmj(lcor,mat_mlms,mat_jmj,ndij,option,optspin,prtvol,unitfi,
 !xj(jj)=jj-0.5
  if(ll==0)then
    message=' ll should not be equal to zero !'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(message)
  end if
  jc1=0
  invsqrt2lp1=one/sqrt(float(2*lcor+1))
@@ -1873,13 +1853,11 @@ subroutine mat_slm2ylm(lcor,mat_inp_c,mat_out_c,ndij,option,optspin,prtvol,unitf
 
  if(ndij/=4) then
    message=' ndij:=4 !'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(message)
  end if
  if (option/=1.and.option/=2.and.option/=3.and.option/=4) then
    message=' option=/1 or 2 or 3 or 4 !'
-   call wrtout(std_out,message,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(message)
  end if
 
  if(abs(prtvol)>2.and.unitfi/=-1) then
@@ -1970,8 +1948,7 @@ subroutine mat_slm2ylm(lcor,mat_inp_c,mat_out_c,ndij,option,optspin,prtvol,unitf
 &     (abs(real(mat_out_c(ii,jj,3))-real(mat_out_c(jj,ii,4))).ge.0.0001)) then
        write(message,'(a,4f10.4)') &
 &       ' prb with mat_out_c ',mat_out_c(ii,jj,3),mat_out_c(ii,jj,4)
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       MSG_BUG(message)
      end if
    end do
  end do

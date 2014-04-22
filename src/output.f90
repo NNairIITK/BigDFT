@@ -210,7 +210,7 @@ subroutine print_general_parameters(in,atoms)
         call symmetry_get_matrices(atoms%astruct%sym%symObj, nSym, sym, transNon, symAfm, ierr)
         call symmetry_get_group(atoms%astruct%sym%symObj, spaceGroup, &
              & spaceGroupId, pointGroupMagn, genAfm, ierr)
-        if (ierr == AB6_ERROR_SYM_NOT_PRIMITIVE) write(spaceGroup, "(A)") "not prim."
+        if (ierr == AB7_ERROR_SYM_NOT_PRIMITIVE) write(spaceGroup, "(A)") "not prim."
      else 
         nSym = 0
         spaceGroup = 'disabled'
@@ -275,7 +275,7 @@ subroutine print_general_parameters(in,atoms)
   !   call symmetry_get_matrices(atoms%astruct%sym%symObj, nSym, sym, transNon, symAfm, ierr)
   !   call symmetry_get_group(atoms%astruct%sym%symObj, spaceGroup, &
   !        & spaceGroupId, pointGroupMagn, genAfm, ierr)
-  !   if (ierr == AB6_ERROR_SYM_NOT_PRIMITIVE) write(spaceGroup, "(A)") "not prim."
+  !   if (ierr == AB7_ERROR_SYM_NOT_PRIMITIVE) write(spaceGroup, "(A)") "not prim."
   !   write(add(1), '(a,i0)')       "N. sym.   = ", nSym
   !   write(add(2), '(a,a,a)')      "Sp. group = ", trim(spaceGroup)
   !else if (atoms%astruct%geocode /= 'F' .and. in%disableSym) then

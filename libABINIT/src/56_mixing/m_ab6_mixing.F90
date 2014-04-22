@@ -112,7 +112,7 @@
 
       ! Argument checkings.
       if (kind /= AB7_MIXING_POTENTIAL .and. kind /= AB7_MIXING_DENSITY) then
-         errid = AB6_ERROR_MIXING_ARG
+         errid = AB7_ERROR_MIXING_ARG
          write(errmess, '(a,a,a,a)' )ch10,&
               & ' ab7_mixing_set_arrays: ERROR -',ch10,&
               & '  Mixing must be done on density or potential only.'
@@ -120,7 +120,7 @@
       end if
       if (space /= AB7_MIXING_REAL_SPACE .and. &
            & space /= AB7_MIXING_FOURRIER_SPACE) then
-         errid = AB6_ERROR_MIXING_ARG
+         errid = AB7_ERROR_MIXING_ARG
          write(errmess, '(a,a,a,a)' )ch10,&
               & ' ab7_mixing_set_arrays: ERROR -',ch10,&
               & '  Mixing must be done in real or Fourrier space only.'
@@ -132,11 +132,11 @@
            & iscf /= AB7_MIXING_CG_ENERGY .and. &
            & iscf /= AB7_MIXING_PULAY .and. &
            & iscf /= AB7_MIXING_CG_ENERGY_2) then
-         errid = AB6_ERROR_MIXING_ARG
+         errid = AB7_ERROR_MIXING_ARG
          write(errmess, "(A,I0,A)") "Unknown mixing scheme (", iscf, ")."
          return
       end if
-      errid = AB6_NO_ERROR
+      errid = AB7_NO_ERROR
 
       ! Mandatory arguments.
       mix%iscf     = iscf
@@ -288,13 +288,13 @@
       real(dp), intent(in), optional :: arr_atm(3, mix%n_atom)
 
       if (.not. associated(mix%f_fftgr)) then
-         errid = AB6_ERROR_MIXING_ARG
+         errid = AB7_ERROR_MIXING_ARG
          write(errmess, '(a,a,a,a)' )ch10,&
               & ' ab7_mixing_set_arr_current_step: ERROR -',ch10,&
               & '  Working arrays not yet allocated.'
          return
       end if
-      errid = AB6_NO_ERROR
+      errid = AB7_NO_ERROR
 
       mix%f_fftgr(:,:,mix%i_vresid(1)) = arr_resid(:,:)
       if (present(arr_respc)) mix%f_fftgr(:,:,mix%i_vrespc(1)) = arr_respc(:,:)
@@ -458,14 +458,14 @@
 
       ! Argument checkings.
       if (mix%iscf == AB7_MIXING_NONE) then
-         errid = AB6_ERROR_MIXING_ARG
+         errid = AB7_ERROR_MIXING_ARG
          write(errmess, '(a,a,a,a)' )ch10,&
               & ' ab7_mixing_eval: ERROR -',ch10,&
               & '  No method has been chosen.'
          return
       end if
       if (mix%n_pawmix > 0 .and. .not. present(pawarr)) then
-         errid = AB6_ERROR_MIXING_ARG
+         errid = AB7_ERROR_MIXING_ARG
          write(errmess, '(a,a,a,a)' )ch10,&
               & ' ab7_mixing_eval: ERROR -',ch10,&
               & '  PAW is used, but no pawarr argument provided.'
@@ -473,7 +473,7 @@
       end if
       if (mix%n_atom > 0 .and. (.not. associated(mix%dtn_pc) .or. &
            & .not. associated(mix%xred))) then
-         errid = AB6_ERROR_MIXING_ARG
+         errid = AB7_ERROR_MIXING_ARG
          write(errmess, '(a,a,a,a)' )ch10,&
               & ' ab7_mixing_eval: ERROR -',ch10,&
               & '  Moving atoms is used, but no xred or dtn_pc attributes provided.'
@@ -481,13 +481,13 @@
       end if
       if ((present(fnrm) .or. present(fdot) .or. present(user_data)) .and. &
            & .not. (present(fnrm) .and. present(fdot) .and. present(user_data))) then
-         errid = AB6_ERROR_MIXING_ARG
+         errid = AB7_ERROR_MIXING_ARG
          write(errmess, '(a,a,a,a)' )ch10,&
               & ' ab7_mixing_eval: ERROR -',ch10,&
               & '  Passing optional norm and dot product routines without user_data argument.'
          return
       end if
-      errid = AB6_NO_ERROR
+      errid = AB7_NO_ERROR
 
       ! Miscellaneous
       moveAtm = 0
@@ -552,7 +552,7 @@
          !  Optimize next vtrial using an algorithm based
          !  on the conjugate gradient minimization of etotal
          if (.not. present(etotal) .or. .not. present(potden)) then
-            errid = AB6_ERROR_MIXING_ARG
+            errid = AB7_ERROR_MIXING_ARG
             write(errmess, '(a,a,a,a)' )ch10,&
                  & ' ab7_mixing_eval: ERROR -',ch10,&
                  & '  Arguments etotal or potden are missing for CG on energy methods.'
@@ -589,7 +589,7 @@
             deallocate(mix%dtn_pc, stat = i_stat)
             call memocc(i_stat, i_all, 'mix%dtn_pc', subname)
          end if
-         if (dbl_nnsclo == 1) errid = AB6_ERROR_MIXING_INC_NNSLOOP
+         if (dbl_nnsclo == 1) errid = AB7_ERROR_MIXING_INC_NNSLOOP
       end if
       
       if (present(resnrm)) resnrm = resnrm_
