@@ -347,13 +347,13 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
          call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%ham, &
               tmb%linmat%kernel_, tmb%linmat%ham_, energs%ebs,&
               tmb%coeff,orbs,tmb%orbs,update_kernel)
-         tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
+         !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
       else if (present(cdft)) then
          ! for directmin we have the kernel already, but only the CDFT function not actual energy for CDFT
          call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%ham, &
               tmb%linmat%kernel_, tmb%linmat%ham_, energs%ebs,&
               tmb%coeff,orbs,tmb%orbs,.false.)
-         tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
+         !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
       end if
       !!iall=-product(shape(tmb%linmat%ham%matrix))*kind(tmb%linmat%ham%matrix)
       !!deallocate(tmb%linmat%ham%matrix, stat=istat)
@@ -390,7 +390,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call foe(iproc, nproc, tmprtr, &
            energs%ebs, itout,it_scc, order_taylor, purification_quickreturn, adjust_FOE_temperature, &
            1, FOE_ACCURATE, tmb)
-      tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
+      !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
 
@@ -553,7 +553,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       overlap_calculated=.true.
       !tmb%can_use_transposed=.false.
       call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, order_taylor, purification_quickreturn)
-      tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
+      !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
       if (iproc==0) call yaml_close_map()
   end if
 
@@ -713,7 +713,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               call foe(iproc, nproc, 0.d0, &
                    energs%ebs, -1, -10, order_taylor, purification_quickreturn, adjust_FOE_temperature, 0, &
                    FOE_FAST, tmb)
-              tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
+              !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
               if (iproc==0) call yaml_close_map()
               if (.not.associated_psit_c) then
                   iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
@@ -776,7 +776,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !end do
           call calculate_density_kernel(iproc, nproc, .true., tmb%orbs, tmb%orbs, tmb%coeff, &
                tmb%linmat%l, tmb%linmat%kernel_)
-          tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
+          !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
           !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
       end if
 
@@ -861,7 +861,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       if (target_function==TARGET_FUNCTION_IS_ENERGY.and.extra_states>0) then
           !call vcopy(tmb%linmat%denskern%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%denskern%matrix_compr(1), 1)
           call vcopy(tmb%linmat%l%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
-          call vcopy(tmb%linmat%l%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%denskern_large%matrix_compr(1), 1)
+          !call vcopy(tmb%linmat%l%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%denskern_large%matrix_compr(1), 1)
           iall=-product(shape(kernel_compr_tmp))*kind(kernel_compr_tmp)
           deallocate(kernel_compr_tmp, stat=istat)
           call memocc(istat, iall, 'kernel_compr_tmp', subname)
@@ -949,7 +949,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !!         tmb%coeff, tmb%linmat%denskern)
           !!else
           !call vcopy(tmb%linmat%denskern%nvctr, kernel_best(1), 1, tmb%linmat%denskern%matrix_compr(1), 1)
-          call vcopy(tmb%linmat%l%nvctr, kernel_best(1), 1, tmb%linmat%denskern_large%matrix_compr(1), 1)
+          !call vcopy(tmb%linmat%l%nvctr, kernel_best(1), 1, tmb%linmat%denskern_large%matrix_compr(1), 1)
           call vcopy(tmb%linmat%l%nvctr, kernel_best(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
           !!end if
           trH_old=0.d0
@@ -1107,7 +1107,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                       call yaml_newline()
                   end if
                   call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, order_taylor, purification_quickreturn)
-                  tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
+                  !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
               else if (method_updatekernel==UPDATE_BY_FOE) then
                   if (iproc==0) then
                       call yaml_map('purify kernel',.false.)
@@ -1958,7 +1958,7 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
 
   ! Recalculate the kernel
   call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, tmb%coeff, tmb%linmat%l, tmb%linmat%kernel_)
-  tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
+  !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
   !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
 
 end subroutine reconstruct_kernel
