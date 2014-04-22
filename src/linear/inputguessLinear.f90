@@ -459,18 +459,15 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   call to_zero(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1))
   do iorb=1,tmb%orbs%norb
      !ii=matrixindex_in_compressed(tmb%linmat%denskern,iorb,iorb)
-     ii=matrixindex_in_compressed(tmb%linmat%denskern_large,iorb,iorb)
+     ii=matrixindex_in_compressed(tmb%linmat%l,iorb,iorb)
      !tmb%linmat%denskern%matrix_compr(ii)=1.d0*tmb%orbs%occup(inversemapping(iorb))
      !tmb%linmat%denskern%matrix_compr(ii)=1.d0*tmb%orbs%occup(iorb)
      tmb%linmat%kernel_%matrix_compr(ii)=1.d0*tmb%orbs%occup(iorb)
   end do
- !!tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
- !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
 
   !Calculate the density in the new scheme
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
        tmb%orbs, tmb%psi, tmb%collcom_sr)
-  !!tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
        tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
        denspot%rhov, rho_negative)
@@ -753,7 +750,6 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
     call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
   end if
 
-  !!mb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
        tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
        denspot%rhov, rho_negative)

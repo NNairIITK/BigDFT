@@ -1535,38 +1535,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
 
      tmb%linmat%inv_ovrlp_large=sparse_matrix_null()
-     !call sparse_copy_pattern(tmb%linmat%denskern_large, tmb%linmat%ovrlp_large, iproc, subname)
-     !call sparse_copy_pattern(tmb%linmat%denskern_large, tmb%linmat%ham_large, iproc, subname)
      call sparse_copy_pattern(tmb%linmat%denskern_large, tmb%linmat%inv_ovrlp_large, iproc, subname)
 
-     !!call init_sparsity_from_distance(iproc, nproc, tmb%orbs, tmb%lzd, input, tmb%linmat%ovrlp_large)
-     !!allocate(tmb%linmat%ovrlp_large%matrix_compr(tmb%linmat%ovrlp_large%nvctr), stat=istat)
-     !!call memocc(istat, tmb%linmat%ovrlp_large%matrix_compr, 'tmb%linmat%ovrlp_large%matrix_compr', subname)
-
-     !!call init_sparsity_from_distance(iproc, nproc, tmb%orbs, tmb%lzd, input, tmb%linmat%ham_large)
-     !!allocate(tmb%linmat%ham_large%matrix_compr(tmb%linmat%ham_large%nvctr), stat=istat)
-     !!call memocc(istat, tmb%linmat%ham_large%matrix_compr, 'tmb%linmat%ham_large%matrix_compr', subname)
-
-
-
-     !call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
-     !     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
-     !call nullify_sparse_matrix(tmb%linmat%inv_ovrlp)
-     !call sparse_copy_pattern(tmb%linmat%denskern,tmb%linmat%inv_ovrlp,iproc,subname) ! save recalculating
-     !call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%inv_ovrlp)
-
-     !!allocate(tmb%linmat%denskern_large%matrix_compr(tmb%linmat%denskern_large%nvctr), stat=istat)
-     !!call memocc(istat, tmb%linmat%denskern_large%matrix_compr, 'tmb%linmat%denskern_large%matrix_compr', subname)
-     !!allocate(tmb%linmat%ham%matrix_compr(tmb%linmat%ham%nvctr), stat=istat)
-     !!call memocc(istat, tmb%linmat%ham%matrix_compr, 'tmb%linmat%ham%matrix_compr', subname)
-     !!allocate(tmb%linmat%ovrlp%matrix_compr(tmb%linmat%ovrlp%nvctr), stat=istat)
-     !!call memocc(istat, tmb%linmat%ovrlp%matrix_compr, 'tmb%linmat%ovrlp%matrix_compr', subname)
-     !!tmb%linmat%denskern_large%matrix_compr=f_malloc_ptr(tmb%linmat%denskern_large%nvctr,&
-     !!    id='tmb%linmat%denskern_large%matrix_compr')
-     !!tmb%linmat%ham%matrix_compr=f_malloc_ptr(tmb%linmat%ham%nvctr,&
-     !!    id='tmb%linmat%ham%matrix_compr')
-     !!tmb%linmat%ovrlp%matrix_compr=f_malloc_ptr(tmb%linmat%ovrlp%nvctr,&
-     !!    id='tmb%linmat%ovrlp%matrix_compr')
 
   else ! no change in locrad, just confining potential that needs updating
 
