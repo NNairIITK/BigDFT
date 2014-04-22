@@ -1897,7 +1897,6 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
       call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
       ! This can then be deleted if the transition to the new type has been completed.
       ovrlp%matrix_compr=ovrlp_%matrix_compr
-      call deallocate_matrices(ovrlp_)
 
       ! For the "higher" TMBs: delete off-diagonal elements and
       ! set diagonal elements to 1
@@ -1930,9 +1929,9 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
               !!                                                         iorb, jorb, iat, jat, iout, jout, icount_norb(iat), minorbs_type(at%iatype(iat)), maxorbs_type(at%iatype(iat))
               if (ii/=0 .and. (iout .or. jout)) then
                   if (jorb==iorb) then
-                      ovrlp%matrix_compr(ii)=1.d0
+                      ovrlp_%matrix_compr(ii)=1.d0
                   else
-                      ovrlp%matrix_compr(ii)=0.d0
+                      ovrlp_%matrix_compr(ii)=0.d0
                   end if
               end if
           end do
@@ -1946,18 +1945,18 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
 
 
       if (methTransformOverlap==-1) then
-          ovrlp_ = matrices_null()
-          call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
-          ovrlp_%matrix_compr=ovrlp%matrix_compr
+          !ovrlp_ = matrices_null()
+          !call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
+          !ovrlp_%matrix_compr=ovrlp%matrix_compr
           call overlap_power_minus_one_half_parallel(iproc, nproc, methTransformOverlap, &
                orbs, ovrlp, ovrlp_, inv_ovrlp_half)
-          call deallocate_matrices(ovrlp_)
+          !call deallocate_matrices(ovrlp_)
       else
           nullify(inv_ovrlp_null)
           ! do sparse.. check later
           call overlapPowerGeneral(iproc, nproc, methTransformOverlap, -2, &
                orthpar%blocksize_pdsyev, orbs%norb, orbs,&
-               imode=1, check_accur=.true., ovrlp=ovrlp%matrix, inv_ovrlp=inv_ovrlp_null, &
+               imode=1, check_accur=.true., ovrlp=ovrlp_%matrix, inv_ovrlp=inv_ovrlp_null, &
                error=error, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half)
       end if
 
@@ -1990,9 +1989,9 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
               ii=matrixindex_in_compressed(ovrlp,jorb,iorb)
               if (ii/=0 .and. (iout .or. jout)) then
                   if (jorb==iorb) then
-                      ovrlp%matrix_compr(ii)=1.d0
+                      ovrlp_%matrix_compr(ii)=1.d0
                   else
-                      ovrlp%matrix_compr(ii)=0.d0
+                      ovrlp_%matrix_compr(ii)=0.d0
                   end if
               end if
           end do
@@ -2021,6 +2020,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
 
 
 
+      call deallocate_matrices(ovrlp_)
 
 
 
@@ -2122,7 +2122,6 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
       call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
       ! This can then be deleted if the transition to the new type has been completed.
       ovrlp%matrix_compr=ovrlp_%matrix_compr
-      call deallocate_matrices(ovrlp_)
 
       ! For the "higher" TMBs: delete off-diagonal elements and
       ! set diagonal elements to 1
@@ -2154,12 +2153,12 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
               ii=matrixindex_in_compressed(ovrlp,jorb,iorb)
               if (ii/=0) then
                   if (iout) then
-                      ovrlp%matrix_compr(ii)=0.d0
+                      ovrlp_%matrix_compr(ii)=0.d0
                   else
                       if (jout) then
-                          ovrlp%matrix_compr(ii)=-ovrlp%matrix_compr(ii)
+                          ovrlp_%matrix_compr(ii)=-ovrlp_%matrix_compr(ii)
                       else
-                          ovrlp%matrix_compr(ii)=0.d0
+                          ovrlp_%matrix_compr(ii)=0.d0
                       end if
                   end if
               end if
@@ -2247,6 +2246,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
       call deallocate_matrices(ovrlp_)
 
 
+      call deallocate_matrices(ovrlp_)
 
 
       allocate(norm(orbs%norb), stat=istat)
