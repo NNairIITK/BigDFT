@@ -639,7 +639,7 @@ end subroutine calculate_density_kernel_uncompressed
 
 
 
-subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimrho, rho, rho_negative, &
+subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, denskern_, ndimrho, rho, rho_negative, &
         print_results)
   use module_base
   use module_types
@@ -652,6 +652,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   real(kind=8),intent(in) :: hx, hy, hz
   type(comms_linear),intent(in) :: collcom_sr
   type(sparse_matrix),intent(in) :: denskern
+  type(matrices),intent(in) :: denskern_
   real(kind=8),dimension(ndimrho),intent(out) :: rho
   logical,intent(out) :: rho_negative
   logical,intent(in),optional :: print_results
@@ -704,7 +705,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   total_charge=0.d0
   irho=0
   !$omp parallel default(private) &
-  !$omp shared(total_charge, collcom_sr, factor, denskern, rho_local, irho)
+  !$omp shared(total_charge, collcom_sr, factor, denskern, denskern_, rho_local, irho)
   !$omp do schedule(static,50) reduction(+:total_charge, irho)
   do ipt=1,collcom_sr%nptsp_c
       ii=collcom_sr%norb_per_gridpoint_c(ipt)
@@ -714,12 +715,12 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
           iiorb=collcom_sr%indexrecvorbital_c(i0+i)
           tt1=collcom_sr%psit_c(i0+i)
           ind=denskern%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
-          tt=tt+denskern%matrix_compr(ind)*tt1*tt1
+          tt=tt+denskern_%matrix_compr(ind)*tt1*tt1
           do j=i+1,ii
               jjorb=collcom_sr%indexrecvorbital_c(i0+j)
               ind=denskern%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
               if (ind==0) cycle
-              tt=tt+2.0_dp*denskern%matrix_compr(ind)*tt1*collcom_sr%psit_c(i0+j)
+              tt=tt+2.0_dp*denskern_%matrix_compr(ind)*tt1*collcom_sr%psit_c(i0+j)
           end do
       end do
       tt=factor*tt
@@ -970,13 +971,13 @@ subroutine check_communication_potential(iproc,denspot,tmb)
 end subroutine check_communication_potential
 
 
-subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, denspot, denskern, check_sumrho)
+subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, denspot, denskern, denskern_, check_sumrho)
   use module_base
   use module_types
   use module_interfaces, except_this_one => check_communication_sumrho
   use yaml_output
   use communications, only: transpose_switch_psir, transpose_communicate_psir, transpose_unswitch_psirt
-  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_base, only: sparse_matrix, matrices
   use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
 
@@ -987,6 +988,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   type(comms_linear),intent(inout) :: collcom_sr
   type(DFT_local_fields),intent(in) :: denspot
   type(sparse_matrix),intent(inout) :: denskern
+  type(matrices),intent(inout) :: denskern_
   integer,intent(in) :: check_sumrho
 
   ! Local variables
@@ -1303,7 +1305,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
     
       ! Now calculate the charge density in the transposed way using the standard routine
       rho=f_malloc(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1),1),id='rho')
-      call sumrho_for_TMBs(iproc, nproc, lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), collcom_sr, denskern, &
+      denskern_%matrix_compr = denskern%matrix_compr
+      call sumrho_for_TMBs(iproc, nproc, lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), collcom_sr, denskern, denskern_, &
            lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3d, rho, rho_negative, .false.)
     
       ! Determine the difference between the two versions

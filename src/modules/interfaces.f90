@@ -3544,7 +3544,7 @@ module module_interfaces
           type(comms_linear),intent(inout) :: collcom_sr
         end subroutine communicate_basis_for_density_collective
 
-        subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimrho, rho, rho_negative, &
+        subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, denskern_, ndimrho, rho, rho_negative, &
                    print_results)
           use module_base
           use module_types
@@ -3554,6 +3554,7 @@ module module_interfaces
           real(kind=8),intent(in) :: hx, hy, hz
           type(comms_linear),intent(in) :: collcom_sr
           type(sparse_matrix),intent(in) :: denskern
+          type(matrices),intent(in) :: denskern_
           real(kind=8),dimension(ndimrho),intent(out) :: rho
           logical,intent(out) :: rho_negative
           logical,intent(in),optional :: print_results
@@ -3998,7 +3999,7 @@ module module_interfaces
           real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: vector
         end subroutine uncompress_polynomial_vector
 
-        subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, denspot, denskern, check_sumrho)
+        subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, denspot, denskern, denskern_, check_sumrho)
           use module_base
           use module_types
           use yaml_output
@@ -4010,6 +4011,7 @@ module module_interfaces
           type(comms_linear),intent(in) :: collcom_sr
           type(DFT_local_fields),intent(in) :: denspot
           type(sparse_matrix),intent(inout) :: denskern
+          type(matrices),intent(inout) :: denskern_
           integer,intent(in) :: check_sumrho
         end subroutine check_communication_sumrho
 
