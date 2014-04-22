@@ -904,6 +904,7 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,denskern_mat,ham
            energy,coeff,orbs,tmb_orbs,calculate_kernel)
   use module_base
   use module_types
+  use module_interfaces, except_this_one => calculate_kernel_and_energy
   use sparsematrix_base, only: sparse_matrix
   use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
@@ -920,7 +921,8 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,denskern_mat,ham
   integer :: iorb, jorb, ind_ham, ind_denskern, ierr, iorbp
 
   if (calculate_kernel) then 
-     call calculate_density_kernel(iproc, nproc, .true., orbs, tmb_orbs, coeff, denskern)
+     call calculate_density_kernel(iproc, nproc, .true., orbs, tmb_orbs, coeff, denskern, denskern_mat)
+     denskern%matrix_compr = denskern_mat%matrix_compr
   end if
 
   call timing(iproc,'calc_energy','ON')

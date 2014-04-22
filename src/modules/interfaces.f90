@@ -3289,7 +3289,7 @@ module module_interfaces
           type(paw_objects),optional,intent(inout) :: paw
         end subroutine orthogonalize
   
-        subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coeff, denskern)
+        subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coeff, denskern, denskern_)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
@@ -3299,6 +3299,7 @@ module module_interfaces
           type(orbitals_data),intent(in):: orbs, orbs_tmb
           real(8),dimension(orbs_tmb%norb,orbs%norb),intent(in):: coeff
           type(sparse_matrix),intent(inout):: denskern
+          type(matrices), intent(out) :: denskern_
         end subroutine calculate_density_kernel
 
         subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_pdgemm, orbs, tmb, overlap_calculated)
@@ -4049,7 +4050,7 @@ module module_interfaces
 
           ! Calling arguments
           integer, intent(in) :: iproc, nproc, num_extra
-          type(dft_wavefunction), intent(in) :: tmb
+          type(dft_wavefunction), intent(inout) :: tmb
           type(orbitals_data), intent(in) :: ksorbs
           real(kind=8),dimension(:),pointer :: hpsit_c, hpsit_f
         end subroutine calculate_residue_ks

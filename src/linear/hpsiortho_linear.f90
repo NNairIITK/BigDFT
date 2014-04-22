@@ -824,6 +824,7 @@ end subroutine calculate_energy_and_gradient_linear
 subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, hpsit_f)
   use module_base
   use module_types
+  use module_interfaces, except_this_one => calculate_residue_ks
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
                                matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: uncompress_matrix
@@ -831,7 +832,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
 
   ! Calling arguments
   integer, intent(in) :: iproc, nproc, num_extra
-  type(dft_wavefunction), intent(in) :: tmb
+  type(dft_wavefunction), intent(inout) :: tmb
   type(orbitals_data), intent(in) :: ksorbs
   real(kind=8),dimension(:),pointer :: hpsit_c, hpsit_f
 
@@ -934,7 +935,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   grad_ovrlp_ = matrices_null()
   call allocate_matrices(tmb%linmat%ham, allocate_full=.false., matname='grad_ovrlp_', mat=grad_ovrlp_)
   grad_ovrlp_%matrix_compr=grad_ovrlp%matrix_compr
-  call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%kernel_,grad_ovrlp,&
+  call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern_large,grad_ovrlp,&
        tmb%linmat%kernel_, grad_ovrlp_, &
        ksres_sum,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
   tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr

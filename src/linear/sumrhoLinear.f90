@@ -290,7 +290,7 @@ END SUBROUTINE partial_density_linear
 
 
 
-subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coeff, denskern)
+subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coeff, denskern, denskern_)
   use module_base
   use module_types
   use yaml_output
@@ -304,6 +304,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
   logical, intent(in) :: isKernel
   real(kind=8),dimension(orbs_tmb%norb,orbs%norb),intent(in):: coeff   !only use the first (occupied) orbitals
   type(sparse_matrix), intent(inout) :: denskern
+  type(matrices), intent(out) :: denskern_
 
   ! Local variables
   integer :: istat, iall, ierr, sendcount, jproc, iorb, itmb
@@ -349,7 +350,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
       call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
       call timing(iproc,'waitAllgatKern','OF')
 
-      denskern%matrix=f_malloc_ptr((/orbs_tmb%norb,orbs_tmb%norb/), id='denskern')
+      denskern_%matrix=f_malloc_ptr((/orbs_tmb%norb,orbs_tmb%norb/), id='denskern_%matrix')
 
       if (nproc > 1) then
          call timing(iproc,'commun_kernel','ON') !lr408t
@@ -361,24 +362,24 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
          end do
          sendcount=orbs_tmb%norb*orbs_tmb%norbp
          call mpi_allgatherv(density_kernel_partial(1,1), sendcount, mpi_double_precision, &
-              denskern%matrix(1,1), recvcounts, dspls, mpi_double_precision, &
+              denskern_%matrix(1,1), recvcounts, dspls, mpi_double_precision, &
               bigdft_mpi%mpi_comm, ierr)
          call f_free(recvcounts)
          call f_free(dspls)
          call timing(iproc,'commun_kernel','OF') !lr408t
       else
-         call vcopy(orbs_tmb%norb*orbs_tmb%norbp,density_kernel_partial(1,1),1,denskern%matrix(1,1),1)
+         call vcopy(orbs_tmb%norb*orbs_tmb%norbp,density_kernel_partial(1,1),1,denskern_%matrix(1,1),1)
       end if
 
       call f_free(density_kernel_partial)
 
-      call compress_matrix(iproc,denskern)
-      call f_free_ptr(denskern%matrix)
+      call compress_matrix(iproc,denskern,inmat=denskern_%matrix,outmat=denskern_%matrix_compr)
+      call f_free_ptr(denskern_%matrix)
   else if (communication_strategy==ALLREDUCE) then
       if (iproc==0) call yaml_map('communication strategy kernel','ALLREDUCE')
       call timing(iproc,'calc_kernel','ON') !lr408t
       !!if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
-      denskern%matrix=f_malloc_ptr((/orbs_tmb%norb,orbs_tmb%norb/), id='denskern')
+      denskern_%matrix=f_malloc_ptr((/orbs_tmb%norb,orbs_tmb%norb/), id='denskern_%matrix_compr')
       if(orbs%norbp>0) then
           fcoeff=f_malloc((/orbs_tmb%norb,orbs%norbp/), id='fcoeff')
           !decide wether we calculate the density kernel or just transformation matrix
@@ -396,10 +397,10 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
              end do
           end if
           call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), orbs_tmb%norb, &
-               fcoeff(1,1), orbs_tmb%norb, 0.d0, denskern%matrix(1,1), orbs_tmb%norb)
+               fcoeff(1,1), orbs_tmb%norb, 0.d0, denskern_%matrix(1,1), orbs_tmb%norb)
           call f_free(fcoeff)
       else
-          call to_zero(orbs_tmb%norb**2, denskern%matrix(1,1))
+          call to_zero(orbs_tmb%norb**2, denskern_%matrix(1,1))
       end if
       call timing(iproc,'calc_kernel','OF') !lr408t
 
@@ -407,11 +408,11 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
       call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
       call timing(iproc,'waitAllgatKern','OF')
 
-      call compress_matrix(iproc,denskern)
-      call f_free_ptr(denskern%matrix)
+      call compress_matrix(iproc,denskern,inmat=denskern_%matrix,outmat=denskern_%matrix_compr)
+      call f_free_ptr(denskern_%matrix)
       if (nproc > 1) then
           call timing(iproc,'commun_kernel','ON') !lr408t
-          call mpiallred(denskern%matrix_compr(1), denskern%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          call mpiallred(denskern_%matrix_compr(1), denskern%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
           call timing(iproc,'commun_kernel','OF') !lr408t
       end if
 
