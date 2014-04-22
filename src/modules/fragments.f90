@@ -19,8 +19,9 @@ module module_fragments
   private
 
    interface
+
       subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize_pdgemm, inversion_method, basis_orbs, &
-                 basis_overlap, coeff, orbs)
+                 basis_overlap, basis_overlap_mat, coeff, orbs)
         use module_base
         use module_types
         use sparsematrix_base, only: sparse_matrix
@@ -28,8 +29,9 @@ module module_fragments
         integer, intent(in) :: iproc, nproc, norb
         integer, intent(in) :: blocksize_dsyev, blocksize_pdgemm, inversion_method
         type(orbitals_data), intent(in) :: basis_orbs   !number of basis functions
-        type(orbitals_data), optional, intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
-        type(sparse_matrix),intent(in) :: basis_overlap
+        type(orbitals_data), intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
+        type(sparse_matrix),intent(inout) :: basis_overlap
+        type(matrices),intent(inout) :: basis_overlap_mat
         real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(inout) :: coeff
       end subroutine reorthonormalize_coeff
 
@@ -41,6 +43,7 @@ module module_fragments
         type(orbitals_data), intent(in) :: orbs
         real(gp), dimension(:,:,:), intent(in), pointer :: mom_vec
       end subroutine write_eigenvalues_data
+
    end interface
 
 
@@ -1000,7 +1003,6 @@ contains
     nstates_max,cdft)
     use yaml_output
     use module_base
-    use module_interfaces
     use communications, only: transpose_localized
     use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
     use sparsematrix, only: uncompress_matrix
