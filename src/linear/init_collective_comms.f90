@@ -520,7 +520,7 @@ subroutine calculate_pulay_overlap(iproc, nproc, orbs1, orbs2, collcom1, collcom
   call timing(iproc,'ovrlptransComm','OF') !lr408t
 end subroutine calculate_pulay_overlap
 
-subroutine build_linear_combination_transposed(collcom, sparsemat, psitwork_c, psitwork_f, &
+subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork_c, psitwork_f, &
      reset, psit_c, psit_f, iproc)
   use module_base
   use module_types
@@ -529,6 +529,7 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, psitwork_c, p
   
   ! Calling arguments
   type(sparse_matrix),intent(in) :: sparsemat
+  type(matrices),intent(in) :: mat
   type(comms_linear),intent(in) :: collcom
   real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psitwork_c
   real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psitwork_f
@@ -547,7 +548,7 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, psitwork_c, p
 
  
   !$omp parallel default(private) &
-  !$omp shared(collcom, psit_c, psitwork_c, psit_f, psitwork_f, sparsemat)
+  !$omp shared(collcom, psit_c, psitwork_c, psit_f, psitwork_f, sparsemat, mat)
 
   !!write(*,'(a,i4,4i8)') 'iproc, lbound, ubound, minval, maxval',&
   !!iproc, lbound(sparsemat%matrixindex_in_compressed_fortransposed,2),&
@@ -568,29 +569,29 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, psitwork_c, p
                   !ind0 = collcom%matrixindex_in_compressed(jjorb,iiorb)
                   !write(41,*) jjorb, iiorb, sparsemat%matrixindex_in_compressed(jjorb,iiorb)
                   !write(42,*) jjorb, iiorb, collcom%matrixindex_in_compressed(jjorb,iiorb)
-                  psit_c(i0+i)=psit_c(i0+i)+sparsemat%matrix_compr(ind0)*psitwork_c(i0+j)
+                  psit_c(i0+i)=psit_c(i0+i)+mat%matrix_compr(ind0)*psitwork_c(i0+j)
               end do
           end if
           do j=m+1,ii,4
               jjorb=collcom%indexrecvorbital_c(i0+j+0)
               ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
               !ind0 = collcom%matrixindex_in_compressed(jjorb,iiorb)
-              psit_c(i0+i)=psit_c(i0+i)+sparsemat%matrix_compr(ind0)*psitwork_c(i0+j+0)
+              psit_c(i0+i)=psit_c(i0+i)+mat%matrix_compr(ind0)*psitwork_c(i0+j+0)
 
               jjorb=collcom%indexrecvorbital_c(i0+j+1)
               ind1 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
               !ind1 = collcom%matrixindex_in_compressed(jjorb,iiorb)
-              psit_c(i0+i)=psit_c(i0+i)+sparsemat%matrix_compr(ind1)*psitwork_c(i0+j+1)
+              psit_c(i0+i)=psit_c(i0+i)+mat%matrix_compr(ind1)*psitwork_c(i0+j+1)
 
               jjorb=collcom%indexrecvorbital_c(i0+j+2)
               ind2 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
               !ind2 = collcom%matrixindex_in_compressed(jjorb,iiorb)
-              psit_c(i0+i)=psit_c(i0+i)+sparsemat%matrix_compr(ind2)*psitwork_c(i0+j+2)
+              psit_c(i0+i)=psit_c(i0+i)+mat%matrix_compr(ind2)*psitwork_c(i0+j+2)
 
               jjorb=collcom%indexrecvorbital_c(i0+j+3)
               ind3 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
               !ind3 = collcom%matrixindex_in_compressed(jjorb,iiorb)
-              psit_c(i0+i)=psit_c(i0+i)+sparsemat%matrix_compr(ind3)*psitwork_c(i0+j+3)
+              psit_c(i0+i)=psit_c(i0+i)+mat%matrix_compr(ind3)*psitwork_c(i0+j+3)
 
           end do
       end do
@@ -607,13 +608,13 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, psitwork_c, p
               jjorb=collcom%indexrecvorbital_f(i0+j)
               ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
               !ind0 = collcom%matrixindex_in_compressed(jjorb,iiorb)
-              psit_f(7*(i0+i)-6) = psit_f(7*(i0+i)-6) + sparsemat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-6)
-              psit_f(7*(i0+i)-5) = psit_f(7*(i0+i)-5) + sparsemat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-5)
-              psit_f(7*(i0+i)-4) = psit_f(7*(i0+i)-4) + sparsemat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-4)
-              psit_f(7*(i0+i)-3) = psit_f(7*(i0+i)-3) + sparsemat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-3)
-              psit_f(7*(i0+i)-2) = psit_f(7*(i0+i)-2) + sparsemat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-2)
-              psit_f(7*(i0+i)-1) = psit_f(7*(i0+i)-1) + sparsemat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-1)
-              psit_f(7*(i0+i)-0) = psit_f(7*(i0+i)-0) + sparsemat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-0)
+              psit_f(7*(i0+i)-6) = psit_f(7*(i0+i)-6) + mat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-6)
+              psit_f(7*(i0+i)-5) = psit_f(7*(i0+i)-5) + mat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-5)
+              psit_f(7*(i0+i)-4) = psit_f(7*(i0+i)-4) + mat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-4)
+              psit_f(7*(i0+i)-3) = psit_f(7*(i0+i)-3) + mat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-3)
+              psit_f(7*(i0+i)-2) = psit_f(7*(i0+i)-2) + mat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-2)
+              psit_f(7*(i0+i)-1) = psit_f(7*(i0+i)-1) + mat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-1)
+              psit_f(7*(i0+i)-0) = psit_f(7*(i0+i)-0) + mat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-0)
           end do
       end do
      

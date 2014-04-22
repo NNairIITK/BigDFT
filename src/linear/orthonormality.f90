@@ -41,7 +41,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
   real(kind=8),dimension(:,:),pointer :: inv_ovrlp_null
   real(kind=8) :: error
   logical :: ovrlp_associated, inv_ovrlp_associated
-  type(matrices) :: ovrlp_
+  type(matrices) :: ovrlp_, inv_ovrlp_half_
 
   if(orthpar%nItOrtho>1) write(*,*) 'WARNING: might create memory problems...'
 
@@ -136,8 +136,14 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
 
       call vcopy(sum(collcom%nrecvcounts_c), psit_c(1), 1, psittemp_c(1), 1)
       call vcopy(7*sum(collcom%nrecvcounts_f), psit_f(1), 1, psittemp_f(1), 1)
-      call build_linear_combination_transposed(collcom, inv_ovrlp_half, &
+
+      inv_ovrlp_half_ = matrices_null()
+      call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='inv_ovrlp_half_', mat=inv_ovrlp_half_)
+      inv_ovrlp_half_%matrix_compr = inv_ovrlp_half%matrix_compr
+      call build_linear_combination_transposed(collcom, inv_ovrlp_half, inv_ovrlp_half_, &
            psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
+      call deallocate_matrices(inv_ovrlp_half_)
+
       allocate(norm(orbs%norb), stat=istat)
       call memocc(istat, norm, 'norm', subname)
       call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, norm)
@@ -335,7 +341,18 @@ call timing(iproc,'misc','ON')
   call memocc(istat, iall, 'tmp_mat_compr', subname)
 
 call timing(iproc,'misc','OF')
-  call build_linear_combination_transposed(collcom, lagmat, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
+
+  lagmat_ = matrices_null()
+  call allocate_matrices(lagmat, allocate_full=.false., matname='lagmat_', mat=lagmat_)
+  lagmat_%matrix_compr = lagmat%matrix_compr
+  call build_linear_combination_transposed(collcom, lagmat, lagmat_, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
+  call deallocate_matrices(lagmat_)
+
+
+
+
+
+
   !call build_linear_combination_transposed(collcom, tmp_mat, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
 
   !!! TEST ORTHOGONALITY OF GRADIENT AND TMBs ##############################
@@ -1877,7 +1894,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   character(len=*),parameter :: subname='orthonormalize_subset'
   real(kind=8),dimension(:,:),pointer :: inv_ovrlp_null
   real(kind=8) :: error
-  type(matrices) :: ovrlp_
+  type(matrices) :: ovrlp_, inv_ovrlp_half_
 
   if(orthpar%nItOrtho>1) write(*,*) 'WARNING: might create memory problems...'
 
@@ -2026,8 +2043,18 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
       call vcopy(sum(collcom%nrecvcounts_c), psit_c(1), 1, psittemp_c(1), 1)
       call vcopy(7*sum(collcom%nrecvcounts_f), psit_f(1), 1, psittemp_f(1), 1)
 
-      call build_linear_combination_transposed(collcom, inv_ovrlp_half, &
+      inv_ovrlp_half_ = matrices_null()
+      call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='inv_ovrlp_half_', mat=inv_ovrlp_half_)
+      inv_ovrlp_half_%matrix_compr = inv_ovrlp_half%matrix_compr
+      call build_linear_combination_transposed(collcom, inv_ovrlp_half, inv_ovrlp_half_, &
            psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
+      call deallocate_matrices(inv_ovrlp_half_)
+
+
+
+
+
+
       allocate(norm(orbs%norb), stat=istat)
       call memocc(istat, norm, 'norm', subname)
       call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, norm)
@@ -2240,8 +2267,19 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
       call vcopy(7*sum(collcom%nrecvcounts_f), psit_f(1), 1, psittemp_f(1), 1)
       !!call build_linear_combination_transposed(collcom, inv_ovrlp_half, &
       !!     psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
-      call build_linear_combination_transposed(collcom, ovrlp, &
+
+
+
+      ovrlp_ = matrices_null()
+      call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
+      ovrlp_%matrix_compr = inv_ovrlp_half%matrix_compr
+      call build_linear_combination_transposed(collcom, ovrlp, ovrlp_, &
            psittemp_c, psittemp_f, .false., psit_c, psit_f, iproc)
+      call deallocate_matrices(ovrlp_)
+
+
+
+
       allocate(norm(orbs%norb), stat=istat)
       call memocc(istat, norm, 'norm', subname)
       !call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, norm)
