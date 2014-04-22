@@ -938,7 +938,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern_large,grad_ovrlp,&
        tmb%linmat%kernel_, grad_ovrlp_, &
        ksres_sum,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
-  tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
+  !!tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
   call deallocate_matrices(grad_ovrlp_)
   !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
   if (iproc==0) write(*,*) 'KS residue from trace',dsqrt(ksres_sum)/real(tmb%orbs%norb,gp) ! should update normalization as would only be occ here not extra?

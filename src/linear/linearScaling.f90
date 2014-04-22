@@ -219,7 +219,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern_large,cdft%weight_matrix, &
           tmb%linmat%kernel_,weight_matrix_,&
           ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
-     tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
+     !!tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
      call deallocate_matrices(weight_matrix_)
      !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
 
@@ -282,7 +282,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   ! if we want to ignore read in coeffs and diag at start - EXPERIMENTAL
   if (input%lin%diag_start .and. input%inputPsiId==INPUT_PSI_DISK_LINEAR) then
      ! Calculate the charge density.
-     tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
+     !!tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
           tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
           denspot%rhov, rho_negative)
@@ -867,7 +867,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  ! to prevent it from writing too much
                  call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
              end if
-             tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
+             !!tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
              call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
                   tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, &
                   KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
@@ -990,7 +990,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern_large,cdft%weight_matrix, &
                      tmb%linmat%kernel_,weight_matrix_,&
                      ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
-                tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
+                !!tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
                 call deallocate_matrices(weight_matrix_)
                 !call timing(iproc,'constraineddft','OF')
              end if
@@ -1411,7 +1411,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
 
   ! check why this is here!
-  tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
+  !!tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
        tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
        denspot%rhov, rho_negative)
@@ -1788,7 +1788,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       call vcopy(denspot%dpbox%ndimrhopot,denspot%rhov(1),1,rhopot_work(1),1)
 
 
-      tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
+      !!tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
       call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
            tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
            denspot%rhov, rho_negative)
