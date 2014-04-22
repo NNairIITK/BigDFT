@@ -69,7 +69,7 @@ program WaCo
    logical :: idemp
    integer, dimension(4) :: mpi_info
    type(dictionary), pointer :: user_inputs
-
+   external :: gather_timings
    ! ONLY FOR DEBUG
 !   real(gp) :: Gnorm, Lnorm
 !   integer :: indL,ilr
@@ -1309,7 +1309,7 @@ program WaCo
   !#########################################################
   ! Ending timing and MPI
   !#########################################################
-  call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm)
+  call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm,nproc=bigdft_mpi%nproc,gather_routine=gather_timings)
 
   call cpu_time(tcpu1)
   call system_clock(ncount1,ncount_rate,ncount_max)

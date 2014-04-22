@@ -43,6 +43,7 @@ module wrapper_MPI
   integer, public, save :: TCAT_ALLRED_SMALL=TIMING_UNINITIALIZED
   integer, public, save :: TCAT_ALLRED_LARGE=TIMING_UNINITIALIZED
   integer, public, save :: TCAT_ALLGATHERV  =TIMING_UNINITIALIZED
+  integer, public, save :: TCAT_GATHER      =TIMING_UNINITIALIZED
   
   !error codes
   integer, public, save :: ERR_MPI_WRAPPERS
@@ -60,6 +61,11 @@ module wrapper_MPI
           & mpiallred_log
      module procedure mpiallred_d1,mpiallred_d2
   end interface mpiallred
+
+  interface mpigather
+     module procedure mpigather_d1d1,mpigather_d2d1,mpigather_d1d2,mpigather_d2
+  end interface mpigather
+
 
   !> Interface for MPI_ALLGATHERV routine
   interface mpiallgatherv
@@ -421,6 +427,9 @@ end subroutine create_group_comm1
     call f_timing_category('Allgatherv',tgrp_mpi_name,&
          'Variable allgather operations',&
          TCAT_ALLGATHERV)
+    call f_timing_category('Gather',tgrp_mpi_name,&
+         'Gather operations, in general moderate size arrays',&
+         TCAT_GATHER)
 
     call f_err_define(err_name='ERR_MPI_WRAPPERS',err_msg='Error of MPI library',&
          err_id=ERR_MPI_WRAPPERS,&
@@ -464,6 +473,39 @@ end subroutine create_group_comm1
     integer :: mt
     mt=MPI_LOGICAL
   end function mpitype_l
+
+  !gather the results of a given array into the root proc
+  subroutine mpigather_d1d1(sendbuf,recvbuf,root,comm)
+    use yaml_output, only: yaml_toa
+    implicit none
+    double precision, dimension(:), intent(in) :: sendbuf
+    double precision, dimension(:), intent(inout) :: recvbuf
+    include 'gather-inc.f90'   
+  end subroutine mpigather_d1d1
+
+  subroutine mpigather_d1d2(sendbuf,recvbuf,root,comm)
+    use yaml_output, only: yaml_toa
+    implicit none
+    double precision, dimension(:), intent(in) :: sendbuf
+    double precision, dimension(:,:), intent(inout) :: recvbuf
+    include 'gather-inc.f90'   
+  end subroutine mpigather_d1d2
+
+  subroutine mpigather_d2d1(sendbuf,recvbuf,root,comm)
+    use yaml_output, only: yaml_toa
+    implicit none
+    double precision, dimension(:,:), intent(in) :: sendbuf
+    double precision, dimension(:), intent(inout) :: recvbuf
+    include 'gather-inc.f90'   
+  end subroutine mpigather_d2d1
+
+  subroutine mpigather_d2(sendbuf,recvbuf,root,comm)
+    use yaml_output, only: yaml_toa
+    implicit none
+    double precision, dimension(:,:), intent(in) :: sendbuf
+    double precision, dimension(:,:), intent(inout) :: recvbuf
+    include 'gather-inc.f90'   
+  end subroutine mpigather_d2
 
 
   !interface for MPI_ALLGATHERV operations
@@ -553,6 +595,19 @@ end subroutine create_group_comm1
   end subroutine mpiallred_d2
 
 end module wrapper_MPI
+
+!> Routine to gather the clocks of all the instances of flib time module
+subroutine gather_timings(ndata,nproc,mpi_comm,src,dest)
+  use wrapper_MPI
+  implicit none
+  integer, intent(in) :: ndata !< number of categories of the array
+  integer, intent(in) :: nproc,mpi_comm !< number of MPI tasks and communicator
+  real(kind=8), dimension(ndata), intent(in) :: src !< total timings of the instance
+  real(kind=8), dimension(ndata,nproc), intent(inout) :: dest !< gathered timings 
+  call mpigather(sendbuf=src,recvbuf=dest,root=0,comm=mpi_comm)
+
+end subroutine gather_timings
+
 
 !> Activates the nesting for UNBLOCK_COMMS performance case
 subroutine bigdft_open_nesting(num_threads)

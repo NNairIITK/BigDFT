@@ -112,7 +112,8 @@ module dynamic_memory
   interface f_memcpy
      module procedure f_memcpy_i0,f_memcpy_i1
      module procedure f_memcpy_r0
-     module procedure f_memcpy_d0
+     module procedure f_memcpy_d0,f_memcpy_d1,f_memcpy_d2
+     module procedure f_memcpy_d1d2,f_memcpy_d2d1
      module procedure f_memcpy_l0
   end interface f_memcpy
 

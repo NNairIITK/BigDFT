@@ -45,6 +45,7 @@ module dictionaries
    end interface
    interface operator(.is.)
       module procedure dict_cont_new_with_value, dict_cont_new_with_dict
+      module procedure dict_cont_new_with_int
    end interface 
    interface operator(.in.)
       module procedure key_in_dictionary
@@ -327,6 +328,7 @@ contains
 
    !defines a new dictionary from a key and a value
    function dict_cont_new_with_value(key, val)
+     implicit none
      character(len = *), intent(in) :: key, val
      type(dictionary_container) :: dict_cont_new_with_value
 
@@ -335,7 +337,20 @@ contains
 
    end function dict_cont_new_with_value
 
+   function dict_cont_new_with_int(key, val)
+     use yaml_strings, only: yaml_toa
+     implicit none
+     character(len = *), intent(in) :: key
+     integer, intent(in) :: val
+     type(dictionary_container) :: dict_cont_new_with_int
+
+     dict_cont_new_with_int%key(1:max_field_length) = key
+     dict_cont_new_with_int%value(1:max_field_length) = yaml_toa(val)
+
+   end function dict_cont_new_with_int
+
    function dict_cont_new_with_dict(key, val)
+     implicit none
      character(len = *), intent(in) :: key
      type(dictionary), pointer, intent(in) :: val
      type(dictionary_container) :: dict_cont_new_with_dict

@@ -291,7 +291,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   ! Variables for the virtual orbitals and band diagram.
   integer :: nkptv, nvirtu, nvirtd
   real(gp), dimension(:), allocatable :: wkptv
-
+  type(dictionary), pointer :: dict_timing_info
+  
   !Variables for WVL+PAW
   integer:: iatyp
   type(gaussian_basis),dimension(max(atoms%astruct%ntypes,0))::proj_G
@@ -1386,7 +1387,7 @@ contains
 
   !> Routine which deallocate the pointers and the arrays before exiting 
   subroutine deallocate_before_exiting
-    
+    external :: gather_timings    
   !when this condition is verified we are in the middle of the SCF cycle
     if (infocode /=0 .and. infocode /=1 .and. inputpsi /= INPUT_PSI_EMPTY) then
        i_all=-product(shape(denspot%V_ext))*kind(denspot%V_ext)
@@ -1476,7 +1477,10 @@ contains
 
     !end of wavefunction minimisation
     call timing(bigdft_mpi%mpi_comm,'LAST','PR')
-    call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm)    
+    call build_dict_info(dict_timing_info)
+    call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm,nproc=bigdft_mpi%nproc,&
+         gather_routine=gather_timings,dict_info=dict_timing_info)
+    call dict_free(dict_timing_info)
     call cpu_time(tcpu1)
     call system_clock(ncount1,ncount_rate,ncount_max)
     tel=dble(ncount1-ncount0)/dble(ncount_rate)
@@ -1516,6 +1520,41 @@ contains
     call yaml_release_document()
 
   END SUBROUTINE deallocate_before_exiting
+
+  !> construct the dictionary needed for the timing information
+  subroutine build_dict_info(dict_info)
+    use dynamic_memory
+    use dictionaries
+    implicit none
+    include 'mpif.h'
+    type(dictionary), pointer :: dict_info
+    !local variables
+    integer :: ierr,namelen,nthreads
+    character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
+    character(len=MPI_MAX_PROCESSOR_NAME), dimension(:), allocatable :: nodename
+    !$ integer :: omp_get_max_threads
+
+    call dict_init(dict_info)
+    nthreads = 0
+    !$  nthreads=omp_get_max_threads()
+    call set(dict_info//'CPU parallelism'//'MPI tasks',bigdft_mpi%nproc)
+    if (nthreads /= 0) call set(dict_info//'CPU parallelism'//'OMP threads',&
+         nthreads)
+
+    nodename=f_malloc0_str(MPI_MAX_PROCESSOR_NAME,0.to.bigdft_mpi%nproc-1,id='nodename')
+    if (bigdft_mpi%nproc>1) then
+       call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
+       !gather the result between all the process
+       call MPI_GATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
+            nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,0,&
+            bigdft_mpi%mpi_comm,ierr)
+       if (bigdft_mpi%iproc==0) call set(dict_info//'Hostnames',&
+               list_new(.item. nodename))
+    end if
+    call f_free_str(MPI_MAX_PROCESSOR_NAME,nodename)
+
+  end subroutine build_dict_info
+
 
 END SUBROUTINE cluster
 

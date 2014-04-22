@@ -1261,7 +1261,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    !routine which deallocate the pointers and the arrays before exiting 
    subroutine deallocate_before_exiting
-
+     external :: gather_timings
       !when this condition is verified we are in the middle of the SCF cycle
 
       !! if (infocode /=0 .and. infocode /=1) then
@@ -1393,7 +1393,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
       !end of wavefunction minimisation
       call timing(bigdft_mpi%mpi_comm,'LAST','PR')
-      call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm)
+      call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm,nproc=bigdft_mpi%nproc,gather_routine=gather_timings)
       call cpu_time(tcpu1)
       call system_clock(ncount1,ncount_rate,ncount_max)
       tel=dble(ncount1-ncount0)/dble(ncount_rate)
