@@ -84,7 +84,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   delta_phit_f=f_malloc(isize,id='delta_phit_f')
   !fpulay=f_malloc((/3,at%astruct%nat/),id='fpulay')
   tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='tmb%linmat%kernel_%matrix')
-  call uncompress_matrix(iproc,tmb%linmat%denskern_large)
+  call uncompress_matrix(iproc,tmb%linmat%l, inmat=tmb%linmat%kernel_%matrix_compr, outmat=tmb%linmat%kernel_%matrix)
   call to_zero(3*at%astruct%nat, fpulay(1,1))
   do idir=1,3
       ! calculate the overlap matrix among hphi and phi_delta_large
@@ -156,16 +156,15 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
       hphit_f=f_malloc(isize,id='hphit_f')
       call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                                tmb%hpsi, hphit_c, hphit_f, tmb%ham_descr%lzd)
-      isize=size(tmb%linmat%denskern_large%matrix_compr)
-      denskern_tmp=f_malloc(isize,id='denskern_tmp')
-      denskern_tmp=tmb%linmat%denskern_large%matrix_compr
+      denskern_tmp=f_malloc(tmb%linmat%l%nvctr,id='denskern_tmp')
+      denskern_tmp=tmb%linmat%kernel_%matrix_compr
       tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='tmb%linmat%kernel_%matrix')
       tmb%linmat%kernel_%matrix=tempmat
-      call compress_matrix(iproc,tmb%linmat%denskern_large)
+      call compress_matrix(iproc, tmb%linmat%l, inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
       call f_free_ptr(tmb%linmat%kernel_%matrix)
       call build_linear_combination_transposed(tmb%ham_descr%collcom, &
            tmb%linmat%l, tmb%linmat%kernel_, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, .false., hphit_c, hphit_f, iproc)
-      tmb%linmat%denskern_large%matrix_compr=denskern_tmp
+      tmb%linmat%kernel_%matrix_compr=denskern_tmp
     
       call f_free(tempmat)
       call f_free(denskern_tmp)
