@@ -2572,7 +2572,8 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   use module_types
   use module_interfaces, except_this_one => get_KS_residue
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
-                               matrices_null, allocate_matrices, deallocate_matrices
+                               matrices_null, allocate_matrices, deallocate_matrices, &
+                               sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
   use sparsematrix, only: uncompress_matrix
   implicit none
 
@@ -2606,7 +2607,7 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
 
   !gradmat%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='gradmat%matrix')
   tmb%linmat%ham%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ham%matrix')
-  tmb%linmat%denskern_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern_large%matrix')
+  tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='tmb%linmat%kernel_%matrix')
   call uncompress_matrix(iproc, tmb%linmat%m, inmat=gradmat%matrix_compr, outmat=gradmat%matrix)
   call uncompress_matrix(iproc,tmb%linmat%ham)
   call uncompress_matrix(iproc,tmb%linmat%denskern_large)
@@ -2632,7 +2633,7 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   call timing(iproc,'ks_residue','ON')
   ! Parallelized version
   if (tmb%orbs%norbp>0) then
-      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.0d0, tmb%linmat%denskern_large%matrix, &
+      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.0d0, tmb%linmat%kernel_%matrix, &
            tmb%orbs%norb, tmb%linmat%ham%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
            0.d0, KH(1,tmb%orbs%isorb+1), tmb%orbs%norb)
   end if
@@ -2646,7 +2647,7 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   call f_free(KH)
   Kgrad=f_malloc0((/tmb%orbs%norb,tmb%orbs%norb/),id='Kgrad')
   if (tmb%orbs%norbp>0) then
-      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.0d0, tmb%linmat%denskern_large%matrix, &
+      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.0d0, tmb%linmat%kernel_%matrix, &
            tmb%orbs%norb, gradmat%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
            0.d0, Kgrad(1,tmb%orbs%isorb+1), tmb%orbs%norb)
   end if
@@ -2690,7 +2691,7 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
 
   !call f_free_ptr(gradmat%matrix)
   call f_free_ptr(tmb%linmat%ham%matrix)
-  call f_free_ptr(tmb%linmat%denskern_large%matrix)
+  call f_free_ptr(tmb%linmat%kernel_%matrix)
   !call f_free_ptr(gradmat%matrix_compr)
   call deallocate_matrices(gradmat)
 
@@ -2708,6 +2709,7 @@ end subroutine get_KS_residue
 subroutine check_idempotency(iproc, nproc, tmb, diff)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
   use sparsematrix, only: uncompress_matrix
   implicit none
 
@@ -2722,12 +2724,12 @@ subroutine check_idempotency(iproc, nproc, tmb, diff)
 
 
   tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
-  tmb%linmat%denskern_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern_large%matrix')
+  tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='tmb%linmat%kernel_%matrix')
   call uncompress_matrix(iproc,tmb%linmat%ovrlp)
   call uncompress_matrix(iproc,tmb%linmat%denskern_large)
 
 
-  call dscal(tmb%orbs%norb**2, 0.5d0, tmb%linmat%denskern_large%matrix, 1)
+  call dscal(tmb%orbs%norb**2, 0.5d0, tmb%linmat%kernel_%matrix, 1)
 
   ks=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
   ksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/))
@@ -2736,7 +2738,7 @@ subroutine check_idempotency(iproc, nproc, tmb, diff)
   call to_zero(tmb%orbs%norb**2, ks(1,1))
   if (tmb%orbs%norbp>0) then
       call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
-                 1.d0, tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb, &
+                 1.d0, tmb%linmat%kernel_%matrix(1,1), tmb%orbs%norb, &
                  tmb%linmat%ovrlp%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
                  0.d0, ks(1,tmb%orbs%isorb+1), tmb%orbs%norb) 
   end if
@@ -2744,7 +2746,7 @@ subroutine check_idempotency(iproc, nproc, tmb, diff)
   if (tmb%orbs%norbp>0) then
       call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
                  1.d0, ks(1,1), tmb%orbs%norb, &
-                 tmb%linmat%denskern_large%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
+                 tmb%linmat%kernel_%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
                  0.d0, ksk(1,1), tmb%orbs%norb)
   end if
   !!if (tmb%orbs%norbp>0) then
@@ -2765,7 +2767,7 @@ subroutine check_idempotency(iproc, nproc, tmb, diff)
       do jseg=jsegstart,jsegend
           do jorb=tmb%linmat%denskern_large%keyg(1,jseg),tmb%linmat%denskern_large%keyg(2,jseg)
               jjorb=jorb-(iorb-1)*tmb%orbs%norb
-              diff = diff + (ksk(jjorb,iiorb)-tmb%linmat%denskern_large%matrix(jjorb,iorb))**2
+              diff = diff + (ksk(jjorb,iiorb)-tmb%linmat%kernel_%matrix(jjorb,iorb))**2
           end do
       end do
   end do
@@ -2777,6 +2779,6 @@ subroutine check_idempotency(iproc, nproc, tmb, diff)
   call f_free(ksk)
   call f_free(ksksk)
   call f_free_ptr(tmb%linmat%ovrlp%matrix)
-  call f_free_ptr(tmb%linmat%denskern_large%matrix)
+  call f_free_ptr(tmb%linmat%kernel_%matrix)
 
 end subroutine check_idempotency
