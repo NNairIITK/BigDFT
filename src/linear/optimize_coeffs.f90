@@ -42,11 +42,10 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
 
   if (ldiis_coeff%idsx == 0 .and. sd_fit_curve) then
      ! calculate initial energy for SD line fitting and printing (maybe don't need to (re)calculate kernel here?)
-     call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern_large,tmb%linmat%ham, &
+     call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%ham, &
           tmb%linmat%kernel_, tmb%linmat%ham_, energy0,&
           tmb%coeff,orbs,tmb%orbs,.true.)
      tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
-     !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
   else
      energy0=energy
   end if
@@ -215,11 +214,10 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      !call f_free(ipiv)
      !!!!!!!!!!!!!!!!!!!!!!!!
 
-     call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern_large,tmb%linmat%ham,&
+     call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%ham,&
           tmb%linmat%kernel_, tmb%linmat%ham_, energy,&
           tmb%coeff,orbs,tmb%orbs,.true.)
      tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
-     !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
      !write(127,*) ldiis_coeff%alpha_coeff,energy
      !close(127)
 
@@ -872,11 +870,10 @@ subroutine find_alpha_sd(iproc,nproc,alpha,tmb,orbs,coeffp,grad,energy0,fnrm,pre
   ! instead of twice could add some criterion to check accuracy?
   call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, coeff_tmp, orbs)
   call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, coeff_tmp, orbs)
-  call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern_large,tmb%linmat%ham,&
+  call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%ham,&
        tmb%linmat%kernel_, tmb%linmat%ham_, energy1,&
        coeff_tmp,orbs,tmb%orbs,.true.)
   tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
-  !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
   call f_free(coeff_tmp)
 
   ! find ideal alpha using both points

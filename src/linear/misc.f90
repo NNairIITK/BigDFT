@@ -898,7 +898,6 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   ! Start with a "clean" density, i.e. without legacy from previous mixing steps
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
        max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%psi, tmb%collcom_sr)
-  !!tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
        tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
        denspot%rhov, rho_negative)
@@ -1004,7 +1003,6 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   ! which will be calculated by the cubic restart.
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
        max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%psi, tmb%collcom_sr)
-  !!tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
        tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
        denspot%rhov, rho_negative)
@@ -1229,7 +1227,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   proj_mat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='proj_mat')
 
   call to_zero(tmb%orbs%norb**2,proj_mat(1,1))
-  call uncompress_matrix(iproc, tmb%linmat%denskern_large,outmat=proj_mat)
+  call uncompress_matrix(iproc, tmb%linmat%l, inmat=tmb%linmat%kernel_%matrix_compr, outmat=proj_mat)
   !!isforb=0
   !!do ifrag=1,input%frag%nfrag
   !!   ifrag_ref=input%frag%frag_index(ifrag)

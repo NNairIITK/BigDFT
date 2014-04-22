@@ -920,12 +920,10 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   grad_ovrlp_ = matrices_null()
   call allocate_matrices(tmb%linmat%ham, allocate_full=.false., matname='grad_ovrlp_', mat=grad_ovrlp_)
   grad_ovrlp_%matrix_compr=grad_ovrlp%matrix_compr
-  call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern_large,grad_ovrlp,&
+  call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,grad_ovrlp,&
        tmb%linmat%kernel_, grad_ovrlp_, &
        ksres_sum,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
-  !!tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
   call deallocate_matrices(grad_ovrlp_)
-  !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
   if (iproc==0) write(*,*) 'KS residue from trace',dsqrt(ksres_sum)/real(tmb%orbs%norb,gp) ! should update normalization as would only be occ here not extra?
 
   call deallocate_sparse_matrix(grad_ovrlp, subname)
@@ -964,7 +962,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   real(kind=8), dimension(tmb%npsidim_orbs), optional,intent(out) :: psidiff
   logical, intent(in) :: ortho, experimental_mode
   real(kind=8),intent(out) :: trH_ref
-  real(kind=8),dimension(tmb%linmat%denskern_large%nvctr),intent(out) :: kernel_best
+  real(kind=8),dimension(tmb%linmat%l%nvctr),intent(out) :: kernel_best
   logical,intent(out) :: complete_reset
 
   ! Local variables
