@@ -21,7 +21,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use diis_sd_optimization
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use communications, only: synchronize_onesided_communication
-  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
+  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
+                               matrices_null, allocate_matrices, deallocate_matrices
   implicit none
 
   ! Calling arguments
@@ -100,6 +101,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   integer :: ist, iiorb, ncount
   real(kind=8) :: fnoise, pressure, ehart_fake, dnrm2
   real(kind=8),dimension(:,:),allocatable :: fxyz
+
+  type(matrices) :: weight_matrix_
 
   call timing(iproc,'linscalinit','ON') !lr408t
 
@@ -210,8 +213,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
         stop 'Basis cannot be updated for now in constrained DFT calculations and no low accuracy is allowed'
      end if
 
-     call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern_large,cdft%weight_matrix,&
+     weight_matrix_ = matrices_null()
+     call allocate_matrices(tmb%linmat%ham, allocate_full=.false., matname='weight_matrix_', mat=weight_matrix_)
+     weight_matrix_%matrix_compr=weight_matrix_%matrix_compr
+     call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern_large,cdft%weight_matrix, &
+          tmb%linmat%kernel_,weight_matrix_,&
           ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
+     tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
+     call deallocate_matrices(weight_matrix_)
      !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
 
      call timing(iproc,'constraineddft','ON')
@@ -973,8 +982,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 !call timing(iproc,'constraineddft','ON')
                 ! CDFT: see how satisfaction of constraint varies as kernel is updated
                 ! CDFT: calculate Tr[Kw]-Nc
-                call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern_large,cdft%weight_matrix,&
+                weight_matrix_ = matrices_null()
+                call allocate_matrices(tmb%linmat%ham, allocate_full=.false., matname='weight_matrix_', mat=weight_matrix_)
+                weight_matrix_%matrix_compr=weight_matrix_%matrix_compr
+                call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern_large,cdft%weight_matrix, &
+                     tmb%linmat%kernel_,weight_matrix_,&
                      ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
+                tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
+                call deallocate_matrices(weight_matrix_)
                 !call timing(iproc,'constraineddft','OF')
              end if
 

@@ -4267,6 +4267,23 @@ module module_interfaces
           real(kind=8),dimension(nseq),intent(in),optional :: dmat_seq
           real(kind=8),dimension(norb,norbp),intent(in),optional :: cmatp
         end subroutine check_accur_overlap_minus_one_sparse
+
+        subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,denskern_mat,ham_mat,&
+                   energy,coeff,orbs,tmb_orbs,calculate_kernel)
+          use module_base
+          use module_types
+          use sparsematrix_base, only: sparse_matrix
+          implicit none
+          integer, intent(in) :: iproc, nproc
+          type(sparse_matrix), intent(in) :: ham
+          type(sparse_matrix), intent(inout) :: denskern
+          type(matrices),intent(in) :: ham_mat
+          type(matrices),intent(out) :: denskern_mat
+          logical, intent(in) :: calculate_kernel
+          real(kind=gp), intent(out) :: energy
+          type(orbitals_data), intent(in) :: orbs, tmb_orbs
+          real(kind=gp), dimension(tmb_orbs%norb,tmb_orbs%norb), intent(in) :: coeff
+        end subroutine calculate_kernel_and_energy
   
   end interface
 END MODULE module_interfaces

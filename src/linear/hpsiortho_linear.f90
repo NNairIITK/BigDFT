@@ -931,7 +931,14 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   !     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ham)
   ! calculate Tr[Kg]  (not recalculating kernel as don't have the correct occs here)
   !call calculate_kernel_and_energy(iproc,nproc,denskern,grad_coeff,ksres_sum,tmb%coeff,orbs,tmb%orbs,.true.)
-  call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern_large,grad_ovrlp,ksres_sum,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
+  grad_ovrlp_ = matrices_null()
+  call allocate_matrices(tmb%linmat%ham, allocate_full=.false., matname='grad_ovrlp_', mat=grad_ovrlp_)
+  grad_ovrlp_%matrix_compr=grad_ovrlp%matrix_compr
+  call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%kernel_,grad_ovrlp,&
+       tmb%linmat%kernel_, grad_ovrlp_, &
+       ksres_sum,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
+  tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
+  call deallocate_matrices(grad_ovrlp_)
   !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
   if (iproc==0) write(*,*) 'KS residue from trace',dsqrt(ksres_sum)/real(tmb%orbs%norb,gp) ! should update normalization as would only be occ here not extra?
 
