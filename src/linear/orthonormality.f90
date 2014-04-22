@@ -79,55 +79,18 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
       call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
       ! This can then be deleted if the transition to the new type has been completed.
       ovrlp%matrix_compr=ovrlp_%matrix_compr
-      call deallocate_matrices(ovrlp_)
 
-      !!do ii=1,ovrlp%nvctr
-      !!   irow = ovrlp%orb_from_index(ii,1)
-      !!   jcol = ovrlp%orb_from_index(ii,2)
-      !!   Tempmat(irow,jcol)=ovrlp%matrix_compr(ii)
-      !!end do
-      !!if (iproc==0) then
-      !!    do irow=1,orbs%norb
-      !!        do jcol=1,orbs%norb
-      !!            write(333,'(2i8,es12.5,2i10)') irow, jcol, tempmat(jcol, irow), &
-      !!            orbs%onwhichatom(irow), orbs%onwhichatom(jcol)
-      !!        end do
-      !!    end do
-      !!end if
 
       if (methTransformOverlap==-1) then
-          call overlap_power_minus_one_half_parallel(iproc, nproc, 0, orbs, ovrlp, inv_ovrlp_half)
+          call overlap_power_minus_one_half_parallel(iproc, nproc, 0, orbs, ovrlp, ovrlp_, inv_ovrlp_half)
       else
-          !!nullify(inv_ovrlp_null)
-          !!if (methTransformOverlap>1 .and.  .not.associated(foe_obj%nsegline)) then
-          !!    ! this is a bit cheating, to be improved
-          !!    ovrlp_associated=associated(ovrlp%matrix)
-          !!    inv_ovrlp_associated=associated(inv_ovrlp_half%matrix)
-          !!    if (.not.ovrlp_associated) then
-          !!        ovrlp%matrix=f_malloc_ptr((/orbs%norb,orbs%norb/),id='ovrlp%matrix')
-          !!    end if
-          !!    if (.not.inv_ovrlp_associated) then
-          !!        inv_ovrlp_half%matrix=f_malloc_ptr((/orbs%norb,orbs%norb/),id='inv_ovrlp_half%matrix')
-          !!    end if
-          !!    call uncompress_matrix(iproc, ovrlp)
-          !!    call uncompress_matrix(iproc, inv_ovrlp_half)
-          !!    call overlapPowerGeneral(iproc, nproc, methTransformOverlap, -2, &
-          !!         orthpar%blocksize_pdgemm, orbs%norb, orbs, &
-          !!         imode=2, check_accur=.false.,ovrlp=ovrlp%matrix, &
-          !!         inv_ovrlp=inv_ovrlp_half%matrix, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half)
-          !!    call compress_matrix(iproc, ovrlp)
-          !!    call compress_matrix(iproc, inv_ovrlp_half)
-          !!    if (.not.ovrlp_associated) call f_free_ptr(ovrlp%matrix)
-          !!    if (.not.inv_ovrlp_associated) call f_free_ptr(inv_ovrlp_half%matrix)
-          !!else
-              call overlapPowerGeneral(iproc, nproc, methTransformOverlap, -2, &
-                   orthpar%blocksize_pdgemm, orbs%norb, orbs, &
-                   imode=1, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
-                   ovrlp=ovrlp%matrix, inv_ovrlp=inv_ovrlp_null, check_accur=.false.)!!, &
-                   !!foe_nseg=foe_obj%nseg, foe_kernel_nsegline=foe_obj%nsegline, &
-                   !!foe_istsegline=foe_obj%istsegline, foe_keyg=foe_obj%keyg)
-          !!end if
+          call overlapPowerGeneral(iproc, nproc, methTransformOverlap, -2, &
+               orthpar%blocksize_pdgemm, orbs%norb, orbs, &
+               imode=1, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
+               ovrlp=ovrlp%matrix, inv_ovrlp=inv_ovrlp_null, check_accur=.false.)!!, &
       end if
+
+      call deallocate_matrices(ovrlp_)
 
       allocate(psittemp_c(sum(collcom%nrecvcounts_c)), stat=istat)
       call memocc(istat, psittemp_c, 'psittemp_c', subname)
@@ -180,7 +143,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   use module_interfaces, exceptThisOne => orthoconstraintNonorthogonal
   use yaml_output
   use communications, only: transpose_localized, untranspose_localized
-  use sparsematrix_base, only: matrices_null, allocate_matrices, deallocate_matrices
+  use sparsematrix_base, only: matrices_null, allocate_matrices, deallocate_matrices, &
+                               sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: uncompress_matrix
   implicit none
@@ -280,8 +244,8 @@ call timing(iproc,'misc','ON')
       ! WARNING: it is mandatory that the overlap matrix has been calculated before
       !!call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, linmat%ovrlp)
       if (iproc==0) write(*,*) 'correction orthoconstraint'
-      linmat%ovrlp%matrix=f_malloc_ptr((/orbs%norb,orbs%norb/),id='linmat%ovrlp%matrix')
-      call uncompress_matrix(iproc,linmat%ovrlp)
+      linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(linmat%s, DENSE_FULL, id='linmat%ovrlp_%matrix')
+      call uncompress_matrix(iproc, linmat%ovrlp, inmat=linmat%ovrlp_%matrix_compr, outmat=linmat%ovrlp_%matrix)
       allocate(tmp_mat(orbs%norb,orbs%norb))
       allocate(tmp_mat2(orbs%norb,orbs%norb))
       call to_zero(orbs%norb**2, tmp_mat(1,1))
@@ -294,10 +258,10 @@ call timing(iproc,'misc','ON')
       lwork=10*orbs%norb
       allocate(work(lwork))
       allocate(tmp_mat3(orbs%norb,orbs%norb))
-      tmp_mat3=linmat%ovrlp%matrix
+      tmp_mat3=linmat%ovrlp_%matrix
 
-      call dgetrf(orbs%norb, orbs%norb, linmat%ovrlp%matrix, orbs%norb, ipiv, info)
-      call dgetri(orbs%norb, linmat%ovrlp%matrix, orbs%norb, ipiv, work, lwork, info)
+      call dgetrf(orbs%norb, orbs%norb, linmat%ovrlp_%matrix, orbs%norb, ipiv, info)
+      call dgetri(orbs%norb, linmat%ovrlp_%matrix, orbs%norb, ipiv, work, lwork, info)
 
       !!call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, linmat%ovrlp%matrix, orbs%norb, tmp_mat3, orbs%norb, 0.d0, tmp_mat2, orbs%norb)
       !!if (iproc==0) then
@@ -309,7 +273,7 @@ call timing(iproc,'misc','ON')
       !!end if
 
       ! This is the original
-      call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, linmat%ovrlp%matrix, orbs%norb, &
+      call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, linmat%ovrlp_%matrix, orbs%norb, &
            tmp_mat, orbs%norb, 0.d0, tmp_mat2, orbs%norb)
 
       !!! Test
@@ -322,7 +286,7 @@ call timing(iproc,'misc','ON')
          !!                                          jj, irow, jcol, tmp_mat_compr(jj), tmp_mat2(irow,jcol)
          tmp_mat_compr(jj)=tmp_mat2(irow,jcol)
       end do
-      call f_free_ptr(linmat%ovrlp%matrix)
+      call f_free_ptr(linmat%ovrlp_%matrix)
       deallocate(tmp_mat)
       deallocate(tmp_mat2)
       deallocate(ipiv)
@@ -971,162 +935,162 @@ subroutine matrix_minus_identity_dense(norb,isorb,norbp,matinp,matoutp)
 
 end subroutine matrix_minus_identity_dense
 
-subroutine first_order_taylor_sparse(power,ovrlp,inv_ovrlp)
-  use module_base
-  use module_types
-  use sparsematrix_base, only: sparse_matrix
-  use sparsematrix_init, only: matrixindex_in_compressed
-  implicit none
-  integer, intent(in) :: power
-  type(sparse_matrix),intent(in) :: ovrlp
-  type(sparse_matrix),intent(out) :: inv_ovrlp
-
-  integer :: ii,iii,iorb,jorb,ii_inv,ierr,iii_inv
-
-  if (power/=1 .and. power/=2 .and. power/=-2) stop 'Error in first_order_taylor_sparse'
-
-  if (inv_ovrlp%parallel_compression==0.or.bigdft_mpi%nproc==1) then
-     ! inv_ovrlp can be less sparse than ovrlp, so pad with zeros first
-     call to_zero(inv_ovrlp%nvctr,inv_ovrlp%matrix_compr(1))
-     if (power==1) then
-        !$omp parallel do default(private) shared(inv_ovrlp,ovrlp)
-        do ii=1,ovrlp%nvctr
-           iorb = ovrlp%orb_from_index(1,ii)
-           jorb = ovrlp%orb_from_index(2,ii)
-           ii_inv = matrixindex_in_compressed(inv_ovrlp,iorb,jorb)
-           if(iorb==jorb) then
-              inv_ovrlp%matrix_compr(ii_inv) = 2.0d0 - ovrlp%matrix_compr(ii)
-           else
-              inv_ovrlp%matrix_compr(ii_inv) = -ovrlp%matrix_compr(ii)
-           end if
-        end do
-        !$omp end parallel do
-     else if (power==2) then
-        !$omp parallel do default(private) shared(inv_ovrlp,ovrlp)
-        do ii=1,ovrlp%nvctr
-           iorb = ovrlp%orb_from_index(1,ii)
-           jorb = ovrlp%orb_from_index(2,ii)
-           ii_inv = matrixindex_in_compressed(inv_ovrlp,iorb,jorb)
-           if(iorb==jorb) then
-              inv_ovrlp%matrix_compr(ii_inv) = 0.5d0 + 0.5d0*ovrlp%matrix_compr(ii)
-           else
-              inv_ovrlp%matrix_compr(ii_inv) = 0.5d0*ovrlp%matrix_compr(ii)
-           end if
-        end do
-        !$omp end parallel do
-     else
-        !$omp parallel do default(private) shared(inv_ovrlp,ovrlp)
-        do ii=1,ovrlp%nvctr
-           iorb = ovrlp%orb_from_index(1,ii)
-           jorb = ovrlp%orb_from_index(2,ii)
-           ii_inv = matrixindex_in_compressed(inv_ovrlp,iorb,jorb)
-           if(iorb==jorb) then
-              inv_ovrlp%matrix_compr(ii_inv) = 1.5d0 - 0.5d0*ovrlp%matrix_compr(ii)
-           else
-              inv_ovrlp%matrix_compr(ii_inv) = -0.5d0*ovrlp%matrix_compr(ii)
-           end if
-        end do
-        !$omp end parallel do
-     end if
-  else if (inv_ovrlp%parallel_compression==1) then
-     call to_zero(inv_ovrlp%nvctr,inv_ovrlp%matrix_compr(1))
-     if (power==1) then
-        !$omp parallel do default(private) shared(inv_ovrlp,ovrlp)
-        do ii=1,ovrlp%nvctrp
-           iii=ii+ovrlp%isvctr
-           iorb = ovrlp%orb_from_index(1,iii)
-           jorb = ovrlp%orb_from_index(2,iii)
-           ii_inv = matrixindex_in_compressed(inv_ovrlp,iorb,jorb)
-           if(iorb==jorb) then
-              inv_ovrlp%matrix_compr(ii_inv) = 2.0d0 - ovrlp%matrix_compr(iii)
-           else
-              inv_ovrlp%matrix_compr(ii_inv) = -ovrlp%matrix_compr(iii)
-           end if
-        end do
-        !$omp end parallel do
-     else if (power==2) then
-        !$omp parallel do default(private) shared(inv_ovrlp,ovrlp)
-        do ii=1,ovrlp%nvctrp
-           iii=ii+ovrlp%isvctr
-           iorb = ovrlp%orb_from_index(1,iii)
-           jorb = ovrlp%orb_from_index(2,iii)
-           ii_inv = matrixindex_in_compressed(inv_ovrlp,iorb,jorb)
-           if(iorb==jorb) then
-              inv_ovrlp%matrix_compr(ii_inv) = 0.5d0 + 0.5d0*ovrlp%matrix_compr(iii)
-           else
-              inv_ovrlp%matrix_compr(ii_inv) = 0.5d0*ovrlp%matrix_compr(iii)
-           end if
-        end do
-        !$omp end parallel do
-     else
-        !$omp parallel do default(private) shared(inv_ovrlp,ovrlp)
-        do ii=1,ovrlp%nvctrp
-           iii=ii+ovrlp%isvctr
-           iorb = ovrlp%orb_from_index(1,iii)
-           jorb = ovrlp%orb_from_index(2,iii)
-           ii_inv = matrixindex_in_compressed(inv_ovrlp,iorb,jorb)
-           if(iorb==jorb) then
-              inv_ovrlp%matrix_compr(ii_inv) = 1.5d0 - 0.5d0*ovrlp%matrix_compr(iii)
-           else
-              inv_ovrlp%matrix_compr(ii_inv) = -0.5d0*ovrlp%matrix_compr(iii)
-           end if
-        end do
-        !$omp end parallel do
-     end if
-  else
-     inv_ovrlp%matrix_comprp=f_malloc_ptr((inv_ovrlp%nvctrp),id='inv_ovrlp%matrix_comprp')
-     if (power==1) then
-        !$omp parallel do default(private) shared(inv_ovrlp,ovrlp)
-        do ii_inv=1,inv_ovrlp%nvctrp
-           iii_inv=ii_inv+inv_ovrlp%isvctr
-           iorb = inv_ovrlp%orb_from_index(1,iii_inv)
-           jorb = inv_ovrlp%orb_from_index(2,iii_inv)
-           ii = matrixindex_in_compressed(ovrlp,iorb,jorb)
-           if (ii==0) then
-              inv_ovrlp%matrix_comprp(ii_inv) = 0.0d0
-           else if(iorb==jorb) then
-              inv_ovrlp%matrix_comprp(ii_inv) = 2.0d0 - ovrlp%matrix_compr(ii)
-           else
-              inv_ovrlp%matrix_comprp(ii_inv) = -ovrlp%matrix_compr(ii)
-           end if
-        end do
-        !$omp end parallel do
-     else if (power==2) then
-        !$omp parallel do default(private) shared(inv_ovrlp,ovrlp)
-        do ii_inv=1,inv_ovrlp%nvctrp
-           iii_inv=ii_inv+inv_ovrlp%isvctr
-           iorb = inv_ovrlp%orb_from_index(1,iii_inv)
-           jorb = inv_ovrlp%orb_from_index(2,iii_inv)
-           ii = matrixindex_in_compressed(ovrlp,iorb,jorb)
-           if (ii==0) then
-              inv_ovrlp%matrix_comprp(ii_inv) = 0.0d0
-           else if(iorb==jorb) then
-              inv_ovrlp%matrix_comprp(ii_inv) = 0.5d0 + 0.5d0*ovrlp%matrix_compr(ii)
-           else
-              inv_ovrlp%matrix_comprp(ii_inv) = 0.5d0*ovrlp%matrix_compr(ii)
-           end if
-        end do
-        !$omp end parallel do
-     else
-        !$omp parallel do default(private) shared(inv_ovrlp,ovrlp)
-        do ii_inv=1,inv_ovrlp%nvctrp
-           iii_inv=ii_inv+inv_ovrlp%isvctr
-           iorb = inv_ovrlp%orb_from_index(1,iii_inv)
-           jorb = inv_ovrlp%orb_from_index(2,iii_inv)
-           ii = matrixindex_in_compressed(ovrlp,iorb,jorb)
-           if (ii==0) then
-              inv_ovrlp%matrix_comprp(ii_inv) = 0.0d0
-           else if(iorb==jorb) then
-              inv_ovrlp%matrix_comprp(ii_inv) = 1.5d0 - 0.5d0*ovrlp%matrix_compr(ii)
-           else
-              inv_ovrlp%matrix_comprp(ii_inv) = -0.5d0*ovrlp%matrix_compr(ii)
-           end if
-        end do
-        !$omp end parallel do
-     end if
-  end if
-
-end subroutine first_order_taylor_sparse
+!!subroutine first_order_taylor_sparse(power,ovrlp,inv_ovrlp)
+!!  use module_base
+!!  use module_types
+!!  use sparsematrix_base, only: sparse_matrix
+!!  use sparsematrix_init, only: matrixindex_in_compressed
+!!  implicit none
+!!  integer, intent(in) :: power
+!!  type(sparse_matrix),intent(in) :: ovrlp
+!!  type(sparse_matrix),intent(out) :: inv_ovrlp
+!!
+!!  integer :: ii,iii,iorb,jorb,ii_inv,ierr,iii_inv
+!!
+!!  if (power/=1 .and. power/=2 .and. power/=-2) stop 'Error in first_order_taylor_sparse'
+!!
+!!  if (inv_ovrlp%parallel_compression==0.or.bigdft_mpi%nproc==1) then
+!!     ! inv_ovrlp can be less sparse than ovrlp, so pad with zeros first
+!!     call to_zero(inv_ovrlp%nvctr,inv_ovrlp%matrix_compr(1))
+!!     if (power==1) then
+!!        !$omp parallel do default(private) shared(inv_ovrlp,ovrlp)
+!!        do ii=1,ovrlp%nvctr
+!!           iorb = ovrlp%orb_from_index(1,ii)
+!!           jorb = ovrlp%orb_from_index(2,ii)
+!!           ii_inv = matrixindex_in_compressed(inv_ovrlp,iorb,jorb)
+!!           if(iorb==jorb) then
+!!              inv_ovrlp%matrix_compr(ii_inv) = 2.0d0 - ovrlp%matrix_compr(ii)
+!!           else
+!!              inv_ovrlp%matrix_compr(ii_inv) = -ovrlp%matrix_compr(ii)
+!!           end if
+!!        end do
+!!        !$omp end parallel do
+!!     else if (power==2) then
+!!        !$omp parallel do default(private) shared(inv_ovrlp,ovrlp)
+!!        do ii=1,ovrlp%nvctr
+!!           iorb = ovrlp%orb_from_index(1,ii)
+!!           jorb = ovrlp%orb_from_index(2,ii)
+!!           ii_inv = matrixindex_in_compressed(inv_ovrlp,iorb,jorb)
+!!           if(iorb==jorb) then
+!!              inv_ovrlp%matrix_compr(ii_inv) = 0.5d0 + 0.5d0*ovrlp%matrix_compr(ii)
+!!           else
+!!              inv_ovrlp%matrix_compr(ii_inv) = 0.5d0*ovrlp%matrix_compr(ii)
+!!           end if
+!!        end do
+!!        !$omp end parallel do
+!!     else
+!!        !$omp parallel do default(private) shared(inv_ovrlp,ovrlp)
+!!        do ii=1,ovrlp%nvctr
+!!           iorb = ovrlp%orb_from_index(1,ii)
+!!           jorb = ovrlp%orb_from_index(2,ii)
+!!           ii_inv = matrixindex_in_compressed(inv_ovrlp,iorb,jorb)
+!!           if(iorb==jorb) then
+!!              inv_ovrlp%matrix_compr(ii_inv) = 1.5d0 - 0.5d0*ovrlp%matrix_compr(ii)
+!!           else
+!!              inv_ovrlp%matrix_compr(ii_inv) = -0.5d0*ovrlp%matrix_compr(ii)
+!!           end if
+!!        end do
+!!        !$omp end parallel do
+!!     end if
+!!  else if (inv_ovrlp%parallel_compression==1) then
+!!     call to_zero(inv_ovrlp%nvctr,inv_ovrlp%matrix_compr(1))
+!!     if (power==1) then
+!!        !$omp parallel do default(private) shared(inv_ovrlp,ovrlp)
+!!        do ii=1,ovrlp%nvctrp
+!!           iii=ii+ovrlp%isvctr
+!!           iorb = ovrlp%orb_from_index(1,iii)
+!!           jorb = ovrlp%orb_from_index(2,iii)
+!!           ii_inv = matrixindex_in_compressed(inv_ovrlp,iorb,jorb)
+!!           if(iorb==jorb) then
+!!              inv_ovrlp%matrix_compr(ii_inv) = 2.0d0 - ovrlp%matrix_compr(iii)
+!!           else
+!!              inv_ovrlp%matrix_compr(ii_inv) = -ovrlp%matrix_compr(iii)
+!!           end if
+!!        end do
+!!        !$omp end parallel do
+!!     else if (power==2) then
+!!        !$omp parallel do default(private) shared(inv_ovrlp,ovrlp)
+!!        do ii=1,ovrlp%nvctrp
+!!           iii=ii+ovrlp%isvctr
+!!           iorb = ovrlp%orb_from_index(1,iii)
+!!           jorb = ovrlp%orb_from_index(2,iii)
+!!           ii_inv = matrixindex_in_compressed(inv_ovrlp,iorb,jorb)
+!!           if(iorb==jorb) then
+!!              inv_ovrlp%matrix_compr(ii_inv) = 0.5d0 + 0.5d0*ovrlp%matrix_compr(iii)
+!!           else
+!!              inv_ovrlp%matrix_compr(ii_inv) = 0.5d0*ovrlp%matrix_compr(iii)
+!!           end if
+!!        end do
+!!        !$omp end parallel do
+!!     else
+!!        !$omp parallel do default(private) shared(inv_ovrlp,ovrlp)
+!!        do ii=1,ovrlp%nvctrp
+!!           iii=ii+ovrlp%isvctr
+!!           iorb = ovrlp%orb_from_index(1,iii)
+!!           jorb = ovrlp%orb_from_index(2,iii)
+!!           ii_inv = matrixindex_in_compressed(inv_ovrlp,iorb,jorb)
+!!           if(iorb==jorb) then
+!!              inv_ovrlp%matrix_compr(ii_inv) = 1.5d0 - 0.5d0*ovrlp%matrix_compr(iii)
+!!           else
+!!              inv_ovrlp%matrix_compr(ii_inv) = -0.5d0*ovrlp%matrix_compr(iii)
+!!           end if
+!!        end do
+!!        !$omp end parallel do
+!!     end if
+!!  else
+!!     inv_ovrlp%matrix_comprp=f_malloc_ptr((inv_ovrlp%nvctrp),id='inv_ovrlp%matrix_comprp')
+!!     if (power==1) then
+!!        !$omp parallel do default(private) shared(inv_ovrlp,ovrlp)
+!!        do ii_inv=1,inv_ovrlp%nvctrp
+!!           iii_inv=ii_inv+inv_ovrlp%isvctr
+!!           iorb = inv_ovrlp%orb_from_index(1,iii_inv)
+!!           jorb = inv_ovrlp%orb_from_index(2,iii_inv)
+!!           ii = matrixindex_in_compressed(ovrlp,iorb,jorb)
+!!           if (ii==0) then
+!!              inv_ovrlp%matrix_comprp(ii_inv) = 0.0d0
+!!           else if(iorb==jorb) then
+!!              inv_ovrlp%matrix_comprp(ii_inv) = 2.0d0 - ovrlp%matrix_compr(ii)
+!!           else
+!!              inv_ovrlp%matrix_comprp(ii_inv) = -ovrlp%matrix_compr(ii)
+!!           end if
+!!        end do
+!!        !$omp end parallel do
+!!     else if (power==2) then
+!!        !$omp parallel do default(private) shared(inv_ovrlp,ovrlp)
+!!        do ii_inv=1,inv_ovrlp%nvctrp
+!!           iii_inv=ii_inv+inv_ovrlp%isvctr
+!!           iorb = inv_ovrlp%orb_from_index(1,iii_inv)
+!!           jorb = inv_ovrlp%orb_from_index(2,iii_inv)
+!!           ii = matrixindex_in_compressed(ovrlp,iorb,jorb)
+!!           if (ii==0) then
+!!              inv_ovrlp%matrix_comprp(ii_inv) = 0.0d0
+!!           else if(iorb==jorb) then
+!!              inv_ovrlp%matrix_comprp(ii_inv) = 0.5d0 + 0.5d0*ovrlp%matrix_compr(ii)
+!!           else
+!!              inv_ovrlp%matrix_comprp(ii_inv) = 0.5d0*ovrlp%matrix_compr(ii)
+!!           end if
+!!        end do
+!!        !$omp end parallel do
+!!     else
+!!        !$omp parallel do default(private) shared(inv_ovrlp,ovrlp)
+!!        do ii_inv=1,inv_ovrlp%nvctrp
+!!           iii_inv=ii_inv+inv_ovrlp%isvctr
+!!           iorb = inv_ovrlp%orb_from_index(1,iii_inv)
+!!           jorb = inv_ovrlp%orb_from_index(2,iii_inv)
+!!           ii = matrixindex_in_compressed(ovrlp,iorb,jorb)
+!!           if (ii==0) then
+!!              inv_ovrlp%matrix_comprp(ii_inv) = 0.0d0
+!!           else if(iorb==jorb) then
+!!              inv_ovrlp%matrix_comprp(ii_inv) = 1.5d0 - 0.5d0*ovrlp%matrix_compr(ii)
+!!           else
+!!              inv_ovrlp%matrix_comprp(ii_inv) = -0.5d0*ovrlp%matrix_compr(ii)
+!!           end if
+!!        end do
+!!        !$omp end parallel do
+!!     end if
+!!  end if
+!!
+!!end subroutine first_order_taylor_sparse
 
 subroutine first_order_taylor_dense(norb,isorb,norbp,power,ovrlpp,inv_ovrlpp)
 use module_base
@@ -1683,7 +1647,7 @@ subroutine deviation_from_symmetry(iproc, norb, ovrlp, deviation)
 
 end subroutine deviation_from_symmetry
 
-subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orbs, ovrlp, inv_ovrlp_half)
+subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orbs, ovrlp, ovrlp_mat, inv_ovrlp_half)
   use module_base
   use module_types
   use module_interfaces
@@ -1695,6 +1659,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
   integer,intent(in) :: iproc, nproc, meth_overlap
   type(orbitals_data),intent(in) :: orbs
   type(sparse_matrix),intent(inout) :: ovrlp
+  type(matrices),intent(inout) :: ovrlp_mat
   type(sparse_matrix),intent(inout) :: inv_ovrlp_half
 
   ! Local variables
@@ -1763,7 +1728,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
            kkorb=kkorb+1
            ind = matrixindex_in_compressed(ovrlp,korb, jorb)
            if (ind>0) then
-              ovrlp_tmp(kkorb,jjorb)=ovrlp%matrix_compr(ind)
+              ovrlp_tmp(kkorb,jjorb)=ovrlp_mat%matrix_compr(ind)
            else
               ovrlp_tmp(kkorb,jjorb)=0.d0
            end if
@@ -1981,8 +1946,12 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
 
 
       if (methTransformOverlap==-1) then
+          ovrlp_ = matrices_null()
+          call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
+          ovrlp_%matrix_compr=ovrlp%matrix_compr
           call overlap_power_minus_one_half_parallel(iproc, nproc, methTransformOverlap, &
-               orbs, ovrlp, inv_ovrlp_half)
+               orbs, ovrlp, ovrlp_, inv_ovrlp_half)
+          call deallocate_matrices(ovrlp_)
       else
           nullify(inv_ovrlp_null)
           ! do sparse.. check later
