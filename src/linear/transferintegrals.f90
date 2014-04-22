@@ -157,7 +157,7 @@ subroutine calc_transfer_integral_old(iproc,nproc,input_frag,orbs,ham,ovrlp,homo
 
 
   if (nproc>1) then
-      call mpiallred(homo_ham(1,1), input_frag%nfrag**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(homo_ham(1,1), input_frag%nfrag**2, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
   !!i_all=-product(shape(ham%matrix))*kind(ham%matrix)
@@ -179,7 +179,7 @@ subroutine calc_transfer_integral_old(iproc,nproc,input_frag,orbs,ham,ovrlp,homo
   end if
 
   if (nproc>1) then
-      call mpiallred(homo_ovrlp(1,1), input_frag%nfrag**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(homo_ovrlp(1,1), input_frag%nfrag**2, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
   !!i_all=-product(shape(ovrlp%matrix))*kind(ovrlp%matrix)
@@ -307,7 +307,7 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,homo_coeffs
   end if
 
   if (nproc>1) then
-      call mpiallred(homo_ham(1), nstates, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(homo_ham(1), nstates, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
   !call f_free_ptr(ham%matrix)
@@ -327,7 +327,7 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,homo_coeffs
   end if
 
   if (nproc>1) then
-      call mpiallred(homo_ovrlp(1), nstates, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(homo_ovrlp(1), nstates, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
   !call f_free_ptr(ovrlp%matrix)

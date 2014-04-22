@@ -236,7 +236,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   !this mpiflag is added to make memguess working
   call MPI_Initialized(mpiflag,ierr)
   if(nproc >1 .and. mpiflag /= 0) &
-       call mpiallred(orbs%isorb_par(0),nproc,mpi_sum,bigdft_mpi%mpi_comm,ierr)
+       call mpiallred(orbs%isorb_par(0),nproc,mpi_sum,bigdft_mpi%mpi_comm)
 
 END SUBROUTINE orbitals_descriptors
 
@@ -288,7 +288,7 @@ subroutine repartitionOrbitals(iproc,nproc,norb,norb_par,norbp,isorb_par,isorb,o
   end do
   !call MPI_Initialized(mpiflag,ierr)
   if(nproc >1) &!mpiflag /= 0) 
-       call mpiallred(isorb_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+       call mpiallred(isorb_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
 
 end subroutine repartitionOrbitals
 

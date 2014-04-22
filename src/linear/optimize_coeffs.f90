@@ -97,7 +97,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
             tt=tt+ddot(tmb%orbs%norb, grad_cov_or_coeffp(1,iorb), 1, grad(1,iorb), 1)
         end do
      end if
-     call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+     call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm)
      fnrm=2.0_gp*tt
 
      !scale the gradient (not sure if we always want this or just fragments/constrained!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)
@@ -535,7 +535,7 @@ subroutine calculate_coeffMatcoeff(matrix,basis_orbs,ksorbs,coeff,mat_coeff)
   call memocc(istat,iall,'coeff_tmp',subname)
 
   if (bigdft_mpi%nproc>1) then
-      call mpiallred(mat_coeff(1,1), ksorbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(mat_coeff(1,1), ksorbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
 end subroutine calculate_coeffMatcoeff
@@ -585,7 +585,7 @@ subroutine calculate_coeffMatcoeff_diag(matrix,basis_orbs,ksorbs,coeff,mat_coeff
         call mpi_allgatherv(mat_coeff_diagp, ksorbs%norbp, mpi_double_precision, mat_coeff_diag, &
              ksorbs%norb_par(:,0), ksorbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
      else
-        call mpiallred(mat_coeff_diag(1), ksorbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+        call mpiallred(mat_coeff_diag(1), ksorbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
      end if
   else
      if (allgather) then
@@ -693,7 +693,7 @@ subroutine reordering_coeffs(iproc, nproc, num_extra, ksorbs, basis_orbs, ham, o
   call memocc(istat,iall,'coeff_tmp',subname)
 
   if (nproc>1) then
-      call mpiallred(ham_coeff(1,1), basis_orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(ham_coeff(1,1), basis_orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
   allocate(ovrlp_coeff(basis_orbs%norb,basis_orbs%norb), stat=istat)
@@ -716,7 +716,7 @@ subroutine reordering_coeffs(iproc, nproc, num_extra, ksorbs, basis_orbs, ham, o
   call memocc(istat,iall,'coeff_tmp',subname)
 
   if (nproc>1) then
-      call mpiallred(ovrlp_coeff(1,1), basis_orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(ovrlp_coeff(1,1), basis_orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
   ! above is overkill, actually just want diagonal elements but print off as a test out of curiosity
@@ -929,7 +929,7 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,energy,coeff,orb
      !$omp end parallel
   end do
   if (nproc>1) then
-     call mpiallred(energy, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+     call mpiallred(energy, 1, mpi_sum, bigdft_mpi%mpi_comm)
   end if
   call timing(iproc,'calc_energy','OF')
 

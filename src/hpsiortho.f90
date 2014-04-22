@@ -1058,7 +1058,7 @@ subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,
       wrkallred(3)=eproj_sum
       wrkallred(4)=evsic
 
-      call mpiallred(wrkallred(1),4,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+      call mpiallred(wrkallred(1),4,MPI_SUM,bigdft_mpi%mpi_comm)
 
       ekin_sum=wrkallred(1)
       epot_sum=wrkallred(2)
@@ -1576,7 +1576,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   if (nproc > 1) then
       garray(1)=gnrm
       garray(2)=gnrm_zero
-     call mpiallred(garray(1),2,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+     call mpiallred(garray(1),2,MPI_SUM,bigdft_mpi%mpi_comm)
       gnrm     =garray(1)
       gnrm_zero=garray(2)
   endif

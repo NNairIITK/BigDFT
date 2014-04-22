@@ -145,7 +145,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
               end do
           end if
   
-          call mpiallred(SHS(1), kernel%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          call mpiallred(SHS(1), kernel%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
   
       end if
   

@@ -10,6 +10,7 @@
 !> Piece of routine to identify the errors, consider two optional arguments err_id and err_name
 !! included in error_handling.f90
   !local variables
+  logical :: isthere
   integer :: get_error 
   integer :: nerr,ierr,jerr
   character(len=max_field_length) :: name
@@ -22,8 +23,8 @@
      do ierr=0,nerr-1
         !this one can be substituted by the values of the dictionary
         jerr=dict_present_error//ierr//errid
-        name=dict_key(dict_errors//jerr)
-        if (trim(name)==trim(err_name)) then
+        isthere=err_name .in. dict_errors//jerr
+        if (isthere) then
            get_error=1 !name
            exit
         end if

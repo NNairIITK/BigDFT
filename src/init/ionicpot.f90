@@ -425,7 +425,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      end do
 
      if (pkernel%mpi_env%nproc > 1) then
-        call mpiallred(fion(1,1),3*at%astruct%nat,MPI_SUM,pkernel%mpi_env%mpi_comm,ierr)
+        call mpiallred(fion(1,1),3*at%astruct%nat,MPI_SUM,pkernel%mpi_env%mpi_comm)
      end if
 
      !if (iproc ==0) print *,'eion',eion,psoffset,shortlength
@@ -708,7 +708,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
      charges_mpi(1)=tt
      charges_mpi(2)=rholeaked
 
-     call mpiallred(charges_mpi(1),2,MPI_SUM,pkernel%mpi_env%mpi_comm,ierr)
+     call mpiallred(charges_mpi(1),2,MPI_SUM,pkernel%mpi_env%mpi_comm)
 
      tt_tot=charges_mpi(1)
      rholeaked_tot=charges_mpi(2)
@@ -779,7 +779,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
            end do
         end do
 
-        call mpiallred(maxdiff,1,MPI_MAX,pkernel%mpi_env%mpi_comm,ierr)
+        call mpiallred(maxdiff,1,MPI_MAX,pkernel%mpi_env%mpi_comm)
 
         if (iproc == 0) call yaml_map('Check the ionic potential',maxdiff,fmt='(1pe24.17)')
         !if (iproc == 0) write(*,'(1x,a,1pe24.17)')'...done. MaxDiff=',maxdiff
@@ -1334,7 +1334,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
      charges_mpi(1)=tt
      charges_mpi(2)=rholeaked
 
-     call mpiallred(charges_mpi(1),2,MPI_SUM,pkernel%mpi_env%mpi_comm,ierr)
+     call mpiallred(charges_mpi(1),2,MPI_SUM,pkernel%mpi_env%mpi_comm)
 
      tt_tot=charges_mpi(1)
      rholeaked_tot=charges_mpi(2)
@@ -1395,7 +1395,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
            end do
         end do
 
-        call mpiallred(maxdiff,1,MPI_MAX,pkernel%mpi_env%mpi_comm,ierr)
+        call mpiallred(maxdiff,1,MPI_MAX,pkernel%mpi_env%mpi_comm)
 
         if (iproc == 0) call yaml_map('Check the ionic potential',maxdiff,fmt='(1pe24.17)')
         !if (iproc == 0) write(*,'(1x,a,1pe24.17)')'...done. MaxDiff=',maxdiff

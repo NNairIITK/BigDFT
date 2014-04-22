@@ -468,7 +468,7 @@ subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
      end do
   end do loop_plain
   !reduce the result among the other processors
-  if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,bigdft_mpi%mpi_comm,ierr)
+  if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,bigdft_mpi%mpi_comm)
  
   if (allfiles) then
      iformat=WF_FORMAT_PLAIN
@@ -495,7 +495,7 @@ subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
      end do
   end do loop_binary
   !reduce the result among the other processors
-  if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,bigdft_mpi%mpi_comm,ierr)
+  if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,bigdft_mpi%mpi_comm)
 
   if (allfiles) then
      iformat=WF_FORMAT_BINARY
@@ -2631,8 +2631,8 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
   Lzd%nlr = orbs%norb
 
   ! Communication of the quantities
-  if (nproc > 1)  call mpiallred(orbs%onwhichatom(1),orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
-  if (nproc > 1)  call mpiallred(locrad(1),orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+  if (nproc > 1)  call mpiallred(orbs%onwhichatom(1),orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm)
+  if (nproc > 1)  call mpiallred(locrad(1),orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm)
 
   allocate(cxyz(3,Lzd%nlr),stat=i_stat)
   call memocc(i_stat,cxyz,'cxyz',subname)
@@ -3240,17 +3240,8 @@ subroutine print_reformat_summary(iproc,reformat_reason)
 
   integer :: ierr
 
-  call mpiallred(reformat_reason(0), 7, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(reformat_reason(0), 7, mpi_sum, bigdft_mpi%mpi_comm)
   if (iproc==0) then
-        !!write(*,'(1x,a)') 'Overview of the reformatting (several categories may apply):'
-        !!write(*,'(3x,a,i0)') '- No reformatting required: ', reformat_reason(0)
-        !!write(*,'(3x,a,i0)') '- Grid spacing has changed: ', reformat_reason(1)
-        !!write(*,'(3x,a,i0)') '- Number of coarse grid points has changed: ', reformat_reason(2)
-        !!write(*,'(3x,a,i0)') '- Number of fine grid points has changed: ', reformat_reason(3)
-        !!write(*,'(3x,a,i0)') '- Box size has changed: ', reformat_reason(4)
-        !!write(*,'(3x,a,i0)') '- Molecule was shifted: ', reformat_reason(5)
-        !!write(*,'(3x,a,i0)') '- Molecule was rotated: ', reformat_reason(6)
-        !!write(*,'(3x,a,i0)') '- Discrete operations: ', reformat_reason(7)
         call yaml_open_map('Overview of the reformatting (several categories may apply)')
         call yaml_map('No reformatting required', reformat_reason(0))
         call yaml_map('Grid spacing has changed', reformat_reason(1))

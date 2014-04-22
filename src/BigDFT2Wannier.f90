@@ -401,7 +401,7 @@ program BigDFT2Wannier
          call gemm('T','N',orbsp%norb,orbsp%norb,nvctrp,1.0_wp,sph_daub(1),max(1,nvctrp),&
             &   sph_daub(1),max(1,nvctrp),0.0_wp,overlap_proj(1,1),orbsp%norb)
          if(nproc > 1) then
-            call mpiallred(overlap_proj(1,1),orbsp%norb*orbsp%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+            call mpiallred(overlap_proj(1,1),orbsp%norb*orbsp%norb,MPI_SUM)
          end if
          !print *,'overlap_proj',overlap_proj
          allocate(ipiv(orbsp%norb),stat=i_stat)
@@ -433,7 +433,7 @@ program BigDFT2Wannier
 
          ! Construction of the whole Amnk_guess matrix.
          if(nproc > 1) then
-            call mpiallred(amnk(1,1),orbsv%norb*orbsp%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+            call mpiallred(amnk(1,1),orbsv%norb*orbsp%norb,MPI_SUM)
          end if
 
          ! For each unoccupied orbitals, check how they project on spherical harmonics.
@@ -559,7 +559,7 @@ program BigDFT2Wannier
       end if
       ! For bin files, the eigenvalues are distributed, so reduce them
       if((filetype == 'bin' .or. filetype == 'BIN') .and. nproc > 0) then
-        call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM)
       end if
       ! Write the eigenvalues into a file to output the hamiltonian matrix elements in Wannier functions
       if(iproc==0) then     
@@ -602,7 +602,7 @@ program BigDFT2Wannier
       if(residentity)then
          orbsv%eval = 99.0_dp  !What to put for the energy?
       else if((filetype == 'bin' .or. filetype == 'BIN') .and.  nproc > 0 .and. orbsv%norb>0) then
-         call mpiallred(orbsv%eval(1),orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
+         call mpiallred(orbsv%eval(1),orbsv%norb*orbsv%nkpts,MPI_SUM)
       end if
       ! Write the eigenvalues into a file to output the hamiltonian matrix elements in Wannier functions
       if(iproc==0) then
@@ -709,7 +709,7 @@ program BigDFT2Wannier
          call gemm('T','N',orbsp%norb,orbsp%norb,nvctrp,1.0_wp,sph_daub(1),max(1,nvctrp),&
             &   sph_daub(1),max(1,nvctrp),0.0_wp,overlap_proj(1,1),orbsp%norb)
          if(nproc > 1) then
-            call mpiallred(overlap_proj(1,1),orbsp%norb*orbsp%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+            call mpiallred(overlap_proj(1,1),orbsp%norb*orbsp%norb,MPI_SUM)
          end if
          !print *,'overlap_proj',overlap_proj
          allocate(ipiv(orbsp%norb),stat=i_stat)
@@ -776,7 +776,7 @@ program BigDFT2Wannier
 
          ! Construction of the occupied Amnk submatrix.
          if(nproc > 1) then
-            call mpiallred(amnk(1,1),orbsb%norb*orbsp%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+            call mpiallred(amnk(1,1),orbsb%norb*orbsp%norb,MPI_SUM)
          end if
 
          ! Now build the new states corresponding to: sph_daub - sum{amnk occ} and place them at the virtual states
@@ -826,7 +826,7 @@ program BigDFT2Wannier
 
       ! Construction of the whole Amnk matrix.
       if(nproc > 0) then
-         call mpiallred(amnk(1,1),orbsb%norb*orbsp%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+         call mpiallred(amnk(1,1),orbsb%norb*orbsp%norb,MPI_SUM)
       end if
 
       call to_zero(orbsb%norb,amnk_tot(1))
@@ -973,8 +973,8 @@ program BigDFT2Wannier
 
          ! Reduce the overlap matrix between all the processors
          if (nproc > 1) then
-            call mpiallred(mmnk_v_re(1),orbsb%norb*orbsb%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
-            call mpiallred(mmnk_v_im(1),orbsb%norb*orbsb%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+            call mpiallred(mmnk_v_re(1),orbsb%norb*orbsb%norb,MPI_SUM)
+            call mpiallred(mmnk_v_im(1),orbsb%norb*orbsb%norb,MPI_SUM)
          end if
 
          ! Reshape the overlap matrix elements into a more manageable disposition

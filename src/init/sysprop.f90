@@ -488,7 +488,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
         enddo
      enddo
 
-     call mpiallred(tt,1,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+     call mpiallred(tt,1,MPI_SUM,bigdft_mpi%mpi_comm)
      tt=tt*hxh*hyh*hzh
      if (iproc == 0) call yaml_map('Total core charge on the grid (To be compared with analytic one)', tt,fmt='(f15.7)')
      !if (iproc == 0) write(*,'(1x,a,f15.7)') 'Total core charge on the grid (To be compared with analytic one): ',tt

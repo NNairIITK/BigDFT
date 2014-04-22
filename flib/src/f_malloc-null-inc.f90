@@ -8,17 +8,17 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
   !local variables
-  integer :: i
+  integer :: i 
 
   m%pin=.false.
-  m%profile=mems(ictrl)%profile_routine !< here omp can be used to know whether to profile or not
+  m%profile=f_malloc_default_profiling !mems(ictrl)%profile_routine !< here omp can be used to know whether to profile or not
   m%put_to_zero=.false.
   m%srcdata_add=0
   m%rank=1
   m%shape=0
   m%lbounds=1
   m%ubounds=0
-  do i=1,namelen
+  do i=1,f_malloc_namelen
      m%array_id(i:i)=' '
      m%routine_id(i:i)=' '
   end do
