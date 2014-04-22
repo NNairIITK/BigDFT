@@ -856,8 +856,6 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   !call nullify_sparse_matrix(grad_ovrlp)
   grad_ovrlp=sparse_matrix_null()
   call sparse_copy_pattern(tmb%linmat%ham, grad_ovrlp, iproc, subname)
-  !!allocate(grad_ovrlp%matrix_compr(grad_ovrlp%nvctr), stat=istat)
-  !!call memocc(istat, grad_ovrlp%matrix_compr, 'grad_ovrlp%matrix_compr', subname)
   grad_ovrlp%matrix_compr=f_malloc_ptr(grad_ovrlp%nvctr,id='grad_ovrlp%matrix_compr')
   grad_ovrlp_ = matrices_null()
   call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
@@ -876,8 +874,6 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   allocate(coeff_tmp(tmb%orbs%norbp,max(tmb%orbs%norb,1)), stat=istat)
   call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
 
-  !!allocate(grad_ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-  !!call memocc(istat, grad_ovrlp%matrix, 'grad_ovrlp%matrix', subname)
   grad_ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='grad_ovrlp%matrix')
   call uncompress_matrix(iproc,grad_ovrlp)
 
