@@ -3313,7 +3313,7 @@ module module_interfaces
         end subroutine reconstruct_kernel
 
         subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize_pdgemm, inversion_method, basis_orbs, &
-                   basis_overlap, coeff, orbs)
+                   basis_overlap, basis_overlap_mat, coeff, orbs)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
@@ -3323,6 +3323,7 @@ module module_interfaces
           type(orbitals_data), intent(in) :: basis_orbs   !number of basis functions
           type(orbitals_data), intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
           type(sparse_matrix),intent(inout) :: basis_overlap
+          type(matrices),intent(inout) :: basis_overlap_mat
           real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(inout) :: coeff
         end subroutine reorthonormalize_coeff
 

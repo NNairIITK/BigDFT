@@ -198,11 +198,11 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      ! instead of twice could add some criterion to check accuracy?
      if (present(num_extra)) then
         call reorthonormalize_coeff(iproc, nproc, orbs%norb+num_extra, -8, -8, tmb%orthpar%methTransformOverlap, &
-             tmb%orbs, tmb%linmat%ovrlp, tmb%coeff, orbs)
+             tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%ovrlp_, tmb%coeff, orbs)
         !call reorthonormalize_coeff(iproc, nproc, orbs%norb+num_extra, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
      else
         call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, tmb%orthpar%methTransformOverlap, &
-             tmb%orbs, tmb%linmat%ovrlp, tmb%coeff, orbs)
+             tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%ovrlp_, tmb%coeff, orbs)
         !call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff, orbs)
      end if
      !!!!!!!!!!!!!!!!!!!!!!!!
@@ -401,109 +401,109 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
 end subroutine coeff_weight_analysis
 
 
-! subset of reordering coeffs - need to arrange this routines better but taking the lazy route for now
-! (also assuming we have no extra - or rather number of extra bands come from input.mix not input.lin)
-subroutine find_eval_from_coeffs(iproc, nproc, meth_overlap, ksorbs, basis_orbs, ham, ovrlp, coeff, eval, calc_overlap, diag)
-  use module_base
-  use module_types
-  use module_interfaces
-  use sparsematrix_base, only: sparse_matrix
-  implicit none
-
-  ! Calling arguments
-  integer, intent(in) :: iproc, nproc, meth_overlap
-  type(orbitals_data), intent(in) :: basis_orbs, ksorbs
-  type(sparse_matrix),intent(in) :: ham
-  type(sparse_matrix),intent(inout) :: ovrlp
-  real(kind=8),dimension(basis_orbs%norb,ksorbs%norb),intent(inout) :: coeff
-  real(kind=8),dimension(ksorbs%norb),intent(inout) :: eval
-  logical, intent(in) :: diag, calc_overlap
-
-  integer :: iorb, jorb, istat, iall, ierr, itmb, jtmb
-  real(kind=8), dimension(:,:), allocatable :: coeff_tmp, ham_coeff,  ovrlp_coeff
-  real(kind=8) :: offdiagsum, offdiagsum2, coeff_orthog_threshold
-  character(len=256) :: subname='reordering_coeffs'
-
-  coeff_orthog_threshold=1.0d-3
-
-  allocate(ham_coeff(ksorbs%norb,ksorbs%norb), stat=istat)
-  call memocc(istat, ham_coeff, 'ham_coeff', subname)
-
-  call calculate_coeffMatcoeff(ham%matrix,basis_orbs,ksorbs,coeff,ham_coeff)
-
-  if (calc_overlap) then
-     allocate(ovrlp_coeff(ksorbs%norb,ksorbs%norb), stat=istat)
-     call memocc(istat, ovrlp_coeff, 'ovrlp_coeff', subname)
-     call calculate_coeffMatcoeff(ovrlp%matrix,basis_orbs,ksorbs,coeff,ovrlp_coeff)
-  end if
-
-  ! above is overkill, actually just want diagonal elements but print off as a test out of curiosity
-  offdiagsum=0.0d0
-  offdiagsum2=0.0d0
-  do iorb=1,ksorbs%norb
-     do jorb=1,ksorbs%norb
-        if (iorb==jorb) then
-           eval(iorb)=ham_coeff(iorb,iorb)
-        else
-           offdiagsum=offdiagsum+abs(ham_coeff(iorb,jorb))
-           if (calc_overlap) offdiagsum2=offdiagsum2+abs(ovrlp_coeff(iorb,jorb))
-        end if
-     end do
-  end do
-  offdiagsum=offdiagsum/(ksorbs%norb**2-ksorbs%norb)
-  if (calc_overlap) offdiagsum2=offdiagsum2/(ksorbs%norb**2-ksorbs%norb)
-  if (calc_overlap.and.iproc==0) print*,''
-  if (calc_overlap) then
-     if (iproc==0) print*,'offdiagsum (ham,ovrlp):',offdiagsum,offdiagsum2
-  else
-     if (iproc==0) print*,'offdiagsum (ham):',offdiagsum
-  end if
-
-  ! if coeffs are too far from orthogonality
-  if (calc_overlap .and. offdiagsum2>coeff_orthog_threshold) then
-     call reorthonormalize_coeff(iproc, nproc, ksorbs%norb, -8, -8, meth_overlap, basis_orbs, ovrlp, coeff, ksorbs)
-  end if
-
-  if (diag.or.offdiagsum>1.0d-2) then
-     ! diagonalize within the space of occ+extra
-     if (.not.calc_overlap) then
-        ! assume ovrlp_coeff is orthgonal for now
-        allocate(ovrlp_coeff(ksorbs%norb,ksorbs%norb), stat=istat)
-        call memocc(istat, ovrlp_coeff, 'ovrlp_coeff', subname)
-        call calculate_coeffMatcoeff(ovrlp%matrix,basis_orbs,ksorbs,coeff,ovrlp_coeff)
-        do iorb=1,ksorbs%norb
-           do jorb=1,ksorbs%norb
-              if (iorb==jorb) then
-                 ovrlp_coeff(iorb,jorb)=1.0d0
-              else
-                 ovrlp_coeff(iorb,jorb)=0.0d0
-              end if
-           end do
-        end do
-     end if
-     ! diagonalize within the space of occ+extra
-     call diagonalizeHamiltonian2(iproc, ksorbs%norb, ham_coeff, ovrlp_coeff, eval)
-     coeff_tmp=f_malloc((/basis_orbs%norb,ksorbs%norb/),id='coeff_tmp')
-
-     ! multiply new eigenvectors by coeffs
-     call dgemm('n', 'n', basis_orbs%norb, ksorbs%norb, ksorbs%norb, 1.d0, coeff(1,1), &
-          basis_orbs%norb, ham_coeff, ksorbs%norb, 0.d0, coeff_tmp, basis_orbs%norb)
- 
-     call vcopy(basis_orbs%norb*(ksorbs%norb),coeff_tmp(1,1),1,coeff(1,1),1)
-     call f_free(coeff_tmp)
-  end if
-
-  if (calc_overlap.or.diag) then
-     iall=-product(shape(ovrlp_coeff))*kind(ovrlp_coeff)
-     deallocate(ovrlp_coeff,stat=istat)
-     call memocc(istat,iall,'ovrlp_coeff',subname)
-  end if
-
-  iall=-product(shape(ham_coeff))*kind(ham_coeff)
-  deallocate(ham_coeff,stat=istat)
-  call memocc(istat,iall,'ham_coeff',subname)
-
-end subroutine find_eval_from_coeffs
+!!! subset of reordering coeffs - need to arrange this routines better but taking the lazy route for now
+!!! (also assuming we have no extra - or rather number of extra bands come from input.mix not input.lin)
+!!subroutine find_eval_from_coeffs(iproc, nproc, meth_overlap, ksorbs, basis_orbs, ham, ovrlp, coeff, eval, calc_overlap, diag)
+!!  use module_base
+!!  use module_types
+!!  use module_interfaces
+!!  use sparsematrix_base, only: sparse_matrix
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  integer, intent(in) :: iproc, nproc, meth_overlap
+!!  type(orbitals_data), intent(in) :: basis_orbs, ksorbs
+!!  type(sparse_matrix),intent(in) :: ham
+!!  type(sparse_matrix),intent(inout) :: ovrlp
+!!  real(kind=8),dimension(basis_orbs%norb,ksorbs%norb),intent(inout) :: coeff
+!!  real(kind=8),dimension(ksorbs%norb),intent(inout) :: eval
+!!  logical, intent(in) :: diag, calc_overlap
+!!
+!!  integer :: iorb, jorb, istat, iall, ierr, itmb, jtmb
+!!  real(kind=8), dimension(:,:), allocatable :: coeff_tmp, ham_coeff,  ovrlp_coeff
+!!  real(kind=8) :: offdiagsum, offdiagsum2, coeff_orthog_threshold
+!!  character(len=256) :: subname='reordering_coeffs'
+!!
+!!  coeff_orthog_threshold=1.0d-3
+!!
+!!  allocate(ham_coeff(ksorbs%norb,ksorbs%norb), stat=istat)
+!!  call memocc(istat, ham_coeff, 'ham_coeff', subname)
+!!
+!!  call calculate_coeffMatcoeff(ham%matrix,basis_orbs,ksorbs,coeff,ham_coeff)
+!!
+!!  if (calc_overlap) then
+!!     allocate(ovrlp_coeff(ksorbs%norb,ksorbs%norb), stat=istat)
+!!     call memocc(istat, ovrlp_coeff, 'ovrlp_coeff', subname)
+!!     call calculate_coeffMatcoeff(ovrlp%matrix,basis_orbs,ksorbs,coeff,ovrlp_coeff)
+!!  end if
+!!
+!!  ! above is overkill, actually just want diagonal elements but print off as a test out of curiosity
+!!  offdiagsum=0.0d0
+!!  offdiagsum2=0.0d0
+!!  do iorb=1,ksorbs%norb
+!!     do jorb=1,ksorbs%norb
+!!        if (iorb==jorb) then
+!!           eval(iorb)=ham_coeff(iorb,iorb)
+!!        else
+!!           offdiagsum=offdiagsum+abs(ham_coeff(iorb,jorb))
+!!           if (calc_overlap) offdiagsum2=offdiagsum2+abs(ovrlp_coeff(iorb,jorb))
+!!        end if
+!!     end do
+!!  end do
+!!  offdiagsum=offdiagsum/(ksorbs%norb**2-ksorbs%norb)
+!!  if (calc_overlap) offdiagsum2=offdiagsum2/(ksorbs%norb**2-ksorbs%norb)
+!!  if (calc_overlap.and.iproc==0) print*,''
+!!  if (calc_overlap) then
+!!     if (iproc==0) print*,'offdiagsum (ham,ovrlp):',offdiagsum,offdiagsum2
+!!  else
+!!     if (iproc==0) print*,'offdiagsum (ham):',offdiagsum
+!!  end if
+!!
+!!  ! if coeffs are too far from orthogonality
+!!  if (calc_overlap .and. offdiagsum2>coeff_orthog_threshold) then
+!!     call reorthonormalize_coeff(iproc, nproc, ksorbs%norb, -8, -8, meth_overlap, basis_orbs, ovrlp, coeff, ksorbs)
+!!  end if
+!!
+!!  if (diag.or.offdiagsum>1.0d-2) then
+!!     ! diagonalize within the space of occ+extra
+!!     if (.not.calc_overlap) then
+!!        ! assume ovrlp_coeff is orthgonal for now
+!!        allocate(ovrlp_coeff(ksorbs%norb,ksorbs%norb), stat=istat)
+!!        call memocc(istat, ovrlp_coeff, 'ovrlp_coeff', subname)
+!!        call calculate_coeffMatcoeff(ovrlp%matrix,basis_orbs,ksorbs,coeff,ovrlp_coeff)
+!!        do iorb=1,ksorbs%norb
+!!           do jorb=1,ksorbs%norb
+!!              if (iorb==jorb) then
+!!                 ovrlp_coeff(iorb,jorb)=1.0d0
+!!              else
+!!                 ovrlp_coeff(iorb,jorb)=0.0d0
+!!              end if
+!!           end do
+!!        end do
+!!     end if
+!!     ! diagonalize within the space of occ+extra
+!!     call diagonalizeHamiltonian2(iproc, ksorbs%norb, ham_coeff, ovrlp_coeff, eval)
+!!     coeff_tmp=f_malloc((/basis_orbs%norb,ksorbs%norb/),id='coeff_tmp')
+!!
+!!     ! multiply new eigenvectors by coeffs
+!!     call dgemm('n', 'n', basis_orbs%norb, ksorbs%norb, ksorbs%norb, 1.d0, coeff(1,1), &
+!!          basis_orbs%norb, ham_coeff, ksorbs%norb, 0.d0, coeff_tmp, basis_orbs%norb)
+!! 
+!!     call vcopy(basis_orbs%norb*(ksorbs%norb),coeff_tmp(1,1),1,coeff(1,1),1)
+!!     call f_free(coeff_tmp)
+!!  end if
+!!
+!!  if (calc_overlap.or.diag) then
+!!     iall=-product(shape(ovrlp_coeff))*kind(ovrlp_coeff)
+!!     deallocate(ovrlp_coeff,stat=istat)
+!!     call memocc(istat,iall,'ovrlp_coeff',subname)
+!!  end if
+!!
+!!  iall=-product(shape(ham_coeff))*kind(ham_coeff)
+!!  deallocate(ham_coeff,stat=istat)
+!!  call memocc(istat,iall,'ham_coeff',subname)
+!!
+!!end subroutine find_eval_from_coeffs
 
 
 subroutine calculate_coeffMatcoeff(matrix,basis_orbs,ksorbs,coeff,mat_coeff)
@@ -868,8 +868,8 @@ subroutine find_alpha_sd(iproc,nproc,alpha,tmb,orbs,coeffp,grad,energy0,fnrm,pre
 
   ! do twice with approx S^_1/2, as not quite good enough at preserving charge if only once, but exact too expensive
   ! instead of twice could add some criterion to check accuracy?
-  call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, coeff_tmp, orbs)
-  call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, coeff_tmp, orbs)
+  call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%ovrlp_, coeff_tmp, orbs)
+  call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%ovrlp_, coeff_tmp, orbs)
   call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%ham,&
        tmb%linmat%kernel_, tmb%linmat%ham_, energy1,&
        coeff_tmp,orbs,tmb%orbs,.true.)
