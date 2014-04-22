@@ -79,55 +79,6 @@
  #|F F F  0       fragment calculation; calculate transfer_integrals; constrained DFT calcula
  #|C 4 3.0d-3 3.0d-3 0.0d-4 6.0 7.0 6.0 20.d0  Atom name, number of basis functions per atom,
  #|O 4 3.0d-3 3.0d-3 0.0d-4 6.0 7.0 6.0 20.d0  Atom name, number of basis functions per atom,
- Dictionary for lin:
-   lin_general:
-     hybrid                            : No
-     nit: [0, 10]
-     rpnrm_cv: [9.99999999999999939E-012, 9.99999999999999939E-012]
-     conf_damping                      : 0.5
-     taylor_order                      : 0
-     output_wf                         : 0
-     calc_dipole                       : Yes
-     calc_pulay: [Yes, No]
-     subspace_diag                     : No
-   lin_basis:
-     nit: [3, 3]
-     idsx: [5, 0]
-     gnrm_cv: [4.00000000000000033E-005, 4.00000000000000033E-005]
-     deltae_cv                         : 1.00000000000000005E-004
-     gnrm_dyn                          : 1.00000000000000005E-004
-     alpha_diis                        : 1.0
-     alpha_sd                          : 1.0
-     nstep_prec                        : 5
-   lin_kernel:
-     nstep: [1, 1]
-     nit: [4, 4]
-     idsx_coeff: [0, 0]
-     idsx: [0, 0]
-     alphamix: [0.5, 0.5]
-     gnrm_cv_coeff: [1.00000000000000008E-005, 1.00000000000000008E-005]
-     rpnrm_cv: [1.00000000000000006E-009, 1.00000000000000006E-009]
-     linear_method                     : DIAG
-     mixing_method                     : DEN
-     alpha_sd_coeff                    : 0.20000000000000001
-     alpha_fit_coeff                   : No
-     eval_range_foe: [-0.5, 0.5]
-     fscale_foe                        : 5.00000000000000028E-002
-   lin_basis_params:
-     C:
-       nbasis                          : 4
-       ao_confinement                  : 3.00000000000000006E-003
-       confinement: [3.00000000000000006E-003, 0.0]
-       rloc: [6.0, 7.0]
-       rloc_kernel                     : 6.0
-       rloc_kernel_foe                 : 20.0
-     O:
-       nbasis                          : 4
-       ao_confinement                  : 3.00000000000000006E-003
-       confinement: [3.00000000000000006E-003, 0.0]
-       rloc: [6.0, 7.0]
-       rloc_kernel                     : 6.0
-       rloc_kernel_foe                 : 20.0
   #------------------------------------------------------------------------ Input parameters
  perf:
    debug                               : No #     debug option

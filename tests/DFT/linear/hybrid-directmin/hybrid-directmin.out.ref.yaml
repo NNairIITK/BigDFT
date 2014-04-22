@@ -80,61 +80,6 @@
  #|C  4 4.9d-2 4.9d-2 0.0d-2 4.5 4.5 4.5 10.d0 Atom name, number of basis functions per atom,
  #|O  4 4.9d-2 4.9d-2 0.0d-2 4.5 4.5 4.5 10.d0 Atom name, number of basis functions per atom,
  #|H  1 4.9d-2 4.9d-2 0.0d-2 4.5 4.5 4.5 10.d0 Atom name, number of basis functions per atom,
- Dictionary for lin:
-   lin_general:
-     hybrid                            : Yes
-     nit: [100, 100]
-     rpnrm_cv: [1.00000000000000002E-008, 1.00000000000000002E-008]
-     conf_damping                      : -0.5
-     taylor_order                      : 2
-     output_wf                         : 0
-     calc_dipole                       : No
-     calc_pulay: [No, No]
-     subspace_diag                     : No
-   lin_basis:
-     nit: [2, 2]
-     idsx: [0, 0]
-     gnrm_cv: [4.00000000000000033E-005, 4.00000000000000033E-005]
-     deltae_cv                         : 1.00000000000000005E-004
-     gnrm_dyn                          : 1.00000000000000005E-004
-     alpha_diis                        : 0.5
-     alpha_sd                          : 0.5
-     nstep_prec                        : 5
-   lin_kernel:
-     nstep: [3, 3]
-     nit: [2, 2]
-     idsx_coeff: [6, 6]
-     idsx: [0, 0]
-     alphamix: [1.0, 1.0]
-     gnrm_cv_coeff: [9.99999999999999955E-007, 9.99999999999999955E-007]
-     rpnrm_cv: [1.00000000000000006E-009, 1.00000000000000006E-009]
-     linear_method                     : DIRMIN
-     alpha_sd_coeff                    : 0.20000000000000001
-     alpha_fit_coeff                   : No
-     eval_range_foe: [-1.0, 1.0]
-     fscale_foe                        : 2.99999999999999989E-002
-   lin_basis_params:
-     C:
-       nbasis                          : 4
-       ao_confinement                  : 4.90000000000000019E-002
-       confinement: [4.90000000000000019E-002, 0.0]
-       rloc: [4.5, 4.5]
-       rloc_kernel                     : 4.5
-       rloc_kernel_foe                 : 10.0
-     O:
-       nbasis                          : 4
-       ao_confinement                  : 4.90000000000000019E-002
-       confinement: [4.90000000000000019E-002, 0.0]
-       rloc: [4.5, 4.5]
-       rloc_kernel                     : 4.5
-       rloc_kernel_foe                 : 10.0
-     H:
-       nbasis                          : 1
-       ao_confinement                  : 4.90000000000000019E-002
-       confinement: [4.90000000000000019E-002, 0.0]
-       rloc: [4.5, 4.5]
-       rloc_kernel                     : 4.5
-       rloc_kernel_foe                 : 10.0
   #------------------------------------------------------------------------ Input parameters
  perf:
    debug                               : No #     debug option
