@@ -100,7 +100,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           call timing(iproc,'eglincomms','ON')
           allocate(kernel_compr_tmp(tmb%linmat%denskern_large%nvctr), stat=istat)
           call memocc(istat, kernel_compr_tmp, 'kernel_compr_tmp', subname)
-          call vcopy(tmb%linmat%denskern_large%nvctr, tmb%linmat%denskern_large%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
+          call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
           !ii=0
           !do iseg=1,tmb%linmat%denskern%nseg
           !    do jorb=tmb%linmat%denskern%keyg(1,iseg), tmb%linmat%denskern%keyg(2,iseg)
@@ -113,9 +113,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                   if(iiorb==jjorb) then
                   !if(iiorb==jjorb .or. mod(iiorb-1,9)+1>4 .or.  mod(jjorb-1,9)+1>4) then
                   !if(iiorb==jjorb .or. mod(iiorb-1,9)+1>4) then
-                      tmb%linmat%denskern_large%matrix_compr(ii)=0.d0
+                      tmb%linmat%kernel_%matrix_compr(ii)=0.d0
                   else
-                      tmb%linmat%denskern_large%matrix_compr(ii)=kernel_compr_tmp(ii)
+                      tmb%linmat%kernel_%matrix_compr(ii)=kernel_compr_tmp(ii)
                   end if
               end do
           !end do
@@ -146,7 +146,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           call build_linear_combination_transposed(tmb%ham_descr%collcom, &
                tmb%linmat%denskern_large, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
           ! copy correct kernel back
-          call vcopy(tmb%linmat%denskern_large%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%denskern_large%matrix_compr(1), 1)
+          call vcopy(tmb%linmat%l%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
           iall=-product(shape(kernel_compr_tmp))*kind(kernel_compr_tmp)
           deallocate(kernel_compr_tmp, stat=istat)
           call memocc(istat, iall, 'kernel_compr_tmp', subname)

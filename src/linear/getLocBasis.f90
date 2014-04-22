@@ -757,7 +757,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       if (target_function==TARGET_FUNCTION_IS_ENERGY.and.extra_states>0) then
           allocate(kernel_compr_tmp(tmb%linmat%denskern_large%nvctr), stat=istat)
           call memocc(istat, kernel_compr_tmp, 'kernel_compr_tmp', subname)
-          call vcopy(tmb%linmat%denskern_large%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
+          call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
           !allocate(occup_tmp(tmb%orbs%norb), stat=istat)
           !call memocc(istat, occup_tmp, 'occup_tmp', subname)
           !call vcopy(tmb%orbs%norb, tmb%orbs%occup(1), 1, occup_tmp(1), 1)
@@ -860,8 +860,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       if (target_function==TARGET_FUNCTION_IS_ENERGY.and.extra_states>0) then
           !call vcopy(tmb%linmat%denskern%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%denskern%matrix_compr(1), 1)
-          call vcopy(tmb%linmat%denskern_large%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
-          call vcopy(tmb%linmat%denskern_large%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%denskern_large%matrix_compr(1), 1)
+          call vcopy(tmb%linmat%l%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+          call vcopy(tmb%linmat%l%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%denskern_large%matrix_compr(1), 1)
           iall=-product(shape(kernel_compr_tmp))*kind(kernel_compr_tmp)
           deallocate(kernel_compr_tmp, stat=istat)
           call memocc(istat, iall, 'kernel_compr_tmp', subname)
@@ -949,8 +949,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !!         tmb%coeff, tmb%linmat%denskern)
           !!else
           !call vcopy(tmb%linmat%denskern%nvctr, kernel_best(1), 1, tmb%linmat%denskern%matrix_compr(1), 1)
-          call vcopy(tmb%linmat%denskern_large%nvctr, kernel_best(1), 1, tmb%linmat%denskern_large%matrix_compr(1), 1)
-          call vcopy(tmb%linmat%denskern_large%nvctr, kernel_best(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+          call vcopy(tmb%linmat%l%nvctr, kernel_best(1), 1, tmb%linmat%denskern_large%matrix_compr(1), 1)
+          call vcopy(tmb%linmat%l%nvctr, kernel_best(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
           !!end if
           trH_old=0.d0
           it=it-2 !go back one iteration (minus 2 since the counter was increased)
@@ -1774,7 +1774,7 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt,
       ldiis%icountSDSatur=ldiis%icountSDSatur+1
       ldiis%icountDIISFailureCons=0
       trH_ref=trH
-      call vcopy(tmbopt%linmat%denskern_large%nvctr, tmbopt%linmat%kernel_%matrix_compr(1), 1, kernel_best(1), 1)
+      call vcopy(tmbopt%linmat%l%nvctr, tmbopt%linmat%kernel_%matrix_compr(1), 1, kernel_best(1), 1)
       !if(iproc==0) write(*,*) 'everything ok, copy last psi...'
       call vcopy(size(tmbopt%psi), tmbopt%psi(1), 1, lphioldopt(1), 1)
 
@@ -1874,8 +1874,8 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt,
               end do
               trH_ref=ldiis%energy_hist(ii)
               !!if (iproc==0) write(*,*) 'take energy from entry',ii
-              call vcopy(tmbopt%linmat%denskern_large%nvctr, kernel_best(1), 1, tmbopt%linmat%kernel_%matrix_compr(1), 1)
-              call vcopy(tmbopt%linmat%denskern_large%nvctr, kernel_best(1), 1, tmbopt%linmat%denskern_large%matrix_compr(1), 1)
+              call vcopy(tmbopt%linmat%l%nvctr, kernel_best(1), 1, tmbopt%linmat%kernel_%matrix_compr(1), 1)
+              call vcopy(tmbopt%linmat%l%nvctr, kernel_best(1), 1, tmbopt%linmat%denskern_large%matrix_compr(1), 1)
               complete_reset=.true.
           else
               !if(iproc==0) write(*,*) 'copy last psi...'
