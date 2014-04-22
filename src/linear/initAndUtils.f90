@@ -1535,7 +1535,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
 
      tmb%linmat%inv_ovrlp_large=sparse_matrix_null()
-     call sparse_copy_pattern(tmb%linmat%denskern_large, tmb%linmat%inv_ovrlp_large, iproc, subname)
+     call sparse_copy_pattern(tmb%linmat%l, tmb%linmat%inv_ovrlp_large, iproc, subname)
 
 
   else ! no change in locrad, just confining potential that needs updating

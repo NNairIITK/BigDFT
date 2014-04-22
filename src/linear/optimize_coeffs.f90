@@ -45,7 +45,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%ham, &
           tmb%linmat%kernel_, tmb%linmat%ham_, energy0,&
           tmb%coeff,orbs,tmb%orbs,.true.)
-     tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
+     !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
   else
      energy0=energy
   end if
@@ -217,7 +217,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%ham,&
           tmb%linmat%kernel_, tmb%linmat%ham_, energy,&
           tmb%coeff,orbs,tmb%orbs,.true.)
-     tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
+     !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
      !write(127,*) ldiis_coeff%alpha_coeff,energy
      !close(127)
 
@@ -873,7 +873,7 @@ subroutine find_alpha_sd(iproc,nproc,alpha,tmb,orbs,coeffp,grad,energy0,fnrm,pre
   call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%ham,&
        tmb%linmat%kernel_, tmb%linmat%ham_, energy1,&
        coeff_tmp,orbs,tmb%orbs,.true.)
-  tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
+  !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
   call f_free(coeff_tmp)
 
   ! find ideal alpha using both points

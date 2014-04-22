@@ -829,12 +829,12 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   !!   deallocate(tmb_old%linmat%denskern%matrix_compr, stat=i_stat)
   !!   call memocc(i_stat, i_all, 'tmb_old%linmat%denskern%matrix_compr', subname)
   !!end if
-  if (associated(tmb_old%linmat%denskern_large%matrix_compr)) then
-     !!i_all=-product(shape(tmb_old%linmat%denskern_large%matrix_compr))*kind(tmb_old%linmat%denskern_large%matrix_compr)
-     !!deallocate(tmb_old%linmat%denskern_large%matrix_compr, stat=i_stat)
-     !!call memocc(i_stat, i_all, 'tmb_old%linmat%denskern_large%matrix_compr', subname)
-     call f_free_ptr(tmb_old%linmat%denskern_large%matrix_compr)
-  end if
+  !!if (associated(tmb_old%linmat%denskern_large%matrix_compr)) then
+  !!   !!i_all=-product(shape(tmb_old%linmat%denskern_large%matrix_compr))*kind(tmb_old%linmat%denskern_large%matrix_compr)
+  !!   !!deallocate(tmb_old%linmat%denskern_large%matrix_compr, stat=i_stat)
+  !!   !!call memocc(i_stat, i_all, 'tmb_old%linmat%denskern_large%matrix_compr', subname)
+  !!   call f_free_ptr(tmb_old%linmat%denskern_large%matrix_compr)
+  !!end if
 
   if (associated(tmb_old%linmat%kernel_%matrix_compr)) then
      call f_free_ptr(tmb_old%linmat%kernel_%matrix_compr)
@@ -925,7 +925,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   if (input%lin%scf_mode/=LINEAR_FOE) then
       call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
            tmb%orbs, tmb%psi, tmb%collcom_sr)
-      tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
+      !tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
       call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
            tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
            denspot%rhov, rho_negative)
@@ -2057,7 +2057,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
           tmb%orbs, tmb%psi, tmb%collcom_sr)
 
-     tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
+     !tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
           tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
           denspot%rhov, rho_negative)
