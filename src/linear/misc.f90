@@ -1355,7 +1355,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
 
       dipole_elec=0.d0
       do iat=1,atoms%astruct%nat
-          dipole_elec(1:3) = dipole_elec(1:3) + -charge_per_atom(iat)*atoms%astruct%rxyz(1:3,iat)
+          dipole_elec(1:3) = dipole_elec(1:3) -charge_per_atom(iat)*atoms%astruct%rxyz(1:3,iat)
       end do
 
       dipole_net=dipole_cores+dipole_elec
@@ -1616,7 +1616,7 @@ subroutine calculate_multipoles(n1i, n2i, n3i, hgrids, phir, charge_center_elec,
           else
               delta_term=0.d0
           end if
-          quadropole_center(j,i) = quadropole_center(j,i) + -qtot*(3.d0*rj*ri-delta_term)
+          quadropole_center(j,i) = quadropole_center(j,i) -qtot*(3.d0*rj*ri-delta_term)
       end do
   end do
 
