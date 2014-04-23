@@ -3891,7 +3891,7 @@ module module_interfaces
 
 
         subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, imode, &
-                   ovrlp_smat, inv_ovrlp_smat, check_accur, &
+                   ovrlp_smat, inv_ovrlp_smat, ovrlp_mat, check_accur, &
                    ovrlp, inv_ovrlp, error)
              !!foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
           use module_base
@@ -3903,6 +3903,7 @@ module module_interfaces
           type(orbitals_data),intent(in) :: orbs
           integer,intent(in) :: imode
           type(sparse_matrix),intent(inout) :: ovrlp_smat, inv_ovrlp_smat
+          type(matrices),intent(in) :: ovrlp_mat
           logical,intent(in) :: check_accur
           real(kind=8),dimension(:,:),pointer,optional :: ovrlp, inv_ovrlp
           real(kind=8),intent(out),optional :: error

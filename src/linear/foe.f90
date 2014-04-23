@@ -962,6 +962,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                                                 iaction=DENSE_FULL, id='tmb%linmat%inv_ovrlp_large%matrix')
               call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, tmb%orbs, &
                    imode=2, ovrlp_smat=tmb%linmat%ovrlp, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, &
+                   ovrlp_mat=tmb%linmat%ovrlp_, &
                    check_accur=.true., ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=tmb%linmat%inv_ovrlp_large%matrix, &
                    error=error)
               call compress_matrix(iproc,tmb%linmat%inv_ovrlp_large)
@@ -969,6 +970,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           if (imode==SPARSE) then
               call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, tmb%orbs, &
                    imode=1, ovrlp_smat=tmb%linmat%ovrlp, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, &
+                   ovrlp_mat=tmb%linmat%ovrlp_, &
                    check_accur=.true., error=error)
            end if
           if (foe_verbosity>=1 .and. iproc==0) then

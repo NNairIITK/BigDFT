@@ -87,6 +87,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
           call overlapPowerGeneral(iproc, nproc, methTransformOverlap, -2, &
                orthpar%blocksize_pdgemm, orbs%norb, orbs, &
                imode=1, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
+               ovrlp_mat=ovrlp_, &
                ovrlp=ovrlp%matrix, inv_ovrlp=inv_ovrlp_null, check_accur=.false.)!!, &
       end if
 
@@ -389,7 +390,7 @@ end subroutine setCommsParameters
 !contents of %matrix not guaranteed to be correct though - inv_ovrlp_smat%can_use_dense set accordingly
 !power: -2 -> S^-1/2, 2 -> S^1/2, 1 -> S^-1
 subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, imode, &
-           ovrlp_smat, inv_ovrlp_smat, check_accur, &
+           ovrlp_smat, inv_ovrlp_smat, ovrlp_mat, check_accur, &
            ovrlp, inv_ovrlp, error)
      !!foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
   use module_base
@@ -410,6 +411,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
   type(orbitals_data),intent(in) :: orbs
   integer,intent(in) :: imode
   type(sparse_matrix),intent(inout) :: ovrlp_smat, inv_ovrlp_smat
+  type(matrices),intent(in) :: ovrlp_mat
   logical,intent(in) :: check_accur
   real(kind=8),dimension(:,:),pointer,optional :: ovrlp, inv_ovrlp
   real(kind=8),intent(out),optional :: error
@@ -461,13 +463,6 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
       else
           stop 'inv_ovrlp not present'
       end if
-  !!else if (imode==SPARSE .and. (iorder>1 .or. check_accur .or. iorder<0)) then
-  !!    if (.not.present(ovrlp_smat)) stop 'ovrlp_smat not present'
-  !!    if (.not.present(inv_ovrlp_smat)) stop 'inv_ovrlp_smat not present'
-  !!    !!if (.not.present(foe_nseg)) stop 'foe_nseg not present'
-  !!    !!if (.not.present(foe_kernel_nsegline)) stop 'foe_kernel_nsegline not present'
-  !!    !!if (.not.present(foe_istsegline)) stop 'foe_istsegline not present'
-  !!    !!if (.not.present(foe_keyg)) stop 'foe_keyg not present'
   end if
   
   if (check_accur) then
@@ -723,7 +718,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
           Amat12_compr=>inv_ovrlp_smat%matrix_compr
 
           call transform_sparse_matrix(ovrlp_smat, inv_ovrlp_smat, &
-               ovrlp_smat%matrix_compr, Amat12_compr, 'small_to_large')
+               ovrlp_mat%matrix_compr, Amat12_compr, 'small_to_large')
           Amat12_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='Amat12_seq')
           call sequential_acces_matrix_fast(inv_ovrlp_smat, Amat12_compr, Amat12_seq)
           call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, Amat12_compr, Amat12p)
@@ -786,7 +781,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
       else
           ovrlp_large_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='ovrlp_large_compr')
           call transform_sparse_matrix(ovrlp_smat, inv_ovrlp_smat, &
-               ovrlp_smat%matrix_compr, ovrlp_large_compr, 'small_to_large')
+               ovrlp_mat%matrix_compr, ovrlp_large_compr, 'small_to_large')
 
           if (iorder>1) then
               ovrlpminone_sparse_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='ovrlpminone_sparse_seq')
@@ -845,7 +840,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
                 invovrlpp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='invovrlpp')
                 ovrlp_large_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='ovrlp_large_compr')
               call transform_sparse_matrix(ovrlp_smat, inv_ovrlp_smat, &
-                   ovrlp_smat%matrix_compr, ovrlp_large_compr, 'small_to_large')
+                   ovrlp_mat%matrix_compr, ovrlp_large_compr, 'small_to_large')
           end if
             invovrlp_compr_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='ovrlp_large_compr_seq')
             ovrlp_largep = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlp_largep')
@@ -1752,7 +1747,8 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
      !!call overlapPowerGeneral(iproc, nproc, meth_overlap, -2, -8, n, orbs, imode=2, check_accur=.true.,&
      !!     ovrlp=ovrlp_tmp, inv_ovrlp=ovrlp_tmp_inv_half, error=error)
      call overlapPowerGeneral(iproc, 1, meth_overlap, -2, -8, n, orbs, imode=2, &
-          ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, check_accur=.true., &
+          ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
+          ovrlp_mat=ovrlp_mat, check_accur=.true., &
           ovrlp=ovrlp_tmp, inv_ovrlp=ovrlp_tmp_inv_half, error=error)
 
 
@@ -1957,6 +1953,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
           call overlapPowerGeneral(iproc, nproc, methTransformOverlap, -2, &
                orthpar%blocksize_pdsyev, orbs%norb, orbs,&
                imode=1, check_accur=.true., ovrlp=ovrlp_%matrix, inv_ovrlp=inv_ovrlp_null, &
+               ovrlp_mat=ovrlp_, &
                error=error, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half)
       end if
 
