@@ -109,7 +109,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
            tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
       ! This can then be deleted if the transition to the new type has been completed.
-      tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
+      !tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
 
     
   end if
@@ -701,7 +701,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
                    tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
               ! This can then be deleted if the transition to the new type has been completed.
-              tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
+              !tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
               if (iproc==0) call yaml_newline()
               if (iproc==0) call yaml_open_map(flow=.true.)
               call foe(iproc, nproc, 0.d0, &
@@ -1933,7 +1933,7 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
      call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
           tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
      ! This can then be deleted if the transition to the new type has been completed.
-     tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
+     !tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
 
      !call timing(iproc,'renormCoefComp','ON')
      overlap_calculated=.true.
@@ -2281,7 +2281,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
      call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
           tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
      ! This can then be deleted if the transition to the new type has been completed.
-     tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
+     !!tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
 
      !call timing(iproc,'renormCoefComp','ON')
      overlap_calculated=.true.
@@ -2312,7 +2312,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
 
 
 
-  tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
+  !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
   tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%l, &
         tmb%linmat%ovrlp_, tmb%linmat%kernel_)
   if (iproc==0) then
@@ -2429,7 +2429,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
 
           call compress_matrix(iproc,tmb%linmat%l, &
                inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
-          tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
+          !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
           tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%l, &
                 tmb%linmat%ovrlp_, tmb%linmat%kernel_)
           chargediff=2.d0*tr_KS-tmb%foe_obj%charge
@@ -2462,7 +2462,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
 
       call compress_matrix(iproc,tmb%linmat%l, &
            inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
-      tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
+      !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
       tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%l, &
             tmb%linmat%ovrlp_, tmb%linmat%kernel_)
       chargediff=2.d0*tr_KS-tmb%foe_obj%charge
@@ -2520,7 +2520,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
 
   call compress_matrix(iproc, tmb%linmat%l, inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
 
-  tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
+  !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
   tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%l, &
         tmb%linmat%ovrlp_, tmb%linmat%kernel_)
   if (iproc==0) then
