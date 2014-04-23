@@ -562,7 +562,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       !minval(tmb%collcom%indexrecvorbital_c),maxval(tmb%collcom%indexrecvorbital_c)
       !!if (iproc==0) write(*,*) 'WARNING: no ortho in inguess'
       call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
-           tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp_large, &
+           tmb%linmat%s, tmb%linmat%inv_ovrlp_large, &
            tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed, &
            tmb%foe_obj)
             
@@ -613,12 +613,12 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          end do
          if (iortho>0) then
              call gramschmidt_subset(iproc, nproc, -1, tmb%npsidim_orbs, &                                  
-                  tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%ovrlp, &
+                  tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%s, &
                   tmb%linmat%inv_ovrlp_large, tmb%collcom, tmb%orthpar, &
                   tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
          end if
          call orthonormalize_subset(iproc, nproc, -1, tmb%npsidim_orbs, &                                  
-              tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%ovrlp, &
+              tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%s, &
               tmb%linmat%inv_ovrlp_large, tmb%collcom, tmb%orthpar, &
               tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
          if (finished) exit ortho_loop
@@ -711,7 +711,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   if (input%lin%scf_mode==LINEAR_FOE) then
 
-      call sparse_copy_pattern(tmb%linmat%ovrlp,ham_small,iproc,subname)
+      call sparse_copy_pattern(tmb%linmat%s,ham_small,iproc,subname)
       !!allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
       !!call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
       ham_small%matrix_compr=f_malloc_ptr(ham_small%nvctr,id='ham_small%matrix_compr')

@@ -172,12 +172,13 @@ contains
 
     if (calculate_ovrlp_half) then
        tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
-       call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%ovrlp)
-       ! Maybe not clean here to use twice tmb%linmat%ovrlp, but it should not
+       call uncompress_matrix(bigdft_mpi%iproc, tmb%linmat%s, &
+            inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
+       ! Maybe not clean here to use twice tmb%linmat%s, but it should not
        ! matter as dense is used
        call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 2, &
             tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%orbs, &
-            imode=2, ovrlp_smat=tmb%linmat%ovrlp, inv_ovrlp_smat=tmb%linmat%ovrlp, &
+            imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%s, &
             check_accur=.true., ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=ovrlp_half, error=error)
        call f_free_ptr(tmb%linmat%ovrlp_%matrix)
     end if

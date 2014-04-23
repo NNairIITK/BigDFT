@@ -153,7 +153,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   ham_small=sparse_matrix_null()
 
   if (input%lin%scf_mode==LINEAR_FOE) then ! allocate ham_small
-     call sparse_copy_pattern(tmb%linmat%ovrlp,ham_small,iproc,subname)
+     call sparse_copy_pattern(tmb%linmat%s,ham_small,iproc,subname)
      !!allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
      !!call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
      ham_small%matrix_compr=f_malloc_ptr(ham_small%nvctr,id='ham_small%matrix_compr')
@@ -406,7 +406,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              call deallocate_sparse_matrix(ham_small,subname)
              !call nullify_sparse_matrix(ham_small)
              ham_small=sparse_matrix_null()
-             call sparse_copy_pattern(tmb%linmat%ovrlp,ham_small,iproc,subname)
+             call sparse_copy_pattern(tmb%linmat%s,ham_small,iproc,subname)
              !!allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
              !!call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
              ham_small%matrix_compr=f_malloc_ptr(ham_small%nvctr,id='ham_small%matrix_compr')
@@ -679,10 +679,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
          iismall=0
          iseglarge=1
-         do isegsmall=1,tmb%linmat%ovrlp%nseg
+         do isegsmall=1,tmb%linmat%s%nseg
             do
-               is=max(tmb%linmat%ovrlp%keyg(1,isegsmall),tmb%linmat%ham%keyg(1,iseglarge))
-               ie=min(tmb%linmat%ovrlp%keyg(2,isegsmall),tmb%linmat%ham%keyg(2,iseglarge))
+               is=max(tmb%linmat%s%keyg(1,isegsmall),tmb%linmat%ham%keyg(1,iseglarge))
+               ie=min(tmb%linmat%s%keyg(2,isegsmall),tmb%linmat%ham%keyg(2,iseglarge))
                iilarge=tmb%linmat%ham%keyv(iseglarge)-tmb%linmat%ham%keyg(1,iseglarge)
                do i=is,ie
                   iismall=iismall+1

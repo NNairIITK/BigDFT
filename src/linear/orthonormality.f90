@@ -246,7 +246,7 @@ call timing(iproc,'misc','ON')
       !!call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, linmat%ovrlp)
       if (iproc==0) write(*,*) 'correction orthoconstraint'
       linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(linmat%s, DENSE_FULL, id='linmat%ovrlp_%matrix')
-      call uncompress_matrix(iproc, linmat%ovrlp, inmat=linmat%ovrlp_%matrix_compr, outmat=linmat%ovrlp_%matrix)
+      call uncompress_matrix(iproc, linmat%s, inmat=linmat%ovrlp_%matrix_compr, outmat=linmat%ovrlp_%matrix)
       allocate(tmp_mat(orbs%norb,orbs%norb))
       allocate(tmp_mat2(orbs%norb,orbs%norb))
       call to_zero(orbs%norb**2, tmp_mat(1,1))

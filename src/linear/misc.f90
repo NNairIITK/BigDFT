@@ -1214,10 +1214,11 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
 
   if (calculate_ovrlp_half) then
      ovrlp = f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='ovrlp')
-     call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%ovrlp,outmat=ovrlp)
+     call uncompress_matrix(bigdft_mpi%iproc, tmb%linmat%s, &
+          inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=ovrlp)
      call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 2, &
           tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%orbs, &
-          imode=2, ovrlp_smat=tmb%linmat%ovrlp, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, &
+          imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, &
           ovrlp_mat=tmb%linmat%ovrlp_, check_accur=.true., &
           ovrlp=ovrlp, inv_ovrlp=ovrlp_half, error=error)
      !!ovrlp_half=tmb%linmat%ovrlp%matrix

@@ -1214,7 +1214,7 @@ contains
        call reorthonormalize_coeff(bigdft_mpi%iproc, bigdft_mpi%nproc, &
             ceiling((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp), &
             tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, tmb%orthpar%methTransformOverlap,&
-            tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%ovrlp_, tmb%coeff, ksorbs)
+            tmb%orbs, tmb%linmat%s, tmb%linmat%ovrlp_, tmb%coeff, ksorbs)
        call f_free_ptr(tmb%linmat%ovrlp_%matrix)
 
        !! debug
