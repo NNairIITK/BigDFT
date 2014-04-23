@@ -15,11 +15,11 @@ module ao_inguess
 
   private
 
-  integer, parameter :: nmax_ao=7 !<maximum allowed value of principal quantum number for the electron configuration
-  integer, parameter :: lmax_ao=3 !<maximum value of the angular momentum for the electron configuration
-  integer, parameter :: nelecmax_ao=32 !<size of the interesting values of the compressed atomic input polarization
-  integer, parameter :: noccmax_ao=2 !<maximum number of the occupied input guess orbitals for a given shell
-  integer, parameter :: nmax_occ_ao=10 !<maximum number of total occupied orbitals for generating the ig functions
+  integer, parameter, public :: nmax_ao=7      !<maximum allowed value of principal quantum number for the electron configuration
+  integer, parameter, public :: lmax_ao=3      !<maximum value of the angular momentum for the electron configuration
+  integer, parameter, public :: nelecmax_ao=32 !<size of the interesting values of the compressed atomic input polarization
+  integer, parameter, public :: noccmax_ao=2   !<maximum number of the occupied input guess orbitals for a given shell
+  integer, parameter, public :: nmax_occ_ao=10 !<maximum number of total occupied orbitals for generating the ig functions
 
   private:: nmax_ao,lmax_ao,nelecmax_ao,noccmax_ao,at_occnums,spin_variables
 

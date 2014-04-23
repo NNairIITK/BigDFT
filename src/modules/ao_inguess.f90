@@ -15,13 +15,13 @@ module ao_inguess
 
   private
 
-  integer, parameter :: nmax_ao=7 !<maximum allowed value of principal quantum number for the electron configuration
-  integer, parameter :: lmax_ao=3 !<maximum value of the angular momentum for the electron configuration
-  integer, parameter :: nelecmax_ao=32 !<size of the interesting values of the compressed atomic input polarization
-  integer, parameter :: noccmax_ao=2 !<maximum number of the occupied input guess orbitals for a given shell
-  integer, parameter :: nmax_occ_ao=10 !<maximum number of total occupied orbitals for generating the ig functions
+  integer, parameter, public :: nmax_ao=7 !<maximum allowed value of principal quantum number for the electron configuration
+  integer, parameter, public :: lmax_ao=3 !<maximum value of the angular momentum for the electron configuration
+  integer, parameter, public :: nelecmax_ao=32 !<size of the interesting values of the compressed atomic input polarization
+  integer, parameter, public :: noccmax_ao=2 !<maximum number of the occupied input guess orbitals for a given shell
+  integer, parameter, public :: nmax_occ_ao=10 !<maximum number of total occupied orbitals for generating the ig functions
 
-  private:: nmax_ao,lmax_ao,nelecmax_ao,noccmax_ao,at_occnums,spin_variables
+  private:: at_occnums,spin_variables
 
   !>parameters of the input guess atomic orbitals, to be continued
   type, public :: aoig_data
@@ -35,7 +35,7 @@ module ao_inguess
                                               !! adapted at each run to meet the nspin and nspinor conditions
   end type aoig_data
 
-  public :: atomic_info,ao_nspin_ig,iguess_generator,count_atomic_shells,print_eleconf,aoig_set_from_dict
+  public :: atomic_info,ao_nspin_ig,iguess_generator,count_atomic_shells,eleconf,print_eleconf,aoig_set_from_dict
   public :: ao_ig_charge,aoig_set,aoig_data_null
 
 contains

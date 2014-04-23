@@ -17,5 +17,9 @@ module BigDFT_API
   use module_interfaces
   use module_xc
   use module_atoms
+  use psp_projectors
+  use ao_inguess
+  use communications_base
+  use communications_init
   implicit none
 end module BigDFT_API
