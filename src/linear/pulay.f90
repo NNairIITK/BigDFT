@@ -93,7 +93,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
            hphit_c, delta_phit_c, hphit_f, delta_phit_f, tmb%linmat%m, tmb%linmat%ham_)
       ! This can then be deleted if the transition to the new type has been completed.
-      tmb%linmat%ham%matrix_compr=tmb%linmat%ham_%matrix_compr
+      !tmb%linmat%ham%matrix_compr=tmb%linmat%ham_%matrix_compr
 
       tmb%linmat%ham_%matrix = sparsematrix_malloc_ptr(tmb%linmat%m, iaction=DENSE_FULL, id='tmb%linmat%ham_%matrix')
       call uncompress_matrix(iproc, tmb%linmat%m, &

@@ -462,16 +462,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
      call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,in, atoms, rxyz, .false.)
 
-     call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%ham_descr%lzd, atoms%astruct, &
-          in%store_index, imode=1, smat=tmb%linmat%ham)
+     !!call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%ham_descr%lzd, atoms%astruct, &
+     !!     in%store_index, imode=1, smat=tmb%linmat%ham)
      call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%ham_descr%lzd, atoms%astruct, &
           in%store_index, imode=1, smat=tmb%linmat%m)
      tmb%linmat%ham_ = matrices_null()
      call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
           matname='tmb%linmat%ham_', mat=tmb%linmat%ham_)
 
-     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
-          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ham)
+     !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+     !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ham)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
 
@@ -790,7 +790,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
            !if (input%frag%nfrag==2) call calc_transfer_integrals_old(iproc,nproc,input%frag,ref_frags,tmb%orbs,&
            !     tmb%linmat%ham,tmb%linmat%ovrlp)
            call calc_site_energies_transfer_integrals(iproc,nproc,tmb%orthpar%methTransformOverlap,&
-                in%frag,ref_frags,tmb%orbs,tmb%linmat%ham,tmb%linmat%ham_,tmb%linmat%s,tmb%linmat%ovrlp_)
+                in%frag,ref_frags,tmb%orbs,tmb%linmat%m,tmb%linmat%ham_,tmb%linmat%s,tmb%linmat%ovrlp_)
         end if
      end if
 

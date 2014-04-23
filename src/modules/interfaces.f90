@@ -2263,11 +2263,8 @@ module module_interfaces
         use module_base
         use module_types
         use yaml_output
-        use communications, only: transpose_localized, untranspose_localized
         use sparsematrix_base, only: matrices_null, allocate_matrices, deallocate_matrices, &
                                      sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
-        use sparsematrix_init, only: matrixindex_in_compressed
-        use sparsematrix, only: uncompress_matrix
         implicit none
         integer,intent(in) :: iproc, nproc, npsidim_orbs, npsidim_comp
         type(local_zone_descriptors),intent(in) :: lzd

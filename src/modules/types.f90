@@ -593,7 +593,7 @@ module module_types
   end type foe_data
 
   type,public :: linear_matrices
-      type(sparse_matrix) :: ham, inv_ovrlp_large
+      type(sparse_matrix) :: inv_ovrlp_large
       type(sparse_matrix) :: s !< small: sparsity pattern given by support function cutoff
       type(sparse_matrix) :: m !< medium: sparsity pattern given by SHAMOP cutoff
       type(sparse_matrix) :: l !< medium: sparsity pattern given by kernel cutoff

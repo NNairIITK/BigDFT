@@ -227,7 +227,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
            tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, tmb%linmat%ham_)
       ! This can then be deleted if the transition to the new type has been completed.
-      tmb%linmat%ham%matrix_compr=tmb%linmat%ham_%matrix_compr
+      !tmb%linmat%ham%matrix_compr=tmb%linmat%ham_%matrix_compr
 
 
       if (scf_mode==LINEAR_FOE) then
@@ -675,7 +675,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
                    tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, tmb%linmat%ham_)
               ! This can then be deleted if the transition to the new type has been completed.
-              tmb%linmat%ham%matrix_compr=tmb%linmat%ham_%matrix_compr
+              !tmb%linmat%ham%matrix_compr=tmb%linmat%ham_%matrix_compr
 
               if(associated(tmb%psit_c)) then
                   iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
@@ -1033,7 +1033,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
                    tmb%ham_descr%psit_c, hpsit_c_tmp, tmb%ham_descr%psit_f, hpsit_f_tmp, tmb%linmat%m, tmb%linmat%ham_)
               ! This can then be deleted if the transition to the new type has been completed.
-              tmb%linmat%ham%matrix_compr=tmb%linmat%ham_%matrix_compr
+              !tmb%linmat%ham%matrix_compr=tmb%linmat%ham_%matrix_compr
           end if
 
           if (iproc==0) then

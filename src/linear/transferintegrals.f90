@@ -689,7 +689,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
      if (iproc==0) call yaml_close_sequence()
   end if
 
-  call f_free_ptr(ham_%matrix)
+  call f_free_ptr(ham_mat%matrix)
   call f_free_ptr(ovrlp_mat%matrix)
 
   call f_free(homo_ham)
