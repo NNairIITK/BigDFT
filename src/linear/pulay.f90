@@ -95,20 +95,21 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
       ! This can then be deleted if the transition to the new type has been completed.
       tmb%linmat%ham%matrix_compr=tmb%linmat%ham_%matrix_compr
 
-      tmb%linmat%ham%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ham%matrix')
-      call uncompress_matrix(iproc,tmb%linmat%ham)
+      tmb%linmat%ham_%matrix = sparsematrix_malloc_ptr(tmb%linmat%m, iaction=DENSE_FULL, id='tmb%linmat%ham_%matrix')
+      call uncompress_matrix(iproc, tmb%linmat%m, &
+           inmat=tmb%linmat%ham_%matrix_compr, outmat=tmb%linmat%ham_%matrix)
 
       do iorb=1,tmb%orbs%norbp
           iiorb=tmb%orbs%isorb+iorb
           iat=tmb%orbs%onwhichatom(iiorb)
           tt=0.d0
           do jorb=1,tmb%orbs%norb
-              tt = tt -2.d0*tmb%linmat%kernel_%matrix(jorb,iiorb)*tmb%linmat%ham%matrix(jorb,iiorb)
+              tt = tt -2.d0*tmb%linmat%kernel_%matrix(jorb,iiorb)*tmb%linmat%ham_%matrix(jorb,iiorb)
               !if (iproc==0) write(*,*) 'kern, ovrlp', tmb%linmat%denskern%matrix(jorb,iiorb), tmb%linmat%ham%matrix(iiorb,jorb)
           end do  
           fpulay(idir,iat)=fpulay(idir,iat)+tt
       end do
-      call f_free_ptr(tmb%linmat%ham%matrix)
+      call f_free_ptr(tmb%linmat%ham_%matrix)
   end do
   call mpiallred(fpulay(1,1), 3*at%astruct%nat, mpi_sum, bigdft_mpi%mpi_comm, ierr)
   call f_free_ptr(tmb%linmat%kernel_%matrix)
@@ -538,8 +539,8 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
     !call nullify_sparse_matrix(dham(jdir))
     dovrlp(jdir)=sparse_matrix_null()
     dham(jdir)=sparse_matrix_null()
-    call sparse_copy_pattern(tmb%linmat%ham,dovrlp(jdir),iproc,subname) 
-    call sparse_copy_pattern(tmb%linmat%ham,dham(jdir),iproc,subname)
+    call sparse_copy_pattern(tmb%linmat%m,dovrlp(jdir),iproc,subname) 
+    call sparse_copy_pattern(tmb%linmat%m,dham(jdir),iproc,subname)
     !!allocate(dham(jdir)%matrix_compr(dham(jdir)%nvctr), stat=istat)
     !!call memocc(istat, dham(jdir)%matrix_compr, 'dham%matrix_compr', subname)
     !!allocate(dovrlp(jdir)%matrix_compr(dovrlp(jdir)%nvctr), stat=istat)
