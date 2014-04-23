@@ -2258,23 +2258,30 @@ module module_interfaces
       !end subroutine dsyev_parallel
 
       subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
-           correction_orthoconstraint, linmat, lphi, lhphi, lagmat, psit_c, psit_f, hpsit_c, hpsit_f, &
-           can_use_transposed, overlap_calculated, experimental_mode)
+                 correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, hpsit_c, hpsit_f, &
+                 can_use_transposed, overlap_calculated, experimental_mode)
         use module_base
         use module_types
+        use yaml_output
+        use communications, only: transpose_localized, untranspose_localized
+        use sparsematrix_base, only: matrices_null, allocate_matrices, deallocate_matrices, &
+                                     sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
+        use sparsematrix_init, only: matrixindex_in_compressed
+        use sparsematrix, only: uncompress_matrix
         implicit none
         integer,intent(in) :: iproc, nproc, npsidim_orbs, npsidim_comp
         type(local_zone_descriptors),intent(in) :: lzd
-        type(orbitals_Data),intent(in) :: orbs
+        type(orbitals_Data),intent(inout) :: orbs !temporary inout
         type(comms_linear),intent(in) :: collcom
         type(orthon_data),intent(in) :: orthpar
         integer,intent(in) :: correction_orthoconstraint
         real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(in) :: lphi
         real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(inout) :: lhphi
         type(sparse_matrix),intent(inout) :: lagmat
-        real(8),dimension(:),pointer :: psit_c, psit_f, hpsit_c, hpsit_f
+        type(matrices),intent(out) :: lagmat_
+        real(kind=8),dimension(:),pointer :: psit_c, psit_f, hpsit_c, hpsit_f
         logical,intent(inout) :: can_use_transposed, overlap_calculated
-        type(linear_matrices),intent(inout) :: linmat
+        type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
         logical,intent(in) :: experimental_mode
       end subroutine orthoconstraintNonorthogonal
 

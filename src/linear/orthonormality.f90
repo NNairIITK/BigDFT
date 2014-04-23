@@ -137,7 +137,7 @@ end subroutine orthonormalizeLocalized
 ! can still tidy this up more when tmblarge is removed
 ! use sparsity of density kernel for all inverse quantities
 subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
-           correction_orthoconstraint, linmat, lphi, lhphi, lagmat, psit_c, psit_f, hpsit_c, hpsit_f, &
+           correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, hpsit_c, hpsit_f, &
            can_use_transposed, overlap_calculated, experimental_mode)
   use module_base
   use module_types
@@ -161,6 +161,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(in) :: lphi
   real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(inout) :: lhphi
   type(sparse_matrix),intent(inout) :: lagmat
+  type(matrices),intent(out) :: lagmat_
   real(kind=8),dimension(:),pointer :: psit_c, psit_f, hpsit_c, hpsit_f
   logical,intent(inout) :: can_use_transposed, overlap_calculated
   type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
@@ -173,7 +174,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   character(len=*),parameter :: subname='orthoconstraintNonorthogonal'
   real(kind=8),dimension(:,:),allocatable :: tmp_mat, tmp_mat2, tmp_mat3
   integer,dimension(:),allocatable :: ipiv
-  type(matrices) :: lagmat_
 
   ! removed option for correction orthoconstrain for now
   !if (correction_orthoconstraint==0) stop 'correction_orthoconstraint not working'
@@ -200,13 +200,13 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
      call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lhphi, hpsit_c, hpsit_f, lzd)
   end if
 
-  lagmat_ = matrices_null()
-  call allocate_matrices(lagmat, allocate_full=.false., &
-       matname='lagmat_', mat=lagmat_)
+  !lagmat_ = matrices_null()
+  !call allocate_matrices(lagmat, allocate_full=.false., &
+  !     matname='lagmat_', mat=lagmat_)
   call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_)
   ! This can then be deleted if the transition to the new type has been completed.
   lagmat%matrix_compr=lagmat_%matrix_compr
-  call deallocate_matrices(lagmat_)
+  !call deallocate_matrices(lagmat_)
 
   !call nullify_sparse_matrix(tmp_mat)
   !call sparse_copy_pattern(lagmat,tmp_mat,iproc,subname)
@@ -307,11 +307,11 @@ call timing(iproc,'misc','ON')
 
 call timing(iproc,'misc','OF')
 
-  lagmat_ = matrices_null()
-  call allocate_matrices(lagmat, allocate_full=.false., matname='lagmat_', mat=lagmat_)
+  !lagmat_ = matrices_null()
+  !call allocate_matrices(lagmat, allocate_full=.false., matname='lagmat_', mat=lagmat_)
   lagmat_%matrix_compr = lagmat%matrix_compr
   call build_linear_combination_transposed(collcom, lagmat, lagmat_, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
-  call deallocate_matrices(lagmat_)
+  !call deallocate_matrices(lagmat_)
 
 
 
