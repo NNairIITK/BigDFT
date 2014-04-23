@@ -262,7 +262,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
 
   allocate(scorb(4,2,at%natsc+ndebug),stat=i_stat)
   call memocc(i_stat,scorb,'scorb',subname)
-  allocate(norbsc_arr(at%natsc+1,1+ndebug),stat=i_stat)
+  allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
   call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
   allocate(locrad(at%astruct%nat+ndebug),stat=i_stat)
   call memocc(i_stat,locrad,'locrad',subname)

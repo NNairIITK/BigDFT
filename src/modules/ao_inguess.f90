@@ -396,7 +396,14 @@ contains
     do l=1,lmax_ao+1
        iocc=iocc+1
        nl(l)=nint(elecorbs(iocc))!ceiling(elecorbs(iocc))!
-       if (nl(l) > noccmax_ao) stop 'noccmax too little'
+       if (nl(l) > noccmax_ao) then
+          call f_err_throw('Error in occupying the shells of l='//&
+               trim(yaml_toa(l-1))//'; there cannot be more than '//&
+               trim(yaml_toa(noccmax_ao))//&
+               ' shells with the same angular momentum',&
+               err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+          return
+       end if
        do inl=1,nl(l)!this lose the value of the principal quantum number n
           occup(inl,l)=0.0_gp
           do ispin=1,nspin
