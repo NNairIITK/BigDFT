@@ -50,22 +50,24 @@ module constrained_dft
          real(gp),intent(out),optional :: econf
        end subroutine LocalHamiltonianApplication
 
-       subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, imode, &
-                  ovrlp_smat, inv_ovrlp_smat, check_accur, &
-                  ovrlp, inv_ovrlp, error)
-         use module_base
-         use module_types
-         use sparsematrix_base, only: sparse_matrix, SPARSE_FULL, DENSE_PARALLEL, DENSE_FULL, SPARSEMM_SEQ
-         use yaml_output
-         implicit none
-         integer,intent(in) :: iproc, nproc, iorder, blocksize, norb, power
-         type(orbitals_data),intent(in) :: orbs
-         integer,intent(in) :: imode
-         type(sparse_matrix),intent(inout) :: ovrlp_smat, inv_ovrlp_smat
-         logical,intent(in) :: check_accur
-         real(kind=8),dimension(:,:),pointer,optional :: ovrlp, inv_ovrlp
-         real(kind=8),intent(out),optional :: error
-       end subroutine overlapPowerGeneral
+        subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, imode, &
+                   ovrlp_smat, inv_ovrlp_smat, ovrlp_mat, check_accur, &
+                   ovrlp, inv_ovrlp, error)
+             !!foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
+          use module_base
+          use module_types
+          use sparsematrix_base, only: sparse_matrix, matrices, SPARSE_FULL, DENSE_PARALLEL, DENSE_FULL, SPARSEMM_SEQ
+          use yaml_output
+          implicit none
+          integer,intent(in) :: iproc, nproc, iorder, blocksize, norb, power
+          type(orbitals_data),intent(in) :: orbs
+          integer,intent(in) :: imode
+          type(sparse_matrix),intent(inout) :: ovrlp_smat, inv_ovrlp_smat
+          type(matrices),intent(inout) :: ovrlp_mat
+          logical,intent(in) :: check_accur
+          real(kind=8),dimension(:,:),pointer,optional :: ovrlp, inv_ovrlp
+          real(kind=8),intent(out),optional :: error
+        end subroutine overlapPowerGeneral
 
   end interface
 
@@ -179,6 +181,7 @@ contains
        call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 2, &
             tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%orbs, &
             imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%s, &
+            ovrlp_mat=tmb%linmat%ovrlp_, &
             check_accur=.true., ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=ovrlp_half, error=error)
        call f_free_ptr(tmb%linmat%ovrlp_%matrix)
     end if
