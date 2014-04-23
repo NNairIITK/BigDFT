@@ -57,7 +57,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
        tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
   ! This can then be deleted if the transition to the new type has been completed.
-  tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
+  !tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
 
 
   call f_free_ptr(tmb%psit_c)

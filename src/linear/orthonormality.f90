@@ -1949,7 +1949,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
       else
           nullify(inv_ovrlp_null)
           ! do sparse.. check later
-          ovrlp%matrix_compr=ovrlp_%matrix_compr
+          !ovrlp%matrix_compr=ovrlp_%matrix_compr
           call overlapPowerGeneral(iproc, nproc, methTransformOverlap, -2, &
                orthpar%blocksize_pdsyev, orbs%norb, orbs,&
                imode=1, check_accur=.true., ovrlp=ovrlp_%matrix, inv_ovrlp=inv_ovrlp_null, &
@@ -2118,7 +2118,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
       call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
       call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
       ! This can then be deleted if the transition to the new type has been completed.
-      ovrlp%matrix_compr=ovrlp_%matrix_compr
+      !ovrlp%matrix_compr=ovrlp_%matrix_compr
 
       ! For the "higher" TMBs: delete off-diagonal elements and
       ! set diagonal elements to 1
