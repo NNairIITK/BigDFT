@@ -2071,7 +2071,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      ! CDFT: calculate w(r) and w_ab, define some initial guess for V and initialize other cdft_data stuff
      call timing(iproc,'constraineddft','ON')
      if (in%lin%constrained_dft) then
-        call cdft_data_allocate(cdft,tmb%linmat%ham)
+        call cdft_data_allocate(cdft,tmb%linmat%m)
         if (trim(cdft%method)=='fragment_density') then ! fragment density approach
            if (in%lin%calc_transfer_integrals) stop 'Must use Lowdin for CDFT transfer integral calculations for now'
            if (in%lin%diag_start) stop 'Diag at start probably not working for fragment_density'

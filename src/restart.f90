@@ -948,29 +948,25 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
         open(99, file=filename//'hamiltonian.bin', status='unknown',form='unformatted')
      end if
 
-     !!allocate(tmb%linmat%ham%matrix(tmb%linmat%ham%nfvctr,tmb%linmat%ham%nfvctr), stat=i_stat)
-     !!call memocc(i_stat, tmb%linmat%ham%matrix, 'tmb%linmat%ham%matrix', subname)
-     tmb%linmat%ham%matrix=f_malloc_ptr((/tmb%linmat%ham%nfvctr,tmb%linmat%ham%nfvctr/),&
-         id='tmb%linmat%ham%matrix')
+     tmb%linmat%ham_%matrix = sparsematrix_malloc_ptr(tmb%linmat%m, &
+                              iaction=DENSE_FULL, id='tmb%linmat%ham_%matrix')
 
-     call uncompress_matrix(iproc,tmb%linmat%ham)
+     call uncompress_matrix(iproc, tmb%linmat%m, &
+          inmat=tmb%linmat%ham_%matrix_compr, outmat=tmb%linmat%ham_%matrix)
 
-     do iorb=1,tmb%linmat%ham%nfvctr
+     do iorb=1,tmb%linmat%m%nfvctr
         iat=tmb%orbs%onwhichatom(iorb)
-        do jorb=1,tmb%linmat%ham%nfvctr
+        do jorb=1,tmb%linmat%m%nfvctr
            jat=tmb%orbs%onwhichatom(jorb)
            if (iformat == WF_FORMAT_PLAIN) then
-              write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ham%matrix(iorb,jorb),iat,jat
+              write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ham_%matrix(iorb,jorb),iat,jat
            else
-              write(99) iorb,jorb,tmb%linmat%ham%matrix(iorb,jorb),iat,jat
+              write(99) iorb,jorb,tmb%linmat%ham_%matrix(iorb,jorb),iat,jat
            end if
         end do
      end do
 
-     !!i_all = -product(shape(tmb%linmat%ham%matrix))*kind(tmb%linmat%ham%matrix)
-     !!deallocate(tmb%linmat%ham%matrix,stat=i_stat)
-     !!call memocc(i_stat,i_all,'tmb%linmat%ham%matrix',subname)
-     call f_free_ptr(tmb%linmat%ham%matrix)
+     call f_free_ptr(tmb%linmat%ham_%matrix)
 
      close(99)
 

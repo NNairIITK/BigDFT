@@ -266,7 +266,7 @@
 ! calculation of cSc and cHc using original coeffs and new Hamiltonian and overlap matrices
 ! parallelization to be improved
 ! also have already uncompressed and recompressed ovrlp, so could change this
-subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,ovrlp_mat,homo_coeffs1,homo_coeffs2,homo_ham,homo_ovrlp)
+subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ham_mat,ovrlp,ovrlp_mat,homo_coeffs1,homo_coeffs2,homo_ham,homo_ovrlp)
   use module_base
   use module_types
   use yaml_output
@@ -279,7 +279,7 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,ovrlp_mat,h
   integer, intent(in) :: iproc, nproc, nstates
   type(orbitals_data), intent(in) :: orbs
   type(sparse_matrix), intent(inout) :: ham, ovrlp
-  type(matrices),intent(inout) :: ovrlp_mat
+  type(matrices),intent(inout) :: ovrlp_mat, ham_mat
   real(kind=gp), dimension(ovrlp%nfvctr,nstates), intent(in) :: homo_coeffs1, homo_coeffs2
   real(kind=gp), dimension(nstates), intent(inout) :: homo_ham, homo_ovrlp
 
@@ -297,7 +297,7 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,ovrlp_mat,h
   if (orbs%norbp>0) then
      do istate=1,nstates
         call dgemm('n', 'n', orbs%norbp, 1, orbs%norb, 1.d0, &
-             ham%matrix(orbs%isorb+1,1),orbs%norb, &
+             ham_mat%matrix(orbs%isorb+1,1),orbs%norb, &
              homo_coeffs1(1,istate), orbs%norb, 0.d0, &
              coeff_tmp(1,istate), orbs%norbp)
         call dgemm('t', 'n', 1, 1, orbs%norbp, 1.d0, homo_coeffs2(orbs%isorb+1,istate), &
@@ -341,7 +341,7 @@ end subroutine calc_transfer_integral
 ! parallelization to be improved
 ! only calculates transfer integrals if we have two fragments
 ! occs are for neutral reference fragments...
-subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_frag,ref_frags,orbs,ham,ovrlp,ovrlp_mat)
+subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_frag,ref_frags,orbs,ham,ovrlp,ovrlp_mat,ham_mat)
   use module_base
   use module_types
   use yaml_output
@@ -357,7 +357,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
   type(fragmentInputParameters), intent(in) :: input_frag
   type(orbitals_data), intent(in) :: orbs
   type(sparse_matrix), intent(inout) :: ham, ovrlp
-  type(matrices), intent(inout) :: ovrlp_mat
+  type(matrices), intent(inout) :: ovrlp_mat, ham_mat
   type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
   !Local variables
   integer :: i_stat, i_all, ifrag, jfrag, ntmb_tot, ind, itmb, ierr, i, j, nstates, istate, ih, ifrag_ref
@@ -409,10 +409,10 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
   end do
   !call f_free(coeffs_tmp)
 
-  ham%matrix=f_malloc_ptr((/ham%nfvctr,ham%nfvctr/), id='ham%matrix')
-  call uncompress_matrix(iproc,ham)
+  ham_mat%matrix = sparsematrix_malloc_ptr(ham, iaction=DENSE_FULL, id='ham_%matrix')
+  call uncompress_matrix(iproc, ham, inmat=ham_mat%matrix_compr, outmat=ham_mat%matrix)
   if (separate_site_energies .or. input_frag%nfrag==1) call calc_transfer_integral(iproc,nproc,nstates,&
-       orbs,ham,ovrlp,ovrlp_mat,homo_coeffs,homo_coeffs,homo_ham,homo_ovrlp)
+       orbs,ham,ham_mat,ovrlp,ovrlp_mat,homo_coeffs,homo_coeffs,homo_ham,homo_ovrlp)
 
   ! orthogonalize
   coeffs_tmp=f_malloc0((/orbs%norb,orbs%norb/), id='coeffs_tmp')
@@ -427,7 +427,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
      homo_ham_orthog=f_malloc(nstates, id='homo_ham_orthog')
      homo_ovrlp_orthog=f_malloc(nstates, id='homo_ovrlp_orthog')
 
-     call calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,ovrlp_mat,coeffs_orthog,coeffs_orthog,&
+     call calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ham_mat,ovrlp,ovrlp_mat,coeffs_orthog,coeffs_orthog,&
           homo_ham_orthog,homo_ovrlp_orthog)
 
      frag_sum=f_malloc0(nstates, id='frag_sum')
@@ -624,9 +624,9 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
                     end if
                  end if
 
-                 call calc_transfer_integral(iproc,nproc,1,orbs,ham,ovrlp,ovrlp_mat,homo_coeffs(1,i),homo_coeffs(1,j),&
+                 call calc_transfer_integral(iproc,nproc,1,orbs,ham,ham_mat,ovrlp,ovrlp_mat,homo_coeffs(1,i),homo_coeffs(1,j),&
                       trans_int_energy(1),trans_int_ovrlp(1))
-                 call calc_transfer_integral(iproc,nproc,1,orbs,ham,ovrlp,ovrlp_mat,coeffs_orthog(1,i),coeffs_orthog(1,j),&
+                 call calc_transfer_integral(iproc,nproc,1,orbs,ham,ham_mat,ovrlp,ovrlp_mat,coeffs_orthog(1,i),coeffs_orthog(1,j),&
                       trans_int_energy_orthog(1),trans_int_ovrlp_orthog(1))
 
                  !orthog_energy=(trans_int_energy(1)-0.5_gp*(homo_ham(i)+homo_ham(j))*trans_int_ovrlp(1))&
@@ -689,7 +689,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
      if (iproc==0) call yaml_close_sequence()
   end if
 
-  call f_free_ptr(ham%matrix)
+  call f_free_ptr(ham_%matrix)
   call f_free_ptr(ovrlp_mat%matrix)
 
   call f_free(homo_ham)
