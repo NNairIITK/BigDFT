@@ -665,7 +665,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
           !!if (iproc==0) call yaml_warning('The compressed matrix will not be filled! You should know what you do.')
           ovrlp_local = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_FULL, id='ovrlp_local')
           inv_ovrlp_local = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_FULL, id='inv_ovrlp_local')
-          call uncompress_matrix(iproc, ovrlp_smat, outmat=ovrlp_local)
+          call uncompress_matrix(iproc, ovrlp_smat, inmat=ovrlp_mat%matrix_compr, outmat=ovrlp_local)
           !!write(*,*) ovrlp_smat%matrix_compr
           !!write(*,*) '==============='
           !!write(*,*) ovrlp_local
