@@ -496,7 +496,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   trH=0.d0
   call timing(iproc,'eglincomms','ON')
   do iorb=1,tmb%orbs%norb
-     ii=matrixindex_in_compressed(tmb%linmat%ham,iorb,iorb)
+     ii=matrixindex_in_compressed(tmb%linmat%m,iorb,iorb)
      trH = trH + tmb%linmat%ham%matrix_compr(ii)
      !!if (iproc==0) write(*,*) 'iorb, value', iorb, tmb%linmat%ham%matrix_compr(ii)
   end do
@@ -855,7 +855,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
 
   !call nullify_sparse_matrix(grad_ovrlp)
   grad_ovrlp=sparse_matrix_null()
-  call sparse_copy_pattern(tmb%linmat%ham, grad_ovrlp, iproc, subname)
+  call sparse_copy_pattern(tmb%linmat%m, grad_ovrlp, iproc, subname)
   grad_ovrlp%matrix_compr=f_malloc_ptr(grad_ovrlp%nvctr,id='grad_ovrlp%matrix_compr')
   grad_ovrlp_ = matrices_null()
   call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
@@ -914,7 +914,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   ! calculate Tr[Kg]  (not recalculating kernel as don't have the correct occs here)
   !call calculate_kernel_and_energy(iproc,nproc,denskern,grad_coeff,ksres_sum,tmb%coeff,orbs,tmb%orbs,.true.)
   grad_ovrlp_ = matrices_null()
-  call allocate_matrices(tmb%linmat%ham, allocate_full=.false., matname='grad_ovrlp_', mat=grad_ovrlp_)
+  call allocate_matrices(tmb%linmat%m, allocate_full=.false., matname='grad_ovrlp_', mat=grad_ovrlp_)
   grad_ovrlp_%matrix_compr=grad_ovrlp%matrix_compr
   call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,grad_ovrlp,&
        tmb%linmat%kernel_, grad_ovrlp_, &
