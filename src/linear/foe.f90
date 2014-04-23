@@ -251,14 +251,14 @@ subroutine foe(iproc, nproc, tmprtr, &
                       irow = tmb%linmat%l%orb_from_index(1,ii)
                       icol = tmb%linmat%l%orb_from_index(2,ii)
                       iismall_ovrlp = matrixindex_in_compressed(tmb%linmat%s, irow, icol)
-                      iismall_ham = matrixindex_in_compressed(tmb%linmat%ham, irow, icol)
+                      iismall_ham = matrixindex_in_compressed(tmb%linmat%m, irow, icol)
                       if (iismall_ovrlp>0) then
                           tt_ovrlp=tmb%linmat%ovrlp_%matrix_compr(iismall_ovrlp)
                       else
                           tt_ovrlp=0.d0
                       end if
                       if (iismall_ham>0) then
-                          tt_ham=tmb%linmat%ham%matrix_compr(iismall_ham)
+                          tt_ham=tmb%linmat%ham_%matrix_compr(iismall_ham)
                       else
                           tt_ham=0.d0
                       end if
