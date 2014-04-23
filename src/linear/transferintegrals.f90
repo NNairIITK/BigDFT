@@ -266,7 +266,8 @@
 ! calculation of cSc and cHc using original coeffs and new Hamiltonian and overlap matrices
 ! parallelization to be improved
 ! also have already uncompressed and recompressed ovrlp, so could change this
-subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ham_mat,ovrlp,ovrlp_mat,homo_coeffs1,homo_coeffs2,homo_ham,homo_ovrlp)
+subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ham_mat,ovrlp,ovrlp_mat,&
+           homo_coeffs1,homo_coeffs2,homo_ham,homo_ovrlp)
   use module_base
   use module_types
   use yaml_output
@@ -341,13 +342,14 @@ end subroutine calc_transfer_integral
 ! parallelization to be improved
 ! only calculates transfer integrals if we have two fragments
 ! occs are for neutral reference fragments...
-subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_frag,ref_frags,orbs,ham,ovrlp,ovrlp_mat,ham_mat)
+subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_frag,&
+           ref_frags,orbs,ham,ham_mat,ovrlp,ovrlp_mat)
   use module_base
   use module_types
   use yaml_output
   use module_fragments
   use internal_io
-  use module_interfaces
+  use module_interfaces, except_this_one => calc_site_energies_transfer_integrals
   use sparsematrix_base, only: sparse_matrix, matrices, sparsematrix_malloc_ptr, &
                                DENSE_FULL, assignment(=)
   use sparsematrix, only: uncompress_matrix

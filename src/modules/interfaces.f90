@@ -4295,6 +4295,41 @@ module module_interfaces
           type(orbitals_data), intent(in) :: orbs, tmb_orbs
           real(kind=gp), dimension(tmb_orbs%norb,tmb_orbs%norb), intent(in) :: coeff
         end subroutine calculate_kernel_and_energy
+
+        subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_frag,&
+                   ref_frags,orbs,ham,ham_mat,ovrlp,ovrlp_mat)
+          use module_base
+          use module_types
+          use yaml_output
+          use module_fragments
+          use sparsematrix_base, only: sparse_matrix, matrices, sparsematrix_malloc_ptr, &
+                                       DENSE_FULL, assignment(=)
+          use sparsematrix, only: uncompress_matrix
+          implicit none
+        
+          integer, intent(in) :: iproc, nproc, meth_overlap
+          type(fragmentInputParameters), intent(in) :: input_frag
+          type(orbitals_data), intent(in) :: orbs
+          type(sparse_matrix), intent(inout) :: ham, ovrlp
+          type(matrices), intent(inout) :: ovrlp_mat, ham_mat
+          type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
+        end subroutine calc_site_energies_transfer_integrals
+
+        subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ham_mat,ovrlp,ovrlp_mat,&
+                   homo_coeffs1,homo_coeffs2,homo_ham,homo_ovrlp)
+          use module_base
+          use module_types
+          use yaml_output
+          use module_fragments
+          use sparsematrix_base, only: sparse_matrix
+          implicit none
+          integer, intent(in) :: iproc, nproc, nstates
+          type(orbitals_data), intent(in) :: orbs
+          type(sparse_matrix), intent(inout) :: ham, ovrlp
+          type(matrices),intent(inout) :: ovrlp_mat, ham_mat
+          real(kind=gp), dimension(ovrlp%nfvctr,nstates), intent(in) :: homo_coeffs1, homo_coeffs2
+          real(kind=gp), dimension(nstates), intent(inout) :: homo_ham, homo_ovrlp
+        end subroutine calc_transfer_integral
   
   end interface
 END MODULE module_interfaces
