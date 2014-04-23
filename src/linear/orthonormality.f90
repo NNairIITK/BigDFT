@@ -78,12 +78,12 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
       call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
       call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
       ! This can then be deleted if the transition to the new type has been completed.
-      ovrlp%matrix_compr=ovrlp_%matrix_compr
 
 
       if (methTransformOverlap==-1) then
           call overlap_power_minus_one_half_parallel(iproc, nproc, 0, orbs, ovrlp, ovrlp_, inv_ovrlp_half)
       else
+          ovrlp%matrix_compr=ovrlp_%matrix_compr
           call overlapPowerGeneral(iproc, nproc, methTransformOverlap, -2, &
                orthpar%blocksize_pdgemm, orbs%norb, orbs, &
                imode=1, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
@@ -1896,7 +1896,6 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
       call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
       call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
       ! This can then be deleted if the transition to the new type has been completed.
-      ovrlp%matrix_compr=ovrlp_%matrix_compr
 
       ! For the "higher" TMBs: delete off-diagonal elements and
       ! set diagonal elements to 1
@@ -1954,6 +1953,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
       else
           nullify(inv_ovrlp_null)
           ! do sparse.. check later
+          ovrlp%matrix_compr=ovrlp_%matrix_compr
           call overlapPowerGeneral(iproc, nproc, methTransformOverlap, -2, &
                orthpar%blocksize_pdsyev, orbs%norb, orbs,&
                imode=1, check_accur=.true., ovrlp=ovrlp_%matrix, inv_ovrlp=inv_ovrlp_null, &
