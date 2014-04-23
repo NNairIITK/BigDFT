@@ -1211,6 +1211,8 @@ contains
        ! reorthonormalize the coeffs for each fragment - don't need unoccupied states here
        tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, &
                                   iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
+       call uncompress_matrix(iproc, tmb%linmat%s, &
+            inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
        call reorthonormalize_coeff(bigdft_mpi%iproc, bigdft_mpi%nproc, &
             ceiling((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp), &
             tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, tmb%orthpar%methTransformOverlap,&
