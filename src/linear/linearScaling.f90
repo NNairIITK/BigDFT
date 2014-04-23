@@ -214,7 +214,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      end if
 
      weight_matrix_ = matrices_null()
-     call allocate_matrices(tmb%linmat%ham, allocate_full=.false., matname='weight_matrix_', mat=weight_matrix_)
+     call allocate_matrices(tmb%linmat%m, allocate_full=.false., matname='weight_matrix_', mat=weight_matrix_)
      weight_matrix_%matrix_compr=weight_matrix_%matrix_compr
      call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,cdft%weight_matrix, &
           tmb%linmat%kernel_,weight_matrix_,&
@@ -681,12 +681,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
          iseglarge=1
          do isegsmall=1,tmb%linmat%s%nseg
             do
-               is=max(tmb%linmat%s%keyg(1,isegsmall),tmb%linmat%ham%keyg(1,iseglarge))
-               ie=min(tmb%linmat%s%keyg(2,isegsmall),tmb%linmat%ham%keyg(2,iseglarge))
-               iilarge=tmb%linmat%ham%keyv(iseglarge)-tmb%linmat%ham%keyg(1,iseglarge)
+               is=max(tmb%linmat%s%keyg(1,isegsmall),tmb%linmat%m%keyg(1,iseglarge))
+               ie=min(tmb%linmat%s%keyg(2,isegsmall),tmb%linmat%m%keyg(2,iseglarge))
+               iilarge=tmb%linmat%m%keyv(iseglarge)-tmb%linmat%m%keyg(1,iseglarge)
                do i=is,ie
                   iismall=iismall+1
-                  ham_small%matrix_compr(iismall)=tmb%linmat%ham%matrix_compr(iilarge+i)
+                  ham_small%matrix_compr(iismall)=tmb%linmat%ham_%matrix_compr(iilarge+i)
                end do
                if (ie>=is) exit
                iseglarge=iseglarge+1
@@ -982,7 +982,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 ! CDFT: see how satisfaction of constraint varies as kernel is updated
                 ! CDFT: calculate Tr[Kw]-Nc
                 weight_matrix_ = matrices_null()
-                call allocate_matrices(tmb%linmat%ham, allocate_full=.false., matname='weight_matrix_', mat=weight_matrix_)
+                call allocate_matrices(tmb%linmat%m, allocate_full=.false., matname='weight_matrix_', mat=weight_matrix_)
                 weight_matrix_%matrix_compr=weight_matrix_%matrix_compr
                 call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,cdft%weight_matrix, &
                      tmb%linmat%kernel_,weight_matrix_,&
