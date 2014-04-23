@@ -250,7 +250,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                   do ii=1,tmb%linmat%l%nvctr
                       irow = tmb%linmat%l%orb_from_index(1,ii)
                       icol = tmb%linmat%l%orb_from_index(2,ii)
-                      iismall_ovrlp = matrixindex_in_compressed(tmb%linmat%ovrlp, irow, icol)
+                      iismall_ovrlp = matrixindex_in_compressed(tmb%linmat%s, irow, icol)
                       iismall_ham = matrixindex_in_compressed(tmb%linmat%ham, irow, icol)
                       if (iismall_ovrlp>0) then
                           tt_ovrlp=tmb%linmat%ovrlp_%matrix_compr(iismall_ovrlp)
@@ -458,7 +458,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                               ii=ii+1
                               iiorb = (jorb-1)/tmb%orbs%norb + 1
                               jjorb = jorb - (iiorb-1)*tmb%orbs%norb
-                              iismall = matrixindex_in_compressed(tmb%linmat%ovrlp, iiorb, jjorb)
+                              iismall = matrixindex_in_compressed(tmb%linmat%s, iiorb, jjorb)
                               if (iismall>0) then
                                   tt=tmb%linmat%ovrlp_%matrix_compr(iismall)
                               else
@@ -875,7 +875,7 @@ subroutine foe(iproc, nproc, tmprtr, &
     
       ! Calculate trace(KS).
       !tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
-      sumn = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%l, &
+      sumn = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
              tmb%linmat%ovrlp_, tmb%linmat%kernel_)
 
 
