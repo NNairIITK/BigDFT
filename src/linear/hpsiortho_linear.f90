@@ -497,7 +497,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   call timing(iproc,'eglincomms','ON')
   do iorb=1,tmb%orbs%norb
      ii=matrixindex_in_compressed(tmb%linmat%m,iorb,iorb)
-     trH = trH + tmb%linmat%ham%matrix_compr(ii)
+     trH = trH + tmb%linmat%ham_%matrix_compr(ii)
      !!if (iproc==0) write(*,*) 'iorb, value', iorb, tmb%linmat%ham%matrix_compr(ii)
   end do
   call timing(iproc,'eglincomms','OF')

@@ -220,7 +220,7 @@ call timing(iproc,'misc','ON')
      iorb = lagmat%orb_from_index(1,ii)
      jorb = lagmat%orb_from_index(2,ii)
      ii_trans=matrixindex_in_compressed(lagmat,jorb, iorb)
-     tmp_mat_compr(ii)=-0.5d0*lagmat%matrix_compr(ii)-0.5d0*lagmat%matrix_compr(ii_trans)
+     tmp_mat_compr(ii)=-0.5d0*lagmat_%matrix_compr(ii)-0.5d0*lagmat_%matrix_compr(ii_trans)
      ! SM: This is a hack, should use another variable
      !if (.false..or.correction_orthoconstraint==2) then
      if (.false..and.correction_orthoconstraint==2) then
@@ -235,7 +235,7 @@ call timing(iproc,'misc','ON')
                  call yaml_warning('EXPERIMENTAL: modify eval')
                  call yaml_newline()
              end if
-             orbs%eval(iorb)=lagmat%matrix_compr(ii)
+             orbs%eval(iorb)=lagmat_%matrix_compr(ii)
          end if
      end if
   end do
@@ -298,8 +298,8 @@ call timing(iproc,'misc','ON')
   allocate(lagmat_tmp_compr(lagmat%nvctr), stat=istat) ! save cf doing sparsecopy
   call memocc(istat, lagmat_tmp_compr, 'lagmat_tmp_compr', subname)
 
-  call vcopy(lagmat%nvctr,lagmat%matrix_compr(1),1,lagmat_tmp_compr(1),1) ! need to keep a copy
-  call vcopy(lagmat%nvctr,tmp_mat_compr(1),1,lagmat%matrix_compr(1),1)
+  call vcopy(lagmat%nvctr,lagmat_%matrix_compr(1),1,lagmat_tmp_compr(1),1) ! need to keep a copy
+  call vcopy(lagmat%nvctr,tmp_mat_compr(1),1,lagmat_%matrix_compr(1),1)
 
   iall=-product(shape(tmp_mat_compr))*kind(tmp_mat_compr)
   deallocate(tmp_mat_compr, stat=istat)
@@ -309,7 +309,7 @@ call timing(iproc,'misc','OF')
 
   !lagmat_ = matrices_null()
   !call allocate_matrices(lagmat, allocate_full=.false., matname='lagmat_', mat=lagmat_)
-  lagmat_%matrix_compr = lagmat%matrix_compr
+  !lagmat_%matrix_compr = lagmat%matrix_compr
   call build_linear_combination_transposed(collcom, lagmat, lagmat_, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
   !call deallocate_matrices(lagmat_)
 
@@ -334,7 +334,7 @@ call timing(iproc,'misc','OF')
   !!deallocate(linmat%ovrlp%matrix)
   !!! END TEST #############################################################
 
-  call vcopy(lagmat%nvctr,lagmat_tmp_compr(1),1,lagmat%matrix_compr(1),1)
+  call vcopy(lagmat%nvctr,lagmat_tmp_compr(1),1,lagmat_%matrix_compr(1),1)
 
   iall=-product(shape(lagmat_tmp_compr))*kind(lagmat_tmp_compr)
   deallocate(lagmat_tmp_compr, stat=istat)
