@@ -19,7 +19,6 @@ module sparsematrix_init
 
 
     subroutine init_matrix_parallelization(iproc, nproc, sparsemat)
-      use module_base
       implicit none
     
       ! Calling arguments
@@ -81,8 +80,6 @@ module sparsematrix_init
 
 
     subroutine init_indices_in_compressed(store_index, norb, sparsemat)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix
       implicit none
     
       ! Calling arguments
@@ -119,8 +116,6 @@ module sparsematrix_init
 
     !> Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
     function compressed_index(irow, jcol, norb, sparsemat)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix
       implicit none
     
       ! Calling arguments
@@ -155,7 +150,6 @@ module sparsematrix_init
 
 
     integer function matrixindex_in_compressed(sparsemat, iorb, jorb)
-      use module_base
       use sparsematrix_base, only: sparse_matrix
       implicit none
     
@@ -210,8 +204,6 @@ module sparsematrix_init
 
 
     subroutine init_orbs_from_index(sparsemat)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix
       implicit none
     
       ! Calling arguments
@@ -241,7 +233,6 @@ module sparsematrix_init
 
 
     subroutine check_kernel_cutoff(iproc, orbs, atoms, lzd)
-      use module_base
       use module_types
       use yaml_output
       implicit none
@@ -321,7 +312,6 @@ module sparsematrix_init
 
     subroutine init_sparse_matrix_matrix_multiplication(norb, norbp, isorb, nseg, &
                nsegline, istsegline, keyg, sparsemat)
-      use module_base
       implicit none
 
       ! Calling arguments
@@ -443,7 +433,6 @@ module sparsematrix_init
     subroutine init_sparse_matrix(iproc, nproc, norb, norbp, isorb, store_index, &
                nnonzero, nonzero, nnonzero_mult, nonzero_mult, sparsemat, &
                allocate_full_)
-      use module_base
       use yaml_output
       implicit none
       
@@ -701,7 +690,6 @@ module sparsematrix_init
 
     subroutine determine_sequential_length(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, &
                sparsemat, nseq, nmaxsegk, nmaxvalk)
-      use module_base
       implicit none
     
       ! Calling arguments
@@ -744,7 +732,6 @@ module sparsematrix_init
 
 
     subroutine get_nout(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, nout)
-      use module_base
       implicit none
     
       ! Calling arguments
@@ -774,8 +761,6 @@ module sparsematrix_init
 
 
     subroutine init_onedimindices_new(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, sparsemat, nout, onedimindices)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix
       implicit none
     
       ! Calling arguments
@@ -824,8 +809,6 @@ module sparsematrix_init
     subroutine get_arrays_for_sequential_acces(norb, norbp, isorb, nseg, &
                nsegline, istsegline, keyg, sparsemat, nseq, nmaxsegk, nmaxvalk, &
                ivectorindex)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix
       implicit none
     
       ! Calling arguments
@@ -870,8 +853,6 @@ module sparsematrix_init
     subroutine init_sequential_acces_matrix(norb, norbp, isorb, nseg, &
                nsegline, istsegline, keyg, sparsemat, nseq, nmaxsegk, nmaxvalk, &
                indices_extract_sequential)
-      use module_base
-      use sparsematrix_base, only: sparse_matrix
       implicit none
     
       ! Calling arguments
