@@ -1001,12 +1001,12 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       exit_loop(5) = (experimental_mode .and. fnrm<dynamic_convcrit .and. fnrm<min_gnrm_for_dynamic &
                      .and. (it>1 .or. has_already_converged)) ! first overall convergence not allowed in a first iteration
       exit_loop(6) = (itout==0 .and. it>1 .and. ratio_deltas<kappa_conv .and.  ratio_deltas>0.d0)
-      if (ratio_deltas<1.d-1) then
+      if (ratio_deltas>0.d0 .and. ratio_deltas<1.d-1) then
           kappa_satur=kappa_satur+1
       else
           kappa_satur=0
       end if
-      exit_loop(7) = (itout>0 .and. kappa_satur>=2 .and. .false.)
+      exit_loop(7) = (itout>0 .and. kappa_satur>=2)
 
       if(any(exit_loop)) then
           if(exit_loop(1)) then
