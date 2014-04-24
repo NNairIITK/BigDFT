@@ -17,7 +17,8 @@ subroutine foe(iproc, nproc, tmprtr, &
   use module_interfaces, except_this_one => foe
   use yaml_output
   use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, assignment(=), &
-                               SPARSE_FULL, DENSE_FULL, DENSE_PARALLEL, SPARSEMM_SEQ
+                               SPARSE_FULL, DENSE_FULL, DENSE_PARALLEL, SPARSEMM_SEQ, &
+                               matrices
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, &
                           uncompress_matrix_distributed
@@ -63,6 +64,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   real(kind=8),parameter :: TEMP_MULTIPLICATOR_ACCURATE=1.d0
   real(kind=8),parameter :: TEMP_MULTIPLICATOR_FAST=1.2d0
   real(kind=8),parameter :: CHECK_RATIO=1.25d0
+  type(matrices) :: inv_ovrlp
   !!integer,parameter :: NPL_MIN=80
   integer,parameter :: NTEMP_ACCURATE=4
   integer,parameter :: NTEMP_FAST=1
@@ -81,8 +83,8 @@ subroutine foe(iproc, nproc, tmprtr, &
       stop 'wrong value of accuracy_level'
   end if
 
-  tmb%linmat%inv_ovrlp_large%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%inv_ovrlp_large, &
-                                          iaction=SPARSE_FULL, id='tmb%linmat%inv_ovrlp_large%matrix_compr')
+  inv_ovrlp%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
+                           iaction=SPARSE_FULL, id='inv_ovrlp%matrix_compr')
 
 
   call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -383,7 +385,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                   if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','recalculated')
                   call chebyshev_clean(iproc, nproc, npl, cc, tmb%orbs, tmb%foe_obj, &
                        tmb%linmat%l, hamscal_compr, &
-                       tmb%linmat%inv_ovrlp_large%matrix_compr, calculate_SHS, &
+                       inv_ovrlp%matrix_compr, calculate_SHS, &
                        nsize_polynomial, SHS, tmb%linmat%kernel_%matrixp, penalty_ev, chebyshev_polynomials, &
                        emergency_stop)
               else
@@ -899,7 +901,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   degree_sufficient=.true.
 
 
-  call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix_compr)
+  call f_free_ptr(inv_ovrlp%matrix_compr)
   
 
 
@@ -958,33 +960,28 @@ subroutine foe(iproc, nproc, tmprtr, &
               call uncompress_matrix(iproc, tmb%linmat%s, &
                    inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
 
-              tmb%linmat%inv_ovrlp_large%matrix=sparsematrix_malloc_ptr(tmb%linmat%inv_ovrlp_large, &
-                                                iaction=DENSE_FULL, id='tmb%linmat%inv_ovrlp_large%matrix')
+              inv_ovrlp%matrix=sparsematrix_malloc_ptr(tmb%linmat%l, &
+                                                iaction=DENSE_FULL, id='inv_ovrlp%matrix')
               call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, tmb%orbs, &
-                   imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, &
-                   ovrlp_mat=tmb%linmat%ovrlp_, &
-                   check_accur=.true., ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=tmb%linmat%inv_ovrlp_large%matrix, &
+                   imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
+                   ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
+                   check_accur=.true., ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=inv_ovrlp%matrix, &
                    error=error)
-              call compress_matrix(iproc,tmb%linmat%inv_ovrlp_large)
+              call compress_matrix(iproc, tmb%linmat%l, inmat=inv_ovrlp%matrix, outmat=inv_ovrlp%matrix_compr)
           end if
           if (imode==SPARSE) then
               call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, tmb%orbs, &
-                   imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, &
-                   ovrlp_mat=tmb%linmat%ovrlp_, &
+                   imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
+                   ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
                    check_accur=.true., error=error)
            end if
           if (foe_verbosity>=1 .and. iproc==0) then
               call yaml_map('error of S^-1/2',error,fmt='(es9.2)')
           end if
-          !!do i=1,tmb%linmat%inv_ovrlp_large%nvctr
-          !!    write(300+iproc,*) i, tmb%linmat%inv_ovrlp_large%matrix_compr(i)
-          !!end do
-          !!call mpi_finalize(i)
-          !!stop
 
 
           if (imode==DENSE) then
-              call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix)
+              call f_free_ptr(inv_ovrlp%matrix)
 
               call f_free_ptr(tmb%linmat%ovrlp_%matrix)
           end if
@@ -1006,20 +1003,20 @@ subroutine foe(iproc, nproc, tmprtr, &
           integer :: nout, nseq, nmaxsegk, nmaxvalk
 
 
-          inv_ovrlpp = sparsematrix_malloc_ptr(tmb%linmat%inv_ovrlp_large, iaction=DENSE_PARALLEL, id='inv_ovrlpp')
-          tempp = sparsematrix_malloc_ptr(tmb%linmat%inv_ovrlp_large, iaction=DENSE_PARALLEL, id='inv_ovrlpp')
-          inv_ovrlp_compr_seq = sparsematrix_malloc(tmb%linmat%inv_ovrlp_large, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
-          kernel_compr_seq = sparsematrix_malloc(tmb%linmat%inv_ovrlp_large, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
+          inv_ovrlpp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_PARALLEL, id='inv_ovrlpp')
+          tempp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_PARALLEL, id='inv_ovrlpp')
+          inv_ovrlp_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
+          kernel_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
           call sequential_acces_matrix_fast(tmb%linmat%l, matrix_compr, kernel_compr_seq)
-          call sequential_acces_matrix_fast(tmb%linmat%inv_ovrlp_large, &
-               tmb%linmat%inv_ovrlp_large%matrix_compr, inv_ovrlp_compr_seq)
-          call uncompress_matrix_distributed(iproc, tmb%linmat%inv_ovrlp_large, &
-               tmb%linmat%inv_ovrlp_large%matrix_compr, inv_ovrlpp)
+          call sequential_acces_matrix_fast(tmb%linmat%l, &
+               inv_ovrlp%matrix_compr, inv_ovrlp_compr_seq)
+          call uncompress_matrix_distributed(iproc, tmb%linmat%l, &
+               inv_ovrlp%matrix_compr, inv_ovrlpp)
 
            tempp=0.d0
           call sparsemm(tmb%linmat%l, kernel_compr_seq, inv_ovrlpp, tempp)
           inv_ovrlpp=0.d0
-          call sparsemm(tmb%linmat%inv_ovrlp_large, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
+          call sparsemm(tmb%linmat%l, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
 
           call to_zero(tmb%linmat%l%nvctr, matrix_compr(1))
           call compress_matrix_distributed(iproc, tmb%linmat%l, inv_ovrlpp, matrix_compr)

@@ -323,8 +323,9 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   use module_fragments
   use constrained_dft
   use yaml_output
-  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
-                               sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
+  use sparsematrix_base, only: sparse_matrix, matrices, sparse_matrix_null, deallocate_sparse_matrix, &
+                               sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), &
+                               matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: uncompress_matrix
   implicit none
 
@@ -342,15 +343,17 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   real(kind=8), dimension(:,:), pointer :: ovrlp_half
   real(kind=8) :: error
   type(sparse_matrix) :: weight_matrix
+  type(matrices) :: inv_ovrlp
   character(len=256) :: subname='coeff_weight_analysis'
 
   call timing(iproc,'weightanalysis','ON')
   !call nullify_sparse_matrix(weight_matrix)
   weight_matrix=sparse_matrix_null()
   call sparse_copy_pattern(tmb%linmat%m, weight_matrix, iproc, subname)
-  !!allocate(weight_matrix%matrix_compr(weight_matrix%nvctr), stat=istat)
-  !!call memocc(istat, weight_matrix%matrix_compr, 'weight_matrix%matrix_compr', subname)
   weight_matrix%matrix_compr=f_malloc_ptr(weight_matrix%nvctr,id='weight_matrix%matrix_compr')
+
+ inv_ovrlp = matrices_null()
+ call allocate_matrices(tmb%linmat%l, allocate_full=.false., matname='inv_ovrlp', mat=inv_ovrlp)
 
   !weight_coeff=f_malloc((/ksorbs%norb,ksorbs%norb,input%frag%nfrag/), id='weight_coeff')
   weight_coeff_diag=f_malloc((/ksorbs%norb,input%frag%nfrag/), id='weight_coeff')
@@ -360,8 +363,8 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
        inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
   call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orthpar%methTransformOverlap, 2, &
        tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%orbs, imode=2, &
-       ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, &
-       ovrlp_mat=tmb%linmat%ovrlp_, check_accur=.true., &
+       ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
+       ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
        ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=ovrlp_half, error=error)
   call f_free_ptr(tmb%linmat%ovrlp_%matrix)
 
@@ -395,6 +398,8 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
      if (iproc==0) call yaml_newline()
   end do
   if (iproc==0) call yaml_close_sequence()
+
+  call deallocate_matrices(inv_ovrlp)
 
   call deallocate_sparse_matrix(weight_matrix, subname)
   call f_free(weight_coeff_diag)
@@ -954,7 +959,8 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
   use module_base
   use module_types
   use module_interfaces
-  use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
+  use sparsematrix_base, only: matrices, sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), &
+                               matrices_null, allocate_matrices, deallocate_matrices
   implicit none
 
   integer, intent(in) :: iproc, nproc
@@ -968,6 +974,7 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
   integer,dimension(:),allocatable:: ipiv
   real(kind=gp), dimension(:,:), allocatable:: grad_full
   character(len=*),parameter:: subname='calculate_coeff_gradient'
+  type(matrices) :: inv_ovrlp_
 
   integer :: itmp, itrials
   integer :: ncount1, ncount_rate, ncount_max, ncount2
@@ -977,6 +984,10 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
 
   call f_routine(id='calculate_coeff_gradient')
   call timing(iproc,'dirmin_lagmat1','ON')
+
+  inv_ovrlp_ = matrices_null()
+  call allocate_matrices(tmb%linmat%l, allocate_full=.false., matname='inv_ovrlp_', mat=inv_ovrlp_)
+
 
   ! we have the kernel already, but need it to not contain occupations so recalculate here
   ! don't want to lose information in the compress/uncompress process - ideally need to change sparsity pattern of kernel
@@ -1054,8 +1065,8 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
      inv_ovrlp=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='inv_ovrlp')
      call overlapPowerGeneral(iproc, nproc, tmb%orthpar%methTransformOverlap, 1, -8, &
           tmb%orbs%norb, tmb%orbs, imode=2, &
-          ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, &
-          ovrlp_mat=tmb%linmat%ovrlp_, check_accur=.true., &
+          ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
+          ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, check_accur=.true., &
           ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=inv_ovrlp, error=error)
 
      !!!DEBUG checking S^-1 etc.
@@ -1236,6 +1247,8 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
      end if
   end if
 
+  call deallocate_matrices(inv_ovrlp_)
+
   call timing(iproc,'dirmin_dgesv','OF') !lr408t
   call f_release_routine()
 
@@ -1247,7 +1260,8 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_
   use module_base
   use module_types
   use module_interfaces
-  use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
+  use sparsematrix_base, only: matrices, sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), &
+                               matrices_null, allocate_matrices, deallocate_matrices
   implicit none
 
   integer, intent(in) :: iproc, nproc, num_extra
@@ -1264,9 +1278,14 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_
   real(kind=gp), dimension(:,:), allocatable:: grad_full
   real(kind=gp) :: error
   character(len=*),parameter:: subname='calculate_coeff_gradient'
+  type(matrices) :: inv_ovrlp_
 
   call f_routine(id='calculate_coeff_gradient')
   call timing(iproc,'dirmin_lagmat1','ON')
+
+  inv_ovrlp_ = matrices_null()
+  call allocate_matrices(tmb%linmat%l, allocate_full=.false., matname='inv_ovrlp_', mat=inv_ovrlp_)
+
 
   occup_tmp=f_malloc(tmb%orbs%norb,id='occup_tmp')
   call vcopy(tmb%orbs%norb,tmb%orbs%occup(1),1,occup_tmp(1),1)
@@ -1361,8 +1380,8 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_
      !end if
      inv_ovrlp=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='inv_ovrlp')
      call overlapPowerGeneral(iproc, nproc, tmb%orthpar%methTransformOverlap, 1, -8, tmb%orbs%norb, tmb%orbs, &
-          imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, &
-          ovrlp_mat=tmb%linmat%ovrlp_, check_accur=.true., &
+          imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
+          ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, check_accur=.true., &
           ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=inv_ovrlp, error=error)
 
      if (tmb%orbs%norbp>0) then
@@ -1387,6 +1406,9 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_
       call vcopy(tmb%orbs%norb*tmb%orbs%norbp,grad_full(1,tmb%orbs%isorb+1),1,grad(1,1),1)
 
       call f_free(grad_full)
+
+      call deallocate_matrices(inv_ovrlp_)
+
   end if
 
   if(info/=0) then

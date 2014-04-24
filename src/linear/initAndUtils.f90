@@ -1058,7 +1058,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   !call deallocate_sparse_matrix(wfn%linmat%ovrlp, subname)
   !!call deallocate_sparse_matrix(wfn%linmat%ham, subname)
   !call deallocate_sparse_matrix(wfn%linmat%denskern_large, subname)
-  call deallocate_sparse_matrix(wfn%linmat%inv_ovrlp_large, subname)
+  !call deallocate_sparse_matrix(wfn%linmat%inv_ovrlp_large, subname)
 
   call deallocate_sparse_matrix(wfn%linmat%s, subname)
   call deallocate_sparse_matrix(wfn%linmat%m, subname)
@@ -1406,7 +1406,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call deallocate_foe(tmb%foe_obj, subname)
 
      !call deallocate_sparse_matrix(tmb%linmat%denskern_large, subname)
-     call deallocate_sparse_matrix(tmb%linmat%inv_ovrlp_large, subname)
+     !call deallocate_sparse_matrix(tmb%linmat%inv_ovrlp_large, subname)
      !call deallocate_sparse_matrix(tmb%linmat%ovrlp, subname)
      !!call deallocate_sparse_matrix(tmb%linmat%ham, subname)
 
@@ -1534,8 +1534,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
 
-     tmb%linmat%inv_ovrlp_large=sparse_matrix_null()
-     call sparse_copy_pattern(tmb%linmat%l, tmb%linmat%inv_ovrlp_large, iproc, subname)
+     !tmb%linmat%inv_ovrlp_large=sparse_matrix_null()
+     !call sparse_copy_pattern(tmb%linmat%l, tmb%linmat%inv_ovrlp_large, iproc, subname)
 
 
   else ! no change in locrad, just confining potential that needs updating

@@ -517,8 +517,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
 
      !call nullify_sparse_matrix(tmb%linmat%inv_ovrlp_large)
-     tmb%linmat%inv_ovrlp_large=sparse_matrix_null()
-     call sparse_copy_pattern(tmb%linmat%l, tmb%linmat%inv_ovrlp_large, iproc, subname)
+     !tmb%linmat%inv_ovrlp_large=sparse_matrix_null()
+     !call sparse_copy_pattern(tmb%linmat%l, tmb%linmat%inv_ovrlp_large, iproc, subname)
 
 
      if (in%check_matrix_compression) then

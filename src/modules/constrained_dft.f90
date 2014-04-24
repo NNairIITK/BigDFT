@@ -51,7 +51,7 @@ module constrained_dft
        end subroutine LocalHamiltonianApplication
 
         subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, imode, &
-                   ovrlp_smat, inv_ovrlp_smat, ovrlp_mat, check_accur, &
+                   ovrlp_smat, inv_ovrlp_smat, ovrlp_mat, inv_ovrlp_mat, check_accur, &
                    ovrlp, inv_ovrlp, error)
              !!foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
           use module_base
@@ -63,7 +63,7 @@ module constrained_dft
           type(orbitals_data),intent(in) :: orbs
           integer,intent(in) :: imode
           type(sparse_matrix),intent(inout) :: ovrlp_smat, inv_ovrlp_smat
-          type(matrices),intent(inout) :: ovrlp_mat
+          type(matrices),intent(inout) :: ovrlp_mat, inv_ovrlp_mat
           logical,intent(in) :: check_accur
           real(kind=8),dimension(:,:),pointer,optional :: ovrlp, inv_ovrlp
           real(kind=8),intent(out),optional :: error
@@ -130,7 +130,7 @@ contains
        calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap,ovrlp_half)
     use module_fragments
     use communications, only: transpose_localized
-    use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, &
+    use sparsematrix_base, only: matrices, sparse_matrix, sparsematrix_malloc_ptr, &
                                  DENSE_FULL, assignment(=)
     use sparsematrix, only: compress_matrix, uncompress_matrix
     implicit none
@@ -147,6 +147,7 @@ contains
     real(kind=gp), allocatable, dimension(:,:) :: proj_mat, proj_ovrlp_half, weight_matrixp
     character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
     real(kind=gp) :: error
+    type(matrices) :: inv_ovrlp
 
     call f_routine(id='calculate_weight_matrix_lowdin')
 
@@ -181,7 +182,7 @@ contains
        call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 2, &
             tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%orbs, &
             imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%s, &
-            ovrlp_mat=tmb%linmat%ovrlp_, &
+            ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
             check_accur=.true., ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=ovrlp_half, error=error)
        call f_free_ptr(tmb%linmat%ovrlp_%matrix)
     end if
