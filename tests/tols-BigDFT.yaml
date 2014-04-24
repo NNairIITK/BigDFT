@@ -474,6 +474,7 @@ molecule_foe:
  Omega: 8.6e-9
  Total charge: 2.5e-10
  eF: 1.1e-10
+ D eF: 1.1e-10
  Tr(K): 1.1e-07
  D Tr: 1.1e-7
  tr(KS) before purification: 5.1e-10
@@ -863,7 +864,7 @@ DIIShistory:
  Omega: 2.4e-8
  Total charge: 2.01e-11
  Locreg:
- EH: 7.7e-9
+ EH: 2.0e-8
  Pulay forces (Ha/Bohr): 7.8e-09
 
 sparsity:

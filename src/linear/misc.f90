@@ -899,7 +899,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
        max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%psi, tmb%collcom_sr)
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-       tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+       tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
        denspot%rhov, rho_negative)
   if (rho_negative) then
       call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
@@ -1004,7 +1004,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
        max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%psi, tmb%collcom_sr)
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-       tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+       tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
        denspot%rhov, rho_negative)
   if (rho_negative) then
       call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
@@ -1139,7 +1139,8 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   use module_types
   use module_interfaces, except_this_one => loewdin_charge_analysis
   use communications, only: transpose_localized
-  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), &
+                               matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: compress_matrix, uncompress_matrix
   use yaml_output
   implicit none
@@ -1155,6 +1156,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   real(kind=gp), allocatable, dimension(:,:) :: proj_mat, proj_ovrlp_half, weight_matrixp
   character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
   real(kind=gp) :: error
+  type(matrices) :: inv_ovrlp
 
   ! new variables
   integer :: iat, iall
@@ -1169,7 +1171,12 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   ! re-use overlap matrix if possible either before or after
 
   call f_routine(id='loewdin_charge_analysis')
-  ovrlp_half = f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='ovrlp_half')
+  ovrlp_half = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='ovrlp_half')
+
+  inv_ovrlp = matrices_null()
+  call allocate_matrices(tmb%linmat%l, allocate_full=.false., matname='inv_ovrlp', mat=inv_ovrlp)
+
+
 
   if (calculate_overlap_matrix) then
      if(.not.tmb%can_use_transposed) then
@@ -1193,7 +1200,11 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
      end if
 
      call calculate_overlap_transposed(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
-          tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+          tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+     ! This can then be deleted if the transition to the new type has been completed.
+     !tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
+
+
      if (.not.psit_c_associated) then
         iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
         deallocate(tmb%psit_c, stat=istat)
@@ -1210,10 +1221,12 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
 
   if (calculate_ovrlp_half) then
      ovrlp = f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='ovrlp')
-     call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%ovrlp,outmat=ovrlp)
+     call uncompress_matrix(bigdft_mpi%iproc, tmb%linmat%s, &
+          inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=ovrlp)
      call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 2, &
           tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%orbs, &
-          imode=2, ovrlp_smat=tmb%linmat%ovrlp, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, check_accur=.true., &
+          imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
+          ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
           ovrlp=ovrlp, inv_ovrlp=ovrlp_half, error=error)
      !!ovrlp_half=tmb%linmat%ovrlp%matrix
      call f_free_ptr(ovrlp)
@@ -1223,7 +1236,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   proj_mat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='proj_mat')
 
   call to_zero(tmb%orbs%norb**2,proj_mat(1,1))
-  call uncompress_matrix(iproc, tmb%linmat%denskern_large,outmat=proj_mat)
+  call uncompress_matrix(iproc, tmb%linmat%l, inmat=tmb%linmat%kernel_%matrix_compr, outmat=proj_mat)
   !!isforb=0
   !!do ifrag=1,input%frag%nfrag
   !!   ifrag_ref=input%frag%frag_index(ifrag)
@@ -1304,6 +1317,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   end if
   !!call support_function_multipoles()
 
+  call deallocate_matrices(inv_ovrlp)
 
   call f_free(charge_per_atom)
   call f_free(weight_matrix)

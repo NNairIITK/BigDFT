@@ -233,7 +233,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   use yaml_output
   use gaussians, only: gaussian_basis
   use psp_projectors
-  use sparsematrix_base, only: sparse_matrix_null
+  use sparsematrix_base, only: sparse_matrix_null, matrices_null, allocate_matrices
   use sparsematrix_init, only: init_sparse_matrix, check_kernel_cutoff
   use sparsematrix, only: check_matrix_compression
   implicit none
@@ -388,6 +388,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      end if
   else if (in%inputPsiId == INPUT_PSI_MEMORY_LINEAR .and. associated(KSwfn%psi)) then
      if (associated(KSwfn%psi) .and. associated(tmb%psi)) then
+        tmb_old%linmat%s = sparse_matrix_null()
+        tmb_old%linmat%m = sparse_matrix_null()
+        tmb_old%linmat%l = sparse_matrix_null()
+        tmb_old%linmat%ovrlp_ = matrices_null()
+        tmb_old%linmat%ham_ = matrices_null()
+        tmb_old%linmat%kernel_ = matrices_null()
         call copy_tmbs(iproc, tmb, tmb_old, subname)
         call destroy_DFT_wavefunction(tmb)
         i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
@@ -462,30 +468,38 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
      call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,in, atoms, rxyz, .false.)
 
-     call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%ham_descr%lzd, atoms%astruct, &
-          in%store_index, imode=1, smat=tmb%linmat%ham)
+     !!call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%ham_descr%lzd, atoms%astruct, &
+     !!     in%store_index, imode=1, smat=tmb%linmat%ham)
      call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%ham_descr%lzd, atoms%astruct, &
           in%store_index, imode=1, smat=tmb%linmat%m)
+     tmb%linmat%ham_ = matrices_null()
+     call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
+          matname='tmb%linmat%ham_', mat=tmb%linmat%ham_)
 
-     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
-          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ham)
+     !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+     !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ham)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
 
-     call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%lzd, atoms%astruct, &
-          in%store_index, imode=1, smat=tmb%linmat%ovrlp)
+     !!call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%lzd, atoms%astruct, &
+     !!     in%store_index, imode=1, smat=tmb%linmat%ovrlp)
      call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%lzd, atoms%astruct, &
           in%store_index, imode=1, smat=tmb%linmat%s)
+     tmb%linmat%ovrlp_ = matrices_null()
+     call allocate_matrices(tmb%linmat%s, allocate_full=.false., &
+          matname='tmb%linmat%ovrlp_', mat=tmb%linmat%ovrlp_)
 
-     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
-          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ovrlp)
+     !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+     !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ovrlp)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%s)
 
      if (in%check_matrix_compression) then
          if (iproc==0) call yaml_open_map('Checking Compression/Uncompression of small sparse matrices')
-         call check_matrix_compression(iproc,tmb%linmat%ham)
-         call check_matrix_compression(iproc,tmb%linmat%ovrlp)
+         !call check_matrix_compression(iproc,tmb%linmat%ham)
+         !call check_matrix_compression(iproc,tmb%linmat%ovrlp)
+         call check_matrix_compression(iproc, tmb%linmat%m, tmb%linmat%ham_)
+         call check_matrix_compression(iproc, tmb%linmat%s, tmb%linmat%ovrlp_)
          if (iproc ==0) call yaml_close_map()
      end if
 
@@ -495,24 +509,28 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      ! check the extent of the kernel cutoff (must be at least shamop radius)
      call check_kernel_cutoff(iproc, tmb%orbs, atoms, tmb%lzd)
 
-     call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%lzd, atoms%astruct, &
-          in%store_index, imode=2, smat=tmb%linmat%denskern_large)
+     !!call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%lzd, atoms%astruct, &
+     !!     in%store_index, imode=2, smat=tmb%linmat%denskern_large)
      call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%lzd, atoms%astruct, &
           in%store_index, imode=2, smat=tmb%linmat%l)
+     tmb%linmat%kernel_ = matrices_null()
+     call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
+          matname='tmb%linmat%kernel_', mat=tmb%linmat%kernel_)
 
-     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
-          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
+     !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+     !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
 
      !call nullify_sparse_matrix(tmb%linmat%inv_ovrlp_large)
-     tmb%linmat%inv_ovrlp_large=sparse_matrix_null()
-     call sparse_copy_pattern(tmb%linmat%denskern_large, tmb%linmat%inv_ovrlp_large, iproc, subname)
+     !tmb%linmat%inv_ovrlp_large=sparse_matrix_null()
+     !call sparse_copy_pattern(tmb%linmat%l, tmb%linmat%inv_ovrlp_large, iproc, subname)
 
 
      if (in%check_matrix_compression) then
          if (iproc==0) call yaml_open_map('Checking Compression/Uncompression of large sparse matrices')
-         call check_matrix_compression(iproc,tmb%linmat%denskern_large)
+         !call check_matrix_compression(iproc,tmb%linmat%denskern_large)
+         call check_matrix_compression(iproc, tmb%linmat%l, tmb%linmat%kernel_)
          if (iproc ==0) call yaml_close_map()
      end if
 
@@ -522,7 +540,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      if (in%check_sumrho>0) then
          call check_communication_potential(iproc,denspot,tmb)
          call check_communication_sumrho(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom_sr, &
-              denspot, tmb%linmat%denskern_large, in%check_sumrho)
+              denspot, tmb%linmat%l, tmb%linmat%kernel_, in%check_sumrho)
      end if
 
      if (in%lin%scf_mode/=LINEAR_FOE .or. in%lin%pulay_correction .or.  in%lin%new_pulay_correction .or. &
@@ -778,7 +796,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
            !if (input%frag%nfrag==2) call calc_transfer_integrals_old(iproc,nproc,input%frag,ref_frags,tmb%orbs,&
            !     tmb%linmat%ham,tmb%linmat%ovrlp)
            call calc_site_energies_transfer_integrals(iproc,nproc,tmb%orthpar%methTransformOverlap,&
-                in%frag,ref_frags,tmb%orbs,tmb%linmat%ham,tmb%linmat%ovrlp)
+                in%frag,ref_frags,tmb%orbs,tmb%linmat%m,tmb%linmat%ham_,tmb%linmat%s,tmb%linmat%ovrlp_)
         end if
      end if
 

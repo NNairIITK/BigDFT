@@ -50,22 +50,24 @@ module constrained_dft
          real(gp),intent(out),optional :: econf
        end subroutine LocalHamiltonianApplication
 
-       subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, imode, &
-                  ovrlp_smat, inv_ovrlp_smat, check_accur, &
-                  ovrlp, inv_ovrlp, error)
-         use module_base
-         use module_types
-         use sparsematrix_base, only: sparse_matrix, SPARSE_FULL, DENSE_PARALLEL, DENSE_FULL, SPARSEMM_SEQ
-         use yaml_output
-         implicit none
-         integer,intent(in) :: iproc, nproc, iorder, blocksize, norb, power
-         type(orbitals_data),intent(in) :: orbs
-         integer,intent(in) :: imode
-         type(sparse_matrix),intent(inout) :: ovrlp_smat, inv_ovrlp_smat
-         logical,intent(in) :: check_accur
-         real(kind=8),dimension(:,:),pointer,optional :: ovrlp, inv_ovrlp
-         real(kind=8),intent(out),optional :: error
-       end subroutine overlapPowerGeneral
+        subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, imode, &
+                   ovrlp_smat, inv_ovrlp_smat, ovrlp_mat, inv_ovrlp_mat, check_accur, &
+                   ovrlp, inv_ovrlp, error)
+             !!foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
+          use module_base
+          use module_types
+          use sparsematrix_base, only: sparse_matrix, matrices, SPARSE_FULL, DENSE_PARALLEL, DENSE_FULL, SPARSEMM_SEQ
+          use yaml_output
+          implicit none
+          integer,intent(in) :: iproc, nproc, iorder, blocksize, norb, power
+          type(orbitals_data),intent(in) :: orbs
+          integer,intent(in) :: imode
+          type(sparse_matrix),intent(inout) :: ovrlp_smat, inv_ovrlp_smat
+          type(matrices),intent(inout) :: ovrlp_mat, inv_ovrlp_mat
+          logical,intent(in) :: check_accur
+          real(kind=8),dimension(:,:),pointer,optional :: ovrlp, inv_ovrlp
+          real(kind=8),intent(out),optional :: error
+        end subroutine overlapPowerGeneral
 
   end interface
 
@@ -128,7 +130,8 @@ contains
        calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap,ovrlp_half)
     use module_fragments
     use communications, only: transpose_localized
-    use sparsematrix_base, only: sparse_matrix
+    use sparsematrix_base, only: matrices, sparse_matrix, sparsematrix_malloc_ptr, &
+                                 DENSE_FULL, assignment(=)
     use sparsematrix, only: compress_matrix, uncompress_matrix
     implicit none
     type(sparse_matrix), intent(inout) :: weight_matrix
@@ -144,6 +147,7 @@ contains
     real(kind=gp), allocatable, dimension(:,:) :: proj_mat, proj_ovrlp_half, weight_matrixp
     character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
     real(kind=gp) :: error
+    type(matrices) :: inv_ovrlp
 
     call f_routine(id='calculate_weight_matrix_lowdin')
 
@@ -163,20 +167,24 @@ contains
        end if
 
        call calculate_overlap_transposed(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
-            tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+            tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+       ! This can then be deleted if the transition to the new type has been completed.
+       !tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
+
     end if   
 
     if (calculate_ovrlp_half) then
-       tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='tmb%linmat%ovrlp%matrix')
-       call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%ovrlp)
-       ! Maybe not clean here to use twice tmb%linmat%ovrlp, but it should not
+       tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
+       call uncompress_matrix(bigdft_mpi%iproc, tmb%linmat%s, &
+            inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
+       ! Maybe not clean here to use twice tmb%linmat%s, but it should not
        ! matter as dense is used
-       write(*,*) 'associated(tmb%linmat%ovrlp%matrix)', associated(tmb%linmat%ovrlp%matrix)
        call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 2, &
             tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%orbs, &
-            imode=2, ovrlp_smat=tmb%linmat%ovrlp, inv_ovrlp_smat=tmb%linmat%ovrlp, &
-            check_accur=.true., ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=ovrlp_half, error=error)
-       call f_free_ptr(tmb%linmat%ovrlp%matrix)
+            imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%s, &
+            ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
+            check_accur=.true., ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=ovrlp_half, error=error)
+       call f_free_ptr(tmb%linmat%ovrlp_%matrix)
     end if
 
     proj_mat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='proj_mat')
@@ -239,6 +247,7 @@ contains
   subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,denspot)
     use module_fragments
     use communications, only: transpose_localized, start_onesided_communication
+    use sparsematrix_base, only : matrices_null, allocate_matrices, deallocate_matrices
     implicit none
     integer,intent(in) :: iproc
     type(cdft_data), intent(inout) :: cdft
@@ -254,6 +263,7 @@ contains
     type(confpot_data),dimension(:),allocatable :: confdatarrtmp
     type(energy_terms) :: energs
     character(len=*),parameter :: subname='calculate_weight_matrix_using_density'
+    type(matrices) :: weight_
 
     call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%dpbox%ngatherarr(0,1))
     call start_onesided_communication(bigdft_mpi%iproc,bigdft_mpi%nproc,max(denspot%dpbox%ndimpot,1),cdft%weight_function, &
@@ -311,8 +321,17 @@ contains
     call memocc(istat, hpsit_f, 'hpsit_f', subname)
     call transpose_localized(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,  &
          tmb%ham_descr%collcom,tmb%hpsi,hpsit_c,hpsit_f,tmb%ham_descr%lzd)
+
+    weight_ = matrices_null()
+    call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
+         matname='weight_', mat=weight_)
+
     call calculate_overlap_transposed(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%orbs,tmb%ham_descr%collcom, &
-         tmb%ham_descr%psit_c,hpsit_c,tmb%ham_descr%psit_f, hpsit_f,cdft%weight_matrix)
+         tmb%ham_descr%psit_c,hpsit_c,tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, weight_)
+    ! This can then be deleted if the transition to the new type has been completed.
+    cdft%weight_matrix%matrix_compr=weight_%matrix_compr
+    call deallocate_matrices(weight_)
+
     iall=-product(shape(hpsit_c))*kind(hpsit_c)
     deallocate(hpsit_c, stat=istat)
     call memocc(istat, iall, 'hpsit_c', subname)
