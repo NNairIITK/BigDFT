@@ -1006,7 +1006,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       else
           kappa_satur=0
       end if
-      exit_loop(7) = (kappa_satur>=2)
+      exit_loop(7) = (itout>0 .and. kappa_satur>=2 .and. .false.)
 
       if(any(exit_loop)) then
           if(exit_loop(1)) then
