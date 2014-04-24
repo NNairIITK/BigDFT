@@ -388,6 +388,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      end if
   else if (in%inputPsiId == INPUT_PSI_MEMORY_LINEAR .and. associated(KSwfn%psi)) then
      if (associated(KSwfn%psi) .and. associated(tmb%psi)) then
+        tmb_old%linmat%s = sparse_matrix_null()
+        tmb_old%linmat%m = sparse_matrix_null()
+        tmb_old%linmat%l = sparse_matrix_null()
+        tmb_old%linmat%ovrlp_ = matrices_null()
+        tmb_old%linmat%ham_ = matrices_null()
+        tmb_old%linmat%kernel_ = matrices_null()
         call copy_tmbs(iproc, tmb, tmb_old, subname)
         call destroy_DFT_wavefunction(tmb)
         i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
