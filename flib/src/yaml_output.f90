@@ -300,7 +300,8 @@ contains
     !local variables
     integer, parameter :: NO_ERRORS           = 0
     logical :: unit_is_open,set_default
-    integer :: istream,unt,ierr,recl_file
+    integer :: istream,unt,ierr
+    integer(kind=8) :: recl_file
     character(len=15) :: pos
         
     !check that the module has been initialized
@@ -409,8 +410,8 @@ contains
     end if
     !protect the record length to be lower than the maximum allowed by the processor
     if (present(record_length)) then
-       if (recl_file<=0) recl_file=record_length
-       streams(active_streams)%max_record_length=min(record_length,recl_file)
+       if (recl_file<=0) recl_file=int(record_length,kind=8)
+       streams(active_streams)%max_record_length=int(min(int(record_length,kind=8),recl_file))
     end if
   end subroutine yaml_set_stream
 
