@@ -476,7 +476,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   type(energy_terms) :: energs
   real(8),dimension(2):: reducearr
   real(gp) :: econf, dynamic_convcrit, kappa_mean
-  integer :: i, ist, iiorb, ilr, ii
+  integer :: i, ist, iiorb, ilr, ii, kappa_satur
   real(kind=8) :: energy_first, hxh, hyh, hzh, trH_ref, charge
   real(kind=8),dimension(:),allocatable :: kernel_best
   integer ::  correction_orthoconstraint_local, npsidim_small, npsidim_large, ists, istl, sdim, ldim, nspin, nit_exit
@@ -484,7 +484,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(3),save :: kappa_history
   integer,save :: nkappa_history
   logical,save :: has_already_converged
-  logical,dimension(6) :: exit_loop
+  logical,dimension(7) :: exit_loop
   logical :: associated_psit_c, associated_psit_f
   logical :: associated_psitlarge_c, associated_psitlarge_f
 
@@ -528,6 +528,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   delta_energy_arr=1.d0
   trH_ref=trH_old
   dynamic_convcrit=1.d-100
+  kappa_satur=0
 
 
   ! Count whether there is an even or an odd number of electrons
@@ -1000,6 +1001,12 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       exit_loop(5) = (experimental_mode .and. fnrm<dynamic_convcrit .and. fnrm<min_gnrm_for_dynamic &
                      .and. (it>1 .or. has_already_converged)) ! first overall convergence not allowed in a first iteration
       exit_loop(6) = (itout==0 .and. it>1 .and. ratio_deltas<kappa_conv .and.  ratio_deltas>0.d0)
+      if (ratio_deltas<1.d-1) then
+          kappa_satur=kappa_satur+1
+      else
+          kappa_satur=0
+      end if
+      exit_loop(7) = (kappa_satur>=2)
 
       if(any(exit_loop)) then
           if(exit_loop(1)) then
@@ -1026,6 +1033,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           if (exit_loop(6)) then
               infoBasisFunctions=it
               if (iproc==0) call yaml_map('exit criterion','extended input guess')
+          end if
+          if (exit_loop(7)) then
+              infoBasisFunctions=it
+              if (iproc==0) call yaml_map('exit criterion','kappa')
           end if
           if (can_use_ham) then
               ! Calculate the Hamiltonian matrix, since we have all quantities ready. This matrix can then be used in the first
