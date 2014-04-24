@@ -215,8 +215,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
      weight_matrix_ = matrices_null()
      call allocate_matrices(tmb%linmat%m, allocate_full=.false., matname='weight_matrix_', mat=weight_matrix_)
-     weight_matrix_%matrix_compr=weight_matrix_%matrix_compr
-     call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,cdft%weight_matrix, &
+     weight_matrix_%matrix_compr=cdft%weight_matrix%matrix_compr
+     call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
           tmb%linmat%kernel_,weight_matrix_,&
           ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
      !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
@@ -983,8 +983,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 ! CDFT: calculate Tr[Kw]-Nc
                 weight_matrix_ = matrices_null()
                 call allocate_matrices(tmb%linmat%m, allocate_full=.false., matname='weight_matrix_', mat=weight_matrix_)
-                weight_matrix_%matrix_compr=weight_matrix_%matrix_compr
-                call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,cdft%weight_matrix, &
+                weight_matrix_%matrix_compr=cdft%weight_matrix%matrix_compr
+                call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
                      tmb%linmat%kernel_,weight_matrix_,&
                      ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
                 !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
