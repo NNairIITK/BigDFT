@@ -2263,8 +2263,6 @@ module module_interfaces
         use module_base
         use module_types
         use yaml_output
-        use sparsematrix_base, only: matrices_null, allocate_matrices, deallocate_matrices, &
-                                     sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
         implicit none
         integer,intent(in) :: iproc, nproc, npsidim_orbs, npsidim_comp
         type(local_zone_descriptors),intent(in) :: lzd
@@ -4302,11 +4300,7 @@ module module_interfaces
           use module_types
           use yaml_output
           use module_fragments
-          use sparsematrix_base, only: sparse_matrix, matrices, sparsematrix_malloc_ptr, &
-                                       DENSE_FULL, assignment(=)
-          use sparsematrix, only: uncompress_matrix
           implicit none
-        
           integer, intent(in) :: iproc, nproc, meth_overlap
           type(fragmentInputParameters), intent(in) :: input_frag
           type(orbitals_data), intent(in) :: orbs
