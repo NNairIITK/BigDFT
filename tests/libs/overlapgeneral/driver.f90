@@ -3,7 +3,7 @@ program driver
   use module_base
   use module_types
   use module_interfaces
-  use sparsematrix_base, only: deallocate_sparse_matrix, allocate_matrices, deallocate_matrices
+  use sparsematrix_base, only: deallocate_sparse_matrix, matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: compress_matrix, uncompress_matrix
   use yaml_output
   implicit none
@@ -142,6 +142,8 @@ program driver
   !!    write(*,*) iseg, eval(iseg)
   !!end do
 
+  mat_A = matrices_null()
+  inv_mat_B = matrices_null()
 
   call vcopy(orbs%norb**2, ovrlp(1,1), 1, smat_A%matrix(1,1), 1)
   call allocate_matrices(smat_A, allocate_full=.false., matname='mat_A', mat=mat_A)
