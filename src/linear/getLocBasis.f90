@@ -21,7 +21,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use diis_sd_optimization
   use yaml_output
   use communications, only: transpose_localized, start_onesided_communication
-  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, &
+                               DENSE_FULL, assignment(=)
   use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed
   implicit none
 
@@ -106,7 +107,10 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       end if
 
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
-           tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+           tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+      ! This can then be deleted if the transition to the new type has been completed.
+      !tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
+
     
   end if
 
@@ -121,7 +125,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   !!call f_free_ptr(tmb%linmat%ovrlp%matrix)
   !!! ##########
   ovrlp_fullp=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/),id='ovrlp_fullp')
-  call uncompress_matrix_distributed(iproc, tmb%linmat%ovrlp, tmb%linmat%ovrlp%matrix_compr, ovrlp_fullp)
+  call uncompress_matrix_distributed(iproc, tmb%linmat%s, tmb%linmat%ovrlp_%matrix_compr, ovrlp_fullp)
   call deviation_from_unity_parallel(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, ovrlp_fullp, deviation)
   call f_free(ovrlp_fullp)
   if (iproc==0) then
@@ -221,8 +225,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
 
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
-           tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%ham)
-      !call memocc(istat, iall, 'tmb%linmat%ham%matrix', subname)
+           tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, tmb%linmat%ham_)
+      ! This can then be deleted if the transition to the new type has been completed.
+      !tmb%linmat%ham%matrix_compr=tmb%linmat%ham_%matrix_compr
 
 
       if (scf_mode==LINEAR_FOE) then
@@ -230,14 +235,14 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
          call timing(iproc,'FOE_init','ON') !lr408t
          iismall=0
          iseglarge=1
-         do isegsmall=1,tmb%linmat%ovrlp%nseg
+         do isegsmall=1,tmb%linmat%s%nseg
             do
-               is=max(tmb%linmat%ovrlp%keyg(1,isegsmall),tmb%linmat%ham%keyg(1,iseglarge))
-               ie=min(tmb%linmat%ovrlp%keyg(2,isegsmall),tmb%linmat%ham%keyg(2,iseglarge))
-               iilarge=tmb%linmat%ham%keyv(iseglarge)-tmb%linmat%ham%keyg(1,iseglarge)
+               is=max(tmb%linmat%s%keyg(1,isegsmall),tmb%linmat%m%keyg(1,iseglarge))
+               ie=min(tmb%linmat%s%keyg(2,isegsmall),tmb%linmat%m%keyg(2,iseglarge))
+               iilarge=tmb%linmat%m%keyv(iseglarge)-tmb%linmat%m%keyg(1,iseglarge)
                do i=is,ie
                   iismall=iismall+1
-                  ham_small%matrix_compr(iismall)=tmb%linmat%ham%matrix_compr(iilarge+i)
+                  ham_small%matrix_compr(iismall)=tmb%linmat%ham_%matrix_compr(iilarge+i)
                end do
                if (ie>=is) exit
                iseglarge=iseglarge+1
@@ -262,19 +267,17 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   ! CDFT: add V*w_ab to Hamiltonian here - assuming ham and weight matrix have the same sparsity...
   if (present(cdft)) then
      call timing(iproc,'constraineddft','ON')
-     call daxpy(tmb%linmat%ham%nvctr,cdft%lag_mult,cdft%weight_matrix%matrix_compr,1,tmb%linmat%ham%matrix_compr,1)
+     call daxpy(tmb%linmat%m%nvctr,cdft%lag_mult,cdft%weight_matrix%matrix_compr,1,tmb%linmat%ham_%matrix_compr,1)
      call timing(iproc,'constraineddft','OF') 
   end if
 
   if (scf_mode/=LINEAR_FOE) then
-      !!allocate(tmb%linmat%ham%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-      !!call memocc(istat, tmb%linmat%ham%matrix, 'tmb%linmat%ham%matrix', subname)
-      tmb%linmat%ham%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ham%matrix')
-      call uncompress_matrix(iproc,tmb%linmat%ham)
-      !!allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-      !!call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
-      tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
-      call uncompress_matrix(iproc,tmb%linmat%ovrlp)
+      tmb%linmat%ham_%matrix = sparsematrix_malloc_ptr(tmb%linmat%m, iaction=DENSE_FULL, id='tmb%linmat%ham_%matrix')
+      call uncompress_matrix(iproc, tmb%linmat%m, &
+           inmat=tmb%linmat%ham_%matrix_compr, outmat=tmb%linmat%ham_%matrix)
+      tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
+      call uncompress_matrix(iproc, tmb%linmat%s, &
+           inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
   end if
 
   ! Diagonalize the Hamiltonian.
@@ -283,8 +286,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       ! Keep the Hamiltonian and the overlap since they will be overwritten by the diagonalization.
       allocate(matrixElements(tmb%orbs%norb,tmb%orbs%norb,2), stat=istat)
       call memocc(istat, matrixElements, 'matrixElements', subname)
-      call vcopy(tmb%orbs%norb**2, tmb%linmat%ham%matrix(1,1), 1, matrixElements(1,1,1), 1)
-      call vcopy(tmb%orbs%norb**2, tmb%linmat%ovrlp%matrix(1,1), 1, matrixElements(1,1,2), 1)
+      call vcopy(tmb%orbs%norb**2, tmb%linmat%ham_%matrix(1,1), 1, matrixElements(1,1,1), 1)
+      call vcopy(tmb%orbs%norb**2, tmb%linmat%ovrlp_%matrix(1,1), 1, matrixElements(1,1,2), 1)
       if (iproc==0) call yaml_map('method','diagonalization')
       if(tmb%orthpar%blocksize_pdsyev<0) then
           if (iproc==0) call yaml_map('mode','sequential')
@@ -333,47 +336,47 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   ! CDFT: subtract V*w_ab from Hamiltonian so that we are calculating the correct energy
   if (present(cdft)) then
      call timing(iproc,'constraineddft','ON')
-     call daxpy(tmb%linmat%ham%nvctr,-cdft%lag_mult,cdft%weight_matrix%matrix_compr,1,tmb%linmat%ham%matrix_compr,1)
+     call daxpy(tmb%linmat%m%nvctr,-cdft%lag_mult,cdft%weight_matrix%matrix_compr,1,tmb%linmat%ham_%matrix_compr,1)
      call timing(iproc,'constraineddft','OF') 
   end if
 
   if (scf_mode/=LINEAR_FOE) then
       ! Calculate the band structure energy and update kernel
       if (scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
-         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern_large,tmb%linmat%ham,energs%ebs,&
+         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
+              tmb%linmat%kernel_, tmb%linmat%ham_, energs%ebs,&
               tmb%coeff,orbs,tmb%orbs,update_kernel)
+         !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
       else if (present(cdft)) then
          ! for directmin we have the kernel already, but only the CDFT function not actual energy for CDFT
-         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%denskern_large,tmb%linmat%ham,energs%ebs,&
+         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
+              tmb%linmat%kernel_, tmb%linmat%ham_, energs%ebs,&
               tmb%coeff,orbs,tmb%orbs,.false.)
+         !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
       end if
-      !!iall=-product(shape(tmb%linmat%ham%matrix))*kind(tmb%linmat%ham%matrix)
-      !!deallocate(tmb%linmat%ham%matrix, stat=istat)
-      !!call memocc(istat, iall, 'tmb%linmat%ham%matrix', subname)
-      !!iall=-product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
-      !!deallocate(tmb%linmat%ovrlp%matrix, stat=istat)
-      !!call memocc(istat, iall, 'tmb%linmat%ovrlp%matrix', subname)
-      call f_free_ptr(tmb%linmat%ham%matrix)
-      call f_free_ptr(tmb%linmat%ovrlp%matrix)
+      call f_free_ptr(tmb%linmat%ham_%matrix)
+      call f_free_ptr(tmb%linmat%ovrlp_%matrix)
 
   else ! foe
 
 
       ! TEMPORARY #################################################
       if (calculate_gap) then
-          tmb%linmat%ham%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ham%matrix')
-          call uncompress_matrix(iproc,tmb%linmat%ham)
-          tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
-          call uncompress_matrix(iproc,tmb%linmat%ovrlp)
+          tmb%linmat%ham_%matrix = sparsematrix_malloc_ptr(tmb%linmat%m, iaction=DENSE_FULL, id='tmb%linmat%ham_%matrix')
+          call uncompress_matrix(iproc, tmb%linmat%m, &
+               inmat=tmb%linmat%ham_%matrix_compr, outmat=tmb%linmat%ham_%matrix)
+          tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
+          call uncompress_matrix(iproc, tmb%linmat%s, &
+               inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
           ! Keep the Hamiltonian and the overlap since they will be overwritten by the diagonalization.
           matrixElements=f_malloc((/tmb%orbs%norb,tmb%orbs%norb,2/),id='matrixElements')
-          call vcopy(tmb%orbs%norb**2, tmb%linmat%ham%matrix(1,1), 1, matrixElements(1,1,1), 1)
-          call vcopy(tmb%orbs%norb**2, tmb%linmat%ovrlp%matrix(1,1), 1, matrixElements(1,1,2), 1)
+          call vcopy(tmb%orbs%norb**2, tmb%linmat%ham_%matrix(1,1), 1, matrixElements(1,1,1), 1)
+          call vcopy(tmb%orbs%norb**2, tmb%linmat%ovrlp_%matrix(1,1), 1, matrixElements(1,1,2), 1)
           call diagonalizeHamiltonian2(iproc, tmb%orbs%norb, matrixElements(1,1,1), matrixElements(1,1,2), tmb%orbs%eval)
           if (iproc==0) call yaml_map('gap',tmb%orbs%eval(orbs%norb+1)-tmb%orbs%eval(orbs%norb))
           call f_free(matrixElements)
-          call f_free_ptr(tmb%linmat%ham%matrix)
-          call f_free_ptr(tmb%linmat%ovrlp%matrix)
+          call f_free_ptr(tmb%linmat%ham_%matrix)
+          call f_free_ptr(tmb%linmat%ovrlp_%matrix)
       end if
       ! END TEMPORARY #############################################
 
@@ -382,6 +385,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call foe(iproc, nproc, tmprtr, &
            energs%ebs, itout,it_scc, order_taylor, purification_quickreturn, adjust_FOE_temperature, &
            1, FOE_ACCURATE, tmb)
+      !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
 
@@ -487,7 +491,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   call f_routine(id='getLocalizedBasis')
 
   delta_energy_arr=f_malloc(nit_basis+6,id='delta_energy_arr')
-  kernel_best=f_malloc(tmb%linmat%denskern_large%nvctr,id='kernel_best')
+  kernel_best=f_malloc(tmb%linmat%l%nvctr,id='kernel_best')
   energy_diff=.false.
 
 
@@ -544,6 +548,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       overlap_calculated=.true.
       !tmb%can_use_transposed=.false.
       call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, order_taylor, purification_quickreturn)
+      !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
       if (iproc==0) call yaml_close_map()
   end if
 
@@ -668,7 +673,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                    tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
-                   tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%ham)
+                   tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, tmb%linmat%ham_)
+              ! This can then be deleted if the transition to the new type has been completed.
+              !tmb%linmat%ham%matrix_compr=tmb%linmat%ham_%matrix_compr
 
               if(associated(tmb%psit_c)) then
                   iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
@@ -693,12 +700,15 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
                    tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
-                   tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+                   tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+              ! This can then be deleted if the transition to the new type has been completed.
+              !tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
               if (iproc==0) call yaml_newline()
               if (iproc==0) call yaml_open_map(flow=.true.)
               call foe(iproc, nproc, 0.d0, &
                    energs%ebs, -1, -10, order_taylor, purification_quickreturn, adjust_FOE_temperature, 0, &
                    FOE_FAST, tmb)
+              !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
               if (iproc==0) call yaml_close_map()
               if (.not.associated_psit_c) then
                   iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
@@ -740,9 +750,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       ! optimize the tmbs for a few extra states
       if (target_function==TARGET_FUNCTION_IS_ENERGY.and.extra_states>0) then
-          allocate(kernel_compr_tmp(tmb%linmat%denskern_large%nvctr), stat=istat)
+          allocate(kernel_compr_tmp(tmb%linmat%l%nvctr), stat=istat)
           call memocc(istat, kernel_compr_tmp, 'kernel_compr_tmp', subname)
-          call vcopy(tmb%linmat%denskern_large%nvctr, tmb%linmat%denskern_large%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
+          call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
           !allocate(occup_tmp(tmb%orbs%norb), stat=istat)
           !call memocc(istat, occup_tmp, 'occup_tmp', subname)
           !call vcopy(tmb%orbs%norb, tmb%orbs%occup(1), 1, occup_tmp(1), 1)
@@ -759,7 +769,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !      exit
           !   end if
           !end do
-          call calculate_density_kernel(iproc, nproc, .true., tmb%orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern_large)
+          call calculate_density_kernel(iproc, nproc, .true., tmb%orbs, tmb%orbs, tmb%coeff, &
+               tmb%linmat%l, tmb%linmat%kernel_)
+          !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
           !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
       end if
 
@@ -843,7 +855,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       if (target_function==TARGET_FUNCTION_IS_ENERGY.and.extra_states>0) then
           !call vcopy(tmb%linmat%denskern%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%denskern%matrix_compr(1), 1)
-          call vcopy(tmb%linmat%denskern_large%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%denskern_large%matrix_compr(1), 1)
+          call vcopy(tmb%linmat%l%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+          !call vcopy(tmb%linmat%l%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%denskern_large%matrix_compr(1), 1)
           iall=-product(shape(kernel_compr_tmp))*kind(kernel_compr_tmp)
           deallocate(kernel_compr_tmp, stat=istat)
           call memocc(istat, iall, 'kernel_compr_tmp', subname)
@@ -931,7 +944,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !!         tmb%coeff, tmb%linmat%denskern)
           !!else
           !call vcopy(tmb%linmat%denskern%nvctr, kernel_best(1), 1, tmb%linmat%denskern%matrix_compr(1), 1)
-          call vcopy(tmb%linmat%denskern_large%nvctr, kernel_best(1), 1, tmb%linmat%denskern_large%matrix_compr(1), 1)
+          !call vcopy(tmb%linmat%l%nvctr, kernel_best(1), 1, tmb%linmat%denskern_large%matrix_compr(1), 1)
+          call vcopy(tmb%linmat%l%nvctr, kernel_best(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
           !!end if
           trH_old=0.d0
           it=it-2 !go back one iteration (minus 2 since the counter was increased)
@@ -1017,7 +1031,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               ! Calculate the Hamiltonian matrix, since we have all quantities ready. This matrix can then be used in the first
               ! iteration of get_coeff.
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
-                   tmb%ham_descr%psit_c, hpsit_c_tmp, tmb%ham_descr%psit_f, hpsit_f_tmp, tmb%linmat%ham)
+                   tmb%ham_descr%psit_c, hpsit_c_tmp, tmb%ham_descr%psit_f, hpsit_f_tmp, tmb%linmat%m, tmb%linmat%ham_)
+              ! This can then be deleted if the transition to the new type has been completed.
+              !tmb%linmat%ham%matrix_compr=tmb%linmat%ham_%matrix_compr
           end if
 
           if (iproc==0) then
@@ -1086,6 +1102,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                       call yaml_newline()
                   end if
                   call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, order_taylor, purification_quickreturn)
+                  !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
               else if (method_updatekernel==UPDATE_BY_FOE) then
                   if (iproc==0) then
                       call yaml_map('purify kernel',.false.)
@@ -1706,7 +1723,7 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt,
   real(kind=8),dimension(tmbopt%orbs%norbp),intent(inout) :: alpha, alphaDIIS
   real(kind=8),dimension(max(tmbopt%npsidim_orbs,tmbopt%npsidim_comp)),intent(out):: lphioldopt
   real(kind=8),intent(out) :: trH_ref
-  real(kind=8),dimension(tmbopt%linmat%denskern_large%nvctr),intent(out) :: kernel_best
+  real(kind=8),dimension(tmbopt%linmat%l%nvctr),intent(out) :: kernel_best
   logical,intent(out) :: complete_reset
   
   ! Local variables
@@ -1752,7 +1769,7 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt,
       ldiis%icountSDSatur=ldiis%icountSDSatur+1
       ldiis%icountDIISFailureCons=0
       trH_ref=trH
-      call vcopy(tmbopt%linmat%denskern_large%nvctr, tmbopt%linmat%denskern_large%matrix_compr(1), 1, kernel_best(1), 1)
+      call vcopy(tmbopt%linmat%l%nvctr, tmbopt%linmat%kernel_%matrix_compr(1), 1, kernel_best(1), 1)
       !if(iproc==0) write(*,*) 'everything ok, copy last psi...'
       call vcopy(size(tmbopt%psi), tmbopt%psi(1), 1, lphioldopt(1), 1)
 
@@ -1852,7 +1869,8 @@ subroutine DIISorSD(iproc, it, trH, tmbopt, ldiis, alpha, alphaDIIS, lphioldopt,
               end do
               trH_ref=ldiis%energy_hist(ii)
               !!if (iproc==0) write(*,*) 'take energy from entry',ii
-              call vcopy(tmbopt%linmat%denskern_large%nvctr, kernel_best(1), 1, tmbopt%linmat%denskern_large%matrix_compr(1), 1)
+              call vcopy(tmbopt%linmat%l%nvctr, kernel_best(1), 1, tmbopt%linmat%kernel_%matrix_compr(1), 1)
+              !!call vcopy(tmbopt%linmat%l%nvctr, kernel_best(1), 1, tmbopt%linmat%denskern_large%matrix_compr(1), 1)
               complete_reset=.true.
           else
               !if(iproc==0) write(*,*) 'copy last psi...'
@@ -1874,6 +1892,7 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
   use module_types
   use module_interfaces, except_this_one => reconstruct_kernel
   use communications, only: transpose_localized
+  use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
   use sparsematrix, only: uncompress_matrix
   implicit none
 
@@ -1913,33 +1932,33 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
      !call timing(iproc,'renormCoefComp','OF')
 
      call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
-          tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+          tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+     ! This can then be deleted if the transition to the new type has been completed.
+     !tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
 
      !call timing(iproc,'renormCoefComp','ON')
      overlap_calculated=.true.
   end if
 
-  !!allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-  !!call memocc(istat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
-  tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
-  call uncompress_matrix(iproc,tmb%linmat%ovrlp)
+  tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
+  call uncompress_matrix(iproc, tmb%linmat%s, &
+       inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
   call reorthonormalize_coeff(iproc, nproc, orbs%norb, blocksize_dsyev, blocksize_pdgemm, inversion_method, &
-       tmb%orbs, tmb%linmat%ovrlp, tmb%coeff, orbs)
+       tmb%orbs, tmb%linmat%s, tmb%linmat%ovrlp_, tmb%coeff, orbs)
 
-  !!iall=-product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
-  !!deallocate(tmb%linmat%ovrlp%matrix, stat=istat)
-  !!call memocc(istat, iall, 'tmb%linmat%ovrlp%matrix', subname)
-  call f_free_ptr(tmb%linmat%ovrlp%matrix)
+  call f_free_ptr(tmb%linmat%ovrlp_%matrix)
+
 
   ! Recalculate the kernel
-  call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern_large)
+  call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, tmb%coeff, tmb%linmat%l, tmb%linmat%kernel_)
+  !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
   !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
 
 end subroutine reconstruct_kernel
 
 !> Passing sparse ovrlp, but for now assuming ovrlp%matrix will be allocated and filled if using dense
 subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize_pdgemm, inversion_method, basis_orbs, &
-           basis_overlap, coeff, orbs)
+           basis_overlap, basis_overlap_mat, coeff, orbs)
   use module_base
   use module_types
   use module_interfaces, except_this_one => reorthonormalize_coeff
@@ -1951,6 +1970,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   integer, intent(in) :: blocksize_dsyev, blocksize_pdgemm, inversion_method
   type(orbitals_data), intent(in) :: basis_orbs   !number of basis functions
   type(sparse_matrix),intent(inout) :: basis_overlap
+  type(matrices),intent(inout) :: basis_overlap_mat
   real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(inout) :: coeff
   type(orbitals_data), intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
   ! Local variables
@@ -1992,7 +2012,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
      ! Calculate the overlap matrix among the coefficients with respect to basis_overlap.
      if (basis_orbs%norbp>0) then
          coeff_tmp=0.d0
-         call dgemm('n', 'n', basis_orbs%norbp, norb, basis_orbs%norb, 1.d0, basis_overlap%matrix(basis_orbs%isorb+1,1), &
+         call dgemm('n', 'n', basis_orbs%norbp, norb, basis_orbs%norb, 1.d0, basis_overlap_mat%matrix(basis_orbs%isorb+1,1), &
               basis_orbs%norb, coeff(1,1), basis_orbs%norb, 0.d0, coeff_tmp, basis_orbs%norbp)
          call dgemm('t', 'n', norb, norb, basis_orbs%norbp, 1.d0, coeff(basis_orbs%isorb+1,1), &
               basis_orbs%norb, coeff_tmp, basis_orbs%norbp, 0.d0, ovrlp_coeff, norb)
@@ -2017,7 +2037,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
 
         do iorb=1,norb
              if (llorb==korb) then
-                tt=basis_overlap%matrix_compr(ind)*coeff(korb,iorb)
+                tt=basis_overlap_mat%matrix_compr(ind)*coeff(korb,iorb)
                 do jorb=iorb,norb
                     ovrlp_coeff(jorb,iorb)=ovrlp_coeff(jorb,iorb) &
                          +coeff(llorb,jorb)*tt
@@ -2026,7 +2046,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
                 do jorb=iorb,norb
                     ovrlp_coeff(jorb,iorb)=ovrlp_coeff(jorb,iorb) &
                          +(coeff(llorb,iorb)*coeff(korb,jorb)+coeff(llorb,jorb)*coeff(korb,iorb))&
-                         *basis_overlap%matrix_compr(ind)
+                         *basis_overlap_mat%matrix_compr(ind)
                 end do
              end if
          end do
@@ -2060,11 +2080,13 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   if (norb==orbs%norb) then
       call overlapPowerGeneral(iproc, nproc, inversion_method, -2, &
            blocksize_dsyev, norb, orbs, imode=2, ovrlp_smat=basis_overlap, inv_ovrlp_smat=basis_overlap, &
+           ovrlp_mat=basis_overlap_mat, &
            check_accur=.false., ovrlp=ovrlp_coeff, inv_ovrlp=ovrlp_coeff2)
   else
       ! It is not possible to use the standard parallelization scheme, so do serial
       call overlapPowerGeneral(iproc, 1, inversion_method, -2, &
            blocksize_dsyev, norb, orbs, imode=2, ovrlp_smat=basis_overlap, inv_ovrlp_smat=basis_overlap, &
+           ovrlp_mat=basis_overlap_mat, &
            check_accur=.false., ovrlp=ovrlp_coeff, inv_ovrlp=ovrlp_coeff2)
   end if
 
@@ -2204,6 +2226,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   use yaml_output
   use module_interfaces, except_this_one => purify_kernel
   use communications, only: transpose_localized
+  use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
   use sparsematrix, only: compress_matrix, uncompress_matrix
   implicit none
 
@@ -2260,17 +2283,21 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
      !call timing(iproc,'renormCoefComp','OF')
 
      call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
-          tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+          tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+     ! This can then be deleted if the transition to the new type has been completed.
+     !!tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
 
      !call timing(iproc,'renormCoefComp','ON')
      overlap_calculated=.true.
   end if
 
 
-  tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
-  tmb%linmat%denskern_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern_large%matrix')
-  call uncompress_matrix(iproc,tmb%linmat%ovrlp)
-  call uncompress_matrix(iproc,tmb%linmat%denskern_large)
+  tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
+  tmb%linmat%kernel_%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%kernel_%matrix')
+  call uncompress_matrix(iproc,tmb%linmat%s, &
+       inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
+  call uncompress_matrix(iproc, tmb%linmat%l, &
+       inmat=tmb%linmat%kernel_%matrix_compr, outmat=tmb%linmat%kernel_%matrix)
 
   ks=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
   ksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/))
@@ -2285,11 +2312,13 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
 
   call timing(iproc,'purify_kernel ','ON') 
 
-  call dscal(tmb%orbs%norb**2, 0.5d0, tmb%linmat%denskern_large%matrix, 1)
+  call dscal(tmb%orbs%norb**2, 0.5d0, tmb%linmat%kernel_%matrix, 1)
 
 
 
-  tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
+  !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
+  tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
+        tmb%linmat%ovrlp_, tmb%linmat%kernel_)
   if (iproc==0) then
       call yaml_map('tr(KS) before purification',tr_KS)
       call yaml_newline
@@ -2314,7 +2343,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
       call to_zero(tmb%orbs%norb**2, kernel_prime(1,1))
       if (tmb%orbs%norbp>0) then
           call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
-                     1.d0, tmb%linmat%denskern_large%matrix, tmb%orbs%norb, &
+                     1.d0, tmb%linmat%kernel_%matrix, tmb%orbs%norb, &
                      ovrlp_onehalf(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
                      0.d0, ksksk, tmb%orbs%norb) 
           call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
@@ -2348,7 +2377,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
                   end if
               end do
           end do
-          call to_zero(tmb%orbs%norb**2, tmb%linmat%denskern_large%matrix(1,1))
+          call to_zero(tmb%orbs%norb**2, tmb%linmat%kernel_%matrix(1,1))
           if (tmb%orbs%norbp>0) then
               call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
                          1.d0, ks, tmb%orbs%norb, &
@@ -2357,9 +2386,9 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
               call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
                          1.d0, ovrlp_minusonehalf, tmb%orbs%norb, &
                          ksksk, tmb%orbs%norb, &
-                         0.d0, tmb%linmat%denskern_large%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb) 
+                         0.d0, tmb%linmat%kernel_%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb) 
           end if
-          call mpiallred(tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          call mpiallred(tmb%linmat%kernel_%matrix(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       end if
 
 
@@ -2368,15 +2397,15 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           call to_zero(tmb%orbs%norb**2, ks(1,1))
           if (tmb%orbs%norbp>0) then
               call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
-                         1.d0, tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb, &
-                         tmb%linmat%ovrlp%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
+                         1.d0, tmb%linmat%kernel_%matrix(1,1), tmb%orbs%norb, &
+                         tmb%linmat%ovrlp_%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
                          0.d0, ks(1,tmb%orbs%isorb+1), tmb%orbs%norb) 
           end if
           call mpiallred(ks(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
           if (tmb%orbs%norbp>0) then
               call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
                          1.d0, ks(1,1), tmb%orbs%norb, &
-                         tmb%linmat%denskern_large%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
+                         tmb%linmat%kernel_%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
                          0.d0, ksk(1,1), tmb%orbs%norb)
           end if
           if (tmb%orbs%norbp>0) then
@@ -2388,22 +2417,25 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           diff=0.d0
           do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
               iiorb=iorb-tmb%orbs%isorb
-              jsegstart=tmb%linmat%denskern_large%istsegline(iorb)
+              jsegstart=tmb%linmat%l%istsegline(iorb)
               if (iorb<tmb%orbs%norb) then
-                  jsegend=tmb%linmat%denskern_large%istsegline(iorb+1)-1
+                  jsegend=tmb%linmat%l%istsegline(iorb+1)-1
               else
-                  jsegend=tmb%linmat%denskern_large%nseg
+                  jsegend=tmb%linmat%l%nseg
               end if
               do jseg=jsegstart,jsegend
-                  do jorb=tmb%linmat%denskern_large%keyg(1,jseg),tmb%linmat%denskern_large%keyg(2,jseg)
+                  do jorb=tmb%linmat%l%keyg(1,jseg),tmb%linmat%l%keyg(2,jseg)
                       jjorb=jorb-(iorb-1)*tmb%orbs%norb
-                      diff = diff + (ksk(jjorb,iiorb)-tmb%linmat%denskern_large%matrix(jjorb,iorb))**2
+                      diff = diff + (ksk(jjorb,iiorb)-tmb%linmat%kernel_%matrix(jjorb,iorb))**2
                   end do
               end do
           end do
 
-          call compress_matrix(iproc,tmb%linmat%denskern_large)
-          tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
+          call compress_matrix(iproc,tmb%linmat%l, &
+               inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
+          !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
+          tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
+                tmb%linmat%ovrlp_, tmb%linmat%kernel_)
           chargediff=2.d0*tr_KS-tmb%foe_obj%charge
 
           call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -2419,25 +2451,24 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
               call yaml_close_map()
           end if
 
-          !call vcopy(tmb%orbs%norb*tmb%orbs%norbp, tmb%linmat%denskern_large%matrix(1,tmb%orbs%isorb+1), 1, k(1,1), 1)
-          call to_zero(tmb%orbs%norb**2, tmb%linmat%denskern_large%matrix(1,1))
+          call to_zero(tmb%orbs%norb**2, tmb%linmat%kernel_%matrix(1,1))
           do iorb=1,tmb%orbs%norbp
               iiorb=iorb+tmb%orbs%isorb
               do jorb=1,tmb%orbs%norb
-                  tmb%linmat%denskern_large%matrix(jorb,iiorb) = 3.d0*ksk(jorb,iorb) - 2.d0*ksksk(jorb,iorb)
-                  !tmb%linmat%denskern_large%matrix(jorb,iiorb) = k(jorb,iorb) - alpha*( 4.d0*ksksk(jorb,iorb) &
-                  !                                                                     -6.d0*ksk(jorb,iorb) &
-                  !                                                                     +2.d0*k(jorb,iorb) )
+                  tmb%linmat%kernel_%matrix(jorb,iiorb) = 3.d0*ksk(jorb,iorb) - 2.d0*ksksk(jorb,iorb)
               end do
           end do
-          call mpiallred(tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          call mpiallred(tmb%linmat%kernel_%matrix(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
           if (diff<1.d-10) exit
 
       end do
 
-      call compress_matrix(iproc,tmb%linmat%denskern_large)
-      tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
+      call compress_matrix(iproc,tmb%linmat%l, &
+           inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
+      !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
+      tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
+            tmb%linmat%ovrlp_, tmb%linmat%kernel_)
       chargediff=2.d0*tr_KS-tmb%foe_obj%charge
 
       if (iproc==0) call yaml_close_sequence
@@ -2473,7 +2504,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
 
   !if (iproc==0) call yaml_close_sequence
 
-  call dscal(tmb%orbs%norb**2, 2.0d0, tmb%linmat%denskern_large%matrix, 1)
+  call dscal(tmb%orbs%norb**2, 2.0d0, tmb%linmat%kernel_%matrix, 1)
 
   call timing(iproc,'purify_kernel ','OF') 
 
@@ -2487,31 +2518,23 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   call f_free_ptr(ovrlp_minusonehalf)
 
   if (.not.inv_ovrlp_associated) then
-      !!iall = -product(shape(tmb%linmat%inv_ovrlp_large%matrix_compr))*kind(tmb%linmat%inv_ovrlp_large%matrix_compr)
-      !!deallocate(tmb%linmat%inv_ovrlp_large%matrix_compr,stat=istat)
-      !!call memocc(istat, iall, 'tmb%linmat%inv_ovrlp_large%matrix_compr', subname)
       call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix_compr)
   end if
 
 
-  call compress_matrix(iproc,tmb%linmat%denskern_large)
+  call compress_matrix(iproc, tmb%linmat%l, inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
 
-  tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
+  !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
+  tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
+        tmb%linmat%ovrlp_, tmb%linmat%kernel_)
   if (iproc==0) then
       call yaml_newline()
       call yaml_map('tr(KS) after purification',tr_KS)
   end if
 
 
-  !!iall=-product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
-  !!deallocate(tmb%linmat%ovrlp%matrix, stat=istat)
-  !!call memocc(istat, iall, 'tmb%linmat%ovrlp%matrix', subname)
-  !!iall=-product(shape(tmb%linmat%denskern_large%matrix))*kind(tmb%linmat%denskern_large%matrix)
-  !!deallocate(tmb%linmat%denskern_large%matrix, stat=istat)
-  !!call memocc(istat, iall, 'tmb%linmat%denskern_large%matrix', subname)
-
-  call f_free_ptr(tmb%linmat%ovrlp%matrix)
-  call f_free_ptr(tmb%linmat%denskern_large%matrix)
+  call f_free_ptr(tmb%linmat%ovrlp_%matrix)
+  call f_free_ptr(tmb%linmat%kernel_%matrix)
 
 
   call f_release_routine()
@@ -2524,11 +2547,13 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           ! Taylor approximation of S^1/2 and S^-1/2 up to higher order
 
           call overlapPowerGeneral(iproc, nproc, order_taylor, 2, -1, tmb%orbs%norb, tmb%orbs, &
-               imode=2, ovrlp_smat=tmb%linmat%ovrlp, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, check_accur=.true., &
-               ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=ovrlp_onehalf, error=error)
+               imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, &
+               ovrlp_mat=tmb%linmat%ovrlp_, check_accur=.true., &
+               ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=ovrlp_onehalf, error=error)
           call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, tmb%orbs, &
-               imode=2, ovrlp_smat=tmb%linmat%ovrlp, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, check_accur=.true., &
-               ovrlp=tmb%linmat%ovrlp%matrix, inv_ovrlp=ovrlp_minusonehalf, error=error)
+               imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, &
+               ovrlp_mat=tmb%linmat%ovrlp_, check_accur=.true., &
+               ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=ovrlp_minusonehalf, error=error)
           if (iproc==0) then
               call yaml_map('error of S^-1/2',error,fmt='(es9.2)')
           end if
@@ -2542,7 +2567,9 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   use module_base
   use module_types
   use module_interfaces, except_this_one => get_KS_residue
-  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
+  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
+                               matrices_null, allocate_matrices, deallocate_matrices, &
+                               sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
   use sparsematrix, only: uncompress_matrix
   implicit none
 
@@ -2557,26 +2584,28 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   ! Local variables
   integer :: iorb, istat, ierr,  jorb
   real(kind=8) :: norbtot, scale_factor
-  type(sparse_matrix) :: gradmat 
+  type(matrices) :: gradmat 
   real(kind=8),dimension(:,:),allocatable ::KH, KHKH, Kgrad
   character(len=*),parameter :: subname='get_KS_residue'
 
   call f_routine(id='get_KS_residue')
  
   !call nullify_sparse_matrix(gradmat)
-  gradmat=sparse_matrix_null()
-  call sparse_copy_pattern(tmb%linmat%ham, gradmat, iproc, subname)
-  gradmat%matrix_compr=f_malloc_ptr(gradmat%nvctr,id='gradmat%matrix_compr')
+  gradmat=matrices_null()
+  call allocate_matrices(tmb%linmat%m, allocate_full=.true., &
+       matname='gradmat', mat=gradmat)
+
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
-       hpsit_c, hpsit_c, hpsit_f, hpsit_f, gradmat)
+       hpsit_c, hpsit_c, hpsit_f, hpsit_f, tmb%linmat%m, gradmat)
 
 
-  gradmat%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='gradmat%matrix')
-  tmb%linmat%ham%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ham%matrix')
-  tmb%linmat%denskern_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern_large%matrix')
-  call uncompress_matrix(iproc,gradmat)
-  call uncompress_matrix(iproc,tmb%linmat%ham)
-  call uncompress_matrix(iproc,tmb%linmat%denskern_large)
+  !gradmat%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='gradmat%matrix')
+  tmb%linmat%ham_%matrix = sparsematrix_malloc_ptr(tmb%linmat%m, iaction=DENSE_FULL, id='tmb%linmat%ham_%matrix')
+  tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='tmb%linmat%kernel_%matrix')
+  call uncompress_matrix(iproc, tmb%linmat%m, inmat=gradmat%matrix_compr, outmat=gradmat%matrix)
+  call uncompress_matrix(iproc, tmb%linmat%m, &
+       inmat=tmb%linmat%ham_%matrix_compr, outmat=tmb%linmat%ham_%matrix)
+  call uncompress_matrix(iproc, tmb%linmat%l, inmat=tmb%linmat%kernel_%matrix_compr, outmat=tmb%linmat%kernel_%matrix)
   KH=f_malloc0((/tmb%orbs%norb,tmb%orbs%norb/),id='KH')
   KHKH=f_malloc0((/tmb%orbs%norb,tmb%orbs%norb/),id='KHKH')
 
@@ -2599,8 +2628,8 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   call timing(iproc,'ks_residue','ON')
   ! Parallelized version
   if (tmb%orbs%norbp>0) then
-      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.0d0, tmb%linmat%denskern_large%matrix, &
-           tmb%orbs%norb, tmb%linmat%ham%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
+      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.0d0, tmb%linmat%kernel_%matrix, &
+           tmb%orbs%norb, tmb%linmat%ham_%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
            0.d0, KH(1,tmb%orbs%isorb+1), tmb%orbs%norb)
   end if
   call mpiallred(KH(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
@@ -2613,7 +2642,7 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   call f_free(KH)
   Kgrad=f_malloc0((/tmb%orbs%norb,tmb%orbs%norb/),id='Kgrad')
   if (tmb%orbs%norbp>0) then
-      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.0d0, tmb%linmat%denskern_large%matrix, &
+      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.0d0, tmb%linmat%kernel_%matrix, &
            tmb%orbs%norb, gradmat%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
            0.d0, Kgrad(1,tmb%orbs%isorb+1), tmb%orbs%norb)
   end if
@@ -2655,11 +2684,11 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   !!if (iproc==0) write(*,*) 'KSgrad',sqrt(KSgrad/norbtot)
   call timing(iproc,'ks_residue','OF')
 
-  call f_free_ptr(gradmat%matrix)
-  call f_free_ptr(tmb%linmat%ham%matrix)
-  call f_free_ptr(tmb%linmat%denskern_large%matrix)
-  call f_free_ptr(gradmat%matrix_compr)
-  call deallocate_sparse_matrix(gradmat, subname)
+  !call f_free_ptr(gradmat%matrix)
+  call f_free_ptr(tmb%linmat%ham_%matrix)
+  call f_free_ptr(tmb%linmat%kernel_%matrix)
+  !call f_free_ptr(gradmat%matrix_compr)
+  call deallocate_matrices(gradmat)
 
 
   call f_free(KHKH)
@@ -2670,80 +2699,3 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
 end subroutine get_KS_residue
 
 
-
-
-subroutine check_idempotency(iproc, nproc, tmb, diff)
-  use module_base
-  use module_types
-  use sparsematrix, only: uncompress_matrix
-  implicit none
-
-  ! Calling variables
-  integer,intent(in) :: iproc, nproc
-  type(DFT_wavefunction),intent(inout) :: tmb
-  real(kind=8),intent(out) :: diff
-
-  ! Local variables
-  integer :: iorb, iiorb, jsegstart, jsegend, jseg, jorb, jjorb, ierr
-  real(kind=8),dimension(:,:),allocatable :: ks, ksk, ksksk
-
-
-  tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
-  tmb%linmat%denskern_large%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern_large%matrix')
-  call uncompress_matrix(iproc,tmb%linmat%ovrlp)
-  call uncompress_matrix(iproc,tmb%linmat%denskern_large)
-
-
-  call dscal(tmb%orbs%norb**2, 0.5d0, tmb%linmat%denskern_large%matrix, 1)
-
-  ks=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
-  ksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/))
-  ksksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
-
-  call to_zero(tmb%orbs%norb**2, ks(1,1))
-  if (tmb%orbs%norbp>0) then
-      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
-                 1.d0, tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb, &
-                 tmb%linmat%ovrlp%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
-                 0.d0, ks(1,tmb%orbs%isorb+1), tmb%orbs%norb) 
-  end if
-  call mpiallred(ks(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  if (tmb%orbs%norbp>0) then
-      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
-                 1.d0, ks(1,1), tmb%orbs%norb, &
-                 tmb%linmat%denskern_large%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
-                 0.d0, ksk(1,1), tmb%orbs%norb)
-  end if
-  !!if (tmb%orbs%norbp>0) then
-  !!    call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, ks(1,1), tmb%orbs%norb, &
-  !!               ksk(1,1), tmb%orbs%norb, 0.d0, ksksk(1,1), tmb%orbs%norb)
-  !!end if
-
-
-  diff=0.d0
-  do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
-      iiorb=iorb-tmb%orbs%isorb
-      jsegstart=tmb%linmat%denskern_large%istsegline(iorb)
-      if (iorb<tmb%orbs%norb) then
-          jsegend=tmb%linmat%denskern_large%istsegline(iorb+1)-1
-      else
-          jsegend=tmb%linmat%denskern_large%nseg
-      end if
-      do jseg=jsegstart,jsegend
-          do jorb=tmb%linmat%denskern_large%keyg(1,jseg),tmb%linmat%denskern_large%keyg(2,jseg)
-              jjorb=jorb-(iorb-1)*tmb%orbs%norb
-              diff = diff + (ksk(jjorb,iiorb)-tmb%linmat%denskern_large%matrix(jjorb,iorb))**2
-          end do
-      end do
-  end do
-  call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  diff=sqrt(diff)
-
-
-  call f_free(ks)
-  call f_free(ksk)
-  call f_free(ksksk)
-  call f_free_ptr(tmb%linmat%ovrlp%matrix)
-  call f_free_ptr(tmb%linmat%denskern_large%matrix)
-
-end subroutine check_idempotency

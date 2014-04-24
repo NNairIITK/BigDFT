@@ -15,9 +15,9 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
   use module_base
   use module_types
   use module_interfaces, except_this_one => chebyshev_clean
-  use sparsematrix_base, only: sparse_matrix, DENSE_PARALLEL, SPARSEMM_SEQ
-  use sparsematrix, only: sequential_acces_matrix_fast, sparsemm, &
-                          sparsematrix_malloc, assignment(=)
+  use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), &
+                               DENSE_PARALLEL, SPARSEMM_SEQ
+  use sparsematrix, only: sequential_acces_matrix_fast, sparsemm
   implicit none
 
   ! Calling arguments
@@ -381,8 +381,7 @@ end subroutine axpy_kernel_vectors
 subroutine chebyshev_fast(iproc, nsize_polynomial, npl, orbs, fermi, chebyshev_polynomials, cc, kernelp)
   use module_base
   use module_types
-  use sparsematrix_base, only: sparse_matrix, SPARSE_FULL
-  use sparsematrix, only: sparsematrix_malloc, assignment(=)
+  use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), SPARSE_FULL
   implicit none
 
   ! Calling arguments

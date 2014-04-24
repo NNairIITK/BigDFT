@@ -899,7 +899,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
        max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%psi, tmb%collcom_sr)
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-       tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+       tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
        denspot%rhov, rho_negative)
   if (rho_negative) then
       call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
@@ -1004,7 +1004,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
        max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%psi, tmb%collcom_sr)
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-       tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+       tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
        denspot%rhov, rho_negative)
   if (rho_negative) then
       call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
@@ -1193,7 +1193,11 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
      end if
 
      call calculate_overlap_transposed(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
-          tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+          tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+     ! This can then be deleted if the transition to the new type has been completed.
+     !tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
+
+
      if (.not.psit_c_associated) then
         iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
         deallocate(tmb%psit_c, stat=istat)
@@ -1210,10 +1214,12 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
 
   if (calculate_ovrlp_half) then
      ovrlp = f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='ovrlp')
-     call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%ovrlp,outmat=ovrlp)
+     call uncompress_matrix(bigdft_mpi%iproc, tmb%linmat%s, &
+          inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=ovrlp)
      call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 2, &
           tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%orbs, &
-          imode=2, ovrlp_smat=tmb%linmat%ovrlp, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, check_accur=.true., &
+          imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, &
+          ovrlp_mat=tmb%linmat%ovrlp_, check_accur=.true., &
           ovrlp=ovrlp, inv_ovrlp=ovrlp_half, error=error)
      !!ovrlp_half=tmb%linmat%ovrlp%matrix
      call f_free_ptr(ovrlp)
@@ -1223,7 +1229,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   proj_mat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='proj_mat')
 
   call to_zero(tmb%orbs%norb**2,proj_mat(1,1))
-  call uncompress_matrix(iproc, tmb%linmat%denskern_large,outmat=proj_mat)
+  call uncompress_matrix(iproc, tmb%linmat%l, inmat=tmb%linmat%kernel_%matrix_compr, outmat=proj_mat)
   !!isforb=0
   !!do ifrag=1,input%frag%nfrag
   !!   ifrag_ref=input%frag%frag_index(ifrag)
@@ -1351,7 +1357,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
 
       dipole_elec=0.d0
       do iat=1,atoms%astruct%nat
-          dipole_elec(1:3) = dipole_elec(1:3) + -charge_per_atom(iat)*atoms%astruct%rxyz(1:3,iat)
+          dipole_elec(1:3) = dipole_elec(1:3) -charge_per_atom(iat)*atoms%astruct%rxyz(1:3,iat)
       end do
 
       dipole_net=dipole_cores+dipole_elec
@@ -1612,7 +1618,7 @@ subroutine calculate_multipoles(n1i, n2i, n3i, hgrids, phir, charge_center_elec,
           else
               delta_term=0.d0
           end if
-          quadropole_center(j,i) = quadropole_center(j,i) + -qtot*(3.d0*rj*ri-delta_term)
+          quadropole_center(j,i) = quadropole_center(j,i) -qtot*(3.d0*rj*ri-delta_term)
       end do
   end do
 

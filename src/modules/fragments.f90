@@ -19,8 +19,9 @@ module module_fragments
   private
 
    interface
+
       subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize_pdgemm, inversion_method, basis_orbs, &
-                 basis_overlap, coeff, orbs)
+                 basis_overlap, basis_overlap_mat, coeff, orbs)
         use module_base
         use module_types
         use sparsematrix_base, only: sparse_matrix
@@ -28,8 +29,9 @@ module module_fragments
         integer, intent(in) :: iproc, nproc, norb
         integer, intent(in) :: blocksize_dsyev, blocksize_pdgemm, inversion_method
         type(orbitals_data), intent(in) :: basis_orbs   !number of basis functions
-        type(orbitals_data), optional, intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
-        type(sparse_matrix),intent(in) :: basis_overlap
+        type(orbitals_data), intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
+        type(sparse_matrix),intent(inout) :: basis_overlap
+        type(matrices),intent(inout) :: basis_overlap_mat
         real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(inout) :: coeff
       end subroutine reorthonormalize_coeff
 
@@ -41,6 +43,7 @@ module module_fragments
         type(orbitals_data), intent(in) :: orbs
         real(gp), dimension(:,:,:), intent(in), pointer :: mom_vec
       end subroutine write_eigenvalues_data
+
    end interface
 
 
@@ -1001,6 +1004,7 @@ contains
     use yaml_output
     use module_base
     use communications, only: transpose_localized
+    use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
     use sparsematrix, only: uncompress_matrix
     implicit none
     type(DFT_wavefunction), intent(inout) :: tmb
@@ -1125,7 +1129,10 @@ contains
        !call timing(iproc,'renormCoefComp','OF')
 
        call calculate_overlap_transposed(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs, tmb%collcom, &
-            tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+            tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+       ! This can then be deleted if the transition to the new type has been completed.
+       !tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
+
 
        !call timing(iproc,'renormCoefComp','ON')
        overlap_calculated=.true.
@@ -1136,8 +1143,8 @@ contains
     jsforb=0
     call to_zero(tmb%orbs%norb*tmb%orbs%norb,coeff_final(1,1))
     !*call to_zero(tmb%linmat%denskern%nvctr,kernel_final(1))
-    tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%ovrlp%matrix')
-    call uncompress_matrix(iproc,tmb%linmat%ovrlp)
+    !!tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%ovrlp%matrix')
+    !!call uncompress_matrix(iproc,tmb%linmat%ovrlp)
     do ifrag=1,input%frag%nfrag
        ! find reference fragment this corresponds to
        ifrag_ref=input%frag%frag_index(ifrag)
@@ -1202,10 +1209,15 @@ contains
        ! don't worry about this for now
 
        ! reorthonormalize the coeffs for each fragment - don't need unoccupied states here
+       tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, &
+                                  iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
+       call uncompress_matrix(iproc, tmb%linmat%s, &
+            inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
        call reorthonormalize_coeff(bigdft_mpi%iproc, bigdft_mpi%nproc, &
             ceiling((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp), &
             tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, tmb%orthpar%methTransformOverlap,&
-            tmb%orbs, tmb%linmat%ovrlp, tmb%coeff, ksorbs)
+            tmb%orbs, tmb%linmat%s, tmb%linmat%ovrlp_, tmb%coeff, ksorbs)
+       call f_free_ptr(tmb%linmat%ovrlp_%matrix)
 
        !! debug
        !!output final kernel
@@ -1238,7 +1250,7 @@ contains
        isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
        jsforb=jsforb+ceiling(jstate_max)
     end do
-    call f_free_ptr(tmb%linmat%ovrlp%matrix)
+    !!call f_free_ptr(tmb%linmat%ovrlp%matrix)
 
     !*call vcopy(tmb%linmat%denskern%nvctr,kernel_final(1),1,tmb%linmat%denskern%matrix_compr(1),1)
     call vcopy(tmb%orbs%norb*tmb%orbs%norb,coeff_final(1,1),1,tmb%coeff(1,1),1)

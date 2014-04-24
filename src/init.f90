@@ -829,11 +829,15 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   !!   deallocate(tmb_old%linmat%denskern%matrix_compr, stat=i_stat)
   !!   call memocc(i_stat, i_all, 'tmb_old%linmat%denskern%matrix_compr', subname)
   !!end if
-  if (associated(tmb_old%linmat%denskern_large%matrix_compr)) then
-     !!i_all=-product(shape(tmb_old%linmat%denskern_large%matrix_compr))*kind(tmb_old%linmat%denskern_large%matrix_compr)
-     !!deallocate(tmb_old%linmat%denskern_large%matrix_compr, stat=i_stat)
-     !!call memocc(i_stat, i_all, 'tmb_old%linmat%denskern_large%matrix_compr', subname)
-     call f_free_ptr(tmb_old%linmat%denskern_large%matrix_compr)
+  !!if (associated(tmb_old%linmat%denskern_large%matrix_compr)) then
+  !!   !!i_all=-product(shape(tmb_old%linmat%denskern_large%matrix_compr))*kind(tmb_old%linmat%denskern_large%matrix_compr)
+  !!   !!deallocate(tmb_old%linmat%denskern_large%matrix_compr, stat=i_stat)
+  !!   !!call memocc(i_stat, i_all, 'tmb_old%linmat%denskern_large%matrix_compr', subname)
+  !!   call f_free_ptr(tmb_old%linmat%denskern_large%matrix_compr)
+  !!end if
+
+  if (associated(tmb_old%linmat%kernel_%matrix_compr)) then
+     call f_free_ptr(tmb_old%linmat%kernel_%matrix_compr)
   end if
 
   ! destroy it all together here - don't have all comms arrays
@@ -921,8 +925,9 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   if (input%lin%scf_mode/=LINEAR_FOE) then
       call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
            tmb%orbs, tmb%psi, tmb%collcom_sr)
+      !tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
       call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-           tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+           tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
            denspot%rhov, rho_negative)
      if (rho_negative) then
          call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
@@ -956,7 +961,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       if (iproc==0) call yaml_map('orthonormalization of input guess','standard')        
       tmb%can_use_transposed = .false.                                         
       call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
-           tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp_large, &
+           tmb%linmat%s, tmb%linmat%inv_ovrlp_large, &
            tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed, &
            tmb%foe_obj)
   end if  
@@ -2009,6 +2014,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
              tmb%orthpar%blocksize_pdgemm, tmb%orbs, tmb, overlap_calculated)  
      else
         ! come back to this - reconstruct kernel too expensive with exact version, but Taylor needs to be done ~ 3 times here...
+
         call reconstruct_kernel(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%blocksize_pdsyev, &
              tmb%orthpar%blocksize_pdgemm, KSwfn%orbs, tmb, overlap_calculated)
      end if
@@ -2052,8 +2058,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
           tmb%orbs, tmb%psi, tmb%collcom_sr)
 
+     !tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-          tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+          tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
           denspot%rhov, rho_negative)
      if (rho_negative) then
          if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
@@ -2064,7 +2071,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      ! CDFT: calculate w(r) and w_ab, define some initial guess for V and initialize other cdft_data stuff
      call timing(iproc,'constraineddft','ON')
      if (in%lin%constrained_dft) then
-        call cdft_data_allocate(cdft,tmb%linmat%ham)
+        call cdft_data_allocate(cdft,tmb%linmat%m)
         if (trim(cdft%method)=='fragment_density') then ! fragment density approach
            if (in%lin%calc_transfer_integrals) stop 'Must use Lowdin for CDFT transfer integral calculations for now'
            if (in%lin%diag_start) stop 'Diag at start probably not working for fragment_density'

@@ -23,7 +23,7 @@ module module_types
   use psp_projectors
   use module_atoms, only: atoms_data,symmetry_data,atomic_structure
   use communications_base, only: comms_linear, comms_cubic
-  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_base, only: matrices, sparse_matrix
 
   implicit none
 
@@ -592,8 +592,12 @@ module module_types
     integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
   end type foe_data
 
-  type,public :: linear_matrices !may not keep
-      type(sparse_matrix) :: ham, ovrlp, denskern_large, inv_ovrlp_large
+  type,public :: linear_matrices
+      type(sparse_matrix) :: inv_ovrlp_large
+      type(sparse_matrix) :: s !< small: sparsity pattern given by support function cutoff
+      type(sparse_matrix) :: m !< medium: sparsity pattern given by SHAMOP cutoff
+      type(sparse_matrix) :: l !< medium: sparsity pattern given by kernel cutoff
+      type(matrices) :: ham_, ovrlp_, kernel_
   end type linear_matrices
 
   type,public:: workarrays_quartic_convolutions

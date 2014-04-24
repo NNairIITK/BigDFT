@@ -3,8 +3,8 @@ program driver
   use module_base
   use module_types
   use module_interfaces
+  use sparsematrix_base, only: deallocate_sparse_matrix, allocate_matrices, deallocate_matrices
   use sparsematrix, only: compress_matrix, uncompress_matrix
-  use sparsematrix_base, only: deallocate_sparse_matrix
   use yaml_output
   implicit none
 
@@ -23,6 +23,7 @@ program driver
   logical :: file_exists, symmetric, check_symmetry, perform_check
   type(orbitals_data) :: orbs
   type(sparse_matrix) :: smat_A, smat_B
+  type(matrices) :: mat_A
   character(len=*),parameter :: filename='inputdata.fake'
   integer :: nconfig, ierr, iel, ilen, iseg, istart, iend, info, lwork, iiorb
   integer, dimension(4) :: mpi_info
@@ -143,7 +144,8 @@ program driver
 
 
   call vcopy(orbs%norb**2, ovrlp(1,1), 1, smat_A%matrix(1,1), 1)
-  call compress_matrix(iproc, smat_A)
+  call allocate_matrices(smat_A, allocate_full=.false., matname='mat_A', mat=mat_A)
+  call compress_matrix(iproc, smat_A, inmat=smat_A%matrix, outmat=mat_A%matrix_compr)
   ! uncomment for sparse and dense modes to be testing the same matrix
   !call uncompress_matrix(iproc, smat_A)
 
@@ -194,7 +196,7 @@ program driver
           if (timer_on) call cpu_time(tr0)
           if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
           call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, &
-               imode, ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, check_accur=.true., &
+               imode, ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, ovrlp_mat=mat_A, check_accur=.true., &
                ovrlp=smat_A%matrix, inv_ovrlp=smat_B%matrix, error=error)
           if (timer_on) call cpu_time(tr1)
           if (timer_on) call system_clock(ncount2,ncount_rate,ncount_max)
@@ -207,7 +209,7 @@ program driver
           if (timer_on) call cpu_time(tr0)
           if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
           call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, &
-               imode, ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, &
+               imode, ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, ovrlp_mat=mat_A, &
                check_accur=.true., error=error)
                !!foe_nseg=smat_A%nseg, foe_kernel_nsegline=smat_A%nsegline, &
                !!foe_istsegline=smat_A%istsegline, foe_keyg=smat_A%keyg)
@@ -230,6 +232,7 @@ program driver
   call deallocate_orbitals_data(orbs, 'driver')
   call deallocate_sparse_matrix(smat_A, 'driver')
   call deallocate_sparse_matrix(smat_B, 'driver')
+  call deallocate_matrices(mat_A)
 
   deallocate(ovrlp)
 
