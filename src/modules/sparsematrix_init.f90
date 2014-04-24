@@ -82,6 +82,7 @@ module sparsematrix_init
 
     subroutine init_indices_in_compressed(store_index, norb, sparsemat)
       use module_base
+      use sparsematrix_base, only: sparse_matrix
       implicit none
     
       ! Calling arguments
@@ -119,6 +120,7 @@ module sparsematrix_init
     !> Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
     function compressed_index(irow, jcol, norb, sparsemat)
       use module_base
+      use sparsematrix_base, only: sparse_matrix
       implicit none
     
       ! Calling arguments
@@ -154,6 +156,7 @@ module sparsematrix_init
 
     integer function matrixindex_in_compressed(sparsemat, iorb, jorb)
       use module_base
+      use sparsematrix_base, only: sparse_matrix
       implicit none
     
       ! Calling arguments
@@ -208,6 +211,7 @@ module sparsematrix_init
 
     subroutine init_orbs_from_index(sparsemat)
       use module_base
+      use sparsematrix_base, only: sparse_matrix
       implicit none
     
       ! Calling arguments
@@ -771,6 +775,7 @@ module sparsematrix_init
 
     subroutine init_onedimindices_new(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, sparsemat, nout, onedimindices)
       use module_base
+      use sparsematrix_base, only: sparse_matrix
       implicit none
     
       ! Calling arguments
@@ -820,6 +825,7 @@ module sparsematrix_init
                nsegline, istsegline, keyg, sparsemat, nseq, nmaxsegk, nmaxvalk, &
                ivectorindex)
       use module_base
+      use sparsematrix_base, only: sparse_matrix
       implicit none
     
       ! Calling arguments
@@ -865,6 +871,7 @@ module sparsematrix_init
                nsegline, istsegline, keyg, sparsemat, nseq, nmaxsegk, nmaxvalk, &
                indices_extract_sequential)
       use module_base
+      use sparsematrix_base, only: sparse_matrix
       implicit none
     
       ! Calling arguments

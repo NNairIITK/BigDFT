@@ -1139,7 +1139,8 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   use module_types
   use module_interfaces, except_this_one => loewdin_charge_analysis
   use communications, only: transpose_localized
-  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), &
+                               matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: compress_matrix, uncompress_matrix
   use yaml_output
   implicit none
@@ -1155,6 +1156,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   real(kind=gp), allocatable, dimension(:,:) :: proj_mat, proj_ovrlp_half, weight_matrixp
   character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
   real(kind=gp) :: error
+  type(matrices) :: inv_ovrlp
 
   ! new variables
   integer :: iat, iall
@@ -1169,7 +1171,12 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   ! re-use overlap matrix if possible either before or after
 
   call f_routine(id='loewdin_charge_analysis')
-  ovrlp_half = f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='ovrlp_half')
+  ovrlp_half = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='ovrlp_half')
+
+  inv_ovrlp = matrices_null()
+  call allocate_matrices(tmb%linmat%l, allocate_full=.false., matname='inv_ovrlp', mat=inv_ovrlp)
+
+
 
   if (calculate_overlap_matrix) then
      if(.not.tmb%can_use_transposed) then
@@ -1219,7 +1226,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
      call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 2, &
           tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%orbs, &
           imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, &
-          ovrlp_mat=tmb%linmat%ovrlp_, check_accur=.true., &
+          ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
           ovrlp=ovrlp, inv_ovrlp=ovrlp_half, error=error)
      !!ovrlp_half=tmb%linmat%ovrlp%matrix
      call f_free_ptr(ovrlp)
@@ -1310,6 +1317,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   end if
   !!call support_function_multipoles()
 
+  call deallocate_matrices(inv_ovrlp)
 
   call f_free(charge_per_atom)
   call f_free(weight_matrix)
