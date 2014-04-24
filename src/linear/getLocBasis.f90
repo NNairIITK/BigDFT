@@ -2554,11 +2554,11 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           ! Taylor approximation of S^1/2 and S^-1/2 up to higher order
 
           call overlapPowerGeneral(iproc, nproc, order_taylor, 2, -1, tmb%orbs%norb, tmb%orbs, &
-               imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, &
+               imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
                ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=ovrlp_onehalf, error=error)
           call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, tmb%orbs, &
-               imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, &
+               imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
                ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=ovrlp_minusonehalf, error=error)
           if (iproc==0) then

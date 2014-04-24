@@ -363,7 +363,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
        inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
   call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orthpar%methTransformOverlap, 2, &
        tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%orbs, imode=2, &
-       ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, &
+       ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
        ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
        ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=ovrlp_half, error=error)
   call f_free_ptr(tmb%linmat%ovrlp_%matrix)
@@ -1065,7 +1065,7 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
      inv_ovrlp=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='inv_ovrlp')
      call overlapPowerGeneral(iproc, nproc, tmb%orthpar%methTransformOverlap, 1, -8, &
           tmb%orbs%norb, tmb%orbs, imode=2, &
-          ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, &
+          ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
           ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, check_accur=.true., &
           ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=inv_ovrlp, error=error)
 
@@ -1380,7 +1380,7 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_
      !end if
      inv_ovrlp=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='inv_ovrlp')
      call overlapPowerGeneral(iproc, nproc, tmb%orthpar%methTransformOverlap, 1, -8, tmb%orbs%norb, tmb%orbs, &
-          imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%inv_ovrlp_large, &
+          imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
           ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, check_accur=.true., &
           ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=inv_ovrlp, error=error)
 
