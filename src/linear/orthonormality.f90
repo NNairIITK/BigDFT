@@ -400,7 +400,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
   use module_types
   use module_interfaces, except_this_one => overlapPowerGeneral
   use sparsematrix_base, only: sparse_matrix, &
-                          sparsematrix_malloc_ptr, sparsematrix_malloc, sparsematrix_malloc0, &
+                          sparsematrix_malloc_ptr, sparsematrix_malloc, sparsematrix_malloc0, sparsematrix_malloc0_ptr, &
                           assignment(=), &
                           SPARSE_FULL, DENSE_PARALLEL, DENSE_FULL, SPARSEMM_SEQ
   use sparsematrix, only: compress_matrix, uncompress_matrix, transform_sparse_matrix, &
@@ -710,11 +710,11 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orb
           if (nproc>0) then
               Amat12p = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='Amat12p')
               Amat21p = sparsematrix_malloc0(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='Amat21p')
-              Amat11p = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='Amat11p')
+              Amat11p = sparsematrix_malloc0_ptr(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='Amat11p')
           else
               Amat12p = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_FULL, id='Amat12p')
               Amat21p = sparsematrix_malloc0(inv_ovrlp_smat, iaction=DENSE_FULL, id='Amat21p')
-              Amat11p = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_FULL, id='Amat11p')
+              Amat11p = sparsematrix_malloc0_ptr(inv_ovrlp_smat, iaction=DENSE_FULL, id='Amat11p')
           end if
           ! save some memory but keep code clear - Amat22 and Amat11 should be identical as only combining S and I
           Amat22p=>Amat11p

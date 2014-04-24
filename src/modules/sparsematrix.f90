@@ -502,6 +502,7 @@ module sparsematrix
      real(kind=8) :: tt
    
      call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'IR')
+
    
      !$omp parallel default(private) shared(smat, a_seq, b, c)
      !$omp do

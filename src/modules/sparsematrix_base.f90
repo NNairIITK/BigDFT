@@ -349,14 +349,14 @@ module sparsematrix_base
 
       select case (smat_info0_ptr%iaction)
       case (SPARSE_FULL)
-          smat_ptr = f_malloc_ptr(smat_info0_ptr%smat%nvctr,id=smat_info0_ptr%id)
-          call to_zero(smat_info0_ptr%smat%nvctr,smat_ptr(1))
+          smat_ptr = f_malloc0_ptr(smat_info0_ptr%smat%nvctr,id=smat_info0_ptr%id)
+          !call to_zero(smat_info0_ptr%smat%nvctr,smat_ptr(1))
       case (SPARSE_PARALLEL)
-          smat_ptr = f_malloc_ptr(smat_info0_ptr%smat%nvctrp,id=smat_info0_ptr%id)
-          call to_zero(smat_info0_ptr%smat%nvctrp,smat_ptr(1))
+          smat_ptr = f_malloc0_ptr(smat_info0_ptr%smat%nvctrp,id=smat_info0_ptr%id)
+          !call to_zero(smat_info0_ptr%smat%nvctrp,smat_ptr(1))
       case (SPARSEMM_SEQ)
-          smat_ptr = f_malloc_ptr(smat_info0_ptr%smat%smmm%nseq,id=smat_info0_ptr%id)
-          call to_zero(smat_info0_ptr%smat%smmm%nseq,smat_ptr(1))
+          smat_ptr = f_malloc0_ptr(smat_info0_ptr%smat%smmm%nseq,id=smat_info0_ptr%id)
+          !call to_zero(smat_info0_ptr%smat%smmm%nseq,smat_ptr(1))
       case default
           call f_err_throw('The action specified for the 1d matrix allocation is invalid',&
                err_name='BIGDFT_RUNTIME_ERROR')
@@ -371,11 +371,11 @@ module sparsematrix_base
 
       select case (smat_info0_ptr%iaction)
       case (DENSE_FULL)
-          smat_ptr = f_malloc_ptr((/smat_info0_ptr%smat%nfvctr,smat_info0_ptr%smat%nfvctr/),id=smat_info0_ptr%id)
-          call to_zero(smat_info0_ptr%smat%nfvctr*smat_info0_ptr%smat%nfvctr,smat_ptr(1,1))
+          smat_ptr = f_malloc0_ptr((/smat_info0_ptr%smat%nfvctr,smat_info0_ptr%smat%nfvctr/),id=smat_info0_ptr%id)
+          !call to_zero(smat_info0_ptr%smat%nfvctr*smat_info0_ptr%smat%nfvctr,smat_ptr(1,1))
       case (DENSE_PARALLEL)
-          smat_ptr = f_malloc_ptr((/smat_info0_ptr%smat%nfvctr,smat_info0_ptr%smat%nvctrp/),id=smat_info0_ptr%id)
-          call to_zero(smat_info0_ptr%smat%nfvctr*smat_info0_ptr%smat%nvctrp,smat_ptr(1,1))
+          smat_ptr = f_malloc0_ptr((/smat_info0_ptr%smat%nfvctr,smat_info0_ptr%smat%nvctrp/),id=smat_info0_ptr%id)
+          !call to_zero(smat_info0_ptr%smat%nfvctr*smat_info0_ptr%smat%nvctrp,smat_ptr(1,1))
       case default
          call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
               err_name='BIGDFT_RUNTIME_ERROR')
@@ -390,14 +390,14 @@ module sparsematrix_base
 
       select case (smat_info0%iaction)
       case (SPARSE_FULL)
-          smat = f_malloc(smat_info0%smat%nvctr,id=smat_info0%id)
-          call to_zero(smat_info0%smat%nvctr,smat(1))
+          smat = f_malloc0(smat_info0%smat%nvctr,id=smat_info0%id)
+          !call to_zero(smat_info0%smat%nvctr,smat(1))
       case (SPARSE_PARALLEL)
-          smat = f_malloc(smat_info0%smat%nvctrp,id=smat_info0%id)
-          call to_zero(smat_info0%smat%nvctrp,smat(1))
+          smat = f_malloc0(smat_info0%smat%nvctrp,id=smat_info0%id)
+          !call to_zero(smat_info0%smat%nvctrp,smat(1))
       case (SPARSEMM_SEQ)
-          smat = f_malloc(smat_info0%smat%smmm%nseq,id=smat_info0%id)
-          call to_zero(smat_info0%smat%smmm%nseq,smat(1))
+          smat = f_malloc0(smat_info0%smat%smmm%nseq,id=smat_info0%id)
+          !call to_zero(smat_info0%smat%smmm%nseq,smat(1))
       case default
           call f_err_throw('The action specified for the 1d matrix allocation is invalid',&
                err_name='BIGDFT_RUNTIME_ERROR')
@@ -412,14 +412,14 @@ module sparsematrix_base
 
       select case (smat_info0%iaction)
       case (DENSE_FULL)
-          smat = f_malloc((/smat_info0%smat%nfvctr,smat_info0%smat%nfvctr/),id=smat_info0%id)
-          call to_zero(smat_info0%smat%nfvctr*smat_info0%smat%nfvctr,smat(1,1))
+          smat = f_malloc0((/smat_info0%smat%nfvctr,smat_info0%smat%nfvctr/),id=smat_info0%id)
+          !call to_zero(smat_info0%smat%nfvctr*smat_info0%smat%nfvctr,smat(1,1))
       case (DENSE_PARALLEL)
-          smat = f_malloc((/smat_info0%smat%nfvctr,smat_info0%smat%nvctrp/),id=smat_info0%id)
-          call to_zero(smat_info0%smat%nfvctr*smat_info0%smat%nvctrp,smat(1,1))
+          smat = f_malloc0((/smat_info0%smat%nfvctr,smat_info0%smat%nvctrp/),id=smat_info0%id)
+          !call to_zero(smat_info0%smat%nfvctr*smat_info0%smat%nvctrp,smat(1,1))
       case default
-         call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
-              err_name='BIGDFT_RUNTIME_ERROR')
+          call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
+               err_name='BIGDFT_RUNTIME_ERROR')
       end select
     end subroutine allocate0_smat_d2
 
