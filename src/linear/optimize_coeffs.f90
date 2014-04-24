@@ -1277,10 +1277,9 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_
   real(kind=gp), dimension(:), allocatable:: occup_tmp
   real(kind=gp), dimension(:,:), allocatable:: grad_full
   real(kind=gp) :: error
-  character(len=*),parameter:: subname='calculate_coeff_gradient'
   type(matrices) :: inv_ovrlp_
 
-  call f_routine(id='calculate_coeff_gradient')
+  call f_routine(id='calculate_coeff_gradient_extra')
   call timing(iproc,'dirmin_lagmat1','ON')
 
   inv_ovrlp_ = matrices_null()
@@ -1407,7 +1406,6 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_
 
       call f_free(grad_full)
 
-      call deallocate_matrices(inv_ovrlp_)
 
   end if
 
@@ -1416,6 +1414,7 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_
       stop
   end if
 
+  call deallocate_matrices(inv_ovrlp_)
 
   call timing(iproc,'dirmin_dgesv','OF') !lr408t
   call f_release_routine()
