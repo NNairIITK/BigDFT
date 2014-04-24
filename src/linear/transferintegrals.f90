@@ -273,7 +273,7 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ham_mat,ovrlp,ovr
   use yaml_output
   use module_fragments
   use internal_io
-  use module_interfaces
+  use module_interfaces, except_this_one => calc_transfer_integral
   use sparsematrix_base, only: sparse_matrix
   implicit none
 
