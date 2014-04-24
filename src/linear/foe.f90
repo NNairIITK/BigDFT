@@ -478,7 +478,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                   allredarr(2)=bound_up
                   call mpiallred(allredarr, 2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
                   allredarr=abs(allredarr) !for some crazy situations this may be negative
-                  anoise=10.d0*anoise
+                  anoise=100.d0*anoise
                   if (allredarr(1)>anoise) then
                       eval_bounds_ok(1)=.false.
                       tmb%foe_obj%evlow=tmb%foe_obj%evlow*1.2d0
