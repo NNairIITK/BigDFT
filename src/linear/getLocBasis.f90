@@ -2091,7 +2091,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   ! is done using the dense version
   !if (norb==orbs%norb) then
       call overlapPowerGeneral(iproc, nproc, inversion_method, -2, &
-           blocksize_dsyev, KS_overlap%nfvctr, orbs, imode=2, ovrlp_smat=KS_overlap, inv_ovrlp_smat=KS_overlap, &
+           blocksize_dsyev, imode=2, ovrlp_smat=KS_overlap, inv_ovrlp_smat=KS_overlap, &
            ovrlp_mat=basis_overlap_mat, inv_ovrlp_mat=inv_ovrlp, &
            check_accur=.false., ovrlp=ovrlp_coeff, inv_ovrlp=ovrlp_coeff2)
   !else
@@ -2564,11 +2564,11 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
         subroutine calculate_overlap_onehalf()
           ! Taylor approximation of S^1/2 and S^-1/2 up to higher order
 
-          call overlapPowerGeneral(iproc, nproc, order_taylor, 2, -1, tmb%orbs%norb, tmb%orbs, &
+          call overlapPowerGeneral(iproc, nproc, order_taylor, 2, -1, &
                imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
                ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=ovrlp_onehalf, error=error)
-          call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, tmb%orbs, &
+          call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, &
                imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
                ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=ovrlp_minusonehalf, error=error)

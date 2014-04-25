@@ -3892,7 +3892,7 @@ module module_interfaces
         end subroutine gramschmidt_subset
 
 
-        subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, imode, &
+        subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                    ovrlp_smat, inv_ovrlp_smat, ovrlp_mat, inv_ovrlp_mat, check_accur, &
                    ovrlp, inv_ovrlp, error)
              !!foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
@@ -3901,8 +3901,7 @@ module module_interfaces
           use sparsematrix_base, only: sparse_matrix, SPARSE_FULL, DENSE_PARALLEL, DENSE_FULL, SPARSEMM_SEQ
           use yaml_output
           implicit none
-          integer,intent(in) :: iproc, nproc, iorder, blocksize, norb, power
-          type(orbitals_data),intent(in) :: orbs
+          integer,intent(in) :: iproc, nproc, iorder, blocksize, power
           integer,intent(in) :: imode
           type(sparse_matrix),intent(inout) :: ovrlp_smat, inv_ovrlp_smat
           type(matrices),intent(inout) :: ovrlp_mat, inv_ovrlp_mat
@@ -3912,14 +3911,14 @@ module module_interfaces
         end subroutine overlapPowerGeneral
 
 
-        subroutine overlap_plus_minus_one_half_exact(norb,blocksize,plusminus,inv_ovrlp_half,smat)
+        subroutine overlap_plus_minus_one_half_exact(nproc,norb,blocksize,plusminus,inv_ovrlp_half,smat)
           use module_base
           use module_types
           implicit none
-          integer,intent(in) :: norb,blocksize
+          integer,intent(in) :: nproc,norb,blocksize
           real(kind=8),dimension(:,:),pointer :: inv_ovrlp_half
           logical, intent(in) :: plusminus
-          type(sparse_matrix),intent(in) :: smat
+          type(sparse_matrix),intent(in),optional :: smat
         end subroutine overlap_plus_minus_one_half_exact
 
         subroutine input_wf_memory_new(nproc,iproc, atoms, &
