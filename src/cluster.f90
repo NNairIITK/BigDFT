@@ -526,6 +526,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      !tmb%linmat%inv_ovrlp_large=sparse_matrix_null()
      !call sparse_copy_pattern(tmb%linmat%l, tmb%linmat%inv_ovrlp_large, iproc, subname)
 
+     ! Initializes a sparse matrix type compatible with the ditribution of the
+     ! KS orbitals. This is required for the re-orthonromalization of the
+     ! KS espansion coefficients, so it is not necessary for FOE.
+     tmb%linmat%ks = sparse_matrix_null()
+     tmb%linmat%ks_e = sparse_matrix_null()
+     if (in%lin%scf_mode/=LINEAR_FOE .or. in%lin%pulay_correction .or.  in%lin%new_pulay_correction .or. &
+         (in%lin%plotBasisFunctions /= WF_FORMAT_NONE) .or. in%lin%diag_end) then
+         call init_sparse_matrix_for_KSorbs(iproc, nproc, KSwfn%orbs, in, in%lin%extra_states, &
+              tmb%linmat%ks, tmb%linmat%ks_e)
+     end if
+
 
      if (in%check_matrix_compression) then
          if (iproc==0) call yaml_open_map('Checking Compression/Uncompression of large sparse matrices')

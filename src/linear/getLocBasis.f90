@@ -1955,7 +1955,7 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
   call uncompress_matrix(iproc, tmb%linmat%s, &
        inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
   call reorthonormalize_coeff(iproc, nproc, orbs%norb, blocksize_dsyev, blocksize_pdgemm, inversion_method, &
-       tmb%orbs, tmb%linmat%s, tmb%linmat%ovrlp_, tmb%coeff, orbs)
+       tmb%orbs, tmb%linmat%s, tmb%linmat%ks, tmb%linmat%ovrlp_, tmb%coeff, orbs)
 
   call f_free_ptr(tmb%linmat%ovrlp_%matrix)
 
@@ -1969,7 +1969,7 @@ end subroutine reconstruct_kernel
 
 !> Passing sparse ovrlp, but for now assuming ovrlp%matrix will be allocated and filled if using dense
 subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize_pdgemm, inversion_method, basis_orbs, &
-           basis_overlap, basis_overlap_mat, coeff, orbs)
+           basis_overlap, KS_overlap, basis_overlap_mat, coeff, orbs)
   use module_base
   use module_types
   use module_interfaces, except_this_one => reorthonormalize_coeff
@@ -1980,7 +1980,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   integer, intent(in) :: iproc, nproc, norb
   integer, intent(in) :: blocksize_dsyev, blocksize_pdgemm, inversion_method
   type(orbitals_data), intent(in) :: basis_orbs   !number of basis functions
-  type(sparse_matrix),intent(inout) :: basis_overlap
+  type(sparse_matrix),intent(inout) :: basis_overlap, KS_overlap
   type(matrices),intent(inout) :: basis_overlap_mat
   real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(inout) :: coeff
   type(orbitals_data), intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution

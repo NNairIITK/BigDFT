@@ -911,7 +911,7 @@ PBE_potmixdiis:
  Raw forces norm (Ha/Bohr): 2.6e-8
  Average noise forces: 3.0e-8
  Orbitals: 6.3e-8
- energy: 4.8e-8
+ energy: 2.5e-7
  EXC: 2.0e-8
  EvXC: 2.7e-8
  Omega: 4.3e-8
