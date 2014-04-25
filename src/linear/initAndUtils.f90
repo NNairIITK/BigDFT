@@ -1063,6 +1063,8 @@ subroutine destroy_DFT_wavefunction(wfn)
   call deallocate_sparse_matrix(wfn%linmat%s, subname)
   call deallocate_sparse_matrix(wfn%linmat%m, subname)
   call deallocate_sparse_matrix(wfn%linmat%l, subname)
+  call deallocate_sparse_matrix(wfn%linmat%ks, subname)
+  call deallocate_sparse_matrix(wfn%linmat%ks_e, subname)
   call deallocate_matrices(wfn%linmat%ovrlp_)
   call deallocate_matrices(wfn%linmat%ham_)
   call deallocate_matrices(wfn%linmat%kernel_)
@@ -1413,6 +1415,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call deallocate_sparse_matrix(tmb%linmat%s, subname)
      call deallocate_sparse_matrix(tmb%linmat%m, subname)
      call deallocate_sparse_matrix(tmb%linmat%l, subname)
+     call deallocate_sparse_matrix(tmb%linmat%ks, subname)
+     call deallocate_sparse_matrix(tmb%linmat%ks_e, subname)
      call deallocate_matrices(tmb%linmat%ovrlp_)
      call deallocate_matrices(tmb%linmat%ham_)
      call deallocate_matrices(tmb%linmat%kernel_)
@@ -1536,6 +1540,16 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      !tmb%linmat%inv_ovrlp_large=sparse_matrix_null()
      !call sparse_copy_pattern(tmb%linmat%l, tmb%linmat%inv_ovrlp_large, iproc, subname)
+
+
+     tmb%linmat%ks = sparse_matrix_null()
+     tmb%linmat%ks_e = sparse_matrix_null()
+     if (input%lin%scf_mode/=LINEAR_FOE .or. input%lin%pulay_correction .or.  input%lin%new_pulay_correction .or. &
+         (input%lin%plotBasisFunctions /= WF_FORMAT_NONE) .or. input%lin%diag_end) then
+         call init_sparse_matrix_for_KSorbs(iproc, nproc, KSwfn%orbs, input, input%lin%extra_states, &
+              tmb%linmat%ks, tmb%linmat%ks_e)
+     end if
+
 
 
   else ! no change in locrad, just confining potential that needs updating
@@ -2018,3 +2032,66 @@ subroutine init_sparse_matrix_wrapper(iproc, nproc, orbs, lzd, astruct, store_in
   call f_free(cutoff)
 
 end subroutine init_sparse_matrix_wrapper
+
+
+!> Initializes a sparse matrix type compatible with the ditribution of the KS orbitals
+subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat, smat_extra)
+  use module_types
+  use module_interfaces
+  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_init, only: init_sparse_matrix
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, nextra
+  type(orbitals_data),intent(in) :: orbs
+  type(input_variables),intent(in) :: input
+  type(sparse_matrix),intent(out) :: smat, smat_extra
+
+  ! Local variables
+  integer :: i, iorb, iiorb, jorb, ind
+  integer,dimension(:),allocatable :: nonzero
+  type(orbitals_data) :: orbs_aux
+  character(len=*),parameter :: subname='init_sparse_matrix_for_KSorbs'
+
+  call f_routine('init_sparse_matrix_for_KSorbs')
+
+  ! First the type for the normal KS orbitals distribution
+  nonzero = f_malloc(orbs%norb*orbs%norbp, id='nonzero')
+  i=0
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      do jorb=1,orbs%norb
+          i=i+1
+          ind=(iiorb-1)*orbs%norb+jorb
+          nonzero(i)=ind
+      end do
+  end do
+  call init_sparse_matrix(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, input%store_index, &
+       orbs%norb*orbs%norbp, nonzero, orbs%norb, nonzero, smat, print_info_=.false.)
+  call f_free(nonzero)
+
+
+  ! Now the distribution for the KS orbitals including the extr states. Requires
+  ! first to calculate a corresponding orbs type.
+  call nullify_orbitals_data(orbs_aux)
+  call orbitals_descriptors(iproc, nproc, orbs%norb+nextra, orbs%norb+nextra, 0, input%nspin, orbs%nspinor,&
+       input%gen_nkpt, input%gen_kpt, input%gen_wkpt, orbs_aux, .false.)
+  nonzero = f_malloc(orbs_aux%norb*orbs_aux%norbp, id='nonzero')
+  i=0
+  do iorb=1,orbs_aux%norbp
+      iiorb=orbs_aux%isorb+iorb
+      do jorb=1,orbs_aux%norb
+          i=i+1
+          ind=(iiorb-1)*orbs_aux%norb+jorb
+          nonzero(i)=ind
+      end do
+  end do
+  call init_sparse_matrix(iproc, nproc, orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, input%store_index, &
+       orbs_aux%norb*orbs_aux%norbp, nonzero, orbs_aux%norb, nonzero, smat_extra, print_info_=.false.)
+  call f_free(nonzero)
+  call deallocate_orbitals_data(orbs_aux, subname)
+
+  call f_release_routine()
+
+end subroutine init_sparse_matrix_for_KSorbs

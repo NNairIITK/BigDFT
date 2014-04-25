@@ -3315,7 +3315,7 @@ module module_interfaces
         end subroutine reconstruct_kernel
 
         subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize_pdgemm, inversion_method, basis_orbs, &
-                   basis_overlap, basis_overlap_mat, coeff, orbs)
+                   basis_overlap, KS_overlap, basis_overlap_mat, coeff, orbs)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
@@ -3324,7 +3324,7 @@ module module_interfaces
           integer, intent(in) :: blocksize_dsyev, blocksize_pdgemm, inversion_method
           type(orbitals_data), intent(in) :: basis_orbs   !number of basis functions
           type(orbitals_data), intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
-          type(sparse_matrix),intent(inout) :: basis_overlap
+          type(sparse_matrix),intent(inout) :: basis_overlap, KS_overlap
           type(matrices),intent(inout) :: basis_overlap_mat
           real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(inout) :: coeff
         end subroutine reorthonormalize_coeff
@@ -3892,34 +3892,31 @@ module module_interfaces
         end subroutine gramschmidt_subset
 
 
-        subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, imode, &
+        subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                    ovrlp_smat, inv_ovrlp_smat, ovrlp_mat, inv_ovrlp_mat, check_accur, &
-                   ovrlp, inv_ovrlp, error)
-             !!foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
+                   error)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix, SPARSE_FULL, DENSE_PARALLEL, DENSE_FULL, SPARSEMM_SEQ
           use yaml_output
           implicit none
-          integer,intent(in) :: iproc, nproc, iorder, blocksize, norb, power
-          type(orbitals_data),intent(in) :: orbs
+          integer,intent(in) :: iproc, nproc, iorder, blocksize, power
           integer,intent(in) :: imode
           type(sparse_matrix),intent(inout) :: ovrlp_smat, inv_ovrlp_smat
           type(matrices),intent(inout) :: ovrlp_mat, inv_ovrlp_mat
           logical,intent(in) :: check_accur
-          real(kind=8),dimension(:,:),pointer,optional :: ovrlp, inv_ovrlp
           real(kind=8),intent(out),optional :: error
         end subroutine overlapPowerGeneral
 
 
-        subroutine overlap_plus_minus_one_half_exact(norb,blocksize,plusminus,inv_ovrlp_half,orbs)
+        subroutine overlap_plus_minus_one_half_exact(nproc,norb,blocksize,plusminus,inv_ovrlp_half,smat)
           use module_base
           use module_types
           implicit none
-          integer,intent(in) :: norb,blocksize
+          integer,intent(in) :: nproc,norb,blocksize
           real(kind=8),dimension(:,:),pointer :: inv_ovrlp_half
           logical, intent(in) :: plusminus
-          type(orbitals_data), optional, intent(in) :: orbs
+          type(sparse_matrix),intent(in),optional :: smat
         end subroutine overlap_plus_minus_one_half_exact
 
         subroutine input_wf_memory_new(nproc,iproc, atoms, &
@@ -4295,7 +4292,7 @@ module module_interfaces
         end subroutine calculate_kernel_and_energy
 
         subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_frag,&
-                   ref_frags,orbs,ham,ham_mat,ovrlp,ovrlp_mat)
+                   ref_frags,orbs,ham,ham_mat,ovrlp,ovrlp_mat,KS_overlap)
           use module_base
           use module_types
           use yaml_output
@@ -4305,6 +4302,7 @@ module module_interfaces
           type(fragmentInputParameters), intent(in) :: input_frag
           type(orbitals_data), intent(in) :: orbs
           type(sparse_matrix), intent(inout) :: ham, ovrlp
+          type(sparse_matrix),intent(inout) :: KS_overlap
           type(matrices), intent(inout) :: ovrlp_mat, ham_mat
           type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
         end subroutine calc_site_energies_transfer_integrals
@@ -4324,6 +4322,19 @@ module module_interfaces
           real(kind=gp), dimension(ovrlp%nfvctr,nstates), intent(in) :: homo_coeffs1, homo_coeffs2
           real(kind=gp), dimension(nstates), intent(inout) :: homo_ham, homo_ovrlp
         end subroutine calc_transfer_integral
+
+        subroutine overlap_minus_one_half_serial(iproc, nproc, iorder, power, blocksize, &
+                   norb, ovrlp_matrix, inv_ovrlp_matrix, check_accur, &
+                   error)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc, iorder, blocksize, power, norb
+          real(kind=8),dimension(norb,norb),intent(in) :: ovrlp_matrix
+          real(kind=8),dimension(:,:),pointer,intent(out) :: inv_ovrlp_matrix
+          logical,intent(in) :: check_accur
+          real(kind=8),intent(out),optional :: error
+        end subroutine overlap_minus_one_half_serial
   
   end interface
 END MODULE module_interfaces

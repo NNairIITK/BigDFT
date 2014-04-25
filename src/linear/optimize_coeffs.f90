@@ -198,11 +198,11 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      ! instead of twice could add some criterion to check accuracy?
      if (present(num_extra)) then
         call reorthonormalize_coeff(iproc, nproc, orbs%norb+num_extra, -8, -8, tmb%orthpar%methTransformOverlap, &
-             tmb%orbs, tmb%linmat%s, tmb%linmat%ovrlp_, tmb%coeff, orbs)
+             tmb%orbs, tmb%linmat%s, tmb%linmat%ks_e, tmb%linmat%ovrlp_, tmb%coeff, orbs)
         !call reorthonormalize_coeff(iproc, nproc, orbs%norb+num_extra, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
      else
         call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, tmb%orthpar%methTransformOverlap, &
-             tmb%orbs, tmb%linmat%s, tmb%linmat%ovrlp_, tmb%coeff, orbs)
+             tmb%orbs, tmb%linmat%s, tmb%linmat%ks, tmb%linmat%ovrlp_, tmb%coeff, orbs)
         !call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, tmb%linmat%ovrlp, tmb%coeff, orbs)
      end if
      !!!!!!!!!!!!!!!!!!!!!!!!
@@ -353,7 +353,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   weight_matrix%matrix_compr=f_malloc_ptr(weight_matrix%nvctr,id='weight_matrix%matrix_compr')
 
  inv_ovrlp = matrices_null()
- call allocate_matrices(tmb%linmat%l, allocate_full=.false., matname='inv_ovrlp', mat=inv_ovrlp)
+ call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp)
 
   !weight_coeff=f_malloc((/ksorbs%norb,ksorbs%norb,input%frag%nfrag/), id='weight_coeff')
   weight_coeff_diag=f_malloc((/ksorbs%norb,input%frag%nfrag/), id='weight_coeff')
@@ -362,23 +362,23 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   call uncompress_matrix(bigdft_mpi%iproc, tmb%linmat%s, &
        inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
   call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orthpar%methTransformOverlap, 2, &
-       tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%orbs, imode=2, &
+       tmb%orthpar%blocksize_pdsyev, imode=2, &
        ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
        ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
-       ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=ovrlp_half, error=error)
+       error=error)
   call f_free_ptr(tmb%linmat%ovrlp_%matrix)
 
   do ifrag=1,input%frag%nfrag
      ifrag_charged(1)=ifrag
      call calculate_weight_matrix_lowdin(weight_matrix,1,ifrag_charged,tmb,input,ref_frags,&
-          .false.,.false.,tmb%orthpar%methTransformOverlap,ovrlp_half)
+          .false.,.false.,tmb%orthpar%methTransformOverlap,inv_ovrlp%matrix)
      weight_matrix%matrix=f_malloc_ptr((/weight_matrix%nfvctr,weight_matrix%nfvctr/), id='weight_matrix%matrix')
      call uncompress_matrix(iproc,weight_matrix)
      !call calculate_coeffMatcoeff(weight_matrix%matrix,tmb%orbs,ksorbs,tmb%coeff,weight_coeff(1,1,ifrag))
      call calculate_coeffMatcoeff_diag(weight_matrix%matrix,tmb%orbs,ksorbs,tmb%coeff,weight_coeff_diag(1,ifrag))
      call f_free_ptr(weight_matrix%matrix)
   end do
-  call f_free_ptr(ovrlp_half)
+  !call f_free_ptr(ovrlp_half)
 
   if (iproc==0) call yaml_open_sequence('Weight analysis',flow=.true.)
   if (iproc==0) call yaml_newline()
@@ -876,8 +876,10 @@ subroutine find_alpha_sd(iproc,nproc,alpha,tmb,orbs,coeffp,grad,energy0,fnrm,pre
 
   ! do twice with approx S^_1/2, as not quite good enough at preserving charge if only once, but exact too expensive
   ! instead of twice could add some criterion to check accuracy?
-  call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, tmb%linmat%s, tmb%linmat%ovrlp_, coeff_tmp, orbs)
-  call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, tmb%linmat%s, tmb%linmat%ovrlp_, coeff_tmp, orbs)
+  call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, &
+       tmb%linmat%s, tmb%linmat%ks, tmb%linmat%ovrlp_, coeff_tmp, orbs)
+  call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, &
+       tmb%linmat%s, tmb%linmat%ks, tmb%linmat%ovrlp_, coeff_tmp, orbs)
   call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m,&
        tmb%linmat%kernel_, tmb%linmat%ham_, energy1,&
        coeff_tmp,orbs,tmb%orbs,.true.)
@@ -986,7 +988,7 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
   call timing(iproc,'dirmin_lagmat1','ON')
 
   inv_ovrlp_ = matrices_null()
-  call allocate_matrices(tmb%linmat%l, allocate_full=.false., matname='inv_ovrlp_', mat=inv_ovrlp_)
+  call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='inv_ovrlp_', mat=inv_ovrlp_)
 
 
   ! we have the kernel already, but need it to not contain occupations so recalculate here
@@ -1064,10 +1066,10 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
      call timing(iproc,'dirmin_dgesv','OF')
      inv_ovrlp=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='inv_ovrlp')
      call overlapPowerGeneral(iproc, nproc, tmb%orthpar%methTransformOverlap, 1, -8, &
-          tmb%orbs%norb, tmb%orbs, imode=2, &
+          imode=2, &
           ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
           ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, check_accur=.true., &
-          ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=inv_ovrlp, error=error)
+          error=error)
 
      !!!DEBUG checking S^-1 etc.
      !!!test dense version of S^-1
@@ -1219,7 +1221,7 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
      call timing(iproc,'dirmin_dgesv','ON')
      ! This is a bit strange...
      if (KSorbs%norbp>0) then
-        call dgemm('n', 'n', tmb%orbs%norb, KSorbs%norbp, tmb%orbs%norb, 1.d0, inv_ovrlp(1,1), &
+        call dgemm('n', 'n', tmb%orbs%norb, KSorbs%norbp, tmb%orbs%norb, 1.d0, inv_ovrlp_%matrix(1,1), &
              tmb%orbs%norb, grad_cov(1,1), tmb%orbs%norb, 0.d0, grad(1,1), tmb%orbs%norb)
      else
          if (KSorbs%norbp>0) call vcopy(tmb%orbs%norb*KSorbs%norbp,grad_cov(1,1),1,grad(1,1),1)
@@ -1283,7 +1285,7 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_
   call timing(iproc,'dirmin_lagmat1','ON')
 
   inv_ovrlp_ = matrices_null()
-  call allocate_matrices(tmb%linmat%l, allocate_full=.false., matname='inv_ovrlp_', mat=inv_ovrlp_)
+  call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='inv_ovrlp_', mat=inv_ovrlp_)
 
 
   occup_tmp=f_malloc(tmb%orbs%norb,id='occup_tmp')
@@ -1377,17 +1379,17 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_
      !        grad(1,1), tmb%orbs%norb, info)
      !   call f_free(ipiv)
      !end if
-     inv_ovrlp=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='inv_ovrlp')
-     call overlapPowerGeneral(iproc, nproc, tmb%orthpar%methTransformOverlap, 1, -8, tmb%orbs%norb, tmb%orbs, &
+     !!inv_ovrlp=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='inv_ovrlp')
+     call overlapPowerGeneral(iproc, nproc, tmb%orthpar%methTransformOverlap, 1, -8, &
           imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
           ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, check_accur=.true., &
-          ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=inv_ovrlp, error=error)
+          error=error)
 
      if (tmb%orbs%norbp>0) then
-        call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, inv_ovrlp(1,1), &
+        call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, inv_ovrlp_%matrix(1,1), &
              tmb%orbs%norb, grad_cov(1,1), tmb%orbs%norb, 0.d0, grad(1,1), tmb%orbs%norb)
      end if
-     call f_free_ptr(inv_ovrlp)
+     !!call f_free_ptr(inv_ovrlp)
   else
       grad_full=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='grad_full')
       ! do allgather instead of allred so we can keep grad as per proc

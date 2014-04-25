@@ -50,22 +50,19 @@ module constrained_dft
          real(gp),intent(out),optional :: econf
        end subroutine LocalHamiltonianApplication
 
-        subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, imode, &
+        subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                    ovrlp_smat, inv_ovrlp_smat, ovrlp_mat, inv_ovrlp_mat, check_accur, &
-                   ovrlp, inv_ovrlp, error)
-             !!foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
+                   error)
           use module_base
           use module_types
-          use sparsematrix_base, only: sparse_matrix, matrices, SPARSE_FULL, DENSE_PARALLEL, DENSE_FULL, SPARSEMM_SEQ
+          use sparsematrix_base, only: sparse_matrix, SPARSE_FULL, DENSE_PARALLEL, DENSE_FULL, SPARSEMM_SEQ
           use yaml_output
           implicit none
-          integer,intent(in) :: iproc, nproc, iorder, blocksize, norb, power
-          type(orbitals_data),intent(in) :: orbs
+          integer,intent(in) :: iproc, nproc, iorder, blocksize, power
           integer,intent(in) :: imode
           type(sparse_matrix),intent(inout) :: ovrlp_smat, inv_ovrlp_smat
           type(matrices),intent(inout) :: ovrlp_mat, inv_ovrlp_mat
           logical,intent(in) :: check_accur
-          real(kind=8),dimension(:,:),pointer,optional :: ovrlp, inv_ovrlp
           real(kind=8),intent(out),optional :: error
         end subroutine overlapPowerGeneral
 
@@ -131,7 +128,8 @@ contains
     use module_fragments
     use communications, only: transpose_localized
     use sparsematrix_base, only: matrices, sparse_matrix, sparsematrix_malloc_ptr, &
-                                 DENSE_FULL, assignment(=)
+                                 DENSE_FULL, assignment(=), &
+                                 allocate_matrices, deallocate_matrices
     use sparsematrix, only: compress_matrix, uncompress_matrix
     implicit none
     type(sparse_matrix), intent(inout) :: weight_matrix
@@ -150,6 +148,8 @@ contains
     type(matrices) :: inv_ovrlp
 
     call f_routine(id='calculate_weight_matrix_lowdin')
+
+    call allocate_matrices(tmb%linmat%s, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp)
 
     if (calculate_overlap_matrix) then
        if(.not.tmb%can_use_transposed) then
@@ -180,10 +180,10 @@ contains
        ! Maybe not clean here to use twice tmb%linmat%s, but it should not
        ! matter as dense is used
        call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 2, &
-            tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%orbs, &
+            tmb%orthpar%blocksize_pdsyev, &
             imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%s, &
             ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
-            check_accur=.true., ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=ovrlp_half, error=error)
+            check_accur=.true., error=error)
        call f_free_ptr(tmb%linmat%ovrlp_%matrix)
     end if
 
@@ -213,7 +213,7 @@ contains
        call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, &
               tmb%orbs%norb, 1.d0, &
               proj_mat(1,1), tmb%orbs%norb, &
-              ovrlp_half(1,tmb%orbs%isorb+1), tmb%orbs%norb, 0.d0, &
+              inv_ovrlp%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, 0.d0, &
               proj_ovrlp_half(1,1), tmb%orbs%norb)
     end if
     call f_free(proj_mat)
@@ -221,7 +221,7 @@ contains
     if (tmb%orbs%norbp>0) then
        call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, & 
             tmb%orbs%norb, 1.d0, &
-            ovrlp_half(1,1), tmb%orbs%norb, &
+            inv_ovrlp%matrix(1,1), tmb%orbs%norb, &
             proj_ovrlp_half(1,1), tmb%orbs%norb, 0.d0, &
             weight_matrixp(1,1), tmb%orbs%norb)
     end if
@@ -237,6 +237,7 @@ contains
     call f_free(weight_matrixp)
     call compress_matrix(bigdft_mpi%iproc,weight_matrix)
     call f_free_ptr(weight_matrix%matrix)
+    call deallocate_matrices(inv_ovrlp)
     call f_release_routine()
 
   end subroutine calculate_weight_matrix_lowdin

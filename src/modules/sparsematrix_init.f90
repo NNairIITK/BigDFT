@@ -432,7 +432,7 @@ module sparsematrix_init
     !> Currently assuming square matrices
     subroutine init_sparse_matrix(iproc, nproc, norb, norbp, isorb, store_index, &
                nnonzero, nonzero, nnonzero_mult, nonzero_mult, sparsemat, &
-               allocate_full_)
+               allocate_full_, print_info_)
       use yaml_output
       implicit none
       
@@ -442,7 +442,7 @@ module sparsematrix_init
       integer,dimension(nnonzero),intent(in) :: nonzero
       integer,dimension(nnonzero_mult),intent(in) :: nonzero_mult
       type(sparse_matrix), intent(out) :: sparsemat
-      logical,intent(in),optional :: allocate_full_
+      logical,intent(in),optional :: allocate_full_, print_info_
       
       ! Local variables
       integer :: jproc, iorb, jorb, iiorb, iseg, ilr, segn, ind
@@ -452,7 +452,7 @@ module sparsematrix_init
       integer :: nseg_mult, nvctr_mult, ivctr_mult
       integer,dimension(:),allocatable :: nsegline_mult, istsegline_mult
       integer,dimension(:,:),allocatable :: keyg_mult
-      logical :: allocate_full
+      logical :: allocate_full, print_info
       
       call timing(iproc,'init_matrCompr','ON')
 
@@ -503,7 +503,7 @@ module sparsematrix_init
       end do
 
     
-      if (iproc==0) then
+      if (iproc==0 .and. print_info) then
           call yaml_map('total elements',norb**2)
           call yaml_map('non-zero elements',sparsemat%nvctr)
           call yaml_map('sparsity in %',1.d2*dble(norb**2-sparsemat%nvctr)/dble(norb**2),fmt='(f5.2)')
@@ -680,6 +680,11 @@ module sparsematrix_init
               allocate_full = allocate_full_
           else
               allocate_full = .false.
+          end if
+          if (present(print_info_))then
+              print_info = print_info_
+          else
+              print_info = .true.
           end if
         end subroutine set_value_from_optional
 

@@ -962,15 +962,14 @@ subroutine foe(iproc, nproc, tmprtr, &
 
               inv_ovrlp%matrix=sparsematrix_malloc_ptr(tmb%linmat%l, &
                                                 iaction=DENSE_FULL, id='inv_ovrlp%matrix')
-              call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, tmb%orbs, &
+              call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, &
                    imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                    ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
-                   check_accur=.true., ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=inv_ovrlp%matrix, &
-                   error=error)
+                   check_accur=.true., error=error)
               call compress_matrix(iproc, tmb%linmat%l, inmat=inv_ovrlp%matrix, outmat=inv_ovrlp%matrix_compr)
           end if
           if (imode==SPARSE) then
-              call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, tmb%orbs%norb, tmb%orbs, &
+              call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, &
                    imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                    ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
                    check_accur=.true., error=error)

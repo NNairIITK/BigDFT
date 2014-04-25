@@ -146,7 +146,7 @@ program driver
   inv_mat_B = matrices_null()
 
   call vcopy(orbs%norb**2, ovrlp(1,1), 1, smat_A%matrix(1,1), 1)
-  call allocate_matrices(smat_A, allocate_full=.false., matname='mat_A', mat=mat_A)
+  call allocate_matrices(smat_A, allocate_full=.true., matname='mat_A', mat=mat_A)
   call compress_matrix(iproc, smat_A, inmat=smat_A%matrix, outmat=mat_A%matrix_compr)
   call allocate_matrices(smat_B, allocate_full=.true., matname='inv_mat_B', mat=inv_mat_B)
   ! uncomment for sparse and dense modes to be testing the same matrix
@@ -195,24 +195,23 @@ program driver
       if (iproc==0) call yaml_map('Can perform this test',perform_check)
       if (.not.perform_check) cycle
       if (imode==DENSE) then
-          call vcopy(orbs%norb**2, ovrlp(1,1), 1, smat_A%matrix(1,1), 1)
+          call vcopy(orbs%norb**2, ovrlp(1,1), 1, mat_A%matrix(1,1), 1)
           if (timer_on) call cpu_time(tr0)
           if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
-          call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, &
+          call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, &
                imode, ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, ovrlp_mat=mat_A, inv_ovrlp_mat=inv_mat_B, &
-               check_accur=.true., &
-               ovrlp=smat_A%matrix, inv_ovrlp=smat_B%matrix, error=error)
+               check_accur=.true., error=error)
           if (timer_on) call cpu_time(tr1)
           if (timer_on) call system_clock(ncount2,ncount_rate,ncount_max)
           if (timer_on) time=real(tr1-tr0,kind=8)
           if (timer_on) time2=dble(ncount2-ncount1)/dble(ncount_rate)
-          call compress_matrix(iproc, smat_B, inmat=smat_B%matrix, outmat=inv_mat_B%matrix_compr)
+          call compress_matrix(iproc, smat_B, inmat=inv_mat_B%matrix, outmat=inv_mat_B%matrix_compr)
       else if (imode==SPARSE) then
           call vcopy(orbs%norb**2, ovrlp(1,1), 1, smat_A%matrix(1,1), 1)
           call compress_matrix(iproc, smat_A)
           if (timer_on) call cpu_time(tr0)
           if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
-          call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, &
+          call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, &
                imode, ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, ovrlp_mat=mat_A, inv_ovrlp_mat=inv_mat_B, &
                check_accur=.true., error=error)
                !!foe_nseg=smat_A%nseg, foe_kernel_nsegline=smat_A%nsegline, &
