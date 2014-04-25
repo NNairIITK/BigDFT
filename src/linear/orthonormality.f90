@@ -485,18 +485,22 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                 call overlap_minus_one_exact_serial(ovrlp_smat%nfvctr,inv_ovrlp_mat%matrix)
              else
                 stop 'check if working - upper half may not be filled'
-                call dpotrf_parallel(iproc, nproc, blocksize, bigdft_mpi%mpi_comm, 'l', ovrlp_smat%nfvctr, inv_ovrlp_mat%matrix(1,1), ovrlp_smat%nfvctr)
-                call dpotri_parallel(iproc, nproc, blocksize, bigdft_mpi%mpi_comm, 'l', ovrlp_smat%nfvctr, inv_ovrlp_mat%matrix(1,1), ovrlp_smat%nfvctr)
+                call dpotrf_parallel(iproc, nproc, blocksize, bigdft_mpi%mpi_comm, 'l', &
+                     ovrlp_smat%nfvctr, inv_ovrlp_mat%matrix(1,1), ovrlp_smat%nfvctr)
+                call dpotri_parallel(iproc, nproc, blocksize, bigdft_mpi%mpi_comm, 'l', &
+                     ovrlp_smat%nfvctr, inv_ovrlp_mat%matrix(1,1), ovrlp_smat%nfvctr)
              end if
           else if (power==2) then
              !if (nproc>1) then
-                 call overlap_plus_minus_one_half_exact(bigdft_mpi%nproc,ovrlp_smat%nfvctr,blocksize,.true.,inv_ovrlp_mat%matrix,inv_ovrlp_smat)
+                 call overlap_plus_minus_one_half_exact(bigdft_mpi%nproc,ovrlp_smat%nfvctr, &
+                      blocksize,.true.,inv_ovrlp_mat%matrix,inv_ovrlp_smat)
              !else
              !    call overlap_plus_minus_one_half_exact(ovrlp_smat%nfvctr,blocksize,.true.,inv_ovrlp_mat%matrix)
              !end if
           else if (power==-2) then
               !if (nproc>1) then
-                  call overlap_plus_minus_one_half_exact(bigdft_mpi%nproc,ovrlp_smat%nfvctr,blocksize,.false.,inv_ovrlp_mat%matrix,inv_ovrlp_smat)
+                  call overlap_plus_minus_one_half_exact(bigdft_mpi%nproc,ovrlp_smat%nfvctr, &
+                       blocksize,.false.,inv_ovrlp_mat%matrix,inv_ovrlp_smat)
               !else
               !    call overlap_plus_minus_one_half_exact(ovrlp_smat%nfvctr,blocksize,.false.,inv_ovrlp_mat%matrix)
               !end if
@@ -543,9 +547,11 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                    ovrlp_smat%nfvctr, Amat11p(1,1), ovrlp_smat%nfvctr, 0.0d0, Amat21p(1,1), ovrlp_smat%nfvctr)
               !if(nproc > 1) then
                   call mpi_allgatherv(Amat12p, ovrlp_smat%nfvctr*norbp, mpi_double_precision, Amat12, &
-                       ovrlp_smat%nfvctr*ovrlp_smat%nfvctr_par(:), ovrlp_smat%nfvctr*ovrlp_smat%isfvctr_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+                       ovrlp_smat%nfvctr*ovrlp_smat%nfvctr_par(:), ovrlp_smat%nfvctr*ovrlp_smat%isfvctr_par, &
+                       mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
                   call mpi_allgatherv(Amat21p, ovrlp_smat%nfvctr*norbp, mpi_double_precision, Amat21, &
-                       ovrlp_smat%nfvctr*ovrlp_smat%nfvctr_par(:), ovrlp_smat%nfvctr*ovrlp_smat%isfvctr_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+                       ovrlp_smat%nfvctr*ovrlp_smat%nfvctr_par(:), ovrlp_smat%nfvctr*ovrlp_smat%isfvctr_par, &
+                       mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
               !else
               !    call vcopy(ovrlp_smat%nfvctr**2,Amat12p(1,1),1,Amat12(1,1),1)
               !    call vcopy(ovrlp_smat%nfvctr**2,Amat21p(1,1),1,Amat21(1,1),1)
@@ -560,7 +566,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                    ovrlp_smat%nfvctr, Amat21p(1,1), ovrlp_smat%nfvctr, 0.0d0, Amat12p(1,1), ovrlp_smat%nfvctr)
               !if (nproc>1) then
                   call mpi_allgatherv(Amat12p, ovrlp_smat%nfvctr*norbp, mpi_double_precision, inv_ovrlp_mat%matrix, &
-                       ovrlp_smat%nfvctr*ovrlp_smat%nfvctr_par(:), ovrlp_smat%nfvctr*ovrlp_smat%isfvctr_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+                       ovrlp_smat%nfvctr*ovrlp_smat%nfvctr_par(:), ovrlp_smat%nfvctr*ovrlp_smat%isfvctr_par, &
+                       mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
               !else
               !    call vcopy(ovrlp_smat%nfvctr**2, Amat12p(1,1), 1, inv_ovrlp_mat%matrix(1,1), 1)
               !end if
@@ -598,7 +605,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
 
               if(nproc > 1) then
                   call mpi_allgatherv(ovrlpminonep, ovrlp_smat%nfvctr*norbp, mpi_double_precision, ovrlpminone, &
-                       ovrlp_smat%nfvctr*ovrlp_smat%nfvctr_par(:), ovrlp_smat%nfvctr*ovrlp_smat%isfvctr_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+                       ovrlp_smat%nfvctr*ovrlp_smat%nfvctr_par(:), ovrlp_smat%nfvctr*ovrlp_smat%isfvctr_par, &
+                       mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
                   call f_free_ptr(ovrlpminonep)
               else
                   nullify(ovrlpminonep)
@@ -659,7 +667,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
       end if
 
       if (check_accur) then
-          call check_accur_overlap_minus_one(iproc,nproc,ovrlp_smat%nfvctr,norbp,isorb,power,ovrlp_mat%matrix,inv_ovrlp_mat%matrix,error)
+          call check_accur_overlap_minus_one(iproc,nproc,ovrlp_smat%nfvctr,norbp,isorb,power,&
+               ovrlp_mat%matrix,inv_ovrlp_mat%matrix,error)
       end if
   else if (imode==SPARSE) then
       if (iorder==0) then
@@ -681,18 +690,22 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                 call overlap_minus_one_exact_serial(ovrlp_smat%nfvctr,inv_ovrlp_local)
              else
                 stop 'check if working - upper half may not be filled'
-                call dpotrf_parallel(iproc, nproc, blocksize, bigdft_mpi%mpi_comm, 'l', ovrlp_smat%nfvctr, inv_ovrlp_local(1,1), ovrlp_smat%nfvctr)
-                call dpotri_parallel(iproc, nproc, blocksize, bigdft_mpi%mpi_comm, 'l', ovrlp_smat%nfvctr, inv_ovrlp_local(1,1), ovrlp_smat%nfvctr)
+                call dpotrf_parallel(iproc, nproc, blocksize, bigdft_mpi%mpi_comm, 'l', &
+                     ovrlp_smat%nfvctr, inv_ovrlp_local(1,1), ovrlp_smat%nfvctr)
+                call dpotri_parallel(iproc, nproc, blocksize, bigdft_mpi%mpi_comm, 'l', &
+                     ovrlp_smat%nfvctr, inv_ovrlp_local(1,1), ovrlp_smat%nfvctr)
              end if
           else if (power==2) then
               !if (nproc>1) then
-                  call overlap_plus_minus_one_half_exact(bigdft_mpi%nproc,ovrlp_smat%nfvctr,blocksize,.true.,inv_ovrlp_local,inv_ovrlp_smat)
+                  call overlap_plus_minus_one_half_exact(bigdft_mpi%nproc,ovrlp_smat%nfvctr, &
+                       blocksize,.true.,inv_ovrlp_local,inv_ovrlp_smat)
               !else
               !    call overlap_plus_minus_one_half_exact(ovrlp_smat%nfvctr,blocksize,.true.,inv_ovrlp_local)
               !end if
           else if (power==-2) then
               !if (nproc>1) then
-                  call overlap_plus_minus_one_half_exact(bigdft_mpi%nproc,ovrlp_smat%nfvctr,blocksize,.false.,inv_ovrlp_local,inv_ovrlp_smat)
+                  call overlap_plus_minus_one_half_exact(bigdft_mpi%nproc,ovrlp_smat%nfvctr, &
+                       blocksize,.false.,inv_ovrlp_local,inv_ovrlp_smat)
               !else
               !    call overlap_plus_minus_one_half_exact(ovrlp_smat%nfvctr,blocksize,.false.,inv_ovrlp_local)
               !end if
