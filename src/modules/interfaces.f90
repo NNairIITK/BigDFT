@@ -1148,11 +1148,11 @@ module module_interfaces
          real(wp), dimension((ngx*(ngx+1))/2,4), intent(out) :: rhocoeff
       END SUBROUTINE plot_gatom_basis
 
-      subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
+      subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
         use module_base
         use module_types
         implicit none
-        integer, intent(in) :: iproc,i3s,n3d,i3xcsh,n3p
+        integer, intent(in) :: i3s,n3d,i3xcsh,n3p
         real(gp), intent(in) :: hxh,hyh,hzh
         type(atoms_data), intent(in) :: at
         type(grid_dimensions), intent(in) :: d

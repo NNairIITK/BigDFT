@@ -28,7 +28,7 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   logical, intent(in), optional :: output_denspot
   !local variables
   character(len=*), parameter :: subname='createWavefunctionsDescriptors'
-  integer :: i_all,i_stat,i1,i2,i3,iat
+  integer :: i_all,i_stat
   integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   logical :: output_denspot_
   logical, dimension(:,:,:), pointer :: logrid_c,logrid_f
@@ -116,7 +116,7 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
    logical, dimension(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), intent(in) :: logrid_c,logrid_f
    !local variables
    character(len=*), parameter :: subname='wfd_from_grids'
-   integer :: i_stat, i_all
+   integer :: i_stat
    integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
 
    !assign the dimensions to improve (a little) readability
@@ -245,8 +245,8 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
          &   Glr%bounds%kb%ibyz_f,Glr%bounds%gb%ibyz_ff,Glr%bounds%gb%ibzxx_f,Glr%bounds%gb%ibxxyy_f)
    endif
 
+END SUBROUTINE wfd_from_grids
 
-end subroutine wfd_from_grids
 
 !> Determine localization region for all projectors, but do not yet fill the descriptor arrays
 subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
@@ -267,8 +267,8 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   logical, intent(in) :: dry_run !< .true. to compute the size only and don't allocate
   !local variables
   character(len=*), parameter :: subname='createProjectorsArrays'
-  integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj,nbseg_dim,npack_dim,mproj_max
-  integer :: iat,i_stat,i_all,iseg
+  integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,nbseg_dim,npack_dim,mproj_max
+  integer :: iat,iseg
   integer, dimension(:), allocatable :: nbsegs_cf,keyg_lin
   logical, dimension(:,:,:), allocatable :: logrid
   call f_routine(id=subname)
@@ -987,8 +987,6 @@ subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(orbitals_data), intent(inout) :: orbs
   real(wp), dimension(:), pointer :: psi
-
-  integer :: ierr
 
   !restart from previously calculated wavefunctions, on disk
   !since each processor read only few eigenvalues, initialise them to zero for all
@@ -2354,7 +2352,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   real(wp) :: s1_new, s2_new, s3_new,xz,yz,zz,recnormsqr,exp_val, exp_cutoff
   real(wp) :: k1,k2,k3,distance,cutoff
 
-  integer :: istart,irange,iend,rest,ierr, gridx,gridy,gridz,xbox,ybox,zbox,iy,iz
+  integer :: istart,irange,rest,iend, gridx,gridy,gridz,xbox,ybox,zbox,iy,iz
 
   !Atom description (needed for call to eleconf)
   integer ::nzatom,nvalelec!,nsccode,mxpl,mxchg

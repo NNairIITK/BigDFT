@@ -158,7 +158,7 @@ contains
     type(DIIS_obj), intent(inout) :: diis
     ! Local variables
     character(len=*), parameter :: subname='diisstp'
-    integer :: i,j,ist,jst,mi,info,jj,mj,ierr
+    integer :: i,j,ist,jst,mi,info,jj,mj
     integer :: ispsi,ispsidst,ncomp,iacc_add,igrpp,igrp
     real(tp) :: psicoeff
     integer, dimension(:), allocatable :: ipiv

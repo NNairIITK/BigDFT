@@ -403,12 +403,12 @@ END SUBROUTINE system_properties
 
 !> Check for the need of a core density and fill the rhocore array which
 !! should be passed at the rhocore pointer
-subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
+subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
   use module_base
   use module_types
   use yaml_output
   implicit none
-  integer, intent(in) :: iproc,i3s,n3d,i3xcsh,n3p
+  integer, intent(in) :: i3s,n3d,i3xcsh,n3p
   real(gp), intent(in) :: hxh,hyh,hzh
   type(atoms_data), intent(in) :: at
   type(grid_dimensions), intent(in) :: d
@@ -416,7 +416,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
   real(wp), dimension(:,:,:,:), pointer :: rhocore
   !local variables
   character(len=*), parameter :: subname='calculate_rhocore'
-  integer :: ityp,iat,i_stat,j3,i1,i2,ierr!,ind
+  integer :: ityp,iat,i_stat,j3,i1,i2 !,ierr,ind
   real(wp) :: tt
   real(gp) :: rx,ry,rz,rloc,cutoff
   
@@ -447,8 +447,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 !!$        if (exists) then
         if (at%nlcc_ngv(ityp)/=UNINITIALIZED(1) .or.&
              at%nlcc_ngc(ityp)/=UNINITIALIZED(1) ) then
-           if (iproc == 0) call yaml_map('NLCC, Calculate core density for atom',trim(at%astruct%atomnames(ityp)))
-           !if (iproc == 0) write(*,'(1x,a)',advance='no') 'NLCC: calculate core density for atom: '// trim(at%astruct%atomnames(ityp))//';'
+           if (bigdft_mpi%iproc == 0) call yaml_map('NLCC, Calculate core density for atom',trim(at%astruct%atomnames(ityp)))
            rx=rxyz(1,iat) 
            ry=rxyz(2,iat)
            rz=rxyz(3,iat)
@@ -456,10 +455,9 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
            rloc=at%psppar(0,0,ityp)
            cutoff=10.d0*rloc
 
-           call calc_rhocore_iat(iproc,at,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
+           call calc_rhocore_iat(bigdft_mpi%iproc,at,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
                 d%n1,d%n2,d%n3,d%n1i,d%n2i,d%n3i,i3s,n3d,rhocore)
 
-           !if (iproc == 0) write(*,'(1x,a)')'done.'
         end if
      end do
 
@@ -488,10 +486,9 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
         enddo
      enddo
 
-     call mpiallred(tt,1,MPI_SUM,bigdft_mpi%mpi_comm)
+     if (bigdft_mpi%nproc > 1) call mpiallred(tt,1,MPI_SUM,bigdft_mpi%mpi_comm)
      tt=tt*hxh*hyh*hzh
-     if (iproc == 0) call yaml_map('Total core charge on the grid (To be compared with analytic one)', tt,fmt='(f15.7)')
-     !if (iproc == 0) write(*,'(1x,a,f15.7)') 'Total core charge on the grid (To be compared with analytic one): ',tt
+     if (bigdft_mpi%iproc == 0) call yaml_map('Total core charge on the grid (To be compared with analytic one)', tt,fmt='(f15.7)')
 
   else
      !No NLCC needed, nullify the pointer 
@@ -499,6 +496,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
   end if
 
 END SUBROUTINE calculate_rhocore
+
 
 subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
      & ixcpsp, psppar, donlcc, rcore, qcore, radii_cf, exists, pawpatch)

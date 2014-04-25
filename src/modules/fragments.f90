@@ -1022,7 +1022,7 @@ contains
     real(gp), dimension(:), allocatable :: eval_tmp, eval_tmp2
     character(len=*), parameter :: subname='fragment_coeffs_to_kernel'
 
-    integer :: rand_size, ierr
+    integer :: rand_size
     integer, allocatable, dimension(:) :: rand_seed
     real(kind=dp) :: rtime, random_noise, rmax
     character(len=10) :: sys_time
