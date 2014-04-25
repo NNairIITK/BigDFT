@@ -1973,7 +1973,8 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   use module_base
   use module_types
   use module_interfaces, except_this_one => reorthonormalize_coeff
-  use sparsematrix_base, only: sparse_matrix, matrices
+  use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, &
+                         allocate_matrices, deallocate_matrices
   implicit none
 
   ! Calling arguments
@@ -1990,7 +1991,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   real(kind=8), dimension(:,:), allocatable :: coeff_tmp, coefftrans
   real(kind=8), dimension(:,:), pointer :: ovrlp_coeff, ovrlp_coeff2
   character(len=*),parameter:: subname='reorthonormalize_coeff'
-  type(matrices) :: inv_ovrlp
+  type(matrices) :: KS_ovrlp_, inv_ovrlp
   !integer :: iorb, jorb !DEBUG
   real(kind=8) :: tt, error!, tt2, tt3, ddot   !DEBUG
   !logical :: dense
@@ -2008,8 +2009,8 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   !   communication_strategy=ALLGATHERV
   !end if
 
-  allocate(ovrlp_coeff(norb,norb), stat=istat)
-  call memocc(istat, ovrlp_coeff, 'ovrlp_coeff', subname)
+  !!allocate(ovrlp_coeff(norb,norb), stat=istat)
+  !!call memocc(istat, ovrlp_coeff, 'ovrlp_coeff', subname)
 
   allocate(coeff_tmp(basis_orbs%norbp,max(norb,1)), stat=istat)
   call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
@@ -2020,6 +2021,9 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
 
   !dense=.true.
 
+  KS_ovrlp_ = matrices_null()
+  call allocate_matrices(KS_overlap, allocate_full=.true., matname='KS_ovrlp_', mat=KS_ovrlp_)
+
   if (dense) then
      ! Calculate the overlap matrix among the coefficients with respect to basis_overlap.
      if (basis_orbs%norbp>0) then
@@ -2027,13 +2031,13 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
          call dgemm('n', 'n', basis_orbs%norbp, norb, basis_orbs%norb, 1.d0, basis_overlap_mat%matrix(basis_orbs%isorb+1,1), &
               basis_orbs%norb, coeff(1,1), basis_orbs%norb, 0.d0, coeff_tmp, basis_orbs%norbp)
          call dgemm('t', 'n', norb, norb, basis_orbs%norbp, 1.d0, coeff(basis_orbs%isorb+1,1), &
-              basis_orbs%norb, coeff_tmp, basis_orbs%norbp, 0.d0, ovrlp_coeff, norb)
+              basis_orbs%norb, coeff_tmp, basis_orbs%norbp, 0.d0, KS_ovrlp_%matrix, norb)
       else
-         call to_zero(norb**2, ovrlp_coeff(1,1))
+         call to_zero(norb**2, KS_ovrlp_%matrix(1,1))
       end if
   else ! sparse - still less efficient than dense, also needs moving to a subroutine
 
-     call to_zero(norb**2, ovrlp_coeff(1,1))
+     call to_zero(norb**2, KS_ovrlp_%matrix(1,1))
      npts_per_proc = nint(real(basis_overlap%nvctr + basis_overlap%nfvctr,dp) / real(nproc*2,dp))
      ind_start = 1+iproc*npts_per_proc
      ind_end = (iproc+1)*npts_per_proc
@@ -2051,12 +2055,12 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
              if (llorb==korb) then
                 tt=basis_overlap_mat%matrix_compr(ind)*coeff(korb,iorb)
                 do jorb=iorb,norb
-                    ovrlp_coeff(jorb,iorb)=ovrlp_coeff(jorb,iorb) &
+                    KS_ovrlp_%matrix(jorb,iorb)=KS_ovrlp_%matrix(jorb,iorb) &
                          +coeff(llorb,jorb)*tt
                 end do
              else
                 do jorb=iorb,norb
-                    ovrlp_coeff(jorb,iorb)=ovrlp_coeff(jorb,iorb) &
+                    KS_ovrlp_%matrix(jorb,iorb)=KS_ovrlp_%matrix(jorb,iorb) &
                          +(coeff(llorb,iorb)*coeff(korb,jorb)+coeff(llorb,jorb)*coeff(korb,iorb))&
                          *basis_overlap_mat%matrix_compr(ind)
                 end do
@@ -2067,7 +2071,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
      ! use symmetry to calculate other half
      do iorb=1,norb
         do jorb=iorb+1,norb
-           ovrlp_coeff(iorb,jorb) = ovrlp_coeff(jorb,iorb)
+           KS_ovrlp_%matrix(iorb,jorb) = KS_ovrlp_%matrix(jorb,iorb)
         end do
      end do
 
@@ -2076,7 +2080,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   if (nproc>1) then
       call timing(iproc,'renormCoefCom1','OF')
       call timing(iproc,'renormCoefComm','ON')
-      call mpiallred(ovrlp_coeff(1,1), norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(KS_ovrlp_%matrix(1,1), norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       call timing(iproc,'renormCoefComm','OF')
       call timing(iproc,'renormCoefCom1','ON')
   end if
@@ -2092,8 +2096,8 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   !if (norb==orbs%norb) then
       call overlapPowerGeneral(iproc, nproc, inversion_method, -2, &
            blocksize_dsyev, imode=2, ovrlp_smat=KS_overlap, inv_ovrlp_smat=KS_overlap, &
-           ovrlp_mat=basis_overlap_mat, inv_ovrlp_mat=inv_ovrlp, &
-           check_accur=.false., ovrlp=ovrlp_coeff, inv_ovrlp=ovrlp_coeff2)
+           ovrlp_mat=KS_ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
+           check_accur=.false., ovrlp=KS_ovrlp_%matrix, inv_ovrlp=ovrlp_coeff2)
   !else
   !    ! It is not possible to use the standard parallelization scheme, so do serial
   !    call overlapPowerGeneral(iproc, 1, inversion_method, -2, &
@@ -2104,9 +2108,9 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
 
   call timing(iproc,'renormCoefCom2','ON')
 
-  iall=-product(shape(ovrlp_coeff))*kind(ovrlp_coeff)
-  deallocate(ovrlp_coeff,stat=istat)
-  call memocc(istat,iall,'ovrlp_coeff',subname)
+  !iall=-product(shape(ovrlp_coeff))*kind(ovrlp_coeff)
+  !deallocate(ovrlp_coeff,stat=istat)
+  !call memocc(istat,iall,'ovrlp_coeff',subname)
 
   ! Build the new linear combinations
   !call dgemm('n', 'n', basis_orbs%norb, orbs%norb, orbs%norb, 1.d0, coeff(1,1), basis_orbs%norb, &
@@ -2186,6 +2190,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   !!end do
   !!! END DEBUG
 
+  call deallocate_matrices(KS_ovrlp_)
 
 
   iall=-product(shape(ovrlp_coeff2))*kind(ovrlp_coeff2)

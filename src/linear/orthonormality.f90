@@ -460,11 +460,13 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
       else
           stop 'ovrlp not present'
       end if
+      if (.not.associated(ovrlp_mat%matrix)) stop 'ovrlp_mat%matrix not associated'
       if (present(inv_ovrlp)) then
           if (.not.associated(inv_ovrlp)) stop 'inv_ovrlp not associated'
       else
           stop 'inv_ovrlp not present'
       end if
+      !if (.not.associated(inv_ovrlp_mat%matrix)) stop 'inv_ovrlp_mat%matrix not associated'
   end if
   
   if (check_accur) then
@@ -487,7 +489,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
 
   sparse_dense: if (imode==DENSE) then
       if (iorder==0) then
-          call vcopy(ovrlp_smat%nfvctr*ovrlp_smat%nfvctr,ovrlp(1,1),1,inv_ovrlp(1,1),1)
+          call vcopy(ovrlp_smat%nfvctr*ovrlp_smat%nfvctr,ovrlp_mat%matrix(1,1),1,inv_ovrlp(1,1),1)
           if (power==1) then
              if (blocksize<0) then
                 call overlap_minus_one_exact_serial(ovrlp_smat%nfvctr,inv_ovrlp)
@@ -530,7 +532,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
               Amat21=f_malloc0((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/), id='Amat21')
           !end if
 
-          call vcopy(ovrlp_smat%nfvctr*ovrlp_smat%nfvctr,ovrlp(1,1),1,Amat12(1,1),1)
+          call vcopy(ovrlp_smat%nfvctr*ovrlp_smat%nfvctr,ovrlp_mat%matrix(1,1),1,Amat12(1,1),1)
           do iorb=1,ovrlp_smat%nfvctr
               Amat21(iorb,iorb)=1.0d0
           end do
@@ -594,7 +596,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                   ovrlpminonep => ovrlpminone
               end if
 
-              if (norbp>0) call matrix_minus_identity_dense(ovrlp_smat%nfvctr,isorb,norbp,ovrlp(1,isorb+1),ovrlpminonep)
+              if (norbp>0) call matrix_minus_identity_dense(ovrlp_smat%nfvctr,isorb,norbp,ovrlp_mat%matrix(1,isorb+1),ovrlpminonep)
 
               !if (nproc>1) then
                   !ovrlppoweroldp = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlppoweroldp')
@@ -634,7 +636,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
               inv_ovrlpp => inv_ovrlp
           end if
 
-          if (norbp>0) call first_order_taylor_dense(ovrlp_smat%nfvctr,isorb,norbp,power,ovrlp(1,isorb+1),inv_ovrlpp)
+          if (norbp>0) call first_order_taylor_dense(ovrlp_smat%nfvctr,isorb,norbp,power,ovrlp_mat%matrix(1,isorb+1),inv_ovrlpp)
 
           do i=2,iorder
               if (norbp>0) call dgemm('n', 'n', ovrlp_smat%nfvctr, norbp, ovrlp_smat%nfvctr, 1.d0, ovrlpminone(1,1), &
@@ -658,7 +660,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
 
           if(nproc > 1) then
               call mpi_allgatherv(inv_ovrlpp, ovrlp_smat%nfvctr*norbp, mpi_double_precision, inv_ovrlp, &
-                   ovrlp_smat%nfvctr*ovrlp_smat%nfvctr_par(:), ovrlp_smat%nfvctr*ovrlp_smat%isfvctr_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+                   ovrlp_smat%nfvctr*ovrlp_smat%nfvctr_par(:), ovrlp_smat%nfvctr*ovrlp_smat%isfvctr_par, &
+                   mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
               call f_free_ptr(inv_ovrlpp)
           else
               nullify(inv_ovrlpp)
@@ -666,7 +669,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
       end if
 
       if (check_accur) then
-          call check_accur_overlap_minus_one(iproc,nproc,ovrlp_smat%nfvctr,norbp,isorb,power,ovrlp,inv_ovrlp,error)
+          call check_accur_overlap_minus_one(iproc,nproc,ovrlp_smat%nfvctr,norbp,isorb,power,ovrlp_mat%matrix,inv_ovrlp,error)
       end if
   else if (imode==SPARSE) then
       if (iorder==0) then
