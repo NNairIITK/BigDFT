@@ -1301,7 +1301,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   ! not necessarily the best place for it
   !if (input%lin%fragment_calculation) then
   !   !input%lin%plotBasisFunctions
-  !   call output_fragment_rotations(iproc,nproc,at%astruct%nat,rxyz,1,trim(input%dir_output),input%frag,ref_frags)
+  !   call output_fragment_rotations(iproc,at%astruct%nat,rxyz,1,trim(input%dir_output),input%frag,ref_frags)
   !end if 
 
   !DEBUG
@@ -1833,13 +1833,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
     end subroutine intermediate_forces
 
-
 end subroutine linearScaling
 
 
 
 
-subroutine output_fragment_rotations(iproc,nproc,nat,rxyz,iformat,filename,input_frag,ref_frags)
+subroutine output_fragment_rotations(iproc,nat,rxyz,iformat,filename,input_frag,ref_frags)
   use module_base
   use module_types
   use yaml_output
@@ -1848,7 +1847,7 @@ subroutine output_fragment_rotations(iproc,nproc,nat,rxyz,iformat,filename,input
   use module_interfaces
   implicit none
 
-  integer, intent(in) :: iproc, nproc, iformat, nat
+  integer, intent(in) :: iproc, iformat, nat
   character(len=*), intent(in) :: filename
   real(gp), dimension(3,nat), intent(in) :: rxyz
   type(fragmentInputParameters), intent(in) :: input_frag

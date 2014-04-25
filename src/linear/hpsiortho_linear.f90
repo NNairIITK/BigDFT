@@ -32,7 +32,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8), intent(inout):: trHold
   logical,intent(out) :: energy_increased
   real(kind=8), dimension(tmb%npsidim_orbs), intent(inout):: lhphiold
-  logical,intent(inout):: overlap_calculated
+  logical, intent(inout):: overlap_calculated
   type(energy_terms), intent(in) :: energs
   real(kind=8), dimension(:), pointer:: hpsit_c, hpsit_f
   integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
@@ -42,24 +42,19 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8), dimension(tmb%npsidim_orbs), optional,intent(out) :: hpsi_noprecond
 
   ! Local variables
-  integer :: iorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall, ii, jjorb, i, jorb
+  integer :: iorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall, ii, jjorb, i
   integer :: lwork, info
   real(kind=8) :: ddot, tt, gnrmArr, fnrmOvrlp_tot, fnrm_tot, fnrmold_tot
   !real(kind=8) :: eval_zero
   character(len=*), parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8), dimension(:), pointer :: hpsittmp_c, hpsittmp_f
-  real(kind=8), dimension(:), allocatable :: fnrmOvrlpArr, fnrmArr, work
+  real(kind=8), dimension(:), allocatable :: fnrmOvrlpArr, fnrmArr
   real(kind=8), dimension(:), allocatable :: hpsi_conf, hpsi_tmp
   real(kind=8), dimension(:), pointer :: kernel_compr_tmp
   real(kind=8), dimension(:), allocatable :: prefac
   real(wp), dimension(2) :: garray
   real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
-  real(8),dimension(:),allocatable :: prefacarr, dphi, dpsit_c, dpsit_f
-  real(kind=8),dimension(:,:),allocatable :: SK, KS, HK, KHK, KSKHK, KHKSK , Q
-  integer,dimension(:),allocatable :: ipiv
-  real(kind=8) :: fnrm_low, fnrm_high, fnrm_in, fnrm_out, rx, ry, rz, rr, hh, fnrm_tot2
-  integer :: iseg, isegf, j0, jj, j1, i1, i2, i3, i0, istart, iold, inew, ind_ham, ind_denskern, iorbp
-  real(kind=8),dimension(3) :: noise
+  real(kind=8) :: fnrm_low, fnrm_high
 
   if (target_function==TARGET_FUNCTION_IS_HYBRID) then
       allocate(hpsi_conf(tmb%npsidim_orbs), stat=istat)
@@ -824,7 +819,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   type(orbitals_data), intent(in) :: ksorbs
   real(kind=8),dimension(:),pointer :: hpsit_c, hpsit_f
 
-  integer :: iorb, jorb, istat, iall, ierr
+  integer :: iorb, istat, iall, ierr
   real(kind=8) :: ksres_sum
   real(kind=8), dimension(:), allocatable :: ksres
   real(kind=8), dimension(:,:), allocatable :: coeff_tmp, grad_coeff
@@ -967,8 +962,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   ! Local variables
   integer :: istat, iall, i, iorb, ilr, ist, iiorb, ncount
   character(len=*), parameter :: subname='hpsitopsi_linear'
-  real(kind=8),dimension(:),allocatable :: psittmp_c, psittmp_f
-  real(kind=8), dimension(:),allocatable :: norm
+  real(kind=8), dimension(:), allocatable :: norm
   real(kind=8) :: ddot, dnrm2, tt
 
   call DIISorSD(iproc, it, trH, tmb, ldiis, alpha, alphaDIIS, lphiold, trH_ref, kernel_best, complete_reset)

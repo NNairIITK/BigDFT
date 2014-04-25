@@ -1,0 +1,13 @@
+.55 .55 .55   hx,hy,hz: grid spacing in the three directions
+3.0 7.0       crmult, frmult: (c|f)rmult*radii_cf(*,1|2) give the coarse of fine radius around each atom
+1             ixc: exchange-correlation parameter (LDA=1, PBE=11)
+0 0.0 .0 0.0  ncharge: charge of the system, Electric field
+2 0           nspin=1 non-spin polarization, mpol=total magnetic moment
+1.e-4         gnrm_cv: convergence criterion gradient
+50 1          itermax: maximum number of wavefunction optimizations and of re-diagonalised runs
+6  6          ncong, idsx: # CG iterations for the preconditioning equation, length of the diis history
+0             dispersion correction functional (values 1,2,3), 0=no correction
+0 0    0      InputPsiId, output_wf, output_grid
+0.0  30       rbuf, ncongt: length of the tail (AU),# tail CG iterations
+0 0  0        davidson treatment, no. of virtual orbitals, no of plotted orbitals
+T             disable the symmetry detection

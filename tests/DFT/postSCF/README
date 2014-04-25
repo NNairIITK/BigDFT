@@ -1,6 +1,9 @@
 /*! @file
 @brief README of the non-regression tests for features after converging wavefunctions
 
+@dir
+@brief Contains the non-regression tests for the features after converging the wavefunctions
+
 @page TESTS_DFT_POSTSCF Test the features after the self-consistent cycle
 @brief Non-regression tests (features after the SCF)
 

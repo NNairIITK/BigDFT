@@ -1,7 +1,7 @@
-/* @file
+/*! @file
 @brief README of the FFT tests.
 
-@dir ./tests/libs/fft
+@dir
 @brief Performs some tests on FFT library in serial.
 
 */

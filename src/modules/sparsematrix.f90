@@ -1,6 +1,18 @@
+!> @file
+!!  File defining the structures to deal with the sparse matrices
+!! @author
+!!    Copyright (C) 2014-2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+!> Module to deal with the sparse matrices
 module sparsematrix
+
   use module_base
   use sparsematrix_base
+
   implicit none
 
   private
@@ -180,10 +192,10 @@ module sparsematrix
       type(sparse_matrix),intent(inout) :: sparsemat
       type(matrices),intent(inout) :: mat
       !Local variables
-      integer :: i_stat, i_all, jorb, irow, icol, iseg, ii
-      character(len=*),parameter :: subname='check_matrix_compression'
-      real(kind=8) :: maxdiff
+      character(len=*), parameter :: subname='check_matrix_compression'
       real(kind=8), parameter :: tol=1.e-10
+      integer :: jorb, irow, icol, iseg, ii
+      real(kind=8) :: maxdiff
     
       call f_routine('check_matrix_compression')
     

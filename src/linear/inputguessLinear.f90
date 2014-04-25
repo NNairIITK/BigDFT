@@ -1,7 +1,7 @@
 !> @file 
 !!   Input guess for the linear version
 !! @author
-!!   Copyright (C) 2011-2012 BigDFT group 
+!!   Copyright (C) 2011-2013 BigDFT group 
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
@@ -46,9 +46,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:), allocatable :: locrad
   real(wp), dimension(:,:,:), pointer :: psigau
-  integer, dimension(:),allocatable :: norbsPerAt, mapping, inversemapping, minorbs_type, maxorbs_type
-  logical,dimension(:),allocatable :: covered, type_covered
-  !real(kind=8),dimension(:,:),allocatable :: aocc
+  integer, dimension(:), allocatable :: norbsPerAt, mapping, inversemapping, minorbs_type, maxorbs_type
+  logical, dimension(:), allocatable :: covered, type_covered
+  real(kind=8), dimension(:,:), allocatable :: aocc
   integer, dimension(:,:), allocatable :: nl_copy 
   integer :: ist,jorb,iadd,ii,jj,ityp,itype,iortho
   integer :: jlr,iiorb
@@ -61,9 +61,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   type(mixrhopotDIISParameters) :: mixdiis
   type(sparse_matrix) :: ham_small ! for FOE
   logical :: finished, can_use_ham
-  type(confpot_data),dimension(:),allocatable :: confdatarrtmp
-  real(kind=8),dimension(:),allocatable :: philarge
-  integer :: npsidim_large, sdim, ldim, ists, istl, ilr, nspin, info_basis_functions
+  type(confpot_data), dimension(:), allocatable :: confdatarrtmp
+  integer :: info_basis_functions
   real(kind=8) :: ratio_deltas, trace, trace_old, fnrm_tmb
   logical :: ortho_on, reduce_conf, rho_negative
   type(localizedDIISParameters) :: ldiis

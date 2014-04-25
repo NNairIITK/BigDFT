@@ -954,17 +954,6 @@ module module_interfaces
        real(gp),dimension(at%astruct%ntypes),intent(in),optional:: quartic_prefactor
       END SUBROUTINE AtomicOrbitals
 
-      subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,neleconf,nsccode,mxpl,mxchg)
-         use module_base
-         use module_types
-         implicit none
-         character(len=*), intent(in) :: filename
-         integer, intent(in) :: ityp,mxpl,mxchg,nspin,nmax,lmax,nelecmax,nsccode
-         type(atoms_data), intent(inout) :: at
-         !integer, dimension(nmax,lmax), intent(in) :: neleconf
-         real(gp), dimension(nmax,lmax), intent(in) :: neleconf
-      END SUBROUTINE atomic_occupation_numbers
-
       subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,&
             &   ibyyzz_r) !optional
          use module_base
@@ -1159,11 +1148,11 @@ module module_interfaces
          real(wp), dimension((ngx*(ngx+1))/2,4), intent(out) :: rhocoeff
       END SUBROUTINE plot_gatom_basis
 
-      subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
+      subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
         use module_base
         use module_types
         implicit none
-        integer, intent(in) :: iproc,i3s,n3d,i3xcsh,n3p
+        integer, intent(in) :: i3s,n3d,i3xcsh,n3p
         real(gp), intent(in) :: hxh,hyh,hzh
         type(atoms_data), intent(in) :: at
         type(grid_dimensions), intent(in) :: d
@@ -3133,7 +3122,7 @@ module module_interfaces
           type(comms_cubic), intent(in) :: comms
         end subroutine check_communications
 
-        subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
+        subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
              orbs,nlpsp,wfd,psi,fsep,refill,strten)
           use module_base
           use module_types
@@ -3143,7 +3132,6 @@ module module_interfaces
           type(wavefunctions_descriptors), intent(in) :: wfd
           type(DFT_PSP_projectors), intent(inout) :: nlpsp
           logical, intent(in) :: refill
-          integer, intent(in) :: iproc
           real(gp), intent(in) :: hx,hy,hz
           type(locreg_descriptors) :: lr
           type(orbitals_data), intent(in) :: orbs

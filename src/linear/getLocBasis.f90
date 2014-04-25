@@ -474,7 +474,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   character(len=*),parameter :: subname='getLocalizedBasis'
   real(kind=8),dimension(:),pointer :: lhphiold, lphiold, hpsit_c, hpsit_f, hpsi_small
   type(energy_terms) :: energs
-  real(8),dimension(2):: reducearr
+  real(kind=8), dimension(2):: reducearr
   real(gp) :: econf, dynamic_convcrit, kappa_mean
   integer :: i, ist, iiorb, ilr, ii, kappa_satur
   real(kind=8) :: energy_first, hxh, hyh, hzh, trH_ref, charge

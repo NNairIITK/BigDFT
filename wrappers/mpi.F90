@@ -297,7 +297,7 @@ subroutine create_group_comm1(base_comm,nproc_base,group_id,ngroup,group_size,gr
   integer, intent(out) :: group_comm
   !local variables
   character(len=*), parameter :: subname='create_group_comm'
-  integer :: grp,ierr,i,j,base_grp,temp_comm
+  integer :: grp,ierr,i,j,base_grp,temp_comm!,i_stat,i_all
   integer, dimension(:), allocatable :: group_list
 
 ! allocate(group_list(group_size+ndebug),stat=i_stat)

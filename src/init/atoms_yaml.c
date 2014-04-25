@@ -23,7 +23,7 @@ static const char *BC_keys[] = {"free", "wire", "surface", "periodic", NULL};
 static const char *Units_keys[] = {"bohr", "angstroem", "atomic", NULL};
 static const char *funits_keys[] = {"Ha/Bohr", "eV/Ang", NULL};
 static const char *eunits_keys[] = {"Ha", "eV", "Ry", NULL};
-static const char *frozen_keys[] = {"No", "Yes", "fy", "fxz",
+static const char *frozen_keys[] = {"No", "Yes", "fx", "fy", "fz", "fxy", "fxz", "fyz", 
                                     "N",  "Y",   "",   "",
                                     "false", "true", "", "",
                                     "off", "on", "", "", NULL};

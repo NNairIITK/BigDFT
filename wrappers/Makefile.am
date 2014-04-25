@@ -80,7 +80,7 @@ modules = module_fft_sg.@MODULE_EXT@ \
 	wrapper_linalg.@MODULE_EXT@ \
 	wrapper_mpi.@MODULE_EXT@
 endif
-CLEANFILES = $(modules) $(mpi_include)
+CLEANFILES = $(modules) mpif.h
 
 # Copy modules in a common include directory.
 all: all-am insmod

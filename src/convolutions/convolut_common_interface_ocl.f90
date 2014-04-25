@@ -47,7 +47,7 @@ subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,wfd,orbs,GPU)
   !local variables
   character(len=*), parameter :: subname='allocate_data_OCL'
   logical, parameter :: pin=.false.
-  integer :: n1b, n2b, n3b, i_stat,iorb,ispinor
+  integer :: n1b, n2b, n3b, iorb,ispinor
   integer, dimension(3) :: periodic
 
   call f_routine(id=subname)
@@ -204,7 +204,7 @@ subroutine free_gpu_OCL(GPU,orbs,nspin)
   !local variables
   character(len=*), parameter :: subname='free_gpu_OCL'
   logical, parameter :: pin=.false.
-  integer :: i_stat,i_all,iorb,ispinor
+  integer :: iorb,ispinor
 
   call f_free_ptr(GPU%ekin)
   call f_free_ptr(GPU%epot)
@@ -595,7 +595,7 @@ subroutine finish_hamiltonian_OCL(orbs,ekin_sum,epot_sum,GPU)
   real(gp), intent(out) :: ekin_sum,epot_sum
   type(GPU_pointers), intent(inout) :: GPU
 
-  integer :: iorb,ispinor
+  integer :: iorb
 
   call ocl_finish(GPU%queue)
   ekin_sum=0.0_gp
@@ -633,7 +633,7 @@ subroutine preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
   !local variables
   character(len=*), parameter :: subname='preconditionall_OCL'
   logical, parameter :: pin=.false.
-  integer ::  iorb,jorb,i_stat,ncplx,i_all,inds,isf,ikpt,ispinor,ioff_c,ioff_f,ioff_ci,ioff_fi
+  integer ::  iorb,jorb,ncplx,inds,isf,ikpt,ispinor,ioff_c,ioff_f,ioff_ci,ioff_fi
   real(wp) :: scpr
   real(gp) :: cprecr,eval_zero,evalmax
   type(GPU_pointers), intent(inout) :: GPU

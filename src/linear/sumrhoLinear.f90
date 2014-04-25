@@ -307,7 +307,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
   type(matrices), intent(out) :: denskern_
 
   ! Local variables
-  integer :: istat, iall, ierr, sendcount, jproc, iorb, itmb
+  integer :: ierr, sendcount, jproc, iorb, itmb
   real(kind=8),dimension(:,:),allocatable :: density_kernel_partial, fcoeff
 ! real(kind=8), dimension(:,:,), allocatable :: ks,ksk,ksksk
   character(len=*),parameter :: subname='calculate_density_kernel'
@@ -852,7 +852,7 @@ subroutine check_communication_potential(iproc,denspot,tmb)
   use module_types
   use module_interfaces
   use yaml_output
-  use dictionaries, only:f_err_throw
+  use dictionaries, only: f_err_throw
   use communications, only: start_onesided_communication
   implicit none
   integer,intent(in) :: iproc
@@ -995,7 +995,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   integer :: ist, iorb, iiorb, ilr, i, iz, ii, iy, ix, iix, iiy, iiz, iixyz, nxyz, ipt, i0, ierr, jproc
   integer :: i1, i2, i3, is1, is2, is3, ie1, ie2, ie3, ii3s, ii3e, nmax, jj, j, ind, ikernel
   integer :: iorbmin, iorbmax, jorb, iall, istat
-  real(kind=8) :: maxdiff, sumdiff, tt, tti, ttj, tt1, hxh, hyh, hzh, factor, hx, hy, hz, ref_value
+  real(kind=8) :: maxdiff, sumdiff, tt, tti, ttj, hxh, hyh, hzh, factor, ref_value
   real(kind=8) :: diff
   real(kind=8),dimension(:),allocatable :: psir, psirwork, psirtwork, rho, rho_check
   integer,dimension(:,:,:),allocatable :: weight

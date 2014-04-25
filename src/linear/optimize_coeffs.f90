@@ -6,9 +6,9 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-!!
-!! @note
-!!  Coefficients are defined for Ntmb KS orbitals so as to maximize the number
+
+
+!>  Coefficients are defined for Ntmb KS orbitals so as to maximize the number
 !!  of orthonormality constraints. This should speedup the convergence by
 !!  reducing the effective number of degrees of freedom.
 subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit, itmax, energy, sd_fit_curve, &
@@ -314,8 +314,9 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
 
 end subroutine optimize_coeffs
 
-! subset of reordering coeffs - need to arrange this routines better but taking the lazy route for now
-! (also assuming we have no extra - or rather number of extra bands come from input.mix not input.lin)
+
+!> subset of reordering coeffs - need to arrange this routines better but taking the lazy route for now
+!! (also assuming we have no extra - or rather number of extra bands come from input.mix not input.lin)
 subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   use module_base
   use module_types
@@ -336,7 +337,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   type(input_variables),intent(in) :: input
   type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
 
-  integer :: iorb, jorb, istat, iall, ierr, itmb, jtmb, ifrag
+  integer :: iorb, istat, iall, ifrag
   integer, dimension(2) :: ifrag_charged
   !real(kind=8), dimension(:,:,:), allocatable :: weight_coeff
   real(kind=8), dimension(:,:), allocatable :: weight_coeff_diag
@@ -610,55 +611,55 @@ subroutine calculate_coeffMatcoeff_diag(matrix,basis_orbs,ksorbs,coeff,mat_coeff
 
 end subroutine calculate_coeffMatcoeff_diag
  
-  ! not really fragment related so prob should be moved - reorders coeffs by eval
+!> not really fragment related so prob should be moved - reorders coeffs by eval
   ! output ipiv in case want to use it for something else
   subroutine order_coeffs_by_energy(nstate,ntmb,coeff,eval,ipiv)
-    use module_base
-    use module_types
-    implicit none
-    integer, intent(in) :: nstate, ntmb
-    real(kind=gp), dimension(ntmb,nstate), intent(inout) :: coeff
-    real(kind=gp), dimension(nstate), intent(inout) :: eval
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: nstate, ntmb
+  real(kind=gp), dimension(ntmb,nstate), intent(inout) :: coeff
+  real(kind=gp), dimension(nstate), intent(inout) :: eval
     integer, dimension(nstate), intent(out) :: ipiv
 
-    integer :: itmb, jorb
+  integer :: itmb, jorb
     !integer, allocatable, dimension(:) :: ipiv
-    real(gp), dimension(:), allocatable :: tmp_array
-    real(gp), dimension(:,:), allocatable :: tmp_array2
+  real(gp), dimension(:), allocatable :: tmp_array
+  real(gp), dimension(:,:), allocatable :: tmp_array2
 
     !ipiv=f_malloc(nstate,id='coeff_final')
-    tmp_array=f_malloc(nstate,id='tmp_array')
+  tmp_array=f_malloc(nstate,id='tmp_array')
 
-    do itmb=1,nstate
-       tmp_array(itmb)=-eval(itmb)
-    end do
+  do itmb=1,nstate
+     tmp_array(itmb)=-eval(itmb)
+  end do
 
-    call sort_positions(nstate,tmp_array,ipiv)
+  call sort_positions(nstate,tmp_array,ipiv)
 
-    do itmb=1,nstate
-       eval(itmb)=-tmp_array(ipiv(itmb))
-    end do
+  do itmb=1,nstate
+     eval(itmb)=-tmp_array(ipiv(itmb))
+  end do
 
-    call f_free(tmp_array)
+  call f_free(tmp_array)
 
-    tmp_array2=f_malloc((/ntmb,nstate/),id='tmp_array2')
+  tmp_array2=f_malloc((/ntmb,nstate/),id='tmp_array2')
 
-    do jorb=1,nstate
-       do itmb=1,ntmb
-          tmp_array2(itmb,jorb)=coeff(itmb,jorb)
-       end do
-    end do
+  do jorb=1,nstate
+     do itmb=1,ntmb
+        tmp_array2(itmb,jorb)=coeff(itmb,jorb)
+     end do
+  end do
 
-    do jorb=1,nstate
-       do itmb=1,ntmb
-          coeff(itmb,jorb)=tmp_array2(itmb,ipiv(jorb))
-       end do
-    end do
+  do jorb=1,nstate
+     do itmb=1,ntmb
+        coeff(itmb,jorb)=tmp_array2(itmb,ipiv(jorb))
+     end do
+  end do
 
-    call f_free(tmp_array2)
+  call f_free(tmp_array2)
     !call f_free(ipiv)
 
-  end subroutine order_coeffs_by_energy
+end subroutine order_coeffs_by_energy
 
 !!! experimental - for num_extra see if extra states are actually lower in energy and reorder (either by sorting or diagonalization)
 !!! could improve efficiency by only calculating cSc or cHc up to norb (i.e. ksorbs%norb+extra)
@@ -838,7 +839,6 @@ end subroutine calculate_coeffMatcoeff_diag
 !!end subroutine reordering_coeffs
 
 
-
 subroutine find_alpha_sd(iproc,nproc,alpha,tmb,orbs,coeffp,grad,energy0,fnrm,pred_e)
   use module_base
   use module_types
@@ -955,8 +955,8 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,denskern_mat,ham
 end subroutine calculate_kernel_and_energy
 
 
-! calculate grad_cov_i^a = f_i (I_ab - S_ag K^gb) H_bg c_i^d
-! then grad=S^-1grad_cov
+!> calculate grad_cov_i^a = f_i (I_ab - S_ag K^gb) H_bg c_i^d
+!! then grad=S^-1grad_cov
 subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
   use module_base
   use module_types
@@ -973,7 +973,6 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
   integer :: iorb, iiorb, info, ierr
   real(gp),dimension(:,:),allocatable :: sk, skh, skhp
   real(gp),dimension(:,:),pointer :: inv_ovrlp
-  integer,dimension(:),allocatable:: ipiv
   real(kind=gp), dimension(:,:), allocatable:: grad_full
   character(len=*),parameter:: subname='calculate_coeff_gradient'
   type(matrices) :: inv_ovrlp_
@@ -1256,8 +1255,9 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
 
 end subroutine calculate_coeff_gradient
 
-! calculate grad_cov_i^a = f_i (I_ab - S_ag K^gb) H_bg c_i^d
-! then grad=S^-1grad_cov
+
+!> calculate grad_cov_i^a = f_i (I_ab - S_ag K^gb) H_bg c_i^d
+!! then grad=S^-1grad_cov
 subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_cov,grad)
   use module_base
   use module_types
@@ -1274,8 +1274,6 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_
   integer :: iorb, iiorb, info, ierr
   real(gp),dimension(:,:),allocatable :: sk, skh, skhp
   real(gp),dimension(:,:),pointer ::  inv_ovrlp
-  integer :: matrixindex_in_compressed
-  integer,dimension(:),allocatable:: ipiv
   real(kind=gp), dimension(:), allocatable:: occup_tmp
   real(kind=gp), dimension(:,:), allocatable:: grad_full
   real(kind=gp) :: error
@@ -1423,6 +1421,7 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_
 
 end subroutine calculate_coeff_gradient_extra
 
+
 subroutine precondition_gradient_coeff(ntmb, norb, ham, ovrlp, grad)
   use module_base
   use module_types
@@ -1486,7 +1485,6 @@ subroutine precondition_gradient_coeff(ntmb, norb, ham, ovrlp, grad)
   !call memocc(istat, iall, 'rhs', subname)
 
 end subroutine precondition_gradient_coeff
-
 
 
 subroutine DIIS_coeff(iproc, orbs, tmb, grad, coeff, ldiis)
@@ -1701,4 +1699,3 @@ subroutine allocate_DIIS_coeff(tmb, ldiis)
   call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
 
 end subroutine allocate_DIIS_coeff
-

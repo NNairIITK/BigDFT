@@ -1,3 +1,14 @@
+!> @file
+!!  File defining the routines to initialize the communications between processes
+!! @author
+!!    Copyright (C) 2013-2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Module defining routines to initialize the communications
 module communications_init
   use communications_base
   implicit none
@@ -23,13 +34,12 @@ module communications_init
       type(comms_linear),intent(inout) :: collcom
       
       ! Local variables
-      integer :: ii, iorb, iiorb, ilr, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, ierr
+      integer :: iorb, iiorb, ilr, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
       integer :: ipt, nvalp_c, nvalp_f
       real(kind=8),dimension(:,:,:),allocatable :: weight_c, weight_f
       real(kind=8) :: weight_c_tot, weight_f_tot, weightp_c, weightp_f
       integer,dimension(:,:),allocatable :: istartend_c, istartend_f
       integer,dimension(:,:,:),allocatable :: index_in_global_c, index_in_global_f
-      integer,dimension(:),allocatable :: npts_par_c, npts_par_f
       
       call timing(iproc,'init_collcomm ','ON')
     
@@ -278,7 +288,7 @@ module communications_init
       !!$$integer :: ii2, iiseg, jprocdone
       integer :: i, iseg, i0, iitot, ierr, istat, iall
       real(kind=8) :: tt, tt2, weight_c_ideal, weight_f_ideal, ttt, tmp, tmp2
-      real(8),dimension(:,:),allocatable :: weights_c_startend, weights_f_startend
+      real(kind=8),dimension(:,:),allocatable :: weights_c_startend, weights_f_startend
       character(len=*),parameter :: subname='assign_weight_to_process'
     
       ! Ideal weight per process.
@@ -798,14 +808,14 @@ module communications_init
       integer,intent(in):: iproc, nproc, nptsp_c, nptsp_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
       type(local_zone_descriptors),intent(in):: lzd
       integer,dimension(2,0:nproc-1),intent(in):: istartend_c, istartend_f
-      real(8),intent(in):: weightp_c, weightp_f
-      real(8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(in):: weight_c, weight_f
+      real(kind=8),intent(in):: weightp_c, weightp_f
+      real(kind=8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(in):: weight_c, weight_f
       integer,dimension(nptsp_c),intent(out):: norb_per_gridpoint_c
       integer,dimension(nptsp_f),intent(out):: norb_per_gridpoint_f
       
       ! Local variables
-      integer:: ii, i1, i2, i3, iipt, iseg, jj, j0, j1, iitot, i, istart, iend, i0
-      integer::icheck_c,icheck_f,iiorb_c,iiorb_f, npgp_c,npgp_f
+      integer :: ii, i1, i2, i3, iipt, iseg, jj, j0, j1, iitot, i, istart, iend, i0
+      integer :: icheck_c,icheck_f,iiorb_c,iiorb_f, npgp_c,npgp_f
       !!integer,dimension(:),allocatable:: iseg_start_c, iseg_start_f
     
     
@@ -1416,7 +1426,7 @@ module communications_init
       type(comms_linear),intent(inout) :: collcom_sr
     
       ! Local variables
-      integer :: ierr, istat, iall, ipt, ii
+      integer :: istat, iall, ipt, ii
       real(kind=8) :: weight_tot, weight_ideal
       integer,dimension(:,:),allocatable :: istartend
       character(len=*),parameter :: subname='init_comms_linear_sumrho'
@@ -1516,7 +1526,7 @@ module communications_init
       real(kind=8),dimension(lzd%glr%d%n3i),intent(out) :: weights_per_zpoint
     
       ! Local variables
-      integer :: iorb, ilr, ierr, i3, i2, i1, is1, ie1, is2, ie2, is3, ie3, istat, iall
+      integer :: iorb, ilr, ierr, i3, i2, i1, is1, ie1, is2, ie2, is3, ie3
       real(kind=8) :: tt, zz
       real(kind=8),dimension(:,:),allocatable :: weight_xy
     
@@ -1601,10 +1611,10 @@ module communications_init
       integer,intent(out) :: nptsp
     
       ! Local variables
-      integer :: jproc, i1, i2, i3, ii, iorb, ilr, is1, ie1, is2, ie2, is3, ie3, ierr, istat, iall, jproc_out
-      real(kind=8) :: tt, ttt
+      integer :: jproc, i1, i2, i3, ii, iorb, ilr, is1, ie1, is2, ie2, is3, ie3, ierr, jproc_out
       real(kind=8),dimension(:,:),allocatable :: slicearr
-      real(8),dimension(:,:),allocatable :: weights_startend
+      real(kind=8), dimension(:,:),allocatable :: weights_startend
+      real(kind=8) :: tt
     
       call f_routine(id='assign_weight_to_process_sumrho')
     
@@ -1618,7 +1628,6 @@ module communications_init
           weights_startend(1,jproc+1)=dble(floor(tt,kind=8))+1.d0
       end do
       weights_startend(2,nproc-1)=weight_tot
-    
     
       ! Iterate through all grid points and assign them to processes such that the
       ! load balancing is optimal.
@@ -1724,7 +1733,7 @@ module communications_init
     
       ! Local variables
       integer :: i3, ii, i2, i1, ipt, ilr, is1, ie1, is2, ie2, is3, ie3, iorb, ierr, i
-      real(8) :: tt, weight_check
+      real(kind=8) :: tt, weight_check
     
     
       if (nptsp>0) then
@@ -2192,9 +2201,7 @@ module communications_init
                                                       nrecvcounts_repartitionrho(jproc-1)
       end do
     
-    
     end subroutine communication_arrays_repartitionrho
-    
     
     
     subroutine communication_arrays_repartitionrho_general(iproc, nproc, lzd, nscatterarr, istartend, &
@@ -2213,15 +2220,13 @@ module communications_init
       character(len=*),parameter :: subname='communication_arrays_repartitionrho_general'
     
       ! Local variables
-      integer :: i1, i2, i3, ii, jproc, jproc_send, iidest, nel, ioverlaps, istat, ierr, iassign
+      integer :: i1, i2, i3, ii, jproc, jproc_send, iidest, nel, ioverlaps, iassign
       logical :: started
-      integer,dimension(:),allocatable :: nel_array
     
       call f_routine(id='communication_arrays_repartitionrho_general')
     
       ! only do this if task iproc has to receive a part of the potential
       if (nscatterarr(iproc,1)>0) then
-        
         
           ! First process from which iproc has to receive data
           ncomms_repartitionrho=0
@@ -2234,8 +2239,6 @@ module communications_init
                   exit
               end if
           end do
-        
-        
         
           ! The remaining processes
           iidest=0
@@ -2817,25 +2820,27 @@ module communications_init
       !call MPI_FINALIZE(ierr)
       !stop
       !check that for any processor the orbital k-point repartition is contained into the components
-      do jproc=0,nproc-1
-         jsorb=0
-         do kproc=0,jproc-1
-            jsorb=jsorb+orbs%norb_par(kproc,0)
+      if (orbs%norb /= 0) then
+         do jproc=0,nproc-1
+            jsorb=0
+            do kproc=0,jproc-1
+               jsorb=jsorb+orbs%norb_par(kproc,0)
+            end do
+            jkpts=min(jsorb/orbs%norb+1,orbs%nkpts)
+            if (nvctr_par(jproc,jkpts) == 0 .and. orbs%norb_par(jproc,0) /=0 ) then
+               if (iproc ==0) write(*,*)'ERROR, jproc: ',jproc,' the orbital k-points distribution starts before the components one'
+               !print *,jsorb,jkpts,jproc,orbs%iskpts,nvctr_par(jproc,jkpts)
+               stop
+            end if
+            jkpte=min((jsorb+orbs%norb_par(jproc,0)-1)/orbs%norb+1,orbs%nkpts)
+            if (nvctr_par(jproc,jkpte) == 0 .and. orbs%norb_par(jproc,0) /=0) then
+               if (iproc ==0) write(*,*)'ERROR, jproc: ',jproc,&
+                    ' the orbital k-points distribution ends after the components one'
+               print *,jsorb,jkpte,jproc,orbs%iskpts,orbs%nkptsp,nvctr_par(jproc,jkpte)
+               stop
+            end if
          end do
-         jkpts=min(jsorb/orbs%norb+1,orbs%nkpts)
-         if (nvctr_par(jproc,jkpts) == 0 .and. orbs%norb_par(jproc,0) /=0 ) then
-            if (iproc ==0) write(*,*)'ERROR, jproc: ',jproc,' the orbital k-points distribution starts before the components one'
-            !print *,jsorb,jkpts,jproc,orbs%iskpts,nvctr_par(jproc,jkpts)
-            stop
-         end if
-         jkpte=min((jsorb+orbs%norb_par(jproc,0)-1)/orbs%norb+1,orbs%nkpts)
-         if (nvctr_par(jproc,jkpte) == 0 .and. orbs%norb_par(jproc,0) /=0) then
-            if (iproc ==0) write(*,*)'ERROR, jproc: ',jproc,&
-                 ' the orbital k-points distribution ends after the components one'
-            print *,jsorb,jkpte,jproc,orbs%iskpts,orbs%nkptsp,nvctr_par(jproc,jkpte)
-            stop
-         end if
-      end do
+      end if
     
       !before printing the distribution schemes, check that the two distributions contain
       !the same k-points

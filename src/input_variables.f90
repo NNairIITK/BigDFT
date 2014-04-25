@@ -7,7 +7,8 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-!> this function returns a dictionary with all the input variables of a BigDFT run filled
+
+!> This function returns a dictionary with all the input variables of a BigDFT run filled
 !! this dictionary is constructed from a updated version of the input variables dictionary
 !! following the input files as defined  by the user
 subroutine read_input_dict_from_files(radical,mpi_env,dict)
@@ -233,7 +234,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   end if
 
   ! Cross check values of input_variables.
-  call input_analyze(in)
+  call input_analyze(in,atoms%astruct)
 
   ! Initialise XC calculation
 !!$  if (in%ixc < 0) then
@@ -274,7 +275,9 @@ subroutine inputs_from_dict(in, atoms, dict)
      call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if
   
-  if(in%inputpsiid==100 .or. in%inputpsiid==101 .or. in%inputpsiid==102) &
+  if(in%inputpsiid == INPUT_PSI_LINEAR_AO .or. &
+     in%inputpsiid == INPUT_PSI_MEMORY_LINEAR .or. &
+     in%inputpsiid == INPUT_PSI_DISK_LINEAR) &
       DistProjApply=.true.
   if(in%linear /= INPUT_IG_OFF .and. in%linear /= INPUT_IG_LIG) then
      !only on the fly calculation
@@ -345,6 +348,7 @@ subroutine inputs_from_dict(in, atoms, dict)
 
 end subroutine inputs_from_dict
 
+
 !> Check the directory of data (create if not present)
 subroutine check_for_data_writing_directory(iproc,in)
   use module_base
@@ -382,8 +386,11 @@ subroutine check_for_data_writing_directory(iproc,in)
      if (iproc==0) call yaml_map('Data Writing directory','./')
      in%dir_output=repeat(' ',len(in%dir_output))
   end if
+
 END SUBROUTINE check_for_data_writing_directory
 
+
+!> Create the directory output
 subroutine create_dir_output(iproc, in)
   use yaml_output
   use module_types
@@ -407,6 +414,7 @@ subroutine create_dir_output(iproc, in)
   call MPI_BCAST(dirname,len(dirname),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
   in%dir_output=dirname
 END SUBROUTINE create_dir_output
+
 
 !> Set default values for input variables
 subroutine default_input_variables(in)
@@ -462,6 +470,7 @@ subroutine default_input_variables(in)
   nullify(in%frag%charge)
 END SUBROUTINE default_input_variables
 
+
 !> Assign default values for mixing variables
 subroutine mix_input_variables_default(in)
   use module_base
@@ -481,6 +490,7 @@ subroutine mix_input_variables_default(in)
   in%alphadiis=2.d0
 
 END SUBROUTINE mix_input_variables_default
+
 
 !> Assign default values for GEOPT variables
 subroutine geopt_input_variables_default(in)
@@ -507,6 +517,7 @@ subroutine geopt_input_variables_default(in)
 
 END SUBROUTINE geopt_input_variables_default
 
+
 !> Assign default values for self-interaction correction variables
 subroutine sic_input_variables_default(in)
   use module_base
@@ -520,6 +531,7 @@ subroutine sic_input_variables_default(in)
 
 END SUBROUTINE sic_input_variables_default
 
+
 !> Assign default values for TDDFT variables
 subroutine tddft_input_variables_default(in)
   use module_base
@@ -531,6 +543,8 @@ subroutine tddft_input_variables_default(in)
 
 END SUBROUTINE tddft_input_variables_default
 
+
+!> Allocate the arrays for the input related to the fragment
 subroutine allocateInputFragArrays(input_frag)
   use module_types
   implicit none
@@ -560,6 +574,8 @@ subroutine allocateInputFragArrays(input_frag)
 
 end subroutine allocateInputFragArrays
 
+
+!> Deallocate the arrays related to the input for the fragments
 subroutine deallocateInputFragArrays(input_frag)
   use module_types
   implicit none
@@ -609,6 +625,7 @@ subroutine deallocateInputFragArrays(input_frag)
 end subroutine deallocateInputFragArrays
 
 
+!> Nullify the parameters related to the fragments
 subroutine nullifyInputFragParameters(input_frag)
   use module_types
   implicit none
@@ -624,6 +641,7 @@ subroutine nullifyInputFragParameters(input_frag)
 
 end subroutine nullifyInputFragParameters
 
+!> Creation of the log file (by default log.yaml)
 !>  Free all dynamically allocated memory from the kpt input file.
 subroutine free_kpt_variables(in)
   use module_base
@@ -675,6 +693,7 @@ subroutine free_geopt_variables(in)
   end if
   nullify(in%qmass)
 end subroutine free_geopt_variables
+
 
 !>  Free all dynamically allocated memory from the input variable structure.
 subroutine free_input_variables(in)
@@ -728,6 +747,7 @@ subroutine abscalc_input_variables_default(in)
   in%abscalc_Sinv_do_cg=.false.
 END SUBROUTINE abscalc_input_variables_default
 
+
 !> Assign default values for frequencies variables
 !!    freq_alpha: frequencies step for finite difference = alpha*hx, alpha*hy, alpha*hz
 !!    freq_order; order of the finite difference (2 or 3 i.e. 2 or 4 points)
@@ -743,18 +763,23 @@ subroutine frequencies_input_variables_default(in)
   in%freq_method=1
 END SUBROUTINE frequencies_input_variables_default
 
-subroutine input_analyze(in)
+
+!> Cross check values of input_variables.
+!! and change if necessary
+subroutine input_analyze(in,astruct)
   use module_types, only: input_variables
   use module_types, only: output_denspot_FORMAT_CUBE, output_denspot_NONE, WF_FORMAT_NONE
   use module_types, only: bigdft_mpi
   use module_types, only: KERNELMODE_DIRMIN, KERNELMODE_DIAG, KERNELMODE_FOE, &
                           MIXINGMODE_DENS, MIXINGMODE_POT, &
                           LINEAR_DIRECT_MINIMIZATION, LINEAR_MIXDENS_SIMPLE, LINEAR_MIXPOT_SIMPLE, LINEAR_FOE
+  use module_atoms, only: atomic_structure
   use module_defs, only: gp
   use dynamic_memory
   use module_input_keys, only: input_keys_equal
   implicit none
   type(input_variables), intent(inout) :: in
+  type(atomic_structure), intent(in) :: astruct
 
   integer :: ierr
 
@@ -809,6 +834,11 @@ subroutine input_analyze(in)
   else
      in%last_run=0
   end if
+
+  if (astruct%geocode == 'F' .or. astruct%nat == 0) then
+     !Disable the symmetry
+     in%disableSym = .true.
+  end if
   
   ! the GEOPT variables ----------------------------------------------------
   !target stress tensor
@@ -821,7 +851,7 @@ subroutine input_analyze(in)
      end if
   end if
 
-  ! determine the scf mode
+  ! Determine the SCF mode
   select case (in%lin%kernel_mode)
   case (KERNELMODE_DIRMIN)
       in%lin%scf_mode = LINEAR_DIRECT_MINIMIZATION
@@ -843,6 +873,8 @@ subroutine input_analyze(in)
   call f_release_routine()
 END SUBROUTINE input_analyze
 
+
+!> Analyse the kpt input and calculates k points if needed
 subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   use module_base
   use module_types
@@ -853,17 +885,21 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   use module_input_keys
   use dictionaries
   implicit none
+  !Arguments
   integer, intent(in) :: iproc
   type(input_variables), intent(inout) :: in
-  type(dictionary), pointer :: dict
+  type(dictionary), pointer, intent(in) :: dict
   type(symmetry_data), intent(in) :: sym
   character(len = 1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-  real(gp), intent(in) :: alat(3)
+  real(gp), dimension(3), intent(in) :: alat
   !local variables
   logical :: lstat
   character(len=*), parameter :: subname='kpt_input_analyse'
-  integer :: i_stat,ierror,i,nshiftk, ngkpt_(3), ikpt, j, ncount, nseg, iseg_, ngranularity_
-  real(gp) :: kptrlen_, shiftk_(3,8), norm, alat_(3)
+  integer :: i_stat,ierror,i, nshiftk, ikpt, j, ncount, nseg, iseg_, ngranularity_
+  integer, dimension(3) :: ngkpt_
+  real(gp), dimension(3) :: alat_
+  real(gp), dimension(3,8) :: shiftk_
+  real(gp) :: kptrlen_, norm
   character(len = 6) :: method
   
   ! Set default values.
@@ -956,7 +992,7 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
         in%gen_kpt(3, i) = dict // KPT // (i-1) // 2
         if (geocode == 'S' .and. in%gen_kpt(2,i) /= 0.) then
            in%gen_kpt(2,i) = 0.
-           if (iproc==0) call yaml_warning('Surface conditions, supressing k-points along y.')
+           if (iproc==0) call yaml_warning('Surface conditions, suppressing k-points along y.')
         end if
         in%gen_wkpt(i) = dict // WKPT // (i-1)
         if (geocode == 'F') then

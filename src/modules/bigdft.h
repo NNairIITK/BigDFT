@@ -1,12 +1,13 @@
-/*> @file 
+/** @file 
      Header for the public BigDFT API.
     @author
-     Copyright (C) 2011-2012 BigDFT group 
+     Copyright (C) 2011-2013 BigDFT group (DC)
      This file is distributed under the terms of the
      GNU General Public License, see ~/COPYING file
      or http://www.gnu.org/copyleft/gpl.txt .
      For the list of contributors, see ~/AUTHORS 
 */
+
 
 #ifndef BIGDFT_H
 #define BIGDFT_H
@@ -14,6 +15,7 @@
 #include <bigdft_cst.h>
 
 G_BEGIN_DECLS
+
 
 /*****************************************************/
 /* Basics definitions with possibly no GLib support. */

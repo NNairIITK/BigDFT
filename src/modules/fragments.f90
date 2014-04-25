@@ -829,7 +829,7 @@ contains
     type(fragment_transformation), intent(inout) :: frag_trans
     !local variables
     integer, parameter :: lwork=7*3
-    integer :: info,iat,i_stat!,i
+    integer :: info,iat!,i_stat,i
     real(gp) :: dets,J
     real(gp), dimension(3) :: SM_arr !< array of SVD and M array
     real(gp), dimension(lwork) :: work !< array of SVD and M array
@@ -1017,11 +1017,12 @@ contains
     integer, intent(out) :: nstates_max ! number of states in total if we consider all partially occupied fragment states to be fully occupied
     logical, intent(in) :: cdft
 
-    integer :: iorb, isforb, jsforb, ifrag, ifrag_ref, itmb, jtmb, iall, istat, num_extra_per_frag, ierr
+    integer :: iorb, isforb, jsforb, ifrag, ifrag_ref, itmb, jtmb, iall, istat, num_extra_per_frag
     integer, allocatable, dimension(:) :: ipiv
-    real(gp), dimension(:,:), allocatable :: coeff_final, ks, ksk
+    real(gp), dimension(:,:), allocatable :: coeff_final
+    !real(gp), dimension(:,:), allocatable :: ks, ksk
     !*real(gp), dimension(:), allocatable :: kernel_final
-    real(gp) :: nonidem, nelecorbs, nelecfrag_tot, jstate_max, homo_diff, lag_mult
+    real(gp) :: nelecorbs, nelecfrag_tot, jstate_max, homo_diff, lag_mult
     real(gp), dimension(:), allocatable :: eval_tmp, eval_tmp2
     character(len=*), parameter :: subname='fragment_coeffs_to_kernel'
 

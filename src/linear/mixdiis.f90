@@ -1,14 +1,14 @@
+!> @file
+!! Mixes the potential in order to get a self consistent potential.
+!! @author
+!!    Copyright (C) 2013-2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 subroutine mixPotential(iproc, n3d, n3p, Glr, input, alphaMix, rhopotOld, ioffset, rhopot, pnrm)
-!
-! Purpose:
-! ========
-!   Mixes the potential in order to get a self consistent potential.
-!
-! Calling arguments:
-! ==================
-!   Input arguments
-!   ---------------
-!
 use module_base
 use module_types
 implicit none

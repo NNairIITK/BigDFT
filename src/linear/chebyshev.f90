@@ -34,7 +34,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
   real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
   logical,intent(out) :: emergency_stop
   ! Local variables
-  integer :: istat, iorb,iiorb, jorb, iall,ipl,norb,norbp,isorb, ierr, nseq, nmaxsegk, nmaxvalk
+  integer :: iorb,iiorb, jorb, ipl,norb,norbp,isorb, ierr, nseq, nmaxsegk, nmaxvalk
   integer :: isegstart, isegend, iseg, ii, jjorb, nout
   character(len=*),parameter :: subname='chebyshev_clean'
   real(8), dimension(:,:,:), allocatable :: vectors
@@ -384,7 +384,7 @@ subroutine chebyshev_fast(iproc, nsize_polynomial, npl, orbs, fermi, chebyshev_p
   real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: kernelp
 
   ! Local variables
-  integer :: ipl, istat, iall
+  integer :: ipl, iall
   real(kind=8),dimension(:),allocatable :: kernel_compressed
 
 

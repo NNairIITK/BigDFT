@@ -1,7 +1,7 @@
 !> @file 
 !!   Miscellaneous routines for linear toolbox
 !! @author
-!!   Copyright (C) 2011-2012 BigDFT group 
+!!   Copyright (C) 2011-2013 BigDFT group 
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
@@ -27,10 +27,10 @@ character(len=4),intent(in) :: basename
 integer :: ix, iy, iz, ix0, iy0, iz0, iiAt, jj, iorb, i1, i2, i3, istart, ii, istat, iat
 integer :: unit1, unit2, unit3, unit4, unit5, unit6, unit7, unit8, unit9, unit10, unit11, unit12
 integer :: ixx, iyy, izz, maxid, i, ixmin, ixmax, iymin, iymax, izmin, izmax
-integer :: iseg, j0, j1, i0, ilr
+integer :: ilr
 real(kind=8) :: dixx, diyy, dizz, prevdiff, maxdiff, diff, dnrm2
 real(kind=8), dimension(:), allocatable :: phir
-real(kind=8), dimension(:,:,:), allocatable :: psig_c
+!real(kind=8), dimension(:,:,:), allocatable :: psig_c
 real(kind=8),dimension(3) :: rxyzdiff
 real(kind=8),dimension(3,11) :: rxyzref
 integer,dimension(4) :: closeid
@@ -429,7 +429,7 @@ contains
 
     ! Local variables
     real(kind=8),dimension(3) :: rxyz
-    real(kind=8) :: dist, hh, threshold
+    real(kind=8) :: dist, threshold
     
     !!! Determine which plane is "most orthogonal" to the straight line
     !!xx(1)=1.d0 ; xx(2)=0.d0 ; xx(3)=0.d0

@@ -8,13 +8,14 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
   character(len=*), intent(in) :: mapname
   character(len=*), optional, intent(in) :: label,advance,fmt
   integer, optional, intent(in) :: unit
-  !local variables
+  !Local variables
   integer :: strm,unt,irow
   character(len=3) :: adv
-  character(len=tot_max_record_length) :: towrite
+  !character(len=tot_max_record_length) :: towrite
 
   unt=0
   if (present(unit)) unt=unit

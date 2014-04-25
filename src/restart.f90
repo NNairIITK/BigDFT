@@ -118,7 +118,7 @@ subroutine reformatmywaves(iproc,orbs,at,&
   pery=(at%astruct%geocode == 'P')
   perz=(at%astruct%geocode /= 'F')
 
-  !buffers realted to periodicity
+  !buffers related to periodicity
   !WARNING: the boundary conditions are not assumed to change between new and old
   call ext_buffers_coarse(perx,nb1)
   call ext_buffers_coarse(pery,nb2)
@@ -1693,8 +1693,8 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
   type(fragment_transformation) :: frag_trans
   ! DEBUG
-  character(len=12) :: orbname
-  real(wp), dimension(:), allocatable :: gpsi
+  ! character(len=12) :: orbname
+  ! real(wp), dimension(:), allocatable :: gpsi
 
 
   call io_read_descr_linear(unitwf, useFormattedInput, iorb_old, eval, n_old(1), n_old(2), n_old(3), &
@@ -2063,7 +2063,7 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
   integer, dimension(tmb%orbs%norb), intent(in), optional :: orblist
   !Local variables
   integer :: ncount1,ncount_rate,ncount_max,ncount2
-  integer :: iorb_out,ispinor,ilr,ind,i_all,i_stat,iorb_old
+  integer :: iorb_out,ispinor,ilr,i_all,i_stat,iorb_old
   integer :: confPotOrder,onwhichatom_tmp,unitwf
   real(gp) :: confPotprefac
 !!$ real(gp), dimension(3) :: mol_centre, mol_centre_new
@@ -2085,8 +2085,8 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
 !!$ integer :: ierr
 
   ! DEBUG
-  character(len=12) :: orbname
-  real(wp), dimension(:), allocatable :: gpsi
+  ! character(len=12) :: orbname
+  ! real(wp), dimension(:), allocatable :: gpsi
 
   call cpu_time(tr0)
   call system_clock(ncount1,ncount_rate,ncount_max)
@@ -2878,14 +2878,14 @@ subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,
   character(len=*), parameter :: subname='reformatmywaves'
   logical :: reformat
   integer :: iorb,j,i_stat,i_all,jstart,jstart_old,iiorb,ilr,iiat
-  integer:: idir,jstart_old_der,ncount,ilr_old,i,k
+  integer:: idir,jstart_old_der,ncount,ilr_old,i
   integer, dimension(3) :: ns_old,ns,n_old,n
   real(gp), dimension(3) :: centre_old_box,centre_new_box,da
   real(gp) :: tt,tol
   real(wp), dimension(:,:,:,:,:,:), pointer :: phigold
   real(wp), dimension(:), allocatable :: phi_old_der
   integer, dimension(0:6) :: reformat_reason
-  character(len=12) :: orbname, dummy
+  character(len=12) :: orbname!, dummy
   real(wp), allocatable, dimension(:,:,:) :: psirold
   logical :: psirold_ok
   integer, dimension(3) :: nl, nr

@@ -41,7 +41,7 @@
 !!$
 !!$contains
 
-  !> initialize module, in case it has not be done so
+  !> Initialize the module, in case it has not be done so
   !! the double initialization should not be possible when library is
   !! correctly set up
   subroutine f_err_initialize()
@@ -67,7 +67,7 @@
   end subroutine f_err_finalize
 
   !> Define a new error specification and returns the corresponding error code
-  !! optionally, a error-specific callback function can be defined
+  !! optionally, an error-specific callback function can be defined
   !! @warning
   !!   gfortran complains on runtime (with option -Wextra) that this routine is recursive.
   recursive subroutine f_err_define(err_name,err_msg,err_id,err_action,callback,callback_data)
@@ -192,13 +192,13 @@
     end if
   end function f_err_raise
 
-  !raise the error indicated
+  !> Raise the error indicated
   subroutine f_err_throw(err_msg,err_id,err_name,callback,callback_data)
     use yaml_strings, only: yaml_toa
     implicit none
     integer, intent(in), optional :: err_id !< the code of the error to be raised.
-                                      !! it should already have been defined by f_err_define
-    character(len=*), intent(in), optional :: err_name,err_msg !<search for the error and add a message to it 
+                                            !! it should already have been defined by f_err_define
+    character(len=*), intent(in), optional :: err_name,err_msg !< search for the error and add a message to it 
     integer(kind=8), intent(in), optional :: callback_data
     external :: callback
     optional :: callback
@@ -211,7 +211,7 @@
     
     !to prevent infinite loop due to not association of the error handling
     if (.not. associated(dict_present_error)) then
-       write(0,*)'error_handling library not initialized'
+       write(0,*) 'error_handling library not initialized'
        call f_err_severe()
     end if
 

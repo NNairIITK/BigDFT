@@ -1,3 +1,14 @@
+!> @file
+!!  File defining the structures to deal with the sparse matrices
+!! @author
+!!    Copyright (C) 2014-2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Module defining the basic operations with sparse matrices (initialization)
 module sparsematrix_init
   use module_base
   use sparsematrix_base
@@ -26,7 +37,7 @@ module sparsematrix_init
       type(sparse_matrix),intent(inout) :: sparsemat
     
       ! Local variables
-      integer :: jproc, jorbs, jorbold, ii, jorb, istat
+      integer :: jproc, jorbs, jorbold, ii, jorb
       character(len=*),parameter :: subname='init_matrix_parallelization'
     
       ! parallelization of matrices, following same idea as norb/norbp/isorb
@@ -89,7 +100,7 @@ module sparsematrix_init
     
       ! Local variables
       !integer :: iorb, jorb, compressed_index, istat
-      integer :: iorb, jorb, istat
+      integer :: iorb, jorb
       character(len=*),parameter :: subname='init_indices_in_compressed'
     
       if (store_index) then
@@ -210,7 +221,7 @@ module sparsematrix_init
       type(sparse_matrix),intent(inout) :: sparsemat
     
       ! local variables
-      integer :: ind, iseg, segn, iorb, jorb, istat
+      integer :: ind, iseg, segn, iorb, jorb
       character(len=*),parameter :: subname='init_orbs_from_index'
     
       !allocate(sparsemat%orb_from_index(2,sparsemat%nvctr),stat=istat)
