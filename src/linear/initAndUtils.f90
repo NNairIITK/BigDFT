@@ -312,7 +312,8 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
            end if
         end do
      end do
-     if (nproc>1) then
+
+     if (nproc > 1) then
          call mpiallred(foe_obj%nsegline(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
      end if
 
@@ -352,7 +353,8 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
            foe_obj%keyg(2,isegstart+iseg)=(iiorb-1)*orbs%norb+orbs%norb
         end if
      end do
-     if (nproc>1) then
+
+     if (nproc > 1) then
          call mpiallred(foe_obj%keyg(1,1), 2*foe_obj%nseg, mpi_sum, bigdft_mpi%mpi_comm)
      end if
 
@@ -1124,7 +1126,9 @@ subroutine update_wavefunctions_size(lzd,npsidim_orbs,npsidim_comp,orbs,iproc,np
      ilr=orbs%inwhichlocreg(iorb+orbs%isorb)
      nvctr_tot = max(nvctr_tot,lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)
   end do
-  if (nproc>1) call mpiallred(nvctr_tot, 1, mpi_max, bigdft_mpi%mpi_comm)
+  if (nproc > 1) then
+     call mpiallred(nvctr_tot, 1, mpi_max, bigdft_mpi%mpi_comm)
+  end if
 
   allocate(nvctr_par(0:nproc-1,1),stat=istat)
   call memocc(istat,nvctr_par,'nvctr_par',subname)
@@ -1717,15 +1721,14 @@ subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs,
 end subroutine increase_FOE_cutoff
 
 
-
 !> Set negative entries to zero
-subroutine clean_rho(iproc, npt, rho)
+subroutine clean_rho(iproc, nproc, npt, rho)
   use module_base
   use yaml_output
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc,npt
+  integer,intent(in) :: iproc, nproc, npt
   real(kind=8),dimension(npt),intent(inout) :: rho
 
   ! Local variables
@@ -1759,10 +1762,11 @@ subroutine clean_rho(iproc, npt, rho)
       end if
   end do
 
-  if (bigdft_mpi%nproc>1) then
+  if (nproc > 1) then
       call mpiallred(ncorrection, 1, mpi_sum, bigdft_mpi%mpi_comm)
       call mpiallred(charge_correction, 1, mpi_sum, bigdft_mpi%mpi_comm)
   end if
+
   if (iproc==0) then
       call yaml_newline()
       call yaml_map('number of corrected points',ncorrection)
@@ -1797,7 +1801,7 @@ subroutine corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, 
   !!end if
   !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
   if (iproc==0) call yaml_warning('No increase of FOE cutoff')
-  call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+  call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
   if (iproc==0) then
       !call yaml_close_map()
       !call yaml_close_sequence()

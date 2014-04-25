@@ -1565,9 +1565,11 @@ subroutine max_matrix_diff_parallel(iproc, norb, norbp, mat1, mat2, deviation)
      !$omp end do
      !$omp end parallel
   end do
-  if (bigdft_mpi%nproc>1) then
+
+  if (bigdft_mpi%nproc > 1) then
       call mpiallred(deviation, 1, mpi_max, bigdft_mpi%mpi_comm)
   end if
+
   call timing(iproc,'dev_from_unity','OF') 
 
 end subroutine max_matrix_diff_parallel

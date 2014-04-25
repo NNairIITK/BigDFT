@@ -154,7 +154,7 @@ module communications_init
       real(kind=8),intent(out) :: weight_c_tot, weight_f_tot
       
       ! Local variables
-      integer :: iorb, iiorb, i0, i1, i2, i3, ii, jj, iseg, ierr, ilr, istart, iend, i, j0, j1, ii1, ii2, ii3
+      integer :: iorb, iiorb, i0, i1, i2, i3, ii, jj, iseg, ilr, istart, iend, i, j0, j1, ii1, ii2, ii3
     
     
       ii=(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1)
@@ -286,7 +286,7 @@ module communications_init
       ! Local variables
       integer :: jproc, i1, i2, i3, ii, istart, iend, jj, j0, j1, ii_c, ii_f
       !!$$integer :: ii2, iiseg, jprocdone
-      integer :: i, iseg, i0, iitot, ierr, istat, iall
+      integer :: i, iseg, i0, iitot, istat, iall
       real(kind=8) :: tt, tt2, weight_c_ideal, weight_f_ideal, ttt, tmp, tmp2
       real(kind=8),dimension(:,:),allocatable :: weights_c_startend, weights_f_startend
       character(len=*),parameter :: subname='assign_weight_to_process'
@@ -295,13 +295,10 @@ module communications_init
       weight_c_ideal=weight_tot_c/dble(nproc)
       weight_f_ideal=weight_tot_f/dble(nproc)
     
-    
-    
-    
-    allocate(weights_c_startend(2,0:nproc-1), stat=istat)
-    call memocc(istat, weights_c_startend, 'weights_c_startend', subname)
-    allocate(weights_f_startend(2,0:nproc-1), stat=istat)
-    call memocc(istat, weights_f_startend, 'weights_f_startend', subname)
+      allocate(weights_c_startend(2,0:nproc-1), stat=istat)
+      call memocc(istat, weights_c_startend, 'weights_c_startend', subname)
+      allocate(weights_f_startend(2,0:nproc-1), stat=istat)
+      call memocc(istat, weights_f_startend, 'weights_f_startend', subname)
     
       tt=0.d0
       weights_c_startend(1,0)=0.d0
@@ -393,7 +390,6 @@ module communications_init
           !if (ii/=lzd%glr%wfd%nseg_c) stop 'ii/=lzd%glr%wfd%nseg_c'
       end if
     
-    
       ! Same for fine region
       tt=0.d0
       weights_f_startend(1,0)=0.d0
@@ -403,7 +399,6 @@ module communications_init
           weights_f_startend(1,jproc+1)=dble(floor(tt,kind=8))+1.d0
       end do
       weights_f_startend(2,nproc-1)=weight_tot_f
-    
     
       istart=lzd%glr%wfd%nseg_c+min(1,lzd%glr%wfd%nseg_f)
       iend=istart+lzd%glr%wfd%nseg_f-1
@@ -504,7 +499,9 @@ module communications_init
     
       ! some check
       ii_f=istartend_f(2,iproc)-istartend_f(1,iproc)+1
-      if(nproc>1) call mpiallred(ii_f, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      if (nproc > 1) then
+        call mpiallred(ii_f, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
       !if(ii_f/=lzd%glr%wfd%nvctr_f) stop 'assign_weight_to_process: ii_f/=lzd%glr%wfd%nvctr_f'
       if(ii_f/=lzd%glr%wfd%nvctr_f) then
          write(*,*) 'ii_f/=lzd%glr%wfd%nvctr_f',ii_f,lzd%glr%wfd%nvctr_f
@@ -517,35 +514,37 @@ module communications_init
       end if
      
       ii_c=istartend_c(2,iproc)-istartend_c(1,iproc)+1
-      if(nproc>1) call mpiallred(ii_c, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      if (nproc > 1) then
+        call mpiallred(ii_c, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
       if(ii_c/=lzd%glr%wfd%nvctr_c) then
          write(*,*) 'ii_c/=lzd%glr%wfd%nvctr_c',ii_c,lzd%glr%wfd%nvctr_c
          stop
       end if
     
       ! some checks
-      if(nproc>1) then
+      if (nproc > 1) then
          call mpiallred(weightp_c,1,mpi_sum, bigdft_mpi%mpi_comm,recvbuf=tt)
          !call mpi_allreduce(weightp_c, tt, 1, mpi_double_precision, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       else
           tt=weightp_c
       end if
       if(tt/=weight_tot_c) stop 'wrong partition of coarse weights'
-      if(nproc>1) then
+      if (nproc > 1) then
          call mpiallred(weightp_f,1,mpi_sum,bigdft_mpi%mpi_comm,recvbuf=tt)
          !call mpi_allreduce(weightp_f, tt, 1, mpi_double_precision, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       else
           tt=weightp_f
       end if     
       if(tt/=weight_tot_f) stop 'wrong partition of fine weights'
-      if(nproc>1) then
+      if (nproc > 1) then
          call mpiallred(nptsp_c, 1,mpi_sum, bigdft_mpi%mpi_comm,recvbuf=ii)
          !call mpi_allreduce(nptsp_c, ii, 1, mpi_integer, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       else
           ii=nptsp_c
       end if
       if(ii/=lzd%glr%wfd%nvctr_c) stop 'wrong partition of coarse grid points'
-      if(nproc>1) then
+      if (nproc > 1) then
          call mpiallred(nptsp_f, 1,mpi_sum, bigdft_mpi%mpi_comm,recvbuf=ii)
          !call mpi_allreduce(nptsp_f, ii, 1, mpi_integer, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       else
@@ -553,8 +552,6 @@ module communications_init
       end if
       if(ii/=lzd%glr%wfd%nvctr_f) stop 'init_comms_linear: wrong partition of fine grid points'
       
-     
-    
     end subroutine assign_weight_to_process
 
 
@@ -1526,7 +1523,7 @@ module communications_init
       real(kind=8),dimension(lzd%glr%d%n3i),intent(out) :: weights_per_zpoint
     
       ! Local variables
-      integer :: iorb, ilr, ierr, i3, i2, i1, is1, ie1, is2, ie2, is3, ie3
+      integer :: iorb, ilr, i3, i2, i1, is1, ie1, is2, ie2, is3, ie3
       real(kind=8) :: tt, zz
       real(kind=8),dimension(:,:),allocatable :: weight_xy
     
@@ -1575,14 +1572,14 @@ module communications_init
           weights_per_zpoint(i3)=zz
       end do
       weights_per_slice(iproc)=tt
-      call mpiallred(weights_per_slice(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
-      if (nproc>1) then
+      if (nproc > 1) then
+         call mpiallred(weights_per_slice(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
          call mpiallred(tt,1,mpi_sum, bigdft_mpi%mpi_comm,recvbuf=weight_tot)
          !call mpi_allreduce(tt, weight_tot, 1, mpi_double_precision, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+         call mpiallred(weights_per_zpoint(1), lzd%glr%d%n3i, mpi_sum, bigdft_mpi%mpi_comm)
       else
          weight_tot=tt
       end if
-      call mpiallred(weights_per_zpoint(1), lzd%glr%d%n3i, mpi_sum, bigdft_mpi%mpi_comm)
     
       call f_free(weight_xy)
     
@@ -1611,7 +1608,7 @@ module communications_init
       integer,intent(out) :: nptsp
     
       ! Local variables
-      integer :: jproc, i1, i2, i3, ii, iorb, ilr, is1, ie1, is2, ie2, is3, ie3, ierr, jproc_out
+      integer :: jproc, i1, i2, i3, ii, iorb, ilr, is1, ie1, is2, ie2, is3, ie3, jproc_out
       real(kind=8),dimension(:,:),allocatable :: slicearr
       real(kind=8), dimension(:,:),allocatable :: weights_startend
       real(kind=8) :: tt
@@ -1685,7 +1682,9 @@ module communications_init
             call f_free(slicearr)
       end if
     
-      call mpiallred(istartend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
+      if (nproc > 1) then
+         call mpiallred(istartend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
     
       do jproc=0,nproc-2
           istartend(2,jproc)=istartend(1,jproc+1)-1
@@ -1700,16 +1699,16 @@ module communications_init
     
       call f_free(weights_startend)
     
-    
       ! Some check
       ii=nptsp
-      call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      if (nproc > 1) then
+        call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
       if (ii/=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i) then
           stop 'ii/=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i'
       end if
     
       call f_release_routine()
-    
     
     end subroutine assign_weight_to_process_sumrho
 
@@ -1732,7 +1731,7 @@ module communications_init
       integer,dimension(nptsp),intent(out) :: norb_per_gridpoint
     
       ! Local variables
-      integer :: i3, ii, i2, i1, ipt, ilr, is1, ie1, is2, ie2, is3, ie3, iorb, ierr, i
+      integer :: i3, ii, i2, i1, ipt, ilr, is1, ie1, is2, ie2, is3, ie3, iorb, i
       real(kind=8) :: tt, weight_check
     
     
@@ -1785,7 +1784,9 @@ module communications_init
     
     
       ! Some check
-      call mpiallred(weight_check, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      if (nproc > 1) then
+        call mpiallred(weight_check, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
       if (abs(weight_check-weight_tot) > 1.d-3) then
           stop '2: weight_check/=weight_tot'
       else if (abs(weight_check-weight_tot) > 0.d0) then

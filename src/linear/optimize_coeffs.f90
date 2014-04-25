@@ -98,7 +98,10 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
             tt=tt+ddot(tmb%orbs%norb, grad_cov_or_coeffp(1,iorb), 1, grad(1,iorb), 1)
         end do
      end if
-     call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm)
+
+     if (nproc > 1) then
+        call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm)
+     end if
      fnrm=2.0_gp*tt
 
      !scale the gradient (not sure if we always want this or just fragments/constrained!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)
@@ -375,7 +378,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
           .false.,.false.,tmb%orthpar%methTransformOverlap,inv_ovrlp%matrix)
      weight_matrix%matrix=f_malloc_ptr((/weight_matrix%nfvctr,weight_matrix%nfvctr/), id='weight_matrix%matrix')
      call uncompress_matrix(iproc,weight_matrix)
-     !call calculate_coeffMatcoeff(weight_matrix%matrix,tmb%orbs,ksorbs,tmb%coeff,weight_coeff(1,1,ifrag))
+     !call calculate_coeffMatcoeff(nproc,weight_matrix%matrix,tmb%orbs,ksorbs,tmb%coeff,weight_coeff(1,1,ifrag))
      call calculate_coeffMatcoeff_diag(weight_matrix%matrix,tmb%orbs,ksorbs,tmb%coeff,weight_coeff_diag(1,ifrag))
      call f_free_ptr(weight_matrix%matrix)
   end do
@@ -515,12 +518,13 @@ end subroutine coeff_weight_analysis
 !!end subroutine find_eval_from_coeffs
 
 
-subroutine calculate_coeffMatcoeff(matrix,basis_orbs,ksorbs,coeff,mat_coeff)
+subroutine calculate_coeffMatcoeff(nproc,matrix,basis_orbs,ksorbs,coeff,mat_coeff)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
+  integer, intent(in) :: nproc
   type(orbitals_data), intent(in) :: basis_orbs, ksorbs
   real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(in) :: matrix
   real(kind=8),dimension(basis_orbs%norb,ksorbs%norb),intent(inout) :: coeff
@@ -546,13 +550,14 @@ subroutine calculate_coeffMatcoeff(matrix,basis_orbs,ksorbs,coeff,mat_coeff)
   deallocate(coeff_tmp,stat=istat)
   call memocc(istat,iall,'coeff_tmp',subname)
 
-  if (bigdft_mpi%nproc>1) then
+  if (nproc>1) then
       call mpiallred(mat_coeff(1,1), ksorbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
 end subroutine calculate_coeffMatcoeff
 
-!same as above but only calculating diagonal elements
+
+!> Same as above but only calculating diagonal elements
 subroutine calculate_coeffMatcoeff_diag(matrix,basis_orbs,ksorbs,coeff,mat_coeff_diag)
   use module_base
   use module_types

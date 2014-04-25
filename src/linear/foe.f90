@@ -405,9 +405,11 @@ subroutine foe(iproc, nproc, tmprtr, &
              else
                  iflag=0
              end if
-             if (nproc>1) then
+
+             if (nproc > 1) then
                  call mpiallred(iflag, 1, mpi_sum, bigdft_mpi%mpi_comm)
              end if
+
              if (iflag>0) then
                  emergency_stop=.true.
              else
@@ -477,9 +479,11 @@ subroutine foe(iproc, nproc, tmprtr, &
     
                   allredarr(1)=bound_low
                   allredarr(2)=bound_up
-                  if (nproc>1) then
+
+                  if (nproc > 1) then
                       call mpiallred(allredarr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
                   end if
+
                   allredarr=abs(allredarr) !for some crazy situations this may be negative
                   anoise=100.d0*anoise
                   if (allredarr(1)>anoise) then
@@ -740,9 +744,11 @@ subroutine foe(iproc, nproc, tmprtr, &
                           diff = diff + (tmb%linmat%kernel_%matrixp(jorb,iorb)-fermip_check(jorb,iorb))**2
                       end do
                   end do
-                  if (nproc>1) then
+
+                  if (nproc > 1) then
                       call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm)
                   end if
+
                   diff=sqrt(diff)
                   if (iproc==0) call yaml_map('diff from reference kernel',diff,fmt='(es10.3)')
                   !!!!%%if (adjust_FOE_temperature .and. foe_verbosity>=1) then
@@ -1061,7 +1067,7 @@ subroutine foe(iproc, nproc, tmprtr, &
               !$omp end parallel
           end if
     
-          if (nproc>1) then
+          if (nproc > 1) then
               call mpiallred(trace, 1, mpi_sum, bigdft_mpi%mpi_comm)
           end if
       end subroutine calculate_trace_distributed
@@ -1625,33 +1631,34 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat)
   integer :: ierr
   real(kind=8) :: sumn, trace_sparse
 
-      sumn=0.d0
-      if (orbs%norbp>0) then
+  sumn=0.d0
+  if (orbs%norbp>0) then
           isegstart=asmat%istsegline(orbs%isorb_par(iproc)+1)
-          if (orbs%isorb+orbs%norbp<orbs%norb) then
+      if (orbs%isorb+orbs%norbp<orbs%norb) then
               isegend=asmat%istsegline(orbs%isorb_par(iproc+1)+1)-1
-          else
+      else
               isegend=asmat%nseg
-          end if
+      end if
           !$omp parallel default(private) shared(isegstart, isegend, orbs, bsmat, asmat, amat, bmat, sumn)
-          !$omp do reduction(+:sumn)
-          do iseg=isegstart,isegend
+      !$omp do reduction(+:sumn)
+      do iseg=isegstart,isegend
               ii=asmat%keyv(iseg)-1
               do jorb=asmat%keyg(1,iseg),asmat%keyg(2,iseg)
-                  ii=ii+1
-                  iiorb = (jorb-1)/orbs%norb + 1
-                  jjorb = jorb - (iiorb-1)*orbs%norb
+              ii=ii+1
+              iiorb = (jorb-1)/orbs%norb + 1
+              jjorb = jorb - (iiorb-1)*orbs%norb
                   iilarge = matrixindex_in_compressed(bsmat, iiorb, jjorb)
-                  sumn = sumn + amat%matrix_compr(ii)*bmat%matrix_compr(iilarge)
-              end do  
-          end do
-          !$omp end do
-          !$omp end parallel
-      end if
-      if (bigdft_mpi%nproc>1) then
-          call mpiallred(sumn, 1, mpi_sum, bigdft_mpi%mpi_comm)
-      end if
+              sumn = sumn + amat%matrix_compr(ii)*bmat%matrix_compr(iilarge)
+          end do  
+      end do
+      !$omp end do
+      !$omp end parallel
+  end if
 
-      trace_sparse = sumn
+  if (nproc > 1) then
+          call mpiallred(sumn, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
+
+  trace_sparse = sumn
 
 end function trace_sparse
