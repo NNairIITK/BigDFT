@@ -4322,6 +4322,19 @@ module module_interfaces
           real(kind=gp), dimension(ovrlp%nfvctr,nstates), intent(in) :: homo_coeffs1, homo_coeffs2
           real(kind=gp), dimension(nstates), intent(inout) :: homo_ham, homo_ovrlp
         end subroutine calc_transfer_integral
+
+        subroutine overlap_minus_one_half_serial(iproc, nproc, iorder, power, blocksize, &
+                   norb, ovrlp_matrix, inv_ovrlp_matrix, check_accur, &
+                   error)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc, iorder, blocksize, power, norb
+          real(kind=8),dimension(norb,norb),intent(in) :: ovrlp_matrix
+          real(kind=8),dimension(:,:),pointer,intent(out) :: inv_ovrlp_matrix
+          logical,intent(in) :: check_accur
+          real(kind=8),intent(out),optional :: error
+        end subroutine overlap_minus_one_half_serial
   
   end interface
 END MODULE module_interfaces

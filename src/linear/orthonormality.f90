@@ -2523,3 +2523,191 @@ end subroutine gramschmidt_subset
      !$omp end parallel do
 
    end subroutine matrix_minus_identity_sparse
+
+
+
+subroutine overlap_minus_one_half_serial(iproc, nproc, iorder, power, blocksize, &
+           norb, ovrlp_matrix, inv_ovrlp_matrix, check_accur, &
+           error)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => overlap_minus_one_half_serial
+  !use sparsematrix_base, only: sparse_matrix, &
+  !                        sparsematrix_malloc_ptr, sparsematrix_malloc, sparsematrix_malloc0, sparsematrix_malloc0_ptr, &
+  !                        assignment(=), &
+  !                        SPARSE_FULL, DENSE_PARALLEL, DENSE_FULL, SPARSEMM_SEQ
+  !use sparsematrix, only: compress_matrix, uncompress_matrix, transform_sparse_matrix, &
+  !                        compress_matrix_distributed, uncompress_matrix_distributed, &
+  !                        sequential_acces_matrix_fast, sparsemm
+  use yaml_output
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, iorder, blocksize, power, norb
+  real(kind=8),dimension(norb,norb),intent(in) :: ovrlp_matrix
+  real(kind=8),dimension(:,:),pointer,intent(out) :: inv_ovrlp_matrix
+  logical,intent(in) :: check_accur
+  real(kind=8),intent(out),optional :: error
+  
+  ! Local variables
+  integer :: iorb, jorb, info, iiorb, isorb, norbp, ii, ii_inv, iii, ierr, i, its, maxits
+  integer :: matrixindex_in_compressed, nmaxvalk
+  real(kind=8), dimension(:,:), pointer :: ovrlpminonep, ovrlpminone, inv_ovrlpp, ovrlppowerp, ovrlppoweroldp
+  real(kind=8), dimension(:,:), pointer :: inv_ovrlp_half_tmp, ovrlp_local, inv_ovrlp_local
+  real(kind=8) :: factor, newfactor
+  logical :: ovrlp_allocated, inv_ovrlp_allocated
+
+  ! new for sparse taylor
+  integer :: nout, nseq, nmaxsegk, nmaxval
+  integer,dimension(:),allocatable :: ivectorindex
+  integer,dimension(:,:),pointer :: onedimindices
+  integer,dimension(:,:,:),allocatable :: istindexarr
+  real(kind=8),dimension(:),pointer :: ovrlpminone_sparse
+  real(kind=8),dimension(:),allocatable :: ovrlp_compr_seq, ovrlpminone_sparse_seq, ovrlp_large_compr
+  real(kind=8),dimension(:),allocatable :: invovrlp_compr_seq
+  real(kind=8),dimension(:,:),allocatable :: ovrlpminoneoldp, invovrlpp, ovrlp_largep
+  real(kind=8),dimension(:,:),allocatable :: Amat12p, Amat21p, Amat21
+  real(kind=8),dimension(:,:),pointer :: Amat12, Amat11p, Amat22p
+  real(kind=8),dimension(:),pointer :: Amat12_compr
+  real(kind=8),dimension(:),allocatable :: Amat21_compr, Amat12_seq, Amat21_seq
+  integer,parameter :: SPARSE=1
+  integer,parameter :: DENSE=2
+
+
+  !!write(*,*) 'iorder',iorder
+
+
+  call f_routine(id='overlapPowerGeneral')
+  call timing(iproc,'lovrlp^-1     ','ON')
+
+  if (nproc>1) then
+      stop 'this routine only works in serial'
+  end if
+
+  
+  if (check_accur) then
+      if (.not.present(error)) stop 'error not present'
+  end if
+
+  if (power/=-2 .and. power/=1 .and. power/=2) stop 'wrong value of power'
+
+
+      if (iorder==0) then
+          call vcopy(norb*norb,ovrlp_matrix(1,1),1,inv_ovrlp_matrix(1,1),1)
+          if (power==1) then
+             call overlap_minus_one_exact_serial(norb,inv_ovrlp_matrix)
+          else if (power==2) then
+             call overlap_plus_minus_one_half_exact(1,norb,blocksize,.true.,inv_ovrlp_matrix)
+          else if (power==-2) then
+             call overlap_plus_minus_one_half_exact(1,norb,blocksize,.false.,inv_ovrlp_matrix)
+          end if
+      else if (iorder<0) then
+          Amat12p = f_malloc((/norb,norb/), id='Amat12p')
+          Amat21p = f_malloc((/norb,norb/), id='Amat21p')
+          Amat11p = f_malloc_ptr((/norb,norb/), id='Amat11p')
+          ! save some memory but keep code clear - Amat22 and Amat11 should be identical as only combining S and I
+          Amat22p=>Amat11p
+          Amat12=>inv_ovrlp_matrix
+          Amat21=f_malloc0((/norb,norb/), id='Amat21')
+
+          call vcopy(norb*norb,ovrlp_matrix(1,1),1,Amat12(1,1),1)
+          do iorb=1,norb
+              Amat21(iorb,iorb)=1.0d0
+          end do
+
+          ! calculate Xn+1=0.5*Xn*(3I-Xn**2)
+          do its=1,abs(iorder)
+              call dgemm('n', 'n', norb, norb, norb, -0.5d0, Amat12(1,1), &
+                   norb, Amat21(1,1), norb, 0.0d0, Amat11p(1,1), norb)
+              do iorb=1,norb
+                  Amat11p(iorb,iorb)=Amat11p(iorb,iorb)+1.5d0
+              end do
+              call dgemm('n', 'n', norb, norb, norb, 1.0d0, Amat12(1,1), &
+                   norb, Amat22p(1,1), norb, 0.0d0, Amat12p(1,1), norb)
+              call dgemm('n', 'n', norb, norb, norb, 1.0d0, Amat21(1,1), &
+                   norb, Amat11p(1,1), norb, 0.0d0, Amat21p(1,1), norb)
+              call vcopy(norb**2,Amat12p(1,1),1,Amat12(1,1),1)
+              call vcopy(norb**2,Amat21p(1,1),1,Amat21(1,1),1)
+          end do
+
+          nullify(Amat22p)
+          call f_free_ptr(Amat11p)
+
+          if (power==1) then
+              call dgemm('n', 'n', norb, norb, norb, 1.0d0, Amat21(1,1), &
+                   norb, Amat21p(1,1), norb, 0.0d0, Amat12p(1,1), norb)
+              call vcopy(norb**2, Amat12p(1,1), 1, inv_ovrlp_matrix(1,1), 1)
+          else if (power==-2) then
+              call vcopy(norb**2,Amat21(1,1),1,inv_ovrlp_matrix(1,1),1)
+          end if
+
+          call f_free(Amat12p)
+          call f_free(Amat21p)
+          nullify(Amat12)
+          call f_free(Amat21)
+
+      else
+          if (iorder>1) then
+              ovrlpminone = f_malloc_ptr((/norb,norb/), id='ovrlpminone')
+              ovrlpminonep => ovrlpminone
+
+              call matrix_minus_identity_dense(norb,0,norb,ovrlp_matrix(1,1),ovrlpminonep)
+
+                  ovrlppoweroldp = f_malloc_ptr((/norb,norb/), id='ovrlppoweroldp')
+
+              call vcopy(norb*norb,ovrlpminonep(1,1),1,ovrlppoweroldp(1,1),1)
+
+              nullify(ovrlpminonep)
+
+              ovrlppowerp = f_malloc_ptr((/norb,norb/), id='ovrlppowerp')
+
+              if (power==1) then
+                  factor=-1.0d0
+              else if (power==2) then
+                  factor=0.5d0
+              else if (power==-2) then
+                  factor=-0.5d0
+              end if
+          end if
+
+          if (nproc>1) then
+              inv_ovrlpp = f_malloc_ptr((/norb,norb/), id='inv_ovrlpp')
+          else
+              inv_ovrlpp => inv_ovrlp_matrix
+          end if
+
+          call first_order_taylor_dense(norb,0,norb,power,ovrlp_matrix(1,1),inv_ovrlpp)
+
+          do i=2,iorder
+              call dgemm('n', 'n', norb, norb, norb, 1.d0, ovrlpminone(1,1), &
+                   norb, ovrlppoweroldp(1,1), norb, 0.d0, ovrlppowerp(1,1), norb)
+              factor=newfactor(power,i,factor)
+              call daxpy(norb*norb,factor,ovrlppowerp,1,inv_ovrlpp,1)
+              if (i/=iorder) call vcopy(norb*norb,ovrlppowerp(1,1),1,ovrlppoweroldp(1,1),1)
+          end do
+
+          if (iorder>1) then
+              if(nproc > 1) then
+                  nullify(ovrlpminone)
+              else
+                  call f_free_ptr(ovrlpminone)
+              end if
+
+              call f_free_ptr(ovrlppowerp)
+              call f_free_ptr(ovrlppoweroldp)
+
+          end if
+
+          nullify(inv_ovrlpp)
+      end if
+
+      if (check_accur) then
+          call check_accur_overlap_minus_one(iproc,nproc,norb,norb,0,power,ovrlp_matrix,inv_ovrlp_matrix,error)
+      end if
+
+
+  call timing(iproc,'lovrlp^-1     ','OF')
+  call f_release_routine()
+
+
+end subroutine overlap_minus_one_half_serial
