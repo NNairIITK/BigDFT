@@ -405,7 +405,9 @@ subroutine foe(iproc, nproc, tmprtr, &
              else
                  iflag=0
              end if
-             call mpiallred(iflag, 1, mpi_sum, bigdft_mpi%mpi_comm)
+             if (nproc>1) then
+                 call mpiallred(iflag, 1, mpi_sum, bigdft_mpi%mpi_comm)
+             end if
              if (iflag>0) then
                  emergency_stop=.true.
              else
@@ -475,7 +477,9 @@ subroutine foe(iproc, nproc, tmprtr, &
     
                   allredarr(1)=bound_low
                   allredarr(2)=bound_up
-                  call mpiallred(allredarr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+                  if (nproc>1) then
+                      call mpiallred(allredarr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+                  end if
                   allredarr=abs(allredarr) !for some crazy situations this may be negative
                   anoise=100.d0*anoise
                   if (allredarr(1)>anoise) then
@@ -736,7 +740,9 @@ subroutine foe(iproc, nproc, tmprtr, &
                           diff = diff + (tmb%linmat%kernel_%matrixp(jorb,iorb)-fermip_check(jorb,iorb))**2
                       end do
                   end do
-                  call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm)
+                  if (nproc>1) then
+                      call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm)
+                  end if
                   diff=sqrt(diff)
                   if (iproc==0) call yaml_map('diff from reference kernel',diff,fmt='(es10.3)')
                   !!!!%%if (adjust_FOE_temperature .and. foe_verbosity>=1) then
@@ -1642,7 +1648,9 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat)
           !$omp end do
           !$omp end parallel
       end if
-      call mpiallred(sumn, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      if (bigdft_mpi%nproc>1) then
+          call mpiallred(sumn, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
 
       trace_sparse = sumn
 

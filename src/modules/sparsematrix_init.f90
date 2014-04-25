@@ -488,8 +488,10 @@ module sparsematrix_init
               sparsemat%nfvctr_par(jproc)=norbp
           end if
       end do
-      call mpiallred(sparsemat%isfvctr_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
-      call mpiallred(sparsemat%nfvctr_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+      if (nproc>1) then
+          call mpiallred(sparsemat%isfvctr_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(sparsemat%nfvctr_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
 
       call allocate_sparse_matrix_basic(store_index, norb, nproc, sparsemat)
     
@@ -503,9 +505,11 @@ module sparsematrix_init
           call nseg_perline(norb, lut, sparsemat%nseg, sparsemat%nvctr, sparsemat%nsegline(iiorb))
       end do
 
-      call mpiallred(sparsemat%nvctr, 1, mpi_sum, bigdft_mpi%mpi_comm)
-      call mpiallred(sparsemat%nseg, 1, mpi_sum, bigdft_mpi%mpi_comm)
-      call mpiallred(sparsemat%nsegline(1), sparsemat%nfvctr, mpi_sum, bigdft_mpi%mpi_comm)
+      if (nproc>1) then
+          call mpiallred(sparsemat%nvctr, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(sparsemat%nseg, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(sparsemat%nsegline(1), sparsemat%nfvctr, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
       ist=1
       do jorb=1,sparsemat%nfvctr
           ! Starting segment for this line
@@ -534,12 +538,16 @@ module sparsematrix_init
       end do
     
       ! check whether the number of elements agrees
-      call mpiallred(ivctr, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      if (nproc>1) then
+          call mpiallred(ivctr, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
       if (ivctr/=sparsemat%nvctr) then
           write(*,'(a,2i8)') 'ERROR: ivctr/=sparsemat%nvctr', ivctr, sparsemat%nvctr
           stop
       end if
-      call mpiallred(sparsemat%keyg(1,1), 2*sparsemat%nseg, mpi_sum, bigdft_mpi%mpi_comm)
+      if (nproc>1) then
+          call mpiallred(sparsemat%keyg(1,1), 2*sparsemat%nseg, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
 
 
       ! start of the segments
@@ -615,9 +623,11 @@ module sparsematrix_init
           call create_lookup_table(nnonzero_mult, nonzero_mult, iiorb)
           call nseg_perline(norb, lut, nseg_mult, nvctr_mult, nsegline_mult(iiorb))
       end do
-      call mpiallred(nvctr_mult, 1, mpi_sum, bigdft_mpi%mpi_comm)
-      call mpiallred(nseg_mult, 1, mpi_sum, bigdft_mpi%mpi_comm)
-      call mpiallred(nsegline_mult(1), norb, mpi_sum, bigdft_mpi%mpi_comm)
+      if (nproc>1) then
+          call mpiallred(nvctr_mult, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(nseg_mult, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(nsegline_mult(1), norb, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
 
 
 
@@ -637,12 +647,16 @@ module sparsematrix_init
               lut, ivctr_mult, keyg_mult)
       end do
       ! check whether the number of elements agrees
-      call mpiallred(ivctr_mult, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      if (nproc>1) then
+          call mpiallred(ivctr_mult, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
       if (ivctr_mult/=nvctr_mult) then
           write(*,'(a,2i8)') 'ERROR: ivctr_mult/=nvctr_mult', ivctr_mult, nvctr_mult
           stop
       end if
-      call mpiallred(keyg_mult(1,1), 2*nseg_mult, mpi_sum, bigdft_mpi%mpi_comm)
+      if (nproc>1) then
+          call mpiallred(keyg_mult(1,1), 2*nseg_mult, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
 
 
       ! Allocate the matrices

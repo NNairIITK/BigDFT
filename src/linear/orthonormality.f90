@@ -834,7 +834,6 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
           end do
           !!call to_zero(inv_ovrlp_smat%nvctr, inv_ovrlp_smat%matrix_compr(1))
             call compress_matrix_distributed(iproc, inv_ovrlp_smat, invovrlpp, inv_ovrlp_mat%matrix_compr)
-          !!call mpiallred(inv_ovrlp_smat%matrix_compr(1), inv_ovrlp_smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 
           if (iorder>1) then
               call f_free(ovrlpminone_sparse_seq)
@@ -1566,7 +1565,9 @@ subroutine max_matrix_diff_parallel(iproc, norb, norbp, mat1, mat2, deviation)
      !$omp end do
      !$omp end parallel
   end do
-  call mpiallred(deviation, 1, mpi_max, bigdft_mpi%mpi_comm)
+  if (bigdft_mpi%nproc>1) then
+      call mpiallred(deviation, 1, mpi_max, bigdft_mpi%mpi_comm)
+  end if
   call timing(iproc,'dev_from_unity','OF') 
 
 end subroutine max_matrix_diff_parallel
