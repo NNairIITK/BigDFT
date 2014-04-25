@@ -2060,7 +2060,7 @@ subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat
   nonzero = f_malloc(orbs%norb*orbs%norbp, id='nonzero')
   i=0
   do iorb=1,orbs%norbp
-      iiorb=orbs%isorb+1
+      iiorb=orbs%isorb+iorb
       do jorb=1,orbs%norb
           i=i+1
           ind=(iiorb-1)*orbs%norb+jorb
@@ -2080,7 +2080,7 @@ subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat
   nonzero = f_malloc(orbs_aux%norb*orbs_aux%norbp, id='nonzero')
   i=0
   do iorb=1,orbs_aux%norbp
-      iiorb=orbs_aux%isorb+1
+      iiorb=orbs_aux%isorb+iorb
       do jorb=1,orbs_aux%norb
           i=i+1
           ind=(iiorb-1)*orbs_aux%norb+jorb
