@@ -2099,7 +2099,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
       call overlapPowerGeneral(iproc, nproc, inversion_method, -2, &
            blocksize_dsyev, imode=2, ovrlp_smat=KS_overlap, inv_ovrlp_smat=KS_overlap, &
            ovrlp_mat=KS_ovrlp_, inv_ovrlp_mat=inv_ovrlp_, &
-           check_accur=.false., ovrlp=KS_ovrlp_%matrix, inv_ovrlp=inv_ovrlp_%matrix)
+           check_accur=.false.)
   !else
   !    ! It is not possible to use the standard parallelization scheme, so do serial
   !    call overlapPowerGeneral(iproc, 1, inversion_method, -2, &
@@ -2578,11 +2578,11 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           call overlapPowerGeneral(iproc, nproc, order_taylor, 2, -1, &
                imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=ovrlp_onehalf_, check_accur=.true., &
-               ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=ovrlp_onehalf_%matrix, error=error)
+               error=error)
           call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, &
                imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=ovrlp_minusonehalf_, check_accur=.true., &
-               ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=ovrlp_minusonehalf_%matrix, error=error)
+               error=error)
           if (iproc==0) then
               call yaml_map('error of S^-1/2',error,fmt='(es9.2)')
           end if

@@ -89,7 +89,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
                orthpar%blocksize_pdgemm, &
                imode=1, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
                ovrlp_mat=ovrlp_, inv_ovrlp_mat=inv_ovrlp_half_, &
-               ovrlp=ovrlp%matrix, inv_ovrlp=inv_ovrlp_null, check_accur=.false.)!!, &
+               check_accur=.false.)!!, &
       end if
 
       call deallocate_matrices(ovrlp_)
@@ -394,7 +394,7 @@ end subroutine setCommsParameters
 !power: -2 -> S^-1/2, 2 -> S^1/2, 1 -> S^-1
 subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
            ovrlp_smat, inv_ovrlp_smat, ovrlp_mat, inv_ovrlp_mat, check_accur, &
-           ovrlp, inv_ovrlp, error)
+           error)
      !!foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
   use module_base
   use module_types
@@ -415,7 +415,6 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
   type(sparse_matrix),intent(inout) :: ovrlp_smat, inv_ovrlp_smat
   type(matrices),intent(inout) :: ovrlp_mat, inv_ovrlp_mat
   logical,intent(in) :: check_accur
-  real(kind=8),dimension(:,:),pointer,optional :: ovrlp, inv_ovrlp
   real(kind=8),intent(out),optional :: error
   
   ! Local variables
@@ -455,17 +454,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
   if (imode/=SPARSE .and. imode/=DENSE) stop 'wrong imode'
 
   if (imode==DENSE) then
-      if (present(ovrlp)) then
-          if (.not.associated(ovrlp)) stop 'ovrlp not associated'
-      else
-          stop 'ovrlp not present'
-      end if
       if (.not.associated(ovrlp_mat%matrix)) stop 'ovrlp_mat%matrix not associated'
-      if (present(inv_ovrlp)) then
-          if (.not.associated(inv_ovrlp)) stop 'inv_ovrlp not associated'
-      else
-          stop 'inv_ovrlp not present'
-      end if
       if (.not.associated(inv_ovrlp_mat%matrix)) stop 'inv_ovrlp_mat%matrix not associated'
   end if
   
@@ -1991,7 +1980,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
           !ovrlp%matrix_compr=ovrlp_%matrix_compr
           call overlapPowerGeneral(iproc, nproc, methTransformOverlap, -2, &
                orthpar%blocksize_pdsyev, &
-               imode=1, check_accur=.true., ovrlp=ovrlp_%matrix, inv_ovrlp=inv_ovrlp_null, &
+               imode=1, check_accur=.true., &
                ovrlp_mat=ovrlp_, inv_ovrlp_mat=inv_ovrlp_half_, &
                error=error, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half)
       end if
