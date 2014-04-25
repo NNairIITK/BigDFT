@@ -312,7 +312,9 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
            end if
         end do
      end do
-     call mpiallred(foe_obj%nsegline(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
+     if (nproc>1) then
+         call mpiallred(foe_obj%nsegline(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
+     end if
 
      ! Total number of segments
      foe_obj%nseg = sum(foe_obj%nsegline)
@@ -350,7 +352,9 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
            foe_obj%keyg(2,isegstart+iseg)=(iiorb-1)*orbs%norb+orbs%norb
         end if
      end do
-     call mpiallred(foe_obj%keyg(1,1), 2*foe_obj%nseg, mpi_sum, bigdft_mpi%mpi_comm)
+     if (nproc>1) then
+         call mpiallred(foe_obj%keyg(1,1), 2*foe_obj%nseg, mpi_sum, bigdft_mpi%mpi_comm)
+     end if
 
      iall = -product(shape(kernel_locreg))*kind(kernel_locreg) 
      deallocate(kernel_locreg,stat=istat)
@@ -1755,8 +1759,10 @@ subroutine clean_rho(iproc, npt, rho)
       end if
   end do
 
-  call mpiallred(ncorrection, 1, mpi_sum, bigdft_mpi%mpi_comm)
-  call mpiallred(charge_correction, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  if (bigdft_mpi%nproc>1) then
+      call mpiallred(ncorrection, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(charge_correction, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
   if (iproc==0) then
       call yaml_newline()
       call yaml_map('number of corrected points',ncorrection)
