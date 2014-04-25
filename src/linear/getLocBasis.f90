@@ -2422,7 +2422,10 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%ovrlp, tmb%linmat%denskern_large)
           chargediff=2.d0*tr_KS-tmb%foe_obj%charge
 
-          call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          if (nproc > 1) then
+             call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          end if
+
           diff=sqrt(diff)
           if (iproc==0) then
               call yaml_newline()
@@ -2446,7 +2449,10 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
                   !                                                                     +2.d0*k(jorb,iorb) )
               end do
           end do
-          call mpiallred(tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
+
+          if (nproc > 1) then
+             call mpiallred(tmb%linmat%denskern_large%matrix(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
+          end if
 
           if (diff<1.d-10) exit
 
