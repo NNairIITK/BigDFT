@@ -124,7 +124,7 @@ totmat=0.d0
 do iorb=1,orbs%norbp
     totmat(:,:)=totmat(:,:)+ldiis%mat(:,:,iorb)
 end do
-call mpiallred(totmat(1,1), ldiis%isx**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+call mpiallred(totmat(1,1), ldiis%isx**2, mpi_sum, bigdft_mpi%mpi_comm)
 
 ist=1
 do iorb=1,orbs%norbp

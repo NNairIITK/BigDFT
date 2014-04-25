@@ -143,7 +143,7 @@ subroutine dgemm_parallel(iproc, nproc, blocksize, comm, transa, transb, m, n, k
   
   
   ! Gather the result on all processes.
-  call mpiallred(c(1,1), m*n, mpi_sum, comm, ierr)
+  call mpiallred(c(1,1), m*n, mpi_sum, comm)
 
   !call blacs_exit(0)
 
@@ -288,7 +288,7 @@ character(len=*),parameter :: subname='dgemm_parallel'
   
   
   ! Gather the result on all processes.
-  call mpiallred(c(1,1), m*n, mpi_sum, comm, ierr)
+  call mpiallred(c(1,1), m*n, mpi_sum, comm)
 
 
   !call blacs_exit(0)
@@ -473,7 +473,7 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
   end if processIF
   
   ! Gather the eigenvectors on all processes.
-  call mpiallred(a(1,1), n**2, mpi_sum, comm, ierr)
+  call mpiallred(a(1,1), n**2, mpi_sum, comm)
   
   ! Broadcast the eigenvalues if required. If nproc_scalapack==nproc, then all processes
   ! diagonalized the matrix and therefore have the eigenvalues.
@@ -676,7 +676,7 @@ subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, 
   end if processIF
   
   ! Gather the eigenvectors on all processes.
-  call mpiallred(a(1,1), n**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(a(1,1), n**2, mpi_sum, bigdft_mpi%mpi_comm)
   
   ! Broadcast the eigenvalues if required. If nproc_scalapack==nproc, then all processes
   ! diagonalized the matrix and therefore have the eigenvalues.
@@ -822,7 +822,7 @@ subroutine dgesv_parallel(iproc, nproc, blocksize, comm, n, nrhs, a, lda, b, ldb
 
   
   ! Gather the result on all processes
-  call mpiallred(b(1,1), n*nrhs, mpi_sum, comm, ierr)
+  call mpiallred(b(1,1), n*nrhs, mpi_sum, comm)
   
   !call blacs_exit(0)
 
@@ -933,7 +933,7 @@ subroutine dpotrf_parallel(iproc, nproc, blocksize, comm, uplo, n, a, lda)
   
   
   ! Gather the result on all processes.
-  call mpiallred(a(1,1), n*n, mpi_sum, comm, ierr)
+  call mpiallred(a(1,1), n*n, mpi_sum, comm)
 
   !call blacs_exit(0)
 
@@ -1041,7 +1041,7 @@ subroutine dpotri_parallel(iproc, nproc, blocksize, comm, uplo, n, a, lda)
   
   
   ! Gather the result on all processes.
-  call mpiallred(a(1,1), n*n, mpi_sum, comm, ierr)
+  call mpiallred(a(1,1), n*n, mpi_sum, comm)
 
   !call blacs_exit(0)
 

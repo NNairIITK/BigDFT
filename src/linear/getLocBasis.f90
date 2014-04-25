@@ -128,6 +128,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   call uncompress_matrix_distributed(iproc, tmb%linmat%s, tmb%linmat%ovrlp_%matrix_compr, ovrlp_fullp)
   call deviation_from_unity_parallel(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, ovrlp_fullp, deviation)
   call f_free(ovrlp_fullp)
+  call f_free(ovrlp_fullp)
   if (iproc==0) then
       call yaml_map('max dev from unity',deviation,fmt='(es9.2)')
   end if
@@ -607,7 +608,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                & potential=denspot%rhov,comgp=tmb%ham_descr%comgp,&
                hpsi_noconf=hpsi_noconf,econf=econf)
           if (nproc>1) then
-              call mpiallred(econf, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+              call mpiallred(econf, 1, mpi_sum, bigdft_mpi%mpi_comm)
           end if
       else
           call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
@@ -1173,7 +1174,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       reducearr(1)=reducearr(1)+alpha(iorb)
       reducearr(2)=reducearr(2)+alphaDIIS(iorb)
   end do
-  call mpiallred(reducearr(1), 2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(reducearr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
   reducearr(1)=reducearr(1)/dble(tmb%orbs%norb)
   reducearr(2)=reducearr(2)/dble(tmb%orbs%norb)
 
@@ -2083,7 +2084,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   if (nproc>1) then
       call timing(iproc,'renormCoefCom1','OF')
       call timing(iproc,'renormCoefComm','ON')
-      call mpiallred(ovrlp_coeff(1,1), norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(ovrlp_coeff(1,1), norb**2, mpi_sum, bigdft_mpi%mpi_comm)
       call timing(iproc,'renormCoefComm','OF')
       call timing(iproc,'renormCoefCom1','ON')
   end if
@@ -2150,7 +2151,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
      end if
 
      if (nproc>1) then
-         call mpiallred(coeff_tmp(1,1), basis_orbs%norb*orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+         call mpiallred(coeff_tmp(1,1), basis_orbs%norb*orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
      end if
      call vcopy(basis_orbs%norb*orbs%norb,coeff_tmp(1,1),1,coeff(1,1),1)
   else
@@ -2256,7 +2257,7 @@ subroutine estimate_energy_change(npsidim_orbs, orbs, lzd, psidiff, hpsi_nopreco
       delta_energy=delta_energy+4.0d0*tt
       ist=ist+ncount
   end do
-  call mpiallred(delta_energy, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(delta_energy, 1, mpi_sum, bigdft_mpi%mpi_comm)
 
 end subroutine estimate_energy_change
 
@@ -2400,7 +2401,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
                      ksksk, tmb%orbs%norb, &
                      0.d0, kernel_prime(1,tmb%orbs%isorb+1), tmb%orbs%norb) 
       end if
-      call mpiallred(kernel_prime(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(kernel_prime(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
 
@@ -2450,7 +2451,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
                          tmb%linmat%ovrlp_%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
                          0.d0, ks(1,tmb%orbs%isorb+1), tmb%orbs%norb) 
           end if
-          call mpiallred(ks(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          call mpiallred(ks(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
           if (tmb%orbs%norbp>0) then
               call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
                          1.d0, ks(1,1), tmb%orbs%norb, &
@@ -2487,7 +2488,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
                 tmb%linmat%ovrlp_, tmb%linmat%kernel_)
           chargediff=2.d0*tr_KS-tmb%foe_obj%charge
 
-          call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm)
           diff=sqrt(diff)
           if (iproc==0) then
               call yaml_newline()
@@ -2683,13 +2684,13 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
            tmb%orbs%norb, tmb%linmat%ham_%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
            0.d0, KH(1,tmb%orbs%isorb+1), tmb%orbs%norb)
   end if
-  call mpiallred(KH(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(KH(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
   if (tmb%orbs%norbp>0) then
       call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, scale_factor, KH, &
            tmb%orbs%norb, KH(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
            0.d0, KHKH(1,tmb%orbs%isorb+1), tmb%orbs%norb)
   end if
-  call mpiallred(KHKH(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(KHKH(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
   call f_free(KH)
   Kgrad=f_malloc0((/tmb%orbs%norb,tmb%orbs%norb/),id='Kgrad')
   if (tmb%orbs%norbp>0) then
@@ -2697,7 +2698,7 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
            tmb%orbs%norb, gradmat%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
            0.d0, Kgrad(1,tmb%orbs%isorb+1), tmb%orbs%norb)
   end if
-  call mpiallred(Kgrad(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(Kgrad(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
   !!if (iproc==0) then
   !!  do iorb=1,tmb%orbs%norb
   !!    do jorb=1,tmb%orbs%norb
@@ -2750,3 +2751,201 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
 end subroutine get_KS_residue
 
 
+
+
+
+subroutine loewdin_charge_analysis(iproc,tmb,atoms,&
+           calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => loewdin_charge_analysis
+  use communications, only: transpose_localized
+  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix, only: compress_matrix, uncompress_matrix
+  implicit none
+  integer,intent(in) :: iproc
+  type(dft_wavefunction),intent(inout) :: tmb
+  type(atoms_data),intent(inout) :: atoms
+  logical,intent(in) :: calculate_overlap_matrix, calculate_ovrlp_half
+  integer,intent(in) :: meth_overlap
+
+  !local variables
+  integer :: ifrag,iorb,ifrag_ref,isforb,istat,ierr,jorb
+  real(kind=gp), allocatable, dimension(:,:) :: proj_mat, proj_ovrlp_half, weight_matrixp
+  character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
+  real(kind=gp) :: error
+
+  ! new variables
+  integer :: iat, iall
+  real(kind=8),dimension(:,:),allocatable :: weight_matrix
+  real(kind=gp),dimension(:,:),pointer :: ovrlp_half, ovrlp
+  real(kind=8) :: total_charge, total_net_charge
+  real(kind=8),dimension(:),allocatable :: charge_per_atom
+  logical :: psit_c_associated, psit_f_associated
+
+
+  ! needs parallelizing/converting to sparse
+  ! re-use overlap matrix if possible either before or after
+
+  call f_routine(id='loewdin_charge_analysis')
+  ovrlp_half = f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='ovrlp_half')
+
+  if (calculate_overlap_matrix) then
+     if(.not.tmb%can_use_transposed) then
+         if(.not.associated(tmb%psit_c)) then
+             allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+             call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+             psit_c_associated=.false.
+         else
+             psit_c_associated=.true.
+         end if
+         if(.not.associated(tmb%psit_f)) then
+             allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+             call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+             psit_f_associated=.false.
+         else
+             psit_f_associated=.true.
+         end if
+         call transpose_localized(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+              tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+         tmb%can_use_transposed=.true.
+     end if
+
+     call calculate_overlap_transposed(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
+          tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
+     if (.not.psit_c_associated) then
+        iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+        deallocate(tmb%psit_c, stat=istat)
+        call memocc(istat, iall, 'tmb%psit_c', subname)
+        tmb%can_use_transposed=.false.
+     end if
+     if (.not.psit_f_associated) then
+        iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+        deallocate(tmb%psit_f, stat=istat)
+        call memocc(istat, iall, 'tmb%psit_f', subname)
+        tmb%can_use_transposed=.false.
+     end if
+  end if
+
+  if (calculate_ovrlp_half) then
+     ovrlp = f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='ovrlp')
+     call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%ovrlp,outmat=ovrlp)
+     call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 2, &
+          tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, tmb%orbs, &
+          imode=2, check_accur=.true., ovrlp=ovrlp, inv_ovrlp=ovrlp_half, error=error)
+     !!ovrlp_half=tmb%linmat%ovrlp%matrix
+     call f_free_ptr(ovrlp)
+  end if
+
+  ! optimize this to just change the matrix multiplication?
+  proj_mat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='proj_mat')
+
+  call to_zero(tmb%orbs%norb**2,proj_mat(1,1))
+  call uncompress_matrix(iproc, tmb%linmat%denskern_large,outmat=proj_mat)
+  !!isforb=0
+  !!do ifrag=1,input%frag%nfrag
+  !!   ifrag_ref=input%frag%frag_index(ifrag)
+  !!   if (ifrag==ifrag_charged(1)) then
+  !!      do iorb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+  !!         proj_mat(iorb+isforb,iorb+isforb)=1.0_gp
+  !!      end do
+  !!   end if
+  !!   !!if (nfrag_charged==2) then
+  !!   !!   if (ifrag==ifrag_charged(2)) then
+  !!   !!      do iorb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+  !!   !!         proj_mat(iorb+isforb,iorb+isforb)=-1.0_gp
+  !!   !!      end do
+  !!   !!   end if
+  !!   !!end if
+  !!   isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
+  !!end do
+
+  proj_ovrlp_half=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/),id='proj_ovrlp_half')
+  if (tmb%orbs%norbp>0) then
+     call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, &
+            tmb%orbs%norb, 1.d0, &
+            proj_mat(1,1), tmb%orbs%norb, &
+            ovrlp_half(1,tmb%orbs%isorb+1), tmb%orbs%norb, 0.d0, &
+            proj_ovrlp_half(1,1), tmb%orbs%norb)
+  end if
+  call f_free(proj_mat)
+  weight_matrixp=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/), id='weight_matrixp')
+  if (tmb%orbs%norbp>0) then
+     call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, &
+          tmb%orbs%norb, 1.d0, &
+          ovrlp_half(1,1), tmb%orbs%norb, &
+          proj_ovrlp_half(1,1), tmb%orbs%norb, 0.d0, &
+          weight_matrixp(1,1), tmb%orbs%norb)
+  end if
+  call f_free_ptr(ovrlp_half)
+  call f_free(proj_ovrlp_half)
+  weight_matrix=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/), id='weight_matrix')
+  if (bigdft_mpi%nproc>1) then
+     call mpi_allgatherv(weight_matrixp, tmb%orbs%norb*tmb%orbs%norbp, mpi_double_precision, weight_matrix, &
+          tmb%orbs%norb*tmb%orbs%norb_par(:,0), tmb%orbs%norb*tmb%orbs%isorb_par, &
+          mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+  else
+     call vcopy(tmb%orbs%norb*tmb%orbs%norb,weight_matrixp(1,1),1,weight_matrix(1,1),1)
+  end if
+  call f_free(weight_matrixp)
+  !call compress_matrix(bigdft_mpi%iproc,weight_matrix)
+
+  charge_per_atom = f_malloc0(atoms%astruct%nat,id='charge_per_atom')
+  !!do iorb=1,tmb%orbs%norb
+  !!    do jorb=1,tmb%orbs%norb
+  !!        if (iproc==0) write(*,'(a,2i7,es16.7)') 'iorb,jorb,weight_matrix(jorb,iorb)', iorb,jorb,weight_matrix(jorb,iorb)
+  !!        if (iorb==jorb) then
+  !!            total_charge = total_charge + weight_matrix(jorb,iorb)
+  !!            iat=tmb%orbs%onwhichatom(iorb)
+  !!            charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix(jorb,iorb)
+  !!        end if
+  !!    end do
+  !!end do
+  !!if (iproc==0) then
+  !!    do iat=1,atoms%astruct%nat
+  !!        write(*,*) 'iat, partial total_charge', iat, charge_per_atom(iat)
+  !!    end do
+  !!    write(*,*) 'total total_charge',total_charge
+  !!    if (iproc==0) call write_partial_charges()
+  !!end if
+
+  do iorb=1,tmb%orbs%norb
+      iat=tmb%orbs%onwhichatom(iorb)
+      charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix(iorb,iorb)
+  end do
+  if (iproc==0) call write_partial_charges()
+
+
+  call f_free(charge_per_atom)
+  call f_free(weight_matrix)
+  call f_release_routine()
+
+
+
+  contains
+
+    subroutine write_partial_charges
+      use yaml_output
+      character(len=20) :: atomname
+      real(kind=8),dimension(2) :: charges
+      call yaml_open_sequence('Loewdin charge analysis (charge / net charge')
+      total_charge=0.d0
+      total_net_charge=0.d0
+      do iat=1,atoms%astruct%nat
+          call yaml_sequence(advance='no')
+          call yaml_open_map(flow=.true.)
+          atomname=atoms%astruct%atomnames(atoms%astruct%iatype(iat))
+          charges(1)=-charge_per_atom(iat)
+          charges(2)=-(charge_per_atom(iat)-real(atoms%nelpsp(atoms%astruct%iatype(iat)),kind=8))
+          total_charge = total_charge + charges(1)
+          total_net_charge = total_net_charge + charges(2)
+          call yaml_map(trim(atomname),charges,fmt='(1es20.12)')
+          call yaml_close_map(advance='no')
+          call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
+      end do
+      call yaml_map('total charge',total_charge,fmt='(es16.8)')
+      call yaml_map('total net charge',total_net_charge,fmt='(es16.8)')
+      call yaml_close_sequence()
+    end subroutine write_partial_charges
+
+end subroutine loewdin_charge_analysis

@@ -796,6 +796,7 @@ module time_profiling
      call timing_dump_line('Total',tabfile,100.d0,sum(timecnt(1:ncounters,nproc)))
      call yaml_close_map() !summary
 
+     !here this information can be dumped by adding an extra dictionary to the routine arguments
      call yaml_open_map('CPU parallelism')
      call yaml_map('MPI_tasks',nproc)
      nthreads = 0
@@ -859,6 +860,7 @@ subroutine sum_results(ncat,mpi_comm,message,timesum)
   call f_release_routine()
 
 END SUBROUTINE sum_results
+
 
 !> interrupts all timing activities to profile the category indicated by cat_id
 !! see e.g. http://en.wikipedia.org/wiki/Interrupt 

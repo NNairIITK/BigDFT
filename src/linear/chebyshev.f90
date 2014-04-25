@@ -105,6 +105,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
       !!     ovrlp_compr_seq)
       call sequential_acces_matrix_fast(kernel, ovrlp_compr, ovrlp_compr_seq)
 
+
     
       vectors = f_malloc((/ norb, norbp, 4 /),id='vectors')
       if (norbp>0) then
@@ -143,7 +144,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
               end do
           end if
   
-          call mpiallred(SHS(1), kernel%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          call mpiallred(SHS(1), kernel%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
   
       end if
   
@@ -307,8 +308,6 @@ end subroutine axbyz_kernel_vectors
 
 
 
-
-
 subroutine copy_kernel_vectors(norbp, norb, nout, onedimindices, a, b)
   use module_base
   use module_types
@@ -367,14 +366,6 @@ subroutine axpy_kernel_vectors(norbp, norb, nout, onedimindices, a, x, y)
 
 
 end subroutine axpy_kernel_vectors
-
-
-
-
-
-
-
-
 
 
 

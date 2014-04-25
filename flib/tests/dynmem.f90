@@ -134,6 +134,15 @@ call f_free(weight)
 !!$     call yaml_map('Pointer association',[associated(i1_ptr),associated(ptr1)])
 !!$     call f_free_ptr(ptr1)
 !!$     call yaml_map('Pointer association',[associated(i1_ptr),associated(ptr1)])
+
+     !again, to see if the copy works
+     i1_ptr=i1_ptr-1
+     call yaml_map('Pointer difference again (should be -1)',i1_ptr-ptr1)
+     !then copy
+     !call f_memcpy(src=i1_ptr(1),dest=ptr1(1),n=size(i1_ptr))
+     call f_memcpy(src=i1_ptr,dest=ptr1)
+     call yaml_map('Pointer difference again (should be 0)',i1_ptr-ptr1)
+
      call f_free_ptr(i1_ptr,ptr1)
      call f_release_routine()
     call f_release_routine()

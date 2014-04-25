@@ -169,3 +169,26 @@ subroutine timing(iproc,category,action)
   end select
 
 END SUBROUTINE timing
+
+!> Routine to gather the clocks of all the instances of flib time module
+subroutine gather_timings(ncats,nproc,timing,timings)
+  use module_base
+  implicit none
+  integer, intent(in) :: ncats !< number of categories of the array
+  integer, intent(in) :: nproc !< number of MPI tasks
+  real(kind=8), dimension(ncats), intent(in) :: timing !< total timings of the instance
+  real(kind=8), dimension(ncats,nproc), intent(inout) :: timings !< gathered timings 
+  !local variables
+  integer :: i,ierr
+
+  if (nproc>1) then
+     !to be transformed into a wrapper
+     call MPI_GATHER(timing,ncats,MPI_DOUBLE_PRECISION,&
+          timings,ncats,MPI_DOUBLE_PRECISION,0,bigdft_mpi%mpi_comm,ierr)
+  else
+     do i=1,ncats
+        timings(i,1)=timing(i)
+     end do
+  endif
+
+end subroutine gather_timings

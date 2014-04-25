@@ -134,7 +134,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
 
    call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
    call mpiallred(checksum(1,1),2*orbs%norb*orbs%nspinor,MPI_SUM,&
-        bigdft_mpi%mpi_comm,ierr)
+        bigdft_mpi%mpi_comm)
    if (iproc==0) then
       maxdiff=0.0_wp
       do jorb=1,orbs%norb*orbs%nspinor
@@ -187,7 +187,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
    if (abort) call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
    call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
 
-   call mpiallred(maxdiff,1,MPI_MAX,bigdft_mpi%mpi_comm,ierr)
+   call mpiallred(maxdiff,1,MPI_MAX,bigdft_mpi%mpi_comm)
    if (iproc==0) call yaml_map('Maxdiff for untranspose',maxdiff,fmt='(1pe25.17)')
 
    i_all=-product(shape(psi))*kind(psi)
@@ -515,7 +515,7 @@ subroutine calculate_pulay_overlap(iproc, nproc, orbs1, orbs2, collcom1, collcom
   call timing(iproc,'ovrlptransComm','ON') !lr408t
 
   if(nproc>1) then
-      call mpiallred(ovrlp(1,1), orbs1%norb*orbs2%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(ovrlp(1,1), orbs1%norb*orbs2%norb, mpi_sum, bigdft_mpi%mpi_comm)
   end if
   call timing(iproc,'ovrlptransComm','OF') !lr408t
 end subroutine calculate_pulay_overlap
@@ -758,7 +758,7 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, nor
   !$omp end parallel
   
   if(nproc>1) then
-      call mpiallred(norm(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(norm(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
   end if
   do iorb=1,orbs%norb
      norm(iorb)=1.d0/sqrt(norm(iorb))

@@ -1061,7 +1061,7 @@ contains
        call date_and_time(time=sys_time)
        ! coeffs need to be the same across processors
        if (iproc==0) read(sys_time,*) rtime
-       if (bigdft_mpi%nproc>1) call mpiallred(rtime, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+       if (bigdft_mpi%nproc>1) call mpiallred(rtime, 1, mpi_sum, bigdft_mpi%mpi_comm)
        rand_seed=int(rtime*1000.0_dp)
        call random_seed(put=rand_seed)
        deallocate(rand_seed) 

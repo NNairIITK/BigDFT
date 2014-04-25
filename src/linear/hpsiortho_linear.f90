@@ -581,9 +581,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       fnrm_tot=fnrm_tot+fnrmArr(iorb)
       if (it>1) fnrmOld_tot=fnrmOld_tot+fnrmOldArr(iorb)
   end do
-  if (it>1) call mpiallred(fnrmOvrlp_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  call mpiallred(fnrm_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  call mpiallred(fnrmOld_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (it>1) call mpiallred(fnrmOvrlp_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  call mpiallred(fnrm_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  call mpiallred(fnrmOld_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
   ! ###########################################
 
   fnrm=0.d0
@@ -611,8 +611,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           !!alpha(iorb)=min(alpha(iorb),1.5d0)
       end if
   end do
-  call mpiallred(fnrm, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  call mpiallred(fnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(fnrm, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  call mpiallred(fnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm)
   fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
   fnrmMax=sqrt(fnrmMax)
 
@@ -628,10 +628,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! Determine the mean step size for steepest descent iterations.
   tt=sum(alpha)
-  call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm)
   alpha_mean=tt/dble(tmb%orbs%norb)
   alpha_max=maxval(alpha)
-  call mpiallred(alpha_max, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(alpha_max, 1, mpi_max, bigdft_mpi%mpi_comm)
 
   ! Copy the gradient (will be used in the next iteration to adapt the step size).
   call vcopy(tmb%npsidim_orbs, hpsi_small(1), 1, lhphiold(1), 1)
@@ -766,7 +766,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   if (nproc > 1) then
       garray(1)=gnrm
       garray(2)=gnrm_zero
-      call mpiallred(garray(1),2,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+      call mpiallred(garray(1),2,MPI_SUM,bigdft_mpi%mpi_comm)
       gnrm     =garray(1)
       gnrm_zero=garray(2)
   end if
@@ -799,8 +799,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       ist=ist+ncount
   end do
 
-  call mpiallred(gnrm, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  call mpiallred(gnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(gnrm, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  call mpiallred(gnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm)
   gnrm=sqrt(gnrm/dble(tmb%orbs%norb))
   gnrmMax=sqrt(gnrmMax)
   !if (iproc==0) write(*,'(a,3es16.6)') 'AFTER: gnrm, gnrmmax, gnrm/gnrm_old',gnrm,gnrmmax,gnrm/gnrm_old
@@ -895,7 +895,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   call memocc(istat,iall,'coeff_tmp',subname)
 
   if (nproc>1) then
-      call mpiallred(grad_coeff(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(grad_coeff(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
   ! now calculate sqrt(<g_i|g_i>) and mean value
