@@ -3912,14 +3912,14 @@ module module_interfaces
         end subroutine overlapPowerGeneral
 
 
-        subroutine overlap_plus_minus_one_half_exact(norb,blocksize,plusminus,inv_ovrlp_half,orbs)
+        subroutine overlap_plus_minus_one_half_exact(norb,blocksize,plusminus,inv_ovrlp_half,smat)
           use module_base
           use module_types
           implicit none
           integer,intent(in) :: norb,blocksize
           real(kind=8),dimension(:,:),pointer :: inv_ovrlp_half
           logical, intent(in) :: plusminus
-          type(orbitals_data), optional, intent(in) :: orbs
+          type(sparse_matrix),intent(in) :: smat
         end subroutine overlap_plus_minus_one_half_exact
 
         subroutine input_wf_memory_new(nproc,iproc, atoms, &

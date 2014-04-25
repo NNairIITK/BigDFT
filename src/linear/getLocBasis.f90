@@ -2089,18 +2089,18 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
 
   ! Not clean to use twice basis_overlap, but it should not matter as everything
   ! is done using the dense version
-  if (norb==orbs%norb) then
+  !if (norb==orbs%norb) then
       call overlapPowerGeneral(iproc, nproc, inversion_method, -2, &
-           blocksize_dsyev, norb, orbs, imode=2, ovrlp_smat=basis_overlap, inv_ovrlp_smat=KS_overlap, &
+           blocksize_dsyev, KS_overlap%nfvctr, orbs, imode=2, ovrlp_smat=KS_overlap, inv_ovrlp_smat=KS_overlap, &
            ovrlp_mat=basis_overlap_mat, inv_ovrlp_mat=inv_ovrlp, &
            check_accur=.false., ovrlp=ovrlp_coeff, inv_ovrlp=ovrlp_coeff2)
-  else
-      ! It is not possible to use the standard parallelization scheme, so do serial
-      call overlapPowerGeneral(iproc, 1, inversion_method, -2, &
-           blocksize_dsyev, norb, orbs, imode=2, ovrlp_smat=basis_overlap, inv_ovrlp_smat=basis_overlap, &
-           ovrlp_mat=basis_overlap_mat, inv_ovrlp_mat=inv_ovrlp, &
-           check_accur=.false., ovrlp=ovrlp_coeff, inv_ovrlp=ovrlp_coeff2)
-  end if
+  !else
+  !    ! It is not possible to use the standard parallelization scheme, so do serial
+  !    call overlapPowerGeneral(iproc, 1, inversion_method, -2, &
+  !         blocksize_dsyev, norb, orbs, imode=2, ovrlp_smat=basis_overlap, inv_ovrlp_smat=basis_overlap, &
+  !         ovrlp_mat=basis_overlap_mat, inv_ovrlp_mat=inv_ovrlp, &
+  !         check_accur=.false., ovrlp=ovrlp_coeff, inv_ovrlp=ovrlp_coeff2)
+  !end if
 
   call timing(iproc,'renormCoefCom2','ON')
 
