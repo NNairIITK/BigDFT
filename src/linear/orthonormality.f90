@@ -1412,7 +1412,11 @@ subroutine max_matrix_diff_parallel(iproc, norb, norbp, mat1, mat2, deviation)
      !$omp end do
      !$omp end parallel
   end do
-  call mpiallred(deviation, 1, mpi_max, bigdft_mpi%mpi_comm)
+
+  if (bigdft_mpi%nproc > 1) then
+     call mpiallred(deviation, 1, mpi_max, bigdft_mpi%mpi_comm)
+  end if
+
   call timing(iproc,'dev_from_unity','OF') 
 
 end subroutine max_matrix_diff_parallel
@@ -2258,7 +2262,9 @@ subroutine diagonalize_localized(iproc, nproc, orbs, ovrlp, inv_ovrlp_half)
      call memocc(istat, iall, 'ovrlp_tmp', subname)
   end do
 
-  call mpiallred(inv_ovrlp_half%matrix_compr(1), inv_ovrlp_half%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
+  if (nproc > 1) then
+     call mpiallred(inv_ovrlp_half%matrix_compr(1), inv_ovrlp_half%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
 
   iall=-product(shape(in_neighborhood))*kind(in_neighborhood)
   deallocate(in_neighborhood, stat=istat)
@@ -2419,6 +2425,8 @@ end subroutine diagonalize_localized
          !$omp end parallel
      end if
 
-     call mpiallred(matrix_compr(1), smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
+     if (nproc > 1) then
+        call mpiallred(matrix_compr(1), smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
+     end if
 
   end subroutine compress_matrix_distributed

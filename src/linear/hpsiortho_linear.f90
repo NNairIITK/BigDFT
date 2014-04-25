@@ -213,8 +213,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   call memocc(istat, iall, 'hpsittmp_f', subname)
 
 
-
-
   !!! EXPERIMENTAL: add the term stemming from the derivative of the kernel with respect to the support funtions #################
 
   !!if (iproc==0) write(*,*) 'kernel term...'
@@ -400,8 +398,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
        tmb%orbs, tmb%hpsi, hpsi_small)
 
 
-
-
   !!! Gradient in the outer shell
   !!hh=(tmb%lzd%hgrids(1)+tmb%lzd%hgrids(2)+tmb%lzd%hgrids(3))/3.d0
   !!fnrm_in=0.d0
@@ -495,8 +491,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
 
-
-
   if (present(hpsi_noprecond)) call vcopy(tmb%npsidim_orbs, hpsi_small(1), 1, hpsi_noprecond(1), 1)
 
   ! Calculate trace (or band structure energy, resp.)
@@ -585,9 +579,13 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       fnrm_tot=fnrm_tot+fnrmArr(iorb)
       if (it>1) fnrmOld_tot=fnrmOld_tot+fnrmOldArr(iorb)
   end do
-  if (it>1) call mpiallred(fnrmOvrlp_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
-  call mpiallred(fnrm_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
-  call mpiallred(fnrmOld_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
+
+  if (nproc > 1) then
+     if (it>1) call mpiallred(fnrmOvrlp_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
+     call mpiallred(fnrm_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
+     call mpiallred(fnrmOld_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
+
   ! ###########################################
 
   fnrm=0.d0
@@ -615,8 +613,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           !!alpha(iorb)=min(alpha(iorb),1.5d0)
       end if
   end do
-  call mpiallred(fnrm, 1, mpi_sum, bigdft_mpi%mpi_comm)
-  call mpiallred(fnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm)
+  
+  if (nproc > 1) then
+     call mpiallred(fnrm, 1, mpi_sum, bigdft_mpi%mpi_comm)
+     call mpiallred(fnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm)
+  end if
+
   fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
   fnrmMax=sqrt(fnrmMax)
 
@@ -632,10 +634,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! Determine the mean step size for steepest descent iterations.
   tt=sum(alpha)
-  call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm)
-  alpha_mean=tt/dble(tmb%orbs%norb)
   alpha_max=maxval(alpha)
-  call mpiallred(alpha_max, 1, mpi_max, bigdft_mpi%mpi_comm)
+  if (nproc > 1) then
+     call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm)
+     call mpiallred(alpha_max, 1, mpi_max, bigdft_mpi%mpi_comm)
+  end if
+  alpha_mean=tt/dble(tmb%orbs%norb)
 
   ! Copy the gradient (will be used in the next iteration to adapt the step size).
   call vcopy(tmb%npsidim_orbs, hpsi_small(1), 1, lhphiold(1), 1)
@@ -803,8 +807,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       ist=ist+ncount
   end do
 
-  call mpiallred(gnrm, 1, mpi_sum, bigdft_mpi%mpi_comm)
-  call mpiallred(gnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm)
+  if (nproc > 1) then
+     call mpiallred(gnrm, 1, mpi_sum, bigdft_mpi%mpi_comm)
+     call mpiallred(gnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm)
+  end if
   gnrm=sqrt(gnrm/dble(tmb%orbs%norb))
   gnrmMax=sqrt(gnrmMax)
   !if (iproc==0) write(*,'(a,3es16.6)') 'AFTER: gnrm, gnrmmax, gnrm/gnrm_old',gnrm,gnrmmax,gnrm/gnrm_old
@@ -927,9 +933,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   deallocate(ksres,stat=istat)
   call memocc(istat,iall,'ksres',subname)
 
-
 end subroutine calculate_residue_ks
-
 
 
 subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
@@ -988,7 +992,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   ! Improve the orbitals, depending on the choice made above.
   if (present(psidiff)) call vcopy(tmb%npsidim_orbs, tmb%psi(1), 1, psidiff(1), 1)
   if(.not.ldiis%switchSD) then
-      call improveOrbitals(iproc, tmb, ldiis, alpha, hpsi_small, experimental_mode)
+      call improveOrbitals(iproc, nproc, tmb, ldiis, alpha, hpsi_small, experimental_mode)
   else
       !if(iproc==0) write(*,'(1x,a)') 'no improvement of the orbitals, recalculate gradient'
       if (iproc==0) then

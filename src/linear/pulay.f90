@@ -1,3 +1,13 @@
+!> @file
+!! Pulay correction calculation for linear version
+!! @author
+!!    Copyright (C) 2007-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   use module_base
   use module_types
@@ -40,7 +50,10 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
           end do
       end do
   end do
-  call mpiallred(energykernel(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
+
+  if (nproc > 1) then
+     call mpiallred(energykernel(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
 
   ! calculate the overlap matrix
   if(.not.associated(tmb%psit_c)) then
@@ -103,7 +116,11 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
       end do
       call f_free_ptr(tmb%linmat%ham%matrix)
   end do
-  call mpiallred(fpulay(1,1), 3*at%astruct%nat, mpi_sum, bigdft_mpi%mpi_comm)
+
+  if (nproc > 1) then
+     call mpiallred(fpulay(1,1), 3*at%astruct%nat, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
+
   call f_free_ptr(tmb%linmat%denskern_large%matrix)
 
   if(iproc==0) then
@@ -602,7 +619,9 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
      end if
    end do 
 
-   call mpiallred(fpulay(1,1), 3*at%astruct%nat, mpi_sum, bigdft_mpi%mpi_comm)
+   if (nproc > 1) then
+      call mpiallred(fpulay(1,1), 3*at%astruct%nat, mpi_sum, bigdft_mpi%mpi_comm)
+   end if
 
   if(iproc==0) then
        !!do jat=1,at%astruct%nat

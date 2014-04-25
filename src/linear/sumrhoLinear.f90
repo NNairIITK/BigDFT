@@ -1,7 +1,7 @@
 !> @file 
 !!   sumrho: linear version
 !! @author
-!!   Copyright (C) 2011-2013 BigDFT group 
+!!   Copyright (C) 2013-2014 BigDFT group 
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
@@ -729,7 +729,10 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   !$omp end do
   !$omp end parallel
 
-  call mpiallred(irho, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  if (nproc > 1) then
+     call mpiallred(irho, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
+
   if (irho>0) then
       rho_negative=.true.
   end if
@@ -793,9 +796,9 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   !call mpi_finalize(ierr)
   !stop
 
-
-
-  call mpiallred(total_charge, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  if (nproc > 1) then
+     call mpiallred(total_charge, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
 
   !!if(print_local .and. iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', total_charge*hxh*hyh*hzh
   if (iproc==0 .and. print_local) then
@@ -1089,7 +1092,11 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   istarr=f_malloc((/0.to.nproc-1/),id='istarr')
   istarr=0
   istarr(iproc)=collcom_sr%nptsp_c
-  call mpiallred(istarr(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+
+  if (nproc > 1) then
+     call mpiallred(istarr(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
+
   ist=0
   do jproc=0,iproc-1
       ist=ist+istarr(jproc)
@@ -1490,7 +1497,10 @@ subroutine check_negative_rho(ndimrho, rho, rho_negative)
       end if
   end do
 
-  call mpiallred(irho, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  if (bigdft_mpi%nproc > 1) then
+     call mpiallred(irho, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
+
   if (irho>0) then
       rho_negative=.true.
   else

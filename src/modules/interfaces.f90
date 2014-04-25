@@ -1950,11 +1950,12 @@ module module_interfaces
        type(foe_data),intent(in) :: foe_obj
      end subroutine orthonormalizeLocalized
 
-     subroutine optimizeDIIS(iproc, npsidim, orbs, lzd, hphi, phi, ldiis, experimental_mode)
+     subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, lzd, hphi, phi, ldiis, experimental_mode)
        use module_base
        use module_types
        implicit none
-       integer,intent(in):: iproc, npsidim
+       integer,intent(in):: iproc, nproc
+       integer,intent(in):: npsidim
        type(orbitals_data),intent(in):: orbs
        type(local_zone_descriptors),intent(in):: lzd
        real(8),dimension(npsidim),intent(in):: hphi
@@ -2777,11 +2778,11 @@ module module_interfaces
          character(len=*),intent(in):: subname
        end subroutine copy_orthon_data
 
-       subroutine improveOrbitals(iproc, tmb, ldiis, alpha, gradient, experimental_mode)
+       subroutine improveOrbitals(iproc, nproc, tmb, ldiis, alpha, gradient, experimental_mode)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: iproc
+         integer,intent(in):: iproc, nproc
          type(DFT_wavefunction),intent(inout):: tmb
          type(localizedDIISParameters),intent(inout):: ldiis
          real(8),dimension(tmb%orbs%norbp),intent(in):: alpha
