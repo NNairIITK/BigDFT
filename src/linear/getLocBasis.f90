@@ -1991,7 +1991,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   real(kind=8), dimension(:,:), allocatable :: coeff_tmp, coefftrans
   real(kind=8), dimension(:,:), pointer :: ovrlp_coeff, ovrlp_coeff2
   character(len=*),parameter:: subname='reorthonormalize_coeff'
-  type(matrices) :: KS_ovrlp_, inv_ovrlp
+  type(matrices) :: KS_ovrlp_, inv_ovrlp_
   !integer :: iorb, jorb !DEBUG
   real(kind=8) :: tt, error!, tt2, tt3, ddot   !DEBUG
   !logical :: dense
@@ -2023,6 +2023,8 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
 
   KS_ovrlp_ = matrices_null()
   call allocate_matrices(KS_overlap, allocate_full=.true., matname='KS_ovrlp_', mat=KS_ovrlp_)
+  inv_ovrlp_ = matrices_null()
+  call allocate_matrices(KS_overlap, allocate_full=.true., matname='inv_ovrlp_', mat=inv_ovrlp_)
 
   if (dense) then
      ! Calculate the overlap matrix among the coefficients with respect to basis_overlap.
@@ -2086,8 +2088,8 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   end if
 
   ! Recalculate the kernel.
-  allocate(ovrlp_coeff2(norb,norb), stat=istat)
-  call memocc(istat, ovrlp_coeff2, 'ovrlp_coeff2', subname)
+  !allocate(ovrlp_coeff2(norb,norb), stat=istat)
+  !call memocc(istat, ovrlp_coeff2, 'ovrlp_coeff2', subname)
 
   call timing(iproc,'renormCoefCom1','OF')
 
@@ -2096,8 +2098,8 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   !if (norb==orbs%norb) then
       call overlapPowerGeneral(iproc, nproc, inversion_method, -2, &
            blocksize_dsyev, imode=2, ovrlp_smat=KS_overlap, inv_ovrlp_smat=KS_overlap, &
-           ovrlp_mat=KS_ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
-           check_accur=.false., ovrlp=KS_ovrlp_%matrix, inv_ovrlp=ovrlp_coeff2)
+           ovrlp_mat=KS_ovrlp_, inv_ovrlp_mat=inv_ovrlp_, &
+           check_accur=.false., ovrlp=KS_ovrlp_%matrix, inv_ovrlp=inv_ovrlp_%matrix)
   !else
   !    ! It is not possible to use the standard parallelization scheme, so do serial
   !    call overlapPowerGeneral(iproc, 1, inversion_method, -2, &
@@ -2129,7 +2131,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
 
      if (orbs%norbp>0) then
         call dgemm('n', 't', basis_orbs%norb, orbs%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), basis_orbs%norb, &
-             ovrlp_coeff2(1,orbs%isorb+1), orbs%norb, 0.d0, coeff_tmp(1,1), basis_orbs%norb)
+             inv_ovrlp_%matrix(1,orbs%isorb+1), orbs%norb, 0.d0, coeff_tmp(1,1), basis_orbs%norb)
      else
         call to_zero(basis_orbs%norb*orbs%norb, coeff_tmp(1,1))
      end if
@@ -2143,7 +2145,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
      call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
      ! need to transpose so we can allgather - NOT VERY ELEGANT
      if (basis_orbs%norbp>0) then
-         call dgemm('n', 't', norb, basis_orbs%norbp, norb, 1.d0, ovrlp_coeff2(1,1), norb, &
+         call dgemm('n', 't', norb, basis_orbs%norbp, norb, 1.d0, inv_ovrlp_%matrix(1,1), norb, &
              coeff(1+basis_orbs%isorb,1), basis_orbs%norb, 0.d0, coeff_tmp(1,1), norb)
      end if
 
@@ -2191,11 +2193,12 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   !!! END DEBUG
 
   call deallocate_matrices(KS_ovrlp_)
+  call deallocate_matrices(inv_ovrlp_)
 
 
-  iall=-product(shape(ovrlp_coeff2))*kind(ovrlp_coeff2)
-  deallocate(ovrlp_coeff2,stat=istat)
-  call memocc(istat,iall,'ovrlp_coeff2',subname)
+  !iall=-product(shape(ovrlp_coeff2))*kind(ovrlp_coeff2)
+  !deallocate(ovrlp_coeff2,stat=istat)
+  !call memocc(istat,iall,'ovrlp_coeff2',subname)
 
   iall=-product(shape(coeff_tmp))*kind(coeff_tmp)
   deallocate(coeff_tmp,stat=istat)
@@ -2267,7 +2270,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   real(kind=8),dimension(2) :: bisec_bounds
   logical,dimension(2) :: bisec_bounds_ok
   real(kind=8),dimension(:,:),pointer :: ovrlp_onehalf, ovrlp_minusonehalf
-  type(matrices) :: inv_ovrlp
+  type(matrices) :: ovrlp_onehalf_, ovrlp_minusonehalf_
 
   if (purification_quickreturn) then
       if (iproc==0) call yaml_warning('quick return in purification')
@@ -2277,8 +2280,10 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
 
   call f_routine(id='purify_kernel')
 
-  inv_ovrlp = matrices_null()
-  call allocate_matrices(tmb%linmat%l, allocate_full=.false., matname='inv_ovrlp', mat=inv_ovrlp)
+  ovrlp_onehalf_ = matrices_null()
+  call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='ovrlp_onehalf_', mat=ovrlp_onehalf_)
+  ovrlp_minusonehalf_ = matrices_null()
+  call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='ovrlp_minusonehalf_', mat=ovrlp_minusonehalf_)
 
 
   ! Calculate the overlap matrix between the TMBs.
@@ -2326,8 +2331,8 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   ksksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
   kernel_prime=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
 
-  ovrlp_onehalf=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='ovrlp_onehalf')
-  ovrlp_minusonehalf=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='ovrlp_minusonehalf')
+  !ovrlp_onehalf=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='ovrlp_onehalf')
+  !ovrlp_minusonehalf=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='ovrlp_minusonehalf')
 
 
 
@@ -2366,10 +2371,10 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
       if (tmb%orbs%norbp>0) then
           call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
                      1.d0, tmb%linmat%kernel_%matrix, tmb%orbs%norb, &
-                     ovrlp_onehalf(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
+                     ovrlp_onehalf_%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
                      0.d0, ksksk, tmb%orbs%norb) 
           call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
-                     1.d0, ovrlp_onehalf, tmb%orbs%norb, &
+                     1.d0, ovrlp_onehalf_%matrix, tmb%orbs%norb, &
                      ksksk, tmb%orbs%norb, &
                      0.d0, kernel_prime(1,tmb%orbs%isorb+1), tmb%orbs%norb) 
       end if
@@ -2403,10 +2408,10 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           if (tmb%orbs%norbp>0) then
               call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
                          1.d0, ks, tmb%orbs%norb, &
-                         ovrlp_minusonehalf(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
+                         ovrlp_minusonehalf_%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
                          0.d0, ksksk, tmb%orbs%norb) 
               call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
-                         1.d0, ovrlp_minusonehalf, tmb%orbs%norb, &
+                         1.d0, ovrlp_minusonehalf_%matrix, tmb%orbs%norb, &
                          ksksk, tmb%orbs%norb, &
                          0.d0, tmb%linmat%kernel_%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb) 
           end if
@@ -2536,8 +2541,8 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   call f_free(ksksk)
   call f_free(kernel_prime)
 
-  call f_free_ptr(ovrlp_onehalf)
-  call f_free_ptr(ovrlp_minusonehalf)
+  !call f_free_ptr(ovrlp_onehalf)
+  !call f_free_ptr(ovrlp_minusonehalf)
 
   !if (.not.inv_ovrlp_associated) then
   !    call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix_compr)
@@ -2558,7 +2563,8 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   call f_free_ptr(tmb%linmat%ovrlp_%matrix)
   call f_free_ptr(tmb%linmat%kernel_%matrix)
 
-  call deallocate_matrices(inv_ovrlp)
+  call deallocate_matrices(ovrlp_onehalf_)
+  call deallocate_matrices(ovrlp_minusonehalf_)
 
   call f_release_routine()
 
@@ -2571,12 +2577,12 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
 
           call overlapPowerGeneral(iproc, nproc, order_taylor, 2, -1, &
                imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
-               ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
-               ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=ovrlp_onehalf, error=error)
+               ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=ovrlp_onehalf_, check_accur=.true., &
+               ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=ovrlp_onehalf_%matrix, error=error)
           call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, &
                imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
-               ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
-               ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=ovrlp_minusonehalf, error=error)
+               ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=ovrlp_minusonehalf_, check_accur=.true., &
+               ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=ovrlp_minusonehalf_%matrix, error=error)
           if (iproc==0) then
               call yaml_map('error of S^-1/2',error,fmt='(es9.2)')
           end if

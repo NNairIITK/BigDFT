@@ -1174,7 +1174,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   ovrlp_half = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='ovrlp_half')
 
   inv_ovrlp = matrices_null()
-  call allocate_matrices(tmb%linmat%l, allocate_full=.false., matname='inv_ovrlp', mat=inv_ovrlp)
+  call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp)
 
 
 
@@ -1227,7 +1227,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
           tmb%orthpar%blocksize_pdsyev, &
           imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
           ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
-          ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=ovrlp_half, error=error)
+          ovrlp=tmb%linmat%ovrlp_%matrix, inv_ovrlp=inv_ovrlp%matrix, error=error)
      !!ovrlp_half=tmb%linmat%ovrlp%matrix
      call f_free_ptr(tmb%linmat%ovrlp_%matrix)
   end if
@@ -1260,7 +1260,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, &
             tmb%orbs%norb, 1.d0, &
             proj_mat(1,1), tmb%orbs%norb, &
-            ovrlp_half(1,tmb%orbs%isorb+1), tmb%orbs%norb, 0.d0, &
+            inv_ovrlp%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, 0.d0, &
             proj_ovrlp_half(1,1), tmb%orbs%norb)
   end if
   call f_free(proj_mat)
@@ -1268,11 +1268,11 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   if (tmb%orbs%norbp>0) then
      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, &
           tmb%orbs%norb, 1.d0, &
-          ovrlp_half(1,1), tmb%orbs%norb, &
+          inv_ovrlp%matrix(1,1), tmb%orbs%norb, &
           proj_ovrlp_half(1,1), tmb%orbs%norb, 0.d0, &
           weight_matrixp(1,1), tmb%orbs%norb)
   end if
-  call f_free_ptr(ovrlp_half)
+  !call f_free_ptr(ovrlp_half)
   call f_free(proj_ovrlp_half)
   weight_matrix=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/), id='weight_matrix')
   if (bigdft_mpi%nproc>1) then
