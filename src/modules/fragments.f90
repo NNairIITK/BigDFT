@@ -21,7 +21,7 @@ module module_fragments
    interface
 
       subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize_pdgemm, inversion_method, basis_orbs, &
-                 basis_overlap, basis_overlap_mat, coeff, orbs)
+                 basis_overlap, KS_overlap, basis_overlap_mat, coeff, orbs)
         use module_base
         use module_types
         use sparsematrix_base, only: sparse_matrix
@@ -30,7 +30,7 @@ module module_fragments
         integer, intent(in) :: blocksize_dsyev, blocksize_pdgemm, inversion_method
         type(orbitals_data), intent(in) :: basis_orbs   !number of basis functions
         type(orbitals_data), intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
-        type(sparse_matrix),intent(inout) :: basis_overlap
+        type(sparse_matrix),intent(inout) :: basis_overlap, KS_overlap
         type(matrices),intent(inout) :: basis_overlap_mat
         real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(inout) :: coeff
       end subroutine reorthonormalize_coeff
@@ -1216,7 +1216,7 @@ contains
        call reorthonormalize_coeff(bigdft_mpi%iproc, bigdft_mpi%nproc, &
             ceiling((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp), &
             tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, tmb%orthpar%methTransformOverlap,&
-            tmb%orbs, tmb%linmat%s, tmb%linmat%ovrlp_, tmb%coeff, ksorbs)
+            tmb%orbs, tmb%linmat%s, tmb%linmat%ks, tmb%linmat%ovrlp_, tmb%coeff, ksorbs)
        call f_free_ptr(tmb%linmat%ovrlp_%matrix)
 
        !! debug

@@ -343,7 +343,7 @@ end subroutine calc_transfer_integral
 ! only calculates transfer integrals if we have two fragments
 ! occs are for neutral reference fragments...
 subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_frag,&
-           ref_frags,orbs,ham,ham_mat,ovrlp,ovrlp_mat)
+           ref_frags,orbs,ham,ham_mat,ovrlp,ovrlp_mat,KS_overlap)
   use module_base
   use module_types
   use yaml_output
@@ -359,6 +359,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
   type(fragmentInputParameters), intent(in) :: input_frag
   type(orbitals_data), intent(in) :: orbs
   type(sparse_matrix), intent(inout) :: ham, ovrlp
+  type(sparse_matrix),intent(inout) :: KS_overlap
   type(matrices), intent(inout) :: ovrlp_mat, ham_mat
   type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
   !Local variables
@@ -419,7 +420,8 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
   ! orthogonalize
   coeffs_tmp=f_malloc0((/orbs%norb,orbs%norb/), id='coeffs_tmp')
   call vcopy(orbs%norb*nstates,homo_coeffs(1,1),1,coeffs_tmp(1,1),1)
-  call reorthonormalize_coeff(iproc, nproc, nstates, -8, -8, meth_overlap, orbs, ovrlp, ovrlp_mat, coeffs_tmp(1,1), orbs)
+  call reorthonormalize_coeff(iproc, nproc, nstates, -8, -8, meth_overlap, orbs, ovrlp, KS_overlap, &
+       ovrlp_mat, coeffs_tmp(1,1), orbs)
   coeffs_orthog=f_malloc((/orbs%norb,nstates/), id='coeffs_orthog')
   call vcopy(orbs%norb*nstates,coeffs_tmp(1,1),1,coeffs_orthog(1,1),1)
   call f_free(coeffs_tmp)

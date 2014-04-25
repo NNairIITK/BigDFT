@@ -4295,7 +4295,7 @@ module module_interfaces
         end subroutine calculate_kernel_and_energy
 
         subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_frag,&
-                   ref_frags,orbs,ham,ham_mat,ovrlp,ovrlp_mat)
+                   ref_frags,orbs,ham,ham_mat,ovrlp,ovrlp_mat,KS_overlap)
           use module_base
           use module_types
           use yaml_output
@@ -4305,6 +4305,7 @@ module module_interfaces
           type(fragmentInputParameters), intent(in) :: input_frag
           type(orbitals_data), intent(in) :: orbs
           type(sparse_matrix), intent(inout) :: ham, ovrlp
+          type(sparse_matrix),intent(inout) :: KS_overlap
           type(matrices), intent(inout) :: ovrlp_mat, ham_mat
           type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
         end subroutine calc_site_energies_transfer_integrals
