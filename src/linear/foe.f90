@@ -400,13 +400,12 @@ subroutine foe(iproc, nproc, tmprtr, &
              ! Check for an emergency stop, which happens if the kernel explodes, presumably due
              ! to the eigenvalue bounds being too small.
              ! mpi_lor seems not to work on certain systems...
-             !call mpiallred(emergency_stop, 1, mpi_lor, bigdft_mpi%mpi_comm, ierr)
              if (emergency_stop) then
                  iflag=1
              else
                  iflag=0
              end if
-             call mpiallred(iflag, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+             call mpiallred(iflag, 1, mpi_sum, bigdft_mpi%mpi_comm)
              if (iflag>0) then
                  emergency_stop=.true.
              else
@@ -476,7 +475,7 @@ subroutine foe(iproc, nproc, tmprtr, &
     
                   allredarr(1)=bound_low
                   allredarr(2)=bound_up
-                  call mpiallred(allredarr, 2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+                  call mpiallred(allredarr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
                   allredarr=abs(allredarr) !for some crazy situations this may be negative
                   anoise=100.d0*anoise
                   if (allredarr(1)>anoise) then
@@ -737,7 +736,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                           diff = diff + (tmb%linmat%kernel_%matrixp(jorb,iorb)-fermip_check(jorb,iorb))**2
                       end do
                   end do
-                  call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+                  call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm)
                   diff=sqrt(diff)
                   if (iproc==0) call yaml_map('diff from reference kernel',diff,fmt='(es10.3)')
                   !!!!%%if (adjust_FOE_temperature .and. foe_verbosity>=1) then
@@ -1057,7 +1056,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           end if
     
           if (nproc>1) then
-              call mpiallred(trace, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+              call mpiallred(trace, 1, mpi_sum, bigdft_mpi%mpi_comm)
           end if
       end subroutine calculate_trace_distributed
 
@@ -1643,7 +1642,7 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat)
           !$omp end do
           !$omp end parallel
       end if
-      call mpiallred(sumn, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(sumn, 1, mpi_sum, bigdft_mpi%mpi_comm)
 
       trace_sparse = sumn
 

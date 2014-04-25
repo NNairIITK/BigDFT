@@ -412,7 +412,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
       call f_free_ptr(denskern_%matrix)
       if (nproc > 1) then
           call timing(iproc,'commun_kernel','ON') !lr408t
-          call mpiallred(denskern_%matrix_compr(1), denskern%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          call mpiallred(denskern_%matrix_compr(1), denskern%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
           call timing(iproc,'commun_kernel','OF') !lr408t
       end if
 
@@ -1494,7 +1494,7 @@ subroutine check_negative_rho(ndimrho, rho, rho_negative)
       end if
   end do
 
-  call mpiallred(irho, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(irho, 1, mpi_sum, bigdft_mpi%mpi_comm)
   if (irho>0) then
       rho_negative=.true.
   else
