@@ -351,6 +351,9 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   character(len=256) :: subname='coeff_weight_analysis'
 
   call timing(iproc,'weightanalysis','ON')
+
+  call f_routine('coeff_weight_analysis')
+
   !call nullify_sparse_matrix(weight_matrix)
   weight_matrix=sparse_matrix_null()
   call sparse_copy_pattern(tmb%linmat%m, weight_matrix, iproc, subname)
@@ -361,7 +364,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
 
   !weight_coeff=f_malloc((/ksorbs%norb,ksorbs%norb,input%frag%nfrag/), id='weight_coeff')
   weight_coeff_diag=f_malloc((/ksorbs%norb,input%frag%nfrag/), id='weight_coeff')
-  ovrlp_half=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='ovrlp_half')
+  !ovrlp_half=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='ovrlp_half')
   tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
   call uncompress_matrix(bigdft_mpi%iproc, tmb%linmat%s, &
        inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
@@ -375,7 +378,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   do ifrag=1,input%frag%nfrag
      ifrag_charged(1)=ifrag
      call calculate_weight_matrix_lowdin(weight_matrix,1,ifrag_charged,tmb,input,ref_frags,&
-          .false.,.false.,tmb%orthpar%methTransformOverlap,inv_ovrlp%matrix)
+          .false.,.true.,tmb%orthpar%methTransformOverlap,inv_ovrlp%matrix)
      weight_matrix%matrix=f_malloc_ptr((/weight_matrix%nfvctr,weight_matrix%nfvctr/), id='weight_matrix%matrix')
      call uncompress_matrix(iproc,weight_matrix)
      !call calculate_coeffMatcoeff(nproc,weight_matrix%matrix,tmb%orbs,ksorbs,tmb%coeff,weight_coeff(1,1,ifrag))
@@ -408,7 +411,11 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   call deallocate_sparse_matrix(weight_matrix, subname)
   call f_free(weight_coeff_diag)
   !call f_free(weight_coeff)
+
+  call f_release_routine()
+
   call timing(iproc,'weightanalysis','OF')
+
 
 end subroutine coeff_weight_analysis
 
@@ -573,6 +580,7 @@ subroutine calculate_coeffMatcoeff_diag(matrix,basis_orbs,ksorbs,coeff,mat_coeff
   real(kind=8), dimension(:,:), allocatable :: coeff_tmp
   real(kind=8), dimension(:), allocatable :: mat_coeff_diagp
   logical, parameter :: allgather=.true.
+
 
   if (allgather) then
      mat_coeff_diagp=f_malloc((/ksorbs%norbp/), id='mat_coeff_diagp')

@@ -104,6 +104,8 @@ contains
     real(kind=gp), dimension(:,:), pointer :: ovrlp_half
     character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
 
+    call f_routine('calculate_weight_matrix_lowdin_wrapper')
+
     ! wrapper here so we can modify charge and avoid restructuring the code as much whilst still using the routine elsewhere
     if (.not. input%lin%calc_transfer_integrals) then
        cdft%charge=ref_frags(input%frag%frag_index(cdft%ifrag_charged(1)))%nelec-input%frag%charge(cdft%ifrag_charged(1))
@@ -119,6 +121,8 @@ contains
     call calculate_weight_matrix_lowdin(cdft%weight_matrix,nfrag_charged,cdft%ifrag_charged,tmb,input,&
          ref_frags,calculate_overlap_matrix,.true.,meth_overlap,ovrlp_half)
     call f_free_ptr(ovrlp_half)
+
+    call f_release_routine()
 
   end subroutine calculate_weight_matrix_lowdin_wrapper
 
