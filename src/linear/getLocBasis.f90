@@ -2532,7 +2532,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           end do
 
           if (nproc > 1) then
-          end if
+              call mpiallred(tmb%linmat%kernel_%matrix(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
           end if
 
           if (diff<1.d-10) exit
