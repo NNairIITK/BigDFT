@@ -1,6 +1,10 @@
-/*! @dir
+/*! @file
 @brief README of the directory pseudo/src
 
+@dir
+@brief Contains the source of the pseudo and atom programs
+
+@details
 Changes as of Fri Jun 28 2013 by Alex Willand
 
 - modules in pseudo.f90 with descriptions of the relevant variables
@@ -11,4 +15,3 @@ Changes as of Fri Jun 28 2013 by Alex Willand
 - pawpatch routines (including gatom_mofied) are left unmodified and should be tested 
 
 */
-

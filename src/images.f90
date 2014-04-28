@@ -199,10 +199,12 @@ MODULE Minimization_routines
         vel(:) = vel_component * force_versor
       ELSE
         vel(:) = 0.D0
-      END IF    
-      
-    END SUBROUTINE quick_min_second_step    
+      END IF
+
+    END SUBROUTINE quick_min_second_step
+
 END MODULE Minimization_routines
+
 
 module module_images
   use module_defs
@@ -806,7 +808,8 @@ contains
 
 END MODULE module_images
 
-! Public routines.
+
+!> Public routines.
 subroutine image_update_pos(img, iteration, posm1, posp1, Vm1, Vp1, &
      & km1, kp1, optimization, climbing, neb)
   use Minimization_routines
@@ -902,6 +905,7 @@ subroutine image_update_pos(img, iteration, posm1, posp1, Vm1, Vp1, &
   deallocate(grad)
 END SUBROUTINE image_update_pos
 
+
 subroutine image_update_pos_from_file(img, iteration, filem1, filep1, km1, kp1, climbing, neb)
   use Minimization_routines
   use module_types
@@ -956,7 +960,9 @@ subroutine image_update_pos_from_file(img, iteration, filem1, filep1, km1, kp1, 
   call image_update_pos(img, iteration, rxyzm1, rxyzp1, Vm1, Vp1, km1, kp1, &
        & .not. associated(rxyzm1) .or. .not. associated(rxyzp1), climbing, neb)
   call free_me()
+
 contains
+
   subroutine free_me()
     implicit none
     integer :: i_all, i_stat
@@ -990,6 +996,7 @@ subroutine image_calculate(img, iteration, id)
   integer :: ierr, infocode
   character(len = 4) :: fn4
 
+  !Why (TD) ??
   img%run%inputs%inputpsiid = 0
   if (iteration > 0 .and. abs(img%id - id) < 2) img%run%inputs%inputpsiid = 1
 

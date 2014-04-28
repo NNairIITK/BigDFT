@@ -18,7 +18,7 @@ program yaml_test
 
    call f_lib_initialize()
 
-   call profile_dictionary_usage()
+!   call profile_dictionary_usage()
 !!$   call f_lib_finalize()
 !!$   stop
 

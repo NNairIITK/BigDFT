@@ -1,10 +1,22 @@
+!> @file
+!!  File defining the structures and the routines for the communication between processes
+!! @author
+!!    Copyright (C) 2014-2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Module defining routines related to communications (maily transpositions)
 module communications
+
   use module_base
   use communications_base, only: comms_linear, comms_cubic
+
   implicit none
 
   private
-
 
   public :: transpose_localized
   public :: untranspose_localized
@@ -946,7 +958,7 @@ module communications
       ! Local variables
       !character(len=*), parameter :: subname='start_onesided_communication'
       integer :: jproc, joverlap, mpisource, istsource, mpidest, istdest, ierr, nit
-      integer :: ioffset_send, mpi_type, ist, i2, i3, ist2, ist3, info, nsize, size_of_double
+      integer :: ioffset_send, ist, i2, i3, ist2, ist3, info, nsize, size_of_double
     
     
       call timing(iproc, 'Pot_comm start', 'ON')
@@ -1070,7 +1082,7 @@ module communications
       call memocc(istat, worksend_log, 'worksend_log', subname)
       allocate(worksend_int(11,orbs%norbp), stat=istat)
       call memocc(istat, worksend_int, 'worksend_int', subname)
-      allocate(worksend_dbl(5,orbs%norbp), stat=istat)
+      allocate(worksend_dbl(6,orbs%norbp), stat=istat)
       call memocc(istat, worksend_dbl, 'worksend_dbl', subname)
     
       allocate(workrecv_char(orbs%norb), stat=istat)
@@ -1079,7 +1091,7 @@ module communications
       call memocc(istat, workrecv_log, 'workrecv_log', subname)
       allocate(workrecv_int(11,orbs%norb), stat=istat)
       call memocc(istat, workrecv_int, 'workrecv_int', subname)
-      allocate(workrecv_dbl(5,orbs%norb), stat=istat)
+      allocate(workrecv_dbl(6,orbs%norb), stat=istat)
       call memocc(istat, workrecv_dbl, 'workrecv_dbl', subname)
     
     
@@ -1101,6 +1113,7 @@ module communications
               worksend_dbl(1:3,iilr)=llr(ilr)%locregCenter(1:3)
               worksend_dbl(4,iilr)=llr(ilr)%locrad
               worksend_dbl(5,iilr)=llr(ilr)%locrad_kernel
+              worksend_dbl(6,iilr)=llr(ilr)%locrad_mult
           end if
       end do
     
@@ -1110,8 +1123,8 @@ module communications
            orbs%isorb_par, mpi_logical, bigdft_mpi%mpi_comm, ierr)
       call mpi_allgatherv(worksend_int, 11*orbs%norbp, mpi_integer, workrecv_int, 11*orbs%norb_par(:,0), &
            11*orbs%isorb_par, mpi_integer, bigdft_mpi%mpi_comm, ierr)
-      call mpi_allgatherv(worksend_dbl, 5*orbs%norbp, mpi_double_precision, workrecv_dbl, 5*orbs%norb_par(:,0), &
-           5*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+      call mpi_allgatherv(worksend_dbl, 6*orbs%norbp, mpi_double_precision, workrecv_dbl, 6*orbs%norb_par(:,0), &
+           6*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
     
       do ilr=1,nlr
           iilr=workrecv_int(11,ilr)
@@ -1128,6 +1141,7 @@ module communications
           llr(iilr)%locregCenter(1:3)=workrecv_dbl(1:3,ilr)
           llr(iilr)%locrad=workrecv_dbl(4,ilr)
           llr(iilr)%locrad_kernel=workrecv_dbl(5,ilr)
+          llr(iilr)%locrad_mult=workrecv_dbl(6,ilr)
       end do
     
     
@@ -1227,8 +1241,8 @@ module communications
        integer,dimension(orbs%norb),intent(in) :: onwhichmpi
     
        ! Local variables
-       integer:: ierr, istat, iall, jorb, ilr, jlr, itask, jtask, root, icomm, nrecv, nalloc, max_sim_comms
-       integer :: maxrecvdim, maxsenddim, nsend
+       integer:: ierr, istat, iall, jorb, ilr, jlr, jtask, root, icomm, nrecv, nalloc, max_sim_comms
+       integer :: maxrecvdim, maxsenddim
        logical :: isoverlap
        character(len=*),parameter:: subname='communicate_wavefunctions_descriptors2'
        integer,dimension(:),allocatable :: requests
@@ -1425,21 +1439,16 @@ module communications
       type(comms_cubic), intent(in) :: comms
       !>address of the wavefunction elements (choice)
       !if out_add is absent, it is used for transpose
-      real(wp),intent(inout) :: psi_add
-      real(wp),intent(inout) :: work_add
+      real(wp), intent(inout) :: psi_add
+      real(wp), intent(inout) :: work_add
       !> size of the buffers, optional.
       real(wp), optional :: out_add
       !local variables
-      integer :: ierr, i_all, i_stat
-      integer :: psishift1,totshift,iorb,ilr,ldim,Gdim,ldimtot
-      real(wp), dimension(:), pointer :: workarr
-      logical :: to_global
       character(len=*), parameter :: subname='transpose_v'
+      integer :: ierr
       external :: switch_waves_v,psitransspi,MPI_ALLTOALLV
-
     
       call timing(iproc,'Un-TransSwitch','ON')
-
     
       if (nproc > 1) then
          call switch_waves_v(nproc,orbs,&
@@ -1895,7 +1904,7 @@ subroutine toglobal_and_transpose(iproc,nproc,orbs,Lzd,comms,psi,&
   real(wp), dimension(*), intent(out), optional :: outadd
   !local variables
   character(len=*), parameter :: subname='toglobal_and_transpose'
-  integer :: ierr,i_all,i_stat
+  integer :: i_all,i_stat
   integer :: psishift1,totshift,iorb,ilr,ldim,Gdim
   real(wp) :: workdum
   real(wp), dimension(:), pointer :: workarr

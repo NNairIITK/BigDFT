@@ -1,5 +1,5 @@
 !> @file
-!!  Module to handle input variables
+!!  Modules to handle input variables
 !! @author
 !!    Copyright (C) 2010-2013 BigDFT group
 !!    This file is distributed under the terms of the
@@ -54,12 +54,12 @@ module module_input
 
    contains
 
-     subroutine input_set_stdout(unit)
-       implicit none
-       integer, intent(in) :: unit
-       
-       stdout=unit
-     end subroutine input_set_stdout
+   subroutine input_set_stdout(unit)
+     implicit none
+     integer, intent(in) :: unit
+     
+     stdout=unit
+   end subroutine input_set_stdout
 
    subroutine input_set_file(iproc, dump, filename, exists,comment_file_usage)
       integer, intent(in) :: iproc
@@ -438,7 +438,7 @@ module module_input
       if (ierror /= 0) var = huge(1_gp) 
    END SUBROUTINE read_fraction_string
 
-   !>  Here the fraction is indicated by the :
+   !> Here the fraction is indicated by the :
    subroutine read_fraction_string_old(l,string,occ)
       use module_base
       implicit none
@@ -1224,6 +1224,8 @@ module module_input
 
 END MODULE module_input
 
+
+!> Module reading the old format (before 1.7) for the input
 module input_old_text_format
   implicit none
   public
@@ -1372,7 +1374,8 @@ contains
 
   end subroutine read_dft_from_text_format
 
-  !> Read the input variables needed for the geometry optimisation
+
+  !> Read the input variables needed for the geometry optmization
   !! Every argument should be considered as mandatory
   subroutine read_geopt_from_text_format(iproc,dict,filename)
     use module_base
@@ -1473,7 +1476,7 @@ contains
 
   END SUBROUTINE read_geopt_from_text_format
 
-  !> Read the input variables needed for the geometry optimisation
+  !> Read the input variables needed for the geometry optmization
   !!    Every argument should be considered as mandatory
   subroutine read_mix_from_text_format(iproc,dict,filename)
     use module_base
@@ -1709,6 +1712,7 @@ contains
     call input_free(.false.)
 
   end subroutine read_kpt_from_text_format
+
 
   !> Read the input variables which can be used for performances
   subroutine read_perf_from_text_format(iproc,dict,filename)
@@ -2006,12 +2010,12 @@ contains
 
     comments='number of iterations in the preconditioner, order of Taylor approximations'
     call input_var(dummy_int,'5',dict//LIN_BASIS//NSTEP_PREC,ranges=(/1,100/))
-    call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/1,100/),comment=comments)
+    call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-100,100/),comment=comments)
     !call input_var(in%lin%order_taylor,'1',ranges=(/1,100/),comment=comments)
 
     comments = '0-> exact Loewdin, 1-> taylor expansion; &
                &in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
-    call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-1,10000/))
+    call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-100,100/))
     call input_var(dummy_int,'1',ranges=(/0,1/),comment=comments)
     !call input_var(in%lin%correctionOrthoconstraint,'1',ranges=(/0,1/),comment=comments)
 

@@ -97,11 +97,12 @@ subroutine c1_all(array,m)
   include 'allocate-c-inc.f90'
 end subroutine c1_all
 
+
 !subroutine c1_all_free(length,array)
 subroutine f_free_str(length,array)
   use metadata_interfaces, metadata_address => getc1
   implicit none
-  integer, intent(in) :: length
+  integer, intent(in) :: length !< need to specify length for the declaration below (sometimes fortran runtime error)
   character(len=length), dimension(:), allocatable, intent(inout) :: array
   include 'deallocate-profile-inc.f90' 
   include 'deallocate-c-inc.f90' 

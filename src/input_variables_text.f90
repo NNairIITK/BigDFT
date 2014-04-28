@@ -212,7 +212,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   
   comments = '0-> exact Loewdin, 1-> taylor expansion; &
              &in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
-  call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-1,10000/))
+  call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-100,10000/))
 
   !this variable seems deprecated
   call input_var(dummy_int,'1',ranges=(/0,1/),comment=comments)
@@ -290,7 +290,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_free((iproc == 0) .and. dump)
 
   !input dictionary is ready
-  if (iproc==0) call yaml_map('Dictionary for lin',dict)
+  !if (iproc==0) call yaml_map('Dictionary for lin',dict)
 
 !!  dummy_bool=dict//LIN_GENERAL//HYBRID
 !!  if (dummy_bool) then
@@ -418,6 +418,9 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   allocate(in%lin%locrad_kernel(nlr),stat=istat)
   call memocc(istat,in%lin%locrad_kernel,'in%lin%locrad_kernel',subname)
 
+  allocate(in%lin%locrad_mult(nlr),stat=istat)
+  call memocc(istat,in%lin%locrad_mult,'in%lin%locrad_mult',subname)
+
   allocate(in%lin%locrad_lowaccuracy(nlr),stat=istat)
   call memocc(istat,in%lin%locrad_lowaccuracy,'in%lin%locrad_lowaccuracy',subname)
 
@@ -432,6 +435,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
           iiorb=iiorb+1
           in%lin%locrad(iiorb)=in%lin%locrad_type(itype,1)
           in%lin%locrad_kernel(iiorb)=in%lin%kernel_cutoff(itype)
+          in%lin%locrad_mult(iiorb)=in%lin%kernel_cutoff_FOE(itype)
           in%lin%locrad_lowaccuracy(iiorb)=in%lin%locrad_type(itype,1) 
           !locradType_lowaccur(itype)
           in%lin%locrad_highaccuracy(iiorb)=in%lin%locrad_type(itype,2)

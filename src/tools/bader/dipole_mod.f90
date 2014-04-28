@@ -1,5 +1,5 @@
 !> @file
-!! Bader charge density analysis program
+!! Module for the Bader charge density analysis program
 !! @author
 !!    Copyright 2009 Wenjie Tang, Andri Arnaldsson, Samuel T. Chill, and Graeme Henkelman
 !!    Bader is free software: you can redistribute it and/or modify
@@ -136,53 +136,81 @@ MODULE dipole_mod
 
 
 !> Write out a summary of the dipole moment calulations.
-!!  dipole.dat : Stores the main output to the screen.
- SUBROUTINE dipole_output(bdr,ions,dpl)
-    
-    IMPLICIT NONE
+!! dipole.dat : Stores the main output to the screen.
+!! Use yaml format (TD)
+ subroutine dipole_output(bdr,ions,dpl)
+   
+    use yaml_output
 
+    implicit none
+
+    !Arguments
+    type(bader_obj) :: bdr
+    type(ions_obj) :: ions
+    type(dipole_obj) :: dpl
+    !Local variables
     integer, parameter :: iunit=400
     character(len=*), parameter :: format_line = "(100('-'))"
-    
-    TYPE(bader_obj) :: bdr
-    TYPE(ions_obj) :: ions
-    TYPE(dipole_obj) :: dpl
-
-    real(q2) :: dipoleunits, tmp1(3), tmp2(3)
-    parameter(dipoleunits=1._q2)  ! atomic units 
-    INTEGER  :: i 
+    character(len=*), parameter :: dfile = 'dipole.yaml'
+    real(q2), parameter :: dipoleunits=1._q2  !< atomic units 
+    real(q2), dimension(3) :: tmp1, tmp2
+    real(q2) :: stmp,stmp2
+    integer :: i, ierr
  
-    WRITE(*,'(A44,/)') 'WRITING BADER ATOMIC DIPOLES TO dipole.dat'
+    !WRITE(*,'(A44,/)') 'WRITING BADER ATOMIC DIPOLES TO dipole.dat'
+    call yaml_map('Writing Bader atomic dipoles',dfile)
 
-    OPEN(UNIT=iunit,FILE='dipole.dat',STATUS='replace',ACTION='write')
+    !OPEN(UNIT=iunit,FILE='dipole.dat',STATUS='replace',ACTION='write')
+    call yaml_set_stream(unit=iunit,filename=dfile,istat=ierr)
+    call yaml_open_sequence('Atoms coordinates',unit=iunit)
+    do i=1,ions%nions
+       call yaml_sequence(advance='no')
+       call yaml_comment('Atoms' // trim(yaml_toa(i)))
+       call yaml_open_map(flow=.true.)
+       call yaml_map('Coord.',ions%r_car(:,i))
+       call yaml_map('Charge core',ions%ion_chg(i))
+       call yaml_map('Charge elec.',-bdr%ionchg(i))
+       call yaml_map('Charge net',dpl%ion_netchg(i))
+       call yaml_close_map()
+    end do
+    call yaml_close_sequence()
 
-    WRITE(iunit,format_line) 
-    WRITE(iunit,'(a)') "Atoms coordinates: " 
-    WRITE(iunit,'(A)')  & 
-    'atom#    coordinates:  X           Y           Z           CHARGE:  core      electronic     net'
-    WRITE(iunit,format_line) 
-    DO i=1,ions%nions
-      WRITE(iunit,'(I4,10x,3F12.4,12x,SP,3F12.5)') i,ions%r_car(i,:), & 
-                     ions%ion_chg(i),-bdr%ionchg(i), dpl%ion_netchg(i) 
-    END DO
-    WRITE(iunit,format_line) 
-    WRITE(iunit,'(a)') ''
+    !WRITE(iunit,format_line) 
+    !WRITE(iunit,'(a)') "Atoms coordinates: " 
+    !WRITE(iunit,'(A)')  & 
+    !'atom#    coordinates:  X           Y           Z           CHARGE:  core      electronic     net'
+    !WRITE(iunit,format_line) 
+    !DO i=1,ions%nions
+    !  WRITE(iunit,'(I4,10x,3F12.4,12x,SP,3F12.5)') i,ions%r_car(i,:), & 
+    !                 ions%ion_chg(i),-bdr%ionchg(i), dpl%ion_netchg(i) 
+    !END DO
+    !WRITE(iunit,format_line) 
+    !WRITE(iunit,'(a)') ''
 
-    WRITE(iunit,format_line) 
-    WRITE(iunit,'(a)') & 
-    "Atomic polarization dipole-moments with respect to the corresponding nuclei positions [e.a0]" 
-    WRITE(iunit,'(3A)')  & 
-    'atom#         Intra-atomic:                Px          Py          Pz          |P|'   !(1 D=0.3934 e.a0)
-    WRITE(iunit,format_line) 
+    !WRITE(iunit,format_line) 
+    !WRITE(iunit,'(a)') & 
+    ! "Atomic polarization dipole-moments with respect to the corresponding nuclei positions [e.a0]" 
+    ! WRITE(iunit,'(3A)')  & 
+    ! 'atom#         Intra-atomic:                Px          Py          Pz          |P|'   !(1 D=0.3934 e.a0)
+    ! WRITE(iunit,format_line) 
 
-    DO i=1,ions%nions
-      tmp1(:)= dpl%ion_polar(i,:)*dipoleunits
-      tmp2(:)= dpl%ion_chgtrans (i,:)*dipoleunits
-      WRITE(iunit,'(I3,33x,3F12.6,1x,F13.6,6x,F12.6,5x,F12.5)') & 
-      &   i , tmp1(:), sqrt(DOT_PRODUCT(tmp1(:),tmp1(:)))
-    END DO
+    call yaml_comment('Atomic polarization dipole-moments with respect to the corresponding nuclei positions [e.a0]')
+    call yaml_open_sequence('Atomic polarization dipole_moments')
+    do i=1,ions%nions
+       tmp1(:)= dpl%ion_polar(i,:)*dipoleunits
+       tmp2(:)= dpl%ion_chgtrans (i,:)*dipoleunits
+       call yaml_sequence(advance='no')
+       call yaml_comment('Atoms' // trim(yaml_toa(i)))
+       call yaml_open_map(flow=.true.)
+       call yaml_map('P',tmp1(:))
+       call yaml_map('Norm P',sqrt(dot_product(tmp1(:),tmp1(:))))
+       call yaml_close_map()
+       !WRITE(iunit,'(I3,33x,3F12.6,1x,F13.6,6x,F12.6,5x,F12.5)') & 
+       !&   i , tmp1(:), sqrt(DOT_PRODUCT(tmp1(:),tmp1(:)))
+    end do
+    call yaml_close_sequence()
 
-    WRITE(iunit,format_line) 
+    !WRITE(iunit,format_line) 
     tmp1(1)= sum(dpl%ion_polar(:,1))*dipoleunits
     tmp1(2)= sum(dpl%ion_polar(:,2))*dipoleunits
     tmp1(3)= sum(dpl%ion_polar(:,3))*dipoleunits
@@ -190,30 +218,41 @@ MODULE dipole_mod
     tmp2(1)= sum(dpl%ion_chgtrans (:,1))*dipoleunits
     tmp2(2)= sum(dpl%ion_chgtrans (:,2))*dipoleunits
     tmp2(3)= sum(dpl%ion_chgtrans (:,3))*dipoleunits
+    stmp2 = sqrt(dot_product(tmp2(:),tmp2(:)))
+    stmp  = sqrt(dot_product(tmp1+tmp2,tmp1+tmp2))
 !    WRITE(iunit,'(A33,3x,3F12.6,1x,F12.6,"   | ",F12.6, 5x F12.5 )') 'Summation:   ' , & 
 !    WRITE(iunit,'(A33,3x,3F12.6,1x,F12.6 )') 'Summation:   ' , & 
 !                     tmp1(:),  sqrt(DOT_PRODUCT(tmp1(:),tmp1(:)))   
 !    WRITE(iunit,format_line) 
 
-    WRITE(iunit,'(A33,3x,3F12.6,1x,F13.6 )') 'Charge-transfer contribution:' , & 
-                     tmp2(:), sqrt(DOT_PRODUCT(tmp2(:),tmp2(:)))   
-    WRITE(iunit,format_line) 
-    WRITE(iunit,'(A33,3x,3F12.6,1x,F13.6 )') 'Total dipole moment:' , & 
-                     tmp1+tmp2,sqrt(DOT_PRODUCT(tmp1+tmp2,tmp1+tmp2))     
- 
-    WRITE(iunit,format_line) 
+    !WRITE(iunit,'(A33,3x,3F12.6,1x,F13.6 )') 'Charge-transfer contribution:' , & 
+    !                 tmp2(:), sqrt(DOT_PRODUCT(tmp2(:),tmp2(:)))   
+    !WRITE(iunit,format_line) 
+    !WRITE(iunit,'(A33,3x,3F12.6,1x,F13.6 )') 'Total dipole moment:' , & 
+    !                 tmp1+tmp2,sqrt(DOT_PRODUCT(tmp1+tmp2,tmp1+tmp2))     
+
+    call yaml_map('Charge-transfer contributions',(/ tmp2(1),tmp2(2),tmp2(3),stmp2 /))
+    stmp = sqrt(dot_product(tmp1+tmp2,tmp1+tmp2))
+    call yaml_map('Total dipole moment', (/ tmp1(1)+tmp2(1), tmp1(2)+tmp2(2), tmp1(3)+tmp2(3), stmp /) ) 
+
+    !WRITE(iunit,format_line) 
     tmp1= dpl%tot_core(1:3)*dipoleunits 
     tmp2= dpl%tot_elec(1:3)*dipoleunits 
-    WRITE(iunit,'(a)') & 
-    "Dipole-moment of the whole system (not decomposed to atoms) with respect to arbitrary origin:" 
+    stmp = sqrt(dot_product(tmp1+tmp2,tmp1+tmp2))
+    !WRITE(iunit,'(a)') & 
+    !"Dipole-moment of the whole system (not decomposed to atoms) with respect to arbitrary origin:" 
+    call yaml_comment('Dipole-moment of the whole system (not decomposed to atoms) with respect to arbitrary origin')
  !!   WRITE(iunit,'(A33,3x,3F12.6,1x,F13.6 )') 'Elec. dipole moment:' , & 
  !!                    tmp2     ,sqrt(DOT_PRODUCT(tmp2     ,tmp2     ))     
  !!   WRITE(iunit,'(A33,3x,3F12.6,1x,F13.6 )') 'Cores dipole moment:' , & 
  !!                         tmp1,sqrt(DOT_PRODUCT(     tmp1,     tmp1))     
-    WRITE(iunit,'(A33,3x,3F12.6,1x,F13.6 )') 'Total dipole moment:' , & 
-                     tmp1+tmp2,sqrt(DOT_PRODUCT(tmp1+tmp2,tmp1+tmp2))     
-    WRITE(iunit,format_line) 
-    CLOSE(UNIT=iunit)
+    !WRITE(iunit,'(A33,3x,3F12.6,1x,F13.6 )') 'Total dipole moment:' , & 
+    !                 tmp1+tmp2,sqrt(DOT_PRODUCT(tmp1+tmp2,tmp1+tmp2))     
+    !WRITE(iunit,format_line) 
+
+    call yaml_map('Total dipole moment of the whole system', (/ tmp1(1)+tmp2(1), tmp1(2)+tmp2(2), tmp1(3)+tmp2(3), stmp /) )
+    call yaml_close_stream(unit=iunit)
+    !CLOSE(UNIT=iunit)
 
  END SUBROUTINE dipole_output
 

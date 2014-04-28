@@ -1,7 +1,7 @@
-*/ @file
+/*! @file
 @brief Readme of the ftypes tests.
 
-@dir ./tests/libs/ftypes
+@dir
 @brief Contains some tests about the bindings of BigDFT with python.
 
 */

@@ -6,6 +6,8 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
 !> Datatypes for localization regions descriptors
 module locregs
   use module_base
@@ -66,6 +68,7 @@ module locregs
      real(gp), dimension(3) :: locregCenter !< Center of the locreg 
      real(gp) :: locrad                     !< Cutoff radius of the localization region
      real(gp) :: locrad_kernel              !< Cutoff radius of the localization region (kernel)
+     real(gp) :: locrad_mult                !< Cutoff radius of the localization region for the sparse matrix multiplications
      type(grid_dimensions) :: d
      type(wavefunctions_descriptors) :: wfd
      type(convolutions_bounds) :: bounds
@@ -407,6 +410,7 @@ contains
     glrout%Localnorb = glrin%Localnorb
     glrout%locrad=glrin%locrad
     glrout%locrad_kernel=glrin%locrad_kernel
+    glrout%locrad_mult=glrin%locrad_mult
     glrout%locregCenter=glrin%locregCenter
     glrout%outofzone= glrin%outofzone
 
@@ -449,7 +453,7 @@ contains
     type(wavefunctions_descriptors), intent(out) :: wfdout
 
     ! Local variables
-!    integer:: i1, i2, iis1, iie1, iis2, iie2, istat, iall
+    !integer:: istat,iis1, iie1, iis2, iie2,i1, i2, iall
 
     !nullify all pointers first
     call nullify_wfd(wfdout)

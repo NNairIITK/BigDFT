@@ -119,9 +119,10 @@ endif
 
 AO_INCLUDES = eleconf-inc.f90
 ATOMS_INCLUDES = astruct-inc.f90
+COMMS_INCLUDES = check_array-inc.f90
 
 EXTRA_DIST = configure.inc.in bigdft_cst.h.in BigDFT.py \
-	$(AO_INCLUDES) $(ATOMS_INCLUDES)
+	$(AO_INCLUDES) $(ATOMS_INCLUDES) $(COMMS_INCLUDES)
 CLEANFILES = $(modules)
 
 AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
@@ -152,8 +153,9 @@ op2p_module.o : base.o
 BigDFT_API.o: base.o types.o interfaces.o xc.o
 vdwcorrection.o: base.o types.o
 private_api.o: base.o types.o interfaces.o
-fragments.o diis_module.o: base.o types.o communications.o sparsematrix_base.o sparsematrix.o
-constrained_dft.o: base.o types.o fragments.o sparsematrix_base.o sparsematrix.o
+diis_module.o: base.o types.o communications.o sparsematrix_base.o sparsematrix.o
+fragments.o: base.o types.o
+constrained_dft.o: base.o types.o sparsematrix_base.o
 input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o types.o defs.o ao_inguess.o interfaces.o atoms_data.o
 psp_projectors.o: locregs.o
 locregs.o: base.o

@@ -33,7 +33,7 @@ subroutine copy_tmbs(iproc, tmbin, tmbout, subname)
 
   ! should technically copy these across as well but not needed for restart and will eventually be removing wfnmd as a type
   !nullify(tmbout%linmat%denskern%matrix_compr)
-  nullify(tmbout%linmat%denskern_large%matrix_compr)
+  !nullify(tmbout%linmat%denskern_large%matrix_compr)
 
   ! should also copy/nullify p2pcomms etc
 
@@ -752,29 +752,6 @@ end if
 end subroutine copy_orbitals_data
 
 
-subroutine copy_orthon_data(odin, odout, subname)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling aruments
-  type(orthon_data),intent(in):: odin
-  type(orthon_data),intent(out):: odout
-  character(len=*),intent(in):: subname
-
-  odout%directDiag=odin%directDiag
-  odout%norbpInguess=odin%norbpInguess
-  odout%bsLow=odin%bsLow
-  odout%bsUp=odin%bsUp
-  odout%methOrtho=odin%methOrtho
-  odout%iguessTol=odin%iguessTol
-  odout%methTransformOverlap=odin%methTransformOverlap
-  odout%nItOrtho=odin%nItOrtho
-  odout%blocksize_pdsyev=odin%blocksize_pdsyev
-  odout%blocksize_pdgemm=odin%blocksize_pdgemm
-  odout%nproc_pdsyev=odin%nproc_pdsyev
-
-end subroutine copy_orthon_data
 
 
 subroutine copy_local_zone_descriptors(lzd_in, lzd_out, subname)

@@ -28,7 +28,7 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   logical, intent(in), optional :: output_denspot
   !local variables
   character(len=*), parameter :: subname='createWavefunctionsDescriptors'
-  integer :: i_all,i_stat,i1,i2,i3,iat
+  integer :: i_all,i_stat
   integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   logical :: output_denspot_
   logical, dimension(:,:,:), pointer :: logrid_c,logrid_f
@@ -116,7 +116,7 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
    logical, dimension(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), intent(in) :: logrid_c,logrid_f
    !local variables
    character(len=*), parameter :: subname='wfd_from_grids'
-   integer :: i_stat, i_all
+   integer :: i_stat
    integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
 
    !assign the dimensions to improve (a little) readability
@@ -150,9 +150,11 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
    call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,Glr%wfd%nseg_c,Glr%wfd%nvctr_c)
    if (Glr%wfd%nseg_c == 0) then
       ! Check if the number of seg_c (Glr%wfd%nseg_c) > 0
-      call yaml_warning('There is no coarse grid points (nseg_c=0)!')
-      !write( *,*) ' ERROR: there is no coarse grid points (nseg_c=0)!'
-      stop
+      !call yaml_warning('There is no coarse grid points (nseg_c=0)!')
+      call f_err_throw('There are no coarse grid points (nseg_c=0)! '//&
+           'Control if the atomic positions have been specified.', &
+           err_name='BIGDFT_RUNTIME_ERROR')
+      !stop
    end if
 
    if (Glr%geocode == 'F') then
@@ -243,8 +245,8 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
          &   Glr%bounds%kb%ibyz_f,Glr%bounds%gb%ibyz_ff,Glr%bounds%gb%ibzxx_f,Glr%bounds%gb%ibxxyy_f)
    endif
 
+END SUBROUTINE wfd_from_grids
 
-end subroutine wfd_from_grids
 
 !> Determine localization region for all projectors, but do not yet fill the descriptor arrays
 subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
@@ -265,8 +267,8 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   logical, intent(in) :: dry_run !< .true. to compute the size only and don't allocate
   !local variables
   character(len=*), parameter :: subname='createProjectorsArrays'
-  integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj,nbseg_dim,npack_dim,mproj_max
-  integer :: iat,i_stat,i_all,iseg
+  integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,nbseg_dim,npack_dim,mproj_max
+  integer :: iat,iseg
   integer, dimension(:), allocatable :: nbsegs_cf,keyg_lin
   logical, dimension(:,:,:), allocatable :: logrid
   call f_routine(id=subname)
@@ -442,7 +444,10 @@ END SUBROUTINE createProjectorsArrays
         !write(*,'(1x,a)')'Reading local potential from file:'//trim(band_structure_filename)
         call read_density(trim(band_structure_filename),atoms%astruct%geocode,&
                      n1i,n2i,n3i,nspin,hxh,hyh,hzh,denspot%Vloc_KS)
-                if (nspin /= input_spin) stop
+                !if (nspin /= input_spin) stop
+                if (f_err_raise(nspin /= input_spin,&
+                     'The value nspin reading from the file is not the same',&
+                     err_name='BIGDFT_RUNTIME_ERROR')) return
              else
                 allocate(denspot%Vloc_KS(1,1,1,input_spin+ndebug),stat=i_stat)
                 call memocc(i_stat,denspot%Vloc_KS,'Vloc_KS',subname)
@@ -544,13 +549,14 @@ END SUBROUTINE createProjectorsArrays
           !import gaussians form CP2K (data in files gaubasis.dat and gaucoeff.dat)
           !and calculate eigenvalues
           if (nspin /= 1) then
-             if (iproc==0) then
-        call yaml_warning('Gaussian importing is possible only for non-spin polarised calculations')
-        call yaml_comment('The reading rules of CP2K files for spin-polarised orbitals are not implemented')
-        !write(*,'(1x,a)') 'Gaussian importing is possible only for non-spin polarised calculations'
-        !write(*,'(1x,a)') 'The reading rules of CP2K files for spin-polarised orbitals are not implemented'
-             end if
-             stop
+             !if (iproc==0) then
+             !   call yaml_warning('Gaussian importing is possible only for non-spin polarised calculations')
+             !   call yaml_comment('The reading rules of CP2K files for spin-polarised orbitals are not implemented')
+             !end if
+             !stop
+             call f_err_throw('Gaussian importing is possible only for non-spin polarised calculations. ' // &
+                  'The reading rules of CP2K files for spin-polarised orbitals are not implemented', &
+                  err_name='BIGDFT_RUNTIME_ERROR')
           end if
 
           call parse_cp2k_files(iproc,'gaubasis.dat','gaucoeff.dat',&
@@ -784,7 +790,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
          frag_trans(iorb)%rot_center_new(:)=rxyz(:,iiat)
      end do
 
-     call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.true.,tmb,ndim_old,tmb_old%lzd,frag_trans,&
+     call reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,.true.,tmb,ndim_old,tmb_old%lzd,frag_trans,&
           tmb_old%psi,input%dir_output,input%frag,ref_frags)
 
      deallocate(frag_trans)
@@ -829,11 +835,15 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   !!   deallocate(tmb_old%linmat%denskern%matrix_compr, stat=i_stat)
   !!   call memocc(i_stat, i_all, 'tmb_old%linmat%denskern%matrix_compr', subname)
   !!end if
-  if (associated(tmb_old%linmat%denskern_large%matrix_compr)) then
-     !!i_all=-product(shape(tmb_old%linmat%denskern_large%matrix_compr))*kind(tmb_old%linmat%denskern_large%matrix_compr)
-     !!deallocate(tmb_old%linmat%denskern_large%matrix_compr, stat=i_stat)
-     !!call memocc(i_stat, i_all, 'tmb_old%linmat%denskern_large%matrix_compr', subname)
-     call f_free_ptr(tmb_old%linmat%denskern_large%matrix_compr)
+  !!if (associated(tmb_old%linmat%denskern_large%matrix_compr)) then
+  !!   !!i_all=-product(shape(tmb_old%linmat%denskern_large%matrix_compr))*kind(tmb_old%linmat%denskern_large%matrix_compr)
+  !!   !!deallocate(tmb_old%linmat%denskern_large%matrix_compr, stat=i_stat)
+  !!   !!call memocc(i_stat, i_all, 'tmb_old%linmat%denskern_large%matrix_compr', subname)
+  !!   call f_free_ptr(tmb_old%linmat%denskern_large%matrix_compr)
+  !!end if
+
+  if (associated(tmb_old%linmat%kernel_%matrix_compr)) then
+     call f_free_ptr(tmb_old%linmat%kernel_%matrix_compr)
   end if
 
   ! destroy it all together here - don't have all comms arrays
@@ -921,14 +931,15 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   if (input%lin%scf_mode/=LINEAR_FOE) then
       call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
            tmb%orbs, tmb%psi, tmb%collcom_sr)
+      !tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
       call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-           tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+           tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
            denspot%rhov, rho_negative)
      if (rho_negative) then
          call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
          !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
          !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
-         !!call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+         !!call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
      end if
 
       call vcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*input%nspin, &
@@ -956,7 +967,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       if (iproc==0) call yaml_map('orthonormalization of input guess','standard')        
       tmb%can_use_transposed = .false.                                         
       call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
-           tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp_large, &
+           tmb%linmat%s, tmb%linmat%l, &
            tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed, &
            tmb%foe_obj)
   end if  
@@ -982,8 +993,6 @@ subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
   type(orbitals_data), intent(inout) :: orbs
   real(wp), dimension(:), pointer :: psi
 
-  integer :: ierr
-
   !restart from previously calculated wavefunctions, on disk
   !since each processor read only few eigenvalues, initialise them to zero for all
   call to_zero(orbs%norb*orbs%nkpts,orbs%eval(1))
@@ -992,7 +1001,7 @@ subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
        & orbs,d%n1,d%n2,d%n3,hx,hy,hz,atoms,rxyz_old,rxyz,wfd,psi)
 
   !reduce the value for all the eigenvectors
-  if (nproc > 1) call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+  if (nproc > 1) call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
 
   if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) then
      !recalculate orbitals occupation numbers
@@ -1810,7 +1819,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
              KSwfn%Lzd%Glr%d,KSwfn%Lzd%Glr%wfd,KSwfn%psi, KSwfn%orbs,KSwfn%lzd,displ)
         call timing(iproc,'restart_rsp   ','OF')
     else
-        stop 'Wrong value of inguess_geopt in input.perf'
+        !stop 'Wrong value of inguess_geopt in input.perf'
+        call f_err_throw('Wrong value of inguess_geopt in input.perf', &
+             err_name='BIGDFT_RUNTIME_ERROR')
     end if
 
      if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) &
@@ -1860,11 +1871,13 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         KSwfn%gbd%rxyz=>rxyz
      else
         !        if (iproc == 0) then
-        call yaml_warning('The atom number does not coincide with the number of gaussian centers')
+        !call yaml_warning('The atom number does not coincide with the number of gaussian centers')
         !write( *,*)&
         !     &   ' ERROR: the atom number does not coincide with the number of gaussian centers'
         !        end if
-        stop
+        !stop
+        call f_err_throw('The atom number does not coincide with the number of gaussian centers',&
+             err_name='BIGDFT_RUNTIME_ERROR')
      end if
      call restart_from_gaussians(iproc,nproc,KSwfn%orbs,KSwfn%Lzd,&
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
@@ -1880,7 +1893,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      ! By doing an LCAO input guess
      tmb%can_use_transposed=.false.
-     if (.not.present(locregcenters)) stop 'locregcenters not present!'
+     !if (.not.present(locregcenters)) stop 'locregcenters not present!'
+     if (f_err_raise(.not.present(locregcenters),'locregcenters not present!', &
+        err_name='BIGDFT_RUNTIME_ERROR')) return
      call inputguessConfinement(iproc,nproc,atoms,in,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
           rxyz,nlpsp,GPU,KSwfn%orbs,kswfn,tmb,denspot,denspot0,energs,locregcenters)
      if(tmb%can_use_transposed) then
@@ -1908,7 +1923,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !     & input_wf_format,tmb%npsidim_orbs,tmb%lzd,tmb%orbs, &
      !     & atoms,rxyz_old,rxyz,tmb%psi,tmb%coeff)
 
-     call readmywaves_linear_new(iproc,trim(in%dir_output),'minBasis',input_wf_format,&
+     call readmywaves_linear_new(iproc,nproc,trim(in%dir_output),'minBasis',input_wf_format,&
           atoms,tmb,rxyz_old,rxyz,ref_frags,in%frag,in%lin%fragment_calculation)
 
      ! normalize tmbs - only really needs doing if we reformatted, but will need to calculate transpose after anyway
@@ -2009,6 +2024,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
              tmb%orthpar%blocksize_pdgemm, tmb%orbs, tmb, overlap_calculated)  
      else
         ! come back to this - reconstruct kernel too expensive with exact version, but Taylor needs to be done ~ 3 times here...
+
         call reconstruct_kernel(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%blocksize_pdsyev, &
              tmb%orthpar%blocksize_pdgemm, KSwfn%orbs, tmb, overlap_calculated)
      end if
@@ -2052,19 +2068,20 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
           tmb%orbs, tmb%psi, tmb%collcom_sr)
 
+     !tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-          tmb%collcom_sr, tmb%linmat%denskern_large, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+          tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
           denspot%rhov, rho_negative)
      if (rho_negative) then
          if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
          call increase_FOE_cutoff(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
-         call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+         call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
      end if
 
      ! CDFT: calculate w(r) and w_ab, define some initial guess for V and initialize other cdft_data stuff
      call timing(iproc,'constraineddft','ON')
      if (in%lin%constrained_dft) then
-        call cdft_data_allocate(cdft,tmb%linmat%ham)
+        call cdft_data_allocate(cdft,tmb%linmat%m)
         if (trim(cdft%method)=='fragment_density') then ! fragment density approach
            if (in%lin%calc_transfer_integrals) stop 'Must use Lowdin for CDFT transfer integral calculations for now'
            if (in%lin%diag_start) stop 'Diag at start probably not working for fragment_density'
@@ -2159,21 +2176,17 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      end if
 
   case default
-     !     if (iproc == 0) then
-     !write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
-     call yaml_warning('Illegal value of inputPsiId (' // trim(yaml_toa(in%inputPsiId,fmt='(i0)')) // ')')
      call input_psi_help()
-     stop
-     !     end if
+     call f_err_throw('Illegal value of inputPsiId (' // trim(yaml_toa(in%inputPsiId,fmt='(i0)')) // ')', &
+          err_name='BIGDFT_RUNTIME_ERROR')
 
   end select
 
   !save the previous potential if the rho_work is associated
   if (denspot%rhov_is==KS_POTENTIAL .and. in%iscf==SCF_KIND_GENERALIZED_DIRMIN) then
      if (associated(denspot%rho_work)) then
-        call yaml_warning('The reference potential should be empty to correct the hamiltonian!')
-        !write(*,*)'ERROR: the reference potential should be empty to correct the hamiltonian!'
-        stop
+        call f_err_throw('The reference potential should be empty to correct the hamiltonian!',&
+             err_name='BIGDFT_RUNTIME_ERROR')
      end if
      call yaml_newline()
      call yaml_comment('Saving the KS potential obtained from IG')
@@ -2346,7 +2359,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   real(wp) :: s1_new, s2_new, s3_new,xz,yz,zz,recnormsqr,exp_val, exp_cutoff
   real(wp) :: k1,k2,k3,distance,cutoff
 
-  integer :: istart,irange,iend,rest,ierr, gridx,gridy,gridz,xbox,ybox,zbox,iy,iz
+  integer :: istart,irange,rest,iend, gridx,gridy,gridz,xbox,ybox,zbox,iy,iz
 
   !Atom description (needed for call to eleconf)
   integer ::nzatom,nvalelec!,nsccode,mxpl,mxchg
@@ -2512,7 +2525,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
     !$OMP END PARALLEL DO
   end do
 
- call MPIALLRED(shift(1,1),lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*5, MPI_SUM,bigdft_mpi%mpi_comm,ierr) 
+ call mpiallred(shift(1,1),lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*5, MPI_SUM,bigdft_mpi%mpi_comm) 
 
 !Interpolation
  do iorb = 1,orbs%norbp

@@ -9,7 +9,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>print error information about last error
+!> print error information about last error
 subroutine f_dump_last_error()
   use dictionaries, only: f_get_error_dict,f_get_last_error,max_field_length
   use yaml_output, only: yaml_dict_dump,yaml_map
@@ -130,7 +130,7 @@ subroutine f_lib_err_severe_external(message)
   call f_err_severe()
 end subroutine f_lib_err_severe_external
 
-!>routine which finalize f_lib 
+!> Routine which finalize f_lib 
 subroutine f_lib_finalize()
   use dictionaries, only: f_err_finalize,dict_get_num
   use dynamic_memory, only: f_malloc_finalize
@@ -153,4 +153,3 @@ subroutine f_lib_finalize()
   call f_timing_finalize()
 
 end subroutine f_lib_finalize
-
