@@ -2975,14 +2975,15 @@ module module_interfaces
          real(gp), dimension(:,:), intent(out), optional :: rxyz_old
        end subroutine io_read_descr_linear
 
-        subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_old,rxyz,&
+        subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb,rxyz_old,rxyz,&
                ref_frags,input_frag,frag_calc,orblist)
           use module_base
           use module_types
           use module_fragments
           use yaml_output
           implicit none
-          integer, intent(in) :: iproc, iformat
+          integer, intent(in) :: iproc, nproc
+          integer, intent(in) :: iformat
           type(atoms_data), intent(in) :: at
           type(DFT_wavefunction), intent(inout) :: tmb
           real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
@@ -3448,13 +3449,14 @@ module module_interfaces
           integer,dimension(:),pointer:: inwhichlocreg, inwhichlocreg_old, onwhichatom, onwhichatom_old
         end subroutine copy_old_inwhichlocreg
 
-        subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,ndim_old,lzd_old,&
+        subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivatives,tmb,ndim_old,lzd_old,&
                frag_trans,psi_old,input_dir,input_frag,ref_frags,phi_array_old)
           use module_base
           use module_types
           use module_fragments
           implicit none
-          integer, intent(in) :: iproc,ndim_old
+          integer, intent(in) :: iproc,nproc
+          integer, intent(in) :: ndim_old
           type(atoms_data), intent(in) :: at
           real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz,rxyz_old
           type(DFT_wavefunction), intent(inout) :: tmb

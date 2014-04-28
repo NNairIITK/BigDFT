@@ -790,7 +790,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
          frag_trans(iorb)%rot_center_new(:)=rxyz(:,iiat)
      end do
 
-     call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.true.,tmb,ndim_old,tmb_old%lzd,frag_trans,&
+     call reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,.true.,tmb,ndim_old,tmb_old%lzd,frag_trans,&
           tmb_old%psi,input%dir_output,input%frag,ref_frags)
 
      deallocate(frag_trans)
@@ -1923,7 +1923,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !     & input_wf_format,tmb%npsidim_orbs,tmb%lzd,tmb%orbs, &
      !     & atoms,rxyz_old,rxyz,tmb%psi,tmb%coeff)
 
-     call readmywaves_linear_new(iproc,trim(in%dir_output),'minBasis',input_wf_format,&
+     call readmywaves_linear_new(iproc,nproc,trim(in%dir_output),'minBasis',input_wf_format,&
           atoms,tmb,rxyz_old,rxyz,ref_frags,in%frag,in%lin%fragment_calculation)
 
      ! normalize tmbs - only really needs doing if we reformatted, but will need to calculate transpose after anyway
