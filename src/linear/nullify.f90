@@ -92,21 +92,6 @@ subroutine nullify_orbitals_data(orbs)
 end subroutine nullify_orbitals_data
 
 
-subroutine nullify_comms_cubic(comms)
-  use module_base
-  use communications_base, only: comms_cubic
-  implicit none
-
-  ! Calling arguments
-  type(comms_cubic),intent(out):: comms
-
-  nullify(comms%ncntd)
-  nullify(comms%ncntt)
-  nullify(comms%ndspld)
-  nullify(comms%ndsplt)
-  nullify(comms%nvctr_par)
-  
-end subroutine nullify_comms_cubic
 
 
 
