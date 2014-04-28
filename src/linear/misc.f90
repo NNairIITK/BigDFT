@@ -1161,7 +1161,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   ! new variables
   integer :: iat, iall
   real(kind=8),dimension(:,:),allocatable :: weight_matrix
-  real(kind=gp),dimension(:,:),pointer :: ovrlp_half, ovrlp
+  real(kind=gp),dimension(:,:),pointer :: ovrlp
   real(kind=8) :: total_charge, total_net_charge
   real(kind=8),dimension(:),allocatable :: charge_per_atom
   logical :: psit_c_associated, psit_f_associated
@@ -1171,7 +1171,6 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   ! re-use overlap matrix if possible either before or after
 
   call f_routine(id='loewdin_charge_analysis')
-  ovrlp_half = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='ovrlp_half')
 
   inv_ovrlp = matrices_null()
   call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp)
