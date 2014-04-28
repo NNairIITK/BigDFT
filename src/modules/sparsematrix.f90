@@ -433,7 +433,9 @@ module sparsematrix
          !$omp end parallel
      end if
 
-     call mpiallred(matrix_compr(1), smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
+     if (bigdft_mpi%nproc>1) then
+         call mpiallred(matrix_compr(1), smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
+     end if
 
   end subroutine compress_matrix_distributed
 

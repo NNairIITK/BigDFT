@@ -1737,8 +1737,10 @@ subroutine support_function_multipoles(iproc, tmb, atoms, denspot)
   end if
 
 
-  call mpiallred(dipole_net(1,1), 3*tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
-  call mpiallred(quadropole_net(1,1,1), 9*tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
+  if (bigdft_mpi%nproc>1) then
+      call mpiallred(dipole_net(1,1), 3*tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(quadropole_net(1,1,1), 9*tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
 
   if (iproc==0) then
       call yaml_open_sequence('Support functions moments')

@@ -7,6 +7,7 @@ subroutine calculate_weight_matrix_lowdin_wrapper(cdft,tmb,input,ref_frags,calcu
   use module_types
   use module_fragments
   use constrained_dft
+  use module_interfaces
   implicit none
   integer, intent(in) :: meth_overlap
   type(cdft_data), intent(inout) :: cdft
