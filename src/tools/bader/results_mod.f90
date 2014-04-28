@@ -1,16 +1,22 @@
 !> @file
-!!  Bader charge density analysis program
+!!  Module for the Bader charge density analysis program
 !! @author
-!!  Copyright 2009
-!! Wenjie Tang, Andri Arnaldsson, Samuel T. Chill, and Graeme Henkelman
+!!    Copyright (C) 2009
+!!    Wenjie Tang, Andri Arnaldsson, Samuel T. Chill, and Graeme Henkelman
+!!   
+!!    Bader is free software: you can redistribute it and/or modify
+!!    it under the terms of the GNU General Public License as published by
+!!    the Free Software Foundation, either version 3 of the License, or
+!!    (at your option) any later version.
+!!   
+!!    A copy of the GNU General Public License is available at
+!!    http://www.gnu.org/licenses/
 !!
-!! Bader is free software: you can redistribute it and/or modify
-!! it under the terms of the GNU General Public License as published by
-!! the Free Software Foundation, either version 3 of the License, or
-!! (at your option) any later version.
-!!
-!! A copy of the GNU General Public License is available at
-!! http://www.gnu.org/licenses/
+!!    Copyright (C) 2007-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 
 
 !> Module for writing results (Bader charge density analysis)

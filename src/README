@@ -33,6 +33,10 @@
 @brief
    Tools to analyze the outputs from BigDFT (bader, ...)
 
+@dir ./src/tools/bader
+@brief
+   Bader analysis of the electronic charge density
+
 @dir ./src/wavelib
 @brief
    Contains some routines useful to handling the wavefunctions

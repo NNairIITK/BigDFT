@@ -309,7 +309,7 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ham_mat,ovrlp,ovr
   end if
 
   if (nproc>1) then
-      call mpiallred(homo_ham(1), nstates, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(homo_ham(1), nstates, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
   !call f_free_ptr(ham%matrix)
@@ -329,7 +329,7 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ham_mat,ovrlp,ovr
   end if
 
   if (nproc>1) then
-      call mpiallred(homo_ovrlp(1), nstates, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(homo_ovrlp(1), nstates, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
   !call f_free_ptr(ovrlp%matrix)

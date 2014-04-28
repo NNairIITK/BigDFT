@@ -1,5 +1,5 @@
 !> @file
-!! Bader charge density analysis program
+!! Module for the Bader charge density analysis program
 !! @author
 !! Copyright 2009 Wenjie Tang, Andri Arnaldsson, Samuel T. Chill, and Graeme Henkelman
 !! Copyright (C) 2009-2011 BigDFT group
@@ -85,7 +85,7 @@ MODULE bader_mod
 
       WRITE(*,'(/,2x,A)')   'CALCULATING BADER CHARGE DISTRIBUTION'
       WRITE(*,'(2x,A)')   '               0  10  25  50  75  100'
-      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  **'
+      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  --'
 
       ! copy bader variable from opts
       bdr%tol = opts%badertol
@@ -133,7 +133,7 @@ MODULE bader_mod
       DO n1=1,chgval%npts(1)
          IF ((n1*10/chgval%npts(1)) > tenths_done) THEN
             tenths_done = (n1*10/chgval%npts(1))
-            WRITE(*,'(A)',advance="no") '**'
+            WRITE(*,'(A)',advance="no") '--'
          END IF
          DO n2=1,chgval%npts(2)
             DO n3=1,chgval%npts(3)
@@ -867,7 +867,7 @@ MODULE bader_mod
 
       WRITE(*,'(/,2x,A)') 'CALCULATING MINIMUM DISTANCES TO ATOMS'
       WRITE(*,'(2x,A)')   '               0  10  25  50  75  100'
-      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  **'
+      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  --'
 
       !   Store the minimum distance and the vector
       ALLOCATE(bdr%minsurfdist(ions%nions))
@@ -877,7 +877,7 @@ MODULE bader_mod
       DO n1 = 1,chg%npts(1)
          IF ((n1*10/chg%npts(1)) > tenths_done) THEN
             tenths_done = (n1*10/chg%npts(1))
-            WRITE(*,'(A)',advance="no") '**'
+            WRITE(*,'(A)',advance="no") '--'
          END IF
          DO n2 = 1,chg%npts(2)
             DO n3 = 1,chg%npts(3)
@@ -891,7 +891,7 @@ MODULE bader_mod
                   dv_dir = (v-chg%org_lat)/REAL(chg%npts,q2) - ions%r_dir(atom,:)
                   !            CALL dpbc_dir(ions,dv_dir)
                   !            CALL dpbc_dir_org(dv_dir)
-                  CALL matrix_vector(ions%dir2car, dv_dir, dv_car)
+                  CALL matrix_vector_inline(ions%dir2car, dv_dir, dv_car)
                   CALL dpbc_car(ions, dv_car)
                   dist = DOT_PRODUCT(dv_car, dv_car)
                   IF ((bdr%minsurfdist(atom) == 0.0_q2) .OR.  &
@@ -911,6 +911,24 @@ MODULE bader_mod
       WRITE(*,'(2/,1A12,1F7.2,1A8)') 'RUN TIME: ', (t2-t1)/REAL(cr,q2), ' SECONDS'
 
       RETURN
+contains
+
+     !> Multiply the matrix M with the vector V and return the product Vp
+     pure subroutine matrix_vector_inline(m,v,vp)
+
+       real(q2),intent(in),dimension(3,3) :: m
+       real(q2),intent(in),dimension(3) :: v
+       real(q2),intent(out),dimension(3) :: vp
+
+       integer :: i
+
+       vp=0._q2
+       do i=1,3
+         vp=vp+v(i)*m(:,i)
+       end do
+
+     end subroutine matrix_vector_inline
+
    END SUBROUTINE bader_mindist
 
    !-----------------------------------------------------------------------------------!
@@ -933,7 +951,7 @@ MODULE bader_mod
 
       WRITE(*,'(/,2x,A)') 'WRITING BADER VOLUMES'
       WRITE(*,'(2x,A)')   '               0  10  25  50  75  100'
-      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  **'
+      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  --'
 
       tmp = chg
       atomnum = 0
@@ -942,7 +960,7 @@ MODULE bader_mod
       DO badercur = 1,bdr%nvols
          DO WHILE ((badercur*10/bdr%nvols) > tenths_done)
             tenths_done = tenths_done+1
-            WRITE(*,'(A)',advance="no") '**'
+            WRITE(*,'(A)',advance="no") '--'
          ENDDO
          IF(bdr%volchg(badercur) > bdr%tol) THEN
             atomnum = atomnum+1
@@ -996,7 +1014,7 @@ MODULE bader_mod
 
       WRITE(*,'(/,2x,A)') 'WRITING ATOMIC VOLUMES '
       WRITE(*,'(2x,A)')   '               0  10  25  50  75  100'
-      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  **'
+      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  --'
       tenths_done = 0
       mab = MAXVAL(bdr%nnion)
       mib = MINVAL(bdr%nnion)
@@ -1015,7 +1033,7 @@ MODULE bader_mod
          sc = sc + cc
          DO WHILE ((ik*10/(mab-mib+1)) > tenths_done)
             tenths_done = tenths_done+1
-            WRITE(*,'(A)',advance="no") '**'
+            WRITE(*,'(A)',advance="no") '--'
          END DO
          IF (cc == 0) CYCLE
          WRITE(atomfilename,'(A4,I4.4,A4)') "BvAt",ik,".dat"
@@ -1067,7 +1085,7 @@ MODULE bader_mod
 
       WRITE(*,'(/,2x,A)') 'WRITING SELECTED ATOMIC VOLUMES '
       WRITE(*,'(2x,A)')   '               0  10  25  50  75  100'
-      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  **'
+      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  --'
       tenths_done = 0
       sc = 0
 
@@ -1085,7 +1103,7 @@ MODULE bader_mod
          sc = sc + cc
          DO WHILE ((i*10/opts%selanum) > tenths_done)
             tenths_done = tenths_done+1
-            WRITE(*,'(A)',advance="no") '**'
+            WRITE(*,'(A)',advance="no") '--'
          END DO
          IF (cc == 0) CYCLE
          WRITE(atomfilename,'(A4,I4.4,A4)') "BvAt",ik,".dat"
@@ -1140,7 +1158,7 @@ MODULE bader_mod
 
       WRITE(*,'(/,2x,A)') 'WRITING SUM OVER SELECTED ATOMIC VOLUMES '
       WRITE(*,'(2x,A)')   '               0  10  25  50  75  100'
-      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  **'
+      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  --'
       tenths_done = 0
       sc = 0
 
@@ -1162,7 +1180,7 @@ MODULE bader_mod
          sc = sc + cc
          DO WHILE ((i*10/opts%sumanum) > tenths_done)
             tenths_done = tenths_done+1
-            WRITE(*,'(A)',advance="no") '**'
+            WRITE(*,'(A)',advance="no") '--'
          END DO
          IF (cc == 0) CYCLE
          DO b = 1,cc
@@ -1225,7 +1243,7 @@ MODULE bader_mod
 
       WRITE(*,'(/,2x,A)') 'WRITING SELECTED BADER VOLUMES '
       WRITE(*,'(2x,A)')   '               0  10  25  50  75  100'
-      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  **'
+      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  --'
       tenths_done = 0
 
       tmp%rho = 0._q2
@@ -1233,7 +1251,7 @@ MODULE bader_mod
       DO i = 1,opts%selbnum
          DO WHILE ((i*10/opts%selbnum) > tenths_done)
             tenths_done = tenths_done+1
-            WRITE(*,'(A)',advance="no") '**'
+            WRITE(*,'(A)',advance="no") '--'
          END DO
 
          bvolnum = opts%selbvol(i)
@@ -1296,7 +1314,7 @@ MODULE bader_mod
 
       WRITE(*,'(/,2x,A)') 'WRITING SELECTED BADER VOLUMES '
       WRITE(*,'(2x,A)')   '               0  10  25  50  75  100'
-      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  **'
+      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  --'
       tenths_done = 0
 
       tmp%rho = 0._q2
@@ -1305,7 +1323,7 @@ MODULE bader_mod
       DO i = 1,opts%sumbnum
          DO WHILE ((i*10/opts%sumbnum) > tenths_done)
             tenths_done = tenths_done+1
-            WRITE(*,'(A)',advance="no") '**'
+            WRITE(*,'(A)',advance="no") '--'
          END DO
 
          bvolnum = opts%sumbvol(i)
@@ -1350,7 +1368,7 @@ MODULE bader_mod
 
       WRITE(*,'(/,2x,A)') 'WRITING BADER VOLUMES'
       WRITE(*,'(2x,A)')   '               0  10  25  50  75  100'
-      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  **'
+      WRITE(*,'(2x,A)',advance="no") 'PERCENT DONE:  --'
 
       tmp=chg
       atomnum=0

@@ -1,3 +1,14 @@
+!> @file
+!!  File defining the structures to deal with the sparse matrices
+!! @author
+!!    Copyright (C) 2014-2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Module defining the basic operations with sparse matrices (creation and destruction)
 module sparsematrix_base
   use module_base
   implicit none
@@ -140,7 +151,6 @@ module sparsematrix_base
       logical,intent(in) :: store_index
       integer,intent(in) :: norb, nproc
       type(sparse_matrix),intent(inout) :: sparsemat
-      integer :: istat
       sparsemat%nsegline=f_malloc_ptr(norb,id='sparsemat%nsegline')
       sparsemat%istsegline=f_malloc_ptr(norb,id='sparsemat%istsegline')
       if (store_index) then
@@ -154,7 +164,6 @@ module sparsematrix_base
     subroutine allocate_sparse_matrix_keys(sparsemat)
       implicit none
       type(sparse_matrix),intent(inout) :: sparsemat
-      integer :: istat
       sparsemat%keyv=f_malloc_ptr(sparsemat%nseg,id='sparsemat%keyv')
       sparsemat%keyg=f_malloc_ptr((/2,sparsemat%nseg/),id='sparsemat%keyg')
       sparsemat%orb_from_index=f_malloc_ptr((/2,sparsemat%nvctr/),id='sparsemat%orb_from_index')
@@ -483,5 +492,4 @@ module sparsematrix_base
       smat_info0%iaction=iaction
       smat_info0%smat=>smat
     end function sparsematrix_malloc0
-
 end module sparsematrix_base

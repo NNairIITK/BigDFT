@@ -79,54 +79,6 @@
  #|F F F 0        fragment calculation; calculate transfer_integrals; constrained DFT calcula
  #|C 4 5.0d-3 1.0d-3 0.0d0 7.0 7.0 7.0 20.0  Atom name, number of basis functions per atom, p
  #|H 1 5.0d-3 1.0d-3 0.0d0 7.0 7.0 7.0 20.0  Atom name, number of basis functions per atom, p
- Dictionary for lin:
-   lin_general:
-     hybrid                            : No
-     nit: [1, 1]
-     rpnrm_cv: [1.00000000000000006E-009, 1.00000000000000004E-010]
-     conf_damping                      : 0.5
-     taylor_order                      : 0
-     output_wf                         : 1
-     calc_dipole                       : No
-     calc_pulay: [No, No]
-     subspace_diag                     : No
-   lin_basis:
-     nit: [2, 2]
-     idsx: [0, 0]
-     gnrm_cv: [5.00000000000000024E-005, 1.00000000000000008E-005]
-     deltae_cv                         : 1.00000000000000005E-004
-     gnrm_dyn                          : 1.00000000000000005E-004
-     alpha_diis                        : 1.0
-     alpha_sd                          : 0.10000000000000001
-     nstep_prec                        : 4
-   lin_kernel:
-     nstep: [1, 1]
-     nit: [3, 3]
-     idsx_coeff: [0, 0]
-     idsx: [0, 0]
-     alphamix: [1.0, 1.0]
-     gnrm_cv_coeff: [1.00000000000000008E-005, 1.00000000000000008E-005]
-     rpnrm_cv: [1.00000000000000004E-010, 1.00000000000000004E-010]
-     linear_method                     : DIRMIN
-     alpha_sd_coeff                    : 0.20000000000000001
-     alpha_fit_coeff                   : No
-     eval_range_foe: [-0.5, 0.5]
-     fscale_foe                        : 5.00000000000000028E-002
-   lin_basis_params:
-     C:
-       nbasis                          : 4
-       ao_confinement                  : 5.0000000000000001E-003
-       confinement: [1.00000000000000002E-003, 0.0]
-       rloc: [7.0, 7.0]
-       rloc_kernel                     : 7.0
-       rloc_kernel_foe                 : 20.0
-     H:
-       nbasis                          : 1
-       ao_confinement                  : 5.0000000000000001E-003
-       confinement: [1.00000000000000002E-003, 0.0]
-       rloc: [7.0, 7.0]
-       rloc_kernel                     : 7.0
-       rloc_kernel_foe                 : 20.0
   #------------------------------------------------------------------------ Input parameters
  radical                               : write
  perf:

@@ -1,7 +1,7 @@
 !> @file 
 !!   sumrho: linear version
 !! @author
-!!   Copyright (C) 2011-2013 BigDFT group 
+!!   Copyright (C) 2013-2014 BigDFT group 
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
@@ -176,118 +176,6 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
  
 
 END SUBROUTINE local_partial_densityLinear
-!
-!!!
-!!!
-subroutine partial_density_linear(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
-     hfac,nscatterarr,spinsgn,psir,rho_p,ibyyzz_r) 
-  use module_base
-  use module_types
-  implicit none
-  logical, intent(in) :: rsflag
-  integer, intent(in) :: nproc,n1i,n2i,n3i,nrhotot,nspinn,npsir
-  real(gp), intent(in) :: hfac,spinsgn
-  integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
-  real(wp), dimension(n1i,n2i,n3i,npsir), intent(in) :: psir
-  real(dp), dimension(n1i,n2i,nrhotot,nspinn), intent(inout) :: rho_p
-  integer, dimension(:,:,:),pointer :: ibyyzz_r 
-  !local variables
-  integer :: i3s,jproc,i3off,n3d,isjmp,i1,i2,i3,i1s,i1e,j3,i3sg
-  real(gp) :: hfac2
-  real(dp) :: psisq,p1,p2,p3,p4,r1,r2,r3,r4
-!  integer :: ncount0,ncount1,ncount_rate,ncount_max
-!!!  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
-  !sum different slices by taking into account the overlap
-  i3sg=0
-!$omp parallel default(private) shared(n1i,nproc,rsflag,nspinn,nscatterarr,spinsgn) &
-!$omp shared(n2i,npsir,hfac,psir,rho_p,n3i,i3sg,ibyyzz_r)
-  i3s=0
-!!!   ithread=omp_get_thread_num()
-!!!   nthread=omp_get_num_threads()
-  hfac2=2.0_gp*hfac
-
-!  call system_clock(ncount0,ncount_rate,ncount_max)
-
-  !case without bounds
-  i1s=1
-  i1e=n1i
-  loop_xc_overlap: do jproc=0,nproc-1
-     !case for REDUCE_SCATTER approach, not used for GGA since it enlarges the 
-     !communication buffer
-     if (rsflag) then
-        i3off=nscatterarr(jproc,3)-nscatterarr(jproc,4)
-        n3d=nscatterarr(jproc,1)
-        if (n3d==0) exit loop_xc_overlap
-     else
-        i3off=0
-        n3d=n3i
-     end if
-     !here the condition for the MPI_ALLREDUCE should be entered
-     if(spinsgn > 0.0_gp) then
-        isjmp=1
-     else
-        isjmp=2
-     end if
-     do i3=i3off+1,i3off+n3d
-        !this allows the presence of GGA with non-isolated BC. If i3 is between 1 and n3i
-        !j3=i3. This is useful only when dealing with rsflags and GGA, so we can comment it out
-        !j3=modulo(i3-1,n3i)+1 
-        j3=i3
-        i3s=i3s+1
-!!!    if(mod(i3s,nthread) .eq. ithread) then
-     !$omp do
-        do i2=1,n2i
-              i1s=ibyyzz_r(1,i2-15,j3-15)+1
-              i1e=ibyyzz_r(2,i2-15,j3-15)+1
-           if (npsir == 1) then
-              do i1=i1s,i1e
-                 !conversion between the different types
-                 psisq=real(psir(i1,i2,j3,1),dp)
-                 psisq=psisq*psisq
-                 rho_p(i1,i2,i3s,isjmp)=rho_p(i1,i2,i3s,isjmp)+real(hfac,dp)*psisq
-              end do
-           else !similar loop for npsir=4
-              do i1=i1s,i1e
-                 !conversion between the different types
-                 p1=real(psir(i1,i2,j3,1),dp)
-                 p2=real(psir(i1,i2,j3,2),dp)
-                 p3=real(psir(i1,i2,j3,3),dp)
-                 p4=real(psir(i1,i2,j3,4),dp)
-
-                 !density values
-                 r1=p1*p1+p2*p2+p3*p3+p4*p4
-                 r2=p1*p3+p2*p4
-                 r3=p1*p4-p2*p3
-                 r4=p1*p1+p2*p2-p3*p3-p4*p4
-
-                 rho_p(i1,i2,i3s,1)=rho_p(i1,i2,i3s,1)+real(hfac,dp)*r1
-                 rho_p(i1,i2,i3s,2)=rho_p(i1,i2,i3s,2)+real(hfac2,dp)*r2
-                 rho_p(i1,i2,i3s,3)=rho_p(i1,i2,i3s,3)+real(hfac2,dp)*r3
-                 rho_p(i1,i2,i3s,4)=rho_p(i1,i2,i3s,4)+real(hfac,dp)*r4
-              end do
-           end if
-        end do
-     !$omp enddo
-!!!    end if
-
-!$omp critical
-        i3sg=max(i3sg,i3s)
-!$omp end critical
-
-     end do
-     if (.not. rsflag) exit loop_xc_overlap !the whole range is already done
-  end do loop_xc_overlap
-!$omp end parallel
-
-  if (i3sg /= nrhotot) then
-     write(*,'(1x,a,i0,1x,i0)')'ERROR: problem with rho_p: i3s,nrhotot,',i3sg,nrhotot
-     stop
-  end if
-
-!  call system_clock(ncount1,ncount_rate,ncount_max)
-!  write(*,*) 'TIMING:PDF',real(ncount1-ncount0)/real(ncount_rate)
-END SUBROUTINE partial_density_linear
-
 
 
 subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coeff, denskern, denskern_)
@@ -307,7 +195,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
   type(matrices), intent(out) :: denskern_
 
   ! Local variables
-  integer :: istat, iall, ierr, sendcount, jproc, iorb, itmb
+  integer :: ierr, sendcount, jproc, iorb, itmb
   real(kind=8),dimension(:,:),allocatable :: density_kernel_partial, fcoeff
 ! real(kind=8), dimension(:,:,), allocatable :: ks,ksk,ksksk
   character(len=*),parameter :: subname='calculate_density_kernel'
@@ -412,7 +300,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
       call f_free_ptr(denskern_%matrix)
       if (nproc > 1) then
           call timing(iproc,'commun_kernel','ON') !lr408t
-          call mpiallred(denskern_%matrix_compr(1), denskern%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          call mpiallred(denskern_%matrix_compr(1), denskern%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
           call timing(iproc,'commun_kernel','OF') !lr408t
       end if
 
@@ -591,7 +479,7 @@ subroutine calculate_density_kernel_uncompressed(iproc, nproc, isKernel, orbs, o
       call timing(iproc,'waitAllgatKern','OF')
       if (nproc > 1) then
           call timing(iproc,'commun_kernel','ON') !lr408t
-          call mpiallred(kernel(1,1),orbs_tmb%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          call mpiallred(kernel(1,1),orbs_tmb%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
           call timing(iproc,'commun_kernel','OF') !lr408t
       end if
   end if
@@ -731,7 +619,10 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
   !$omp end do
   !$omp end parallel
 
-  call mpiallred(irho, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (nproc > 1) then
+     call mpiallred(irho, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
+
   if (irho>0) then
       rho_negative=.true.
   end if
@@ -795,9 +686,9 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
   !call mpi_finalize(ierr)
   !stop
 
-
-
-  call mpiallred(total_charge, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (nproc > 1) then
+     call mpiallred(total_charge, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
 
   !!if(print_local .and. iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', total_charge*hxh*hyh*hzh
   if (iproc==0 .and. print_local) then
@@ -852,7 +743,7 @@ subroutine check_communication_potential(iproc,denspot,tmb)
   use module_types
   use module_interfaces
   use yaml_output
-  use dictionaries, only:f_err_throw
+  use dictionaries, only: f_err_throw
   use communications, only: start_onesided_communication
   implicit none
   integer,intent(in) :: iproc
@@ -934,8 +825,8 @@ subroutine check_communication_potential(iproc,denspot,tmb)
 
   ! Reduce the results
   if (bigdft_mpi%nproc>1) then
-      call mpiallred(sumdiff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      call mpiallred(maxdiff, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(sumdiff, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(maxdiff, 1, mpi_max, bigdft_mpi%mpi_comm)
   end if
     
   ! Get mean value for the sum
@@ -995,7 +886,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   integer :: ist, iorb, iiorb, ilr, i, iz, ii, iy, ix, iix, iiy, iiz, iixyz, nxyz, ipt, i0, ierr, jproc
   integer :: i1, i2, i3, is1, is2, is3, ie1, ie2, ie3, ii3s, ii3e, nmax, jj, j, ind, ikernel
   integer :: iorbmin, iorbmax, jorb, iall, istat
-  real(kind=8) :: maxdiff, sumdiff, tt, tti, ttj, tt1, hxh, hyh, hzh, factor, hx, hy, hz, ref_value
+  real(kind=8) :: maxdiff, sumdiff, tt, tti, ttj, hxh, hyh, hzh, factor, ref_value
   real(kind=8) :: diff
   real(kind=8),dimension(:),allocatable :: psir, psirwork, psirtwork, rho, rho_check
   integer,dimension(:,:,:),allocatable :: weight
@@ -1092,7 +983,11 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   istarr=f_malloc((/0.to.nproc-1/),id='istarr')
   istarr=0
   istarr(iproc)=collcom_sr%nptsp_c
-  call mpiallred(istarr(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+  if (nproc > 1) then
+     call mpiallred(istarr(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
+
   ist=0
   do jproc=0,iproc-1
       ist=ist+istarr(jproc)
@@ -1123,8 +1018,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
 
   ! Reduce the results
   if (nproc>1) then
-      call mpiallred(sumdiff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      call mpiallred(maxdiff, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(sumdiff, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(maxdiff, 1, mpi_max, bigdft_mpi%mpi_comm)
   end if
   call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
   call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
@@ -1324,8 +1219,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
     
       ! Reduce the results
       if (nproc>1) then
-          call mpiallred(sumdiff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-          call mpiallred(maxdiff, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+          call mpiallred(sumdiff, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(maxdiff, 1, mpi_max, bigdft_mpi%mpi_comm)
       end if
     
       ! Get mean value for the sum
@@ -1494,7 +1389,10 @@ subroutine check_negative_rho(ndimrho, rho, rho_negative)
       end if
   end do
 
-  call mpiallred(irho, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (bigdft_mpi%nproc > 1) then
+     call mpiallred(irho, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
+
   if (irho>0) then
       rho_negative=.true.
   else

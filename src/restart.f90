@@ -118,7 +118,7 @@ subroutine reformatmywaves(iproc,orbs,at,&
   pery=(at%astruct%geocode == 'P')
   perz=(at%astruct%geocode /= 'F')
 
-  !buffers realted to periodicity
+  !buffers related to periodicity
   !WARNING: the boundary conditions are not assumed to change between new and old
   call ext_buffers_coarse(perx,nb1)
   call ext_buffers_coarse(pery,nb2)
@@ -468,7 +468,7 @@ subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
      end do
   end do loop_plain
   !reduce the result among the other processors
-  if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,bigdft_mpi%mpi_comm,ierr)
+  if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,bigdft_mpi%mpi_comm)
  
   if (allfiles) then
      iformat=WF_FORMAT_PLAIN
@@ -495,7 +495,7 @@ subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
      end do
   end do loop_binary
   !reduce the result among the other processors
-  if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,bigdft_mpi%mpi_comm,ierr)
+  if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,bigdft_mpi%mpi_comm)
 
   if (allfiles) then
      iformat=WF_FORMAT_BINARY
@@ -1214,7 +1214,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
 
   end do
 
-  call print_reformat_summary(iproc,reformat_reason)
+  call print_reformat_summary(iproc,nproc,reformat_reason)
 
   ! now that they are all in one lr, need to calculate overlap matrix
   ! make lzd_tmp contain all identical lrs
@@ -1693,8 +1693,8 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
   type(fragment_transformation) :: frag_trans
   ! DEBUG
-  character(len=12) :: orbname
-  real(wp), dimension(:), allocatable :: gpsi
+  ! character(len=12) :: orbname
+  ! real(wp), dimension(:), allocatable :: gpsi
 
 
   call io_read_descr_linear(unitwf, useFormattedInput, iorb_old, eval, n_old(1), n_old(2), n_old(3), &
@@ -2042,7 +2042,7 @@ END SUBROUTINE read_coeff_minbasis
 
 !> Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
 !! have changed
-subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_old,rxyz,&
+subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb,rxyz_old,rxyz,&
        ref_frags,input_frag,frag_calc,orblist)
   use module_base
   use module_types
@@ -2051,7 +2051,8 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
   use internal_io
   use module_interfaces, except_this_one => readmywaves_linear_new
   implicit none
-  integer, intent(in) :: iproc, iformat
+  integer, intent(in) :: iproc, nproc
+  integer, intent(in) :: iformat
   type(atoms_data), intent(in) :: at
   type(DFT_wavefunction), intent(inout) :: tmb
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
@@ -2063,7 +2064,7 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
   integer, dimension(tmb%orbs%norb), intent(in), optional :: orblist
   !Local variables
   integer :: ncount1,ncount_rate,ncount_max,ncount2
-  integer :: iorb_out,ispinor,ilr,ind,i_all,i_stat,iorb_old
+  integer :: iorb_out,ispinor,ilr,i_all,i_stat,iorb_old
   integer :: confPotOrder,onwhichatom_tmp,unitwf
   real(gp) :: confPotprefac
 !!$ real(gp), dimension(3) :: mol_centre, mol_centre_new
@@ -2085,8 +2086,8 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
 !!$ integer :: ierr
 
   ! DEBUG
-  character(len=12) :: orbname
-  real(wp), dimension(:), allocatable :: gpsi
+  ! character(len=12) :: orbname
+  ! real(wp), dimension(:), allocatable :: gpsi
 
   call cpu_time(tr0)
   call system_clock(ncount1,ncount_rate,ncount_max)
@@ -2426,7 +2427,8 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
   end if
 
   call timing(iproc,'tmbrestart','OF')
-  call reformat_supportfunctions(iproc,at,rxyz_old,rxyz,.false.,tmb,ndim_old,lzd_old,frag_trans_orb,&
+  call reformat_supportfunctions(iproc,nproc,&
+       at,rxyz_old,rxyz,.false.,tmb,ndim_old,lzd_old,frag_trans_orb,&
        psi_old,trim(dir_output),input_frag,ref_frags,phi_array_old)
   call timing(iproc,'tmbrestart','ON')
 
@@ -2625,8 +2627,8 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
   Lzd%nlr = orbs%norb
 
   ! Communication of the quantities
-  if (nproc > 1)  call mpiallred(orbs%onwhichatom(1),orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
-  if (nproc > 1)  call mpiallred(locrad(1),orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+  if (nproc > 1)  call mpiallred(orbs%onwhichatom(1),orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm)
+  if (nproc > 1)  call mpiallred(locrad(1),orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm)
 
   allocate(cxyz(3,Lzd%nlr),stat=i_stat)
   call memocc(i_stat,cxyz,'cxyz',subname)
@@ -2855,14 +2857,15 @@ END SUBROUTINE copy_old_inwhichlocreg
 
 !> Reformat wavefunctions if the mesh have changed (in a restart)
 !! NB add_derivatives must be false if we are using phi_array_old instead of psi_old and don't have the keys
-subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,ndim_old,lzd_old,&
+subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivatives,tmb,ndim_old,lzd_old,&
        frag_trans,psi_old,input_dir,input_frag,ref_frags,phi_array_old)
   use module_base
   use module_types
   use module_fragments
   use module_interfaces, except_this_one=>reformat_supportfunctions
   implicit none
-  integer, intent(in) :: iproc,ndim_old
+  integer, intent(in) :: iproc,nproc
+  integer, intent(in) :: ndim_old
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz,rxyz_old
   type(DFT_wavefunction), intent(inout) :: tmb
@@ -2878,14 +2881,14 @@ subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,
   character(len=*), parameter :: subname='reformatmywaves'
   logical :: reformat
   integer :: iorb,j,i_stat,i_all,jstart,jstart_old,iiorb,ilr,iiat
-  integer:: idir,jstart_old_der,ncount,ilr_old,i,k
+  integer:: idir,jstart_old_der,ncount,ilr_old,i
   integer, dimension(3) :: ns_old,ns,n_old,n
   real(gp), dimension(3) :: centre_old_box,centre_new_box,da
   real(gp) :: tt,tol
   real(wp), dimension(:,:,:,:,:,:), pointer :: phigold
   real(wp), dimension(:), allocatable :: phi_old_der
   integer, dimension(0:6) :: reformat_reason
-  character(len=12) :: orbname, dummy
+  character(len=12) :: orbname!, dummy
   real(wp), allocatable, dimension(:,:,:) :: psirold
   logical :: psirold_ok
   integer, dimension(3) :: nl, nr
@@ -3123,7 +3126,7 @@ subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,
      call memocc(i_stat,i_all,'phi_old_der',subname)
   end if
 
-  call print_reformat_summary(iproc,reformat_reason)
+  call print_reformat_summary(iproc,nproc,reformat_reason)
 
 END SUBROUTINE reformat_supportfunctions
 
@@ -3223,28 +3226,23 @@ subroutine reformat_check(reformat_needed,reformat_reason,tol,at,hgrids_old,hgri
 end subroutine reformat_check
 
 
-subroutine print_reformat_summary(iproc,reformat_reason)
+!> Print information about the reformatting due to restart
+subroutine print_reformat_summary(iproc,nproc,reformat_reason)
   use module_base
   use module_types
   use yaml_output
   implicit none
 
-  integer, intent(in) :: iproc
+  integer, intent(in) :: iproc,nproc
   integer, dimension(0:6), intent(inout) :: reformat_reason ! array giving reasons for reformatting
 
   integer :: ierr
 
-  call mpiallred(reformat_reason(0), 7, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (nproc > 1) then
+     call mpiallred(reformat_reason(0), 7, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
+
   if (iproc==0) then
-        !!write(*,'(1x,a)') 'Overview of the reformatting (several categories may apply):'
-        !!write(*,'(3x,a,i0)') '- No reformatting required: ', reformat_reason(0)
-        !!write(*,'(3x,a,i0)') '- Grid spacing has changed: ', reformat_reason(1)
-        !!write(*,'(3x,a,i0)') '- Number of coarse grid points has changed: ', reformat_reason(2)
-        !!write(*,'(3x,a,i0)') '- Number of fine grid points has changed: ', reformat_reason(3)
-        !!write(*,'(3x,a,i0)') '- Box size has changed: ', reformat_reason(4)
-        !!write(*,'(3x,a,i0)') '- Molecule was shifted: ', reformat_reason(5)
-        !!write(*,'(3x,a,i0)') '- Molecule was rotated: ', reformat_reason(6)
-        !!write(*,'(3x,a,i0)') '- Discrete operations: ', reformat_reason(7)
         call yaml_open_map('Overview of the reformatting (several categories may apply)')
         call yaml_map('No reformatting required', reformat_reason(0))
         call yaml_map('Grid spacing has changed', reformat_reason(1))

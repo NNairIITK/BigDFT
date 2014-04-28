@@ -1,6 +1,18 @@
+!> @file
+!!  File defining the structures to deal with the sparse matrices
+!! @author
+!!    Copyright (C) 2014-2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+!> Module to deal with the sparse matrices
 module sparsematrix
+
   use module_base
   use sparsematrix_base
+
   implicit none
 
   private
@@ -72,7 +84,9 @@ module sparsematrix
             sparsemat%matrix_compr(jjj)=sparsemat%matrix(irow,jcol)
          end do
          !$omp end parallel do
-         call mpiallred(sparsemat%matrix_compr(1), sparsemat%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+         if (bigdft_mpi%nproc > 1) then
+            call mpiallred(sparsemat%matrix_compr(1), sparsemat%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
+         end if
       else
          sparsemat%matrix_comprp=f_malloc_ptr((sparsemat%nvctrp),id='sparsemat%matrix_comprp')
          !$omp parallel do default(private) shared(sparsemat)
@@ -148,7 +162,9 @@ module sparsematrix
             sparsemat%matrix(irow,jcol)=sparsemat%matrix_compr(iii)
          end do
          !$omp end parallel do
-         call mpiallred(sparsemat%matrix(1,1), sparsemat%nfvctr**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+         if (bigdft_mpi%nproc > 1) then
+            call mpiallred(sparsemat%matrix(1,1), sparsemat%nfvctr**2,mpi_sum,bigdft_mpi%mpi_comm)
+         end if
       else
          sparsemat%matrixp=f_malloc_ptr((/sparsemat%nfvctr,sparsemat%nfvctrp/),id='sparsemat%matrixp')
          call to_zero(sparsemat%nfvctr*sparsemat%nfvctrp, sparsemat%matrixp(1,1))
@@ -180,10 +196,10 @@ module sparsematrix
       type(sparse_matrix),intent(inout) :: sparsemat
       type(matrices),intent(inout) :: mat
       !Local variables
-      integer :: i_stat, i_all, jorb, irow, icol, iseg, ii
-      character(len=*),parameter :: subname='check_matrix_compression'
-      real(kind=8) :: maxdiff
+      character(len=*), parameter :: subname='check_matrix_compression'
       real(kind=8), parameter :: tol=1.e-10
+      integer :: jorb, irow, icol, iseg, ii
+      real(kind=8) :: maxdiff
     
       call f_routine('check_matrix_compression')
     
@@ -417,7 +433,9 @@ module sparsematrix
          !$omp end parallel
      end if
 
-     call mpiallred(matrix_compr(1), smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+     if (bigdft_mpi%nproc>1) then
+         call mpiallred(matrix_compr(1), smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
+     end if
 
   end subroutine compress_matrix_distributed
 

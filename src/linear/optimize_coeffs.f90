@@ -6,9 +6,9 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-!!
-!! @note
-!!  Coefficients are defined for Ntmb KS orbitals so as to maximize the number
+
+
+!>  Coefficients are defined for Ntmb KS orbitals so as to maximize the number
 !!  of orthonormality constraints. This should speedup the convergence by
 !!  reducing the effective number of degrees of freedom.
 subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit, itmax, energy, sd_fit_curve, &
@@ -99,7 +99,10 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
             tt=tt+ddot(tmb%orbs%norb, grad_cov_or_coeffp(1,iorb), 1, grad(1,iorb), 1)
         end do
      end if
-     call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+     if (nproc > 1) then
+        call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm)
+     end if
      fnrm=2.0_gp*tt
 
      !scale the gradient (not sure if we always want this or just fragments/constrained!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)
@@ -325,8 +328,9 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
 
 end subroutine optimize_coeffs
 
-! subset of reordering coeffs - need to arrange this routines better but taking the lazy route for now
-! (also assuming we have no extra - or rather number of extra bands come from input.mix not input.lin)
+
+!> subset of reordering coeffs - need to arrange this routines better but taking the lazy route for now
+!! (also assuming we have no extra - or rather number of extra bands come from input.mix not input.lin)
 subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   use module_base
   use module_types
@@ -347,7 +351,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   type(input_variables),intent(in) :: input
   type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
 
-  integer :: iorb, jorb, istat, iall, ierr, itmb, jtmb, ifrag
+  integer :: iorb, istat, iall, ifrag
   integer, dimension(2) :: ifrag_charged
   !real(kind=8), dimension(:,:,:), allocatable :: weight_coeff
   real(kind=8), dimension(:,:), allocatable :: weight_coeff_diag
@@ -358,6 +362,9 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   character(len=256) :: subname='coeff_weight_analysis'
 
   call timing(iproc,'weightanalysis','ON')
+
+  call f_routine('coeff_weight_analysis')
+
   !call nullify_sparse_matrix(weight_matrix)
   weight_matrix=sparse_matrix_null()
   call sparse_copy_pattern(tmb%linmat%m, weight_matrix, iproc, subname)
@@ -368,7 +375,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
 
   !weight_coeff=f_malloc((/ksorbs%norb,ksorbs%norb,input%frag%nfrag/), id='weight_coeff')
   weight_coeff_diag=f_malloc((/ksorbs%norb,input%frag%nfrag/), id='weight_coeff')
-  ovrlp_half=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='ovrlp_half')
+  !ovrlp_half=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='ovrlp_half')
   tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
   call uncompress_matrix(bigdft_mpi%iproc, tmb%linmat%s, &
        inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
@@ -382,10 +389,10 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   do ifrag=1,input%frag%nfrag
      ifrag_charged(1)=ifrag
      call calculate_weight_matrix_lowdin(weight_matrix,1,ifrag_charged,tmb,input,ref_frags,&
-          .false.,.false.,tmb%orthpar%methTransformOverlap,inv_ovrlp%matrix)
+          .false.,.true.,tmb%orthpar%methTransformOverlap,inv_ovrlp%matrix)
      weight_matrix%matrix=f_malloc_ptr((/weight_matrix%nfvctr,weight_matrix%nfvctr/), id='weight_matrix%matrix')
      call uncompress_matrix(iproc,weight_matrix)
-     !call calculate_coeffMatcoeff(weight_matrix%matrix,tmb%orbs,ksorbs,tmb%coeff,weight_coeff(1,1,ifrag))
+     !call calculate_coeffMatcoeff(nproc,weight_matrix%matrix,tmb%orbs,ksorbs,tmb%coeff,weight_coeff(1,1,ifrag))
      call calculate_coeffMatcoeff_diag(weight_matrix%matrix,tmb%orbs,ksorbs,tmb%coeff,weight_coeff_diag(1,ifrag))
      call f_free_ptr(weight_matrix%matrix)
   end do
@@ -415,7 +422,11 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   call deallocate_sparse_matrix(weight_matrix, subname)
   call f_free(weight_coeff_diag)
   !call f_free(weight_coeff)
+
+  call f_release_routine()
+
   call timing(iproc,'weightanalysis','OF')
+
 
 end subroutine coeff_weight_analysis
 
@@ -525,12 +536,13 @@ end subroutine coeff_weight_analysis
 !!end subroutine find_eval_from_coeffs
 
 
-subroutine calculate_coeffMatcoeff(matrix,basis_orbs,ksorbs,coeff,mat_coeff)
+subroutine calculate_coeffMatcoeff(nproc,matrix,basis_orbs,ksorbs,coeff,mat_coeff)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
+  integer, intent(in) :: nproc
   type(orbitals_data), intent(in) :: basis_orbs, ksorbs
   real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(in) :: matrix
   real(kind=8),dimension(basis_orbs%norb,ksorbs%norb),intent(inout) :: coeff
@@ -556,13 +568,14 @@ subroutine calculate_coeffMatcoeff(matrix,basis_orbs,ksorbs,coeff,mat_coeff)
   deallocate(coeff_tmp,stat=istat)
   call memocc(istat,iall,'coeff_tmp',subname)
 
-  if (bigdft_mpi%nproc>1) then
-      call mpiallred(mat_coeff(1,1), ksorbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (nproc>1) then
+      call mpiallred(mat_coeff(1,1), ksorbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
 end subroutine calculate_coeffMatcoeff
 
-!same as above but only calculating diagonal elements
+
+!> Same as above but only calculating diagonal elements
 subroutine calculate_coeffMatcoeff_diag(matrix,basis_orbs,ksorbs,coeff,mat_coeff_diag)
   use module_base
   use module_types
@@ -578,6 +591,7 @@ subroutine calculate_coeffMatcoeff_diag(matrix,basis_orbs,ksorbs,coeff,mat_coeff
   real(kind=8), dimension(:,:), allocatable :: coeff_tmp
   real(kind=8), dimension(:), allocatable :: mat_coeff_diagp
   logical, parameter :: allgather=.true.
+
 
   if (allgather) then
      mat_coeff_diagp=f_malloc((/ksorbs%norbp/), id='mat_coeff_diagp')
@@ -607,7 +621,7 @@ subroutine calculate_coeffMatcoeff_diag(matrix,basis_orbs,ksorbs,coeff,mat_coeff
         call mpi_allgatherv(mat_coeff_diagp, ksorbs%norbp, mpi_double_precision, mat_coeff_diag, &
              ksorbs%norb_par(:,0), ksorbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
      else
-        call mpiallred(mat_coeff_diag(1), ksorbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+        call mpiallred(mat_coeff_diag(1), ksorbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
      end if
   else
      if (allgather) then
@@ -621,55 +635,55 @@ subroutine calculate_coeffMatcoeff_diag(matrix,basis_orbs,ksorbs,coeff,mat_coeff
 
 end subroutine calculate_coeffMatcoeff_diag
  
-  ! not really fragment related so prob should be moved - reorders coeffs by eval
+!> not really fragment related so prob should be moved - reorders coeffs by eval
   ! output ipiv in case want to use it for something else
   subroutine order_coeffs_by_energy(nstate,ntmb,coeff,eval,ipiv)
-    use module_base
-    use module_types
-    implicit none
-    integer, intent(in) :: nstate, ntmb
-    real(kind=gp), dimension(ntmb,nstate), intent(inout) :: coeff
-    real(kind=gp), dimension(nstate), intent(inout) :: eval
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: nstate, ntmb
+  real(kind=gp), dimension(ntmb,nstate), intent(inout) :: coeff
+  real(kind=gp), dimension(nstate), intent(inout) :: eval
     integer, dimension(nstate), intent(out) :: ipiv
 
-    integer :: itmb, jorb
+  integer :: itmb, jorb
     !integer, allocatable, dimension(:) :: ipiv
-    real(gp), dimension(:), allocatable :: tmp_array
-    real(gp), dimension(:,:), allocatable :: tmp_array2
+  real(gp), dimension(:), allocatable :: tmp_array
+  real(gp), dimension(:,:), allocatable :: tmp_array2
 
     !ipiv=f_malloc(nstate,id='coeff_final')
-    tmp_array=f_malloc(nstate,id='tmp_array')
+  tmp_array=f_malloc(nstate,id='tmp_array')
 
-    do itmb=1,nstate
-       tmp_array(itmb)=-eval(itmb)
-    end do
+  do itmb=1,nstate
+     tmp_array(itmb)=-eval(itmb)
+  end do
 
-    call sort_positions(nstate,tmp_array,ipiv)
+  call sort_positions(nstate,tmp_array,ipiv)
 
-    do itmb=1,nstate
-       eval(itmb)=-tmp_array(ipiv(itmb))
-    end do
+  do itmb=1,nstate
+     eval(itmb)=-tmp_array(ipiv(itmb))
+  end do
 
-    call f_free(tmp_array)
+  call f_free(tmp_array)
 
-    tmp_array2=f_malloc((/ntmb,nstate/),id='tmp_array2')
+  tmp_array2=f_malloc((/ntmb,nstate/),id='tmp_array2')
 
-    do jorb=1,nstate
-       do itmb=1,ntmb
-          tmp_array2(itmb,jorb)=coeff(itmb,jorb)
-       end do
-    end do
+  do jorb=1,nstate
+     do itmb=1,ntmb
+        tmp_array2(itmb,jorb)=coeff(itmb,jorb)
+     end do
+  end do
 
-    do jorb=1,nstate
-       do itmb=1,ntmb
-          coeff(itmb,jorb)=tmp_array2(itmb,ipiv(jorb))
-       end do
-    end do
+  do jorb=1,nstate
+     do itmb=1,ntmb
+        coeff(itmb,jorb)=tmp_array2(itmb,ipiv(jorb))
+     end do
+  end do
 
-    call f_free(tmp_array2)
+  call f_free(tmp_array2)
     !call f_free(ipiv)
 
-  end subroutine order_coeffs_by_energy
+end subroutine order_coeffs_by_energy
 
 !!! experimental - for num_extra see if extra states are actually lower in energy and reorder (either by sorting or diagonalization)
 !!! could improve efficiency by only calculating cSc or cHc up to norb (i.e. ksorbs%norb+extra)
@@ -849,7 +863,6 @@ end subroutine calculate_coeffMatcoeff_diag
 !!end subroutine reordering_coeffs
 
 
-
 subroutine find_alpha_sd(iproc,nproc,alpha,tmb,orbs,coeffp,grad,energy0,fnrm,pred_e)
   use module_base
   use module_types
@@ -959,15 +972,15 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,denskern_mat,ham
      !$omp end parallel
   end do
   if (nproc>1) then
-     call mpiallred(energy, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+     call mpiallred(energy, 1, mpi_sum, bigdft_mpi%mpi_comm)
   end if
   call timing(iproc,'calc_energy','OF')
 
 end subroutine calculate_kernel_and_energy
 
 
-! calculate grad_cov_i^a = f_i (I_ab - S_ag K^gb) H_bg c_i^d
-! then grad=S^-1grad_cov
+!> calculate grad_cov_i^a = f_i (I_ab - S_ag K^gb) H_bg c_i^d
+!! then grad=S^-1grad_cov
 subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
   use module_base
   use module_types
@@ -984,7 +997,6 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
   integer :: iorb, iiorb, info, ierr
   real(gp),dimension(:,:),allocatable :: sk, skh, skhp
   real(gp),dimension(:,:),pointer :: inv_ovrlp
-  integer,dimension(:),allocatable:: ipiv
   real(kind=gp), dimension(:,:), allocatable:: grad_full
   character(len=*),parameter:: subname='calculate_coeff_gradient'
   type(matrices) :: inv_ovrlp_
@@ -1267,8 +1279,9 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,KSorbs,grad_cov,grad)
 
 end subroutine calculate_coeff_gradient
 
-! calculate grad_cov_i^a = f_i (I_ab - S_ag K^gb) H_bg c_i^d
-! then grad=S^-1grad_cov
+
+!> calculate grad_cov_i^a = f_i (I_ab - S_ag K^gb) H_bg c_i^d
+!! then grad=S^-1grad_cov
 subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_cov,grad)
   use module_base
   use module_types
@@ -1285,8 +1298,6 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_
   integer :: iorb, iiorb, info, ierr
   real(gp),dimension(:,:),allocatable :: sk, skh, skhp
   real(gp),dimension(:,:),pointer ::  inv_ovrlp
-  integer :: matrixindex_in_compressed
-  integer,dimension(:),allocatable:: ipiv
   real(kind=gp), dimension(:), allocatable:: occup_tmp
   real(kind=gp), dimension(:,:), allocatable:: grad_full
   real(kind=gp) :: error
@@ -1434,6 +1445,7 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,KSorbs,grad_
 
 end subroutine calculate_coeff_gradient_extra
 
+
 subroutine precondition_gradient_coeff(ntmb, norb, ham, ovrlp, grad)
   use module_base
   use module_types
@@ -1500,173 +1512,6 @@ end subroutine precondition_gradient_coeff
 
 
 
-subroutine DIIS_coeff(iproc, orbs, tmb, grad, coeff, ldiis)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => DIIS_coeff
-  implicit none
-  
-  ! Calling arguments
-  integer,intent(in):: iproc
-  type(orbitals_data),intent(in):: orbs
-  type(DFT_wavefunction),intent(in):: tmb
-  real(8),dimension(tmb%orbs%norb*tmb%orbs%norbp),intent(in):: grad
-  real(8),dimension(tmb%orbs%norb*tmb%orbs%norb),intent(inout):: coeff
-  type(localizedDIISParameters),intent(inout):: ldiis
-  
-  ! Local variables
-  integer:: iorb, jorb, ist, ncount, jst, i, j, mi, ist1, ist2, istat, lwork, info
-  integer:: mj, jj, k, jjst, isthist, iall
-  real(8):: ddot
-  real(8),dimension(:,:),allocatable:: mat
-  real(8),dimension(:),allocatable:: rhs, work
-  integer,dimension(:),allocatable:: ipiv
-  character(len=*),parameter:: subname='DIIS_coeff'
-  
-  !!call timing(iproc,'optimize_DIIS ','ON')
-  
-  ! Allocate the local arrays.
-  allocate(mat(ldiis%isx+1,ldiis%isx+1), stat=istat)
-  call memocc(istat, mat, 'mat', subname)
-  allocate(rhs(ldiis%isx+1), stat=istat)
-  call memocc(istat, rhs, 'rhs', subname)
-  allocate(ipiv(ldiis%isx+1), stat=istat)
-  call memocc(istat, ipiv, 'ipiv', subname)
-  
-  mat=0.d0
-  rhs=0.d0
-  call to_zero((ldiis%isx+1)**2, mat(1,1))
-  call to_zero(ldiis%isx+1, rhs(1))
-  
-  ncount=tmb%orbs%norb
-
-  ! Copy coeff and grad to history.
-  ist=1
-  do iorb=1,tmb%orbs%norbp
-      jst=1
-      do jorb=1,iorb-1
-          jst=jst+ncount*ldiis%isx
-      end do
-      jst=jst+(ldiis%mis-1)*ncount
-      call vcopy(ncount, coeff(ist+tmb%orbs%isorb*tmb%orbs%norb), 1, ldiis%phiHist(jst), 1)
-      call vcopy(ncount, grad(ist), 1, ldiis%hphiHist(jst), 1)
-      ist=ist+ncount
-  end do
-  
-  do iorb=1,tmb%orbs%norbp
-      ! Shift the DIIS matrix left up if we reached the maximal history length.
-      if(ldiis%is>ldiis%isx) then
-         do i=1,ldiis%isx-1
-            do j=1,i
-               ldiis%mat(j,i,iorb)=ldiis%mat(j+1,i+1,iorb)
-            end do
-         end do
-      end if
-  end do
-  
-  do iorb=1,tmb%orbs%norbp
-      ! Calculate a new line for the matrix.
-      i=max(1,ldiis%is-ldiis%isx+1)
-      jst=1
-      ist1=1
-      do jorb=1,iorb-1
-          jst=jst+ncount*ldiis%isx
-          ist1=ist1+ncount
-      end do
-      do j=i,ldiis%is
-         mi=mod(j-1,ldiis%isx)+1
-         ist2=jst+(mi-1)*ncount
-         if(ist2>size(ldiis%hphiHist)) then
-             write(*,'(a,7i8)') 'ERROR ist2: iproc, iorb, ldiis%is, mi, ncount, ist2, size(ldiis%hphiHist)', iproc, iorb, ldiis%is,&
-                                 mi, ncount, ist2, size(ldiis%hphiHist)
-         end if
-         ldiis%mat(j-i+1,min(ldiis%isx,ldiis%is),iorb)=ddot(ncount, grad(ist1), 1, ldiis%hphiHist(ist2), 1)
-         ist2=ist2+ncount
-      end do
-  end do
-  
-  ist=1+tmb%orbs%isorb*tmb%orbs%norb
-  do iorb=1,tmb%orbs%norbp
-      ! Copy the matrix to an auxiliary array and fill with the zeros and ones.
-      do i=1,min(ldiis%isx,ldiis%is)
-          mat(i,min(ldiis%isx,ldiis%is)+1)=1.d0
-          rhs(i)=0.d0
-          do j=i,min(ldiis%isx,ldiis%is)
-              mat(i,j)=ldiis%mat(i,j,iorb)
-          end do
-      end do
-      mat(min(ldiis%isx,ldiis%is)+1,min(ldiis%isx,ldiis%is)+1)=0.d0
-      rhs(min(ldiis%isx,ldiis%is)+1)=1.d0
-   
-      ! Solve the linear system
-      !!do istat=1,ldiis%isx+1
-          !!do iall=1,ldiis%isx+1
-              !!if(iproc==0) write(500,*) istat, iall, mat(iall,istat)
-          !!end do
-      !!end do
-
-      if(ldiis%is>1) then
-         lwork=-1   !100*ldiis%isx
-         allocate(work(1000), stat=istat)
-         call memocc(istat, work, 'work', subname)
-         call dsysv('u', min(ldiis%isx,ldiis%is)+1, 1, mat, ldiis%isx+1,  & 
-              ipiv, rhs(1), ldiis%isx+1, work, lwork, info)
-         lwork=nint(work(1))
-         iall=-product(shape(work))*kind(work)
-         deallocate(work,stat=istat)
-         call memocc(istat,iall,'work',subname)
-         allocate(work(lwork), stat=istat)
-         call memocc(istat, work, 'work', subname)
-         call dsysv('u', min(ldiis%isx,ldiis%is)+1, 1, mat, ldiis%isx+1,  & 
-              ipiv, rhs(1), ldiis%isx+1, work, lwork, info)
-         iall=-product(shape(work))*kind(work)
-         deallocate(work, stat=istat)
-         call memocc(istat, iall, 'work', subname)
-         
-         if (info /= 0) then
-            write(*,'(a,i0)') 'ERROR in dsysv (DIIS_coeff), info=', info
-            stop
-         end if
-      else
-         rhs(1)=1.d0
-      endif
-    
-      ! Make a new guess for the orbital.
-      call to_zero(ncount, coeff(ist))
-      isthist=max(1,ldiis%is-ldiis%isx+1)
-      jj=0
-      jst=0
-      do jorb=1,iorb-1
-          jst=jst+ncount*ldiis%isx
-      end do
-      do j=isthist,ldiis%is
-          jj=jj+1
-          mj=mod(j-1,ldiis%isx)+1
-          jjst=jst+(mj-1)*ncount
-          do k=1,ncount
-              coeff(ist+k-1) = coeff(ist+k-1) + rhs(jj)*(ldiis%phiHist(jjst+k)-ldiis%hphiHist(jjst+k))
-          end do
-      end do
-      ist=ist+ncount
-  end do
-    
-  iall=-product(shape(mat))*kind(mat)
-  deallocate(mat, stat=istat)
-  call memocc(istat, iall, 'mat', subname)
-  
-  iall=-product(shape(rhs))*kind(rhs)
-  deallocate(rhs, stat=istat)
-  call memocc(istat, iall, 'rhs', subname)
-
-  iall=-product(shape(ipiv))*kind(ipiv)
-  deallocate(ipiv, stat=istat)
-  call memocc(istat, iall, 'ipiv', subname)
-  
-  !!call timing(iproc,'optimize_DIIS ','OF')
-
-end subroutine DIIS_coeff
-
-
 subroutine initialize_DIIS_coeff(isx, ldiis)
   use module_base
   use module_types
@@ -1712,4 +1557,3 @@ subroutine allocate_DIIS_coeff(tmb, ldiis)
   call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
 
 end subroutine allocate_DIIS_coeff
-

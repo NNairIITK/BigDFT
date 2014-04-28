@@ -1,3 +1,33 @@
+!> @file
+!! Generate atomic electronic configuration (without rl2)
+!! @author
+!!    Alex Willand, under the supervision of Stefan Goedecker
+!!    gpu accelerated routines by Raffael Widmer
+!!    parts of this program were based on the fitting program by matthias krack
+!!    http://cvs.berlios.de/cgi-bin/viewcvs.cgi/cp2k/potentials/goedecker/pseudo/v2.2/
+!!
+!!    Copyright (C) 2010-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Updated version with spin polarization and libxc support
+!! some notes about input variables:
+!! nspol are the spin channels for the xc function.
+!! nspin are spin components of orbitals with l > 0.
+!! nspin may differ from nspol in the relativistic case.
+!! the xc treatment and gaussian basis are initialized in the calling routine.
+!! energ requests a total energy calculation.
+!! verbose requests detailed output after the wfn is converged.
+!! above two logical variables have been moved from a common block.
+!! @note 
+!!   A note about the r_r variable: For now, it does nothing, but it will
+!!   be an experimental feature to test Gaussian type projectors with two
+!!   different length scales r_l and r_r. The corresponding elements are
+!!   named pp and qq here, ppr and qqr for the residues.
+!!   There is no convention yet to read, pack and fit r_r(l).
 
       subroutine gatom(nspol,energ,verbose,  &
      &     noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,nsmx,  &
@@ -20,12 +50,6 @@
 !          energ requests a total energy calculation.
 !          verbose requests detailed output after the wfn is converged.
 !          Above two logical variables have been moved from a common block.
-
-!          A note about the r_r variable: For now, it does nothing, but it will
-!          be an experimental feature to test Gaussian type projectors with two
-!          different length scales r_l and r_r. The corresponding elements are
-!          named pp and qq here, ppr and qqr for the residues.
-!          There is no convention yet to read, pack and fit r_r(l).
 
       
       implicit real*8 (a-h,o-z)

@@ -389,7 +389,7 @@ if len(references) != len(datas):
 
 for i in range(len(references)):
   tols={}  #copy.deepcopy(orig_tols)
-#  print data
+  #  print data
   failed_checks=0
   docmiss=0
   docmiss_it=[]
@@ -411,10 +411,7 @@ for i in range(len(references)):
     docleaks = data["Memory Consumption Report"]["Remaining Memory (B)"]
   except:
     docleaks = 0
-
-  sys.stdout.write("#Document: %2d, failed_checks: %d, Max. Diff. %10.2e, missed_items: %d memory_leaks (B): %d, Elapsed Time (s): %7.2f\n" %\
-                  (i, failed_checks,discrepancy,docmiss,docleaks,doctime))
-  print "failed checks",failed_checks,"max diff",discrepancy
+  #  print "failed checks",failed_checks,"max diff",discrepancy
   max_discrepancy=max(discrepancy,max_discrepancy)
   #print total time
   time += doctime
@@ -434,6 +431,9 @@ for i in range(len(references)):
   Style = yaml_hl.Style
   hl = yaml_hl.YAMLHighlight(options)
   hl.highlight()
+  sys.stdout.write("#Document: %2d, failed_checks: %d, Max. Diff. %10.2e, missed_items: %d memory_leaks (B): %d, Elapsed Time (s): %7.2f\n" %\
+                  (i, failed_checks,discrepancy,docmiss,docleaks,doctime))
+
   
 # Create dictionary for the final report
 if len(references)> 1:

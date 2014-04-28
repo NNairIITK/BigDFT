@@ -1,7 +1,7 @@
 !> @file 
 !!   Miscellaneous routines for linear toolbox
 !! @author
-!!   Copyright (C) 2011-2012 BigDFT group 
+!!   Copyright (C) 2011-2013 BigDFT group 
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
@@ -10,60 +10,60 @@
 
 !> Plots the orbitals
 subroutine plotOrbitals(iproc, tmb, phi, nat, rxyz, hxh, hyh, hzh, it, basename)
-use module_base
-use module_types
-implicit none
+   use module_base
+   use module_types
+   implicit none
 
-! Calling arguments
-integer :: iproc
-type(DFT_wavefunction),intent(in) :: tmb
-real(kind=8), dimension((tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)*tmb%orbs%nspinor*tmb%orbs%norbp) :: phi
-integer :: nat
-real(kind=8), dimension(3,nat) :: rxyz
-real(kind=8) :: hxh, hyh, hzh
-integer :: it
-character(len=4),intent(in) :: basename
+   ! Calling arguments
+   integer :: iproc
+   type(DFT_wavefunction),intent(in) :: tmb
+   real(kind=8), dimension((tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)*tmb%orbs%nspinor*tmb%orbs%norbp) :: phi
+   integer :: nat
+   real(kind=8), dimension(3,nat) :: rxyz
+   real(kind=8) :: hxh, hyh, hzh
+   integer :: it
+   character(len=4),intent(in) :: basename
 
-integer :: ix, iy, iz, ix0, iy0, iz0, iiAt, jj, iorb, i1, i2, i3, istart, ii, istat, iat
-integer :: unit1, unit2, unit3, unit4, unit5, unit6, unit7, unit8, unit9, unit10, unit11, unit12
-integer :: ixx, iyy, izz, maxid, i, ixmin, ixmax, iymin, iymax, izmin, izmax
-integer :: iseg, j0, j1, i0, ilr
-real(kind=8) :: dixx, diyy, dizz, prevdiff, maxdiff, diff, dnrm2
-real(kind=8), dimension(:), allocatable :: phir
-real(kind=8), dimension(:,:,:), allocatable :: psig_c
-real(kind=8),dimension(3) :: rxyzdiff
-real(kind=8),dimension(3,11) :: rxyzref
-integer,dimension(4) :: closeid
-type(workarr_sumrho) :: w
-character(len=10) :: c1, c2, c3
-character(len=50) :: file1, file2, file3, file4, file5, file6, file7, file8, file9, file10, file11, file12
-logical :: dowrite, plot_axis, plot_diagonals, plot_neighbors
+   integer :: ix, iy, iz, ix0, iy0, iz0, iiAt, jj, iorb, i1, i2, i3, istart, ii, istat, iat
+   integer :: unit1, unit2, unit3, unit4, unit5, unit6, unit7, unit8, unit9, unit10, unit11, unit12
+   integer :: ixx, iyy, izz, maxid, i, ixmin, ixmax, iymin, iymax, izmin, izmax
+   integer :: ilr
+   real(kind=8) :: dixx, diyy, dizz, prevdiff, maxdiff, diff, dnrm2
+   real(kind=8), dimension(:), allocatable :: phir
+   !real(kind=8), dimension(:,:,:), allocatable :: psig_c
+   real(kind=8),dimension(3) :: rxyzdiff
+   real(kind=8),dimension(3,11) :: rxyzref
+   integer,dimension(4) :: closeid
+   type(workarr_sumrho) :: w
+   character(len=10) :: c1, c2, c3
+   character(len=50) :: file1, file2, file3, file4, file5, file6, file7, file8, file9, file10, file11, file12
+   logical :: dowrite, plot_axis, plot_diagonals, plot_neighbors
 
-plot_axis=.true.
-plot_diagonals=.false.!.true.
-plot_neighbors=.false.
+   plot_axis=.true.
+   plot_diagonals=.false.!.true.
+   plot_neighbors=.false.
 
-allocate(phir(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n3i), stat=istat)
+   allocate(phir(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n3i), stat=istat)
 
-call initialize_work_arrays_sumrho(tmb%lzd%glr,w)
-rxyzref=-555.55d0
+   call initialize_work_arrays_sumrho(tmb%lzd%glr,w)
+   rxyzref=-555.55d0
 
-istart=0
+   istart=0
 
-unit1 =20*(iproc+1)+3
-unit2 =20*(iproc+1)+4
-unit3 =20*(iproc+1)+5
-unit4 =20*(iproc+1)+6
-unit5 =20*(iproc+1)+7
-unit6 =20*(iproc+1)+8
-unit7 =20*(iproc+1)+9
-unit8 =20*(iproc+1)+10
-unit9 =20*(iproc+1)+11
-unit10=20*(iproc+1)+12
-unit11=20*(iproc+1)+13
-unit12=20*(iproc+1)+14
+   unit1 =20*(iproc+1)+3
+   unit2 =20*(iproc+1)+4
+   unit3 =20*(iproc+1)+5
+   unit4 =20*(iproc+1)+6
+   unit5 =20*(iproc+1)+7
+   unit6 =20*(iproc+1)+8
+   unit7 =20*(iproc+1)+9
+   unit8 =20*(iproc+1)+10
+   unit9 =20*(iproc+1)+11
+   unit10=20*(iproc+1)+12
+   unit11=20*(iproc+1)+13
+   unit12=20*(iproc+1)+14
 
-!write(*,*) 'write, tmb%orbs%nbasisp', tmb%orbs%norbp
+   !write(*,*) 'write, tmb%orbs%nbasisp', tmb%orbs%norbp
     orbLoop: do iorb=1,tmb%orbs%norbp
         !!phir=0.d0
         call to_zero(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n3i, phir(1))
@@ -429,7 +429,7 @@ contains
 
     ! Local variables
     real(kind=8),dimension(3) :: rxyz
-    real(kind=8) :: dist, hh, threshold
+    real(kind=8) :: dist, threshold
     
     !!! Determine which plane is "most orthogonal" to the straight line
     !!xx(1)=1.d0 ; xx(2)=0.d0 ; xx(3)=0.d0
@@ -905,7 +905,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
       call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
       !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
       !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
-      !!call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+      !!call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
   end if
 
   call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
@@ -1010,7 +1010,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
       call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
       !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
       !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
-      !!call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+      !!call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
   end if
   call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
   tmb%can_use_transposed=.false.
@@ -1161,7 +1161,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   ! new variables
   integer :: iat, iall
   real(kind=8),dimension(:,:),allocatable :: weight_matrix
-  real(kind=gp),dimension(:,:),pointer :: ovrlp_half, ovrlp
+  real(kind=gp),dimension(:,:),pointer :: ovrlp
   real(kind=8) :: total_charge, total_net_charge
   real(kind=8),dimension(:),allocatable :: charge_per_atom
   logical :: psit_c_associated, psit_f_associated
@@ -1171,7 +1171,6 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   ! re-use overlap matrix if possible either before or after
 
   call f_routine(id='loewdin_charge_analysis')
-  ovrlp_half = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='ovrlp_half')
 
   inv_ovrlp = matrices_null()
   call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp)
@@ -1738,8 +1737,10 @@ subroutine support_function_multipoles(iproc, tmb, atoms, denspot)
   end if
 
 
-  call mpiallred(dipole_net(1,1), 3*tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  call mpiallred(quadropole_net(1,1,1), 9*tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (bigdft_mpi%nproc>1) then
+      call mpiallred(dipole_net(1,1), 3*tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(quadropole_net(1,1,1), 9*tmb%orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
 
   if (iproc==0) then
       call yaml_open_sequence('Support functions moments')

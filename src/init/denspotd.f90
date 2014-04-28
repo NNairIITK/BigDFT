@@ -49,6 +49,7 @@ subroutine initialize_DFT_local_fields(denspot, ixc, nspden)
   end if
 end subroutine initialize_DFT_local_fields
 
+
 subroutine initialize_coulomb_operator(kernel)
   use module_base
   use module_types
@@ -59,6 +60,7 @@ subroutine initialize_coulomb_operator(kernel)
 
   
 end subroutine initialize_coulomb_operator
+
 
 subroutine initialize_rho_descriptors(rhod)
   use module_base
@@ -77,6 +79,7 @@ subroutine initialize_rho_descriptors(rhod)
   nullify(rhod%spkey,rhod%dpkey,rhod%cseg_b,rhod%fseg_b)
 
 end subroutine initialize_rho_descriptors
+
 
 subroutine dpbox_set(dpbox,Lzd,xc,iproc,nproc,mpi_comm,PS_groupsize,SICapproach,geocode,nspin)
   use module_base
@@ -109,6 +112,7 @@ subroutine dpbox_set(dpbox,Lzd,xc,iproc,nproc,mpi_comm,PS_groupsize,SICapproach,
   call denspot_communications(dpbox%mpi_env%iproc,dpbox%mpi_env%nproc,xc,nspin,geocode,SICapproach,dpbox)
 
 end subroutine dpbox_set
+
 
 subroutine dpbox_free(dpbox,subname)
   use module_base
@@ -153,6 +157,7 @@ subroutine dpbox_set_box(dpbox,Lzd)
   dpbox%ndims(3)=Lzd%Glr%d%n3i
 
 end subroutine dpbox_set_box
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !>todo: remove n1i and n2i
@@ -200,6 +205,7 @@ subroutine denspot_free_history(denspot)
   end if
 end subroutine denspot_free_history
 
+
 subroutine denspot_communications(iproc,nproc,xc,nspin,geocode,SICapproach,dpbox)
   use module_base
   use module_types
@@ -245,6 +251,7 @@ subroutine denspot_communications(iproc,nproc,xc,nspin,geocode,SICapproach,dpbox
        dpbox%nrhodim
 end subroutine denspot_communications
 
+
 subroutine denspot_set_rhov_status(denspot, status, istep, iproc, nproc)
   use module_base
   use module_types
@@ -258,6 +265,7 @@ subroutine denspot_set_rhov_status(denspot, status, istep, iproc, nproc)
      call denspot_emit_rhov(denspot, istep, iproc, nproc)
   end if
 end subroutine denspot_set_rhov_status
+
 
 subroutine denspot_full_density(denspot, rho_full, iproc, new)
   use module_base
@@ -307,6 +315,8 @@ subroutine denspot_full_density(denspot, rho_full, iproc, new)
      rho_full => denspot%rhov
   end if
 END SUBROUTINE denspot_full_density
+
+
 subroutine denspot_full_v_ext(denspot, pot_full, iproc, new)
   use module_base
   use module_types
@@ -339,6 +349,8 @@ subroutine denspot_full_v_ext(denspot, pot_full, iproc, new)
      pot_full => denspot%rhov
   end if
 END SUBROUTINE denspot_full_v_ext
+
+
 subroutine denspot_emit_rhov(denspot, iter, iproc, nproc)
   use module_base
   use module_types
@@ -392,13 +404,16 @@ subroutine denspot_emit_rhov(denspot, iter, iproc, nproc)
   end if
   call timing(iproc,'rhov_signals  ','OF')
 END SUBROUTINE denspot_emit_rhov
+
+
 subroutine denspot_emit_v_ext(denspot, iproc, nproc)
   use module_base
   use module_types
   implicit none
+  !Arguments
   type(DFT_local_fields), intent(in) :: denspot
   integer, intent(in) :: iproc, nproc
-
+  !Local variables
   character(len = *), parameter :: subname = "denspot_emit_v_ext"
   integer, parameter :: SIGNAL_DONE = -1
   integer :: message, ierr, i_stat, i_all, new
@@ -445,6 +460,7 @@ subroutine denspot_emit_v_ext(denspot, iproc, nproc)
   call timing(iproc,'rhov_signals  ','OF')
 END SUBROUTINE denspot_emit_v_ext
 
+
 subroutine allocateRhoPot(iproc,Glr,nspin,atoms,rxyz,denspot)
   use module_base
   use module_types
@@ -489,7 +505,7 @@ subroutine allocateRhoPot(iproc,Glr,nspin,atoms,rxyz,denspot)
   !check if non-linear core correction should be applied, and allocate the 
   !pointer if it is the case
   !print *,'i3xcsh',denspot%dpbox%i3s,denspot%dpbox%i3xcsh,denspot%dpbox%n3d
-  call calculate_rhocore(iproc,atoms,Glr%d,rxyz,&
+  call calculate_rhocore(atoms,Glr%d,rxyz,&
        denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
        denspot%dpbox%i3s,denspot%dpbox%i3xcsh,&
        denspot%dpbox%n3d,denspot%dpbox%n3p,denspot%rho_C)

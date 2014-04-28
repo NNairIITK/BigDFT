@@ -263,7 +263,7 @@ contains
     integer, intent(in) :: kind
     integer, intent(in) :: ixc
     !local variables
-    integer :: ixc_prev
+!!$    integer :: ixc_prev
 
     !check if we are trying to initialize the libXC to a different functional
 !!$    if (libxc_init) then

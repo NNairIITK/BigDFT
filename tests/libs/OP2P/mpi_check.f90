@@ -37,7 +37,7 @@ program mpi_check
   call MPI_ALLREDUCE(buffer,copybuffer,ntot,&
        MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-  call mpiallred(buffer(1),isizes(nspin,nother),MPI_SUM,MPI_COMM_WORLD,ierr)
+  call mpiallred(buffer(1),isizes(nspin,nother),MPI_SUM)
   failed=.false.
   do i=1,ntot
      if (abs(copybuffer(i)-buffer(i))>1.d-12 .or. abs(copybuffer(i)-real(nproc,kind=8))> 1.d-12) then

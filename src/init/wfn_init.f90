@@ -208,6 +208,7 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
 
 END SUBROUTINE Gaussian_DiagHam
 
+
 subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
      psi,hpsi,psit,orthpar,passmat,iscf,Tel,occopt,& !mandatory
      orbse,commse,etol,norbsc_arr) !optional
@@ -362,7 +363,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   if (nproc > 1) then
      !reduce the overlap matrix between all the processors
      call mpiallred(hamovr(1,1,1),2*nspin*ndim_hamovr*orbse%nkpts,&
-          MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+          MPI_SUM,bigdft_mpi%mpi_comm)
   end if
 
 ! DEBUG
@@ -482,7 +483,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
            end if
         end do
         call mpiallred(hamovr(1,1,1),2*nspin*ndim_hamovr*orbse%nkpts,&
-             MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+             MPI_SUM,bigdft_mpi%mpi_comm)
      end if
 
      do ikptp=1,orbse%nkptsp
@@ -838,6 +839,7 @@ subroutine solve_eigensystem(norbi_max,ndim_hamovr,ndim_eval,&
 
 END SUBROUTINE solve_eigensystem
 
+
 subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore,nspinor,&
       &   ndim_hamovr,norbsc_arr,hamovr,psi,ppsit,passmat)
    use module_base
@@ -936,7 +938,7 @@ END SUBROUTINE build_eigenvectors
 
 !> Reads magnetic moments from file ('moments') and transforms the
 !! atomic orbitals to spinors 
-!! warning: Does currently not work for mx<0
+!! @warning Does currently not work for mx<0
 subroutine psitospi(iproc,nproc,norbe,norbep, &
       &   nvctr_c,nvctr_f,nat,nspin,spinsgne,otoa,psi)
    use module_base
@@ -1017,34 +1019,10 @@ subroutine psitospi(iproc,nproc,norbe,norbep, &
 END SUBROUTINE psitospi
 
 
-!>  Generates an input guess for the wavefunctions. 
+!> Generates an input guess for the wavefunctions. 
 !! To do this, the eigenvectors of the Hamiltonian are found by an iterative procedure.
-!!  This gives a guess for the orbitals in the basis of atomic orbitals. These eigenfunctions are then transformed to the
-!!  wavelet basis.
-!!
-!! Calling arguments
-!! ==================
-!!  Input arguments
-!!    @param iproc            process ID
-!!    @param nproc            number of processes
-!!    @param orbs             type containing orbitals data
-!!    @param norbtot          total number of atomic orbitals
-!!    @param psi              contains the atomic orbitals
-!!    @param input            data type that contains many parameters
-!!    @param nspin            nspin==1 -> no spin polarization
-!!    @param                  nspin==2 -> spin polarization
-!!    @param nspinor          nspinor==1 -> real wavefunction
-!!    @param                  nspinor==2 -> complex wavefunction
-!!    @param sizePsi          length of the vector psi
-!!    @param comms            type containing parameters for communicating the wavefunstion between processors
-!!    @param natsc            number of semicore atoms
-!!    @param ndim_hamovr      first dimension of hamovr
-!!    @param norbsc           number of semicore orbitals
-!!  Input/Output arguments
-!!    @param hamovr           array containing both Hamiltonian and overlap matrix:
-!!                            hamovr(:,:,1,:) is the Hamiltonian, hamovr(:,:,2,:) is the overlap matrix
-!!  Output arguments
-!!    @param psiGuessWavelet  contains the input guess vectors in wavelet basis
+!! This gives a guess for the orbitals in the basis of atomic orbitals. These eigenfunctions are then transformed to the
+!! wavelet basis.
 subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
       &   psiGuessWavelet, orthpar, nspin, nspinor, sizePsi, comms, natsc, ndim_hamovr, norbsc)
    use module_base
@@ -1054,14 +1032,22 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
    implicit none
 
    ! Calling arguments
-   integer,intent(in):: iproc, nproc, nspin, nspinor, sizePsi, natsc, ndim_hamovr, norbsc
+   integer, intent(in) ::  iproc           !< Process ID
+   integer, intent(in) ::  nproc           !< Number of processes
+   integer, intent(in) ::  nspin           !< Nspin==1 -> no spin polarization, Nspin==2 -> spin polarization
+   integer, intent(in) ::  nspinor         !< Nspinor==1 -> real wavefunction,  Nspinor==2 -> complex wavefunction
+   integer, intent(in) ::  sizePsi         !< Length of the vector psi
+   integer, intent(in) ::  natsc           !< Number of semicore atoms
+   integer, intent(in) ::  ndim_hamovr     !< First dimension of hamovr
+   integer, intent(in) ::  norbsc          !< Number of semicore orbitals
    integer, dimension(natsc+1,nspin), intent(in) :: norbscArr
    type(orbitals_data), intent(inout) :: orbs
-   !real(kind=8),dimension(norbtot*norbtot*nspinor,nspin,2,orbs%nkpts),intent(in):: hamovr
-   real(kind=8),dimension(ndim_hamovr,nspin,2,orbs%nkpts),intent(inout):: hamovr
-   real(kind=8),dimension(sizePsi),intent(in):: psi
-   real(kind=8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: psiGuessWavelet
-   type(orthon_data),intent(in):: orthpar
+   !> Array containing both Hamiltonian and overlap matrix:
+   !! hamovr(:,:,1,:) is the Hamiltonian, hamovr(:,:,2,:) is the overlap matrix
+   real(kind=8), dimension(ndim_hamovr,nspin,2,orbs%nkpts), intent(inout):: hamovr
+   real(kind=8), dimension(sizePsi),intent(in):: psi !< Contains the atomic orbitals
+   real(kind=8), dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)), intent(out):: psiGuessWavelet !< Contains the input guess vectors in wavelet basis
+   type(orthon_data),intent(in) :: orthpar
    type(comms_cubic), intent(in):: comms
 
    ! Local variables
@@ -1088,7 +1074,6 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
    complex(kind=8):: zdotc, zz
   integer :: stat(mpi_status_size)
   character(len=*),parameter :: subname='inputguessParallel'
-
 
    ! Start the timing for the input guess.
    call timing(iproc, 'Input_comput', 'ON')
@@ -2583,11 +2568,9 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
 END SUBROUTINE inputguessParallel
 
 
-
-
-!>  This subroutine orthonormalizes the orbitals psi in a parallel way. To do so, it first transposes the orbitals to all
-!!  processors using mpi_alltoallv. The orthonomalization is then done in this data layout using a combination of blockwise Gram-Schmidt
-!!  and Cholesky orthonomalization. At the end the vectors are again untransposed.
+!> This subroutine orthonormalizes the orbitals psi in a parallel way. To do so, it first transposes the orbitals to all
+!! processors using mpi_alltoallv. The orthonomalization is then done in this data layout using a combination of blockwise Gram-Schmidt
+!! and Cholesky orthonomalization. At the end the vectors are again untransposed.
 !!
 !! Calling arguments:
 !! =================
@@ -2635,8 +2618,6 @@ subroutine orthonormalizePsi(iproc, nproc, norbtot, norb, norbp, norbpArr,&
    real(kind=8),dimension(:),allocatable:: psiW, overlapPsiW, psiWTrans, overlapPsiWTrans
    integer,dimension(:),allocatable:: sendcounts, recvcounts, sdispls, rdispls
    character(len=*),parameter:: subname='orthonormalizePsi'
-
-
 
    !< This variable is the part of each orbital that will be distributed to each processor and will be used throughout the subroutine.
    norbtotp=norbtot/nproc

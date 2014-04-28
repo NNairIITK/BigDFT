@@ -1,23 +1,26 @@
-      program pseudo
+!> @file
+!! atomic program for generating and optimizing HGH pseudo-potentials.
+!! @author
+!!    Alex Willand, under the supervision of Stefan Goedecker
+!!    gpu accelerated routines by Raffael Widmer
+!!    parts of this program were based on the fitting program by matthias krack
+!!    http://cvs.berlios.de/cgi-bin/viewcvs.cgi/cp2k/potentials/goedecker/pseudo/v2.2/
+!!
+!!    Copyright (C) 2010-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Parallel fitting of HGH pseudopotentials using a simplex downhill method.
+!! Takes into account multiple atomic references, excitation energies and
+!! softness monitored by errors in 3d wavelet transformations.
+!! Uses MPI and libXC, supoorts collinear spin polarization as well as 
+!! nonlinear core corrections and has a GPU accelerated version of the
+!! wavelet part.
+program pseudo
       use libxcModule
-
-
-!     Parallel fitting of HGH pseudopotentials using a simplex downhill method.
-!     Takes into account multiple atomic references, excitation energies and
-!     softness monitored by errors in 3d wavelet transformations.
-!     Uses MPI and libXC, supoorts collinear spin polarization as well as 
-!     nonlinear core corrections and has a GPU accelerated version of the
-!     wavelet part.
-!
-!     This program is based on the sources available at
-!     http://cvs.berlios.de/cgi-bin/viewcvs.cgi/cp2k/potentials/Goedecker/pseudo/v2.2/
-!
-!     Authors:                  Raffael.Widmer (Cuda Acceleration)
-!                             and Alex Willand (all other modifications)  
-!                      under the supevision of  
-!                 Stefan Goedecker, April 2011   
-!             Universitaet  Basel, Switzerland 
-!                                                          
 
 
       implicit real*8 (a-h,o-z)
