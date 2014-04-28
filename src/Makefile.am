@@ -194,7 +194,8 @@ low_level = \
 	linear/chebyshev.f90 \
 	linear/pulay.f90 \
 	linear/transferintegrals.f90 \
-	linear/cdft.f90
+	linear/cdft.f90 \
+	linear/frags.f90
 
 # C objects
 c_level = posfiles.c \

@@ -153,7 +153,8 @@ op2p_module.o : base.o
 BigDFT_API.o: base.o types.o interfaces.o xc.o
 vdwcorrection.o: base.o types.o
 private_api.o: base.o types.o interfaces.o
-fragments.o diis_module.o: base.o types.o communications.o sparsematrix_base.o sparsematrix.o
+diis_module.o: base.o types.o communications.o sparsematrix_base.o sparsematrix.o
+fragments.o: base.o types.o
 constrained_dft.o: base.o types.o sparsematrix_base.o
 input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o types.o defs.o ao_inguess.o interfaces.o atoms_data.o
 psp_projectors.o: locregs.o

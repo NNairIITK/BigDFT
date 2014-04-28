@@ -4362,6 +4362,24 @@ module module_interfaces
           type(DFT_local_fields), intent(inout) :: denspot
           type(GPU_pointers),intent(inout) :: GPU
         end subroutine calculate_weight_matrix_using_density
+
+        subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb,ksorbs,overlap_calculated,&
+          nstates_max,cdft)
+          use yaml_output
+          use module_base
+          use module_types
+          use module_fragments
+          implicit none
+          type(DFT_wavefunction), intent(inout) :: tmb
+          type(input_variables), intent(in) :: input
+          type(system_fragment), dimension(input%frag%nfrag_ref), intent(inout) :: ref_frags
+          type(orbitals_data), intent(inout) :: ksorbs
+          logical, intent(inout) :: overlap_calculated
+          real(kind=gp), dimension(input%frag%nfrag), intent(in) :: input_frag_charge
+          integer, intent(in) :: iproc
+          integer, intent(out) :: nstates_max ! number of states in total if we consider all partially occupied fragment states to be fully occupied
+          logical, intent(in) :: cdft
+        end subroutine fragment_coeffs_to_kernel
   
   end interface
 END MODULE module_interfaces
