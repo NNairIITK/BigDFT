@@ -154,7 +154,7 @@ BigDFT_API.o: base.o types.o interfaces.o xc.o
 vdwcorrection.o: base.o types.o
 private_api.o: base.o types.o interfaces.o
 fragments.o diis_module.o: base.o types.o communications.o sparsematrix_base.o sparsematrix.o
-constrained_dft.o: base.o types.o fragments.o sparsematrix_base.o sparsematrix.o
+constrained_dft.o: base.o types.o sparsematrix_base.o
 input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o types.o defs.o ao_inguess.o interfaces.o atoms_data.o
 psp_projectors.o: locregs.o
 locregs.o: base.o

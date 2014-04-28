@@ -4326,6 +4326,42 @@ module module_interfaces
           logical,intent(in) :: check_accur
           real(kind=8),intent(out),optional :: error
         end subroutine overlap_minus_one_half_serial
+
+        subroutine calculate_weight_matrix_lowdin(weight_matrix,nfrag_charged,ifrag_charged,tmb,input,ref_frags,&
+             calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap,ovrlp_half)
+          use module_types
+          use module_fragments
+          implicit none
+          type(sparse_matrix), intent(inout) :: weight_matrix
+          type(input_variables),intent(in) :: input
+          type(dft_wavefunction), intent(inout) :: tmb
+          logical, intent(in) :: calculate_overlap_matrix, calculate_ovrlp_half
+          type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
+          integer, intent(in) :: nfrag_charged, meth_overlap
+          integer, dimension(2), intent(in) :: ifrag_charged
+          real(kind=gp), dimension(:,:), pointer :: ovrlp_half
+          !local variables
+          integer :: ifrag,iorb,ifrag_ref,isforb,istat,ierr
+          real(kind=gp), allocatable, dimension(:,:) :: proj_mat, proj_ovrlp_half, weight_matrixp
+          character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
+          real(kind=gp) :: error
+          type(matrices) :: inv_ovrlp
+        end subroutine calculate_weight_matrix_lowdin
+
+        subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,denspot)
+          use module_base
+          use module_types
+          use constrained_dft, only: cdft_data
+          use module_fragments
+          implicit none
+          integer,intent(in) :: iproc
+          type(cdft_data), intent(inout) :: cdft
+          type(atoms_data), intent(in) :: at
+          type(input_variables),intent(in) :: input
+          type(dft_wavefunction), intent(inout) :: tmb
+          type(DFT_local_fields), intent(inout) :: denspot
+          type(GPU_pointers),intent(inout) :: GPU
+        end subroutine calculate_weight_matrix_using_density
   
   end interface
 END MODULE module_interfaces
