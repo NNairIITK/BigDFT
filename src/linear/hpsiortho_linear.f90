@@ -413,7 +413,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
        tmb%linmat, tmb%ham_descr%psi, tmb%hpsi, &
        tmb%linmat%m, tmb%linmat%ham_, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, &
        hpsit_c, hpsit_f, tmb%ham_descr%can_use_transposed, &
-       overlap_calculated, experimental_mode)
+       overlap_calculated, experimental_mode, tmb)
 
   !!EXPERIMENTAL
   !!call calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, hpsit_f)

@@ -213,9 +213,10 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   comments = '0-> exact Loewdin, 1-> taylor expansion; &
              &in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
   call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-100,10000/))
+  call input_var(dummy_int,'1',dict//LIN_BASIS//CORRECTION_ORTHOCONSTRAINT,comment=comments)
 
-  !this variable seems deprecated
-  call input_var(dummy_int,'1',ranges=(/0,1/),comment=comments)
+  !!this variable seems deprecated
+  !call input_var(dummy_int,'1',ranges=(/0,1/),comment=comments)
 
   comments='fscale: length scale over which complementary error function decays from 1 to 0'
   call input_var(dummy_real,'1.d-2',dict//LIN_KERNEL//FSCALE_FOE,ranges=(/0.d0,1.d0/),comment=comments)
@@ -373,7 +374,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
 !!  in%lin%evhigh=dummy_darr(2)
 !!  in%lin%fscale=dict//LIN_KERNEL//FSCALE_FOE
 
-  in%lin%correctionOrthoconstraint=0 !to be checked later
+  !in%lin%correctionOrthoconstraint=1 !to be checked later
 
   ! not sure whether to actually make this an input variable or not so just set to false for now
   in%lin%diag_start=.false.
