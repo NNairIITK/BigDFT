@@ -190,7 +190,7 @@ module module_types
     integer :: mixHist_lowaccuracy
     integer :: mixHist_highaccuracy
     integer :: dmin_hist_lowaccuracy, dmin_hist_highaccuracy
-    integer :: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
+    integer :: blocksize_pdgemm, blocksize_pdsyev
     integer :: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm
     integer :: nit_lowaccuracy, nit_highaccuracy, nItdmin_lowaccuracy, nItdmin_highaccuracy
     integer :: nItSCCWhenFixed_lowaccuracy, nItSCCWhenFixed_highaccuracy
@@ -2904,7 +2904,7 @@ end subroutine find_category
        case (CONF_DAMPING) 
           in%lin%reduce_confinement_factor = val
        case (TAYLOR_ORDER)
-          in%lin%methTransformOverlap = val
+          in%lin%order_taylor = val
        case (OUTPUT_WF)
           in%lin%plotBasisFunctions = val
        case (CALC_DIPOLE)
