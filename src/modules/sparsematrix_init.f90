@@ -28,103 +28,6 @@ module sparsematrix_init
 
 
 
-
-    subroutine init_matrix_parallelization(iproc, nproc, sparsemat)
-      implicit none
-    
-      ! Calling arguments
-      integer,intent(in) :: iproc, nproc
-      type(sparse_matrix),intent(inout) :: sparsemat
-    
-      ! Local variables
-      integer :: jproc, jorbs, jorbold, ii, jorb
-      character(len=*),parameter :: subname='init_matrix_parallelization'
-    
-      ! parallelization of matrices, following same idea as norb/norbp/isorb
-      sparsemat%nvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%nvctr_par')
-      sparsemat%isvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%isvctr_par')
-    
-      !most equal distribution, but want corresponding to norbp for second column
-      !call kpts_to_procs_via_obj(nproc,1,sparsemat%nvctr,sparsemat%nvctr_par)
-      !sparsemat%nvctrp=sparsemat%nvctr_par(iproc)
-      !sparsemat%isvctr=0
-      !do jproc=0,iproc-1
-      !    sparsemat%isvctr=sparsemat%isvctr+sparsemat%nvctr_par(jproc)
-      !end do
-      !sparsemat%isvctr_par=0
-      !do jproc=0,nproc-1
-      !    if(iproc==jproc) then
-      !       sparsemat%isvctr_par(jproc)=sparsemat%isvctr
-      !    end if
-      !end do
-      !if(nproc >1) call mpiallred(sparsemat%isvctr_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      do jproc=0,nproc-1
-         jorbs=sparsemat%isfvctr_par(jproc)+1
-         jorbold=0
-         do ii=1,sparsemat%nvctr
-            jorb = sparsemat%orb_from_index(2,ii)
-            if (jorb/=jorbold .and. jorb==jorbs) then
-               sparsemat%isvctr_par(jproc)=ii-1
-               exit
-            end if
-            jorbold=jorb
-         end do
-      end do
-      do jproc=0,nproc-1
-         if (jproc==nproc-1) then
-            sparsemat%nvctr_par(jproc)=sparsemat%nvctr-sparsemat%isvctr_par(jproc)
-         else
-            sparsemat%nvctr_par(jproc)=sparsemat%isvctr_par(jproc+1)-sparsemat%isvctr_par(jproc)
-         end if
-         if (iproc==jproc) sparsemat%isvctr=sparsemat%isvctr_par(jproc)
-         if (iproc==jproc) sparsemat%nvctrp=sparsemat%nvctr_par(jproc)
-      end do
-      !do jproc=0,nproc-1
-      !   write(*,*) iproc,jproc,sparsemat%isvctr_par(jproc),sparsemat%isvctr,sparsemat%nvctr_par(jproc),sparsemat%nvctrp,sparsemat%nvctr
-      !end do
-    
-      ! 0 - none, 1 - mpiallred, 2 - allgather
-      sparsemat%parallel_compression=0
-      sparsemat%can_use_dense=.false.
-    
-    end subroutine init_matrix_parallelization
-
-
-    subroutine init_indices_in_compressed(store_index, norb, sparsemat)
-      implicit none
-    
-      ! Calling arguments
-      logical,intent(in) :: store_index
-      integer,intent(in) :: norb
-      type(sparse_matrix),intent(inout) :: sparsemat
-    
-      ! Local variables
-      !integer :: iorb, jorb, compressed_index, istat
-      integer :: iorb, jorb
-      character(len=*),parameter :: subname='init_indices_in_compressed'
-    
-      if (store_index) then
-          ! store the indices of the matrices in the sparse format
-          sparsemat%store_index=.true.
-    
-          ! initialize sparsemat%matrixindex_in_compressed
-          sparsemat%matrixindex_in_compressed_arr=f_malloc_ptr((/norb,norb/),id='sparsemat%matrixindex_in_compressed_arr')
-    
-          do iorb=1,norb
-             do jorb=1,norb
-                sparsemat%matrixindex_in_compressed_arr(iorb,jorb)=compressed_index(iorb,jorb,norb,sparsemat)
-             end do
-          end do
-    
-      else
-          ! otherwise alwyas calculate them on-the-fly
-          sparsemat%store_index=.false.
-          nullify(sparsemat%matrixindex_in_compressed_arr)
-      end if
-    
-    end subroutine init_indices_in_compressed
-
-
     !> Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
     function compressed_index(irow, jcol, norb, sparsemat)
       implicit none
@@ -212,34 +115,6 @@ module sparsematrix_init
         
         end function compressed_index_fn
     end function matrixindex_in_compressed
-
-
-    subroutine init_orbs_from_index(sparsemat)
-      implicit none
-    
-      ! Calling arguments
-      type(sparse_matrix),intent(inout) :: sparsemat
-    
-      ! local variables
-      integer :: ind, iseg, segn, iorb, jorb
-      character(len=*),parameter :: subname='init_orbs_from_index'
-    
-      !allocate(sparsemat%orb_from_index(2,sparsemat%nvctr),stat=istat)
-      !call memocc(istat, sparsemat%orb_from_index, 'sparsemat%orb_from_index', subname)
-      sparsemat%orb_from_index=f_malloc_ptr((/2,sparsemat%nvctr/),id='sparsemat%orb_from_index')
-    
-      ind = 0
-      do iseg = 1, sparsemat%nseg
-         do segn = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
-            ind=ind+1
-            iorb = (segn - 1) / sparsemat%nfvctr + 1
-            jorb = segn - (iorb-1)*sparsemat%nfvctr
-            sparsemat%orb_from_index(1,ind) = jorb
-            sparsemat%orb_from_index(2,ind) = iorb
-         end do
-      end do
-    
-    end subroutine init_orbs_from_index
 
 
 
