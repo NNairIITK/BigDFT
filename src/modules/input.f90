@@ -2016,7 +2016,7 @@ contains
     comments = '0-> exact Loewdin, 1-> taylor expansion; &
                &in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
     call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-100,100/))
-    call input_var(dummy_int,'1',ranges=(/0,1/),comment=comments)
+    call input_var(dummy_int,'1',dict//LIN_BASIS//CORRECTION_ORTHOCONSTRAINT,comment=comments)
     !call input_var(in%lin%correctionOrthoconstraint,'1',ranges=(/0,1/),comment=comments)
 
     comments='fscale: length scale over which complementary error function decays from 1 to 0'
