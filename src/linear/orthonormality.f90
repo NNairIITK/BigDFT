@@ -248,7 +248,7 @@ call timing(iproc,'misc','ON')
   if (correction_orthoconstraint==0) then
       ! WARNING: it is mandatory that the overlap matrix has been calculated before
       !!call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, linmat%ovrlp)
-      if (iproc==0) write(*,*) 'correction orthoconstraint'
+      if (iproc==0) call yaml_map('correction orthoconstraint',.true.)
       linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(linmat%s, DENSE_FULL, id='linmat%ovrlp_%matrix')
       call uncompress_matrix(iproc, linmat%s, inmat=linmat%ovrlp_%matrix_compr, outmat=linmat%ovrlp_%matrix)
       allocate(tmp_mat(orbs%norb,orbs%norb))

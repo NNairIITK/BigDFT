@@ -1188,6 +1188,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
       ! ##########################
       if (iproc == 0) then
           call yaml_map('Normalization',.true.)
+          !call yaml_map('Normalization',.false.)
       end if
       if (present(psidiff)) then
           do i=1,tmb%npsidim_orbs
