@@ -142,7 +142,7 @@ end subroutine orthonormalizeLocalized
 ! use sparsity of density kernel for all inverse quantities
 subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
            correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, hpsit_c, hpsit_f, &
-           can_use_transposed, overlap_calculated, experimental_mode, tmb, norder_taylor)
+           can_use_transposed, overlap_calculated, experimental_mode, norder_taylor)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthoconstraintNonorthogonal
@@ -172,7 +172,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   logical,intent(inout) :: can_use_transposed, overlap_calculated
   type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
   logical,intent(in) :: experimental_mode
-  type(DFT_wavefunction),intent(inout) :: tmb
   integer,intent(in) :: norder_taylor
 
   ! Local variables
@@ -256,20 +255,20 @@ call timing(iproc,'misc','ON')
       !@NEW
       if (iproc==0) call yaml_map('correction orthoconstraint',.true.)
       inv_ovrlp_ = matrices_null()
-      call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
+      call allocate_matrices(linmat%l, allocate_full=.false., &
            matname='inv_ovrlp_', mat=inv_ovrlp_)
       call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, -1, &
-           imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
-           ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, &
+           imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
+           ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, &
            check_accur=.true., error=error)
 
-      inv_ovrlp_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_seq')
-      lagmatp = sparsematrix_malloc(tmb%linmat%m, iaction=DENSE_PARALLEL, id='lagmatp')
-      inv_lagmatp = sparsematrix_malloc(tmb%linmat%m, iaction=DENSE_PARALLEL, id='inv_lagmatp')
-      call sequential_acces_matrix_fast(tmb%linmat%l, inv_ovrlp_%matrix_compr, inv_ovrlp_seq)
-      call uncompress_matrix_distributed(iproc, tmb%linmat%m, tmp_mat_compr, lagmatp)
-      call sparsemm(tmb%linmat%l, inv_ovrlp_seq, lagmatp, inv_lagmatp)
-      call compress_matrix_distributed(iproc, tmb%linmat%m, inv_lagmatp, tmp_mat_compr)
+      inv_ovrlp_seq = sparsematrix_malloc(linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_seq')
+      lagmatp = sparsematrix_malloc(linmat%m, iaction=DENSE_PARALLEL, id='lagmatp')
+      inv_lagmatp = sparsematrix_malloc(linmat%m, iaction=DENSE_PARALLEL, id='inv_lagmatp')
+      call sequential_acces_matrix_fast(linmat%l, inv_ovrlp_%matrix_compr, inv_ovrlp_seq)
+      call uncompress_matrix_distributed(iproc, linmat%m, tmp_mat_compr, lagmatp)
+      call sparsemm(linmat%l, inv_ovrlp_seq, lagmatp, inv_lagmatp)
+      call compress_matrix_distributed(iproc, linmat%m, inv_lagmatp, tmp_mat_compr)
       call f_free(inv_ovrlp_seq)
       call f_free(lagmatp)
       call f_free(inv_lagmatp)

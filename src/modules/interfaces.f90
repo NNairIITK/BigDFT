@@ -1991,7 +1991,7 @@ module module_interfaces
 
       subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
                  correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, hpsit_c, hpsit_f, &
-                 can_use_transposed, overlap_calculated, experimental_mode, tmb, norder_taylor)
+                 can_use_transposed, overlap_calculated, experimental_mode, norder_taylor)
         use module_base
         use module_types
         use yaml_output
@@ -2010,7 +2010,6 @@ module module_interfaces
         logical,intent(inout) :: can_use_transposed, overlap_calculated
         type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
         logical,intent(in) :: experimental_mode
-        type(DFT_wavefunction),intent(inout) :: tmb
         integer,intent(in) :: norder_taylor
       end subroutine orthoconstraintNonorthogonal
 
