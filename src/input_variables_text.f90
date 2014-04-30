@@ -373,7 +373,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
 !!  in%lin%evhigh=dummy_darr(2)
 !!  in%lin%fscale=dict//LIN_KERNEL//FSCALE_FOE
 
-  in%lin%correctionOrthoconstraint=1 !to be checked later
+  in%lin%correctionOrthoconstraint=0 !to be checked later
 
   ! not sure whether to actually make this an input variable or not so just set to false for now
   in%lin%diag_start=.false.
