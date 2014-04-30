@@ -2941,6 +2941,8 @@ end subroutine find_category
           in%lin%nItPrecond = val
        case (fix_basis)
           in%lin%support_functions_converged = val
+      case (correction_orthoconstraint)
+          in%lin%correctionOrthoconstraint = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select

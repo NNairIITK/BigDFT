@@ -750,6 +750,9 @@
        COMMENT: fix the support functions if the density change is below this threshold
        RANGE: [1.e-14,1.e-6]
        default: 1.e-10
+     correction_orthoconstraint:
+       COMMENT: correction for the slight non-orthonormality in the orthoconstraint
+       default: 1 
  lin_kernel:
      nstep:
        COMMENT: don't know what this variable stands for...

@@ -136,40 +136,40 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       end if
   end if
 
-  !@NEW correction for contra / covariant gradient
-      !if (associated(tmb%psit_c)) stop 'tmb%psit_c already associated'
-      !if (associated(tmb%psit_f)) stop 'tmb%psit_f already associated'
-      !allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-      !allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-      !if(.not.tmb%can_use_transposed) then
+  !!@NEW correction for contra / covariant gradient
+  !    !if (associated(tmb%psit_c)) stop 'tmb%psit_c already associated'
+  !    !if (associated(tmb%psit_f)) stop 'tmb%psit_f already associated'
+  !    !allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+  !    !allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+  !    !if(.not.tmb%can_use_transposed) then
 
-      if(.not.associated(tmb%psit_c)) then
-          allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-          call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
-      end if
-      if(.not.associated(tmb%psit_f)) then
-          allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-          call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
-      end if
-      call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-           tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
-      tmb%can_use_transposed=.true.
+  !    if(.not.associated(tmb%psit_c)) then
+  !        allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+  !        call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+  !    end if
+  !    if(.not.associated(tmb%psit_f)) then
+  !        allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+  !        call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+  !    end if
+  !    call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+  !         tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+  !    tmb%can_use_transposed=.true.
 
-      call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
-           tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+  !    call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
+  !         tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
 
-      !!call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, &
-      !!     tmb%collcom, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
-      !!call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
-      !!     tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
-      hpsittmp_c = hpsit_c
-      hpsittmp_f = hpsit_f
-      call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-           tmb%linmat%s, tmb%linmat%ovrlp_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+  !    !!call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, &
+  !    !!     tmb%collcom, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+  !    !!call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
+  !    !!     tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+  !    hpsittmp_c = hpsit_c
+  !    hpsittmp_f = hpsit_f
+  !    call build_linear_combination_transposed(tmb%ham_descr%collcom, &
+  !         tmb%linmat%s, tmb%linmat%ovrlp_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
 
-      !deallocate(tmb%psit_c)
-      !deallocate(tmb%psit_f)
-  !@END NEW correction for contra / covariant gradient
+  !    !deallocate(tmb%psit_c)
+  !    !deallocate(tmb%psit_f)
+  !!@END NEW correction for contra / covariant gradient
 
   !!! EXPERIMENTAL: correction for co- / contravariant ===============================================================
   !!! Calculate the overlap matrix, can be optimized ############################

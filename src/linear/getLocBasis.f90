@@ -779,9 +779,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
 
       correction_orthoconstraint_local=correction_orthoconstraint
-      if(.not.ortho_on) then
-          correction_orthoconstraint_local=2
-      end if
+      !if(.not.ortho_on) then
+      !    correction_orthoconstraint_local=2
+      !end if
+      !write(*,*) 'correction_orthoconstraint, correction_orthoconstraint_local',correction_orthoconstraint, correction_orthoconstraint_local
+
 
       !!! PLOT ###########################################################################
       !!hxh=0.5d0*tmb%lzd%hgrids(1)      

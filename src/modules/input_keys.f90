@@ -179,6 +179,7 @@ module module_input_keys
   character(len=*), parameter, public :: TRANSFER_INTEGRALS='transfer_integrals'
   character(len=*), parameter, public :: CONSTRAINED_DFT  ='constrained_dft'
   character(len=*), parameter, public :: FIX_BASIS       ='fix_basis' 
+  character(len=*), parameter, public :: CORRECTION_ORTHOCONSTRAINT='correction_orthoconstraint'
 
 
 
