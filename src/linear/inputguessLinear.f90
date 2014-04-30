@@ -679,7 +679,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode,input%lin%early_stop,&
          input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
          can_use_ham, input%lin%order_taylor, input%kappa_conv, input%method_updatekernel,&
-         input%purification_quickreturn, input%adjust_FOE_temperature)
+         input%purification_quickreturn, input%adjust_FOE_temperature, input%correction_co_contra)
      reduce_conf=.true.
      call yaml_close_sequence()
      call yaml_close_map()

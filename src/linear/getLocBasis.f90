@@ -421,7 +421,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     correction_orthoconstraint,nit_basis,&
     ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
     gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, kappa_conv, method_updatekernel,&
-    purification_quickreturn, adjust_FOE_temperature)
+    purification_quickreturn, adjust_FOE_temperature, correction_co_contra)
   !
   ! Purpose:
   ! ========
@@ -462,6 +462,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   logical,intent(in) :: experimental_mode, purification_quickreturn, adjust_FOE_temperature
   logical,intent(out) :: can_use_ham
   integer,intent(in) :: method_updatekernel
+  logical,intent(in) :: correction_co_contra
  
   ! Local variables
   real(kind=8) :: fnrmMax, meanAlpha, ediff_best, alpha_max, delta_energy, delta_energy_prev, ediff
@@ -813,7 +814,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
            hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint_local, .false., hpsi_small, &
-           experimental_mode, orbs, hpsi_noprecond)
+           experimental_mode, correction_co_contra, orbs, hpsi_noprecond)
 
 
       !!! PLOT ###########################################################################

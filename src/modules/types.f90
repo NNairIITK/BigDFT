@@ -427,6 +427,9 @@ module module_types
      !> linear scaling: perform a check of the matrix compression routines
      logical :: check_matrix_compression
 
+     !> linear scaling: correction covariant / contravariant gradient
+     logical :: correction_co_contra
+
   end type input_variables
 
 
@@ -2781,6 +2784,9 @@ end subroutine find_category
        case (CHECK_MATRIX_COMPRESSION)
            ! linear scaling: perform a check of the matrix compression routines
            in%check_matrix_compression = val
+       case (CORRECTION_CO_CONTRA)
+           ! linear scaling: correction covariant / contravariant gradient
+           in%correction_co_contra = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
