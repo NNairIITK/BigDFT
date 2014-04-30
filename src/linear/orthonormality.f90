@@ -142,7 +142,7 @@ end subroutine orthonormalizeLocalized
 ! use sparsity of density kernel for all inverse quantities
 subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
            correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, hpsit_c, hpsit_f, &
-           can_use_transposed, overlap_calculated, experimental_mode, tmb)
+           can_use_transposed, overlap_calculated, experimental_mode, tmb, norder_taylor)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthoconstraintNonorthogonal
@@ -173,6 +173,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
   logical,intent(in) :: experimental_mode
   type(DFT_wavefunction),intent(inout) :: tmb
+  integer,intent(in) :: norder_taylor
 
   ! Local variables
   integer :: istat, iall, iorb, jorb, ii, ii_trans, irow, jcol, info, lwork, jj
@@ -257,7 +258,7 @@ call timing(iproc,'misc','ON')
       inv_ovrlp_ = matrices_null()
       call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
            matname='inv_ovrlp_', mat=inv_ovrlp_)
-      call overlapPowerGeneral(iproc, nproc, 6, 1, -1, &
+      call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, -1, &
            imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
            ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, &
            check_accur=.true., error=error)

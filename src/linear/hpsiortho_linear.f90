@@ -12,7 +12,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
            energy_increased, tmb, lhphiold, overlap_calculated, &
            energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
-           energy_only, hpsi_small, experimental_mode, correction_co_contra, ksorbs, hpsi_noprecond)
+           energy_only, hpsi_small, experimental_mode, correction_co_contra, ksorbs, hpsi_noprecond, &
+           norder_taylor)
   use module_base
   use module_types
   use yaml_output
@@ -23,7 +24,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   implicit none
 
   ! Calling arguments
-  integer, intent(in) :: iproc, nproc, it
+  integer, intent(in) :: iproc, nproc, it, norder_taylor
   type(DFT_wavefunction), target, intent(inout):: tmb
   type(localizedDIISParameters), intent(inout) :: ldiis
   real(kind=8), dimension(tmb%orbs%norb), intent(inout) :: fnrmOldArr
@@ -410,7 +411,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
        tmb%linmat, tmb%ham_descr%psi, tmb%hpsi, &
        tmb%linmat%m, tmb%linmat%ham_, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, &
        hpsit_c, hpsit_f, tmb%ham_descr%can_use_transposed, &
-       overlap_calculated, experimental_mode, tmb)
+       overlap_calculated, experimental_mode, tmb, norder_taylor)
 
   !!EXPERIMENTAL
   !!call calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, hpsit_f)

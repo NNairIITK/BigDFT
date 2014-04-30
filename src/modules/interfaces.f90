@@ -1991,7 +1991,7 @@ module module_interfaces
 
       subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
                  correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, hpsit_c, hpsit_f, &
-                 can_use_transposed, overlap_calculated, experimental_mode, tmb)
+                 can_use_transposed, overlap_calculated, experimental_mode, tmb, norder_taylor)
         use module_base
         use module_types
         use yaml_output
@@ -2011,6 +2011,7 @@ module module_interfaces
         type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
         logical,intent(in) :: experimental_mode
         type(DFT_wavefunction),intent(inout) :: tmb
+        integer,intent(in) :: norder_taylor
       end subroutine orthoconstraintNonorthogonal
 
 
@@ -2481,11 +2482,11 @@ module module_interfaces
                   ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
                   energy_increased, tmb, lhphiold, overlap_calculated, &
                   energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
-                  energy_only, hpsi_small, experimental_mode, correction_co_contra, ksorbs, hpsi_noprecond)
+                  energy_only, hpsi_small, experimental_mode, correction_co_contra, ksorbs, hpsi_noprecond, norder_taylor)
          use module_base
          use module_types
          implicit none
-         integer,intent(in) :: iproc, nproc, it
+         integer,intent(in) :: iproc, nproc, it, norder_taylor
          type(DFT_wavefunction),target,intent(inout):: tmb
          type(localizedDIISParameters),intent(inout) :: ldiis
          real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
