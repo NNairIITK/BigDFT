@@ -478,6 +478,21 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
   call timing(iproc,'lovrlp^-1     ','ON')
 
 
+  if (iproc==0) then
+      call yaml_open_sequence('overlap manipulation routine')
+      if (imode==SPARSE) then
+          call yaml_map('mode','sparse')
+      else if (imode==DENSE) then
+          call yaml_map('mode','dense')
+      end if
+      call yaml_map('power',power)
+      call yaml_map('order',iorder)
+      call yaml_close_sequence()
+  end if
+
+
+
+
   ! Perform a check of the arguments
 
   if (imode/=SPARSE .and. imode/=DENSE) stop 'wrong imode'
