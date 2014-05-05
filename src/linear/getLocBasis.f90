@@ -2005,7 +2005,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   integer,parameter :: ALLGATHERV=1, ALLREDUCE=2
   integer, parameter :: communication_strategy=ALLGATHERV
   logical,parameter :: dense=.true.
-  logical,parameter :: check_accuracy=.true.
+  logical,parameter :: check_accuracy=.false.
 
   call mpi_barrier(bigdft_mpi%mpi_comm, ierr) ! to check timings
   call timing(iproc,'renormCoefCom1','ON')

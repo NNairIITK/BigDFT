@@ -220,6 +220,10 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   allocate(tmp_mat_compr(lagmat%nvctr), stat=istat) ! save cf doing sparsecopy
   call memocc(istat, tmp_mat_compr, 'tmp_mat_compr', subname)
 call timing(iproc,'misc','ON')
+
+  !$omp parallel do default(none) &
+  !$omp private(ii,iorb,jorb,ii_trans) &
+  !$omp shared(lagmat,lagmat_,tmp_mat_compr,iproc,orbs,correction_orthoconstraint,experimental_mode)
   do ii=1,lagmat%nvctr
      iorb = lagmat%orb_from_index(1,ii)
      jorb = lagmat%orb_from_index(2,ii)
@@ -243,6 +247,8 @@ call timing(iproc,'misc','ON')
          end if
      end if
   end do
+  !$omp end parallel do
+
 
   ! NEW: reactivate correction for non-orthogonality ##########
   if (correction_orthoconstraint==0) then
@@ -308,6 +314,7 @@ call timing(iproc,'misc','ON')
   iall=-product(shape(tmp_mat_compr))*kind(tmp_mat_compr)
   deallocate(tmp_mat_compr, stat=istat)
   call memocc(istat, iall, 'tmp_mat_compr', subname)
+
 
 call timing(iproc,'misc','OF')
 

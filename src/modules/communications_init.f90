@@ -154,7 +154,7 @@ module communications_init
       real(kind=8),intent(out) :: weight_c_tot, weight_f_tot
       
       ! Local variables
-      integer :: iorb, iiorb, i0, i1, i2, i3, ii, jj, iseg, ilr, istart, iend, i, j0, j1, ii1, ii2, ii3
+      integer :: iorb, iiorb, i0, i1, i2, i3, ii, jj, iseg, ilr, istart, iend, i, j0, j1, ii1, ii2, ii3, n1p1, np
     
     
       ii=(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1)
@@ -164,7 +164,7 @@ module communications_init
       weight_f_tot=0.d0
     
       !$omp parallel default(private) &
-      !$omp shared(orbs,lzd,weight_c,weight_c_tot,weight_f,weight_f_tot,ilr,iiorb)
+      !$omp shared(orbs,lzd,weight_c,weight_c_tot,weight_f,weight_f_tot,ilr,iiorb,np,n1p1)
    
 !      orbs_it=>orbital_iterator(orbs)
 !      do while(associated(orbs_it))
@@ -181,23 +181,26 @@ module communications_init
       do iorb=1,orbs%norbp
           iiorb=orbs%isorb+iorb
           ilr=orbs%inwhichlocreg(iiorb)
+
+          n1p1=lzd%llr(ilr)%d%n1+1
+          np=n1p1*(lzd%llr(ilr)%d%n2+1)
+
           if (lzd%llr(ilr)%wfd%nseg_c>0) then
               !$omp do reduction(+:weight_c_tot) 
               do iseg=1,lzd%llr(ilr)%wfd%nseg_c
-                  jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
                   j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
                   j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
                   ii=j0-1
-                  i3=ii/((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1))
-                  ii=ii-i3*(lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)
-                  i2=ii/(lzd%llr(ilr)%d%n1+1)
-                  i0=ii-i2*(lzd%llr(ilr)%d%n1+1)
+                  i3=ii/np
+                  ii=ii-i3*np
+                  i2=ii/n1p1
+                  i0=ii-i2*n1p1
                   i1=i0+j1-j0
                   !write(*,'(a,8i8)') 'jj, ii, j0, j1, i0, i1, i2, i3',jj,ii,j0,j1,i0,i1,i2,i3
+                  ii2=i2+lzd%llr(ilr)%ns2
+                  ii3=i3+lzd%llr(ilr)%ns3
                   do i=i0,i1
                       ii1=i+lzd%llr(ilr)%ns1
-                      ii2=i2+lzd%llr(ilr)%ns2
-                      ii3=i3+lzd%llr(ilr)%ns3
                       weight_c(ii1,ii2,ii3)=weight_c(ii1,ii2,ii3)+1.d0
                       weight_c_tot=weight_c_tot+1.d0
                   end do
@@ -211,19 +214,18 @@ module communications_init
           if (istart<=iend) then
               !$omp do reduction(+:weight_f_tot)
               do iseg=istart,iend
-                  jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
                   j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
                   j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
                   ii=j0-1
-                  i3=ii/((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1))
-                  ii=ii-i3*(lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)
-                  i2=ii/(lzd%llr(ilr)%d%n1+1)
-                  i0=ii-i2*(lzd%llr(ilr)%d%n1+1)
+                  i3=ii/np
+                  ii=ii-i3*np
+                  i2=ii/n1p1
+                  i0=ii-i2*n1p1
                   i1=i0+j1-j0
+                  ii2=i2+lzd%llr(ilr)%ns2
+                  ii3=i3+lzd%llr(ilr)%ns3
                   do i=i0,i1
                       ii1=i+lzd%llr(ilr)%ns1
-                      ii2=i2+lzd%llr(ilr)%ns2
-                      ii3=i3+lzd%llr(ilr)%ns3
                       weight_f(ii1,ii2,ii3)=weight_f(ii1,ii2,ii3)+1.d0
                       weight_f_tot=weight_f_tot+1.d0
                   end do
@@ -260,7 +262,6 @@ module communications_init
       !$omp end do
       !$omp end parallel
     
-    
     end subroutine get_weights
 
 
@@ -284,7 +285,7 @@ module communications_init
       integer,intent(out) :: nvalp_c, nvalp_f
       
       ! Local variables
-      integer :: jproc, i1, i2, i3, ii, istart, iend, jj, j0, j1, ii_c, ii_f
+      integer :: jproc, i1, i2, i3, ii, istart, iend, jj, j0, j1, ii_c, ii_f, n1p1, np
       !!$$integer :: ii2, iiseg, jprocdone
       integer :: i, iseg, i0, iitot, istat, iall
       real(kind=8) :: tt, tt2, weight_c_ideal, weight_f_ideal, ttt, tmp, tmp2
@@ -335,15 +336,16 @@ module communications_init
           if (iproc==0) then
               istartp_seg_c=1
           end if
+          n1p1=lzd%glr%d%n1+1
+          np=n1p1*(lzd%glr%d%n2+1)
           loop_nseg_c: do iseg=1,lzd%glr%wfd%nseg_c
-              jj=lzd%glr%wfd%keyvloc(iseg)
               j0=lzd%glr%wfd%keygloc(1,iseg)
               j1=lzd%glr%wfd%keygloc(2,iseg)
               ii=j0-1
-              i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-              ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-              i2=ii/(lzd%glr%d%n1+1)
-              i0=ii-i2*(lzd%glr%d%n1+1)
+              i3=ii/np
+              ii=ii-i3*np
+              i2=ii/n1p1
+              i0=ii-i2*n1p1
               i1=i0+j1-j0
               tmp=0.d0
               tmp2=0.d0
@@ -428,15 +430,16 @@ module communications_init
           if (iproc==0) then
               istartp_seg_f=istart
           end if
+          n1p1=lzd%glr%d%n1+1
+          np=n1p1*(lzd%glr%d%n2+1)
           loop_nseg_f: do iseg=istart,iend
-              jj=lzd%glr%wfd%keyvloc(iseg)
               j0=lzd%glr%wfd%keygloc(1,iseg)
               j1=lzd%glr%wfd%keygloc(2,iseg)
               ii=j0-1
-              i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-              ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-              i2=ii/(lzd%glr%d%n1+1)
-              i0=ii-i2*(lzd%glr%d%n1+1)
+              i3=ii/np
+              ii=ii-i3*np
+              i2=ii/n1p1
+              i0=ii-i2*n1p1
               i1=i0+j1-j0
               tmp=0.d0
               tmp2=0.d0
@@ -565,18 +568,20 @@ module communications_init
     integer,dimension(0:lr%d%n1,0:lr%d%n2,0:lr%d%n3),intent(out) :: index_in_global_c, index_in_global_f
     
     ! Local variables
-    integer :: iitot, iseg, j0, j1, ii, i1, i2, i3, i0, i, istart, iend
+    integer :: iitot, iseg, j0, j1, ii, i1, i2, i3, i0, i, istart, iend, np, n1p1
     
     
         iitot=0
+        n1p1=lr%d%n1+1
+        np=n1p1*(lr%d%n2+1)
         do iseg=1,lr%wfd%nseg_c
            j0=lr%wfd%keygloc(1,iseg)
            j1=lr%wfd%keygloc(2,iseg)
            ii=j0-1
-           i3=ii/((lr%d%n1+1)*(lr%d%n2+1))
-           ii=ii-i3*(lr%d%n1+1)*(lr%d%n2+1)
-           i2=ii/(lr%d%n1+1)
-           i0=ii-i2*(lr%d%n1+1)
+           i3=ii/np
+           ii=ii-i3*np
+           i2=ii/n1p1
+           i0=ii-i2*n1p1
            i1=i0+j1-j0
            do i=i0,i1
               iitot=iitot+1
@@ -592,10 +597,10 @@ module communications_init
            j0=lr%wfd%keygloc(1,iseg)
            j1=lr%wfd%keygloc(2,iseg)
            ii=j0-1
-           i3=ii/((lr%d%n1+1)*(lr%d%n2+1))
-           ii=ii-i3*(lr%d%n1+1)*(lr%d%n2+1)
-           i2=ii/(lr%d%n1+1)
-           i0=ii-i2*(lr%d%n1+1)
+           i3=ii/np
+           ii=ii-i3*np
+           i2=ii/n1p1
+           i0=ii-i2*n1p1
            i1=i0+j1-j0
            do i=i0,i1
               iitot=iitot+1
@@ -629,7 +634,7 @@ module communications_init
       integer,dimension(0:nproc-1),intent(out) :: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
       
       ! Local variables
-      integer :: iorb, iiorb, i1, i2, i3, ii, jproc, jproctarget, ierr, jj, ilr, j0, j1, i0, i, ind
+      integer :: iorb, iiorb, i1, i2, i3, ii, jproc, jproctarget, ierr, jj, ilr, j0, j1, i0, i, ind, n1p1, np
       integer :: istat, ii1, ii2, ii3, iseg, istart, iend, iall
       integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp
       character(len=*),parameter :: subname='determine_communication_arrays'
@@ -640,22 +645,23 @@ module communications_init
       nsendcounts_f=0
     
       !$omp parallel default(private) shared(ilr,nproc,orbs,lzd,index_in_global_c,istartend_c,nsendcounts_c,nsendcounts_f) &
-      !$omp shared(istartend_f,index_in_global_f)
+      !$omp shared(istartend_f,index_in_global_f,n1p1,np)
     
       do iorb=1,orbs%norbp
           iiorb=orbs%isorb+iorb
           ilr=orbs%inwhichlocreg(iiorb)
           if (lzd%llr(ilr)%wfd%nseg_c>0) then
+              n1p1=lzd%llr(ilr)%d%n1+1
+              np=n1p1*(lzd%llr(ilr)%d%n2+1)
               !$omp do firstprivate(ilr) reduction(+:nsendcounts_c)
               do iseg=1,lzd%llr(ilr)%wfd%nseg_c
-                  jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
                   j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
                   j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
                   ii=j0-1
-                  i3=ii/((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1))
-                  ii=ii-i3*(lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)
-                  i2=ii/(lzd%llr(ilr)%d%n1+1)
-                  i0=ii-i2*(lzd%llr(ilr)%d%n1+1)
+                  i3=ii/np
+                  ii=ii-i3*np
+                  i2=ii/n1p1
+                  i0=ii-i2*n1p1
                   i1=i0+j1-j0
                   ii2=i2+lzd%llr(ilr)%ns2
                   ii3=i3+lzd%llr(ilr)%ns3
@@ -683,16 +689,17 @@ module communications_init
           istart=lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)
           iend=istart+lzd%llr(ilr)%wfd%nseg_f-1
           if (istart<iend) then
+              n1p1=lzd%llr(ilr)%d%n1+1
+              np=n1p1*(lzd%llr(ilr)%d%n2+1)
               !$omp do firstprivate(ilr) reduction(+:nsendcounts_f)
               do iseg=istart,iend
-                  jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
                   j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
                   j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
                   ii=j0-1
-                  i3=ii/((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1))
-                  ii=ii-i3*(lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)
-                  i2=ii/(lzd%llr(ilr)%d%n1+1)
-                  i0=ii-i2*(lzd%llr(ilr)%d%n1+1)
+                  i3=ii/np
+                  ii=ii-i3*np
+                  i2=ii/n1p1
+                  i0=ii-i2*n1p1
                   i1=i0+j1-j0
                   ii2=i2+lzd%llr(ilr)%ns2
                   ii3=i3+lzd%llr(ilr)%ns3
@@ -812,7 +819,7 @@ module communications_init
       
       ! Local variables
       integer :: ii, i1, i2, i3, iipt, iseg, jj, j0, j1, iitot, i, istart, iend, i0
-      integer :: icheck_c,icheck_f,iiorb_c,iiorb_f, npgp_c,npgp_f
+      integer :: icheck_c,icheck_f,iiorb_c,iiorb_f, npgp_c,npgp_f,np,n1p1
       !!integer,dimension(:),allocatable:: iseg_start_c, iseg_start_f
     
     
@@ -822,10 +829,13 @@ module communications_init
       iiorb_c=0
       iipt=0
     
+      n1p1=lzd%glr%d%n1+1
+      np=n1p1*(lzd%glr%d%n2+1)
+
       !$omp parallel default(private) &
       !$omp shared(lzd,iproc,istartend_c,istartend_f,istartp_seg_c,iendp_seg_c,istartp_seg_f,iendp_seg_f) &
       !$omp shared(nptsp_c, weight_c,norb_per_gridpoint_c,weightp_c,nptsp_f, weight_f,norb_per_gridpoint_f,weightp_f) &
-      !$omp shared(icheck_f,iiorb_f,icheck_c,iiorb_c)
+      !$omp shared(icheck_f,iiorb_f,icheck_c,iiorb_c,np,n1p1)
     
     
       if(istartp_seg_c<=iendp_seg_c) then
@@ -835,10 +845,10 @@ module communications_init
               j0=lzd%glr%wfd%keygloc(1,iseg)
               j1=lzd%glr%wfd%keygloc(2,iseg)
               ii=j0-1
-              i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-              ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-              i2=ii/(lzd%glr%d%n1+1)
-              i0=ii-i2*(lzd%glr%d%n1+1)
+              i3=ii/np
+              ii=ii-i3*np
+              i2=ii/n1p1
+              i0=ii-i2*n1p1
               i1=i0+j1-j0
               do i=i0,i1
                   iitot=jj+i-i0
@@ -870,10 +880,10 @@ module communications_init
               j0=lzd%glr%wfd%keygloc(1,iseg)
               j1=lzd%glr%wfd%keygloc(2,iseg)
               ii=j0-1
-              i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-              ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-              i2=ii/(lzd%glr%d%n1+1)
-              i0=ii-i2*(lzd%glr%d%n1+1)
+              i3=ii/np
+              ii=ii-i3*np
+              i2=ii/n1p1
+              i0=ii-i2*n1p1
               i1=i0+j1-j0
               do i=i0,i1
                   iitot=jj+i-i0
@@ -925,7 +935,7 @@ module communications_init
       integer,dimension(ndimind_f),intent(out) :: indexrecvorbital_f, iextract_f, iexpand_f
       
       ! Local variables
-      integer :: i, iorb, iiorb, i1, i2, i3, ind, jproc, jproctarget, ii, ierr, jj, iseg, iitot, ilr
+      integer :: i, iorb, iiorb, i1, i2, i3, ind, jproc, jproctarget, ii, ierr, jj, iseg, iitot, ilr, n1p1, np
       integer :: istart, iend, indglob, ii1, ii2, ii3, j1, i0, j0, istat, iall
       integer,dimension(:),allocatable :: nsend_c,nsend_f, indexsendorbital2, indexrecvorbital2
       integer,dimension(:),allocatable :: gridpoint_start_c, gridpoint_start_f
@@ -982,21 +992,23 @@ module communications_init
       do iorb=1,orbs%norbp
         iiorb=orbs%isorb+iorb
         ilr=orbs%inwhichlocreg(iiorb)
+        n1p1=lzd%llr(ilr)%d%n1+1
+        np=n1p1*(lzd%llr(ilr)%d%n2+1)
         do iseg=1,lzd%llr(ilr)%wfd%nseg_c
-           jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
+           !jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
            j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
            j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
            ii=j0-1
-           i3=ii/((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1))
-           ii=ii-i3*(lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)
-           i2=ii/(lzd%llr(ilr)%d%n1+1)
-           i0=ii-i2*(lzd%llr(ilr)%d%n1+1)
+           i3=ii/np
+           ii=ii-i3*np
+           i2=ii/n1p1
+           i0=ii-i2*n1p1
            i1=i0+j1-j0
            !write(*,'(a,8i8)') 'jj, ii, j0, j1, i0, i1, i2, i3',jj,ii,j0,j1,i0,i1,i2,i3
+           ii2=i2+lzd%llr(ilr)%ns2
+           ii3=i3+lzd%llr(ilr)%ns3
            do i=i0,i1
               ii1=i+lzd%llr(ilr)%ns1
-              ii2=i2+lzd%llr(ilr)%ns2
-              ii3=i3+lzd%llr(ilr)%ns3
               !call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'c', indglob)
               indglob=index_in_global_c(ii1,ii2,ii3)
               iitot=iitot+1
@@ -1039,21 +1051,23 @@ module communications_init
         ilr=orbs%inwhichlocreg(iiorb)
         istart=lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)
         iend=istart+lzd%llr(ilr)%wfd%nseg_f-1
+        n1p1=lzd%llr(ilr)%d%n1+1
+        np=n1p1*(lzd%llr(ilr)%d%n2+1)
         do iseg=istart,iend
-           jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
+           !jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
            j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
            j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
            ii=j0-1
-           i3=ii/((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1))
-           ii=ii-i3*(lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)
-           i2=ii/(lzd%llr(ilr)%d%n1+1)
-           i0=ii-i2*(lzd%llr(ilr)%d%n1+1)
+           i3=ii/np
+           ii=ii-i3*np
+           i2=ii/n1p1
+           i0=ii-i2*n1p1
            i1=i0+j1-j0
            !write(*,'(a,8i8)') 'jj, ii, j0, j1, i0, i1, i2, i3',jj,ii,j0,j1,i0,i1,i2,i3
+           ii2=i2+lzd%llr(ilr)%ns2
+           ii3=i3+lzd%llr(ilr)%ns3
            do i=i0,i1
               ii1=i+lzd%llr(ilr)%ns1
-              ii2=i2+lzd%llr(ilr)%ns2
-              ii3=i3+lzd%llr(ilr)%ns3
               !call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'f', indglob)
               indglob=index_in_global_f(ii1,ii2,ii3)
                       iitot=iitot+1
@@ -1327,15 +1341,18 @@ module communications_init
       integer,dimension((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1)),intent(out) :: gridpoint_start_c, gridpoint_start_f
       
       ! Local variables
-      integer :: i, ii, jj, i1, i2, i3
+      integer :: i, ii, jj, i1, i2, i3, n1p1, np
     
     
       !weight_c=0.d0
       call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1), weight_c(0,0,0))
       call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1), weight_f(0,0,0))
     
+      n1p1=lzd%glr%d%n1+1
+      np=n1p1*(lzd%glr%d%n2+1)
+
       !$omp parallel default(private) shared(lzd,nrecvcounts_c,indexrecvbuf_c,weight_c,gridpoint_start_c) &
-      !$omp shared(nrecvcounts_f,indexrecvbuf_f,weight_f,gridpoint_start_f)
+      !$omp shared(nrecvcounts_f,indexrecvbuf_f,weight_f,gridpoint_start_f,np,n1p1)
     
       !$omp sections
       !$omp section
@@ -1343,10 +1360,10 @@ module communications_init
           ii=indexrecvbuf_c(i)
           !write(650+iproc,*) i, ii
           jj=ii-1
-          i3=jj/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-          jj=jj-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-          i2=jj/(lzd%glr%d%n1+1)
-          i1=jj-i2*(lzd%glr%d%n1+1)
+          i3=jj/np
+          jj=jj-i3*np
+          i2=jj/n1p1
+          i1=jj-i2*n1p1
           weight_c(i1,i2,i3)=weight_c(i1,i2,i3)+1.d0
       end do
     
@@ -1374,10 +1391,10 @@ module communications_init
       do i=1,sum(nrecvcounts_f)
           ii=indexrecvbuf_f(i)
           jj=ii-1
-          i3=jj/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-          jj=jj-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-          i2=jj/(lzd%glr%d%n1+1)
-          i1=jj-i2*(lzd%glr%d%n1+1)
+          i3=jj/np
+          jj=jj-i3*np
+          i2=jj/n1p1
+          i1=jj-i2*n1p1
           weight_f(i1,i2,i3)=weight_f(i1,i2,i3)+1.d0
       end do
     
