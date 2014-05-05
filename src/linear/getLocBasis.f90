@@ -2407,6 +2407,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
 
   shift_loop: do ishift=1,it_shift
 
+  if (iproc==0) call yaml_newline()
   if (iproc==0) call yaml_map('shift of eigenvalues',shift,fmt='(es10.3)')
 
   if (iproc==0) call yaml_open_sequence('purification process')

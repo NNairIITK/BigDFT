@@ -1673,8 +1673,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   KSwfn%orthpar = in%orthpar
   if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
       .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-     tmb%orthpar%methTransformOverlap = in%lin%methTransformOverlap
-     tmb%orthpar%nItOrtho = 1
+     tmb%orthpar%methTransformOverlap = in%lin%order_taylor
      tmb%orthpar%blocksize_pdsyev = in%lin%blocksize_pdsyev
      tmb%orthpar%blocksize_pdgemm = in%lin%blocksize_pdgemm
      tmb%orthpar%nproc_pdsyev = in%lin%nproc_pdsyev
