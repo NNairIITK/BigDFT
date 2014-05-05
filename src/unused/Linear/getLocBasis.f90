@@ -3319,3 +3319,25 @@ subroutine check_idempotency(iproc, nproc, tmb, diff)
   call f_free_ptr(tmb%linmat%kernel_%matrix)
 
 end subroutine check_idempotency
+
+
+
+subroutine my_geocode_buffers(geocode,nl1,nl2,nl3)
+  implicit none
+  integer, intent(out) :: nl1,nl2,nl3
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
+  !local variables
+  logical :: perx,pery,perz
+  integer :: nr1,nr2,nr3
+
+  !conditions for periodicity in the three directions
+  perx=(geocode /= 'F')
+  pery=(geocode == 'P')
+  perz=(geocode /= 'F')
+
+  call ext_buffers(perx,nl1,nr1)
+  call ext_buffers(pery,nl2,nr2)
+  call ext_buffers(perz,nl3,nr3)
+
+end subroutine my_geocode_buffers
+

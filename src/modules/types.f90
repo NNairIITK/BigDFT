@@ -152,8 +152,6 @@ module module_types
      !!   methOrtho==2 -> Loewdin
      integer :: methOrtho
      real(gp) :: iguessTol            !< Gives the tolerance to which the input guess will converged (maximal residue of all orbitals).
-     integer :: methTransformOverlap  !< Method to overlap the localized orbitals (see linear/orthonormality.f90)
-     integer :: nItOrtho              !< Number of iterations for the orthonormalisation
      integer :: blocksize_pdsyev      !< Size of the block for the Scalapack routine pdsyev (computes eigenval and vectors)
      integer :: blocksize_pdgemm      !< Size of the block for the Scalapack routine pdgemm
      integer :: nproc_pdsyev          !< Number of proc for the Scalapack routine pdsyev (linear version)
@@ -191,7 +189,7 @@ module module_types
     integer :: mixHist_lowaccuracy
     integer :: mixHist_highaccuracy
     integer :: dmin_hist_lowaccuracy, dmin_hist_highaccuracy
-    integer :: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
+    integer :: blocksize_pdgemm, blocksize_pdsyev
     integer :: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm
     integer :: nit_lowaccuracy, nit_highaccuracy, nItdmin_lowaccuracy, nItdmin_highaccuracy
     integer :: nItSCCWhenFixed_lowaccuracy, nItSCCWhenFixed_highaccuracy
@@ -427,6 +425,15 @@ module module_types
      !> linear scaling: perform a check of the matrix compression routines
      logical :: check_matrix_compression
 
+     !> linear scaling: correction covariant / contravariant gradient
+     logical :: correction_co_contra
+     
+     !> linear scaling: lower bound for the error function decay length
+     real(kind=8) :: fscale_lowerbound
+
+     !> linear scaling: upper bound for the error function decay length
+     real(kind=8) :: fscale_upperbound
+
   end type input_variables
 
 
@@ -628,6 +635,8 @@ module module_types
     real(kind=8) :: ef_interpol_det        !< FOE: max determinant of cubic interpolation matrix
     real(kind=8) :: ef_interpol_chargediff !< FOE: max charge difference for interpolation
     real(kind=8) :: charge                 !< Total charge of the system
+    real(kind=8) :: fscale_lowerbound      !< lower bound for the error function decay length
+    real(kind=8) :: fscale_upperbound       !< upper bound for the error function decay length
     integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
   end type foe_data
 
@@ -2781,6 +2790,15 @@ end subroutine find_category
        case (CHECK_MATRIX_COMPRESSION)
            ! linear scaling: perform a check of the matrix compression routines
            in%check_matrix_compression = val
+       case (CORRECTION_CO_CONTRA)
+           ! linear scaling: correction covariant / contravariant gradient
+           in%correction_co_contra = val
+       case (FSCALE_LOWERBOUND)
+           ! linear scaling: lower bound for the error function decay length
+           in%fscale_lowerbound = val
+       case (FSCALE_UPPERBOUND)
+           ! linear scaling: upper bound for the error function decay length
+           in%fscale_upperbound = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
@@ -2899,7 +2917,7 @@ end subroutine find_category
        case (CONF_DAMPING) 
           in%lin%reduce_confinement_factor = val
        case (TAYLOR_ORDER)
-          in%lin%methTransformOverlap = val
+          in%lin%order_taylor = val
        case (OUTPUT_WF)
           in%lin%plotBasisFunctions = val
        case (CALC_DIPOLE)
@@ -2941,6 +2959,8 @@ end subroutine find_category
           in%lin%nItPrecond = val
        case (fix_basis)
           in%lin%support_functions_converged = val
+      case (correction_orthoconstraint)
+          in%lin%correctionOrthoconstraint = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select

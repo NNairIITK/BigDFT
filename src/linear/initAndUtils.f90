@@ -209,15 +209,6 @@ subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locreg
 
 end subroutine initLocregs
 
-function megabytes(bytes)
-  implicit none
-  
-  integer,intent(in) :: bytes
-  integer :: megabytes
-  
-  megabytes=nint(dble(bytes)/1048576.d0)
-  
-end function megabytes
 
 
 subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, reset, &
@@ -270,6 +261,8 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
      foe_obj%evboundsshrink_isatur=0
      foe_obj%evbounds_nsatur=input%evbounds_nsatur
      foe_obj%evboundsshrink_nsatur=input%evboundsshrink_nsatur
+     foe_obj%fscale_lowerbound=input%fscale_lowerbound
+     foe_obj%fscale_upperbound=input%fscale_upperbound
   end if
 
   call nullify_foe(foe_obj)
@@ -665,15 +658,6 @@ end subroutine create_LzdLIG
 
 
 
-integer function optimalLength(totalLength, value)
-  implicit none
-  
-  ! Calling arguments
-  integer,intent(in) :: totalLength, value
-  
-  optimalLength=totalLength-ceiling(log10(dble(value+1)+1.d-10))
-
-end function optimalLength
 
 subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, rxyz, lorbs)
   use module_base

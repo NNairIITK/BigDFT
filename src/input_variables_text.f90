@@ -206,16 +206,18 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_var(dummy_real,'-.5d0',dict//LIN_KERNEL//EVAL_RANGE_FOE//0,ranges=(/-10.d0,-1.d-10/))
   call input_var(dummy_real,'-.5d0',dict//LIN_KERNEL//EVAL_RANGE_FOE//1,ranges=(/1.d-10,10.d0/),comment=comments)
 
-  comments='number of iterations in the preconditioner, order of Taylor approximations'
-  call input_var(dummy_int,'5',dict//LIN_BASIS//NSTEP_PREC,ranges=(/1,100/))
-  call input_var(in%lin%order_taylor,'1',ranges=(/1,100/),comment=comments)
+  !comments='number of iterations in the preconditioner, order of Taylor approximations'
+  comments='number of iterations in the preconditioner'
+  call input_var(dummy_int,'5',dict//LIN_BASIS//NSTEP_PREC,ranges=(/1,100/),comment=comments)
+  !call input_var(in%lin%order_taylor,'1',ranges=(/1,100/),comment=comments)
   
   comments = '0-> exact Loewdin, 1-> taylor expansion; &
              &in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
   call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-100,10000/))
+  call input_var(dummy_int,'1',dict//LIN_BASIS//CORRECTION_ORTHOCONSTRAINT,comment=comments)
 
-  !this variable seems deprecated
-  call input_var(dummy_int,'1',ranges=(/0,1/),comment=comments)
+  !!this variable seems deprecated
+  !call input_var(dummy_int,'1',ranges=(/0,1/),comment=comments)
 
   comments='fscale: length scale over which complementary error function decays from 1 to 0'
   call input_var(dummy_real,'1.d-2',dict//LIN_KERNEL//FSCALE_FOE,ranges=(/0.d0,1.d0/),comment=comments)
@@ -373,7 +375,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
 !!  in%lin%evhigh=dummy_darr(2)
 !!  in%lin%fscale=dict//LIN_KERNEL//FSCALE_FOE
 
-  in%lin%correctionOrthoconstraint=1 !to be checked later
+  !in%lin%correctionOrthoconstraint=1 !to be checked later
 
   ! not sure whether to actually make this an input variable or not so just set to false for now
   in%lin%diag_start=.false.

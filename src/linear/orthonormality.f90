@@ -44,7 +44,6 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
   logical :: ovrlp_associated, inv_ovrlp_associated
   type(matrices) :: ovrlp_, inv_ovrlp_half_
 
-  if(orthpar%nItOrtho>1) write(*,*) 'WARNING: might create memory problems...'
 
   !inv_ovrlp_half%matrix_compr=f_malloc_ptr(inv_ovrlp_half%nvctr,id='inv_ovrlp_half%matrix_compr')
 
@@ -52,80 +51,78 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
   call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='inv_ovrlp_half_', mat=inv_ovrlp_half_)
 
 
-  do it=1,orthpar%nItOrtho
 
-      if(.not.can_use_transposed) then
-          if(associated(psit_c)) then
-              iall=-product(shape(psit_c))*kind(psit_c)
-              deallocate(psit_c, stat=istat)
-              call memocc(istat, iall, 'psit_c', subname)
-          end if
-          if(associated(psit_f)) then
-              iall=-product(shape(psit_f))*kind(psit_f)
-              deallocate(psit_f, stat=istat)
-              call memocc(istat, iall, 'psit_f', subname)
-          end if
-          allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
-          call memocc(istat, psit_c, 'psit_c', subname)
-          allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-          call memocc(istat, psit_f, 'psit_f', subname)
-
-          call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
-          can_use_transposed=.true.
-
+  if(.not.can_use_transposed) then
+      if(associated(psit_c)) then
+          iall=-product(shape(psit_c))*kind(psit_c)
+          deallocate(psit_c, stat=istat)
+          call memocc(istat, iall, 'psit_c', subname)
       end if
-
-      ovrlp_ = matrices_null()
-      call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
-      call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
-      ! This can then be deleted if the transition to the new type has been completed.
-
-
-      if (methTransformOverlap==-1) then
-          call overlap_power_minus_one_half_parallel(iproc, nproc, 0, orbs, ovrlp, ovrlp_, inv_ovrlp_half, inv_ovrlp_half_)
-          !!inv_ovrlp_half_%matrix_compr = inv_ovrlp_half%matrix_compr
-      else
-          !ovrlp%matrix_compr=ovrlp_%matrix_compr
-          call overlapPowerGeneral(iproc, nproc, methTransformOverlap, -2, &
-               orthpar%blocksize_pdgemm, &
-               imode=1, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
-               ovrlp_mat=ovrlp_, inv_ovrlp_mat=inv_ovrlp_half_, &
-               check_accur=.false.)!!, &
+      if(associated(psit_f)) then
+          iall=-product(shape(psit_f))*kind(psit_f)
+          deallocate(psit_f, stat=istat)
+          call memocc(istat, iall, 'psit_f', subname)
       end if
+      allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
+      call memocc(istat, psit_c, 'psit_c', subname)
+      allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+      call memocc(istat, psit_f, 'psit_f', subname)
 
-      call deallocate_matrices(ovrlp_)
+      call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
+      can_use_transposed=.true.
 
-      allocate(psittemp_c(sum(collcom%nrecvcounts_c)), stat=istat)
-      call memocc(istat, psittemp_c, 'psittemp_c', subname)
-      allocate(psittemp_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-      call memocc(istat, psittemp_f, 'psittemp_f', subname)
+  end if
 
-      call vcopy(sum(collcom%nrecvcounts_c), psit_c(1), 1, psittemp_c(1), 1)
-      call vcopy(7*sum(collcom%nrecvcounts_f), psit_f(1), 1, psittemp_f(1), 1)
+  ovrlp_ = matrices_null()
+  call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
+  call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
+  ! This can then be deleted if the transition to the new type has been completed.
 
-      !inv_ovrlp_half_ = matrices_null()
-      !call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='inv_ovrlp_half_', mat=inv_ovrlp_half_)
-      !inv_ovrlp_half_%matrix_compr = inv_ovrlp_half%matrix_compr
-      call build_linear_combination_transposed(collcom, inv_ovrlp_half, inv_ovrlp_half_, &
-           psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
-      !call deallocate_matrices(inv_ovrlp_half_)
 
-      allocate(norm(orbs%norb), stat=istat)
-      call memocc(istat, norm, 'norm', subname)
-      call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, norm)
+  if (methTransformOverlap==-1) then
+      call overlap_power_minus_one_half_parallel(iproc, nproc, 0, orbs, ovrlp, ovrlp_, inv_ovrlp_half, inv_ovrlp_half_)
+      !!inv_ovrlp_half_%matrix_compr = inv_ovrlp_half%matrix_compr
+  else
+      !ovrlp%matrix_compr=ovrlp_%matrix_compr
+      call overlapPowerGeneral(iproc, nproc, methTransformOverlap, -2, &
+           orthpar%blocksize_pdgemm, &
+           imode=1, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
+           ovrlp_mat=ovrlp_, inv_ovrlp_mat=inv_ovrlp_half_, &
+           check_accur=.false.)!!, &
+  end if
 
-      iall=-product(shape(norm))*kind(norm)
-      deallocate(norm, stat=istat)
-      call memocc(istat, iall, 'norm', subname)
-      call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, lphi, lzd)
+  call deallocate_matrices(ovrlp_)
 
-      iall=-product(shape(psittemp_c))*kind(psittemp_c)
-      deallocate(psittemp_c, stat=istat)
-      call memocc(istat, iall, 'psittemp_c', subname)
-      iall=-product(shape(psittemp_f))*kind(psittemp_f)
-      deallocate(psittemp_f, stat=istat)
-      call memocc(istat, iall, 'psittemp_f', subname)
-  end do
+  allocate(psittemp_c(sum(collcom%nrecvcounts_c)), stat=istat)
+  call memocc(istat, psittemp_c, 'psittemp_c', subname)
+  allocate(psittemp_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+  call memocc(istat, psittemp_f, 'psittemp_f', subname)
+
+  call vcopy(sum(collcom%nrecvcounts_c), psit_c(1), 1, psittemp_c(1), 1)
+  call vcopy(7*sum(collcom%nrecvcounts_f), psit_f(1), 1, psittemp_f(1), 1)
+
+  !inv_ovrlp_half_ = matrices_null()
+  !call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='inv_ovrlp_half_', mat=inv_ovrlp_half_)
+  !inv_ovrlp_half_%matrix_compr = inv_ovrlp_half%matrix_compr
+  call build_linear_combination_transposed(collcom, inv_ovrlp_half, inv_ovrlp_half_, &
+       psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
+  !call deallocate_matrices(inv_ovrlp_half_)
+
+  allocate(norm(orbs%norb), stat=istat)
+  call memocc(istat, norm, 'norm', subname)
+  call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, norm)
+
+  iall=-product(shape(norm))*kind(norm)
+  deallocate(norm, stat=istat)
+  call memocc(istat, iall, 'norm', subname)
+  call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, lphi, lzd)
+
+  iall=-product(shape(psittemp_c))*kind(psittemp_c)
+  deallocate(psittemp_c, stat=istat)
+  call memocc(istat, iall, 'psittemp_c', subname)
+  iall=-product(shape(psittemp_f))*kind(psittemp_f)
+  deallocate(psittemp_f, stat=istat)
+  call memocc(istat, iall, 'psittemp_f', subname)
 
   !call deallocate_sparse_matrix(inv_ovrlp_half, subname)
   !!iall=-product(shape(inv_ovrlp_half%matrix_compr))*kind(inv_ovrlp_half%matrix_compr)
@@ -142,16 +139,18 @@ end subroutine orthonormalizeLocalized
 ! use sparsity of density kernel for all inverse quantities
 subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
            correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, hpsit_c, hpsit_f, &
-           can_use_transposed, overlap_calculated, experimental_mode)
+           can_use_transposed, overlap_calculated, experimental_mode, norder_taylor)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthoconstraintNonorthogonal
   use yaml_output
   use communications, only: transpose_localized, untranspose_localized
-  use sparsematrix_base, only: matrices_null, allocate_matrices, deallocate_matrices, &
-                               sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
+  use sparsematrix_base, only: matrices_null, allocate_matrices, deallocate_matrices, sparsematrix_malloc, &
+                               sparsematrix_malloc_ptr, DENSE_FULL, DENSE_PARALLEL, SPARSEMM_SEQ, &
+                               assignment(=)
   use sparsematrix_init, only: matrixindex_in_compressed
-  use sparsematrix, only: uncompress_matrix
+  use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed, compress_matrix_distributed, &
+                          sequential_acces_matrix_fast, sparsemm
   implicit none
 
   ! Calling arguments
@@ -170,14 +169,18 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   logical,intent(inout) :: can_use_transposed, overlap_calculated
   type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
   logical,intent(in) :: experimental_mode
+  integer,intent(in) :: norder_taylor
 
   ! Local variables
   integer :: istat, iall, iorb, jorb, ii, ii_trans, irow, jcol, info, lwork, jj
-  !type(sparse_matrix) :: tmp_mat
+  real(kind=8) :: error
   real(kind=8),dimension(:),allocatable :: tmp_mat_compr, lagmat_tmp_compr, work
   character(len=*),parameter :: subname='orthoconstraintNonorthogonal'
   real(kind=8),dimension(:,:),allocatable :: tmp_mat, tmp_mat2, tmp_mat3
   integer,dimension(:),allocatable :: ipiv
+  type(matrices) :: inv_ovrlp_
+  real(8),dimension(:),allocatable :: inv_ovrlp_seq
+  real(8),dimension(:,:),allocatable :: lagmatp, inv_lagmatp
 
   ! removed option for correction orthoconstrain for now
   !if (correction_orthoconstraint==0) stop 'correction_orthoconstraint not working'
@@ -252,56 +255,81 @@ call timing(iproc,'misc','ON')
 
   ! NEW: reactivate correction for non-orthogonality ##########
   if (correction_orthoconstraint==0) then
-      ! WARNING: it is mandatory that the overlap matrix has been calculated before
-      !!call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, linmat%ovrlp)
-      if (iproc==0) write(*,*) 'correction orthoconstraint'
-      linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(linmat%s, DENSE_FULL, id='linmat%ovrlp_%matrix')
-      call uncompress_matrix(iproc, linmat%s, inmat=linmat%ovrlp_%matrix_compr, outmat=linmat%ovrlp_%matrix)
-      allocate(tmp_mat(orbs%norb,orbs%norb))
-      allocate(tmp_mat2(orbs%norb,orbs%norb))
-      call to_zero(orbs%norb**2, tmp_mat(1,1))
-      do ii=1,lagmat%nvctr
-         irow = lagmat%orb_from_index(1,ii)
-         jcol = lagmat%orb_from_index(2,ii)
-         tmp_mat(irow,jcol)=tmp_mat_compr(ii)
-      end do
-      allocate(ipiv(orbs%norb))
-      lwork=10*orbs%norb
-      allocate(work(lwork))
-      allocate(tmp_mat3(orbs%norb,orbs%norb))
-      tmp_mat3=linmat%ovrlp_%matrix
+      !@NEW
+      if (iproc==0) call yaml_map('correction orthoconstraint',.true.)
+      inv_ovrlp_ = matrices_null()
+      call allocate_matrices(linmat%l, allocate_full=.false., &
+           matname='inv_ovrlp_', mat=inv_ovrlp_)
+      call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, -1, &
+           imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
+           ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, &
+           check_accur=.true., error=error)
 
-      call dgetrf(orbs%norb, orbs%norb, linmat%ovrlp_%matrix, orbs%norb, ipiv, info)
-      call dgetri(orbs%norb, linmat%ovrlp_%matrix, orbs%norb, ipiv, work, lwork, info)
+      inv_ovrlp_seq = sparsematrix_malloc(linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_seq')
+      lagmatp = sparsematrix_malloc(linmat%m, iaction=DENSE_PARALLEL, id='lagmatp')
+      inv_lagmatp = sparsematrix_malloc(linmat%m, iaction=DENSE_PARALLEL, id='inv_lagmatp')
+      call sequential_acces_matrix_fast(linmat%l, inv_ovrlp_%matrix_compr, inv_ovrlp_seq)
+      call uncompress_matrix_distributed(iproc, linmat%m, tmp_mat_compr, lagmatp)
+      call sparsemm(linmat%l, inv_ovrlp_seq, lagmatp, inv_lagmatp)
+      call compress_matrix_distributed(iproc, linmat%m, inv_lagmatp, tmp_mat_compr)
+      call f_free(inv_ovrlp_seq)
+      call f_free(lagmatp)
+      call f_free(inv_lagmatp)
+      call deallocate_matrices(inv_ovrlp_)
+      !@ENDNEW
 
-      !!call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, linmat%ovrlp%matrix, orbs%norb, tmp_mat3, orbs%norb, 0.d0, tmp_mat2, orbs%norb)
-      !!if (iproc==0) then
-      !!  do iorb=1,orbs%norb
-      !!    do jorb=1,orbs%norb
-      !!      write(*,'(a,2i8,es14.5)') 'iorb, jorb, tmp_mat2(iorb,jorb)', iorb, jorb, tmp_mat2(iorb,jorb)
-      !!    end do
-      !!  end do
-      !!end if
 
-      ! This is the original
-      call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, linmat%ovrlp_%matrix, orbs%norb, &
-           tmp_mat, orbs%norb, 0.d0, tmp_mat2, orbs%norb)
+   !!!   ! WARNING: it is mandatory that the overlap matrix has been calculated before
+   !!!   !!call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, linmat%ovrlp)
+   !!!   !if (iproc==0) write(*,*) 'correction orthoconstraint'
+   !!!   if (iproc==0) call yaml_map('correction orthoconstraint',.true.)
+   !!!   linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(linmat%s, DENSE_FULL, id='linmat%ovrlp_%matrix')
+   !!!   call uncompress_matrix(iproc, linmat%s, inmat=linmat%ovrlp_%matrix_compr, outmat=linmat%ovrlp_%matrix)
+   !!!   allocate(tmp_mat(orbs%norb,orbs%norb))
+   !!!   allocate(tmp_mat2(orbs%norb,orbs%norb))
+   !!!   call to_zero(orbs%norb**2, tmp_mat(1,1))
+   !!!   do ii=1,lagmat%nvctr
+   !!!      irow = lagmat%orb_from_index(1,ii)
+   !!!      jcol = lagmat%orb_from_index(2,ii)
+   !!!      tmp_mat(irow,jcol)=tmp_mat_compr(ii)
+   !!!   end do
+   !!!   allocate(ipiv(orbs%norb))
+   !!!   lwork=10*orbs%norb
+   !!!   allocate(work(lwork))
+   !!!   allocate(tmp_mat3(orbs%norb,orbs%norb))
+   !!!   tmp_mat3=linmat%ovrlp_%matrix
 
-      !!! Test
-      !!call dgemm('n', 't', orbs%norb, orbs%norb, orbs%norb, 1.d0, tmp_mat, orbs%norb, linmat%ovrlp%matrix, orbs%norb, 0.d0, tmp_mat2, orbs%norb)
+   !!!   call dgetrf(orbs%norb, orbs%norb, linmat%ovrlp_%matrix, orbs%norb, ipiv, info)
+   !!!   call dgetri(orbs%norb, linmat%ovrlp_%matrix, orbs%norb, ipiv, work, lwork, info)
 
-      do jj=1,lagmat%nvctr
-         irow = lagmat%orb_from_index(1,jj)
-         jcol = lagmat%orb_from_index(2,jj)
-         !!if (iproc==0) write(*,'(a,3i8,2es16.6)') 'jj, irow, jcol, tmp_mat_compr(jj), tmp_mat2(irow,jcol)', &
-         !!                                          jj, irow, jcol, tmp_mat_compr(jj), tmp_mat2(irow,jcol)
-         tmp_mat_compr(jj)=tmp_mat2(irow,jcol)
-      end do
-      call f_free_ptr(linmat%ovrlp_%matrix)
-      deallocate(tmp_mat)
-      deallocate(tmp_mat2)
-      deallocate(ipiv)
-      deallocate(work)
+   !!!   !!call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, linmat%ovrlp%matrix, orbs%norb, tmp_mat3, orbs%norb, 0.d0, tmp_mat2, orbs%norb)
+   !!!   !!if (iproc==0) then
+   !!!   !!  do iorb=1,orbs%norb
+   !!!   !!    do jorb=1,orbs%norb
+   !!!   !!      write(*,'(a,2i8,es14.5)') 'iorb, jorb, tmp_mat2(iorb,jorb)', iorb, jorb, tmp_mat2(iorb,jorb)
+   !!!   !!    end do
+   !!!   !!  end do
+   !!!   !!end if
+
+   !!!   ! This is the original
+   !!!   call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, linmat%ovrlp_%matrix, orbs%norb, &
+   !!!        tmp_mat, orbs%norb, 0.d0, tmp_mat2, orbs%norb)
+
+   !!!   !!! Test
+   !!!   !!call dgemm('n', 't', orbs%norb, orbs%norb, orbs%norb, 1.d0, tmp_mat, orbs%norb, linmat%ovrlp%matrix, orbs%norb, 0.d0, tmp_mat2, orbs%norb)
+
+   !!!   do jj=1,lagmat%nvctr
+   !!!      irow = lagmat%orb_from_index(1,jj)
+   !!!      jcol = lagmat%orb_from_index(2,jj)
+   !!!      !!if (iproc==0) write(*,'(a,3i8,2es16.6)') 'jj, irow, jcol, tmp_mat_compr(jj), tmp_mat2(irow,jcol)', &
+   !!!      !!                                          jj, irow, jcol, tmp_mat_compr(jj), tmp_mat2(irow,jcol)
+   !!!      tmp_mat_compr(jj)=tmp_mat2(irow,jcol)
+   !!!   end do
+   !!!   call f_free_ptr(linmat%ovrlp_%matrix)
+   !!!   deallocate(tmp_mat)
+   !!!   deallocate(tmp_mat2)
+   !!!   deallocate(ipiv)
+   !!!   deallocate(work)
   end if
   !! ##########################################################
 
@@ -455,6 +483,22 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
 
   call f_routine(id='overlapPowerGeneral')
   call timing(iproc,'lovrlp^-1     ','ON')
+
+  if (iproc==0) then
+      call yaml_newline()
+      call yaml_open_sequence('overlap manipulation routine')
+      if (imode==SPARSE) then
+          call yaml_map('mode','sparse')
+      else if (imode==DENSE) then
+          call yaml_map('mode','dense')
+      end if
+      call yaml_map('power',power)
+      call yaml_map('order',iorder)
+      call yaml_close_sequence()
+  end if
+
+
+
 
   ! Perform a check of the arguments
 
@@ -1954,7 +1998,6 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   real(kind=8) :: error
   type(matrices) :: ovrlp_, inv_ovrlp_half_
 
-  if(orthpar%nItOrtho>1) write(*,*) 'WARNING: might create memory problems...'
 
   !call nullify_sparse_matrix(inv_ovrlp_half)
   !call sparse_copy_pattern(inv_ovrlp, inv_ovrlp_half, iproc, subname)
@@ -1965,176 +2008,174 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   inv_ovrlp_half_ = matrices_null()
   call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='inv_ovrlp_half_', mat=inv_ovrlp_half_)
 
-  do it=1,orthpar%nItOrtho
 
-      if(.not.can_use_transposed) then
-          if(associated(psit_c)) then
-              iall=-product(shape(psit_c))*kind(psit_c)
-              deallocate(psit_c, stat=istat)
-              call memocc(istat, iall, 'psit_c', subname)
-          end if
-          if(associated(psit_f)) then
-              iall=-product(shape(psit_f))*kind(psit_f)
-              deallocate(psit_f, stat=istat)
-              call memocc(istat, iall, 'psit_f', subname)
-          end if
-          allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
-          call memocc(istat, psit_c, 'psit_c', subname)
-          allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-          call memocc(istat, psit_f, 'psit_f', subname)
-
-          call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
-          can_use_transposed=.true.
-
+  if(.not.can_use_transposed) then
+      if(associated(psit_c)) then
+          iall=-product(shape(psit_c))*kind(psit_c)
+          deallocate(psit_c, stat=istat)
+          call memocc(istat, iall, 'psit_c', subname)
       end if
+      if(associated(psit_f)) then
+          iall=-product(shape(psit_f))*kind(psit_f)
+          deallocate(psit_f, stat=istat)
+          call memocc(istat, iall, 'psit_f', subname)
+      end if
+      allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
+      call memocc(istat, psit_c, 'psit_c', subname)
+      allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+      call memocc(istat, psit_f, 'psit_f', subname)
 
-      ovrlp_ = matrices_null()
-      call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
-      call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
-      ! This can then be deleted if the transition to the new type has been completed.
+      call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
+      can_use_transposed=.true.
 
-      ! For the "higher" TMBs: delete off-diagonal elements and
-      ! set diagonal elements to 1
-      allocate(icount_norb(at%astruct%nat),stat=istat)
-      call memocc(istat,icount_norb,'icount_norb',subname)
-      allocate(jcount_norb(at%astruct%nat),stat=istat)
-      call memocc(istat,jcount_norb,'jcount_norb',subname)
-      icount_norb=0
-      do iorb=1,orbs%norb
-          iat=orbs%onwhichatom(iorb)
-          icount_norb(iat)=icount_norb(iat)+1
-          if (icount_norb(iat)<minorbs_type(at%astruct%iatype(iat)) .or. &
-              icount_norb(iat)>maxorbs_type(at%astruct%iatype(iat))) then
-              iout=.true.
-          else
-              iout=.false.
-          end if
-          jcount_norb=0
-          do jorb=1,orbs%norb
-              jat=orbs%onwhichatom(jorb)
-              jcount_norb(jat)=jcount_norb(jat)+1
-              if (jcount_norb(jat)<minorbs_type(at%astruct%iatype(jat)) .or. &
-                  jcount_norb(jat)>maxorbs_type(at%astruct%iatype(jat))) then
-                  jout=.true.
-              else
-                  jout=.false.
-              end if
-              ii=matrixindex_in_compressed(ovrlp,jorb,iorb)
-              !!if (iproc==0) write(444,'(a,2i7,2x,2i7,3x,2l4,3x,3i6)') 'iorb, jorb, iat, jat, iout, jout, icount_norb(iat), minorbs_type(at%iatype(iat)), maxorbs_type(at%iatype(iat))', &
-              !!                                                         iorb, jorb, iat, jat, iout, jout, icount_norb(iat), minorbs_type(at%iatype(iat)), maxorbs_type(at%iatype(iat))
-              if (ii/=0 .and. (iout .or. jout)) then
-                  if (jorb==iorb) then
-                      ovrlp_%matrix_compr(ii)=1.d0
-                  else
-                      ovrlp_%matrix_compr(ii)=0.d0
-                  end if
-              end if
-          end do
-      end do
-      iall=-product(shape(icount_norb))*kind(icount_norb)
-      deallocate(icount_norb, stat=istat)
-      call memocc(istat, iall, 'icount_norb', subname)
-      iall=-product(shape(jcount_norb))*kind(jcount_norb)
-      deallocate(jcount_norb, stat=istat)
-      call memocc(istat, iall, 'jcount_norb', subname)
+  end if
 
+  ovrlp_ = matrices_null()
+  call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
+  call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
+  ! This can then be deleted if the transition to the new type has been completed.
 
-      if (methTransformOverlap==-1) then
-          !ovrlp_ = matrices_null()
-          !call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
-          !ovrlp_%matrix_compr=ovrlp%matrix_compr
-          call overlap_power_minus_one_half_parallel(iproc, nproc, methTransformOverlap, &
-               orbs, ovrlp, ovrlp_, inv_ovrlp_half, inv_ovrlp_half_)
-          !call deallocate_matrices(ovrlp_)
+  ! For the "higher" TMBs: delete off-diagonal elements and
+  ! set diagonal elements to 1
+  allocate(icount_norb(at%astruct%nat),stat=istat)
+  call memocc(istat,icount_norb,'icount_norb',subname)
+  allocate(jcount_norb(at%astruct%nat),stat=istat)
+  call memocc(istat,jcount_norb,'jcount_norb',subname)
+  icount_norb=0
+  do iorb=1,orbs%norb
+      iat=orbs%onwhichatom(iorb)
+      icount_norb(iat)=icount_norb(iat)+1
+      if (icount_norb(iat)<minorbs_type(at%astruct%iatype(iat)) .or. &
+          icount_norb(iat)>maxorbs_type(at%astruct%iatype(iat))) then
+          iout=.true.
       else
-          nullify(inv_ovrlp_null)
-          ! do sparse.. check later
-          !ovrlp%matrix_compr=ovrlp_%matrix_compr
-          call overlapPowerGeneral(iproc, nproc, methTransformOverlap, -2, &
-               orthpar%blocksize_pdsyev, &
-               imode=1, check_accur=.true., &
-               ovrlp_mat=ovrlp_, inv_ovrlp_mat=inv_ovrlp_half_, &
-               error=error, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half)
+          iout=.false.
       end if
-
-      ! For the "higher" TMBs: delete off-diagonal elements and
-      ! set diagonal elements to 1
-      allocate(icount_norb(at%astruct%nat),stat=istat)
-      call memocc(istat,icount_norb,'icount_norb',subname)
-      allocate(jcount_norb(at%astruct%nat),stat=istat)
-      call memocc(istat,jcount_norb,'jcount_norb',subname)
-      icount_norb=0
-      do iorb=1,orbs%norb
-          iat=orbs%onwhichatom(iorb)
-          icount_norb(iat)=icount_norb(iat)+1
-          if (icount_norb(iat)<minorbs_type(at%astruct%iatype(iat)) .or. &
-              icount_norb(iat)>maxorbs_type(at%astruct%iatype(iat))) then
-              iout=.true.
+      jcount_norb=0
+      do jorb=1,orbs%norb
+          jat=orbs%onwhichatom(jorb)
+          jcount_norb(jat)=jcount_norb(jat)+1
+          if (jcount_norb(jat)<minorbs_type(at%astruct%iatype(jat)) .or. &
+              jcount_norb(jat)>maxorbs_type(at%astruct%iatype(jat))) then
+              jout=.true.
           else
-              iout=.false.
+              jout=.false.
           end if
-          jcount_norb=0
-          do jorb=1,orbs%norb
-              jat=orbs%onwhichatom(jorb)
-              jcount_norb(jat)=jcount_norb(jat)+1
-              if (jcount_norb(jat)<minorbs_type(at%astruct%iatype(jat)) .or. &
-                  jcount_norb(jat)>maxorbs_type(at%astruct%iatype(jat))) then
-                  jout=.true.
+          ii=matrixindex_in_compressed(ovrlp,jorb,iorb)
+          !!if (iproc==0) write(444,'(a,2i7,2x,2i7,3x,2l4,3x,3i6)') 'iorb, jorb, iat, jat, iout, jout, icount_norb(iat), minorbs_type(at%iatype(iat)), maxorbs_type(at%iatype(iat))', &
+          !!                                                         iorb, jorb, iat, jat, iout, jout, icount_norb(iat), minorbs_type(at%iatype(iat)), maxorbs_type(at%iatype(iat))
+          if (ii/=0 .and. (iout .or. jout)) then
+              if (jorb==iorb) then
+                  ovrlp_%matrix_compr(ii)=1.d0
               else
-                  jout=.false.
+                  ovrlp_%matrix_compr(ii)=0.d0
               end if
-              ii=matrixindex_in_compressed(ovrlp,jorb,iorb)
-              if (ii/=0 .and. (iout .or. jout)) then
-                  if (jorb==iorb) then
-                      ovrlp_%matrix_compr(ii)=1.d0
-                  else
-                      ovrlp_%matrix_compr(ii)=0.d0
-                  end if
-              end if
-          end do
+          end if
       end do
-      iall=-product(shape(icount_norb))*kind(icount_norb)
-      deallocate(icount_norb, stat=istat)
-      call memocc(istat, iall, 'icount_norb', subname)
-      iall=-product(shape(jcount_norb))*kind(jcount_norb)
-      deallocate(jcount_norb, stat=istat)
-      call memocc(istat, iall, 'jcount_norb', subname)
-
-      allocate(psittemp_c(sum(collcom%nrecvcounts_c)), stat=istat)
-      call memocc(istat, psittemp_c, 'psittemp_c', subname)
-      allocate(psittemp_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-      call memocc(istat, psittemp_f, 'psittemp_f', subname)
-
-      call vcopy(sum(collcom%nrecvcounts_c), psit_c(1), 1, psittemp_c(1), 1)
-      call vcopy(7*sum(collcom%nrecvcounts_f), psit_f(1), 1, psittemp_f(1), 1)
-
-      !inv_ovrlp_half_%matrix_compr = inv_ovrlp_half%matrix_compr
-      call build_linear_combination_transposed(collcom, inv_ovrlp_half, inv_ovrlp_half_, &
-           psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
-
-
-
-      call deallocate_matrices(ovrlp_)
-
-      call deallocate_matrices(inv_ovrlp_half_)
-
-
-      allocate(norm(orbs%norb), stat=istat)
-      call memocc(istat, norm, 'norm', subname)
-      call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, norm)
-
-      iall=-product(shape(norm))*kind(norm)
-      deallocate(norm, stat=istat)
-      call memocc(istat, iall, 'norm', subname)
-      call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, lphi, lzd)
-
-      iall=-product(shape(psittemp_c))*kind(psittemp_c)
-      deallocate(psittemp_c, stat=istat)
-      call memocc(istat, iall, 'psittemp_c', subname)
-      iall=-product(shape(psittemp_f))*kind(psittemp_f)
-      deallocate(psittemp_f, stat=istat)
-      call memocc(istat, iall, 'psittemp_f', subname)
   end do
+  iall=-product(shape(icount_norb))*kind(icount_norb)
+  deallocate(icount_norb, stat=istat)
+  call memocc(istat, iall, 'icount_norb', subname)
+  iall=-product(shape(jcount_norb))*kind(jcount_norb)
+  deallocate(jcount_norb, stat=istat)
+  call memocc(istat, iall, 'jcount_norb', subname)
+
+
+  if (methTransformOverlap==-1) then
+      !ovrlp_ = matrices_null()
+      !call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
+      !ovrlp_%matrix_compr=ovrlp%matrix_compr
+      call overlap_power_minus_one_half_parallel(iproc, nproc, methTransformOverlap, &
+           orbs, ovrlp, ovrlp_, inv_ovrlp_half, inv_ovrlp_half_)
+      !call deallocate_matrices(ovrlp_)
+  else
+      nullify(inv_ovrlp_null)
+      ! do sparse.. check later
+      !ovrlp%matrix_compr=ovrlp_%matrix_compr
+      call overlapPowerGeneral(iproc, nproc, methTransformOverlap, -2, &
+           orthpar%blocksize_pdsyev, &
+           imode=1, check_accur=.true., &
+           ovrlp_mat=ovrlp_, inv_ovrlp_mat=inv_ovrlp_half_, &
+           error=error, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half)
+  end if
+
+  ! For the "higher" TMBs: delete off-diagonal elements and
+  ! set diagonal elements to 1
+  allocate(icount_norb(at%astruct%nat),stat=istat)
+  call memocc(istat,icount_norb,'icount_norb',subname)
+  allocate(jcount_norb(at%astruct%nat),stat=istat)
+  call memocc(istat,jcount_norb,'jcount_norb',subname)
+  icount_norb=0
+  do iorb=1,orbs%norb
+      iat=orbs%onwhichatom(iorb)
+      icount_norb(iat)=icount_norb(iat)+1
+      if (icount_norb(iat)<minorbs_type(at%astruct%iatype(iat)) .or. &
+          icount_norb(iat)>maxorbs_type(at%astruct%iatype(iat))) then
+          iout=.true.
+      else
+          iout=.false.
+      end if
+      jcount_norb=0
+      do jorb=1,orbs%norb
+          jat=orbs%onwhichatom(jorb)
+          jcount_norb(jat)=jcount_norb(jat)+1
+          if (jcount_norb(jat)<minorbs_type(at%astruct%iatype(jat)) .or. &
+              jcount_norb(jat)>maxorbs_type(at%astruct%iatype(jat))) then
+              jout=.true.
+          else
+              jout=.false.
+          end if
+          ii=matrixindex_in_compressed(ovrlp,jorb,iorb)
+          if (ii/=0 .and. (iout .or. jout)) then
+              if (jorb==iorb) then
+                  ovrlp_%matrix_compr(ii)=1.d0
+              else
+                  ovrlp_%matrix_compr(ii)=0.d0
+              end if
+          end if
+      end do
+  end do
+  iall=-product(shape(icount_norb))*kind(icount_norb)
+  deallocate(icount_norb, stat=istat)
+  call memocc(istat, iall, 'icount_norb', subname)
+  iall=-product(shape(jcount_norb))*kind(jcount_norb)
+  deallocate(jcount_norb, stat=istat)
+  call memocc(istat, iall, 'jcount_norb', subname)
+
+  allocate(psittemp_c(sum(collcom%nrecvcounts_c)), stat=istat)
+  call memocc(istat, psittemp_c, 'psittemp_c', subname)
+  allocate(psittemp_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+  call memocc(istat, psittemp_f, 'psittemp_f', subname)
+
+  call vcopy(sum(collcom%nrecvcounts_c), psit_c(1), 1, psittemp_c(1), 1)
+  call vcopy(7*sum(collcom%nrecvcounts_f), psit_f(1), 1, psittemp_f(1), 1)
+
+  !inv_ovrlp_half_%matrix_compr = inv_ovrlp_half%matrix_compr
+  call build_linear_combination_transposed(collcom, inv_ovrlp_half, inv_ovrlp_half_, &
+       psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
+
+
+
+  call deallocate_matrices(ovrlp_)
+
+  call deallocate_matrices(inv_ovrlp_half_)
+
+
+  allocate(norm(orbs%norb), stat=istat)
+  call memocc(istat, norm, 'norm', subname)
+  call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, norm)
+
+  iall=-product(shape(norm))*kind(norm)
+  deallocate(norm, stat=istat)
+  call memocc(istat, iall, 'norm', subname)
+  call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, lphi, lzd)
+
+  iall=-product(shape(psittemp_c))*kind(psittemp_c)
+  deallocate(psittemp_c, stat=istat)
+  call memocc(istat, iall, 'psittemp_c', subname)
+  iall=-product(shape(psittemp_f))*kind(psittemp_f)
+  deallocate(psittemp_f, stat=istat)
+  call memocc(istat, iall, 'psittemp_f', subname)
 
   !call deallocate_sparse_matrix(inv_ovrlp_half, subname)
   !!iall=-product(shape(inv_ovrlp_half%matrix_compr))*kind(inv_ovrlp_half%matrix_compr)
@@ -2180,7 +2221,6 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   character(len=*),parameter :: subname='gramschmidt_subset'
   type(matrices) :: ovrlp_
 
-  if(orthpar%nItOrtho>1) write(*,*) 'WARNING: might create memory problems...'
 
   !call nullify_sparse_matrix(inv_ovrlp_half)
   !call sparse_copy_pattern(inv_ovrlp, inv_ovrlp_half, iproc, subname)
@@ -2188,178 +2228,176 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   !!call memocc(istat, inv_ovrlp_half%matrix_compr, 'inv_ovrlp_half%matrix_compr', subname)
   inv_ovrlp_half%matrix_compr=f_malloc_ptr(inv_ovrlp_half%nvctr,id='inv_ovrlp_half%matrix_compr')
 
-  do it=1,orthpar%nItOrtho
 
-      if(.not.can_use_transposed) then
-          if(associated(psit_c)) then
-              iall=-product(shape(psit_c))*kind(psit_c)
-              deallocate(psit_c, stat=istat)
-              call memocc(istat, iall, 'psit_c', subname)
-          end if
-          if(associated(psit_f)) then
-              iall=-product(shape(psit_f))*kind(psit_f)
-              deallocate(psit_f, stat=istat)
-              call memocc(istat, iall, 'psit_f', subname)
-          end if
-          allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
-          call memocc(istat, psit_c, 'psit_c', subname)
-          allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-          call memocc(istat, psit_f, 'psit_f', subname)
-
-          call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
-          can_use_transposed=.true.
-
+  if(.not.can_use_transposed) then
+      if(associated(psit_c)) then
+          iall=-product(shape(psit_c))*kind(psit_c)
+          deallocate(psit_c, stat=istat)
+          call memocc(istat, iall, 'psit_c', subname)
       end if
+      if(associated(psit_f)) then
+          iall=-product(shape(psit_f))*kind(psit_f)
+          deallocate(psit_f, stat=istat)
+          call memocc(istat, iall, 'psit_f', subname)
+      end if
+      allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
+      call memocc(istat, psit_c, 'psit_c', subname)
+      allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+      call memocc(istat, psit_f, 'psit_f', subname)
+
+      call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
+      can_use_transposed=.true.
+
+  end if
 
 
-      ovrlp_ = matrices_null()
-      call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
-      call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
-      ! This can then be deleted if the transition to the new type has been completed.
-      !ovrlp%matrix_compr=ovrlp_%matrix_compr
+  ovrlp_ = matrices_null()
+  call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
+  call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
+  ! This can then be deleted if the transition to the new type has been completed.
+  !ovrlp%matrix_compr=ovrlp_%matrix_compr
 
-      ! For the "higher" TMBs: delete off-diagonal elements and
-      ! set diagonal elements to 1
-      allocate(icount_norb(at%astruct%nat),stat=istat)
-      call memocc(istat,icount_norb,'icount_norb',subname)
-      allocate(jcount_norb(at%astruct%nat),stat=istat)
-      call memocc(istat,jcount_norb,'jcount_norb',subname)
-      icount_norb=0
-      do iorb=1,orbs%norb
-          iat=orbs%onwhichatom(iorb)
-          icount_norb(iat)=icount_norb(iat)+1
-          if (icount_norb(iat)<minorbs_type(at%astruct%iatype(iat)) .or. &
-              icount_norb(iat)>maxorbs_type(at%astruct%iatype(iat))) then
-              iout=.true.
+  ! For the "higher" TMBs: delete off-diagonal elements and
+  ! set diagonal elements to 1
+  allocate(icount_norb(at%astruct%nat),stat=istat)
+  call memocc(istat,icount_norb,'icount_norb',subname)
+  allocate(jcount_norb(at%astruct%nat),stat=istat)
+  call memocc(istat,jcount_norb,'jcount_norb',subname)
+  icount_norb=0
+  do iorb=1,orbs%norb
+      iat=orbs%onwhichatom(iorb)
+      icount_norb(iat)=icount_norb(iat)+1
+      if (icount_norb(iat)<minorbs_type(at%astruct%iatype(iat)) .or. &
+          icount_norb(iat)>maxorbs_type(at%astruct%iatype(iat))) then
+          iout=.true.
+      else
+          iout=.false.
+      end if
+      jcount_norb=0
+      do jorb=1,orbs%norb
+          jat=orbs%onwhichatom(jorb)
+          jcount_norb(jat)=jcount_norb(jat)+1
+          !!if (jcount_norb(jat)<minorbs_type(at%astruct%iatype(jat)) .or. &
+          !!    jcount_norb(jat)>maxorbs_type(at%astruct%iatype(jat))) then
+          if (jcount_norb(jat)<minorbs_type(at%astruct%iatype(jat))) then
+              jout=.true.
           else
-              iout=.false.
+              jout=.false.
           end if
-          jcount_norb=0
-          do jorb=1,orbs%norb
-              jat=orbs%onwhichatom(jorb)
-              jcount_norb(jat)=jcount_norb(jat)+1
-              !!if (jcount_norb(jat)<minorbs_type(at%astruct%iatype(jat)) .or. &
-              !!    jcount_norb(jat)>maxorbs_type(at%astruct%iatype(jat))) then
-              if (jcount_norb(jat)<minorbs_type(at%astruct%iatype(jat))) then
-                  jout=.true.
+          ii=matrixindex_in_compressed(ovrlp,jorb,iorb)
+          if (ii/=0) then
+              if (iout) then
+                  ovrlp_%matrix_compr(ii)=0.d0
               else
-                  jout=.false.
-              end if
-              ii=matrixindex_in_compressed(ovrlp,jorb,iorb)
-              if (ii/=0) then
-                  if (iout) then
-                      ovrlp_%matrix_compr(ii)=0.d0
+                  if (jout) then
+                      ovrlp_%matrix_compr(ii)=-ovrlp_%matrix_compr(ii)
                   else
-                      if (jout) then
-                          ovrlp_%matrix_compr(ii)=-ovrlp_%matrix_compr(ii)
-                      else
-                          ovrlp_%matrix_compr(ii)=0.d0
-                      end if
+                      ovrlp_%matrix_compr(ii)=0.d0
                   end if
               end if
-              !!if (iout .or. jout) then
-              !!    if (jorb==iorb) then
-              !!        ovrlp%matrix_compr(ii)=1.d0
-              !!    else
-              !!        ovrlp%matrix_compr(ii)=0.d0
-              !!    end if
-              !!end if
-          end do
+          end if
+          !!if (iout .or. jout) then
+          !!    if (jorb==iorb) then
+          !!        ovrlp%matrix_compr(ii)=1.d0
+          !!    else
+          !!        ovrlp%matrix_compr(ii)=0.d0
+          !!    end if
+          !!end if
       end do
-      iall=-product(shape(icount_norb))*kind(icount_norb)
-      deallocate(icount_norb, stat=istat)
-      call memocc(istat, iall, 'icount_norb', subname)
-      iall=-product(shape(jcount_norb))*kind(jcount_norb)
-      deallocate(jcount_norb, stat=istat)
-      call memocc(istat, iall, 'jcount_norb', subname)
-
-
-      !!if (methTransformOverlap==-1) then
-      !!    call overlap_power_minus_one_half_parallel(iproc, nproc, methTransformOverlap, orbs, ovrlp, inv_ovrlp_half)
-      !!else
-      !!    call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, methTransformOverlap, orthpar%blocksize_pdsyev, &
-      !!        orthpar%blocksize_pdgemm, orbs%norb, ovrlp, inv_ovrlp_half)
-      !!end if
-
-      !!! For the "higher" TMBs: delete off-diagonal elements and
-      !!! set diagonal elements to 1
-      !!allocate(icount_norb(at%nat),stat=istat)
-      !!call memocc(istat,icount_norb,'icount_norb',subname)
-      !!allocate(jcount_norb(at%nat),stat=istat)
-      !!call memocc(istat,jcount_norb,'jcount_norb',subname)
-      !!do iorb=1,orbs%norb
-      !!    iat=orbs%onwhichatom(iorb)
-      !!    icount_norb(iat)=icount_norb(iat)+1
-      !!    if (icount_norb(iat)<minorbs_type(at%iatype(iat)) .or. &
-      !!        icount_norb(iat)>maxorbs_type(at%iatype(iat))) then
-      !!        iout=.true.
-      !!    else
-      !!        iout=.false.
-      !!    end if
-      !!    do jorb=1,orbs%norb
-      !!        jat=orbs%onwhichatom(jorb)
-      !!        jcount_norb(jat)=jcount_norb(jat)+1
-      !!        if (jcount_norb(jat)>maxorbs_type(at%iatype(jat))) then
-      !!            jout=.true.
-      !!        else
-      !!            jout=.false.
-      !!        end if
-      !!        ii=ovrlp%matrixindex_in_compressed(jorb,iorb)
-      !!        if (iout .or. jout) then
-      !!            if (jorb==iorb) then
-      !!                ovrlp%matrix_compr(ii)=1.d0
-      !!            else
-      !!                ovrlp%matrix_compr(ii)=0.d0
-      !!            end if
-      !!        end if
-      !!    end do
-      !!end do
-      !!iall=-product(shape(icount_norb))*kind(icount_norb)
-      !!deallocate(icount_norb, stat=istat)
-      !!call memocc(istat, iall, 'icount_norb', subname)
-      !!iall=-product(shape(jcount_norb))*kind(jcount_norb)
-      !!deallocate(jcount_norb, stat=istat)
-      !!call memocc(istat, iall, 'jcount_norb', subname)
-
-      allocate(psittemp_c(sum(collcom%nrecvcounts_c)), stat=istat)
-      call memocc(istat, psittemp_c, 'psittemp_c', subname)
-      allocate(psittemp_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-      call memocc(istat, psittemp_f, 'psittemp_f', subname)
-
-      call vcopy(sum(collcom%nrecvcounts_c), psit_c(1), 1, psittemp_c(1), 1)
-      call vcopy(7*sum(collcom%nrecvcounts_f), psit_f(1), 1, psittemp_f(1), 1)
-      !!call build_linear_combination_transposed(collcom, inv_ovrlp_half, &
-      !!     psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
-
-
-
-      ovrlp_ = matrices_null()
-      call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
-      ovrlp_%matrix_compr = inv_ovrlp_half%matrix_compr
-      call build_linear_combination_transposed(collcom, ovrlp, ovrlp_, &
-           psittemp_c, psittemp_f, .false., psit_c, psit_f, iproc)
-      call deallocate_matrices(ovrlp_)
-
-
-      call deallocate_matrices(ovrlp_)
-
-
-      allocate(norm(orbs%norb), stat=istat)
-      call memocc(istat, norm, 'norm', subname)
-      !call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, norm)
-
-      iall=-product(shape(norm))*kind(norm)
-      deallocate(norm, stat=istat)
-      call memocc(istat, iall, 'norm', subname)
-      call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, lphi, lzd)
-
-      iall=-product(shape(psittemp_c))*kind(psittemp_c)
-      deallocate(psittemp_c, stat=istat)
-      call memocc(istat, iall, 'psittemp_c', subname)
-      iall=-product(shape(psittemp_f))*kind(psittemp_f)
-      deallocate(psittemp_f, stat=istat)
-      call memocc(istat, iall, 'psittemp_f', subname)
   end do
+  iall=-product(shape(icount_norb))*kind(icount_norb)
+  deallocate(icount_norb, stat=istat)
+  call memocc(istat, iall, 'icount_norb', subname)
+  iall=-product(shape(jcount_norb))*kind(jcount_norb)
+  deallocate(jcount_norb, stat=istat)
+  call memocc(istat, iall, 'jcount_norb', subname)
+
+
+  !!if (methTransformOverlap==-1) then
+  !!    call overlap_power_minus_one_half_parallel(iproc, nproc, methTransformOverlap, orbs, ovrlp, inv_ovrlp_half)
+  !!else
+  !!    call overlapPowerMinusOneHalf(iproc, nproc, bigdft_mpi%mpi_comm, methTransformOverlap, orthpar%blocksize_pdsyev, &
+  !!        orthpar%blocksize_pdgemm, orbs%norb, ovrlp, inv_ovrlp_half)
+  !!end if
+
+  !!! For the "higher" TMBs: delete off-diagonal elements and
+  !!! set diagonal elements to 1
+  !!allocate(icount_norb(at%nat),stat=istat)
+  !!call memocc(istat,icount_norb,'icount_norb',subname)
+  !!allocate(jcount_norb(at%nat),stat=istat)
+  !!call memocc(istat,jcount_norb,'jcount_norb',subname)
+  !!do iorb=1,orbs%norb
+  !!    iat=orbs%onwhichatom(iorb)
+  !!    icount_norb(iat)=icount_norb(iat)+1
+  !!    if (icount_norb(iat)<minorbs_type(at%iatype(iat)) .or. &
+  !!        icount_norb(iat)>maxorbs_type(at%iatype(iat))) then
+  !!        iout=.true.
+  !!    else
+  !!        iout=.false.
+  !!    end if
+  !!    do jorb=1,orbs%norb
+  !!        jat=orbs%onwhichatom(jorb)
+  !!        jcount_norb(jat)=jcount_norb(jat)+1
+  !!        if (jcount_norb(jat)>maxorbs_type(at%iatype(jat))) then
+  !!            jout=.true.
+  !!        else
+  !!            jout=.false.
+  !!        end if
+  !!        ii=ovrlp%matrixindex_in_compressed(jorb,iorb)
+  !!        if (iout .or. jout) then
+  !!            if (jorb==iorb) then
+  !!                ovrlp%matrix_compr(ii)=1.d0
+  !!            else
+  !!                ovrlp%matrix_compr(ii)=0.d0
+  !!            end if
+  !!        end if
+  !!    end do
+  !!end do
+  !!iall=-product(shape(icount_norb))*kind(icount_norb)
+  !!deallocate(icount_norb, stat=istat)
+  !!call memocc(istat, iall, 'icount_norb', subname)
+  !!iall=-product(shape(jcount_norb))*kind(jcount_norb)
+  !!deallocate(jcount_norb, stat=istat)
+  !!call memocc(istat, iall, 'jcount_norb', subname)
+
+  allocate(psittemp_c(sum(collcom%nrecvcounts_c)), stat=istat)
+  call memocc(istat, psittemp_c, 'psittemp_c', subname)
+  allocate(psittemp_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
+  call memocc(istat, psittemp_f, 'psittemp_f', subname)
+
+  call vcopy(sum(collcom%nrecvcounts_c), psit_c(1), 1, psittemp_c(1), 1)
+  call vcopy(7*sum(collcom%nrecvcounts_f), psit_f(1), 1, psittemp_f(1), 1)
+  !!call build_linear_combination_transposed(collcom, inv_ovrlp_half, &
+  !!     psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
+
+
+
+  ovrlp_ = matrices_null()
+  call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
+  ovrlp_%matrix_compr = inv_ovrlp_half%matrix_compr
+  call build_linear_combination_transposed(collcom, ovrlp, ovrlp_, &
+       psittemp_c, psittemp_f, .false., psit_c, psit_f, iproc)
+  call deallocate_matrices(ovrlp_)
+
+
+  call deallocate_matrices(ovrlp_)
+
+
+  allocate(norm(orbs%norb), stat=istat)
+  call memocc(istat, norm, 'norm', subname)
+  !call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, norm)
+
+  iall=-product(shape(norm))*kind(norm)
+  deallocate(norm, stat=istat)
+  call memocc(istat, iall, 'norm', subname)
+  call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, lphi, lzd)
+
+  iall=-product(shape(psittemp_c))*kind(psittemp_c)
+  deallocate(psittemp_c, stat=istat)
+  call memocc(istat, iall, 'psittemp_c', subname)
+  iall=-product(shape(psittemp_f))*kind(psittemp_f)
+  deallocate(psittemp_f, stat=istat)
+  call memocc(istat, iall, 'psittemp_f', subname)
 
   !call deallocate_sparse_matrix(inv_ovrlp_half, subname)
   !!iall=-product(shape(inv_ovrlp_half%matrix_compr))*kind(inv_ovrlp_half%matrix_compr)

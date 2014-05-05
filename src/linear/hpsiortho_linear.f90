@@ -12,7 +12,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
            energy_increased, tmb, lhphiold, overlap_calculated, &
            energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
-           energy_only, hpsi_small, experimental_mode, ksorbs, hpsi_noprecond)
+           energy_only, hpsi_small, experimental_mode, correction_co_contra, ksorbs, hpsi_noprecond, &
+           norder_taylor)
   use module_base
   use module_types
   use yaml_output
@@ -23,7 +24,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   implicit none
 
   ! Calling arguments
-  integer, intent(in) :: iproc, nproc, it
+  integer, intent(in) :: iproc, nproc, it, norder_taylor
   type(DFT_wavefunction), target, intent(inout):: tmb
   type(localizedDIISParameters), intent(inout) :: ldiis
   real(kind=8), dimension(tmb%orbs%norb), intent(inout) :: fnrmOldArr
@@ -36,7 +37,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   type(energy_terms), intent(in) :: energs
   real(kind=8), dimension(:), pointer:: hpsit_c, hpsit_f
   integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
-  logical, intent(in) :: energy_only, experimental_mode
+  logical, intent(in) :: energy_only, experimental_mode, correction_co_contra
   real(kind=8), dimension(tmb%npsidim_orbs), intent(out) :: hpsi_small
   type(orbitals_data),intent(in) :: ksorbs
   real(kind=8), dimension(tmb%npsidim_orbs), optional,intent(out) :: hpsi_noprecond
@@ -134,6 +135,38 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           call build_linear_combination_transposed(tmb%ham_descr%collcom, &
                tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
       end if
+  end if
+
+  if (correction_co_contra) then
+      !@NEW correction for contra / covariant gradient
+
+      if(.not.associated(tmb%psit_c)) then
+          allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+          call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+      end if
+      if(.not.associated(tmb%psit_f)) then
+          allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+          call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+      end if
+      call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+           tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+      tmb%can_use_transposed=.true.
+
+      call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
+           tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+
+      !!call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, &
+      !!     tmb%collcom, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+      !!call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
+      !!     tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+      hpsittmp_c = hpsit_c
+      hpsittmp_f = hpsit_f
+      call build_linear_combination_transposed(tmb%ham_descr%collcom, &
+           tmb%linmat%s, tmb%linmat%ovrlp_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+
+      !deallocate(tmb%psit_c)
+      !deallocate(tmb%psit_f)
+      !@END NEW correction for contra / covariant gradient
   end if
 
   !!! EXPERIMENTAL: correction for co- / contravariant ===============================================================
@@ -378,7 +411,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
        tmb%linmat, tmb%ham_descr%psi, tmb%hpsi, &
        tmb%linmat%m, tmb%linmat%ham_, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, &
        hpsit_c, hpsit_f, tmb%ham_descr%can_use_transposed, &
-       overlap_calculated, experimental_mode)
+       overlap_calculated, experimental_mode, norder_taylor)
 
   !!EXPERIMENTAL
   !!call calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, hpsit_f)
@@ -941,7 +974,7 @@ end subroutine calculate_residue_ks
 
 subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
            lphiold, alpha, trH, alpha_mean, alpha_max, alphaDIIS, hpsi_small, ortho, psidiff, &
-           experimental_mode, trH_ref, kernel_best, complete_reset)
+           experimental_mode, order_taylor,trH_ref, kernel_best, complete_reset)
   use module_base
   use module_types
   use yaml_output
@@ -950,7 +983,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, it
+  integer,intent(in) :: iproc, nproc, it, order_taylor
   type(localizedDIISParameters), intent(inout) :: ldiis
   type(DFT_wavefunction), target,intent(inout) :: tmb
   real(kind=8), dimension(tmb%npsidim_orbs), intent(inout) :: lphiold
@@ -1107,7 +1140,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
       end if
 
       ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
-      call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
+      call orthonormalizeLocalized(iproc, nproc, order_taylor, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
            tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
            tmb%can_use_transposed, tmb%foe_obj)
       if (iproc == 0) then
@@ -1153,6 +1186,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
       ! ##########################
       if (iproc == 0) then
           call yaml_map('Normalization',.true.)
+          !call yaml_map('Normalization',.false.)
       end if
       if (present(psidiff)) then
           do i=1,tmb%npsidim_orbs

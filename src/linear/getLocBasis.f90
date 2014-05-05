@@ -326,10 +326,10 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
      if (iproc==0) call yaml_map('method','directmin')
      if (extra_states>0) then
         call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, energs%ebs, &
-             curvefit_dmin, factor, itout, it_scc, it_cdft, reorder, extra_states)
+             curvefit_dmin, factor, itout, it_scc, it_cdft, order_taylor, reorder, extra_states)
      else
         call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, energs%ebs, &
-             curvefit_dmin, factor, itout, it_scc, it_cdft, reorder)
+             curvefit_dmin, factor, itout, it_scc, it_cdft, order_taylor, reorder)
      end if
   end if
 
@@ -421,7 +421,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     correction_orthoconstraint,nit_basis,&
     ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
     gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, kappa_conv, method_updatekernel,&
-    purification_quickreturn, adjust_FOE_temperature)
+    purification_quickreturn, adjust_FOE_temperature, correction_co_contra)
   !
   ! Purpose:
   ! ========
@@ -462,6 +462,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   logical,intent(in) :: experimental_mode, purification_quickreturn, adjust_FOE_temperature
   logical,intent(out) :: can_use_ham
   integer,intent(in) :: method_updatekernel
+  logical,intent(in) :: correction_co_contra
  
   ! Local variables
   real(kind=8) :: fnrmMax, meanAlpha, ediff_best, alpha_max, delta_energy, delta_energy_prev, ediff
@@ -707,12 +708,14 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               ! This can then be deleted if the transition to the new type has been completed.
               !tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
               if (iproc==0) call yaml_newline()
-              if (iproc==0) call yaml_open_map(flow=.true.)
+              !if (iproc==0) call yaml_open_map(flow=.true.)
+              if (iproc==0) call yaml_open_sequence('kernel update by FOE')
               call foe(iproc, nproc, 0.d0, &
                    energs%ebs, -1, -10, order_taylor, purification_quickreturn, adjust_FOE_temperature, 0, &
                    FOE_FAST, tmb)
               !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
-              if (iproc==0) call yaml_close_map()
+              !if (iproc==0) call yaml_close_map()
+              if (iproc==0) call yaml_close_sequence()
               if (.not.associated_psit_c) then
                   iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
                   deallocate(tmb%psit_c, stat=istat)
@@ -779,9 +782,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
 
       correction_orthoconstraint_local=correction_orthoconstraint
-      if(.not.ortho_on) then
-          correction_orthoconstraint_local=2
-      end if
+      !if(.not.ortho_on) then
+      !    correction_orthoconstraint_local=2
+      !end if
+      !write(*,*) 'correction_orthoconstraint, correction_orthoconstraint_local',correction_orthoconstraint, correction_orthoconstraint_local
+
 
       !!! PLOT ###########################################################################
       !!hxh=0.5d0*tmb%lzd%hgrids(1)      
@@ -811,7 +816,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
            hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint_local, .false., hpsi_small, &
-           experimental_mode, orbs, hpsi_noprecond)
+           experimental_mode, correction_co_contra, orbs, hpsi_noprecond, order_taylor)
 
 
       !!! PLOT ###########################################################################
@@ -1064,7 +1069,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
       call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
            lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho_on, psidiff, &
-           experimental_mode, trH_ref, kernel_best, complete_reset)
+           experimental_mode, order_taylor, trH_ref, kernel_best, complete_reset)
       !if (iproc==0) write(*,*) 'kernel_best(1)',kernel_best(1)
       !if (iproc==0) write(*,*) 'tmb%linmat%denskern%matrix_compr(1)',tmb%linmat%denskern%matrix_compr(1)
 
@@ -1105,7 +1110,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       if ((target_function/=TARGET_FUNCTION_IS_TRACE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) &
            .and. .not.complete_reset ) then
           if(scf_mode/=LINEAR_FOE) then
-              call reconstruct_kernel(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%blocksize_pdsyev, &
+              call reconstruct_kernel(iproc, nproc, order_taylor, tmb%orthpar%blocksize_pdsyev, &
                    tmb%orthpar%blocksize_pdgemm, orbs, tmb, overlap_calculated)
               if (iproc==0) call yaml_map('reconstruct kernel',.true.)
           else if (experimental_mode .and. .not.complete_reset) then
@@ -1365,26 +1370,6 @@ subroutine improveOrbitals(iproc, nproc, tmb, ldiis, alpha, gradient, experiment
   end if
 
 end subroutine improveOrbitals
-
-
-subroutine my_geocode_buffers(geocode,nl1,nl2,nl3)
-  implicit none
-  integer, intent(out) :: nl1,nl2,nl3
-  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-  !local variables
-  logical :: perx,pery,perz
-  integer :: nr1,nr2,nr3
-
-  !conditions for periodicity in the three directions
-  perx=(geocode /= 'F')
-  pery=(geocode == 'P')
-  perz=(geocode /= 'F')
-
-  call ext_buffers(perx,nl1,nr1)
-  call ext_buffers(pery,nl2,nr2)
-  call ext_buffers(perz,nl3,nr3)
-
-end subroutine my_geocode_buffers
 
 
 
@@ -2441,6 +2426,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
 
   shift_loop: do ishift=1,it_shift
 
+  if (iproc==0) call yaml_newline()
   if (iproc==0) call yaml_map('shift of eigenvalues',shift,fmt='(es10.3)')
 
   if (iproc==0) call yaml_open_sequence('purification process')

@@ -659,6 +659,15 @@
    check_matrix_compression:
      COMMENT: linear scaling perform a check of the matrix compression routines
      default: Yes
+   correction_co_contra:
+     COMMENT: linear scaling correction covariant / contravariant gradient
+     default: No
+   fscale_lowerbound:
+     COMMENT: linear scaling lower bound for the error function decay length
+     default: 5.e-3
+   fscale_upperbound:
+     COMMENT: linear scaling upper bound for the error function decay length
+     default: 5.e-2
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
@@ -716,12 +725,12 @@
        default: [6,0]
      gnrm_cv:
        COMMENT: convergence criterion for the optimization of the support functions (low/high accuracy)
-       RANGE: [1.e-6,1.e-1]
+       RANGE: [1.e-6,1.0]
        default: [1.e-2,1.e-4]
        best: [1.e-3,1.e-3]
      deltae_cv:
        COMMENT: total relative energy difference to stop the optimization ('experimental_mode' only)
-       RANGE: [1.e-6,1.e-2]
+       RANGE: [1.e-6,1.e-1]
        default: 1.e-4
      gnrm_dyn:
        COMMENT: dynamic convergence criterion ('experimental_mode' only)
@@ -750,6 +759,9 @@
        COMMENT: fix the support functions if the density change is below this threshold
        RANGE: [1.e-14,1.e-6]
        default: 1.e-10
+     correction_orthoconstraint:
+       COMMENT: correction for the slight non-orthonormality in the orthoconstraint
+       default: 1 
  lin_kernel:
      nstep:
        COMMENT: don't know what this variable stands for...
