@@ -326,10 +326,10 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
      if (iproc==0) call yaml_map('method','directmin')
      if (extra_states>0) then
         call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, energs%ebs, &
-             curvefit_dmin, factor, itout, it_scc, it_cdft, reorder, extra_states)
+             curvefit_dmin, factor, itout, it_scc, it_cdft, order_taylor, reorder, extra_states)
      else
         call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, energs%ebs, &
-             curvefit_dmin, factor, itout, it_scc, it_cdft, reorder)
+             curvefit_dmin, factor, itout, it_scc, it_cdft, order_taylor, reorder)
      end if
   end if
 
@@ -816,7 +816,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
            hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint_local, .false., hpsi_small, &
-           experimental_mode, correction_co_contra, orbs, hpsi_noprecond, tmb%orthpar%methTransformOverlap)
+           experimental_mode, correction_co_contra, orbs, hpsi_noprecond, order_taylor)
 
 
       !!! PLOT ###########################################################################
@@ -1069,7 +1069,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
       call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
            lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho_on, psidiff, &
-           experimental_mode, trH_ref, kernel_best, complete_reset)
+           experimental_mode, order_taylor, trH_ref, kernel_best, complete_reset)
       !if (iproc==0) write(*,*) 'kernel_best(1)',kernel_best(1)
       !if (iproc==0) write(*,*) 'tmb%linmat%denskern%matrix_compr(1)',tmb%linmat%denskern%matrix_compr(1)
 
@@ -1110,7 +1110,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       if ((target_function/=TARGET_FUNCTION_IS_TRACE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) &
            .and. .not.complete_reset ) then
           if(scf_mode/=LINEAR_FOE) then
-              call reconstruct_kernel(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%blocksize_pdsyev, &
+              call reconstruct_kernel(iproc, nproc, order_taylor, tmb%orthpar%blocksize_pdsyev, &
                    tmb%orthpar%blocksize_pdgemm, orbs, tmb, overlap_calculated)
               if (iproc==0) call yaml_map('reconstruct kernel',.true.)
           else if (experimental_mode .and. .not.complete_reset) then

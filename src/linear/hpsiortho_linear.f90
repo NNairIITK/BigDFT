@@ -974,7 +974,7 @@ end subroutine calculate_residue_ks
 
 subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
            lphiold, alpha, trH, alpha_mean, alpha_max, alphaDIIS, hpsi_small, ortho, psidiff, &
-           experimental_mode, trH_ref, kernel_best, complete_reset)
+           experimental_mode, order_taylor,trH_ref, kernel_best, complete_reset)
   use module_base
   use module_types
   use yaml_output
@@ -983,7 +983,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, it
+  integer,intent(in) :: iproc, nproc, it, order_taylor
   type(localizedDIISParameters), intent(inout) :: ldiis
   type(DFT_wavefunction), target,intent(inout) :: tmb
   real(kind=8), dimension(tmb%npsidim_orbs), intent(inout) :: lphiold
@@ -1140,7 +1140,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
       end if
 
       ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
-      call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
+      call orthonormalizeLocalized(iproc, nproc, order_taylor, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
            tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
            tmb%can_use_transposed, tmb%foe_obj)
       if (iproc == 0) then

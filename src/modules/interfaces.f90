@@ -2518,11 +2518,11 @@ module module_interfaces
 
        subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
                   lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho, psidiff, &
-                  experimental_mode, trH_ref, kernel_best, complete_reset)
+                  experimental_mode, order_taylor, trH_ref, kernel_best, complete_reset)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: iproc, nproc, it
+         integer,intent(in):: iproc, nproc, it, order_taylor
          type(localizedDIISParameters),intent(inout):: ldiis
          type(DFT_wavefunction),target,intent(inout):: tmb
          real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lphiold
@@ -3674,12 +3674,12 @@ module module_interfaces
         end subroutine purify_kernel
 
         subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit, itmax, energy, &
-               sd_fit_curve, factor, itout, it_scc, it_cdft, reorder, num_extra)
+               sd_fit_curve, factor, itout, it_scc, it_cdft, order_taylor, reorder, num_extra)
           use module_base
           use module_types
           use diis_sd_optimization
           implicit none
-          integer,intent(in):: iproc, nproc, itmax, itout, it_scc, it_cdft
+          integer,intent(in):: iproc, nproc, itmax, itout, it_scc, it_cdft, order_taylor
           type(orbitals_data),intent(in):: orbs
           type(DFT_wavefunction),intent(inout):: tmb
           type(DIIS_obj), intent(inout) :: ldiis_coeff

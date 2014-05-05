@@ -888,7 +888,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       !overlap_calculated = .false.
       !nullify(tmb%psit_c)
       !nullify(tmb%psit_f)
-      call reconstruct_kernel(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%blocksize_pdsyev, &
+      call reconstruct_kernel(iproc, nproc, input%lin%order_taylor, tmb%orthpar%blocksize_pdsyev, &
            tmb%orthpar%blocksize_pdgemm, KSwfn%orbs, tmb, overlap_calculated)
       i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)
       deallocate(tmb%psit_c,stat=i_stat)
@@ -1673,7 +1673,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   KSwfn%orthpar = in%orthpar
   if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
       .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-     tmb%orthpar%methTransformOverlap = in%lin%order_taylor
      tmb%orthpar%blocksize_pdsyev = in%lin%blocksize_pdsyev
      tmb%orthpar%blocksize_pdgemm = in%lin%blocksize_pdgemm
      tmb%orthpar%nproc_pdsyev = in%lin%nproc_pdsyev
@@ -2019,12 +2018,12 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      ! use nstates_max - tmb%orbs%occup set in fragment_coeffs_to_kernel
      if (in%lin%diag_start) then
         ! not worrying about this case as not currently used anyway
-        call reconstruct_kernel(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%blocksize_pdsyev, &
+        call reconstruct_kernel(iproc, nproc, in%lin%order_taylor, tmb%orthpar%blocksize_pdsyev, &
              tmb%orthpar%blocksize_pdgemm, tmb%orbs, tmb, overlap_calculated)  
      else
         ! come back to this - reconstruct kernel too expensive with exact version, but Taylor needs to be done ~ 3 times here...
 
-        call reconstruct_kernel(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%blocksize_pdsyev, &
+        call reconstruct_kernel(iproc, nproc, in%lin%order_taylor, tmb%orthpar%blocksize_pdsyev, &
              tmb%orthpar%blocksize_pdgemm, KSwfn%orbs, tmb, overlap_calculated)
      end if
      !!tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
@@ -2090,7 +2089,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
            call calculate_weight_matrix_using_density(iproc,cdft,tmb,atoms,in,GPU,denspot)
            call f_free_ptr(cdft%weight_function)
         else if (trim(cdft%method)=='lowdin') then ! direct weight matrix approach
-           call calculate_weight_matrix_lowdin_wrapper(cdft,tmb,in,ref_frags,.false.,tmb%orthpar%methTransformOverlap)
+           call calculate_weight_matrix_lowdin_wrapper(cdft,tmb,in,ref_frags,.false.,in%lin%order_taylor)
            ! debug
            !call plot_density(iproc,nproc,'initial_density.cube', &
            !     atoms,rxyz,denspot%dpbox,1,denspot%rhov)
@@ -2169,7 +2168,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         end do
 
         ! use the coeffs from the more balanced kernel to get the correctly occupied kernel (maybe reconstruct not needed?)
-        call reconstruct_kernel(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%orthpar%blocksize_pdsyev, &
+        call reconstruct_kernel(iproc, nproc, in%lin%order_taylor, tmb%orthpar%blocksize_pdsyev, &
             tmb%orthpar%blocksize_pdgemm, KSwfn%orbs, tmb, overlap_calculated)     
         !then redo density and potential with correct charge? - for ease doing in linear scaling
      end if

@@ -152,7 +152,6 @@ module module_types
      !!   methOrtho==2 -> Loewdin
      integer :: methOrtho
      real(gp) :: iguessTol            !< Gives the tolerance to which the input guess will converged (maximal residue of all orbitals).
-     integer :: methTransformOverlap  !< Method to overlap the localized orbitals (see linear/orthonormality.f90)
      integer :: blocksize_pdsyev      !< Size of the block for the Scalapack routine pdsyev (computes eigenval and vectors)
      integer :: blocksize_pdgemm      !< Size of the block for the Scalapack routine pdgemm
      integer :: nproc_pdsyev          !< Number of proc for the Scalapack routine pdsyev (linear version)

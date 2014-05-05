@@ -818,7 +818,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
            if (.not. in%lin%fragment_calculation) stop 'Error, fragment calculation needed for transfer integral calculation'
            !if (input%frag%nfrag==2) call calc_transfer_integrals_old(iproc,nproc,input%frag,ref_frags,tmb%orbs,&
            !     tmb%linmat%ham,tmb%linmat%ovrlp)
-           call calc_site_energies_transfer_integrals(iproc,nproc,tmb%orthpar%methTransformOverlap,&
+           call calc_site_energies_transfer_integrals(iproc,nproc,in%lin%order_taylor,&
                 in%frag,ref_frags,tmb%orbs,tmb%linmat%m,tmb%linmat%ham_,tmb%linmat%s,tmb%linmat%ovrlp_,&
                 tmb%linmat%ks)
         end if
