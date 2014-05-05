@@ -607,8 +607,8 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      endif
 
      if(check > 5)then
-        if (iproc==0) write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct', fnrm,fluct*runObj%inputs%frac_fluct,fluct
-        if (iproc==0) write(16,*) 'DIIS converged'
+        if (iproc==0) write(16,'(1x,a,3(1x,1pe14.5))') '# fnrm2,fluct*frac_fluct,fluct', fnrm,fluct*runObj%inputs%frac_fluct,fluct
+        if (iproc==0) write(16,*) '# DIIS converged'
         exit
      endif
 
@@ -647,6 +647,7 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   use module_interfaces
   use minpar
   use yaml_output
+  use communications_base
 
   implicit none
   integer, intent(in) :: nproc,iproc
@@ -656,7 +657,7 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   logical, intent(inout) :: fail
 
   real(gp) :: fluct,fnrm
-  real(gp) :: fmax,vmax
+  real(gp) :: fmax,vmax,maxdiff
   integer :: check
   integer :: infocode,iat
   character(len=4) :: fn4
@@ -735,7 +736,6 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
             call yaml_map('Geometry step',it)
             call yaml_map('Geometry Method','GEOPT_FIRE')
             call yaml_map('epred',(/ outs%energy,outs%energy-eprev /),fmt='(1pe21.14)')
-            call geometry_output(fmax,fnrm,fluct)
             call yaml_map('Alpha', alpha, fmt='(es7.2e1)')
             call yaml_map('dt',dt, fmt='(es7.2e1)')
             call yaml_map('vnrm',sqrt(vnrm), fmt='(es8.2)')
@@ -791,6 +791,13 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
         alpha=alphastart
      endif
      nstep=nstep+1
+
+     ! Check velcur consistency.
+     call check_array_consistency(maxdiff, nproc, velcur(1), &
+          & 3 * runObj%atoms%astruct%nat, bigdft_mpi%mpi_comm)
+     if (iproc==0 .and. maxdiff > epsilon(1.0_gp)) &
+          call yaml_warning('Fire velocities not identical! '//&
+          '(difference:'//trim(yaml_toa(maxdiff))//' )')
 
      !if (iproc==0) write(10,*) epred, vnrm*0.5d0
    end do Big_loop

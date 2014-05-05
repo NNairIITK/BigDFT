@@ -504,27 +504,6 @@ subroutine frozen_itof(ifrztyp,frzchain)
         
 END SUBROUTINE frozen_itof
 
-subroutine astruct_dict_get_types(dict, types)
-  use dictionaries
-  implicit none
-  type(dictionary), pointer :: dict, types
-  
-  type(dictionary), pointer :: atoms, at
-  character(len = max_field_length) :: str
-  integer :: iat
-
-  call dict_init(types)
-  atoms => dict // "Positions"
-  do iat = 1, dict_len(atoms), 1
-     at => dict_iter(atoms // iat)
-     do while(associated(at))
-        str = dict_key(at)
-        if (dict_len(at) == 3 .and. .not. has_key(types, str)) call add(types, str)
-        at => dict_next(at)
-     end do
-  end do
-end subroutine astruct_dict_get_types
-
 !> Write yaml atomic file.
 subroutine wtyaml(iunit,energy,rxyz,atoms,wrtforces,forces, &
      & wrtlog, shift, hgrids)

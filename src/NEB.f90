@@ -106,8 +106,7 @@ MODULE NEB_routines
       type(mpi_environment) :: bigdft_mpi_svg
       character(len=60) :: run_id
       CHARACTER (LEN=80) :: first_config, last_config
-      type(dictionary), pointer :: dict
-      type(atomic_structure) :: astruct
+      type(dictionary), pointer :: dict, posinp
 
       NAMELIST /NEB/ first_config,        &
                      last_config,         &
@@ -188,7 +187,6 @@ MODULE NEB_routines
 
       allocate( ins(num_of_images), atoms(num_of_images) )
       allocate( read_posinp(num_of_images) )
-      istart = 1
 
       ! Trick here, only super master will read the input files...
       bigdft_mpi_svg = bigdft_mpi
@@ -197,29 +195,25 @@ MODULE NEB_routines
       call mpi_comm_size(MPI_COMM_WORLD, bigdft_mpi%nproc, ierr)
       bigdft_mpi%igroup = 0
       bigdft_mpi%ngroup = num_of_images
+
+      call dict_init(posinp)
       do i = 1, num_of_images
-         call astruct_nullify(astruct)
-         call read_atomic_file(trim(arr_posinp(i)), bigdft_mpi%iproc, astruct, status = ierr)
-!!!!print *,'i,num_of_images',i,num_of_images,ierr
-         if (ierr /= 0) then
+         call user_dict_from_files(dict, trim(arr_radical(i)), &
+              & trim(arr_posinp(i)), bigdft_mpi)
+         if (.not.has_key(dict, "posinp")) then
             if (i == 1 .or. i == num_of_images) stop "Missing images"
-            ! we read the last valid image instead.
-            call read_atomic_file(trim(arr_posinp(istart)), bigdft_mpi%iproc, astruct)
+            call dict_copy(dict // "posinp", posinp)
+            ! we copy the last valid image instead.
             read_posinp(i) = .false.
          else
-            istart = i
             read_posinp(i) = .true.
+            call dict_free(posinp)
+            call dict_copy(posinp, dict // "posinp")
          end if
-
-         nullify(dict)
-         call read_input_dict_from_files(trim(arr_radical(i)), bigdft_mpi, dict)
-         call astruct_merge_to_dict(dict // "posinp", astruct, astruct%rxyz)
-         call atoms_file_merge_to_dict(dict)
 
          call inputs_from_dict(ins(i), atoms(i), dict)
 
          call dict_free(dict)
-         call deallocate_atomic_structure(astruct)
       end do
       bigdft_mpi = bigdft_mpi_svg
 

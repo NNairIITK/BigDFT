@@ -118,9 +118,6 @@ program WaCo
    call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
         & 'posinp'//trim(bigdft_run_id_toa()), bigdft_mpi)
    call inputs_from_dict(input, atoms, user_inputs)
-   if (iproc == 0) then
-      call print_general_parameters(input,atoms)
-   end if
    call dict_free(user_inputs)
 
 !!$   if (input%verbosity > 2) then
@@ -130,9 +127,9 @@ program WaCo
 !!$   end if
 
    !call timing(nproctiming,'WaCo_time.prc','IN')
-   call f_timing_reset(filename=trim(in%dir_output)//'WaCo_time.yaml',&
+   call f_timing_reset(filename=trim(input%dir_output)//'WaCo_time.yaml',&
         master=iproc==0,&
-        debug_mode=input%verbosity>2)
+        verbose_mode=input%verbosity>2)
 
 
    call cpu_time(tcpu0)

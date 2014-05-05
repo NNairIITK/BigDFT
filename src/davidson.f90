@@ -537,17 +537,16 @@ subroutine davidson(iproc,nproc,in,at,&
          allocate(psiw(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
          call memocc(i_stat,psiw,'psiw',subname)
       else
-         psiw => null()
+         allocate(psiw(1+ndebug),stat=i_stat)
+         call memocc(i_stat,psiw,'psiw',subname)
       endif
 
       !transpose the wavefunction psi 
       call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),psiw(1))
 
-      if (nproc > 1) then
-         i_all=-product(shape(psiw))*kind(psiw)
-         deallocate(psiw,stat=i_stat)
-         call memocc(i_stat,i_all,'psiw',subname)
-      end if
+      i_all=-product(shape(psiw))*kind(psiw)
+      deallocate(psiw,stat=i_stat)
+      call memocc(i_stat,i_all,'psiw',subname)
    end if
 
    allocate(orbsv%eval(orbsv%norb*orbsv%nkpts+ndebug),stat=i_stat)
@@ -1732,6 +1731,9 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
       !reallocate the work array with the good size
       allocate(psiw(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
       call memocc(i_stat,psiw,'psiw',subname)
+   else
+      allocate(psiw(1+ndebug),stat=i_stat)
+      call memocc(i_stat,psiw,'psiw',subname)
    end if
 
    !transpose the wavefunction in wavelet basis
@@ -1740,12 +1742,9 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
    !here one has to decide whether leave things like that or
    !multiply the transposed wavefunctions by the matrix of the coefficients
 
-   if(nproc > 1)then
-      i_all=-product(shape(psiw))*kind(psiw)
-      deallocate(psiw,stat=i_stat)
-      call memocc(i_stat,i_all,'psiw',subname)
-   end if
-
+   i_all=-product(shape(psiw))*kind(psiw)
+   deallocate(psiw,stat=i_stat)
+   call memocc(i_stat,i_all,'psiw',subname)
 
 END SUBROUTINE psivirt_from_gaussians
 

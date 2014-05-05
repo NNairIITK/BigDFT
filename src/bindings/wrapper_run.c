@@ -344,16 +344,16 @@ BigDFT_Run* bigdft_run_new_from_files(const gchar *radical, const gchar *posinp)
 BigDFT_Run* bigdft_run_new_from_dict(BigDFT_Dict *dict)
 {
   BigDFT_Run *run;
-  f90_dictionary_pointer dict_copy;
+  f90_dictionary_pointer copy;
 
   run = bigdft_run_new();
 
   /* Make a copy of the given dictionary. */
-  FC_FUNC_(dict_init, DICT_INIT)(&dict_copy);
-  FC_FUNC_(dict_copy, DICT_COPY)(&dict_copy, &dict->root);
+  FC_FUNC_(dict_init, DICT_INIT)(&copy);
+  FC_FUNC_(dict_copy, DICT_COPY)(&copy, &dict->root);
 
   /* Associate the dictionary and parse it. */
-  FC_FUNC_(run_objects_set_dict, RUN_OBJECTS_SET_DICT)(F_TYPE(run->data), &dict_copy);
+  FC_FUNC_(run_objects_set_dict, RUN_OBJECTS_SET_DICT)(F_TYPE(run->data), &copy);
   FC_FUNC_(run_objects_parse, RUN_OBJECTS_PARSE)(F_TYPE(run->data));
 
   _attributes_from_fortran(run);
