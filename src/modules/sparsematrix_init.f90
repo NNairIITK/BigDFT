@@ -563,11 +563,13 @@ module sparsematrix_init
           sparsemat%store_index=.true.
     
           ! initialize sparsemat%matrixindex_in_compressed
+          !$omp parallel do default(private) shared(sparsemat,norb) 
           do iorb=1,norb
              do jorb=1,norb
                 sparsemat%matrixindex_in_compressed_arr(iorb,jorb)=compressed_index(iorb,jorb,norb,sparsemat)
              end do
           end do
+          !$omp end parallel do
     
       else
           ! Otherwise alwyas calculate them on-the-fly

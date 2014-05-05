@@ -322,6 +322,8 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
   integer :: istart, iend, orb_rest, ind0, ind1, ind2, ind3
   integer,dimension(:),allocatable :: n
   !$ integer  :: omp_get_thread_num,omp_get_max_threads
+  integer :: totops, avops, ops, opsn
+  integer, allocatable, dimension(:) :: numops
 
   call timing(iproc,'ovrlptransComp','ON') !lr408t
 
@@ -329,52 +331,74 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
 
   nthreads=1
   !$  nthreads = OMP_GET_max_threads()
-
   allocate(n(nthreads),stat=istat)
+  allocate(numops(orbs%norb),stat=istat)
 
-  norb = orbs%norb / nthreads
+  ! calculate number of operations for better load balancing of OpenMP
+  if (nthreads>1) then
+     numops=0
+     do ipt=1,collcom%nptsp_c
+        ii=collcom%norb_per_gridpoint_c(ipt)
+        i0 = collcom%isptsp_c(ipt)
+        do i=1,ii
+           iiorb=collcom%indexrecvorbital_c(i0+i)
+           numops(iiorb)=numops(iiorb)+ii
+        end do
+     end do
+     totops=sum(numops)
+
+     avops=totops/nthreads
+     jjorb=1
+     do i=1,nthreads
+        ops=0
+        do j=jjorb,orbs%norb
+           opsn=ops+numops(j)
+           if (opsn>=avops) then
+              if ((opsn-avops)<(avops-ops)) then
+                 n(i)=j
+                 jjorb=j+1
+                 totops=totops-opsn
+              else
+                 n(i)=j-1
+                 jjorb=j
+                 totops=totops-ops
+              end if
+              exit
+           end if
+           ops=opsn
+        end do
+        if (i/=nthreads) avops=totops/(nthreads-i)
+     end do
   
-  orb_rest = orbs%norb-norb*nthreads
+     deallocate(numops)
+  end if
 
-  n = norb
-
-  do i = 1,orb_rest
-     n(i) = n(i) + 1
-  end do
+  n(nthreads)=orbs%norb
 
   !$omp parallel default(private) &
   !$omp shared(collcom, smat, ovrlp, psit_c1, psit_c2, psit_f1, psit_f2, n)
   tid=0
   !$ tid = OMP_GET_THREAD_NUM()
-  istart = 1
-  iend = 0
-
-  do i = 0,tid-1
-     istart = istart + n(i+1) 
-  end do
-
-  do i = 0,tid
-     iend = iend + n(i+1)
-  end do
-
- ! write(*,*) '#########################################',tid,istart,iend
+  iend=n(tid+1)
+  if (tid==0) then
+     istart=1
+  else
+     istart=n(tid)+1
+  end if
 
   if (collcom%nptsp_c>0) then
-  
+
       do ipt=1,collcom%nptsp_c 
           ii=collcom%norb_per_gridpoint_c(ipt) 
           i0 = collcom%isptsp_c(ipt)
-
           do i=1,ii
               iiorb=collcom%indexrecvorbital_c(i0+i)
               if(iiorb < istart .or. iiorb > iend) cycle
-
               m=mod(ii,4)
               if(m/=0) then
                   do j=1,m
                       jjorb=collcom%indexrecvorbital_c(i0+j)
                       ind0 = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                      !ind0 = collcom%matrixindex_in_compressed(jjorb,iiorb)
                       ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_c1(i0+i)*psit_c2(i0+j)
                   end do
               end if
@@ -382,33 +406,26 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
 
                   jjorb=collcom%indexrecvorbital_c(i0+j+0)
                   ind0 = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                  !ind0 = collcom%matrixindex_in_compressed(jjorb,iiorb)
                   ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_c1(i0+i)*psit_c2(i0+j+0)
 
                   jjorb=collcom%indexrecvorbital_c(i0+j+1)
                   ind1 = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                  !ind1 = collcom%matrixindex_in_compressed(jjorb,iiorb)
                   ovrlp%matrix_compr(ind1) = ovrlp%matrix_compr(ind1) + psit_c1(i0+i)*psit_c2(i0+j+1)
 
                   jjorb=collcom%indexrecvorbital_c(i0+j+2)
                   ind2 = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                  !ind2 = collcom%matrixindex_in_compressed(jjorb,iiorb)
                   ovrlp%matrix_compr(ind2) = ovrlp%matrix_compr(ind2) + psit_c1(i0+i)*psit_c2(i0+j+2)
 
                   jjorb=collcom%indexrecvorbital_c(i0+j+3)
                   ind3 = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                  !ind3 = collcom%matrixindex_in_compressed(jjorb,iiorb)
                   ovrlp%matrix_compr(ind3) = ovrlp%matrix_compr(ind3) + psit_c1(i0+i)*psit_c2(i0+j+3)
 
               end do
           end do
       end do
-
   end if
-  
 
   if (collcom%nptsp_f>0) then
-   
       do ipt=1,collcom%nptsp_f 
           ii=collcom%norb_per_gridpoint_f(ipt) 
           i0 = collcom%isptsp_f(ipt)
@@ -421,7 +438,6 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
               do j=1,ii
                   jjorb=collcom%indexrecvorbital_f(i0+j)
                   ind0 = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                  !ind0 = collcom%matrixindex_in_compressed(jjorb,iiorb)
                   ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(7*(i0+i)-6)*psit_f2(7*(i0+j)-6)
                   ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(7*(i0+i)-5)*psit_f2(7*(i0+j)-5)
                   ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(7*(i0+i)-4)*psit_f2(7*(i0+j)-4)
@@ -433,7 +449,6 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
           end do
       end do
   end if
-
   !$omp end parallel
 
   call timing(iproc,'ovrlptransComp','OF') !lr408t
@@ -563,7 +578,7 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork
   !!ubound(sparsemat%matrixindex_in_compressed_fortransposed,2),&
   !!minval(collcom%indexrecvorbital_c),maxval(collcom%indexrecvorbital_c)
 
-  !$omp do
+  !$omp do schedule(static,1)
    do ipt=1,collcom%nptsp_c 
       ii=collcom%norb_per_gridpoint_c(ipt) 
       i0 = collcom%isptsp_c(ipt)
@@ -600,16 +615,15 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork
               ind3 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
               !ind3 = collcom%matrixindex_in_compressed(jjorb,iiorb)
               psit_c(i0+i)=psit_c(i0+i)+mat%matrix_compr(ind3)*psitwork_c(i0+j+3)
-
           end do
       end do
   end do
   !$omp end do
 
-  !$omp do
+  !$omp do schedule(static,1)
   do ipt=1,collcom%nptsp_f 
       ii=collcom%norb_per_gridpoint_f(ipt) 
-       i0 = collcom%isptsp_f(ipt)
+      i0 = collcom%isptsp_f(ipt)
       do i=1,ii
           iiorb=collcom%indexrecvorbital_f(i0+i)
           do j=1,ii
@@ -624,8 +638,7 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork
               psit_f(7*(i0+i)-1) = psit_f(7*(i0+i)-1) + mat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-1)
               psit_f(7*(i0+i)-0) = psit_f(7*(i0+i)-0) + mat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-0)
           end do
-      end do
-     
+      end do  
   end do
   !$omp end do
   !$omp end parallel
@@ -730,7 +743,6 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, nor
 
   !$omp parallel default(private) &
   !$omp shared(collcom, norm, psit_c,psit_f,orbs)
-
   if (collcom%nptsp_c>0) then
       !$omp do reduction(+:norm)
       do ipt=1,collcom%nptsp_c 
@@ -762,7 +774,6 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, nor
       end do
       !$omp end do
   end if
-
   !$omp end parallel
   
   if(nproc>1) then
@@ -781,8 +792,7 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, nor
       do i=1,ii
           iiorb=collcom%indexrecvorbital_c(i0+i)
           psit_c(i0+i)=psit_c(i0+i)*norm(iiorb)
-      end do
-    
+      end do 
   end do
   !$omp end do
   !$omp do
@@ -799,10 +809,9 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, nor
           psit_f(7*(i0+i)-1)=psit_f(7*(i0+i)-1)*norm(iiorb)
           psit_f(7*(i0+i)-0)=psit_f(7*(i0+i)-0)*norm(iiorb)
       end do
-  
   end do
-!$omp end do
-!$omp end parallel
+  !$omp end do
+  !$omp end parallel
 
   call timing(iproc,'norm_trans','OF')
 
@@ -850,7 +859,7 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
   sparsemat%matrixindex_in_compressed_fortransposed=f_malloc_ptr((/imin.to.imax,imin.to.imax/),&
       id='sparsemat%matrixindex_in_compressed_fortransposed')
 
-
+  !$omp parallel do default(private) shared(sparsemat,orbs,imin,imax)  
   do iorb=imin,imax
       do jorb=imin,imax
           sparsemat%matrixindex_in_compressed_fortransposed(iorb,jorb)=compressed_index(iorb,jorb,orbs%norb,sparsemat)
@@ -858,5 +867,6 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
           !sendbuf(iorb,jorb)=compressed_index(iiorb,jorb,orbs%norb,sparsemat)
       end do
   end do
+  !$omp end parallel do
 
 end subroutine init_matrixindex_in_compressed_fortransposed

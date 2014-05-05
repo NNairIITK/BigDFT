@@ -1997,7 +1997,6 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   real(kind=8), dimension(:,:), allocatable :: coeff_tmp, coefftrans
   real(kind=8), dimension(:,:), pointer :: ovrlp_coeff
   real(kind=8),dimension(:,:),pointer :: ovrlp_matrix, inv_ovrlp_matrix
-  real(kind=8), dimension(:), allocatable :: mat_coeff_diag
   character(len=*),parameter:: subname='reorthonormalize_coeff'
   type(matrices) :: KS_ovrlp_, inv_ovrlp_
   !integer :: iorb, jorb !DEBUG
@@ -2111,20 +2110,9 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   if (error>0.5d0.and.orbs%norb==norb) then
      if (iproc==0) print*,'Error in reorthonormalize_coeff too large, reverting to gram-schmidt orthonormalization'
      ! gram-schmidt as too far from orthonormality to use iterative schemes for S^-1/2
-     ! normalize
-     call timing(iproc,'renormCoefCom2','ON')
-     !mat_coeff_diag=f_malloc(orbs%norb,id='mat_coeff_diag')
-     !call calculate_coeffMatcoeff_diag(basis_overlap_mat%matrix,basis_orbs,orbs,coeff,mat_coeff_diag)
-     !do iorb=1,norb
-     !   !call dscal(basis_orbs%norb,1.0d0/sqrt(mat_coeff_diag(iorb)),coeff(1,iorb),1)
-     !   call dscal(basis_orbs%norb,1.0d0/sqrt(ovrlp_coeff(iorb,iorb)),coeff(1,iorb),1)
-     !end do
-     !call f_free(mat_coeff_diag)
-
      call f_free_ptr(ovrlp_coeff)
-
-     call gramschmidt_coeff(iproc,nproc,orbs%norb,basis_orbs,basis_overlap,basis_overlap_mat,coeff)
-
+     call timing(iproc,'renormCoefCom2','ON')
+     call gramschmidt_coeff_trans(iproc,nproc,orbs%norb,basis_orbs,basis_overlap,basis_overlap_mat,coeff)
      call timing(iproc,'renormCoefCom2','OF')
   else
      ! standard lowdin
@@ -2166,7 +2154,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
             if (norb==orbs%norb) then
                 call dgemm('n', 't', basis_orbs%norb, orbs%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), basis_orbs%norb, &
                      inv_ovrlp_%matrix(1,orbs%isorb+1), orbs%norb, 0.d0, coeff_tmp(1,1), basis_orbs%norb)
-            else
+            else !surely this isn't correct??
                 call dgemm('n', 't', basis_orbs%norb, orbs%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), basis_orbs%norb, &
                      inv_ovrlp_matrix(1,orbs%isorb+1), orbs%norb, 0.d0, coeff_tmp(1,1), basis_orbs%norb)
             end if
