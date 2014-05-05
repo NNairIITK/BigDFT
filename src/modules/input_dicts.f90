@@ -7,6 +7,12 @@ module module_input_dicts
 
   !parameters to avoid typos in dictionary keys
   character(len=*), parameter :: ATOMIC_OCC="Atomic occupation"
+  character(len=*), parameter :: ASTRUCT_UNITS = 'units' 
+  character(len=*), parameter :: ASTRUCT_CELL = 'cell' 
+  character(len=*), parameter :: ASTRUCT_POSITIONS = 'positions' 
+  character(len=*), parameter :: ASTRUCT_PROPERTIES = 'properties' 
+  character(len=*), parameter :: GOUT_ENERGY = 'energy (Ha)' 
+  character(len=*), parameter :: GOUT_FORCES = 'forces (Ha/Bohr)' 
 
   ! update a dictionary from a input file
   public :: merge_input_file_to_dict
@@ -18,6 +24,7 @@ module module_input_dicts
   public :: psp_dict_fill_all, psp_dict_analyse
 
   ! Types from dictionaries
+  public :: astruct_set_from_dict
   public :: psp_set_from_dict, nlcc_set_from_dict
   public :: atomic_data_set_from_dict
   public :: occupation_set_from_dict
@@ -25,6 +32,7 @@ module module_input_dicts
   ! Types to dictionaries
   public :: psp_data_merge_to_dict
   public :: astruct_merge_to_dict
+  public :: global_output_merge_to_dict
 
   ! Dictionaries from files (old formats).
   public :: psp_file_merge_to_dict, nlcc_file_merge_to_dict
@@ -120,7 +128,6 @@ contains
 
     nullify(dict)
 
-
     !read the input file(s) and transform them into a dictionary
     call read_input_dict_from_files(trim(radical), mpi_env, dict)
 
@@ -165,6 +172,7 @@ contains
           call occupation_data_file_merge_to_dict(dict, "occupation", trim(str))
        end if
     end if
+
   end subroutine user_dict_from_files
 
   subroutine psp_dict_fill_all(dict, atomname, run_ixc)
@@ -560,7 +568,7 @@ contains
     implicit none
     type(dictionary), pointer :: dict
 
-    type(dictionary), pointer :: types, at
+    type(dictionary), pointer :: types
     character(len = max_field_length) :: str
     integer :: iat
     character(max_field_length), dimension(:), allocatable :: keys
@@ -568,15 +576,7 @@ contains
     logical :: exists
 
     ! Loop on types for atomic data.
-    call dict_init(types)
-    do iat = 0, dict_len(dict // "posinp" // "Positions") - 1, 1
-       at => dict_iter(dict // "posinp" // "Positions" // iat)
-       do while(associated(at))
-          str = dict_key(at)
-          if (dict_len(at) == 3 .and. .not. has_key(types, str)) call set(types // str, ".")
-          at => dict_next(at)
-       end do
-    end do
+    call astruct_dict_get_types(dict // "posinp", types)
     allocate(keys(dict_size(types)))
     keys = dict_keys(types)
     do iat = 1, dict_size(types), 1
@@ -676,7 +676,7 @@ contains
   end subroutine nlcc_file_merge_to_dict
 
   !> Convert astruct to dictionary for later dump.
-  subroutine astruct_merge_to_dict(dict, astruct, rxyz, fxyz, energy, comment)
+  subroutine astruct_merge_to_dict(dict, astruct, rxyz, comment)
     use module_defs, only: gp, UNINITIALIZED, Bohr_Ang
     use module_atoms, only: atomic_structure
     use dictionaries
@@ -685,8 +685,6 @@ contains
     type(dictionary), pointer :: dict
     type(atomic_structure), intent(in) :: astruct
     real(gp), dimension(3, astruct%nat), intent(in) :: rxyz
-    real(gp), dimension(3, astruct%nat), intent(in), optional :: fxyz
-    real(gp), intent(in), optional :: energy
     character(len = 1024), intent(in), optional :: comment
     !local variables
     type(dictionary), pointer :: pos, at
@@ -701,10 +699,10 @@ contains
     factor=1.0_gp
     Units: select case(trim(astruct%units))
     case('angstroem','angstroemd0')
-       call set(dict // "Units", 'angstroem')
+       call set(dict // ASTRUCT_UNITS, 'angstroem')
        factor=Bohr_Ang
     case('reduced')
-       call set(dict // "Units", 'reduced')
+       call set(dict // ASTRUCT_UNITS, 'reduced')
        reduced = .true.
     case('atomic','atomicd0','bohr','bohrd0')
        ! Default, store nothing
@@ -713,25 +711,25 @@ contains
     !cell information
     BC :select case(astruct%geocode)
     case('S')
-       call set(dict // "Cell" // 0, yaml_toa(astruct%cell_dim(1)*factor(1)))
-       call set(dict // "Cell" // 1, '.inf')
-       call set(dict // "Cell" // 2, yaml_toa(astruct%cell_dim(3)*factor(3)))
+       call set(dict // ASTRUCT_CELL // 0, yaml_toa(astruct%cell_dim(1)*factor(1)))
+       call set(dict // ASTRUCT_CELL // 1, '.inf')
+       call set(dict // ASTRUCT_CELL // 2, yaml_toa(astruct%cell_dim(3)*factor(3)))
        !angdeg to be added
        if (reduced) then
           factor(1) = 1._gp / astruct%cell_dim(1)
           factor(3) = 1._gp / astruct%cell_dim(3)
        end if
     case('W')
-       call set(dict // "Cell" // 0, '.inf')
-       call set(dict // "Cell" // 1, '.inf')
-       call set(dict // "Cell" // 2, yaml_toa(astruct%cell_dim(3)*factor(3)))
+       call set(dict // ASTRUCT_CELL // 0, '.inf')
+       call set(dict // ASTRUCT_CELL // 1, '.inf')
+       call set(dict // ASTRUCT_CELL // 2, yaml_toa(astruct%cell_dim(3)*factor(3)))
        if (reduced) then
           factor(3) = 1._gp / astruct%cell_dim(3)
        end if
     case('P')
-       call set(dict // "Cell" // 0, yaml_toa(astruct%cell_dim(1)*factor(1)))
-       call set(dict // "Cell" // 1, yaml_toa(astruct%cell_dim(2)*factor(2)))
-       call set(dict // "Cell" // 2, yaml_toa(astruct%cell_dim(3)*factor(3)))
+       call set(dict // ASTRUCT_CELL // 0, yaml_toa(astruct%cell_dim(1)*factor(1)))
+       call set(dict // ASTRUCT_CELL // 1, yaml_toa(astruct%cell_dim(2)*factor(2)))
+       call set(dict // ASTRUCT_CELL // 2, yaml_toa(astruct%cell_dim(3)*factor(3)))
        !angdeg to be added
        if (reduced) then
           factor(1) = 1._gp / astruct%cell_dim(1)
@@ -740,11 +738,11 @@ contains
        end if
     case('F')
        ! Default, store nothing and erase key if already exist.
-       if (has_key(dict, "Cell")) call pop(dict, "Cell")
+       if (has_key(dict, ASTRUCT_CELL)) call pop(dict, ASTRUCT_CELL)
     end select BC
 
-    if (has_key(dict, "Positions")) call pop(dict, "Positions")
-    pos => dict // "Positions"
+    if (has_key(dict, ASTRUCT_POSITIONS)) call pop(dict, ASTRUCT_POSITIONS)
+    pos => dict // ASTRUCT_POSITIONS
     do iat=1,astruct%nat
        call dict_init(at)
        call add(at // astruct%atomnames(astruct%iatype(iat)), rxyz(1,iat) * factor(1))
@@ -760,28 +758,41 @@ contains
        call add(pos, at)
     end do
 
-    if (has_key(dict, "Forces (Ha/Bohr)")) call pop(dict, "Forces (Ha/Bohr)")
-    if (present(fxyz)) then
-       pos => dict // "Forces (Ha/Bohr)"
-       do iat=1,astruct%nat
-          call add(pos, yaml_toa(fxyz(:, iat)))
-       end do
-    end if
-
-    if (present(energy)) then
-       if (energy /= UNINITIALIZED(energy)) &
-            & call add(dict // "Properties" // "Energy (Ha)", energy)
-    end if
-
     if (present(comment)) then
        if (len_trim(comment) > 0) &
-            & call add(dict // "Properties" // "Info", comment)
+            & call add(dict // ASTRUCT_PROPERTIES // "info", comment)
     end if
 
     if (len_trim(astruct%inputfile_format) > 0) &
-         & call set(dict // "Properties" // "Format", astruct%inputfile_format)
+         & call set(dict // ASTRUCT_PROPERTIES // "format", astruct%inputfile_format)
   end subroutine astruct_merge_to_dict
+  
+  subroutine astruct_dict_get_types(dict, types)
+    use dictionaries
+    implicit none
+    type(dictionary), pointer :: dict, types
 
+    type(dictionary), pointer :: atoms, at
+    character(len = max_field_length) :: str
+    integer :: iat, ityp
+
+    call dict_init(types)
+    atoms => dict // ASTRUCT_POSITIONS
+    ityp = 0
+    do iat = 1, dict_len(atoms), 1
+       at => dict_iter(atoms // (iat - 1))
+       do while(associated(at))
+          str = dict_key(at)
+          if (dict_len(at) == 3 .and. .not. has_key(types, str)) then
+             ityp = ityp + 1
+             call set(types // str, ityp)
+             nullify(at)
+          else
+             at => dict_next(at)
+          end if
+       end do
+    end do
+  end subroutine astruct_dict_get_types
 
   subroutine astruct_file_merge_to_dict(dict, key, filename)
     use module_base, only: gp, UNINITIALIZED, bigdft_mpi,f_routine,f_release_routine
@@ -801,11 +812,147 @@ contains
     call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, status = ierr)
     if (ierr == 0) then
        call astruct_merge_to_dict(dict // key, astruct, astruct%rxyz)
-       call set(dict // key // "Properties" // "Source", filename)
+       call set(dict // key // ASTRUCT_PROPERTIES // "source", filename)
        call deallocate_atomic_structure(astruct)
     end if
     call f_release_routine()
   end subroutine astruct_file_merge_to_dict
+
+  !> allocate the astruct variable from the dictionary of input data
+  !retrieve also other information like the energy and the forces if requested
+  !! and presend in the dictionary
+  subroutine astruct_set_from_dict(dict, astruct, comment)
+    use module_defs, only: gp, Bohr_Ang, UNINITIALIZED
+    use module_atoms, only: atomic_structure, nullify_atomic_structure
+    use dictionaries
+    use dynamic_memory
+    implicit none
+    type(dictionary), pointer :: dict !< dictionary of the input variables
+    !! the keys have to be declared like input_dicts module
+    type(atomic_structure), intent(out) :: astruct !<structure created from the file
+    !> extra comment retrieved from the file if present
+    character(len = 1024), intent(out), optional :: comment
+
+    !local variables
+    character(len=*), parameter :: subname='astruct_set_from_dict'
+    type(dictionary), pointer :: pos, at, types
+    character(len = max_field_length) :: str
+    integer :: iat, ityp, units, igspin, igchrg, nsgn, ntyp
+
+    call nullify_atomic_structure(astruct)
+    astruct%nat = -1
+    if (present(comment)) write(comment, "(A)") " "
+    if (.not. has_key(dict, ASTRUCT_POSITIONS)) return
+
+    ! The units
+    units = 0
+    write(astruct%units, "(A)") "bohr"
+    if (has_key(dict, ASTRUCT_UNITS)) astruct%units = dict // ASTRUCT_UNITS
+    select case(trim(astruct%units))
+    case('atomic','atomicd0','bohr','bohrd0')
+       units = 0
+    case('angstroem','angstroemd0')
+       units = 1
+    case('reduced')
+       units = 2
+    end select
+    ! The cell
+    astruct%cell_dim = 0.0_gp
+    if (.not. has_key(dict, ASTRUCT_CELL)) then
+       astruct%geocode = 'F'
+    else
+       astruct%geocode = 'P'
+       ! z
+       astruct%cell_dim(3) = dict // ASTRUCT_CELL // 2
+       ! y
+       str = dict // ASTRUCT_CELL // 1
+       if (trim(str) == ".inf") then
+          astruct%geocode = 'S'
+       else
+          astruct%cell_dim(2) = dict // ASTRUCT_CELL // 1
+       end if
+       ! x
+       str = dict // ASTRUCT_CELL // 0
+       if (trim(str) == ".inf") then
+          astruct%geocode = 'W'
+       else
+          astruct%cell_dim(1) = dict // ASTRUCT_CELL // 0
+       end if
+    end if
+    if (units == 1) astruct%cell_dim = astruct%cell_dim / Bohr_Ang
+    ! The types
+    call astruct_dict_get_types(dict, types)
+    ntyp = dict_size(types)
+    call astruct_set_n_types(astruct, ntyp)
+    ! astruct%atomnames = dict_keys(types)
+    ityp = 1
+    at => dict_iter(types)
+    do while (associated(at))
+       astruct%atomnames(ityp) = dict_key(at)
+       ityp = ityp + 1
+       at => dict_next(at)
+    end do
+    ! The atoms
+    pos => dict // ASTRUCT_POSITIONS
+    call astruct_set_n_atoms(astruct, dict_len(pos))
+    do iat = 1, astruct%nat
+       igspin = 0
+       igchrg = 0
+       nsgn   = 1
+       !at => pos // (iat - 1)
+       at => dict_iter(pos//(iat-1))!at%child
+       do while(associated(at))
+          str = dict_key(at)
+          if (trim(str) == "Frozen") then
+             str = dict_value(at)
+             call frozen_ftoi(str(1:4), astruct%ifrztyp(iat))
+          else if (trim(str) == "IGSpin") then
+             igspin = at
+          else if (trim(str) == "IGChg") then
+             igchrg = at
+             if (igchrg >= 0) then
+                nsgn = 1
+             else
+                nsgn = -1
+             end if
+          else if (dict_len(at) == 3) then
+             astruct%iatype(iat) = types // dict_key(at)
+             astruct%rxyz(:, iat) = at
+          end if
+          at => dict_next(at)
+       end do
+       astruct%input_polarization(iat) = 1000 * igchrg + nsgn * 100 + igspin
+       if (units == 1) then
+          astruct%rxyz(1,iat) = astruct%rxyz(1,iat) / Bohr_Ang
+          astruct%rxyz(2,iat) = astruct%rxyz(2,iat) / Bohr_Ang
+          astruct%rxyz(3,iat) = astruct%rxyz(3,iat) / Bohr_Ang
+       endif
+       if (units == 2) then !add treatment for reduced coordinates
+          if (astruct%cell_dim(1) > 0.) astruct%rxyz(1,iat)=&
+               modulo(astruct%rxyz(1,iat),1.0_gp) * astruct%cell_dim(1)
+          if (astruct%cell_dim(2) > 0.) astruct%rxyz(2,iat)=&
+               modulo(astruct%rxyz(2,iat),1.0_gp) * astruct%cell_dim(2)
+          if (astruct%cell_dim(3) > 0.) astruct%rxyz(3,iat)=&
+               modulo(astruct%rxyz(3,iat),1.0_gp) * astruct%cell_dim(3)
+       else if (astruct%geocode == 'P') then
+          astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),astruct%cell_dim(1))
+          astruct%rxyz(2,iat)=modulo(astruct%rxyz(2,iat),astruct%cell_dim(2))
+          astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
+       else if (astruct%geocode == 'S') then
+          astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),astruct%cell_dim(1))
+          astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
+       else if (astruct%geocode == 'W') then
+          astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
+       end if
+    end do
+
+    if (has_key(dict, ASTRUCT_PROPERTIES)) then
+       pos => dict // ASTRUCT_PROPERTIES
+       if (has_key(pos, "info") .and. present(comment)) comment = pos // "info"
+       if (has_key(pos, "format")) astruct%inputfile_format = pos // "format"
+    end if
+
+  end subroutine astruct_set_from_dict
 
   subroutine aocc_to_dict(dict, nspin, noncoll, nstart, aocc, nelecmax, lmax, nsccode)
     use module_defs, only: gp
@@ -862,8 +1009,7 @@ contains
     character(len = *), intent(in) :: key
     integer, intent(in) :: nspin
 
-    integer :: iat, ityp, nsccode, mxpl, mxchg, nsp, nspinor
-    integer :: ichg, ispol, icoll, iocc, ispin, l, inl, m, nl, noncoll
+    integer :: iat, ityp
     real(gp) :: rcov,elec!,rprb,ehomo,elec
     character(len = max_field_length) :: at
     type(dictionary), pointer :: dict_tmp
@@ -1219,4 +1365,29 @@ contains
 
   end subroutine occupation_data_file_merge_to_dict
 
+  subroutine global_output_merge_to_dict(dict, outs, astruct)
+    use module_defs, only: gp, UNINITIALIZED
+    use module_types, only: atomic_structure, DFT_global_output
+    use dictionaries
+    implicit none
+    type(dictionary), pointer :: dict
+    type(DFT_global_output), intent(in) :: outs
+    type(atomic_structure), intent(in) :: astruct
+
+    integer :: iat
+    type(dictionary), pointer :: pos, fxyz
+
+    if (has_key(dict, GOUT_FORCES)) call pop(dict, GOUT_FORCES)
+    pos => dict // GOUT_FORCES
+    do iat=1,astruct%nat
+       call dict_init(fxyz)
+       call set(fxyz // astruct%atomnames(astruct%iatype(iat)) // 0, outs%fxyz(1, iat))
+       call set(fxyz // astruct%atomnames(astruct%iatype(iat)) // 1, outs%fxyz(2, iat))
+       call set(fxyz // astruct%atomnames(astruct%iatype(iat)) // 2, outs%fxyz(3, iat))
+       call add(pos, fxyz)
+    end do
+
+    call set(dict // GOUT_ENERGY, outs%energs%eKS)
+
+  end subroutine global_output_merge_to_dict
 end module module_input_dicts
