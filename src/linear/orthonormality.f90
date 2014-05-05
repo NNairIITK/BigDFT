@@ -479,6 +479,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
 
 
   if (iproc==0) then
+      call yaml_newline()
       call yaml_open_sequence('overlap manipulation routine')
       if (imode==SPARSE) then
           call yaml_map('mode','sparse')
