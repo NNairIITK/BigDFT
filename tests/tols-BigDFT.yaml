@@ -319,8 +319,8 @@ cleanup:
  Raw forces norm (Ha/Bohr): 2.6e-10
  Epot: 3.3e-9
  Orbitals: 4.55e-10
- EH: 2.4001e-9
- EXC: 4.7e-10
+ EH: 2.9e-9
+ EXC: 1.9e-9
  EvXC: 8.7e-10
  Enl: 9.1e-10
  Omega: 1.6e-9
@@ -876,7 +876,7 @@ DIIShistory:
 
 sparsity:
  Total charge: 1.1e-10
- Omega: 5.2e-10
+ Omega: 5.6e-10
  Clean forces norm (Ha/Bohr): 7.7e-11
  Raw forces norm (Ha/Bohr): 1.4e-11
  Total ionic charge: 2.2e-11
@@ -908,6 +908,7 @@ PBE_potmixlin:
  EvXC: 1.1e-10
  energy: 1.1e-10
  Omega: 1.1e-10
+ delta out: 1.1e-9
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -933,4 +934,4 @@ PBE_densmixdiis:
  EvXC: 1.1e-10
  Enl: 1.1e-10
  energy: 1.1e-10
- Omega: 4.5e-11
+ Omega: 1.1e-10
