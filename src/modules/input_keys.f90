@@ -140,6 +140,7 @@ module module_input_keys
   character(len = *), parameter, public :: CALCULATE_GAP = "calculate_gap"
   character(len = *), parameter, public :: LOEWDIN_CHARGE_ANALYSIS = "loewdin_charge_analysis"
   character(len = *), parameter, public :: CHECK_MATRIX_COMPRESSION = "check_matrix_compression"
+  character(len = *), parameter, public :: CORRECTION_CO_CONTRA = "correction_co_contra"
 
   !keys for linear input variables
   !level keys

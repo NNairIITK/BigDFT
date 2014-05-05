@@ -2008,9 +2008,10 @@ contains
     call input_var(dummy_real,'-.5d0',dict//LIN_KERNEL//EVAL_RANGE_FOE//0,ranges=(/-10.d0,-1.d-10/))
     call input_var(dummy_real,'-.5d0',dict//LIN_KERNEL//EVAL_RANGE_FOE//1,ranges=(/1.d-10,10.d0/),comment=comments)
 
-    comments='number of iterations in the preconditioner, order of Taylor approximations'
-    call input_var(dummy_int,'5',dict//LIN_BASIS//NSTEP_PREC,ranges=(/1,100/))
-    call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-100,100/),comment=comments)
+    !comments='number of iterations in the preconditioner, order of Taylor approximations'
+    comments='number of iterations in the preconditioner'
+    call input_var(dummy_int,'5',dict//LIN_BASIS//NSTEP_PREC,ranges=(/1,100/),comment=comments)
+    !!call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-100,100/),comment=comments)
     !call input_var(in%lin%order_taylor,'1',ranges=(/1,100/),comment=comments)
 
     comments = '0-> exact Loewdin, 1-> taylor expansion; &

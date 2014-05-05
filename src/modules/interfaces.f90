@@ -1462,7 +1462,7 @@ module module_interfaces
           correction_orthoconstraint,nit_basis,&
           ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
           gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, kappa_conv, method_updatekernel,&
-          purification_quickreturn, adjust_FOE_temperature)
+          purification_quickreturn, adjust_FOE_temperature, correction_co_contra)
         use module_base
         use module_types
         implicit none
@@ -1492,6 +1492,7 @@ module module_interfaces
         logical,intent(in) :: experimental_mode, purification_quickreturn, adjust_FOE_temperature
         logical,intent(out) :: can_use_ham
         integer,intent(in) :: method_updatekernel
+        logical,intent(in) :: correction_co_contra
       end subroutine getLocalizedBasis
 
     subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
@@ -1990,7 +1991,7 @@ module module_interfaces
 
       subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
                  correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, hpsit_c, hpsit_f, &
-                 can_use_transposed, overlap_calculated, experimental_mode, tmb)
+                 can_use_transposed, overlap_calculated, experimental_mode, norder_taylor)
         use module_base
         use module_types
         use yaml_output
@@ -2009,7 +2010,7 @@ module module_interfaces
         logical,intent(inout) :: can_use_transposed, overlap_calculated
         type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
         logical,intent(in) :: experimental_mode
-        type(DFT_wavefunction),intent(inout) :: tmb
+        integer,intent(in) :: norder_taylor
       end subroutine orthoconstraintNonorthogonal
 
 
@@ -2480,11 +2481,11 @@ module module_interfaces
                   ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
                   energy_increased, tmb, lhphiold, overlap_calculated, &
                   energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
-                  energy_only, hpsi_small, experimental_mode, ksorbs, hpsi_noprecond)
+                  energy_only, hpsi_small, experimental_mode, correction_co_contra, ksorbs, hpsi_noprecond, norder_taylor)
          use module_base
          use module_types
          implicit none
-         integer,intent(in) :: iproc, nproc, it
+         integer,intent(in) :: iproc, nproc, it, norder_taylor
          type(DFT_wavefunction),target,intent(inout):: tmb
          type(localizedDIISParameters),intent(inout) :: ldiis
          real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
@@ -2497,7 +2498,7 @@ module module_interfaces
          type(energy_terms),intent(in) :: energs
          real(8),dimension(:),pointer:: hpsit_c, hpsit_f
          integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
-         logical, intent(in) :: energy_only, experimental_mode
+         logical, intent(in) :: energy_only, experimental_mode, correction_co_contra
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_small
          type(orbitals_data),intent(in) :: ksorbs
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: hpsi_noprecond
@@ -2517,11 +2518,11 @@ module module_interfaces
 
        subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
                   lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho, psidiff, &
-                  experimental_mode, trH_ref, kernel_best, complete_reset)
+                  experimental_mode, order_taylor, trH_ref, kernel_best, complete_reset)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: iproc, nproc, it
+         integer,intent(in):: iproc, nproc, it, order_taylor
          type(localizedDIISParameters),intent(inout):: ldiis
          type(DFT_wavefunction),target,intent(inout):: tmb
          real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lphiold
@@ -3673,12 +3674,12 @@ module module_interfaces
         end subroutine purify_kernel
 
         subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit, itmax, energy, &
-               sd_fit_curve, factor, itout, it_scc, it_cdft, reorder, num_extra)
+               sd_fit_curve, factor, itout, it_scc, it_cdft, order_taylor, reorder, num_extra)
           use module_base
           use module_types
           use diis_sd_optimization
           implicit none
-          integer,intent(in):: iproc, nproc, itmax, itout, it_scc, it_cdft
+          integer,intent(in):: iproc, nproc, itmax, itout, it_scc, it_cdft, order_taylor
           type(orbitals_data),intent(in):: orbs
           type(DFT_wavefunction),intent(inout):: tmb
           type(DIIS_obj), intent(inout) :: ldiis_coeff
