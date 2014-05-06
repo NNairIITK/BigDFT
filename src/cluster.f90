@@ -304,6 +304,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   integer :: nkptv, nvirtu, nvirtd
   real(gp), dimension(:), allocatable :: wkptv
 
+  real(kind=8),dimension(:,:),allocatable :: locreg_centers
+
   !Variables for WVL+PAW
   integer:: iatyp
   type(gaussian_basis),dimension(max(atoms%astruct%ntypes,0))::proj_G
@@ -475,7 +477,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      !!tag=0
 
      call kswfn_init_comm(tmb, in, atoms, denspot%dpbox, iproc, nproc)
-     call init_foe(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, .true.)
+     locreg_centers = f_malloc((/3,tmb%lzd%nlr/),id='locreg_centers')
+     do ilr=1,tmb%lzd%nlr
+         locreg_centers(1:3,ilr)=tmb%lzd%llr(ilr)%locregcenter(1:3)
+     end do
+     call init_foe(iproc, nproc, tmb%lzd%nlr, locreg_centers, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, .true.)
+     call f_free(locreg_centers)
      call increase_FOE_cutoff(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.true.)
 
      call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,in, atoms, rxyz, .false.)

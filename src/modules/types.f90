@@ -24,6 +24,7 @@ module module_types
   use module_atoms, only: atoms_data,symmetry_data,atomic_structure
   use communications_base, only: comms_linear, comms_cubic
   use sparsematrix_base, only: matrices, sparse_matrix
+  use foe_base, only: foe_data
 
   implicit none
 
@@ -623,22 +624,22 @@ module module_types
     logical :: communication_complete
   end type p2pComms
 
-  !> Fermi Operator Expansion parameters
-  type, public :: foe_data
-    integer :: nseg
-    integer,dimension(:),pointer :: nsegline, istsegline
-    integer,dimension(:,:),pointer :: keyg
-    real(kind=8) :: ef                     !< Fermi energy for FOE
-    real(kind=8) :: evlow, evhigh          !< Eigenvalue bounds for FOE 
-    real(kind=8) :: bisection_shift        !< Bisection shift to find Fermi energy (FOE)
-    real(kind=8) :: fscale                 !< Length scale for complementary error function (FOE)
-    real(kind=8) :: ef_interpol_det        !< FOE: max determinant of cubic interpolation matrix
-    real(kind=8) :: ef_interpol_chargediff !< FOE: max charge difference for interpolation
-    real(kind=8) :: charge                 !< Total charge of the system
-    real(kind=8) :: fscale_lowerbound      !< lower bound for the error function decay length
-    real(kind=8) :: fscale_upperbound       !< upper bound for the error function decay length
-    integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
-  end type foe_data
+  !!> Fermi Operator Expansion parameters
+  !type, public :: foe_data
+  !  integer :: nseg
+  !  integer,dimension(:),pointer :: nsegline, istsegline
+  !  integer,dimension(:,:),pointer :: keyg
+  !  real(kind=8) :: ef                     !< Fermi energy for FOE
+  !  real(kind=8) :: evlow, evhigh          !< Eigenvalue bounds for FOE 
+  !  real(kind=8) :: bisection_shift        !< Bisection shift to find Fermi energy (FOE)
+  !  real(kind=8) :: fscale                 !< Length scale for complementary error function (FOE)
+  !  real(kind=8) :: ef_interpol_det        !< FOE: max determinant of cubic interpolation matrix
+  !  real(kind=8) :: ef_interpol_chargediff !< FOE: max charge difference for interpolation
+  !  real(kind=8) :: charge                 !< Total charge of the system
+  !  real(kind=8) :: fscale_lowerbound      !< lower bound for the error function decay length
+  !  real(kind=8) :: fscale_upperbound       !< upper bound for the error function decay length
+  !  integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
+  !end type foe_data
 
   type,public :: linear_matrices
       type(sparse_matrix) :: s !< small: sparsity pattern given by support function cutoff

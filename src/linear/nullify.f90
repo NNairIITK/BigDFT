@@ -49,20 +49,20 @@ end subroutine nullify_p2pComms
 
 
 
-subroutine nullify_foe(foe_obj)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_foe
-  implicit none
-
-  ! Calling argument
-  type(foe_data),intent(out):: foe_obj
-
-  nullify(foe_obj%nsegline)
-  nullify(foe_obj%istsegline)
-  nullify(foe_obj%keyg)
-
-end subroutine nullify_foe
+!subroutine nullify_foe(foe_obj)
+!  use module_base
+!  use module_types
+!  use module_interfaces, exceptThisOne => nullify_foe
+!  implicit none
+!
+!  ! Calling argument
+!  type(foe_data),intent(out):: foe_obj
+!
+!  nullify(foe_obj%nsegline)
+!  nullify(foe_obj%istsegline)
+!  nullify(foe_obj%keyg)
+!
+!end subroutine nullify_foe
 
 
 

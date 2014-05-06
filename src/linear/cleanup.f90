@@ -960,15 +960,16 @@ subroutine deallocate_foe(foe_obj, subname)
   use module_types
   use deallocatePointers
   use module_interfaces, exceptThisOne => deallocate_foe
+  use foe_base, only: foe_data
   implicit none
   
   ! Calling arguments
   type(foe_data),intent(inout):: foe_obj
   character(len=*),intent(in):: subname
 
-  call checkAndDeallocatePointer(foe_obj%nsegline, 'foe_obj%nsegline', subname)
-  call checkAndDeallocatePointer(foe_obj%istsegline, 'foe_obj%istsegline', subname)
-  call checkAndDeallocatePointer(foe_obj%keyg, 'foe_obj%keyg', subname)
+  !!call checkAndDeallocatePointer(foe_obj%nsegline, 'foe_obj%nsegline', subname)
+  !!call checkAndDeallocatePointer(foe_obj%istsegline, 'foe_obj%istsegline', subname)
+  !!call checkAndDeallocatePointer(foe_obj%keyg, 'foe_obj%keyg', subname)
 
 end subroutine deallocate_foe
 

@@ -211,16 +211,18 @@ end subroutine initLocregs
 
 
 
-subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, reset, &
+subroutine init_foe(iproc, nproc, nlr, locregcenter, astruct, input, orbs_KS, orbs, foe_obj, reset, &
            cutoff_incr)
   use module_base
   use module_atoms, only: atomic_structure
   use module_types
+  use foe_base, only: foe_data, set_int, get_int, set_real, get_real, foe_data_null
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc
-  type(local_zone_descriptors),intent(in) :: lzd
+  integer,intent(in) :: iproc, nproc, nlr
+  real(kind=8),dimension(3,nlr),intent(in) :: locregcenter
+  !!type(local_zone_descriptors),intent(in) :: lzd
   type(atomic_structure),intent(in) :: astruct
   type(input_variables),intent(in) :: input
   type(orbitals_data),intent(in) :: orbs_KS, orbs
@@ -234,8 +236,7 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
   logical :: seg_started
   real(kind=8) :: tt, cut, incr
   logical,dimension(:,:),allocatable :: kernel_locreg
-  character(len=*),parameter :: subname='initMatrixCompression'
-!  integer :: ii, iseg
+  character(len=*),parameter :: subname='init_foe'
 
   if (present(cutoff_incr)) then
       incr=cutoff_incr
@@ -245,116 +246,28 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
   
   call timing(iproc,'init_matrCompr','ON')
 
+  !call nullify_foe(foe_obj)
+  foe_obj = foe_data_null()
+
   if (reset) then
-     foe_obj%ef=0.d0
-     foe_obj%evlow=input%lin%evlow
-     foe_obj%evhigh=input%lin%evhigh
-     foe_obj%bisection_shift=1.d-1
-     foe_obj%fscale=input%lin%fscale
-     foe_obj%ef_interpol_det=input%lin%ef_interpol_det
-     foe_obj%ef_interpol_chargediff=input%lin%ef_interpol_chargediff
-     foe_obj%charge=0.d0
+     call foe_obj%set_real("ef",0.d0)
+     call foe_obj%set_real("evlow",input%lin%evlow)
+     call foe_obj%set_real("evhigh",input%lin%evhigh)
+     call foe_obj%set_real("bisection_shift",1.d-1)
+     call foe_obj%set_real("fscale",input%lin%fscale)
+     call foe_obj%set_real("ef_interpol_det",input%lin%ef_interpol_det)
+     call foe_obj%set_real("ef_interpol_chargediff",input%lin%ef_interpol_chargediff)
+     call foe_obj%set_real("charge",0.d0)
      do iorb=1,orbs_KS%norb
-          foe_obj%charge=foe_obj%charge+orbs_KS%occup(iorb)
+          call foe_obj%set_real("charge",foe_obj%get_real("charge")+orbs_KS%occup(iorb))
      end do
-     foe_obj%evbounds_isatur=0
-     foe_obj%evboundsshrink_isatur=0
-     foe_obj%evbounds_nsatur=input%evbounds_nsatur
-     foe_obj%evboundsshrink_nsatur=input%evboundsshrink_nsatur
-     foe_obj%fscale_lowerbound=input%fscale_lowerbound
-     foe_obj%fscale_upperbound=input%fscale_upperbound
+     call foe_obj%set_int("evbounds_isatur",0)
+     call foe_obj%set_int("evboundsshrink_isatur",0)
+     call foe_obj%set_int("evbounds_nsatur",input%evbounds_nsatur)
+     call foe_obj%set_int("evboundsshrink_nsatur",input%evboundsshrink_nsatur)
+     call foe_obj%set_real("fscale_lowerbound",input%fscale_lowerbound)
+     call foe_obj%set_real("fscale_upperbound",input%fscale_upperbound)
   end if
-
-  call nullify_foe(foe_obj)
-
-  ! Initialize kernel_locreg
-  !if (input%lin%scf_mode==LINEAR_FOE) then ! otherwise don't need to allocate just nullify as above
-     allocate(kernel_locreg(orbs%norbp,orbs%norb), stat=istat)
-     call memocc(istat, kernel_locreg, 'kernel_locreg', subname)
-     allocate(foe_obj%nsegline(orbs%norb), stat=istat)
-     call memocc(istat, foe_obj%nsegline, 'foe_obj%nsegline', subname)
-     call to_zero(orbs%norb, foe_obj%nsegline(1))
-     allocate(foe_obj%istsegline(orbs%norb), stat=istat)
-     call memocc(istat, foe_obj%istsegline, 'foe_obj%nsegline', subname)
-     call to_zero(orbs%norb, foe_obj%istsegline(1))
-     do iorb=1,orbs%norbp
-        iiorb=orbs%isorb+iorb
-        ilr=orbs%inwhichlocreg(iiorb)
-        iwa=orbs%onwhichatom(iiorb)
-        itype=astruct%iatype(iwa)
-        foe_obj%nsegline(iiorb)=0
-        seg_started=.false.
-        do jjorb=1,orbs%norb
-           jlr=orbs%inwhichlocreg(jjorb)
-           jwa=orbs%onwhichatom(jjorb)
-           jtype=astruct%iatype(jwa)
-           tt = (lzd%llr(ilr)%locregcenter(1)-lzd%llr(jlr)%locregcenter(1))**2 + &
-                (lzd%llr(ilr)%locregcenter(2)-lzd%llr(jlr)%locregcenter(2))**2 + &
-                (lzd%llr(ilr)%locregcenter(3)-lzd%llr(jlr)%locregcenter(3))**2
-           cut = input%lin%kernel_cutoff_FOE(itype)+input%lin%kernel_cutoff_FOE(jtype)+2.d0*incr
-           tt=sqrt(tt)
-           if (tt<=cut) then
-              kernel_locreg(iorb,jjorb)=.true.
-              if (.not.seg_started) then
-                 foe_obj%nsegline(iiorb)=foe_obj%nsegline(iiorb)+1
-              end if
-              seg_started=.true.
-           else
-              kernel_locreg(iorb,jjorb)=.false.
-              seg_started=.false.
-           end if
-        end do
-     end do
-
-     if (nproc > 1) then
-         call mpiallred(foe_obj%nsegline(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
-     end if
-
-     ! Total number of segments
-     foe_obj%nseg = sum(foe_obj%nsegline)
-     
-     ! Initialize istsegline, which gives the first segment of each line
-     foe_obj%istsegline(1)=1
-     do iorb=2,orbs%norb
-         foe_obj%istsegline(iorb) = foe_obj%istsegline(iorb-1) + foe_obj%nsegline(iorb-1)
-     end do
-
-     allocate(foe_obj%keyg(2,foe_obj%nseg),stat=istat)
-     call memocc(istat, foe_obj%keyg, 'foe_obj%keyg', subname)
-     call to_zero(2*foe_obj%nseg, foe_obj%keyg(1,1))
-
-     do iorb=1,orbs%norbp
-        iiorb=orbs%isorb+iorb
-        iseg=0
-        seg_started=.false.
-        isegstart=foe_obj%istsegline(iiorb)-1
-        do jjorb=1,orbs%norb
-           if(kernel_locreg(iorb,jjorb)) then
-              if (.not.seg_started) then
-                 iseg=iseg+1
-                 foe_obj%keyg(1,isegstart+iseg)=(iiorb-1)*orbs%norb+jjorb
-              end if
-              seg_started=.true.
-           else
-              if (seg_started) then
-                 foe_obj%keyg(2,isegstart+iseg)=(iiorb-1)*orbs%norb+jjorb-1
-              end if
-              seg_started=.false.
-           end if
-        end do
-        if (seg_started) then
-           foe_obj%keyg(2,isegstart+iseg)=(iiorb-1)*orbs%norb+orbs%norb
-        end if
-     end do
-
-     if (nproc > 1) then
-         call mpiallred(foe_obj%keyg(1,1), 2*foe_obj%nseg, mpi_sum, bigdft_mpi%mpi_comm)
-     end if
-
-     iall = -product(shape(kernel_locreg))*kind(kernel_locreg) 
-     deallocate(kernel_locreg,stat=istat)
-     call memocc(istat,iall,'kernel_locreg',subname)
-  !end if
 
   call timing(iproc,'init_matrCompr','OF')
 
@@ -828,6 +741,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
   use communications_base, only: comms_linear_null
   use communications_init, only: init_comms_linear, init_comms_linear_sumrho, &
                                  initialize_communication_potential
+  use foe_base, only: foe_data, foe_data_null
   implicit none
   
   ! Calling arguments
@@ -851,10 +765,12 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
   
   ! Local variables
   integer :: iorb, ilr, npsidim, istat
+  real(kind=8),dimension(:,:),allocatable :: locreg_centers
   character(len=*),parameter :: subname='update_locreg'
 
   call timing(iproc,'updatelocreg1','ON') 
-  if (present(lfoe)) call nullify_foe(lfoe)
+  !if (present(lfoe)) call nullify_foe(lfoe)
+  if (present(lfoe)) lfoe = foe_data_null()
   !call nullify_comms_linear(lbcollcom)
   lbcollcom=comms_linear_null()
   if (present(lbcollcom_sr)) then
@@ -901,7 +817,14 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
 
   call timing(iproc,'updatelocreg1','OF') 
 
-  if (present(lfoe)) call init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, lfoe, .false.)
+  if (present(lfoe)) then
+      locreg_centers = f_malloc((/3,lzd%nlr/),id='locreg_centers')
+      do ilr=1,lzd%nlr
+          locreg_centers(1:3,ilr)=lzd%llr(ilr)%locregcenter(1:3)
+      end do
+      call init_foe(iproc, nproc, lzd%nlr, locreg_centers, astruct, input, orbs_KS, orbs, lfoe, .false.)
+      call f_free(locreg_centers)
+  end if
 
   call init_comms_linear(iproc, nproc, npsidim_orbs, orbs, lzd, lbcollcom)
   if (present(lbcollcom_sr)) then
@@ -1665,6 +1588,7 @@ subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs,
   use module_types
   use module_interfaces, except_this_one => increase_FOE_cutoff
   use yaml_output
+  use foe_base, only: foe_data
   implicit none
 
   ! Calling arguments
@@ -1676,7 +1600,9 @@ subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs,
   type(foe_data),intent(out) :: foe_obj
   logical,intent(in) :: init
   ! Local variables
+  integer :: ilr
   real(kind=8),save :: cutoff_incr
+  real(kind=8),dimension(:,:),allocatable :: locreg_centers
   character(len=*),parameter :: subname='increase_FOE_cutoff'
 
   ! Just initialize the save variable
@@ -1699,8 +1625,13 @@ subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs,
   end if
 
   ! Re-initialize the foe data
-  call init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, reset=.false., &
+  locreg_centers = f_malloc((/3,lzd%nlr/),id='locreg_centers')
+  do ilr=1,lzd%nlr
+      locreg_centers(1:3,ilr)=lzd%llr(ilr)%locregcenter(1:3)
+  end do
+  call init_foe(iproc, nproc, lzd%nlr, locreg_centers, astruct, input, orbs_KS, orbs, foe_obj, reset=.false., &
        cutoff_incr=cutoff_incr)
+  call f_free(locreg_centers)
 
 end subroutine increase_FOE_cutoff
 
