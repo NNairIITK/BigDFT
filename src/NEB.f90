@@ -106,7 +106,8 @@ MODULE NEB_routines
       type(mpi_environment) :: bigdft_mpi_svg
       character(len=60) :: run_id
       CHARACTER (LEN=80) :: first_config, last_config
-      type(dictionary), pointer :: dict, posinp
+      type(dictionary), pointer :: dict
+      character(len = max_field_length) :: source
 
       NAMELIST /NEB/ first_config,        &
                      last_config,         &
@@ -196,25 +197,20 @@ MODULE NEB_routines
       bigdft_mpi%igroup = 0
       bigdft_mpi%ngroup = num_of_images
 
-      call dict_init(posinp)
+      call dict_init(dict)
       do i = 1, num_of_images
+
          call user_dict_from_files(dict, trim(arr_radical(i)), &
               & trim(arr_posinp(i)), bigdft_mpi)
-         if (.not.has_key(dict, "posinp")) then
-            if (i == 1 .or. i == num_of_images) stop "Missing images"
-            call dict_copy(dict // "posinp", posinp)
-            ! we copy the last valid image instead.
-            read_posinp(i) = .false.
-         else
-            read_posinp(i) = .true.
-            call dict_free(posinp)
-            call dict_copy(posinp, dict // "posinp")
-         end if
+         call astruct_dict_get_source(dict // "posinp", source)
 
          call inputs_from_dict(ins(i), atoms(i), dict)
+         read_posinp(i) = (trim(source) == trim(arr_posinp(i)))
 
-         call dict_free(dict)
       end do
+      call dict_free(dict)
+
+      ! End of trick on bigdft_mpi.
       bigdft_mpi = bigdft_mpi_svg
 
       data_file          = trim(job_name) // ".NEB.dat"

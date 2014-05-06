@@ -89,6 +89,7 @@ subroutine run_objects_init_from_files(runObj, radical, posinp)
   call restart_objects_new(runObj%rst)
 
   ! Generate input dictionary and parse it.
+  call dict_init(runObj%user_inputs)
   call user_dict_from_files(runObj%user_inputs, radical, posinp, bigdft_mpi)
   call run_objects_parse(runObj)
 

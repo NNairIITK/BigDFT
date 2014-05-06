@@ -304,7 +304,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     !---------------------------------------------------------------------------
     !pnow%ncount=1
     !pnow%ncount_ll=0
-    nullify(dict)
+    call dict_init(dict)
     ncount_bigdft=0
     pnow%ifile=ifile
     parmin%ifile=ifile
