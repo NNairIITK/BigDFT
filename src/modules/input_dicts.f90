@@ -23,6 +23,9 @@ module module_input_dicts
   ! Dictionary completion
   public :: psp_dict_fill_all, psp_dict_analyse
 
+  ! Dictionary inquire
+  public :: astruct_dict_get_source, astruct_dict_get_types
+
   ! Types from dictionaries
   public :: astruct_set_from_dict
   public :: psp_set_from_dict, nlcc_set_from_dict
@@ -125,8 +128,6 @@ contains
     type(mpi_environment), intent(in) :: mpi_env
 
     character(len = max_field_length) :: str
-
-    nullify(dict)
 
     !read the input file(s) and transform them into a dictionary
     call read_input_dict_from_files(trim(radical), mpi_env, dict)
@@ -793,6 +794,19 @@ contains
        end do
     end do
   end subroutine astruct_dict_get_types
+
+  subroutine astruct_dict_get_source(dict, source)
+    use dictionaries, only: max_field_length, dictionary, has_key, operator(//), dict_value
+    implicit none
+    type(dictionary), pointer :: dict
+    character(len = max_field_length), intent(out) :: source
+    
+    write(source, "(A)") ""
+    if (has_key(dict, ASTRUCT_PROPERTIES)) then
+       if (has_key(dict // ASTRUCT_PROPERTIES, "source")) &
+            & source = dict_value(dict // ASTRUCT_PROPERTIES // "source")
+    end if
+  end subroutine astruct_dict_get_source
 
   subroutine astruct_file_merge_to_dict(dict, key, filename)
     use module_base, only: gp, UNINITIALIZED, bigdft_mpi,f_routine,f_release_routine

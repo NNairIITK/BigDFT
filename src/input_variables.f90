@@ -20,7 +20,7 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
   implicit none
   character(len = *), intent(in) :: radical !< the name of the run. use "input" if empty
   type(mpi_environment), intent(in) :: mpi_env !< the environment where the variables have to be updated
-  type(dictionary), pointer :: dict !< input dictionary, has to be nullified at input
+  type(dictionary), pointer :: dict !< input dictionary, has to be initialised at input
   !local variables
   integer :: ierr
   logical :: exists_default, exists_user
@@ -29,12 +29,12 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
 
   call f_routine(id='read_input_dict_from_files')
 
-  if (f_err_raise(associated(dict),'The output dictionary should be nullified at input',&
-       err_name='BIGDFT_RUNTIME_ERROR')) return
+!!$  if (f_err_raise(associated(dict),'The output dictionary should be nullified at input',&
+!!$       err_name='BIGDFT_RUNTIME_ERROR')) return
+!!$
+!!$  nullify(dict) !this is however put in the case the dictionary comes undefined
 
-  nullify(dict) !this is however put in the case the dictionary comes undefined
-
-  call dict_init(dict)
+!!$  call dict_init(dict)
   if (trim(radical) /= "" .and. trim(radical) /= "input") &
        & call set(dict // "radical", radical)
 
