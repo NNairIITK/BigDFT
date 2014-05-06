@@ -664,10 +664,12 @@
      default: No
    fscale_lowerbound:
      COMMENT: linear scaling lower bound for the error function decay length
+     RANGE: [1.e-4,1.e-2]
      default: 5.e-3
    fscale_upperbound:
      COMMENT: linear scaling upper bound for the error function decay length
      default: 5.e-2
+     RANGE: [1.e-2,1.0]
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
