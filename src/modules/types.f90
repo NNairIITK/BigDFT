@@ -24,7 +24,7 @@ module module_types
   use module_atoms, only: atoms_data,symmetry_data,atomic_structure
   use communications_base, only: comms_linear, comms_cubic
   use sparsematrix_base, only: matrices, sparse_matrix
-  use foe_base
+  use foe_base, only: foe_data
 
   implicit none
 

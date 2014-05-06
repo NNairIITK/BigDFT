@@ -18,7 +18,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
   use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), &
                                DENSE_PARALLEL, SPARSEMM_SEQ
   use sparsematrix, only: sequential_acces_matrix_fast, sparsemm
-  use foe_base
+  use foe_base, only: foe_data
   implicit none
 
   ! Calling arguments

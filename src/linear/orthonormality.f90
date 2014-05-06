@@ -17,7 +17,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
   use communications, only: transpose_localized, untranspose_localized
   use sparsematrix_base, only: sparse_matrix, matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: compress_matrix, uncompress_matrix
-  use foe_base
+  use foe_base, only: foe_data
   implicit none
 
   ! Calling arguments
