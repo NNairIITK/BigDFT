@@ -140,6 +140,11 @@ contains
        str = dict_value(dict // "posinp")
        if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
           call astruct_file_merge_to_dict(dict, "posinp", trim(str))
+       else
+          ! Add some properties
+          if (.not. has_key(dict // "posinp" // ASTRUCT_PROPERTIES, "source")) then
+             call set(dict // "posinp" // ASTRUCT_PROPERTIES // "source", trim(radical))
+          end if
        end if
     end if
 

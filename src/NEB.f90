@@ -100,7 +100,6 @@ MODULE NEB_routines
       REAL (gp), DIMENSION(:,:), ALLOCATABLE :: d_R
       real(gp), dimension(3) :: acell1, acell2
       logical :: climbing, optimization
-      logical, dimension(:), allocatable :: read_posinp
       integer :: max_iterations, ierr, nconfig, algorithm
       real(gp) :: convergence, damp, k_min, k_max, ds, temp_req
       type(mpi_environment) :: bigdft_mpi_svg
@@ -187,7 +186,6 @@ MODULE NEB_routines
       call bigdft_get_run_ids(num_of_images,trim(run_id),arr_radical,arr_posinp,ierr)
 
       allocate( ins(num_of_images), atoms(num_of_images) )
-      allocate( read_posinp(num_of_images) )
 
       ! Trick here, only super master will read the input files...
       bigdft_mpi_svg = bigdft_mpi
@@ -202,10 +200,14 @@ MODULE NEB_routines
 
          call user_dict_from_files(dict, trim(arr_radical(i)), &
               & trim(arr_posinp(i)), bigdft_mpi)
-         call astruct_dict_get_source(dict // "posinp", source)
-
          call inputs_from_dict(ins(i), atoms(i), dict)
-         read_posinp(i) = (trim(source) == trim(arr_posinp(i)))
+
+         ! Some consistency checks.
+         IF ( atoms(1)%astruct%nat /= atoms(i)%astruct%nat ) THEN
+            WRITE(*,'(T2,"read_input: number of atoms is not constant")')
+            WRITE(*,'(T2,"            N = ", I8, I8 )') atoms(1)%astruct%nat, atoms(i)%astruct%nat
+            STOP  
+         END IF
 
       end do
       call dict_free(dict)
@@ -244,11 +246,6 @@ MODULE NEB_routines
       if (acell1(2) == 0.) acell1(2) = maxval(atoms(1)%astruct%rxyz(2,:)) - minval(atoms(1)%astruct%rxyz(2,:))
       if (acell1(3) == 0.) acell1(3) = maxval(atoms(1)%astruct%rxyz(3,:)) - minval(atoms(1)%astruct%rxyz(3,:))
 
-      IF ( atoms(1)%astruct%nat /= atoms(num_of_images)%astruct%nat ) THEN
-         WRITE(*,'(T2,"read_input: number of atoms is not constant")')
-         WRITE(*,'(T2,"            N = ", I8, I8 )') atoms(1)%astruct%nat, atoms(num_of_images)%astruct%nat
-         STOP  
-      END IF
       acell2 = atoms(num_of_images)%astruct%cell_dim
       if (acell2(1) == 0.) acell2(1) = maxval(atoms(num_of_images)%astruct%rxyz(1,:)) - &
            & minval(atoms(num_of_images)%astruct%rxyz(1,:))
@@ -298,7 +295,7 @@ MODULE NEB_routines
       istart = 1
       ! We set the coordinates for all empty images.
       DO i = 2, num_of_images
-         if (read_posinp(i)) then
+         if (maxval(abs(atoms(i)%astruct%rxyz-atoms(i-1)%astruct%rxyz)) > 1d-6) then
             istop = i
             d_R = ( atoms(istop)%astruct%rxyz - atoms(istart)%astruct%rxyz ) / &
                  DBLE( istop - istart )
@@ -332,8 +329,6 @@ MODULE NEB_routines
       do i = 1, num_of_images
          call image_init(imgs(i), ins(i), atoms(i), rst, algorithm)
       end do
-
-      deallocate( read_posinp )
 
     END SUBROUTINE read_input
 
