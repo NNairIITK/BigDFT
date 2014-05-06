@@ -211,7 +211,7 @@ end subroutine initLocregs
 
 
 
-subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, reset, &
+subroutine init_foe(iproc, nproc, nlr, locregcenter, astruct, input, orbs_KS, orbs, foe_obj, reset, &
            cutoff_incr)
   use module_base
   use module_atoms, only: atomic_structure
@@ -219,8 +219,9 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc
-  type(local_zone_descriptors),intent(in) :: lzd
+  integer,intent(in) :: iproc, nproc, nlr
+  real(kind=8),dimension(3,nlr),intent(in) :: locregcenter
+  !!type(local_zone_descriptors),intent(in) :: lzd
   type(atomic_structure),intent(in) :: astruct
   type(input_variables),intent(in) :: input
   type(orbitals_data),intent(in) :: orbs_KS, orbs
@@ -234,8 +235,7 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
   logical :: seg_started
   real(kind=8) :: tt, cut, incr
   logical,dimension(:,:),allocatable :: kernel_locreg
-  character(len=*),parameter :: subname='initMatrixCompression'
-!  integer :: ii, iseg
+  character(len=*),parameter :: subname='init_foe'
 
   if (present(cutoff_incr)) then
       incr=cutoff_incr
@@ -288,9 +288,12 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
            jlr=orbs%inwhichlocreg(jjorb)
            jwa=orbs%onwhichatom(jjorb)
            jtype=astruct%iatype(jwa)
-           tt = (lzd%llr(ilr)%locregcenter(1)-lzd%llr(jlr)%locregcenter(1))**2 + &
-                (lzd%llr(ilr)%locregcenter(2)-lzd%llr(jlr)%locregcenter(2))**2 + &
-                (lzd%llr(ilr)%locregcenter(3)-lzd%llr(jlr)%locregcenter(3))**2
+           !!tt = (lzd%llr(ilr)%locregcenter(1)-lzd%llr(jlr)%locregcenter(1))**2 + &
+           !!     (lzd%llr(ilr)%locregcenter(2)-lzd%llr(jlr)%locregcenter(2))**2 + &
+           !!     (lzd%llr(ilr)%locregcenter(3)-lzd%llr(jlr)%locregcenter(3))**2
+           tt = (locregcenter(1,ilr)-locregcenter(1,jlr))**2 + &
+                (locregcenter(2,ilr)-locregcenter(2,jlr))**2 + &
+                (locregcenter(3,ilr)-locregcenter(3,jlr))**2
            cut = input%lin%kernel_cutoff_FOE(itype)+input%lin%kernel_cutoff_FOE(jtype)+2.d0*incr
            tt=sqrt(tt)
            if (tt<=cut) then
@@ -851,6 +854,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
   
   ! Local variables
   integer :: iorb, ilr, npsidim, istat
+  real(kind=8),dimension(:,:),allocatable :: locreg_centers
   character(len=*),parameter :: subname='update_locreg'
 
   call timing(iproc,'updatelocreg1','ON') 
@@ -901,7 +905,14 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
 
   call timing(iproc,'updatelocreg1','OF') 
 
-  if (present(lfoe)) call init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, lfoe, .false.)
+  if (present(lfoe)) then
+      locreg_centers = f_malloc((/3,lzd%nlr/),id='locreg_centers')
+      do ilr=1,lzd%nlr
+          locreg_centers(1:3,ilr)=lzd%llr(ilr)%locregcenter(1:3)
+      end do
+      call init_foe(iproc, nproc, lzd%nlr, locreg_centers, astruct, input, orbs_KS, orbs, lfoe, .false.)
+      call f_free(locreg_centers)
+  end if
 
   call init_comms_linear(iproc, nproc, npsidim_orbs, orbs, lzd, lbcollcom)
   if (present(lbcollcom_sr)) then
@@ -1676,7 +1687,9 @@ subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs,
   type(foe_data),intent(out) :: foe_obj
   logical,intent(in) :: init
   ! Local variables
+  integer :: ilr
   real(kind=8),save :: cutoff_incr
+  real(kind=8),dimension(:,:),allocatable :: locreg_centers
   character(len=*),parameter :: subname='increase_FOE_cutoff'
 
   ! Just initialize the save variable
@@ -1699,8 +1712,13 @@ subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs,
   end if
 
   ! Re-initialize the foe data
-  call init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, reset=.false., &
+  locreg_centers = f_malloc((/3,lzd%nlr/),id='locreg_centers')
+  do ilr=1,lzd%nlr
+      locreg_centers(1:3,ilr)=lzd%llr(ilr)%locregcenter(1:3)
+  end do
+  call init_foe(iproc, nproc, lzd%nlr, locreg_centers, astruct, input, orbs_KS, orbs, foe_obj, reset=.false., &
        cutoff_incr=cutoff_incr)
+  call f_free(locreg_centers)
 
 end subroutine increase_FOE_cutoff
 

@@ -2073,14 +2073,14 @@ module module_interfaces
        type(paw_objects),optional,intent(inout)::paw
      end subroutine FullHamiltonianApplication
 
-       subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, reset, &
+       subroutine init_foe(iproc, nproc, nlr, locregcenter, astruct, input, orbs_KS, orbs, foe_obj, reset, &
                   cutoff_incr)
          use module_base
          use module_atoms, only: atomic_structure
          use module_types
          implicit none
-         integer,intent(in):: iproc, nproc
-         type(local_zone_descriptors),intent(in) :: lzd
+         integer,intent(in):: iproc, nproc, nlr
+         real(kind=8),dimension(3,nlr),intent(in) :: locregcenter
          type(atomic_structure),intent(in) :: astruct
          type(input_variables),intent(in) :: input
          type(orbitals_data),intent(in):: orbs_KS, orbs

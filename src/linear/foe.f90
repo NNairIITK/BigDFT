@@ -295,7 +295,7 @@ subroutine foe(iproc, nproc, tmprtr, &
               !end if
               npl_check=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/fscale_check)
               npl_check=max(npl_check,nint(real(npl,kind=8)/CHECK_RATIO)) ! this is necessary if npl was set to the minimal value
-              npl_boundaries=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/FSCALE_LOWER_LIMIT) ! max polynomial degree for given eigenvalue boundaries
+              npl_boundaries=nint(degree_multiplicator*(tmb%foe_obj%evhigh-tmb%foe_obj%evlow)/tmb%foe_obj%fscale_lowerbound) ! max polynomial degree for given eigenvalue boundaries
               if (npl>npl_boundaries) then
                   npl=npl_boundaries
                   if (iproc==0) call yaml_warning('very sharp decay of error function, polynomial degree reached limit')
@@ -770,9 +770,9 @@ subroutine foe(iproc, nproc, tmprtr, &
                   !!!!%%        !!if (iproc==0) call yaml_map('Need to change fscale (decrease)',.true.)
                   !!!!%%        if (iproc==0) call yaml_map('modify fscale','decrease')
                   !!!!%%    end if
-                  !!!!%%    if (tmb%foe_obj%fscale<FSCALE_LOWER_LIMIT) then
-                  !!!!%%        tmb%foe_obj%fscale=FSCALE_LOWER_LIMIT
-                  !!!!%%        if (iproc==0) call yaml_map('fscale reached limit; reset to',FSCALE_LOWER_LIMIT)
+                  !!!!%%    if (tmb%foe_obj%fscale<tmb%foe_obj%fscale_lowerbound) then
+                  !!!!%%        tmb%foe_obj%fscale=tmb%foe_obj%fscale_lowerbound
+                  !!!!%%        if (iproc==0) call yaml_map('fscale reached limit; reset to',tmb%foe_obj%fscale_lowerbound)
                   !!!!%%        reached_limit=.true.
                   !!!!%%    else
                   !!!!%%        reached_limit=.false.
@@ -845,13 +845,13 @@ subroutine foe(iproc, nproc, tmprtr, &
               !!if (iproc==0) call yaml_map('Need to change fscale (decrease)',.true.)
               if (iproc==0) call yaml_map('modify fscale','decrease')
           end if
-          if (tmb%foe_obj%fscale<FSCALE_LOWER_LIMIT) then
-              tmb%foe_obj%fscale=FSCALE_LOWER_LIMIT
-              if (iproc==0) call yaml_map('fscale reached lower limit; reset to',FSCALE_LOWER_LIMIT)
+          if (tmb%foe_obj%fscale<tmb%foe_obj%fscale_lowerbound) then
+              tmb%foe_obj%fscale=tmb%foe_obj%fscale_lowerbound
+              if (iproc==0) call yaml_map('fscale reached lower limit; reset to',tmb%foe_obj%fscale_lowerbound)
               reached_limit=.true.
-          else if (tmb%foe_obj%fscale>FSCALE_UPPER_LIMIT) then
-              tmb%foe_obj%fscale=FSCALE_UPPER_LIMIT
-              if (iproc==0) call yaml_map('fscale reached upper limit; reset to',FSCALE_UPPER_LIMIT)
+          else if (tmb%foe_obj%fscale>tmb%foe_obj%fscale_upperbound) then
+              tmb%foe_obj%fscale=tmb%foe_obj%fscale_upperbound
+              if (iproc==0) call yaml_map('fscale reached upper limit; reset to',tmb%foe_obj%fscale_upperbound)
               reached_limit=.true.
           else
               reached_limit=.false.
