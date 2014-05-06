@@ -938,7 +938,6 @@ subroutine destroy_new_locregs(iproc, nproc, tmb)
 
   call deallocate_local_zone_descriptors(tmb%lzd, subname)
   call deallocate_orbitals_data(tmb%orbs, subname)
-  call deallocate_foe(tmb%foe_obj, subname)
 
   call deallocate_comms_linear(tmb%collcom)
   call deallocate_comms_linear(tmb%collcom_sr)
@@ -967,7 +966,6 @@ subroutine destroy_DFT_wavefunction(wfn)
   call memocc(istat, iall, 'wfn%psi', subname)
 
   call deallocate_p2pComms(wfn%comgp, subname)
-  call deallocate_foe(wfn%foe_obj, subname)
   !call deallocate_sparse_matrix(wfn%linmat%ovrlp, subname)
   !!call deallocate_sparse_matrix(wfn%linmat%ham, subname)
   !call deallocate_sparse_matrix(wfn%linmat%denskern_large, subname)
@@ -1320,7 +1318,6 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      npsidim_orbs_tmp = tmb%npsidim_orbs
      npsidim_comp_tmp = tmb%npsidim_comp
 
-     call deallocate_foe(tmb%foe_obj, subname)
 
      !call deallocate_sparse_matrix(tmb%linmat%denskern_large, subname)
      !call deallocate_sparse_matrix(tmb%linmat%inv_ovrlp_large, subname)
@@ -1611,8 +1608,6 @@ subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs,
       return
   end if
 
-  ! Deallocate the pointers
-  call deallocate_foe(foe_obj, subname)
 
   ! How much should the cutoff be increased
   cutoff_incr=cutoff_incr+1.d0
