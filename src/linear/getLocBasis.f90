@@ -384,7 +384,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       tmprtr=0.d0
       call foe(iproc, nproc, tmprtr, &
            energs%ebs, itout,it_scc, order_taylor, purification_quickreturn, adjust_FOE_temperature, &
-           1, FOE_ACCURATE, tmb)
+           1, FOE_ACCURATE, tmb, tmb%foe_obj)
       !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
@@ -712,7 +712,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               if (iproc==0) call yaml_open_sequence('kernel update by FOE')
               call foe(iproc, nproc, 0.d0, &
                    energs%ebs, -1, -10, order_taylor, purification_quickreturn, adjust_FOE_temperature, 0, &
-                   FOE_FAST, tmb)
+                   FOE_FAST, tmb, tmb%foe_obj)
               !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
               !if (iproc==0) call yaml_close_map()
               if (iproc==0) call yaml_close_sequence()
@@ -2265,6 +2265,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), matrices, &
                                matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: compress_matrix, uncompress_matrix
+  use foe_base, only: get_real
   implicit none
 
   ! Calling arguments
@@ -2491,7 +2492,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
           tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
                 tmb%linmat%ovrlp_, tmb%linmat%kernel_)
-          chargediff=2.d0*tr_KS-tmb%foe_obj%charge
+          chargediff=2.d0*tr_KS-tmb%foe_obj%get_real("charge")
 
           if (nproc > 1) then
               call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm)
@@ -2530,7 +2531,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
       !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
       tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
             tmb%linmat%ovrlp_, tmb%linmat%kernel_)
-      chargediff=2.d0*tr_KS-tmb%foe_obj%charge
+      chargediff=2.d0*tr_KS-tmb%foe_obj%get_real("charge")
 
       if (iproc==0) call yaml_close_sequence
 

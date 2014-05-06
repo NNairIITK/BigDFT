@@ -960,6 +960,7 @@ subroutine deallocate_foe(foe_obj, subname)
   use module_types
   use deallocatePointers
   use module_interfaces, exceptThisOne => deallocate_foe
+  use foe_base
   implicit none
   
   ! Calling arguments

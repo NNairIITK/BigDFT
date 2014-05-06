@@ -1776,6 +1776,7 @@ module module_interfaces
        use module_base
        use module_types
        use sparsematrix_base, only: sparse_matrix
+       use foe_base
        implicit none
        integer,intent(in):: iproc,nproc,methTransformOverlap,npsidim_orbs
        type(orbitals_data),intent(in):: orbs
@@ -1918,12 +1919,12 @@ module module_interfaces
       character(len=*),intent(in):: subname
     end subroutine deallocate_comms_cubic
 
-    subroutine nullify_foe(foe_obj)
-      use module_base
-      use module_types
-      implicit none
-      type(foe_data),intent(out):: foe_obj
-    end subroutine nullify_foe
+    !!subroutine nullify_foe(foe_obj)
+    !!  use module_base
+    !!  use module_types
+    !!  implicit none
+    !!  type(foe_data),intent(out):: foe_obj
+    !!end subroutine nullify_foe
 
     subroutine nullify_sparse_matrix(sparsemat)
       use module_base
@@ -1965,6 +1966,7 @@ module module_interfaces
     subroutine deallocate_foe(foe_obj, subname)
       use module_base
       use module_types
+      use foe_base
       implicit none
       type(foe_data),intent(inout):: foe_obj
       character(len=*),intent(in):: subname
@@ -2078,6 +2080,7 @@ module module_interfaces
          use module_base
          use module_atoms, only: atomic_structure
          use module_types
+         use foe_base
          implicit none
          integer,intent(in):: iproc, nproc, nlr
          real(kind=8),dimension(3,nlr),intent(in) :: locregcenter
@@ -2425,6 +2428,7 @@ module module_interfaces
                   orbs_KS, orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbcollcom, lfoe, lbcollcom_sr)
          use module_base
          use module_types
+         use foe_base
          implicit none
          integer,intent(in):: iproc, nproc, nlr
          integer,intent(out) :: npsidim_orbs, npsidim_comp
@@ -3221,9 +3225,10 @@ module module_interfaces
 
         subroutine foe(iproc, nproc, tmprtr, &
                    ebs, itout, it_scc, order_taylor, purification_quickreturn, adjust_FOE_temperature, foe_verbosity, &
-                   accuracy_level, tmb)
+                   accuracy_level, tmb, foe_obj)
           use module_base
           use module_types
+          use foe_base, only: foe_data
           implicit none
           integer,intent(in) :: iproc, nproc, itout, it_scc, order_taylor
           real(kind=8),intent(in) :: tmprtr
@@ -3232,6 +3237,7 @@ module module_interfaces
           integer :: foe_verbosity
           integer,intent(in) :: accuracy_level
           type(DFT_wavefunction),intent(inout) :: tmb
+          type(foe_data),intent(inout) :: foe_obj
         end subroutine foe
 
         subroutine kswfn_init_comm(wfn, in, atoms, dpbox, iproc, nproc)
@@ -3339,6 +3345,7 @@ module module_interfaces
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
+          use foe_base
           implicit none
           integer,intent(in) :: iproc, nproc, npl, nsize_polynomial
           real(8),dimension(npl,3),intent(in) :: cc
@@ -3811,6 +3818,7 @@ module module_interfaces
         subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, init)
           use module_base
           use module_types
+          use foe_base
           implicit none
           integer,intent(in) :: iproc, nproc
           type(local_zone_descriptors),intent(in) :: lzd
