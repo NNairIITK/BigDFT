@@ -304,9 +304,12 @@ MODULE NEB_routines
                  DBLE( istop - istart )
             do j = istart + 1, istop - 1, 1
                atoms(j)%astruct%rxyz = atoms(j - 1)%astruct%rxyz + d_R
+               ! Dump generated image positions on disk.
+               call write_atomic_file(trim(arr_posinp(j)), UNINITIALIZED(1.d0), &
+                    & atoms(j)%astruct%rxyz, atoms(j), "NEB generated")
             end do
             istart = i
-         end if
+         end if         
       END DO
 
       ALLOCATE( fix_atom(3, atoms(1)%astruct%nat) )

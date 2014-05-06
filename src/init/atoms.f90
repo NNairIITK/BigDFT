@@ -1043,6 +1043,7 @@ END SUBROUTINE astruct_copy_alat
 subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
   use module_base
   use module_types
+  use module_input_dicts
   use yaml_output
   implicit none
   character(len=*), intent(in) :: filename,comment
@@ -1055,6 +1056,7 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
   integer :: iunit
   character(len = 1024) :: fname
   real(gp), dimension(3), parameter :: dummy = (/ 0._gp, 0._gp, 0._gp /)
+  type(dictionary), pointer :: dict
 
   if (trim(filename) == "stdout") then
      iunit = 6
@@ -1077,12 +1079,16 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
      if (present(forces)) call wtascii_forces(9,forces,atoms)
   else if (atoms%astruct%inputfile_format == 'yaml') then
      call yaml_new_document(unit = iunit)
-     if (len_trim(comment) > 0) call yaml_comment(comment, unit = iunit)
-     if (present(forces)) then
-        call wtyaml(iunit,energy,rxyz,atoms,.true.,forces, .false., dummy, dummy)
-     else
-        call wtyaml(iunit,energy,rxyz,atoms,.false.,rxyz, .false., dummy, dummy)
-     end if
+     call dict_init(dict)
+     call astruct_merge_to_dict(dict, atoms%astruct, rxyz, comment)
+     call yaml_dict_dump(dict, unit = iunit)
+     call dict_free(dict)
+!!$     if (len_trim(comment) > 0) call yaml_comment(comment, unit = iunit)
+!!$     if (present(forces)) then
+!!$        call wtyaml(iunit,energy,rxyz,atoms,.true.,forces, .false., dummy, dummy)
+!!$     else
+!!$        call wtyaml(iunit,energy,rxyz,atoms,.false.,rxyz, .false., dummy, dummy)
+!!$     end if
   else
      write(*,*) "Error, unknown file format."
      stop

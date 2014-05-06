@@ -649,7 +649,8 @@ contains
     !parse all the keys of the dictionary
     dict_tmp=>dict_iter(dict//file)
     do while(associated(dict_tmp))
-       if (.not. (dict_key(dict_tmp) .in. ref)) then
+       if (.not. (dict_key(dict_tmp) .in. ref) .and. &
+            & index(dict_key(dict_tmp), ATTRS) == 0) then
     !      call yaml_map('Allowed keys',dict_keys(ref))
           !even in a f_err_open_try section this error is assumed to be fatal
           !for the moment. A mechanism to downgrade its gravity should be
