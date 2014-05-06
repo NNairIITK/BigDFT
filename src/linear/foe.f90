@@ -291,9 +291,10 @@ subroutine foe(iproc, nproc, tmprtr, &
               !    ! increased by the old way via purification etc.
               !    npl=nint(degree_multiplicator*(foe_obj%get_real("evhigh")-foe_obj%get_real("evlow"))/fscale)
               !end if
-              npl_check=nint(degree_multiplicator*(foe_obj%get_real("evhigh")-foe_obj%get_real("evlow"))/fscale_check)
-              npl_check=max(npl_check,nint(real(npl,kind=8)/CHECK_RATIO)) ! this is necessary if npl was set to the minimal value
-              npl_boundaries=nint(degree_multiplicator*(foe_obj%get_real("evhigh")-foe_obj%get_real("evlow"))/foe_obj%get_real("fscale_lowerbound")) ! max polynomial degree for given eigenvalue boundaries
+              npl_check = nint(degree_multiplicator*(foe_obj%get_real("evhigh")-foe_obj%get_real("evlow"))/fscale_check)
+              npl_check = max(npl_check,nint(real(npl,kind=8)/CHECK_RATIO)) ! this is necessary if npl was set to the minimal value
+              npl_boundaries = nint(degree_multiplicator* &
+                  (foe_obj%get_real("evhigh")-foe_obj%get_real("evlow"))/foe_obj%get_real("fscale_lowerbound")) ! max polynomial degree for given eigenvalue boundaries
               if (npl>npl_boundaries) then
                   npl=npl_boundaries
                   if (iproc==0) call yaml_warning('very sharp decay of error function, polynomial degree reached limit')
@@ -701,7 +702,8 @@ subroutine foe(iproc, nproc, tmprtr, &
               else
                   ! Use mean value of bisection and secant method
                   ! Secant method solution
-                  call foe_obj%set_real("ef", efarr(2)-(sumnarr(2)-foe_obj%get_real("charge"))*(efarr(2)-efarr(1))/(sumnarr(2)-sumnarr(1)))
+                  call foe_obj%set_real("ef", &
+                       efarr(2)-(sumnarr(2)-foe_obj%get_real("charge"))*(efarr(2)-efarr(1))/(sumnarr(2)-sumnarr(1)))
                   ! Add bisection solution
                   call foe_obj%set_real("ef", foe_obj%get_real("ef") + .5d0*(efarr(1)+efarr(2)))
                   ! Take the mean value
