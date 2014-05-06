@@ -261,6 +261,8 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
      foe_obj%evboundsshrink_isatur=0
      foe_obj%evbounds_nsatur=input%evbounds_nsatur
      foe_obj%evboundsshrink_nsatur=input%evboundsshrink_nsatur
+     foe_obj%fscale_lowerbound=input%fscale_lowerbound
+     foe_obj%fscale_upperbound=input%fscale_upperbound
   end if
 
   call nullify_foe(foe_obj)

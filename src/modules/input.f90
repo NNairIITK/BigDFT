@@ -1875,6 +1875,16 @@ contains
     call input_var("check_matrix_compression", .true., "perform a check of the matrix compression routines", dummy_bool)
     call set(dict // CHECK_MATRIX_COMPRESSION, dummy_bool)
 
+    call input_var("correction_co_contra", .false., "correction covariant / contravariant gradient", dummy_bool)
+    call set(dict // CORRECTION_CO_CONTRA, dummy_bool)
+
+    call input_var("fscale_lowerbound", 5.d-3, "lower bound for the error function decay length", dummy_real)
+    call set(dict // FSCALE_LOWERBOUND, dummy_real)
+
+    call input_var("fscale_upperbound", 5.d-2, "upper bound for the error function decay length", dummy_real)
+    call set(dict // FSCALE_UPPERBOUND, dummy_real)
+
+
     call input_free(.false.)
 
   END SUBROUTINE read_perf_from_text_format

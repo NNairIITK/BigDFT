@@ -181,6 +181,8 @@ module module_input_keys
   character(len=*), parameter, public :: CONSTRAINED_DFT  ='constrained_dft'
   character(len=*), parameter, public :: FIX_BASIS       ='fix_basis' 
   character(len=*), parameter, public :: CORRECTION_ORTHOCONSTRAINT='correction_orthoconstraint'
+  character(len=*), parameter, public :: FSCALE_LOWERBOUND="fscale_lowerbound"
+  character(len=*), parameter, public :: FSCALE_UPPERBOUND="fscale_upperbound"
 
 
 

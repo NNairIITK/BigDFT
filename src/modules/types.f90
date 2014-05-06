@@ -427,6 +427,12 @@ module module_types
 
      !> linear scaling: correction covariant / contravariant gradient
      logical :: correction_co_contra
+     
+     !> linear scaling: lower bound for the error function decay length
+     real(kind=8) :: fscale_lowerbound
+
+     !> linear scaling: upper bound for the error function decay length
+     real(kind=8) :: fscale_upperbound
 
   end type input_variables
 
@@ -629,6 +635,8 @@ module module_types
     real(kind=8) :: ef_interpol_det        !< FOE: max determinant of cubic interpolation matrix
     real(kind=8) :: ef_interpol_chargediff !< FOE: max charge difference for interpolation
     real(kind=8) :: charge                 !< Total charge of the system
+    real(kind=8) :: fscale_lowerbound      !< lower bound for the error function decay length
+    real(kind=8) :: fscale_upperbound       !< upper bound for the error function decay length
     integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
   end type foe_data
 
@@ -2785,6 +2793,12 @@ end subroutine find_category
        case (CORRECTION_CO_CONTRA)
            ! linear scaling: correction covariant / contravariant gradient
            in%correction_co_contra = val
+       case (FSCALE_LOWERBOUND)
+           ! linear scaling: lower bound for the error function decay length
+           in%fscale_lowerbound = val
+       case (FSCALE_UPPERBOUND)
+           ! linear scaling: upper bound for the error function decay length
+           in%fscale_upperbound = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
