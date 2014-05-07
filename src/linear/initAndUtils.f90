@@ -778,7 +778,6 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
       lbcollcom_sr=comms_linear_null()
   end if
   lbcomgp = p2pComms_null()
-  !call nullify_p2pComms(lbcomgp)
   call nullify_local_zone_descriptors(lzd)
   !!tag=1
 
@@ -934,7 +933,6 @@ subroutine destroy_new_locregs(iproc, nproc, tmb)
 
   !!call wait_p2p_communication(iproc, nproc, tmb%comgp)
   call synchronize_onesided_communication(iproc, nproc, tmb%comgp)
- ! call deallocate_p2pComms_buffer(tmb%comgp, subname)
   call deallocate_p2pComms(tmb%comgp)
 
   call deallocate_local_zone_descriptors(tmb%lzd, subname)
@@ -967,11 +965,6 @@ subroutine destroy_DFT_wavefunction(wfn)
   call memocc(istat, iall, 'wfn%psi', subname)
 
   call deallocate_p2pComms(wfn%comgp)
-  !call deallocate_sparse_matrix(wfn%linmat%ovrlp, subname)
-  !!call deallocate_sparse_matrix(wfn%linmat%ham, subname)
-  !call deallocate_sparse_matrix(wfn%linmat%denskern_large, subname)
-  !call deallocate_sparse_matrix(wfn%linmat%inv_ovrlp_large, subname)
-
   call deallocate_sparse_matrix(wfn%linmat%s, subname)
   call deallocate_sparse_matrix(wfn%linmat%m, subname)
   call deallocate_sparse_matrix(wfn%linmat%l, subname)
@@ -980,9 +973,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   call deallocate_matrices(wfn%linmat%ovrlp_)
   call deallocate_matrices(wfn%linmat%ham_)
   call deallocate_matrices(wfn%linmat%kernel_)
-
   call deallocate_orbitals_data(wfn%orbs, subname)
-  !call deallocate_comms_cubic(wfn%comms, subname)
   call deallocate_comms_linear(wfn%collcom)
   call deallocate_comms_linear(wfn%collcom_sr)
   call deallocate_local_zone_descriptors(wfn%lzd, subname)
@@ -992,11 +983,6 @@ subroutine destroy_DFT_wavefunction(wfn)
       deallocate(wfn%coeff, stat=istat)
       call memocc(istat, iall, 'wfn%coeff', subname)
   end if
-
-  !call deallocate_p2pComms(wfn%ham_descr%comgp, subname)
-  !call deallocate_local_zone_descriptors(wfn%ham_descr%lzd, subname)
-  !call deallocate_matrixDescriptors_foe(wfn%ham_descr%mad, subname)
-  !call deallocate_comms_linear(wfn%ham_descr%collcom, subname)
 
 end subroutine destroy_DFT_wavefunction
 
