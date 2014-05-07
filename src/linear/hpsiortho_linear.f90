@@ -19,8 +19,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   use yaml_output
   use module_interfaces, except_this_one => calculate_energy_and_gradient_linear
   use communications, only: transpose_localized
-  use sparsematrix_base, only: deallocate_sparse_matrix
+  use sparsematrix_base, only: matrices, matrices_null, deallocate_matrices, &
+                               sparsematrix_malloc_ptr, assignment(=), SPARSE_FULL
   use sparsematrix_init, only: matrixindex_in_compressed
+  use sparsematrix, only: transform_sparse_matrix
   implicit none
 
   ! Calling arguments
@@ -56,6 +58,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(wp), dimension(2) :: garray
   real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
   real(kind=8) :: fnrm_low, fnrm_high
+  type(matrices) :: matrixm
 
   if (target_function==TARGET_FUNCTION_IS_HYBRID) then
       allocate(hpsi_conf(tmb%npsidim_orbs), stat=istat)
@@ -161,8 +164,15 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       !!     tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
       hpsittmp_c = hpsit_c
       hpsittmp_f = hpsit_f
+      matrixm = matrices_null()
+      matrixm%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%m, iaction=SPARSE_FULL, id='matrixm%matrix_compr')
+      call transform_sparse_matrix(tmb%linmat%s, tmb%linmat%m, &
+           tmb%linmat%ovrlp_%matrix_compr, matrixm%matrix_compr, 'small_to_large')
       call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-           tmb%linmat%s, tmb%linmat%ovrlp_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+           tmb%linmat%m, matrixm, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+      !!call build_linear_combination_transposed(tmb%ham_descr%collcom, &
+      !!     tmb%linmat%s, tmb%linmat%ovrlp_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+      call deallocate_matrices(matrixm)
 
       !deallocate(tmb%psit_c)
       !deallocate(tmb%psit_f)
@@ -526,7 +536,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      !!if (iproc==0) write(*,*) 'iorb, value', iorb, tmb%linmat%ham%matrix_compr(ii)
   end do
   call timing(iproc,'eglincomms','OF')
-  !call deallocate_sparse_matrix(lagmat,subname)
 
   ! trH is now the total energy (name is misleading, correct this)
   ! Multiply by 2 because when minimizing trace we don't have kernel
