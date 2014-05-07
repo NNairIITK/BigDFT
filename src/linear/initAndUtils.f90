@@ -738,7 +738,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
   use module_base
   use module_types
   use module_interfaces, except_this_one => update_locreg
-  use communications_base, only: p2pComms, comms_linear_null, allocateCommunicationsBuffersPotential
+  use communications_base, only: p2pComms, comms_linear_null, allocate_p2pComms_buffer
   use communications_init, only: init_comms_linear, init_comms_linear_sumrho, &
                                  initialize_communication_potential
   use foe_base, only: foe_data, foe_data_null
@@ -832,7 +832,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
   end if
 
   call initialize_communication_potential(iproc, nproc, nscatterarr, orbs, lzd, lbcomgp)
-  call allocateCommunicationsBuffersPotential(lbcomgp)
+  call allocate_p2pComms_buffer(lbcomgp)
 
 end subroutine update_locreg
 
@@ -933,7 +933,7 @@ subroutine destroy_new_locregs(iproc, nproc, tmb)
 
   !!call wait_p2p_communication(iproc, nproc, tmb%comgp)
   call synchronize_onesided_communication(iproc, nproc, tmb%comgp)
- ! call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
+ ! call deallocate_p2pComms_buffer(tmb%comgp, subname)
   call deallocate_p2pComms(tmb%comgp)
 
   call deallocate_local_zone_descriptors(tmb%lzd, subname)

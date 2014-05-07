@@ -20,8 +20,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use constrained_dft
   use diis_sd_optimization
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
-  use communications_base, only: allocateCommunicationsBuffersPotential, &
-                                 deallocateCommunicationsBuffersPotential
+  use communications_base, only: allocate_p2pComms_buffer, &
+                                 deallocate_p2pComms_buffer
   use communications, only: synchronize_onesided_communication
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
                                matrices_null, allocate_matrices, deallocate_matrices, &
@@ -121,7 +121,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   ! Allocate the communications buffers needed for the communications of the potential and
   ! post the messages. This will send to each process the part of the potential that this process
   ! needs for the application of the Hamlitonian to all orbitals on that process.
-  call allocateCommunicationsBuffersPotential(tmb%comgp)
+  call allocate_p2pComms_buffer(tmb%comgp)
 
   ! Initialize the DIIS mixing of the potential if required.
   if(input%lin%mixHist_lowaccuracy>0) then
@@ -1262,7 +1262,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   end if
   !!call wait_p2p_communication(iproc, nproc, tmb%comgp)
   call synchronize_onesided_communication(iproc, nproc, tmb%comgp)
-  call deallocateCommunicationsBuffersPotential(tmb%comgp)
+  call deallocate_p2pComms_buffer(tmb%comgp)
 
 
   if (input%lin%pulay_correction .and. .not.input%lin%new_pulay_correction) then
