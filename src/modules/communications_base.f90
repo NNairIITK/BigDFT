@@ -68,6 +68,7 @@ module communications_base
   public :: deallocate_MPI_communication_arrays
   public :: deallocate_MPI_comms_cubic_repartition
   public :: deallocate_MPI_comms_cubic_repartitionp2p
+  public :: deallocate_p2pComms
 
   public :: check_array_consistency
 
@@ -247,6 +248,21 @@ module communications_base
       integer, dimension(:,:), pointer,intent(inout) :: commarr_repartitionrho
       call f_free_ptr(commarr_repartitionrho)
     end subroutine deallocate_MPI_comms_cubic_repartitionp2p
+
+    subroutine deallocate_p2pComms(p2pcomm)
+      implicit none
+      ! Calling arguments
+      type(p2pComms),intent(inout):: p2pcomm
+      ! Local variables
+      call f_free_ptr(p2pcomm%noverlaps)
+      call f_free_ptr(p2pcomm%recvBuf)
+      call f_free_ptr(p2pcomm%comarr)
+      call f_free_ptr(p2pcomm%ise)
+      if (.not.p2pcomm%communication_complete) then
+          stop 'cannot deallocate mpi data types if communication has not completed'
+      end if
+      call f_free_ptr(p2pcomm%mpi_datatypes)
+    end subroutine deallocate_p2pComms
 
 
     !> Check the consistency of arrays after a gather (example: atomic coordinates)

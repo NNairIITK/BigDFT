@@ -1969,7 +1969,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   use module_interfaces, except_this_one => kswfn_post_treatments
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
-  use communications_base, only: deallocate_comms_linear
+  use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use communications, only: synchronize_onesided_communication
 
   implicit none
@@ -2111,7 +2111,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   if (linear) then
      ! to eventually be better sorted
      call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
-     call deallocate_p2pComms(tmb%ham_descr%comgp, subname)
+     call deallocate_p2pComms(tmb%ham_descr%comgp)
      call deallocate_local_zone_descriptors(tmb%ham_descr%lzd, subname)
      call deallocate_comms_linear(tmb%ham_descr%collcom)
      call deallocate_auxiliary_basis_function(subname, tmb%ham_descr%psi, tmb%hpsi)

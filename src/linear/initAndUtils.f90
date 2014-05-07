@@ -920,7 +920,7 @@ subroutine destroy_new_locregs(iproc, nproc, tmb)
   use module_base
   use module_types
   use module_interfaces, except_this_one => destroy_new_locregs
-  use communications_base, only: deallocate_comms_linear
+  use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use communications, only: synchronize_onesided_communication
   implicit none
 
@@ -934,7 +934,7 @@ subroutine destroy_new_locregs(iproc, nproc, tmb)
   !!call wait_p2p_communication(iproc, nproc, tmb%comgp)
   call synchronize_onesided_communication(iproc, nproc, tmb%comgp)
  ! call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
-  call deallocate_p2pComms(tmb%comgp, subname)
+  call deallocate_p2pComms(tmb%comgp)
 
   call deallocate_local_zone_descriptors(tmb%lzd, subname)
   call deallocate_orbitals_data(tmb%orbs, subname)
@@ -950,7 +950,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   use module_types
   use module_interfaces, except_this_one => destroy_DFT_wavefunction
   use deallocatePointers
-  use communications_base, only: deallocate_comms_linear
+  use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use sparsematrix_base, only: deallocate_sparse_matrix, allocate_matrices, deallocate_matrices
   implicit none
   
@@ -965,7 +965,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   deallocate(wfn%psi, stat=istat)
   call memocc(istat, iall, 'wfn%psi', subname)
 
-  call deallocate_p2pComms(wfn%comgp, subname)
+  call deallocate_p2pComms(wfn%comgp)
   !call deallocate_sparse_matrix(wfn%linmat%ovrlp, subname)
   !!call deallocate_sparse_matrix(wfn%linmat%ham, subname)
   !call deallocate_sparse_matrix(wfn%linmat%denskern_large, subname)
@@ -1256,7 +1256,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   use module_types
   use module_interfaces, except_this_one => adjust_locregs_and_confinement
   use yaml_output
-  use communications_base, only: deallocate_comms_linear
+  use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use communications, only: synchronize_onesided_communication
   use sparsematrix_base, only: sparse_matrix_null, deallocate_sparse_matrix, allocate_matrices, deallocate_matrices
   use sparsematrix_init, only: init_sparse_matrix, check_kernel_cutoff!, init_sparsity_from_distance
@@ -1306,7 +1306,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      !tag=1
      !call wait_p2p_communication(iproc, nproc, tmb%comgp)
      call synchronize_onesided_communication(iproc, nproc, tmb%comgp)
-     call deallocate_p2pComms(tmb%comgp, subname)
+     call deallocate_p2pComms(tmb%comgp)
 
      call deallocate_comms_linear(tmb%collcom)
      call deallocate_comms_linear(tmb%collcom_sr)
@@ -1393,7 +1393,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      ! to eventually be better sorted - replace with e.g. destroy_hamiltonian_descriptors
      call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
-     call deallocate_p2pComms(tmb%ham_descr%comgp, subname)
+     call deallocate_p2pComms(tmb%ham_descr%comgp)
      call deallocate_local_zone_descriptors(tmb%ham_descr%lzd, subname)
      call deallocate_comms_linear(tmb%ham_descr%collcom)
 
