@@ -64,7 +64,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   real(kind=8),parameter :: DEGREE_MULTIPLICATOR_ACCURATE=3.d0
   real(kind=8),parameter :: DEGREE_MULTIPLICATOR_FAST=2.d0
   real(kind=8),parameter :: TEMP_MULTIPLICATOR_ACCURATE=1.d0
-  real(kind=8),parameter :: TEMP_MULTIPLICATOR_FAST=2.d0 !1.2d0
+  real(kind=8),parameter :: TEMP_MULTIPLICATOR_FAST=1.2d0!2.d0 !1.2d0
   real(kind=8),parameter :: CHECK_RATIO=1.25d0
   type(matrices) :: inv_ovrlp
   !!integer,parameter :: NPL_MIN=80
