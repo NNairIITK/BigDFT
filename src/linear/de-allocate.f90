@@ -10,7 +10,7 @@
 
 subroutine allocateCommunicationsBuffersPotential(comgp, subname)
   use module_base
-  use module_types
+  use communications_base, only: p2pComms
   implicit none
   
   ! Calling arguments
@@ -21,8 +21,9 @@ subroutine allocateCommunicationsBuffersPotential(comgp, subname)
   ! Local variables
   integer:: istat
   
-  allocate(comgp%recvBuf(comgp%nrecvBuf), stat=istat)
-  call memocc(istat, comgp%recvBuf, 'comgp%recvBuf', subname)
+  !allocate(comgp%recvBuf(comgp%nrecvBuf), stat=istat)
+  !call memocc(istat, comgp%recvBuf, 'comgp%recvBuf', subname)
+  comgp%recvBuf = f_malloc_ptr(comgp%nrecvBuf,id='comgp%recvBuf')
 
 END SUBROUTINE allocateCommunicationsBuffersPotential
 
@@ -30,7 +31,7 @@ END SUBROUTINE allocateCommunicationsBuffersPotential
 
 subroutine deallocateCommunicationsBuffersPotential(comgp, subname)
   use module_base
-  use module_types
+  use communications_base, only: p2pComms
   implicit none
   
   ! Calling arguments
@@ -41,9 +42,10 @@ subroutine deallocateCommunicationsBuffersPotential(comgp, subname)
   ! Local variables
   integer:: istat, iall
   
-  iall=-product(shape(comgp%recvBuf))*kind(comgp%recvBuf)
-  deallocate(comgp%recvBuf, stat=istat)
-  call memocc(istat, iall, 'comgp%recvBuf', subname)
+  !iall=-product(shape(comgp%recvBuf))*kind(comgp%recvBuf)
+  !deallocate(comgp%recvBuf, stat=istat)
+  !call memocc(istat, iall, 'comgp%recvBuf', subname)
+  call f_free_ptr(comgp%recvBuf)
 
 END SUBROUTINE deallocateCommunicationsBuffersPotential
 

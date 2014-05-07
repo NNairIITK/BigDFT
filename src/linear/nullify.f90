@@ -32,7 +32,7 @@ end subroutine nullifyInputLinparameters
 
 subroutine nullify_p2pComms(p2pcomm)
   use module_base
-  use module_types
+  use communications_base, only: p2pComms
   use module_interfaces, exceptThisOne => nullify_p2pComms
   implicit none
 

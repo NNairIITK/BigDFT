@@ -738,7 +738,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
   use module_base
   use module_types
   use module_interfaces, except_this_one => update_locreg
-  use communications_base, only: comms_linear_null
+  use communications_base, only: p2pComms, comms_linear_null
   use communications_init, only: init_comms_linear, init_comms_linear_sumrho, &
                                  initialize_communication_potential
   use foe_base, only: foe_data, foe_data_null

@@ -40,6 +40,18 @@ module communications_base
     integer,dimension(:,:),pointer :: commarr_repartitionrho
   end type comms_linear
 
+  !> Contains all parameters needed for the point to point communication of the potential
+  type, public :: p2pComms
+    integer, dimension(:), pointer :: noverlaps
+    real(kind=8), dimension(:), pointer :: recvBuf
+    integer, dimension(:,:,:), pointer :: comarr
+    integer :: nrecvBuf
+    integer :: window
+    integer, dimension(:,:), pointer :: ise !< Starting / ending index of recvBuf in x,y,z dimension after communication (glocal coordinates)
+    integer, dimension(:,:), pointer :: mpi_datatypes
+    logical :: communication_complete
+  end type p2pComms
+
   interface check_array_consistency
      module procedure check_array_consistency0
      module procedure check_array_consistency1

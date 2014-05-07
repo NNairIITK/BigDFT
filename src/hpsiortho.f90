@@ -467,6 +467,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    use module_xc
    use module_interfaces, except_this_one => LocalHamiltonianApplication
    use yaml_output
+   use communications_base, only: p2pComms
    implicit none
    !logical, intent(in) :: onlypot !< if true, only the potential operator is applied
    integer, intent(in) :: PotOrKin
@@ -1089,6 +1090,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
    use module_base
    use module_types
    use module_xc
+   use communications_base, only: p2pComms
    use communications, only: synchronize_onesided_communication
    implicit none
    integer, intent(in) :: iproc,nproc,iflag!,nspin,ndimpot,ndimgrid

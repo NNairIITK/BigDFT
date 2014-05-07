@@ -934,10 +934,14 @@ subroutine deallocate_p2pComms(p2pcomm, subname)
   ! Local variables
   integer :: is, ie, i, ierr
 
-  call checkAndDeallocatePointer(p2pcomm%noverlaps, 'p2pcomm%noverlaps', subname)
-  call checkAndDeallocatePointer(p2pcomm%recvBuf, 'p2pcomm%recvBuf', subname)
-  call checkAndDeallocatePointer(p2pcomm%comarr, 'p2pcomm%comarr', subname)
-  call checkAndDeallocatePointer(p2pcomm%ise, 'p2pcomm%ise', subname)
+  !call checkAndDeallocatePointer(p2pcomm%noverlaps, 'p2pcomm%noverlaps', subname)
+  !call checkAndDeallocatePointer(p2pcomm%recvBuf, 'p2pcomm%recvBuf', subname)
+  !call checkAndDeallocatePointer(p2pcomm%comarr, 'p2pcomm%comarr', subname)
+  !call checkAndDeallocatePointer(p2pcomm%ise, 'p2pcomm%ise', subname)
+  call f_free_ptr(p2pcomm%noverlaps)
+  call f_free_ptr(p2pcomm%recvBuf)
+  call f_free_ptr(p2pcomm%comarr)
+  call f_free_ptr(p2pcomm%ise)
 
   if (.not.p2pcomm%communication_complete) then
       stop 'cannot deallocate mpi data types if communication has not completed'
@@ -951,6 +955,7 @@ subroutine deallocate_p2pComms(p2pcomm, subname)
   !!         end if
   !!    end do
   !!end if
-  call checkAndDeallocatePointer(p2pcomm%mpi_datatypes, 'p2pcomm%mpi_datatypes', subname)
+  !!call checkAndDeallocatePointer(p2pcomm%mpi_datatypes, 'p2pcomm%mpi_datatypes', subname)
+  call f_free_ptr(p2pcomm%mpi_datatypes)
 
 end subroutine deallocate_p2pComms

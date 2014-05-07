@@ -22,7 +22,7 @@ module module_types
   use locregs
   use psp_projectors
   use module_atoms, only: atoms_data,symmetry_data,atomic_structure
-  use communications_base, only: comms_linear, comms_cubic
+  use communications_base, only: comms_linear, comms_cubic, p2pComms
   use sparsematrix_base, only: matrices, sparse_matrix
   use foe_base, only: foe_data
 
@@ -612,17 +612,6 @@ module module_types
      real(wp), dimension(:,:,:,:,:), pointer :: z1,z3 ! work array for FFT
   end type workarr_precond
 
-  !> Contains all parameters needed for point to point communication
-  type, public :: p2pComms
-    integer, dimension(:), pointer :: noverlaps
-    real(kind=8), dimension(:), pointer :: recvBuf
-    integer, dimension(:,:,:), pointer :: comarr
-    integer :: nrecvBuf
-    integer :: window
-    integer, dimension(:,:), pointer :: ise !< Starting / ending index of recvBuf in x,y,z dimension after communication (glocal coordinates)
-    integer, dimension(:,:), pointer :: mpi_datatypes
-    logical :: communication_complete
-  end type p2pComms
 
   !!> Fermi Operator Expansion parameters
   !type, public :: foe_data
