@@ -1866,27 +1866,6 @@ module module_interfaces
        type(mixrhopotDIISParameters),intent(inout):: mixdiis
      end subroutine deallocateMixrhopotDIIS
 
-     subroutine allocateCommunicationsBuffersPotential(comgp, subname)
-       use module_base
-       use module_types
-       use communications_base, only: p2pComms
-       implicit none
-       !type(p2pCommsGatherPot),intent(inout):: comgp
-       type(p2pComms),intent(inout):: comgp
-       character(len=*),intent(in):: subname
-     end subroutine allocateCommunicationsBuffersPotential
-
-
-     subroutine deallocateCommunicationsBuffersPotential(comgp, subname)
-       use module_base
-       use module_types
-       use communications_base, only: p2pComms
-       implicit none
-       !type(p2pCommsGatherPot),intent(inout):: comgp
-       type(p2pComms),intent(inout):: comgp
-       character(len=*),intent(in):: subname
-     end subroutine deallocateCommunicationsBuffersPotential
-
     subroutine deallocate_local_zone_descriptors(lzd, subname)
       use module_base
       use module_types

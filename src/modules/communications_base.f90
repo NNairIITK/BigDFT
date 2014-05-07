@@ -69,6 +69,8 @@ module communications_base
   public :: deallocate_MPI_comms_cubic_repartition
   public :: deallocate_MPI_comms_cubic_repartitionp2p
   public :: deallocate_p2pComms
+  public :: allocateCommunicationsBuffersPotential
+  public :: deallocateCommunicationsBuffersPotential
 
   public :: check_array_consistency
 
@@ -263,6 +265,21 @@ module communications_base
       end if
       call f_free_ptr(p2pcomm%mpi_datatypes)
     end subroutine deallocate_p2pComms
+
+
+    subroutine allocateCommunicationsBuffersPotential(comgp)
+      implicit none
+      ! Calling arguments
+      type(p2pComms),intent(inout):: comgp
+      comgp%recvBuf = f_malloc_ptr(comgp%nrecvBuf,id='comgp%recvBuf')
+    end subroutine allocateCommunicationsBuffersPotential
+    
+    
+    subroutine deallocateCommunicationsBuffersPotential(comgp)
+      implicit none
+      type(p2pComms),intent(inout):: comgp
+      call f_free_ptr(comgp%recvBuf)
+    end subroutine deallocateCommunicationsBuffersPotential
 
 
     !> Check the consistency of arrays after a gather (example: atomic coordinates)
