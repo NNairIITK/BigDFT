@@ -36,29 +36,25 @@ subroutine foe(iproc, nproc, tmprtr, &
   type(foe_data),intent(inout) :: foe_obj
 
   ! Local variables
-  integer :: npl, istat, iall, jorb, info, ipl, i, it, ierr, ii, iiorb, jjorb, iseg, it_solver, iorb
-  integer :: isegstart, isegend, iismall, iseglarge, isegsmall, is, ie, iilarge, nsize_polynomial
-  integer :: iismall_ovrlp, iismall_ham, ntemp, it_shift, npl_check
+  integer :: npl, jorb, ipl, it, ii, iiorb, jjorb, iseg, it_solver, iorb
+  integer :: isegstart, isegend, iismall, iilarge, nsize_polynomial
+  integer :: iismall_ovrlp, iismall_ham, ntemp, it_shift, npl_check, npl_boundaries
   integer,parameter :: nplx=50000
   real(kind=8),dimension(:,:),allocatable :: cc, chebyshev_polynomials, cc_check, fermip_check
   real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
   real(kind=8) :: anoise, scale_factor, shift_value, sumn, sumn_check, charge_diff, ef_interpol, ddot
-  real(kind=8) :: evlow_old, evhigh_old, m, b, det, determinant, sumn_old, ef_old, bound_low, bound_up, tt
-  real(kind=8) :: fscale, error, tt_ovrlp, tt_ham, idempotency_diff, diff, fscale_check
+  real(kind=8) :: evlow_old, evhigh_old, det, determinant, sumn_old, ef_old, tt
+  real(kind=8) :: fscale, tt_ovrlp, tt_ham, diff, fscale_check
   logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS, interpolation_possible, emergency_stop
-  character(len=*),parameter :: subname='foe'
   real(kind=8),dimension(2) :: efarr, sumnarr, allredarr
   real(kind=8),dimension(:),allocatable :: hamscal_compr, SHS, fermi_check_compr
-  real(kind=8),dimension(4,4) :: interpol_matrix, tmp_matrix
-  real(kind=8),dimension(4) :: interpol_vector, interpol_solution
-  integer,dimension(4) :: ipiv
+  real(kind=8),dimension(4,4) :: interpol_matrix
+  real(kind=8),dimension(4) :: interpol_vector
   real(kind=8),parameter :: charge_tolerance=1.d-6 ! exit criterion
-  integer :: jproc, iorder, npl_boundaries
   logical,dimension(2) :: eval_bounds_ok, bisection_bounds_ok
-  real(kind=8),dimension(:,:),allocatable :: workmat
   real(kind=8) :: trace_sparse, temp_multiplicator, ebs_check
   integer :: irow, icol, itemp, iflag
-  logical :: overlap_calculated, cycle_FOE, evbounds_shrinked, degree_sufficient, reached_limit
+  logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit
   real(kind=8),parameter :: FSCALE_LOWER_LIMIT=5.d-3
   real(kind=8),parameter :: FSCALE_UPPER_LIMIT=5.d-2
   real(kind=8),parameter :: DEGREE_MULTIPLICATOR_ACCURATE=3.d0
@@ -68,7 +64,6 @@ subroutine foe(iproc, nproc, tmprtr, &
   real(kind=8),parameter :: CHECK_RATIO=1.25d0
   integer,parameter :: NPL_MIN=100
   type(matrices) :: inv_ovrlp
-  !!integer,parameter :: NPL_MIN=80
   integer,parameter :: NTEMP_ACCURATE=4
   integer,parameter :: NTEMP_FAST=1
   real(kind=8) :: degree_multiplicator
@@ -92,8 +87,8 @@ subroutine foe(iproc, nproc, tmprtr, &
 
   call timing(iproc, 'FOE_auxiliary ', 'ON')
 
-  ! initialization
-  interpol_solution = 0.d0
+  !!! initialization
+  !!interpol_solution = 0.d0
 
 
 
@@ -596,9 +591,6 @@ subroutine foe(iproc, nproc, tmprtr, &
 
 
     
-      allocate(workmat(tmb%orbs%norb,tmb%orbs%norbp), stat=istat)
-      call memocc(istat, workmat, 'workmat', subname)
-    
     
       ! Calculate S^-1/2 * K * S^-1/2^T
       ! Since S^-1/2 is symmetric, don't use the transpose
@@ -654,10 +646,6 @@ subroutine foe(iproc, nproc, tmprtr, &
           end if
       end if
     
-
-     iall=-product(shape(workmat))*kind(workmat)
-     deallocate(workmat,stat=istat)
-     call memocc(istat,iall,'workmat',subname)
 
     
   
@@ -739,6 +727,8 @@ subroutine foe(iproc, nproc, tmprtr, &
       contains
 
         subroutine overlap_minus_onehalf()
+          implicit none
+          real(kind=8) :: error
           ! Taylor approximation of S^-1/2 up to higher order
           if (imode==DENSE) then
               tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, &
@@ -851,7 +841,11 @@ subroutine foe(iproc, nproc, tmprtr, &
 
       subroutine determine_new_fermi_level()
         implicit none
-        real(kind=8) :: determinant
+        integer :: info, i
+        real(kind=8) :: determinant, m, b
+        real(kind=8),dimension(4,4) :: tmp_matrix
+        real(kind=8),dimension(4) :: interpol_solution
+        integer,dimension(4) :: ipiv
 
         ! Shift up the old results.
         if (it_solver>4) then
@@ -938,6 +932,7 @@ subroutine foe(iproc, nproc, tmprtr, &
 
       subroutine check_eigenvalue_spectrum()
         implicit none
+        real(kind=8) :: bound_low, bound_up
 
         ! The penalty function must be smaller than the noise.
         bound_low=0.d0
