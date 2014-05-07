@@ -1571,8 +1571,7 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, npsidim, 
 
   call timing(iproc,'commbasis4dens','ON')
 
-  allocate(psir(collcom_sr%ndimpsi_c), stat=istat)
-  call memocc(istat, psir, 'psir', subname)
+  psir = f_malloc(collcom_sr%ndimpsi_c,id='psir')
 
   ! Allocate the communication buffers for the calculation of the charge density.
   !call allocateCommunicationbufferSumrho(iproc, comsr, subname)
@@ -1593,29 +1592,21 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, npsidim, 
       stop
   end if
 
-  allocate(psirwork(collcom_sr%ndimpsi_c), stat=istat)
-  call memocc(istat, psirwork, 'psirwork', subname)
+  psirwork = f_malloc(collcom_sr%ndimpsi_c,id='psirwork')
 
   call transpose_switch_psir(collcom_sr, psir, psirwork)
 
-  iall=-product(shape(psir))*kind(psir)
-  deallocate(psir, stat=istat)
-  call memocc(istat, iall, 'psir', subname)
+  call f_free(psir)
 
-  allocate(psirtwork(collcom_sr%ndimind_c), stat=istat)
-  call memocc(istat, psirtwork, 'psirtwork', subname)
+  psirtwork = f_malloc(collcom_sr%ndimind_c,id='psirtwork')
 
   call transpose_communicate_psir(iproc, nproc, collcom_sr, psirwork, psirtwork)
 
-  iall=-product(shape(psirwork))*kind(psirwork)
-  deallocate(psirwork, stat=istat)
-  call memocc(istat, iall, 'psirwork', subname)
+  call f_free(psirwork)
 
   call transpose_unswitch_psirt(collcom_sr, psirtwork, collcom_sr%psit_c)
 
-  iall=-product(shape(psirtwork))*kind(psirtwork)
-  deallocate(psirtwork, stat=istat)
-  call memocc(istat, iall, 'psirtwork', subname)
+  call f_free(psirtwork)
 
   call timing(iproc,'commbasis4dens','OF')
 
@@ -1914,11 +1905,9 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   !   communication_strategy=ALLGATHERV
   !end if
 
-  allocate(ovrlp_coeff(norb,norb), stat=istat)
-  call memocc(istat, ovrlp_coeff, 'ovrlp_coeff', subname)
+  ovrlp_coeff = f_malloc_ptr((/ norb, norb /),id='ovrlp_coeff')
 
-  allocate(coeff_tmp(basis_orbs%norbp,max(norb,1)), stat=istat)
-  call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
+  coeff_tmp = f_malloc((/ basis_orbs%norbp, max(norb, 1) /),id='coeff_tmp')
 
   !!if(iproc==0) then
   !!    write(*,'(a)',advance='no') 'coeff renormalization...'
@@ -2022,9 +2011,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
 
   call timing(iproc,'renormCoefCom2','ON')
 
-  iall=-product(shape(ovrlp_coeff))*kind(ovrlp_coeff)
-  deallocate(ovrlp_coeff,stat=istat)
-  call memocc(istat,iall,'ovrlp_coeff',subname)
+  call f_free_ptr(ovrlp_coeff)
 
   ! Build the new linear combinations
   !call dgemm('n', 'n', basis_orbs%norb, orbs%norb, orbs%norb, 1.d0, coeff(1,1), basis_orbs%norb, &
@@ -2033,13 +2020,10 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
 
   ! Build the new linear combinations - all gather would be better, but allreduce easier for now
 
-  iall=-product(shape(coeff_tmp))*kind(coeff_tmp)
-  deallocate(coeff_tmp,stat=istat)
-  call memocc(istat,iall,'coeff_tmp',subname)
+  call f_free(coeff_tmp)
 
   if (communication_strategy==ALLREDUCE) then
-     allocate(coeff_tmp(basis_orbs%norb,orbs%norb), stat=istat)
-     call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
+     coeff_tmp = f_malloc((/ basis_orbs%norb, orbs%norb /),id='coeff_tmp')
 
      if (orbs%norbp>0) then
          if (norb==orbs%norb) then
@@ -2058,8 +2042,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
      end if
      call vcopy(basis_orbs%norb*orbs%norb,coeff_tmp(1,1),1,coeff(1,1),1)
   else
-     allocate(coeff_tmp(norb,max(1,basis_orbs%norbp)), stat=istat)
-     call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
+     coeff_tmp = f_malloc((/ norb, max(1, basis_orbs%norbp) /),id='coeff_tmp')
      ! need to transpose so we can allgather - NOT VERY ELEGANT
      if (basis_orbs%norbp>0) then
          if (norb==orbs%norb) then
@@ -2071,8 +2054,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
          end if
      end if
 
-     allocate(coefftrans(norb,basis_orbs%norb), stat=istat)
-     call memocc(istat, coefftrans, 'coefftrans', subname)
+     coefftrans = f_malloc((/ norb, basis_orbs%norb /),id='coefftrans')
 
      ! gather together
      if(nproc > 1) then
@@ -2088,9 +2070,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
            coeff(jorb,iorb) = coefftrans(iorb,jorb)
         end do
      end do
-     iall=-product(shape(coefftrans))*kind(coefftrans)
-     deallocate(coefftrans,stat=istat)
-     call memocc(istat,iall,'coefftrans',subname)
+     call f_free(coefftrans)
   end if
 
   call timing(iproc,'renormCoefCom2','OF')
@@ -2126,9 +2106,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   !deallocate(ovrlp_coeff2,stat=istat)
   !call memocc(istat,iall,'ovrlp_coeff2',subname)
 
-  iall=-product(shape(coeff_tmp))*kind(coeff_tmp)
-  deallocate(coeff_tmp,stat=istat)
-  call memocc(istat,iall,'coeff_tmp',subname)
+  call f_free(coeff_tmp)
 
 end subroutine reorthonormalize_coeff
 
