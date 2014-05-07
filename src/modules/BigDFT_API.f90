@@ -12,9 +12,9 @@
 !!  - types (data structures)
 !!  - interfaces
 module BigDFT_API
+  use module_interfaces
   use module_base
   use module_types
-  use module_interfaces
   use module_xc
   use module_atoms
   use psp_projectors

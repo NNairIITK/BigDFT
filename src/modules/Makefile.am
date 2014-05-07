@@ -38,7 +38,6 @@ libmodules_a_SOURCES = base.f90 \
 	private_api.f90 \
 	xc.f90 \
 	op2p_module.f90 \
-	BigDFT_API.f90 \
 	vdwcorrection.f90 \
 	fragments.f90 \
 	constrained_dft.f90 \
@@ -51,6 +50,7 @@ libmodules_a_SOURCES = base.f90 \
 	sparsematrix_base.f90 \
 	sparsematrix_init.f90 \
 	sparsematrix.f90 \
+	BigDFT_API.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
 	$(BLACS) \

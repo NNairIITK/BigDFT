@@ -2147,7 +2147,7 @@ END SUBROUTINE last_orthon
 subroutine eigensystem_info(iproc,nproc,tolerance,nvctr,orbs,psi)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, except_this_one => eigensystem_info
   implicit none
   integer, intent(in) :: iproc,nproc,nvctr
   real(gp), intent(in) :: tolerance !< threshold to classify degenerate eigenvalues

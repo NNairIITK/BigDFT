@@ -613,7 +613,7 @@ subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wf
   use module_types
   use module_base
   use yaml_output
-  use module_interfaces, except_this_one => writeonewave
+  use module_interfaces, except_this_one => writeonewave, except_this_one_A => writemywaves
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3,iformat
   real(gp), intent(in) :: hx,hy,hz
