@@ -2348,6 +2348,7 @@ module communications_init
     subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, lzd, comgp)
       use module_base
       use module_types
+      use communications_base, only: p2pComms_null
       implicit none
       
       ! Calling arguments
@@ -2366,7 +2367,8 @@ module communications_init
     
       call timing(iproc,'init_commPot  ','ON')
       
-      call nullify_p2pComms(comgp)
+      !call nullify_p2pComms(comgp)
+      comgp = p2pComms_null()
     
       !allocate(comgp%ise(6,0:nproc-1), stat=istat)
       !call memocc(istat, comgp%ise, 'comgp%ise', subname)

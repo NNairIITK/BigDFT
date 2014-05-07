@@ -738,7 +738,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
   use module_base
   use module_types
   use module_interfaces, except_this_one => update_locreg
-  use communications_base, only: p2pComms, comms_linear_null, allocate_p2pComms_buffer
+  use communications_base, only: p2pComms, comms_linear_null, p2pComms_null, allocate_p2pComms_buffer
   use communications_init, only: init_comms_linear, init_comms_linear_sumrho, &
                                  initialize_communication_potential
   use foe_base, only: foe_data, foe_data_null
@@ -777,7 +777,8 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
       !call nullify_comms_linear(lbcollcom_sr)
       lbcollcom_sr=comms_linear_null()
   end if
-  call nullify_p2pComms(lbcomgp)
+  lbcomgp = p2pComms_null()
+  !call nullify_p2pComms(lbcomgp)
   call nullify_local_zone_descriptors(lzd)
   !!tag=1
 

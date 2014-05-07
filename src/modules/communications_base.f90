@@ -60,6 +60,7 @@ module communications_base
        
   !> Public routines
   public :: comms_linear_null
+  public :: p2pComms_null
   public :: allocate_MPI_communication_arrays
   public :: allocate_local_comms_cubic
   public :: allocate_MPI_comms_cubic_repartition
@@ -118,6 +119,22 @@ module communications_base
       nullify(comms%commarr_repartitionrho)
     end subroutine nullify_comms_linear
 
+
+    pure function p2pComms_null() result(comms)
+      implicit none
+      type(p2pComms) :: comms
+      call nullify_p2pComms(comms)
+    end function p2pComms_null
+
+    pure subroutine nullify_p2pComms(comms)
+      implicit none
+      type(p2pComms),intent(inout) :: comms
+      nullify(comms%noverlaps)
+      nullify(comms%recvBuf)
+      nullify(comms%comarr)
+      nullify(comms%ise)
+      nullify(comms%mpi_datatypes)
+    end subroutine nullify_p2pComms
 
     subroutine allocate_MPI_communication_arrays(nproc, comms, only_coarse)
       implicit none
