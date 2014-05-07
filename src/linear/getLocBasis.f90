@@ -191,6 +191,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
       deallocate(denspot%pot_work, stat=istat)
       call memocc(istat, iall, 'denspot%pot_work', subname)
+      !call f_free_ptr(denspot%pot_work)
 
       !!if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application done.'
 
@@ -216,10 +217,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           tmb%ham_descr%can_use_transposed=.true.
       end if
 
-      allocate(hpsit_c(tmb%ham_descr%collcom%ndimind_c))
-      call memocc(istat, hpsit_c, 'hpsit_c', subname)
-      allocate(hpsit_f(7*tmb%ham_descr%collcom%ndimind_f))
-      call memocc(istat, hpsit_f, 'hpsit_f', subname)
+      hpsit_c = f_malloc(tmb%ham_descr%collcom%ndimind_c,id='hpsit_c')
+      hpsit_f = f_malloc(7*tmb%ham_descr%collcom%ndimind_f,id='hpsit_f')
       call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
            tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
 
@@ -284,8 +283,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 !  if (iproc==0) call yaml_open_sequence('kernel method')
   if(scf_mode==LINEAR_MIXPOT_SIMPLE .or. scf_mode==LINEAR_MIXDENS_SIMPLE) then
       ! Keep the Hamiltonian and the overlap since they will be overwritten by the diagonalization.
-      allocate(matrixElements(tmb%orbs%norb,tmb%orbs%norb,2), stat=istat)
-      call memocc(istat, matrixElements, 'matrixElements', subname)
+      matrixElements = f_malloc((/ tmb%orbs%norb, tmb%orbs%norb, 2 /),id='matrixElements')
       call vcopy(tmb%orbs%norb**2, tmb%linmat%ham_%matrix(1,1), 1, matrixElements(1,1,1), 1)
       call vcopy(tmb%orbs%norb**2, tmb%linmat%ovrlp_%matrix(1,1), 1, matrixElements(1,1,2), 1)
       if (iproc==0) call yaml_map('method','diagonalization')
@@ -317,9 +315,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       ! instead just use -0.5 everywhere
       !tmb%orbs%eval(:) = -0.5_dp
 
-      iall=-product(shape(matrixElements))*kind(matrixElements)
-      deallocate(matrixElements, stat=istat)
-      call memocc(istat, iall, 'matrixElements', subname)
+      call f_free(matrixElements)
   else if (scf_mode==LINEAR_DIRECT_MINIMIZATION) then
      if(.not.present(ldiis_coeff)) stop 'ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION'
      ! call routine which updates coeffs for tmb%orbs%norb or orbs%norb depending on whether or not extra states are required
@@ -399,12 +395,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           call get_KS_residue(iproc, nproc, tmb, orbs, hpsit_c, hpsit_f, KSres)
       end if
       if (iproc==0) call yaml_map('Kohn-Sham residue',KSres,fmt='(es10.3)')
-      iall=-product(shape(hpsit_c))*kind(hpsit_c)
-      deallocate(hpsit_c, stat=istat)
-      call memocc(istat, iall, 'hpsit_c', subname)
-      iall=-product(shape(hpsit_f))*kind(hpsit_f)
-      deallocate(hpsit_f, stat=istat)
-      call memocc(istat, iall, 'hpsit_f', subname)
+      call f_free(hpsit_c)
+      call f_free(hpsit_f)
   end if
   if (iproc==0) call yaml_map('Coefficients available',scf_mode /= LINEAR_FOE)
 
@@ -433,6 +425,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   use yaml_output
   use module_interfaces, except_this_one => getLocalizedBasis, except_this_one_A => writeonewave
   use communications, only: transpose_localized, start_onesided_communication
+  use sparsematrix_base, only: assignment(=), sparsematrix_malloc, SPARSE_FULL
   !  use Poisson_Solver
   !use allocModule
   implicit none
@@ -756,8 +749,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       ! optimize the tmbs for a few extra states
       if (target_function==TARGET_FUNCTION_IS_ENERGY.and.extra_states>0) then
-          allocate(kernel_compr_tmp(tmb%linmat%l%nvctr), stat=istat)
-          call memocc(istat, kernel_compr_tmp, 'kernel_compr_tmp', subname)
+          kernel_compr_tmp = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_FULL, id='kernel_compr_tmp')
           call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
           !allocate(occup_tmp(tmb%orbs%norb), stat=istat)
           !call memocc(istat, occup_tmp, 'occup_tmp', subname)
@@ -862,12 +854,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
 
       if (target_function==TARGET_FUNCTION_IS_ENERGY.and.extra_states>0) then
-          !call vcopy(tmb%linmat%denskern%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%denskern%matrix_compr(1), 1)
           call vcopy(tmb%linmat%l%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
-          !call vcopy(tmb%linmat%l%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%denskern_large%matrix_compr(1), 1)
-          iall=-product(shape(kernel_compr_tmp))*kind(kernel_compr_tmp)
-          deallocate(kernel_compr_tmp, stat=istat)
-          call memocc(istat, iall, 'kernel_compr_tmp', subname)
+          call f_free(kernel_compr_tmp)
       end if
 
       ediff=trH-trH_old
@@ -1168,6 +1156,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
 
   ! Deallocate potential
+  !call f_free_ptr(denspot%pot_work)
   iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
   deallocate(denspot%pot_work, stat=istat)
   call memocc(istat, iall, 'denspot%pot_work', subname)
@@ -1208,50 +1197,22 @@ contains
     ! ========
     !   This subroutine allocates all local arrays.
     !
-      allocate(alpha(tmb%orbs%norbp), stat=istat)
-      call memocc(istat, alpha, 'alpha', subname)
-
-      allocate(alphaDIIS(tmb%orbs%norbp), stat=istat)
-      call memocc(istat, alphaDIIS, 'alphaDIIS', subname)
-
-      allocate(fnrmOldArr(tmb%orbs%norb), stat=istat)
-      call memocc(istat, fnrmOldArr, 'fnrmOldArr', subname)
-
-      allocate(hpsi_small(max(tmb%npsidim_orbs,tmb%npsidim_comp)), stat=istat)
-      call memocc(istat, hpsi_small, 'hpsi_small', subname)
-    
-      allocate(lhphiold(max(tmb%npsidim_orbs,tmb%npsidim_comp)), stat=istat)
-      call memocc(istat, lhphiold, 'lhphiold', subname)
-
-      allocate(lphiold(size(tmb%psi)), stat=istat)
-      call memocc(istat, lphiold, 'lphiold', subname)
-
-      allocate(hpsit_c(sum(tmb%ham_descr%collcom%nrecvcounts_c)), stat=istat)
-      call memocc(istat, hpsit_c, 'hpsit_c', subname)
-
-      allocate(hpsit_f(7*sum(tmb%ham_descr%collcom%nrecvcounts_f)), stat=istat)
-      call memocc(istat, hpsit_f, 'hpsit_f', subname)
-
-      allocate(hpsit_c_tmp(sum(tmb%ham_descr%collcom%nrecvcounts_c)), stat=istat)
-      call memocc(istat, hpsit_c_tmp, 'hpsit_c_tmp', subname)
-
-      allocate(hpsit_f_tmp(7*sum(tmb%ham_descr%collcom%nrecvcounts_f)), stat=istat)
-      call memocc(istat, hpsit_f_tmp, 'hpsit_f_tmp', subname)
-
-      !if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-         allocate(hpsi_noconf(tmb%ham_descr%npsidim_orbs), stat=istat)
-         call memocc(istat, hpsi_noconf, 'hpsi_noconf', subname)
-
-         allocate(psidiff(tmb%npsidim_orbs), stat=istat)
-         call memocc(istat, psidiff, 'psidiff', subname)
-
-         allocate(hpsi_noprecond(tmb%npsidim_orbs), stat=istat)
-         call memocc(istat, hpsi_noprecond, 'hpsi_noprecond', subname)
-      !end if
+      alpha = f_malloc(tmb%orbs%norbp,id='alpha')
+      alphaDIIS = f_malloc(tmb%orbs%norbp,id='alphaDIIS')
+      fnrmOldArr = f_malloc(tmb%orbs%norb,id='fnrmOldArr')
+      hpsi_small = f_malloc_ptr(max(tmb%npsidim_orbs, tmb%npsidim_comp),id='hpsi_small')
+      lhphiold = f_malloc_ptr(max(tmb%npsidim_orbs, tmb%npsidim_comp),id='lhphiold')
+      lphiold = f_malloc_ptr(size(tmb%psi),id='lphiold')
+      hpsit_c = f_malloc_ptr(sum(tmb%ham_descr%collcom%nrecvcounts_c),id='hpsit_c')
+      hpsit_f = f_malloc_ptr(7*sum(tmb%ham_descr%collcom%nrecvcounts_f),id='hpsit_f')
+      hpsit_c_tmp = f_malloc(sum(tmb%ham_descr%collcom%nrecvcounts_c),id='hpsit_c_tmp')
+      hpsit_f_tmp = f_malloc(7*sum(tmb%ham_descr%collcom%nrecvcounts_f),id='hpsit_f_tmp')
+      hpsi_noconf = f_malloc(tmb%ham_descr%npsidim_orbs,id='hpsi_noconf')
+      psidiff = f_malloc(tmb%npsidim_orbs,id='psidiff')
+      hpsi_noprecond = f_malloc(tmb%npsidim_orbs,id='hpsi_noprecond')
 
       if (scf_mode/=LINEAR_FOE) then
-          allocate(coeff_old(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-          call memocc(istat, coeff_old, 'coeff_old', subname)
+          coeff_old = f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='coeff_old')
       end if
 
 
@@ -1264,65 +1225,23 @@ contains
     ! ========
     !   This subroutine deallocates all local arrays.
     !
-      iall=-product(shape(alpha))*kind(alpha)
-      deallocate(alpha, stat=istat)
-      call memocc(istat, iall, 'alpha', subname)
+    call f_free(alpha)
+    call f_free(alphaDIIS)
+    call f_free(fnrmOldArr)
+    call f_free_ptr(hpsi_small)
+    call f_free_ptr(lhphiold)
+    call f_free_ptr(lphiold)
+    call f_free_ptr(hpsit_c)
+    call f_free_ptr(hpsit_f)
+    call f_free(hpsit_c_tmp)
+    call f_free(hpsit_f_tmp)
+    call f_free(hpsi_noconf)
+    call f_free(psidiff)
+    call f_free(hpsi_noprecond)
 
-      iall=-product(shape(alphaDIIS))*kind(alphaDIIS)
-      deallocate(alphaDIIS, stat=istat)
-      call memocc(istat, iall, 'alphaDIIS', subname)
-
-      iall=-product(shape(fnrmOldArr))*kind(fnrmOldArr)
-      deallocate(fnrmOldArr, stat=istat)
-      call memocc(istat, iall, 'fnrmOldArr', subname)
-
-      iall=-product(shape(hpsi_small))*kind(hpsi_small)
-      deallocate(hpsi_small, stat=istat)
-      call memocc(istat, iall, 'hpsi_small', subname)
-
-      iall=-product(shape(lhphiold))*kind(lhphiold)
-      deallocate(lhphiold, stat=istat)
-      call memocc(istat, iall, 'lhphiold', subname)
-
-      iall=-product(shape(lphiold))*kind(lphiold)
-      deallocate(lphiold, stat=istat)
-      call memocc(istat, iall, 'lphiold', subname)
-
-      iall=-product(shape(hpsit_c))*kind(hpsit_c)
-      deallocate(hpsit_c, stat=istat)
-      call memocc(istat, iall, 'hpsit_c', subname)
-
-      iall=-product(shape(hpsit_f))*kind(hpsit_f)
-      deallocate(hpsit_f, stat=istat)
-      call memocc(istat, iall, 'hpsit_f', subname)
-
-      iall=-product(shape(hpsit_c_tmp))*kind(hpsit_c_tmp)
-      deallocate(hpsit_c_tmp, stat=istat)
-      call memocc(istat, iall, 'hpsit_c_tmp', subname)
-
-      iall=-product(shape(hpsit_f_tmp))*kind(hpsit_f_tmp)
-      deallocate(hpsit_f_tmp, stat=istat)
-      call memocc(istat, iall, 'hpsit_f_tmp', subname)
-
-      !if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-         iall=-product(shape(hpsi_noconf))*kind(hpsi_noconf)
-         deallocate(hpsi_noconf, stat=istat)
-         call memocc(istat, iall, 'hpsi_noconf', subname)
-
-         iall=-product(shape(psidiff))*kind(psidiff)
-         deallocate(psidiff, stat=istat)
-         call memocc(istat, iall, 'psidiff', subname)
-
-         iall=-product(shape(hpsi_noprecond))*kind(hpsi_noprecond)
-         deallocate(hpsi_noprecond, stat=istat)
-         call memocc(istat, iall, 'hpsi_noprecond', subname)
-      !end if
-
-      if (scf_mode/=LINEAR_FOE) then
-          iall=-product(shape(coeff_old))*kind(coeff_old)
-          deallocate(coeff_old, stat=istat)
-          call memocc(istat, iall, 'coeff_old', subname)
-      end if
+    if (scf_mode/=LINEAR_FOE) then
+        call f_free(coeff_old)
+    end if
 
     end subroutine deallocateLocalArrays
 
@@ -1499,17 +1418,13 @@ subroutine diagonalizeHamiltonian2(iproc, norb, HamSmall, ovrlp, eval)
 
   ! Get the optimal work array size
   lwork=-1 
-  allocate(work(100), stat=istat)
-  call memocc(istat, work, 'work', subname)
+  work = f_malloc(100,id='work')
   call dsygv(1, 'v', 'l', norb, HamSmall(1,1), norb, ovrlp(1,1), norb, eval(1), work(1), lwork, info) 
   lwork=int(work(1))
 
   ! Deallocate the work array and reallocate it with the optimal size
-  iall=-product(shape(work))*kind(work)
-  deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
-  call memocc(istat, iall, 'work', subname)
-  allocate(work(lwork), stat=istat) ; if(istat/=0) stop 'ERROR in allocating work' 
-  call memocc(istat, work, 'work', subname)
+  call f_free(work)
+  work = f_malloc(lwork,id='work')
 
   ! Diagonalize the Hamiltonian
   call dsygv(1, 'v', 'l', norb, HamSmall(1,1), norb, ovrlp(1,1), norb, eval(1), work(1), lwork, info) 
@@ -1524,9 +1439,7 @@ subroutine diagonalizeHamiltonian2(iproc, norb, HamSmall, ovrlp, eval)
   !!    end do
   !!end if
 
-  iall=-product(shape(work))*kind(work)
-  deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
-  call memocc(istat, iall, 'work', subname)
+  call f_free(work)
 
   call timing(iproc,'diagonal_seq  ','OF')
 
