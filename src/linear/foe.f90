@@ -98,8 +98,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   allocate(penalty_ev(tmb%orbs%norb,tmb%orbs%norbp,2), stat=istat)
   call memocc(istat, penalty_ev, 'penalty_ev', subname)
 
-  allocate(fermip_check(tmb%orbs%norb,tmb%orbs%norbp), stat=istat)
-  call memocc(istat, fermip_check, 'fermip_check', subname)
+  fermip_check = f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/),id='fermip_check')
 
   allocate(SHS(tmb%linmat%l%nvctr), stat=istat)
   call memocc(istat, SHS, 'SHS', subname)
@@ -140,8 +139,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   
   
   ! Fake allocation, will be modified later
-  allocate(chebyshev_polynomials(nsize_polynomial,1),stat=istat)
-  call memocc(istat,chebyshev_polynomials,'chebyshev_polynomials',subname)
+  chebyshev_polynomials = f_malloc((/nsize_polynomial,1/),id='chebyshev_polynomials')
 
 
   ! try to decrease the eigenvalue spectrum a bit
@@ -278,21 +276,7 @@ subroutine foe(iproc, nproc, tmprtr, &
               !!foe_obj%get_real("ef") = foe_obj%get_real("evlow")+1.d-4*it
     
               ! Determine the degree of the polynomial
-              !if (itemp==1 .or. .not.degree_sufficient) then
-                  !npl=nint(degree_multiplicator*(foe_obj%get_real("evhigh")-foe_obj%get_real("evlow"))/foe_obj%get_real("fscale"))
-                  npl=nint(degree_multiplicator*(foe_obj%get_real("evhigh")-foe_obj%get_real("evlow"))/fscale)
-                  !!if(npl<=NPL_MIN) then
-                  !!    if (iproc==0) then
-                  !!        call yaml_map('increase npl to minimal value; original value',npl)
-                  !!        call yaml_newline()
-                  !!    end if
-                  !!    npl=NPL_MIN ! this is the minimal degree
-                  !!end if
-              !else
-              !    ! this will probably disappear.. only needed when the degree is
-              !    ! increased by the old way via purification etc.
-              !    npl=nint(degree_multiplicator*(foe_obj%get_real("evhigh")-foe_obj%get_real("evlow"))/fscale)
-              !end if
+              npl=nint(degree_multiplicator*(foe_obj%get_real("evhigh")-foe_obj%get_real("evlow"))/fscale)
               npl_check = nint(degree_multiplicator*(foe_obj%get_real("evhigh")-foe_obj%get_real("evlow"))/fscale_check)
               npl_check = max(npl_check,nint(real(npl,kind=8)/CHECK_RATIO)) ! this is necessary if npl was set to the minimal value
               npl_boundaries = nint(degree_multiplicator* &
@@ -308,11 +292,8 @@ subroutine foe(iproc, nproc, tmprtr, &
               ! Array the holds the Chebyshev polynomials. Needs to be recalculated
               ! every time the Hamiltonian has been modified.
               if (calculate_SHS) then
-                  iall=-product(shape(chebyshev_polynomials))*kind(chebyshev_polynomials)
-                  deallocate(chebyshev_polynomials,stat=istat)
-                  call memocc(istat,iall,'chebyshev_polynomials',subname)
-                  allocate(chebyshev_polynomials(nsize_polynomial,npl),stat=istat)
-                  call memocc(istat,chebyshev_polynomials,'chebyshev_polynomials',subname)
+                  call f_free(chebyshev_polynomials)
+                  chebyshev_polynomials = f_malloc((/nsize_polynomial,npl/),id='chebyshev_polynomials')
               end if
     
               !if (foe_verbosity>=1 .and. iproc==0) then
@@ -329,10 +310,8 @@ subroutine foe(iproc, nproc, tmprtr, &
               end if
     
     
-              allocate(cc(npl,3), stat=istat)
-              call memocc(istat, cc, 'cc', subname)
-              allocate(cc_check(npl,3), stat=istat)
-              call memocc(istat, cc_check, 'cc_check', subname)
+              cc = f_malloc((/npl,3/),id='cc')
+              cc_check = f_malloc((/npl,3/),id='cc_check')
     
               if (foe_obj%get_real("evlow")>=0.d0) then
                   stop 'ERROR: lowest eigenvalue must be negative'
@@ -427,12 +406,8 @@ subroutine foe(iproc, nproc, tmprtr, &
                       call yaml_close_map()
                       !call bigdft_utils_flush(unit=6)
                   end if
-                  iall=-product(shape(cc))*kind(cc)
-                  deallocate(cc, stat=istat)
-                  call memocc(istat, iall, 'cc', subname)
-                  iall=-product(shape(cc_check))*kind(cc_check)
-                  deallocate(cc_check, stat=istat)
-                  call memocc(istat, iall, 'cc_check', subname)
+                  call f_free(cc)
+                  call f_free(cc_check)
                   cycle main_loop
              end if
     
@@ -503,9 +478,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                   end if
               end if
     
-              iall=-product(shape(cc))*kind(cc)
-              deallocate(cc, stat=istat)
-              call memocc(istat, iall, 'cc', subname)
+              call f_free(cc)
     
               if (restart) then
                   if(evbounds_shrinked) then
@@ -519,9 +492,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                       call yaml_close_map()
                       !call bigdft_utils_flush(unit=6)
                   end if
-                  iall=-product(shape(cc_check))*kind(cc_check)
-                  deallocate(cc_check, stat=istat)
-                  call memocc(istat, iall, 'cc_check', subname)
+                  call f_free(cc_check)
                   cycle
               end if
                   
@@ -560,9 +531,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                            (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
                       call yaml_close_map()
                   end if
-                  iall=-product(shape(cc_check))*kind(cc_check)
-                  deallocate(cc_check, stat=istat)
-                  call memocc(istat, iall, 'cc_check', subname)
+                  call f_free(cc_check)
                   cycle
               end if
               if (adjust_upper_bound) then
@@ -589,9 +558,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                   if (iproc==0) then
                       call yaml_close_map()
                   end if
-                  iall=-product(shape(cc_check))*kind(cc_check)
-                  deallocate(cc_check, stat=istat)
-                  call memocc(istat, iall, 'cc_check', subname)
+                  call f_free(cc_check)
                   cycle
               end if
     
@@ -737,9 +704,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                   ! polynomial degree  and calculate the difference
                   call chebyshev_fast(iproc, nsize_polynomial, npl_check, tmb%orbs, &
                       tmb%linmat%l, chebyshev_polynomials, cc_check, fermip_check)
-                  iall=-product(shape(cc_check))*kind(cc_check)
-                  deallocate(cc_check, stat=istat)
-                  call memocc(istat, iall, 'cc_check', subname)
+                  call f_free(cc_check)
                   diff=0.d0
                   do iorb=1,tmb%orbs%norbp
                       do jorb=1,tmb%orbs%norb
@@ -783,9 +748,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                   exit
               end if
 
-              iall=-product(shape(cc_check))*kind(cc_check)
-              deallocate(cc_check, stat=istat)
-              call memocc(istat, iall, 'cc_check', subname)
+              call f_free(cc_check)
     
     
           end do main_loop
@@ -934,9 +897,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   if (iproc==0) call yaml_comment('FOE calculation of kernel finished',hfill='~')
 
 
-  iall=-product(shape(chebyshev_polynomials))*kind(chebyshev_polynomials)
-  deallocate(chebyshev_polynomials,stat=istat)
-  call memocc(istat,iall,'chebyshev_polynomials',subname)
+  call f_free(chebyshev_polynomials)
 
   iall=-product(shape(penalty_ev))*kind(penalty_ev)
   deallocate(penalty_ev, stat=istat)
@@ -946,9 +907,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   deallocate(hamscal_compr, stat=istat)
   call memocc(istat, iall, 'hamscal_compr', subname)
 
-  iall=-product(shape(fermip_check))*kind(fermip_check)
-  deallocate(fermip_check, stat=istat)
-  call memocc(istat, iall, 'fermip_check', subname)
+  call f_free(fermip_check)
 
   iall=-product(shape(SHS))*kind(SHS)
   deallocate(SHS, stat=istat)
