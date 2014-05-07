@@ -30,24 +30,6 @@ subroutine nullifyInputLinparameters(lin)
 end subroutine nullifyInputLinparameters
 
 
-!!subroutine nullify_p2pComms(p2pcomm)
-!!  use module_base
-!!  use communications_base, only: p2pComms
-!!  use module_interfaces, exceptThisOne => nullify_p2pComms
-!!  implicit none
-!!
-!!  ! Calling argument
-!!  type(p2pComms),intent(inout):: p2pcomm
-!!
-!!  nullify(p2pcomm%noverlaps)
-!!  nullify(p2pcomm%recvBuf)
-!!  nullify(p2pcomm%comarr)
-!!  nullify(p2pcomm%ise)
-!!  nullify(p2pcomm%mpi_datatypes)
-!!
-!!end subroutine nullify_p2pComms
-
-
 
 subroutine nullify_orbitals_data(orbs)
   use module_base
