@@ -96,26 +96,19 @@ subroutine foe(iproc, nproc, tmprtr, &
   interpol_solution = 0.d0
 
 
-  allocate(penalty_ev(tmb%orbs%norb,tmb%orbs%norbp,2), stat=istat)
-  call memocc(istat, penalty_ev, 'penalty_ev', subname)
 
+  penalty_ev = f_malloc((/tmb%orbs%norb,tmb%orbs%norbp,2/),id='penalty_ev')
   fermip_check = f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/),id='fermip_check')
-
-  allocate(SHS(tmb%linmat%l%nvctr), stat=istat)
-  call memocc(istat, SHS, 'SHS', subname)
-
+  SHS = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_FULL, id='SHS')
   fermi_check_compr = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_FULL, id='fermi_check_compr')
 
 
-        call timing(iproc, 'FOE_auxiliary ', 'OF')
-        call overlap_minus_onehalf() ! has internal timer
-        call timing(iproc, 'FOE_auxiliary ', 'ON')
-
-  !!end if
+  call timing(iproc, 'FOE_auxiliary ', 'OF')
+  call overlap_minus_onehalf() ! has internal timer
+  call timing(iproc, 'FOE_auxiliary ', 'ON')
 
 
-  allocate(hamscal_compr(tmb%linmat%l%nvctr), stat=istat)
-  call memocc(istat, hamscal_compr, 'hamscal_compr', subname)
+  hamscal_compr = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_FULL, id='hamscal_compr')
 
     
   ! Size of one Chebyshev polynomial matrix in compressed form (distributed)
@@ -174,9 +167,6 @@ subroutine foe(iproc, nproc, tmprtr, &
       fscale = max(fscale,FSCALE_LOWER_LIMIT)
       fscale = min(fscale,FSCALE_UPPER_LIMIT)
       fscale_check = CHECK_RATIO*fscale
-      
-      !fscale=fscale*0.5d0 ! make the error function sharper, i.e. more "step function-like"
-      !fscale_check=1.25*foe_obj%get_real("fscale")
 
       evlow_old=1.d100
       evhigh_old=-1.d100
@@ -274,7 +264,6 @@ subroutine foe(iproc, nproc, tmprtr, &
               evlow_old=foe_obj%get_real("evlow")
               evhigh_old=foe_obj%get_real("evhigh")
     
-              !!foe_obj%get_real("ef") = foe_obj%get_real("evlow")+1.d-4*it
     
               ! Determine the degree of the polynomial
               npl=nint(degree_multiplicator*(foe_obj%get_real("evhigh")-foe_obj%get_real("evlow"))/fscale)
@@ -326,9 +315,6 @@ subroutine foe(iproc, nproc, tmprtr, &
               call timing(iproc, 'FOE_auxiliary ', 'OF')
               call timing(iproc, 'chebyshev_coef', 'ON')
     
-              !call chebft(foe_obj%get_real("evlow"), foe_obj%get_real("evhigh"), npl, cc(1,1), foe_obj%get_real("ef"), foe_obj%get_real("fscale"), temperature)
-              !!call chebft(foe_obj%get_real("evlow"), foe_obj%get_real("evhigh"), npl, cc(1,1), &
-              !!     foe_obj%get_real("ef"), foe_obj%get_real("fscale"), tmprtr)
               call chebft(foe_obj%get_real("evlow"), foe_obj%get_real("evhigh"), npl, cc(1,1), &
                    foe_obj%get_real("ef"), fscale, tmprtr)
               call chder(foe_obj%get_real("evlow"), foe_obj%get_real("evhigh"), cc(1,1), cc(1,2), npl)
@@ -423,62 +409,7 @@ subroutine foe(iproc, nproc, tmprtr, &
               ! Check the eigenvalue bounds. Only necessary if calculate_SHS is true
               ! (otherwise this has already been checked in the previous iteration).
               if (calculate_SHS) then
-                  ! The penalty function must be smaller than the noise.
-                  bound_low=0.d0
-                  bound_up=0.d0
-                  if (tmb%orbs%norbp>0) then
-                      isegstart=tmb%linmat%l%istsegline(tmb%orbs%isorb_par(iproc)+1)
-                      if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
-                          isegend=tmb%linmat%l%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
-                      else
-                          isegend=tmb%linmat%l%nseg
-                      end if
-                      !$omp parallel default(private) &
-                      !$omp shared(isegstart, isegend, penalty_ev, tmb, bound_low, bound_up)
-                      !$omp do reduction(+:bound_low,bound_up)
-                      do iseg=isegstart,isegend
-                          ii=tmb%linmat%l%keyv(iseg)-1
-                          do jorb=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
-                              ii=ii+1
-                              iiorb = (jorb-1)/tmb%orbs%norb + 1
-                              jjorb = jorb - (iiorb-1)*tmb%orbs%norb
-                              iismall = matrixindex_in_compressed(tmb%linmat%s, iiorb, jjorb)
-                              if (iismall>0) then
-                                  tt=tmb%linmat%ovrlp_%matrix_compr(iismall)
-                              else
-                                  tt=0.d0
-                              end if
-                              bound_low = bound_low + penalty_ev(jjorb,iiorb-tmb%orbs%isorb,2)*tt
-                              bound_up = bound_up +penalty_ev(jjorb,iiorb-tmb%orbs%isorb,1)*tt
-                          end do  
-                      end do
-                      !$omp end do
-                      !$omp end parallel
-                  end if
-    
-                  allredarr(1)=bound_low
-                  allredarr(2)=bound_up
-
-                  if (nproc > 1) then
-                      call mpiallred(allredarr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
-                  end if
-
-                  allredarr=abs(allredarr) !for some crazy situations this may be negative
-                  anoise=100.d0*anoise
-                  if (allredarr(1)>anoise) then
-                      eval_bounds_ok(1)=.false.
-                      call foe_obj%set_real("evlow",foe_obj%get_real("evlow")*1.2d0)
-                      restart=.true.
-                  else
-                      eval_bounds_ok(1)=.true.
-                  end if
-                  if (allredarr(2)>anoise) then
-                      eval_bounds_ok(2)=.false.
-                      call foe_obj%set_real("evhigh",foe_obj%get_real("evhigh")*1.2d0)
-                      restart=.true.
-                  else
-                      eval_bounds_ok(2)=.true.
-                  end if
+                  call check_eigenvalue_spectrum()
               end if
     
               call f_free(cc)
@@ -565,7 +496,18 @@ subroutine foe(iproc, nproc, tmprtr, &
                   cycle
               end if
     
+
+              ! Adjust the bounds for the bisection.
+              if (charge_diff<0.d0) then
+                  efarr(1)=foe_obj%get_real("ef")
+                  sumnarr(1)=sumn
+              else if (charge_diff>=0.d0) then
+                  efarr(2)=foe_obj%get_real("ef")
+                  sumnarr(2)=sumn
+              end if
     
+
+
               it_solver=it_solver+1
     
               ! Check whether the system behaves reasonably.
@@ -599,94 +541,9 @@ subroutine foe(iproc, nproc, tmprtr, &
     
               ef_old=foe_obj%get_real("ef")
               sumn_old=sumn
-    
-              ! Shift up the old results.
-              if (it_solver>4) then
-                  do i=1,4
-                      interpol_matrix(1,i)=interpol_matrix(2,i)
-                      interpol_matrix(2,i)=interpol_matrix(3,i)
-                      interpol_matrix(3,i)=interpol_matrix(4,i)
-                  end do
-                  interpol_vector(1)=interpol_vector(2)
-                  interpol_vector(2)=interpol_vector(3)
-                  interpol_vector(3)=interpol_vector(4)
-              end if
-              !LG: if it_solver==0 this index comes out of bounds!
-              ii=max(min(it_solver,4),1)
-              interpol_matrix(ii,1)=foe_obj%get_real("ef")**3
-              interpol_matrix(ii,2)=foe_obj%get_real("ef")**2
-              interpol_matrix(ii,3)=foe_obj%get_real("ef")
-              interpol_matrix(ii,4)=1
-              interpol_vector(ii)=sumn-foe_obj%get_real("charge")
-    
-              ! Solve the linear system interpol_matrix*interpol_solution=interpol_vector
-              if (it_solver>=4) then
-                  do i=1,ii
-                      interpol_solution(i)=interpol_vector(i)
-                      tmp_matrix(i,1)=interpol_matrix(i,1)
-                      tmp_matrix(i,2)=interpol_matrix(i,2)
-                      tmp_matrix(i,3)=interpol_matrix(i,3)
-                      tmp_matrix(i,4)=interpol_matrix(i,4)
-                  end do
-    
-                  call dgesv(ii, 1, tmp_matrix, 4, ipiv, interpol_solution, 4, info)
-                  if (info/=0) then
-                     if (iproc==0) write(*,'(1x,a,i0)') 'ERROR in dgesv (FOE), info=',info
-                  end if
-    
-    
-                  call get_roots_of_cubic_polynomial(interpol_solution(1), interpol_solution(2), &
-                       interpol_solution(3), interpol_solution(4), foe_obj%get_real("ef"), ef_interpol)
-              end if
-    
-    
-              ! Adjust the bounds for the bisection.
-              if (charge_diff<0.d0) then
-                  efarr(1)=foe_obj%get_real("ef")
-                  sumnarr(1)=sumn
-              else if (charge_diff>=0.d0) then
-                  efarr(2)=foe_obj%get_real("ef")
-                  sumnarr(2)=sumn
-              end if
-    
-    
-              ! Calculate the new Fermi energy.
-              if (foe_verbosity>=1 .and. iproc==0) then
-                  call yaml_newline()
-                  call yaml_open_map('Search new eF',flow=.true.)
-              end if
-              if (it_solver>=4 .and.  abs(sumn-foe_obj%get_real("charge"))<foe_obj%get_real("ef_interpol_chargediff")) then
-                  det=determinant(iproc,4,interpol_matrix)
-                  if (foe_verbosity>=1 .and. iproc==0) then
-                      call yaml_map('det',det,fmt='(es10.3)')
-                      call yaml_map('limit',foe_obj%get_real("ef_interpol_det"),fmt='(es10.3)')
-                  end if
-                  if(abs(det)>foe_obj%get_real("ef_interpol_det")) then
-                      call foe_obj%set_real("ef",ef_interpol)
-                      if (foe_verbosity>=1 .and. iproc==0) call yaml_map('method','cubic interpolation')
-                  else
-                      ! linear interpolation
-                      if (foe_verbosity>=1 .and. iproc==0) call yaml_map('method','linear interpolation')
-                      m = (interpol_vector(4)-interpol_vector(3))/(interpol_matrix(4,3)-interpol_matrix(3,3))
-                      b = interpol_vector(4)-m*interpol_matrix(4,3)
-                      call foe_obj%set_real("ef", -b/m)
-                  end if
-              else
-                  ! Use mean value of bisection and secant method
-                  ! Secant method solution
-                  call foe_obj%set_real("ef", &
-                       efarr(2)-(sumnarr(2)-foe_obj%get_real("charge"))*(efarr(2)-efarr(1))/(sumnarr(2)-sumnarr(1)))
-                  ! Add bisection solution
-                  call foe_obj%set_real("ef", foe_obj%get_real("ef") + .5d0*(efarr(1)+efarr(2)))
-                  ! Take the mean value
-                  call foe_obj%set_real("ef", .5d0*foe_obj%get_real("ef"))
-                  if (foe_verbosity>=1 .and. iproc==0) call yaml_map('method','bisection / secant method')
-              end if
-              if (foe_verbosity>=1 .and. iproc==0) then
-                  call yaml_close_map()
-                  !!call bigdft_utils_flush(unit=6)
-                  !call yaml_newline()
-              end if
+
+
+              call determine_new_fermi_level()
     
     
               if (iproc==0) then
@@ -721,33 +578,6 @@ subroutine foe(iproc, nproc, tmprtr, &
 
                   diff=sqrt(diff)
                   if (iproc==0) call yaml_map('diff from reference kernel',diff,fmt='(es10.3)')
-                  !!!!%%if (adjust_FOE_temperature .and. foe_verbosity>=1) then
-                  !!!!%%    if (diff<2.d-2) then
-                  !!!!%%        ! can decrease polynomial degree
-                  !!!!%%        foe_obj%get_real("fscale")=1.25d0*foe_obj%get_real("fscale")
-                  !!!!%%        if (iproc==0) call yaml_map('modify fscale','increase')
-                  !!!!%%        degree_sufficient=.true.
-                  !!!!%%    else if (diff>=2.d-2 .and. diff < 5.d-2) then
-                  !!!!%%        ! polynomial degree seems to be appropriate
-                  !!!!%%        degree_sufficient=.true.
-                  !!!!%%        !!if (iproc==0) call yaml_map('Need to change fscale',.false.)
-                  !!!!%%        if (iproc==0) call yaml_map('modify fscale','No')
-                  !!!!%%    else
-                  !!!!%%        ! polynomial degree too small, increase and recalculate
-                  !!!!%%        ! the kernel
-                  !!!!%%        degree_sufficient=.false.
-                  !!!!%%        foe_obj%get_real("fscale")=0.5*foe_obj%get_real("fscale")
-                  !!!!%%        !!if (iproc==0) call yaml_map('Need to change fscale (decrease)',.true.)
-                  !!!!%%        if (iproc==0) call yaml_map('modify fscale','decrease')
-                  !!!!%%    end if
-                  !!!!%%    if (foe_obj%get_real("fscale")<foe_obj%get_real("fscale_lowerbound")) then
-                  !!!!%%        foe_obj%get_real("fscale")=foe_obj%get_real("fscale_lowerbound")
-                  !!!!%%        if (iproc==0) call yaml_map('fscale reached limit; reset to',foe_obj%get_real("fscale_lowerbound"))
-                  !!!!%%        reached_limit=.true.
-                  !!!!%%    else
-                  !!!!%%        reached_limit=.false.
-                  !!!!%%    end if
-                  !!!!%%end if
                   exit
               end if
 
@@ -803,14 +633,12 @@ subroutine foe(iproc, nproc, tmprtr, &
           else if (diff>=5.d-3 .and. diff < 1.d-2) then
               ! polynomial degree seems to be appropriate
               degree_sufficient=.true.
-              !!if (iproc==0) call yaml_map('Need to change fscale',.false.)
               if (iproc==0) call yaml_map('modify fscale','No')
           else
               ! polynomial degree too small, increase and recalculate
               ! the kernel
               degree_sufficient=.false.
               call foe_obj%set_real("fscale", 0.5*foe_obj%get_real("fscale"))
-              !!if (iproc==0) call yaml_map('Need to change fscale (decrease)',.true.)
               if (iproc==0) call yaml_map('modify fscale','decrease')
           end if
           if (foe_obj%get_real("fscale")<foe_obj%get_real("fscale_lowerbound")) then
@@ -855,7 +683,6 @@ subroutine foe(iproc, nproc, tmprtr, &
     
     
       ! Calculate trace(KS).
-      !tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
       sumn = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
              tmb%linmat%ovrlp_, tmb%linmat%kernel_)
 
@@ -894,33 +721,17 @@ subroutine foe(iproc, nproc, tmprtr, &
   ebs=ebs*scale_factor-shift_value*sumn
 
 
-
-
-
   if (iproc==0) call yaml_comment('FOE calculation of kernel finished',hfill='~')
 
 
   call f_free(chebyshev_polynomials)
-
-  iall=-product(shape(penalty_ev))*kind(penalty_ev)
-  deallocate(penalty_ev, stat=istat)
-  call memocc(istat, iall, 'penalty_ev', subname)
-
-  iall=-product(shape(hamscal_compr))*kind(hamscal_compr)
-  deallocate(hamscal_compr, stat=istat)
-  call memocc(istat, iall, 'hamscal_compr', subname)
-
+  call f_free(penalty_ev)
+  call f_free(hamscal_compr)
   call f_free(fermip_check)
-
-  iall=-product(shape(SHS))*kind(SHS)
-  deallocate(SHS, stat=istat)
-  call memocc(istat, iall, 'SHS', subname)
-
+  call f_free(SHS)
   call f_free(fermi_check_compr)
 
-
   call timing(iproc, 'FOE_auxiliary ', 'OF')
-
 
   call f_release_routine()
 
@@ -1036,6 +847,156 @@ subroutine foe(iproc, nproc, tmprtr, &
           end if
       end subroutine calculate_trace_distributed
 
+
+
+      subroutine determine_new_fermi_level()
+        implicit none
+        real(kind=8) :: determinant
+
+        ! Shift up the old results.
+        if (it_solver>4) then
+            do i=1,4
+                interpol_matrix(1,i)=interpol_matrix(2,i)
+                interpol_matrix(2,i)=interpol_matrix(3,i)
+                interpol_matrix(3,i)=interpol_matrix(4,i)
+            end do
+            interpol_vector(1)=interpol_vector(2)
+            interpol_vector(2)=interpol_vector(3)
+            interpol_vector(3)=interpol_vector(4)
+        end if
+        !LG: if it_solver==0 this index comes out of bounds!
+        ii=max(min(it_solver,4),1)
+        interpol_matrix(ii,1)=foe_obj%get_real("ef")**3
+        interpol_matrix(ii,2)=foe_obj%get_real("ef")**2
+        interpol_matrix(ii,3)=foe_obj%get_real("ef")
+        interpol_matrix(ii,4)=1
+        interpol_vector(ii)=sumn-foe_obj%get_real("charge")
+    
+        ! Solve the linear system interpol_matrix*interpol_solution=interpol_vector
+        if (it_solver>=4) then
+            do i=1,ii
+                interpol_solution(i)=interpol_vector(i)
+                tmp_matrix(i,1)=interpol_matrix(i,1)
+                tmp_matrix(i,2)=interpol_matrix(i,2)
+                tmp_matrix(i,3)=interpol_matrix(i,3)
+                tmp_matrix(i,4)=interpol_matrix(i,4)
+            end do
+    
+            call dgesv(ii, 1, tmp_matrix, 4, ipiv, interpol_solution, 4, info)
+            if (info/=0) then
+               if (iproc==0) write(*,'(1x,a,i0)') 'ERROR in dgesv (FOE), info=',info
+            end if
+    
+    
+            call get_roots_of_cubic_polynomial(interpol_solution(1), interpol_solution(2), &
+                 interpol_solution(3), interpol_solution(4), foe_obj%get_real("ef"), ef_interpol)
+        end if
+    
+    
+    
+    
+        ! Calculate the new Fermi energy.
+        if (foe_verbosity>=1 .and. iproc==0) then
+            call yaml_newline()
+            call yaml_open_map('Search new eF',flow=.true.)
+        end if
+        if (it_solver>=4 .and.  abs(sumn-foe_obj%get_real("charge"))<foe_obj%get_real("ef_interpol_chargediff")) then
+            det=determinant(iproc,4,interpol_matrix)
+            if (foe_verbosity>=1 .and. iproc==0) then
+                call yaml_map('det',det,fmt='(es10.3)')
+                call yaml_map('limit',foe_obj%get_real("ef_interpol_det"),fmt='(es10.3)')
+            end if
+            if(abs(det)>foe_obj%get_real("ef_interpol_det")) then
+                call foe_obj%set_real("ef",ef_interpol)
+                if (foe_verbosity>=1 .and. iproc==0) call yaml_map('method','cubic interpolation')
+            else
+                ! linear interpolation
+                if (foe_verbosity>=1 .and. iproc==0) call yaml_map('method','linear interpolation')
+                m = (interpol_vector(4)-interpol_vector(3))/(interpol_matrix(4,3)-interpol_matrix(3,3))
+                b = interpol_vector(4)-m*interpol_matrix(4,3)
+                call foe_obj%set_real("ef", -b/m)
+            end if
+        else
+            ! Use mean value of bisection and secant method
+            ! Secant method solution
+            call foe_obj%set_real("ef", &
+                 efarr(2)-(sumnarr(2)-foe_obj%get_real("charge"))*(efarr(2)-efarr(1))/(sumnarr(2)-sumnarr(1)))
+            ! Add bisection solution
+            call foe_obj%set_real("ef", foe_obj%get_real("ef") + .5d0*(efarr(1)+efarr(2)))
+            ! Take the mean value
+            call foe_obj%set_real("ef", .5d0*foe_obj%get_real("ef"))
+            if (foe_verbosity>=1 .and. iproc==0) call yaml_map('method','bisection / secant method')
+        end if
+        if (foe_verbosity>=1 .and. iproc==0) then
+            call yaml_close_map()
+            !!call bigdft_utils_flush(unit=6)
+            !call yaml_newline()
+        end if
+
+      end subroutine determine_new_fermi_level
+
+
+      subroutine check_eigenvalue_spectrum()
+        implicit none
+
+        ! The penalty function must be smaller than the noise.
+        bound_low=0.d0
+        bound_up=0.d0
+        if (tmb%orbs%norbp>0) then
+            isegstart=tmb%linmat%l%istsegline(tmb%orbs%isorb_par(iproc)+1)
+            if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
+                isegend=tmb%linmat%l%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
+            else
+                isegend=tmb%linmat%l%nseg
+            end if
+            !$omp parallel default(private) &
+            !$omp shared(isegstart, isegend, penalty_ev, tmb, bound_low, bound_up)
+            !$omp do reduction(+:bound_low,bound_up)
+            do iseg=isegstart,isegend
+                ii=tmb%linmat%l%keyv(iseg)-1
+                do jorb=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
+                    ii=ii+1
+                    iiorb = (jorb-1)/tmb%orbs%norb + 1
+                    jjorb = jorb - (iiorb-1)*tmb%orbs%norb
+                    iismall = matrixindex_in_compressed(tmb%linmat%s, iiorb, jjorb)
+                    if (iismall>0) then
+                        tt=tmb%linmat%ovrlp_%matrix_compr(iismall)
+                    else
+                        tt=0.d0
+                    end if
+                    bound_low = bound_low + penalty_ev(jjorb,iiorb-tmb%orbs%isorb,2)*tt
+                    bound_up = bound_up +penalty_ev(jjorb,iiorb-tmb%orbs%isorb,1)*tt
+                end do  
+            end do
+            !$omp end do
+            !$omp end parallel
+        end if
+    
+        allredarr(1)=bound_low
+        allredarr(2)=bound_up
+
+        if (nproc > 1) then
+            call mpiallred(allredarr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+        end if
+
+        allredarr=abs(allredarr) !for some crazy situations this may be negative
+        anoise=100.d0*anoise
+        if (allredarr(1)>anoise) then
+            eval_bounds_ok(1)=.false.
+            call foe_obj%set_real("evlow",foe_obj%get_real("evlow")*1.2d0)
+            restart=.true.
+        else
+            eval_bounds_ok(1)=.true.
+        end if
+        if (allredarr(2)>anoise) then
+            eval_bounds_ok(2)=.false.
+            call foe_obj%set_real("evhigh",foe_obj%get_real("evhigh")*1.2d0)
+            restart=.true.
+        else
+            eval_bounds_ok(2)=.true.
+        end if
+
+      end subroutine check_eigenvalue_spectrum
 
 end subroutine foe
 
