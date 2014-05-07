@@ -64,8 +64,9 @@ subroutine foe(iproc, nproc, tmprtr, &
   real(kind=8),parameter :: DEGREE_MULTIPLICATOR_ACCURATE=3.d0
   real(kind=8),parameter :: DEGREE_MULTIPLICATOR_FAST=2.d0
   real(kind=8),parameter :: TEMP_MULTIPLICATOR_ACCURATE=1.d0
-  real(kind=8),parameter :: TEMP_MULTIPLICATOR_FAST=2.d0 !1.2d0
+  real(kind=8),parameter :: TEMP_MULTIPLICATOR_FAST=1.2d0 !2.d0 !1.2d0
   real(kind=8),parameter :: CHECK_RATIO=1.25d0
+  integer,parameter :: NPL_MIN=100
   type(matrices) :: inv_ovrlp
   !!integer,parameter :: NPL_MIN=80
   integer,parameter :: NTEMP_ACCURATE=4
@@ -277,8 +278,10 @@ subroutine foe(iproc, nproc, tmprtr, &
     
               ! Determine the degree of the polynomial
               npl=nint(degree_multiplicator*(foe_obj%get_real("evhigh")-foe_obj%get_real("evlow"))/fscale)
-              npl_check = nint(degree_multiplicator*(foe_obj%get_real("evhigh")-foe_obj%get_real("evlow"))/fscale_check)
-              npl_check = max(npl_check,nint(real(npl,kind=8)/CHECK_RATIO)) ! this is necessary if npl was set to the minimal value
+              npl=max(npl,NPL_MIN)
+              !npl_check = nint(degree_multiplicator*(foe_obj%get_real("evhigh")-foe_obj%get_real("evlow"))/fscale_check)
+              !npl_check = max(npl_check,nint(real(npl,kind=8)/CHECK_RATIO)) ! this is necessary if npl was set to the minimal value
+              npl_check = nint(real(npl,kind=8)/CHECK_RATIO)
               npl_boundaries = nint(degree_multiplicator* &
                   (foe_obj%get_real("evhigh")-foe_obj%get_real("evlow"))/foe_obj%get_real("fscale_lowerbound")) ! max polynomial degree for given eigenvalue boundaries
               if (npl>npl_boundaries) then
