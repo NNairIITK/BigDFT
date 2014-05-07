@@ -531,6 +531,7 @@ fructose:
  multiplicator for the confinement: 1.4e-11
  ebs: 1.1e-8
  ebs_check: 1.1e-8
+ net quadropole: 1.1e-10
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
