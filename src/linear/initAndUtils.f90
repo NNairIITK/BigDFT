@@ -850,12 +850,8 @@ subroutine update_ldiis_arrays(tmb, subname, ldiis)
   ! Local variables
   integer :: iall, istat, ii, iorb, ilr
 
-  iall=-product(shape(ldiis%phiHist))*kind(ldiis%phiHist)
-  deallocate(ldiis%phiHist, stat=istat)
-  call memocc(istat, iall, 'ldiis%phiHist', subname)
-  iall=-product(shape(ldiis%hphiHist))*kind(ldiis%hphiHist)
-  deallocate(ldiis%hphiHist, stat=istat)
-  call memocc(istat, iall, 'ldiis%hphiHist', subname)
+  call f_free_ptr(ldiis%phiHist)
+  call f_free_ptr(ldiis%hphiHist)
 
   ii=0
   do iorb=1,tmb%orbs%norbp
@@ -863,10 +859,8 @@ subroutine update_ldiis_arrays(tmb, subname, ldiis)
       ii=ii+ldiis%isx*(tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f)
   end do
 
-  allocate(ldiis%phiHist(ii), stat=istat)
-  call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
-  allocate(ldiis%hphiHist(ii), stat=istat)
-  call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
+  ldiis%phiHist = f_malloc_ptr(ii,id='ldiis%phiHist')
+  ldiis%hphiHist = f_malloc_ptr(ii,id='ldiis%hphiHist')
 
 end subroutine update_ldiis_arrays
 

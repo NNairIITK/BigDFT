@@ -1536,13 +1536,10 @@ subroutine allocate_DIIS_coeff(tmb, ldiis)
   integer:: ii, istat
   character(len=*),parameter:: subname='allocate_DIIS_coeff'
 
-  allocate(ldiis%mat(ldiis%isx,ldiis%isx,tmb%orbs%norbp),stat=istat)
-  call memocc(istat, ldiis%mat, 'ldiis%mat', subname)
+  ldiis%mat = f_malloc_ptr((/ldiis%isx,ldiis%isx,tmb%orbs%norbp/),id='ldiis%mat')
 
   ii=ldiis%isx*tmb%orbs%norb*tmb%orbs%norbp
-  allocate(ldiis%phiHist(ii), stat=istat)
-  call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
-  allocate(ldiis%hphiHist(ii), stat=istat)
-  call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
+  ldiis%phiHist = f_malloc_ptr(ii,id='ldiis%phiHist')
+  ldiis%hphiHist = f_malloc_ptr(ii,id='ldiis%hphiHist')
 
 end subroutine allocate_DIIS_coeff
