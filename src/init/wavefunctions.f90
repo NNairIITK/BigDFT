@@ -32,8 +32,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   !eTS value, updated in evaltocc
   orbs%eTS=0.0_gp
 
-  allocate(orbs%norb_par(0:nproc-1,0:nkpt+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%norb_par,'orbs%norb_par',subname)
+  orbs%norb_par = f_malloc_ptr((/ 0.to.nproc-1 , 0.to.nkpt+ndebug /),id='orbs%norb_par')
 
   !assign the value of the k-points
   orbs%nkpts=nkpt

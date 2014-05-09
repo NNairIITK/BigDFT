@@ -805,10 +805,9 @@ subroutine deallocate_orbitals_data(orbs, subname)
   type(orbitals_data),intent(inout):: orbs
   character(len=*),intent(in):: subname
   
-  call checkAndDeallocatePointer(orbs%norb_par, 'orbs%norb_par', subname)
+  call f_free_ptr(orbs%norb_par)
   call checkAndDeallocatePointer(orbs%iokpt, 'orbs%iokpt', subname)
   call checkAndDeallocatePointer(orbs%ikptproc, 'orbs%ikptproc', subname)
-  !call checkAndDeallocatePointer(orbs%inwhichlocreg, 'orbs%inwhichlocreg', subname)
   call f_free_ptr(orbs%inwhichlocreg)
   call checkAndDeallocatePointer(orbs%onwhichatom, 'orbs%onwhichatom', subname)
   call checkAndDeallocatePointer(orbs%onwhichatom, 'orbs%onwhichfragment', subname)

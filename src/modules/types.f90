@@ -1374,9 +1374,8 @@ subroutine deallocate_orbs(orbs,subname)
     !local variables
     integer :: i_all,i_stat
 
-    i_all=-product(shape(orbs%norb_par))*kind(orbs%norb_par)
-    deallocate(orbs%norb_par,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%norb_par',subname)
+    call f_free_ptr(orbs%norb_par)
+
     i_all=-product(shape(orbs%occup))*kind(orbs%occup)
     deallocate(orbs%occup,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%occup',subname)
