@@ -486,9 +486,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   ! Begin by updating the Hpsi
   call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
 
-  allocate(lhphilarge(tmb%ham_descr%npsidim_orbs), stat=istat)
-  call memocc(istat, lhphilarge, 'lhphilarge', subname)
-  call to_zero(tmb%ham_descr%npsidim_orbs,lhphilarge(1))
+  lhphilarge = f_malloc0(tmb%ham_descr%npsidim_orbs,id='lhphilarge')
 
   !!call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
   !!     tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
@@ -524,18 +522,13 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   
 
   ! Now transpose the psi and hpsi
-  allocate(lpsit_c(tmb%ham_descr%collcom%ndimind_c))
-  call memocc(istat, lpsit_c, 'lpsit_c', subname)
-  allocate(lpsit_f(7*tmb%ham_descr%collcom%ndimind_f))
-  call memocc(istat, lpsit_f, 'lpsit_f', subname)
-  allocate(hpsit_c(tmb%ham_descr%collcom%ndimind_c))
-  call memocc(istat, hpsit_c, 'hpsit_c', subname)
-  allocate(hpsit_f(7*tmb%ham_descr%collcom%ndimind_f))
-  call memocc(istat, hpsit_f, 'hpsit_f', subname)
-  allocate(psit_c(tmb%ham_descr%collcom%ndimind_c))
-  call memocc(istat, psit_c, 'psit_c', subname)
-  allocate(psit_f(7*tmb%ham_descr%collcom%ndimind_f))
-  call memocc(istat, psit_f, 'psit_f', subname)
+  lpsit_c = f_malloc(tmb%ham_descr%collcom%ndimind_c,id='lpsit_c')
+  lpsit_f = f_malloc(7*tmb%ham_descr%collcom%ndimind_f,id='lpsit_f')
+  hpsit_c = f_malloc(tmb%ham_descr%collcom%ndimind_c,id='hpsit_c')
+  hpsit_f = f_malloc(7*tmb%ham_descr%collcom%ndimind_f,id='hpsit_f')
+  psit_c = f_malloc(tmb%ham_descr%collcom%ndimind_c,id='psit_c')
+  psit_f = f_malloc(7*tmb%ham_descr%collcom%ndimind_f,id='psit_f')
+
 
   call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
        tmb%ham_descr%psi, lpsit_c, lpsit_f, tmb%ham_descr%lzd)
@@ -657,32 +650,15 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
           call yaml_close_sequence()
   end if
 
-  iall=-product(shape(psit_c))*kind(psit_c)
-  deallocate(psit_c, stat=istat)
-  call memocc(istat, iall, 'psit_c', subname)
-  iall=-product(shape(psit_f))*kind(psit_f)
-  deallocate(psit_f, stat=istat)
-  call memocc(istat, iall, 'psit_f', subname)
-  iall=-product(shape(hpsit_c))*kind(hpsit_c)
-  deallocate(hpsit_c, stat=istat)
-  call memocc(istat, iall, 'hpsit_c', subname)
-  iall=-product(shape(hpsit_f))*kind(hpsit_f)
-  deallocate(hpsit_f, stat=istat)
-  call memocc(istat, iall, 'hpsit_f', subname)
-  iall=-product(shape(lpsit_c))*kind(lpsit_c)
-  deallocate(lpsit_c, stat=istat)
-  call memocc(istat, iall, 'lpsit_c', subname)
-  iall=-product(shape(lpsit_f))*kind(lpsit_f)
-  deallocate(lpsit_f, stat=istat)
-  call memocc(istat, iall, 'lpsit_f', subname)
 
-  iall=-product(shape(lhphilarge))*kind(lhphilarge)
-  deallocate(lhphilarge, stat=istat)
-  call memocc(istat, iall, 'lhphilarge', subname)
-
-  iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
-  deallocate(denspot%pot_work, stat=istat)
-  call memocc(istat, iall, 'denspot%pot_work', subname)
+  call f_free(psit_c)
+  call f_free(psit_f)
+  call f_free(hpsit_c)
+  call f_free(hpsit_f)
+  call f_free(lpsit_c)
+  call f_free(lpsit_f)
+  call f_free(lhphilarge)
+  call f_free_ptr(denspot%pot_work)
 
   do jdir=1,3
      call deallocate_sparse_matrix(dovrlp(jdir),subname)

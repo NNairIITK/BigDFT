@@ -958,10 +958,10 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   nvctrp=comms%nvctr_par(iproc,0)*orbs%nspinor
   call dgemm('n', 'n', nvctrp, KSwfn%orbs%norb, tmb%orbs%norb, 1.d0, phi_global, nvctrp, tmb%coeff(1,1), &
              tmb%orbs%norb, 0.d0, phiwork_global, nvctrp)
+  
+  call untranspose_v(iproc, nproc, KSwfn%orbs, tmb%lzd%glr%wfd, KSwfn%comms, phiwork_global(1), phi_global(1))  
 
   call f_free_ptr(phi_global)
-  
-  !!call untranspose_v(iproc, nproc, KSwfn%orbs, tmb%lzd%glr%wfd, KSwfn%comms, phiwork_global(1), phi_global(1))  
 
   !!ist=1
   !!do iorb=1,KSwfn%orbs%norbp
