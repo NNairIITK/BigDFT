@@ -45,12 +45,9 @@ subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
    type(workarrays_quartic_convolutions):: work_conv
 
   !arrays for the CG procedure
-  allocate(b(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug),stat=i_stat)
-  call memocc(i_stat,b,'b',subname)
-  allocate(r(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug),stat=i_stat)
-  call memocc(i_stat,r,'r',subname)
-  allocate(d(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug),stat=i_stat)
-  call memocc(i_stat,d,'d',subname)
+  b = f_malloc(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug,id='b')
+  r = f_malloc(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug,id='r')
+  d = f_malloc(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug,id='d')
 
   call allocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,lr%d,w)
 
@@ -104,15 +101,10 @@ subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
 
   call deallocate_workarrays_quartic_convolutions(lr, subname, work_conv)
 
-  i_all=-product(shape(b))*kind(b)
-  deallocate(b,stat=i_stat)
-  call memocc(i_stat,i_all,'b',subname)
-  i_all=-product(shape(r))*kind(r)
-  deallocate(r,stat=i_stat)
-  call memocc(i_stat,i_all,'r',subname)
-  i_all=-product(shape(d))*kind(d)
-  deallocate(d,stat=i_stat)
-  call memocc(i_stat,i_all,'d',subname)
+  call f_free(b)
+  call f_free(r)
+  call f_free(d)
+
   call timing(iproc,'deallocprec','ON') ! lr408t
   call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
   call timing(iproc,'deallocprec','OF') ! lr408t
