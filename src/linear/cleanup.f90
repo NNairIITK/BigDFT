@@ -814,9 +814,9 @@ subroutine deallocate_orbitals_data(orbs, subname)
   call f_free_ptr(orbs%eval)
   call f_free_ptr(orbs%occup)
   call f_free_ptr(orbs%spinsgn)
-  call checkAndDeallocatePointer(orbs%kwgts, 'orbs%kwgts', subname)
-  call checkAndDeallocatePointer(orbs%kpts, 'orbs%kpts', subname)
-  call checkAndDeallocatePointer(orbs%ispot, 'orbs%ispot', subname)
+  call f_free_ptr(orbs%kwgts)
+  call f_free_ptr(orbs%kpts)
+  call f_free_ptr(orbs%ispot)
 
   
 end subroutine deallocate_orbitals_data

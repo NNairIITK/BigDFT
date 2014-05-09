@@ -1411,9 +1411,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   call free_full_potential(denspot%dpbox%mpi_env%nproc,Lzde%lintyp,&
        & denspot%xc,denspot%pot_work,subname)
 
-  i_all=-product(shape(orbse%ispot))*kind(orbse%ispot)
-  deallocate(orbse%ispot,stat=i_stat)
-  call memocc(i_stat,i_all,'orbse%ispot',subname)
+  call f_free_ptr(orbse%ispot)
 
   deallocate(confdatarr)
 

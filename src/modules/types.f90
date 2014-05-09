@@ -1378,12 +1378,8 @@ subroutine deallocate_orbs(orbs,subname)
 
     call f_free_ptr(orbs%occup)
     call f_free_ptr(orbs%spinsgn)
-    i_all=-product(shape(orbs%kpts))*kind(orbs%kpts)
-    deallocate(orbs%kpts,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%kpts',subname)
-    i_all=-product(shape(orbs%kwgts))*kind(orbs%kwgts)
-    deallocate(orbs%kwgts,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%kwgts',subname)
+    call f_free_ptr(orbs%kpts)
+    call f_free_ptr(orbs%kwgts)
 
     call f_free_ptr(orbs%iokpt)
 
@@ -1395,9 +1391,7 @@ subroutine deallocate_orbs(orbs,subname)
 
     call f_free_ptr(orbs%isorb_par)
     if (associated(orbs%ispot)) then
-       i_all=-product(shape(orbs%ispot))*kind(orbs%ispot)
-       deallocate(orbs%ispot,stat=i_stat)
-       call memocc(i_stat,i_all,'orbs%ispot',subname)
+       call f_free_ptr(orbs%ispot)
     end if
 
   END SUBROUTINE deallocate_orbs

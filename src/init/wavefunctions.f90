@@ -37,10 +37,8 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   !assign the value of the k-points
   orbs%nkpts=nkpt
   !allocate vectors related to k-points
-  allocate(orbs%kpts(3,orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%kpts,'orbs%kpts',subname)
-  allocate(orbs%kwgts(orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%kwgts,'orbs%kwgts',subname)
+  orbs%kpts = f_malloc_ptr( (/3 , orbs%nkpts+ndebug /),id='orbs%kpts')
+  orbs%kwgts = f_malloc_ptr(orbs%nkpts+ndebug,id='orbs%kwgts')
   orbs%kpts(:,1:nkpt) = kpt(:,:)
   orbs%kwgts(1:nkpt) = wkpt(:)
 
@@ -204,8 +202,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   orbs%onwhichatom = 1
 
   !initialize the starting point of the potential for each orbital (to be removed?)
-  allocate(orbs%ispot(orbs%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%ispot,'orbs%ispot',subname)
+  orbs%ispot = f_malloc_ptr(orbs%norbp+ndebug,id='orbs%ispot')
 
 
   !allocate the array which assign the k-point to processor in transposed version
