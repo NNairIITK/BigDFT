@@ -155,8 +155,7 @@ subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Loca
 
 !!!! NEW VERSION #################################################################
   !allocate(orbse%inWhichLocreg(orbse%norbp),stat=i_stat)
-  allocate(inWhichLocreg(norb),stat=i_stat)
-  call memocc(i_stat,inWhichLocreg,'inWhichLocreg',subname)
+  inWhichLocreg = f_malloc_ptr(norb,id='inWhichLocreg')
   inWhichLocreg=-1
   !allocate(orbse%inWhichLocregp(orbse%norbp),stat=i_stat)
   !call memocc(i_stat,orbse%inWhichLocregp,'orbse%inWhichLocregp',subname)

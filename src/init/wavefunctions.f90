@@ -198,8 +198,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   orbs%HLgap = UNINITIALIZED(orbs%HLgap)
 
   ! allocate inwhichlocreg
-  allocate(orbs%inwhichlocreg(orbs%norb*orbs%nkpts),stat=i_stat)
-  call memocc(i_stat,orbs%inwhichlocreg,'orbs%inwhichlocreg',subname)
+  orbs%inwhichlocreg = f_malloc_ptr(orbs%norb*orbs%nkpts,id='orbs%inwhichlocreg')
   ! default for inwhichlocreg (all orbitals are situated in the same locreg)
   orbs%inwhichlocreg = 1
 

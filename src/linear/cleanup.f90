@@ -808,7 +808,8 @@ subroutine deallocate_orbitals_data(orbs, subname)
   call checkAndDeallocatePointer(orbs%norb_par, 'orbs%norb_par', subname)
   call checkAndDeallocatePointer(orbs%iokpt, 'orbs%iokpt', subname)
   call checkAndDeallocatePointer(orbs%ikptproc, 'orbs%ikptproc', subname)
-  call checkAndDeallocatePointer(orbs%inwhichlocreg, 'orbs%inwhichlocreg', subname)
+  !call checkAndDeallocatePointer(orbs%inwhichlocreg, 'orbs%inwhichlocreg', subname)
+  call f_free_ptr(orbs%inwhichlocreg)
   call checkAndDeallocatePointer(orbs%onwhichatom, 'orbs%onwhichatom', subname)
   call checkAndDeallocatePointer(orbs%onwhichatom, 'orbs%onwhichfragment', subname)
   call checkAndDeallocatePointer(orbs%isorb_par, 'orbs%isorb_par', subname)
@@ -818,6 +819,7 @@ subroutine deallocate_orbitals_data(orbs, subname)
   call checkAndDeallocatePointer(orbs%kwgts, 'orbs%kwgts', subname)
   call checkAndDeallocatePointer(orbs%kpts, 'orbs%kpts', subname)
   call checkAndDeallocatePointer(orbs%ispot, 'orbs%ispot', subname)
+
   
 end subroutine deallocate_orbitals_data
 
