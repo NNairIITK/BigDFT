@@ -43,7 +43,7 @@ subroutine plotOrbitals(iproc, tmb, phi, nat, rxyz, hxh, hyh, hzh, it, basename)
    plot_diagonals=.false.!.true.
    plot_neighbors=.false.
 
-   allocate(phir(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n3i), stat=istat)
+   phir = f_malloc(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n3i,id='phir')
 
    call initialize_work_arrays_sumrho(tmb%lzd%glr,w)
    rxyzref=-555.55d0
@@ -409,7 +409,7 @@ subroutine plotOrbitals(iproc, tmb, phi, nat, rxyz, hxh, hyh, hzh, it, basename)
     end do orbLoop
 
 call deallocate_work_arrays_sumrho(w)
-deallocate(phir, stat=istat)
+call f_free(phir)
 
 
 contains
@@ -580,8 +580,8 @@ subroutine plotGrid(iproc, norb, nspinor, nspin, orbitalNumber, llr, glr, atoms,
 
     ldim=llr%wfd%nvctr_c+7*llr%wfd%nvctr_f
     gdim=glr%wfd%nvctr_c+7*glr%wfd%nvctr_f
-    allocate(lphi(ldim), stat=istat)
-    allocate(phi(gdim), stat=istat)
+    lphi = f_malloc(ldim,id='lphi')
+    phi = f_malloc(gdim,id='phi')
     lphi=1.d0
     !!phi=0.d0
     call to_zero(gdim, phi(1))
@@ -673,8 +673,7 @@ subroutine local_potential_dimensions(iproc,Lzd,orbs,xc,ndimfirstproc)
   call timing(iproc, 'calc_bounds   ', 'ON')
   
   if(Lzd%nlr > 1) then
-     allocate(ilrtable(orbs%norbp,2),stat=i_stat)
-     call memocc(i_stat,ilrtable,'ilrtable',subname)
+     ilrtable = f_malloc((/ orbs%norbp, 2 /),id='ilrtable')
      !call to_zero(orbs%norbp*2,ilrtable(1,1))
      ilrtable=0
      ii=0
@@ -729,8 +728,7 @@ subroutine local_potential_dimensions(iproc,Lzd,orbs,xc,ndimfirstproc)
      end if
 
   else 
-     allocate(ilrtable(1,2),stat=i_stat)
-     call memocc(i_stat,ilrtable,'ilrtable',subname)
+     ilrtable = f_malloc((/ 1, 2 /),id='ilrtable')
      nilr = 1
      ilrtable=1
 
@@ -757,9 +755,7 @@ subroutine local_potential_dimensions(iproc,Lzd,orbs,xc,ndimfirstproc)
   end if
 
 
-  i_all=-product(shape(ilrtable))*kind(ilrtable)
-  deallocate(ilrtable,stat=i_stat)
-  call memocc(i_stat,i_all,'ilrtable',subname)
+  call f_free(ilrtable)
 
 
   call timing(iproc, 'calc_bounds   ', 'OF')
@@ -930,12 +926,8 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   !energyold=energy
 
   if(tmb%can_use_transposed) then
-      iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-      deallocate(tmb%psit_c, stat=istat)
-      call memocc(istat, iall, 'tmb%psit_c', subname)
-      iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-      deallocate(tmb%psit_f, stat=istat)
-      call memocc(istat, iall, 'tmb%psit_f', subname)
+      call f_free_ptr(tmb%psit_c)
+      call f_free_ptr(tmb%psit_f)
   end if
 
   ! Create communication arrays for support functions in the global box
@@ -949,8 +941,8 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   ! WARNING: WILL NOT WORK WITH K-POINTS, CHECK THIS
   npsidim_global=max(tmb%orbs%norbp*(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f), &
                      tmb%orbs%norb*comms%nvctr_par(iproc,0)*orbs%nspinor)
-  allocate(phi_global(npsidim_global))
-  allocate(phiwork_global(npsidim_global))
+  phi_global = f_malloc_ptr(npsidim_global,id='phi_global')
+  phiwork_global = f_malloc_ptr(npsidim_global,id='phiwork_global')
   call small_to_large_locreg(iproc, tmb%npsidim_orbs, &
        tmb%orbs%norbp*(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f), tmb%lzd, &
        KSwfn%lzd, tmb%orbs, tmb%psi, phi_global, to_global=.true.)
@@ -1023,12 +1015,8 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   energyold=energy
 
   if(tmb%can_use_transposed) then
-      iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-      deallocate(tmb%psit_c, stat=istat)
-      call memocc(istat, iall, 'tmb%psit_c', subname)
-      iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-      deallocate(tmb%psit_f, stat=istat)
-      call memocc(istat, iall, 'tmb%psit_f', subname)
+      call f_free_ptr(tmb%psit_c)
+      call f_free_ptr(tmb%psit_f)
   end if
 
 end subroutine build_ks_orbitals
@@ -1180,15 +1168,13 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   if (calculate_overlap_matrix) then
      if(.not.tmb%can_use_transposed) then
          if(.not.associated(tmb%psit_c)) then
-             allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-             call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+             tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
              psit_c_associated=.false.
          else
              psit_c_associated=.true.
          end if
          if(.not.associated(tmb%psit_f)) then
-             allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-             call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+             tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
              psit_f_associated=.false.
          else
              psit_f_associated=.true.
@@ -1205,15 +1191,11 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
 
 
      if (.not.psit_c_associated) then
-        iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-        deallocate(tmb%psit_c, stat=istat)
-        call memocc(istat, iall, 'tmb%psit_c', subname)
+        call f_free_ptr(tmb%psit_c)
         tmb%can_use_transposed=.false.
      end if
      if (.not.psit_f_associated) then
-        iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-        deallocate(tmb%psit_f, stat=istat)
-        call memocc(istat, iall, 'tmb%psit_f', subname)
+        call f_free_ptr(tmb%psit_f)
         tmb%can_use_transposed=.false.
      end if
   end if
