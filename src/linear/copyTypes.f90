@@ -556,17 +556,14 @@ orbsout%iskpts = orbsin%iskpts
 orbsout%efermi = orbsin%efermi
 
 if(associated(orbsout%norb_par)) then
-    iall=-product(shape(orbsout%norb_par))*kind(orbsout%norb_par)
-    deallocate(orbsout%norb_par, stat=istat)
-    call memocc(istat, iall, 'orbsout%norb_par', subname)
+    call f_free_ptr(orbsout%norb_par)
 end if
 if(associated(orbsin%norb_par)) then
     iis1=lbound(orbsin%norb_par,1)
     iie1=ubound(orbsin%norb_par,1)
     iis2=lbound(orbsin%norb_par,2)
     iie2=ubound(orbsin%norb_par,2)
-    allocate(orbsout%norb_par(iis1:iie1,iis2:iie2), stat=istat)
-    call memocc(istat, orbsout%norb_par, 'orbsout%norb_par', subname)
+    orbsout%norb_par = f_malloc_ptr((/ iis1.to.iie1 , iis2.to.iie2 /),id='orbsout%norb_par')
     do i1=iis1,iie1
        do i2 = iis2,iie2
         orbsout%norb_par(i1,i2) = orbsin%norb_par(i1,i2)
