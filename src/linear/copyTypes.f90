@@ -646,30 +646,24 @@ if(associated(orbsin%eval)) then
 end if
 
 if(associated(orbsout%occup)) then
-    iall=-product(shape(orbsout%occup))*kind(orbsout%occup)
-    deallocate(orbsout%occup, stat=istat)
-    call memocc(istat, iall, 'orbsout%occup', subname)
+    call f_free_ptr(orbsout%occup)
 end if
 if(associated(orbsin%occup)) then
     iis1=lbound(orbsin%occup,1)
     iie1=ubound(orbsin%occup,1)
-    allocate(orbsout%occup(iis1:iie1), stat=istat)
-    call memocc(istat, orbsout%occup, 'orbsout%occup', subname)
+    orbsout%occup = f_malloc_ptr(iis1.to.iie1,id='orbsout%occup')
     do i1=iis1,iie1
         orbsout%occup(i1) = orbsin%occup(i1)
     end do
 end if
 
 if(associated(orbsout%spinsgn)) then
-    iall=-product(shape(orbsout%spinsgn))*kind(orbsout%spinsgn)
-    deallocate(orbsout%spinsgn, stat=istat)
-    call memocc(istat, iall, 'orbsout%spinsgn', subname)
+    call f_free_ptr(orbsout%spinsgn)
 end if
 if(associated(orbsin%spinsgn)) then
     iis1=lbound(orbsin%spinsgn,1)
     iie1=ubound(orbsin%spinsgn,1)
-    allocate(orbsout%spinsgn(iis1:iie1), stat=istat)
-    call memocc(istat, orbsout%spinsgn, 'orbsout%spinsgn', subname)
+    orbsout%spinsgn = f_malloc_ptr(iis1.to.iie1,id='orbsout%spinsgn')
     do i1=iis1,iie1
         orbsout%spinsgn(i1) = orbsin%spinsgn(i1)
     end do

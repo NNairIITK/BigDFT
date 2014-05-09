@@ -176,9 +176,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
 
   !allocate occupation number and spinsign
   !fill them in normal way
-  allocate(orbs%occup(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%occup,'orbs%occup',subname)
-  allocate(orbs%spinsgn(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
+  orbs%occup = f_malloc_ptr(orbs%norb*orbs%nkpts+ndebug,id='orbs%occup')
   call memocc(i_stat,orbs%spinsgn,'orbs%spinsgn',subname)
   orbs%occup(1:orbs%norb*orbs%nkpts)=1.0_gp 
   do ikpt=1,orbs%nkpts
