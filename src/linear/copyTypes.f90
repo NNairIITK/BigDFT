@@ -584,15 +584,12 @@ if(associated(orbsin%iokpt)) then
 end if
 
 if(associated(orbsout%ikptproc)) then
-    iall=-product(shape(orbsout%ikptproc))*kind(orbsout%ikptproc)
-    deallocate(orbsout%ikptproc, stat=istat)
-    call memocc(istat, iall, 'orbsout%ikptproc', subname)
+    call f_free_ptr(orbsout%ikptproc)
 end if
 if(associated(orbsin%ikptproc)) then
     iis1=lbound(orbsin%ikptproc,1)
     iie1=ubound(orbsin%ikptproc,1)
-    allocate(orbsout%ikptproc(iis1:iie1), stat=istat)
-    call memocc(istat, orbsout%ikptproc, 'orbsout%ikptproc', subname)
+    orbsout%ikptproc = f_malloc_ptr(iis1.to.iie1,id='orbsout%ikptproc')
     do i1=iis1,iie1
         orbsout%ikptproc(i1) = orbsin%ikptproc(i1)
     end do
@@ -611,30 +608,24 @@ if(associated(orbsin%inwhichlocreg)) then
 end if
 
 if(associated(orbsout%onwhichatom)) then
-    iall=-product(shape(orbsout%onwhichatom))*kind(orbsout%onwhichatom)
-    deallocate(orbsout%onwhichatom, stat=istat)
-    call memocc(istat, iall, 'orbsout%onwhichatom', subname)
+    call f_free_ptr(orbsout%onwhichatom)
 end if
 if(associated(orbsin%onwhichatom)) then
     iis1=lbound(orbsin%onwhichatom,1)
     iie1=ubound(orbsin%onwhichatom,1)
-    allocate(orbsout%onwhichatom(iis1:iie1), stat=istat)
-    call memocc(istat, orbsout%onwhichatom, 'orbsout%onwhichatom', subname)
+    orbsout%onwhichatom = f_malloc_ptr(iis1.to.iie1,id='orbsout%onwhichatom')
     do i1=iis1,iie1
         orbsout%onwhichatom(i1) = orbsin%onwhichatom(i1)
     end do
 end if
 
 if(associated(orbsout%isorb_par)) then
-    iall=-product(shape(orbsout%isorb_par))*kind(orbsout%isorb_par)
-    deallocate(orbsout%isorb_par, stat=istat)
-    call memocc(istat, iall, 'orbsout%isorb_par', subname)
+    call f_free_ptr(orbsout%isorb_par)
 end if
 if(associated(orbsin%isorb_par)) then
     iis1=lbound(orbsin%isorb_par,1)
     iie1=ubound(orbsin%isorb_par,1)
-    allocate(orbsout%isorb_par(iis1:iie1), stat=istat)
-    call memocc(istat, orbsout%isorb_par, 'orbsout%isorb_par', subname)
+    orbsout%isorb_par = f_malloc_ptr(iis1.to.iie1,id='orbsout%isorb_par')
     do i1=iis1,iie1
         orbsout%isorb_par(i1) = orbsin%isorb_par(i1)
     end do

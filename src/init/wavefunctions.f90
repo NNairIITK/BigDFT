@@ -201,8 +201,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   orbs%inwhichlocreg = 1
 
   ! allocate onwhichatom
-  allocate(orbs%onwhichatom(orbs%norb*orbs%nkpts),stat=i_stat)
-  call memocc(i_stat,orbs%onwhichatom,'orbs%onwhichatom',subname)
+  orbs%onwhichatom = f_malloc_ptr(orbs%norb*orbs%nkpts,id='orbs%onwhichatom')
   ! default for onwhichatom (all orbitals are situated in the same locreg)
   orbs%onwhichatom = 1
 
@@ -212,16 +211,14 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
 
 
   !allocate the array which assign the k-point to processor in transposed version
-  allocate(orbs%ikptproc(orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%ikptproc,'orbs%ikptproc',subname)
+  orbs%ikptproc = f_malloc_ptr(orbs%nkpts+ndebug,id='orbs%ikptproc')
 
   ! Define two new arrays:
   ! - orbs%isorb_par is the same as orbs%isorb, but every process also knows
   !   the reference orbital of each other process.
   ! - orbs%onWhichMPI indicates on which MPI process a given orbital
   !   is located.
-  allocate(orbs%isorb_par(0:nproc-1), stat=i_stat)
-  call memocc(i_stat, orbs%isorb_par, 'orbs%isorb_par', subname)
+  orbs%isorb_par = f_malloc_ptr(0.to.nproc-1,id='orbs%isorb_par')
   iiorb=0
   orbs%isorb_par=0
   do jproc=0,nproc-1

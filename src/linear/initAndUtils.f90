@@ -639,9 +639,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
   call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norb_par, astruct%nat, nlr, &
        input%nspin, norbsPerLocreg, locregCenter, lorbs%inwhichlocreg)
 
-  iall=-product(shape(lorbs%onwhichatom))*kind(lorbs%onwhichatom)
-  deallocate(lorbs%onwhichatom, stat=istat)
-  call memocc(istat, iall, 'lorbs%onwhichatom', subname)
+  call f_free_ptr(lorbs%onwhichatom)
   call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norb_par, astruct%nat, astruct%nat, &
        input%nspin, norbsPerAtom, rxyz, lorbs%onwhichatom)
   
