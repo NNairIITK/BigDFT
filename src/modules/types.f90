@@ -1388,9 +1388,9 @@ subroutine deallocate_orbs(orbs,subname)
     i_all=-product(shape(orbs%kwgts))*kind(orbs%kwgts)
     deallocate(orbs%kwgts,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%kwgts',subname)
-    i_all=-product(shape(orbs%iokpt))*kind(orbs%iokpt)
-    deallocate(orbs%iokpt,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%iokpt',subname)
+
+    call f_free_ptr(orbs%iokpt)
+
     i_all=-product(shape(orbs%ikptproc))*kind(orbs%ikptproc)
     deallocate(orbs%ikptproc,stat=i_stat)
     call memocc(i_stat,i_all,'ikptproc',subname)

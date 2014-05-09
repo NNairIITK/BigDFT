@@ -161,8 +161,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
           orbs%norbp,orbs%isorb)
   end if
 
-  allocate(orbs%iokpt(orbs%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%iokpt,'orbs%iokpt',subname)
+  orbs%iokpt = f_malloc_ptr(orbs%norbp+ndebug,id='orbs%iokpt')
 
   !assign the k-point to the given orbital, counting one orbital after each other
   jorb=0

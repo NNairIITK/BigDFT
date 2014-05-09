@@ -540,12 +540,9 @@ program BigDFT2Wannier
       if(orbsb%isorb > n_occ) orbs%norbp = 0
       orbs%isorb = orbsb%isorb
       if(associated(orbs%iokpt)) then
-         i_all = -product(shape(orbs%iokpt))*kind(orbs%iokpt)
-         deallocate(orbs%iokpt,stat=i_stat)
-         call memocc(i_stat,i_all,'orbs%iokpt',subname)
+         call f_free_ptr(orbs%iokpt)
       end if
-      allocate(orbs%iokpt(orbs%norbp),stat=i_stat)
-      call memocc(i_stat,orbs%iokpt,'orbs%iokpt',subname)
+      orbs%iokpt = f_malloc_ptr(orbs%norbp,id='orbs%iokpt')
       orbs%iokpt=1
 
       if(associated(orbs%eval)) nullify(orbs%eval)
@@ -579,12 +576,9 @@ program BigDFT2Wannier
       orbsv%isorb = 0
       if(orbsb%isorb >= n_occ) orbsv%isorb = orbsb%isorb - n_occ
       if(associated(orbsv%iokpt)) then
-         i_all = -product(shape(orbsv%iokpt))*kind(orbsv%iokpt)
-         deallocate(orbsv%iokpt,stat=i_stat)
-         call memocc(i_stat,i_all,'orbsv%iokpt',subname)
+         call f_free_ptr(orbsv%iokpt)
       end if
-      allocate(orbsv%iokpt(orbsv%norbp),stat=i_stat)
-      call memocc(i_stat,orbsv%iokpt,'orbsv%iokpt',subname)
+      orbsv%iokpt = f_malloc_ptr(orbsv%norbp,id='orbsv%iokpt')
       orbsv%iokpt=1
       !orbsv%spinsgn= 1.0
 
@@ -2442,12 +2436,9 @@ subroutine split_vectors_for_parallel(iproc,nproc,nvctr,orbs)
    orbs%nspinor=1
    orbs%iskpts=0
    if(associated(orbs%iokpt)) then
-      i_all = -product(shape(orbs%iokpt))*kind(orbs%iokpt)
-      deallocate(orbs%iokpt,stat=i_stat)
-      call memocc(i_stat,i_all,'orbs%iokpt',subname)
+      call f_free_ptr(orbs%iokpt)
    end if
-   allocate(orbs%iokpt(orbs%norbp),stat=i_stat)
-   call memocc(i_stat,orbs%iokpt,'orbs%iokpt',subname)
+   orbs%iokpt = f_malloc_ptr(orbs%norbp,id='orbs%iokpt')
    orbs%iokpt=1
 
    ! For now, also don't consider spin

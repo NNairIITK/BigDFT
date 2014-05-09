@@ -901,12 +901,9 @@ program WaCo
      if(orbsw%isorb > n_occ) orbs%norbp = 0
      orbs%isorb = orbsw%isorb
      if(associated(orbs%iokpt)) then
-        i_all = -product(shape(orbs%iokpt))*kind(orbs%iokpt)
-        deallocate(orbs%iokpt,stat=i_stat)
-        call memocc(i_stat,i_all,'orbs%iokpt',subname)
+        call f_free_ptr(orbs%iokpt)
      end if
-     allocate(orbs%iokpt(orbs%norbp),stat=i_stat)
-     call memocc(i_stat,orbs%iokpt,'orbs%iokpt',subname)
+     orbs%iokpt = f_malloc_ptr(orbs%norbp,id='orbs%iokpt')
      orbs%iokpt=1
      if(orbs%norbp > 0) then
         if(associated(orbs%eval)) nullify(orbs%eval)
@@ -929,12 +926,9 @@ program WaCo
      orbsv%isorb = 0
      if(orbsw%isorb >= n_occ) orbsv%isorb = orbsw%isorb - n_occ
      if(associated(orbsv%iokpt)) then
-        i_all = -product(shape(orbsv%iokpt))*kind(orbsv%iokpt)
-        deallocate(orbsv%iokpt,stat=i_stat)
-        call memocc(i_stat,i_all,'orbsv%iokpt',subname)
+        call f_free_ptr(orbsv%iokpt)
      end if
-     allocate(orbsv%iokpt(orbsv%norbp),stat=i_stat)
-     call memocc(i_stat,orbsv%iokpt,'orbsv%iokpt',subname)
+     orbsv%iokpt = f_malloc_ptr(orbsv%norbp,id='orbsv%iokpt')
      orbsv%iokpt=1
 
      ! read unoccupied wavefunctions
@@ -1035,11 +1029,8 @@ program WaCo
               call daub_to_isf(Glr,w,wann(1),wannr)
               call write_wannier_cube(ifile,trim(seedname)//'_'//num//'.cube',atoms,Glr,input,atoms%astruct%rxyz,wannr)
            else if(trim(outputype)=='bin') then
-              i_all = -product(shape(orbsw%iokpt))*kind(orbsw%iokpt)
-              deallocate(orbsw%iokpt,stat=i_stat)
-              call memocc(i_stat,i_all,'orbsw%iokpt',subname)
-              allocate(orbsw%iokpt(nwannCon),stat=i_stat)
-              call memocc(i_stat,orbsw%iokpt,'orbsw%iokpt',subname)
+              call f_free_ptr(orbsw%iokpt)
+              orbsw%iokpt = f_malloc_ptr(nwannCon,id='orbsw%iokpt')
               orbsw%iokpt=1
               if(hamilana .and. linear) then
                  call yaml_sequence(advance='no')
