@@ -541,8 +541,7 @@ subroutine calculate_coeffMatcoeff(nproc,matrix,basis_orbs,ksorbs,coeff,mat_coef
   real(kind=8), dimension(:,:), allocatable :: coeff_tmp
   character(len=256) :: subname='calculate_coeffMatcoeff'
 
-  allocate(coeff_tmp(basis_orbs%norbp,ksorbs%norb), stat=istat)
-  call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
+  coeff_tmp = f_malloc((/ basis_orbs%norbp, ksorbs%norb /),id='coeff_tmp')
 
   if (basis_orbs%norbp>0) then
      call dgemm('n', 'n', basis_orbs%norbp, ksorbs%norb, basis_orbs%norb, 1.d0, matrix(basis_orbs%isorb+1,1), &
@@ -553,9 +552,7 @@ subroutine calculate_coeffMatcoeff(nproc,matrix,basis_orbs,ksorbs,coeff,mat_coef
      call to_zero(ksorbs%norb**2, mat_coeff(1,1))
   end if
 
-  iall=-product(shape(coeff_tmp))*kind(coeff_tmp)
-  deallocate(coeff_tmp,stat=istat)
-  call memocc(istat,iall,'coeff_tmp',subname)
+  call f_free(coeff_tmp)
 
   if (nproc>1) then
       call mpiallred(mat_coeff(1,1), ksorbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
@@ -1452,10 +1449,8 @@ subroutine precondition_gradient_coeff(ntmb, norb, ham, ovrlp, grad)
   integer,dimension(:),allocatable:: ipiv
   character(len=*),parameter:: subname='precondition_gradient_coeff'
   
-  allocate(mat(ntmb,ntmb), stat=istat)
-  !call memocc(istat, mat, 'mat', subname)
-  allocate(rhs(ntmb,norb), stat=istat)
-  !call memocc(istat, mat, 'mat', subname)
+  mat = f_malloc((/ ntmb, ntmb /),id='mat')
+  rhs = f_malloc((/ ntmb, norb /),id='rhs')
   
   ! Build the matrix to be inverted
   do itmb=1,ntmb
@@ -1471,12 +1466,11 @@ subroutine precondition_gradient_coeff(ntmb, norb, ham, ovrlp, grad)
       end do
   end do
   
-  allocate(ipiv(ntmb), stat=istat)
-  call memocc(istat, ipiv, 'ipiv', subname)
+  ipiv = f_malloc(ntmb,id='ipiv')
   
   call zgesv(ntmb, norb, mat(1,1), ntmb, ipiv, rhs(1,1), ntmb, info)
   if(info/=0) then
-      stop 'ERROR in dgesv'
+      stop 'ERROR in zgesv'
   end if
   !call vcopy(nel, rhs(1), 1, grad(1), 1)
   do iorb=1,norb
@@ -1485,17 +1479,9 @@ subroutine precondition_gradient_coeff(ntmb, norb, ham, ovrlp, grad)
       end do
   end do
   
-  iall=-product(shape(ipiv))*kind(ipiv)
-  deallocate(ipiv, stat=istat)
-  call memocc(istat, iall, 'ipiv', subname)
-  
-  iall=-product(shape(mat))*kind(mat)
-  deallocate(mat, stat=istat)
-  !call memocc(istat, iall, 'mat', subname)
-  
-  iall=-product(shape(rhs))*kind(rhs)
-  deallocate(rhs, stat=istat)
-  !call memocc(istat, iall, 'rhs', subname)
+  call f_free(ipiv)
+  call f_free(mat)
+  call f_free(rhs)
 
 end subroutine precondition_gradient_coeff
 
