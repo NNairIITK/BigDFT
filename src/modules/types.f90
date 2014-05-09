@@ -1543,9 +1543,7 @@ subroutine deallocate_orbs(orbs,subname)
     end if
 
     if (associated(rst%KSwfn%orbs%eval)) then
-       i_all=-product(shape(rst%KSwfn%orbs%eval))*kind(rst%KSwfn%orbs%eval)
-       deallocate(rst%KSwfn%orbs%eval,stat=i_stat)
-       call memocc(i_stat,i_all,'eval',subname)
+       call f_free_ptr(rst%KSwfn%orbs%eval)
     end if
 
     if (associated(rst%KSwfn%oldpsis)) then

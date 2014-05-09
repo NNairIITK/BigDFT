@@ -138,8 +138,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
       !end if
    end if
 
-   allocate(VTwfn%orbs%eval(VTwfn%orbs%norb*VTwfn%orbs%nkpts+ndebug),stat=i_stat)
-   call memocc(i_stat,VTwfn%orbs%eval,'eval',subname)
+   VTwfn%orbs%eval = f_malloc_ptr(VTwfn%orbs%norb*VTwfn%orbs%nkpts+ndebug,id='VTwfn%orbs%eval')
 
    VTwfn%orbs%eval(1:VTwfn%orbs%norb*VTwfn%orbs%nkpts)=-0.5d0
 
@@ -551,8 +550,7 @@ subroutine davidson(iproc,nproc,in,at,&
       call memocc(i_stat,i_all,'psiw',subname)
    end if
 
-   allocate(orbsv%eval(orbsv%norb*orbsv%nkpts+ndebug),stat=i_stat)
-   call memocc(i_stat,orbsv%eval,'eval',subname)
+   orbsv%eval = f_malloc_ptr(orbsv%norb*orbsv%nkpts+ndebug,id='orbsv%eval')
 
    orbsv%eval(1:orbsv%norb*orbsv%nkpts)=-0.5d0
 

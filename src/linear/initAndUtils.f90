@@ -643,8 +643,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
   call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norb_par, astruct%nat, astruct%nat, &
        input%nspin, norbsPerAtom, rxyz, lorbs%onwhichatom)
   
-  allocate(lorbs%eval(lorbs%norb), stat=istat)
-  call memocc(istat, lorbs%eval, 'lorbs%eval', subname)
+  lorbs%eval = f_malloc_ptr(lorbs%norb,id='lorbs%eval')
   lorbs%eval=-.5d0
   
   iall=-product(shape(norbsPerLocreg))*kind(norbsPerLocreg)

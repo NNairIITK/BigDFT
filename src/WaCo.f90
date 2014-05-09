@@ -907,15 +907,12 @@ program WaCo
      orbs%iokpt=1
      if(orbs%norbp > 0) then
         if(associated(orbs%eval)) nullify(orbs%eval)
-        allocate(orbs%eval(orbs%norb*orbs%nkpts), stat=i_stat)
-        call memocc(i_stat,orbs%eval,'orbs%eval',subname)
+        orbs%eval = f_malloc_ptr(orbs%norb*orbs%nkpts,id='orbs%eval')
         filename=trim(input%dir_output) // 'wavefunction'
         call readmywaves(iproc,filename,iformat,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
              & input%hx,input%hy,input%hz,atoms,rxyz_old,atoms%astruct%rxyz,  & 
              Glr%wfd,psi(1,1))
-        i_all = -product(shape(orbs%eval))*kind(orbs%eval)
-        deallocate(orbs%eval,stat=i_stat)
-        call memocc(i_stat,i_all,'orbs%eval',subname)
+        call f_free_ptr(orbs%eval)
      
      end if
 
@@ -935,22 +932,16 @@ program WaCo
      if(orbsv%norbp > 0) then
         filename=trim(input%dir_output) // 'virtuals'
         if(associated(orbsv%eval)) nullify(orbsv%eval)
-        allocate(orbsv%eval(orbsv%norb*orbsv%nkpts), stat=i_stat)
-        call memocc(i_stat,orbsv%eval,'orbsv%eval',subname)
+        orbsv%eval = f_malloc_ptr(orbsv%norb*orbsv%nkpts,id='orbsv%eval')
         call readmywaves(iproc,filename,iformat,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
              & input%hx,input%hy,input%hz,atoms,rxyz_old,atoms%astruct%rxyz,  & 
              Glr%wfd,psi(1,1+orbs%norbp),virt_list)
-        i_all = -product(shape(orbsv%eval))*kind(orbsv%eval)
-        deallocate(orbsv%eval,stat=i_stat)
-        call memocc(i_stat,i_all,'orbsv%eval',subname)
+        call f_free_ptr(orbsv%eval)
      end if
 
-     i_all = -product(shape(rxyz_old))*kind(rxyz_old)
-     deallocate(rxyz_old,stat=i_stat)
-     call memocc(i_stat,i_all,'rxyz_old',subname)
-     i_all = -product(shape(virt_list))*kind(virt_list)
-     deallocate(virt_list,stat=i_stat)
-     call memocc(i_stat,i_all,'virt_list',subname)
+
+     call f_free_ptr(rxyz_old)
+     call f_free_ptr(virt_list)
 
 
      call timing(iproc,'CrtProjectors ','OF')

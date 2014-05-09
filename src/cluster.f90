@@ -125,9 +125,7 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
         i_all=-product(shape(runObj%rst%KSwfn%psi))*kind(runObj%rst%KSwfn%psi)
         deallocate(runObj%rst%KSwfn%psi,stat=i_stat)
         call memocc(i_stat,i_all,'psi',subname)
-        i_all=-product(shape(runObj%rst%KSwfn%orbs%eval))*kind(runObj%rst%KSwfn%orbs%eval)
-        deallocate(runObj%rst%KSwfn%orbs%eval,stat=i_stat)
-        call memocc(i_stat,i_all,'eval',subname)
+        call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
 
         call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
      end if
@@ -185,9 +183,7 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
         i_all=-product(shape(runObj%rst%KSwfn%psi))*kind(runObj%rst%KSwfn%psi)
         deallocate(runObj%rst%KSwfn%psi,stat=i_stat)
         call memocc(i_stat,i_all,'psi',subname)
-        i_all=-product(shape(runObj%rst%KSwfn%orbs%eval))*kind(runObj%rst%KSwfn%orbs%eval)
-        deallocate(runObj%rst%KSwfn%orbs%eval,stat=i_stat)
-        call memocc(i_stat,i_all,'eval',subname)
+        call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
 
         call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
 
@@ -878,9 +874,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
         i_all=-product(shape(denspot%rho_work))*kind(denspot%rho_work)
         deallocate(denspot%rho_work,stat=i_stat)
         call memocc(i_stat,i_all,'denspot%rho',subname)
-        i_all=-product(shape(KSwfn%orbs%eval))*kind(KSwfn%orbs%eval)
-        deallocate(KSwfn%orbs%eval,stat=i_stat)
-        call memocc(i_stat,i_all,'KSwfn%orbs%eval',subname)
+        call f_free_ptr(KSwfn%orbs%eval)
         call f_release_routine()
         return
      end if
@@ -1265,9 +1259,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
            ikpt=ikpt+in%nkptsv_group(igroup)
         end if
 
-        i_all=-product(shape(VTwfn%orbs%eval))*kind(VTwfn%orbs%eval)
-        deallocate(VTwfn%orbs%eval,stat=i_stat)
-        call memocc(i_stat,i_all,'eval',subname)
+        call f_free_ptr(VTwfn%orbs%eval)
 
         !if the local analysis has to be performed the deallocation should not be done
         i_all=-product(shape(VTwfn%psi))*kind(VTwfn%psi)
