@@ -292,17 +292,14 @@ program BigDFT2Wannier
          allocate(psi_etsfv(npsidim),stat=i_stat)
          call memocc(i_stat,psi_etsfv,'psi_etsfv',subname)
          if(associated(orbsv%eval)) nullify(orbsv%eval)
-         allocate(orbsv%eval(orbsv%norb*orbsv%nkpts), stat=i_stat)
-         call memocc(i_stat,orbsv%eval,'orbsv%eval',subname)
+         orbsv%eval = f_malloc_ptr(orbsv%norb*orbsv%nkpts,id='orbsv%eval')
 
          filename= trim(input%dir_output) // 'virtuals'
          call readmywaves(iproc,filename,iformat,orbsv,lzd%Glr%d%n1,lzd%Glr%d%n2,lzd%Glr%d%n3, &
               & input%hx,input%hy,input%hz,atoms,rxyz_old,atoms%astruct%rxyz,  & 
               lzd%Glr%wfd,psi_etsfv)
-         i_all = -product(shape(orbsv%eval))*kind(orbsv%eval)
-         deallocate(orbsv%eval,stat=i_stat)
+         call f_free_ptr(orbsv%eval)
          nullify(orbsv%eval)
-         call memocc(i_stat,i_all,'orbsv%eval',subname)
 
          if(nproc > 1) then
             allocate(pwork(npsidim),stat=i_stat)
@@ -540,17 +537,13 @@ program BigDFT2Wannier
       if(orbsb%isorb > n_occ) orbs%norbp = 0
       orbs%isorb = orbsb%isorb
       if(associated(orbs%iokpt)) then
-         i_all = -product(shape(orbs%iokpt))*kind(orbs%iokpt)
-         deallocate(orbs%iokpt,stat=i_stat)
-         call memocc(i_stat,i_all,'orbs%iokpt',subname)
+         call f_free_ptr(orbs%iokpt)
       end if
-      allocate(orbs%iokpt(orbs%norbp),stat=i_stat)
-      call memocc(i_stat,orbs%iokpt,'orbs%iokpt',subname)
+      orbs%iokpt = f_malloc_ptr(orbs%norbp,id='orbs%iokpt')
       orbs%iokpt=1
 
       if(associated(orbs%eval)) nullify(orbs%eval)
-      allocate(orbs%eval(orbs%norb*orbs%nkpts), stat=i_stat)
-      call memocc(i_stat,orbs%eval,'orbs%eval',subname)
+      orbs%eval = f_malloc_ptr(orbs%norb*orbs%nkpts,id='orbs%eval')
       call to_zero(orbs%norb*orbs%nkpts,orbs%eval)
       if(orbs%norbp > 0) then
             filename=trim(input%dir_output) // 'wavefunction'
@@ -568,9 +561,7 @@ program BigDFT2Wannier
            write(15,'(I4,2x,I4,2x,E17.9)') nb, 1, orbs%eval(nb)
         end do
       end if
-      i_all = -product(shape(orbs%eval))*kind(orbs%eval)
-      deallocate(orbs%eval,stat=i_stat)
-      call memocc(i_stat,i_all,'orbs%eval',subname)
+      call f_free_ptr(orbs%eval)
 
       ! For the non-occupied orbitals, need to change norbp,isorb
       orbsv%norbp = orbsb%isorb + orbsb%norbp - n_occ
@@ -579,19 +570,15 @@ program BigDFT2Wannier
       orbsv%isorb = 0
       if(orbsb%isorb >= n_occ) orbsv%isorb = orbsb%isorb - n_occ
       if(associated(orbsv%iokpt)) then
-         i_all = -product(shape(orbsv%iokpt))*kind(orbsv%iokpt)
-         deallocate(orbsv%iokpt,stat=i_stat)
-         call memocc(i_stat,i_all,'orbsv%iokpt',subname)
+         call f_free_ptr(orbsv%iokpt)
       end if
-      allocate(orbsv%iokpt(orbsv%norbp),stat=i_stat)
-      call memocc(i_stat,orbsv%iokpt,'orbsv%iokpt',subname)
+      orbsv%iokpt = f_malloc_ptr(orbsv%norbp,id='orbsv%iokpt')
       orbsv%iokpt=1
       !orbsv%spinsgn= 1.0
 
          ! read unoccupied wavefunctions
       if(associated(orbsv%eval)) nullify(orbsv%eval)
-      allocate(orbsv%eval(orbsv%norb*orbsv%nkpts), stat=i_stat)
-      call memocc(i_stat,orbsv%eval,'orbsv%eval',subname)
+      orbsv%eval = f_malloc_ptr(orbsv%norb*orbsv%nkpts,id='orbsv%eval')
       call to_zero(orbsv%norb*orbsv%nkpts,orbsv%eval)
       if(orbsv%norbp > 0 .and. .not. residentity) then
          filename=trim(input%dir_output) // 'virtuals'
@@ -611,12 +598,8 @@ program BigDFT2Wannier
         end do
         close(15)
       end if
-      i_all = -product(shape(orbsv%eval))*kind(orbsv%eval)
-      deallocate(orbsv%eval,stat=i_stat)
-      call memocc(i_stat,i_all,'orbsv%eval',subname)
-      i_all = -product(shape(rxyz_old))*kind(rxyz_old)
-      deallocate(rxyz_old,stat=i_stat)
-      call memocc(i_stat,i_all,'rxyz_old',subname)
+      call f_free_ptr(orbsv%eval)
+      call f_free_ptr(rxyz_old)
 
       ! Algorithm to compute the scalar product of the input guess:
       ! The term 'sqrt(bx(1)*by(2)*bz(3))' is there to normalize spherical harmonics.
@@ -810,11 +793,11 @@ program BigDFT2Wannier
          end if
          ! Should write the symmetrized projectors to file
          if(write_resid .and. orbsv%norbp > 0)then
-            allocate(orbsv%eval(orbsv%norb))
+            orbsv%eval = f_malloc_ptr(orbsv%norb,id='orbsv%eval')
             orbsv%eval = 99.0_dp
             call writemywaves(iproc,trim(input%dir_output) // "virtuals",iformat,orbsv,lzd%Glr%d%n1,lzd%Glr%d%n2,&
               lzd%Glr%d%n3,input%hx,input%hy,input%hz,atoms,atoms%astruct%rxyz,lzd%Glr%wfd,psi_etsf(1,1+orbs%norbp))
-            deallocate(orbsv%eval)
+            call f_free_ptr(orbsv%eval)
          end if
          
       end if
@@ -2333,31 +2316,23 @@ subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt
    ! Read occupied orbitals
    if(n_occ > 0) then
       if(associated(orbs%eval)) nullify(orbs%eval)
-      allocate(orbs%eval(n_occ*orbs%nkpts), stat=i_stat)
-      call memocc(i_stat,orbs%eval,'orbs%eval',subname)
+      orbs%eval = f_malloc_ptr(n_occ*orbs%nkpts,id='orbs%eval')
       filename=trim(input%dir_output) // 'wavefunction'
       call readmywaves(0,filename,iformat,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
       Glr%wfd,psi_etsf(1,1))
-      i_all = -product(shape(orbs%eval))*kind(orbs%eval)
-      deallocate(orbs%eval,stat=i_stat)
-      call memocc(i_stat,i_all,'orbs%eval',subname) 
+      call f_free_ptr(orbs%eval)
    end if
 
    ! Read virtual orbitals chosen in pre-check mode 
    if(n_virt > 0) then
       filename=trim(input%dir_output) // 'virtuals'
       if(associated(orbsv%eval)) then
-         i_all = -product(shape(orbsv%eval))*kind(orbsv%eval)
-         deallocate(orbsv%eval,stat=i_stat)
-         call memocc(i_stat,i_all,'orbsv%eval',subname)
+         call f_free_ptr(orbsv%eval)
       end if
-      allocate(orbsv%eval(n_virt*orbsv%nkpts), stat=i_stat)
-      call memocc(i_stat,orbsv%eval,'orbsv%eval',subname)
+      orbsv%eval = f_malloc_ptr(n_virt*orbsv%nkpts,id='orbsv%eval')
       call readmywaves(0,filename,iformat,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
       Glr%wfd,psi_etsf(1,1+n_occ),virt_list)
-      i_all = -product(shape(orbsv%eval))*kind(orbsv%eval)
-      deallocate(orbsv%eval,stat=i_stat)
-      call memocc(i_stat,i_all,'orbsv%eval',subname)
+      call f_free_ptr(orbsv%eval)
    end if
 
    !calculate buffer shifts
@@ -2413,10 +2388,8 @@ subroutine split_vectors_for_parallel(iproc,nproc,nvctr,orbs)
    integer, dimension(:), allocatable :: nvctr_par,isvctr_par
 
    ! Initialise the arrays n_proj_par and isproj_par
-   allocate(nvctr_par(0:nproc-1),stat=i_stat)
-   call memocc(i_stat,nvctr_par,'nvctr_par',subname)
-   allocate(isvctr_par(0:nproc-1),stat=i_stat)
-   call memocc(i_stat,isvctr_par,'isvctr_par',subname)
+   nvctr_par = f_malloc(0.to.nproc-1,id='nvctr_par')
+   isvctr_par = f_malloc(0.to.nproc-1,id='isvctr_par')
 
    call parallel_repartition_with_kpoints(nproc,1,nvctr,nvctr_par)
    !  call kpts_to_procs_via_obj(nproc,nkpts,nvctr,nvctr_par) 
@@ -2442,24 +2415,17 @@ subroutine split_vectors_for_parallel(iproc,nproc,nvctr,orbs)
    orbs%nspinor=1
    orbs%iskpts=0
    if(associated(orbs%iokpt)) then
-      i_all = -product(shape(orbs%iokpt))*kind(orbs%iokpt)
-      deallocate(orbs%iokpt,stat=i_stat)
-      call memocc(i_stat,i_all,'orbs%iokpt',subname)
+      call f_free_ptr(orbs%iokpt)
    end if
-   allocate(orbs%iokpt(orbs%norbp),stat=i_stat)
-   call memocc(i_stat,orbs%iokpt,'orbs%iokpt',subname)
+   orbs%iokpt = f_malloc_ptr(orbs%norbp,id='orbs%iokpt')
    orbs%iokpt=1
 
    ! For now, also don't consider spin
    orbs%norbu = nvctr
    orbs%norbd = 0
 
-   i_all = -product(shape(nvctr_par))*kind(nvctr_par)
-   deallocate(nvctr_par,stat=i_stat)
-   call memocc(i_stat,i_all,'nvctr_par',subname)
-   i_all = -product(shape(isvctr_par))*kind(isvctr_par) 
-   deallocate(isvctr_par,stat=i_stat)
-   call memocc(i_stat,i_all,'isvctr_par',subname)
+   call f_free(nvctr_par)
+   call f_free(isvctr_par)
 
 END SUBROUTINE split_vectors_for_parallel
 

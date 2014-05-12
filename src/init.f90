@@ -132,18 +132,12 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
 
    !allocate kinetic bounds, only for free BC
    if (Glr%geocode == 'F' ) then
-      allocate(Glr%bounds%kb%ibyz_c(2,0:n2,0:n3+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%kb%ibyz_c,'Glr%bounds%kb%ibyz_c',subname)
-      allocate(Glr%bounds%kb%ibxz_c(2,0:n1,0:n3+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%kb%ibxz_c,'Glr%bounds%kb%ibxz_c',subname)
-      allocate(Glr%bounds%kb%ibxy_c(2,0:n1,0:n2+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%kb%ibxy_c,'Glr%bounds%kb%ibxy_c',subname)
-      allocate(Glr%bounds%kb%ibyz_f(2,0:n2,0:n3+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%kb%ibyz_f,'Glr%bounds%kb%ibyz_f',subname)
-      allocate(Glr%bounds%kb%ibxz_f(2,0:n1,0:n3+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%kb%ibxz_f,'Glr%bounds%kb%ibxz_f',subname)
-      allocate(Glr%bounds%kb%ibxy_f(2,0:n1,0:n2+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%kb%ibxy_f,'Glr%bounds%kb%ibxy_f',subname)
+      Glr%bounds%kb%ibyz_c = f_malloc_ptr((/ 1.to.2,0.to.n2,0.to.n3+ndebug /),id='Glr%bounds%kb%ibyz_c')
+      Glr%bounds%kb%ibxz_c = f_malloc_ptr((/ 1.to.2,0.to.n1,0.to.n3+ndebug /),id='Glr%bounds%kb%ibxz_c')
+      Glr%bounds%kb%ibxy_c = f_malloc_ptr((/ 1.to.2,0.to.n1,0.to.n2+ndebug /),id='Glr%bounds%kb%ibxy_c')
+      Glr%bounds%kb%ibyz_f = f_malloc_ptr((/ 1.to.2,0.to.n2,0.to.n3+ndebug /),id='Glr%bounds%kb%ibyz_f')
+      Glr%bounds%kb%ibxz_f = f_malloc_ptr((/ 1.to.2,0.to.n1,0.to.n3+ndebug /),id='Glr%bounds%kb%ibxz_f')
+      Glr%bounds%kb%ibxy_f = f_malloc_ptr((/ 1.to.2,0.to.n1,0.to.n2+ndebug /),id='Glr%bounds%kb%ibxy_f')
    end if
 
    ! Do the coarse region.
@@ -204,30 +198,21 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
  !for free BC admits the bounds arrays
    if (Glr%geocode == 'F' ) then
       !allocate grow, shrink and real bounds
-      allocate(Glr%bounds%gb%ibzxx_c(2,0:n3,-14:2*n1+16+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%gb%ibzxx_c,'Glr%bounds%gb%ibzxx_c',subname)
-      allocate(Glr%bounds%gb%ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%gb%ibxxyy_c,'Glr%bounds%gb%ibxxyy_c',subname)
-      allocate(Glr%bounds%gb%ibyz_ff(2,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%gb%ibyz_ff,'Glr%bounds%gb%ibyz_ff',subname)
-      allocate(Glr%bounds%gb%ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%gb%ibzxx_f,'Glr%bounds%gb%ibzxx_f',subname)
-      allocate(Glr%bounds%gb%ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%gb%ibxxyy_f,'Glr%bounds%gb%ibxxyy_f',subname)
+      Glr%bounds%gb%ibzxx_c = f_malloc_ptr((/ 1.to.2, 0.to.n3, -14.to.2*n1+16 /),id='Glr%bounds%gb%ibzxx_c')
+      Glr%bounds%gb%ibxxyy_c = f_malloc_ptr((/ 1.to.2, -14.to.2*n1+16, -14.to.2*n2+16 /),id='Glr%bounds%gb%ibxxyy_c')
+      Glr%bounds%gb%ibyz_ff = f_malloc_ptr((/ 1.to.2, nfl2.to.nfu2, nfl3.to.nfu3 /),id='Glr%bounds%gb%ibyz_ff')
+      Glr%bounds%gb%ibzxx_f = f_malloc_ptr((/ 1.to.2, nfl3.to.nfu3, 2*nfl1-14.to.2*nfu1+16 /),id='Glr%bounds%gb%ibzxx_f')
+      Glr%bounds%gb%ibxxyy_f = f_malloc_ptr((/ 1.to.2, 2*nfl1-14.to.2*nfu1+16, 2*nfl2-14.to.2*nfu2+16 /),&
+                                   id='Glr%bounds%gb%ibxxyy_f')
 
-      allocate(Glr%bounds%sb%ibzzx_c(2,-14:2*n3+16,0:n1+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%sb%ibzzx_c,'Glr%bounds%sb%ibzzx_c',subname)
-      allocate(Glr%bounds%sb%ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%sb%ibyyzz_c,'Glr%bounds%sb%ibyyzz_c',subname)
-      allocate(Glr%bounds%sb%ibxy_ff(2,nfl1:nfu1,nfl2:nfu2+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%sb%ibxy_ff,'Glr%bounds%sb%ibxy_ff',subname)
-      allocate(Glr%bounds%sb%ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%sb%ibzzx_f,'Glr%bounds%sb%ibzzx_f',subname)
-      allocate(Glr%bounds%sb%ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%sb%ibyyzz_f,'Glr%bounds%sb%ibyyzz_f',subname)
+      Glr%bounds%sb%ibzzx_c = f_malloc_ptr((/ 1.to.2, -14.to.2*n3+16, 0.to.n1 /),id='Glr%bounds%sb%ibzzx_c')
+      Glr%bounds%sb%ibyyzz_c = f_malloc_ptr((/ 1.to.2, -14.to.2*n2+16, -14.to.2*n3+16 /),id='Glr%bounds%sb%ibyyzz_c')
+      Glr%bounds%sb%ibxy_ff = f_malloc_ptr((/ 1.to.2, nfl1.to.nfu1, nfl2.to.nfu2 /),id='Glr%bounds%sb%ibxy_ff')
+      Glr%bounds%sb%ibzzx_f = f_malloc_ptr((/ 1.to.2, -14+2*nfl3.to.2*nfu3+16, nfl1.to.nfu1 /),id='Glr%bounds%sb%ibzzx_f')
+      Glr%bounds%sb%ibyyzz_f = f_malloc_ptr((/ 1.to.2, -14+2*nfl2.to.2*nfu2+16, -14+2*nfl3.to.2*nfu3+16 /),&
+                                   id='Glr%bounds%sb%ibyyzz_f')
 
-      allocate(Glr%bounds%ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16+ndebug),stat=i_stat)
-      call memocc(i_stat,Glr%bounds%ibyyzz_r,'Glr%bounds%ibyyzz_r',subname)
+      Glr%bounds%ibyyzz_r = f_malloc_ptr((/ 1.to.2,-14.to.2*n2+16,-14.to.2*n3+16+ndebug /),id='Glr%bounds%ibyyzz_r')
 
       call make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
          &   Glr%bounds%kb%ibxy_c,Glr%bounds%sb%ibzzx_c,Glr%bounds%sb%ibyyzz_c,&
@@ -857,28 +842,23 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
    if (input%lin%scf_mode/=LINEAR_FOE) then
        tmb%can_use_transposed=.true.
        overlap_calculated=.false.
-       allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=i_stat)
-       call memocc(i_stat, tmb%psit_c, 'tmb%psit_c', subname)
+       tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
 
-       allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=i_stat)
-       call memocc(i_stat, tmb%psit_f, 'tmb%psit_f', subname)
+       tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
 
 
        call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
             tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
 
        ! normalize psi
-       allocate(norm(tmb%orbs%norb), stat=i_stat)
-       call memocc(i_stat, norm, 'norm', subname)
+       norm = f_malloc(tmb%orbs%norb,id='norm')
 
        call normalize_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
 
        call untranspose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
             tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
 
-       i_all = -product(shape(norm))*kind(norm)
-       deallocate(norm,stat=i_stat)
-       call memocc(i_stat,i_all,'norm',subname)
+       call f_free(norm)
    end if
 
 
@@ -890,12 +870,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       !nullify(tmb%psit_f)
       call reconstruct_kernel(iproc, nproc, input%lin%order_taylor, tmb%orthpar%blocksize_pdsyev, &
            tmb%orthpar%blocksize_pdgemm, KSwfn%orbs, tmb, overlap_calculated)
-      i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)
-      deallocate(tmb%psit_c,stat=i_stat)
-      call memocc(i_stat,i_all,'tmb%psit_c',subname)
-      i_all = -product(shape(tmb%psit_f))*kind(tmb%psit_f)
-      deallocate(tmb%psit_f,stat=i_stat)
-      call memocc(i_stat,i_all,'tmb%psit_f',subname)
+      call f_free_ptr(tmb%psit_c)
+      call f_free_ptr(tmb%psit_f)
   else
      ! By doing an LCAO input guess
      tmb%can_use_transposed=.false.
@@ -911,12 +887,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
      !!deallocate(phi_tmp, stat=i_stat)
      !!call memocc(i_stat, i_all, 'phi_tmp', subname)
      if(tmb%can_use_transposed) then
-         i_all=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-         deallocate(tmb%psit_c, stat=i_stat)
-         call memocc(i_stat, i_all, 'tmb%psit_c', subname)
-         i_all=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-         deallocate(tmb%psit_f, stat=i_stat)
-         call memocc(i_stat, i_all, 'tmb%psit_f', subname)
+         call f_free_ptr(tmb%psit_c)
+         call f_free_ptr(tmb%psit_f)
      end if
   end if
 
@@ -1103,8 +1075,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbse,commse,basedist=comms%nvctr_par(0:,1:))  
 
   !use the eval array of orbse structure to save the original values
-  allocate(orbse%eval(orbse%norb*orbse%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbse%eval,'orbse%eval',subname)
+  orbse%eval = f_malloc_ptr(orbse%norb*orbse%nkpts,id='orbse%eval')
 
   hxh=.5_gp*Lzd%hgrids(1)
   hyh=.5_gp*Lzd%hgrids(2)
@@ -1381,7 +1352,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   !change temporarily value of Lzd%npotddim
   allocate(confdatarr(orbse%norbp)) !no stat so tho make it crash
   call local_potential_dimensions(iproc,Lzde,orbse,denspot%xc,denspot%dpbox%ngatherarr(0,1))
-  !   print *,'here',iproc   
   call default_confinement_data(confdatarr,orbse%norbp)
 
   !spin adaptation for the IG in the spinorial case
@@ -1412,9 +1382,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   call free_full_potential(denspot%dpbox%mpi_env%nproc,Lzde%lintyp,&
        & denspot%xc,denspot%pot_work,subname)
 
-  i_all=-product(shape(orbse%ispot))*kind(orbse%ispot)
-  deallocate(orbse%ispot,stat=i_stat)
-  call memocc(i_stat,i_all,'orbse%ispot',subname)
+  call f_free_ptr(orbse%ispot)
 
   deallocate(confdatarr)
 
@@ -1593,9 +1561,7 @@ contains
     call memocc(i_stat,i_all,'psigau',subname)
 
     call deallocate_orbs(orbse,subname)
-    i_all=-product(shape(orbse%eval))*kind(orbse%eval)
-    deallocate(orbse%eval,stat=i_stat)
-    call memocc(i_stat,i_all,'orbse%eval',subname)
+    call f_free_ptr(orbse%eval)
 
   end subroutine deallocate_input_wfs
 
@@ -1688,14 +1654,12 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      & inputpsi /= INPUT_PSI_MEMORY_GAUSS .and. &
        & inputpsi /= INPUT_PSI_MEMORY_LINEAR .and. &
        & inputpsi /= INPUT_PSI_DISK_LINEAR) then
-     allocate(KSwfn%orbs%eval(KSwfn%orbs%norb*KSwfn%orbs%nkpts+ndebug),stat=i_stat)
-     call memocc(i_stat,KSwfn%orbs%eval,'eval',subname)
+     KSwfn%orbs%eval = f_malloc_ptr(KSwfn%orbs%norb*KSwfn%orbs%nkpts,id='KSwfn%orbs%eval')
   end if
   ! Still do it for linear restart, to be check...
   if (inputpsi == INPUT_PSI_DISK_LINEAR) then
      if(iproc==0) call yaml_comment('ALLOCATING KSwfn%orbs%eval... is this correct?')
-     allocate(KSwfn%orbs%eval(KSwfn%orbs%norb*KSwfn%orbs%nkpts+ndebug),stat=i_stat)
-     call memocc(i_stat,KSwfn%orbs%eval,'eval',subname)
+     KSwfn%orbs%eval = f_malloc_ptr(KSwfn%orbs%norb*KSwfn%orbs%nkpts,id='KSwfn%orbs%eval')
   end if
 
   !all the input formats need to allocate psi except the LCAO input_guess
@@ -1897,12 +1861,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call inputguessConfinement(iproc,nproc,atoms,in,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
           rxyz,nlpsp,GPU,KSwfn%orbs,kswfn,tmb,denspot,denspot0,energs,locregcenters)
      if(tmb%can_use_transposed) then
-         i_all=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-         deallocate(tmb%psit_c, stat=i_stat)
-         call memocc(i_stat, i_all, 'tmb%psit_c', subname)
-         i_all=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-         deallocate(tmb%psit_f, stat=i_stat)
-         call memocc(i_stat, i_all, 'tmb%psit_f', subname)
+         call f_free_ptr(tmb%psit_c)
+         call f_free_ptr(tmb%psit_f)
      end if
   case (INPUT_PSI_DISK_LINEAR)
      if (iproc == 0) then
@@ -1930,26 +1890,21 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      tmb%can_use_transposed=.true.
      overlap_calculated=.false.
-     allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=i_stat)
-     call memocc(i_stat, tmb%psit_c, 'tmb%psit_c', subname)
-     allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=i_stat)
-     call memocc(i_stat, tmb%psit_f, 'tmb%psit_f', subname)
+     tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
+     tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
 
      call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
           tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
 
      ! normalize psi
-     allocate(norm(tmb%orbs%norb), stat=i_stat)
-     call memocc(i_stat, norm, 'norm', subname)
+     norm = f_malloc(tmb%orbs%norb,id='norm')
 
      call normalize_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
 
      call untranspose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
           tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
 
-     i_all = -product(shape(norm))*kind(norm)
-     deallocate(norm,stat=i_stat)
-     call memocc(i_stat,i_all,'norm',subname)
+     call f_free(norm)
 
      !!allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
      !!call memocc(i_stat, tmb%linmat%denskern%matrix, 'tmb%linmat%denskern%matrix', subname)
@@ -2053,12 +2008,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !!call f_free_ptr(tmb%linmat%denskern%matrix)   
 
      tmb%can_use_transposed=.false. ! - do we really need to deallocate here?
-     i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)                               
-     deallocate(tmb%psit_c,stat=i_stat)                                                 
-     call memocc(i_stat,i_all,'tmb%psit_c',subname)                                     
-     i_all = -product(shape(tmb%psit_f))*kind(tmb%psit_f)                               
-     deallocate(tmb%psit_f,stat=i_stat)                                                 
-     call memocc(i_stat,i_all,'tmb%psit_f',subname)
+     call f_free_ptr(tmb%psit_c)
+     call f_free_ptr(tmb%psit_f)
      nullify(tmb%psit_c)
      nullify(tmb%psit_f)
 
@@ -2374,14 +2325,9 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   call initialize_work_arrays_sumrho(Lzd_old%Glr,w)
   nbox = lzd_old%Glr%d%n1i*Lzd_old%Glr%d%n2i*Lzd_old%Glr%d%n3i
 
-  allocate(psir_old(nbox,npsir,orbs%norbp),stat=i_stat)
-  call memocc(i_stat,psir_old,'psir_old', subname)
-  
-  allocate(psir(lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,npsir,orbs%norbp),stat=i_stat)
-  call memocc(i_stat,psir,'psir',subname)
-
-  allocate(shift(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,5),stat=i_stat)
-  call memocc(i_stat,shift,'shift',subname)  
+  psir_old = f_malloc((/ nbox, npsir, orbs%norbp /),id='psir_old')
+  psir = f_malloc((/ lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i, npsir, orbs%norbp /),id='psir')
+  shift = f_malloc((/ lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i, 5 /),id='shift')
   
   call to_zero(max(orbs%npsidim_comp,orbs%npsidim_orbs),psi(1)) 
   call to_zero(lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*npsir*orbs%norbp,psir(1,1,1)) 
@@ -2622,18 +2568,10 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   end do loop_orbs_back
 
   call deallocate_work_arrays_sumrho(w)
-  
-  i_all = -product(shape(psir_old))*kind(psir_old)
-  deallocate(psir_old,stat=i_stat)
-  call memocc(i_stat,i_all, 'psir_old', subname)
 
-  i_all = -product(shape(psir))*kind(psir)
-  deallocate(psir,stat=i_stat)
-  call memocc(i_stat,i_all, 'psir', subname)
-
-  i_all = -product(shape(shift))*kind(shift)
-  deallocate(shift,stat=i_stat)
-  call memocc(i_stat,i_all, 'shift', subname)
+  call f_free(psir_old)
+  call f_free(psir)
+  call f_free(shift)
 
   i_all=-product(shape(psi_old))*kind(psi_old)
   deallocate(psi_old,stat=i_stat)

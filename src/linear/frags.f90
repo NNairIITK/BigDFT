@@ -113,19 +113,13 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
      call timing(iproc,'kernel_init','OF')
      if(.not.tmb%can_use_transposed) then
          if(associated(tmb%psit_c)) then
-             iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-             deallocate(tmb%psit_c, stat=istat)
-             call memocc(istat, iall, 'tmb%psit_c', subname)
+             call f_free_ptr(tmb%psit_c)
          end if
          if(associated(tmb%psit_f)) then
-             iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-             deallocate(tmb%psit_f, stat=istat)
-             call memocc(istat, iall, 'tmb%psit_f', subname)
+             call f_free_ptr(tmb%psit_f)
          end if
-         allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-         call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
-         allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-         call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+         tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
+         tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
          call transpose_localized(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
               tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
          tmb%can_use_transposed=.true.

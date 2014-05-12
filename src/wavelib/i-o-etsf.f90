@@ -81,9 +81,8 @@ module internal_etsf
       n2_old = n2_old - 1
       n3_old = n3_old - 1
       ! We read the eigenvalues & occupations.
-      allocate(orbsd%eval(dims%number_of_spins * dims%max_number_of_states * &
-         &   dims%number_of_kpoints),stat=i_stat)
-      call memocc(i_stat,orbsd%eval,'orbsd%eval',subname)
+      orbsd%eval = f_malloc_ptr(dims%number_of_spins * dims%max_number_of_states * &
+         &   dims%number_of_kpoints,id='orbsd%eval')
       !!$    allocate(orbsd%occup(dims%number_of_spins * dims%max_number_of_states * &
       !!$         & dims%number_of_kpoints),stat=i_stat)
       !!$    call memocc(i_stat,orbsd%occup,'orbsd%occup',subname)
@@ -156,8 +155,7 @@ module internal_etsf
          integer :: i, ik, ikd, isd, i_stat, i_all
          real(wp), dimension(:), allocatable :: eval
 
-         allocate(eval(size(orbsd%eval)),stat=i_stat)
-         call memocc(i_stat,eval,'eval',"sortEvals")
+         eval = f_malloc(size(orbsd%eval),id='eval')
          ! We transfer the eigenvalues & occupations.
          isd = max(orbsd%norbu, orbsd%norbd) * orbsd%nkpts
          do i = 1, orbsd%nkpts, 1
@@ -170,9 +168,7 @@ module internal_etsf
             end if
          end do
          orbsd%eval = eval
-         i_all=-product(shape(eval))*kind(eval)
-         deallocate(eval,stat=i_stat)
-         call memocc(i_stat,i_all,'eval',"sortEvals")
+         call f_free(eval)
       END SUBROUTINE sortEvals
    END SUBROUTINE etsf_read_descr
 
@@ -532,9 +528,7 @@ subroutine read_waves_from_list_etsf(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_ol
       eval(iorb) = orbsd%eval(orbsd%isorb + (iorbparr(nspinor * (iorb - 1) + 1) - 1) / nspinor + 1)
    end do
 
-   i_all=-product(shape(orbsd%eval))*kind(orbsd%eval)
-   deallocate(orbsd%eval,stat=i_stat)
-   call memocc(i_stat,i_all,'orbsd%eval',subname)
+   call f_free_ptr(orbsd%eval)
 
    ! We close the file.
    call etsf_io_low_close(ncid, lstat, error)
@@ -611,9 +605,7 @@ subroutine readwavedescr_etsf(lstat, filename, norbu, norbd, nkpt, nspinor)
    if (.not. lstat) call etsf_warning(error)
 
    if (associated(orbsd%eval)) then
-      i_all=-product(shape(orbsd%eval))*kind(orbsd%eval)
-      deallocate(orbsd%eval,stat=i_stat)
-      call memocc(i_stat,i_all,'orbsd%eval',"read_wave_descr_etsf")
+      call f_free_ptr(orbsd%eval)
    end if
 
    norbu   = orbsd%norbu
@@ -728,9 +720,7 @@ subroutine readwavetoisf_etsf(lstat, filename, iorbp, hx, hy, hz, &
       end if
 
       if (associated(orbsd%eval)) then
-         i_all=-product(shape(orbsd%eval))*kind(orbsd%eval)
-         deallocate(orbsd%eval,stat=i_stat)
-         call memocc(i_stat,i_all,'orbsd%eval',subname)
+         call f_free_ptr(orbsd%eval)
       end if
 
       if (allocated(psi)) then

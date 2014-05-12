@@ -40,6 +40,18 @@ module communications_base
     integer,dimension(:,:),pointer :: commarr_repartitionrho
   end type comms_linear
 
+  !> Contains all parameters needed for the point to point communication of the potential
+  type, public :: p2pComms
+    integer, dimension(:), pointer :: noverlaps
+    real(kind=8), dimension(:), pointer :: recvBuf
+    integer, dimension(:,:,:), pointer :: comarr
+    integer :: nrecvBuf
+    integer :: window
+    integer, dimension(:,:), pointer :: ise !< Starting / ending index of recvBuf in x,y,z dimension after communication (glocal coordinates)
+    integer, dimension(:,:), pointer :: mpi_datatypes
+    logical :: communication_complete
+  end type p2pComms
+
   interface check_array_consistency
      module procedure check_array_consistency0
      module procedure check_array_consistency1
@@ -48,6 +60,7 @@ module communications_base
        
   !> Public routines
   public :: comms_linear_null
+  public :: p2pComms_null
   public :: allocate_MPI_communication_arrays
   public :: allocate_local_comms_cubic
   public :: allocate_MPI_comms_cubic_repartition
@@ -56,6 +69,9 @@ module communications_base
   public :: deallocate_MPI_communication_arrays
   public :: deallocate_MPI_comms_cubic_repartition
   public :: deallocate_MPI_comms_cubic_repartitionp2p
+  public :: deallocate_p2pComms
+  public :: allocate_p2pComms_buffer
+  public :: deallocate_p2pComms_buffer
 
   public :: check_array_consistency
 
@@ -103,6 +119,22 @@ module communications_base
       nullify(comms%commarr_repartitionrho)
     end subroutine nullify_comms_linear
 
+
+    pure function p2pComms_null() result(comms)
+      implicit none
+      type(p2pComms) :: comms
+      call nullify_p2pComms(comms)
+    end function p2pComms_null
+
+    pure subroutine nullify_p2pComms(comms)
+      implicit none
+      type(p2pComms),intent(inout) :: comms
+      nullify(comms%noverlaps)
+      nullify(comms%recvBuf)
+      nullify(comms%comarr)
+      nullify(comms%ise)
+      nullify(comms%mpi_datatypes)
+    end subroutine nullify_p2pComms
 
     subroutine allocate_MPI_communication_arrays(nproc, comms, only_coarse)
       implicit none
@@ -235,6 +267,36 @@ module communications_base
       integer, dimension(:,:), pointer,intent(inout) :: commarr_repartitionrho
       call f_free_ptr(commarr_repartitionrho)
     end subroutine deallocate_MPI_comms_cubic_repartitionp2p
+
+    subroutine deallocate_p2pComms(p2pcomm)
+      implicit none
+      ! Calling arguments
+      type(p2pComms),intent(inout):: p2pcomm
+      ! Local variables
+      call f_free_ptr(p2pcomm%noverlaps)
+      call f_free_ptr(p2pcomm%recvBuf)
+      call f_free_ptr(p2pcomm%comarr)
+      call f_free_ptr(p2pcomm%ise)
+      if (.not.p2pcomm%communication_complete) then
+          stop 'cannot deallocate mpi data types if communication has not completed'
+      end if
+      call f_free_ptr(p2pcomm%mpi_datatypes)
+    end subroutine deallocate_p2pComms
+
+
+    subroutine allocate_p2pComms_buffer(comgp)
+      implicit none
+      ! Calling arguments
+      type(p2pComms),intent(inout):: comgp
+      comgp%recvBuf = f_malloc_ptr(comgp%nrecvBuf,id='comgp%recvBuf')
+    end subroutine allocate_p2pComms_buffer
+    
+    
+    subroutine deallocate_p2pComms_buffer(comgp)
+      implicit none
+      type(p2pComms),intent(inout):: comgp
+      call f_free_ptr(comgp%recvBuf)
+    end subroutine deallocate_p2pComms_buffer
 
 
     !> Check the consistency of arrays after a gather (example: atomic coordinates)

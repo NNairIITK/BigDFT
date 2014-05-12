@@ -2369,6 +2369,7 @@ module communications_init
     subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, lzd, comgp)
       use module_base
       use module_types
+      use communications_base, only: p2pComms_null
       implicit none
       
       ! Calling arguments
@@ -2387,10 +2388,12 @@ module communications_init
     
       call timing(iproc,'init_commPot  ','ON')
       
-      call nullify_p2pComms(comgp)
+      !call nullify_p2pComms(comgp)
+      comgp = p2pComms_null()
     
-      allocate(comgp%ise(6,0:nproc-1), stat=istat)
-      call memocc(istat, comgp%ise, 'comgp%ise', subname)
+      !allocate(comgp%ise(6,0:nproc-1), stat=istat)
+      !call memocc(istat, comgp%ise, 'comgp%ise', subname)
+      comgp%ise = f_malloc_ptr((/1.to.6,0.to.nproc-1/),id='comgp%ise')
       
       ! Determine the bounds of the potential that we need for
       ! the orbitals on this process.
@@ -2446,8 +2449,9 @@ module communications_init
     
       
       ! Determine how many slices each process receives.
-      allocate(comgp%noverlaps(0:nproc-1), stat=istat)
-      call memocc(istat, comgp%noverlaps, 'comgp%noverlaps', subname)
+      !allocate(comgp%noverlaps(0:nproc-1), stat=istat)
+      !call memocc(istat, comgp%noverlaps, 'comgp%noverlaps', subname)
+      comgp%noverlaps = f_malloc_ptr(0.to.nproc-1,id='comgp%noverlaps')
       nmaxoverlap=0
       do jproc=0,nproc-1
           is3j=comgp%ise(5,jproc)
@@ -2477,12 +2481,14 @@ module communications_init
       end do
       
       ! Determine the parameters for the communications.
-      allocate(comgp%comarr(6,nmaxoverlap,0:nproc-1))
-      call memocc(istat, comgp%comarr, 'comgp%comarr', subname)
-      call to_zero(6*nmaxoverlap*nproc, comgp%comarr(1,1,0))
-      allocate(comgp%mpi_datatypes(0:nmaxoverlap,0:nproc-1), stat=istat)
-      call memocc(istat, comgp%mpi_datatypes, 'comgp%mpi_datatypes', subname)
-      call to_zero((nmaxoverlap+1)*nproc, comgp%mpi_datatypes(0,0))
+      !allocate(comgp%comarr(6,nmaxoverlap,0:nproc-1))
+      !call memocc(istat, comgp%comarr, 'comgp%comarr', subname)
+      !call to_zero(6*nmaxoverlap*nproc, comgp%comarr(1,1,0))
+      comgp%comarr = f_malloc0_ptr((/1.to.6,1.to.nmaxoverlap,0.to.nproc-1/),id='comgp%comarr')
+      !allocate(comgp%mpi_datatypes(0:nmaxoverlap,0:nproc-1), stat=istat)
+      !call memocc(istat, comgp%mpi_datatypes, 'comgp%mpi_datatypes', subname)
+      !call to_zero((nmaxoverlap+1)*nproc, comgp%mpi_datatypes(0,0))
+      comgp%mpi_datatypes = f_malloc0_ptr((/0.to.nmaxoverlap,0.to.nproc-1/))
       comgp%nrecvBuf = 0
       is3min=0
       ie3max=0
@@ -2658,12 +2664,9 @@ module communications_init
          stop
       end if
     
-      allocate(nvctr_par(0:nproc-1,0:orbs%nkpts+ndebug),stat=i_stat)
-      call memocc(i_stat,nvctr_par,'nvctr_par',subname)
-      allocate(norb_par(0:nproc-1,0:orbs%nkpts+ndebug),stat=i_stat)
-      call memocc(i_stat,norb_par,'norb_par',subname)
-      allocate(mykpts(orbs%nkpts+ndebug),stat=i_stat)
-      call memocc(i_stat,mykpts,'mykpts',subname)
+      nvctr_par = f_malloc((/ 0.to.nproc-1, 0.to.orbs%nkpts /),id='nvctr_par')
+      norb_par = f_malloc((/ 0.to.nproc-1, 0.to.orbs%nkpts /),id='norb_par')
+      mykpts = f_malloc(orbs%nkpts,id='mykpts')
     
       !initialise the arrays
       do ikpts=0,orbs%nkpts
@@ -2895,18 +2898,11 @@ module communications_init
       !print *,'AAAAiproc',iproc,orbs%iskpts,orbs%iskpts+orbs%nkptsp
     
       !allocate communication arrays
-      allocate(comms%nvctr_par(0:nproc-1,0:orbs%nkpts+ndebug),stat=i_stat)
-      call memocc(i_stat,comms%nvctr_par,'nvctr_par',subname)
-    
-      allocate(comms%ncntd(0:nproc-1+ndebug),stat=i_stat)
-      call memocc(i_stat,comms%ncntd,'ncntd',subname)
-    
-      allocate(comms%ncntt(0:nproc-1+ndebug),stat=i_stat)
-      call memocc(i_stat,comms%ncntt,'ncntt',subname)
-      allocate(comms%ndspld(0:nproc-1+ndebug),stat=i_stat)
-      call memocc(i_stat,comms%ndspld,'ndspld',subname)
-      allocate(comms%ndsplt(0:nproc-1+ndebug),stat=i_stat)
-      call memocc(i_stat,comms%ndsplt,'ndsplt',subname)
+      comms%nvctr_par = f_malloc_ptr((/ 0.to.nproc-1, 0.to.orbs%nkpts /),id='comms%nvctr_par')
+      comms%ncntd = f_malloc_ptr(0.to.nproc-1,id='comms%ncntd')
+      comms%ncntt = f_malloc_ptr(0.to.nproc-1,id='comms%ncntt')
+      comms%ndspld = f_malloc_ptr(0.to.nproc-1,id='comms%ndspld')
+      comms%ndsplt = f_malloc_ptr(0.to.nproc-1,id='comms%ndsplt')
     
       !assign the partition of the k-points to the communication array
       !calculate the number of componenets associated to the k-point
@@ -2955,15 +2951,9 @@ module communications_init
     
       !print *,'iproc,comms',iproc,comms%ncntd,comms%ndspld,comms%ncntt,comms%ndsplt
     
-      i_all=-product(shape(nvctr_par))*kind(nvctr_par)
-      deallocate(nvctr_par,stat=i_stat)
-      call memocc(i_stat,i_all,'nvctr_par',subname)
-      i_all=-product(shape(norb_par))*kind(norb_par)
-      deallocate(norb_par,stat=i_stat)
-      call memocc(i_stat,i_all,'norb_par',subname)
-      i_all=-product(shape(mykpts))*kind(mykpts)
-      deallocate(mykpts,stat=i_stat)
-      call memocc(i_stat,i_all,'mykpts',subname)
+      call f_free(nvctr_par)
+      call f_free(norb_par)
+      call f_free(mykpts)
     
       !calculate the dimension of the wavefunction
       !for the given processor (this is only the cubic strategy)

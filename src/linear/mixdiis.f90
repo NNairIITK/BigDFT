@@ -140,17 +140,12 @@ subroutine mixrhopotDIIS(iproc, nproc, n3d, n3p, glr, input, rhopot, rhopotold, 
   ndim=max(glr%d%n1i*glr%d%n2i*n3p,1)*input%nspin
 
   ! Allocate the local arrays.
-  allocate(mat(mixdiis%isx+1,mixdiis%isx+1), stat=istat)
-  call memocc(istat, mat, 'mat', subname)
-  allocate(rhs(mixdiis%isx+1), stat=istat)
-  call memocc(istat, rhs, 'rhs', subname)
+  mat = f_malloc((/ mixdiis%isx+1, mixdiis%isx+1 /),id='mat')
+  rhs = f_malloc(mixdiis%isx+1,id='rhs')
   lwork=100*mixdiis%isx
-  allocate(work(lwork), stat=istat)
-  call memocc(istat, work, 'work', subname)
-  allocate(ipiv(mixdiis%isx+1), stat=istat)
-  call memocc(istat, ipiv, 'ipiv', subname)
-  allocate(rhopotres(ndimtot), stat=istat)
-  call memocc(istat, rhopotres, 'rhopotres', subname)
+  work = f_malloc(lwork,id='work')
+  ipiv = f_malloc(mixdiis%isx+1,id='ipiv')
+  rhopotres = f_malloc(ndimtot,id='rhopotres')
 
   ! Calculate the residue.
   pnrm=0.d0
@@ -276,25 +271,12 @@ subroutine mixrhopotDIIS(iproc, nproc, n3d, n3p, glr, input, rhopot, rhopotold, 
   end do
 
 
-  iall=-product(shape(mat))*kind(mat)
-  deallocate(mat, stat=istat)
-  call memocc(istat, iall, 'mat', subname)
 
-  iall=-product(shape(rhs))*kind(rhs)
-  deallocate(rhs, stat=istat)
-  call memocc(istat, iall, 'rhs', subname)
-
-  iall=-product(shape(work))*kind(work)
-  deallocate(work, stat=istat)
-  call memocc(istat, iall, 'work', subname)
-
-  iall=-product(shape(ipiv))*kind(ipiv)
-  deallocate(ipiv, stat=istat)
-  call memocc(istat, iall, 'ipiv', subname)
-
-  iall=-product(shape(rhopotres))*kind(rhopotres)
-  deallocate(rhopotres, stat=istat)
-  call memocc(istat, iall, 'rhopotres', subname)
+  call f_free(mat)
+  call f_free(rhs)
+  call f_free(work)
+  call f_free(ipiv)
+  call f_free(rhopotres)
 
   call timing(iproc,'mix_DIIS      ','OF')
 
@@ -319,12 +301,9 @@ character(len=*),parameter:: subname='initializeMixrhopotDIIS'
 
 mixdiis%isx=isx
 mixdiis%is=0
-allocate(mixdiis%mat(mixdiis%isx,mixdiis%isx), stat=istat)
-call memocc(istat, mixdiis%mat, 'mixdiis%mat', subname)
-allocate(mixdiis%rhopotHist(mixdiis%isx*max(1,ndim)), stat=istat)
-call memocc(istat, mixdiis%rhopotHist, 'mixdiis%rhopotHist', subname)
-allocate(mixdiis%rhopotresHist(mixdiis%isx*max(1,ndim)), stat=istat)
-call memocc(istat, mixdiis%rhopotresHist, 'mixdiis%rhopotresHist', subname)
+mixdiis%mat = f_malloc_ptr((/mixdiis%isx,mixdiis%isx/),id='mixdiis%mat')
+mixdiis%rhopotHist = f_malloc_ptr(mixdiis%isx*max(1,ndim),id='mixdiis%rhopotHist')
+mixdiis%rhopotresHist = f_malloc_ptr(mixdiis%isx*max(1,ndim),id='mixdiis%rhopotresHist')
 
 
 end subroutine initializeMixrhopotDIIS
@@ -344,16 +323,8 @@ integer:: istat, iall
 character(len=*),parameter:: subname='deallocateMixrhopotDIIS'
 
 
-iall=-product(shape(mixdiis%mat))*kind(mixdiis%mat)
-deallocate(mixdiis%mat, stat=istat)
-call memocc(istat, iall, 'mixdiis%mat', subname)
-
-iall=-product(shape(mixdiis%rhopotHist))*kind(mixdiis%rhopotHist)
-deallocate(mixdiis%rhopotHist, stat=istat)
-call memocc(istat, iall, 'mixdiis%rhopotHist', subname)
-
-iall=-product(shape(mixdiis%rhopotresHist))*kind(mixdiis%rhopotresHist)
-deallocate(mixdiis%rhopotresHist, stat=istat)
-call memocc(istat, iall, 'mixdiis%rhopotresHist', subname)
+call f_free_ptr(mixdiis%mat)
+call f_free_ptr(mixdiis%rhopotHist)
+call f_free_ptr(mixdiis%rhopotresHist)
 
 end subroutine deallocateMixrhopotDIIS

@@ -940,9 +940,7 @@ subroutine localfields_free(denspotd, fion, fdisp)
   call pkernel_free(denspotd%pkernel,subname)
 
   if (associated(denspotd%rhov)) then
-     i_all=-product(shape(denspotd%rhov))*kind(denspotd%rhov)
-     deallocate(denspotd%rhov,stat=i_stat)
-     call memocc(i_stat,i_all,'denspotd%rhov',subname)
+     call f_free_ptr(denspotd%rhov)
   end if
 
   if (associated(denspotd%V_XC)) then

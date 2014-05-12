@@ -38,8 +38,7 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
      noncoll=1
   end if
 
-  allocate(Localnorb(Lzd%nlr+ndebug),stat=i_stat)
-  call memocc(i_stat,Localnorb,'Localnorb',subname)
+  Localnorb = f_malloc(Lzd%nlr,id='Localnorb')
 
 ! NOTES: WORKS ONLY BECAUSE Llr coincides with the atoms !!
 ! NOTES: K-Points??
@@ -106,9 +105,7 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
 !!  end if
 !!  Lzd%Lpsidimtot = dimtot
 
-  i_all=-product(shape(Localnorb))*kind(Localnorb)
-  deallocate(Localnorb,stat=i_stat)
-  call memocc(i_stat,i_all,'Localnorb',subname)
+  call f_free(Localnorb)
 
 end subroutine assignToLocreg
 
@@ -158,13 +155,11 @@ subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Loca
 
 !!!! NEW VERSION #################################################################
   !allocate(orbse%inWhichLocreg(orbse%norbp),stat=i_stat)
-  allocate(inWhichLocreg(norb),stat=i_stat)
-  call memocc(i_stat,inWhichLocreg,'inWhichLocreg',subname)
+  inWhichLocreg = f_malloc_ptr(norb,id='inWhichLocreg')
   inWhichLocreg=-1
   !allocate(orbse%inWhichLocregp(orbse%norbp),stat=i_stat)
   !call memocc(i_stat,orbse%inWhichLocregp,'orbse%inWhichLocregp',subname)
-  allocate(covered(nlr), stat=i_stat)
-  call memocc(i_stat, covered, 'covered', subname)
+  covered = f_malloc(nlr,id='covered')
 
 
   ! Determine in which direction the system has its largest extent
@@ -306,8 +301,6 @@ subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Loca
       inWhichLocreg(iorb)=iiat
   end do
 
-  i_all=-product(shape(covered))*kind(covered)
-  deallocate(covered,stat=i_stat)
-  call memocc(i_stat,i_all,'covered',subname)
+  call f_free(covered)
 
 end subroutine assignToLocreg2

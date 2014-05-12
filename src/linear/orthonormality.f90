@@ -17,6 +17,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
   use communications, only: transpose_localized, untranspose_localized
   use sparsematrix_base, only: sparse_matrix, matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: compress_matrix, uncompress_matrix
+  use foe_base, only: foe_data
   implicit none
 
   ! Calling arguments
@@ -54,19 +55,13 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
 
   if(.not.can_use_transposed) then
       if(associated(psit_c)) then
-          iall=-product(shape(psit_c))*kind(psit_c)
-          deallocate(psit_c, stat=istat)
-          call memocc(istat, iall, 'psit_c', subname)
+          call f_free_ptr(psit_c)
       end if
       if(associated(psit_f)) then
-          iall=-product(shape(psit_f))*kind(psit_f)
-          deallocate(psit_f, stat=istat)
-          call memocc(istat, iall, 'psit_f', subname)
+          call f_free_ptr(psit_f)
       end if
-      allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
-      call memocc(istat, psit_c, 'psit_c', subname)
-      allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-      call memocc(istat, psit_f, 'psit_f', subname)
+      psit_c = f_malloc_ptr(sum(collcom%nrecvcounts_c),id='psit_c')
+      psit_f = f_malloc_ptr(7*sum(collcom%nrecvcounts_f),id='psit_f')
 
       call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
       can_use_transposed=.true.
@@ -93,41 +88,24 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
 
   call deallocate_matrices(ovrlp_)
 
-  allocate(psittemp_c(sum(collcom%nrecvcounts_c)), stat=istat)
-  call memocc(istat, psittemp_c, 'psittemp_c', subname)
-  allocate(psittemp_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-  call memocc(istat, psittemp_f, 'psittemp_f', subname)
+  psittemp_c = f_malloc(sum(collcom%nrecvcounts_c),id='psittemp_c')
+  psittemp_f = f_malloc(7*sum(collcom%nrecvcounts_f),id='psittemp_f')
 
   call vcopy(sum(collcom%nrecvcounts_c), psit_c(1), 1, psittemp_c(1), 1)
   call vcopy(7*sum(collcom%nrecvcounts_f), psit_f(1), 1, psittemp_f(1), 1)
 
-  !inv_ovrlp_half_ = matrices_null()
-  !call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='inv_ovrlp_half_', mat=inv_ovrlp_half_)
-  !inv_ovrlp_half_%matrix_compr = inv_ovrlp_half%matrix_compr
   call build_linear_combination_transposed(collcom, inv_ovrlp_half, inv_ovrlp_half_, &
        psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
-  !call deallocate_matrices(inv_ovrlp_half_)
 
-  allocate(norm(orbs%norb), stat=istat)
-  call memocc(istat, norm, 'norm', subname)
+  norm = f_malloc(orbs%norb,id='norm')
   call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, norm)
 
-  iall=-product(shape(norm))*kind(norm)
-  deallocate(norm, stat=istat)
-  call memocc(istat, iall, 'norm', subname)
+  call f_free(norm)
   call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, lphi, lzd)
 
-  iall=-product(shape(psittemp_c))*kind(psittemp_c)
-  deallocate(psittemp_c, stat=istat)
-  call memocc(istat, iall, 'psittemp_c', subname)
-  iall=-product(shape(psittemp_f))*kind(psittemp_f)
-  deallocate(psittemp_f, stat=istat)
-  call memocc(istat, iall, 'psittemp_f', subname)
+  call f_free(psittemp_c)
+  call f_free(psittemp_f)
 
-  !call deallocate_sparse_matrix(inv_ovrlp_half, subname)
-  !!iall=-product(shape(inv_ovrlp_half%matrix_compr))*kind(inv_ovrlp_half%matrix_compr)
-  !!deallocate(inv_ovrlp_half%matrix_compr, stat=istat)
-  !!call memocc(istat, iall, 'inv_ovrlp_half%matrix_compr', subname)
   call f_free_ptr(inv_ovrlp_half%matrix_compr)
 
   call deallocate_matrices(inv_ovrlp_half_)
@@ -146,7 +124,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   use yaml_output
   use communications, only: transpose_localized, untranspose_localized
   use sparsematrix_base, only: matrices_null, allocate_matrices, deallocate_matrices, sparsematrix_malloc, &
-                               sparsematrix_malloc_ptr, DENSE_FULL, DENSE_PARALLEL, SPARSEMM_SEQ, &
+                               sparsematrix_malloc_ptr, DENSE_FULL, DENSE_PARALLEL, SPARSE_FULL, SPARSEMM_SEQ, &
                                assignment(=)
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed, compress_matrix_distributed, &
@@ -186,11 +164,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   !if (correction_orthoconstraint==0) stop 'correction_orthoconstraint not working'
 
   if(.not. can_use_transposed) then
-      allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
-      call memocc(istat, psit_c, 'psit_c', subname)
-
-      allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-      call memocc(istat, psit_f, 'psit_f', subname)
+      psit_c = f_malloc_ptr(sum(collcom%nrecvcounts_c),id='psit_c')
+      psit_f = f_malloc_ptr(7*sum(collcom%nrecvcounts_f),id='psit_f')
 
       call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
       can_use_transposed=.true.
@@ -207,21 +182,12 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
      call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lhphi, hpsit_c, hpsit_f, lzd)
   end if
 
-  !lagmat_ = matrices_null()
-  !call allocate_matrices(lagmat, allocate_full=.false., &
-  !     matname='lagmat_', mat=lagmat_)
   call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_)
   ! This can then be deleted if the transition to the new type has been completed.
   lagmat%matrix_compr=lagmat_%matrix_compr
-  !call deallocate_matrices(lagmat_)
 
-  !call nullify_sparse_matrix(tmp_mat)
-  !call sparse_copy_pattern(lagmat,tmp_mat,iproc,subname)
-  !allocate(tmp_mat%matrix_compr(tmp_mat%nvctr), stat=istat)
-  !call memocc(istat, tmp_mat%matrix_compr, 'tmp_mat%matrix_compr', subname)
 
-  allocate(tmp_mat_compr(lagmat%nvctr), stat=istat) ! save cf doing sparsecopy
-  call memocc(istat, tmp_mat_compr, 'tmp_mat_compr', subname)
+  tmp_mat_compr = sparsematrix_malloc(lagmat,iaction=SPARSE_FULL,id='tmp_mat_compr')
 call timing(iproc,'misc','ON')
 
   !$omp parallel do default(none) &
@@ -333,15 +299,12 @@ call timing(iproc,'misc','ON')
   end if
   !! ##########################################################
 
-  allocate(lagmat_tmp_compr(lagmat%nvctr), stat=istat) ! save cf doing sparsecopy
-  call memocc(istat, lagmat_tmp_compr, 'lagmat_tmp_compr', subname)
+  lagmat_tmp_compr = sparsematrix_malloc(lagmat,iaction=SPARSE_FULL,id='lagmat_tmp_compr')
 
   call vcopy(lagmat%nvctr,lagmat_%matrix_compr(1),1,lagmat_tmp_compr(1),1) ! need to keep a copy
   call vcopy(lagmat%nvctr,tmp_mat_compr(1),1,lagmat_%matrix_compr(1),1)
 
-  iall=-product(shape(tmp_mat_compr))*kind(tmp_mat_compr)
-  deallocate(tmp_mat_compr, stat=istat)
-  call memocc(istat, iall, 'tmp_mat_compr', subname)
+  call f_free(tmp_mat_compr)
 
 
 call timing(iproc,'misc','OF')
@@ -375,9 +338,7 @@ call timing(iproc,'misc','OF')
 
   call vcopy(lagmat%nvctr,lagmat_tmp_compr(1),1,lagmat_%matrix_compr(1),1)
 
-  iall=-product(shape(lagmat_tmp_compr))*kind(lagmat_tmp_compr)
-  deallocate(lagmat_tmp_compr, stat=istat)
-  call memocc(istat, iall, 'lagmat_tmp_compr', subname)
+  call f_free(lagmat_tmp_compr)
 
   !call deallocate_sparse_matrix(tmp_mat, subname)
 
@@ -1800,8 +1761,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
 
   call timing(iproc,'lovrlp^-1/2par','ON')
 
-  allocate(in_neighborhood(orbs%norb), stat=istat)
-  call memocc(istat, in_neighborhood, 'in_neighborhood', subname)
+  in_neighborhood = f_malloc(orbs%norb,id='in_neighborhood')
 
   !inv_ovrlp_half_ = matrices_null()
   !call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='inv_ovrlp_half_', mat=inv_ovrlp_half_)
@@ -1845,9 +1805,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
         if (inv_ovrlp_half%keyg(1,iseg)>iend) exit
      end do
 
-     allocate(ovrlp_tmp(n,n), stat=istat)
-     call memocc(istat, ovrlp_tmp, 'ovrlp_tmp', subname)
-     call to_zero(n*n, ovrlp_tmp(1,1))
+     ovrlp_tmp = f_malloc0_ptr((/n,n/),id='ovrlp_tmp')
 
      jjorb=0
      do jorb=1,orbs%norb
@@ -1867,8 +1825,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
         end do
      end do
           
-     allocate(ovrlp_tmp_inv_half(n,n))
-     call memocc(istat, ovrlp_tmp_inv_half, 'ovrlp_tmp_inv_half', subname)
+     ovrlp_tmp_inv_half = f_malloc_ptr((/n,n/),id='ovrlp_tmp_inv_half')
      call vcopy(n*n, ovrlp_tmp(1,1), 1, ovrlp_tmp_inv_half(1,1), 1)
 
      !if (iiorb==orbs%norb) then
@@ -1919,14 +1876,8 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
      end do
 
 
-     iall=-product(shape(ovrlp_tmp_inv_half))*kind(ovrlp_tmp_inv_half)
-     deallocate(ovrlp_tmp_inv_half, stat=istat)
-     call memocc(istat, iall, 'ovrlp_tmp_inv_half', subname)
-
-
-     iall=-product(shape(ovrlp_tmp))*kind(ovrlp_tmp)
-     deallocate(ovrlp_tmp, stat=istat)
-     call memocc(istat, iall, 'ovrlp_tmp', subname)
+     call f_free_ptr(ovrlp_tmp_inv_half)
+     call f_free_ptr(ovrlp_tmp)
 
   end do
 
@@ -1934,9 +1885,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
       call mpiallred(inv_ovrlp_half_%matrix_compr(1), inv_ovrlp_half%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
-  iall=-product(shape(in_neighborhood))*kind(in_neighborhood)
-  deallocate(in_neighborhood, stat=istat)
-  call memocc(istat, iall, 'in_neighborhood', subname)
+  call f_free(in_neighborhood)
 
   !if (iproc==0) then
   !   jjorb=0
@@ -2011,19 +1960,13 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
 
   if(.not.can_use_transposed) then
       if(associated(psit_c)) then
-          iall=-product(shape(psit_c))*kind(psit_c)
-          deallocate(psit_c, stat=istat)
-          call memocc(istat, iall, 'psit_c', subname)
+          call f_free_ptr(psit_c)
       end if
       if(associated(psit_f)) then
-          iall=-product(shape(psit_f))*kind(psit_f)
-          deallocate(psit_f, stat=istat)
-          call memocc(istat, iall, 'psit_f', subname)
+          call f_free_ptr(psit_f)
       end if
-      allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
-      call memocc(istat, psit_c, 'psit_c', subname)
-      allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-      call memocc(istat, psit_f, 'psit_f', subname)
+      psit_c = f_malloc_ptr(sum(collcom%nrecvcounts_c),id='psit_c')
+      psit_f = f_malloc_ptr(7*sum(collcom%nrecvcounts_f),id='psit_f')
 
       call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
       can_use_transposed=.true.
@@ -2037,10 +1980,8 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
 
   ! For the "higher" TMBs: delete off-diagonal elements and
   ! set diagonal elements to 1
-  allocate(icount_norb(at%astruct%nat),stat=istat)
-  call memocc(istat,icount_norb,'icount_norb',subname)
-  allocate(jcount_norb(at%astruct%nat),stat=istat)
-  call memocc(istat,jcount_norb,'jcount_norb',subname)
+  icount_norb = f_malloc(at%astruct%nat,id='icount_norb')
+  jcount_norb = f_malloc(at%astruct%nat,id='jcount_norb')
   icount_norb=0
   do iorb=1,orbs%norb
       iat=orbs%onwhichatom(iorb)
@@ -2073,12 +2014,8 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
           end if
       end do
   end do
-  iall=-product(shape(icount_norb))*kind(icount_norb)
-  deallocate(icount_norb, stat=istat)
-  call memocc(istat, iall, 'icount_norb', subname)
-  iall=-product(shape(jcount_norb))*kind(jcount_norb)
-  deallocate(jcount_norb, stat=istat)
-  call memocc(istat, iall, 'jcount_norb', subname)
+  call f_free(icount_norb)
+  call f_free(jcount_norb)
 
 
   if (methTransformOverlap==-1) then
@@ -2101,10 +2038,8 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
 
   ! For the "higher" TMBs: delete off-diagonal elements and
   ! set diagonal elements to 1
-  allocate(icount_norb(at%astruct%nat),stat=istat)
-  call memocc(istat,icount_norb,'icount_norb',subname)
-  allocate(jcount_norb(at%astruct%nat),stat=istat)
-  call memocc(istat,jcount_norb,'jcount_norb',subname)
+  icount_norb = f_malloc(at%astruct%nat,id='icount_norb')
+  jcount_norb = f_malloc(at%astruct%nat,id='jcount_norb')
   icount_norb=0
   do iorb=1,orbs%norb
       iat=orbs%onwhichatom(iorb)
@@ -2135,17 +2070,11 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
           end if
       end do
   end do
-  iall=-product(shape(icount_norb))*kind(icount_norb)
-  deallocate(icount_norb, stat=istat)
-  call memocc(istat, iall, 'icount_norb', subname)
-  iall=-product(shape(jcount_norb))*kind(jcount_norb)
-  deallocate(jcount_norb, stat=istat)
-  call memocc(istat, iall, 'jcount_norb', subname)
+  call f_free(icount_norb)
+  call f_free(jcount_norb)
 
-  allocate(psittemp_c(sum(collcom%nrecvcounts_c)), stat=istat)
-  call memocc(istat, psittemp_c, 'psittemp_c', subname)
-  allocate(psittemp_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-  call memocc(istat, psittemp_f, 'psittemp_f', subname)
+  psittemp_c = f_malloc(sum(collcom%nrecvcounts_c),id='psittemp_c')
+  psittemp_f = f_malloc(7*sum(collcom%nrecvcounts_f),id='psittemp_f')
 
   call vcopy(sum(collcom%nrecvcounts_c), psit_c(1), 1, psittemp_c(1), 1)
   call vcopy(7*sum(collcom%nrecvcounts_f), psit_f(1), 1, psittemp_f(1), 1)
@@ -2161,26 +2090,13 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   call deallocate_matrices(inv_ovrlp_half_)
 
 
-  allocate(norm(orbs%norb), stat=istat)
-  call memocc(istat, norm, 'norm', subname)
+  norm = f_malloc(orbs%norb,id='norm')
   call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, norm)
-
-  iall=-product(shape(norm))*kind(norm)
-  deallocate(norm, stat=istat)
-  call memocc(istat, iall, 'norm', subname)
+  call f_free(norm)
   call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, lphi, lzd)
 
-  iall=-product(shape(psittemp_c))*kind(psittemp_c)
-  deallocate(psittemp_c, stat=istat)
-  call memocc(istat, iall, 'psittemp_c', subname)
-  iall=-product(shape(psittemp_f))*kind(psittemp_f)
-  deallocate(psittemp_f, stat=istat)
-  call memocc(istat, iall, 'psittemp_f', subname)
-
-  !call deallocate_sparse_matrix(inv_ovrlp_half, subname)
-  !!iall=-product(shape(inv_ovrlp_half%matrix_compr))*kind(inv_ovrlp_half%matrix_compr)
-  !!deallocate(inv_ovrlp_half%matrix_compr, stat=istat)
-  !!call memocc(istat, iall, 'inv_ovrlp_half%matrix_compr', subname)
+  call f_free(psittemp_c)
+  call f_free(psittemp_f)
   call f_free_ptr(inv_ovrlp_half%matrix_compr)
 
 end subroutine orthonormalize_subset
@@ -2231,19 +2147,13 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
 
   if(.not.can_use_transposed) then
       if(associated(psit_c)) then
-          iall=-product(shape(psit_c))*kind(psit_c)
-          deallocate(psit_c, stat=istat)
-          call memocc(istat, iall, 'psit_c', subname)
+          call f_free_ptr(psit_c)
       end if
       if(associated(psit_f)) then
-          iall=-product(shape(psit_f))*kind(psit_f)
-          deallocate(psit_f, stat=istat)
-          call memocc(istat, iall, 'psit_f', subname)
+          call f_free_ptr(psit_f)
       end if
-      allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
-      call memocc(istat, psit_c, 'psit_c', subname)
-      allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-      call memocc(istat, psit_f, 'psit_f', subname)
+      psit_c = f_malloc_ptr(sum(collcom%nrecvcounts_c),id='psit_c')
+      psit_f = f_malloc_ptr(7*sum(collcom%nrecvcounts_f),id='psit_f')
 
       call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
       can_use_transposed=.true.
@@ -2259,11 +2169,8 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
 
   ! For the "higher" TMBs: delete off-diagonal elements and
   ! set diagonal elements to 1
-  allocate(icount_norb(at%astruct%nat),stat=istat)
-  call memocc(istat,icount_norb,'icount_norb',subname)
-  allocate(jcount_norb(at%astruct%nat),stat=istat)
-  call memocc(istat,jcount_norb,'jcount_norb',subname)
-  icount_norb=0
+  icount_norb = f_malloc0(at%astruct%nat,id='icount_norb')
+  jcount_norb = f_malloc(at%astruct%nat,id='jcount_norb')
   do iorb=1,orbs%norb
       iat=orbs%onwhichatom(iorb)
       icount_norb(iat)=icount_norb(iat)+1
@@ -2273,7 +2180,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
       else
           iout=.false.
       end if
-      jcount_norb=0
+      call to_zero(at%astruct%nat,jcount_norb(1))
       do jorb=1,orbs%norb
           jat=orbs%onwhichatom(jorb)
           jcount_norb(jat)=jcount_norb(jat)+1
@@ -2305,12 +2212,8 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
           !!end if
       end do
   end do
-  iall=-product(shape(icount_norb))*kind(icount_norb)
-  deallocate(icount_norb, stat=istat)
-  call memocc(istat, iall, 'icount_norb', subname)
-  iall=-product(shape(jcount_norb))*kind(jcount_norb)
-  deallocate(jcount_norb, stat=istat)
-  call memocc(istat, iall, 'jcount_norb', subname)
+  call f_free(icount_norb)
+  call f_free(jcount_norb)
 
 
   !!if (methTransformOverlap==-1) then
@@ -2360,10 +2263,8 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   !!deallocate(jcount_norb, stat=istat)
   !!call memocc(istat, iall, 'jcount_norb', subname)
 
-  allocate(psittemp_c(sum(collcom%nrecvcounts_c)), stat=istat)
-  call memocc(istat, psittemp_c, 'psittemp_c', subname)
-  allocate(psittemp_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-  call memocc(istat, psittemp_f, 'psittemp_f', subname)
+  psittemp_c = f_malloc(sum(collcom%nrecvcounts_c),id='psittemp_c')
+  psittemp_f = f_malloc(7*sum(collcom%nrecvcounts_f),id='psittemp_f')
 
   call vcopy(sum(collcom%nrecvcounts_c), psit_c(1), 1, psittemp_c(1), 1)
   call vcopy(7*sum(collcom%nrecvcounts_f), psit_f(1), 1, psittemp_f(1), 1)
@@ -2383,26 +2284,14 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   call deallocate_matrices(ovrlp_)
 
 
-  allocate(norm(orbs%norb), stat=istat)
-  call memocc(istat, norm, 'norm', subname)
+  norm = f_malloc(orbs%norb,id='norm')
   !call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, norm)
 
-  iall=-product(shape(norm))*kind(norm)
-  deallocate(norm, stat=istat)
-  call memocc(istat, iall, 'norm', subname)
+  call f_free(norm)
   call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, lphi, lzd)
 
-  iall=-product(shape(psittemp_c))*kind(psittemp_c)
-  deallocate(psittemp_c, stat=istat)
-  call memocc(istat, iall, 'psittemp_c', subname)
-  iall=-product(shape(psittemp_f))*kind(psittemp_f)
-  deallocate(psittemp_f, stat=istat)
-  call memocc(istat, iall, 'psittemp_f', subname)
-
-  !call deallocate_sparse_matrix(inv_ovrlp_half, subname)
-  !!iall=-product(shape(inv_ovrlp_half%matrix_compr))*kind(inv_ovrlp_half%matrix_compr)
-  !!deallocate(inv_ovrlp_half%matrix_compr, stat=istat)
-  !!call memocc(istat, iall, 'inv_ovrlp_half%matrix_compr', subname)
+  call f_free(psittemp_c)
+  call f_free(psittemp_f)
   call f_free_ptr(inv_ovrlp_half%matrix_compr)
 
 end subroutine gramschmidt_subset

@@ -545,6 +545,7 @@ module module_interfaces
          use module_base
          use module_types
          use module_xc
+         use communications_base, only: p2pComms
          implicit none
          integer, intent(in) :: PotOrKin !< if true, only the potential operator is applied
          integer, intent(in) :: iproc,nproc,npsidim_orbs
@@ -1776,6 +1777,7 @@ module module_interfaces
        use module_base
        use module_types
        use sparsematrix_base, only: sparse_matrix
+       use foe_base, only: foe_data
        implicit none
        integer,intent(in):: iproc,nproc,methTransformOverlap,npsidim_orbs
        type(orbitals_data),intent(in):: orbs
@@ -1807,6 +1809,7 @@ module module_interfaces
      subroutine initializeCommunicationPotential(iproc, nproc, nscatterarr, orbs, lzd, comgp, onWhichAtomAll, tag)
        use module_base
        use module_types
+       use communications_base, only: p2pComms
        implicit none
        integer,intent(in):: iproc, nproc
        integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -1821,6 +1824,7 @@ module module_interfaces
      subroutine initializeRepartitionOrbitals(iproc, nproc, tag, lorbs, llborbs, lzd, comrp)
        use module_base
        use module_types
+       use communications_base, only: p2pComms
        implicit none
        integer,intent(in):: iproc, nproc
        integer,intent(inout):: tag
@@ -1862,25 +1866,6 @@ module module_interfaces
        type(mixrhopotDIISParameters),intent(inout):: mixdiis
      end subroutine deallocateMixrhopotDIIS
 
-     subroutine allocateCommunicationsBuffersPotential(comgp, subname)
-       use module_base
-       use module_types
-       implicit none
-       !type(p2pCommsGatherPot),intent(inout):: comgp
-       type(p2pComms),intent(inout):: comgp
-       character(len=*),intent(in):: subname
-     end subroutine allocateCommunicationsBuffersPotential
-
-
-     subroutine deallocateCommunicationsBuffersPotential(comgp, subname)
-       use module_base
-       use module_types
-       implicit none
-       !type(p2pCommsGatherPot),intent(inout):: comgp
-       type(p2pComms),intent(inout):: comgp
-       character(len=*),intent(in):: subname
-     end subroutine deallocateCommunicationsBuffersPotential
-
     subroutine deallocate_local_zone_descriptors(lzd, subname)
       use module_base
       use module_types
@@ -1918,12 +1903,12 @@ module module_interfaces
       character(len=*),intent(in):: subname
     end subroutine deallocate_comms_cubic
 
-    subroutine nullify_foe(foe_obj)
-      use module_base
-      use module_types
-      implicit none
-      type(foe_data),intent(out):: foe_obj
-    end subroutine nullify_foe
+    !!subroutine nullify_foe(foe_obj)
+    !!  use module_base
+    !!  use module_types
+    !!  implicit none
+    !!  type(foe_data),intent(out):: foe_obj
+    !!end subroutine nullify_foe
 
     subroutine nullify_sparse_matrix(sparsemat)
       use module_base
@@ -1965,6 +1950,7 @@ module module_interfaces
     subroutine deallocate_foe(foe_obj, subname)
       use module_base
       use module_types
+      use foe_base, only: foe_data
       implicit none
       type(foe_data),intent(inout):: foe_obj
       character(len=*),intent(in):: subname
@@ -2073,14 +2059,15 @@ module module_interfaces
        type(paw_objects),optional,intent(inout)::paw
      end subroutine FullHamiltonianApplication
 
-       subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, reset, &
+       subroutine init_foe(iproc, nproc, nlr, locregcenter, astruct, input, orbs_KS, orbs, foe_obj, reset, &
                   cutoff_incr)
          use module_base
          use module_atoms, only: atomic_structure
          use module_types
+         use foe_base, only: foe_data
          implicit none
-         integer,intent(in):: iproc, nproc
-         type(local_zone_descriptors),intent(in) :: lzd
+         integer,intent(in):: iproc, nproc, nlr
+         real(kind=8),dimension(3,nlr),intent(in) :: locregcenter
          type(atomic_structure),intent(in) :: astruct
          type(input_variables),intent(in) :: input
          type(orbitals_data),intent(in):: orbs_KS, orbs
@@ -2310,6 +2297,7 @@ module module_interfaces
        subroutine nullify_p2pComms(p2pcomm)
          use module_base
          use module_types
+         use communications_base, only: p2pComms
          implicit none
          type(p2pComms),intent(inout):: p2pcomm
        end subroutine nullify_p2pComms
@@ -2425,6 +2413,8 @@ module module_interfaces
                   orbs_KS, orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbcollcom, lfoe, lbcollcom_sr)
          use module_base
          use module_types
+         use foe_base, only: foe_data
+         use communications_base, only: p2pComms
          implicit none
          integer,intent(in):: iproc, nproc, nlr
          integer,intent(out) :: npsidim_orbs, npsidim_comp
@@ -2854,11 +2844,13 @@ module module_interfaces
         end subroutine local_forces
 
         subroutine denspot_set_history(denspot, iscf, nspin, &
-             & n1i, n2i) !to be removed arguments when denspot has dimensions
+             & n1i, n2i, & !to be removed arguments when denspot has dimensions
+             npulayit)
           use module_types
           implicit none
           type(DFT_local_fields), intent(inout) :: denspot
           integer, intent(in) :: iscf, n1i, n2i, nspin
+          integer,intent(in),optional :: npulayit
         end subroutine denspot_set_history
 
         subroutine denspot_free_history(denspot)
@@ -3221,9 +3213,10 @@ module module_interfaces
 
         subroutine foe(iproc, nproc, tmprtr, &
                    ebs, itout, it_scc, order_taylor, purification_quickreturn, adjust_FOE_temperature, foe_verbosity, &
-                   accuracy_level, tmb)
+                   accuracy_level, tmb, foe_obj)
           use module_base
           use module_types
+          use foe_base, only: foe_data
           implicit none
           integer,intent(in) :: iproc, nproc, itout, it_scc, order_taylor
           real(kind=8),intent(in) :: tmprtr
@@ -3232,6 +3225,7 @@ module module_interfaces
           integer :: foe_verbosity
           integer,intent(in) :: accuracy_level
           type(DFT_wavefunction),intent(inout) :: tmb
+          type(foe_data),intent(inout) :: foe_obj
         end subroutine foe
 
         subroutine kswfn_init_comm(wfn, in, atoms, dpbox, iproc, nproc)
@@ -3339,6 +3333,7 @@ module module_interfaces
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
+          use foe_base, only: foe_data
           implicit none
           integer,intent(in) :: iproc, nproc, npl, nsize_polynomial
           real(8),dimension(npl,3),intent(in) :: cc
@@ -3811,6 +3806,7 @@ module module_interfaces
         subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, init)
           use module_base
           use module_types
+          use foe_base, only: foe_data
           implicit none
           integer,intent(in) :: iproc, nproc
           type(local_zone_descriptors),intent(in) :: lzd

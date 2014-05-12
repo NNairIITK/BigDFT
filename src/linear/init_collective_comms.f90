@@ -34,14 +34,10 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
    logical :: abort
 
    !allocate the "wavefunction" and fill it, and also the workspace
-   allocate(psi(max(npsidim_orbs,npsidim_comp)+ndebug),stat=i_stat)
-   call memocc(i_stat,psi,'psi',subname)
-   allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=i_stat)
-   call memocc(i_stat, psit_c, 'psit_c', subname)
-   allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=i_stat)
-   call memocc(i_stat, psit_f, 'psit_f', subname)
-   allocate(checksum(orbs%norb*orbs%nspinor,2), stat=i_stat)
-   call memocc(i_stat, checksum, 'checksum', subname)
+   psi = f_malloc(max(npsidim_orbs, npsidim_comp),id='psi')
+   psit_c = f_malloc(sum(collcom%nrecvcounts_c),id='psit_c')
+   psit_f = f_malloc(7*sum(collcom%nrecvcounts_f),id='psit_f')
+   checksum = f_malloc((/ orbs%norb*orbs%nspinor, 2 /),id='checksum')
    if (orbs%norbp>0) then
       tol=1.e-10*real(npsidim_orbs,wp)/real(orbs%norbp,wp)
    else
@@ -197,18 +193,10 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
 
    if (iproc==0) call yaml_map('Maxdiff for untranspose',maxdiff,fmt='(1pe25.17)')
 
-   i_all=-product(shape(psi))*kind(psi)
-   deallocate(psi,stat=i_stat)
-   call memocc(i_stat,i_all,'psi',subname)
-   i_all=-product(shape(psit_c))*kind(psit_c)
-   deallocate(psit_c, stat=i_stat)
-   call memocc(i_stat, i_all, 'psit_c', subname)
-   i_all=-product(shape(psit_f))*kind(psit_f)
-   deallocate(psit_f, stat=i_stat)
-   call memocc(i_stat, i_all, 'psit_f', subname)
-   i_all=-product(shape(checksum))*kind(checksum)
-   deallocate(checksum, stat=i_stat)
-   call memocc(i_stat, i_all, 'checksum', subname)
+   call f_free(psi)
+   call f_free(psit_c)
+   call f_free(psit_f)
+   call f_free(checksum)
 
 
  contains

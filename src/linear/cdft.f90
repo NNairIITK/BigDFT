@@ -77,12 +77,10 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,nfrag_charged,ifrag_char
   if (calculate_overlap_matrix) then
      if(.not.tmb%can_use_transposed) then
          if(.not.associated(tmb%psit_c)) then
-             allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-             call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+             tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
          end if
          if(.not.associated(tmb%psit_f)) then
-             allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-             call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+             tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
          end if
          call transpose_localized(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
               tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
@@ -216,37 +214,27 @@ subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,den
 
   print *,'CDFT Ekin,Epot,Eproj,Eh,Exc,Evxc',energs%ekin,energs%epot,energs%eproj,energs%eh,energs%exc,energs%evxc
 
-  iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
-  deallocate(denspot%pot_work, stat=istat)
-  call memocc(istat, iall, 'denspot%pot_work', subname)
+  call f_free_ptr(denspot%pot_work)
 
   ! calculate w_ab
   ! Calculate the matrix elements <phi|H|phi>.
   if(.not.tmb%ham_descr%can_use_transposed) then
       if(associated(tmb%ham_descr%psit_c)) then
-          iall=-product(shape(tmb%ham_descr%psit_c))*kind(tmb%ham_descr%psit_c)
-          deallocate(tmb%ham_descr%psit_c, stat=istat)
-          call memocc(istat, iall, 'tmb%ham_descr%psit_c', subname)
+          call f_free_ptr(tmb%ham_descr%psit_c)
       end if
       if(associated(tmb%ham_descr%psit_f)) then
-          iall=-product(shape(tmb%ham_descr%psit_f))*kind(tmb%ham_descr%psit_f)
-          deallocate(tmb%ham_descr%psit_f, stat=istat)
-          call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
+          call f_free_ptr(tmb%ham_descr%psit_f)
       end if
 
-      allocate(tmb%ham_descr%psit_c(tmb%ham_descr%collcom%ndimind_c), stat=istat)
-      call memocc(istat, tmb%ham_descr%psit_c, 'tmb%ham_descr%psit_c', subname)
-      allocate(tmb%ham_descr%psit_f(7*tmb%ham_descr%collcom%ndimind_f), stat=istat)
-      call memocc(istat, tmb%ham_descr%psit_f, 'tmb%ham_descr%psit_f', subname)
+      tmb%ham_descr%psit_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='tmb%ham_descr%psit_c')
+      tmb%ham_descr%psit_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='tmb%ham_descr%psit_f')
       call transpose_localized(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs, &
            tmb%ham_descr%collcom,tmb%ham_descr%psi,tmb%ham_descr%psit_c,tmb%ham_descr%psit_f,tmb%ham_descr%lzd)
       tmb%ham_descr%can_use_transposed=.true.
   end if
 
-  allocate(hpsit_c(tmb%ham_descr%collcom%ndimind_c))
-  call memocc(istat, hpsit_c, 'hpsit_c', subname)
-  allocate(hpsit_f(7*tmb%ham_descr%collcom%ndimind_f))
-  call memocc(istat, hpsit_f, 'hpsit_f', subname)
+  hpsit_c = f_malloc(tmb%ham_descr%collcom%ndimind_c,id='hpsit_c')
+  hpsit_f = f_malloc(7*tmb%ham_descr%collcom%ndimind_f,id='hpsit_f')
   call transpose_localized(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,  &
        tmb%ham_descr%collcom,tmb%hpsi,hpsit_c,hpsit_f,tmb%ham_descr%lzd)
 
@@ -260,12 +248,8 @@ subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,den
   cdft%weight_matrix%matrix_compr=weight_%matrix_compr
   call deallocate_matrices(weight_)
 
-  iall=-product(shape(hpsit_c))*kind(hpsit_c)
-  deallocate(hpsit_c, stat=istat)
-  call memocc(istat, iall, 'hpsit_c', subname)
-  iall=-product(shape(hpsit_f))*kind(hpsit_f)
-  deallocate(hpsit_f, stat=istat)
-  call memocc(istat, iall, 'hpsit_f', subname)
+  call f_free(hpsit_c)
+  call f_free(hpsit_f)
 
   ! debug
   !allocate(cdft%weight_matrix%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=istat)

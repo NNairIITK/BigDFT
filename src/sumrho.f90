@@ -54,11 +54,9 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,
      call axpy(dpbox%ndimpot,1.0_dp,rho(1+dpbox%ndimpot),1,rho(1),1)
   end if
   if (dpbox%ndimpot>0) then
-     allocate(vh(dpbox%ndimpot+ndebug),stat=i_stat)
-     call memocc(i_stat,vh,'vh',subname)
+     vh = f_malloc_ptr(dpbox%ndimpot+ndebug,id='vh')
   else
-     allocate(vh(1+ndebug),stat=i_stat)
-     call memocc(i_stat,vh,'vh',subname)
+     vh = f_malloc_ptr(1+ndebug,id='vh')
   end if
 
   !calculate electrostatic potential

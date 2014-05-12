@@ -22,8 +22,9 @@ module module_types
   use locregs
   use psp_projectors
   use module_atoms, only: atoms_data,symmetry_data,atomic_structure
-  use communications_base, only: comms_linear, comms_cubic
+  use communications_base, only: comms_linear, comms_cubic, p2pComms
   use sparsematrix_base, only: matrices, sparse_matrix
+  use foe_base, only: foe_data
 
   implicit none
 
@@ -611,34 +612,23 @@ module module_types
      real(wp), dimension(:,:,:,:,:), pointer :: z1,z3 ! work array for FFT
   end type workarr_precond
 
-  !> Contains all parameters needed for point to point communication
-  type, public :: p2pComms
-    integer, dimension(:), pointer :: noverlaps
-    real(kind=8), dimension(:), pointer :: recvBuf
-    integer, dimension(:,:,:), pointer :: comarr
-    integer :: nrecvBuf
-    integer :: window
-    integer, dimension(:,:), pointer :: ise !< Starting / ending index of recvBuf in x,y,z dimension after communication (glocal coordinates)
-    integer, dimension(:,:), pointer :: mpi_datatypes
-    logical :: communication_complete
-  end type p2pComms
 
-  !> Fermi Operator Expansion parameters
-  type, public :: foe_data
-    integer :: nseg
-    integer,dimension(:),pointer :: nsegline, istsegline
-    integer,dimension(:,:),pointer :: keyg
-    real(kind=8) :: ef                     !< Fermi energy for FOE
-    real(kind=8) :: evlow, evhigh          !< Eigenvalue bounds for FOE 
-    real(kind=8) :: bisection_shift        !< Bisection shift to find Fermi energy (FOE)
-    real(kind=8) :: fscale                 !< Length scale for complementary error function (FOE)
-    real(kind=8) :: ef_interpol_det        !< FOE: max determinant of cubic interpolation matrix
-    real(kind=8) :: ef_interpol_chargediff !< FOE: max charge difference for interpolation
-    real(kind=8) :: charge                 !< Total charge of the system
-    real(kind=8) :: fscale_lowerbound      !< lower bound for the error function decay length
-    real(kind=8) :: fscale_upperbound       !< upper bound for the error function decay length
-    integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
-  end type foe_data
+  !!> Fermi Operator Expansion parameters
+  !type, public :: foe_data
+  !  integer :: nseg
+  !  integer,dimension(:),pointer :: nsegline, istsegline
+  !  integer,dimension(:,:),pointer :: keyg
+  !  real(kind=8) :: ef                     !< Fermi energy for FOE
+  !  real(kind=8) :: evlow, evhigh          !< Eigenvalue bounds for FOE 
+  !  real(kind=8) :: bisection_shift        !< Bisection shift to find Fermi energy (FOE)
+  !  real(kind=8) :: fscale                 !< Length scale for complementary error function (FOE)
+  !  real(kind=8) :: ef_interpol_det        !< FOE: max determinant of cubic interpolation matrix
+  !  real(kind=8) :: ef_interpol_chargediff !< FOE: max charge difference for interpolation
+  !  real(kind=8) :: charge                 !< Total charge of the system
+  !  real(kind=8) :: fscale_lowerbound      !< lower bound for the error function decay length
+  !  real(kind=8) :: fscale_upperbound       !< upper bound for the error function decay length
+  !  integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
+  !end type foe_data
 
   type,public :: linear_matrices
       type(sparse_matrix) :: s !< small: sparsity pattern given by support function cutoff
@@ -1340,21 +1330,11 @@ contains
     !local variables
     integer :: i_all,i_stat
 
-    i_all=-product(shape(comms%nvctr_par))*kind(comms%nvctr_par)
-    deallocate(comms%nvctr_par,stat=i_stat)
-    call memocc(i_stat,i_all,'nvctr_par',subname)
-    i_all=-product(shape(comms%ncntd))*kind(comms%ncntd)
-    deallocate(comms%ncntd,stat=i_stat)
-    call memocc(i_stat,i_all,'ncntd',subname)
-    i_all=-product(shape(comms%ncntt))*kind(comms%ncntt)
-    deallocate(comms%ncntt,stat=i_stat)
-    call memocc(i_stat,i_all,'ncntt',subname)
-    i_all=-product(shape(comms%ndspld))*kind(comms%ndspld)
-    deallocate(comms%ndspld,stat=i_stat)
-    call memocc(i_stat,i_all,'ndspld',subname)
-    i_all=-product(shape(comms%ndsplt))*kind(comms%ndsplt)
-    deallocate(comms%ndsplt,stat=i_stat)
-    call memocc(i_stat,i_all,'ndsplt',subname)
+    call f_free_ptr(comms%nvctr_par)
+    call f_free_ptr(comms%ncntd)
+    call f_free_ptr(comms%ncntt)
+    call f_free_ptr(comms%ndspld)
+    call f_free_ptr(comms%ndsplt)
   END SUBROUTINE deallocate_comms
 
 
@@ -1384,40 +1364,24 @@ subroutine deallocate_orbs(orbs,subname)
     !local variables
     integer :: i_all,i_stat
 
-    i_all=-product(shape(orbs%norb_par))*kind(orbs%norb_par)
-    deallocate(orbs%norb_par,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%norb_par',subname)
-    i_all=-product(shape(orbs%occup))*kind(orbs%occup)
-    deallocate(orbs%occup,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%occup',subname)
-    i_all=-product(shape(orbs%spinsgn))*kind(orbs%spinsgn)
-    deallocate(orbs%spinsgn,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%spinsgn',subname)
-    i_all=-product(shape(orbs%kpts))*kind(orbs%kpts)
-    deallocate(orbs%kpts,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%kpts',subname)
-    i_all=-product(shape(orbs%kwgts))*kind(orbs%kwgts)
-    deallocate(orbs%kwgts,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%kwgts',subname)
-    i_all=-product(shape(orbs%iokpt))*kind(orbs%iokpt)
-    deallocate(orbs%iokpt,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%iokpt',subname)
-    i_all=-product(shape(orbs%ikptproc))*kind(orbs%ikptproc)
-    deallocate(orbs%ikptproc,stat=i_stat)
-    call memocc(i_stat,i_all,'ikptproc',subname)
-    i_all=-product(shape(orbs%inwhichlocreg))*kind(orbs%inwhichlocreg)
-    deallocate(orbs%inwhichlocreg,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%inwhichlocreg',subname)
-    i_all=-product(shape(orbs%onwhichatom))*kind(orbs%onwhichatom)
-    deallocate(orbs%onwhichatom,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%onwhichatom',subname)
-    i_all=-product(shape(orbs%isorb_par))*kind(orbs%isorb_par)
-    deallocate(orbs%isorb_par,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%isorb_par',subname)
+    call f_free_ptr(orbs%norb_par)
+
+    call f_free_ptr(orbs%occup)
+    call f_free_ptr(orbs%spinsgn)
+    call f_free_ptr(orbs%kpts)
+    call f_free_ptr(orbs%kwgts)
+
+    call f_free_ptr(orbs%iokpt)
+
+    call f_free_ptr(orbs%ikptproc)
+
+    call f_free_ptr(orbs%inwhichlocreg)
+
+    call f_free_ptr(orbs%onwhichatom)
+
+    call f_free_ptr(orbs%isorb_par)
     if (associated(orbs%ispot)) then
-       i_all=-product(shape(orbs%ispot))*kind(orbs%ispot)
-       deallocate(orbs%ispot,stat=i_stat)
-       call memocc(i_stat,i_all,'orbs%ispot',subname)
+       call f_free_ptr(orbs%ispot)
     end if
 
   END SUBROUTINE deallocate_orbs
@@ -1559,9 +1523,7 @@ subroutine deallocate_orbs(orbs,subname)
     end if
 
     if (associated(rst%KSwfn%orbs%eval)) then
-       i_all=-product(shape(rst%KSwfn%orbs%eval))*kind(rst%KSwfn%orbs%eval)
-       deallocate(rst%KSwfn%orbs%eval,stat=i_stat)
-       call memocc(i_stat,i_all,'eval',subname)
+       call f_free_ptr(rst%KSwfn%orbs%eval)
     end if
 
     if (associated(rst%KSwfn%oldpsis)) then

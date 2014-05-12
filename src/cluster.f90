@@ -125,9 +125,7 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
         i_all=-product(shape(runObj%rst%KSwfn%psi))*kind(runObj%rst%KSwfn%psi)
         deallocate(runObj%rst%KSwfn%psi,stat=i_stat)
         call memocc(i_stat,i_all,'psi',subname)
-        i_all=-product(shape(runObj%rst%KSwfn%orbs%eval))*kind(runObj%rst%KSwfn%orbs%eval)
-        deallocate(runObj%rst%KSwfn%orbs%eval,stat=i_stat)
-        call memocc(i_stat,i_all,'eval',subname)
+        call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
 
         call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
      end if
@@ -185,9 +183,7 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
         i_all=-product(shape(runObj%rst%KSwfn%psi))*kind(runObj%rst%KSwfn%psi)
         deallocate(runObj%rst%KSwfn%psi,stat=i_stat)
         call memocc(i_stat,i_all,'psi',subname)
-        i_all=-product(shape(runObj%rst%KSwfn%orbs%eval))*kind(runObj%rst%KSwfn%orbs%eval)
-        deallocate(runObj%rst%KSwfn%orbs%eval,stat=i_stat)
-        call memocc(i_stat,i_all,'eval',subname)
+        call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
 
         call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
 
@@ -303,6 +299,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   ! Variables for the virtual orbitals and band diagram.
   integer :: nkptv, nvirtu, nvirtd
   real(gp), dimension(:), allocatable :: wkptv
+
+  real(kind=8),dimension(:,:),allocatable :: locreg_centers
 
   !Variables for WVL+PAW
   integer:: iatyp
@@ -475,7 +473,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      !!tag=0
 
      call kswfn_init_comm(tmb, in, atoms, denspot%dpbox, iproc, nproc)
-     call init_foe(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, .true.)
+     locreg_centers = f_malloc((/3,tmb%lzd%nlr/),id='locreg_centers')
+     do ilr=1,tmb%lzd%nlr
+         locreg_centers(1:3,ilr)=tmb%lzd%llr(ilr)%locregcenter(1:3)
+     end do
+     call init_foe(iproc, nproc, tmb%lzd%nlr, locreg_centers, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, .true.)
+     call f_free(locreg_centers)
      call increase_FOE_cutoff(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.true.)
 
      call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,in, atoms, rxyz, .false.)
@@ -680,7 +683,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
          stop 'ERROR: wrong in%lin%scf_mode'
      end select
      call denspot_set_history(denspot,linear_iscf,in%nspin, &
-          KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i)
+          KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,npulayit=in%lin%mixHist_lowaccuracy)
      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpsp,KSwfn,tmb,energs,&
           inputpsi,input_wf_format,norbv,lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft,&
           locregcenters)
@@ -850,8 +853,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      !!     denspot%rhov(1),1,denspot%rho_work(1),1)
 
      ! keep only the essential part of the density, without the GGA bufffers
-     allocate(denspot%rho_work(denspot%dpbox%ndimpot),stat=i_stat)
-     call memocc(i_stat,denspot%rho_work,'rho',subname)
+     denspot%rho_work = f_malloc_ptr(denspot%dpbox%ndimpot,id='denspot%rho_work')
      ioffset=kswfn%lzd%glr%d%n1i*kswfn%lzd%glr%d%n2i*denspot%dpbox%i3xcsh
      call vcopy(denspot%dpbox%ndimpot,denspot%rhov(ioffset+1),1,denspot%rho_work(1),1)
 
@@ -868,12 +870,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
         deallocate(KSwfn%psi,stat=i_stat)
         call memocc(i_stat,i_all,'psi',subname)
         call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
-        i_all=-product(shape(denspot%rho_work))*kind(denspot%rho_work)
-        deallocate(denspot%rho_work,stat=i_stat)
-        call memocc(i_stat,i_all,'denspot%rho',subname)
-        i_all=-product(shape(KSwfn%orbs%eval))*kind(KSwfn%orbs%eval)
-        deallocate(KSwfn%orbs%eval,stat=i_stat)
-        call memocc(i_stat,i_all,'KSwfn%orbs%eval',subname)
+        call f_free_ptr(denspot%rho_work)
+        call f_free_ptr(KSwfn%orbs%eval)
         call f_release_routine()
         return
      end if
@@ -1258,9 +1256,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
            ikpt=ikpt+in%nkptsv_group(igroup)
         end if
 
-        i_all=-product(shape(VTwfn%orbs%eval))*kind(VTwfn%orbs%eval)
-        deallocate(VTwfn%orbs%eval,stat=i_stat)
-        call memocc(i_stat,i_all,'eval',subname)
+        call f_free_ptr(VTwfn%orbs%eval)
 
         !if the local analysis has to be performed the deallocation should not be done
         i_all=-product(shape(VTwfn%psi))*kind(VTwfn%psi)
@@ -1341,8 +1337,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      call timing(iproc,'Tail          ','ON')
      !    Calculate energy correction due to finite size effects
      !    ---reformat potential
-     allocate(denspot%pot_work(n1i*n2i*n3i*in%nspin+ndebug),stat=i_stat)
-     call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
+     denspot%pot_work = f_malloc_ptr(n1i*n2i*n3i*in%nspin,id='denspot%pot_work')
 
      if (nproc > 1) then
         call MPI_ALLGATHERV(denspot%rhov,n1i*n2i*denspot%dpbox%n3p,&
@@ -1362,9 +1357,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
      call dpbox_free(denspot%dpbox, subname)
 
-     i_all=-product(shape(denspot%rhov))*kind(denspot%rhov)
-     deallocate(denspot%rhov,stat=i_stat)
-     call memocc(i_stat,i_all,'denspot%rhov',subname)
+     call f_free_ptr(denspot%rhov)
 
      i_all=-product(shape(denspot%V_XC))*kind(denspot%V_XC)
      deallocate(denspot%V_XC,stat=i_stat)
@@ -1376,9 +1369,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
           rxyz,radii_cf,in%crmult,in%frmult,in%nspin,&
           KSwfn%psi,(in%output_denspot /= 0),energs%ekin,energs%epot,energs%eproj)
 
-     i_all=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
-     deallocate(denspot%pot_work,stat=i_stat)
-     call memocc(i_stat,i_all,'denspot%pot_work',subname)
+     call f_free_ptr(denspot%pot_work)
 
      energs%ebs=energs%ekin+energs%epot+energs%eproj
      energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%evsic+energs%eion+energs%edisp-energs%eTS+energs%ePV
@@ -1401,9 +1392,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   else
      !    No tail calculation
      if (nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
-     i_all=-product(shape(denspot%rhov))*kind(denspot%rhov)
-     deallocate(denspot%rhov,stat=i_stat)
-     call memocc(i_stat,i_all,'denspot%rhov',subname)
+     call f_free_ptr(denspot%rhov)
      i_all=-product(shape(denspot%V_XC))*kind(denspot%V_XC)
      deallocate(denspot%V_XC,stat=i_stat)
      call memocc(i_stat,i_all,'denspot%V_XC',subname)
@@ -1453,9 +1442,7 @@ contains
 !!$       call memocc(i_stat,i_all,'kernel',subname)
 
        ! calc_tail false
-       i_all=-product(shape(denspot%rhov))*kind(denspot%rhov)
-       deallocate(denspot%rhov,stat=i_stat)
-       call memocc(i_stat,i_all,'denspot%rhov',subname)
+       call f_free_ptr(denspot%rhov)
        i_all=-product(shape(denspot%V_XC))*kind(denspot%V_XC)
        deallocate(denspot%V_XC,stat=i_stat)
        call memocc(i_stat,i_all,'denspot%V_XC',subname)
@@ -1962,7 +1949,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   use module_interfaces, except_this_one => kswfn_post_treatments
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
-  use communications_base, only: deallocate_comms_linear
+  use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use communications, only: synchronize_onesided_communication
 
   implicit none
@@ -2019,11 +2006,9 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
 
   if (linear) then
      if (denspot%dpbox%ndimpot>0) then
-        allocate(denspot%pot_work(denspot%dpbox%ndimpot+ndebug),stat=i_stat)
-        call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
+        denspot%pot_work = f_malloc_ptr(denspot%dpbox%ndimpot,id='denspot%pot_work')
      else
-        allocate(denspot%pot_work(1+ndebug),stat=i_stat)
-        call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
+        denspot%pot_work = f_malloc_ptr(1,id='denspot%pot_work')
      end if
      ! Density already present in denspot%rho_work
      call vcopy(denspot%dpbox%ndimpot,denspot%rho_work(1),1,denspot%pot_work(1),1)
@@ -2096,15 +2081,13 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   i_all=-product(shape(denspot%rho_work))*kind(denspot%rho_work)
   deallocate(denspot%rho_work,stat=i_stat)
   call memocc(i_stat,i_all,'denspot%rho',subname)
-  i_all=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
-  deallocate(denspot%pot_work,stat=i_stat)
-  call memocc(i_stat,i_all,'denspot%pot_work',subname)
+  call f_free_ptr(denspot%pot_work)
   nullify(denspot%rho_work,denspot%pot_work)
 
   if (linear) then
      ! to eventually be better sorted
      call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
-     call deallocate_p2pComms(tmb%ham_descr%comgp, subname)
+     call deallocate_p2pComms(tmb%ham_descr%comgp)
      call deallocate_local_zone_descriptors(tmb%ham_descr%lzd, subname)
      call deallocate_comms_linear(tmb%ham_descr%collcom)
      call deallocate_auxiliary_basis_function(subname, tmb%ham_descr%psi, tmb%hpsi)

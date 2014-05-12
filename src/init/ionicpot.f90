@@ -1438,9 +1438,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   deallocate(radii_cf,stat=i_stat)
   call memocc(i_stat,i_all,'radii_cf',subname)
 
-  i_all=-product(shape(at%astruct%rxyz))*kind(at%astruct%rxyz)
-  deallocate(at%astruct%rxyz,stat=i_stat)
-  call memocc(i_stat,i_all,'at%astruct%rxyz',subname)
+  call f_free_ptr(at%astruct%rxyz)
 
 
   !call finalize_real_space_conversion(subname)

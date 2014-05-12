@@ -74,18 +74,12 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   nullify(mom_vec_fake)
 
   ! Allocate some arrays we need for the input guess.
-  allocate(norbsc_arr(at%natsc+1,input%nspin+ndebug),stat=istat)
-  call memocc(istat,norbsc_arr,'norbsc_arr',subname)
-  allocate(locrad(at%astruct%nat+ndebug),stat=istat)
-  call memocc(istat,locrad,'locrad',subname)
-  allocate(norbsPerAt(at%astruct%nat), stat=istat)
-  call memocc(istat, norbsPerAt, 'norbsPerAt', subname)
-  allocate(mapping(tmb%orbs%norb), stat=istat)
-  call memocc(istat, mapping, 'mapping', subname)
-  allocate(covered(tmb%orbs%norb), stat=istat)
-  call memocc(istat, covered, 'covered', subname)
-  allocate(inversemapping(tmb%orbs%norb), stat=istat)
-  call memocc(istat, inversemapping, 'inversemapping', subname)
+  norbsc_arr = f_malloc((/at%natsc+1,input%nspin/),id='norbsc_arr')
+  locrad = f_malloc(at%astruct%nat,id='locrad')
+  norbsPerAt = f_malloc(at%astruct%nat,id='norbsPerAt')
+  mapping = f_malloc(tmb%orbs%norb,id='mapping')
+  covered = f_malloc(tmb%orbs%norb,id='covered')
+  inversemapping = f_malloc(tmb%orbs%norb,id='inversemapping')
 
 
   GPUe = GPU
@@ -99,7 +93,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   ! Keep the natural occupations
   
-  nl_copy=f_malloc((/0 .to. 3,1 .to. at%astruct%nat/),id='nl_copy')
+  nl_copy=f_malloc((/0.to.3,1.to.at%astruct%nat/),id='nl_copy')
   do iat=1,at%astruct%nat
      nl_copy(:,iat)=at%aoig(iat)%nl
   end do
@@ -437,9 +431,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   call deallocate_gwf(G,subname)
   ! Deallocate locrad, which is not used any longer.
-  iall=-product(shape(locrad))*kind(locrad)
-  deallocate(locrad,stat=istat)
-  call memocc(istat,iall,'locrad',subname)
+  call f_free(locrad)
 
   ! Create the potential. First calculate the charge density.
   do iorb=1,tmb%orbs%norb
@@ -569,12 +561,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      ! Iterative orthonomalization
      !!if(iproc==0) write(*,*) 'calling generalized orthonormalization'
      if (iproc==0) call yaml_map('orthonormalization of input guess','generalized')
-     allocate(maxorbs_type(at%astruct%ntypes),stat=istat)
-     call memocc(istat,maxorbs_type,'maxorbs_type',subname)
-     allocate(minorbs_type(at%astruct%ntypes),stat=istat)
-     call memocc(istat,minorbs_type,'minorbs_type',subname)
-     allocate(type_covered(at%astruct%ntypes),stat=istat)
-     call memocc(istat,type_covered,'type_covered',subname)
+     maxorbs_type = f_malloc(at%astruct%ntypes,id='maxorbs_type')
+     minorbs_type = f_malloc(at%astruct%ntypes,id='minorbs_type')
+     type_covered = f_malloc(at%astruct%ntypes,id='type_covered')
      minorbs_type(1:at%astruct%ntypes)=0
      iortho=0
      ortho_loop: do
@@ -624,15 +613,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          iortho=iortho+1
          minorbs_type(1:at%astruct%ntypes)=maxorbs_type(1:at%astruct%ntypes)+1
      end do ortho_loop
-     iall=-product(shape(maxorbs_type))*kind(maxorbs_type)
-     deallocate(maxorbs_type,stat=istat)
-     call memocc(istat, iall,'maxorbs_type',subname)
-     iall=-product(shape(minorbs_type))*kind(minorbs_type)
-     deallocate(minorbs_type,stat=istat)
-     call memocc(istat, iall,'minorbs_type',subname)
-     iall=-product(shape(type_covered))*kind(type_covered)
-     deallocate(type_covered,stat=istat)
-     call memocc(istat, iall,'type_covered',subname)
+     call f_free(maxorbs_type)
+     call f_free(minorbs_type)
+     call f_free(type_covered)
 
  end if
 
@@ -819,14 +802,10 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   tmb%ham_descr%can_use_transposed = .false.
 
   if(associated(tmb%ham_descr%psit_c)) then
-      iall=-product(shape(tmb%ham_descr%psit_c))*kind(tmb%ham_descr%psit_c)
-      deallocate(tmb%ham_descr%psit_c, stat=istat)
-      call memocc(istat, iall, 'tmb%ham_descr%psit_c', subname)
+      call f_free_ptr(tmb%ham_descr%psit_c)
   end if
   if(associated(tmb%ham_descr%psit_f)) then
-      iall=-product(shape(tmb%ham_descr%psit_f))*kind(tmb%ham_descr%psit_f)
-      deallocate(tmb%ham_descr%psit_f, stat=istat)
-      call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
+      call f_free_ptr(tmb%ham_descr%psit_f)
   end if
   
   !if (iproc==0) then
@@ -843,25 +822,11 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   call deallocate_orbitals_data(orbs_gauss, subname)
 
   ! Deallocate all remaining local arrays.
-  iall=-product(shape(norbsc_arr))*kind(norbsc_arr)
-  deallocate(norbsc_arr,stat=istat)
-  call memocc(istat,iall,'norbsc_arr',subname)
-
-  iall=-product(shape(norbsPerAt))*kind(norbsPerAt)
-  deallocate(norbsPerAt, stat=istat)
-  call memocc(istat, iall, 'norbsPerAt',subname)
-
-  iall=-product(shape(mapping))*kind(mapping)
-  deallocate(mapping, stat=istat)
-  call memocc(istat, iall, 'mapping',subname)
-
-  iall=-product(shape(covered))*kind(covered)
-  deallocate(covered, stat=istat)
-  call memocc(istat, iall, 'covered',subname)
-
-  iall=-product(shape(inversemapping))*kind(inversemapping)
-  deallocate(inversemapping, stat=istat)
-  call memocc(istat, iall, 'inversemapping',subname)
+  call f_free(norbsc_arr)
+  call f_free(norbsPerAt)
+  call f_free(mapping)
+  call f_free(covered)
+  call f_free(inversemapping)
 
   call f_release_routine()
 

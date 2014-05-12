@@ -19,8 +19,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   use yaml_output
   use module_interfaces, except_this_one => calculate_energy_and_gradient_linear
   use communications, only: transpose_localized
-  use sparsematrix_base, only: deallocate_sparse_matrix
+  use sparsematrix_base, only: matrices, matrices_null, deallocate_matrices, &
+                               sparsematrix_malloc_ptr, assignment(=), SPARSE_FULL
   use sparsematrix_init, only: matrixindex_in_compressed
+  use sparsematrix, only: transform_sparse_matrix
   implicit none
 
   ! Calling arguments
@@ -56,10 +58,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(wp), dimension(2) :: garray
   real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
   real(kind=8) :: fnrm_low, fnrm_high
+  type(matrices) :: matrixm
 
   if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-      allocate(hpsi_conf(tmb%npsidim_orbs), stat=istat)
-      call memocc(istat, hpsi_conf, 'hpsi_conf', subname)
+      hpsi_conf = f_malloc(tmb%npsidim_orbs,id='hpsi_conf')
       call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
            tmb%orbs, tmb%hpsi, hpsi_conf)
       call timing(iproc,'eglincomms','ON')
@@ -79,10 +81,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   energy_increased=.false.
 
 
-  allocate(hpsittmp_c(sum(tmb%ham_descr%collcom%nrecvcounts_c)), stat=istat)
-  call memocc(istat, hpsittmp_c, 'hpsittmp_c', subname)
-  allocate(hpsittmp_f(7*sum(tmb%ham_descr%collcom%nrecvcounts_f)), stat=istat)
-  call memocc(istat, hpsittmp_f, 'hpsittmp_f', subname)
+  hpsittmp_c = f_malloc_ptr(sum(tmb%ham_descr%collcom%nrecvcounts_c),id='hpsittmp_c')
+  hpsittmp_f = f_malloc_ptr(7*sum(tmb%ham_descr%collcom%nrecvcounts_f),id='hpsittmp_f')
 
   if(target_function==TARGET_FUNCTION_IS_ENERGY .or. &
      target_function==TARGET_FUNCTION_IS_HYBRID) then
@@ -94,8 +94,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           call timing(iproc,'eglincomms','ON')
-          allocate(kernel_compr_tmp(tmb%linmat%l%nvctr), stat=istat)
-          call memocc(istat, kernel_compr_tmp, 'kernel_compr_tmp', subname)
+          kernel_compr_tmp = f_malloc_ptr(tmb%linmat%l%nvctr,id='kernel_compr_tmp')
           call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
               do ii=1,tmb%linmat%l%nvctr
                       iiorb = tmb%linmat%l%orb_from_index(1,ii)
@@ -129,8 +128,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           ! copy correct kernel back
           call vcopy(tmb%linmat%l%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
           iall=-product(shape(kernel_compr_tmp))*kind(kernel_compr_tmp)
-          deallocate(kernel_compr_tmp, stat=istat)
-          call memocc(istat, iall, 'kernel_compr_tmp', subname)
+          call f_free_ptr(kernel_compr_tmp)
       else
           call build_linear_combination_transposed(tmb%ham_descr%collcom, &
                tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
@@ -141,12 +139,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       !@NEW correction for contra / covariant gradient
 
       if(.not.associated(tmb%psit_c)) then
-          allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-          call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+          tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
       end if
       if(.not.associated(tmb%psit_f)) then
-          allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-          call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+          tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
       end if
       call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
            tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
@@ -161,8 +157,15 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       !!     tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
       hpsittmp_c = hpsit_c
       hpsittmp_f = hpsit_f
+      matrixm = matrices_null()
+      matrixm%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%m, iaction=SPARSE_FULL, id='matrixm%matrix_compr')
+      call transform_sparse_matrix(tmb%linmat%s, tmb%linmat%m, &
+           tmb%linmat%ovrlp_%matrix_compr, matrixm%matrix_compr, 'small_to_large')
       call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-           tmb%linmat%s, tmb%linmat%ovrlp_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+           tmb%linmat%m, matrixm, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+      !!call build_linear_combination_transposed(tmb%ham_descr%collcom, &
+      !!     tmb%linmat%s, tmb%linmat%ovrlp_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+      call deallocate_matrices(matrixm)
 
       !deallocate(tmb%psit_c)
       !deallocate(tmb%psit_f)
@@ -223,12 +226,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   !!     hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
   !!! END EXPERIMENTAL ===============================================================================================
 
-  iall=-product(shape(hpsittmp_c))*kind(hpsittmp_c)
-  deallocate(hpsittmp_c, stat=istat)
-  call memocc(istat, iall, 'hpsittmp_c', subname)
-  iall=-product(shape(hpsittmp_f))*kind(hpsittmp_f)
-  deallocate(hpsittmp_f, stat=istat)
-  call memocc(istat, iall, 'hpsittmp_f', subname)
+  call f_free_ptr(hpsittmp_c)
+  call f_free_ptr(hpsittmp_f)
 
 
   !!! EXPERIMENTAL: add the term stemming from the derivative of the kernel with respect to the support funtions #################
@@ -355,12 +354,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   if (correction_orthoconstraint==0) then
       !if(.not.tmb%can_use_transposed) then
           if(.not.associated(tmb%psit_c)) then
-              allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-              call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+              tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
           end if
           if(.not.associated(tmb%psit_f)) then
-              allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-              call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+              tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
           end if
       !end if
       call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
@@ -526,7 +523,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      !!if (iproc==0) write(*,*) 'iorb, value', iorb, tmb%linmat%ham%matrix_compr(ii)
   end do
   call timing(iproc,'eglincomms','OF')
-  !call deallocate_sparse_matrix(lagmat,subname)
 
   ! trH is now the total energy (name is misleading, correct this)
   ! Multiply by 2 because when minimizing trace we don't have kernel
@@ -551,10 +547,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       end if
   end if
 
-  allocate(fnrmOvrlpArr(tmb%orbs%norb), stat=istat)
-  call memocc(istat, fnrmOvrlpArr, 'fnrmOvrlpArr', subname)
-  allocate(fnrmArr(tmb%orbs%norb), stat=istat)
-  call memocc(istat, fnrmArr, 'fnrmArr', subname)
+  fnrmOvrlpArr = f_malloc(tmb%orbs%norb,id='fnrmOvrlpArr')
+  fnrmArr = f_malloc(tmb%orbs%norb,id='fnrmArr')
 
   ! Calculate the norm of the gradient (fnrmArr) and determine the angle between the current gradient and that
   ! of the previous iteration (fnrmOvrlpArr).
@@ -648,13 +642,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   call vcopy(tmb%orbs%norb, fnrmArr(1), 1, fnrmOldArr(1), 1)
 
-  iall=-product(shape(fnrmOvrlpArr))*kind(fnrmOvrlpArr)
-  deallocate(fnrmOvrlpArr, stat=istat)
-  call memocc(istat, iall, 'fnrmOvrlpArr', subname)
-
-  iall=-product(shape(fnrmArr))*kind(fnrmArr)
-  deallocate(fnrmArr, stat=istat)
-  call memocc(istat, iall, 'fnrmArr', subname)
+  call f_free(fnrmOvrlpArr)
+  call f_free(fnrmArr)
 
   ! Determine the mean step size for steepest descent iterations.
   tt=sum(alpha)
@@ -715,8 +704,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   !!if (iproc==0) write(*,*) 'HACK S.M.: precond'
   if(target_function==TARGET_FUNCTION_IS_HYBRID) then
-     allocate(hpsi_tmp(tmb%npsidim_orbs), stat=istat)
-     call memocc(istat, hpsi_tmp, 'hpsi_tmp', subname)
+     hpsi_tmp = f_malloc(tmb%npsidim_orbs,id='hpsi_tmp')
      ist=1
      do iorb=1,tmb%orbs%norbp
         iiorb=tmb%orbs%isorb+iorb
@@ -751,8 +739,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      !!end if
 
      ! temporarily turn confining potential off...
-     allocate(prefac(tmb%orbs%norbp),stat=istat)
-     call memocc(istat, prefac, 'prefac', subname)
+     prefac = f_malloc(tmb%orbs%norbp,id='prefac')
      prefac(:)=tmb%confdatarr(:)%prefac
      tmb%confdatarr(:)%prefac=0.0d0
      call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
@@ -762,15 +749,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      ! ...revert back to correct value
      tmb%confdatarr(:)%prefac=prefac
 
-     iall=-product(shape(prefac))*kind(prefac)
-     deallocate(prefac, stat=istat)
-     call memocc(istat, iall, 'prefac', subname)
-     iall=-product(shape(hpsi_conf))*kind(hpsi_conf)
-     deallocate(hpsi_conf, stat=istat)
-     call memocc(istat, iall, 'hpsi_conf', subname)
-     iall=-product(shape(hpsi_tmp))*kind(hpsi_tmp)
-     deallocate(hpsi_tmp, stat=istat)
-     call memocc(istat, iall, 'hpsi_tmp', subname)
+     call f_free(prefac)
+     call f_free(hpsi_conf)
+     call f_free(hpsi_tmp)
   else
      !!if (ldiis%isx>0) then
          !if (iproc==0) write(*,*) 'HACK precond: max(prefac,1.d-4)'
@@ -905,11 +886,8 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
 
   call deallocate_matrices(grad_ovrlp_)
 
-  allocate(grad_coeff(tmb%orbs%norb,tmb%orbs%norb), stat=istat)
-  call memocc(istat, grad_coeff, 'grad_coeff', subname)
-
-  allocate(coeff_tmp(tmb%orbs%norbp,max(tmb%orbs%norb,1)), stat=istat)
-  call memocc(istat, coeff_tmp, 'coeff_tmp', subname)
+  grad_coeff = f_malloc((/ tmb%orbs%norb, tmb%orbs%norb /),id='grad_coeff')
+  coeff_tmp = f_malloc((/ tmb%orbs%norbp, max(tmb%orbs%norb, 1) /),id='coeff_tmp')
 
   grad_ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='grad_ovrlp%matrix')
   call uncompress_matrix(iproc,grad_ovrlp)
@@ -924,17 +902,14 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
      call to_zero(tmb%orbs%norb**2, grad_coeff(1,1))
   end if
 
-  iall=-product(shape(coeff_tmp))*kind(coeff_tmp)
-  deallocate(coeff_tmp,stat=istat)
-  call memocc(istat,iall,'coeff_tmp',subname)
+  call f_free(coeff_tmp)
 
   if (nproc>1) then
       call mpiallred(grad_coeff(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
   ! now calculate sqrt(<g_i|g_i>) and mean value
-  allocate(ksres(ksorbs%norb+num_extra), stat=istat)
-  call memocc(istat, ksres, 'ksres', subname)
+  ksres = f_malloc(ksorbs%norb+num_extra,id='ksres')
   
   ksres_sum=0.0d0
   do iorb=1,ksorbs%norb+num_extra
@@ -961,13 +936,8 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
 
   call deallocate_sparse_matrix(grad_ovrlp, subname)
 
-  iall=-product(shape(grad_coeff))*kind(grad_coeff)
-  deallocate(grad_coeff,stat=istat)
-  call memocc(istat,iall,'grad_coeff',subname)
-
-  iall=-product(shape(ksres))*kind(ksres)
-  deallocate(ksres,stat=istat)
-  call memocc(istat,iall,'ksres',subname)
+  call f_free(grad_coeff)
+  call f_free(ksres)
 
 end subroutine calculate_residue_ks
 
@@ -1044,12 +1014,8 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
 
   ! The transposed quantities can now not be used any more...
   if(tmb%can_use_transposed) then
-      iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-      deallocate(tmb%psit_c, stat=istat)
-      call memocc(istat, iall, 'tmb%psit_c', subname)
-      iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-      deallocate(tmb%psit_f, stat=istat)
-      call memocc(istat, iall, 'tmb%psit_f', subname)
+      call f_free_ptr(tmb%psit_c)
+      call f_free_ptr(tmb%psit_f)
       tmb%can_use_transposed=.false.
   end if
 
