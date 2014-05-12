@@ -1103,8 +1103,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbse,commse,basedist=comms%nvctr_par(0:,1:))  
 
   !use the eval array of orbse structure to save the original values
-  allocate(orbse%eval(orbse%norb*orbse%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbse%eval,'orbse%eval',subname)
+  orbse%eval = f_malloc_ptr(orbse%norb*orbse%nkpts,id='orbse%eval')
 
   hxh=.5_gp*Lzd%hgrids(1)
   hyh=.5_gp*Lzd%hgrids(2)
@@ -1412,9 +1411,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   call free_full_potential(denspot%dpbox%mpi_env%nproc,Lzde%lintyp,&
        & denspot%xc,denspot%pot_work,subname)
 
-  i_all=-product(shape(orbse%ispot))*kind(orbse%ispot)
-  deallocate(orbse%ispot,stat=i_stat)
-  call memocc(i_stat,i_all,'orbse%ispot',subname)
+  call f_free_ptr(orbse%ispot)
 
   deallocate(confdatarr)
 
@@ -1593,9 +1590,7 @@ contains
     call memocc(i_stat,i_all,'psigau',subname)
 
     call deallocate_orbs(orbse,subname)
-    i_all=-product(shape(orbse%eval))*kind(orbse%eval)
-    deallocate(orbse%eval,stat=i_stat)
-    call memocc(i_stat,i_all,'orbse%eval',subname)
+    call f_free_ptr(orbse%eval)
 
   end subroutine deallocate_input_wfs
 
@@ -1688,14 +1683,12 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      & inputpsi /= INPUT_PSI_MEMORY_GAUSS .and. &
        & inputpsi /= INPUT_PSI_MEMORY_LINEAR .and. &
        & inputpsi /= INPUT_PSI_DISK_LINEAR) then
-     allocate(KSwfn%orbs%eval(KSwfn%orbs%norb*KSwfn%orbs%nkpts+ndebug),stat=i_stat)
-     call memocc(i_stat,KSwfn%orbs%eval,'eval',subname)
+     KSwfn%orbs%eval = f_malloc_ptr(KSwfn%orbs%norb*KSwfn%orbs%nkpts,id='KSwfn%orbs%eval')
   end if
   ! Still do it for linear restart, to be check...
   if (inputpsi == INPUT_PSI_DISK_LINEAR) then
      if(iproc==0) call yaml_comment('ALLOCATING KSwfn%orbs%eval... is this correct?')
-     allocate(KSwfn%orbs%eval(KSwfn%orbs%norb*KSwfn%orbs%nkpts+ndebug),stat=i_stat)
-     call memocc(i_stat,KSwfn%orbs%eval,'eval',subname)
+     KSwfn%orbs%eval = f_malloc_ptr(KSwfn%orbs%norb*KSwfn%orbs%nkpts,id='KSwfn%orbs%eval')
   end if
 
   !all the input formats need to allocate psi except the LCAO input_guess

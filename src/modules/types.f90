@@ -1374,40 +1374,24 @@ subroutine deallocate_orbs(orbs,subname)
     !local variables
     integer :: i_all,i_stat
 
-    i_all=-product(shape(orbs%norb_par))*kind(orbs%norb_par)
-    deallocate(orbs%norb_par,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%norb_par',subname)
-    i_all=-product(shape(orbs%occup))*kind(orbs%occup)
-    deallocate(orbs%occup,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%occup',subname)
-    i_all=-product(shape(orbs%spinsgn))*kind(orbs%spinsgn)
-    deallocate(orbs%spinsgn,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%spinsgn',subname)
-    i_all=-product(shape(orbs%kpts))*kind(orbs%kpts)
-    deallocate(orbs%kpts,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%kpts',subname)
-    i_all=-product(shape(orbs%kwgts))*kind(orbs%kwgts)
-    deallocate(orbs%kwgts,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%kwgts',subname)
-    i_all=-product(shape(orbs%iokpt))*kind(orbs%iokpt)
-    deallocate(orbs%iokpt,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%iokpt',subname)
-    i_all=-product(shape(orbs%ikptproc))*kind(orbs%ikptproc)
-    deallocate(orbs%ikptproc,stat=i_stat)
-    call memocc(i_stat,i_all,'ikptproc',subname)
-    i_all=-product(shape(orbs%inwhichlocreg))*kind(orbs%inwhichlocreg)
-    deallocate(orbs%inwhichlocreg,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%inwhichlocreg',subname)
-    i_all=-product(shape(orbs%onwhichatom))*kind(orbs%onwhichatom)
-    deallocate(orbs%onwhichatom,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%onwhichatom',subname)
-    i_all=-product(shape(orbs%isorb_par))*kind(orbs%isorb_par)
-    deallocate(orbs%isorb_par,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%isorb_par',subname)
+    call f_free_ptr(orbs%norb_par)
+
+    call f_free_ptr(orbs%occup)
+    call f_free_ptr(orbs%spinsgn)
+    call f_free_ptr(orbs%kpts)
+    call f_free_ptr(orbs%kwgts)
+
+    call f_free_ptr(orbs%iokpt)
+
+    call f_free_ptr(orbs%ikptproc)
+
+    call f_free_ptr(orbs%inwhichlocreg)
+
+    call f_free_ptr(orbs%onwhichatom)
+
+    call f_free_ptr(orbs%isorb_par)
     if (associated(orbs%ispot)) then
-       i_all=-product(shape(orbs%ispot))*kind(orbs%ispot)
-       deallocate(orbs%ispot,stat=i_stat)
-       call memocc(i_stat,i_all,'orbs%ispot',subname)
+       call f_free_ptr(orbs%ispot)
     end if
 
   END SUBROUTINE deallocate_orbs
@@ -1549,9 +1533,7 @@ subroutine deallocate_orbs(orbs,subname)
     end if
 
     if (associated(rst%KSwfn%orbs%eval)) then
-       i_all=-product(shape(rst%KSwfn%orbs%eval))*kind(rst%KSwfn%orbs%eval)
-       deallocate(rst%KSwfn%orbs%eval,stat=i_stat)
-       call memocc(i_stat,i_all,'eval',subname)
+       call f_free_ptr(rst%KSwfn%orbs%eval)
     end if
 
     if (associated(rst%KSwfn%oldpsis)) then

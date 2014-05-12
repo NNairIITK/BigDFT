@@ -216,7 +216,7 @@ subroutine init_foe(iproc, nproc, nlr, locregcenter, astruct, input, orbs_KS, or
   use module_base
   use module_atoms, only: atomic_structure
   use module_types
-  use foe_base, only: foe_data, set_int, get_int, set_real, get_real, foe_data_null
+  use foe_base, only: foe_data, foe_data_set_int, foe_data_set_real, foe_data_get_real, foe_data_null
   implicit none
   
   ! Calling arguments
@@ -250,23 +250,23 @@ subroutine init_foe(iproc, nproc, nlr, locregcenter, astruct, input, orbs_KS, or
   foe_obj = foe_data_null()
 
   if (reset) then
-     call foe_obj%set_real("ef",0.d0)
-     call foe_obj%set_real("evlow",input%lin%evlow)
-     call foe_obj%set_real("evhigh",input%lin%evhigh)
-     call foe_obj%set_real("bisection_shift",1.d-1)
-     call foe_obj%set_real("fscale",input%lin%fscale)
-     call foe_obj%set_real("ef_interpol_det",input%lin%ef_interpol_det)
-     call foe_obj%set_real("ef_interpol_chargediff",input%lin%ef_interpol_chargediff)
-     call foe_obj%set_real("charge",0.d0)
+     call foe_data_set_real(foe_obj,"ef",0.d0)
+     call foe_data_set_real(foe_obj,"evlow",input%lin%evlow)
+     call foe_data_set_real(foe_obj,"evhigh",input%lin%evhigh)
+     call foe_data_set_real(foe_obj,"bisection_shift",1.d-1)
+     call foe_data_set_real(foe_obj,"fscale",input%lin%fscale)
+     call foe_data_set_real(foe_obj,"ef_interpol_det",input%lin%ef_interpol_det)
+     call foe_data_set_real(foe_obj,"ef_interpol_chargediff",input%lin%ef_interpol_chargediff)
+     call foe_data_set_real(foe_obj,"charge",0.d0)
      do iorb=1,orbs_KS%norb
-          call foe_obj%set_real("charge",foe_obj%get_real("charge")+orbs_KS%occup(iorb))
+          call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge")+orbs_KS%occup(iorb))
      end do
-     call foe_obj%set_int("evbounds_isatur",0)
-     call foe_obj%set_int("evboundsshrink_isatur",0)
-     call foe_obj%set_int("evbounds_nsatur",input%evbounds_nsatur)
-     call foe_obj%set_int("evboundsshrink_nsatur",input%evboundsshrink_nsatur)
-     call foe_obj%set_real("fscale_lowerbound",input%fscale_lowerbound)
-     call foe_obj%set_real("fscale_upperbound",input%fscale_upperbound)
+     call foe_data_set_int(foe_obj,"evbounds_isatur",0)
+     call foe_data_set_int(foe_obj,"evboundsshrink_isatur",0)
+     call foe_data_set_int(foe_obj,"evbounds_nsatur",input%evbounds_nsatur)
+     call foe_data_set_int(foe_obj,"evboundsshrink_nsatur",input%evboundsshrink_nsatur)
+     call foe_data_set_real(foe_obj,"fscale_lowerbound",input%fscale_lowerbound)
+     call foe_data_set_real(foe_obj,"fscale_upperbound",input%fscale_upperbound)
   end if
 
   call timing(iproc,'init_matrCompr','OF')
@@ -635,20 +635,15 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
   call memocc(istat, norbsPerLocreg, 'norbsPerLocreg', subname)
   norbsPerLocreg=1 !should be norbsPerLocreg
     
-  iall=-product(shape(lorbs%inWhichLocreg))*kind(lorbs%inWhichLocreg)
-  deallocate(lorbs%inWhichLocreg, stat=istat)
-  call memocc(istat, iall, 'lorbs%inWhichLocreg', subname)
+  call f_free_ptr(lorbs%inWhichLocreg)
   call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norb_par, astruct%nat, nlr, &
        input%nspin, norbsPerLocreg, locregCenter, lorbs%inwhichlocreg)
 
-  iall=-product(shape(lorbs%onwhichatom))*kind(lorbs%onwhichatom)
-  deallocate(lorbs%onwhichatom, stat=istat)
-  call memocc(istat, iall, 'lorbs%onwhichatom', subname)
+  call f_free_ptr(lorbs%onwhichatom)
   call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norb_par, astruct%nat, astruct%nat, &
        input%nspin, norbsPerAtom, rxyz, lorbs%onwhichatom)
   
-  allocate(lorbs%eval(lorbs%norb), stat=istat)
-  call memocc(istat, lorbs%eval, 'lorbs%eval', subname)
+  lorbs%eval = f_malloc_ptr(lorbs%norb,id='lorbs%eval')
   lorbs%eval=-.5d0
   
   iall=-product(shape(norbsPerLocreg))*kind(norbsPerLocreg)
