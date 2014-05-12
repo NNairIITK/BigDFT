@@ -1450,7 +1450,7 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
      end if
      call yaml_map('PSP XC','"'//trim(name_xc1)//'"')
      if (trim(name_xc1) /= trim(name_xc2)) then
-        call yaml_warning('Input XC is "'//trim(name_xc2) // '"')
+        call yaml_warning('PSP generated with a different XC. Input XC is "'//trim(name_xc2) // '"')
      end if
   end do
   call yaml_close_sequence()
