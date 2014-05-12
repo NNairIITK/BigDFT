@@ -414,20 +414,11 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
       nlr=nlr+in%lin%norbsPerType(itype)
   end do
 
-  allocate(in%lin%locrad(nlr),stat=istat)
-  call memocc(istat,in%lin%locrad,'in%lin%locrad',subname)
-
-  allocate(in%lin%locrad_kernel(nlr),stat=istat)
-  call memocc(istat,in%lin%locrad_kernel,'in%lin%locrad_kernel',subname)
-
-  allocate(in%lin%locrad_mult(nlr),stat=istat)
-  call memocc(istat,in%lin%locrad_mult,'in%lin%locrad_mult',subname)
-
-  allocate(in%lin%locrad_lowaccuracy(nlr),stat=istat)
-  call memocc(istat,in%lin%locrad_lowaccuracy,'in%lin%locrad_lowaccuracy',subname)
-
-  allocate(in%lin%locrad_highaccuracy(nlr),stat=istat)
-  call memocc(istat,in%lin%locrad_highaccuracy,'in%lin%locrad_highaccuracy',subname)
+  in%lin%locrad = f_malloc_ptr(nlr,id='in%lin%locrad')
+  in%lin%locrad_kernel = f_malloc_ptr(nlr,id='in%lin%locrad_kernel')
+  in%lin%locrad_mult = f_malloc_ptr(nlr,id='in%lin%locrad_mult')
+  in%lin%locrad_lowaccuracy = f_malloc_ptr(nlr,id='in%lin%locrad_lowaccuracy')
+  in%lin%locrad_highaccuracy = f_malloc_ptr(nlr,id='in%lin%locrad_highaccuracy')
 
   ! Assign the localization radius to each atom.
   iiorb=0

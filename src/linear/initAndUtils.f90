@@ -20,27 +20,14 @@ subroutine allocateBasicArraysInputLin(lin, ntypes)
   integer :: istat
   character(len=*),parameter :: subname='allocateBasicArrays'
   
-  allocate(lin%norbsPerType(ntypes), stat=istat)
-  call memocc(istat, lin%norbsPerType, 'lin%norbsPerType', subname)
-
-  allocate(lin%potentialPrefac_ao(ntypes), stat=istat)
-  call memocc(istat, lin%potentialPrefac_ao, 'lin%potentialPrefac_ao', subname)
-
-  allocate(lin%potentialPrefac_lowaccuracy(ntypes), stat=istat)
-  call memocc(istat, lin%potentialPrefac_lowaccuracy, 'lin%potentialPrefac_lowaccuracy', subname)
-
-  allocate(lin%potentialPrefac_highaccuracy(ntypes), stat=istat)
-  call memocc(istat, lin%potentialPrefac_highaccuracy, 'lin%potentialPrefac_highaccuracy', subname)
-  
+  lin%norbsPerType = f_malloc_ptr(ntypes,id='lin%norbsPerType')
+  lin%potentialPrefac_ao = f_malloc_ptr(ntypes,id='lin%potentialPrefac_ao')
+  lin%potentialPrefac_lowaccuracy = f_malloc_ptr(ntypes,id='lin%potentialPrefac_lowaccuracy')
+  lin%potentialPrefac_highaccuracy = f_malloc_ptr(ntypes,id='lin%potentialPrefac_highaccuracy')
   !added a second dimension to include the low and high accuracy values
-  allocate(lin%locrad_type(ntypes,2),stat=istat)
-  call memocc(istat,lin%locrad_type,'lin%locrad_type',subname)
-
-  allocate(lin%kernel_cutoff_FOE(ntypes), stat=istat)
-  call memocc(istat, lin%kernel_cutoff_FOE, 'lin%kernel_cutoff_FOE', subname)
-
-  allocate(lin%kernel_cutoff(ntypes), stat=istat)
-  call memocc(istat, lin%kernel_cutoff, 'lin%kernel_cutoff', subname)
+  lin%locrad_type = f_malloc_ptr((/ ntypes, 2 /),id='lin%locrad_type')
+  lin%kernel_cutoff_FOE = f_malloc_ptr(ntypes,id='lin%kernel_cutoff_FOE')
+  lin%kernel_cutoff = f_malloc_ptr(ntypes,id='lin%kernel_cutoff')
 
 end subroutine allocateBasicArraysInputLin
 
@@ -57,84 +44,60 @@ subroutine deallocateBasicArraysInput(lin)
   character(len=*),parameter :: subname='deallocateBasicArrays'
  
   if(associated(lin%potentialPrefac_ao)) then
-    i_all = -product(shape(lin%potentialPrefac_ao))*kind(lin%potentialPrefac_ao)
-    deallocate(lin%potentialPrefac_ao,stat=i_stat)
-    call memocc(i_stat,i_all,'lin%potentialPrefac_ao',subname)
+    call f_free_ptr(lin%potentialPrefac_ao)
     nullify(lin%potentialPrefac_ao)
   end if 
   if(associated(lin%potentialPrefac_lowaccuracy)) then
-    i_all = -product(shape(lin%potentialPrefac_lowaccuracy))*kind(lin%potentialPrefac_lowaccuracy)
-    deallocate(lin%potentialPrefac_lowaccuracy,stat=i_stat)
-    call memocc(i_stat,i_all,'lin%potentialPrefac_lowaccuracy',subname)
+    call f_free_ptr(lin%potentialPrefac_lowaccuracy)
     nullify(lin%potentialPrefac_lowaccuracy)
   end if 
   if(associated(lin%potentialPrefac_highaccuracy)) then
-    i_all = -product(shape(lin%potentialPrefac_highaccuracy))*kind(lin%potentialPrefac_highaccuracy)
-    deallocate(lin%potentialPrefac_highaccuracy,stat=i_stat)
-    call memocc(i_stat,i_all,'lin%potentialPrefac_highaccuracy',subname)
+    call f_free_ptr(lin%potentialPrefac_highaccuracy)
     nullify(lin%potentialPrefac_highaccuracy)
   end if 
 
   if(associated(lin%norbsPerType)) then
-    i_all = -product(shape(lin%norbsPerType))*kind(lin%norbsPerType)
-    deallocate(lin%norbsPerType,stat=i_stat)
-    call memocc(i_stat,i_all,'lin%norbsPerType',subname)
+    call f_free_ptr(lin%norbsPerType)
     nullify(lin%norbsPerType)
   end if 
 
   if(associated(lin%locrad)) then
-    i_all = -product(shape(lin%locrad))*kind(lin%locrad)
-    deallocate(lin%locrad,stat=i_stat)
-    call memocc(i_stat,i_all,'lin%locrad',subname)
+    call f_free_ptr(lin%locrad)
     nullify(lin%locrad)
   end if 
 
   if(associated(lin%locrad_kernel)) then
-    i_all = -product(shape(lin%locrad_kernel))*kind(lin%locrad_kernel)
-    deallocate(lin%locrad_kernel,stat=i_stat)
-    call memocc(i_stat,i_all,'lin%locrad_kernel',subname)
+    call f_free_ptr(lin%locrad_kernel)
     nullify(lin%locrad_kernel)
   end if 
 
   if(associated(lin%locrad_mult)) then
-    i_all = -product(shape(lin%locrad_mult))*kind(lin%locrad_mult)
-    deallocate(lin%locrad_mult,stat=i_stat)
-    call memocc(i_stat,i_all,'lin%locrad_mult',subname)
+    call f_free_ptr(lin%locrad_mult)
     nullify(lin%locrad_mult)
   end if 
 
   if(associated(lin%locrad_lowaccuracy)) then
-    i_all = -product(shape(lin%locrad_lowaccuracy))*kind(lin%locrad_lowaccuracy)
-    deallocate(lin%locrad_lowaccuracy,stat=i_stat)
-    call memocc(i_stat,i_all,'lin%locrad_lowaccuracy',subname)
+    call f_free_ptr(lin%locrad_lowaccuracy)
     nullify(lin%locrad_lowaccuracy)
   end if 
 
   if(associated(lin%locrad_highaccuracy)) then
-    i_all = -product(shape(lin%locrad_highaccuracy))*kind(lin%locrad_highaccuracy)
-    deallocate(lin%locrad_highaccuracy,stat=i_stat)
-    call memocc(i_stat,i_all,'lin%locrad_highaccuracy',subname)
+    call f_free_ptr(lin%locrad_highaccuracy)
     nullify(lin%locrad_highaccuracy)
   end if 
 
   if(associated(lin%locrad_type)) then
-    i_all = -product(shape(lin%locrad_type))*kind(lin%locrad_type)
-    deallocate(lin%locrad_type,stat=i_stat)
-    call memocc(i_stat,i_all,'lin%locrad_type',subname)
+    call f_free_ptr(lin%locrad_type)
     nullify(lin%locrad_type)
   end if 
 
   if(associated(lin%kernel_cutoff_FOE)) then
-    i_all = -product(shape(lin%kernel_cutoff_FOE))*kind(lin%kernel_cutoff_FOE)
-    deallocate(lin%kernel_cutoff_FOE,stat=i_stat)
-    call memocc(i_stat,i_all,'lin%kernel_cutoff_FOE',subname)
+    call f_free_ptr(lin%kernel_cutoff_FOE)
     nullify(lin%kernel_cutoff_FOE)
   end if 
 
   if(associated(lin%kernel_cutoff)) then
-    i_all = -product(shape(lin%kernel_cutoff))*kind(lin%kernel_cutoff)
-    deallocate(lin%kernel_cutoff,stat=i_stat)
-    call memocc(i_stat,i_all,'lin%kernel_cutoff',subname)
+    call f_free_ptr(lin%kernel_cutoff)
     nullify(lin%kernel_cutoff)
   end if 
 
@@ -166,8 +129,7 @@ subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locreg
   logical,dimension(:),allocatable :: calculateBounds
 
   
-  allocate(calculateBounds(lzd%nlr), stat=istat)
-  call memocc(istat, calculateBounds, 'calculateBounds', subname)
+  calculateBounds = f_malloc(lzd%nlr,id='calculateBounds')
   calculateBounds=.false.
   
   do jorb=1,orbs%norbp
@@ -191,9 +153,7 @@ subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locreg
            astruct, orbs, Glr, lzd%Llr, calculateBounds)
   end if
   
-  iall=-product(shape(calculateBounds))*kind(calculateBounds)
-  deallocate(calculateBounds, stat=istat)
-  call memocc(istat, iall, 'calculateBounds', subname)
+  call f_free(calculateBounds)
   
   !DEBUG
   !do ilr=1,lin%nlr
@@ -309,8 +269,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
   linear  = .true.
   if (linType == INPUT_IG_FULL) then
      Lzd%nlr=atoms%astruct%nat
-     allocate(locrad(Lzd%nlr+ndebug),stat=i_stat)
-     call memocc(i_stat,locrad,'locrad',subname)
+     locrad = f_malloc(Lzd%nlr,id='locrad')
      ! locrad read from last line of  psppar
      do iat=1,atoms%astruct%nat
         ityp = atoms%astruct%iatype(iat)
@@ -363,9 +322,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
         i_all = -product(shape(calculateBounds))*kind(calculateBounds) 
         deallocate(calculateBounds,stat=i_stat)
         call memocc(i_stat,i_all,'calculateBounds',subname)
-        i_all = -product(shape(locrad))*kind(locrad)
-        deallocate(locrad,stat=i_stat)
-        call memocc(i_stat,i_all,'locrad',subname)
+        call f_free(locrad)
 
         ! determine the wavefunction dimension
         call wavefunction_dimension(Lzd,orbs)
@@ -596,8 +553,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
   call nullify_orbitals_data(lorbs)
  
   ! Count the number of basis functions.
-  allocate(norbsPerAtom(astruct%nat), stat=istat)
-  call memocc(istat, norbsPerAtom, 'norbsPerAtom', subname)
+  norbsPerAtom = f_malloc(astruct%nat,id='norbsPerAtom')
   norb=0
   nlr=0
   do iat=1,astruct%nat
@@ -618,8 +574,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
   call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, nspinor,&
        input%gen_nkpt, input%gen_kpt, input%gen_wkpt, lorbs,.true.) !simple repartition
 
-  allocate(locregCenter(3,nlr), stat=istat)
-  call memocc(istat, locregCenter, 'locregCenter', subname)
+  locregCenter = f_malloc((/ 3, nlr /),id='locregCenter')
   
   ilr=0
   do iat=1,astruct%nat
@@ -631,8 +586,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
       end do
   end do
  
-  allocate(norbsPerLocreg(nlr), stat=istat)
-  call memocc(istat, norbsPerLocreg, 'norbsPerLocreg', subname)
+  norbsPerLocreg = f_malloc(nlr,id='norbsPerLocreg')
   norbsPerLocreg=1 !should be norbsPerLocreg
     
   call f_free_ptr(lorbs%inWhichLocreg)
@@ -646,18 +600,9 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
   lorbs%eval = f_malloc_ptr(lorbs%norb,id='lorbs%eval')
   lorbs%eval=-.5d0
   
-  iall=-product(shape(norbsPerLocreg))*kind(norbsPerLocreg)
-  deallocate(norbsPerLocreg, stat=istat)
-  call memocc(istat, iall, 'norbsPerLocreg', subname)
-  
-  iall=-product(shape(locregCenter))*kind(locregCenter)
-  deallocate(locregCenter, stat=istat)
-  call memocc(istat, iall, 'locregCenter', subname)
-
-  iall=-product(shape(norbsPerAtom))*kind(norbsPerAtom)
-  deallocate(norbsPerAtom, stat=istat)
-  call memocc(istat, iall, 'norbsPerAtom', subname)
-
+  call f_free(norbsPerLocreg)
+  call f_free(locregCenter)
+  call f_free(norbsPerAtom)
 
   call timing(iproc,'init_orbs_lin ','OF')
 
@@ -692,8 +637,7 @@ subroutine lzd_init_llr(iproc, nproc, input, astruct, rxyz, orbs, lzd)
 
   lzd%nlr=orbs%norb
 
-  allocate(locregCenter(3,lzd%nlr), stat=istat)
-  call memocc(istat, locregCenter, 'locregCenter', subname)
+  locregCenter = f_malloc((/ 3, lzd%nlr /),id='locregCenter')
   
   ilr=0
   do iat=1,astruct%nat
@@ -716,9 +660,7 @@ subroutine lzd_init_llr(iproc, nproc, input, astruct, rxyz, orbs, lzd)
       lzd%llr(ilr)%locregCenter=locregCenter(:,ilr)
   end do
 
-  iall=-product(shape(locregCenter))*kind(locregCenter)
-  deallocate(locregCenter, stat=istat)
-  call memocc(istat, iall, 'locregCenter', subname)
+  call f_free(locregCenter)
   
   t2=mpi_wtime()
   !if(iproc==0) write(*,*) 'in lzd_init_llr: time',t2-t1
