@@ -2643,12 +2643,9 @@ module communications_init
          stop
       end if
     
-      allocate(nvctr_par(0:nproc-1,0:orbs%nkpts+ndebug),stat=i_stat)
-      call memocc(i_stat,nvctr_par,'nvctr_par',subname)
-      allocate(norb_par(0:nproc-1,0:orbs%nkpts+ndebug),stat=i_stat)
-      call memocc(i_stat,norb_par,'norb_par',subname)
-      allocate(mykpts(orbs%nkpts+ndebug),stat=i_stat)
-      call memocc(i_stat,mykpts,'mykpts',subname)
+      nvctr_par = f_malloc((/ 0.to.nproc-1, 0.to.orbs%nkpts /),id='nvctr_par')
+      norb_par = f_malloc((/ 0.to.nproc-1, 0.to.orbs%nkpts /),id='norb_par')
+      mykpts = f_malloc(orbs%nkpts,id='mykpts')
     
       !initialise the arrays
       do ikpts=0,orbs%nkpts
@@ -2880,18 +2877,11 @@ module communications_init
       !print *,'AAAAiproc',iproc,orbs%iskpts,orbs%iskpts+orbs%nkptsp
     
       !allocate communication arrays
-      allocate(comms%nvctr_par(0:nproc-1,0:orbs%nkpts+ndebug),stat=i_stat)
-      call memocc(i_stat,comms%nvctr_par,'nvctr_par',subname)
-    
-      allocate(comms%ncntd(0:nproc-1+ndebug),stat=i_stat)
-      call memocc(i_stat,comms%ncntd,'ncntd',subname)
-    
-      allocate(comms%ncntt(0:nproc-1+ndebug),stat=i_stat)
-      call memocc(i_stat,comms%ncntt,'ncntt',subname)
-      allocate(comms%ndspld(0:nproc-1+ndebug),stat=i_stat)
-      call memocc(i_stat,comms%ndspld,'ndspld',subname)
-      allocate(comms%ndsplt(0:nproc-1+ndebug),stat=i_stat)
-      call memocc(i_stat,comms%ndsplt,'ndsplt',subname)
+      comms%nvctr_par = f_malloc_ptr((/ 0.to.nproc-1, 0.to.orbs%nkpts /),id='comms%nvctr_par')
+      comms%ncntd = f_malloc_ptr(0.to.nproc-1,id='comms%ncntd')
+      comms%ncntt = f_malloc_ptr(0.to.nproc-1,id='comms%ncntt')
+      comms%ndspld = f_malloc_ptr(0.to.nproc-1,id='comms%ndspld')
+      comms%ndsplt = f_malloc_ptr(0.to.nproc-1,id='comms%ndsplt')
     
       !assign the partition of the k-points to the communication array
       !calculate the number of componenets associated to the k-point
@@ -2940,15 +2930,9 @@ module communications_init
     
       !print *,'iproc,comms',iproc,comms%ncntd,comms%ndspld,comms%ncntt,comms%ndsplt
     
-      i_all=-product(shape(nvctr_par))*kind(nvctr_par)
-      deallocate(nvctr_par,stat=i_stat)
-      call memocc(i_stat,i_all,'nvctr_par',subname)
-      i_all=-product(shape(norb_par))*kind(norb_par)
-      deallocate(norb_par,stat=i_stat)
-      call memocc(i_stat,i_all,'norb_par',subname)
-      i_all=-product(shape(mykpts))*kind(mykpts)
-      deallocate(mykpts,stat=i_stat)
-      call memocc(i_stat,i_all,'mykpts',subname)
+      call f_free(nvctr_par)
+      call f_free(norb_par)
+      call f_free(mykpts)
     
       !calculate the dimension of the wavefunction
       !for the given processor (this is only the cubic strategy)

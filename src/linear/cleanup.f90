@@ -820,19 +820,19 @@ end subroutine deallocate_orbitals_data
 
 
 subroutine deallocate_comms_cubic(comms, subname)
+  use module_base
   use communications_base, only: comms_cubic
-  use deallocatePointers
   implicit none
   
   ! Calling arguments
   type(comms_cubic),intent(inout):: comms
   character(len=*),intent(in):: subname
   
-  call checkAndDeallocatePointer(comms%ncntd, 'comms%ncntd', subname)
-  call checkAndDeallocatePointer(comms%ncntt, 'comms%ncntt', subname)
-  call checkAndDeallocatePointer(comms%ndspld, 'comms%ndspld', subname)
-  call checkAndDeallocatePointer(comms%ndsplt, 'comms%ndsplt', subname)
-  call checkAndDeallocatePointer(comms%nvctr_par, 'comms%nvctr_par', subname)
+  call f_free_ptr(comms%ncntd)
+  call f_free_ptr(comms%ncntt)
+  call f_free_ptr(comms%ndspld)
+  call f_free_ptr(comms%ndsplt)
+  call f_free_ptr(comms%nvctr_par)
   
 end subroutine deallocate_comms_cubic
 

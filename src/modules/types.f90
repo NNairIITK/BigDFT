@@ -1330,21 +1330,11 @@ contains
     !local variables
     integer :: i_all,i_stat
 
-    i_all=-product(shape(comms%nvctr_par))*kind(comms%nvctr_par)
-    deallocate(comms%nvctr_par,stat=i_stat)
-    call memocc(i_stat,i_all,'nvctr_par',subname)
-    i_all=-product(shape(comms%ncntd))*kind(comms%ncntd)
-    deallocate(comms%ncntd,stat=i_stat)
-    call memocc(i_stat,i_all,'ncntd',subname)
-    i_all=-product(shape(comms%ncntt))*kind(comms%ncntt)
-    deallocate(comms%ncntt,stat=i_stat)
-    call memocc(i_stat,i_all,'ncntt',subname)
-    i_all=-product(shape(comms%ndspld))*kind(comms%ndspld)
-    deallocate(comms%ndspld,stat=i_stat)
-    call memocc(i_stat,i_all,'ndspld',subname)
-    i_all=-product(shape(comms%ndsplt))*kind(comms%ndsplt)
-    deallocate(comms%ndsplt,stat=i_stat)
-    call memocc(i_stat,i_all,'ndsplt',subname)
+    call f_free_ptr(comms%nvctr_par)
+    call f_free_ptr(comms%ncntd)
+    call f_free_ptr(comms%ncntt)
+    call f_free_ptr(comms%ndspld)
+    call f_free_ptr(comms%ndsplt)
   END SUBROUTINE deallocate_comms
 
 
