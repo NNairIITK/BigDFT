@@ -373,9 +373,7 @@ contains
           deallocate(bounds%gb%ibxxyy_c,stat=i_stat)
           call memocc(i_stat,i_all,'bounds%gb%ibxxyy_c',subname)
 
-          i_all=-product(shape(bounds%ibyyzz_r))*kind(bounds%ibyyzz_r)
-          deallocate(bounds%ibyyzz_r,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%ibyyzz_r',subname)
+          call f_free_ptr(bounds%ibyyzz_r)
 
           nullify(bounds%kb%ibyz_c)
           nullify(bounds%kb%ibxz_c)

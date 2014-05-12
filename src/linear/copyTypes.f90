@@ -62,9 +62,7 @@ subroutine copy_convolutions_bounds(geocode,boundsin, boundsout, subname)
   
   if(geocode == 'F') then
      if(associated(boundsout%ibyyzz_r)) then
-         iall=-product(shape(boundsout%ibyyzz_r))*kind(boundsout%ibyyzz_r)
-         deallocate(boundsout%ibyyzz_r, stat=istat)
-         call memocc(istat, iall, 'boundsout%ibyyzz_r', subname)
+         call f_free_ptr(boundsout%ibyyzz_r)
      end if
   
      if(associated(boundsin%ibyyzz_r)) then
@@ -74,8 +72,7 @@ subroutine copy_convolutions_bounds(geocode,boundsin, boundsout, subname)
          iie2=ubound(boundsin%ibyyzz_r,2)
          iis3=lbound(boundsin%ibyyzz_r,3)
          iie3=ubound(boundsin%ibyyzz_r,3)
-         allocate(boundsout%ibyyzz_r(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-         call memocc(istat, boundsout%ibyyzz_r, 'boundsout%ibyyzz_r', subname)
+         boundsout%ibyyzz_r = f_malloc_ptr((/ iis1.to.iie1,iis2.to.iie2,iis3.to.iie3 /),id='boundsout%ibyyzz_r')
          do i3=iis3,iie3
              do i2=iis2,iie2
                  do i1=iis1,iie1
