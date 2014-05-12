@@ -1276,8 +1276,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
       !print *,'potential sum',iproc,sum(pot)
    else if(iflag>0 .and. iflag<2) then
 
-      allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
-      call memocc(i_stat,pot,'pot',subname)
+      pot = f_malloc_ptr(lzd%ndimpotisf+ndebug,id='pot')
       ! Cut potential
       istl=1
       do iorb=1,nilr
@@ -1288,8 +1287,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
       end do
    else
       if(.not.associated(pot)) then !otherwise this has been done already... Should be improved.
-         allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
-         call memocc(i_stat,pot,'pot',subname)
+         pot = f_malloc_ptr(lzd%ndimpotisf+ndebug,id='pot')
 
          ist=1
          do iorb=1,nilr
@@ -1367,9 +1365,7 @@ subroutine free_full_potential(nproc,flag,xc,pot,subname)
 
    odp = xc_exctXfac(xc) /= 0.0_gp
    if (nproc > 1 .or. odp .or. flag > 0 ) then
-      i_all=-product(shape(pot))*kind(pot)
-      deallocate(pot,stat=i_stat)
-      call memocc(i_stat,i_all,'pot',subname)
+      call f_free_ptr(pot)
       nullify(pot)
    else
       nullify(pot)

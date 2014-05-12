@@ -879,7 +879,6 @@ subroutine destroy_DFT_wavefunction(wfn)
   use module_base
   use module_types
   use module_interfaces, except_this_one => destroy_DFT_wavefunction
-  use deallocatePointers
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use sparsematrix_base, only: deallocate_sparse_matrix, allocate_matrices, deallocate_matrices
   implicit none

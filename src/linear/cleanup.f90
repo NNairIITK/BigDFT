@@ -105,7 +105,6 @@ end subroutine deallocate_comms_cubic
 subroutine deallocate_convolutions_bounds(bounds, subname)
   
   use module_types
-  use deallocatePointers
   implicit none
   
   ! Calling arguments
@@ -124,7 +123,6 @@ end subroutine deallocate_convolutions_bounds
 subroutine deallocate_kinetic_bounds(kb, subname)
   
   use module_types
-  use deallocatePointers
   implicit none
  
   ! Calling arguments
@@ -144,7 +142,6 @@ end subroutine deallocate_kinetic_bounds
 subroutine deallocate_shrink_bounds(sb, subname)
   
   use module_types
-  use deallocatePointers
   implicit none
  
   ! Calling arguments
@@ -163,7 +160,6 @@ end subroutine deallocate_shrink_bounds
 subroutine deallocate_grow_bounds(gb, subname)
   
   use module_types
-  use deallocatePointers
   implicit none
  
   ! Calling arguments
