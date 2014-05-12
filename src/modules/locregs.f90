@@ -308,17 +308,9 @@ contains
           call f_free_ptr(bounds%kb%ibxz_f)
           call f_free_ptr(bounds%kb%ibxy_f)
 
-          i_all=-product(shape(bounds%sb%ibxy_ff))*kind(bounds%sb%ibxy_ff)
-          deallocate(bounds%sb%ibxy_ff,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%sb%ibxy_ff',subname)
-
-          i_all=-product(shape(bounds%sb%ibzzx_f))*kind(bounds%sb%ibzzx_f)
-          deallocate(bounds%sb%ibzzx_f,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%sb%ibzzx_f',subname)
-
-          i_all=-product(shape(bounds%sb%ibyyzz_f))*kind(bounds%sb%ibyyzz_f)
-          deallocate(bounds%sb%ibyyzz_f,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%sb%ibyyzz_f',subname)
+          call f_free_ptr(bounds%sb%ibxy_ff)
+          call f_free_ptr(bounds%sb%ibzzx_f)
+          call f_free_ptr(bounds%sb%ibyyzz_f)
 
           i_all=-product(shape(bounds%gb%ibyz_ff))*kind(bounds%gb%ibyz_ff)
           deallocate(bounds%gb%ibyz_ff,stat=i_stat)
@@ -353,13 +345,8 @@ contains
           call f_free_ptr(bounds%kb%ibxy_c)
 
 
-          i_all=-product(shape(bounds%sb%ibzzx_c))*kind(bounds%sb%ibzzx_c)
-          deallocate(bounds%sb%ibzzx_c,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%sb%ibzzx_c',subname)
-
-          i_all=-product(shape(bounds%sb%ibyyzz_c))*kind(bounds%sb%ibyyzz_c)
-          deallocate(bounds%sb%ibyyzz_c,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%sb%ibyyzz_c',subname)
+          call f_free_ptr(bounds%sb%ibzzx_c)
+          call f_free_ptr(bounds%sb%ibyyzz_c)
 
           i_all=-product(shape(bounds%gb%ibzxx_c))*kind(bounds%gb%ibzxx_c)
           deallocate(bounds%gb%ibzxx_c,stat=i_stat)

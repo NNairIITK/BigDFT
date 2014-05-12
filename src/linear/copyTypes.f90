@@ -246,9 +246,7 @@ integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat, iall
 
 if(geocode == 'F') then
    if(associated(sbout%ibzzx_c)) then
-       iall=-product(shape(sbout%ibzzx_c))*kind(sbout%ibzzx_c)
-       deallocate(sbout%ibzzx_c, stat=istat)
-       call memocc(istat, iall, 'sbout%ibzzx_c', subname)
+       call f_free_ptr(sbout%ibzzx_c)
    end if
    if(associated(sbin%ibzzx_c)) then
        iis1=lbound(sbin%ibzzx_c,1)
@@ -257,8 +255,7 @@ if(geocode == 'F') then
        iie2=ubound(sbin%ibzzx_c,2)
        iis3=lbound(sbin%ibzzx_c,3)
        iie3=ubound(sbin%ibzzx_c,3)
-       allocate(sbout%ibzzx_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-       call memocc(istat, sbout%ibzzx_c, 'sbout%ibzzx_c', subname)
+       sbout%ibzzx_c = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='sbout%ibzzx_c')
        do i3=iis3,iie3
            do i2=iis2,iie2
                do i1=iis1,iie1
@@ -270,9 +267,7 @@ if(geocode == 'F') then
    
    
    if(associated(sbout%ibyyzz_c)) then
-       iall=-product(shape(sbout%ibyyzz_c))*kind(sbout%ibyyzz_c)
-       deallocate(sbout%ibyyzz_c, stat=istat)
-       call memocc(istat, iall, 'sbout%ibyyzz_c', subname)
+       call f_free_ptr(sbout%ibyyzz_c)
    end if
    if(associated(sbin%ibyyzz_c)) then
        iis1=lbound(sbin%ibyyzz_c,1)
@@ -281,8 +276,7 @@ if(geocode == 'F') then
        iie2=ubound(sbin%ibyyzz_c,2)
        iis3=lbound(sbin%ibyyzz_c,3)
        iie3=ubound(sbin%ibyyzz_c,3)
-       allocate(sbout%ibyyzz_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-       call memocc(istat, sbout%ibyyzz_c, 'sbout%ibyyzz_c', subname)
+       sbout%ibyyzz_c = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='sbout%ibyyzz_c')
        do i3=iis3,iie3
            do i2=iis2,iie2
                do i1=iis1,iie1
@@ -294,9 +288,7 @@ if(geocode == 'F') then
 end if
 
 if(associated(sbout%ibxy_ff)) then
-    iall=-product(shape(sbout%ibxy_ff))*kind(sbout%ibxy_ff)
-    deallocate(sbout%ibxy_ff, stat=istat)
-    call memocc(istat, iall, 'sbout%ibxy_ff', subname)
+    call f_free_ptr(sbout%ibxy_ff)
 end if
 if(associated(sbin%ibxy_ff)) then
     iis1=lbound(sbin%ibxy_ff,1)
@@ -305,8 +297,7 @@ if(associated(sbin%ibxy_ff)) then
     iie2=ubound(sbin%ibxy_ff,2)
     iis3=lbound(sbin%ibxy_ff,3)
     iie3=ubound(sbin%ibxy_ff,3)
-    allocate(sbout%ibxy_ff(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-    call memocc(istat, sbout%ibxy_ff, 'sbout%ibxy_ff', subname)
+    sbout%ibxy_ff = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='sbout%ibxy_ff')
     do i3=iis3,iie3
         do i2=iis2,iie2
             do i1=iis1,iie1
@@ -318,9 +309,7 @@ end if
 
 
 if(associated(sbout%ibzzx_f)) then
-    iall=-product(shape(sbout%ibzzx_f))*kind(sbout%ibzzx_f)
-    deallocate(sbout%ibzzx_f, stat=istat)
-    call memocc(istat, iall, 'sbout%ibzzx_f', subname)
+    call f_free_ptr(sbout%ibzzx_f)
 end if
 if(associated(sbin%ibzzx_f)) then
     iis1=lbound(sbin%ibzzx_f,1)
@@ -329,8 +318,7 @@ if(associated(sbin%ibzzx_f)) then
     iie2=ubound(sbin%ibzzx_f,2)
     iis3=lbound(sbin%ibzzx_f,3)
     iie3=ubound(sbin%ibzzx_f,3)
-    allocate(sbout%ibzzx_f(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-    call memocc(istat, sbout%ibzzx_f, 'sbout%ibzzx_f', subname)
+    sbout%ibzzx_f = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='sbout%ibzzx_f')
     do i3=iis3,iie3
         do i2=iis2,iie2
             do i1=iis1,iie1
@@ -342,9 +330,7 @@ end if
 
 
 if(associated(sbout%ibyyzz_f)) then
-    iall=-product(shape(sbout%ibyyzz_f))*kind(sbout%ibyyzz_f)
-    deallocate(sbout%ibyyzz_f, stat=istat)
-    call memocc(istat, iall, 'sbout%ibyyzz_f', subname)
+    call f_free_ptr(sbout%ibyyzz_f)
 end if
 if(associated(sbin%ibyyzz_f)) then
     iis1=lbound(sbin%ibyyzz_f,1)
@@ -353,8 +339,7 @@ if(associated(sbin%ibyyzz_f)) then
     iie2=ubound(sbin%ibyyzz_f,2)
     iis3=lbound(sbin%ibyyzz_f,3)
     iie3=ubound(sbin%ibyyzz_f,3)
-    allocate(sbout%ibyyzz_f(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-    call memocc(istat, sbout%ibyyzz_f, 'sbout%ibyyzz_f', subname)
+    sbout%ibyyzz_f = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='sbout%ibyyzz_f')
     do i3=iis3,iie3
         do i2=iis2,iie2
             do i1=iis1,iie1

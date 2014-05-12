@@ -886,11 +886,11 @@ subroutine deallocate_shrink_bounds(sb, subname)
   type(shrink_bounds),intent(inout):: sb
   character(len=*),intent(in):: subname
 
-  call checkAndDeallocatePointer(sb%ibzzx_c, 'sb%ibzzx_c', subname)
-  call checkAndDeallocatePointer(sb%ibyyzz_c, 'sb%ibyyzz_c', subname)
-  call checkAndDeallocatePointer(sb%ibxy_ff, 'sb%ibxy_ff,', subname)
-  call checkAndDeallocatePointer(sb%ibzzx_f, 'sb%ibzzx_f,', subname)
-  call checkAndDeallocatePointer(sb%ibyyzz_f, 'sb%ibyyzz_f,', subname)
+  call f_free_ptr(sb%ibzzx_c)
+  call f_free_ptr(sb%ibyyzz_c)
+  call f_free_ptr(sb%ibxy_ff)
+  call f_free_ptr(sb%ibzzx_f)
+  call f_free_ptr(sb%ibyyzz_f)
 
 end subroutine deallocate_shrink_bounds
 
