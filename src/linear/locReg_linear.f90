@@ -169,8 +169,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
 
   call f_routine(id='determine_locregSphere_parallel')
 
-  allocate(rootarr(nlr), stat=istat)
-  call memocc(istat, rootarr, 'rootarr', subname)
+  rootarr = f_malloc(nlr,id='rootarr')
 
   ! Determine how many locregs one process handles at most
   ii=ceiling(dble(nlr)/dble(nproc))
@@ -424,9 +423,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
 
   call timing(iproc,'calc_bounds   ','OF') 
 
-  iall = -product(shape(rootarr))*kind(rootarr)
-  deallocate(rootarr,stat=istat)
-  call memocc(istat,iall,'rootarr',subname)
+  call f_free(rootarr)
 
   call f_free(onwhichmpi)
   call f_release_routine()
@@ -435,13 +432,9 @@ contains
 
   subroutine create_orbsder()
     call nullify_orbitals_data(orbsder)
-    allocate(norbsperatom(astruct%nat), stat=istat)
-    call memocc(istat, norbsperatom, 'norbsperatom', subname)
-    allocate(locregCenter(3,nlr), stat=istat)
-    call memocc(istat, locregCenter, 'locregCenter', subname)
-    allocate(norbsPerLocreg(nlr), stat=istat) 
-    call memocc(istat, norbsPerLocreg, 'norbsPerLocreg', subname)
-    norbsperatom=0
+    norbsperatom = f_malloc0(astruct%nat,id='norbsperatom')
+    locregCenter = f_malloc((/ 3, nlr /),id='locregCenter')
+    norbsPerLocreg = f_malloc(nlr,id='norbsPerLocreg')
     do iorb=1,orbs%norb
         iat=orbs%onwhichatom(iorb)
         norbsperatom(iat)=norbsperatom(iat)+3
@@ -452,9 +445,7 @@ contains
     nspin=1
     call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, orbs%nspinor,&
          orbs%nkpts, orbs%kpts, orbs%kwgts, orbsder,.true.) !simple repartition
-    iall=-product(shape(orbsder%onwhichatom))*kind(orbsder%inWhichLocreg)
-    deallocate(orbsder%onwhichatom, stat=istat)
-    call memocc(istat, iall, 'orbsder%onwhichatom', subname)
+    call f_free_ptr(orbsder%onwhichatom)
 
     do ilr=1,nlr
         locregCenter(:,ilr)=llr(ilr)%locregCenter
@@ -463,25 +454,15 @@ contains
     call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, astruct%nat, astruct%nat, &
          nspin, norbsPerAtom, locregCenter, orbsder%onwhichatom)
 
-    iall=-product(shape(orbsder%inWhichLocreg))*kind(orbsder%inWhichLocreg)
-    deallocate(orbsder%inWhichLocreg, stat=istat)
+    call f_free_ptr(orbsder%inWhichLocreg)
     norbsPerLocreg=3
 
-    call memocc(istat, iall, 'orbsder%inWhichLocreg', subname)
     call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, astruct%nat, nlr, &
          nspin, norbsPerLocreg, locregCenter, orbsder%inwhichlocreg)
 
-    iall=-product(shape(locregCenter))*kind(locregCenter)
-    deallocate(locregCenter, stat=istat)
-    call memocc(istat, iall, 'locregCenter', subname)
-
-    iall=-product(shape(norbsPerLocreg))*kind(norbsPerLocreg)
-    deallocate(norbsPerLocreg, stat=istat)
-    call memocc(istat, iall, 'norbsPerLocreg', subname)
-
-    iall=-product(shape(norbsperatom))*kind(norbsperatom)
-    deallocate(norbsperatom, stat=istat)
-    call memocc(istat, iall, 'norbsperatom', subname)
+    call f_free(locregCenter)
+    call f_free(norbsPerLocreg)
+    call f_free(norbsperatom)
   end subroutine create_orbsder
 
 END SUBROUTINE determine_locregSphere_parallel
@@ -867,8 +848,7 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
   n3l=i3ec-i3sc
 
 
-  allocate(keyg_loc(2,nseg_loc),stat=i_stat)
-  call memocc(i_stat,keyg_loc,'keyg_loc',subname)
+  keyg_loc = f_malloc((/ 2, nseg_loc /),id='keyg_loc')
 
   !control variable
   nvctr_check=0
@@ -957,9 +937,7 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
 !    print *,'iseg,keyglob,keyvglob,keygloc,keyvloc',iseg,keyglob(1,iseg),keyvglob(iseg),keygloc(1,iseg),keyvloc(iseg)
  end do
 
- i_all = -product(shape(keyg_loc))*kind(keyg_loc)
- deallocate(keyg_loc, stat = i_stat)
- call memocc(i_stat,i_all,'keyg_loc',subname)
+ call f_free(keyg_loc)
 
 END SUBROUTINE segkeys_periodic
 
@@ -984,8 +962,7 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
   logical :: segment
   integer, allocatable :: keygloc(:,:)
 
-  allocate(keygloc(2,nseg),stat=istat)
-  call memocc(istat,keygloc,'keygloc',subname)
+  keygloc = f_malloc((/ 2, nseg /),id='keygloc')
 
   !dimensions of the localisation region (O:nIl)
   ! must be smaller or equal to simulation box dimensions
@@ -1088,9 +1065,7 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
      keyv_loc(iseg) = keyv_glob(loc)
 !    print *,'iseg,keyglob,keyvglob,keygloc,keyvloc',iseg,keyglob(1,iseg),keyvglob(iseg),keygloc(1,iseg),keyvloc(iseg)
   end do
-  iall = -product(shape(keygloc))*kind(keygloc)
-  deallocate(keygloc,stat=istat)
-  call memocc(istat,iall,'keygloc',subname)
+  call f_free(keygloc)
 
 END SUBROUTINE segkeys_Sphere
 
@@ -1888,8 +1863,6 @@ subroutine Lpsi_to_global2(iproc, ldim, gdim, norb, nspinor, nspin, Glr, Llr, lp
     stop
   end if
 
-  i_all=-product(shape(keymask))*kind(keymask)
-! deallocate(keymask,stat=i_stat)
   call f_free(keymask)
 
   call f_release_routine()
