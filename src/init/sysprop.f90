@@ -1714,8 +1714,7 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
   if(.not. storeit) then
      !if(ityp == 1) then !this implies that the PSP are all present
      if (.not. associated(atoms%paw_NofL)) then
-        allocate(atoms%paw_NofL(atoms%astruct%ntypes+ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_NofL,'atoms%paw_NofL',subname)
+        atoms%paw_NofL = f_malloc_ptr(atoms%astruct%ntypes+ndebug,id='atoms%paw_NofL')
      end if
      ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
      open(unit=11,file=trim(filename),status='old',iostat=ierror)
@@ -1786,33 +1785,15 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
 
   else
      if(ityp.eq.1) then
-        allocate(atoms%paw_l  (paw_tot_l+ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_l,'atoms%paw_l',subname)
-        
-        allocate(atoms%paw_nofchannels  (paw_tot_l+ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_nofchannels,'atoms%paw_nofchannels',subname)
-        
-        allocate(atoms%paw_nofgaussians  (paw_tot_l+ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_nofgaussians,'atoms%paw_nofgaussians',subname)
-        
-        allocate(atoms%paw_Greal  (paw_tot_l+ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_Greal,'atoms%paw_Greal',subname)
-        
-        allocate(atoms%paw_Gimag ( paw_tot_q   +  ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_Gimag,'atoms%paw_Gimag',subname)
-        
-        allocate(atoms%paw_Gcoeffs ( paw_tot_coefficients  +  ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_Gcoeffs,'atoms%paw_Gcoeffs',subname)
-        
-        allocate(atoms%paw_H_matrices(paw_tot_matrices+ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_H_matrices,'atoms%paw_H_matrices',subname)
-        
-        allocate(atoms%paw_S_matrices ( paw_tot_matrices  +  ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_S_matrices,'atoms%paw_S_matrices',subname)
-        
-        
-        allocate(atoms%paw_Sm1_matrices ( paw_tot_matrices  +  ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_Sm1_matrices,'atoms%paw_Sm1_matrices',subname)
+        atoms%paw_l   = f_malloc_ptr(paw_tot_l,id='atoms%paw_l  ')
+        atoms%paw_nofchannels   = f_malloc_ptr(paw_tot_l,id='atoms%paw_nofchannels  ')
+        atoms%paw_nofgaussians   = f_malloc_ptr(paw_tot_l,id='atoms%paw_nofgaussians  ')
+        atoms%paw_Greal   = f_malloc_ptr(paw_tot_l,id='atoms%paw_Greal  ')
+        atoms%paw_Gimag  = f_malloc_ptr(paw_tot_q   ,id='atoms%paw_Gimag ')
+        atoms%paw_Gcoeffs  = f_malloc_ptr(paw_tot_coefficients  ,id='atoms%paw_Gcoeffs ')
+        atoms%paw_H_matrices = f_malloc_ptr(paw_tot_matrices,id='atoms%paw_H_matrices')
+        atoms%paw_S_matrices  = f_malloc_ptr(paw_tot_matrices  ,id='atoms%paw_S_matrices ')
+        atoms%paw_Sm1_matrices  = f_malloc_ptr(paw_tot_matrices  ,id='atoms%paw_Sm1_matrices ')
         
         
         paw_tot_l=0
