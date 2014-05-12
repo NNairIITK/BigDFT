@@ -253,7 +253,15 @@ END SUBROUTINE ext_buffers_coarse
 module internal_io
   implicit none
 
+  private
+
+  public :: io_error, io_warning, io_open
+  public :: io_read_descr, read_psi_compress
+  public :: io_gcoordToLocreg
+
 contains
+
+
   subroutine io_error(error)
     use module_defs
 
@@ -266,6 +274,7 @@ contains
     call MPI_ABORT(bigdft_mpi%mpi_comm, ierr)
   END SUBROUTINE io_error
 
+
   subroutine io_warning(error)
     use module_defs
 
@@ -276,6 +285,8 @@ contains
     write(0,"(2A)") "WARNING! ", trim(error)
   END SUBROUTINE io_warning
 
+
+  !> Read the input/output descriptors (for a wavefunction for instance)
   subroutine io_read_descr(unitwf, formatted, iorb_old, eval, n1_old, n2_old, n3_old, &
        & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, nat)
     use module_base
@@ -599,6 +610,7 @@ contains
 END MODULE internal_io
 
 
+!> Read one wavefunction
 subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
      & hx,hy,hz,at,wfd,rxyz_old,rxyz,psi,eval,psifscf)
   use module_base
@@ -709,6 +721,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   call f_release_routine()
 
 END SUBROUTINE readonewave
+
 
 subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
      & n1, n2, n3, nspinor, psiscf)
