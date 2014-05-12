@@ -853,8 +853,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      !!     denspot%rhov(1),1,denspot%rho_work(1),1)
 
      ! keep only the essential part of the density, without the GGA bufffers
-     allocate(denspot%rho_work(denspot%dpbox%ndimpot),stat=i_stat)
-     call memocc(i_stat,denspot%rho_work,'rho',subname)
+     denspot%rho_work = f_malloc_ptr(denspot%dpbox%ndimpot,id='denspot%rho_work')
      ioffset=kswfn%lzd%glr%d%n1i*kswfn%lzd%glr%d%n2i*denspot%dpbox%i3xcsh
      call vcopy(denspot%dpbox%ndimpot,denspot%rhov(ioffset+1),1,denspot%rho_work(1),1)
 
@@ -871,9 +870,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
         deallocate(KSwfn%psi,stat=i_stat)
         call memocc(i_stat,i_all,'psi',subname)
         call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
-        i_all=-product(shape(denspot%rho_work))*kind(denspot%rho_work)
-        deallocate(denspot%rho_work,stat=i_stat)
-        call memocc(i_stat,i_all,'denspot%rho',subname)
+        call f_free_ptr(denspot%rho_work)
         call f_free_ptr(KSwfn%orbs%eval)
         call f_release_routine()
         return
