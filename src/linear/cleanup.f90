@@ -796,9 +796,7 @@ end subroutine deallocate_Lzd_except_Glr
 
 
 subroutine deallocate_orbitals_data(orbs, subname)
-  
   use module_types
-  use deallocatePointers
   implicit none
   
   ! Calling arguments
@@ -817,7 +815,6 @@ subroutine deallocate_orbitals_data(orbs, subname)
   call f_free_ptr(orbs%kwgts)
   call f_free_ptr(orbs%kpts)
   call f_free_ptr(orbs%ispot)
-
   
 end subroutine deallocate_orbitals_data
 
