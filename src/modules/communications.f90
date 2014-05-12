@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> Module defining routines related to communications (maily transpositions)
+!> Module defining routines related to communications (mainly transpositions)
 module communications
 
   use module_base
@@ -48,7 +48,7 @@ module communications
       type(local_zone_descriptors),intent(in),optional :: lzd
       
       ! Local variables
-      integer :: i_tot, i_c, i_f, iorb, iiorb, ilr, i, ind, istat, iall,m
+      integer :: i_tot, i_c, i_f, iorb, iiorb, ilr, i, ind, istat, iall, m, ind7, i7
       real(kind=8),dimension(:),allocatable :: psi_c, psi_f
       character(len=*),parameter :: subname='transpose_switch_psi'
     
@@ -116,14 +116,16 @@ module communications
     
       !$omp do
        do i=1,collcom%ndimpsi_f
-           ind=collcom%isendbuf_f(i)
-          psiwork_f(7*ind-6)=psi_f(7*i-6)
-          psiwork_f(7*ind-5)=psi_f(7*i-5)
-          psiwork_f(7*ind-4)=psi_f(7*i-4)
-          psiwork_f(7*ind-3)=psi_f(7*i-3)
-          psiwork_f(7*ind-2)=psi_f(7*i-2)
-          psiwork_f(7*ind-1)=psi_f(7*i-1)
-          psiwork_f(7*ind-0)=psi_f(7*i-0)
+          ind=collcom%isendbuf_f(i)
+          i7=7*i
+          ind7=7*ind
+          psiwork_f(ind7-6)=psi_f(i7-6)
+          psiwork_f(ind7-5)=psi_f(i7-5)
+          psiwork_f(ind7-4)=psi_f(i7-4)
+          psiwork_f(ind7-3)=psi_f(i7-3)
+          psiwork_f(ind7-2)=psi_f(i7-2)
+          psiwork_f(ind7-1)=psi_f(i7-1)
+          psiwork_f(ind7-0)=psi_f(i7-0)
       end do
       !$omp end do
       !$omp end parallel
@@ -262,12 +264,12 @@ module communications
       real(kind=8),dimension(7*collcom%ndimind_f),intent(out) :: psit_f
       
       ! Local variables
-      integer :: i, ind, sum_c,sum_f,m
+      integer :: i,ind,sum_c,sum_f,m,i7,ind7
     
       sum_c = sum(collcom%nrecvcounts_c)
       sum_f = sum(collcom%nrecvcounts_f)
     
-      !$omp parallel private(i,ind) &
+      !$omp parallel private(i,ind,i7,ind7) &
       !$omp shared(psit_c,psit_f, psitwork_c, psitwork_f,collcom,sum_c,sum_f,m)
     
     
@@ -299,13 +301,15 @@ module communications
       !$omp do
       do i=1,sum_f
           ind=collcom%iextract_f(i)
-          psit_f(7*ind-6)=psitwork_f(7*i-6)
-          psit_f(7*ind-5)=psitwork_f(7*i-5)
-          psit_f(7*ind-4)=psitwork_f(7*i-4)
-          psit_f(7*ind-3)=psitwork_f(7*i-3)
-          psit_f(7*ind-2)=psitwork_f(7*i-2)
-          psit_f(7*ind-1)=psitwork_f(7*i-1)
-          psit_f(7*ind-0)=psitwork_f(7*i-0)
+          i7=7*i
+          ind7=7*ind
+          psit_f(ind7-6)=psitwork_f(i7-6)
+          psit_f(ind7-5)=psitwork_f(i7-5)
+          psit_f(ind7-4)=psitwork_f(i7-4)
+          psit_f(ind7-3)=psitwork_f(i7-3)
+          psit_f(ind7-2)=psitwork_f(i7-2)
+          psit_f(ind7-1)=psitwork_f(i7-1)
+          psit_f(ind7-0)=psitwork_f(i7-0)
       end do
       !$omp end do
       
@@ -328,7 +332,7 @@ module communications
       real(kind=8),dimension(7*collcom%ndimind_f),intent(out) :: psitwork_f
       
       ! Local variables
-      integer :: i, ind, sum_c,sum_f,m
+      integer :: i, ind, sum_c,sum_f,m, i7, ind7
     
       sum_c = sum(collcom%nrecvcounts_c)
       sum_f = sum(collcom%nrecvcounts_f)
@@ -363,14 +367,16 @@ module communications
     
       !$omp do
       do i=1,sum_f
+          i7=7*i
+          ind7=7*ind
           ind=collcom%iexpand_f(i)
-          psitwork_f(7*ind-6)=psit_f(7*i-6)
-          psitwork_f(7*ind-5)=psit_f(7*i-5)
-          psitwork_f(7*ind-4)=psit_f(7*i-4)
-          psitwork_f(7*ind-3)=psit_f(7*i-3)
-          psitwork_f(7*ind-2)=psit_f(7*i-2)
-          psitwork_f(7*ind-1)=psit_f(7*i-1)
-          psitwork_f(7*ind-0)=psit_f(7*i-0)
+          psitwork_f(ind7-6)=psit_f(i7-6)
+          psitwork_f(ind7-5)=psit_f(i7-5)
+          psitwork_f(ind7-4)=psit_f(i7-4)
+          psitwork_f(ind7-3)=psit_f(i7-3)
+          psitwork_f(ind7-2)=psit_f(i7-2)
+          psitwork_f(ind7-1)=psit_f(i7-1)
+          psitwork_f(ind7-0)=psit_f(i7-0)
       end do
       !$omp end do
       !$omp end parallel
@@ -496,7 +502,7 @@ module communications
       type(local_zone_descriptors),intent(in),optional :: lzd
       
       ! Local variables
-      integer :: i, ind, iorb, iiorb, ilr, i_tot, i_c, i_f, istat, iall,m
+      integer :: i, ind, iorb, iiorb, ilr, i_tot, i_c, i_f, istat, iall, m, i7, ind7
       real(kind=8),dimension(:),allocatable :: psi_c, psi_f
       character(len=*),parameter :: subname='transpose_unswitch_psi'
       
@@ -537,13 +543,15 @@ module communications
       !$omp do
        do i=1,collcom%ndimpsi_f
             ind=collcom%irecvbuf_f(i)
-            psi_f(7*ind-6)=psiwork_f(7*i-6)
-            psi_f(7*ind-5)=psiwork_f(7*i-5)
-            psi_f(7*ind-4)=psiwork_f(7*i-4)
-            psi_f(7*ind-3)=psiwork_f(7*i-3)
-            psi_f(7*ind-2)=psiwork_f(7*i-2)
-            psi_f(7*ind-1)=psiwork_f(7*i-1)
-            psi_f(7*ind-0)=psiwork_f(7*i-0)
+            i7=7*i
+            ind7=7*ind
+            psi_f(ind7-6)=psiwork_f(i7-6)
+            psi_f(ind7-5)=psiwork_f(i7-5)
+            psi_f(ind7-4)=psiwork_f(i7-4)
+            psi_f(ind7-3)=psiwork_f(i7-3)
+            psi_f(ind7-2)=psiwork_f(i7-2)
+            psi_f(ind7-1)=psiwork_f(i7-1)
+            psi_f(ind7-0)=psiwork_f(i7-0)
         end do
       !$omp end do
       !$omp end parallel

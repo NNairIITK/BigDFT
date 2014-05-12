@@ -992,7 +992,7 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
   !local variables
   character(len=*),parameter :: subname = 'segkeys_Sphere'
   integer :: i, i1, i2, i3, nstart, nend, nvctr, igridpoint, igridglob, i2old, iseg, jj, j0, j1, ii, i0, n1l, n2l, n3l
-  integer :: i1l, i2l, i3l, ii1, ii2, ii3, istat, iall, loc, n1p1, np, n1lp1, nlp
+  integer :: i1l, i2l, i3l, ii1, ii2, ii3, istat, iall, loc, n1p1, np, n1lp1, nlp, igridpointa, igridgloba
   real(kind=8) :: cut, dx, dy, dz
   logical :: segment
   integer, allocatable :: keygloc(:,:)
@@ -1029,22 +1029,20 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
       i2=ii/n1p1
       i0=ii-i2*n1p1
       i1=i0+j1-j0
-
       ii2=i2+nl2glob
       ii3=i3+nl3glob
-
       dz=((ii3*hz)-locregCenter(3))**2
       dy=((ii2*hy)-locregCenter(2))**2
       i2l=ii2-nl2
       i3l=ii3-nl3
+      igridpointa=i3l*nlp+i2l*n1lp1+1
+      igridgloba=ii3*np+ii2*n1p1+1 
       do i=i0,i1
           ii1=i+nl1glob
-
           dx=((ii1*hx)-locregCenter(1))**2
           i1l=ii1-nl1
-
-          igridpoint=i3l*nlp + i2l*n1lp1 + i1l+1
-          igridglob = ii3*np + ii2*n1p1 + ii1 + 1 
+          igridpoint=igridpointa+i1l
+          igridglob=igridgloba+ii1 
           if(dx+dy+dz<=cut) then
               ! Check that we are not outside the global region
               if(ii1>nu1) then

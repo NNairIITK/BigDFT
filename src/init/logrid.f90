@@ -357,7 +357,10 @@ subroutine wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
   type(wavefunctions_descriptors), intent(in) :: wfd
   logical, dimension(0:n1,0:n2,0:n3), intent(out) :: logrid_c,logrid_f
   !local variables
-  integer :: iseg,j0,j1,ii,i1,i2,i3,i0,nvctr_check,i
+  integer :: iseg,j0,j1,ii,i1,i2,i3,i0,nvctr_check,i,n1p1,np
+
+  n1p1=n1+1
+  np=n1p1*(n2+1)
 
   !coarse part
   logrid_c(:,:,:)=.false.
@@ -367,10 +370,10 @@ subroutine wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
      j0=wfd%keygloc(1,iseg)
      j1=wfd%keygloc(2,iseg)
      ii=j0-1
-     i3=ii/((n1+1)*(n2+1))
-     ii=ii-i3*(n1+1)*(n2+1)
-     i2=ii/(n1+1)
-     i0=ii-i2*(n1+1)
+     i3=ii/np
+     ii=ii-i3*np
+     i2=ii/n1p1
+     i0=ii-i2*n1p1
      i1=i0+j1-j0
      do i=i0,i1
         nvctr_check=nvctr_check+1
@@ -399,10 +402,10 @@ subroutine wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
      j0=wfd%keygloc(1,iseg)
      j1=wfd%keygloc(2,iseg)
      ii=j0-1
-     i3=ii/((n1+1)*(n2+1))
-     ii=ii-i3*(n1+1)*(n2+1)
-     i2=ii/(n1+1)
-     i0=ii-i2*(n1+1)
+     i3=ii/np
+     ii=ii-i3*np
+     i2=ii/n1p1
+     i0=ii-i2*n1p1
      i1=i0+j1-j0
      do i=i0,i1
         nvctr_check=nvctr_check+1

@@ -319,7 +319,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
 
   ! Local variables
   integer :: i0, ipt, ii, iiorb, j, jjorb, i, ierr, istat, m, tid, norb, nthreads
-  integer :: istart, iend, orb_rest, ind0, ind1, ind2, ind3
+  integer :: istart, iend, orb_rest, ind0, ind1, ind2, ind3, i07i, i07j, i0i, i0j
   integer,dimension(:),allocatable :: n
   !$ integer  :: omp_get_thread_num,omp_get_max_threads
   integer :: totops, avops, ops, opsn
@@ -392,33 +392,36 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
           ii=collcom%norb_per_gridpoint_c(ipt) 
           i0 = collcom%isptsp_c(ipt)
           do i=1,ii
-              iiorb=collcom%indexrecvorbital_c(i0+i)
+              i0i=i0+i
+              iiorb=collcom%indexrecvorbital_c(i0i)
               if(iiorb < istart .or. iiorb > iend) cycle
               m=mod(ii,4)
               if(m/=0) then
                   do j=1,m
-                      jjorb=collcom%indexrecvorbital_c(i0+j)
+                      i0j=i0+j
+                      jjorb=collcom%indexrecvorbital_c(i0j)
                       ind0 = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                      ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_c1(i0+i)*psit_c2(i0+j)
+                      ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_c1(i0i)*psit_c2(i0j)
                   end do
               end if
               do j=m+1,ii,4
+                  i0j=i0+j
 
-                  jjorb=collcom%indexrecvorbital_c(i0+j+0)
+                  jjorb=collcom%indexrecvorbital_c(i0j+0)
                   ind0 = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_c1(i0+i)*psit_c2(i0+j+0)
+                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_c1(i0i)*psit_c2(i0j+0)
 
-                  jjorb=collcom%indexrecvorbital_c(i0+j+1)
+                  jjorb=collcom%indexrecvorbital_c(i0j+1)
                   ind1 = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                  ovrlp%matrix_compr(ind1) = ovrlp%matrix_compr(ind1) + psit_c1(i0+i)*psit_c2(i0+j+1)
+                  ovrlp%matrix_compr(ind1) = ovrlp%matrix_compr(ind1) + psit_c1(i0i)*psit_c2(i0j+1)
 
-                  jjorb=collcom%indexrecvorbital_c(i0+j+2)
+                  jjorb=collcom%indexrecvorbital_c(i0j+2)
                   ind2 = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                  ovrlp%matrix_compr(ind2) = ovrlp%matrix_compr(ind2) + psit_c1(i0+i)*psit_c2(i0+j+2)
+                  ovrlp%matrix_compr(ind2) = ovrlp%matrix_compr(ind2) + psit_c1(i0i)*psit_c2(i0j+2)
 
-                  jjorb=collcom%indexrecvorbital_c(i0+j+3)
+                  jjorb=collcom%indexrecvorbital_c(i0j+3)
                   ind3 = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                  ovrlp%matrix_compr(ind3) = ovrlp%matrix_compr(ind3) + psit_c1(i0+i)*psit_c2(i0+j+3)
+                  ovrlp%matrix_compr(ind3) = ovrlp%matrix_compr(ind3) + psit_c1(i0i)*psit_c2(i0j+3)
 
               end do
           end do
@@ -429,22 +432,23 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
       do ipt=1,collcom%nptsp_f 
           ii=collcom%norb_per_gridpoint_f(ipt) 
           i0 = collcom%isptsp_f(ipt)
-
           do i=1,ii
-
-              iiorb=collcom%indexrecvorbital_f(i0+i)
+              i0i=i0+i
+              iiorb=collcom%indexrecvorbital_f(i0i)
               if(iiorb < istart .or. iiorb > iend) cycle
-
+              i07i=7*i0i
               do j=1,ii
-                  jjorb=collcom%indexrecvorbital_f(i0+j)
+                  i0j=i0+j
+                  i07j=7*i0j
+                  jjorb=collcom%indexrecvorbital_f(i0j)
                   ind0 = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(7*(i0+i)-6)*psit_f2(7*(i0+j)-6)
-                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(7*(i0+i)-5)*psit_f2(7*(i0+j)-5)
-                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(7*(i0+i)-4)*psit_f2(7*(i0+j)-4)
-                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(7*(i0+i)-3)*psit_f2(7*(i0+j)-3)
-                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(7*(i0+i)-2)*psit_f2(7*(i0+j)-2)
-                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(7*(i0+i)-1)*psit_f2(7*(i0+j)-1)
-                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(7*(i0+i)-0)*psit_f2(7*(i0+j)-0)
+                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(i07i-6)*psit_f2(i07j-6)
+                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(i07i-5)*psit_f2(i07j-5)
+                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(i07i-4)*psit_f2(i07j-4)
+                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(i07i-3)*psit_f2(i07j-3)
+                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(i07i-2)*psit_f2(i07j-2)
+                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(i07i-1)*psit_f2(i07j-1)
+                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(i07i-0)*psit_f2(i07j-0)
               end do
           end do
       end do
@@ -561,7 +565,7 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork
   real(kind=8),dimension(7*collcom%ndimind_f),intent(inout) :: psit_f
   integer, intent(in) :: iproc
   ! Local variables
-  integer :: i0, ipt, ii, j, iiorb, jjorb, i, m, ind0, ind1, ind2, ind3
+  integer :: i0, ipt, ii, j, iiorb, jjorb, i, m, ind0, ind1, ind2, ind3, i0i, i0j, i07i, i07j
 
   call timing(iproc,'lincombtrans  ','ON') !lr408t
   if(reset) then
@@ -583,38 +587,41 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork
       ii=collcom%norb_per_gridpoint_c(ipt) 
       i0 = collcom%isptsp_c(ipt)
       do i=1,ii
-          iiorb=collcom%indexrecvorbital_c(i0+i)
+          i0i=i0+i
+          iiorb=collcom%indexrecvorbital_c(i0i)
           m=mod(ii,4)
           if(m/=0) then
               do j=1,m
-                  jjorb=collcom%indexrecvorbital_c(i0+j)
+                  i0j=i0+j
+                  jjorb=collcom%indexrecvorbital_c(i0j)
                   ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
                   !ind0 = collcom%matrixindex_in_compressed(jjorb,iiorb)
                   !write(41,*) jjorb, iiorb, sparsemat%matrixindex_in_compressed(jjorb,iiorb)
                   !write(42,*) jjorb, iiorb, collcom%matrixindex_in_compressed(jjorb,iiorb)
-                  psit_c(i0+i)=psit_c(i0+i)+mat%matrix_compr(ind0)*psitwork_c(i0+j)
+                  psit_c(i0i)=psit_c(i0i)+mat%matrix_compr(ind0)*psitwork_c(i0j)
               end do
           end if
           do j=m+1,ii,4
-              jjorb=collcom%indexrecvorbital_c(i0+j+0)
+              i0j=i0+j
+              jjorb=collcom%indexrecvorbital_c(i0j+0)
               ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
               !ind0 = collcom%matrixindex_in_compressed(jjorb,iiorb)
-              psit_c(i0+i)=psit_c(i0+i)+mat%matrix_compr(ind0)*psitwork_c(i0+j+0)
+              psit_c(i0i)=psit_c(i0i)+mat%matrix_compr(ind0)*psitwork_c(i0j+0)
 
-              jjorb=collcom%indexrecvorbital_c(i0+j+1)
+              jjorb=collcom%indexrecvorbital_c(i0j+1)
               ind1 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
               !ind1 = collcom%matrixindex_in_compressed(jjorb,iiorb)
-              psit_c(i0+i)=psit_c(i0+i)+mat%matrix_compr(ind1)*psitwork_c(i0+j+1)
+              psit_c(i0i)=psit_c(i0i)+mat%matrix_compr(ind1)*psitwork_c(i0j+1)
 
-              jjorb=collcom%indexrecvorbital_c(i0+j+2)
+              jjorb=collcom%indexrecvorbital_c(i0j+2)
               ind2 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
               !ind2 = collcom%matrixindex_in_compressed(jjorb,iiorb)
-              psit_c(i0+i)=psit_c(i0+i)+mat%matrix_compr(ind2)*psitwork_c(i0+j+2)
+              psit_c(i0i)=psit_c(i0i)+mat%matrix_compr(ind2)*psitwork_c(i0j+2)
 
-              jjorb=collcom%indexrecvorbital_c(i0+j+3)
+              jjorb=collcom%indexrecvorbital_c(i0j+3)
               ind3 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
               !ind3 = collcom%matrixindex_in_compressed(jjorb,iiorb)
-              psit_c(i0+i)=psit_c(i0+i)+mat%matrix_compr(ind3)*psitwork_c(i0+j+3)
+              psit_c(i0i)=psit_c(i0i)+mat%matrix_compr(ind3)*psitwork_c(i0j+3)
           end do
       end do
   end do
@@ -625,18 +632,22 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork
       ii=collcom%norb_per_gridpoint_f(ipt) 
       i0 = collcom%isptsp_f(ipt)
       do i=1,ii
-          iiorb=collcom%indexrecvorbital_f(i0+i)
+          i0i=i0+i
+          i07i=7*i0i
+          iiorb=collcom%indexrecvorbital_f(i0i)
           do j=1,ii
-              jjorb=collcom%indexrecvorbital_f(i0+j)
+              i0j=i0+j
+              i07j=7*i0j
+              jjorb=collcom%indexrecvorbital_f(i0j)
               ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
               !ind0 = collcom%matrixindex_in_compressed(jjorb,iiorb)
-              psit_f(7*(i0+i)-6) = psit_f(7*(i0+i)-6) + mat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-6)
-              psit_f(7*(i0+i)-5) = psit_f(7*(i0+i)-5) + mat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-5)
-              psit_f(7*(i0+i)-4) = psit_f(7*(i0+i)-4) + mat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-4)
-              psit_f(7*(i0+i)-3) = psit_f(7*(i0+i)-3) + mat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-3)
-              psit_f(7*(i0+i)-2) = psit_f(7*(i0+i)-2) + mat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-2)
-              psit_f(7*(i0+i)-1) = psit_f(7*(i0+i)-1) + mat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-1)
-              psit_f(7*(i0+i)-0) = psit_f(7*(i0+i)-0) + mat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-0)
+              psit_f(i07i-6) = psit_f(i07i-6) + mat%matrix_compr(ind0)*psitwork_f(i07j-6)
+              psit_f(i07i-5) = psit_f(i07i-5) + mat%matrix_compr(ind0)*psitwork_f(i07j-5)
+              psit_f(i07i-4) = psit_f(i07i-4) + mat%matrix_compr(ind0)*psitwork_f(i07j-4)
+              psit_f(i07i-3) = psit_f(i07i-3) + mat%matrix_compr(ind0)*psitwork_f(i07j-3)
+              psit_f(i07i-2) = psit_f(i07i-2) + mat%matrix_compr(ind0)*psitwork_f(i07j-2)
+              psit_f(i07i-1) = psit_f(i07i-1) + mat%matrix_compr(ind0)*psitwork_f(i07j-1)
+              psit_f(i07i-0) = psit_f(i07i-0) + mat%matrix_compr(ind0)*psitwork_f(i07j-0)
           end do
       end do  
   end do
@@ -735,7 +746,7 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, nor
   real(8),dimension(orbs%norb),intent(out):: norm
   
   ! Local variables
-  integer:: i0, ipt, ii, iiorb, i, ierr, iorb
+  integer:: i0, ipt, ii, iiorb, i, ierr, iorb, i07i, i0i
 
   call timing(iproc,'norm_trans','ON')
 
@@ -749,8 +760,9 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, nor
           ii=collcom%norb_per_gridpoint_c(ipt)
           i0 = collcom%isptsp_c(ipt) 
           do i=1,ii
-              iiorb=collcom%indexrecvorbital_c(i0+i)
-              norm(iiorb)=norm(iiorb)+psit_c(i0+i)**2
+              i0i=i0+i
+              iiorb=collcom%indexrecvorbital_c(i0i)
+              norm(iiorb)=norm(iiorb)+psit_c(i0i)**2
           end do
       end do
       !$omp end do
@@ -762,14 +774,16 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, nor
           ii=collcom%norb_per_gridpoint_f(ipt) 
           i0 = collcom%isptsp_f(ipt) 
           do i=1,ii
-              iiorb=collcom%indexrecvorbital_f(i0+i)
-              norm(iiorb)=norm(iiorb)+psit_f(7*(i0+i)-6)**2
-              norm(iiorb)=norm(iiorb)+psit_f(7*(i0+i)-5)**2
-              norm(iiorb)=norm(iiorb)+psit_f(7*(i0+i)-4)**2
-              norm(iiorb)=norm(iiorb)+psit_f(7*(i0+i)-3)**2
-              norm(iiorb)=norm(iiorb)+psit_f(7*(i0+i)-2)**2
-              norm(iiorb)=norm(iiorb)+psit_f(7*(i0+i)-1)**2
-              norm(iiorb)=norm(iiorb)+psit_f(7*(i0+i)-0)**2
+              i0i=i0+i
+              i07i=7*i0i
+              iiorb=collcom%indexrecvorbital_f(i0i)
+              norm(iiorb)=norm(iiorb)+psit_f(i07i-6)**2
+              norm(iiorb)=norm(iiorb)+psit_f(i07i-5)**2
+              norm(iiorb)=norm(iiorb)+psit_f(i07i-4)**2
+              norm(iiorb)=norm(iiorb)+psit_f(i07i-3)**2
+              norm(iiorb)=norm(iiorb)+psit_f(i07i-2)**2
+              norm(iiorb)=norm(iiorb)+psit_f(i07i-1)**2
+              norm(iiorb)=norm(iiorb)+psit_f(i07i-0)**2
           end do
       end do
       !$omp end do
@@ -790,8 +804,9 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, nor
       ii=collcom%norb_per_gridpoint_c(ipt)
       i0=collcom%isptsp_c(ipt)
       do i=1,ii
-          iiorb=collcom%indexrecvorbital_c(i0+i)
-          psit_c(i0+i)=psit_c(i0+i)*norm(iiorb)
+          i0i=i0+i
+          iiorb=collcom%indexrecvorbital_c(i0i)
+          psit_c(i0i)=psit_c(i0i)*norm(iiorb)
       end do 
   end do
   !$omp end do
@@ -800,14 +815,16 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, nor
       ii=collcom%norb_per_gridpoint_f(ipt)
       i0 = collcom%isptsp_f(ipt) 
       do i=1,ii
-          iiorb=collcom%indexrecvorbital_f(i0+i)
-          psit_f(7*(i0+i)-6)=psit_f(7*(i0+i)-6)*norm(iiorb)
-          psit_f(7*(i0+i)-5)=psit_f(7*(i0+i)-5)*norm(iiorb)
-          psit_f(7*(i0+i)-4)=psit_f(7*(i0+i)-4)*norm(iiorb)
-          psit_f(7*(i0+i)-3)=psit_f(7*(i0+i)-3)*norm(iiorb)
-          psit_f(7*(i0+i)-2)=psit_f(7*(i0+i)-2)*norm(iiorb)
-          psit_f(7*(i0+i)-1)=psit_f(7*(i0+i)-1)*norm(iiorb)
-          psit_f(7*(i0+i)-0)=psit_f(7*(i0+i)-0)*norm(iiorb)
+          i0i=i0+i
+          i07i=7*i0i
+          iiorb=collcom%indexrecvorbital_f(i0i)
+          psit_f(i07i-6)=psit_f(i07i-6)*norm(iiorb)
+          psit_f(i07i-5)=psit_f(i07i-5)*norm(iiorb)
+          psit_f(i07i-4)=psit_f(i07i-4)*norm(iiorb)
+          psit_f(i07i-3)=psit_f(i07i-3)*norm(iiorb)
+          psit_f(i07i-2)=psit_f(i07i-2)*norm(iiorb)
+          psit_f(i07i-1)=psit_f(i07i-1)*norm(iiorb)
+          psit_f(i07i-0)=psit_f(i07i-0)*norm(iiorb)
       end do
   end do
   !$omp end do

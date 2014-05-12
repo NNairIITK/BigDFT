@@ -1961,7 +1961,7 @@ module communications_init
     
       ! Local variables
       integer :: jproc, iitot, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, i3, i2, i1, ind, indglob, istat, iall, ierr, ii
-      integer :: iorb, i, ipt
+      integer :: iorb, i, ipt, indglob2, indglob3, indglob3a, itotadd
       integer,dimension(:),allocatable :: nsend, indexsendbuf, indexsendorbital, indexsendorbital2, indexrecvorbital2
       integer,dimension(:),allocatable :: gridpoint_start, indexrecvbuf
       character(len=*),parameter :: subname='get_switch_indices_sumrho'
@@ -1992,15 +1992,19 @@ module communications_init
               ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
               is3=1+lzd%Llr(ilr)%nsi3
               ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+              itotadd=(ie2-is2+1)*(ie1-is1+1)
               do i3=is3,ie3
-                  if (i3*lzd%glr%d%n1i*lzd%glr%d%n2i<istartend(1,jproc) .or. &
-                      (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+1>istartend(2,jproc)) then
-                      iitot=iitot+(ie2-is2+1)*(ie1-is1+1)
+                  indglob3a=i3*lzd%glr%d%n1i*lzd%glr%d%n2i
+                  indglob3=indglob3a-lzd%glr%d%n1i*lzd%glr%d%n2i
+                  if (indglob3a<istartend(1,jproc) .or. &
+                      indglob3+1>istartend(2,jproc)) then
+                      iitot=iitot+itotadd
                       cycle
                   end if
                   do i2=is2,ie2
+                      indglob2=indglob3+(i2-1)*lzd%glr%d%n1i
                       do i1=is1,ie1
-                          indglob = (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
+                          indglob = indglob2+i1
                           iitot=iitot+1
                           if (indglob>=istartend(1,jproc) .and. indglob<=istartend(2,jproc)) then
                               nsend(jproc)=nsend(jproc)+1
