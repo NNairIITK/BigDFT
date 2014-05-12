@@ -1361,9 +1361,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
      call dpbox_free(denspot%dpbox, subname)
 
-     i_all=-product(shape(denspot%rhov))*kind(denspot%rhov)
-     deallocate(denspot%rhov,stat=i_stat)
-     call memocc(i_stat,i_all,'denspot%rhov',subname)
+     call f_free_ptr(denspot%rhov)
 
      i_all=-product(shape(denspot%V_XC))*kind(denspot%V_XC)
      deallocate(denspot%V_XC,stat=i_stat)
@@ -1400,9 +1398,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   else
      !    No tail calculation
      if (nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
-     i_all=-product(shape(denspot%rhov))*kind(denspot%rhov)
-     deallocate(denspot%rhov,stat=i_stat)
-     call memocc(i_stat,i_all,'denspot%rhov',subname)
+     call f_free_ptr(denspot%rhov)
      i_all=-product(shape(denspot%V_XC))*kind(denspot%V_XC)
      deallocate(denspot%V_XC,stat=i_stat)
      call memocc(i_stat,i_all,'denspot%V_XC',subname)
@@ -1452,9 +1448,7 @@ contains
 !!$       call memocc(i_stat,i_all,'kernel',subname)
 
        ! calc_tail false
-       i_all=-product(shape(denspot%rhov))*kind(denspot%rhov)
-       deallocate(denspot%rhov,stat=i_stat)
-       call memocc(i_stat,i_all,'denspot%rhov',subname)
+       call f_free_ptr(denspot%rhov)
        i_all=-product(shape(denspot%V_XC))*kind(denspot%V_XC)
        deallocate(denspot%V_XC,stat=i_stat)
        call memocc(i_stat,i_all,'denspot%V_XC',subname)

@@ -503,12 +503,10 @@ subroutine allocateRhoPot(iproc,Glr,nspin,atoms,rxyz,denspot)
   end if
 
   if (denspot%dpbox%n3d >0) then
-     allocate(denspot%rhov(Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3d*&
-          denspot%dpbox%nrhodim+ndebug),stat=i_stat)
-     call memocc(i_stat,denspot%rhov,'rhov',subname)
+     denspot%rhov = f_malloc_ptr(Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3d*&
+          denspot%dpbox%nrhodim+ndebug,id='denspot%rhov')
   else
-     allocate(denspot%rhov(denspot%dpbox%nrhodim+ndebug),stat=i_stat)
-     call memocc(i_stat,denspot%rhov,'rhov',subname)
+     denspot%rhov = f_malloc_ptr(denspot%dpbox%nrhodim+ndebug,id='denspot%rhov')
   end if
   !check if non-linear core correction should be applied, and allocate the 
   !pointer if it is the case
