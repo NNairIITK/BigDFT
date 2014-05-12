@@ -2156,7 +2156,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), matrices, &
                                matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: compress_matrix, uncompress_matrix
-  use foe_base, only: get_real
+  use foe_base, only: foe_data_get_real
   implicit none
 
   ! Calling arguments
@@ -2383,7 +2383,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
           tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
                 tmb%linmat%ovrlp_, tmb%linmat%kernel_)
-          chargediff=2.d0*tr_KS-tmb%foe_obj%get_real("charge")
+          chargediff=2.d0*tr_KS-foe_data_get_real(tmb%foe_obj,"charge")
 
           if (nproc > 1) then
               call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm)
@@ -2422,7 +2422,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
       !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
       tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
             tmb%linmat%ovrlp_, tmb%linmat%kernel_)
-      chargediff=2.d0*tr_KS-tmb%foe_obj%get_real("charge")
+      chargediff=2.d0*tr_KS-foe_data_get_real(tmb%foe_obj,"charge")
 
       if (iproc==0) call yaml_close_sequence
 
