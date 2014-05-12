@@ -186,9 +186,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       !end if
       !END DEBUG
 
-      iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
-      deallocate(denspot%pot_work, stat=istat)
-      call memocc(istat, iall, 'denspot%pot_work', subname)
+      call f_free_ptr(denspot%pot_work)
       !call f_free_ptr(denspot%pot_work)
 
       !!if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application done.'
@@ -1121,9 +1119,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
   ! Deallocate potential
   !call f_free_ptr(denspot%pot_work)
-  iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
-  deallocate(denspot%pot_work, stat=istat)
-  call memocc(istat, iall, 'denspot%pot_work', subname)
+  call f_free_ptr(denspot%pot_work)
 
 
   ! Keep the values for the next iteration
