@@ -162,13 +162,15 @@ end subroutine dpbox_set_box
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !>todo: remove n1i and n2i
 subroutine denspot_set_history(denspot, iscf, nspin, &
-     & n1i, n2i) !to be removed arguments when denspot has dimensions
+     & n1i, n2i, & !to be removed arguments when denspot has dimensions
+     npulayit)
   use module_base
   use module_types
   use m_ab7_mixing
   implicit none
   type(DFT_local_fields), intent(inout) :: denspot
   integer, intent(in) :: iscf, n1i, n2i, nspin
+  integer,intent(in),optional :: npulayit
   
   integer :: potden, npoints, ierr
   character(len=500) :: errmess
@@ -184,9 +186,15 @@ subroutine denspot_set_history(denspot, iscf, nspin, &
   end if
   if (iscf > SCF_KIND_DIRECT_MINIMIZATION) then
      allocate(denspot%mix)
-     call ab7_mixing_new(denspot%mix, modulo(iscf, 10), potden, &
-          AB7_MIXING_REAL_SPACE, npoints, nspin, 0, &
-          ierr, errmess, useprec = .false.)
+     if (present(npulayit)) then
+         call ab7_mixing_new(denspot%mix, modulo(iscf, 10), potden, &
+              AB7_MIXING_REAL_SPACE, npoints, nspin, 0, &
+              ierr, errmess, npulayit=npulayit, useprec = .false.)
+     else
+         call ab7_mixing_new(denspot%mix, modulo(iscf, 10), potden, &
+              AB7_MIXING_REAL_SPACE, npoints, nspin, 0, &
+              ierr, errmess, useprec = .false.)
+     end if
      call ab7_mixing_eval_allocate(denspot%mix)
   else
      nullify(denspot%mix)

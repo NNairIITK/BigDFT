@@ -683,7 +683,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
          stop 'ERROR: wrong in%lin%scf_mode'
      end select
      call denspot_set_history(denspot,linear_iscf,in%nspin, &
-          KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i)
+          KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,npulayit=in%lin%mixHist_lowaccuracy)
      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpsp,KSwfn,tmb,energs,&
           inputpsi,input_wf_format,norbv,lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft,&
           locregcenters)

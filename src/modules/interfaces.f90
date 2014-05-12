@@ -2844,11 +2844,13 @@ module module_interfaces
         end subroutine local_forces
 
         subroutine denspot_set_history(denspot, iscf, nspin, &
-             & n1i, n2i) !to be removed arguments when denspot has dimensions
+             & n1i, n2i, & !to be removed arguments when denspot has dimensions
+             npulayit)
           use module_types
           implicit none
           type(DFT_local_fields), intent(inout) :: denspot
           integer, intent(in) :: iscf, n1i, n2i, nspin
+          integer,intent(in),optional :: npulayit
         end subroutine denspot_set_history
 
         subroutine denspot_free_history(denspot)
