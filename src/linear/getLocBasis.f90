@@ -94,12 +94,10 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   if(calculate_overlap_matrix) then
       if(.not.tmb%can_use_transposed) then
           if(.not.associated(tmb%psit_c)) then
-              allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-              call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+              tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
           end if
           if(.not.associated(tmb%psit_f)) then
-              allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-              call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+              tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
           end if
           call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
                tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
@@ -198,20 +196,14 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       ! Calculate the matrix elements <phi|H|phi>.
       if(.not.tmb%ham_descr%can_use_transposed) then
           if(associated(tmb%ham_descr%psit_c)) then
-              iall=-product(shape(tmb%ham_descr%psit_c))*kind(tmb%ham_descr%psit_c)
-              deallocate(tmb%ham_descr%psit_c, stat=istat)
-              call memocc(istat, iall, 'tmb%ham_descr%psit_c', subname)
+              call f_free_ptr(tmb%ham_descr%psit_c)
           end if
           if(associated(tmb%ham_descr%psit_f)) then
-              iall=-product(shape(tmb%ham_descr%psit_f))*kind(tmb%ham_descr%psit_f)
-              deallocate(tmb%ham_descr%psit_f, stat=istat)
-              call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
+              call f_free_ptr(tmb%ham_descr%psit_f)
           end if
 
-          allocate(tmb%ham_descr%psit_c(tmb%ham_descr%collcom%ndimind_c), stat=istat)
-          call memocc(istat, tmb%ham_descr%psit_c, 'tmb%ham_descr%psit_c', subname)
-          allocate(tmb%ham_descr%psit_f(7*tmb%ham_descr%collcom%ndimind_f), stat=istat)
-          call memocc(istat, tmb%ham_descr%psit_f, 'tmb%ham_descr%psit_f', subname)
+          tmb%ham_descr%psit_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='tmb%ham_descr%psit_c')
+          tmb%ham_descr%psit_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='tmb%ham_descr%psit_f')
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
           tmb%ham_descr%can_use_transposed=.true.
@@ -647,26 +639,20 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           if (method_updatekernel==UPDATE_BY_FOE) then
               !@NEW
               if(associated(tmb%ham_descr%psit_c)) then
-                  iall=-product(shape(tmb%ham_descr%psit_c))*kind(tmb%ham_descr%psit_c)
-                  deallocate(tmb%ham_descr%psit_c, stat=istat)
-                  call memocc(istat, iall, 'tmb%ham_descr%psit_c', subname)
+                  call f_free_ptr(tmb%ham_descr%psit_c)
                   associated_psitlarge_c=.true.
               else
                   associated_psitlarge_c=.false.
               end if
               if(associated(tmb%ham_descr%psit_f)) then
-                  iall=-product(shape(tmb%ham_descr%psit_f))*kind(tmb%ham_descr%psit_f)
-                  deallocate(tmb%ham_descr%psit_f, stat=istat)
-                  call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
+                  call f_free_ptr(tmb%ham_descr%psit_f)
                   associated_psitlarge_f=.true.
               else
                   associated_psitlarge_f=.false.
               end if
 
-              allocate(tmb%ham_descr%psit_c(tmb%ham_descr%collcom%ndimind_c), stat=istat)
-              call memocc(istat, tmb%ham_descr%psit_c, 'tmb%ham_descr%psit_c', subname)
-              allocate(tmb%ham_descr%psit_f(7*tmb%ham_descr%collcom%ndimind_f), stat=istat)
-              call memocc(istat, tmb%ham_descr%psit_f, 'tmb%ham_descr%psit_f', subname)
+              tmb%ham_descr%psit_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='tmb%ham_descr%psit_c')
+              tmb%ham_descr%psit_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='tmb%ham_descr%psit_f')
               call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                    tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
@@ -675,25 +661,19 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               !tmb%linmat%ham%matrix_compr=tmb%linmat%ham_%matrix_compr
 
               if(associated(tmb%psit_c)) then
-                  iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-                  deallocate(tmb%psit_c, stat=istat)
-                  call memocc(istat, iall, 'tmb%psit_c', subname)
+                  call f_free_ptr(tmb%psit_c)
                   associated_psit_c=.true.
               else
                   associated_psit_c=.false.
               end if
               if(associated(tmb%psit_f)) then
-                  iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-                  deallocate(tmb%psit_f, stat=istat)
-                  call memocc(istat, iall, 'tmb%psit_f', subname)
+                  call f_free_ptr(tmb%psit_f)
                   associated_psit_f=.true.
               else
                   associated_psit_f=.false.
               end if
-              allocate(tmb%psit_c(tmb%collcom%ndimind_c), stat=istat)
-              call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
-              allocate(tmb%psit_f(7*tmb%collcom%ndimind_f), stat=istat)
-              call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+              tmb%psit_c = f_malloc_ptr(tmb%collcom%ndimind_c,id='tmb%psit_c')
+              tmb%psit_f = f_malloc_ptr(7*tmb%collcom%ndimind_f,id='tmb%psit_f')
               call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
                    tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
@@ -710,27 +690,19 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               !if (iproc==0) call yaml_close_map()
               if (iproc==0) call yaml_close_sequence()
               if (.not.associated_psit_c) then
-                  iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-                  deallocate(tmb%psit_c, stat=istat)
-                  call memocc(istat, iall, 'tmb%psit_c', subname)
+                  call f_free_ptr(tmb%psit_c)
               end if
               if (.not.associated_psit_f) then
-                  iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-                  deallocate(tmb%psit_f, stat=istat)
-                  call memocc(istat, iall, 'tmb%psit_f', subname)
+                  call f_free_ptr(tmb%psit_f)
               end if
               if (associated_psit_c .and. associated_psit_f) then
                   tmb%can_use_transposed=.true.
               end if
               if (.not.associated_psitlarge_c) then
-                  iall=-product(shape(tmb%ham_descr%psit_c))*kind(tmb%ham_descr%psit_c)
-                  deallocate(tmb%ham_descr%psit_c, stat=istat)
-                  call memocc(istat, iall, 'tmb%ham_descr%psit_c', subname)
+                  call f_free_ptr(tmb%ham_descr%psit_c)
               end if
               if (.not.associated_psitlarge_f) then
-                  iall=-product(shape(tmb%ham_descr%psit_f))*kind(tmb%ham_descr%psit_f)
-                  deallocate(tmb%ham_descr%psit_f, stat=istat)
-                  call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
+                  call f_free_ptr(tmb%ham_descr%psit_f)
               end if
               if (associated_psitlarge_c .and. associated_psitlarge_f) then
                   tmb%ham_descr%can_use_transposed=.true.
@@ -946,14 +918,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           trH_old=0.d0
           it=it-2 !go back one iteration (minus 2 since the counter was increased)
           if(associated(tmb%ham_descr%psit_c)) then
-              iall=-product(shape(tmb%ham_descr%psit_c))*kind(tmb%ham_descr%psit_c)
-              deallocate(tmb%ham_descr%psit_c, stat=istat)
-              call memocc(istat, iall, 'tmb%ham_descr%psit_c', subname)
+              call f_free_ptr(tmb%ham_descr%psit_c)
           end if
           if(associated(tmb%ham_descr%psit_f)) then
-              iall=-product(shape(tmb%ham_descr%psit_f))*kind(tmb%ham_descr%psit_f)
-              deallocate(tmb%ham_descr%psit_f, stat=istat)
-              call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
+              call f_free_ptr(tmb%ham_descr%psit_f)
           end if
           !!if(iproc==0) write(*,*) 'it_tot',it_tot
           overlap_calculated=.false.
@@ -1065,12 +1033,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       overlap_calculated=.false.
       ! It is now not possible to use the transposed quantities, since they have changed.
       if(tmb%ham_descr%can_use_transposed) then
-          iall=-product(shape(tmb%ham_descr%psit_c))*kind(tmb%ham_descr%psit_c)
-          deallocate(tmb%ham_descr%psit_c, stat=istat)
-          call memocc(istat, iall, 'tmb%ham_descr%psit_c', subname)
-          iall=-product(shape(tmb%ham_descr%psit_f))*kind(tmb%ham_descr%psit_f)
-          deallocate(tmb%ham_descr%psit_f, stat=istat)
-          call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
+          call f_free_ptr(tmb%ham_descr%psit_c)
+          call f_free_ptr(tmb%ham_descr%psit_f)
           tmb%ham_descr%can_use_transposed=.false.
       end if
 
@@ -1818,19 +1782,13 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
   if(.not. overlap_calculated) then
      if(.not.tmb%can_use_transposed) then
          if(associated(tmb%psit_c)) then
-             iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-             deallocate(tmb%psit_c, stat=istat)
-             call memocc(istat, iall, 'tmb%psit_c', subname)
+             call f_free_ptr(tmb%psit_c)
          end if
          if(associated(tmb%psit_f)) then
-             iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-             deallocate(tmb%psit_f, stat=istat)
-             call memocc(istat, iall, 'tmb%psit_f', subname)
+             call f_free_ptr(tmb%psit_f)
          end if
-         allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-         call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
-         allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-         call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+         tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
+         tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
          call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
               tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
          tmb%can_use_transposed=.true.
@@ -2198,19 +2156,13 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   if(.not. overlap_calculated) then
      if(.not.tmb%can_use_transposed) then
          if(associated(tmb%psit_c)) then
-             iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-             deallocate(tmb%psit_c, stat=istat)
-             call memocc(istat, iall, 'tmb%psit_c', subname)
+             call f_free_ptr(tmb%psit_c)
          end if
          if(associated(tmb%psit_f)) then
-             iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-             deallocate(tmb%psit_f, stat=istat)
-             call memocc(istat, iall, 'tmb%psit_f', subname)
+             call f_free_ptr(tmb%psit_f)
          end if
-         allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-         call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
-         allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-         call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+         tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
+         tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
          call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
               tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
          tmb%can_use_transposed=.true.

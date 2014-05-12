@@ -1375,12 +1375,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      call deallocate_auxiliary_basis_function(subname, tmb%ham_descr%psi, tmb%hpsi)
      if(tmb%ham_descr%can_use_transposed) then
-        iall=-product(shape(tmb%ham_descr%psit_c))*kind(tmb%ham_descr%psit_c)
-        deallocate(tmb%ham_descr%psit_c, stat=istat)
-        call memocc(istat, iall, 'tmb%ham_descr%psit_c', subname)
-        iall=-product(shape(tmb%ham_descr%psit_f))*kind(tmb%ham_descr%psit_f)
-        deallocate(tmb%ham_descr%psit_f, stat=istat)
-        call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
+        call f_free_ptr(tmb%ham_descr%psit_c)
+        call f_free_ptr(tmb%ham_descr%psit_f)
         tmb%ham_descr%can_use_transposed=.false.
      end if
      

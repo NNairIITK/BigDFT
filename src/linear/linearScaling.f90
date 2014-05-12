@@ -470,14 +470,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       ! Do nothing if no low accuracy is desired.
       if (nit_lowaccuracy==0 .and. itout==0) then
           if (associated(tmb%psit_c)) then
-              iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-              deallocate(tmb%psit_c, stat=istat)
-              call memocc(istat, iall, 'tmb%psit_c', subname)
+              call f_free_ptr(tmb%psit_c)
           end if
           if (associated(tmb%psit_f)) then
-              iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-              deallocate(tmb%psit_f, stat=istat)
-              call memocc(istat, iall, 'tmb%psit_f', subname)
+              call f_free_ptr(tmb%psit_f)
           end if
           tmb%can_use_transposed=.false.
           if (iproc==0) then
@@ -631,14 +627,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                if (iproc==0) write(*,'(1x,a)') 'There are convergence problems after the restart. &
                                                 &Start over again with an AO input guess.'
                if (associated(tmb%psit_c)) then
-                   iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-                   deallocate(tmb%psit_c, stat=istat)
-                   call memocc(istat, iall, 'tmb%psit_c', subname)
+                   call f_free_ptr(tmb%psit_c)
                end if
                if (associated(tmb%psit_f)) then
-                   iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-                   deallocate(tmb%psit_f, stat=istat)
-                   call memocc(istat, iall, 'tmb%psit_f', subname)
+                   call f_free_ptr(tmb%psit_f)
                end if
                infocode=2
                exit outerLoop
@@ -1137,12 +1129,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       ! CDFT: end of CDFT loop to find V which correctly imposes constraint and corresponding density
 
       if(tmb%can_use_transposed) then
-          iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-          deallocate(tmb%psit_c, stat=istat)
-          call memocc(istat, iall, 'tmb%psit_c', subname)
-          iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-          deallocate(tmb%psit_f, stat=istat)
-          call memocc(istat, iall, 'tmb%psit_f', subname)
+          call f_free_ptr(tmb%psit_c)
+          call f_free_ptr(tmb%psit_f)
           tmb%can_use_transposed=.false.
       end if
 
@@ -1283,12 +1271,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   end if
 
   if(tmb%ham_descr%can_use_transposed) then
-      iall=-product(shape(tmb%ham_descr%psit_c))*kind(tmb%ham_descr%psit_c)
-      deallocate(tmb%ham_descr%psit_c, stat=istat)
-      call memocc(istat, iall, 'tmb%ham_descr%psit_c', subname)
-      iall=-product(shape(tmb%ham_descr%psit_f))*kind(tmb%ham_descr%psit_f)
-      deallocate(tmb%ham_descr%psit_f, stat=istat)
-      call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
+      call f_free_ptr(tmb%ham_descr%psit_c)
+      call f_free_ptr(tmb%ham_descr%psit_f)
       tmb%ham_descr%can_use_transposed=.false.
   end if
   ! here or cluster, not sure which is best
@@ -1490,14 +1474,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                          &Start over again with an AO input guess.')
                 end if
                 if (associated(tmb%psit_c)) then
-                    iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-                    deallocate(tmb%psit_c, stat=istat)
-                    call memocc(istat, iall, 'tmb%psit_c', subname)
+                    call f_free_ptr(tmb%psit_c)
                 end if
                 if (associated(tmb%psit_f)) then
-                    iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-                    deallocate(tmb%psit_f, stat=istat)
-                    call memocc(istat, iall, 'tmb%psit_f', subname)
+                    call f_free_ptr(tmb%psit_f)
                 end if
                 tmb%can_use_transposed=.false.
                 nit_lowaccuracy=input%lin%nit_lowaccuracy

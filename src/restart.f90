@@ -1239,22 +1239,16 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
   collcom_tmp=comms_linear_null()
   call init_comms_linear(iproc, nproc, ndim_tmp, tmb%orbs, lzd_tmp, collcom_tmp)
 
-  allocate(psit_c_tmp(sum(collcom_tmp%nrecvcounts_c)), stat=i_stat)
-  call memocc(i_stat, psit_c_tmp, 'psit_c_tmp', subname)
-
-  allocate(psit_f_tmp(7*sum(collcom_tmp%nrecvcounts_f)), stat=i_stat)
-  call memocc(i_stat, psit_f_tmp, 'psit_f_tmp', subname)
+  psit_c_tmp = f_malloc_ptr(sum(collcom_tmp%nrecvcounts_c),id='psit_c_tmp')
+  psit_f_tmp = f_malloc_ptr(7*sum(collcom_tmp%nrecvcounts_f),id='psit_f_tmp')
 
   call transpose_localized(iproc, nproc, ndim_tmp, tmb%orbs, collcom_tmp, &
        psi_tmp, psit_c_tmp, psit_f_tmp, lzd_tmp)
 
   ! normalize psi
-  allocate(norm(tmb%orbs%norb), stat=i_stat)
-  call memocc(i_stat, norm, 'norm', subname)
+  norm = f_malloc_ptr(tmb%orbs%norb,id='norm')
   call normalize_transposed(iproc, nproc, tmb%orbs, collcom_tmp, psit_c_tmp, psit_f_tmp, norm)
-  i_all = -product(shape(norm))*kind(norm)
-  deallocate(norm,stat=i_stat)
-  call memocc(i_stat,i_all,'norm',subname)
+  call f_free_ptr(norm)
 
   call calculate_pulay_overlap(iproc, nproc, tmb%orbs, tmb%orbs, collcom_tmp, collcom_tmp, &
        psit_c_tmp, psit_c_tmp, psit_f_tmp, psit_f_tmp, tmb%linmat%ovrlp_%matrix)
@@ -1262,13 +1256,8 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
   call deallocate_comms_linear(collcom_tmp)
   call deallocate_local_zone_descriptors(lzd_tmp, subname)
 
-  i_all = -product(shape(psit_c_tmp))*kind(psit_c_tmp)
-  deallocate(psit_c_tmp,stat=i_stat)
-  call memocc(i_stat,i_all,'psit_c_tmp',subname)
-
-  i_all = -product(shape(psit_f_tmp))*kind(psit_f_tmp)
-  deallocate(psit_f_tmp,stat=i_stat)
-  call memocc(i_stat,i_all,'psit_f_tmp',subname)
+  call f_free_ptr(psit_c_tmp)
+  call f_free_ptr(psit_f_tmp)
 
   i_all = -product(shape(psi_tmp))*kind(psi_tmp)
   deallocate(psi_tmp,stat=i_stat)

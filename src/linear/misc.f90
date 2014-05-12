@@ -926,13 +926,8 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   !energyold=energy
 
   if(tmb%can_use_transposed) then
-      iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-      deallocate(tmb%psit_c, stat=istat)
-      call memocc(istat, iall, 'tmb%psit_c', subname)
-      iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-      deallocate(tmb%psit_f, stat=istat)
-      call memocc(istat, iall, 'tmb%psit_f', subname)
-
+      call f_free_ptr(tmb%psit_c)
+      call f_free_ptr(tmb%psit_f)
   end if
 
   ! Create communication arrays for support functions in the global box
@@ -1023,13 +1018,8 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   energyold=energy
 
   if(tmb%can_use_transposed) then
-      iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-      deallocate(tmb%psit_c, stat=istat)
-      call memocc(istat, iall, 'tmb%psit_c', subname)
-      iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-      deallocate(tmb%psit_f, stat=istat)
-      call memocc(istat, iall, 'tmb%psit_f', subname)
-
+      call f_free_ptr(tmb%psit_c)
+      call f_free_ptr(tmb%psit_f)
   end if
 
 end subroutine build_ks_orbitals

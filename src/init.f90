@@ -840,28 +840,23 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
    if (input%lin%scf_mode/=LINEAR_FOE) then
        tmb%can_use_transposed=.true.
        overlap_calculated=.false.
-       allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=i_stat)
-       call memocc(i_stat, tmb%psit_c, 'tmb%psit_c', subname)
+       tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
 
-       allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=i_stat)
-       call memocc(i_stat, tmb%psit_f, 'tmb%psit_f', subname)
+       tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
 
 
        call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
             tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
 
        ! normalize psi
-       allocate(norm(tmb%orbs%norb), stat=i_stat)
-       call memocc(i_stat, norm, 'norm', subname)
+       norm = f_malloc(tmb%orbs%norb,id='norm')
 
        call normalize_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
 
        call untranspose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
             tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
 
-       i_all = -product(shape(norm))*kind(norm)
-       deallocate(norm,stat=i_stat)
-       call memocc(i_stat,i_all,'norm',subname)
+       call f_free(norm)
    end if
 
 
@@ -873,12 +868,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       !nullify(tmb%psit_f)
       call reconstruct_kernel(iproc, nproc, input%lin%order_taylor, tmb%orthpar%blocksize_pdsyev, &
            tmb%orthpar%blocksize_pdgemm, KSwfn%orbs, tmb, overlap_calculated)
-      i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)
-      deallocate(tmb%psit_c,stat=i_stat)
-      call memocc(i_stat,i_all,'tmb%psit_c',subname)
-      i_all = -product(shape(tmb%psit_f))*kind(tmb%psit_f)
-      deallocate(tmb%psit_f,stat=i_stat)
-      call memocc(i_stat,i_all,'tmb%psit_f',subname)
+      call f_free_ptr(tmb%psit_c)
+      call f_free_ptr(tmb%psit_f)
   else
      ! By doing an LCAO input guess
      tmb%can_use_transposed=.false.
@@ -894,12 +885,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
      !!deallocate(phi_tmp, stat=i_stat)
      !!call memocc(i_stat, i_all, 'phi_tmp', subname)
      if(tmb%can_use_transposed) then
-         i_all=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-         deallocate(tmb%psit_c, stat=i_stat)
-         call memocc(i_stat, i_all, 'tmb%psit_c', subname)
-         i_all=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-         deallocate(tmb%psit_f, stat=i_stat)
-         call memocc(i_stat, i_all, 'tmb%psit_f', subname)
+         call f_free_ptr(tmb%psit_c)
+         call f_free_ptr(tmb%psit_f)
      end if
   end if
 
@@ -1873,12 +1860,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call inputguessConfinement(iproc,nproc,atoms,in,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3), &
           rxyz,nlpsp,GPU,KSwfn%orbs,kswfn,tmb,denspot,denspot0,energs,locregcenters)
      if(tmb%can_use_transposed) then
-         i_all=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-         deallocate(tmb%psit_c, stat=i_stat)
-         call memocc(i_stat, i_all, 'tmb%psit_c', subname)
-         i_all=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-         deallocate(tmb%psit_f, stat=i_stat)
-         call memocc(i_stat, i_all, 'tmb%psit_f', subname)
+         call f_free_ptr(tmb%psit_c)
+         call f_free_ptr(tmb%psit_f)
      end if
   case (INPUT_PSI_DISK_LINEAR)
      if (iproc == 0) then
@@ -1906,26 +1889,21 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      tmb%can_use_transposed=.true.
      overlap_calculated=.false.
-     allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=i_stat)
-     call memocc(i_stat, tmb%psit_c, 'tmb%psit_c', subname)
-     allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=i_stat)
-     call memocc(i_stat, tmb%psit_f, 'tmb%psit_f', subname)
+     tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
+     tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
 
      call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
           tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
 
      ! normalize psi
-     allocate(norm(tmb%orbs%norb), stat=i_stat)
-     call memocc(i_stat, norm, 'norm', subname)
+     norm = f_malloc(tmb%orbs%norb,id='norm')
 
      call normalize_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
 
      call untranspose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
           tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
 
-     i_all = -product(shape(norm))*kind(norm)
-     deallocate(norm,stat=i_stat)
-     call memocc(i_stat,i_all,'norm',subname)
+     call f_free(norm)
 
      !!allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
      !!call memocc(i_stat, tmb%linmat%denskern%matrix, 'tmb%linmat%denskern%matrix', subname)
@@ -2029,12 +2007,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !!call f_free_ptr(tmb%linmat%denskern%matrix)   
 
      tmb%can_use_transposed=.false. ! - do we really need to deallocate here?
-     i_all = -product(shape(tmb%psit_c))*kind(tmb%psit_c)                               
-     deallocate(tmb%psit_c,stat=i_stat)                                                 
-     call memocc(i_stat,i_all,'tmb%psit_c',subname)                                     
-     i_all = -product(shape(tmb%psit_f))*kind(tmb%psit_f)                               
-     deallocate(tmb%psit_f,stat=i_stat)                                                 
-     call memocc(i_stat,i_all,'tmb%psit_f',subname)
+     call f_free_ptr(tmb%psit_c)
+     call f_free_ptr(tmb%psit_f)
      nullify(tmb%psit_c)
      nullify(tmb%psit_f)
 
@@ -2350,14 +2324,9 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   call initialize_work_arrays_sumrho(Lzd_old%Glr,w)
   nbox = lzd_old%Glr%d%n1i*Lzd_old%Glr%d%n2i*Lzd_old%Glr%d%n3i
 
-  allocate(psir_old(nbox,npsir,orbs%norbp),stat=i_stat)
-  call memocc(i_stat,psir_old,'psir_old', subname)
-  
-  allocate(psir(lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,npsir,orbs%norbp),stat=i_stat)
-  call memocc(i_stat,psir,'psir',subname)
-
-  allocate(shift(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,5),stat=i_stat)
-  call memocc(i_stat,shift,'shift',subname)  
+  psir_old = f_malloc((/ nbox, npsir, orbs%norbp /),id='psir_old')
+  psir = f_malloc((/ lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i, npsir, orbs%norbp /),id='psir')
+  shift = f_malloc((/ lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i, 5 /),id='shift')
   
   call to_zero(max(orbs%npsidim_comp,orbs%npsidim_orbs),psi(1)) 
   call to_zero(lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*npsir*orbs%norbp,psir(1,1,1)) 
@@ -2598,18 +2567,10 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   end do loop_orbs_back
 
   call deallocate_work_arrays_sumrho(w)
-  
-  i_all = -product(shape(psir_old))*kind(psir_old)
-  deallocate(psir_old,stat=i_stat)
-  call memocc(i_stat,i_all, 'psir_old', subname)
 
-  i_all = -product(shape(psir))*kind(psir)
-  deallocate(psir,stat=i_stat)
-  call memocc(i_stat,i_all, 'psir', subname)
-
-  i_all = -product(shape(shift))*kind(shift)
-  deallocate(shift,stat=i_stat)
-  call memocc(i_stat,i_all, 'shift', subname)
+  call f_free(psir_old)
+  call f_free(psir)
+  call f_free(shift)
 
   i_all=-product(shape(psi_old))*kind(psi_old)
   deallocate(psi_old,stat=i_stat)

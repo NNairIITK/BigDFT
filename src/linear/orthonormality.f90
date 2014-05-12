@@ -55,19 +55,13 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
 
   if(.not.can_use_transposed) then
       if(associated(psit_c)) then
-          iall=-product(shape(psit_c))*kind(psit_c)
-          deallocate(psit_c, stat=istat)
-          call memocc(istat, iall, 'psit_c', subname)
+          call f_free_ptr(psit_c)
       end if
       if(associated(psit_f)) then
-          iall=-product(shape(psit_f))*kind(psit_f)
-          deallocate(psit_f, stat=istat)
-          call memocc(istat, iall, 'psit_f', subname)
+          call f_free_ptr(psit_f)
       end if
-      allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
-      call memocc(istat, psit_c, 'psit_c', subname)
-      allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-      call memocc(istat, psit_f, 'psit_f', subname)
+      psit_c = f_malloc_ptr(sum(collcom%nrecvcounts_c),id='psit_c')
+      psit_f = f_malloc_ptr(7*sum(collcom%nrecvcounts_f),id='psit_f')
 
       call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
       can_use_transposed=.true.
@@ -170,11 +164,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   !if (correction_orthoconstraint==0) stop 'correction_orthoconstraint not working'
 
   if(.not. can_use_transposed) then
-      allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
-      call memocc(istat, psit_c, 'psit_c', subname)
-
-      allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-      call memocc(istat, psit_f, 'psit_f', subname)
+      psit_c = f_malloc_ptr(sum(collcom%nrecvcounts_c),id='psit_c')
+      psit_f = f_malloc_ptr(7*sum(collcom%nrecvcounts_f),id='psit_f')
 
       call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
       can_use_transposed=.true.
@@ -1915,19 +1906,13 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
 
   if(.not.can_use_transposed) then
       if(associated(psit_c)) then
-          iall=-product(shape(psit_c))*kind(psit_c)
-          deallocate(psit_c, stat=istat)
-          call memocc(istat, iall, 'psit_c', subname)
+          call f_free_ptr(psit_c)
       end if
       if(associated(psit_f)) then
-          iall=-product(shape(psit_f))*kind(psit_f)
-          deallocate(psit_f, stat=istat)
-          call memocc(istat, iall, 'psit_f', subname)
+          call f_free_ptr(psit_f)
       end if
-      allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
-      call memocc(istat, psit_c, 'psit_c', subname)
-      allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-      call memocc(istat, psit_f, 'psit_f', subname)
+      psit_c = f_malloc_ptr(sum(collcom%nrecvcounts_c),id='psit_c')
+      psit_f = f_malloc_ptr(7*sum(collcom%nrecvcounts_f),id='psit_f')
 
       call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
       can_use_transposed=.true.
@@ -2108,19 +2093,13 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
 
   if(.not.can_use_transposed) then
       if(associated(psit_c)) then
-          iall=-product(shape(psit_c))*kind(psit_c)
-          deallocate(psit_c, stat=istat)
-          call memocc(istat, iall, 'psit_c', subname)
+          call f_free_ptr(psit_c)
       end if
       if(associated(psit_f)) then
-          iall=-product(shape(psit_f))*kind(psit_f)
-          deallocate(psit_f, stat=istat)
-          call memocc(istat, iall, 'psit_f', subname)
+          call f_free_ptr(psit_f)
       end if
-      allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=istat)
-      call memocc(istat, psit_c, 'psit_c', subname)
-      allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-      call memocc(istat, psit_f, 'psit_f', subname)
+      psit_c = f_malloc_ptr(sum(collcom%nrecvcounts_c),id='psit_c')
+      psit_f = f_malloc_ptr(7*sum(collcom%nrecvcounts_f),id='psit_f')
 
       call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
       can_use_transposed=.true.

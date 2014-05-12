@@ -139,12 +139,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       !@NEW correction for contra / covariant gradient
 
       if(.not.associated(tmb%psit_c)) then
-          allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-          call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+          tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
       end if
       if(.not.associated(tmb%psit_f)) then
-          allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-          call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+          tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
       end if
       call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
            tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
@@ -356,12 +354,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   if (correction_orthoconstraint==0) then
       !if(.not.tmb%can_use_transposed) then
           if(.not.associated(tmb%psit_c)) then
-              allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-              call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+              tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
           end if
           if(.not.associated(tmb%psit_f)) then
-              allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-              call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+              tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
           end if
       !end if
       call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
@@ -1018,12 +1014,8 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
 
   ! The transposed quantities can now not be used any more...
   if(tmb%can_use_transposed) then
-      iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-      deallocate(tmb%psit_c, stat=istat)
-      call memocc(istat, iall, 'tmb%psit_c', subname)
-      iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-      deallocate(tmb%psit_f, stat=istat)
-      call memocc(istat, iall, 'tmb%psit_f', subname)
+      call f_free_ptr(tmb%psit_c)
+      call f_free_ptr(tmb%psit_f)
       tmb%can_use_transposed=.false.
   end if
 
