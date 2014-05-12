@@ -847,7 +847,7 @@ subroutine deallocate_convolutions_bounds(bounds, subname)
   type(convolutions_bounds),intent(inout):: bounds
   character(len=*),intent(in):: subname
 
-  call checkAndDeallocatePointer(bounds%ibyyzz_r, 'bounds%ibyyzz_r', subname)
+  call f_free_ptr(bounds%ibyyzz_r)
 
   call deallocate_kinetic_bounds(bounds%kb, subname)
   call deallocate_shrink_bounds(bounds%sb, subname)
