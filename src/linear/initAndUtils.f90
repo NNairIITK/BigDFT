@@ -312,16 +312,13 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
         ! calculateBounds indicate whether the arrays with the bounds (for convolutions...) shall also
         ! be allocated and calculated. In principle this is only necessary if the current process has orbitals
         ! in this localization region.
-        allocate(calculateBounds(lzd%nlr),stat=i_stat)
-        call memocc(i_stat,calculateBounds,'calculateBounds',subname)
+        calculateBounds = f_malloc(lzd%nlr,id='calculateBounds')
         calculateBounds=.true.
 !        call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr,calculateBounds)
         call determine_locreg_parallel(iproc,nproc,Lzd%nlr,rxyz,locrad,&
              Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr,Lzd%Llr,&
              orbs,calculateBounds)  
-        i_all = -product(shape(calculateBounds))*kind(calculateBounds) 
-        deallocate(calculateBounds,stat=i_stat)
-        call memocc(i_stat,i_all,'calculateBounds',subname)
+        call f_free(calculateBounds)
         call f_free(locrad)
 
         ! determine the wavefunction dimension
@@ -814,10 +811,8 @@ subroutine allocate_auxiliary_basis_function(npsidim, subname, lphi, lhphi)
   ! Local variables
   integer :: istat
 
-  allocate(lphi(npsidim), stat=istat)
-  call memocc(istat, lphi, 'lphi', subname)
-  allocate(lhphi(npsidim), stat=istat)
-  call memocc(istat, lhphi, 'lhphi', subname)
+  lphi = f_malloc_ptr(npsidim,id='lphi')
+  lhphi = f_malloc_ptr(npsidim,id='lhphi')
 
   call to_zero(npsidim, lphi(1))
   call to_zero(npsidim, lhphi(1))
@@ -836,12 +831,8 @@ subroutine deallocate_auxiliary_basis_function(subname, lphi, lhphi)
   ! Local variables
   integer :: istat, iall
 
-  iall=-product(shape(lphi))*kind(lphi)
-  deallocate(lphi, stat=istat)
-  call memocc(istat, iall, 'lphi', subname)
-  iall=-product(shape(lhphi))*kind(lhphi)
-  deallocate(lhphi, stat=istat)
-  call memocc(istat, iall, 'lhphi', subname)
+  call f_free_ptr(lphi)
+  call f_free_ptr(lhphi)
 
 end subroutine deallocate_auxiliary_basis_function
 
@@ -952,13 +943,11 @@ subroutine update_wavefunctions_size(lzd,npsidim_orbs,npsidim_comp,orbs,iproc,np
      call mpiallred(nvctr_tot, 1, mpi_max, bigdft_mpi%mpi_comm)
   end if
 
-  allocate(nvctr_par(0:nproc-1,1),stat=istat)
-  call memocc(istat,nvctr_par,'nvctr_par',subname)
+  nvctr_par = f_malloc((/ 0.to.nproc-1, 1.to.1 /),id='nvctr_par')
 
   call kpts_to_procs_via_obj(nproc,1,nvctr_tot,nvctr_par)
 
-  allocate(ncntt(0:nproc-1+ndebug),stat=istat)
-  call memocc(istat,ncntt,'ncntt',subname)
+  ncntt = f_malloc(0.to.nproc-1,id='ncntt')
 
   ncntt(:) = 0
   do jproc=0,nproc-1
@@ -968,13 +957,9 @@ subroutine update_wavefunctions_size(lzd,npsidim_orbs,npsidim_comp,orbs,iproc,np
 
   npsidim_comp=sum(ncntt(0:nproc-1))
 
-  iall=-product(shape(nvctr_par))*kind(nvctr_par)
-  deallocate(nvctr_par,stat=istat)
-  call memocc(istat,iall,'nvctr_par',subname) 
+  call f_free(nvctr_par)
 
-  iall=-product(shape(ncntt))*kind(ncntt)
-  deallocate(ncntt,stat=istat)
-  call memocc(istat,iall,'ncntt',subname)  
+  call f_free(ncntt)
 
 end subroutine update_wavefunctions_size
 
@@ -1250,12 +1235,9 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call deallocate_matrices(tmb%linmat%ham_)
      call deallocate_matrices(tmb%linmat%kernel_)
 
-     allocate(locregCenter(3,lzd_tmp%nlr), stat=istat)
-     call memocc(istat, locregCenter, 'locregCenter', subname)
-     allocate(locrad_kernel(lzd_tmp%nlr),stat=istat)
-     call memocc(istat,locrad_kernel,'locrad_kernel',subname)
-     allocate(locrad_mult(lzd_tmp%nlr),stat=istat)
-     call memocc(istat,locrad_mult,'locrad_mult',subname)
+     locregCenter = f_malloc((/ 3, lzd_tmp%nlr /),id='locregCenter')
+     locrad_kernel = f_malloc(lzd_tmp%nlr,id='locrad_kernel')
+     locrad_mult = f_malloc(lzd_tmp%nlr,id='locrad_mult')
      do ilr=1,lzd_tmp%nlr
         locregCenter(:,ilr)=lzd_tmp%llr(ilr)%locregCenter
         locrad_kernel(ilr)=lzd_tmp%llr(ilr)%locrad_kernel
@@ -1268,21 +1250,12 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
           denspot%dpbox%nscatterarr, hx, hy, hz, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%lzd, &
           tmb%npsidim_orbs, tmb%npsidim_comp, tmb%comgp, tmb%collcom, tmb%foe_obj, tmb%collcom_sr)
 
-     iall=-product(shape(locregCenter))*kind(locregCenter)
-     deallocate(locregCenter, stat=istat)
-     call memocc(istat, iall, 'locregCenter', subname)
-
-     iall=-product(shape(locrad_kernel))*kind(locrad_kernel)
-     deallocate(locrad_kernel, stat=istat)
-     call memocc(istat, iall, 'locrad_kernel', subname)
-
-     iall=-product(shape(locrad_mult))*kind(locrad_mult)
-     deallocate(locrad_mult, stat=istat)
-     call memocc(istat, iall, 'locrad_mult', subname)
+     call f_free(locregCenter)
+     call f_free(locrad_kernel)
+     call f_free(locrad_mult)
 
      ! calculate psi in new locreg
-     allocate(lphilarge(tmb%npsidim_orbs), stat=istat)
-     call memocc(istat, lphilarge, 'lphilarge', subname)
+     lphilarge = f_malloc(tmb%npsidim_orbs,id='lphilarge')
      call to_zero(tmb%npsidim_orbs, lphilarge(1))
      call small_to_large_locreg(iproc, npsidim_orbs_tmp, tmb%npsidim_orbs, lzd_tmp, tmb%lzd, &
           tmb%orbs, tmb%psi, lphilarge)
@@ -1294,9 +1267,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      allocate(tmb%psi(tmb%npsidim_orbs), stat=istat)
      call memocc(istat, tmb%psi, 'tmb%psi', subname)
      call vcopy(tmb%npsidim_orbs, lphilarge(1), 1, tmb%psi(1), 1)
-     iall=-product(shape(lphilarge))*kind(lphilarge)
-     deallocate(lphilarge, stat=istat)
-     call memocc(istat, iall, 'lphilarge', subname) 
+     call f_free(lphilarge)
      
      call update_ldiis_arrays(tmb, subname, ldiis)
 
