@@ -372,9 +372,7 @@ integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat, iall
 
 if(geocode == 'F')then
    if(associated(gbout%ibzxx_c)) then
-       iall=-product(shape(gbout%ibzxx_c))*kind(gbout%ibzxx_c)
-       deallocate(gbout%ibzxx_c, stat=istat)
-       call memocc(istat, iall, 'gbout%ibzxx_c', subname)
+       call f_free_ptr(gbout%ibzxx_c)
    end if
    if(associated(gbin%ibzxx_c)) then
        iis1=lbound(gbin%ibzxx_c,1)
@@ -383,8 +381,7 @@ if(geocode == 'F')then
        iie2=ubound(gbin%ibzxx_c,2)
        iis3=lbound(gbin%ibzxx_c,3)
        iie3=ubound(gbin%ibzxx_c,3)
-       allocate(gbout%ibzxx_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-       call memocc(istat, gbout%ibzxx_c, 'gbout%ibzxx_c', subname)
+       gbout%ibzxx_c = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='gbout%ibzxx_c')
        do i3=iis3,iie3
            do i2=iis2,iie2
                do i1=iis1,iie1
@@ -396,9 +393,7 @@ if(geocode == 'F')then
        
    
    if(associated(gbout%ibxxyy_c)) then
-       iall=-product(shape(gbout%ibxxyy_c))*kind(gbout%ibxxyy_c)
-       deallocate(gbout%ibxxyy_c, stat=istat)
-       call memocc(istat, iall, 'gbout%ibxxyy_c', subname)
+       call f_free_ptr(gbout%ibxxyy_c)
    end if
    if(associated(gbin%ibxxyy_c)) then
        iis1=lbound(gbin%ibxxyy_c,1)
@@ -407,8 +402,7 @@ if(geocode == 'F')then
        iie2=ubound(gbin%ibxxyy_c,2)
        iis3=lbound(gbin%ibxxyy_c,3)
        iie3=ubound(gbin%ibxxyy_c,3)
-       allocate(gbout%ibxxyy_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-       call memocc(istat, gbout%ibxxyy_c, 'gbout%ibxxyy_c', subname)
+       gbout%ibxxyy_c = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='gbout%ibxxyy_c')
        do i3=iis3,iie3
            do i2=iis2,iie2
                do i1=iis1,iie1
@@ -420,9 +414,7 @@ if(geocode == 'F')then
 end if
 
 if(associated(gbout%ibyz_ff)) then
-    iall=-product(shape(gbout%ibyz_ff))*kind(gbout%ibyz_ff)
-    deallocate(gbout%ibyz_ff, stat=istat)
-    call memocc(istat, iall, 'gbout%ibyz_ff', subname)
+    call f_free_ptr(gbout%ibyz_ff)
 end if
 if(associated(gbin%ibyz_ff)) then
     iis1=lbound(gbin%ibyz_ff,1)
@@ -431,8 +423,7 @@ if(associated(gbin%ibyz_ff)) then
     iie2=ubound(gbin%ibyz_ff,2)
     iis3=lbound(gbin%ibyz_ff,3)
     iie3=ubound(gbin%ibyz_ff,3)
-    allocate(gbout%ibyz_ff(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-    call memocc(istat, gbout%ibyz_ff, 'gbout%ibyz_ff', subname)
+    gbout%ibyz_ff = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='gbout%ibyz_ff')
     do i3=iis3,iie3
         do i2=iis2,iie2
             do i1=iis1,iie1
@@ -443,9 +434,7 @@ if(associated(gbin%ibyz_ff)) then
 end if
 
 if(associated(gbout%ibzxx_f)) then
-    iall=-product(shape(gbout%ibzxx_f))*kind(gbout%ibzxx_f)
-    deallocate(gbout%ibzxx_f, stat=istat)
-    call memocc(istat, iall, 'gbout%ibzxx_f', subname)
+    call f_free_ptr(gbout%ibzxx_f)
 end if
 if(associated(gbin%ibzxx_f)) then
     iis1=lbound(gbin%ibzxx_f,1)
@@ -454,8 +443,7 @@ if(associated(gbin%ibzxx_f)) then
     iie2=ubound(gbin%ibzxx_f,2)
     iis3=lbound(gbin%ibzxx_f,3)
     iie3=ubound(gbin%ibzxx_f,3)
-    allocate(gbout%ibzxx_f(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-    call memocc(istat, gbout%ibzxx_f, 'gbout%ibzxx_f', subname)
+    gbout%ibzxx_f = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='gbout%ibzxx_f')
     do i3=iis3,iie3
         do i2=iis2,iie2
             do i1=iis1,iie1
@@ -467,9 +455,7 @@ end if
 
 
 if(associated(gbout%ibxxyy_f)) then
-    iall=-product(shape(gbout%ibxxyy_f))*kind(gbout%ibxxyy_f)
-    deallocate(gbout%ibxxyy_f, stat=istat)
-    call memocc(istat, iall, 'gbout%ibxxyy_f', subname)
+    call f_free_ptr(gbout%ibxxyy_f)
 end if
 if(associated(gbin%ibxxyy_f)) then
     iis1=lbound(gbin%ibxxyy_f,1)
@@ -478,8 +464,7 @@ if(associated(gbin%ibxxyy_f)) then
     iie2=ubound(gbin%ibxxyy_f,2)
     iis3=lbound(gbin%ibxxyy_f,3)
     iie3=ubound(gbin%ibxxyy_f,3)
-    allocate(gbout%ibxxyy_f(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-    call memocc(istat, gbout%ibxxyy_f, 'gbout%ibxxyy_f', subname)
+    gbout%ibxxyy_f = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='gbout%ibxxyy_f')
     do i3=iis3,iie3
         do i2=iis2,iie2
             do i1=iis1,iie1

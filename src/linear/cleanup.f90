@@ -905,11 +905,11 @@ subroutine deallocate_grow_bounds(gb, subname)
   type(grow_bounds),intent(inout):: gb
   character(len=*),intent(in):: subname
 
-  call checkAndDeallocatePointer(gb%ibzxx_c, 'gb%ibzxx_c', subname)
-  call checkAndDeallocatePointer(gb%ibxxyy_c, 'gb%ibxxyy_c', subname)
-  call checkAndDeallocatePointer(gb%ibyz_ff, 'gb%ibyz_ff', subname)
-  call checkAndDeallocatePointer(gb%ibzxx_f, 'gb%ibzxx_f', subname)
-  call checkAndDeallocatePointer(gb%ibxxyy_f, 'gb%ibxxyy_f', subname)
+  call f_free_ptr(gb%ibzxx_c)
+  call f_free_ptr(gb%ibxxyy_c)
+  call f_free_ptr(gb%ibyz_ff)
+  call f_free_ptr(gb%ibzxx_f)
+  call f_free_ptr(gb%ibxxyy_f)
 
 end subroutine deallocate_grow_bounds
 
