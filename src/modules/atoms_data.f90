@@ -193,23 +193,15 @@ module module_atoms
 
       ! Deallocations for the geometry part.
       if (astruct%nat > 0) then
-         i_all=-product(shape(astruct%ifrztyp))*kind(astruct%ifrztyp)
-         deallocate(astruct%ifrztyp,stat=i_stat)
-         call memocc(i_stat,i_all,'astruct%ifrztyp',subname)
-         i_all=-product(shape(astruct%iatype))*kind(astruct%iatype)
-         deallocate(astruct%iatype,stat=i_stat)
-         call memocc(i_stat,i_all,'astruct%iatype',subname)
-         i_all=-product(shape(astruct%input_polarization))*kind(astruct%input_polarization)
-         deallocate(astruct%input_polarization,stat=i_stat)
-         call memocc(i_stat,i_all,'astruct%input_polarization',subname)
-         i_all=-product(shape(astruct%rxyz))*kind(astruct%rxyz)
-         deallocate(astruct%rxyz,stat=i_stat)
-         call memocc(i_stat,i_all,'astruct%rxyz',subname)
+         call f_free_ptr(astruct%ifrztyp)
+         call f_free_ptr(astruct%iatype)
+         call f_free_ptr(astruct%input_polarization)
+         call f_free_ptr(astruct%rxyz)
       end if
       if (astruct%ntypes > 0) then
          i_all=-product(shape(astruct%atomnames))*kind(astruct%atomnames)
-         deallocate(astruct%atomnames,stat=i_stat)
-         call memocc(i_stat,i_all,'astruct%atomnames',subname)
+         deallocate(astruct%atomnames, stat=i_stat)
+         call memocc(i_stat, i_all, 'astruct%atomnames', subname)
       end if
       ! Free additional stuff.
       call deallocate_symmetry_data(astruct%sym)
@@ -808,14 +800,10 @@ subroutine astruct_set_n_atoms(astruct, nat)
   astruct%nat = nat
 
   ! Allocate geometry related stuff.
-  allocate(astruct%iatype(astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,astruct%iatype,'astruct%iatype',subname)
-  allocate(astruct%ifrztyp(astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,astruct%ifrztyp,'astruct%ifrztyp',subname)
-  allocate(astruct%input_polarization(astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,astruct%input_polarization,'astruct%input_polarization',subname)
-  allocate(astruct%rxyz(3, astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,astruct%rxyz,'astruct%rxyz',subname)
+  astruct%iatype = f_malloc_ptr(astruct%nat+ndebug,id='astruct%iatype')
+  astruct%ifrztyp = f_malloc_ptr(astruct%nat+ndebug,id='astruct%ifrztyp')
+  astruct%input_polarization = f_malloc_ptr(astruct%nat+ndebug,id='astruct%input_polarization')
+  astruct%rxyz = f_malloc_ptr((/ 3,astruct%nat+ndebug /),id='astruct%rxyz')
 
   !this array is useful for frozen atoms, no atom is frozen by default
   astruct%ifrztyp(:)=0
