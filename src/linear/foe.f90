@@ -267,7 +267,8 @@ subroutine foe(iproc, nproc, tmprtr, &
               !npl_check = max(npl_check,nint(real(npl,kind=8)/CHECK_RATIO)) ! this is necessary if npl was set to the minimal value
               npl_check = nint(real(npl,kind=8)/CHECK_RATIO)
               npl_boundaries = nint(degree_multiplicator* &
-                  (foe_data_get_real(foe_obj,"evhigh")-foe_data_get_real(foe_obj,"evlow"))/foe_data_get_real(foe_obj,"fscale_lowerbound")) ! max polynomial degree for given eigenvalue boundaries
+                  (foe_data_get_real(foe_obj,"evhigh")-foe_data_get_real(foe_obj,"evlow")) &
+                      /foe_data_get_real(foe_obj,"fscale_lowerbound")) ! max polynomial degree for given eigenvalue boundaries
               if (npl>npl_boundaries) then
                   npl=npl_boundaries
                   if (iproc==0) call yaml_warning('very sharp decay of error function, polynomial degree reached limit')
@@ -287,7 +288,8 @@ subroutine foe(iproc, nproc, tmprtr, &
               if (iproc==0) then
                   if (foe_verbosity>=1) then
                       call yaml_map('bisec/eval bounds',&
-                           (/efarr(1),efarr(2),foe_data_get_real(foe_obj,"evlow"),foe_data_get_real(foe_obj,"evhigh")/),fmt='(f5.2)')
+                           (/efarr(1),efarr(2),&
+                           foe_data_get_real(foe_obj,"evlow"),foe_data_get_real(foe_obj,"evhigh")/),fmt='(f5.2)')
                   else
                       call yaml_map('eval bounds',&
                            (/foe_data_get_real(foe_obj,"evlow"),foe_data_get_real(foe_obj,"evhigh")/),fmt='(f5.2)')
@@ -318,7 +320,8 @@ subroutine foe(iproc, nproc, tmprtr, &
 
               call chebft(foe_data_get_real(foe_obj,"evlow"), foe_data_get_real(foe_obj,"evhigh"), npl_check, cc_check(1,1), &
                    foe_data_get_real(foe_obj,"ef"), fscale_check, tmprtr)
-              call chder(foe_data_get_real(foe_obj,"evlow"), foe_data_get_real(foe_obj,"evhigh"), cc_check(1,1), cc_check(1,2), npl_check)
+              call chder(foe_data_get_real(foe_obj,"evlow"), foe_data_get_real(foe_obj,"evhigh"), &
+                   cc_check(1,1), cc_check(1,2), npl_check)
               call chebft2(foe_data_get_real(foe_obj,"evlow"), foe_data_get_real(foe_obj,"evhigh"), npl_check, cc_check(1,3))
     
               call timing(iproc, 'chebyshev_coef', 'OF')
@@ -520,7 +523,8 @@ subroutine foe(iproc, nproc, tmprtr, &
                   if (foe_data_get_real(foe_obj,"ef")<ef_old .and. sumn>sumn_old) then
                       interpolation_possible=.false.
                   end if
-                  if (foe_data_get_real(foe_obj,"ef")>ef_old .and. sumn<sumn_old .or. foe_data_get_real(foe_obj,"ef")<ef_old .and. sumn>sumn_old) then
+                  if (foe_data_get_real(foe_obj,"ef")>ef_old .and. sumn<sumn_old .or. &
+                      foe_data_get_real(foe_obj,"ef")<ef_old .and. sumn>sumn_old) then
                       if (foe_verbosity>=1 .and. iproc==0) call yaml_map('interpol possible',.false.)
                   else
                       if (foe_verbosity>=1 .and. iproc==0) call yaml_map('interpol possible',.true.)
@@ -894,7 +898,8 @@ subroutine foe(iproc, nproc, tmprtr, &
             call yaml_newline()
             call yaml_open_map('Search new eF',flow=.true.)
         end if
-        if (it_solver>=4 .and.  abs(sumn-foe_data_get_real(foe_obj,"charge"))<foe_data_get_real(foe_obj,"ef_interpol_chargediff")) then
+        if (it_solver>=4 .and.  &
+            abs(sumn-foe_data_get_real(foe_obj,"charge"))<foe_data_get_real(foe_obj,"ef_interpol_chargediff")) then
             det=determinant(iproc,4,interpol_matrix)
             if (foe_verbosity>=1 .and. iproc==0) then
                 call yaml_map('det',det,fmt='(es10.3)')
