@@ -1350,7 +1350,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   !change temporarily value of Lzd%npotddim
   allocate(confdatarr(orbse%norbp)) !no stat so tho make it crash
   call local_potential_dimensions(iproc,Lzde,orbse,denspot%xc,denspot%dpbox%ngatherarr(0,1))
-  !   print *,'here',iproc   
   call default_confinement_data(confdatarr,orbse%norbp)
 
   !spin adaptation for the IG in the spinorial case

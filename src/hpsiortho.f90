@@ -1145,8 +1145,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
       !this routine should then be modified or integrated in HamiltonianApplication
       if (dpbox%mpi_env%nproc > 1) then
 
-         allocate(pot1(npot+ndebug),stat=i_stat)
-         call memocc(i_stat,pot1,'pot1',subname)
+         pot1 = f_malloc_ptr(npot+ndebug,id='pot1')
          ispot=1
          ispotential=1
          do ispin=1,orbs%nspin
@@ -1169,8 +1168,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
          end if
       else
          if (odp) then
-            allocate(pot1(npot+ndebug),stat=i_stat)
-            call memocc(i_stat,pot1,'pot1',subname)
+            pot1 = f_malloc_ptr(npot+ndebug,id='pot1')
             call vcopy(dpbox%ndimgrid*orbs%nspin,potential(1),1,pot1(1),1)
             if (dpbox%i3rho_add >0 .and. orbs%norbp > 0) then
                ispot=dpbox%ndimgrid*orbs%nspin+1
@@ -1271,9 +1269,10 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
    if(iflag==0) then
       !       allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
       !       call vcopy(lzd%ndimpotisf,pot,1,pot,1) 
-      pot=>pot1
-      !print *,iproc,shape(pot),shape(pot1),'shapes'
-      !print *,'potential sum',iproc,sum(pot)
+      ! This is due to the dynamic memory managment. The original version was: pot=>pot1
+      pot = f_malloc_ptr(npot+ndebug,id='pot')
+      pot=pot1
+      call f_free_ptr(pot1)
    else if(iflag>0 .and. iflag<2) then
 
       pot = f_malloc_ptr(lzd%ndimpotisf+ndebug,id='pot')
@@ -1328,14 +1327,10 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
    ! Deallocate pot.
    if (iflag<2 .and. iflag>0) then
       if (dpbox%mpi_env%nproc > 1) then
-         i_all=-product(shape(pot1))*kind(pot1)
-         deallocate(pot1,stat=i_stat)
-         call memocc(i_stat,i_all,'pot1',subname)
+         call f_free_ptr(pot1)
       else
          if (xc_exctXfac(xc) /= 0.0_gp) then
-            i_all=-product(shape(pot1))*kind(pot1)
-            deallocate(pot1,stat=i_stat)
-            call memocc(i_stat,i_all,'pot1',subname)
+            call f_free_ptr(pot1)
          else
             nullify(pot1)
          end if
