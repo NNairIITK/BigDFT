@@ -368,8 +368,8 @@ module communications
       !$omp do
       do i=1,sum_f
           i7=7*i
-          ind7=7*ind
           ind=collcom%iexpand_f(i)
+          ind7=7*ind
           psitwork_f(ind7-6)=psit_f(i7-6)
           psitwork_f(ind7-5)=psit_f(i7-5)
           psitwork_f(ind7-4)=psit_f(i7-4)
