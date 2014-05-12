@@ -866,12 +866,12 @@ subroutine deallocate_kinetic_bounds(kb, subname)
   type(kinetic_bounds),intent(inout):: kb
   character(len=*),intent(in):: subname
 
-  call checkAndDeallocatePointer(kb%ibyz_c, 'kb%ibyz_c', subname)
-  call checkAndDeallocatePointer(kb%ibxz_c, 'kb%ibxz_c', subname)
-  call checkAndDeallocatePointer(kb%ibxy_c, 'kb%ibxy_c', subname)
-  call checkAndDeallocatePointer(kb%ibyz_f, 'kb%ibyz_f', subname)
-  call checkAndDeallocatePointer(kb%ibxz_f, 'kb%ibxz_f', subname)
-  call checkAndDeallocatePointer(kb%ibxy_f, 'kb%ibxy_f', subname)
+  call f_free_ptr(kb%ibyz_c)
+  call f_free_ptr(kb%ibxz_c)
+  call f_free_ptr(kb%ibxy_c)
+  call f_free_ptr(kb%ibyz_f)
+  call f_free_ptr(kb%ibxz_f)
+  call f_free_ptr(kb%ibxy_f)
 
 end subroutine deallocate_kinetic_bounds
 

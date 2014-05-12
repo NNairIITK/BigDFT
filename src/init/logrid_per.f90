@@ -21,12 +21,9 @@ subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
   character(len=*), parameter :: subname='make_bounds_per'
   integer :: i_stat,i_all,nseg_c
 
-  allocate(bounds%kb%ibyz_f(2,0:n2,0:n3+ndebug),stat=i_stat)
-  call memocc(i_stat,bounds%kb%ibyz_f,'bounds%kb%ibyz_f',subname)
-  allocate(bounds%kb%ibxz_f(2,0:n1,0:n3+ndebug),stat=i_stat)
-  call memocc(i_stat,bounds%kb%ibxz_f,'bounds%kb%ibxz_f',subname)
-  allocate(bounds%kb%ibxy_f(2,0:n1,0:n2+ndebug),stat=i_stat)
-  call memocc(i_stat,bounds%kb%ibxy_f,'bounds%kb%ibxy_f',subname)
+  bounds%kb%ibyz_f = f_malloc_ptr((/ 1.to.2, 0.to.n2, 0.to.n3 /),id='bounds%kb%ibyz_f')
+  bounds%kb%ibxz_f = f_malloc_ptr((/ 1.to.2, 0.to.n1, 0.to.n3 /),id='bounds%kb%ibxz_f')
+  bounds%kb%ibxy_f = f_malloc_ptr((/ 1.to.2, 0.to.n1, 0.to.n2 /),id='bounds%kb%ibxy_f')
 
   allocate(bounds%gb%ibyz_ff(2,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
   call memocc(i_stat,bounds%gb%ibyz_ff,'bounds%gb%ibyz_ff',subname)

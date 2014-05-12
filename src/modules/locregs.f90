@@ -304,32 +304,30 @@ contains
     if ((geocode == 'P' .and. hybrid_on) .or. geocode == 'F') then
        ! Just test the first one...
        if (associated(bounds%kb%ibyz_f)) then
-          i_all=-product(shape(bounds%kb%ibyz_f))*kind(bounds%kb%ibyz_f)
-          deallocate(bounds%kb%ibyz_f,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%kb%ibyz_f',subname)
-          i_all=-product(shape(bounds%kb%ibxz_f))*kind(bounds%kb%ibxz_f)
-          deallocate(bounds%kb%ibxz_f,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%kb%ibxz_f',subname)
-          i_all=-product(shape(bounds%kb%ibxy_f))*kind(bounds%kb%ibxy_f)
-          deallocate(bounds%kb%ibxy_f,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%kb%ibxy_f',subname)
+          call f_free_ptr(bounds%kb%ibyz_f)
+          call f_free_ptr(bounds%kb%ibxz_f)
+          call f_free_ptr(bounds%kb%ibxy_f)
 
           i_all=-product(shape(bounds%sb%ibxy_ff))*kind(bounds%sb%ibxy_ff)
           deallocate(bounds%sb%ibxy_ff,stat=i_stat)
           call memocc(i_stat,i_all,'bounds%sb%ibxy_ff',subname)
+
           i_all=-product(shape(bounds%sb%ibzzx_f))*kind(bounds%sb%ibzzx_f)
           deallocate(bounds%sb%ibzzx_f,stat=i_stat)
           call memocc(i_stat,i_all,'bounds%sb%ibzzx_f',subname)
+
           i_all=-product(shape(bounds%sb%ibyyzz_f))*kind(bounds%sb%ibyyzz_f)
           deallocate(bounds%sb%ibyyzz_f,stat=i_stat)
           call memocc(i_stat,i_all,'bounds%sb%ibyyzz_f',subname)
+
           i_all=-product(shape(bounds%gb%ibyz_ff))*kind(bounds%gb%ibyz_ff)
           deallocate(bounds%gb%ibyz_ff,stat=i_stat)
-
           call memocc(i_stat,i_all,'bounds%gb%ibyz_ff',subname)
+
           i_all=-product(shape(bounds%gb%ibzxx_f))*kind(bounds%gb%ibzxx_f)
           deallocate(bounds%gb%ibzxx_f,stat=i_stat)
           call memocc(i_stat,i_all,'bounds%gb%ibzxx_f',subname)
+
           i_all=-product(shape(bounds%gb%ibxxyy_f))*kind(bounds%gb%ibxxyy_f)
           deallocate(bounds%gb%ibxxyy_f,stat=i_stat)
           call memocc(i_stat,i_all,'bounds%gb%ibxxyy_f',subname)
@@ -350,25 +348,23 @@ contains
     if (geocode == 'F') then
        ! Just test the first one...
        if (associated(bounds%kb%ibyz_c)) then
-          i_all=-product(shape(bounds%kb%ibyz_c))*kind(bounds%kb%ibyz_c)
-          deallocate(bounds%kb%ibyz_c,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%kb%ibyz_c',subname)
-          i_all=-product(shape(bounds%kb%ibxz_c))*kind(bounds%kb%ibxz_c)
-          deallocate(bounds%kb%ibxz_c,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%kb%ibxz_c',subname)
-          i_all=-product(shape(bounds%kb%ibxy_c))*kind(bounds%kb%ibxy_c)
-          deallocate(bounds%kb%ibxy_c,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%kb%ibxy_c',subname)
+          call f_free_ptr(bounds%kb%ibyz_c)
+          call f_free_ptr(bounds%kb%ibxz_c)
+          call f_free_ptr(bounds%kb%ibxy_c)
+
+
           i_all=-product(shape(bounds%sb%ibzzx_c))*kind(bounds%sb%ibzzx_c)
           deallocate(bounds%sb%ibzzx_c,stat=i_stat)
-
           call memocc(i_stat,i_all,'bounds%sb%ibzzx_c',subname)
+
           i_all=-product(shape(bounds%sb%ibyyzz_c))*kind(bounds%sb%ibyyzz_c)
           deallocate(bounds%sb%ibyyzz_c,stat=i_stat)
           call memocc(i_stat,i_all,'bounds%sb%ibyyzz_c',subname)
+
           i_all=-product(shape(bounds%gb%ibzxx_c))*kind(bounds%gb%ibzxx_c)
           deallocate(bounds%gb%ibzxx_c,stat=i_stat)
           call memocc(i_stat,i_all,'bounds%gb%ibzxx_c',subname)
+
           i_all=-product(shape(bounds%gb%ibxxyy_c))*kind(bounds%gb%ibxxyy_c)
           deallocate(bounds%gb%ibxxyy_c,stat=i_stat)
           call memocc(i_stat,i_all,'bounds%gb%ibxxyy_c',subname)
