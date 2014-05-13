@@ -80,8 +80,6 @@ subroutine run_objects_init_from_files(runObj, radical, posinp)
   type(run_objects), intent(out) :: runObj
   character(len = *), intent(in) :: radical, posinp
 
-  integer(kind = 8) :: dummy
-
   call run_objects_nullify(runObj)
 
   ! Allocate persistent structures.
@@ -320,7 +318,9 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
   type(GPU_pointers), intent(out) :: GPU
   !local variables
   integer :: iconv,iblas,initerror,ierror,useGPU,mproc,ierr,nproc_node
+  logical :: noaccel
 
+  noaccel = .true.
   if (matacc%iacceleration == 1) then
      call MPI_COMM_SIZE(bigdft_mpi%mpi_comm,mproc,ierr)
      !initialize the id_proc per node
@@ -355,6 +355,7 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
        ! write(*,'(1x,a)') 'CUDA support activated (iproc=0)'
     end if
 
+    noaccel = .false.
   else if (matacc%iacceleration >= 2) then
      ! OpenCL convolutions are activated
      ! use CUBLAS for the linear algebra for the moment
@@ -370,27 +371,29 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
      call init_acceleration_OCL(matacc,GPU)
      !   end if
      !end do
-     GPU%ndevices=min(GPU%ndevices,nproc_node)
-     if (iproc == 0) then
-        call yaml_map('Material acceleration','OpenCL',advance='no')
-        call yaml_comment('iproc=0')
-        call yaml_open_map('Number of OpenCL devices per node',flow=.true.)
-        call yaml_map('used',trim(yaml_toa(min(GPU%ndevices,nproc_node),fmt='(i0)')))
-        call yaml_map('available',trim(yaml_toa(GPU%ndevices,fmt='(i0)')))
-        !write(*,'(1x,a,i5,i5)') 'OpenCL support activated, No. devices per node (used, available):',&
-        !     min(GPU%ndevices,nproc_node),GPU%ndevices
-        call yaml_close_map()
+     if (GPU%context /= 0.) then
+        GPU%ndevices=min(GPU%ndevices,nproc_node)
+        if (iproc == 0) then
+           call yaml_map('Material acceleration','OpenCL',advance='no')
+           call yaml_comment('iproc=0')
+           call yaml_open_map('Number of OpenCL devices per node',flow=.true.)
+           call yaml_map('used',trim(yaml_toa(min(GPU%ndevices,nproc_node),fmt='(i0)')))
+           call yaml_map('available',trim(yaml_toa(GPU%ndevices,fmt='(i0)')))
+           !write(*,'(1x,a,i5,i5)') 'OpenCL support activated, No. devices per node (used, available):',&
+           !     min(GPU%ndevices,nproc_node),GPU%ndevices
+           call yaml_close_map()
+        end if
+        !the number of devices is the min between the number of processes per node
+        GPU%ndevices=min(GPU%ndevices,nproc_node)
+        GPU%OCLconv=.true.
+        noaccel = .false.
      end if
-     !the number of devices is the min between the number of processes per node
-     GPU%ndevices=min(GPU%ndevices,nproc_node)
-     GPU%OCLconv=.true.
+  end if
 
-  else
-     if (iproc == 0) then
-        call yaml_map('Material acceleration',.false.,advance='no')
-        call yaml_comment('iproc=0')
-        ! write(*,'(1x,a)') 'No material acceleration (iproc=0)'
-     end if
+  if (noaccel .and. iproc == 0) then
+     call yaml_map('Material acceleration',.false.,advance='no')
+     call yaml_comment('iproc=0')
+     ! write(*,'(1x,a)') 'No material acceleration (iproc=0)'
   end if
 
 END SUBROUTINE init_material_acceleration
