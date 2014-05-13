@@ -235,6 +235,7 @@
        AB6MD: molecular dynamics from ABINIT
        DIIS: direct inversion of iterative subspace
        FIRE: Fast Inertial Relaxation Engine as described by Bitzek et al.
+       NEB: Nudged Elastic Band
      default: none
    ncount_cluster_x:
      COMMENT: Maximum number of force evaluations
@@ -247,7 +248,9 @@
      default: 1.
    forcemax:
      RANGE: [0., 10.]
+     PROFILE_FROM: method
      default: 0.
+     NEB: 5e-2
    randdis:
      COMMENT: random displacement amplitude
      RANGE: [0., 10.]
@@ -264,11 +267,13 @@
        - PBFGS
        - DIIS
        - FIRE
+       - NEB
        - none
      PROFILE_FROM: method
      RANGE: [0., 100.]
      default: 4.
      DIIS: 2.
+     NEB: 0.5
    history:
      COMMENT: history for DIIS method
      CONDITION:
@@ -379,6 +384,81 @@
        - 13
      RANGE: [0, 1e9]
      default: 1.
+   restart:
+     COMMENT: restart a previous NEB calculation
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - NEB
+     default: No
+   climbing:
+     COMMENT: make the highest energy image to climb along the path
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - NEB
+     default: No
+   extrema_opt:
+     COMMENT: minimize the energy of extremum images during NEB optimization
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - NEB
+     default: No
+   neb_method:
+     COMMENT: image minimization method
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - NEB
+     EXCLUSIVE:
+       steepest_descent: steepest descent
+       fletcher-reeves: Fletcher Reeves
+       polak-ribiere: Polak Ribiere
+       quick-min: Conjugate gradient
+       damped-verlet: Verlet with damp
+       sim-annealing: Simulation of annealing
+     default: quick-min
+   temp:
+     COMMENT: temperature for simulated annealing
+     RANGE: [0.,1000.]
+     default: 0.
+     CONDITION:
+       MASTER_KEY: neb_method
+       WHEN:
+       - sim-annealing
+   damp:
+     COMMENT: damping factor
+     RANGE: [0.,1000.]
+     default: 1.
+     CONDITION:
+       MASTER_KEY: neb_method
+       WHEN:
+       - damped-verlet
+   springs_k:
+     COMMENT: maximum and minimum value when changing spring constant during optimization
+     RANGE: [0.,1000.]
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - NEB
+     default: [0.05,0.1]
+   fix_tol:
+     COMMENT: tolerance to apply on atom moves between extrema
+     RANGE: [0,100]
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - NEB
+     default: 1e-4
+   nimg:
+     COMMENT: number of images
+     RANGE: [3,100]
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - NEB
+     default: 15
  mix:
    iscf:
      COMMENT: mixing parameters
@@ -816,3 +896,4 @@
        COMMENT: cutoff radius for the FOE matrix vector multiplications
        RANGE: [2.0,1000]
        default: 14.0
+ 
