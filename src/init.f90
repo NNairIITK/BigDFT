@@ -801,9 +801,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
           !!write(*,*) 'after vcopy, iproc',iproc
 
   if (associated(tmb_old%coeff)) then
-      i_all=-product(shape(tmb_old%coeff))*kind(tmb_old%coeff)
-      deallocate(tmb_old%coeff, stat=i_stat)
-      call memocc(i_stat, i_all, 'tmb_old%coeff', subname)
+      call f_free_ptr(tmb_old%coeff)
   end if
 
   ! MOVE LATER 

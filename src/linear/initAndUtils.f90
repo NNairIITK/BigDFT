@@ -898,9 +898,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   call deallocate_local_zone_descriptors(wfn%lzd, subname)
 
   if (associated(wfn%coeff)) then
-      iall=-product(shape(wfn%coeff))*kind(wfn%coeff)
-      deallocate(wfn%coeff, stat=istat)
-      call memocc(istat, iall, 'wfn%coeff', subname)
+      call f_free_ptr(wfn%coeff)
   end if
 
 end subroutine destroy_DFT_wavefunction

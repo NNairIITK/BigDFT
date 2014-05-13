@@ -563,8 +563,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
      if (in%lin%scf_mode/=LINEAR_FOE .or. in%lin%pulay_correction .or.  in%lin%new_pulay_correction .or. &
          (in%lin%plotBasisFunctions /= WF_FORMAT_NONE) .or. in%lin%diag_end) then
-        allocate(tmb%coeff(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
-        call memocc(i_stat, tmb%coeff, 'tmb%coeff', subname)
+        tmb%coeff = f_malloc_ptr((/ tmb%orbs%norb , tmb%orbs%norb /),id='tmb%coeff')
      else
         nullify(tmb%coeff)
      end if
