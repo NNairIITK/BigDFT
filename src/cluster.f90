@@ -2078,9 +2078,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
        denspot%pot_work,denspot%V_XC,nsize_psi,KSwfn%psi,fion,fdisp,fxyz,&
        ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,imode,tmb,fpulay)
 
-  i_all=-product(shape(denspot%rho_work))*kind(denspot%rho_work)
-  deallocate(denspot%rho_work,stat=i_stat)
-  call memocc(i_stat,i_all,'denspot%rho',subname)
+  call f_free_ptr(denspot%rho_work)
   call f_free_ptr(denspot%pot_work)
   nullify(denspot%rho_work,denspot%pot_work)
 

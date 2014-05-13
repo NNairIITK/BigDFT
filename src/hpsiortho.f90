@@ -242,7 +242,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
            stop
         end if
 
-        allocate(denspot%rho_work(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim+ndebug),stat=i_stat)
+        denspot%rho_work = f_malloc_ptr(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim+ndebug,id='denspot%rho_work')
         call vcopy(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,denspot%rhov(1),1,&
              denspot%rho_work(1),1)
      end if
@@ -1268,9 +1268,10 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
       !       allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
       !       call vcopy(lzd%ndimpotisf,pot,1,pot,1) 
       ! This is due to the dynamic memory managment. The original version was: pot=>pot1
-      pot = f_malloc_ptr(npot+ndebug,id='pot')
-      pot=pot1
-      call f_free_ptr(pot1)
+      !pot = f_malloc_ptr(npot+ndebug,id='pot')
+      !pot=pot1
+      !call f_free_ptr(pot1)
+      pot=>pot1
    else if(iflag>0 .and. iflag<2) then
 
       pot = f_malloc_ptr(lzd%ndimpotisf+ndebug,id='pot')
