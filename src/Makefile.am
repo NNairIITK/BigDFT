@@ -129,6 +129,7 @@ high_level = cluster.f90 \
 	pdos.f90 \
 	sdcg.f90 \
 	bfgs.f90 \
+   sbfgs.f90 \
 	scfloop_API.f90 \
 	tddft.f90 \
 	output.f90 \

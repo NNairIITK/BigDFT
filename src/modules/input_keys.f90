@@ -69,6 +69,12 @@ module module_input_keys
   character(len = *), parameter, public :: HISTORY = "history"
   character(len = *), parameter, public :: DTINIT = "dtinit"
   character(len = *), parameter, public :: DTMAX = "dtmax"
+  !SBFGS parameters:
+  character(len = *), parameter, public :: NHISTX = "nhistx"
+  character(len = *), parameter, public :: MAXRISE = "maxrise"
+  character(len = *), parameter, public :: CUTOFFRATIO = "cutoffratio"
+  character(len = *), parameter, public :: STEEPTHRESH = "steepthresh"
+  character(len = *), parameter, public :: TRUSTR = "trustr"
 
   character(len = *), parameter, public :: MIX_VARIABLES = "mix"
   character(len = *), parameter, public :: ISCF = "iscf"
