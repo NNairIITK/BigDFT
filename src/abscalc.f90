@@ -185,9 +185,7 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
    loop_cluster: do icycle=1,in%nrepmax
 
       if (in%inputPsiId == 0 .and. associated(rst%KSwfn%psi)) then
-         i_all=-product(shape(rst%KSwfn%psi))*kind(rst%KSwfn%psi)
-         deallocate(rst%KSwfn%psi,stat=i_stat)
-         call memocc(i_stat,i_all,'psi',subname)
+         call f_free_ptr(rst%KSwfn%psi)
          call f_free_ptr(rst%KSwfn%orbs%eval)
          nullify(rst%KSwfn%orbs%eval)
 
@@ -230,9 +228,7 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
 
          end if 
 
-         i_all=-product(shape(rst%KSwfn%psi))*kind(rst%KSwfn%psi)
-         deallocate(rst%KSwfn%psi,stat=i_stat)
-         call memocc(i_stat,i_all,'psi',subname)
+         call f_free_ptr(rst%KSwfn%psi)
          call f_free_ptr(rst%KSwfn%orbs%eval)
          nullify(rst%KSwfn%orbs%eval)
 
@@ -733,11 +729,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       
       if( iand( in%potshortcut,32)  .gt. 0 .and. in%iabscalc_type==3 ) then
          print *, " ============== TESTING PC_PROJECTORS =========== "
-         allocate(hpsi(max(KSwfn%orbs%npsidim_orbs,KSwfn%orbs%npsidim_comp)+ndebug),stat=i_stat)
+         hpsi = f_malloc_ptr(max(KSwfn%orbs%npsidim_orbs, KSwfn%orbs%npsidim_comp),id='hpsi')
          hpsi=0.0_wp
          PPD%iproj_to_factor(1:PPD%mprojtot) = 2.0_gp
         call applyPCprojectors(KSwfn%orbs,atoms,hx,hy,hz,KSwfn%Lzd%Glr,PPD,KSwfn%psi,hpsi, .true.)
-         deallocate(hpsi)
+         call f_free_ptr(hpsi)
       end if
 
       if( iand( in%potshortcut,16)>0) then
@@ -768,9 +764,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
 
 
-      i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
-      deallocate(KSwfn%psi,stat=i_stat)
-      call memocc(i_stat,i_all,'psi',subname)
+      call f_free_ptr(KSwfn%psi)
 
       deallocate(atoms_clone%aoig)
       nullify(atoms_clone%aoig)
@@ -801,9 +795,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
           nlpsp,pkernel,pkernel,ixc,KSwfn%psi,hpsi,psit,Gvirt,&
           nspin, in%potshortcut, symObj, GPU, in)
 
-      i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
-      deallocate(KSwfn%psi,stat=i_stat)
-      call memocc(i_stat,i_all,'psi',subname)
+      call f_free_ptr(KSwfn%psi)
 
    end if
 
@@ -819,8 +811,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 !!$   call memocc(i_stat,i_all,'kernel',subname)
 
    ! needs something to let to  bigdft to deallocate
-   allocate(KSwfn%psi(2+ndebug),stat=i_stat)
-   call memocc(i_stat,KSwfn%psi,'psi',subname)
+   KSwfn%psi = f_malloc_ptr(2,id='KSwfn%psi')
 
    KSwfn%orbs%eval = f_malloc_ptr(2,id='KSwfn%orbs%eval')
 

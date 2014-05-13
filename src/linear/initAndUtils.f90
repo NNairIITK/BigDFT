@@ -881,9 +881,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   integer :: istat, iall
   character(len=*),parameter :: subname='destroy_DFT_wavefunction'
 
-  iall=-product(shape(wfn%psi))*kind(wfn%psi)
-  deallocate(wfn%psi, stat=istat)
-  call memocc(istat, iall, 'wfn%psi', subname)
+  call f_free_ptr(wfn%psi)
 
   call deallocate_p2pComms(wfn%comgp)
   call deallocate_sparse_matrix(wfn%linmat%s, subname)
@@ -1261,11 +1259,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
           tmb%orbs, tmb%psi, lphilarge)
 
      call deallocate_local_zone_descriptors(lzd_tmp, subname)
-     iall=-product(shape(tmb%psi))*kind(tmb%psi)
-     deallocate(tmb%psi, stat=istat)
-     call memocc(istat, iall, 'tmb%psi', subname)
-     allocate(tmb%psi(tmb%npsidim_orbs), stat=istat)
-     call memocc(istat, tmb%psi, 'tmb%psi', subname)
+     call f_free_ptr(tmb%psi)
+     tmb%psi = f_malloc_ptr(tmb%npsidim_orbs,id='tmb%psi')
      call vcopy(tmb%npsidim_orbs, lphilarge(1), 1, tmb%psi(1), 1)
      call f_free(lphilarge)
      

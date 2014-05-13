@@ -1415,8 +1415,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
 
   ! Otherwise there are some problems... Check later.
-  allocate(KSwfn%psi(1),stat=istat)
-  call memocc(istat,KSwfn%psi,'KSwfn%psi',subname)
+  KSwfn%psi = f_malloc_ptr(1,id='KSwfn%psi')
   nullify(KSwfn%psit)
 
   nullify(rho,pot)

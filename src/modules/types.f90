@@ -1285,8 +1285,7 @@ contains
     !first, free the workspace if not already done
     call old_wavefunction_free(wfn,subname)
     !then allocate the workspaces and fill them
-    allocate(wfn%psi((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*norbp+ndebug),stat=i_stat)
-    call memocc(i_stat,wfn%psi,'psi',subname)
+    wfn%psi = f_malloc_ptr((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*norbp+ndebug,id='wfn%psi')
     
     if (norbp>0) call vcopy((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*norbp,&
          psi(1),1,wfn%psi(1),1)

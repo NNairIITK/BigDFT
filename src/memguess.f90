@@ -344,9 +344,9 @@ program memguess
    if (.not. exportwf) then
       call print_memory_estimation(mem)
    else
-      allocate(runObj%rst%KSwfn%psi((runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_c+&
-           & 7*runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_f)*runObj%rst%KSwfn%orbs%nspinor+ndebug),stat=i_stat)
-      call memocc(i_stat,runObj%rst%KSwfn%psi,'psi',subname)
+      runObj%rst%KSwfn%psi = f_malloc_ptr((runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_c+&
+           & 7*runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_f)*runObj%rst%KSwfn%orbs%nspinor+ndebug,&
+           id='runObj%rst%KSwfn%psi')
 
       ! Optionally compute iorbp from arguments in case of ETSF.
       if (export_wf_ikpt < 1 .or. export_wf_ikpt > runObj%rst%KSwfn%orbs%nkpts) stop "Wrong k-point"

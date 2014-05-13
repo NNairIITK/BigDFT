@@ -122,9 +122,7 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
      end if
 
      if (runObj%inputs%inputPsiId == 0 .and. associated(runObj%rst%KSwfn%psi)) then
-        i_all=-product(shape(runObj%rst%KSwfn%psi))*kind(runObj%rst%KSwfn%psi)
-        deallocate(runObj%rst%KSwfn%psi,stat=i_stat)
-        call memocc(i_stat,i_all,'psi',subname)
+        call f_free_ptr(runObj%rst%KSwfn%psi)
         call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
 
         call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
@@ -180,9 +178,7 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
 
         end if
 
-        i_all=-product(shape(runObj%rst%KSwfn%psi))*kind(runObj%rst%KSwfn%psi)
-        deallocate(runObj%rst%KSwfn%psi,stat=i_stat)
-        call memocc(i_stat,i_all,'psi',subname)
+        call f_free_ptr(runObj%rst%KSwfn%psi)
         call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
 
         call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
@@ -390,9 +386,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
         
         call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
 
-        i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
-        deallocate(KSwfn%psi,stat=i_stat)
-        call memocc(i_stat,i_all,'psi',subname)
+        call f_free_ptr(KSwfn%psi)
      else
         inputpsi = INPUT_PSI_LCAO
      end if
@@ -406,9 +400,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
         tmb_old%linmat%kernel_ = matrices_null()
         call copy_tmbs(iproc, tmb, tmb_old, subname)
         call destroy_DFT_wavefunction(tmb)
-        i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
-        deallocate(KSwfn%psi,stat=i_stat)
-        call memocc(i_stat,i_all,'psi',subname)
+        call f_free_ptr(KSwfn%psi)
         call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
      else
         inputpsi = INPUT_PSI_LINEAR_AO
@@ -866,9 +858,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
         deallocate(fpulay,stat=i_stat)
         call memocc(i_stat,i_all,'fpulay',subname)
         call destroy_DFT_wavefunction(tmb)
-        i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
-        deallocate(KSwfn%psi,stat=i_stat)
-        call memocc(i_stat,i_all,'psi',subname)
+        call f_free_ptr(KSwfn%psi)
         call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
         call f_free_ptr(denspot%rho_work)
         call f_free_ptr(KSwfn%orbs%eval)
@@ -1126,8 +1116,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
         end if
 
         !allocate psivirt pointer (note the orbs dimension)
-        allocate(VTwfn%psi(max(VTwfn%orbs%npsidim_comp,VTwfn%orbs%npsidim_orbs)+ndebug),stat=i_stat)
-        call memocc(i_stat,VTwfn%psi,'psivirt',subname)
+        VTwfn%psi = f_malloc_ptr(max(VTwfn%orbs%npsidim_comp, VTwfn%orbs%npsidim_orbs),id='VTwfn%psi')
         !to avoid problems with the bindings
         VTwfn%c_obj=0
 
@@ -1253,9 +1242,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
         call f_free_ptr(VTwfn%orbs%eval)
 
         !if the local analysis has to be performed the deallocation should not be done
-        i_all=-product(shape(VTwfn%psi))*kind(VTwfn%psi)
-        deallocate(VTwfn%psi,stat=i_stat)
-        call memocc(i_stat,i_all,'VTwfn%psi',subname)
+        call f_free_ptr(VTwfn%psi)
 
      end do
 

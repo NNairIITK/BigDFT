@@ -406,8 +406,7 @@ subroutine allocate_diis_objects(idsx,alphadiis,npsidim,nkptsp,nspinor,diis,subn
   !add the possibility of more than one diis group
   ngroup=1
 
-  allocate(diis%psidst(npsidim*idsx+ndebug),stat=i_stat)
-  call memocc(i_stat,diis%psidst,'psidst',subname)
+  diis%psidst = f_malloc_ptr(npsidim*idsx+ndebug,id='diis%psidst')
   allocate(diis%hpsidst(npsidim*idsx+ndebug),stat=i_stat)
   call memocc(i_stat,diis%hpsidst,'hpsidst',subname)
   allocate(diis%ads(ncplx,idsx+1,idsx+1,ngroup,nkptsp,1+ndebug),stat=i_stat)

@@ -634,8 +634,7 @@ if (iproc==0)call yaml_map('Previous SCF wfn copied',.true.)
   if (nvctr>0) call to_zero(nvctr,psi(1,1))
 
   !calculate the reformat with history
-  allocate(psi_tmp(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,psi_tmp,'psi_tmp',subname)
+  psi_tmp = f_malloc((/ Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f, orbs%nspinor*orbs%norbp /),id='psi_tmp')
 
   !first reformat the previous SCF step
   istep=wfn_history+1
@@ -660,9 +659,7 @@ if (iproc==0)call yaml_map('Previous SCF wfn copied',.true.)
      if (iproc==0)call yaml_map('Reformat Input wfn of Iter.',jstep,advance='no')   
      if (iproc==0)call yaml_comment('Position:'//trim(yaml_toa(istep))//', Step'//trim(yaml_toa(istep_history)))
   end do
-  i_all=-product(shape(psi_tmp))*kind(psi_tmp)
-  deallocate(psi_tmp,stat=i_stat)
-  call memocc(i_stat,i_all,'psi_tmp',subname)
+  call f_free(psi_tmp)
 
   !increase the iteration step
   istep_history=istep_history+1
@@ -790,9 +787,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   call deallocate_local_zone_descriptors(tmb_old%lzd, subname)
   call deallocate_orbitals_data(tmb_old%orbs, subname)
 
-  i_all = -product(shape(tmb_old%psi))*kind(tmb_old%psi)
-  deallocate(tmb_old%psi,stat=i_stat)
-  call memocc(i_stat,i_all,'tmb_old%psi',subname)
+  call f_free_ptr(tmb_old%psi)
 
   !!call deallocate_wfd(tmb_old%lzd%glr%wfd,subname)
   !!do ilr=1,tmb_old%lzd%nlr
@@ -1050,8 +1045,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
   allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
   call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
-  allocate(locrad(at%astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,locrad,'locrad',subname)
+  locrad = f_malloc(at%astruct%nat,id='locrad')
 
   if (iproc == 0) then
      !yaml_output
@@ -1105,8 +1099,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   call wavefunction_dimension(Lzde,orbse)
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-  allocate(psi(max(orbse%npsidim_orbs,orbse%npsidim_comp)+ndebug),stat=i_stat)
-  call memocc(i_stat,psi,'psi',subname)
+  psi = f_malloc_ptr(max(orbse%npsidim_orbs, orbse%npsidim_comp),id='psi')
 
   !allocate arrays for the GPU if a card is present
   GPUe = GPU
@@ -1128,9 +1121,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   call gaussians_to_wavelets_new(iproc,nproc,Lzde,orbse,G,&
        psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
   call timing(iproc,'wavefunction  ','OF')
-  i_all=-product(shape(locrad))*kind(locrad)
-  deallocate(locrad,stat=i_stat)
-  call memocc(i_stat,i_all,'locrad',subname)
+  call f_free(locrad)
 
   ! IF onlywf return
   if(onlywf) then
@@ -1158,22 +1149,16 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
      ii=max(1,max(orbse%npsidim_orbs,orbse%npsidim_comp))+ndebug
      jj=max(1,max(orbs%npsidim_orbs,orbs%npsidim_comp))+ndebug
      if(ii .ne. jj) then
-        allocate(psi_(jj),stat=i_stat)
-        call memocc(i_stat,psi_,'psi_',subname)
+        psi_ = f_malloc(jj,id='psi_')
         if(jj<=ii) psi_=psi(1:jj)
         if(jj>ii) then
            psi_(1:ii)=psi(1:ii)
            psi_(ii+1:jj)=1.0d0
         end if
-        i_all=-product(shape(psi))*kind(psi)
-        deallocate(psi,stat=i_stat)
-        call memocc(i_stat,i_all,'psi',subname)
-        allocate(psi(jj),stat=i_stat)
-        call memocc(i_stat,psi,'psi',subname)
+        call f_free_ptr(psi)
+        psi = f_malloc_ptr(jj,id='psi')
         psi=psi_
-        i_all=-product(shape(psi_))*kind(psi_)
-        deallocate(psi_,stat=i_stat)
-        call memocc(i_stat,i_all,'psi_',subname)
+        call f_free(psi_)
      end if
 
 
@@ -1667,13 +1652,11 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
   if (inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
      .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
-     allocate(KSwfn%psi(max(KSwfn%orbs%npsidim_comp,KSwfn%orbs%npsidim_orbs)+ndebug),stat=i_stat)
-     call memocc(i_stat,KSwfn%psi,'psi',subname)
+     KSwfn%psi = f_malloc_ptr(max(KSwfn%orbs%npsidim_comp, KSwfn%orbs%npsidim_orbs),id='KSwfn%psi')
   end if
   if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
       .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-     allocate(tmb%psi(max(tmb%npsidim_comp,tmb%npsidim_orbs)), stat=i_stat)
-     call memocc(i_stat, tmb%psi, 'tmb%psi', subname)
+     tmb%psi = f_malloc_ptr(max(tmb%npsidim_comp, tmb%npsidim_orbs),id='tmb%psi')
      !allocate(tmb%confdatarr(tmb%orbs%norbp))
      !call define_confinement_data(tmb%confdatarr,tmb%orbs,rxyz,atoms,&
      !     KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),4,&
