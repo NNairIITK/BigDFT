@@ -258,6 +258,7 @@ module internal_io
   public :: io_error, io_warning, io_open
   public :: io_read_descr, read_psi_compress
   public :: io_gcoordToLocreg
+  public :: read_psig
 
 contains
 
@@ -539,6 +540,7 @@ contains
     end if
     lstat = .true.
   END SUBROUTINE read_psi_compress
+
 
   subroutine read_psig(unitwf, formatted, nvctr_c, nvctr_f, n1, n2, n3, psig, lstat, error)
     use module_base

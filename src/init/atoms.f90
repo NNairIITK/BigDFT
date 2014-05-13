@@ -107,6 +107,7 @@ subroutine astruct_set_displacement(astruct, randdis)
   end select
 END SUBROUTINE astruct_set_displacement
 
+
 !> For bindings only, use input_dicts module for Fortran usage.
 subroutine astruct_merge_to_dict(dict, astruct)
   use module_input_dicts, only: wrapper => astruct_merge_to_dict
@@ -118,6 +119,7 @@ subroutine astruct_merge_to_dict(dict, astruct)
 
   call wrapper(dict, astruct, astruct%rxyz)
 END SUBROUTINE astruct_merge_to_dict
+
 
 !> Find extra information
 subroutine find_extra_info(line,extra)
@@ -447,6 +449,7 @@ subroutine wtxyz(iunit,energy,rxyz,atoms,comment)
 
 END SUBROUTINE wtxyz
 
+
 !> Add the forces in the position file for the xyz system
 subroutine wtxyz_forces(iunit,fxyz,at)
   use module_base
@@ -476,6 +479,7 @@ subroutine wtxyz_forces(iunit,fxyz,at)
   end do
   
 end subroutine wtxyz_forces
+
 
 !> Write ascii file (atomic position). 
 subroutine wtascii(iunit,energy,rxyz,atoms,comment)
@@ -645,14 +649,17 @@ subroutine astruct_dict_get_types(dict, types)
 end subroutine astruct_dict_get_types
 
 
-!> Write yaml atomic file.
+!> Write atomic file in yaml format
 subroutine wtyaml(iunit,energy,rxyz,atoms,wrtforces,forces, &
      & wrtlog, shift, hgrids)
+  use module_base, only: f_err_throw
   use module_defs, only: Bohr_Ang, gp, UNINITIALIZED
   use module_types, only: atoms_data
   use yaml_output
   implicit none
-  logical, intent(in) :: wrtforces, wrtlog
+  !Arguments
+  logical, intent(in) :: wrtforces !< True if write the atomic forces
+  logical, intent(in) :: wrtlog
   integer, intent(in) :: iunit
   type(atoms_data), intent(in) :: atoms
   real(gp), intent(in) :: energy
@@ -661,12 +668,11 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,wrtforces,forces, &
   !local variables
   logical :: reduced, perx, pery, perz
   character(len=4) :: frzchain
-  integer :: iat,ichg,ispol
+  real(gp), dimension(3) :: xred
   real(gp) :: factor
-  real(gp) :: xred(3)
+  integer :: iat,ichg,ispol
   
   reduced=.false.
-  factor=1.0_gp
   Units: select case(trim(atoms%astruct%units))
   case('angstroem','angstroemd0')
      call yaml_map('Units','angstroem', unit = iunit)
@@ -678,14 +684,17 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,wrtforces,forces, &
      end if
   case('atomic','atomicd0','bohr','bohrd0')
      ! Default
+     factor=1.0_gp
      !call yaml_map('Units','bohr')
+  case default
+     call f_err_throw('Writing the atomic file. Error, unknown units ("'// trim(atoms%astruct%units)//'")', & 
+          & err_name='BIGDFT_RUNTIME_ERROR')
   end select Units
 
   !cell information
   perx = .false.
   pery = .false.
   perz = .false.
-  factor=1.0_gp
   BC :select case(atoms%astruct%geocode)
   case('S')
      call yaml_open_sequence('Cell', flow=.true., unit = iunit)
@@ -718,16 +727,22 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,wrtforces,forces, &
      !call yaml_map('BC','free')
   end select BC
 
+  !Write atomic positions
   call yaml_open_sequence('Positions', unit = iunit)
   do iat=1,atoms%astruct%nat
      call yaml_sequence(advance='no', unit = iunit)
      if (extra_info(iat)) then
         call yaml_open_map(flow=.true., unit = iunit)
      end if
-     xred(1:3)=rxyz(1:3,iat)
-     if (reduced .and. perx) xred(1)=rxyz(1,iat)/atoms%astruct%cell_dim(1)
-     if (reduced .and. pery) xred(2)=rxyz(2,iat)/atoms%astruct%cell_dim(2)
-     if (reduced .and. perz) xred(3)=rxyz(3,iat)/atoms%astruct%cell_dim(3)
+     xred=rxyz(:,iat)
+     if (reduced) then
+        if (perx) xred(1)=rxyz(1,iat)/atoms%astruct%cell_dim(1)
+        if (pery) xred(2)=rxyz(2,iat)/atoms%astruct%cell_dim(2)
+        if (perz) xred(3)=rxyz(3,iat)/atoms%astruct%cell_dim(3)
+     else
+        !Multiply by the factor to have the right units
+        xred = xred*factor
+     end if
      if (wrtlog) then
         call print_one_atom(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),&
              xred,hgrids,iat)
@@ -738,7 +753,7 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,wrtforces,forces, &
 !!$        call yaml_comment(gu, unit = iunit)
      else
         call yaml_map(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),&
-             & xred,fmt="(g25.17)", unit = iunit)
+             & xred,fmt="(1pg25.17)", unit = iunit)
      end if
      if (extra_info(iat)) then
         call charge_and_spol(atoms%astruct%input_polarization(iat),ichg,ispol)
@@ -752,15 +767,15 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,wrtforces,forces, &
      end if
   end do
   call yaml_close_sequence(unit = iunit) !positions
+
+  !Write atomic forces
   if (wrtforces) then
-     call yaml_open_map('Forces (Ha/Bohr)', unit = iunit)
-     call yaml_open_sequence(unit = iunit)
+     call yaml_open_sequence('Forces (Ha/Bohr)', unit = iunit)
      do iat=1,atoms%astruct%nat
         call yaml_sequence(advance='no', unit = iunit)
-        call yaml_map(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),forces(:,iat),fmt='(g25.17)', unit = iunit)
+        call yaml_map(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),forces(:,iat),fmt='(1pg25.17)', unit = iunit)
      end do
      call yaml_close_sequence(unit = iunit) !values
-     call yaml_close_map(unit = iunit) !forces
   end if
   if (wrtlog) then
      call yaml_map('Rigid Shift Applied (AU)',(/-shift(1),-shift(2),-shift(3)/),fmt='(1pg12.5)')
@@ -782,14 +797,13 @@ contains
     extra_info=atoms%astruct%input_polarization(iat) /=100 .or. atoms%astruct%ifrztyp(iat)/=0
   end function extra_info
 
-
   subroutine print_one_atom(atomname,rxyz,hgrids,id)
     implicit none
     integer, intent(in) :: id
     character(len=*), intent(in) :: atomname
     double precision, dimension(3), intent(in) :: rxyz,hgrids
     !local variables
-    character(len=*), parameter :: fmtat='(g18.10)',fmtg='(F6.2)',fmti='(i4.4)'
+    character(len=*), parameter :: fmtat='(1pg18.10)',fmtg='(F6.2)',fmti='(i4.4)'
     integer :: i
 
     call yaml_open_sequence(atomname,flow=.true.)
@@ -801,7 +815,7 @@ contains
 
   end subroutine print_one_atom
 
-end subroutine wtyaml
+END SUBROUTINE wtyaml
 
 
 !> Calculate the charge and the spin polarisation to be placed on a given atom

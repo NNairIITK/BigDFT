@@ -15,7 +15,8 @@
 ## default: value of the default, written as a string 
 ## profile1: value1 # if the user specifies inputvar: profile1 then inputvars will be value1
 ## profile2: value2
-############################################ 
+############################################
+# Density Functional Theory parameters
  dft:
    hgrids:
      COMMENT: Grid spacing in the three directions (bohr)
@@ -30,7 +31,7 @@
    ixc:
      COMMENT: Exchange-correlation parameter (LDA=1,PBE=11)
      default: 1
-#here follow a number of possibilities for the different XC functionals
+     #Here follow a number of possibilities for the different XC functionals
      LDA (ABINIT): 1
      PBE (ABINIT): 11
      LDA: -20
@@ -99,6 +100,7 @@
        100:   Linear AO
        101:   Linear restart
        102:   Linear on disk
+     #Here follow two shortcuts for linear
      linear: 100
      linear_restart: 102
      KEYWORDS: ciao
@@ -125,6 +127,7 @@
      COMMENT: Length of the tail (AU)
      RANGE: [0., 10.]
      default: 0.
+     #Here shortcut
      with tails: 5.
    ncongt:
      COMMENT: No. of tail CG iterations
@@ -145,6 +148,7 @@
    disablesym:
      COMMENT: Disable the symmetry detection
      default: No
+#K points parameters
  kpt:
    method:
      COMMENT: K-point sampling method
@@ -152,7 +156,7 @@
        auto:   Based on kptrlen
        MPGrid: Monkhorst-Pack
        manual: Based on raw coordinates
-     default:  Manual
+     default:  manual
    kptrlen:
      COMMENT: Equivalent length of K-space resolution (Bohr)
      CONDITION:
@@ -197,7 +201,7 @@
      COMMENT: For doing band structure calculation
      default: No
    iseg:
-     COMMENT: Points for each segment of the BZ path
+     COMMENT: Points for each segment of the Brillouin zone path
      CONDITION:
        MASTER_KEY: bands
        WHEN:
@@ -205,6 +209,7 @@
      default:
      - 1
    kptv:
+     COMMENT: K points defining each segment of the Brillouin zone path
      CONDITION:
        MASTER_KEY: bands
        WHEN:
@@ -221,11 +226,13 @@
      RANGE: [1, 1000]
      default: 1
    band_structure_filename:
+     COMMENT: Filename given the local potential for band structure calculations
      CONDITION:
        MASTER_KEY: bands
        WHEN:
        - Yes
      default: ''
+#Geometry Optimisation  and Molecular Dynamics parameters
  geopt:
    method:
      COMMENT: Geometry optimisation method
@@ -247,9 +254,11 @@
      default: 50
      none: 1
    frac_fluct:
+     COMMENT: Fraction of force fluctuations. Stop if fmax < forces_fluct*frac_fluct
      RANGE: [0., 10.]
      default: 1.
    forcemax:
+     COMMENT: Max forces criterion when stop
      RANGE: [0., 10.]
      default: 0.
    randdis:
@@ -383,6 +392,7 @@
        - 13
      RANGE: [0, 1e9]
      default: 1.
+#Mixing density or potential parameters
  mix:
    iscf:
      COMMENT: Mixing parameters
@@ -434,9 +444,10 @@
      COMMENT: Multiplying factors for the electronic DIIS
      RANGE: [0., 10.]
      default: 2.
+#Self-Interaction Correction
  sic:
    sic_approach:
-     COMMENT: SIC method
+     COMMENT: SIC (self-interaction correction) method
      EXCLUSIVE:
        none: No self-interaction correction
        PZ:   Perdew-Zunger SIC scheme
@@ -447,20 +458,22 @@
      RANGE: [0, 1.]
      default: 0.
    sic_fref:
-     COMMENT: Reference occupation fref (for NK case only)
+     COMMENT: Reference occupation fref (for Non-Koopman case only)
      CONDITION:
        MASTER_KEY: sic_approach
        WHEN:
        - NK
      RANGE: [0., 1.]
      default: 0.
+#Time-Dependent DFT parameters
  tddft:
    tddft_approach:
-     COMMENT: TDDFT method
+     COMMENT: Time-Dependent DFT method
      EXCLUSIVE:
        none: no tddft post-processing
        TDA: ???
      default: none
+#Performance parameters
  perf:
    debug:
      COMMENT: Debug option
@@ -659,6 +672,7 @@
    check_matrix_compression:
      COMMENT: linear scaling perform a check of the matrix compression routines
      default: Yes
+#Linear scaling version parameters
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
@@ -704,6 +718,7 @@
      subspace_diag: #called calc_ks, to be renamed
        COMMENT: diagonalization at the end
        default: No
+#Parameters for the localised basis set (or support function) for the linear scaling version
  lin_basis:
      nit:
        COMMENT: maximal number of iterations in the optimization of the support functions
@@ -750,6 +765,7 @@
        COMMENT: fix the support functions if the density change is below this threshold
        RANGE: [1.e-14,1.e-6]
        default: 1.e-10
+#Parameters for the calculation of the kernel (linear scaling version)
  lin_kernel:
      nstep:
        COMMENT: don't know what this variable stands for...
@@ -807,6 +823,7 @@
        COMMENT: decay length of the error function
        RANGE: [1.e-4,1.0]
        default: 5.e-2
+#Parameters to define the localized basis set or support functions (linear scaling version)
  lin_basis_params:
      nbasis:
        COMMENT: number of support functions per atom
@@ -838,7 +855,7 @@
        default: 14.0
 --- #here starts the document of possible input files
 best:
-  COMMENT: this input file shouldbe used for something
+  COMMENT: this input file should be used for something
   dft:
     hgrids: accurate
     ixc: PBE
@@ -853,5 +870,3 @@ structural:
     ixc: PBE
   geopt:
     method: FIRE
-
-    

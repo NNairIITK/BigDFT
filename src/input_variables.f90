@@ -1092,6 +1092,7 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
 
   if (in%nkptv > 0 .and. geocode == 'F' .and. iproc == 0) &
        & call yaml_warning('Defining a k-point path in free boundary conditions.') 
+
 END SUBROUTINE kpt_input_analyse
 
 !!$  ! linear scaling: explicitely specify localization centers
