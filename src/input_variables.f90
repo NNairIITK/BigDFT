@@ -73,6 +73,8 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
      call read_tddft_from_text_format(mpi_env%iproc,dict//TDDFT_VARIABLES, trim(f0))
      call set_inputfile(f0, radical, 'lin')
      call read_lin_from_text_format(mpi_env%iproc,dict, trim(f0))
+     call set_inputfile(f0, radical, 'neb')
+     call read_neb_from_text_format(mpi_env%iproc,dict//GEOPT_VARIABLES, trim(f0))
   else
      ! We add an overloading input.perf (for automatic test purposes).
      ! This will be changed in far future when only YAML input will be allowed.
