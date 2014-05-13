@@ -277,7 +277,6 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
 !      call energyandforces(nat,rxyz(1,1,nhist),fxyz(1,1,nhist),etotp)
       call vcopy(3 * runObj%atoms%astruct%nat, rxyz(1,1,nhist), 1,runObj%atoms%astruct%rxyz(1,1), 1)
       runObj%inputs%inputPsiId=1
-write(237,*)'mpi process no.: ',iproc
       call call_bigdft(runObj,outs,nproc,iproc,infocode)
       ncount_bigdft=ncount_bigdft+1
       call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz(1,1,nhist), 1)
