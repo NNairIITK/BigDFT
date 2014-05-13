@@ -101,6 +101,7 @@ MODULE NEB_routines
       REAL (gp), DIMENSION(:,:), ALLOCATABLE :: d_R
       real(gp), dimension(3) :: acell1, acell2
       integer :: ierr, nconfig, algorithm, unit_log
+      type(mpi_environment) :: bigdft_mpi_svg
       character(len=60) :: run_id
       type(dictionary), pointer :: dict, dict_min
       REAL (gp) :: tolerance
@@ -145,6 +146,13 @@ MODULE NEB_routines
       call dict_init(dict)
       ! trick to output the image logs where it should, on disk.
       call set(dict // PERF_VARIABLES // OUTDIR, "./")
+      ! Trick here, only super master will read the input files...
+      bigdft_mpi_svg = bigdft_mpi
+      bigdft_mpi%mpi_comm = MPI_COMM_WORLD
+      call mpi_comm_rank(MPI_COMM_WORLD, bigdft_mpi%iproc, ierr)
+      call mpi_comm_size(MPI_COMM_WORLD, bigdft_mpi%nproc, ierr)
+      bigdft_mpi%igroup = 0
+      bigdft_mpi%ngroup = num_of_images
       do i = 1, num_of_images
 
          call user_dict_from_files(dict, trim(arr_radical(i)), &
@@ -274,7 +282,7 @@ MODULE NEB_routines
          call restart_objects_new(rst)
          call restart_objects_set_mode(rst, ins(1)%inputpsiid)
          call restart_objects_set_nat(rst, atoms(1)%astruct%nat, "read_input")
-         call restart_objects_set_mat_acc(rst, mpi_info(1), ins(1)%matacc)
+         call restart_objects_set_mat_acc(rst, bigdft_mpi%iproc, ins(1)%matacc)
       end if
 
       allocate(imgs(num_of_images))
@@ -282,6 +290,7 @@ MODULE NEB_routines
          call image_init(imgs(i), ins(i), atoms(i), rst, algorithm)
       end do
 
+      bigdft_mpi = bigdft_mpi_svg
     END SUBROUTINE read_input
 
     
