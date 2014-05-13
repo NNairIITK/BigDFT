@@ -1111,9 +1111,7 @@ subroutine wf_empty(wf)
      call memocc(i_stat,i_all,'psit', "wf_empty")
   end if
   if (associated(wf%hpsi)) then
-     i_all=-product(shape(wf%hpsi))*kind(wf%hpsi)
-     deallocate(wf%hpsi,stat=i_stat)
-     call memocc(i_stat,i_all,'hpsi', "wf_empty")
+     call f_free_ptr(wf%hpsi)
   end if
 END SUBROUTINE wf_empty
 subroutine wf_free(wf)

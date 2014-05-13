@@ -32,9 +32,7 @@ subroutine kswfn_free_scf_data(KSwfn, freePsit)
 
   ! Clean KSwfn parts only needed in the SCF loop.
   call deallocate_diis_objects(KSwfn%diis,subname)
-  i_all=-product(shape(KSwfn%hpsi))*kind(KSwfn%hpsi)
-  deallocate(KSwfn%hpsi,stat=i_stat)
-  call memocc(i_stat,i_all,'hpsi',subname)
+  call f_free_ptr(KSwfn%hpsi)
   if (freePsit) then
      i_all=-product(shape(KSwfn%psit))*kind(KSwfn%psit)
      deallocate(KSwfn%psit,stat=i_stat)

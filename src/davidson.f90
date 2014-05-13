@@ -177,8 +177,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    ! 1st Hamilton application on psivirt
    !if(iproc==0)write(*,'(1x,a)')"done."
 
-   allocate(VTwfn%hpsi(max(VTwfn%orbs%npsidim_orbs,VTwfn%orbs%npsidim_comp)+ndebug),stat=i_stat)
-   call memocc(i_stat,VTwfn%hpsi,'VTwfn%hpsi',subname)
+   VTwfn%hpsi = f_malloc_ptr(max(VTwfn%orbs%npsidim_orbs,VTwfn%orbs%npsidim_comp)+ndebug,id='VTwfn%hpsi')
    if (nproc > 1) then
       allocate(VTwfn%psit(max(VTwfn%orbs%npsidim_orbs,VTwfn%orbs%npsidim_comp)+ndebug),stat=i_stat)
       call memocc(i_stat,VTwfn%psit,'VTwfn%psit',subname)

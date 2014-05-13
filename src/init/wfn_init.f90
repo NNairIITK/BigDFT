@@ -356,9 +356,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
 !  if(iproc==0 .and. verbose>1) write(*,'(a)') ' done.'
   !if (iproc == 0) print *,'hamovr,iproc:',iproc,hamovr
   !deallocate hpsi in the case of a minimal basis
-  i_all=-product(shape(hpsi))*kind(hpsi)
-  deallocate(hpsi,stat=i_stat)
-  call memocc(i_stat,i_all,'hpsi',subname)
+  call f_free_ptr(hpsi)
 
   if (nproc > 1) then
      !reduce the overlap matrix between all the processors
@@ -526,8 +524,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
      call orthogonalize(iproc,nproc,orbs,comms,psit,orthpar)
   end if
 
-  allocate(hpsi(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
-  call memocc(i_stat,hpsi,'hpsi',subname)
+  hpsi = f_malloc_ptr(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug,id='hpsi')
   !     hpsi=0.0d0
   if (nproc > 1) then
      !allocate the direct wavefunction

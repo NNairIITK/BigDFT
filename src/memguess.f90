@@ -827,8 +827,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    !allocate the wavefunctions
    allocate(psi(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
    call memocc(i_stat,psi,'psi',subname)
-   allocate(hpsi(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
-   call memocc(i_stat,hpsi,'hpsi',subname)
+   hpsi = f_malloc((/ Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f , orbs%nspinor*orbs%norbp+ndebug /),id='hpsi')
 
    call to_zero(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f*orbs%nspinor*orbs%norbp,psi)
    call to_zero(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f*orbs%nspinor*orbs%norbp,hpsi)
@@ -1158,9 +1157,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    i_all=-product(shape(psi))*kind(psi)
    deallocate(psi,stat=i_stat)
    call memocc(i_stat,i_all,'psi',subname)
-   i_all=-product(shape(hpsi))*kind(hpsi)
-   deallocate(hpsi,stat=i_stat)
-   call memocc(i_stat,i_all,'hpsi',subname)
+   call f_free(hpsi)
 
 
    !free the card at the end

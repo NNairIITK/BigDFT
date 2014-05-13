@@ -1934,8 +1934,7 @@ subroutine first_orthon(iproc,nproc,orbs,lzd,comms,psi,hpsi,psit,orthpar,paw)
       !allocate hpsi array (used also as transposed)
       !allocated in the transposed way such as 
       !it can also be used as the transposed hpsi
-      allocate(hpsi(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
-      call memocc(i_stat,hpsi,'hpsi',subname)
+      hpsi =f_malloc_ptr(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug,id='hpsi')
       !allocate transposed principal wavefunction
       allocate(psit(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
       call memocc(i_stat,psit,'psit',subname)
@@ -1973,8 +1972,7 @@ subroutine first_orthon(iproc,nproc,orbs,lzd,comms,psi,hpsi,psit,orthpar,paw)
    if (nproc == 1) then
       nullify(psit)
       !allocate hpsi array
-      allocate(hpsi(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
-      call memocc(i_stat,hpsi,'hpsi',subname)
+      hpsi = f_malloc_ptr(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug,id='hpsi')
    end if
 
 END SUBROUTINE first_orthon
@@ -2029,9 +2027,7 @@ subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
          nullify(wfn%psit)
       end if
 
-      i_all=-product(shape(wfn%hpsi))*kind(wfn%hpsi)
-      deallocate(wfn%hpsi,stat=i_stat)
-      call memocc(i_stat,i_all,'hpsi',subname)
+      call f_free_ptr(wfn%hpsi)
 
    endif
 

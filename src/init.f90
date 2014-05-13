@@ -413,8 +413,7 @@ END SUBROUTINE createProjectorsArrays
           real(gp) :: hxh, hyh, hzh
 
           !allocate fake psit and hpsi
-          allocate(hpsi(max(orbs%npsidim_comp,orbs%npsidim_orbs)+ndebug),stat=i_stat)
-          call memocc(i_stat,hpsi,'hpsi',subname)
+          hpsi = f_malloc_ptr(max(orbs%npsidim_comp,orbs%npsidim_orbs)+ndebug,id='hpsi')
           if (nproc > 1) then
              allocate(psit(max(orbs%npsidim_comp,orbs%npsidim_orbs)+ndebug),stat=i_stat)
              call memocc(i_stat,psit,'psit',subname)
@@ -1161,8 +1160,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
 
      !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-     allocate(hpsi(max(1,max(orbs%npsidim_orbs,orbs%npsidim_comp))+ndebug),stat=i_stat)
-     call memocc(i_stat,hpsi,'hpsi',subname)
+     hpsi = f_malloc_ptr(max(1,max(orbs%npsidim_orbs,orbs%npsidim_comp))+ndebug,id='hpsi')
 
      if(present(paw)) then
         allocate(paw%spsi(max(1,max(orbs%npsidim_orbs,orbs%npsidim_comp))+ndebug),stat=i_stat)
@@ -1319,8 +1317,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-  allocate(hpsi(max(1,max(orbse%npsidim_orbs,orbse%npsidim_comp))+ndebug),stat=i_stat)
-  call memocc(i_stat,hpsi,'hpsi',subname)
+  hpsi = f_malloc_ptr(max(1,max(orbse%npsidim_orbs,orbse%npsidim_comp))+ndebug,id='hpsi')
 
   !call vcopy(orbse%npsidim,psi,1,hpsi,1)
   if (input%exctxpar == 'OP2P') then
