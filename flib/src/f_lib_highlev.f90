@@ -144,7 +144,7 @@ subroutine f_lib_finalize()
   if (iproc == 0) then
      call dict_get_num(ndict,ndict_max,nlibs,nlibs_max)
      call yaml_map('Max No. of dictionaries used',ndict_max, advance='no')
-     call yaml_comment('( '//trim(yaml_toa(ndict))//' still in use)')
+     call yaml_comment('('//trim(yaml_toa(ndict))//' still in use)')
      !general finalization, the f_lib should come back to uninitialized status
      call yaml_map('Number of dictionary folders allocated',nlibs_max)
   end if
