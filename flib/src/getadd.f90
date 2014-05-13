@@ -159,6 +159,12 @@ module metadata_interfaces
        integer(kind=8), intent(out) :: iadd
      end subroutine getdp5ptr
 
+     subroutine getdp6ptr(array,iadd)
+       implicit none
+       double precision, dimension(:,:,:,:,:,:), pointer, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine getdp6ptr
+
      subroutine geti1ptr(array,iadd)
        implicit none
        integer, dimension(:), pointer, intent(in) :: array
@@ -202,7 +208,7 @@ public :: getl1,getl2,getl3
 public :: getr1,getr2,getr3
 public :: getdp1,getdp2,getdp3,getdp4,getdp5,getdp6!,getlongaddress
 public :: getz2
-public :: getdp1ptr,getdp2ptr,getdp3ptr,getdp4ptr,getdp5ptr
+public :: getdp1ptr,getdp2ptr,getdp3ptr,getdp4ptr,getdp5ptr,getdp6ptr
 public :: geti1ptr,geti2ptr,geti3ptr
 public :: getc1ptr
 public :: address_toi,long_toa

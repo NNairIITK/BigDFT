@@ -246,6 +246,13 @@ void FC_FUNC(getdp5ptr, GETDP5PTR)(void *ptr,long long int *address)
   return;
 }
 
+void FC_FUNC(getdp6ptr, GETDP6PTR)(void *ptr,long long int *address)
+{
+  *address=0;
+  *address = (long long int)ptr;
+  return;
+}
+
 void FC_FUNC(geti1ptr, GETI1PTR)(void *ptr,long long int *address)
 {
   *address=0;
