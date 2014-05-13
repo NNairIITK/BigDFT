@@ -434,8 +434,7 @@ END SUBROUTINE createProjectorsArrays
                      'The value nspin reading from the file is not the same',&
                      err_name='BIGDFT_RUNTIME_ERROR')) return
              else
-                allocate(denspot%Vloc_KS(1,1,1,input_spin+ndebug),stat=i_stat)
-                call memocc(i_stat,denspot%Vloc_KS,'Vloc_KS',subname)
+                denspot%Vloc_KS = f_malloc_ptr((/ 1 , 1 , 1 , input_spin+ndebug /),id='denspot%Vloc_KS')
              end if
 
              if (nproc > 1) then
@@ -454,9 +453,7 @@ END SUBROUTINE createProjectorsArrays
              !now the meaning is KS potential
              call denspot_set_rhov_status(denspot, KS_POTENTIAL, 0, iproc, nproc)
 
-             i_all=-product(shape(denspot%Vloc_KS))*kind(denspot%Vloc_KS)
-             deallocate(denspot%Vloc_KS,stat=i_stat)
-             call memocc(i_stat,i_all,'Vloc_KS',subname)
+             call f_free_ptr(denspot%Vloc_KS)
 
              !add pot_ion potential to the local_potential
              !do ispin=1,in%nspin

@@ -1000,9 +1000,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
           atoms,rxyz,denspot%dpbox,in%nspin,denspot%rhov)
   end if
 
-  i_all=-product(shape(denspot%V_ext))*kind(denspot%V_ext)
-  deallocate(denspot%V_ext,stat=i_stat)
-  call memocc(i_stat,i_all,'denspot%V_ext',subname)
+  call f_free_ptr(denspot%V_ext)
   nullify(denspot%V_ext)
 
   !variables substitution for the PSolver part
@@ -1218,11 +1216,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
            !Allocate second Exc derivative
            if (denspot%dpbox%n3p >0) then
-              allocate(denspot%f_XC(n1i,n2i,denspot%dpbox%n3p,in%nspin+1+ndebug),stat=i_stat)
-              call memocc(i_stat,denspot%f_XC,'f_XC',subname)
+              denspot%f_XC = f_malloc_ptr((/ n1i , n2i , denspot%dpbox%n3p , in%nspin+1+ndebug /),id='denspot%f_XC')
            else
-              allocate(denspot%f_XC(1,1,1,in%nspin+1+ndebug),stat=i_stat)
-              call memocc(i_stat,denspot%f_XC,'denspot%f_XC',subname)
+              denspot%f_XC = f_malloc_ptr((/ 1 , 1 , 1 , in%nspin+1+ndebug /),id='denspot%f_XC')
            end if
 
            call XC_potential(atoms%astruct%geocode,'D',iproc,nproc,bigdft_mpi%mpi_comm,&
@@ -1239,9 +1235,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
                 KSwfn%Lzd%Glr,KSwfn%orbs,VTwfn%orbs,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,&
                 denspot%f_XC,denspot%pkernelseq,KSwfn%psi,VTwfn%psi)
 
-           i_all=-product(shape(denspot%f_XC))*kind(denspot%f_XC)
-           deallocate(denspot%f_XC,stat=i_stat)
-           call memocc(i_stat,i_all,'denspot%f_XC',subname)
+           call f_free_ptr(denspot%f_XC)
 
         end if
 
@@ -1359,9 +1353,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
      call f_free_ptr(denspot%rhov)
 
-     i_all=-product(shape(denspot%V_XC))*kind(denspot%V_XC)
-     deallocate(denspot%V_XC,stat=i_stat)
-     call memocc(i_stat,i_all,'denspot%V_XC',subname)
+     call f_free_ptr(denspot%V_XC)
 
      !pass hx instead of hgrid since we are only in free BC
      call CalculateTailCorrection(iproc,nproc,atoms,in%rbuf,KSwfn%orbs,&
@@ -1393,9 +1385,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      !    No tail calculation
      if (nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
      call f_free_ptr(denspot%rhov)
-     i_all=-product(shape(denspot%V_XC))*kind(denspot%V_XC)
-     deallocate(denspot%V_XC,stat=i_stat)
-     call memocc(i_stat,i_all,'denspot%V_XC',subname)
+     call f_free_ptr(denspot%V_XC)
      call dpbox_free(denspot%dpbox, subname)
   endif
   ! --- End if of tail calculation
@@ -1443,9 +1433,7 @@ contains
 
        ! calc_tail false
        call f_free_ptr(denspot%rhov)
-       i_all=-product(shape(denspot%V_XC))*kind(denspot%V_XC)
-       deallocate(denspot%V_XC,stat=i_stat)
-       call memocc(i_stat,i_all,'denspot%V_XC',subname)
+       call f_free_ptr(denspot%V_XC)
 
        call dpbox_free(denspot%dpbox, subname)
 
@@ -1468,9 +1456,7 @@ contains
     ! Free all remaining parts of denspot
     call deallocate_rho_descriptors(denspot%rhod,subname)
     if(associated(denspot%rho_C)) then
-       i_all=-product(shape(denspot%rho_C))*kind(denspot%rho_C)
-       deallocate(denspot%rho_C,stat=i_stat)
-       call memocc(i_stat,i_all,'denspot%rho_C',subname)
+       call f_free_ptr(denspot%rho_C)
     end if
     i_all=-product(shape(denspot0))*kind(denspot0)
     deallocate(denspot0, stat=i_stat)

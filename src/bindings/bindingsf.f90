@@ -927,9 +927,7 @@ subroutine localfields_free(denspotd, fion, fdisp)
   call dpbox_free(denspotd%dpbox, subname)
   
   if (associated(denspotd%V_ext)) then
-     i_all=-product(shape(denspotd%V_ext))*kind(denspotd%V_ext)
-     deallocate(denspotd%V_ext,stat=i_stat)
-     call memocc(i_stat,i_all,'denspotd%V_ext',subname)
+     call f_free_ptr(denspotd%V_ext)
   end if
   
   if (associated(denspotd%pkernelseq%kernel,target=denspotd%pkernel%kernel)) then
@@ -944,9 +942,7 @@ subroutine localfields_free(denspotd, fion, fdisp)
   end if
 
   if (associated(denspotd%V_XC)) then
-     i_all=-product(shape(denspotd%V_XC))*kind(denspotd%V_XC)
-     deallocate(denspotd%V_XC,stat=i_stat)
-     call memocc(i_stat,i_all,'denspotd%V_XC',subname)
+     call f_free_ptr(denspotd%V_XC)
   end if
 
   if(associated(denspotd%rho_C)) then

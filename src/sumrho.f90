@@ -121,8 +121,7 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,xc,psi,rho_p,mapping)
    end if
    !print *,'here',Lzd%linear,present(mapping),dpbox%iproc_world
    !write(*,*) 'iproc,rhoarray dim', iproc, Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,nspinn+ndebug
-   allocate(rho_p(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*rhodsc%nrhotot,nspinn+ndebug),stat=i_stat)
-   call memocc(i_stat,rho_p,'rho_p',subname)
+   rho_p = f_malloc_ptr((/ Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*rhodsc%nrhotot , nspinn+ndebug /),id='rho_p')
 
    !switch between GPU/CPU treatment of the density
    !here also one might decide to save the value of psir and of its laplacian 
@@ -328,9 +327,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
   end do
 
   if (.not. keep_rhop) then
-     i_all=-product(shape(rho_p))*kind(rho_p)
-     deallocate(rho_p,stat=i_stat)
-     call memocc(i_stat,i_all,'rho_p',subname)
+     call f_free_ptr(rho_p)
   end if
   
   !print *,'okhere1',dpbox%iproc_world

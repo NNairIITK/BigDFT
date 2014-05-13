@@ -487,19 +487,15 @@ subroutine allocateRhoPot(iproc,Glr,nspin,atoms,rxyz,denspot)
   ! --------
   !allocate ionic potential
   if (denspot%dpbox%n3pi > 0) then
-     allocate(denspot%V_ext(Glr%d%n1i,Glr%d%n2i,denspot%dpbox%n3pi,1+ndebug),stat=i_stat)
-     call memocc(i_stat,denspot%V_ext,'V_ext',subname)
+     denspot%V_ext = f_malloc_ptr((/ Glr%d%n1i , Glr%d%n2i , denspot%dpbox%n3pi , 1+ndebug /),id='denspot%V_ext')
   else
-     allocate(denspot%V_ext(1,1,1,1+ndebug),stat=i_stat)
-     call memocc(i_stat,denspot%V_ext,'pot_ion',subname)
+     denspot%V_ext = f_malloc_ptr((/ 1 , 1 , 1 , 1+ndebug /),id='denspot%V_ext')
   end if
   !Allocate XC potential
   if (denspot%dpbox%n3p >0) then
-     allocate(denspot%V_XC(Glr%d%n1i,Glr%d%n2i,denspot%dpbox%n3p,nspin+ndebug),stat=i_stat)
-     call memocc(i_stat,denspot%V_XC,'V_XC',subname)
+     denspot%V_XC = f_malloc_ptr((/ Glr%d%n1i , Glr%d%n2i , denspot%dpbox%n3p , nspin+ndebug /),id='denspot%V_XC')
   else
-     allocate(denspot%V_XC(1,1,1,nspin+ndebug),stat=i_stat)
-     call memocc(i_stat,denspot%V_XC,'V_XC',subname)
+     denspot%V_XC = f_malloc_ptr((/ 1 , 1 , 1 , nspin+ndebug /),id='denspot%V_XC')
   end if
 
   if (denspot%dpbox%n3d >0) then
