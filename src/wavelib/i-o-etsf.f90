@@ -112,8 +112,7 @@ module internal_etsf
       ! Additional information read from the file.
       if (present(nvctr_old) .and. present(nvctr_c_old) .and. present(nvctr_f_old)) then
          ! The number of coarse and fine grid points.
-         allocate(nvctr_old(dims%max_number_of_basis_grid_points+ndebug),stat=i_stat)
-         call memocc(i_stat,nvctr_old,'nvctr_old',subname)
+         nvctr_old = f_malloc_ptr(dims%max_number_of_basis_grid_points,id='nvctr_old')
          call etsf_io_low_read_var(ncid, "number_of_coefficients_per_grid_point", &
             &   nvctr_old, lstat, error_data = error)
          if (.not. lstat) return
@@ -202,10 +201,8 @@ module internal_etsf
       lr%d%n2i = 2 * n2 + 2
       lr%d%n3i = 2 * n3 + 2
 
-      allocate(logrid_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-      call memocc(i_stat,logrid_c,'logrid_c',subname)
-      allocate(logrid_f(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-      call memocc(i_stat,logrid_f,'logrid_f',subname)
+      logrid_c = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='logrid_c')
+      logrid_f = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='logrid_f')
 
       lr%d%nfl1 = n1
       lr%d%nfl2 = n2
@@ -245,12 +242,8 @@ module internal_etsf
 
       call wfd_from_grids(logrid_c, logrid_f, lr)
 
-      i_all=-product(shape(logrid_c))*kind(logrid_c)
-      deallocate(logrid_c,stat=i_stat)
-      call memocc(i_stat,i_all,'logrid_c',subname)
-      i_all=-product(shape(logrid_f))*kind(logrid_f)
-      deallocate(logrid_f,stat=i_stat)
-      call memocc(i_stat,i_all,'logrid_f',subname)
+      call f_free(logrid_c)
+      call f_free(logrid_f)
    END SUBROUTINE etsf_gcoordToLocreg
 
    subroutine etsf_orbsToStartCount(start, count, iorbp, orbs)
@@ -475,8 +468,7 @@ subroutine read_waves_from_list_etsf(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_ol
       end if
 
       ! We read the coordinates of grid points.
-      allocate(gcoord(3,nvctr_c_old+ndebug),stat=i_stat)
-      call memocc(i_stat,gcoord,'gcoord',subname)
+      gcoord = f_malloc((/ 3, nvctr_c_old /),id='gcoord')
       call etsf_io_low_read_var(ncid, "coordinates_of_basis_grid_points", &
          &   gcoord, lstat, error_data = error)
       if (.not. lstat) call etsf_error(error)
@@ -487,11 +479,9 @@ subroutine read_waves_from_list_etsf(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_ol
       call ext_buffers_coarse(pery,nb2)
       call ext_buffers_coarse(perz,nb3)
 
-      allocate(psifscf(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3+1+nb3+ndebug),stat=i_stat)
-      call memocc(i_stat,psifscf,'psifscf',subname)
+      psifscf = f_malloc((/ -nb1.to.2*n1+1+nb1, -nb2.to.2*n2+1+nb2, -nb3.to.2*n3+1+nb3 /),id='psifscf')
 
-      allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2+ndebug),stat=i_stat)
-      call memocc(i_stat,psigold,'psigold',subname)
+      psigold = f_malloc((/ 0.to.n1_old, 1.to.2, 0.to.n2_old, 1.to.2, 0.to.n3_old, 1.to.2 /),id='psigold')
       call to_zero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
 
       do iorb = 1, norb, 1
@@ -506,22 +496,12 @@ subroutine read_waves_from_list_etsf(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_ol
          end do
       end do
 
-      i_all=-product(shape(psigold))*kind(psigold)
-      deallocate(psigold,stat=i_stat)
-      call memocc(i_stat,i_all,'psigold',subname)
-
-      i_all=-product(shape(gcoord))*kind(gcoord)
-      deallocate(gcoord,stat=i_stat)
-      call memocc(i_stat,i_all,'gcoord',subname)
-
-      i_all=-product(shape(psifscf))*kind(psifscf)
-      deallocate(psifscf,stat=i_stat)
-      call memocc(i_stat,i_all,'psifscf',subname)
+      call f_free(psigold)
+      call f_free(gcoord)
+      call f_free(psifscf)
    end if
 
-   i_all=-product(shape(nvctr_old))*kind(nvctr_old)
-   deallocate(nvctr_old,stat=i_stat)
-   call memocc(i_stat,i_all,'nvctr_old',subname)
+   call f_free_ptr(nvctr_old)
 
    ! We transfer the eval values.
    do iorb = 1, norb, 1
@@ -658,11 +638,8 @@ subroutine readwavetoisf_etsf(lstat, filename, iorbp, hx, hy, hz, &
    orbsd%isorb = 0
 
    ! Initial allocations.
-   allocate(gcoord(3,nvctr_c + ndebug),stat=i_stat)
-   call memocc(i_stat,gcoord,'gcoord',"read_wave_to_isf_etsf")
-
-   allocate(psi(nvctr_c + 7 * nvctr_f + ndebug),stat=i_stat)
-   call memocc(i_stat,psi,'psi',"read_wave_to_isf_etsf")
+   gcoord = f_malloc((/ 3, nvctr_c  /),id='gcoord')
+   psi = f_malloc(nvctr_c + 7 * nvctr_f ,id='psi')
 
    call etsf_io_low_read_var(ncid, "coordinates_of_basis_grid_points", &
       &   gcoord, lstat, error_data = error)
@@ -673,12 +650,9 @@ subroutine readwavetoisf_etsf(lstat, filename, iorbp, hx, hy, hz, &
    end if
    call etsf_gcoordToLocreg(n1, n2, n3, nvctr_c, nvctr, gcoord, lr)
 
-   i_all=-product(shape(gcoord))*kind(gcoord)
-   deallocate(gcoord,stat=i_stat)
-   call memocc(i_stat,i_all,'gcoord',"read_wave_to_isf_etsf")
+   call f_free(gcoord)
 
-   allocate(psiscf(lr%d%n1i, lr%d%n2i, lr%d%n3i, orbsd%nspinor + ndebug),stat=i_stat)
-   call memocc(i_stat,psiscf,'psiscf',"read_wave_to_isf_etsf")
+   psiscf = f_malloc_ptr((/ lr%d%n1i, lr%d%n2i, lr%d%n3i, orbsd%nspinor  /),id='psiscf')
 
    call initialize_work_arrays_sumrho(lr,w)
 
@@ -714,9 +688,7 @@ subroutine readwavetoisf_etsf(lstat, filename, iorbp, hx, hy, hz, &
 
       ! Final deallocations.
       if (associated(nvctr)) then
-         i_all=-product(shape(nvctr))*kind(nvctr)
-         deallocate(nvctr,stat=i_stat)
-         call memocc(i_stat,i_all,'nvctr',subname)
+         call f_free_ptr(nvctr)
       end if
 
       if (associated(orbsd%eval)) then
@@ -724,15 +696,11 @@ subroutine readwavetoisf_etsf(lstat, filename, iorbp, hx, hy, hz, &
       end if
 
       if (allocated(psi)) then
-         i_all=-product(shape(psi))*kind(psi)
-         deallocate(psi,stat=i_stat)
-         call memocc(i_stat,i_all,'psi',subname)
+         call f_free(psi)
       end if
 
       if (allocated(gcoord)) then
-         i_all=-product(shape(gcoord))*kind(gcoord)
-         deallocate(gcoord,stat=i_stat)
-         call memocc(i_stat,i_all,'gcoord',subname)
+         call f_free(gcoord)
       end if
 
       if (associated(w%x_c)) then
@@ -901,10 +869,8 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
 
    ! nvctr array will contains the number of coeff per grid point,
    ! required by all processors.
-   allocate(nvctr(wfd%nvctr_c),stat=i_stat)
-   call memocc(i_stat,nvctr,'nvctr',subname)
-   allocate(gcoord(3, wfd%nvctr_c),stat=i_stat)
-   call memocc(i_stat,gcoord,'gcoord',subname)
+   nvctr = f_malloc(wfd%nvctr_c,id='nvctr')
+   gcoord = f_malloc((/ 3, wfd%nvctr_c /),id='gcoord')
    call build_grid(n1, n2, n3, nvctr, gcoord, wfd)
 
    !!$  sequential = .not. etsf_io_low_check_parallel_io()
@@ -927,9 +893,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
       if (.not. lstat) call etsf_error(error)
    end if
 
-   i_all=-product(shape(gcoord))*kind(gcoord)
-   deallocate(gcoord)
-   call memocc(i_stat,i_all,'gcoord',subname)
+   call f_free(gcoord)
 
    ! Now that the file is created and writable, we call the writing routines.
    if (sequential) then
@@ -955,9 +919,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
       end if
    end do
 
-   i_all=-product(shape(nvctr))*kind(nvctr)
-   deallocate(nvctr)
-   call memocc(i_stat,i_all,'nvctr',subname)
+   call f_free(nvctr)
 
    call etsf_io_low_close(ncid, lstat, error)
    if (.not. lstat) call etsf_error(error)
@@ -1084,19 +1046,16 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
       rprimd = reshape((/ (hx * dims%number_of_grid_points_vector1),0.0_gp,0.0_gp, &
          &   0.0_gp,(hy * dims%number_of_grid_points_vector2),0.0_gp, &
          & 0.0_gp,0.0_gp,(hz * dims%number_of_grid_points_vector3) /), (/ 3, 3 /))
-      allocate(xred(3, at%astruct%nat),stat=i_stat)
-      call memocc(i_stat,xred,'xred',subname)
+      xred = f_malloc((/ 3, at%astruct%nat /),id='xred')
       do iat = 1, at%astruct%nat, 1
          xred(:, iat) = rxyz(:, iat) / &
             &   (/ hx * dims%number_of_grid_points_vector1, &
             &    hy * dims%number_of_grid_points_vector2, &
             &   hz * dims%number_of_grid_points_vector3 /)
       end do
-      allocate(znucl(at%astruct%ntypes),stat=i_stat)
-      call memocc(i_stat,znucl,'znucl',subname)
+      znucl = f_malloc(at%astruct%ntypes,id='znucl')
       znucl = real(at%nzatom)
-      allocate(spnames(at%astruct%ntypes),stat=i_stat)
-      call memocc(i_stat,spnames,'spnames',subname)
+      spnames = f_malloc(at%astruct%ntypes,id='spnames')
       do iat = 1, at%astruct%ntypes, 1
          !call nzsymbol(at%nzatom(iat), spnames(iat))
          call atomic_info(at%nzatom(iat),at%nelpsp(iat),symbol=spnames(iat))
@@ -1112,27 +1071,21 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
       geo%reduced_symmetry_translations => transId
       call etsf_io_geometry_put(ncid, geo, lstat, error)
       if (.not. lstat) call etsf_error(error)
-      i_all=-product(shape(xred))*kind(xred)
-      deallocate(xred)
-      call memocc(i_stat,i_all,'xred',subname)
-      i_all=-product(shape(znucl))*kind(znucl)
-      deallocate(znucl)
-      call memocc(i_stat,i_all,'znucl',subname)
-      i_all=-product(shape(spnames))*kind(spnames)
-      deallocate(spnames)
-      call memocc(i_stat,i_all,'spnames',subname)
+      call f_free(xred)
+      call f_free(znucl)
+      call f_free(spnames)
       ! The eigenvalues & occupation.
       if (dims%number_of_spins == 1) then
          elec%eigenvalues%data1D => orbs%eval
          elec%occupations%data1D => orbs%occup
       else
-         allocate(elec%eigenvalues%data3D(dims%max_number_of_states, &
-            &   dims%number_of_kpoints, dims%number_of_spins + ndebug),stat=i_stat)
-         call memocc(i_stat,elec%eigenvalues%data3D,'elec%eigenvalues%data3D',subname)
+         elec%eigenvalues%data3D = f_malloc_ptr((/ dims%max_number_of_states , &
+             dims%number_of_kpoints , dims%number_of_spins + ndebug /), &
+             id='elec%eigenvalues%data3D')
          elec%eigenvalues%data3D = UNINITIALIZED(1.d0)
-         allocate(elec%occupations%data3D(dims%max_number_of_states, &
-            &   dims%number_of_kpoints, dims%number_of_spins + ndebug),stat=i_stat)
-         call memocc(i_stat,elec%occupations%data3D,'elec%occupations%data3D',subname)
+         elec%occupations%data3D = f_malloc_ptr((/ dims%max_number_of_states , &
+             dims%number_of_kpoints , dims%number_of_spins + ndebug /), &
+             id='elec%occupations%data3D')
          elec%occupations%data3D = UNINITIALIZED(1.d0)
          do i = 1, orbs%norb*orbs%nkpts, 1
             ispin = 1
@@ -1145,9 +1098,8 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
             elec%occupations%data3D(iorb, (i - 1) / orbs%norb + 1, ispin) = orbs%occup(i)
          end do
       end if
-      allocate(elec%number_of_states%data2D(dims%number_of_kpoints, &
-         &   dims%number_of_spins + ndebug),stat=i_stat)
-      call memocc(i_stat,elec%number_of_states%data2D,'elec%number_of_states%data2D',subname)
+      elec%number_of_states%data2D = f_malloc_ptr((/ dims%number_of_kpoints , &
+          dims%number_of_spins + ndebug /),id='elec%number_of_states%data2D')
       do ispin = 1, dims%number_of_spins, 1
          do i = 1, orbs%nkpts, 1
             if (ispin == 1) then
@@ -1160,16 +1112,10 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
       call etsf_io_electrons_put(ncid, elec, lstat, error)
       if (.not. lstat) call etsf_error(error)
       if (dims%number_of_spins /= 1) then
-         i_all=-product(shape(elec%eigenvalues%data3D))*kind(elec%eigenvalues%data3D)
-         deallocate(elec%eigenvalues%data3D)
-         call memocc(i_stat,i_all,'elec%eigenvalues%data3D',subname)
-         i_all=-product(shape(elec%occupations%data3D))*kind(elec%occupations%data3D)
-         deallocate(elec%occupations%data3D)
-         call memocc(i_stat,i_all,'elec%occupations%data3D',subname)
+         call f_free_ptr(elec%eigenvalues%data3D)
+         call f_free_ptr(elec%occupations%data3D)
       end if
-      i_all=-product(shape(elec%number_of_states%data2D))*kind(elec%number_of_states%data2D)
-      deallocate(elec%number_of_states%data2D)
-      call memocc(i_stat,i_all,'elec%number_of_states%data2D',subname)
+      call f_free_ptr(elec%number_of_states%data2D)
       ! Basis set
       write(wvlBasis, "(A)") "daubechies_wavelets"
       basis%coordinates_of_basis_grid_points%data2D => gcoord
@@ -1194,8 +1140,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
       integer, allocatable :: coeff_map(:,:,:)
 
       ! Will store the grid index for a given geometric point
-      allocate(coeff_map(0:n1, 0:n2, 0:n3),stat=i_stat)
-      call memocc(i_stat,coeff_map,'coeff_map',subname)
+      coeff_map = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='coeff_map')
       ! coarse part
       coeff_map = 0
       do iseg = 1, wfd%nseg_c
@@ -1232,8 +1177,6 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
          end do
       end do
 
-      i_all=-product(shape(coeff_map))*kind(coeff_map)
-      deallocate(coeff_map)
-      call memocc(i_stat,i_all,'coeff_map',subname)
+      call f_free(coeff_map)
    END SUBROUTINE build_grid
 END SUBROUTINE write_waves_etsf
