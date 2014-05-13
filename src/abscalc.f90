@@ -1898,9 +1898,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
 
 
 
-  i_all=-product(shape(psigau))*kind(psigau)
-  deallocate(psigau,stat=i_stat)
-  call memocc(i_stat,i_all,'psigau',subname)
+  call f_free_ptr(psigau)
   call deallocate_comms(commse,subname)
   i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
   deallocate(norbsc_arr,stat=i_stat)

@@ -1536,9 +1536,7 @@ contains
     call deallocate_gwf(G,subname)
     call deallocate_local_zone_descriptors(Lzde, subname)
 
-    i_all=-product(shape(psigau))*kind(psigau)
-    deallocate(psigau,stat=i_stat)
-    call memocc(i_stat,i_all,'psigau',subname)
+    call f_free_ptr(psigau)
 
     call deallocate_orbs(orbse,subname)
     call f_free_ptr(orbse%eval)
