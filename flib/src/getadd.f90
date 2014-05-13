@@ -190,6 +190,12 @@ module metadata_interfaces
        integer(kind=8), intent(out) :: iadd
      end subroutine getc1ptr
 
+     subroutine getz1ptr(array,iadd)
+       implicit none
+       double complex, dimension(:), pointer, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine getz1ptr
+
 
   end interface
 
@@ -199,7 +205,7 @@ interface pad_array
   module procedure pad_l1,pad_l2,pad_l3
   module procedure pad_r1,pad_r2,pad_r3
   module procedure pad_dp1,pad_dp2,pad_dp3,pad_dp4,pad_dp5,pad_dp6
-  module procedure pad_z2
+  module procedure pad_z1, pad_z2
 end interface
 
 public :: pad_array,geti1,geti2,geti3,geti4
@@ -210,6 +216,7 @@ public :: getdp1,getdp2,getdp3,getdp4,getdp5,getdp6!,getlongaddress
 public :: getz2
 public :: getdp1ptr,getdp2ptr,getdp3ptr,getdp4ptr,getdp5ptr,getdp6ptr
 public :: geti1ptr,geti2ptr,geti3ptr
+public :: getz1ptr
 public :: getc1ptr
 public :: address_toi,long_toa
 
@@ -403,6 +410,17 @@ contains
     call pad_double(array,init_to_zero,product(shp),product(shp(1:5))*(shp(6)+ndebug))
 
   end subroutine pad_dp6
+
+  subroutine pad_z1(array,init_to_zero,shp,ndebug)
+    implicit none
+    logical, intent(in) :: init_to_zero
+    integer, intent(in) :: ndebug
+    integer, dimension(1), intent(in) :: shp
+    double complex, dimension(shp(1)+ndebug), intent(out) :: array
+    
+    call pad_double_complex(array,init_to_zero,shp(1),shp(1)+ndebug)
+
+  end subroutine pad_z1
 
   subroutine pad_z2(array,init_to_zero,shp,ndebug)
     implicit none

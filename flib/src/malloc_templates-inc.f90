@@ -640,3 +640,26 @@ subroutine f_free_str_ptr(length,array)
   include 'deallocate-c-inc.f90'
   nullify(array)
 end subroutine f_free_str_ptr
+
+subroutine z1_ptr(array,m)
+  use metadata_interfaces, metadata_address => getz1ptr
+  implicit none
+  type(malloc_information_ptr), intent(in) :: m
+  double complex, dimension(:), pointer, intent(inout) :: array
+  !local variables
+  include 'allocate-profile-inc.f90' 
+  !allocate the array
+  allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
+
+  include 'allocate-inc.f90'
+end subroutine z1_ptr
+
+subroutine z1_ptr_free(array)
+  use metadata_interfaces, metadata_address => getz1ptr
+  implicit none
+  double complex, dimension(:), pointer, intent(inout) :: array
+  include 'deallocate-profile-inc.f90' 
+  if (.not. associated(array)) return
+  include 'deallocate-inc.f90'
+  nullify(array)
+end subroutine z1_ptr_free

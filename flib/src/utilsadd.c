@@ -280,3 +280,10 @@ void FC_FUNC(getc1ptr, GETC1ptr)(int *len,void *ptr,long long int *address)
   *address = (long long int)ptr;
   return;
 }
+
+void FC_FUNC(getz1ptr, GETZ1PTR)(void *ptr,long long int *address)
+{
+  *address=0;
+  *address = (long long int)ptr;
+  return;
+}
