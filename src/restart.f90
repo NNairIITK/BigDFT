@@ -78,7 +78,10 @@ subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
      end if
   enddo
   !deallocation
-  call f_free_ptr(psi)
+  !!call f_free_ptr(psi)
+  i_all = -product(shape(psi))*kind(psi)
+  deallocate(psi,stat=i_stat)
+  call memocc(i_stat,i_all,'psi',subname)
 
   call f_release_routine()
 
