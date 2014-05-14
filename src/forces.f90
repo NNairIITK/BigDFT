@@ -84,36 +84,30 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
 
   if (order == -1) then
      n_order = 1
-     allocate(kmoves(n_order+ndebug),stat=i_stat)
+     kmoves = f_malloc(n_order,id='kmoves')
      kmoves = (/ -1 /)
   else if (order == 1) then
      n_order = 1
-     allocate(kmoves(n_order+ndebug),stat=i_stat)
+     kmoves = f_malloc(n_order,id='kmoves')
      kmoves = (/ 1 /)
   else if (order == 2) then
      n_order = 2
-     allocate(kmoves(n_order+ndebug),stat=i_stat)
+     kmoves = f_malloc(n_order,id='kmoves')
      kmoves = (/ -1, 1 /)
   else if (order == 3) then
      n_order = 4
-     allocate(kmoves(n_order+ndebug),stat=i_stat)
+     kmoves = f_malloc(n_order,id='kmoves')
      kmoves = (/ -2, -1, 1, 2 /)
   else
      print *, "Finite Differences: This order",order," is not implemented!"
      stop
   end if
-  call memocc(i_stat,kmoves,'kmoves',subname)
 
-  allocate(functional(n_order+ndebug),stat=i_stat)
-  call memocc(i_stat,functional,'functional',subname)
-  allocate(dfunctional(3*atoms%astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,dfunctional,'dfunctional',subname)
-  allocate(rxyz_ref(3,atoms%astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,rxyz_ref,'rxyz_ref',subname)
-  allocate(fxyz_fake(3,atoms%astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,fxyz_fake,'fxyz_fake',subname)
-  allocate(radii_cf(atoms%astruct%ntypes,3+ndebug),stat=i_stat)
-  call memocc(i_stat,radii_cf,'radii_cf',subname)
+  functional = f_malloc(n_order,id='functional')
+  dfunctional = f_malloc(3*atoms%astruct%nat,id='dfunctional')
+  rxyz_ref = f_malloc((/ 3, atoms%astruct%nat /),id='rxyz_ref')
+  fxyz_fake = f_malloc((/ 3, atoms%astruct%nat /),id='fxyz_fake')
+  radii_cf = f_malloc((/ atoms%astruct%ntypes, 3 /),id='radii_cf')
 
   call to_zero(3*atoms%astruct%nat,dfunctional)
 
@@ -228,24 +222,12 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   end if
 
 
-  i_all=-product(shape(kmoves))*kind(kmoves)
-  deallocate(kmoves,stat=i_stat)
-  call memocc(i_stat,i_all,'kmoves',subname)
-  i_all=-product(shape(functional))*kind(functional)
-  deallocate(functional,stat=i_stat)
-  call memocc(i_stat,i_all,'functional',subname)
-  i_all=-product(shape(dfunctional))*kind(dfunctional)
-  deallocate(dfunctional,stat=i_stat)
-  call memocc(i_stat,i_all,'dfunctional',subname)
-  i_all=-product(shape(rxyz_ref))*kind(rxyz_ref)
-  deallocate(rxyz_ref,stat=i_stat)
-  call memocc(i_stat,i_all,'rxyz_ref',subname)
-  i_all=-product(shape(fxyz_fake))*kind(fxyz_fake)
-  deallocate(fxyz_fake,stat=i_stat)
-  call memocc(i_stat,i_all,'fxyz_fake',subname)
-  i_all=-product(shape(radii_cf))*kind(radii_cf)
-  deallocate(radii_cf,stat=i_stat)
-  call memocc(i_stat,i_all,'radii_cf',subname)
+  call f_free(kmoves)
+  call f_free(functional)
+  call f_free(dfunctional)
+  call f_free(rxyz_ref)
+  call f_free(fxyz_fake)
+  call f_free(radii_cf)
 
 contains
   
@@ -855,8 +837,7 @@ call f_routine(id=subname)
 
   !  allocate(scalprod(2,0:3,7,3,4,at%astruct%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   ! need more components in scalprod to calculate terms like dp/dx*psi*x
-  allocate(scalprod(2,0:9,7,3,4,at%astruct%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
-  call memocc(i_stat,scalprod,'scalprod',subname)
+  scalprod = f_malloc((/ 1.to.2, 0.to.9, 1.to.7, 1.to.3, 1.to.4, 1.to.at%astruct%nat, 1.to.orbs%norbp*orbs%nspinor /),id='scalprod')
   if (2*10*7*3*4*at%astruct%nat*orbs%norbp*orbs%nspinor>0) then
       call to_zero(2*10*7*3*4*at%astruct%nat*orbs%norbp*orbs%nspinor,scalprod(1,0,1,1,1,1,1))
   end if
@@ -1048,8 +1029,7 @@ call f_routine(id=subname)
 
   end if
 
-  allocate(fxyz_orb(3,at%astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,fxyz_orb,'fxyz_orb',subname)
+  fxyz_orb = f_malloc((/ 3, at%astruct%nat /),id='fxyz_orb')
 
   !apply the projectors  k-point of the processor
   !starting k-point
@@ -1184,12 +1164,8 @@ end do
 !!!          iat,fsep(1,iat),fsep(2,iat),fsep(3,iat)
 !!!  end do
 
-  i_all=-product(shape(fxyz_orb))*kind(fxyz_orb)
-  deallocate(fxyz_orb,stat=i_stat)
-  call memocc(i_stat,i_all,'fxyz_orb',subname)
-  i_all=-product(shape(scalprod))*kind(scalprod)
-  deallocate(scalprod,stat=i_stat)
-  call memocc(i_stat,i_all,'scalprod',subname)
+  call f_free(fxyz_orb)
+  call f_free(scalprod)
 
 call f_release_routine()
 
@@ -3555,8 +3531,7 @@ subroutine elim_torque_reza(nat,rat0,fat)
   real(gp), dimension(3*nat,3) :: vrot
   real(gp), dimension(:), allocatable :: amass
   
-  allocate(amass(nat+ndebug),stat=i_stat)
-  call memocc(i_stat,amass,'amass',subname)
+  amass = f_malloc(nat,id='amass')
 
   rat=rat0
   amass(1:nat)=1.0_gp
@@ -3613,9 +3588,7 @@ subroutine elim_torque_reza(nat,rat0,fat)
      endif
   enddo
 
-  i_all=-product(shape(amass))*kind(amass)
-  deallocate(amass,stat=i_stat)
-  call memocc(i_stat,i_all,'amass',subname)
+  call f_free(amass)
 
 END SUBROUTINE elim_torque_reza
 
@@ -3647,8 +3620,7 @@ subroutine moment_of_inertia(nat,rat,teneria,evaleria)
   real(gp), dimension(lwork) :: work
   real(gp), dimension(:), allocatable :: amass
 
-  allocate(amass(nat+ndebug),stat=i_stat)
-  call memocc(i_stat,amass,'amass',subname)
+  amass = f_malloc(nat,id='amass')
   
   !positions relative to center of geometry
   amass(1:nat)=1.0_gp
@@ -3668,9 +3640,7 @@ subroutine moment_of_inertia(nat,rat,teneria,evaleria)
   enddo
   !diagonalize inertia tensor
   call DSYEV('V','L',3,teneria,3,evaleria,work,lwork,info)
-  i_all=-product(shape(amass))*kind(amass)
-  deallocate(amass,stat=i_stat)
-  call memocc(i_stat,i_all,'amass',subname)
+  call f_free(amass)
   
 END SUBROUTINE moment_of_inertia
 
@@ -4028,8 +3998,7 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
   hpsi = f_malloc((/ lr%wfd%nvctr_c+7*lr%wfd%nvctr_f , orbs%nspinor*orbs%norbp /),id='hpsi')
   hpsi=0.0_wp
   ! Wavefunction in real space
-  allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
-  call memocc(i_stat,psir,'psir',subname)
+  psir = f_malloc((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%nspinor /),id='psir')
   call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir)
 
 
@@ -4060,9 +4029,7 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
   end do !loop over orbitals: finished
 
   !deallocations of work arrays
-  i_all=-product(shape(psir))*kind(psir)
-  deallocate(psir,stat=i_stat)
-  call memocc(i_stat,i_all,'psir',subname)
+  call f_free(psir)
 
   call f_free(hpsi)
 
@@ -4100,8 +4067,7 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
   !write(*,*) 'iproc',iproc, ngatherarr(iproc-1,1),ngatherarr(iproc-1,2)
 
   if (nproc > 1) then
-     allocate(rhor(n1i*n2i*n3i),stat=i_stat)
-     call memocc(i_stat,rhor,'rhor',subname)
+     rhor = f_malloc_ptr(n1i*n2i*n3i,id='rhor')
      call MPI_ALLGATHERV(rho(1),ngatherarr(iproc,1),&
           &   mpidtypw,rhor(1),ngatherarr(0,1),&
           ngatherarr(0,2),mpidtypw,bigdft_mpi%mpi_comm,ierr)
@@ -4206,9 +4172,7 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
 !!$  end if
 
   if (nproc>1) then
-     i_all=-product(shape(rhor))*kind(rhor)
-     deallocate(rhor,stat=i_stat)
-     call memocc(i_stat,i_all,'rhor',subname)
+     call f_free_ptr(rhor)
   else
      nullify(rhor)
   end if
@@ -4267,10 +4231,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
 
   ! Determine how many atoms each MPI task will handle
-  allocate(nat_par(0:nproc-1),stat=i_stat)
-  call memocc(i_stat,nat_par,'nat_par',subname)
-  allocate(isat_par(0:nproc-1),stat=i_stat)
-  call memocc(i_stat,isat_par,'isat_par',subname)
+  nat_par = f_malloc(0.to.nproc-1,id='nat_par')
+  isat_par = f_malloc(0.to.nproc-1,id='isat_par')
   ii=at%astruct%nat/nproc
   nat_par(0:nproc-1)=ii
   ii=at%astruct%nat-ii*nproc
@@ -4282,14 +4244,10 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
       isat_par(jproc)=isat_par(jproc-1)+nat_par(jproc-1)
   end do
 
-  allocate(sendcounts(0:nproc-1),stat=i_stat)
-  call memocc(i_stat,sendcounts,'sendcounts',subname)
-  allocate(recvcounts(0:nproc-1),stat=i_stat)
-  call memocc(i_stat,recvcounts,'recvcounts',subname)
-  allocate(senddspls(0:nproc-1),stat=i_stat)
-  call memocc(i_stat,senddspls,'senddspls',subname)
-  allocate(recvdspls(0:nproc-1),stat=i_stat)
-  call memocc(i_stat,recvdspls,'recvdspls',subname)
+  sendcounts = f_malloc(0.to.nproc-1,id='sendcounts')
+  recvcounts = f_malloc(0.to.nproc-1,id='recvcounts')
+  senddspls = f_malloc(0.to.nproc-1,id='senddspls')
+  recvdspls = f_malloc(0.to.nproc-1,id='recvdspls')
 
   do jproc=0,nproc-1
       sendcounts(jproc)=2*(ndir+1)*7*3*4*orbs%norbp*nat_par(jproc)
@@ -4310,8 +4268,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
   !  allocate(scalprod(2,0:3,7,3,4,at%astruct%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   ! need more components in scalprod to calculate terms like dp/dx*psi*x
-  allocate(scalprod(2,0:ndir,7,3,4,at%astruct%nat,max(1,orbs%norbp*orbs%nspinor+ndebug)),stat=i_stat)
-  call memocc(i_stat,scalprod,'scalprod',subname)
+  scalprod = f_malloc((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, 1.to.at%astruct%nat, 1.to.max(1, orbs%norbp*orbs%nspinor+ndebug) /),id='scalprod')
   call to_zero(2*(ndir+1)*7*3*4*at%astruct%nat*max(1,orbs%norbp*orbs%nspinor),scalprod(1,0,1,1,1,1,1))
 
 
@@ -4589,8 +4546,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
      !!end do
 
 
-  allocate(scalprod_sendbuf(2,0:ndir,7,3,4,max(1,orbs%norbp*orbs%nspinor)+ndebug,at%astruct%nat),stat=i_stat)
-  call memocc(i_stat,scalprod_sendbuf,'scalprod_sendbuf',subname)
+  scalprod_sendbuf = f_malloc((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, 1.to.max(1, orbs%norbp*orbs%nspinor)+ndebug, 1.to.at%astruct%nat /),id='scalprod_sendbuf')
   call to_zero(2*(ndir+1)*7*3*4*at%astruct%nat*max(1,orbs%norbp*orbs%nspinor),scalprod_sendbuf(1,0,1,1,1,1,1))
 
   ! Copy scalprod to auxiliary array for communication
@@ -4604,12 +4560,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
       end do
   end do
 
-  i_all=-product(shape(scalprod))*kind(scalprod)
-  deallocate(scalprod,stat=i_stat)
-  call memocc(i_stat,i_all,'scalprod',subname)
+  call f_free(scalprod)
 
-  allocate(scalprod_recvbuf(2*(ndir+1)*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor+ndebug),stat=i_stat)
-  call memocc(i_stat,scalprod_recvbuf,'scalprod_recvbuf',subname)
+  scalprod_recvbuf = f_malloc(2*(ndir+1)*7*3*4*max(1, nat_par(iproc))*orbs%norb*orbs%nspinor,id='scalprod_recvbuf')
   call to_zero(2*(ndir+1)*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor,scalprod_recvbuf(1))
 
   if (nproc>1) then
@@ -4621,9 +4574,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
            1, scalprod_recvbuf(1), 1)
   end if
 
-  i_all=-product(shape(scalprod_sendbuf))*kind(scalprod_sendbuf)
-  deallocate(scalprod_sendbuf,stat=i_stat)
-  call memocc(i_stat,i_all,'scalprod_sendbuf',subname)
+  call f_free(scalprod_sendbuf)
 
   !write(*,'(a,i7,es18.8)') 'iproc, scalprod_recvbuf(1)', iproc, scalprod_recvbuf(1)
   
@@ -4631,8 +4582,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   !allocate(scalprod_sendbuf(2,0:9,7,3,4,orbs%norbp*orbs%nspinor+ndebug,at%astruct%nat),stat=i_stat)
   !allocate(scalprod_recvbuf(2*10*7*3*4*nat_par(iproc)*orbs%norb*orbs%nspinor+ndebug),stat=i_stat)
 
-  allocate(scalprod(2,0:ndir,7,3,4,max(1,nat_par(iproc)),orbs%norb*orbs%nspinor+ndebug),stat=i_stat)
-  call memocc(i_stat,scalprod,'scalprod',subname)
+  scalprod = f_malloc((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, 1.to.max(1, nat_par(iproc)), 1.to.orbs%norb*orbs%nspinor /),id='scalprod')
   call to_zero(2*(ndir+1)*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor,scalprod(1,0,1,1,1,1,1))
 
   ist=1
@@ -4652,8 +4602,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   end do
 
 
-  allocate(fxyz_orb(3,at%astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,fxyz_orb,'fxyz_orb',subname)
+  fxyz_orb = f_malloc((/ 3, at%astruct%nat /),id='fxyz_orb')
 
   natp_if: if (nat_par(iproc)>0) then
 
@@ -4831,33 +4780,14 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 !!!          iat,fsep(1,iat),fsep(2,iat),fsep(3,iat)
 !!!  end do
 
-  i_all=-product(shape(fxyz_orb))*kind(fxyz_orb)
-  deallocate(fxyz_orb,stat=i_stat)
-  call memocc(i_stat,i_all,'fxyz_orb',subname)
-  i_all=-product(shape(scalprod))*kind(scalprod)
-  deallocate(scalprod,stat=i_stat)
-  call memocc(i_stat,i_all,'scalprod',subname)
-  i_all=-product(shape(nat_par))*kind(nat_par)
-  deallocate(nat_par,stat=i_stat)
-  call memocc(i_stat,i_all,'nat_par',subname)
-  i_all=-product(shape(isat_par))*kind(isat_par)
-  deallocate(isat_par,stat=i_stat)
-  call memocc(i_stat,i_all,'isat_par',subname)
-  i_all=-product(shape(sendcounts))*kind(sendcounts)
-  deallocate(sendcounts,stat=i_stat)
-  call memocc(i_stat,i_all,'sendcounts',subname)
-  i_all=-product(shape(recvcounts))*kind(recvcounts)
-  deallocate(recvcounts,stat=i_stat)
-  call memocc(i_stat,i_all,'recvcounts',subname)
-  i_all=-product(shape(senddspls))*kind(senddspls)
-  deallocate(senddspls,stat=i_stat)
-  call memocc(i_stat,i_all,'senddspls',subname)
-  i_all=-product(shape(recvdspls))*kind(recvdspls)
-  deallocate(recvdspls,stat=i_stat)
-  call memocc(i_stat,i_all,'recvdspls',subname)
-
-  i_all=-product(shape(scalprod_recvbuf))*kind(scalprod_recvbuf)
-  deallocate(scalprod_recvbuf,stat=i_stat)
-  call memocc(i_stat,i_all,'scalprod_recvbuf',subname)
+  call f_free(fxyz_orb)
+  call f_free(scalprod)
+  call f_free(nat_par)
+  call f_free(isat_par)
+  call f_free(sendcounts)
+  call f_free(recvcounts)
+  call f_free(senddspls)
+  call f_free(recvdspls)
+  call f_free(scalprod_recvbuf)
 
 END SUBROUTINE nonlocal_forces_linear

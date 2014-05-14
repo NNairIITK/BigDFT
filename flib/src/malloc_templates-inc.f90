@@ -347,6 +347,28 @@ subroutine d6_all_free(array)
   include 'deallocate-inc.f90' 
 end subroutine d6_all_free
 
+subroutine d7_all(array,m)
+  use metadata_interfaces, metadata_address => getdp7
+  implicit none
+  type(malloc_information_all), intent(in) :: m
+  double precision, dimension(:,:,:,:,:,:,:), allocatable, intent(inout) :: array
+  !local variables
+  include 'allocate-profile-inc.f90' 
+  allocate(array(m%lbounds(1):m%ubounds(1),&
+       m%lbounds(2):m%ubounds(2),m%lbounds(3):m%ubounds(3),&
+       m%lbounds(4):m%ubounds(4),m%lbounds(5):m%ubounds(5),&
+       m%lbounds(6):m%ubounds(6),m%lbounds(7):m%ubounds(7)+ndebug),stat=ierror)
+  include 'allocate-inc.f90'
+end subroutine d7_all
+
+subroutine d7_all_free(array)
+  use metadata_interfaces, metadata_address => getdp7
+  implicit none
+  double precision, dimension(:,:,:,:,:,:,:), allocatable, intent(inout) :: array
+  include 'deallocate-profile-inc.f90' 
+  include 'deallocate-inc.f90' 
+end subroutine d7_all_free
+
 !test to see if this is convenient
 subroutine d1_all_free_multi(arrayA,arrayB,arrayC,arrayD,arrayE,arrayF,arrayG,arrayH)
   implicit none
