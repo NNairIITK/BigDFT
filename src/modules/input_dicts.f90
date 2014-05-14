@@ -31,6 +31,7 @@ module module_input_dicts
   public :: psp_set_from_dict, nlcc_set_from_dict
   public :: atomic_data_set_from_dict
   public :: occupation_set_from_dict
+  public :: neb_set_from_dict
 
   ! Types to dictionaries
   public :: psp_data_merge_to_dict
@@ -132,11 +133,10 @@ contains
     !read the input file(s) and transform them into a dictionary
     call read_input_dict_from_files(trim(radical), mpi_env, dict)
 
-    !consider to move the reading of the atomic position at first place
-    if (.not. has_key(dict, "posinp")) then
-       !Add old posinp formats
-       call astruct_file_merge_to_dict(dict, "posinp", trim(posinp))
-    else
+    !possible overwrite with a specific posinp file.
+    call astruct_file_merge_to_dict(dict, "posinp", trim(posinp))
+
+    if (has_key(dict, "posinp")) then
        str = dict_value(dict // "posinp")
        if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
           call astruct_file_merge_to_dict(dict, "posinp", trim(str))
@@ -1404,4 +1404,35 @@ contains
     call set(dict // GOUT_ENERGY, outs%energs%eKS)
 
   end subroutine global_output_merge_to_dict
+
+  subroutine neb_set_from_dict(dict, restart_, opt, climbing_, imax, nimg_, &
+       & cv, tol, ds_, kmin, kmax, temp_, damp_, meth)
+    use module_defs, only: gp
+    use dictionaries
+    use module_input_keys
+    use yaml_output
+    implicit none
+    type(dictionary), pointer :: dict
+    logical, intent(out) :: restart_, opt, climbing_
+    integer, intent(out) :: imax, nimg_
+    real(kind = gp), intent(out) :: cv, tol, ds_, damp_, kmin, kmax, temp_
+    character(len = max_field_length), intent(out) :: meth
+
+    if (.not. has_key(dict, GEOPT_VARIABLES)) return
+    if (trim(dict_value(dict // GEOPT_VARIABLES // GEOPT_METHOD)) /= "NEB") return
+
+    restart_  = dict // GEOPT_VARIABLES // NEB_RESTART
+    opt       = dict // GEOPT_VARIABLES // EXTREMA_OPT
+    climbing_ = dict // GEOPT_VARIABLES // NEB_CLIMBING
+    imax      = dict // GEOPT_VARIABLES // NCOUNT_CLUSTER_X
+    nimg_     = dict // GEOPT_VARIABLES // NIMG
+    cv        = dict // GEOPT_VARIABLES // FORCEMAX
+    tol       = dict // GEOPT_VARIABLES // FIX_TOL
+    ds_       = dict // GEOPT_VARIABLES // BETAX
+    kmin      = dict // GEOPT_VARIABLES // SPRINGS_K // 0
+    kmax      = dict // GEOPT_VARIABLES // SPRINGS_K // 1
+    meth      = dict // GEOPT_VARIABLES // NEB_METHOD
+    if (has_key(dict // GEOPT_VARIABLES, TEMP)) temp_ = dict // GEOPT_VARIABLES // TEMP
+    if (has_key(dict // GEOPT_VARIABLES, NEB_DAMP)) damp_ = dict // GEOPT_VARIABLES // NEB_DAMP
+  end subroutine neb_set_from_dict
 end module module_input_dicts

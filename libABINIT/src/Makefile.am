@@ -46,7 +46,7 @@ endif
 
 # Special treatment for libpaw
 # Deactivate temporarily some mandatory code sections
-LIBPAW_DEFS = -UHAVE_DFT_BIGDFT -UHAVE_DFT_LIBXC
+LIBPAW_DEFS = @FCDEFS@-UHAVE_DFT_BIGDFT @FCDEFS@-UHAVE_DFT_LIBXC
 
 # Force HAVE_MPI and HAVE_MPI1.
 # Don't use the HAVE_CONFIG_H
@@ -57,7 +57,7 @@ DEFS = $(MPI_DEFS) $(LIBXC_DEFS) $(LIBPAW_DEFS)
 AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@ -I$(srcdir)/72_geomoptim -I$(srcdir)/incs
 
 # Hack for XLF strange DEFS option.
-PPFCCOMPILE = $(FC) $(DEFS:-D%=@FCDEFS@%) $(DEFAULT_INCLUDES) $(INCLUDES) \
+PPFCCOMPILE = $(FC) $(DEFS:-D%=@FCDEFS@-D%) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_FCFLAGS) $(FCFLAGS)
 
 libabinit_a_SOURCES = \
