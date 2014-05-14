@@ -1341,7 +1341,10 @@ contains
     !local variables
     integer :: i_all,i_stat
 
-    call f_free_ptr(in%Gabs_coeffs)
+    i_all = -product(shape(in%Gabs_coeffs))*kind(in%Gabs_coeffs)
+    deallocate(in%Gabs_coeffs,stat=i_stat)
+    call memocc(i_stat,i_all,'in%Gabs_coeffs',subname)
+
 
   END SUBROUTINE deallocate_abscalc_input
 

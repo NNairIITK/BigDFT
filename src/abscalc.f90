@@ -795,7 +795,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
           nlpsp,pkernel,pkernel,ixc,KSwfn%psi,hpsi,psit,Gvirt,&
           nspin, in%potshortcut, symObj, GPU, in)
 
-      call f_free_ptr(KSwfn%psi)
+      !call f_free_ptr(KSwfn%psi)
+      i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
+      deallocate(KSwfn%psi,stat=i_stat)
+      call memocc(i_stat,i_all,'psi',subname)
 
    end if
 
@@ -1424,8 +1427,7 @@ subroutine abscalc_input_variables(iproc,filename,in)
   read(iunit,*,iostat=ierror)  in%L_absorber
   call check()
 
-  allocate(in%Gabs_coeffs(2*in%L_absorber +1+ndebug),stat=i_stat)
-  call memocc(i_stat,in%Gabs_coeffs,'Gabs_coeffs',subname)
+  in%Gabs_coeffs = f_malloc_ptr(2*in%L_absorber +1+ndebug,id='in%Gabs_coeffs')
 
   read(iunit,*,iostat=ierror)  (in%Gabs_coeffs(i), i=1,2*in%L_absorber +1 )
   call check()
