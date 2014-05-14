@@ -2131,7 +2131,8 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
                    !ref_frags(ifrag_ref)%astruct_frg%nat, rxyz_old(1,isfat+1))
 
               ! in general this might point to a different tmb
-              phi_array_old(iorbp)%psig = f_malloc_ptr((/ 0.to.Lzd_old%Llr(ilr)%d%n1 , 1.to.2 , 0.to.Lzd_old%Llr(ilr)%d%n2 , 1.to.2 , &
+              phi_array_old(iorbp)%psig = f_malloc_ptr((/ 0.to.Lzd_old%Llr(ilr)%d%n1 , 1.to.2 , &
+                   0.to.Lzd_old%Llr(ilr)%d%n2 , 1.to.2 , &
                    0.to.Lzd_old%Llr(ilr)%d%n3 , 1.to.2 /),id='phi_array_old(iorbp)%psig')
               call timing(iproc,'tmbrestart','OF')
 
