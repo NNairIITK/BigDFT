@@ -4547,7 +4547,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
      !!end do
 
 
-  scalprod_sendbuf = f_malloc((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, 1.to.max(1, orbs%norbp*orbs%nspinor)+ndebug, 1.to.at%astruct%nat /),id='scalprod_sendbuf')
+  scalprod_sendbuf = f_malloc((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
+                                 1.to.max(1, orbs%norbp*orbs%nspinor)+ndebug, 1.to.at%astruct%nat /),id='scalprod_sendbuf')
   call to_zero(2*(ndir+1)*7*3*4*at%astruct%nat*max(1,orbs%norbp*orbs%nspinor),scalprod_sendbuf(1,0,1,1,1,1,1))
 
   ! Copy scalprod to auxiliary array for communication

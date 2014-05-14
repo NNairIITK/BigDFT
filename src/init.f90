@@ -52,10 +52,8 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   Glr%geocode=atoms%astruct%geocode
 
   ! determine localization region for all orbitals, but do not yet fill the descriptor arrays
-  allocate(logrid_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-  call memocc(i_stat,logrid_c,'logrid_c',subname)
-  allocate(logrid_f(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-  call memocc(i_stat,logrid_f,'logrid_f',subname)
+  logrid_c = f_malloc_ptr((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='logrid_c')
+  logrid_f = f_malloc_ptr((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='logrid_f')
 
   ! coarse/fine grid quantities
   if (atoms%astruct%ntypes >0) then
@@ -94,12 +92,8 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
      call export_grids("grid.xyz", atoms, rxyz, hx, hy, hz, n1, n2, n3, logrid_c, logrid_f)
   end if
 
-  i_all=-product(shape(logrid_c))*kind(logrid_c)
-  deallocate(logrid_c,stat=i_stat)
-  call memocc(i_stat,i_all,'logrid_c',subname)
-  i_all=-product(shape(logrid_f))*kind(logrid_f)
-  deallocate(logrid_f,stat=i_stat)
-  call memocc(i_stat,i_all,'logrid_f',subname)
+  call f_free_ptr(logrid_c)
+  call f_free_ptr(logrid_f)
 
   call timing(iproc,'CrtDescriptors','OF')
   call f_release_routine()
@@ -547,9 +541,7 @@ END SUBROUTINE createProjectorsArrays
 
           !deallocate gaussian structure and coefficients
           call deallocate_gwf(gbd,subname)
-          i_all=-product(shape(gaucoeffs))*kind(gaucoeffs)
-          deallocate(gaucoeffs,stat=i_stat)
-          call memocc(i_stat,i_all,'gaucoeffs',subname)
+          call f_free_ptr(gaucoeffs)
           nullify(gbd%rxyz)
 
           !call dual_gaussian_coefficients(orbs%norbp,gbd,gaucoeffs)
@@ -1040,8 +1032,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   !yk
   !  integer :: i!,iorb,jorb,icplx
 
-  allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
-  call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
+  norbsc_arr = f_malloc((/ at%natsc+1, nspin /),id='norbsc_arr')
   locrad = f_malloc(at%astruct%nat,id='locrad')
 
   if (iproc == 0) then
@@ -1431,8 +1422,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   !allocate the passage matrix for transforming the LCAO wavefunctions in the IG wavefucntions
   ncplx=1
   if (orbs%nspinor > 1) ncplx=2
-  allocate(passmat(ncplx*orbs%nkptsp*(orbse%norbu*orbs%norbu+orbse%norbd*orbs%norbd)+ndebug),stat=i_stat)
-  call memocc(i_stat,passmat,'passmat',subname)
+  passmat = f_malloc(ncplx*orbs%nkptsp*(orbse%norbu*orbs%norbu+orbse%norbd*orbs%norbd),id='passmat')
   !!print '(a,10i5)','iproc,passmat',iproc,ncplx*orbs%nkptsp*(orbse%norbu*orbs%norbu+orbse%norbd*orbs%norbd),&
   !!     orbs%nspinor,orbs%nkptsp,orbse%norbu,orbse%norbd,orbs%norbu,orbs%norbd
 
@@ -1443,9 +1433,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
        psi,hpsi,psit,input%orthpar,passmat,input%iscf,input%Tel,input%occopt,&
        orbse,commse,etol,norbsc_arr)
 
-  i_all=-product(shape(passmat))*kind(passmat)
-  deallocate(passmat,stat=i_stat)
-  call memocc(i_stat,i_all,'passmat',subname)
+  call f_free(passmat)
 
   if (input%iscf > SCF_KIND_DIRECT_MINIMIZATION .or. input%Tel > 0.0_gp) then
 
@@ -1499,9 +1487,7 @@ contains
 
     call deallocate_comms(commse,subname)
 
-    i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
-    deallocate(norbsc_arr,stat=i_stat)
-    call memocc(i_stat,i_all,'norbsc_arr',subname)
+    call f_free(norbsc_arr)
 
     if (iproc == 0) then
        !gaussian estimation valid only for Free BC
