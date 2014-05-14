@@ -13,6 +13,7 @@ subroutine read_xyz_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
   use module_defs, only: gp,UNINITIALIZED,Bohr_Ang
   use dictionaries, only: f_err_raise
   use module_base, only: ndebug,memocc
+  use dynamic_memory
   implicit none
   integer, intent(in) :: iproc,ifile
   type(atomic_structure), intent(inout) :: astruct
@@ -217,8 +218,7 @@ subroutine read_xyz_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
   ! Try forces
   call getLine(line, ifile, eof)
   if ((.not. eof) .and. (adjustl(trim(line)) == "forces")) then
-     allocate(fxyz(3,iat+ndebug),stat=i_stat)
-     call memocc(i_stat,fxyz,'fxyz',subname)
+     fxyz = f_malloc_ptr((/ 3, iat /),id='fxyz')
      do iat=1,astruct%nat
         !xyz input file, allow extra information
         call getLine(line, ifile, eof)
@@ -478,8 +478,7 @@ subroutine read_ascii_positions(iproc,ifile,astruct,comment,energy,fxyz,getline)
   end if
 
   if (forces) then
-     allocate(fxyz(3,astruct%nat+ndebug),stat=i_stat)
-     call memocc(i_stat,fxyz,'fxyz',subname)
+     fxyz = f_malloc_ptr((/ 3, astruct%nat /),id='fxyz')
 
      count = 0
      forces = .false.

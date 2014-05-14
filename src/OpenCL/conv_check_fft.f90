@@ -81,27 +81,16 @@ program conv_check_fft
 
   
    !allocate arrays
-   allocate(psi_in(2,n1,n2*n3,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_in,'psi_in',subname)
-   allocate(psi_out(2,n2*n3,n1,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_out,'psi_out',subname)
-
-   allocate(psi_cuda(2,n1,n2*n3,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_cuda,'psi_cuda',subname)
-   allocate(psi_cuda_str(2,n2*n3,n1,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_cuda_str,'psi_cuda_str',subname)
-   allocate(v_cuda(2,n2*n3,n1,1+ndebug),stat=i_stat)
-   call memocc(i_stat,v_cuda,'v_cuda',subname)
-   allocate(v_cuda_str(2,n1,n2*n3,2+ndebug),stat=i_stat)
-   call memocc(i_stat,v_cuda_str,'v_cuda_str',subname)
-   allocate(psi_cuda_l(2,n1,n2*n3,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_cuda_l,'psi_cuda_l',subname)
-   allocate(v_cuda_l(2,n2*n3,n1,1+ndebug),stat=i_stat)
-   call memocc(i_stat,v_cuda_l,'v_cuda_l',subname)
-   allocate(rhopot(n1*n2*n3+ndebug),stat=i_stat)
-   call memocc(i_stat,rhopot,'rhopot',subname)
-   allocate(rhopot2(n1*n2*n3+ndebug),stat=i_stat)
-   call memocc(i_stat,rhopot2,'rhopot2',subname)
+   psi_in = f_malloc((/ 2, n1, n2*n3, 1 /),id='psi_in')
+   psi_out = f_malloc((/ 2, n2*n3, n1, 1 /),id='psi_out')
+   psi_cuda = f_malloc((/ 2, n1, n2*n3, 1 /),id='psi_cuda')
+   psi_cuda_str = f_malloc((/ 2, n2*n3, n1, 1 /),id='psi_cuda_str')
+   v_cuda = f_malloc((/ 2, n2*n3, n1, 1 /),id='v_cuda')
+   v_cuda_str = f_malloc((/ 2, n1, n2*n3, 2 /),id='v_cuda_str')
+   psi_cuda_l = f_malloc((/ 2, n1, n2*n3, 1 /),id='psi_cuda_l')
+   v_cuda_l = f_malloc((/ 2, n2*n3, n1, 1 /),id='v_cuda_l')
+   rhopot = f_malloc(n1*n2*n3,id='rhopot')
+   rhopot2 = f_malloc(n1*n2*n3,id='rhopot2')
 
    !initialise array
    sigma2=0.25d0*((n1*hx)**2)
@@ -314,12 +303,8 @@ program conv_check_fft
 
 
    call pkernel_free(pkernel,subname)
-  i_all=-product(shape(rhopot))*kind(rhopot)
-  deallocate(rhopot,stat=i_stat)
-  call memocc(i_stat,i_all,'rhopot',subname)
-  i_all=-product(shape(rhopot2))*kind(rhopot2)
-  deallocate(rhopot2,stat=i_stat)
-  call memocc(i_stat,i_all,'rhopot2',subname)
+  call f_free(rhopot)
+  call f_free(rhopot2)
    call pkernel_free(pkernel2,subname)
 
 
@@ -567,8 +552,7 @@ contains
        stop 'ERROR(transpose_kernel_forGPU): geometry code not admitted'
     end if
 
-    allocate(pkernel2(n1*n2*n3+ndebug),stat=i_stat)
-    call memocc(i_stat,pkernel2,'pkernel2',subname)
+    pkernel2 = f_malloc_ptr(n1*n2*n3,id='pkernel2')
 
 
     do i3=1,n3
