@@ -224,7 +224,7 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
 
   maxIter = min(md2 /nproc, n2dim - iproc *(md2 /nproc))
 
-  if (n3pr1 > 1) zt_t = f_malloc((/ 2, lzt/n3pr1, n1p+ndebug /),id='zt_t')
+  if (n3pr1 > 1) zt_t = f_malloc((/ 2, lzt/n3pr1, n1p /),id='zt_t')
 
 !$omp parallel default(shared)&
   !$omp private(nfft,inzee,Jp2stb,J2stb,Jp2stf,J2stf,i3,strten_omp, zw, zt) &
@@ -232,8 +232,8 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   !$omp firstprivate(lot, maxIter)
 !  !$omp firstprivate(before3, now3, after3)
   
-  zw = f_malloc((/ 2, ncache/4, 2 /),id='zw')
-  zt = f_malloc((/ 2, lzt/n3pr1, n1p /),id='zt')
+  allocate( zw(2, ncache/4, 2+ndebug), stat=i_stat )
+  allocate( zt(2,lzt/n3pr1, n1p+ndebug), stat=i_stat )
   !$omp do schedule(static)
   do j2 = 1, maxIter
      !this condition ensures that we manage only the interesting part for the FFT
@@ -574,8 +574,8 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   end do
   !$omp end do
 
-  call f_free(zw)
-  call f_free(zt)
+  deallocate(zw, stat=i_stat)
+  deallocate(zt, stat=i_stat)
 
   !$omp end parallel
 
