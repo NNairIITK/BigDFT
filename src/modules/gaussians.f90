@@ -73,12 +73,12 @@ contains
     nullify(G%rxyz)
   end function gaussian_basis_null
 
-  function gaussian_basis_init(nat,nshell,rxyz) result(G)
+  subroutine gaussian_basis_init(nat,nshell,rxyz,G)! result(G)
     implicit none
     integer, intent(in) :: nat
     integer, dimension(nat), intent(in) :: nshell
     real(gp), dimension(3,nat), intent(in), target :: rxyz
-    type(gaussian_basis_new) :: G
+    type(gaussian_basis_new),intent(out) :: G
     !local variables
     character(len=*), parameter :: subname='gaussian_basis_init'
     integer :: i_stat,iat
@@ -99,7 +99,7 @@ contains
 
     G%shid = f_malloc_ptr((/ NSHID_, G%nshltot /),id='G%shid')
 
-  end function gaussian_basis_init
+  end subroutine gaussian_basis_init
 
   subroutine gaussian_basis_convert(G,Gold)
     implicit none
@@ -109,7 +109,8 @@ contains
     character(len=*), parameter :: subname='gaussian_basis_convert'
     integer :: ishell,i_stat,iexpo
 
-    G=gaussian_basis_init(Gold%nat,Gold%nshell,Gold%rxyz)
+    !G=gaussian_basis_init(Gold%nat,Gold%nshell,Gold%rxyz)
+    call gaussian_basis_init(Gold%nat,Gold%nshell,Gold%rxyz,G)
     G%ncplx=1
     G%nexpo=0
     do ishell=1,G%nshltot
