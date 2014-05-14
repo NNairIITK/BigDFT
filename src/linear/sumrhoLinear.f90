@@ -823,7 +823,11 @@ subroutine check_communication_potential(iproc,denspot,tmb)
   end if
   if (bigdft_mpi%iproc==0) call yaml_close_map()
 
-  call f_free_ptr(denspot%pot_work)
+  !call f_free_ptr(denspot%pot_work)
+  i_all=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
+  deallocate(denspot%pot_work,stat=i_stat)
+  call memocc(i_stat,i_all,'denspot%pot_work',subname)
+
   nullify(denspot%pot_work)
 
   call timing(bigdft_mpi%iproc,'check_pot','OF')

@@ -1317,7 +1317,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      call timing(iproc,'Tail          ','ON')
      !    Calculate energy correction due to finite size effects
      !    ---reformat potential
-     denspot%pot_work = f_malloc_ptr(n1i*n2i*n3i*in%nspin,id='denspot%pot_work')
+     !!denspot%pot_work = f_malloc_ptr(n1i*n2i*n3i*in%nspin,id='denspot%pot_work')
+     allocate(denspot%pot_work(n1i*n2i*n3i*in%nspin),stat=i_stat)
+     call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
+
 
      if (nproc > 1) then
         call MPI_ALLGATHERV(denspot%rhov,n1i*n2i*denspot%dpbox%n3p,&
@@ -1347,7 +1350,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
           rxyz,radii_cf,in%crmult,in%frmult,in%nspin,&
           KSwfn%psi,(in%output_denspot /= 0),energs%ekin,energs%epot,energs%eproj)
 
-     call f_free_ptr(denspot%pot_work)
+     !call f_free_ptr(denspot%pot_work)
+     i_all=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
+     deallocate(denspot%pot_work,stat=i_stat)
+     call memocc(i_stat,i_all,'denspot%pot_work',subname)
+
 
      energs%ebs=energs%ekin+energs%epot+energs%eproj
      energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%evsic+energs%eion+energs%edisp-energs%eTS+energs%ePV
@@ -1978,9 +1985,13 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
 
   if (linear) then
      if (denspot%dpbox%ndimpot>0) then
-        denspot%pot_work = f_malloc_ptr(denspot%dpbox%ndimpot,id='denspot%pot_work')
+        !!denspot%pot_work = f_malloc_ptr(denspot%dpbox%ndimpot,id='denspot%pot_work')
+        allocate(denspot%pot_work(denspot%dpbox%ndimpot),stat=i_stat)
+        call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
      else
-        denspot%pot_work = f_malloc_ptr(1,id='denspot%pot_work')
+        !!denspot%pot_work = f_malloc_ptr(1,id='denspot%pot_work')
+        allocate(denspot%pot_work(1),stat=i_stat)
+        call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
      end if
      ! Density already present in denspot%rho_work
      call vcopy(denspot%dpbox%ndimpot,denspot%rho_work(1),1,denspot%pot_work(1),1)
@@ -2051,7 +2062,10 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
        ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,imode,tmb,fpulay)
 
   call f_free_ptr(denspot%rho_work)
-  call f_free_ptr(denspot%pot_work)
+  !call f_free_ptr(denspot%pot_work)
+  i_all=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
+  deallocate(denspot%pot_work,stat=i_stat)
+  call memocc(i_stat,i_all,'denspot%pot_work',subname)
   nullify(denspot%rho_work,denspot%pot_work)
 
   if (linear) then

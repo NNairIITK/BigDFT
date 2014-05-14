@@ -1359,7 +1359,10 @@ subroutine free_full_potential(nproc,flag,xc,pot,subname)
 
    odp = xc_exctXfac(xc) /= 0.0_gp
    if (nproc > 1 .or. odp .or. flag > 0 ) then
-      call f_free_ptr(pot)
+      !call f_free_ptr(pot)
+      i_all=-product(shape(pot))*kind(pot)
+      deallocate(pot,stat=i_stat)
+      call memocc(i_stat,i_all,'pot',subname)
       nullify(pot)
    else
       nullify(pot)
