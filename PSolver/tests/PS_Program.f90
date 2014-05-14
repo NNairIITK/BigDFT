@@ -199,16 +199,12 @@ program PSolver_Program
   if (.not. onlykernel) then
      !Allocations
      !Density
-     allocate(density(n01,n02,n03+ndebug),stat=i_stat)
-     call memocc(i_stat,density,'density',subname)
+     density = f_malloc((/ n01, n02, n03 /),id='density')
      !Density then potential
-     allocate(rhopot(n01,n02,n03+ndebug),stat=i_stat)
-     call memocc(i_stat,rhopot,'rhopot',subname)
-     allocate(potential(n01,n02,n03+ndebug),stat=i_stat)
-     call memocc(i_stat,potential,'potential',subname)
+     rhopot = f_malloc((/ n01, n02, n03 /),id='rhopot')
+     potential = f_malloc((/ n01, n02, n03 /),id='potential')
      !ionic potential
-     allocate(pot_ion(n01,n02,n03+ndebug),stat=i_stat)
-     call memocc(i_stat,pot_ion,'pot_ion',subname)
+     pot_ion = f_malloc((/ n01, n02, n03 /),id='pot_ion')
 
      call test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
           density,potential,rhopot,pot_ion,mu0,alpha,beta,gamma)
@@ -468,18 +464,10 @@ program PSolver_Program
   end if
 
   if (.not. onlykernel) then
-     i_all=-product(shape(density))*kind(density)
-     deallocate(density,stat=i_stat)
-     call memocc(i_stat,i_all,'density',subname)
-     i_all=-product(shape(rhopot))*kind(rhopot)
-     deallocate(rhopot,stat=i_stat)
-     call memocc(i_stat,i_all,'rhopot',subname)
-     i_all=-product(shape(potential))*kind(potential)
-     deallocate(potential,stat=i_stat)
-     call memocc(i_stat,i_all,'potential',subname)
-     i_all=-product(shape(pot_ion))*kind(pot_ion)
-     deallocate(pot_ion,stat=i_stat)
-     call memocc(i_stat,i_all,'pot_ion',subname)
+     call f_free(density)
+     call f_free(rhopot)
+     call f_free(potential)
+     call f_free(pot_ion)
   end if
 
   !finalize memory counting
