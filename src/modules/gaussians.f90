@@ -73,14 +73,14 @@ contains
     nullify(G%rxyz)
   end function gaussian_basis_null
 
-  subroutine gaussian_basis_init(nat,nshell,rxyz,G)! result(G)
+  subroutine init_gaussian_basis(nat,nshell,rxyz,G)
     implicit none
     integer, intent(in) :: nat
     integer, dimension(nat), intent(in) :: nshell
     real(gp), dimension(3,nat), intent(in), target :: rxyz
     type(gaussian_basis_new),intent(out) :: G
     !local variables
-    character(len=*), parameter :: subname='gaussian_basis_init'
+    character(len=*), parameter :: subname='init_gaussian_basis'
     integer :: i_stat,iat
 
     G=gaussian_basis_null()
@@ -99,7 +99,7 @@ contains
 
     G%shid = f_malloc_ptr((/ NSHID_, G%nshltot /),id='G%shid')
 
-  end subroutine gaussian_basis_init
+  end subroutine init_gaussian_basis
 
   subroutine gaussian_basis_convert(G,Gold)
     implicit none
@@ -109,8 +109,8 @@ contains
     character(len=*), parameter :: subname='gaussian_basis_convert'
     integer :: ishell,i_stat,iexpo
 
-    !G=gaussian_basis_init(Gold%nat,Gold%nshell,Gold%rxyz)
-    call gaussian_basis_init(Gold%nat,Gold%nshell,Gold%rxyz,G)
+    !G=init_gaussian_basis(Gold%nat,Gold%nshell,Gold%rxyz)
+    call init_gaussian_basis(Gold%nat,Gold%nshell,Gold%rxyz,G)
     G%ncplx=1
     G%nexpo=0
     do ishell=1,G%nshltot
@@ -140,15 +140,9 @@ contains
     !do not deallocate the atomic centers
     if (associated(G%rxyz)) nullify(G%rxyz)
 
-    if (associated(G%sd)) then
-       call f_free_ptr(G%sd)
-    end if
-    if (associated(G%shid)) then
-       call f_free_ptr(G%shid)
-    end if
-    if (associated(G%nshell)) then
-       call f_free_ptr(G%nshell)
-    end if
+    call f_free_ptr(G%sd)
+    call f_free_ptr(G%shid)
+    call f_free_ptr(G%nshell)
 
     G=gaussian_basis_null()
 
