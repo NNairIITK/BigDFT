@@ -15,7 +15,7 @@
 program PSolver_Program
   use Poisson_Solver
   use wrapper_mpi
-  use memory_profiling, only: memocc,ndebug
+  use memory_profiling, only: memocc
   use time_profiling
   implicit none
   !include 'mpif.h'

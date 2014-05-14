@@ -948,10 +948,10 @@ subroutine localfields_free(denspotd, fion, fdisp)
   deallocate(denspotd)
 
   if (associated(fion)) then
-     call f_free(fion)
+     call f_free_ptr(fion)
   end if
   if (associated(fdisp)) then
-     call f_free(fdisp)
+     call f_free_ptr(fdisp)
   end if
 END SUBROUTINE localfields_free
 subroutine localfields_copy_metadata(denspot, rhov_is, hgrid, ni, psoffset)
