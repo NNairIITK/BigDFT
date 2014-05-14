@@ -102,7 +102,7 @@ END SUBROUTINE astruct_set_displacement
 subroutine astruct_merge_to_dict(dict, astruct)
   use module_input_dicts, only: wrapper => astruct_merge_to_dict
   use module_types, only: atomic_structure
-  use dictionaries, only: dictionary, dict_len, dict_size
+  use dictionaries, only: dictionary
   implicit none
   type(dictionary), pointer :: dict
   type(atomic_structure), intent(in) :: astruct

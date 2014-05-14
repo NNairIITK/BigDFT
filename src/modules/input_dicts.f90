@@ -686,7 +686,7 @@ contains
     type(dictionary), pointer :: dict
     type(atomic_structure), intent(in) :: astruct
     real(gp), dimension(3, astruct%nat), intent(in) :: rxyz
-    character(len = 1024), intent(in), optional :: comment
+    character(len = *), intent(in), optional :: comment
     !local variables
     type(dictionary), pointer :: pos, at
     integer :: iat,ichg,ispol
