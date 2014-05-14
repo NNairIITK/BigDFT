@@ -123,15 +123,11 @@ subroutine dpbox_free(dpbox,subname)
   integer :: i_stat, i_all
 
   if (associated(dpbox%nscatterarr)) then
-     i_all=-product(shape(dpbox%nscatterarr))*kind(dpbox%nscatterarr)
-     deallocate(dpbox%nscatterarr,stat=i_stat)
-     call memocc(i_stat,i_all,'nscatterarr',subname)
+     call f_free_ptr(dpbox%nscatterarr)
   end if
 
   if (associated(dpbox%ngatherarr)) then
-     i_all=-product(shape(dpbox%ngatherarr))*kind(dpbox%ngatherarr)
-     deallocate(dpbox%ngatherarr,stat=i_stat)
-     call memocc(i_stat,i_all,'ngatherarr',subname)
+     call f_free_ptr(dpbox%ngatherarr)
   end if
   
   if (dpbox%mpi_env%mpi_comm /= bigdft_mpi%mpi_comm) then
@@ -208,8 +204,8 @@ subroutine denspot_free_history(denspot)
   type(DFT_local_fields), intent(inout) :: denspot
   
   if (associated(denspot%mix)) then
-     call ab7_mixing_deallocate(denspot%mix)
-     deallocate(denspot%mix)
+      call ab7_mixing_deallocate(denspot%mix)
+      deallocate(denspot%mix)
   end if
 end subroutine denspot_free_history
 
@@ -234,12 +230,10 @@ subroutine denspot_communications(iproc,nproc,xc,nspin,geocode,SICapproach,dpbox
   !these arrays should be included in the comms descriptor
   !allocate values of the array for the data scattering in sumrho
   !its values are ignored in the datacode='G' case
-  allocate(dpbox%nscatterarr(0:nproc-1,4+ndebug),stat=i_stat)
-  call memocc(i_stat,dpbox%nscatterarr,'nscatterarr',subname)
+  dpbox%nscatterarr = f_malloc_ptr((/ 0.to.nproc-1, 1.to.4 /),id='dpbox%nscatterarr')
   !allocate array for the communications of the potential
   !also used for the density
-  allocate(dpbox%ngatherarr(0:nproc-1,3+ndebug),stat=i_stat)
-  call memocc(i_stat,dpbox%ngatherarr,'ngatherarr',subname)
+  dpbox%ngatherarr = f_malloc_ptr((/ 0.to.nproc-1, 1.to.3 /),id='dpbox%ngatherarr')
 
   call dpbox_repartition(iproc,nproc,geocode,'D',xc,dpbox)
 
@@ -293,8 +287,7 @@ subroutine denspot_full_density(denspot, rho_full, iproc, new)
   if (nslice < denspot%dpbox%ndimgrid) then
      if (iproc == 0) then
         !allocate full density in pot_ion array
-        allocate(rho_full(denspot%dpbox%ndimgrid*denspot%dpbox%nrhodim+ndebug),stat=i_stat)
-        call memocc(i_stat,rho_full,'rho_full',subname)
+        rho_full = f_malloc_ptr(denspot%dpbox%ndimgrid*denspot%dpbox%nrhodim,id='rho_full')
         new = 1
         
         ! Ask to gather density to other procs.
@@ -342,8 +335,7 @@ subroutine denspot_full_v_ext(denspot, pot_full, iproc, new)
   if (denspot%dpbox%ndimpot < denspot%dpbox%ndimgrid) then
      if (iproc == 0) then
         !allocate full density in pot_ion array
-        allocate(pot_full(denspot%dpbox%ndimgrid+ndebug),stat=i_stat)
-        call memocc(i_stat,pot_full,'pot_full',subname)
+        pot_full = f_malloc_ptr(denspot%dpbox%ndimgrid,id='pot_full')
         new = 1
       
         ! Ask to gather density to other procs.
@@ -400,13 +392,10 @@ subroutine denspot_emit_rhov(denspot, iter, iproc, nproc)
         if (message == SIGNAL_DONE) then
            exit
         else if (message == SIGNAL_DENSITY) then
-           allocate(full_dummy(denspot%dpbox%nrhodim+ndebug),stat=i_stat)
-           call memocc(i_stat,full_dummy,'full_dummy',subname)
+           full_dummy = f_malloc_ptr(denspot%dpbox%nrhodim,id='full_dummy')
            ! Gather density to iproc 0
            call denspot_full_density(denspot, full_dummy, iproc, new)
-           i_all=-product(shape(full_dummy))*kind(full_dummy)
-           deallocate(full_dummy,stat=i_stat)
-           call memocc(i_stat,i_all,'full_dummy',subname)
+           call f_free_ptr(full_dummy)
         end if
      end do
   end if
@@ -455,13 +444,10 @@ subroutine denspot_emit_v_ext(denspot, iproc, nproc)
         if (message == SIGNAL_DONE) then
            exit
         else
-           allocate(full_dummy(1+ndebug),stat=i_stat)
-           call memocc(i_stat,full_dummy,'full_dummy',subname)
+           full_dummy = f_malloc_ptr(1,id='full_dummy')
            ! Gather density to iproc 0
            call denspot_full_v_ext(denspot, full_dummy, iproc, new)
-           i_all=-product(shape(full_dummy))*kind(full_dummy)
-           deallocate(full_dummy,stat=i_stat)
-           call memocc(i_stat,i_all,'full_dummy',subname)
+           call f_free_ptr(full_dummy)
         end if
      end do
   end if
