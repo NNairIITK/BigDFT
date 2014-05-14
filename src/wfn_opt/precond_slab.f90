@@ -402,8 +402,10 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
   !$omp parallel default(none) & 
   !$omp private (b,ab,i3,i1,i2,j,i,ct,info) &
   !$omp shared (n1,n2,n3,zx,fil,kd,ldb,ldab,nrhs,n,c,kern_k1,kern_k3)
+  !$omp critical
   ab = f_malloc((/ ldab, n /),id='ab')
   b = f_malloc((/ 0.to.n2, 1.to.2 /),id='b')
+  !$omp end critical
   !$omp do schedule(static,1)
   do i3=0,n3
      !   do i1=0,n1
@@ -432,8 +434,10 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
      enddo
   enddo
   !$omp end do
+  !$omp critical
   call f_free(ab)
   call f_free(b)
+  !$omp end critical
   !$omp end parallel
 
 END SUBROUTINE segment_invert
