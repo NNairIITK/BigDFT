@@ -11,7 +11,7 @@
 
 !> Handling of input guess creation from basis of atomic orbitals
 module ao_inguess
-  use module_base, only: gp,memocc,f_err_raise,ndebug,to_zero,f_err_throw,bigdft_mpi
+  use module_base, only: gp,f_err_raise,ndebug,to_zero,f_err_throw,bigdft_mpi
 
   implicit none
 

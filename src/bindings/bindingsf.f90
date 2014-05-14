@@ -175,9 +175,7 @@ subroutine deallocate_double_1D(array)
   integer :: i_all, i_stat
 
   if (associated(array)) then
-     i_all=-product(shape(array))*kind(array)
-     deallocate(array,stat=i_stat)
-     call memocc(i_stat,i_all,'array',"deallocate_double")
+     call f_free_ptr(array)
   end if
 end subroutine deallocate_double_1D
 
@@ -190,9 +188,7 @@ subroutine deallocate_double_2D(array)
   integer :: i_all, i_stat
 
   if (associated(array)) then
-     i_all=-product(shape(array))*kind(array)
-     deallocate(array,stat=i_stat)
-     call memocc(i_stat,i_all,'array',"deallocate_double")
+     call f_free_ptr(array)
   end if
 end subroutine deallocate_double_2D
 
@@ -946,22 +942,16 @@ subroutine localfields_free(denspotd, fion, fdisp)
   end if
 
   if(associated(denspotd%rho_C)) then
-     i_all=-product(shape(denspotd%rho_C))*kind(denspotd%rho_C)
-     deallocate(denspotd%rho_C,stat=i_stat)
-     call memocc(i_stat,i_all,'denspotd%rho_C',subname)
+     call f_free_ptr(denspotd%rho_C)
   end if
 
   deallocate(denspotd)
 
   if (associated(fion)) then
-     i_all=-product(shape(fion))*kind(fion)
-     deallocate(fion,stat=i_stat)
-     call memocc(i_stat,i_all,'fion',subname)
+     call f_free(fion)
   end if
   if (associated(fdisp)) then
-     i_all=-product(shape(fdisp))*kind(fdisp)
-     deallocate(fdisp,stat=i_stat)
-     call memocc(i_stat,i_all,'fdisp',subname)
+     call f_free(fdisp)
   end if
 END SUBROUTINE localfields_free
 subroutine localfields_copy_metadata(denspot, rhov_is, hgrid, ni, psoffset)
@@ -1101,14 +1091,10 @@ subroutine wf_empty(wf)
   integer :: i_all, i_stat
 
   if (associated(wf%psi)) then
-     i_all=-product(shape(wf%psi))*kind(wf%psi)
-     deallocate(wf%psi,stat=i_stat)
-     call memocc(i_stat,i_all,'psi', "wf_empty")
+     call f_free_ptr(wf%psi)
   end if
   if (associated(wf%psit)) then
-     i_all=-product(shape(wf%psit))*kind(wf%psit)
-     deallocate(wf%psit,stat=i_stat)
-     call memocc(i_stat,i_all,'psit', "wf_empty")
+     call f_free_ptr(wf%psit)
   end if
   if (associated(wf%hpsi)) then
      call f_free_ptr(wf%hpsi)
