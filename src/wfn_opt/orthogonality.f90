@@ -2233,11 +2233,8 @@ if(present(paw))usepaw=paw%usepaw
 
 ! Allocate the work arrays.
 lwork=nspinor*norbIn**2+10
-allocate(tempArr(norbIn**2*nspinor,2), stat=i_stat)
-call memocc(i_stat,tempArr,'tempArr',subname)
-
-allocate(evall(norbIn), stat=i_stat)
-call memocc(i_stat,evall,'evall',subname)
+tempArr = f_malloc((/ norbIn**2*nspinor , 2 /),id='tempArr')
+evall = f_malloc(norbIn,id='evall')
 
 ist=1
 ! Make a loop over the number of k-points handled by the process.
