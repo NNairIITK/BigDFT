@@ -55,9 +55,11 @@ endif
 
 # Additional rules for the dev tutorial.
 dev.check: dev/toy_model
-dev/toy_model toy_model: $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90
+dev/toy_model: $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90
 	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90 \
 			$(AM_LDFLAGS) $(LDFLAGS) -lbigdft-1 $(LIBS)
+toy_model:
+	cd ..; $(MAKE) dev/toy_model
 dev-N2.out.post-out: dev-N2.out.out toy_model 
 	$(run_serial) ./toy_model > log-model.yaml
 dev.post-clean:
