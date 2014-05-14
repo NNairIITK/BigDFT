@@ -291,10 +291,8 @@ subroutine draw_locregs(nlr,hx,hy,hz,Llr)
 
   do ilr=1,nlr
      !define logrids
-     allocate(logrid_c(0:Llr(ilr)%d%n1,0:Llr(ilr)%d%n2,0:Llr(ilr)%d%n3+ndebug),stat=i_stat)
-     call memocc(i_stat,logrid_c,'logrid_c',subname)
-     allocate(logrid_f(0:Llr(ilr)%d%n1,0:Llr(ilr)%d%n2,0:Llr(ilr)%d%n3+ndebug),stat=i_stat)
-     call memocc(i_stat,logrid_f,'logrid_f',subname)
+     logrid_c = f_malloc((/ 0.to.Llr(ilr)%d%n1, 0.to.Llr(ilr)%d%n2, 0.to.Llr(ilr)%d%n3 /),id='logrid_c')
+     logrid_f = f_malloc((/ 0.to.Llr(ilr)%d%n1, 0.to.Llr(ilr)%d%n2, 0.to.Llr(ilr)%d%n3 /),id='logrid_f')
 
      call wfd_to_logrids(Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3,Llr(ilr)%wfd,&
           logrid_c,logrid_f)
@@ -323,12 +321,8 @@ subroutine draw_locregs(nlr,hx,hy,hz,Llr)
      enddo
 
 
-     i_all=-product(shape(logrid_c))*kind(logrid_c)
-     deallocate(logrid_c,stat=i_stat)
-     call memocc(i_stat,i_all,'logrid_c',subname)
-     i_all=-product(shape(logrid_f))*kind(logrid_f)
-     deallocate(logrid_f,stat=i_stat)
-     call memocc(i_stat,i_all,'logrid_f',subname)
+     call f_free(logrid_c)
+     call f_free(logrid_f)
   end do
 
   !close file for writing
@@ -354,10 +348,8 @@ subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
 
 
   !define logrids
-  allocate(logrid_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-  call memocc(i_stat,logrid_c,'logrid_c',subname)
-  allocate(logrid_f(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-  call memocc(i_stat,logrid_f,'logrid_f',subname)
+  logrid_c = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='logrid_c')
+  logrid_f = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='logrid_f')
   
   call wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
 
@@ -372,12 +364,8 @@ subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
   call make_bounds(n1,n2,n3,logrid_c,bounds%kb%ibyz_c,bounds%kb%ibxz_c,bounds%kb%ibxy_c)
   call make_bounds(n1,n2,n3,logrid_f,bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f)
 
-  i_all=-product(shape(logrid_c))*kind(logrid_c)
-  deallocate(logrid_c,stat=i_stat)
-  call memocc(i_stat,i_all,'logrid_c',subname)
-  i_all=-product(shape(logrid_f))*kind(logrid_f)
-  deallocate(logrid_f,stat=i_stat)
-  call memocc(i_stat,i_all,'logrid_f',subname)
+  call f_free(logrid_c)
+  call f_free(logrid_f)
   
   !allocate grow, shrink and real bounds
   bounds%gb%ibzxx_c = f_malloc_ptr((/ 1.to.2, 0.to.n3, -14.to.2*n1+16 /),id='bounds%gb%ibzxx_c')
