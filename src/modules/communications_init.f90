@@ -2488,7 +2488,7 @@ module communications_init
       !allocate(comgp%mpi_datatypes(0:nmaxoverlap,0:nproc-1), stat=istat)
       !call memocc(istat, comgp%mpi_datatypes, 'comgp%mpi_datatypes', subname)
       !call to_zero((nmaxoverlap+1)*nproc, comgp%mpi_datatypes(0,0))
-      comgp%mpi_datatypes = f_malloc0_ptr((/0.to.nmaxoverlap,0.to.nproc-1/))
+      comgp%mpi_datatypes = f_malloc0_ptr((/0.to.nmaxoverlap,0.to.nproc-1/),id='comgp%mpi_datatypes')
       comgp%nrecvBuf = 0
       is3min=0
       ie3max=0

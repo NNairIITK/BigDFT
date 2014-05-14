@@ -108,7 +108,7 @@ subroutine reformatmywaves(iproc,orbs,at,&
   !Local variables
   character(len=*), parameter :: subname='reformatmywaves'
   logical :: reformat,perx,pery,perz
-  integer :: iat,iorb,j,i_stat,i_all,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,nb1,nb2,nb3
+  integer :: iat,iorb,j,i_stat,i_all,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,nb1,nb2,nb3,nvctrcj,n1p1,np,i0jj
   real(gp) :: tx,ty,tz,displ,mindist
   real(wp), dimension(:,:,:), allocatable :: psifscf
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
@@ -212,13 +212,14 @@ subroutine reformatmywaves(iproc,orbs,at,&
            psi(j,iorb)=psi_old(j, iorb)
         enddo
         do j=1,7*wfd_old%nvctr_f-6,7
-           psi(wfd%nvctr_c+j+0,iorb)=psi_old(wfd%nvctr_c+j+0,iorb)
-           psi(wfd%nvctr_c+j+1,iorb)=psi_old(wfd%nvctr_c+j+1,iorb)
-           psi(wfd%nvctr_c+j+2,iorb)=psi_old(wfd%nvctr_c+j+2,iorb)
-           psi(wfd%nvctr_c+j+3,iorb)=psi_old(wfd%nvctr_c+j+3,iorb)
-           psi(wfd%nvctr_c+j+4,iorb)=psi_old(wfd%nvctr_c+j+4,iorb)
-           psi(wfd%nvctr_c+j+5,iorb)=psi_old(wfd%nvctr_c+j+5,iorb)
-           psi(wfd%nvctr_c+j+6,iorb)=psi_old(wfd%nvctr_c+j+6,iorb)
+           nvctrcj=wfd%nvctr_c+j
+           psi(nvctrcj+0,iorb)=psi_old(nvctrcj+0,iorb)
+           psi(nvctrcj+1,iorb)=psi_old(nvctrcj+1,iorb)
+           psi(nvctrcj+2,iorb)=psi_old(nvctrcj+2,iorb)
+           psi(nvctrcj+3,iorb)=psi_old(nvctrcj+3,iorb)
+           psi(nvctrcj+4,iorb)=psi_old(nvctrcj+4,iorb)
+           psi(nvctrcj+5,iorb)=psi_old(nvctrcj+5,iorb)
+           psi(nvctrcj+6,iorb)=psi_old(nvctrcj+6,iorb)
         enddo
 
      else
@@ -228,19 +229,22 @@ subroutine reformatmywaves(iproc,orbs,at,&
 
         call to_zero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
 
+        n1p1=n1_old+1
+        np=n1p1*(n2_old+1)
         ! coarse part
         do iseg=1,wfd_old%nseg_c
            jj=wfd_old%keyvloc(iseg)
            j0=wfd_old%keygloc(1,iseg)
            j1=wfd_old%keygloc(2,iseg)
            ii=j0-1
-           i3=ii/((n1_old+1)*(n2_old+1))
-           ii=ii-i3*(n1_old+1)*(n2_old+1)
-           i2=ii/(n1_old+1)
-           i0=ii-i2*(n1_old+1)
+           i3=ii/np
+           ii=ii-i3*np
+           i2=ii/n1p1
+           i0=ii-i2*n1p1
            i1=i0+j1-j0
+           i0jj=jj-i0
            do i=i0,i1
-              psigold(i,1,i2,1,i3,1) = psi_old(i-i0+jj,iorb)
+              psigold(i,1,i2,1,i3,1) = psi_old(i+i0jj,iorb)
            enddo
         enddo
 
@@ -250,19 +254,20 @@ subroutine reformatmywaves(iproc,orbs,at,&
            j0=wfd_old%keygloc(1,wfd_old%nseg_c + iseg)
            j1=wfd_old%keygloc(2,wfd_old%nseg_c + iseg)
            ii=j0-1
-           i3=ii/((n1_old+1)*(n2_old+1))
-           ii=ii-i3*(n1_old+1)*(n2_old+1)
-           i2=ii/(n1_old+1)
-           i0=ii-i2*(n1_old+1)
+           i3=ii/np
+           ii=ii-i3*np
+           i2=ii/n1p1
+           i0=ii-i2*n1p1
            i1=i0+j1-j0
+           i0jj=jj-i0-1
            do i=i0,i1
-              psigold(i,2,i2,1,i3,1)=psi_old(wfd_old%nvctr_c+1+7*(i-i0+jj-1), iorb)
-              psigold(i,1,i2,2,i3,1)=psi_old(wfd_old%nvctr_c+2+7*(i-i0+jj-1), iorb)
-              psigold(i,2,i2,2,i3,1)=psi_old(wfd_old%nvctr_c+3+7*(i-i0+jj-1), iorb)
-              psigold(i,1,i2,1,i3,2)=psi_old(wfd_old%nvctr_c+4+7*(i-i0+jj-1), iorb)
-              psigold(i,2,i2,1,i3,2)=psi_old(wfd_old%nvctr_c+5+7*(i-i0+jj-1), iorb)
-              psigold(i,1,i2,2,i3,2)=psi_old(wfd_old%nvctr_c+6+7*(i-i0+jj-1), iorb)
-              psigold(i,2,i2,2,i3,2)=psi_old(wfd_old%nvctr_c+7+7*(i-i0+jj-1), iorb)
+              psigold(i,2,i2,1,i3,1)=psi_old(wfd_old%nvctr_c+1+7*(i+i0jj), iorb)
+              psigold(i,1,i2,2,i3,1)=psi_old(wfd_old%nvctr_c+2+7*(i+i0jj), iorb)
+              psigold(i,2,i2,2,i3,1)=psi_old(wfd_old%nvctr_c+3+7*(i+i0jj), iorb)
+              psigold(i,1,i2,1,i3,2)=psi_old(wfd_old%nvctr_c+4+7*(i+i0jj), iorb)
+              psigold(i,2,i2,1,i3,2)=psi_old(wfd_old%nvctr_c+5+7*(i+i0jj), iorb)
+              psigold(i,1,i2,2,i3,2)=psi_old(wfd_old%nvctr_c+6+7*(i+i0jj), iorb)
+              psigold(i,2,i2,2,i3,2)=psi_old(wfd_old%nvctr_c+7+7*(i+i0jj), iorb)
            enddo
         enddo
 

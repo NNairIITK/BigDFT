@@ -1270,9 +1270,9 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
       ! This is due to the dynamic memory managment. The original version was: pot=>pot1
       pot = f_malloc_ptr(npot+ndebug,id='pot')
       pot=pot1
+      !there is a problem here when pot1 => potential
       call f_free_ptr(pot1)
    else if(iflag>0 .and. iflag<2) then
-
       pot = f_malloc_ptr(lzd%ndimpotisf+ndebug,id='pot')
       ! Cut potential
       istl=1
