@@ -1453,8 +1453,7 @@ subroutine initialize_atomic_file(iproc,atoms,rxyz)
   integer :: i_stat
   integer :: iat,i,ierr
 
-  allocate(atoms%amu(atoms%astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%amu,'atoms%amu',subname)
+  atoms%amu = f_malloc_ptr(atoms%astruct%nat+ndebug)
 
   if (atoms%astruct%geocode=='S') then 
         atoms%astruct%cell_dim(2)=0.0_gp

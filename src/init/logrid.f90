@@ -45,8 +45,7 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   integer,intent(out):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
 
 
-  allocate(logrid_big((2*n1+31)*(2*n2+31)*(2*n3+31)+ndebug),stat=i_stat)
-  call memocc(i_stat,logrid_big,'logrid_big',subname)
+  logrid_big = f_malloc((2*n1+31)*(2*n2+31)*(2*n3+31),id='logrid_big')
 
   !n(c) m1=nfu1-nfl1
   !n(c) m2=nfu2-nfl2
@@ -96,9 +95,7 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
   call squares_1d(ibxxyy_f,2*nfl1-14,2*nfu1+16,2*nfl2-14,2*nfu2+16)
 
-  i_all=-product(shape(logrid_big))*kind(logrid_big)
-  deallocate(logrid_big,stat=i_stat)
-  call memocc(i_stat,i_all,'logrid_big',subname)
+  call f_free(logrid_big)
 
 END SUBROUTINE make_all_ib
 
