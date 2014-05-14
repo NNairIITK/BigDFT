@@ -404,7 +404,6 @@ subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
   call f_free(psiwocc)
 
   if (nproc > 1) then
-     call memocc(i_stat,i_all,'ncommocc',subname)
      call f_free(ncommocc)
   end if
 
