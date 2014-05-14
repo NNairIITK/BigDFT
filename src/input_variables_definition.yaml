@@ -596,6 +596,9 @@
    psp_onfly:
      COMMENT: Calculate pseudopotential projectors on the fly
      default: Yes
+   multipole_preserving:
+     COMMENT: (EXPERIMENTAL) Preserve the multipole moment of the ionic density
+     default: No
    pdsyev_blocksize:
      COMMENT: SCALAPACK linear scaling blocksize
      default: -8
@@ -646,10 +649,10 @@
      COMMENT: Linear scaling calculate intermediate forces
      default: No
    kappa_conv:
-     COMMENT: exit kappa for extended input guess (experimental mode)
+     COMMENT: Exit kappa for extended input guess (experimental mode)
      default: 0.1
    evbounds_nsatur:
-     COMMENT: number of FOE cycles before the eigenvalue bounds are shrinked
+     COMMENT: Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
      default: 3
    evboundsshrink_nsatur:
      COMMENT: maximal number of unsuccessful eigenvalue bounds shrinkings

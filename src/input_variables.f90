@@ -8,8 +8,8 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!> This function returns a dictionary with all the input variables of a BigDFT run filled
-!! this dictionary is constructed from a updated version of the input variables dictionary
+!> This function returns a dictionary with all the input variables of a BigDFT run filled.
+!! This dictionary is constructed from a updated version of the input variables dictionary
 !! following the input files as defined  by the user
 subroutine read_input_dict_from_files(radical,mpi_env,dict)
   use dictionaries
@@ -19,9 +19,9 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
   use input_old_text_format
   use yaml_output
   implicit none
-  character(len = *), intent(in) :: radical !< the name of the run. use "input" if empty
-  type(mpi_environment), intent(in) :: mpi_env !< the environment where the variables have to be updated
-  type(dictionary), pointer :: dict !< input dictionary, has to be nullified at input
+  character(len = *), intent(in) :: radical    !< The name of the run. use "input" if empty
+  type(mpi_environment), intent(in) :: mpi_env !< The environment where the variables have to be updated
+  type(dictionary), pointer :: dict            !< Input dictionary, has to be nullified at input
   !local variables
   integer :: ierr
   logical :: exists_default, exists_user
@@ -260,6 +260,9 @@ subroutine inputs_from_dict(in, atoms, dict)
   ! Update atoms with pseudo information.
   call psp_dict_analyse(dict, atoms)
   call atomic_data_set_from_dict(dict, "Atomic occupation", atoms, in%nspin)
+
+  ! Add multipole preserving information
+  atoms%multipole_preserving = in%multipole_preserving
 
   ! Generate orbital occupation
   call read_n_orbitals(bigdft_mpi%iproc, nelec_up, nelec_down, norb_max, atoms, &

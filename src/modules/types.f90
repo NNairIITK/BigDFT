@@ -233,6 +233,7 @@ module module_types
   integer, parameter, public :: INPUT_IG_FULL = 2
   integer, parameter, public :: INPUT_IG_TMO  = 3
 
+
   !> Structure controlling the nature of the accelerations (Convolutions, Poisson Solver)
   type, public :: material_acceleration
      !> variable for material acceleration
@@ -272,6 +273,7 @@ module module_types
      real(gp) :: rpnrm_cv
      real(gp) :: gnrm_startmix
      integer :: verbosity   !< Verbosity of the output file
+     logical :: multipole_preserving !< Preserve multipole for ionic charge (integrated isf)
 
      !> DFT basic parameters.
      integer :: ixc         !< XC functional Id
@@ -433,8 +435,8 @@ module module_types
   !> Contains all energy terms
   type, public :: energy_terms
      real(gp) :: eh      =0.0_gp !< Hartree energy
-     real(gp) :: exc     =0.0_gp !< Exchange-correlation
-     real(gp) :: evxc    =0.0_gp
+     real(gp) :: exc     =0.0_gp !< Exchange-correlation energy
+     real(gp) :: evxc    =0.0_gp !< Energy from the exchange-correlation potential
      real(gp) :: eion    =0.0_gp !< Ion-Ion interaction
      real(gp) :: edisp   =0.0_gp !< Dispersion force
      real(gp) :: ekin    =0.0_gp !< Kinetic term
@@ -505,7 +507,7 @@ module module_types
      type(mpi_environment) :: mpi_env
   end type denspot_distribution
 
-!>   Structures of basis of gaussian functions of the form exp(-a*r2)cos/sin(b*r2)
+  !> Structures of basis of gaussian functions of the form exp(-a*r2)cos/sin(b*r2)
   type, public :: gaussian_basis_c
      integer :: nat,ncoeff,nshltot,nexpo
      integer, dimension(:), pointer :: nshell,ndoc,nam
@@ -2562,6 +2564,8 @@ end subroutine find_category
     call dict_free(dict)
   END SUBROUTINE input_set_bool_array
 
+  
+  !> Set the dictionary from the input variables
   subroutine input_set_dict(in, level, val)
     use dictionaries, only: dictionary, operator(//), assignment(=)
     use dictionaries, only: dict_key, max_field_length, dict_value, dict_len
@@ -2701,6 +2705,8 @@ end subroutine find_category
           GPUblas = val !!@TODO to relocate
        case (PSP_ONFLY)
           DistProjApply = val
+       case (MULTIPOLE_PRESERVING)
+          in%multipole_preserving = val
        case (IG_DIAG)
           in%orthpar%directDiag = val
        case (IG_NORBP)

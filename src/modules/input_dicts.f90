@@ -124,7 +124,7 @@ contains
   END SUBROUTINE merge_input_file_to_dict
 
 
-  !> Read from files and build a dictionary
+  !> Read from all input files and build a dictionary
   subroutine user_dict_from_files(dict,radical,posinp, mpi_env)
     use dictionaries
     use dictionaries_base, only: TYPE_DICT, TYPE_LIST
@@ -444,6 +444,7 @@ contains
        & psppar, radii_cf)
     use module_defs, only: gp, UNINITIALIZED
     use dictionaries
+    use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
     implicit none
     type(dictionary), pointer :: dict
     integer, intent(out) :: nzatom, nelpsp, npspcode, ixcpsp
@@ -495,17 +496,17 @@ contains
     str = dict // "Pseudopotential type"
     select case(trim(str))
     case("GTH")
-       npspcode = 2
+       npspcode = PSPCODE_GTH
     case("HGH")
-       npspcode = 3
+       npspcode = PSPCODE_HGH
     case("HGH-K")
-       npspcode = 10
+       npspcode = PSPCODE_HGH_K
     case("HGH-K + NLCC")
-       npspcode = 12
+       npspcode = PSPCODE_HGH_K_NLCC
     case default
        return
     end select
-    if (npspcode == 12) then
+    if (npspcode == PSPCODE_HGH_K_NLCC) then
        if (.not. has_key(dict, 'Non Linear Core Correction term')) return
        loc => dict // 'Non Linear Core Correction term'
        if (.not. has_key(loc, "Rcore")) return
@@ -525,9 +526,11 @@ contains
   end subroutine psp_set_from_dict
 
 
+  !Merge all psp data (coming from a file) in the dictionary
   subroutine psp_data_merge_to_dict(dict, nzatom, nelpsp, npspcode, ixcpsp, &
        & psppar, radii_cf, rcore, qcore)
     use module_defs, only: gp, UNINITIALIZED
+    use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
     use dictionaries
     use yaml_strings
     implicit none
@@ -540,13 +543,13 @@ contains
 
     ! Type
     select case(npspcode)
-    case(2)
+    case(PSPCODE_GTH)
        call set(dict // "Pseudopotential type", 'GTH')
-    case(3)
+    case(PSPCODE_HGH)
        call set(dict // "Pseudopotential type", 'HGH')
-    case(10)
+    case(PSPCODE_HGH_K)
        call set(dict // "Pseudopotential type", 'HGH-K')
-    case(12)
+    case(PSPCODE_HGH_K_NLCC)
        call set(dict // "Pseudopotential type", 'HGH-K + NLCC')
     end select
 
@@ -565,7 +568,7 @@ contains
     end if
 
     ! nlcc term
-    if (npspcode == 12) then
+    if (npspcode == PSPCODE_HGH_K_NLCC) then
        call set(dict // 'Non Linear Core Correction term', &
             & dict_new( 'Rcore' .is. yaml_toa(rcore), &
             & 'Core charge' .is. yaml_toa(qcore)))
@@ -595,7 +598,7 @@ contains
   end subroutine psp_data_merge_to_dict
 
 
-  !> Read old psppar file and merge to dict
+  !> Read old psppar file (check if not already in the dictionary) and merge to dict
   subroutine atoms_file_merge_to_dict(dict)
     use dictionaries
     use dictionaries_base, only: TYPE_DICT, TYPE_LIST
@@ -649,19 +652,21 @@ contains
   end subroutine atoms_file_merge_to_dict
 
 
+  !> Read psp file and merge to dict
   subroutine psp_file_merge_to_dict(dict, key, filename)
     use module_defs, only: gp, UNINITIALIZED
     use dictionaries
     use yaml_strings
     implicit none
+    !Arguments
     type(dictionary), pointer :: dict
     character(len = *), intent(in) :: filename, key
-
+    !Local variables
     integer :: nzatom, nelpsp, npspcode, ixcpsp
     real(gp) :: psppar(0:4,0:6), radii_cf(3), rcore, qcore
     logical :: exists, donlcc, pawpatch
 
-    !ALEX: if npspcode==12, nlccpar are read from psppar.Xy via rcore and qcore 
+    !ALEX: if npspcode==PSPCODE_HGH_K_NLCC, nlccpar are read from psppar.Xy via rcore and qcore 
     call psp_from_file(filename, nzatom, nelpsp, npspcode, ixcpsp, &
          & psppar, donlcc, rcore, qcore, radii_cf, exists, pawpatch)
     if (.not.exists) return

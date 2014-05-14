@@ -837,18 +837,19 @@ subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
 
      call atomic_info(atoms%nzatom(ityp),atoms%nelpsp(ityp),ehomo=ehomo)
           
-     if (atoms%radii_cf(ityp, 1) == UNINITIALIZED(1.0_gp)) then
+     if (any(atoms%radii_cf(ityp, :) == UNINITIALIZED(1.0_gp))) then
         !assigning the radii by calculating physical parameters
-        radii_cf(ityp,1)=1._gp/sqrt(abs(2._gp*ehomo))
+        if (radii_cf(ityp,1) == UNINITIALIZED(1.0_gp)) radii_cf(ityp,1)=1._gp/sqrt(abs(2._gp*ehomo))
         radfine=100._gp
         do i=0,4
            if (atoms%psppar(i,0,ityp)/=0._gp) then
               radfine=min(radfine,atoms%psppar(i,0,ityp))
            end if
         end do
-        radii_cf(ityp,2)=radfine
-        radii_cf(ityp,3)=radfine
+        if (radii_cf(ityp,2) == UNINITIALIZED(1.0_gp)) radii_cf(ityp,2)=radfine
+        if (radii_cf(ityp,3) == UNINITIALIZED(1.0_gp)) radii_cf(ityp,3)=radfine
      else
+        !Everything is already provided
         radii_cf(ityp, :) = atoms%radii_cf(ityp, :)
      end if
 
@@ -867,6 +868,7 @@ subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
      end if
   enddo
 END SUBROUTINE read_radii_variables
+
 
 subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
      & atoms, ncharge, nspin, mpol, norbsempty)

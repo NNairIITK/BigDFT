@@ -1365,13 +1365,13 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
      end if
 
      select case(atoms%npspcode(ityp))
-     case(2)
+     case(PSPCODE_GTH)
         call yaml_map('Pseudopotential type','GTH')
-     case(3)
+     case(PSPCODE_HGH)
         call yaml_map('Pseudopotential type','HGH')
-     case(10)
+     case(PSPCODE_HGH_K)
         call yaml_map('Pseudopotential type','HGH-K')
-     case(12)
+     case(PSPCODE_HGH_K_NLCC)
         call yaml_map('Pseudopotential type','HGH-K + NLCC')
      end select
      if (atoms%psppar(0,0,ityp)/=0) then
@@ -1381,7 +1381,7 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
         call yaml_close_map()
      end if
      !nlcc term
-     if (atoms%npspcode(ityp) == 12) then
+     if (atoms%npspcode(ityp) == PSPCODE_HGH_K_NLCC) then
         inlcc=inlcc+1
         call yaml_open_map('Non Linear Core Correction term')
             call yaml_map('Rcore',atoms%nlccpar(0,inlcc),fmt='(f9.5)')
@@ -1415,12 +1415,12 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
               do i=1,j
                  hij(i,i)=atoms%psppar(l,i,ityp)
               end do
-              if (atoms%npspcode(ityp) == 3) then !traditional HGH convention
+              if (atoms%npspcode(ityp) == PSPCODE_HGH) then !traditional HGH convention
                  hij(1,2)=offdiagarr(1,1,l)*atoms%psppar(l,2,ityp)
                  hij(1,3)=offdiagarr(1,2,l)*atoms%psppar(l,3,ityp)
                  hij(2,3)=offdiagarr(2,1,l)*atoms%psppar(l,3,ityp)
-              else if (atoms%npspcode(ityp) == 10 &
-                  .or. atoms%npspcode(ityp) == 12) then !HGH-K convention
+              else if (atoms%npspcode(ityp) == PSPCODE_HGH_K &
+                  .or. atoms%npspcode(ityp) == PSPCODE_HGH_K_NLCC) then !HGH-K convention
                  hij(1,2)=atoms%psppar(l,4,ityp)
                  hij(1,3)=atoms%psppar(l,5,ityp)
                  hij(2,3)=atoms%psppar(l,6,ityp)

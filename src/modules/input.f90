@@ -1789,19 +1789,23 @@ contains
     call set(dict // SIGNALTIMEOUT, dummy_int)
     call input_var("domain", "", "Domain to add to the hostname to find the IP", dummy_str)
     call set(dict // DOMAIN, dummy_str)
-    call input_var("inguess_geopt", 0,"0= wavlet input ",dummy_int)
+    call input_var("inguess_geopt", 0,"0= wavelet input ",dummy_int)
     call set(dict // INGUESS_GEOPT, dummy_int)
-    call input_var("store_index", .true., "linear scaling: store ", dummy_bool)
+    call input_var("store_index", .true., "Linear scaling: store ", dummy_bool)
     call set(dict // STORE_INDEX, dummy_bool)
     !verbosity of the output
-    call input_var("verbosity", 2, "rbosity of the output 0=low, 2=high",dummy_int)
+    call input_var("verbosity", 2, "Verbosity of the output 0=low, 2=high",dummy_int)
     call set(dict // VERBOSITY, dummy_int)
     call input_var("outdir", ".","Writing directory", dummy_path)
     call set(dict // OUTDIR, dummy_path)
 
     !If false, apply the projectors in the once-and-for-all scheme, otherwise on-the-fly
-    call input_var("psp_onfly", .true., "Calculate ",dummy_bool)
+    call input_var("psp_onfly", .true., "Calculate the PSP projectors on the fly (less memory)",dummy_bool)
     call set(dict // PSP_ONFLY, dummy_bool)
+
+    !If true, preserve the multipole of the ionic part (local potential) projecting on delta instead of ISF
+    call input_var("multipole_preserving", .false., "Preserve multipole moment of the ionic charge",dummy_bool)
+    call set(dict // MULTIPOLE_PRESERVING, dummy_bool)
 
     !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
     call input_var("pdsyev_blocksize",-8,"SCALAPACK linear scaling blocksize",dummy_int) !ranges=(/-100,1000/)

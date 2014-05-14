@@ -9,6 +9,7 @@
 
 
 !> Handling of input guess creation from basis of atomic orbitals
+!! and alos pseudopotentials
 module module_atoms
   use module_defs, only: dp,gp
   use ao_inguess, only: aoig_data
@@ -33,32 +34,33 @@ module module_atoms
      integer :: ntypes                    !< Number of atomic species in the structure
      real(gp), dimension(3) :: cell_dim   !< Dimensions of the simulation domain (each one periodic or free according to geocode)
      !pointers
-     real(gp), dimension(:,:), pointer :: rxyz !< Atomic positions (always in AU, units variable is considered for I/O only)
+     real(gp), dimension(:,:), pointer :: rxyz             !< Atomic positions (always in AU, units variable is considered for I/O only)
      character(len=20), dimension(:), pointer :: atomnames !< Atomic species names
      integer, dimension(:), pointer :: iatype              !< Atomic species id
      integer, dimension(:), pointer :: ifrztyp             !< Freeze atoms while updating structure
      integer, dimension(:), pointer :: input_polarization  !< Used in AO generation for WFN input guess
-     type(symmetry_data) :: sym                      !< The symmetry operators
+     type(symmetry_data) :: sym                            !< The symmetry operators
   end type atomic_structure
 
   !> Data containing the information about the atoms in the system
   type, public :: atoms_data
-     type(atomic_structure) :: astruct
-     type(aoig_data), dimension(:), pointer :: aoig !< contains the information needed for generating the AO inputguess data for each atom
-     integer :: natsc    !< number of atoms with semicore occupations at the input guess
+     type(atomic_structure) :: astruct                  !< Atomic structure (positions and so on)
+     type(aoig_data), dimension(:), pointer :: aoig     !< Contains the information needed for generating the AO inputguess data for each atom
+     integer :: natsc                                   !< Number of atoms with semicore occupations at the input guess
 !     integer, dimension(:), pointer :: iasctype
      integer, dimension(:), pointer :: nelpsp
      integer, dimension(:), pointer :: npspcode
      integer, dimension(:), pointer :: ixcpsp
      integer, dimension(:), pointer :: nzatom
-     real(gp), dimension(:,:), pointer :: radii_cf  !< user defined radii_cf, overridden in sysprop.f90
-     real(gp), dimension(:), pointer :: amu         !< amu(ntypes)  Atomic Mass Unit for each type of atoms
-     !real(gp), dimension(:,:), pointer :: rloc !< localization regions for parameters of linear, to be moved somewhere else
-     real(gp), dimension(:,:,:), pointer :: psppar  !< pseudopotential parameters (HGH SR section)
-     logical :: donlcc                              !< activate non-linear core correction treatment
-     integer, dimension(:), pointer :: nlcc_ngv,nlcc_ngc   !<number of valence and core gaussians describing NLCC 
-     real(gp), dimension(:,:), pointer :: nlccpar    !< parameters for the non-linear core correction, if present
-!     real(gp), dimension(:,:), pointer :: ig_nlccpar !< parameters for the input NLCC
+     real(gp), dimension(:,:), pointer :: radii_cf       !< User defined radii_cf, overridden in sysprop.f90
+     real(gp), dimension(:), pointer :: amu              !< Amu(ntypes)  Atomic Mass Unit for each type of atoms
+     !real(gp), dimension(:,:), pointer :: rloc          !< Localization regions for parameters of linear, to be moved somewhere else
+     real(gp), dimension(:,:,:), pointer :: psppar       !< Pseudopotential parameters (HGH SR section)
+     logical :: donlcc                                   !< Activate non-linear core correction treatment
+     logical :: multipole_preserving                     !< Activate preservation of the multipole moment for the ionic charge
+     integer, dimension(:), pointer :: nlcc_ngv,nlcc_ngc !< Number of valence and core gaussians describing NLCC 
+     real(gp), dimension(:,:), pointer :: nlccpar        !< Parameters for the non-linear core correction, if present
+!     real(gp), dimension(:,:), pointer :: ig_nlccpar    !< Parameters for the input NLCC
 
      !! for abscalc with pawpatch
      integer, dimension(:), pointer ::  paw_NofL, paw_l, paw_nofchannels
@@ -122,6 +124,7 @@ module module_atoms
       nullify(at%aoig)
       at%natsc=0
       at%donlcc=.false.
+      at%multipole_preserving=.false.
       at%iat_absorber=-1
       !     nullify(at%iasctype)
       nullify(at%nelpsp)

@@ -16,11 +16,11 @@ module gaussians
 
   private
 
-  integer, parameter :: NSD_=2,EXPO_=1,COEFF_=2  !< positions of exponents and coefficients in the storage space
-  integer, parameter :: NSHID_=3,DOC_=1,L_=2,N_=3  !< positions of shell identification numbers in shell id space
-  integer, parameter :: NTERM_MAX_OVERLAP=62 !<maximum number of terms for the considered shells
-  integer, parameter :: NTERM_MAX_KINETIC=190 !<maximum number of terms for the considered shells in the case of laplacian
-  integer, parameter :: L_MAX=3 !< maximum number of angular momentum considered
+  integer, parameter :: NSD_=2,EXPO_=1,COEFF_=2    !< Positions of exponents and coefficients in the storage space
+  integer, parameter :: NSHID_=3,DOC_=1,L_=2,N_=3  !< Positions of shell identification numbers in shell id space
+  integer, parameter :: NTERM_MAX_OVERLAP=62       !< Maximum number of terms for the considered shells
+  integer, parameter :: NTERM_MAX_KINETIC=190      !< Maximum number of terms for the considered shells in the case of laplacian
+  integer, parameter :: L_MAX=3                    !< Maximum number of angular momentum considered
 
   integer :: itype_scf=0 !< type of the interpolating SCF, 0= data unallocated
   integer :: n_scf=-1    !< number of points of the allocated data
@@ -57,7 +57,9 @@ module gaussians
   public :: gaudim_check,normalize_shell,gaussian_overlap,kinetic_overlap,gauint0
   public :: initialize_real_space_conversion,finalize_real_space_conversion,scfdotf,mp_exp
 
+
 contains
+
 
   function gaussian_basis_null() result(G)
     implicit none
@@ -72,6 +74,7 @@ contains
     nullify(G%sd)
     nullify(G%rxyz)
   end function gaussian_basis_null
+
 
   function gaussian_basis_init(nat,nshell,rxyz) result(G)
     implicit none
@@ -103,6 +106,7 @@ contains
 
   end function gaussian_basis_init
 
+
   subroutine gaussian_basis_convert(G,Gold)
     implicit none
     type(gaussian_basis_new), intent(out) :: G
@@ -131,6 +135,7 @@ contains
     end do
 
   end subroutine gaussian_basis_convert
+
 
   subroutine gaussian_basis_free(G,subname)
     implicit none
@@ -161,6 +166,7 @@ contains
     G=gaussian_basis_null()
 
   end subroutine gaussian_basis_free
+
 
   !> Prepare the array for the evaluation with the interpolating Scaling Functions
   !! one might add also the function to be converted and the 
@@ -195,6 +201,7 @@ contains
 
   end subroutine initialize_real_space_conversion
 
+
   subroutine finalize_real_space_conversion(subname)
     implicit none
     character(len=*), intent(in) :: subname
@@ -209,14 +216,18 @@ contains
 
   end subroutine finalize_real_space_conversion
 
+
   !> multipole-preserving gaussian function
   !! chooses between traditional exponential and scfdotf 
   !! according to the value of the exponent in units of the grid spacing
   !! the function is supposed to be x**pow*exp(-expo*x**2)
   !! where x=hgrid*j-x0
+  !! @warning
   !! this function is also elemental to ease its evaluation, though 
   !! the usage for vector argument is discouraged: dedicated routines has to be 
   !! written to meet performance
+  !! @todo 
+  !!  Optimize it!
   elemental pure function mp_exp(hgrid,x0,expo,j,pow,modified)
     implicit none
     logical, intent(in) :: modified !< switch to scfdotf if true
@@ -236,11 +247,12 @@ contains
     end if
   end function mp_exp
 
+
   !> This function calculates the scalar product between a ISF and a 
-  !input function, which is a gaussian times a power centered
-  ! here pure specifier is redundant
-  ! we should add here the threshold from which the 
-  ! normal function can be evaluated
+  !! input function, which is a gaussian times a power centered
+  !! here pure specifier is redundant
+  !! we should add here the threshold from which the 
+  !! normal function can be evaluated
   elemental pure function scfdotf(j,hgrid,pgauss,x0,pow) result(gint)
     implicit none
     integer, intent(in) :: j !<value of the input result in the hgrid reference
@@ -278,7 +290,7 @@ contains
   end function scfdotf
 
 
-  !>   Overlap matrix between two different basis structures
+  !> Overlap matrix between two different basis structures
   subroutine gaussian_overlap(A,B,ovrlp)
     implicit none
     type(gaussian_basis), intent(in) :: A,B
@@ -357,8 +369,9 @@ contains
 
   END SUBROUTINE gaussian_overlap
 
-  !>   Overlap kinetic matrix between two different basis structures
-  !!   the kinetic operator is applicated on the A basis structure
+
+  !> Overlap kinetic matrix between two different basis structures
+  !! the kinetic operator is applicated on the A basis structure
   subroutine kinetic_overlap(A,B,ovrlp)
     implicit none
     type(gaussian_basis), intent(in) :: A,B
@@ -383,7 +396,6 @@ contains
     call gaussian_basis_free(H,'gaussian_overlap')
 
     return
-
 
     iovrlp=0
     ishell=0
@@ -437,6 +449,7 @@ contains
 
   END SUBROUTINE kinetic_overlap
 
+
   !> Calculates the scalar product between two shells
   !! by considering only the nonzero coefficients
   !! actual building block for calculating overlap matrix
@@ -473,6 +486,7 @@ contains
 
   END SUBROUTINE gbasovrlp
 
+
   !> Calculates the scalar product between two shells
   !! by considering only the nonzero coefficients
   !! actual building block for calculating overlap matrix
@@ -508,6 +522,7 @@ contains
     end do
 
   END SUBROUTINE kineticovrlp
+
 
   !> Calculates a dot product between two differents gaussians times spherical harmonics
   !! valid only for shell which belongs to different atoms, and with also dy/=0/=dx dz/=0
@@ -552,8 +567,9 @@ contains
 
   END SUBROUTINE gprod
 
-  !>evaluate the wavefunction for a given grid mesh
-  !TO BE verified and optimized
+
+  !> Evaluate the wavefunction for a given grid mesh
+  !! @todo TO BE verified and optimized
   subroutine wavefunction(j1,j2,j3,G,h1,h2,h3,coeff,wvfnct)
     implicit none
     integer, intent(in) :: j1,j2,j3
@@ -618,7 +634,7 @@ contains
   end subroutine wavefunction
 
 
-  !>   Overlap matrix between two different basis structures
+  !> Overlap matrix between two different basis structures
   subroutine overlap(A,B,ovrlp)
     implicit none
     type(gaussian_basis_new), intent(in) :: A,B
@@ -759,6 +775,7 @@ contains
     end do
   end function gdot
 
+
 !!$  !>calculate the density kernel matrix between two shells for a set of spatial points
 !!$  pure subroutine density_kernel_shell
 !!$    integer, intent(in) :: l1,l2 !<angular momenta of the shell
@@ -773,7 +790,7 @@ contains
 !!$
 !!$  end subroutine density_kernel_shell
 
-  !>performs the gaussian product for all the terms in the shell
+  !> Performs the gaussian product for all the terms in the shell
   pure subroutine gdot_shell(sd1,l1,ntpdsh1,ntpd1,pws1,ftpd1,&
        sd2,l2,ntpdsh2,ntpd2,pws2,ftpd2,dr,overlap)
     implicit none
@@ -815,6 +832,7 @@ contains
     end do
 
   end subroutine gdot_shell
+
 
   !> Overlap matrix between two different basis structures
   !! laplacian is applied to the first one
@@ -901,6 +919,7 @@ contains
 
   END SUBROUTINE kinetic
 
+
   !> Calculates @f$\int e^{-a1*x^2} x^l1 \exp^{-a2*(x-d)^2} (x-d)^l2 dx@f$
   !! Uses the function gauint0 if d==0.0
   pure function govrlp(a1,a2,d,l1,l2)
@@ -960,11 +979,11 @@ contains
     govrlp=prefac*stot
   END FUNCTION govrlp
   
-  !>   Kinetic overlap between gaussians, based on cartesian coordinates
-  !!   calculates a dot product between two differents gaussians times spherical harmonics
-  !!   valid only for shell which belongs to different atoms, and with also dy/=0/=dx dz/=0
-  !!   to be rearranged when only some of them is zero
-  !!
+
+  !> Kinetic overlap between gaussians, based on cartesian coordinates
+  !! calculates a dot product between two differents gaussians times spherical harmonics
+  !! valid only for shell which belongs to different atoms, and with also dy/=0/=dx dz/=0
+  !! to be rearranged when only some of them is zero
   subroutine kinprod(a1,a2,dx,dy,dz,l1,m1,l2,m2,niw,nrw,iw,rw,ovrlp)
     implicit none
     integer, intent(in) :: l1,l2,m1,m2,niw,nrw 
@@ -1009,8 +1028,9 @@ contains
 
   END SUBROUTINE kinprod
 
-  !>   Calculates @f$\int d^2/dx^2(\exp^{-a1*x^2} x^l1) \exp^{-a2*(x-d)^2} (x-d)^l2 dx@f$
-  !!   in terms of the govrlp function below
+
+  !> Calculates @f$\int d^2/dx^2(\exp^{-a1*x^2} x^l1) \exp^{-a2*(x-d)^2} (x-d)^l2 dx@f$
+  !! in terms of the govrlp function below
   pure function kinovrlp(a1,a2,d,l1,l2)
     implicit none
     integer, intent(in) :: l1,l2
@@ -1035,8 +1055,9 @@ contains
     end if
   END FUNCTION kinovrlp
 
-  !>   Calculates @f$\int \exp^{-a*x^2} x^l dx@f$
-  !!   this works for all l
+
+  !> Calculates @f$\int \exp^{-a*x^2} x^l dx@f$
+  !! this works for all l
   pure function gauint0(a,l)
     implicit none
     integer, intent(in) :: l
@@ -1063,11 +1084,8 @@ contains
   END FUNCTION gauint0
 
 
-
-  !>   Calculates @f$\int \exp^{-a*(x-c)^2} x^l dx@f$
-  !!   this works ONLY when c/=0.d0
-  !!
-  !!
+  !> Calculates @f$\int \exp^{-a*(x-c)^2} x^l dx@f$
+  !! this works ONLY when c/=0.d0
   pure function gauint(a,c,l)
     implicit none
     integer, intent(in) :: l
@@ -1138,6 +1156,7 @@ contains
 
   END FUNCTION gauint
 
+
   !>
   pure function firstprod(p)
     implicit none
@@ -1154,6 +1173,7 @@ contains
        firstprod=firstprod*tt
     end do
   END FUNCTION firstprod
+
 
   !>
   subroutine gaudim_check(iexpo,icoeff,ishell,nexpo,ncoeff,nshltot)
@@ -1172,9 +1192,8 @@ contains
     end if
   END SUBROUTINE gaudim_check
 
-  !>   Normalize a given atomic shell following the angular momentum
-  !!
-  !!
+
+  !> Normalize a given atomic shell following the angular momentum
   pure subroutine normalize_shell(ng,l,expo,coeff)
     implicit none
     integer, intent(in) :: ng,l
@@ -1205,6 +1224,7 @@ contains
 
   END SUBROUTINE normalize_shell
 
+
   !> Factorial (float)
   pure function rfac(is,ie)
     implicit none
@@ -1220,8 +1240,9 @@ contains
     end do
   END FUNCTION rfac
 
+
   !> Partial factorial, with real shift
-  !!With this function n!=xfac(1,n,0.d0)
+  !! With this function n!=xfac(1,n,0.d0)
   pure function xfac(is,ie,sh)
     implicit none
     integer, intent(in) :: is,ie
@@ -1236,6 +1257,7 @@ contains
        xfac=xfac*tt
     end do
   END FUNCTION xfac
+
 
   !> Routine to extract the coefficients from the quantum numbers and the operation
   pure subroutine tensor_product_decomposition(n,l,ntpd_shell,ntpd,pow,ftpd)
@@ -1381,7 +1403,7 @@ contains
 
 
   !> Routine to extract the coefficients from the quantum numbers and the operation
-  !> it provides the tensor product decomposition of the laplacian of a given shell
+  !! it provides the tensor product decomposition of the laplacian of a given shell
   pure subroutine tensor_product_decomposition_laplacian(a,n,l,ntpd_shell,ntpd,pow,ftpd)
     implicit none
     integer, intent(in) :: n,l
@@ -1639,4 +1661,5 @@ contains
        end select
     end select
   end subroutine tensor_product_decomposition_laplacian
+
 end module gaussians
