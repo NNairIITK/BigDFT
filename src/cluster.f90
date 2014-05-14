@@ -568,11 +568,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
         nullify(tmb%coeff)
      end if
 
-     allocate(denspot0(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)), stat=i_stat)
-     call memocc(i_stat, denspot0, 'denspot0', subname)
+     denspot0 = f_malloc(max(denspot%dpbox%ndimrhopot, denspot%dpbox%nrhodim),id='denspot0')
   else
-     allocate(denspot0(1+ndebug), stat=i_stat)
-     call memocc(i_stat, denspot0, 'denspot0', subname)
+     denspot0 = f_malloc(1,id='denspot0')
   end if
 
   !the lookup tables for the application of the nonlocal potential can be created from now on
@@ -741,8 +739,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   else
 
      ! Allococation of array for Pulay forces (only needed for linear version)
-     allocate(fpulay(3,atoms%astruct%nat),stat=i_stat)
-     call memocc(i_stat,fpulay,'fpulay',subname)
+     fpulay = f_malloc_ptr((/ 3, atoms%astruct%nat /),id='fpulay')
 
 
      call linearScaling(iproc,nproc,KSwfn,tmb,atoms,in,&
@@ -853,9 +850,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
         !!allocate(denspot%V_ext(1,1,1,1),stat=i_stat)
         !!call memocc(i_stat,denspot%V_ext,'denspot%V_ext',subname)
         call deallocate_before_exiting()
-        i_all=-product(shape(fpulay))*kind(fpulay)
-        deallocate(fpulay,stat=i_stat)
-        call memocc(i_stat,i_all,'fpulay',subname)
+        call f_free_ptr(fpulay)
         call destroy_DFT_wavefunction(tmb)
         call f_free_ptr(KSwfn%psi)
         call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
@@ -907,20 +902,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      call gaussian_pswf_basis(21,.false.,iproc,in%nspin,atoms,rxyz,KSwfn%gbd,gbd_occ)
 
      if (associated(gbd_occ)) then
-        i_all=-product(shape(gbd_occ))*kind(gbd_occ)
-        deallocate(gbd_occ,stat=i_stat)
-        call memocc(i_stat,i_all,'gbd_occ',subname)
+        call f_free_ptr(gbd_occ)
         nullify(gbd_occ)
      end if
 
 
      if (.not. associated(KSwfn%gaucoeffs)) then
-        allocate(KSwfn%gaucoeffs(KSwfn%gbd%ncoeff,KSwfn%orbs%nspinor*KSwfn%orbs%norbp+ndebug),stat=i_stat)
-        call memocc(i_stat,KSwfn%gaucoeffs,'gaucoeffs',subname)
+        KSwfn%gaucoeffs = f_malloc_ptr((/ KSwfn%gbd%ncoeff, KSwfn%orbs%nspinor*KSwfn%orbs%norbp /),id='KSwfn%gaucoeffs')
      end if
 
-     allocate(thetaphi(2,KSwfn%gbd%nat+ndebug),stat=i_stat)
-     call memocc(i_stat,thetaphi,'thetaphi',subname)
+     thetaphi = f_malloc((/ 2, KSwfn%gbd%nat /),id='thetaphi')
      thetaphi=0.0_gp
 
      call wavelets_to_gaussians(atoms%astruct%geocode,KSwfn%orbs%norbp,KSwfn%orbs%nspinor,&
@@ -928,9 +919,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
           KSwfn%Lzd%Glr%wfd,KSwfn%psi,KSwfn%gaucoeffs)
 
-     i_all=-product(shape(thetaphi))*kind(thetaphi)
-     deallocate(thetaphi,stat=i_stat)
-     call memocc(i_stat,i_all,'thetaphi',subname)
+     call f_free(thetaphi)
      call timing(iproc,'gauss_proj','OF') !lr408t
   end if
 
@@ -955,9 +944,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
         call check_gaussian_expansion(iproc,nproc,KSwfn%orbs,KSwfn%Lzd,KSwfn%psi,KSwfn%gbd,KSwfn%gaucoeffs)
 
         call deallocate_gwf(KSwfn%gbd,subname)
-        i_all=-product(shape(KSwfn%gaucoeffs))*kind(KSwfn%gaucoeffs)
-        deallocate(KSwfn%gaucoeffs,stat=i_stat)
-        call memocc(i_stat,i_all,'gaucoeffs',subname)
+        call f_free_ptr(KSwfn%gaucoeffs)
         nullify(KSwfn%gbd%rxyz)
 
      else
@@ -1011,8 +998,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      if (inputpsi /= INPUT_PSI_LINEAR_AO .and. &
           & inputpsi /= INPUT_PSI_MEMORY_LINEAR .and. &
           & inputpsi /= INPUT_PSI_DISK_LINEAR) then
-        allocate(fpulay(3,atoms%astruct%nat+ndebug),stat=i_stat)
-        call memocc(i_stat,fpulay,'fpulay',subname)
+        fpulay = f_malloc_ptr((/ 3, atoms%astruct%nat /),id='fpulay')
         if (atoms%astruct%nat > 0) call to_zero(3 * atoms%astruct%nat,fpulay(1, 1))
      end if
 
@@ -1035,25 +1021,18 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
           & strten, pressure, ewaldstr, xcstr, GPU, denspot, atoms, rxyz, nlpsp, &
           & output_denspot, in%dir_output, gridformat, refill_proj, calculate_dipole)
 
-     i_all=-product(shape(fpulay))*kind(fpulay)
-     deallocate(fpulay,stat=i_stat)
-     call memocc(i_stat,i_all,'fpulay',subname)
+     call f_free_ptr(fpulay)
   end if
 
-  i_all=-product(shape(fion))*kind(fion)
-  deallocate(fion,stat=i_stat)
-  call memocc(i_stat,i_all,'fion',subname)
-  i_all=-product(shape(fdisp))*kind(fdisp)
-  deallocate(fdisp,stat=i_stat)
-  call memocc(i_stat,i_all,'fdisp',subname)
+  call f_free_ptr(fion)
+  call f_free_ptr(fdisp)
 
   !if (nvirt > 0 .and. in%inputPsiId == 0) then
   if (DoDavidson) then
 
      !for a band structure calculation allocate the array in which to put the eigenvalues
      if (associated(in%kptv) .and. in%nkptv > 0) then
-        allocate(band_structure_eval(KSwfn%orbs%norbu+KSwfn%orbs%norbd+in%nspin*norbv,in%nkptv+ndebug),stat=i_stat)
-        call memocc(i_stat,band_structure_eval,'band_structure_eval',subname)
+        band_structure_eval = f_malloc((/ KSwfn%orbs%norbu+KSwfn%orbs%norbd+in%nspin*norbv, in%nkptv /),id='band_structure_eval')
      end if
 
      !proj_G is dummy here, it is only used for PAW
@@ -1078,8 +1057,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
            !number of k-points for this group
            nkptv = in%nkptsv_group(igroup) !size(in%kptv, 2)
 
-           allocate(wkptv(nkptv+ndebug),stat=i_stat)
-           call memocc(i_stat,wkptv,'wkptv',subname)
+           wkptv = f_malloc(nkptv,id='wkptv')
            wkptv(:) = real(1.0, gp) / real(nkptv, gp)
            call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
                 KSwfn%orbs%nspin,KSwfn%orbs%nspinor,nkptv, &
@@ -1088,9 +1066,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
            !allocate communications arrays for virtual orbitals
            call orbitals_communicators(iproc,nproc,KSwfn%Lzd%Glr,VTwfn%orbs,VTwfn%comms)  
 
-           i_all=-product(shape(wkptv))*kind(wkptv)
-           deallocate(wkptv,stat=i_stat)
-           call memocc(i_stat,i_all,'wkptv',subname)
+           call f_free(wkptv)
 
            !free projectors
            call free_DFT_PSP_projectors(nlpsp)
@@ -1259,9 +1235,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
                 (",'' u 1:",5+i-1," w l t ''" ,i=2,VTwfn%orbs%norb)
            close(unit=11)
         end if
-        i_all=-product(shape(band_structure_eval))*kind(band_structure_eval)
-        deallocate(band_structure_eval,stat=i_stat)
-        call memocc(i_stat,i_all,'band_structure_eval',subname)
+        call f_free(band_structure_eval)
      end if
 
   end if
@@ -1405,9 +1379,7 @@ contains
     
   !when this condition is verified we are in the middle of the SCF cycle
     if (infocode /=0 .and. infocode /=1 .and. inputpsi /= INPUT_PSI_EMPTY) then
-       i_all=-product(shape(denspot%V_ext))*kind(denspot%V_ext)
-       deallocate(denspot%V_ext,stat=i_stat)
-       call memocc(i_stat,i_all,'denspot%V_ext',subname)
+       call f_free_ptr(denspot%V_ext)
 
        if (((in%exctxpar == 'OP2P' .and. xc_exctXfac(denspot%xc) /= 0.0_gp) &
             .or. in%SIC%alpha /= 0.0_gp) .and. nproc >1) then
@@ -1451,9 +1423,7 @@ contains
     if(associated(denspot%rho_C)) then
        call f_free_ptr(denspot%rho_C)
     end if
-    i_all=-product(shape(denspot0))*kind(denspot0)
-    deallocate(denspot0, stat=i_stat)
-    call memocc(i_stat, i_all, 'denspot0', subname)
+    call f_free(denspot0)
 
     ! Free all remaining parts of KSwfn
 !!write(*,*) 'WARNING HERE!!!!!'
