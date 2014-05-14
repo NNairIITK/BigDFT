@@ -549,6 +549,28 @@ subroutine i3_ptr_free(array)
   nullify(array)
 end subroutine i3_ptr_free
 
+subroutine i4_ptr(array,m)
+  use metadata_interfaces, metadata_address => geti4ptr
+  implicit none
+  type(malloc_information_ptr), intent(in) :: m
+  integer, dimension(:,:,:,:), pointer, intent(inout) :: array
+  include 'allocate-profile-inc.f90' 
+  !allocate the array
+  allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
+       m%lbounds(3):m%ubounds(3),m%lbounds(4):m%ubounds(4)+ndebug),stat=ierror)
+  include 'allocate-inc.f90'
+end subroutine i4_ptr
+
+subroutine i4_ptr_free(array)
+  use metadata_interfaces, metadata_address => geti4ptr
+  implicit none
+  integer, dimension(:,:,:,:), pointer, intent(inout) :: array
+  include 'deallocate-profile-inc.f90' 
+  if (.not. associated(array)) return
+  include 'deallocate-inc.f90'
+  nullify(array)
+end subroutine i4_ptr_free
+
 subroutine d4_ptr(array,m)
   use metadata_interfaces, metadata_address => getdp4ptr
   implicit none

@@ -183,6 +183,12 @@ module metadata_interfaces
        integer(kind=8), intent(out) :: iadd
      end subroutine geti3ptr
 
+     subroutine geti4ptr(array,iadd)
+       implicit none
+       integer, dimension(:,:,:,:), pointer, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine geti4ptr
+
      subroutine getc1ptr(length,array,iadd)
        implicit none
        integer, intent(in) :: length
@@ -215,7 +221,7 @@ public :: getr1,getr2,getr3
 public :: getdp1,getdp2,getdp3,getdp4,getdp5,getdp6!,getlongaddress
 public :: getz2
 public :: getdp1ptr,getdp2ptr,getdp3ptr,getdp4ptr,getdp5ptr,getdp6ptr
-public :: geti1ptr,geti2ptr,geti3ptr
+public :: geti1ptr,geti2ptr,geti3ptr,geti4ptr
 public :: getz1ptr
 public :: getc1ptr
 public :: address_toi,long_toa
