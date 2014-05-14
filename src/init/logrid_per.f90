@@ -33,8 +33,7 @@ subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
   bounds%sb%ibzzx_f = f_malloc_ptr((/ 1.to.2, 0.to.2*n3+1, nfl1.to.nfu1 /),id='bounds%sb%ibzzx_f')
   bounds%sb%ibyyzz_f = f_malloc_ptr((/ 1.to.2, 0.to.2*n2+1, 0.to.2*n3+1 /),id='bounds%sb%ibyyzz_f')
 
-  allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-  call memocc(i_stat,logrid,'logrid',subname)
+  logrid = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='logrid')
 
   nseg_c=wfd%nseg_c
   call make_logrid_f(n1,n2,n3, & 
@@ -43,9 +42,7 @@ subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
 
   call make_bounds(n1,n2,n3,logrid,bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f)
 
-  i_all=-product(shape(logrid))*kind(logrid)
-  deallocate(logrid,stat=i_stat)
-  call memocc(i_stat,i_all,'logrid',subname)
+  call f_free(logrid)
 
 END SUBROUTINE make_bounds_per
 
@@ -74,8 +71,7 @@ subroutine make_all_ib_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   character(len=*), parameter :: subname=' make_all_ib'
   logical,allocatable:: logrid_big(:)
 
-  allocate(logrid_big((2*n1+2)*(2*n2+2)*(2*n3+2)+ndebug),stat=i_stat)
-  call memocc(i_stat,logrid_big,'logrid_big',subname)
+  logrid_big = f_malloc((2*n1+2)*(2*n2+2)*(2*n3+2),id='logrid_big')
 
   !n(c) m1=nfu1-nfl1
   !n(c) m2=nfu2-nfl2
@@ -105,9 +101,7 @@ subroutine make_all_ib_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   call make_ib_per(logrid_big,ibyz_ff,ibzxx_f,ibxxyy_f,n1,n2,&
        nfl2,nfu2,nfl3,nfu3)
 
-  i_all=-product(shape(logrid_big))*kind(logrid_big)
-  deallocate(logrid_big,stat=i_stat)
-  call memocc(i_stat,i_all,'logrid_big',subname)
+  call f_free(logrid_big)
 
 END SUBROUTINE make_all_ib_per
 
