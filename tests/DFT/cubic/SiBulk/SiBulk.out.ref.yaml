@@ -136,9 +136,9 @@
  tddft:
    tddft_approach                      : none #   TDDFT method
  posinp:
-   Units                               : reduced
-   Cell: [ 10.260853810751444,  10.260853810751444,  10.260853810751444]
-   Positions:
+   units                               : reduced
+   cell: [ 10.260853810751444,  10.260853810751444,  10.260853810751444]
+   positions:
    - Si: [0.0, 0.0, 0.0]
    - Si: [0.5, 0.5, 0.0]
    - Si: [0.5, 0.0, 0.5]
@@ -147,9 +147,9 @@
    - Si: [0.75, 0.75, 0.25]
    - Si: [0.75, 0.25, 0.75]
    - Si: [0.25, 0.75, 0.75]
-   Properties:
-     Format                            : xyz
-     Source                            : posinp
+   properties:
+     format                            : xyz
+     source                            : posinp
  psppar.Si:
    Pseudopotential type                : HGH-K
    Atomic number                       : 14

@@ -124,17 +124,16 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
          allocate(psiw(max(KSwfn%orbs%npsidim_orbs,KSwfn%orbs%npsidim_comp)+ndebug),stat=i_stat)
          call memocc(i_stat,psiw,'psiw',subname)
       else
-         psiw => null()
+         allocate(psiw(1+ndebug),stat=i_stat)
+         call memocc(i_stat,psiw,'psiw',subname)
       endif
 
       !transpose the wavefunction psi 
       call transpose_v(iproc,nproc,KSwfn%orbs,KSwfn%lzd%glr%wfd,KSwfn%comms,KSwfn%psi(1),psiw(1))
 
-      if (nproc > 1) then
-         i_all=-product(shape(psiw))*kind(psiw)
-         deallocate(psiw,stat=i_stat)
-         call memocc(i_stat,i_all,'psiw',subname)
-      end if
+      i_all=-product(shape(psiw))*kind(psiw)
+      deallocate(psiw,stat=i_stat)
+      call memocc(i_stat,i_all,'psiw',subname)
    end if
 
    allocate(VTwfn%orbs%eval(VTwfn%orbs%norb*VTwfn%orbs%nkpts+ndebug),stat=i_stat)
@@ -169,6 +168,9 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    if(nproc > 1)then
       !reallocate the work array with the good size
       allocate(psiw(max(VTwfn%orbs%npsidim_orbs,VTwfn%orbs%npsidim_comp)+ndebug),stat=i_stat)
+      call memocc(i_stat,psiw,'psiw',subname)
+   else
+      allocate(psiw(1+ndebug),stat=i_stat)
       call memocc(i_stat,psiw,'psiw',subname)
    end if
 
@@ -330,22 +332,22 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    call last_orthon(iproc,nproc,iter,VTwfn,energs%evsum)
 
    !resize work array before final transposition
+   i_all=-product(shape(psiw))*kind(psiw)
+   deallocate(psiw,stat=i_stat)
+   call memocc(i_stat,i_all,'psiw',subname)
    if(nproc > 1)then
-      i_all=-product(shape(psiw))*kind(psiw)
-      deallocate(psiw,stat=i_stat)
-      call memocc(i_stat,i_all,'psiw',subname)
-
       allocate(psiw(max(KSwfn%orbs%npsidim_orbs,KSwfn%orbs%npsidim_comp)+ndebug),stat=i_stat)
+      call memocc(i_stat,psiw,'psiw',subname)
+   else
+      allocate(psiw(1+ndebug),stat=i_stat)
       call memocc(i_stat,psiw,'psiw',subname)
    end if
 
    call untranspose_v(iproc,nproc,KSwfn%orbs,KSwfn%Lzd%Glr%wfd,KSwfn%comms,KSwfn%psi(1),psiw(1))
 
-   if(nproc > 1) then
-      i_all=-product(shape(psiw))*kind(psiw)
-      deallocate(psiw,stat=i_stat)
-      call memocc(i_stat,i_all,'psiw',subname)
-   end if
+   i_all=-product(shape(psiw))*kind(psiw)
+   deallocate(psiw,stat=i_stat)
+   call memocc(i_stat,i_all,'psiw',subname)
    !!!!! end point of the direct minimisation procedure
 
    !deallocate potential
