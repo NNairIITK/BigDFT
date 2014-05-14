@@ -192,12 +192,12 @@ module module_atoms
 
 
       ! Deallocations for the geometry part.
-      if (astruct%nat > 0) then
+      !if (astruct%nat > 0) then
          call f_free_ptr(astruct%ifrztyp)
          call f_free_ptr(astruct%iatype)
          call f_free_ptr(astruct%input_polarization)
          call f_free_ptr(astruct%rxyz)
-      end if
+      !end if
       if (astruct%ntypes > 0) then
          i_all=-product(shape(astruct%atomnames))*kind(astruct%atomnames)
          deallocate(astruct%atomnames, stat=i_stat)

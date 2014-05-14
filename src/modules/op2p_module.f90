@@ -227,7 +227,8 @@ module overlap_point_to_point
 
       !calculate the list of send-receive operations which have to be performed per group
       !allocate it at the maximum size needed (to be changed if symmetric
-      OP2P%communication_schedule = f_malloc_ptr((/ 1.to.4, 0.to.OP2P%nsteps_max, 1.to.OP2P%ngroupp_max, 0.to.nproc-1 /),id='OP2P%communication_schedule')
+      OP2P%communication_schedule = f_malloc_ptr((/ 1.to.4, 0.to.OP2P%nsteps_max, 1.to.OP2P%ngroupp_max, 0.to.nproc-1 /),&
+          id='OP2P%communication_schedule')
 
       !un-initalize array, no communication in any step
       OP2P%communication_schedule(:,:,:,:)=UNINITIALIZED(1)

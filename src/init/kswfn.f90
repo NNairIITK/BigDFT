@@ -34,7 +34,10 @@ subroutine kswfn_free_scf_data(KSwfn, freePsit)
   call deallocate_diis_objects(KSwfn%diis,subname)
   call f_free_ptr(KSwfn%hpsi)
   if (freePsit) then
-     call f_free_ptr(KSwfn%psit)
+     !call f_free_ptr(KSwfn%psit)
+     i_all=-product(shape(KSwfn%psit))*kind(KSwfn%psit)
+     deallocate(KSwfn%psit,stat=i_stat)
+     call memocc(i_stat,i_all,'psit',subname)
   else
      nullify(KSwfn%psit)
   end if
