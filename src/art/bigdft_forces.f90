@@ -85,9 +85,9 @@ module bigdft_forces
       nat = atoms_all%astruct%nat
       boxtype = atoms_all%astruct%geocode
 
-      allocate(posa(3 * nat))
-      allocate(typa(nat))
-      allocate(const_(nat))
+      posa = f_malloc_ptr(3 * nat,id='posa')
+      typa = f_malloc_ptr(nat,id='typa')
+      const_ = f_malloc_ptr(nat,id='const_')
 
       do i = 1, nat, 1
          posa(i)           = atoms_all%astruct%rxyz(1, i) * Bohr_Ang
@@ -182,8 +182,7 @@ module bigdft_forces
       allocate(runObj%rst)
       call init_restart_objects(me, runObj%inputs, runObj%atoms, runObj%rst, subname)
 
-      allocate(runObj%radii_cf(runObj%atoms%astruct%ntypes,3+ndebug),stat=i_stat)
-      call memocc(i_stat,runObj%radii_cf,'radii_cf',"run_objects_init_from_files")
+      runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /),id='runObj%radii_cf')
       call read_radii_variables(runObj%atoms, runObj%radii_cf, &
            & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
 
