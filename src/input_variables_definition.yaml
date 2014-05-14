@@ -327,7 +327,7 @@
        WHEN:
        - SBFGS
      RANGE: [0., 1e10]
-     default: 100.
+     default: 0.5
    trustr:
      COMMENT: maximum displacement of single atom
      CONDITION:
