@@ -52,10 +52,8 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   Glr%geocode=atoms%astruct%geocode
 
   ! determine localization region for all orbitals, but do not yet fill the descriptor arrays
-  allocate(logrid_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-  call memocc(i_stat,logrid_c,'logrid_c',subname)
-  allocate(logrid_f(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-  call memocc(i_stat,logrid_f,'logrid_f',subname)
+  logrid_c = f_malloc_ptr((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='logrid_c')
+  logrid_f = f_malloc_ptr((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='logrid_f')
 
   ! coarse/fine grid quantities
   if (atoms%astruct%ntypes >0) then
@@ -94,12 +92,8 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
      call export_grids("grid.xyz", atoms, rxyz, hx, hy, hz, n1, n2, n3, logrid_c, logrid_f)
   end if
 
-  i_all=-product(shape(logrid_c))*kind(logrid_c)
-  deallocate(logrid_c,stat=i_stat)
-  call memocc(i_stat,i_all,'logrid_c',subname)
-  i_all=-product(shape(logrid_f))*kind(logrid_f)
-  deallocate(logrid_f,stat=i_stat)
-  call memocc(i_stat,i_all,'logrid_f',subname)
+  call f_free_ptr(logrid_c)
+  call f_free_ptr(logrid_f)
 
   call timing(iproc,'CrtDescriptors','OF')
   call f_release_routine()
@@ -413,8 +407,7 @@ END SUBROUTINE createProjectorsArrays
           real(gp) :: hxh, hyh, hzh
 
           !allocate fake psit and hpsi
-          allocate(hpsi(max(orbs%npsidim_comp,orbs%npsidim_orbs)+ndebug),stat=i_stat)
-          call memocc(i_stat,hpsi,'hpsi',subname)
+          hpsi = f_malloc_ptr(max(orbs%npsidim_comp,orbs%npsidim_orbs)+ndebug,id='hpsi')
           if (nproc > 1) then
              allocate(psit(max(orbs%npsidim_comp,orbs%npsidim_orbs)+ndebug),stat=i_stat)
              call memocc(i_stat,psit,'psit',subname)
@@ -434,8 +427,7 @@ END SUBROUTINE createProjectorsArrays
                      'The value nspin reading from the file is not the same',&
                      err_name='BIGDFT_RUNTIME_ERROR')) return
              else
-                allocate(denspot%Vloc_KS(1,1,1,input_spin+ndebug),stat=i_stat)
-                call memocc(i_stat,denspot%Vloc_KS,'Vloc_KS',subname)
+                denspot%Vloc_KS = f_malloc_ptr((/ 1 , 1 , 1 , input_spin+ndebug /),id='denspot%Vloc_KS')
              end if
 
              if (nproc > 1) then
@@ -454,9 +446,7 @@ END SUBROUTINE createProjectorsArrays
              !now the meaning is KS potential
              call denspot_set_rhov_status(denspot, KS_POTENTIAL, 0, iproc, nproc)
 
-             i_all=-product(shape(denspot%Vloc_KS))*kind(denspot%Vloc_KS)
-             deallocate(denspot%Vloc_KS,stat=i_stat)
-             call memocc(i_stat,i_all,'Vloc_KS',subname)
+             call f_free_ptr(denspot%Vloc_KS)
 
              !add pot_ion potential to the local_potential
              !do ispin=1,in%nspin
@@ -551,9 +541,7 @@ END SUBROUTINE createProjectorsArrays
 
           !deallocate gaussian structure and coefficients
           call deallocate_gwf(gbd,subname)
-          i_all=-product(shape(gaucoeffs))*kind(gaucoeffs)
-          deallocate(gaucoeffs,stat=i_stat)
-          call memocc(i_stat,i_all,'gaucoeffs',subname)
+          call f_free_ptr(gaucoeffs)
           nullify(gbd%rxyz)
 
           !call dual_gaussian_coefficients(orbs%norbp,gbd,gaucoeffs)
@@ -637,8 +625,7 @@ if (iproc==0)call yaml_map('Previous SCF wfn copied',.true.)
   if (nvctr>0) call to_zero(nvctr,psi(1,1))
 
   !calculate the reformat with history
-  allocate(psi_tmp(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,psi_tmp,'psi_tmp',subname)
+  psi_tmp = f_malloc((/ Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f, orbs%nspinor*orbs%norbp /),id='psi_tmp')
 
   !first reformat the previous SCF step
   istep=wfn_history+1
@@ -663,9 +650,7 @@ if (iproc==0)call yaml_map('Previous SCF wfn copied',.true.)
      if (iproc==0)call yaml_map('Reformat Input wfn of Iter.',jstep,advance='no')   
      if (iproc==0)call yaml_comment('Position:'//trim(yaml_toa(istep))//', Step'//trim(yaml_toa(istep_history)))
   end do
-  i_all=-product(shape(psi_tmp))*kind(psi_tmp)
-  deallocate(psi_tmp,stat=i_stat)
-  call memocc(i_stat,i_all,'psi_tmp',subname)
+  call f_free(psi_tmp)
 
   !increase the iteration step
   istep_history=istep_history+1
@@ -793,9 +778,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   call deallocate_local_zone_descriptors(tmb_old%lzd, subname)
   call deallocate_orbitals_data(tmb_old%orbs, subname)
 
-  i_all = -product(shape(tmb_old%psi))*kind(tmb_old%psi)
-  deallocate(tmb_old%psi,stat=i_stat)
-  call memocc(i_stat,i_all,'tmb_old%psi',subname)
+  call f_free_ptr(tmb_old%psi)
 
   !!call deallocate_wfd(tmb_old%lzd%glr%wfd,subname)
   !!do ilr=1,tmb_old%lzd%nlr
@@ -809,9 +792,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
           !!write(*,*) 'after vcopy, iproc',iproc
 
   if (associated(tmb_old%coeff)) then
-      i_all=-product(shape(tmb_old%coeff))*kind(tmb_old%coeff)
-      deallocate(tmb_old%coeff, stat=i_stat)
-      call memocc(i_stat, i_all, 'tmb_old%coeff', subname)
+      call f_free_ptr(tmb_old%coeff)
   end if
 
   ! MOVE LATER 
@@ -1051,10 +1032,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   !yk
   !  integer :: i!,iorb,jorb,icplx
 
-  allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
-  call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
-  allocate(locrad(at%astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,locrad,'locrad',subname)
+  norbsc_arr = f_malloc((/ at%natsc+1, nspin /),id='norbsc_arr')
+  locrad = f_malloc(at%astruct%nat,id='locrad')
 
   if (iproc == 0) then
      !yaml_output
@@ -1108,8 +1087,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   call wavefunction_dimension(Lzde,orbse)
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-  allocate(psi(max(orbse%npsidim_orbs,orbse%npsidim_comp)+ndebug),stat=i_stat)
-  call memocc(i_stat,psi,'psi',subname)
+  psi = f_malloc_ptr(max(orbse%npsidim_orbs, orbse%npsidim_comp),id='psi')
 
   !allocate arrays for the GPU if a card is present
   GPUe = GPU
@@ -1131,9 +1109,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   call gaussians_to_wavelets_new(iproc,nproc,Lzde,orbse,G,&
        psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
   call timing(iproc,'wavefunction  ','OF')
-  i_all=-product(shape(locrad))*kind(locrad)
-  deallocate(locrad,stat=i_stat)
-  call memocc(i_stat,i_all,'locrad',subname)
+  call f_free(locrad)
 
   ! IF onlywf return
   if(onlywf) then
@@ -1161,28 +1137,21 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
      ii=max(1,max(orbse%npsidim_orbs,orbse%npsidim_comp))+ndebug
      jj=max(1,max(orbs%npsidim_orbs,orbs%npsidim_comp))+ndebug
      if(ii .ne. jj) then
-        allocate(psi_(jj),stat=i_stat)
-        call memocc(i_stat,psi_,'psi_',subname)
+        psi_ = f_malloc(jj,id='psi_')
         if(jj<=ii) psi_=psi(1:jj)
         if(jj>ii) then
            psi_(1:ii)=psi(1:ii)
            psi_(ii+1:jj)=1.0d0
         end if
-        i_all=-product(shape(psi))*kind(psi)
-        deallocate(psi,stat=i_stat)
-        call memocc(i_stat,i_all,'psi',subname)
-        allocate(psi(jj),stat=i_stat)
-        call memocc(i_stat,psi,'psi',subname)
+        call f_free_ptr(psi)
+        psi = f_malloc_ptr(jj,id='psi')
         psi=psi_
-        i_all=-product(shape(psi_))*kind(psi_)
-        deallocate(psi_,stat=i_stat)
-        call memocc(i_stat,i_all,'psi_',subname)
+        call f_free(psi_)
      end if
 
 
      !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-     allocate(hpsi(max(1,max(orbs%npsidim_orbs,orbs%npsidim_comp))+ndebug),stat=i_stat)
-     call memocc(i_stat,hpsi,'hpsi',subname)
+     hpsi = f_malloc_ptr(max(1,max(orbs%npsidim_orbs,orbs%npsidim_comp))+ndebug,id='hpsi')
 
      if(present(paw)) then
         allocate(paw%spsi(max(1,max(orbs%npsidim_orbs,orbs%npsidim_comp))+ndebug),stat=i_stat)
@@ -1339,8 +1308,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-  allocate(hpsi(max(1,max(orbse%npsidim_orbs,orbse%npsidim_comp))+ndebug),stat=i_stat)
-  call memocc(i_stat,hpsi,'hpsi',subname)
+  hpsi = f_malloc_ptr(max(1,max(orbse%npsidim_orbs,orbse%npsidim_comp))+ndebug,id='hpsi')
 
   !call vcopy(orbse%npsidim,psi,1,hpsi,1)
   if (input%exctxpar == 'OP2P') then
@@ -1454,8 +1422,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   !allocate the passage matrix for transforming the LCAO wavefunctions in the IG wavefucntions
   ncplx=1
   if (orbs%nspinor > 1) ncplx=2
-  allocate(passmat(ncplx*orbs%nkptsp*(orbse%norbu*orbs%norbu+orbse%norbd*orbs%norbd)+ndebug),stat=i_stat)
-  call memocc(i_stat,passmat,'passmat',subname)
+  passmat = f_malloc(ncplx*orbs%nkptsp*(orbse%norbu*orbs%norbu+orbse%norbd*orbs%norbd),id='passmat')
   !!print '(a,10i5)','iproc,passmat',iproc,ncplx*orbs%nkptsp*(orbse%norbu*orbs%norbu+orbse%norbd*orbs%norbd),&
   !!     orbs%nspinor,orbs%nkptsp,orbse%norbu,orbse%norbd,orbs%norbu,orbs%norbd
 
@@ -1466,9 +1433,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
        psi,hpsi,psit,input%orthpar,passmat,input%iscf,input%Tel,input%occopt,&
        orbse,commse,etol,norbsc_arr)
 
-  i_all=-product(shape(passmat))*kind(passmat)
-  deallocate(passmat,stat=i_stat)
-  call memocc(i_stat,i_all,'passmat',subname)
+  call f_free(passmat)
 
   if (input%iscf > SCF_KIND_DIRECT_MINIMIZATION .or. input%Tel > 0.0_gp) then
 
@@ -1522,9 +1487,7 @@ contains
 
     call deallocate_comms(commse,subname)
 
-    i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
-    deallocate(norbsc_arr,stat=i_stat)
-    call memocc(i_stat,i_all,'norbsc_arr',subname)
+    call f_free(norbsc_arr)
 
     if (iproc == 0) then
        !gaussian estimation valid only for Free BC
@@ -1556,9 +1519,7 @@ contains
     call deallocate_gwf(G,subname)
     call deallocate_local_zone_descriptors(Lzde, subname)
 
-    i_all=-product(shape(psigau))*kind(psigau)
-    deallocate(psigau,stat=i_stat)
-    call memocc(i_stat,i_all,'psigau',subname)
+    call f_free_ptr(psigau)
 
     call deallocate_orbs(orbse,subname)
     call f_free_ptr(orbse%eval)
@@ -1670,13 +1631,11 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
   if (inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
      .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
-     allocate(KSwfn%psi(max(KSwfn%orbs%npsidim_comp,KSwfn%orbs%npsidim_orbs)+ndebug),stat=i_stat)
-     call memocc(i_stat,KSwfn%psi,'psi',subname)
+     KSwfn%psi = f_malloc_ptr(max(KSwfn%orbs%npsidim_comp, KSwfn%orbs%npsidim_orbs),id='KSwfn%psi')
   end if
   if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
       .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-     allocate(tmb%psi(max(tmb%npsidim_comp,tmb%npsidim_orbs)), stat=i_stat)
-     call memocc(i_stat, tmb%psi, 'tmb%psi', subname)
+     tmb%psi = f_malloc_ptr(max(tmb%npsidim_comp, tmb%npsidim_orbs),id='tmb%psi')
      !allocate(tmb%confdatarr(tmb%orbs%norbp))
      !call define_confinement_data(tmb%confdatarr,tmb%orbs,rxyz,atoms,&
      !     KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),4,&
@@ -2139,7 +2098,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      end if
      call yaml_newline()
      call yaml_comment('Saving the KS potential obtained from IG')
-     allocate(denspot%rho_work(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim+ndebug),stat=i_stat)
+     denspot%rho_work = f_malloc_ptr(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim+ndebug,id='denspot%rho_work')
      call vcopy(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,&
           denspot%rhov(1),1,denspot%rho_work(1),1)
   end if

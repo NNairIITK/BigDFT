@@ -344,9 +344,9 @@ program memguess
    if (.not. exportwf) then
       call print_memory_estimation(mem)
    else
-      allocate(runObj%rst%KSwfn%psi((runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_c+&
-           & 7*runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_f)*runObj%rst%KSwfn%orbs%nspinor+ndebug),stat=i_stat)
-      call memocc(i_stat,runObj%rst%KSwfn%psi,'psi',subname)
+      runObj%rst%KSwfn%psi = f_malloc_ptr((runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_c+&
+           & 7*runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_f)*runObj%rst%KSwfn%orbs%nspinor+ndebug,&
+           id='runObj%rst%KSwfn%psi')
 
       ! Optionally compute iorbp from arguments in case of ETSF.
       if (export_wf_ikpt < 1 .or. export_wf_ikpt > runObj%rst%KSwfn%orbs%nkpts) stop "Wrong k-point"
@@ -827,8 +827,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    !allocate the wavefunctions
    allocate(psi(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
    call memocc(i_stat,psi,'psi',subname)
-   allocate(hpsi(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
-   call memocc(i_stat,hpsi,'hpsi',subname)
+   hpsi = f_malloc((/ Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f , orbs%nspinor*orbs%norbp+ndebug /),id='hpsi')
 
    call to_zero(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f*orbs%nspinor*orbs%norbp,psi)
    call to_zero(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f*orbs%nspinor*orbs%norbp,hpsi)
@@ -1158,9 +1157,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    i_all=-product(shape(psi))*kind(psi)
    deallocate(psi,stat=i_stat)
    call memocc(i_stat,i_all,'psi',subname)
-   i_all=-product(shape(hpsi))*kind(hpsi)
-   deallocate(hpsi,stat=i_stat)
-   call memocc(i_stat,i_all,'hpsi',subname)
+   call f_free(hpsi)
 
 
    !free the card at the end

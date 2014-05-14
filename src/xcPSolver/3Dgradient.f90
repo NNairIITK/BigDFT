@@ -565,6 +565,7 @@ subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nsp
   use Poisson_Solver, only: dp, wp
   use memory_profiling
   use wrapper_linalg
+  use dynamic_memory
  implicit none
  !Arguments
  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -597,8 +598,7 @@ subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nsp
  end if
 
  !let us initialize the larger vector to calculate the gradient
- allocate(density(n1+8,n2+8,n3grad+8+ndebug),stat=i_stat)
- call memocc(i_stat,density,'density',subname)
+ density = f_malloc((/ n1+8 , n2+8 , n3grad+8+ndebug /),id='density')
 
  do ispden=1,nspden !loop over up/dw densities
     select case(geocode)
@@ -1136,8 +1136,6 @@ subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nsp
  end if
 
 
-  i_all=-product(shape(density))*kind(density)
-  deallocate(density,stat=i_stat)
-  call memocc(i_stat,i_all,'density',subname)
+  call f_free(density)
 
 END SUBROUTINE calc_gradient

@@ -1415,8 +1415,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
 
   ! Otherwise there are some problems... Check later.
-  allocate(KSwfn%psi(1),stat=istat)
-  call memocc(istat,KSwfn%psi,'KSwfn%psi',subname)
+  KSwfn%psi = f_malloc_ptr(1,id='KSwfn%psi')
   nullify(KSwfn%psit)
 
   nullify(rho,pot)
@@ -1753,9 +1752,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       ioffset=kswfn%Lzd%Glr%d%n1i*kswfn%Lzd%Glr%d%n2i*denspot%dpbox%i3xcsh
 
       if (denspot%dpbox%ndimpot>0) then
-          denspot%pot_work=f_malloc_ptr(denspot%dpbox%ndimpot+ndebug,id='denspot%dpbox%ndimpot+ndebug')
+          !denspot%pot_work=f_malloc_ptr(denspot%dpbox%ndimpot+ndebug,id='denspot%dpbox%ndimpot+ndebug')
+          allocate(denspot%pot_work(denspot%dpbox%ndimpot+ndebug),stat=i_stat)
+          call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
+
       else
-          denspot%pot_work=f_malloc_ptr(1+ndebug,id='denspot%dpbox%ndimpot+ndebug')
+          !denspot%pot_work=f_malloc_ptr(1+ndebug,id='denspot%dpbox%ndimpot+ndebug')
+          allocate(denspot%pot_work(1+ndebug),stat=i_stat)
+          call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
       end if
       if (denspot%dpbox%ndimrhopot>0) then
           rhopot_work=f_malloc(denspot%dpbox%ndimrhopot+ndebug,id='rhopot_work')
@@ -1808,7 +1812,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
       call f_free(rhopot_work)
       call f_free_ptr(denspot%rho_work)
-      call f_free_ptr(denspot%pot_work)
+      !call f_free_ptr(denspot%pot_work)
+      i_all=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
+      deallocate(denspot%pot_work,stat=i_stat)
+      call memocc(i_stat,i_all,'denspot%pot_work',subname)
+
 
     end subroutine intermediate_forces
 

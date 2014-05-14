@@ -1285,14 +1285,12 @@ contains
     !first, free the workspace if not already done
     call old_wavefunction_free(wfn,subname)
     !then allocate the workspaces and fill them
-    allocate(wfn%psi((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*norbp+ndebug),stat=i_stat)
-    call memocc(i_stat,wfn%psi,'psi',subname)
+    wfn%psi = f_malloc_ptr((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*norbp+ndebug,id='wfn%psi')
     
     if (norbp>0) call vcopy((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*norbp,&
          psi(1),1,wfn%psi(1),1)
 
-    allocate(wfn%rxyz(3,nat+ndebug),stat=i_stat)
-    call memocc(i_stat,wfn%rxyz,'rxyz',subname)
+    wfn%rxyz = f_malloc_ptr((/ 3, nat /),id='wfn%rxyz')
     if (nat>0) call vcopy(3*nat,rxyz(1,1),1,wfn%rxyz(1,1),1)
     call copy_local_zone_descriptors(Lzd,wfn%Lzd,subname)
 
@@ -1306,14 +1304,10 @@ contains
     integer :: i_all,i_stat
 
     if (associated(wfn%psi)) then
-       i_all=-product(shape(wfn%psi))*kind(wfn%psi)
-       deallocate(wfn%psi,stat=i_stat)
-       call memocc(i_stat,i_all,'psi',subname)
+       call f_free_ptr(wfn%psi)
     end if
     if (associated(wfn%rxyz)) then
-       i_all=-product(shape(wfn%rxyz))*kind(wfn%rxyz)
-       deallocate(wfn%rxyz,stat=i_stat)
-       call memocc(i_stat,i_all,'rxyz',subname)
+       call f_free_ptr(wfn%rxyz)
     end if
     !lzd should be deallocated also (to be checked again)
     call deallocate_local_zone_descriptors(wfn%Lzd, subname)
@@ -1347,9 +1341,10 @@ contains
     !local variables
     integer :: i_all,i_stat
 
-    i_all=-product(shape(in%Gabs_coeffs))*kind(in%Gabs_coeffs)
-    deallocate(in%Gabs_coeffs, stat=i_stat)
+    i_all = -product(shape(in%Gabs_coeffs))*kind(in%Gabs_coeffs)
+    deallocate(in%Gabs_coeffs,stat=i_stat)
     call memocc(i_stat,i_all,'in%Gabs_coeffs',subname)
+
 
   END SUBROUTINE deallocate_abscalc_input
 
@@ -1469,21 +1464,15 @@ subroutine deallocate_orbs(orbs,subname)
     !local variables
     integer :: i_all,i_stat
     if (associated(rst%rxyz_old)) then
-       i_all=-product(shape(rst%rxyz_old))*kind(rst%rxyz_old)
-       deallocate(rst%rxyz_old,stat=i_stat)
-       call memocc(i_stat,i_all,'rxyz_old',subname)
+       call f_free_ptr(rst%rxyz_old)
     end if
     if (associated(rst%rxyz_new)) then
-       i_all=-product(shape(rst%rxyz_new))*kind(rst%rxyz_new)
-       deallocate(rst%rxyz_new,stat=i_stat)
-       call memocc(i_stat,i_all,'rxyz_new',subname)
+       call f_free_ptr(rst%rxyz_new)
     end if
 
     rst%nat = nat
-    allocate(rst%rxyz_new(3,nat+ndebug),stat=i_stat)
-    call memocc(i_stat,rst%rxyz_new,'rxyz_new',subname)
-    allocate(rst%rxyz_old(3,nat+ndebug),stat=i_stat)
-    call memocc(i_stat,rst%rxyz_old,'rxyz_old',subname)
+    rst%rxyz_new = f_malloc_ptr((/ 3, nat /),id='rst%rxyz_new')
+    rst%rxyz_old = f_malloc_ptr((/ 3, nat /),id='rst%rxyz_old')
   END SUBROUTINE restart_objects_set_nat
 
   subroutine restart_objects_set_mat_acc(rst, iproc, matacc)
@@ -1517,9 +1506,7 @@ subroutine deallocate_orbs(orbs,subname)
     call deallocate_locreg_descriptors(rst%KSwfn%Lzd%Glr)
 
     if (associated(rst%KSwfn%psi)) then
-       i_all=-product(shape(rst%KSwfn%psi))*kind(rst%KSwfn%psi)
-       deallocate(rst%KSwfn%psi,stat=i_stat)
-       call memocc(i_stat,i_all,'psi',subname)
+       call f_free_ptr(rst%KSwfn%psi)
     end if
 
     if (associated(rst%KSwfn%orbs%eval)) then
@@ -1535,14 +1522,10 @@ subroutine deallocate_orbs(orbs,subname)
 
 
     if (associated(rst%rxyz_old)) then
-       i_all=-product(shape(rst%rxyz_old))*kind(rst%rxyz_old)
-       deallocate(rst%rxyz_old,stat=i_stat)
-       call memocc(i_stat,i_all,'rxyz_old',subname)
+       call f_free_ptr(rst%rxyz_old)
     end if
     if (associated(rst%rxyz_new)) then
-       i_all=-product(shape(rst%rxyz_new))*kind(rst%rxyz_new)
-       deallocate(rst%rxyz_new,stat=i_stat)
-       call memocc(i_stat,i_all,'rxyz_new',subname)
+       call f_free_ptr(rst%rxyz_new)
     end if
 
     !The gaussian basis descriptors are always allocated together
@@ -1553,9 +1536,7 @@ subroutine deallocate_orbs(orbs,subname)
     end if
 
     if (associated(rst%KSwfn%gaucoeffs)) then
-       i_all=-product(shape(rst%KSwfn%gaucoeffs))*kind(rst%KSwfn%gaucoeffs)
-       deallocate(rst%KSwfn%gaucoeffs,stat=i_stat)
-       call memocc(i_stat,i_all,'gaucoeffs',subname)
+       call f_free_ptr(rst%KSwfn%gaucoeffs)
     end if
 
     !finalise the material accelearion usage
@@ -1574,24 +1555,16 @@ subroutine deallocate_orbs(orbs,subname)
     integer :: i_all,i_stat
 
     if (associated(rhodsc%spkey))then
-       i_all=-product(shape(rhodsc%spkey))*kind(rhodsc%spkey)
-       deallocate(rhodsc%spkey,stat=i_stat)
-       call memocc(i_stat,i_all,'spkey',subname)
+       call f_free_ptr(rhodsc%spkey)
     end if
     if (associated(rhodsc%dpkey))then
-       i_all=-product(shape(rhodsc%dpkey))*kind(rhodsc%dpkey)
-       deallocate(rhodsc%dpkey,stat=i_stat)
-       call memocc(i_stat,i_all,'dpkey',subname)
+       call f_free_ptr(rhodsc%dpkey)
     end if
     if (associated(rhodsc%cseg_b))then
-       i_all=-product(shape(rhodsc%cseg_b))*kind(rhodsc%cseg_b)
-       deallocate(rhodsc%cseg_b,stat=i_stat)
-       call memocc(i_stat,i_all,'csegb',subname)
+       call f_free_ptr(rhodsc%cseg_b)
     end if
     if (associated(rhodsc%fseg_b))then
-       i_all=-product(shape(rhodsc%fseg_b))*kind(rhodsc%fseg_b)
-       deallocate(rhodsc%fseg_b,stat=i_stat)
-       call memocc(i_stat,i_all,'fsegb',subname)
+       call f_free_ptr(rhodsc%fseg_b)
     end if
 
   end subroutine deallocate_rho_descriptors
@@ -1608,21 +1581,11 @@ subroutine deallocate_orbs(orbs,subname)
 
     !normally positions should be deallocated outside
     
-    i_all=-product(shape(G%ndoc))*kind(G%ndoc)
-    deallocate(G%ndoc,stat=i_stat)
-    call memocc(i_stat,i_all,'ndoc',subname)
-    i_all=-product(shape(G%nam))*kind(G%nam)
-    deallocate(G%nam,stat=i_stat)
-    call memocc(i_stat,i_all,'nam',subname)
-    i_all=-product(shape(G%nshell))*kind(G%nshell)
-    deallocate(G%nshell,stat=i_stat)
-    call memocc(i_stat,i_all,'nshell',subname)
-    i_all=-product(shape(G%psiat))*kind(G%psiat)
-    deallocate(G%psiat,stat=i_stat)
-    call memocc(i_stat,i_all,'psiat',subname)
-    i_all=-product(shape(G%xp))*kind(G%xp)
-    deallocate(G%xp,stat=i_stat)
-    call memocc(i_stat,i_all,'xp',subname)
+    call f_free_ptr(G%ndoc)
+    call f_free_ptr(G%nam)
+    call f_free_ptr(G%nshell)
+    call f_free_ptr(G%psiat)
+    call f_free_ptr(G%xp)
 
   END SUBROUTINE deallocate_gwf
 
@@ -1638,26 +1601,12 @@ subroutine deallocate_orbs(orbs,subname)
 
     !normally positions should be deallocated outside
     
-    i_all=-product(shape(G%ndoc))*kind(G%ndoc)
-    deallocate(G%ndoc,stat=i_stat)
-    call memocc(i_stat,i_all,'G%ndoc',subname)
-    i_all=-product(shape(G%nam))*kind(G%nam)
-    deallocate(G%nam,stat=i_stat)
-    call memocc(i_stat,i_all,'nam',subname)
-    i_all=-product(shape(G%nshell))*kind(G%nshell)
-    deallocate(G%nshell,stat=i_stat)
-    call memocc(i_stat,i_all,'G%nshell',subname)
-    i_all=-product(shape(G%psiat))*kind(G%psiat)
-    deallocate(G%psiat,stat=i_stat)
-    call memocc(i_stat,i_all,'G%psiat',subname)
-
-    i_all=-product(shape(G%expof))*kind(G%expof)
-    deallocate(G%expof,stat=i_stat)
-    call memocc(i_stat,i_all,'G%expof',subname)
-
-    i_all=-product(shape(G%rxyz))*kind(G%rxyz)
-    deallocate(G%rxyz,stat=i_stat)
-    call memocc(i_stat,i_all,'G%rxyz',subname)
+    call f_free_ptr(G%ndoc)
+    call f_free_ptr(G%nam)
+    call f_free_ptr(G%nshell)
+    call f_free_ptr(G%psiat)
+    call f_free_ptr(G%expof)
+    call f_free_ptr(G%rxyz)
 
   END SUBROUTINE 
 
@@ -1871,14 +1820,10 @@ subroutine deallocate_denspot_distribution(dpbox,subname)
   integer :: i_all,i_stat
   
   if(associated(dpbox%nscatterarr)) then
-    i_all=-product(shape(dpbox%nscatterarr))*kind(dpbox%nscatterarr)
-    deallocate(dpbox%nscatterarr,stat=i_stat)
-    call memocc(i_stat,i_all,'nscatterarr',subname)
+    call f_free_ptr(dpbox%nscatterarr)
   end if
   if(associated(dpbox%ngatherarr)) then
-    i_all=-product(shape(dpbox%ngatherarr))*kind(dpbox%ngatherarr)
-    deallocate(dpbox%ngatherarr,stat=i_stat)
-    call memocc(i_stat,i_all,'ngatherarr',subname)
+    call f_free_ptr(dpbox%ngatherarr)
   end if
 
 end subroutine deallocate_denspot_distribution
@@ -1898,9 +1843,7 @@ subroutine copy_coulomb_operator(coul1,coul2,subname)
   integer :: i_all,i_stat
 
   if(associated(coul2%kernel)) then
-    i_all=-product(shape(coul2%kernel))*kind(coul2%kernel)
-    deallocate(coul2%kernel,stat=i_stat)
-    call memocc(i_stat,i_all,'coul%kernel',subname)
+    call f_free_ptr(coul2%kernel)
   end if
   coul2%kernel   =>coul1%kernel
   coul2%itype_scf= coul1%itype_scf
@@ -1934,9 +1877,7 @@ subroutine deallocate_coulomb_operator(coul_op,subname)
   integer :: i_all,i_stat
 
   if(associated(coul_op%kernel)) then
-    i_all=-product(shape(coul_op%kernel))*kind(coul_op%kernel)
-    deallocate(coul_op%kernel,stat=i_stat)
-    call memocc(i_stat,i_all,'coul_op%kernel',subname)
+    call f_free_ptr(coul_op%kernel)
   end if
   call nullify_coulomb_operator(coul_op)
 end subroutine deallocate_coulomb_operator
@@ -2075,7 +2016,7 @@ subroutine init_global_output(outs, nat)
 
   call nullify_global_output(outs)
   outs%fdim = nat
-  allocate(outs%fxyz(3, outs%fdim))
+  outs%fxyz = f_malloc_ptr((/ 3, outs%fdim /),id='outs%fxyz')
   outs%fxyz(:,:) = UNINITIALIZED(1.0_gp)
 END SUBROUTINE init_global_output
 
@@ -2089,7 +2030,7 @@ subroutine deallocate_global_output(outs, fxyz)
      if (present(fxyz)) then
         call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz, 1)
      end if
-     deallocate(outs%fxyz)
+     call f_free_ptr(outs%fxyz)
   end if
 END SUBROUTINE deallocate_global_output
 
@@ -2112,10 +2053,10 @@ END SUBROUTINE deallocate_global_output
  do jj=1,n2dim
    do ii=1,n1dim
      if (associated(cprj(ii,jj)%cp))  then
-       deallocate(cprj(ii,jj)%cp)
+       call f_free_ptr(cprj(ii, jj)%cp)
      end if
      if (associated(cprj(ii,jj)%dcp))  then
-       deallocate(cprj(ii,jj)%dcp)
+       call f_free_ptr(cprj(ii, jj)%dcp)
      end if
    end do
  end do
@@ -2150,14 +2091,14 @@ end subroutine cprj_clean
 
      nn=nlmn(ii)
      cprj(ii,jj)%nlmn=nn
-     ALLOCATE(cprj(ii,jj)%cp(2,nn))
+     cprj(ii,jj)%cp = f_malloc_ptr((/ 2 , nn /),id='cprj(ii,jj)%cp')
 !    XG 080820 Was needed to get rid of problems with test paral#R with four procs
      cprj(ii,jj)%cp=0.0_dp
 !    END XG 080820
 
      cprj(ii,jj)%ncpgr=ncpgr
      if (ncpgr>0) then
-       ALLOCATE(cprj(ii,jj)%dcp(2,ncpgr,nn))
+       cprj(ii,jj)%dcp = f_malloc_ptr((/ 2 , ncpgr,  nn /),id='cprj(ii,jj)%cp')
        cprj(ii,jj)%dcp=0.0_dp
      end if
    end do

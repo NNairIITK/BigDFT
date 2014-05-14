@@ -89,16 +89,13 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
     if (orbs%nspinor == 2) npot=1
    
     ! Wavefunction in real space
-    allocate(psir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
-    call memocc(i_stat,psir,'psir',subname)
-    call to_zero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psir(1,1))
+    psir = f_malloc0((/ Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i, orbs%nspinor /),id='psir')
 
     call initialize_work_arrays_locham(Lzd%Llr(ilr),orbs%nspinor,wrk_lh)  
   
     ! wavefunction after application of the self-interaction potential
     if (ipotmethod == 2 .or. ipotmethod == 3) then
-      allocate(vsicpsir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
-      call memocc(i_stat,vsicpsir,'vsicpsir',subname)
+      vsicpsir = f_malloc((/ Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i, orbs%nspinor /),id='vsicpsir')
     end if
 
     ispsi=1
@@ -188,14 +185,10 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
     enddo loop_orbs
    
     !deallocations of work arrays
-    i_all=-product(shape(psir))*kind(psir)
-    deallocate(psir,stat=i_stat)
-    call memocc(i_stat,i_all,'psir',subname)
+    call f_free(psir)
 
     if (ipotmethod == 2 .or. ipotmethod ==3) then
-       i_all=-product(shape(vsicpsir))*kind(vsicpsir)
-       deallocate(vsicpsir,stat=i_stat)
-       call memocc(i_stat,i_all,'vsicpsir',subname)
+       call f_free(vsicpsir)
     end if
     call deallocate_work_arrays_locham(Lzd%Llr(ilr),wrk_lh)
    
@@ -283,20 +276,17 @@ subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
      if (orbs%nspinor == 2) npot=1
 
      ! Wavefunction in real space
-     allocate(psir(nbox,orbs%nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,psir,'psir',subname)
+     psir = f_malloc((/ nbox, orbs%nspinor /),id='psir')
 
      if (present(vpsi_noconf)) then
-         allocate(psir_noconf(nbox,orbs%nspinor+ndebug),stat=i_stat)
-         call memocc(i_stat,psir_noconf,'psir_noconf',subname)
+         psir_noconf = f_malloc((/ nbox, orbs%nspinor /),id='psir_noconf')
      end if
 
      call to_zero(nbox*orbs%nspinor,psir(1,1))
 
      ! wavefunction after application of the self-interaction potential
      if (ipotmethod == 2 .or. ipotmethod == 3) then
-        allocate(vsicpsir(nbox,orbs%nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,vsicpsir,'vsicpsir',subname)
+        vsicpsir = f_malloc((/ nbox, orbs%nspinor /),id='vsicpsir')
      end if
 
   !n(c) etest=0.0_gp
@@ -391,18 +381,12 @@ subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
   enddo loop_orbs
 
   !deallocations of work arrays
-  i_all=-product(shape(psir))*kind(psir)
-  deallocate(psir,stat=i_stat)
-  call memocc(i_stat,i_all,'psir',subname)
+  call f_free(psir)
   if (present(vpsi_noconf)) then
-      i_all=-product(shape(psir_noconf))*kind(psir_noconf)
-      deallocate(psir_noconf,stat=i_stat)
-      call memocc(i_stat,i_all,'psir_noconf',subname)
+      call f_free(psir_noconf)
   end if
   if (ipotmethod == 2 .or. ipotmethod ==3) then
-     i_all=-product(shape(vsicpsir))*kind(vsicpsir)
-     deallocate(vsicpsir,stat=i_stat)
-     call memocc(i_stat,i_all,'vsicpsir',subname)
+     call f_free(vsicpsir)
   end if
   call deallocate_work_arrays_sumrho(w)
 
@@ -447,9 +431,7 @@ subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum)
     if (.not. dosome) cycle loop_lr
    
     ! Wavefunction in real space
-    allocate(psir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
-    call memocc(i_stat,psir,'psir',subname)
-    call to_zero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspinor,psir(1,1))
+    psir = f_malloc0((/ Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i, orbs%nspinor /),id='psir')
 
     !initialise the work arrays
     call initialize_work_arrays_locham(Lzd%Llr(ilr),orbs%nspinor,wrk_lh)  
@@ -481,9 +463,7 @@ subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum)
 
     enddo loop_orbs
 
-    i_all=-product(shape(psir))*kind(psir)
-    deallocate(psir,stat=i_stat)
-    call memocc(i_stat,i_all,'psir',subname)
+    call f_free(psir)
 
     call deallocate_work_arrays_locham(Lzd%Llr(ilr),wrk_lh)
    
@@ -1326,10 +1306,8 @@ subroutine applyprojector_paw(ncplx,istart_c,&
 
 !
   proj_count= paw_ij%lmn_size
-  allocate(cprj(nspinor*ncplx,proj_count),stat=i_stat)
-  call memocc(i_stat,cprj,'cprj',subname)
-  allocate(dprj(nspinor*ncplx,proj_count),stat=i_stat)
-  call memocc(i_stat,dprj,'dprj',subname)
+  cprj = f_malloc((/ nspinor*ncplx, proj_count /),id='cprj')
+  dprj = f_malloc((/ nspinor*ncplx, proj_count /),id='dprj')
 
   !cprj_out(1,1:nspinor)%cp(1:ncplx,1:proj_count)=0.0_wp
   eproj=0.0_gp
@@ -1450,12 +1428,8 @@ subroutine applyprojector_paw(ncplx,istart_c,&
   !update istart_c, note that we only used istart_j above.
   istart_c=istart_j
 
-  i_all=-product(shape(cprj))*kind(cprj)
-  deallocate(cprj,stat=i_stat)
-  call memocc(i_stat,i_all,'cprj',subname)
-  i_all=-product(shape(dprj))*kind(dprj)
-  deallocate(dprj,stat=i_stat)
-  call memocc(i_stat,i_all,'dprj',subname)
+  call f_free(cprj)
+  call f_free(dprj)
 
   contains
 
@@ -1631,7 +1605,7 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
      !more elegant?
   if (any(proj_count==(/4,5,8,13,14,18,19,20,22/))) then
 
-    allocate(cproj_i(proj_count,ncplx))
+    cproj_i = f_malloc((/ proj_count, ncplx /),id='cproj_i')
 
     !loop over all the components of the wavefunction
     do ispinor=1,orbs%nspinor,ncplx
@@ -1663,7 +1637,7 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
 
     end do
 
-    deallocate(cproj_i)
+    call f_free(cproj_i)
 
     !print *,'iorb,cproj',iorb,sum(cproj)
 

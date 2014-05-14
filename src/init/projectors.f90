@@ -336,8 +336,7 @@ subroutine atom_projector_paw(ikpt,iat,idir,istart_c,iproj,nprojel,&
 
   !number of terms for every projector:
   nc=(mbvctr_c+7*mbvctr_f)*(2*lmax-1)*ncplx_k
-  allocate(proj_tmp(nc),stat=i_stat)
-  call memocc(i_stat,proj_tmp,'proj_tmp',subname)
+  proj_tmp = f_malloc(nc,id='proj_tmp')
 
 
   !decide the loop bounds
@@ -394,9 +393,7 @@ subroutine atom_projector_paw(ikpt,iat,idir,istart_c,iproj,nprojel,&
      if (istart_c > nprojel+1) stop 'istart_c > nprojel+1'
   enddo
  
-  i_all=-product(shape(proj_tmp))*kind(proj_tmp)
-  deallocate(proj_tmp,stat=i_stat)
-  call memocc(i_stat,i_all,'proj_tmp',subname)
+  call f_free(proj_tmp)
 
 END SUBROUTINE atom_projector_paw
 
@@ -871,12 +868,9 @@ subroutine crtproj(geocode,nterm,lr, &
      stop
   end if
 
-  allocate(wprojx(ncplx_w,0:n1,2,nterm+ndebug),stat=i_stat)
-  call memocc(i_stat,wprojx,'wprojx',subname)
-  allocate(wprojy(ncplx_w,0:n2,2,nterm+ndebug),stat=i_stat)
-  call memocc(i_stat,wprojy,'wprojy',subname)
-  allocate(wprojz(ncplx_w,0:n3,2,nterm+ndebug),stat=i_stat)
-  call memocc(i_stat,wprojz,'wprojz',subname)
+  wprojx = f_malloc((/ 1.to.ncplx_w, 0.to.n1, 1.to.2, 1.to.nterm /),id='wprojx')
+  wprojy = f_malloc((/ 1.to.ncplx_w, 0.to.n2, 1.to.2, 1.to.nterm /),id='wprojy')
+  wprojz = f_malloc((/ 1.to.ncplx_w, 0.to.n3, 1.to.2, 1.to.nterm /),id='wprojz')
 
   !conditions for periodicity in the three directions
   perx=(geocode /= 'F')
@@ -894,8 +888,7 @@ subroutine crtproj(geocode,nterm,lr, &
   !!$omp private(ithread,ichunk,factor,n_gau)
 
   !!$omp critical
-    allocate(work(0:nw,2,2+ndebug),stat=i_stat)  !always use complex value
-    call memocc(i_stat,work,'work',subname)
+    work = f_malloc((/ 0.to.nw, 1.to.2, 1.to.2 /),id='work')
   !!$omp end critical
 
   !!$ ithread=omp_get_thread_num()
@@ -925,9 +918,7 @@ subroutine crtproj(geocode,nterm,lr, &
      !!$ endif
   end do
   !!$omp critical
-    i_all=-product(shape(work))*kind(work)
-    deallocate(work,stat=i_stat)
-    call memocc(i_stat,i_all,'work',subname)
+    call f_free(work)
   !!$omp end critical
   !!$omp end parallel
 
@@ -1309,15 +1300,9 @@ subroutine crtproj(geocode,nterm,lr, &
 !!  call system_clock(ncount2,ncount_rate,ncount_max)
 !!  write(20,*) 'TIMING2:', dble(ncount2-ncount1)/dble(ncount_rate)
 
-  i_all=-product(shape(wprojx))*kind(wprojx)
-  deallocate(wprojx,stat=i_stat)
-  call memocc(i_stat,i_all,'wprojx',subname)
-  i_all=-product(shape(wprojy))*kind(wprojy)
-  deallocate(wprojy,stat=i_stat)
-  call memocc(i_stat,i_all,'wprojy',subname)
-  i_all=-product(shape(wprojz))*kind(wprojz)
-  deallocate(wprojz,stat=i_stat)
-  call memocc(i_stat,i_all,'wprojz',subname)
+  call f_free(wprojx)
+  call f_free(wprojy)
+  call f_free(wprojz)
 
 !  i_all=-product(shape(work))*kind(work)
 !  deallocate(work,stat=i_stat)

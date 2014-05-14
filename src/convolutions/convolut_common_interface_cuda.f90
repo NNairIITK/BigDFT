@@ -65,8 +65,7 @@ subroutine adjust_keys_for_gpu(nseg_c,nseg_f,keyv_c,keyg_c,keyv_f,keyg_f,nvctr_c
 
 
   !allocate the array to be copied
-  allocate(keys(4,nseggpu+ndebug),stat=i_stat)
-  call memocc(i_stat,keys,'keys',subname)
+  keys = f_malloc((/ 4, nseggpu /),id='keys')
   
   nseg_tot=0
   !assign the keys values, coarse part
@@ -138,9 +137,7 @@ subroutine adjust_keys_for_gpu(nseg_c,nseg_f,keyv_c,keyg_c,keyv_f,keyg_f,nvctr_c
   call sg_send_mem_instantaneously(keys_GPU,keys,4*nseggpu,4,i_stat)
        
   
-  i_all=-product(shape(keys))*kind(keys)
-  deallocate(keys,stat=i_stat)
-  call memocc(i_stat,i_all,'keys',subname)
+  call f_free(keys)
 
 
 END SUBROUTINE adjust_keys_for_gpu
@@ -165,8 +162,7 @@ subroutine prepare_gpu_for_locham(n1,n2,n3,nspin,hx,hy,hz,wfd,orbs,GPU)
   call creategpuparameters(n1,n2,n3,hx,hy,hz)
 
   !allocate the number of GPU pointers for the wavefunctions
-  allocate(GPU%psi(orbs%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,GPU%psi,'GPU%psi',subname)
+  GPU%psi = f_malloc_ptr(orbs%norbp,id='GPU%psi')
 
   !allocate space on the card
   !allocate the compressed wavefunctions such as to be used as workspace
@@ -219,9 +215,7 @@ subroutine free_gpu(GPU,norbp)
      call sg_gpu_free(GPU%psi(iorb),i_stat)
   end do
 
-  i_all=-product(shape(GPU%psi))*kind(GPU%psi)
-  deallocate(GPU%psi,stat=i_stat)
-  call memocc(i_stat,i_all,'GPU%psi',subname)
+  call f_free_ptr(GPU%psi)
 
 END SUBROUTINE free_gpu
 
@@ -325,8 +319,7 @@ subroutine preconditionall_GPU(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU) !
   call allocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,lr%d,w)
  
   !arrays for the CG procedure
-  allocate(b(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),orbs%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,b,'b',subname)
+  b = f_malloc((/ ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), orbs%norbp /),id='b')
 
   gnrm=0.0_dp
   !norm of gradient of unoccupied orbitals
@@ -396,9 +389,7 @@ subroutine preconditionall_GPU(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU) !
 
   !end of dynamic repartition
 
-  i_all=-product(shape(b))*kind(b)
-  deallocate(b,stat=i_stat)
-  call memocc(i_stat,i_all,'b',subname)
+  call f_free(b)
 
   call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
 

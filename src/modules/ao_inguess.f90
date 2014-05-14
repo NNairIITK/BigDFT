@@ -11,7 +11,7 @@
 
 !> Handling of input guess creation from basis of atomic orbitals
 module ao_inguess
-  use module_base, only: gp,memocc,f_err_raise,ndebug,to_zero,f_err_throw,bigdft_mpi
+  use module_base, only: gp,f_err_raise,ndebug,to_zero,f_err_throw,bigdft_mpi
 
   implicit none
 
@@ -101,6 +101,7 @@ contains
   subroutine iguess_generator(izatom,ielpsp,zion,nspin,occupIG,&
        psppar,npspcode,ngv,ngc,nlccpar,ng,&
        expo,psiat,enlargerprb,quartic_prefactor,gaenes_aux)
+    use module_base
     implicit none
     logical, intent(in) :: enlargerprb
     integer, intent(in) :: ng,npspcode,ielpsp,izatom,ngv,ngc,nspin
@@ -143,10 +144,8 @@ contains
        end if
     end do lpx_determination
 
-    allocate(alps(lpx+1+ndebug),stat=i_stat)
-    call memocc(i_stat,alps,'alps',subname)
-    allocate(hsep(6,lpx+1+ndebug),stat=i_stat)
-    call memocc(i_stat,hsep,'hsep',subname)
+    alps = f_malloc(lpx+1,id='alps')
+    hsep = f_malloc((/ 6, lpx+1 /),id='hsep')
 
     !assignation of radii and coefficients of the local part
     alpz=psppar(0,0)
@@ -166,8 +165,7 @@ contains
           hsep(6,l)=psppar(l,3)
        end do
     else if (npspcode == 3) then !HGH case
-       allocate(ofdcoef(3,4+ndebug),stat=i_stat)
-       call memocc(i_stat,ofdcoef,'ofdcoef',subname)
+       ofdcoef = f_malloc((/ 3, 4 /),id='ofdcoef')
 
        ofdcoef(1,1)=-0.5_gp*sqrt(3._gp/5._gp) !h2
        ofdcoef(2,1)=0.5_gp*sqrt(5._gp/21._gp) !h4
@@ -194,9 +192,7 @@ contains
           hsep(5,l)=psppar(l,3)*ofdcoef(3,l)
           hsep(6,l)=psppar(l,3)
        end do
-       i_all=-product(shape(ofdcoef))*kind(ofdcoef)
-       deallocate(ofdcoef,stat=i_stat)
-       call memocc(i_stat,i_all,'ofdcoef',subname)
+       call f_free(ofdcoef)
     else if (npspcode == 10 .or. npspcode == 7 .or. npspcode == 12) then !HGH-K case
        ! For PAW this is just the initial guess
        do l=1,lpx+1
@@ -238,14 +234,10 @@ contains
     call count_atomic_shells(nspin,occupIG,occup,nl)
 
     !allocate arrays for the gatom routine
-    allocate(vh(4*(ng+1)**2,4*(ng+1)**2+ndebug),stat=i_stat)
-    call memocc(i_stat,vh,'vh',subname)
-    allocate(psi(0:ng,noccmax_ao,lmax_ao+1+ndebug),stat=i_stat)
-    call memocc(i_stat,psi,'psi',subname)
-    allocate(xp(0:ng+ndebug),stat=i_stat)
-    call memocc(i_stat,xp,'xp',subname)
-    allocate(rmt(n_int,0:ng,0:ng,lmax_ao+1+ndebug),stat=i_stat)
-    call memocc(i_stat,rmt,'rmt',subname)
+    vh = f_malloc((/ 4*(ng+1)**2, 4*(ng+1)**2 /),id='vh')
+    psi = f_malloc((/ 0.to.ng, 1.to.noccmax_ao, 1.to.lmax_ao+1 /),id='psi')
+    xp = f_malloc(0.to.ng,id='xp')
+    rmt = f_malloc((/ 1.to.n_int, 0.to.ng, 0.to.ng, 1.to.lmax_ao+1 /),id='rmt')
 
     !can be switched on for debugging
     !if (iproc.eq.0) write(*,'(1x,a,a7,a9,i3,i3,a9,i3,f5.2)')&
@@ -299,24 +291,12 @@ contains
        end do
     end do
 
-    i_all=-product(shape(vh))*kind(vh)
-    deallocate(vh,stat=i_stat)
-    call memocc(i_stat,i_all,'vh',subname)
-    i_all=-product(shape(psi))*kind(psi)
-    deallocate(psi,stat=i_stat)
-    call memocc(i_stat,i_all,'psi',subname)
-    i_all=-product(shape(xp))*kind(xp)
-    deallocate(xp,stat=i_stat)
-    call memocc(i_stat,i_all,'xp',subname)
-    i_all=-product(shape(rmt))*kind(rmt)
-    deallocate(rmt,stat=i_stat)
-    call memocc(i_stat,i_all,'rmt',subname)
-    i_all=-product(shape(hsep))*kind(hsep)
-    deallocate(hsep,stat=i_stat)
-    call memocc(i_stat,i_all,'hsep',subname)
-    i_all=-product(shape(alps))*kind(alps)
-    deallocate(alps,stat=i_stat)
-    call memocc(i_stat,i_all,'alps',subname)
+    call f_free(vh)
+    call f_free(psi)
+    call f_free(xp)
+    call f_free(rmt)
+    call f_free(hsep)
+    call f_free(alps)
 
   END SUBROUTINE iguess_generator
 

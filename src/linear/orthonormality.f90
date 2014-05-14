@@ -173,11 +173,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
   ! It is assumed that this routine is called with the transposed gradient ready if it is associated...
   if(.not.associated(hpsit_c)) then
-      allocate(hpsit_c(sum(collcom%nrecvcounts_c)), stat=istat)
-      call memocc(istat, hpsit_c, 'hpsit_c', subname)
- 
-      allocate(hpsit_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-      call memocc(istat, hpsit_f, 'hpsit_f', subname)
+      hpsit_c = f_malloc_ptr(sum(collcom%nrecvcounts_c),id='hpsit_c')
+      hpsit_f = f_malloc_ptr(7*sum(collcom%nrecvcounts_f),id='hpsit_f')
  
      call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lhphi, hpsit_c, hpsit_f, lzd)
   end if

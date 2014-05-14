@@ -192,12 +192,12 @@ module module_atoms
 
 
       ! Deallocations for the geometry part.
-      if (astruct%nat > 0) then
+      !if (astruct%nat > 0) then
          call f_free_ptr(astruct%ifrztyp)
          call f_free_ptr(astruct%iatype)
          call f_free_ptr(astruct%input_polarization)
          call f_free_ptr(astruct%rxyz)
-      end if
+      !end if
       if (astruct%ntypes > 0) then
          i_all=-product(shape(astruct%atomnames))*kind(astruct%atomnames)
          deallocate(astruct%atomnames, stat=i_stat)
@@ -560,9 +560,7 @@ module module_atoms
       if (present(fxyz)) then
          fxyz => fxyz_
       else if (associated(fxyz_)) then
-         i_all=-product(shape(fxyz_))*kind(fxyz_)
-         deallocate(fxyz_,stat=i_stat)
-         call memocc(i_stat,i_all,'fxyz_',subname)
+         call f_free_ptr(fxyz_)
       end if
 
     END SUBROUTINE set_astruct_from_file
@@ -854,15 +852,12 @@ subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
      if (astruct%geocode == 'S') rprimd(2,2) = 1000._gp
      rprimd(3,3) = astruct%cell_dim(3)
      call symmetry_set_lattice(astruct%sym%symObj, rprimd, ierr)
-     allocate(xRed(3, astruct%nat+ndebug),stat=i_stat)
-     call memocc(i_stat,xRed,'xRed',subname)
+     xRed = f_malloc((/ 3 , astruct%nat+ndebug /),id='xRed')
      xRed(1,:) = modulo(astruct%rxyz(1, :) / rprimd(1,1), 1._gp)
      xRed(2,:) = modulo(astruct%rxyz(2, :) / rprimd(2,2), 1._gp)
      xRed(3,:) = modulo(astruct%rxyz(3, :) / rprimd(3,3), 1._gp)
      call symmetry_set_structure(astruct%sym%symObj, astruct%nat, astruct%iatype, xRed, ierr)
-     i_all=-product(shape(xRed))*kind(xRed)
-     deallocate(xRed,stat=i_stat)
-     call memocc(i_stat,i_all,'xRed',subname)
+     call f_free(xRed)
      if (astruct%geocode == 'S') then
         call symmetry_set_periodicity(astruct%sym%symObj, &
              & (/ .true., .false., .true. /), ierr)

@@ -425,9 +425,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
        psigau(1,1,min(tmb%orbs%isorb+1,tmb%orbs%norb)),tmb%psi)
 
 
-  iall=-product(shape(psigau))*kind(psigau)
-  deallocate(psigau,stat=istat)
-  call memocc(istat,iall,'psigau',subname)
+  call f_free_ptr(psigau)
 
   call deallocate_gwf(G,subname)
   ! Deallocate locrad, which is not used any longer.
