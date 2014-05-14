@@ -407,10 +407,8 @@ subroutine allocate_diis_objects(idsx,alphadiis,npsidim,nkptsp,nspinor,diis,subn
   ngroup=1
 
   diis%psidst = f_malloc_ptr(npsidim*idsx+ndebug,id='diis%psidst')
-  allocate(diis%hpsidst(npsidim*idsx+ndebug),stat=i_stat)
-  call memocc(i_stat,diis%hpsidst,'hpsidst',subname)
-  allocate(diis%ads(ncplx,idsx+1,idsx+1,ngroup,nkptsp,1+ndebug),stat=i_stat)
-  call memocc(i_stat,diis%ads,'ads',subname)
+  diis%hpsidst = f_malloc_ptr(npsidim*idsx,id='diis%hpsidst')
+  diis%ads = f_malloc_ptr((/ ncplx, idsx+1, idsx+1, ngroup, nkptsp, 1 /),id='diis%ads')
   call to_zero(nkptsp*ncplx*ngroup*(idsx+1)**2,diis%ads(1,1,1,1,1,1))
 
   !initialize scalar variables
@@ -441,15 +439,9 @@ subroutine deallocate_diis_objects(diis,subname)
   !local variables
   integer :: i_all,i_stat
 
-  i_all=-product(shape(diis%psidst))*kind(diis%psidst)
-  deallocate(diis%psidst,stat=i_stat)
-  call memocc(i_stat,i_all,'psidst',subname)
-  i_all=-product(shape(diis%hpsidst))*kind(diis%hpsidst)
-  deallocate(diis%hpsidst,stat=i_stat)
-  call memocc(i_stat,i_all,'hpsidst',subname)
-  i_all=-product(shape(diis%ads))*kind(diis%ads)
-  deallocate(diis%ads,stat=i_stat)
-  call memocc(i_stat,i_all,'ads',subname)
+  call f_free_ptr(diis%psidst)
+  call f_free_ptr(diis%hpsidst)
+  call f_free_ptr(diis%ads)
 
 END SUBROUTINE deallocate_diis_objects
 
@@ -489,8 +481,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
        & rhopot(1), 1)
 
   ! Store the scattering of rho in user_data
-  allocate(user_data(2 * nproc), stat = i_stat)
-  call memocc(i_stat,user_data,'user_data',subname)
+  user_data = f_malloc(2 * nproc,id='user_data')
   do ii = 1, nproc, 1
      user_data(1 + (ii - 1 ) * 2:ii * 2) = &
           & n1 * n2 * (/ nscatterarr(iproc, 2), nscatterarr(iproc, 4) /)
@@ -507,9 +498,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   rpnrm = sqrt(rpnrm) / real(n1 * n2 * n3, gp)
   rpnrm = rpnrm / (1.d0 - alphamix)
 
-  i_all=-product(shape(user_data))*kind(user_data)
-  deallocate(user_data,stat=i_stat)
-  call memocc(i_stat,i_all,'user_data',subname)
+  call f_free(user_data)
   ! Copy new in vrespc
   call vcopy(npoints, rhopot(1), 1, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1)
 
@@ -723,14 +712,11 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
   !all the wavefunctions for a given k-point go only in one group
   ngroup=1
 
-  allocate(ipiv(diis%idsx+1+ndebug),stat=i_stat)
-  call memocc(i_stat,ipiv,'ipiv',subname)
-  allocate(rds(ncplx,diis%idsx+1,ngroup,orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,rds,'rds',subname)
+  ipiv = f_malloc(diis%idsx+1,id='ipiv')
+  rds = f_malloc((/ ncplx, diis%idsx+1, ngroup, orbs%nkpts /),id='rds')
   call to_zero(ncplx*ngroup*(diis%idsx+1)*orbs%nkpts,rds(1,1,1,1))
 
-  allocate(adsw(ncplx,diis%idsx+1,diis%idsx+1+ndebug),stat=i_stat)
-  call memocc(i_stat,adsw,'adsw',subname)
+  adsw = f_malloc((/ ncplx, diis%idsx+1, diis%idsx+1 /),id='adsw')
   call to_zero(ncplx*(diis%idsx+1)**2,adsw(1,1,1))
 
   ispsidst=1
@@ -979,15 +965,9 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
      call write_diis_weights(ncplx,diis%idsx,ngroup,orbs%nkpts,min(diis%idsx,diis%ids),rds)
   endif
   
-  i_all=-product(shape(ipiv))*kind(ipiv)
-  deallocate(ipiv,stat=i_stat)
-  call memocc(i_stat,i_all,'ipiv',subname)
-  i_all=-product(shape(rds))*kind(rds)
-  deallocate(rds,stat=i_stat)
-  call memocc(i_stat,i_all,'rds',subname)
-  i_all=-product(shape(adsw))*kind(adsw)
-  deallocate(adsw,stat=i_stat)
-  call memocc(i_stat,i_all,'adsw',subname)
+  call f_free(ipiv)
+  call f_free(rds)
+  call f_free(adsw)
 
 END SUBROUTINE diisstp
 
