@@ -1067,7 +1067,6 @@ subroutine neb(n,nr,np,x,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigd
     fa = f_malloc((/ nr, np-1+ndeb2 /),id='fa')
     !call dmemocc(nr*(np-1),nr*(np-1+ndeb2),xa,'xa')
     !call dmemocc(nr*(np-1),nr*(np-1+ndeb2),fa,'fa')
-    if(istat/=0) stop 'ERROR: failure allocating xa or fa.'
     do ip=1,np-1
        call init_global_output(outs(ip), atoms%astruct%nat)
         call atomic_copymoving_forward(atoms,n,x(1,ip),nr,xa(1,ip))
@@ -1078,7 +1077,6 @@ subroutine neb(n,nr,np,x,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigd
         nwork=2*n*(np-1)
         work = f_malloc(nwork+ndeb1,id='work')
         !call dmemocc(nwork,nwork+ndeb1,work,'work')
-        if(istat/=0) stop 'ERROR: failure allocating work.'
         parmin%sdsaturated=.false.
         parmin%converged=.false.
         parmin%sdminimum=.true.
@@ -1107,7 +1105,6 @@ subroutine neb(n,nr,np,x,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigd
         nwork=(3*parmin%idsx+3)*nr*(np-1) !2*n+nr
         work = f_malloc(nwork+ndeb1,id='work')
         !call dmemocc(nwork,nwork+ndeb1,work,'work')
-        if(istat/=0) stop 'ERROR: failure allocating work.'
         parmin%sdsaturated=.false.
         parmin%converged=.false.
         parmin%sdminimum=.true.
@@ -1218,7 +1215,6 @@ subroutine neb(n,nr,np,x,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigd
         !!call dmemocc(n*(np+1),n*(np+1+ndeb2),xold,'xold')
         parmin%dt=0.02d0
         !parmin%dt=0.01d0 !non-BigDFT
-        if(istat/=0) stop 'ERROR: failure allocating work.'
         icall=0
         do it=1,parmin%maxforcecall
             !call calenergyforces(iproc,n,x,f,epot)
@@ -1487,7 +1483,6 @@ subroutine splinedsaddle(n,nr,np,x,etmax,f,xtmax,parmin,outends,pnow,nproc, &
         !call dmemocc(nwork,nwork+ndeb1,work,'work')
         xold = f_malloc((/ 1.to.n, 0.to.np+ndeb2 /),id='xold')
         !call dmemocc(n*(np+1),n*(np+1+ndeb2),xold,'xold')
-        if(istat/=0) stop 'ERROR: failure allocating xold.'
         parmin%sdsaturated=.false.
         parmin%sdminimum=.true.
         parmin%iflag=0
@@ -1521,7 +1516,6 @@ subroutine splinedsaddle(n,nr,np,x,etmax,f,xtmax,parmin,outends,pnow,nproc, &
         nwork=(3*parmin%idsx+3)*nr*(np-1) !2*n+nr
         work = f_malloc(nwork+ndeb1,id='work')
         !call dmemocc(nwork,nwork+ndeb1,work,'work')
-        if(istat/=0) stop 'ERROR: failure allocating work.'
         parmin%sdsaturated=.false.
         parmin%sdminimum=.true.
         parmin%diisminimum=.false.
@@ -2768,7 +2762,6 @@ subroutine guessinitialtmax_hermite(npv,pnow)
     call f_free(e1vt)
     call f_free(e2vt)
     call f_free(cvt)
-    if(istat/=0) stop 'ERROR: failure deallocating one of svt,hvt,ext,e1vt,e2vt,cvt.'
 end subroutine guessinitialtmax_hermite
 
 
@@ -3418,7 +3411,6 @@ subroutine guessinitialtmax_cubic(npv,pnow)
     call f_free(e1vt)
     call f_free(e2vt)
     call f_free(cvt)
-    if(istat/=0) stop 'ERROR: failure deallocating one of svt,hvt,ext,e1vt,e2vt,cvt.'
 end subroutine guessinitialtmax_cubic
 
 
@@ -3507,7 +3499,6 @@ subroutine guessinitialtmax_quintic(npv,pnow,iproc)
     call f_free(e1vt)
     call f_free(e2vt)
     call f_free(cvt)
-    if(istat/=0) stop 'ERROR: failure deallocating one of svt,hvt,ext,e1vt,e2vt,cvt.'
 end subroutine guessinitialtmax_quintic
 
 

@@ -122,7 +122,10 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
      end if
 
      if (runObj%inputs%inputPsiId == 0 .and. associated(runObj%rst%KSwfn%psi)) then
-        call f_free_ptr(runObj%rst%KSwfn%psi)
+        !call f_free_ptr(runObj%rst%KSwfn%psi)
+        i_all=-product(shape(runObj%rst%KSwfn%psi))*kind(runObj%rst%KSwfn%psi)
+        deallocate(runObj%rst%KSwfn%psi,stat=i_stat)
+        call memocc(i_stat,i_all,'runObj%rst%KSwfn%psi',subname)
         call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
 
         call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
