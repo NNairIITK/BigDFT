@@ -92,9 +92,10 @@ AgBulk:
 SiBulk:
  Residues per orbital: 8.0e-10
  maxval: 1.2e-11
- Ekin: 2.1e-11
- Enl: 2.9e-11
- Epot: 1.0e-10
+ EKS: 8.0e-9
+ Ekin: 8.e-9
+ Enl: 2.e-9
+ Epot: 2.0e-9
  EvXC: 1.1e-10
  Atomic Forces (Ha/Bohr): 1.5e-11
  Clean forces norm (Ha/Bohr): 1.2e-11

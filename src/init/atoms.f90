@@ -682,6 +682,7 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,wrtforces,forces, &
         call yaml_map('Units','reduced', unit = iunit)
         reduced=.true.
      end if
+     factor = 1.0_gp
   case('atomic','atomicd0','bohr','bohrd0')
      ! Default
      factor=1.0_gp
