@@ -1954,7 +1954,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   ! should convert this to yaml
   if (iproc==0) print*,'Deviation from unity in reorthonormalize_coeff',error
 
-  if (error>0.5d0.and.orbs%norb==norb) then
+  if (error>5.0d0.and.orbs%norb==norb) then
      if (iproc==0) print*,'Error in reorthonormalize_coeff too large, reverting to gram-schmidt orthonormalization'
      ! gram-schmidt as too far from orthonormality to use iterative schemes for S^-1/2
      call f_free_ptr(ovrlp_coeff)
