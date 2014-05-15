@@ -110,6 +110,7 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
 
   ! Calculate the overlap matrix between the TMBs.
   if(.not. overlap_calculated) then
+     call timing(iproc,'kernel_init','OF')
      if(.not.tmb%can_use_transposed) then
          if(associated(tmb%psit_c)) then
              call f_free_ptr(tmb%psit_c)
@@ -133,6 +134,7 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
 
      !call timing(iproc,'renormCoefComp','ON')
      overlap_calculated=.true.
+     call timing(iproc,'kernel_init','ON')
   end if
 
   ! copy from coeff fragment to global coeffs - occupied states only
@@ -208,12 +210,14 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
      ! reorthonormalize the coeffs for each fragment - don't need unoccupied states here
      tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, &
                                 iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
+     call timing(iproc,'kernel_init','OF')
      call uncompress_matrix(iproc, tmb%linmat%s, &
           inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
      call reorthonormalize_coeff(bigdft_mpi%iproc, bigdft_mpi%nproc, &
           ceiling((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp), &
           tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, input%lin%order_taylor, &
           tmb%orbs, tmb%linmat%s, tmb%linmat%ks, tmb%linmat%ovrlp_, tmb%coeff, ksorbs)
+     call timing(iproc,'kernel_init','ON')
      call f_free_ptr(tmb%linmat%ovrlp_%matrix)
 
      !! debug
