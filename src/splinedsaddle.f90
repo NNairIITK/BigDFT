@@ -344,15 +344,15 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     
     !-----------------------------------------------------------
     rxyz_2 = f_malloc((/ 3, atoms%astruct%nat+ndeb1 /),id='rxyz_2')
-    call dmemocc(3*(atoms%astruct%nat),3*(atoms%astruct%nat+ndeb1),rxyz_2,'rxyz_2')
+    !call dmemocc(3*(atoms%astruct%nat),3*(atoms%astruct%nat+ndeb1),rxyz_2,'rxyz_2')
     rxyz_tmp = f_malloc((/ 3, atoms%astruct%nat+ndeb1 /),id='rxyz_tmp')
-    call dmemocc(3*(atoms%astruct%nat),3*(atoms%astruct%nat+ndeb1),rxyz_tmp,'rxyz_tmp')
+    !call dmemocc(3*(atoms%astruct%nat),3*(atoms%astruct%nat+ndeb1),rxyz_tmp,'rxyz_tmp')
     f = f_malloc((/ 1.to.n, 0.to.np+ndeb2 /),id='f')
-    call dmemocc(n*(np+1),n*(np+1+ndeb2),f,'f')
+    !call dmemocc(n*(np+1),n*(np+1+ndeb2),f,'f')
     x = f_malloc((/ 1.to.n, 0.to.np+ndeb2 /),id='x')
-    call dmemocc(n*(np+1),n*(np+1+ndeb2),x,'x')
+    !call dmemocc(n*(np+1),n*(np+1+ndeb2),x,'x')
     xneb = f_malloc((/ 1.to.n, 0.to.np_neb+ndeb2 /),id='xneb')
-    call dmemocc(n*(np_neb+1),n*(np_neb+1+ndeb2),xneb,'xneb')
+    !call dmemocc(n*(np_neb+1),n*(np_neb+1+ndeb2),xneb,'xneb')
     call init_global_output(outends(1), atoms%astruct%nat)
     call init_global_output(outends(2), atoms%astruct%nat)
     !if(iproc==0) write(*,*) 'ALIREZA-01'
@@ -360,7 +360,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     if(trim(pnow%runstat)=='restart') then
         x_t = f_malloc((/ 1.to.n, 0.to.100+ndeb2 /),id='x_t')
         if(istat/=0) stop 'ERROR: failure allocating x_t'
-        call dmemocc(n*(100+1),n*(100+1+ndeb2),x_t,'x_t')
+        !call dmemocc(n*(100+1),n*(100+1+ndeb2),x_t,'x_t')
         filename='anchorposinp.xyz' 
         call readanchorpoints(n,np_t,x_t,filename,atoms)
         if(np_t==np) then
@@ -538,7 +538,7 @@ subroutine change_np(n,np1,x1,atoms,np2,x2)
     !x_t(1:n,0:np)=x(1:n,0:np)
     !deallocate(x,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating x'
     !allocate(x(n,0:50+ndeb2),stat=istat);if(istat/=0) stop 'ERROR: failure allocating x'
-    !call dmemocc(n*(50+1),n*(50+1+ndeb2),x,'x')
+    !!call dmemocc(n*(50+1),n*(50+1+ndeb2),x,'x')
     if(np1>100 .or. np2>100) stop 'ERROR: np1>100 .or. np2>100'
     if(np1==np2) then
         x2(1:n,0:np2)=x1(1:n,0:np1)
@@ -568,7 +568,7 @@ subroutine change_np(n,np1,x1,atoms,np2,x2)
     !np=np2
     !deallocate(f,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating f'
     !allocate(f(n,0:np+ndeb2),stat=istat);if(istat/=0) stop 'ERROR: failure allocating f'
-    !call dmemocc(n*(np+1),n*(np+1+ndeb2),f,'f')
+    !!call dmemocc(n*(np+1),n*(np+1+ndeb2),f,'f')
 end subroutine change_np
 
 
@@ -599,7 +599,7 @@ subroutine improvepeak(n,nr,np,x,outends,pnow,nproc,iproc,atoms,rst,ll_inputs,nc
         npv=np+pnow%ns2+3
     endif
     xt = f_malloc(n+ndeb1,id='xt')
-    call dmemocc(n,n+ndeb1,xt,'xt')
+    !call dmemocc(n,n+ndeb1,xt,'xt')
     call init_global_output(outs, n / 3)
     call equalarclengthparametrization(atoms,n,np,x,pnow%s,pnow%h)
     call factor_cubic(np,pnow%h,pnow%e1,pnow%e2)
@@ -698,9 +698,9 @@ subroutine pickbestanchors2(n,np,x,outends,pnow,nproc,iproc,atoms,rst,ll_inputs,
         npv=np+pnow%ns2+3
     endif
     xt = f_malloc(n+ndeb1,id='xt')
-    call dmemocc(n,n+ndeb1,xt,'xt')
+    !call dmemocc(n,n+ndeb1,xt,'xt')
     ft = f_malloc(n+ndeb1,id='ft')
-    call dmemocc(n,n+ndeb1,ft,'ft')
+    !call dmemocc(n,n+ndeb1,ft,'ft')
     call equalarclengthparametrization(atoms,n,np,x,pnow%s,pnow%h)
     call factor_cubic(np,pnow%h,pnow%e1,pnow%e2)
     call fill_ex_exd(0,n,np,x,outends,npv,pnow,pold,xt,ft,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
@@ -837,9 +837,9 @@ subroutine pickbestanchors(n,np,x,outends,pnow,nproc,iproc,atoms,rst,ll_inputs,n
         npv=np+pnow%ns2+3
     endif
     xt = f_malloc(n+ndeb1,id='xt')
-    call dmemocc(n,n+ndeb1,xt,'xt')
+    !call dmemocc(n,n+ndeb1,xt,'xt')
     ft = f_malloc(n+ndeb1,id='ft')
-    call dmemocc(n,n+ndeb1,ft,'ft')
+    !call dmemocc(n,n+ndeb1,ft,'ft')
     call equalarclengthparametrization(atoms,n,np,x,pnow%s,pnow%h)
     call factor_cubic(np,pnow%h,pnow%e1,pnow%e2)
     call fill_ex_exd(0,n,np,x,outends,npv,pnow,pold,xt,ft,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
@@ -1065,8 +1065,8 @@ subroutine neb(n,nr,np,x,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigd
     !-------------------------------------------------------------------------------------
     xa = f_malloc((/ nr, np-1+ndeb2 /),id='xa')
     fa = f_malloc((/ nr, np-1+ndeb2 /),id='fa')
-    call dmemocc(nr*(np-1),nr*(np-1+ndeb2),xa,'xa')
-    call dmemocc(nr*(np-1),nr*(np-1+ndeb2),fa,'fa')
+    !call dmemocc(nr*(np-1),nr*(np-1+ndeb2),xa,'xa')
+    !call dmemocc(nr*(np-1),nr*(np-1+ndeb2),fa,'fa')
     if(istat/=0) stop 'ERROR: failure allocating xa or fa.'
     do ip=1,np-1
        call init_global_output(outs(ip), atoms%astruct%nat)
@@ -1077,7 +1077,7 @@ subroutine neb(n,nr,np,x,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigd
     if(trim(parmin%approach)=='SD') then
         nwork=2*n*(np-1)
         work = f_malloc(nwork+ndeb1,id='work')
-        call dmemocc(nwork,nwork+ndeb1,work,'work')
+        !call dmemocc(nwork,nwork+ndeb1,work,'work')
         if(istat/=0) stop 'ERROR: failure allocating work.'
         parmin%sdsaturated=.false.
         parmin%converged=.false.
@@ -1106,7 +1106,7 @@ subroutine neb(n,nr,np,x,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigd
     if(trim(parmin%approach)=='SDDIIS') then
         nwork=(3*parmin%idsx+3)*nr*(np-1) !2*n+nr
         work = f_malloc(nwork+ndeb1,id='work')
-        call dmemocc(nwork,nwork+ndeb1,work,'work')
+        !call dmemocc(nwork,nwork+ndeb1,work,'work')
         if(istat/=0) stop 'ERROR: failure allocating work.'
         parmin%sdsaturated=.false.
         parmin%converged=.false.
@@ -1178,11 +1178,11 @@ subroutine neb(n,nr,np,x,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigd
         parmin%iflag=0
         !allocate(xold(n,0:np+ndeb2),stat=istat)
         !if(istat/=0) stop 'ERROR: failure allocating xold.'
-        !call dmemocc(n*(np+1),n*(np+1+ndeb2),xold,'xold')
+        !!call dmemocc(n*(np+1),n*(np+1+ndeb2),xold,'xold')
         nra=nr*(np-1)
         nwork=nra*nra+3*nra+3*nra*nra+3*nra
         work = f_malloc(nwork+ndeb1,id='work')
-        call dmemocc(nwork,nwork+ndeb1,work,'work')
+        !call dmemocc(nwork,nwork+ndeb1,work,'work')
         icall=0
         do it=1,parmin%maxforcecall
             !call calvmaxanchorforces(icall,n,np,x,xold,fends,etmax,f,xtmax,pnow,pold,fatsp, &
@@ -1213,9 +1213,9 @@ subroutine neb(n,nr,np,x,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigd
     if(trim(parmin%approach)=='FIRE') then
         parmin%iflag=0
         work = f_malloc(3*nr*(np-1)+ndeb1,id='work')
-        call dmemocc(3*nr*(np-1),3*nr*(np-1)+ndeb1,work,'work')
+        !call dmemocc(3*nr*(np-1),3*nr*(np-1)+ndeb1,work,'work')
         !allocate(xold(n,0:np+ndeb2),stat=istat)
-        !call dmemocc(n*(np+1),n*(np+1+ndeb2),xold,'xold')
+        !!call dmemocc(n*(np+1),n*(np+1+ndeb2),xold,'xold')
         parmin%dt=0.02d0
         !parmin%dt=0.01d0 !non-BigDFT
         if(istat/=0) stop 'ERROR: failure allocating work.'
@@ -1367,10 +1367,10 @@ subroutine nebforce(n,np,x,outs,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,nco
     type(run_objects) :: runObj
 
     tang = f_malloc((/ 1.to.n, 0.to.np+ndeb2 /),id='tang')
-    call dmemocc(n*(np+1),n*(np+1+ndeb2),tang,'tang')
+    !call dmemocc(n*(np+1),n*(np+1+ndeb2),tang,'tang')
     call run_objects_nullify(runObj)
     call run_objects_associate(runObj, ll_inputs, atoms, rst)
-    call dmemocc(3*atoms%astruct%nat,3*(atoms%astruct%nat+ndeb1),runObj%atoms%astruct%rxyz,'runObj%atoms%astruct%rxyz')
+    !call dmemocc(3*atoms%astruct%nat,3*(atoms%astruct%nat+ndeb1),runObj%atoms%astruct%rxyz,'runObj%atoms%astruct%rxyz')
     do ip=1,np-1
         call vcopy(n, x(1,ip), 1, runObj%atoms%astruct%rxyz(1,1), 1)
         call cpu_time(time1)
@@ -1473,8 +1473,8 @@ subroutine splinedsaddle(n,nr,np,x,etmax,f,xtmax,parmin,outends,pnow,nproc, &
     !-------------------------------------------------------------------------------------
     xa = f_malloc((/ nr, np-1+ndeb2 /),id='xa')
     fa = f_malloc((/ nr, np-1+ndeb2 /),id='fa')
-    call dmemocc(nr*(np-1),nr*(np-1+ndeb2),xa,'xa')
-    call dmemocc(nr*(np-1),nr*(np-1+ndeb2),fa,'fa')
+    !call dmemocc(nr*(np-1),nr*(np-1+ndeb2),xa,'xa')
+    !call dmemocc(nr*(np-1),nr*(np-1+ndeb2),fa,'fa')
     !-------------------------------------------------------------------------------------
     do ip=1,np-1
         call atomic_copymoving_forward(atoms,n,x(1,ip),nr,xa(1,ip))
@@ -1484,9 +1484,9 @@ subroutine splinedsaddle(n,nr,np,x,etmax,f,xtmax,parmin,outends,pnow,nproc, &
         !stop 'FIX xold in call  calvmaxanchorforces'
         nwork=2*n*(np-1)
         work = f_malloc(nwork+ndeb1,id='work')
-        call dmemocc(nwork,nwork+ndeb1,work,'work')
+        !call dmemocc(nwork,nwork+ndeb1,work,'work')
         xold = f_malloc((/ 1.to.n, 0.to.np+ndeb2 /),id='xold')
-        call dmemocc(n*(np+1),n*(np+1+ndeb2),xold,'xold')
+        !call dmemocc(n*(np+1),n*(np+1+ndeb2),xold,'xold')
         if(istat/=0) stop 'ERROR: failure allocating xold.'
         parmin%sdsaturated=.false.
         parmin%sdminimum=.true.
@@ -1520,7 +1520,7 @@ subroutine splinedsaddle(n,nr,np,x,etmax,f,xtmax,parmin,outends,pnow,nproc, &
         stop 'FIX xold in call  calvmaxanchorforces'
         nwork=(3*parmin%idsx+3)*nr*(np-1) !2*n+nr
         work = f_malloc(nwork+ndeb1,id='work')
-        call dmemocc(nwork,nwork+ndeb1,work,'work')
+        !call dmemocc(nwork,nwork+ndeb1,work,'work')
         if(istat/=0) stop 'ERROR: failure allocating work.'
         parmin%sdsaturated=.false.
         parmin%sdminimum=.true.
@@ -1591,11 +1591,11 @@ subroutine splinedsaddle(n,nr,np,x,etmax,f,xtmax,parmin,outends,pnow,nproc, &
         !stop 'FIX xold in call  calvmaxanchorforces'
         parmin%iflag=0
         xold = f_malloc((/ 1.to.n, 0.to.np+ndeb2 /),id='xold')
-        call dmemocc(n*(np+1),n*(np+1+ndeb2),xold,'xold')
+        !call dmemocc(n*(np+1),n*(np+1+ndeb2),xold,'xold')
         nra=nr*(np-1)
         nwork=nra*nra+3*nra+3*nra*nra+3*nra
         work = f_malloc(nwork+ndeb1,id='work')
-        call dmemocc(nwork,nwork+ndeb1,work,'work')
+        !call dmemocc(nwork,nwork+ndeb1,work,'work')
         icall=0
         do it=1,parmin%maxforcecall
             call calvmaxanchorforces(icall,n,np,x,xold,outends,etmax,f,xtmax,pnow,pold,fatsp, &
@@ -1624,11 +1624,11 @@ subroutine splinedsaddle(n,nr,np,x,etmax,f,xtmax,parmin,outends,pnow,nproc, &
         !stop 'FIX xold in call  calvmaxanchorforces'
         parmin%iflag=0
         xold = f_malloc((/ 1.to.n, 0.to.np+ndeb2 /),id='xold')
-        call dmemocc(n*(np+1),n*(np+1+ndeb2),xold,'xold')
+        !call dmemocc(n*(np+1),n*(np+1+ndeb2),xold,'xold')
         nra=nr*(np-1)
         nwork=nra*nra+3*nra+3*nra*nra+2*nra
         work = f_malloc(nwork+ndeb1,id='work')
-        call dmemocc(nwork,nwork+ndeb1,work,'work')
+        !call dmemocc(nwork,nwork+ndeb1,work,'work')
         icall=0
         do it=1,parmin%maxforcecall
             call calvmaxanchorforces(icall,n,np,x,xold,outends,etmax,f,xtmax,pnow,pold,fatsp, &
@@ -1656,9 +1656,9 @@ subroutine splinedsaddle(n,nr,np,x,etmax,f,xtmax,parmin,outends,pnow,nproc, &
     if(trim(parmin%approach)=='FIRE') then
         parmin%iflag=0
         work = f_malloc(3*nr*(np-1)+ndeb1,id='work')
-        call dmemocc(3*nr*(np-1),3*nr*(np-1)+ndeb1,work,'work')
+        !call dmemocc(3*nr*(np-1),3*nr*(np-1)+ndeb1,work,'work')
         xold = f_malloc((/ 1.to.n, 0.to.np+ndeb2 /),id='xold')
-        call dmemocc(n*(np+1),n*(np+1+ndeb2),xold,'xold')
+        !call dmemocc(n*(np+1),n*(np+1+ndeb2),xold,'xold')
         icall=0
         do it=1,parmin%maxforcecall
             !call calenergyforces(iproc,n,x,f,epot)
@@ -2083,7 +2083,7 @@ subroutine perpendicularforce(n,np,x,f,pnow,nproc,iproc,atoms,rst,ll_inputs,ncou
     type(DFT_global_output), dimension(0:np) :: outs
 
     tang = f_malloc((/ 1.to.n, 0.to.np+ndeb2 /),id='tang')
-    call dmemocc(n*(np+1),n*(np+1+ndeb2),tang,'tang')
+    !call dmemocc(n*(np+1),n*(np+1+ndeb2),tang,'tang')
     call run_objects_nullify(runObj)
     call run_objects_associate(runObj, ll_inputs, atoms, rst)
     mp=-1
@@ -2156,7 +2156,7 @@ subroutine calvmaxanchorforces(istep,n,np,x,xold,outends,etmax,f,xtmax,pnow,pold
     !----------------------------------------
     dd = f_malloc((/ n, n, np-1+ndeb2 /),id='dd')
     if(istep==0) xold(1:n,0:np)=x(1:n,0:np)
-    call dmemocc(n*n*(np-1),n*n*(np-1+ndeb2),dd,'dd')
+    !call dmemocc(n*n*(np-1),n*n*(np-1+ndeb2),dd,'dd')
     call equalarclengthparametrization(atoms,n,np,x,pnow%s,pnow%h)
     call factor_cubic(np,pnow%h,pnow%e1,pnow%e2)
     !call caltmax(n,np,x,etmax,xtmax,ftmax,pnow,pold)
@@ -2686,13 +2686,13 @@ subroutine guessinitialtmax_hermite(npv,pnow)
     e1vt = f_malloc(npvt-1+ndeb1,id='e1vt')
     e2vt = f_malloc(npvt-2+ndeb1,id='e2vt')
     cvt = f_malloc(0.to.npvt+ndeb1,id='cvt')
-    call dmemocc(npvt+1,npvt+1+ndeb1,svt,'svt')
-    call dmemocc(npvt,npvt+ndeb1,hvt,'hvt')
-    call dmemocc(npvt+1,npvt+1+ndeb1,ext,'ext')
-    call dmemocc(npvt+1,npvt+1+ndeb1,exdt,'exdt')
-    call dmemocc(npvt-1,npvt-1+ndeb1,e1vt,'e1vt')
-    call dmemocc(npvt-2,npvt-2+ndeb1,e2vt,'e2vt')
-    call dmemocc(npvt+1,npvt+1+ndeb1,cvt,'cvt')
+    !call dmemocc(npvt+1,npvt+1+ndeb1,svt,'svt')
+    !call dmemocc(npvt,npvt+ndeb1,hvt,'hvt')
+    !call dmemocc(npvt+1,npvt+1+ndeb1,ext,'ext')
+    !call dmemocc(npvt+1,npvt+1+ndeb1,exdt,'exdt')
+    !call dmemocc(npvt-1,npvt-1+ndeb1,e1vt,'e1vt')
+    !call dmemocc(npvt-2,npvt-2+ndeb1,e2vt,'e2vt')
+    !call dmemocc(npvt+1,npvt+1+ndeb1,cvt,'cvt')
     !call factor_inter_quintic(npv,pnow%hv,pnow%ex,pnow%exd,pnow%a,pnow%b)
     ext(0)=pnow%ex(0)
     ext(npvt)=pnow%ex(npv)
@@ -2832,7 +2832,7 @@ subroutine fill_ex_exd(istep,n,np,x,outends,npv,pnow,pold,xt,ft,nproc,iproc,atom
     type(DFT_global_output) :: outs
 
     tang = f_malloc(n+ndeb1,id='tang')
-    call dmemocc(n,n+ndeb1,tang,'tang')
+    !call dmemocc(n,n+ndeb1,tang,'tang')
     call run_objects_nullify(runObj)
     call run_objects_associate(runObj, ll_inputs, atoms, rst)
     call init_global_output(outs, atoms%astruct%nat)
@@ -3230,11 +3230,11 @@ end subroutine estimate_sv
 !    integer::iat,ixyz
 !    integer, parameter::ndeb1=0,ndeb2=0
 !    allocate(x_bigdft(n+ndeb1))
-!    call dmemocc(n,n+ndeb1,x_bigdft,'x_bigdft')
+!    !call dmemocc(n,n+ndeb1,x_bigdft,'x_bigdft')
 !    allocate(xt(n+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating xt.'
-!    call dmemocc(n,n+ndeb1,xt,'xt')
+!    !call dmemocc(n,n+ndeb1,xt,'xt')
 !    allocate(ft(n+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating ft.'
-!    call dmemocc(n,n+ndeb1,ft,'ft')
+!    !call dmemocc(n,n+ndeb1,ft,'ft')
 !    if(iproc==0) then
 !        write(fn,'(i3.3)') istep
 !        filename='energy'//fn
@@ -3351,12 +3351,12 @@ subroutine guessinitialtmax_cubic(npv,pnow)
     e1vt = f_malloc(npvt-1+ndeb1,id='e1vt')
     e2vt = f_malloc(npvt-2+ndeb1,id='e2vt')
     cvt = f_malloc(0.to.npvt+ndeb1,id='cvt')
-    call dmemocc(npvt+1,npvt+1+ndeb1,svt,'svt')
-    call dmemocc(npvt,npvt+ndeb1,hvt,'hvt')
-    call dmemocc(npvt+1,npvt+1+ndeb1,ext,'ext')
-    call dmemocc(npvt-1,npvt-1+ndeb1,e1vt,'e1vt')
-    call dmemocc(npvt-2,npvt-2+ndeb1,e2vt,'e2vt')
-    call dmemocc(npvt+1,npvt+1+ndeb1,cvt,'cvt')
+    !call dmemocc(npvt+1,npvt+1+ndeb1,svt,'svt')
+    !call dmemocc(npvt,npvt+ndeb1,hvt,'hvt')
+    !call dmemocc(npvt+1,npvt+1+ndeb1,ext,'ext')
+    !call dmemocc(npvt-1,npvt-1+ndeb1,e1vt,'e1vt')
+    !call dmemocc(npvt-2,npvt-2+ndeb1,e2vt,'e2vt')
+    !call dmemocc(npvt+1,npvt+1+ndeb1,cvt,'cvt')
     !call factor_inter_quintic(npv,pnow%hv,pnow%ex,pnow%exd,pnow%a,pnow%b)
     ext(0)=pnow%ex(0)
     ext(npvt)=pnow%ex(npv)
@@ -3438,12 +3438,12 @@ subroutine guessinitialtmax_quintic(npv,pnow,iproc)
     e1vt = f_malloc(npvt-1+ndeb1,id='e1vt')
     e2vt = f_malloc(npvt-2+ndeb1,id='e2vt')
     cvt = f_malloc(0.to.npvt+ndeb1,id='cvt')
-    call dmemocc(npvt+1,npvt+1+ndeb1,svt,'svt')
-    call dmemocc(npvt,npvt+ndeb1,hvt,'hvt')
-    call dmemocc(npvt+1,npvt+1+ndeb1,ext,'ext')
-    call dmemocc(npvt-1,npvt-1+ndeb1,e1vt,'e1vt')
-    call dmemocc(npvt-2,npvt-2+ndeb1,e2vt,'e2vt')
-    call dmemocc(npvt+1,npvt+1+ndeb1,cvt,'cvt')
+    !call dmemocc(npvt+1,npvt+1+ndeb1,svt,'svt')
+    !call dmemocc(npvt,npvt+ndeb1,hvt,'hvt')
+    !call dmemocc(npvt+1,npvt+1+ndeb1,ext,'ext')
+    !call dmemocc(npvt-1,npvt-1+ndeb1,e1vt,'e1vt')
+    !call dmemocc(npvt-2,npvt-2+ndeb1,e2vt,'e2vt')
+    !call dmemocc(npvt+1,npvt+1+ndeb1,cvt,'cvt')
     call factor_inter_quintic(npv,pnow%hv,pnow%ex,pnow%exd,pnow%a,pnow%b)
     ext(0)=pnow%ex(0)
     ext(npvt)=pnow%ex(npv)
@@ -3523,9 +3523,9 @@ subroutine factor_inter_quintic(n,h,y,d,a,b)
     c = f_malloc(2*n+ndeb1,id='c')
     v = f_malloc((/ 2*kl+ku+1, 2*n+ndeb1 /),id='v')
     ipiv = f_malloc(2*n+ndeb1,id='ipiv')
-    call dmemocc(2*n,2*n+ndeb1,c,'c')
-    call dmemocc((2*kl+ku+1)*(2*n),(2*kl+ku+1)*(2*n+ndeb1),v,'v')
-    call imemocc(2*n,2*n+ndeb1,ipiv,'ipiv')
+    !call dmemocc(2*n,2*n+ndeb1,c,'c')
+    !call dmemocc((2*kl+ku+1)*(2*n),(2*kl+ku+1)*(2*n+ndeb1),v,'v')
+    !call imemocc(2*n,2*n+ndeb1,ipiv,'ipiv')
     c(1)=-6.d0*d(0)*h(1)-6.d0*d(1)*h(1)-12.d0*y(0)+12.d0*y(1)
     do i=1,n-1
         t1=-2.d0*(2.d0*d(i)+d(i+1))*h(i)-2.d0*(2.d0*d(i)+d(i-1))*h(i+1)
@@ -3687,21 +3687,21 @@ subroutine prepdd(atoms,n,np,x,e1,e2,h,s,mp,tmax,dd)
     integer, parameter::ndeb1=0
     !integer, parameter::ndeb2=0
     cd1 = f_malloc(np-1+ndeb1,id='cd1')
-    call dmemocc(np-1,np-1+ndeb1,cd1,'cd1')
+    !call dmemocc(np-1,np-1+ndeb1,cd1,'cd1')
     cd2 = f_malloc(np-1+ndeb1,id='cd2')
-    call dmemocc(np-1,np-1+ndeb1,cd2,'cd2')
+    !call dmemocc(np-1,np-1+ndeb1,cd2,'cd2')
     !allocate(cd3(np-1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating cd3.'
     !allocate(cd4(np-1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating cd4.'
     c = f_malloc(0.to.np+ndeb1,id='c')
-    call dmemocc(np+1,np+1+ndeb1,c,'c')
+    !call dmemocc(np+1,np+1+ndeb1,c,'c')
     ddt = f_malloc(np-1+ndeb1,id='ddt')
-    call dmemocc(np-1,np-1+ndeb1,ddt,'ddt')
+    !call dmemocc(np-1,np-1+ndeb1,ddt,'ddt')
     yi = f_malloc(0.to.np+ndeb1,id='yi')
-    call dmemocc(np+1,np+1+ndeb1,yi,'yi')
+    !call dmemocc(np+1,np+1+ndeb1,yi,'yi')
     yj = f_malloc(0.to.np+ndeb1,id='yj')
-    call dmemocc(np+1,np+1+ndeb1,yj,'yj')
+    !call dmemocc(np+1,np+1+ndeb1,yj,'yj')
     ainv = f_malloc((/ np-1, np-1+ndeb1 /),id='ainv')
-    call dmemocc((np-1)*(np-1),(np-1)*(np-1+ndeb1),ainv,'ainv')
+    !call dmemocc((np-1)*(np-1),(np-1)*(np-1+ndeb1),ainv,'ainv')
     ainv(1:np-1,1:np-1)=0.d0
     do ip=1,np-2
         !ainv(ip,ip)=e1(ip)
@@ -3789,7 +3789,7 @@ subroutine prepcd3cd4(np,h,mp,ainv,i,j,yi,yj,cd1,cd2)
     real(kind=8)::ainvdmpip,ainvdmpipp1,ainvdmpipm1,ainvdmpm1ip,ainvdmpm1ipp1,ainvdmpm1ipm1
     integer, parameter::ndeb1=0 !n(c) ndeb2=0
     ainvd = f_malloc((/ 0.to.np, 0.to.np+ndeb1 /),id='ainvd')
-    call dmemocc((np+1)*(np+1),(np+1)*(np+1+ndeb1),ainvd,'ainvd')
+    !call dmemocc((np+1)*(np+1),(np+1)*(np+1+ndeb1),ainvd,'ainvd')
     ainvd(0:np,0:np)=0.d0
     do jp=1,np-1
         do ip=1,np-1
@@ -3860,7 +3860,7 @@ subroutine prepcd1cd2(np,h,mp,yi,yj,cd1,cd2,ainv)
     real(kind=8), allocatable::ainvd(:,:)
     integer, parameter::ndeb1=0 !n(c) ndeb2=0
     ainvd = f_malloc((/ 0.to.np, 0.to.np+ndeb1 /),id='ainvd')
-    call dmemocc((np+1)*(np+1),(np+1)*(np+1+ndeb1),ainvd,'ainvd')
+    !call dmemocc((np+1)*(np+1),(np+1)*(np+1+ndeb1),ainvd,'ainvd')
     ainvd(0:np,0:np)=0.d0
     do jp=1,np-1
         do ip=1,np-1
@@ -3934,7 +3934,7 @@ subroutine func(tt,epot,ett,n,np,x,pnow,mp,xt,ft,nproc,iproc,atoms,rst,ll_inputs
     type(run_objects) :: runObj
     type(DFT_global_output) :: outs
     tang = f_malloc(n+ndeb1,id='tang')
-    call dmemocc(n,n+ndeb1,tang,'tang')
+    !call dmemocc(n,n+ndeb1,tang,'tang')
     do i=1,n
         iat=(i-1)/3+1
         ixyz=mod(i-1,3)+1
@@ -4035,9 +4035,9 @@ subroutine qdq(np,s,mp,tmax,c,h,i,j,yi,yj,cd1,cd2,dd)
     real(kind=8), allocatable::sd2(:)
     integer, parameter::ndeb1=0 !n(c) ndeb2=0
     sd1 = f_malloc(np-1+ndeb1,id='sd1')
-    call dmemocc(np-1,np-1+ndeb1,sd1,'sd1')
+    !call dmemocc(np-1,np-1+ndeb1,sd1,'sd1')
     sd2 = f_malloc(np-1+ndeb1,id='sd2')
-    call dmemocc(np-1,np-1+ndeb1,sd2,'sd2')
+    !call dmemocc(np-1,np-1+ndeb1,sd2,'sd2')
     call calsd1sd2(np,mp,yi,h,sd1,sd2)
     do ip=1,np-1
         t3=(yi(mp)-yi(mp-1))*(delta(mp,ip)-delta(mp-1,ip))/h(mp)
@@ -4184,11 +4184,11 @@ subroutine initminimize(parmin)
     if(tapp3=='DIIS') then
         parmin%idsx=20
         parmin%a = f_malloc((/ parmin%idsx+1, parmin%idsx+1, 3+ndeb1 /),id='parmin%a')
-        call dmemocc((parmin%idsx+1)*(parmin%idsx+1)*(3),(parmin%idsx+1)*(parmin%idsx+1)*(3+ndeb1),parmin%a,'parmin%a')
+        !call dmemocc((parmin%idsx+1)*(parmin%idsx+1)*(3),(parmin%idsx+1)*(parmin%idsx+1)*(3+ndeb1),parmin%a,'parmin%a')
         parmin%b = f_malloc(parmin%idsx+1+ndeb1,id='parmin%b')
-        call dmemocc(parmin%idsx+1,parmin%idsx+1+ndeb1,parmin%b,'parmin%b')
+        !call dmemocc(parmin%idsx+1,parmin%idsx+1+ndeb1,parmin%b,'parmin%b')
         parmin%ipiv = f_malloc(parmin%idsx+1+ndeb1,id='parmin%ipiv')
-        call imemocc(parmin%idsx+1,parmin%idsx+1+ndeb1,parmin%ipiv,'parmin%ipiv')
+        !call imemocc(parmin%idsx+1,parmin%idsx+1+ndeb1,parmin%ipiv,'parmin%ipiv')
     endif
 end subroutine initminimize
 
@@ -4651,19 +4651,19 @@ subroutine writepathway(n,np,x,filename,atoms)
     integer::ixyz
     integer, parameter::ndeb1=0 !n(c) ndeb2=0
     s = f_malloc(0.to.np+ndeb1,id='s')
-    call dmemocc(np+1,np+1+ndeb1,s,'s')
+    !call dmemocc(np+1,np+1+ndeb1,s,'s')
     h = f_malloc(np+ndeb1,id='h')
-    call dmemocc(np,np+ndeb1,h,'h')
+    !call dmemocc(np,np+ndeb1,h,'h')
     e1 = f_malloc(np-1+ndeb1,id='e1')
-    call dmemocc(np-1,np-1+ndeb1,e1,'e1')
+    !call dmemocc(np-1,np-1+ndeb1,e1,'e1')
     e2 = f_malloc(np-2+ndeb1,id='e2')
-    call dmemocc(np-2,np-2+ndeb1,e2,'e2')
+    !call dmemocc(np-2,np-2+ndeb1,e2,'e2')
     y = f_malloc(0.to.np+ndeb1,id='y')
-    call dmemocc(np+1,np+1+ndeb1,y,'y')
+    !call dmemocc(np+1,np+1+ndeb1,y,'y')
     c = f_malloc(0.to.np+ndeb1,id='c')
-    call dmemocc(np+1,np+1+ndeb1,c,'c')
+    !call dmemocc(np+1,np+1+ndeb1,c,'c')
     xt = f_malloc(n+ndeb1,id='xt')
-    call dmemocc(n,n+ndeb1,xt,'xt')
+    !call dmemocc(n,n+ndeb1,xt,'xt')
     !-------------------------------------------------------------------------------------------
     call equalarclengthparametrization(atoms,n,np,x,s,h)
     call factor_cubic(np,h,e1,e2)
