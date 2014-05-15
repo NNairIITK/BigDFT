@@ -107,7 +107,7 @@ subroutine reformatmywaves(iproc,orbs,at,&
   !Local variables
   character(len=*), parameter :: subname='reformatmywaves'
   logical :: reformat,perx,pery,perz
-  integer :: iat,iorb,j,i_stat,i_all,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,nb1,nb2,nb3,nvctrcj,n1p1,np,i0jj
+  integer :: iat,iorb,j,i_stat,i_all,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,nb1,nb2,nb3
   real(gp) :: tx,ty,tz,displ,mindist
   real(wp), dimension(:,:,:), allocatable :: psifscf
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
@@ -210,14 +210,13 @@ subroutine reformatmywaves(iproc,orbs,at,&
            psi(j,iorb)=psi_old(j, iorb)
         enddo
         do j=1,7*wfd_old%nvctr_f-6,7
-           nvctrcj=wfd%nvctr_c+j
-           psi(nvctrcj+0,iorb)=psi_old(nvctrcj+0,iorb)
-           psi(nvctrcj+1,iorb)=psi_old(nvctrcj+1,iorb)
-           psi(nvctrcj+2,iorb)=psi_old(nvctrcj+2,iorb)
-           psi(nvctrcj+3,iorb)=psi_old(nvctrcj+3,iorb)
-           psi(nvctrcj+4,iorb)=psi_old(nvctrcj+4,iorb)
-           psi(nvctrcj+5,iorb)=psi_old(nvctrcj+5,iorb)
-           psi(nvctrcj+6,iorb)=psi_old(nvctrcj+6,iorb)
+           psi(wfd%nvctr_c+j+0,iorb)=psi_old(wfd%nvctr_c+j+0,iorb)
+           psi(wfd%nvctr_c+j+1,iorb)=psi_old(wfd%nvctr_c+j+1,iorb)
+           psi(wfd%nvctr_c+j+2,iorb)=psi_old(wfd%nvctr_c+j+2,iorb)
+           psi(wfd%nvctr_c+j+3,iorb)=psi_old(wfd%nvctr_c+j+3,iorb)
+           psi(wfd%nvctr_c+j+4,iorb)=psi_old(wfd%nvctr_c+j+4,iorb)
+           psi(wfd%nvctr_c+j+5,iorb)=psi_old(wfd%nvctr_c+j+5,iorb)
+           psi(wfd%nvctr_c+j+6,iorb)=psi_old(wfd%nvctr_c+j+6,iorb)
         enddo
 
      else
@@ -226,22 +225,19 @@ subroutine reformatmywaves(iproc,orbs,at,&
 
         call to_zero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
 
-        n1p1=n1_old+1
-        np=n1p1*(n2_old+1)
         ! coarse part
         do iseg=1,wfd_old%nseg_c
            jj=wfd_old%keyvloc(iseg)
            j0=wfd_old%keygloc(1,iseg)
            j1=wfd_old%keygloc(2,iseg)
            ii=j0-1
-           i3=ii/np
-           ii=ii-i3*np
-           i2=ii/n1p1
-           i0=ii-i2*n1p1
+           i3=ii/((n1_old+1)*(n2_old+1))
+           ii=ii-i3*(n1_old+1)*(n2_old+1)
+           i2=ii/(n1_old+1)
+           i0=ii-i2*(n1_old+1)
            i1=i0+j1-j0
-           i0jj=jj-i0
            do i=i0,i1
-              psigold(i,1,i2,1,i3,1) = psi_old(i+i0jj,iorb)
+              psigold(i,1,i2,1,i3,1) = psi_old(i-i0+jj,iorb)
            enddo
         enddo
 
@@ -251,20 +247,19 @@ subroutine reformatmywaves(iproc,orbs,at,&
            j0=wfd_old%keygloc(1,wfd_old%nseg_c + iseg)
            j1=wfd_old%keygloc(2,wfd_old%nseg_c + iseg)
            ii=j0-1
-           i3=ii/np
-           ii=ii-i3*np
-           i2=ii/n1p1
-           i0=ii-i2*n1p1
+           i3=ii/((n1_old+1)*(n2_old+1))
+           ii=ii-i3*(n1_old+1)*(n2_old+1)
+           i2=ii/(n1_old+1)
+           i0=ii-i2*(n1_old+1)
            i1=i0+j1-j0
-           i0jj=jj-i0-1
            do i=i0,i1
-              psigold(i,2,i2,1,i3,1)=psi_old(wfd_old%nvctr_c+1+7*(i+i0jj), iorb)
-              psigold(i,1,i2,2,i3,1)=psi_old(wfd_old%nvctr_c+2+7*(i+i0jj), iorb)
-              psigold(i,2,i2,2,i3,1)=psi_old(wfd_old%nvctr_c+3+7*(i+i0jj), iorb)
-              psigold(i,1,i2,1,i3,2)=psi_old(wfd_old%nvctr_c+4+7*(i+i0jj), iorb)
-              psigold(i,2,i2,1,i3,2)=psi_old(wfd_old%nvctr_c+5+7*(i+i0jj), iorb)
-              psigold(i,1,i2,2,i3,2)=psi_old(wfd_old%nvctr_c+6+7*(i+i0jj), iorb)
-              psigold(i,2,i2,2,i3,2)=psi_old(wfd_old%nvctr_c+7+7*(i+i0jj), iorb)
+              psigold(i,2,i2,1,i3,1)=psi_old(wfd_old%nvctr_c+1+7*(i-i0+jj-1), iorb)
+              psigold(i,1,i2,2,i3,1)=psi_old(wfd_old%nvctr_c+2+7*(i-i0+jj-1), iorb)
+              psigold(i,2,i2,2,i3,1)=psi_old(wfd_old%nvctr_c+3+7*(i-i0+jj-1), iorb)
+              psigold(i,1,i2,1,i3,2)=psi_old(wfd_old%nvctr_c+4+7*(i-i0+jj-1), iorb)
+              psigold(i,2,i2,1,i3,2)=psi_old(wfd_old%nvctr_c+5+7*(i-i0+jj-1), iorb)
+              psigold(i,1,i2,2,i3,2)=psi_old(wfd_old%nvctr_c+6+7*(i-i0+jj-1), iorb)
+              psigold(i,2,i2,2,i3,2)=psi_old(wfd_old%nvctr_c+7+7*(i-i0+jj-1), iorb)
            enddo
         enddo
 
@@ -772,7 +767,7 @@ subroutine writeonewave_linear(unitwf,useFormattedOutput,iorb,n1,n2,n3,ns1,ns2,n
   real(gp), dimension(3), intent(in) :: locregCenter
   integer, intent(in) :: onwhichatom
   !local variables
-  integer :: iat,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,j,np,n1p1
+  integer :: iat,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,j
   real(wp) :: tt,t1,t2,t3,t4,t5,t6,t7
 
   if (useFormattedOutput) then
@@ -801,19 +796,16 @@ subroutine writeonewave_linear(unitwf,useFormattedOutput,iorb,n1,n2,n3,ns1,ns2,n
      write(unitwf) nvctr_c, nvctr_f
   end if
 
-  n1p1=n1+1
-  np=n1p1*(n2+1)
-
   ! coarse part
   do iseg=1,nseg_c
      jj=keyv_c(iseg)
      j0=keyg_c(1,iseg)
      j1=keyg_c(2,iseg)
      ii=j0-1
-     i3=ii/np
-     ii=ii-i3*np
-     i2=ii/n1p1
-     i0=ii-i2*n1p1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
      i1=i0+j1-j0
      do i=i0,i1
         tt=psi_c(i-i0+jj)
@@ -831,10 +823,10 @@ subroutine writeonewave_linear(unitwf,useFormattedOutput,iorb,n1,n2,n3,ns1,ns2,n
      j0=keyg_f(1,iseg)
      j1=keyg_f(2,iseg)
      ii=j0-1
-     i3=ii/np
-     ii=ii-i3*np
-     i2=ii/n1p1
-     i0=ii-i2*n1p1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
      i1=i0+j1-j0
      do i=i0,i1
         t1=psi_f(1,i-i0+jj)
@@ -3207,22 +3199,20 @@ subroutine psi_to_psig(n,nvctr_c,nvctr_f,nseg_c,nseg_f,keyvloc,keygloc,jstart,ps
   real(wp), dimension(0:n(1),2,0:n(2),2,0:n(3),2), intent(out) :: psig
 
   ! local variables
-  integer :: iseg, jj, j0, j1, i, ii, i0, i1, i2, i3, n1p1, np
+  integer :: iseg, jj, j0, j1, i, ii, i0, i1, i2, i3
 
   call to_zero(8*(n(1)+1)*(n(2)+1)*(n(3)+1),psig(0,1,0,1,0,1))
 
-  n1p1=n(1)+1
-  np=n1p1*(n(2)+1)
-
   ! coarse part
   do iseg=1,nseg_c
+     jj=keyvloc(iseg)
      j0=keygloc(1,iseg)
      j1=keygloc(2,iseg)
      ii=j0-1
-     i3=ii/np
-     ii=ii-i3*np
-     i2=ii/n1p1
-     i0=ii-i2*n1p1
+     i3=ii/((n(1)+1)*(n(2)+1))
+     ii=ii-i3*(n(1)+1)*(n(2)+1)
+     i2=ii/(n(1)+1)
+     i0=ii-i2*(n(1)+1)
      i1=i0+j1-j0
      do i=i0,i1
         psig(i,1,i2,1,i3,1) = psi(jstart)
@@ -3232,13 +3222,14 @@ subroutine psi_to_psig(n,nvctr_c,nvctr_f,nseg_c,nseg_f,keyvloc,keygloc,jstart,ps
    
   ! fine part
   do iseg=1,nseg_f
+     jj=keyvloc(nseg_c + iseg)
      j0=keygloc(1,nseg_c + iseg)
      j1=keygloc(2,nseg_c + iseg)
      ii=j0-1
-     i3=ii/np
-     ii=ii-i3*np
-     i2=ii/n1p1
-     i0=ii-i2*n1p1
+     i3=ii/((n(1)+1)*(n(2)+1))
+     ii=ii-i3*(n(1)+1)*(n(2)+1)
+     i2=ii/(n(1)+1)
+     i0=ii-i2*(n(1)+1)
      i1=i0+j1-j0
      do i=i0,i1
         psig(i,2,i2,1,i3,1)=psi(jstart+0)

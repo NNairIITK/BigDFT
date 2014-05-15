@@ -1268,6 +1268,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
       !call f_free_ptr(pot1)
       pot=>pot1
    else if(iflag>0 .and. iflag<2) then
+
       pot = f_malloc_ptr(lzd%ndimpotisf+ndebug,id='pot')
       ! Cut potential
       istl=1

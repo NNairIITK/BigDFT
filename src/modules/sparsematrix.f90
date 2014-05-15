@@ -406,7 +406,6 @@ module sparsematrix
      ! Local variables
      integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, ierr
 
-     call timing(iproc,'compress_uncom','ON')
 
      call to_zero(smat%nvctr, matrix_compr(1))
 
@@ -438,8 +437,6 @@ module sparsematrix
          call mpiallred(matrix_compr(1), smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
      end if
 
-     call timing(iproc,'compress_uncom','OF')
-
   end subroutine compress_matrix_distributed
 
 
@@ -456,7 +453,6 @@ module sparsematrix
     ! Local variables
     integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb
 
-      call timing(iproc,'compress_uncom','ON')
 
        if (smat%nfvctrp>0) then
 
@@ -481,8 +477,6 @@ module sparsematrix
            end do
            !$omp end parallel do
        end if
-
-      call timing(iproc,'compress_uncom','OF')
 
    end subroutine uncompress_matrix_distributed
 
