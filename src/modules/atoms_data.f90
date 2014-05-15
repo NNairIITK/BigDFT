@@ -16,15 +16,15 @@ module module_atoms
   implicit none
   private
 
-  !> Source of the PSP coefficients
-  integer, parameter, public :: PSP_SOURCE_HARD_CODED = 1
-  integer, parameter, public :: PSP_SOURCE_FILE = 2
-  integer, parameter, public :: PSP_SOURCE_USER = 3
-  integer, parameter, public :: PSP_SOURCE_UNKNOWN = 4
-  character(len=*), dimension(4), parameter, public :: PSP_SOURCE = (/ "Hard-Coded  ", &
-                                                                       "PSP File    ", &
-                                                                       "User defined", &
-                                                                       "Unknown     " /)
+  !> Source of the radii coefficients
+  integer, parameter, public :: RADII_SOURCE_HARD_CODED = 1
+  integer, parameter, public :: RADII_SOURCE_FILE = 2
+  integer, parameter, public :: RADII_SOURCE_USER = 3
+  integer, parameter, public :: RADII_SOURCE_UNKNOWN = 4
+  character(len=*), dimension(4), parameter, public :: RADII_SOURCE = (/ "Hard-Coded  ", &
+                                                                         "PSP File    ", &
+                                                                         "User defined", &
+                                                                         "Unknown     " /)
 
   !> Quantities used for the symmetry operators. To be used in atomic_structure derived type.
   type, public :: symmetry_data
@@ -62,7 +62,7 @@ module module_atoms
      integer, dimension(:), pointer :: npspcode          !< PSP codes (see @link psp_projectors::pspcode_hgh @endlink)
      integer, dimension(:), pointer :: ixcpsp            !< PSP ixc code
      integer, dimension(:), pointer :: nzatom            !< Atomic number
-     integer, dimension(:), pointer :: ipsp_source       !< Source of the PSP (Hard-Coded, PSP File, ...)
+     integer, dimension(:), pointer :: iradii_source     !< Source of the radii coefficients (Hard-Coded, PSP File, ...)
      real(gp), dimension(:,:), pointer :: radii_cf       !< User defined radii_cf, overridden in sysprop.f90
      real(gp), dimension(:), pointer :: amu              !< Amu(ntypes)  Atomic Mass Unit for each type of atoms
      !real(gp), dimension(:,:), pointer :: rloc          !< Localization regions for parameters of linear, to be moved somewhere else
@@ -147,7 +147,7 @@ module module_atoms
       nullify(at%ixcpsp)
       nullify(at%nzatom)
       nullify(at%radii_cf)
-      nullify(at%ipsp_source)
+      nullify(at%iradii_source)
       nullify(at%amu)
       !     nullify(at%aocc)
       !nullify(at%rloc)
@@ -275,9 +275,9 @@ module module_atoms
          i_all=-product(shape(atoms%radii_cf))*kind(atoms%radii_cf)
          deallocate(atoms%radii_cf,stat=i_stat)
          call memocc(i_stat,i_all,'atoms%radii_cf',subname)
-         i_all=-product(shape(atoms%ipsp_source))*kind(atoms%ipsp_source)
-         deallocate(atoms%ipsp_source,stat=i_stat)
-         call memocc(i_stat,i_all,'atoms%ipsp_source',subname)
+         i_all=-product(shape(atoms%iradii_source))*kind(atoms%iradii_source)
+         deallocate(atoms%iradii_source,stat=i_stat)
+         call memocc(i_stat,i_all,'atoms%iradii_source',subname)
          ! Parameters for Linear input guess
          !i_all=-product(shape(atoms%rloc))*kind(atoms%rloc)
          !deallocate(atoms%rloc,stat=i_stat)
@@ -1032,8 +1032,8 @@ subroutine allocate_atoms_ntypes(atoms)
   call memocc(i_stat,atoms%ixcpsp,'atoms%ixcpsp',subname)
   allocate(atoms%radii_cf(atoms%astruct%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%radii_cf,'atoms%radii_cf',subname)
-  allocate(atoms%ipsp_source(atoms%astruct%ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%ipsp_source,'atoms%ipsp_source',subname)
+  allocate(atoms%iradii_source(atoms%astruct%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%iradii_source,'atoms%iradii_source',subname)
   ! parameters for NLCC
   allocate(atoms%nlcc_ngv(atoms%astruct%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%nlcc_ngv,'atoms%nlcc_ngv',subname)
