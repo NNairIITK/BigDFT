@@ -153,7 +153,7 @@
  tddft:
    tddft_approach                      : none #   TDDFT method
  posinp:
-   Positions:
+   positions:
    - O: [3.87561991810798645E-002, -2.7034800052642822, -0.90772497653961182]
    - C: [-2.357719898223877, -2.9732999801635742, 0.18323500454425812]
    - C: [-3.4040799140930176, -0.42077299952507019, 0.72188901901245117]
@@ -174,9 +174,9 @@
    - H: [2.3717000484466553, 4.3534998893737793, 1.2418099641799927]
    - H: [4.1132102012634277, 3.7654600143432617, -1.6237599849700928]
    - H: [6.4799299240112305, 5.2711200714111328, 1.6684499979019165]
-   Properties:
-     Format                            : xyz
-     Source                            : locregcenters
+   properties:
+     format                            : xyz
+     source                            : locregcenters
  lin_general:
    hybrid                              : No #     activate the hybrid mode; if activated, only the low accuracy values will be relevant
    nit: [100, 100] #                              number of iteration with low/high accuracy

@@ -212,8 +212,8 @@
    rloc_kernel                         : 9.0 #    localization radius for the density kernel
    rloc_kernel_foe                     : 14.0 #   cutoff radius for the FOE matrix vector multiplications
  posinp:
-   Units                               : angstroem
-   Positions:
+   units                               : angstroem
+   positions:
    - Be: [0.96843397617340088, 1.103950023651123, 51.592700958251953]
    - Be: [0.9576680064201355, 1.0757100582122803, 53.525100708007812]
    - Be: [0.94240599870681763, 1.0497200489044189, 55.456401824951172]
@@ -226,9 +226,9 @@
    - H: [5.90886995196342468E-002, 0.48492100834846497, 52.547798156738281]
    - H: [1.8387000560760498, 1.6419800519943237, 56.427398681640625]
    - H: [0.90948402881622314, 1.0110900402069092, 58.743999481201172]
-   Properties:
-     Format                            : xyz
-     Source                            : posinp
+   properties:
+     format                            : xyz
+     source                            : posinp
  Atomic occupation:
    Be:
      2s                                : 2.0
