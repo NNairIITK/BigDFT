@@ -91,7 +91,7 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
 end subroutine read_input_dict_from_files
 
 
-!> Fill the input_variables structure with the information
+!> Fill the input_variables and atoms_data structures from the information
 !! contained in the dictionary dict
 !! the dictionary should be completes to fill all the information
 subroutine inputs_from_dict(in, atoms, dict)
@@ -107,10 +107,11 @@ subroutine inputs_from_dict(in, atoms, dict)
   use module_xc
   use module_atoms, only: atoms_data,atoms_data_null,set_astruct_from_dict
   implicit none
+  !Arguments
   type(input_variables), intent(out) :: in
   type(atoms_data), intent(out) :: atoms
   type(dictionary), pointer :: dict
-
+  !Local variables
   !type(dictionary), pointer :: profs
   integer :: ierr, ityp, nelec_up, nelec_down, norb_max, jtype
   character(len = max_field_length) :: writing_dir, output_dir, run_name, msg
@@ -204,7 +205,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   call nullifyInputLinparameters(in%lin)
   call allocateBasicArraysInputLin(in%lin, atoms%astruct%ntypes)
 
-  !first fill all the types by the default, then override by per-type values
+  !First fill all the types by the default, then override by per-type values
   do jtype=1,atoms%astruct%ntypes
      var => dict_iter(dict//LIN_BASIS_PARAMS)
      do while(associated(var))

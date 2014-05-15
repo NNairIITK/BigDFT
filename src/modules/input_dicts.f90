@@ -204,6 +204,7 @@ contains
   subroutine psp_dict_fill_all(dict, atomname, run_ixc)
     use module_defs, only: gp, UNINITIALIZED, bigdft_mpi
     use ao_inguess, only: atomic_info
+    use module_atoms, only : PSP_SOURCE, PSP_SOURCE_HARD_CODED, PSP_SOURCE_FILE, PSP_SOURCE_USER
     use dictionaries
     use dynamic_memory
     implicit none
@@ -216,7 +217,7 @@ contains
     character(len=27) :: filename
     logical :: exists
     integer :: nzatom, nelpsp, npspcode
-    real(gp) :: psppar(0:4,0:6)
+    real(gp), dimension(0:4,0:6) :: psppar
 !    integer, parameter :: nmax=6,lmax=4
     !integer, parameter :: nelecmax=32
 !    character(len=2) :: symbol
@@ -246,7 +247,7 @@ contains
             & nelpsp, npspcode, ixc, psppar(:,:), exists)
        call psp_data_merge_to_dict(dict // filename, nzatom, nelpsp, npspcode, ixc, &
             & psppar(0:4,0:6), radii_cf, UNINITIALIZED(1._gp), UNINITIALIZED(1._gp))
-       call set(dict // filename // "Source", "Hard-coded")
+       call set(dict // filename // "Source", PSP_SOURCE(PSP_SOURCE_HARD_CODED))
     else
        nzatom = dict // filename // "Atomic number"
        nelpsp = dict // filename // "No. of Electrons"
@@ -271,7 +272,7 @@ contains
 
        !assigning the radii by calculating physical parameters
        radii_cf(1)=1._gp/sqrt(abs(2._gp*ehomo))
-       write(source, "(A)") "Hard-coded"
+       write(source, "(A)") PSP_SOURCE(PSP_SOURCE_HARD_CODED)
     end if
     if (radii_cf(2) == UNINITIALIZED(1.0_gp)) then
        radfine = dict // filename // "Local Pseudo Potential (HGH convention)" // "Rloc"
@@ -284,11 +285,11 @@ contains
           end do
        end if
        radii_cf(2)=radfine
-       write(source, "(A)") "Hard-coded"
+       write(source, "(A)") PSP_SOURCE(PSP_SOURCE_HARD_CODED)
     end if
     if (radii_cf(3) == UNINITIALIZED(1.0_gp)) then
        radii_cf(3)=radfine
-       write(source, "(A)") "Hard-coded"
+       write(source, "(A)") PSP_SOURCE(PSP_SOURCE_HARD_CODED)
     end if
     radii => dict // filename // "Radii of active regions (AU)"
     call set(radii // "Coarse", radii_cf(1))
@@ -326,7 +327,7 @@ contains
        filename = 'psppar.'//atoms%astruct%atomnames(ityp)
        call psp_set_from_dict(dict // filename, &
             & atoms%nzatom(ityp), atoms%nelpsp(ityp), atoms%npspcode(ityp), &
-            & atoms%ixcpsp(ityp), atoms%psppar(:,:,ityp), radii_cf)
+            & atoms%ixcpsp(ityp), atoms%ipsp_source(ityp), atoms%psppar(:,:,ityp), radii_cf)
        !To eliminate the runtime warning due to the copy of the array (TD)
        atoms%radii_cf(ityp,:)=radii_cf(:)
 
@@ -336,6 +337,7 @@ contains
     end do
     call nlcc_set_from_dict(dict, atoms)
 
+    !For PAW psp
     if (pawpatch) then
        paw_tot_l=0
        paw_tot_q=0
@@ -440,18 +442,22 @@ contains
   end subroutine nlcc_set_from_dict
 
 
-  subroutine psp_set_from_dict(dict, nzatom, nelpsp, npspcode, ixcpsp, &
-       & psppar, radii_cf)
+  !> Set the value for atoms_data from the dictionary
+  subroutine psp_set_from_dict(dict, &
+       & nzatom, nelpsp, npspcode, ixcpsp, ipsp_source, psppar, radii_cf)
     use module_defs, only: gp, UNINITIALIZED
+    use module_atoms
     use dictionaries
     use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
     implicit none
+    !Arguments
     type(dictionary), pointer :: dict
-    integer, intent(out) :: nzatom, nelpsp, npspcode, ixcpsp
-    real(gp), intent(out) :: psppar(0:4,0:6), radii_cf(3)
-
+    integer, intent(out) :: nzatom, nelpsp, npspcode, ixcpsp, ipsp_source
+    real(gp), dimension(0:4,0:6), intent(out) :: psppar
+    !Local variables
     type(dictionary), pointer :: loc
     character(len = max_field_length) :: str
+    real(gp), dimension(3) :: radii_cf
     integer :: i, l
 
     nzatom = -1
@@ -516,6 +522,20 @@ contains
     if (.not. has_key(dict, "Atomic number")) return
     nzatom = dict // "Atomic number"
 
+    !PSP source
+    str = dict // "Source"
+    select case(str)
+    case(PSP_SOURCE(PSP_SOURCE_HARD_CODED))
+       ipsp_source = PSP_SOURCE_HARD_CODED
+    case(PSP_SOURCE(PSP_SOURCE_FILE))
+       ipsp_source = PSP_SOURCE_FILE
+    case(PSP_SOURCE(PSP_SOURCE_USER))
+       ipsp_source = PSP_SOURCE_USER
+    case default
+       !Undefined: we assume this the name of a file
+       ipsp_source = PSP_SOURCE_FILE
+    end select
+
     ! Optional values.
     if (has_key(dict, "Radii of active regions (AU)")) then
        loc => dict // "Radii of active regions (AU)"
@@ -523,10 +543,11 @@ contains
        if (has_key(loc, "Fine")) radii_cf(2) =  loc // "Fine"
        if (has_key(loc, "Coarse PSP")) radii_cf(3) =  loc // "Coarse PSP"
     end if
+
   end subroutine psp_set_from_dict
 
 
-  !Merge all psp data (coming from a file) in the dictionary
+  !> Merge all psp data (coming from a file) in the dictionary
   subroutine psp_data_merge_to_dict(dict, nzatom, nelpsp, npspcode, ixcpsp, &
        & psppar, radii_cf, rcore, qcore)
     use module_defs, only: gp, UNINITIALIZED

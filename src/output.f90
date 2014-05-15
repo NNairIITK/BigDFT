@@ -1271,6 +1271,7 @@ END SUBROUTINE write_strten_info
 subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
   use module_base
   use module_types
+  use module_atoms, only: PSP_SOURCE
   use module_xc
   use vdwcorrection
   use yaml_output
@@ -1341,11 +1342,12 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
        call yaml_map('Coarse',radii_cf(ityp,1),fmt='(f8.5)')
        call yaml_map('Fine',radii_cf(ityp,2),fmt='(f8.5)')
        call yaml_map('Coarse PSP',radii_cf(ityp,3),fmt='(f8.5)')
-       if (atoms%radii_cf(ityp, 1) == UNINITIALIZED(1.0_gp)) then
-          call yaml_map('Source','Hard-Coded')
-       else
-          call yaml_map('Source','PSP File')
-       end if
+       call yaml_map('Source',PSP_SOURCE(atoms%ipsp_source(ityp)))
+       !if (atoms%radii_cf(ityp, 1) == UNINITIALIZED(1.0_gp)) then
+       !   call yaml_map('Source','Hard-Coded')
+       !else
+       !   call yaml_map('Source','PSP File')
+       !end if
      call yaml_close_map()
 
      minrad=1.e10_gp

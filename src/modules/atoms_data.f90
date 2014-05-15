@@ -9,12 +9,22 @@
 
 
 !> Handling of input guess creation from basis of atomic orbitals
-!! and alos pseudopotentials
+!! and also pseudopotentials
 module module_atoms
   use module_defs, only: dp,gp
   use ao_inguess, only: aoig_data
   implicit none
   private
+
+  !> Source of the PSP coefficients
+  integer, parameter, public :: PSP_SOURCE_HARD_CODED = 1
+  integer, parameter, public :: PSP_SOURCE_FILE = 2
+  integer, parameter, public :: PSP_SOURCE_USER = 3
+  integer, parameter, public :: PSP_SOURCE_UNKNOWN = 4
+  character(len=*), dimension(4), parameter, public :: PSP_SOURCE = (/ "Hard-Coded  ", &
+                                                                       "PSP File    ", &
+                                                                       "User defined", &
+                                                                       "Unknown     " /)
 
   !> Quantities used for the symmetry operators. To be used in atomic_structure derived type.
   type, public :: symmetry_data
@@ -44,14 +54,15 @@ module module_atoms
 
   !> Data containing the information about the atoms in the system
   type, public :: atoms_data
-     type(atomic_structure) :: astruct                  !< Atomic structure (positions and so on)
-     type(aoig_data), dimension(:), pointer :: aoig     !< Contains the information needed for generating the AO inputguess data for each atom
-     integer :: natsc                                   !< Number of atoms with semicore occupations at the input guess
+     type(atomic_structure) :: astruct                   !< Atomic structure (positions and so on)
+     type(aoig_data), dimension(:), pointer :: aoig      !< Contains the information needed for generating the AO inputguess data for each atom
+     integer :: natsc                                    !< Number of atoms with semicore occupations at the input guess
 !     integer, dimension(:), pointer :: iasctype
      integer, dimension(:), pointer :: nelpsp
-     integer, dimension(:), pointer :: npspcode
-     integer, dimension(:), pointer :: ixcpsp
-     integer, dimension(:), pointer :: nzatom
+     integer, dimension(:), pointer :: npspcode          !< PSP codes (see @link psp_projectors::pspcode_hgh @endlink)
+     integer, dimension(:), pointer :: ixcpsp            !< PSP ixc code
+     integer, dimension(:), pointer :: nzatom            !< Atomic number
+     integer, dimension(:), pointer :: ipsp_source       !< Source of the PSP (Hard-Coded, PSP File, ...)
      real(gp), dimension(:,:), pointer :: radii_cf       !< User defined radii_cf, overridden in sysprop.f90
      real(gp), dimension(:), pointer :: amu              !< Amu(ntypes)  Atomic Mass Unit for each type of atoms
      !real(gp), dimension(:,:), pointer :: rloc          !< Localization regions for parameters of linear, to be moved somewhere else
@@ -113,10 +124,14 @@ module module_atoms
       call nullify_symmetry_data(astruct%sym)
     end subroutine nullify_atomic_structure
 
+
+    !> Nullify atoms_data structure
     pure function atoms_data_null() result(at)
       type(atoms_data) :: at
       call nullify_atoms_data(at)
     end function atoms_data_null
+
+
     pure subroutine nullify_atoms_data(at)
       implicit none
       type(atoms_data), intent(out) :: at
@@ -132,6 +147,7 @@ module module_atoms
       nullify(at%ixcpsp)
       nullify(at%nzatom)
       nullify(at%radii_cf)
+      nullify(at%ipsp_source)
       nullify(at%amu)
       !     nullify(at%aocc)
       !nullify(at%rloc)
@@ -151,7 +167,8 @@ module module_atoms
       nullify(at%paw_Sm1_matrices)
     end subroutine nullify_atoms_data
 
-    !> destructor of symmetry data operations
+
+    !> Destructor of symmetry data operations
     subroutine deallocate_symmetry_data(sym)
       use dynamic_memory, only: f_free_ptr
       use m_ab6_symmetry, only: symmetry_free
@@ -258,6 +275,9 @@ module module_atoms
          i_all=-product(shape(atoms%radii_cf))*kind(atoms%radii_cf)
          deallocate(atoms%radii_cf,stat=i_stat)
          call memocc(i_stat,i_all,'atoms%radii_cf',subname)
+         i_all=-product(shape(atoms%ipsp_source))*kind(atoms%ipsp_source)
+         deallocate(atoms%ipsp_source,stat=i_stat)
+         call memocc(i_stat,i_all,'atoms%ipsp_source',subname)
          ! Parameters for Linear input guess
          !i_all=-product(shape(atoms%rloc))*kind(atoms%rloc)
          !deallocate(atoms%rloc,stat=i_stat)
@@ -783,6 +803,7 @@ module module_atoms
 
     include 'astruct-inc.f90'
 
+
     !> Terminate the allocation of the memory in the pointers of atoms
     subroutine allocate_atoms_data(atoms)
       implicit none
@@ -1011,6 +1032,8 @@ subroutine allocate_atoms_ntypes(atoms)
   call memocc(i_stat,atoms%ixcpsp,'atoms%ixcpsp',subname)
   allocate(atoms%radii_cf(atoms%astruct%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%radii_cf,'atoms%radii_cf',subname)
+  allocate(atoms%ipsp_source(atoms%astruct%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%ipsp_source,'atoms%ipsp_source',subname)
   ! parameters for NLCC
   allocate(atoms%nlcc_ngv(atoms%astruct%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%nlcc_ngv,'atoms%nlcc_ngv',subname)

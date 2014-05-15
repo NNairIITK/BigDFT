@@ -136,11 +136,13 @@ subroutine run_objects_parse(runObj)
      call deallocate_atoms_data(runObj%atoms) 
      deallocate(runObj%atoms)
   end if
+  ! Allocate atoms_data structure
   call atoms_new(runObj%atoms)
   if (associated(runObj%inputs)) then
      call free_input_variables(runObj%inputs)
      deallocate(runObj%inputs)
   end if
+  !Allocation input_variables structure and initialize it with default values
   call inputs_new(runObj%inputs)
 
   ! Regenerate inputs and atoms.

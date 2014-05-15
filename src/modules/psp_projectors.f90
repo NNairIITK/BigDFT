@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> Module defining datatypes of the projectors as well as constructirs and destructors
+!> Module defining datatypes of the projectors as well as constructors and destructors
 module psp_projectors
   use module_base, only: wp,gp
   use locregs
@@ -25,13 +25,13 @@ module psp_projectors
 
   !> Parameters identifying the different strategy for the application of a projector 
   !! in a localisation region
-  integer, parameter :: PSP_APPLY_SKIP=0 !<the projector is not applied. This might happend when ilr and iat does not interact
-  integer, parameter :: PSP_APPLY_MASK=1 !<use mask arrays. The mask array has to be created before.
-  integer, parameter :: PSP_APPLY_KEYS=2 !<use keys. No mask nor packing. Equivalend to traditional application
-  integer, parameter :: PSP_APPLY_MASK_PACK=3 !<use masking and creates a pack arrays from them. 
+  integer, parameter :: PSP_APPLY_SKIP=0      !< The projector is not applied. This might happend when ilr and iat does not interact
+  integer, parameter :: PSP_APPLY_MASK=1      !< Use mask arrays. The mask array has to be created before.
+  integer, parameter :: PSP_APPLY_KEYS=2      !< Use keys. No mask nor packing. Equivalend to traditional application
+  integer, parameter :: PSP_APPLY_MASK_PACK=3 !< Use masking and creates a pack arrays from them. 
   !!Most likely this is the common usage for atoms with lots of projectors and localization regions "close" to them
-  integer, parameter :: PSP_APPLY_KEYS_PACK=4 !<use keys and pack arrays. Useful especially when there is no memory to create a lot of packing arrays, 
-  !!for example when lots of lrs interacts with lots of atoms
+  integer, parameter :: PSP_APPLY_KEYS_PACK=4 !< Use keys and pack arrays. Useful especially when there is no memory to create a lot of packing arrays, 
+                                              !! for example when lots of lrs interacts with lots of atoms
 
   !> arrays defining how a given projector and a given wavefunction descriptor should interact
   type, public :: nlpsp_to_wfd

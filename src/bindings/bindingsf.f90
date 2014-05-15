@@ -502,6 +502,7 @@ subroutine lzd_get_llr(Lzd, i, llr)
 END SUBROUTINE lzd_get_llr
 
 
+!> Allocation input_variables structure and initialize it with default values
 subroutine inputs_new(in)
   use module_types
   use dictionaries
