@@ -3,7 +3,7 @@
 int main(int argc, const char **argv)
 {
   guint iproc, nproc, igroup, ngroup;
-  int ierr, i;
+  int ierr;
 
 /* #define NAT 2 */
 /*   const gchar *types[] = {"C", "O", NULL}; */
