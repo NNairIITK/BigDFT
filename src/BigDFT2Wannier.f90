@@ -770,6 +770,7 @@ program BigDFT2Wannier
          write(*,*)
          write(*,*)
       end if
+      call f_free(overlap_proj)
  
      ! Write the .amn file
       if (iproc == 0) call write_amn(seedname, orbsb%norb, n_kpts, orbsp%norb, amnk)
@@ -1013,6 +1014,7 @@ END SUBROUTINE deallocate_amnk_calculation
 subroutine final_deallocations()
   use module_atoms, only: deallocate_atoms_data
 
+  call deallocate_work_arrays_sumrho(w)
   call f_free(psi_etsf)
   call f_free(psir)
   call f_free(psir_re)
