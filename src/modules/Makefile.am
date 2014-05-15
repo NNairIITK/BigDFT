@@ -158,7 +158,7 @@ constrained_dft.o: base.o types.o fragments.o sparsematrix_base.o sparsematrix.o
 input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o types.o defs.o ao_inguess.o interfaces.o atoms_data.o
 psp_projectors.o: locregs.o
 locregs.o: base.o
-ao_inguess.o: $(AO_INCLUDES) base.o
+ao_inguess.o: $(AO_INCLUDES) base.o psp_projectors.o
 atoms_data.o: $(ATOMS_INCLUDES) ao_inguess.o
 communications_base.o: base.o
 communications_init.o: base.o types.o communications_base.o
