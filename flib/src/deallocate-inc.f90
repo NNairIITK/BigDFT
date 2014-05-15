@@ -39,6 +39,7 @@ if (track_origins) then
      dict_add=>find_key(mems(ictrl)%dict_routine,trim(address))
      if (.not. associated(dict_add)) then
         dict_add=>find_key(mems(ictrl)%dict_global,trim(address))
+        if (.not. associated(dict_add)) write(*,*) sqrt(-1.d0)
         if (f_err_raise(.not. associated(dict_add),'address '//trim(address)//&
              ' not present in dictionary',ERR_INVALID_MALLOC)) then
            call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
