@@ -1949,7 +1949,9 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
       if (orbs%norbp>0) then
          call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, ovrlp_coeff(1,orbs%isorb+1), error)
       else
-         error=0.d0
+         ! It is necessary to call the routine since it has a built-in mpiallred.
+         ! Use the first element of ovrlp_coeff; thanks to orbs%norbp==0 this should be safe
+         call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, ovrlp_coeff(1,1), error)
       end if
   else
      call deviation_from_unity_parallel(iproc, 1, norb, norb, 0, ovrlp_coeff(1,1), error)    
@@ -2086,7 +2088,9 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
         if (orbs%norbp>0) then
            call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, ovrlp_coeff(1,orbs%isorb+1), error)
         else
-           error=0.d0
+           ! It is necessary to call the routine since it has a built-in mpiallred.
+           ! Use the first element of ovrlp_coeff; thanks to orbs%norbp==0 this should be safe
+           call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, ovrlp_coeff(1,1), error)
         end if
      else
         call deviation_from_unity_parallel(iproc, 1, norb, norb, 0, ovrlp_coeff(1,1), error)    
