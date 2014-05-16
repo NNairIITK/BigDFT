@@ -80,7 +80,11 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
   ! need to transform xred into xcart
   do i = 1, scfloop_obj%atoms%astruct%nat, 1
      do j=1,3
-        scfloop_obj%atoms%astruct%rxyz(j,i)=modulo(xred(j,i),1._gp)*acell(j)
+        if (scfloop_obj%atoms%astruct%geocode=='F') then
+           scfloop_obj%atoms%astruct%rxyz(j,i)=xred(j,i)*acell(j)
+        else
+           scfloop_obj%atoms%astruct%rxyz(j,i)=modulo(xred(j,i),1._gp)*acell(j)
+        end if
      end do
   end do
 
