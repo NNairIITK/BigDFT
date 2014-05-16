@@ -22,22 +22,22 @@ module gaussians
   integer, parameter :: NTERM_MAX_KINETIC=190      !< Maximum number of terms for the considered shells in the case of laplacian
   integer, parameter :: L_MAX=3                    !< Maximum number of angular momentum considered
 
-  integer :: itype_scf=0 !< type of the interpolating SCF, 0= data unallocated
-  integer :: n_scf=-1    !< number of points of the allocated data
-  real(gp), dimension(:), allocatable :: scf_data !< values for the interpolating scaling functions points
+  integer :: itype_scf=0                          !< Type of the interpolating SCF, 0= data unallocated
+  integer :: n_scf=-1                             !< Number of points of the allocated data
+  real(gp), dimension(:), allocatable :: scf_data !< Values for the interpolating scaling functions points
 
   !> Structures of basis of gaussian functions
   type, public :: gaussian_basis
-     integer :: nat  !< number of centers
-     integer :: ncoeff !< number of total basis elements
-     integer :: nshltot !< total number of shells (m quantum number ignored) 
-     integer :: nexpo !< number of exponents (sum of the contractions)
-     integer :: ncplx !< number of complex comp. (real or complex gaussians)
+     integer :: nat     !< Number of centers
+     integer :: ncoeff  !< Number of total basis elements
+     integer :: nshltot !< Total number of shells (m quantum number ignored) 
+     integer :: nexpo   !< Number of exponents (sum of the contractions)
+     integer :: ncplx   !< Number of complex comp. (real or complex gaussians)
      !storage units
-     integer, dimension(:), pointer :: nshell !< number of shells for any of the centers
-     integer, dimension(:), pointer :: ndoc,nam !< degree of contraction, angular momentum of any shell
-     real(gp), dimension(:,:), pointer :: xp,psiat !<factors and values of the exponents (complex numbers are allowed)
-     real(gp), dimension(:,:), pointer :: rxyz !<positions of the centers
+     integer, dimension(:), pointer :: nshell      !< Number of shells for any of the centers
+     integer, dimension(:), pointer :: ndoc,nam    !< Degree of contraction, angular momentum of any shell
+     real(gp), dimension(:,:), pointer :: xp,psiat !< Factors and values of the exponents (complex numbers are allowed)
+     real(gp), dimension(:,:), pointer :: rxyz     !< Positions of the centers
   end type gaussian_basis
 
   !> Structures of basis of gaussian functions
@@ -201,7 +201,8 @@ contains
 
   end subroutine initialize_real_space_conversion
 
-
+ 
+  !> Deallocate scf_data
   subroutine finalize_real_space_conversion(subname)
     implicit none
     character(len=*), intent(in) :: subname
@@ -243,18 +244,20 @@ contains
     else
        x=hgrid*j-x0
        mp_exp=exp(-expo*x**2)
-       if (pow /=0) mp_exp=mp_exp*(x**pow)
+       if (pow /= 0) mp_exp=mp_exp*(x**pow)
     end if
   end function mp_exp
 
 
   !> This function calculates the scalar product between a ISF and a 
   !! input function, which is a gaussian times a power centered
+  !! @f$g(x) = (x-x_0)^{pow} e^{-pgauss (x-x_0)}@f$
   !! here pure specifier is redundant
   !! we should add here the threshold from which the 
   !! normal function can be evaluated
   elemental pure function scfdotf(j,hgrid,pgauss,x0,pow) result(gint)
     implicit none
+    !Arguments
     integer, intent(in) :: j !<value of the input result in the hgrid reference
     integer, intent(in) :: pow
     real(gp), intent(in) :: hgrid,pgauss,x0
@@ -270,22 +273,31 @@ contains
     x  = real(j-itype_scf+1,gp)-dx
 
     !the loop can be unrolled to maximize performances
-    do i=0,n_scf
-       x=x+dx
-       absci = x*hgrid - x0
-       !here evaluate the function
-       if (pow/=0) then
-          fabsci=absci**pow
-       else
-          fabsci=1.0_gp
-       end if
-       absci = -pgauss*absci*absci
-       fabsci=fabsci*dexp(absci)
-       !calculate the integral
-       gint=gint+scf_data(i)*fabsci
-!       print *,'test',i,scf_data(i),fabsci,pgauss,pow,absci
-    end do
-    gint=gint*dx
+    if (pow /= 0) then
+       do i=0,n_scf
+          x=x+dx
+          absci = x*hgrid - x0
+          !here evaluate the function
+          fabsci = absci**pow
+          absci = -pgauss*absci*absci
+          fabsci = fabsci*dexp(absci)
+          !calculate the integral
+          gint = gint + scf_data(i)*fabsci
+   !       print *,'test',i,scf_data(i),fabsci,pgauss,pow,absci
+       end do
+    else
+       do i=0,n_scf
+          x=x+dx
+          absci = x*hgrid - x0
+          !here evaluate the function
+          absci = -pgauss*absci*absci
+          fabsci = dexp(absci)
+          !calculate the integral
+          gint = gint + scf_data(i)*fabsci
+   !       print *,'test',i,scf_data(i),fabsci,pgauss,pow,absci
+       end do
+    end if
+    gint = gint*dx
 
   end function scfdotf
 
