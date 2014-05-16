@@ -17,6 +17,7 @@
   deallocate(array,stat=ierror)
 
   if (ierror/=0) then
+      write(*,*) sqrt(-1.d0)
      call f_err_throw('Deallocation problem, error code '//trim(yaml_toa(ierror)),&
           ERR_DEALLOCATE)
      return

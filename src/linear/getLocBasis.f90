@@ -1362,6 +1362,7 @@ subroutine diagonalizeHamiltonian2(iproc, norb, HamSmall, ovrlp, eval)
 
 
   call timing(iproc,'diagonal_seq  ','ON')
+  call f_routine(id='diagonalizeHamiltonian2')
 
   ! DEBUG: print hamiltonian and overlap matrices
   !if (iproc==0) then
@@ -1405,6 +1406,7 @@ subroutine diagonalizeHamiltonian2(iproc, norb, HamSmall, ovrlp, eval)
 
   call f_free(work)
 
+  call f_release_routine()
   call timing(iproc,'diagonal_seq  ','OF')
 
 end subroutine diagonalizeHamiltonian2

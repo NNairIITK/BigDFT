@@ -527,6 +527,8 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
   logical :: print_local
   integer :: size_of_double, info, mpisource, istsource, istdest, nsize, jproc, irho
 
+  call f_routine('sumrho_for_TMBs')
+
   ! check whether all entries of the charge density are positive
   rho_negative=.false.
 
@@ -675,6 +677,8 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
   !!write(*,*) 'after deallocate'
   !!call mpi_finalize(ierr)
   !!stop
+
+  call f_release_routine()
 
 end subroutine sumrho_for_TMBs
 

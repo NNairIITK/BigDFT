@@ -837,6 +837,8 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
   integer :: ngridp,ngridlob,loc
   integer, allocatable :: keyg_loc(:,:)
 
+  call f_routine('segkeys_periodic')
+
   !should be initialized
   ngridp=-1000
   ngridlob=-1000
@@ -939,6 +941,8 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
 
  call f_free(keyg_loc)
 
+ call f_release_routine()
+
 END SUBROUTINE segkeys_periodic
 
 
@@ -961,6 +965,8 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
   real(kind=8) :: cut, dx, dy, dz
   logical :: segment
   integer, allocatable :: keygloc(:,:)
+
+  call f_routine('segkeys_Sphere')
 
   keygloc = f_malloc((/ 2, nseg /),id='keygloc')
 
@@ -1066,6 +1072,8 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
 !    print *,'iseg,keyglob,keyvglob,keygloc,keyvloc',iseg,keyglob(1,iseg),keyvglob(iseg),keygloc(1,iseg),keyvloc(iseg)
   end do
   call f_free(keygloc)
+
+  call f_release_routine()
 
 END SUBROUTINE segkeys_Sphere
 

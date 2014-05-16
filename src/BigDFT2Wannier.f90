@@ -1014,7 +1014,7 @@ END SUBROUTINE deallocate_amnk_calculation
 subroutine final_deallocations()
   use module_atoms, only: deallocate_atoms_data
 
-  call f_free(psi_etsf)
+  call deallocate_work_arrays_sumrho(w)
   call f_free(psi_etsf)
   call f_free(psir)
   call f_free(psir_re)
