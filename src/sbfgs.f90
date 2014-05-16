@@ -527,7 +527,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
 
 1000 continue!converged successfully
    
-   if(iproc==0) write(16,'(2(a,xi0))') "SBFGS converged at ",it," needed bigdft calls ",ncount_bigdft
+   if(iproc==0) write(16,'(2(a,xi0))') "SBFGS converged at iteration ",it,". Needed bigdft calls: ",ncount_bigdft
    if(iproc==0)  call yaml_map('Iterations when SBFGS converged',it)
    fail=.false.
    
