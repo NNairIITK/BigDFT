@@ -259,7 +259,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
       !only used when in steepest decent mode
       if(maxd>trustr .and. steep)then
          if(debug.and.iproc==0)write(100,'(a,xes24.17,xi0)')'step too large',maxd,it
-         if(iproc==0)write(16,'(a,2(xes9.2))')'WARNING GEOPT_SBFGS: step too large: maxd, trustradius',maxd,trustr
+         if(iproc==0)write(16,'(a,2(xes9.2))')'WARNING GEOPT_SBFGS: step too large: maxd, trustradius ',maxd,trustr
          scl=0.50_gp*trustr/maxd
          dd=dd*scl
          tt=tt*scl
@@ -323,7 +323,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
    
       if (detot.gt.maxrise .and. beta > 1.d-1*betax) then !
          if (debug.and.iproc==0) write(100,'(a,i0,1x,e9.2)') "WARN: it,detot", it,detot
-         if (debug.and.iproc==0) write(16,'(a,i0,4(xe9.2))') "WARNING GEOPT_SBFGS: Prevent energy to rise by more than maxrise: it,maxrise,detot,beta,1.d-1*betax",&
+         if (debug.and.iproc==0) write(16,'(a,i0,4(xe9.2))') "WARNING GEOPT_SBFGS: Prevent energy to rise by more than maxrise: it,maxrise,detot,beta,1.d-1*betax ",&
                                                               it,maxrise,detot,beta,1.d-1*betax
 
          if(ncount_bigdft >= nit)then!no convergence within ncount_cluster_x energy evaluations
@@ -360,7 +360,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
       call copy_global_output(outs,outsIO)
 
       if(detot .gt. maxrise)then
-         if (iproc==0) write(16,'(a,i0,4(xe9.2))') "WARNING GEOPT_SBFGS: Allowed energy to rise by more than maxrise: it,maxrise,detot,beta,1.d-1*betax",&
+         if (iproc==0) write(16,'(a,i0,4(xe9.2))') "WARNING GEOPT_SBFGS: Allowed energy to rise by more than maxrise: it,maxrise,detot,beta,1.d-1*betax ",&
                                                               it,maxrise,detot,beta,1.d-1*betax
       endif
 
