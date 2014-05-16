@@ -12,7 +12,6 @@
 !  call timing(0,'AllocationProf','IR') 
   !then perform all the checks and profile the allocation procedure
   if (ierror/=0) then
-     write(*,*) sqrt(-1.d0)
      call f_err_throw('Allocation problem, error code '//trim(yaml_toa(ierror)),ERR_ALLOCATE)
      call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
      return
