@@ -145,15 +145,12 @@ program WaCo
         outputype,nwannCon,refpos,units,sprdfact,sprddiff,enediff,outformat,linear,nbandCon,sprdmult)
 
    if(.not.linear) nbandCon=1
-   allocate(ConstList(nwannCon),stat=i_stat)
-   call memocc(i_stat, ConstList,'ConstList',subname)
-   allocate(bandlist(nbandCon),stat=i_stat)
-   call memocc(i_stat, bandlist,'bandlist',subname)
+   ConstList = f_malloc(nwannCon,id='ConstList')
+   bandlist = f_malloc(nbandCon,id='bandlist')
 
    call read_input_waco(trim(radical)//'.waco',nwannCon,ConstList,linear,nbandCon,bandlist) 
 
-   allocate(radii_cf(atoms%astruct%ntypes,3+ndebug),stat=i_stat)
-   call memocc(i_stat,radii_cf,'radii_cf',subname)
+   radii_cf = f_malloc((/ atoms%astruct%ntypes, 3 /),id='radii_cf')
 
    call system_properties(iproc,nproc,input,atoms,orbs,radii_cf)
 
@@ -174,9 +171,7 @@ program WaCo
    if (iproc == 0) call print_wfd(Glr%wfd)
 
    ! don't need radii_cf anymore
-   i_all = -product(shape(radii_cf))*kind(radii_cf)
-   deallocate(radii_cf,stat=i_stat)
-   call memocc(i_stat,i_all,'radii_cf',subname)
+   call f_free(radii_cf)
 
    !#################################################################
    ! Read Other files
@@ -184,8 +179,7 @@ program WaCo
    !input.inter
    call read_inter_header(iproc,seedname, filetype,residentity,write_resid, n_occ, pre_check,&
         n_virt_tot, n_virt, w_unk, w_sph, w_ang, w_rad)
-   allocate(virt_list(n_virt),stat=i_stat)
-   call memocc(i_stat,virt_list,'virt_list',subname)
+   virt_list = f_malloc(n_virt,id='virt_list')
    if (n_virt .ne. 0) then
       call read_inter_list(iproc, n_virt, virt_list)
    end if 
@@ -200,22 +194,17 @@ program WaCo
    end if
 
    ! seedname.umn
-   allocate(umn(nwann,nband),stat=i_stat)
-   call memocc(i_stat,umn,'umn',subname)
+   umn = f_malloc((/ nwann, nband /),id='umn')
    call read_umn(iproc,nwann,nband,seedname,umn)
 
    !seedname.dat
-   allocate(wann_list(nwann),stat=i_stat)
-   call memocc(i_stat,wann_list,'wann_list',subname)
+   wann_list = f_malloc(nwann,id='wann_list')
    call read_spread_file(iproc,seedname,nwann,plotwann,wann_list)
 
    ! Read Wannier centers
-   allocate(cxyz(3,plotwann),stat=i_stat)
-   call memocc(i_stat,cxyz,'cxyz',subname)
-   allocate(rxyz_wann(3,atoms%astruct%nat),stat=i_stat)
-   call memocc(i_stat,rxyz_wann,'rxyz_wann',subname)
-   allocate(sprd(plotwann+1),stat=i_stat)
-   call memocc(i_stat,sprd,'sprd',subname)
+   cxyz = f_malloc_ptr((/ 3, plotwann /),id='cxyz')
+   rxyz_wann = f_malloc_ptr((/ 3, atoms%astruct%nat /),id='rxyz_wann')
+   sprd = f_malloc(plotwann+1,id='sprd')
    call read_centers(iproc,nwann,plotwann,atoms%astruct%nat,seedname,wann_list,cxyz,rxyz_wann,.true.,sprd)
 
    call timing(iproc,'Precondition  ','OF')
@@ -232,8 +221,7 @@ program WaCo
       !write(*,*)
    end if
 
-   allocate(rho(nwann,nwann),stat=i_stat)
-   call memocc(i_stat,rho,'rho',subname)
+   rho = f_malloc((/ nwann, nwann /),id='rho')
    call to_zero(nwann*nwann, rho(1,1))
 
    do i=1,nwann
@@ -263,8 +251,7 @@ program WaCo
    !##################################################################
    ! Check idempotence of density matrix
    !##################################################################
-   allocate(rhoprime(nwann,nwann),stat=i_stat)
-   call memocc(i_stat,rhoprime,'rhoprime',subname)
+   rhoprime = f_malloc((/ nwann, nwann /),id='rhoprime')
    call to_zero(nwann*nwann, rhoprime(1,1))
    
    idemp = .true.
@@ -287,12 +274,8 @@ program WaCo
      stop 
    end if
 
-   i_all = -product(shape(rhoprime))*kind(rhoprime)
-   deallocate(rhoprime,stat=i_stat)
-   call memocc(i_stat,i_all,'rhoprime',subname)
-   i_all = -product(shape(rho))*kind(rho)
-   deallocate(rho,stat=i_stat)
-   call memocc(i_stat,i_all,'rho',subname)
+   call f_free(rhoprime)
+   call f_free(rho)
 
 
    !########################################################
@@ -309,10 +292,8 @@ program WaCo
 
 
       !wann_list will contain the list of occupied Wannier functions
-      allocate(Zatoms(atoms%astruct%nat,plotwann),stat=i_stat)
-      call memocc(i_stat,Zatoms,'Zatoms',subname)  
-      allocate(ncenters(plotwann),stat=i_stat)
-      call memocc(i_stat,ncenters,'ncenters',subname)
+      Zatoms = f_malloc((/ atoms%astruct%nat, plotwann /),id='Zatoms')
+      ncenters = f_malloc(plotwann,id='ncenters')
 
 
       ! Now calculate the bonding distances and ncenters
@@ -348,8 +329,7 @@ program WaCo
       if (iproc == 0) call yaml_close_sequence()
 
      ! Calculate occupation of the wannier functions
-     allocate(wannocc(nwann),stat=i_stat)
-     call memocc(i_stat,wannocc,'wannocc',subname)
+     wannocc = f_malloc(nwann,id='wannocc')
      wannocc = 0.0_dp
      do iwann = 1, nwann
         do iband = 1, n_occ
@@ -359,12 +339,9 @@ program WaCo
      if(iproc == 0) call yaml_map('Total number of electrons',2*sum(wannocc))
      !if(iproc == 0) write(*,*) 'Total number of electrons: ',2*sum(wannocc)
 
-      allocate(distw(maxval(ncenters)),stat=i_stat)
-      call memocc(i_stat,distw,'distw',subname)
-      allocate(charge(atoms%astruct%nat),stat=i_stat)
-      call memocc(i_stat,charge,'charge',subname)
-      allocate(prodw(maxval(ncenters)),stat=i_stat)
-      call memocc(i_stat,prodw,'prodw',subname)
+      distw = f_malloc(maxval(ncenters),id='distw')
+      charge = f_malloc(atoms%astruct%nat,id='charge')
+      prodw = f_malloc(maxval(ncenters),id='prodw')
 
       ! Calculate "Wannier charge" = 2 *occupation* product(d_all_atoms__associated_with_this_wannier_except_this_one) / d_total
       charge = 0.0_dp
@@ -416,14 +393,10 @@ program WaCo
 !Character analysis
       call read_amn_header(seedname,nproj,nband_old,nkpt_old)
 
-      allocate(amn(nband,nproj),stat=i_stat)
-      call memocc(i_stat,amn,'amn',subname)
-      allocate(tmatrix(nwann,nproj),stat=i_stat)
-      call memocc(i_stat,tmatrix,'tmatrix',subname)
-      allocate(l(nproj),stat=i_stat)
-      call memocc(i_stat,l,'l',subname)
-      allocate(mr(nproj),stat=i_stat)
-      call memocc(i_stat,mr,'mr',subname)
+      amn = f_malloc((/ nband, nproj /),id='amn')
+      tmatrix = f_malloc((/ nwann, nproj /),id='tmatrix')
+      l = f_malloc(nproj,id='l')
+      mr = f_malloc(nproj,id='mr')
 
       call read_amn(seedname,amn,nproj,nband,nkpt_old)
       call read_proj(seedname, nkpt_old, nproj, l, mr)
@@ -434,27 +407,13 @@ program WaCo
       if(iproc == 0) then
          call character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr) 
       end if
-      i_all = -product(shape(l))*kind(l)
-      deallocate(l,stat=i_stat)
-      call memocc(i_stat,i_all,'l',subname)   
-      i_all = -product(shape(mr))*kind(mr)
-      deallocate(mr,stat=i_stat)
-      call memocc(i_stat,i_all,'mr',subname)   
-      i_all = -product(shape(amn))*kind(amn)
-      deallocate(amn,stat=i_stat)
-      call memocc(i_stat,i_all,'amn',subname)   
-      i_all = -product(shape(tmatrix))*kind(tmatrix)
-      deallocate(tmatrix,stat=i_stat)
-      call memocc(i_stat,i_all,'tmatrix',subname)   
-      i_all = -product(shape(distw))*kind(distw)
-      deallocate(distw,stat=i_stat)
-      call memocc(i_stat,i_all,'distw',subname)   
-      i_all = -product(shape(charge))*kind(charge)
-      deallocate(charge,stat=i_stat)
-      call memocc(i_stat,i_all,'charge',subname)   
-      i_all = -product(shape(prodw))*kind(prodw)
-      deallocate(prodw,stat=i_stat)
-      call memocc(i_stat,i_all,'prodw',subname)   
+      call f_free(l)
+      call f_free(mr)
+      call f_free(amn)
+      call f_free(tmatrix)
+      call f_free(distw)
+      call f_free(charge)
+      call f_free(prodw)
 
 !DEBUG Test distribution on all the atoms
 !     write(*,*) '######################ENTERING DEBUG#################'
@@ -514,15 +473,13 @@ program WaCo
 !      call memocc(i_stat,i_all,'prodw',subname)   
 !END DEBUG
 
-      i_all = -product(shape(wannocc))*kind(wannocc)
-      deallocate(wannocc,stat=i_stat)
-      call memocc(i_stat,i_all,'wannocc',subname)   
+      call f_free(wannocc)
 
       !DOS of the sprd
-      allocate(wtypes(2,nwann))
+      wtypes = f_malloc((/ 2, nwann /),id='wtypes')
       wtypes = 1
       call wannier_dos('sprd.dat',1,plotwann,2,wtypes,sprd)
-      deallocate(wtypes)
+      call f_free(wtypes)
 
 !      call scalar_kmeans_diffIG(0,maxval(sprd(1:plotwann-1))*1.0d-1,plotwann,sprd,'spread',nsprd,buf)
       call scalar_kmeans_diffIG(iproc,0,sprddiff,plotwann,sprd,'spread',nsprd,buf)
@@ -579,16 +536,11 @@ program WaCo
          end do
          rad =sqrt(rad)
 
-         allocate(proj(atoms%astruct%nat,3),stat=i_stat)
-         call memocc(i_stat,proj,'proj',subname)
-         allocate(projC(plotwann,3),stat=i_stat)
-         call memocc(i_stat,projC,'projC',subname)
-         allocate(nfacets(plotwann),stat=i_stat)
-         call memocc(i_stat,nfacets,'nfacets',subname)
-         allocate(facets(plotwann,maxval(ncenters)*(maxval(ncenters)-1)/2,3),stat=i_stat)
-         call memocc(i_stat,facets,'facets',subname)
-         allocate(vertex(plotwann,maxval(ncenters)*(maxval(ncenters)-1)/2,3),stat=i_stat)
-         call memocc(i_stat,vertex,'vertex',subname)
+         proj = f_malloc((/ atoms%astruct%nat, 3 /),id='proj')
+         projC = f_malloc((/ plotwann, 3 /),id='projC')
+         nfacets = f_malloc(plotwann,id='nfacets')
+         facets = f_malloc((/ plotwann, maxval(ncenters)*(maxval(ncenters)-1)/2, 3 /),id='facets')
+         vertex = f_malloc((/ plotwann, maxval(ncenters)*(maxval(ncenters)-1)/2, 3 /),id='vertex')
 
          ! Do stereographic projection of atoms and Wannier centers
          call stereographic_projection(0,atoms%astruct%nat,rxyz_wann,refpos, CM, rad, proj, normal, NeglectPoint)
@@ -613,38 +565,18 @@ program WaCo
          call output_stereographic_graph(atoms%astruct%nat,maxval(ncenters),proj,projC,plotwann,ncenters,Zatoms,nfacets,&
               facets,vertex,normal,NeglectPoint)
 
-         i_all = -product(shape(nfacets))*kind(nfacets)
-         deallocate(nfacets,stat=i_stat)
-         call memocc(i_stat,i_all,'nfacets',subname)
-         i_all = -product(shape(facets))*kind(facets)
-         deallocate(facets,stat=i_stat)
-         call memocc(i_stat,i_all,'facets',subname)
-         i_all = -product(shape(vertex))*kind(vertex)
-         deallocate(vertex,stat=i_stat)
-         call memocc(i_stat,i_all,'vertex',subname)
-         i_all = -product(shape(proj))*kind(proj)
-         deallocate(proj,stat=i_stat)
-         call memocc(i_stat,i_all,'proj',subname)
-         i_all = -product(shape(projC))*kind(projC)
-         deallocate(projC,stat=i_stat)
-         call memocc(i_stat,i_all,'projC',subname)
+         call f_free(nfacets)
+         call f_free(facets)
+         call f_free(vertex)
+         call f_free(proj)
+         call f_free(projC)
       end if
-      i_all = -product(shape(cxyz))*kind(cxyz)
-      deallocate(cxyz,stat=i_stat)
-      call memocc(i_stat,i_all,'cxyz',subname)
-      i_all = -product(shape(rxyz_wann))*kind(rxyz_wann)
-      deallocate(rxyz_wann,stat=i_stat)
-      call memocc(i_stat,i_all,'rxyz_wann',subname)
-      i_all = -product(shape(sprd))*kind(sprd)
-      deallocate(sprd,stat=i_stat)
-      call memocc(i_stat,i_all,'sprd',subname)
-      i_all = -product(shape(Zatoms))*kind(Zatoms)
-      deallocate(Zatoms,stat=i_stat)
-      call memocc(i_stat,i_all,'Zatoms',subname)
+      call f_free_ptr(cxyz)
+      call f_free_ptr(rxyz_wann)
+      call f_free(sprd)
+      call f_free(Zatoms)
       if(.not. hamilAna) then
-         i_all = -product(shape(ncenters))*kind(ncenters)
-         deallocate(ncenters,stat=i_stat)
-         call memocc(i_stat,i_all,'ncenters',subname)
+         call f_free(ncenters)
       end if
 
      if (iproc == 0) then
@@ -667,15 +599,13 @@ program WaCo
 
       call read_nrpts_hamiltonian(iproc,seedname,nrpts) 
 
-      allocate(ham(nrpts,nwann,nwann),stat=i_stat)
-      call memocc(i_stat,ham,'ham',subname)
+      ham = f_malloc((/ nrpts, nwann, nwann /),id='ham')
 
       call read_hamiltonian(iproc,nrpts,nwann,seedname,ham)
 
 
       !Eliminate the unoccupied states
-      allocate(hamr(nrpts,plotwann,plotwann),stat=i_stat)
-      call memocc(i_stat,hamr,'hamr',subname)
+      hamr = f_malloc((/ nrpts, plotwann, plotwann /),id='hamr')
       do i = 1, nrpts
         do iiwann = 1, plotwann
               iw1 = wann_list(iiwann)
@@ -687,21 +617,18 @@ program WaCo
       end do
 
      if(.not.bondAna)then
-        allocate(buf(plotwann),stat=i_stat)
-        call memocc(i_stat,buf,'buf',subname)
+        buf = f_malloc_ptr(plotwann,id='buf')
         buf = 1
      end if
 
      ! Diagonal fo the hamiltonian matrix
-     allocate(diag(nrpts,nwann),stat=i_stat)
-     call memocc(i_stat,diag,'diag',subname)
+     diag = f_malloc((/ nrpts, nwann /),id='diag')
      do i = 1, nrpts
         do iwann = 1, nwann
            diag(i,iwann) = ham(i,iwann,iwann)
         end do
      end do
-     allocate(wtypes(nrpts,nwann),stat=i_stat)
-     call memocc(i_stat,wtypes,'wtypes',subname)
+     wtypes = f_malloc((/ nrpts, nwann /),id='wtypes')
      do i = 1, nrpts
         do iwann = 1, nwann
            notocc = .true.
@@ -717,17 +644,13 @@ program WaCo
         end do
      end do
 
-     allocate(eigen(1,nband),stat=i_stat)
-     call memocc(i_stat,eigen,'eigen',subname)
+     eigen = f_malloc((/ 1, nband /),id='eigen')
      call read_eigenvalues(trim(seedname)//'.eig',nband,1,eigen)
      call wannier_projected_dos('Wannier_projected_dos.dat',nrpts,nwann,nband,umn,nsprd+1,wtypes,eigen)
      call wannier_dos('Wannier_dos.dat',nrpts,nwann,nsprd+1,wtypes,diag)
-     i_all = -product(shape(eigen))*kind(eigen)
-     deallocate(eigen,stat=i_stat)
-     call memocc(i_stat,i_all,'eigen',subname)
+     call f_free(eigen)
 
-     allocate(diagT(plotwann),stat=i_stat)
-     call memocc(i_stat,diagT,'diagT',subname)
+     diagT = f_malloc(plotwann,id='diagT')
 
      if (iproc == 0) call yaml_open_sequence('Diagonal of the Hamiltonian (without empty WFs)')
      !if(iproc == 0) write(*,'(A)') 'Diagonal of the Hamiltonian (without empty WFs)'
@@ -757,28 +680,16 @@ program WaCo
      if (iproc == 0) call yaml_close_sequence()
 
      !Deallocate buf, because it is allocated again in scalar_kmeans_diffIG
-     i_all=-product(shape(buf))*kind(buf)
-     deallocate(buf,stat=i_stat)
-     call memocc(i_stat,i_all,'buf',subname)
+     call f_free_ptr(buf)
      if(.not. bondAna) nsprd = 0  !if we didn't do bonding analysis, find here the best for the hamiltonian
      call scalar_kmeans_diffIG(iproc,nsprd,enediff,plotwann,diagT,'diagonal',ndiag,buf)
 
-     i_all=-product(shape(wtypes))*kind(wtypes)
-     deallocate(wtypes,stat=i_stat)
-     call memocc(i_stat,i_all,'wtypes',subname)
-     i_all=-product(shape(diagT))*kind(diagT)
-     deallocate(diagT,stat=i_stat)
-     call memocc(i_stat,i_all,'diagT',subname)
-     i_all=-product(shape(hamr))*kind(hamr)
-     deallocate(hamr,stat=i_stat)
-     call memocc(i_stat,i_all,'hamr',subname)
-     i_all=-product(shape(diag))*kind(diag)
-     deallocate(diag,stat=i_stat)
-     call memocc(i_stat,i_all,'diag',subname)
+     call f_free(wtypes)
+     call f_free(diagT)
+     call f_free(hamr)
+     call f_free(diag)
      if(bondAna)then
-        i_all = -product(shape(ncenters))*kind(ncenters)
-        deallocate(ncenters,stat=i_stat)
-        call memocc(i_stat,i_all,'ncenters',subname)
+        call f_free(ncenters)
      end if
 
      if (iproc == 0) then 
@@ -808,14 +719,10 @@ program WaCo
          & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv,.false.)
 
      if(linear)then
-       allocate(cxyz(3,nwannCon),stat=i_stat)
-       call memocc(i_stat,cxyz,'cxyz',subname)
-       allocate(rxyz_wann(3,atoms%astruct%nat),stat=i_stat)
-       call memocc(i_stat,rxyz_wann,'rxyz_wann',subname)
-       allocate(sprd(nwannCon+1),stat=i_stat)
-       call memocc(i_stat,sprd,'sprd',subname)
-       allocate(locrad(nwannCon),stat=i_stat)
-       call memocc(i_stat,locrad,'locrad',subname)
+       cxyz = f_malloc_ptr((/ 3, nwannCon /),id='cxyz')
+       rxyz_wann = f_malloc_ptr((/ 3, atoms%astruct%nat /),id='rxyz_wann')
+       sprd = f_malloc(nwannCon+1,id='sprd')
+       locrad = f_malloc(nwannCon,id='locrad')
 
        call read_centers(iproc,nwann,nwannCon,atoms%astruct%nat,seedname,ConstList,cxyz,rxyz_wann,.true.,sprd)
 
@@ -835,12 +742,8 @@ program WaCo
        end do
        if (iproc == 0) call yaml_close_sequence
 
-       i_all = -product(shape(rxyz_wann))*kind(rxyz_wann)
-       deallocate(rxyz_wann,stat=i_stat)
-       call memocc(i_stat,i_all,'rxyz_wann',subname)
-       i_all = -product(shape(sprd))*kind(sprd)
-       deallocate(sprd,stat=i_stat)
-       call memocc(i_stat,i_all,'sprd',subname)
+       call f_free_ptr(rxyz_wann)
+       call f_free(sprd)
  
      ! Should construct a proper Lzd for each Wannier, then use global -> local transformation
        call nullify_local_zone_descriptors(Lzd)
@@ -849,8 +752,7 @@ program WaCo
        lzd%hgrids(2)=input%hy
        lzd%hgrids(3)=input%hz
        allocate(Lzd%Llr(nwannCon))
-       allocate(calcbounds(nwannCon),stat=i_stat)
-       call memocc(i_stat,calcbounds,'calcbounds',subname)
+       calcbounds = f_malloc(nwannCon,id='calcbounds')
        calcbounds =.false.  
        do ilr=1,nwannCon
           Lzd%llr(ilr)%locregCenter(1)=cxyz(1,ilr)
@@ -891,10 +793,8 @@ program WaCo
      end select
 
      npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsw%norbp*orbsw%nspinor,sum(commsw%ncntt(0:nproc-1)))
-     allocate(psi(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbsw%norbp*orbsw%nspinor),stat=i_stat)
-     call memocc(i_stat,psi,'psi',subname)
-     allocate(rxyz_old(3,atoms%astruct%nat),stat=i_stat)  
-     call memocc(i_stat,rxyz_old,'rxyz_old',subname)
+     psi = f_malloc((/ Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, orbsw%norbp*orbsw%nspinor /),id='psi')
+     rxyz_old = f_malloc_ptr((/ 3, atoms%astruct%nat /),id='rxyz_old')
      ! For the occupied orbitals, need to modifify norbp,isorb to match the total distributed scheme
      orbs%norbp = n_occ - orbsw%isorb
      if (orbsw%isorb + orbsw%norbp < n_occ ) orbs%norbp = orbsw%norbp
@@ -941,7 +841,7 @@ program WaCo
 
 
      call f_free_ptr(rxyz_old)
-     call f_free_ptr(virt_list)
+     call f_free(virt_list)
 
 
      call timing(iproc,'CrtProjectors ','OF')
@@ -966,10 +866,8 @@ program WaCo
      end if
 
 
-     allocate(wann(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f),stat=i_stat)
-     call memocc(i_stat,wann,'wann',subname) 
-     allocate(wannr(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i),stat=i_stat)
-     call memocc(i_stat,wannr,'wannr',subname) 
+     wann = f_malloc(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,id='wann')
+     wannr = f_malloc(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,id='wannr')
      call initialize_work_arrays_sumrho(Glr,w)
 
 
@@ -1034,8 +932,7 @@ program WaCo
                  call open_filename_of_iorb(ifile,.not.outformat,'minBasis',orbsw,iiwann,1,iwann_out)
                  ldim = Lzd%Llr(iiwann)%wfd%nvctr_c+7*Lzd%Llr(iiwann)%wfd%nvctr_f
                  gdim = Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f
-                 allocate(lwann(ldim),stat=i_stat)
-                 call memocc(i_stat,lwann,'lwann',subname)
+                 lwann = f_malloc(ldim,id='lwann')
                 !DEBUG
                  !call plot_wf(trim(seedname)//'_'//num,1,atoms,1.0d0,Lzd%Glr,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),rxyz,wann)
                  !call wpdot_wrap(1,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,&
@@ -1065,9 +962,7 @@ program WaCo
                    Lzd%Llr(iiwann)%wfd%keyglob(1,Lzd%Llr(iiwann)%wfd%nseg_c+1),&
                    Lzd%Llr(iiwann)%wfd%keyvglob(Lzd%Llr(iiwann)%wfd%nseg_c+1), & 
                    lwann(1),lwann(Lzd%Llr(iiwann)%wfd%nvctr_c+1), ham(1,iwann,iwann))
-                  i_all = -product(shape(lwann))*kind(lwann)
-                  deallocate(lwann,stat=i_stat)
-                  call memocc(i_stat,i_all,'lwann',subname)
+                  call f_free(lwann)
               else if(hamilana) then
                 ! open(ifile, file=trim(seedname)//'_'//num//'.bin', status='unknown',form='formatted')
                  call open_filename_of_iorb(ifile,.not.outformat,trim(seedname),orbsw,iwann,1,iwann_out)
@@ -1096,8 +991,7 @@ program WaCo
      !Now if linear, write the coefficients
      if(linear .and. iproc == 0)then
         ! First construct the appropriate coefficient matrix
-        allocate(umnt(nwannCon,nband),stat=i_stat)
-        call memocc(i_stat,umnt,'umnt',subname)
+        umnt = f_malloc((/ nwannCon, nband /),id='umnt')
         do iiwann = 1, nwannCon
            iwann = ConstList(iiwann)
            if(iwann == 0) then
@@ -1219,20 +1113,13 @@ program WaCo
 
      if(linear)then
         call deallocate_local_zone_descriptors(Lzd, subname)
-        i_all = -product(shape(locrad))*kind(locrad)
-        deallocate(locrad,stat=i_stat)
-        call memocc(i_stat,i_all,'locrad',subname)
-        i_all = -product(shape(cxyz))*kind(cxyz)
-        deallocate(cxyz,stat=i_stat)
-        call memocc(i_stat,i_all,'cxyz',subname)
+        call f_free(locrad)
+        call f_free_ptr(cxyz)
         if(iproc == 0) then
            i_all = -product(shape(umnt))*kind(umnt)
-           deallocate(umnt,stat=i_stat)
-           call memocc(i_stat,i_all,'umnt',subname)
+           i_all = -product(shape(umnt))*kind(umnt)
         end if
-        i_all = -product(shape(calcbounds))*kind(calcbounds)
-        deallocate(calcbounds,stat=i_stat)
-        call memocc(i_stat,i_all,'calcbounds',subname)
+        call f_free(calcbounds)
      end if
      call deallocate_work_arrays_sumrho(w)
      call deallocate_orbs(orbsv,subname)
@@ -1240,44 +1127,24 @@ program WaCo
      call deallocate_comms(commsw,subname)
 
 
-     i_all = -product(shape(wann))*kind(wann)
-     deallocate(wann,stat=i_stat)
-     call memocc(i_stat,i_all,'wann',subname)
-     i_all = -product(shape(wannr))*kind(wannr)
-     deallocate(wannr,stat=i_stat)
-     call memocc(i_stat,i_all,'wannr',subname)
-     i_all = -product(shape(psi))*kind(psi)
-     deallocate(psi,stat=i_stat)
-     call memocc(i_stat,i_all,'psi',subname)
+     call f_free(wann)
+     call f_free(wannr)
+     call f_free(psi)
   end if
 
   if(.not. WannCon) then
-     i_all = -product(shape(virt_list))*kind(virt_list)
-     deallocate(virt_list,stat=i_stat)
-     call memocc(i_stat,i_all,'virt_list',subname)    
+     call f_free(virt_list)
   end if
-  i_all = -product(shape(Constlist))*kind(Constlist)
-  deallocate(Constlist,stat=i_stat)
-  call memocc(i_stat,i_all,'Constlist',subname)
-  i_all = -product(shape(bandlist))*kind(bandlist)
-  deallocate(bandlist,stat=i_stat)
-  call memocc(i_stat,i_all,'bandlist',subname)
-  i_all = -product(shape(umn))*kind(umn)
-  deallocate(umn,stat=i_stat)
-  call memocc(i_stat,i_all,'umn',subname)
+  call f_free(Constlist)
+  call f_free(bandlist)
+  call f_free(umn)
   if(bondana .or. hamilana) then
-     i_all = -product(shape(buf))*kind(buf)
-     deallocate(buf,stat=i_stat)
-     call memocc(i_stat,i_all,'buf',subname)
+     call f_free_ptr(buf)
   end if
   if(hamilana) then
-     i_all=-product(shape(ham))*kind(ham)
-     deallocate(ham,stat=i_stat)
-     call memocc(i_stat,i_all,'ham',subname)
+     call f_free(ham)
   end if
-  i_all = -product(shape(wann_list))*kind(wann_list)
-  deallocate(wann_list,stat=i_stat)
-  call memocc(i_stat,i_all,'wann_list',subname)
+  call f_free(wann_list)
   call deallocate_lr(Glr,subname)
   call deallocate_orbs(orbs,subname)
   !call deallocate_atoms_scf(atoms,subname)
@@ -1905,8 +1772,7 @@ subroutine scalar_kmeans_diffIG(iproc,nIG,crit,nel,vect,string,nbuf,buf)
   ! Implement k-means for the diagonal 
   !1) Initial guess
   if(nIG == 0) then ! Maximum Difference between states (determines the number of clusters)
-     allocate(buffers(nel),stat=i_stat)
-     call memocc(i_stat,buffers,'buffers',subname)
+     buffers = f_malloc(nel,id='buffers')
      nbuf = 0
      buffers = 9999.99999_dp
      do iel = 1, nel
@@ -1923,8 +1789,7 @@ subroutine scalar_kmeans_diffIG(iproc,nIG,crit,nel,vect,string,nbuf,buf)
      end do
   else if (nIG > 0) then  ! Random IG
      nbuf = nIG
-     allocate(buffers(nbuf),stat=i_stat)
-     call memocc(i_stat,buffers,'buffers',subname)
+     buffers = f_malloc(nbuf,id='buffers')
      do i= 1, nbuf
         call init_random_seed(i)
         call random_number(r)          !returns a random number between [0,1]
@@ -1935,20 +1800,15 @@ subroutine scalar_kmeans_diffIG(iproc,nIG,crit,nel,vect,string,nbuf,buf)
   end if
 
   ! Store the initial guess in means
-  allocate(means(nbuf),stat=i_stat)
-  call memocc(i_stat,means,'means',subname)
+  means = f_malloc(nbuf,id='means')
   do i = 1, nbuf
      means(i) = buffers(i)
   end do
 
-  allocate(diff(nbuf),stat=i_stat)
-  call memocc(i_stat,diff,'diff',subname)
-  allocate(degen(nbuf),stat=i_stat)
-  call memocc(i_stat,degen,'degen',subname)
-  allocate(buf(nel),stat=i_stat)
-  call memocc(i_stat,buf,'buf',subname)
-  allocate(oldbuf(nel),stat=i_stat)
-  call memocc(i_stat,oldbuf,'oldbuf',subname)
+  diff = f_malloc(nbuf,id='diff')
+  degen = f_malloc(nbuf,id='degen')
+  buf = f_malloc_ptr(nel,id='buf')
+  oldbuf = f_malloc(nel,id='oldbuf')
  
   buf = 0 
   iter = 0
@@ -2007,39 +1867,30 @@ subroutine scalar_kmeans_diffIG(iproc,nIG,crit,nel,vect,string,nbuf,buf)
      end do
   end if
 
-  i_all = -product(shape(means))*kind(means)
-  deallocate(means,stat=i_stat)
-  call memocc(i_stat,i_all,'means',subname)
-  i_all = -product(shape(buffers))*kind(buffers) 
-  deallocate(buffers,stat=i_stat)
-  call memocc(i_stat,i_all,'buffers',subname)
-  i_all = -product(shape(diff))*kind(diff) 
-  deallocate(diff,stat=i_stat)
-  call memocc(i_stat,i_all,'diff',subname)
-  i_all = -product(shape(degen))*kind(degen)
-  deallocate(degen,stat=i_stat)
-  call memocc(i_stat,i_all,'degen',subname)
-  i_all = -product(shape(oldbuf))*kind(oldbuf)
-  deallocate(oldbuf,stat=i_stat)
-  call memocc(i_stat,i_all,'oldbuf',subname)
+  call f_free(means)
+  call f_free(buffers)
+  call f_free(diff)
+  call f_free(degen)
+  call f_free(oldbuf)
 
 end subroutine scalar_kmeans_diffIG
 
 subroutine init_random_seed(shuffler)
+  use dynamic_memory
   implicit none
   integer, intent(in) :: shuffler
   integer :: i, n, clock
   integer, dimension(:), allocatable :: seed
           
   call random_seed(size = n)
-  allocate(seed(n))
+  seed = f_malloc(n,id='seed')
   
   call system_clock(count=clock)
   
   seed = clock*shuffler + 37 * (/ (i - 1, i = 1, n) /)
   call random_seed(put = seed)
   
-  deallocate(seed)
+  call f_free(seed)
 end subroutine init_random_seed
 
 subroutine stereographic_projection(mode,natom, rxyz, refpos, CM, rad, proj, normal, dcp)
@@ -2066,8 +1917,7 @@ subroutine stereographic_projection(mode,natom, rxyz, refpos, CM, rad, proj, nor
  !  write (*,'(A,3(2x,E14.6))')'Center of mass:',(CM(j),j=1,3)
  !  write (*,'(A,2x,E14.6)')'Radius of containing sphere:', rad 
 
-   allocate(pos(natom,3),stat=i_stat)
-   call memocc(i_stat,pos,'pos',subname)
+   pos = f_malloc((/ natom, 3 /),id='pos')
  
    ! Now rad is the radius of the sphere
    ! Must displace all atoms to be on the corresponding sphere
@@ -2216,9 +2066,7 @@ subroutine stereographic_projection(mode,natom, rxyz, refpos, CM, rad, proj, nor
       normal(j) = r(j)/sqrt(r(1)**2+r(2)**2+r(3)**2)
    end do
 
-   i_all = -product(shape(pos))*kind(pos)
-   deallocate(pos,stat=i_stat)
-   call memocc(i_stat,i_all,'pos',subname)
+   call f_free(pos)
 
 end subroutine stereographic_projection
 
@@ -2865,8 +2713,7 @@ subroutine character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr)
       mr_used(ntype) = mr(np)
    end do loop_np1
 
-   allocate(Wpweight(nwann,ntype),stat=i_stat)
-   call memocc(i_stat,Wpweight,'Wpweight',subname)
+   Wpweight = f_malloc((/ nwann, ntype /),id='Wpweight')
    allocate(Wplabel(ntype),stat=i_stat)
    call memocc(i_stat,Wplabel,'Wplabel',subname)
 
@@ -2896,8 +2743,7 @@ subroutine character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr)
       end do
    end do loop_np
 
-   allocate(norm(nwann), stat=i_stat)
-   call memocc(i_stat,norm,'norm',subname)
+   norm = f_malloc(nwann,id='norm')
 
    !calcualte norm
    norm = 0.0d0
@@ -2921,12 +2767,8 @@ subroutine character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr)
      end do
 !   end if
 
-    i_all = -product(shape(norm))*kind(norm)
-    deallocate(norm,stat=i_stat)
-    call memocc(i_stat,i_all,'norm',subname)
-    i_all = -product(shape(Wpweight))*kind(Wpweight)
-    deallocate(Wpweight,stat=i_stat)
-    call memocc(i_stat,i_all,'Wpweight',subname)
+    call f_free(norm)
+    call f_free(Wpweight)
     i_all = -product(shape(Wplabel))*kind(Wplabel)
     deallocate(Wplabel,stat=i_stat)
     call memocc(i_stat,i_all,'Wplabel',subname)

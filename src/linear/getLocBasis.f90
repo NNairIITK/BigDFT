@@ -1362,6 +1362,7 @@ subroutine diagonalizeHamiltonian2(iproc, norb, HamSmall, ovrlp, eval)
 
 
   call timing(iproc,'diagonal_seq  ','ON')
+  call f_routine(id='diagonalizeHamiltonian2')
 
   ! DEBUG: print hamiltonian and overlap matrices
   !if (iproc==0) then
@@ -1405,6 +1406,7 @@ subroutine diagonalizeHamiltonian2(iproc, norb, HamSmall, ovrlp, eval)
 
   call f_free(work)
 
+  call f_release_routine()
   call timing(iproc,'diagonal_seq  ','OF')
 
 end subroutine diagonalizeHamiltonian2
@@ -1946,7 +1948,13 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
 
   ! check whether this routine will be stable
   if (norb==orbs%norb) then
-     call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, ovrlp_coeff(1,orbs%isorb+1), error)
+      if (orbs%norbp>0) then
+         call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, ovrlp_coeff(1,orbs%isorb+1), error)
+      else
+         ! It is necessary to call the routine since it has a built-in mpiallred.
+         ! Use the first element of ovrlp_coeff; thanks to orbs%norbp==0 this should be safe
+         call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, ovrlp_coeff(1,1), error)
+      end if
   else
      call deviation_from_unity_parallel(iproc, 1, norb, norb, 0, ovrlp_coeff(1,1), error)    
   end if
@@ -2079,7 +2087,13 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
      end if
 
      if (norb==orbs%norb) then
-        call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, ovrlp_coeff(1,orbs%isorb+1), error)
+        if (orbs%norbp>0) then
+           call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, ovrlp_coeff(1,orbs%isorb+1), error)
+        else
+           ! It is necessary to call the routine since it has a built-in mpiallred.
+           ! Use the first element of ovrlp_coeff; thanks to orbs%norbp==0 this should be safe
+           call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, ovrlp_coeff(1,1), error)
+        end if
      else
         call deviation_from_unity_parallel(iproc, 1, norb, norb, 0, ovrlp_coeff(1,1), error)    
      end if

@@ -1843,6 +1843,7 @@ subroutine orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
   integer :: iorb
 
   !find starting orbital
+  isorb=1 !default if orbs%norbp==0
   do iorb=1,orbs%norbp
      if (orbs%iokpt(iorb)==ikpt) then
         isorb=iorb
@@ -1851,6 +1852,7 @@ subroutine orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
   end do
 
   !find ending orbital
+  ieorb=0 !default if orbs%norbp==0
   do iorb=orbs%norbp,1,-1
      if (orbs%iokpt(iorb)==ikpt) then
         ieorb=iorb

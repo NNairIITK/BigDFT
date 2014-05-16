@@ -124,7 +124,6 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
          !psiw => null()
          psiw = f_malloc_ptr(1,id='psiw')
       endif
-      call memocc(i_stat,psiw,'psiw',subname)
 
       !transpose the wavefunction psi 
       call transpose_v(iproc,nproc,KSwfn%orbs,KSwfn%lzd%glr%wfd,KSwfn%comms,KSwfn%psi(1),psiw(1))

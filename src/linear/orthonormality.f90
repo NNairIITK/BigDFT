@@ -1757,6 +1757,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
   !type(matrices) :: inv_ovrlp_half_
 
   call timing(iproc,'lovrlp^-1/2par','ON')
+  call f_routine('overlap_power_minus_one_half_parallel')
 
   in_neighborhood = f_malloc(orbs%norb,id='in_neighborhood')
 
@@ -1903,6 +1904,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
 
   !call deallocate_matrices(inv_ovrlp_half_)
 
+  call f_release_routine
   call timing(iproc,'lovrlp^-1/2par','OF')
 
 end subroutine overlap_power_minus_one_half_parallel
@@ -2763,8 +2765,8 @@ subroutine overlap_minus_one_half_serial(iproc, nproc, iorder, power, blocksize,
       end if
 
 
-  call timing(iproc,'lovrlp^-1     ','OF')
   call f_release_routine()
+  call timing(iproc,'lovrlp^-1     ','OF')
 
 
 end subroutine overlap_minus_one_half_serial

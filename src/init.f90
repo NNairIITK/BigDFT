@@ -2428,7 +2428,9 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
     !$OMP END PARALLEL DO
   end do
 
- call mpiallred(shift(1,1),lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*5, MPI_SUM,bigdft_mpi%mpi_comm) 
+  if (nproc > 1) then
+      call mpiallred(shift(1,1),lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*5, MPI_SUM,bigdft_mpi%mpi_comm) 
+  end if
 
 !Interpolation
  do iorb = 1,orbs%norbp
