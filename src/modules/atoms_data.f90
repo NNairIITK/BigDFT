@@ -21,7 +21,7 @@ module module_atoms
   integer, parameter, public :: RADII_SOURCE_FILE = 2
   integer, parameter, public :: RADII_SOURCE_USER = 3
   integer, parameter, public :: RADII_SOURCE_UNKNOWN = 4
-  character(len=*), dimension(4), parameter, public :: RADII_SOURCE = (/ "Hard-coded  ", &
+  character(len=*), dimension(4), parameter, public :: RADII_SOURCE = (/ "Hard-Coded  ", &
                                                                          "PSP File    ", &
                                                                          "User defined", &
                                                                          "Unknown     " /)

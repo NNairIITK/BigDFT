@@ -247,7 +247,7 @@ contains
             & nelpsp, npspcode, ixc, psppar(:,:), exists)
        call psp_data_merge_to_dict(dict // filename, nzatom, nelpsp, npspcode, ixc, &
             & psppar(0:4,0:6), radii_cf, UNINITIALIZED(1._gp), UNINITIALIZED(1._gp))
-       call set(dict // filename // "Source", "Hard-coded")
+       call set(dict // filename // "Source", "Hard-Coded")
     else
        nzatom = dict // filename // "Atomic number"
        nelpsp = dict // filename // "No. of Electrons"

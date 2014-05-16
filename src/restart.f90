@@ -3244,9 +3244,7 @@ subroutine print_reformat_summary(iproc,nproc,reformat_reason)
 
   integer :: ierr
 
-  if (nproc > 1) then
-     call mpiallred(reformat_reason(0), 7, mpi_sum, bigdft_mpi%mpi_comm)
-  end if
+  if (nproc > 1) call mpiallred(reformat_reason(0), 7, mpi_sum, bigdft_mpi%mpi_comm)
 
   if (iproc==0) then
         call yaml_open_map('Overview of the reformatting (several categories may apply)')
