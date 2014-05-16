@@ -788,11 +788,6 @@ subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, 
   cut=locrad**2
   n1p1=n1glob+1
   np=n1p1*(n2glob+1)
-  !$omp parallel default(none) &
-  !$omp shared(nsegglob,keygglob,n1glob,n2glob,n3glob,nl1glob,nl2glob,nl3glob,locregCenter) &
-  !$omp shared(ixmin,iymin,izmin,ixmax,iymax,izmax,hx,hy,hz,cut,n1p1,np) &
-  !$omp private(iseg,jj,j0,j1,ii,i3,i2,i0,i1,ii2,ii3,ii1,i,dx,dy,dz,iiimin,isegmin)
-  !$omp do
   do iseg=1,nsegglob
       j0=keygglob(1,iseg)
       j1=keygglob(2,iseg)
@@ -821,8 +816,6 @@ subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, 
           end if
       end do
   end do
-  !$omp enddo
-  !$omp end parallel
 
 END SUBROUTINE determine_boxbounds_sphere
 
