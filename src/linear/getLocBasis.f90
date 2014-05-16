@@ -1866,7 +1866,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   !   communication_strategy=ALLGATHERV
   !end if
 
-  ovrlp_coeff = f_malloc_ptr((/ norb, norb /),id='ovrlp_coeff')
+  ovrlp_coeff=f_malloc_ptr((/norb,norb/), id='ovrlp_coeff')
 
   !!if(iproc==0) then
   !!    write(*,'(a)',advance='no') 'coeff renormalization...'
