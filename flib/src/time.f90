@@ -555,6 +555,7 @@ module time_profiling
       end do
       call yaml_close_sequence(unit=unt)
 
+
     end subroutine timing_dump_line
 
     !>put the average value of timeall in the timesum array
@@ -678,8 +679,8 @@ module time_profiling
       total_pc=0.d0
       do icls=1,ncls
          pc=0.0d0
-         if (times(ictrl)%clocks(ncat+1)/=0.d0) &
-              pc=100.d0*timecls(icls,nproc)/times(ictrl)%clocks(ncat+1)
+         if (timeall(ncat+1,nproc)/=0.d0) &
+              pc=100.d0*timecls(icls,nproc)/timeall(ncat+1,nproc)!times(ictrl)%clocks(ncat+1)
          total_pc=total_pc+pc
          !only nonzero classes are printed out
          if (timecls(icls,nproc) /= 0.d0) then
@@ -695,19 +696,22 @@ module time_profiling
          i=isort(j)
          pc=0.d0
          !only nonzero categories are printed out
-         if (times(ictrl)%clocks(i) /= 0.d0) then
+         if (timeall(i,nproc) /= 0.d0) then
             dict_cat=>times(ictrl)%dict_timing_categories//i
-            if (times(ictrl)%clocks(ncat+1)/=0.d0)&
-                 pc=100.d0*times(ictrl)%clocks(i)/times(ictrl)%clocks(ncat+1)
+            if (timeall(ncat+1,nproc)/=0.d0)&
+                 pc=100.d0*timeall(i,nproc)/timeall(ncat+1,nproc)
             name=dict_cat//catname
-            call timing_dump_line(trim(name),tabfile,pc,times(ictrl)%clocks(i),&
+            call yaml_open_map(trim(name))
+            call timing_dump_line('Data',tabfile,pc,timeall(i,nproc),&
                  loads=timeall(i,0:nextra-1))
             name=dict_cat//grpname
             call yaml_map('Class',trim(name))
             name=dict_cat//catinfo
             call yaml_map('Info',trim(name))
+            call yaml_close_map()
          end if
       enddo
+
       call yaml_close_map() !categories
       call yaml_close_map() !counter
       !restore the default stream
@@ -792,6 +796,7 @@ module time_profiling
      call timing_dump_line('Total',tabfile,100.d0,sum(timecnt(1:ncounters,nproc)))
      call yaml_close_map() !summary
 
+     !here this information can be dumped by adding an extra dictionary to the routine arguments
      call yaml_open_map('CPU parallelism')
      call yaml_map('MPI_tasks',nproc)
      nthreads = 0
@@ -855,6 +860,7 @@ subroutine sum_results(ncat,mpi_comm,message,timesum)
   call f_release_routine()
 
 END SUBROUTINE sum_results
+
 
 !> interrupts all timing activities to profile the category indicated by cat_id
 !! see e.g. http://en.wikipedia.org/wiki/Interrupt 

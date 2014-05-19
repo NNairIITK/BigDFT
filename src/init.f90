@@ -940,6 +940,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
               at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
               pnrm,denspot%dpbox%nscatterarr)
       end if
+      call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
       if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
          ! set the initial potential
          call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
@@ -947,6 +948,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
               at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
               pnrm,denspot%dpbox%nscatterarr)
       end if
+      call local_potential_dimensions(iproc,tmb%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
   end if
 
   ! Orthonormalize the input guess if necessary
@@ -955,7 +957,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       tmb%can_use_transposed = .false.                                         
       call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
            tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp_large, &
-           tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+           tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed, &
+           tmb%foe_obj)
   end if  
 
 
@@ -989,7 +992,7 @@ subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
        & orbs,d%n1,d%n2,d%n3,hx,hy,hz,atoms,rxyz_old,rxyz,wfd,psi)
 
   !reduce the value for all the eigenvectors
-  if (nproc > 1) call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+  if (nproc > 1) call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
 
   if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) then
      !recalculate orbitals occupation numbers
@@ -2129,7 +2132,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,atoms,rxyz,denspot,GPU,&
              infoCoeff,energs,nlpsp,in%SIC,tmb,pnrm,.false.,.false.,&
              .true.,ham_small,0,0,0,0,in%lin%order_taylor,&
-             in%purification_quickreturn,in%calculate_KS_residue) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
+             in%purification_quickreturn,in%adjust_FOE_temperature,in%calculate_KS_residue,in%calculate_gap) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
 
         !if (iproc==0) then
         !print*,'coeffs after extra diag:'
@@ -2509,7 +2512,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
     !$OMP END PARALLEL DO
   end do
 
- call MPIALLRED(shift(1,1),lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*5, MPI_SUM,bigdft_mpi%mpi_comm,ierr) 
+ call mpiallred(shift(1,1),lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*5, MPI_SUM,bigdft_mpi%mpi_comm) 
 
 !Interpolation
  do iorb = 1,orbs%norbp

@@ -590,9 +590,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       fnrm_tot=fnrm_tot+fnrmArr(iorb)
       if (it>1) fnrmOld_tot=fnrmOld_tot+fnrmOldArr(iorb)
   end do
-  if (it>1) call mpiallred(fnrmOvrlp_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  call mpiallred(fnrm_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  call mpiallred(fnrmOld_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (it>1) call mpiallred(fnrmOvrlp_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  call mpiallred(fnrm_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  call mpiallred(fnrmOld_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
   ! ###########################################
 
   fnrm=0.d0
@@ -620,8 +620,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           !!alpha(iorb)=min(alpha(iorb),1.5d0)
       end if
   end do
-  call mpiallred(fnrm, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  call mpiallred(fnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(fnrm, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  call mpiallred(fnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm)
   fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
   fnrmMax=sqrt(fnrmMax)
 
@@ -637,10 +637,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! Determine the mean step size for steepest descent iterations.
   tt=sum(alpha)
-  call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm)
   alpha_mean=tt/dble(tmb%orbs%norb)
   alpha_max=maxval(alpha)
-  call mpiallred(alpha_max, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(alpha_max, 1, mpi_max, bigdft_mpi%mpi_comm)
 
   ! Copy the gradient (will be used in the next iteration to adapt the step size).
   call vcopy(tmb%npsidim_orbs, hpsi_small(1), 1, lhphiold(1), 1)
@@ -775,7 +775,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   if (nproc > 1) then
       garray(1)=gnrm
       garray(2)=gnrm_zero
-      call mpiallred(garray(1),2,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+      call mpiallred(garray(1),2,MPI_SUM,bigdft_mpi%mpi_comm)
       gnrm     =garray(1)
       gnrm_zero=garray(2)
   end if
@@ -808,8 +808,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       ist=ist+ncount
   end do
 
-  call mpiallred(gnrm, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  call mpiallred(gnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(gnrm, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  call mpiallred(gnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm)
   gnrm=sqrt(gnrm/dble(tmb%orbs%norb))
   gnrmMax=sqrt(gnrmMax)
   !if (iproc==0) write(*,'(a,3es16.6)') 'AFTER: gnrm, gnrmmax, gnrm/gnrm_old',gnrm,gnrmmax,gnrm/gnrm_old
@@ -897,7 +897,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   call memocc(istat,iall,'coeff_tmp',subname)
 
   if (nproc>1) then
-      call mpiallred(grad_coeff(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(grad_coeff(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
   ! now calculate sqrt(<g_i|g_i>) and mean value
@@ -962,11 +962,11 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   logical,intent(out) :: complete_reset
 
   ! Local variables
-  integer :: istat, iall, i
+  integer :: istat, iall, i, iorb, ilr, ist, iiorb, ncount
   character(len=*), parameter :: subname='hpsitopsi_linear'
   real(kind=8),dimension(:),allocatable :: psittmp_c, psittmp_f
   real(kind=8), dimension(:),allocatable :: norm
-  real(kind=8) :: ddot
+  real(kind=8) :: ddot, dnrm2, tt
 
   call DIISorSD(iproc, it, trH, tmb, ldiis, alpha, alphaDIIS, lphiold, trH_ref, kernel_best, complete_reset)
   if(iproc==0) then
@@ -1002,11 +1002,11 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
           call yaml_newline()
       end if
   end if
-  if (present(psidiff)) then
-      do i=1,tmb%npsidim_orbs
-          psidiff(i)=tmb%psi(i)-psidiff(i)
-      end do 
-  end if
+  !!if (present(psidiff)) then
+  !!    do i=1,tmb%npsidim_orbs
+  !!        psidiff(i)=tmb%psi(i)-psidiff(i)
+  !!    end do 
+  !!end if
 
   ! The transposed quantities can now not be used any more...
   if(tmb%can_use_transposed) then
@@ -1099,41 +1099,64 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
       !!if(iproc==0) then
       !!     write(*,'(1x,a)',advance='no') 'Orthonormalization... '
       !!end if
+      if (present(psidiff)) then
+          do i=1,tmb%npsidim_orbs
+              psidiff(i)=tmb%psi(i)-psidiff(i)
+          end do 
+      end if
 
       ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
       call orthonormalizeLocalized(iproc, nproc, tmb%orthpar%methTransformOverlap, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
            tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp_large, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
-           tmb%can_use_transposed)
+           tmb%can_use_transposed, tmb%foe_obj)
       if (iproc == 0) then
           call yaml_map('Orthogonalization',.true.)
       end if
   else if (experimental_mode .or. .not.ldiis%switchSD) then
-      ! Wasteful to do it transposed...
-      !if (iproc==0) write(*,*) 'normalize...'
-      if (iproc==0) call yaml_map('normalization',.true.)
-      if(associated(tmb%psit_c)) then
-          iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-          deallocate(tmb%psit_c, stat=istat)
-          call memocc(istat, iall, 'tmb%psit_c', subname)
-      end if
-      if(associated(tmb%psit_f)) then
-          iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-          deallocate(tmb%psit_f, stat=istat)
-          call memocc(istat, iall, 'tmb%psit_f', subname)
-      end if
-      allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-      call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
-      allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-      call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
-      tmb%can_use_transposed=.true.
+      !!! Wasteful to do it transposed...
+      !!!if (iproc==0) write(*,*) 'normalize...'
+      !!if (iproc==0) call yaml_map('normalization',.true.)
+      !!if(associated(tmb%psit_c)) then
+      !!    iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
+      !!    deallocate(tmb%psit_c, stat=istat)
+      !!    call memocc(istat, iall, 'tmb%psit_c', subname)
+      !!end if
+      !!if(associated(tmb%psit_f)) then
+      !!    iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
+      !!    deallocate(tmb%psit_f, stat=istat)
+      !!    call memocc(istat, iall, 'tmb%psit_f', subname)
+      !!end if
+      !!allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
+      !!call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
+      !!allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
+      !!call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+      !!tmb%can_use_transposed=.true.
 
-      call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
-      allocate(norm(tmb%orbs%norb))
-      call normalize_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
-      deallocate(norm)
-      call untranspose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
+      !!call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+      !!allocate(norm(tmb%orbs%norb))
+      !!call normalize_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
+      !!deallocate(norm)
+      !!call untranspose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
+
+      ! ##########################
+      ist=1
+      do iorb=1,tmb%orbs%norbp
+          iiorb=tmb%orbs%isorb+iorb
+          ilr=tmb%orbs%inwhichlocreg(iiorb)
+          ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+          tt=dnrm2(ncount, tmb%psi(ist), 1)
+          tt=1.d0/tt
+          call dscal(ncount, tt, tmb%psi(ist), 1)
+          ist=ist+ncount
+      end do
+      ! ##########################
       if (iproc == 0) then
           call yaml_map('Normalization',.true.)
+      end if
+      if (present(psidiff)) then
+          do i=1,tmb%npsidim_orbs
+              psidiff(i)=tmb%psi(i)-psidiff(i)
+          end do 
       end if
   end if
 

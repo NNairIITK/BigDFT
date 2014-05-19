@@ -27,8 +27,8 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7.1.15
- Timestamp of this run                 : 2014-03-26 07:49:22.360
+ Version Number                        : 1.7.1.16
+ Timestamp of this run                 : 2014-04-11 12:38:20.147
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -52,6 +52,88 @@
      CFLAGS                            : -g -O2
      FCFLAGS                           : -O2 -i_dynamic -msse4.2 -heap-arrays 1024 -openmp
      CXXFLAGS                          : -g -O2
+ #... (file:read35.lin)....................................................Linear Parameters
+ #|2              number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybri
+ #|0              outer loop iterations (low, high)                                          
+ #|4              basis iterations (low, high)                                               
+ #|1              kernel iterations (low, high) - directmin only                             
+ #|8              density iterations (low, high)                                             
+ #|0              DIIS history for basis (low, high)                                         
+ #|0              DIIS history for kernel (low, high) - directmin only                       
+ #|0              DIIS history for density mixing (low, high)                                
+ #|1.d0     1     density mixing parameter (low, high)                                       
+ #|1.d-9    1.d-  outer loop convergence (low, high)                                         
+ #|5.d-6    1.d-6  1.d-4    basis convergence (low, high) ; early stop TMB optimization, dyna
+ #|0.5d0          factor to reduce the confinement. Only used for hybrid mode.               
+ #|1.d-5    1.d   kernel convergence (low, high) - directmin only                            
+ #|1.d-10   1.d-1 density convergence (low, high)                                            
+ #|1.d-12         convergence criterion on density to fix TMBS                               
+ #|100            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
+ #|1.d0     1     initial step size for basis optimization (DIIS, SD)                        
+ #|0.2d0          initial step size for kernel update (SD), curve fitting for alpha update - 
+ #|-0.5d0   0.5d  lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted a
+ #|5  1           number of iterations in the preconditioner, order of Taylor approximations 
+ #|8  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
+ #|5.d-2          fscale: length scale over which complementary error function decays from 1 
+ #|0 F F F F      Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
+ #|T F F 0        fragment calculation; calculate transfer_integrals; constrained DFT calcula
+ #|O  4 1.0d-3 5.0d-4 0.0d0 8.0 8.0 8.0 20.0 Atom name, number of basis functions per atom, p
+ #|H  1 1.0d-3 5.0d-4 0.0d0 8.0 8.0 8.0 20.0 Atom name, number of basis functions per atom, p
+ Dictionary for lin:
+   lin_general:
+     hybrid                            : No
+     nit: [0, 1]
+     rpnrm_cv: [1.00000000000000006E-009, 1.00000000000000004E-010]
+     conf_damping                      : 0.5
+     taylor_order                      : 8
+     output_wf                         : 0
+     calc_dipole                       : No
+     calc_pulay: [No, No]
+     subspace_diag                     : No
+   lin_basis:
+     nit: [4, 1]
+     idsx: [0, 0]
+     gnrm_cv: [5.00000000000000041E-006, 9.99999999999999955E-007]
+     deltae_cv                         : 1.00000000000000005E-004
+     gnrm_dyn                          : 1.00000000000000005E-004
+     alpha_diis                        : 1.0
+     alpha_sd                          : 1.0
+     nstep_prec                        : 5
+   lin_kernel:
+     nstep: [1, 1]
+     nit: [8, 1]
+     idsx_coeff: [0, 0]
+     idsx: [0, 0]
+     alphamix: [1.0, 1.0]
+     gnrm_cv_coeff: [1.00000000000000008E-005, 1.00000000000000008E-005]
+     rpnrm_cv: [1.00000000000000004E-010, 1.00000000000000004E-010]
+     linear_method                     : DIRMIN
+     alpha_sd_coeff                    : 0.20000000000000001
+     alpha_fit_coeff                   : No
+     eval_range_foe: [-0.5, 0.5]
+     fscale_foe                        : 5.00000000000000028E-002
+   lin_basis_params:
+     O:
+       nbasis                          : 4
+       ao_confinement                  : 1.00000000000000002E-003
+       confinement: [5.0000000000000001E-004, 0.0]
+       rloc: [8.0, 8.0]
+       rloc_kernel                     : 8.0
+       rloc_kernel_foe                 : 20.0
+     H:
+       nbasis                          : 1
+       ao_confinement                  : 1.00000000000000002E-003
+       confinement: [5.0000000000000001E-004, 0.0]
+       rloc: [8.0, 8.0]
+       rloc_kernel                     : 8.0
+       rloc_kernel_foe                 : 20.0
+ #... (file:read35.frag).................................................Fragment Parameters
+ #|1 4            # number of fragments in reference system, number of fragments in current s
+ #|1 h2o          #  reference fragment number i, fragment label                             
+ #|1 1 0.0        # fragment number j, reference fragment i this corresponds to, charge on th
+ #|2 1 0.0        # fragment number j, reference fragment i this corresponds to, charge on th
+ #|3 1 0.0        # fragment number j, reference fragment i this corresponds to, charge on th
+ #|4 1 0.0        # fragment number j, reference fragment i this corresponds to, charge on th
   #------------------------------------------------------------------------ Input parameters
  radical                               : read35
  perf:
@@ -102,6 +184,10 @@
    method_updatekernel                 : 0 #      linear scaling update density kernel during the sup. func. optimization (0 
     #                                              purification, 1 FOE)
    purification_quickreturn            : No #     linear scaling quick return in purification
+   adjust_FOE_temperature              : Yes #    linear scaling dynamic adjustment of the decay length of the FOE error function
+   calculate_gap                       : No #     linear scaling calculate the HOMO LUMO gap
+   loewdin_charge_analysis             : No #     linear scaling perform a Loewdin charge analysis at the end of the calculation
+   check_matrix_compression            : Yes #    linear scaling perform a check of the matrix compression routines
  dft:
    hgrids: [0.29999999999999999, 0.29999999999999999, 0.29999999999999999] # grid spacing in the three directions (bohr)
    rmult: [5.0, 7.0] #                            c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
@@ -171,6 +257,7 @@
    gnrm_cv: [5.00000000000000041E-006, 9.99999999999999955E-007] # convergence criterion for the optimization of the support functions (low/high accuracy)
    deltae_cv                           : 1.00000000000000005E-004 # total relative energy difference to stop the optimization ('experimental_mode' only)
    gnrm_dyn                            : 1.00000000000000005E-004 # dynamic convergence criterion ('experimental_mode' only)
+   min_gnrm_for_dynamic                : 1.00000000000000002E-003 # minimal gnrm to active the dynamic gnrm criterion
    fix_basis                           : 9.9999999999999998E-013 # fix the support functions if the density change is below this threshold
    alpha_diis                          : 1.0 #    multiplactor for DIIS
    alpha_sd                            : 1.0 #    initial step size for SD
@@ -265,88 +352,6 @@
      Fine                              : 0.20000000000000001
      Coarse PSP                        : 0.20000000000000001
      Source                            : Hard-coded
- #... (file:read35.lin)....................................................Linear Parameters
- #|2              number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybri
- #|0              outer loop iterations (low, high)                                          
- #|4              basis iterations (low, high)                                               
- #|1              kernel iterations (low, high) - directmin only                             
- #|8              density iterations (low, high)                                             
- #|0              DIIS history for basis (low, high)                                         
- #|0              DIIS history for kernel (low, high) - directmin only                       
- #|0              DIIS history for density mixing (low, high)                                
- #|1.d0     1     density mixing parameter (low, high)                                       
- #|1.d-9    1.d-  outer loop convergence (low, high)                                         
- #|5.d-6    1.d-6  1.d-4    basis convergence (low, high) ; early stop TMB optimization, dyna
- #|0.5d0          factor to reduce the confinement. Only used for hybrid mode.               
- #|1.d-5    1.d   kernel convergence (low, high) - directmin only                            
- #|1.d-10   1.d-1 density convergence (low, high)                                            
- #|1.d-12         convergence criterion on density to fix TMBS                               
- #|100            mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (si
- #|1.d0     1     initial step size for basis optimization (DIIS, SD)                        
- #|0.2d0          initial step size for kernel update (SD), curve fitting for alpha update - 
- #|-0.5d0   0.5d  lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted a
- #|5  1           number of iterations in the preconditioner, order of Taylor approximations 
- #|8  1           0-> exact Loewdin, 1-> taylor expansion; in orthoconstraint: correction for
- #|5.d-2          fscale: length scale over which complementary error function decays from 1 
- #|0 F F F F      Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 E
- #|T F F 0        fragment calculation; calculate transfer_integrals; constrained DFT calcula
- #|O  4 1.0d-3 5.0d-4 0.0d0 8.0 8.0 8.0 20.0 Atom name, number of basis functions per atom, p
- #|H  1 1.0d-3 5.0d-4 0.0d0 8.0 8.0 8.0 20.0 Atom name, number of basis functions per atom, p
- Dictionary for lin:
-   lin_general:
-     hybrid                            : No
-     nit: [0, 1]
-     rpnrm_cv: [1.00000000000000006E-009, 1.00000000000000004E-010]
-     conf_damping                      : 0.5
-     taylor_order                      : 8
-     output_wf                         : 0
-     calc_dipole                       : No
-     calc_pulay: [No, No]
-     subspace_diag                     : No
-   lin_basis:
-     nit: [4, 1]
-     idsx: [0, 0]
-     gnrm_cv: [5.00000000000000041E-006, 9.99999999999999955E-007]
-     deltae_cv                         : 1.00000000000000005E-004
-     gnrm_dyn                          : 1.00000000000000005E-004
-     alpha_diis                        : 1.0
-     alpha_sd                          : 1.0
-     nstep_prec                        : 5
-   lin_kernel:
-     nstep: [1, 1]
-     nit: [8, 1]
-     idsx_coeff: [0, 0]
-     idsx: [0, 0]
-     alphamix: [1.0, 1.0]
-     gnrm_cv_coeff: [1.00000000000000008E-005, 1.00000000000000008E-005]
-     rpnrm_cv: [1.00000000000000004E-010, 1.00000000000000004E-010]
-     linear_method                     : DIRMIN
-     alpha_sd_coeff                    : 0.20000000000000001
-     alpha_fit_coeff                   : No
-     eval_range_foe: [-0.5, 0.5]
-     fscale_foe                        : 5.00000000000000028E-002
-   lin_basis_params:
-     O:
-       nbasis                          : 4
-       ao_confinement                  : 1.00000000000000002E-003
-       confinement: [5.0000000000000001E-004, 0.0]
-       rloc: [8.0, 8.0]
-       rloc_kernel                     : 8.0
-       rloc_kernel_foe                 : 20.0
-     H:
-       nbasis                          : 1
-       ao_confinement                  : 1.00000000000000002E-003
-       confinement: [5.0000000000000001E-004, 0.0]
-       rloc: [8.0, 8.0]
-       rloc_kernel                     : 8.0
-       rloc_kernel_foe                 : 20.0
- #... (file:read35.frag).................................................Fragment Parameters
- #|1 4            # number of fragments in reference system, number of fragments in current s
- #|1 h2o          #  reference fragment number i, fragment label                             
- #|1 1 0.0        # fragment number j, reference fragment i this corresponds to, charge on th
- #|2 1 0.0        # fragment number j, reference fragment i this corresponds to, charge on th
- #|3 1 0.0        # fragment number j, reference fragment i this corresponds to, charge on th
- #|4 1 0.0        # fragment number j, reference fragment i this corresponds to, charge on th
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data-read35/
   #-------------------------------------------------- Input Atomic System (file: read35.xyz)
@@ -597,7 +602,7 @@
      Molecule was shifted              :  24
      Molecule was rotated              :  18
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  2.544E+01,  1.554E+01 ]}
+   -  {Process:  0, Timing:  [  2.467E+01,  1.492E+01 ]}
    nstates_max                         :  16
    ksorbs%norb                         :  16
    tmb%orbs%norb                       :  24
@@ -685,12 +690,12 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  3.75195883994E+01, Epot: -4.81117042667E+01, Enl:  2.75316633855E+00}, 
  Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  2.47E-01, Omega: -6.873747100426178E+01, D: -6.87E+01, D best: -6.87E+01, 
+ iter:  1, fnrm:  2.47E-01, Omega: -6.873747100426181E+01, D: -6.87E+01, D best: -6.87E+01, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 1
  target function: ENERGY, 
  Energies: {Ekin:  3.75195883994E+01, Epot: -4.81117042667E+01, Enl:  2.75316633855E+00}, 
- iter:  1, fnrm:  2.47E-01, Omega: -6.873747100426178E+01, D: -6.87E+01, D best: -6.87E+01}
+ iter:  1, fnrm:  2.47E-01, Omega: -6.873747100426181E+01, D: -6.87E+01, D best: -6.87E+01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -703,7 +708,7 @@
        -  { #------------------------------------------------------------------ it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.44E-02, eBS: -1.62667830631137917E+01, D: -1.744E-03, 
+ iter:  1, fnrm:  2.44E-02, eBS: -1.62667830631137846E+01, D: -1.744E-03, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -818,38 +823,38 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  9.34203661E-03, y: -5.92656020E-02, z:  3.80984040E-02, 
                     total:  7.10716091E-02}
- Clean forces norm (Ha/Bohr): {maxval:  7.938547784421E-02, fnrm2:  1.198645499457E-02}
- Raw forces norm (Ha/Bohr): {maxval:  1.138974588204E-01, fnrm2:  2.107191114188E-02}
+ Clean forces norm (Ha/Bohr): {maxval:  7.938547784421E-02, fnrm2:  1.198645499456E-02}
+ Raw forces norm (Ha/Bohr): {maxval:  1.138974588204E-01, fnrm2:  2.107191114187E-02}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [ 2.230252565813E-02, -7.076985013021E-02,  2.821842933917E-02]} # 0001
- -  {H: [-3.792242176075E-03,  1.098840873275E-02, -1.301956476770E-02]} # 0002
- -  {H: [-2.538491631376E-03,  8.323379775368E-03, -6.715418981910E-03]} # 0003
- -  {O: [ 2.378443189131E-03, -3.840775470268E-02,  2.600699154377E-02]} # 0004
- -  {H: [-2.204639538959E-02,  7.813580500089E-03, -1.324769093530E-02]} # 0005
- -  {H: [-9.976073759514E-03,  5.618488991283E-03, -9.541335739179E-03]} # 0006
- -  {O: [-1.543426402086E-02,  7.810567014603E-03, -2.455064969323E-03]} # 0007
- -  {H: [ 8.836067701125E-03,  2.359646414467E-02, -6.596407017604E-03]} # 0008
- -  {H: [ 4.519473097569E-03,  2.574643606549E-02, -1.146755627975E-02]} # 0009
- -  {O: [ 1.147733814814E-02,  9.782649471493E-03,  2.893375119974E-03]} # 0010
- -  {H: [ 4.319305399675E-04,  2.063529262280E-03,  6.885628277217E-03]} # 0011
- -  {H: [ 3.841688643346E-03,  7.434100874864E-03, -9.613855893679E-04]} # 0012
+ -  {O: [ 2.230252565805E-02, -7.076985013023E-02,  2.821842933918E-02]} # 0001
+ -  {H: [-3.792242176049E-03,  1.098840873275E-02, -1.301956476769E-02]} # 0002
+ -  {H: [-2.538491631351E-03,  8.323379775367E-03, -6.715418981902E-03]} # 0003
+ -  {O: [ 2.378443189058E-03, -3.840775470268E-02,  2.600699154374E-02]} # 0004
+ -  {H: [-2.204639538955E-02,  7.813580500102E-03, -1.324769093529E-02]} # 0005
+ -  {H: [-9.976073759480E-03,  5.618488991292E-03, -9.541335739170E-03]} # 0006
+ -  {O: [-1.543426402091E-02,  7.810567014650E-03, -2.455064969395E-03]} # 0007
+ -  {H: [ 8.836067701130E-03,  2.359646414467E-02, -6.596407017606E-03]} # 0008
+ -  {H: [ 4.519473097578E-03,  2.574643606548E-02, -1.146755627974E-02]} # 0009
+ -  {O: [ 1.147733814817E-02,  9.782649471423E-03,  2.893375120044E-03]} # 0010
+ -  {H: [ 4.319305399828E-04,  2.063529262303E-03,  6.885628277210E-03]} # 0011
+ -  {H: [ 3.841688643362E-03,  7.434100874879E-03, -9.613855893691E-04]} # 0012
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  53.10
-   Elapsed time (s)                    :  30.81
+   CPU time (s)                        :  51.19
+   Elapsed time (s)                    :  29.83
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
  - support function optimization not converged
  - density optimization not converged
  Memory Consumption Report:
-   Tot. No. of Allocations             :  2735
-   Tot. No. of Deallocations           :  2735
+   Tot. No. of Allocations             :  2777
+   Tot. No. of Deallocations           :  2777
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  891
      for the array                     : psirtwork
      in the routine                    : check_communication_sumrho
- Max No. of dictionaries used          :  3792 #(  765 still in use)
+ Max No. of dictionaries used          :  3984 #(  775 still in use)
  Number of dictionary folders allocated:  1

@@ -232,7 +232,7 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
   
   ! Local variables
   integer :: iorb, iiorb, jjorb, istat, iseg, ilr, jlr
-  integer :: iwa, jwa, itype, jtype, ierr, iall
+  integer :: iwa, jwa, itype, jtype, ierr, iall, isegstart
   logical :: seg_started
   real(kind=8) :: tt, cut, incr
   logical,dimension(:,:),allocatable :: kernel_locreg
@@ -268,18 +268,21 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
   call nullify_foe(foe_obj)
 
   ! Initialize kernel_locreg
-  if (input%lin%scf_mode==LINEAR_FOE) then ! otherwise don't need to allocate just nullify as above
+  !if (input%lin%scf_mode==LINEAR_FOE) then ! otherwise don't need to allocate just nullify as above
      allocate(kernel_locreg(orbs%norbp,orbs%norb), stat=istat)
      call memocc(istat, kernel_locreg, 'kernel_locreg', subname)
-     allocate(foe_obj%kernel_nseg(orbs%norb), stat=istat)
-     call memocc(istat, foe_obj%kernel_nseg, 'foe_obj%kernel_nseg', subname)
-     call to_zero(orbs%norb, foe_obj%kernel_nseg(1))
+     allocate(foe_obj%nsegline(orbs%norb), stat=istat)
+     call memocc(istat, foe_obj%nsegline, 'foe_obj%nsegline', subname)
+     call to_zero(orbs%norb, foe_obj%nsegline(1))
+     allocate(foe_obj%istsegline(orbs%norb), stat=istat)
+     call memocc(istat, foe_obj%istsegline, 'foe_obj%nsegline', subname)
+     call to_zero(orbs%norb, foe_obj%istsegline(1))
      do iorb=1,orbs%norbp
         iiorb=orbs%isorb+iorb
         ilr=orbs%inwhichlocreg(iiorb)
         iwa=orbs%onwhichatom(iiorb)
         itype=astruct%iatype(iwa)
-        foe_obj%kernel_nseg(iiorb)=0
+        foe_obj%nsegline(iiorb)=0
         seg_started=.false.
         do jjorb=1,orbs%norb
            jlr=orbs%inwhichlocreg(jjorb)
@@ -293,7 +296,7 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
            if (tt<=cut) then
               kernel_locreg(iorb,jjorb)=.true.
               if (.not.seg_started) then
-                 foe_obj%kernel_nseg(iiorb)=foe_obj%kernel_nseg(iiorb)+1
+                 foe_obj%nsegline(iiorb)=foe_obj%nsegline(iiorb)+1
               end if
               seg_started=.true.
            else
@@ -302,39 +305,50 @@ subroutine init_foe(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, r
            end if
         end do
      end do
-     call mpiallred(foe_obj%kernel_nseg(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+     call mpiallred(foe_obj%nsegline(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
 
-     allocate(foe_obj%kernel_segkeyg(2,maxval(foe_obj%kernel_nseg),orbs%norb), stat=istat)
-     call memocc(istat, foe_obj%kernel_segkeyg, 'foe_obj%kernel_segkeyg', subname)
-     call to_zero(2*maxval(foe_obj%kernel_nseg)*orbs%norb, foe_obj%kernel_segkeyg(1,1,1))
+     ! Total number of segments
+     foe_obj%nseg = sum(foe_obj%nsegline)
+     
+     ! Initialize istsegline, which gives the first segment of each line
+     foe_obj%istsegline(1)=1
+     do iorb=2,orbs%norb
+         foe_obj%istsegline(iorb) = foe_obj%istsegline(iorb-1) + foe_obj%nsegline(iorb-1)
+     end do
+
+     allocate(foe_obj%keyg(2,foe_obj%nseg),stat=istat)
+     call memocc(istat, foe_obj%keyg, 'foe_obj%keyg', subname)
+     call to_zero(2*foe_obj%nseg, foe_obj%keyg(1,1))
+
      do iorb=1,orbs%norbp
         iiorb=orbs%isorb+iorb
         iseg=0
         seg_started=.false.
+        isegstart=foe_obj%istsegline(iiorb)-1
         do jjorb=1,orbs%norb
            if(kernel_locreg(iorb,jjorb)) then
               if (.not.seg_started) then
                  iseg=iseg+1
-                 foe_obj%kernel_segkeyg(1,iseg,iiorb)=jjorb
+                 foe_obj%keyg(1,isegstart+iseg)=(iiorb-1)*orbs%norb+jjorb
               end if
               seg_started=.true.
            else
               if (seg_started) then
-                 foe_obj%kernel_segkeyg(2,iseg,iiorb)=jjorb-1
+                 foe_obj%keyg(2,isegstart+iseg)=(iiorb-1)*orbs%norb+jjorb-1
               end if
               seg_started=.false.
            end if
         end do
         if (seg_started) then
-           foe_obj%kernel_segkeyg(2,iseg,iiorb)=orbs%norb
+           foe_obj%keyg(2,isegstart+iseg)=(iiorb-1)*orbs%norb+orbs%norb
         end if
      end do
-     call mpiallred(foe_obj%kernel_segkeyg(1,1,1), 2*maxval(foe_obj%kernel_nseg)*orbs%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+     call mpiallred(foe_obj%keyg(1,1), 2*foe_obj%nseg, mpi_sum, bigdft_mpi%mpi_comm)
 
      iall = -product(shape(kernel_locreg))*kind(kernel_locreg) 
      deallocate(kernel_locreg,stat=istat)
      call memocc(istat,iall,'kernel_locreg',subname)
-  end if
+  !end if
 
   call timing(iproc,'init_matrCompr','OF')
 
@@ -1095,7 +1109,7 @@ subroutine update_wavefunctions_size(lzd,npsidim_orbs,npsidim_comp,orbs,iproc,np
      ilr=orbs%inwhichlocreg(iorb+orbs%isorb)
      nvctr_tot = max(nvctr_tot,lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)
   end do
-  if (nproc>1) call mpiallred(nvctr_tot, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+  if (nproc>1) call mpiallred(nvctr_tot, 1, mpi_max, bigdft_mpi%mpi_comm)
 
   allocate(nvctr_par(0:nproc-1,1),stat=istat)
   call memocc(istat,nvctr_par,'nvctr_par',subname)
@@ -1465,16 +1479,22 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call check_kernel_cutoff(iproc, tmb%orbs, at, tmb%lzd)
 
      ! Update sparse matrices
-     call init_sparse_matrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, input, tmb%linmat%ham)
+     call init_sparse_matrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, input, &
+          tmb%foe_obj%nseg, tmb%foe_obj%nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
+          tmb%linmat%ham)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ham)
-     call init_sparse_matrix(iproc, nproc, tmb%lzd, tmb%orbs, input, tmb%linmat%ovrlp)
+     call init_sparse_matrix(iproc, nproc, tmb%lzd, tmb%orbs, input, &
+          tmb%foe_obj%nseg, tmb%foe_obj%nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
+          tmb%linmat%ovrlp)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ovrlp)
      !call init_sparse_matrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, tmb%linmat%inv_ovrlp)
      !call init_sparse_matrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, input, tmb%linmat%denskern)
 
-     call init_sparsity_from_distance(iproc, nproc, tmb%orbs, tmb%lzd, input, tmb%linmat%denskern_large)
+     call init_sparsity_from_distance(iproc, nproc, tmb%orbs, tmb%lzd, input, &
+          tmb%foe_obj%nseg, tmb%foe_obj%nsegline, tmb%foe_obj%istsegline, tmb%foe_obj%keyg, &
+          tmb%linmat%denskern_large)
      !allocate(tmb%linmat%denskern_large%matrix_compr(tmb%linmat%denskern_large%nvctr), stat=istat)
      !call memocc(istat, tmb%linmat%denskern_large%matrix_compr, 'tmb%linmat%denskern_large%matrix_compr', subname)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
@@ -1695,6 +1715,7 @@ subroutine clean_rho(iproc, npt, rho)
   if (iproc==0) then
       call yaml_newline()
       call yaml_map('Need to correct charge density',.true.)
+      call yaml_warning('set to 1.d-20 instead of 0.d0')
   end if
 
   ncorrection=0
@@ -1704,20 +1725,22 @@ subroutine clean_rho(iproc, npt, rho)
           if (rho(ipt)>=-1.d-9) then
               ! negative, but small, so simply set to zero
               charge_correction=charge_correction+rho(ipt)
-              rho(ipt)=0.d0
+              !rho(ipt)=0.d0
+              rho(ipt)=1.d-20
               ncorrection=ncorrection+1
           else
               ! negative, but non-negligible, so issue a warning
               call yaml_warning('considerable negative rho, value: '//trim(yaml_toa(rho(ipt),fmt='(es12.4)'))) 
               charge_correction=charge_correction+rho(ipt)
-              rho(ipt)=0.d0
+              !rho(ipt)=0.d0
+              rho(ipt)=1.d-20
               ncorrection=ncorrection+1
           end if
       end if
   end do
 
-  call mpiallred(ncorrection, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  call mpiallred(charge_correction, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(ncorrection, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  call mpiallred(charge_correction, 1, mpi_sum, bigdft_mpi%mpi_comm)
   if (iproc==0) then
       call yaml_newline()
       call yaml_map('number of corrected points',ncorrection)
@@ -1744,13 +1767,14 @@ subroutine corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, 
   type(DFT_wavefunction),intent(inout) :: tmb
   type(DFT_local_fields), intent(inout) :: denspot
 
-  if (iproc==0) then
-      !call yaml_open_sequence()
-      !call yaml_open_map()
-      call yaml_newline()
-      call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
-  end if
-  call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+  !!if (iproc==0) then
+  !!    !call yaml_open_sequence()
+  !!    !call yaml_open_map()
+  !!    call yaml_newline()
+  !!    call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+  !!end if
+  !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+  if (iproc==0) call yaml_warning('No increase of FOE cutoff')
   call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
   if (iproc==0) then
       !call yaml_close_map()

@@ -157,7 +157,7 @@ subroutine calc_transfer_integral_old(iproc,nproc,input_frag,orbs,ham,ovrlp,homo
 
 
   if (nproc>1) then
-      call mpiallred(homo_ham(1,1), input_frag%nfrag**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(homo_ham(1,1), input_frag%nfrag**2, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
   !!i_all=-product(shape(ham%matrix))*kind(ham%matrix)
@@ -179,7 +179,7 @@ subroutine calc_transfer_integral_old(iproc,nproc,input_frag,orbs,ham,ovrlp,homo
   end if
 
   if (nproc>1) then
-      call mpiallred(homo_ovrlp(1,1), input_frag%nfrag**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(homo_ovrlp(1,1), input_frag%nfrag**2, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
   !!i_all=-product(shape(ovrlp%matrix))*kind(ovrlp%matrix)
@@ -307,7 +307,7 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,homo_coeffs
   end if
 
   if (nproc>1) then
-      call mpiallred(homo_ham(1), nstates, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(homo_ham(1), nstates, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
   !call f_free_ptr(ham%matrix)
@@ -327,7 +327,7 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ovrlp,homo_coeffs
   end if
 
   if (nproc>1) then
-      call mpiallred(homo_ovrlp(1), nstates, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(homo_ovrlp(1), nstates, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
   !call f_free_ptr(ovrlp%matrix)
@@ -414,7 +414,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
   ! orthogonalize
   coeffs_tmp=f_malloc0((/orbs%norb,orbs%norb/), id='coeffs_tmp')
   call vcopy(orbs%norb*nstates,homo_coeffs(1,1),1,coeffs_tmp(1,1),1)
-  call reorthonormalize_coeff(iproc, nproc, nstates, -8, -8, meth_overlap, orbs, ovrlp, coeffs_tmp(1,1))
+  call reorthonormalize_coeff(iproc, nproc, nstates, -8, -8, meth_overlap, orbs, ovrlp, coeffs_tmp(1,1), orbs)
   coeffs_orthog=f_malloc((/orbs%norb,nstates/), id='coeffs_orthog')
   call vcopy(orbs%norb*nstates,coeffs_tmp(1,1),1,coeffs_orthog(1,1),1)
   call f_free(coeffs_tmp)

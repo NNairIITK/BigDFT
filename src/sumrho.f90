@@ -230,7 +230,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
              rhotot_dbl=rhotot_dbl+rho_p(irho,ispin)*product(dpbox%hgrids)!hxh*hyh*hzh
            enddo
         enddo
-        call mpiallred(rhotot_dbl,1,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+        call mpiallred(rhotot_dbl,1,MPI_SUM,bigdft_mpi%mpi_comm)
 
         !call system_clock(ncount0,ncount_rate,ncount_max)
 
@@ -242,8 +242,8 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
 
         !call system_clock(ncount1,ncount_rate,ncount_max)
         !write(*,*) 'TIMING:ARED1',real(ncount1-ncount0)/real(ncount_rate)
-        call mpiallred(sprho_comp(1,1),rhodsc%sp_size*nspin,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
-        call mpiallred(dprho_comp(1,1),rhodsc%dp_size*nspin,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+        call mpiallred(sprho_comp(1,1),rhodsc%sp_size*nspin,MPI_SUM,bigdft_mpi%mpi_comm)
+        call mpiallred(dprho_comp(1,1),rhodsc%dp_size*nspin,MPI_SUM,bigdft_mpi%mpi_comm)
         !call system_clock(ncount2,ncount_rate,ncount_max)
         !write(*,*) 'TIMING:ARED2',real(ncount2-ncount1)/real(ncount_rate)
 
@@ -266,7 +266,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
      else if (rhodsc%icomm==0) then
         if (dump) call yaml_map('Rho Commun','ALLRED')
         call mpiallred(rho_p(1,1),dpbox%ndimgrid*nspin,&
-             &   MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+             &   MPI_SUM,bigdft_mpi%mpi_comm)
          !call system_clock(ncount1,ncount_rate,ncount_max)
          !write(*,*) 'TIMING:DBL',real(ncount1-ncount0)/real(ncount_rate)
      else

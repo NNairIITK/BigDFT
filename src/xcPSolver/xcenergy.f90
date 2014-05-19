@@ -584,7 +584,7 @@ call to_zero(6,rhocstr(1))
 
      energies_mpi(1)=eexcuLOC
      energies_mpi(2)=vexcuLOC
-     call mpiallred(energies_mpi(1),2,MPI_SUM,mpi_comm,ierr)
+     call mpiallred(energies_mpi(1),2,MPI_SUM,mpi_comm)
      exc=energies_mpi(1)
      vxc=energies_mpi(2)
 
@@ -593,12 +593,12 @@ call to_zero(6,rhocstr(1))
 
         if (associated(rhocore)) then
         call calc_rhocstr(rhocstr,nxc,nxt,m1,m3,i3xcsh_fake,nspin,potxc,rhocore)
-        call mpiallred(rhocstr(1),6,MPI_SUM,mpi_comm,ierr)
+        call mpiallred(rhocstr(1),6,MPI_SUM,mpi_comm)
         rhocstr=rhocstr/real(n01*n02*n03,dp)
         end if
 
      xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/hx/hy/hz
-     call mpiallred(wbstr(1),6,MPI_SUM,mpi_comm,ierr)
+     call mpiallred(wbstr(1),6,MPI_SUM,mpi_comm)
      wbstr=wbstr/real(n01*n02*n03,dp)
      xcstr(:)=xcstr(:)+wbstr(:)+rhocstr(:)
   end if

@@ -384,10 +384,10 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   ! Add up all the force contributions
   if (nproc > 1) then
      !TD: fxyz(1,1) not used in case of no atoms
-     call mpiallred(fxyz,3*atoms%astruct%nat,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+     call mpiallred(fxyz(1,1),3*atoms%astruct%nat,MPI_SUM,bigdft_mpi%mpi_comm)
        if (atoms%astruct%geocode == 'P') &
-            call mpiallred(strtens(1,1),6*3,MPI_SUM,bigdft_mpi%mpi_comm,ierr) !do not reduce erfstr
-     call mpiallred(charge,1,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+            call mpiallred(strtens(1,1),6*3,MPI_SUM,bigdft_mpi%mpi_comm) !do not reduce erfstr
+     call mpiallred(charge,1,MPI_SUM,bigdft_mpi%mpi_comm)
   end if
 
   !clean the center mass shift and the torque in isolated directions

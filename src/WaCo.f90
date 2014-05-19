@@ -1027,7 +1027,7 @@ program WaCo
         end do
 
         ! Construction of the Wannier function.
-        call mpiallred(wann(1),Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call mpiallred(wann(1),Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,MPI_SUM)
 
         if(iproc == 0) then
            write(num,'(i4.4)') iwann

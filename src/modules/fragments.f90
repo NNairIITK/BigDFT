@@ -1057,7 +1057,7 @@ contains
        call date_and_time(time=sys_time)
        ! coeffs need to be the same across processors
        if (iproc==0) read(sys_time,*) rtime
-       if (bigdft_mpi%nproc>1) call mpiallred(rtime, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+       if (bigdft_mpi%nproc>1) call mpiallred(rtime, 1, mpi_sum, bigdft_mpi%mpi_comm)
        rand_seed=int(rtime*1000.0_dp)
        call random_seed(put=rand_seed)
        deallocate(rand_seed) 
@@ -1205,7 +1205,7 @@ contains
        call reorthonormalize_coeff(bigdft_mpi%iproc, bigdft_mpi%nproc, &
             ceiling((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp), &
             tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, tmb%orthpar%methTransformOverlap,&
-            tmb%orbs, tmb%linmat%ovrlp, tmb%coeff)
+            tmb%orbs, tmb%linmat%ovrlp, tmb%coeff, ksorbs)
 
        !! debug
        !!output final kernel

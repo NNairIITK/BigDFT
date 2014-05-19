@@ -290,7 +290,7 @@ subroutine lin_input_variables_new(iproc,dump,filename,in,atoms)
   call input_free((iproc == 0) .and. dump)
 
   !input dictionary is ready
-  if (iproc==0) call yaml_map('Dictionary for lin',dict)
+  !if (iproc==0) call yaml_map('Dictionary for lin',dict)
 
 !!  dummy_bool=dict//LIN_GENERAL//HYBRID
 !!  if (dummy_bool) then

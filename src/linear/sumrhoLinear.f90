@@ -411,7 +411,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
       call f_free_ptr(denskern%matrix)
       if (nproc > 1) then
           call timing(iproc,'commun_kernel','ON') !lr408t
-          call mpiallred(denskern%matrix_compr(1), denskern%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          call mpiallred(denskern%matrix_compr(1), denskern%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
           call timing(iproc,'commun_kernel','OF') !lr408t
       end if
 
@@ -590,7 +590,7 @@ subroutine calculate_density_kernel_uncompressed(iproc, nproc, isKernel, orbs, o
       call timing(iproc,'waitAllgatKern','OF')
       if (nproc > 1) then
           call timing(iproc,'commun_kernel','ON') !lr408t
-          call mpiallred(kernel(1,1),orbs_tmb%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+          call mpiallred(kernel(1,1),orbs_tmb%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
           call timing(iproc,'commun_kernel','OF') !lr408t
       end if
   end if
@@ -729,7 +729,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   !$omp end do
   !$omp end parallel
 
-  call mpiallred(irho, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(irho, 1, mpi_sum, bigdft_mpi%mpi_comm)
   if (irho>0) then
       rho_negative=.true.
   end if
@@ -795,7 +795,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
 
 
 
-  call mpiallred(total_charge, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(total_charge, 1, mpi_sum, bigdft_mpi%mpi_comm)
 
   !!if(print_local .and. iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', total_charge*hxh*hyh*hzh
   if (iproc==0 .and. print_local) then
@@ -932,8 +932,8 @@ subroutine check_communication_potential(iproc,denspot,tmb)
 
   ! Reduce the results
   if (bigdft_mpi%nproc>1) then
-      call mpiallred(sumdiff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      call mpiallred(maxdiff, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(sumdiff, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(maxdiff, 1, mpi_max, bigdft_mpi%mpi_comm)
   end if
     
   ! Get mean value for the sum
@@ -1089,7 +1089,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   istarr=f_malloc((/0.to.nproc-1/),id='istarr')
   istarr=0
   istarr(iproc)=collcom_sr%nptsp_c
-  call mpiallred(istarr(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  call mpiallred(istarr(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
   ist=0
   do jproc=0,iproc-1
       ist=ist+istarr(jproc)
@@ -1120,8 +1120,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
 
   ! Reduce the results
   if (nproc>1) then
-      call mpiallred(sumdiff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      call mpiallred(maxdiff, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(sumdiff, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(maxdiff, 1, mpi_max, bigdft_mpi%mpi_comm)
   end if
   call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
   call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
@@ -1320,8 +1320,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
     
       ! Reduce the results
       if (nproc>1) then
-          call mpiallred(sumdiff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-          call mpiallred(maxdiff, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+          call mpiallred(sumdiff, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(maxdiff, 1, mpi_max, bigdft_mpi%mpi_comm)
       end if
     
       ! Get mean value for the sum
@@ -1467,3 +1467,34 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
     end function cosine_taylor
 
 end subroutine check_communication_sumrho
+
+
+
+subroutine check_negative_rho(ndimrho, rho, rho_negative)
+  use module_base
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: ndimrho
+  real(kind=8),dimension(ndimrho),intent(in) :: rho
+  logical,intent(out) :: rho_negative
+
+  ! Local variables
+  integer :: i, irho, ierr
+
+  irho=0
+  do i=1,ndimrho
+      if (rho(i)<0.d0) then
+          irho=1
+          exit
+      end if
+  end do
+
+  call mpiallred(irho, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  if (irho>0) then
+      rho_negative=.true.
+  else
+      rho_negative=.false.
+  end if
+
+end subroutine check_negative_rho

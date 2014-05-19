@@ -418,7 +418,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                      infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,update_phi,&
                      .true.,ham_small,input%lin%extra_states,itout,0,0,input%lin%order_taylor,&
-                     input%purification_quickreturn,input%calculate_KS_residue,&
+                     input%purification_quickreturn,input%adjust_FOE_temperature,&
+                     input%calculate_KS_residue,input%calculate_gap,&
                      convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
              end if
           end if
@@ -502,8 +503,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                else
                    if (ratio_deltas<=1.d0 .and. ratio_deltas>0.d0) then
                        !if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',ratio_deltas
-                       if (iproc==0) call yaml_map('multiplicator for the confinement',ratio_deltas)
-                       tmb%confdatarr(:)%prefac=ratio_deltas*tmb%confdatarr(:)%prefac
+                       !if (iproc==0) call yaml_map('multiplicator for the confinement',ratio_deltas)
+                       if (iproc==0) call yaml_map('multiplicator for the confinement',ratio_deltas**2)
+                       tmb%confdatarr(:)%prefac=(ratio_deltas**2)*tmb%confdatarr(:)%prefac
                    else if (ratio_deltas>1.d0) then
                        !if (iproc==0) write(*,*) 'WARNING: ratio_deltas>1!. Using 0.5 instead'
                        !if (iproc==0) write(*,'(1x,a,es8.1)') 'Multiply the confinement prefactor by',0.5d0
@@ -559,8 +561,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
                    nit_basis,&
                    ratio_deltas,orthonormalization_on,input%lin%extra_states,itout,conv_crit_TMB,input%experimental_mode,&
-                   input%lin%early_stop, input%lin%gnrm_dynamic, can_use_ham, input%lin%order_taylor, input%kappa_conv,&
-                   input%method_updatekernel,input%purification_quickreturn)
+                   input%lin%early_stop, input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
+                   can_use_ham, input%lin%order_taylor, input%kappa_conv,&
+                   input%method_updatekernel,input%purification_quickreturn, input%adjust_FOE_temperature)
                reduce_conf=.true.
            !!else
            !!    cut=cut-0.5d0
@@ -761,13 +764,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,update_phi,&
                         .false.,ham_small,input%lin%extra_states,itout,it_scc,cdft_it,input%lin%order_taylor,&
-                        input%purification_quickreturn,input%calculate_KS_residue,&
+                        input%purification_quickreturn,input%adjust_FOE_temperature,&
+                        input%calculate_KS_residue,input%calculate_gap,&
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,update_phi,&
                         .false.,ham_small,input%lin%extra_states,itout,it_scc,cdft_it,input%lin%order_taylor,&
-                        input%purification_quickreturn,input%calculate_KS_residue,&
+                        input%purification_quickreturn,input%adjust_FOE_temperature,&
+                        input%calculate_KS_residue,input%calculate_gap,&
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
                 end if
              else
@@ -775,13 +780,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,update_phi,&
                         .true.,ham_small,input%lin%extra_states,itout,it_scc,cdft_it,input%lin%order_taylor,&
-                        input%purification_quickreturn,input%calculate_KS_residue,&
+                        input%purification_quickreturn,input%adjust_FOE_temperature,&
+                        input%calculate_KS_residue,input%calculate_gap,&
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,update_phi,&
                         .true.,ham_small,input%lin%extra_states,itout,it_scc,cdft_it,input%lin%order_taylor,&
-                        input%purification_quickreturn,input%calculate_KS_residue,&
+                        input%purification_quickreturn,input%adjust_FOE_temperature,&
+                        input%calculate_KS_residue,input%calculate_gap,&
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
                 end if
              end if
@@ -880,6 +887,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                          denspot%rhov,it_scc+1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
                          at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
                          pnrm,denspot%dpbox%nscatterarr)
+                    call check_negative_rho(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+                         denspot%rhov, rho_negative)
+                    if (rho_negative) then
+                        call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+                    end if
                 !!end if
                 !!write(*,'(a,2es16.9)') 'after mix: sum(denspot%rhov), sum(f_fftgr)', &
                 !!                                   sum(denspot%rhov), sum(denspot%mix%f_fftgr(:,:,denspot%mix%i_vrespc(1)))
@@ -894,7 +906,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
                       pnrm_out=pnrm_out+(denspot%rhov(ioffset+i)-rhopotOld_out(ioffset+i))**2
                    end do
-                   call mpiallred(pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+                   call mpiallred(pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm)
                    pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
                    call vcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, &
                      denspot%rhov(1), 1, rhopotOld_out(1), 1)
@@ -944,7 +956,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
                       pnrm_out=pnrm_out+(denspot%rhov(i+ioffset)-rhopotOld_out(i+ioffset))**2
                    end do
-                   call mpiallred(pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+                   call mpiallred(pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm)
                    pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
                    call vcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, &
                         denspot%rhov(1), 1, rhopotOld_out(1), 1) 
@@ -1037,8 +1049,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
             call vcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, &
                  rhopotOld_out(1), 1, denspot%rhov(1), 1)
             call timing(iproc,'constraineddft','OF')
-            call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
 
+            call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
 
             call timing(iproc,'constraineddft','ON')
             ! reset coeffs as well
@@ -1108,6 +1120,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
           deallocate(tmb%psit_f, stat=istat)
           call memocc(istat, iall, 'tmb%psit_f', subname)
+          tmb%can_use_transposed=.false.
       end if
 
       call print_info(.false.)
@@ -1136,6 +1149,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   end do outerLoop
 
+
+
   if (input%write_orbitals) then
       call build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
                energs, nlpsp, input, &
@@ -1156,7 +1171,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.false.,&
            .true.,ham_small,input%lin%extra_states,itout,0,0,input%lin%order_taylor,&
-           input%purification_quickreturn,input%calculate_KS_residue)
+           input%purification_quickreturn,input%adjust_FOE_temperature,&
+           input%calculate_KS_residue,input%calculate_gap)
 
        !!if (input%lin%scf_mode==LINEAR_FOE) then
        !!    call f_free_ptr(tmb%coeff)
@@ -1176,7 +1192,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
           infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.false.,&
           .true.,ham_small,input%lin%extra_states,itout,0,0,input%lin%order_taylor,&
-          input%purification_quickreturn,input%calculate_KS_residue)
+          input%purification_quickreturn,input%adjust_FOE_temperature,&
+          input%calculate_KS_residue,input%calculate_gap)
       !!call scalprod_on_boundary(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
       call pulay_correction_new(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
       !!if (input%lin%scf_mode==LINEAR_FOE) then
@@ -1202,6 +1219,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   ! print the final summary
   call print_info(.true.)
+
+
+  if (input%loewdin_charge_analysis) then
+      call loewdin_charge_analysis(iproc, tmb, at, calculate_overlap_matrix=.true., calculate_ovrlp_half=.true., meth_overlap=0)
+  end if
 
   if (iproc==0) call yaml_close_sequence()
 
@@ -1601,7 +1623,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       do iorb=1,tmb%orbs%norbp
           mean_conf=mean_conf+tmb%confdatarr(iorb)%prefac
       end do
-      call mpiallred(mean_conf, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      call mpiallred(mean_conf, 1, mpi_sum, bigdft_mpi%mpi_comm)
       mean_conf=mean_conf/dble(tmb%orbs%norb)
 
       ! Print out values related to two iterations of the outer loop.
