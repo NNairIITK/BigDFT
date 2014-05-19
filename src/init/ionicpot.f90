@@ -1228,7 +1228,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   end do
   call psp_dict_analyse(dict, at)
   ! Read associated pseudo files.
-  call atomic_data_file_merge_to_dict(dict, "Atomic occupation", 'input.occup')
+  !call atomic_data_file_merge_to_dict(dict, "Atomic occupation", 'input.occup')
   call atomic_data_set_from_dict(dict, "Atomic occupation", at, in%nspin)
   call dict_free(dict)
 

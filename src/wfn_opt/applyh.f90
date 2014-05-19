@@ -2140,7 +2140,7 @@ subroutine apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,nprojel,at,orbs,wfd,&
 
 end subroutine apply_atproj_iorb_paw
 
-!>   Find the starting and ending orbital for kpoint ikpt, and the corresponding nspinor
+!> Find the starting and ending orbital for kpoint ikpt, and the corresponding nspinor
 subroutine orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
   use module_base
   use module_types
@@ -2150,6 +2150,12 @@ subroutine orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
   integer, intent(out) :: isorb,ieorb,nspinor
   !local variables
   integer :: iorb
+
+  !disable starting and ending points for the case no orbitals on a given processor
+  if (orbs%norbp == 0) then
+     isorb=0
+     ieorb=-1
+  end if
 
   !find starting orbital
   do iorb=1,orbs%norbp

@@ -1532,9 +1532,14 @@ contains
     integer :: ierr,namelen,nthreads
     character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
     character(len=MPI_MAX_PROCESSOR_NAME), dimension(:), allocatable :: nodename
+    type(dictionary), pointer :: dict_tmp
     !$ integer :: omp_get_max_threads
 
     call dict_init(dict_info)
+    if (DoLastRunThings) then
+       call f_malloc_dump_status(dict_summary=dict_tmp)
+       call set(dict_info//'Routines timing and number of calls',dict_tmp)
+    end if
     nthreads = 0
     !$  nthreads=omp_get_max_threads()
     call set(dict_info//'CPU parallelism'//'MPI tasks',bigdft_mpi%nproc)

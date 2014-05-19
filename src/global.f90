@@ -612,7 +612,7 @@ program MINHOP
         fp(i)=fphop(i)
      enddo
      if (bigdft_mpi%iproc == 0) then
-       call yaml_open_map('(MH) Write poscur file')
+        !call yaml_open_map('(MH) Write poscur file')
        call write_atomic_file('poscur'//trim(bigdft_run_id_toa()),e_pos,pos,atoms,'')
        call yaml_map('(MH) poscur.xyz for  RESTART written',.true.)
 
@@ -746,7 +746,7 @@ end do hopping_loop
   call memocc(i_stat,i_all,'ksevals',subname)
 
   call deallocate_global_output(outs)
-
+  call run_objects_free_container(runObj)
   call free_input_variables(inputs_md)
   call free_input_variables(inputs_opt)
 

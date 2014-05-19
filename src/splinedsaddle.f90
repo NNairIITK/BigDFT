@@ -327,14 +327,17 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     !-----------------------------------------------------------
     ! We read the input variable files.
     if(trim(pnow%hybrid)=='yes') then
-       call read_input_dict_from_files("ll_input", bigdft_mpi,dict)
+       call user_dict_from_files(dict,'ll_input','posinp',bigdft_mpi)
+       !call read_input_dict_from_files("ll_input", bigdft_mpi,dict)
     else
-       call read_input_dict_from_files("input", bigdft_mpi,dict)
+       call user_dict_from_files(dict,'input','posinp',bigdft_mpi)
+       !call read_input_dict_from_files("input", bigdft_mpi,dict)
     endif
-    ! We add the atomic data.
-    call astruct_merge_to_dict(dict // "posinp", atoms%astruct, atoms%astruct%rxyz)
-    call atoms_file_merge_to_dict(dict)
-    call atomic_data_file_merge_to_dict(dict, "Atomic occupation", "input.occup")
+!    ! We add the atomic data.
+!    call astruct_merge_to_dict(dict // "posinp", atoms%astruct, atoms%astruct%rx!yz)
+!    call atoms_file_merge_to_dict(dict)
+!    call atomic_data_file_merge_to_dict(dict, "Atomic occupation", "input.occup")
+
     ! We parse the dictionary.
     call inputs_from_dict(ll_inputs, ll_atoms, dict)
     call dict_free(dict)

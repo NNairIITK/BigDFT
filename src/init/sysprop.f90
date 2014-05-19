@@ -50,7 +50,6 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   real(gp), dimension(3) :: h_input
   logical:: present_inwhichlocreg_old, present_onwhichatom_old, output_grid_
   integer, dimension(:,:), allocatable :: norbsc_arr
-  logical, dimension(:,:,:), allocatable :: scorb
   real(kind=8), dimension(:), allocatable :: locrad
   !Note proj_G should be filled for PAW:
   type(gaussian_basis),dimension(atoms%astruct%ntypes)::proj_G
@@ -156,8 +155,6 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   if (inputpsi /= INPUT_PSI_RANDOM) then
 
      ! Allocations for readAtomicOrbitals (check inguess.dat and psppar files)
-     allocate(scorb(4,2,atoms%natsc+ndebug),stat=i_stat)
-     call memocc(i_stat,scorb,'scorb',subname)
      allocate(norbsc_arr(atoms%natsc+1,in%nspin+ndebug),stat=i_stat)
      call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
      allocate(locrad(atoms%astruct%nat+ndebug),stat=i_stat)
@@ -173,7 +170,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
      ! Read the inguess.dat file or generate the input guess via the inguess_generator
      call readAtomicOrbitals(atoms,norbe,norbsc,nspin_ig,orbs%nspinor,&
-          &   scorb,norbsc_arr,locrad)
+          norbsc_arr,locrad)
 
      if (in%nspin==4) then
         !in that case the number of orbitals doubles
@@ -184,9 +181,6 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      i_all=-product(shape(locrad))*kind(locrad)
      deallocate(locrad,stat=i_stat)
      call memocc(i_stat,i_all,'locrad',subname)
-     i_all=-product(shape(scorb))*kind(scorb)
-     deallocate(scorb,stat=i_stat)
-     call memocc(i_stat,i_all,'scorb',subname)
      i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
      deallocate(norbsc_arr,stat=i_stat)
      call memocc(i_stat,i_all,'norbsc_arr',subname)
@@ -874,7 +868,7 @@ subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
      & atoms, ncharge, nspin, mpol, norbsempty)
   use module_types, only: atoms_data
   use module_defs, only: gp
-  use ao_inguess, only : count_atomic_shells
+  !use ao_inguess, only : count_atomic_shells
   use yaml_output
   implicit none
   type(atoms_data), intent(in) :: atoms
@@ -882,9 +876,9 @@ subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
   integer, intent(in) :: ncharge, nspin, mpol, norbsempty, iproc
 
   integer :: nelec, iat, ityp, ispinsum, ichgsum, ichg, ispol, nspin_, nspinor
-  integer, parameter :: nelecmax=32,lmax=4,noccmax=2
-  integer, dimension(lmax) :: nl
-  real(gp), dimension(noccmax,lmax) :: occup
+  !integer, parameter :: nelecmax=32,lmax=4,noccmax=2
+  !integer, dimension(lmax) :: nl
+  !real(gp), dimension(noccmax,lmax) :: occup
 
   !calculate number of electrons and orbitals
   ! Number of electrons and number of semicore atoms
@@ -959,17 +953,17 @@ subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
   end if
 
   norbe = 0
-  if(nspin==4) then
-     nspin_=1
-     nspinor=4
-  else
-     nspin_=nspin
-     nspinor=1
-  end if
+  !if(nspin==4) then
+  !   nspin_=1
+  !   nspinor=4
+  !else
+  !   nspin_=nspin
+  !   nspinor=1
+  !end if
   do iat=1,atoms%astruct%nat
-     ityp=atoms%astruct%iatype(iat)
-        call count_atomic_shells(nspin,atoms%aoig(iat)%aocc,occup,nl)
-     norbe=norbe+nl(1)+3*nl(2)+5*nl(3)+7*nl(4)
+     !ityp=atoms%astruct%iatype(iat)
+     !call count_atomic_shells(nspin,atoms%aoig(iat)%aocc,occup,nl)
+     norbe=norbe+atoms%aoig(iat)%nao!nl(1)+3*nl(2)+5*nl(3)+7*nl(4)
   end do
 end subroutine read_n_orbitals
 

@@ -1,5 +1,6 @@
 #definition of the input variables
 ##inputvar: #name of the variable as declared in the code
+## DESCRIPTION: Extended description of the variable to be used for documentation
 ## COMMENT: This is the description of the variable as will appear in the logfile
 ## RANGE: [from,to] #always put two numbers (also .inf) can be put
 ## EXCLUSIVE: #here follows a list of allowed values (either RANGE or EXCLUSIVE)
@@ -56,6 +57,8 @@
      COMMENT: total magnetic moment
      default: 0
    gnrm_cv:
+     DESCRIPTION: Here should follow the extended description for this input variable
+                  this description should be on multiple lines et cetera
      COMMENT: convergence criterion gradient
      RANGE: [1.e-20, 1.]
      default: 1e-4
@@ -835,10 +838,12 @@
        default: 14.0
 --- #here starts the document of possible input files
 best:
-  COMMENT: this input file shouldbe used for something
+  COMMENT: this input file should be used for something
+  DESCRIPTION: Extended description of the file
   dft:
     hgrids: accurate
     ixc: PBE
+    nrepmax: 2
   lin_general:
     hybrid: best
   lin_basis:

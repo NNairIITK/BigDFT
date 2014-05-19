@@ -33,6 +33,7 @@ Keys to ignore:
  - Number of dictionary folders allocated
  - Maximum size of masking arrays for a projector
  - Cumulative size of masking arrays
+ - Dictionary for lin
 Patterns to ignore:
  - Timestamp
  - memory

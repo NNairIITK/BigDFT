@@ -70,9 +70,7 @@ subroutine run_objects_free_container(runObj)
      call dict_free(runObj%user_inputs)
   end if
   ! Radii_cf are always owned by run objects.
-  if (associated(runObj%radii_cf)) then
-     call f_free_ptr(runObj%radii_cf)
-  end if
+  call f_free_ptr(runObj%radii_cf)
   ! Currently do nothing except nullifying everything.
   call run_objects_nullify(runObj)
 END SUBROUTINE run_objects_free_container
@@ -181,7 +179,7 @@ subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
      call vcopy(3 * atoms%astruct%nat, rxyz0, 1, runObj%atoms%astruct%rxyz(1,1), 1)
   end if
 
-  runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /), "run_objects_associate")
+  runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /), id="radii_cf")
   call read_radii_variables(runObj%atoms, runObj%radii_cf, &
        & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
 END SUBROUTINE run_objects_associate

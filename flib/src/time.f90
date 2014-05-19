@@ -905,6 +905,7 @@ module time_profiling
 
       call f_free_str(max_field_length,group_names)
       call f_free(timecls)
+      call f_release_routine()
     end subroutine timing_dump_results
 
     !>extract the category name 
