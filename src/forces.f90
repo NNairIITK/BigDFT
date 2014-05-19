@@ -4207,7 +4207,6 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   real(gp), dimension(3,at%astruct%nat), intent(inout) :: fsep
   real(gp), dimension(6), intent(out) :: strten
   !local variables--------------
-  character(len=*), parameter :: subname='nonlocal_forces'
   integer :: istart_c,iproj,iat,ityp,i,j,l,m,iorbout,iiorb,ilr
   integer :: mbseg_c,mbseg_f,jseg_c,jseg_f,ind,iseg,jjorb
   integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,nspinor,ispinor,jorbd
@@ -4228,6 +4227,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   !real(8),dimension(2,0:9,7,3,4,at%astruct%nat,orbsglobal%norb) :: scalprodglobal
   !scalprodglobal=0.d0
   !!allocate(phiglobal(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f))
+
+  call f_routine(id='nonlocal_forces_linear')
 
 
   ! Determine how many atoms each MPI task will handle
@@ -4792,5 +4793,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   call f_free(senddspls)
   call f_free(recvdspls)
   call f_free(scalprod_recvbuf)
+
+  call f_release_routine()
 
 END SUBROUTINE nonlocal_forces_linear
