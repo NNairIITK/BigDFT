@@ -12,7 +12,6 @@
 module dictionaries
    use exception_callbacks
    use dictionaries_base
-   ! use error_handling
    implicit none
 
    private

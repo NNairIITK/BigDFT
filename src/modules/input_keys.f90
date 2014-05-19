@@ -537,6 +537,7 @@ contains
     !local variables
     type(dictionary), pointer :: dict_tmp,min_cat
     character(len=max_field_length) :: category
+    logical :: cat_found
 
     nullify(minimal)
 
@@ -568,8 +569,9 @@ contains
       dict_tmp => dict_iter(dict//LIN_BASIS_PARAMS)
       do while(associated(dict_tmp))
        category=dict_key(dict_tmp)
-       if (.not. (category .in. parameters//LIN_BASIS_PARAMS) .and. &
-       index(category,ATTRS) == 0 ) then
+       !Pb with stack (Cray - ftn 05/2015)
+       cat_found = category .in. parameters//LIN_BASIS_PARAMS
+       if (.not. cat_found .and. index(category,ATTRS) == 0 ) then
            call dict_copy(minimal//LIN_BASIS_PARAMS//category,dict_tmp)
        end if
           dict_tmp => dict_next(dict_tmp)

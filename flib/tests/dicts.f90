@@ -181,7 +181,8 @@ subroutine test_dictionaries1()
   use dictionaries
   implicit none
   !local variables
-   integer :: ival,i,j
+   integer :: ival,i
+!   integer :: j
    type(dictionary), pointer :: dict2
    type(dictionary), pointer :: dict,dictA
    type(dictionary), pointer :: dictA2,dict_tmp,zero1,zero2
@@ -533,7 +534,8 @@ subroutine test_dictionary_for_atoms()
   use yaml_output
   implicit none
 
-  character(len = 50) :: gu,fmts
+!!$  character(len = 50) :: gu
+  character(len = 50) :: fmts
   double precision, dimension(3) :: cell, xred, hgrids
   double precision :: tt
 

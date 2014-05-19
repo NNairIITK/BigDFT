@@ -19,7 +19,8 @@ subroutine test_dynamic_memory()
    real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,xc_pot
    real(kind=8), dimension(:), pointer :: extra_ref
    integer, dimension(:), allocatable :: i1_all,i1_src
-   integer, dimension(:), pointer :: i1_ptr,ptr1,ptr2
+   integer, dimension(:), pointer :: i1_ptr,ptr1
+!!$   integer, dimension(:), pointer :: ptr2
 
    integer,dimension(:,:,:),allocatable :: weight
   integer,dimension(:,:,:,:),allocatable :: orbital_id

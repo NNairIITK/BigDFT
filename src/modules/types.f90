@@ -1939,10 +1939,11 @@ subroutine nullify_coulomb_operator(coul_op)
   nullify(coul_op%kernel)
 end subroutine nullify_coulomb_operator
 
+
 subroutine copy_coulomb_operator(coul1,coul2,subname)
   implicit none
-  type(coulomb_operator),intent(in)::coul1
-  type(coulomb_operator),intent(out)::coul2
+  type(coulomb_operator),intent(in) :: coul1
+  type(coulomb_operator),intent(inout) :: coul2
   character(len=*), intent(in) :: subname
   !local variables
   integer :: i_all,i_stat
@@ -1976,9 +1977,10 @@ subroutine copy_coulomb_operator(coul1,coul2,subname)
 
 end subroutine copy_coulomb_operator
 
+
 subroutine deallocate_coulomb_operator(coul_op,subname)
   implicit none
-  type(coulomb_operator),intent(out)::coul_op
+  type(coulomb_operator),intent(inout) :: coul_op
   character(len=*), intent(in) :: subname
   !local variables
   integer :: i_all,i_stat
