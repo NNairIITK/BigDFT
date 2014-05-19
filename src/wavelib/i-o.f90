@@ -155,7 +155,7 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
                        !the modulo has no effect on free BC thanks to the
                        !if statement above
                        jj1=modulo(j1+l1+nb1,n1nb1o)-nb1
-                       jj2=modulo(j2+l2+nb2,n2nb2)-nb2
+                       jj2=modulo(j2+l2+nb2,n2nb2o)-nb2
                        jj3a=modulo(j3-1+nb3,n3nb3o)-nb3
                        jj3b=modulo(j3  +nb3,n3nb3o)-nb3
                        jj3c=modulo(j3+1+nb3,n3nb3o)-nb3

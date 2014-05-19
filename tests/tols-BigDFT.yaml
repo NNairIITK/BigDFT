@@ -333,7 +333,7 @@ directmin:
  Epsilon: 3.5e-10
  mean alpha: 1.1e-04
  max alpha: 1.1e-04
- Ekin: 4.1e-10
+ Ekin: 5.1e-10
  norm(P): 1.1e-7
 
 experimentalmode:
@@ -539,7 +539,7 @@ fructose:
 geopt_foe:
  D eF: 7.1e-6
  D: 1.e-10
- eF: 2.1e-7
+ eF: 2.2e-7
  Epot: 1.1e-10
  EH: 1.1e-10
  charge diff: 7.1e-6
