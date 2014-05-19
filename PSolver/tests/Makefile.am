@@ -28,32 +28,30 @@ LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
 PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
 endif
 
-AM_FCFLAGS = -I$(top_builddir)/includes -I$(top_srcdir)/PSolver/src -I. @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@  @MPI_INCLUDE@
+AM_FCFLAGS = -I$(top_builddir)/includes -I$(top_srcdir)/PSolver/src -I. @MPI_INCLUDE@
 AM_LDFLAGS = -L$(top_builddir)/PSolver/src
+
 if BUILD_LIB_BIGDFT
 psolver_libraries = $(top_builddir)/PSolver/src/libPSolver-1.a
-LIBS += $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/src/libflib.a @LIBS_SHORT_DEPS@ -lrt
+LIBS += $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/src/libflib.a @LINALG_LIBS@ @LIB_YAML_LIBS@
 else
 if BUILD_DYNAMIC_LIBS
 psolver_libraries = -lPSolver-1
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/PSolver/src
 else
 psolver_libraries = $(top_builddir)/PSolver/src/libPSolver-1.a
-LIBS += $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/src/libflib.a @LIBS_SHORT_DEPS@ -lrt
+LIBS += $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/src/libflib.a @LINALG_LIBS@ @LIB_YAML_LIBS@
 endif
 endif
 
 PS_Check_SOURCES = PS_Check.f90
-PS_Check_LDADD = $(psolver_libraries) @LINALG_LIBS@
-#PS_Check_LDADD = -lPSolver-1 @LINALG_LIBS@ $(top_builddir)/flib/src/libflib.a
+PS_Check_LDADD = $(psolver_libraries)
 
 PS_Program_SOURCES = PS_Program.f90
 PS_Program_LDADD = $(psolver_libraries)
-#PS_Program_LDADD = -lPSolver-1
 
 PS_Exercise_SOURCES = PS_Exercise.f90
 PS_Exercise_LDADD = $(psolver_libraries)
-#PS_Exercise_LDADD = -lPSolver-1
 
 CLEANFILES = malloc.prc time.prc PS_Check.out.yaml fldiff.report.yaml
 
