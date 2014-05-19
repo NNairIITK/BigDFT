@@ -570,7 +570,9 @@ call to_zero(6,rhocstr(1))
   !gathering the data to obtain the distribution array
   !evaluating the total ehartree,eexcu,vexcu
   if (nproc > 1) then
-     energies_mpi = f_malloc(2,id='energies_mpi')
+     allocate(energies_mpi(2+ndebug),stat=i_stat)
+     call memocc(i_stat,energies_mpi,'energies_mpi',subname)
+     !energies_mpi = f_malloc(2,id='energies_mpi')
 
      energies_mpi(1)=eexcuLOC
      energies_mpi(2)=vexcuLOC
@@ -592,7 +594,10 @@ call to_zero(6,rhocstr(1))
      wbstr=wbstr/real(n01*n02*n03,dp)
      xcstr(:)=xcstr(:)+wbstr(:)+rhocstr(:)
   end if
-     call f_free(energies_mpi)
+     i_all=-product(shape(energies_mpi))*kind(energies_mpi)
+     deallocate(energies_mpi,stat=i_stat)
+     call memocc(i_stat,i_all,'energies_mpi',subname)
+     !call f_free(energies_mpi)  
 
      if (datacode == 'G') then
         !building the array of the data to be sent from each process
