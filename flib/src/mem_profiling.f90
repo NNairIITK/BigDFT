@@ -51,7 +51,7 @@ module memory_profiling
   !!
   !!   The file malloc.prc is not deleted if the final total memory is not equal
   !!   to zero.
-  !!   memdebug (parameter)
+  !!   debug (parameter)
   !!     == .true.  verbose format (useful with utils/scripts/memcheck.py)
   !!                then display a line per allocation or deallocation
   !!                a routine at the end parses the file
@@ -329,7 +329,7 @@ contains
     if (malloc_level==2 .and. nalloc /= ndealloc) then
        !Use # to be yaml compliant (is a comment in yaml)
        write(*,*) &
-            "#Use the python script 'memcheck.py' in utils/scripts to check"//&
+            "#Use the python script 'memcheck.py' in utils/scripts to check "//&
             trim(filename)//" file"
     end if
   END SUBROUTINE memory_malloc_check

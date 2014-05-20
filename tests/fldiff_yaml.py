@@ -223,7 +223,7 @@ def document_report(hostname,tol,biggest_disc,nchecks,leaks,nmiss,miss_it,timet)
 #  disc=biggest_disc
   if nchecks > 0 or leaks != 0 or nmiss > 0:
     if leaks != 0:
-      failure_reason="Memory"
+      failure_reason="Memory Leak"
     elif nmiss > 0:
       failure_reason="Information"
     elif tol==0 and biggest_disc==0 and timet==0:

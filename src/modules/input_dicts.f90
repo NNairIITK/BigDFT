@@ -919,8 +919,9 @@ contains
     call f_release_routine()
   end subroutine astruct_file_merge_to_dict
 
-  !> allocate the astruct variable from the dictionary of input data
-  !retrieve also other information like the energy and the forces if requested
+
+  !> Allocate the astruct variable from the dictionary of input data
+  !! retrieve also other information like the energy and the forces if requested
   !! and presend in the dictionary
   subroutine astruct_set_from_dict(dict, astruct, comment)
     use module_defs, only: gp, Bohr_Ang, UNINITIALIZED
@@ -1054,6 +1055,7 @@ contains
     end if
 
   end subroutine astruct_set_from_dict
+
 
   subroutine aocc_to_dict(dict, nspin, noncoll, nstart, aocc, nelecmax, lmax, nsccode)
     use module_defs, only: gp
