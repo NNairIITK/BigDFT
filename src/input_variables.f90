@@ -646,10 +646,14 @@ subroutine free_kpt_variables(in)
   integer :: i_stat, i_all
 
   if (associated(in%gen_kpt)) then
-     call f_free_ptr(in%gen_kpt)
+     i_all=-product(shape(in%gen_kpt))*kind(in%gen_kpt)
+     deallocate(in%gen_kpt,stat=i_stat)
+     call memocc(i_stat,i_all,'in%gen_kpt',subname)
   end if
   if (associated(in%gen_wkpt)) then
-     call f_free_ptr(in%gen_wkpt)
+     i_all=-product(shape(in%gen_wkpt))*kind(in%gen_wkpt)
+     deallocate(in%gen_wkpt,stat=i_stat)
+     call memocc(i_stat,i_all,'in%gen_wkpt',subname)
   end if
   if (associated(in%kptv)) then
      call f_free_ptr(in%kptv)
@@ -900,9 +904,11 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
      kptrlen_ = dict // KPTRLEN
      if (geocode == 'F') then
         in%gen_nkpt = 1
-        in%gen_kpt = f_malloc_ptr((/ 3, in%gen_nkpt /),id='in%gen_kpt')
+        allocate(in%gen_kpt(3, in%gen_nkpt+ndebug),stat=i_stat)
+        call memocc(i_stat,in%gen_kpt,'in%gen_kpt',subname)
         in%gen_kpt = 0.
-        in%gen_wkpt = f_malloc_ptr(in%gen_nkpt,id='in%gen_wkpt')
+        allocate(in%gen_wkpt(in%gen_nkpt+ndebug),stat=i_stat)
+        call memocc(i_stat,in%gen_wkpt,'in%gen_wkpt',subname)
         in%gen_wkpt = 1.
      else
         call kpoints_get_auto_k_grid(sym%symObj, in%gen_nkpt, in%gen_kpt, in%gen_wkpt, &
@@ -913,7 +919,9 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
                 & " Error code is " // trim(yaml_toa(ierror,fmt='(i0)')))
            stop
         end if
-        !assumes that the allocation went through
+        !assumes that the allocation went through (arrays allocated by abinit routines)
+        call memocc(0,in%gen_kpt,'in%gen_kpt',subname)
+        call memocc(0,in%gen_wkpt,'in%gen_wkpt',subname)
      end if
   else if (input_keys_equal(trim(method), 'mpgrid')) then
      !take the points of Monkhorst-pack grid
@@ -936,9 +944,11 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
         if (iproc==0 .and. (maxval(ngkpt_) > 1 .or. maxval(abs(shiftk_)) > 0.)) &
              & call yaml_warning('Found input k-points with Free Boundary Conditions, reduce run to Gamma point')
         in%gen_nkpt = 1
-        in%gen_kpt = f_malloc_ptr((/ 3, in%gen_nkpt /),id='in%gen_kpt')
+        allocate(in%gen_kpt(3, in%gen_nkpt+ndebug),stat=i_stat)
+        call memocc(i_stat,in%gen_kpt,'in%gen_kpt',subname)
         in%gen_kpt = 0.
-        in%gen_wkpt = f_malloc_ptr(in%gen_nkpt,id='in%gen_wkpt')
+        allocate(in%gen_wkpt(in%gen_nkpt+ndebug),stat=i_stat)
+        call memocc(i_stat,in%gen_wkpt,'in%gen_wkpt',subname)
         in%gen_wkpt = 1.
      else
         call kpoints_get_mp_k_grid(sym%symObj, in%gen_nkpt, in%gen_kpt, in%gen_wkpt, &
@@ -949,6 +959,9 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
                 & " Error code is " // trim(yaml_toa(ierror,fmt='(i0)')))
            stop
         end if
+        !assumes that the allocation went through (arrays allocated by abinit routines)
+        call memocc(0,in%gen_kpt,'in%gen_kpt',subname)
+        call memocc(0,in%gen_wkpt,'in%gen_wkpt',subname)
      end if
   else if (input_keys_equal(trim(method), 'manual')) then
      in%gen_nkpt = max(1, dict_len(dict//KPT))
@@ -956,8 +969,10 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
         if (iproc==0) call yaml_warning('Found input k-points with Free Boundary Conditions, reduce run to Gamma point')
         in%gen_nkpt = 1
      end if
-     in%gen_kpt = f_malloc_ptr((/ 3, in%gen_nkpt /),id='in%gen_kpt')
-     in%gen_wkpt = f_malloc_ptr(in%gen_nkpt,id='in%gen_wkpt')
+     allocate(in%gen_kpt(3, in%gen_nkpt+ndebug),stat=i_stat)
+     call memocc(i_stat,in%gen_kpt,'in%gen_kpt',subname)
+     allocate(in%gen_wkpt(in%gen_nkpt+ndebug),stat=i_stat)
+     call memocc(i_stat,in%gen_wkpt,'in%gen_wkpt',subname)
      norm=0.0_gp
      do i=1,in%gen_nkpt
         in%gen_kpt(1, i) = dict // KPT // (i-1) // 0
