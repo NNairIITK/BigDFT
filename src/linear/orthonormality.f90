@@ -116,8 +116,10 @@ end subroutine orthonormalizeLocalized
 ! can still tidy this up more when tmblarge is removed
 ! use sparsity of density kernel for all inverse quantities
 subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
-           correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, hpsit_c, hpsit_f, &
-           can_use_transposed, overlap_calculated, experimental_mode, norder_taylor)
+           correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, &
+           hpsit_c, hpsit_f, hpsit_nococontra_c, hpsit_nococontra_f, &
+           can_use_transposed, overlap_calculated, experimental_mode, norder_taylor, &
+           npsidim_orbs_small, lzd_small, hpsi_noprecond)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthoconstraintNonorthogonal
@@ -132,8 +134,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, npsidim_orbs, npsidim_comp
-  type(local_zone_descriptors),intent(in) :: lzd
+  integer,intent(in) :: iproc, nproc, npsidim_orbs, npsidim_comp, npsidim_orbs_small
+  type(local_zone_descriptors),intent(in) :: lzd, lzd_small
   !type(orbitals_Data),intent(in) :: orbs
   type(orbitals_Data),intent(inout) :: orbs !temporary inout
   type(comms_linear),intent(in) :: collcom
@@ -144,15 +146,18 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   type(sparse_matrix),intent(inout) :: lagmat
   type(matrices),intent(out) :: lagmat_
   real(kind=8),dimension(:),pointer :: psit_c, psit_f, hpsit_c, hpsit_f
+  real(kind=8),dimension(collcom%ndimind_c),intent(in) :: hpsit_nococontra_c
+  real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: hpsit_nococontra_f
   logical,intent(inout) :: can_use_transposed, overlap_calculated
   type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
   logical,intent(in) :: experimental_mode
   integer,intent(in) :: norder_taylor
+  real(kind=8),dimension(npsidim_orbs_small),intent(out) :: hpsi_noprecond
 
   ! Local variables
   integer :: istat, iall, iorb, jorb, ii, ii_trans, irow, jcol, info, lwork, jj
   real(kind=8) :: error
-  real(kind=8),dimension(:),allocatable :: tmp_mat_compr, lagmat_tmp_compr, work
+  real(kind=8),dimension(:),allocatable :: tmp_mat_compr, lagmat_tmp_compr, work, hpsit_tmp_c, hpsit_tmp_f, hphi_nococontra
   character(len=*),parameter :: subname='orthoconstraintNonorthogonal'
   real(kind=8),dimension(:,:),allocatable :: tmp_mat, tmp_mat2, tmp_mat3
   integer,dimension(:),allocatable :: ipiv
@@ -162,6 +167,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
   ! removed option for correction orthoconstrain for now
   !if (correction_orthoconstraint==0) stop 'correction_orthoconstraint not working'
+
 
   if(.not. can_use_transposed) then
       psit_c = f_malloc_ptr(sum(collcom%nrecvcounts_c),id='psit_c')
@@ -179,7 +185,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
      call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lhphi, hpsit_c, hpsit_f, lzd)
   end if
 
-  call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_)
+  !call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_)
+  call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_nococontra_c, psit_f, hpsit_nococontra_f, lagmat, lagmat_)
   ! This can then be deleted if the transition to the new type has been completed.
   lagmat%matrix_compr=lagmat_%matrix_compr
 
@@ -197,7 +204,7 @@ call timing(iproc,'misc','ON')
      tmp_mat_compr(ii)=-0.5d0*lagmat_%matrix_compr(ii)-0.5d0*lagmat_%matrix_compr(ii_trans)
      ! SM: This is a hack, should use another variable
      !if (.false..or.correction_orthoconstraint==2) then
-     if (.false..and.correction_orthoconstraint==2) then
+     if (.false. .and. correction_orthoconstraint==2) then
          if (iproc==0 .and. ii==1) write(*,*) 'only normalization constraint'
          if (iorb/=jorb) then
              tmp_mat_compr(ii)=0.d0
@@ -217,9 +224,8 @@ call timing(iproc,'misc','ON')
 
 
   ! NEW: reactivate correction for non-orthogonality ##########
-  if (correction_orthoconstraint==0) then
+  !if (correction_orthoconstraint==0) then
       !@NEW
-      if (iproc==0) call yaml_map('correction orthoconstraint',.true.)
       inv_ovrlp_ = matrices_null()
       call allocate_matrices(linmat%l, allocate_full=.false., &
            matname='inv_ovrlp_', mat=inv_ovrlp_)
@@ -234,11 +240,14 @@ call timing(iproc,'misc','ON')
       call sequential_acces_matrix_fast(linmat%l, inv_ovrlp_%matrix_compr, inv_ovrlp_seq)
       call uncompress_matrix_distributed(iproc, linmat%m, tmp_mat_compr, lagmatp)
       call sparsemm(linmat%l, inv_ovrlp_seq, lagmatp, inv_lagmatp)
+  if (correction_orthoconstraint==0) then
+      if (iproc==0) call yaml_map('correction orthoconstraint',.true.)
       call compress_matrix_distributed(iproc, linmat%m, inv_lagmatp, tmp_mat_compr)
+  end if
       call f_free(inv_ovrlp_seq)
       call f_free(lagmatp)
       call f_free(inv_lagmatp)
-      call deallocate_matrices(inv_ovrlp_)
+      !call deallocate_matrices(inv_ovrlp_)
       !@ENDNEW
 
 
@@ -293,7 +302,7 @@ call timing(iproc,'misc','ON')
    !!!   deallocate(tmp_mat2)
    !!!   deallocate(ipiv)
    !!!   deallocate(work)
-  end if
+  !end if
   !! ##########################################################
 
   lagmat_tmp_compr = sparsematrix_malloc(lagmat,iaction=SPARSE_FULL,id='lagmat_tmp_compr')
@@ -342,6 +351,22 @@ call timing(iproc,'misc','OF')
   call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, hpsit_c, hpsit_f, lhphi, lzd)
 
   overlap_calculated=.false.
+  
+
+  ! @NEW multipliy the gradient with S^-1
+  hpsit_tmp_c = f_malloc(collcom%ndimind_c, id='hpsit_tmp_c')
+  hpsit_tmp_f = f_malloc(7*collcom%ndimind_f, id='hpsit_tmp_f')
+  hphi_nococontra = f_malloc(npsidim_orbs,id='hphi_nococontra')
+  call build_linear_combination_transposed(collcom, linmat%l, inv_ovrlp_, hpsit_c, hpsit_f, .true., hpsit_tmp_c, hpsit_tmp_f, iproc)
+  call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, hpsit_tmp_c, hpsit_tmp_f, hphi_nococontra, lzd)
+  call large_to_small_locreg(iproc, npsidim_orbs_small, npsidim_orbs, lzd_small, lzd, &
+       orbs, hphi_nococontra, hpsi_noprecond)
+  ! END @NEW
+
+  call deallocate_matrices(inv_ovrlp_)
+  call f_free(hpsit_tmp_c)
+  call f_free(hpsit_tmp_f)
+  call f_free(hphi_nococontra)
 
 end subroutine orthoconstraintNonorthogonal
 

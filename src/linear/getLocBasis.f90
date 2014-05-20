@@ -362,6 +362,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           call vcopy(tmb%orbs%norb**2, tmb%linmat%ovrlp_%matrix(1,1), 1, matrixElements(1,1,2), 1)
           call diagonalizeHamiltonian2(iproc, tmb%orbs%norb, matrixElements(1,1,1), matrixElements(1,1,2), tmb%orbs%eval)
           if (iproc==0) call yaml_map('gap',tmb%orbs%eval(orbs%norb+1)-tmb%orbs%eval(orbs%norb))
+          if (iproc==0) call yaml_map('lowest eigenvalue',tmb%orbs%eval(1))
+          if (iproc==0) call yaml_map('highest eigenvalue',tmb%orbs%eval(tmb%orbs%norb))
           call f_free(matrixElements)
           call f_free_ptr(tmb%linmat%ham_%matrix)
           call f_free_ptr(tmb%linmat%ovrlp_%matrix)
@@ -746,6 +748,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
 
       correction_orthoconstraint_local=correction_orthoconstraint
+      !if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+      !    correction_orthoconstraint_local=2
+      !end if
       !if(.not.ortho_on) then
       !    correction_orthoconstraint_local=2
       !end if
@@ -969,7 +974,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       else
           kappa_satur=0
       end if
-      exit_loop(7) = (itout>0 .and. kappa_satur>=2)
+      exit_loop(7) = (.false. .and. itout>0 .and. kappa_satur>=2)
 
       if(any(exit_loop)) then
           if(exit_loop(1)) then

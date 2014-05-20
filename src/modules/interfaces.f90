@@ -1976,14 +1976,16 @@ module module_interfaces
      end subroutine initInputguessConfinement
 
       subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
-                 correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, hpsit_c, hpsit_f, &
-                 can_use_transposed, overlap_calculated, experimental_mode, norder_taylor)
+                 correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, &
+           hpsit_c, hpsit_f, hpsit_nococontra_c, hpsit_nococontra_f, &
+                 can_use_transposed, overlap_calculated, experimental_mode, norder_taylor, &
+           npsidim_orbs_small, lzd_small, hpsi_noprecond)
         use module_base
         use module_types
         use yaml_output
         implicit none
-        integer,intent(in) :: iproc, nproc, npsidim_orbs, npsidim_comp
-        type(local_zone_descriptors),intent(in) :: lzd
+        integer,intent(in) :: iproc, nproc, npsidim_orbs, npsidim_comp, npsidim_orbs_small
+        type(local_zone_descriptors),intent(in) :: lzd, lzd_small
         type(orbitals_Data),intent(inout) :: orbs !temporary inout
         type(comms_linear),intent(in) :: collcom
         type(orthon_data),intent(in) :: orthpar
@@ -1993,10 +1995,13 @@ module module_interfaces
         type(sparse_matrix),intent(inout) :: lagmat
         type(matrices),intent(out) :: lagmat_
         real(kind=8),dimension(:),pointer :: psit_c, psit_f, hpsit_c, hpsit_f
+        real(kind=8),dimension(collcom%ndimind_c),intent(in) :: hpsit_nococontra_c
+        real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: hpsit_nococontra_f
         logical,intent(inout) :: can_use_transposed, overlap_calculated
         type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
         logical,intent(in) :: experimental_mode
         integer,intent(in) :: norder_taylor
+        real(kind=8),dimension(npsidim_orbs_small),intent(out) :: hpsi_noprecond
       end subroutine orthoconstraintNonorthogonal
 
 

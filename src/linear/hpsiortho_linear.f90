@@ -54,7 +54,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8), dimension(:), allocatable :: fnrmOvrlpArr, fnrmArr
   real(kind=8), dimension(:), allocatable :: hpsi_conf, hpsi_tmp
   real(kind=8), dimension(:), pointer :: kernel_compr_tmp
-  real(kind=8), dimension(:), allocatable :: prefac
+  real(kind=8), dimension(:), allocatable :: prefac, hpsit_nococontra_c, hpsit_nococontra_f
   real(wp), dimension(2) :: garray
   real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
   real(kind=8) :: fnrm_low, fnrm_high
@@ -134,6 +134,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
       end if
   end if
+
+  hpsit_nococontra_c = f_malloc(tmb%ham_descr%collcom%ndimind_c,id='hpsit_nococontra_c')
+  hpsit_nococontra_f = f_malloc(7*tmb%ham_descr%collcom%ndimind_f,id='hpsit_nococontra_f')
+
+  call vcopy(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsit_nococontra_c(1), 1)
+  call vcopy(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsit_nococontra_f(1), 1)
 
   if (correction_co_contra) then
       !@NEW correction for contra / covariant gradient
@@ -351,7 +357,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   !call memocc(istat, lagmat%matrix_compr, 'lagmat%matrix_compr', subname)
 
   ! Calculate the overlap matrix, can be optimized ############################
-  if (correction_orthoconstraint==0) then
+  !if (correction_orthoconstraint==0) then
       !if(.not.tmb%can_use_transposed) then
           if(.not.associated(tmb%psit_c)) then
               tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
@@ -369,7 +375,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       ! This can then be deleted if the transition to the new type has been completed.
       !tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
 
-  end if
+  !end if
   ! ###########################################################################
 
 
@@ -402,13 +408,17 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
   !if (iproc==0) write(*,*) 'correction_orthoconstraint',correction_orthoconstraint
+  if (.not.present(hpsi_noprecond)) stop 'hpsi_noprecond not present'
+  !hpsit_nococontra_c = hpsit_c
+  !hpsit_nococontra_f = hpsit_f
   call orthoconstraintNonorthogonal(iproc, nproc, tmb%ham_descr%lzd, &
        tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &
        tmb%orbs, tmb%ham_descr%collcom, tmb%orthpar, correction_orthoconstraint, &
        tmb%linmat, tmb%ham_descr%psi, tmb%hpsi, &
        tmb%linmat%m, tmb%linmat%ham_, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, &
-       hpsit_c, hpsit_f, tmb%ham_descr%can_use_transposed, &
-       overlap_calculated, experimental_mode, norder_taylor)
+       hpsit_c, hpsit_f, hpsit_nococontra_c, hpsit_nococontra_f, tmb%ham_descr%can_use_transposed, &
+       overlap_calculated, experimental_mode, norder_taylor, &
+       tmb%npsidim_orbs, tmb%lzd, hpsi_noprecond)
 
   !!EXPERIMENTAL
   !!call calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, hpsit_f)
@@ -512,7 +522,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
 
-  if (present(hpsi_noprecond)) call vcopy(tmb%npsidim_orbs, hpsi_small(1), 1, hpsi_noprecond(1), 1)
+  !if (present(hpsi_noprecond)) call vcopy(tmb%npsidim_orbs, hpsi_small(1), 1, hpsi_noprecond(1), 1)
 
   ! Calculate trace (or band structure energy, resp.)
   trH=0.d0
@@ -527,7 +537,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   ! trH is now the total energy (name is misleading, correct this)
   ! Multiply by 2 because when minimizing trace we don't have kernel
   !if(iproc==0)print *,'trH,energs',trH,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
-  if(tmb%orbs%nspin==1 .and. target_function/= TARGET_FUNCTION_IS_ENERGY) trH=2.d0*trH
+  !if(tmb%orbs%nspin==1 .and. target_function/= TARGET_FUNCTION_IS_ENERGY) trH=2.d0*trH
+  if(tmb%orbs%nspin==1 .and. target_function==TARGET_FUNCTION_IS_TRACE) trH=2.d0*trH
   trH=trH-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
 
 
