@@ -96,6 +96,7 @@ program BigDFT2Wannier
 
    if (nconfig < 0) stop 'runs-file not supported for BigDFT2Wannier executable'
 
+   call dict_init(user_inputs)
    call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
         & 'posinp'//trim(bigdft_run_id_toa()), bigdft_mpi)
    call inputs_from_dict(input, atoms, user_inputs)

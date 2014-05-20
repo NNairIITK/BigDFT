@@ -70,6 +70,15 @@ module module_input_keys
   character(len = *), parameter, public :: HISTORY = "history"
   character(len = *), parameter, public :: DTINIT = "dtinit"
   character(len = *), parameter, public :: DTMAX = "dtmax"
+  character(len = *), parameter, public :: NEB_RESTART = "restart"
+  character(len = *), parameter, public :: NEB_CLIMBING = "climbing"
+  character(len = *), parameter, public :: EXTREMA_OPT = "extrema_opt"
+  character(len = *), parameter, public :: NEB_METHOD = "neb_method"
+  character(len = *), parameter, public :: TEMP = "temp"
+  character(len = *), parameter, public :: NEB_DAMP = "damp"
+  character(len = *), parameter, public :: SPRINGS_K = "springs_k"
+  character(len = *), parameter, public :: FIX_TOL = "fix_tol"
+  character(len = *), parameter, public :: NIMG = "nimg"
 
   character(len = *), parameter, public :: MIX_VARIABLES = "mix"
   character(len = *), parameter, public :: ISCF = "iscf"
@@ -696,7 +705,8 @@ contains
     !parse all the keys of the dictionary
     dict_tmp=>dict_iter(dict//file)
     do while(associated(dict_tmp))
-       if (.not. (dict_key(dict_tmp) .in. ref)) then
+       if (.not. (dict_key(dict_tmp) .in. ref) .and. &
+            & index(dict_key(dict_tmp), ATTRS) == 0) then
     !      call yaml_map('Allowed keys',dict_keys(ref))
           !even in a f_err_open_try section this error is assumed to be fatal
           !for the moment. A mechanism to downgrade its gravity should be

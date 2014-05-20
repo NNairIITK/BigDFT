@@ -157,8 +157,8 @@
  tddft:
    tddft_approach                      : none #   TDDFT method
  posinp:
-   Units                               : angstroem
-   Positions:
+   units                               : angstroem
+   positions:
    - C: [0.0, 0.0, 0.0]
    - C: [1.402230978012085, 0.0, 0.0]
    - C: [2.091015100479126, 1.220378041267395, 0.0]
@@ -180,9 +180,9 @@
    - H: [-0.33733400702476501, 4.6939411163330078, 3.1611499786376953]
    - H: [1.0416460037231445, 4.0531110763549805, 2.2141990661621094]
    - H: [-0.40593200922012335, 3.0053210258483887, 2.5729269981384277]
-   Properties:
-     Format                            : xyz
-     Source                            : cubic
+   properties:
+     format                            : xyz
+     source                            : cubic
  lin_general:
    hybrid                              : No #     activate the hybrid mode; if activated, only the low accuracy values will be relevant
    nit: [100, 100] #                              number of iteration with low/high accuracy

@@ -256,10 +256,10 @@ contains
     stream_next_free_unit = 75214
     unit_is_open = .true.
     do while (unit_is_open)
+       stream_next_free_unit = stream_next_free_unit + 1
        inquire(unit=stream_next_free_unit,opened=unit_is_open,iostat=ierr)
        if (f_err_raise(ierr /=0,'error in unit inquiring, ierr='//trim(yaml_toa(ierr)),&
             YAML_INVALID)) return
-       stream_next_free_unit = stream_next_free_unit + 1
     end do
   end function stream_next_free_unit
   

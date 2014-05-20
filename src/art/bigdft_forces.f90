@@ -142,7 +142,7 @@ module bigdft_forces
       type(dictionary), pointer :: dict
       !_______________________
 
-      nullify(dict)
+      call dict_init(dict)
       call read_input_dict_from_files("input", bigdft_mpi,dict)
 
       me = me_

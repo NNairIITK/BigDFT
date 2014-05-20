@@ -136,13 +136,13 @@
  tddft:
    tddft_approach                      : TDA #    TDDFT method
  posinp:
-   Units                               : angstroem
-   Positions:
+   units                               : angstroem
+   positions:
    - N: [0.0, 0.0, 0.0]
    - N: [0.0, 0.0, 1.1149899959564209]
-   Properties:
-     Format                            : xyz
-     Source                            : posinp
+   properties:
+     format                            : xyz
+     source                            : posinp
  psppar.N:
    Pseudopotential type                : GTH
    Atomic number                       : 7

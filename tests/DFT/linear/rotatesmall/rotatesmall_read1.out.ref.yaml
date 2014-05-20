@@ -256,14 +256,14 @@
    rloc_kernel                         : 9.0 #    localization radius for the density kernel
    rloc_kernel_foe                     : 14.0 #   cutoff radius for the FOE matrix vector multiplications
  posinp:
-   Positions:
+   positions:
    - Si: [0.0, 0.0, 0.0]
    - H: [2.2770392560300001, 0.96296074396999998, -1.3270263117479999]
    - H: [-0.96296074396999998, -2.2770392560300001, -1.3270263117479999]
    - H: [-1.9840655677779999, 1.9840655677779999, 1.29477996890000006E-002]
-   Properties:
-     Format                            : xyz
-     Source                            : read1
+   properties:
+     format                            : xyz
+     source                            : read1
  psppar.Si:
    Pseudopotential type                : HGH-K
    Atomic number                       : 14

@@ -112,7 +112,7 @@ END SUBROUTINE astruct_set_displacement
 subroutine astruct_merge_to_dict(dict, astruct)
   use module_input_dicts, only: wrapper => astruct_merge_to_dict
   use module_types, only: atomic_structure
-  use dictionaries, only: dictionary, dict_len, dict_size
+  use dictionaries, only: dictionary
   implicit none
   type(dictionary), pointer :: dict
   type(atomic_structure), intent(in) :: astruct
@@ -626,27 +626,6 @@ subroutine write_extra_info(extra,natpol,ifrztyp)
   
 END SUBROUTINE write_extra_info
 
-
-subroutine astruct_dict_get_types(dict, types)
-  use dictionaries
-  implicit none
-  type(dictionary), pointer :: dict, types
-  
-  type(dictionary), pointer :: atoms, at
-  character(len = max_field_length) :: str
-  integer :: iat
-
-  call dict_init(types)
-  atoms => dict // "Positions"
-  do iat = 1, dict_len(atoms), 1
-     at => dict_iter(atoms // iat)
-     do while(associated(at))
-        str = dict_key(at)
-        if (dict_len(at) == 3 .and. .not. has_key(types, str)) call add(types, str)
-        at => dict_next(at)
-     end do
-  end do
-end subroutine astruct_dict_get_types
 
 
 !> Write atomic file in yaml format
@@ -1197,6 +1176,7 @@ END SUBROUTINE astruct_copy_alat
 subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
   use module_base
   use module_types
+  use module_input_dicts
   use yaml_output
   implicit none
   character(len=*), intent(in) :: filename,comment
@@ -1209,6 +1189,7 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
   integer :: iunit
   character(len = 1024) :: fname
   real(gp), dimension(3), parameter :: dummy = (/ 0._gp, 0._gp, 0._gp /)
+  type(dictionary), pointer :: dict
 
   if (trim(filename) == "stdout") then
      iunit = 6
@@ -1232,17 +1213,21 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
         if (present(forces)) call wtascii_forces(9,forces,atoms)
      case('yaml')
         call yaml_new_document(unit = iunit)
-        if (len_trim(comment) > 0) call yaml_comment(comment, unit = iunit)
-        if (present(forces)) then
-           call wtyaml(iunit,energy,rxyz,atoms,.true.,forces, .false., dummy, dummy)
-        else
-           call wtyaml(iunit,energy,rxyz,atoms,.false.,rxyz, .false., dummy, dummy)
-        end if
+     call dict_init(dict)
+     call astruct_merge_to_dict(dict, atoms%astruct, rxyz, comment)
+     call yaml_dict_dump(dict, unit = iunit)
+     call dict_free(dict)
+!!$     if (len_trim(comment) > 0) call yaml_comment(comment, unit = iunit)
+!!$     if (present(forces)) then
+!!$        call wtyaml(iunit,energy,rxyz,atoms,.true.,forces, .false., dummy, dummy)
+!!$     else
+!!$        call wtyaml(iunit,energy,rxyz,atoms,.false.,rxyz, .false., dummy, dummy)
+!!$     end if
      case default
         call f_err_throw('Writing the atomic file. Error, unknown file format ("'//&
              trim(atoms%astruct%inputfile_format)//'")', &
              err_name='BIGDFT_RUNTIME_ERROR')
-  end select
+   end select
 
   if (iunit /= 6) then
      if (atoms%astruct%inputfile_format == 'yaml') then

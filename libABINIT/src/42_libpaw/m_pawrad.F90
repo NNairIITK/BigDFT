@@ -7,7 +7,7 @@
 !! Module containing all the functions related to the PAW radial meshes
 !!
 !! COPYRIGHT
-!! Copyright (C) 2013-2013 ABINIT group (MT,FJ,MG)
+!! Copyright (C) 2013-2014 ABINIT group (MT,FJ,MG)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -27,18 +27,15 @@
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
-#include "abi_common_for_bigdft.h"
+#include "abi_common.h"
 
 MODULE m_pawrad
 
  use defs_basis
  use m_errors
-use interfaces_12_hide_mpi
-use interfaces_14_hidewrite
-use interfaces_16_hideleave
  use m_profiling
  use m_xmpi
 
@@ -60,14 +57,15 @@ use interfaces_16_hideleave
  public :: nderiv_gen          ! Do corrected first (and 2nd) derivation on a given (generalized) grid.
  public :: nderiv_lin          ! Do corrected first (and 2nd) derivation on a given linear grid.
  public :: bound_deriv         ! Computes derivatives at boundaries of the mesh
- public :: poisson             ! Solves Poisson eq. for angularly dependent charge distribution
-!                                of angular momentum l.
+ public :: poisson             ! Solves Poisson eq. for angularly dependent charge
+                               ! distribution of angular momentum l
  public :: calc_slatradl       ! Calculates the radial part of Slater integrals.
 
  interface pawrad_nullify
    module procedure pawrad_nullify_0D
    module procedure pawrad_nullify_1D
  end interface pawrad_nullify
+
  interface pawrad_destroy
    module procedure pawrad_destroy_0D
    module procedure pawrad_destroy_1D
@@ -80,8 +78,6 @@ use interfaces_16_hideleave
  integer,private,parameter :: RMESH_LOG3   = 4
  integer,private,parameter :: RMESH_NL     = 5
 !!***
-
-!----------------------------------------------------------------------
 
 !-------------------------------------------------------------------------
 
@@ -134,17 +130,17 @@ use interfaces_16_hideleave
 
 !Real (real(dp)) arrays
 
-  real(dp), pointer :: rad(:)
+  real(dp), allocatable :: rad(:) 
    ! rad(mesh_size)
    ! Coordinates of all the points of the mesh
-
-  real(dp), pointer :: radfact(:)
+ 
+  real(dp), allocatable :: radfact(:)
    ! radfact(mesh_size)
    ! Factor used to compute radial integrals
    ! Before being integrated on the present mesh,
    ! any function is multiplied by this factor
 
-  real(dp), pointer :: simfact(:)
+  real(dp), allocatable :: simfact(:) 
    ! simfact(mesh_size)
    ! Factor used to compute radial integrals by the a Simpson scheme
    ! Integral[f] = Sum_i [simfact(i)*f(i)]
@@ -195,6 +191,8 @@ CONTAINS
 !!    %rmax = Max. value of r = rad(mesh_size)
 !!
 !! PARENTS
+!!      eltfrxc3,m_atom,m_gaussfit,m_paw_pwij,m_pawpsp,m_pawxmlps,mkcore_paw
+!!      mkcore_wvl,wvl_initro
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -235,7 +233,7 @@ subroutine pawrad_init(mesh,mesh_size,mesh_type,rstep,lstep,r_for_intg)
 
 ! *************************************************************************
 
-! DBG_ENTER("COLL")
+ DBG_ENTER("COLL")
 
  !@pawrad_type
 
@@ -300,8 +298,7 @@ subroutine pawrad_init(mesh,mesh_size,mesh_type,rstep,lstep,r_for_intg)
 
  else !  Other values of mesh_type are not allowed (see psp7in.F90)
   write(msg,'(a,i0)')" Unknown value of mesh_type: ",mesh%mesh_type
-  call wrtout(std_out,msg,'COLL')
-  call leave_new('COLL')
+  MSG_ERROR(msg)
  end if
 
  mesh%int_meshsz=mesh%mesh_size
@@ -330,7 +327,7 @@ subroutine pawrad_init(mesh,mesh_size,mesh_type,rstep,lstep,r_for_intg)
 
  mesh%rmax=mesh%rad(mesh%mesh_size)
 
-! DBG_EXIT("COLL")
+ DBG_EXIT("COLL")
 
 end subroutine pawrad_init
 !!***
@@ -345,6 +342,7 @@ end subroutine pawrad_init
 !!  Nullify all pointers in the object
 !!
 !! PARENTS
+!!      m_pawrad
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -367,11 +365,11 @@ subroutine pawrad_nullify_0D(Rmesh)
  
 ! *************************************************************************
 
- !@pawrad_type
- nullify(Rmesh%rad    )
- nullify(Rmesh%radfact)
- nullify(Rmesh%simfact)
+ ! MGPAW: This one could be removed/renamed, 
+ ! variables can be initialized in the datatype declaration
+ ! Do we need to expose this in the public API?
 
+ !@pawrad_type
  Rmesh%int_meshsz=0
  Rmesh%mesh_size=0
  Rmesh%mesh_type=-1
@@ -436,6 +434,7 @@ end subroutine pawrad_nullify_1D
 !!  Frees all memory allocated in the object
 !!
 !! PARENTS
+!!      m_pawrad
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -461,17 +460,17 @@ subroutine pawrad_destroy_0D(Rmesh)
 
 ! *************************************************************************
 
-! DBG_ENTER("COLL")
+ DBG_ENTER("COLL")
 
  !@Pawrad_type
 
- if (associated(Rmesh%rad    ))  then
+ if (allocated(Rmesh%rad    ))  then
    ABI_DEALLOCATE(Rmesh%rad)
  end if
- if (associated(Rmesh%radfact))  then
+ if (allocated(Rmesh%radfact))  then
    ABI_DEALLOCATE(Rmesh%radfact)
  end if
- if (associated(Rmesh%simfact))  then
+ if (allocated(Rmesh%simfact))  then
    ABI_DEALLOCATE(Rmesh%simfact)
  end if
 
@@ -479,7 +478,7 @@ subroutine pawrad_destroy_0D(Rmesh)
  Rmesh%mesh_size=0
  Rmesh%mesh_type=-1
 
-! DBG_EXIT("COLL")
+ DBG_EXIT("COLL")
 
 end subroutine pawrad_destroy_0D
 !!***
@@ -551,6 +550,7 @@ end subroutine pawrad_destroy_1D
 !!  Only writing.
 !!
 !! PARENTS
+!!      m_atom
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -616,8 +616,7 @@ subroutine pawrad_print(Rmesh,header,unit,prtvol,mode_paral)
 
  CASE DEFAULT 
    msg = ' Unknown mesh type! Action : check your pseudopotential or input file.'
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_ERROR(msg)
  END SELECT
 
  call wrtout(my_unt,msg,my_mode)
@@ -656,6 +655,7 @@ end subroutine pawrad_print
 !!    * 2 if Rmesh2 is denser than Rmesh1
 !!
 !! PARENTS
+!!      m_atom,m_paw_slater
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -684,6 +684,7 @@ subroutine pawrad_isame(Rmesh1,Rmesh2,hasameq,whichdenser)
 ! *************************************************************************
 
  !@pawrad_type
+
  whichdenser =0 ; hasameq=.FALSE.
 
  if (Rmesh1%mesh_type /= Rmesh2%mesh_type) RETURN
@@ -704,8 +705,7 @@ subroutine pawrad_isame(Rmesh1,Rmesh2,hasameq,whichdenser)
    hasameq = (Rmesh1%rstep == Rmesh2%rstep)
 
  CASE DEFAULT
-   call wrtout(std_out,"Unknown mesh type",'COLL')
-   call leave_new('COLL')
+   MSG_ERROR("Unknown mesh type")
  END SELECT
 
  ! === If meshes have same equation, check whether they are equal ===
@@ -735,6 +735,7 @@ end subroutine pawrad_isame
 !!  mesh2 <type(pawrad_type)>=data containing radial grid information of output mesh
 !!
 !! PARENTS
+!!      m_paw_pwij,m_pawpsp
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -770,6 +771,9 @@ subroutine pawrad_copy(mesh1,mesh2)
  integer :: ir
 
 ! *************************************************************************
+
+ call pawrad_nullify(mesh2)
+
  mesh2%mesh_type =mesh1%mesh_type
  mesh2%mesh_size =mesh1%mesh_size
  mesh2%int_meshsz=mesh1%int_meshsz
@@ -777,11 +781,7 @@ subroutine pawrad_copy(mesh1,mesh2)
  mesh2%rstep     =mesh1%rstep
  mesh2%stepint   =mesh1%stepint
  mesh2%rmax      =mesh1%rmax
-!If you need the following lines, please put ierr as a local variable (integer)
-!those lines are not useful and the behavior is undefined. => problems with g95 (PMA)
-!if (associated(mesh2%rad)) deallocate(mesh2%rad,STAT=ierr)
-!if (associated(mesh2%radfact)) deallocate(mesh2%radfact,STAT=ierr)
-!if (associated(mesh2%simfact)) deallocate(mesh2%simfact,STAT=ierr)
+
  ABI_ALLOCATE(mesh2%rad,(mesh1%mesh_size))
  ABI_ALLOCATE(mesh2%radfact,(mesh1%mesh_size))
  ABI_ALLOCATE(mesh2%simfact,(mesh1%mesh_size))
@@ -790,6 +790,7 @@ subroutine pawrad_copy(mesh1,mesh2)
    mesh2%radfact(ir)=mesh1%radfact(ir)
    mesh2%simfact(ir)=mesh1%simfact(ir)
  end do
+
 end subroutine pawrad_copy
 !!***
 
@@ -811,6 +812,10 @@ end subroutine pawrad_copy
 !!  func(funcsz)=array containing values of function to extrapolate
 !!
 !! PARENTS
+!!      Lij,denfgr,m_atompaw,m_gaussfit,m_paw_pwaves_lmn,m_paw_slater,m_pawdij
+!!      m_pawpsp,m_pawrad,m_pawxc,make_efg_onsite,optics_paw,optics_paw_core
+!!      pawdenpot,pawdensities,pawnabla_init,pawtwdij,pawtwdij_2a,pawtwdij_2c
+!!      pawtwdij_2d
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -864,18 +869,12 @@ end subroutine pawrad_deducer0
 !!  pawrad=<type pawrad_type>= a radial mesh datastructure for PAW
 !!
 !! PARENTS
+!!      m_pawpsp
 !!
 !! CHILDREN
 !!      poisson,simp_gen
 !!
 !! SOURCE
-
-#if defined HAVE_CONFIG_H
-#include "config.inc"
-#endif
-
-#include "abi_common_for_bigdft.h"
-
 
 subroutine pawrad_bcast(pawrad,comm_mpi)
 
@@ -909,31 +908,28 @@ subroutine pawrad_bcast(pawrad,comm_mpi)
 
 !calculate the size of the reals
  if(me==0) then
-   if (associated(pawrad%rad)) then
+   if (allocated(pawrad%rad)) then
      if_rad=1 !communicate rad
      isz1=size(pawrad%rad)
      if(isz1/=pawrad%mesh_size) then
        message='rad: sz1 /= pawrad%mesh_size'
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       MSG_BUG(message)
      end if
    end if
-   if (associated(pawrad%radfact)) then
+   if (allocated(pawrad%radfact)) then
      if_radfact=1 !communicate radfact
      isz1=size(pawrad%radfact)
      if(isz1/=pawrad%mesh_size) then
        message='radfact: sz1 /= pawrad%mesh_size '
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       MSG_BUG(message)
      end if
    end if
-   if (associated(pawrad%simfact)) then
+   if (allocated(pawrad%simfact)) then
      if_simfact=1 !communicate simfact
      isz1=size(pawrad%simfact)
      if(isz1/=pawrad%mesh_size) then
        message='simfact: sz1 /= pawrad%mesh_size '
-       call wrtout(std_out,message,'COLL')
-       call leave_new('COLL')
+       MSG_BUG(message)
      end if
    end if
  end if
@@ -948,9 +944,7 @@ subroutine pawrad_bcast(pawrad,comm_mpi)
    list_int(5)=if_radfact
    list_int(6)=if_simfact
  end if
-
- call xcast_mpi(list_int,0,comm_mpi,ierr)
-
+ call xmpi_bcast(list_int,0,comm_mpi,ierr)
  if(me/=0) then
    pawrad%int_meshsz =list_int(1)
    pawrad%mesh_size =list_int(2)
@@ -986,9 +980,7 @@ subroutine pawrad_bcast(pawrad,comm_mpi)
      indx=indx+isz1
    end if
  end if
-
- call xcast_mpi(list_dpr,0,comm_mpi,ierr)
-
+ call xmpi_bcast(list_dpr,0,comm_mpi,ierr)
  if(me/=0) then
    pawrad%lstep=list_dpr(1)
    pawrad%rmax=list_dpr(2)
@@ -996,13 +988,13 @@ subroutine pawrad_bcast(pawrad,comm_mpi)
    pawrad%stepint=list_dpr(4)
    indx=5
 !  Deallocate all arrays:
-   if (associated(pawrad%rad)) then
+   if (allocated(pawrad%rad)) then
      ABI_DEALLOCATE(pawrad%rad)
    end if
-   if (associated(pawrad%radfact)) then
+   if (allocated(pawrad%radfact)) then
      ABI_DEALLOCATE(pawrad%radfact)
    end if
-   if (associated(pawrad%simfact)) then
+   if (allocated(pawrad%simfact)) then
      ABI_DEALLOCATE(pawrad%simfact)
    end if
 !  Communicate if flag is set to 1:
@@ -1049,6 +1041,12 @@ end subroutine pawrad_bcast
 !!  intg=resulting integral by Simpson rule
 !!
 !! PARENTS
+!!      Lij,m_atom,m_atompaw,m_paw_commutator,m_paw_pwij,m_paw_slater,m_pawdij
+!!      m_pawpsp,m_pawrad,m_pawxc,make_efg_onsite,mlwfovlp_projpaw,optics_paw
+!!      optics_paw_core,partial_dos_fractions_paw,pawdensities,pawinit
+!!      pawnabla_init,pawpuxinit,pawtwdij,pawtwdij_1,pawtwdij_2a,pawtwdij_2b
+!!      pawtwdij_2c,pawtwdij_2d,pawtwdij_2e,pawtwdij_2f,poslifetime,qijb_kk
+!!      smatrix_pawinit,twqijb_kk
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -1090,6 +1088,7 @@ subroutine simp_gen(intg,func,radmesh,r_for_intg)
  character(len=500) :: msg
 
 ! *************************************************************************
+
  if (present(r_for_intg)) then 
    if (r_for_intg>0.d0) then
      ir=min(pawrad_ifromr(radmesh,r_for_intg),radmesh%mesh_size)
@@ -1103,8 +1102,7 @@ subroutine simp_gen(intg,func,radmesh,r_for_intg)
    end if
    if (int_meshsz>radmesh%int_meshsz) then
      write(msg,'(a,i4,a,i4)')"simp_gen: BUG int_meshsz= ",int_meshsz," > radmesh%int_meshsz= ",radmesh%int_meshsz
-     call wrtout(std_out,msg,'COLL')
-     call leave_new('COLL')
+     MSG_ERROR(msg)
    end if
    isim=3; if (radmesh%mesh_type==3)isim=4
    ABI_ALLOCATE(simfact,(radmesh%mesh_size))
@@ -1170,6 +1168,9 @@ end subroutine simp_gen
 !!  der(:,nder)=resulting derived function
 !!
 !! PARENTS
+!!      m_paw_pwaves_lmn,m_pawdij,m_pawpsp,m_pawxc,optics_paw,optics_paw_core
+!!      pawinit,pawnabla_init,pawtwdij,pawtwdij_1,poslifetime,psp7cc,psp7cc_wvl
+!!      spline_paw_fncs
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -1211,8 +1212,7 @@ subroutine nderiv_gen(der,func,nder,radmesh)
 
  if(nder/=1 .and. nder/=2)then
    write(msg,'(a,i0)')' first or second derivatives are allowed while the argument nder=',nder
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_BUG(msg)
  end if
 
  msz=radmesh%mesh_size
@@ -1220,7 +1220,9 @@ subroutine nderiv_gen(der,func,nder,radmesh)
  if (radmesh%mesh_type==1) then
 
    call nderiv_lin(radmesh%rstep,func,der(1:msz,1),radmesh%mesh_size,1)
-   if (nder==2) call nderiv_lin(radmesh%rstep,func,der(1:msz,2),radmesh%mesh_size,2)
+   if (nder==2) then
+     call nderiv_lin(radmesh%rstep,func,der(1:msz,2),radmesh%mesh_size,2)
+   end if
 
  else if (radmesh%mesh_type==2) then
 
@@ -1284,6 +1286,7 @@ end subroutine nderiv_gen
 !!  zz(ndim)= first or second derivative of y
 !!
 !! PARENTS
+!!      m_pawrad
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -1386,6 +1389,7 @@ end subroutine nderiv_lin
 !!  yp1,ypn= derivatives of func at r(1) and r(n)
 !!
 !! PARENTS
+!!      m_atompaw,m_pawpsp,m_pawxmlps
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -1448,6 +1452,8 @@ end subroutine bound_deriv
 !!                                   +(r^l) int[r''^(1-l)g(r'')dr''])
 !!
 !! PARENTS
+!!      m_atompaw,m_pawpsp,m_pawrad,pawdenpot,pawinit,pawpuxinit,pawtwdij_2a
+!!      pawtwdij_2c,pawtwdij_2d,pawtwdij_2f
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -1547,7 +1553,7 @@ subroutine poisson(den,ll,qq,radmesh,rv)
    do while (abs(den(nn))<tol16.and.nn>radmesh%int_meshsz)
      nn=nn-1
    end do
-    mm=nn;if (radmesh%mesh_type==3) mm=mm-1
+   mm=nn;if (radmesh%mesh_type==3) mm=mm-1
    ABI_ALLOCATE(radl,(nn))
    ABI_ALLOCATE(radl1,(nn))
    do jr=nn,2,-1
@@ -1663,8 +1669,7 @@ function pawrad_ifromr(radmesh,rr)
  else 
 !  Other values of mesh_type are not allowed (see psp7in.F90)
    write(msg,'(a,i0)')" Unknown value of %mesh_type ",radmesh%mesh_type 
-   call wrtout(std_out,msg,'COLL')
-   call leave_new('COLL')
+   MSG_ERROR(msg)
  end if
 
 end function pawrad_ifromr
@@ -1672,7 +1677,7 @@ end function pawrad_ifromr
 
 !----------------------------------------------------------------------
 
-!!****m* m_pawrad/calc_slatradl
+!!****f* m_pawrad/calc_slatradl
 !! NAME
 !!  calc_slatradl
 !!
@@ -1691,6 +1696,7 @@ end function pawrad_ifromr
 !!  where $r_< = min(r1,r2)$ and $r_> = Max(r1,r2)$.
 !!
 !! PARENTS
+!!      m_paw_slater
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -1726,8 +1732,7 @@ subroutine calc_slatradl(ll,mesh_size,ff1,ff2,Pawrad,integral)
 ! *************************************************************************
 
  if (mesh_size /= Pawrad%mesh_size) then 
-  call wrtout(std_out,"mesh_size /= Pawrad%mesh_size",'COLL')
-  call leave_new('COLL')
+  MSG_BUG("mesh_size /= Pawrad%mesh_size")
  end if
 
  ABI_ALLOCATE(hh,(mesh_size))

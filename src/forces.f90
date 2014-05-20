@@ -3887,7 +3887,7 @@ subroutine symm_stress(tens,symobj)
   real(gp),dimension(3,3) :: symtens
 
   call symmetry_get_matrices_p(symObj, nsym, sym, transNon, symAfm, errno)
-  if (errno /= AB6_NO_ERROR) stop
+  if (errno /= AB7_NO_ERROR) stop
   if (nsym < 2) return
 
   !Get the symmetry matrices in terms of reciprocal basis
@@ -3950,7 +3950,7 @@ subroutine symmetrise_forces(fxyz, at)
   real(gp), pointer :: transNon(:,:)
 
   call symmetry_get_matrices_p(at%astruct%sym%symObj, nsym, sym, transNon, symAfm, errno)
-  if (errno /= AB6_NO_ERROR) stop
+  if (errno /= AB7_NO_ERROR) stop
   if (nsym < 2) return
  !if (iproc == 0) write(*,"(1x,A,I0,A)") "Symmetrise forces with ", nsym, " symmetries."
   !if (iproc == 0) call yaml_map('Number of Symmetries for forces symmetrization',nsym,fmt='(i0)')
@@ -3973,7 +3973,7 @@ subroutine symmetrise_forces(fxyz, at)
   ! actually conduct symmetrization
   do ia = 1, at%astruct%nat
      call symmetry_get_equivalent_atom(at%astruct%sym%symObj, indsym, ia, errno)
-     if (errno /= AB6_NO_ERROR) stop
+     if (errno /= AB7_NO_ERROR) stop
      do mu = 1, 3
         summ = real(0, gp)
         do isym = 1, nsym

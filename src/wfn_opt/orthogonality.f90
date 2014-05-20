@@ -1579,6 +1579,7 @@ subroutine checkortho_paw(iproc,norb,nvctrp,psit,spsi)
 
   allocate(ovrlp(norb,norb,2+ndebug),stat=i_stat)
   call memocc(i_stat,ovrlp,'ovrlp',subname)
+  ovrlp=0.d0
 
   do iorb=1,norb
      do jorb=1,norb

@@ -2239,4 +2239,62 @@ contains
 
 
   END SUBROUTINE read_lin_from_text_format
+
+  subroutine read_neb_from_text_format(iproc,dict,filename)
+    use module_base
+    use module_input
+    use module_input_keys
+    use dictionaries
+    implicit none
+    character(len=*), intent(in) :: filename
+    type(dictionary), pointer :: dict
+    integer, intent(in) :: iproc
+
+    INTEGER :: num_of_images
+    CHARACTER (LEN=20) :: minimization_scheme
+    logical :: climbing, optimization, restart, exists
+    integer :: max_iterations
+    real(gp) :: convergence, damp, k_min, k_max, ds, temp_req, tolerance
+    CHARACTER (LEN=80) :: first_config, last_config, job_name, scratch_dir
+
+    NAMELIST /NEB/ scratch_dir,         &
+         restart,             &
+         climbing,            &
+         optimization,        &
+         minimization_scheme, &
+         damp,                &
+         temp_req,            &
+         k_max, k_min,        &
+         ds,                  &
+         max_iterations,      &
+         tolerance,           &
+         convergence,         &
+         num_of_images,       &
+         job_name,            & ! not used
+         first_config,        & ! not used
+         last_config            ! not used
+
+    inquire(file=trim(filename),exist=exists)
+    if (.not. exists) return
+
+    open(unit = 123, file = trim(filename), action = "read")
+    READ(123 , NML=NEB )
+    close(123)
+
+    call set(dict // GEOPT_METHOD, "NEB")
+    call set(dict // NEB_RESTART, restart)
+    call set(dict // NEB_CLIMBING, climbing)
+    call set(dict // EXTREMA_OPT, optimization)
+    call set(dict // NEB_METHOD, minimization_scheme)
+    call set(dict // NEB_DAMP, damp)
+    call set(dict // SPRINGS_K // 0, k_min)
+    call set(dict // SPRINGS_K // 1, k_max)
+    call set(dict // TEMP, temp_req)
+    call set(dict // BETAX, ds)
+    call set(dict // NCOUNT_CLUSTER_X, max_iterations)
+    call set(dict // FIX_TOL, tolerance)
+    call set(dict // FORCEMAX, convergence)
+    call set(dict // NIMG, num_of_images)
+
+  end subroutine read_neb_from_text_format
 end module input_old_text_format

@@ -63,6 +63,7 @@ program wvl
    !just for backward compatibility
    iproc=mpi_info(1)
    nproc=mpi_info(2)
+   call dict_init(user_inputs)
    call user_dict_from_files(user_inputs, 'input', 'posinp', bigdft_mpi)
    call inputs_from_dict(inputs, atoms, user_inputs)
    if (iproc == 0) then

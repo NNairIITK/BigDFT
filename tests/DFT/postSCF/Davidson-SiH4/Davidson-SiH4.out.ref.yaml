@@ -136,15 +136,15 @@
  tddft:
    tddft_approach                      : none #   TDDFT method
  posinp:
-   Positions:
+   positions:
    - Si: [0.0, 0.0, 0.0]
    - H: [1.6200000047683716, 1.6200000047683716, 1.6200000047683716]
    - H: [-1.6200000047683716, -1.6200000047683716, 1.6200000047683716]
    - H: [1.6200000047683716, -1.6200000047683716, -1.6200000047683716]
    - H: [-1.6200000047683716, 1.6200000047683716, -1.6200000047683716]
-   Properties:
-     Format                            : xyz
-     Source                            : posinp
+   properties:
+     format                            : xyz
+     source                            : posinp
  psppar.Si:
    Pseudopotential type                : GTH
    Atomic number                       : 14

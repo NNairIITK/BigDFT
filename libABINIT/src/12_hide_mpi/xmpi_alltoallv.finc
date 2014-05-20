@@ -1,40 +1,40 @@
 !{\src2tex{textfont=tt}}
-!!****f* ABINIT/xalltoallv_mpi
+!!****f* ABINIT/xmpi_alltoallv_dp2d
 !! NAME
-!!  xalltoallv_mpi
+!!  xmpi_alltoallv_dp2d
 !!
 !! FUNCTION
 !!  This module contains functions that calls MPI routine,
 !!  if we compile the code using the   CPP flags.
-!!  xalltoallv_mpi is the generic function.
+!!  xmpi_alltoallv is the generic function.
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2001-2011 ABINIT group (AR,XG)
+!!  Copyright (C) 2001-2014 ABINIT group (AR,XG)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~ABINIT/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
 !!
 !! TODO
 !!
+!! PARENTS
+!!
+!! CHILDREN
+!!      mpi_alltoallv
+!!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
+subroutine xmpi_alltoallv_dp2d(xval,sendcnts,sdispls,recvbuf,recvcnts,rdispls,spaceComm,ier)
 
-subroutine xalltoallv_mpi_dp2d(xval,sendcnts,sdispls,recvbuf,recvcnts,rdispls,spaceComm,ier)
 
  use defs_basis
 
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xmpi_alltoallv_dp2d'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  real(dp),intent(in) :: xval(:,:)
@@ -44,6 +44,8 @@ subroutine xalltoallv_mpi_dp2d(xval,sendcnts,sdispls,recvbuf,recvcnts,rdispls,sp
  integer ,intent(out)   :: ier
 
 !Local variables-------------------
+ integer :: sc,sds,sdr,sz1
+ 
 ! *********************************************************************
 
  ier=0
@@ -52,14 +54,22 @@ subroutine xalltoallv_mpi_dp2d(xval,sendcnts,sdispls,recvbuf,recvcnts,rdispls,sp
 !  allgather xval on all proc. in spaceComm
    call MPI_ALLTOALLV(xval,sendcnts,sdispls,MPI_DOUBLE_PRECISION,recvbuf,&
 &   recvcnts,rdispls,MPI_DOUBLE_PRECISION,spaceComm,ier)
+ else if (spaceComm == MPI_COMM_SELF) then
+#endif
+   sz1=size(xval,1)
+   sds=0;if (size(sdispls)>0) sds=sdispls(1)/sz1
+   sdr=0;if (size(rdispls)>0) sdr=rdispls(1)/sz1
+   sc=size(xval,2);if (size(sendcnts)>0) sc=sendcnts(1)/sz1
+   recvbuf(:,sdr+1:sdr+sc)=xval(:,sds+1:sds+sc)
+#if defined HAVE_MPI
  end if
 #endif
-end subroutine xalltoallv_mpi_dp2d
+end subroutine xmpi_alltoallv_dp2d
 !!***
 
-!!****f* ABINIT/xalltoallv_mpi_int2d
+!!****f* ABINIT/xmpi_alltoallv_int2d
 !! NAME
-!!  xalltoallv_mpi_int2d
+!!  xmpi_alltoallv_int2d
 !!
 !! FUNCTION
 !!  Sends data from all to all processes.
@@ -82,21 +92,21 @@ end subroutine xalltoallv_mpi_dp2d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_alltoallv
 !!
 !! SOURCE
-subroutine xalltoallv_mpi_int2d(xval,sendcnts,sdispls,recvbuf,recvcnts,rdispls,spaceComm,ier)
+subroutine xmpi_alltoallv_int2d(xval,sendcnts,sdispls,recvbuf,recvcnts,rdispls,spaceComm,ier)
+
 
  use defs_basis
 
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xmpi_alltoallv_int2d'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  integer,intent(in) :: xval(:,:)
@@ -106,22 +116,31 @@ subroutine xalltoallv_mpi_int2d(xval,sendcnts,sdispls,recvbuf,recvcnts,rdispls,s
  integer ,intent(out)   :: ier
 
 !Local variables-------------------
+ integer :: sc,sds,sdr,sz1
+
 ! *********************************************************************
 
  ier=0
 #if defined HAVE_MPI
  if (spaceComm /= MPI_COMM_SELF .and. spaceComm /= MPI_COMM_NULL) then
-!  allgather xval on all proc. in spaceComm
    call MPI_ALLTOALLV(xval,sendcnts,sdispls,MPI_INTEGER,recvbuf,&
 &   recvcnts,rdispls,MPI_INTEGER,spaceComm,ier)
+ else if (spaceComm == MPI_COMM_SELF) then
+#endif
+   sz1=size(xval,1)
+   sds=0;if (size(sdispls)>0) sds=sdispls(1)/sz1
+   sdr=0;if (size(rdispls)>0) sdr=rdispls(1)/sz1
+   sc=size(xval,2);if (size(sendcnts)>0) sc=sendcnts(1)/sz1
+   recvbuf(:,sdr+1:sdr+sc)=xval(:,sds+1:sds+sc)
+#if defined HAVE_MPI
  end if
 #endif
-end subroutine xalltoallv_mpi_int2d
+end subroutine xmpi_alltoallv_int2d
 !!***
 
-!!****f* ABINIT/xalltoallv_mpi_dp1d
+!!****f* ABINIT/xmpi_alltoallv_dp1d
 !! NAME
-!!  xalltoallv_mpi_dp1d
+!!  xmpi_alltoallv_dp1d
 !!
 !! FUNCTION
 !!  Sends data from all to all processes.
@@ -144,21 +163,21 @@ end subroutine xalltoallv_mpi_int2d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_alltoallv
 !!
 !! SOURCE
-subroutine xalltoallv_mpi_dp1d(xval,sendcnts,sdispls,recvbuf,recvcnts,rdispls,spaceComm,ier)
+subroutine xmpi_alltoallv_dp1d(xval,sendcnts,sdispls,recvbuf,recvcnts,rdispls,spaceComm,ier)
 
  use defs_basis
+ use m_profiling
 
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xmpi_alltoallv_dp1d'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  real(dp),intent(in) :: xval(:)
@@ -168,6 +187,7 @@ subroutine xalltoallv_mpi_dp1d(xval,sendcnts,sdispls,recvbuf,recvcnts,rdispls,sp
  integer ,intent(out)   :: ier
 
 !Local variables-------------------
+ integer :: sc,sds,sdr
 #if defined HAVE_MPI
  integer, allocatable :: rdispls_on(:)
 #endif
@@ -175,23 +195,27 @@ subroutine xalltoallv_mpi_dp1d(xval,sendcnts,sdispls,recvbuf,recvcnts,rdispls,sp
 ! *********************************************************************
 
  ier=0
- if(.false.)write(6,*)rdispls
 #if defined HAVE_MPI
  if (spaceComm /= MPI_COMM_SELF .and. spaceComm /= MPI_COMM_NULL) then
-   allocate(rdispls_on(size(sendcnts)))
+   ABI_ALLOCATE(rdispls_on,(size(sendcnts)))
    rdispls_on = 0
-!  allgather xval on all proc. in spaceComm
    call MPI_ALLTOALLV(xval,sendcnts,sdispls,MPI_DOUBLE_PRECISION,recvbuf,&
 &   recvcnts,rdispls_on,MPI_DOUBLE_PRECISION,spaceComm,ier)
-   deallocate(rdispls_on)
+   ABI_DEALLOCATE(rdispls_on)
+ else if (spaceComm == MPI_COMM_SELF) then
+#endif
+   sdr=rdispls;sds=0;if (size(sdispls)>0) sds=sdispls(1)
+   sc=size(xval);if (size(sendcnts)>0) sc=sendcnts(1)
+   recvbuf(1:sc)=xval(sds+1:sds+sc)
+#if defined HAVE_MPI
  end if
 #endif
-end subroutine xalltoallv_mpi_dp1d
+end subroutine xmpi_alltoallv_dp1d
 !!***
 
-!!****f* ABINIT/xalltoallv_mpi_dp1d2
+!!****f* ABINIT/xmpi_alltoallv_dp1d2
 !! NAME
-!!  xalltoallv_mpi_dp1d2
+!!  xmpi_alltoallv_dp1d2
 !!
 !! FUNCTION
 !!  Sends data from all to all processes.
@@ -214,21 +238,21 @@ end subroutine xalltoallv_mpi_dp1d
 !! PARENTS
 !!
 !! CHILDREN
+!!      mpi_alltoallv
 !!
 !! SOURCE
-subroutine xalltoallv_mpi_dp1d2(xval,sendcnts,sdispls,recvbuf,recvcnts,rdispls,spaceComm,ier)
+subroutine xmpi_alltoallv_dp1d2(xval,sendcnts,sdispls,recvbuf,recvcnts,rdispls,spaceComm,ier)
+
 
  use defs_basis
 
-#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
- use mpi
-#endif
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xmpi_alltoallv_dp1d2'
+!End of the abilint section
 
  implicit none
-
-#if defined HAVE_MPI1
- include 'mpif.h'
-#endif
 
 !Arguments-------------------------
  real(dp),intent(in) :: xval(:)
@@ -238,18 +262,25 @@ subroutine xalltoallv_mpi_dp1d2(xval,sendcnts,sdispls,recvbuf,recvcnts,rdispls,s
  integer ,intent(out)   :: ier
 
 !Local variables-------------------
+ integer :: sc,sds,sdr
 
 ! *********************************************************************
 
  ier=0
 #if defined HAVE_MPI
  if (spaceComm /= MPI_COMM_SELF .and. spaceComm /= MPI_COMM_NULL) then
-!  allgather xval on all proc. in spaceComm
    call MPI_ALLTOALLV(xval,sendcnts,sdispls,MPI_DOUBLE_PRECISION,recvbuf,&
 &   recvcnts,rdispls,MPI_DOUBLE_PRECISION,spaceComm,ier)
+ else if (spaceComm == MPI_COMM_SELF) then
+#endif
+   sds=0;if (size(sdispls)>0) sds=sdispls(1)
+   sdr=0;if (size(rdispls)>0) sdr=rdispls(1)
+   sc=size(xval);if (size(sendcnts)>0) sc=sendcnts(1)
+   recvbuf(sdr+1:sdr+sc)=xval(sds+1:sds+sc)
+#if defined HAVE_MPI
  end if
 #endif
-end subroutine xalltoallv_mpi_dp1d2
+end subroutine xmpi_alltoallv_dp1d2
 !!***
 
 

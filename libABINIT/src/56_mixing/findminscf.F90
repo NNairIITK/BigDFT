@@ -92,7 +92,7 @@ subroutine findminscf(choice,dedv_1,dedv_2,dedv_predict,&
 !write(6,*)' choice,lambda_1,lambda_2=',choice,lambda_1,lambda_2
 !ENDDEBUG
 
- errid = AB6_NO_ERROR
+ errid = AB7_NO_ERROR
  d_lambda=lambda_1-lambda_2
 
  if(choice==1) then
@@ -111,7 +111,7 @@ subroutine findminscf(choice,dedv_1,dedv_2,dedv_predict,&
 &   +0.5_dp*d2edv2_1*(lambda_2-lambda_1)**2
 
    if(d2edv2_mid<0.0_dp)then
-      errid = AB6_ERROR_MIXING_INTERNAL
+      errid = AB7_ERROR_MIXING_INTERNAL
      write(errmess, '(a,a,a,a,es18.10,a)' ) ch10,&
 &     ' findminscf : WARNING -',ch10,&
 &     '  (scfcge) The second derivative is negative, equal to',d2edv2_mid        ,'.'
@@ -128,7 +128,7 @@ subroutine findminscf(choice,dedv_1,dedv_2,dedv_predict,&
    d2edv2_2=d2edv2_1
    d2edv2_predict=d2edv2_1
    if(d2edv2_predict<0.0_dp)then
-      errid = AB6_ERROR_MIXING_INTERNAL
+      errid = AB7_ERROR_MIXING_INTERNAL
      write(errmess, '(a,a,a,a,es18.10,a,a,a)' ) ch10,&
 &     ' findmin : WARNING -',ch10,&
 &     '  (scfcge) The second derivative is negative, equal to',d2edv2_predict,'.',&

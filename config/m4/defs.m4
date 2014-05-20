@@ -32,14 +32,14 @@ EOF
   ac_try='$FC -DTEST_FLAG $FCFLAGS -c defstest.F90 1>&AC_FD_CC'
   if AC_TRY_EVAL(ac_try); then
     ac_try=""
-    ax_fc_defs="-D";
+    ax_fc_defs="";
   fi
   dnl Assume second -WF,-D (xlf and fujitsu).
   if test "$ax_fc_defs" == "unknown" ; then
     ac_try='$FC -WF,-DTEST_FLAG $FCFLAGS -c defstest.F90 1>&AC_FD_CC'
     if AC_TRY_EVAL(ac_try); then
       ac_try=""
-      ax_fc_defs="-WF,-D";
+      ax_fc_defs="-WF,";
     fi
   fi
   rm -f defstest*
@@ -48,5 +48,5 @@ EOF
 
   AC_LANG_POP(Fortran)
 
-  AC_MSG_RESULT([$ax_fc_defs])
+  AC_MSG_RESULT([$ax_fc_defs"-D"])
 ])

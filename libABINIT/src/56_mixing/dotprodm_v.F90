@@ -206,7 +206,7 @@ subroutine dotprodm_v(cplex,cpldot,dot,index1,index2,mpi_comm,mpi_summarize,&
 !XG030513 : MPIWF reduction (addition) on dot is needed here
  if (mpi_summarize) then
    call timab(48,1,tsec)
-   call xsum_mpi(dot,mpi_comm ,ierr)
+   call xmpi_sum(dot,mpi_comm ,ierr)
    call timab(48,2,tsec)
  end if
 

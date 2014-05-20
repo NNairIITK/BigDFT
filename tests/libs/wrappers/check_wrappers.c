@@ -3,7 +3,7 @@
 int main(int argc, const char **argv)
 {
   guint iproc, nproc, igroup, ngroup;
-  int ierr, i;
+  int ierr;
 
 /* #define NAT 2 */
 /*   const gchar *types[] = {"C", "O", NULL}; */
@@ -18,8 +18,8 @@ int main(int argc, const char **argv)
   /* const gchar *shiftk2[] = {"0.1", "-0.2", "0.2", NULL}; */
   const gchar yaml[] =
 " posinp:\n"
-"   Cell: [10., .inf, 10.]\n"
-"   Positions:\n"
+"   cell: [10., .inf, 10.]\n"
+"   positions:\n"
 "   - C: [0., 0., 0.]\n"
 "     IGSpin                            : -1\n"
 "   - O: [1.23, 0., 0.]\n"
@@ -66,7 +66,7 @@ int main(int argc, const char **argv)
 
   dict = bigdft_dict_new_from_yaml(yaml, NULL);
 
-  /* bigdft_dict_dump(dict); */
+  /* bigdft_dict_dump(dict, 6); */
 
   run = bigdft_run_new_from_dict(dict);
   bigdft_dict_unref(dict);
