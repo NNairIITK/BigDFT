@@ -928,17 +928,17 @@ contains
     use dictionaries
     use dynamic_memory
     implicit none
+    !Arguments
     type(dictionary), pointer :: dict !< dictionary of the input variables
     !! the keys have to be declared like input_dicts module
     type(atomic_structure), intent(out) :: astruct !<structure created from the file
     !> extra comment retrieved from the file if present
     character(len = 1024), intent(out), optional :: comment
-
     !local variables
     character(len=*), parameter :: subname='astruct_set_from_dict'
     type(dictionary), pointer :: pos, at, types
     character(len = max_field_length) :: str
-    integer :: iat, ityp, units, igspin, igchrg, nsgn, ntyp
+    integer :: iat, ityp, units, igspin, igchrg, nsgn, ntyp, ierr
 
     call nullify_atomic_structure(astruct)
     astruct%nat = -1
@@ -1006,7 +1006,7 @@ contains
           str = dict_key(at)
           if (trim(str) == "Frozen") then
              str = dict_value(at)
-             call frozen_ftoi(str(1:4), astruct%ifrztyp(iat))
+             call frozen_ftoi(str(1:4), astruct%ifrztyp(iat),ierr)
           else if (trim(str) == "IGSpin") then
              igspin = at
           else if (trim(str) == "IGChg") then

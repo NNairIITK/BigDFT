@@ -586,7 +586,7 @@ module module_atoms
          end if
       else if (astruct%inputfile_format == "yaml" .and. index(file,'posinp') /= 0) then
          ! Pb if toto.yaml because means that there is already no key posinp in the file toto.yaml!!
-         call f_err_throw("Atomic input file in YAML not yet supported, call 'set_astruct_from_dict()' instead.",&
+         call f_err_throw("Atomic input file in YAML not yet supported, call 'astruct_set_from_dict()' instead.",&
               err_name='BIGDFT_RUNTIME_ERROR')
       end if
 
