@@ -136,10 +136,8 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel
 
   fnrm = real(0, dp)
   ! need to transform xred into xcart
-  allocate(xcart(3, natom+ndebug),stat=i_stat)
-  call memocc(i_stat,xcart,'xcart',subname)
-  allocate(fcart(3, natom+ndebug),stat=i_stat)
-  call memocc(i_stat,fcart,'fcart',subname)
+  xcart = f_malloc((/ 3, natom /),id='xcart')
+  fcart = f_malloc((/ 3, natom /),id='fcart')
 
   do i = 1, natom
      xcart(:, i) = xred(:, i) * acell(:)
@@ -158,12 +156,8 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel
   write(comment,'(a,i6.6)')'Timestep= ',itime+itime_shift_for_restart
   call wtvel('velocities.xyz',vel,scfloop_obj%atoms,comment)
 
-  i_all=-product(shape(xcart))*kind(xcart)
-  deallocate(xcart,stat=i_stat)
-  call memocc(i_stat,i_all,'xcart',subname)
-  i_all=-product(shape(fcart))*kind(fcart)
-  deallocate(fcart,stat=i_stat)
-  call memocc(i_stat,i_all,'fcart',subname)
+  call f_free(xcart)
+  call f_free(fcart)
 
   
   !To avoid warning from compiler
