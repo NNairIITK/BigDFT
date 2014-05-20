@@ -360,7 +360,7 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
   real(wp),allocatable,dimension(:,:) :: b
   !     .. Scalar Arguments ..
   INTEGER :: INFO, Kd, LDAB, LDB, NRHS=2,n
-  integer :: i1,i2,i3,i,j
+  integer :: i1,i2,i3,i,j,i_stat,i_all
 
   integer,parameter :: lowfil=-14,lupfil=14
   real(gp) :: scale
