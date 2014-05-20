@@ -185,8 +185,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
      call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lhphi, hpsit_c, hpsit_f, lzd)
   end if
 
-  !call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_)
-  call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_nococontra_c, psit_f, hpsit_nococontra_f, lagmat, lagmat_)
+  call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_)
+  !call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_nococontra_c, psit_f, hpsit_nococontra_f, lagmat, lagmat_)
   ! This can then be deleted if the transition to the new type has been completed.
   lagmat%matrix_compr=lagmat_%matrix_compr
 
@@ -233,6 +233,12 @@ call timing(iproc,'misc','ON')
            imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
            ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, &
            check_accur=.true., error=error)
+      !!if (iproc==0) then
+      !!    write(*,*) 'associated(inv_ovrlp_%matrix_compr)',associated(inv_ovrlp_%matrix_compr)
+      !!    do ii=1,linmat%l%nvctr
+      !!        write(*,*) 'ii',inv_ovrlp_%matrix_compr(ii)
+      !!    end do
+      !!end if
 
       inv_ovrlp_seq = sparsematrix_malloc(linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_seq')
       lagmatp = sparsematrix_malloc(linmat%m, iaction=DENSE_PARALLEL, id='lagmatp')
@@ -342,7 +348,12 @@ call timing(iproc,'misc','OF')
   !!deallocate(linmat%ovrlp%matrix)
   !!! END TEST #############################################################
 
-  call vcopy(lagmat%nvctr,lagmat_tmp_compr(1),1,lagmat_%matrix_compr(1),1)
+  if (correction_orthoconstraint/=0) then
+      call vcopy(lagmat%nvctr,lagmat_tmp_compr(1),1,lagmat_%matrix_compr(1),1)
+  else
+      ! The Lagrange multiplier matrix has the wrong sign now...
+      lagmat_%matrix_compr = -1.d0*lagmat_%matrix_compr
+  end if
 
   call f_free(lagmat_tmp_compr)
 

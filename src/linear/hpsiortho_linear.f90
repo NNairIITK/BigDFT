@@ -532,6 +532,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      trH = trH + tmb%linmat%ham_%matrix_compr(ii)
      !!if (iproc==0) write(*,*) 'iorb, value', iorb, tmb%linmat%ham%matrix_compr(ii)
   end do
+  if (iproc==0) write(*,*) 'trH',trH
   call timing(iproc,'eglincomms','OF')
 
   ! trH is now the total energy (name is misleading, correct this)
