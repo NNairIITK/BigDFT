@@ -167,11 +167,11 @@ contains
           !The yaml file contains the atomic positions
           !Only add the format
           at => dict // "posinp"
-          if (.not. has_key(at, "Properties")) then
-             call set(at // "Properties" // "Format", "yaml")
+          if (.not. has_key(at, ASTRUCT_PROPERTIES)) then
+             call set(at // ASTRUCT_PROPERTIES // "format", "yaml")
           else
-             at => at // "Properties"
-             if (.not. has_key(at, "Format")) call set(at // "Format", "yaml")
+             at => at // ASTRUCT_PROPERTIES
+             if (.not. has_key(at, "format")) call set(at // "format", "yaml")
           end if
        end if
     end if
@@ -852,6 +852,7 @@ contains
     if (len_trim(astruct%inputfile_format) > 0) &
          & call set(dict // ASTRUCT_PROPERTIES // "format", astruct%inputfile_format)
   end subroutine astruct_merge_to_dict
+
   
   subroutine astruct_dict_get_types(dict, types)
     use dictionaries
