@@ -366,6 +366,18 @@ subroutine mpi_group_rank()
   implicit none
 end subroutine mpi_group_rank
 
+subroutine mpi_pack_size()
+  implicit none
+end subroutine mpi_pack_size
+
+subroutine mpi_pack()
+  implicit none
+end subroutine mpi_pack
+
+subroutine mpi_unpack()
+  implicit none
+end subroutine mpi_unpack
+
 subroutine mpi_error_class()
   implicit none
 end subroutine mpi_error_class

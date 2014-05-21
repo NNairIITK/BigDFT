@@ -112,7 +112,7 @@
    nplot                               : 0
    disablesym                          : Yes #    disable the symmetry detection
  kpt:
-   method                              : Manual # K-point sampling method
+   method                              : manual # K-point sampling method
    kpt: #                                         Kpt coordinates
    -  [0., 0., 0.]
    wkpt: [1.] #                                   Kpt weights
@@ -172,7 +172,7 @@
      Coarse                            : 1.80603
      Fine                              : 0.43563000000000002
      Coarse PSP                        : 0.43563000000000002
-     Source                            : User-defined
+     Source                            : PSP File
    PAW patch                           : No
    Source                              : psppar.Si
   #--------------------------------------------------------------------------------------- |

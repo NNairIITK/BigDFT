@@ -107,7 +107,7 @@
    nvirt                               : 0 #      No. of opt. orbs
    nplot                               : 0 #      No. of plotted orbs
  kpt:
-   method                              : Manual # K-point sampling method
+   method                              : manual # K-point sampling method
    kpt: #                                         Kpt coordinates
    -  [0., 0., 0.]
    wkpt: [1.] #                                   Kpt weights
@@ -129,18 +129,18 @@
    alphamix                            : 0. #     Multiplying factors for the mixing
    alphadiis                           : 2. #     Multiplying factors for the electronic DIIS
  sic:
-   sic_approach                        : none #   SIC method
+   sic_approach                        : none #   SIC (self-interaction correction) method
    sic_alpha                           : 0. #     SIC downscaling parameter
  tddft:
-   tddft_approach                      : none #   TDDFT method
+   tddft_approach                      : none #   Time-Dependent DFT method
  posinp:
-   Units                               : angstroem
-   Positions:
+   units                               : angstroem
+   positions:
    - N: [0.0, 0.0, 0.0]
    - N: [0.0, 0.0, 1.1149899959564209]
-   Properties:
-     Format                            : xyz
-     Source                            : posinp
+   properties:
+     format                            : xyz
+     source                            : posinp
  psppar.N:
    Pseudopotential type                : GTH
    Atomic number                       : 7
@@ -157,7 +157,7 @@
      Coarse                            : 1.2723679999999999
      Fine                              : 0.25
      Coarse PSP                        : 1.4199999999999999
-     Source                            : User-defined
+     Source                            : PSP File
    PAW patch                           : No
    Source                              : psppar.N
   #--------------------------------------------------------------------------------------- |
@@ -239,9 +239,9 @@
  Atomic structure:
    Units                               : angstroem
    Positions:
-   - N: [ 6.3,  6.3,  6.146487138] # [  14.0,  14.0,  13.66 ] 0001
-   - N: [ 6.3,  6.3,  8.253512862] # [  14.0,  14.0,  18.34 ] 0002
-   Rigid Shift Applied (AU)            :  [  6.3,  6.3,  6.1465 ]
+   - N: [ 3.333816428,  3.333816428,  3.252580920] # [  7.41,  7.41,  7.23 ] 0001
+   - N: [ 3.333816428,  3.333816428,  4.367570916] # [  7.41,  7.41,  9.71 ] 0002
+   Rigid Shift Applied (AU)            :  [  6.3000,  6.3000,  6.1465 ]
   #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.45,  0.45,  0.45 ]
  Sizes of the simulation domain:
