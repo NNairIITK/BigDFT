@@ -161,8 +161,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       !!     tmb%collcom, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
       !!call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
       !!     tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
-      write(*,*) 'size(hpsittmp_c)',size(hpsittmp_c)
-      write(*,*) 'size(hpsit_c)',size(hpsit_c)
+      !write(*,*) 'size(hpsittmp_c)',size(hpsittmp_c)
+      !write(*,*) 'size(hpsit_c)',size(hpsit_c)
       call vcopy(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsittmp_c(1), 1)
       !hpsittmp_c = hpsit_c
       call vcopy(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsittmp_f(1), 1)
@@ -415,8 +415,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   if (.not.present(hpsi_noprecond)) stop 'hpsi_noprecond not present'
   !hpsit_nococontra_c = hpsit_c
   !hpsit_nococontra_f = hpsit_f
-  write(*,*) 'hpsit_c before: ddot',ddot(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsit_c(1), 1)
-  write(*,*) 'hpsit_f before: ddot',ddot(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsit_f(1), 1)
+  !write(*,*) 'hpsit_c before: ddot',ddot(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsit_c(1), 1)
+  !write(*,*) 'hpsit_f before: ddot',ddot(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsit_f(1), 1)
   call orthoconstraintNonorthogonal(iproc, nproc, tmb%ham_descr%lzd, &
        tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &
        tmb%orbs, tmb%ham_descr%collcom, tmb%orthpar, correction_orthoconstraint, &
@@ -432,14 +432,14 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   !!call calculate_residue_ks(iproc, nproc, 0, ksorbs, tmb, hpsit_c, hpsit_f)
   !!END EXPERIMENTAL
 
-  write(*,*) 'hpsit_c after: ddot',ddot(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsit_c(1), 1)
-  write(*,*) 'hpsit_f after: ddot',ddot(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsit_f(1), 1)
-  write(*,*) 'tmb%hpsi after: ddot',ddot(tmb%ham_descr%npsidim_orbs, tmb%hpsi(1), 1, tmb%hpsi(1), 1)
+  !write(*,*) 'hpsit_c after: ddot',ddot(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsit_c(1), 1)
+  !write(*,*) 'hpsit_f after: ddot',ddot(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsit_f(1), 1)
+  !write(*,*) 'tmb%hpsi after: ddot',ddot(tmb%ham_descr%npsidim_orbs, tmb%hpsi(1), 1, tmb%hpsi(1), 1)
 
   call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
        tmb%orbs, tmb%hpsi, hpsi_small)
 
-  write(*,*) 'hpsi_small: ddot',ddot(tmb%npsidim_orbs, hpsi_small(1), 1, hpsi_small(1), 1)
+  !write(*,*) 'hpsi_small: ddot',ddot(tmb%npsidim_orbs, hpsi_small(1), 1, hpsi_small(1), 1)
 
   !!! Gradient in the outer shell
   !!hh=(tmb%lzd%hgrids(1)+tmb%lzd%hgrids(2)+tmb%lzd%hgrids(3))/3.d0
@@ -542,9 +542,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   do iorb=1,tmb%orbs%norb
      ii=matrixindex_in_compressed(tmb%linmat%m,iorb,iorb)
      trH = trH + tmb%linmat%ham_%matrix_compr(ii)
-     if (iproc==0) write(*,*) 'iorb, value', iorb, tmb%linmat%ham_%matrix_compr(ii)
+     !if (iproc==0) write(*,*) 'iorb, value', iorb, tmb%linmat%ham_%matrix_compr(ii)
   end do
-  if (iproc==0) write(*,*) 'trH',trH
+  !if (iproc==0) write(*,*) 'trH',trH
   call timing(iproc,'eglincomms','OF')
 
   ! trH is now the total energy (name is misleading, correct this)

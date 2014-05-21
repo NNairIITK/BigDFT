@@ -234,12 +234,12 @@ call timing(iproc,'misc','ON')
            imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
            ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, &
            check_accur=.true., error=error)
-      if (iproc==0) then
+      !!if (iproc==0) then
       !!    write(*,*) 'associated(inv_ovrlp_%matrix_compr)',associated(inv_ovrlp_%matrix_compr)
-          do ii=1,linmat%l%nvctr
-              write(*,*) 'ii',inv_ovrlp_%matrix_compr(ii)
-          end do
-      end if
+      !!    do ii=1,linmat%l%nvctr
+      !!        write(*,*) 'ii',inv_ovrlp_%matrix_compr(ii)
+      !!    end do
+      !!end if
 
       inv_ovrlp_seq = sparsematrix_malloc(linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_seq')
       lagmatp = sparsematrix_malloc(linmat%m, iaction=DENSE_PARALLEL, id='lagmatp')
@@ -333,7 +333,7 @@ call timing(iproc,'misc','OF')
   !lagmat_ = matrices_null()
   !call allocate_matrices(lagmat, allocate_full=.false., matname='lagmat_', mat=lagmat_)
   !lagmat_%matrix_compr = lagmat%matrix_compr
-  write(*,*) 'lagmat_%matrix_compr(1)', lagmat_%matrix_compr(1)
+  !write(*,*) 'lagmat_%matrix_compr(1)', lagmat_%matrix_compr(1)
   call build_linear_combination_transposed(collcom, lagmat, lagmat_, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
   !call deallocate_matrices(lagmat_)
 
