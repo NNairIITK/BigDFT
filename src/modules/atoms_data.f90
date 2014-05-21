@@ -341,7 +341,7 @@ module module_atoms
       character, intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
 
       character(len = *), parameter :: subname = "symmetry_set_irreductible_zone"
-      integer :: i_stat, nsym, i_all, i_third
+      integer :: i_stat, nsym, i_third
       integer, dimension(:,:,:), allocatable :: irrzon
       real(dp), dimension(:,:,:), allocatable :: phnons
 
@@ -421,6 +421,7 @@ module module_atoms
     subroutine set_astruct_from_file(file,iproc,astruct,status,comment,energy,fxyz)
       use module_base
       use m_ab6_symmetry
+      use dynamic_memory
       !use position_files
       implicit none
       character(len=*), intent(in) :: file
@@ -432,7 +433,7 @@ module module_atoms
       character(len = *), intent(out), optional :: comment
       !Local variables
       character(len=*), parameter :: subname='read_atomic_file'
-      integer :: l, extract, i_all, i_stat
+      integer :: l, extract, i_stat
       logical :: file_exists, archive
       character(len = 128) :: filename
       character(len = 15) :: arFile
@@ -596,11 +597,14 @@ module module_atoms
          write(comment, "(A)") comment_
       end if
       if (present(fxyz)) then
-         fxyz => fxyz_
+         if (associated(fxyz_)) then
+            fxyz = f_malloc_ptr(src = fxyz_, id = "fxyz")
+         else
+            nullify(fxyz)
+         end if
+         call f_free_ptr(fxyz_)
       else if (associated(fxyz_)) then
-         i_all=-product(shape(fxyz_))*kind(fxyz_)
-         deallocate(fxyz_,stat=i_stat)
-         call memocc(i_stat,i_all,'fxyz_',subname)
+         call f_free_ptr(fxyz_)
       end if
 
     END SUBROUTINE set_astruct_from_file
