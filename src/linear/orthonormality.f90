@@ -185,8 +185,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
      call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lhphi, hpsit_c, hpsit_f, lzd)
   end if
 
-  !call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_)
-  call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_nococontra_c, psit_f, hpsit_nococontra_f, lagmat, lagmat_)
+  call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_)
+  !call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_nococontra_c, psit_f, hpsit_nococontra_f, lagmat, lagmat_)
   ! This can then be deleted if the transition to the new type has been completed.
   lagmat%matrix_compr=lagmat_%matrix_compr
 
@@ -198,8 +198,8 @@ call timing(iproc,'misc','ON')
   !$omp private(ii,iorb,jorb,ii_trans) &
   !$omp shared(lagmat,lagmat_,tmp_mat_compr,iproc,orbs,correction_orthoconstraint,experimental_mode)
   do ii=1,lagmat%nvctr
-     !iorb = lagmat%orb_from_index(1,ii)
-     !jorb = lagmat%orb_from_index(2,ii)
+     iorb = lagmat%orb_from_index(1,ii)
+     jorb = lagmat%orb_from_index(2,ii)
      !ii_trans=matrixindex_in_compressed(lagmat,jorb, iorb)
      !!tmp_mat_compr(ii)=-0.5d0*lagmat_%matrix_compr(ii)-0.5d0*lagmat_%matrix_compr(ii_trans)
      !tmp_mat_compr(ii)=1.0d0*lagmat_%matrix_compr(ii)!-0.5d0*lagmat_%matrix_compr(ii_trans)
