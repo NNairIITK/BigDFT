@@ -122,11 +122,11 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
       !disassociate work array for transposition in serial
       if (nproc > 1) then
          allocate(psiw(max(KSwfn%orbs%npsidim_orbs,KSwfn%orbs%npsidim_comp)+ndebug),stat=i_stat)
+         call memocc(i_stat,psiw,'psiw',subname)
       else
          allocate(psiw(1+ndebug),stat=i_stat)
          call memocc(i_stat,psiw,'psiw',subname)
       endif
-      call memocc(i_stat,psiw,'psiw',subname)
 
       !transpose the wavefunction psi 
       call transpose_v(iproc,nproc,KSwfn%orbs,KSwfn%lzd%glr%wfd,KSwfn%comms,KSwfn%psi(1),psiw(1))
