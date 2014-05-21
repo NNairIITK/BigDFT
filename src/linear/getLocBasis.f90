@@ -221,6 +221,14 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       !tmb%linmat%ham%matrix_compr=tmb%linmat%ham_%matrix_compr
 
 
+!!  call diagonalize_subset(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%ovrlp_, tmb%linmat%m, tmb%linmat%ham_)
+!!  if (iproc==0) then
+!!      do iorb=1,tmb%orbs%norb
+!!          write(*,*) 'iorb, tmb%orbs%eval(iorb)',iorb,tmb%orbs%eval(iorb)
+!!      end do
+!!  end if
+
+
       if (scf_mode==LINEAR_FOE) then
          ! NOT ENTIRELY GENERAL HERE - assuming ovrlp is small and ham is large, converting ham to match ovrlp
          call timing(iproc,'FOE_init','ON') !lr408t

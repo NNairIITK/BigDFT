@@ -37,7 +37,7 @@ subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, lzd, hphi, phi, ldiis, expe
 
   call timing(iproc,'optimize_DIIS ','ON')
 
-  !write(*,*) 'ddot',ddot(npsidim, hphi(1), 1, hphi(1), 1)
+  write(*,*) 'ddot',ddot(npsidim, hphi(1), 1, hphi(1), 1)
 
   ! Allocate the local arrays.
   mat = f_malloc((/ ldiis%isx+1, ldiis%isx+1 /),id='mat')
@@ -167,11 +167,11 @@ subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, lzd, hphi, phi, ldiis, expe
        end do
     end do
     !!if (iorb==1) then
-      !do i=1,min(ldiis%isx,ldiis%is)
-      !  do j=1,min(ldiis%isx,ldiis%is)
-      !    if (iproc==0) write(*,'(a,2i6,es14.5)') 'i,j,mat(i,j)',i,j,mat(i,j)
-      !  end do
-      !end do
+      do i=1,min(ldiis%isx,ldiis%is)
+        do j=1,min(ldiis%isx,ldiis%is)
+          if (iproc==0) write(*,'(a,2i6,es14.5)') 'i,j,mat(i,j)',i,j,mat(i,j)
+        end do
+      end do
     !!end if
     ! solve linear system, supposing it is general. More stable, no need of work array
     if(ldiis%is>1) then
@@ -221,7 +221,7 @@ subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, lzd, hphi, phi, ldiis, expe
         ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
         ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
         jjst=jst+(mj-1)*ncount
-        !if (iproc==0) write(*,*) 'jj, rhs(jj)', jj, rhs(jj)
+        if (iproc==0) write(*,*) 'jj, rhs(jj)', jj, rhs(jj)
         do k=1,ncount
             phi(ist+k-1) = phi(ist+k-1) + rhs(jj)*(ldiis%phiHist(jjst+k)-ldiis%hphiHist(jjst+k))
         end do
