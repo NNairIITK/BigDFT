@@ -2250,7 +2250,6 @@ contains
     CHARACTER (LEN=80) :: first_config, last_config, job_name, scratch_dir
 
     NAMELIST /NEB/ scratch_dir,         &
-         restart,             &
          climbing,            &
          optimization,        &
          minimization_scheme, &
@@ -2262,6 +2261,7 @@ contains
          tolerance,           &
          convergence,         &
          num_of_images,       &
+         restart,             & ! not used
          job_name,            & ! not used
          first_config,        & ! not used
          last_config            ! not used
@@ -2274,7 +2274,6 @@ contains
     close(123)
 
     call set(dict // GEOPT_METHOD, "NEB")
-    call set(dict // NEB_RESTART, restart)
     call set(dict // NEB_CLIMBING, climbing)
     call set(dict // EXTREMA_OPT, optimization)
     call set(dict // NEB_METHOD, minimization_scheme)

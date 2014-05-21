@@ -384,13 +384,6 @@
        - 13
      RANGE: [0, 1e9]
      default: 1.
-   restart:
-     COMMENT: restart a previous NEB calculation
-     CONDITION:
-       MASTER_KEY: method
-       WHEN:
-       - NEB
-     default: No
    climbing:
      COMMENT: make the highest energy image to climb along the path
      CONDITION:
