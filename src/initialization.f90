@@ -57,6 +57,7 @@ subroutine run_objects_free(runObj, subname)
 END SUBROUTINE run_objects_free
 
 
+!> Deallocate run_objects
 subroutine run_objects_free_container(runObj)
   use module_types
   use module_base
@@ -131,6 +132,7 @@ subroutine run_objects_parse(runObj)
   use module_atoms, only: deallocate_atoms_data
   implicit none
   type(run_objects), intent(inout) :: runObj
+  character(len=*), parameter :: subname = "run_objects_parse"
 
   ! Free potential previous inputs and atoms.
   if (associated(runObj%atoms)) then
@@ -153,7 +155,7 @@ subroutine run_objects_parse(runObj)
   if (runObj%rst%nat > 0 .and. runObj%rst%nat /= runObj%atoms%astruct%nat) then
      stop "nat changed"
   else if (runObj%rst%nat == 0) then
-     call restart_objects_set_nat(runObj%rst, runObj%atoms%astruct%nat, "run_objects_parse")
+     call restart_objects_set_nat(runObj%rst, runObj%atoms%astruct%nat, subname)
   end if
   call restart_objects_set_mode(runObj%rst, runObj%inputs%inputpsiid)
   if (associated(runObj%rst)) then
@@ -165,7 +167,8 @@ subroutine run_objects_parse(runObj)
   if (associated(runObj%radii_cf)) then
      call f_free_ptr(runObj%radii_cf)
   end if
-  runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /), "run_objects_parse")
+
+  runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /), id="runObj%radii_cf")
   call read_radii_variables(runObj%atoms, runObj%radii_cf, &
        & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
 
@@ -189,7 +192,7 @@ subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
      call vcopy(3 * atoms%astruct%nat, rxyz0, 1, runObj%atoms%astruct%rxyz(1,1), 1)
   end if
 
-  runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /), "run_objects_associate")
+  runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /), id="runObj%radii_cf")
   call read_radii_variables(runObj%atoms, runObj%radii_cf, &
        & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
 END SUBROUTINE run_objects_associate
