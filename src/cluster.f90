@@ -696,9 +696,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
      ! Treat the info code from the optimization routine.
      if (infocode == 2 .or. infocode == 3) then
-        call deallocate_before_exiting
         call deallocate_bounds(KSwfn%Lzd%Glr%geocode, KSwfn%Lzd%Glr%hybrid_on, KSwfn%lzd%glr%bounds, subname)
-        call f_release_routine()
+        call deallocate_before_exiting
         return
      end if
   else
@@ -816,7 +815,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
         !!! Allocate this array since it will be deallcoated in deallocate_before_exiting
         !!allocate(denspot%V_ext(1,1,1,1),stat=i_stat)
         !!call memocc(i_stat,denspot%V_ext,'denspot%V_ext',subname)
-        call deallocate_before_exiting()
         i_all=-product(shape(fpulay))*kind(fpulay)
         deallocate(fpulay,stat=i_stat)
         call memocc(i_stat,i_all,'fpulay',subname)
@@ -831,7 +829,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
         i_all=-product(shape(KSwfn%orbs%eval))*kind(KSwfn%orbs%eval)
         deallocate(KSwfn%orbs%eval,stat=i_stat)
         call memocc(i_stat,i_all,'KSwfn%orbs%eval',subname)
-        call f_release_routine()
+        call deallocate_before_exiting()
         return
      end if
 
@@ -1381,8 +1379,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   !?!    endif
 
   call deallocate_before_exiting
-
-  call f_release_routine()
 contains
 
   !> Routine which deallocate the pointers and the arrays before exiting 
@@ -1475,22 +1471,6 @@ contains
 !!$    deallocate(proj,stat=i_stat)
 !!$    call memocc(i_stat,i_all,'proj',subname)
 
-    !end of wavefunction minimisation
-    call timing(bigdft_mpi%mpi_comm,'LAST','PR')
-    call build_dict_info(dict_timing_info)
-    call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm,nproc=bigdft_mpi%nproc,&
-         gather_routine=gather_timings,dict_info=dict_timing_info)
-    call dict_free(dict_timing_info)
-    call cpu_time(tcpu1)
-    call system_clock(ncount1,ncount_rate,ncount_max)
-    tel=dble(ncount1-ncount0)/dble(ncount_rate)
-    if (iproc == 0) then
-       call yaml_comment('Timing for root process',hfill='-')
-       call yaml_open_map('Timings for root process')
-       call yaml_map('CPU time (s)',tcpu1-tcpu0,fmt='(f12.2)')
-       call yaml_map('Elapsed time (s)',tel,fmt='(f12.2)')
-       call yaml_close_map()
-    end if
 !       &
 !         &   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0
 
@@ -1518,6 +1498,25 @@ contains
      end if
     !release the yaml document
     call yaml_release_document()
+
+    call f_release_routine()
+
+    !end of wavefunction minimisation
+    call timing(bigdft_mpi%mpi_comm,'LAST','PR')
+    call build_dict_info(dict_timing_info)
+    call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm,nproc=bigdft_mpi%nproc,&
+         gather_routine=gather_timings,dict_info=dict_timing_info)
+    call dict_free(dict_timing_info)
+    call cpu_time(tcpu1)
+    call system_clock(ncount1,ncount_rate,ncount_max)
+    tel=dble(ncount1-ncount0)/dble(ncount_rate)
+    if (iproc == 0) then
+       call yaml_comment('Timing for root process',hfill='-')
+       call yaml_open_map('Timings for root process')
+       call yaml_map('CPU time (s)',tcpu1-tcpu0,fmt='(f12.2)')
+       call yaml_map('Elapsed time (s)',tel,fmt='(f12.2)')
+       call yaml_close_map()
+    end if
 
   END SUBROUTINE deallocate_before_exiting
 

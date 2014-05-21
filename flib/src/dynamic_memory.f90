@@ -811,8 +811,9 @@ contains
          ERR_MALLOC_INTERNAL)) return
     if (present(dict_summary)) then
        call dict_init(dict_summary)
-       call postreatment_of_calling_sequence(-1.d0,mems(ictrl)%dict_calling_sequence,&
-            dict_summary)
+       call postreatment_of_calling_sequence(-1.d0,&
+            mems(ictrl)%dict_calling_sequence,dict_summary)
+       !call yaml_map('Codepoint',trim(dict_key(mems(ictrl)%dict_codepoint)))
        return
     end if
 

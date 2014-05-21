@@ -18,7 +18,7 @@ module ao_inguess
   integer, parameter :: nmax_ao=7 !<maximum allowed value of principal quantum number for the electron configuration
   integer, parameter :: lmax_ao=3 !<maximum value of the angular momentum for the electron configuration
   integer, parameter :: nelecmax_ao=32 !<size of the interesting values of the compressed atomic input polarization
-  integer, parameter :: noccmax_ao=2 !<maximum number of the occupied input guess orbitals for a given shell
+  integer, parameter :: noccmax_ao=3 !<maximum number of the occupied input guess orbitals for a given shell
   integer, parameter, public :: nmax_occ_ao=10 !<maximum number of total occupied orbitals for generating the ig functions
 
   private:: nmax_ao,lmax_ao,nelecmax_ao,noccmax_ao,at_occnums,spin_variables
@@ -107,6 +107,7 @@ contains
   subroutine iguess_generator(izatom,ielpsp,zion,nspin,occupIG,&
        psppar,npspcode,ngv,ngc,nlccpar,ng,&
        expo,psiat,enlargerprb,quartic_prefactor,gaenes_aux)
+    use yaml_output, only: yaml_toa
     implicit none
     logical, intent(in) :: enlargerprb
     integer, intent(in) :: ng,npspcode,ielpsp,izatom,ngv,ngc,nspin
@@ -304,6 +305,11 @@ contains
           end do
        end do
     end do
+    if (i > nmax_occ_ao) then
+       call f_err_throw('The maximum number of occupied orbitals is '//&
+            trim(yaml_toa(nmax_occ_ao))//' whereas attempts have been done to populate'//&
+            trim(yaml_toa(i))//' orbitals',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+    end if
 
     i_all=-product(shape(vh))*kind(vh)
     deallocate(vh,stat=i_stat)

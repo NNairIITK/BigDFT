@@ -211,7 +211,7 @@ END SUBROUTINE write_gaussian_information
 subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes, &
      iorbtolr,iorbto_l, iorbto_m,  iorbto_ishell,iorbto_iexpobeg)
   use module_base
-  use ao_inguess, only: iguess_generator,print_eleconf,ao_nspin_ig!,count_atomic_shells
+  use ao_inguess, only: iguess_generator,print_eleconf,ao_nspin_ig,nmax_occ_ao
   use module_types
   use yaml_output
   use module_interfaces, except_this_one => gaussian_pswf_basis
@@ -247,7 +247,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
   real(gp), dimension(:,:,:), allocatable :: psiat  
 
   !! auxiliary variables used when creating optional arrays for PPD
-  real(gp)  :: gaenes_aux(5*at%astruct%nat)
+  real(gp)  :: gaenes_aux(nmax_occ_ao*at%astruct%nat)
   integer :: last_aux, firstperityx(at%astruct%nat)
   integer :: nspin_print !< to be removed, shouldpass in input variables
 
@@ -334,7 +334,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
   !the default value for the gaussians is chosen to be 21
   allocate(xpt(ng,ntypesx+ndebug),stat=i_stat)
   call memocc(i_stat,xpt,'xpt',subname)
-  allocate(psiat(ng,5,ntypesx+ndebug),stat=i_stat)
+  allocate(psiat(ng,nmax_occ_ao,ntypesx+ndebug),stat=i_stat)
   call memocc(i_stat,psiat,'psiat',subname)
   allocate(psiatn(ng+ndebug),stat=i_stat)
   call memocc(i_stat,psiatn,'psiatn',subname)
@@ -371,7 +371,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
                 real(at%nelpsp(ityp),gp),nspin_print,at%aoig(iat)%aocc,at%psppar(0:,0:,ityp),&
                 at%npspcode(ityp),ngv,ngc,at%nlccpar(0:,max(islcc,1)),&
                 ng-1,xpt(1,ityx),psiat(1,1,ityx),enlargerprb, &
-                gaenes_aux=gaenes_aux(1+5*( firstperityx( ityx)-1))  )
+                gaenes_aux=gaenes_aux(1+nmax_occ_ao*( firstperityx( ityx)-1))  )
         else
            call iguess_generator(at%nzatom(ityp),at%nelpsp(ityp),&
                 real(at%nelpsp(ityp),gp),nspin_print,at%aoig(iat)%aocc,at%psppar(0:,0:,ityp),&
@@ -393,7 +393,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
            G%ncoeff=G%ncoeff+2*l-1
            !print *,'iat,i,l',iat,i,l,norbe,G%ncoeff
            if( present(gaenes)) then
-              gaenes_aux(ishltmp+5*(iat-1))=gaenes_aux(ishltmp+5*(firstperityx(ityx)-1))
+              gaenes_aux(ishltmp+nmax_occ_ao*(iat-1))=gaenes_aux(ishltmp+nmax_occ_ao*(firstperityx(ityx)-1))
            endif
         end do
      end do
@@ -476,7 +476,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
                     Gocc(icoeff)=Gocc(icoeff)+at%aoig(iat)%aocc(iocc)
                     !print *,'test',iocc,icoeff,shape(at%aocc),'test2',shape(Gocc)
                     if( present(gaenes)) then
-                        gaenes(icoeff)=gaenes_aux( ishell-last_aux+  5*(iat-1) )
+                        gaenes(icoeff)=gaenes_aux( ishell-last_aux+  nmax_occ_ao*(iat-1) )
                         iorbtolr       (icoeff)=iat
                         iorbto_l       (icoeff)=l        
                         iorbto_m       (icoeff)=m
