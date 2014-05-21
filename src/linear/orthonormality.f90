@@ -185,8 +185,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
      call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lhphi, hpsit_c, hpsit_f, lzd)
   end if
 
-  call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_)
-  !call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_nococontra_c, psit_f, hpsit_nococontra_f, lagmat, lagmat_)
+  !call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_)
+  call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_nococontra_c, psit_f, hpsit_nococontra_f, lagmat, lagmat_)
   ! This can then be deleted if the transition to the new type has been completed.
   lagmat%matrix_compr=lagmat_%matrix_compr
 
@@ -198,18 +198,19 @@ call timing(iproc,'misc','ON')
   !$omp private(ii,iorb,jorb,ii_trans) &
   !$omp shared(lagmat,lagmat_,tmp_mat_compr,iproc,orbs,correction_orthoconstraint,experimental_mode)
   do ii=1,lagmat%nvctr
-     iorb = lagmat%orb_from_index(1,ii)
-     jorb = lagmat%orb_from_index(2,ii)
-     ii_trans=matrixindex_in_compressed(lagmat,jorb, iorb)
-     tmp_mat_compr(ii)=-0.5d0*lagmat_%matrix_compr(ii)-0.5d0*lagmat_%matrix_compr(ii_trans)
-     ! SM: This is a hack, should use another variable
-     !if (.false..or.correction_orthoconstraint==2) then
-     if (.false. .and. correction_orthoconstraint==2) then
-         if (iproc==0 .and. ii==1) write(*,*) 'only normalization constraint'
-         if (iorb/=jorb) then
-             tmp_mat_compr(ii)=0.d0
-         end if
-     end if
+     !iorb = lagmat%orb_from_index(1,ii)
+     !jorb = lagmat%orb_from_index(2,ii)
+     !ii_trans=matrixindex_in_compressed(lagmat,jorb, iorb)
+     !!tmp_mat_compr(ii)=-0.5d0*lagmat_%matrix_compr(ii)-0.5d0*lagmat_%matrix_compr(ii_trans)
+     !tmp_mat_compr(ii)=1.0d0*lagmat_%matrix_compr(ii)!-0.5d0*lagmat_%matrix_compr(ii_trans)
+     !! SM: This is a hack, should use another variable
+     !!if (.false..or.correction_orthoconstraint==2) then
+     !if (.false. .and. correction_orthoconstraint==2) then
+     !    if (iproc==0 .and. ii==1) write(*,*) 'only normalization constraint'
+     !    if (iorb/=jorb) then
+     !        tmp_mat_compr(ii)=0.d0
+     !    end if
+     !end if
      if (experimental_mode) then
          if (iorb==jorb) then
              if (iproc==0 .and. iorb==1) then
@@ -233,23 +234,31 @@ call timing(iproc,'misc','ON')
            imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
            ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, &
            check_accur=.true., error=error)
-      !!if (iproc==0) then
+      if (iproc==0) then
       !!    write(*,*) 'associated(inv_ovrlp_%matrix_compr)',associated(inv_ovrlp_%matrix_compr)
-      !!    do ii=1,linmat%l%nvctr
-      !!        write(*,*) 'ii',inv_ovrlp_%matrix_compr(ii)
-      !!    end do
-      !!end if
+          do ii=1,linmat%l%nvctr
+              write(*,*) 'ii',inv_ovrlp_%matrix_compr(ii)
+          end do
+      end if
 
       inv_ovrlp_seq = sparsematrix_malloc(linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_seq')
       lagmatp = sparsematrix_malloc(linmat%m, iaction=DENSE_PARALLEL, id='lagmatp')
       inv_lagmatp = sparsematrix_malloc(linmat%m, iaction=DENSE_PARALLEL, id='inv_lagmatp')
       call sequential_acces_matrix_fast(linmat%l, inv_ovrlp_%matrix_compr, inv_ovrlp_seq)
-      call uncompress_matrix_distributed(iproc, linmat%m, tmp_mat_compr, lagmatp)
+      !call uncompress_matrix_distributed(iproc, linmat%m, tmp_mat_compr, lagmatp)
+      call uncompress_matrix_distributed(iproc, linmat%m, lagmat_%matrix_compr, lagmatp)
       call sparsemm(linmat%l, inv_ovrlp_seq, lagmatp, inv_lagmatp)
   if (correction_orthoconstraint==0) then
       if (iproc==0) call yaml_map('correction orthoconstraint',.true.)
-      call compress_matrix_distributed(iproc, linmat%m, inv_lagmatp, tmp_mat_compr)
+      !call compress_matrix_distributed(iproc, linmat%m, inv_lagmatp, tmp_mat_compr)
+      call compress_matrix_distributed(iproc, linmat%m, inv_lagmatp, lagmat_%matrix_compr)
   end if
+  do ii=1,lagmat%nvctr
+     iorb = lagmat%orb_from_index(1,ii)
+     jorb = lagmat%orb_from_index(2,ii)
+     ii_trans=matrixindex_in_compressed(lagmat,jorb, iorb)
+     tmp_mat_compr(ii)=-0.5d0*lagmat_%matrix_compr(ii)-0.5d0*lagmat_%matrix_compr(ii_trans)
+  end do
       call f_free(inv_ovrlp_seq)
       call f_free(lagmatp)
       call f_free(inv_lagmatp)
@@ -324,6 +333,7 @@ call timing(iproc,'misc','OF')
   !lagmat_ = matrices_null()
   !call allocate_matrices(lagmat, allocate_full=.false., matname='lagmat_', mat=lagmat_)
   !lagmat_%matrix_compr = lagmat%matrix_compr
+  write(*,*) 'lagmat_%matrix_compr(1)', lagmat_%matrix_compr(1)
   call build_linear_combination_transposed(collcom, lagmat, lagmat_, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
   !call deallocate_matrices(lagmat_)
 
@@ -348,12 +358,12 @@ call timing(iproc,'misc','OF')
   !!deallocate(linmat%ovrlp%matrix)
   !!! END TEST #############################################################
 
-  if (correction_orthoconstraint/=0) then
-      call vcopy(lagmat%nvctr,lagmat_tmp_compr(1),1,lagmat_%matrix_compr(1),1)
-  else
+  !if (correction_orthoconstraint/=0) then
+  !    call vcopy(lagmat%nvctr,lagmat_tmp_compr(1),1,lagmat_%matrix_compr(1),1)
+  !else
       ! The Lagrange multiplier matrix has the wrong sign now...
       lagmat_%matrix_compr = -1.d0*lagmat_%matrix_compr
-  end if
+  !end if
 
   call f_free(lagmat_tmp_compr)
 
