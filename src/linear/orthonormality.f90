@@ -130,7 +130,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
                                assignment(=)
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed, compress_matrix_distributed, &
-                          sequential_acces_matrix_fast, sparsemm
+                          sequential_acces_matrix_fast, sparsemm, transform_sparse_matrix
   implicit none
 
   ! Calling arguments
@@ -162,7 +162,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   real(kind=8),dimension(:,:),allocatable :: tmp_mat, tmp_mat2, tmp_mat3
   integer,dimension(:),allocatable :: ipiv
   type(matrices) :: inv_ovrlp_
-  real(8),dimension(:),allocatable :: inv_ovrlp_seq
+  real(8),dimension(:),allocatable :: inv_ovrlp_seq, psit_nococontra_c, psit_nococontra_f 
   real(8),dimension(:,:),allocatable :: lagmatp, inv_lagmatp
 
   ! removed option for correction orthoconstrain for now
@@ -185,13 +185,43 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
      call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lhphi, hpsit_c, hpsit_f, lzd)
   end if
 
+  lagmat_tmp_compr = sparsematrix_malloc(lagmat,iaction=SPARSE_FULL,id='lagmat_tmp_compr')
+
+
+  ! Calculate <phi_alpha|g^beta>
   !call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_)
   call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_nococontra_c, psit_f, hpsit_nococontra_f, lagmat, lagmat_)
-  ! This can then be deleted if the transition to the new type has been completed.
-  lagmat%matrix_compr=lagmat_%matrix_compr
+  call vcopy(lagmat%nvctr,lagmat_%matrix_compr(1),1,lagmat_tmp_compr(1),1) ! need to keep a copy
 
 
+  ! Calculate <phi^alpha|g_beta>
+  inv_ovrlp_ = matrices_null()
+  call allocate_matrices(linmat%l, allocate_full=.false., &
+       matname='inv_ovrlp_', mat=inv_ovrlp_)
+  call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, -1, &
+       imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
+       ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, &
+       check_accur=.true., error=error)
+
+  psit_nococontra_c = f_malloc(collcom%ndimind_c,id='psit_nococontra_c')
+  psit_nococontra_f = f_malloc(7*collcom%ndimind_f,id='psit_nococontra_f')
+  !call transform_sparse_matrix(linmat%m, linmat%l, lagmat_%matrix_compr, inv_ovrlp_%matrix_compr, 'large_to_small')
+  !call build_linear_combination_transposed(collcom, lagmat, lagmat_, psit_c, psit_f, .true., psit_nococontra_c, psit_nococontra_f, iproc)
+  call build_linear_combination_transposed(collcom, linmat%l, inv_ovrlp_,  psit_c, psit_f, .true., psit_nococontra_c, psit_nococontra_f, iproc)
+  call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_nococontra_c, hpsit_c, psit_nococontra_f, hpsit_f, lagmat, lagmat_)
+  call f_free(psit_nococontra_c)
+  call f_free(psit_nococontra_f)
   tmp_mat_compr = sparsematrix_malloc(lagmat,iaction=SPARSE_FULL,id='tmp_mat_compr')
+  call vcopy(lagmat%nvctr,lagmat_%matrix_compr(1),1,tmp_mat_compr(1),1)
+
+  do ii=1,lagmat%nvctr
+     iorb = lagmat%orb_from_index(1,ii)
+     jorb = lagmat%orb_from_index(2,ii)
+     ii_trans=matrixindex_in_compressed(lagmat,jorb,iorb)
+     lagmat_%matrix_compr(ii) = -0.5d0*lagmat_tmp_compr(ii)-0.5d0*tmp_mat_compr(ii_trans)
+  end do
+
+
 call timing(iproc,'misc','ON')
 
   !$omp parallel do default(none) &
@@ -227,126 +257,67 @@ call timing(iproc,'misc','ON')
   ! NEW: reactivate correction for non-orthogonality ##########
   !if (correction_orthoconstraint==0) then
       !@NEW
-      inv_ovrlp_ = matrices_null()
-      call allocate_matrices(linmat%l, allocate_full=.false., &
-           matname='inv_ovrlp_', mat=inv_ovrlp_)
-      call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, -1, &
-           imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
-           ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, &
-           check_accur=.true., error=error)
-      if (iproc==0) then
-      !!    write(*,*) 'associated(inv_ovrlp_%matrix_compr)',associated(inv_ovrlp_%matrix_compr)
-          do ii=1,linmat%l%nvctr
-              write(*,*) 'ii',inv_ovrlp_%matrix_compr(ii)
-          end do
-      end if
-
-      inv_ovrlp_seq = sparsematrix_malloc(linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_seq')
-      lagmatp = sparsematrix_malloc(linmat%m, iaction=DENSE_PARALLEL, id='lagmatp')
-      inv_lagmatp = sparsematrix_malloc(linmat%m, iaction=DENSE_PARALLEL, id='inv_lagmatp')
-      call sequential_acces_matrix_fast(linmat%l, inv_ovrlp_%matrix_compr, inv_ovrlp_seq)
-      !call uncompress_matrix_distributed(iproc, linmat%m, tmp_mat_compr, lagmatp)
-      call uncompress_matrix_distributed(iproc, linmat%m, lagmat_%matrix_compr, lagmatp)
-      call sparsemm(linmat%l, inv_ovrlp_seq, lagmatp, inv_lagmatp)
-  if (correction_orthoconstraint==0) then
-      if (iproc==0) call yaml_map('correction orthoconstraint',.true.)
-      !call compress_matrix_distributed(iproc, linmat%m, inv_lagmatp, tmp_mat_compr)
-      call compress_matrix_distributed(iproc, linmat%m, inv_lagmatp, lagmat_%matrix_compr)
-  end if
-  do ii=1,lagmat%nvctr
-     iorb = lagmat%orb_from_index(1,ii)
-     jorb = lagmat%orb_from_index(2,ii)
-     ii_trans=matrixindex_in_compressed(lagmat,jorb, iorb)
-     !if (iproc==0) then
-     !    write(*,'(a,4i8)') 'iorb, jorb, ii, ii_trans', iorb, jorb, ii, ii_trans
-     !end if
-     tmp_mat_compr(ii)=-0.5d0*lagmat_%matrix_compr(ii)-0.5d0*lagmat_%matrix_compr(ii_trans)
-     if (iorb==jorb) then
-         !!if (iproc==0 .and. iorb==1) then
-         !!    call yaml_warning('EXPERIMENTAL: modify eval')
-         !!    call yaml_newline()
-         !!end if
-         !!orbs%eval(iorb)=lagmat_%matrix_compr(ii)
-         if (iproc==0) write(*,*) 'iorb, eval',iorb,orbs%eval(iorb)
-     end if
-  end do
-      call f_free(inv_ovrlp_seq)
-      call f_free(lagmatp)
-      call f_free(inv_lagmatp)
+ !!     inv_ovrlp_ = matrices_null()
+ !!     call allocate_matrices(linmat%l, allocate_full=.false., &
+ !!          matname='inv_ovrlp_', mat=inv_ovrlp_)
+ !!     call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, -1, &
+ !!          imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
+ !!          ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, &
+ !!          check_accur=.true., error=error)
+!      if (iproc==0) then
+!      !!    write(*,*) 'associated(inv_ovrlp_%matrix_compr)',associated(inv_ovrlp_%matrix_compr)
+!          do ii=1,linmat%l%nvctr
+!              write(*,*) 'ii',inv_ovrlp_%matrix_compr(ii)
+!          end do
+!      end if
+!
+!      inv_ovrlp_seq = sparsematrix_malloc(linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_seq')
+!      lagmatp = sparsematrix_malloc(linmat%m, iaction=DENSE_PARALLEL, id='lagmatp')
+!      inv_lagmatp = sparsematrix_malloc(linmat%m, iaction=DENSE_PARALLEL, id='inv_lagmatp')
+!      call sequential_acces_matrix_fast(linmat%l, inv_ovrlp_%matrix_compr, inv_ovrlp_seq)
+!      !call uncompress_matrix_distributed(iproc, linmat%m, tmp_mat_compr, lagmatp)
+!      call uncompress_matrix_distributed(iproc, linmat%m, lagmat_%matrix_compr, lagmatp)
+!      call sparsemm(linmat%l, inv_ovrlp_seq, lagmatp, inv_lagmatp)
+!  if (correction_orthoconstraint==0) then
+!      if (iproc==0) call yaml_map('correction orthoconstraint',.true.)
+!      !call compress_matrix_distributed(iproc, linmat%m, inv_lagmatp, tmp_mat_compr)
+!      call compress_matrix_distributed(iproc, linmat%m, inv_lagmatp, lagmat_%matrix_compr)
+!  end if
+  !do ii=1,lagmat%nvctr
+  !   iorb = lagmat%orb_from_index(1,ii)
+  !   jorb = lagmat%orb_from_index(2,ii)
+  !   ii_trans=matrixindex_in_compressed(lagmat,jorb, iorb)
+  !   !if (iproc==0) then
+  !   !    write(*,'(a,4i8)') 'iorb, jorb, ii, ii_trans', iorb, jorb, ii, ii_trans
+  !   !end if
+  !   tmp_mat_compr(ii)=-0.5d0*lagmat_%matrix_compr(ii)-0.5d0*lagmat_%matrix_compr(ii_trans)
+  !   if (iorb==jorb) then
+  !       !!if (iproc==0 .and. iorb==1) then
+  !       !!    call yaml_warning('EXPERIMENTAL: modify eval')
+  !       !!    call yaml_newline()
+  !       !!end if
+  !       !!orbs%eval(iorb)=lagmat_%matrix_compr(ii)
+  !       if (iproc==0) write(*,*) 'iorb, eval',iorb,orbs%eval(iorb)
+  !   end if
+  !end do
+!      call f_free(inv_ovrlp_seq)
+!      call f_free(lagmatp)
+!      call f_free(inv_lagmatp)
       !call deallocate_matrices(inv_ovrlp_)
       !@ENDNEW
 
 
-   !!!   ! WARNING: it is mandatory that the overlap matrix has been calculated before
-   !!!   !!call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, linmat%ovrlp)
-   !!!   !if (iproc==0) write(*,*) 'correction orthoconstraint'
-   !!!   if (iproc==0) call yaml_map('correction orthoconstraint',.true.)
-   !!!   linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(linmat%s, DENSE_FULL, id='linmat%ovrlp_%matrix')
-   !!!   call uncompress_matrix(iproc, linmat%s, inmat=linmat%ovrlp_%matrix_compr, outmat=linmat%ovrlp_%matrix)
-   !!!   allocate(tmp_mat(orbs%norb,orbs%norb))
-   !!!   allocate(tmp_mat2(orbs%norb,orbs%norb))
-   !!!   call to_zero(orbs%norb**2, tmp_mat(1,1))
-   !!!   do ii=1,lagmat%nvctr
-   !!!      irow = lagmat%orb_from_index(1,ii)
-   !!!      jcol = lagmat%orb_from_index(2,ii)
-   !!!      tmp_mat(irow,jcol)=tmp_mat_compr(ii)
-   !!!   end do
-   !!!   allocate(ipiv(orbs%norb))
-   !!!   lwork=10*orbs%norb
-   !!!   allocate(work(lwork))
-   !!!   allocate(tmp_mat3(orbs%norb,orbs%norb))
-   !!!   tmp_mat3=linmat%ovrlp_%matrix
 
-   !!!   call dgetrf(orbs%norb, orbs%norb, linmat%ovrlp_%matrix, orbs%norb, ipiv, info)
-   !!!   call dgetri(orbs%norb, linmat%ovrlp_%matrix, orbs%norb, ipiv, work, lwork, info)
 
-   !!!   !!call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, linmat%ovrlp%matrix, orbs%norb, tmp_mat3, orbs%norb, 0.d0, tmp_mat2, orbs%norb)
-   !!!   !!if (iproc==0) then
-   !!!   !!  do iorb=1,orbs%norb
-   !!!   !!    do jorb=1,orbs%norb
-   !!!   !!      write(*,'(a,2i8,es14.5)') 'iorb, jorb, tmp_mat2(iorb,jorb)', iorb, jorb, tmp_mat2(iorb,jorb)
-   !!!   !!    end do
-   !!!   !!  end do
-   !!!   !!end if
-
-   !!!   ! This is the original
-   !!!   call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, linmat%ovrlp_%matrix, orbs%norb, &
-   !!!        tmp_mat, orbs%norb, 0.d0, tmp_mat2, orbs%norb)
-
-   !!!   !!! Test
-   !!!   !!call dgemm('n', 't', orbs%norb, orbs%norb, orbs%norb, 1.d0, tmp_mat, orbs%norb, linmat%ovrlp%matrix, orbs%norb, 0.d0, tmp_mat2, orbs%norb)
-
-   !!!   do jj=1,lagmat%nvctr
-   !!!      irow = lagmat%orb_from_index(1,jj)
-   !!!      jcol = lagmat%orb_from_index(2,jj)
-   !!!      !!if (iproc==0) write(*,'(a,3i8,2es16.6)') 'jj, irow, jcol, tmp_mat_compr(jj), tmp_mat2(irow,jcol)', &
-   !!!      !!                                          jj, irow, jcol, tmp_mat_compr(jj), tmp_mat2(irow,jcol)
-   !!!      tmp_mat_compr(jj)=tmp_mat2(irow,jcol)
-   !!!   end do
-   !!!   call f_free_ptr(linmat%ovrlp_%matrix)
-   !!!   deallocate(tmp_mat)
-   !!!   deallocate(tmp_mat2)
-   !!!   deallocate(ipiv)
-   !!!   deallocate(work)
-  !end if
-  !! ##########################################################
-
-  lagmat_tmp_compr = sparsematrix_malloc(lagmat,iaction=SPARSE_FULL,id='lagmat_tmp_compr')
-
-  call vcopy(lagmat%nvctr,lagmat_%matrix_compr(1),1,lagmat_tmp_compr(1),1) ! need to keep a copy
-  call vcopy(lagmat%nvctr,tmp_mat_compr(1),1,lagmat_%matrix_compr(1),1)
+!  call vcopy(lagmat%nvctr,lagmat_%matrix_compr(1),1,lagmat_tmp_compr(1),1) ! need to keep a copy
+  !call vcopy(lagmat%nvctr,tmp_mat_compr(1),1,lagmat_%matrix_compr(1),1)
 
   call f_free(tmp_mat_compr)
 
 
 call timing(iproc,'misc','OF')
 
-  !lagmat_ = matrices_null()
-  !call allocate_matrices(lagmat, allocate_full=.false., matname='lagmat_', mat=lagmat_)
-  !lagmat_%matrix_compr = lagmat%matrix_compr
-  write(*,*) 'lagmat_%matrix_compr(1)', lagmat_%matrix_compr(1)
   call build_linear_combination_transposed(collcom, lagmat, lagmat_, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
-  !call deallocate_matrices(lagmat_)
 
 
 
