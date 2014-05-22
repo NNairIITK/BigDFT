@@ -1216,6 +1216,7 @@ module communications
        use module_base
        use module_types
        use yaml_output
+       use locregs
        implicit none
     
        ! Calling arguments

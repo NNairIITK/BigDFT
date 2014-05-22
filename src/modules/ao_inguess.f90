@@ -482,7 +482,7 @@ contains
 
   !> fill electronic configuration of the atom from the input dictionary
   function aoig_set_from_dict(dict,nspin_in) result(aoig)
-    use module_defs, only: gp, UNINITIALIZED,f_malloc_str,f_free_str,assignment(=)
+    use module_defs, only: gp, UNINITIALIZED
     use dictionaries
     use yaml_output, only: yaml_toa,yaml_map
     implicit none

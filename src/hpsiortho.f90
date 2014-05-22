@@ -690,6 +690,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
   use yaml_output
   use module_interfaces, except_this_one => NonLocalHamiltonianApplication
   use gaussians, only: gaussian_basis
+  use psp_projectors
   implicit none
   integer, intent(in) :: iproc, npsidim_orbs
   type(atoms_data), intent(in) :: at
@@ -934,6 +935,7 @@ contains
 
   !>code factorization useful for routine restructuring
   subroutine nl_psp_application()
+    use psp_projectors
     implicit none
     !local variables
     integer :: ncplx_p,ncplx_w,n_w,nvctr_p

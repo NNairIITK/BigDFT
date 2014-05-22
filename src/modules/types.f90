@@ -19,11 +19,13 @@ module module_types
   use gaussians, only: gaussian_basis
   use Poisson_Solver, only: coulomb_operator
   use dictionaries, only: dictionary
-  use locregs
-  use psp_projectors
+  use locregs, only: locreg_descriptors, wavefunctions_descriptors, grid_dimensions, &
+       & convolutions_bounds, grow_bounds, shrink_bounds, kinetic_bounds
   use module_atoms, only: atoms_data,symmetry_data,atomic_structure
   use communications_base, only: comms_linear, comms_cubic
   use sparsematrix_base, only: sparse_matrix
+  use time_profiling, only: TIMING_UNINITIALIZED
+  use psp_projectors, only: DFT_PSP_projectors, nonlocal_psp_descriptors
 
   implicit none
 
@@ -1233,6 +1235,7 @@ contains
   end function material_acceleration_null
 
   function default_lzd() result(lzd)
+    use locregs, only: locreg_null
     type(local_zone_descriptors) :: lzd
     lzd%linear=.false.
     lzd%nlr=0
@@ -1259,7 +1262,7 @@ contains
   !> Fills the old_wavefunction structure with corresponding data
   !! Deallocate previous workspaces if already existing
   subroutine old_wavefunction_set(wfn,nat,norbp,Lzd,rxyz,psi)
-    
+    use wrapper_linalg
     implicit none
     integer, intent(in) :: nat,norbp
     type(local_zone_descriptors), intent(in) :: Lzd
@@ -1420,6 +1423,7 @@ subroutine deallocate_orbs(orbs,subname)
   !> Allocate and nullify restart objects
   subroutine restart_objects_new(rst)
     use module_base
+    use locregs, only: locreg_null
     implicit none
     !Arguments
     type(restart_objects), intent(out) :: rst
@@ -1681,6 +1685,7 @@ subroutine deallocate_orbs(orbs,subname)
   !! @todo Remove this function.
   subroutine deallocate_lr(lr,subname)
     use module_base
+    use locregs
     character(len=*), intent(in) :: subname
     type(locreg_descriptors) :: lr
 !    integer :: i_all,i_stat
@@ -2099,6 +2104,7 @@ END SUBROUTINE init_global_output
 subroutine deallocate_global_output(outs, fxyz)
   use module_base
   use dynamic_memory
+  use wrapper_linalg
   implicit none
   type(DFT_global_output), intent(inout) :: outs
   real(gp), intent(out), optional :: fxyz
@@ -2225,6 +2231,7 @@ pure function local_zone_descriptors_null() result(lzd)
   call nullify_local_zone_descriptors(lzd)
 end function local_zone_descriptors_null
 pure subroutine nullify_local_zone_descriptors(lzd)
+  use locregs, only: nullify_locreg_descriptors
   implicit none
   type(local_zone_descriptors), intent(out) :: lzd
 
@@ -2271,6 +2278,7 @@ end subroutine bigdft_init_errors
 !! It is of course assumed that f_lib_initialize has already been called
 subroutine bigdft_init_timing_categories()
   use Poisson_Solver, only: PS_initialize_timing_categories
+  use time_profiling
   implicit none
   !local variables
   integer :: icls,icat
@@ -2305,6 +2313,8 @@ end subroutine bigdft_init_timing_categories
 !> routine to convert timing categories from the old scheme to the API of f_lib
 !! as soon as the timing categories are identified with their ID, this routine should disappear
 subroutine find_category(category,cat_id)
+  use dictionaries
+  use time_profiling, only: TIMING_INVALID
   use yaml_output, only: yaml_warning
   implicit none
   character(len=*), intent(in) :: category
@@ -2545,7 +2555,7 @@ end subroutine find_category
     integer, dimension(2) :: dummy_int !<to use as filling for input variables
     real(gp), dimension(3) :: dummy_gp !< to fill the input variables
     logical, dimension(2) :: dummy_log !< to fill the input variables
-    character(len=256) :: dummy_char, dummy_char2
+    character(len=256) :: dummy_char !, dummy_char2
     character(len = max_field_length) :: str
     integer :: i, ipos
 

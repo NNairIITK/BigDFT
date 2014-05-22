@@ -20,6 +20,7 @@ program memguess
    use module_fragments
    use yaml_output
    use module_atoms, only: set_astruct_from_file
+   use psp_projectors
    implicit none
    character(len=*), parameter :: subname='memguess'
    character(len=20) :: tatonam, radical

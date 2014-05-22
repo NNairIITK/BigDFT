@@ -11,7 +11,10 @@
 !> Module to perform constrained DFT calculations
 module constrained_dft
   use module_base, only: gp,wp,f_err_throw
-  use module_types
+  use module_types, only: sparse_matrix, input_variables, dft_wavefunction, &
+&   atoms_data, GPU_pointers, DFT_local_fields, BIGDFT_MPI, fragmentInputParameters, &
+&   confpot_data, energy_terms
+  use wrapper_mpi, only: mpi_double_precision
   use dynamic_memory
   implicit none
 
@@ -22,9 +25,11 @@ module constrained_dft
        subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
             Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
             energs,SIC,GPU,PotOrKin,pkernel,orbsocc,psirocc,dpbox,potential,comgp,hpsi_noconf,econf)
-         use module_base
-         use module_types
-         use module_xc
+         use module_base, only: wp, gp
+         use module_types, only: atoms_data, orbitals_data, local_zone_descriptors, &
+              & SIC_data, confpot_data, energy_terms, GPU_pointers, coulomb_operator, &
+              & denspot_distribution, p2pComms
+
          implicit none
          integer, intent(in) :: PotOrKin !< if true, only the potential operator is applied
          integer, intent(in) :: iproc,nproc,npsidim_orbs
@@ -54,8 +59,7 @@ module constrained_dft
                   imode, check_accur, ovrlp, inv_ovrlp, error, &
                   ovrlp_smat, inv_ovrlp_smat)!!, &
                   !!foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
-         use module_base
-         use module_types
+         use module_types, only: orbitals_data
          use sparsematrix_base, only: sparse_matrix
          use sparsematrix, only: compress_matrix, uncompress_matrix, transform_sparse_matrix
          implicit none
@@ -135,6 +139,9 @@ contains
     use communications, only: transpose_localized
     use sparsematrix_base, only: sparse_matrix
     use sparsematrix, only: compress_matrix, uncompress_matrix
+    use wrapper_linalg
+    use dynamic_memory
+    use memory_profiling
     implicit none
     type(sparse_matrix), intent(inout) :: weight_matrix
     type(input_variables),intent(in) :: input
@@ -244,6 +251,8 @@ contains
   subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,denspot)
     use module_fragments
     use communications, only: transpose_localized, start_onesided_communication
+    use dynamic_memory
+    use memory_profiling
     implicit none
     integer,intent(in) :: iproc
     type(cdft_data), intent(inout) :: cdft

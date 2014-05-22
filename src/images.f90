@@ -27,6 +27,7 @@ MODULE Minimization_routines
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     SUBROUTINE steepest_descent( ndim, pos, grad, ds )
+      use wrapper_linalg
 
       IMPLICIT NONE
 
@@ -47,6 +48,7 @@ MODULE Minimization_routines
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     SUBROUTINE fletcher_reeves( ndim, pos, grad, old_grad, delta, ds )
+      use wrapper_linalg
      
       IMPLICIT NONE
 
@@ -94,6 +96,7 @@ MODULE Minimization_routines
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     SUBROUTINE polak_ribiere( ndim, pos, grad, old_grad, delta, ds )
+      use wrapper_linalg
      
       IMPLICIT NONE
 
@@ -141,7 +144,7 @@ MODULE Minimization_routines
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     SUBROUTINE velocity_Verlet_first_step( ndim, pos, vel, grad, ds )
-
+      use wrapper_linalg
       IMPLICIT NONE
 
       integer, intent(in) :: ndim
@@ -156,7 +159,7 @@ MODULE Minimization_routines
     
     
     SUBROUTINE velocity_Verlet_second_step( ndim, vel, grad, ds, damp )
-
+      use wrapper_linalg
       IMPLICIT NONE
 
       integer, intent(in) :: ndim
@@ -174,6 +177,7 @@ MODULE Minimization_routines
     
     
     SUBROUTINE quick_min_second_step( ndim, vel, grad, ds )
+      use wrapper_linalg
 
       IMPLICIT NONE
 
@@ -337,6 +341,7 @@ contains
   end subroutine image_init
 
   subroutine image_set_init_vel(img, ndim, vel0)
+    use wrapper_linalg
     implicit none
     integer, intent(in) :: ndim
     type(run_image), intent(inout) :: img
@@ -631,6 +636,7 @@ contains
   END SUBROUTINE write_restart_vel
 
   SUBROUTINE write_dat_files(job_name, imgs, iter)
+    use wrapper_linalg
     IMPLICIT NONE
 
     character(len = *), intent(in) :: job_name
@@ -812,6 +818,7 @@ subroutine image_update_pos(img, iteration, posm1, posp1, Vm1, Vp1, &
   use Minimization_routines
   use module_images
   use dynamic_memory, only: to_zero
+  use wrapper_linalg
   implicit none
   type(run_image), intent(inout) :: img
   integer, intent(in) :: iteration
@@ -907,6 +914,7 @@ subroutine image_update_pos_from_file(img, iteration, filem1, filep1, km1, kp1, 
   use module_types
   use module_images
   use module_atoms, only: set_astruct_from_file,deallocate_atomic_structure,nullify_atomic_structure
+  use dynamic_memory
   implicit none
   type(run_image), intent(inout) :: img
   integer, intent(in) :: iteration

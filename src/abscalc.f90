@@ -134,6 +134,7 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
    use module_base
    use module_types
    use module_interfaces
+   use locregs
    implicit none
    !Arguments
    integer, intent(in) :: iproc,nproc
@@ -279,6 +280,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use module_atoms, only: set_symmetry_data,atoms_data
    use communications_base, only: comms_cubic
    use communications_init, only: orbitals_communicators
+   use locregs
+   use psp_projectors
    implicit none
    integer, intent(in) :: nproc,iproc
    real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -1696,6 +1699,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use communications_base, only: comms_cubic
    use communications_init, only: orbitals_communicators
+   use psp_projectors
    implicit none
    !Arguments
    integer, intent(in) :: iproc,nproc,ixc

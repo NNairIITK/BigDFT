@@ -195,6 +195,7 @@ contains
   !!
   subroutine deallocate_pawproj_data(pawproj_data,subname)
     use module_base
+    use psp_projectors
     implicit none
     character(len=*), intent(in) :: subname
     type(pawproj_data_type), intent(inout) :: pawproj_data
@@ -234,6 +235,7 @@ contains
   !> deallocate_pcproj_data
   subroutine deallocate_pcproj_data(pcproj_data,subname)
     use module_base
+    use psp_projectors
     implicit none
     character(len=*), intent(in) :: subname
     type(pcproj_data_type), intent(inout) :: pcproj_data
@@ -558,6 +560,7 @@ contains
     use module_base
     use module_types
     use module_interfaces
+    use locregs
 
     implicit none
 

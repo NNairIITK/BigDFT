@@ -14,6 +14,7 @@ subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
   use module_base
   use module_types
   use yaml_output
+  use locregs
   implicit none
   integer, intent(in) :: nproc,n1,n2,n3
   type(orbitals_data), intent(in) :: orbs
@@ -1091,6 +1092,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
   use communications_base, only: comms_linear_null, deallocate_comms_linear
   use communications_init, only: init_comms_linear
   use communications, only: transpose_localized
+  use locregs
   implicit none
 
   ! Calling arguments
@@ -1292,6 +1294,7 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
   use communications_base, only: comms_linear_null, deallocate_comms_linear
   use communications_init, only: init_comms_linear
   use communications, only: transpose_localized
+  use locregs
   implicit none
 
   ! Calling arguments
@@ -2055,6 +2058,7 @@ subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_
   use yaml_output
   use module_fragments
   use internal_io
+  use locregs
   use module_interfaces, except_this_one => readmywaves_linear_new
   implicit none
   integer, intent(in) :: iproc, iformat
@@ -2537,6 +2541,7 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
   use yaml_output
   use module_fragments
   use module_interfaces, except_this_one => initialize_linear_from_file
+  use locregs
   implicit none
   integer, intent(in) :: iproc, nproc, iformat
   type(fragmentInputParameters),intent(in) :: input_frag
@@ -2679,6 +2684,7 @@ subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
   use module_base
   use module_types
   use yaml_output
+  use locregs
   implicit none
   integer,intent(in) :: iproc
   type(orbitals_data), intent(in) :: orbs

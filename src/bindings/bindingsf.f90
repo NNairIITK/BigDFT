@@ -182,6 +182,7 @@ subroutine glr_new(glr)
 end subroutine glr_new
 subroutine glr_copy(glr, d, wfd, from)
   use module_types
+  use locregs
   implicit none
   type(locreg_descriptors), pointer :: glr
   type(grid_dimensions), pointer :: d
@@ -196,6 +197,7 @@ subroutine glr_copy(glr, d, wfd, from)
 end subroutine glr_copy
 subroutine glr_init(glr, d, wfd)
   use module_types
+  use locregs
   implicit none
   type(locreg_descriptors), intent(inout), target :: glr
   type(grid_dimensions), pointer :: d
@@ -298,6 +300,7 @@ subroutine glr_get_locreg_data(glr, locrad, locregCenter)
 end subroutine glr_get_locreg_data
 subroutine glr_set_wfd_dims(glr, nseg_c, nseg_f, nvctr_c, nvctr_f)
   use module_types
+  use locregs
   implicit none
   type(locreg_descriptors), intent(inout) :: glr
   integer, intent(in) :: nseg_c, nseg_f, nvctr_c, nvctr_f
@@ -1093,6 +1096,7 @@ subroutine wf_get_psi_size(psi, psiSize)
 end subroutine wf_get_psi_size
 subroutine wf_iorbp_to_psi(psir, psi, lr)
   use module_types
+  use dynamic_memory
   implicit none
   type(locreg_descriptors), intent(in) :: lr
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(in) :: psi

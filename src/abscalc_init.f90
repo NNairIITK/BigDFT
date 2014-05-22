@@ -5,6 +5,7 @@ subroutine fillPcProjOnTheFly(PPD, Glr, iat, at, hx,hy,hz,startjorb,ecut_pc,   i
   use module_base
   use module_types
   use module_abscalc
+  use locregs
   implicit none
   type(pcproj_data_type),  intent(in) ::PPD
   type(locreg_descriptors),  intent(in):: Glr
@@ -93,6 +94,7 @@ subroutine fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,kx,ky,kz,startjorb,   i
   use ao_inguess, only: atomic_info
   use module_types
   use module_abscalc
+  use locregs
   implicit none
   type(pawproj_data_type),  intent(in) ::PAWD
   type(locreg_descriptors),  intent(in):: Glr
@@ -190,6 +192,7 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   use module_types
   use module_abscalc
   use module_interfaces
+  use psp_projectors
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
@@ -489,6 +492,8 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   use module_base
   use module_types
   use module_abscalc
+  use psp_projectors
+  use locregs
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
@@ -745,6 +750,8 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
   use module_base
   use module_types
   use module_abscalc
+  use psp_projectors
+  use locregs
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz

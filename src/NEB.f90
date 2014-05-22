@@ -65,6 +65,7 @@ MODULE NEB_routines
   use module_images
   use module_interfaces
   USE NEB_variables
+  use wrapper_mpi
   
   IMPLICIT NONE
 

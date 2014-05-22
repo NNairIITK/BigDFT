@@ -373,6 +373,7 @@ contains
   subroutine io_gcoordToLocreg(n1, n2, n3, nvctr_c, nvctr_f, gcoord_c, gcoord_f, lr)
     use module_defs
     use module_types
+    use dynamic_memory
 
     implicit none
 
@@ -714,6 +715,7 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
   use module_base
   use module_types
   use internal_io
+  use locregs
 
   implicit none
 

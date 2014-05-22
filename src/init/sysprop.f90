@@ -24,6 +24,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   use module_atoms, only: set_symmetry_data
   use communications_base, only: comms_cubic
   use communications_init, only: orbitals_communicators
+  use locregs
   implicit none
   integer, intent(in) :: iproc,nproc 
   logical, intent(in) :: dry_run, dump
