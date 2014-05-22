@@ -43,7 +43,6 @@ module module_input_dicts
   public :: psp_file_merge_to_dict, nlcc_file_merge_to_dict
   public :: atoms_file_merge_to_dict
   public :: astruct_file_merge_to_dict
-  public :: atomic_data_file_merge_to_dict
   public :: occupation_data_file_merge_to_dict
 
 contains
@@ -995,7 +994,8 @@ contains
     iocc=0
     do l = 1, lmax
        iocc=iocc+1
-       ! Get number of shells for this channel
+       ! Get number of shells for this channel 
+       !(to be corrected, the rule is not the same)
        nl = int(aocc(iocc))
        ! Get number of semi cores for this channel
        nsc = modulo(sccode, 4)
@@ -1062,7 +1062,7 @@ contains
                 !check the total number of electrons
                 elec=ao_ig_charge(nspin,atoms%aoig(iat)%aocc)
                 if (nint(elec) /= atoms%nelpsp(ityp)) then
-                   call print_eleconf(nspin,atoms%aoig(iat)%aocc,atoms%aoig(iat)%iasctype)
+                   call print_eleconf(nspin,atoms%aoig(iat)%aocc,atoms%aoig(iat)%nl_sc)
                    call yaml_warning('The total atomic charge '//trim(yaml_toa(elec))//&
                         ' is different from the PSP charge '//trim(yaml_toa(atoms%nelpsp(ityp))))
                 end if
@@ -1075,49 +1075,10 @@ contains
     !number of atoms with semicore channels
     atoms%natsc = 0
     do iat=1,atoms%astruct%nat
-       if (atoms%aoig(iat)%iasctype /= 0) atoms%natsc=atoms%natsc+1
+       if (atoms%aoig(iat)%nao_sc /= 0) atoms%natsc=atoms%natsc+1
+       !if (atoms%aoig(iat)%iasctype /= 0) atoms%natsc=atoms%natsc+1
     enddo
   end subroutine atomic_data_set_from_dict
-
-  subroutine atomic_data_file_merge_to_dict(dict, key, filename)
-    use module_defs, only: gp, UNINITIALIZED
-    use dictionaries
-    use yaml_output
-    implicit none
-    type(dictionary), pointer :: dict
-    character(len = *), intent(in) :: filename, key
-
-    logical :: exists
-    integer :: ierror, jat, nsp, nsccode
-    character(len = 1024) :: string
-    character(len = max_field_length) :: at
-    integer, parameter :: nelecmax = 32, noccmax = 4, lmax = 4
-    real(gp), dimension(nelecmax) :: aocc
-    type(dictionary), pointer :: val
-    
-    inquire(file = filename, exist = exists)
-    if (.not. exists) return
-
-    open(unit=91,file=filename,status='old',iostat=ierror)
-    !Check the open statement
-    if (f_err_raise(ierror /= 0,'Failed to open the existing file '// trim(filename),&
-         err_name='BIGDFT_RUNTIME_ERROR')) return
-
-    parse_inocc: do
-       read(91,'(a1024)',iostat=ierror)string
-       if (ierror /= 0) exit parse_inocc !file ends
-       read(string,*,iostat=ierror)jat
-       if (ierror /=0) stop 'Error reading line'
-
-       write(at, "(A, I0)") "Atom ", jat
-       call read_eleconf(string,noccmax,nelecmax,lmax,aocc,nsccode,nsp)
-       call aocc_to_dict(val, nsp, 1, 0, aocc, nelecmax, lmax, nsccode)
-       call set(dict // key // at, val)
-    end do parse_inocc
-
-    close(unit = 91)
-
-  end subroutine atomic_data_file_merge_to_dict
 
   subroutine occupation_set_from_dict(dict, key, norbu, norbd, occup, &
        & nkpts, nspin, norbsempty, nelec_up, nelec_down, norb_max)

@@ -343,6 +343,7 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
   use module_base
   use module_input
   use yaml_output
+  use yaml_strings, only: read_fraction_string
   implicit none
   ! Arguments
   logical, intent(in) :: verb

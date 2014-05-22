@@ -40,6 +40,7 @@ program PS_Check
    real(wp), dimension(:,:,:,:), pointer :: rhocore
    real(dp), dimension(6) :: xcstr
    real(dp), dimension(3) :: hgrids
+   external :: gather_timings
 
    call f_lib_initialize()
 
@@ -346,7 +347,7 @@ program PS_Check
 !!$   deallocate(extra_ref,stat=i_stat)
 !!$   call memocc(i_stat,i_all,'extra_ref',subname)
 
-   call f_timing_stop(mpi_comm=MPI_COMM_WORLD)
+   call f_timing_stop(mpi_comm=MPI_COMM_WORLD,nproc=nproc,gather_routine=gather_timings)
    !call timing(MPI_COMM_WORLD,'              ','RE')
 
    !Final timing

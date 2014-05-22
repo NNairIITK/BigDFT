@@ -42,6 +42,7 @@ module dynamic_memory
   character(len=*), parameter :: t0_time='Time of last opening'
   character(len=*), parameter :: tot_time='Total time (s)'
   character(len=*), parameter :: prof_enabled='Profiling Enabled'
+  character(len=*), parameter :: main='Main program'
 
   !error codes
   integer, save :: ERR_ALLOCATE
@@ -112,7 +113,8 @@ module dynamic_memory
   interface f_memcpy
      module procedure f_memcpy_i0,f_memcpy_i1
      module procedure f_memcpy_r0
-     module procedure f_memcpy_d0
+     module procedure f_memcpy_d0,f_memcpy_d1,f_memcpy_d2
+     module procedure f_memcpy_d1d2,f_memcpy_d2d1
      module procedure f_memcpy_l0
   end interface f_memcpy
 
@@ -644,7 +646,7 @@ contains
     !Process Id (used to dump)
     call set(mems(ictrl)%dict_global//processid,0)
     !start the profiling of the main program
-    call f_routine(id='Main program')
+    call f_routine(id=main)
 
     !set status of library to the initial case
     call f_malloc_set_status(memory_limit=0.e0)
@@ -793,10 +795,13 @@ contains
      end do
   end subroutine dump_leaked_memory
 
-  subroutine f_malloc_dump_status(filename)
+  subroutine f_malloc_dump_status(filename,dict_summary)
     use yaml_output
     implicit none
     character(len=*), intent(in), optional :: filename
+    !> if present, this dictionary is filled with the summary of the 
+    !! dumped dictionary. Its presence disables the normal dumping
+    type(dictionary), pointer, optional, intent(out) :: dict_summary 
     !local variables
     integer, parameter :: iunit=97 !<if used switch to default
     integer :: iunt,iunit_def,istat
@@ -804,6 +809,14 @@ contains
     if (f_err_raise(ictrl == 0,&
          'ERROR (f_malloc_dump_status): the routine f_malloc_initialize has not been called',&
          ERR_MALLOC_INTERNAL)) return
+    if (present(dict_summary)) then
+       call dict_init(dict_summary)
+       call postreatment_of_calling_sequence(-1.d0,&
+            mems(ictrl)%dict_calling_sequence,dict_summary)
+       !call yaml_map('Codepoint',trim(dict_key(mems(ictrl)%dict_codepoint)))
+       return
+    end if
+
     !retrieve current unit
     call yaml_get_default_stream(iunit_def)
     iunt=iunit_def
@@ -840,6 +853,85 @@ contains
     end if
 
   end subroutine f_malloc_dump_status
+
+  !> this routine identify for each of the routines the most time consuming parts and print it in the logfile
+  recursive subroutine postreatment_of_calling_sequence(base_time,&
+       dict_cs,dict_pt)
+    implicit none
+    !>time on which percentages has to be given
+    double precision, intent(in) :: base_time 
+    type(dictionary), pointer :: dict_cs,dict_pt
+    !local variables
+    integer :: ikey,jkey,nkey,icalls
+    integer(kind=8) :: itime,jtime
+    double precision :: bt
+    character(len=info_length) :: keyval,percent
+    type(dictionary), pointer :: dict_tmp
+    integer, dimension(:), allocatable :: ipiv
+    double precision, dimension(:), allocatable :: time
+    character(len=info_length), dimension(:), allocatable :: keys
+
+    !build the dictionary of timings
+    nkey=dict_size(dict_cs)
+    time=f_malloc(nkey,id='time')
+    keys=f_malloc_str(info_length,nkey,id='keys')
+    ipiv=f_malloc(nkey,id='ipiv')
+
+    !now fill the timings with the values
+    dict_tmp=>dict_iter(dict_cs)
+    ikey=0
+    do while (associated(dict_tmp))
+       ikey=ikey+1       
+       keys(ikey)=dict_key(dict_tmp)
+       if (t0_time .in. dict_tmp) then
+          !measure the time from last opening
+          itime=f_time()
+          jtime=dict_tmp//t0_time
+          jtime=itime-jtime
+          time(ikey)=real(jtime,kind=8)*1.d-9
+          !add an asterisk to the key
+       else if (tot_time .in. dict_tmp) then
+          time(ikey)=dict_tmp//tot_time
+       else
+          time(ikey)=0.d0
+       end if
+       dict_tmp=>dict_next(dict_tmp)
+    end do
+
+    !now order the arrays from the most to the less expensive
+    call sort_positions(nkey,time,ipiv)
+    do ikey=1,nkey
+       jkey=ipiv(ikey)
+       icalls=dict_cs//trim(keys(jkey))//no_of_calls
+       if (base_time > 0.d0) then
+          percent(1:len(percent))=&
+               trim(yaml_toa(time(jkey)/base_time*100.d0,fmt='(f6.2)'))//'%'
+       else
+          percent(1:len(percent))='~'
+       end if
+       !add to the dictionary the information associated to this routine
+       call add(dict_pt,dict_new(trim(keys(jkey)) .is. &
+            list_new(.item. yaml_toa(time(jkey),fmt='(1pg12.3)'),&
+            .item. yaml_toa(icalls),.item. percent)&
+            ))
+    end do
+    call f_free(ipiv)
+    call f_free_str(info_length,keys)
+    call f_free(time)
+    !now that the routine level has been ordered, inspect lower levels,
+
+    do ikey=1,nkey
+       !the first key is the name of the routine
+       dict_tmp=>dict_iter(dict_pt//(ikey-1))
+       keyval=dict_key(dict_tmp)
+       bt=dict_tmp//0
+       if (subprograms .in. dict_cs//trim(keyval)) then
+          call postreatment_of_calling_sequence(bt,dict_cs//trim(keyval)//subprograms,&
+               dict_pt//(ikey-1)//subprograms)
+       end if
+    end do
+
+  end subroutine postreatment_of_calling_sequence
 
   !---Templates start here
   include 'malloc_templates-inc.f90'

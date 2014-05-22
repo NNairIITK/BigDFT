@@ -279,6 +279,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use module_atoms, only: set_symmetry_data,atoms_data
    use communications_base, only: comms_cubic
    use communications_init, only: orbitals_communicators
+   use ao_inguess, only: set_aocc_from_string
    implicit none
    integer, intent(in) :: nproc,iproc
    real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -380,9 +381,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    real(gp) :: potmodified_maxr, potmodified_shift
 
    type(atoms_data) :: atoms_clone
-   integer :: nsp, nspinor !n(c) noncoll
-   integer, parameter :: nelecmax=32,lmax=4 !n(c) nmax=6
-   integer, parameter :: noccmax=2
+   integer :: ndeg,nsp, nspinor !n(c) noncoll
 
    !! to apply pc_projector
    type(pcproj_data_type) ::PPD
@@ -710,10 +709,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       print *, " Going to create extra potential for orbital "
       print *, in%extraOrbital
       print *, "using hard-coded parameters "
-      print *, "noccmax, nelecmax,lmax ", noccmax, nelecmax,lmax
 
-      call read_eleconf(in%extraOrbital ,nsp,nspinor,noccmax, nelecmax,lmax, &
-         &   atoms_clone%aoig(iat)%aocc, atoms_clone%aoig(iat)%iasctype)
+      call set_aocc_from_string(in%extraOrbital,&
+           atoms_clone%aoig(iat)%aocc, atoms_clone%aoig(iat)%nl_sc,ndeg)
 
       nspin=in%nspin
       symObj%symObj = -1
@@ -1261,7 +1259,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    !routine which deallocate the pointers and the arrays before exiting 
    subroutine deallocate_before_exiting
-
+     external :: gather_timings
       !when this condition is verified we are in the middle of the SCF cycle
 
       !! if (infocode /=0 .and. infocode /=1) then
@@ -1393,7 +1391,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
       !end of wavefunction minimisation
       call timing(bigdft_mpi%mpi_comm,'LAST','PR')
-      call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm)
+      call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm,nproc=bigdft_mpi%nproc,gather_routine=gather_timings)
       call cpu_time(tcpu1)
       call system_clock(ncount1,ncount_rate,ncount_max)
       tel=dble(ncount1-ncount0)/dble(ncount_rate)
