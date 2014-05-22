@@ -16,7 +16,6 @@ subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
 
   use module_base
   use module_types
-  use locregs
  
   implicit none
 
@@ -496,7 +495,6 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
 
   use module_base
   use module_types
-  use locregs
  
   implicit none
 

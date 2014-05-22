@@ -28,7 +28,7 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   logical, intent(in), optional :: output_denspot
   !local variables
   character(len=*), parameter :: subname='createWavefunctionsDescriptors'
-  integer :: i_all,i_stat
+  integer :: i_all,i_stat,i1,i2,i3,iat
   integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   logical :: output_denspot_
   logical, dimension(:,:,:), pointer :: logrid_c,logrid_f
@@ -110,14 +110,13 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
    use module_base
    use module_types
    use yaml_output
-   use locregs
    implicit none
    !Arguments
    type(locreg_descriptors), intent(inout) :: Glr
    logical, dimension(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), intent(in) :: logrid_c,logrid_f
    !local variables
    character(len=*), parameter :: subname='wfd_from_grids'
-   integer :: i_stat
+   integer :: i_stat, i_all
    integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
 
    !assign the dimensions to improve (a little) readability
@@ -254,7 +253,6 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   use psp_projectors
   use module_types
   use gaussians, only: gaussian_basis
-  use locregs
   implicit none
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
   type(locreg_descriptors),intent(in) :: lr
@@ -267,8 +265,8 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   logical, intent(in) :: dry_run !< .true. to compute the size only and don't allocate
   !local variables
   character(len=*), parameter :: subname='createProjectorsArrays'
-  integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,nbseg_dim,npack_dim,mproj_max
-  integer :: iat,iseg
+  integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj,nbseg_dim,npack_dim,mproj_max
+  integer :: iat,i_stat,i_all,iseg
   integer, dimension(:), allocatable :: nbsegs_cf,keyg_lin
   logical, dimension(:,:,:), allocatable :: logrid
   call f_routine(id=subname)
@@ -394,134 +392,132 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
 END SUBROUTINE createProjectorsArrays
 
 
-!!$subroutine initRhoPot(iproc, nproc, Glr, hxh, hyh, hzh, atoms, rxyz, crmult, frmult, radii, nspin, ixc, rho_commun, rhodsc, nscatterarr, ngatherarr, pot_ion)
-!!$  use module_base
-!!$  use module_types
-!!$
-!!$  implicit none
-!!$
-!!$  integer, intent(in) :: iproc, nproc
-!!$
-!!$  integer :: i_stat
-!!$
-!!$END SUBROUTINE initRhoPot
+        !!$subroutine initRhoPot(iproc, nproc, Glr, hxh, hyh, hzh, atoms, rxyz, crmult, frmult, radii, nspin, ixc, rho_commun, rhodsc, nscatterarr, ngatherarr, pot_ion)
+        !!$  use module_base
+        !!$  use module_types
+        !!$
+        !!$  implicit none
+        !!$
+        !!$  integer, intent(in) :: iproc, nproc
+        !!$
+        !!$  integer :: i_stat
+        !!$
+        !!$END SUBROUTINE initRhoPot
 
-subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
-     & band_structure_filename, input_spin, atoms, d, denspot)
-  use module_defs
-  use module_types
-  use yaml_output
-  use module_interfaces, except_this_one => input_wf_empty
-  use wrapper_linalg
-  implicit none
-  integer, intent(in) :: iproc, nproc
-  type(orbitals_data), intent(in) :: orbs
-  character(len = *), intent(in) :: band_structure_filename
-  integer, intent(in) :: input_spin
-  type(atoms_data), intent(in) :: atoms
-  type(grid_dimensions), intent(in) :: d
-  type(DFT_local_fields), intent(inout) :: denspot
-  real(wp), dimension(:), pointer :: psi
-  real(kind=8), dimension(:), pointer :: hpsi, psit
+        subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
+              & band_structure_filename, input_spin, atoms, d, denspot)
+          use module_defs
+          use module_types
+          use yaml_output
+          use module_interfaces, except_this_one => input_wf_empty
+          implicit none
+          integer, intent(in) :: iproc, nproc
+          type(orbitals_data), intent(in) :: orbs
+          character(len = *), intent(in) :: band_structure_filename
+          integer, intent(in) :: input_spin
+          type(atoms_data), intent(in) :: atoms
+          type(grid_dimensions), intent(in) :: d
+          type(DFT_local_fields), intent(inout) :: denspot
+          real(wp), dimension(:), pointer :: psi
+          real(kind=8), dimension(:), pointer :: hpsi, psit
 
-  character(len = *), parameter :: subname = "input_wf_empty"
-  integer :: i_stat, i_all, nspin, n1i, n2i, n3i, ispin, ierr
-  real(gp) :: hxh, hyh, hzh
+          character(len = *), parameter :: subname = "input_wf_empty"
+          integer :: i_stat, i_all, nspin, n1i, n2i, n3i, ispin, ierr
+          real(gp) :: hxh, hyh, hzh
 
-  !allocate fake psit and hpsi
-  allocate(hpsi(max(orbs%npsidim_comp,orbs%npsidim_orbs)+ndebug),stat=i_stat)
-  call memocc(i_stat,hpsi,'hpsi',subname)
-  if (nproc > 1) then
-     allocate(psit(max(orbs%npsidim_comp,orbs%npsidim_orbs)+ndebug),stat=i_stat)
-     call memocc(i_stat,psit,'psit',subname)
-  else
-     psit => psi
-  end if
-  !fill the rhopot array with the read potential if needed
-  if (trim(band_structure_filename) /= '') then
-     !only the first processor should read this
-     if (iproc == 0) then
+          !allocate fake psit and hpsi
+          allocate(hpsi(max(orbs%npsidim_comp,orbs%npsidim_orbs)+ndebug),stat=i_stat)
+          call memocc(i_stat,hpsi,'hpsi',subname)
+          if (nproc > 1) then
+             allocate(psit(max(orbs%npsidim_comp,orbs%npsidim_orbs)+ndebug),stat=i_stat)
+             call memocc(i_stat,psit,'psit',subname)
+          else
+             psit => psi
+          end if
+          !fill the rhopot array with the read potential if needed
+          if (trim(band_structure_filename) /= '') then
+             !only the first processor should read this
+             if (iproc == 0) then
         call yaml_map('Reading local potential from file:',trim(band_structure_filename))
         !write(*,'(1x,a)')'Reading local potential from file:'//trim(band_structure_filename)
         call read_density(trim(band_structure_filename),atoms%astruct%geocode,&
-             n1i,n2i,n3i,nspin,hxh,hyh,hzh,denspot%Vloc_KS)
-        if (nspin /= input_spin) stop
-     else
-        allocate(denspot%Vloc_KS(1,1,1,input_spin+ndebug),stat=i_stat)
-        call memocc(i_stat,denspot%Vloc_KS,'Vloc_KS',subname)
-     end if
+                     n1i,n2i,n3i,nspin,hxh,hyh,hzh,denspot%Vloc_KS)
+                if (nspin /= input_spin) stop
+             else
+                allocate(denspot%Vloc_KS(1,1,1,input_spin+ndebug),stat=i_stat)
+                call memocc(i_stat,denspot%Vloc_KS,'Vloc_KS',subname)
+             end if
 
-     if (nproc > 1) then
-        do ispin=1,input_spin
-           call MPI_SCATTERV(denspot%Vloc_KS(1,1,1,ispin),&
-                denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2),&
-                mpidtypw,denspot%rhov((ispin-1)*&
-                d%n1i*d%n2i*denspot%dpbox%n3p+1),&
-                d%n1i*d%n2i*denspot%dpbox%n3p,mpidtypw,0,&
-                bigdft_mpi%mpi_comm,ierr)
-        end do
-     else
-        call vcopy(d%n1i*d%n2i*d%n3i*input_spin,&
-             denspot%Vloc_KS(1,1,1,1),1,denspot%rhov(1),1)
-     end if
-     !now the meaning is KS potential
-     call denspot_set_rhov_status(denspot, KS_POTENTIAL, 0, iproc, nproc)
+             if (nproc > 1) then
+                do ispin=1,input_spin
+                   call MPI_SCATTERV(denspot%Vloc_KS(1,1,1,ispin),&
+                        denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2),&
+                        mpidtypw,denspot%rhov((ispin-1)*&
+                        d%n1i*d%n2i*denspot%dpbox%n3p+1),&
+                        d%n1i*d%n2i*denspot%dpbox%n3p,mpidtypw,0,&
+                        bigdft_mpi%mpi_comm,ierr)
+                end do
+             else
+                call vcopy(d%n1i*d%n2i*d%n3i*input_spin,&
+                     denspot%Vloc_KS(1,1,1,1),1,denspot%rhov(1),1)
+             end if
+             !now the meaning is KS potential
+             call denspot_set_rhov_status(denspot, KS_POTENTIAL, 0, iproc, nproc)
 
-     i_all=-product(shape(denspot%Vloc_KS))*kind(denspot%Vloc_KS)
-     deallocate(denspot%Vloc_KS,stat=i_stat)
-     call memocc(i_stat,i_all,'Vloc_KS',subname)
+             i_all=-product(shape(denspot%Vloc_KS))*kind(denspot%Vloc_KS)
+             deallocate(denspot%Vloc_KS,stat=i_stat)
+             call memocc(i_stat,i_all,'Vloc_KS',subname)
 
-     !add pot_ion potential to the local_potential
-     !do ispin=1,in%nspin
-     !   !spin up and down together with the XC part
-     !   call axpy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3p,1.0_dp,pot_ion(1),1,&
-     !        rhopot((ispin-1)*Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3p+1),1)
-     !end do
-  end if
-END SUBROUTINE input_wf_empty
+             !add pot_ion potential to the local_potential
+             !do ispin=1,in%nspin
+             !   !spin up and down together with the XC part
+             !   call axpy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3p,1.0_dp,pot_ion(1),1,&
+             !        rhopot((ispin-1)*Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3p+1),1)
+             !end do
+          end if
+        END SUBROUTINE input_wf_empty
 
 
-!> Random initialisation of the wavefunctions
-!! The initialization of only the scaling function coefficients should be considered
-subroutine input_wf_random(psi, orbs)
-  use module_defs
-  use module_types
-  use dynamic_memory
-  implicit none
+        !> Random initialisation of the wavefunctions
+        !! The initialization of only the scaling function coefficients should be considered
+        subroutine input_wf_random(psi, orbs)
+          use module_defs
+          use module_types
+          implicit none
 
-  type(orbitals_data), intent(inout) :: orbs
-  real(wp), dimension(:), pointer :: psi
+          type(orbitals_data), intent(inout) :: orbs
+          real(wp), dimension(:), pointer :: psi
 
-  integer :: icoeff,jorb,iorb,nvctr
-  integer :: idum=0
-  real(kind=4) :: tt,builtin_rand
+          integer :: icoeff,jorb,iorb,nvctr
+          integer :: idum=0
+          real(kind=4) :: tt,builtin_rand
 
-  if (max(orbs%npsidim_comp,orbs%npsidim_orbs)>1) &
-       call to_zero(max(orbs%npsidim_comp,orbs%npsidim_orbs),psi(1))
+          if (max(orbs%npsidim_comp,orbs%npsidim_orbs)>1) &
+               call to_zero(max(orbs%npsidim_comp,orbs%npsidim_orbs),psi(1))
 
-  !Fill randomly the wavefunctions coefficients for the orbitals considered
-  if (orbs%norbp > 0) then
-     nvctr=orbs%npsidim_orbs/(orbs%nspinor*orbs%norbp)
-  else
-     nvctr=0
-  end if
-  do icoeff=1,nvctr !tt not dependent of iproc
-     !Be sure to call always a different random number, per orbital
-     do jorb=1,orbs%isorb*orbs%nspinor
-        tt=builtin_rand(idum) !call random_number(tt)
-     end do
-     do iorb=1,orbs%norbp*orbs%nspinor
-        tt=builtin_rand(idum) !call random_number(tt)
-        psi(icoeff+(iorb-1)*nvctr)=real(tt,wp)
-     end do
-     do iorb=(orbs%isorb+orbs%norbp)*orbs%nspinor+1,orbs%norb*orbs%nkpts*orbs%nspinor
-        tt=builtin_rand(idum) !call random_number(tt)
-     end do
-  end do
+          !Fill randomly the wavefunctions coefficients for the orbitals considered
+          if (orbs%norbp > 0) then
+             nvctr=orbs%npsidim_orbs/(orbs%nspinor*orbs%norbp)
+          else
+             nvctr=0
+          end if
+          do icoeff=1,nvctr !tt not dependent of iproc
+             !Be sure to call always a different random number, per orbital
+             do jorb=1,orbs%isorb*orbs%nspinor
+                tt=builtin_rand(idum) !call random_number(tt)
+             end do
+             do iorb=1,orbs%norbp*orbs%nspinor
+                tt=builtin_rand(idum) !call random_number(tt)
+                psi(icoeff+(iorb-1)*nvctr)=real(tt,wp)
+             end do
+             do iorb=(orbs%isorb+orbs%norbp)*orbs%nspinor+1,orbs%norb*orbs%nkpts*orbs%nspinor
+                tt=builtin_rand(idum) !call random_number(tt)
+             end do
+          end do
 
-  orbs%eval(1:orbs%norb*orbs%nkpts)=-0.5d0
+          orbs%eval(1:orbs%norb*orbs%nkpts)=-0.5d0
 
-END SUBROUTINE input_wf_random
+        END SUBROUTINE input_wf_random
 
 
         !> Initialisation of the wavefunctions via import gaussians from CP2K
@@ -579,7 +575,6 @@ subroutine input_wf_memory_history(iproc,orbs,atoms,wfn_history,istep_history,ol
   use module_types
   use module_interfaces
   use yaml_output
-  use dynamic_memory
   implicit none
   integer, intent(in) :: iproc,wfn_history
   type(atoms_data), intent(in) :: atoms
@@ -639,14 +634,14 @@ subroutine input_wf_memory_history(iproc,orbs,atoms,wfn_history,istep_history,ol
      !check if it is the first restart
      if (istep_history == 0) then
         do istep=1,wfn_history
-           call old_wavefunction_set(oldpsis(istep),&
+                call old_wavefunction_set(oldpsis(istep),&
                 atoms%astruct%nat,orbs%norbp*orbs%nspinor,&
                 oldpsis(wfn_history+1)%Lzd,oldpsis(wfn_history+1)%rxyz,&
                 oldpsis(wfn_history+1)%psi)
         end do
      end if
   end if
-  if (iproc==0)call yaml_map('Previous SCF wfn copied',.true.)   
+if (iproc==0)call yaml_map('Previous SCF wfn copied',.true.)   
   !put to zero the wavefunction
   if (nvctr>0) call to_zero(nvctr,psi(1,1))
 
@@ -736,7 +731,6 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   use module_fragments
   use yaml_output
   use communications, only: transpose_localized, untranspose_localized
-  use wrapper_linalg
   implicit none
 
   ! Calling arguments
@@ -972,10 +966,9 @@ END SUBROUTINE input_memory_linear
 
 subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
      & in, atoms, rxyz, rxyz_old, wfd, orbs, psi)
-  use module_base
+  use module_defs
   use module_types
   use module_interfaces, except_this_one => input_wf_disk
-  use dynamic_memory
   implicit none
 
   integer, intent(in) :: iproc, nproc, input_wf_format
@@ -989,7 +982,7 @@ subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
   type(orbitals_data), intent(inout) :: orbs
   real(wp), dimension(:), pointer :: psi
 
-  !integer :: ierr
+  integer :: ierr
 
   !restart from previously calculated wavefunctions, on disk
   !since each processor read only few eigenvalues, initialise them to zero for all
@@ -1029,11 +1022,9 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
   use gaussians
-  use communications_base, only: comms_cubic
-  use communications_init, only: orbitals_communicators
-  use communications, only: transpose_v
-  use psp_projectors
-  use wrapper_linalg
+           use communications_base, only: comms_cubic
+           use communications_init, only: orbitals_communicators
+           use communications, only: transpose_v
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc,ixc
@@ -1615,8 +1606,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   use gaussians, only:gaussian_basis
   use sparsematrix_base, only: sparse_matrix
   use communications, only: transpose_localized, untranspose_localized
-  use wrapper_linalg
-  use dynamic_memory
   implicit none
 
   integer, intent(in) :: iproc, nproc, inputpsi, input_wf_format
@@ -2323,7 +2312,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
            rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old,lzd_old, &
            rxyz,hx,hy,hz,d,wfd,psi,orbs,lzd,displ)
 
-  use module_base
+  use module_defs
   use ao_inguess, only: atomic_info
   use module_types
   use module_interfaces, except_this_one => input_wf_memory_new

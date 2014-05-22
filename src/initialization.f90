@@ -161,8 +161,6 @@ END SUBROUTINE run_objects_parse
 
 subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
   use module_types
-  use dynamic_memory
-  use wrapper_linalg
   implicit none
   type(run_objects), intent(out) :: runObj
   type(input_variables), intent(in), target :: inputs

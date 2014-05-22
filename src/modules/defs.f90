@@ -11,8 +11,8 @@
 
 !> Modules which contains the low level definitions, as well as some profiling procedures
 module module_defs
-  use wrapper_MPI, only: MPI_DOUBLE_PRECISION, mpi_environment
-  use wrapper_linalg, only: GPUblas
+  use wrapper_MPI
+  use wrapper_linalg
 
   implicit none  
 
@@ -120,7 +120,6 @@ module module_defs
     end function uninitialized_dbl
 
     function fnrm_denpot(x,cplex,nfft,nspden,opt_denpot,user_data)
-      use wrapper_MPI, only: MPI_SUM
       use m_ab7_mixing, only: AB7_MIXING_DENSITY
       implicit none
       !Arguments
@@ -178,8 +177,6 @@ module module_defs
     end function fnrm_denpot
 
     function fdot_denpot(x,y,cplex,nfft,nspden,opt_denpot,user_data)
-      use wrapper_MPI, only: MPI_SUM
-      use wrapper_linalg, only: dot
       use m_ab7_mixing
       implicit none
       integer, intent(in) :: cplex,nfft,nspden,opt_denpot

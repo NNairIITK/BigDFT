@@ -15,7 +15,6 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
   use module_interfaces, except_this_one => call_bigdft
   use yaml_output
   use communications_base
-  use locregs
   implicit none
   integer, intent(in) :: iproc,nproc
   type(run_objects), intent(inout) :: runObj
@@ -237,7 +236,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   use sparsematrix_base, only: sparse_matrix_null
   use sparsematrix_init, only: init_sparse_matrix, init_sparsity_from_distance, check_kernel_cutoff
   use sparsematrix, only: check_matrix_compression
-  use locregs
   implicit none
   integer, intent(in) :: nproc,iproc
   real(gp), intent(inout) :: hx_old,hy_old,hz_old

@@ -17,7 +17,6 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
   use module_input_dicts, only: merge_input_file_to_dict
   use input_old_text_format
   use yaml_output
-  use dynamic_memory
   implicit none
   character(len = *), intent(in) :: radical !< the name of the run. use "input" if empty
   type(mpi_environment), intent(in) :: mpi_env !< the environment where the variables have to be updated
