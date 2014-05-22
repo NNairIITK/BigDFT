@@ -16,11 +16,8 @@
 module wrapper_MPI
   ! TO BE REMOVED with f_malloc
   !use memory_profiling!, only: ndebug
-  use dynamic_memory
-  use dictionaries, only: f_err_throw,f_err_define
-  use time_profiling, only: TIMING_UNINITIALIZED
-   
   ! TO BE REMOVED with f_malloc
+  use time_profiling, only: TIMING_UNINITIALIZED
 
   implicit none
 
@@ -121,6 +118,7 @@ contains
   !! @param groupsize Number of MPI processes by (task)group
   !!                  if 0 one taskgroup (MPI_COMM_WORLD)
   subroutine mpi_environment_set(mpi_env,iproc,nproc,mpi_comm,groupsize)
+    use dynamic_memory
     use yaml_output
     implicit none
     integer, intent(in) :: iproc,nproc,mpi_comm,groupsize
@@ -197,6 +195,7 @@ contains
   !this is a different procedure to assign the iproc according to the groups.
   subroutine mpi_environment_set1(mpi_env,iproc,nproc,mpi_comm,groupsize,ngroup)
     use yaml_output
+    use dynamic_memory
     implicit none
     integer, intent(in) :: iproc,nproc,mpi_comm,groupsize,ngroup
     type(mpi_environment), intent(out) :: mpi_env
@@ -297,6 +296,7 @@ contains
 !!! PSolver n1-n2 plane mpi partitioning !!! 
 !this routine is like create_group_comm with a different group_list
 subroutine create_group_comm1(base_comm,nproc_base,group_id,ngroup,group_size,group_comm)
+  use dynamic_memory
   use yaml_output
   implicit none
   integer, intent(in) :: base_comm,group_size,nproc_base,group_id,ngroup
@@ -341,6 +341,7 @@ end subroutine create_group_comm1
 
   !> Create a communicator between proc of same rank between the taskgroups.
   subroutine create_rank_comm(group_comm, rank_comm)
+    use dynamic_memory
     use yaml_output
     implicit none
     integer, intent(in) :: group_comm
@@ -410,6 +411,7 @@ end subroutine create_group_comm1
   !> initialize timings and also mpi errors
   subroutine mpi_initialize_timing_categories()
     use time_profiling, only: f_timing_category_group,f_timing_category
+    use dictionaries, only: f_err_throw,f_err_define
     use yaml_output, only: yaml_toa
     implicit none
 
@@ -476,6 +478,7 @@ end subroutine create_group_comm1
 
   !gather the results of a given array into the root proc
   subroutine mpigather_d1d1(sendbuf,recvbuf,root,comm)
+    use dictionaries, only: f_err_throw,f_err_define
     use yaml_output, only: yaml_toa
     implicit none
     double precision, dimension(:), intent(in) :: sendbuf
@@ -484,6 +487,7 @@ end subroutine create_group_comm1
   end subroutine mpigather_d1d1
 
   subroutine mpigather_d1d2(sendbuf,recvbuf,root,comm)
+    use dictionaries, only: f_err_throw,f_err_define
     use yaml_output, only: yaml_toa
     implicit none
     double precision, dimension(:), intent(in) :: sendbuf
@@ -492,6 +496,7 @@ end subroutine create_group_comm1
   end subroutine mpigather_d1d2
 
   subroutine mpigather_d2d1(sendbuf,recvbuf,root,comm)
+    use dictionaries, only: f_err_throw,f_err_define
     use yaml_output, only: yaml_toa
     implicit none
     double precision, dimension(:,:), intent(in) :: sendbuf
@@ -500,6 +505,7 @@ end subroutine create_group_comm1
   end subroutine mpigather_d2d1
 
   subroutine mpigather_d2(sendbuf,recvbuf,root,comm)
+    use dictionaries, only: f_err_throw,f_err_define
     use yaml_output, only: yaml_toa
     implicit none
     double precision, dimension(:,:), intent(in) :: sendbuf
@@ -510,6 +516,7 @@ end subroutine create_group_comm1
 
   !interface for MPI_ALLGATHERV operations
   subroutine mpiallgatherv_double(buffer,counts,displs,me,mpi_comm,ierr)
+    use dynamic_memory
     implicit none
     integer, dimension(0:), intent(in) :: counts
     integer, dimension(:), intent(in) :: displs
@@ -544,6 +551,8 @@ end subroutine create_group_comm1
 
   !interface for MPI_ALLREDUCE operations
   subroutine mpiallred_int(sendbuf,count,op,comm,recvbuf)
+    use dictionaries, only: f_err_throw,f_err_define
+    use dynamic_memory
     implicit none
     integer, intent(inout) :: sendbuf
     integer, intent(inout), optional :: recvbuf
@@ -553,6 +562,8 @@ end subroutine create_group_comm1
 
   !interface for MPI_ALLREDUCE operations
   subroutine mpiallred_real(sendbuf,count,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw,f_err_define
     implicit none
     real, intent(inout) :: sendbuf
     real, intent(inout), optional :: recvbuf
@@ -561,6 +572,8 @@ end subroutine create_group_comm1
   end subroutine mpiallred_real
 
   subroutine mpiallred_double(sendbuf,count,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw,f_err_define
     implicit none
     double precision, intent(inout) :: sendbuf
     double precision, intent(inout), optional :: recvbuf
@@ -569,6 +582,8 @@ end subroutine create_group_comm1
   end subroutine mpiallred_double
 
   subroutine mpiallred_log(sendbuf,count,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw,f_err_define
     implicit none
     logical, intent(inout) :: sendbuf
     logical, intent(inout), optional :: recvbuf
@@ -577,6 +592,8 @@ end subroutine create_group_comm1
   end subroutine mpiallred_log
 
   subroutine mpiallred_d1(sendbuf,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw,f_err_define
     use yaml_output, only: yaml_toa
     implicit none
     double precision, dimension(:), intent(inout) :: sendbuf
@@ -586,6 +603,8 @@ end subroutine create_group_comm1
   end subroutine mpiallred_d1
 
   subroutine mpiallred_d2(sendbuf,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw,f_err_define
     use yaml_output, only: yaml_toa
     implicit none
     double precision, dimension(:,:), intent(inout) :: sendbuf

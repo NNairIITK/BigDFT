@@ -10,7 +10,7 @@
   integer, intent(in), optional :: comm
   !local variables
   logical :: in_place
-  integer :: tcat,ierr,ntot,ntotrecv,mpi_comm
+  integer :: tcat,ierr,ntot,mpi_comm
   ntot=count
 
   if (ntot <= 0) return

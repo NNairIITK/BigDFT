@@ -251,8 +251,8 @@
    rloc_kernel                         : 9.0 #    localization radius for the density kernel
    rloc_kernel_foe                     : 14.0 #   cutoff radius for the FOE matrix vector multiplications
  posinp:
-   Units                               : angstroem
-   Positions:
+   units                               : angstroem
+   positions:
    - H: [12.071999549865723, -9.7480001449584961, 1.1119999885559082]
    - H: [9.2799997329711914, -10.359999656677246, 0.60799998044967651]
    - H: [10.904000282287598, -8.7279996871948242, 0.18000000715255737]
@@ -272,9 +272,9 @@
    - H: [10.387999534606934, -12.536000251770018, -4.4159998893737793]
    - O: [10.579999923706055, -11.819999694824219, 1.3240000009536743]
    - H: [11.411999702453613, -12.244000434875488, 1.0240000486373901]
-   Properties:
-     Format                            : xyz
-     Source                            : posinp
+   properties:
+     format                            : xyz
+     source                            : posinp
  psppar.H:
    Pseudopotential type                : HGH-K
    Atomic number                       : 1

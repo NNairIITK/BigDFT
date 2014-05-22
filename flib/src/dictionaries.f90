@@ -13,7 +13,6 @@ module dictionaries
    use exception_callbacks
    use dictionaries_base
    use yaml_strings, only: read_fraction_string
-   ! use error_handling
    implicit none
 
    private

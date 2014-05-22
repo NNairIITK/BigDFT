@@ -35,13 +35,12 @@ if  version <= [2,5,0]:
 import yaml
 #from yaml_hl import *
 
-start_fail = "<fail>" #"\033[0;31m"
-start_fail_esc = "\033[0;31m "
-start_success = "\033[0;32m "
-start_pass = "<pass>"
-end = "</end>" #"\033[m"
-end_esc = "\033[m "
-
+#start_fail = "<fail>" #"\033[0;31m"
+#start_fail_esc = "\033[0;31m "
+#start_success = "\033[0;32m "
+#start_pass = "<pass>"
+#end = "</end>" #"\033[m"
+#end_esc = "\033[m "
 
 
 def ignore_key(key):
@@ -58,35 +57,37 @@ def ignore_key(key):
 #descend recursively in the dictionary until a scalar is found
 #a tolerance value might be passed
 def compare(data, ref, tols = None, always_fails = False):
-#  if tols is not None:
-#  if (discrepancy > 1.85e-9):
-#  print 'test',data,ref,tols,discrepancy
-  if data is None:
-    return (True, None)
-  elif type(ref) == type({}):
-    #for a floating point the reference is set for all the lower levels    
-    if type(tols) == type(1.0e-1):
-      neweps=tols
-      tols={}
-      for key in ref:
-        if key in def_tols:
-          tols[key]=def_tols[key]
-        else:
-          tols[key]=neweps
-      #print neweps,tols,def_tols
-    ret = compare_map(data, ref, tols, always_fails)
-  elif type(ref) == type([]):
-    if type(tols) == type(1.0e-1):
-      neweps=tols
-      tols=[]
-      tols.append(neweps)
-    ret = compare_seq(data, ref, tols, always_fails)
-  else:
-    ret = compare_scl(data, ref, tols, always_fails)
-  return ret
+    "Compare data with ref using tolerance"
+    #  if tols is not None:
+    #  if (discrepancy > 1.85e-9):
+    #  print 'test',data,ref,tols,discrepancy
+    if data is None:
+      return (True, None)
+    elif type(ref) == type({}):
+      #for a floating point the reference is set for all the lower levels    
+      if type(tols) == type(1.0e-1):
+        neweps=tols
+        tols={}
+        for key in ref:
+          if key in def_tols:
+            tols[key]=def_tols[key]
+          else:
+            tols[key]=neweps
+        #print neweps,tols,def_tols
+      ret = compare_map(data, ref, tols, always_fails)
+    elif type(ref) == type([]):
+      if type(tols) == type(1.0e-1):
+        neweps=tols
+        tols=[]
+        tols.append(neweps)
+      ret = compare_seq(data, ref, tols, always_fails)
+    else:
+      ret = compare_scl(data, ref, tols, always_fails)
+    return ret
 
 #sequence comparison routine
 def compare_seq(seq, ref, tols, always_fails = False):
+  "Sequence comparison routine"
   global failed_checks
   if tols is not None:
     if len(ref) == len(seq):
@@ -215,49 +216,54 @@ def compare_scl(scl, ref, tols, always_fails = False):
     failed_checks +=1
   return ret
 
+
 def document_report(hostname,tol,biggest_disc,nchecks,leaks,nmiss,miss_it,timet):
-
-  results={}
-  failure_reason = None 
-
-#  disc=biggest_disc
-  if nchecks > 0 or leaks != 0 or nmiss > 0:
-    if leaks != 0:
-      failure_reason="Memory"
-    elif nmiss > 0:
-      failure_reason="Information"
-    elif tol==0 and biggest_disc==0 and timet==0:
-      failure_reason="Yaml Standard"
-    else:
-      failure_reason="Difference"
-  else:
-    start = start_success
-    message = "succeeded "
-  results["Platform"]=hostname  
-  results["Test succeeded"]=nchecks == 0  and nmiss==0 and leaks==0
-  if failure_reason is not None:
-    results["Failure reason"]=failure_reason
-  results["Maximum discrepancy"]=biggest_disc
-  results["Maximum tolerance applied"]=tol
-  results["Seconds needed for the test"]=timet
-  if (nmiss > 0):
-    results["Missed Reference Items"]=miss_it
-
-  return results
+    "Report about the document"
+    results={}
+    failure_reason = None 
+    #  disc=biggest_disc
+    if nchecks > 0 or leaks != 0 or nmiss > 0:
+      if leaks != 0:
+        failure_reason="Memory Leak"
+      elif nmiss > 0:
+        failure_reason="Information"
+      elif tol == -1:
+          failure_reason = "Missing File"
+      elif tol == 0 and biggest_disc == 0 and timet == 0:
+        failure_reason = "Yaml Standard"
+      else:
+        failure_reason = "Difference"
+    results["Platform"]=hostname  
+    results["Test succeeded"]=nchecks == 0  and nmiss==0 and leaks==0
+    if failure_reason is not None:
+      results["Failure reason"]=failure_reason
+    results["Maximum discrepancy"]=biggest_disc
+    results["Maximum tolerance applied"]=tol
+    results["Seconds needed for the test"]=timet
+    if (nmiss > 0):
+      results["Missed Reference Items"]=miss_it
+    #
+    return results
 
 
 import yaml_hl
 
 #Class used to define options in order to hightlight the YAML output by mean of yaml_hl
 class Pouet:
-  def __init__(self):
+  def __init__(self,input="report"):
     #Define a temporary file
-    self.input = "report"
+    self.input = input
     self.output = None
     self.style = "ascii"
     self.config = os.path.join(path,'yaml_hl.cfg')
+#Color options
+options = Pouet()
+#Create style (need to be in __main__)
+Style = yaml_hl.Style
+
 
 def parse_arguments():
+  "Parse the arguments"
   parser = optparse.OptionParser("This script is used to compare two yaml outputs with respect to a tolerance file given. usage: fldiff_yaml.py <options>")
   parser.add_option('-r', '--reference', dest='ref', default=None, #sys.argv[1],
                     help="reference yaml stream", metavar='REFERENCE')
@@ -272,13 +278,18 @@ def parse_arguments():
   #Return the parsing
   return parser
 
-def fatal_error(args,reports):
+
+def fatal_error(args,reports,message='Error in reading datas, Yaml Standard violated or missing file'):
   "Fatal Error: exit after writing the report, assume that the report file is already open)"
-  print 'Error in reading datas, Yaml Standard violated or missing file'
-  finres=document_report('None',0.,0.,1,0,0,0,0)
-  sys.stdout.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
+  global options
+  print  message
+  finres=document_report('None',-1.,0.,1,0,0,0,0)
   reports.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
-  #datas    = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
+  newreport = open("report", "w")
+  newreport.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
+  newreport.close()
+  hl = yaml_hl.YAMLHighlight(options)
+  hl.highlight()
   sys.exit(0)
 
 if __name__ == "__main__":
@@ -293,13 +304,15 @@ references = [a for a in yaml.load_all(open(args.ref, "r").read(), Loader = yaml
 try:
   datas    = [a for a in yaml.load_all(open(args.data, "r").read(), Loader = yaml.CLoader)]
 except Exception,e:
-  print str(e)
-  datas = []
   reports = open(args.output, "w")
-  fatal_error(args,reports)
+  fatal_error(args,reports,message=str(e))
 
 if args.tols:
-    orig_tols = yaml.load(open(args.tols, "r").read(), Loader = yaml.CLoader)
+    try:
+        orig_tols = yaml.load(open(args.tols, "r").read(), Loader = yaml.CLoader)
+    except Exception,e:
+        reports = open(args.output, "w")
+        fatal_error(args,reports,message=str(e))
 else:
     orig_tols = dict()
 
@@ -369,7 +382,6 @@ if len(patterns_to_ignore) > 0:
 #print 'Epsilon tolerance',epsilon
 #print 'Ignore',keys_to_ignore,'Patterns',patterns_to_ignore
 
-options = Pouet()
 failed_documents=0
 reports = open(args.output, "w")
 max_discrepancy=0.
@@ -384,8 +396,8 @@ except:
   hostname='unknown'
 
 if len(references) != len(datas):
-  print 'Error, number of documents differ between reference (',len(references),') and data (',len(datas),')' 
-  fatal_error(args,reports)
+  fatal_error(args,reports,\
+     message='Error, number of documents differ between reference (%d) and data (%d)' % (len(references),len(datas)))
 
 for i in range(len(references)):
   tols={}  #copy.deepcopy(orig_tols)
@@ -401,8 +413,7 @@ for i in range(len(references)):
     data = datas[i]
     compare(data, reference, tols)
   except Exception,e:
-    print str(e)
-    fatal_error(args,reports)
+    fatal_error(args,reports,message=str(e))
   try:
     doctime = data["Timings for root process"]["Elapsed time (s)"]
   except:
@@ -428,7 +439,6 @@ for i in range(len(references)):
                             default_flow_style=False,explicit_start=True))
   newreport.close()
   reports.write(open("report", "rb").read())
-  Style = yaml_hl.Style
   hl = yaml_hl.YAMLHighlight(options)
   hl.highlight()
   sys.stdout.write("#Document: %2d, failed_checks: %d, Max. Diff. %10.2e, missed_items: %d memory_leaks (B): %d, Elapsed Time (s): %7.2f\n" %\
@@ -442,7 +452,6 @@ if len(references)> 1:
   newreport.write(yaml.dump(finres,default_flow_style=False,explicit_start=True))
   newreport.close()
   reports.write(open("report", "rb").read())
-  Style = yaml_hl.Style
   hl = yaml_hl.YAMLHighlight(options)
   hl.highlight()
 

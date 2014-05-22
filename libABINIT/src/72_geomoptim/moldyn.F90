@@ -165,6 +165,8 @@ subroutine moldyn(acell,amass,me,&
 & nsym, symrel, &
 & vel,xfhist,fred,xred)
 
+  use interfaces_14_hidewrite
+
  use defs_basis
  use defs_datatypes
 

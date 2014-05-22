@@ -58,6 +58,8 @@
     end if
   end subroutine f_err_initialize
 
+  
+  !> Call at the end of the program to finalize the error module (deallocation + report)
   subroutine f_err_finalize()
     implicit none
     call f_err_unset_callback()
@@ -65,6 +67,7 @@
     call dict_free(dict_errors)
     call dict_free(dict_present_error)
   end subroutine f_err_finalize
+
 
   !> Define a new error specification and returns the corresponding error code
   !! optionally, an error-specific callback function can be defined
@@ -130,6 +133,7 @@
 
   end function f_err_check
 
+
   !> This routine should be generalized to allow the possiblity of addin customized message at the 
   !! raise of the error. Also customized callback should be allowed
   !! @warning This function is detected as recrusive by gfortran
@@ -191,6 +195,7 @@
        end if
     end if
   end function f_err_raise
+
 
   !> Raise the error indicated
   subroutine f_err_throw(err_msg,err_id,err_name,callback,callback_data)
@@ -265,6 +270,7 @@
     
   end subroutine f_err_throw
 
+
   function f_get_error_dict(icode)
     implicit none
     integer, intent(in) :: icode
@@ -274,12 +280,14 @@
     f_get_error_dict=>dict_errors//icode
   end function f_get_error_dict
 
+
   function f_get_no_of_errors()
     implicit none
     integer :: f_get_no_of_errors
 
     f_get_no_of_errors=dict_len(dict_present_error)
   end function f_get_no_of_errors
+
 
   function f_get_past_error(ierr_num,add_msg)
     implicit none
@@ -292,6 +300,7 @@
     
   end function f_get_past_error
 
+
   function get_error_id(ierr)
     implicit none
     integer, intent(in) :: ierr
@@ -302,6 +311,7 @@
        get_error_id=0
     end if
   end function get_error_id
+
 
   subroutine get_error_msg(ierr,add_msg)
     implicit none
@@ -315,7 +325,8 @@
     end if
   end subroutine get_error_msg
 
-  !> identify id of lastr error occured
+
+  !> Identify id of lastr error occured
   function f_get_last_error(add_msg)
     implicit none
     character(len=*), intent(out), optional :: add_msg
@@ -332,14 +343,16 @@
     end if
   end function f_get_last_error
 
-  !> clean the dictionary of present errors
+
+  !> Clean the dictionary of present errors
    subroutine f_err_clean()
     implicit none
     call dict_free(dict_present_error)
     call dict_init(dict_present_error)
   end subroutine f_err_clean
 
-  !> clean last error, if any and get message.
+
+  !> Clean last error, if any and get message.
   function f_err_pop(err_id, err_name, add_msg)
     implicit none
     integer, intent(in), optional :: err_id            !< The code of the error to be checked for
@@ -364,19 +377,22 @@
     end if
   end function f_err_pop
 
-  !> activate the exception handling for all errors
+
+  !> Activate the exception handling for all errors
   subroutine f_err_open_try()
     implicit none
     call f_err_set_callback(f_err_ignore)
   end subroutine f_err_open_try
   
-  !> close the try environment
+
+  !> Close the try environment
   subroutine f_err_close_try()
     implicit none
     call f_err_clean() !no errors anymore
     call f_err_unset_callback()
   end subroutine f_err_close_try
   
+
   function f_get_error_definitions()
     implicit none
     type(dictionary), pointer :: f_get_error_definitions

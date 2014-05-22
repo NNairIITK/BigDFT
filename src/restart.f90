@@ -707,17 +707,17 @@ subroutine read_wave_to_isf(lstat, filename, ln, iorbp, hx, hy, hz, &
 END SUBROUTINE read_wave_to_isf
 
 
-subroutine free_wave_to_isf(psiscf)
-  use module_base
-  implicit none
-  real(wp), dimension(:,:,:,:), pointer :: psiscf
-
-  integer :: i_all, i_stat
-
-  i_all=-product(shape(psiscf))*kind(psiscf)
-  deallocate(psiscf,stat=i_stat)
-  call memocc(i_stat,i_all,'psiscf',"free_wave_to_isf_etsf")
-END SUBROUTINE free_wave_to_isf
+!!$subroutine free_wave_to_isf(psiscf)
+!!$  use module_base
+!!$  implicit none
+!!$  real(wp), dimension(:,:,:,:), pointer :: psiscf
+!!$
+!!$  integer :: i_all, i_stat
+!!$
+!!$  i_all=-product(shape(psiscf))*kind(psiscf)
+!!$  deallocate(psiscf,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'psiscf',"free_wave_to_isf_etsf")
+!!$END SUBROUTINE free_wave_to_isf
 
 
 subroutine read_wave_descr(lstat, filename, ln, &
@@ -3238,9 +3238,7 @@ subroutine print_reformat_summary(iproc,nproc,reformat_reason)
 
   integer :: ierr
 
-  if (nproc > 1) then
-     call mpiallred(reformat_reason(0), 7, mpi_sum, bigdft_mpi%mpi_comm)
-  end if
+  if (nproc > 1) call mpiallred(reformat_reason(0), 7, mpi_sum, bigdft_mpi%mpi_comm)
 
   if (iproc==0) then
         call yaml_open_map('Overview of the reformatting (several categories may apply)')

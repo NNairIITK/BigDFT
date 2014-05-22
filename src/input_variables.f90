@@ -8,8 +8,8 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!> This function returns a dictionary with all the input variables of a BigDFT run filled
-!! this dictionary is constructed from a updated version of the input variables dictionary
+!> This function returns a dictionary with all the input variables of a BigDFT run filled.
+!! This dictionary is constructed from a updated version of the input variables dictionary
 !! following the input files as defined  by the user
 subroutine read_input_dict_from_files(radical,mpi_env,dict)
   use dictionaries
@@ -18,10 +18,11 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
   use module_input_dicts, only: merge_input_file_to_dict
   use input_old_text_format
   use yaml_output
+  use dynamic_memory
   implicit none
-  character(len = *), intent(in) :: radical !< the name of the run. use "input" if empty
-  type(mpi_environment), intent(in) :: mpi_env !< the environment where the variables have to be updated
-  type(dictionary), pointer :: dict !< input dictionary, has to be nullified at input
+  character(len = *), intent(in) :: radical    !< The name of the run. use "input" if empty
+  type(mpi_environment), intent(in) :: mpi_env !< The environment where the variables have to be updated
+  type(dictionary), pointer :: dict            !< Input dictionary, has to be nullified at input
   !local variables
   integer :: ierr
   logical :: exists_default, exists_user
@@ -30,12 +31,12 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
 
   call f_routine(id='read_input_dict_from_files')
 
-  if (f_err_raise(associated(dict),'The output dictionary should be nullified at input',&
-       err_name='BIGDFT_RUNTIME_ERROR')) return
+!!$  if (f_err_raise(associated(dict),'The output dictionary should be nullified at input',&
+!!$       err_name='BIGDFT_RUNTIME_ERROR')) return
+!!$
+!!$  nullify(dict) !this is however put in the case the dictionary comes undefined
 
-  nullify(dict) !this is however put in the case the dictionary comes undefined
-
-  call dict_init(dict)
+!!$  call dict_init(dict)
   if (trim(radical) /= "" .and. trim(radical) /= "input") &
        & call set(dict // "radical", radical)
 
@@ -74,6 +75,8 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
      call read_tddft_from_text_format(mpi_env%iproc,dict//TDDFT_VARIABLES, trim(f0))
      call set_inputfile(f0, radical, 'lin')
      call read_lin_from_text_format(mpi_env%iproc,dict, trim(f0))
+     call set_inputfile(f0, radical, 'neb')
+     call read_neb_from_text_format(mpi_env%iproc,dict//GEOPT_VARIABLES, trim(f0))
   else
      ! We add an overloading input.perf (for automatic test purposes).
      ! This will be changed in far future when only YAML input will be allowed.
@@ -91,7 +94,7 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
 end subroutine read_input_dict_from_files
 
 
-!> Fill the input_variables structure with the information
+!> Fill the input_variables and atoms_data structures from the information
 !! contained in the dictionary dict
 !! the dictionary should be completes to fill all the information
 subroutine inputs_from_dict(in, atoms, dict)
@@ -105,12 +108,13 @@ subroutine inputs_from_dict(in, atoms, dict)
   use dynamic_memory
   use m_profiling, only: ab7_memocc_set_state => memocc_set_state !< abinit module to be removed
   use module_xc
-  use module_atoms, only: atoms_data,atoms_data_null,set_astruct_from_dict
+  use module_atoms, only: atoms_data,atoms_data_null
   implicit none
+  !Arguments
   type(input_variables), intent(out) :: in
   type(atoms_data), intent(out) :: atoms
   type(dictionary), pointer :: dict
-
+  !Local variables
   !type(dictionary), pointer :: profs
   integer :: ierr, ityp, nelec_up, nelec_down, norb_max, jtype
   character(len = max_field_length) :: writing_dir, output_dir, run_name, msg
@@ -124,7 +128,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   ! Atoms case.
   atoms = atoms_data_null()
   if (.not. has_key(dict, "posinp")) stop "missing posinp"
-  call set_astruct_from_dict(dict // "posinp", atoms%astruct)
+  call astruct_set_from_dict(dict // "posinp", atoms%astruct)
 
   ! Input variables case.
   call default_input_variables(in)
@@ -204,7 +208,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   call nullifyInputLinparameters(in%lin)
   call allocateBasicArraysInputLin(in%lin, atoms%astruct%ntypes)
 
-  !first fill all the types by the default, then override by per-type values
+  !First fill all the types by the default, then override by per-type values
   do jtype=1,atoms%astruct%ntypes
      var => dict_iter(dict//LIN_BASIS_PARAMS)
      do while(associated(var))
@@ -260,6 +264,9 @@ subroutine inputs_from_dict(in, atoms, dict)
   ! Update atoms with pseudo information.
   call psp_dict_analyse(dict, atoms)
   call atomic_data_set_from_dict(dict, "Atomic occupation", atoms, in%nspin)
+
+  ! Add multipole preserving information
+  atoms%multipole_preserving = in%multipole_preserving
 
   ! Generate orbital occupation
   call read_n_orbitals(bigdft_mpi%iproc, nelec_up, nelec_down, norb_max, atoms, &
@@ -925,7 +932,7 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
      else
         call kpoints_get_auto_k_grid(sym%symObj, in%gen_nkpt, in%gen_kpt, in%gen_wkpt, &
              & kptrlen_, ierror)
-        if (ierror /= AB6_NO_ERROR) then
+        if (ierror /= AB7_NO_ERROR) then
            if (iproc==0) &
                 & call yaml_warning("ERROR: cannot generate automatic k-point grid." // &
                 & " Error code is " // trim(yaml_toa(ierror,fmt='(i0)')))
@@ -965,7 +972,7 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
      else
         call kpoints_get_mp_k_grid(sym%symObj, in%gen_nkpt, in%gen_kpt, in%gen_wkpt, &
              & ngkpt_, nshiftk, shiftk_, ierror)
-        if (ierror /= AB6_NO_ERROR) then
+        if (ierror /= AB7_NO_ERROR) then
            if (iproc==0) &
                 & call yaml_warning("ERROR: cannot generate MP k-point grid." // &
                 & " Error code is " // trim(yaml_toa(ierror,fmt='(i0)')))
@@ -1092,6 +1099,7 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
 
   if (in%nkptv > 0 .and. geocode == 'F' .and. iproc == 0) &
        & call yaml_warning('Defining a k-point path in free boundary conditions.') 
+
 END SUBROUTINE kpt_input_analyse
 
 !!$  ! linear scaling: explicitely specify localization centers

@@ -232,6 +232,7 @@ module module_types
   integer, parameter, public :: INPUT_IG_FULL = 2
   integer, parameter, public :: INPUT_IG_TMO  = 3
 
+
   !> Structure controlling the nature of the accelerations (Convolutions, Poisson Solver)
   type, public :: material_acceleration
      !> variable for material acceleration
@@ -271,6 +272,7 @@ module module_types
      real(gp) :: rpnrm_cv
      real(gp) :: gnrm_startmix
      integer :: verbosity   !< Verbosity of the output file
+     logical :: multipole_preserving !< Preserve multipole for ionic charge (integrated isf)
 
      !> DFT basic parameters.
      integer :: ixc         !< XC functional Id
@@ -441,8 +443,8 @@ module module_types
   !> Contains all energy terms
   type, public :: energy_terms
      real(gp) :: eh      =0.0_gp !< Hartree energy
-     real(gp) :: exc     =0.0_gp !< Exchange-correlation
-     real(gp) :: evxc    =0.0_gp
+     real(gp) :: exc     =0.0_gp !< Exchange-correlation energy
+     real(gp) :: evxc    =0.0_gp !< Energy from the exchange-correlation potential
      real(gp) :: eion    =0.0_gp !< Ion-Ion interaction
      real(gp) :: edisp   =0.0_gp !< Dispersion force
      real(gp) :: ekin    =0.0_gp !< Kinetic term
@@ -513,7 +515,7 @@ module module_types
      type(mpi_environment) :: mpi_env
   end type denspot_distribution
 
-!>   Structures of basis of gaussian functions of the form exp(-a*r2)cos/sin(b*r2)
+  !> Structures of basis of gaussian functions of the form exp(-a*r2)cos/sin(b*r2)
   type, public :: gaussian_basis_c
      integer :: nat,ncoeff,nshltot,nexpo
      integer, dimension(:), pointer :: nshell,ndoc,nam
@@ -1928,10 +1930,11 @@ subroutine nullify_coulomb_operator(coul_op)
   nullify(coul_op%kernel)
 end subroutine nullify_coulomb_operator
 
+
 subroutine copy_coulomb_operator(coul1,coul2,subname)
   implicit none
-  type(coulomb_operator),intent(in)::coul1
-  type(coulomb_operator),intent(out)::coul2
+  type(coulomb_operator),intent(in) :: coul1
+  type(coulomb_operator),intent(inout) :: coul2
   character(len=*), intent(in) :: subname
   !local variables
   integer :: i_all,i_stat
@@ -1965,9 +1968,10 @@ subroutine copy_coulomb_operator(coul1,coul2,subname)
 
 end subroutine copy_coulomb_operator
 
+
 subroutine deallocate_coulomb_operator(coul_op,subname)
   implicit none
-  type(coulomb_operator),intent(out)::coul_op
+  type(coulomb_operator),intent(inout) :: coul_op
   character(len=*), intent(in) :: subname
   !local variables
   integer :: i_all,i_stat
@@ -2108,18 +2112,20 @@ END SUBROUTINE nullify_global_output
 
 subroutine init_global_output(outs, nat)
   use module_base
+  use dynamic_memory
   implicit none
   type(DFT_global_output), intent(out) :: outs
   integer, intent(in) :: nat
 
   call nullify_global_output(outs)
   outs%fdim = nat
-  allocate(outs%fxyz(3, outs%fdim))
+  outs%fxyz = f_malloc_ptr((/3, outs%fdim/), id = "outs%fxyz")
   outs%fxyz(:,:) = UNINITIALIZED(1.0_gp)
 END SUBROUTINE init_global_output
 
 subroutine deallocate_global_output(outs, fxyz)
   use module_base
+  use dynamic_memory
   implicit none
   type(DFT_global_output), intent(inout) :: outs
   real(gp), intent(out), optional :: fxyz
@@ -2128,7 +2134,7 @@ subroutine deallocate_global_output(outs, fxyz)
      if (present(fxyz)) then
         call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz, 1)
      end if
-     deallocate(outs%fxyz)
+     call f_free_ptr(outs%fxyz)
   end if
 END SUBROUTINE deallocate_global_output
 
@@ -2553,6 +2559,8 @@ end subroutine find_category
     call dict_free(dict)
   END SUBROUTINE input_set_bool_array
 
+  
+  !> Set the dictionary from the input variables
   subroutine input_set_dict(in, level, val)
     use dictionaries, only: dictionary, operator(//), assignment(=)
     use dictionaries, only: dict_key, max_field_length, dict_value, dict_len
@@ -2692,6 +2700,8 @@ end subroutine find_category
           GPUblas = val !!@TODO to relocate
        case (PSP_ONFLY)
           DistProjApply = val
+       case (MULTIPOLE_PRESERVING)
+          in%multipole_preserving = val
        case (IG_DIAG)
           in%orthpar%directDiag = val
        case (IG_NORBP)

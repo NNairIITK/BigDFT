@@ -621,147 +621,142 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
 
 contains
 
-subroutine psp_from_file_paw()
-  use module_base
-  use m_pawpsp, only: pawpsp_main, pawpsp_read_header, pawpsp_read_header_2
-  use defs_basis, only: tol14, fnlen
-  use m_pawrad, only: pawrad_type, pawrad_nullify, pawrad_destroy
-  use m_pawtab, only: pawtab_type, pawtab_nullify, pawtab_destroy
-  implicit none
-  integer:: icoulomb,ipsp,ixc,i_all,i_stat,lnmax
-  integer:: lloc,l_size,lmax,mmax,pspcod,pspxc
-  integer:: pspversion,basis_size,lmn_size
-  integer:: mpsang,mqgrid_ff,mqgrid_vl,mqgrid_shp
-  integer:: pawxcdev,usewvl,usexcnhat,xclevel
-  integer::pspso
-  real(dp):: r2well,wvl_crmult,wvl_frmult
-  real(dp):: xc_denpos,zionpsp,znuclpsp
-  real(dp)::epsatm,xcccrc
-  character(len=fnlen):: filpsp   ! name of the psp file
-  character(len = *), parameter :: subname = "psp_from_file_paw"
-  type(pawrad_type):: pawrad
-  type(pawtab_type):: pawtab
-  integer:: comm_mpi
-!  type(paw_setup_t),optional,intent(in) :: psxml
-!!arrays
- integer:: wvl_ngauss(2)
- real(dp),allocatable:: qgrid_ff(:),qgrid_vl(:)
- real(dp),allocatable:: ffspl(:,:,:)
- real(dp),allocatable:: vlspl(:,:)
-!!Here we can use bigdft variables
-! real(dp)::gth_psppar(0:4,0:6),gth_radii_cf(3)
- integer:: gth_semicore
- integer:: mesh_size
- real(dp)::gth_radii_cov
- logical:: gth_hasGeometry
+   subroutine psp_from_file_paw()
+     use module_base
+     use m_pawpsp, only: pawpsp_main, pawpsp_read_header, pawpsp_read_header_2
+     use defs_basis, only: tol14, fnlen
+     use m_pawrad, only: pawrad_type, pawrad_nullify, pawrad_destroy
+     use m_pawtab, only: pawtab_type, pawtab_nullify, pawtab_destroy
+     implicit none
+     integer:: icoulomb,ipsp,ixc,i_all,i_stat,lnmax
+     integer:: lloc,l_size,lmax,mmax,pspcod,pspxc
+     integer:: pspversion,basis_size,lmn_size
+     integer:: mpsang,mqgrid_ff,mqgrid_vl,mqgrid_shp
+     integer:: pawxcdev,usewvl,usexcnhat,xclevel
+     integer::pspso
+     real(dp):: r2well,wvl_crmult,wvl_frmult
+     real(dp):: xc_denpos,zionpsp,znuclpsp
+     real(dp)::epsatm,xcccrc
+     character(len=fnlen):: filpsp   ! name of the psp file
+     character(len = *), parameter :: subname = "psp_from_file_paw"
+     type(pawrad_type):: pawrad
+     type(pawtab_type):: pawtab
+     integer:: comm_mpi
+   !  type(paw_setup_t),optional,intent(in) :: psxml
+   !!arrays
+    integer:: wvl_ngauss(2)
+    real(dp),allocatable:: qgrid_ff(:),qgrid_vl(:)
+    real(dp),allocatable:: ffspl(:,:,:)
+    real(dp),allocatable:: vlspl(:,:)
+   !!Here we can use bigdft variables
+   ! real(dp)::gth_psppar(0:4,0:6),gth_radii_cf(3)
+    integer:: gth_semicore
+    integer:: mesh_size
+    real(dp)::gth_radii_cov
+    logical:: gth_hasGeometry
 
 
-  !These should be passed as arguments:
-  !crmult and frmult to set the GTH radius (needed for the initial guess)
-  wvl_crmult=8; wvl_frmult=8
-  !Defines the number of Gaussian functions for projectors
-  !See ABINIT input files documentation
-  wvl_ngauss=[10,10]
-  icoulomb= 1 !Fake argument, this only indicates that we are inside bigdft..
-              !do not change, even if icoulomb/=1
-  ipsp=1      !This is relevant only for XML.
-              !This is not yet working
-  xclevel=1 ! xclevel=XC functional level (1=LDA, 2=GGA)
-            ! For the moment, it will just work for LDA
-  pspso=0 !No spin-orbit for the moment
+     !These should be passed as arguments:
+     !crmult and frmult to set the GTH radius (needed for the initial guess)
+     wvl_crmult=8; wvl_frmult=8
+     !Defines the number of Gaussian functions for projectors
+     !See ABINIT input files documentation
+     wvl_ngauss=[10,10]
+     icoulomb= 1 !Fake argument, this only indicates that we are inside bigdft..
+                 !do not change, even if icoulomb/=1
+     ipsp=1      !This is relevant only for XML.
+                 !This is not yet working
+     xclevel=1 ! xclevel=XC functional level (1=LDA, 2=GGA)
+               ! For the moment, it will just work for LDA
+     pspso=0 !No spin-orbit for the moment
 
-! Read PSP header:
-  rewind(11)
-  call pawpsp_read_header(lloc,l_size,mmax,pspcod,pspxc,r2well,zionpsp,znuclpsp)
-  call pawpsp_read_header_2(pspversion,basis_size,lmn_size)
+   ! Read PSP header:
+     rewind(11)
+     call pawpsp_read_header(lloc,l_size,mmax,pspcod,pspxc,r2well,zionpsp,znuclpsp)
+     call pawpsp_read_header_2(pspversion,basis_size,lmn_size)
 
-! Problem lnmax are unknown here,
-! we have to read all of the pseudo files to know it!
-! We should change the way this is done in ABINIT:
-! For the moment lnmax=basis_size
-! The same problem for mpsang
-  lnmax=basis_size
-  lmax=l_size
-!  do ii=1,psps%npsp
-!   mpsang=max(pspheads(ii)%lmax+1,mpsang)
-!  end do
-  mpsang=lmax+1
+   ! Problem lnmax are unknown here,
+   ! we have to read all of the pseudo files to know it!
+   ! We should change the way this is done in ABINIT:
+   ! For the moment lnmax=basis_size
+   ! The same problem for mpsang
+     lnmax=basis_size
+     lmax=l_size
+   !  do ii=1,psps%npsp
+   !   mpsang=max(pspheads(ii)%lmax+1,mpsang)
+   !  end do
+     mpsang=lmax+1
 
-! These are just useful for 
-!reciprocal space approaches (plane-waves):
-  mqgrid_shp=0; mqgrid_ff=0; mqgrid_vl=0 
-                          
-  allocate(qgrid_ff(mqgrid_ff),stat=i_stat)
-  call memocc(i_stat,qgrid_ff,'qgrid_ff',subname)
-  allocate(qgrid_vl(mqgrid_vl),stat=i_stat)
-  call memocc(i_stat,qgrid_vl,'qgrid_vl',subname)
-  allocate(ffspl(mqgrid_ff,2,lnmax),stat=i_stat)
-  call memocc(i_stat,ffspl,'ffspl',subname)
-  allocate(vlspl(mqgrid_vl,2),stat=i_stat)
-  call memocc(i_stat,vlspl,'vlpsl',subname)
+   ! These are just useful for 
+   !reciprocal space approaches (plane-waves):
+     mqgrid_shp=0; mqgrid_ff=0; mqgrid_vl=0 
+                             
+     allocate(qgrid_ff(mqgrid_ff),stat=i_stat)
+     call memocc(i_stat,qgrid_ff,'qgrid_ff',subname)
+     allocate(qgrid_vl(mqgrid_vl),stat=i_stat)
+     call memocc(i_stat,qgrid_vl,'qgrid_vl',subname)
+     allocate(ffspl(mqgrid_ff,2,lnmax),stat=i_stat)
+     call memocc(i_stat,ffspl,'ffspl',subname)
+     allocate(vlspl(mqgrid_vl,2),stat=i_stat)
+     call memocc(i_stat,vlspl,'vlpsl',subname)
 
-! Define parameters:
-  pawxcdev=1; usewvl=1 ; usexcnhat=0 !default
-  xc_denpos=tol14
-  filpsp=trim(filename)
-  comm_mpi=bigdft_mpi%mpi_comm  
-  mesh_size=mmax
+   ! Define parameters:
+     pawxcdev=1; usewvl=1 ; usexcnhat=0 !default
+     xc_denpos=tol14
+     filpsp=trim(filename)
+     comm_mpi=bigdft_mpi%mpi_comm  
+     mesh_size=mmax
 
-  call pawrad_nullify(pawrad)
-  call pawtab_nullify(pawtab)
+     call pawrad_nullify(pawrad)
+     call pawtab_nullify(pawtab)
 
-  close(11)
+     close(11)
 
-  call pawpsp_main( &
-& pawrad,pawtab,&
-& filpsp,usewvl,icoulomb,ixc,xclevel,pawxcdev,usexcnhat,&
-& qgrid_ff,qgrid_vl,ffspl,vlspl,epsatm,xcccrc,zionpsp,znuclpsp,&
-& gth_hasGeometry,psppar,radii_cf,gth_radii_cov,gth_semicore,&
-& wvl_crmult,wvl_frmult,wvl_ngauss,comm_mpi=comm_mpi)
+     call pawpsp_main( &
+   & pawrad,pawtab,&
+   & filpsp,usewvl,icoulomb,ixc,xclevel,pawxcdev,usexcnhat,&
+   & qgrid_ff,qgrid_vl,ffspl,vlspl,epsatm,xcccrc,zionpsp,znuclpsp,&
+   & gth_hasGeometry,psppar,radii_cf,gth_radii_cov,gth_semicore,&
+   & wvl_crmult,wvl_frmult,wvl_ngauss,comm_mpi=comm_mpi)
 
+   !Print out data to validate this test:
+     write(*,'(a)') 'PAW Gaussian projectors:'
+     write(*,'("No. of Gaussians:", i4)')pawtab%wvl%pngau
+     write(*,'("First five Gaussian complex coefficients:")')
+     write(*,'(5("(",f13.7,",",f13.7")"))')pawtab%wvl%parg(:,1:5)
+     write(*,'("First five Gaussian complex factors:")')
+     write(*,'(5("(",f13.7,",",f13.7")"))')pawtab%wvl%pfac(:,1:5)
+   !
+     write(*,'(a)') 'GTH parameters (for initial guess):'
+     write(*,'("radii_cf= ",3f10.7)')radii_cf(:)
+     write(*,'("psppar(0:1,0)= ",2f10.7)')psppar(0:1,0)
 
+   ! Destroy and deallocate objects
+     call pawrad_destroy(pawrad)
+     call pawtab_destroy(pawtab)
 
+     !
+     i_all=-product(shape(qgrid_ff))*kind(qgrid_ff)
+     deallocate(qgrid_ff,stat=i_stat)
+     call memocc(i_stat,i_all,'qgrid_ff',subname)
+     !
+     i_all=-product(shape(qgrid_vl))*kind(qgrid_vl)
+     deallocate(qgrid_vl,stat=i_stat)
+     call memocc(i_stat,i_all,'qgrid_vl',subname)
+     !
+     i_all=-product(shape(ffspl))*kind(ffspl)
+     deallocate(ffspl,stat=i_stat)
+     call memocc(i_stat,i_all,'ffspl',subname)
+     !
+     i_all=-product(shape(vlspl))*kind(vlspl)
+     deallocate(vlspl,stat=i_stat)
+     call memocc(i_stat,i_all,'vlspl',subname)
 
-!Print out data to validate this test:
-  write(*,'(a)') 'PAW Gaussian projectors:'
-  write(*,'("No. of Gaussians:", i4)')pawtab%wvl%pngau
-  write(*,'("First five Gaussian complex coefficients:")')
-  write(*,'(5("(",f13.7,",",f13.7")"))')pawtab%wvl%parg(:,1:5)
-  write(*,'("First five Gaussian complex factors:")')
-  write(*,'(5("(",f13.7,",",f13.7")"))')pawtab%wvl%pfac(:,1:5)
-!
-  write(*,'(a)') 'GTH parameters (for initial guess):'
-  write(*,'("radii_cf= ",3f10.7)')radii_cf(:)
-  write(*,'("psppar(0:1,0)= ",2f10.7)')psppar(0:1,0)
+   !PAW is not yet working!
+   !Exit here
+    stop
 
-! Destroy and deallocate objects
-  call pawrad_destroy(pawrad)
-  call pawtab_destroy(pawtab)
-
-  !
-  i_all=-product(shape(qgrid_ff))*kind(qgrid_ff)
-  deallocate(qgrid_ff,stat=i_stat)
-  call memocc(i_stat,i_all,'qgrid_ff',subname)
-  !
-  i_all=-product(shape(qgrid_vl))*kind(qgrid_vl)
-  deallocate(qgrid_vl,stat=i_stat)
-  call memocc(i_stat,i_all,'qgrid_vl',subname)
-  !
-  i_all=-product(shape(ffspl))*kind(ffspl)
-  deallocate(ffspl,stat=i_stat)
-  call memocc(i_stat,i_all,'ffspl',subname)
-  !
-  i_all=-product(shape(vlspl))*kind(vlspl)
-  deallocate(vlspl,stat=i_stat)
-  call memocc(i_stat,i_all,'vlspl',subname)
-
-!PAW is not yet working!
-!Exit here
- stop
-
-END SUBROUTINE psp_from_file_paw
-
-
+   END SUBROUTINE psp_from_file_paw
 
 END SUBROUTINE psp_from_file
 
@@ -831,18 +826,19 @@ subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
 
      call atomic_info(atoms%nzatom(ityp),atoms%nelpsp(ityp),ehomo=ehomo)
           
-     if (atoms%radii_cf(ityp, 1) == UNINITIALIZED(1.0_gp)) then
+     if (any(atoms%radii_cf(ityp, :) == UNINITIALIZED(1.0_gp))) then
         !assigning the radii by calculating physical parameters
-        radii_cf(ityp,1)=1._gp/sqrt(abs(2._gp*ehomo))
+        if (radii_cf(ityp,1) == UNINITIALIZED(1.0_gp)) radii_cf(ityp,1)=1._gp/sqrt(abs(2._gp*ehomo))
         radfine=100._gp
         do i=0,4
            if (atoms%psppar(i,0,ityp)/=0._gp) then
               radfine=min(radfine,atoms%psppar(i,0,ityp))
            end if
         end do
-        radii_cf(ityp,2)=radfine
-        radii_cf(ityp,3)=radfine
+        if (radii_cf(ityp,2) == UNINITIALIZED(1.0_gp)) radii_cf(ityp,2)=radfine
+        if (radii_cf(ityp,3) == UNINITIALIZED(1.0_gp)) radii_cf(ityp,3)=radfine
      else
+        !Everything is already provided
         radii_cf(ityp, :) = atoms%radii_cf(ityp, :)
      end if
 
@@ -861,6 +857,7 @@ subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
      end if
   enddo
 END SUBROUTINE read_radii_variables
+
 
 subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
      & atoms, ncharge, nspin, mpol, norbsempty)

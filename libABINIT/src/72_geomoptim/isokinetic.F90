@@ -1,6 +1,7 @@
 subroutine md_isokinetic_init(amass, mditemp, natom, vel)
 
   use defs_basis
+  use interfaces_14_hidewrite
 
   implicit none
 

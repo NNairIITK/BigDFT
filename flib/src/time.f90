@@ -322,7 +322,6 @@ module time_profiling
       integer :: i,nnodes
       integer(kind=8) :: itns
       logical, dimension(3) :: test
-      real(kind=8), dimension(:,:), allocatable :: timeall
 
       !global timer
       itns=f_time()

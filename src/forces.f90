@@ -317,11 +317,10 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
   type(DFT_wavefunction),intent(in) :: tmb
   !local variables
-  integer :: ierr,iat,i,j
+  integer :: iat,i,j
   real(gp) :: charge,ucvol,maxdiff
   real(gp), dimension(6,4) :: strtens!local,nonlocal,kin,erf
   character(len=16), dimension(4) :: messages
-
 
 
   call to_zero(6,strten(1))
@@ -600,7 +599,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   use module_base
   use module_types
   use yaml_output
-  !use gaussians
+  use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
   implicit none
   !Arguments---------
   type(atoms_data), intent(in) :: at
@@ -612,8 +611,9 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   real(gp), dimension(3,at%astruct%nat), intent(out) :: floc
   real(gp), dimension(6), intent(out) :: locstrten
   !Local variables---------
+  real(kind=8), parameter :: pi=4.d0*atan(1.d0)
   logical :: perx,pery,perz,gox,goy,goz
-  real(kind=8) :: pi,prefactor,cutoff,rloc,Vel,rhoel
+  real(kind=8) :: prefactor,cutoff,rloc,Vel,rhoel
   real(kind=8) :: fxerf,fyerf,fzerf,fxion,fyion,fzion,fxgau,fygau,fzgau,forceleaked,forceloc
   real(kind=8) :: rx,ry,rz,x,y,z,arg,r2,xp,tt,Txx,Tyy,Tzz,Txy,Txz,Tyz
   integer :: i1,i2,i3,ind,iat,ityp,nloc,iloc
@@ -621,22 +621,20 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   !array of coefficients of the derivative
   real(kind=8), dimension(4) :: cprime 
 
-  !call initialize_real_space_conversion()
+  if (at%multipole_preserving) call initialize_real_space_conversion()
   
-  pi=4.d0*atan(1.d0)
-
   locstrten=0.0_gp
 
-charge=0.d0
-do i3=1,n3pi
-        do i2=1,n2i
-           do i1=1,n1i
-              ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
-charge=charge+rho(ind)
-           enddo
+  charge=0.d0
+  do i3=1,n3pi
+     do i2=1,n2i
+        do i1=1,n1i
+           ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
+           charge=charge+rho(ind)
         enddo
      enddo
-charge=charge*hxh*hyh*hzh
+  enddo
+  charge=charge*hxh*hyh*hzh
 
  !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Calculate local forces...'
   if (iproc == 0 .and. verbose > 1) call yaml_open_map('Calculate local forces',flow=.true.)
@@ -706,7 +704,7 @@ charge=charge*hxh*hyh*hzh
 
      !calculate the forces near the atom due to the error function part of the potential
      !calculate forces for all atoms only in the distributed part of the simulation box
-     if (n3pi >0 ) then
+     if (n3pi > 0) then
         do i3=isz,iez
            z=real(i3,kind=8)*hzh-rz
            call ind_positions(perz,i3,n3,j3,goz) 
@@ -720,11 +718,15 @@ charge=charge*hxh*hyh*hzh
                  r2=x**2+y**2+z**2
                  arg=r2/rloc**2
 
-                 !use multipole-preserving function
-!!$                 xp=mp_exp(hxh,rx,0.5_gp/(rloc**2),i1,0,.true.)*&
-!!$                      mp_exp(hyh,ry,0.5_gp/(rloc**2),i2,0,.true.)*&
-!!$                      mp_exp(hzh,rz,0.5_gp/(rloc**2),i3,0,.true.)
-                 xp=exp(-.5d0*arg)
+                 if (at%multipole_preserving) then
+                    !use multipole-preserving function
+                    xp=mp_exp(hxh,rx,0.5_gp/(rloc**2),i1,0,.true.)*&
+                       mp_exp(hyh,ry,0.5_gp/(rloc**2),i2,0,.true.)*&
+                       mp_exp(hzh,rz,0.5_gp/(rloc**2),i3,0,.true.)
+                 else
+                    xp=exp(-.5d0*arg)
+                 end if
+
                  if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
                     ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
                     !gaussian part
@@ -799,7 +801,7 @@ charge=charge*hxh*hyh*hzh
      call yaml_close_map()
   end if
 
-  !call finalize_real_space_conversion('local_forces')
+  if (at%multipole_preserving) call finalize_real_space_conversion('local_forces')
 
 END SUBROUTINE local_forces
 
@@ -838,7 +840,8 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod
   real(gp), dimension(6) :: sab
   type(gaussian_basis),dimension(at%astruct%ntypes)::proj_G
-call f_routine(id=subname)
+
+  call f_routine(id=subname)
   call to_zero(6,strten(1)) 
   
   !nullify PAW objects
@@ -1104,15 +1107,16 @@ orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
                  end do
               end do
               !HGH case, offdiagonal terms
-              if (at%npspcode(ityp) == 3 .or. at%npspcode(ityp) == 10 &
-                                         .or. at%npspcode(ityp) == 12 ) then
+              if (at%npspcode(ityp) == PSPCODE_HGH .or. &
+                  at%npspcode(ityp) == PSPCODE_HGH_K .or. &
+                  at%npspcode(ityp) == PSPCODE_HGH_K_NLCC ) then
                  do l=1,3 !no offdiagoanl terms for l=4 in HGH-K case
                     do i=1,2
                        if (at%psppar(l,i,ityp) /= 0.0_gp) then 
                           loop_j: do j=i+1,3
                              if (at%psppar(l,j,ityp) == 0.0_gp) exit loop_j
                              !offdiagonal HGH term
-                             if (at%npspcode(ityp) == 3) then !traditional HGH convention
+                             if (at%npspcode(ityp) == PSPCODE_HGH) then !traditional HGH convention
                                 hij=offdiagarr(i,j-i,l)*at%psppar(l,j,ityp)
                              else !HGH-K convention
                                 hij=at%psppar(l,i+j+1,ityp)
@@ -1130,16 +1134,13 @@ orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
                                            hij*(sp0j*spi+spj*sp0i)
                                    end do
 
-Enl=Enl+2.0_gp*sp0i*sp0j*hij&
-*orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-                                  do idir=4,9
-spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
-spj=real(scalprod(icplx,idir,m,j,l,iat,jorb),gp)
-sab(idir-3)=&
-sab(idir-3)+&   
-2.0_gp*hij*(sp0j*spi+sp0i*spj)&
-*orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-                                  end do
+                                   Enl = Enl + 2.0_gp*sp0i*sp0j*hij*orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
+                                   do idir=4,9
+                                      spi = real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
+                                      spj = real(scalprod(icplx,idir,m,j,l,iat,jorb),gp)
+                                      sab(idir-3) = sab(idir-3) + &   
+                                      2.0_gp*hij*(sp0j*spi+sp0i*spj)*orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
+                                   end do
                                 end do
                              end do
                           end do loop_j
@@ -1153,13 +1154,14 @@ sab(idir-3)+&
         !orbital-dependent factor for the forces
         orbfac=orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*2.0_gp
 
-!seq: strten(1:6) =  11 22 33 23 13 12 
-strten(1)=strten(1)+sab(1)/vol 
-strten(2)=strten(2)+sab(2)/vol 
-strten(3)=strten(3)+sab(3)/vol 
-strten(4)=strten(4)+sab(5)/vol
-strten(5)=strten(5)+sab(6)/vol
-strten(6)=strten(6)+sab(4)/vol
+        !seq: strten(1:6) =  11 22 33 23 13 12 
+        strten(1)=strten(1)+sab(1)/vol 
+        strten(2)=strten(2)+sab(2)/vol 
+        strten(3)=strten(3)+sab(3)/vol 
+        strten(4)=strten(4)+sab(5)/vol
+        strten(5)=strten(5)+sab(6)/vol
+        strten(6)=strten(6)+sab(4)/vol
+
         do iat=1,at%astruct%nat
            fsep(1,iat)=fsep(1,iat)+orbfac*fxyz_orb(1,iat)
            fsep(2,iat)=fsep(2,iat)+orbfac*fxyz_orb(2,iat)
@@ -3885,7 +3887,7 @@ subroutine symm_stress(tens,symobj)
   real(gp),dimension(3,3) :: symtens
 
   call symmetry_get_matrices_p(symObj, nsym, sym, transNon, symAfm, errno)
-  if (errno /= AB6_NO_ERROR) stop
+  if (errno /= AB7_NO_ERROR) stop
   if (nsym < 2) return
 
   !Get the symmetry matrices in terms of reciprocal basis
@@ -3948,7 +3950,7 @@ subroutine symmetrise_forces(fxyz, at)
   real(gp), pointer :: transNon(:,:)
 
   call symmetry_get_matrices_p(at%astruct%sym%symObj, nsym, sym, transNon, symAfm, errno)
-  if (errno /= AB6_NO_ERROR) stop
+  if (errno /= AB7_NO_ERROR) stop
   if (nsym < 2) return
  !if (iproc == 0) write(*,"(1x,A,I0,A)") "Symmetrise forces with ", nsym, " symmetries."
   !if (iproc == 0) call yaml_map('Number of Symmetries for forces symmetrization',nsym,fmt='(i0)')
@@ -3971,7 +3973,7 @@ subroutine symmetrise_forces(fxyz, at)
   ! actually conduct symmetrization
   do ia = 1, at%astruct%nat
      call symmetry_get_equivalent_atom(at%astruct%sym%symObj, indsym, ia, errno)
-     if (errno /= AB6_NO_ERROR) stop
+     if (errno /= AB7_NO_ERROR) stop
      do mu = 1, 3
         summ = real(0, gp)
         do isym = 1, nsym
@@ -4740,15 +4742,16 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                         end do
                      end do
                      !HGH case, offdiagonal terms
-                     if (at%npspcode(ityp) == 3 .or. at%npspcode(ityp) == 10 &
-                                                .or. at%npspcode(ityp) == 12) then
+                     if (at%npspcode(ityp) == PSPCODE_HGH .or. &
+                         at%npspcode(ityp) == PSPCODE_HGH_K .or. &
+                         at%npspcode(ityp) == PSPCODE_HGH_K_NLCC) then
                         do l=1,3 !no offdiagoanl terms for l=4 in HGH-K case
                            do i=1,2
                               if (at%psppar(l,i,ityp) /= 0.0_gp) then 
                                  loop_j: do j=i+1,3
                                     if (at%psppar(l,j,ityp) == 0.0_gp) exit loop_j
                                     !offdiagonal HGH term
-                                    if (at%npspcode(ityp) == 3) then !traditional HGH convention
+                                    if (at%npspcode(ityp) == PSPCODE_HGH) then !traditional HGH convention
                                        hij=offdiagarr(i,j-i,l)*at%psppar(l,j,ityp)
                                     else !HGH-K convention
                                        hij=at%psppar(l,i+j+1,ityp)

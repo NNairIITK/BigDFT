@@ -77,11 +77,13 @@ program MINHOP
 
   !for each of the configuration set the input files
   !optimized input parameters
+  call dict_init(user_inputs)
   call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
        & 'poscur'//trim(bigdft_run_id_toa()), bigdft_mpi)
   call inputs_from_dict(inputs_opt, atoms, user_inputs)
   call dict_free(user_inputs)
   !unoptimized input parameters
+  call dict_init(user_inputs)
   call user_dict_from_files(user_inputs, 'md'//trim(run_id)//trim(bigdft_run_id_toa()), &
        & 'poscur'//trim(bigdft_run_id_toa()), bigdft_mpi)
   call inputs_from_dict(inputs_md, md_atoms, user_inputs)

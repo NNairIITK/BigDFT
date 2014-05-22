@@ -76,7 +76,7 @@ program yaml_test
     call yaml_map('Summary',dict_tmp)
     call dict_free(dict_tmp)
    call f_lib_finalize()
-stop
+!stop
    call yaml_new_document()
     call test_copy_merge()
    call yaml_release_document()
