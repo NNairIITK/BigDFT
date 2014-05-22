@@ -51,6 +51,7 @@ yaml_test:
    - Address*
    - date
    - Id
+   - Summary
  Patterns to ignore:
    - errcode
    - time

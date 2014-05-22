@@ -117,7 +117,7 @@ program wvl
   allocate(rxyz_old(3, atoms%astruct%nat))
   call readmywaves(iproc,"data/wavefunction",WF_FORMAT_PLAIN,orbs,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3, &
        & inputs%hx,inputs%hy,inputs%hz,atoms,rxyz_old,atoms%astruct%rxyz,Lzd%Glr%wfd,psi)
-  call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM)
+  if (nproc > 1) call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM)
 
 
   ! Some analysis.
@@ -174,7 +174,7 @@ program wvl
   ! This double loop can be expressed with BLAS DSYRK function.
   !  call syrk('L','T',orbs%norb,comms%nvctr_par(iproc, 0),1.0_wp,psi(1), &
   !       & max(1,comms%nvctr_par(iproc, 0)),0.0_wp,ovrlp(1,1),orbs%norb)
-  call mpiallred(ovrlp(1,1),orbs%norb * orbs%norb,MPI_SUM)
+  if (nproc > 1) call mpiallred(ovrlp(1,1),orbs%norb * orbs%norb,MPI_SUM)
   if (iproc == 0) then
      !uses yaml_output routine to provide example
      call yaml_open_sequence('The overlap matrix is')
@@ -220,7 +220,7 @@ program wvl
         rhor(j) = rhor(j) + orbs%occup(orbs%isorb + i) * psir(j) * psir(j)
      end do
   end do
-  call mpiallred(rhor(1),Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * Lzd%Glr%d%n3i,MPI_SUM)
+  if (nproc > 1) call mpiallred(rhor(1),Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * Lzd%Glr%d%n3i,MPI_SUM)
   !if (iproc == 0) write(*,*) "System has", sum(rhor), "electrons."
   if (iproc == 0) call yaml_map("Number of electrons", sum(rhor))
   deallocate(rhor)
@@ -280,7 +280,7 @@ program wvl
   end do
   epot_sum = epot_sum * inputs%hx / 2._gp * inputs%hy / 2._gp * inputs%hz / 2._gp
   call free_full_potential(dpcom%mpi_env%nproc,0,xc,potential,"main")
-  call mpiallred(epot_sum,1,MPI_SUM)
+  if (nproc > 1) call mpiallred(epot_sum,1,MPI_SUM)
   
   !if (iproc == 0) write(*,*) "System pseudo energy is", epot_sum, "Ht."
   if (iproc == 0) call yaml_map("System pseudo energy (Ha)", epot_sum)
