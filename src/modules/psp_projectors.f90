@@ -10,9 +10,11 @@
 
 !> Module defining datatypes of the projectors as well as constructors and destructors
 module psp_projectors
-  use module_base, only: wp,gp
+  use module_base
   use locregs
   implicit none
+
+  private
 
   !> Type of pseudopotential
   integer, parameter, public :: PSPCODE_UNINITIALIZED = 1
@@ -25,13 +27,14 @@ module psp_projectors
 
   !> Parameters identifying the different strategy for the application of a projector 
   !! in a localisation region
-  integer, parameter :: PSP_APPLY_SKIP=0      !< The projector is not applied. This might happend when ilr and iat does not interact
-  integer, parameter :: PSP_APPLY_MASK=1      !< Use mask arrays. The mask array has to be created before.
-  integer, parameter :: PSP_APPLY_KEYS=2      !< Use keys. No mask nor packing. Equivalend to traditional application
-  integer, parameter :: PSP_APPLY_MASK_PACK=3 !< Use masking and creates a pack arrays from them. 
-  !!Most likely this is the common usage for atoms with lots of projectors and localization regions "close" to them
-  integer, parameter :: PSP_APPLY_KEYS_PACK=4 !< Use keys and pack arrays. Useful especially when there is no memory to create a lot of packing arrays, 
-                                              !! for example when lots of lrs interacts with lots of atoms
+  integer, parameter, public :: PSP_APPLY_SKIP=0 !< The projector is not applied. This might happend when ilr and iat does not interact
+  integer, parameter :: PSP_APPLY_MASK=1         !< Use mask arrays. The mask array has to be created before.
+  integer, parameter :: PSP_APPLY_KEYS=2         !< Use keys. No mask nor packing. Equivalend to traditional application
+  integer, parameter :: PSP_APPLY_MASK_PACK=3    !< Use masking and creates a pack arrays from them. 
+                                                 !! Most likely this is the common usage for atoms
+                                                 !! with lots of projectors and localization regions "close" to them
+  integer, parameter :: PSP_APPLY_KEYS_PACK=4    !< Use keys and pack arrays. Useful especially when there is no memory to create a lot of packing arrays, 
+                                                 !! for example when lots of lrs interacts with lots of atoms
 
   !> arrays defining how a given projector and a given wavefunction descriptor should interact
   type, public :: nlpsp_to_wfd
@@ -65,6 +68,9 @@ module psp_projectors
      !> same quantity after application of the hamiltonian
      real(wp), dimension(:), pointer :: hcproj
   end type DFT_PSP_projectors
+
+  public :: free_DFT_PSP_projectors,update_nlpsp,hgh_psp_application,DFT_PSP_projectors_null
+  public :: nonlocal_psp_descriptors_null,bounds_to_plr_limits,set_nlpsp_to_wfd,pregion_size
 
 contains
 

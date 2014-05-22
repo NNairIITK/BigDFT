@@ -13,8 +13,8 @@
 module module_types
 
   use m_ab7_mixing, only : ab7_mixing_object
-  use module_base, only : gp,wp,dp,tp,uninitialized,mpi_environment,mpi_environment_null,&
-       bigdft_mpi,ndebug,memocc!,vcopy
+  use module_base!, only : gp,wp,dp,tp,uninitialized,mpi_environment,mpi_environment_null,&
+  !bigdft_mpi,ndebug,memocc!,vcopy
   use module_xc, only : xc_info
   use gaussians, only: gaussian_basis
   use Poisson_Solver, only: coulomb_operator
@@ -2121,18 +2121,20 @@ END SUBROUTINE nullify_global_output
 
 subroutine init_global_output(outs, nat)
   use module_base
+  use dynamic_memory
   implicit none
   type(DFT_global_output), intent(out) :: outs
   integer, intent(in) :: nat
 
   call nullify_global_output(outs)
   outs%fdim = nat
-  allocate(outs%fxyz(3, outs%fdim))
+  outs%fxyz = f_malloc_ptr((/3, outs%fdim/), id = "outs%fxyz")
   outs%fxyz(:,:) = UNINITIALIZED(1.0_gp)
 END SUBROUTINE init_global_output
 
 subroutine deallocate_global_output(outs, fxyz)
   use module_base
+  use dynamic_memory
   implicit none
   type(DFT_global_output), intent(inout) :: outs
   real(gp), intent(out), optional :: fxyz
@@ -2141,7 +2143,7 @@ subroutine deallocate_global_output(outs, fxyz)
      if (present(fxyz)) then
         call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz, 1)
      end if
-     deallocate(outs%fxyz)
+     call f_free_ptr(outs%fxyz)
   end if
 END SUBROUTINE deallocate_global_output
 

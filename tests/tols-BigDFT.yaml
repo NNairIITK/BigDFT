@@ -33,6 +33,7 @@ Keys to ignore:
  - Number of dictionary folders allocated
  - Maximum size of masking arrays for a projector
  - Cumulative size of masking arrays
+ - Dictionary for lin
 Patterns to ignore:
  - Timestamp
  - memory
@@ -164,6 +165,7 @@ scalability:
  Energies: 1.e-9
  EKS: 2.0e-10
  Total electronic charge: 1.9e-11
+ Expected kinetic energy: 1.1e-10
 
 ElecField:
  Epsilon: 1.1e-10 

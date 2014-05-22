@@ -936,14 +936,14 @@ module module_interfaces
      END SUBROUTINE inputguess_gaussian_orbitals_withOnWhichAtom
 
      subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
-          &   nspin,eks,scorb,G,gaucoeff,iorbtolr,mapping,quartic_prefactor)
+          nspin,eks,G,gaucoeff,iorbtolr,mapping,quartic_prefactor)
        use module_base
        use module_types
        implicit none
        integer, intent(in) :: norbe,iproc
        integer, intent(in) :: norbsc,nspin
        type(atoms_data), intent(in) :: at
-       logical, dimension(4,2,at%natsc), intent(in) :: scorb
+       !logical, dimension(4,2,at%natsc), intent(in) :: scorb
        real(gp), dimension(3,at%astruct%nat), intent(in), target :: rxyz
        type(orbitals_data), intent(inout) :: orbse
        type(gaussian_basis), intent(out) :: G
@@ -1724,19 +1724,6 @@ module module_interfaces
       real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: z_c
       real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: z_f
     end subroutine createDerivativeBasis
-
-    subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,locrad)
-      use module_base
-      use module_types
-      implicit none
-      !Arguments
-      integer, intent(in) :: nspin,nspinor
-      integer, intent(out) :: norbe,norbsc
-      type(atoms_data), intent(in) :: at
-      logical, dimension(4,2,at%natsc), intent(out) :: scorb
-      integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
-      real(gp), dimension(at%astruct%nat), intent(out) :: locrad
-    end subroutine readAtomicOrbitals
 
     subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          rxyz, nlpsp, GPU, orbs, kswfn, tmb, denspot, rhopotold, energs,&

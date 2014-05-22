@@ -73,6 +73,7 @@ program BigDFT2Wannier
    real(kind=8), parameter :: pi=3.141592653589793238462643383279d0
    integer, dimension(4) :: mpi_info
    type(dictionary), pointer :: user_inputs
+   external :: gather_timings
 
    call f_lib_initialize()
    !-finds the number of taskgroup size
@@ -1020,7 +1021,7 @@ program BigDFT2Wannier
       call timing(iproc,'Input_comput  ','OF')
 
 
-      call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm)    
+      call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm,nproc=bigdft_mpi%nproc,gather_routine=gather_timings)    
 
 call cpu_time(tcpu1)
 call system_clock(ncount1,ncount_rate,ncount_max)

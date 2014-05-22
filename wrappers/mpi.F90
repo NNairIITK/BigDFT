@@ -16,11 +16,8 @@
 module wrapper_MPI
   ! TO BE REMOVED with f_malloc
   !use memory_profiling!, only: ndebug
-  use dynamic_memory
-  use dictionaries, only: f_err_throw,f_err_define
-  use time_profiling, only: TIMING_UNINITIALIZED
-   
   ! TO BE REMOVED with f_malloc
+  use time_profiling, only: TIMING_UNINITIALIZED
 
   implicit none
 
@@ -43,6 +40,7 @@ module wrapper_MPI
   integer, public, save :: TCAT_ALLRED_SMALL=TIMING_UNINITIALIZED
   integer, public, save :: TCAT_ALLRED_LARGE=TIMING_UNINITIALIZED
   integer, public, save :: TCAT_ALLGATHERV  =TIMING_UNINITIALIZED
+  integer, public, save :: TCAT_GATHER      =TIMING_UNINITIALIZED
   
   !error codes
   integer, public, save :: ERR_MPI_WRAPPERS
@@ -60,6 +58,11 @@ module wrapper_MPI
           & mpiallred_log
      module procedure mpiallred_d1,mpiallred_d2
   end interface mpiallred
+
+  interface mpigather
+     module procedure mpigather_d1d1,mpigather_d2d1,mpigather_d1d2,mpigather_d2
+  end interface mpigather
+
 
   !> Interface for MPI_ALLGATHERV routine
   interface mpiallgatherv
@@ -115,6 +118,7 @@ contains
   !! @param groupsize Number of MPI processes by (task)group
   !!                  if 0 one taskgroup (MPI_COMM_WORLD)
   subroutine mpi_environment_set(mpi_env,iproc,nproc,mpi_comm,groupsize)
+    use dynamic_memory
     use yaml_output
     implicit none
     integer, intent(in) :: iproc,nproc,mpi_comm,groupsize
@@ -191,6 +195,7 @@ contains
   !this is a different procedure to assign the iproc according to the groups.
   subroutine mpi_environment_set1(mpi_env,iproc,nproc,mpi_comm,groupsize,ngroup)
     use yaml_output
+    use dynamic_memory
     implicit none
     integer, intent(in) :: iproc,nproc,mpi_comm,groupsize,ngroup
     type(mpi_environment), intent(out) :: mpi_env
@@ -291,6 +296,7 @@ contains
 !!! PSolver n1-n2 plane mpi partitioning !!! 
 !this routine is like create_group_comm with a different group_list
 subroutine create_group_comm1(base_comm,nproc_base,group_id,ngroup,group_size,group_comm)
+  use dynamic_memory
   use yaml_output
   implicit none
   integer, intent(in) :: base_comm,group_size,nproc_base,group_id,ngroup
@@ -335,6 +341,7 @@ end subroutine create_group_comm1
 
   !> Create a communicator between proc of same rank between the taskgroups.
   subroutine create_rank_comm(group_comm, rank_comm)
+    use dynamic_memory
     use yaml_output
     implicit none
     integer, intent(in) :: group_comm
@@ -404,6 +411,7 @@ end subroutine create_group_comm1
   !> initialize timings and also mpi errors
   subroutine mpi_initialize_timing_categories()
     use time_profiling, only: f_timing_category_group,f_timing_category
+    use dictionaries, only: f_err_throw,f_err_define
     use yaml_output, only: yaml_toa
     implicit none
 
@@ -421,6 +429,9 @@ end subroutine create_group_comm1
     call f_timing_category('Allgatherv',tgrp_mpi_name,&
          'Variable allgather operations',&
          TCAT_ALLGATHERV)
+    call f_timing_category('Gather',tgrp_mpi_name,&
+         'Gather operations, in general moderate size arrays',&
+         TCAT_GATHER)
 
     call f_err_define(err_name='ERR_MPI_WRAPPERS',err_msg='Error of MPI library',&
          err_id=ERR_MPI_WRAPPERS,&
@@ -465,9 +476,47 @@ end subroutine create_group_comm1
     mt=MPI_LOGICAL
   end function mpitype_l
 
+  !gather the results of a given array into the root proc
+  subroutine mpigather_d1d1(sendbuf,recvbuf,root,comm)
+    use dictionaries, only: f_err_throw,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    double precision, dimension(:), intent(in) :: sendbuf
+    double precision, dimension(:), intent(inout) :: recvbuf
+    include 'gather-inc.f90'   
+  end subroutine mpigather_d1d1
+
+  subroutine mpigather_d1d2(sendbuf,recvbuf,root,comm)
+    use dictionaries, only: f_err_throw,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    double precision, dimension(:), intent(in) :: sendbuf
+    double precision, dimension(:,:), intent(inout) :: recvbuf
+    include 'gather-inc.f90'   
+  end subroutine mpigather_d1d2
+
+  subroutine mpigather_d2d1(sendbuf,recvbuf,root,comm)
+    use dictionaries, only: f_err_throw,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    double precision, dimension(:,:), intent(in) :: sendbuf
+    double precision, dimension(:), intent(inout) :: recvbuf
+    include 'gather-inc.f90'   
+  end subroutine mpigather_d2d1
+
+  subroutine mpigather_d2(sendbuf,recvbuf,root,comm)
+    use dictionaries, only: f_err_throw,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    double precision, dimension(:,:), intent(in) :: sendbuf
+    double precision, dimension(:,:), intent(inout) :: recvbuf
+    include 'gather-inc.f90'   
+  end subroutine mpigather_d2
+
 
   !interface for MPI_ALLGATHERV operations
   subroutine mpiallgatherv_double(buffer,counts,displs,me,mpi_comm,ierr)
+    use dynamic_memory
     implicit none
     integer, dimension(0:), intent(in) :: counts
     integer, dimension(:), intent(in) :: displs
@@ -502,6 +551,8 @@ end subroutine create_group_comm1
 
   !interface for MPI_ALLREDUCE operations
   subroutine mpiallred_int(sendbuf,count,op,comm,recvbuf)
+    use dictionaries, only: f_err_throw,f_err_define
+    use dynamic_memory
     implicit none
     integer, intent(inout) :: sendbuf
     integer, intent(inout), optional :: recvbuf
@@ -511,6 +562,8 @@ end subroutine create_group_comm1
 
   !interface for MPI_ALLREDUCE operations
   subroutine mpiallred_real(sendbuf,count,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw,f_err_define
     implicit none
     real, intent(inout) :: sendbuf
     real, intent(inout), optional :: recvbuf
@@ -519,6 +572,8 @@ end subroutine create_group_comm1
   end subroutine mpiallred_real
 
   subroutine mpiallred_double(sendbuf,count,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw,f_err_define
     implicit none
     double precision, intent(inout) :: sendbuf
     double precision, intent(inout), optional :: recvbuf
@@ -527,6 +582,8 @@ end subroutine create_group_comm1
   end subroutine mpiallred_double
 
   subroutine mpiallred_log(sendbuf,count,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw,f_err_define
     implicit none
     logical, intent(inout) :: sendbuf
     logical, intent(inout), optional :: recvbuf
@@ -535,6 +592,8 @@ end subroutine create_group_comm1
   end subroutine mpiallred_log
 
   subroutine mpiallred_d1(sendbuf,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw,f_err_define
     use yaml_output, only: yaml_toa
     implicit none
     double precision, dimension(:), intent(inout) :: sendbuf
@@ -544,6 +603,8 @@ end subroutine create_group_comm1
   end subroutine mpiallred_d1
 
   subroutine mpiallred_d2(sendbuf,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw,f_err_define
     use yaml_output, only: yaml_toa
     implicit none
     double precision, dimension(:,:), intent(inout) :: sendbuf
@@ -553,6 +614,19 @@ end subroutine create_group_comm1
   end subroutine mpiallred_d2
 
 end module wrapper_MPI
+
+!> Routine to gather the clocks of all the instances of flib time module
+subroutine gather_timings(ndata,nproc,mpi_comm,src,dest)
+  use wrapper_MPI
+  implicit none
+  integer, intent(in) :: ndata !< number of categories of the array
+  integer, intent(in) :: nproc,mpi_comm !< number of MPI tasks and communicator
+  real(kind=8), dimension(ndata), intent(in) :: src !< total timings of the instance
+  real(kind=8), dimension(ndata,nproc), intent(inout) :: dest !< gathered timings 
+  call mpigather(sendbuf=src,recvbuf=dest,root=0,comm=mpi_comm)
+
+end subroutine gather_timings
+
 
 !> Activates the nesting for UNBLOCK_COMMS performance case
 subroutine bigdft_open_nesting(num_threads)

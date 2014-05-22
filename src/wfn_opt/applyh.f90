@@ -2155,6 +2155,12 @@ subroutine orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
   !local variables
   integer :: iorb
 
+  !disable starting and ending points for the case no orbitals on a given processor
+  if (orbs%norbp == 0) then
+     isorb=0
+     ieorb=-1
+  end if
+
   !find starting orbital
   do iorb=1,orbs%norbp
      if (orbs%iokpt(iorb)==ikpt) then

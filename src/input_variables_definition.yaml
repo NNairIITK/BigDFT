@@ -1,5 +1,6 @@
 # Definitions of the input variables
 ##inputvar: #name of the variable as declared in the code
+## DESCRIPTION: Extended description of the variable to be used for documentation
 ## COMMENT: This is the description of the variable as will appear in the logfile
 ## RANGE: [from,to] #always put two numbers (also .inf can be put)
 ## EXCLUSIVE: #here follows a list of allowed values (either RANGE or EXCLUSIVE)
@@ -57,7 +58,10 @@
      COMMENT: Total magnetic moment
      default: 0
    gnrm_cv:
-     COMMENT: Convergence criterion gradient
+     DESCRIPTION: Here should follow the extended description for this input variable
+                  this description should be on multiple lines et cetera
+     COMMENT: convergence criterion gradient
+            
      RANGE: [1.e-20, 1.]
      default: 1e-4
      fast: 1e-3
@@ -103,7 +107,6 @@
      #Here follow two shortcuts for linear
      linear: 100
      linear_restart: 102
-     KEYWORDS: ciao
    output_wf:
      COMMENT: Output of the wavefunctions
      default: 0
@@ -397,13 +400,6 @@
        - 13
      RANGE: [0, 1e9]
      default: 1.
-   restart:
-     COMMENT: restart a previous NEB calculation
-     CONDITION:
-       MASTER_KEY: method
-       WHEN:
-       - NEB
-     default: No
    climbing:
      COMMENT: make the highest energy image to climb along the path
      CONDITION:
@@ -938,9 +934,11 @@
 --- #here starts the document of possible input files
 best:
   COMMENT: this input file should be used for something
+  DESCRIPTION: Extended description of the file
   dft:
     hgrids: accurate
     ixc: PBE
+    nrepmax: 2
   lin_general:
     hybrid: best
   lin_basis:

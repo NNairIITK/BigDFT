@@ -42,6 +42,7 @@ module module_input_dicts
   public :: atomic_data_set_from_dict
   public :: occupation_set_from_dict
   public :: neb_set_from_dict
+  public :: global_output_set_from_dict
 
   ! Types to dictionaries
   public :: psp_data_merge_to_dict
@@ -52,7 +53,6 @@ module module_input_dicts
   public :: psp_file_merge_to_dict, nlcc_file_merge_to_dict
   public :: atoms_file_merge_to_dict
   public :: astruct_file_merge_to_dict
-  public :: atomic_data_file_merge_to_dict
   public :: occupation_data_file_merge_to_dict
 
 contains
@@ -899,6 +899,7 @@ contains
     use module_base, only: gp, UNINITIALIZED, bigdft_mpi,f_routine,f_release_routine
     use module_atoms, only: set_astruct_from_file,atomic_structure,&
          nullify_atomic_structure,deallocate_atomic_structure
+    use module_types, only: DFT_global_output, nullify_global_output, deallocate_global_output
     use dictionaries
     use yaml_strings
     implicit none
@@ -907,16 +908,22 @@ contains
     character(len = *), intent(in) :: filename, key
     !Local variables
     type(atomic_structure) :: astruct
+    type(DFT_global_output) :: outs
     integer :: ierr
+
     call f_routine(id='astruct_file_merge_to_dict')
     ! Read atomic file, old way
     call nullify_atomic_structure(astruct)
-    call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, status = ierr)
+    call nullify_global_output(outs)
+    call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, status = ierr, &
+         & energy = outs%energy, fxyz = outs%fxyz)
     if (ierr == 0) then
        call astruct_merge_to_dict(dict // key, astruct, astruct%rxyz)
        call set(dict // key // ASTRUCT_PROPERTIES // "source", filename)
+       call global_output_merge_to_dict(dict // key, outs, astruct)
        call deallocate_atomic_structure(astruct)
     end if
+    call deallocate_global_output(outs)
     call f_release_routine()
   end subroutine astruct_file_merge_to_dict
 
@@ -1077,7 +1084,8 @@ contains
     iocc=0
     do l = 1, lmax
        iocc=iocc+1
-       ! Get number of shells for this channel
+       ! Get number of shells for this channel 
+       !(to be corrected, the rule is not the same)
        nl = int(aocc(iocc))
        ! Get number of semi cores for this channel
        nsc = modulo(sccode, 4)
@@ -1145,7 +1153,7 @@ contains
                 !check the total number of electrons
                 elec=ao_ig_charge(nspin,atoms%aoig(iat)%aocc)
                 if (nint(elec) /= atoms%nelpsp(ityp)) then
-                   call print_eleconf(nspin,atoms%aoig(iat)%aocc,atoms%aoig(iat)%iasctype)
+                   call print_eleconf(nspin,atoms%aoig(iat)%aocc,atoms%aoig(iat)%nl_sc)
                    call yaml_warning('The total atomic charge '//trim(yaml_toa(elec))//&
                         ' is different from the PSP charge '//trim(yaml_toa(atoms%nelpsp(ityp))))
                 end if
@@ -1158,50 +1166,11 @@ contains
     !number of atoms with semicore channels
     atoms%natsc = 0
     do iat=1,atoms%astruct%nat
-       if (atoms%aoig(iat)%iasctype /= 0) atoms%natsc=atoms%natsc+1
+       if (atoms%aoig(iat)%nao_sc /= 0) atoms%natsc=atoms%natsc+1
+       !if (atoms%aoig(iat)%iasctype /= 0) atoms%natsc=atoms%natsc+1
     enddo
   end subroutine atomic_data_set_from_dict
   
-
-  subroutine atomic_data_file_merge_to_dict(dict, key, filename)
-    use module_defs, only: gp, UNINITIALIZED
-    use dictionaries
-    use yaml_output
-    implicit none
-    type(dictionary), pointer :: dict
-    character(len = *), intent(in) :: filename, key
-
-    logical :: exists
-    integer :: ierror, jat, nsp, nsccode
-    character(len = 1024) :: string
-    character(len = max_field_length) :: at
-    integer, parameter :: nelecmax = 32, noccmax = 4, lmax = 4
-    real(gp), dimension(nelecmax) :: aocc
-    type(dictionary), pointer :: val
-    
-    inquire(file = filename, exist = exists)
-    if (.not. exists) return
-
-    open(unit=91,file=filename,status='old',iostat=ierror)
-    !Check the open statement
-    if (f_err_raise(ierror /= 0,'Failed to open the existing file '// trim(filename),&
-         err_name='BIGDFT_RUNTIME_ERROR')) return
-
-    parse_inocc: do
-       read(91,'(a1024)',iostat=ierror)string
-       if (ierror /= 0) exit parse_inocc !file ends
-       read(string,*,iostat=ierror)jat
-       if (ierror /=0) stop 'Error reading line'
-
-       write(at, "(A, I0)") "Atom ", jat
-       call read_eleconf(string,noccmax,nelecmax,lmax,aocc,nsccode,nsp)
-       call aocc_to_dict(val, nsp, 1, 0, aocc, nelecmax, lmax, nsccode)
-       call set(dict // key // at, val)
-    end do parse_inocc
-
-    close(unit = 91)
-
-  end subroutine atomic_data_file_merge_to_dict
 
 
   subroutine occupation_set_from_dict(dict, key, norbu, norbd, occup, &
@@ -1486,20 +1455,54 @@ contains
     type(dictionary), pointer :: pos, fxyz
 
     if (has_key(dict, GOUT_FORCES)) call pop(dict, GOUT_FORCES)
-    pos => dict // GOUT_FORCES
-    do iat=1,astruct%nat
-       call dict_init(fxyz)
-       call set(fxyz // astruct%atomnames(astruct%iatype(iat)) // 0, outs%fxyz(1, iat))
-       call set(fxyz // astruct%atomnames(astruct%iatype(iat)) // 1, outs%fxyz(2, iat))
-       call set(fxyz // astruct%atomnames(astruct%iatype(iat)) // 2, outs%fxyz(3, iat))
-       call add(pos, fxyz)
-    end do
+    if (associated(outs%fxyz)) then
+       pos => dict // GOUT_FORCES
+       do iat=1,astruct%nat
+          call dict_init(fxyz)
+          call set(fxyz // astruct%atomnames(astruct%iatype(iat)) // 0, outs%fxyz(1, iat))
+          call set(fxyz // astruct%atomnames(astruct%iatype(iat)) // 1, outs%fxyz(2, iat))
+          call set(fxyz // astruct%atomnames(astruct%iatype(iat)) // 2, outs%fxyz(3, iat))
+          call add(pos, fxyz)
+       end do
+    end if
 
-    call set(dict // GOUT_ENERGY, outs%energs%eKS)
+    if (has_key(dict, GOUT_ENERGY)) call pop(dict, GOUT_ENERGY)
+    if (outs%energy /= UNINITIALIZED(outs%energy)) &
+         & call set(dict // GOUT_ENERGY, outs%energy)
 
   end subroutine global_output_merge_to_dict
 
-  subroutine neb_set_from_dict(dict, restart_, opt, climbing_, imax, nimg_, &
+  subroutine global_output_set_from_dict(outs, dict)
+    use module_types, only: DFT_global_output, init_global_output
+    use dictionaries
+    implicit none
+    type(dictionary), pointer :: dict
+    type(DFT_global_output), intent(inout) :: outs
+    
+    integer :: i
+    type(dictionary), pointer :: it
+
+    if (has_key(dict, GOUT_FORCES)) then
+       if (.not. associated(outs%fxyz)) &
+            & call init_global_output(outs, dict_len(dict // GOUT_FORCES))
+       do i = 1, outs%fdim, 1
+          it => dict_iter(dict // GOUT_FORCES // (i - 1))
+          do while (associated(it))
+             if (dict_len(it) == 3) then
+                outs%fxyz(1, i) = it // 0
+                outs%fxyz(2, i) = it // 1
+                outs%fxyz(3, i) = it // 2
+                exit
+             end if
+             it => dict_next(it)
+          end do
+       end do
+    end if
+
+    if (has_key(dict, GOUT_ENERGY)) outs%energy = dict // GOUT_ENERGY
+  end subroutine global_output_set_from_dict
+
+  subroutine neb_set_from_dict(dict, opt, climbing_, imax, nimg_, &
        & cv, tol, ds_, kmin, kmax, temp_, damp_, meth)
     use module_defs, only: gp
     use dictionaries
@@ -1507,7 +1510,7 @@ contains
     use yaml_output
     implicit none
     type(dictionary), pointer :: dict
-    logical, intent(out) :: restart_, opt, climbing_
+    logical, intent(out) :: opt, climbing_
     integer, intent(out) :: imax, nimg_
     real(kind = gp), intent(out) :: cv, tol, ds_, damp_, kmin, kmax, temp_
     character(len = max_field_length), intent(out) :: meth
@@ -1515,7 +1518,6 @@ contains
     if (.not. has_key(dict, GEOPT_VARIABLES)) return
     if (trim(dict_value(dict // GEOPT_VARIABLES // GEOPT_METHOD)) /= "NEB") return
 
-    restart_  = dict // GEOPT_VARIABLES // NEB_RESTART
     opt       = dict // GEOPT_VARIABLES // EXTREMA_OPT
     climbing_ = dict // GEOPT_VARIABLES // NEB_CLIMBING
     imax      = dict // GEOPT_VARIABLES // NCOUNT_CLUSTER_X

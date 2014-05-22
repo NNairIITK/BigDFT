@@ -12,6 +12,7 @@
 module dictionaries
    use exception_callbacks
    use dictionaries_base
+   use yaml_strings, only: read_fraction_string
    implicit none
 
    private
@@ -46,6 +47,7 @@ module dictionaries
 
    interface operator(.is.)
       module procedure dict_cont_new_with_value, dict_cont_new_with_dict
+      module procedure dict_cont_new_with_int
    end interface 
 
    interface operator(.in.)
@@ -337,6 +339,7 @@ contains
 
    !> Defines a new dictionary from a key and a value
    function dict_cont_new_with_value(key, val)
+     implicit none
      character(len = *), intent(in) :: key, val
      type(dictionary_container) :: dict_cont_new_with_value
 
@@ -345,8 +348,20 @@ contains
 
    end function dict_cont_new_with_value
 
+   function dict_cont_new_with_int(key, val)
+     use yaml_strings, only: yaml_toa
+     implicit none
+     character(len = *), intent(in) :: key
+     integer, intent(in) :: val
+     type(dictionary_container) :: dict_cont_new_with_int
+
+     dict_cont_new_with_int%key(1:max_field_length) = key
+     dict_cont_new_with_int%value(1:max_field_length) = yaml_toa(val)
+
+   end function dict_cont_new_with_int
 
    function dict_cont_new_with_dict(key, val)
+     implicit none
      character(len = *), intent(in) :: key
      type(dictionary), pointer, intent(in) :: val
      type(dictionary_container) :: dict_cont_new_with_dict
@@ -1023,41 +1038,9 @@ contains
      include 'dict_getvec-inc.f90'
    end subroutine get_lvec
 
-   !> Read a real or real/real, real:real 
-   !! Here the fraction is indicated by the ':' or '/'
-   !! The problem is that / is a separator for Fortran
-   pure subroutine read_fraction_string(string,var,ierror)
-     implicit none
-     !Arguments
-     character(len=*), intent(in) :: string
-     double precision, intent(out) :: var
-     integer, intent(out) :: ierror
-     !Local variables
-     character(len=max_field_length) :: tmp
-     integer :: num,den,pfr,psp
-
-     !First look at the first blank after trim
-     tmp(1:max_field_length)=trim(adjustl(string))
-     psp = scan(tmp,' ')
-     !see whether there is a fraction in the string
-     if(psp==0) psp=len(tmp)
-     pfr = scan(tmp(1:psp),':')
-     if (pfr == 0) pfr = scan(tmp(1:psp),'/')
-     !It is not a fraction
-     if (pfr == 0) then
-        read(tmp(1:psp),*,iostat=ierror) var
-     else 
-        read(tmp(1:pfr-1),*,iostat=ierror) num
-        read(tmp(pfr+1:psp),*,iostat=ierror) den
-        if (ierror == 0) var=dble(num)/dble(den)
-     end if
-     !Value by defaut
-     if (ierror /= 0) var = huge(1.d0) 
-   END SUBROUTINE read_fraction_string
-
-
    !> Set and get routines for different types
    subroutine get_real(rval,dict)
+     implicit none
      real(kind=4), intent(out) :: rval
      type(dictionary), intent(in) :: dict
      !local variables

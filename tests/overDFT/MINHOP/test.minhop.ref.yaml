@@ -8056,36 +8056,35 @@
  (MH) Minima energies: {k:  2, en_arr(k): -11.306270611924152}
  (MH) poslow files written             :  Yes
  (MH) New minimum: {(MH) has energy: -0.1153512E+02}
- (MH) Write poscur file:
-   (MH) poscur.xyz for  RESTART written:  Yes
-   (MH) nlminx collected by process 0  :  2
-   (MH) Final results:
-     (MH) Total number of minima found :  2
-     (MH) Number of accepted minima    :  1.0000000000000000
-     (MH) name of idarr                : idarr
-     (MH) enarr for  RESTART written   :  Yes
-     (MH) idarr for  RESTART written   :  Yes
-     (MH) ioput for  RESTART written   :  Yes
-     (MH) Minima energies: {k:  1, en_arr(k): -11.535116051924771}
-     (MH) Minima energies: {k:  2, en_arr(k): -11.306270611924152}
-     (MH) poslow files written         :  Yes
-     (MH) ratio stuck, same            :  0.0000000000000000
-     (MH) ratio stuck, old             :  0.0000000000000000
-     (MH) ratio stuck, new             :  1.0000000000000000
-     (MH) ratio acc                    :  1.0000000000000000
-     (MH) ratio rej                    :  0.0000000000000000
-     (MH) count_md                     :  8.0000000000000000
-     (MH) count_sdcg                   :  17.000000000000000
-     (MH) count_bfgs                   :  12.000000000000000
-     (MH) cpu(hrs)                     :  0.11101388888888890
-     (MH) average ediff                :  1.38443997272727346E-004
-     (MH) average ekinetic             :  8.14027493940765005E-003
-     (MH) number of configurations for which atoms escaped:  0
-     (MH)  most frequent visits        :  1.0000000000000000
-     (MH)   av. numb. visits per minimum:  1.0000000000000000
-     (MH) ediff out                    :  1.25858179338843025E-004
-     (MH) ekinetic out                 :  7.40024994491604495E-003
-     (MH) dt out                       :  8.82000000000000145E-002
+ (MH) poscur.xyz for  RESTART written:  Yes
+ (MH) nlminx collected by process 0  :  2
+ (MH) Final results:
+   (MH) Total number of minima found :  2
+   (MH) Number of accepted minima    :  1.0000000000000000
+   (MH) name of idarr                : idarr
+   (MH) enarr for  RESTART written   :  Yes
+   (MH) idarr for  RESTART written   :  Yes
+   (MH) ioput for  RESTART written   :  Yes
+   (MH) Minima energies: {k:  1, en_arr(k): -11.535116051924771}
+   (MH) Minima energies: {k:  2, en_arr(k): -11.306270611924152}
+   (MH) poslow files written         :  Yes
+   (MH) ratio stuck, same            :  0.0000000000000000
+   (MH) ratio stuck, old             :  0.0000000000000000
+   (MH) ratio stuck, new             :  1.0000000000000000
+   (MH) ratio acc                    :  1.0000000000000000
+   (MH) ratio rej                    :  0.0000000000000000
+   (MH) count_md                     :  8.0000000000000000
+   (MH) count_sdcg                   :  17.000000000000000
+   (MH) count_bfgs                   :  12.000000000000000
+   (MH) cpu(hrs)                     :  0.11101388888888890
+   (MH) average ediff                :  1.38443997272727346E-004
+   (MH) average ekinetic             :  8.14027493940765005E-003
+   (MH) number of configurations for which atoms escaped:  0
+   (MH)  most frequent visits        :  1.0000000000000000
+   (MH)   av. numb. visits per minimum:  1.0000000000000000
+   (MH) ediff out                    :  1.25858179338843025E-004
+   (MH) ekinetic out                 :  7.40024994491604495E-003
+   (MH) dt out                       :  8.82000000000000145E-002
  Memory Consumption Report:
    Tot. No. of Allocations  : 89965
    Tot. No. of Deallocations: 89965

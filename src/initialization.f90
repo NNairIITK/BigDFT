@@ -71,9 +71,7 @@ subroutine run_objects_free_container(runObj)
      call dict_free(runObj%user_inputs)
   end if
   ! Radii_cf are always owned by run objects.
-  if (associated(runObj%radii_cf)) then
-     call f_free_ptr(runObj%radii_cf)
-  end if
+  call f_free_ptr(runObj%radii_cf)
   ! Currently do nothing except nullifying everything.
   call run_objects_nullify(runObj)
 END SUBROUTINE run_objects_free_container

@@ -18,6 +18,7 @@
 module module_input
 
    use module_base
+   use yaml_strings, only: read_fraction_string
    implicit none
    private
 
@@ -49,8 +50,6 @@ module module_input
    public :: input_set_file,input_set_stdout
    public :: input_var
    public :: input_free
-   public :: read_fraction_string
-   public :: read_fraction_string_old
 
    contains
 
@@ -402,67 +401,6 @@ module module_input
       end if
 
    END SUBROUTINE find
-
-
-   !> Read a real or real/real, real:real 
-   !! Here the fraction is indicated by the ':' or '/'
-   !! The problem is that / is a separator for Fortran
-   subroutine read_fraction_string(string,var,ierror)
-      use module_base
-      implicit none
-      !Arguments
-      character(len=*), intent(in) :: string
-      real(gp), intent(out) :: var
-      integer, intent(out) :: ierror
-      !Local variables
-      character(len=200) :: tmp
-      integer :: num,den,pfr,psp
-
-      !First look at the first blank after trim
-      tmp=trim(string)
-      psp = scan(tmp,' ')
-
-      !see whether there is a fraction in the string
-      if(psp==0) psp=len(tmp)
-      pfr = scan(tmp(1:psp),':')
-      if (pfr == 0) pfr = scan(tmp(1:psp),'/')
-      !It is not a fraction
-      if (pfr == 0) then
-         read(tmp(1:psp),*,iostat=ierror) var
-      else 
-         read(tmp(1:pfr-1),*,iostat=ierror) num
-         read(tmp(pfr+1:psp),*,iostat=ierror) den
-         if (ierror == 0) var=real(num,gp)/real(den,gp)
-      end if
-      !Value by defaut
-      if (ierror /= 0) var = huge(1_gp) 
-   END SUBROUTINE read_fraction_string
-
-   !> Here the fraction is indicated by the :
-   subroutine read_fraction_string_old(l,string,occ)
-      use module_base
-      implicit none
-      integer, intent(in) :: l
-      character(len=*), intent(in) :: string
-      real(gp), intent(out) :: occ
-      !local variables
-      integer :: num,den,pfr
-
-      !see whether there is a fraction in the string
-      if (l>3) then
-         pfr=3
-      else
-         pfr=2
-      end if
-      if (string(pfr:pfr) == ':') then
-         read(string(1:pfr-1),*)num
-         read(string(pfr+1:2*pfr-1),*)den
-         occ=real(num,gp)/real(den,gp)
-      else
-         read(string,*)occ
-      end if
-   END SUBROUTINE read_fraction_string_old
-
 
    !> Compare two strings (case-insensitive). Blanks are relevant!
    function case_insensitive_equiv(stra,strb)
@@ -2258,7 +2196,6 @@ contains
     CHARACTER (LEN=80) :: first_config, last_config, job_name, scratch_dir
 
     NAMELIST /NEB/ scratch_dir,         &
-         restart,             &
          climbing,            &
          optimization,        &
          minimization_scheme, &
@@ -2270,6 +2207,7 @@ contains
          tolerance,           &
          convergence,         &
          num_of_images,       &
+         restart,             & ! not used
          job_name,            & ! not used
          first_config,        & ! not used
          last_config            ! not used
@@ -2282,7 +2220,6 @@ contains
     close(123)
 
     call set(dict // GEOPT_METHOD, "NEB")
-    call set(dict // NEB_RESTART, restart)
     call set(dict // NEB_CLIMBING, climbing)
     call set(dict // EXTREMA_OPT, optimization)
     call set(dict // NEB_METHOD, minimization_scheme)
