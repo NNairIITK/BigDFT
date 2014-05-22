@@ -53,7 +53,7 @@ PS_Program_LDADD = $(psolver_libraries)
 PS_Exercise_SOURCES = PS_Exercise.f90
 PS_Exercise_LDADD = $(psolver_libraries)
 
-CLEANFILES = malloc.prc time.prc PS_Check.out.yaml fldiff.report.yaml
+CLEANFILES = malloc.prc time.prc PS_Check.out.yaml PSolver.report.yaml
 
 PS_Check.out.yaml: PS_Check PS_Program PS_Exercise 
 	-$(run_parallel) ./PS_Check 57 48 63  F  > PS_Check.out.yaml
@@ -68,7 +68,7 @@ check: PS_Check.out.yaml
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(top_srcdir)/tests/fldiff_yaml.py \
 		-r $(abs_srcdir)/PS_Check.ref.yaml -d PS_Check.out.yaml -t $(abs_srcdir)/tols.yaml \
-	        --output fldiff.report.yaml
+	        --output PSolver.report.yaml
 
 #	python $(top_srcdir)/tests/fldiff.py --mode=psolver --discrepancy=2.e-8 \
 #		PS_Check.out $(srcdir)/PS_Check.out.ref | tee fldiff.report
