@@ -131,15 +131,15 @@
  tddft:
    tddft_approach                      : none #   TDDFT method
  posinp:
-   Units                               : angstroem
-   Positions:
+   units                               : angstroem
+   positions:
    - H: [5.0659887200779217, 0.0, 0.0]
      IGSpin                            : 1
    - H: [4.3004479110820801, 0.0, 0.0]
      IGSpin                            : -1
-   Properties:
-     Format                            : xyz
-     Source                            : posinp
+   properties:
+     format                            : xyz
+     source                            : posinp
  psppar.H:
    Pseudopotential type                : GTH
    Atomic number                       : 1
@@ -2110,15 +2110,15 @@
  tddft:
    tddft_approach                      : none #   TDDFT method
  posinp:
-   Units                               : angstroem
-   Positions:
+   units                               : angstroem
+   positions:
    - H: [5.0659887200779217, 0.0, 0.0]
      IGSpin                            : 1
    - H: [4.3004479110820801, 0.0, 0.0]
      IGSpin                            : -1
-   Properties:
-     Format                            : xyz
-     Source                            : posinp
+   properties:
+     format                            : xyz
+     source                            : posinp
  psppar.H:
    Pseudopotential type                : GTH
    Atomic number                       : 1

@@ -374,6 +374,7 @@ H2-freq: &freq
  (F) Frequencies (Hartree): 5.e-10
  D: 1.e-10
  EKS: 2.e-11
+ (F) Vibrational entropy =: 1.1e-8
 
 C6H6-freq: *freq
 
