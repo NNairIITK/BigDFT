@@ -14,6 +14,7 @@ program yaml_test
    use dictionaries, dict_char_len=> max_field_length
    use dynamic_memory
    implicit none
+   type(dictionary), pointer :: dict_tmp
    !logical :: fl
 
    call f_lib_initialize()
@@ -70,8 +71,12 @@ program yaml_test
 
    call yaml_new_document()
     call test_dynamic_memory()
-   call yaml_release_document()
-
+    call yaml_release_document()
+    call f_malloc_dump_status(dict_summary=dict_tmp)
+    call yaml_map('Summary',dict_tmp)
+    call dict_free(dict_tmp)
+   call f_lib_finalize()
+stop
    call yaml_new_document()
     call test_copy_merge()
    call yaml_release_document()

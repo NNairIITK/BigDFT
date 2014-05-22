@@ -291,7 +291,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   ! Variables for the virtual orbitals and band diagram.
   integer :: nkptv, nvirtu, nvirtd
   real(gp), dimension(:), allocatable :: wkptv
-
+  type(dictionary), pointer :: dict_timing_info
+  
   !Variables for WVL+PAW
   integer:: iatyp
   type(gaussian_basis),dimension(max(atoms%astruct%ntypes,0))::proj_G
@@ -695,9 +696,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
      ! Treat the info code from the optimization routine.
      if (infocode == 2 .or. infocode == 3) then
-        call deallocate_before_exiting
         call deallocate_bounds(KSwfn%Lzd%Glr%geocode, KSwfn%Lzd%Glr%hybrid_on, KSwfn%lzd%glr%bounds, subname)
-        call f_release_routine()
+        call deallocate_before_exiting
         return
      end if
   else
@@ -815,7 +815,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
         !!! Allocate this array since it will be deallcoated in deallocate_before_exiting
         !!allocate(denspot%V_ext(1,1,1,1),stat=i_stat)
         !!call memocc(i_stat,denspot%V_ext,'denspot%V_ext',subname)
-        call deallocate_before_exiting()
         i_all=-product(shape(fpulay))*kind(fpulay)
         deallocate(fpulay,stat=i_stat)
         call memocc(i_stat,i_all,'fpulay',subname)
@@ -830,7 +829,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
         i_all=-product(shape(KSwfn%orbs%eval))*kind(KSwfn%orbs%eval)
         deallocate(KSwfn%orbs%eval,stat=i_stat)
         call memocc(i_stat,i_all,'KSwfn%orbs%eval',subname)
-        call f_release_routine()
+        call deallocate_before_exiting()
         return
      end if
 
@@ -1380,13 +1379,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   !?!    endif
 
   call deallocate_before_exiting
-
-  call f_release_routine()
 contains
 
   !> Routine which deallocate the pointers and the arrays before exiting 
   subroutine deallocate_before_exiting
-    
+    external :: gather_timings    
   !when this condition is verified we are in the middle of the SCF cycle
     if (infocode /=0 .and. infocode /=1 .and. inputpsi /= INPUT_PSI_EMPTY) then
        i_all=-product(shape(denspot%V_ext))*kind(denspot%V_ext)
@@ -1474,19 +1471,6 @@ contains
 !!$    deallocate(proj,stat=i_stat)
 !!$    call memocc(i_stat,i_all,'proj',subname)
 
-    !end of wavefunction minimisation
-    call timing(bigdft_mpi%mpi_comm,'LAST','PR')
-    call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm)    
-    call cpu_time(tcpu1)
-    call system_clock(ncount1,ncount_rate,ncount_max)
-    tel=dble(ncount1-ncount0)/dble(ncount_rate)
-    if (iproc == 0) then
-       call yaml_comment('Timing for root process',hfill='-')
-       call yaml_open_map('Timings for root process')
-       call yaml_map('CPU time (s)',tcpu1-tcpu0,fmt='(f12.2)')
-       call yaml_map('Elapsed time (s)',tel,fmt='(f12.2)')
-       call yaml_close_map()
-    end if
 !       &
 !         &   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0
 
@@ -1515,7 +1499,66 @@ contains
     !release the yaml document
     call yaml_release_document()
 
+    call f_release_routine()
+
+    !end of wavefunction minimisation
+    call timing(bigdft_mpi%mpi_comm,'LAST','PR')
+    call build_dict_info(dict_timing_info)
+    call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm,nproc=bigdft_mpi%nproc,&
+         gather_routine=gather_timings,dict_info=dict_timing_info)
+    call dict_free(dict_timing_info)
+    call cpu_time(tcpu1)
+    call system_clock(ncount1,ncount_rate,ncount_max)
+    tel=dble(ncount1-ncount0)/dble(ncount_rate)
+    if (iproc == 0) then
+       call yaml_comment('Timing for root process',hfill='-')
+       call yaml_open_map('Timings for root process')
+       call yaml_map('CPU time (s)',tcpu1-tcpu0,fmt='(f12.2)')
+       call yaml_map('Elapsed time (s)',tel,fmt='(f12.2)')
+       call yaml_close_map()
+    end if
+
   END SUBROUTINE deallocate_before_exiting
+
+  !> construct the dictionary needed for the timing information
+  subroutine build_dict_info(dict_info)
+    use dynamic_memory
+    use dictionaries
+    implicit none
+    include 'mpif.h'
+    type(dictionary), pointer :: dict_info
+    !local variables
+    integer :: ierr,namelen,nthreads
+    character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
+    character(len=MPI_MAX_PROCESSOR_NAME), dimension(:), allocatable :: nodename
+    type(dictionary), pointer :: dict_tmp
+    !$ integer :: omp_get_max_threads
+
+    call dict_init(dict_info)
+    if (DoLastRunThings) then
+       call f_malloc_dump_status(dict_summary=dict_tmp)
+       call set(dict_info//'Routines timing and number of calls',dict_tmp)
+    end if
+    nthreads = 0
+    !$  nthreads=omp_get_max_threads()
+    call set(dict_info//'CPU parallelism'//'MPI tasks',bigdft_mpi%nproc)
+    if (nthreads /= 0) call set(dict_info//'CPU parallelism'//'OMP threads',&
+         nthreads)
+
+    nodename=f_malloc0_str(MPI_MAX_PROCESSOR_NAME,0.to.bigdft_mpi%nproc-1,id='nodename')
+    if (bigdft_mpi%nproc>1) then
+       call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
+       !gather the result between all the process
+       call MPI_GATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
+            nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,0,&
+            bigdft_mpi%mpi_comm,ierr)
+       if (bigdft_mpi%iproc==0) call set(dict_info//'Hostnames',&
+               list_new(.item. nodename))
+    end if
+    call f_free_str(MPI_MAX_PROCESSOR_NAME,nodename)
+
+  end subroutine build_dict_info
+
 
 END SUBROUTINE cluster
 
