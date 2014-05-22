@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.7.1.16],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.7.1.17],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -344,22 +344,6 @@ AC_ARG_ENABLE(optimised-convolution, AS_HELP_STRING([--disable-optimised-convolu
 AM_CONDITIONAL(USE_OPTI_CONVOLUT, test "$ac_use_opti_convolut" = "yes")
 AC_MSG_RESULT([$ac_use_opti_convolut])
 
-
-dnl Use the minima hopping method (build the executable global)
-AC_MSG_CHECKING([for minima hopping])
-ac_build_bin_minima_hopping="no"
-AC_ARG_ENABLE(minima-hopping, AS_HELP_STRING([--enable-minima-hopping], [Compile the minima hopping code (need the file src/global.f90, not compiled by default).]),
-                         ac_build_bin_minima_hopping=$enableval, ac_build_bin_minima_hopping="no")
-AC_MSG_RESULT([$ac_build_bin_minima_hopping])
-if test x"$ac_build_bin_minima_hopping" = "xyes" ; then
-  dnl Check if src/global.f90 does exist.
-  AC_CHECK_FILE(${srcdir}/src/global.f90, ac_have_global="yes", ac_have_global="no")
-  if test x"$ac_have_global" = x"no" ; then
-     AC_MSG_WARN(["No src/global.f90. This file is not freely available, minima hopping is disabled."])
-     ac_build_bin_minima_hopping="no"
-  fi
-fi
-AM_CONDITIONAL(USE_MINIMA_HOPPING, test "$ac_build_bin_minima_hopping" = "yes")
 
 dnl Use the dgemmsy
 ac_use_dgemmsy="no"
@@ -1147,7 +1131,6 @@ Basics:
 Build:
   Library BigDFT:            $ac_build_lib_BigDFT
   Main binaries (bigdft,...):$ac_build_bin_cluster
-  Minima hopping binary:     $ac_build_bin_minima_hopping
   atom and pseudo binaries:  $ac_build_bin_pseudo
   Bindings:                  $ac_build_bindings
   User documentation:        $ac_have_pdflatex

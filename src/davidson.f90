@@ -122,19 +122,20 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
       !disassociate work array for transposition in serial
       if (nproc > 1) then
          allocate(psiw(max(KSwfn%orbs%npsidim_orbs,KSwfn%orbs%npsidim_comp)+ndebug),stat=i_stat)
-         call memocc(i_stat,psiw,'psiw',subname)
       else
-         psiw => null()
+         !psiw => null()
+         allocate(psiw(1+ndebug),stat=i_stat)
       endif
+      call memocc(i_stat,psiw,'psiw',subname)
 
       !transpose the wavefunction psi 
       call transpose_v(iproc,nproc,KSwfn%orbs,KSwfn%lzd%glr%wfd,KSwfn%comms,KSwfn%psi(1),psiw(1))
 
-      if (nproc > 1) then
+      !if (nproc > 1) then
          i_all=-product(shape(psiw))*kind(psiw)
          deallocate(psiw,stat=i_stat)
          call memocc(i_stat,i_all,'psiw',subname)
-      end if
+      !end if
    end if
 
    allocate(VTwfn%orbs%eval(VTwfn%orbs%norb*VTwfn%orbs%nkpts+ndebug),stat=i_stat)
@@ -233,10 +234,14 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    !previous value of idsx_actual to control if switching has appeared
    idsx_actual_before=VTwfn%diis%idsx
 
+   if (iproc == 0) call yaml_open_sequence('Optimization of virtual orbitals')
+
    wfn_loop: do iter=1,in%itermax+100
 
       if (iproc == 0 .and. verbose > 0) then 
          call yaml_comment('iter=' // trim(yaml_toa(iter)),hfill='-')
+         call yaml_sequence(advance='no')
+         call yaml_open_map(flow=.true.)
          !write( *,'(1x,a,i0)') repeat('~',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
       endif
       !control whether the minimisation iterations ended
@@ -266,24 +271,13 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
       if (endloop) then 
          if (iproc == 0) then 
             if (verbose > 1) call yaml_map('Minimization iterations required',iter)
-            call yaml_comment('End of Virtual Wavefunction Optimisation',hfill='-')
             call write_energies(iter,0,energs,gnrm,0.d0,' ')
-            !call yaml_map('Final Ekin, Epot, Eproj', (/ energs%ekin,energs%epot,energs%eproj /),fmt='(1pe18.11)')
-            !call yaml_map('Total energy',energs%eKS,fmt='(1pe24.17)')
-            !call yaml_map('gnrm',gnrm,fmt='(1pe9.2)')
+            call yaml_close_map()
+            call yaml_comment('End of Virtual Wavefunction Optimisation',hfill='-')
             if (VTwfn%diis%energy > VTwfn%diis%energy_min) then
                call yaml_warning('Found an energy value lower than the FINAL energy, delta' // &
                     & trim(yaml_toa(VTwfn%diis%energy-VTwfn%diis%energy_min,fmt='(1pe9.2)')))
             end if
-            !if (verbose > 1) write( *,'(1x,a,i0,a)')'done. ',iter,' minimization iterations required'
-            !write( *,'(1x,a)') &
-            !   &   '------------------------------------------- End of Virtual Wavefunction Optimisation'
-            !write( *,'(1x,a,3(1x,1pe18.11))') &
-            !   &   'final  ekin,  epot,  eproj ',energs%ekin,energs%epot,energs%eproj
-            !write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') &
-            !   &   'FINAL iter,total "energy",gnrm',iter,energs%eKS,gnrm
-            !if ( VTwfn%diis%energy > VTwfn%diis%energy_min) write( *,'(1x,a,2(1pe9.2))')&
-            !   &   'WARNING: Found an energy value lower than the FINAL energy, delta:',VTwfn%diis%energy-VTwfn%diis%energy_min
          end if
          exit wfn_loop 
       endif
@@ -312,10 +306,18 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
             &   psiw(1),out_add=VTwfn%psi(1))
       end if
 
+      if (iproc == 0) call yaml_close_map()
+
    end do wfn_loop
-   if (iter == in%itermax+100 .and. iproc == 0 ) &
-      &   call yaml_warning('No convergence within the allowed number of minimization steps')
-      !&   write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
+
+   if (iproc == 0) then
+      call yaml_close_sequence() !wfn iterations
+      if (iter == in%itermax+100) then
+         call yaml_warning('No convergence within the allowed number of minimization steps')
+      else if (verbose > 1) then
+         call yaml_map('Minimization iterations required',iter)
+      end if
+   end if
 
    !deallocate real array of wavefunctions
    if(exctX .or. in%SIC%approach=='NK')then

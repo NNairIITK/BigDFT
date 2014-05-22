@@ -18,12 +18,12 @@ module dictionaries
 
    private
 
-   !>public to be used in list_new() constructor.
+   !> public to be used in list_new() constructor.
    type, public :: list_container
       character(len=max_field_length) :: val=' '
       type(dictionary), pointer :: dict => null()
    end type list_container
-   !>public to be used in dict_new() constructor.
+   !> public to be used in dict_new() constructor.
    type, public :: dictionary_container
       character(len=max_field_length) :: key=' '
       character(len=max_field_length) :: value=' '
@@ -41,13 +41,16 @@ module dictionaries
    interface operator(.index.)
       module procedure find_index
    end interface
+
    interface operator(.item.)
       module procedure item_char,item_dict
    end interface
+
    interface operator(.is.)
       module procedure dict_cont_new_with_value, dict_cont_new_with_dict
       module procedure dict_cont_new_with_int
    end interface 
+
    interface operator(.in.)
       module procedure key_in_dictionary
    end interface operator(.in.)
@@ -55,6 +58,7 @@ module dictionaries
    interface operator(==)
       module procedure dicts_are_equal
    end interface
+
    interface operator(/=)
       module procedure dicts_are_not_equal
    end interface
@@ -63,6 +67,7 @@ module dictionaries
       module procedure get_value,get_integer,get_real,get_double,get_long,get_lg
       module procedure get_rvec,get_dvec,get_ilvec,get_ivec,get_lvec
    end interface
+
    interface pop
       module procedure pop_dict,pop_item,pop_last
    end interface
@@ -96,8 +101,8 @@ module dictionaries
    public :: operator(.is.),operator(.item.),operator(==),operator(/=),operator(.in.)
    public :: dictionary,max_field_length,dict_get_num
 
-   !header of error handling part
-   !some parameters
+   !> Header of error handling part
+   !! Some parameters
    character(len=*), parameter :: errid='Id'
    character(len=*), parameter :: errmsg='Message'
    character(len=*), parameter :: erract='Action'
@@ -131,13 +136,13 @@ contains
    subroutine dictionaries_errors()
      implicit none
 
-     !initialize the dictionary with the generic case
+     !Initialize the dictionary with the generic case
      call f_err_define('SUCCESS','Operation has succeeded',ERR_SUCCESS,err_action='No action')
      call f_err_define('GENERIC_ERROR',errunspec,ERR_GENERIC,err_action=errundef)
      call f_err_define('ERR_NOT_DEFINED','The error id or name is invalid',ERR_NOT_DEFINED,&
           err_action='Control if the err id exists')
-     !initalize also error of dictionary part of the module
 
+     !Initalize also error of dictionary part of the module
      call f_err_define('DICT_KEY_ABSENT',&
           'The dictionary has no key',DICT_KEY_ABSENT,&
           err_action='Internal error, contact developers')
@@ -156,6 +161,8 @@ contains
 
    end subroutine dictionaries_errors
 
+
+   !> Eliminate a key from a dictionary if it exists
    subroutine pop_dict(dict,key)
      implicit none
      type(dictionary), intent(inout), pointer :: dict 
@@ -169,7 +176,7 @@ contains
      end if
 
    contains
-     !> Eliminate a key from a dictionary if it exists
+
      recursive subroutine pop_dict_(dict,key)
        implicit none
        type(dictionary), intent(inout), pointer :: dict 
@@ -219,7 +226,8 @@ contains
      end subroutine pop_dict_
    end subroutine pop_dict
 
-   !> add to a list
+
+   !> Add to a list
    subroutine add_char(dict,val)
      implicit none
      type(dictionary), pointer :: dict
@@ -257,7 +265,9 @@ contains
      include 'dict_add-inc.f90'
    end subroutine add_long
 
-   !defines a dictionary from a array of storage data
+
+
+   !> Defines a dictionary from a array of storage data
    function dict_new(dicts)
 !     use yaml_output
 !     type(storage), dimension(:), intent(in) :: st_arr
@@ -280,7 +290,7 @@ contains
      dict_new => dict_tmp
    end function dict_new
 
-   !defines a dictionary from a array of storage data
+   !> Defines a dictionary from a array of storage data
    function dict_new_elems(dict0, dict1, dict2, dict3, dict4, dict5, dict6, dict7, dict8, dict9, &
         & dict10, dict11, dict12, dict13, dict14, dict15, dict16, dict17, dict18, dict19)
      type(dictionary_container), intent(in), optional :: dict0, dict1, dict2, dict3, dict4
@@ -327,7 +337,8 @@ contains
      end subroutine add_elem
    end function dict_new_elems
 
-   !defines a new dictionary from a key and a value
+
+   !> Defines a new dictionary from a key and a value
    function dict_cont_new_with_value(key, val)
      implicit none
      character(len = *), intent(in) :: key, val
@@ -468,6 +479,7 @@ contains
 
  end function dicts_are_equal
 
+
    !> Returns the position of the name in the dictionary
    !! returns 0 if the dictionary is nullified or the name is absent
    function find_index(dict,name)
@@ -495,6 +507,7 @@ contains
 
    end function find_index
 
+
    subroutine pop_last(dict)
      implicit none
      type(dictionary), intent(inout), pointer :: dict 
@@ -511,6 +524,7 @@ contains
      end if
 
    end subroutine pop_last
+
 
    subroutine pop_item(dict,item)
      implicit none
@@ -581,12 +595,13 @@ contains
      end subroutine pop_item_
    end subroutine pop_item
 
+
    !> Retrieve the pointer to the dictionary which has this key.
    !! If the key does not exists, search for it in the next chain 
    !! Key Must be already present, otherwise result is nullified
    recursive function find_key(dict,key) result (dict_ptr)
      implicit none
-     type(dictionary), intent(in), pointer :: dict !hidden inout
+     type(dictionary), intent(in), pointer :: dict !< Hidden inout
      character(len=*), intent(in) :: key
      type(dictionary), pointer :: dict_ptr
      if (.not. associated(dict)) then
@@ -611,6 +626,7 @@ contains
      end if
 
    end function find_key
+
 
    function dict_keys(dict)
      implicit none
@@ -644,7 +660,6 @@ contains
    !> Search in the dictionary if some of the child has the given
    !! If the key does not exists, search for it in the next chain 
    !! Key Must be already present 
-   !! 
    function has_key(dict,key)
      implicit none
      type(dictionary), intent(in), pointer :: dict 
@@ -683,7 +698,8 @@ contains
      end function has_key_
    end function has_key
 
-   !> assign a child to the dictionary
+
+   !> Assign a child to the dictionary
    recursive subroutine put_child(dict,subd)
      implicit none
      type(dictionary), pointer :: dict
@@ -715,7 +731,8 @@ contains
 
    end subroutine put_child
 
-   !> append another dictionary
+
+   !> Append another dictionary
    recursive subroutine append(dict,brother)
      implicit none
      type(dictionary), pointer :: dict
@@ -747,7 +764,8 @@ contains
      end if
    end subroutine append
 
-   !> append another dictionary
+
+   !> Append another dictionary
    recursive subroutine prepend(dict,brother)
      implicit none
      type(dictionary), pointer :: dict
@@ -783,7 +801,8 @@ contains
      end if
    end subroutine prepend
 
-   !> assign the value to the dictionary
+
+   !> Assign the value to the dictionary
    subroutine put_value(dict,val)
      implicit none
      type(dictionary), pointer :: dict
@@ -797,7 +816,8 @@ contains
 
    end subroutine put_value
 
-   !> assign the value to the dictionary (to be rewritten)
+
+   !> Assign the value to the dictionary (to be rewritten)
    subroutine put_list(dict,list)!,nitems)
      implicit none
      type(dictionary), pointer :: dict
@@ -813,7 +833,7 @@ contains
 
    end subroutine put_list
 
-   !> creates a dictionary which has only one entry as a list
+
    elemental function item_char(val) result(elem)
      implicit none
      character(len=*), intent(in) :: val
@@ -823,6 +843,7 @@ contains
 
    end function item_char
 
+
    function item_dict(val) result(elem)
      implicit none
      type(dictionary), pointer, intent(in) :: val
@@ -831,7 +852,8 @@ contains
      elem%dict=>val
    end function item_dict
 
-   !creates a list from a table of dictionaries
+
+   !> Creates a list from a table of dictionaries
    function list_new(dicts)
      implicit none
      type(list_container), dimension(:) :: dicts
@@ -855,7 +877,8 @@ contains
      list_new => dict_tmp
    end function list_new
 
-   !> create a list from several optional values (string or dict).
+
+   !> Create a list from several optional values (string or dict).
    function list_new_elems(dict0, dict1, dict2, dict3, dict4, dict5, dict6, dict7, dict8, dict9)
      implicit none
      type(list_container), intent(in) :: dict0
@@ -892,9 +915,9 @@ contains
      end subroutine fill
    end function list_new_elems
 
-   !> get the value from the dictionary
+
    !! here the dictionary has to be associated
-   subroutine get_value(val,dict)
+   recursive subroutine get_value(val,dict)
      implicit none
      character(len=*), intent(out) :: val
      type(dictionary), intent(in) :: dict
@@ -905,7 +928,8 @@ contains
 
    end subroutine get_value
 
-   !> get the value from the dictionary
+
+   !> Get the value from the dictionary
    !! This routine only works if the dictionary is associated
    !! the problem is solved if any of the routines have the dict variable as a pointer
    subroutine get_dict(dictval,dict)
@@ -918,7 +942,7 @@ contains
    end subroutine get_dict
 
 
-   !set and get routines for different types (this routine can be called from error_check also)
+   !> Set and get routines for different types (this routine can be called from error_check also)
    recursive subroutine get_integer(ival,dict)
      use yaml_strings, only: is_atoi
      implicit none
@@ -931,7 +955,7 @@ contains
      !take value
      val=dict
      !look at conversion
-     read(val,*,iostat=ierror)ival
+     read(val,*,iostat=ierror) ival
      !is the value existing?
      if (ierror/=0) then
         if (f_err_check(err_id=DICT_VALUE_ABSENT))then
@@ -942,7 +966,7 @@ contains
      if (f_err_raise(ierror/=0 .or. .not. is_atoi(val),'Value '//val,err_id=DICT_CONVERSION_ERROR)) return    
    end subroutine get_integer
 
-   !set and get routines for different types
+   !> Set and get routines for different types
    subroutine get_long(ival,dict)
      implicit none
      integer(kind=8), intent(out) :: ival
@@ -960,7 +984,7 @@ contains
 
    end subroutine get_long
 
-   !>routine to retrieve an array from a dictionary
+   !> Routine to retrieve an array from a dictionary
    subroutine get_dvec(arr,dict)
      use yaml_strings, only: yaml_toa
      implicit none
@@ -971,7 +995,7 @@ contains
      include 'dict_getvec-inc.f90'
    end subroutine get_dvec
 
-   !>routine to retrieve an array from a dictionary
+   !> Routine to retrieve an array from a dictionary
    subroutine get_rvec(arr,dict)
      use yaml_strings, only: yaml_toa
      implicit none
@@ -982,7 +1006,7 @@ contains
      include 'dict_getvec-inc.f90'
    end subroutine get_rvec
 
-   !>routine to retrieve an array from a dictionary
+   !> Routine to retrieve an array from a dictionary
    subroutine get_ivec(arr,dict)
      use yaml_strings, only: yaml_toa
      implicit none
@@ -993,7 +1017,7 @@ contains
      include 'dict_getvec-inc.f90'
    end subroutine get_ivec
 
-   !>routine to retrieve an array from a dictionary
+   !> Routine to retrieve an array from a dictionary
    subroutine get_ilvec(arr,dict)
      use yaml_strings, only: yaml_toa
      implicit none
@@ -1004,7 +1028,7 @@ contains
      include 'dict_getvec-inc.f90'
    end subroutine get_ilvec
 
-   !>routine to retrieve an array from a dictionary
+   !> Routine to retrieve an array from a dictionary
    subroutine get_lvec(arr,dict)
      use yaml_strings, only: yaml_toa
      implicit none
@@ -1015,7 +1039,7 @@ contains
      include 'dict_getvec-inc.f90'
    end subroutine get_lvec
 
-   !set and get routines for different types
+   !> Set and get routines for different types
    subroutine get_real(rval,dict)
      implicit none
      real(kind=4), intent(out) :: rval
@@ -1035,7 +1059,8 @@ contains
 
    end subroutine get_real
 
-   !set and get routines for different types
+
+   !> Set and get routines for different types
    subroutine get_lg(ival,dict)
      logical, intent(out) :: ival
      type(dictionary), intent(in) :: dict
@@ -1055,7 +1080,8 @@ contains
 
    end subroutine get_lg
 
-   !set and get routines for different types
+
+   !> Set and get routines for different types
    subroutine get_double(dval,dict)
      real(kind=8), intent(out) :: dval
      type(dictionary), intent(in) :: dict
@@ -1073,7 +1099,7 @@ contains
    end subroutine get_double
 
 
-   !> assign the value to the dictionary
+   !> Assign the value to the dictionary
    subroutine put_integer(dict,ival,fmt)
      use yaml_strings, only:yaml_toa
      implicit none
@@ -1089,7 +1115,8 @@ contains
 
    end subroutine put_integer
 
-   !> assign the value to the dictionary
+
+   !> Assign the value to the dictionary
    subroutine put_double(dict,dval,fmt)
      use yaml_strings, only:yaml_toa
      implicit none
@@ -1105,7 +1132,8 @@ contains
 
    end subroutine put_double
 
-   !> assign the value to the dictionary
+
+   !> Assign the value to the dictionary
    subroutine put_real(dict,rval,fmt)
      use yaml_strings, only:yaml_toa
      implicit none
@@ -1121,7 +1149,8 @@ contains
 
    end subroutine put_real
 
-   !> assign the value to the dictionary
+
+   !> Assign the value to the dictionary
    subroutine put_long(dict,ilval,fmt)
      use yaml_strings, only:yaml_toa
      implicit none
@@ -1153,7 +1182,7 @@ contains
    end subroutine put_lg
 
 
-   !> merge subd into dict.
+   !> Merge subd into dict.
    subroutine dict_update(dict, subd)
      implicit none
      type(dictionary), pointer :: dict, subd
@@ -1211,6 +1240,7 @@ contains
        end subroutine update
    end subroutine dict_update
 
+
    subroutine dict_copy(dict, ref)
      implicit none
      type(dictionary), pointer :: dict, ref
@@ -1253,4 +1283,3 @@ contains
    include 'error_handling.f90'
 
 end module dictionaries
-

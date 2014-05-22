@@ -382,6 +382,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
 end subroutine psitohpsi
 
 
+!> Application of the Full Hamiltonian
 subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
      Lzd,nlpsp,confdatarr,ngatherarr,pot,psi,hpsi,&
      energs,SIC,GPU,xc,pkernel,orbsocc,psirocc,proj_G,paw)
@@ -708,7 +709,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
   character(len=*), parameter :: subname='NonLocalHamiltonianApplication' 
   logical :: dosome, overlap
   integer :: ikpt,istart_ck,ispsi_k,isorb,ieorb,nspinor,iorb,iat,nwarnings
-  integer :: iproj,ispsi,istart_c,ilr,ilr_skip,mproj,iatype,ncplx,ispinor
+  integer :: iproj,ispsi,istart_c,ilr,ilr_skip,mproj,iatype,ispinor
   real(wp) :: hp,eproj
   real(wp), dimension(:), allocatable :: scpr
 
@@ -920,7 +921,7 @@ contains
 !!$    real(gp), dimension(0:4,0:6), intent(in) :: psppar
 !!$    integer :: nproj
 !!$    !local variables
-!!$    integer :: i,l,m
+!!$    integer :: i,l
 !!$    nproj = 0
 !!$    !count over all the channels
 !!$    do l=1,4
@@ -939,12 +940,11 @@ contains
     integer :: ncplx_p,ncplx_w,n_w,nvctr_p
     real(gp), dimension(3,3,4) :: hij
     real(gp) :: eproj
-    type(nlpsp_to_wfd) :: tolr 
-    integer, dimension(:), allocatable :: nbsegs_cf,keyag_lin_cf
-    real(wp), dimension(:,:), allocatable :: psi_pack
-    real(wp), dimension(:,:,:), allocatable :: pdpsi,hpdpsi
-    real(wp), dimension(:,:,:,:), allocatable :: scpr
-
+!!$    type(nlpsp_to_wfd) :: tolr 
+!!$    integer, dimension(:), allocatable :: nbsegs_cf,keyag_lin_cf
+!!$    real(wp), dimension(:,:), allocatable :: psi_pack
+!!$    real(wp), dimension(:,:,:), allocatable :: pdpsi,hpdpsi
+!!$    real(wp), dimension(:,:,:,:), allocatable :: scpr
 
     if (newmethod) then
 
@@ -1777,7 +1777,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    !
    !DEBUG hpsi
    !if(paw%usepaw==1 .and. nproc==1) then
-   !   call debug_hpsi(wfn,at,proj_G,paw,nlpspd) 
+   !   call debug_hpsi(wfn,at) 
 
    !   !
    !   !Recalculate  hpsi,spsi and cprj with new psi
@@ -1910,102 +1910,6 @@ contains
 
 END SUBROUTINE hpsitopsi
 
-
-!> Choose among the wavefunctions a subset of them
-!! Rebuild orbital descriptors for the new space and allocate the psi_as wavefunction
-!! By hypothesis the work array is big enough to contain both wavefunctions
-!! This routine has to be tested
-subroutine select_active_space(iproc,nproc,orbs,comms,mask_array,Glr,orbs_as,comms_as,psi,psi_as)
-   use module_base
-   use module_types
-   use module_interfaces, except_this_one => select_active_space
-   use communications_base, only: comms_cubic
-   use communications_init, only: orbitals_communicators
-   implicit none
-   integer, intent(in) :: iproc,nproc
-   type(orbitals_data), intent(in) :: orbs
-   type(locreg_descriptors), intent(in) :: Glr
-   type(comms_cubic), intent(in) :: comms
-   logical, dimension(orbs%norb*orbs%nkpts), intent(in) :: mask_array
-   real(wp), dimension(orbs%npsidim_comp), intent(in) :: psi
-   type(orbitals_data), intent(out) :: orbs_as
-   type(comms_cubic), intent(out) :: comms_as
-   real(wp), dimension(:), pointer :: psi_as
-   !local variables
-   character(len=*), parameter :: subname='select_active_space'
-   integer :: iorb,ikpt,norbu_as,norbd_as,icnt,ikptp,ispsi,ispsi_as
-   integer :: i_stat,nvctrp
-
-   !count the number of orbitals of the active space
-   norbu_as=-1
-   norbd_as=-1
-   do ikpt=1,orbs%nkpts
-      icnt=0
-      do iorb=1,orbs%norbu
-         if (mask_array(iorb+(ikpt-1)*orbs%norb)) icnt=icnt+1
-      end do
-      if (norbu_as /= icnt .and. norbu_as /= -1) then
-         write(*,*)'ERROR(select_active_space): the mask array should define always the same norbu'
-         stop
-      end if
-      norbu_as=icnt
-      icnt=0
-      do iorb=orbs%norbu+1,orbs%norbu+orbs%norbd
-         if (mask_array(iorb+(ikpt-1)*orbs%norb)) icnt=icnt+1
-      end do
-      if (norbd_as /= icnt .and. norbd_as /= -1) then
-         write(*,*)'ERROR(select_active_space): the mask array should define always the same norbd'
-         stop
-      end if
-      norbd_as=icnt
-   end do
-
-   !allocate the descriptors of the active space
-   call orbitals_descriptors(iproc,nproc,norbu_as+norbd_as,norbu_as,norbd_as, &
-        orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbs_as,&
-        .false.,basedist=orbs%norb_par(0:,1))
-   !allocate communications arrays for virtual orbitals
-   call orbitals_communicators(iproc,nproc,Glr,orbs_as,comms_as,basedist=comms_as%nvctr_par(0:,1))  
-   !allocate array of the eigenvalues
-   allocate(orbs_as%eval(orbs_as%norb*orbs_as%nkpts+ndebug),stat=i_stat)
-   call memocc(i_stat,orbs_as%eval,'orbs_as%eval',subname)
-
-   !fill the orbitals array with the values and the wavefunction in transposed form
-   icnt=0
-   do iorb=1,orbs%nkpts*orbs%norb
-      if (mask_array(iorb)) then
-         icnt=icnt+1
-         orbs_as%eval(icnt)=orbs%eval(iorb)
-      end if
-   end do
-   if (icnt/=orbs_as%norb*orbs_as%nkpts) stop 'ERROR(select_active_space): icnt/=orbs_as%norb*orbs_as%nkpts'
-
-   allocate(psi_as(orbs_as%npsidim_comp+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_as,'psi_as',subname)
-
-   ispsi=1
-   do ikptp=1,orbs%nkptsp
-      ikpt=orbs%iskpts+ikptp
-      nvctrp=comms%nvctr_par(iproc,ikpt) 
-      !this should be identical in both the distributions
-      if (nvctrp /= comms_as%nvctr_par(iproc,ikpt)) then
-         write(*,*)'ERROR(select_active_space): the component distrbution is not identical'
-         stop
-      end if
-
-      !put all the orbitals which match the active space
-      ispsi=1
-      ispsi_as=1
-      do iorb=1,orbs%norb
-         if (mask_array(iorb+(ikpt-1)*orbs%norb)) then
-            call vcopy(nvctrp,psi(ispsi),1,psi_as(ispsi_as),1)
-            ispsi_as=ispsi_as+nvctrp*orbs_as%nspinor
-         end if
-         ispsi=ispsi+nvctrp*orbs%nspinor
-      end do
-   end do
-
-END SUBROUTINE select_active_space
 
 
 !>   First orthonormalisation
@@ -2197,6 +2101,7 @@ end subroutine eigensystem_info
 subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
    use module_base
    use module_types
+   use dictionaries, only: f_err_throw
    use yaml_output
    implicit none
    logical, intent(in) :: filewrite
@@ -2206,11 +2111,12 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
    type(orbitals_data), intent(inout) :: orbs
    !local variables
    real(gp), parameter :: pi=3.1415926535897932d0
-   real(gp), parameter :: sqrtpi=sqrt(pi) 
+   real(gp), parameter :: sqrtpi=sqrt(pi)
+   real(gp), dimension(1,1,1) :: fakepsi
    integer :: ikpt,iorb,melec,ii
    real(gp) :: charge, chargef
    real(gp) :: ef,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff,full,res,resu,resd
-   real(gp) :: a, x, xu, xd, f, df, tt  
+   real(gp) :: a, x, xu, xd, f, df, tt
    !integer :: ierr
 
    !write(*,*)  'ENTER Fermilevel',orbs%norbu,orbs%norbd
@@ -2405,7 +2311,12 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
             chargef=chargef+orbs%kwgts(ikpt) * orbs%occup(iorb+(ikpt-1)*orbs%norb)
          end do
       end do
-      if (abs(charge - chargef) > 1e-6)  stop 'error occupation update'
+      if (abs(charge - chargef) > 1e-6)  then
+         if (orbs%nspinor /= 4) call eigensystem_info(iproc,nproc,1.e-8_gp,0,orbs,fakepsi)
+         call f_err_throw('Failed to determine correctly the occupation number, expected='//yaml_toa(charge)// &
+            & ', found='//yaml_toa(chargef),err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+      !DEBUG call yaml_map('Electronic charges (expected, found)', (/ charge, chargef /))
    else if(full==1.0_gp) then
       call eFermi_nosmearing(iproc,orbs)
       ! no entropic term when electronc temprature is zero
@@ -2590,6 +2501,7 @@ subroutine check_communications(iproc,nproc,orbs,lzd,comms)
    character(len = 25) :: filename
    logical :: abort
 
+
    !allocate the "wavefunction" amd fill it, and also the workspace
    allocate(psi(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
    call memocc(i_stat,psi,'psi',subname)
@@ -2613,7 +2525,7 @@ subroutine check_communications(iproc,nproc,orbs,lzd,comms)
    end do
 
    !transpose the hpsi wavefunction
-   call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi_add=psi(1),work_add=pwork(1))
+   call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),pwork(1))
 
    !check the results of the transposed wavefunction
    maxdiff=0.0_wp
@@ -2821,16 +2733,16 @@ subroutine wrong_components(psival,ikpt,iorb,icomp)
 end subroutine wrong_components
 
 
-subroutine debug_hpsi(wfn,at,proj_G,paw,nlpspd)
+subroutine debug_hpsi(wfn,at)!,proj_G,paw,nlpspd)
    use module_base
    use module_types
    implicit none
    !Arguments
-   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+   !type(nonlocal_psp_descriptors), intent(in) :: nlpspd
    type(DFT_wavefunction), intent(in) :: wfn
-   type(paw_objects),intent(in) :: paw
+   !type(paw_objects),intent(in) :: paw
    type(atoms_data), intent(in) :: at
-   type(gaussian_basis),dimension(at%astruct%ntypes),intent(in)::proj_G !projectors in gaussian basis (for PAW)
+   !type(gaussian_basis),dimension(at%astruct%ntypes),intent(in)::proj_G !projectors in gaussian basis (for PAW)
    !Local variables   
    integer :: ispsi_a,ispsi_b,ia,ib,iatype,ispinor
    integer :: nvctr_c,nvctr_f,nvctr_tot

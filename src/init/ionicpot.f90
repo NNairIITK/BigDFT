@@ -140,7 +140,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      eion=eion+charge/ucvol*(psoffset+shortlength)
 
      !symmetrization of ewald stress (probably not needed)
-     if (at%astruct%sym%symObj >= 0) call symm_stress((iproc==0),ewaldstr,at%astruct%sym%symObj)
+     if (at%astruct%sym%symObj >= 0) call symm_stress(ewaldstr,at%astruct%sym%symObj)
      !PSP core correction of the stress tensor (diag.)
      ewaldstr(1:3)=ewaldstr(1:3)-charge*(psoffset+shortlength)/ucvol/ucvol
 
@@ -779,7 +779,9 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
            end do
         end do
 
-        call mpiallred(maxdiff,1,MPI_MAX,pkernel%mpi_env%mpi_comm)
+        if (pkernel%mpi_env%nproc > 1) then
+           call mpiallred(maxdiff,1,MPI_MAX,pkernel%mpi_env%mpi_comm)
+        end if
 
         if (iproc == 0) call yaml_map('Check the ionic potential',maxdiff,fmt='(1pe24.17)')
         !if (iproc == 0) write(*,'(1x,a,1pe24.17)')'...done. MaxDiff=',maxdiff
@@ -1395,7 +1397,9 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
            end do
         end do
 
-        call mpiallred(maxdiff,1,MPI_MAX,pkernel%mpi_env%mpi_comm)
+        if (pkernel%mpi_env%nproc > 1) then
+           call mpiallred(maxdiff,1,MPI_MAX,pkernel%mpi_env%mpi_comm)
+        end if
 
         if (iproc == 0) call yaml_map('Check the ionic potential',maxdiff,fmt='(1pe24.17)')
         !if (iproc == 0) write(*,'(1x,a,1pe24.17)')'...done. MaxDiff=',maxdiff

@@ -2585,15 +2585,11 @@ subroutine getOverlap(iproc,nproc,nspin,norbIn,orbs,comms,&
   !print *,'here',iproc
 
   if (nproc > 1) then
-     !call timing(iproc,'GramS_comput  ','OF')
-     !call timing(iproc,'GramS_commun  ','ON')
      call timing(iproc, trim(category)//'_comput', 'OF')
      call timing(iproc, trim(category)//'_commun', 'ON')
      call mpiallred(ovrlp(1),ndim_ovrlp(nspin,orbs%nkpts),MPI_SUM,bigdft_mpi%mpi_comm)
      call timing(iproc, trim(category)//'_commun', 'OF')
      call timing(iproc, trim(category)//'_comput', 'ON')
-     !call timing(iproc,'GramS_commun  ','OF')
-     !call timing(iproc,'GramS_comput  ','ON')
   end if
 
   ! Now each processors knows all the overlap matrices for each k-point
@@ -2707,16 +2703,12 @@ subroutine getOverlap_paw(iproc,nproc,nspin,norbIn,orbs,comms,&
   !print *,'here',iproc
 
   if (nproc > 1) then
-     !call timing(iproc,'GramS_comput  ','OF')
-     !call timing(iproc,'GramS_commun  ','ON')
      call timing(iproc, trim(category)//'_comput', 'OF')
      call timing(iproc, trim(category)//'_commun', 'ON')
      call mpiallred(ovrlp(1),ndim_ovrlp(nspin,orbs%nkpts),MPI_SUM,bigdft_mpi%mpi_comm)
      !call MPI_ALLREDUCE (ovrlp(1,2),ovrlp(1,1),ndim_ovrlp(nspin,orbs%nkpts),mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
      call timing(iproc, trim(category)//'_commun', 'OF')
      call timing(iproc, trim(category)//'_comput', 'ON')
-     !call timing(iproc,'GramS_commun  ','OF')
-     !call timing(iproc,'GramS_comput  ','ON')
   end if
 
   ! Now each processors knows all the overlap matrices for each k-point

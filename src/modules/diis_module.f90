@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> Module handling DIIS (Direct Inversion in the Iterative Subspace) and SD (Steepest Descent) optimisation
+!> Module handling DIIS (Direct Inversion in the Iterative Subspace) and SD (Steepest Descent) optimization
 module diis_sd_optimization
   use module_base
 
@@ -158,7 +158,7 @@ contains
     type(DIIS_obj), intent(inout) :: diis
     ! Local variables
     character(len=*), parameter :: subname='diisstp'
-    integer :: i,j,ist,jst,mi,info,jj,mj,ierr
+    integer :: i,j,ist,jst,mi,info,jj,mj
     integer :: ispsi,ispsidst,ncomp,iacc_add,igrpp,igrp
     real(tp) :: psicoeff
     integer, dimension(:), allocatable :: ipiv

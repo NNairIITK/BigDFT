@@ -1,3 +1,13 @@
+!> @file
+!>  Modules which contains all the interfaces to parse input dictionary.
+!! @author
+!!    Copyright (C) 2013-2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
 !>  Modules which contains all interfaces to parse input dictionary.
 module module_input_dicts
 
@@ -39,8 +49,9 @@ contains
     use module_base, only: f_err_raise
     use yaml_output, only: yaml_toa
     implicit none
-    character(len=*), intent(in) :: filename
-    logical :: exists
+    !Arguments
+    character(len=*), intent(in) :: filename !< Filename
+    logical :: exists                        !< Result
     !local variables
     integer :: ierr
     inquire(file = filename, exist = exists,iostat=ierr)
@@ -52,6 +63,7 @@ contains
     end if
   end function file_exists
 
+
   !> Routine to read YAML input files and create input dictionary.
   !! Update the input dictionary with the result of yaml_parse
   subroutine merge_input_file_to_dict(dict, fname, mpi_env)
@@ -59,10 +71,12 @@ contains
     !use yaml_output, only :yaml_map
     use dictionaries
     use yaml_parse, only: yaml_parse_from_char_array
+    use yaml_output
     implicit none
-    type(dictionary), pointer :: dict !<dictionary of the input files. Should be initialized on entry
-    character(len = *), intent(in) :: fname !<name of the file where the dictionaryt has to be read from 
-    type(mpi_environment), intent(in) :: mpi_env !<environment of the reading. Used for broadcasting the result
+    !Arguments
+    type(dictionary), pointer :: dict            !< Dictionary of the input files. Should be initialized on entry
+    character(len = *), intent(in) :: fname      !< Name of the file where the dictionaryt has to be read from 
+    type(mpi_environment), intent(in) :: mpi_env !< Environment of the reading. Used for broadcasting the result
     !local variables
     integer(kind = 8) :: cbuf, cbuf_len
     integer :: ierr
@@ -82,19 +96,22 @@ contains
     fbuf=f_malloc0_str(1,int(cbuf_len),id='fbuf')
 
     if (mpi_env%iproc == 0) then
-       call copyCBuffer(fbuf(1), cbuf, cbuf_len)
+       call copyCBuffer(fbuf, cbuf, cbuf_len)
        call freeCBuffer(cbuf)
-       if (mpi_env%nproc > 1) &
+       if (mpi_env%nproc > 1 .and. cbuf_len > 0) &
             & call mpi_bcast(fbuf(1), int(cbuf_len), MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
     else
-       call mpi_bcast(fbuf(1), int(cbuf_len), MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
+       if (cbuf_len > 0) call mpi_bcast(fbuf(1), int(cbuf_len), MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
     end if
 
     call f_err_open_try()
     call yaml_parse_from_char_array(udict, fbuf)
-    ! Handle with possible partial dictionary.
     call f_free_str(1,fbuf)
-    call dict_update(dict, udict // 0)
+    ! Handle with possible partial dictionary.
+    if (dict_len(udict) > 0) then
+       call dict_update(dict, udict // 0)
+    end if
+
     call dict_free(udict)
     ierr = 0
     if (f_err_check()) ierr = f_get_last_error(val)
@@ -103,22 +120,26 @@ contains
     if (ierr /= 0) call f_err_throw(err_id = ierr, err_msg = val)
     call f_release_routine()
 
-  end subroutine merge_input_file_to_dict
+  END SUBROUTINE merge_input_file_to_dict
 
+
+  !> Read from files and build a dictionary
   subroutine user_dict_from_files(dict,radical,posinp, mpi_env)
     use dictionaries
     use dictionaries_base, only: TYPE_DICT, TYPE_LIST
     use module_defs, only: mpi_environment
     use module_interfaces, only: read_input_dict_from_files
     implicit none
-    type(dictionary), pointer :: dict
-    character(len = *), intent(in) :: radical, posinp
-    type(mpi_environment), intent(in) :: mpi_env
-
+    !Arguments
+    type(dictionary), pointer :: dict                  !< Contains (out) all the information
+    character(len = *), intent(in) :: radical          !< Radical for the input files
+    character(len = *), intent(in) :: posinp           !< If the dict has no posinp key, use it
+    type(mpi_environment), intent(in) :: mpi_env       !< MPI Environment
+    !Local variables
+    type(dictionary), pointer :: at
     character(len = max_field_length) :: str
 
     nullify(dict)
-
 
     !read the input file(s) and transform them into a dictionary
     call read_input_dict_from_files(trim(radical), mpi_env, dict)
@@ -130,7 +151,18 @@ contains
     else
        str = dict_value(dict // "posinp")
        if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
+          !str contains a file name so add atomic positions from it.
           call astruct_file_merge_to_dict(dict, "posinp", trim(str))
+       else
+          !The yaml file contains the atomic positions
+          !Only add the format
+          at => dict // "posinp"
+          if (.not. has_key(at, "Properties")) then
+             call set(at // "Properties" // "Format", "yaml")
+          else
+             at => at // "Properties"
+             if (.not. has_key(at, "Format")) call set(at // "Format", "yaml")
+          end if
        end if
     end if
 
@@ -166,16 +198,19 @@ contains
     end if
   end subroutine user_dict_from_files
 
+
+  !> Fill up the dict with all pseudopotential information
   subroutine psp_dict_fill_all(dict, atomname, run_ixc)
     use module_defs, only: gp, UNINITIALIZED, bigdft_mpi
     use ao_inguess, only: atomic_info
     use dictionaries
     use dynamic_memory
     implicit none
-    type(dictionary), pointer :: dict
-    character(len = *), intent(in) :: atomname
-    integer, intent(in) :: run_ixc
-
+    !Arguments
+    type(dictionary), pointer :: dict          !< Input dictionary (inout)
+    character(len = *), intent(in) :: atomname !< Atome name
+    integer, intent(in) :: run_ixc             !< XC functional
+    !Local variables
     integer :: ixc, ierr
     character(len=27) :: filename
     logical :: exists
@@ -261,15 +296,18 @@ contains
     call set(radii // "Source", source)
   end subroutine psp_dict_fill_all
 
+  
+  !> Fill up the atoms structure from dict
   subroutine psp_dict_analyse(dict, atoms)
     use module_defs, only: gp
     use module_types, only: atoms_data
     use module_atoms, only: allocate_atoms_data
     use dictionaries
     implicit none
-    type(dictionary), pointer :: dict
-    type(atoms_data), intent(inout) :: atoms
-
+    !Arguments
+    type(dictionary), pointer :: dict        !< Input dictionary
+    type(atoms_data), intent(inout) :: atoms !Atoms structure to fill up
+    !Local variables
     integer :: ityp
     character(len = 27) :: filename
     real(gp), dimension(3) :: radii_cf
@@ -319,6 +357,7 @@ contains
        nullify(atoms%paw_Gcoeffs,atoms%paw_H_matrices,atoms%paw_S_matrices,atoms%paw_Sm1_matrices)
     end if
   end subroutine psp_dict_analyse
+
 
   subroutine nlcc_set_from_dict(dict, atoms)
     use module_defs, only: gp
@@ -398,6 +437,7 @@ contains
        end do fill_nlcc
     end if
   end subroutine nlcc_set_from_dict
+
 
   subroutine psp_set_from_dict(dict, nzatom, nelpsp, npspcode, ixcpsp, &
        & psppar, radii_cf)
@@ -483,6 +523,7 @@ contains
     end if
   end subroutine psp_set_from_dict
 
+
   subroutine psp_data_merge_to_dict(dict, nzatom, nelpsp, npspcode, ixcpsp, &
        & psppar, radii_cf, rcore, qcore)
     use module_defs, only: gp, UNINITIALIZED
@@ -552,6 +593,8 @@ contains
     end if
   end subroutine psp_data_merge_to_dict
 
+
+  !> Read old psppar file and merge to dict
   subroutine atoms_file_merge_to_dict(dict)
     use dictionaries
     use dictionaries_base, only: TYPE_DICT, TYPE_LIST
@@ -604,6 +647,7 @@ contains
     call dict_free(types)
   end subroutine atoms_file_merge_to_dict
 
+
   subroutine psp_file_merge_to_dict(dict, key, filename)
     use module_defs, only: gp, UNINITIALIZED
     use dictionaries
@@ -626,6 +670,7 @@ contains
     call set(dict // key // "PAW patch", pawpatch)
     call set(dict // key // "Source", filename)
   end subroutine psp_file_merge_to_dict
+
 
   subroutine nlcc_file_merge_to_dict(dict, key, filename)
     use module_defs, only: gp, UNINITIALIZED
@@ -673,6 +718,7 @@ contains
 
     close(unit=79)
   end subroutine nlcc_file_merge_to_dict
+
 
   !> Convert astruct to dictionary for later dump.
   subroutine astruct_merge_to_dict(dict, astruct, rxyz, fxyz, energy, comment)
@@ -781,7 +827,8 @@ contains
          & call set(dict // "Properties" // "Format", astruct%inputfile_format)
   end subroutine astruct_merge_to_dict
 
-
+ 
+  !> Read Atomic positions to dict
   subroutine astruct_file_merge_to_dict(dict, key, filename)
     use module_base, only: gp, UNINITIALIZED, bigdft_mpi,f_routine,f_release_routine
     use module_atoms, only: set_astruct_from_file,atomic_structure,&
@@ -789,9 +836,10 @@ contains
     use dictionaries
     use yaml_strings
     implicit none
-    type(dictionary), pointer :: dict
+    !Arguments
+    type(dictionary), pointer :: dict  !< Contains (out) all the information
     character(len = *), intent(in) :: filename, key
-    
+    !Local variables
     type(atomic_structure) :: astruct
     integer :: ierr
     call f_routine(id='astruct_file_merge_to_dict')
@@ -805,6 +853,7 @@ contains
     end if
     call f_release_routine()
   end subroutine astruct_file_merge_to_dict
+
 
   subroutine aocc_to_dict(dict, nspin, noncoll, nstart, aocc, nelecmax, lmax, nsccode)
     use module_defs, only: gp
@@ -848,6 +897,7 @@ contains
     end do
   end subroutine aocc_to_dict
 
+
   subroutine atomic_data_set_from_dict(dict, key, atoms, nspin)
     use module_defs, only: gp
     use ao_inguess, only: ao_ig_charge,atomic_info,aoig_set_from_dict,&
@@ -862,8 +912,7 @@ contains
     character(len = *), intent(in) :: key
     integer, intent(in) :: nspin
 
-    integer :: iat, ityp, nsccode, mxpl, mxchg, nsp, nspinor
-    integer :: ichg, ispol, icoll, iocc, ispin, l, inl, m, nl, noncoll
+    integer :: iat, ityp
     real(gp) :: rcov,elec!,rprb,ehomo,elec
     character(len = max_field_length) :: at
     type(dictionary), pointer :: dict_tmp
@@ -911,6 +960,8 @@ contains
        !if (atoms%aoig(iat)%iasctype /= 0) atoms%natsc=atoms%natsc+1
     enddo
   end subroutine atomic_data_set_from_dict
+  
+
 
   subroutine occupation_set_from_dict(dict, key, norbu, norbd, occup, &
        & nkpts, nspin, norbsempty, nelec_up, nelec_down, norb_max)
@@ -1090,6 +1141,7 @@ contains
       end do
     end subroutine fill_for_kpt
   end subroutine occupation_set_from_dict
+
 
   subroutine occupation_data_file_merge_to_dict(dict, key, filename)
     use module_defs, only: gp, UNINITIALIZED

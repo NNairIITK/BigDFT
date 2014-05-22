@@ -1,11 +1,12 @@
 !> @file
 !!  Module to store all dictionary keys of the input files.
 !! @author
-!!    Copyright (C) 2010-2011 BigDFT group
+!!    Copyright (C) 2010-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+
 
 !> Define all static strings to store input variables
 module module_input_keys
@@ -139,6 +140,7 @@ module module_input_keys
   character(len = *), parameter, public :: CALCULATE_GAP = "calculate_gap"
   character(len = *), parameter, public :: LOEWDIN_CHARGE_ANALYSIS = "loewdin_charge_analysis"
   character(len = *), parameter, public :: CHECK_MATRIX_COMPRESSION = "check_matrix_compression"
+  character(len = *), parameter, public :: CORRECTION_CO_CONTRA = "correction_co_contra"
 
   !keys for linear input variables
   !level keys
@@ -178,6 +180,9 @@ module module_input_keys
   character(len=*), parameter, public :: TRANSFER_INTEGRALS='transfer_integrals'
   character(len=*), parameter, public :: CONSTRAINED_DFT  ='constrained_dft'
   character(len=*), parameter, public :: FIX_BASIS       ='fix_basis' 
+  character(len=*), parameter, public :: CORRECTION_ORTHOCONSTRAINT='correction_orthoconstraint'
+  character(len=*), parameter, public :: FSCALE_LOWERBOUND="fscale_lowerbound"
+  character(len=*), parameter, public :: FSCALE_UPPERBOUND="fscale_upperbound"
 
 
 
@@ -211,6 +216,7 @@ module module_input_keys
 
 contains
 
+  !> Callback routine when an error occurs
   subroutine abort_excl()
     use yaml_output
     use dictionaries
@@ -293,10 +299,11 @@ contains
     use yaml_output
     implicit none
     character(len = *), intent(in) :: fname
-    character(len = *), intent(in), optional :: file !<subsection of the input to be printed (old input.file)
+    character(len = *), intent(in), optional :: file !< Subsection of the input to be printed (old input.file)
     !local variables
-    integer, parameter :: unt=789159 !to be sure is not opened
+    integer, parameter :: unt=789159 !< To be sure is not opened
     integer :: ierr !, iunit_def
+    !integer :: iunit_def
 
     ! Switch YAML output stream (not needed anymore)
     !call yaml_get_default_stream(iunit_def)
@@ -320,7 +327,7 @@ contains
     !call yaml_set_default_stream(iunit_def,ierr)
   end subroutine input_keys_dump_def
 
-  !> get for each keys available profiles.
+  !> Get for each keys available profiles.
   function input_keys_get_profiles(file)
     use dictionaries
     implicit none
@@ -349,7 +356,9 @@ contains
     call input_keys_finalize()
 
     input_keys_get_profiles => p
+
   contains
+
     subroutine vars(dict, ref)
       use dictionaries
       implicit none
@@ -445,6 +454,8 @@ contains
     end if
   end function input_keys_get_source
 
+
+  !> Fill all the input keys into dict
   subroutine input_keys_fill_all(dict,dict_minimal)
     use dictionaries
     use dynamic_memory
@@ -462,6 +473,11 @@ contains
          err_name='BIGDFT_RUNTIME_ERROR')) return
 
     call f_routine(id='input_keys_fill_all')
+
+    ! Overiding the default for isolated system
+    if (.not.has_key(dict//"posinp","Cell") .and. .not. has_key(dict//DFT_VARIABLES,DISABLE_SYM)) then
+       call set(dict // DFT_VARIABLES // DISABLE_SYM,.true.)
+    end if
 
     ! Check and complete dictionary.
     call input_keys_init()
@@ -503,7 +519,8 @@ contains
     call f_release_routine()
   end subroutine input_keys_fill_all
 
-  !> this routine is used to create a minimal dictionary which can be used at the place 
+
+  !> This routine is used to create a minimal dictionary which can be used at the place 
   !! of the one provided as an indication on the understood variables
   subroutine input_minimal(dict,minimal)
     use dictionaries
@@ -587,9 +604,9 @@ contains
                  !exclude keys for definition of the variable
                  var_prof=dict_key(defvar)
 !              call yaml_map('key',var_prof)
-                 if (trim(var_prof)/=COMMENT .and. trim(var_prof)/=COND .and.&
-                      trim(var_prof)/=RANGE .and. trim(var_prof)/=PROF_KEY .and. &
-                      trim(var_prof)/=EXCLUSIVE) then
+                 if (trim(var_prof) /= COMMENT .and. trim(var_prof) /= COND .and.&
+                      trim(var_prof) /= RANGE .and. trim(var_prof) /= PROF_KEY .and. &
+                      trim(var_prof) /= EXCLUSIVE) then
                     !check if some profile meets desired values
 !call yaml_map('defvar',defvar)
 !call yaml_map('input',input//def_var)

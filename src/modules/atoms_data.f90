@@ -6,6 +6,8 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
 !> Handling of input guess creation from basis of atomic orbitals
 module module_atoms
   use module_defs, only: dp,gp
@@ -15,7 +17,9 @@ module module_atoms
 
   !> Quantities used for the symmetry operators. To be used in atomic_structure derived type.
   type, public :: symmetry_data
-     integer :: symObj    !< The symmetry object from ABINIT
+     integer :: symObj                             !< The symmetry object from ABINIT
+     integer :: nSym                               !< Number of symmetry (0 if disable)
+     character(len=15) :: spaceGroup               !< Space group (disabled if not useful)
      integer, dimension(:,:,:), pointer :: irrzon
      real(dp), dimension(:,:,:), pointer :: phnons
   end type symmetry_data
@@ -23,7 +27,7 @@ module module_atoms
   !>Structure of the system. This derived type contains the information about the physical properties
   type, public :: atomic_structure
      character(len=1) :: geocode          !< @copydoc poisson_solver::doc::geocode
-     character(len=5) :: inputfile_format !< Can be xyz ascii or yaml
+     character(len=5) :: inputfile_format !< Can be xyz, ascii or yaml
      character(len=20) :: units           !< Can be angstroem or bohr 
      integer :: nat                       !< Number of atoms
      integer :: ntypes                    !< Number of atomic species in the structure
@@ -341,7 +345,8 @@ module module_atoms
       character, intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
 
       character(len = *), parameter :: subname = "symmetry_set_irreductible_zone"
-      integer :: i_stat, nsym, i_all, i_third
+      integer :: i_stat, nsym, i_third
+!!$      integer :: i_all
       integer, dimension(:,:,:), allocatable :: irrzon
       real(dp), dimension(:,:,:), allocatable :: phnons
 
@@ -415,17 +420,19 @@ module module_atoms
     END SUBROUTINE set_symmetry_data
 
 
-
     ! allocations, and setters
+
+
     !> Read atomic file
     subroutine set_astruct_from_file(file,iproc,astruct,status,comment,energy,fxyz)
       use module_base
       use m_ab6_symmetry
       !use position_files
       implicit none
-      character(len=*), intent(in) :: file
+      !Arguments
+      character(len=*), intent(in) :: file  !< File name containing the atomic positions
       integer, intent(in) :: iproc
-      type(atomic_structure), intent(inout) :: astruct
+      type(atomic_structure), intent(inout) :: astruct !< Contains all info
       integer, intent(out), optional :: status
       real(gp), intent(out), optional :: energy
       real(gp), dimension(:,:), pointer, optional :: fxyz
@@ -447,7 +454,7 @@ module module_atoms
       if (present(status)) status = 0
       nullify(fxyz_)
 
-      ! Extract from archive
+      ! Extract from archive (posout_)
       if (index(file, "posout_") == 1 .or. index(file, "posmd_") == 1) then
          write(arFile, "(A)") "posout.tar.bz2"
          if (index(file, "posmd_") == 1) write(arFile, "(A)") "posmd.tar.bz2"
@@ -494,8 +501,9 @@ module module_atoms
       if (.not. file_exists) then
          inquire(FILE = file//'.yaml', EXIST = file_exists)
          if (file_exists) then
-            write(filename, "(A)") file//'.yaml'!"posinp.ascii"
+            write(filename, "(A)") file//'.yaml'!"posinp.yaml
             write(astruct%inputfile_format, "(A)") "yaml"
+            ! Pb if toto.yaml because means that there is no key posinp!!
          end if
       end if
       ! Test the name directly
@@ -553,10 +561,10 @@ module module_atoms
          else
             call read_ascii_positions(i_stat,99,astruct,comment_,energy_,fxyz_,archiveGetLine)
          end if
-      else if (astruct%inputfile_format == "yaml") then
-         !read atomic positions
-         write(*,*) "Atomic input file in YAML not yet supported, call 'set_astruct_from_dict()' instead."
-         stop
+      else if (astruct%inputfile_format == "yaml" .and. index(file,'posinp') /= 0) then
+         ! Pb if toto.yaml because means that there is already no key posinp in the file toto.yaml!!
+         call f_err_throw("Atomic input file in YAML not yet supported, call 'set_astruct_from_dict()' instead.",&
+              err_name='BIGDFT_RUNTIME_ERROR')
       end if
 
       !Check the number of atoms
@@ -606,8 +614,8 @@ module module_atoms
     END SUBROUTINE set_astruct_from_file
 
 
-    !> allocate the astruct variable from the dictionary of input data
-    !retrieve also other information like the energy and the forces if requested
+    !> Allocate the astruct variable from the dictionary of input data
+    !! retrieve also other information like the energy and the forces if requested
     !! and presend in the dictionary
     subroutine set_astruct_from_dict(dict, astruct, comment, energy, fxyz)
       use module_defs, only: gp, Bohr_Ang, UNINITIALIZED
@@ -629,7 +637,7 @@ module module_atoms
       character(len=*), parameter :: subname='astruct_set_from_dict'
       type(dictionary), pointer :: pos, at
       character(len = max_field_length) :: str
-      integer :: iat, ityp, units, igspin, igchrg, nsgn, ntyp
+      integer :: iat, ierr, ityp, units, igspin, igchrg, nsgn, ntyp
       character(len=20), dimension(100) :: atomnames
 
       call nullify_atomic_structure(astruct)
@@ -691,7 +699,7 @@ module module_atoms
             str = dict_key(at)
             if (trim(str) == "Frozen") then
                str = dict_value(at)
-               call frozen_ftoi(str(1:4), astruct%ifrztyp(iat))
+               call frozen_ftoi(str(1:4), astruct%ifrztyp(iat),ierr)
             else if (trim(str) == "IGSpin") then
                igspin = at
             else if (trim(str) == "IGChg") then
@@ -767,11 +775,12 @@ module module_atoms
          if (has_key(pos, "Format")) astruct%inputfile_format = pos // "Format"
       end if
 
-    end subroutine set_astruct_from_dict
+    END SUBROUTINE set_astruct_from_dict
+
 
     include 'astruct-inc.f90'
 
-    !> terminate the allocation of the memory in the pointers of atoms
+    !> Terminate the allocation of the memory in the pointers of atoms
     subroutine allocate_atoms_data(atoms)
       implicit none
       type(atoms_data), intent(inout) :: atoms
@@ -781,7 +790,8 @@ module module_atoms
       call allocate_atoms_ntypes(atoms)
     end subroutine allocate_atoms_data
 
-end module module_atoms
+END MODULE module_atoms
+
 
 !> Allocation of the arrays inside the structure atoms_data, considering the part which is associated to astruct%nat
 !! this routine is external to the module as it has to be called from C
@@ -816,6 +826,7 @@ subroutine astruct_set_n_atoms(astruct, nat)
 
   if (astruct%nat > 0) call to_zero(3 * astruct%nat, astruct%rxyz(1,1))
 END SUBROUTINE astruct_set_n_atoms
+
 
 !> allocation of the memoey space associated to the number of types astruct%ntypes
 subroutine astruct_set_n_types(astruct, ntypes)
@@ -855,6 +866,7 @@ subroutine astruct_set_from_file(lstat, astruct, filename)
   lstat = (status == 0)
 END SUBROUTINE astruct_set_from_file
 
+
 !> Calculate the symmetries and update
 subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
   use module_base
@@ -870,10 +882,15 @@ subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
   !local variables
   character(len=*), parameter :: subname='astruct_set_symmetries'
   integer :: i_stat, ierr, i_all
-  real(gp) :: rprimd(3, 3)
+  real(gp), dimension(3,3) :: rprimd
   real(gp), dimension(:,:), allocatable :: xRed
+  integer, dimension(3, 3, AB6_MAX_SYMMETRIES) :: sym
+  integer, dimension(AB6_MAX_SYMMETRIES) :: symAfm
+  real(gp), dimension(3, AB6_MAX_SYMMETRIES) :: transNon
+  real(gp), dimension(3) :: genAfm
+  integer :: spaceGroupId, pointGroupMagn
 
-  ! Calculate the symmetries, if needed
+  ! Calculate the symmetries, if needed (for periodic systems only)
   if (astruct%geocode /= 'F') then
      if (astruct%sym%symObj < 0) then
         call symmetry_new(astruct%sym%symObj)
@@ -920,14 +937,27 @@ subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
      end if
      if (disableSym) then
         call symmetry_set_n_sym(astruct%sym%symObj, 1, &
-             & reshape((/ 1, 0, 0, 0, 1, 0, 0, 0, 1 /), (/ 3 ,3, 1 /)), &
-             & reshape((/ 0.d0, 0.d0, 0.d0 /), (/ 3, 1/)), (/ 1 /), ierr)
+          & reshape((/ 1, 0, 0, 0, 1, 0, 0, 0, 1 /), (/ 3 ,3, 1 /)), &
+          & reshape((/ 0.d0, 0.d0, 0.d0 /), (/ 3, 1/)), (/ 1 /), ierr)
      end if
   else
      call deallocate_symmetry_data(astruct%sym)
      astruct%sym%symObj = -1
   end if
+
+  ! Generate symmetries for atoms
+  if (.not. disableSym) then
+     call symmetry_get_matrices(astruct%sym%symObj, astruct%sym%nSym, sym, transNon, symAfm, ierr)
+     call symmetry_get_group(astruct%sym%symObj, astruct%sym%spaceGroup, &
+          & spaceGroupId, pointGroupMagn, genAfm, ierr)
+     if (ierr == AB6_ERROR_SYM_NOT_PRIMITIVE) write(astruct%sym%spaceGroup, "(A)") "not prim."
+  else 
+     astruct%sym%nSym = 0
+     astruct%sym%spaceGroup = 'disabled'
+  end if
+
 END SUBROUTINE astruct_set_symmetries
+
 
 !> Allocation of the arrays inside the structure atoms_data
 subroutine allocate_atoms_nat(atoms)
@@ -990,6 +1020,8 @@ END SUBROUTINE allocate_atoms_ntypes
 
 
 ! Init and free routines
+
+
 !> Allocate a new atoms_data type, for bindings.
 subroutine atoms_new(atoms)
   use module_atoms, only: atoms_data,nullify_atoms_data
@@ -1002,6 +1034,7 @@ subroutine atoms_new(atoms)
   call nullify_atoms_data(intern)
   atoms => intern
 END SUBROUTINE atoms_new
+
 
 !> Free an allocated atoms_data type.
 subroutine atoms_free(atoms)

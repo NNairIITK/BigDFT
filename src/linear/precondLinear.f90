@@ -1,62 +1,48 @@
 !> @file
+!! Solve the preconditioning equation for the linear version
 !! @author
-!!    Copyright (C) 2011-2012 BigDFT group
+!!    Copyright (C) 2011-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
+
 !> Solves the preconditioning equation by conjugate gradient iterations.
 !! The equation reads ( kin.energy + cprecr*Id + potentialPrefac*(r-r0)^4 )x=y
 !! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method.
 !! x is the right hand side on input and the solution on output
-!! 
-!! Calling arguments:
-!! ==================
-!!   Input arguments:
-!!   ----------------   
-!!     lr               type describing the localization region
-!!     ncplx            real or complex??
-!!     ncong            number of CG iterations
-!!     cprecr           preconditioning constant
-!!     hx               hgrid in x direction
-!!     hy               hgrid in y direction
-!!     hz               hgrid in z direction
-!!     kx               kpoints in x direction?
-!!     ky               kpoints in y direction?
-!!     kz               kpoints in z direction?
-!!     rxyzParab        the center of the confinement potential
-!!     orbs             type describing the orbitals
-!!     potentialPrefac  prefactor for the confinement potential
-!!     it               delete later??
-!!   Input / Output arguments:
-!!   -------------------------
-!!     x                on input: the right hand side of the equation (i.e. y)
-!!                      on output: the solution of the equation (i.e. x)
 subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
      hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder)
 
-use module_base
-use module_types
+   use module_base
+   use module_types
 
-implicit none
-integer, intent(in) :: iproc,nproc,ncong,ncplx,confPotOrder
-real(gp), intent(in) :: hx,hy,hz,cprecr,kx,ky,kz
-type(locreg_descriptors), intent(in) :: lr
-real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(inout) :: x
-real(8),dimension(3),intent(in):: rxyzParab
-type(orbitals_data), intent(in):: orbs
-real(8):: potentialPrefac
+   implicit none
+   integer, intent(in) :: iproc,nproc
+   integer, intent(in) :: ncong                !> number of CG iterations
+   integer, intent(in) :: ncplx                !> real or complex??
+   integer, intent(in) :: confPotOrder         
+   real(gp), intent(in) :: hx,hy,hz            !> hgrid in x, y and z direction
+   real(gp), intent(in) :: cprecr              !> preconditioning constant
+   real(gp), intent(in) :: kx,ky,kz            !> kpoints in x, y and z direction
+   type(locreg_descriptors), intent(in) :: lr  !> Type describing the localization region
+   !> on input: the right hand side of the equation (i.e. y)
+   !! on output: the solution of the equation (i.e. x)
+   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(inout) :: x
+   real(kind=8), dimension(3), intent(in) :: rxyzParab !> the center of the confinement potential
+   type(orbitals_data), intent(in) :: orbs     !> type describing the orbitals
+   real(kind=8) :: potentialPrefac             !> prefactor for the confinement potential
 
-! Local variables
-character(len=*), parameter :: subname='precondition_residue'
-real(gp), dimension(0:7) :: scal
-real(wp) :: rmr_old,rmr_new,alpha,beta
-integer :: i_stat,i_all,icong
-type(workarr_precond) :: w
-real(wp), dimension(:), allocatable :: b,r,d
-logical:: with_confpot
-type(workarrays_quartic_convolutions):: work_conv
+   ! Local variables
+   character(len=*), parameter :: subname='precondition_residue'
+   real(gp), dimension(0:7) :: scal
+   real(wp) :: rmr_old,rmr_new,alpha,beta
+   integer :: i_stat,i_all,icong
+   type(workarr_precond) :: w
+   real(wp), dimension(:), allocatable :: b,r,d
+   logical:: with_confpot
+   type(workarrays_quartic_convolutions):: work_conv
 
   !arrays for the CG procedure
   allocate(b(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug),stat=i_stat)
@@ -216,11 +202,11 @@ END SUBROUTINE differentiateBetweenBoundaryConditions
 
 
 
-!>   WRONG DESCRIPTION
-!!   This subroutine uncompresses the wave function, applies the operators on it, 
-!!   and compresses it again. The operators are: kinetic energy + cprec*Id + r^4.
-!!   Here cprecr is a constant and r^4 is the confinement potential of the form
-!!   lin%potentialPrefac*[(x-x0)^4 + (y-y0)^4 + (z-z0)^4]
+!> WRONG DESCRIPTION
+!! This subroutine uncompresses the wave function, applies the operators on it, 
+!! and compresses it again. The operators are: kinetic energy + cprec*Id + r^4.
+!! Here cprecr is a constant and r^4 is the confinement potential of the form
+!! lin%potentialPrefac*[(x-x0)^4 + (y-y0)^4 + (z-z0)^4]
 subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1, ns2, ns3, &
      nseg_c,nvctr_c,keyg_c,keyv_c,nseg_f,nvctr_f,keyg_f,keyv_f, &
      scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
@@ -312,124 +298,3 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
 END SUBROUTINE applyOperator
 
 
-!>   Preconditions all orbitals belonging to iproc.
-!!  
-!! Calling arguments:
-!! ==================
-!!   Input arguments:
-!!   ----------------
-!!     iproc     process ID
-!!     nproc     total number of processes
-!!     orbs      type describing the physical orbitals psi
-!!     lin       type containing parameters for the linear version
-!!     lr        type describing the localization region
-!!     hx        grid spacing in x direction
-!!     hy        grid spacing in y direction
-!!     hz        grid spacing in z direction
-!!     ncong     number of CG iterations 
-!!     rxyz      the center of the confinement potential
-!!     at        type containing the paraneters for the atoms
-!!     it        iteration -- delete maybe??
-!!  Input/Output arguments
-!!  ---------------------
-!!     hpsi      the gradient to be preconditioned
-subroutine choosePreconditioner2(iproc, nproc, orbs, lr, hx, hy, hz, ncong, hpsi, &
-           confpotorder, potentialprefac, iorb, eval_zero)
-
-use module_base
-use module_types
-
-implicit none
-integer, intent(in) :: iproc,nproc,ncong, iorb, confpotorder
-real(gp), intent(in) :: hx,hy,hz
-type(locreg_descriptors), intent(in) :: lr
-type(orbitals_data), intent(in) :: orbs
-real(8),intent(in):: potentialprefac
-!real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
-real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
-real(8),intent(in):: eval_zero
-!local variables
-integer :: inds, ncplx, iiAt!,ikpt,ierr
-real(wp) :: cprecr!,scpr,eval_zero,evalmax 
-real(gp) :: kx,ky,kz
-
-
-
-   !!evalmax=orbs%eval(orbs%isorb+1)
-   !!do iorb=1,orbs%norbp
-   !!  evalmax=max(orbs%eval(orbs%isorb+iorb),evalmax)
-   !!enddo
-   !!call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
-   !!     MPI_MAX,bigdft_mpi%mpi_comm,ierr)
-
-
-  !do iorb=1,orbs%norbp
-!     ! define zero energy for preconditioning 
-!     eval_zero=max(orbs%eval(orbs%norb),0.d0)  !  Non-spin pol
-!     if (orbs%spinsgn(orbs%isorb+iorb) > 0.0_gp) then    !spin-pol
-!        eval_zero=max(orbs%eval(orbs%norbu),0.d0)  !up orbital
-!     else if (orbs%spinsgn(orbs%isorb+iorb) < 0.0_gp) then
-!        eval_zero=max(orbs%eval(orbs%norbu+orbs%norbd),0.d0)  !down orbital
-!     end if
-     !indo=(iorb-1)*nspinor+1
-     !loop over the spinorial components
-     !k-point values, if present
-     kx=orbs%kpts(1,orbs%iokpt(iorb))
-     ky=orbs%kpts(2,orbs%iokpt(iorb))
-     kz=orbs%kpts(3,orbs%iokpt(iorb))
-
-     !real k-point different from Gamma still not implemented
-     if (kx**2+ky**2+kz**2 > 0.0_gp .or. orbs%nspinor==2 ) then
-        ncplx=2
-     else
-        ncplx=1
-     end if
-
-     do inds=1,orbs%nspinor,ncplx
-        
-        select case(lr%geocode)
-        case('F')
-           cprecr=sqrt(.2d0**2+min(0.d0,orbs%eval(orbs%isorb+iorb))**2)
-        case('S')
-           cprecr=sqrt(0.2d0**2+(orbs%eval(orbs%isorb+iorb)-eval_zero)**2)
-        case('P')
-           cprecr=sqrt(0.2d0**2+(orbs%eval(orbs%isorb+iorb)-eval_zero)**2)
-        end select
-
-        !cases with no CG iterations, diagonal preconditioning
-        !for Free BC it is incorporated in the standard procedure
-        if (ncong == 0 .and. lr%geocode /= 'F') then
-           select case(lr%geocode)
-           case('F')
-           case('S')
-              call prec_fft_slab(lr%d%n1,lr%d%n2,lr%d%n3, &
-                   lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
-                   lr%wfd%nvctr_f,lr%wfd%keygloc,lr%wfd%keyvloc, &
-                   cprecr,hx,hy,hz,hpsi(1,inds))
-           case('P')
-              call prec_fft(lr%d%n1,lr%d%n2,lr%d%n3, &
-                   lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                   lr%wfd%keygloc,lr%wfd%keyvloc, &
-                   cprecr,hx,hy,hz,hpsi(1,inds))
-           end select
-
-        else !normal preconditioner
-
-           ! iiAt indicates on which atom orbital iorb is centered.
-           !iiAt=lin%onWhichAtom(iorb)
-           !iiAt=lin%orbs%inWhichLocregp(iorb)
-           iiAt=orbs%inWhichLocreg(orbs%isorb+iorb)
-!!!call solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
-!!!     hx,hy,hz,kx,ky,kz,hpsi(1,inds), rxyz(1,iiAt), orbs,&
-!!!     potentialPrefac, confPotOrder, it)
-              !!write(*,*) 'cprecr',cprecr
-           call solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
-                hx,hy,hz,kx,ky,kz,hpsi(1,inds), lr%locregCenter(1), orbs,&
-                   potentialPrefac, confPotOrder)
-
-        end if
-
-     end do
-  !enddo
-
-END SUBROUTINE choosePreconditioner2

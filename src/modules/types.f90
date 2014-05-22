@@ -18,12 +18,13 @@ module module_types
   use module_xc, only : xc_info
   use gaussians, only: gaussian_basis
   use Poisson_Solver, only: coulomb_operator
-  use dictionaries, only: dictionary
+  use dictionaries, only: dictionary, max_field_length
   use locregs
   use psp_projectors
   use module_atoms, only: atoms_data,symmetry_data,atomic_structure
   use communications_base, only: comms_linear, comms_cubic
-  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_base, only: matrices, sparse_matrix
+  use foe_base, only: foe_data
 
   implicit none
 
@@ -46,16 +47,16 @@ module module_types
   integer, parameter :: INPUT_PSI_RANDOM       = -2     !< Input Random PSI
   integer, parameter :: INPUT_PSI_CP2K         = -1     !< Input PSI coming from cp2k
   integer, parameter :: INPUT_PSI_LCAO         = 0      !< Input PSI coming from Localised ATomic Orbtials
-  integer, parameter :: INPUT_PSI_MEMORY_WVL   = 1
-  integer, parameter :: INPUT_PSI_DISK_WVL     = 2
+  integer, parameter :: INPUT_PSI_MEMORY_WVL   = 1      !< Input PSI from memory
+  integer, parameter :: INPUT_PSI_DISK_WVL     = 2      !< Input PSI from disk (wavelet coefficients)
   integer, parameter :: INPUT_PSI_LCAO_GAUSS   = 10
   integer, parameter :: INPUT_PSI_MEMORY_GAUSS = 11
   integer, parameter :: INPUT_PSI_DISK_GAUSS   = 12
-  integer, parameter :: INPUT_PSI_LINEAR_AO    = 100
-  integer, parameter :: INPUT_PSI_MEMORY_LINEAR= 101
+  integer, parameter :: INPUT_PSI_LINEAR_AO    = 100    !< Input PSI from Atomic Orbital for linear
+  integer, parameter :: INPUT_PSI_MEMORY_LINEAR= 101    !< Input PSI for linear in memory
   integer, parameter :: INPUT_PSI_DISK_LINEAR  = 102
 
-  !> All possible values of input psi (determnitation of the input guess)
+  !> All possible values of input psi (determination of the input guess)
   integer, dimension(12), parameter :: input_psi_values = &
        (/ INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, &
        INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, INPUT_PSI_DISK_WVL, &
@@ -90,12 +91,12 @@ module module_types
           "ETSF", &
           "cube" /)
 
-  !> SCF mixing parameters. (mixing parameters to be added)
+  !> SCF mixing parameters (@todo mixing parameters to be added).
   integer, parameter :: SCF_KIND_GENERALIZED_DIRMIN = -1
   integer, parameter :: SCF_KIND_DIRECT_MINIMIZATION = 0
 
   !> Function to determine the occupation numbers
-  integer, parameter :: SMEARING_DIST_ERF   = 1  !< tends to 0 and 1 faster \f$1/2\left[1-erf\left(\frac{E-\mu}{\delta E}\right)\right]\f$
+  integer, parameter :: SMEARING_DIST_ERF   = 1  !< Tends to 0 and 1 faster \f$1/2\left[1-erf\left(\frac{E-\mu}{\delta E}\right)\right]\f$
   integer, parameter :: SMEARING_DIST_FERMI = 2  !< Normal Fermi distribution i.e.\f$\frac{1}{1+e^{E-\mu}/k_BT}\f$
   integer, parameter :: SMEARING_DIST_COLD1 = 3  !< Marzari's cold smearing with a=-.5634 (bumb minimization)
   integer, parameter :: SMEARING_DIST_COLD2 = 4  !< Marzari's cold smearing with a=-.8165 (monotonic tail)
@@ -151,10 +152,13 @@ module module_types
      !!   methOrtho==1 -> combined block wise classical Gram-Schmidt and Cholesky
      !!   methOrtho==2 -> Loewdin
      integer :: methOrtho
-     real(gp) :: iguessTol           !< Gives the tolerance to which the input guess will converged (maximal residue of all orbitals).
-     integer :: methTransformOverlap, nItOrtho, blocksize_pdsyev, blocksize_pdgemm, nproc_pdsyev
+     real(gp) :: iguessTol            !< Gives the tolerance to which the input guess will converged (maximal residue of all orbitals).
+     integer :: blocksize_pdsyev      !< Size of the block for the Scalapack routine pdsyev (computes eigenval and vectors)
+     integer :: blocksize_pdgemm      !< Size of the block for the Scalapack routine pdgemm
+     integer :: nproc_pdsyev          !< Number of proc for the Scalapack routine pdsyev (linear version)
   end type orthon_data
 
+  !> Self-Interaction Correction data
   type, public :: SIC_data
      character(len=4) :: approach !< Approach for the Self-Interaction-Correction (PZ, NK)
      integer :: ixc               !< Base for the SIC correction
@@ -176,26 +180,32 @@ module module_types
   integer, parameter, public :: INPUTS_FRAG  = 512
 
   !> Contains all parameters related to the linear scaling version.
-  type,public:: linearInputParameters 
-    integer :: DIIS_hist_lowaccur, DIIS_hist_highaccur, nItPrecond
-    integer :: nItSCCWhenOptimizing, nItBasis_lowaccuracy, nItBasis_highaccuracy
-    integer :: mixHist_lowaccuracy, mixHist_highaccuracy
+  type, public :: linearInputParameters 
+    integer :: DIIS_hist_lowaccur
+    integer :: DIIS_hist_highaccur
+    integer :: nItPrecond
+    integer :: nItSCCWhenOptimizing
+    integer :: nItBasis_lowaccuracy
+    integer :: nItBasis_highaccuracy
+    integer :: mixHist_lowaccuracy
+    integer :: mixHist_highaccuracy
     integer :: dmin_hist_lowaccuracy, dmin_hist_highaccuracy
-    integer :: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
+    integer :: blocksize_pdgemm, blocksize_pdsyev
     integer :: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm
     integer :: nit_lowaccuracy, nit_highaccuracy, nItdmin_lowaccuracy, nItdmin_highaccuracy
     integer :: nItSCCWhenFixed_lowaccuracy, nItSCCWhenFixed_highaccuracy
-    real(kind=8) :: convCrit_lowaccuracy, convCrit_highaccuracy, alphaSD, alphaDIIS, evlow, evhigh, ef_interpol_chargediff
+    real(kind=8) :: convCrit_lowaccuracy, convCrit_highaccuracy
+    real(kind=8) :: alphaSD, alphaDIIS, evlow, evhigh, ef_interpol_chargediff
     real(kind=8) :: alpha_mix_lowaccuracy, alpha_mix_highaccuracy, reduce_confinement_factor, ef_interpol_det
     integer :: plotBasisFunctions
-    real(kind=8) ::  fscale, deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
+    real(kind=8) :: fscale, deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
     real(kind=8) :: lowaccuracy_conv_crit, convCritMix_lowaccuracy, convCritMix_highaccuracy
     real(kind=8) :: highaccuracy_conv_crit, support_functions_converged, alphaSD_coeff
     real(kind=8) :: convCritDmin_lowaccuracy, convCritDmin_highaccuracy
     real(kind=8), dimension(:), pointer :: locrad, locrad_lowaccuracy, locrad_highaccuracy, kernel_cutoff_FOE
     real(kind=8), dimension(:,:), pointer :: locrad_type
     real(kind=8), dimension(:), pointer :: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy, potentialPrefac_ao
-    real(kind=8), dimension(:),pointer :: kernel_cutoff, locrad_kernel
+    real(kind=8), dimension(:),pointer :: kernel_cutoff, locrad_kernel, locrad_mult
     real(kind=8) :: early_stop, gnrm_dynamic, min_gnrm_for_dynamic
     integer, dimension(:), pointer :: norbsPerType
     integer :: kernel_mode, mixing_mode
@@ -205,13 +215,15 @@ module module_types
     integer :: extra_states, order_taylor
   end type linearInputParameters
 
-  type,public:: fragmentInputParameters
-    integer :: nfrag_ref, nfrag
-    integer, dimension(:), pointer :: frag_index ! array matching system fragments to reference fragments
-    real(kind=8), dimension(:), pointer :: charge ! array giving the charge on each fragment for constrained DFT calculations
-    !integer, dimension(:,:), pointer :: frag_info !array giving number of atoms in fragment and environment for reference fragments
-    character(len=100), dimension(:), pointer :: label ! array of fragment names
-    character(len=100), dimension(:), pointer :: dirname ! array of fragment directories, blank if not a fragment calculation
+  !> Contains all parameters for the calculation of the fragments
+  type, public :: fragmentInputParameters
+    integer :: nfrag_ref
+    integer :: nfrag
+    integer, dimension(:), pointer :: frag_index         !< Array matching system fragments to reference fragments
+    real(kind=8), dimension(:), pointer :: charge        !< Array giving the charge on each fragment for constrained DFT calculations
+    !integer, dimension(:,:), pointer :: frag_info       !< Array giving number of atoms in fragment and environment for reference fragments
+    character(len=100), dimension(:), pointer :: label   !< Array of fragment names
+    character(len=100), dimension(:), pointer :: dirname !< Array of fragment directories, blank if not a fragment calculation
   end type fragmentInputParameters
 
 
@@ -226,61 +238,96 @@ module module_types
      !! values 0: traditional CPU calculation
      !!        1: CUDA acceleration with CUBLAS
      !!        2: OpenCL acceleration (with CUBLAS one day)
+     !!        3: OpenCL accelearation for CPU
+     !!        4: OCLACC (OpenCL both ? see input_variables.f90)
      integer :: iacceleration
-     integer :: Psolver_igpu !< acceleration of the Poisson solver
-     character(len=11) :: OCL_platform
-     character(len=11) :: OCL_devices
+     integer :: Psolver_igpu            !< Acceleration of the Poisson solver
+     character(len=11) :: OCL_platform  !< Name of the OpenCL platform
+     character(len=11) :: OCL_devices   !< Name of the OpenCL devices
   end type material_acceleration
 
 
   !> Structure of the variables read by input.* files (*.dft, *.geopt...)
   type, public :: input_variables
-     !strings of the input files
-     character(len=100) :: file_occnum,file_igpop,file_lin,file_frag
-     character(len=100) :: dir_output !< Strings of the directory which contains all data output files
-     character(len=100) :: run_name   !< Contains the prefix (by default input) used for input files as input.dft
-     integer :: files                 !< Existing files.
-     !miscellaneous variables
+
+     !> Strings of the input files
+     character(len=100) :: file_occnum !< Occupation number (input)
+     character(len=100) :: file_igpop
+     character(len=100) :: file_lin   
+     character(len=100) :: file_frag   !< Fragments
+     character(len=max_field_length) :: dir_output  !< Strings of the directory which contains all data output files
+     character(len=max_field_length) :: run_name    !< Contains the prefix (by default input) used for input files as input.dft
+     integer :: files                  !< Existing files.
+
+     !> Miscellaneous variables
      logical :: gaussian_help
      integer :: itrpmax
-     integer :: iscf,norbsempty,norbsuempty,norbsdempty, occopt
+     integer :: iscf
+     integer :: norbsempty
+     integer :: norbsuempty,norbsdempty
+     integer :: occopt
      integer :: last_run
      real(gp) :: frac_fluct,gnrm_sw,alphamix,Tel, alphadiis
-     real(gp) :: rpnrm_cv,gnrm_startmix
-     integer :: verbosity
-     ! DFT basic parameters.
-     integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol
-     integer :: norbv,nvirt,nplot
-     integer :: output_denspot,dispersion,output_wf_format,output_denspot_format
-     real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf
-     real(gp) :: elecfield(3)
-     logical :: disableSym
+     real(gp) :: rpnrm_cv
+     real(gp) :: gnrm_startmix
+     integer :: verbosity   !< Verbosity of the output file
 
-     ! For absorption calculations
+     !> DFT basic parameters.
+     integer :: ixc         !< XC functional Id
+     integer :: ncharge     !< Total charge of the system
+     integer :: itermax     !< Maximal number of SCF iterations
+     integer :: nrepmax
+     integer :: ncong       !< Number of conjugate gradient iterations for the preconditioner
+     integer :: idsx        !< DIIS history
+     integer :: ncongt      !< Number of conjugate garident for the tail treatment
+     integer :: inputpsiid  !< Input PSI choice
+     integer :: nspin       !< Spin components (no spin 1, collinear 2, non collinear 4)
+     integer :: mpol        !< Total spin polarisation of the system
+     integer :: norbv
+     integer :: nvirt
+     integer :: nplot
+     integer :: output_denspot        !< 0= No output, 1= density, 2= density+potential
+     integer :: dispersion            !< Dispersion term
+     integer :: output_wf_format      !< Output Wavefunction format
+     integer :: output_denspot_format !< Format for the output density and potential
+     real(gp) :: hx,hy,hz   !< Step grid parameter (hgrid)
+     real(gp) :: crmult     !< Coarse radius multiplier
+     real(gp) :: frmult     !< Fine radius multiplier
+     real(gp) :: gnrm_cv    !< Convergence parameters of orbitals
+     real(gp) :: rbuf       !< buffer for tail treatment
+     real(gp), dimension(3) :: elecfield   !< Electric Field vector
+     logical :: disableSym                 !< .true. disable symmetry
+
+     !> For absorption calculations
      integer :: iabscalc_type   !< 0 non calc, 1 cheb ,  2 lanc
      !! integer :: iat_absorber, L_absorber, N_absorber, rpower_absorber, Linit_absorber
      integer :: iat_absorber,  L_absorber
-     real(gp), pointer :: Gabs_coeffs(:)
+     real(gp), dimension(:), pointer :: Gabs_coeffs
      real(gp) :: abscalc_bottomshift
-     logical ::  c_absorbtion , abscalc_alterpot, abscalc_eqdiff,abscalc_S_do_cg, abscalc_Sinv_do_cg
+     logical ::  c_absorbtion
+     logical ::  abscalc_alterpot
+     logical ::  abscalc_eqdiff
+     logical ::  abscalc_S_do_cg
+     logical ::  abscalc_Sinv_do_cg
      integer ::  potshortcut
      integer ::  nsteps
      character(len=100) :: extraOrbital
      character(len=1000) :: xabs_res_prefix
    
-     ! Frequencies calculations (finite difference)
+     !> Frequencies calculations (finite difference)
      real(gp) :: freq_alpha  !< Factor for the finite difference step (step = alpha * hgrid)
      integer :: freq_order   !< Order of the finite difference scheme
      integer :: freq_method  !< Method to calculate the frequencies
 
-     ! kpoints related input variables
-     ! generated results
-     integer :: gen_nkpt
-     real(gp), pointer :: gen_kpt(:,:), gen_wkpt(:)
-     ! Band structure path
-     integer :: nkptv,ngroups_kptv
+     !> kpoints related input variables
+     integer :: gen_nkpt                            !< K points to generate the results
+     real(gp), dimension(:,:), pointer :: gen_kpt   !< K points coordinates
+     real(gp), dimension(:), pointer :: gen_wkpt    !< Weights of k points
+     !> Band structure path
+     integer :: nkptv
+     integer :: ngroups_kptv
      integer, dimension(:), pointer :: nkptsv_group
-     real(gp), pointer :: kptv(:,:)
+     real(gp), dimension(:,:), pointer :: kptv
      character(len=100) :: band_structure_filename
 
      ! Orbitals and input occupation.
@@ -289,20 +336,20 @@ module module_types
 
      ! Geometry variables from *.geopt
      character(len=10) :: geopt_approach !<id of geopt driver
-     integer :: ncount_cluster_x !< Maximum number of geopt steps 
-     integer :: wfn_history !< number of previous steps saved for wfn reformatting
-     integer :: history !< History of DIIS method
+     integer :: ncount_cluster_x         !< Maximum number of geopt steps 
+     integer :: wfn_history              !< Number of previous steps saved for wfn reformatting
+     integer :: history                  !< History of DIIS method
      real(gp) :: betax,forcemax,randdis
      integer :: optcell, ionmov, nnos
-     real(gp) :: dtion, mditemp, mdftemp, noseinert, friction, mdwall
+     real(gp) :: dtion
+     real(gp) :: mditemp, mdftemp
+     real(gp) :: noseinert, friction, mdwall
      real(gp) :: bmass, vmass, strprecon, strfact
-     real(gp) :: strtarget(6)
-     real(gp), pointer :: qmass(:)
-     real(gp) :: dtinit,dtmax !for FIRE
-     ! tddft variables from *.tddft
-     character(len=10) :: tddft_approach
-     !variables for SIC
-     type(SIC_data) :: SIC !<parameters for the SIC methods
+     real(gp), dimension(6) :: strtarget
+     real(gp), dimension(:), pointer :: qmass
+     real(gp) :: dtinit, dtmax           !< For FIRE
+     character(len=10) :: tddft_approach !< TD-DFT variables from *.tddft
+     type(SIC_data) :: SIC               !< Parameters for the SIC methods
 
      ! Performance variables from input.perf
      logical :: debug      !< Debug option (used by memocc)
@@ -310,64 +357,47 @@ module module_types
      real(gp) :: projrad   !< Coarse radius of the projectors in units of the maxrad
      real(gp) :: symTol    !< Tolerance for symmetry detection.
      integer :: linear
-     logical :: signaling  !< Expose results on DBus or Inet.
-     integer :: signalTimeout !< Timeout for inet connection.
-     character(len = 64) :: domain !< Domain to get the IP from hostname.
-     character(len=500) :: writing_directory !< absolute path of the local directory to write the data on
-     double precision :: gmainloop !< Internal C pointer on the signaling structure.
-     integer :: inguess_geopt !< 0= Wavelet input guess, 1 = real space input guess 
+     logical :: signaling                    !< Expose results on DBus or Inet.
+     integer :: signalTimeout                !< Timeout for inet connection.
+     character(len = 64) :: domain           !< Domain to get the IP from hostname.
+     character(len=500) :: writing_directory !< Absolute path of the local directory to write the data on
+     double precision :: gmainloop           !< Internal C pointer on the signaling structure.
+     integer :: inguess_geopt                !< 0= Wavelet input guess, 1 = real space input guess 
 
-     !orthogonalisation data
+     !> Orthogonalisation data
      type(orthon_data) :: orthpar
-  
-     !linear scaling data
-     type(linearInputParameters) :: lin
-
-     !fragment data
-     type(fragmentInputParameters) :: frag
-
-     !acceleration parameters
+ 
+     !> Acceleration parameters
      type(material_acceleration) :: matacc
 
-     !> parallelisation scheme of the exact exchange operator
+     ! Parallelisation parameters
+     !> Parallelisation scheme of the exact exchange operator
      !!   BC (Blocking Collective)
      !!   OP2P (Overlap Point-to-Point)
      character(len=4) :: exctxpar
-
-     !> paradigm for unblocking global communications via OMP_NESTING
+     !> Paradigm for unblocking global communications via OMP_NESTING
      character(len=3) :: unblock_comms
-
-     !> communication scheme for the density
-     !!  DBL traditional scheme with double precision
-     !!  MIX mixed single-double precision scheme (requires rho_descriptors)
+     !> Communication scheme for the density
+     !!   DBL traditional scheme with double precision
+     !!   MIX mixed single-double precision scheme (requires rho_descriptors)
      character(len=3) :: rho_commun
-     !> number of taskgroups for the poisson solver
+     !> Number of taskgroups for the poisson solver
      !! works only if the number of MPI processes is a multiple of it
      integer :: PSolver_groupsize
-     
      !> Global MPI group size (will be written in the mpi_environment)
      ! integer :: mpi_groupsize 
 
-     !> linear scaling: store indices of the sparse matrices or recalculate them 
-     logical :: store_index
+     ! Linear scaling parameters
+     type(linearInputParameters) :: lin    !< Linear scaling data
+     type(fragmentInputParameters) :: frag !< Fragment data
+     logical :: store_index                !< (LS) Store indices of the sparse matrices or recalculate them 
+     integer :: check_sumrho               !< (LS) Perform a check of sumrho (no check, light check or full check)
+     logical :: experimental_mode          !< (LS) Activate the experimental mode
+     logical :: write_orbitals             !< (LS) Write KS orbitals for cubic restart
+     logical :: explicit_locregcenters     !< (LS) Explicitely specify localization centers
+     logical :: calculate_KS_residue       !< (LS) Calculate Kohn-Sham residue
+     logical :: intermediate_forces        !< (LS) Calculate intermediate forces
 
-     !> linear scaling: perform a check of sumrho (no check, light check or full check)
-     integer :: check_sumrho
-
-     !>linear scaling: activate the experimental mode
-     logical :: experimental_mode
-
-     !> linear scaling: write KS orbitals for cubic restart
-     logical :: write_orbitals
-
-     !> linear scaling: explicitely specify localization centers
-     logical :: explicit_locregcenters
-
-     !> linear scaling: calculate Kohn-Sham residue
-     logical :: calculate_KS_residue
-     
-     !> linear scaling: calculate intermediate forces
-     logical :: intermediate_forces
 
      !> linear scaling: exit kappa for extended input guess (experimental mode)
      real(kind=8) :: kappa_conv
@@ -396,7 +426,17 @@ module module_types
      !> linear scaling: perform a check of the matrix compression routines
      logical :: check_matrix_compression
 
+     !> linear scaling: correction covariant / contravariant gradient
+     logical :: correction_co_contra
+     
+     !> linear scaling: lower bound for the error function decay length
+     real(kind=8) :: fscale_lowerbound
+
+     !> linear scaling: upper bound for the error function decay length
+     real(kind=8) :: fscale_upperbound
+
   end type input_variables
+
 
   !> Contains all energy terms
   type, public :: energy_terms
@@ -425,6 +465,7 @@ module module_types
      integer(kind = 8) :: c_obj = 0  !< Storage of the C wrapper object.
   end type energy_terms
 
+
   !> Memory estimation requirements
   type, public :: memory_estimation
      double precision :: submat
@@ -439,6 +480,7 @@ module module_types
      double precision :: peak
   end type memory_estimation
 
+
   !> Used to split between points to be treated in simple or in double precision
   type, public :: rho_descriptors
      character(len=1) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -449,15 +491,18 @@ module module_types
      integer, dimension(:), pointer :: cseg_b,fseg_b
   end type rho_descriptors
 
-!> Contains arguments needed for rho_local for WVL+PAW
 
+
+  !> Contains arguments needed for rho_local for WVL+PAW
   type, public :: rholoc_objects
-    integer ,pointer,dimension(:)    :: msz ! mesh size for local rho
-    real(gp),pointer,dimension(:,:,:) :: d! local rho and derivatives
-    real(gp),pointer,dimension(:,:)  :: rad!radial mesh for local rho
-    real(gp),pointer,dimension(:) :: radius !after this radius, rholoc is zero
+    integer , pointer, dimension(:)    :: msz ! mesh size for local rho
+    real(gp), pointer, dimension(:,:,:) :: d! local rho and derivatives
+    real(gp), pointer, dimension(:,:)  :: rad!radial mesh for local rho
+    real(gp), pointer, dimension(:) :: radius !after this radius, rholoc is zero
   end type rholoc_objects
 
+  
+  !> Define the structure used for the atomic positions
   !> Structure to store the density / potential distribution among processors.
   type, public :: denspot_distribution
      integer :: n3d,n3p,n3pi,i3xcsh,i3s,nrhodim,i3rho_add
@@ -528,14 +573,14 @@ module module_types
   end type GPU_pointers
 
   !> Contains all the descriptors necessary for splitting the calculation in different locregs 
-  type,public:: local_zone_descriptors
+  type, public :: local_zone_descriptors
      logical :: linear                         !< if true, use linear part of the code
      integer :: nlr                            !< Number of localization regions 
-     integer :: lintyp                         !< if 0 cubic, 1 locreg and 2 TMB
-     integer :: ndimpotisf                      !< total dimension of potential in isf (including exctX)
-     real(gp), dimension(3) :: hgrids          !<grid spacings of wavelet grid
+     integer :: lintyp                         !< If 0 cubic, 1 locreg and 2 TMB
+     integer :: ndimpotisf                     !< Total dimension of potential in isf (including exctX)
+     real(gp), dimension(3) :: hgrids          !< Grid spacings of wavelet grid
      type(locreg_descriptors) :: Glr           !< Global region descriptors
-     type(locreg_descriptors),dimension(:),pointer :: Llr                !< Local region descriptors (dimension = nlr)
+     type(locreg_descriptors), dimension(:), pointer :: Llr                !< Local region descriptors (dimension = nlr)
   end type local_zone_descriptors
 
   !> Contains the work arrays needed for expressing wavefunction in real space
@@ -568,93 +613,78 @@ module module_types
   end type workarr_precond
 
   !> Contains all parameters needed for point to point communication
-  type,public:: p2pComms
-    integer,dimension(:),pointer :: noverlaps
-    real(kind=8),dimension(:),pointer :: recvBuf
-    integer,dimension(:,:,:),pointer :: comarr
-    integer :: nrecvBuf, window
-    integer,dimension(:,:),pointer :: ise ! starting / ending index of recvBuf in x,y,z dimension after communication (glocal coordinates)
-    integer,dimension(:,:),pointer :: mpi_datatypes
+  type, public :: p2pComms
+    integer, dimension(:), pointer :: noverlaps
+    real(kind=8), dimension(:), pointer :: recvBuf
+    integer, dimension(:,:,:), pointer :: comarr
+    integer :: nrecvBuf
+    integer :: window
+    integer, dimension(:,:), pointer :: ise !< Starting / ending index of recvBuf in x,y,z dimension after communication (glocal coordinates)
+    integer, dimension(:,:), pointer :: mpi_datatypes
     logical :: communication_complete
   end type p2pComms
 
-  type,public :: foe_data
-    integer :: nseg
-    integer,dimension(:),pointer :: nsegline, istsegline
-    integer,dimension(:,:),pointer :: keyg
-    real(kind=8) :: ef !< Fermi energy for FOE
-    real(kind=8) :: evlow, evhigh !< eigenvalue bounds for FOE 
-    real(kind=8) :: bisection_shift !< bisection shift to find Fermi energy (FOE)
-    real(kind=8) :: fscale !< length scale for complementary error function (FOE)
-    real(kind=8) :: ef_interpol_det !<FOE: max determinant of cubic interpolation matrix
-    real(kind=8) :: ef_interpol_chargediff !<FOE: max charge difference for interpolation
-    real(kind=8) :: charge !total charge of the system
-    integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
-  end type foe_data
+  !!> Fermi Operator Expansion parameters
+  !type, public :: foe_data
+  !  integer :: nseg
+  !  integer,dimension(:),pointer :: nsegline, istsegline
+  !  integer,dimension(:,:),pointer :: keyg
+  !  real(kind=8) :: ef                     !< Fermi energy for FOE
+  !  real(kind=8) :: evlow, evhigh          !< Eigenvalue bounds for FOE 
+  !  real(kind=8) :: bisection_shift        !< Bisection shift to find Fermi energy (FOE)
+  !  real(kind=8) :: fscale                 !< Length scale for complementary error function (FOE)
+  !  real(kind=8) :: ef_interpol_det        !< FOE: max determinant of cubic interpolation matrix
+  !  real(kind=8) :: ef_interpol_chargediff !< FOE: max charge difference for interpolation
+  !  real(kind=8) :: charge                 !< Total charge of the system
+  !  real(kind=8) :: fscale_lowerbound      !< lower bound for the error function decay length
+  !  real(kind=8) :: fscale_upperbound       !< upper bound for the error function decay length
+  !  integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
+  !end type foe_data
 
-!!$  type, public :: sparse_matrix_metadata
-!!$     integer :: nvctr, nseg, full_dim1, full_dim2
-!!$     integer,dimension(:),pointer :: noverlaps
-!!$     integer,dimension(:,:),pointer :: overlaps
-!!$     integer,dimension(:),pointer :: keyv, nsegline, istsegline
-!!$     integer,dimension(:,:),pointer :: keyg
-!!$     integer,dimension(:,:),pointer :: matrixindex_in_compressed, orb_from_index
-!!$  end type sparse_matrix_metadata
-
-  !!type,public :: sparse_matrix
-  !!    integer :: nvctr, nseg, nvctrp, isvctr, parallel_compression, nfvctr, nfvctrp, isfvctr
-  !!    integer,dimension(:),pointer :: keyv, nsegline, istsegline, isvctr_par, nvctr_par, isfvctr_par, nfvctr_par
-  !!    integer,dimension(:,:),pointer :: keyg
-  !!    !type(sparse_matrix_metadata), pointer :: pattern
-  !!    real(kind=8),dimension(:),pointer :: matrix_compr,matrix_comprp
-  !!    real(kind=8),dimension(:,:),pointer :: matrix,matrixp
-  !!    !integer,dimension(:,:),pointer :: matrixindex_in_compressed, orb_from_index
-  !!    integer,dimension(:,:),pointer :: matrixindex_in_compressed_arr, orb_from_index
-  !!    integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed
-  !!    logical :: store_index, can_use_dense
-  !!    !!contains
-  !!    !!  procedure,pass :: matrixindex_in_compressed
-  !!end type sparse_matrix
-
-  type,public :: linear_matrices !may not keep
-      type(sparse_matrix) :: ham, ovrlp, denskern_large, inv_ovrlp_large
+  type,public :: linear_matrices
+      type(sparse_matrix) :: s !< small: sparsity pattern given by support function cutoff
+      type(sparse_matrix) :: m !< medium: sparsity pattern given by SHAMOP cutoff
+      type(sparse_matrix) :: l !< medium: sparsity pattern given by kernel cutoff
+      type(sparse_matrix) :: ks !< sparsity pattern for the KS orbitals (i.e. dense)
+      type(sparse_matrix) :: ks_e !< sparsity pattern for the KS orbitals including extra stated (i.e. dense)
+      type(matrices) :: ham_, ovrlp_, kernel_
   end type linear_matrices
 
-  type,public:: workarrays_quartic_convolutions
-    real(wp),dimension(:,:,:),pointer :: xx_c, xy_c, xz_c
-    real(wp),dimension(:,:,:),pointer :: xx_f1
-    real(wp),dimension(:,:,:),pointer :: xy_f2
-    real(wp),dimension(:,:,:),pointer :: xz_f4
-    real(wp),dimension(:,:,:,:),pointer :: xx_f, xy_f, xz_f
-    real(wp),dimension(:,:,:),pointer :: y_c
-    real(wp),dimension(:,:,:,:),pointer :: y_f
+  type, public :: workarrays_quartic_convolutions
+    real(wp), dimension(:,:,:), pointer :: xx_c, xy_c, xz_c
+    real(wp), dimension(:,:,:), pointer :: xx_f1
+    real(wp), dimension(:,:,:), pointer :: xy_f2
+    real(wp), dimension(:,:,:), pointer :: xz_f4
+    real(wp), dimension(:,:,:,:), pointer :: xx_f, xy_f, xz_f
+    real(wp), dimension(:,:,:), pointer :: y_c
+    real(wp), dimension(:,:,:,:), pointer :: y_f
     ! The following arrays are work arrays within the subroutine
-    real(wp),dimension(:,:),pointer :: aeff0array, beff0array, ceff0array, eeff0array
-    real(wp),dimension(:,:),pointer :: aeff0_2array, beff0_2array, ceff0_2array, eeff0_2array
-    real(wp),dimension(:,:),pointer :: aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray
-    real(wp),dimension(:,:,:),pointer :: xya_c, xyc_c
-    real(wp),dimension(:,:,:),pointer :: xza_c, xzc_c
-    real(wp),dimension(:,:,:),pointer :: yza_c, yzb_c, yzc_c, yze_c
-    real(wp),dimension(:,:,:,:),pointer :: xya_f, xyb_f, xyc_f, xye_f
-    real(wp),dimension(:,:,:,:),pointer :: xza_f, xzb_f, xzc_f, xze_f
-    real(wp),dimension(:,:,:,:),pointer :: yza_f, yzb_f, yzc_f, yze_f
+    real(wp), dimension(:,:), pointer :: aeff0array, beff0array, ceff0array, eeff0array
+    real(wp), dimension(:,:), pointer :: aeff0_2array, beff0_2array, ceff0_2array, eeff0_2array
+    real(wp), dimension(:,:), pointer :: aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray
+    real(wp), dimension(:,:,:), pointer :: xya_c, xyc_c
+    real(wp), dimension(:,:,:), pointer :: xza_c, xzc_c
+    real(wp), dimension(:,:,:), pointer :: yza_c, yzb_c, yzc_c, yze_c
+    real(wp), dimension(:,:,:,:), pointer :: xya_f, xyb_f, xyc_f, xye_f
+    real(wp), dimension(:,:,:,:), pointer :: xza_f, xzb_f, xzc_f, xze_f
+    real(wp), dimension(:,:,:,:), pointer :: yza_f, yzb_f, yzc_f, yze_f
   end type workarrays_quartic_convolutions
 
-  type,public:: localizedDIISParameters
+  type, public :: localizedDIISParameters
     integer :: is, isx, mis, DIISHistMax, DIISHistMin
     integer :: icountSDSatur, icountDIISFailureCons, icountSwitch, icountDIISFailureTot, itBest
-    real(kind=8),dimension(:),pointer :: phiHist, hphiHist, energy_hist
+    real(kind=8), dimension(:), pointer :: phiHist, hphiHist, energy_hist
     real(kind=8) :: alpha_coeff !step size for optimization of coefficients
-    real(kind=8),dimension(:,:,:),pointer :: mat
+    real(kind=8), dimension(:,:,:), pointer :: mat
     real(kind=8) :: trmin, trold, alphaSD, alphaDIIS
     logical :: switchSD, immediateSwitchToSD, resetDIIS
   end type localizedDIISParameters
 
 
-  type,public:: mixrhopotDIISParameters
+  type, public :: mixrhopotDIISParameters
     integer :: is, isx, mis
-    real(kind=8),dimension(:),pointer :: rhopotHist, rhopotresHist
-    real(kind=8),dimension(:,:),pointer :: mat
+    real(kind=8), dimension(:), pointer :: rhopotHist, rhopotresHist
+    real(kind=8), dimension(:,:), pointer :: mat
   end type mixrhopotDIISParameters
 
   !> Contains the arguments needed for the diis procedure
@@ -669,57 +699,56 @@ module module_types
 
   !> Contains the information needed for the preconditioner
   type, public :: precond_data
-    integer :: confPotOrder                           !< The order of the algebraic expression for Confinement potential
-    integer :: ncong                                  !< Number of CG iterations for the preconditioning equation
-    logical, dimension(:), pointer :: withConfPot     !< Use confinement potentials
+    integer :: confPotOrder                                !< The order of the algebraic expression for Confinement potential
+    integer :: ncong                                       !< Number of CG iterations for the preconditioning equation
+    logical, dimension(:), pointer :: withConfPot          !< Use confinement potentials
     real(kind=8), dimension(:), pointer :: potentialPrefac !< Prefactor for the potentiar : Prefac * f(r) 
   end type precond_data
 
   !> Information for the confining potential to be used in TMB scheme
   !! The potential is supposed to be defined as prefac*(r-rC)**potorder
   type, public :: confpot_data
-     integer :: potorder                !< order of the confining potential
-     integer, dimension(3) :: ioffset   !< offset for the coordinates of potential lr in global region
-     real(gp) :: prefac                 !< prefactor
-     real(gp), dimension(3) :: hh       !< grid spacings in ISF grid
-     real(gp), dimension(3) :: rxyzConf !< confining potential center in global coordinates
+     integer :: potorder                !< Order of the confining potential
+     integer, dimension(3) :: ioffset   !< Offset for the coordinates of potential lr in global region
+     real(gp) :: prefac                 !< Prefactor
+     real(gp), dimension(3) :: hh       !< Grid spacings in ISF grid
+     real(gp), dimension(3) :: rxyzConf !< Confining potential center in global coordinates
   end type confpot_data
 
   !> Defines the important information needed to reformat a old wavefunctions
   type, public :: old_wavefunction
-     type(local_zone_descriptors) :: Lzd !< local zone descriptors of the corresponding run
-     real(wp), dimension(:), pointer :: psi !<wavelets coefficients in compressed form
-     real(gp), dimension(:,:), pointer :: rxyz !<atomic positions of the step
+     type(local_zone_descriptors) :: Lzd       !< Local zone descriptors of the corresponding run
+     real(wp), dimension(:), pointer :: psi    !< Wavelets coefficients in compressed form
+     real(gp), dimension(:,:), pointer :: rxyz !< Atomic positions of the step
   end type old_wavefunction
 
   !> Densities and potentials, and related metadata, needed for their creation/application
   !! Not all these quantities are available, some of them may point to the same memory space
   type, public :: DFT_local_fields
-     real(dp), dimension(:), pointer :: rhov !< generic workspace. What is there is indicated by rhov_is
-     
+     real(dp), dimension(:), pointer :: rhov          !< generic workspace. What is there is indicated by rhov_is
      type(ab7_mixing_object), pointer :: mix          !< History of rhov, allocated only when using diagonalisation
-     !local fields which are associated to their name
-     !normally given in parallel distribution
-     real(dp), dimension(:,:), pointer :: rho_psi !< density as given by square of el. WFN
+     !> Local fields which are associated to their name
+     !! normally given in parallel distribution
+     real(dp), dimension(:,:), pointer :: rho_psi     !< density as given by square of el. WFN
      real(dp), dimension(:,:,:,:), pointer :: rho_C   !< core density
      real(wp), dimension(:,:,:,:), pointer :: V_ext   !< local part of pseudopotientials
      real(wp), dimension(:,:,:,:), pointer :: V_XC    !< eXchange and Correlation potential (local)
      real(wp), dimension(:,:,:,:), pointer :: Vloc_KS !< complete local potential of KS Hamiltonian (might point on rho_psi)
-     real(wp), dimension(:,:,:,:), pointer :: f_XC !< dV_XC[rho]/d_rho
+     real(wp), dimension(:,:,:,:), pointer :: f_XC    !< dV_XC[rho]/d_rho
      !temporary arrays
      real(wp), dimension(:), pointer :: rho_work,pot_work !<full grid arrays
      !metadata
      integer :: rhov_is
-     real(gp) :: psoffset !< offset of the Poisson Solver in the case of Periodic BC
-     type(rho_descriptors) :: rhod !< descriptors of the density for parallel communication
-     type(denspot_distribution) :: dpbox !< distribution of density and potential box
+     real(gp) :: psoffset                 !< offset of the Poisson Solver in the case of Periodic BC
+     type(rho_descriptors) :: rhod        !< descriptors of the density for parallel communication
+     type(denspot_distribution) :: dpbox  !< distribution of density and potential box
      type(xc_info) :: xc !< structure about the used xc functionals
      character(len=3) :: PSquiet
-     !real(gp), dimension(3) :: hgrids !<grid spacings of denspot grid (half of the wvl grid)
-     type(coulomb_operator) :: pkernel !< kernel of the Poisson Solver used for V_H[rho]
-     type(coulomb_operator) :: pkernelseq !<for monoproc PS (useful for exactX, SIC,...)
+     !real(gp), dimension(3) :: hgrids    !< grid spacings of denspot grid (half of the wvl grid)
+     type(coulomb_operator) :: pkernel    !< kernel of the Poisson Solver used for V_H[rho]
+     type(coulomb_operator) :: pkernelseq !< for monoproc PS (useful for exactX, SIC,...)
 
-     integer(kind = 8) :: c_obj = 0                !< Storage of the C wrapper object.
+     integer(kind = 8) :: c_obj = 0       !< Storage of the C wrapper object.
   end type DFT_local_fields
 
   !> Flags for rhov status
@@ -730,16 +759,16 @@ module module_types
   integer, parameter, public :: HARTREE_POTENTIAL  = -1976
 
   !> Flags for the restart (linear scaling only)
-  integer, parameter, public :: LINEAR_LOWACCURACY  = 101 !low accuracy after restart
-  integer, parameter, public :: LINEAR_HIGHACCURACY = 102 !high accuracy after restart
+  integer, parameter, public :: LINEAR_LOWACCURACY  = 101 !< Low accuracy after restart
+  integer, parameter, public :: LINEAR_HIGHACCURACY = 102 !< High accuracy after restart
 
   !check if all comms are necessary here
   type, public :: hamiltonian_descriptors
-     integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
-     integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
-     type(local_zone_descriptors) :: Lzd !< data on the localisation regions, if associated
+     integer :: npsidim_orbs             !< Number of elements inside psi in the orbitals distribution scheme
+     integer :: npsidim_comp             !< Number of elements inside psi in the components distribution scheme
+     type(local_zone_descriptors) :: Lzd !< Data on the localisation regions, if associated
      type(comms_linear) :: collcom ! describes collective communication
-     type(p2pComms) :: comgp           !<describing p2p communications for distributing the potential
+     type(p2pComms) :: comgp             !< Describing p2p communications for distributing the potential
      real(wp), dimension(:), pointer :: psi,psit_c,psit_f !< these should eventually be eliminated
      logical :: can_use_transposed
   end type hamiltonian_descriptors
@@ -774,7 +803,7 @@ module module_types
      integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
      integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
      type(hamiltonian_descriptors) :: ham_descr
-     real(kind=8),dimension(:,:),pointer :: coeff !<expansion coefficients
+     real(kind=8), dimension(:,:), pointer :: coeff !<expansion coefficients
   end type DFT_wavefunction
 
   !> Flags for optimization loop id
@@ -831,84 +860,78 @@ module module_types
 
   !> Used to store results of a DFT calculation.
   type, public :: DFT_global_output
-     real(gp) :: energy, fnoise, pressure
-     type(energy_terms) :: energs
+     real(gp) :: energy, fnoise, pressure      !< Total energy, noise over forces and pressure
+     type(energy_terms) :: energs              !< All energy terms
      integer :: fdim                           !< Dimension of allocated forces (second dimension)
-     real(gp), dimension(:,:), pointer :: fxyz
-     real(gp), dimension(6) :: strten
+     real(gp), dimension(:,:), pointer :: fxyz !< Atomic forces
+     real(gp), dimension(6) :: strten          !< Stress Tensor
   end type DFT_global_output
 
-!> type paw_ij_objects
-
- type paw_ij_objects
-
-!Integer scalars
-
-  integer :: cplex
-   ! cplex=1 if all on-site PAW quantities are real, 2 if they are complex
-   ! cplex=2 is useful for RF calculations
-
-  integer :: cplex_dij
-   ! cplex=1 if dij are real, 2 if they are complex
-
-  !!!!$integer :: has_dijexxcore !> does this makes sense?
-   ! 1 if dijexxcore is allocated
-   ! 2 if dijexxcore is already computed
-
-  integer :: has_dij
-   ! 1 if dij is allocated
-   ! 2 if dij is already computed
-
-  integer :: has_dijfr
-   ! 1 if dijfr is allocated
-   ! 2 if dijfr is already computed
-
-  integer :: has_dijhartree
-   ! 1 if dijhartree is allocated
-   ! 2 if dijhartree is already computed
-
-  integer :: has_dijhat
-   ! 1 if dijhat is allocated
-   ! 2 if dijhat is already computed
-
-  integer :: has_dijso
-   ! 1 if dijso is associated and used, 0 otherwise
-   ! 2 if dijso is already computed
-
-  integer :: has_dijU
-   ! 1 if dijU is associated and used, 0 otherwise
-   ! 2 if dijU is already computed
-
-  integer :: has_dijxc
-   ! 1 if dijxc is associated and used, 0 otherwise
-   ! 2 if dijxc is already computed
-
-  integer :: has_dijxc_val
-   ! 1 if dijxc_val is associated and used, 0 otherwise
-   ! 2 if dijxc_val is already computed
-
-  integer :: has_exexch_pot
-   ! 1 if PAW+(local exact exchange) potential is allocated
-
-  integer :: has_pawu_occ
-   ! 1 if PAW+U occupations are allocated
-
-  integer :: lmn_size
-   ! Number of (l,m,n) elements for the paw basis
-
-  integer :: lmn2_size
-   ! lmn2_size=lmn_size*(lmn_size+1)/2
-   ! where lmn_size is the number of (l,m,n) elements for the paw basis
-
-  integer :: ndij
-   ! Number of components of dij
-   ! Usually ndij=nspden, except for nspinor==2 (where ndij=nspinor**2)
-
-  integer :: nspden
-   ! Number of spin-density components (may be different from dtset%nspden if spin-orbit)
-
-  integer :: nsppol
-   ! Number of independant spin-components
+  !> type paw_ij_objects
+  type paw_ij_objects
+     !Integer scalars
+     !> cplex=1 if all on-site PAW quantities are real, 2 if they are complex
+     !! cplex=2 is useful for RF calculations
+     integer :: cplex
+     !> cplex=1 if dij are real, 2 if they are complex
+     integer :: cplex_dij
+     !!!!$integer :: has_dijexxcore !> does this makes sense?
+     ! 1 if dijexxcore is allocated
+     ! 2 if dijexxcore is already computed
+     !> 1 if dij is allocated
+     !! 2 if dij is already computed
+     integer :: has_dij
+   
+    integer :: has_dijfr
+     ! 1 if dijfr is allocated
+     ! 2 if dijfr is already computed
+   
+    integer :: has_dijhartree
+     ! 1 if dijhartree is allocated
+     ! 2 if dijhartree is already computed
+   
+    integer :: has_dijhat
+     ! 1 if dijhat is allocated
+     ! 2 if dijhat is already computed
+   
+    integer :: has_dijso
+     ! 1 if dijso is associated and used, 0 otherwise
+     ! 2 if dijso is already computed
+   
+    integer :: has_dijU
+     ! 1 if dijU is associated and used, 0 otherwise
+     ! 2 if dijU is already computed
+   
+    integer :: has_dijxc
+     ! 1 if dijxc is associated and used, 0 otherwise
+     ! 2 if dijxc is already computed
+   
+    integer :: has_dijxc_val
+     ! 1 if dijxc_val is associated and used, 0 otherwise
+     ! 2 if dijxc_val is already computed
+   
+    integer :: has_exexch_pot
+     ! 1 if PAW+(local exact exchange) potential is allocated
+   
+    integer :: has_pawu_occ
+     ! 1 if PAW+U occupations are allocated
+   
+    integer :: lmn_size
+     ! Number of (l,m,n) elements for the paw basis
+   
+    integer :: lmn2_size
+     ! lmn2_size=lmn_size*(lmn_size+1)/2
+     ! where lmn_size is the number of (l,m,n) elements for the paw basis
+   
+    integer :: ndij
+     ! Number of components of dij
+     ! Usually ndij=nspden, except for nspinor==2 (where ndij=nspinor**2)
+   
+    integer :: nspden
+     ! Number of spin-density components (may be different from dtset%nspden if spin-orbit)
+   
+    integer :: nsppol
+     ! Number of independant spin-components
 
 !Real (real(dp)) arrays
 
@@ -921,7 +944,7 @@ module module_types
    !  dij(:,:,3) contains Dij^up-dn (only if nspinor=2)
    !  dij(:,:,4) contains Dij^dn-up (only if nspinor=2)
 
-  !real(dp),pointer :: dijexxcore(:,:)
+  !real(dp), pointer :: dijexxcore(:,:)
   ! dijexxcore(cplex_dij*lmn2_size,ndij)
   ! Onsite matrix elements of the Fock operator generated by core electrons
 
@@ -1018,11 +1041,11 @@ module module_types
     integer :: ntypes
     integer :: natom
     integer :: usepaw
-    integer,dimension(:,:,:),pointer :: indlmn
-    type(paw_ij_objects),dimension(:),allocatable :: paw_ij
-    type(cprj_objects),dimension(:,:),allocatable :: cprj
-    real(wp),dimension(:),pointer :: spsi
-    real(wp),dimension(:,:),pointer :: sij
+    integer, dimension(:,:,:), pointer :: indlmn
+    type(paw_ij_objects), dimension(:), allocatable :: paw_ij
+    type(cprj_objects), dimension(:,:), allocatable :: cprj
+    real(wp), dimension(:), pointer :: spsi
+    real(wp), dimension(:,:), pointer :: sij
     real(gp),dimension(:),pointer :: rpaw
   end type paw_objects
 
@@ -2235,6 +2258,7 @@ pure subroutine nullify_local_zone_descriptors(lzd)
   nullify(lzd%llr) 
 end subroutine nullify_local_zone_descriptors
 
+!> Define the BigDFT errors
 subroutine bigdft_init_errors()
   use dictionaries
   implicit none
@@ -2249,7 +2273,7 @@ subroutine bigdft_init_errors()
   call f_err_define('BIGDFT_MPI_ERROR',&
        'An error of MPI library occurred',&
        BIGDFT_MPI_ERROR,&
-       err_action='Check if the error is related to MPI library or runtime condtions')
+       err_action='Check if the error is related to MPI library or runtime conditions')
 
     call f_err_define('BIGDFT_LINALG_ERROR',&
        'An error of linear algebra occurred',&
@@ -2543,7 +2567,7 @@ end subroutine find_category
     integer, dimension(2) :: dummy_int !<to use as filling for input variables
     real(gp), dimension(3) :: dummy_gp !< to fill the input variables
     logical, dimension(2) :: dummy_log !< to fill the input variables
-    character(len=256) :: dummy_char, dummy_char2
+    character(len=256) :: dummy_char
     character(len = max_field_length) :: str
     integer :: i, ipos
 
@@ -2767,6 +2791,15 @@ end subroutine find_category
        case (CHECK_MATRIX_COMPRESSION)
            ! linear scaling: perform a check of the matrix compression routines
            in%check_matrix_compression = val
+       case (CORRECTION_CO_CONTRA)
+           ! linear scaling: correction covariant / contravariant gradient
+           in%correction_co_contra = val
+       case (FSCALE_LOWERBOUND)
+           ! linear scaling: lower bound for the error function decay length
+           in%fscale_lowerbound = val
+       case (FSCALE_UPPERBOUND)
+           ! linear scaling: upper bound for the error function decay length
+           in%fscale_upperbound = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
@@ -2885,7 +2918,7 @@ end subroutine find_category
        case (CONF_DAMPING) 
           in%lin%reduce_confinement_factor = val
        case (TAYLOR_ORDER)
-          in%lin%methTransformOverlap = val
+          in%lin%order_taylor = val
        case (OUTPUT_WF)
           in%lin%plotBasisFunctions = val
        case (CALC_DIPOLE)
@@ -2927,6 +2960,8 @@ end subroutine find_category
           in%lin%nItPrecond = val
        case (fix_basis)
           in%lin%support_functions_converged = val
+      case (correction_orthoconstraint)
+          in%lin%correctionOrthoconstraint = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select

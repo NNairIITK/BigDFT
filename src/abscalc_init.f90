@@ -1,3 +1,11 @@
+!> @file
+!! Initialization for XANES calcul
+!! @author Copyright (C) 2013-2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
 
 !> Fill the preconditioning projectors for a given atom 
 subroutine fillPcProjOnTheFly(PPD, Glr, iat, at, hx,hy,hz,startjorb,ecut_pc,   initial_istart_c ) 
@@ -758,7 +766,7 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
 
   !Local variables
   integer :: istart,ityp,natyp,iat,mproj,nl1,nu1,nl2,nu2,nl3,nu3,mvctr,mseg,nprojelat,i,l
-  integer :: ikpt,nkptsproj,ikptp,i_stat
+  integer :: ikpt,nkptsproj,ikptp
   real(gp) :: maxfullvol,totfullvol,totzerovol,zerovol,fullvol,maxrad,maxzerovol,rad
   integer :: natpaw
 

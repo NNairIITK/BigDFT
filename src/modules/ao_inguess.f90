@@ -7,6 +7,8 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
 !> Handling of input guess creation from basis of atomic orbitals
 module ao_inguess
   use module_base, only: gp,memocc,f_err_raise,ndebug,to_zero,f_err_throw,bigdft_mpi
@@ -46,7 +48,7 @@ module ao_inguess
 
 contains
 
-  !>initializator for the aoig_data structure
+  !> Initializator for the aoig_data structure
   pure function aoig_data_null() result(aoig)
     implicit none
     type(aoig_data) :: aoig
