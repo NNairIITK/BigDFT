@@ -954,17 +954,6 @@ module module_interfaces
        real(gp),dimension(at%astruct%ntypes),intent(in),optional:: quartic_prefactor
       END SUBROUTINE AtomicOrbitals
 
-      subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,neleconf,nsccode,mxpl,mxchg)
-         use module_base
-         use module_types
-         implicit none
-         character(len=*), intent(in) :: filename
-         integer, intent(in) :: ityp,mxpl,mxchg,nspin,nmax,lmax,nelecmax,nsccode
-         type(atoms_data), intent(inout) :: at
-         !integer, dimension(nmax,lmax), intent(in) :: neleconf
-         real(gp), dimension(nmax,lmax), intent(in) :: neleconf
-      END SUBROUTINE atomic_occupation_numbers
-
       subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,&
             &   ibyyzz_r) !optional
          use module_base
@@ -1159,11 +1148,11 @@ module module_interfaces
          real(wp), dimension((ngx*(ngx+1))/2,4), intent(out) :: rhocoeff
       END SUBROUTINE plot_gatom_basis
 
-      subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
+      subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
         use module_base
         use module_types
         implicit none
-        integer, intent(in) :: iproc,i3s,n3d,i3xcsh,n3p
+        integer, intent(in) :: i3s,n3d,i3xcsh,n3p
         real(gp), intent(in) :: hxh,hyh,hzh
         type(atoms_data), intent(in) :: at
         type(grid_dimensions), intent(in) :: d
@@ -1948,11 +1937,12 @@ module module_interfaces
        type(foe_data),intent(in) :: foe_obj
      end subroutine orthonormalizeLocalized
 
-     subroutine optimizeDIIS(iproc, npsidim, orbs, lzd, hphi, phi, ldiis, experimental_mode)
+     subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, lzd, hphi, phi, ldiis, experimental_mode)
        use module_base
        use module_types
        implicit none
-       integer,intent(in):: iproc, npsidim
+       integer,intent(in):: iproc, nproc
+       integer,intent(in):: npsidim
        type(orbitals_data),intent(in):: orbs
        type(local_zone_descriptors),intent(in):: lzd
        real(8),dimension(npsidim),intent(in):: hphi
@@ -2775,11 +2765,11 @@ module module_interfaces
          character(len=*),intent(in):: subname
        end subroutine copy_orthon_data
 
-       subroutine improveOrbitals(iproc, tmb, ldiis, alpha, gradient, experimental_mode)
+       subroutine improveOrbitals(iproc, nproc, tmb, ldiis, alpha, gradient, experimental_mode)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: iproc
+         integer,intent(in):: iproc, nproc
          type(DFT_wavefunction),intent(inout):: tmb
          type(localizedDIISParameters),intent(inout):: ldiis
          real(8),dimension(tmb%orbs%norbp),intent(in):: alpha
@@ -2970,14 +2960,15 @@ module module_interfaces
          real(gp), dimension(:,:), intent(out), optional :: rxyz_old
        end subroutine io_read_descr_linear
 
-        subroutine readmywaves_linear_new(iproc,dir_output,filename,iformat,at,tmb,rxyz_old,rxyz,&
+        subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb,rxyz_old,rxyz,&
                ref_frags,input_frag,frag_calc,orblist)
           use module_base
           use module_types
           use module_fragments
           use yaml_output
           implicit none
-          integer, intent(in) :: iproc, iformat
+          integer, intent(in) :: iproc, nproc
+          integer, intent(in) :: iformat
           type(atoms_data), intent(in) :: at
           type(DFT_wavefunction), intent(inout) :: tmb
           real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
@@ -3118,7 +3109,7 @@ module module_interfaces
           type(comms_cubic), intent(in) :: comms
         end subroutine check_communications
 
-        subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
+        subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
              orbs,nlpsp,wfd,psi,fsep,refill,strten)
           use module_base
           use module_types
@@ -3128,7 +3119,6 @@ module module_interfaces
           type(wavefunctions_descriptors), intent(in) :: wfd
           type(DFT_PSP_projectors), intent(inout) :: nlpsp
           logical, intent(in) :: refill
-          integer, intent(in) :: iproc
           real(gp), intent(in) :: hx,hy,hz
           type(locreg_descriptors) :: lr
           type(orbitals_data), intent(in) :: orbs
@@ -3442,13 +3432,14 @@ module module_interfaces
           integer,dimension(:),pointer:: inwhichlocreg, inwhichlocreg_old, onwhichatom, onwhichatom_old
         end subroutine copy_old_inwhichlocreg
 
-        subroutine reformat_supportfunctions(iproc,at,rxyz_old,rxyz,add_derivatives,tmb,ndim_old,lzd_old,&
+        subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivatives,tmb,ndim_old,lzd_old,&
                frag_trans,psi_old,input_dir,input_frag,ref_frags,phi_array_old)
           use module_base
           use module_types
           use module_fragments
           implicit none
-          integer, intent(in) :: iproc,ndim_old
+          integer, intent(in) :: iproc,nproc
+          integer, intent(in) :: ndim_old
           type(atoms_data), intent(in) :: at
           real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz,rxyz_old
           type(DFT_wavefunction), intent(inout) :: tmb

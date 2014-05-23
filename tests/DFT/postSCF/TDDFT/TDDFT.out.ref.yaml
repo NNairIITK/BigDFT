@@ -86,7 +86,7 @@
    experimental_mode                   : No #     activate the experimental mode in linear scaling
    write_orbitals                      : No #     linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
  dft:
-   hgrids: [0.40000000000000002, 0.40000000000000002, 0.40000000000000002] # grid spacing in the three directions (bohr)
+   hgrids: [0.4, 0.4, 0.4] #                      Grid spacing in the three directions (bohr)
    rmult: [7.0, 8.0] #                            c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
    ixc                                 : 1 #      exchange-correlation parameter (LDA=1,PBE=11)
    ncharge                             : 0 #      charge of the system
@@ -158,8 +158,8 @@
    Radii of active regions (AU):
      Coarse                            : 1.2723679999999999
      Fine                              : 0.25
-     Coarse PSP                        : 1.4199999999999999
-     Source                            : User-defined
+     Coarse PSP                        : 1.42
+     Source                            : PSP File
    PAW patch                           : No
    Source                              : psppar.N
   #--------------------------------------------------------------------------------------- |
@@ -241,9 +241,9 @@
  Atomic structure:
    Units                               : angstroem
    Positions:
-   - N: [ 8.8,  8.8,  8.746487138] # [  22.0,  22.0,  21.87 ] 0001
-   - N: [ 8.8,  8.8,  10.85351286] # [  22.0,  22.0,  27.13 ] 0002
-   Rigid Shift Applied (AU)            :  [  8.8,  8.8,  8.7465 ]
+   - N: [ 4.656759455,  4.656759455,  4.628441668] # [  11.64,  11.64,  11.57 ] 0001
+   - N: [ 4.656759455,  4.656759455,  5.743431664] # [  11.64,  11.64,  14.36 ] 0002
+   Rigid Shift Applied (AU)            :  [  8.8000,  8.8000,  8.7465 ]
   #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4,  0.4,  0.4 ]
  Sizes of the simulation domain:

@@ -7,21 +7,24 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
 !> Handling of input guess creation from basis of atomic orbitals
 module ao_inguess
   use module_base, only: gp,memocc,f_err_raise,ndebug,to_zero,f_err_throw,bigdft_mpi
+  use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
 
   implicit none
 
   private
 
-  integer, parameter :: nmax_ao=7 !<maximum allowed value of principal quantum number for the electron configuration
-  integer, parameter :: lmax_ao=3 !<maximum value of the angular momentum for the electron configuration
-  integer, parameter :: nelecmax_ao=32 !<size of the interesting values of the compressed atomic input polarization
-  integer, parameter :: noccmax_ao=3 !<maximum number of the occupied input guess orbitals for a given shell
-  integer, parameter, public :: nmax_occ_ao=10 !<maximum number of total occupied orbitals for generating the ig functions
+  integer, parameter :: nmax_ao=7              !< Maximum allowed value of principal quantum number for the electron configuration
+  integer, parameter :: lmax_ao=3              !< Maximum value of the angular momentum for the electron configuration
+  integer, parameter :: nelecmax_ao=32         !< Size of the interesting values of the compressed atomic input polarization
+  integer, parameter :: noccmax_ao=3           !< Maximum number of the occupied input guess orbitals for a given shell
+  integer, parameter, public :: nmax_occ_ao=10 !< Maximum number of total occupied orbitals for generating the ig functions
 
-  private:: nmax_ao,lmax_ao,nelecmax_ao,noccmax_ao,at_occnums,spin_variables
+  private :: nmax_ao,lmax_ao,nelecmax_ao,noccmax_ao,at_occnums,spin_variables
 
   !>parameters of the input guess atomic orbitals, to be continued
   type, public :: aoig_data
@@ -46,7 +49,7 @@ module ao_inguess
 
 contains
 
-  !>initializator for the aoig_data structure
+  !> Initializator for the aoig_data structure
   pure function aoig_data_null() result(aoig)
     implicit none
     type(aoig_data) :: aoig
@@ -163,7 +166,9 @@ contains
 
     !this section can be replaced by the creation of the hij matrix in the psp_projectors module
     !assignation of the coefficents for the nondiagonal terms
-    if (npspcode == 2) then !GTH case
+    select case(npspcode)
+
+    case(PSPCODE_GTH) !GTH case
        do l=1,lpx+1
           hsep(1,l)=psppar(l,1)
           hsep(2,l)=0.0_gp
@@ -172,7 +177,8 @@ contains
           hsep(5,l)=0.0_gp
           hsep(6,l)=psppar(l,3)
        end do
-    else if (npspcode == 3) then !HGH case
+
+    case(PSPCODE_HGH) !HGH case
        allocate(ofdcoef(3,4+ndebug),stat=i_stat)
        call memocc(i_stat,ofdcoef,'ofdcoef',subname)
 
@@ -204,7 +210,8 @@ contains
        i_all=-product(shape(ofdcoef))*kind(ofdcoef)
        deallocate(ofdcoef,stat=i_stat)
        call memocc(i_stat,i_all,'ofdcoef',subname)
-    else if (npspcode == 10 .or. npspcode == 7 .or. npspcode == 12) then !HGH-K case
+
+    case(PSPCODE_HGH_K,PSPCODE_HGH_K_NLCC,PSPCODE_PAW)
        ! For PAW this is just the initial guess
        do l=1,lpx+1
           hsep(1,l)=psppar(l,1) !h11
@@ -214,7 +221,8 @@ contains
           hsep(5,l)=psppar(l,6) !h23
           hsep(6,l)=psppar(l,3) !h33
        end do
-    end if
+
+    end select
 
     !!Just for extracting the covalent radius and rprb
     call atomic_info(izatom,ielpsp,rcov=rcov,rprb=rprb)
@@ -332,10 +340,10 @@ contains
 
   END SUBROUTINE iguess_generator
 
-  !> retrieve the information from the atom.
-  !! different information can be obtained according to the usage which is needed
-  subroutine atomic_info(zatom,zion,symbol,elconf,amu,&
-       rcov,rprb,ehomo,nsccode,maxpol,maxchg)
+
+  !> Retrieve the information from the atom.
+  !! Different information can be obtained according to the usage which is needed
+  subroutine atomic_info(zatom,zion,symbol,elconf,amu,rcov,rprb,ehomo,nsccode,maxpol,maxchg)
     use yaml_output, only: yaml_toa
     implicit none
     ! Arguments
@@ -388,6 +396,7 @@ contains
     if (present(maxchg))   maxchg=mxchg_
     
   end subroutine atomic_info
+
 
   !> Count the number of atomic shells
   subroutine count_atomic_shells(nspin_in,elecorbs,occup,nl)

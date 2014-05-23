@@ -8,7 +8,6 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-
 !> assignToLocreg does not take into account the Kpts yet !!
 !! @warning assignToLocreg does not take into account the Kpts yet !!
 subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
@@ -89,8 +88,10 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
          orbs%inWhichLocreg(jorb+orbs%isorb)=jat
       end if
   end do
-  call mpiallred(orbs%inWhichLocreg(1),orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm)
 
+  if (nproc > 1) then
+     call mpiallred(orbs%inWhichLocreg(1),orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm)
+  end if
 
 ! Calculate the dimension of the total wavefunction
 !!  dimtot = 0
@@ -110,6 +111,7 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
   call memocc(i_stat,i_all,'Localnorb',subname)
 
 end subroutine assignToLocreg
+
 
 subroutine wavefunction_dimension(Lzd,orbs)
   use module_types

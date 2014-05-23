@@ -32,7 +32,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8), intent(inout):: trHold
   logical,intent(out) :: energy_increased
   real(kind=8), dimension(tmb%npsidim_orbs), intent(inout):: lhphiold
-  logical,intent(inout):: overlap_calculated
+  logical, intent(inout):: overlap_calculated
   type(energy_terms), intent(in) :: energs
   real(kind=8), dimension(:), pointer:: hpsit_c, hpsit_f
   integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
@@ -42,24 +42,19 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8), dimension(tmb%npsidim_orbs), optional,intent(out) :: hpsi_noprecond
 
   ! Local variables
-  integer :: iorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall, ii, jjorb, i, jorb
+  integer :: iorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall, ii, jjorb, i
   integer :: lwork, info
   real(kind=8) :: ddot, tt, gnrmArr, fnrmOvrlp_tot, fnrm_tot, fnrmold_tot
   !real(kind=8) :: eval_zero
   character(len=*), parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8), dimension(:), pointer :: hpsittmp_c, hpsittmp_f
-  real(kind=8), dimension(:), allocatable :: fnrmOvrlpArr, fnrmArr, work
+  real(kind=8), dimension(:), allocatable :: fnrmOvrlpArr, fnrmArr
   real(kind=8), dimension(:), allocatable :: hpsi_conf, hpsi_tmp
   real(kind=8), dimension(:), pointer :: kernel_compr_tmp
   real(kind=8), dimension(:), allocatable :: prefac
   real(wp), dimension(2) :: garray
   real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
-  real(8),dimension(:),allocatable :: prefacarr, dphi, dpsit_c, dpsit_f
-  real(kind=8),dimension(:,:),allocatable :: SK, KS, HK, KHK, KSKHK, KHKSK , Q
-  integer,dimension(:),allocatable :: ipiv
-  real(kind=8) :: fnrm_low, fnrm_high, fnrm_in, fnrm_out, rx, ry, rz, rr, hh, fnrm_tot2
-  integer :: iseg, isegf, j0, jj, j1, i1, i2, i3, i0, istart, iold, inew, ind_ham, ind_denskern, iorbp
-  real(kind=8),dimension(3) :: noise
+  real(kind=8) :: fnrm_low, fnrm_high
 
   if (target_function==TARGET_FUNCTION_IS_HYBRID) then
       allocate(hpsi_conf(tmb%npsidim_orbs), stat=istat)
@@ -216,8 +211,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   iall=-product(shape(hpsittmp_f))*kind(hpsittmp_f)
   deallocate(hpsittmp_f, stat=istat)
   call memocc(istat, iall, 'hpsittmp_f', subname)
-
-
 
 
   !!! EXPERIMENTAL: add the term stemming from the derivative of the kernel with respect to the support funtions #################
@@ -405,8 +398,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
        tmb%orbs, tmb%hpsi, hpsi_small)
 
 
-
-
   !!! Gradient in the outer shell
   !!hh=(tmb%lzd%hgrids(1)+tmb%lzd%hgrids(2)+tmb%lzd%hgrids(3))/3.d0
   !!fnrm_in=0.d0
@@ -500,8 +491,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
 
-
-
   if (present(hpsi_noprecond)) call vcopy(tmb%npsidim_orbs, hpsi_small(1), 1, hpsi_noprecond(1), 1)
 
   ! Calculate trace (or band structure energy, resp.)
@@ -590,9 +579,13 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       fnrm_tot=fnrm_tot+fnrmArr(iorb)
       if (it>1) fnrmOld_tot=fnrmOld_tot+fnrmOldArr(iorb)
   end do
-  if (it>1) call mpiallred(fnrmOvrlp_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
-  call mpiallred(fnrm_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
-  call mpiallred(fnrmOld_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
+
+  if (nproc > 1) then
+     if (it>1) call mpiallred(fnrmOvrlp_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
+     call mpiallred(fnrm_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
+     call mpiallred(fnrmOld_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
+
   ! ###########################################
 
   fnrm=0.d0
@@ -620,8 +613,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           !!alpha(iorb)=min(alpha(iorb),1.5d0)
       end if
   end do
-  call mpiallred(fnrm, 1, mpi_sum, bigdft_mpi%mpi_comm)
-  call mpiallred(fnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm)
+  
+  if (nproc > 1) then
+     call mpiallred(fnrm, 1, mpi_sum, bigdft_mpi%mpi_comm)
+     call mpiallred(fnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm)
+  end if
+
   fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
   fnrmMax=sqrt(fnrmMax)
 
@@ -637,10 +634,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! Determine the mean step size for steepest descent iterations.
   tt=sum(alpha)
-  call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm)
-  alpha_mean=tt/dble(tmb%orbs%norb)
   alpha_max=maxval(alpha)
-  call mpiallred(alpha_max, 1, mpi_max, bigdft_mpi%mpi_comm)
+  if (nproc > 1) then
+     call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm)
+     call mpiallred(alpha_max, 1, mpi_max, bigdft_mpi%mpi_comm)
+  end if
+  alpha_mean=tt/dble(tmb%orbs%norb)
 
   ! Copy the gradient (will be used in the next iteration to adapt the step size).
   call vcopy(tmb%npsidim_orbs, hpsi_small(1), 1, lhphiold(1), 1)
@@ -808,8 +807,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       ist=ist+ncount
   end do
 
-  call mpiallred(gnrm, 1, mpi_sum, bigdft_mpi%mpi_comm)
-  call mpiallred(gnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm)
+  if (nproc > 1) then
+     call mpiallred(gnrm, 1, mpi_sum, bigdft_mpi%mpi_comm)
+     call mpiallred(gnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm)
+  end if
   gnrm=sqrt(gnrm/dble(tmb%orbs%norb))
   gnrmMax=sqrt(gnrmMax)
   !if (iproc==0) write(*,'(a,3es16.6)') 'AFTER: gnrm, gnrmmax, gnrm/gnrm_old',gnrm,gnrmmax,gnrm/gnrm_old
@@ -831,7 +832,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   type(orbitals_data), intent(in) :: ksorbs
   real(kind=8),dimension(:),pointer :: hpsit_c, hpsit_f
 
-  integer :: iorb, jorb, istat, iall, ierr
+  integer :: iorb, istat, iall, ierr
   real(kind=8) :: ksres_sum
   real(kind=8), dimension(:), allocatable :: ksres
   real(kind=8), dimension(:,:), allocatable :: coeff_tmp, grad_coeff
@@ -932,9 +933,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   deallocate(ksres,stat=istat)
   call memocc(istat,iall,'ksres',subname)
 
-
 end subroutine calculate_residue_ks
-
 
 
 subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
@@ -964,8 +963,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   ! Local variables
   integer :: istat, iall, i, iorb, ilr, ist, iiorb, ncount
   character(len=*), parameter :: subname='hpsitopsi_linear'
-  real(kind=8),dimension(:),allocatable :: psittmp_c, psittmp_f
-  real(kind=8), dimension(:),allocatable :: norm
+  real(kind=8), dimension(:), allocatable :: norm
   real(kind=8) :: ddot, dnrm2, tt
 
   call DIISorSD(iproc, it, trH, tmb, ldiis, alpha, alphaDIIS, lphiold, trH_ref, kernel_best, complete_reset)
@@ -994,7 +992,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   ! Improve the orbitals, depending on the choice made above.
   if (present(psidiff)) call vcopy(tmb%npsidim_orbs, tmb%psi(1), 1, psidiff(1), 1)
   if(.not.ldiis%switchSD) then
-      call improveOrbitals(iproc, tmb, ldiis, alpha, hpsi_small, experimental_mode)
+      call improveOrbitals(iproc, nproc, tmb, ldiis, alpha, hpsi_small, experimental_mode)
   else
       !if(iproc==0) write(*,'(1x,a)') 'no improvement of the orbitals, recalculate gradient'
       if (iproc==0) then

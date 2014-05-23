@@ -1,4 +1,14 @@
+!> @file
+!! Test the dynamic memory allocation of the flib library
+!! @author
+!!    Copyright (C) 2013-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 
+
+!> Test the dynamic memory allocation (flib)
 subroutine test_dynamic_memory()
    use yaml_output
    use dynamic_memory
@@ -9,7 +19,8 @@ subroutine test_dynamic_memory()
    real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,xc_pot
    real(kind=8), dimension(:), pointer :: extra_ref
    integer, dimension(:), allocatable :: i1_all,i1_src
-   integer, dimension(:), pointer :: i1_ptr,ptr1,ptr2
+   integer, dimension(:), pointer :: i1_ptr,ptr1
+!!$   integer, dimension(:), pointer :: ptr2
 
    integer,dimension(:,:,:),allocatable :: weight
   integer,dimension(:,:,:,:),allocatable :: orbital_id

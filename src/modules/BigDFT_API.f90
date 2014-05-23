@@ -8,9 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>  Module which contains all information about:
-!!  - types (data structures)
-!!  - interfaces
+!>  Module which contains all information about types (data structures) and interfaces
 module BigDFT_API
   use module_base
   use module_types

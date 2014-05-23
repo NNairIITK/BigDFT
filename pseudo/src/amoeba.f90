@@ -1,5 +1,5 @@
 !> @file
-!! Contains the amoeba routine to minimze by the spimplex donwhill method a penalty function
+!! Contains the amoeba routine to minimize by the simplex donwhill method a penalty function
 !! @author
 !!    Alex Willand, under the supervision of Stefan Goedecker
 !!    gpu accelerated routines by Raffael Widmer

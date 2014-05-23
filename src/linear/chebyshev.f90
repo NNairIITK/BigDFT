@@ -32,7 +32,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
   real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
   logical,intent(out) :: emergency_stop
   ! Local variables
-  integer :: istat, iorb,iiorb, jorb, iall,ipl,norb,norbp,isorb, ierr, nseq, nmaxsegk, nmaxvalk
+  integer :: iorb,iiorb, jorb, ipl,norb,norbp,isorb, ierr, nseq, nmaxsegk, nmaxvalk
   integer :: isegstart, isegend, iseg, ii, jjorb, nout
   character(len=*),parameter :: subname='chebyshev_clean'
   real(8), dimension(:,:,:), allocatable :: vectors
@@ -145,7 +145,9 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
               end do
           end if
   
-          call mpiallred(SHS(1), kernel%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
+          if (nproc > 1) then
+             call mpiallred(SHS(1), kernel%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
+          end if
   
       end if
   
@@ -817,7 +819,6 @@ subroutine init_sequential_acces_matrix(norb, norbp, isorb, nseg, &
 end subroutine init_sequential_acces_matrix
 
 
-
 subroutine chebyshev_fast(iproc, nsize_polynomial, npl, orbs, fermi, chebyshev_polynomials, cc, kernelp)
   use module_base
   use module_types
@@ -833,7 +834,7 @@ subroutine chebyshev_fast(iproc, nsize_polynomial, npl, orbs, fermi, chebyshev_p
   real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: kernelp
 
   ! Local variables
-  integer :: ipl, istat, iall
+  integer :: ipl, iall
   real(kind=8),dimension(:),allocatable :: kernel_compressed
 
 

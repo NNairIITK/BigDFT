@@ -11,7 +11,11 @@
 !> Module defining internal routines for etsf 
 module internal_etsf
    implicit none
+
+
    contains
+
+
    subroutine etsf_error(error)
       use module_defs
       use etsf_io_low_level
@@ -287,6 +291,7 @@ module internal_etsf
       end if
       count(6) = 1
    END SUBROUTINE etsf_orbsToStartCount
+
 END MODULE internal_etsf
 
 

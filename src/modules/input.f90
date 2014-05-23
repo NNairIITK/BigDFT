@@ -1,5 +1,5 @@
 !> @file
-!!  Module to handle input variables
+!!  Modules to handle input variables
 !! @author
 !!    Copyright (C) 2010-2013 BigDFT group
 !!    This file is distributed under the terms of the
@@ -53,12 +53,12 @@ module module_input
 
    contains
 
-     subroutine input_set_stdout(unit)
-       implicit none
-       integer, intent(in) :: unit
-       
-       stdout=unit
-     end subroutine input_set_stdout
+   subroutine input_set_stdout(unit)
+     implicit none
+     integer, intent(in) :: unit
+     
+     stdout=unit
+   end subroutine input_set_stdout
 
    subroutine input_set_file(iproc, dump, filename, exists,comment_file_usage)
       integer, intent(in) :: iproc
@@ -1162,6 +1162,8 @@ module module_input
 
 END MODULE module_input
 
+
+!> Module reading the old format (before 1.7) for the input
 module input_old_text_format
   implicit none
   public
@@ -1310,7 +1312,8 @@ contains
 
   end subroutine read_dft_from_text_format
 
-  !> Read the input variables needed for the geometry optimisation
+
+  !> Read the input variables needed for the geometry optmization
   !! Every argument should be considered as mandatory
   subroutine read_geopt_from_text_format(iproc,dict,filename)
     use module_base
@@ -1411,7 +1414,7 @@ contains
 
   END SUBROUTINE read_geopt_from_text_format
 
-  !> Read the input variables needed for the geometry optimisation
+  !> Read the input variables needed for the geometry optmization
   !!    Every argument should be considered as mandatory
   subroutine read_mix_from_text_format(iproc,dict,filename)
     use module_base
@@ -1648,6 +1651,7 @@ contains
 
   end subroutine read_kpt_from_text_format
 
+
   !> Read the input variables which can be used for performances
   subroutine read_perf_from_text_format(iproc,dict,filename)
     use module_input
@@ -1723,19 +1727,23 @@ contains
     call set(dict // SIGNALTIMEOUT, dummy_int)
     call input_var("domain", "", "Domain to add to the hostname to find the IP", dummy_str)
     call set(dict // DOMAIN, dummy_str)
-    call input_var("inguess_geopt", 0,"0= wavlet input ",dummy_int)
+    call input_var("inguess_geopt", 0,"0= wavelet input ",dummy_int)
     call set(dict // INGUESS_GEOPT, dummy_int)
-    call input_var("store_index", .true., "linear scaling: store ", dummy_bool)
+    call input_var("store_index", .true., "Linear scaling: store ", dummy_bool)
     call set(dict // STORE_INDEX, dummy_bool)
     !verbosity of the output
-    call input_var("verbosity", 2, "rbosity of the output 0=low, 2=high",dummy_int)
+    call input_var("verbosity", 2, "Verbosity of the output 0=low, 2=high",dummy_int)
     call set(dict // VERBOSITY, dummy_int)
     call input_var("outdir", ".","Writing directory", dummy_path)
     call set(dict // OUTDIR, dummy_path)
 
     !If false, apply the projectors in the once-and-for-all scheme, otherwise on-the-fly
-    call input_var("psp_onfly", .true., "Calculate ",dummy_bool)
+    call input_var("psp_onfly", .true., "Calculate the PSP projectors on the fly (less memory)",dummy_bool)
     call set(dict // PSP_ONFLY, dummy_bool)
+
+    !If true, preserve the multipole of the ionic part (local potential) projecting on delta instead of ISF
+    call input_var("multipole_preserving", .false., "Preserve multipole moment of the ionic charge",dummy_bool)
+    call set(dict // MULTIPOLE_PRESERVING, dummy_bool)
 
     !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
     call input_var("pdsyev_blocksize",-8,"SCALAPACK linear scaling blocksize",dummy_int) !ranges=(/-100,1000/)

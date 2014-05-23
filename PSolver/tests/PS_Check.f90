@@ -18,7 +18,6 @@ program PS_Check
    use dictionaries
    use time_profiling
    implicit none
-   !include 'mpif.h'
    !Length of the box
    character(len=*), parameter :: subname='PS_Check'
    real(kind=8), parameter :: a_gauss = 1.0d0,a2 = a_gauss**2
@@ -592,8 +591,9 @@ program PS_Check
    !> Compare arrays potential and density
    !! if nproc == -1: serial version i.e. special comparison
    subroutine compare(iproc,nproc,mpi_comm,n01,n02,n03,nspden,potential,density,description)
+      use wrapper_mpi
       implicit none
-      include 'mpif.h'
+      !include 'mpif.h'
       character(len=*), intent(in) :: description
       integer, intent(in) :: iproc,nproc,n01,n02,n03,nspden,mpi_comm
       real(kind=8), dimension(n01,n02,n03), intent(in) :: potential,density

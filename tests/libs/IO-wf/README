@@ -1,7 +1,7 @@
-/* @file
+/*! @file
 @brief README of the Input/output wavefunction tests.
 
-@dir ./tests/libs/IO-wf
+@dir
 @brief Tests writing and reading wavefunctions with NetCDF file format.
 
 */

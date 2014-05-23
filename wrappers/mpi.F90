@@ -16,9 +16,8 @@
 module wrapper_MPI
   ! TO BE REMOVED with f_malloc
   !use memory_profiling!, only: ndebug
-  use time_profiling, only: TIMING_UNINITIALIZED
-   
   ! TO BE REMOVED with f_malloc
+  use time_profiling, only: TIMING_UNINITIALIZED
 
   implicit none
 
@@ -304,7 +303,7 @@ subroutine create_group_comm1(base_comm,nproc_base,group_id,ngroup,group_size,gr
   integer, intent(out) :: group_comm
   !local variables
   character(len=*), parameter :: subname='create_group_comm'
-  integer :: grp,ierr,i,j,base_grp,temp_comm
+  integer :: grp,ierr,i,j,base_grp,temp_comm!,i_stat,i_all
   integer, dimension(:), allocatable :: group_list
 
 ! allocate(group_list(group_size+ndebug),stat=i_stat)
@@ -517,6 +516,7 @@ end subroutine create_group_comm1
 
   !interface for MPI_ALLGATHERV operations
   subroutine mpiallgatherv_double(buffer,counts,displs,me,mpi_comm,ierr)
+    use dynamic_memory
     implicit none
     integer, dimension(0:), intent(in) :: counts
     integer, dimension(:), intent(in) :: displs

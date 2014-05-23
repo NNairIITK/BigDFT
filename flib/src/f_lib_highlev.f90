@@ -9,7 +9,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>print error information about last error
+!> print error information about last error
 subroutine f_dump_last_error()
   use dictionaries, only: f_get_error_dict,f_get_last_error,max_field_length
   use yaml_output, only: yaml_dict_dump,yaml_map
@@ -130,7 +130,7 @@ subroutine f_lib_err_severe_external(message)
   call f_err_severe()
 end subroutine f_lib_err_severe_external
 
-!>routine which finalize f_lib 
+!> Routine which finalize f_lib 
 subroutine f_lib_finalize()
   use dictionaries, only: f_err_finalize,dict_get_num
   use dynamic_memory, only: f_malloc_finalize
@@ -144,7 +144,7 @@ subroutine f_lib_finalize()
   if (iproc == 0) then
      call dict_get_num(ndict,ndict_max,nlibs,nlibs_max)
      call yaml_map('Max No. of dictionaries used',ndict_max, advance='no')
-     call yaml_comment('( '//trim(yaml_toa(ndict))//' still in use)')
+     call yaml_comment('('//trim(yaml_toa(ndict))//' still in use)')
      !general finalization, the f_lib should come back to uninitialized status
      call yaml_map('Number of dictionary folders allocated',nlibs_max)
   end if
@@ -153,4 +153,3 @@ subroutine f_lib_finalize()
   call f_timing_finalize()
 
 end subroutine f_lib_finalize
-

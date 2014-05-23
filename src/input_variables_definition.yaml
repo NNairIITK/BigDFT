@@ -1,8 +1,8 @@
-#definition of the input variables
+# Definitions of the input variables
 ##inputvar: #name of the variable as declared in the code
 ## DESCRIPTION: Extended description of the variable to be used for documentation
 ## COMMENT: This is the description of the variable as will appear in the logfile
-## RANGE: [from,to] #always put two numbers (also .inf) can be put
+## RANGE: [from,to] #always put two numbers (also .inf can be put)
 ## EXCLUSIVE: #here follows a list of allowed values (either RANGE or EXCLUSIVE)
 ##  - Value1:  comments of value1
 ##  - Value2:  comment of value2
@@ -16,10 +16,11 @@
 ## default: value of the default, written as a string 
 ## profile1: value1 # if the user specifies inputvar: profile1 then inputvars will be value1
 ## profile2: value2
-############################################ 
+############################################
+# Density Functional Theory parameters
  dft:
    hgrids:
-     COMMENT: grid spacing in the three directions (bohr)
+     COMMENT: Grid spacing in the three directions (bohr)
      RANGE: [0., 2.]
      default: [0.45, 0.45, 0.45]
      fast: [0.55, 0.55, 0.55]
@@ -29,9 +30,9 @@
      RANGE: [0., 100.]
      default: [5., 8.]
    ixc:
-     COMMENT: exchange-correlation parameter (LDA=1,PBE=11)
+     COMMENT: Exchange-correlation parameter (LDA=1,PBE=11)
      default: 1
-#here follow a number of possibilities for the different XC functionals
+     #Here follow a number of possibilities for the different XC functionals
      LDA (ABINIT): 1
      PBE (ABINIT): 11
      LDA: -20
@@ -40,93 +41,99 @@
      B97-D: -170 #to be verified
      B3LYP: -402
    ncharge:
-     COMMENT: charge of the system
+     COMMENT: Charge of the system
      RANGE: [-500., 500.]
      default: 0
    elecfield:
-     COMMENT: electric field (Ex,Ey,Ez)
+     COMMENT: Electric field (Ex,Ey,Ez)
      default: [0., 0., 0.]
    nspin:
-     COMMENT: spin polarization
+     COMMENT: Spin polarization
      EXCLUSIVE:
-       1: no spin
-       2: collinear
-       4: non-collinear
+       1: No spin
+       2: Collinear
+       4: Non-collinear
      default: 1
    mpol:
-     COMMENT: total magnetic moment
+     COMMENT: Total magnetic moment
      default: 0
    gnrm_cv:
      DESCRIPTION: Here should follow the extended description for this input variable
                   this description should be on multiple lines et cetera
      COMMENT: convergence criterion gradient
+            
      RANGE: [1.e-20, 1.]
      default: 1e-4
      fast: 1e-3
      accurate: 1e-5
    itermax:
-     COMMENT: max. # of wfn. opt. steps
+     COMMENT: Max. iterations of wfn. opt. steps
      RANGE: [0, 10000]
      default: 50
    nrepmax:
-     COMMENT: max. # of re-diag. runs
+     COMMENT: Max. number of re-diag. runs
      RANGE: [0, 1000]
      default: 1
      accurate: 10
    ncong:
-     COMMENT: # of CG it. for preconditioning eq.
+     COMMENT: No. of CG it. for preconditioning eq.
      RANGE: [0, 20]
      default: 6
    idsx:
-     COMMENT: wfn. diis history
+     COMMENT: Wfn. diis history
      RANGE: [0, 15]
      default: 6
      low_memory: 2
    dispersion:
-     COMMENT: dispersion correction potential (values 1,2,3,4,5), 0=none
+     COMMENT: Dispersion correction potential (values 1,2,3,4,5), 0=none
      RANGE: [0, 5]
      default: 0
    inputpsiid:
+     COMMENT: Input guess wavefunctions
      default: 0
      EXCLUSIVE:
-       -1000: empty
-       -2: random
-       -1: CP2K
-       0: LCAO
-       1: wvl. in mem.
-       2: wvl. on disk
-       10: LCAO + gauss.
-       11: gauss. in mem.
-       12: gauss. on disk
-       100: Linear AO
-       101: Linear restart
-       102: Linear on disk
+       -1000: Empty
+       -2:    Random
+       -1:    CP2K
+       0:     LCAO
+       1:     Wvl. in memory
+       2:     Wvl. on disk
+       10:    LCAO + gauss.
+       11:    Gauss. in memory
+       12:    Gauss. on disk
+       100:   Linear AO
+       101:   Linear restart
+       102:   Linear on disk
+     #Here follow two shortcuts for linear
      linear: 100
      linear_restart: 102
    output_wf:
+     COMMENT: Output of the wavefunctions
      default: 0
      EXCLUSIVE:
-       0: none
-       1: plain text
+       0: None
+       1: Plain text
        2: Fortran binary
        3: ETSF file format
    output_denspot:
+     COMMENT: Output of the density or the potential
      default: 0
      EXCLUSIVE:
-       0: none
-       1: density in plain text
-       2: density and potentials in plain text
-       11: density in ETSF file format
-       12: density and potentials in ETSF file format
-       21: density in cube file format
-       22: density and potentials in cube file format
+       0:  None
+       1:  Density in plain text
+       2:  Density and potentials in plain text
+       11: Density in ETSF file format
+       12: Density and potentials in ETSF file format
+       21: Density in cube file format
+       22: Density and potentials in cube file format
    rbuf:
-     COMMENT: length of the tail (AU)
+     COMMENT: Length of the tail (AU)
      RANGE: [0., 10.]
      default: 0.
+     #Here shortcut
      with tails: 5.
    ncongt:
-     COMMENT: # tail CG iterations
+     COMMENT: No. of tail CG iterations
      RANGE: [0, 50]
      default: 30
    norbv:
@@ -134,24 +141,25 @@
      RANGE: [-9999, 9999]
      default: 0
    nvirt:
-     COMMENT: # of opt. orbs
+     COMMENT: No. of opt. orbs
      RANGE: [0, 9999]
      default: 0
    nplot:
-     COMMENT: # of plottec orbs
+     COMMENT: No. of plotted orbs
      RANGE: [0, 9999]
      default: 0
    disablesym:
-     COMMENT: disable the symmetry detection
+     COMMENT: Disable the symmetry detection
      default: No
+#K points parameters
  kpt:
    method:
      COMMENT: K-point sampling method
      EXCLUSIVE:
-       auto: based on kptrlen
+       auto:   Based on kptrlen
        MPGrid: Monkhorst-Pack
-       manual: based on raw coordinates
-     default: manual
+       manual: Based on raw coordinates
+     default:  manual
    kptrlen:
      COMMENT: Equivalent length of K-space resolution (Bohr)
      CONDITION:
@@ -196,7 +204,7 @@
      COMMENT: For doing band structure calculation
      default: No
    iseg:
-     COMMENT: points for each segment of the BZ path
+     COMMENT: Points for each segment of the Brillouin zone path
      CONDITION:
        MASTER_KEY: bands
        WHEN:
@@ -204,6 +212,7 @@
      default:
      - 1
    kptv:
+     COMMENT: K points defining each segment of the Brillouin zone path
      CONDITION:
        MASTER_KEY: bands
        WHEN:
@@ -212,7 +221,7 @@
      -  [0., 0., 0.]
      -  [0.5, 0.5, 0.5]
    ngranularity:
-     COMMENT: # of points done for each group
+     COMMENT: No. of points done for each group
      CONDITION:
        MASTER_KEY: bands
        WHEN:
@@ -220,24 +229,26 @@
      RANGE: [1, 1000]
      default: 1
    band_structure_filename:
+     COMMENT: Filename given the local potential for band structure calculations
      CONDITION:
        MASTER_KEY: bands
        WHEN:
        - Yes
      default: ''
+#Geometry Optimisation  and Molecular Dynamics parameters
  geopt:
    method:
      COMMENT: Geometry optimisation method
      EXCLUSIVE:
-       none: no geometry optimization
-       SDCG: a combination of Steepest Descent and Conjugate Gradient
-       VSSD: Variable Stepsize Steepest Descent method
-       LBFGS: limited-memory BFGS
-       BFGS: Broyden-Fletcher-Goldfarb-Shanno
-       PBFGS: Same as BFGS with an initial Hessian obtained from a force field
-       AB6MD: molecular dynamics from ABINIT
-       DIIS: direct inversion of iterative subspace
-       FIRE: Fast Inertial Relaxation Engine as described by Bitzek et al.
+       none:   No geometry optimization
+       SDCG:   A combination of Steepest Descent and Conjugate Gradient
+       VSSD:   Variable Stepsize Steepest Descent method
+       LBFGS:  Limited-memory BFGS
+       BFGS:   Broyden-Fletcher-Goldfarb-Shanno
+       PBFGS:  Same as BFGS with an initial Hessian obtained from a force field
+       AB6MD:  Molecular dynamics from ABINIT
+       DIIS:   Direct inversion of iterative subspace
+       FIRE:   Fast Inertial Relaxation Engine as described by Bitzek et al.
        NEB: Nudged Elastic Band
      default: none
    ncount_cluster_x:
@@ -247,19 +258,21 @@
      default: 50
      none: 1
    frac_fluct:
+     COMMENT: Fraction of force fluctuations. Stop if fmax < forces_fluct*frac_fluct
      RANGE: [0., 10.]
      default: 1.
    forcemax:
+     COMMENT: Max forces criterion when stop
      RANGE: [0., 10.]
      PROFILE_FROM: method
      default: 0.
      NEB: 5e-2
    randdis:
-     COMMENT: random displacement amplitude
+     COMMENT: Random displacement amplitude
      RANGE: [0., 10.]
      default: 0.
    betax:
-     COMMENT: Stepsize for the geometry optimisation
+     COMMENT: Stepsize for the geometry optimization
      CONDITION:
        MASTER_KEY: method
        WHEN:
@@ -278,7 +291,7 @@
      DIIS: 2.
      NEB: 0.5
    history:
-     COMMENT: history for DIIS method
+     COMMENT: History for DIIS method
      CONDITION:
        MASTER_KEY: method
        WHEN:
@@ -286,7 +299,7 @@
      RANGE: [0, 100]
      default: 4
    dtinit:
-     COMMENT: initial time step for the FIRE method
+     COMMENT: Initial time step for the FIRE method
      CONDITION:
        MASTER_KEY: method
        WHEN:
@@ -294,7 +307,7 @@
      RANGE: [0, 1e4]
      default: 0.75
    dtmax:
-     COMMENT: maximal time step for the FIRE method
+     COMMENT: Maximal time step for the FIRE method
      CONDITION:
        MASTER_KEY: method
        WHEN:
@@ -302,21 +315,21 @@
      RANGE: [0, 1e4]
      default: 1.5
    ionmov:
-     COMMENT: movement ion method
+     COMMENT: Movement ion method
      CONDITION:
        MASTER_KEY: method
        WHEN:
        - AB6MD
      EXCLUSIVE:
-       6: simple velocity-Verlet molecular dynamic
-       7: quenched molecular dynamic
-       8: Nose-Hoover thermostat
-       9: Langevin dynamic
+       6:  Simple velocity-Verlet molecular dynamic
+       7:  Quenched molecular dynamic
+       8:  Nose-Hoover thermostat
+       9:  Langevin dynamic
        12: Isokinetic ensemble molecular dynamics
        13: Iosthermal/isenthalpic ensemble
      default: 6
    dtion:
-     COMMENT: time step - Atomic Units (20.670689 AU=0.5 fs)
+     COMMENT: Time step - Atomic Units (20.670689 AU=0.5 fs)
      CONDITION:
        MASTER_KEY: method
        WHEN:
@@ -324,7 +337,7 @@
      RANGE: [0, 1e3]
      default: 20.670689
    mditemp:
-     COMMENT: temperature of molecular dynamics
+     COMMENT: Temperature of molecular dynamics
      CONDITION:
        MASTER_KEY: ionmov
        WHEN: [8, 9, 12, 13]
@@ -332,14 +345,14 @@
      RANGE: [0, 1e9]
      default: 300.
    mdftemp:
-     COMMENT: final temperature of molecular dynamics
+     COMMENT: Final temperature of molecular dynamics
      CONDITION:
        MASTER_KEY: ionmov
        WHEN: [8, 9, 12, 13]
      RANGE: [0, 1e9]
      default: 300.
    noseinert:
-     COMMENT: thermostat inertia coefficient for Nose_Hoover dynamics
+     COMMENT: Thermostat inertia coefficient for Nose_Hoover dynamics
      CONDITION:
        MASTER_KEY: ionmov
        WHEN:
@@ -457,28 +470,28 @@
      default: 15
  mix:
    iscf:
-     COMMENT: mixing parameters
+     COMMENT: Mixing parameters
      EXCLUSIVE:
-       -1: reserved, do not use it.
-       0: direct minimization
-       1: get the largest eigenvalue of the SCF cycle
-       2: simple mixing of the potential
-       3: Anderson mixing of the potential
-       4: Anderson mixing of the potential based on the two previous iterations
-       5: CG based on the minim. of the energy with respect to the potential
-       7: Pulay mixing of the potential based on npulayit previous iterations
-       12: simple mixing of the density
+       -1: Reserved, do not use it.
+       0:  Direct minimization
+       1:  Get the largest eigenvalue of the SCF cycle
+       2:  Simple mixing of the potential
+       3:  Anderson mixing of the potential
+       4:  Anderson mixing of the potential based on the two previous iterations
+       5:  CG based on the minim. of the energy with respect to the potential
+       7:  Pulay mixing of the potential based on npulayit previous iterations
+       12: Simple mixing of the density
        13: Anderson mixing of the density
        14: Anderson mixing of the density based on the two previous iterations
        15: CG based on the minim. of the energy with respect to the density
        17: Pulay mixing of the density
      default: 0
    itrpmax:
-     COMMENT: maximum number of diagonalisation iterations
+     COMMENT: Maximum number of diagonalisation iterations
      RANGE: [0, 10000]
      default: 1
    rpnrm_cv:
-     COMMENT: stop criterion on the residue of potential or density
+     COMMENT: Stop criterion on the residue of potential or density
      RANGE: [0., 10.]
      default: 1e-4
    norbsempty:
@@ -486,14 +499,14 @@
      RANGE: [0, 10000]
      default: 0
    Tel:
-     COMMENT: electronic temperature
+     COMMENT: Electronic temperature
      RANGE: [0., 1e6]
      default: 0.
    occopt:
-     COMMENT: smearing method
+     COMMENT: Smearing method
      EXCLUSIVE:
-       1: error function smearing
-       2: normal Fermi distribution
+       1: Error function smearing
+       2: Normal Fermi distribution
        3: Marzari cold smearing a=-.5634 (bumb minimization)
        4: Marzari cold smearing with a=-.8165 (monotonic tail)
        5: Methfessel and Paxton (same as cold with a=0)
@@ -506,49 +519,52 @@
      COMMENT: Multiplying factors for the electronic DIIS
      RANGE: [0., 10.]
      default: 2.
+#Self-Interaction Correction
  sic:
    sic_approach:
-     COMMENT: SIC method
+     COMMENT: SIC (self-interaction correction) method
      EXCLUSIVE:
-       none: no self-interaction correction
-       PZ: Perdew-Zunger SIC scheme
-       NK: Non-Koopmans correction (Experimental)
+       none: No self-interaction correction
+       PZ:   Perdew-Zunger SIC scheme
+       NK:   Non-Koopmans correction (Experimental)
      default: none
    sic_alpha:
      COMMENT: SIC downscaling parameter
      RANGE: [0, 1.]
      default: 0.
    sic_fref:
-     COMMENT: reference occupation fref (for NK case only)
+     COMMENT: Reference occupation fref (for Non-Koopman case only)
      CONDITION:
        MASTER_KEY: sic_approach
        WHEN:
        - NK
      RANGE: [0., 1.]
      default: 0.
+#Time-Dependent DFT parameters
  tddft:
    tddft_approach:
-     COMMENT: TDDFT method
+     COMMENT: Time-Dependent DFT method
      EXCLUSIVE:
        none: no tddft post-processing
        TDA: ???
      default: none
+#Performance parameters
  perf:
    debug:
-     COMMENT: debug option
+     COMMENT: Debug option
      default: No
    fftcache:
-     COMMENT: cache size for the FFT
+     COMMENT: Cache size for the FFT
      default: 8192
    accel:
-     COMMENT: acceleration
+     COMMENT: Acceleration (hardware) 
      EXCLUSIVE:
-       NO: no material acceleration
+       NO:      No material acceleration
        CUDAGPU: CUDA
-       OCLGPU: OpenCL on GPU
-       OCLCPU: OpenCL on CPU
-       OCLACC: ???
-     default: NO
+       OCLGPU:  OpenCL on GPU
+       OCLCPU:  OpenCL on CPU
+       OCLACC:  ???
+     default:   NO
    ocl_platform:
      COMMENT: Chosen OCL platform
      default: ~
@@ -587,7 +603,7 @@
      COMMENT: Orthogonalisation
      EXCLUSIVE:
        0: Cholesky
-       1: GS/Chol
+       1: Gram-Schmidt/Cholesky
        2: Loewdin
      default: 0
    rho_commun:
@@ -600,13 +616,13 @@
    psolver_accel:
      COMMENT: Acceleration of the Poisson Solver (0=none, 1=CUDA)
      EXCLUSIVE:
-       0: none
+       0: None
        1: CUDA
      default: 0
    unblock_comms:
      COMMENT: Overlap Communications of fields (OFF,DEN,POT)
      EXCLUSIVE:
-       OFF: synchronous run
+       OFF: Synchronous run
        DEN: ???
        POT: ???
      default: OFF
@@ -633,16 +649,16 @@
      COMMENT: Domain to add to the hostname to find the IP
      default: ~
    inguess_geopt:
-     COMMENT: input guess to be used during the optimization
+     COMMENT: Input guess to be used during the optimization
      EXCLUSIVE:
-       0: wavelet input guess
-       1: real space input guess (Free BC only)
+       0: Wavelet input guess
+       1: Real space input guess
      default: 0
    store_index:
-     COMMENT: store indices or recalculate them for linear scaling
+     COMMENT: Store indices or recalculate them for linear scaling
      default: Yes
    verbosity:
-     COMMENT: verbosity of the output
+     COMMENT: Verbosity of the output
      EXCLUSIVE:
        0: ???
        1: ???
@@ -655,6 +671,9 @@
    psp_onfly:
      COMMENT: Calculate pseudopotential projectors on the fly
      default: Yes
+   multipole_preserving:
+     COMMENT: (EXPERIMENTAL) Preserve the multipole moment of the ionic density
+     default: No
    pdsyev_blocksize:
      COMMENT: SCALAPACK linear scaling blocksize
      default: -8
@@ -676,39 +695,39 @@
      RANGE: [0., 1000.]
      default: 10.
    mixing_after_inputguess:
-     COMMENT: mixing step after linear input guess (T/F)
+     COMMENT: Mixing step after linear input guess (T/F)
      default: Yes
    iterative_orthogonalization:
-     COMMENT: iterative_orthogonalization for input guess orbitals
+     COMMENT: Iterative_orthogonalization for input guess orbitals
      default: No
    check_sumrho:
-     COMMENT: enables linear sumrho check
+     COMMENT: Enables linear sumrho check
      default: 2
      EXCLUSIVE:
-       0: no check
-       1: light check
-       2: full check
+       0: No check
+       1: Light check
+       2: Full check
    experimental_mode:
-     COMMENT: activate the experimental mode in linear scaling
+     COMMENT: Activate the experimental mode in linear scaling
      default: No
      best: Yes
    write_orbitals:
-     COMMENT: linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
+     COMMENT: Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
      default: No
    explicit_locregcenters:
-     COMMENT: linear scaling explicitely specify localization centers 
+     COMMENT: Linear scaling explicitely specify localization centers 
      default: No
    calculate_KS_residue:
-     COMMENT: linear scaling calculate Kohn-Sham residue
+     COMMENT: Linear scaling calculate Kohn-Sham residue
      default: Yes
    intermediate_forces:
-     COMMENT: linear scaling calculate intermediate forces
+     COMMENT: Linear scaling calculate intermediate forces
      default: No
    kappa_conv:
-     COMMENT: exit kappa for extended input guess (experimental mode)
+     COMMENT: Exit kappa for extended input guess (experimental mode)
      default: 0.1
    evbounds_nsatur:
-     COMMENT: number of FOE cycles before the eigenvalue bounds are shrinked
+     COMMENT: Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
      default: 3
    evboundsshrink_nsatur:
      COMMENT: maximal number of unsuccessful eigenvalue bounds shrinkings
@@ -731,6 +750,7 @@
    check_matrix_compression:
      COMMENT: linear scaling perform a check of the matrix compression routines
      default: Yes
+#Linear scaling version parameters
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
@@ -776,6 +796,7 @@
      subspace_diag: #called calc_ks, to be renamed
        COMMENT: diagonalization at the end
        default: No
+#Parameters for the localised basis set (or support function) for the linear scaling version
  lin_basis:
      nit:
        COMMENT: maximal number of iterations in the optimization of the support functions
@@ -822,6 +843,7 @@
        COMMENT: fix the support functions if the density change is below this threshold
        RANGE: [1.e-14,1.e-6]
        default: 1.e-10
+#Parameters for the calculation of the kernel (linear scaling version)
  lin_kernel:
      nstep:
        COMMENT: don't know what this variable stands for...
@@ -879,6 +901,7 @@
        COMMENT: decay length of the error function
        RANGE: [1.e-4,1.0]
        default: 5.e-2
+#Parameters to define the localized basis set or support functions (linear scaling version)
  lin_basis_params:
      nbasis:
        COMMENT: number of support functions per atom
@@ -927,5 +950,3 @@ structural:
     ixc: PBE
   geopt:
     method: FIRE
-
-    

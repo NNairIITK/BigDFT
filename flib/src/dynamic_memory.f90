@@ -20,17 +20,17 @@ module dynamic_memory
 
   private 
 
-  logical, parameter :: track_origins=.true.!< when true keeps track of all the allocation statuses using dictionaries
-  integer, parameter :: namelen=f_malloc_namelen          !< length of the character variables
-  integer, parameter :: error_string_len=80 !< length of error string
-  integer, parameter :: ndebug=0            !< size of debug parameters
-!!$  integer, parameter :: max_rank=7          !< maximum rank in fortran
-  !maximum size of f_lib control variables
-  integer, parameter :: max_ctrl = 5 !<maximum number of nested levels
-  integer :: ictrl=0                 !<id of active control structure (<=max_ctrl)
+  logical, parameter :: track_origins=.true.      !< When true keeps track of all the allocation statuses using dictionaries
+  integer, parameter :: namelen=f_malloc_namelen  !< Length of the character variables
+  integer, parameter :: error_string_len=80       !< Length of error string
+  integer, parameter :: ndebug=0                  !< Size of debug parameters
+!!$  integer, parameter :: max_rank=7             !< Maximum rank in fortran
+  !> Maximum size of f_lib control variables
+  integer, parameter :: max_ctrl = 5 !< Maximum number of nested levels
+  integer :: ictrl=0                 !< Id of active control structure (<=max_ctrl)
 
 
-  !> parameters for defitions of internal dictionary
+  !> Parameters for defitions of internal dictionary
   character(len=*), parameter :: arrayid='Array Id'
   character(len=*), parameter :: routineid='Allocating Routine Id'
   character(len=*), parameter :: sizeid='Size (Bytes)'
@@ -44,20 +44,20 @@ module dynamic_memory
   character(len=*), parameter :: prof_enabled='Profiling Enabled'
   character(len=*), parameter :: main='Main program'
 
-  !error codes
+  !> Error codes
   integer, save :: ERR_ALLOCATE
   integer, save :: ERR_DEALLOCATE
   integer, save :: ERR_MEMLIMIT
   integer, save :: ERR_INVALID_COPY
   integer, save :: ERR_MALLOC_INTERNAL
 
-  !timing categories
+  !> Timing categories
   integer, public, save :: TCAT_ARRAY_ALLOCATIONS
   integer, public, save :: TCAT_INIT_TO_ZERO
   integer, public, save :: TCAT_ROUTINE_PROFILING
 
-  !> control structure of flib library. 
-  !Contains all global variables of interest in a separate instance of f_lib
+  !> Control structure of flib library. 
+  !! Contains all global variables of interest in a separate instance of f_lib
   type :: mem_ctrl 
      logical :: profile_initialized  !< global variables for initialization
      logical :: routine_opened       !< global variable (can be stored in dictionaries)
@@ -70,9 +70,9 @@ module dynamic_memory
      type(dictionary), pointer :: dict_codepoint !<points to where we are in the previous dictionary
   end type mem_ctrl
   
-  !>global variable controlling the different instances of the calls
-  !the 0 component is supposed to be unused, it is allocated to avoid segfaults
-  !if the library routines are called without initialization
+  !> Global variable controlling the different instances of the calls
+  !! the 0 component is supposed to be unused, it is allocated to avoid segfaults
+  !! if the library routines are called without initialization
   type(mem_ctrl), dimension(0:max_ctrl) :: mems
 
   interface assignment(=)
@@ -854,7 +854,8 @@ contains
 
   end subroutine f_malloc_dump_status
 
-  !> this routine identify for each of the routines the most time consuming parts and print it in the logfile
+
+  !> This routine identify for each of the routines the most time consuming parts and print it in the logfile
   recursive subroutine postreatment_of_calling_sequence(base_time,&
        dict_cs,dict_pt)
     implicit none

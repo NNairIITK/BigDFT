@@ -7,13 +7,14 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
+
 !> Piece of routine to identify the errors, consider two optional arguments err_id and err_name
 !! included in error_handling.f90
   !local variables
   logical :: isthere
   integer :: get_error 
   integer :: nerr,ierr,jerr
-  character(len=max_field_length) :: name
+!  character(len=max_field_length) :: name
 
   get_error=-1 !no error specified
   nerr=dict_len(dict_present_error)

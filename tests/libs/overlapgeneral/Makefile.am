@@ -23,10 +23,12 @@ driver_LDADD = -lbigdft-1 @LINALG_LIBS@
 
 CLEANFILES = test-overlapgeneral.out.yaml 
 
-check: test-overlapgeneral.report
+check: test-overlapgeneral.report.yaml
 
-test-overlapgeneral.report: $(srcdir)/test-overlapgeneral.ref.yaml test-overlapgeneral.out.yaml
-	python $(top_srcdir)/tests/fldiff.py $^ | tee $@
+test-overlapgeneral.report.yaml: $(srcdir)/test-overlapgeneral.ref.yaml test-overlapgeneral.out.yaml
+	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
+		-r $< -d test-overlapgeneral.out.yaml -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=test-overlapgeneral -o $@ 
+##	python $(top_srcdir)/tests/fldiff_yaml.py $^ | tee $@
 
 test-overlapgeneral.out.yaml: driver
 	cp $(srcdir)/test-overlapgeneral.ref.yaml $(PWD)

@@ -1,7 +1,7 @@
 !> @file 
 !!   sumrho: linear version
 !! @author
-!!   Copyright (C) 2011-2013 BigDFT group 
+!!   Copyright (C) 2013-2014 BigDFT group 
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
@@ -306,7 +306,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
   type(sparse_matrix), intent(inout) :: denskern
 
   ! Local variables
-  integer :: istat, iall, ierr, sendcount, jproc, iorb, itmb
+  integer :: ierr, sendcount, jproc, iorb, itmb
   real(kind=8),dimension(:,:),allocatable :: density_kernel_partial, fcoeff
 ! real(kind=8), dimension(:,:,), allocatable :: ks,ksk,ksksk
   character(len=*),parameter :: subname='calculate_density_kernel'
@@ -729,7 +729,10 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   !$omp end do
   !$omp end parallel
 
-  call mpiallred(irho, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  if (nproc > 1) then
+     call mpiallred(irho, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
+
   if (irho>0) then
       rho_negative=.true.
   end if
@@ -793,9 +796,9 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   !call mpi_finalize(ierr)
   !stop
 
-
-
-  call mpiallred(total_charge, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  if (nproc > 1) then
+     call mpiallred(total_charge, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
 
   !!if(print_local .and. iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', total_charge*hxh*hyh*hzh
   if (iproc==0 .and. print_local) then
@@ -850,7 +853,7 @@ subroutine check_communication_potential(iproc,denspot,tmb)
   use module_types
   use module_interfaces
   use yaml_output
-  use dictionaries, only:f_err_throw
+  use dictionaries, only: f_err_throw
   use communications, only: start_onesided_communication
   implicit none
   integer,intent(in) :: iproc
@@ -992,7 +995,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   integer :: ist, iorb, iiorb, ilr, i, iz, ii, iy, ix, iix, iiy, iiz, iixyz, nxyz, ipt, i0, ierr, jproc
   integer :: i1, i2, i3, is1, is2, is3, ie1, ie2, ie3, ii3s, ii3e, nmax, jj, j, ind, ikernel
   integer :: iorbmin, iorbmax, jorb, iall, istat
-  real(kind=8) :: maxdiff, sumdiff, tt, tti, ttj, tt1, hxh, hyh, hzh, factor, hx, hy, hz, ref_value
+  real(kind=8) :: maxdiff, sumdiff, tt, tti, ttj, hxh, hyh, hzh, factor, ref_value
   real(kind=8) :: diff
   real(kind=8),dimension(:),allocatable :: psir, psirwork, psirtwork, rho, rho_check
   integer,dimension(:,:,:),allocatable :: weight
@@ -1089,7 +1092,11 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   istarr=f_malloc((/0.to.nproc-1/),id='istarr')
   istarr=0
   istarr(iproc)=collcom_sr%nptsp_c
-  call mpiallred(istarr(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+
+  if (nproc > 1) then
+     call mpiallred(istarr(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
+
   ist=0
   do jproc=0,iproc-1
       ist=ist+istarr(jproc)
@@ -1490,7 +1497,10 @@ subroutine check_negative_rho(ndimrho, rho, rho_negative)
       end if
   end do
 
-  call mpiallred(irho, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  if (bigdft_mpi%nproc > 1) then
+     call mpiallred(irho, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
+
   if (irho>0) then
       rho_negative=.true.
   else

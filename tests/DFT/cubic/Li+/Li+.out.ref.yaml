@@ -112,7 +112,7 @@
    norbv                               : 0 #      Davidson subspace dim.
    nvirt                               : 0
    nplot                               : 0
-   disablesym                          : No #     disable the symmetry detection
+   disablesym                          : Yes #    disable the symmetry detection
  kpt:
    method                              : manual # K-point sampling method
    kpt: #                                         Kpt coordinates

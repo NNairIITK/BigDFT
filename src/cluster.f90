@@ -25,7 +25,7 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
   character(len=*), parameter :: subname='call_bigdft'
   character(len=40) :: comment
   logical :: exists
-  integer :: i_stat,i_all,ierr,inputPsiId_orig,iat,iorb,istep,i,jproc
+  integer :: i_stat,i_all,ierr,inputPsiId_orig,iat,iorb,istep
   real(gp) :: maxdiff
 
   !temporary interface, not needed anymore since all arguments are structures
@@ -58,29 +58,40 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
   call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
   call f_routine(id=subname)
 
-  call check_array_consistency(maxdiff, nproc, runObj%atoms%astruct%rxyz(1,1), &
-       & 3 * runObj%atoms%astruct%nat, bigdft_mpi%mpi_comm)
+  !Check the consistency between MPI processes of the atomic coordinates
+  call check_array_consistency(maxdiff, nproc, runObj%atoms%astruct%rxyz, bigdft_mpi%mpi_comm)
   if (iproc==0 .and. maxdiff > epsilon(1.0_gp)) &
        call yaml_warning('Input positions not identical! '//&
        '(difference:'//trim(yaml_toa(maxdiff))//' )')
 
   !fill the rxyz array with the positions
   !wrap the atoms in the periodic directions when needed
-  do iat=1,runObj%atoms%astruct%nat
-     if (runObj%atoms%astruct%geocode == 'P') then
+  select case(runObj%atoms%astruct%geocode)
+  case('P')
+     do iat=1,runObj%atoms%astruct%nat
         runObj%rst%rxyz_new(1,iat)=modulo(runObj%atoms%astruct%rxyz(1,iat),runObj%atoms%astruct%cell_dim(1))
         runObj%rst%rxyz_new(2,iat)=modulo(runObj%atoms%astruct%rxyz(2,iat),runObj%atoms%astruct%cell_dim(2))
         runObj%rst%rxyz_new(3,iat)=modulo(runObj%atoms%astruct%rxyz(3,iat),runObj%atoms%astruct%cell_dim(3))
-     else if (runObj%atoms%astruct%geocode == 'S') then
+     end do
+  case('S')
+     do iat=1,runObj%atoms%astruct%nat
         runObj%rst%rxyz_new(1,iat)=modulo(runObj%atoms%astruct%rxyz(1,iat),runObj%atoms%astruct%cell_dim(1))
         runObj%rst%rxyz_new(2,iat)=runObj%atoms%astruct%rxyz(2,iat)
         runObj%rst%rxyz_new(3,iat)=modulo(runObj%atoms%astruct%rxyz(3,iat),runObj%atoms%astruct%cell_dim(3))
-     else if (runObj%atoms%astruct%geocode == 'F') then
+     end do
+  case('W')
+     do iat=1,runObj%atoms%astruct%nat
+        runObj%rst%rxyz_new(1,iat)=runObj%atoms%astruct%rxyz(1,iat)
+        runObj%rst%rxyz_new(2,iat)=runObj%atoms%astruct%rxyz(2,iat)
+        runObj%rst%rxyz_new(3,iat)=modulo(runObj%atoms%astruct%rxyz(3,iat),runObj%atoms%astruct%cell_dim(3))
+     end do
+  case('F')
+     do iat=1,runObj%atoms%astruct%nat
         runObj%rst%rxyz_new(1,iat)=runObj%atoms%astruct%rxyz(1,iat)
         runObj%rst%rxyz_new(2,iat)=runObj%atoms%astruct%rxyz(2,iat)
         runObj%rst%rxyz_new(3,iat)=runObj%atoms%astruct%rxyz(3,iat)
-     end if
-  end do
+     end do
+  end select
 
   !assign the verbosity of the output
   !the verbose variables is defined in module_base
@@ -260,7 +271,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   integer :: i, input_wf_format, output_denspot
   integer :: n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
-  integer :: iat,i_all,i_stat,ierr,inputpsi,igroup,ikpt,nproctiming,ifrag
+  integer :: i_all,i_stat,ierr,inputpsi,igroup,ikpt,nproctiming,ifrag
   real :: tcpu0,tcpu1
   real(kind=8) :: tel
   type(grid_dimensions) :: d_old
@@ -286,6 +297,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   ! before reformatting if useFormattedInput is .true.
   real(wp), dimension(:), pointer :: psi_old
   type(memory_estimation) :: mem
+  !real(gp) :: energy_constrained
   ! PSP projectors 
   real(kind=8), dimension(:), pointer :: gbd_occ!,rhocore
   ! Variables for the virtual orbitals and band diagram.
@@ -300,7 +312,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
   ! testing
   real(kind=8),dimension(:,:),pointer :: locregcenters
-  integer :: ilr, nlr, iorb, jorb, ioffset, linear_iscf
+  integer :: ilr, nlr, ioffset, linear_iscf
   character(len=20) :: comment
 
   !debug
@@ -441,7 +453,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   if (iproc==0 .and. verbose > 0) call print_memory_estimation(mem)
 
   if (in%lin%fragment_calculation .and. inputpsi == INPUT_PSI_DISK_LINEAR) then
-     call output_fragment_rotations(iproc,nproc,atoms%astruct%nat,rxyz,1,trim(in%dir_output),in%frag,ref_frags)
+     call output_fragment_rotations(iproc,atoms%astruct%nat,rxyz,1,trim(in%dir_output),in%frag,ref_frags)
      !call mpi_finalize(i_all)
      !stop
   end if
@@ -2036,7 +2048,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
 
   !xc stress, diagonal for the moment
   if (atoms%astruct%geocode=='P') then
-     if (atoms%astruct%sym%symObj >= 0) call symm_stress((iproc==0),xcstr,atoms%astruct%sym%symObj)
+     if (atoms%astruct%sym%symObj >= 0) call symm_stress(xcstr,atoms%astruct%sym%symObj)
   end if
 
   if (calculate_dipole) then
@@ -2115,7 +2127,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      !!do i_stat=1,KSwfn%orbs%norb
      !!    tmb%wfnmd%density_kernel(i_stat,i_stat)=1.d0
      !!end do
-     !!call  nonlocal_forces(iproc,tmb%lzd%glr,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
+     !!call  nonlocal_forces(tmb%lzd%glr,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
      !! atoms,rxyz,&
      !! KSwfn%orbs,nlpsp,proj,tmb%lzd%glr%wfd,KSwfn%psi,fxyz,refill_proj,strten)
      !!call nonlocal_forces_linear(iproc,nproc,tmb%lzd%glr,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),&

@@ -1,14 +1,26 @@
+!> @file
+!! Bindings for BigDFT
+!! @author
+!!    Copyright (C) 2012-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 subroutine memocc_report()
   use memory_profiling, only: mreport => memocc_report
   implicit none
   call mreport()
 end subroutine memocc_report
 
+
 subroutine memocc_verbose()
   use memory_profiling, only: mstate => memocc_set_state
   implicit none
   call mstate(2)
 end subroutine memocc_verbose
+
 
 subroutine memocc_set_output(file, ln)
   use memory_profiling, only: mstate => memocc_set_filename
@@ -17,6 +29,7 @@ subroutine memocc_set_output(file, ln)
   character(len = ln), intent(in) :: file
   call mstate(file)
 end subroutine memocc_set_output
+
 
 subroutine f90_pointer_1D_init(pt_c, size_c)
   implicit none
@@ -36,6 +49,7 @@ subroutine f90_pointer_1D_init(pt_c, size_c)
   call inquire_pointer1(pt_c, pt_f, size_c)
 end subroutine f90_pointer_1D_init
 
+
 subroutine f90_pointer_2D_init(pt_c, size_c)
   implicit none
   double precision, intent(in) :: pt_c
@@ -53,6 +67,7 @@ subroutine f90_pointer_2D_init(pt_c, size_c)
   nullify(pt_f)
   call inquire_pointer2(pt_c, pt_f, size_c)
 end subroutine f90_pointer_2D_init
+
 
 subroutine f90_pointer_3D_init(pt_c, size_c)
   implicit none
@@ -72,6 +87,7 @@ subroutine f90_pointer_3D_init(pt_c, size_c)
   call inquire_pointer3(pt_c, pt_f, size_c)
 end subroutine f90_pointer_3D_init
 
+
 subroutine f90_pointer_4D_init(pt_c, size_c)
   implicit none
   double precision, intent(in) :: pt_c
@@ -90,6 +106,7 @@ subroutine f90_pointer_4D_init(pt_c, size_c)
   call inquire_pointer4(pt_c, pt_f, size_c)
 end subroutine f90_pointer_4D_init
 
+
 subroutine f90_pointer_5D_init(pt_c, size_c)
   implicit none
   double precision, intent(in) :: pt_c
@@ -107,6 +124,7 @@ subroutine f90_pointer_5D_init(pt_c, size_c)
   nullify(pt_f)
   call inquire_pointer5(pt_c, pt_f, size_c)
 end subroutine f90_pointer_5D_init
+
 
 subroutine open_write_file(unitwf, name, ln, bin)
   implicit none
@@ -127,12 +145,14 @@ subroutine open_write_file(unitwf, name, ln, bin)
   end if
 END SUBROUTINE open_write_file
 
+
 subroutine close_file(unitwf)
   implicit none
   integer, intent(in) :: unitwf
 
   close(unit = unitwf)
 END SUBROUTINE close_file
+
 
 !subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
 !  use Poisson_Solver, only: ck => createKernel
@@ -145,6 +165,7 @@ END SUBROUTINE close_file
 !
 !  call ck(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,wrtmsg)
 !end subroutine createKernel
+
 
 subroutine deallocate_double_1D(array)
   use BigDFT_API
@@ -159,6 +180,8 @@ subroutine deallocate_double_1D(array)
      call memocc(i_stat,i_all,'array',"deallocate_double")
   end if
 end subroutine deallocate_double_1D
+
+
 subroutine deallocate_double_2D(array)
   use BigDFT_API
   implicit none
@@ -173,6 +196,7 @@ subroutine deallocate_double_2D(array)
   end if
 end subroutine deallocate_double_2D
 
+
 subroutine glr_new(glr)
   use module_types
   implicit none
@@ -180,6 +204,8 @@ subroutine glr_new(glr)
 
   allocate(glr)
 end subroutine glr_new
+
+
 subroutine glr_copy(glr, d, wfd, from)
   use module_types
   implicit none
@@ -194,6 +220,8 @@ subroutine glr_copy(glr, d, wfd, from)
   wfd => glr%wfd
   call copy_locreg_descriptors(from, glr)
 end subroutine glr_copy
+
+
 subroutine glr_init(glr, d, wfd)
   use module_types
   implicit none
@@ -205,6 +233,8 @@ subroutine glr_init(glr, d, wfd)
   d => glr%d
   wfd => glr%wfd
 end subroutine glr_init
+
+
 subroutine glr_get_data(glr, d, wfd)
   use module_types
   implicit none
@@ -215,6 +245,8 @@ subroutine glr_get_data(glr, d, wfd)
   d => glr%d
   wfd => glr%wfd
 end subroutine glr_get_data
+
+
 subroutine glr_free(glr)
   use module_types
   implicit none
@@ -222,6 +254,8 @@ subroutine glr_free(glr)
 
   deallocate(glr)
 end subroutine glr_free
+
+
 subroutine glr_empty(glr)
   use locregs
   implicit none
@@ -229,6 +263,8 @@ subroutine glr_empty(glr)
 
   call deallocate_locreg_descriptors(glr)
 end subroutine glr_empty
+
+
 subroutine glr_get_dimensions(glr , n, ni, ns, nsi, nfl, nfu, norb)
   use module_types
   implicit none
@@ -259,6 +295,8 @@ subroutine glr_get_dimensions(glr , n, ni, ns, nsi, nfl, nfu, norb)
   
   norb = glr%Localnorb
 end subroutine glr_get_dimensions
+
+
 subroutine glr_set_dimensions(glr, n, ni, ns, nsi, nfl, nfu)
   use module_types
   implicit none
@@ -286,6 +324,8 @@ subroutine glr_set_dimensions(glr, n, ni, ns, nsi, nfl, nfu)
   glr%nsi2 = nsi(2)
   glr%nsi3 = nsi(3)
 end subroutine glr_set_dimensions
+
+
 subroutine glr_get_locreg_data(glr, locrad, locregCenter)
   use module_types
   implicit none
@@ -296,6 +336,8 @@ subroutine glr_get_locreg_data(glr, locrad, locregCenter)
   locrad = glr%locrad
   locregCenter = glr%locregCenter
 end subroutine glr_get_locreg_data
+
+
 subroutine glr_set_wfd_dims(glr, nseg_c, nseg_f, nvctr_c, nvctr_f)
   use module_types
   implicit none
@@ -308,6 +350,8 @@ subroutine glr_set_wfd_dims(glr, nseg_c, nseg_f, nvctr_c, nvctr_f)
   glr%wfd%nvctr_f = nvctr_f
   call allocate_wfd(glr%wfd)
 END SUBROUTINE glr_set_wfd_dims
+
+
 subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       &   crmult,frmult,Glr)
    use module_base, only: gp
@@ -325,6 +369,8 @@ subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
       &   crmult,frmult,Glr)
 end subroutine glr_set_wave_descriptors
+
+
 subroutine glr_set_bounds(lr)
   use module_types
   implicit none
@@ -334,6 +380,8 @@ subroutine glr_set_bounds(lr)
        & lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3, &
        & lr%wfd,lr%bounds)
 END SUBROUTINE glr_set_bounds
+
+
 subroutine glr_wfd_get_data(wfd, nvctr_c, nvctr_f, nseg_c, nseg_f, &
      & keyglob, keygloc, keyvglob, keyvloc)
   use module_types
@@ -353,6 +401,7 @@ subroutine glr_wfd_get_data(wfd, nvctr_c, nvctr_f, nseg_c, nseg_f, &
   keyvloc => wfd%keyvloc
 END SUBROUTINE glr_wfd_get_data
 
+
 subroutine lzd_new(lzd)
   use module_types
   implicit none
@@ -360,6 +409,8 @@ subroutine lzd_new(lzd)
 
   allocate(lzd)
 end subroutine lzd_new
+
+
 subroutine lzd_init(lzd, glr)
   use module_types
   implicit none
@@ -370,6 +421,8 @@ subroutine lzd_init(lzd, glr)
   lzd%nlr = 0
   glr => lzd%glr
 end subroutine lzd_init
+
+
 subroutine lzd_get_data(lzd, glr)
   use module_types
   implicit none
@@ -425,6 +478,7 @@ subroutine lzd_set_nlr(lzd, nlr, geocode)
      lzd%Llr(i)%geocode = geocode
   end do
 END SUBROUTINE lzd_set_nlr
+
 subroutine lzd_get_hgrids(Lzd, hgrids)
   use module_base
   use module_types
@@ -434,6 +488,8 @@ subroutine lzd_get_hgrids(Lzd, hgrids)
   !initial values
   hgrids = Lzd%hgrids
 END SUBROUTINE lzd_get_hgrids
+
+
 subroutine lzd_get_llr(Lzd, i, llr)
   use module_base
   use module_types
@@ -445,6 +501,8 @@ subroutine lzd_get_llr(Lzd, i, llr)
   llr => Lzd%Llr(i)
 END SUBROUTINE lzd_get_llr
 
+
+!> Allocation input_variables structure and initialize it with default values
 subroutine inputs_new(in)
   use module_types
   use dictionaries
@@ -453,6 +511,8 @@ subroutine inputs_new(in)
   allocate(in)
   call default_input_variables(in)
 end subroutine inputs_new
+
+
 subroutine inputs_free(in)
   use module_types
   implicit none
@@ -461,7 +521,11 @@ subroutine inputs_free(in)
   call free_input_variables(in)
   deallocate(in)
 end subroutine inputs_free
+
+
 subroutine inputs_set_dict(in, level, val)
+
+
   use dictionaries
   use module_types
   use yaml_output
@@ -474,6 +538,9 @@ subroutine inputs_set_dict(in, level, val)
   call input_set(in, level(1:len(level)), val%child)
 END SUBROUTINE inputs_set_dict
 subroutine inputs_get_output(in, run_name, dir_output, writing_directory)
+
+
+
   use module_types
   implicit none
   type(input_variables), intent(in) :: in
@@ -1641,6 +1708,7 @@ subroutine dict_next(dict, exists)
   exists = associated(next)
   if (exists) dict => next
 END SUBROUTINE dict_next
+
 subroutine dict_len(dict, ln)
   use dictionaries, only: dictionary, wrapper => dict_len
   implicit none
@@ -1649,6 +1717,7 @@ subroutine dict_len(dict, ln)
 
   ln = wrapper(dict)
 END SUBROUTINE dict_len
+
 subroutine dict_size(dict, ln)
   use dictionaries, only: dictionary, wrapper => dict_size
   implicit none
@@ -1657,6 +1726,7 @@ subroutine dict_size(dict, ln)
 
   ln = wrapper(dict)
 END SUBROUTINE dict_size
+
 subroutine dict_copy(dict, ref)
   use dictionaries, only: dictionary, wrapper => dict_copy
   implicit none
@@ -1664,6 +1734,7 @@ subroutine dict_copy(dict, ref)
 
   call wrapper(dict, ref)
 END SUBROUTINE dict_copy
+
 subroutine dict_update(dict, ref)
   use dictionaries, only: dictionary, wrapper => dict_update
   implicit none
@@ -1671,6 +1742,7 @@ subroutine dict_update(dict, ref)
 
   call wrapper(dict, ref)
 END SUBROUTINE dict_update
+
 subroutine dict_init(dict)
   use dictionaries, only: dictionary, wrapper => dict_init
   implicit none

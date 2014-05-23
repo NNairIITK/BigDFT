@@ -80,66 +80,11 @@
  #|C  4 4.9d-2 4.9d-2 0.0d-2 4.5 4.5 4.5 10.d0 Atom name, number of basis functions per atom,
  #|O  4 4.9d-2 4.9d-2 0.0d-2 4.5 4.5 4.5 10.d0 Atom name, number of basis functions per atom,
  #|H  1 4.9d-2 4.9d-2 0.0d-2 4.5 4.5 4.5 10.d0 Atom name, number of basis functions per atom,
- Dictionary for lin:
-   lin_general:
-     hybrid                            : Yes
-     nit: [100, 100]
-     rpnrm_cv: [1.00000000000000002E-008, 1.00000000000000002E-008]
-     conf_damping                      : -0.5
-     taylor_order                      : 2
-     output_wf                         : 0
-     calc_dipole                       : No
-     calc_pulay: [No, No]
-     subspace_diag                     : No
-   lin_basis:
-     nit: [2, 2]
-     idsx: [0, 0]
-     gnrm_cv: [4.00000000000000033E-005, 4.00000000000000033E-005]
-     deltae_cv                         : 1.00000000000000005E-004
-     gnrm_dyn                          : 1.00000000000000005E-004
-     alpha_diis                        : 0.5
-     alpha_sd                          : 0.5
-     nstep_prec                        : 5
-   lin_kernel:
-     nstep: [3, 3]
-     nit: [2, 2]
-     idsx_coeff: [6, 6]
-     idsx: [0, 0]
-     alphamix: [1.0, 1.0]
-     gnrm_cv_coeff: [9.99999999999999955E-007, 9.99999999999999955E-007]
-     rpnrm_cv: [1.00000000000000006E-009, 1.00000000000000006E-009]
-     linear_method                     : DIRMIN
-     alpha_sd_coeff                    : 0.20000000000000001
-     alpha_fit_coeff                   : No
-     eval_range_foe: [-1.0, 1.0]
-     fscale_foe                        : 2.99999999999999989E-002
-   lin_basis_params:
-     C:
-       nbasis                          : 4
-       ao_confinement                  : 4.90000000000000019E-002
-       confinement: [4.90000000000000019E-002, 0.0]
-       rloc: [4.5, 4.5]
-       rloc_kernel                     : 4.5
-       rloc_kernel_foe                 : 10.0
-     O:
-       nbasis                          : 4
-       ao_confinement                  : 4.90000000000000019E-002
-       confinement: [4.90000000000000019E-002, 0.0]
-       rloc: [4.5, 4.5]
-       rloc_kernel                     : 4.5
-       rloc_kernel_foe                 : 10.0
-     H:
-       nbasis                          : 1
-       ao_confinement                  : 4.90000000000000019E-002
-       confinement: [4.90000000000000019E-002, 0.0]
-       rloc: [4.5, 4.5]
-       rloc_kernel                     : 4.5
-       rloc_kernel_foe                 : 10.0
   #------------------------------------------------------------------------ Input parameters
  perf:
-   debug                               : No #     debug option
-   fftcache                            : 8192 #   cache size for the FFT
-   accel                               : NO #     acceleration
+   debug                               : No #     Debug option
+   fftcache                            : 8192 #   Cache size for the FFT
+   accel                               : NO #     Acceleration (hardware)
    ocl_platform                        : ~ #      Chosen OCL platform
    ocl_devices                         : ~ #      Chosen OCL devices
    blas                                : No #     CUBLAS acceleration
@@ -159,9 +104,9 @@
    signaling                           : No #     Expose calculation results on Network
    signaltimeout                       : 0 #      Time out on startup for signal connection (in seconds)
    domain                              : ~ #      Domain to add to the hostname to find the IP
-   inguess_geopt                       : 0 #      input guess to be used during the optimization
-   store_index                         : No #     store indices or recalculate them for linear scaling
-   verbosity                           : 2 #      verbosity of the output
+   inguess_geopt                       : 0 #      Input guess to be used during the optimization
+   store_index                         : No #     Store indices or recalculate them for linear scaling
+   verbosity                           : 2 #      Verbosity of the output
    outdir                              : ./ #     Writing directory
    psp_onfly                           : Yes #    Calculate pseudopotential projectors on the fly
    pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
@@ -220,10 +165,10 @@
  geopt:
    method                              : none #   Geometry optimisation method
    ncount_cluster_x                    : 1 #      Maximum number of force evaluations
-   frac_fluct                          : 1.
-   forcemax                            : 0.
-   randdis                             : 0. #     random displacement amplitude
-   betax                               : 4. #     Stepsize for the geometry optimisation
+   frac_fluct                          : 1. #     Fraction of force fluctuations. Stop if fmax < forces_fluct*frac_fluct
+   forcemax                            : 0. #     Max forces criterion when stop
+   randdis                             : 0. #     Random displacement amplitude
+   betax                               : 4. #     Stepsize for the geometry optimization
  mix:
    iscf                                : 0 #      mixing parameters
    itrpmax                             : 1 #      maximum number of diagonalisation iterations
@@ -237,7 +182,7 @@
    sic_approach                        : none #   SIC method
    sic_alpha                           : 0. #     SIC downscaling parameter
  tddft:
-   tddft_approach                      : none #   TDDFT method
+   tddft_approach                      : none #   Time-Dependent DFT method
  lin_general:
    hybrid                              : Yes #    activate the hybrid mode; if activated, only the low accuracy values will be relevant
    nit: [100, 100] #                              number of iteration with low/high accuracy
@@ -337,14 +282,14 @@
    No. of Electrons                    : 1
    Pseudopotential XC                  : 1
    Local Pseudo Potential (HGH convention):
-     Rloc                              : 0.20000000000000001
-     Coefficients (c1 .. c4): [-4.1802368000000003, 0.72507482000000001, 0.0, 0.0]
-   Source                              : Hard-coded
+     Rloc                              : 0.2
+     Coefficients (c1 .. c4): [-4.1802368, 0.72507482, 0.0, 0.0]
+   Source                              : Hard-Coded
    Radii of active regions (AU):
      Coarse                            : 1.463418464633951
-     Fine                              : 0.20000000000000001
-     Coarse PSP                        : 0.20000000000000001
-     Source                            : Hard-coded
+     Fine                              : 0.2
+     Coarse PSP                        : 0.2
+     Source                            : Hard-Coded
  psppar.C:
    Pseudopotential type                : HGH-K
    Atomic number                       : 6
@@ -360,12 +305,12 @@
    - Channel (l)                       : 1
      Rloc                              : 0.2326773
      h_ij terms: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-   Source                              : Hard-coded
+   Source                              : Hard-Coded
    Radii of active regions (AU):
      Coarse                            : 1.5843663028121528
      Fine                              : 0.2326773
      Coarse PSP                        : 0.2326773
-     Source                            : Hard-coded
+     Source                            : Hard-Coded
  psppar.O:
    Pseudopotential type                : HGH-K
    Atomic number                       : 8
@@ -383,10 +328,10 @@
      h_ij terms: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
    Source                              : Hard-coded
    Radii of active regions (AU):
-     Coarse                            : 1.2155757214997522
-     Fine                              : 0.22178613999999999
-     Coarse PSP                        : 0.22178613999999999
-     Source                            : Hard-coded
+     Coarse                            : 1.215575721499752
+     Fine                              : 0.22178614
+     Coarse PSP                        : 0.22178614
+     Source                            : Hard-Coded
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data/
   #-------------------------------------------------- Input Atomic System (file: posinp.xyz)
@@ -443,7 +388,7 @@
      Coarse                            :  1.46342
      Fine                              :  0.20000
      Coarse PSP                        :  0.00000
-     Source                            : PSP File
+     Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  0.50
    Pseudopotential type                : HGH-K
    Local Pseudo Potential (HGH convention):
@@ -458,7 +403,7 @@
      Coarse                            :  1.58437
      Fine                              :  0.23268
      Coarse PSP                        :  0.91366
-     Source                            : PSP File
+     Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  0.58
    Pseudopotential type                : HGH-K
    Local Pseudo Potential (HGH convention):
@@ -480,7 +425,7 @@
      Coarse                            :  1.21558
      Fine                              :  0.22179
      Coarse PSP                        :  0.77049
-     Source                            : PSP File
+     Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  0.55
    Pseudopotential type                : HGH-K
    Local Pseudo Potential (HGH convention):
@@ -520,25 +465,25 @@
  Atomic structure:
    Units                               : angstroem
    Positions:
-   - H: [ 11.02862292,  10.92280793,  16.26320289] # [  22.98,  22.76,  33.88 ] 0001
-   - H: [ 5.752507923,  9.766296461,  15.31078091] # [  11.98,  20.35,  31.90 ] 0002
-   - H: [ 8.821424188,  12.85032944,  14.50197818] # [  18.38,  26.77,  30.21 ] 0003
-   - C: [ 9.509283301,  7.498623670,  8.439736538] # [  19.81,  15.62,  17.58 ] 0004
-   - H: [ 7.468379230,  10.74895311,  9.996871092] # [  15.56,  22.39,  20.83 ] 0005
-   - O: [ 12.01883972,  12.35900021,  10.96441080] # [  25.04,  25.75,  22.84 ] 0006
-   - H: [ 12.48749208,  8.798756527,  12.41572048] # [  26.02,  18.33,  25.87 ] 0007
-   - C: [ 9.690698277,  10.93036628,  14.63803846] # [  20.19,  22.77,  30.50 ] 0008
-   - O: [ 7.339878156,  7.770744332,  12.42327940] # [  15.29,  16.19,  25.88 ] 0009
-   - C: [ 8.730716699,  9.191819907,  10.64693685] # [  18.19,  19.15,  22.18 ] 0010
-   - C: [ 7.611998819,  8.912139085,  14.82701106] # [  15.86,  18.57,  30.89 ] 0011
-   - C: [ 10.96815246,  10.23494701,  12.15115885] # [  22.85,  21.32,  25.31 ] 0012
-   - H: [ 10.69603180,  8.549312736,  7.056457253] # [  22.28,  17.81,  14.70 ] 0013
-   - H: [ 10.50705846,  5.760077293,  9.082243709] # [  21.89,  12.00,  18.92 ] 0014
-   - H: [ 10.71870867,  13.54574871,  10.71496701] # [  22.33,  28.22,  22.32 ] 0015
-   - O: [ 7.324761443,  6.720057068,  7.147164291] # [  15.26,  14.00,  14.89 ] 0016
-   - H: [ 7.846324094,  5.654251289,  5.816797106] # [  16.35,  11.78,  12.12 ] 0017
-   - O: [ 8.209152246,  7.007296247,  16.66382486] # [  17.10,  14.60,  34.72 ] 0018
-   - H: [ 9.781403964,  6.206050971,  16.09690711] # [  20.38,  12.93,  33.54 ] 0019
+   - H: [ 5.836095915,  5.780101033,  8.606116346] # [  12.16,  12.04,  17.93 ] 0001
+   - H: [ 3.044096098,  5.168101521,  8.102116338] # [  6.34,  10.77,  16.88 ] 0002
+   - H: [ 4.668096647,  6.800101491,  7.674116365] # [  9.73,  14.17,  15.99 ] 0003
+   - C: [ 5.032096014,  3.968100758,  4.466116241] # [  10.48,  8.27,  9.30 ] 0004
+   - H: [ 3.952096090,  5.688101025,  5.290116361] # [  8.23,  11.85,  11.02 ] 0005
+   - O: [ 6.360096082,  6.540101262,  5.802116326] # [  13.25,  13.63,  12.09 ] 0006
+   - H: [ 6.608096227,  4.656101437,  6.570116333] # [  13.77,  9.70,  13.69 ] 0007
+   - C: [ 5.128096685,  5.784100743,  7.746116362] # [  10.68,  12.05,  16.14 ] 0008
+   - O: [ 3.884096250,  4.112100812,  6.574116341] # [  8.09,  8.57,  13.70 ] 0009
+   - C: [ 4.620096311,  4.864101620,  5.634116343] # [  9.63,  10.13,  11.74 ] 0010
+   - C: [ 4.028096304,  4.716100903,  7.846116356] # [  8.39,  9.83,  16.35 ] 0011
+   - C: [ 5.804096327,  5.416100713,  6.430116347] # [  12.09,  11.28,  13.40 ] 0012
+   - H: [ 5.660096273,  4.524101468,  3.734116367] # [  11.79,  9.43,  7.78 ] 0013
+   - H: [ 5.560095892,  3.048101636,  4.806116394] # [  11.58,  6.35,  10.01 ] 0014
+   - H: [ 5.672096357,  7.168101521,  5.670116357] # [  11.82,  14.93,  11.81 ] 0015
+   - O: [ 3.876096830,  3.556101056,  3.782116464] # [  8.08,  7.41,  7.88 ] 0016
+   - H: [ 4.152095899,  2.992100926,  3.078116468] # [  8.65,  6.23,  6.41 ] 0017
+   - O: [ 4.344096288,  3.708101483,  8.818116359] # [  9.05,  7.73,  18.37 ] 0018
+   - H: [ 5.176096067,  3.284100743,  8.518116406] # [  10.78,  6.84,  17.75 ] 0019
    Rigid Shift Applied (AU)            :  [ -11.784,  29.344,  14.162 ]
   #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4800,  0.4800,  0.4800 ]

@@ -1300,7 +1300,7 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
      do iat=1,at%astruct%nat
         iatype=at%astruct%iatype(iat)
         istart_c=1
-        if(at%npspcode(iatype)==7) then
+        if(at%npspcode(iatype) == PSPCODE_PAW) then
           call atom_projector_paw(ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
                lr,hx,hy,hz,paw%rpaw(iatype),rxyz(1,iat),at,orbs,nlpsp%pspd(iat)%plr,nlpsp%proj,&
                nwarnings,proj_G(iatype))
@@ -1313,7 +1313,7 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
         ispsi=ispsi_k
         do iorb=isorb,ieorb
            istart_c=1
-           if(at%npspcode(iatype)==7) then
+           if(at%npspcode(iatype) == PSPCODE_PAW) then
            !    PAW case:
               call apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,nlpsp%nprojel,&
                    at,orbs,wfd,nlpsp%pspd(iat)%plr,nlpsp%proj,&
@@ -1404,8 +1404,10 @@ END SUBROUTINE applyprojectorsonthefly
 !!$END SUBROUTINE apply_atproj_iorb
 
 
+!> Build the Hifj matrix for PSP
 subroutine build_hgh_hij_matrix(npspcode,psppar,hij)
-  use module_base
+  use module_base, only: gp
+  use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
   implicit none
   !Arguments
   integer, intent(in) :: npspcode
@@ -1415,7 +1417,7 @@ subroutine build_hgh_hij_matrix(npspcode,psppar,hij)
   integer :: l,i,j
   real(gp), dimension(2,2,3) :: offdiagarr
 
-  !enter the coefficients for the off-diagonal terms (HGH case, npspcode=3)
+  !enter the coefficients for the off-diagonal terms (HGH case, npspcode=PSPCODE_HGH)
   offdiagarr(1,1,1)=-0.5_gp*sqrt(3._gp/5._gp)
   offdiagarr(2,1,1)=-0.5_gp*sqrt(100._gp/63._gp)
   offdiagarr(1,2,1)=0.5_gp*sqrt(5._gp/21._gp)
@@ -1436,12 +1438,12 @@ subroutine build_hgh_hij_matrix(npspcode,psppar,hij)
      !term for all npspcodes
      loop_diag: do i=1,3
         hij(i,i,l)=psppar(l,i) !diagonal term
-        if ((npspcode == 3 .and. l/=4 .and. i/=3) .or. &
-             ((npspcode == 10 .or. npspcode == 12) .and. i/=3)) then !HGH(-K) case, offdiagonal terms
+        if ((npspcode == PSPCODE_HGH .and. l/=4 .and. i/=3) .or. &
+             ((npspcode == PSPCODE_HGH_K .or. npspcode == PSPCODE_HGH_K_NLCC) .and. i/=3)) then !HGH(-K) case, offdiagonal terms
            loop_offdiag: do j=i+1,3
               if (psppar(l,j) == 0.0_gp) exit loop_offdiag
               !offdiagonal HGH term
-              if (npspcode == 3) then !traditional HGH convention
+              if (npspcode == PSPCODE_HGH) then !traditional HGH convention
                  hij(i,j,l)=offdiagarr(i,j-i,l)*psppar(l,j)
               else !HGH-K convention
                  hij(i,j,l)=psppar(l,i+j+1)
@@ -1454,10 +1456,13 @@ subroutine build_hgh_hij_matrix(npspcode,psppar,hij)
   
 end subroutine build_hgh_hij_matrix
 
+
+!> Apply the PSP projectors
 subroutine applyprojector(ncplx,l,i,psppar,npspcode,&
      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,&
      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj,psi,hpsi,eproj)
-  use module_base
+  use module_base, only: gp,wp,dp
+  use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
   implicit none
   integer, intent(in) :: i,l,npspcode,ncplx
   integer, intent(in) :: nvctr_c,nvctr_f,nseg_c,nseg_f,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
@@ -1511,13 +1516,13 @@ subroutine applyprojector(ncplx,l,i,psppar,npspcode,&
 
      istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
   enddo
-  if ((npspcode == 3 .and. l/=4 .and. i/=3) .or. &
-       ((npspcode == 10 .or. npspcode == 12 ).and. i/=3)) then !HGH(-K) case, offdiagonal terms
+  if ((npspcode == PSPCODE_HGH .and. l/=4 .and. i/=3) .or. &
+       ((npspcode == PSPCODE_HGH_K .or. npspcode == PSPCODE_HGH_K_NLCC ).and. i/=3)) then !HGH(-K) case, offdiagonal terms
      loop_j: do j=i+1,3
         if (psppar(l,j) == 0.0_gp) exit loop_j
 
         !offdiagonal HGH term
-        if (npspcode == 3) then !traditional HGH convention
+        if (npspcode == PSPCODE_HGH) then !traditional HGH convention
            hij=offdiagarr(i,j-i,l)*psppar(l,j)
         else !HGH-K convention
            hij=psppar(l,i+j+1)
@@ -2064,8 +2069,8 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
 !!$  deallocate(wproj,stat=i_stat)
 !!$  call memocc(i_stat,i_all,'wproj',subname)
 
-
 END SUBROUTINE apply_atproj_iorb_new
+
 
 !> Applies the projector associated on a given atom on a corresponding orbital
 !! uses a generic representation of the projector to generalize the form of the projector  
@@ -2136,9 +2141,8 @@ subroutine apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,nprojel,at,orbs,wfd,&
   eproj=eproj+&
         &orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eproj_i
 
-
-
 end subroutine apply_atproj_iorb_paw
+
 
 !> Find the starting and ending orbital for kpoint ikpt, and the corresponding nspinor
 subroutine orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)

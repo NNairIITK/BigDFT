@@ -119,9 +119,10 @@ endif
 
 AO_INCLUDES = eleconf-inc.f90
 ATOMS_INCLUDES = astruct-inc.f90
+COMMS_INCLUDES = check_array-inc.f90
 
 EXTRA_DIST = configure.inc.in bigdft_cst.h.in BigDFT.py \
-	$(AO_INCLUDES) $(ATOMS_INCLUDES)
+	$(AO_INCLUDES) $(ATOMS_INCLUDES) $(COMMS_INCLUDES)
 CLEANFILES = $(modules)
 
 AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
@@ -157,7 +158,7 @@ constrained_dft.o: base.o types.o fragments.o sparsematrix_base.o sparsematrix.o
 input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o types.o defs.o ao_inguess.o interfaces.o atoms_data.o input_keys.o
 psp_projectors.o: locregs.o
 locregs.o: base.o
-ao_inguess.o: $(AO_INCLUDES) base.o
+ao_inguess.o: $(AO_INCLUDES) base.o psp_projectors.o
 atoms_data.o: $(ATOMS_INCLUDES) ao_inguess.o
 communications_base.o: base.o
 communications_init.o: base.o types.o communications_base.o
@@ -168,6 +169,7 @@ sparsematrix.o: base.o types.o sparsematrix_base.o
 
 # Copy modules in a common include directory.
 all: all-am insmod
+check: check-am insmod
 insmod: $(modules) 
 	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes
 	for mod in "$(modules)" ; do \

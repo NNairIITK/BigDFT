@@ -106,7 +106,7 @@ program abscalc_main
       deallocate(fxyz,stat=i_stat)
       call memocc(i_stat,i_all,'fxyz',subname)
 
-      call run_objects_free(runObj, "abscalc")
+      call run_objects_free(runObj, subname)
 !!$      call free_input_variables(inputs)
 !!$
 !!$      !finalize memory counting
@@ -262,8 +262,8 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
 END SUBROUTINE call_abscalc
 
 
-!>   Absorption (XANES) calculation
-!!   @warning psi should be freed after use outside of the routine.
+!> Absorption (XANES) calculation
+!! @warning psi should be freed after use outside of the routine.
 subroutine abscalc(nproc,iproc,atoms,rxyz,&
      KSwfn,hx_old,hy_old,hz_old,in,GPU,infocode)
    use module_base
@@ -280,6 +280,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use communications_base, only: comms_cubic
    use communications_init, only: orbitals_communicators
    use ao_inguess, only: set_aocc_from_string
+   use yaml_output, only: yaml_warning,yaml_toa
    implicit none
    integer, intent(in) :: nproc,iproc
    real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -291,14 +292,14 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    type(GPU_pointers), intent(inout) :: GPU
    real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
 !   real(wp), dimension(:), pointer :: psi
-   integer, intent(out) :: infocode        !< encloses some information about the status of the run
-!!                         - 0 run successfully succeded
-!!                         - 1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
-!!                             forces may be meaningless   
-!!                         - 2 (present only for inputPsiId=1) gnrm of the first iteration > 1 AND growing in
-!!                             the second iteration OR grnm 1st >2.
-!!                             Input wavefunctions need to be recalculated. Routine exits.
-!!                         - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
+   integer, intent(out) :: infocode !< encloses some information about the status of the run
+                                    !! - 0 run successfully succeded
+                                    !! - 1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
+                                    !!     forces may be meaningless   
+                                    !! - 2 (present only for inputPsiId=1) gnrm of the first iteration > 1 AND growing in
+                                    !!     the second iteration OR grnm 1st >2.
+                                    !!     Input wavefunctions need to be recalculated. Routine exits.
+                                    !! - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
    !local variables
    type(orbitals_data) :: orbs
    character(len=*), parameter :: subname='abscalc'
@@ -382,6 +383,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    type(atoms_data) :: atoms_clone
    integer :: ndeg,nsp, nspinor !n(c) noncoll
+   integer, parameter :: nelecmax=32,lmax=4 !n(c) nmax=6
+   integer, parameter :: noccmax=2
 
    !! to apply pc_projector
    type(pcproj_data_type) ::PPD
@@ -706,9 +709,13 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
          stop
       end select
 
-      print *, " Going to create extra potential for orbital "
-      print *, in%extraOrbital
-      print *, "using hard-coded parameters "
+      !print *, " Going to create extra potential for orbital "
+      !print *, in%extraOrbital
+      !print *, "using hard-coded parameters "
+      !print *, "noccmax, nelecmax,lmax ", noccmax, nelecmax,lmax
+      call yaml_warning('Going to create extra potential for orbital' // yaml_toa(in%extraOrbital))
+      call yaml_warning('using hard-coded parameters (noccmax, nelecmax,lmax)' // &
+           yaml_toa((/ noccmax, nelecmax,lmax /)))
 
       call set_aocc_from_string(in%extraOrbital,&
            atoms_clone%aoig(iat)%aocc, atoms_clone%aoig(iat)%nl_sc,ndeg)

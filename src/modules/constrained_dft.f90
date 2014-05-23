@@ -106,7 +106,7 @@ contains
     logical, intent(in) :: calculate_overlap_matrix
     type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
 
-    integer :: iall, iorb, jorb, istat, ifrag, ifrag_ref, isforb, nfrag_charged
+    integer :: nfrag_charged
     real(kind=gp), dimension(:,:), pointer :: ovrlp_half
     character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
 
@@ -438,7 +438,7 @@ contains
     type(sparse_matrix), intent(in) :: ham
 
     character(len=200), parameter :: subname='cdft_data_allocate'
-    integer :: istat
+    !!integer :: istat
 
     call f_routine(id='cdft_data_allocate')
     call sparse_copy_pattern(ham, cdft%weight_matrix, bigdft_mpi%iproc, subname)

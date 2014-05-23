@@ -9,7 +9,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> Module defining the routines used to write yaml
+!> Module defining the routines used to write the yaml output
 module yaml_output
   use yaml_strings
   use dictionaries
@@ -78,8 +78,7 @@ module yaml_output
   integer :: YAML_UNIT_INCONSISTENCY     !< Internal error, unit inconsistency
   integer :: YAML_INVALID                !< Invalid action, unit inconsistency
 
-  !> Generic routine to create a yaml map as foo: 1
-  !! as call yaml_map('foo',1)
+  !> Generic routine to create a yaml map as 'foo: 1\\n' is call yaml_map('foo',1)
   !! @ingroup FLIB_YAML
   !! @param mapname  @copydoc doc::mapname
   !! @param mapvalue @copydoc doc::mapvalue
@@ -99,26 +98,27 @@ module yaml_output
   end interface
 
  
-  !!here starts the documentation of the code
-  !> fake structure needed to document common arguments of the module
-  !! @param
+  !> Fake structure needed to document common arguments of the module
   type, private :: doc
-     !>integer indicating the value of the column where the following 
+     !> integer indicating the value of the column where the following 
      !! data have to be aligned. This is used when the field is opened with 
      !! flow=.true. so that the output is forced to start from the columns indicated
      !! by the value of tabbing. Should the cursor be already above this value,
      !! then the field is ignored.
      integer :: tabbing
-     integer:: unit !< unit of the yaml_stream to be used for output. 
-                    !! its value is specified by the user according to the specification of the @link yaml_set_stream @endlink routine
-     character(len=1) :: mapname !<key of the mapping (or sequence). It represents the identifier of the value field which is associated to it
-     logical :: flow !< logical variable controlling the flow of the output. Default is .false..
-                     !! When .true., the output is written in compact yaml flow style. See yaml specifications in
-                     !! http://www.yaml.org/spec/1.2/spec.html#id2759963 . Of course also nested field inside will be written
-                     !! in compact flow style, until the mapping or sequencing is closed.
-     character(len=1) :: label !< define a anchor of the mapping, which can be used to deepcopy its value in another mapping
+     !> unit of the yaml_stream to be used for output. 
+     !! its value is specified by the user according to the specification of the @link yaml_set_stream @endlink routine
+     integer:: unit
+     !> key of the mapping (or sequence). It represents the identifier of the value field which is associated to it
+     character(len=1) :: mapname
+     !> logical variable controlling the flow of the output. Default is .false..
+     !! When .true., the output is written in compact yaml flow style. See yaml specifications in
+     !! http://www.yaml.org/spec/1.2/spec.html#id2759963 . Of course also nested field inside will be written
+     !! in compact flow style, until the mapping or sequencing is closed.
+     logical :: flow 
+     !> define a anchor of the mapping, which can be used to deepcopy its value in another mapping
      !! see http://www.yaml.org/spec/1.2/spec.html#id2760395.
-
+     character(len=1) :: label 
      !> define whether the i/o should be advancing (advance='yes') or not (advance='no').
      !! if the mapping (in the case of @link yaml_open_map @endlink) or sequencing @link yaml_open_sequence @endlink)
      !!has been opened with the value of flow  = .true.
@@ -127,7 +127,8 @@ module yaml_output
      !! Otherwise, if absent, the output is always advancing.
      !! non-advancing i/o is useful for example when one wants to leave a comment after the end of a mapping.
      character(len=1) :: advance 
-     character(len=1) :: tag !< tag description. Unused and should be probably removed
+     !> tag description. Unused and should be probably removed
+     character(len=1) :: tag 
      !> scalar value of the mapping may be of any scalar type
      !! it is internally converted to character with the usage of @link yaml_toa @endlink function
      character(len=1) :: mapvalue
@@ -135,18 +136,27 @@ module yaml_output
 
 
   !> @addtogroup FLIB_YAML
-  !!@{ Public routines (API of the module)
+  !!@{ Public routines (API of the module).@n
   !! Here follows the routines which are important for the usage of the yaml_output module
-  !! which is a part of flib library.
+  !! which is a part of flib library.@n
   !! By clicking the links below you should be redirected to the documentation of the important routines
-  !!@endlink, @link yaml_new_document @endlink, @link yaml_release_document
-  !!@endlink, @link yaml_map @endlink, @link yaml_open_map @endlink, @link yaml_close_map
-  !!@endlink, @link yaml_sequence @endlink, @link yaml_open_sequence @endlink, @link yaml_close_sequence
-  !!@endlink, @link yaml_comment @endlink, @link yaml_warning @endlink, @link yaml_scalar @endlink, @link yaml_newline
-  !!@endlink, @link yaml_toa @endlink, @link yaml_date_and_time_toa @endlink, @link yaml_date_toa @endlink, @link yaml_time_toa
-  !!@endlink, there is also yaml_set_stream routine, @link yaml_set_default_stream @endlink, @link yaml_close_stream @endlink, @link yaml_swap_stream
-  !!@endlink, @link yaml_get_default_stream @endlink, @link yaml_stream_attributes @endlink, @link yaml_close_all_streams
-  !!@endlink, @link yaml_dict_dump @endlink, @link yaml_dict_dump_all @endlink
+  !! @link yaml_new_document @endlink,  @link yaml_release_document @endlink, 
+  !! @link yaml_map @endlink, 
+  !! @link yaml_open_map @endlink,      @link yaml_close_map @endlink, 
+  !! @link yaml_sequence @endlink, 
+  !! @link yaml_open_sequence @endlink, @link yaml_close_sequence @endlink, 
+  !! @link yaml_comment @endlink, 
+  !! @link yaml_warning @endlink, 
+  !! @link yaml_scalar @endlink, 
+  !! @link yaml_newline @endlink, 
+  !! @link yaml_toa @endlink, 
+  !! @link yaml_date_and_time_toa @endlink, @link yaml_date_toa @endlink, @link yaml_time_toa @endlink.
+  !! @n@n
+  !! There are also @link yaml_set_stream routine @endlink, @link yaml_set_default_stream @endlink, 
+  !!                @link yaml_close_stream @endlink,       @link yaml_swap_stream @endlink, 
+  !!                @link yaml_get_default_stream @endlink, @link yaml_stream_attributes @endlink, 
+  !!                @link yaml_close_all_streams @endlink,  @link yaml_dict_dump @endlink, 
+  !!                @link yaml_dict_dump_all @endlink
   !! @} 
 
  
@@ -240,8 +250,6 @@ contains
 
   function stream_next_free_unit()
     integer :: stream_next_free_unit
-    type(dictionary), pointer :: iter
-
     logical :: unit_is_open
     integer :: ierr
 
@@ -574,7 +582,7 @@ contains
   !! should this stream be the default stream, stdout becomes the default
   subroutine yaml_close_stream(unit,istat)
     implicit none
-    integer, optional, intent(in) :: unit
+    integer, optional, intent(in) :: unit   !< @copydoc doc::unit
     integer, optional, intent(out) :: istat !<error code, zero if suceeded
     !local variables
     integer :: unt,istatus,strm,funt
@@ -666,9 +674,9 @@ contains
   !> Display a warning (yaml comment starting with '\#WARNING: ')
   subroutine yaml_warning(message,level,unit)
     implicit none
-    integer, optional, intent(in) :: unit !< @copydoc doc::unit
-    character(len=*), intent(in) :: message
-    integer, optional, intent(in) :: level
+    character(len=*), intent(in) :: message !< Warning message
+    integer, optional, intent(in) :: level  !< Level of the message (if < Wall then abort)
+    integer, optional, intent(in) :: unit   !< @copydoc doc::unit
     !local variables
     integer :: unt,strm
 !!$    integer :: item
@@ -706,7 +714,7 @@ contains
   end subroutine yaml_warning
 
 
-  !> Write a yaml comment (#......)
+  !> Write a yaml comment (#......).
   !! Split the comment if too long
   subroutine yaml_comment(message,advance,unit,hfill,tabbing)
     implicit none
@@ -1108,13 +1116,13 @@ contains
   subroutine yaml_map_dict(mapname,mapvalue,label,unit,flow)
     implicit none
     character(len=*), intent(in) :: mapname             !< @copydoc doc::mapname
-    type(dictionary), pointer, intent(in) :: mapvalue            !< scalar value of the mapping may be of any scalar type
+    type(dictionary), pointer, intent(in) :: mapvalue   !< scalar value of the mapping may be of any scalar type
                                                         !! it is internally converted to character with the usage of @link yaml_toa @endlink function
     character(len=*), optional, intent(in) :: label     !< @copydoc doc::label
     integer, optional, intent(in) :: unit               !< @copydoc doc::unit
     logical, optional, intent(in) :: flow               !< @copydoc doc::flow
     !local variables
-    integer :: strm,unt,icut,istr,ierr,msg_lgt_ck,idbg
+    integer :: strm,unt
     character(len=max_field_length) :: lbl
 
     unt=0
@@ -1272,7 +1280,7 @@ contains
   subroutine dump(stream,message,advance,event,istat)
     implicit none
     type(yaml_stream), intent(inout) :: stream          !< Stream to handle
-    character(len=*), intent(in) :: message             !< Mesage to dump
+    character(len=*), intent(in) :: message             !< Message to dump
     character(len=*), intent(in), optional :: advance   !< Advance option
     integer, intent(in), optional :: event              !< Event to handle
     integer, intent(out), optional :: istat             !< Status error
@@ -1898,6 +1906,7 @@ contains
       
     end function switch_flow
 
+
     recursive subroutine yaml_dict_dump_(dict)
       implicit none
       type(dictionary), pointer, intent(in) :: dict
@@ -1935,12 +1944,13 @@ contains
 
     end subroutine yaml_dict_dump_
 
+
     subroutine scalar(val)
       implicit none
       character(len=*), intent(in) :: val
       if (verb) then
          call yaml_comment('call yaml_scalar("'//trim(val)//'",advance="'//trim(advc(flowrite))//&
-              ',unit='//trim(adjustl(yaml_toa(unt)))//'")')
+              '",unit='//trim(adjustl(yaml_toa(unt)))//')')
       else
          call yaml_scalar(trim(val),advance=advc(flowrite),unit=unt)
       end if
@@ -2058,9 +2068,10 @@ contains
 
   end subroutine yaml_dict_dump
 
-  !> dump all the documents in the dictionary
-  ! works with a list of documents
-  ! supposes that each element of the list is a separate document
+
+  !> Dump all the documents in the dictionary
+  !! Works with a list of documents
+  !! Suppose that each element of the list is a separate document
   subroutine yaml_dict_dump_all(dict,unit,flow,verbatim)
     implicit none
     type(dictionary), pointer, intent(in) :: dict   !< Dictionary to dump

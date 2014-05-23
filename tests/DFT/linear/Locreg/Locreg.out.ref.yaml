@@ -52,55 +52,6 @@
      CFLAGS                            : -g -O2
      FCFLAGS                           : -O2 -i_dynamic -msse4.2 -heap-arrays 1024 -openmp
      CXXFLAGS                          : -g -O2
- Dictionary for lin:
-   lin_general:
-     hybrid                            : No
-     nit: [2, 1]
-     rpnrm_cv: [9.99999999999999939E-012, 9.99999999999999939E-012]
-     conf_damping                      : 0.5
-     taylor_order                      : 0
-     output_wf                         : 0
-     calc_dipole                       : Yes
-     calc_pulay: [Yes, No]
-     subspace_diag                     : No
-   lin_basis:
-     nit: [8, 20]
-     idsx: [8, 8]
-     gnrm_cv: [4.00000000000000033E-005, 4.00000000000000033E-005]
-     deltae_cv                         : 1.00000000000000005E-004
-     gnrm_dyn                          : 1.00000000000000005E-004
-     alpha_diis                        : 1.0
-     alpha_sd                          : 0.10000000000000001
-     nstep_prec                        : 5
-   lin_kernel:
-     nstep: [1, 1]
-     nit: [12, 12]
-     idsx_coeff: [0, 0]
-     idsx: [0, 0]
-     alphamix: [0.5, 0.5]
-     gnrm_cv_coeff: [1.00000000000000008E-005, 1.00000000000000008E-005]
-     rpnrm_cv: [1.00000000000000003E-013, 1.00000000000000003E-013]
-     linear_method                     : DIAG
-     mixing_method                     : DEN
-     alpha_sd_coeff                    : 0.20000000000000001
-     alpha_fit_coeff                   : No
-     eval_range_foe: [-0.5, 0.5]
-     fscale_foe                        : 5.00000000000000028E-002
-   lin_basis_params:
-     Si:
-       nbasis                          : 4
-       ao_confinement                  : 1.00000000000000002E-003
-       confinement: [1.00000000000000002E-003, 1.00000000000000005E-004]
-       rloc: [18.0, 18.0]
-       rloc_kernel                     : 18.0
-       rloc_kernel_foe                 : 20.0
-     H:
-       nbasis                          : 1
-       ao_confinement                  : 1.00000000000000002E-003
-       confinement: [1.00000000000000002E-003, 1.00000000000000005E-004]
-       rloc: [18.0, 18.0]
-       rloc_kernel                     : 18.0
-       rloc_kernel_foe                 : 20.0
   #------------------------------------------------------------------------ Input parameters
  perf:
    debug                               : No #     debug option

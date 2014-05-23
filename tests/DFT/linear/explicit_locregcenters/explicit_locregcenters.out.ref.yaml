@@ -52,46 +52,6 @@
      CFLAGS                            : -g -O2
      FCFLAGS                           : -O2 -i_dynamic -msse4.2 -heap-arrays 1024 -openmp
      CXXFLAGS                          : -g -O2
- Dictionary for lin:
-   lin_general:
-     hybrid                            : No
-     nit: [15, 1]
-     rpnrm_cv: [1.00000000000000002E-008, 9.9999999999999998E-013]
-     conf_damping                      : 0.5
-     taylor_order                      : 1
-     output_wf                         : 0
-     calc_dipole                       : No
-     calc_pulay: [Yes, No]
-     subspace_diag                     : No
-   lin_basis:
-     nit: [12, 50]
-     idsx: [5, 0]
-     gnrm_cv: [1.00000000000000002E-003, 1.00000000000000008E-005]
-     deltae_cv                         : 1.00000000000000005E-004
-     gnrm_dyn                          : 1.00000000000000005E-004
-     alpha_diis                        : 1.0
-     alpha_sd                          : 1.0
-     nstep_prec                        : 5
-   lin_kernel:
-     nstep: [1, 1]
-     nit: [15, 15]
-     idsx_coeff: [0, 0]
-     idsx: [0, 0]
-     alphamix: [0.5, 0.5]
-     gnrm_cv_coeff: [1.00000000000000008E-005, 1.00000000000000008E-005]
-     rpnrm_cv: [1.00000000000000003E-013, 1.00000000000000003E-013]
-     linear_method                     : DIRMIN
-     alpha_sd_coeff                    : 1.0
-     alpha_fit_coeff                   : No
-     eval_range_foe: [-0.5, -0.5]
-     fscale_foe                        : 1.00000000000000002E-002
-   lin_basis_params:
-     nbasis                            : 1
-     ao_confinement                    : 1.20000000000000002E-002
-     confinement: [1.20000000000000002E-002, 5.00000000000000024E-005]
-     rloc: [10.0, 10.0]
-     rloc_kernel                       : 12.0
-     rloc_kernel_foe                   : 20.0
   #------------------------------------------------------------------------ Input parameters
  radical                               : locregcenters
  perf:
@@ -147,7 +107,8 @@
    loewdin_charge_analysis             : No #     linear scaling perform a Loewdin charge analysis at the end of the calculation
    check_matrix_compression            : Yes #    linear scaling perform a check of the matrix compression routines
  dft:
-   hgrids: [0.45, 0.45, 0.45] #                   grid spacing in the three directions (bohr)
+   disablesym                          : Yes #    Disable the symmetry detection
+   hgrids: [0.45, 0.45, 0.45] #                   Grid spacing in the three directions (bohr)
    rmult: [5., 8.] #                              c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
    ixc                                 : 1 #      exchange-correlation parameter (LDA=1,PBE=11)
    ncharge                             : 0 #      charge of the system
@@ -168,9 +129,8 @@
    norbv                               : 0 #      Davidson subspace dim.
    nvirt                               : 0
    nplot                               : 0
-   disablesym                          : No #     disable the symmetry detection
  kpt:
-   method                              : manual # K-point sampling method
+   method                              : Manual # K-point sampling method
    kpt: #                                         Kpt coordinates
    -  [0., 0., 0.]
    wkpt: [1.] #                                   Kpt weights
@@ -340,10 +300,10 @@
  Geometry Optimization Parameters:
    Maximum steps                       :  1
    Algorithm                           : none
-   Random atomic displacement          :  0.0E+00
-   Fluctuation in forces               :  1.0E+00
-   Maximum in forces                   :  0.0E+00
-   Steepest descent step               :  4.0E+00
+   Random atomic displacement          :  0.0
+   Fluctuation in forces               :  1.0
+   Maximum in forces                   :  0.0
+   Steepest descent step               :  4.0
  Material acceleration                 :  No #iproc=0
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:

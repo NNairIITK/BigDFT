@@ -6,16 +6,31 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
 !> Handling of input guess creation from basis of atomic orbitals
+!! and also pseudopotentials
 module module_atoms
   use module_defs, only: dp,gp
   use ao_inguess, only: aoig_data
   implicit none
   private
 
+  !> Source of the radii coefficients
+  integer, parameter, public :: RADII_SOURCE_HARD_CODED = 1
+  integer, parameter, public :: RADII_SOURCE_FILE = 2
+  integer, parameter, public :: RADII_SOURCE_USER = 3
+  integer, parameter, public :: RADII_SOURCE_UNKNOWN = 4
+  character(len=*), dimension(4), parameter, public :: RADII_SOURCE = (/ "Hard-Coded  ", &
+                                                                         "PSP File    ", &
+                                                                         "User defined", &
+                                                                         "Unknown     " /)
+
   !> Quantities used for the symmetry operators. To be used in atomic_structure derived type.
   type, public :: symmetry_data
-     integer :: symObj    !< The symmetry object from ABINIT
+     integer :: symObj                             !< The symmetry object from ABINIT
+     integer :: nSym                               !< Number of symmetry (0 if disable)
+     character(len=15) :: spaceGroup               !< Space group (disabled if not useful)
      integer, dimension(:,:,:), pointer :: irrzon
      real(dp), dimension(:,:,:), pointer :: phnons
   end type symmetry_data
@@ -23,38 +38,40 @@ module module_atoms
   !>Structure of the system. This derived type contains the information about the physical properties
   type, public :: atomic_structure
      character(len=1) :: geocode          !< @copydoc poisson_solver::doc::geocode
-     character(len=5) :: inputfile_format !< Can be xyz ascii or yaml
+     character(len=5) :: inputfile_format !< Can be xyz, ascii or yaml
      character(len=20) :: units           !< Can be angstroem or bohr 
      integer :: nat                       !< Number of atoms
      integer :: ntypes                    !< Number of atomic species in the structure
      real(gp), dimension(3) :: cell_dim   !< Dimensions of the simulation domain (each one periodic or free according to geocode)
      !pointers
-     real(gp), dimension(:,:), pointer :: rxyz !< Atomic positions (always in AU, units variable is considered for I/O only)
+     real(gp), dimension(:,:), pointer :: rxyz             !< Atomic positions (always in AU, units variable is considered for I/O only)
      character(len=20), dimension(:), pointer :: atomnames !< Atomic species names
      integer, dimension(:), pointer :: iatype              !< Atomic species id
      integer, dimension(:), pointer :: ifrztyp             !< Freeze atoms while updating structure
      integer, dimension(:), pointer :: input_polarization  !< Used in AO generation for WFN input guess
-     type(symmetry_data) :: sym                      !< The symmetry operators
+     type(symmetry_data) :: sym                            !< The symmetry operators
   end type atomic_structure
 
   !> Data containing the information about the atoms in the system
   type, public :: atoms_data
-     type(atomic_structure) :: astruct
-     type(aoig_data), dimension(:), pointer :: aoig !< contains the information needed for generating the AO inputguess data for each atom
-     integer :: natsc    !< number of atoms with semicore occupations at the input guess
+     type(atomic_structure) :: astruct                   !< Atomic structure (positions and so on)
+     type(aoig_data), dimension(:), pointer :: aoig      !< Contains the information needed for generating the AO inputguess data for each atom
+     integer :: natsc                                    !< Number of atoms with semicore occupations at the input guess
 !     integer, dimension(:), pointer :: iasctype
      integer, dimension(:), pointer :: nelpsp
-     integer, dimension(:), pointer :: npspcode
-     integer, dimension(:), pointer :: ixcpsp
-     integer, dimension(:), pointer :: nzatom
-     real(gp), dimension(:,:), pointer :: radii_cf  !< user defined radii_cf, overridden in sysprop.f90
-     real(gp), dimension(:), pointer :: amu         !< amu(ntypes)  Atomic Mass Unit for each type of atoms
-     !real(gp), dimension(:,:), pointer :: rloc !< localization regions for parameters of linear, to be moved somewhere else
-     real(gp), dimension(:,:,:), pointer :: psppar  !< pseudopotential parameters (HGH SR section)
-     logical :: donlcc                              !< activate non-linear core correction treatment
-     integer, dimension(:), pointer :: nlcc_ngv,nlcc_ngc   !<number of valence and core gaussians describing NLCC 
-     real(gp), dimension(:,:), pointer :: nlccpar    !< parameters for the non-linear core correction, if present
-!     real(gp), dimension(:,:), pointer :: ig_nlccpar !< parameters for the input NLCC
+     integer, dimension(:), pointer :: npspcode          !< PSP codes (see @link psp_projectors::pspcode_hgh @endlink)
+     integer, dimension(:), pointer :: ixcpsp            !< PSP ixc code
+     integer, dimension(:), pointer :: nzatom            !< Atomic number
+     integer, dimension(:), pointer :: iradii_source     !< Source of the radii coefficients (Hard-Coded, PSP File, ...)
+     real(gp), dimension(:,:), pointer :: radii_cf       !< User defined radii_cf, overridden in sysprop.f90
+     real(gp), dimension(:), pointer :: amu              !< Amu(ntypes)  Atomic Mass Unit for each type of atoms
+     !real(gp), dimension(:,:), pointer :: rloc          !< Localization regions for parameters of linear, to be moved somewhere else
+     real(gp), dimension(:,:,:), pointer :: psppar       !< Pseudopotential parameters (HGH SR section)
+     logical :: donlcc                                   !< Activate non-linear core correction treatment
+     logical :: multipole_preserving                     !< Activate preservation of the multipole moment for the ionic charge
+     integer, dimension(:), pointer :: nlcc_ngv,nlcc_ngc !< Number of valence and core gaussians describing NLCC 
+     real(gp), dimension(:,:), pointer :: nlccpar        !< Parameters for the non-linear core correction, if present
+!     real(gp), dimension(:,:), pointer :: ig_nlccpar    !< Parameters for the input NLCC
 
      !! for abscalc with pawpatch
      integer, dimension(:), pointer ::  paw_NofL, paw_l, paw_nofchannels
@@ -107,10 +124,14 @@ module module_atoms
       call nullify_symmetry_data(astruct%sym)
     end subroutine nullify_atomic_structure
 
+
+    !> Nullify atoms_data structure
     pure function atoms_data_null() result(at)
       type(atoms_data) :: at
       call nullify_atoms_data(at)
     end function atoms_data_null
+
+
     pure subroutine nullify_atoms_data(at)
       implicit none
       type(atoms_data), intent(out) :: at
@@ -118,6 +139,7 @@ module module_atoms
       nullify(at%aoig)
       at%natsc=0
       at%donlcc=.false.
+      at%multipole_preserving=.false.
       at%iat_absorber=-1
       !     nullify(at%iasctype)
       nullify(at%nelpsp)
@@ -125,6 +147,7 @@ module module_atoms
       nullify(at%ixcpsp)
       nullify(at%nzatom)
       nullify(at%radii_cf)
+      nullify(at%iradii_source)
       nullify(at%amu)
       !     nullify(at%aocc)
       !nullify(at%rloc)
@@ -144,7 +167,8 @@ module module_atoms
       nullify(at%paw_Sm1_matrices)
     end subroutine nullify_atoms_data
 
-    !> destructor of symmetry data operations
+
+    !> Destructor of symmetry data operations
     subroutine deallocate_symmetry_data(sym)
       use dynamic_memory, only: f_free_ptr
       use m_ab6_symmetry, only: symmetry_free
@@ -251,6 +275,9 @@ module module_atoms
          i_all=-product(shape(atoms%radii_cf))*kind(atoms%radii_cf)
          deallocate(atoms%radii_cf,stat=i_stat)
          call memocc(i_stat,i_all,'atoms%radii_cf',subname)
+         i_all=-product(shape(atoms%iradii_source))*kind(atoms%iradii_source)
+         deallocate(atoms%iradii_source,stat=i_stat)
+         call memocc(i_stat,i_all,'atoms%iradii_source',subname)
          ! Parameters for Linear input guess
          !i_all=-product(shape(atoms%rloc))*kind(atoms%rloc)
          !deallocate(atoms%rloc,stat=i_stat)
@@ -342,6 +369,7 @@ module module_atoms
 
       character(len = *), parameter :: subname = "symmetry_set_irreductible_zone"
       integer :: i_stat, nsym, i_third
+!!$      integer :: i_all
       integer, dimension(:,:,:), allocatable :: irrzon
       real(dp), dimension(:,:,:), allocatable :: phnons
 
@@ -415,8 +443,9 @@ module module_atoms
     END SUBROUTINE set_symmetry_data
 
 
-
     ! allocations, and setters
+
+
     !> Read atomic file
     subroutine set_astruct_from_file(file,iproc,astruct,status,comment,energy,fxyz)
       use module_base
@@ -424,9 +453,10 @@ module module_atoms
       use dynamic_memory
       !use position_files
       implicit none
-      character(len=*), intent(in) :: file
+      !Arguments
+      character(len=*), intent(in) :: file  !< File name containing the atomic positions
       integer, intent(in) :: iproc
-      type(atomic_structure), intent(inout) :: astruct
+      type(atomic_structure), intent(inout) :: astruct !< Contains all info
       integer, intent(out), optional :: status
       real(gp), intent(out), optional :: energy
       real(gp), dimension(:,:), pointer, optional :: fxyz
@@ -448,7 +478,7 @@ module module_atoms
       if (present(status)) status = 0
       nullify(fxyz_)
 
-      ! Extract from archive
+      ! Extract from archive (posout_)
       if (index(file, "posout_") == 1 .or. index(file, "posmd_") == 1) then
          write(arFile, "(A)") "posout.tar.bz2"
          if (index(file, "posmd_") == 1) write(arFile, "(A)") "posmd.tar.bz2"
@@ -495,8 +525,9 @@ module module_atoms
       if (.not. file_exists) then
          inquire(FILE = file//'.yaml', EXIST = file_exists)
          if (file_exists) then
-            write(filename, "(A)") file//'.yaml'!"posinp.ascii"
+            write(filename, "(A)") file//'.yaml'!"posinp.yaml
             write(astruct%inputfile_format, "(A)") "yaml"
+            ! Pb if toto.yaml because means that there is no key posinp!!
          end if
       end if
       ! Test the name directly
@@ -554,10 +585,10 @@ module module_atoms
          else
             call read_ascii_positions(i_stat,99,astruct,comment_,energy_,fxyz_,archiveGetLine)
          end if
-      else if (astruct%inputfile_format == "yaml") then
-         !read atomic positions
-         write(*,*) "Atomic input file in YAML not yet supported, call 'set_astruct_from_dict()' instead."
-         stop
+      else if (astruct%inputfile_format == "yaml" .and. index(file,'posinp') /= 0) then
+         ! Pb if toto.yaml because means that there is already no key posinp in the file toto.yaml!!
+         call f_err_throw("Atomic input file in YAML not yet supported, call 'astruct_set_from_dict()' instead.",&
+              err_name='BIGDFT_RUNTIME_ERROR')
       end if
 
       !Check the number of atoms
@@ -610,9 +641,11 @@ module module_atoms
     END SUBROUTINE set_astruct_from_file
 
 
+
     include 'astruct-inc.f90'
 
-    !> terminate the allocation of the memory in the pointers of atoms
+
+    !> Terminate the allocation of the memory in the pointers of atoms
     subroutine allocate_atoms_data(atoms)
       implicit none
       type(atoms_data), intent(inout) :: atoms
@@ -622,7 +655,8 @@ module module_atoms
       call allocate_atoms_ntypes(atoms)
     end subroutine allocate_atoms_data
 
-end module module_atoms
+END MODULE module_atoms
+
 
 !> Allocation of the arrays inside the structure atoms_data, considering the part which is associated to astruct%nat
 !! this routine is external to the module as it has to be called from C
@@ -657,6 +691,7 @@ subroutine astruct_set_n_atoms(astruct, nat)
 
   if (astruct%nat > 0) call to_zero(3 * astruct%nat, astruct%rxyz(1,1))
 END SUBROUTINE astruct_set_n_atoms
+
 
 !> allocation of the memoey space associated to the number of types astruct%ntypes
 subroutine astruct_set_n_types(astruct, ntypes)
@@ -696,6 +731,7 @@ subroutine astruct_set_from_file(lstat, astruct, filename)
   lstat = (status == 0)
 END SUBROUTINE astruct_set_from_file
 
+
 !> Calculate the symmetries and update
 subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
   use module_base
@@ -711,10 +747,15 @@ subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
   !local variables
   character(len=*), parameter :: subname='astruct_set_symmetries'
   integer :: i_stat, ierr, i_all
-  real(gp) :: rprimd(3, 3)
+  real(gp), dimension(3,3) :: rprimd
   real(gp), dimension(:,:), allocatable :: xRed
+  integer, dimension(3, 3, AB6_MAX_SYMMETRIES) :: sym
+  integer, dimension(AB6_MAX_SYMMETRIES) :: symAfm
+  real(gp), dimension(3, AB6_MAX_SYMMETRIES) :: transNon
+  real(gp), dimension(3) :: genAfm
+  integer :: spaceGroupId, pointGroupMagn
 
-  ! Calculate the symmetries, if needed
+  ! Calculate the symmetries, if needed (for periodic systems only)
   if (astruct%geocode /= 'F') then
      if (astruct%sym%symObj < 0) then
         call symmetry_new(astruct%sym%symObj)
@@ -761,14 +802,27 @@ subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
      end if
      if (disableSym) then
         call symmetry_set_n_sym(astruct%sym%symObj, 1, &
-             & reshape((/ 1, 0, 0, 0, 1, 0, 0, 0, 1 /), (/ 3 ,3, 1 /)), &
-             & reshape((/ 0.d0, 0.d0, 0.d0 /), (/ 3, 1/)), (/ 1 /), ierr)
+          & reshape((/ 1, 0, 0, 0, 1, 0, 0, 0, 1 /), (/ 3 ,3, 1 /)), &
+          & reshape((/ 0.d0, 0.d0, 0.d0 /), (/ 3, 1/)), (/ 1 /), ierr)
      end if
   else
      call deallocate_symmetry_data(astruct%sym)
      astruct%sym%symObj = -1
   end if
+
+  ! Generate symmetries for atoms
+  if (.not. disableSym) then
+     call symmetry_get_matrices(astruct%sym%symObj, astruct%sym%nSym, sym, transNon, symAfm, ierr)
+     call symmetry_get_group(astruct%sym%symObj, astruct%sym%spaceGroup, &
+          & spaceGroupId, pointGroupMagn, genAfm, ierr)
+     if (ierr == AB7_ERROR_SYM_NOT_PRIMITIVE) write(astruct%sym%spaceGroup, "(A)") "not prim."
+  else 
+     astruct%sym%nSym = 0
+     astruct%sym%spaceGroup = 'disabled'
+  end if
+
 END SUBROUTINE astruct_set_symmetries
+
 
 !> Allocation of the arrays inside the structure atoms_data
 subroutine allocate_atoms_nat(atoms)
@@ -819,6 +873,8 @@ subroutine allocate_atoms_ntypes(atoms)
   call memocc(i_stat,atoms%ixcpsp,'atoms%ixcpsp',subname)
   allocate(atoms%radii_cf(atoms%astruct%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%radii_cf,'atoms%radii_cf',subname)
+  allocate(atoms%iradii_source(atoms%astruct%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%iradii_source,'atoms%iradii_source',subname)
   ! parameters for NLCC
   allocate(atoms%nlcc_ngv(atoms%astruct%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%nlcc_ngv,'atoms%nlcc_ngv',subname)
@@ -831,6 +887,8 @@ END SUBROUTINE allocate_atoms_ntypes
 
 
 ! Init and free routines
+
+
 !> Allocate a new atoms_data type, for bindings.
 subroutine atoms_new(atoms)
   use module_atoms, only: atoms_data,nullify_atoms_data
@@ -843,6 +901,7 @@ subroutine atoms_new(atoms)
   call nullify_atoms_data(intern)
   atoms => intern
 END SUBROUTINE atoms_new
+
 
 !> Free an allocated atoms_data type.
 subroutine atoms_free(atoms)
