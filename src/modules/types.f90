@@ -41,7 +41,7 @@ module module_types
   integer :: BIGDFT_LINALG_ERROR                    !< to be moved to linalg wrappers
   integer :: BIGDFT_INPUT_VARIABLES_ERROR           !< problems in parsing or in consistency of input variables
 
-  !> Input wf parameters.
+  !> Input wf parameters. @relates module_types::input_variables::inputpsiid @relates inputpsiid
   integer, parameter :: INPUT_PSI_EMPTY        = -1000  !< Input PSI to 0
   integer, parameter :: INPUT_PSI_RANDOM       = -2     !< Input Random PSI
   integer, parameter :: INPUT_PSI_CP2K         = -1     !< Input PSI coming from cp2k
@@ -284,9 +284,14 @@ module module_types
      integer :: idsx        !< DIIS history
      integer :: ncongt      !< Number of conjugate garident for the tail treatment
      integer :: inputpsiid  !< Input PSI choice
+                            !!   - 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
+                            !!   - 1 : read waves from argument psi, using n1, n2, n3, hgrid and rxyz_old
+                            !!         as definition of the previous system.
+                            !!   - 2 : read waves from disk
      integer :: nspin       !< Spin components (no spin 1, collinear 2, non collinear 4)
      integer :: mpol        !< Total spin polarisation of the system
-     integer :: norbv
+     integer :: norbv       !< Number of virtual orbitals to compute after direct minimisation
+                            !! using the Davidson scheme
      integer :: nvirt
      integer :: nplot
      integer :: output_denspot        !< 0= No output, 1= density, 2= density+potential

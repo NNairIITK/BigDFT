@@ -543,7 +543,7 @@ fructose:
 geopt_foe:
  D eF: 7.1e-6
  D: 1.e-10
- eF: 8.0e-10
+ eF: 8.9e-10
  Epot: 1.1e-10
  EH: 1.1e-10
  charge diff: 7.1e-6
@@ -558,7 +558,7 @@ geopt_diag:
  EH: 1.1e-10
  D: 1.0e-10
  D eF: 1.1e-10
- eF: 1.1e-10
+ eF: 1.0e-10
 
 water_foe:
  EvXC: 1.1e-10
@@ -668,7 +668,7 @@ foe:
 
 onlyhigh:
  Energies: 2.1e-9
- energy: 3.0e-10
+ energy: 3.1e-10
  Omega: 8.0e-10
  Orbitals: 1.1e-9
  Pulay Forces (Ha/Bohr): 1.4e-10
@@ -842,22 +842,22 @@ explicit_locregcenters:
  EH: 1.1e-9
 
 intermediateforces:
- Atomic Forces (Ha/Bohr): 2.8e-7
- Average noise forces: 2.1e-7
+ Atomic Forces (Ha/Bohr): 4.9e-7
+ Average noise forces: 3.5e-7
  Clean forces norm (Ha/Bohr): 1.2e-7
  Raw forces norm (Ha/Bohr): 1.3e-7
  e: 1.3e-7
  energy: 2.8e-7
- Omega: 9.8e-9
+ Omega: 1.3e-8
  EXC: 7.8e-8
  EvXC: 1.1e-7
  EH: 6.9e-7
  Ekin: 2.1e-9
  Enl: 2.1e-10
- Epot: 8.9e-8
+ Epot: 8.97e-8
  multiplicator for the confinement: 1.6e-11
- maxval: 2.6e-7
- fnrm2: 1.9e-7
+ maxval: 4.2e-7
+ fnrm2: 3.2e-7
 
 DIIShistory:
  Atomic Forces (Ha/Bohr): 1.9e-9
@@ -881,12 +881,12 @@ DIIShistory:
 
 sparsity:
  Total charge: 1.1e-10
- Omega: 5.2e-10
+ Omega: 5.6e-10
  Clean forces norm (Ha/Bohr): 7.7e-11
  Raw forces norm (Ha/Bohr): 1.4e-11
  Total ionic charge: 2.2e-11
  charge diff: 1.1e-9
- energy: 4.9e-10
+ energy: 5.0e-10
  EXC: 1.1e-10
  Epot: 1.1e-9
  eF: 1.1e-9
@@ -935,5 +935,5 @@ PBE_densmixdiis:
  Epot: 1.1e-10
  EvXC: 1.1e-10
  Enl: 1.1e-10
- energy: 3.7e-11
- Omega: 4.5e-11
+ energy: 5.7e-11
+ Omega: 5.6e-11
