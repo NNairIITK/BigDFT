@@ -81,9 +81,9 @@
  #|H  1 2.0d-2 2.0d-2 0.0d-4 6.0 7.0 7.0 20.d0 Atom name, number of basis functions per atom,
   #------------------------------------------------------------------------ Input parameters
  perf:
-   debug                               : No #     debug option
-   fftcache                            : 8192 #   cache size for the FFT
-   accel                               : NO #     acceleration
+   debug                               : No #     Debug option
+   fftcache                            : 8192 #   Cache size for the FFT
+   accel                               : NO #     Acceleration (hardware)
    ocl_platform                        : ~ #      Chosen OCL platform
    ocl_devices                         : ~ #      Chosen OCL devices
    blas                                : No #     CUBLAS acceleration
@@ -103,9 +103,9 @@
    signaling                           : No #     Expose calculation results on Network
    signaltimeout                       : 0 #      Time out on startup for signal connection (in seconds)
    domain                              : ~ #      Domain to add to the hostname to find the IP
-   inguess_geopt                       : 0 #      input guess to be used during the optimization
-   store_index                         : Yes #    store indices or recalculate them for linear scaling
-   verbosity                           : 2 #      verbosity of the output
+   inguess_geopt                       : 0 #      Input guess to be used during the optimization
+   store_index                         : Yes #    Store indices or recalculate them for linear scaling
+   verbosity                           : 2 #      Verbosity of the output
    outdir                              : ./ #     Writing directory
    psp_onfly                           : Yes #    Calculate pseudopotential projectors on the fly
    pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
@@ -133,7 +133,7 @@
    loewdin_charge_analysis             : No #     linear scaling perform a Loewdin charge analysis at the end of the calculation
    check_matrix_compression            : Yes #    linear scaling perform a check of the matrix compression routines
  dft:
-   hgrids: [0.45000000000000001, 0.45000000000000001, 0.45000000000000001] # grid spacing in the three directions (bohr)
+   hgrids: [0.45, 0.45, 0.45] #                   Grid spacing in the three directions (bohr)
    rmult: [4.0, 5.0] #                            c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
    ixc                                 : 1 #      exchange-correlation parameter (LDA=1,PBE=11)
    ncharge                             : 0 #      charge of the system
@@ -410,18 +410,18 @@
  Atomic structure:
    Units                               : angstroem
    Positions:
-   - Be: [ 7.462993797,  7.502767052,  8.570991153] # [  16.58,  16.67,  19.05 ] 0001
-   - Be: [ 7.442649062,  7.449401252,  12.22269744] # [  16.54,  16.55,  27.16 ] 0002
-   - Be: [ 7.413808048,  7.400287252,  15.87232762] # [  16.48,  16.45,  35.27 ] 0003
-   - Be: [ 7.377757737,  7.355632980,  19.55294093] # [  16.40,  16.35,  43.45 ] 0004
-   - H: [ 9.163645215,  8.615910104,  10.42764361] # [  20.36,  19.15,  23.17 ] 0005
-   - H: [ 7.871375059,  7.412154629,  5.815013200] # [  17.49,  16.47,  12.92 ] 0006
-   - H: [ 8.570951517,  5.715227816,  14.05478254] # [  19.05,  12.70,  31.23 ] 0007
-   - H: [ 6.287005911,  9.134772184,  14.08275242] # [  13.97,  20.30,  31.30 ] 0008
-   - H: [ 5.686354785,  6.234819386,  17.64602198] # [  12.64,  13.86,  39.21 ] 0009
-   - H: [ 5.744580271,  6.332971750,  10.37586328] # [  12.77,  14.07,  23.06 ] 0010
-   - H: [ 9.107558344,  8.519496453,  17.70724575] # [  20.24,  18.93,  39.35 ] 0011
-   - H: [ 7.351594541,  7.327287116,  22.08498680] # [  16.34,  16.28,  49.08 ] 0012
+   - Be: [ 3.949246242,  3.970293342,  4.535573192] # [  8.78,  8.82,  10.08 ] 0001
+   - Be: [ 3.938480272,  3.942053377,  6.467972942] # [  8.75,  8.76,  14.37 ] 0002
+   - Be: [ 3.923218264,  3.916063367,  8.399274059] # [  8.72,  8.70,  18.67 ] 0003
+   - Be: [ 3.904141261,  3.892433344,  10.34697074] # [  8.68,  8.65,  22.99 ] 0004
+   - H: [ 4.849192216,  4.559343277,  5.518071361] # [  10.78,  10.13,  12.26 ] 0005
+   - H: [ 4.165352299,  3.922343313,  3.077172466] # [  9.26,  8.72,  6.84 ] 0006
+   - H: [ 4.535552217,  3.024368315,  7.437470623] # [  10.08,  6.72,  16.53 ] 0007
+   - H: [ 3.326940252,  4.833913266,  7.452271648] # [  7.39,  10.74,  16.56 ] 0008
+   - H: [ 3.009089364,  3.299324333,  9.337872692] # [  6.69,  7.33,  20.75 ] 0009
+   - H: [ 3.039900965,  3.351264327,  5.490670391] # [  6.76,  7.45,  12.20 ] 0010
+   - H: [ 4.819512321,  4.508323370,  9.370270916] # [  10.71,  10.02,  20.82 ] 0011
+   - H: [ 3.890296294,  3.877433359,  11.68687172] # [  8.65,  8.62,  25.97 ] 0012
    Rigid Shift Applied (AU)            :  [  5.6329,  5.4166, -88.925 ]
   #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4500,  0.4500,  0.4500 ]

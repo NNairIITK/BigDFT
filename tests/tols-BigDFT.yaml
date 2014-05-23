@@ -34,6 +34,7 @@ Keys to ignore:
  - Maximum size of masking arrays for a projector
  - Cumulative size of masking arrays
  - Dictionary for lin
+ - Raw version
 Patterns to ignore:
  - Timestamp
  - memory
@@ -123,7 +124,7 @@ GPU:
  EvXC: 1.1e-10
 
 Graphene:
- EH: 1.1e-10
+ Input Hamiltonian: 1.1e-10
 
 TiMix:
  Epsilon: 1.e-10

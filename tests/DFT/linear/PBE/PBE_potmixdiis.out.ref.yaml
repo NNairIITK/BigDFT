@@ -85,9 +85,9 @@
   #------------------------------------------------------------------------ Input parameters
  radical                               : potmixdiis
  perf:
-   debug                               : No #     debug option
-   fftcache                            : 8192 #   cache size for the FFT
-   accel                               : NO #     acceleration
+   debug                               : No #     Debug option
+   fftcache                            : 8192 #   Cache size for the FFT
+   accel                               : NO #     Acceleration (hardware)
    ocl_platform                        : ~ #      Chosen OCL platform
    ocl_devices                         : ~ #      Chosen OCL devices
    blas                                : No #     CUBLAS acceleration
@@ -107,9 +107,9 @@
    signaling                           : No #     Expose calculation results on Network
    signaltimeout                       : 0 #      Time out on startup for signal connection (in seconds)
    domain                              : ~ #      Domain to add to the hostname to find the IP
-   inguess_geopt                       : 0 #      input guess to be used during the optimization
-   store_index                         : Yes #    store indices or recalculate them for linear scaling
-   verbosity                           : 2 #      verbosity of the output
+   inguess_geopt                       : 0 #      Input guess to be used during the optimization
+   store_index                         : Yes #    Store indices or recalculate them for linear scaling
+   verbosity                           : 2 #      Verbosity of the output
    outdir                              : ./ #     Writing directory
    psp_onfly                           : Yes #    Calculate pseudopotential projectors on the fly
    pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
@@ -118,16 +118,16 @@
    maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
    ef_interpol_det                     : 0.10E-19 # FOE max determinant of cubic interpolation matrix
    ef_interpol_chargediff              : 0.10E+02 # FOE max charge difference for interpolation
-   mixing_after_inputguess             : Yes #    mixing step after linear input guess (T/F)
-   iterative_orthogonalization         : No #     iterative_orthogonalization for input guess orbitals
-   check_sumrho                        : 2 #      enables linear sumrho check
-   experimental_mode                   : No #     activate the experimental mode in linear scaling
-   write_orbitals                      : No #     linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
-   explicit_locregcenters              : No #     linear scaling explicitely specify localization centers
-   calculate_KS_residue                : Yes #    linear scaling calculate Kohn-Sham residue
-   intermediate_forces                 : No #     linear scaling calculate intermediate forces
-   kappa_conv                          : 0.10000000000000001 # exit kappa for extended input guess (experimental mode)
-   evbounds_nsatur                     : 3 #      number of FOE cycles before the eigenvalue bounds are shrinked
+   mixing_after_inputguess             : Yes #    Mixing step after linear input guess (T/F)
+   iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
+   check_sumrho                        : 2 #      Enables linear sumrho check
+   experimental_mode                   : No #     Activate the experimental mode in linear scaling
+   write_orbitals                      : No #     Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
+   explicit_locregcenters              : No #     Linear scaling explicitely specify localization centers
+   calculate_KS_residue                : Yes #    Linear scaling calculate Kohn-Sham residue
+   intermediate_forces                 : No #     Linear scaling calculate intermediate forces
+   kappa_conv                          : 0.1 #    Exit kappa for extended input guess (experimental mode)
+   evbounds_nsatur                     : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
    evboundsshrink_nsatur               : 4 #      maximal number of unsuccessful eigenvalue bounds shrinkings
    method_updatekernel                 : 0 #      linear scaling update density kernel during the sup. func. optimization (0 
     #                                              purification, 1 FOE)
@@ -309,12 +309,12 @@
    - Channel (l)                       : 1
      Rloc                              : 0.24549452999999999
      h_ij terms: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-   Source                              : Hard-coded
+   Source                              : Hard-Coded
    Radii of active regions (AU):
-     Coarse                            : 1.3702564821663192
-     Fine                              : 0.24549452999999999
-     Coarse PSP                        : 0.24549452999999999
-     Source                            : Hard-coded
+     Coarse                            : 1.370256482166319
+     Fine                              : 0.24549453
+     Coarse PSP                        : 0.24549453
+     Source                            : Hard-Coded
  psppar.C:
    Pseudopotential type                : HGH-K
    Atomic number                       : 6
@@ -330,12 +330,12 @@
    - Channel (l)                       : 1
      Rloc                              : 0.29150693999999999
      h_ij terms: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-   Source                              : Hard-coded
+   Source                              : Hard-Coded
    Radii of active regions (AU):
-     Coarse                            : 1.5843663028121528
-     Fine                              : 0.29150693999999999
-     Coarse PSP                        : 0.29150693999999999
-     Source                            : Hard-coded
+     Coarse                            : 1.584366302812153
+     Fine                              : 0.29150694
+     Coarse PSP                        : 0.29150694
+     Source                            : Hard-Coded
  psppar.O:
    Pseudopotential type                : HGH-K
    Atomic number                       : 8
@@ -351,12 +351,12 @@
    - Channel (l)                       : 1
      Rloc                              : 0.21133246999999999
      h_ij terms: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-   Source                              : Hard-coded
+   Source                              : Hard-Coded
    Radii of active regions (AU):
-     Coarse                            : 1.2155757214997522
-     Fine                              : 0.21133246999999999
-     Coarse PSP                        : 0.21133246999999999
-     Source                            : Hard-coded
+     Coarse                            : 1.215575721499752
+     Fine                              : 0.21133247
+     Coarse PSP                        : 0.21133247
+     Source                            : Hard-Coded
  psppar.S:
    Pseudopotential type                : HGH-K
    Atomic number                       : 16
@@ -371,28 +371,28 @@
      h_ij terms: [13.143544479999999, 5.4761795700000002, 0.0, -4.2418304500000001, 0.0, 
                 0.0]
    - Channel (l)                       : 1
-     Rloc                              : 0.40948047999999998
-     h_ij terms: [3.7008905699999999, 0.0, 0.0, 0.0, 0.0, 0.0]
-   Source                              : Hard-coded
+     Rloc                              : 0.40948048
+     h_ij terms: [3.70089057, 0.0, 0.0, 0.0, 0.0, 0.0]
+   Source                              : Hard-Coded
    Radii of active regions (AU):
-     Coarse                            : 1.3823023804455716
-     Fine                              : 0.36482035000000002
-     Coarse PSP                        : 0.36482035000000002
-     Source                            : Hard-coded
+     Coarse                            : 1.382302380445572
+     Fine                              : 0.36482035
+     Coarse PSP                        : 0.36482035
+     Source                            : Hard-Coded
  psppar.H:
    Pseudopotential type                : HGH-K
    Atomic number                       : 1
    No. of Electrons                    : 1
    Pseudopotential XC                  : 11
    Local Pseudo Potential (HGH convention):
-     Rloc                              : 0.20000000000000001
-     Coefficients (c1 .. c4): [-4.1789004399999996, 0.72446330999999997, 0.0, 0.0]
-   Source                              : Hard-coded
+     Rloc                              : 0.2
+     Coefficients (c1 .. c4): [-4.17890044, 0.72446331, 0.0, 0.0]
+   Source                              : Hard-Coded
    Radii of active regions (AU):
      Coarse                            : 1.463418464633951
-     Fine                              : 0.20000000000000001
-     Coarse PSP                        : 0.20000000000000001
-     Source                            : Hard-coded
+     Fine                              : 0.2
+     Coarse PSP                        : 0.2
+     Source                            : Hard-Coded
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data-potmixdiis/
   #---------------------------------------------- Input Atomic System (file: potmixdiis.xyz)
@@ -449,7 +449,7 @@
      Coarse                            :  1.37026
      Fine                              :  0.24549
      Coarse PSP                        :  0.85135
-     Source                            : PSP File
+     Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  0.61
    Pseudopotential type                : HGH-K
    Local Pseudo Potential (HGH convention):
@@ -471,7 +471,7 @@
      Coarse                            :  1.58437
      Fine                              :  0.29151
      Coarse PSP                        :  1.00859
-     Source                            : PSP File
+     Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  0.73
    Pseudopotential type                : HGH-K
    Local Pseudo Potential (HGH convention):
@@ -493,7 +493,7 @@
      Coarse                            :  1.21558
      Fine                              :  0.21133
      Coarse PSP                        :  0.73652
-     Source                            : PSP File
+     Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  0.53
    Pseudopotential type                : HGH-K
    Local Pseudo Potential (HGH convention):
@@ -515,7 +515,7 @@
      Coarse                            :  1.38230
      Fine                              :  0.36482
      Coarse PSP                        :  1.22871
-     Source                            : PSP File
+     Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  0.91
    Pseudopotential type                : HGH-K
    Local Pseudo Potential (HGH convention):
@@ -543,7 +543,7 @@
      Coarse                            :  1.46342
      Fine                              :  0.20000
      Coarse PSP                        :  0.00000
-     Source                            : PSP File
+     Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  0.50
    Pseudopotential type                : HGH-K
    Local Pseudo Potential (HGH convention):
@@ -577,26 +577,26 @@
  Atomic structure:
    Units                               : angstroem
    Positions:
-   - N: [ 10.85114518,  14.67516682,  13.41419100] # [  24.11,  32.61,  29.81 ] 0001
-   - C: [ 10.58658352,  12.82323518,  11.41108141] # [  23.53,  28.50,  25.36 ] 0002
-   - C: [ 12.89204948,  11.19807069,  11.25990324] # [  28.65,  24.88,  25.02 ] 0003
-   - O: [ 12.96763845,  9.383933763,  9.899300377] # [  28.82,  20.85,  22.00 ] 0004
-   - O: [ 14.81956986,  11.95396109,  12.69609508] # [  32.93,  26.56,  28.21 ] 0005
-   - C: [ 9.981871149,  14.14604351,  8.916642603] # [  22.18,  31.44,  19.81 ] 0006
-   - C: [ 8.129939454,  12.67205724,  7.253683847] # [  18.07,  28.16,  16.12 ] 0007
-   - S: [ 9.566131404,  9.761879078,  6.119848353] # [  21.26,  21.69,  13.60 ] 0008
-   - C: [ 7.600816193,  7.532002125,  7.820601595] # [  16.89,  16.74,  17.38 ] 0009
-   - H: [ 11.24647588,  13.79398751,  15.03859959] # [  24.99,  30.65,  33.42 ] 0010
-   - H: [ 9.236563220,  15.63987204,  13.59749444] # [  20.53,  34.76,  30.22 ] 0011
-   - H: [ 9.036252239,  11.59207864,  11.82228568] # [  20.08,  25.76,  26.27 ] 0012
-   - H: [ 16.38067283,  11.02988509,  12.67870959] # [  36.40,  24.51,  28.17 ] 0013
-   - H: [ 11.71550590,  14.30024515,  7.887308958] # [  26.03,  31.78,  17.53 ] 0014
-   - H: [ 9.174202273,  15.95337758,  9.328981234] # [  20.39,  35.45,  20.73 ] 0015
-   - H: [ 7.634264489,  13.81553042,  5.661400412] # [  16.97,  30.70,  12.58 ] 0016
-   - H: [ 6.481342297,  12.22154634,  8.334229233] # [  14.40,  27.16,  18.52 ] 0017
-   - H: [ 7.789977855,  7.846641247,  9.808971573] # [  17.31,  17.44,  21.80 ] 0018
-   - H: [ 5.669327174,  7.785981110,  7.278817095] # [  12.60,  17.30,  16.18 ] 0019
-   - H: [ 8.182663001,  5.646622415,  7.378216964] # [  18.18,  12.55,  16.40 ] 0020
+   - N: [ 5.742178741,  7.765763847,  7.098484177] # [  12.76,  17.26,  15.77 ] 0001
+   - C: [ 5.602178741,  6.785763828,  6.038484234] # [  12.45,  15.08,  13.42 ] 0002
+   - C: [ 6.822178784,  5.925763814,  5.958484191] # [  15.16,  13.17,  13.24 ] 0003
+   - O: [ 6.862178746,  4.965763895,  5.238484163] # [  15.25,  11.04,  11.64 ] 0004
+   - O: [ 7.842178646,  6.325763790,  6.718484182] # [  17.43,  14.06,  14.93 ] 0005
+   - C: [ 5.282178733,  7.485763846,  4.718484062] # [  11.74,  16.64,  10.49 ] 0006
+   - C: [ 4.302178684,  6.705763905,  3.838484186] # [  9.56,  14.90,  8.53 ] 0007
+   - S: [ 5.062178734,  5.165763943,  3.238484282] # [  11.25,  11.48,  7.20 ] 0008
+   - C: [ 4.022178713,  3.985763876,  4.138484139] # [  8.94,  8.86,  9.20 ] 0009
+   - H: [ 5.951378736,  7.299463837,  7.958084184] # [  13.23,  16.22,  17.68 ] 0010
+   - H: [ 4.887778762,  8.276263861,  7.195484180] # [  10.86,  18.39,  15.99 ] 0011
+   - H: [ 4.781778756,  6.134263842,  6.256084162] # [  10.63,  13.63,  13.90 ] 0012
+   - H: [ 8.668278757,  5.836763827,  6.709284175] # [  19.26,  12.97,  14.91 ] 0013
+   - H: [ 6.199578736,  7.567363842,  4.173784155] # [  13.78,  16.82,  9.28 ] 0014
+   - H: [ 4.854778770,  8.442163853,  4.936684269] # [  10.79,  18.76,  10.97 ] 0015
+   - H: [ 4.039878789,  7.310863851,  2.995884079] # [  8.98,  16.25,  6.66 ] 0016
+   - H: [ 3.429778639,  6.467363803,  4.410284180] # [  7.62,  14.37,  9.80 ] 0017
+   - H: [ 4.122278753,  4.152263729,  5.190684218] # [  9.16,  9.23,  11.53 ] 0018
+   - H: [ 3.000078741,  4.120163767,  3.851784128] # [  6.67,  9.16,  8.56 ] 0019
+   - H: [ 4.330078784,  2.988063900,  3.904384274] # [  9.62,  6.64,  8.68 ] 0020
    Rigid Shift Applied (AU)            :  [  10.851,  14.675,  13.414 ]
   #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4500,  0.4500,  0.4500 ]

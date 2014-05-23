@@ -81,9 +81,9 @@
  #|O 4 3.0d-3 3.0d-3 0.0d-4 6.0 7.0 6.0 20.d0  Atom name, number of basis functions per atom,
   #------------------------------------------------------------------------ Input parameters
  perf:
-   debug                               : No #     debug option
-   fftcache                            : 8192 #   cache size for the FFT
-   accel                               : NO #     acceleration
+   debug                               : No #     Debug option
+   fftcache                            : 8192 #   Cache size for the FFT
+   accel                               : NO #     Acceleration (hardware)
    ocl_platform                        : ~ #      Chosen OCL platform
    ocl_devices                         : ~ #      Chosen OCL devices
    blas                                : No #     CUBLAS acceleration
@@ -103,9 +103,9 @@
    signaling                           : No #     Expose calculation results on Network
    signaltimeout                       : 0 #      Time out on startup for signal connection (in seconds)
    domain                              : ~ #      Domain to add to the hostname to find the IP
-   inguess_geopt                       : 0 #      input guess to be used during the optimization
-   store_index                         : Yes #    store indices or recalculate them for linear scaling
-   verbosity                           : 2 #      verbosity of the output
+   inguess_geopt                       : 0 #      Input guess to be used during the optimization
+   store_index                         : Yes #    Store indices or recalculate them for linear scaling
+   verbosity                           : 2 #      Verbosity of the output
    outdir                              : ./ #     Writing directory
    psp_onfly                           : Yes #    Calculate pseudopotential projectors on the fly
    pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
@@ -133,7 +133,7 @@
    loewdin_charge_analysis             : No #     linear scaling perform a Loewdin charge analysis at the end of the calculation
    check_matrix_compression            : Yes #    linear scaling perform a check of the matrix compression routines
  dft:
-   hgrids: [0.45000000000000001, 0.45000000000000001, 0.45000000000000001] # grid spacing in the three directions (bohr)
+   hgrids: [0.45, 0.45, 0.45] #                   Grid spacing in the three directions (bohr)
    rmult: [5.0, 7.0] #                            c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
    ixc                                 : 1 #      exchange-correlation parameter (LDA=1,PBE=11)
    ncharge                             : 0 #      charge of the system
@@ -164,10 +164,10 @@
  geopt:
    method                              : none #   Geometry optimisation method
    ncount_cluster_x                    : 1 #      Maximum number of force evaluations
-   frac_fluct                          : 1.
-   forcemax                            : 0.
-   randdis                             : 0. #     random displacement amplitude
-   betax                               : 4. #     Stepsize for the geometry optimisation
+   frac_fluct                          : 1. #     Fraction of force fluctuations. Stop if fmax < forces_fluct*frac_fluct
+   forcemax                            : 0. #     Max forces criterion when stop
+   randdis                             : 0. #     Random displacement amplitude
+   betax                               : 4. #     Stepsize for the geometry optimization
  mix:
    iscf                                : 0 #      mixing parameters
    itrpmax                             : 1 #      maximum number of diagonalisation iterations
@@ -268,10 +268,10 @@
      h_ij terms: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
    Source                              : Hard-coded
    Radii of active regions (AU):
-     Coarse                            : 1.2155757214997522
-     Fine                              : 0.22178613999999999
-     Coarse PSP                        : 0.22178613999999999
-     Source                            : Hard-coded
+     Coarse                            : 1.215575721499752
+     Fine                              : 0.22178614
+     Coarse PSP                        : 0.22178614
+     Source                            : Hard-Coded
  psppar.C:
    Pseudopotential type                : HGH-K
    Atomic number                       : 6
@@ -349,7 +349,7 @@
      Coarse                            :  1.21558
      Fine                              :  0.22179
      Coarse PSP                        :  0.55035
-     Source                            : PSP File
+     Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  0.55
    Pseudopotential type                : HGH-K
    Local Pseudo Potential (HGH convention):
@@ -371,7 +371,7 @@
      Coarse                            :  1.58437
      Fine                              :  0.23268
      Coarse PSP                        :  0.65261
-     Source                            : PSP File
+     Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  0.58
    Pseudopotential type                : HGH-K
    Local Pseudo Potential (HGH convention):
