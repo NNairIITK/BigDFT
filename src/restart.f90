@@ -386,7 +386,7 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
 !!$           call readonewave(99, .not.exists,iorb+orbs%isorb*orbs%nspinor,iproc,n1,n2,n3, &
 !!$                & hx,hy,hz,at,wfd,rxyz_old,rxyz,&
 !!$                psi(1,iorb),orbs%eval((iorb-1)/orbs%nspinor+1+orbs%isorb),psifscf)
-
+        print *,"filename = ", filename
         do ispinor=1,orbs%nspinor
            if(present(orblist)) then
               call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
@@ -559,6 +559,10 @@ subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_ou
 
   !calculate the actual orbital value
   iorb_out=iorb+orbs%isorb-(ikpt-1)*orbs%norb
+  print *,"iorb_out (filename_of_iorb) = ", iorb_out
+  print *,"ikpt (filename_of_iorb) = ", ikpt
+  print *,"orbs%isorb (filename_of_iorb) = ", orbs%isorb
+
   if(present(iiorb)) iorb_out = iiorb
   !purge the value from the spin sign
   if (spins==-1.0_gp) iorb_out=iorb_out-orbs%norbu
@@ -570,9 +574,11 @@ subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_ou
   completename='-'//f3//'-'//spintype//realimag
   if (lbin) then
      filename_out = trim(filename)//completename//".bin."//f4
-  else
+     print *,'complete name <',trim(filename_out),'> end'
+ else
      filename_out = trim(filename)//completename//"."//f4
-  end if
+ print *,'complete name <',trim(filename_out),'> end'
+ end if
 
   !print *,'filename: ',filename_out
 end subroutine filename_of_iorb
@@ -595,7 +601,8 @@ subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_o
   character(len=500) :: filename_out
 
   if(present(iiorb)) then   
-     call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iiorb) 
+     !call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iiorb) 
+     call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out) 
   else
      call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out)
   end if
