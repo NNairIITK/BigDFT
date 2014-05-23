@@ -320,7 +320,8 @@ MODULE NEB_routines
          call yaml_open_sequence("Restarting images", unit = 6)
          do i = 1, size(imgs), 1
             call yaml_sequence(trim(yaml_toa(all(imgs(i)%outs%fxyz /= UNINITIALIZED(1.d0)))), unit = 6, advance = "no")
-            call yaml_comment(yaml_toa(i, fmt = "(I2.2)"))
+            call yaml_comment(yaml_toa(i, fmt = "(I2.2)"), unit = 6)
+            call yaml_newline(unit = 6)
          end do
          call yaml_close_sequence(unit = 6)
       end if
