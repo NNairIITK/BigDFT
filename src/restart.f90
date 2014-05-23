@@ -2837,8 +2837,7 @@ subroutine copy_old_inwhichlocreg(norb_tmb, inwhichlocreg, inwhichlocreg_old, on
   integer :: istat
 !  integer:: iall
 
-  allocate(inwhichlocreg_old(norb_tmb),stat=istat)
-  call memocc(istat,inwhichlocreg_old,'inwhichlocreg_old',subname)
+  inwhichlocreg_old = f_malloc_ptr(norb_tmb,id='inwhichlocreg_old')
   call vcopy(norb_tmb, inwhichlocreg(1), 1, inwhichlocreg_old(1), 1)
   !!iall=-product(shape(inwhichlocreg))*kind(inwhichlocreg)
   !!deallocate(inwhichlocreg,stat=istat)

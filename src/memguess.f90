@@ -400,8 +400,7 @@ program memguess
 
       call orbitals_descriptors(0,nproc,norb,norbu,norbd,runObj%inputs%nspin,nspinor, &
            runObj%inputs%gen_nkpt,runObj%inputs%gen_kpt,runObj%inputs%gen_wkpt,orbstst,.false.)
-      allocate(orbstst%eval(orbstst%norbp+ndebug),stat=i_stat)
-      call memocc(i_stat,orbstst%eval,'orbstst%eval',subname)
+      orbstst%eval = f_malloc_ptr(orbstst%norbp,id='orbstst%eval')
       do iorb=1,orbstst%norbp
          orbstst%eval(iorb)=-0.5_gp
       end do
@@ -427,9 +426,7 @@ program memguess
       call deallocate_orbs(orbstst,subname)
 
 
-      i_all=-product(shape(orbstst%eval))*kind(orbstst%eval)
-      deallocate(orbstst%eval,stat=i_stat)
-      call memocc(i_stat,i_all,'orbstst%eval',subname)
+      call f_free_ptr(orbstst%eval)
 
    end if
 

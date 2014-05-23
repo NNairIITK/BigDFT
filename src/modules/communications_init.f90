@@ -2348,6 +2348,7 @@ module communications_init
     subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, lzd, comgp)
       use module_base
       use module_types
+      use communications_base, only: p2pComms_null
       implicit none
       
       ! Calling arguments
@@ -2366,10 +2367,12 @@ module communications_init
     
       call timing(iproc,'init_commPot  ','ON')
       
-      call nullify_p2pComms(comgp)
+      !call nullify_p2pComms(comgp)
+      comgp = p2pComms_null()
     
-      allocate(comgp%ise(6,0:nproc-1), stat=istat)
-      call memocc(istat, comgp%ise, 'comgp%ise', subname)
+      !allocate(comgp%ise(6,0:nproc-1), stat=istat)
+      !call memocc(istat, comgp%ise, 'comgp%ise', subname)
+      comgp%ise = f_malloc_ptr((/1.to.6,0.to.nproc-1/),id='comgp%ise')
       
       ! Determine the bounds of the potential that we need for
       ! the orbitals on this process.
@@ -2425,8 +2428,9 @@ module communications_init
     
       
       ! Determine how many slices each process receives.
-      allocate(comgp%noverlaps(0:nproc-1), stat=istat)
-      call memocc(istat, comgp%noverlaps, 'comgp%noverlaps', subname)
+      !allocate(comgp%noverlaps(0:nproc-1), stat=istat)
+      !call memocc(istat, comgp%noverlaps, 'comgp%noverlaps', subname)
+      comgp%noverlaps = f_malloc_ptr(0.to.nproc-1,id='comgp%noverlaps')
       nmaxoverlap=0
       do jproc=0,nproc-1
           is3j=comgp%ise(5,jproc)
@@ -2456,12 +2460,14 @@ module communications_init
       end do
       
       ! Determine the parameters for the communications.
-      allocate(comgp%comarr(6,nmaxoverlap,0:nproc-1))
-      call memocc(istat, comgp%comarr, 'comgp%comarr', subname)
-      call to_zero(6*nmaxoverlap*nproc, comgp%comarr(1,1,0))
-      allocate(comgp%mpi_datatypes(0:nmaxoverlap,0:nproc-1), stat=istat)
-      call memocc(istat, comgp%mpi_datatypes, 'comgp%mpi_datatypes', subname)
-      call to_zero((nmaxoverlap+1)*nproc, comgp%mpi_datatypes(0,0))
+      !allocate(comgp%comarr(6,nmaxoverlap,0:nproc-1))
+      !call memocc(istat, comgp%comarr, 'comgp%comarr', subname)
+      !call to_zero(6*nmaxoverlap*nproc, comgp%comarr(1,1,0))
+      comgp%comarr = f_malloc0_ptr((/1.to.6,1.to.nmaxoverlap,0.to.nproc-1/),id='comgp%comarr')
+      !allocate(comgp%mpi_datatypes(0:nmaxoverlap,0:nproc-1), stat=istat)
+      !call memocc(istat, comgp%mpi_datatypes, 'comgp%mpi_datatypes', subname)
+      !call to_zero((nmaxoverlap+1)*nproc, comgp%mpi_datatypes(0,0))
+      comgp%mpi_datatypes = f_malloc0_ptr((/0.to.nmaxoverlap,0.to.nproc-1/))
       comgp%nrecvBuf = 0
       is3min=0
       ie3max=0

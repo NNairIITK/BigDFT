@@ -98,7 +98,7 @@ character(len=*),parameter:: subname='get_coeff'
   if(iproc==0) write(*,'(1x,a)') 'done.'
 
   ! Deallocate the buffers needed for the communication of the potential.
-  call deallocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
+  call deallocate_p2pComms_buffer(tmbmix%comgp, subname)
 
 
 
@@ -409,7 +409,7 @@ logical,parameter:: secondLocreg=.false.
       call destroy_new_locregs(tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
            tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
 
-      if(.not.variable_locregs) call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
+      if(.not.variable_locregs) call allocate_p2pComms_buffer(tmb%comgp, subname)
 
 
       locrad_tmp=factor*locrad
@@ -505,7 +505,7 @@ logical,parameter:: secondLocreg=.false.
                   call memocc(istat, tmb%orbs%onwhichatom, 'tmb%orbs%onwhichatom', subname)
                   call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmb%orbs%onwhichatom(1), 1)
                   tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
-                  call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
+                  call allocate_p2pComms_buffer(tmb%comgp, subname)
               end if
 
 

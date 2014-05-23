@@ -55,8 +55,7 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
   if (nspin > 1) nspincomp = 2
 
  !allocate and define Lnscatterarr which is just a fake
-  allocate(Lnscatterarr(0:nproc-1,4+ndebug),stat=i_stat)
-  call memocc(i_stat,Lnscatterarr,'Lnscatterarr',subname)
+  Lnscatterarr = f_malloc((/ 0.to.nproc-1, 1.to.4 /),id='Lnscatterarr')
   Lnscatterarr(:,3) = 0
   Lnscatterarr(:,4) = 0
 
@@ -75,10 +74,8 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
 
 
      call initialize_work_arrays_sumrho(Lzd%Llr(ilr),w)
-     allocate(rho_p(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspinn), stat=i_stat) !must redefine the size of rho_p?
-     call memocc(i_stat,rho_p,'rho_p',subname)
-     allocate(psir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,npsir+ndebug),stat=i_stat)
-     call memocc(i_stat,psir,'psir',subname)
+     rho_p = f_malloc(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspinn,id='rho_p')
+     psir = f_malloc((/ Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i, npsir /),id='psir')
   
      if (Lzd%Llr(ilr)%geocode == 'F') then
         call to_zero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*npsir,psir)
@@ -160,19 +157,13 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
         ind=ind+(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*max(ncomplex,1)*npsir
      end if
 
-     i_all=-product(shape(rho_p))*kind(rho_p)
-     deallocate(rho_p,stat=i_stat)
-     call memocc(i_stat,i_all,'rho_p',subname)
-     i_all=-product(shape(psir))*kind(psir)
-     deallocate(psir,stat=i_stat)
-     call memocc(i_stat,i_all,'psir',subname)
+     call f_free(rho_p)
+     call f_free(psir)
 
      call deallocate_work_arrays_sumrho(w)
   end do orbitalsLoop
  
-  i_all=-product(shape(Lnscatterarr))*kind(Lnscatterarr)
-  deallocate(Lnscatterarr,stat=i_stat)
-  call memocc(i_stat,i_all,'Lnscatterarr',subname)
+  call f_free(Lnscatterarr)
  
 
 END SUBROUTINE local_partial_densityLinear
@@ -376,11 +367,8 @@ subroutine calculate_density_kernel_uncompressed(iproc, nproc, isKernel, orbs, o
       if (iproc==0) call yaml_map('calculate density kernel, communication strategy','ALLGATHERV')
       call timing(iproc,'calc_kernel','ON') !lr408t
       !if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
-      allocate(density_kernel_partial(orbs_tmb%norb,max(orbs_tmb%norbp,1)), stat=istat)
-      call memocc(istat, density_kernel_partial, 'density_kernel_partial', subname)
-      allocate(fcoeff(orbs_tmb%norb,orbs%norb), stat=istat)
-      call memocc(istat, fcoeff, 'fcoeff', subname)
-      call to_zero(orbs_tmb%norb*orbs%norb,fcoeff(1,1))
+      density_kernel_partial = f_malloc((/ orbs_tmb%norb, max(orbs_tmb%norbp, 1) /),id='density_kernel_partial')
+      fcoeff = f_malloc0((/ orbs_tmb%norb, orbs%norb /),id='fcoeff')
       if(orbs_tmb%norbp>0) then
           !decide whether we calculate the density kernel or just transformation matrix
           if(isKernel) then
@@ -401,9 +389,7 @@ subroutine calculate_density_kernel_uncompressed(iproc, nproc, isKernel, orbs, o
           call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norbp, orbs%norb, 1.d0, coeff(1,1), orbs_tmb%norb, &
                fcoeff(orbs_tmb%isorb+1,1), orbs_tmb%norb, 0.d0, density_kernel_partial(1,1), orbs_tmb%norb)
       end if
-      iall = -product(shape(fcoeff))*kind(fcoeff)
-      deallocate(fcoeff,stat=istat)
-      call memocc(istat, iall, 'fcoeff', subname)
+      call f_free(fcoeff)
       call timing(iproc,'calc_kernel','OF') !lr408t
 
       call timing(iproc,'waitAllgatKern','ON')
@@ -412,10 +398,8 @@ subroutine calculate_density_kernel_uncompressed(iproc, nproc, isKernel, orbs, o
 
       if (nproc > 1) then
          call timing(iproc,'commun_kernel','ON') !lr408t
-         allocate(recvcounts(0:nproc-1),stat=istat)
-         call memocc(istat,recvcounts,'recvcounts',subname)
-         allocate(dspls(0:nproc-1),stat=istat)
-         call memocc(istat,recvcounts,'recvcounts',subname)
+         recvcounts = f_malloc(0.to.nproc-1,id='recvcounts')
+         dspls = f_malloc(0.to.nproc-1,id='dspls')
          do jproc=0,nproc-1
              recvcounts(jproc)=orbs_tmb%norb*orbs_tmb%norb_par(jproc,0)
              dspls(jproc)=orbs_tmb%norb*orbs_tmb%isorb_par(jproc)
@@ -424,28 +408,20 @@ subroutine calculate_density_kernel_uncompressed(iproc, nproc, isKernel, orbs, o
          call mpi_allgatherv(density_kernel_partial(1,1), sendcount, mpi_double_precision, &
               kernel(1,1), recvcounts, dspls, mpi_double_precision, &
               bigdft_mpi%mpi_comm, ierr)
-         iall=-product(shape(recvcounts))*kind(recvcounts)
-         deallocate(recvcounts,stat=istat)
-         call memocc(istat,iall,'recvcounts',subname)
-         iall=-product(shape(dspls))*kind(dspls)
-         deallocate(dspls,stat=istat)
-         call memocc(istat,iall,'dspls',subname)
+         call f_free(recvcounts)
+         call f_free(dspls)
          call timing(iproc,'commun_kernel','OF') !lr408t
       else
          call vcopy(orbs_tmb%norb*orbs_tmb%norbp,density_kernel_partial(1,1),1,kernel(1,1),1)
       end if
 
-      iall=-product(shape(density_kernel_partial))*kind(density_kernel_partial)
-      deallocate(density_kernel_partial,stat=istat)
-      call memocc(istat,iall,'density_kernel_partial',subname)
+      call f_free(density_kernel_partial)
   else if (communication_strategy==ALLREDUCE) then
       if (iproc==0) call yaml_map('calculate density kernel, communication strategy','ALLREDUCE')
       call timing(iproc,'calc_kernel','ON') !lr408t
       !!if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
       if(orbs%norbp>0) then
-          allocate(fcoeff(orbs_tmb%norb,orbs%norb), stat=istat)
-          call memocc(istat, fcoeff, 'fcoeff', subname)
-          call to_zero(orbs_tmb%norb*orbs%norb,fcoeff(1,1))
+          fcoeff = f_malloc0((/ orbs_tmb%norb, orbs%norb /),id='fcoeff')
 
           !decide wether we calculate the density kernel or just transformation matrix
           if(isKernel)then
@@ -466,9 +442,7 @@ subroutine calculate_density_kernel_uncompressed(iproc, nproc, isKernel, orbs, o
           end if
           call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), orbs_tmb%norb, &
                fcoeff(1,orbs%isorb+1), orbs_tmb%norb, 0.d0, kernel(1,1), orbs_tmb%norb)
-          iall = -product(shape(fcoeff))*kind(fcoeff)
-          deallocate(fcoeff,stat=istat)
-          call memocc(istat, iall, 'fcoeff', subname)
+          call f_free(fcoeff)
       else
           call to_zero(orbs_tmb%norb**2, kernel(1,1))
       end if
@@ -567,8 +541,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
   end if
 
 
-  allocate(rho_local(collcom_sr%nptsp_c), stat=istat)
-  call memocc(istat, rho_local, 'rho_local', subname)
+  rho_local = f_malloc(collcom_sr%nptsp_c,id='rho_local')
 
   ! Define some constant factors.
   hxh=.5d0*hx
@@ -697,9 +670,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
   
   call timing(iproc,'sumrho_allred','OF')
 
-  iall=-product(shape(rho_local))*kind(rho_local)
-  deallocate(rho_local, stat=istat)
-  call memocc(istat, iall, 'rho_local', subname)
+  call f_free(rho_local)
 
   !!write(*,*) 'after deallocate'
   !!call mpi_finalize(ierr)

@@ -20,9 +20,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use constrained_dft
   use diis_sd_optimization
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use communications_base, only: allocate_p2pComms_buffer, &
+                                 deallocate_p2pComms_buffer
   use communications, only: synchronize_onesided_communication
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
-                               matrices_null, allocate_matrices, deallocate_matrices
+                               matrices_null, allocate_matrices, deallocate_matrices, &
+                               sparsematrix_malloc, sparsematrix_malloc_ptr, assignment(=), SPARSE_FULL
   implicit none
 
   ! Calling arguments
@@ -118,7 +121,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   ! Allocate the communications buffers needed for the communications of the potential and
   ! post the messages. This will send to each process the part of the potential that this process
   ! needs for the application of the Hamlitonian to all orbitals on that process.
-  call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
+  call allocate_p2pComms_buffer(tmb%comgp)
 
   ! Initialize the DIIS mixing of the potential if required.
   if(input%lin%mixHist_lowaccuracy>0) then
@@ -154,9 +157,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   if (input%lin%scf_mode==LINEAR_FOE) then ! allocate ham_small
      call sparse_copy_pattern(tmb%linmat%s,ham_small,iproc,subname)
-     !!allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
-     !!call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
-     ham_small%matrix_compr=f_malloc_ptr(ham_small%nvctr,id='ham_small%matrix_compr')
+     ham_small%matrix_compr = sparsematrix_malloc_ptr(ham_small,iaction=SPARSE_FULL,id='ham_small%matrix_compr')
   end if
 
   ! Allocate the communication arrays for the calculation of the charge density.
@@ -407,9 +408,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              !call nullify_sparse_matrix(ham_small)
              ham_small=sparse_matrix_null()
              call sparse_copy_pattern(tmb%linmat%s,ham_small,iproc,subname)
-             !!allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
-             !!call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
-             ham_small%matrix_compr=f_malloc_ptr(ham_small%nvctr,id='ham_small%matrix_compr')
+             ham_small%matrix_compr = sparsematrix_malloc_ptr(ham_small,iaction=SPARSE_FULL,id='ham_small%matrix_compr')
           end if
 
           ! is this really necessary if the locrads haven't changed?  we should check this!
@@ -1263,7 +1262,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   end if
   !!call wait_p2p_communication(iproc, nproc, tmb%comgp)
   call synchronize_onesided_communication(iproc, nproc, tmb%comgp)
-  call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
+  call deallocate_p2pComms_buffer(tmb%comgp)
 
 
   if (input%lin%pulay_correction .and. .not.input%lin%new_pulay_correction) then
@@ -1447,32 +1446,19 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
     subroutine allocate_local_arrays()
 
-      allocate(locrad(tmb%lzd%nlr), stat=istat)
-      call memocc(istat, locrad, 'locrad', subname)
-
+      locrad = f_malloc(tmb%lzd%nlr,id='locrad')
       ! Allocate the old charge density (used to calculate the variation in the charge density)
-      allocate(rhopotold_out(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)),stat=istat)
-      call memocc(istat, rhopotold_out, 'rhopotold_out', subname)
-
-      allocate(locrad_tmp(tmb%lzd%nlr), stat=istat)
-      call memocc(istat, locrad_tmp, 'locrad_tmp', subname)
+      rhopotold_out = f_malloc(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),id='rhopotold_out')
+      locrad_tmp = f_malloc(tmb%lzd%nlr,id='locrad_tmp')
 
     end subroutine allocate_local_arrays
 
 
     subroutine deallocate_local_arrays()
 
-      iall=-product(shape(locrad))*kind(locrad)
-      deallocate(locrad, stat=istat)
-      call memocc(istat, iall, 'locrad', subname)
-
-      iall=-product(shape(locrad_tmp))*kind(locrad_tmp)
-      deallocate(locrad_tmp, stat=istat)
-      call memocc(istat, iall, 'locrad_tmp', subname)
-
-      iall=-product(shape(rhopotold_out))*kind(rhopotold_out)
-      deallocate(rhopotold_out, stat=istat)
-      call memocc(istat, iall, 'rhopotold_out', subname)
+      call f_free(locrad)
+      call f_free(locrad_tmp)
+      call f_free(rhopotold_out)
 
     end subroutine deallocate_local_arrays
 
@@ -1918,10 +1904,8 @@ subroutine output_fragment_rotations(iproc,nat,rxyz,iformat,filename,input_frag,
               cycle
            end if
 
-           allocate(rxyz_ref(3,ref_frags(ifrag_ref)%astruct_frg%nat), stat=i_stat)
-           call memocc(i_stat, rxyz_ref, 'rxyz_ref', subname)
-           allocate(rxyz_new(3,ref_frags(ifrag_ref)%astruct_frg%nat), stat=i_stat)
-           call memocc(i_stat, rxyz_new, 'rxyz_ref', subname)
+           rxyz_ref = f_malloc((/3,ref_frags(ifrag_ref)%astruct_frg%nat/),id='rxyz_ref')
+           rxyz_new = f_malloc((/3,ref_frags(ifrag_ref)%astruct_frg%nat/),id='rxyz_new')
 
            do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
               rxyz_new(:,iat)=rxyz(:,isfat+iat)
@@ -1940,12 +1924,8 @@ subroutine output_fragment_rotations(iproc,nat,rxyz,iformat,filename,input_frag,
 
            call find_frag_trans(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_ref,rxyz_new,frag_trans)
 
-           i_all = -product(shape(rxyz_ref))*kind(rxyz_ref)
-           deallocate(rxyz_ref,stat=i_stat)
-           call memocc(i_stat,i_all,'rxyz_ref',subname)
-           i_all = -product(shape(rxyz_new))*kind(rxyz_new)
-           deallocate(rxyz_new,stat=i_stat)
-           call memocc(i_stat,i_all,'rxyz_new',subname)
+           call f_free(rxyz_ref)
+           call f_free(rxyz_new)
 
            if (iformat==WF_FORMAT_PLAIN) then
               write(99,'(2(a,1x,I5,1x),F12.6,2x,3(F12.6,1x),6(1x,F18.6))') trim(input_frag%label(ifrag_ref)),ifrag,&

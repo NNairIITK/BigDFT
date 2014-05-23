@@ -545,6 +545,7 @@ module module_interfaces
          use module_base
          use module_types
          use module_xc
+         use communications_base, only: p2pComms
          implicit none
          integer, intent(in) :: PotOrKin !< if true, only the potential operator is applied
          integer, intent(in) :: iproc,nproc,npsidim_orbs
@@ -1795,6 +1796,7 @@ module module_interfaces
      subroutine initializeCommunicationPotential(iproc, nproc, nscatterarr, orbs, lzd, comgp, onWhichAtomAll, tag)
        use module_base
        use module_types
+       use communications_base, only: p2pComms
        implicit none
        integer,intent(in):: iproc, nproc
        integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -1809,6 +1811,7 @@ module module_interfaces
      subroutine initializeRepartitionOrbitals(iproc, nproc, tag, lorbs, llborbs, lzd, comrp)
        use module_base
        use module_types
+       use communications_base, only: p2pComms
        implicit none
        integer,intent(in):: iproc, nproc
        integer,intent(inout):: tag
@@ -1849,25 +1852,6 @@ module module_interfaces
        implicit none
        type(mixrhopotDIISParameters),intent(inout):: mixdiis
      end subroutine deallocateMixrhopotDIIS
-
-     subroutine allocateCommunicationsBuffersPotential(comgp, subname)
-       use module_base
-       use module_types
-       implicit none
-       !type(p2pCommsGatherPot),intent(inout):: comgp
-       type(p2pComms),intent(inout):: comgp
-       character(len=*),intent(in):: subname
-     end subroutine allocateCommunicationsBuffersPotential
-
-
-     subroutine deallocateCommunicationsBuffersPotential(comgp, subname)
-       use module_base
-       use module_types
-       implicit none
-       !type(p2pCommsGatherPot),intent(inout):: comgp
-       type(p2pComms),intent(inout):: comgp
-       character(len=*),intent(in):: subname
-     end subroutine deallocateCommunicationsBuffersPotential
 
     subroutine deallocate_local_zone_descriptors(lzd, subname)
       use module_base
@@ -2300,6 +2284,7 @@ module module_interfaces
        subroutine nullify_p2pComms(p2pcomm)
          use module_base
          use module_types
+         use communications_base, only: p2pComms
          implicit none
          type(p2pComms),intent(inout):: p2pcomm
        end subroutine nullify_p2pComms
@@ -2416,6 +2401,7 @@ module module_interfaces
          use module_base
          use module_types
          use foe_base, only: foe_data
+         use communications_base, only: p2pComms
          implicit none
          integer,intent(in):: iproc, nproc, nlr
          integer,intent(out) :: npsidim_orbs, npsidim_comp

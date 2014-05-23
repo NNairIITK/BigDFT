@@ -216,7 +216,7 @@ subroutine init_foe(iproc, nproc, nlr, locregcenter, astruct, input, orbs_KS, or
   use module_base
   use module_atoms, only: atomic_structure
   use module_types
-  use foe_base, only: foe_data, set_int, get_int, set_real, get_real, foe_data_null
+  use foe_base, only: foe_data, foe_data_set_int, foe_data_set_real, foe_data_get_real, foe_data_null
   implicit none
   
   ! Calling arguments
@@ -250,23 +250,23 @@ subroutine init_foe(iproc, nproc, nlr, locregcenter, astruct, input, orbs_KS, or
   foe_obj = foe_data_null()
 
   if (reset) then
-     call foe_obj%set_real("ef",0.d0)
-     call foe_obj%set_real("evlow",input%lin%evlow)
-     call foe_obj%set_real("evhigh",input%lin%evhigh)
-     call foe_obj%set_real("bisection_shift",1.d-1)
-     call foe_obj%set_real("fscale",input%lin%fscale)
-     call foe_obj%set_real("ef_interpol_det",input%lin%ef_interpol_det)
-     call foe_obj%set_real("ef_interpol_chargediff",input%lin%ef_interpol_chargediff)
-     call foe_obj%set_real("charge",0.d0)
+     call foe_data_set_real(foe_obj,"ef",0.d0)
+     call foe_data_set_real(foe_obj,"evlow",input%lin%evlow)
+     call foe_data_set_real(foe_obj,"evhigh",input%lin%evhigh)
+     call foe_data_set_real(foe_obj,"bisection_shift",1.d-1)
+     call foe_data_set_real(foe_obj,"fscale",input%lin%fscale)
+     call foe_data_set_real(foe_obj,"ef_interpol_det",input%lin%ef_interpol_det)
+     call foe_data_set_real(foe_obj,"ef_interpol_chargediff",input%lin%ef_interpol_chargediff)
+     call foe_data_set_real(foe_obj,"charge",0.d0)
      do iorb=1,orbs_KS%norb
-          call foe_obj%set_real("charge",foe_obj%get_real("charge")+orbs_KS%occup(iorb))
+          call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge")+orbs_KS%occup(iorb))
      end do
-     call foe_obj%set_int("evbounds_isatur",0)
-     call foe_obj%set_int("evboundsshrink_isatur",0)
-     call foe_obj%set_int("evbounds_nsatur",input%evbounds_nsatur)
-     call foe_obj%set_int("evboundsshrink_nsatur",input%evboundsshrink_nsatur)
-     call foe_obj%set_real("fscale_lowerbound",input%fscale_lowerbound)
-     call foe_obj%set_real("fscale_upperbound",input%fscale_upperbound)
+     call foe_data_set_int(foe_obj,"evbounds_isatur",0)
+     call foe_data_set_int(foe_obj,"evboundsshrink_isatur",0)
+     call foe_data_set_int(foe_obj,"evbounds_nsatur",input%evbounds_nsatur)
+     call foe_data_set_int(foe_obj,"evboundsshrink_nsatur",input%evboundsshrink_nsatur)
+     call foe_data_set_real(foe_obj,"fscale_lowerbound",input%fscale_lowerbound)
+     call foe_data_set_real(foe_obj,"fscale_upperbound",input%fscale_upperbound)
   end if
 
   call timing(iproc,'init_matrCompr','OF')
@@ -635,20 +635,15 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
   call memocc(istat, norbsPerLocreg, 'norbsPerLocreg', subname)
   norbsPerLocreg=1 !should be norbsPerLocreg
     
-  iall=-product(shape(lorbs%inWhichLocreg))*kind(lorbs%inWhichLocreg)
-  deallocate(lorbs%inWhichLocreg, stat=istat)
-  call memocc(istat, iall, 'lorbs%inWhichLocreg', subname)
+  call f_free_ptr(lorbs%inWhichLocreg)
   call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norb_par, astruct%nat, nlr, &
        input%nspin, norbsPerLocreg, locregCenter, lorbs%inwhichlocreg)
 
-  iall=-product(shape(lorbs%onwhichatom))*kind(lorbs%onwhichatom)
-  deallocate(lorbs%onwhichatom, stat=istat)
-  call memocc(istat, iall, 'lorbs%onwhichatom', subname)
+  call f_free_ptr(lorbs%onwhichatom)
   call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norb_par, astruct%nat, astruct%nat, &
        input%nspin, norbsPerAtom, rxyz, lorbs%onwhichatom)
   
-  allocate(lorbs%eval(lorbs%norb), stat=istat)
-  call memocc(istat, lorbs%eval, 'lorbs%eval', subname)
+  lorbs%eval = f_malloc_ptr(lorbs%norb,id='lorbs%eval')
   lorbs%eval=-.5d0
   
   iall=-product(shape(norbsPerLocreg))*kind(norbsPerLocreg)
@@ -738,7 +733,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
   use module_base
   use module_types
   use module_interfaces, except_this_one => update_locreg
-  use communications_base, only: comms_linear_null
+  use communications_base, only: p2pComms, comms_linear_null, p2pComms_null, allocate_p2pComms_buffer
   use communications_init, only: init_comms_linear, init_comms_linear_sumrho, &
                                  initialize_communication_potential
   use foe_base, only: foe_data, foe_data_null
@@ -777,7 +772,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
       !call nullify_comms_linear(lbcollcom_sr)
       lbcollcom_sr=comms_linear_null()
   end if
-  call nullify_p2pComms(lbcomgp)
+  lbcomgp = p2pComms_null()
   call nullify_local_zone_descriptors(lzd)
   !!tag=1
 
@@ -832,7 +827,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
   end if
 
   call initialize_communication_potential(iproc, nproc, nscatterarr, orbs, lzd, lbcomgp)
-  call allocateCommunicationsBuffersPotential(lbcomgp, subname)
+  call allocate_p2pComms_buffer(lbcomgp)
 
 end subroutine update_locreg
 
@@ -850,12 +845,8 @@ subroutine update_ldiis_arrays(tmb, subname, ldiis)
   ! Local variables
   integer :: iall, istat, ii, iorb, ilr
 
-  iall=-product(shape(ldiis%phiHist))*kind(ldiis%phiHist)
-  deallocate(ldiis%phiHist, stat=istat)
-  call memocc(istat, iall, 'ldiis%phiHist', subname)
-  iall=-product(shape(ldiis%hphiHist))*kind(ldiis%hphiHist)
-  deallocate(ldiis%hphiHist, stat=istat)
-  call memocc(istat, iall, 'ldiis%hphiHist', subname)
+  call f_free_ptr(ldiis%phiHist)
+  call f_free_ptr(ldiis%hphiHist)
 
   ii=0
   do iorb=1,tmb%orbs%norbp
@@ -863,10 +854,8 @@ subroutine update_ldiis_arrays(tmb, subname, ldiis)
       ii=ii+ldiis%isx*(tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f)
   end do
 
-  allocate(ldiis%phiHist(ii), stat=istat)
-  call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
-  allocate(ldiis%hphiHist(ii), stat=istat)
-  call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
+  ldiis%phiHist = f_malloc_ptr(ii,id='ldiis%phiHist')
+  ldiis%hphiHist = f_malloc_ptr(ii,id='ldiis%hphiHist')
 
 end subroutine update_ldiis_arrays
 
@@ -920,7 +909,7 @@ subroutine destroy_new_locregs(iproc, nproc, tmb)
   use module_base
   use module_types
   use module_interfaces, except_this_one => destroy_new_locregs
-  use communications_base, only: deallocate_comms_linear
+  use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use communications, only: synchronize_onesided_communication
   implicit none
 
@@ -933,8 +922,7 @@ subroutine destroy_new_locregs(iproc, nproc, tmb)
 
   !!call wait_p2p_communication(iproc, nproc, tmb%comgp)
   call synchronize_onesided_communication(iproc, nproc, tmb%comgp)
- ! call deallocateCommunicationsBuffersPotential(tmb%comgp, subname)
-  call deallocate_p2pComms(tmb%comgp, subname)
+  call deallocate_p2pComms(tmb%comgp)
 
   call deallocate_local_zone_descriptors(tmb%lzd, subname)
   call deallocate_orbitals_data(tmb%orbs, subname)
@@ -950,7 +938,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   use module_types
   use module_interfaces, except_this_one => destroy_DFT_wavefunction
   use deallocatePointers
-  use communications_base, only: deallocate_comms_linear
+  use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use sparsematrix_base, only: deallocate_sparse_matrix, allocate_matrices, deallocate_matrices
   implicit none
   
@@ -965,12 +953,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   deallocate(wfn%psi, stat=istat)
   call memocc(istat, iall, 'wfn%psi', subname)
 
-  call deallocate_p2pComms(wfn%comgp, subname)
-  !call deallocate_sparse_matrix(wfn%linmat%ovrlp, subname)
-  !!call deallocate_sparse_matrix(wfn%linmat%ham, subname)
-  !call deallocate_sparse_matrix(wfn%linmat%denskern_large, subname)
-  !call deallocate_sparse_matrix(wfn%linmat%inv_ovrlp_large, subname)
-
+  call deallocate_p2pComms(wfn%comgp)
   call deallocate_sparse_matrix(wfn%linmat%s, subname)
   call deallocate_sparse_matrix(wfn%linmat%m, subname)
   call deallocate_sparse_matrix(wfn%linmat%l, subname)
@@ -979,9 +962,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   call deallocate_matrices(wfn%linmat%ovrlp_)
   call deallocate_matrices(wfn%linmat%ham_)
   call deallocate_matrices(wfn%linmat%kernel_)
-
   call deallocate_orbitals_data(wfn%orbs, subname)
-  !call deallocate_comms_cubic(wfn%comms, subname)
   call deallocate_comms_linear(wfn%collcom)
   call deallocate_comms_linear(wfn%collcom_sr)
   call deallocate_local_zone_descriptors(wfn%lzd, subname)
@@ -991,11 +972,6 @@ subroutine destroy_DFT_wavefunction(wfn)
       deallocate(wfn%coeff, stat=istat)
       call memocc(istat, iall, 'wfn%coeff', subname)
   end if
-
-  !call deallocate_p2pComms(wfn%ham_descr%comgp, subname)
-  !call deallocate_local_zone_descriptors(wfn%ham_descr%lzd, subname)
-  !call deallocate_matrixDescriptors_foe(wfn%ham_descr%mad, subname)
-  !call deallocate_comms_linear(wfn%ham_descr%collcom, subname)
 
 end subroutine destroy_DFT_wavefunction
 
@@ -1256,7 +1232,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   use module_types
   use module_interfaces, except_this_one => adjust_locregs_and_confinement
   use yaml_output
-  use communications_base, only: deallocate_comms_linear
+  use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use communications, only: synchronize_onesided_communication
   use sparsematrix_base, only: sparse_matrix_null, deallocate_sparse_matrix, allocate_matrices, deallocate_matrices
   use sparsematrix_init, only: init_sparse_matrix, check_kernel_cutoff!, init_sparsity_from_distance
@@ -1306,7 +1282,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      !tag=1
      !call wait_p2p_communication(iproc, nproc, tmb%comgp)
      call synchronize_onesided_communication(iproc, nproc, tmb%comgp)
-     call deallocate_p2pComms(tmb%comgp, subname)
+     call deallocate_p2pComms(tmb%comgp)
 
      call deallocate_comms_linear(tmb%collcom)
      call deallocate_comms_linear(tmb%collcom_sr)
@@ -1393,7 +1369,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      ! to eventually be better sorted - replace with e.g. destroy_hamiltonian_descriptors
      call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
-     call deallocate_p2pComms(tmb%ham_descr%comgp, subname)
+     call deallocate_p2pComms(tmb%ham_descr%comgp)
      call deallocate_local_zone_descriptors(tmb%ham_descr%lzd, subname)
      call deallocate_comms_linear(tmb%ham_descr%collcom)
 

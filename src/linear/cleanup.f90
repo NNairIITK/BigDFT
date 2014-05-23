@@ -796,28 +796,25 @@ end subroutine deallocate_Lzd_except_Glr
 
 
 subroutine deallocate_orbitals_data(orbs, subname)
-  
   use module_types
-  use deallocatePointers
   implicit none
   
   ! Calling arguments
   type(orbitals_data),intent(inout):: orbs
   character(len=*),intent(in):: subname
   
-  call checkAndDeallocatePointer(orbs%norb_par, 'orbs%norb_par', subname)
-  call checkAndDeallocatePointer(orbs%iokpt, 'orbs%iokpt', subname)
-  call checkAndDeallocatePointer(orbs%ikptproc, 'orbs%ikptproc', subname)
-  call checkAndDeallocatePointer(orbs%inwhichlocreg, 'orbs%inwhichlocreg', subname)
-  call checkAndDeallocatePointer(orbs%onwhichatom, 'orbs%onwhichatom', subname)
-  call checkAndDeallocatePointer(orbs%onwhichatom, 'orbs%onwhichfragment', subname)
-  call checkAndDeallocatePointer(orbs%isorb_par, 'orbs%isorb_par', subname)
-  call checkAndDeallocatePointer(orbs%eval, 'orbs%eval', subname)
-  call checkAndDeallocatePointer(orbs%occup, 'orbs%occup', subname)
-  call checkAndDeallocatePointer(orbs%spinsgn, 'orbs%spinsgn', subname)
-  call checkAndDeallocatePointer(orbs%kwgts, 'orbs%kwgts', subname)
-  call checkAndDeallocatePointer(orbs%kpts, 'orbs%kpts', subname)
-  call checkAndDeallocatePointer(orbs%ispot, 'orbs%ispot', subname)
+  call f_free_ptr(orbs%norb_par)
+  call f_free_ptr(orbs%iokpt)
+  call f_free_ptr(orbs%ikptproc)
+  call f_free_ptr(orbs%inwhichlocreg)
+  call f_free_ptr(orbs%onwhichatom)
+  call f_free_ptr(orbs%isorb_par)
+  call f_free_ptr(orbs%eval)
+  call f_free_ptr(orbs%occup)
+  call f_free_ptr(orbs%spinsgn)
+  call f_free_ptr(orbs%kwgts)
+  call f_free_ptr(orbs%kpts)
+  call f_free_ptr(orbs%ispot)
   
 end subroutine deallocate_orbitals_data
 
@@ -921,36 +918,3 @@ end subroutine deallocate_grow_bounds
 
 
 
-subroutine deallocate_p2pComms(p2pcomm, subname)
-  
-  use module_types
-  use deallocatePointers
-  implicit none
-
-  ! Calling arguments
-  type(p2pComms),intent(inout):: p2pcomm
-  character(len=*),intent(in):: subname
-  
-  ! Local variables
-  integer :: is, ie, i, ierr
-
-  call checkAndDeallocatePointer(p2pcomm%noverlaps, 'p2pcomm%noverlaps', subname)
-  call checkAndDeallocatePointer(p2pcomm%recvBuf, 'p2pcomm%recvBuf', subname)
-  call checkAndDeallocatePointer(p2pcomm%comarr, 'p2pcomm%comarr', subname)
-  call checkAndDeallocatePointer(p2pcomm%ise, 'p2pcomm%ise', subname)
-
-  if (.not.p2pcomm%communication_complete) then
-      stop 'cannot deallocate mpi data types if communication has not completed'
-  end if
-  !!if (associated(p2pcomm%mpi_datatypes)) then
-  !!    is=lbound(p2pcomm%mpi_datatypes,2)
-  !!    ie=ubound(p2pcomm%mpi_datatypes,2)
-  !!    do i=is,ie
-  !!        if (p2pcomm%mpi_datatypes(2,i)==1) then
-  !!             call mpi_type_free(p2pcomm%mpi_datatypes(1,i), ierr)
-  !!         end if
-  !!    end do
-  !!end if
-  call checkAndDeallocatePointer(p2pcomm%mpi_datatypes, 'p2pcomm%mpi_datatypes', subname)
-
-end subroutine deallocate_p2pComms

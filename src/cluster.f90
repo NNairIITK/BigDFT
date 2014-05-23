@@ -125,9 +125,7 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
         i_all=-product(shape(runObj%rst%KSwfn%psi))*kind(runObj%rst%KSwfn%psi)
         deallocate(runObj%rst%KSwfn%psi,stat=i_stat)
         call memocc(i_stat,i_all,'psi',subname)
-        i_all=-product(shape(runObj%rst%KSwfn%orbs%eval))*kind(runObj%rst%KSwfn%orbs%eval)
-        deallocate(runObj%rst%KSwfn%orbs%eval,stat=i_stat)
-        call memocc(i_stat,i_all,'eval',subname)
+        call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
 
         call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
      end if
@@ -185,9 +183,7 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
         i_all=-product(shape(runObj%rst%KSwfn%psi))*kind(runObj%rst%KSwfn%psi)
         deallocate(runObj%rst%KSwfn%psi,stat=i_stat)
         call memocc(i_stat,i_all,'psi',subname)
-        i_all=-product(shape(runObj%rst%KSwfn%orbs%eval))*kind(runObj%rst%KSwfn%orbs%eval)
-        deallocate(runObj%rst%KSwfn%orbs%eval,stat=i_stat)
-        call memocc(i_stat,i_all,'eval',subname)
+        call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
 
         call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
 
@@ -877,9 +873,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
         i_all=-product(shape(denspot%rho_work))*kind(denspot%rho_work)
         deallocate(denspot%rho_work,stat=i_stat)
         call memocc(i_stat,i_all,'denspot%rho',subname)
-        i_all=-product(shape(KSwfn%orbs%eval))*kind(KSwfn%orbs%eval)
-        deallocate(KSwfn%orbs%eval,stat=i_stat)
-        call memocc(i_stat,i_all,'KSwfn%orbs%eval',subname)
+        call f_free_ptr(KSwfn%orbs%eval)
         call deallocate_before_exiting()
         return
      end if
@@ -1264,9 +1258,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
            ikpt=ikpt+in%nkptsv_group(igroup)
         end if
 
-        i_all=-product(shape(VTwfn%orbs%eval))*kind(VTwfn%orbs%eval)
-        deallocate(VTwfn%orbs%eval,stat=i_stat)
-        call memocc(i_stat,i_all,'eval',subname)
+        call f_free_ptr(VTwfn%orbs%eval)
 
         !if the local analysis has to be performed the deallocation should not be done
         i_all=-product(shape(VTwfn%psi))*kind(VTwfn%psi)
@@ -2012,7 +2004,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   use module_interfaces, except_this_one => kswfn_post_treatments
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
-  use communications_base, only: deallocate_comms_linear
+  use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use communications, only: synchronize_onesided_communication
 
   implicit none
@@ -2154,7 +2146,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   if (linear) then
      ! to eventually be better sorted
      call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
-     call deallocate_p2pComms(tmb%ham_descr%comgp, subname)
+     call deallocate_p2pComms(tmb%ham_descr%comgp)
      call deallocate_local_zone_descriptors(tmb%ham_descr%lzd, subname)
      call deallocate_comms_linear(tmb%ham_descr%collcom)
      call deallocate_auxiliary_basis_function(subname, tmb%ham_descr%psi, tmb%hpsi)

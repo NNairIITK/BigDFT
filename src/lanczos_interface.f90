@@ -1699,7 +1699,7 @@ nullify(Qvect,dumQvect)
     end if
 
 
-    allocate(orbs%eval(orbs%norb+ndebug),stat=i_stat)
+    orbs%eval = f_malloc_ptr(orbs%norb,id='orbs%eval')
     call memocc(i_stat,orbs%eval,'orbs%eval',subname)
     orbs%occup(1:orbs%norb)=1.0_gp
     orbs%spinsgn(1:orbs%norb)=1.0_gp
@@ -1795,9 +1795,7 @@ nullify(Qvect,dumQvect)
        call free_gpu_OCL(GPU,orbs,in%nspin)
     end if
 
-    i_all=-product(shape(orbs%eval))*kind(orbs%eval)
-    deallocate(orbs%eval,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%eval',subname)
+    call f_free_ptr(orbs%eval)
 
     i_all=-product(shape(Gabs_coeffs))*kind(Gabs_coeffs)
     deallocate(Gabs_coeffs,stat=i_stat)
@@ -1871,8 +1869,7 @@ nullify(Qvect,dumQvect)
             &   'GPU data allocated'
     end if
 
-    allocate(orbs%eval(orbs%norb *orbs%nkpts  +ndebug),stat=i_stat)
-    call memocc(i_stat,orbs%eval,'orbs%eval',subname)
+    orbs%eval = f_malloc_ptr(orbs%norb*orbs%nkpts,id='orbs%eval')
     orbs%occup(1:orbs%norb*orbs%nkpts )=1.0_gp
     orbs%spinsgn(1:orbs%norb*orbs%nkpts )=1.0_gp
     orbs%eval(1:orbs%norb*orbs%nkpts )=1.0_gp
@@ -2021,9 +2018,7 @@ nullify(Qvect,dumQvect)
        call free_gpu_OCL(GPU,orbs,in%nspin)
     end if
 
-    i_all=-product(shape(orbs%eval))*kind(orbs%eval)
-    deallocate(orbs%eval,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%eval',subname)
+    call f_free_ptr(orbs%eval)
 
 
 !!$  i_all=-product(shape(Gabsorber%nshell))*kind(Gabsorber%nshell)
@@ -2122,8 +2117,7 @@ nullify(Qvect,dumQvect)
             &   'GPU data allocated'
     end if
 
-    allocate(orbs%eval(orbs%norb+ndebug),stat=i_stat)
-    call memocc(i_stat,orbs%eval,'orbs%eval',subname)
+    orbs%eval = f_malloc_ptr(orbs%norb,id='orbs%eval')
 
     orbs%occup(1:orbs%norb)=1.0_gp
     orbs%spinsgn(1:orbs%norb)=1.0_gp
@@ -2236,9 +2230,7 @@ nullify(Qvect,dumQvect)
        call free_gpu_OCL(GPU,orbs,in%nspin)
     end if
 
-    i_all=-product(shape(orbs%eval))*kind(orbs%eval)
-    deallocate(orbs%eval,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%eval',subname)
+    call f_free_ptr(orbs%eval)
 
     i_all=-product(shape(Gabs_coeffs))*kind(Gabs_coeffs)
     deallocate(Gabs_coeffs,stat=i_stat)
