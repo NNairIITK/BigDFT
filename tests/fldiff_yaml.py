@@ -184,7 +184,7 @@ def compare_map(map, ref, tols, always_fails=False):
 
 
 def compare_scl(scl, ref, tols, always_fails=False):
-    "Compare the scalars and retrurn the toelerance it the results are ok"
+    "Compare the scalars and retrurn the tolerance it the results are ok"
     global failed_checks, discrepancy, biggest_tol
     failed = always_fails
     ret = (failed, None)
