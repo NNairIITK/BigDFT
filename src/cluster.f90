@@ -208,24 +208,12 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
 
 END SUBROUTINE call_bigdft
 
+
 !>  Main routine which does self-consistent loop.
 !!  Does not parse input file and no geometry optimization.
 !!  Does an electronic structure calculation. 
 !!  Output is the total energy and the forces 
 !!   @warning psi, keyg, keyv and eval should be freed after use outside of the routine.
-!!   @param inputPsiId 
-!!           - 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
-!!           - 1 : read waves from argument psi, using n1, n2, n3, hgrid and rxyz_old
-!!                 as definition of the previous system.
-!!           - 2 : read waves from disk
-!!   @param infocode -> encloses some information about the status of the run
-!!           - 0 run succesfully succeded
-!!           - 1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
-!!               forces may be meaningless   
-!!           - 2 (present only for inputPsiId=1) gnrm of the first iteration > 1 AND growing in
-!!               the second iteration OR grnm 1st >2.
-!!               Input wavefunctions need to be recalculated. Routine exits.
-!!           - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
 subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fnoise,pressure,&
      KSwfn,tmb,rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
   use module_base
@@ -244,6 +232,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   use sparsematrix_init, only: init_sparse_matrix, check_kernel_cutoff
   use sparsematrix, only: check_matrix_compression
   implicit none
+  !Arguments
   integer, intent(in) :: nproc,iproc
   real(gp), intent(inout) :: hx_old,hy_old,hz_old
   type(input_variables), intent(in) :: in
@@ -253,11 +242,19 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz_old
   real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
   real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
-  integer, intent(out) :: infocode
   type(energy_terms), intent(out) :: energs
   real(gp), intent(out) :: energy,fnoise,pressure
   real(gp), dimension(6), intent(out) :: strten
   real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
+  !> Encloses some information about the status of the run
+  !!   - 0 run successfully succeded
+  !!   - 1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
+  !!       forces may be meaningless   
+  !!   - 2 (present only for inputPsiId=1) gnrm of the first iteration > 1 AND growing in
+  !!       the second iteration OR grnm 1st >2.
+  !!       Input wavefunctions need to be recalculated. Routine exits.
+  !!   - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
+  integer, intent(out) :: infocode
   !local variables
   character(len=*), parameter :: subname='cluster'
   character(len=5) :: gridformat, wfformat

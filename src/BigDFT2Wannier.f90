@@ -56,7 +56,7 @@ program BigDFT2Wannier
    real(kind=8), allocatable :: amnk(:,:), amnk_tot(:), amnk_guess(:), amnk_guess_sorted(:),overlap_proj(:,:)
    real(kind=8), allocatable :: mmnk_re(:,:,:), mmnk_im(:,:,:), mmnk_tot(:,:)
    integer :: i, j, k, np,i_all
-   character :: seedname*16
+   character :: seedname*16, dir*16
    logical :: calc_only_A 
    real, dimension(3,3) :: real_latt, recip_latt
    integer :: n_kpts, n_nnkpts, n_excb, n_at, s
@@ -121,7 +121,8 @@ program BigDFT2Wannier
    ! Read input.inter file
    call timing(iproc,'Precondition  ','ON')
    call read_inter_header(iproc,seedname, filetype, residentity, write_resid, n_occ, pre_check, n_virt_tot,&
-         n_virt, w_unk, w_sph, w_ang, w_rad)
+         n_virt, w_unk, w_sph, w_ang, w_rad,dir)
+   input%dir_output=trim(dir)//'/'
 
    if(n_virt_tot < n_virt) then
       if (iproc == 0) then
@@ -1197,7 +1198,7 @@ END SUBROUTINE final_deallocations
 END PROGRAM BigDFT2Wannier
 
 subroutine read_inter_header(iproc,seedname, filetype, residentity, write_resid, n_occ, pre_check,&
-           n_virt_tot, n_virt, w_unk, w_sph, w_ang, w_rad)
+           n_virt_tot, n_virt, w_unk, w_sph, w_ang, w_rad, dir)
 
    ! This routine reads the first lines of a .inter file
 
@@ -1205,7 +1206,7 @@ subroutine read_inter_header(iproc,seedname, filetype, residentity, write_resid,
 
    ! I/O variables
    integer, intent(in) :: iproc
-   character, intent(out) :: seedname*16, filetype*4
+   character, intent(out) :: seedname*16, filetype*4, dir*16
    integer, intent(out) :: n_occ, n_virt, n_virt_tot
    logical, intent(out) :: w_unk, w_sph, w_ang, w_rad, pre_check,residentity,write_resid
 
@@ -1213,6 +1214,7 @@ subroutine read_inter_header(iproc,seedname, filetype, residentity, write_resid,
    character :: char1*1, char2*1, char3*1, char4*1
    logical :: file_exist
    integer :: ierr
+   integer :: dummy1, dummy2, dummy3
 
    ! Should check if it exists, if not, make a nice output message
    inquire(file="input.inter",exist=file_exist)
@@ -1307,6 +1309,14 @@ subroutine read_inter_header(iproc,seedname, filetype, residentity, write_resid,
       if(iproc==0) write(*,*) 'Wrong value for w_rad'
       STOP
    end if
+
+   !sixth line
+
+   read(11,*) dummy1, dummy2, dummy3
+
+   ! seventh line
+   read(11,*) dir
+
 
    CLOSE(11)
 

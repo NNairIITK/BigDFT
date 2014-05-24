@@ -155,7 +155,7 @@ MODULE dipole_mod
     real(q2), parameter :: dipoleunits=1._q2  !< atomic units 
     real(q2), dimension(3) :: tmp1, tmp2
     real(q2) :: stmp,stmp2
-    integer :: i, ierr
+    integer :: i
  
     !WRITE(*,'(A44,/)') 'WRITING BADER ATOMIC DIPOLES TO dipole.dat'
     !call yaml_map('Writing Bader atomic dipoles',dfile)

@@ -137,19 +137,25 @@
      RANGE: [0, 50]
      default: 30
    norbv:
-     COMMENT: Davidson subspace dim.
+     COMMENT: Davidson subspace dimension (No. virtual orbitals)
+     DESCRIPTION: Determine the dimension of the subspace i.e. the number of virtual orbitals
+                  to calculate via a Davidson diagonalisation.
      RANGE: [-9999, 9999]
      default: 0
    nvirt:
-     COMMENT: No. of opt. orbs
+     COMMENT: No. of virtual orbs
+     DESCRIPTION: Number of virtual (unoccupied) orbital to optimize
+                  (should be < norbv)
      RANGE: [0, 9999]
      default: 0
    nplot:
      COMMENT: No. of plotted orbs
+     DESCRIPTION: Number of orbitals to be plotted
      RANGE: [0, 9999]
      default: 0
    disablesym:
      COMMENT: Disable the symmetry detection
+     DESCRIPTION: Disable the symmetry detection (by default No except for isolated systems)
      default: No
 #K points parameters
  kpt:

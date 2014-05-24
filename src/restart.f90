@@ -386,7 +386,7 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
 !!$           call readonewave(99, .not.exists,iorb+orbs%isorb*orbs%nspinor,iproc,n1,n2,n3, &
 !!$                & hx,hy,hz,at,wfd,rxyz_old,rxyz,&
 !!$                psi(1,iorb),orbs%eval((iorb-1)/orbs%nspinor+1+orbs%isorb),psifscf)
-
+        !print *,"filename = ", filename
         do ispinor=1,orbs%nspinor
            if(present(orblist)) then
               call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
@@ -447,7 +447,7 @@ subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
   !local variables
   character(len=500) :: filename
   logical :: onefile,allfiles
-  integer :: iorb,ispinor,iorb_out,ierr
+  integer :: iorb,ispinor,iorb_out
   
   allfiles=.true.
 
@@ -559,6 +559,10 @@ subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_ou
 
   !calculate the actual orbital value
   iorb_out=iorb+orbs%isorb-(ikpt-1)*orbs%norb
+  !print *,"iorb_out (filename_of_iorb) = ", iorb_out
+  !print *,"ikpt (filename_of_iorb) = ", ikpt
+  !print *,"orbs%isorb (filename_of_iorb) = ", orbs%isorb
+
   if(present(iiorb)) iorb_out = iiorb
   !purge the value from the spin sign
   if (spins==-1.0_gp) iorb_out=iorb_out-orbs%norbu
@@ -570,9 +574,11 @@ subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_ou
   completename='-'//f3//'-'//spintype//realimag
   if (lbin) then
      filename_out = trim(filename)//completename//".bin."//f4
-  else
+     !print *,'complete name <',trim(filename_out),'> end'
+ else
      filename_out = trim(filename)//completename//"."//f4
-  end if
+     !print *,'complete name <',trim(filename_out),'> end'
+ end if
 
   !print *,'filename: ',filename_out
 end subroutine filename_of_iorb
@@ -595,7 +601,8 @@ subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_o
   character(len=500) :: filename_out
 
   if(present(iiorb)) then   
-     call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iiorb) 
+     !call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iiorb) 
+     call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out) 
   else
      call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out)
   end if
@@ -938,7 +945,8 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
   type(atoms_data), intent(inout) :: at
   real(gp),dimension(3,at%astruct%nat),intent(in) :: rxyz
 
-  integer :: iorb, jorb, i_stat, i_all, iat, jat
+  integer :: iorb, jorb, iat, jat
+  !!integer :: i_stat, i_all
   character(len=*),parameter :: subname='write_linear_matrices'
 
   if (iproc==0) then
@@ -2880,7 +2888,8 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
   character(len=*), parameter :: subname='reformatmywaves'
   logical :: reformat
   integer :: iorb,j,i_stat,i_all,jstart,jstart_old,iiorb,ilr,iiat
-  integer:: idir,jstart_old_der,ncount,ilr_old,i
+  integer:: idir,jstart_old_der,ncount,ilr_old
+  !!integer :: i
   integer, dimension(3) :: ns_old,ns,n_old,n
   real(gp), dimension(3) :: centre_old_box,centre_new_box,da
   real(gp) :: tt,tol
@@ -3234,8 +3243,6 @@ subroutine print_reformat_summary(iproc,nproc,reformat_reason)
 
   integer, intent(in) :: iproc,nproc
   integer, dimension(0:6), intent(inout) :: reformat_reason ! array giving reasons for reformatting
-
-  integer :: ierr
 
   if (nproc > 1) call mpiallred(reformat_reason(0), 7, mpi_sum, bigdft_mpi%mpi_comm)
 
