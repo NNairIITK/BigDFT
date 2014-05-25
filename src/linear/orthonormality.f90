@@ -234,21 +234,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
      ii_trans=matrixindex_in_compressed(lagmat,jorb,iorb)
      lagmat_%matrix_compr(ii) = -0.5d0*tmp_mat_compr(ii)-0.5d0*tmp_mat_compr(ii_trans)
   end do
-  !lagmat_%matrix_compr = -1.d0*lagmat_%matrix_compr
-  do ii=1,lagmat%nvctr
-     iorb = lagmat%orb_from_index(1,ii)
-     jorb = lagmat%orb_from_index(2,ii)
-     ii_trans=matrixindex_in_compressed(lagmat,jorb,iorb)
-     !!lagmat_%matrix_compr(ii) = -0.5d0*lagmat_tmp_compr(ii)-0.5d0*tmp_mat_compr(ii_trans)
-     if (iproc==0) write(*,*) 'ii, lagmat asy', ii, abs(lagmat_%matrix_compr(ii)-lagmat_%matrix_compr(ii_trans))
-  end do
-  do ii=1,linmat%l%nvctr
-     iorb = linmat%l%orb_from_index(1,ii)
-     jorb = linmat%l%orb_from_index(2,ii)
-     ii_trans=matrixindex_in_compressed(linmat%l,jorb,iorb)
-     !!lagmat_%matrix_compr(ii) = -0.5d0*lagmat_tmp_compr(ii)-0.5d0*tmp_mat_compr(ii_trans)
-     if (iproc==0) write(*,'(a,i5,2es15.5)') 'ii, kernel asy', ii, abs(linmat%kernel_%matrix_compr(ii)-linmat%kernel_%matrix_compr(ii_trans)), linmat%kernel_%matrix_compr(ii)
-  end do
   !##
       inv_ovrlp_seq = sparsematrix_malloc(linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_seq')
       lagmatp = sparsematrix_malloc(linmat%m, iaction=DENSE_PARALLEL, id='lagmatp')
@@ -262,26 +247,10 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
       call compress_matrix_distributed(iproc, linmat%m, inv_lagmatp, lagmat_%matrix_compr)
   end if
   !##
-  !call build_linear_combination_transposed(collcom, lagmat, lagmat_, psit_nococontra_c, psit_nococontra_f, .false., hpsit_nococontra_c, hpsit_nococontra_f, iproc)
-  !call build_linear_combination_transposed(collcom, lagmat, lagmat_, psit_nococontra_c, psit_nococontra_f, .false., hpsit_nococontra_c, hpsit_nococontra_f, iproc)
   call build_linear_combination_transposed(collcom, lagmat, lagmat_, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
 
   !!!!  TEST ORTHOGONLAITY OF GRADIENT AND TMBs
   tmp_mat_compr = lagmat_%matrix_compr
-  call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_nococontra_c, psit_f, psit_nococontra_f, lagmat, lagmat_)
-  if (iproc==0) then
-      do ii=1,lagmat%nvctr
-          write(*,*) 'should be ortho: ii, lagmat_%matrix_compr(ii)', ii, lagmat_%matrix_compr(ii)
-      end do
-  end if
-  !call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_nococontra_c, psit_f, hpsit_nococontra_f, lagmat, lagmat_)
-  call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_)
-  if (iproc==0) then
-      do ii=1,lagmat%nvctr
-          write(*,*) 'ii, lagmat_%matrix_compr(ii)', ii, lagmat_%matrix_compr(ii)
-      end do
-  end if
-  !!!!  END TEST ORTHOGONLAITY OF GRADIENT AND TMBs
   lagmat_%matrix_compr = tmp_mat_compr
 
   call f_free(psit_nococontra_c)
@@ -307,34 +276,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
 call timing(iproc,'misc','ON')
 
-  !$omp parallel do default(none) &
-  !$omp private(ii,iorb,jorb,ii_trans) &
-  !$omp shared(lagmat,lagmat_,tmp_mat_compr,iproc,orbs,correction_orthoconstraint,experimental_mode)
-  do ii=1,lagmat%nvctr
-     !iorb = lagmat%orb_from_index(1,ii)
-     !jorb = lagmat%orb_from_index(2,ii)
-     !ii_trans=matrixindex_in_compressed(lagmat,jorb, iorb)
-     !!tmp_mat_compr(ii)=-0.5d0*lagmat_%matrix_compr(ii)-0.5d0*lagmat_%matrix_compr(ii_trans)
-     !tmp_mat_compr(ii)=1.0d0*lagmat_%matrix_compr(ii)!-0.5d0*lagmat_%matrix_compr(ii_trans)
-     !! SM: This is a hack, should use another variable
-     !!if (.false..or.correction_orthoconstraint==2) then
-     !if (.false. .and. correction_orthoconstraint==2) then
-     !    if (iproc==0 .and. ii==1) write(*,*) 'only normalization constraint'
-     !    if (iorb/=jorb) then
-     !        tmp_mat_compr(ii)=0.d0
-     !    end if
-     !end if
- !!    if (experimental_mode) then
- !!        if (iorb==jorb) then
- !!            if (iproc==0 .and. iorb==1) then
- !!                call yaml_warning('EXPERIMENTAL: modify eval')
- !!                call yaml_newline()
- !!            end if
- !!            orbs%eval(iorb)=lagmat_%matrix_compr(ii)
- !!        end if
- !!    end if
-  end do
-  !$omp end parallel do
 
 
   ! NEW: reactivate correction for non-orthogonality ##########
