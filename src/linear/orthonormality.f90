@@ -226,7 +226,15 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   call build_linear_combination_transposed(collcom, linmat%l, inv_ovrlp_,  psit_c, psit_f, .true., psit_nococontra_c, psit_nococontra_f, iproc)
   !call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_nococontra_c, psit_f, hpsit_nococontra_f, lagmat, lagmat_)
   call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_)
-  lagmat_%matrix_compr = -1.d0*lagmat_%matrix_compr
+  tmp_mat_compr = sparsematrix_malloc(lagmat,iaction=SPARSE_FULL,id='tmp_mat_compr')
+  tmp_mat_compr = lagmat_%matrix_compr
+  do ii=1,lagmat%nvctr
+     iorb = lagmat%orb_from_index(1,ii)
+     jorb = lagmat%orb_from_index(2,ii)
+     ii_trans=matrixindex_in_compressed(lagmat,jorb,iorb)
+     lagmat_%matrix_compr(ii) = -0.5d0*tmp_mat_compr(ii)-0.5d0*tmp_mat_compr(ii_trans)
+  end do
+  !lagmat_%matrix_compr = -1.d0*lagmat_%matrix_compr
   do ii=1,lagmat%nvctr
      iorb = lagmat%orb_from_index(1,ii)
      jorb = lagmat%orb_from_index(2,ii)
@@ -257,7 +265,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   !call build_linear_combination_transposed(collcom, lagmat, lagmat_, psit_nococontra_c, psit_nococontra_f, .false., hpsit_nococontra_c, hpsit_nococontra_f, iproc)
   !call build_linear_combination_transposed(collcom, lagmat, lagmat_, psit_nococontra_c, psit_nococontra_f, .false., hpsit_nococontra_c, hpsit_nococontra_f, iproc)
   call build_linear_combination_transposed(collcom, lagmat, lagmat_, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
-  tmp_mat_compr = sparsematrix_malloc(lagmat,iaction=SPARSE_FULL,id='tmp_mat_compr')
 
   !!!!  TEST ORTHOGONLAITY OF GRADIENT AND TMBs
   tmp_mat_compr = lagmat_%matrix_compr
