@@ -192,21 +192,21 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   hpsit_tmp_c = hpsit_c
   hpsit_tmp_f = hpsit_f
 
-!!&&  ! Calculate <phi_alpha|g^beta>
-!!&&  !call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_)
-!!&&  call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_nococontra_c, psit_f, hpsit_nococontra_f, lagmat, lagmat_)
-!!&&  lagmat_%matrix_compr = -1.d0*lagmat_%matrix_compr
-!!&&  call build_linear_combination_transposed(collcom, lagmat, lagmat_, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
-!!&&  call vcopy(lagmat%nvctr,lagmat_%matrix_compr(1),1,lagmat_tmp_compr(1),1) ! need to keep a copy
+  ! Calculate <phi_alpha|g^beta>
+  !call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_)
+  call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_nococontra_c, psit_f, hpsit_nococontra_f, lagmat, lagmat_)
+  lagmat_%matrix_compr = -1.d0*lagmat_%matrix_compr
+  call build_linear_combination_transposed(collcom, lagmat, lagmat_, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
+  call vcopy(lagmat%nvctr,lagmat_%matrix_compr(1),1,lagmat_tmp_compr(1),1) ! need to keep a copy
 
-  !!&&!!!!  TEST ORTHOGONLAITY OF GRADIENT AND TMBs
-  !!&&call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_)
-  !!&&!!if (iproc==0) then
-  !!&&!!    do ii=1,lagmat%nvctr
-  !!&&!!        write(*,*) 'ii, lagmat_%matrix_compr(ii)', ii, lagmat_%matrix_compr(ii)
-  !!&&!!    end do
-  !!&&!!end if
-  !!&&!!!!  END TEST ORTHOGONLAITY OF GRADIENT AND TMBs
+  !!!!  TEST ORTHOGONLAITY OF GRADIENT AND TMBs
+  call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_)
+  !!if (iproc==0) then
+  !!    do ii=1,lagmat%nvctr
+  !!        write(*,*) 'ii, lagmat_%matrix_compr(ii)', ii, lagmat_%matrix_compr(ii)
+  !!    end do
+  !!end if
+  !!!!  END TEST ORTHOGONLAITY OF GRADIENT AND TMBs
 
 
   ! Calculate <phi^alpha|g_beta>
@@ -220,20 +220,18 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
   psit_nococontra_c = f_malloc(collcom%ndimind_c,id='psit_nococontra_c')
   psit_nococontra_f = f_malloc(7*collcom%ndimind_f,id='psit_nococontra_f')
-  !!do ii=1,collcom%ndimind_c
-  !!    write(300+iproc,'(a,i9,3es16.7)') 'ii, hpsit_c, hpsit_nococontra_c, diff', ii, hpsit_c(ii), hpsit_nococontra_c(ii), abs(hpsit_c(ii)-hpsit_nococontra_c(ii))
-  !!end do
+  do ii=1,collcom%ndimind_c
+      write(300+iproc,'(a,i9,3es16.7)') 'ii, hpsit_c, hpsit_nococontra_c, diff', ii, hpsit_c(ii), hpsit_nococontra_c(ii), abs(hpsit_c(ii)-hpsit_nococontra_c(ii))
+  end do
   call build_linear_combination_transposed(collcom, linmat%l, inv_ovrlp_,  psit_c, psit_f, .true., psit_nococontra_c, psit_nococontra_f, iproc)
   !call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_nococontra_c, psit_f, hpsit_nococontra_f, lagmat, lagmat_)
   call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_)
-  !lagmat_%matrix_compr = -1.d0*lagmat_%matrix_compr
-  lagmat_tmp_compr = lagmat_%matrix_compr
+  lagmat_%matrix_compr = -1.d0*lagmat_%matrix_compr
   do ii=1,lagmat%nvctr
      iorb = lagmat%orb_from_index(1,ii)
      jorb = lagmat%orb_from_index(2,ii)
      ii_trans=matrixindex_in_compressed(lagmat,jorb,iorb)
-     !lagmat_%matrix_compr(ii) = -0.5d0*lagmat_tmp_compr(ii)-0.5d0*tmp_mat_compr(ii_trans)
-     lagmat_%matrix_compr(ii) = -0.5d0*lagmat_tmp_compr(ii)-0.5d0*lagmat_tmp_compr(ii_trans)
+     !!lagmat_%matrix_compr(ii) = -0.5d0*lagmat_tmp_compr(ii)-0.5d0*tmp_mat_compr(ii_trans)
      if (iproc==0) write(*,*) 'ii, lagmat asy', ii, abs(lagmat_%matrix_compr(ii)-lagmat_%matrix_compr(ii_trans))
   end do
   do ii=1,linmat%l%nvctr
@@ -261,9 +259,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   call build_linear_combination_transposed(collcom, lagmat, lagmat_, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
   tmp_mat_compr = sparsematrix_malloc(lagmat,iaction=SPARSE_FULL,id='tmp_mat_compr')
 
-  tmp_mat_compr = lagmat_%matrix_compr
-
   !!!!  TEST ORTHOGONLAITY OF GRADIENT AND TMBs
+  tmp_mat_compr = lagmat_%matrix_compr
   call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_nococontra_c, psit_f, psit_nococontra_f, lagmat, lagmat_)
   if (iproc==0) then
       do ii=1,lagmat%nvctr
@@ -278,20 +275,19 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
       end do
   end if
   !!!!  END TEST ORTHOGONLAITY OF GRADIENT AND TMBs
-
   lagmat_%matrix_compr = tmp_mat_compr
 
   call f_free(psit_nococontra_c)
   call f_free(psit_nococontra_f)
 
-  !call vcopy(lagmat%nvctr,lagmat_tmp_compr(1),1,lagmat_%matrix_compr(1),1) ! need to keep a copy
+  call vcopy(lagmat%nvctr,lagmat_tmp_compr(1),1,lagmat_%matrix_compr(1),1) ! need to keep a copy
 
   do ii=1,lagmat%nvctr
      iorb = lagmat%orb_from_index(1,ii)
      jorb = lagmat%orb_from_index(2,ii)
      ii_trans=matrixindex_in_compressed(lagmat,jorb,iorb)
      !!lagmat_%matrix_compr(ii) = -0.5d0*lagmat_tmp_compr(ii)-0.5d0*tmp_mat_compr(ii_trans)
-     if (iproc==0) write(*,*) 'ii, dff', ii, abs(lagmat_%matrix_compr(ii)-lagmat_%matrix_compr(ii_trans)), lagmat_%matrix_compr(ii)
+     if (iproc==0) write(*,*) 'ii, dff', ii, abs(lagmat_%matrix_compr(ii)-lagmat_%matrix_compr(ii_trans))
   end do
   do ii=1,linmat%l%nvctr
      iorb = linmat%l%orb_from_index(1,ii)
@@ -436,7 +432,7 @@ call timing(iproc,'misc','OF')
   overlap_calculated=.false.
   
 
-  ! @NEW multiply the gradient with S^-1
+  ! @NEW multipliy the gradient with S^-1
   hphi_nococontra = f_malloc(npsidim_orbs,id='hphi_nococontra')
   call build_linear_combination_transposed(collcom, linmat%l, inv_ovrlp_, hpsit_c, hpsit_f, .true., hpsit_tmp_c, hpsit_tmp_f, iproc)
   call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, hpsit_tmp_c, hpsit_tmp_f, hphi_nococontra, lzd)
