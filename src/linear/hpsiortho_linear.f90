@@ -165,17 +165,26 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            tmb%linmat%ovrlp_%matrix_compr, matrixm%matrix_compr, 'small_to_large')
       call build_linear_combination_transposed(tmb%ham_descr%collcom, &
            tmb%linmat%m, matrixm, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+
+  do ii=1,tmb%linmat%m%nvctr
+      write(120+iproc,*) ii, matrixm%matrix_compr(ii)
+  end do
+  do ii=1,tmb%ham_descr%collcom%ndimind_c
+      write(200+iproc,'(a,i9,3es16.7)') 'ii, hpsit_c, hpsit_nococontra_c, diff', ii, hpsit_c(ii), hpsit_nococontra_c(ii), abs(hpsit_c(ii)-hpsit_nococontra_c(ii))
+  end do
+
       call deallocate_matrices(matrixm)
 
       !@END NEW correction for contra / covariant gradient
   end if
 
 
+
   call f_free_ptr(hpsittmp_c)
   call f_free_ptr(hpsittmp_f)
 
   ! Calculate the overlap matrix, can be optimized ############################
-  if (.not.correction_co_contra) then
+  if (.true. .or. .not.correction_co_contra) then
       !if(.not.tmb%can_use_transposed) then
           if(.not.associated(tmb%psit_c)) then
               tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
