@@ -196,7 +196,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   !call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_)
   call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_nococontra_c, psit_f, hpsit_nococontra_f, lagmat, lagmat_)
   lagmat_%matrix_compr = -1.d0*lagmat_%matrix_compr
-  call build_linear_combination_transposed(collcom, lagmat, lagmat_, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
+  !!&&call build_linear_combination_transposed(collcom, lagmat, lagmat_, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
   call vcopy(lagmat%nvctr,lagmat_%matrix_compr(1),1,lagmat_tmp_compr(1),1) ! need to keep a copy
 
   !!!!  TEST ORTHOGONLAITY OF GRADIENT AND TMBs
@@ -220,9 +220,9 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
   psit_nococontra_c = f_malloc(collcom%ndimind_c,id='psit_nococontra_c')
   psit_nococontra_f = f_malloc(7*collcom%ndimind_f,id='psit_nococontra_f')
-  do ii=1,collcom%ndimind_c
-      write(300+iproc,'(a,i9,3es16.7)') 'ii, hpsit_c, hpsit_nococontra_c, diff', ii, hpsit_c(ii), hpsit_nococontra_c(ii), abs(hpsit_c(ii)-hpsit_nococontra_c(ii))
-  end do
+  !!do ii=1,collcom%ndimind_c
+  !!    write(300+iproc,'(a,i9,3es16.7)') 'ii, hpsit_c, hpsit_nococontra_c, diff', ii, hpsit_c(ii), hpsit_nococontra_c(ii), abs(hpsit_c(ii)-hpsit_nococontra_c(ii))
+  !!end do
   call build_linear_combination_transposed(collcom, linmat%l, inv_ovrlp_,  psit_c, psit_f, .true., psit_nococontra_c, psit_nococontra_f, iproc)
   !call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_nococontra_c, psit_f, hpsit_nococontra_f, lagmat, lagmat_)
   call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_)
@@ -251,7 +251,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
       call sparsemm(linmat%l, inv_ovrlp_seq, lagmatp, inv_lagmatp)
   if (correction_orthoconstraint==0) then
       if (iproc==0) call yaml_map('correction orthoconstraint',.true.)
-      !call compress_matrix_distributed(iproc, linmat%m, inv_lagmatp, lagmat_%matrix_compr)
+      call compress_matrix_distributed(iproc, linmat%m, inv_lagmatp, lagmat_%matrix_compr)
   end if
   !##
   !call build_linear_combination_transposed(collcom, lagmat, lagmat_, psit_nococontra_c, psit_nococontra_f, .false., hpsit_nococontra_c, hpsit_nococontra_f, iproc)

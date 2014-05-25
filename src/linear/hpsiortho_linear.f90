@@ -166,12 +166,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       call build_linear_combination_transposed(tmb%ham_descr%collcom, &
            tmb%linmat%m, matrixm, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
 
-  do ii=1,tmb%linmat%m%nvctr
-      write(120+iproc,*) ii, matrixm%matrix_compr(ii)
-  end do
-  do ii=1,tmb%ham_descr%collcom%ndimind_c
-      write(200+iproc,'(a,i9,3es16.7)') 'ii, hpsit_c, hpsit_nococontra_c, diff', ii, hpsit_c(ii), hpsit_nococontra_c(ii), abs(hpsit_c(ii)-hpsit_nococontra_c(ii))
-  end do
+  !!do ii=1,tmb%linmat%m%nvctr
+  !!    write(120+iproc,*) ii, matrixm%matrix_compr(ii)
+  !!end do
+  !!do ii=1,tmb%ham_descr%collcom%ndimind_c
+  !!    write(200+iproc,'(a,i9,3es16.7)') 'ii, hpsit_c, hpsit_nococontra_c, diff', ii, hpsit_c(ii), hpsit_nococontra_c(ii), abs(hpsit_c(ii)-hpsit_nococontra_c(ii))
+  !!end do
 
       call deallocate_matrices(matrixm)
 
@@ -208,8 +208,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   !if (iproc==0) write(*,*) 'correction_orthoconstraint',correction_orthoconstraint
   if (.not.present(hpsi_noprecond)) stop 'hpsi_noprecond not present'
-  write(*,*) 'hpsit_c before: ddot',ddot(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsit_c(1), 1)
-  write(*,*) 'hpsit_f before: ddot',ddot(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsit_f(1), 1)
+  !!write(*,*) 'hpsit_c before: ddot',ddot(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsit_c(1), 1)
+  !!write(*,*) 'hpsit_f before: ddot',ddot(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsit_f(1), 1)
   call orthoconstraintNonorthogonal(iproc, nproc, tmb%ham_descr%lzd, &
        tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &
        tmb%orbs, tmb%ham_descr%collcom, tmb%orthpar, correction_orthoconstraint, &
@@ -220,16 +220,16 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
        tmb%npsidim_orbs, tmb%lzd, hpsi_noprecond)
 
 
-  write(*,*) 'hpsit_c after: ddot',ddot(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsit_c(1), 1)
-  write(*,*) 'hpsit_f after: ddot',ddot(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsit_f(1), 1)
-  write(*,*) 'tmb%hpsi after: ddot',ddot(tmb%ham_descr%npsidim_orbs, tmb%hpsi(1), 1, tmb%hpsi(1), 1)
+  !!write(*,*) 'hpsit_c after: ddot',ddot(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsit_c(1), 1)
+  !!write(*,*) 'hpsit_f after: ddot',ddot(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsit_f(1), 1)
+  !!write(*,*) 'tmb%hpsi after: ddot',ddot(tmb%ham_descr%npsidim_orbs, tmb%hpsi(1), 1, tmb%hpsi(1), 1)
 
   call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
        tmb%orbs, tmb%hpsi, hpsi_small)
 
-   if (present(hpsi_noprecond)) then
-       hpsi_noprecond = hpsi_small
-   end if
+   !if (present(hpsi_noprecond)) then
+   !    hpsi_noprecond = hpsi_small
+   !end if
 
   write(*,*) 'hpsi_small: ddot',ddot(tmb%npsidim_orbs, hpsi_small(1), 1, hpsi_small(1), 1)
 
