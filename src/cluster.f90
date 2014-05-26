@@ -131,6 +131,7 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
 
         call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
      end if
+
      !experimental, finite difference method for calculating forces on particular quantities
      inquire(file='input.finite_difference_forces',exist=exists)
      if (exists) then
@@ -138,48 +139,53 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
         runObj%inputs%inputPsiId=0 !the first run always restart from IG
         !experimental_modulebase_var_onlyfion=.true. !put only ionic forces in the forces
      end if
+
+     !Main routine calculating the KS orbitals
      call cluster(nproc,iproc,runObj%atoms,runObj%rst%rxyz_new, runObj%radii_cf, &
           & outs%energy, outs%energs, outs%fxyz, outs%strten, outs%fnoise, outs%pressure,&
           runObj%rst%KSwfn,runObj%rst%tmb,&!psi,runObj%rst%Lzd,runObj%rst%gaucoeffs,runObj%rst%gbd,runObj%rst%orbs,&
           runObj%rst%rxyz_old,runObj%rst%hx_old,runObj%rst%hy_old,runObj%rst%hz_old,runObj%inputs,runObj%rst%GPU,infocode)
+
      !save the new atomic positions in the rxyz_old array
      do iat=1,runObj%atoms%astruct%nat
         runObj%rst%rxyz_old(1,iat)=runObj%rst%rxyz_new(1,iat)
         runObj%rst%rxyz_old(2,iat)=runObj%rst%rxyz_new(2,iat)
         runObj%rst%rxyz_old(3,iat)=runObj%rst%rxyz_new(3,iat)
      enddo
+
      if (exists) then
         call forces_via_finite_differences(iproc,nproc,runObj%atoms,runObj%inputs, &
              & outs%energy,outs%fxyz,outs%fnoise,runObj%rst,infocode)
      end if
 
-     if (runObj%inputs%inputPsiId==1 .and. infocode==2) then
+     !Check infocode in function of the inputPsiId parameters
+     !and change the strategy of input guess psi
+     if (runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_WVL .and. infocode==2) then
         if (runObj%inputs%gaussian_help) then
-           runObj%inputs%inputPsiId=11
+           runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_GAUSS
         else
-           runObj%inputs%inputPsiId=0
+           runObj%inputs%inputPsiId = INPUT_PSI_LCAO
         end if
-     else if (runObj%inputs%inputPsiId==101 .and. infocode==2) then
+     else if (runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_LINEAR .and. infocode==2) then
          ! problems after restart for linear version
-         runObj%inputs%inputPsiId=100
-     else if ((runObj%inputs%inputPsiId==1 .or. runObj%inputs%inputPsiId==0) .and. infocode==1) then
-        !runObj%inputs%inputPsiId=0 !better to diagonalise than to restart an input guess
-        runObj%inputs%inputPsiId=1
+         runObj%inputs%inputPsiId = INPUT_PSI_LINEAR_AO
+     else if ((runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_WVL .or. &
+               runObj%inputs%inputPsiId == INPUT_PSI_LCAO) .and. infocode==1) then
+        !runObj%inputs%inputPsiId=INPUT_PSI_LCAO !better to diagonalise than to restart an input guess
+        runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_WVL
         !if (iproc==0) then
         !   call yaml_warning('Self-consistent cycle did not meet convergence criteria')
         !   write(*,*)&
         !        &   ' WARNING: Self-consistent cycle did not meet convergence criteria'
         !end if
         exit loop_cluster
-     else if (runObj%inputs%inputPsiId == 0 .and. infocode==3) then
+     else if (runObj%inputs%inputPsiId == INPUT_PSI_LCAO .and. infocode==3) then
         if (iproc == 0) then
            write( *,'(1x,a)')'Convergence error, cannot proceed.'
            write( *,'(1x,a)')' writing positions in file posfail.xyz then exiting'
            write(comment,'(a)')'UNCONVERGED WF '
            !call wtxyz('posfail',energy,rxyz,atoms,trim(comment))
-
            call write_atomic_file("posfail",outs%energy,runObj%rst%rxyz_new,runObj%atoms,trim(comment))
-
         end if
 
         i_all=-product(shape(runObj%rst%KSwfn%psi))*kind(runObj%rst%KSwfn%psi)
@@ -316,7 +322,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   !real(kind=8) :: ddot
 
   call f_routine(id=subname)
-
 
   !copying the input variables for readability
   !this section is of course not needed
@@ -711,10 +716,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      end if
   else
 
-     ! Allococation of array for Pulay forces (only needed for linear version)
+     ! Allocation of array for Pulay forces (only needed for linear version)
      allocate(fpulay(3,atoms%astruct%nat),stat=i_stat)
      call memocc(i_stat,fpulay,'fpulay',subname)
-
 
 
      call linearScaling(iproc,nproc,KSwfn,tmb,atoms,in,&
@@ -1568,7 +1572,6 @@ contains
 
   end subroutine build_dict_info
 
-
 END SUBROUTINE cluster
 
 
@@ -1634,7 +1637,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   end if
   opt%itrp=1
   rhopot_loop: do
-  KSwfn%diis%energy_old=1.d100
+     KSwfn%diis%energy_old=1.d100
      if (opt%itrp > opt%itrpmax) exit
      !yaml output 
      if (iproc==0) then

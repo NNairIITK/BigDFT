@@ -120,7 +120,7 @@ contains
           xcObj%family(1) = XC_FAMILY_GGA
        else if (xcObj%id(1) >= 31 .and. xcObj%id(1) < 35) then
           xcObj%family(1) = XC_FAMILY_LDA
-       else if (xcObj%id(1) == 0 .or. xcObj%id(1)==100) then
+       else if (xcObj%id(1) == 0 .or. xcObj%id(1) == 100) then
           xcObj%family(1) = 0
        else
           write(*,*) "Error: unsupported functional, change ixc."

@@ -23,7 +23,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
   use gaussians, only: gaussian_basis
   implicit none
   !Arguments
-  logical, intent(in) :: scf
+  logical, intent(in) :: scf  !< If .false. do not calculate the self-consistent potential
   integer, intent(in) :: iproc,nproc,itrp,iscf,linflag,itwfn
   character(len=3), intent(in) :: unblock_comms
   real(gp), intent(in) :: alphamix
@@ -1031,7 +1031,7 @@ subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,
    !local variables
    character(len=*), parameter :: subname='SynchronizeHamiltonianApplication'
    logical :: exctX
-   integer :: i_all,i_stat,ierr,iorb,ispsi,ilr
+   integer :: i_all,i_stat,iorb,ispsi,ilr
    real(gp), dimension(4) :: wrkallred
 
    if(GPU%OCLconv .or. GPUconv) then! needed also in the non_ASYNC since now NlPSP is before .and. ASYNCconv)) then
@@ -1423,7 +1423,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   !local variables
   character(len=*), parameter :: subname='calculate_energy_and_gradient' 
   logical :: lcs
-  integer :: ierr,ikpt,iorb,i_all,i_stat,k
+  integer :: ikpt,iorb,i_all,i_stat,k
   real(gp) :: rzeroorbs,tt,garray(2)
   real(wp), dimension(:,:,:), pointer :: mom_vec
 
@@ -1491,11 +1491,9 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
     call orthoconstraint(iproc,nproc,wfn%orbs,wfn%comms,wfn%SIC%alpha/=0.0_gp,wfn%psit,wfn%hpsi,energs%trH) !n(m)
   end if
 
-
-
   !retranspose the hpsi wavefunction
   call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,wfn%hpsi(1),wfn%psi(1))
-  
+
   if(present(paw)) then
    !retranspose the spsi wavefunction
    call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,paw%spsi(1),wfn%psi(1))
@@ -2574,6 +2572,7 @@ subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
 END SUBROUTINE calc_moments
 
 
+!> Check communications (transpose and untranspose orbitals)
 subroutine check_communications(iproc,nproc,orbs,lzd,comms)
    use module_base
    use module_types
@@ -2597,13 +2596,14 @@ subroutine check_communications(iproc,nproc,orbs,lzd,comms)
    character(len = 25) :: filename
    logical :: abort
 
+   !No test if no orbitals
+   if (orbs%norbp == 0) return
 
    !allocate the "wavefunction" amd fill it, and also the workspace
    allocate(psi(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
    call memocc(i_stat,psi,'psi',subname)
    allocate(pwork(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
    call memocc(i_stat,pwork,'pwork',subname)
-
 
    do iorb=1,orbs%norbp
       ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
@@ -3217,11 +3217,6 @@ END SUBROUTINE broadcast_kpt_objects
 !!  call untranspose_v(iproc, nproc, orbs, wfd, comms, hpsi, work=psiwork)
 !!
 !!
-!!
-!!
-!!
-!!
-!!
 !!  i_all=-product(shape(omat))*kind(omat)
 !!  deallocate(omat,stat=i_stat)
 !!  call memocc(i_stat,i_all,'omat',subname)
@@ -3272,6 +3267,7 @@ END SUBROUTINE broadcast_kpt_objects
 !!
 !!
 !!end subroutine minimize_by_orthogonal_transformation
+
 
 subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GPU,xc,nlpsp,rxyz)
   use module_base

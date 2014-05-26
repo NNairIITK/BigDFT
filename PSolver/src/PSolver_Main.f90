@@ -28,33 +28,47 @@
 subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       quiet,stress_tensor) !optional argument
    use yaml_output
-  use time_profiling, only: f_timing
+   use time_profiling, only: f_timing
    implicit none
-   !>  kernel of the poisson equation. It is provided in distributed case, with
-   !!  dimensions that are related to the output of the PS_dim4allocation routine
-   !!  it MUST be created by following the same geocode as the Poisson Solver.
+
+   !> kernel of the Poisson equation. It is provided in distributed case, with
+   !! dimensions that are related to the output of the PS_dim4allocation routine
+   !! it MUST be created by following the same geocode as the Poisson Solver.
    type(coulomb_operator), intent(in) :: kernel
-   character(len=1), intent(in) :: datacode !< @copydoc poisson_solver::doc::datacode
+
+   !> @copydoc poisson_solver::doc::datacode
    !! To be used only in the periodic case, ignored for other boundary conditions.
-   logical, intent(in) :: sumpion
-   !< Logical value which states whether to sum pot_ion to the final result or not
+   character(len=1), intent(in) :: datacode
+
+   !> Logical value which states whether to sum pot_ion to the final result or not
    !!   .true.  rhopot will be the Hartree potential + pot_ion
    !!           pot_ion will be untouched
    !!   .false. rhopot will be only the Hartree potential
    !!           pot_ion will be ignored
+   logical, intent(in) :: sumpion
+
    !> Total integral on the supercell of the final potential on output
    real(dp), intent(in) :: offset
-   real(gp), intent(out) :: eh !< Hartree Energy
+
+   !> Hartree Energy (Hartree)
+   real(gp), intent(out) :: eh
+
    !> On input, it represents the density values on the grid points
    !! On output, it is the Hartree potential
    real(dp), dimension(*), intent(inout) :: rhopot
+
    !> Additional external potential that is added to the output, 
    !! when the XC parameter ixc/=0 and sumpion=.true.
    !! When sumpion=.true., it is always provided in the distributed form,
    !! clearly without the overlapping terms which are needed only for the XC part
    real(wp), dimension(*), intent(inout) :: pot_ion
-   character(len=3), intent(in), optional :: quiet !< Optional argument to avoid output writings
+
+   !> Optional argument to avoid output writings
+   character(len=3), intent(in), optional :: quiet
+
+   !> Stress tensor: Add the stress tensor part from the Hartree potential
    real(dp), dimension(6), intent(out), optional :: stress_tensor
+
    !local variables
    character(len=*), parameter :: subname='H_potential'
    logical :: wrtmsg,cudasolver

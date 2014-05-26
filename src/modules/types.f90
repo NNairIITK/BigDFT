@@ -51,9 +51,9 @@ module module_types
   integer, parameter :: INPUT_PSI_LCAO_GAUSS   = 10
   integer, parameter :: INPUT_PSI_MEMORY_GAUSS = 11
   integer, parameter :: INPUT_PSI_DISK_GAUSS   = 12
-  integer, parameter :: INPUT_PSI_LINEAR_AO    = 100    !< Input PSI from Atomic Orbital for linear
+  integer, parameter :: INPUT_PSI_LINEAR_AO    = 100    !< Input PSI for linear from Atomic Orbital
   integer, parameter :: INPUT_PSI_MEMORY_LINEAR= 101    !< Input PSI for linear in memory
-  integer, parameter :: INPUT_PSI_DISK_LINEAR  = 102
+  integer, parameter :: INPUT_PSI_DISK_LINEAR  = 102    !< Input PSI for linear from disk
 
   !> All possible values of input psi (determination of the input guess)
   integer, dimension(12), parameter :: input_psi_values = &

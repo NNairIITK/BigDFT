@@ -2636,7 +2636,8 @@ module communications_init
          write(*,*)'ERROR: norb_par array not allocated'
          stop
       end if
-    
+   
+      !Allocations of nvctr_par and norb_par
       allocate(nvctr_par(0:nproc-1,0:orbs%nkpts+ndebug),stat=i_stat)
       call memocc(i_stat,nvctr_par,'nvctr_par',subname)
       allocate(norb_par(0:nproc-1,0:orbs%nkpts+ndebug),stat=i_stat)
