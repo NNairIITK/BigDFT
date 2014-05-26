@@ -207,7 +207,7 @@ module module_atoms
       !character(len=*), intent(in) :: subname
       type(atomic_structure), intent(inout) :: astruct
       !local variables
-      character(len=*), parameter :: subname='dellocate_atomic_structure' !remove
+      character(len=*), parameter :: subname='deallocate_atomic_structure' !remove
       integer :: i_stat, i_all
 
 
@@ -219,9 +219,11 @@ module module_atoms
          call f_free_ptr(astruct%rxyz)
       !end if
 !      if (astruct%ntypes > 0) then
+      if (associated(astruct%atomnames)) then
          i_all=-product(shape(astruct%atomnames))*kind(astruct%atomnames)
          deallocate(astruct%atomnames, stat=i_stat)
          call memocc(i_stat, i_all, 'astruct%atomnames', subname)
+      end if
 !      end if
       ! Free additional stuff.
       call deallocate_symmetry_data(astruct%sym)
@@ -641,7 +643,7 @@ subroutine astruct_set_n_atoms(astruct, nat)
 END SUBROUTINE astruct_set_n_atoms
 
 
-!> allocation of the memoey space associated to the number of types astruct%ntypes
+!> allocation of the memory space associated to the number of types astruct%ntypes
 subroutine astruct_set_n_types(astruct, ntypes)
   use module_base
   use module_atoms, only: atomic_structure

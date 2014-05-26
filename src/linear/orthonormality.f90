@@ -2786,7 +2786,7 @@ subroutine diagonalize_subset(iproc, nproc, orbs, ovrlp, ovrlp_mat, ham, ham_mat
 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc
-  type(orbitals_data),intent(in) :: orbs
+  type(orbitals_data),intent(inout) :: orbs
   type(sparse_matrix),intent(in) :: ovrlp
   type(matrices),intent(in) :: ovrlp_mat
   type(sparse_matrix),intent(in) :: ham

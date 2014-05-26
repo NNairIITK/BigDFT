@@ -1848,8 +1848,8 @@ subroutine orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
 
   !disable starting and ending points for the case no orbitals on a given processor
   if (orbs%norbp == 0) then
-     isorb=0
-     ieorb=-1
+     isorb=1
+     ieorb=0
   end if
 
   !find starting orbital

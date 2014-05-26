@@ -596,8 +596,8 @@ subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_o
   character(len=500) :: filename_out
 
   if(present(iiorb)) then   
-     !call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iiorb) 
-     call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out) 
+     call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iiorb) 
+     !call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out) 
   else
      call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out)
   end if

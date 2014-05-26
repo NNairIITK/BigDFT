@@ -489,7 +489,7 @@ contains
 
   function f_malloc_ptr_i2(src,id,routine_id,profile) result(m)
     implicit none
-    integer, dimension(:,:), intent(in) :: src
+    integer, dimension(:,:), pointer, intent(in) :: src
     type(malloc_information_ptr) :: m
     include 'f_malloc-base-inc.f90'
     include 'f_malloc-inc.f90'
