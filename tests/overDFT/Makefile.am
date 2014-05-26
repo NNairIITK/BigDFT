@@ -75,14 +75,14 @@ NH3.out.post-out:
 	mv -f data/geopt.mon NH3.geopt.mon.out
 
 # Additional NEB in.
-NEB.test.post-in:
+NEB-test.post-in:
 	if ! test -f NEB_include.sh ; then sed "s;%%abs_top_builddir%%;$(abs_top_builddir);g" NEB_include.sh.in > NEB_include.sh ; fi
 	if ! test -L NEB_driver.sh ; then ln -fs $(abs_top_srcdir)/src/NEB_driver.sh ; fi
-NEB.test.post-clean:
+NEB-test.post-clean:
 	rm -f NEB_include.sh NEB_driver.sh
 
 # Additional H2O-slab in.
-H2O-slab.test.post-in:
+H2O-slab-test.post-in:
 	cp -f velocities.in velocities.xyz
 	chmod a+w velocities.xyz
 
