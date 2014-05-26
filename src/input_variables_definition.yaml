@@ -75,8 +75,8 @@
                   You should also define the keyword 'IGSpin' or add a spin per atom to specify the polarisation for the input guess.
      default: 0
    gnrm_cv:
-     DESCRIPTION: Maximal value of the norm 2 of the electronic orbitals used as convergence criterion
      COMMENT: convergence criterion gradient
+     DESCRIPTION: Maximal value of the norm 2 of the electronic orbitals used as convergence criterion
      RANGE: [1.e-20, 1.]
      default: 1e-4
      fast: 1e-3
@@ -771,7 +771,17 @@
    check_matrix_compression:
      COMMENT: linear scaling perform a check of the matrix compression routines
      default: Yes
-#Linear scaling version parameters
+   correction_co_contra:
+     COMMENT: linear scaling correction covariant / contravariant gradient
+     default: No
+   fscale_lowerbound:
+     COMMENT: linear scaling lower bound for the error function decay length
+     RANGE: [1.e-4,1.e-2]
+     default: 5.e-3
+   fscale_upperbound:
+     COMMENT: linear scaling upper bound for the error function decay length
+     default: 5.e-2
+     RANGE: [1.e-2,1.0]
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
@@ -793,7 +803,7 @@
        default: -0.5
      taylor_order:
        COMMENT: order of the Taylor approximation; 0 -> exact
-       RANGE: [0,100]
+       RANGE: [-100,100]
        default: 0
        best: 6
      output_wf:
@@ -830,12 +840,12 @@
        default: [6,0]
      gnrm_cv:
        COMMENT: convergence criterion for the optimization of the support functions (low/high accuracy)
-       RANGE: [1.e-6,1.e-1]
+       RANGE: [1.e-6,1.0]
        default: [1.e-2,1.e-4]
        best: [1.e-3,1.e-3]
      deltae_cv:
        COMMENT: total relative energy difference to stop the optimization ('experimental_mode' only)
-       RANGE: [1.e-6,1.e-2]
+       RANGE: [1.e-6,1.e-1]
        default: 1.e-4
      gnrm_dyn:
        COMMENT: dynamic convergence criterion ('experimental_mode' only)
@@ -864,7 +874,10 @@
        COMMENT: fix the support functions if the density change is below this threshold
        RANGE: [1.e-14,1.e-6]
        default: 1.e-10
-#Parameters for the calculation of the kernel (linear scaling version)
+     correction_orthoconstraint:
+       COMMENT: correction for the slight non-orthonormality in the orthoconstraint
+       default: 1 
+ #Parameters for the calculation of the kernel (linear scaling version)
  lin_kernel:
      nstep:
        COMMENT: don't know what this variable stands for...
@@ -920,8 +933,8 @@
        default: [-0.5,0.5]
      fscale_foe: 
        COMMENT: decay length of the error function
-       RANGE: [1.e-4,1.0]
-       default: 5.e-2
+       RANGE: [1.e-3,5.e-2]
+       default: 2.e-2
 #Parameters to define the localized basis set or support functions (linear scaling version)
  lin_basis_params:
      nbasis:

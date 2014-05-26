@@ -379,6 +379,25 @@ subroutine i1_all_free_multi(arrayA,arrayB,arrayC,arrayD,arrayE,arrayF,arrayG,ar
 
 end subroutine i1_all_free_multi
 
+! double complex
+subroutine z2_all(array,m)
+  use metadata_interfaces, metadata_address => getz2
+  implicit none
+  type(malloc_information_all), intent(in) :: m
+  double complex, dimension(:,:), allocatable, intent(inout) :: array
+  include 'allocate-profile-inc.f90' 
+  allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2)+ndebug),stat=ierror)
+  include 'allocate-inc.f90'
+end subroutine z2_all
+
+subroutine z2_all_free(array)
+  use metadata_interfaces, metadata_address => getz2
+  implicit none
+  double complex, dimension(:,:), allocatable, intent(inout) :: array
+  include 'deallocate-profile-inc.f90' 
+  include 'deallocate-inc.f90' 
+end subroutine z2_all_free
+
 
 !pointers
 subroutine d1_ptr(array,m)

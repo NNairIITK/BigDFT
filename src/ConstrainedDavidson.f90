@@ -172,8 +172,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   end if
   
   ! allocate and init eval array
-  allocate(orbsv%eval(orbsv%norb*orbsv%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbsv%eval,'eval',subname)
+  orbsv%eval = f_malloc_ptr(orbsv%norb*orbsv%nkpts,id='orbsv%eval')
   orbsv%eval(1:orbsv%norb*orbsv%nkpts)=-0.5d0
   ! end memory work memory 
   ! **********************************************

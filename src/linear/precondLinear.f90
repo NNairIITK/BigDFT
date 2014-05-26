@@ -45,12 +45,9 @@ subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
    type(workarrays_quartic_convolutions):: work_conv
 
   !arrays for the CG procedure
-  allocate(b(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug),stat=i_stat)
-  call memocc(i_stat,b,'b',subname)
-  allocate(r(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug),stat=i_stat)
-  call memocc(i_stat,r,'r',subname)
-  allocate(d(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug),stat=i_stat)
-  call memocc(i_stat,d,'d',subname)
+  b = f_malloc(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),id='b')
+  r = f_malloc(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),id='r')
+  d = f_malloc(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),id='d')
 
   call allocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,lr%d,w)
 
@@ -104,15 +101,10 @@ subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
 
   call deallocate_workarrays_quartic_convolutions(lr, subname, work_conv)
 
-  i_all=-product(shape(b))*kind(b)
-  deallocate(b,stat=i_stat)
-  call memocc(i_stat,i_all,'b',subname)
-  i_all=-product(shape(r))*kind(r)
-  deallocate(r,stat=i_stat)
-  call memocc(i_stat,i_all,'r',subname)
-  i_all=-product(shape(d))*kind(d)
-  deallocate(d,stat=i_stat)
-  call memocc(i_stat,i_all,'d',subname)
+  call f_free(b)
+  call f_free(r)
+  call f_free(d)
+
   call timing(iproc,'deallocprec','ON') ! lr408t
   call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
   call timing(iproc,'deallocprec','OF') ! lr408t
@@ -298,115 +290,3 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
 END SUBROUTINE applyOperator
 
 
-!> Preconditions all orbitals belonging to iproc.
-!!
-!!   Input arguments:
-!!   ----------------
-!!     orbs      type describing the physical orbitals psi
-!!     lin       type containing parameters for the linear version
-!!     lr        type describing the localization region
-!!     hx        grid spacing in x direction
-!!     hy        grid spacing in y direction
-!!     hz        grid spacing in z direction
-!!     ncong     number of CG iterations 
-!!     rxyz      the center of the confinement potential
-!!     at        type containing the paraneters for the atoms
-subroutine choosePreconditioner2(iproc, nproc, orbs, lr, hx, hy, hz, ncong, hpsi, &
-           confpotorder, potentialprefac, iorb, eval_zero)
-
-use module_base
-use module_types
-
-implicit none
-integer, intent(in) :: iproc,nproc,ncong, iorb, confpotorder
-real(gp), intent(in) :: hx,hy,hz
-type(locreg_descriptors), intent(in) :: lr
-type(orbitals_data), intent(in) :: orbs
-real(8),intent(in):: potentialprefac
-real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi !< the gradient to be preconditioned
-real(8),intent(in):: eval_zero
-!local variables
-integer :: inds, ncplx, iiAt!,ikpt,ierr
-real(wp) :: cprecr!,scpr,eval_zero,evalmax 
-real(gp) :: kx,ky,kz
-
-
-
-   !!evalmax=orbs%eval(orbs%isorb+1)
-   !!do iorb=1,orbs%norbp
-   !!  evalmax=max(orbs%eval(orbs%isorb+iorb),evalmax)
-   !!enddo
-   !!call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
-   !!     MPI_MAX,bigdft_mpi%mpi_comm,ierr)
-
-
-  !do iorb=1,orbs%norbp
-!     ! define zero energy for preconditioning 
-!     eval_zero=max(orbs%eval(orbs%norb),0.d0)  !  Non-spin pol
-!     if (orbs%spinsgn(orbs%isorb+iorb) > 0.0_gp) then    !spin-pol
-!        eval_zero=max(orbs%eval(orbs%norbu),0.d0)  !up orbital
-!     else if (orbs%spinsgn(orbs%isorb+iorb) < 0.0_gp) then
-!        eval_zero=max(orbs%eval(orbs%norbu+orbs%norbd),0.d0)  !down orbital
-!     end if
-     !indo=(iorb-1)*nspinor+1
-     !loop over the spinorial components
-     !k-point values, if present
-     kx=orbs%kpts(1,orbs%iokpt(iorb))
-     ky=orbs%kpts(2,orbs%iokpt(iorb))
-     kz=orbs%kpts(3,orbs%iokpt(iorb))
-
-     !real k-point different from Gamma still not implemented
-     if (kx**2+ky**2+kz**2 > 0.0_gp .or. orbs%nspinor==2 ) then
-        ncplx=2
-     else
-        ncplx=1
-     end if
-
-     do inds=1,orbs%nspinor,ncplx
-        
-        select case(lr%geocode)
-        case('F')
-           cprecr=sqrt(.2d0**2+min(0.d0,orbs%eval(orbs%isorb+iorb))**2)
-        case('S')
-           cprecr=sqrt(0.2d0**2+(orbs%eval(orbs%isorb+iorb)-eval_zero)**2)
-        case('P')
-           cprecr=sqrt(0.2d0**2+(orbs%eval(orbs%isorb+iorb)-eval_zero)**2)
-        end select
-
-        !cases with no CG iterations, diagonal preconditioning
-        !for Free BC it is incorporated in the standard procedure
-        if (ncong == 0 .and. lr%geocode /= 'F') then
-           select case(lr%geocode)
-           case('F')
-           case('S')
-              call prec_fft_slab(lr%d%n1,lr%d%n2,lr%d%n3, &
-                   lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
-                   lr%wfd%nvctr_f,lr%wfd%keygloc,lr%wfd%keyvloc, &
-                   cprecr,hx,hy,hz,hpsi(1,inds))
-           case('P')
-              call prec_fft(lr%d%n1,lr%d%n2,lr%d%n3, &
-                   lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                   lr%wfd%keygloc,lr%wfd%keyvloc, &
-                   cprecr,hx,hy,hz,hpsi(1,inds))
-           end select
-
-        else !normal preconditioner
-
-           ! iiAt indicates on which atom orbital iorb is centered.
-           !iiAt=lin%onWhichAtom(iorb)
-           !iiAt=lin%orbs%inWhichLocregp(iorb)
-           iiAt=orbs%inWhichLocreg(orbs%isorb+iorb)
-!!!call solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
-!!!     hx,hy,hz,kx,ky,kz,hpsi(1,inds), rxyz(1,iiAt), orbs,&
-!!!     potentialPrefac, confPotOrder, it)
-              !!write(*,*) 'cprecr',cprecr
-           call solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
-                hx,hy,hz,kx,ky,kz,hpsi(1,inds), lr%locregCenter(1), orbs,&
-                   potentialPrefac, confPotOrder)
-
-        end if
-
-     end do
-  !enddo
-
-END SUBROUTINE choosePreconditioner2

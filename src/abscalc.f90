@@ -188,9 +188,7 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
          i_all=-product(shape(rst%KSwfn%psi))*kind(rst%KSwfn%psi)
          deallocate(rst%KSwfn%psi,stat=i_stat)
          call memocc(i_stat,i_all,'psi',subname)
-         i_all=-product(shape(rst%KSwfn%orbs%eval))*kind(rst%KSwfn%orbs%eval)
-         deallocate(rst%KSwfn%orbs%eval,stat=i_stat)
-         call memocc(i_stat,i_all,'eval',subname)
+         call f_free_ptr(rst%KSwfn%orbs%eval)
          nullify(rst%KSwfn%orbs%eval)
 
         call deallocate_wfd(rst%KSwfn%Lzd%Glr%wfd)
@@ -235,9 +233,7 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
          i_all=-product(shape(rst%KSwfn%psi))*kind(rst%KSwfn%psi)
          deallocate(rst%KSwfn%psi,stat=i_stat)
          call memocc(i_stat,i_all,'psi',subname)
-         i_all=-product(shape(rst%KSwfn%orbs%eval))*kind(rst%KSwfn%orbs%eval)
-         deallocate(rst%KSwfn%orbs%eval,stat=i_stat)
-         call memocc(i_stat,i_all,'eval',subname)
+         call f_free_ptr(rst%KSwfn%orbs%eval)
          nullify(rst%KSwfn%orbs%eval)
 
         call deallocate_wfd(rst%KSwfn%Lzd%Glr%wfd)
@@ -831,8 +827,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    allocate(KSwfn%psi(2+ndebug),stat=i_stat)
    call memocc(i_stat,KSwfn%psi,'psi',subname)
 
-   allocate(KSwfn%orbs%eval(2+ndebug),stat=i_stat)
-   call memocc(i_stat, KSwfn%orbs%eval,'eval',subname)
+   KSwfn%orbs%eval = f_malloc_ptr(2,id='KSwfn%orbs%eval')
 
 
    if ( in%c_absorbtion ) then
@@ -1772,8 +1767,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbse,commse,basedist=comms%nvctr_par(0:,1:))  
 
   !use the eval array of orbse structure to save the original values
-  allocate(orbse%eval(orbse%norb*orbse%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbse%eval,'orbse%eval',subname)
+  orbse%eval = f_malloc_ptr(orbse%norb*orbse%nkpts,id='orbse%eval')
 
   hxh=.5_gp*hx
   hyh=.5_gp*hy
@@ -1897,9 +1891,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   end if
 
   call deallocate_orbs(orbse,subname)
-  i_all=-product(shape(orbse%eval))*kind(orbse%eval)
-  deallocate(orbse%eval,stat=i_stat)
-  call memocc(i_stat,i_all,'orbse%eval',subname)
+  call f_free_ptr(orbse%eval)
 
 
   !in the case of multiple nlr restore the nl projectors

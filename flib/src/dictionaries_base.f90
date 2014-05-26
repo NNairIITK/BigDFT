@@ -46,6 +46,43 @@ module dictionaries_base
      type(dictionary), pointer :: previous => null()
   end type dictionary
 
+!!$  type :: values
+!!$     integer  :: inte 
+!!$     double precision :: rel
+!!$     integer(kind=8) :: value_type
+!!$     character, dimension(:), pointer :: char
+!!$     type(dictionary), pointer :: dict => null()
+!!$     type(list), pointer :: list => null()
+!!$  end type values
+!!$
+!!$  type :: link_elem
+!!$     character(len=max_field_length) :: key
+!!$     type(values), pointer :: elem
+!!$     type(link_elem), pointer :: next => null()
+!!$  end type link_elem
+!!$
+!!$  type, public :: dictionary
+!!$     integer :: nelems !< No. of items in the dictionary
+!!$     type(link_elem), dimension(:), pointer :: elements
+!!$  end type dictionary
+!!$
+!!$  type, public :: list
+!!$     integer :: nitems !< No. of items in the list
+!!$     type(values), dimension(:), pointer :: elements
+!!$  end type list
+!!$
+!!$  type, public :: list_iterator
+!!$     integer :: item
+!!$     type(list), pointer :: list
+!!$  end type list_iterator
+!!$
+!!$  type, public :: dict_iterator
+!!$     integer :: hash_index
+!!$     type(dictionary), pointer :: dict
+!!$     type(link_elem), pointer :: current
+!!$  end type dict_iterator
+
+
   !> the database book is a workspace of pre-allocated dictionaries, which is used to manage dictionary creation
   type, private :: database_book
      !> this is the registry of the dictionary. It keeps track of the address of the associated dictionaries
@@ -68,11 +105,55 @@ module dictionaries_base
      module procedure get_child_ptr,get_list_ptr
   end interface
 
+!!$  interface operator(.val.)
+!!$     module procedure list_iter_to_value,dict_iter_to_value
+!!$  end interface
+
   private :: allocate_library, allocate_file, deallocate_file, destroy_library
 
 
 contains
   
+!!$  function list_iter_to_value(iter) return(val)
+!!$    implicit none
+!!$    type(list_iterator), intent(in) :: iter
+!!$    type(value) :: val
+!!$
+!!$    val=val_null()
+!!$    if (associated(iter%list)) then
+!!$       val = get_value(iter%list,iter%item)
+!!$    end if
+!!$  end function list_iter_to_value
+!!$
+!!$  function get_value(list,item) return(val)
+!!$    type(list) :: list
+!!$    type(value) :: val
+!!$    
+!!$    val=val_null()
+!!$    if (item < nitems) then
+!!$       val=list%elements(item+1)
+!!$    end if
+!!$  end function get_value
+!!$
+!!$  function dict_iter_to_value(iter) return(val)
+!!$    implicit none
+!!$    type(dict_iterator), intent(in) :: iter
+!!$    type(value) :: val
+!!$
+!!$    val=val_null()
+!!$    if (associated(iter%current)) then
+!!$       val = get_value(iter%current)
+!!$    end if
+!!$  end function list_iter_to_value
+!!$
+!!$  function get_value_le(link_elem) return(val)
+!!$    type(link_elem) :: link_
+!!$    type(value) :: val
+!!$
+!!$    val=link_elem%elem
+!!$  end function get_value_le
+
+          
 
   !> Test if keys are present
   pure function no_key(dict)
@@ -769,6 +850,46 @@ contains
     nlibs_max=nfolders_max
   end subroutine dict_get_num
 
+  !>check for leaked dictionaries and prints out in stdout 
+  !! the dictionaries which have not been freed, without mutual structure
+  subroutine dictionary_check_leak()
+    implicit none
+    !local variables
+    integer :: ndict,ndict_max,nlibs,nlibs_max
+
+    call dict_get_num(ndict,ndict_max,nlibs,nlibs_max)
+    if (ndict /=0 ) then
+       print *,'Error, found unfreed dictionaries after finalization',&
+            ndict
+       call find_residual_dicts()
+    end if
+
+  end subroutine dictionary_check_leak
+
+  !>debug subroutine
+  subroutine find_residual_dicts()
+    implicit none
+    !local variables
+    integer :: i
+    type(database_book), pointer :: lib
+    nullify(lib)
+    if (associated(library)) then
+       lib=>library
+       do while(associated(lib%next))
+          lib=>lib%next
+       end do
+    end if
+    !then start by printing the residual keys
+    do while(associated(lib))
+       do i=1,nfolder_size
+          if (lib%registry(i) /= int(0,kind=8)) &
+               print *,'Unfreed key: ',trim(lib%files(i)%data%key),&
+               'value: ',trim(lib%files(i)%data%value)
+       end do
+       lib=>lib%previous
+    end do
+
+  end subroutine find_residual_dicts
 end module dictionaries_base
 
 

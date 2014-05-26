@@ -18,7 +18,6 @@ TESTDIRS = Locreg \
 	   experimentalfoe \
 	   sparsity \
 	   explicit_locregcenters \
-	   intermediateforces \
 	   DIIShistory \
 	   PBE
 

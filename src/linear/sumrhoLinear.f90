@@ -55,8 +55,7 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
   if (nspin > 1) nspincomp = 2
 
  !allocate and define Lnscatterarr which is just a fake
-  allocate(Lnscatterarr(0:nproc-1,4+ndebug),stat=i_stat)
-  call memocc(i_stat,Lnscatterarr,'Lnscatterarr',subname)
+  Lnscatterarr = f_malloc((/ 0.to.nproc-1, 1.to.4 /),id='Lnscatterarr')
   Lnscatterarr(:,3) = 0
   Lnscatterarr(:,4) = 0
 
@@ -75,10 +74,8 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
 
 
      call initialize_work_arrays_sumrho(Lzd%Llr(ilr),w)
-     allocate(rho_p(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspinn), stat=i_stat) !must redefine the size of rho_p?
-     call memocc(i_stat,rho_p,'rho_p',subname)
-     allocate(psir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,npsir+ndebug),stat=i_stat)
-     call memocc(i_stat,psir,'psir',subname)
+     rho_p = f_malloc(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspinn,id='rho_p')
+     psir = f_malloc((/ Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i, npsir /),id='psir')
   
      if (Lzd%Llr(ilr)%geocode == 'F') then
         call to_zero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*npsir,psir)
@@ -160,137 +157,19 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
         ind=ind+(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*max(ncomplex,1)*npsir
      end if
 
-     i_all=-product(shape(rho_p))*kind(rho_p)
-     deallocate(rho_p,stat=i_stat)
-     call memocc(i_stat,i_all,'rho_p',subname)
-     i_all=-product(shape(psir))*kind(psir)
-     deallocate(psir,stat=i_stat)
-     call memocc(i_stat,i_all,'psir',subname)
+     call f_free(rho_p)
+     call f_free(psir)
 
      call deallocate_work_arrays_sumrho(w)
   end do orbitalsLoop
  
-  i_all=-product(shape(Lnscatterarr))*kind(Lnscatterarr)
-  deallocate(Lnscatterarr,stat=i_stat)
-  call memocc(i_stat,i_all,'Lnscatterarr',subname)
+  call f_free(Lnscatterarr)
  
 
 END SUBROUTINE local_partial_densityLinear
-!
-!!!
-!!!
-subroutine partial_density_linear(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
-     hfac,nscatterarr,spinsgn,psir,rho_p,ibyyzz_r) 
-  use module_base
-  use module_types
-  implicit none
-  logical, intent(in) :: rsflag
-  integer, intent(in) :: nproc,n1i,n2i,n3i,nrhotot,nspinn,npsir
-  real(gp), intent(in) :: hfac,spinsgn
-  integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
-  real(wp), dimension(n1i,n2i,n3i,npsir), intent(in) :: psir
-  real(dp), dimension(n1i,n2i,nrhotot,nspinn), intent(inout) :: rho_p
-  integer, dimension(:,:,:),pointer :: ibyyzz_r 
-  !local variables
-  integer :: i3s,jproc,i3off,n3d,isjmp,i1,i2,i3,i1s,i1e,j3,i3sg
-  real(gp) :: hfac2
-  real(dp) :: psisq,p1,p2,p3,p4,r1,r2,r3,r4
-!  integer :: ncount0,ncount1,ncount_rate,ncount_max
-!!!  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
-  !sum different slices by taking into account the overlap
-  i3sg=0
-!$omp parallel default(private) shared(n1i,nproc,rsflag,nspinn,nscatterarr,spinsgn) &
-!$omp shared(n2i,npsir,hfac,psir,rho_p,n3i,i3sg,ibyyzz_r)
-  i3s=0
-!!!   ithread=omp_get_thread_num()
-!!!   nthread=omp_get_num_threads()
-  hfac2=2.0_gp*hfac
-
-!  call system_clock(ncount0,ncount_rate,ncount_max)
-
-  !case without bounds
-  i1s=1
-  i1e=n1i
-  loop_xc_overlap: do jproc=0,nproc-1
-     !case for REDUCE_SCATTER approach, not used for GGA since it enlarges the 
-     !communication buffer
-     if (rsflag) then
-        i3off=nscatterarr(jproc,3)-nscatterarr(jproc,4)
-        n3d=nscatterarr(jproc,1)
-        if (n3d==0) exit loop_xc_overlap
-     else
-        i3off=0
-        n3d=n3i
-     end if
-     !here the condition for the MPI_ALLREDUCE should be entered
-     if(spinsgn > 0.0_gp) then
-        isjmp=1
-     else
-        isjmp=2
-     end if
-     do i3=i3off+1,i3off+n3d
-        !this allows the presence of GGA with non-isolated BC. If i3 is between 1 and n3i
-        !j3=i3. This is useful only when dealing with rsflags and GGA, so we can comment it out
-        !j3=modulo(i3-1,n3i)+1 
-        j3=i3
-        i3s=i3s+1
-!!!    if(mod(i3s,nthread) .eq. ithread) then
-     !$omp do
-        do i2=1,n2i
-              i1s=ibyyzz_r(1,i2-15,j3-15)+1
-              i1e=ibyyzz_r(2,i2-15,j3-15)+1
-           if (npsir == 1) then
-              do i1=i1s,i1e
-                 !conversion between the different types
-                 psisq=real(psir(i1,i2,j3,1),dp)
-                 psisq=psisq*psisq
-                 rho_p(i1,i2,i3s,isjmp)=rho_p(i1,i2,i3s,isjmp)+real(hfac,dp)*psisq
-              end do
-           else !similar loop for npsir=4
-              do i1=i1s,i1e
-                 !conversion between the different types
-                 p1=real(psir(i1,i2,j3,1),dp)
-                 p2=real(psir(i1,i2,j3,2),dp)
-                 p3=real(psir(i1,i2,j3,3),dp)
-                 p4=real(psir(i1,i2,j3,4),dp)
-
-                 !density values
-                 r1=p1*p1+p2*p2+p3*p3+p4*p4
-                 r2=p1*p3+p2*p4
-                 r3=p1*p4-p2*p3
-                 r4=p1*p1+p2*p2-p3*p3-p4*p4
-
-                 rho_p(i1,i2,i3s,1)=rho_p(i1,i2,i3s,1)+real(hfac,dp)*r1
-                 rho_p(i1,i2,i3s,2)=rho_p(i1,i2,i3s,2)+real(hfac2,dp)*r2
-                 rho_p(i1,i2,i3s,3)=rho_p(i1,i2,i3s,3)+real(hfac2,dp)*r3
-                 rho_p(i1,i2,i3s,4)=rho_p(i1,i2,i3s,4)+real(hfac,dp)*r4
-              end do
-           end if
-        end do
-     !$omp enddo
-!!!    end if
-
-!$omp critical
-        i3sg=max(i3sg,i3s)
-!$omp end critical
-
-     end do
-     if (.not. rsflag) exit loop_xc_overlap !the whole range is already done
-  end do loop_xc_overlap
-!$omp end parallel
-
-  if (i3sg /= nrhotot) then
-     write(*,'(1x,a,i0,1x,i0)')'ERROR: problem with rho_p: i3s,nrhotot,',i3sg,nrhotot
-     stop
-  end if
-
-!  call system_clock(ncount1,ncount_rate,ncount_max)
-!  write(*,*) 'TIMING:PDF',real(ncount1-ncount0)/real(ncount_rate)
-END SUBROUTINE partial_density_linear
 
 
-
-subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coeff, denskern)
+subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coeff, denskern, denskern_)
   use module_base
   use module_types
   use yaml_output
@@ -304,6 +183,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
   logical, intent(in) :: isKernel
   real(kind=8),dimension(orbs_tmb%norb,orbs%norb),intent(in):: coeff   !only use the first (occupied) orbitals
   type(sparse_matrix), intent(inout) :: denskern
+  type(matrices), intent(out) :: denskern_
 
   ! Local variables
   integer :: ierr, sendcount, jproc, iorb, itmb
@@ -349,7 +229,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
       call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
       call timing(iproc,'waitAllgatKern','OF')
 
-      denskern%matrix=f_malloc_ptr((/orbs_tmb%norb,orbs_tmb%norb/), id='denskern')
+      denskern_%matrix=f_malloc_ptr((/orbs_tmb%norb,orbs_tmb%norb/), id='denskern_%matrix')
 
       if (nproc > 1) then
          call timing(iproc,'commun_kernel','ON') !lr408t
@@ -361,24 +241,24 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
          end do
          sendcount=orbs_tmb%norb*orbs_tmb%norbp
          call mpi_allgatherv(density_kernel_partial(1,1), sendcount, mpi_double_precision, &
-              denskern%matrix(1,1), recvcounts, dspls, mpi_double_precision, &
+              denskern_%matrix(1,1), recvcounts, dspls, mpi_double_precision, &
               bigdft_mpi%mpi_comm, ierr)
          call f_free(recvcounts)
          call f_free(dspls)
          call timing(iproc,'commun_kernel','OF') !lr408t
       else
-         call vcopy(orbs_tmb%norb*orbs_tmb%norbp,density_kernel_partial(1,1),1,denskern%matrix(1,1),1)
+         call vcopy(orbs_tmb%norb*orbs_tmb%norbp,density_kernel_partial(1,1),1,denskern_%matrix(1,1),1)
       end if
 
       call f_free(density_kernel_partial)
 
-      call compress_matrix(iproc,denskern)
-      call f_free_ptr(denskern%matrix)
+      call compress_matrix(iproc,denskern,inmat=denskern_%matrix,outmat=denskern_%matrix_compr)
+      call f_free_ptr(denskern_%matrix)
   else if (communication_strategy==ALLREDUCE) then
       if (iproc==0) call yaml_map('communication strategy kernel','ALLREDUCE')
       call timing(iproc,'calc_kernel','ON') !lr408t
       !!if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
-      denskern%matrix=f_malloc_ptr((/orbs_tmb%norb,orbs_tmb%norb/), id='denskern')
+      denskern_%matrix=f_malloc_ptr((/orbs_tmb%norb,orbs_tmb%norb/), id='denskern_%matrix_compr')
       if(orbs%norbp>0) then
           fcoeff=f_malloc((/orbs_tmb%norb,orbs%norbp/), id='fcoeff')
           !decide wether we calculate the density kernel or just transformation matrix
@@ -396,10 +276,10 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
              end do
           end if
           call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), orbs_tmb%norb, &
-               fcoeff(1,1), orbs_tmb%norb, 0.d0, denskern%matrix(1,1), orbs_tmb%norb)
+               fcoeff(1,1), orbs_tmb%norb, 0.d0, denskern_%matrix(1,1), orbs_tmb%norb)
           call f_free(fcoeff)
       else
-          call to_zero(orbs_tmb%norb**2, denskern%matrix(1,1))
+          call to_zero(orbs_tmb%norb**2, denskern_%matrix(1,1))
       end if
       call timing(iproc,'calc_kernel','OF') !lr408t
 
@@ -407,11 +287,11 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
       call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
       call timing(iproc,'waitAllgatKern','OF')
 
-      call compress_matrix(iproc,denskern)
-      call f_free_ptr(denskern%matrix)
+      call compress_matrix(iproc,denskern,inmat=denskern_%matrix,outmat=denskern_%matrix_compr)
+      call f_free_ptr(denskern_%matrix)
       if (nproc > 1) then
           call timing(iproc,'commun_kernel','ON') !lr408t
-          call mpiallred(denskern%matrix_compr(1), denskern%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(denskern_%matrix_compr(1), denskern%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
           call timing(iproc,'commun_kernel','OF') !lr408t
       end if
 
@@ -487,11 +367,8 @@ subroutine calculate_density_kernel_uncompressed(iproc, nproc, isKernel, orbs, o
       if (iproc==0) call yaml_map('calculate density kernel, communication strategy','ALLGATHERV')
       call timing(iproc,'calc_kernel','ON') !lr408t
       !if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
-      allocate(density_kernel_partial(orbs_tmb%norb,max(orbs_tmb%norbp,1)), stat=istat)
-      call memocc(istat, density_kernel_partial, 'density_kernel_partial', subname)
-      allocate(fcoeff(orbs_tmb%norb,orbs%norb), stat=istat)
-      call memocc(istat, fcoeff, 'fcoeff', subname)
-      call to_zero(orbs_tmb%norb*orbs%norb,fcoeff(1,1))
+      density_kernel_partial = f_malloc((/ orbs_tmb%norb, max(orbs_tmb%norbp, 1) /),id='density_kernel_partial')
+      fcoeff = f_malloc0((/ orbs_tmb%norb, orbs%norb /),id='fcoeff')
       if(orbs_tmb%norbp>0) then
           !decide whether we calculate the density kernel or just transformation matrix
           if(isKernel) then
@@ -512,9 +389,7 @@ subroutine calculate_density_kernel_uncompressed(iproc, nproc, isKernel, orbs, o
           call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norbp, orbs%norb, 1.d0, coeff(1,1), orbs_tmb%norb, &
                fcoeff(orbs_tmb%isorb+1,1), orbs_tmb%norb, 0.d0, density_kernel_partial(1,1), orbs_tmb%norb)
       end if
-      iall = -product(shape(fcoeff))*kind(fcoeff)
-      deallocate(fcoeff,stat=istat)
-      call memocc(istat, iall, 'fcoeff', subname)
+      call f_free(fcoeff)
       call timing(iproc,'calc_kernel','OF') !lr408t
 
       call timing(iproc,'waitAllgatKern','ON')
@@ -523,10 +398,8 @@ subroutine calculate_density_kernel_uncompressed(iproc, nproc, isKernel, orbs, o
 
       if (nproc > 1) then
          call timing(iproc,'commun_kernel','ON') !lr408t
-         allocate(recvcounts(0:nproc-1),stat=istat)
-         call memocc(istat,recvcounts,'recvcounts',subname)
-         allocate(dspls(0:nproc-1),stat=istat)
-         call memocc(istat,recvcounts,'recvcounts',subname)
+         recvcounts = f_malloc(0.to.nproc-1,id='recvcounts')
+         dspls = f_malloc(0.to.nproc-1,id='dspls')
          do jproc=0,nproc-1
              recvcounts(jproc)=orbs_tmb%norb*orbs_tmb%norb_par(jproc,0)
              dspls(jproc)=orbs_tmb%norb*orbs_tmb%isorb_par(jproc)
@@ -535,28 +408,20 @@ subroutine calculate_density_kernel_uncompressed(iproc, nproc, isKernel, orbs, o
          call mpi_allgatherv(density_kernel_partial(1,1), sendcount, mpi_double_precision, &
               kernel(1,1), recvcounts, dspls, mpi_double_precision, &
               bigdft_mpi%mpi_comm, ierr)
-         iall=-product(shape(recvcounts))*kind(recvcounts)
-         deallocate(recvcounts,stat=istat)
-         call memocc(istat,iall,'recvcounts',subname)
-         iall=-product(shape(dspls))*kind(dspls)
-         deallocate(dspls,stat=istat)
-         call memocc(istat,iall,'dspls',subname)
+         call f_free(recvcounts)
+         call f_free(dspls)
          call timing(iproc,'commun_kernel','OF') !lr408t
       else
          call vcopy(orbs_tmb%norb*orbs_tmb%norbp,density_kernel_partial(1,1),1,kernel(1,1),1)
       end if
 
-      iall=-product(shape(density_kernel_partial))*kind(density_kernel_partial)
-      deallocate(density_kernel_partial,stat=istat)
-      call memocc(istat,iall,'density_kernel_partial',subname)
+      call f_free(density_kernel_partial)
   else if (communication_strategy==ALLREDUCE) then
       if (iproc==0) call yaml_map('calculate density kernel, communication strategy','ALLREDUCE')
       call timing(iproc,'calc_kernel','ON') !lr408t
       !!if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
       if(orbs%norbp>0) then
-          allocate(fcoeff(orbs_tmb%norb,orbs%norb), stat=istat)
-          call memocc(istat, fcoeff, 'fcoeff', subname)
-          call to_zero(orbs_tmb%norb*orbs%norb,fcoeff(1,1))
+          fcoeff = f_malloc0((/ orbs_tmb%norb, orbs%norb /),id='fcoeff')
 
           !decide wether we calculate the density kernel or just transformation matrix
           if(isKernel)then
@@ -577,9 +442,7 @@ subroutine calculate_density_kernel_uncompressed(iproc, nproc, isKernel, orbs, o
           end if
           call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), orbs_tmb%norb, &
                fcoeff(1,orbs%isorb+1), orbs_tmb%norb, 0.d0, kernel(1,1), orbs_tmb%norb)
-          iall = -product(shape(fcoeff))*kind(fcoeff)
-          deallocate(fcoeff,stat=istat)
-          call memocc(istat, iall, 'fcoeff', subname)
+          call f_free(fcoeff)
       else
           call to_zero(orbs_tmb%norb**2, kernel(1,1))
       end if
@@ -638,7 +501,7 @@ end subroutine calculate_density_kernel_uncompressed
 
 
 
-subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimrho, rho, rho_negative, &
+subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, denskern_, ndimrho, rho, rho_negative, &
         print_results)
   use module_base
   use module_types
@@ -651,6 +514,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   real(kind=8),intent(in) :: hx, hy, hz
   type(comms_linear),intent(in) :: collcom_sr
   type(sparse_matrix),intent(in) :: denskern
+  type(matrices),intent(in) :: denskern_
   real(kind=8),dimension(ndimrho),intent(out) :: rho
   logical,intent(out) :: rho_negative
   logical,intent(in),optional :: print_results
@@ -677,8 +541,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   end if
 
 
-  allocate(rho_local(collcom_sr%nptsp_c), stat=istat)
-  call memocc(istat, rho_local, 'rho_local', subname)
+  rho_local = f_malloc(collcom_sr%nptsp_c,id='rho_local')
 
   ! Define some constant factors.
   hxh=.5d0*hx
@@ -703,7 +566,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   total_charge=0.d0
   irho=0
   !$omp parallel default(private) &
-  !$omp shared(total_charge, collcom_sr, factor, denskern, rho_local, irho)
+  !$omp shared(total_charge, collcom_sr, factor, denskern, denskern_, rho_local, irho)
   !$omp do schedule(static,50) reduction(+:total_charge, irho)
   do ipt=1,collcom_sr%nptsp_c
       ii=collcom_sr%norb_per_gridpoint_c(ipt)
@@ -713,12 +576,12 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
           iiorb=collcom_sr%indexrecvorbital_c(i0+i)
           tt1=collcom_sr%psit_c(i0+i)
           ind=denskern%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
-          tt=tt+denskern%matrix_compr(ind)*tt1*tt1
+          tt=tt+denskern_%matrix_compr(ind)*tt1*tt1
           do j=i+1,ii
               jjorb=collcom_sr%indexrecvorbital_c(i0+j)
               ind=denskern%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
               if (ind==0) cycle
-              tt=tt+2.0_dp*denskern%matrix_compr(ind)*tt1*collcom_sr%psit_c(i0+j)
+              tt=tt+2.0_dp*denskern_%matrix_compr(ind)*tt1*collcom_sr%psit_c(i0+j)
           end do
       end do
       tt=factor*tt
@@ -807,9 +670,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, ndimr
   
   call timing(iproc,'sumrho_allred','OF')
 
-  iall=-product(shape(rho_local))*kind(rho_local)
-  deallocate(rho_local, stat=istat)
-  call memocc(istat, iall, 'rho_local', subname)
+  call f_free(rho_local)
 
   !!write(*,*) 'after deallocate'
   !!call mpi_finalize(ierr)
@@ -972,13 +833,13 @@ subroutine check_communication_potential(iproc,denspot,tmb)
 end subroutine check_communication_potential
 
 
-subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, denspot, denskern, check_sumrho)
+subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, denspot, denskern, denskern_, check_sumrho)
   use module_base
   use module_types
   use module_interfaces, except_this_one => check_communication_sumrho
   use yaml_output
   use communications, only: transpose_switch_psir, transpose_communicate_psir, transpose_unswitch_psirt
-  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_base, only: sparse_matrix, matrices
   use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
 
@@ -989,6 +850,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   type(comms_linear),intent(inout) :: collcom_sr
   type(DFT_local_fields),intent(in) :: denspot
   type(sparse_matrix),intent(inout) :: denskern
+  type(matrices),intent(inout) :: denskern_
   integer,intent(in) :: check_sumrho
 
   ! Local variables
@@ -1309,7 +1171,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
     
       ! Now calculate the charge density in the transposed way using the standard routine
       rho=f_malloc(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1),1),id='rho')
-      call sumrho_for_TMBs(iproc, nproc, lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), collcom_sr, denskern, &
+      denskern_%matrix_compr = denskern%matrix_compr
+      call sumrho_for_TMBs(iproc, nproc, lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), collcom_sr, denskern, denskern_, &
            lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3d, rho, rho_negative, .false.)
     
       ! Determine the difference between the two versions

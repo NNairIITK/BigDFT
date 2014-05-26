@@ -150,6 +150,7 @@ module module_input_keys
   character(len = *), parameter, public :: CALCULATE_GAP = "calculate_gap"
   character(len = *), parameter, public :: LOEWDIN_CHARGE_ANALYSIS = "loewdin_charge_analysis"
   character(len = *), parameter, public :: CHECK_MATRIX_COMPRESSION = "check_matrix_compression"
+  character(len = *), parameter, public :: CORRECTION_CO_CONTRA = "correction_co_contra"
 
   !keys for linear input variables
   !level keys
@@ -189,6 +190,9 @@ module module_input_keys
   character(len=*), parameter, public :: TRANSFER_INTEGRALS='transfer_integrals'
   character(len=*), parameter, public :: CONSTRAINED_DFT  ='constrained_dft'
   character(len=*), parameter, public :: FIX_BASIS       ='fix_basis' 
+  character(len=*), parameter, public :: CORRECTION_ORTHOCONSTRAINT='correction_orthoconstraint'
+  character(len=*), parameter, public :: FSCALE_LOWERBOUND="fscale_lowerbound"
+  character(len=*), parameter, public :: FSCALE_UPPERBOUND="fscale_upperbound"
 
 
 

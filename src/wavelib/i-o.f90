@@ -757,6 +757,7 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
   ! We open the Fortran file
   call io_open(unitwf, filename, formatted)
   if (unitwf < 0) then
+     call f_release_routine()
      return
   end if
 
@@ -765,12 +766,14 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
        & hx, hy, hz, lstat, error, lr%wfd%nvctr_c, lr%wfd%nvctr_f)
   if (.not. lstat) then
      call io_warning(trim(error))
+     call f_release_routine()
      return
   end if
   ! Do a magic here with the filenames...
   call readwavedescr(lstat, filename, iorb, ispin, ikpt, ispinor, nspinor, fileRI)
   if (.not. lstat) then
      call io_warning("cannot read wave ids from filename.")
+     call f_release_routine()
      return
   end if
 
@@ -858,21 +861,17 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
 contains
 
   subroutine deallocate_local()
+    implicit none
     character(len = *), parameter :: subname = "readwavetoisf"
 
     ! We close the file.
     close(unit=unitwf)
 
-    if (allocated(psi)) then
-       call f_free(psi)
-    end if
-
-    if (allocated(gcoord_c)) then
-       call f_free(gcoord_c)
-    end if
-    if (allocated(gcoord_f)) then
-       call f_free(gcoord_f)
-    end if
+    !allocation status of a allocatable array is undefined, cannot do that
+    !as we do not have any way to deallocate an array
+    call f_free(psi)
+    call f_free(gcoord_c)
+    call f_free(gcoord_f)
 
     if (associated(w%x_c)) then
        call deallocate_work_arrays_sumrho(w)

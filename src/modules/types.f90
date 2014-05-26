@@ -22,8 +22,9 @@ module module_types
   use locregs
   use psp_projectors
   use module_atoms, only: atoms_data,symmetry_data,atomic_structure
-  use communications_base, only: comms_linear, comms_cubic
-  use sparsematrix_base, only: sparse_matrix
+  use communications_base, only: comms_linear, comms_cubic, p2pComms
+  use sparsematrix_base, only: matrices, sparse_matrix
+  use foe_base, only: foe_data
 
   implicit none
 
@@ -152,8 +153,6 @@ module module_types
      !!   methOrtho==2 -> Loewdin
      integer :: methOrtho
      real(gp) :: iguessTol            !< Gives the tolerance to which the input guess will converged (maximal residue of all orbitals).
-     integer :: methTransformOverlap  !< Method to overlap the localized orbitals (see linear/orthonormality.f90)
-     integer :: nItOrtho              !< Number of iterations for the orthonormalisation
      integer :: blocksize_pdsyev      !< Size of the block for the Scalapack routine pdsyev (computes eigenval and vectors)
      integer :: blocksize_pdgemm      !< Size of the block for the Scalapack routine pdgemm
      integer :: nproc_pdsyev          !< Number of proc for the Scalapack routine pdsyev (linear version)
@@ -191,7 +190,7 @@ module module_types
     integer :: mixHist_lowaccuracy
     integer :: mixHist_highaccuracy
     integer :: dmin_hist_lowaccuracy, dmin_hist_highaccuracy
-    integer :: methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
+    integer :: blocksize_pdgemm, blocksize_pdsyev
     integer :: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm
     integer :: nit_lowaccuracy, nit_highaccuracy, nItdmin_lowaccuracy, nItdmin_highaccuracy
     integer :: nItSCCWhenFixed_lowaccuracy, nItSCCWhenFixed_highaccuracy
@@ -206,7 +205,7 @@ module module_types
     real(kind=8), dimension(:), pointer :: locrad, locrad_lowaccuracy, locrad_highaccuracy, kernel_cutoff_FOE
     real(kind=8), dimension(:,:), pointer :: locrad_type
     real(kind=8), dimension(:), pointer :: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy, potentialPrefac_ao
-    real(kind=8), dimension(:),pointer :: kernel_cutoff, locrad_kernel
+    real(kind=8), dimension(:),pointer :: kernel_cutoff, locrad_kernel, locrad_mult
     real(kind=8) :: early_stop, gnrm_dynamic, min_gnrm_for_dynamic
     integer, dimension(:), pointer :: norbsPerType
     integer :: kernel_mode, mixing_mode
@@ -434,6 +433,15 @@ module module_types
      !> linear scaling: perform a check of the matrix compression routines
      logical :: check_matrix_compression
 
+     !> linear scaling: correction covariant / contravariant gradient
+     logical :: correction_co_contra
+     
+     !> linear scaling: lower bound for the error function decay length
+     real(kind=8) :: fscale_lowerbound
+
+     !> linear scaling: upper bound for the error function decay length
+     real(kind=8) :: fscale_upperbound
+
   end type input_variables
 
 
@@ -611,59 +619,31 @@ module module_types
      real(wp), dimension(:,:,:,:,:), pointer :: z1,z3 ! work array for FFT
   end type workarr_precond
 
-  !> Contains all parameters needed for point to point communication
-  type, public :: p2pComms
-    integer, dimension(:), pointer :: noverlaps
-    real(kind=8), dimension(:), pointer :: recvBuf
-    integer, dimension(:,:,:), pointer :: comarr
-    integer :: nrecvBuf
-    integer :: window
-    integer, dimension(:,:), pointer :: ise !< Starting / ending index of recvBuf in x,y,z dimension after communication (glocal coordinates)
-    integer, dimension(:,:), pointer :: mpi_datatypes
-    logical :: communication_complete
-  end type p2pComms
 
-  !> Fermi Operator Expansion parameters
-  type, public :: foe_data
-    integer :: nseg
-    integer,dimension(:),pointer :: nsegline, istsegline
-    integer,dimension(:,:),pointer :: keyg
-    real(kind=8) :: ef                     !< Fermi energy for FOE
-    real(kind=8) :: evlow, evhigh          !< Eigenvalue bounds for FOE 
-    real(kind=8) :: bisection_shift        !< Bisection shift to find Fermi energy (FOE)
-    real(kind=8) :: fscale                 !< Length scale for complementary error function (FOE)
-    real(kind=8) :: ef_interpol_det        !< FOE: max determinant of cubic interpolation matrix
-    real(kind=8) :: ef_interpol_chargediff !< FOE: max charge difference for interpolation
-    real(kind=8) :: charge                 !< Total charge of the system
-    integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
-  end type foe_data
+  !!> Fermi Operator Expansion parameters
+  !type, public :: foe_data
+  !  integer :: nseg
+  !  integer,dimension(:),pointer :: nsegline, istsegline
+  !  integer,dimension(:,:),pointer :: keyg
+  !  real(kind=8) :: ef                     !< Fermi energy for FOE
+  !  real(kind=8) :: evlow, evhigh          !< Eigenvalue bounds for FOE 
+  !  real(kind=8) :: bisection_shift        !< Bisection shift to find Fermi energy (FOE)
+  !  real(kind=8) :: fscale                 !< Length scale for complementary error function (FOE)
+  !  real(kind=8) :: ef_interpol_det        !< FOE: max determinant of cubic interpolation matrix
+  !  real(kind=8) :: ef_interpol_chargediff !< FOE: max charge difference for interpolation
+  !  real(kind=8) :: charge                 !< Total charge of the system
+  !  real(kind=8) :: fscale_lowerbound      !< lower bound for the error function decay length
+  !  real(kind=8) :: fscale_upperbound       !< upper bound for the error function decay length
+  !  integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
+  !end type foe_data
 
-!!$  type, public :: sparse_matrix_metadata
-!!$     integer :: nvctr, nseg, full_dim1, full_dim2
-!!$     integer, dimension(:), pointer :: noverlaps
-!!$     integer, dimension(:,:), pointer :: overlaps
-!!$     integer, dimension(:), pointer :: keyv, nsegline, istsegline
-!!$     integer, dimension(:,:), pointer :: keyg
-!!$     integer, dimension(:,:), pointer :: matrixindex_in_compressed, orb_from_index
-!!$  end type sparse_matrix_metadata
-
-  !!type,public :: sparse_matrix
-  !!    integer :: nvctr, nseg, nvctrp, isvctr, parallel_compression, nfvctr, nfvctrp, isfvctr
-  !!    integer,dimension(:),pointer :: keyv, nsegline, istsegline, isvctr_par, nvctr_par, isfvctr_par, nfvctr_par
-  !!    integer,dimension(:,:),pointer :: keyg
-  !!    !type(sparse_matrix_metadata), pointer :: pattern
-  !!    real(kind=8),dimension(:),pointer :: matrix_compr,matrix_comprp
-  !!    real(kind=8),dimension(:,:),pointer :: matrix,matrixp
-  !!    !integer,dimension(:,:),pointer :: matrixindex_in_compressed, orb_from_index
-  !!    integer,dimension(:,:),pointer :: matrixindex_in_compressed_arr, orb_from_index
-  !!    integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed
-  !!    logical :: store_index, can_use_dense
-  !!    !!contains
-  !!    !!  procedure,pass :: matrixindex_in_compressed
-  !!end type sparse_matrix
-
-  type, public :: linear_matrices !may not keep
-      type(sparse_matrix) :: ham, ovrlp, denskern_large, inv_ovrlp_large
+  type,public :: linear_matrices
+      type(sparse_matrix) :: s !< small: sparsity pattern given by support function cutoff
+      type(sparse_matrix) :: m !< medium: sparsity pattern given by SHAMOP cutoff
+      type(sparse_matrix) :: l !< medium: sparsity pattern given by kernel cutoff
+      type(sparse_matrix) :: ks !< sparsity pattern for the KS orbitals (i.e. dense)
+      type(sparse_matrix) :: ks_e !< sparsity pattern for the KS orbitals including extra stated (i.e. dense)
+      type(matrices) :: ham_, ovrlp_, kernel_
   end type linear_matrices
 
   type, public :: workarrays_quartic_convolutions
@@ -1401,40 +1381,24 @@ subroutine deallocate_orbs(orbs,subname)
     !local variables
     integer :: i_all,i_stat
 
-    i_all=-product(shape(orbs%norb_par))*kind(orbs%norb_par)
-    deallocate(orbs%norb_par,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%norb_par',subname)
-    i_all=-product(shape(orbs%occup))*kind(orbs%occup)
-    deallocate(orbs%occup,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%occup',subname)
-    i_all=-product(shape(orbs%spinsgn))*kind(orbs%spinsgn)
-    deallocate(orbs%spinsgn,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%spinsgn',subname)
-    i_all=-product(shape(orbs%kpts))*kind(orbs%kpts)
-    deallocate(orbs%kpts,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%kpts',subname)
-    i_all=-product(shape(orbs%kwgts))*kind(orbs%kwgts)
-    deallocate(orbs%kwgts,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%kwgts',subname)
-    i_all=-product(shape(orbs%iokpt))*kind(orbs%iokpt)
-    deallocate(orbs%iokpt,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%iokpt',subname)
-    i_all=-product(shape(orbs%ikptproc))*kind(orbs%ikptproc)
-    deallocate(orbs%ikptproc,stat=i_stat)
-    call memocc(i_stat,i_all,'ikptproc',subname)
-    i_all=-product(shape(orbs%inwhichlocreg))*kind(orbs%inwhichlocreg)
-    deallocate(orbs%inwhichlocreg,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%inwhichlocreg',subname)
-    i_all=-product(shape(orbs%onwhichatom))*kind(orbs%onwhichatom)
-    deallocate(orbs%onwhichatom,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%onwhichatom',subname)
-    i_all=-product(shape(orbs%isorb_par))*kind(orbs%isorb_par)
-    deallocate(orbs%isorb_par,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%isorb_par',subname)
+    call f_free_ptr(orbs%norb_par)
+
+    call f_free_ptr(orbs%occup)
+    call f_free_ptr(orbs%spinsgn)
+    call f_free_ptr(orbs%kpts)
+    call f_free_ptr(orbs%kwgts)
+
+    call f_free_ptr(orbs%iokpt)
+
+    call f_free_ptr(orbs%ikptproc)
+
+    call f_free_ptr(orbs%inwhichlocreg)
+
+    call f_free_ptr(orbs%onwhichatom)
+
+    call f_free_ptr(orbs%isorb_par)
     if (associated(orbs%ispot)) then
-       i_all=-product(shape(orbs%ispot))*kind(orbs%ispot)
-       deallocate(orbs%ispot,stat=i_stat)
-       call memocc(i_stat,i_all,'orbs%ispot',subname)
+       call f_free_ptr(orbs%ispot)
     end if
 
   END SUBROUTINE deallocate_orbs
@@ -1576,9 +1540,7 @@ subroutine deallocate_orbs(orbs,subname)
     end if
 
     if (associated(rst%KSwfn%orbs%eval)) then
-       i_all=-product(shape(rst%KSwfn%orbs%eval))*kind(rst%KSwfn%orbs%eval)
-       deallocate(rst%KSwfn%orbs%eval,stat=i_stat)
-       call memocc(i_stat,i_all,'eval',subname)
+       call f_free_ptr(rst%KSwfn%orbs%eval)
     end if
 
     if (associated(rst%KSwfn%oldpsis)) then
@@ -2815,6 +2777,15 @@ end subroutine find_category
        case (CHECK_MATRIX_COMPRESSION)
            ! linear scaling: perform a check of the matrix compression routines
            in%check_matrix_compression = val
+       case (CORRECTION_CO_CONTRA)
+           ! linear scaling: correction covariant / contravariant gradient
+           in%correction_co_contra = val
+       case (FSCALE_LOWERBOUND)
+           ! linear scaling: lower bound for the error function decay length
+           in%fscale_lowerbound = val
+       case (FSCALE_UPPERBOUND)
+           ! linear scaling: upper bound for the error function decay length
+           in%fscale_upperbound = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
@@ -2933,7 +2904,7 @@ end subroutine find_category
        case (CONF_DAMPING) 
           in%lin%reduce_confinement_factor = val
        case (TAYLOR_ORDER)
-          in%lin%methTransformOverlap = val
+          in%lin%order_taylor = val
        case (OUTPUT_WF)
           in%lin%plotBasisFunctions = val
        case (CALC_DIPOLE)
@@ -2975,6 +2946,8 @@ end subroutine find_category
           in%lin%nItPrecond = val
        case (fix_basis)
           in%lin%support_functions_converged = val
+      case (correction_orthoconstraint)
+          in%lin%correctionOrthoconstraint = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select

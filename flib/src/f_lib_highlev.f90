@@ -132,6 +132,7 @@ end subroutine f_lib_err_severe_external
 
 !> Routine which finalize f_lib 
 subroutine f_lib_finalize()
+  use dictionaries_base, only: dictionary_check_leak
   use dictionaries, only: f_err_finalize,dict_get_num
   use dynamic_memory, only: f_malloc_finalize
   use yaml_output, only: yaml_close_all_streams,yaml_map,yaml_comment,yaml_toa
@@ -151,5 +152,7 @@ subroutine f_lib_finalize()
   call yaml_close_all_streams()
   call f_err_finalize()
   call f_timing_finalize()
+  !debug, once again
+  call dictionary_check_leak()
 
 end subroutine f_lib_finalize
