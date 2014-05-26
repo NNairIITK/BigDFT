@@ -231,7 +231,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
    !    hpsi_noprecond = hpsi_small
    !end if
 
-  write(*,*) 'hpsi_small: ddot',ddot(tmb%npsidim_orbs, hpsi_small(1), 1, hpsi_small(1), 1)
+  !!write(*,*) 'hpsi_small: ddot',ddot(tmb%npsidim_orbs, hpsi_small(1), 1, hpsi_small(1), 1)
 
 
   ! Calculate trace (or band structure energy, resp.)
@@ -240,9 +240,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   do iorb=1,tmb%orbs%norb
      ii=matrixindex_in_compressed(tmb%linmat%m,iorb,iorb)
      trH = trH + tmb%linmat%ham_%matrix_compr(ii)
-     if (iproc==0) write(*,*) 'iorb, value', iorb, tmb%linmat%ham_%matrix_compr(ii)
+     !if (iproc==0) write(*,*) 'iorb, value', iorb, tmb%linmat%ham_%matrix_compr(ii)
+     !if (iproc==0) write(*,*) 'iorb, eval', iorb, tmb%orbs%eval(iorb)
   end do
-  if (iproc==0) write(*,*) 'trH',trH
+  !!if (iproc==0) write(*,*) 'trH',trH
   call timing(iproc,'eglincomms','OF')
 
   ! trH is now the total energy (name is misleading, correct this)

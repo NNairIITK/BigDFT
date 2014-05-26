@@ -216,6 +216,9 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
      jorb = lagmat%orb_from_index(2,ii)
      ii_trans=matrixindex_in_compressed(lagmat,jorb,iorb)
      lagmat_%matrix_compr(ii) = -0.5d0*tmp_mat_compr(ii)-0.5d0*tmp_mat_compr(ii_trans)
+     !if (iorb==jorb) then
+     !    orbs%eval(iorb)=lagmat_%matrix_compr(ii)
+     !end if
   end do
   !##
       inv_ovrlp_seq = sparsematrix_malloc(linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_seq')
@@ -227,10 +230,10 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   if (correction_orthoconstraint==0) then
       if (iproc==0) call yaml_map('correction orthoconstraint',.true.)
       call compress_matrix_distributed(iproc, linmat%m, inv_lagmatp, lagmat_%matrix_compr)
+  end if
       call f_free(inv_ovrlp_seq)
       call f_free(lagmatp)
       call f_free(inv_lagmatp)
-  end if
   !##
   call build_linear_combination_transposed(collcom, lagmat, lagmat_, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
 
