@@ -30,7 +30,7 @@ module lanczos_interface
       type(comms_cubic) :: comms
       type(DFT_PSP_projectors), pointer :: nlpsp
       type(local_zone_descriptors), pointer :: Lzd
-      type(gaussian_basis), pointer :: Gabsorber    
+      !type(gaussian_basis), pointer :: Gabsorber    !unused?
       type(SIC_data), pointer :: SIC
       type(xc_info), pointer :: xc
       integer, dimension(:,:), pointer :: ngatherarr 
@@ -43,8 +43,8 @@ module lanczos_interface
       type(pcproj_data_type), pointer :: PPD
       type(pawproj_data_type), pointer :: PAWD
       ! removed from orbs, not sure if needed here or not
-      integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
-      integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
+      !integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
+      !integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
    end type lanczos_args
 
    !calculate the allocation dimensions
@@ -1621,7 +1621,7 @@ nullify(Qvect,dumQvect)
     type(DFT_PSP_projectors), intent(in), target :: nlpsp
     type(local_zone_descriptors), intent(inout), target :: Lzd
     type(denspot_distribution), intent(in), target :: dpcom
-    type(xc_info), intent(in) :: xc
+    type(xc_info), intent(in), target :: xc
     real(gp), dimension(3,at%astruct%nat), intent(in), target :: rxyz
     real(gp), dimension(at%astruct%ntypes,3), intent(in), target ::  radii_cf
     real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
@@ -1656,7 +1656,7 @@ nullify(Qvect,dumQvect)
     end if
 
 
-    orbs%eval = f_malloc_ptr(orbs%norb+ndebug,id='orbs%eval')
+    orbs%eval = f_malloc_ptr(orbs%norb,id='orbs%eval')
     orbs%occup(1:orbs%norb)=1.0_gp
     orbs%spinsgn(1:orbs%norb)=1.0_gp
     orbs%eval(1:orbs%norb)=1.0_gp
@@ -1706,6 +1706,7 @@ nullify(Qvect,dumQvect)
     ha%Gabs_coeffs=>Gabs_coeffs
     ha%PAWD=> PAWD
     ha%SIC=>in%SIC
+    ha%xc=>xc
     ha%orbs=>orbs
 
     call EP_inizializza(ha) 
@@ -1821,7 +1822,7 @@ nullify(Qvect,dumQvect)
             &   'GPU data allocated'
     end if
 
-    orbs%eval = f_malloc_ptr(orbs%norb*orbs%nkpts+ndebug,id='orbs%eval')
+    orbs%eval = f_malloc_ptr(orbs%norb*orbs%nkpts,id='orbs%eval')
     orbs%occup(1:orbs%norb*orbs%nkpts )=1.0_gp
     orbs%spinsgn(1:orbs%norb*orbs%nkpts )=1.0_gp
     orbs%eval(1:orbs%norb*orbs%nkpts )=1.0_gp
@@ -2024,7 +2025,7 @@ nullify(Qvect,dumQvect)
     type(local_zone_descriptors), target :: Lzd
     type(pcproj_data_type), target ::PPD
     type(denspot_distribution), intent(in), target :: dpcom
-    type(xc_info), intent(in) :: xc
+    type(xc_info), intent(in), target :: xc
     real(gp), dimension(3,at%astruct%nat), target :: rxyz
     real(gp), dimension(at%astruct%ntypes,3), intent(in), target ::  radii_cf
     real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
@@ -2068,7 +2069,7 @@ nullify(Qvect,dumQvect)
             &   'GPU data allocated'
     end if
 
-    orbs%eval = f_malloc_ptr(orbs%norb+ndebug,id='orbs%eval')
+    orbs%eval = f_malloc_ptr(orbs%norb,id='orbs%eval')
 
     orbs%occup(1:orbs%norb)=1.0_gp
     orbs%spinsgn(1:orbs%norb)=1.0_gp
@@ -2118,6 +2119,7 @@ nullify(Qvect,dumQvect)
     ha%PAWD=> PAWD 
     ha%PPD=> PPD
     ha%SIC=>in%SIC
+    ha%xc=>xc
     ha%orbs=>orbs
 
 

@@ -3,6 +3,7 @@ subroutine md_quenched_stop_atoms(amass, dtion, ekin, fcart, iatfix, itime, &
      & xcart, xcart_next, xred_next)
 
   use defs_basis
+  use interfaces_14_hidewrite
 
   implicit none
 

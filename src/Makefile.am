@@ -343,6 +343,8 @@ linearScaling.o transferintegrals.o: i-o.o
 
 NEB.o: images.o
 
+restart.o: i-o.o
+
 # Introspection for Python bindings
 # ---------------------------------
 if WITH_GOBJECT_INTROSPECTION

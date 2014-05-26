@@ -1271,6 +1271,7 @@ END SUBROUTINE write_strten_info
 subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
   use module_base
   use module_types
+  use module_atoms, only: RADII_SOURCE
   use module_xc
   use vdwcorrection
   use yaml_output
@@ -1341,11 +1342,12 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
        call yaml_map('Coarse',radii_cf(ityp,1),fmt='(f8.5)')
        call yaml_map('Fine',radii_cf(ityp,2),fmt='(f8.5)')
        call yaml_map('Coarse PSP',radii_cf(ityp,3),fmt='(f8.5)')
-       if (atoms%radii_cf(ityp, 1) == UNINITIALIZED(1.0_gp)) then
-          call yaml_map('Source','Hard-Coded')
-       else
-          call yaml_map('Source','PSP File')
-       end if
+       call yaml_map('Source',RADII_SOURCE(atoms%iradii_source(ityp)))
+       !if (atoms%radii_cf(ityp, 1) == UNINITIALIZED(1.0_gp)) then
+       !   call yaml_map('Source','Hard-Coded')
+       !else
+       !   call yaml_map('Source','PSP File')
+       !end if
      call yaml_close_map()
 
      minrad=1.e10_gp
@@ -1365,13 +1367,13 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
      end if
 
      select case(atoms%npspcode(ityp))
-     case(2)
+     case(PSPCODE_GTH)
         call yaml_map('Pseudopotential type','GTH')
-     case(3)
+     case(PSPCODE_HGH)
         call yaml_map('Pseudopotential type','HGH')
-     case(10)
+     case(PSPCODE_HGH_K)
         call yaml_map('Pseudopotential type','HGH-K')
-     case(12)
+     case(PSPCODE_HGH_K_NLCC)
         call yaml_map('Pseudopotential type','HGH-K + NLCC')
      end select
      if (atoms%psppar(0,0,ityp)/=0) then
@@ -1381,7 +1383,7 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
         call yaml_close_map()
      end if
      !nlcc term
-     if (atoms%npspcode(ityp) == 12) then
+     if (atoms%npspcode(ityp) == PSPCODE_HGH_K_NLCC) then
         inlcc=inlcc+1
         call yaml_open_map('Non Linear Core Correction term')
             call yaml_map('Rcore',atoms%nlccpar(0,inlcc),fmt='(f9.5)')
@@ -1415,12 +1417,12 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
               do i=1,j
                  hij(i,i)=atoms%psppar(l,i,ityp)
               end do
-              if (atoms%npspcode(ityp) == 3) then !traditional HGH convention
+              if (atoms%npspcode(ityp) == PSPCODE_HGH) then !traditional HGH convention
                  hij(1,2)=offdiagarr(1,1,l)*atoms%psppar(l,2,ityp)
                  hij(1,3)=offdiagarr(1,2,l)*atoms%psppar(l,3,ityp)
                  hij(2,3)=offdiagarr(2,1,l)*atoms%psppar(l,3,ityp)
-              else if (atoms%npspcode(ityp) == 10 &
-                  .or. atoms%npspcode(ityp) == 12) then !HGH-K convention
+              else if (atoms%npspcode(ityp) == PSPCODE_HGH_K &
+                  .or. atoms%npspcode(ityp) == PSPCODE_HGH_K_NLCC) then !HGH-K convention
                  hij(1,2)=atoms%psppar(l,4,ityp)
                  hij(1,3)=atoms%psppar(l,5,ityp)
                  hij(2,3)=atoms%psppar(l,6,ityp)
@@ -1450,7 +1452,7 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
      end if
      call yaml_map('PSP XC','"'//trim(name_xc1)//'"')
      if (trim(name_xc1) /= trim(name_xc2)) then
-        call yaml_warning('Input XC is "'//trim(name_xc2) // '"')
+        call yaml_warning('PSP generated with a different XC. Input XC is "'//trim(name_xc2) // '"')
      end if
   end do
   call yaml_close_sequence()

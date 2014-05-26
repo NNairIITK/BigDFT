@@ -13,8 +13,8 @@
 module module_types
 
   use m_ab7_mixing, only : ab7_mixing_object
-  use module_base, only : gp,wp,dp,tp,uninitialized,mpi_environment,mpi_environment_null,&
-       bigdft_mpi,ndebug,memocc!,vcopy
+  use module_base!, only : gp,wp,dp,tp,uninitialized,mpi_environment,mpi_environment_null,&
+  !bigdft_mpi,ndebug,memocc!,vcopy
   use module_xc, only : xc_info
   use gaussians, only: gaussian_basis
   use Poisson_Solver, only: coulomb_operator
@@ -42,7 +42,7 @@ module module_types
   integer :: BIGDFT_LINALG_ERROR                    !< to be moved to linalg wrappers
   integer :: BIGDFT_INPUT_VARIABLES_ERROR           !< problems in parsing or in consistency of input variables
 
-  !> Input wf parameters.
+  !> Input wf parameters. @relates module_types::input_variables::inputpsiid @relates inputpsiid
   integer, parameter :: INPUT_PSI_EMPTY        = -1000  !< Input PSI to 0
   integer, parameter :: INPUT_PSI_RANDOM       = -2     !< Input Random PSI
   integer, parameter :: INPUT_PSI_CP2K         = -1     !< Input PSI coming from cp2k
@@ -232,6 +232,7 @@ module module_types
   integer, parameter, public :: INPUT_IG_FULL = 2
   integer, parameter, public :: INPUT_IG_TMO  = 3
 
+
   !> Structure controlling the nature of the accelerations (Convolutions, Poisson Solver)
   type, public :: material_acceleration
      !> variable for material acceleration
@@ -271,6 +272,7 @@ module module_types
      real(gp) :: rpnrm_cv
      real(gp) :: gnrm_startmix
      integer :: verbosity   !< Verbosity of the output file
+     logical :: multipole_preserving !< Preserve multipole for ionic charge (integrated isf)
 
      !> DFT basic parameters.
      integer :: ixc         !< XC functional Id
@@ -281,9 +283,14 @@ module module_types
      integer :: idsx        !< DIIS history
      integer :: ncongt      !< Number of conjugate garident for the tail treatment
      integer :: inputpsiid  !< Input PSI choice
+                            !!   - 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
+                            !!   - 1 : read waves from argument psi, using n1, n2, n3, hgrid and rxyz_old
+                            !!         as definition of the previous system.
+                            !!   - 2 : read waves from disk
      integer :: nspin       !< Spin components (no spin 1, collinear 2, non collinear 4)
      integer :: mpol        !< Total spin polarisation of the system
-     integer :: norbv
+     integer :: norbv       !< Number of virtual orbitals to compute after direct minimisation
+                            !! using the Davidson scheme
      integer :: nvirt
      integer :: nplot
      integer :: output_denspot        !< 0= No output, 1= density, 2= density+potential
@@ -441,8 +448,8 @@ module module_types
   !> Contains all energy terms
   type, public :: energy_terms
      real(gp) :: eh      =0.0_gp !< Hartree energy
-     real(gp) :: exc     =0.0_gp !< Exchange-correlation
-     real(gp) :: evxc    =0.0_gp
+     real(gp) :: exc     =0.0_gp !< Exchange-correlation energy
+     real(gp) :: evxc    =0.0_gp !< Energy from the exchange-correlation potential
      real(gp) :: eion    =0.0_gp !< Ion-Ion interaction
      real(gp) :: edisp   =0.0_gp !< Dispersion force
      real(gp) :: ekin    =0.0_gp !< Kinetic term
@@ -513,7 +520,7 @@ module module_types
      type(mpi_environment) :: mpi_env
   end type denspot_distribution
 
-!>   Structures of basis of gaussian functions of the form exp(-a*r2)cos/sin(b*r2)
+  !> Structures of basis of gaussian functions of the form exp(-a*r2)cos/sin(b*r2)
   type, public :: gaussian_basis_c
      integer :: nat,ncoeff,nshltot,nexpo
      integer, dimension(:), pointer :: nshell,ndoc,nam
@@ -1837,10 +1844,11 @@ subroutine nullify_coulomb_operator(coul_op)
   nullify(coul_op%kernel)
 end subroutine nullify_coulomb_operator
 
+
 subroutine copy_coulomb_operator(coul1,coul2,subname)
   implicit none
-  type(coulomb_operator),intent(in)::coul1
-  type(coulomb_operator),intent(out)::coul2
+  type(coulomb_operator),intent(in) :: coul1
+  type(coulomb_operator),intent(inout) :: coul2
   character(len=*), intent(in) :: subname
   !local variables
   integer :: i_all,i_stat
@@ -1872,9 +1880,10 @@ subroutine copy_coulomb_operator(coul1,coul2,subname)
 
 end subroutine copy_coulomb_operator
 
+
 subroutine deallocate_coulomb_operator(coul_op,subname)
   implicit none
-  type(coulomb_operator),intent(out)::coul_op
+  type(coulomb_operator),intent(inout) :: coul_op
   character(len=*), intent(in) :: subname
   !local variables
   integer :: i_all,i_stat
@@ -2013,6 +2022,7 @@ END SUBROUTINE nullify_global_output
 
 subroutine init_global_output(outs, nat)
   use module_base
+  use dynamic_memory
   implicit none
   type(DFT_global_output), intent(out) :: outs
   integer, intent(in) :: nat
@@ -2025,6 +2035,7 @@ END SUBROUTINE init_global_output
 
 subroutine deallocate_global_output(outs, fxyz)
   use module_base
+  use dynamic_memory
   implicit none
   type(DFT_global_output), intent(inout) :: outs
   real(gp), intent(out), optional :: fxyz
@@ -2458,6 +2469,8 @@ end subroutine find_category
     call dict_free(dict)
   END SUBROUTINE input_set_bool_array
 
+  
+  !> Set the dictionary from the input variables
   subroutine input_set_dict(in, level, val)
     use dictionaries, only: dictionary, operator(//), assignment(=)
     use dictionaries, only: dict_key, max_field_length, dict_value, dict_len
@@ -2597,6 +2610,8 @@ end subroutine find_category
           GPUblas = val !!@TODO to relocate
        case (PSP_ONFLY)
           DistProjApply = val
+       case (MULTIPOLE_PRESERVING)
+          in%multipole_preserving = val
        case (IG_DIAG)
           in%orthpar%directDiag = val
        case (IG_NORBP)

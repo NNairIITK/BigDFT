@@ -280,7 +280,16 @@ END SUBROUTINE ext_buffers_coarse
 module internal_io
   implicit none
 
+  private
+
+  public :: io_error, io_warning, io_open
+  public :: io_read_descr, read_psi_compress
+  public :: io_gcoordToLocreg
+  public :: read_psig
+
 contains
+
+
   subroutine io_error(error)
     use module_defs
 
@@ -293,6 +302,7 @@ contains
     call MPI_ABORT(bigdft_mpi%mpi_comm, ierr)
   END SUBROUTINE io_error
 
+
   subroutine io_warning(error)
     use module_defs
 
@@ -303,6 +313,8 @@ contains
     write(0,"(2A)") "WARNING! ", trim(error)
   END SUBROUTINE io_warning
 
+
+  !> Read the input/output descriptors (for a wavefunction for instance)
   subroutine io_read_descr(unitwf, formatted, iorb_old, eval, n1_old, n2_old, n3_old, &
        & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, nat)
     use module_base
@@ -556,6 +568,7 @@ contains
     lstat = .true.
   END SUBROUTINE read_psi_compress
 
+
   subroutine read_psig(unitwf, formatted, nvctr_c, nvctr_f, n1, n2, n3, psig, lstat, error)
     use module_base
     use module_types
@@ -626,6 +639,7 @@ contains
 END MODULE internal_io
 
 
+!> Read one wavefunction
 subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
      & hx,hy,hz,at,wfd,rxyz_old,rxyz,psi,eval,psifscf)
   use module_base
@@ -737,6 +751,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
 
 END SUBROUTINE readonewave
 
+
 subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
      & n1, n2, n3, nspinor, psiscf)
   use module_base
@@ -769,6 +784,7 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
   ! We open the Fortran file
   call io_open(unitwf, filename, formatted)
   if (unitwf < 0) then
+     call f_release_routine()
      return
   end if
 
@@ -777,12 +793,14 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
        & hx, hy, hz, lstat, error, lr%wfd%nvctr_c, lr%wfd%nvctr_f)
   if (.not. lstat) then
      call io_warning(trim(error))
+     call f_release_routine()
      return
   end if
   ! Do a magic here with the filenames...
   call readwavedescr(lstat, filename, iorb, ispin, ikpt, ispinor, nspinor, fileRI)
   if (.not. lstat) then
      call io_warning("cannot read wave ids from filename.")
+     call f_release_routine()
      return
   end if
 
@@ -870,21 +888,17 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
 contains
 
   subroutine deallocate_local()
+    implicit none
     character(len = *), parameter :: subname = "readwavetoisf"
 
     ! We close the file.
     close(unit=unitwf)
 
-    if (allocated(psi)) then
-       call f_free(psi)
-    end if
-
-    if (allocated(gcoord_c)) then
-       call f_free(gcoord_c)
-    end if
-    if (allocated(gcoord_f)) then
-       call f_free(gcoord_f)
-    end if
+    !allocation status of a allocatable array is undefined, cannot do that
+    !as we do not have any way to deallocate an array
+    call f_free(psi)
+    call f_free(gcoord_c)
+    call f_free(gcoord_f)
 
     if (associated(w%x_c)) then
        call deallocate_work_arrays_sumrho(w)

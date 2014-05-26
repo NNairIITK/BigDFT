@@ -3,7 +3,7 @@ SUBDIRS = fft \
 	OP2P \
 	psp \
 	IO-wf \
-	wrappers \ 
+	wrappers \
     overlapgeneral
 
 if USE_BLACS

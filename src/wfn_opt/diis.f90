@@ -451,7 +451,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
      & n1,n2,n3,ucvol,rpnrm,nscatterarr)
   use module_base
   use module_types
-  use defs_basis, only: AB6_NO_ERROR
+  use defs_basis, only: AB7_NO_ERROR
   use m_ab7_mixing
   implicit none
   integer, intent(in) :: npoints, istep, n1, n2, n3, nproc, iproc
@@ -491,7 +491,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   call ab7_mixing_eval(mix, rhopot, istep, n1 * n2 * n3, ucvol, &
        & bigdft_mpi%mpi_comm, (nproc > 1), ierr, errmess, resnrm = rpnrm, &
        & fnrm = fnrm_denpot, fdot = fdot_denpot, user_data = user_data)
-  if (ierr /= AB6_NO_ERROR) then
+  if (ierr /= AB7_NO_ERROR) then
      if (iproc == 0) write(0,*) errmess
      call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
   end if

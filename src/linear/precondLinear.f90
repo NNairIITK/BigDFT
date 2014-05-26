@@ -45,9 +45,9 @@ subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
    type(workarrays_quartic_convolutions):: work_conv
 
   !arrays for the CG procedure
-  b = f_malloc(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug,id='b')
-  r = f_malloc(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug,id='r')
-  d = f_malloc(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug,id='d')
+  b = f_malloc(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),id='b')
+  r = f_malloc(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),id='r')
+  d = f_malloc(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),id='d')
 
   call allocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,lr%d,w)
 

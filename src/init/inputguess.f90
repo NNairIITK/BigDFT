@@ -6,8 +6,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-
-
 !> Generate the input guess via the inguess_generator
 subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
       &   orbs,orbse,norbsc_arr,locrad,G,psigau,eks,iversion,mapping,quartic_prefactor)
@@ -35,17 +33,13 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    !n(c) integer, parameter :: ngx=31
    integer :: norbe,norbme,norbyou,i_stat,i_all,norbsc,nvirte,ikpt
    integer :: ispin,jproc,ist,jpst,nspinorfororbse,noncoll
-   logical, dimension(:,:,:), allocatable :: scorb
    integer, dimension(:), allocatable :: iorbtolr
-
-
-   scorb = f_malloc((/ 4, 2, at%natsc /),id='scorb')
 
    !Generate the input guess via the inguess_generator
    !here we should allocate the gaussian basis descriptors 
    !the prescriptions can be found in the creation of psp basis
    call readAtomicOrbitals(at,norbe,norbsc,nspin,orbs%nspinor,&
-      &   scorb,norbsc_arr,locrad)
+        norbsc_arr,locrad)
 
    !in the non-collinear case the number of orbitals double
    if (orbs%nspinor == 4) then
@@ -140,27 +134,26 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    if (present(mapping)) then
        ! this will be use for the linear scaling part
        if(present(quartic_prefactor)) then
-           call AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,scorb,G,&
+           call AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,G,&
                 psigau(1,1,min(orbse%isorb+1,orbse%norb)),&
                 iorbtolr,mapping,quartic_prefactor)
        else
-           call AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,scorb,G,&
+           call AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,G,&
                 psigau(1,1,min(orbse%isorb+1,orbse%norb)),&
                 iorbtolr,mapping)
        end if
    else
-       call AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,scorb,G,&
+       call AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,G,&
             psigau(1,1,min(orbse%isorb+1,orbse%norb)),iorbtolr)
    end if
 
-   call f_free(scorb)
    call f_free(iorbtolr)
 
 
 END SUBROUTINE inputguess_gaussian_orbitals
 
 !> Read atomic orbitals
-subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,locrad)
+subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,norbsc_arr,locrad)
    use module_base, only: gp
    use ao_inguess, only: atomic_info,ao_nspin_ig,count_atomic_shells
    use module_types
@@ -169,12 +162,12 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
    integer, intent(in) :: nspin,nspinor
    integer, intent(out) :: norbe,norbsc
    type(atoms_data), intent(in) :: at
-   logical, dimension(4,2,at%natsc), intent(out) :: scorb
+   !logical, dimension(4,2,at%natsc), intent(out) :: scorb
    integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
    real(gp), dimension(at%astruct%nat), intent(out) :: locrad
    !local variables
    !n(c) character(len=*), parameter :: subname='readAtomicOrbitals'
-   integer, parameter :: lmax=3,noccmax=2,nelecmax=32
+   !integer, parameter :: lmax=3,noccmax=2,nelecmax=32
    character(len=2) :: symbol
    integer :: ity,i,iatsc,iat,lsc
    integer :: nsccode!,mxpl,mxchg
@@ -182,20 +175,20 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
    real(gp) :: ehomo!rcov,rprb,ehomo,amu
    !integer, dimension(nmax,lmax+1) :: neleconf
    !real(kind=8), dimension(nmax,lmax+1) :: neleconf
-   integer, dimension(lmax+1) :: nl
-   real(gp), dimension(noccmax,lmax+1) :: occup
+   !integer, dimension(lmax+1) :: nl
+   !real(gp), dimension(noccmax,lmax+1) :: occup
 
    ! number of orbitals, total and semicore
    norbe=0
    norbsc=0
    iatsc=0
-   scorb(:,:,:)=.false.
+   !scorb(:,:,:)=.false.
    do iat=1,at%astruct%nat
       ity=at%astruct%iatype(iat)
-      call count_atomic_shells(ao_nspin_ig(nspin,nspinor=nspinor),&
-           at%aoig(iat)%aocc,occup,nl)
+      !call count_atomic_shells(ao_nspin_ig(nspin,nspinor=nspinor),&
+      !     at%aoig(iat)%aocc,occup,nl)
 
-      norbat=(nl(1)+3*nl(2)+5*nl(3)+7*nl(4))
+      norbat=at%aoig(iat)%nao!(nl(1)+3*nl(2)+5*nl(3)+7*nl(4))
 
       norbe=norbe+norbat
       !print *,'iat',iat,l,norbe,norbat,nl(:)
@@ -205,29 +198,37 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
       call atomic_info(at%nzatom(ity),at%nelpsp(ity),ehomo=ehomo)
 
       locrad(iat)=5._gp/sqrt(abs(2._gp*ehomo))
-      nsccode=at%aoig(iat)%iasctype
-      if (nsccode/=0) then !the atom has some semicore orbitals
+      !count the number of semicore orbitals we have for this atom
+      iorbsc_count=at%aoig(iat)%nao_sc
+      if (iorbsc_count /= 0) then
          iatsc=iatsc+1
-         niasc=nsccode
-         !count the semicore orbitals for this atom
-         iorbsc_count=0
-         do lsc=4,1,-1
-            nlsc=niasc/4**(lsc-1)
-            iorbsc_count=iorbsc_count+nlsc*(2*lsc-1)
-            if (nlsc > 2) then
-               write(*,*)'ERROR, atom:',iat,&
-                  &   ': cannot admit more than two semicore shells per channel',nlsc
-               stop
-            end if
-            do i=1,nlsc
-               scorb(lsc,i,iatsc)=.true.
-            end do
-            niasc=niasc-nlsc*4**(lsc-1)
-         end do
          norbsc_arr(iatsc,1)=iorbsc_count
          norbsc=norbsc+iorbsc_count
-         !if (iproc == 0) write(*,*) iat,nsccode,iorbsc_count,norbsc,scorb(:,:,iatsc)
       end if
+
+!!$      nsccode=at%aoig(iat)%iasctype
+!!$      if (nsccode/=0) then !the atom has some semicore orbitals
+!!$         iatsc=iatsc+1
+!!$         niasc=nsccode
+!!$         !count the semicore orbitals for this atom
+!!$         iorbsc_count=0
+!!$         do lsc=4,1,-1
+!!$            nlsc=niasc/4**(lsc-1)
+!!$            iorbsc_count=iorbsc_count+nlsc*(2*lsc-1)
+!!$            if (nlsc > 2) then
+!!$               write(*,*)'ERROR, atom:',iat,&
+!!$                  &   ': cannot admit more than two semicore shells per channel',nlsc
+!!$               stop
+!!$            end if
+!!$            do i=1,nlsc
+!!$               scorb(lsc,i,iatsc)=.true.
+!!$            end do
+!!$            niasc=niasc-nlsc*4**(lsc-1)
+!!$         end do
+!!$         norbsc_arr(iatsc,1)=iorbsc_count
+!!$         norbsc=norbsc+iorbsc_count
+!!$         !if (iproc == 0) write(*,*) iat,nsccode,iorbsc_count,norbsc,scorb(:,:,iatsc)
+!!$      end if
 
    end do
 
@@ -243,9 +244,10 @@ END SUBROUTINE readAtomicOrbitals
 
 !> Generate atomic orbitals
 subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
-      &   nspin,eks,scorb,G,gaucoeff,iorbtolr,mapping,quartic_prefactor)
+      &   nspin,eks,G,gaucoeff,iorbtolr,mapping,quartic_prefactor)
    use module_base
-   use ao_inguess, only: iguess_generator,print_eleconf,ao_nspin_ig,count_atomic_shells
+   use ao_inguess, only: iguess_generator,print_eleconf,ao_nspin_ig,count_atomic_shells,&
+        nmax_occ => nmax_occ_ao
    use module_types
    use module_interfaces, except_this_one => AtomicOrbitals
    use yaml_output
@@ -253,7 +255,6 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    integer, intent(in) :: norbe,iproc
    integer, intent(in) :: norbsc,nspin
    type(atoms_data), intent(in) :: at
-   logical, dimension(4,2,at%natsc), intent(in) :: scorb
    real(gp), dimension(3,at%astruct%nat), intent(in), target :: rxyz
    type(orbitals_data), intent(inout) :: orbse
    type(gaussian_basis), intent(out) :: G
@@ -264,7 +265,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    real(gp),dimension(at%astruct%ntypes),intent(in),optional:: quartic_prefactor
    !local variables
    character(len=*), parameter :: subname= 'AtomicOrbitals'
-   integer, parameter :: noccmax=2,lmax=4,nelecmax=32,nmax_occ=10!actually is 24
+   !integer, parameter :: noccmax=2,lmax=4,nelecmax=32,nmax_occ=10!actually is 24
    !integer, parameter :: nterm_max=3,nmax=7
    logical :: orbpol_nc,occeq
    integer :: iatsc,i_all,i_stat,ispin,nsccode,iexpo,ishltmp,ngv,ngc,islcc,iiorb,jjorb
@@ -272,10 +273,10 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    integer :: noncoll,ig,ispinor,icoll,ikpts,ikorb,nlo,ntypesx,ityx,jat,ng,nspin_print
    real(gp) :: ek,mx,my,mz,ma,mb,mc,md
    real(gp) :: mnorm,fac
-   logical, dimension(lmax,noccmax) :: semicore
+   !logical, dimension(lmax,noccmax) :: semicore
    integer, dimension(2) :: iorbsc,iorbv
-   integer, dimension(lmax) :: nl
-   real(gp), dimension(noccmax,lmax) :: occup
+   !integer, dimension(lmax) :: nl
+   !real(gp), dimension(noccmax,lmax) :: occup
    integer, dimension(:), allocatable :: iatypex
    real(gp), dimension(:), allocatable :: psiatn
    real(gp), dimension(:,:), allocatable :: atmoments,xp
@@ -312,18 +313,18 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    count_shells: do iat=1,at%astruct%nat
       !print *,'atom,aocc',iat,at%aocc(1:nelecmax,iat)
       ity=at%astruct%iatype(iat)
-      call count_atomic_shells(nspin_print,at%aoig(iat)%aocc,occup,nl)
-      G%nshell(iat)=(nl(1)+nl(2)+nl(3)+nl(4))
+      !call count_atomic_shells(nspin_print,at%aoig(iat)%aocc,occup,nl)
+      G%nshell(iat)=sum(at%aoig(iat)%nl)!(nl(1)+nl(2)+nl(3)+nl(4))
       G%nshltot=G%nshltot+G%nshell(iat)
       !check the occupation numbers and the atoms type
       !once you find something equal exit the procedure
       do jat=1,iat-1
          if (at%astruct%iatype(jat) == ity) then
-            occeq=.true.
-            do i=1,nelecmax
-               occeq = occeq .and. &
-                    (at%aoig(jat)%aocc(i) == at%aoig(iat)%aocc(i))
-            end do
+            occeq=all(at%aoig(jat)%aocc == at%aoig(iat)%aocc)
+!!$            do i=1,nelecmax
+!!$               occeq = occeq .and. &
+!!$                    (at%aoig(jat)%aocc(i) == at%aoig(iat)%aocc(i))
+!!$            end do
             !have found another similar atoms
             if (occeq) then
                iatypex(iat)=iatypex(jat)
@@ -366,14 +367,14 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       ity=at%astruct%iatype(iat)
       ityx=iatypex(iat)
       ishltmp=0
-      call count_atomic_shells(nspin_print,at%aoig(iat)%aocc,occup,nl)
+      !call count_atomic_shells(nspin_print,at%aoig(iat)%aocc,occup,nl)
       if (ityx > ntypesx) then
          if (iproc == 0 .and. verbose > 1) then
             call yaml_sequence(advance='no')
             call yaml_open_map(flow=.true.)
             call yaml_map('Atom Type',trim(at%astruct%atomnames(ity)))
             call print_eleconf(nspin_print,&
-                 at%aoig(iat)%aocc,at%aoig(iat)%iasctype)
+                 at%aoig(iat)%aocc,at%aoig(iat)%nl_sc)
          end if
 
          !positions for the nlcc arrays
@@ -402,7 +403,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       end if
 
       do l=1,4
-         do i=1,nl(l)
+         do i=1,at%aoig(iat)%nl(l-1)
             ishell=ishell+1
             ishltmp=ishltmp+1
             G%ndoc(ishell)=ng!(ity)
@@ -475,24 +476,24 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
 
       ity=at%astruct%iatype(iat)
       ityx=iatypex(iat)
-      call count_atomic_shells(nspin_print,at%aoig(iat)%aocc,occup,nl)
-
-      nsccode=at%aoig(iat)%iasctype
+      !call count_atomic_shells(nspin_print,at%aoig(iat)%aocc,occup,nl)
 
       !the scorb array was already corrected in readAtomicOrbitals routine
-      if (nsccode/=0) then !the atom has some semicore orbitals
+      !nsccode=at%aoig(iat)%iasctype
+      !if (nsccode/=0) then !the atom has some semicore orbitals
+      if (at%aoig(iat)%nao_sc/=0) then !the atom has some semicore orbitals
          iatsc=iatsc+1
-         semicore(:,:)=scorb(:,:,iatsc)
+!!$         semicore(:,:)=scorb(:,:,iatsc)
       else
-         semicore(:,:)=.false.
+!!$         semicore(:,:)=.false.
       end if
 
       !calculate the atomic input orbitals
       ictot=0
       ictotpsi=0
-      nctot=(nl(1)+nl(2)+nl(3)+nl(4))
+      nctot=sum(at%aoig(iat)%nl)!(nl(1)+nl(2)+nl(3)+nl(4))
       if (iorbsc(1)+nctot > norbe .and. iorbv(1)+nctot > norbe) then
-         print *,'transgpw occupe',nl(:),norbe
+         print *,'transgpw occupe',at%aoig(iat)%nl,norbe
          stop
       end if
       iocc=0
@@ -513,9 +514,12 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
             end do
 
             do ispin=1,nspin
+               !in the new language the semicore orbitals 
+               !should be  if (inl <= nsc(l))
                !the order of the orbitals (iorb,jorb) must put in the beginning
                !the semicore orbitals
-               if (semicore(l,inl)) then
+               !if (semicore(l,inl)) then
+               if (inl <= at%aoig(iat)%nl_sc(l-1)) then
                   !the orbital is semi-core
                   iorb=iorbsc(ispin)
                else
@@ -658,7 +662,8 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
                   end do
                   icoeff=icoeff+1
                end do
-               if (semicore(l,inl)) then
+               !if (semicore(l,inl)) then
+               if (inl <= at%aoig(iat)%nl_sc(l-1)) then
                   !increase semicore orbitals
                   iorbsc(ispin)=iorb
                else
@@ -1867,107 +1872,6 @@ else
 end if
 
 END SUBROUTINE write_fraction_string
-
-
-!> Read the electronic configuration, with the semicore orbitals
-subroutine read_eleconf(string,noccmax,nelecmax,lmax,aocc,nsccode,ndeg)
-   use module_base
-   use module_input
-   implicit none
-   character(len=1024), intent(inout) :: string
-   integer, intent(in) :: nelecmax,noccmax,lmax
-   integer, intent(out) :: nsccode, ndeg
-   real(gp), dimension(nelecmax), intent(out) :: aocc
-   !local variables
-   character(len=20), dimension(2*(2*lmax-1)) :: tmp
-   integer :: i,m,iocc,icoll,inl,l,ispin,is,lsc,j,ist,ierror,nvals
-   logical, dimension(4,2) :: scorb
-   integer, dimension(lmax) :: nl,nlsc
-   real(gp), dimension(2*(2*lmax-1),noccmax,lmax) :: allocc
-
-   !first substitute all the slashes with : to ease the parsing
-   do i=1,1024
-      if (string(i:i) == '/') then
-         string(i:i) = ':'
-      end if
-   end do
-
-   nl(:)=0
-   nlsc(:)=0
-   scorb(:,:)=.false.
-   ndeg = UNINITIALIZED(ndeg)
-   !inspect the string for the number of angular momentum
-   do is=1,1024
-      select case(string(is:is))
-      case('s')
-         l=1
-      case('p')
-         l=2
-      case('d')
-         l=3
-      case('f')
-         l=4
-      case default
-         cycle
-      end select
-      nl(l)=nl(l)+1
-      ist=is+1 ! start reading address
-      !check whether the orbital is semicore
-      if (is > 1) then
-         if (string(is-1:is-1) == '[' .and. string(is+1:is+1) == ']') then
-            nlsc(l)=nlsc(l)+1
-            if (nlsc(l) > 2) stop 'cannot admit more than two semicore orbitals per channel'
-            scorb(l,nlsc(l))=.true.
-            ist=is+2
-         end if
-      end if
-      !read the different atomic occupation numbers
-      nvals = 2*(2*l-1)
-      read(string(ist:1024),*,iostat=ierror)(tmp(j),j=1,nvals)
-      if (ierror /= 0 .or. verify(tmp(2*l), " 0123456789./") /= 0) then
-         nvals = (2*l-1)
-         read(string(ist:1024),*,iostat=ierror)(tmp(j),j=1,nvals)
-         if (ierror /= 0) then
-            write(*,*) 'Line:',string
-            write(*,*) 'An error occured while reading the electronic configuration. Check the correct spin value'
-            stop
-         end if
-      end if
-      do j=1,nvals
-         call read_fraction_string_old(l,tmp(j),allocc(j,nl(l),l))
-      end do
-      if (ndeg == UNINITIALIZED(ndeg)) then
-         ndeg = nvals / (2*l-1)
-      else if (ndeg /= nvals / (2*l-1)) then
-         write(*,*) 'Line:',string
-         write(*,*) 'Inconsistency between shells for spin degeneracy. Check the correct spin value'
-         stop
-      end if
-   end do
-
-   !put the values in the aocc array
-   aocc(:)=0.0_gp
-   iocc=0
-   do l=1,lmax
-      iocc=iocc+1
-      aocc(iocc)=real(nl(l),gp)
-      do inl=1,nl(l)
-         do m=1,ndeg * (2*l-1), 1
-            iocc=iocc+1
-            aocc(iocc)=allocc(m,inl,l)
-         end do
-      end do
-   end do
-
-   !then calculate the nsccode
-   nsccode=0
-   do lsc=1,4
-      do i=1,nlsc(lsc)
-         nsccode=nsccode+4**(lsc-1)
-      end do
-   end do
-
-END SUBROUTINE read_eleconf
 
 
 !!$!> Print the electronic configuration, with the semicore orbitals

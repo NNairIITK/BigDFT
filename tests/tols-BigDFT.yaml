@@ -33,6 +33,8 @@ Keys to ignore:
  - Number of dictionary folders allocated
  - Maximum size of masking arrays for a projector
  - Cumulative size of masking arrays
+ - Dictionary for lin
+ - Raw version
 Patterns to ignore:
  - Timestamp
  - memory
@@ -50,6 +52,7 @@ yaml_test:
    - Address*
    - date
    - Id
+   - Summary
  Patterns to ignore:
    - errcode
    - time
@@ -90,15 +93,17 @@ AgBulk:
   - Calculating wavelets expansion of projectors, found warnings
 
 SiBulk:
+ Wavefunctions Iterations: 1.1e-10
  Residues per orbital: 8.0e-10
- maxval: 1.2e-11
- Ekin: 2.1e-11
- Enl: 2.9e-11
- Epot: 1.0e-10
- EvXC: 1.1e-10
- Atomic Forces (Ha/Bohr): 1.5e-11
- Clean forces norm (Ha/Bohr): 1.2e-11
- Average noise forces: 1.85e-11
+ maxval: 1.3e-10
+ # Ekin: 2.1e-11
+ # Enl: 5.1e-11
+ # Epot: 1.0e-10
+ # EvXC: 1.1e-10
+ Atomic Forces (Ha/Bohr): 1.3e-10
+ Clean forces norm (Ha/Bohr): 8.3e-11
+ Average noise forces: 2.4e-11
+ Optimization of virtual orbitals: 7.71e-9
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
   - Residues per orbital
@@ -119,7 +124,9 @@ GPU:
  EvXC: 1.1e-10
 
 Graphene:
+ Input Hamiltonian: 1.1e-10
  EH: 1.1e-10
+ Epot: 1.0e-10
 
 TiMix:
  Epsilon: 1.e-10
@@ -164,6 +171,7 @@ scalability:
  Energies: 1.e-9
  EKS: 2.0e-10
  Total electronic charge: 1.9e-11
+ Expected kinetic energy: 1.1e-10
 
 ElecField:
  Epsilon: 1.1e-10 
@@ -299,12 +307,12 @@ Davidson-SiH4:
 
 TDDFT:
   Epsilon: 1.1e-10
-  e_virtual: 5.6e-8
-  Eigenvalues and eigenstate residue: 5.0e-6
+  e_virtual: 1.2e-7
+  Eigenvalues and eigenstate residue: 1.2e-5
   Epot: 1.1e-10
-  Gradient Norm: 2.0e-8
+  Gradient Norm: 4.0e-8
   L2 Norm - 1 and Rayleigh quotient (Davidson): 1.1e-6
-  Excitation Energy and Oscillator Strength: 1.7e-6
+  Excitation Energy and Oscillator Strength: 1.9e-6
   Transition energies (eV): 1.1e-4
 
 BigDFT2Wannier.b2w.ref.yaml:
@@ -369,6 +377,7 @@ H2-freq: &freq
  (F) Frequencies (Hartree): 5.e-10
  D: 1.e-10
  EKS: 2.e-11
+ (F) Vibrational entropy =: 1.1e-8
 
 C6H6-freq: *freq
 
@@ -557,7 +566,7 @@ geopt_diag:
  EH: 1.1e-10
  D: 1.0e-10
  D eF: 1.1e-10
- eF: 1.1e-10
+ eF: 1.0e-10
 
 water_foe:
  EvXC: 1.1e-10
@@ -668,10 +677,15 @@ foe:
  diff: 7.1e-8
 
 onlyhigh:
- EH: 1.1e-10
- Epot: 1.1e-10
- energy: 1.82e-11
- Omega: 1.82e-11
+ Energies: 2.1e-9
+ energy: 3.1e-10
+ Omega: 8.0e-10
+ Orbitals: 1.1e-9
+ Pulay Forces (Ha/Bohr): 1.4e-10
+ Atomic Forces (Ha/Bohr): 1.2e-10
+ fnrm2: 1.3e-11
+ Average noise forces: 4.1e-10
+ maxval: 1.3e-10
 
 rotatesmall_read1:
  Epsilon: 1.1e-11
@@ -726,6 +740,7 @@ experimentalfoe_long:
  delta out: 1.1e-10
  ebs_check: 2.1e-9
  diff: 1.3e-8
+ ebs: 6.0e-10
  decay length of error function: 1.1e-5
  ebs: 2.1e-9
 
@@ -840,21 +855,23 @@ explicit_locregcenters:
  EH: 1.1e-9
 
 intermediateforces:
- Atomic Forces (Ha/Bohr): 1.3e-6
- Average noise forces: 1.6e-6
+ Atomic Forces (Ha/Bohr): 4.9e-7
+ Average noise forces: 3.5e-7
  Clean forces norm (Ha/Bohr): 1.5e-6
  Raw forces norm (Ha/Bohr): 1.7e-6
  e: 1.6e-6
  energy: 2.8e-7
- Omega: 5.5e-7
+ Omega: 1.3e-8
  EXC: 1.6e-6
  EvXC: 1.1e-6
  EH: 6.9e-7
  Ekin: 2.1e-9
  Enl: 1.6e-6
- Epot: 5.5e-7
+ Epot: 8.97e-8
  multiplicator for the confinement: 1.6e-11
  D: 4.6e-7
+ maxval: 4.2e-7
+ fnrm2: 3.2e-7
 
 DIIShistory:
  Atomic Forces (Ha/Bohr): 1.9e-9

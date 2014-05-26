@@ -32,13 +32,13 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   !eTS value, updated in evaltocc
   orbs%eTS=0.0_gp
 
-  orbs%norb_par = f_malloc_ptr((/ 0.to.nproc-1 , 0.to.nkpt+ndebug /),id='orbs%norb_par')
+  orbs%norb_par = f_malloc_ptr((/ 0.to.nproc-1 , 0.to.nkpt /),id='orbs%norb_par')
 
   !assign the value of the k-points
   orbs%nkpts=nkpt
   !allocate vectors related to k-points
-  orbs%kpts = f_malloc_ptr( (/3 , orbs%nkpts+ndebug /),id='orbs%kpts')
-  orbs%kwgts = f_malloc_ptr(orbs%nkpts+ndebug,id='orbs%kwgts')
+  orbs%kpts = f_malloc_ptr( (/3 , orbs%nkpts/),id='orbs%kpts')
+  orbs%kwgts = f_malloc_ptr(orbs%nkpts,id='orbs%kwgts')
   orbs%kpts(:,1:nkpt) = kpt(:,:)
   orbs%kwgts(1:nkpt) = wkpt(:)
 
@@ -153,7 +153,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
           orbs%norbp,orbs%isorb)
   end if
 
-  orbs%iokpt = f_malloc_ptr(orbs%norbp+ndebug,id='orbs%iokpt')
+  orbs%iokpt = f_malloc_ptr(orbs%norbp,id='orbs%iokpt')
 
   !assign the k-point to the given orbital, counting one orbital after each other
   jorb=0
@@ -168,8 +168,8 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
 
   !allocate occupation number and spinsign
   !fill them in normal way
-  orbs%occup = f_malloc_ptr(orbs%norb*orbs%nkpts+ndebug,id='orbs%occup')
-  orbs%spinsgn = f_malloc_ptr(orbs%norb*orbs%nkpts+ndebug,id='orbs%spinsgn')
+  orbs%occup = f_malloc_ptr(orbs%norb*orbs%nkpts,id='orbs%occup')
+  orbs%spinsgn = f_malloc_ptr(orbs%norb*orbs%nkpts,id='orbs%spinsgn')
   orbs%occup(1:orbs%norb*orbs%nkpts)=1.0_gp 
   do ikpt=1,orbs%nkpts
      do iorb=1,orbs%norbu
@@ -196,11 +196,11 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   orbs%onwhichatom = 1
 
   !initialize the starting point of the potential for each orbital (to be removed?)
-  orbs%ispot = f_malloc_ptr(orbs%norbp+ndebug,id='orbs%ispot')
+  orbs%ispot = f_malloc_ptr(orbs%norbp,id='orbs%ispot')
 
 
   !allocate the array which assign the k-point to processor in transposed version
-  orbs%ikptproc = f_malloc_ptr(orbs%nkpts+ndebug,id='orbs%ikptproc')
+  orbs%ikptproc = f_malloc_ptr(orbs%nkpts,id='orbs%ikptproc')
 
   ! Define two new arrays:
   ! - orbs%isorb_par is the same as orbs%isorb, but every process also knows
@@ -326,6 +326,7 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
   use module_base
   use module_input
   use yaml_output
+  use yaml_strings, only: read_fraction_string
   implicit none
   ! Arguments
   logical, intent(in) :: verb

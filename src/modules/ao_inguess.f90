@@ -12,33 +12,40 @@
 !> Handling of input guess creation from basis of atomic orbitals
 module ao_inguess
   use module_base, only: gp,f_err_raise,ndebug,to_zero,f_err_throw,bigdft_mpi
+  use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
 
   implicit none
 
   private
 
-  integer, parameter :: nmax_ao=7 !<maximum allowed value of principal quantum number for the electron configuration
-  integer, parameter :: lmax_ao=3 !<maximum value of the angular momentum for the electron configuration
-  integer, parameter :: nelecmax_ao=32 !<size of the interesting values of the compressed atomic input polarization
-  integer, parameter :: noccmax_ao=2 !<maximum number of the occupied input guess orbitals for a given shell
-  integer, parameter :: nmax_occ_ao=10 !<maximum number of total occupied orbitals for generating the ig functions
+  integer, parameter :: nmax_ao=7              !< Maximum allowed value of principal quantum number for the electron configuration
+  integer, parameter :: lmax_ao=3              !< Maximum value of the angular momentum for the electron configuration
+  integer, parameter :: nelecmax_ao=32         !< Size of the interesting values of the compressed atomic input polarization
+  integer, parameter :: noccmax_ao=3           !< Maximum number of the occupied input guess orbitals for a given shell
+  integer, parameter, public :: nmax_occ_ao=10 !< Maximum number of total occupied orbitals for generating the ig functions
 
-  private:: nmax_ao,lmax_ao,nelecmax_ao,noccmax_ao,at_occnums,spin_variables
+  private :: nmax_ao,lmax_ao,nelecmax_ao,noccmax_ao,at_occnums,spin_variables
 
   !>parameters of the input guess atomic orbitals, to be continued
   type, public :: aoig_data
-     integer :: iasctype !<code associated to the semicore orbitals of the atom
-                         ! The integer is the n_s + 4*n_p + 16* n_d + 64* n_f
-                         !! where n_l are the number of semicore orbitals for a given angular momentum
-                         !! starting from the lower principal quantum number of course
-     integer :: nao      !< number of atomic orbitals, counting the total number of shells with nonzero occupation
+!!$     !> code associated to the semicore orbitals of the atom
+!!$     !! The integer is the n_s + 4*n_p + 16* n_d + 64* n_f
+!!$     !! where n_l are the number of semicore orbitals for a given angular momentum
+!!$     !! starting from the lower principal quantum number of course
+!!$     integer :: iasctype 
+     !> number of atomic orbitals, counting the total number of shells with nonzero occupation
+     integer :: nao      
+     !> number of atomic orbitals which have to be considered as semicore orbitals
+     integer :: nao_sc
      integer, dimension(0:lmax_ao) :: nl !< number of orbitals in each of the shells
+     integer, dimension(0:lmax_ao) :: nl_sc !< number of semicore orbitals in each of the shells
      real(gp), dimension(nelecmax_ao) :: aocc !< compressed information of the occupation numbers. 
                                               !! adapted at each run to meet the nspin and nspinor conditions
   end type aoig_data
 
   public :: atomic_info,ao_nspin_ig,iguess_generator,count_atomic_shells,print_eleconf,aoig_set_from_dict
   public :: ao_ig_charge,aoig_set,aoig_data_null
+  public :: set_aocc_from_string
 
 contains
 
@@ -46,9 +53,11 @@ contains
   pure function aoig_data_null() result(aoig)
     implicit none
     type(aoig_data) :: aoig
-    aoig%iasctype=0
+    !aoig%iasctype=0
     aoig%nao=0
+    aoig%nao_sc=0
     aoig%nl=0
+    aoig%nl_sc=0
     aoig%aocc=0
   end function aoig_data_null
 
@@ -101,7 +110,8 @@ contains
   subroutine iguess_generator(izatom,ielpsp,zion,nspin,occupIG,&
        psppar,npspcode,ngv,ngc,nlccpar,ng,&
        expo,psiat,enlargerprb,quartic_prefactor,gaenes_aux)
-    use module_base
+    use yaml_output, only: yaml_toa
+    use dynamic_memory
     implicit none
     logical, intent(in) :: enlargerprb
     integer, intent(in) :: ng,npspcode,ielpsp,izatom,ngv,ngc,nspin
@@ -155,7 +165,9 @@ contains
 
     !this section can be replaced by the creation of the hij matrix in the psp_projectors module
     !assignation of the coefficents for the nondiagonal terms
-    if (npspcode == 2) then !GTH case
+    select case(npspcode)
+
+    case(PSPCODE_GTH) !GTH case
        do l=1,lpx+1
           hsep(1,l)=psppar(l,1)
           hsep(2,l)=0.0_gp
@@ -164,7 +176,8 @@ contains
           hsep(5,l)=0.0_gp
           hsep(6,l)=psppar(l,3)
        end do
-    else if (npspcode == 3) then !HGH case
+
+    case(PSPCODE_HGH) !HGH case
        ofdcoef = f_malloc((/ 3, 4 /),id='ofdcoef')
 
        ofdcoef(1,1)=-0.5_gp*sqrt(3._gp/5._gp) !h2
@@ -193,7 +206,8 @@ contains
           hsep(6,l)=psppar(l,3)
        end do
        call f_free(ofdcoef)
-    else if (npspcode == 10 .or. npspcode == 7 .or. npspcode == 12) then !HGH-K case
+
+    case(PSPCODE_HGH_K,PSPCODE_HGH_K_NLCC,PSPCODE_PAW)
        ! For PAW this is just the initial guess
        do l=1,lpx+1
           hsep(1,l)=psppar(l,1) !h11
@@ -203,7 +217,8 @@ contains
           hsep(5,l)=psppar(l,6) !h23
           hsep(6,l)=psppar(l,3) !h33
        end do
-    end if
+
+    end select
 
     !!Just for extracting the covalent radius and rprb
     call atomic_info(izatom,ielpsp,rcov=rcov,rprb=rprb)
@@ -290,6 +305,11 @@ contains
           end do
        end do
     end do
+    if (i > nmax_occ_ao) then
+       call f_err_throw('The maximum number of occupied orbitals is '//&
+            trim(yaml_toa(nmax_occ_ao))//' whereas attempts have been done to populate'//&
+            trim(yaml_toa(i))//' orbitals',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+    end if
 
     call f_free(vh)
     call f_free(psi)
@@ -300,10 +320,10 @@ contains
 
   END SUBROUTINE iguess_generator
 
-  !> retrieve the information from the atom.
-  !! different information can be obtained according to the usage which is needed
-  subroutine atomic_info(zatom,zion,symbol,elconf,amu,&
-       rcov,rprb,ehomo,nsccode,maxpol,maxchg)
+
+  !> Retrieve the information from the atom.
+  !! Different information can be obtained according to the usage which is needed
+  subroutine atomic_info(zatom,zion,symbol,elconf,amu,rcov,rprb,ehomo,nsccode,maxpol,maxchg)
     use yaml_output, only: yaml_toa
     implicit none
     ! Arguments
@@ -357,6 +377,7 @@ contains
     
   end subroutine atomic_info
 
+
   !> Count the number of atomic shells
   subroutine count_atomic_shells(nspin_in,elecorbs,occup,nl)
     use yaml_output, only: yaml_toa
@@ -378,7 +399,14 @@ contains
     do l=1,lmax_ao+1
        iocc=iocc+1
        nl(l)=nint(elecorbs(iocc))!ceiling(elecorbs(iocc))!
-       if (nl(l) > noccmax_ao) stop 'noccmax too little'
+       if (nl(l) > noccmax_ao) then
+          call f_err_throw('Error in occupying the shells of l='//&
+               trim(yaml_toa(l-1))//'; there cannot be more than '//&
+               trim(yaml_toa(noccmax_ao))//&
+               ' shells with the same angular momentum',&
+               err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+          return
+       end if
        do inl=1,nl(l)!this lose the value of the principal quantum number n
           occup(inl,l)=0.0_gp
           do ispin=1,nspin
@@ -406,8 +434,8 @@ contains
     integer, intent(in) :: nspin       !< Spin description 1:spin averaged, 2:collinear spin, 4:spinorial
     type(aoig_data) :: aoig !< electronic configuration of IG atom
     !local variables
-    integer :: nsccode,mxpl,mxchg,nsp,nspinor
-    integer :: ichg, ispol,inl
+    integer :: mxpl,mxchg,nsp,nspinor
+    integer :: ichg, ispol,inl,nsccode,niasc,nlsc,lsc
     double precision :: elec
     character(len=2) :: symbol
     real(kind=8), dimension(nmax_ao,0:lmax_ao) :: neleconf
@@ -416,7 +444,6 @@ contains
     aoig = aoig_data_null()
     !control the spin
     call spin_variables(nspin,nsp,nspinor)
-
 
     call atomic_info(zatom,zion,elconf=neleconf,nsccode=nsccode,&
          maxpol=mxpl,maxchg=mxchg,symbol=symbol)
@@ -434,18 +461,34 @@ contains
          err_name='BIGDFT_INPUT_VARIABLES_ERROR')) return
 
     ! Fill this atom with default values from eleconf.
-    aoig%iasctype=nsccode
+    !aoig%iasctype=nsccode
     !correct the electronic configuration in case there is a charge
     call correct_semicore(nmax_ao,lmax_ao,ichg,&
-         neleconf,eleconf_,aoig%iasctype)
+         neleconf,eleconf_,nsccode)
     !then compress the information in the occupation numbers
     call at_occnums(ispol,nsp,nspinor,nmax_ao,lmax_ao+1,nelecmax_ao,&
          eleconf_,aoig%aocc,aoig%nl)
+    if (nsccode/=0) then !the atom has some semicore orbitals
+       niasc=nsccode
+       do lsc=lmax_ao,0,-1
+          nlsc=niasc/4**lsc
+          if (nlsc > noccmax_ao) then
+             call f_err_throw('Cannot admit more than '//&
+                  trim(yaml_toa(noccmax_ao))//' semicore shells per channel, '//&
+                  'whilst using '//trim(yaml_toa(nlsc))//' shells',&
+                  err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+          end if
+          niasc=niasc-nlsc*4**lsc
+          aoig%nl_sc(lsc)=nlsc
+       end do
+    end if
 
     !fill the number of orbitals
     aoig%nao=0
+    aoig%nao_sc=0
     do inl=0,lmax_ao
        aoig%nao=aoig%nao+(2*inl+1)*aoig%nl(inl)
+       aoig%nao_sc=aoig%nao_sc+(2*inl+1)*aoig%nl_sc(inl)
     end do
 
     !check if the atomic charge is consistent with the input polarization
@@ -453,9 +496,9 @@ contains
     elec=ao_ig_charge(nspin,aoig%aocc)
     if (nint(elec) /= zion - ichg) then
        if (bigdft_mpi%iproc == 0) &
-            call print_eleconf(nspin,aoig%aocc,aoig%iasctype)
+            call print_eleconf(nspin,aoig%aocc,aoig%nl_sc)
        call f_err_throw('The total atomic charge '//trim(yaml_toa(elec))//&
-            ' is different from the PSP charge '//trim(yaml_toa(aoig%iasctype))//&
+            ' is different from the PSP charge '//trim(yaml_toa(zion))//&
             ' plus the charge '//trim(yaml_toa(-ichg)),&
             err_name='BIGDFT_INPUT_VARIABLES_ERROR')
        return
@@ -464,7 +507,7 @@ contains
 
   !> fill electronic configuration of the atom from the input dictionary
   function aoig_set_from_dict(dict,nspin_in) result(aoig)
-    use module_defs, only: gp, UNINITIALIZED,f_malloc_str,f_free_str,assignment(=)
+    use module_defs, only: gp, UNINITIALIZED
     use dictionaries
     use yaml_output, only: yaml_toa,yaml_map
     implicit none
@@ -517,7 +560,8 @@ contains
        end select
        nl(l) = nl(l) + 1
        if (is == 3) nlsc(l) = nlsc(l) + 1
-       if (f_err_raise(nlsc(l) > 2,'Cannot admit more than two semicore orbitals per channel',&
+       if (f_err_raise(nlsc(l) > noccmax_ao,'Cannot admit more than '//&
+            trim(yaml_toa(noccmax_ao))//' semicore orbitals per channel',&
             err_name='BIGDFT_INPUT_VARIABLES_ERROR')) return
        !determine how to fill the allocc array according to the value
        !dict_tmp=>dict // key
@@ -656,6 +700,7 @@ contains
        iocc=iocc+1
        aoig%aocc(iocc)=real(nl(l),gp)
        aoig%nl(l-1)=nl(l)
+       aoig%nl_sc(l-1)=nlsc(l)
        !print *,'setl',l,aoig%aocc(iocc),iocc
        do inl=1,nmax_ao !this is an information which will disappear
           if (allocc(1, inl, l) == UNINITIALIZED(1._gp)) cycle
@@ -679,48 +724,52 @@ contains
        end do
     end do
 
-    !then calculate the nsccode
-    aoig%iasctype=0
-    do lsc=1,lmax_ao+1
-       aoig%iasctype=aoig%iasctype+nlsc(lsc)*(4**(lsc-1))
-    end do
+!!$    !then calculate the nsccode
+!!$    aoig%iasctype=0
+!!$    do lsc=1,lmax_ao+1
+!!$       aoig%iasctype=aoig%iasctype+nlsc(lsc)*(4**(lsc-1))
+!!$    end do
 
     !fill the number of orbitals
     aoig%nao=0
+    aoig%nao_sc=0
     do inl=0,lmax_ao
        aoig%nao=aoig%nao+(2*inl+1)*aoig%nl(inl)
+       aoig%nao_sc=aoig%nao_sc+(2*inl+1)*aoig%nl_sc(inl)
     end do
 
   end function aoig_set_from_dict
 
 
   !> Print the electronic configuration, with the semicore orbitals
-  subroutine print_eleconf(nspin_in,aocc,nsccode) !noccmax,nelecmax,lmax,
+  subroutine print_eleconf(nspin_in,aocc,nl_sc) !noccmax,nelecmax,lmax,
     use module_base
     use yaml_output
     implicit none
-    integer, intent(in) :: nspin_in,nsccode!,nelecmax,noccmax,lmax
+    integer, intent(in) :: nspin_in!,nelecmax,noccmax,lmax
+    integer, dimension(lmax_ao+1), intent(in) :: nl_sc
     real(gp), dimension(nelecmax_ao), intent(in) :: aocc
+    
     !local variables
     character(len=10) :: tmp
     character(len=500) :: string
     integer :: i,m,iocc,icoll,inl,nspin,noncoll,l,ispin,is,nl,niasc,lsc,nlsc,ntmp,iss
-    logical, dimension(4,2) :: scorb
+    !logical, dimension(4,2) :: scorb
 
     !control the spin
     call spin_variables(nspin_in,nspin=nspin,noncoll=noncoll)
 
-    scorb=.false.
-    if (nsccode/=0) then !the atom has some semicore orbitals
-       niasc=nsccode
-       do lsc=4,1,-1
-          nlsc=niasc/4**(lsc-1)
-          do i=1,nlsc
-             scorb(lsc,i)=.true.
-          end do
-          niasc=niasc-nlsc*4**(lsc-1)
-       end do
-    end if
+!!$    scorb=.false.
+!!$    if (nsccode/=0) then !the atom has some semicore orbitals
+!!$       niasc=nsccode
+!!$       do lsc=4,1,-1
+!!$          nlsc=niasc/4**(lsc-1)
+!!$          do i=1,nlsc
+!!$             scorb(lsc,i)=.true.
+!!$          end do
+!!$          niasc=niasc-nlsc*4**(lsc-1)
+!!$       end do
+!!$    end if
 
     call yaml_open_map('Electronic configuration',flow=.true.)
 
@@ -737,7 +786,8 @@ contains
              !write to the string the angular momentum
              if (inl == i) then
                 iss=is
-                if (scorb(l,inl)) then
+                !if (scorb(l,inl)) then
+                if (inl <= nl_sc(l)) then
                    string(is:is)='('
                    is=is+1
                 end if
@@ -754,7 +804,8 @@ contains
                    stop 'l not admitted'
                 end select
                 is=is+1
-                if (scorb(l,inl)) then
+                !if (scorb(l,inl)) then
+                if (inl <= nl_sc(l)) then
                    string(is:is)=')'
                    is=is+1
                 end if
@@ -920,8 +971,6 @@ contains
        end if
     end if
 
-
-
 !!!  !if the atom has only closed shells we can treat it as semicore atom (commented)
 !!!  isccode=nsccode
 !!!  do l=lmax,0,-1
@@ -1065,6 +1114,138 @@ contains
        end do
     end do
   END SUBROUTINE at_occnums
+
+  !> Read the electronic configuration, with the semicore orbitals
+  subroutine set_aocc_from_string(string_in,aocc,nl_sc,ndeg)
+    use module_defs, only: UNINITIALIZED
+    use yaml_output, only: yaml_toa
+    implicit none
+    character(len=*), intent(in) :: string_in
+    integer, intent(out) :: ndeg
+    integer, dimension(lmax_ao+1), intent(out) :: nl_sc
+    real(gp), dimension(nelecmax_ao), intent(out) :: aocc
+    !local variables
+    character(len=1024) :: string
+    character(len=20), dimension(2*(2*lmax_ao+1)) :: tmp
+    integer :: i,m,iocc,icoll,inl,l,ispin,is,lsc,j,ist,ierror,nvals
+    logical, dimension(lmax_ao+1,noccmax_ao) :: scorb
+    integer, dimension(lmax_ao+1) :: nl,nlsc
+    real(gp), dimension(2*(2*lmax_ao+1),noccmax_ao,lmax_ao+1) :: allocc
+
+    string(1:len(string))=string_in
+
+    !first substitute all the slashes with : to ease the parsing
+    do i=1,1024
+       if (string(i:i) == '/') then
+          string(i:i) = ':'
+       end if
+    end do
+
+    nl(:)=0
+    nlsc(:)=0
+    scorb(:,:)=.false.
+    ndeg = UNINITIALIZED(ndeg)
+    !inspect the string for the number of angular momentum
+    do is=1,1024
+       select case(string(is:is))
+       case('s')
+          l=1
+       case('p')
+          l=2
+       case('d')
+          l=3
+       case('f')
+          l=4
+       case default
+          cycle
+       end select
+       nl(l)=nl(l)+1
+       ist=is+1 ! start reading address
+       !check whether the orbital is semicore
+       if (is > 1) then
+          if (string(is-1:is-1) == '[' .and. string(is+1:is+1) == ']') then
+             nlsc(l)=nlsc(l)+1
+             if (nlsc(l) > noccmax_ao) stop 'cannot admit more semicore orbitals per channel'
+             scorb(l,nlsc(l))=.true.
+             ist=is+2
+          end if
+       end if
+       !read the different atomic occupation numbers
+       nvals = 2*(2*l-1)
+       read(string(ist:1024),*,iostat=ierror)(tmp(j),j=1,nvals)
+       if (ierror /= 0 .or. verify(tmp(2*l), " 0123456789./") /= 0) then
+          nvals = (2*l-1)
+          read(string(ist:1024),*,iostat=ierror)(tmp(j),j=1,nvals)
+          if (ierror /= 0) then
+             write(*,*) 'Line:',string
+             write(*,*) 'An error occured while reading the electronic configuration. Check the correct spin value'
+             stop
+          end if
+       end if
+       do j=1,nvals
+          call read_fraction_string_old(l,tmp(j),allocc(j,nl(l),l))
+       end do
+       if (ndeg == UNINITIALIZED(ndeg)) then
+          ndeg = nvals / (2*l-1)
+       else if (ndeg /= nvals / (2*l-1)) then
+          call f_err_throw('Line '//trim(yaml_toa(string))//&
+               ', inconsistency between shells for spin degeneracy. '//&
+               'Check the correct spin value',&
+               err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+       end if
+    end do
+
+    !put the values in the aocc array
+    aocc(:)=0.0_gp
+    iocc=0
+    do l=1,lmax_ao+1
+       iocc=iocc+1
+       aocc(iocc)=real(nl(l),gp)
+       do inl=1,nl(l)
+          do m=1,ndeg * (2*l-1), 1
+             iocc=iocc+1
+             aocc(iocc)=allocc(m,inl,l)
+          end do
+       end do
+    end do
+
+    do lsc=1,lmax_ao+1
+       nl_sc(lsc)=nlsc(lsc)
+    end do
+!!$    !then calculate the nsccode (this rule has to be verified)
+!!$    nsccode=0
+!!$    do lsc=1,lmax_ao+1
+!!$       do i=1,nlsc(lsc)
+!!$          nsccode=nsccode+(lmax_ao+1)**(lsc-1)
+!!$       end do
+!!$    end do
+
+  END SUBROUTINE set_aocc_from_string
+
+  !>  Here the fraction is indicated by the :
+  subroutine read_fraction_string_old(l,string,occ)
+    implicit none
+    integer, intent(in) :: l
+    character(len=*), intent(in) :: string
+    real(gp), intent(out) :: occ
+    !local variables
+    integer :: num,den,pfr
+
+    !see whether there is a fraction in the string
+    if (l>3) then
+       pfr=3
+    else
+       pfr=2
+    end if
+    if (string(pfr:pfr) == ':') then
+       read(string(1:pfr-1),*)num
+       read(string(pfr+1:2*pfr-1),*)den
+       occ=real(num,gp)/real(den,gp)
+    else
+       read(string,*)occ
+    end if
+  END SUBROUTINE read_fraction_string_old
+
 
   include 'eleconf-inc.f90'
 

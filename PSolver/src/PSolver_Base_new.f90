@@ -14,8 +14,9 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
      n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,pot,zf,scal,hx,hy,hz,offset,strten)
   use Poisson_Solver, only: dp, gp, TCAT_PSOLV_COMMUN,TCAT_PSOLV_COMPUT
   use wrapper_mpi
-  use memory_profiling
+  !use memory_profiling
   use time_profiling, only: f_timing
+  use dynamic_memory
   implicit none
   !to be preprocessed
   include 'perfdata.inc'
@@ -232,8 +233,8 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   !$omp firstprivate(lot, maxIter)
 !  !$omp firstprivate(before3, now3, after3)
   
-  allocate( zw(2, ncache/4, 2+ndebug), stat=i_stat )
-  allocate( zt(2,lzt/n3pr1, n1p+ndebug), stat=i_stat )
+  allocate( zw(2, ncache/4, 2), stat=i_stat )
+  allocate( zt(2,lzt/n3pr1, n1p), stat=i_stat )
   !$omp do schedule(static)
   do j2 = 1, maxIter
      !this condition ensures that we manage only the interesting part for the FFT

@@ -169,7 +169,8 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,xc,psi,rho_p,mapping)
 
  END SUBROUTINE sumrho
  
-   !starting point for the communication routine of the density
+
+!> Starting point for the communication routine of the density
 subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
   use module_base
   use module_types

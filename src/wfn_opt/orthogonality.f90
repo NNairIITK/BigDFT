@@ -1506,6 +1506,7 @@ subroutine checkortho_paw(iproc,norb,nvctrp,psit,spsi)
   real(kind=8), allocatable :: ovrlp(:,:,:)
 
   ovrlp = f_malloc((/ norb, norb, 2 /),id='ovrlp')
+  ovrlp=0.d0
 
   do iorb=1,norb
      do jorb=1,norb

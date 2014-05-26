@@ -345,6 +345,7 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
      h1,h2,h3,itype_scf,karray,mu0_screening,alpha,beta,gamma)!,n3pr2,n3pr1)
   use Poisson_Solver, only: dp
   use wrapper_mpi
+  use dynamic_memory
   implicit none
   include 'perfdata.inc'
   
