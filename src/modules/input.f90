@@ -1817,6 +1817,16 @@ contains
     call input_var("check_matrix_compression", .true., "perform a check of the matrix compression routines", dummy_bool)
     call set(dict // CHECK_MATRIX_COMPRESSION, dummy_bool)
 
+    call input_var("correction_co_contra", .false., "correction covariant / contravariant gradient", dummy_bool)
+    call set(dict // CORRECTION_CO_CONTRA, dummy_bool)
+
+    call input_var("fscale_lowerbound", 5.d-3, "lower bound for the error function decay length", dummy_real)
+    call set(dict // FSCALE_LOWERBOUND, dummy_real)
+
+    call input_var("fscale_upperbound", 5.d-2, "upper bound for the error function decay length", dummy_real)
+    call set(dict // FSCALE_UPPERBOUND, dummy_real)
+
+
     call input_free(.false.)
 
   END SUBROUTINE read_perf_from_text_format
@@ -1950,15 +1960,16 @@ contains
     call input_var(dummy_real,'-.5d0',dict//LIN_KERNEL//EVAL_RANGE_FOE//0,ranges=(/-10.d0,-1.d-10/))
     call input_var(dummy_real,'-.5d0',dict//LIN_KERNEL//EVAL_RANGE_FOE//1,ranges=(/1.d-10,10.d0/),comment=comments)
 
-    comments='number of iterations in the preconditioner, order of Taylor approximations'
-    call input_var(dummy_int,'5',dict//LIN_BASIS//NSTEP_PREC,ranges=(/1,100/))
-    call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/1,100/),comment=comments)
+    !comments='number of iterations in the preconditioner, order of Taylor approximations'
+    comments='number of iterations in the preconditioner'
+    call input_var(dummy_int,'5',dict//LIN_BASIS//NSTEP_PREC,ranges=(/1,100/),comment=comments)
+    !!call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-100,100/),comment=comments)
     !call input_var(in%lin%order_taylor,'1',ranges=(/1,100/),comment=comments)
 
     comments = '0-> exact Loewdin, 1-> taylor expansion; &
                &in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
-    call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-1,10000/))
-    call input_var(dummy_int,'1',ranges=(/0,1/),comment=comments)
+    call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-100,100/))
+    call input_var(dummy_int,'1',dict//LIN_BASIS//CORRECTION_ORTHOCONSTRAINT,comment=comments)
     !call input_var(in%lin%correctionOrthoconstraint,'1',ranges=(/0,1/),comment=comments)
 
     comments='fscale: length scale over which complementary error function decays from 1 to 0'

@@ -126,6 +126,7 @@ GPU:
 Graphene:
  Input Hamiltonian: 1.1e-10
  EH: 1.1e-10
+ Epot: 1.0e-10
 
 TiMix:
  Epsilon: 1.e-10
@@ -326,8 +327,8 @@ cleanup:
  Raw forces norm (Ha/Bohr): 2.6e-10
  Epot: 3.3e-9
  Orbitals: 4.55e-10
- EH: 2.4001e-9
- EXC: 4.7e-10
+ EH: 2.9e-9
+ EXC: 1.9e-9
  EvXC: 8.7e-10
  Enl: 9.1e-10
  Omega: 1.6e-9
@@ -486,6 +487,7 @@ molecule_foe:
  Omega: 8.6e-9
  Total charge: 2.5e-10
  eF: 1.1e-10
+ D eF: 1.1e-10
  Tr(K): 1.1e-07
  D Tr: 1.1e-7
  tr(KS) before purification: 5.1e-10
@@ -536,6 +538,9 @@ fructose:
  Total charge: 2.1e-10
  charge diff: 5.4e-6
  multiplicator for the confinement: 1.4e-11
+ ebs: 1.1e-8
+ ebs_check: 1.1e-8
+ net quadropole: 1.1e-10
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -543,7 +548,7 @@ fructose:
 geopt_foe:
  D eF: 7.1e-6
  D: 1.e-10
- eF: 8.0e-10
+ eF: 2.1e-7
  Epot: 1.1e-10
  EH: 1.1e-10
  charge diff: 7.1e-6
@@ -552,13 +557,16 @@ geopt_foe:
  Tr(K) : 1.3e-6
  D Tr: 7.1e-06
  decay length of error function: 1.1e-5
+ ebs: 2.1e-7
+ ebs_check: 1.1e-8
+ diff: 2.1e-7
 
 geopt_diag:
  Epot: 1.1e-10
  EH: 1.1e-10
  D: 1.0e-10
  D eF: 1.1e-10
- eF: 1.1e-10
+ eF: 1.0e-10
 
 water_foe:
  EvXC: 1.1e-10
@@ -665,10 +673,12 @@ foe:
  D Tr: 7.0e-8
  tr(KS) before purification: 7.0e-8
  decay length of error function: 1.1e-5
+ ebs: 7.1e-8
+ diff: 7.1e-8
 
 onlyhigh:
  Energies: 2.1e-9
- energy: 3.0e-10
+ energy: 3.1e-10
  Omega: 8.0e-10
  Orbitals: 1.1e-9
  Pulay Forces (Ha/Bohr): 1.4e-10
@@ -689,6 +699,7 @@ linearcubic_cubic:
  EH: 1.01e-9
  energy: 1.83e-10
  EKS: 2.44e-10
+ Epot: 1.1e-9
 
 linearcubic_linear:
  Epsilon: 1.1e-10
@@ -696,6 +707,7 @@ linearcubic_linear:
  Epot: 1.01e-9
  energy: 1.841e-10
  Omega: 9.2e-10
+ EvXC: 1.1e-9
 
 experimentalfoe_long:
  Atomic Forces (Ha/Bohr): 1.4e-05
@@ -727,9 +739,10 @@ experimentalfoe_long:
  diff from idempotency: 1.1e-6
  delta out: 1.1e-10
  ebs_check: 2.1e-9
+ diff: 1.3e-8
  ebs: 6.0e-10
- diff: 1.3e-9
  decay length of error function: 1.1e-5
+ ebs: 2.1e-9
 
 experimentalfoe_short:
  EH: 2.0e-05
@@ -842,22 +855,23 @@ explicit_locregcenters:
  EH: 1.1e-9
 
 intermediateforces:
- Atomic Forces (Ha/Bohr): 2.8e-7
- Average noise forces: 2.1e-7
- Clean forces norm (Ha/Bohr): 1.2e-7
- Raw forces norm (Ha/Bohr): 1.3e-7
- e: 1.3e-7
+ Atomic Forces (Ha/Bohr): 4.9e-7
+ Average noise forces: 3.5e-7
+ Clean forces norm (Ha/Bohr): 1.5e-6
+ Raw forces norm (Ha/Bohr): 1.7e-6
+ e: 1.6e-6
  energy: 2.8e-7
- Omega: 9.8e-9
- EXC: 7.8e-8
- EvXC: 1.1e-7
+ Omega: 1.3e-8
+ EXC: 1.6e-6
+ EvXC: 1.1e-6
  EH: 6.9e-7
  Ekin: 2.1e-9
- Enl: 2.1e-10
- Epot: 8.9e-8
+ Enl: 1.6e-6
+ Epot: 8.97e-8
  multiplicator for the confinement: 1.6e-11
- maxval: 2.6e-7
- fnrm2: 1.9e-7
+ D: 4.6e-7
+ maxval: 4.2e-7
+ fnrm2: 3.2e-7
 
 DIIShistory:
  Atomic Forces (Ha/Bohr): 1.9e-9
@@ -873,20 +887,20 @@ DIIShistory:
  EvXC: 8.5e-8
  energy: 5.1e-9
  multiplicator for the confinement: 5.4e-9
- Omega: 2.3e-8
+ Omega: 2.4e-8
  Total charge: 2.01e-11
  Locreg:
- EH: 7.7e-9
+ EH: 2.0e-8
  Pulay forces (Ha/Bohr): 7.8e-09
 
 sparsity:
  Total charge: 1.1e-10
- Omega: 5.2e-10
+ Omega: 5.6e-10
  Clean forces norm (Ha/Bohr): 7.7e-11
  Raw forces norm (Ha/Bohr): 1.4e-11
  Total ionic charge: 2.2e-11
  charge diff: 1.1e-9
- energy: 4.9e-10
+ energy: 1.1e-9
  EXC: 1.1e-10
  Epot: 1.1e-9
  eF: 1.1e-9
@@ -894,6 +908,7 @@ sparsity:
  ebs_check: 2.1e-10
  ebs: 2.1e-10
  diff: 1.1e-9
+ D Tr: 1.1e-10
 
 PBE_densmixlin:
  Ekin: 1.1e-10
@@ -912,6 +927,7 @@ PBE_potmixlin:
  EvXC: 1.1e-10
  energy: 1.1e-10
  Omega: 1.1e-10
+ delta out: 1.1e-9
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -922,18 +938,19 @@ PBE_potmixdiis:
  Raw forces norm (Ha/Bohr): 2.6e-8
  Average noise forces: 3.0e-8
  Orbitals: 6.3e-8
- energy: 4.8e-8
+ energy: 2.5e-7
  EXC: 2.0e-8
  EvXC: 2.7e-8
- Omega: 2.5e-9
- Epot: 6.2e-8
+ Omega: 4.3e-8
+ Epot: 2.5e-7
  EH: 6.3e-8
  Ekin: 1.2e-8
  Enl: 2.2e-9
+ multiplicator for the confinement: 4.3e-8
 
 PBE_densmixdiis:
  Epot: 1.1e-10
  EvXC: 1.1e-10
  Enl: 1.1e-10
- energy: 3.7e-11
- Omega: 4.5e-11
+ energy: 1.1e-10
+ Omega: 1.1e-10

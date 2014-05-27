@@ -80,6 +80,7 @@ module dynamic_memory
      module procedure l1_all,l2_all,l3_all
      module procedure d1_all,d2_all,d3_all,d4_all,d5_all,d6_all
      module procedure r1_all,r2_all,r3_all
+     module procedure z2_all
      module procedure d1_ptr,d2_ptr,d3_ptr,d4_ptr,d5_ptr
      module procedure i1_ptr,i2_ptr,i3_ptr
      !strings and pointers for characters
@@ -93,6 +94,7 @@ module dynamic_memory
      module procedure l1_all_free,l2_all_free,l3_all_free
      module procedure d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free,d5_all_free,d6_all_free
      module procedure r1_all_free,r2_all_free,r3_all_free
+     module procedure z2_all_free
   end interface
 
   interface f_free_ptr
@@ -403,7 +405,7 @@ contains
           
           nullify(mems(ictrl)%dict_routine)
        end if
-       !this means that the previous routine has not been closed
+       !this means that the previous routine has not been closed yet
        if (mems(ictrl)%routine_opened) then
           !call open_routine(dict_codepoint)
           mems(ictrl)%dict_codepoint=>mems(ictrl)%dict_codepoint//subprograms
@@ -443,7 +445,7 @@ contains
     implicit none
 
     if (f_err_raise(ictrl == 0,&
-         'ERROR (f_release_routine): the routine f_malloc_initialize has not been called',&
+         '(f_release_routine): the routine f_malloc_initialize has not been called',&
          ERR_MALLOC_INTERNAL)) return
 
     !profile the profiling

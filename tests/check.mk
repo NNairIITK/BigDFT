@@ -180,7 +180,7 @@ $(PSPS):
 	cp $(abs_top_srcdir)/utils/PSPfiles/$@ .
 
 %.clean:
-	@name=`basename $@ .clean` ; dir=$$name.test ; \
+	@name=`basename $@ .clean` ; dir=$$name-test ; \
     rm -rf $$dir ; \
 	rm -f $$name.* ; \
     echo "Clean "$$dir
@@ -204,7 +204,7 @@ in_message:
 	fi
 
 $(INS): in_message
-	@name=`basename $@ .in` ; dir=$$name.test ; \
+	@name=`basename $@ .in` ; dir=$$name-test ; \
 	if test ! -d $$dir ; then mkdir $$dir ; fi ; \
 	for i in $(srcdir)/$$name/* ; do cp -f $$i $$dir ; done ; \
 	if test -n "$(accel_in_message)" -a -n "$(run_ocl)" ; then \
@@ -243,7 +243,7 @@ run_message:
 	fi
 
 %.run: %.in run_message
-	@name=`basename $@ .run` ; dir=$$name.test ; \
+	@name=`basename $@ .run` ; dir=$$name-test ; \
         runs="$(srcdir)/$$name/*.ref" ; \
 	tgts=`for r in $$runs ; do echo $$(basename $$r .ref)".out"; done` ; \
         cd $$dir && $(MAKE) -f ../Makefile $$tgts ; \
@@ -251,14 +251,14 @@ run_message:
 	@touch $@
 
 %.check: %.run %.yaml-check
-	@name=`basename $@ .check` ; dir=$$name.test ; \
+	@name=`basename $@ .check` ; dir=$$name-test ; \
         chks="$(srcdir)/$$name/*.ref" ; \
 	tgts=`for c in $$chks ; do echo $$(basename $$c .ref)".report"; done` ; \
         cd $$dir && $(MAKE) -f ../Makefile $$tgts
 	touch $@
 
 %.yaml-check: %.run
-	@name=`basename $@ .yaml-check` ; dir=$$name.test ; \
+	@name=`basename $@ .yaml-check` ; dir=$$name-test ; \
         chks="$(srcdir)/$$name/*.ref.yaml" ; \
 	tgts=`for c in $$chks ; do echo $$(basename $$c .ref.yaml)".report.yaml"; done` ; \
         cd $$dir && $(MAKE) -f ../Makefile $$tgts
@@ -267,7 +267,7 @@ run_message:
 
 %.diff	: %.run
 	@if test -z "$$DIFF" ; then echo "The environment variable DIFF is missing!"; else \
-			name=`basename $@ .diff` ; dir=$$name.test ; \
+			name=`basename $@ .diff` ; dir=$$name-test ; \
 				chks="$(srcdir)/$$name/*.ref" ; \
 			for c in $$chks ; do \
 			    echo "$$DIFF $$c $$dir/$$(basename $$c .ref).out"; \
@@ -287,7 +287,7 @@ run_message:
 	touch $@
 
 %.updateref: #%.run %.diff
-	@name=`basename $@ .updateref` ; dir=$$name.test ; \
+	@name=`basename $@ .updateref` ; dir=$$name-test ; \
         chks="$(srcdir)/$$name/*.ref" ; \
 	for c in $$chks ; do echo "Update reference with " $$dir/$$(basename $$c .ref)".out"; \
 	                     cp -vi $$dir/$$(basename $$c .ref)".out"  $$c;\
@@ -305,7 +305,7 @@ run_message:
 	touch $@
 
 %.recheck: %.in
-	@name=`basename $@ .recheck` ; dir=$$name.test ; \
+	@name=`basename $@ .recheck` ; dir=$$name-test ; \
         refs="$$dir/*.ref" ; \
 	for r in $$refs ; do \
 	  rep=`basename $$r .ref`".report" ; \

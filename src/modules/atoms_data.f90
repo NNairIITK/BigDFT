@@ -212,7 +212,7 @@ module module_atoms
 
 
       ! Deallocations for the geometry part.
-      if (astruct%nat > 0) then
+!      if (astruct%nat > 0) then
          i_all=-product(shape(astruct%ifrztyp))*kind(astruct%ifrztyp)
          deallocate(astruct%ifrztyp,stat=i_stat)
          call memocc(i_stat,i_all,'astruct%ifrztyp',subname)
@@ -225,12 +225,12 @@ module module_atoms
          i_all=-product(shape(astruct%rxyz))*kind(astruct%rxyz)
          deallocate(astruct%rxyz,stat=i_stat)
          call memocc(i_stat,i_all,'astruct%rxyz',subname)
-      end if
-      if (astruct%ntypes > 0) then
+!      end if
+!      if (astruct%ntypes > 0) then
          i_all=-product(shape(astruct%atomnames))*kind(astruct%atomnames)
          deallocate(astruct%atomnames,stat=i_stat)
          call memocc(i_stat,i_all,'astruct%atomnames',subname)
-      end if
+!      end if
       ! Free additional stuff.
       call deallocate_symmetry_data(astruct%sym)
 
@@ -639,8 +639,6 @@ module module_atoms
       end if
 
     END SUBROUTINE set_astruct_from_file
-
-
 
     include 'astruct-inc.f90'
 

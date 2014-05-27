@@ -38,15 +38,12 @@ subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, lzd, hphi, phi, ldiis, expe
   call timing(iproc,'optimize_DIIS ','ON')
 
   ! Allocate the local arrays.
-  allocate(mat(ldiis%isx+1,ldiis%isx+1), stat=istat)
-  call memocc(istat, mat, 'mat', subname)
-  allocate(rhs(ldiis%isx+1), stat=istat)
-  call memocc(istat, rhs, 'rhs', subname)
+  mat = f_malloc((/ ldiis%isx+1, ldiis%isx+1 /),id='mat')
+  rhs = f_malloc(ldiis%isx+1,id='rhs')
   !lwork=100*ldiis%isx
   !allocate(work(lwork), stat=istat)
   !call memocc(istat, work, 'work', subname)
-  allocate(ipiv(ldiis%isx+1), stat=istat)
-  call memocc(istat, ipiv, 'ipiv', subname)
+  ipiv = f_malloc(ldiis%isx+1,id='ipiv')
 
   !!mat=0.d0
   !!rhs=0.d0
@@ -121,7 +118,7 @@ subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, lzd, hphi, phi, ldiis, expe
   end do
 
   ! Sum up all partial matrices
-  allocate(totmat(ldiis%isx,ldiis%isx))
+  totmat = f_malloc((/ ldiis%isx, ldiis%isx /),id='totmat')
   totmat=0.d0
   do iorb=1,orbs%norbp
       totmat(:,:)=totmat(:,:)+ldiis%mat(:,:,iorb)
@@ -233,23 +230,11 @@ subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, lzd, hphi, phi, ldiis, expe
     ist=ist+ncount
   end do
 
-  deallocate(totmat)
+  call f_free(totmat)
 
-  iall=-product(shape(mat))*kind(mat)
-  deallocate(mat, stat=istat)
-  call memocc(istat, iall, 'mat', subname)
-
-  iall=-product(shape(rhs))*kind(rhs)
-  deallocate(rhs, stat=istat)
-  call memocc(istat, iall, 'rhs', subname)
-
-  !iall=-product(shape(work))*kind(work)
-  !deallocate(work, stat=istat)
-  !call memocc(istat, iall, 'work', subname)
-
-  iall=-product(shape(ipiv))*kind(ipiv)
-  deallocate(ipiv, stat=istat)
-  call memocc(istat, iall, 'ipiv', subname)
+  call f_free(mat)
+  call f_free(rhs)
+  call f_free(ipiv)
 
   call timing(iproc,'optimize_DIIS ','OF')
 
@@ -284,8 +269,8 @@ ldiis%icountSwitch=0
 ldiis%icountDIISFailureTot=0
 ldiis%icountDIISFailureCons=0
 
-allocate(ldiis%mat(ldiis%isx,ldiis%isx,orbs%norbp), stat=istat)
-call memocc(istat, ldiis%mat, 'ldiis%mat', subname)
+ldiis%mat = f_malloc_ptr((/ldiis%isx,ldiis%isx,orbs%norbp/),id='ldiis%mat')
+
 if (ldiis%isx**2*orbs%norbp>0) call to_zero(ldiis%isx**2*orbs%norbp,ldiis%mat(1,1,1))
 
 ii=0
@@ -293,12 +278,9 @@ do iorb=1,orbs%norbp
     ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
     ii=ii+ldiis%isx*(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)
 end do
-allocate(ldiis%phiHist(ii), stat=istat)
-call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
-allocate(ldiis%hphiHist(ii), stat=istat)
-call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
-allocate(ldiis%energy_hist(isx), stat=istat)
-call memocc(istat, ldiis%energy_hist, 'ldiis%energy_hist', subname)
+ldiis%phiHist = f_malloc_ptr(ii,id='ldiis%phiHist')
+ldiis%hphiHist = f_malloc_ptr(ii,id='ldiis%hphiHist')
+ldiis%energy_hist = f_malloc_ptr(isx,id='ldiis%energy_hist')
 
 end subroutine initializeDIIS
 
@@ -316,21 +298,10 @@ type(localizedDIISParameters),intent(inout):: ldiis
 integer:: istat, iall
 character(len=*),parameter:: subname='deallocateDIIS'
 
-iall=-product(shape(ldiis%mat))*kind(ldiis%mat)
-deallocate(ldiis%mat, stat=istat)
-call memocc(istat, iall, 'ldiis%mat', subname)
-
-iall=-product(shape(ldiis%phiHist))*kind(ldiis%phiHist)
-deallocate(ldiis%phiHist, stat=istat)
-call memocc(istat, iall, 'ldiis%phiHist', subname)
-
-iall=-product(shape(ldiis%hphiHist))*kind(ldiis%hphiHist)
-deallocate(ldiis%hphiHist, stat=istat)
-call memocc(istat, iall, 'ldiis%hphiHist', subname)
-
-iall=-product(shape(ldiis%energy_hist))*kind(ldiis%energy_hist)
-deallocate(ldiis%energy_hist, stat=istat)
-call memocc(istat, iall, 'ldiis%energy_hist', subname)
+call f_free_ptr(ldiis%mat)
+call f_free_ptr(ldiis%phiHist)
+call f_free_ptr(ldiis%hphiHist)
+call f_free_ptr(ldiis%energy_hist)
 
 end subroutine deallocateDIIS
 

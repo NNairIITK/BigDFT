@@ -386,7 +386,7 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
 !!$           call readonewave(99, .not.exists,iorb+orbs%isorb*orbs%nspinor,iproc,n1,n2,n3, &
 !!$                & hx,hy,hz,at,wfd,rxyz_old,rxyz,&
 !!$                psi(1,iorb),orbs%eval((iorb-1)/orbs%nspinor+1+orbs%isorb),psifscf)
-
+        !print *,"filename = ", filename
         do ispinor=1,orbs%nspinor
            if(present(orblist)) then
               call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
@@ -447,7 +447,7 @@ subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
   !local variables
   character(len=500) :: filename
   logical :: onefile,allfiles
-  integer :: iorb,ispinor,iorb_out,ierr
+  integer :: iorb,ispinor,iorb_out
   
   allfiles=.true.
 
@@ -559,6 +559,10 @@ subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_ou
 
   !calculate the actual orbital value
   iorb_out=iorb+orbs%isorb-(ikpt-1)*orbs%norb
+  !print *,"iorb_out (filename_of_iorb) = ", iorb_out
+  !print *,"ikpt (filename_of_iorb) = ", ikpt
+  !print *,"orbs%isorb (filename_of_iorb) = ", orbs%isorb
+
   if(present(iiorb)) iorb_out = iiorb
   !purge the value from the spin sign
   if (spins==-1.0_gp) iorb_out=iorb_out-orbs%norbu
@@ -570,9 +574,11 @@ subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_ou
   completename='-'//f3//'-'//spintype//realimag
   if (lbin) then
      filename_out = trim(filename)//completename//".bin."//f4
-  else
+     !print *,'complete name <',trim(filename_out),'> end'
+ else
      filename_out = trim(filename)//completename//"."//f4
-  end if
+     !print *,'complete name <',trim(filename_out),'> end'
+ end if
 
   !print *,'filename: ',filename_out
 end subroutine filename_of_iorb
@@ -595,7 +601,8 @@ subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_o
   character(len=500) :: filename_out
 
   if(present(iiorb)) then   
-     call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iiorb) 
+     !call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iiorb) 
+     call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out) 
   else
      call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out)
   end if
@@ -707,17 +714,17 @@ subroutine read_wave_to_isf(lstat, filename, ln, iorbp, hx, hy, hz, &
 END SUBROUTINE read_wave_to_isf
 
 
-subroutine free_wave_to_isf(psiscf)
-  use module_base
-  implicit none
-  real(wp), dimension(:,:,:,:), pointer :: psiscf
-
-  integer :: i_all, i_stat
-
-  i_all=-product(shape(psiscf))*kind(psiscf)
-  deallocate(psiscf,stat=i_stat)
-  call memocc(i_stat,i_all,'psiscf',"free_wave_to_isf_etsf")
-END SUBROUTINE free_wave_to_isf
+!!$subroutine free_wave_to_isf(psiscf)
+!!$  use module_base
+!!$  implicit none
+!!$  real(wp), dimension(:,:,:,:), pointer :: psiscf
+!!$
+!!$  integer :: i_all, i_stat
+!!$
+!!$  i_all=-product(shape(psiscf))*kind(psiscf)
+!!$  deallocate(psiscf,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'psiscf',"free_wave_to_isf_etsf")
+!!$END SUBROUTINE free_wave_to_isf
 
 
 subroutine read_wave_descr(lstat, filename, ln, &
@@ -929,6 +936,7 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
   use module_base
   use yaml_output
   use module_interfaces, except_this_one => writeonewave
+  use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
   use sparsematrix, only: uncompress_matrix
   implicit none
   integer, intent(in) :: iproc,nproc,iformat
@@ -937,7 +945,8 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
   type(atoms_data), intent(inout) :: at
   real(gp),dimension(3,at%astruct%nat),intent(in) :: rxyz
 
-  integer :: iorb, jorb, i_stat, i_all, iat, jat
+  integer :: iorb, jorb, iat, jat
+  !!integer :: i_stat, i_all
   character(len=*),parameter :: subname='write_linear_matrices'
 
   if (iproc==0) then
@@ -947,29 +956,25 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
         open(99, file=filename//'hamiltonian.bin', status='unknown',form='unformatted')
      end if
 
-     !!allocate(tmb%linmat%ham%matrix(tmb%linmat%ham%nfvctr,tmb%linmat%ham%nfvctr), stat=i_stat)
-     !!call memocc(i_stat, tmb%linmat%ham%matrix, 'tmb%linmat%ham%matrix', subname)
-     tmb%linmat%ham%matrix=f_malloc_ptr((/tmb%linmat%ham%nfvctr,tmb%linmat%ham%nfvctr/),&
-         id='tmb%linmat%ham%matrix')
+     tmb%linmat%ham_%matrix = sparsematrix_malloc_ptr(tmb%linmat%m, &
+                              iaction=DENSE_FULL, id='tmb%linmat%ham_%matrix')
 
-     call uncompress_matrix(iproc,tmb%linmat%ham)
+     call uncompress_matrix(iproc, tmb%linmat%m, &
+          inmat=tmb%linmat%ham_%matrix_compr, outmat=tmb%linmat%ham_%matrix)
 
-     do iorb=1,tmb%linmat%ham%nfvctr
+     do iorb=1,tmb%linmat%m%nfvctr
         iat=tmb%orbs%onwhichatom(iorb)
-        do jorb=1,tmb%linmat%ham%nfvctr
+        do jorb=1,tmb%linmat%m%nfvctr
            jat=tmb%orbs%onwhichatom(jorb)
            if (iformat == WF_FORMAT_PLAIN) then
-              write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ham%matrix(iorb,jorb),iat,jat
+              write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ham_%matrix(iorb,jorb),iat,jat
            else
-              write(99) iorb,jorb,tmb%linmat%ham%matrix(iorb,jorb),iat,jat
+              write(99) iorb,jorb,tmb%linmat%ham_%matrix(iorb,jorb),iat,jat
            end if
         end do
      end do
 
-     !!i_all = -product(shape(tmb%linmat%ham%matrix))*kind(tmb%linmat%ham%matrix)
-     !!deallocate(tmb%linmat%ham%matrix,stat=i_stat)
-     !!call memocc(i_stat,i_all,'tmb%linmat%ham%matrix',subname)
-     call f_free_ptr(tmb%linmat%ham%matrix)
+     call f_free_ptr(tmb%linmat%ham_%matrix)
 
      close(99)
 
@@ -981,19 +986,20 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
 
      !!allocate(tmb%linmat%ovrlp%matrix(tmb%linmat%ovrlp%nfvctr,tmb%linmat%ovrlp%nfvctr), stat=i_stat)
      !!call memocc(i_stat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
-     tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%linmat%ovrlp%nfvctr,tmb%linmat%ovrlp%nfvctr/),&
-         id='tmb%linmat%ovrlp%matrix')
+     tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, &
+                                id='tmb%linmat%ovrlp_%matrix')
 
-     call uncompress_matrix(iproc,tmb%linmat%ovrlp)
+     call uncompress_matrix(iproc, tmb%linmat%s, &
+          inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
 
-     do iorb=1,tmb%linmat%ovrlp%nfvctr
+     do iorb=1,tmb%linmat%s%nfvctr
         iat=tmb%orbs%onwhichatom(iorb)
-        do jorb=1,tmb%linmat%ovrlp%nfvctr
+        do jorb=1,tmb%linmat%s%nfvctr
            jat=tmb%orbs%onwhichatom(jorb)
            if (iformat == WF_FORMAT_PLAIN) then
-              write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ovrlp%matrix(iorb,jorb),iat,jat
+              write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb),iat,jat
            else
-              write(99) iorb,jorb,tmb%linmat%ovrlp%matrix(iorb,jorb),iat,jat
+              write(99) iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb),iat,jat
            end if
         end do
      end do
@@ -1001,7 +1007,7 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
      !!i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
      !!deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)
      !!call memocc(i_stat,i_all,'tmb%linmat%ovrlp%matrix',subname)
-     call f_free_ptr(tmb%linmat%ovrlp%matrix)
+     call f_free_ptr(tmb%linmat%ovrlp_%matrix)
 
 
      close(99)
@@ -1012,30 +1018,26 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
         open(99, file=filename//'density_kernel.bin', status='unknown',form='unformatted')
      end if
 
-     !!allocate(tmb%linmat%denskern_large%matrix(tmb%linmat%denskern_large%nfvctr,tmb%linmat%denskern_large%nfvctr), stat=i_stat)
-     !!call memocc(i_stat, tmb%linmat%denskern_large%matrix, 'tmb%linmat%denskern_large%matrix', subname)
-     tmb%linmat%denskern_large%matrix=f_malloc_ptr((/tmb%linmat%denskern_large%nfvctr,tmb%linmat%denskern_large%nfvctr/),&
-         id='tmb%linmat%denskern_large%matrix')
+     tmb%linmat%kernel_%matrix=f_malloc_ptr((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctr/),&
+         id='tmb%linmat%kernel_%matrix')
 
 
-     call uncompress_matrix(iproc,tmb%linmat%denskern_large)
+     call uncompress_matrix(iproc,tmb%linmat%l, &
+          inmat=tmb%linmat%kernel_%matrix_compr, outmat=tmb%linmat%kernel_%matrix)
 
-     do iorb=1,tmb%linmat%denskern_large%nfvctr
+     do iorb=1,tmb%linmat%l%nfvctr
         iat=tmb%orbs%onwhichatom(iorb)
-        do jorb=1,tmb%linmat%denskern_large%nfvctr
+        do jorb=1,tmb%linmat%l%nfvctr
            jat=tmb%orbs%onwhichatom(jorb)
            if (iformat == WF_FORMAT_PLAIN) then
-              write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%denskern_large%matrix(iorb,jorb),iat,jat
+              write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%kernel_%matrix(iorb,jorb),iat,jat
            else
-              write(99) iorb,jorb,tmb%linmat%denskern_large%matrix(iorb,jorb),iat,jat
+              write(99) iorb,jorb,tmb%linmat%kernel_%matrix(iorb,jorb),iat,jat
            end if
         end do
      end do
 
-     !!i_all = -product(shape(tmb%linmat%denskern_large%matrix))*kind(tmb%linmat%denskern_large%matrix)
-     !!deallocate(tmb%linmat%denskern_large%matrix,stat=i_stat)
-     !!call memocc(i_stat,i_all,'tmb%linmat%denskern_large%matrix',subname)
-     call f_free_ptr(tmb%linmat%denskern_large%matrix)
+     call f_free_ptr(tmb%linmat%kernel_%matrix)
 
      close(99)
 
@@ -1045,8 +1047,8 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
 
   !!allocate(tmb%linmat%ovrlp%matrix(tmb%linmat%ovrlp%nfvctr,tmb%linmat%ovrlp%nfvctr), stat=i_stat)
   !!call memocc(i_stat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
-  tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%linmat%ovrlp%nfvctr,tmb%linmat%ovrlp%nfvctr/),&
-      id='tmb%linmat%ovrlp%matrix')
+  tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, &
+                             id='tmb%linmat%ovrlp_%matrix')
 
   call tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
   !call tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
@@ -1058,14 +1060,14 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
         open(99, file=filename//'overlap_onsite.bin', status='unknown',form='unformatted')
      end if
 
-     do iorb=1,tmb%linmat%denskern_large%nfvctr
+     do iorb=1,tmb%linmat%l%nfvctr
         iat=tmb%orbs%onwhichatom(iorb)
-        do jorb=1,tmb%linmat%denskern_large%nfvctr
+        do jorb=1,tmb%linmat%l%nfvctr
            jat=tmb%orbs%onwhichatom(jorb)
            if (iformat == WF_FORMAT_PLAIN) then
-              write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ovrlp%matrix(iorb,jorb),iat,jat
+              write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb),iat,jat
            else
-              write(99) iorb,jorb,tmb%linmat%ovrlp%matrix(iorb,jorb),iat,jat
+              write(99) iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb),iat,jat
            end if
         end do
      end do
@@ -1077,7 +1079,7 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
   !!i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
   !!deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)
   !!call memocc(i_stat,i_all,'tmb%linmat%ovrlp%matrix',subname)
-  call f_free_ptr(tmb%linmat%ovrlp%matrix)
+  call f_free_ptr(tmb%linmat%ovrlp_%matrix)
 
 end subroutine write_linear_matrices
 
@@ -1263,7 +1265,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
   call memocc(i_stat,i_all,'norm',subname)
 
   call calculate_pulay_overlap(iproc, nproc, tmb%orbs, tmb%orbs, collcom_tmp, collcom_tmp, &
-       psit_c_tmp, psit_c_tmp, psit_f_tmp, psit_f_tmp, tmb%linmat%ovrlp%matrix)
+       psit_c_tmp, psit_c_tmp, psit_f_tmp, psit_f_tmp, tmb%linmat%ovrlp_%matrix)
 
   call deallocate_comms_linear(collcom_tmp)
   call deallocate_local_zone_descriptors(lzd_tmp, subname)
@@ -1283,281 +1285,281 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
 END SUBROUTINE tmb_overlap_onsite
 
 
-subroutine tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
-
-  use module_base
-  use module_types
-  use module_interfaces
-  use module_fragments
-  use communications_base, only: comms_linear_null, deallocate_comms_linear
-  use communications_init, only: init_comms_linear
-  use communications, only: transpose_localized
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in) :: iproc, nproc
-  type(atoms_data), intent(inout) :: at
-  type(DFT_wavefunction),intent(in):: tmb
-  real(gp),dimension(3,at%astruct%nat),intent(in) :: rxyz
-
-  ! Local variables
-  logical :: reformat
-  integer :: iorb,i_stat,i_all,istart,jstart
-  integer :: iiorb,ilr,iiat,j,iis1,iie1,i1
-  integer :: jlr,iiat_tmp,ndim_tmp,ndim,norb_tmp,iat,jjat,jjorb
-  integer, dimension(3) :: ns,nsj,n,nj
-  real(gp), dimension(3) :: centre_old_box, centre_new_box, da
-  real(wp), dimension(:,:,:,:,:,:), allocatable :: phigold
-  real(wp), dimension(:), pointer :: psi_tmp, psit_c_tmp, psit_f_tmp, norm
-  integer, dimension(0:6) :: reformat_reason
-  type(comms_linear) :: collcom_tmp
-  type(local_zone_descriptors) :: lzd_tmp
-  real(gp) :: tol
-  character(len=*),parameter:: subname='tmb_overlap_onsite'
-  type(fragment_transformation) :: frag_trans
-  real(gp), dimension(:,:), allocatable :: rxyz4_new, rxyz4_ref, rxyz_new, rxyz_ref
-  real(gp), dimension(:), allocatable :: dist
-  integer, dimension(:), allocatable :: ipiv
-
-  ! move all psi into psi_tmp all centred in the same place and calculate overlap matrix
-  tol=1.d-3
-  reformat_reason=0
-
-  !arbitrarily pick the middle one as assuming it'll be near the centre of structure
-  !and therefore have large fine grid
-  norb_tmp=tmb%orbs%norb/2
-  jlr=tmb%orbs%inwhichlocreg(norb_tmp) 
-  iiat_tmp=tmb%orbs%onwhichatom(norb_tmp)
-  jjorb=norb_tmp
-  jjat=iiat_tmp
-
-  ! find biggest instead
-  !do ilr=1,tmb%lzr%nlr
-  !  if (tmb%lzd%llr(ilr)%wfd%nvctr_c
-  !end do
-
-  ! Determine size of phi_old and phi
-  ndim_tmp=0
-  ndim=0
-  do iorb=1,tmb%orbs%norbp
-      iiorb=tmb%orbs%isorb+iorb
-      ilr=tmb%orbs%inwhichlocreg(iiorb)
-      ndim=ndim+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-      ndim_tmp=ndim_tmp+tmb%lzd%llr(jlr)%wfd%nvctr_c+7*tmb%lzd%llr(jlr)%wfd%nvctr_f
-  end do
-
-  ! should integrate bettwer with existing reformat routines, but restart needs tidying anyway
-  allocate(psi_tmp(ndim_tmp),stat=i_stat)
-  call memocc(i_stat,psi_tmp,'psi_tmp',subname)
-
-  allocate(rxyz4_ref(3,min(4,at%astruct%nat)), stat=i_stat)
-  call memocc(i_stat, rxyz4_ref, 'rxyz4_ref', subname)
-  allocate(rxyz4_new(3,min(4,at%astruct%nat)), stat=i_stat)
-  call memocc(i_stat, rxyz4_new, 'rxyz4_ref', subname)
-
-  allocate(rxyz_ref(3,at%astruct%nat), stat=i_stat)
-  call memocc(i_stat, rxyz_ref, 'rxyz_ref', subname)
-  allocate(rxyz_new(3,at%astruct%nat), stat=i_stat)
-  call memocc(i_stat, rxyz_new, 'rxyz_ref', subname)
-  allocate(dist(at%astruct%nat), stat=i_stat)
-  call memocc(i_stat, dist, 'dist', subname)
-  allocate(ipiv(at%astruct%nat), stat=i_stat)
-  call memocc(i_stat, ipiv, 'ipiv', subname)
-
-  istart=1
-  jstart=1
-  do iorb=1,tmb%orbs%norbp
-      iiorb=tmb%orbs%isorb+iorb
-      ilr=tmb%orbs%inwhichlocreg(iiorb)
-      iiat=tmb%orbs%onwhichatom(iiorb)
-
-      !do jjorb=1,tmb%orbs%norb
-      !   !jlr=tmb%orbs%inwhichlocreg(jjorb)
-      !   jjat=tmb%orbs%onwhichatom(jjorb)
-
-         n(1)=tmb%lzd%Llr(ilr)%d%n1
-         n(2)=tmb%lzd%Llr(ilr)%d%n2
-         n(3)=tmb%lzd%Llr(ilr)%d%n3
-         nj(1)=tmb%lzd%Llr(jlr)%d%n1
-         nj(2)=tmb%lzd%Llr(jlr)%d%n2
-         nj(3)=tmb%lzd%Llr(jlr)%d%n3
-         ns(1)=tmb%lzd%Llr(ilr)%ns1
-         ns(2)=tmb%lzd%Llr(ilr)%ns2
-         ns(3)=tmb%lzd%Llr(ilr)%ns3
-         nsj(1)=tmb%lzd%Llr(jlr)%ns1
-         nsj(2)=tmb%lzd%Llr(jlr)%ns2
-         nsj(3)=tmb%lzd%Llr(jlr)%ns3
-
-         ! find fragment transformation using 3 nearest neighbours
-         do iat=1,at%astruct%nat
-            rxyz_new(:,iat)=rxyz(:,iat)
-            rxyz_ref(:,iat)=rxyz(:,iat)
-         end do
-
-         ! use atom position
-         frag_trans%rot_center=rxyz(:,iiat)
-         frag_trans%rot_center_new=rxyz(:,jjat)
-
-        ! shift rxyz wrt center of rotation
-         do iat=1,at%astruct%nat
-            rxyz_ref(:,iat)=rxyz_ref(:,iat)-frag_trans%rot_center
-            rxyz_new(:,iat)=rxyz_new(:,iat)-frag_trans%rot_center_new
-         end do
-
-         ! find distances from this atom, sort atoms into neighbour order and take atom and 3 nearest neighbours
-         do iat=1,at%astruct%nat
-            dist(iat)=-dsqrt(rxyz_ref(1,iat)**2+rxyz_ref(2,iat)**2+rxyz_ref(3,iat)**2)
-         end do             
-         call sort_positions(at%astruct%nat,dist,ipiv)
-         do iat=1,min(4,at%astruct%nat)
-            rxyz4_ref(:,iat)=rxyz_ref(:,ipiv(iat))
-         end do
-
-         ! find distances from this atom, sort atoms into neighbour order and take atom and 3 nearest neighbours
-         do iat=1,at%astruct%nat
-            dist(iat)=-dsqrt(rxyz_new(1,iat)**2+rxyz_new(2,iat)**2+rxyz_new(3,iat)**2)
-         end do             
-         call sort_positions(at%astruct%nat,dist,ipiv)
-         do iat=1,min(4,at%astruct%nat)
-            rxyz4_new(:,iat)=rxyz_new(:,ipiv(iat))
-         end do
-
-         call find_frag_trans(min(4,at%astruct%nat),rxyz4_ref,rxyz4_new,frag_trans)
-
-         write(*,'(A,4(I3,1x),3(F12.6,1x),F12.6)') 'iorb,jorb,iat,jat,rot_axis,theta',&
-              iiorb,jjorb,iiat,jjat,frag_trans%rot_axis,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
-
-         !frag_trans%theta=0.0d0*(4.0_gp*atan(1.d0)/180.0_gp)
-         !frag_trans%rot_axis=(/1.0_gp,0.0_gp,0.0_gp/)
-         !frag_trans%rot_center(:)=rxyz(:,iiat)
-         !overwrite rot_center_new to account for llr_tmp being in different location
-         frag_trans%rot_center_new(:)=rxyz(:,iiat_tmp)
-
-         call reformat_check(reformat,reformat_reason,tol,at,tmb%lzd%hgrids,tmb%lzd%hgrids,&
-              tmb%lzd%llr(ilr)%wfd%nvctr_c,tmb%lzd%llr(ilr)%wfd%nvctr_c,&
-              tmb%lzd%llr(jlr)%wfd%nvctr_c,tmb%lzd%llr(jlr)%wfd%nvctr_c,&
-              n,nj,ns,nsj,frag_trans,centre_old_box,centre_new_box,da)  
-
-         if (.not. reformat) then ! copy psi into psi_tmp
-            do j=1,tmb%lzd%llr(jlr)%wfd%nvctr_c
-               psi_tmp(jstart)=tmb%psi(istart)
-               istart=istart+1
-               jstart=jstart+1
-            end do
-            do j=1,7*tmb%lzd%llr(ilr)%wfd%nvctr_f-6,7
-               psi_tmp(jstart+0)=tmb%psi(istart+0)
-               psi_tmp(jstart+1)=tmb%psi(istart+1)
-               psi_tmp(jstart+2)=tmb%psi(istart+2)
-               psi_tmp(jstart+3)=tmb%psi(istart+3)
-               psi_tmp(jstart+4)=tmb%psi(istart+4)
-               psi_tmp(jstart+5)=tmb%psi(istart+5)
-               psi_tmp(jstart+6)=tmb%psi(istart+6)
-               istart=istart+7
-               jstart=jstart+7
-            end do
-         else
-            allocate(phigold(0:n(1),2,0:n(2),2,0:n(3),2+ndebug),stat=i_stat)
-            call memocc(i_stat,phigold,'phigold',subname)
-
-            call psi_to_psig(n,tmb%lzd%llr(ilr)%wfd%nvctr_c,tmb%lzd%llr(ilr)%wfd%nvctr_f,&
-                 tmb%lzd%llr(ilr)%wfd%nseg_c,tmb%lzd%llr(ilr)%wfd%nseg_f,&
-                 tmb%lzd%llr(ilr)%wfd%keyvloc,tmb%lzd%llr(ilr)%wfd%keygloc,istart,tmb%psi(jstart),phigold)
-
-            call reformat_one_supportfunction(tmb%lzd%llr(jlr),tmb%lzd%llr(ilr),tmb%lzd%llr(jlr)%geocode,&
-                 tmb%lzd%hgrids,n,phigold,tmb%lzd%hgrids,nj,centre_old_box,centre_new_box,da,&
-                 frag_trans,psi_tmp(jstart:))
-
-            jstart=jstart+tmb%lzd%llr(jlr)%wfd%nvctr_c+7*tmb%lzd%llr(jlr)%wfd%nvctr_f
-   
-            i_all=-product(shape(phigold))*kind(phigold)
-            deallocate(phigold,stat=i_stat)
-            call memocc(i_stat,i_all,'phigold',subname)
-        end if
-
-     !end do
-  end do
-
-
-  i_all = -product(shape(ipiv))*kind(ipiv)
-  deallocate(ipiv,stat=i_stat)
-  call memocc(i_stat,i_all,'ipiv',subname)
-  i_all = -product(shape(dist))*kind(dist)
-  deallocate(dist,stat=i_stat)
-  call memocc(i_stat,i_all,'dist',subname)
-  i_all = -product(shape(rxyz_ref))*kind(rxyz_ref)
-  deallocate(rxyz_ref,stat=i_stat)
-  call memocc(i_stat,i_all,'rxyz_ref',subname)
-  i_all = -product(shape(rxyz_new))*kind(rxyz_new)
-  deallocate(rxyz_new,stat=i_stat)
-  call memocc(i_stat,i_all,'rxyz_new',subname)
-  i_all = -product(shape(rxyz4_ref))*kind(rxyz4_ref)
-  deallocate(rxyz4_ref,stat=i_stat)
-  call memocc(i_stat,i_all,'rxyz4_ref',subname)
-  i_all = -product(shape(rxyz4_new))*kind(rxyz4_new)
-  deallocate(rxyz4_new,stat=i_stat)
-  call memocc(i_stat,i_all,'rxyz4_new',subname)
-
-  call print_reformat_summary(iproc,nproc,reformat_reason)
-
-  ! now that they are all in one lr, need to calculate overlap matrix
-  ! make lzd_tmp contain all identical lrs
-  lzd_tmp%linear=tmb%lzd%linear
-  lzd_tmp%nlr=tmb%lzd%nlr
-  lzd_tmp%lintyp=tmb%lzd%lintyp
-  lzd_tmp%ndimpotisf=tmb%lzd%ndimpotisf
-  lzd_tmp%hgrids(:)=tmb%lzd%hgrids(:)
-
-  call nullify_locreg_descriptors(lzd_tmp%glr)
-  call copy_locreg_descriptors(tmb%lzd%glr, lzd_tmp%glr)
-
-  iis1=lbound(tmb%lzd%llr,1)
-  iie1=ubound(tmb%lzd%llr,1)
-  allocate(lzd_tmp%llr(iis1:iie1), stat=i_stat)
-  do i1=iis1,iie1
-     call nullify_locreg_descriptors(lzd_tmp%llr(i1))
-     call copy_locreg_descriptors(tmb%lzd%llr(jlr), lzd_tmp%llr(i1))
-  end do
-
-  !call nullify_comms_linear(collcom_tmp)
-  collcom_tmp=comms_linear_null()
-  call init_comms_linear(iproc, nproc, ndim_tmp, tmb%orbs, lzd_tmp, collcom_tmp)
-
-  allocate(psit_c_tmp(sum(collcom_tmp%nrecvcounts_c)), stat=i_stat)
-  call memocc(i_stat, psit_c_tmp, 'psit_c_tmp', subname)
-
-  allocate(psit_f_tmp(7*sum(collcom_tmp%nrecvcounts_f)), stat=i_stat)
-  call memocc(i_stat, psit_f_tmp, 'psit_f_tmp', subname)
-
-  call transpose_localized(iproc, nproc, ndim_tmp, tmb%orbs, collcom_tmp, &
-       psi_tmp, psit_c_tmp, psit_f_tmp, lzd_tmp)
-
-  ! normalize psi
-  allocate(norm(tmb%orbs%norb), stat=i_stat)
-  call memocc(i_stat, norm, 'norm', subname)
-  call normalize_transposed(iproc, nproc, tmb%orbs, collcom_tmp, psit_c_tmp, psit_f_tmp, norm)
-  i_all = -product(shape(norm))*kind(norm)
-  deallocate(norm,stat=i_stat)
-  call memocc(i_stat,i_all,'norm',subname)
-
-  call calculate_pulay_overlap(iproc, nproc, tmb%orbs, tmb%orbs, collcom_tmp, collcom_tmp, &
-       psit_c_tmp, psit_c_tmp, psit_f_tmp, psit_f_tmp, tmb%linmat%ovrlp%matrix)
-
-  call deallocate_comms_linear(collcom_tmp)
-  call deallocate_local_zone_descriptors(lzd_tmp, subname)
-
-  i_all = -product(shape(psit_c_tmp))*kind(psit_c_tmp)
-  deallocate(psit_c_tmp,stat=i_stat)
-  call memocc(i_stat,i_all,'psit_c_tmp',subname)
-
-  i_all = -product(shape(psit_f_tmp))*kind(psit_f_tmp)
-  deallocate(psit_f_tmp,stat=i_stat)
-  call memocc(i_stat,i_all,'psit_f_tmp',subname)
-
-  i_all = -product(shape(psi_tmp))*kind(psi_tmp)
-  deallocate(psi_tmp,stat=i_stat)
-  call memocc(i_stat,i_all,'psi_tmp',subname)
-
-END SUBROUTINE tmb_overlap_onsite_rotate
+!!subroutine tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
+!!
+!!  use module_base
+!!  use module_types
+!!  use module_interfaces
+!!  use module_fragments
+!!  use communications_base, only: comms_linear_null, deallocate_comms_linear
+!!  use communications_init, only: init_comms_linear
+!!  use communications, only: transpose_localized
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  integer,intent(in) :: iproc, nproc
+!!  type(atoms_data), intent(inout) :: at
+!!  type(DFT_wavefunction),intent(in):: tmb
+!!  real(gp),dimension(3,at%astruct%nat),intent(in) :: rxyz
+!!
+!!  ! Local variables
+!!  logical :: reformat
+!!  integer :: iorb,i_stat,i_all,istart,jstart
+!!  integer :: iiorb,ilr,iiat,j,iis1,iie1,i1
+!!  integer :: jlr,iiat_tmp,ndim_tmp,ndim,norb_tmp,iat,jjat,jjorb
+!!  integer, dimension(3) :: ns,nsj,n,nj
+!!  real(gp), dimension(3) :: centre_old_box, centre_new_box, da
+!!  real(wp), dimension(:,:,:,:,:,:), allocatable :: phigold
+!!  real(wp), dimension(:), pointer :: psi_tmp, psit_c_tmp, psit_f_tmp, norm
+!!  integer, dimension(0:6) :: reformat_reason
+!!  type(comms_linear) :: collcom_tmp
+!!  type(local_zone_descriptors) :: lzd_tmp
+!!  real(gp) :: tol
+!!  character(len=*),parameter:: subname='tmb_overlap_onsite'
+!!  type(fragment_transformation) :: frag_trans
+!!  real(gp), dimension(:,:), allocatable :: rxyz4_new, rxyz4_ref, rxyz_new, rxyz_ref
+!!  real(gp), dimension(:), allocatable :: dist
+!!  integer, dimension(:), allocatable :: ipiv
+!!
+!!  ! move all psi into psi_tmp all centred in the same place and calculate overlap matrix
+!!  tol=1.d-3
+!!  reformat_reason=0
+!!
+!!  !arbitrarily pick the middle one as assuming it'll be near the centre of structure
+!!  !and therefore have large fine grid
+!!  norb_tmp=tmb%orbs%norb/2
+!!  jlr=tmb%orbs%inwhichlocreg(norb_tmp) 
+!!  iiat_tmp=tmb%orbs%onwhichatom(norb_tmp)
+!!  jjorb=norb_tmp
+!!  jjat=iiat_tmp
+!!
+!!  ! find biggest instead
+!!  !do ilr=1,tmb%lzr%nlr
+!!  !  if (tmb%lzd%llr(ilr)%wfd%nvctr_c
+!!  !end do
+!!
+!!  ! Determine size of phi_old and phi
+!!  ndim_tmp=0
+!!  ndim=0
+!!  do iorb=1,tmb%orbs%norbp
+!!      iiorb=tmb%orbs%isorb+iorb
+!!      ilr=tmb%orbs%inwhichlocreg(iiorb)
+!!      ndim=ndim+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+!!      ndim_tmp=ndim_tmp+tmb%lzd%llr(jlr)%wfd%nvctr_c+7*tmb%lzd%llr(jlr)%wfd%nvctr_f
+!!  end do
+!!
+!!  ! should integrate bettwer with existing reformat routines, but restart needs tidying anyway
+!!  allocate(psi_tmp(ndim_tmp),stat=i_stat)
+!!  call memocc(i_stat,psi_tmp,'psi_tmp',subname)
+!!
+!!  allocate(rxyz4_ref(3,min(4,at%astruct%nat)), stat=i_stat)
+!!  call memocc(i_stat, rxyz4_ref, 'rxyz4_ref', subname)
+!!  allocate(rxyz4_new(3,min(4,at%astruct%nat)), stat=i_stat)
+!!  call memocc(i_stat, rxyz4_new, 'rxyz4_ref', subname)
+!!
+!!  allocate(rxyz_ref(3,at%astruct%nat), stat=i_stat)
+!!  call memocc(i_stat, rxyz_ref, 'rxyz_ref', subname)
+!!  allocate(rxyz_new(3,at%astruct%nat), stat=i_stat)
+!!  call memocc(i_stat, rxyz_new, 'rxyz_ref', subname)
+!!  allocate(dist(at%astruct%nat), stat=i_stat)
+!!  call memocc(i_stat, dist, 'dist', subname)
+!!  allocate(ipiv(at%astruct%nat), stat=i_stat)
+!!  call memocc(i_stat, ipiv, 'ipiv', subname)
+!!
+!!  istart=1
+!!  jstart=1
+!!  do iorb=1,tmb%orbs%norbp
+!!      iiorb=tmb%orbs%isorb+iorb
+!!      ilr=tmb%orbs%inwhichlocreg(iiorb)
+!!      iiat=tmb%orbs%onwhichatom(iiorb)
+!!
+!!      !do jjorb=1,tmb%orbs%norb
+!!      !   !jlr=tmb%orbs%inwhichlocreg(jjorb)
+!!      !   jjat=tmb%orbs%onwhichatom(jjorb)
+!!
+!!         n(1)=tmb%lzd%Llr(ilr)%d%n1
+!!         n(2)=tmb%lzd%Llr(ilr)%d%n2
+!!         n(3)=tmb%lzd%Llr(ilr)%d%n3
+!!         nj(1)=tmb%lzd%Llr(jlr)%d%n1
+!!         nj(2)=tmb%lzd%Llr(jlr)%d%n2
+!!         nj(3)=tmb%lzd%Llr(jlr)%d%n3
+!!         ns(1)=tmb%lzd%Llr(ilr)%ns1
+!!         ns(2)=tmb%lzd%Llr(ilr)%ns2
+!!         ns(3)=tmb%lzd%Llr(ilr)%ns3
+!!         nsj(1)=tmb%lzd%Llr(jlr)%ns1
+!!         nsj(2)=tmb%lzd%Llr(jlr)%ns2
+!!         nsj(3)=tmb%lzd%Llr(jlr)%ns3
+!!
+!!         ! find fragment transformation using 3 nearest neighbours
+!!         do iat=1,at%astruct%nat
+!!            rxyz_new(:,iat)=rxyz(:,iat)
+!!            rxyz_ref(:,iat)=rxyz(:,iat)
+!!         end do
+!!
+!!         ! use atom position
+!!         frag_trans%rot_center=rxyz(:,iiat)
+!!         frag_trans%rot_center_new=rxyz(:,jjat)
+!!
+!!        ! shift rxyz wrt center of rotation
+!!         do iat=1,at%astruct%nat
+!!            rxyz_ref(:,iat)=rxyz_ref(:,iat)-frag_trans%rot_center
+!!            rxyz_new(:,iat)=rxyz_new(:,iat)-frag_trans%rot_center_new
+!!         end do
+!!
+!!         ! find distances from this atom, sort atoms into neighbour order and take atom and 3 nearest neighbours
+!!         do iat=1,at%astruct%nat
+!!            dist(iat)=-dsqrt(rxyz_ref(1,iat)**2+rxyz_ref(2,iat)**2+rxyz_ref(3,iat)**2)
+!!         end do             
+!!         call sort_positions(at%astruct%nat,dist,ipiv)
+!!         do iat=1,min(4,at%astruct%nat)
+!!            rxyz4_ref(:,iat)=rxyz_ref(:,ipiv(iat))
+!!         end do
+!!
+!!         ! find distances from this atom, sort atoms into neighbour order and take atom and 3 nearest neighbours
+!!         do iat=1,at%astruct%nat
+!!            dist(iat)=-dsqrt(rxyz_new(1,iat)**2+rxyz_new(2,iat)**2+rxyz_new(3,iat)**2)
+!!         end do             
+!!         call sort_positions(at%astruct%nat,dist,ipiv)
+!!         do iat=1,min(4,at%astruct%nat)
+!!            rxyz4_new(:,iat)=rxyz_new(:,ipiv(iat))
+!!         end do
+!!
+!!         call find_frag_trans(min(4,at%astruct%nat),rxyz4_ref,rxyz4_new,frag_trans)
+!!
+!!         write(*,'(A,4(I3,1x),3(F12.6,1x),F12.6)') 'iorb,jorb,iat,jat,rot_axis,theta',&
+!!              iiorb,jjorb,iiat,jjat,frag_trans%rot_axis,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
+!!
+!!         !frag_trans%theta=0.0d0*(4.0_gp*atan(1.d0)/180.0_gp)
+!!         !frag_trans%rot_axis=(/1.0_gp,0.0_gp,0.0_gp/)
+!!         !frag_trans%rot_center(:)=rxyz(:,iiat)
+!!         !overwrite rot_center_new to account for llr_tmp being in different location
+!!         frag_trans%rot_center_new(:)=rxyz(:,iiat_tmp)
+!!
+!!         call reformat_check(reformat,reformat_reason,tol,at,tmb%lzd%hgrids,tmb%lzd%hgrids,&
+!!              tmb%lzd%llr(ilr)%wfd%nvctr_c,tmb%lzd%llr(ilr)%wfd%nvctr_c,&
+!!              tmb%lzd%llr(jlr)%wfd%nvctr_c,tmb%lzd%llr(jlr)%wfd%nvctr_c,&
+!!              n,nj,ns,nsj,frag_trans,centre_old_box,centre_new_box,da)  
+!!
+!!         if (.not. reformat) then ! copy psi into psi_tmp
+!!            do j=1,tmb%lzd%llr(jlr)%wfd%nvctr_c
+!!               psi_tmp(jstart)=tmb%psi(istart)
+!!               istart=istart+1
+!!               jstart=jstart+1
+!!            end do
+!!            do j=1,7*tmb%lzd%llr(ilr)%wfd%nvctr_f-6,7
+!!               psi_tmp(jstart+0)=tmb%psi(istart+0)
+!!               psi_tmp(jstart+1)=tmb%psi(istart+1)
+!!               psi_tmp(jstart+2)=tmb%psi(istart+2)
+!!               psi_tmp(jstart+3)=tmb%psi(istart+3)
+!!               psi_tmp(jstart+4)=tmb%psi(istart+4)
+!!               psi_tmp(jstart+5)=tmb%psi(istart+5)
+!!               psi_tmp(jstart+6)=tmb%psi(istart+6)
+!!               istart=istart+7
+!!               jstart=jstart+7
+!!            end do
+!!         else
+!!            allocate(phigold(0:n(1),2,0:n(2),2,0:n(3),2+ndebug),stat=i_stat)
+!!            call memocc(i_stat,phigold,'phigold',subname)
+!!
+!!            call psi_to_psig(n,tmb%lzd%llr(ilr)%wfd%nvctr_c,tmb%lzd%llr(ilr)%wfd%nvctr_f,&
+!!                 tmb%lzd%llr(ilr)%wfd%nseg_c,tmb%lzd%llr(ilr)%wfd%nseg_f,&
+!!                 tmb%lzd%llr(ilr)%wfd%keyvloc,tmb%lzd%llr(ilr)%wfd%keygloc,istart,tmb%psi(jstart),phigold)
+!!
+!!            call reformat_one_supportfunction(tmb%lzd%llr(jlr),tmb%lzd%llr(ilr),tmb%lzd%llr(jlr)%geocode,&
+!!                 tmb%lzd%hgrids,n,phigold,tmb%lzd%hgrids,nj,centre_old_box,centre_new_box,da,&
+!!                 frag_trans,psi_tmp(jstart:))
+!!
+!!            jstart=jstart+tmb%lzd%llr(jlr)%wfd%nvctr_c+7*tmb%lzd%llr(jlr)%wfd%nvctr_f
+!!   
+!!            i_all=-product(shape(phigold))*kind(phigold)
+!!            deallocate(phigold,stat=i_stat)
+!!            call memocc(i_stat,i_all,'phigold',subname)
+!!        end if
+!!
+!!     !end do
+!!  end do
+!!
+!!
+!!  i_all = -product(shape(ipiv))*kind(ipiv)
+!!  deallocate(ipiv,stat=i_stat)
+!!  call memocc(i_stat,i_all,'ipiv',subname)
+!!  i_all = -product(shape(dist))*kind(dist)
+!!  deallocate(dist,stat=i_stat)
+!!  call memocc(i_stat,i_all,'dist',subname)
+!!  i_all = -product(shape(rxyz_ref))*kind(rxyz_ref)
+!!  deallocate(rxyz_ref,stat=i_stat)
+!!  call memocc(i_stat,i_all,'rxyz_ref',subname)
+!!  i_all = -product(shape(rxyz_new))*kind(rxyz_new)
+!!  deallocate(rxyz_new,stat=i_stat)
+!!  call memocc(i_stat,i_all,'rxyz_new',subname)
+!!  i_all = -product(shape(rxyz4_ref))*kind(rxyz4_ref)
+!!  deallocate(rxyz4_ref,stat=i_stat)
+!!  call memocc(i_stat,i_all,'rxyz4_ref',subname)
+!!  i_all = -product(shape(rxyz4_new))*kind(rxyz4_new)
+!!  deallocate(rxyz4_new,stat=i_stat)
+!!  call memocc(i_stat,i_all,'rxyz4_new',subname)
+!!
+!!  call print_reformat_summary(iproc,reformat_reason)
+!!
+!!  ! now that they are all in one lr, need to calculate overlap matrix
+!!  ! make lzd_tmp contain all identical lrs
+!!  lzd_tmp%linear=tmb%lzd%linear
+!!  lzd_tmp%nlr=tmb%lzd%nlr
+!!  lzd_tmp%lintyp=tmb%lzd%lintyp
+!!  lzd_tmp%ndimpotisf=tmb%lzd%ndimpotisf
+!!  lzd_tmp%hgrids(:)=tmb%lzd%hgrids(:)
+!!
+!!  call nullify_locreg_descriptors(lzd_tmp%glr)
+!!  call copy_locreg_descriptors(tmb%lzd%glr, lzd_tmp%glr)
+!!
+!!  iis1=lbound(tmb%lzd%llr,1)
+!!  iie1=ubound(tmb%lzd%llr,1)
+!!  allocate(lzd_tmp%llr(iis1:iie1), stat=i_stat)
+!!  do i1=iis1,iie1
+!!     call nullify_locreg_descriptors(lzd_tmp%llr(i1))
+!!     call copy_locreg_descriptors(tmb%lzd%llr(jlr), lzd_tmp%llr(i1))
+!!  end do
+!!
+!!  !call nullify_comms_linear(collcom_tmp)
+!!  collcom_tmp=comms_linear_null()
+!!  call init_comms_linear(iproc, nproc, ndim_tmp, tmb%orbs, lzd_tmp, collcom_tmp)
+!!
+!!  allocate(psit_c_tmp(sum(collcom_tmp%nrecvcounts_c)), stat=i_stat)
+!!  call memocc(i_stat, psit_c_tmp, 'psit_c_tmp', subname)
+!!
+!!  allocate(psit_f_tmp(7*sum(collcom_tmp%nrecvcounts_f)), stat=i_stat)
+!!  call memocc(i_stat, psit_f_tmp, 'psit_f_tmp', subname)
+!!
+!!  call transpose_localized(iproc, nproc, ndim_tmp, tmb%orbs, collcom_tmp, &
+!!       psi_tmp, psit_c_tmp, psit_f_tmp, lzd_tmp)
+!!
+!!  ! normalize psi
+!!  allocate(norm(tmb%orbs%norb), stat=i_stat)
+!!  call memocc(i_stat, norm, 'norm', subname)
+!!  call normalize_transposed(iproc, nproc, tmb%orbs, collcom_tmp, psit_c_tmp, psit_f_tmp, norm)
+!!  i_all = -product(shape(norm))*kind(norm)
+!!  deallocate(norm,stat=i_stat)
+!!  call memocc(i_stat,i_all,'norm',subname)
+!!
+!!  call calculate_pulay_overlap(iproc, nproc, tmb%orbs, tmb%orbs, collcom_tmp, collcom_tmp, &
+!!       psit_c_tmp, psit_c_tmp, psit_f_tmp, psit_f_tmp, tmb%linmat%ovrlp%matrix)
+!!
+!!  call deallocate_comms_linear(collcom_tmp)
+!!  call deallocate_local_zone_descriptors(lzd_tmp, subname)
+!!
+!!  i_all = -product(shape(psit_c_tmp))*kind(psit_c_tmp)
+!!  deallocate(psit_c_tmp,stat=i_stat)
+!!  call memocc(i_stat,i_all,'psit_c_tmp',subname)
+!!
+!!  i_all = -product(shape(psit_f_tmp))*kind(psit_f_tmp)
+!!  deallocate(psit_f_tmp,stat=i_stat)
+!!  call memocc(i_stat,i_all,'psit_f_tmp',subname)
+!!
+!!  i_all = -product(shape(psi_tmp))*kind(psi_tmp)
+!!  deallocate(psi_tmp,stat=i_stat)
+!!  call memocc(i_stat,i_all,'psi_tmp',subname)
+!!
+!!END SUBROUTINE tmb_overlap_onsite_rotate
 
 
 !> Write all my wavefunctions in files by calling writeonewave
@@ -2843,8 +2845,7 @@ subroutine copy_old_inwhichlocreg(norb_tmb, inwhichlocreg, inwhichlocreg_old, on
   integer :: istat
 !  integer:: iall
 
-  allocate(inwhichlocreg_old(norb_tmb),stat=istat)
-  call memocc(istat,inwhichlocreg_old,'inwhichlocreg_old',subname)
+  inwhichlocreg_old = f_malloc_ptr(norb_tmb,id='inwhichlocreg_old')
   call vcopy(norb_tmb, inwhichlocreg(1), 1, inwhichlocreg_old(1), 1)
   !!iall=-product(shape(inwhichlocreg))*kind(inwhichlocreg)
   !!deallocate(inwhichlocreg,stat=istat)
@@ -2887,7 +2888,8 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
   character(len=*), parameter :: subname='reformatmywaves'
   logical :: reformat
   integer :: iorb,j,i_stat,i_all,jstart,jstart_old,iiorb,ilr,iiat
-  integer:: idir,jstart_old_der,ncount,ilr_old,i
+  integer:: idir,jstart_old_der,ncount,ilr_old
+  !!integer :: i
   integer, dimension(3) :: ns_old,ns,n_old,n
   real(gp), dimension(3) :: centre_old_box,centre_new_box,da
   real(gp) :: tt,tol
@@ -3241,8 +3243,6 @@ subroutine print_reformat_summary(iproc,nproc,reformat_reason)
 
   integer, intent(in) :: iproc,nproc
   integer, dimension(0:6), intent(inout) :: reformat_reason ! array giving reasons for reformatting
-
-  integer :: ierr
 
   if (nproc > 1) call mpiallred(reformat_reason(0), 7, mpi_sum, bigdft_mpi%mpi_comm)
 

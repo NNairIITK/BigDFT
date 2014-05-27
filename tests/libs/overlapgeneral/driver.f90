@@ -13,8 +13,8 @@ program driver
   use module_base
   use module_types
   use module_interfaces
-  use sparsematrix, only: compress_matrix
-  use sparsematrix_base, only: deallocate_sparse_matrix
+  use sparsematrix_base, only: deallocate_sparse_matrix, matrices_null, allocate_matrices, deallocate_matrices
+  use sparsematrix, only: compress_matrix, uncompress_matrix
   use yaml_output
   implicit none
 
@@ -27,20 +27,29 @@ program driver
   real(kind=8) :: val, error
   real(kind=8),dimension(:,:),allocatable :: ovrlp, ovrlp2
   integer :: norb, nseg, nvctr, iorb, jorb, iorder, power, blocksize, icheck, imode
+
   logical :: file_exists, symmetric, check_symmetry, perform_check
   type(orbitals_data) :: orbs
   type(sparse_matrix) :: smat_A, smat_B
+  type(matrices) :: mat_A, inv_mat_B
   character(len=*),parameter :: filename='inputdata.fake'
   integer :: nconfig, ierr, iseg, iiorb
 !!  integer :: lwork
   integer, dimension(4) :: mpi_info
   character(len=60) :: run_id
-  integer,parameter :: ncheck=18
+  integer,parameter :: ncheck=30
   integer,dimension(:,:),allocatable :: keyg_tmp
   integer,parameter :: SPARSE=1
   integer,parameter :: DENSE=2
 
-
+  integer :: ncount1, ncount_rate, ncount_max, ncount2
+  real(kind=4) :: tr0, tr1
+  real(kind=8) :: time, time2,tt
+  real :: rn
+  real(kind=8), external :: ddot, dnrm2
+  logical, parameter :: timer_on=.false.        !time the different methods
+  logical, parameter :: ortho_check=.false.     !check deviation from orthonormality of input overlap matrix
+  logical, parameter :: print_matrices=.true.  !output calculated matrices
 
   ! Initialize
   call f_lib_initialize()
@@ -80,8 +89,9 @@ program driver
   call orbs_init_fake(iproc, nproc, norb, orbs)
 
   ! Fake initialization of the sparse_matrix type
-  call sparse_matrix_init_fake(norb, orbs%norbp, orbs%isorb, nseg, nvctr, smat_A)
-  call sparse_matrix_init_fake(norb, orbs%norbp, orbs%isorb, nseg, nvctr, smat_B)
+  call sparse_matrix_init_fake(iproc,nproc,norb, orbs%norbp, orbs%isorb, nseg, nvctr, smat_A)
+  call sparse_matrix_init_fake(iproc,nproc,norb, orbs%norbp, orbs%isorb, nseg, nvctr, smat_B)
+
 
   symmetric = check_symmetry(norb, smat_A)
 
@@ -96,19 +106,42 @@ program driver
 
   ! Initialize an overlap matrix
   allocate(ovrlp(orbs%norb,orbs%norb))
-  allocate(ovrlp2(orbs%norb,orbs%norb))
-  do iorb=1,orbs%norb
-      do jorb=iorb,orbs%norb
-          val = 2.d-1*(sin(real((iorb-1)*n+jorb,kind=8)))**2
-          if (jorb/=iorb) then
-              ovrlp(jorb,iorb) = val
-              ovrlp(iorb,jorb) = val
-          else
-              val = val + 1.d0
-              ovrlp(jorb,iorb) = val
-          end if
+  if (orbs%norb<30) then
+      do iorb=1,orbs%norb
+          do jorb=iorb,orbs%norb
+              val = 2.d-1*(sin(real((iorb-1)*n+jorb,kind=8)))**2
+              if (jorb/=iorb) then
+                  ovrlp(jorb,iorb) = val
+                  ovrlp(iorb,jorb) = val
+              else
+                  val = val + 1.d0
+                  ovrlp(jorb,iorb) = val
+              end if
+          end do
       end do
-  end do
+  else
+      ! above approach has problems for testing larger matrices
+      allocate(ovrlp2(orbs%norb,orbs%norb))
+      ! randomly generate vectors
+      do iorb=1,orbs%norb
+          do jorb=1,orbs%norb
+              call random_number(rn)
+              ovrlp2(jorb,iorb)=2.0d0*real(rn,kind=8)-1.0d0
+          end do
+          tt=dnrm2(orbs%norb, ovrlp2(1,iorb), 1)
+          call dscal(orbs%norb, 1/tt, ovrlp2(1,iorb), 1)
+      end do
+
+      ! calculate overlap from random vectors
+      do iorb=1,orbs%norb
+          do jorb=iorb,orbs%norb
+             ovrlp(jorb,iorb)=ddot(orbs%norb,ovrlp2(1,iorb),1,ovrlp2(1,jorb),1)
+             ovrlp(iorb,jorb)=ovrlp(jorb,iorb)
+          end do
+      end do
+      deallocate(ovrlp2)
+  end if
+
   !!lwork=100*orbs%norb
   !!allocate(work(lwork))
   !!allocate(eval(orbs%norb))
@@ -118,10 +151,18 @@ program driver
   !!    write(*,*) iseg, eval(iseg)
   !!end do
 
+  mat_A = matrices_null()
+  inv_mat_B = matrices_null()
 
   call vcopy(orbs%norb**2, ovrlp(1,1), 1, smat_A%matrix(1,1), 1)
-  call compress_matrix(iproc, smat_A)
-  if (iproc==0) call write_matrix_compressed('initial matrix', smat_A)
+  call allocate_matrices(smat_A, allocate_full=.true., matname='mat_A', mat=mat_A)
+  call compress_matrix(iproc, smat_A, inmat=smat_A%matrix, outmat=mat_A%matrix_compr)
+  call allocate_matrices(smat_B, allocate_full=.true., matname='inv_mat_B', mat=inv_mat_B)
+  ! uncomment for sparse and dense modes to be testing the same matrix
+  !call uncompress_matrix(iproc, smat_A)
+
+  if (print_matrices.and.iproc==0) call write_matrix_compressed('initial matrix', smat_A, mat_A)
+
 
 
   ! Check of the overlap manipulation routine
@@ -140,6 +181,8 @@ program driver
       keyg_tmp(2,iseg)=iiorb
   end do
 
+  if (ortho_check) call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norb, 0, ovrlp, error)
+  if (ortho_check.and.iproc==0) call yaml_map('deviation from unity',error)
   if (iproc==0) call yaml_comment('starting the checks',hfill='=')
 
   do icheck=1,ncheck
@@ -161,22 +204,37 @@ program driver
       if (iproc==0) call yaml_map('Can perform this test',perform_check)
       if (.not.perform_check) cycle
       if (imode==DENSE) then
-          call vcopy(orbs%norb**2, ovrlp(1,1), 1, smat_A%matrix(1,1), 1)
-          call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, &
-               imode, check_accur=.true., ovrlp=smat_A%matrix, inv_ovrlp=smat_B%matrix, error=error)
-          call compress_matrix(iproc, smat_B)
+          call vcopy(orbs%norb**2, ovrlp(1,1), 1, mat_A%matrix(1,1), 1)
+          if (timer_on) call cpu_time(tr0)
+          if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
+          call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, &
+               imode, ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, ovrlp_mat=mat_A, inv_ovrlp_mat=inv_mat_B, &
+               check_accur=.true., error=error)
+          if (timer_on) call cpu_time(tr1)
+          if (timer_on) call system_clock(ncount2,ncount_rate,ncount_max)
+          if (timer_on) time=real(tr1-tr0,kind=8)
+          if (timer_on) time2=dble(ncount2-ncount1)/dble(ncount_rate)
+          call compress_matrix(iproc, smat_B, inmat=inv_mat_B%matrix, outmat=inv_mat_B%matrix_compr)
       else if (imode==SPARSE) then
           call vcopy(orbs%norb**2, ovrlp(1,1), 1, smat_A%matrix(1,1), 1)
           call compress_matrix(iproc, smat_A)
-          call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, orbs, &
-               imode, check_accur=.true., error=error, &
-               ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B)!!, &
+          if (timer_on) call cpu_time(tr0)
+          if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
+          call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, &
+               imode, ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, ovrlp_mat=mat_A, inv_ovrlp_mat=inv_mat_B, &
+               check_accur=.true., error=error)
                !!foe_nseg=smat_A%nseg, foe_kernel_nsegline=smat_A%nsegline, &
                !!foe_istsegline=smat_A%istsegline, foe_keyg=smat_A%keyg)
            !if (iorder==0) call compress_matrix(iproc, smat_B)
+          if (timer_on) call cpu_time(tr1)
+          if (timer_on) call system_clock(ncount2,ncount_rate,ncount_max)
+          if (timer_on) time=real(tr1-tr0,kind=8)
+          if (timer_on) time2=dble(ncount2-ncount1)/dble(ncount_rate)
       end if
-      if (iproc==0) call write_matrix_compressed('final result', smat_B)
+      if (print_matrices.and.iproc==0) call write_matrix_compressed('final result', smat_B, inv_mat_B)
       if (iproc==0) call yaml_map('error of the result',error)
+      if (timer_on.and.iproc==0) call yaml_map('time taken (cpu)',time)
+      if (timer_on.and.iproc==0) call yaml_map('time taken (system)',time2)
   end do
 
   if (iproc==0) call yaml_comment('checks finished',hfill='=')
@@ -186,7 +244,10 @@ program driver
   call deallocate_orbitals_data(orbs, 'driver')
   call deallocate_sparse_matrix(smat_A, 'driver')
   call deallocate_sparse_matrix(smat_B, 'driver')
+  call deallocate_matrices(mat_A)
+  call deallocate_matrices(inv_mat_B)
 
+  deallocate(ovrlp)
 
   call bigdft_finalize(ierr)
 
@@ -207,35 +268,59 @@ program driver
       case (3)
           imode = 2 ; iorder=6 ; power= -2 ; blocksize=-1
       case (4)
-          imode = 2 ; iorder=0 ; power= 1 ; blocksize=-1
+          imode = 2 ; iorder=-1 ; power= -2 ; blocksize=-1
       case (5)
-          imode = 2 ; iorder=1 ; power= 1 ; blocksize=-1
+          imode = 2 ; iorder=-6 ; power= -2 ; blocksize=-1
       case (6)
-          imode = 2 ; iorder=6 ; power= 1 ; blocksize=-1
+          imode = 2 ; iorder=0 ; power= 1 ; blocksize=-1
       case (7)
-          imode = 2 ; iorder=0 ; power= 2 ; blocksize=-1
+          imode = 2 ; iorder=1 ; power= 1 ; blocksize=-1
       case (8)
-          imode = 2 ; iorder=1 ; power= 2 ; blocksize=-1
+          imode = 2 ; iorder=6 ; power= 1 ; blocksize=-1
       case (9)
-          imode = 2 ; iorder=6 ; power= 2 ; blocksize=-1
+          imode = 2 ; iorder=-1 ; power= 1 ; blocksize=-1
       case (10)
-          imode = 1 ; iorder=0 ; power= -2 ; blocksize=-1
+          imode = 2 ; iorder=-6 ; power= 1 ; blocksize=-1
       case (11)
-          imode = 1 ; iorder=1 ; power= -2 ; blocksize=-1
+          imode = 2 ; iorder=0 ; power= 2 ; blocksize=-1
       case (12)
-          imode = 1 ; iorder=6 ; power= -2 ; blocksize=-1
+          imode = 2 ; iorder=1 ; power= 2 ; blocksize=-1
       case (13)
-          imode = 1 ; iorder=0 ; power= 1 ; blocksize=-1
+          imode = 2 ; iorder=6 ; power= 2 ; blocksize=-1
       case (14)
-          imode = 1 ; iorder=1 ; power= 1 ; blocksize=-1
+          imode = 2 ; iorder=-1 ; power= 2 ; blocksize=-1
       case (15)
-          imode = 1 ; iorder=6 ; power= 1 ; blocksize=-1
+          imode = 2 ; iorder=-6 ; power= 2 ; blocksize=-1
       case (16)
-          imode = 1 ; iorder=0 ; power= 2 ; blocksize=-1
+          imode = 1 ; iorder=0 ; power= -2 ; blocksize=-1
       case (17)
-          imode = 1 ; iorder=1 ; power= 2 ; blocksize=-1
+          imode = 1 ; iorder=1 ; power= -2 ; blocksize=-1
       case (18)
+          imode = 1 ; iorder=6 ; power= -2 ; blocksize=-1
+      case (19)
+          imode = 1 ; iorder=-1 ; power= -2 ; blocksize=-1
+      case (20)
+          imode = 1 ; iorder=-6 ; power= -2 ; blocksize=-1
+      case (21)
+          imode = 1 ; iorder=0 ; power= 1 ; blocksize=-1
+      case (22)
+          imode = 1 ; iorder=1 ; power= 1 ; blocksize=-1
+      case (23)
+          imode = 1 ; iorder=6 ; power= 1 ; blocksize=-1
+      case (24)
+          imode = 1 ; iorder=-1 ; power= 1 ; blocksize=-1
+      case (25)
+          imode = 1 ; iorder=-6 ; power= 1 ; blocksize=-1
+      case (26)
+          imode = 1 ; iorder=0 ; power= 2 ; blocksize=-1
+      case (27)
+          imode = 1 ; iorder=1 ; power= 2 ; blocksize=-1
+      case (28)
           imode = 1 ; iorder=6 ; power= 2 ; blocksize=-1
+      case (29)
+          imode = 1 ; iorder=-1 ; power= 2 ; blocksize=-1
+      case (30)
+          imode = 1 ; iorder=-6 ; power= 2 ; blocksize=-1
       case default
           stop 'wrong icheck'
       end select
@@ -311,19 +396,21 @@ end subroutine orbs_init_fake
 
 
 !> Fake initialization of the sparse_matrix type
-subroutine sparse_matrix_init_fake(norb, norbp, isorb, nseg, nvctr, smat)
+subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, smat)
   use module_base
   use module_types
-  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null
-  use sparsematrix_init, only: init_sparse_matrix_matrix_multiplication
+  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
+  use sparsematrix_init, only: init_sparse_matrix
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: norb, norbp, isorb, nseg, nvctr
+  integer,intent(in) :: iproc,nproc,norb, norbp, isorb, nseg, nvctr
   type(sparse_matrix) :: smat
 
   ! Local variables
+  integer :: nnonzero
   integer,dimension(:),allocatable :: nvctr_per_segment
+  integer ,dimension(:),pointer :: nonzero
 
   ! Some checks whether the arguments are reasonable
   if (nseg > nvctr) stop 'sparse matrix would have more segments than elements'
@@ -355,11 +442,19 @@ subroutine sparse_matrix_init_fake(norb, norbp, isorb, nseg, nvctr, smat)
   smat%keyg = keyg_init()
   call init_orbs_from_index(smat)
 
+  call init_nonzero_arrays(norbp, isorb, smat, nnonzero, nonzero)
+
+  call deallocate_sparse_matrix(smat, 'sparse_matrix_init_fake')
+  call init_sparse_matrix(iproc, nproc, norb, norbp, isorb, .false., &
+             nnonzero, nonzero, nnonzero, nonzero, smat, allocate_full_=.true.)
+  call f_free_ptr(nonzero)
+
+
   call f_free(nvctr_per_segment)
 
-  ! Initialize the parameters for the spare matrix matrix multiplication
-  call init_sparse_matrix_matrix_multiplication(norb, norbp, isorb, smat%nseg, &
-       smat%nsegline, smat%istsegline, smat%keyg, smat)
+  !!! Initialize the parameters for the spare matrix matrix multiplication
+  !!call init_sparse_matrix_matrix_multiplication(norb, norbp, isorb, smat%nseg, &
+  !!     smat%nsegline, smat%istsegline, smat%keyg, smat)
 
   !!if (iproc==0) then
   !!    do jorb=1,norb
@@ -578,17 +673,60 @@ subroutine sparse_matrix_init_fake(norb, norbp, isorb, nseg, nvctr, smat)
 
     end subroutine init_orbs_from_index
 
+    subroutine init_nonzero_arrays(norbp, isorb, sparsemat, nnonzero, nonzero)
+      use sparsematrix_base, only : sparse_matrix
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: norbp, isorb
+      type(sparse_matrix),intent(in) :: sparsemat
+      integer,intent(out) :: nnonzero
+      integer,dimension(:),pointer :: nonzero
+
+      ! Local variables
+      integer :: iorb, iiorb, iseg, iiseg, ilen, i, ii
+
+      nnonzero=0
+      do iorb=1,norbp
+          iiorb=isorb+iorb
+          do iseg=1,sparsemat%nsegline(iiorb)
+              iiseg=sparsemat%istsegline(iiorb)+iseg-1
+              ilen=sparsemat%keyg(2,iiseg)-sparsemat%keyg(1,iiseg)+1
+              nnonzero=nnonzero+ilen
+          end do
+      end do
+
+
+      nonzero = f_malloc_ptr(nnonzero,id='nonzero')
+      ii=0
+      do iorb=1,norbp
+          iiorb=isorb+iorb
+          do iseg=1,sparsemat%nsegline(iiorb)
+              iiseg=sparsemat%istsegline(iiorb)+iseg-1
+              do i=sparsemat%keyg(1,iiseg),sparsemat%keyg(2,iiseg)
+                  ii=ii+1
+                  nonzero(ii)=i
+              end do
+          end do
+      end do
+
+
+    end subroutine init_nonzero_arrays
+
+
+
 end subroutine sparse_matrix_init_fake
 
 
-subroutine write_matrix_compressed(message, smat)
+subroutine write_matrix_compressed(message, smat, mat)
   use yaml_output
-  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_base, only: sparse_matrix, matrices
   implicit none
 
   ! Calling arguments
   character(len=*),intent(in) :: message
   type(sparse_matrix),intent(in) :: smat
+  type(matrices),intent(in) :: mat
 
   ! Local variables
   integer :: iseg, ilen, istart, iend, i, iorb, jorb
@@ -623,7 +761,7 @@ subroutine write_matrix_compressed(message, smat)
           iorb=smat%orb_from_index(1,i)
           jorb=smat%orb_from_index(2,i)
           call yaml_map('coordinates',(/jorb,iorb/))
-          call yaml_map('value',smat%matrix_compr(i))
+          call yaml_map('value',mat%matrix_compr(i))
           call yaml_close_map()
       end do
       call yaml_close_sequence()

@@ -1062,6 +1062,8 @@ contains
        if (has_key(pos, "format")) astruct%inputfile_format = pos // "format"
     end if
 
+    call dict_free(types)
+
   end subroutine astruct_set_from_dict
 
 
