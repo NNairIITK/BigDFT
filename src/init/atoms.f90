@@ -232,7 +232,6 @@ contains
     write(*,'(1x,a,i0,a)')&
          'ERROR in input file for atom number ',iat,&
          ': after 4th column you can put the input polarisation(s) or the frozen chain (f,fxz,fy or f111, fb1, ...)'
-     write(*,*) sqrt(-1.d0)
     stop
   END SUBROUTINE error
   
