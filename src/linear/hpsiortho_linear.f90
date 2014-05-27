@@ -219,6 +219,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
        overlap_calculated, experimental_mode, norder_taylor, &
        tmb%npsidim_orbs, tmb%lzd, hpsi_noprecond)
 
+  call f_free(hpsit_nococontra_c)
+  call f_free(hpsit_nococontra_f)
 
   !!write(*,*) 'hpsit_c after: ddot',ddot(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsit_c(1), 1)
   !!write(*,*) 'hpsit_f after: ddot',ddot(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsit_f(1), 1)
