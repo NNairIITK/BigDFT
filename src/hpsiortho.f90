@@ -704,13 +704,15 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
   type(gaussian_basis),dimension(at%astruct%ntypes),optional,intent(in)::proj_G !projectors in gaussian basis (for PAW)
   type(paw_objects),optional,intent(inout)::paw
   !local variables
-  logical, parameter :: newmethod=.true.
+  logical :: newmethod
   character(len=*), parameter :: subname='NonLocalHamiltonianApplication' 
   logical :: dosome, overlap
   integer :: ikpt,istart_ck,ispsi_k,isorb,ieorb,nspinor,iorb,iat,nwarnings
   integer :: iproj,ispsi,istart_c,ilr,ilr_skip,mproj,iatype,ncplx,ispinor
   real(wp) :: hp,eproj
   real(wp), dimension(:), allocatable :: scpr
+
+  newmethod=.true.
 
   eproj_sum=0.0_gp
   !quick return if no orbitals on this task
@@ -732,6 +734,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
   nwarnings=0
 
   if(any(at%npspcode == 7)) then  
+     newmethod=.false.
      !initialize to zero in PAW case
      if(.not. present(paw) .or. .not. present(proj_G)) then
         stop 'NonLocalHamiltonianApplication: proj_G or paw are not present'

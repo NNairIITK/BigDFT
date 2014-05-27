@@ -1605,22 +1605,32 @@ subroutine deallocate_orbs(orbs,subname)
     integer :: i_all,i_stat
 
     !normally positions should be deallocated outside
-    
-    i_all=-product(shape(G%ndoc))*kind(G%ndoc)
-    deallocate(G%ndoc,stat=i_stat)
-    call memocc(i_stat,i_all,'ndoc',subname)
-    i_all=-product(shape(G%nam))*kind(G%nam)
-    deallocate(G%nam,stat=i_stat)
-    call memocc(i_stat,i_all,'nam',subname)
-    i_all=-product(shape(G%nshell))*kind(G%nshell)
-    deallocate(G%nshell,stat=i_stat)
-    call memocc(i_stat,i_all,'nshell',subname)
-    i_all=-product(shape(G%psiat))*kind(G%psiat)
-    deallocate(G%psiat,stat=i_stat)
-    call memocc(i_stat,i_all,'psiat',subname)
-    i_all=-product(shape(G%xp))*kind(G%xp)
-    deallocate(G%xp,stat=i_stat)
-    call memocc(i_stat,i_all,'xp',subname)
+
+    if (associated(G%ndoc))then
+      i_all=-product(shape(G%ndoc))*kind(G%ndoc)
+      deallocate(G%ndoc,stat=i_stat)
+      call memocc(i_stat,i_all,'ndoc',subname)
+    end if
+    if (associated(G%nam))then
+      i_all=-product(shape(G%nam))*kind(G%nam)
+      deallocate(G%nam,stat=i_stat)
+      call memocc(i_stat,i_all,'nam',subname)
+    end if
+    if (associated(G%nshell))then
+      i_all=-product(shape(G%nshell))*kind(G%nshell)
+      deallocate(G%nshell,stat=i_stat)
+      call memocc(i_stat,i_all,'nshell',subname)
+    end if
+    if (associated(G%psiat))then
+      i_all=-product(shape(G%psiat))*kind(G%psiat)
+      deallocate(G%psiat,stat=i_stat)
+      call memocc(i_stat,i_all,'psiat',subname)
+    end if
+    if (associated(G%xp))then
+      i_all=-product(shape(G%xp))*kind(G%xp)
+      deallocate(G%xp,stat=i_stat)
+      call memocc(i_stat,i_all,'xp',subname)
+    end if
 
   END SUBROUTINE deallocate_gwf
 
@@ -1635,27 +1645,37 @@ subroutine deallocate_orbs(orbs,subname)
     integer :: i_all,i_stat
 
     !normally positions should be deallocated outside
-    
-    i_all=-product(shape(G%ndoc))*kind(G%ndoc)
-    deallocate(G%ndoc,stat=i_stat)
-    call memocc(i_stat,i_all,'G%ndoc',subname)
-    i_all=-product(shape(G%nam))*kind(G%nam)
-    deallocate(G%nam,stat=i_stat)
-    call memocc(i_stat,i_all,'nam',subname)
-    i_all=-product(shape(G%nshell))*kind(G%nshell)
-    deallocate(G%nshell,stat=i_stat)
-    call memocc(i_stat,i_all,'G%nshell',subname)
-    i_all=-product(shape(G%psiat))*kind(G%psiat)
-    deallocate(G%psiat,stat=i_stat)
-    call memocc(i_stat,i_all,'G%psiat',subname)
 
-    i_all=-product(shape(G%expof))*kind(G%expof)
-    deallocate(G%expof,stat=i_stat)
-    call memocc(i_stat,i_all,'G%expof',subname)
-
-    i_all=-product(shape(G%rxyz))*kind(G%rxyz)
-    deallocate(G%rxyz,stat=i_stat)
-    call memocc(i_stat,i_all,'G%rxyz',subname)
+    if (associated(G%ndoc))then
+      i_all=-product(shape(G%ndoc))*kind(G%ndoc)
+      deallocate(G%ndoc,stat=i_stat)
+      call memocc(i_stat,i_all,'G%ndoc',subname)
+    end if
+    if (associated(G%nam))then
+      i_all=-product(shape(G%nam))*kind(G%nam)
+      deallocate(G%nam,stat=i_stat)
+      call memocc(i_stat,i_all,'nam',subname)
+    end if
+    if (associated(G%nshell))then
+      i_all=-product(shape(G%nshell))*kind(G%nshell)
+      deallocate(G%nshell,stat=i_stat)
+      call memocc(i_stat,i_all,'G%nshell',subname)
+    end if
+    if (associated(G%psiat))then
+      i_all=-product(shape(G%psiat))*kind(G%psiat)
+      deallocate(G%psiat,stat=i_stat)
+      call memocc(i_stat,i_all,'G%psiat',subname)
+    end if
+    if (associated(G%expof))then
+      i_all=-product(shape(G%expof))*kind(G%expof)
+      deallocate(G%expof,stat=i_stat)
+      call memocc(i_stat,i_all,'G%expof',subname)
+    end if
+    if (associated(G%rxyz))then
+      i_all=-product(shape(G%rxyz))*kind(G%rxyz)
+      deallocate(G%rxyz,stat=i_stat)
+      call memocc(i_stat,i_all,'G%rxyz',subname)
+    end if
 
   END SUBROUTINE 
 
