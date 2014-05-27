@@ -17,6 +17,7 @@ program PSolver_Program
   use wrapper_mpi
   use memory_profiling, only: memocc
   use time_profiling
+  use dynamic_memory
   implicit none
   !include 'mpif.h'
   !Order of interpolating scaling function
