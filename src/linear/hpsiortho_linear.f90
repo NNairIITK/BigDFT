@@ -166,13 +166,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       call build_linear_combination_transposed(tmb%ham_descr%collcom, &
            tmb%linmat%m, matrixm, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
 
-  !!do ii=1,tmb%linmat%m%nvctr
-  !!    write(120+iproc,*) ii, matrixm%matrix_compr(ii)
-  !!end do
-  !!do ii=1,tmb%ham_descr%collcom%ndimind_c
-  !!    write(200+iproc,'(a,i9,3es16.7)') 'ii, hpsit_c, hpsit_nococontra_c, diff', ii, hpsit_c(ii), hpsit_nococontra_c(ii), abs(hpsit_c(ii)-hpsit_nococontra_c(ii))
-  !!end do
-
       call deallocate_matrices(matrixm)
 
       !@END NEW correction for contra / covariant gradient
@@ -184,7 +177,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   call f_free_ptr(hpsittmp_f)
 
   ! Calculate the overlap matrix, can be optimized ############################
-  if (.true. .or. .not.correction_co_contra) then
+  if (.not.correction_co_contra) then
       !if(.not.tmb%can_use_transposed) then
           if(.not.associated(tmb%psit_c)) then
               tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
@@ -206,10 +199,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
 
-  !if (iproc==0) write(*,*) 'correction_orthoconstraint',correction_orthoconstraint
   if (.not.present(hpsi_noprecond)) stop 'hpsi_noprecond not present'
-  !!write(*,*) 'hpsit_c before: ddot',ddot(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsit_c(1), 1)
-  !!write(*,*) 'hpsit_f before: ddot',ddot(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsit_f(1), 1)
   call orthoconstraintNonorthogonal(iproc, nproc, tmb%ham_descr%lzd, &
        tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &
        tmb%orbs, tmb%ham_descr%collcom, tmb%orthpar, correction_orthoconstraint, &
@@ -222,18 +212,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   call f_free(hpsit_nococontra_c)
   call f_free(hpsit_nococontra_f)
 
-  !!write(*,*) 'hpsit_c after: ddot',ddot(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsit_c(1), 1)
-  !!write(*,*) 'hpsit_f after: ddot',ddot(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsit_f(1), 1)
-  !!write(*,*) 'tmb%hpsi after: ddot',ddot(tmb%ham_descr%npsidim_orbs, tmb%hpsi(1), 1, tmb%hpsi(1), 1)
 
   call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
        tmb%orbs, tmb%hpsi, hpsi_small)
-
-   !if (present(hpsi_noprecond)) then
-   !    hpsi_noprecond = hpsi_small
-   !end if
-
-  !!write(*,*) 'hpsi_small: ddot',ddot(tmb%npsidim_orbs, hpsi_small(1), 1, hpsi_small(1), 1)
 
 
   ! Calculate trace (or band structure energy, resp.)
@@ -242,16 +223,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   do iorb=1,tmb%orbs%norb
      ii=matrixindex_in_compressed(tmb%linmat%m,iorb,iorb)
      trH = trH + tmb%linmat%ham_%matrix_compr(ii)
-     !if (iproc==0) write(*,*) 'iorb, value', iorb, tmb%linmat%ham_%matrix_compr(ii)
-     !if (iproc==0) write(*,*) 'iorb, eval', iorb, tmb%orbs%eval(iorb)
   end do
-  !!if (iproc==0) write(*,*) 'trH',trH
   call timing(iproc,'eglincomms','OF')
 
   ! trH is now the total energy (name is misleading, correct this)
   ! Multiply by 2 because when minimizing trace we don't have kernel
-  !if(iproc==0)print *,'trH,energs',trH,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
-  !if(tmb%orbs%nspin==1 .and. target_function/= TARGET_FUNCTION_IS_ENERGY) trH=2.d0*trH
   if(tmb%orbs%nspin==1 .and. target_function==TARGET_FUNCTION_IS_TRACE) trH=2.d0*trH
   trH=trH-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
 
@@ -291,11 +267,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       end if
       fnrmArr(iorb)=ddot(ncount, hpsi_small(ist), 1, hpsi_small(ist), 1)
       ist=ist+ncount
-      !!!if (mod(iiorb-1,9)+1<=4) then
-      !!!    fnrm_low=fnrm_low+fnrmArr(iorb)
-      !!!else
-      !!!    fnrm_high=fnrm_high+fnrmArr(iorb)
-      !!!end if
   end do
 
 
@@ -382,47 +353,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   ! rather than calculating the preconditioning for nothing
   if ((energy_increased .or. energy_only) .and. target_function/=TARGET_FUNCTION_IS_HYBRID) return
 
-  !!! Precondition the gradient.
-  !!if(iproc==0) then
-  !!    write(*,'(a)',advance='no') 'Preconditioning... '
-  !!end if
- 
 
-  !if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-  !    allocate(hpsi_tmp(tmb%npsidim_orbs), stat=istat)
-  !    call memocc(istat, hpsi_conf, 'hpsi_conf', subname)
-  !end if
-  !ist=1
-  !do iorb=1,tmb%orbs%norbp
-  !    iiorb=tmb%orbs%isorb+iorb
-  !    ilr = tmb%orbs%inWhichLocreg(iiorb)
-  !    ncnt=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-  !    if(target_function==TARGET_FUNCTION_IS_HYBRID) then
-  !        tt=ddot(ncnt, hpsi_conf(ist), 1, hpsi_small(ist), 1)
-  !        tt=tt/ddot(ncnt, hpsi_conf(ist), 1, hpsi_conf(ist), 1)
-  !        do i=ist,ist+ncnt-1
-  !            hpsi_tmp(i)=tt*hpsi_conf(i)
-  !        end do
-  !        call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
-  !             tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-  !             nit_precond, hpsi_tmp(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
-  !             tmb%confdatarr(iorb)%prefac, iorb, eval_zero)
-  !        call daxpy(ncnt, -tt, hpsi_conf(ist), 1, hpsi_small(ist), 1)
-  !        call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
-  !             tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-  !             nit_precond, hpsi_small(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
-  !             0.d0, iorb, eval_zero)
-  !        call daxpy(ncnt, 1.d0, hpsi_tmp(ist), 1, hpsi_small(ist), 1)
-  !    else
-  !    !    call choosePreconditioner2(iproc, nproc, tmb%orbs, tmb%lzd%llr(ilr), &
-  !    !         tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
-  !    !         nit_precond, hpsi_small(ist:ist+ncnt-1), tmb%confdatarr(iorb)%potorder, &
-  !    !         tmb%confdatarr(iorb)%prefac, iorb, eval_zero)
-  !    end if
-  !    ist=ist+ncnt
-  !end do
 
-  !!if (iproc==0) write(*,*) 'HACK S.M.: precond'
   if(target_function==TARGET_FUNCTION_IS_HYBRID) then
      hpsi_tmp = f_malloc(tmb%npsidim_orbs,id='hpsi_tmp')
      ist=1
@@ -441,22 +373,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
         ist=ist+ncnt
      end do
 
-     !!if (ldiis%isx>0) then
-     !!    if (iproc==0) write(*,*) 'HACK precond: 10*conf'
-     !!    tmb%confdatarr(:)%prefac=10.d0*tmb%confdatarr(:)%prefac
-     !!end if
-     !if (iproc==0) write(*,*) 'HACK precond: max(prefac,1.d-3)'
-     !allocate(prefacarr(tmb%orbs%norbp))
-     !prefacarr(:)=tmb%confdatarr(:)%prefac
-     !tmb%confdatarr(:)%prefac=max(tmb%confdatarr(:)%prefac,1.d-3)
      call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
           nit_precond,tmb%npsidim_orbs,hpsi_tmp,tmb%confdatarr,gnrm,gnrm_zero)
-     !tmb%confdatarr(:)%prefac=prefacarr(:)
-     !deallocate(prefacarr)
-     !!if (ldiis%isx>0) then
-     !!    tmb%confdatarr(:)%prefac=0.1d0*tmb%confdatarr(:)%prefac
-     !!end if
 
      ! temporarily turn confining potential off...
      prefac = f_malloc(tmb%orbs%norbp,id='prefac')
@@ -473,21 +392,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      call f_free(hpsi_conf)
      call f_free(hpsi_tmp)
   else
-     !!if (ldiis%isx>0) then
-         !if (iproc==0) write(*,*) 'HACK precond: max(prefac,1.d-4)'
-         !tmb%confdatarr(:)%prefac=10.d0*tmb%confdatarr(:)%prefac
-         !allocate(prefacarr(tmb%orbs%norbp))
-         !prefacarr(:)=tmb%confdatarr(:)%prefac
-         !tmb%confdatarr(:)%prefac=max(tmb%confdatarr(:)%prefac,1.d-4)
-     !!end if
      call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
           nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero)
-     !!if (ldiis%isx>0) then
-         !tmb%confdatarr(:)%prefac=0.1d0*tmb%confdatarr(:)%prefac
-         !tmb%confdatarr(:)%prefac=prefacarr(:)
-         !deallocate(prefacarr)
-     !!end if
   end if
 
   if (iproc==0) then
@@ -503,19 +410,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       gnrm     =garray(1)
       gnrm_zero=garray(2)
   end if
-
-  !if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-  !    iall=-product(shape(hpsi_conf))*kind(hpsi_conf)
-  !    deallocate(hpsi_conf, stat=istat)
-  !    call memocc(istat, iall, 'hpsi_conf', subname)
-  !    iall=-product(shape(hpsi_tmp))*kind(hpsi_tmp)
-  !    deallocate(hpsi_tmp, stat=istat)
-  !    call memocc(istat, iall, 'hpsi_tmp', subname)
-  !end if
-
-  !!if(iproc==0) then
-  !!    write(*,'(a)') 'done.'
-  !!end if
 
   call timing(iproc,'eglincomms','ON')
   ist=1
@@ -538,11 +432,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   end if
   gnrm=sqrt(gnrm/dble(tmb%orbs%norb))
   gnrmMax=sqrt(gnrmMax)
-  !if (iproc==0) write(*,'(a,3es16.6)') 'AFTER: gnrm, gnrmmax, gnrm/gnrm_old',gnrm,gnrmmax,gnrm/gnrm_old
   call timing(iproc,'eglincomms','OF')
 
 
 end subroutine calculate_energy_and_gradient_linear
+
 
 subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, hpsit_f)
   use module_base
