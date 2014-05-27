@@ -2772,9 +2772,6 @@ subroutine overlap_minus_one_half_serial(iproc, nproc, iorder, power, blocksize,
 end subroutine overlap_minus_one_half_serial
 
 
-
-
-
 subroutine diagonalize_subset(iproc, nproc, orbs, ovrlp, ovrlp_mat, ham, ham_mat)
   use module_base
   use module_types
