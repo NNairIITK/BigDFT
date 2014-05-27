@@ -1030,6 +1030,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   use module_base
   use module_interfaces, except_this_one => input_wf_diag
   use module_types
+  use module_xc, only: XC_NO_HARTREE
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
   use gaussians
@@ -1266,6 +1267,12 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   !spin adaptation for the IG in the spinorial case
   orbse%nspin=nspin
   call sumrho(denspot%dpbox,orbse,Lzde,GPUe,at%astruct%sym,denspot%rhod,denspot%xc,psi,denspot%rho_psi)
+
+  if (ixc == XC_NO_HARTREE) then
+     !Put to zero the density if no Hartree
+     denspot%rho_psi = 0.0_dp
+  end if
+
   call communicate_density(denspot%dpbox,orbse%nspin,denspot%rhod,denspot%rho_psi,denspot%rhov,.false.)
   call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, 0, iproc, nproc)
 
@@ -1284,6 +1291,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
         irho_add=irho_add+Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,2)
      end do
   end if
+
+  !Now update the potential
   call updatePotential(nspin,denspot,energs%eh,energs%exc,energs%evxc)
 
 !!$   !experimental
@@ -1597,6 +1606,7 @@ contains
 END SUBROUTINE input_wf_diag
 
 
+!> Determine the input guess wavefunctions
 subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      denspot,denspot0,nlpsp,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
      lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft,&
@@ -1808,14 +1818,15 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
              rxyz,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
              KSwfn%Lzd%Glr%d,KSwfn%Lzd%Glr%wfd,KSwfn%psi, KSwfn%orbs,KSwfn%lzd,displ)
         call timing(iproc,'restart_rsp   ','OF')
-    else
+     else
         !stop 'Wrong value of inguess_geopt in input.perf'
         call f_err_throw('Wrong value of inguess_geopt in input.perf', &
              err_name='BIGDFT_RUNTIME_ERROR')
-    end if
+     end if
 
      if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) &
            call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)
+
   case(INPUT_PSI_MEMORY_LINEAR)
      if (iproc == 0) then
         call yaml_comment('Support functions Restart',hfill='-')
@@ -1823,6 +1834,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      end if
       call input_memory_linear(iproc, nproc, atoms, KSwfn, tmb, tmb_old, denspot, in, &
            rxyz_old, rxyz, denspot0, energs, nlpsp, GPU, ref_frags)
+
   case(INPUT_PSI_DISK_WVL)
      if (iproc == 0) then
         !write( *,'(1x,a)')&
@@ -1896,6 +1908,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
          deallocate(tmb%psit_f, stat=i_stat)
          call memocc(i_stat, i_all, 'tmb%psit_f', subname)
      end if
+
   case (INPUT_PSI_DISK_LINEAR)
      if (iproc == 0) then
         !write( *,'(1x,a)')&

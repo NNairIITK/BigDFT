@@ -889,7 +889,7 @@ subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
     !if(iproc==0) write(*,*)'ERROR: Number of electrons is negative:',nelec,'.'
     !if(iproc==0) write(*,*)'FIX: decrease charge of system.'
     !call mpi_finalize(iat)
-    stop
+    !stop
     call f_err_throw('Number of electrons is negative:' // trim(yaml_toa(nelec)) // &
       & '. FIX: decrease charge of system.', err_name='BIGDFT_RUNTIME_ERROR')
   end if
@@ -1379,14 +1379,7 @@ subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par
            exit find_start
         end if
      end do find_start
-     if (jsproc == UNINITIALIZED(1)) then
-        if (norb /= 0) then
-           stop 'ERROR in kpt assignments'
-        else
-           !Special case for norb == 0
-           jsproc = 0
-        end if
-     end if
+     if (jsproc == UNINITIALIZED(1)) stop 'ERROR in kpt assignments'
      if(norb_par(jsproc,ikpt) /= norb) then
         strprc=real(norb_par(jsproc,ikpt),gp)/real(norb,gp)     
      else

@@ -355,7 +355,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
   nxt=nwbr+nwb+nwbl
 
   !quick return if no Semilocal XC potential is required (Hartree or Hartree-Fock)
-  if (xcObj%ixc == 0 .or. xcObj%ixc == 100) then
+  if (xcObj%ixc == XC_HARTREE .or. xcObj%ixc == XC_HARTREE_FOCK .or. xcObj%ixc == XC_NO_HARTREE) then
      if (datacode == 'G') then
         call to_zero(n01*n02*n03*nspin,potxc(1))
         !call dscal(n01*n02*n03,0.0_dp,potxc,1)

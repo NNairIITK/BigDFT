@@ -1792,7 +1792,7 @@ CALLER_GRAPH           = YES
 # If the GRAPHICAL_HIERARCHY and HAVE_DOT tags are set to YES then doxygen
 # will generate a graphical hierarchy of all classes instead of a textual one.
 
-GRAPHICAL_HIERARCHY    = NO
+GRAPHICAL_HIERARCHY    = YES
 
 # If the DIRECTORY_GRAPH and HAVE_DOT tags are set to YES
 # then doxygen will show the dependencies a directory has on other directories

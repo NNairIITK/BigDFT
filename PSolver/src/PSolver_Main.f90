@@ -54,7 +54,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    real(gp), intent(out) :: eh
 
    !> On input, it represents the density values on the grid points
-   !! On output, it is the Hartree potential
+   !! On output, it is the Hartree potential (and maybe also pot_ion)
    real(dp), dimension(*), intent(inout) :: rhopot
 
    !> Additional external potential that is added to the output, 

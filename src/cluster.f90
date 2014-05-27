@@ -98,9 +98,9 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
   verbose=runObj%inputs%verbosity
 
   ! Use the restart for the linear scaling version... probably to be modified.
-  if(runObj%inputs%inputPsiId==1) then
+  if(runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_WVL) then
       if (runObj%rst%version == LINEAR_VERSION) then
-          runObj%inputs%inputPsiId=101
+          runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_LINEAR
           do iorb=1,runObj%rst%tmb%orbs%norb
               if (runObj%inputs%lin%locrad_lowaccuracy(iorb) /=  runObj%inputs%lin%locrad_highaccuracy(iorb))then
                   stop 'ERROR: at the moment the radii for low and high accuracy must be the same &
@@ -121,7 +121,7 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
         end do
      end if
 
-     if (runObj%inputs%inputPsiId == 0 .and. associated(runObj%rst%KSwfn%psi)) then
+     if (runObj%inputs%inputPsiId == INPUT_PSI_LCAO .and. associated(runObj%rst%KSwfn%psi)) then
         i_all=-product(shape(runObj%rst%KSwfn%psi))*kind(runObj%rst%KSwfn%psi)
         deallocate(runObj%rst%KSwfn%psi,stat=i_stat)
         call memocc(i_stat,i_all,'psi',subname)
@@ -134,7 +134,7 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
      inquire(file='input.finite_difference_forces',exist=exists)
      if (exists) then
         runObj%inputs%last_run=1 !do the last_run things nonetheless
-        runObj%inputs%inputPsiId=0 !the first run always restart from IG
+        runObj%inputs%inputPsiId = INPUT_PSI_LCAO !the first run always restart from IG
         !experimental_modulebase_var_onlyfion=.true. !put only ionic forces in the forces
      end if
 
@@ -256,10 +256,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   !!   - 0 run successfully succeded
   !!   - 1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
   !!       forces may be meaningless   
-  !!   - 2 (present only for inputPsiId=1) gnrm of the first iteration > 1 AND growing in
+  !!   - 2 (present only for inputPsiId=INPUT_PSI_MEMORY_WVL) gnrm of the first iteration > 1 AND growing in
   !!       the second iteration OR grnm 1st >2.
   !!       Input wavefunctions need to be recalculated. Routine exits.
-  !!   - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
+  !!   - 3 (present only for inputPsiId=INPUT_PSI_LCAO) gnrm > 4. SCF error. Routine exits.
   integer, intent(out) :: infocode
   !local variables
   character(len=*), parameter :: subname='cluster'
@@ -523,7 +523,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
 
 
-
      ! check the extent of the kernel cutoff (must be at least shamop radius)
      call check_kernel_cutoff(iproc, tmb%orbs, atoms, tmb%lzd)
 
@@ -562,7 +561,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
          call check_matrix_compression(iproc, tmb%linmat%l, tmb%linmat%kernel_)
          if (iproc ==0) call yaml_close_map()
      end if
-
 
 
 
@@ -1737,6 +1735,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            linflag = 1                                 
            if(in%linear == INPUT_IG_OFF) linflag = 0
            if(in%linear == INPUT_IG_TMO) linflag = 2
+
+           !Calculates the application of the Hamiltonian on the wavefunction
            call psitohpsi(iproc,nproc,atoms,scpot,denspot,opt%itrp,opt%iter,opt%iscf,alphamix,&
                 nlpsp,rxyz,linflag,in%unblock_comms,GPU,KSwfn,energs,opt%rpnrm,xcstr)
 

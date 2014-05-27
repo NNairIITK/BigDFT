@@ -18,6 +18,7 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,
   use module_interfaces, fake_name => density_and_hpot
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
+  !Arguments
   type(denspot_distribution), intent(in) :: dpbox
   type(rho_descriptors),intent(inout) :: rhodsc
   type(orbitals_data), intent(in) :: orbs
@@ -49,7 +50,7 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,
      call communicate_density(dpbox,orbs%nspin,rhodsc,rho_p,rho,.false.)
   end if
 
-  !calculate the total density in the case of nspin==2
+  !Calculate the total density in the case of nspin==2
   if (orbs%nspin==2) then
      call axpy(dpbox%ndimpot,1.0_dp,rho(1+dpbox%ndimpot),1,rho(1),1)
   end if
@@ -61,13 +62,18 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,
      call memocc(i_stat,vh,'vh',subname)
   end if
 
-  !calculate electrostatic potential
-  call vcopy(dpbox%ndimpot,rho(1),1,vh(1),1)
-  
-  call H_potential('D',pkernel,vh,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten)
-  !in principle symmetrization of the stress tensor is not needed since the density has been 
-  !already symmetrized
+  if (xc%id(1) /= XC_NO_HARTREE) then
+     !Calculate electrostatic potential
+     call vcopy(dpbox%ndimpot,rho(1),1,vh(1),1)
+     call H_potential('D',pkernel,vh,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten)
+  else
+     !Only to_zero vh
+     vh=0.0_dp
+     ehart_fake=0.0_dp
+  end if
 
+  !In principle symmetrization of the stress tensor is not needed since the density has been 
+  !already symmetrized
   if (symObj%symObj >= 0 .and. pkernel%geocode=='P') &
        call symm_stress(hstrten,symObj%symObj)
 

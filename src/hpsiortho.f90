@@ -47,7 +47,6 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
   !integer :: ii,jj
   !$ integer :: omp_get_max_threads,omp_get_thread_num,omp_get_num_threads
 
-  
 
   !in the default case, non local hamiltonian is done after potential creation
   whilepot=.true.
@@ -291,7 +290,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
 
 
   !non self-consistent case: rhov should be the total potential
-  if (denspot%rhov_is/=KS_POTENTIAL) then
+  if (denspot%rhov_is /= KS_POTENTIAL) then
      stop 'psitohpsi: KS_potential not available' 
   end if
 
@@ -1079,10 +1078,6 @@ END SUBROUTINE SynchronizeHamiltonianApplication
 
 !> Build the potential in the whole box
 !! Control also the generation of an orbital
-!! @ param i3rho_add Integer which controls the presence of a density after the potential array
-!!                   if different than zero, at the address ndimpot*nspin+i3rho_add starts the spin up component of the density
-!!                   the spin down component can be found at the ndimpot*nspin+i3rho_add+ndimpot, contiguously
-!!                   the same holds for non-collinear calculations
 subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,pot,comgp)
   !ndimpot,ndimgrid,nspin,&
   !   ndimrhopot,i3rho_add,orbs,&
@@ -1093,6 +1088,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
    use communications_base, only: p2pComms
    use communications, only: synchronize_onesided_communication
    implicit none
+   !Arguments
    integer, intent(in) :: iproc,nproc,iflag!,nspin,ndimpot,ndimgrid
    !integer, intent(in) :: ndimrhopot,i3rho_add
    type(orbitals_data),intent(in) :: orbs
