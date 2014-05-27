@@ -125,40 +125,40 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
      do i3=-nb3,2*n3+1+nb3
         z=real(i3,gp)*hzh
         zold=z-dz
-        j3=nint((zold)/hzh_old)
+        j3=nint(zold/hzh_old)
         cif3=(j3 >= -6 .and. j3 <= n3o7) .or. perz
         if (.not.cif3) cycle
 
+        zr =real((zold-real(j3,gp)*hzh_old)/hzh_old,wp)
+        jj3a=modulo(j3-1+nb3,n3nb3o)-nb3
+        jj3b=modulo(j3  +nb3,n3nb3o)-nb3
+        jj3c=modulo(j3+1+nb3,n3nb3o)-nb3
         ind3=n1nb1*n2nb2*(i3+nb3)+nb1+1
         do i2=-nb2,2*n2+1+nb2
            y=real(i2,gp)*hyh
            yold=y-dy
 
-           j2=nint((yold)/hyh_old)
+           j2=nint(yold/hyh_old)
            cif2=(j2 >= -6 .and. j2 <= n2o7) .or. pery
            if (.not. cif2) cycle
 
+           yr = real((yold-real(j2,gp)*hyh_old)/hyh_old,wp)
            ind2=n1nb1*(i2+nb2)
            do i1=-nb1,2*n1+1+nb1
               x=real(i1,gp)*hxh
               xold=x-dx 
 
-              j1=nint((xold)/hxh_old)
+              j1=nint(xold/hxh_old)
               cif1=(j1 >= -6 .and. j1 <= n1o7) .or. perx
-
-              ind=i1+ind2+ind3
               
               if (cif1) then 
-                 zr =real(((z-dz)-real(j3,gp)*hzh_old)/hzh_old,wp)
+                 ind=i1+ind2+ind3
                  do l2=-1,1
+                    jj2=modulo(j2+l2+nb2,n2nb2o)-nb2
                     do l1=-1,1
                        !the modulo has no effect on free BC thanks to the
                        !if statement above
                        jj1=modulo(j1+l1+nb1,n1nb1o)-nb1
-                       jj2=modulo(j2+l2+nb2,n2nb2o)-nb2
-                       jj3a=modulo(j3-1+nb3,n3nb3o)-nb3
-                       jj3b=modulo(j3  +nb3,n3nb3o)-nb3
-                       jj3c=modulo(j3+1+nb3,n3nb3o)-nb3
                        
                        ym1=psifscfold(jj1,jj2,jj3a)
                        y00=psifscfold(jj1,jj2,jj3b)
@@ -169,7 +169,6 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
                     enddo
                  enddo
 
-                 yr = real(((y-dy)-real(j2,gp)*hyh_old)/hyh_old,wp)
                  do l1=-1,1
                     ym1=xya(l1,-1)
                     y00=xya(l1,0)
@@ -178,7 +177,7 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
                          (1.0_wp + yr)*(y00 - ym1 + yr*(.5_wp*ym1 - y00  + .5_wp*yp1))
                  enddo
 
-                 xr = real(((x-dx)-real(j1,gp)*hxh_old)/hxh_old,wp)
+                 xr = real((xold-real(j1,gp)*hxh_old)/hxh_old,wp)
                  ym1=xa(-1)
                  y00=xa(0)
                  yp1=xa(1)
