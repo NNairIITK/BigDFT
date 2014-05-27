@@ -232,6 +232,7 @@ contains
     write(*,'(1x,a,i0,a)')&
          'ERROR in input file for atom number ',iat,&
          ': after 4th column you can put the input polarisation(s) or the frozen chain (f,fxz,fy or f111, fb1, ...)'
+     write(*,*) sqrt(-1.d0)
     stop
   END SUBROUTINE error
   
@@ -301,7 +302,7 @@ subroutine frozen_ftoi(frzchain,ifrztyp,ierr)
         if (ifrztyp < 1 .or. ifrztyp > 999) ierr = 2
         ! f001 will give 9001 value.
         ifrztyp = 9000 + ifrztyp
-     else if (frzchain(1:2) == 'fb' .and. verify(frzchain(3:), '12') == 0) then
+     else if (frzchain(1:2) == 'fb' .and. verify(frzchain(3:), '12 ') == 0) then !space nedded since frzchain is a 4 character string
         ! (FL) atom possibly frozen in moving blocks
         read(frzchain(3:), *) ifrztyp
         ! Two blocks are possible
