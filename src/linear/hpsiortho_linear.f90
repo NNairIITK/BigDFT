@@ -54,7 +54,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8), dimension(:), allocatable :: fnrmOvrlpArr, fnrmArr
   real(kind=8), dimension(:), allocatable :: hpsi_conf, hpsi_tmp
   real(kind=8), dimension(:), pointer :: kernel_compr_tmp
-  real(kind=8), dimension(:), allocatable :: prefac
+  real(kind=8), dimension(:), allocatable :: prefac, hpsit_nococontra_c, hpsit_nococontra_f
   real(wp), dimension(2) :: garray
   real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
   real(kind=8) :: fnrm_low, fnrm_high
@@ -135,6 +135,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       end if
   end if
 
+  hpsit_nococontra_c = f_malloc(tmb%ham_descr%collcom%ndimind_c,id='hpsit_nococontra_c')
+  hpsit_nococontra_f = f_malloc(7*tmb%ham_descr%collcom%ndimind_f,id='hpsit_nococontra_f')
+
+  call vcopy(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsit_nococontra_c(1), 1)
+  call vcopy(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsit_nococontra_f(1), 1)
+
   if (correction_co_contra) then
       !@NEW correction for contra / covariant gradient
 
@@ -151,207 +157,34 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
            tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
 
-      !!call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, &
-      !!     tmb%collcom, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
-      !!call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
-      !!     tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
-      hpsittmp_c = hpsit_c
-      hpsittmp_f = hpsit_f
+      call vcopy(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsittmp_c(1), 1)
+      call vcopy(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsittmp_f(1), 1)
       matrixm = matrices_null()
       matrixm%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%m, iaction=SPARSE_FULL, id='matrixm%matrix_compr')
       call transform_sparse_matrix(tmb%linmat%s, tmb%linmat%m, &
            tmb%linmat%ovrlp_%matrix_compr, matrixm%matrix_compr, 'small_to_large')
       call build_linear_combination_transposed(tmb%ham_descr%collcom, &
            tmb%linmat%m, matrixm, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
-      !!call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-      !!     tmb%linmat%s, tmb%linmat%ovrlp_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+
+  !!do ii=1,tmb%linmat%m%nvctr
+  !!    write(120+iproc,*) ii, matrixm%matrix_compr(ii)
+  !!end do
+  !!do ii=1,tmb%ham_descr%collcom%ndimind_c
+  !!    write(200+iproc,'(a,i9,3es16.7)') 'ii, hpsit_c, hpsit_nococontra_c, diff', ii, hpsit_c(ii), hpsit_nococontra_c(ii), abs(hpsit_c(ii)-hpsit_nococontra_c(ii))
+  !!end do
+
       call deallocate_matrices(matrixm)
 
-      !deallocate(tmb%psit_c)
-      !deallocate(tmb%psit_f)
       !@END NEW correction for contra / covariant gradient
   end if
 
-  !!! EXPERIMENTAL: correction for co- / contravariant ===============================================================
-  !!! Calculate the overlap matrix, can be optimized ############################
-  !!! Use ham since it has the correct SHAMOP pattern
-  !!!if(.not.tmb%ham_descr%can_use_transposed) then
-  !!    if(.not.associated(tmb%ham_descr%psit_c)) then
-  !!        allocate(tmb%ham_descr%psit_c(sum(tmb%ham_descr%collcom%nrecvcounts_c)), stat=istat)
-  !!        call memocc(istat, tmb%ham_descr%psit_c, 'tmb%ham_descr%psit_c', subname)
-  !!    end if
-  !!    if(.not.associated(tmb%ham_descr%psit_f)) then
-  !!        allocate(tmb%ham_descr%psit_f(7*sum(tmb%ham_descr%collcom%nrecvcounts_f)), stat=istat)
-  !!        call memocc(istat, tmb%ham_descr%psit_f, 'tmb%ham_descr%psit_f', subname)
-  !!    end if
-  !!!end if
-  !!call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-  !!     tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
-  !!tmb%ham_descr%can_use_transposed=.true.
 
-  !!call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, tmb%ham_descr%psit_c, &
-  !!     tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%psit_f, tmb%linmat%ham)
-
-  !!!!%%! invert overlap
-  !!!!%%allocate(tmb%linmat%ham%matrix(tmb%orbs%norb,tmb%orbs%norb))
-  !!!!%%call uncompress_matrix(iproc, tmb%linmat%ham)
-  !!!!%%allocate(ipiv(tmb%orbs%norb))
-  !!!!%%lwork=10*tmb%orbs%norb
-  !!!!%%allocate(work(lwork))
-  !!!!%%call dgetrf(tmb%orbs%norb, tmb%orbs%norb, tmb%linmat%ham%matrix, tmb%orbs%norb, ipiv, info)
-  !!!!%%call dgetri(tmb%orbs%norb, tmb%linmat%ham%matrix, tmb%orbs%norb, ipiv, work, lwork, info)
-  !!!!%%call compress_matrix(iproc,tmb%linmat%ham)
-  !!!!%%deallocate(ipiv)
-  !!!!%%deallocate(work)
-  !!!!%%deallocate(tmb%linmat%ham%matrix)
-
-
-  !!do ii=1,tmb%linmat%ham%nvctr
-  !!   !iorb = tmb%linmat%ham%orb_from_index(1,ii)
-  !!   !jorb = tmb%linmat%ham%orb_from_index(2,ii)
-  !!   !if (iproc==0) write(333,'(a,2i8,es16.6)') 'iorb, jorb, matrix', iorb, jorb, tmb%linmat%ham%matrix_compr(ii)
-  !!   !!if (iorb==jorb) then
-  !!   !!    tmb%linmat%ham%matrix_compr(ii)=1.d0
-  !!   !!else
-  !!   !!    tmb%linmat%ham%matrix_compr(ii)=0.d0
-  !!   !!end if
-  !!end do
-  !!!if (iproc==0) write(333,'(a)') '========================================='
-
-  !!!! ###########################################################################
-
-  !!hpsittmp_c=hpsit_c
-  !!hpsittmp_f=hpsit_f
-  !!call build_linear_combination_transposed(tmb%ham_descr%collcom, tmb%linmat%ham, &
-  !!     hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
-  !!! END EXPERIMENTAL ===============================================================================================
 
   call f_free_ptr(hpsittmp_c)
   call f_free_ptr(hpsittmp_f)
 
-
-  !!! EXPERIMENTAL: add the term stemming from the derivative of the kernel with respect to the support funtions #################
-
-  !!if (iproc==0) write(*,*) 'kernel term...'
-
-  !!! Calculate the matrix Q = 3KHK - 2KSKHK - 2KHKSK
-  !!if(.not. tmb%ham_descr%can_use_transposed) then
-  !!    allocate(tmb%ham_descr%psit_c(sum(tmb%ham_descr%collcom%nrecvcounts_c)), stat=istat)
-  !!    !call memocc(istat, tmb%ham_descr%psit_c, 'tmb%ham_descr%psit_c', subname)
-
-  !!    allocate(tmb%ham_descr%psit_f(7*sum(tmb%ham_descr%collcom%nrecvcounts_f)), stat=istat)
-  !!    !call memocc(istat, tmb%ham_descr%psit_f, 'tmb%ham_descr%psit_f', subname)
-
-  !!    call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, tmb%ham_descr%psi, &
-  !!         tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
-  !!    !can_use_transposed=.true.
-  !!end if
-
-  !!! It is assumed that this routine is called with the transposed gradient ready if it is associated...
-  !!if(.not.associated(hpsit_c)) then
-  !!    allocate(hpsit_c(sum(tmb%ham_descr%collcom%nrecvcounts_c)), stat=istat)
-  !!    !call memocc(istat, hpsit_c, 'hpsit_c', subname)
- 
-  !!    allocate(hpsit_f(7*sum(tmb%ham_descr%collcom%nrecvcounts_f)), stat=istat)
-  !!    !call memocc(istat, hpsit_f, 'hpsit_f', subname)
- 
-  !!   call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, tmb%hpsi, &
-  !!        hpsit_c, hpsit_f, tmb%ham_descr%lzd)
-  !!end if
-
-  !!if(.not.tmb%can_use_transposed) then
-  !!    if(.not.associated(tmb%psit_c)) then
-  !!        allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-  !!        call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
-  !!    end if
-  !!    if(.not.associated(tmb%psit_f)) then
-  !!        allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-  !!        call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
-  !!    end if
-  !!    call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-  !!         tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
-  !!    tmb%can_use_transposed=.true.
-  !!end if
-
-  !!call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
-  !!     tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%ovrlp)
-  !!call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, tmb%ham_descr%psit_c, hpsit_c, &
-  !!     tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%ham)
-  !!!!call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, tmb%ham_descr%psit_c, &
-  !!!!     tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%psit_f, tmb%linmat%ovrlp)
-
-  !!allocate(tmb%linmat%ham%matrix(tmb%orbs%norb,tmb%orbs%norb))
-  !!call uncompress_matrix(iproc,tmb%linmat%ham)
-  !!allocate(tmb%linmat%denskern%matrix(tmb%orbs%norb,tmb%orbs%norb))
-  !!call uncompress_matrix(iproc,tmb%linmat%denskern)
-  !!allocate(tmb%linmat%ovrlp%matrix(tmb%orbs%norb,tmb%orbs%norb))
-  !!call uncompress_matrix(iproc,tmb%linmat%ovrlp)
-
-  !!allocate(SK(tmb%orbs%norb,tmb%orbs%norb))
-  !!allocate(KS(tmb%orbs%norb,tmb%orbs%norb))
-  !!allocate(HK(tmb%orbs%norb,tmb%orbs%norb))
-  !!allocate(KHK(tmb%orbs%norb,tmb%orbs%norb))
-  !!allocate(KSKHK(tmb%orbs%norb,tmb%orbs%norb))
-  !!allocate(KHKSK(tmb%orbs%norb,tmb%orbs%norb))
-  !!allocate(Q(tmb%orbs%norb,tmb%orbs%norb))
-
-  !!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, tmb%linmat%ovrlp%matrix, tmb%orbs%norb, &
-  !!     tmb%linmat%denskern%matrix, tmb%orbs%norb, 0.d0, SK, tmb%orbs%norb)
-  !!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, tmb%linmat%denskern%matrix, tmb%orbs%norb, &
-  !!     tmb%linmat%ovrlp%matrix, tmb%orbs%norb, 0.d0, KS, tmb%orbs%norb)
-  !!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, tmb%linmat%ham%matrix, tmb%orbs%norb, &
-  !!     tmb%linmat%denskern%matrix, tmb%orbs%norb, 0.d0, HK, tmb%orbs%norb)
-  !!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, tmb%linmat%denskern%matrix, tmb%orbs%norb, &
-  !!     HK, tmb%orbs%norb, 0.d0, KHK, tmb%orbs%norb)
-  !!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, KS, tmb%orbs%norb, &
-  !!     KHK, tmb%orbs%norb, 0.d0, KSKHK, tmb%orbs%norb)
-  !!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, KHK, tmb%orbs%norb, &
-  !!     SK, tmb%orbs%norb, 0.d0, KHKSK, tmb%orbs%norb)
-
-  !!Q = 3*KHK - 2*KSKHK -2*KHKSK
-
-  !!! Store the matrix Q temporaily in tmb%linmat%ham
-  !!tmb%linmat%ham%matrix=Q
-  !!call compress_matrix(iproc,tmb%linmat%ham)
-
-  !!call build_linear_combination_transposed(tmb%ham_descr%collcom, tmb%linmat%ham, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, &
-  !!     .false., hpsit_c, hpsit_f, iproc)
-
-  !!call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-  !!     hpsit_c, hpsit_f, tmb%hpsi, tmb%ham_descr%lzd)
-
-  !!deallocate(tmb%linmat%ham%matrix)
-  !!deallocate(tmb%linmat%denskern%matrix)
-  !!deallocate(tmb%linmat%ovrlp%matrix)
-
-  !!deallocate(SK)
-  !!deallocate(KS)
-  !!deallocate(HK)
-  !!deallocate(KHK)
-  !!deallocate(KSKHK)
-  !!deallocate(KHKSK)
-  !!deallocate(Q)
-
-  !!deallocate(hpsit_c)
-  !!deallocate(hpsit_f)
-
-  !!! not sure about this
-  !!if(.not. tmb%ham_descr%can_use_transposed) then
-  !!    deallocate(tmb%ham_descr%psit_c)
-  !!    deallocate(tmb%ham_descr%psit_f)
-  !!end if
-
-  !!! END EXPERIMENTAL ###########################################################################################################
-
-
-  ! make lagmat a structure with same sparsity as h
-  !call nullify_sparse_matrix(lagmat)
-  !call sparse_copy_pattern(tmb%linmat%ham, lagmat, iproc, subname)
-  !allocate(lagmat%matrix_compr(lagmat%nvctr), stat=istat)
-  !call memocc(istat, lagmat%matrix_compr, 'lagmat%matrix_compr', subname)
-
   ! Calculate the overlap matrix, can be optimized ############################
-  if (correction_orthoconstraint==0) then
+  if (.true. .or. .not.correction_co_contra) then
       !if(.not.tmb%can_use_transposed) then
           if(.not.associated(tmb%psit_c)) then
               tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
@@ -366,153 +199,42 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
            tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
-      ! This can then be deleted if the transition to the new type has been completed.
-      !tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
 
   end if
   ! ###########################################################################
 
 
 
-  !!! Calculate the derivative basis functions
-  !!allocate(dphi(3*tmb%ham_descr%npsidim_orbs))
-  !!call get_derivative_supportfunctions(tmb%ham_descr%npsidim_orbs, tmb%ham_descr%lzd%hgrids(1), tmb%ham_descr%lzd, tmb%orbs, tmb%ham_descr%psi, dphi)
-  !!if(.not. associated(tmb%hpsi)) then
-  !!    allocate(hpsit_c(sum(tmb%ham_descr%collcom%nrecvcounts_c)), stat=istat)
-  !!    allocate(hpsit_f(7*sum(tmb%ham_descr%collcom%nrecvcounts_f)), stat=istat)
-  !!    call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
-  !!end if
-  !!allocate(dpsit_c(sum(tmb%ham_descr%collcom%nrecvcounts_c)), stat=istat)
-  !!allocate(dpsit_f(7*sum(tmb%ham_descr%collcom%nrecvcounts_f)), stat=istat)
-  !!ist=1
-  !!do i=1,3
-  !!    call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, dphi(ist), dpsit_c, dpsit_f, tmb%ham_descr%lzd)
-  !!    call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, dpsit_c, hpsit_c, dpsit_f, hpsit_f, tmb%linmat%ham)
-  !!    noise(i)=0.d0
-  !!    do iorb=1,tmb%orbs%norb
-  !!       ii=matrixindex_in_compressed(tmb%linmat%ham,iorb,iorb)
-  !!       noise(i) = noise(i) + tmb%linmat%ham%matrix_compr(ii)
-  !!    end do
-  !!    ist=ist+tmb%ham_descr%npsidim_orbs
-  !!end do
-  !!!!if (nproc>1) then
-  !!!!   call mpiallred(noise(1), 3, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  !!!!end if
-  !!if (iproc==0) write(*,'(a,3es12.3)') 'noise', noise
-
 
   !if (iproc==0) write(*,*) 'correction_orthoconstraint',correction_orthoconstraint
+  if (.not.present(hpsi_noprecond)) stop 'hpsi_noprecond not present'
+  !!write(*,*) 'hpsit_c before: ddot',ddot(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsit_c(1), 1)
+  !!write(*,*) 'hpsit_f before: ddot',ddot(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsit_f(1), 1)
   call orthoconstraintNonorthogonal(iproc, nproc, tmb%ham_descr%lzd, &
        tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &
        tmb%orbs, tmb%ham_descr%collcom, tmb%orthpar, correction_orthoconstraint, &
        tmb%linmat, tmb%ham_descr%psi, tmb%hpsi, &
        tmb%linmat%m, tmb%linmat%ham_, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, &
-       hpsit_c, hpsit_f, tmb%ham_descr%can_use_transposed, &
-       overlap_calculated, experimental_mode, norder_taylor)
+       hpsit_c, hpsit_f, hpsit_nococontra_c, hpsit_nococontra_f, tmb%ham_descr%can_use_transposed, &
+       overlap_calculated, experimental_mode, norder_taylor, &
+       tmb%npsidim_orbs, tmb%lzd, hpsi_noprecond)
 
-  !!EXPERIMENTAL
-  !!call calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, hpsit_f)
-  !!call calculate_residue_ks(iproc, nproc, 0, ksorbs, tmb, hpsit_c, hpsit_f)
-  !!END EXPERIMENTAL
+  call f_free(hpsit_nococontra_c)
+  call f_free(hpsit_nococontra_f)
+
+  !!write(*,*) 'hpsit_c after: ddot',ddot(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsit_c(1), 1)
+  !!write(*,*) 'hpsit_f after: ddot',ddot(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsit_f(1), 1)
+  !!write(*,*) 'tmb%hpsi after: ddot',ddot(tmb%ham_descr%npsidim_orbs, tmb%hpsi(1), 1, tmb%hpsi(1), 1)
 
   call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
        tmb%orbs, tmb%hpsi, hpsi_small)
 
+   !if (present(hpsi_noprecond)) then
+   !    hpsi_noprecond = hpsi_small
+   !end if
 
-  !!! Gradient in the outer shell
-  !!hh=(tmb%lzd%hgrids(1)+tmb%lzd%hgrids(2)+tmb%lzd%hgrids(3))/3.d0
-  !!fnrm_in=0.d0
-  !!fnrm_out=0.d0
+  !!write(*,*) 'hpsi_small: ddot',ddot(tmb%npsidim_orbs, hpsi_small(1), 1, hpsi_small(1), 1)
 
-  !!istart=0
-  !!iold=0
-  !!inew=0
-
-  !!do iorb=1,tmb%orbs%norbp
-
-  !!    iiorb=tmb%orbs%isorb+iorb
-  !!    ilr=tmb%orbs%inwhichlocreg(iiorb)
-  !!    ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-
-  !!    do iseg=1,tmb%lzd%llr(ilr)%wfd%nseg_c
-  !!        jj=tmb%lzd%llr(ilr)%wfd%keyvloc(iseg)
-  !!        j0=tmb%lzd%llr(ilr)%wfd%keygloc(1,iseg)
-  !!        j1=tmb%lzd%llr(ilr)%wfd%keygloc(2,iseg)
-  !!        ii=j0-1
-  !!        i3=ii/((tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1))
-  !!        ii=ii-i3*(tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1)
-  !!        i2=ii/(tmb%lzd%llr(ilr)%d%n1+1)
-  !!        i0=ii-i2*(tmb%lzd%llr(ilr)%d%n1+1)
-  !!        i1=i0+j1-j0
-  !!        do i=i0,i1
-  !!            rx=(tmb%lzd%llr(ilr)%ns1+i)*tmb%lzd%hgrids(1)
-  !!            ry=(tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)
-  !!            rz=(tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)
-  !!            rr = sqrt((rx-tmb%lzd%llr(ilr)%locregcenter(1))**2 + &
-  !!                      (ry-tmb%lzd%llr(ilr)%locregcenter(2))**2 + &
-  !!                      (rz-tmb%lzd%llr(ilr)%locregcenter(3))**2)
-  !!            if (rr<tmb%lzd%llr(ilr)%locrad-8*hh) then
-  !!                fnrm_in=fnrm_in+hpsi_small(istart+i-i0+jj)**2
-  !!            else
-  !!                fnrm_out=fnrm_out+hpsi_small(istart+i-i0+jj)**2
-  !!            end if
-  !!        end do
-  !!    end do
-
-
-  !!    isegf=tmb%lzd%llr(ilr)%wfd%nseg_c+min(1,tmb%lzd%llr(ilr)%wfd%nseg_f)
-  !!    do iseg=isegf,isegf+tmb%lzd%llr(ilr)%wfd%nseg_f-1
-  !!        jj=tmb%lzd%llr(ilr)%wfd%keyvloc(iseg)
-  !!        j0=tmb%lzd%llr(ilr)%wfd%keygloc(1,iseg)
-  !!        j1=tmb%lzd%llr(ilr)%wfd%keygloc(2,iseg)
-  !!        ii=j0-1
-  !!        i3=ii/((tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1))
-  !!        ii=ii-i3*(tmb%lzd%llr(ilr)%d%n1+1)*(tmb%lzd%llr(ilr)%d%n2+1)
-  !!        i2=ii/(tmb%lzd%llr(ilr)%d%n1+1)
-  !!        i0=ii-i2*(tmb%lzd%llr(ilr)%d%n1+1)
-  !!        i1=i0+j1-j0
-  !!        do i=i0,i1
-  !!            rx=(tmb%lzd%llr(ilr)%ns1+i)*tmb%lzd%hgrids(1)
-  !!            ry=(tmb%lzd%llr(ilr)%ns2+i2)*tmb%lzd%hgrids(2)
-  !!            rz=(tmb%lzd%llr(ilr)%ns3+i3)*tmb%lzd%hgrids(3)
-  !!            rr = sqrt((rx-tmb%lzd%llr(ilr)%locregcenter(1))**2 + &
-  !!                      (ry-tmb%lzd%llr(ilr)%locregcenter(2))**2 + &
-  !!                      (rz-tmb%lzd%llr(ilr)%locregcenter(3))**2)
-  !!            if (rr<tmb%lzd%llr(ilr)%locrad-8*hh) then
-  !!                fnrm_in=fnrm_in+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+1)**2
-  !!                fnrm_in=fnrm_in+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+2)**2
-  !!                fnrm_in=fnrm_in+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+3)**2
-  !!                fnrm_in=fnrm_in+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+4)**2
-  !!                fnrm_in=fnrm_in+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+5)**2
-  !!                fnrm_in=fnrm_in+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+6)**2
-  !!                fnrm_in=fnrm_in+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+7)**2
-  !!            else
-  !!                fnrm_out=fnrm_out+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+1)**2
-  !!                fnrm_out=fnrm_out+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+2)**2
-  !!                fnrm_out=fnrm_out+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+3)**2
-  !!                fnrm_out=fnrm_out+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+4)**2
-  !!                fnrm_out=fnrm_out+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+5)**2
-  !!                fnrm_out=fnrm_out+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+6)**2
-  !!                fnrm_out=fnrm_out+hpsi_small(istart+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*(i-i0+jj-1)+7)**2
-  !!            end if
-  !!        end do
-  !!    end do
-
-  !!    istart=istart+ncount
-
-  !!end do
-
-  !!call mpiallred(fnrm_in, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  !!call mpiallred(fnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  !!fnrm_tot2=fnrm_in+fnrm_out
-  !!fnrm_in=sqrt(fnrm_in/dble(tmb%orbs%norb))
-  !!fnrm_out=sqrt(fnrm_out/dble(tmb%orbs%norb))
-  !!fnrm_tot2=sqrt(fnrm_tot2/dble(tmb%orbs%norb))
-  !!if (iproc==0) write(*,'(a,3es16.4)') 'fnrm_in, fnrm_out, fnrm_tot2', fnrm_in, fnrm_out, fnrm_tot2
-
-
-
-  if (present(hpsi_noprecond)) call vcopy(tmb%npsidim_orbs, hpsi_small(1), 1, hpsi_noprecond(1), 1)
 
   ! Calculate trace (or band structure energy, resp.)
   trH=0.d0
@@ -520,14 +242,17 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   do iorb=1,tmb%orbs%norb
      ii=matrixindex_in_compressed(tmb%linmat%m,iorb,iorb)
      trH = trH + tmb%linmat%ham_%matrix_compr(ii)
-     !!if (iproc==0) write(*,*) 'iorb, value', iorb, tmb%linmat%ham%matrix_compr(ii)
+     !if (iproc==0) write(*,*) 'iorb, value', iorb, tmb%linmat%ham_%matrix_compr(ii)
+     !if (iproc==0) write(*,*) 'iorb, eval', iorb, tmb%orbs%eval(iorb)
   end do
+  !!if (iproc==0) write(*,*) 'trH',trH
   call timing(iproc,'eglincomms','OF')
 
   ! trH is now the total energy (name is misleading, correct this)
   ! Multiply by 2 because when minimizing trace we don't have kernel
   !if(iproc==0)print *,'trH,energs',trH,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
-  if(tmb%orbs%nspin==1 .and. target_function/= TARGET_FUNCTION_IS_ENERGY) trH=2.d0*trH
+  !if(tmb%orbs%nspin==1 .and. target_function/= TARGET_FUNCTION_IS_ENERGY) trH=2.d0*trH
+  if(tmb%orbs%nspin==1 .and. target_function==TARGET_FUNCTION_IS_TRACE) trH=2.d0*trH
   trH=trH-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
 
 
@@ -573,11 +298,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       !!!end if
   end do
 
-  !!!call mpiallred(fnrm_low, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  !!!call mpiallred(fnrm_high, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-  !!!fnrm_low=sqrt(fnrm_low/(4.d0/9.d0*dble(tmb%orbs%norb)))
-  !!!fnrm_high=sqrt(fnrm_high/(5.d0/9.d0*dble(tmb%orbs%norb)))
-  !!!if (iproc==0) write(*,'(a,2es16.6)') 'fnrm_low, fnrm_high', fnrm_low, fnrm_high
 
 
   ! Determine the gradient norm and its maximal component. In addition, adapt the

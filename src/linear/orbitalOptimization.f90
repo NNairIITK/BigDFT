@@ -37,6 +37,7 @@ subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, lzd, hphi, phi, ldiis, expe
 
   call timing(iproc,'optimize_DIIS ','ON')
 
+
   ! Allocate the local arrays.
   mat = f_malloc((/ ldiis%isx+1, ldiis%isx+1 /),id='mat')
   rhs = f_malloc(ldiis%isx+1,id='rhs')
@@ -219,6 +220,7 @@ subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, lzd, hphi, phi, ldiis, expe
         ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
         ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
         jjst=jst+(mj-1)*ncount
+        !!if (iproc==0) write(*,*) 'jj, rhs(jj)', jj, rhs(jj)
         do k=1,ncount
             phi(ist+k-1) = phi(ist+k-1) + rhs(jj)*(ldiis%phiHist(jjst+k)-ldiis%hphiHist(jjst+k))
         end do
