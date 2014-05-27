@@ -122,7 +122,7 @@ program BigDFT2Wannier
    call timing(iproc,'Precondition  ','ON')
    call read_inter_header(iproc,seedname, filetype, residentity, write_resid, n_occ, pre_check, n_virt_tot,&
          n_virt, w_unk, w_sph, w_ang, w_rad,dir)
-   input%dir_output=trim(dir)//'/'
+   !input%dir_output=trim(dir)//'/'
 
    if(n_virt_tot < n_virt) then
       if (iproc == 0) then
