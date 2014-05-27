@@ -167,7 +167,8 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
 
    if (iproc==0.and.parmin%verbosity > 0) then
        write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,es9.2,xa5,i4.4,xa5,es9.2,xa6,es9.2)') &
-       ncount_bigdft,0,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct,'beta=',beta,'ndim=',ndim,'maxd=',maxd,'displ=',displ
+       ncount_bigdft,0,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct, &
+       'beta=',beta,'ndim=',ndim,'maxd=',maxd,'displ=',displ
    endif
 
    do it=1,nit!start main loop
@@ -305,7 +306,8 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
 
       if (iproc==0.and.parmin%verbosity > 0) then
          write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,es9.2,xa5,i4.4,xa5,es9.2,xa6,es9.2)') &
-          ncount_bigdft,it,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct,'beta=',beta,'ndim=',ndim,'maxd=',maxd,'displ=',displ
+          ncount_bigdft,it,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct, &
+          'beta=',beta,'ndim=',ndim,'maxd=',maxd,'displ=',displ
          call yaml_open_map('Geometry')
             call yaml_map('Ncount_BigDFT',ncount_bigdft)
             call yaml_map('Geometry step',it)
@@ -323,8 +325,9 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
    
       if (detot.gt.maxrise .and. beta > 1.d-1*betax) then !
          if (debug.and.iproc==0) write(100,'(a,i0,1x,e9.2)') "WARN: it,detot", it,detot
-         if (debug.and.iproc==0) write(16,'(a,i0,4(xe9.2))') "WARNING GEOPT_SBFGS: Prevent energy to rise by more than maxrise: it,maxrise,detot,beta,1.d-1*betax ",&
-                                                              it,maxrise,detot,beta,1.d-1*betax
+         if (debug.and.iproc==0) write(16,'(a,i0,4(xe9.2))') &
+             "WARNING GEOPT_SBFGS: Prevent energy to rise by more than maxrise: it,maxrise,detot,beta,1.d-1*betax ",&
+             it,maxrise,detot,beta,1.d-1*betax
 
          if(ncount_bigdft >= nit)then!no convergence within ncount_cluster_x energy evaluations
             !following copy of rxyz(1,1,nhist-1) to runObj is necessary for returning to the caller
@@ -360,8 +363,9 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
       call copy_global_output(outs,outsIO)
 
       if(detot .gt. maxrise)then
-         if (iproc==0) write(16,'(a,i0,4(xe9.2))') "WARNING GEOPT_SBFGS: Allowed energy to rise by more than maxrise: it,maxrise,detot,beta,1.d-1*betax ",&
-                                                              it,maxrise,detot,beta,1.d-1*betax
+         if (iproc==0) write(16,'(a,i0,4(xe9.2))') &
+             "WARNING GEOPT_SBFGS: Allowed energy to rise by more than maxrise: it,maxrise,detot,beta,1.d-1*betax ",&
+             it,maxrise,detot,beta,1.d-1*betax
       endif
 
 
@@ -520,7 +524,9 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
 
    !if code gets here, it failed
    if(debug.and.iproc==0) write(100,*) it,etot,fnrm
-   if(iproc==0)write(16,'(a,3(xi0))') "WARNING GEOPT_SBFGS: SBFGS not converged: it,ncount_bigdft,ncount_cluster_x: ",it,ncount_bigdft,runObj%inputs%ncount_cluster_x
+   if(iproc==0) write(16,'(a,3(xi0))') &
+       "WARNING GEOPT_SBFGS: SBFGS not converged: it,ncount_bigdft,ncount_cluster_x: ", &
+       it,ncount_bigdft,runObj%inputs%ncount_cluster_x
 !   stop "No convergence "
    fail=.true.
    goto 2000
