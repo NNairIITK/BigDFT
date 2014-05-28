@@ -214,10 +214,7 @@ subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,den
 
   print *,'CDFT Ekin,Epot,Eproj,Eh,Exc,Evxc',energs%ekin,energs%epot,energs%eproj,energs%eh,energs%exc,energs%evxc
 
-  !!call f_free_ptr(denspot%pot_work)
-  iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
-  deallocate(denspot%pot_work,stat=istat)
-  call memocc(istat,iall,'denspot%pot_work',subname)
+  call f_free_ptr(denspot%pot_work)
 
 
   ! calculate w_ab
