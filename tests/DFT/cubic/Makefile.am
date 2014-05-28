@@ -2,6 +2,7 @@
 TESTDIRS = C \
 	  Li+ \
 	  H2-spin \
+	  H-Rydberg
 	  SiH4 \
 	  NaCl \
 	  Ca2 \
@@ -80,6 +81,13 @@ SIC.test.post-in:
 	echo "python $(abs_top_srcdir)/tests/fldiff_yaml.py -r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@" ; \
 	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
 		-r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@ 
+
+H-Rydberg.test.post-in:
+	@echo >> H.yaml ; \
+	echo "perf:" >> H.yaml ; \
+	awk '{ printf("  %s: %s\n",$$1,$$2); }' H.perf >> H.yaml ; \
+	echo "  multipole_preserving: Yes" >> H.yaml ; \
+	rm H.perf
 
 include $(srcdir)/../../check.mk
 
