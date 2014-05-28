@@ -410,8 +410,6 @@ subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
   hpsi = f_malloc_ptr(max(orbs%npsidim_comp,orbs%npsidim_orbs)+ndebug,id='hpsi')
   if (nproc > 1) then
      psit = f_malloc_ptr(max(orbs%npsidim_comp,orbs%npsidim_orbs),id='psit')
-     !allocate(psit(max(orbs%npsidim_comp,orbs%npsidim_orbs)+ndebug),stat=i_stat)
-     !call memocc(i_stat,psit,'psit',subname)
   else
      psit => psi
   end if
@@ -1166,8 +1164,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
      !otherwise do it only in parallel
      if ( nproc > 1) then
         psit = f_malloc_ptr(max(orbs%npsidim_orbs,orbs%npsidim_comp),id='psit')
-        !allocate(psit(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
-        !call memocc(i_stat,psit,'psit',subname)
      else
         psit => hpsi
      end if
@@ -2533,9 +2529,6 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   call f_free(shift)
 
   call f_free_ptr(psi_old)
-  !i_all=-product(shape(psi_old))*kind(psi_old)
-  !deallocate(psi_old,stat=i_stat)
-  !call memocc(i_stat,i_all,'psi_old',subname)
 
 contains
 

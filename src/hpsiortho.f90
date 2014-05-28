@@ -1912,8 +1912,6 @@ subroutine first_orthon(iproc,nproc,orbs,lzd,comms,psi,hpsi,psit,orthpar,paw)
       hpsi =f_malloc_ptr(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug,id='hpsi')
       !allocate transposed principal wavefunction
       psit = f_malloc_ptr(max(orbs%npsidim_orbs,orbs%npsidim_comp),id='psit')
-      !allocate(psit(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
-      !call memocc(i_stat,psit,'psit',subname)
    else
       psit => psi
    end if
@@ -1997,9 +1995,6 @@ subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
    if(.not.  keeppsit) then
       if (nproc > 1  ) then
          call f_free_ptr(wfn%psit)
-         !i_all=-product(shape(wfn%psit))*kind(wfn%psit)
-         !deallocate(wfn%psit,stat=i_stat)
-         !call memocc(i_stat,i_all,'psit',subname)
       else
          nullify(wfn%psit)
       end if

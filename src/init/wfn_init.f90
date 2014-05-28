@@ -367,8 +367,6 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   !otherwise do it only in parallel
   if(.not. associated(psit)) then
      psit = f_malloc_ptr(max(orbs%npsidim_orbs, orbs%npsidim_comp),id='psit')
-     !allocate(psit(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
-     !call memocc(i_stat,psit,'psit',subname)
   end if
 
   ! There are two possibilities to generate the input guess
