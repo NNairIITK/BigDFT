@@ -511,6 +511,7 @@ module sparsematrix
 
    subroutine sparsemm(smat, a_seq, b, c)
      use module_base
+     use yaml_output
      implicit none
    
      !Calling Arguments
@@ -523,10 +524,11 @@ module sparsematrix
      !character(len=*), parameter :: subname='sparsemm'
      integer :: i,jorb,jjorb,m,mp1
      integer :: iorb, ii0, ii2, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6, iout
-     real(kind=8) :: tt
+     real(kind=8) :: tt, t1, t2, tt0, tt1, tt2, tt3, tt4, tt5, tt6
    
      call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'IR')
 
+     !t1=mpi_wtime()
    
      !$omp parallel default(private) shared(smat, a_seq, b, c)
      !$omp do
@@ -536,13 +538,19 @@ module sparsematrix
          ilen=smat%smmm%onedimindices(3,iout)
          ii0=smat%smmm%onedimindices(4,iout)
          ii2=0
-         tt=0.d0
+         tt0=0.d0
+         tt1=0.d0
+         tt2=0.d0
+         tt3=0.d0
+         tt4=0.d0
+         tt5=0.d0
+         tt6=0.d0
    
          m=mod(ilen,7)
          if (m/=0) then
              do jorb=1,m
                 jjorb=smat%smmm%ivectorindex(ii0+ii2)
-                tt = tt + b(jjorb,i)*a_seq(ii0+ii2)
+                tt0 = tt0 + b(jjorb,i)*a_seq(ii0+ii2)
                 ii2=ii2+1
              end do
          end if
@@ -550,32 +558,35 @@ module sparsematrix
          do jorb=mp1,ilen,7
    
             jjorb0=smat%smmm%ivectorindex(ii0+ii2+0)
-            tt = tt + b(jjorb0,i)*a_seq(ii0+ii2+0)
+            tt0 = tt0 + b(jjorb0,i)*a_seq(ii0+ii2+0)
    
             jjorb1=smat%smmm%ivectorindex(ii0+ii2+1)
-            tt = tt + b(jjorb1,i)*a_seq(ii0+ii2+1)
+            tt1 = tt1 + b(jjorb1,i)*a_seq(ii0+ii2+1)
    
             jjorb2=smat%smmm%ivectorindex(ii0+ii2+2)
-            tt = tt + b(jjorb2,i)*a_seq(ii0+ii2+2)
+            tt2 = tt2 + b(jjorb2,i)*a_seq(ii0+ii2+2)
    
             jjorb3=smat%smmm%ivectorindex(ii0+ii2+3)
-            tt = tt + b(jjorb3,i)*a_seq(ii0+ii2+3)
+            tt3 = tt3 + b(jjorb3,i)*a_seq(ii0+ii2+3)
    
             jjorb4=smat%smmm%ivectorindex(ii0+ii2+4)
-            tt = tt + b(jjorb4,i)*a_seq(ii0+ii2+4)
+            tt4 = tt4 + b(jjorb4,i)*a_seq(ii0+ii2+4)
    
             jjorb5=smat%smmm%ivectorindex(ii0+ii2+5)
-            tt = tt + b(jjorb5,i)*a_seq(ii0+ii2+5)
+            tt5 = tt5 + b(jjorb5,i)*a_seq(ii0+ii2+5)
    
             jjorb6=smat%smmm%ivectorindex(ii0+ii2+6)
-            tt = tt + b(jjorb6,i)*a_seq(ii0+ii2+6)
+            tt6 = tt6 + b(jjorb6,i)*a_seq(ii0+ii2+6)
    
             ii2=ii2+7
          end do
-         c(iorb,i)=tt
+         c(iorb,i) = tt0 + tt1 + tt2 + tt3 + tt4 + tt5 + tt6
      end do 
      !$omp end do
      !$omp end parallel
+
+     !t2=mpi_wtime()
+     !call yaml_map('time',t2-t1)
    
      call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'RS')
        
