@@ -1700,18 +1700,7 @@ subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero
       call f_free(noverlapsarr)
       call f_free(overlaps_op)
     
-    
-    !!  iall=-product(shape(overlapMatrix))*kind(overlapMatrix)
-    !!  deallocate(overlapMatrix, stat=istat)
-    !!  call memocc(istat, iall, 'overlapMatrix', subname)
-    !!
-    !!  iall=-product(shape(noverlapsarr))*kind(noverlapsarr)
-    !!  deallocate(noverlapsarr, stat=istat)
-    !!  call memocc(istat, iall, 'noverlapsarr', subname)
-    !!
-    !!  iall=-product(shape(overlaps_op))*kind(overlaps_op)
-    !!  deallocate(overlaps_op, stat=istat)
-    !!  call memocc(istat, iall, 'overlaps_op', subname)
+      call f_release_routine()
 
 end subroutine determine_sparsity_pattern
 

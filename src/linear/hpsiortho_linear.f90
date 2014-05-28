@@ -127,7 +127,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
           ! copy correct kernel back
           call vcopy(tmb%linmat%l%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
-          iall=-product(shape(kernel_compr_tmp))*kind(kernel_compr_tmp)
           call f_free_ptr(kernel_compr_tmp)
       else
           call build_linear_combination_transposed(tmb%ham_descr%collcom, &
@@ -412,6 +411,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       gnrm     =garray(1)
       gnrm_zero=garray(2)
   end if
+  if (iproc==0) call yaml_map('gnrm/dble(tmb%orbs%norb)', gnrm/dble(tmb%orbs%norb))
 
   call timing(iproc,'eglincomms','ON')
   ist=1
