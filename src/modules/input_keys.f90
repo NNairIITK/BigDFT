@@ -587,7 +587,7 @@ contains
        if (.not. cat_found .and. index(category,ATTRS) == 0 ) then
            call dict_copy(minimal//LIN_BASIS_PARAMS//category,dict_tmp)
        end if
-          dict_tmp => dict_next(dict_tmp)
+       dict_tmp => dict_next(dict_tmp)
       end do
     end if
 
@@ -653,10 +653,6 @@ contains
               end if
            end if
            var => dict_next(var)
-!if (trim(def_var) == 'shiftk') then
-!   call yaml_map('Finally',minim//def_var)
-!stop
-!end if
         end do
       end subroutine minimal_category
       
