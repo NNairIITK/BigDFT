@@ -35,6 +35,7 @@ Keys to ignore:
  - Cumulative size of masking arrays
  - Dictionary for lin
  - Raw version
+ - Size of the global database
 Patterns to ignore:
  - Timestamp
  - memory
@@ -954,3 +955,4 @@ PBE_densmixdiis:
  Enl: 1.1e-10
  energy: 1.1e-10
  Omega: 1.1e-10
+ Ekin: 1.1e-9

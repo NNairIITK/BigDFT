@@ -163,9 +163,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   real(8),dimension(:),allocatable :: inv_ovrlp_seq
   real(8),dimension(:,:),allocatable :: lagmatp, inv_lagmatp
 
-  ! removed option for correction orthoconstrain for now
-  !if (correction_orthoconstraint==0) stop 'correction_orthoconstraint not working'
-
 
   if(.not. can_use_transposed) then
       psit_c = f_malloc_ptr(sum(collcom%nrecvcounts_c),id='psit_c')
@@ -231,7 +228,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   call f_free(inv_lagmatp)
   call build_linear_combination_transposed(collcom, lagmat, lagmat_, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
 
-  lagmat_%matrix_compr = -1.d0*lagmat_%matrix_compr
+  ! The symmetrized Lagrange multiplier matrix has now the wrong sign
+  call dscal(lagmat%nvctr, -1.d0, lagmat_%matrix_compr(1), 1)
 
 
   call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, hpsit_c, hpsit_f, lhphi, lzd)
@@ -239,7 +237,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   overlap_calculated=.false.
   
 
-  ! @NEW multipliy the gradient with S^-1
+  ! @NEW apply S^-1 to the gradient
   hphi_nococontra = f_malloc(npsidim_orbs,id='hphi_nococontra')
   call build_linear_combination_transposed(collcom, linmat%l, inv_ovrlp_, hpsit_c, hpsit_f, .true., hpsit_tmp_c, hpsit_tmp_f, iproc)
   call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, hpsit_tmp_c, hpsit_tmp_f, hphi_nococontra, lzd)
