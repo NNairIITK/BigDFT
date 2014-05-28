@@ -288,7 +288,7 @@ module communications_init
       integer :: jproc, i1, i2, i3, ii, istart, iend, jj, j0, j1, ii_c, ii_f, n1p1, np
       !!$$integer :: ii2, iiseg, jprocdone
       integer :: i, iseg, i0, iitot, istat, iall
-      real(kind=8) :: tt, tt2, weight_c_ideal, weight_f_ideal, ttt, tmp, tmp2
+      real(kind=8) :: tt, tt2, weight_c_ideal, weight_f_ideal, ttt
       real(kind=8),dimension(:,:),allocatable :: weights_c_startend, weights_f_startend
       character(len=*),parameter :: subname='assign_weight_to_process'
     
@@ -345,22 +345,17 @@ module communications_init
               i2=ii/n1p1
               i0=ii-i2*n1p1
               i1=i0+j1-j0
-              tmp=0.d0
-              tmp2=0.d0
               do i=i0,i1
                   tt=tt+weight_c(i,i2,i3)
                   tt2=tt2+weight_c(i,i2,i3)
                   ttt=ttt+sqrt(weight_c(i,i2,i3))
-                  tmp=tmp+weight_c(i,i2,i3)
-                  tmp2=tmp2+sqrt(weight_c(i,i2,i3))
                   iitot=iitot+1
                   if (jproc<nproc) then
                       if (tt>weights_c_startend(1,jproc)) then
                           if (jproc>0) then
                               if (iproc==jproc) then
                                   istartp_seg_c=iseg
-                              end if
-                              if (iproc==jproc-1) then
+                              else if (iproc==jproc-1) then
                                   iendp_seg_c=iseg
                                   weightp_c=tt2
                                   nvalp_c=nint(ttt)
@@ -439,22 +434,17 @@ module communications_init
               i2=ii/n1p1
               i0=ii-i2*n1p1
               i1=i0+j1-j0
-              tmp=0.d0
-              tmp2=0.d0
               do i=i0,i1
                   tt=tt+weight_f(i,i2,i3)
                   tt2=tt2+weight_f(i,i2,i3)
                   ttt=ttt+sqrt(weight_f(i,i2,i3))
-                  tmp=tmp+weight_f(i,i2,i3)
-                  tmp2=tmp2+sqrt(weight_c(i,i2,i3))
                   iitot=iitot+1
                   if (jproc<nproc) then
                       if (tt>weights_f_startend(1,jproc)) then
                           if (jproc>0) then
                               if (iproc==jproc) then
                                   istartp_seg_f=iseg
-                              end if
-                              if (iproc==jproc-1) then
+                              else if (iproc==jproc-1) then
                                   iendp_seg_f=iseg
                                   weightp_f=tt2
                                   nvalp_f=nint(ttt)
@@ -872,7 +862,6 @@ module communications_init
                   if(iitot>=istartend_f(1,iproc) .and. iitot<=istartend_f(2,iproc)) then
                       icheck_f = icheck_f +1
                       iipt=jj-istartend_f(1,iproc)+i-i0+1
-                      npgp_f=0
                       npgp_f = nint(sqrt(weight_f(i,i2,i3)))
                       iiorb_f=iiorb_f+nint(weight_f(i,i2,i3))
                       norb_per_gridpoint_f(iipt)=npgp_f
@@ -1015,47 +1004,47 @@ module communications_init
       iitot=0
      
       do iorb=1,orbs%norbp
-        iiorb=orbs%isorb+iorb
-        ilr=orbs%inwhichlocreg(iiorb)
-        istart=lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)
-        iend=istart+lzd%llr(ilr)%wfd%nseg_f-1
-        n1p1=lzd%llr(ilr)%d%n1+1
-        np=n1p1*(lzd%llr(ilr)%d%n2+1)
-        do iseg=istart,iend
-           !jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
-           j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
-           j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
-           ii=j0-1
-           i3=ii/np
-           ii=ii-i3*np
-           i2=ii/n1p1
-           i0=ii-i2*n1p1
-           i1=i0+j1-j0
-           !write(*,'(a,8i8)') 'jj, ii, j0, j1, i0, i1, i2, i3',jj,ii,j0,j1,i0,i1,i2,i3
-           ii2=i2+lzd%llr(ilr)%ns2
-           ii3=i3+lzd%llr(ilr)%ns3
-           do i=i0,i1
-              ii1=i+lzd%llr(ilr)%ns1
-              !call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'f', indglob)
-              indglob=index_in_global_f(ii1,ii2,ii3)
-                      iitot=iitot+1
-                      jproctarget=-1
-                      do jproc=0,nproc-1
-                          if(indglob>=istartend_f(1,jproc) .and. indglob<=istartend_f(2,jproc)) then
-                              jproctarget=jproc
-                              exit
-                          end if
-                      end do
-                      if (jproctarget/=-1) then
-                         nsend_f(jproctarget)=nsend_f(jproctarget)+1
-                         ind=nsenddspls_f(jproctarget)+nsend_f(jproctarget)
-                         isendbuf_f(iitot)=ind
-                         indexsendbuf_f(ind)=indglob
-                         indexsendorbital_f(iitot)=iiorb
-                      end if
-                      !indexsendorbital(ind)=iiorb
-              end do
-          end do
+         iiorb=orbs%isorb+iorb
+         ilr=orbs%inwhichlocreg(iiorb)
+         istart=lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)
+         iend=istart+lzd%llr(ilr)%wfd%nseg_f-1
+         n1p1=lzd%llr(ilr)%d%n1+1
+         np=n1p1*(lzd%llr(ilr)%d%n2+1)
+         do iseg=istart,iend
+            !jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
+            j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
+            j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
+            ii=j0-1
+            i3=ii/np
+            ii=ii-i3*np
+            i2=ii/n1p1
+            i0=ii-i2*n1p1
+            i1=i0+j1-j0
+            !write(*,'(a,8i8)') 'jj, ii, j0, j1, i0, i1, i2, i3',jj,ii,j0,j1,i0,i1,i2,i3
+            ii2=i2+lzd%llr(ilr)%ns2
+            ii3=i3+lzd%llr(ilr)%ns3
+            do i=i0,i1
+               ii1=i+lzd%llr(ilr)%ns1
+               !call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'f', indglob)
+               indglob=index_in_global_f(ii1,ii2,ii3)
+               iitot=iitot+1
+               jproctarget=-1
+               do jproc=0,nproc-1
+                  if(indglob>=istartend_f(1,jproc) .and. indglob<=istartend_f(2,jproc)) then
+                     jproctarget=jproc
+                     exit
+                  end if
+               end do
+               if (jproctarget/=-1) then
+                  nsend_f(jproctarget)=nsend_f(jproctarget)+1
+                  ind=nsenddspls_f(jproctarget)+nsend_f(jproctarget)
+                  isendbuf_f(iitot)=ind
+                  indexsendbuf_f(ind)=indglob
+                  indexsendorbital_f(iitot)=iiorb
+               end if
+               !indexsendorbital(ind)=iiorb
+            end do
+         end do
      
       end do
       
@@ -1092,8 +1081,7 @@ module communications_init
     
       call get_reverse_indices(ndimpsi_f, isendbuf_f, irecvbuf_f)
       call f_free(indexsendorbital2)
-    
-    
+        
     
     
       if(nproc>1) then
@@ -1117,13 +1105,11 @@ module communications_init
            indexrecvorbital_f=indexsendorbital_f
        end if
     
-    
-    
+        
       !call get_gridpoint_start(iproc, nproc, norb, glr, llr, nrecvcounts, indexrecvbuf, weight, gridpoint_start)
       call get_gridpoint_start(iproc, nproc, lzd, sum(nrecvcounts_c), nrecvcounts_c, sum(nrecvcounts_f), &
                 nrecvcounts_f, indexrecvbuf_c, indexrecvbuf_f, weight_c, weight_f, gridpoint_start_c, gridpoint_start_f)
-    
-    
+        
     
       if(maxval(gridpoint_start_c)>sum(nrecvcounts_c)) stop '1: maxval(gridpoint_start_c)>sum(nrecvcounts_c)'
       if(maxval(gridpoint_start_f)>sum(nrecvcounts_f)) stop '1: maxval(gridpoint_start_f)>sum(nrecvcounts_f)'
@@ -1152,15 +1138,12 @@ module communications_init
       if(maxval(iextract_f)>sum(nrecvcounts_f)) stop 'maxval(iextract_f)>sum(nrecvcounts_f)'
       if(minval(iextract_f)<1) stop 'minval(iextract_f)<1'
     
-    
-    
+        
     
       ! Get the array to transfrom back the data
       call get_reverse_indices(sum(nrecvcounts_c), iextract_c, iexpand_c)
       call get_reverse_indices(sum(nrecvcounts_f), iextract_f, iexpand_f)
-      
-    
-    
+          
     
       indexrecvorbital2 = f_malloc(sum(nrecvcounts_c),id='indexrecvorbital2')
       indexrecvorbital2=indexrecvorbital_c
@@ -1182,7 +1165,6 @@ module communications_init
       if(maxval(indexrecvorbital_c)>orbs%norb) stop 'maxval(indexrecvorbital_c)>orbs%norb'
       if(minval(indexrecvorbital_f)<1) stop 'minval(indexrecvorbital_f)<1'
       if(maxval(indexrecvorbital_f)>orbs%norb) stop 'maxval(indexrecvorbital_f)>orbs%norb'
-    
     
 
       call f_free(indexsendorbital_c)
