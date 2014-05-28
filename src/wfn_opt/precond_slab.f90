@@ -360,7 +360,7 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
   real(wp),allocatable,dimension(:,:) :: b
   !     .. Scalar Arguments ..
   INTEGER :: INFO, Kd, LDAB, LDB, NRHS=2,n
-  integer :: i1,i2,i3,i,j
+  integer :: i1,i2,i3,i,j,i_stat,i_all
 
   integer,parameter :: lowfil=-14,lupfil=14
   real(gp) :: scale
@@ -400,12 +400,14 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
   ! hit the fourier transform of x with the kernel
 
   !$omp parallel default(none) & 
-  !$omp private (b,ab,i3,i1,i2,j,i,ct,info) &
+  !$omp private (b,ab,i3,i1,i2,j,i,ct,info,i_stat,i_all) &
   !$omp shared (n1,n2,n3,zx,fil,kd,ldb,ldab,nrhs,n,c,kern_k1,kern_k3)
-  !$omp critical
+  !$omp critical (allocate_critical)
   ab = f_malloc((/ ldab, n /),id='ab')
-  b = f_malloc((/ 0.to.n2, 1.to.2 /),id='b')
-  !$omp end critical
+  !b = f_malloc((/ 0.to.n2, 1.to.2 /),id='b')
+  allocate(b(0:n2,1:2),stat=i_stat)
+  call memocc(i_stat,b,'b','segment_invert')
+  !$omp end critical (allocate_critical)
   !$omp do schedule(static,1)
   do i3=0,n3
      !   do i1=0,n1
@@ -434,10 +436,13 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
      enddo
   enddo
   !$omp end do
-  !$omp critical
+  !$omp critical (deallocate_critical)
   call f_free(ab)
-  call f_free(b)
-  !$omp end critical
+  !call f_free(b)
+  i_all = -product(shape(b))*kind(b)
+  deallocate(b,stat=i_stat)
+  call memocc(i_stat,i_all,'b','segment_invert')
+  !$omp end critical (deallocate_critical)
   !$omp end parallel
 
 END SUBROUTINE segment_invert

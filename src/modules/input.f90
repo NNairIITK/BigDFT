@@ -18,6 +18,7 @@
 module module_input
 
    use module_base
+   use yaml_strings, only: read_fraction_string
    implicit none
    private
 
@@ -49,8 +50,6 @@ module module_input
    public :: input_set_file,input_set_stdout
    public :: input_var
    public :: input_free
-   public :: read_fraction_string
-   public :: read_fraction_string_old
 
    contains
 
@@ -402,67 +401,6 @@ module module_input
       end if
 
    END SUBROUTINE find
-
-
-   !> Read a real or real/real, real:real 
-   !! Here the fraction is indicated by the ':' or '/'
-   !! The problem is that / is a separator for Fortran
-   subroutine read_fraction_string(string,var,ierror)
-      use module_base
-      implicit none
-      !Arguments
-      character(len=*), intent(in) :: string
-      real(gp), intent(out) :: var
-      integer, intent(out) :: ierror
-      !Local variables
-      character(len=200) :: tmp
-      integer :: num,den,pfr,psp
-
-      !First look at the first blank after trim
-      tmp=trim(string)
-      psp = scan(tmp,' ')
-
-      !see whether there is a fraction in the string
-      if(psp==0) psp=len(tmp)
-      pfr = scan(tmp(1:psp),':')
-      if (pfr == 0) pfr = scan(tmp(1:psp),'/')
-      !It is not a fraction
-      if (pfr == 0) then
-         read(tmp(1:psp),*,iostat=ierror) var
-      else 
-         read(tmp(1:pfr-1),*,iostat=ierror) num
-         read(tmp(pfr+1:psp),*,iostat=ierror) den
-         if (ierror == 0) var=real(num,gp)/real(den,gp)
-      end if
-      !Value by defaut
-      if (ierror /= 0) var = huge(1_gp) 
-   END SUBROUTINE read_fraction_string
-
-   !> Here the fraction is indicated by the :
-   subroutine read_fraction_string_old(l,string,occ)
-      use module_base
-      implicit none
-      integer, intent(in) :: l
-      character(len=*), intent(in) :: string
-      real(gp), intent(out) :: occ
-      !local variables
-      integer :: num,den,pfr
-
-      !see whether there is a fraction in the string
-      if (l>3) then
-         pfr=3
-      else
-         pfr=2
-      end if
-      if (string(pfr:pfr) == ':') then
-         read(string(1:pfr-1),*)num
-         read(string(pfr+1:2*pfr-1),*)den
-         occ=real(num,gp)/real(den,gp)
-      else
-         read(string,*)occ
-      end if
-   END SUBROUTINE read_fraction_string_old
-
 
    !> Compare two strings (case-insensitive). Blanks are relevant!
    function case_insensitive_equiv(stra,strb)
@@ -1789,19 +1727,23 @@ contains
     call set(dict // SIGNALTIMEOUT, dummy_int)
     call input_var("domain", "", "Domain to add to the hostname to find the IP", dummy_str)
     call set(dict // DOMAIN, dummy_str)
-    call input_var("inguess_geopt", 0,"0= wavlet input ",dummy_int)
+    call input_var("inguess_geopt", 0,"0= wavelet input ",dummy_int)
     call set(dict // INGUESS_GEOPT, dummy_int)
-    call input_var("store_index", .true., "linear scaling: store ", dummy_bool)
+    call input_var("store_index", .true., "Linear scaling: store ", dummy_bool)
     call set(dict // STORE_INDEX, dummy_bool)
     !verbosity of the output
-    call input_var("verbosity", 2, "rbosity of the output 0=low, 2=high",dummy_int)
+    call input_var("verbosity", 2, "Verbosity of the output 0=low, 2=high",dummy_int)
     call set(dict // VERBOSITY, dummy_int)
     call input_var("outdir", ".","Writing directory", dummy_path)
     call set(dict // OUTDIR, dummy_path)
 
     !If false, apply the projectors in the once-and-for-all scheme, otherwise on-the-fly
-    call input_var("psp_onfly", .true., "Calculate ",dummy_bool)
+    call input_var("psp_onfly", .true., "Calculate the PSP projectors on the fly (less memory)",dummy_bool)
     call set(dict // PSP_ONFLY, dummy_bool)
+
+    !If true, preserve the multipole of the ionic part (local potential) projecting on delta instead of ISF
+    call input_var("multipole_preserving", .false., "Preserve multipole moment of the ionic charge",dummy_bool)
+    call set(dict // MULTIPOLE_PRESERVING, dummy_bool)
 
     !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
     call input_var("pdsyev_blocksize",-8,"SCALAPACK linear scaling blocksize",dummy_int) !ranges=(/-100,1000/)
@@ -2246,4 +2188,61 @@ contains
 
 
   END SUBROUTINE read_lin_from_text_format
+
+  subroutine read_neb_from_text_format(iproc,dict,filename)
+    use module_base
+    use module_input
+    use module_input_keys
+    use dictionaries
+    implicit none
+    character(len=*), intent(in) :: filename
+    type(dictionary), pointer :: dict
+    integer, intent(in) :: iproc
+
+    INTEGER :: num_of_images
+    CHARACTER (LEN=20) :: minimization_scheme
+    logical :: climbing, optimization, restart, exists
+    integer :: max_iterations
+    real(gp) :: convergence, damp, k_min, k_max, ds, temp_req, tolerance
+    CHARACTER (LEN=80) :: first_config, last_config, job_name, scratch_dir
+
+    NAMELIST /NEB/ scratch_dir,         &
+         climbing,            &
+         optimization,        &
+         minimization_scheme, &
+         damp,                &
+         temp_req,            &
+         k_max, k_min,        &
+         ds,                  &
+         max_iterations,      &
+         tolerance,           &
+         convergence,         &
+         num_of_images,       &
+         restart,             & ! not used
+         job_name,            & ! not used
+         first_config,        & ! not used
+         last_config            ! not used
+
+    inquire(file=trim(filename),exist=exists)
+    if (.not. exists) return
+
+    open(unit = 123, file = trim(filename), action = "read")
+    READ(123 , NML=NEB )
+    close(123)
+
+    call set(dict // GEOPT_METHOD, "NEB")
+    call set(dict // NEB_CLIMBING, climbing)
+    call set(dict // EXTREMA_OPT, optimization)
+    call set(dict // NEB_METHOD, minimization_scheme)
+    call set(dict // NEB_DAMP, damp)
+    call set(dict // SPRINGS_K // 0, k_min)
+    call set(dict // SPRINGS_K // 1, k_max)
+    call set(dict // TEMP, temp_req)
+    call set(dict // BETAX, ds)
+    call set(dict // NCOUNT_CLUSTER_X, max_iterations)
+    call set(dict // FIX_TOL, tolerance)
+    call set(dict // FORCEMAX, convergence)
+    call set(dict // NIMG, num_of_images)
+
+  end subroutine read_neb_from_text_format
 end module input_old_text_format

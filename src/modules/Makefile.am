@@ -160,10 +160,10 @@ private_api.o: base.o types.o interfaces.o
 diis_module.o: base.o types.o communications.o sparsematrix_base.o sparsematrix.o
 fragments.o: base.o types.o
 constrained_dft.o: base.o types.o sparsematrix_base.o
-input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o types.o defs.o ao_inguess.o interfaces.o atoms_data.o
+input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o types.o defs.o ao_inguess.o interfaces.o atoms_data.o input_keys.o
 psp_projectors.o: locregs.o
 locregs.o: base.o
-ao_inguess.o: $(AO_INCLUDES) base.o
+ao_inguess.o: $(AO_INCLUDES) base.o psp_projectors.o
 atoms_data.o: $(ATOMS_INCLUDES) ao_inguess.o
 communications_base.o: base.o
 communications_init.o: base.o types.o communications_base.o
@@ -175,6 +175,7 @@ foe_base.o: base.o defs.o
 
 # Copy modules in a common include directory.
 all: all-am insmod
+check: check-am insmod
 insmod: $(modules) 
 	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes
 	for mod in "$(modules)" ; do \

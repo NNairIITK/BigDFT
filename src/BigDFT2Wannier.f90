@@ -56,7 +56,7 @@ program BigDFT2Wannier
    real(kind=8), allocatable :: amnk(:,:), amnk_tot(:), amnk_guess(:), amnk_guess_sorted(:),overlap_proj(:,:)
    real(kind=8), allocatable :: mmnk_re(:,:,:), mmnk_im(:,:,:), mmnk_tot(:,:)
    integer :: i, j, k, np,i_all
-   character :: seedname*16
+   character :: seedname*16, dir*16
    logical :: calc_only_A 
    real, dimension(3,3) :: real_latt, recip_latt
    integer :: n_kpts, n_nnkpts, n_excb, n_at, s
@@ -73,6 +73,7 @@ program BigDFT2Wannier
    real(kind=8), parameter :: pi=3.141592653589793238462643383279d0
    integer, dimension(4) :: mpi_info
    type(dictionary), pointer :: user_inputs
+   external :: gather_timings
 
    call f_lib_initialize()
    !-finds the number of taskgroup size
@@ -96,6 +97,7 @@ program BigDFT2Wannier
 
    if (nconfig < 0) stop 'runs-file not supported for BigDFT2Wannier executable'
 
+   call dict_init(user_inputs)
    call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
         & 'posinp'//trim(bigdft_run_id_toa()), bigdft_mpi)
    call inputs_from_dict(input, atoms, user_inputs)
@@ -119,7 +121,8 @@ program BigDFT2Wannier
    ! Read input.inter file
    call timing(iproc,'Precondition  ','ON')
    call read_inter_header(iproc,seedname, filetype, residentity, write_resid, n_occ, pre_check, n_virt_tot,&
-         n_virt, w_unk, w_sph, w_ang, w_rad)
+         n_virt, w_unk, w_sph, w_ang, w_rad,dir)
+   !input%dir_output=trim(dir)//'/'
 
    if(n_virt_tot < n_virt) then
       if (iproc == 0) then
@@ -284,7 +287,7 @@ program BigDFT2Wannier
          ! Read wavefunction from file and transforms it properly if hgrid or size of simulation cell have changed
          npsidim=max((lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f)*orbsv%norbp*orbsv%nspinor,sum(commsv%ncntt(0:nproc-1)))
          psi_etsfv = f_malloc(npsidim,id='psi_etsfv')
-         if(associated(orbsv%eval)) nullify(orbsv%eval)
+         nullify(orbsv%eval)
          orbsv%eval = f_malloc_ptr(orbsv%norb*orbsv%nkpts,id='orbsv%eval')
 
          filename= trim(input%dir_output) // 'virtuals'
@@ -292,8 +295,7 @@ program BigDFT2Wannier
               & input%hx,input%hy,input%hz,atoms,rxyz_old,atoms%astruct%rxyz,  & 
               lzd%Glr%wfd,psi_etsfv)
          call f_free_ptr(orbsv%eval)
-         nullify(orbsv%eval)
-
+         
          if(nproc > 1) then
             pwork = f_malloc_ptr(npsidim,id='pwork')
             call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,psi_etsfv(1),pwork(1))
@@ -501,9 +503,7 @@ program BigDFT2Wannier
       if (orbsb%isorb + orbsb%norbp < n_occ ) orbs%norbp = orbsb%norbp
       if(orbsb%isorb > n_occ) orbs%norbp = 0
       orbs%isorb = orbsb%isorb
-      if(associated(orbs%iokpt)) then
-         call f_free_ptr(orbs%iokpt)
-      end if
+      call f_free_ptr(orbs%iokpt)
       orbs%iokpt = f_malloc_ptr(orbs%norbp,id='orbs%iokpt')
       orbs%iokpt=1
 
@@ -534,9 +534,7 @@ program BigDFT2Wannier
       if (orbsb%isorb > n_occ) orbsv%norbp = orbsb%norbp
       orbsv%isorb = 0
       if(orbsb%isorb >= n_occ) orbsv%isorb = orbsb%isorb - n_occ
-      if(associated(orbsv%iokpt)) then
-         call f_free_ptr(orbsv%iokpt)
-      end if
+      call f_free_ptr(orbsv%iokpt)
       orbsv%iokpt = f_malloc_ptr(orbsv%norbp,id='orbsv%iokpt')
       orbsv%iokpt=1
       !orbsv%spinsgn= 1.0
@@ -933,7 +931,7 @@ program BigDFT2Wannier
       call timing(iproc,'Input_comput  ','OF')
 
 
-      call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm)    
+      call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm,nproc=bigdft_mpi%nproc,gather_routine=gather_timings)    
 
 call cpu_time(tcpu1)
 call system_clock(ncount1,ncount_rate,ncount_max)
@@ -1050,7 +1048,7 @@ END SUBROUTINE final_deallocations
 END PROGRAM BigDFT2Wannier
 
 subroutine read_inter_header(iproc,seedname, filetype, residentity, write_resid, n_occ, pre_check,&
-           n_virt_tot, n_virt, w_unk, w_sph, w_ang, w_rad)
+           n_virt_tot, n_virt, w_unk, w_sph, w_ang, w_rad, dir)
 
    ! This routine reads the first lines of a .inter file
 
@@ -1058,7 +1056,7 @@ subroutine read_inter_header(iproc,seedname, filetype, residentity, write_resid,
 
    ! I/O variables
    integer, intent(in) :: iproc
-   character, intent(out) :: seedname*16, filetype*4
+   character, intent(out) :: seedname*16, filetype*4, dir*16
    integer, intent(out) :: n_occ, n_virt, n_virt_tot
    logical, intent(out) :: w_unk, w_sph, w_ang, w_rad, pre_check,residentity,write_resid
 
@@ -1066,6 +1064,7 @@ subroutine read_inter_header(iproc,seedname, filetype, residentity, write_resid,
    character :: char1*1, char2*1, char3*1, char4*1
    logical :: file_exist
    integer :: ierr
+   integer :: dummy1, dummy2, dummy3
 
    ! Should check if it exists, if not, make a nice output message
    inquire(file="input.inter",exist=file_exist)
@@ -1160,6 +1159,14 @@ subroutine read_inter_header(iproc,seedname, filetype, residentity, write_resid,
       if(iproc==0) write(*,*) 'Wrong value for w_rad'
       STOP
    end if
+
+   !sixth line
+
+   read(11,*) dummy1, dummy2, dummy3
+
+   ! seventh line
+   read(11,*) dir
+
 
    CLOSE(11)
 
@@ -2165,7 +2172,7 @@ subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt
 
    ! Read occupied orbitals
    if(n_occ > 0) then
-      if(associated(orbs%eval)) nullify(orbs%eval)
+      nullify(orbs%eval)
       orbs%eval = f_malloc_ptr(n_occ*orbs%nkpts,id='orbs%eval')
       filename=trim(input%dir_output) // 'wavefunction'
       call readmywaves(0,filename,iformat,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
@@ -2176,9 +2183,7 @@ subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt
    ! Read virtual orbitals chosen in pre-check mode 
    if(n_virt > 0) then
       filename=trim(input%dir_output) // 'virtuals'
-      if(associated(orbsv%eval)) then
-         call f_free_ptr(orbsv%eval)
-      end if
+      call f_free_ptr(orbsv%eval)
       orbsv%eval = f_malloc_ptr(n_virt*orbsv%nkpts,id='orbsv%eval')
       call readmywaves(0,filename,iformat,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
       Glr%wfd,psi_etsf(1,1+n_occ),virt_list)
@@ -2264,9 +2269,7 @@ subroutine split_vectors_for_parallel(iproc,nproc,nvctr,orbs)
    orbs%nkpts=1
    orbs%nspinor=1
    orbs%iskpts=0
-   if(associated(orbs%iokpt)) then
-      call f_free_ptr(orbs%iokpt)
-   end if
+   call f_free_ptr(orbs%iokpt)
    orbs%iokpt = f_malloc_ptr(orbs%norbp,id='orbs%iokpt')
    orbs%iokpt=1
 

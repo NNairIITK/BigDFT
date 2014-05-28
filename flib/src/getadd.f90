@@ -487,7 +487,7 @@ contains
 
     if (init) call razero(ndim_tot,array)
     do i=ndim_tot+1,ndim_extra
-       array(i)=d_nan()
+       array(i)=(1.d0,1.d0)*d_nan()
     end do
   end subroutine pad_double_complex
 

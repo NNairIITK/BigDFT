@@ -11,4 +11,3 @@
      m%lbounds(1:m%rank)=lbound(src)
      m%ubounds(1:m%rank)=ubound(src)
      m%srcdata_add=f_loc(src)
-

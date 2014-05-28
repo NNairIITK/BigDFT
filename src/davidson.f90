@@ -121,19 +121,16 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
       if (nproc > 1) then
          psiw = f_malloc_ptr(max(KSwfn%orbs%npsidim_orbs, KSwfn%orbs%npsidim_comp),id='psiw')
       else
-         !psiw => null()
          psiw = f_malloc_ptr(1,id='psiw')
       endif
 
       !transpose the wavefunction psi 
       call transpose_v(iproc,nproc,KSwfn%orbs,KSwfn%lzd%glr%wfd,KSwfn%comms,KSwfn%psi(1),psiw(1))
 
-      !if (nproc > 1) then
          call f_free_ptr(psiw)
-      !end if
    end if
 
-   VTwfn%orbs%eval = f_malloc_ptr(VTwfn%orbs%norb*VTwfn%orbs%nkpts+ndebug,id='VTwfn%orbs%eval')
+   VTwfn%orbs%eval = f_malloc_ptr(VTwfn%orbs%norb*VTwfn%orbs%nkpts,id='VTwfn%orbs%eval')
 
    VTwfn%orbs%eval(1:VTwfn%orbs%norb*VTwfn%orbs%nkpts)=-0.5d0
 
@@ -164,6 +161,9 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    if(nproc > 1)then
       !reallocate the work array with the good size
       psiw = f_malloc_ptr(max(VTwfn%orbs%npsidim_orbs, VTwfn%orbs%npsidim_comp),id='psiw')
+   else
+      allocate(psiw(1+ndebug),stat=i_stat)
+      call memocc(i_stat,psiw,'psiw',subname)
    end if
 
    call untranspose_v(iproc,nproc,VTwfn%orbs,VTwfn%Lzd%Glr%wfd,VTwfn%comms,VTwfn%psi(1),psiw(1))
@@ -642,7 +642,6 @@ subroutine davidson(iproc,nproc,in,at,&
       !sum up the contributions of nproc sets with 
       !commsv%nvctr_par(iproc,1) wavelet coefficients each
       call mpiallred(e(1,1,1),2*orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
-
    end if
 
    !if(iproc==0)write(*,'(1x,a)')"done."
@@ -988,8 +987,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
       if(nproc > 1)then
          !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-         call mpiallred(hamovr(1),8*ndimovrlp(nspin,orbsv%nkpts),&
-            &   MPI_SUM,bigdft_mpi%mpi_comm)
+         call mpiallred(hamovr(1),8*ndimovrlp(nspin,orbsv%nkpts),MPI_SUM,bigdft_mpi%mpi_comm)
       end if
 
       !if(iproc==0)write(*,'(1x,a)')"done."

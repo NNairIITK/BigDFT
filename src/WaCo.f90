@@ -69,7 +69,7 @@ program WaCo
    logical :: idemp
    integer, dimension(4) :: mpi_info
    type(dictionary), pointer :: user_inputs
-
+   external :: gather_timings
    ! ONLY FOR DEBUG
 !   real(gp) :: Gnorm, Lnorm
 !   integer :: indL,ilr
@@ -115,6 +115,7 @@ program WaCo
 
    if (nconfig < 0) stop 'runs-file not supported for WaCo executable'
 
+   call dict_init(user_inputs)
    call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
         & 'posinp'//trim(bigdft_run_id_toa()), bigdft_mpi)
    call inputs_from_dict(input, atoms, user_inputs)
@@ -800,20 +801,17 @@ program WaCo
      if (orbsw%isorb + orbsw%norbp < n_occ ) orbs%norbp = orbsw%norbp
      if(orbsw%isorb > n_occ) orbs%norbp = 0
      orbs%isorb = orbsw%isorb
-     if(associated(orbs%iokpt)) then
-        call f_free_ptr(orbs%iokpt)
-     end if
+     call f_free_ptr(orbs%iokpt)
      orbs%iokpt = f_malloc_ptr(orbs%norbp,id='orbs%iokpt')
      orbs%iokpt=1
      if(orbs%norbp > 0) then
-        if(associated(orbs%eval)) nullify(orbs%eval)
+        nullify(orbs%eval)
         orbs%eval = f_malloc_ptr(orbs%norb*orbs%nkpts,id='orbs%eval')
         filename=trim(input%dir_output) // 'wavefunction'
         call readmywaves(iproc,filename,iformat,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
              & input%hx,input%hy,input%hz,atoms,rxyz_old,atoms%astruct%rxyz,  & 
              Glr%wfd,psi(1,1))
         call f_free_ptr(orbs%eval)
-     
      end if
 
      ! For the non-occupied orbitals, need to change norbp,isorb
@@ -1158,7 +1156,7 @@ program WaCo
   !#########################################################
   ! Ending timing and MPI
   !#########################################################
-  call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm)
+  call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm,nproc=bigdft_mpi%nproc,gather_routine=gather_timings)
 
   call cpu_time(tcpu1)
   call system_clock(ncount1,ncount_rate,ncount_max)

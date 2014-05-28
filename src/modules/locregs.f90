@@ -12,6 +12,7 @@
 module locregs
   use module_base
   implicit none
+  private 
 
   !> Bounds for coarse and fine grids for kinetic operations
   !! Useful only for isolated systems AND in CPU
@@ -73,6 +74,9 @@ module locregs
      type(wavefunctions_descriptors) :: wfd
      type(convolutions_bounds) :: bounds
   end type locreg_descriptors
+
+  public :: nullify_locreg_descriptors,locreg_null,deallocate_locreg_descriptors,deallocate_bounds
+  public :: deallocate_wfd,allocate_wfd,copy_locreg_descriptors,copy_grid_dimensions,nullify_wfd
 
 contains
   

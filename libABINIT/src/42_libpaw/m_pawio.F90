@@ -1,6 +1,5 @@
 !{\src2tex{textfont=tt}}
-!{\src2tex{textfont=tt}}
-!!****f* ABINIT/m_pawio
+!!****m* ABINIT/m_pawio
 !! NAME
 !!  m_pawio
 !!
@@ -8,7 +7,7 @@
 !!  PAW I/O related operations
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2012-2013 ABINIT group (T. Rangel)
+!!  Copyright (C) 2012-2014 ABINIT group (T. Rangel)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -16,31 +15,26 @@
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
-#include "abi_common_for_bigdft.h"
+#include "abi_common.h"
 
 module m_pawio
     
  use defs_basis
  use m_errors
-use interfaces_12_hide_mpi
-use interfaces_14_hidewrite
-use interfaces_16_hideleave
  use m_profiling
 
  implicit none
 
  private
 
- public:: pawio_print_ij
-
+ public :: pawio_print_ij
 !!***
 
-CONTAINS
-!===========================================================
-!!***
+CONTAINS !===========================================================
+
 !!****f* ABINIT/pawio_print_ij
 !! NAME
 !! pawio_print_ij
@@ -51,7 +45,7 @@ CONTAINS
 !! Devoted to the printing of rhoij, Dij -like PAW matrixes.
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2013 ABINIT group (MT)
+!! Copyright (C) 1998-2014 ABINIT group (MT)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -97,19 +91,13 @@ CONTAINS
 !!                        if 2, output is in eV
 !!
 !! PARENTS
-!!      m_paw_slater,m_paw_toolbox,m_pawrhoij,pawmkrhoij,pawprt,setrhoijpbe0
-!!      symdij,symrhoij,wfd_pawrhoij
+!!      m_paw_ij,m_paw_slater,m_pawdij,m_pawrhoij,pawmkrhoij,pawprt
+!!      setrhoijpbe0,wfd_pawrhoij
 !!
 !! CHILDREN
 !!      wrtout
 !!
 !! SOURCE
-
-#if defined HAVE_CONFIG_H
-#include "config.inc"
-#endif
-
-#include "abi_common_for_bigdft.h"
 
 subroutine pawio_print_ij(unit,a_ij,adim,cplex,ndim,opt_l,opt_l_index,opt_pack,opt_prtvol,pack2ij,test_value,unt, &
 &                   mode_paral,opt_sym,asym_ij)    !Optional arguments
@@ -154,6 +142,7 @@ subroutine pawio_print_ij(unit,a_ij,adim,cplex,ndim,opt_l,opt_l_index,opt_pack,o
 
  10 format(100(1x,f9.5))
  11 format(12(1x,f9.5),a) !Change this format according to variable "maxprt"
+
 
 !DEBUG
 !write(std_out,*)' pawio_print_ij : enter '
@@ -359,5 +348,4 @@ end subroutine pawio_print_ij
 !!***
 
 end module m_pawio
-!!***
 !!***

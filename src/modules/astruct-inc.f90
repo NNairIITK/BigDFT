@@ -34,7 +34,7 @@ subroutine read_xyz_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
   character(len=50) :: extra
   character(len=150) :: line
   logical :: lpsdbl, eof
-  integer :: iat,ityp,ntyp,i,ierrsfx,i_stat
+  integer :: iat,ityp,ntyp,i,ierrsfx
   ! To read the file posinp (avoid differences between compilers)
   real(kind=4) :: rx,ry,rz,alat1,alat2,alat3
   ! case for which the atomic positions are given whithin general precision
@@ -262,6 +262,7 @@ END SUBROUTINE read_xyz_positions
 subroutine read_ascii_positions(iproc,ifile,astruct,comment,energy,fxyz,getline)
   use yaml_output
   use module_base
+  use dynamic_memory
   implicit none
   integer, intent(in) :: iproc,ifile
   type(atomic_structure), intent(inout) :: astruct

@@ -131,15 +131,15 @@
  tddft:
    tddft_approach                      : none #   TDDFT method
  posinp:
-   Units                               : angstroem
-   Positions:
+   units                               : angstroem
+   positions:
    - H: [5.0659887200779217, 0.0, 0.0]
      IGSpin                            : 1
    - H: [4.3004479110820801, 0.0, 0.0]
      IGSpin                            : -1
-   Properties:
-     Format                            : xyz
-     Source                            : posinp
+   properties:
+     format                            : xyz
+     source                            : posinp
  psppar.H:
    Pseudopotential type                : GTH
    Atomic number                       : 1
@@ -238,9 +238,9 @@
  Atomic structure:
    Units                               : angstroem
    Positions:
-   -  {H: [ 8.148331233,  6.75,  6.75],  # [  18.11,  15.0,  15.0 ] 0001
+   -  {H: [ 4.311911195,  3.571946173,  3.571946173],  # [  9.58,  7.94,  7.94 ] 0001
  IGSpin:  1}
-   -  {H: [ 6.701668767,  6.75,  6.75],  # [  14.89,  15.0,  15.0 ] 0002
+   -  {H: [ 3.546370386,  3.571946173,  3.571946173],  # [  7.88,  7.94,  7.94 ] 0002
  IGSpin: -1}
    Rigid Shift Applied (AU)            :  [ -1.425,  6.75,  6.75 ]
   #------------------------------------------------------------------------- Grid properties
@@ -1186,6 +1186,14 @@
  - H: {AU:  [  8.1518,  6.7500,  6.7500 ], GU:  [  18.115,  15.000,  15.000 ]} # 0001
  - H: {AU:  [  6.6982,  6.7500,  6.7500 ], GU:  [  14.885,  15.000,  15.000 ]} # 0002
  Rigid Shift Applied (AU)              :  [ -1.4215,  6.7500,  6.7500 ]
+ Atomic structure:
+   Units                               : angstroem
+   Positions:
+   -  {H: [ 4.313771583,  3.571946173,  3.571946173],  # [  9.59,  7.94,  7.94 ] 0001
+ IGSpin:  1}
+   -  {H: [ 3.544509997,  3.571946173,  3.571946173],  # [  7.88,  7.94,  7.94 ] 0002
+ IGSpin: -1}
+   Rigid Shift Applied (AU)            :  [ -1.4215,  6.7500,  6.7500 ]
   #---------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4500,  0.4500,  0.4500 ]
  Sizes of the simulation domain:
@@ -1852,6 +1860,14 @@
  - H: {AU:  [  8.1483,  6.7500,  6.7465 ], GU:  [  18.107,  15.000,  14.992 ]} # 0001
  - H: {AU:  [  6.7017,  6.7500,  6.7535 ], GU:  [  14.893,  15.000,  15.008 ]} # 0002
  Rigid Shift Applied (AU)              :  [ -1.4250,  6.7500,  6.7465 ]
+ Atomic structure:
+   Units                               : angstroem
+   Positions:
+   -  {H: [ 4.311911195,  3.571946173,  3.570085784],  # [  9.58,  7.94,  7.93 ] 0001
+ IGSpin:  1}
+   -  {H: [ 3.546370386,  3.571946173,  3.573806562],  # [  7.88,  7.94,  7.94 ] 0002
+ IGSpin: -1}
+   Rigid Shift Applied (AU)            :  [ -1.4250,  6.7500,  6.7465 ]
   #---------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4500,  0.4500,  0.4500 ]
  Sizes of the simulation domain:
@@ -2094,15 +2110,15 @@
  tddft:
    tddft_approach                      : none #   TDDFT method
  posinp:
-   Units                               : angstroem
-   Positions:
+   units                               : angstroem
+   positions:
    - H: [5.0659887200779217, 0.0, 0.0]
      IGSpin                            : 1
    - H: [4.3004479110820801, 0.0, 0.0]
      IGSpin                            : -1
-   Properties:
-     Format                            : xyz
-     Source                            : posinp
+   properties:
+     format                            : xyz
+     source                            : posinp
  psppar.H:
    Pseudopotential type                : GTH
    Atomic number                       : 1

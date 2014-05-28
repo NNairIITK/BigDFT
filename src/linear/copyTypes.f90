@@ -504,161 +504,155 @@ orbsout%nkptsp = orbsin%nkptsp
 orbsout%iskpts = orbsin%iskpts
 orbsout%efermi = orbsin%efermi
 
-if(associated(orbsout%norb_par)) then
-    call f_free_ptr(orbsout%norb_par)
-end if
+call f_free_ptr(orbsout%norb_par)
 if(associated(orbsin%norb_par)) then
-    iis1=lbound(orbsin%norb_par,1)
-    iie1=ubound(orbsin%norb_par,1)
-    iis2=lbound(orbsin%norb_par,2)
-    iie2=ubound(orbsin%norb_par,2)
-    orbsout%norb_par = f_malloc_ptr((/ iis1.to.iie1 , iis2.to.iie2 /),id='orbsout%norb_par')
-    do i1=iis1,iie1
-       do i2 = iis2,iie2
-        orbsout%norb_par(i1,i2) = orbsin%norb_par(i1,i2)
-       end do
-    end do
+   orbsout%norb_par = &
+        f_malloc_ptr(src=orbsin%norb_par,id='orbsout%norb_par')
+!!$
+!!$    iis1=lbound(orbsin%norb_par,1)
+!!$    iie1=ubound(orbsin%norb_par,1)
+!!$    iis2=lbound(orbsin%norb_par,2)
+!!$    iie2=ubound(orbsin%norb_par,2)
+!!$    orbsout%norb_par = f_malloc_ptr((/ iis1.to.iie1 , iis2.to.iie2 /),id='orbsout%norb_par')
+!!$    do i1=iis1,iie1
+!!$       do i2 = iis2,iie2
+!!$        orbsout%norb_par(i1,i2) = orbsin%norb_par(i1,i2)
+!!$       end do
+!!$    end do
 end if
 
-if(associated(orbsout%iokpt)) then
-    call f_free_ptr(orbsout%iokpt)
-end if
+call f_free_ptr(orbsout%iokpt)
 if(associated(orbsin%iokpt)) then
-    iis1=lbound(orbsin%iokpt,1)
-    iie1=ubound(orbsin%iokpt,1)
-    orbsout%iokpt = f_malloc_ptr(iis1.to.iie1,id='orbsout%iokpt')
-    do i1=iis1,iie1
-        orbsout%iokpt(i1) = orbsin%iokpt(i1)
-    end do
+   orbsout%iokpt = f_malloc_ptr(src=orbsin%iokpt,id='orbsout%iokpt')
+!!$    iis1=lbound(orbsin%iokpt,1)
+!!$    iie1=ubound(orbsin%iokpt,1)
+!!$    orbsout%iokpt = f_malloc_ptr(iis1.to.iie1,id='orbsout%iokpt')
+!!$    do i1=iis1,iie1
+!!$        orbsout%iokpt(i1) = orbsin%iokpt(i1)
+!!$    end do
 end if
 
-if(associated(orbsout%ikptproc)) then
-    call f_free_ptr(orbsout%ikptproc)
-end if
+call f_free_ptr(orbsout%ikptproc)
 if(associated(orbsin%ikptproc)) then
-    iis1=lbound(orbsin%ikptproc,1)
-    iie1=ubound(orbsin%ikptproc,1)
-    orbsout%ikptproc = f_malloc_ptr(iis1.to.iie1,id='orbsout%ikptproc')
-    do i1=iis1,iie1
-        orbsout%ikptproc(i1) = orbsin%ikptproc(i1)
-    end do
+   orbsout%ikptproc = f_malloc_ptr(src=orbsin%ikptproc,id='orbsout%ikptproc')
+!!$    iis1=lbound(orbsin%ikptproc,1)
+!!$    iie1=ubound(orbsin%ikptproc,1)
+!!$    orbsout%ikptproc = f_malloc_ptr(iis1.to.iie1,id='orbsout%ikptproc')
+!!$    do i1=iis1,iie1
+!!$        orbsout%ikptproc(i1) = orbsin%ikptproc(i1)
+!!$    end do
 end if
 
-if(associated(orbsout%inwhichlocreg)) then
-    call f_free_ptr(orbsout%inwhichlocreg)
-end if
+call f_free_ptr(orbsout%inwhichlocreg)
+    
 if(associated(orbsin%inwhichlocreg)) then
-    iis1=lbound(orbsin%inwhichlocreg,1)
-    iie1=ubound(orbsin%inwhichlocreg,1)
-    orbsout%inwhichlocreg = f_malloc_ptr(iis1.to.iie1,id='orbsout%inwhichlocreg')
-    do i1=iis1,iie1
-        orbsout%inwhichlocreg(i1) = orbsin%inwhichlocreg(i1)
-    end do
+   orbsout%inwhichlocreg = f_malloc_ptr(src=orbsin%inwhichlocreg,id='orbsout%inwhichlocreg')
+       
+!!$    iis1=lbound(orbsin%inwhichlocreg,1)
+!!$    iie1=ubound(orbsin%inwhichlocreg,1)
+!!$    orbsout%inwhichlocreg = f_malloc_ptr(iis1.to.iie1,id='orbsout%inwhichlocreg')
+!!$    do i1=iis1,iie1
+!!$        orbsout%inwhichlocreg(i1) = orbsin%inwhichlocreg(i1)
+!!$    end do
 end if
 
-if(associated(orbsout%onwhichatom)) then
-    call f_free_ptr(orbsout%onwhichatom)
-end if
+call f_free_ptr(orbsout%onwhichatom)
 if(associated(orbsin%onwhichatom)) then
-    iis1=lbound(orbsin%onwhichatom,1)
-    iie1=ubound(orbsin%onwhichatom,1)
-    orbsout%onwhichatom = f_malloc_ptr(iis1.to.iie1,id='orbsout%onwhichatom')
-    do i1=iis1,iie1
-        orbsout%onwhichatom(i1) = orbsin%onwhichatom(i1)
-    end do
+    orbsout%onwhichatom = &
+         f_malloc_ptr(src=orbsin%onwhichatom,id='orbsout%onwhichatom')
+!!$    iis1=lbound(orbsin%onwhichatom,1)
+!!$    iie1=ubound(orbsin%onwhichatom,1)
+!!$    orbsout%onwhichatom = f_malloc_ptr(iis1.to.iie1,id='orbsout%onwhichatom')
+!!$    do i1=iis1,iie1
+!!$        orbsout%onwhichatom(i1) = orbsin%onwhichatom(i1)
+!!$    end do
 end if
 
-if(associated(orbsout%isorb_par)) then
-    call f_free_ptr(orbsout%isorb_par)
-end if
+call f_free_ptr(orbsout%isorb_par)
 if(associated(orbsin%isorb_par)) then
-    iis1=lbound(orbsin%isorb_par,1)
-    iie1=ubound(orbsin%isorb_par,1)
-    orbsout%isorb_par = f_malloc_ptr(iis1.to.iie1,id='orbsout%isorb_par')
-    do i1=iis1,iie1
-        orbsout%isorb_par(i1) = orbsin%isorb_par(i1)
-    end do
+   orbsout%isorb_par = f_malloc_ptr(src=orbsin%isorb_par,id='orbsout%isorb_par')
+!!$    iis1=lbound(orbsin%isorb_par,1)
+!!$    iie1=ubound(orbsin%isorb_par,1)
+!!$    orbsout%isorb_par = f_malloc_ptr(iis1.to.iie1,id='orbsout%isorb_par')
+!!$    do i1=iis1,iie1
+!!$        orbsout%isorb_par(i1) = orbsin%isorb_par(i1)
+!!$    end do
 end if
 
-if(associated(orbsout%eval)) then
     call f_free_ptr(orbsout%eval)
-end if
-if(associated(orbsin%eval)) then
-    iis1=lbound(orbsin%eval,1)
-    iie1=ubound(orbsin%eval,1)
-    if(iie1 /= iis1 ) then
-       orbsout%eval = f_malloc_ptr(iis1.to.iie1,id='orbsout%eval')
-       do i1=iis1,iie1
-           orbsout%eval(i1) = orbsin%eval(i1)
-       end do
-    end if
+    if(associated(orbsin%eval)) then
+       orbsout%eval = f_malloc_ptr(src=orbsin%eval,id='orbsout%eval')
+!!$    iis1=lbound(orbsin%eval,1)
+!!$    iie1=ubound(orbsin%eval,1)
+!!$    if(iie1 /= iis1 ) then
+!!$       orbsout%eval = f_malloc_ptr(iis1.to.iie1,id='orbsout%eval')
+!!$       do i1=iis1,iie1
+!!$           orbsout%eval(i1) = orbsin%eval(i1)
+!!$       end do
+!!$    end if
 end if
 
-if(associated(orbsout%occup)) then
     call f_free_ptr(orbsout%occup)
-end if
 if(associated(orbsin%occup)) then
-    iis1=lbound(orbsin%occup,1)
-    iie1=ubound(orbsin%occup,1)
-    orbsout%occup = f_malloc_ptr(iis1.to.iie1,id='orbsout%occup')
-    do i1=iis1,iie1
-        orbsout%occup(i1) = orbsin%occup(i1)
-    end do
+   orbsout%occup = f_malloc_ptr(src=orbsin%occup,id='orbsout%occup')
+!!$    iis1=lbound(orbsin%occup,1)
+!!$    iie1=ubound(orbsin%occup,1)
+!!$    orbsout%occup = f_malloc_ptr(iis1.to.iie1,id='orbsout%occup')
+!!$    do i1=iis1,iie1
+!!$        orbsout%occup(i1) = orbsin%occup(i1)
+!!$    end do
 end if
 
-if(associated(orbsout%spinsgn)) then
+
     call f_free_ptr(orbsout%spinsgn)
-end if
+
 if(associated(orbsin%spinsgn)) then
-    iis1=lbound(orbsin%spinsgn,1)
-    iie1=ubound(orbsin%spinsgn,1)
-    orbsout%spinsgn = f_malloc_ptr(iis1.to.iie1,id='orbsout%spinsgn')
-    do i1=iis1,iie1
-        orbsout%spinsgn(i1) = orbsin%spinsgn(i1)
-    end do
+   orbsout%spinsgn = f_malloc_ptr(src=orbsin%spinsgn,id='orbsout%spinsgn')
+!!$    iis1=lbound(orbsin%spinsgn,1)
+!!$    iie1=ubound(orbsin%spinsgn,1)
+!!$    orbsout%spinsgn = f_malloc_ptr(iis1.to.iie1,id='orbsout%spinsgn')
+!!$    do i1=iis1,iie1
+!!$        orbsout%spinsgn(i1) = orbsin%spinsgn(i1)
+!!$    end do
 end if
 
 
-if(associated(orbsout%kwgts)) then
    call f_free_ptr(orbsout%kwgts)
-end if
 if(associated(orbsin%kwgts)) then
-    iis1=lbound(orbsin%kwgts,1)
-    iie1=ubound(orbsin%kwgts,1)
-    orbsout%kwgts = f_malloc_ptr(iis1.to.iie1,id='orbsout%kwgts')
-    do i1=iis1,iie1
-        orbsout%kwgts(i1) = orbsin%kwgts(i1)
-    end do
+   orbsout%kwgts = f_malloc_ptr(src=orbsin%kwgts,id='orbsout%kwgts')
+!!$    iis1=lbound(orbsin%kwgts,1)
+!!$    iie1=ubound(orbsin%kwgts,1)
+!!$    orbsout%kwgts = f_malloc_ptr(iis1.to.iie1,id='orbsout%kwgts')
+!!$    do i1=iis1,iie1
+!!$        orbsout%kwgts(i1) = orbsin%kwgts(i1)
+!!$    end do
 end if
 
-
-if(associated(orbsout%kpts)) then
-    call f_free_ptr(orbsout%kpts)
-end if
+call f_free_ptr(orbsout%kpts)
 if(associated(orbsin%kpts)) then
-    iis1=lbound(orbsin%kpts,1)
-    iie1=ubound(orbsin%kpts,1)
-    iis2=lbound(orbsin%kpts,2)
-    iie2=ubound(orbsin%kpts,2)
-    orbsout%kpts = f_malloc_ptr((/ iis1.to.iie1 , iis2.to.iie2 /),id='orbsout%kpts')
-    do i2=iis2,iie2
-        do i1=iis1,iie1
-            orbsout%kpts(i1,i2) = orbsin%kpts(i1,i2)
-        end do
-    end do
+   orbsout%kpts = f_malloc_ptr(src=orbsin%kpts,id='orbsout%kpts')
+!!$    iis1=lbound(orbsin%kpts,1)
+!!$    iie1=ubound(orbsin%kpts,1)
+!!$    iis2=lbound(orbsin%kpts,2)
+!!$    iie2=ubound(orbsin%kpts,2)
+!!$    orbsout%kpts = f_malloc_ptr((/ iis1.to.iie1 , iis2.to.iie2 /),id='orbsout%kpts')
+!!$    do i2=iis2,iie2
+!!$        do i1=iis1,iie1
+!!$            orbsout%kpts(i1,i2) = orbsin%kpts(i1,i2)
+!!$        end do
+!!$    end do
 end if
 
 
-if(associated(orbsout%ispot)) then
-    call f_free_ptr(orbsout%ispot)
-end if
+call f_free_ptr(orbsout%ispot)
 if(associated(orbsin%ispot)) then
-    iis1=lbound(orbsin%ispot,1)
-    iie1=ubound(orbsin%ispot,1)
-    orbsout%ispot = f_malloc_ptr(iis1.to.iie1,id='orbsout%ispot')
-    do i1=iis1,iie1
-        orbsout%ispot(i1) = orbsin%ispot(i1)
-    end do
+   orbsout%ispot = f_malloc_ptr(src=orbsin%ispot,id='orbsout%ispot')
+!!$    iis1=lbound(orbsin%ispot,1)
+!!$    iie1=ubound(orbsin%ispot,1)
+!!$    orbsout%ispot = f_malloc_ptr(iis1.to.iie1,id='orbsout%ispot')
+!!$    do i1=iis1,iie1
+!!$        orbsout%ispot(i1) = orbsin%ispot(i1)
+!!$    end do
 end if
 
 

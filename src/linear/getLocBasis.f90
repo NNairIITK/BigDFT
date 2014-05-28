@@ -221,6 +221,14 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       !tmb%linmat%ham%matrix_compr=tmb%linmat%ham_%matrix_compr
 
 
+!!  call diagonalize_subset(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%ovrlp_, tmb%linmat%m, tmb%linmat%ham_)
+!!  if (iproc==0) then
+!!      do iorb=1,tmb%orbs%norb
+!!          write(*,*) 'iorb, tmb%orbs%eval(iorb)',iorb,tmb%orbs%eval(iorb)
+!!      end do
+!!  end if
+
+
       if (scf_mode==LINEAR_FOE) then
          ! NOT ENTIRELY GENERAL HERE - assuming ovrlp is small and ham is large, converting ham to match ovrlp
          call timing(iproc,'FOE_init','ON') !lr408t
@@ -362,6 +370,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           call vcopy(tmb%orbs%norb**2, tmb%linmat%ovrlp_%matrix(1,1), 1, matrixElements(1,1,2), 1)
           call diagonalizeHamiltonian2(iproc, tmb%orbs%norb, matrixElements(1,1,1), matrixElements(1,1,2), tmb%orbs%eval)
           if (iproc==0) call yaml_map('gap',tmb%orbs%eval(orbs%norb+1)-tmb%orbs%eval(orbs%norb))
+          if (iproc==0) call yaml_map('lowest eigenvalue',tmb%orbs%eval(1))
+          if (iproc==0) call yaml_map('highest eigenvalue',tmb%orbs%eval(tmb%orbs%norb))
           call f_free(matrixElements)
           call f_free_ptr(tmb%linmat%ham_%matrix)
           call f_free_ptr(tmb%linmat%ovrlp_%matrix)
@@ -657,23 +667,25 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                    tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
                    tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, tmb%linmat%ham_)
-              ! This can then be deleted if the transition to the new type has been completed.
-              !tmb%linmat%ham%matrix_compr=tmb%linmat%ham_%matrix_compr
 
-              if(associated(tmb%psit_c)) then
-                  call f_free_ptr(tmb%psit_c)
-                  associated_psit_c=.true.
-              else
-                  associated_psit_c=.false.
+              !!if(associated(tmb%psit_c)) then
+              !!    call f_free_ptr(tmb%psit_c)
+              !!    associated_psit_c=.true.
+              !!else
+              !!    associated_psit_c=.false.
+              !!end if
+              !!if(associated(tmb%psit_f)) then
+              !!    call f_free_ptr(tmb%psit_f)
+              !!    associated_psit_f=.true.
+              !!else
+              !!    associated_psit_f=.false.
+              !!end if
+              if (.not.associated(tmb%psit_c)) then
+                  tmb%psit_c = f_malloc_ptr(tmb%collcom%ndimind_c,id='tmb%psit_c')
               end if
-              if(associated(tmb%psit_f)) then
-                  call f_free_ptr(tmb%psit_f)
-                  associated_psit_f=.true.
-              else
-                  associated_psit_f=.false.
+              if (.not.associated(tmb%psit_f)) then
+                  tmb%psit_f = f_malloc_ptr(7*tmb%collcom%ndimind_f,id='tmb%psit_f')
               end if
-              tmb%psit_c = f_malloc_ptr(tmb%collcom%ndimind_c,id='tmb%psit_c')
-              tmb%psit_f = f_malloc_ptr(7*tmb%collcom%ndimind_f,id='tmb%psit_f')
               call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
                    tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
@@ -689,15 +701,15 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
               !if (iproc==0) call yaml_close_map()
               if (iproc==0) call yaml_close_sequence()
-              if (.not.associated_psit_c) then
-                  call f_free_ptr(tmb%psit_c)
-              end if
-              if (.not.associated_psit_f) then
-                  call f_free_ptr(tmb%psit_f)
-              end if
-              if (associated_psit_c .and. associated_psit_f) then
-                  tmb%can_use_transposed=.true.
-              end if
+              !!if (.not.associated_psit_c) then
+              !!    call f_free_ptr(tmb%psit_c)
+              !!end if
+              !!if (.not.associated_psit_f) then
+              !!    call f_free_ptr(tmb%psit_f)
+              !!end if
+              !!if (associated_psit_c .and. associated_psit_f) then
+              !!    tmb%can_use_transposed=.true.
+              !!end if
               if (.not.associated_psitlarge_c) then
                   call f_free_ptr(tmb%ham_descr%psit_c)
               end if
@@ -746,6 +758,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
 
       correction_orthoconstraint_local=correction_orthoconstraint
+      !if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+      !    correction_orthoconstraint_local=2
+      !end if
       !if(.not.ortho_on) then
       !    correction_orthoconstraint_local=2
       !end if
@@ -780,7 +795,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
            hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint_local, .false., hpsi_small, &
-           experimental_mode, correction_co_contra, orbs, hpsi_noprecond, order_taylor)
+           experimental_mode, correction_co_contra, orbs, hpsi_noprecond, order_taylor, method_updatekernel)
 
 
       !!! PLOT ###########################################################################
@@ -969,7 +984,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       else
           kappa_satur=0
       end if
-      exit_loop(7) = (itout>0 .and. kappa_satur>=2)
+      exit_loop(7) = (.false. .and. itout>0 .and. kappa_satur>=2)
 
       if(any(exit_loop)) then
           if(exit_loop(1)) then

@@ -136,7 +136,7 @@ subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
 !DEBUG
 !write(6,*)' scfopt : enter ; istep,iscf ',istep,iscf
 !ENDDEBUG
- errid = AB6_NO_ERROR
+ errid = AB7_NO_ERROR
 
  i_vstore=i_vtrial(1)
  if (iscf==4) i_vstore=i_vtrial(2)
@@ -323,7 +323,7 @@ subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
    call wrtout(std_out,message,'COLL')
 
    if (npulay>npulaymax) then
-      errid = AB6_ERROR_MIXING_CONVERGENCE
+      errid = AB7_ERROR_MIXING_CONVERGENCE
       write(errmess, '(4a)' ) ch10,&
 &     ' scfopt : ERROR - ',ch10,&
 &     '  Too much iterations required for Pulay algorithm (<50) !'

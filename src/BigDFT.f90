@@ -50,8 +50,7 @@ program BigDFT
    allocate(arr_radical(abs(nconfig)))
    allocate(arr_posinp(abs(nconfig)))
 
-   !here we call a routine which
-   ! Read a possible radical format argument.
+   !here we call a routine which reads a possible radical format argument.
    call bigdft_get_run_ids(nconfig,trim(run_id),arr_radical,arr_posinp,ierr)
 
    do iconfig=1,abs(nconfig)

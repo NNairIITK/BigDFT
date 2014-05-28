@@ -110,6 +110,7 @@ end function pkernel_init
 !> Free memory used by the kernerl operation
 !! @ingroup PSOLVER
 subroutine pkernel_free(kernel,subname)
+  use dynamic_memory
   implicit none
   character(len=*), intent(in) :: subname
   type(coulomb_operator), intent(inout) :: kernel

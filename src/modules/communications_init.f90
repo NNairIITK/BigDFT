@@ -2558,7 +2558,7 @@ module communications_init
                norb_tot=norb_tot+norb_par(jproc,ikpts)
             end do
             if(norb_tot /= orbs%norb) then
-               write(*,*)'ERROR: partition of orbitals incorrect, kpoint:',ikpts
+               write(*,'(a,3i9)')'ERROR: partition of orbitals incorrect; kpoint, norb_tot, orbs%norb:',ikpts, norb_tot, orbs%norb
                stop
             end if
          end do

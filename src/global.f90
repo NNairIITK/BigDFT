@@ -77,11 +77,13 @@ program MINHOP
 
   !for each of the configuration set the input files
   !optimized input parameters
+  call dict_init(user_inputs)
   call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
        & 'poscur'//trim(bigdft_run_id_toa()), bigdft_mpi)
   call inputs_from_dict(inputs_opt, atoms, user_inputs)
   call dict_free(user_inputs)
   !unoptimized input parameters
+  call dict_init(user_inputs)
   call user_dict_from_files(user_inputs, 'md'//trim(run_id)//trim(bigdft_run_id_toa()), &
        & 'poscur'//trim(bigdft_run_id_toa()), bigdft_mpi)
   call inputs_from_dict(inputs_md, md_atoms, user_inputs)
@@ -599,7 +601,7 @@ program MINHOP
         fp(i)=fphop(i)
      enddo
      if (bigdft_mpi%iproc == 0) then
-       call yaml_open_map('(MH) Write poscur file')
+        !call yaml_open_map('(MH) Write poscur file')
        call write_atomic_file('poscur'//trim(bigdft_run_id_toa()),e_pos,pos,atoms,'')
        call yaml_map('(MH) poscur.xyz for  RESTART written',.true.)
 
@@ -694,7 +696,7 @@ end do hopping_loop
   call f_free(ksevals)
 
   call deallocate_global_output(outs)
-
+  call run_objects_free_container(runObj)
   call free_input_variables(inputs_md)
   call free_input_variables(inputs_opt)
 

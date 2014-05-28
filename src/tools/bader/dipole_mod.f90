@@ -155,14 +155,14 @@ MODULE dipole_mod
     real(q2), parameter :: dipoleunits=1._q2  !< atomic units 
     real(q2), dimension(3) :: tmp1, tmp2
     real(q2) :: stmp,stmp2
-    integer :: i, ierr
+    integer :: i
  
     !WRITE(*,'(A44,/)') 'WRITING BADER ATOMIC DIPOLES TO dipole.dat'
-    call yaml_map('Writing Bader atomic dipoles',dfile)
+    !call yaml_map('Writing Bader atomic dipoles',dfile)
 
     !OPEN(UNIT=iunit,FILE='dipole.dat',STATUS='replace',ACTION='write')
-    call yaml_set_stream(unit=iunit,filename=dfile,istat=ierr)
-    call yaml_open_sequence('Atoms coordinates',unit=iunit)
+    call yaml_set_stream(unit=iunit,filename=dfile)
+    call yaml_open_sequence('Atoms coordinates')
     do i=1,ions%nions
        call yaml_sequence(advance='no')
        call yaml_comment('Atoms' // trim(yaml_toa(i)))
@@ -171,9 +171,9 @@ MODULE dipole_mod
        call yaml_map('Charge core',ions%ion_chg(i))
        call yaml_map('Charge elec.',-bdr%ionchg(i))
        call yaml_map('Charge net',dpl%ion_netchg(i))
-       call yaml_close_map()
+       call yaml_close_map(unit=iunit)
     end do
-    call yaml_close_sequence()
+    call yaml_close_sequence(unit=iunit)
 
     !WRITE(iunit,format_line) 
     !WRITE(iunit,'(a)') "Atoms coordinates: " 
@@ -197,18 +197,18 @@ MODULE dipole_mod
     call yaml_comment('Atomic polarization dipole-moments with respect to the corresponding nuclei positions [e.a0]')
     call yaml_open_sequence('Atomic polarization dipole_moments')
     do i=1,ions%nions
-       tmp1(:)= dpl%ion_polar(i,:)*dipoleunits
-       tmp2(:)= dpl%ion_chgtrans (i,:)*dipoleunits
+       tmp1= dpl%ion_polar(i,:)*dipoleunits
+       stmp = sqrt(dot_product(tmp1,tmp1))
        call yaml_sequence(advance='no')
        call yaml_comment('Atoms' // trim(yaml_toa(i)))
        call yaml_open_map(flow=.true.)
-       call yaml_map('P',tmp1(:))
-       call yaml_map('Norm P',sqrt(dot_product(tmp1(:),tmp1(:))))
-       call yaml_close_map()
+       call yaml_map('P',tmp1)
+       call yaml_map('Norm P',sqrt(dot_product(tmp1,tmp1)))
+       call yaml_close_map(unit=iunit)
        !WRITE(iunit,'(I3,33x,3F12.6,1x,F13.6,6x,F12.6,5x,F12.5)') & 
        !&   i , tmp1(:), sqrt(DOT_PRODUCT(tmp1(:),tmp1(:)))
     end do
-    call yaml_close_sequence()
+    call yaml_close_sequence(unit=iunit)
 
     !WRITE(iunit,format_line) 
     tmp1(1)= sum(dpl%ion_polar(:,1))*dipoleunits
@@ -233,7 +233,7 @@ MODULE dipole_mod
 
     call yaml_map('Charge-transfer contributions',(/ tmp2(1),tmp2(2),tmp2(3),stmp2 /))
     stmp = sqrt(dot_product(tmp1+tmp2,tmp1+tmp2))
-    call yaml_map('Total dipole moment', (/ tmp1(1)+tmp2(1), tmp1(2)+tmp2(2), tmp1(3)+tmp2(3), stmp /) ) 
+    call yaml_map('Total dipole moment', (/ tmp1(1)+tmp2(1), tmp1(2)+tmp2(2), tmp1(3)+tmp2(3), stmp /)) 
 
     !WRITE(iunit,format_line) 
     tmp1= dpl%tot_core(1:3)*dipoleunits 
@@ -250,7 +250,7 @@ MODULE dipole_mod
     !                 tmp1+tmp2,sqrt(DOT_PRODUCT(tmp1+tmp2,tmp1+tmp2))     
     !WRITE(iunit,format_line) 
 
-    call yaml_map('Total dipole moment of the whole system', (/ tmp1(1)+tmp2(1), tmp1(2)+tmp2(2), tmp1(3)+tmp2(3), stmp /) )
+    call yaml_map('Total dipole moment of the whole system', (/ tmp1(1)+tmp2(1), tmp1(2)+tmp2(2), tmp1(3)+tmp2(3), stmp /))
     call yaml_close_stream(unit=iunit)
     !CLOSE(UNIT=iunit)
 

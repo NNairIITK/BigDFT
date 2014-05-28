@@ -28,7 +28,8 @@
 subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       quiet,stress_tensor) !optional argument
    use yaml_output
-  use time_profiling, only: f_timing
+   use time_profiling, only: f_timing
+   use dynamic_memory
    implicit none
    !>  kernel of the poisson equation. It is provided in distributed case, with
    !!  dimensions that are related to the output of the PS_dim4allocation routine

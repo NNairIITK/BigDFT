@@ -116,6 +116,7 @@ high_level = cluster.f90 \
 	pdos.f90 \
 	sdcg.f90 \
 	bfgs.f90 \
+   sbfgs.f90 \
 	scfloop_API.f90 \
 	tddft.f90 \
 	output.f90 \
@@ -342,6 +343,8 @@ initAndUtils.o linear/initAndUtils.o: linear/initAndUtils.f90 cleanup.o
 linearScaling.o transferintegrals.o: i-o.o
 
 NEB.o: images.o
+
+restart.o: i-o.o
 
 # Introspection for Python bindings
 # ---------------------------------

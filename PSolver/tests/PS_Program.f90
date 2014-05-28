@@ -17,6 +17,7 @@ program PSolver_Program
   use wrapper_mpi
   use memory_profiling, only: memocc
   use time_profiling
+  use dynamic_memory
   implicit none
   !include 'mpif.h'
   !Order of interpolating scaling function
@@ -42,7 +43,7 @@ program PSolver_Program
   !triclinic lattice
   real(kind=8) :: alpha,beta,gamma,detg
   real(kind=8), dimension(:,:,:,:), pointer :: rhocore_fake
-  
+  external :: gather_timings  
   nullify(rhocore_fake)
 
   alpha = 2.0_dp*datan(1.0_dp)
@@ -319,7 +320,7 @@ program PSolver_Program
 !!$  deallocate(karray,stat=i_stat)
 !!$  call memocc(i_stat,i_all,'karray',subname)
 
-  call f_timing_stop(mpi_comm=karray%mpi_env%mpi_comm)
+  call f_timing_stop(mpi_comm=karray%mpi_env%mpi_comm,nproc=karray%mpi_env%nproc,gather_routine=gather_timings)
 
   if (.not. onlykernel) then
 

@@ -62,7 +62,7 @@ print "Final report for writings in stdout ('passed' means all significant float
 for file in files:
     dirc = os.path.normpath(os.path.dirname(file))
     fic = "(%s)" % os.path.basename(file)
-    dirfic = ("%-35s %-30s" % (dirc.replace('.test',''),fic.replace('.report',''))).strip()
+    dirfic = ("%-35s %-30s" % (dirc.replace('-test',''),fic.replace('.report',''))).strip()
     #Max value
     try:
         max_discrepancy = float(open(file).readline()[16:24])
@@ -120,7 +120,7 @@ print "Final report for yaml outputs: if succeeded %53s" % "max diff (significan
 for file in yaml_files:
     dirc = os.path.normpath(os.path.dirname(file))
     fic = "(%s)" % os.path.basename(file)
-    dirfic = ("%-35s %-30s" % (dirc.replace('.test',''),fic.replace('.report.yaml',''))).strip()
+    dirfic = ("%-35s %-30s" % (dirc.replace('-test',''),fic.replace('.report.yaml',''))).strip()
     documents=[a for a in yaml.load_all(open(file, "r").read(), Loader = yaml.CLoader)]
     #find whether all the tests have passed (look at last part)
     try:

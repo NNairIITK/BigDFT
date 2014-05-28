@@ -14,50 +14,65 @@ subroutine test_dynamic_memory()
    use dynamic_memory
    use dictionaries
    implicit none
+   type :: dummy_type
+      integer :: i
+      double precision, dimension(:), pointer :: ptr
+   end type dummy_type
    !logical :: fl
    integer :: i
    real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,xc_pot
    real(kind=8), dimension(:), pointer :: extra_ref
    integer, dimension(:), allocatable :: i1_all,i1_src
-   integer, dimension(:), pointer :: i1_ptr,ptr1,ptr2
+   integer, dimension(:), pointer :: i1_ptr,ptr1
+   integer, dimension(:), pointer :: ptr2
 
    integer,dimension(:,:,:),allocatable :: weight
-  integer,dimension(:,:,:,:),allocatable :: orbital_id
-  external :: abort2
-
+   integer,dimension(:,:,:,:),allocatable :: orbital_id
+   type(dummy_type) :: dummy_test
+   external :: abort2
+  
    call yaml_comment('Routine-Tree creation example',hfill='~')
    !call dynmem_sandbox()
 
 
 
-!!$   i1_all=f_malloc(0,id='i1_all')
-!!$   call yaml_map('Address of first element',f_loc(i1_all))
-!!$!   call yaml_map('Address of first element, explicit',f_loc(i1_all(1)))
-!!$
-!!$   nullify(ptr1,ptr2)
-!!$   call yaml_map('Associated',(/associated(ptr1),associated(ptr2)/))
-!!$
-!!$   i1_ptr=f_malloc_ptr(0,id='i1_ptr')
-!!$
-!!$   ptr1=>i1_ptr
-!!$
-!!$   ptr2=>ptr1
-!!$   call yaml_map('Associated',(/associated(ptr1),associated(ptr2)/))
-!!$
-!!$   call yaml_map('Address of first element',f_loc(i1_ptr))
-!!$   call yaml_map('Address of first element, explicit',f_loc(ptr1))
-!!$   call yaml_map('Address of first element, explicit',f_loc(ptr2))
-!!$
-!!$
-!!$   !call f_free_ptr(ptr2) !this one would crash
-!!$   call f_free_ptr(i1_ptr)
-!!$
-!!$   call yaml_map('Associated',(/associated(ptr1),associated(ptr2),associated(i1_ptr)/))
+   i1_all=f_malloc(0,id='i1_all')
+   call yaml_map('Address of first element',f_loc(i1_all))
+!   call yaml_map('Address of first element, explicit',f_loc(i1_all(1)))
+
+   nullify(ptr1,ptr2)
+   call yaml_map('Associated',(/associated(ptr1),associated(ptr2)/))
+
+   i1_ptr=f_malloc_ptr(0,id='i1_ptr')
+
+   ptr1=>i1_ptr
+
+   ptr2=>ptr1
+   call yaml_map('Associated',(/associated(ptr1),associated(ptr2)/))
+
+   call yaml_map('Address of first element',f_loc(i1_ptr))
+   call yaml_map('Address of first element, explicit (1)',f_loc(ptr1))
+   call yaml_map('Address of first element, explicit (2)',f_loc(ptr2))
+
+   !also allocating the dummy structure
+   dummy_test=dummy_init(10)
+
+!call f_malloc_finalize(dump=.true.)
+!stop
+   !call init_dummy(10,dummy_test)
+   call free_dummy(dummy_test)
+
+   call f_free_ptr(ptr2) !this one would crash
+   !call f_free_ptr(i1_ptr)
+
+   call yaml_map('Associated',(/associated(ptr1),associated(ptr2),associated(i1_ptr)/))
 !!$
 !!$
 !!$
 !!$   call f_malloc_dump_status()
-!!$stop
+   call f_free(i1_all)
+
+
 call yaml_comment('debug 1')
    call f_routine(id='PS_Check')
 call yaml_comment('debug 2')
@@ -220,6 +235,29 @@ call f_free(weight)
 
    call f_malloc_dump_status()
 
+   contains
+     
+     function dummy_init(n) result(dummy)
+       implicit none
+       integer, intent(in) :: n
+       type(dummy_type) :: dummy
+       call init_dummy(n,dummy)
+     end function dummy_init
+     subroutine init_dummy(n,dummy)
+       implicit none
+       integer, intent(in) :: n
+       type(dummy_type), intent(out) :: dummy
+       
+       dummy%i=n
+       dummy%ptr=f_malloc_ptr(n,id='ptr')
+       dummy%ptr=dble(n)
+     end subroutine init_dummy
+     subroutine free_dummy(dummy)
+       implicit none
+       type(dummy_type), intent(inout) :: dummy
+       call f_free_ptr(dummy%ptr)
+       dummy%i=0
+     end subroutine free_dummy
 end subroutine test_dynamic_memory
 
 subroutine dynmem_sandbox()

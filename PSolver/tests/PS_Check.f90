@@ -18,7 +18,6 @@ program PS_Check
    use dictionaries
    use time_profiling
    implicit none
-   !include 'mpif.h'
    !Length of the box
    character(len=*), parameter :: subname='PS_Check'
    real(kind=8), parameter :: a_gauss = 1.0d0,a2 = a_gauss**2
@@ -42,6 +41,7 @@ program PS_Check
    real(dp), dimension(3) :: hgrids
    type(mpi_environment) :: bigdft_mpi
    character(len = *), parameter :: package_version = "PSolver 1.7-dev.25"
+   external :: gather_timings
 
    call f_lib_initialize() 
 
@@ -226,7 +226,7 @@ program PS_Check
       density,potential,pkernel)
       if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0)call yaml_close_map()
 
-      call f_timing_checkpoint('Parallel',MPI_COMM_WORLD)
+      call f_timing_checkpoint('Parallel',mpi_comm=MPI_COMM_WORLD,nproc=nproc,gather_routine=gather_timings)
       !call timing(MPI_COMM_WORLD,'Parallel','PR')
 
    call pkernel_free(pkernel,subname)
@@ -272,14 +272,15 @@ program PS_Check
      call yaml_close_map()
    endif
 
-   call f_timing_checkpoint('Serial',MPI_COMM_WORLD)
+   call f_timing_checkpoint('Serial',mpi_comm=MPI_COMM_WORLD,&
+        nproc=nproc,gather_routine=gather_timings)
    !call timing(MPI_COMM_WORLD,'Serial','PR')
 
    !call f_malloc_dump_status()
 
    call f_free(density,potential,pot_ion,extra_ref)
 
-   call f_timing_stop(mpi_comm=MPI_COMM_WORLD)
+   call f_timing_stop(mpi_comm=MPI_COMM_WORLD,nproc=nproc,gather_routine=gather_timings)
 
    !Final timing
    call cpu_time(tcpu1)
@@ -590,8 +591,9 @@ program PS_Check
    !> Compare arrays potential and density
    !! if nproc == -1: serial version i.e. special comparison
    subroutine compare(iproc,nproc,mpi_comm,n01,n02,n03,nspden,potential,density,description)
+      use wrapper_mpi
       implicit none
-      include 'mpif.h'
+      !include 'mpif.h'
       character(len=*), intent(in) :: description
       integer, intent(in) :: iproc,nproc,n01,n02,n03,nspden,mpi_comm
       real(kind=8), dimension(n01,n02,n03), intent(in) :: potential,density

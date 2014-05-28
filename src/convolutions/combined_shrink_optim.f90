@@ -7,6 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+
 !> In one dimension,    
 !! Applies the magic filter transposed, then analysis wavelet transformation.
 !! The size of the data is forced to shrink
@@ -118,6 +119,7 @@ subroutine comb_rot_shrink_loc(ndat,x,y,icf,nfl,nfu,ib)
 
   !write(10,*) tel, 1.d-6*nflop/tel
 END SUBROUTINE comb_rot_shrink_loc
+
 
 !> In one dimension,    
 !! Applies the magic filter transposed, then analysis wavelet transformation.

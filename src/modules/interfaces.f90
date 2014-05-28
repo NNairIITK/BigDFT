@@ -904,14 +904,14 @@ module module_interfaces
      END SUBROUTINE inputguess_gaussian_orbitals_forLinear
 
      subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
-          &   nspin,eks,scorb,G,gaucoeff,iorbtolr,mapping,quartic_prefactor)
+          nspin,eks,G,gaucoeff,iorbtolr,mapping,quartic_prefactor)
        use module_base
        use module_types
        implicit none
        integer, intent(in) :: norbe,iproc
        integer, intent(in) :: norbsc,nspin
        type(atoms_data), intent(in) :: at
-       logical, dimension(4,2,at%natsc), intent(in) :: scorb
+       !logical, dimension(4,2,at%natsc), intent(in) :: scorb
        real(gp), dimension(3,at%astruct%nat), intent(in), target :: rxyz
        type(orbitals_data), intent(inout) :: orbse
        type(gaussian_basis), intent(out) :: G
@@ -1599,19 +1599,6 @@ module module_interfaces
       real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: z_f
     end subroutine createDerivativeBasis
 
-    subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,locrad)
-      use module_base
-      use module_types
-      implicit none
-      !Arguments
-      integer, intent(in) :: nspin,nspinor
-      integer, intent(out) :: norbe,norbsc
-      type(atoms_data), intent(in) :: at
-      logical, dimension(4,2,at%natsc), intent(out) :: scorb
-      integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
-      real(gp), dimension(at%astruct%nat), intent(out) :: locrad
-    end subroutine readAtomicOrbitals
-
     subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          rxyz, nlpsp, GPU, orbs, kswfn, tmb, denspot, rhopotold, energs,&
          locregcenters)
@@ -1976,14 +1963,16 @@ module module_interfaces
      end subroutine initInputguessConfinement
 
       subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
-                 correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, hpsit_c, hpsit_f, &
-                 can_use_transposed, overlap_calculated, experimental_mode, norder_taylor)
+                 correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, &
+           hpsit_c, hpsit_f, hpsit_nococontra_c, hpsit_nococontra_f, &
+                 can_use_transposed, overlap_calculated, experimental_mode, norder_taylor, &
+           npsidim_orbs_small, lzd_small, hpsi_noprecond)
         use module_base
         use module_types
         use yaml_output
         implicit none
-        integer,intent(in) :: iproc, nproc, npsidim_orbs, npsidim_comp
-        type(local_zone_descriptors),intent(in) :: lzd
+        integer,intent(in) :: iproc, nproc, npsidim_orbs, npsidim_comp, npsidim_orbs_small
+        type(local_zone_descriptors),intent(in) :: lzd, lzd_small
         type(orbitals_Data),intent(inout) :: orbs !temporary inout
         type(comms_linear),intent(in) :: collcom
         type(orthon_data),intent(in) :: orthpar
@@ -1993,10 +1982,13 @@ module module_interfaces
         type(sparse_matrix),intent(inout) :: lagmat
         type(matrices),intent(out) :: lagmat_
         real(kind=8),dimension(:),pointer :: psit_c, psit_f, hpsit_c, hpsit_f
+        real(kind=8),dimension(collcom%ndimind_c),intent(in) :: hpsit_nococontra_c
+        real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: hpsit_nococontra_f
         logical,intent(inout) :: can_use_transposed, overlap_calculated
         type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
         logical,intent(in) :: experimental_mode
         integer,intent(in) :: norder_taylor
+        real(kind=8),dimension(npsidim_orbs_small),intent(out) :: hpsi_noprecond
       end subroutine orthoconstraintNonorthogonal
 
 
@@ -2471,11 +2463,12 @@ module module_interfaces
                   ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
                   energy_increased, tmb, lhphiold, overlap_calculated, &
                   energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
-                  energy_only, hpsi_small, experimental_mode, correction_co_contra, ksorbs, hpsi_noprecond, norder_taylor)
+                  energy_only, hpsi_small, experimental_mode, correction_co_contra, ksorbs, hpsi_noprecond, &
+                  norder_taylor, method_updatekernel)
          use module_base
          use module_types
          implicit none
-         integer,intent(in) :: iproc, nproc, it, norder_taylor
+         integer,intent(in) :: iproc, nproc, it, norder_taylor, method_updatekernel
          type(DFT_wavefunction),target,intent(inout):: tmb
          type(localizedDIISParameters),intent(inout) :: ldiis
          real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr

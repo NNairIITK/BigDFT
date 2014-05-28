@@ -16,7 +16,7 @@ program psp_test
 
   character(len = 1024) :: path
   integer :: istat, i, j
-  logical :: exists, read_radii
+  logical :: exists
   
   integer :: nzatom, nelpsp, npspcode, ixcpsp
   real(gp) :: psppar(0:4,0:6), radii_cf(3)

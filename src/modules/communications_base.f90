@@ -214,8 +214,8 @@ module communications_base
       call deallocate_MPI_communication_arrays(comms)
       call deallocate_local_comms_cubic(comms)
       call deallocate_MPI_comms_cubic_repartition(comms)
-      if (associated(comms%psit_c)) call f_free_ptr(comms%psit_c)
-      if (associated(comms%psit_f)) call f_free_ptr(comms%psit_f)
+      call f_free_ptr(comms%psit_c)
+      call f_free_ptr(comms%psit_f)
       call deallocate_MPI_comms_cubic_repartitionp2p(comms%commarr_repartitionrho)
     end subroutine deallocate_comms_linear
 
@@ -223,42 +223,42 @@ module communications_base
     subroutine deallocate_MPI_communication_arrays(comms)
       implicit none
       type(comms_linear),intent(inout) :: comms
-      if (associated(comms%nsendcounts_c)) call f_free_ptr(comms%nsendcounts_c)
-      if (associated(comms%nsenddspls_c)) call f_free_ptr(comms%nsenddspls_c)
-      if (associated(comms%nrecvcounts_c)) call f_free_ptr(comms%nrecvcounts_c)
-      if (associated(comms%nrecvdspls_c)) call f_free_ptr(comms%nrecvdspls_c)
-      if (associated(comms%nsendcounts_f)) call f_free_ptr(comms%nsendcounts_f)
-      if (associated(comms%nsenddspls_f)) call f_free_ptr(comms%nsenddspls_f)
-      if (associated(comms%nrecvcounts_f)) call f_free_ptr(comms%nrecvcounts_f)
-      if (associated(comms%nrecvdspls_f)) call f_free_ptr(comms%nrecvdspls_f)
+      call f_free_ptr(comms%nsendcounts_c)
+      call f_free_ptr(comms%nsenddspls_c)
+      call f_free_ptr(comms%nrecvcounts_c)
+      call f_free_ptr(comms%nrecvdspls_c)
+      call f_free_ptr(comms%nsendcounts_f)
+      call f_free_ptr(comms%nsenddspls_f)
+      call f_free_ptr(comms%nrecvcounts_f)
+      call f_free_ptr(comms%nrecvdspls_f)
     end subroutine deallocate_MPI_communication_arrays
 
     subroutine deallocate_local_comms_cubic(comms)
       implicit none
       type(comms_linear),intent(inout) :: comms
-      if (associated(comms%irecvbuf_c)) call f_free_ptr(comms%irecvbuf_c)
-      if (associated(comms%indexrecvorbital_c)) call f_free_ptr(comms%indexrecvorbital_c)
-      if (associated(comms%iextract_c)) call f_free_ptr(comms%iextract_c)
-      if (associated(comms%iexpand_c)) call f_free_ptr(comms%iexpand_c)
-      if (associated(comms%isendbuf_c)) call f_free_ptr(comms%isendbuf_c)
-      if (associated(comms%irecvbuf_f)) call f_free_ptr(comms%irecvbuf_f)
-      if (associated(comms%indexrecvorbital_f)) call f_free_ptr(comms%indexrecvorbital_f)
-      if (associated(comms%iextract_f)) call f_free_ptr(comms%iextract_f)
-      if (associated(comms%iexpand_f)) call f_free_ptr(comms%iexpand_f)
-      if (associated(comms%isendbuf_f)) call f_free_ptr(comms%isendbuf_f)
-      if (associated(comms%isptsp_c)) call f_free_ptr(comms%isptsp_c)
-      if (associated(comms%isptsp_f)) call f_free_ptr(comms%isptsp_f)
-      if (associated(comms%norb_per_gridpoint_c)) call f_free_ptr(comms%norb_per_gridpoint_c)
-      if (associated(comms%norb_per_gridpoint_f)) call f_free_ptr(comms%norb_per_gridpoint_f)
+      call f_free_ptr(comms%irecvbuf_c)
+      call f_free_ptr(comms%indexrecvorbital_c)
+      call f_free_ptr(comms%iextract_c)
+      call f_free_ptr(comms%iexpand_c)
+      call f_free_ptr(comms%isendbuf_c)
+      call f_free_ptr(comms%irecvbuf_f)
+      call f_free_ptr(comms%indexrecvorbital_f)
+      call f_free_ptr(comms%iextract_f)
+      call f_free_ptr(comms%iexpand_f)
+      call f_free_ptr(comms%isendbuf_f)
+      call f_free_ptr(comms%isptsp_c)
+      call f_free_ptr(comms%isptsp_f)
+      call f_free_ptr(comms%norb_per_gridpoint_c)
+      call f_free_ptr(comms%norb_per_gridpoint_f)
     end subroutine deallocate_local_comms_cubic
 
     subroutine deallocate_MPI_comms_cubic_repartition(comms)
       implicit none
       type(comms_linear),intent(inout) :: comms
-      if (associated(comms%nsendcounts_repartitionrho)) call f_free_ptr(comms%nsendcounts_repartitionrho)
-      if (associated(comms%nrecvcounts_repartitionrho)) call f_free_ptr(comms%nrecvcounts_repartitionrho)
-      if (associated(comms%nsenddspls_repartitionrho)) call f_free_ptr(comms%nsenddspls_repartitionrho)
-      if (associated(comms%nrecvdspls_repartitionrho)) call f_free_ptr(comms%nrecvdspls_repartitionrho)
+      call f_free_ptr(comms%nsendcounts_repartitionrho)
+      call f_free_ptr(comms%nrecvcounts_repartitionrho)
+      call f_free_ptr(comms%nsenddspls_repartitionrho)
+      call f_free_ptr(comms%nrecvdspls_repartitionrho)
     end subroutine deallocate_MPI_comms_cubic_repartition
 
 
@@ -305,7 +305,7 @@ module communications_base
       implicit none
       integer, intent(in) :: mpi_comm
       integer, intent(in) :: ndims, nproc
-      real(gp), intent(in) :: array
+      real(gp), intent(inout) :: array
       real(gp), intent(out) :: maxdiff
 
       integer :: ierr, jproc, i
