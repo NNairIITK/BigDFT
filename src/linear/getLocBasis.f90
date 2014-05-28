@@ -667,23 +667,25 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                    tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
                    tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, tmb%linmat%ham_)
-              ! This can then be deleted if the transition to the new type has been completed.
-              !tmb%linmat%ham%matrix_compr=tmb%linmat%ham_%matrix_compr
 
-              if(associated(tmb%psit_c)) then
-                  call f_free_ptr(tmb%psit_c)
-                  associated_psit_c=.true.
-              else
-                  associated_psit_c=.false.
+              !!if(associated(tmb%psit_c)) then
+              !!    call f_free_ptr(tmb%psit_c)
+              !!    associated_psit_c=.true.
+              !!else
+              !!    associated_psit_c=.false.
+              !!end if
+              !!if(associated(tmb%psit_f)) then
+              !!    call f_free_ptr(tmb%psit_f)
+              !!    associated_psit_f=.true.
+              !!else
+              !!    associated_psit_f=.false.
+              !!end if
+              if (.not.associated(tmb%psit_c)) then
+                  tmb%psit_c = f_malloc_ptr(tmb%collcom%ndimind_c,id='tmb%psit_c')
               end if
-              if(associated(tmb%psit_f)) then
-                  call f_free_ptr(tmb%psit_f)
-                  associated_psit_f=.true.
-              else
-                  associated_psit_f=.false.
+              if (.not.associated(tmb%psit_f)) then
+                  tmb%psit_f = f_malloc_ptr(7*tmb%collcom%ndimind_f,id='tmb%psit_f')
               end if
-              tmb%psit_c = f_malloc_ptr(tmb%collcom%ndimind_c,id='tmb%psit_c')
-              tmb%psit_f = f_malloc_ptr(7*tmb%collcom%ndimind_f,id='tmb%psit_f')
               call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
                    tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
@@ -699,15 +701,15 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
               !if (iproc==0) call yaml_close_map()
               if (iproc==0) call yaml_close_sequence()
-              if (.not.associated_psit_c) then
-                  call f_free_ptr(tmb%psit_c)
-              end if
-              if (.not.associated_psit_f) then
-                  call f_free_ptr(tmb%psit_f)
-              end if
-              if (associated_psit_c .and. associated_psit_f) then
-                  tmb%can_use_transposed=.true.
-              end if
+              !!if (.not.associated_psit_c) then
+              !!    call f_free_ptr(tmb%psit_c)
+              !!end if
+              !!if (.not.associated_psit_f) then
+              !!    call f_free_ptr(tmb%psit_f)
+              !!end if
+              !!if (associated_psit_c .and. associated_psit_f) then
+              !!    tmb%can_use_transposed=.true.
+              !!end if
               if (.not.associated_psitlarge_c) then
                   call f_free_ptr(tmb%ham_descr%psit_c)
               end if
@@ -793,7 +795,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
            hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint_local, .false., hpsi_small, &
-           experimental_mode, correction_co_contra, orbs, hpsi_noprecond, order_taylor)
+           experimental_mode, correction_co_contra, orbs, hpsi_noprecond, order_taylor, method_updatekernel)
 
 
       !!! PLOT ###########################################################################

@@ -13,7 +13,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            energy_increased, tmb, lhphiold, overlap_calculated, &
            energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
            energy_only, hpsi_small, experimental_mode, correction_co_contra, ksorbs, hpsi_noprecond, &
-           norder_taylor)
+           norder_taylor, method_updatekernel)
   use module_base
   use module_types
   use yaml_output
@@ -26,7 +26,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   implicit none
 
   ! Calling arguments
-  integer, intent(in) :: iproc, nproc, it, norder_taylor
+  integer, intent(in) :: iproc, nproc, it, norder_taylor, method_updatekernel
   type(DFT_wavefunction), target, intent(inout):: tmb
   type(localizedDIISParameters), intent(inout) :: ldiis
   real(kind=8), dimension(tmb%orbs%norb), intent(inout) :: fnrmOldArr
@@ -144,18 +144,20 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   if (correction_co_contra) then
       !@NEW correction for contra / covariant gradient
 
-      if(.not.associated(tmb%psit_c)) then
-          tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
-      end if
-      if(.not.associated(tmb%psit_f)) then
-          tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
-      end if
-      call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-           tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
-      tmb%can_use_transposed=.true.
+      if (method_updatekernel/=UPDATE_BY_FOE) then
+          if(.not.associated(tmb%psit_c)) then
+              tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
+          end if
+          if(.not.associated(tmb%psit_f)) then
+              tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
+          end if
+          call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+               tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+          tmb%can_use_transposed=.true.
 
-      call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
-           tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+          call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
+               tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+      end if
 
       call vcopy(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsittmp_c(1), 1)
       call vcopy(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsittmp_f(1), 1)
