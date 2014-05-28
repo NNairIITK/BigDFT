@@ -287,7 +287,6 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 !  print *,'here the localization regions should have been filled already'
 !  stop
 
-
   if (present(denspot)) then
      !here dpbox can be put as input
      call density_descriptors(iproc,nproc,denspot%xc,in%nspin,in%crmult,in%frmult,atoms,&
@@ -312,8 +311,15 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
       if(iproc==0) call yaml_warning('Do not call check_communications in the linear scaling version!')
       !if(iproc==0) write(*,*) 'WARNING: do not call check_communications in the linear scaling version!'
   end if
+
+  !Check if orbitals and electrons
+  if (orbs%norb*orbs%nkpts == 0) &
+     & call f_err_throw('No electrons in the system! Check your input variables or atomic positions.', &
+     & err_id=BIGDFT_INPUT_VARIABLES_ERROR)
+
   call f_release_routine()
   !---end of system definition routine
+
 END SUBROUTINE system_initialization
 
 
@@ -392,6 +398,12 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf)
        in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,.false.)
   orbs%occup(1:orbs%norb*orbs%nkpts) = in%gen_occup
   if (iproc==0) call print_orbitals(orbs, atoms%astruct%geocode)
+
+  !Check if orbitals and electrons
+  if (orbs%norb*orbs%nkpts == 0) &
+     & call f_err_throw('No electrons in the system. Check your input variables or atomic positions', &
+     & err_id=BIGDFT_INPUT_VARIABLES_ERROR)
+
 END SUBROUTINE system_properties
 
 
@@ -1356,7 +1368,8 @@ END SUBROUTINE kpts_to_procs_via_obj
 
 
 subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par)
-  use module_base
+  use module_base, only: gp, f_err_throw, to_zero
+  use module_types, only: BIGDFT_RUNTIME_ERROR, UNINITIALIZED
   implicit none
   !Arguments
   integer, intent(in) :: nproc,nkpts,nvctr,norb
@@ -1379,7 +1392,7 @@ subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par
            exit find_start
         end if
      end do find_start
-     if (jsproc == UNINITIALIZED(1)) stop 'ERROR in kpt assignments'
+     if (jsproc == UNINITIALIZED(1)) call f_err_throw('ERROR in kpt assignments',err_id=BIGDFT_RUNTIME_ERROR)
      if(norb_par(jsproc,ikpt) /= norb) then
         strprc=real(norb_par(jsproc,ikpt),gp)/real(norb,gp)     
      else
@@ -1396,7 +1409,7 @@ subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par
               exit find_end
            end if
         end do find_end
-        if (jeproc == UNINITIALIZED(1)) stop 'ERROR in kpt assignments'
+        if (jeproc == UNINITIALIZED(1)) call f_err_throw('ERROR in kpt assignments',err_id=BIGDFT_RUNTIME_ERROR)
      else
         jeproc=nproc-1
      end if

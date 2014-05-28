@@ -694,7 +694,6 @@ if(associated(orbsin%kpts)) then
 !!$    end do
 end if
 
-
 call f_free_ptr(orbsout%ispot)
 if(associated(orbsin%ispot)) then
    orbsout%ispot = f_malloc_ptr(src=orbsin%ispot,id='orbsout%ispot')
@@ -708,8 +707,6 @@ end if
 
 
 end subroutine copy_orbitals_data
-
-
 
 
 subroutine copy_local_zone_descriptors(lzd_in, lzd_out, subname)

@@ -57,8 +57,7 @@ module locregs
      integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i
   end type grid_dimensions
 
-  !> Contains the information needed for describing completely a
-  !! wavefunction localisation region
+  !> Contains the information needed for describing completely a wavefunction localisation region
   type, public :: locreg_descriptors
      character(len=1) :: geocode                !< @copydoc poisson_solver::doc::geocode
      logical :: hybrid_on                       !< Interesting for global, periodic, localisation regions

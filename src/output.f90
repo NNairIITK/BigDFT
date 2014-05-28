@@ -1470,6 +1470,8 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
   !  end if
 END SUBROUTINE print_atomic_variables
 
+
+!> Display an estimation of the occupied memory
 subroutine print_memory_estimation(mem)
   use module_types
   use yaml_output
@@ -1531,17 +1533,20 @@ contains
 
 END SUBROUTINE print_memory_estimation
 
+
+!> Display information about the box and the grid
 subroutine print_atoms_and_grid(Glr, atoms, rxyz, shift, hx, hy, hz)
   use module_defs
   use module_types
   use yaml_output
   implicit none
+  !Arguments
   type(atoms_data), intent(in) :: atoms
   type(locreg_descriptors), intent(in) :: Glr
   real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz
   real(gp), dimension(3), intent(in) :: shift
   real(gp), intent(in) :: hx, hy, hz
-
+  !Local variables
   integer :: iat, iunit
 
   if (atoms%astruct%ntypes > 0) then
@@ -1676,6 +1681,7 @@ subroutine print_nlpsp(nlpsp)
 END SUBROUTINE print_nlpsp
 
 
+!> Display information about the electronic orbitals
 subroutine print_orbitals(orbs, geocode)
   use module_types, only: orbitals_data
   use module_defs, only: gp

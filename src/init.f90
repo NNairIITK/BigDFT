@@ -58,7 +58,7 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   call memocc(i_stat,logrid_f,'logrid_f',subname)
 
   ! coarse/fine grid quantities
-  if (atoms%astruct%ntypes >0) then
+  if (atoms%astruct%ntypes > 0) then
      call fill_logrid(atoms%astruct%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%astruct%nat,&
           &   atoms%astruct%ntypes,atoms%astruct%iatype,rxyz,radii_cf(1,1),crmult,hx,hy,hz,logrid_c)
      call fill_logrid(atoms%astruct%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%astruct%nat,&
@@ -1266,34 +1266,44 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
   !spin adaptation for the IG in the spinorial case
   orbse%nspin=nspin
-  call sumrho(denspot%dpbox,orbse,Lzde,GPUe,at%astruct%sym,denspot%rhod,denspot%xc,psi,denspot%rho_psi)
 
-  if (ixc == XC_NO_HARTREE) then
+  if (ixc /= XC_NO_HARTREE) then
+
+     !> Calculate the electronic density
+     call sumrho(denspot%dpbox,orbse,Lzde,GPUe,at%astruct%sym,denspot%rhod,denspot%xc,psi,denspot%rho_psi)
+
+     call communicate_density(denspot%dpbox,orbse%nspin,denspot%rhod,denspot%rho_psi,denspot%rhov,.false.)
+     call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, 0, iproc, nproc)
+
+     !before creating the potential, save the density in the second part 
+     !if the case of NK SIC, so that the potential can be created afterwards
+     !copy the density contiguously since the GGA is calculated inside the NK routines
+     if (input%SIC%approach=='NK') then
+        irhotot_add=Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,4)+1
+        irho_add=Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1)*input%nspin+1
+        do ispin=1,input%nspin
+           call vcopy(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,2),&
+                denspot%rhov(irhotot_add),1,denspot%rhov(irho_add),1)
+           irhotot_add=irhotot_add+Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1)
+           irho_add=irho_add+Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,2)
+        end do
+     end if
+
+     !Now update the potential
+     call updatePotential(nspin,denspot,energs%eh,energs%exc,energs%evxc)
+
+  else
      !Put to zero the density if no Hartree
-     denspot%rho_psi = 0.0_dp
-  end if
-
-  call communicate_density(denspot%dpbox,orbse%nspin,denspot%rhod,denspot%rho_psi,denspot%rhov,.false.)
-  call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, 0, iproc, nproc)
-
-  orbse%nspin=nspin_ig
-
-  !before creating the potential, save the density in the second part 
-  !if the case of NK SIC, so that the potential can be created afterwards
-  !copy the density contiguously since the GGA is calculated inside the NK routines
-  if (input%SIC%approach=='NK') then
-     irhotot_add=Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,4)+1
-     irho_add=Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1)*input%nspin+1
+     irho_add = 1
      do ispin=1,input%nspin
-        call vcopy(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,2),&
-             denspot%rhov(irhotot_add),1,denspot%rhov(irho_add),1)
-        irhotot_add=irhotot_add+Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1)
+        !call vcopy(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,2),&
+        !     denspot%V_ext,1,denspot%rhov(irho_add),1)
+        call f_memcpy(n=size(denspot%V_ext),src=denspot%V_ext(1,1,1,1),dest=denspot%rhov(irho_add))
         irho_add=irho_add+Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,2)
      end do
   end if
 
-  !Now update the potential
-  call updatePotential(nspin,denspot,energs%eh,energs%exc,energs%evxc)
+  orbse%nspin=nspin_ig
 
 !!$   !experimental
 !!$   if (nproc == 1) then

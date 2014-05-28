@@ -539,7 +539,8 @@ contains
     character(len = max_field_length) :: key
     !character(max_field_length), dimension(:), allocatable :: keys
     integer :: ln
-    integer :: m,n,iocc,icoll,inl,noncoll,l,ispin,is,lsc,nspin
+    integer :: m,n,iocc,icoll,inl,noncoll,l,ispin,is,nspin
+!!$ integer :: lsc
     real(gp) :: tt,sh_chg
     integer, dimension(lmax_ao+1) :: nl,nlsc
     real(gp), dimension(2*(2*lmax_ao-1),nmax_ao,lmax_ao+1) :: allocc
@@ -773,7 +774,8 @@ contains
     !local variables
     character(len=10) :: tmp
     character(len=500) :: string
-    integer :: i,m,iocc,icoll,inl,nspin,noncoll,l,ispin,is,nl,niasc,lsc,nlsc,ntmp,iss
+    integer :: i,m,iocc,icoll,inl,nspin,noncoll,l,ispin,is,nl,ntmp,iss
+!!$ integer :: niasc,lsc,nlsc
     !logical, dimension(4,2) :: scorb
 
     !control the spin
@@ -1147,7 +1149,7 @@ contains
     !local variables
     character(len=1024) :: string
     character(len=20), dimension(2*(2*lmax_ao+1)) :: tmp
-    integer :: i,m,iocc,icoll,inl,l,ispin,is,lsc,j,ist,ierror,nvals
+    integer :: i,m,iocc,inl,l,is,lsc,j,ist,ierror,nvals
     logical, dimension(lmax_ao+1,noccmax_ao) :: scorb
     integer, dimension(lmax_ao+1) :: nl,nlsc
     real(gp), dimension(2*(2*lmax_ao+1),noccmax_ao,lmax_ao+1) :: allocc

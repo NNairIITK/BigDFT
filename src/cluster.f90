@@ -1612,6 +1612,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   use module_base
   use module_types
   use module_interfaces, except_this_one => kswfn_optimization_loop
+  use module_xc, only: XC_NO_HARTREE
   use yaml_output
   implicit none
   real(dp), dimension(6), intent(out) :: xcstr
@@ -1728,8 +1729,9 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            !stop the partial timing counter if necessary
            if (endloop .and. opt%itrpmax==1) call timing(bigdft_mpi%mpi_comm,'WFN_OPT','PR')
            !logical flag for the self-consistent potential
-           scpot=(opt%iscf > SCF_KIND_DIRECT_MINIMIZATION .and. opt%iter==1 .and. opt%itrep==1) .or. & !mixing to be done
-                (opt%iscf <= SCF_KIND_DIRECT_MINIMIZATION)!direct minimisation
+           scpot=((opt%iscf > SCF_KIND_DIRECT_MINIMIZATION .and. opt%iter==1 .and. opt%itrep==1) .or. & !mixing to be done
+                (opt%iscf <= SCF_KIND_DIRECT_MINIMIZATION)) .and. & !direct minimisation
+                .not. (denspot%xc%ixc == XC_NO_HARTREE) ! Need to calculate the scp pot (i.e. Hartree + XC)
            !allocate the potential in the full box
            !temporary, should change the use of flag in full_local_potential2
            linflag = 1                                 
