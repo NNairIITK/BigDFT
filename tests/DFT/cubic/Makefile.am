@@ -83,11 +83,13 @@ SIC.test.post-in:
 		-r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@ 
 
 H-Rydberg.test.post-in:
-	@echo >> H.yaml ; \
-	echo "perf:" >> H.yaml ; \
-	awk '{ printf("  %s: %s\n",$$1,$$2); }' H.perf >> H.yaml ; \
-	echo "  multipole_preserving: Yes" >> H.yaml ; \
-	rm H.perf
+	@if test -f "H.perf" ; then \
+		echo >> H.yaml ; \
+		echo "perf:" >> H.yaml ; \
+		awk '{ printf("  %s: %s\n",$$1,$$2); }' H.perf >> H.yaml ; \
+		echo "  multipole_preserving: Yes" >> H.yaml ; \
+		rm H.perf; \
+	fi
 
 include $(srcdir)/../../check.mk
 
