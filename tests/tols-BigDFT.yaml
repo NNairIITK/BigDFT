@@ -955,3 +955,4 @@ PBE_densmixdiis:
  Enl: 1.1e-10
  energy: 1.1e-10
  Omega: 1.1e-10
+ Ekin: 1.1e-9
