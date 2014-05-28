@@ -112,7 +112,7 @@
    nplot                               : 0
    disablesym                          : Yes #    disable the symmetry detection
  kpt:
-   method                              : Manual # K-point sampling method
+   method                              : manual # K-point sampling method
    kpt: #                                         Kpt coordinates
    -  [0., 0., 0.]
    wkpt: [1.] #                                   Kpt weights
@@ -139,9 +139,9 @@
  tddft:
    tddft_approach                      : none #   TDDFT method
  posinp:
-   Units                               : reduced
-   Cell: [ 10.260853810751444,  10.260853810751444,  10.260853810751444]
-   Positions:
+   units                               : reduced
+   cell: [ 10.260853810751444,  10.260853810751444,  10.260853810751444]
+   positions:
    - Si: [0.0, 0.0, 0.0]
    - Si: [0.5, 0.5, 0.0]
    - Si: [0.5, 0.0, 0.5]
@@ -150,9 +150,9 @@
    - Si: [0.75, 0.75, 0.25]
    - Si: [0.75, 0.25, 0.75]
    - Si: [0.25, 0.75, 0.75]
-   Properties:
-     Format                            : xyz
-     Source                            : posinp
+   properties:
+     format                            : xyz
+     source                            : posinp
  psppar.Si:
    Pseudopotential type                : HGH-K
    Atomic number                       : 14
@@ -172,7 +172,7 @@
      Coarse                            : 1.80603
      Fine                              : 0.43563000000000002
      Coarse PSP                        : 0.43563000000000002
-     Source                            : User-defined
+     Source                            : PSP File
    PAW patch                           : No
    Source                              : psppar.Si
   #--------------------------------------------------------------------------------------- |

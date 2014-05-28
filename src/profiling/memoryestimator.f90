@@ -132,37 +132,38 @@ END SUBROUTINE MemoryEstimator
 
 !> old timing routine, should disappear as soon as the f_timing routine is called
 subroutine timing(iproc,category,action)
+  use dictionaries, only: max_field_length,f_err_raise
   use yaml_output, only: yaml_toa
   use module_types, only: find_category
   use time_profiling 
-
   implicit none
-
-  include 'mpif.h'
   !Variables
   integer, intent(in) :: iproc
   character(len=*), intent(in) :: category
   character(len=2), intent(in) :: action  
   !Local variables
-  integer :: cat_id
+  integer :: cat_id,ierr,nproc
   character(len=max_field_length) :: cattmp
-
-  !this is ti ensure that timing routines have been properly called
-  call check_initialization()
+  external :: gather_timings
+  !this is to ensure that timing routines have been properly called
+  !call check_initialization()
 
   !modification of the timing to see if it works
   select case(action)
   case('PR')
-     call f_timing_checkpoint(ctr_name=category,mpi_comm=iproc)
+     !here iproc is the communicator
+     call MPI_COMM_SIZE(iproc,nproc,ierr)
+     call f_timing_checkpoint(ctr_name=category,mpi_comm=iproc,nproc=nproc,&
+          gather_routine=gather_timings)
   case default
      !find category in the old scheme
      call find_category(category,cat_id)
 
      if (cat_id /= TIMING_UNINITIALIZED) then
-        cattmp=times(ictrl)%dict_timing_categories//cat_id//catname
+        call get_category_name(cat_id,cattmp)
         if (f_err_raise(trim(cattmp)/=trim(category),'Error in category '//&
              trim(yaml_toa(cat_id))//' (name='//trim(category)//' ), found '//&
-             trim(cattmp)//' instead',err_id=TIMING_INVALID)) return
+             trim(cattmp)//' instead',err_name='BIGDFT_RUNTIME_ERROR')) return
         
         call f_timing(cat_id,action)
      end if
@@ -170,25 +171,3 @@ subroutine timing(iproc,category,action)
 
 END SUBROUTINE timing
 
-!> Routine to gather the clocks of all the instances of flib time module
-subroutine gather_timings(ncats,nproc,timing,timings)
-  use module_base
-  implicit none
-  integer, intent(in) :: ncats !< number of categories of the array
-  integer, intent(in) :: nproc !< number of MPI tasks
-  real(kind=8), dimension(ncats), intent(in) :: timing !< total timings of the instance
-  real(kind=8), dimension(ncats,nproc), intent(inout) :: timings !< gathered timings 
-  !local variables
-  integer :: i,ierr
-
-  if (nproc>1) then
-     !to be transformed into a wrapper
-     call MPI_GATHER(timing,ncats,MPI_DOUBLE_PRECISION,&
-          timings,ncats,MPI_DOUBLE_PRECISION,0,bigdft_mpi%mpi_comm,ierr)
-  else
-     do i=1,ncats
-        timings(i,1)=timing(i)
-     end do
-  endif
-
-end subroutine gather_timings

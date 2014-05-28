@@ -6,16 +6,16 @@ module foe_base
   private
 
   type,public :: foe_data
-    real(kind=8),private :: ef                     !< Fermi energy for FOE
-    real(kind=8),private :: evlow, evhigh          !< Eigenvalue bounds for FOE 
-    real(kind=8),private :: bisection_shift        !< Bisection shift to find Fermi energy (FOE)
-    real(kind=8),private :: fscale                 !< Length scale for complementary error function (FOE)
-    real(kind=8),private :: ef_interpol_det        !< FOE: max determinant of cubic interpolation matrix
-    real(kind=8),private :: ef_interpol_chargediff !< FOE: max charge difference for interpolation
-    real(kind=8),private :: charge                 !< Total charge of the system
-    real(kind=8),private :: fscale_lowerbound      !< lower bound for the error function decay length
-    real(kind=8),private :: fscale_upperbound      !< upper bound for the error function decay length
-    integer,private :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
+    real(kind=8) :: ef                     !< Fermi energy for FOE
+    real(kind=8) :: evlow, evhigh          !< Eigenvalue bounds for FOE 
+    real(kind=8) :: bisection_shift        !< Bisection shift to find Fermi energy (FOE)
+    real(kind=8) :: fscale                 !< Length scale for complementary error function (FOE)
+    real(kind=8) :: ef_interpol_det        !< FOE: max determinant of cubic interpolation matrix
+    real(kind=8) :: ef_interpol_chargediff !< FOE: max charge difference for interpolation
+    real(kind=8) :: charge                 !< Total charge of the system
+    real(kind=8) :: fscale_lowerbound      !< lower bound for the error function decay length
+    real(kind=8) :: fscale_upperbound      !< upper bound for the error function decay length
+    integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
   end type foe_data
 
 

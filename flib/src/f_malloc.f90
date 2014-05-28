@@ -117,6 +117,7 @@ module module_f_malloc
      module procedure f_malloc_ptr,f_malloc_ptr_simple
      module procedure f_malloc_ptr_bounds,f_malloc_ptr_bound
      module procedure f_malloc_ptr_i2
+     module procedure f_malloc_ptr_d1,f_malloc_ptr_d2
   end interface
 
   interface f_malloc0_ptr
@@ -486,13 +487,28 @@ contains
     include 'f_malloc-inc.f90'
   end function f_malloc_d2
 
-
   function f_malloc_ptr_i2(src,id,routine_id,profile) result(m)
     implicit none
-    integer, dimension(:,:), intent(in) :: src
+    integer, dimension(:,:), pointer, intent(in) :: src
     type(malloc_information_ptr) :: m
     include 'f_malloc-base-inc.f90'
     include 'f_malloc-inc.f90'
   end function f_malloc_ptr_i2
+
+  function f_malloc_ptr_d1(src,id,routine_id,profile) result(m)
+    implicit none
+    double precision, dimension(:), intent(in) :: src
+    type(malloc_information_ptr) :: m
+    include 'f_malloc-base-inc.f90'
+    include 'f_malloc-inc.f90'
+  end function f_malloc_ptr_d1
+  
+  function f_malloc_ptr_d2(src,id,routine_id,profile) result(m)
+    implicit none
+    double precision, dimension(:,:), intent(in) :: src
+    type(malloc_information_ptr) :: m
+    include 'f_malloc-base-inc.f90'
+    include 'f_malloc-inc.f90'
+  end function f_malloc_ptr_d2
   
 end module module_f_malloc

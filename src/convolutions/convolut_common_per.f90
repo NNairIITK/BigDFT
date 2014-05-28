@@ -202,8 +202,7 @@ subroutine convolut_magic_t_per(n1,n2,n3,x,y)
   integer :: ndat,i_stat,i_all
   real(wp), dimension(:,:,:), allocatable :: ww
 
-  allocate(ww(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-  call memocc(i_stat,ww,'ww',subname)
+  ww = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='ww')
 
   !  (I1,I2*I3) -> (I2*I3,i1)
   ndat=(n2+1)*(n3+1)
@@ -215,9 +214,7 @@ subroutine convolut_magic_t_per(n1,n2,n3,x,y)
   ndat=(n1+1)*(n2+1)
   call convrot_t_per(n3,ndat,ww,y)
 
-  i_all=-product(shape(ww))*kind(ww)
-  deallocate(ww,stat=i_stat)
-  call memocc(i_stat,i_all,'ww',subname)
+  call f_free(ww)
 
 END SUBROUTINE convolut_magic_t_per
 
@@ -236,8 +233,7 @@ subroutine convolut_magic_t_per_test(n1,n2,n3,x,y)
   integer :: ndat,i_stat,i_all
   real(wp), dimension(:,:,:), allocatable :: ww
 
-  allocate(ww(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-  call memocc(i_stat,ww,'ww',subname)
+  ww = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='ww')
 
   !  (I1,I2*I3) -> (I2*I3,i1)
   ndat=(n2+1)*(n3+1)
@@ -249,8 +245,6 @@ subroutine convolut_magic_t_per_test(n1,n2,n3,x,y)
   ndat=(n1+1)*(n2+1)
   call convrot_t_per_test(n3,ndat,ww,y)
 
-  i_all=-product(shape(ww))*kind(ww)
-  deallocate(ww,stat=i_stat)
-  call memocc(i_stat,i_all,'ww',subname)
+  call f_free(ww)
 
 END SUBROUTINE convolut_magic_t_per_test

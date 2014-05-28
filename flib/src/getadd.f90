@@ -123,6 +123,12 @@ module metadata_interfaces
        integer(kind=8), intent(out) :: iadd
      end subroutine getdp6
 
+     subroutine getdp7(array,iadd)
+       implicit none
+       double precision, dimension(:,:,:,:,:,:,:), allocatable, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine getdp7
+
      subroutine getz2(array,iadd)
        implicit none
        double complex, dimension(:,:), allocatable, intent(in) :: array
@@ -159,6 +165,12 @@ module metadata_interfaces
        integer(kind=8), intent(out) :: iadd
      end subroutine getdp5ptr
 
+     subroutine getdp6ptr(array,iadd)
+       implicit none
+       double precision, dimension(:,:,:,:,:,:), pointer, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine getdp6ptr
+
      subroutine geti1ptr(array,iadd)
        implicit none
        integer, dimension(:), pointer, intent(in) :: array
@@ -177,12 +189,30 @@ module metadata_interfaces
        integer(kind=8), intent(out) :: iadd
      end subroutine geti3ptr
 
+     subroutine geti4ptr(array,iadd)
+       implicit none
+       integer, dimension(:,:,:,:), pointer, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine geti4ptr
+
+     subroutine getl3ptr(array,iadd)
+       implicit none
+       logical, dimension(:,:,:), pointer, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine getl3ptr
+
      subroutine getc1ptr(length,array,iadd)
        implicit none
        integer, intent(in) :: length
        character(len=length), dimension(:), pointer, intent(in) :: array
        integer(kind=8), intent(out) :: iadd
      end subroutine getc1ptr
+
+     subroutine getz1ptr(array,iadd)
+       implicit none
+       double complex, dimension(:), pointer, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine getz1ptr
 
 
   end interface
@@ -192,18 +222,20 @@ interface pad_array
   module procedure pad_c1
   module procedure pad_l1,pad_l2,pad_l3
   module procedure pad_r1,pad_r2,pad_r3
-  module procedure pad_dp1,pad_dp2,pad_dp3,pad_dp4,pad_dp5,pad_dp6
-  module procedure pad_z2
+  module procedure pad_dp1,pad_dp2,pad_dp3,pad_dp4,pad_dp5,pad_dp6,pad_dp7
+  module procedure pad_z1, pad_z2
 end interface
 
 public :: pad_array,geti1,geti2,geti3,geti4
 public :: getc1
 public :: getl1,getl2,getl3
 public :: getr1,getr2,getr3
-public :: getdp1,getdp2,getdp3,getdp4,getdp5,getdp6!,getlongaddress
+public :: getdp1,getdp2,getdp3,getdp4,getdp5,getdp6,getdp7!,getlongaddress
 public :: getz2
-public :: getdp1ptr,getdp2ptr,getdp3ptr,getdp4ptr,getdp5ptr
-public :: geti1ptr,geti2ptr,geti3ptr
+public :: getdp1ptr,getdp2ptr,getdp3ptr,getdp4ptr,getdp5ptr,getdp6ptr
+public :: geti1ptr,geti2ptr,geti3ptr,geti4ptr
+public :: getl3ptr
+public :: getz1ptr
 public :: getc1ptr
 public :: address_toi,long_toa
 
@@ -398,6 +430,28 @@ contains
 
   end subroutine pad_dp6
 
+  subroutine pad_dp7(array,init_to_zero,shp,ndebug)
+    implicit none
+    logical, intent(in) :: init_to_zero
+    integer, intent(in) :: ndebug
+    integer, dimension(7), intent(in) :: shp
+    double precision, dimension(shp(1),shp(2),shp(3),shp(4),shp(5),shp(6),shp(7)+ndebug), intent(out) :: array
+    
+    call pad_double(array,init_to_zero,product(shp),product(shp(1:6))*(shp(7)+ndebug))
+
+  end subroutine pad_dp7
+
+  subroutine pad_z1(array,init_to_zero,shp,ndebug)
+    implicit none
+    logical, intent(in) :: init_to_zero
+    integer, intent(in) :: ndebug
+    integer, dimension(1), intent(in) :: shp
+    double complex, dimension(shp(1)+ndebug), intent(out) :: array
+    
+    call pad_double_complex(array,init_to_zero,shp(1),shp(1)+ndebug)
+
+  end subroutine pad_z1
+
   subroutine pad_z2(array,init_to_zero,shp,ndebug)
     implicit none
     logical, intent(in) :: init_to_zero
@@ -433,7 +487,7 @@ contains
 
     if (init) call razero(ndim_tot,array)
     do i=ndim_tot+1,ndim_extra
-       array(i)=d_nan()
+       array(i)=(1.d0,1.d0)*d_nan()
     end do
   end subroutine pad_double_complex
 

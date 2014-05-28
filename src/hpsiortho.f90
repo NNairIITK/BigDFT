@@ -242,7 +242,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
            stop
         end if
 
-        allocate(denspot%rho_work(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim+ndebug),stat=i_stat)
+        denspot%rho_work = f_malloc_ptr(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim+ndebug,id='denspot%rho_work')
         call vcopy(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,denspot%rhov(1),1,&
              denspot%rho_work(1),1)
      end if
@@ -260,9 +260,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
              -1.0_dp,denspot%rho_work(1),1,denspot%rhov(1),1)
 
         !deallocation should be deplaced
-        i_all=-product(shape(denspot%rho_work))*kind(denspot%rho_work)
-        deallocate(denspot%rho_work,stat=i_stat)
-        call memocc(i_stat,i_all,'denspot%rho_work',subname)
+        call f_free_ptr(denspot%rho_work)
         nullify(denspot%rho_work)
      end if
 
@@ -369,7 +367,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
 
     !> code factorization for the application of the nonlocal hamiltonian
     subroutine NL_ham()
-      if(any(atoms%npspcode == 7)) then
+      if(any(atoms%npspcode == PSPCODE_PAW)) then
          call to_zero(wfn%orbs%npsidim_orbs,paw%spsi(1))
          call NonLocalHamiltonianApplication(iproc,atoms,wfn%orbs%npsidim_orbs,wfn%orbs,rxyz,&
               wfn%Lzd,nlpsp,wfn%psi,wfn%hpsi,energs%eproj,proj_G,paw)
@@ -442,7 +440,7 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
  end if
 
  !these two sections have to be inverted to profit of overlapping in GPU accelerated case
- if(any(at%npspcode == 7)) then
+ if(any(at%npspcode == PSPCODE_PAW)) then
   call NonLocalHamiltonianApplication(iproc,at,orbs%npsidim_orbs,orbs,rxyz,&
        Lzd,nlpsp,psi,hpsi,energs%eproj,proj_G,paw)
  else
@@ -606,8 +604,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    !       call random_number(psi(i))
    !  end do
    if(GPU%OCLconv .or. GPUconv) then! needed also in the non_ASYNC since now NlPSP is before .and. ASYNCconv)) then
-      allocate(GPU%hpsi_ASYNC(max(1,(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp)),stat=i_stat)
-      call memocc(i_stat,GPU%hpsi_ASYNC,'GPU%hpsi_ASYNC',subname)
+      GPU%hpsi_ASYNC = f_malloc_ptr(max(1, (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp),id='GPU%hpsi_ASYNC')
 !      call to_zero((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp,GPU%hpsi_ASYNC(1))!hpsi(1))
    !else if (GPU%OCLconv) then
    !   GPU%hpsi_ASYNC => hpsi
@@ -733,7 +730,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
 
   nwarnings=0
 
-  if(any(at%npspcode == 7)) then  
+  if(any(at%npspcode == PSPCODE_PAW)) then  
      !initialize to zero in PAW case
      if(.not. present(paw) .or. .not. present(proj_G)) then
         stop 'NonLocalHamiltonianApplication: proj_G or paw are not present'
@@ -783,7 +780,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
 
               ! Now create the projector
               istart_c=1
-              if(any(at%npspcode == 7)) then
+              if(any(at%npspcode == PSPCODE_PAW)) then
                  call atom_projector_paw(ikpt,iat,0,istart_c,iproj,&
                       nl%nprojel,&
                       Lzd%Glr,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),paw%rpaw(iatype),&
@@ -997,7 +994,7 @@ contains
        eproj_sum=eproj_sum+&
             orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eproj
     else
-       if(any(at%npspcode == 7)) then
+       if(any(at%npspcode == PSPCODE_PAW)) then
           call apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,&
                nl%nprojel,&
                at,orbs,Lzd%Llr(ilr)%wfd,nl%pspd(iat)%plr,&
@@ -1045,9 +1042,7 @@ subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,
          ispsi=ispsi+&
              (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
       end do
-      i_all=-product(shape(GPU%hpsi_ASYNC))*kind(GPU%hpsi_ASYNC)
-      deallocate(GPU%hpsi_ASYNC,stat=i_stat)
-      call memocc(i_stat,i_all,'GPU%hpsi_ASYNC',subname)
+      call f_free_ptr(GPU%hpsi_ASYNC)
    endif
 
    exctX = xc_exctXfac(xc) /= 0.0_gp
@@ -1145,8 +1140,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
       !this routine should then be modified or integrated in HamiltonianApplication
       if (dpbox%mpi_env%nproc > 1) then
 
-         allocate(pot1(npot+ndebug),stat=i_stat)
-         call memocc(i_stat,pot1,'pot1',subname)
+         pot1 = f_malloc_ptr(npot+ndebug,id='pot1')
          ispot=1
          ispotential=1
          do ispin=1,orbs%nspin
@@ -1169,8 +1163,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
          end if
       else
          if (odp) then
-            allocate(pot1(npot+ndebug),stat=i_stat)
-            call memocc(i_stat,pot1,'pot1',subname)
+            pot1 = f_malloc_ptr(npot+ndebug,id='pot1')
             call vcopy(dpbox%ndimgrid*orbs%nspin,potential(1),1,pot1(1),1)
             if (dpbox%i3rho_add >0 .and. orbs%norbp > 0) then
                ispot=dpbox%ndimgrid*orbs%nspin+1
@@ -1204,8 +1197,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
    call timing(iproc,'Pot_after_comm','ON')
    
    if(Lzd%nlr > 1) then
-      allocate(ilrtable(orbs%norbp),stat=i_stat)
-      call memocc(i_stat,ilrtable,'ilrtable',subname)
+      ilrtable = f_malloc(orbs%norbp,id='ilrtable')
       !call to_zero(orbs%norbp*2,ilrtable(1,1))
       ilrtable=0
       ii=0
@@ -1234,8 +1226,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
       !number of inequivalent potential regions
       nilr = ii
    else 
-      allocate(ilrtable(1),stat=i_stat)
-      call memocc(i_stat,ilrtable,'ilrtable',subname)
+      ilrtable = f_malloc(1,id='ilrtable')
       nilr = 1
       ilrtable=1
    end if
@@ -1271,13 +1262,13 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
    if(iflag==0) then
       !       allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
       !       call vcopy(lzd%ndimpotisf,pot,1,pot,1) 
+      ! This is due to the dynamic memory managment. The original version was: pot=>pot1
+      !pot = f_malloc_ptr(npot+ndebug,id='pot')
+      !pot=pot1
+      !call f_free_ptr(pot1)
       pot=>pot1
-      !print *,iproc,shape(pot),shape(pot1),'shapes'
-      !print *,'potential sum',iproc,sum(pot)
    else if(iflag>0 .and. iflag<2) then
-
-      allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
-      call memocc(i_stat,pot,'pot',subname)
+      pot = f_malloc_ptr(lzd%ndimpotisf+ndebug,id='pot')
       ! Cut potential
       istl=1
       do iorb=1,nilr
@@ -1288,8 +1279,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
       end do
    else
       if(.not.associated(pot)) then !otherwise this has been done already... Should be improved.
-         allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
-         call memocc(i_stat,pot,'pot',subname)
+         pot = f_malloc_ptr(lzd%ndimpotisf+ndebug,id='pot')
 
          ist=1
          do iorb=1,nilr
@@ -1323,21 +1313,15 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
       end if
    end if
 
-   i_all=-product(shape(ilrtable))*kind(ilrtable)
-   deallocate(ilrtable,stat=i_stat)
-   call memocc(i_stat,i_all,'ilrtable',subname)
+   call f_free(ilrtable)
 
    ! Deallocate pot.
    if (iflag<2 .and. iflag>0) then
       if (dpbox%mpi_env%nproc > 1) then
-         i_all=-product(shape(pot1))*kind(pot1)
-         deallocate(pot1,stat=i_stat)
-         call memocc(i_stat,i_all,'pot1',subname)
+         call f_free_ptr(pot1)
       else
          if (xc_exctXfac(xc) /= 0.0_gp) then
-            i_all=-product(shape(pot1))*kind(pot1)
-            deallocate(pot1,stat=i_stat)
-            call memocc(i_stat,i_all,'pot1',subname)
+            call f_free_ptr(pot1)
          else
             nullify(pot1)
          end if
@@ -1367,6 +1351,7 @@ subroutine free_full_potential(nproc,flag,xc,pot,subname)
 
    odp = xc_exctXfac(xc) /= 0.0_gp
    if (nproc > 1 .or. odp .or. flag > 0 ) then
+      !call f_free_ptr(pot)
       i_all=-product(shape(pot))*kind(pot)
       deallocate(pot,stat=i_stat)
       call memocc(i_stat,i_all,'pot',subname)
@@ -1443,8 +1428,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
 
   !calculate orbital polarisation directions
   if(wfn%orbs%nspinor==4) then
-     allocate(mom_vec(4,wfn%orbs%norb,min(nproc,2)+ndebug),stat=i_stat)
-     call memocc(i_stat,mom_vec,'mom_vec',subname)
+     mom_vec = f_malloc_ptr((/ 4, wfn%orbs%norb, min(nproc, 2) /),id='mom_vec')
 
      call calc_moments(iproc,nproc,wfn%orbs%norb,wfn%orbs%norb_par,&
           wfn%Lzd%Glr%wfd%nvctr_c+7*wfn%Lzd%Glr%wfd%nvctr_f,wfn%orbs%nspinor,wfn%psi,mom_vec)
@@ -1632,9 +1616,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
         end do
         call yaml_close_sequence()
      end if
-     i_all=-product(shape(mom_vec))*kind(mom_vec)
-     deallocate(mom_vec,stat=i_stat)
-     call memocc(i_stat,i_all,'mom_vec',subname)
+     call f_free_ptr(mom_vec)
   end if
 
 
@@ -1673,7 +1655,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    integer :: jorb,iat
    !end debug
 
-   if(any(at%npspcode == 7)) then
+   if(any(at%npspcode == PSPCODE_PAW)) then
      if( (.not. present(paw)) .or. &
 &        (.not. present(proj_G)) .or. &
 &        (.not. present(eproj_sum)) .or. &
@@ -1711,7 +1693,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
   
    !Update spsi, since psi has changed
    !Pending: make this with the transposed wavefunctions:
-   if(any(at%npspcode == 7)) then
+   if(any(at%npspcode == PSPCODE_PAW)) then
      !retranspose psit
      call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,&
         &   wfn%psit(1),wfn%hpsi(1),out_add=wfn%psi(1))
@@ -1738,17 +1720,17 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
       call yaml_map('Orthogonalization Method',wfn%orthpar%methortho,fmt='(i3)')
    end if
 
-   if(any(at%npspcode == 7)) then
+   if(any(at%npspcode == PSPCODE_PAW)) then
      call orthogonalize(iproc,nproc,wfn%orbs,wfn%comms,wfn%psit,wfn%orthpar,paw)
    else
      call orthogonalize(iproc,nproc,wfn%orbs,wfn%comms,wfn%psit,wfn%orthpar)
    end if
 
    !call checkortho_p(iproc,nproc,norb,nvctrp,psit)
-   if(any(at%npspcode == 7)) call checkortho_paw(iproc,wfn%orbs%norb*wfn%orbs%nspinor,&
+   if(any(at%npspcode == PSPCODE_PAW)) call checkortho_paw(iproc,wfn%orbs%norb*wfn%orbs%nspinor,&
      wfn%comms%nvctr_par(iproc,0),wfn%psit,paw%spsi)
    !debug: 
-   if(any(at%npspcode == 7)) then
+   if(any(at%npspcode == PSPCODE_PAW)) then
      write(*,*)'hpsiortho, l1478 erase me:'
      do iat=1,paw%natom 
        do jorb=1,wfn%orbs%norbu
@@ -1817,16 +1799,11 @@ contains
      if (nproc > 1) then
 
    !   Allocate temporary arrays
-       allocate(ndsplt(0:nproc-1),stat=i_stat)
-       call memocc(i_stat,ndsplt,'ndsplt',subname)
-       allocate(ncntd(0:nproc-1),stat=i_stat)
-       call memocc(i_stat,ncntd,'ncntd',subname)
-       allocate(ncntt(0:nproc-1),stat=i_stat)
-       call memocc(i_stat,ncntt,'ncntt',subname)
-       allocate(raux(2,paw%lmnmax,paw%natom,wfn%orbs%norbp),stat=i_stat)
-       call memocc(i_stat,raux,'raux',subname)
-       allocate(raux2(2,paw%lmnmax,paw%natom,wfn%orbs%norb),stat=i_stat)
-       call memocc(i_stat,raux,'raux2',subname)
+       ndsplt = f_malloc(0.to.nproc-1,id='ndsplt')
+       ncntd = f_malloc(0.to.nproc-1,id='ncntd')
+       ncntt = f_malloc(0.to.nproc-1,id='ncntt')
+       raux = f_malloc((/ 2, paw%lmnmax, paw%natom, wfn%orbs%norbp /),id='raux')
+       raux2 = f_malloc((/ 2, paw%lmnmax, paw%natom, wfn%orbs%norb /),id='raux2')
 
    !   Set tables for mpi operations:
    !   Send buffer:
@@ -1890,21 +1867,11 @@ contains
          end do
        end do
    !   Deallocate arrays:
-       i_all=-product(shape(ndsplt))*kind(ndsplt)
-       deallocate(ndsplt,stat=i_stat)
-       call memocc(i_stat,i_all,'ndsplt',subname)
-       i_all=-product(shape(ncntd))*kind(ncntd)
-       deallocate(ncntd,stat=i_stat)
-       call memocc(i_stat,i_all,'ncntd',subname)
-       i_all=-product(shape(ncntt))*kind(ncntt)
-       deallocate(ncntt,stat=i_stat)
-       call memocc(i_stat,i_all,'ncntt',subname)
-       i_all=-product(shape(raux))*kind(raux)
-       deallocate(raux,stat=i_stat)
-       call memocc(i_stat,i_all,'raux',subname)
-       i_all=-product(shape(raux2))*kind(raux2)
-       deallocate(raux2,stat=i_stat)
-       call memocc(i_stat,i_all,'raux2',subname)
+       call f_free(ndsplt)
+       call f_free(ncntd)
+       call f_free(ncntt)
+       call f_free(raux)
+       call f_free(raux2)
      end if
 
 
@@ -1944,8 +1911,7 @@ subroutine first_orthon(iproc,nproc,orbs,lzd,comms,psi,hpsi,psit,orthpar,paw)
       !allocate hpsi array (used also as transposed)
       !allocated in the transposed way such as 
       !it can also be used as the transposed hpsi
-      allocate(hpsi(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
-      call memocc(i_stat,hpsi,'hpsi',subname)
+      hpsi =f_malloc_ptr(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug,id='hpsi')
       !allocate transposed principal wavefunction
       allocate(psit(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
       call memocc(i_stat,psit,'psit',subname)
@@ -1983,8 +1949,7 @@ subroutine first_orthon(iproc,nproc,orbs,lzd,comms,psi,hpsi,psit,orthpar,paw)
    if (nproc == 1) then
       nullify(psit)
       !allocate hpsi array
-      allocate(hpsi(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
-      call memocc(i_stat,hpsi,'hpsi',subname)
+      hpsi = f_malloc_ptr(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug,id='hpsi')
    end if
 
 END SUBROUTINE first_orthon
@@ -2039,9 +2004,7 @@ subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
          nullify(wfn%psit)
       end if
 
-      i_all=-product(shape(wfn%hpsi))*kind(wfn%hpsi)
-      deallocate(wfn%hpsi,stat=i_stat)
-      call memocc(i_stat,i_all,'hpsi',subname)
+      call f_free_ptr(wfn%hpsi)
 
    endif
 
@@ -2069,8 +2032,7 @@ subroutine eigensystem_info(iproc,nproc,tolerance,nvctr,orbs,psi)
   !we add the calculation of the moments for printing their value
   !close to the corresponding eigenvector
   if(orbs%nspinor==4) then
-     allocate(mom_vec(4,orbs%norb,min(nproc,2)+ndebug),stat=i_stat)
-     call memocc(i_stat,mom_vec,'mom_vec',subname)
+     mom_vec = f_malloc_ptr((/ 4, orbs%norb, min(nproc, 2) /),id='mom_vec')
 
      call calc_moments(iproc,nproc,orbs%norb,orbs%norb_par,&
           nvctr,&
@@ -2091,9 +2053,7 @@ subroutine eigensystem_info(iproc,nproc,tolerance,nvctr,orbs,psi)
   end if
 
   if (orbs%nspinor ==4) then
-     i_all=-product(shape(mom_vec))*kind(mom_vec)
-     deallocate(mom_vec,stat=i_stat)
-     call memocc(i_stat,i_all,'mom_vec',subname)
+     call f_free_ptr(mom_vec)
   end if
 end subroutine eigensystem_info
 
@@ -2458,8 +2418,7 @@ subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
       end do
 
       if(nproc>1) then
-         allocate(norb_displ(0:nproc-1+ndebug),stat=i_stat)
-         call memocc(i_stat,norb_displ,'norb_displ',subname)
+         norb_displ = f_malloc(0.to.nproc-1,id='norb_displ')
 
          norb_displ(0)=0
          do jproc=1,nproc-1
@@ -2470,9 +2429,7 @@ subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
             &   mom_vec(1,1,1),4*norb_par,4*norb_displ,mpidtypw,&
          0,bigdft_mpi%mpi_comm,ierr)
 
-         i_all=-product(shape(norb_displ))*kind(norb_displ)
-         deallocate(norb_displ,stat=i_stat)
-         call memocc(i_stat,i_all,'norb_displ',subname)
+         call f_free(norb_displ)
       end if
 
    end if
@@ -2505,10 +2462,8 @@ subroutine check_communications(iproc,nproc,orbs,lzd,comms)
 
 
    !allocate the "wavefunction" amd fill it, and also the workspace
-   allocate(psi(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
-   call memocc(i_stat,psi,'psi',subname)
-   allocate(pwork(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
-   call memocc(i_stat,pwork,'pwork',subname)
+   psi = f_malloc(max(orbs%npsidim_orbs, orbs%npsidim_comp),id='psi')
+   pwork = f_malloc_ptr(max(orbs%npsidim_orbs, orbs%npsidim_comp),id='pwork')
 
 
    do iorb=1,orbs%norbp
@@ -2684,12 +2639,8 @@ subroutine check_communications(iproc,nproc,orbs,lzd,comms)
    if (abort) call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
    call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
 
-   i_all=-product(shape(psi))*kind(psi)
-   deallocate(psi,stat=i_stat)
-   call memocc(i_stat,i_all,'psi',subname)
-   i_all=-product(shape(pwork))*kind(pwork)
-   deallocate(pwork,stat=i_stat)
-   call memocc(i_stat,i_all,'pwork',subname)
+   call f_free(psi)
+   call f_free_ptr(pwork)
 
 END SUBROUTINE check_communications
 

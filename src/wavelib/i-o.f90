@@ -26,6 +26,7 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
   character(len=*), parameter :: subname='reformatonewave'
   logical :: cif1,cif2,cif3,perx,pery,perz
   integer :: i1,i2,i3,j1,j2,j3,l1,l2,iat,nb1,nb2,nb3,ind,jj1,jj2,jj3a,jj3b,jj3c
+  integer :: ind2,ind3,n1nb1,n2nb2,n1o7,n2o7,n3o7,n1nb1o,n2nb2o,n3nb3o
   real(gp) :: hxh,hyh,hzh,hxh_old,hyh_old,hzh_old,x,y,z,dx,dy,dz,xold,yold,zold,mindist
   real(wp) :: zr,yr,xr,ym1,y00,yp1
   real(wp), dimension(-1:1,-1:1) :: xya
@@ -33,6 +34,8 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
   real(wp), dimension(:), allocatable :: ww,wwold
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psig
   real(wp), dimension(:,:,:), allocatable :: psifscfold
+  !real(kind=4) :: t0, t1
+  !real(kind=8) :: time
 
   call f_routine(id='reformatonewave')
 
@@ -103,42 +106,60 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
      hzh_old=.5_gp*hz_old
 
      call to_zero((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3),psifscf(1))
+     !call cpu_time(t0)
 
+     n1nb1=(2*n1+2+2*nb1)
+     n2nb2=(2*n2+2+2*nb2)
+     n1nb1o=2*n1_old+1+2*nb1+1
+     n2nb2o=2*n2_old+1+2*nb2+1
+     n3nb3o=2*n3_old+1+2*nb3+1
+     n1o7=2*n1_old+7
+     n2o7=2*n2_old+7
+     n3o7=2*n3_old+7
+
+     !$omp parallel do default(none) &
+     !$omp shared(nb1,nb2,nb3,n1,n2,n3,hxh,hyh,hzh,hxh_old,hyh_old,hzh_old,dx,dy,dz,perx,pery,perz) &
+     !$omp shared(n1o7,n2o7,n3o7,n1nb1o,n2nb2o,n3nb3o,n1nb1,n2nb2,psifscf,psifscfold) &
+     !$omp private(i1,i2,i3,j1,j2,j3,x,y,z,xold,yold,zold,cif1,cif2,cif3,ind,ind2,ind3,xr,yr,zr) &
+     !$omp private(l1,l2,jj1,jj2,jj3a,jj3b,jj3c,ym1,y00,yp1,xya,xa)
      do i3=-nb3,2*n3+1+nb3
         z=real(i3,gp)*hzh
+        zold=z-dz
+        j3=nint(zold/hzh_old)
+        cif3=(j3 >= -6 .and. j3 <= n3o7) .or. perz
+        if (.not.cif3) cycle
+
+        zr =real((zold-real(j3,gp)*hzh_old)/hzh_old,wp)
+        jj3a=modulo(j3-1+nb3,n3nb3o)-nb3
+        jj3b=modulo(j3  +nb3,n3nb3o)-nb3
+        jj3c=modulo(j3+1+nb3,n3nb3o)-nb3
+        ind3=n1nb1*n2nb2*(i3+nb3)+nb1+1
         do i2=-nb2,2*n2+1+nb2
            y=real(i2,gp)*hyh
+           yold=y-dy
+
+           j2=nint(yold/hyh_old)
+           cif2=(j2 >= -6 .and. j2 <= n2o7) .or. pery
+           if (.not. cif2) cycle
+
+           yr = real((yold-real(j2,gp)*hyh_old)/hyh_old,wp)
+           ind2=n1nb1*(i2+nb2)
            do i1=-nb1,2*n1+1+nb1
               x=real(i1,gp)*hxh
-
               xold=x-dx 
-              yold=y-dy
-              zold=z-dz
 
-              j1=nint((xold)/hxh_old)
-              cif1=(j1 >= -6 .and. j1 <= 2*n1_old+7) .or. perx
-              j2=nint((yold)/hyh_old)
-              cif2=(j2 >= -6 .and. j2 <= 2*n2_old+7) .or. pery
-              j3=nint((zold)/hzh_old)
-              cif3=(j3 >= -6 .and. j3 <= 2*n3_old+7) .or. perz
-
-              ind=i1+nb1+1+(2*n1+2+2*nb1)*(i2+nb2)+&
-                   (2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(i3+nb3)
-
+              j1=nint(xold/hxh_old)
+              cif1=(j1 >= -6 .and. j1 <= n1o7) .or. perx
               
-              if (cif1 .and. cif2 .and. cif3) then 
-                 zr =real(((z-dz)-real(j3,gp)*hzh_old)/hzh_old,wp)
+              if (cif1) then 
+                 ind=i1+ind2+ind3
                  do l2=-1,1
+                    jj2=modulo(j2+l2+nb2,n2nb2o)-nb2
                     do l1=-1,1
                        !the modulo has no effect on free BC thanks to the
                        !if statement above
-                       jj1=modulo(j1+l1+nb1,2*n1_old+1+2*nb1+1)-nb1
-                       jj2=modulo(j2+l2+nb2,2*n2_old+1+2*nb2+1)-nb2
-                       jj3a=modulo(j3-1+nb3,2*n3_old+1+2*nb3+1)-nb3
-                       jj3b=modulo(j3  +nb3,2*n3_old+1+2*nb3+1)-nb3
-                       jj3c=modulo(j3+1+nb3,2*n3_old+1+2*nb3+1)-nb3
+                       jj1=modulo(j1+l1+nb1,n1nb1o)-nb1
                        
-
                        ym1=psifscfold(jj1,jj2,jj3a)
                        y00=psifscfold(jj1,jj2,jj3b)
                        yp1=psifscfold(jj1,jj2,jj3c)
@@ -148,7 +169,6 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
                     enddo
                  enddo
 
-                 yr = real(((y-dy)-real(j2,gp)*hyh_old)/hyh_old,wp)
                  do l1=-1,1
                     ym1=xya(l1,-1)
                     y00=xya(l1,0)
@@ -157,7 +177,7 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
                          (1.0_wp + yr)*(y00 - ym1 + yr*(.5_wp*ym1 - y00  + .5_wp*yp1))
                  enddo
 
-                 xr = real(((x-dx)-real(j1,gp)*hxh_old)/hxh_old,wp)
+                 xr = real((xold-real(j1,gp)*hxh_old)/hxh_old,wp)
                  ym1=xa(-1)
                  y00=xa(0)
                  yp1=xa(1)
@@ -169,6 +189,12 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
            enddo
         enddo
      enddo
+     !$omp end parallel do
+
+     !call cpu_time(t1)
+     !time=real(t1-t0,kind=8)
+     !if (bigdft_mpi%iproc==0) print*,'time',time
+
   endif
 
   !write(100+iproc,*) 'norm of psifscf ',dnrm2((2*n1+16)*(2*n2+16)*(2*n3+16),psifscf,1)
@@ -253,7 +279,16 @@ END SUBROUTINE ext_buffers_coarse
 module internal_io
   implicit none
 
+  private
+
+  public :: io_error, io_warning, io_open
+  public :: io_read_descr, read_psi_compress
+  public :: io_gcoordToLocreg
+  public :: read_psig
+
 contains
+
+
   subroutine io_error(error)
     use module_defs
 
@@ -266,6 +301,7 @@ contains
     call MPI_ABORT(bigdft_mpi%mpi_comm, ierr)
   END SUBROUTINE io_error
 
+
   subroutine io_warning(error)
     use module_defs
 
@@ -276,6 +312,8 @@ contains
     write(0,"(2A)") "WARNING! ", trim(error)
   END SUBROUTINE io_warning
 
+
+  !> Read the input/output descriptors (for a wavefunction for instance)
   subroutine io_read_descr(unitwf, formatted, iorb_old, eval, n1_old, n2_old, n3_old, &
        & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, nat)
     use module_base
@@ -529,6 +567,7 @@ contains
     lstat = .true.
   END SUBROUTINE read_psi_compress
 
+
   subroutine read_psig(unitwf, formatted, nvctr_c, nvctr_f, n1, n2, n3, psig, lstat, error)
     use module_base
     use module_types
@@ -599,6 +638,7 @@ contains
 END MODULE internal_io
 
 
+!> Read one wavefunction
 subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
      & hx,hy,hz,at,wfd,rxyz_old,rxyz,psi,eval,psifscf)
   use module_base
@@ -710,6 +750,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
 
 END SUBROUTINE readonewave
 
+
 subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
      & n1, n2, n3, nspinor, psiscf)
   use module_base
@@ -742,6 +783,7 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
   ! We open the Fortran file
   call io_open(unitwf, filename, formatted)
   if (unitwf < 0) then
+     call f_release_routine()
      return
   end if
 
@@ -750,12 +792,14 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
        & hx, hy, hz, lstat, error, lr%wfd%nvctr_c, lr%wfd%nvctr_f)
   if (.not. lstat) then
      call io_warning(trim(error))
+     call f_release_routine()
      return
   end if
   ! Do a magic here with the filenames...
   call readwavedescr(lstat, filename, iorb, ispin, ikpt, ispinor, nspinor, fileRI)
   if (.not. lstat) then
      call io_warning("cannot read wave ids from filename.")
+     call f_release_routine()
      return
   end if
 
@@ -843,21 +887,17 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
 contains
 
   subroutine deallocate_local()
+    implicit none
     character(len = *), parameter :: subname = "readwavetoisf"
 
     ! We close the file.
     close(unit=unitwf)
 
-    if (allocated(psi)) then
-       call f_free(psi)
-    end if
-
-    if (allocated(gcoord_c)) then
-       call f_free(gcoord_c)
-    end if
-    if (allocated(gcoord_f)) then
-       call f_free(gcoord_f)
-    end if
+    !allocation status of a allocatable array is undefined, cannot do that
+    !as we do not have any way to deallocate an array
+    call f_free(psi)
+    call f_free(gcoord_c)
+    call f_free(gcoord_f)
 
     if (associated(w%x_c)) then
        call deallocate_work_arrays_sumrho(w)

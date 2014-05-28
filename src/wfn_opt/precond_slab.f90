@@ -88,77 +88,32 @@ contains
 
   subroutine allocate_all
 
-    allocate(modul1(lowfil:n1+lupfil+ndebug),stat=i_stat)
-    call memocc(i_stat,modul1,'modul1','precong_per')
-    allocate(modul3(lowfil:n3+lupfil+ndebug),stat=i_stat)
-    call memocc(i_stat,modul3,'modul3','precong_per')
-    allocate(af(lowfil:lupfil,3+ndebug),stat=i_stat)
-    call memocc(i_stat,af,'af','precong_per')
-    allocate(bf(lowfil:lupfil,3+ndebug),stat=i_stat)
-    call memocc(i_stat,bf,'bf','precong_per')
-    allocate(cf(lowfil:lupfil,3+ndebug),stat=i_stat)
-    call memocc(i_stat,cf,'cf','precong_per')
-    allocate(ef(lowfil:lupfil,3+ndebug),stat=i_stat)
-    call memocc(i_stat,ef,'ef','precong_per')
-
-    allocate(b(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
-    call memocc(i_stat,b,'b','precong_per')
-    allocate(r(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
-    call memocc(i_stat,r,'r','precong_per')
-    allocate(d(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
-    call memocc(i_stat,d,'','precong_per')
-    allocate( psifscf((2*n1+2)*(2*n2+16)*(2*n3+2)+ndebug),stat=i_stat )
-    call memocc(i_stat,psifscf,'psifscf','precong_per')
-    allocate( ww((2*n1+2)*(2*n2+16)*(2*n3+2)+ndebug) ,stat=i_stat)
-    call memocc(i_stat,ww,'ww','precong_per')
+    modul1 = f_malloc(lowfil.to.n1+lupfil,id='modul1')
+    modul3 = f_malloc(lowfil.to.n3+lupfil,id='modul3')
+    af = f_malloc((/ lowfil.to.lupfil, 1.to.3 /),id='af')
+    bf = f_malloc((/ lowfil.to.lupfil, 1.to.3 /),id='bf')
+    cf = f_malloc((/ lowfil.to.lupfil, 1.to.3 /),id='cf')
+    ef = f_malloc((/ lowfil.to.lupfil, 1.to.3 /),id='ef')
+    b = f_malloc(nvctr_c+7*nvctr_f,id='b')
+    r = f_malloc(nvctr_c+7*nvctr_f,id='r')
+    d = f_malloc(nvctr_c+7*nvctr_f,id='d')
+    psifscf = f_malloc((2*n1+2)*(2*n2+16)*(2*n3+2),id='psifscf')
+    ww = f_malloc((2*n1+2)*(2*n2+16)*(2*n3+2),id='ww')
   END SUBROUTINE allocate_all
 
   subroutine deallocate_all
 
-    i_all=-product(shape(modul1))*kind(modul1)
-    deallocate(modul1,stat=i_stat)
-    call memocc(i_stat,i_all,'modul1','precong_slab')
-
-    i_all=-product(shape(modul3))*kind(modul3)
-    deallocate(modul3,stat=i_stat)
-    call memocc(i_stat,i_all,'modul3','precong_slab')
-
-    i_all=-product(shape(af))*kind(af)
-    deallocate(af,stat=i_stat)
-    call memocc(i_stat,i_all,'af','precong_slab')
-
-    i_all=-product(shape(bf))*kind(bf)
-    deallocate(bf,stat=i_stat)
-    call memocc(i_stat,i_all,'bf','precong_slab')
-
-    i_all=-product(shape(cf))*kind(cf)
-    deallocate(cf,stat=i_stat)
-    call memocc(i_stat,i_all,'cf','precong_slab')
-
-    i_all=-product(shape(ef))*kind(ef)
-    deallocate(ef,stat=i_stat)
-    call memocc(i_stat,i_all,'ef','precong_slab')
-
-
-    i_all=-product(shape(psifscf))*kind(psifscf)
-    deallocate(psifscf,stat=i_stat)
-    call memocc(i_stat,i_all,'psifscf','precong_slab')
-
-    i_all=-product(shape(ww))*kind(ww)
-    deallocate(ww,stat=i_stat)
-    call memocc(i_stat,i_all,'ww','precong_slab')
-
-    i_all=-product(shape(b))*kind(b)
-    deallocate(b,stat=i_stat)
-    call memocc(i_stat,i_all,'b','precong_slab')
-
-    i_all=-product(shape(r))*kind(r)
-    deallocate(r,stat=i_stat)
-    call memocc(i_stat,i_all,'r','precong_slab')
-
-    i_all=-product(shape(d))*kind(d)
-    deallocate(d,stat=i_stat)
-    call memocc(i_stat,i_all,'d','precong_slab')
+    call f_free(modul1)
+    call f_free(modul3)
+    call f_free(af)
+    call f_free(bf)
+    call f_free(cf)
+    call f_free(ef)
+    call f_free(psifscf)
+    call f_free(ww)
+    call f_free(b)
+    call f_free(r)
+    call f_free(d)
   END SUBROUTINE deallocate_all
 
 END SUBROUTINE precong_slab
@@ -371,33 +326,17 @@ subroutine prec_fft_slab(n1,n2,n3, &
 contains
 
   subroutine allocate_all
-    allocate(kern_k1(0:n1+ndebug),stat=i_stat)
-    call memocc(i_stat,kern_k1,'kern_k1','prec_fft')
-    allocate(kern_k3(0:n3+ndebug),stat=i_stat)
-    call memocc(i_stat,kern_k3,'kern_k3','prec_fft')
-    allocate(z(2,0:(n1+1)/2,0:n2,0:n3+ndebug),stat=i_stat) ! work array for fft
-    call memocc(i_stat,z,'z','prec_fft')
-    allocate(x_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-    call memocc(i_stat,x_c,'x_c','prec_fft')
+    kern_k1 = f_malloc(0.to.n1,id='kern_k1')
+    kern_k3 = f_malloc(0.to.n3,id='kern_k3')
+    z = f_malloc((/ 1.to.2, 0.to.(n1+1)/2, 0.to.n2, 0.to.n3 /),id='z')
+    x_c = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='x_c')
   END SUBROUTINE allocate_all
 
   subroutine deallocate_all
-    i_all=-product(shape(z))*kind(z)
-    deallocate(z,stat=i_stat)
-    call memocc(i_stat,i_all,'z','prec_fft_slab')
-
-    i_all=-product(shape(kern_k1))*kind(kern_k1)
-    deallocate(kern_k1,stat=i_stat)
-    call memocc(i_stat,i_all,'kern_k1','prec_fft_slab')
-
-    i_all=-product(shape(kern_k3))*kind(kern_k3)
-    deallocate(kern_k3,stat=i_stat)
-    call memocc(i_stat,i_all,'kern_k3','prec_fft_slab')
-
-    i_all=-product(shape(x_c))*kind(x_c)
-    deallocate(x_c,stat=i_stat)
-    call memocc(i_stat,i_all,'x_c','prec_fft_slab')
-
+    call f_free(z)
+    call f_free(kern_k1)
+    call f_free(kern_k3)
+    call f_free(x_c)
   END SUBROUTINE deallocate_all
 
 END SUBROUTINE prec_fft_slab
@@ -421,7 +360,7 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
   real(wp),allocatable,dimension(:,:) :: b
   !     .. Scalar Arguments ..
   INTEGER :: INFO, Kd, LDAB, LDB, NRHS=2,n
-  integer :: i1,i2,i3,i,j
+  integer :: i1,i2,i3,i,j,i_stat,i_all
 
   integer,parameter :: lowfil=-14,lupfil=14
   real(gp) :: scale
@@ -461,9 +400,14 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
   ! hit the fourier transform of x with the kernel
 
   !$omp parallel default(none) & 
-  !$omp private (b,ab,i3,i1,i2,j,i,ct,info) &
+  !$omp private (b,ab,i3,i1,i2,j,i,ct,info,i_stat,i_all) &
   !$omp shared (n1,n2,n3,zx,fil,kd,ldb,ldab,nrhs,n,c,kern_k1,kern_k3)
-  allocate(ab(ldab,n),b(0:n2,2))
+  !$omp critical (allocate_critical)
+  ab = f_malloc((/ ldab, n /),id='ab')
+  !b = f_malloc((/ 0.to.n2, 1.to.2 /),id='b')
+  allocate(b(0:n2,1:2),stat=i_stat)
+  call memocc(i_stat,b,'b','segment_invert')
+  !$omp end critical (allocate_critical)
   !$omp do schedule(static,1)
   do i3=0,n3
      !   do i1=0,n1
@@ -492,7 +436,13 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
      enddo
   enddo
   !$omp end do
-  deallocate(ab,b)
+  !$omp critical (deallocate_critical)
+  call f_free(ab)
+  !call f_free(b)
+  i_all = -product(shape(b))*kind(b)
+  deallocate(b,stat=i_stat)
+  call memocc(i_stat,i_all,'b','segment_invert')
+  !$omp end critical (deallocate_critical)
   !$omp end parallel
 
 END SUBROUTINE segment_invert

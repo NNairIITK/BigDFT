@@ -28,34 +28,32 @@ LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
 PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
 endif
 
-AM_FCFLAGS = -I$(top_builddir)/includes -I$(top_srcdir)/PSolver/src -I. @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@  @MPI_INCLUDE@
+AM_FCFLAGS = -I$(top_builddir)/includes -I$(top_srcdir)/PSolver/src -I. @MPI_INCLUDE@
 AM_LDFLAGS = -L$(top_builddir)/PSolver/src
+
 if BUILD_LIB_BIGDFT
 psolver_libraries = $(top_builddir)/PSolver/src/libPSolver-1.a
-LIBS += $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/src/libflib.a @LIBS_SHORT_DEPS@ -lrt
+LIBS += $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/src/libflib.a @LINALG_LIBS@ @LIB_YAML_LIBS@ -lrt
 else
 if BUILD_DYNAMIC_LIBS
 psolver_libraries = -lPSolver-1
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/PSolver/src
 else
 psolver_libraries = $(top_builddir)/PSolver/src/libPSolver-1.a
-LIBS += $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/src/libflib.a @LIBS_SHORT_DEPS@ -lrt
+LIBS += $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/src/libflib.a @LINALG_LIBS@ @LIB_YAML_LIBS@ -lrt
 endif
 endif
 
 PS_Check_SOURCES = PS_Check.f90
-PS_Check_LDADD = $(psolver_libraries) @LINALG_LIBS@
-#PS_Check_LDADD = -lPSolver-1 @LINALG_LIBS@ $(top_builddir)/flib/src/libflib.a
+PS_Check_LDADD = $(psolver_libraries)
 
 PS_Program_SOURCES = PS_Program.f90
 PS_Program_LDADD = $(psolver_libraries)
-#PS_Program_LDADD = -lPSolver-1
 
 PS_Exercise_SOURCES = PS_Exercise.f90
 PS_Exercise_LDADD = $(psolver_libraries)
-#PS_Exercise_LDADD = -lPSolver-1
 
-CLEANFILES = malloc.prc time.prc PS_Check.out.yaml fldiff.report.yaml
+CLEANFILES = malloc.prc time.prc PS_Check.out.yaml PSolver.report.yaml
 
 PS_Check.out.yaml: PS_Check PS_Program PS_Exercise 
 	-$(run_parallel) ./PS_Check 57 48 63  F  > PS_Check.out.yaml
@@ -70,7 +68,7 @@ check: PS_Check.out.yaml
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(top_srcdir)/tests/fldiff_yaml.py \
 		-r $(abs_srcdir)/PS_Check.ref.yaml -d PS_Check.out.yaml -t $(abs_srcdir)/tols.yaml \
-	        --output fldiff.report.yaml
+	        --output PSolver.report.yaml
 
 #	python $(top_srcdir)/tests/fldiff.py --mode=psolver --discrepancy=2.e-8 \
 #		PS_Check.out $(srcdir)/PS_Check.out.ref | tee fldiff.report

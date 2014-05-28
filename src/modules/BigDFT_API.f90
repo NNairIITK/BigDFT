@@ -14,5 +14,6 @@ module BigDFT_API
   use module_types
   use module_interfaces
   use module_xc
+  use module_atoms
   implicit none
 end module BigDFT_API

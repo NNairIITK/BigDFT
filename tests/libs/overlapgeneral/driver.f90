@@ -1,3 +1,13 @@
+!> @file
+!! Test program
+!! @author
+!!    Copyright (C) 2013-2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 !> Test the overlapgeneral routine
 program driver
   use module_base
@@ -9,23 +19,22 @@ program driver
   implicit none
 
   ! Variables
-  integer :: iproc, nproc, istat, nthread, ithread
-  integer :: omp_get_num_threads
-  real(kind=8) :: t1, t2, tt
-  real(kind=8),dimension(:),allocatable :: eval, work
-  real(kind=8),dimension(:,:),allocatable :: A_init, S_init, A, S
+  integer :: iproc, nproc
+!$  integer :: omp_get_num_threads
   integer,parameter :: itype=1
   character(len=1),parameter :: jobz='v', uplo='l'
   integer,parameter :: n=64
   real(kind=8) :: val, error
   real(kind=8),dimension(:,:),allocatable :: ovrlp, ovrlp2
   integer :: norb, nseg, nvctr, iorb, jorb, iorder, power, blocksize, icheck, imode
+
   logical :: file_exists, symmetric, check_symmetry, perform_check
   type(orbitals_data) :: orbs
   type(sparse_matrix) :: smat_A, smat_B
   type(matrices) :: mat_A, inv_mat_B
   character(len=*),parameter :: filename='inputdata.fake'
-  integer :: nconfig, ierr, iel, ilen, iseg, istart, iend, info, lwork, iiorb
+  integer :: nconfig, ierr, iseg, iiorb
+!!  integer :: lwork
   integer, dimension(4) :: mpi_info
   character(len=60) :: run_id
   integer,parameter :: ncheck=30
@@ -33,11 +42,11 @@ program driver
   integer,parameter :: SPARSE=1
   integer,parameter :: DENSE=2
 
-  integer :: ncount1, ncount_rate, ncount_max, ncount2
+  integer :: ncount1, ncount_rate, ncount_max, ncount2, i, j, start
   real(kind=4) :: tr0, tr1
-  real(kind=8) :: time, time2
+  real(kind=8) :: time, time2, tmp, tt
   real :: rn
-  real(kind=8) :: ddot, dnrm2
+  real(kind=8), external :: ddot, dnrm2
   logical, parameter :: timer_on=.false.        !time the different methods
   logical, parameter :: ortho_check=.false.     !check deviation from orthonormality of input overlap matrix
   logical, parameter :: print_matrices=.true.  !output calculated matrices
@@ -80,8 +89,8 @@ program driver
   call orbs_init_fake(iproc, nproc, norb, orbs)
 
   ! Fake initialization of the sparse_matrix type
-  call sparse_matrix_init_fake(iproc, nproc, norb, orbs%norbp, orbs%isorb, nseg, nvctr, smat_A)
-  call sparse_matrix_init_fake(iproc, nproc, norb, orbs%norbp, orbs%isorb, nseg, nvctr, smat_B)
+  call sparse_matrix_init_fake(iproc,nproc,norb, orbs%norbp, orbs%isorb, nseg, nvctr, smat_A)
+  call sparse_matrix_init_fake(iproc,nproc,norb, orbs%norbp, orbs%isorb, nseg, nvctr, smat_B)
 
 
   symmetric = check_symmetry(norb, smat_A)
@@ -110,6 +119,19 @@ program driver
               end if
           end do
       end do
+  !DEBUG
+  !else if (orbs%norb==984.or..true.) then
+  !    start=241
+  !    open(100)
+  !    do iorb=1,984
+  !        do jorb=1,984
+  !            read(100,*) i,j,tmp
+  !            if (iorb<orbs%norb+start.and.jorb<orbs%norb+start.and.iorb>=start.and.jorb>=start) &
+  !                 ovrlp(jorb-start+1,iorb-start+1)=tmp
+  !        end do
+  !    end do
+  !    close(100)
+  !END DEBUG
   else
       ! above approach has problems for testing larger matrices
       allocate(ovrlp2(orbs%norb,orbs%norb))
@@ -386,9 +408,8 @@ subroutine orbs_init_fake(iproc, nproc, norb, orbs)
 end subroutine orbs_init_fake
 
 
-
 !> Fake initialization of the sparse_matrix type
-subroutine sparse_matrix_init_fake(iproc, nproc, norb, norbp, isorb, nseg, nvctr, smat)
+subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, smat)
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
@@ -396,20 +417,18 @@ subroutine sparse_matrix_init_fake(iproc, nproc, norb, norbp, isorb, nseg, nvctr
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, norb, norbp, isorb, nseg, nvctr
+  integer,intent(in) :: iproc,nproc,norb, norbp, isorb, nseg, nvctr
   type(sparse_matrix) :: smat
 
   ! Local variables
+  integer :: nnonzero
   integer,dimension(:),allocatable :: nvctr_per_segment
-  integer :: jseg, jorb, nnonzero
   integer ,dimension(:),pointer :: nonzero
-
 
   ! Some checks whether the arguments are reasonable
   if (nseg > nvctr) stop 'sparse matrix would have more segments than elements'
   if (nseg < norb) stop 'sparse matrix would have less segments than lines'
   if (nvctr > norb**2) stop 'sparse matrix would contain more elements than the dense one'
-
 
   ! Nullify the data type
   smat = sparse_matrix_null()
@@ -497,6 +516,7 @@ subroutine sparse_matrix_init_fake(iproc, nproc, norb, norbp, isorb, nseg, nvctr
       end do
     end function istsegline_init
 
+
     function nvctr_per_segment_init() result(nvctr_per_segment)
       integer,dimension(nseg) :: nvctr_per_segment
       real(kind=8) :: tt
@@ -514,18 +534,20 @@ subroutine sparse_matrix_init_fake(iproc, nproc, norb, norbp, isorb, nseg, nvctr
       if (sum(nvctr_per_segment)/=smat%nvctr) stop 'sum(nvctr_per_segment)/=smat%nvctr'
     end function nvctr_per_segment_init
 
+
     function keyv_init() result(keyv)
       integer,dimension(smat%nseg) :: keyv
-      integer :: jproc, jseg
+      integer :: jseg
       keyv(1)=1
       do jseg=2,nseg
           keyv(jseg)=keyv(jseg-1)+nvctr_per_segment(jseg-1)
       end do
     end function keyv_init
 
+
     function keyg_init() result(keyg)
       integer,dimension(2,smat%nseg) :: keyg
-      integer :: jorb, nempty, jseg, jjseg, ii, j, ist, itot, iaction, istart, iend, idiag
+      integer :: jorb, nempty, jseg, jjseg, ii, j, ist, itot, istart, iend, idiag
       integer :: idist_start, idist_end, ilen
       integer,dimension(:),allocatable :: nempty_arr
       real(kind=8) :: tt
@@ -646,7 +668,7 @@ subroutine sparse_matrix_init_fake(iproc, nproc, norb, norbp, isorb, nseg, nvctr
       type(sparse_matrix),intent(inout) :: sparsemat
 
       ! local variables
-      integer :: ind, iseg, segn, iorb, jorb, istat
+      integer :: ind, iseg, segn, iorb, jorb
       character(len=*),parameter :: subname='init_orbs_from_index'
 
       sparsemat%orb_from_index=f_malloc_ptr((/2,sparsemat%nvctr/),id='sparsemat%orb_from_index')
@@ -663,8 +685,6 @@ subroutine sparse_matrix_init_fake(iproc, nproc, norb, norbp, isorb, nseg, nvctr
       end do
 
     end subroutine init_orbs_from_index
-
-
 
     subroutine init_nonzero_arrays(norbp, isorb, sparsemat, nnonzero, nonzero)
       use sparsematrix_base, only : sparse_matrix
@@ -709,7 +729,6 @@ subroutine sparse_matrix_init_fake(iproc, nproc, norb, norbp, isorb, nseg, nvctr
 
 
 end subroutine sparse_matrix_init_fake
-
 
 
 subroutine write_matrix_compressed(message, smat, mat)

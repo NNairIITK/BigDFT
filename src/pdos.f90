@@ -48,8 +48,7 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt
    !allocate(radii_cf_fake(atc%ntypes,3+ndebug),stat=i_stat)
    !call memocc(i_stat,radii_cf_fake,'radii_cf_fake',subname)
 
-   allocate(radii_cf_fake(at%astruct%ntypes,3+ndebug),stat=i_stat)
-   call memocc(i_stat,radii_cf_fake,'radii_cf_fake',subname)
+   radii_cf_fake = f_malloc((/ at%astruct%ntypes, 3 /),id='radii_cf_fake')
 
 
    !call read_system_variables('input.occup',iproc,inc,atc,radii_cf_fake,nelec,&
@@ -68,11 +67,9 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt
    !call gaussian_pswf_basis(31,.false.,iproc,inc%nspin,atc,cxyz,G,Gocc)
    call gaussian_pswf_basis(31,.false.,iproc,orbs%nspin,at,rxyz,G,Gocc)
 
-   allocate(thetaphi(2,G%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,thetaphi,'thetaphi',subname)
+   thetaphi = f_malloc((/ 2, G%nat /),id='thetaphi')
    call to_zero(2*G%nat,thetaphi)
-   allocate(allpsigau(G%ncoeff*orbs%nspinor,orbs%norbp+norbpv+ndebug),stat=i_stat)
-   call memocc(i_stat,allpsigau,'allpsigau',subname)
+   allpsigau = f_malloc((/ G%ncoeff*orbs%nspinor, orbs%norbp+norbpv /),id='allpsigau')
 !print *,'there'
    !this routine should be simplified like gaussians_to_wavelets
    call wavelets_to_gaussians(lr%geocode,orbs%norbp,orbs%nspinor,&
@@ -85,8 +82,7 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt
            allpsigau(1,orbs%norbp+min(1,norbpv)))
    end if
    !calculate dual coefficients
-   allocate(dualcoeffs(G%ncoeff*orbs%nspinor,orbs%norbp+norbpv+ndebug),stat=i_stat)
-   call memocc(i_stat,dualcoeffs,'dualcoeffs',subname)
+   dualcoeffs = f_malloc((/ G%ncoeff*orbs%nspinor, orbs%norbp+norbpv /),id='dualcoeffs')
    if (G%ncoeff*orbs%nspinor*(orbs%norbp+norbpv)>0) then
        call vcopy(G%ncoeff*orbs%nspinor*(orbs%norbp+norbpv),allpsigau(1,1),1,dualcoeffs(1,1),1)
    end if
@@ -105,30 +101,20 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt
    call deallocate_gwf(G,subname)
    nullify(G%rxyz)
 
-   i_all=-product(shape(allpsigau))*kind(allpsigau)
-   deallocate(allpsigau,stat=i_stat)
-   call memocc(i_stat,i_all,'allpsigau',subname)
-   i_all=-product(shape(dualcoeffs))*kind(dualcoeffs)
-   deallocate(dualcoeffs,stat=i_stat)
-   call memocc(i_stat,i_all,'dualcoeffs',subname)
+   call f_free(allpsigau)
+   call f_free(dualcoeffs)
 
 
-   i_all=-product(shape(thetaphi))*kind(thetaphi)
-   deallocate(thetaphi,stat=i_stat)
-   call memocc(i_stat,i_all,'thetaphi',subname)
+   call f_free(thetaphi)
 
    !deallocate the auxiliary structures for the calculations
    !call deallocate_atoms(atc,subname) 
    !call free_input_variables(inc)
-   i_all=-product(shape(radii_cf_fake))*kind(radii_cf_fake)
-   deallocate(radii_cf_fake,stat=i_stat)
-   call memocc(i_stat,i_all,'radii_cf_fake',subname)
+   call f_free(radii_cf_fake)
    !i_all=-product(shape(cxyz))*kind(cxyz)
    !deallocate(cxyz,stat=i_stat)
    !call memocc(i_stat,i_all,'cxyz',subname)
-   i_all=-product(shape(Gocc))*kind(Gocc)
-   deallocate(Gocc,stat=i_stat)
-   call memocc(i_stat,i_all,'Gocc',subname)
+   call f_free_ptr(Gocc)
 
 END SUBROUTINE local_analysis
 
@@ -156,11 +142,9 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
   real(wp), dimension(:,:), allocatable :: mchg,magn
  
   !allocate both for spins up and down
-  allocate(mchg(G%ncoeff,2+ndebug),stat=i_stat)
-  call memocc(i_stat,mchg,'mchg',subname)
+  mchg = f_malloc((/ G%ncoeff, 2 /),id='mchg')
 
-  allocate(magn(G%ncoeff,3+ndebug),stat=i_stat)
-  call memocc(i_stat,magn,'magn',subname)
+  magn = f_malloc((/ G%ncoeff, 3 /),id='magn')
 
 
   !for any of the orbitals calculate the Mulliken charge
@@ -386,13 +370,9 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
   end if
   call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)
 
-  i_all=-product(shape(mchg))*kind(mchg)
-  deallocate(mchg,stat=i_stat)
-  call memocc(i_stat,i_all,'mchg',subname)
+  call f_free(mchg)
 
-  i_all=-product(shape(magn))*kind(magn)
-  deallocate(magn,stat=i_stat)
-  call memocc(i_stat,i_all,'magn',subname)
+  call f_free(magn)
 
 END SUBROUTINE mulliken_charge_population
 
@@ -417,8 +397,7 @@ subroutine gaussian_pdos(iproc,nproc,orbs,G,coeff,duals) !n(c) Gocc (arg:4)
 
 
    !allocate both for spins up and down
-   allocate(pdos(G%ncoeff+1,orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
-   call memocc(i_stat,pdos,'pdos',subname)
+   pdos = f_malloc((/ G%ncoeff+1, orbs%norb*orbs%nkpts /),id='pdos')
 
    !for any of the orbitals calculate the Mulliken charge
 !   nspin=1
@@ -438,11 +417,9 @@ subroutine gaussian_pdos(iproc,nproc,orbs,G,coeff,duals) !n(c) Gocc (arg:4)
 
    !gather the results to the root process
    if (nproc > 1) then
-      allocate(norb_displ(0:nproc-1+ndebug),stat=i_stat)
-      call memocc(i_stat,norb_displ,'norb_displ',subname)
+      norb_displ = f_malloc(0.to.nproc-1,id='norb_displ')
 
-      allocate(work(max((G%ncoeff+1)*orbs%norb_par(iproc,0),1)+ndebug),stat=i_stat)
-      call memocc(i_stat,work,'work',subname)
+      work = f_malloc(max((G%ncoeff+1)*orbs%norb_par(iproc, 0), 1),id='work')
 
       call vcopy((G%ncoeff+1)*orbs%norb_par(iproc,0),pdos(1,min(orbs%isorb+1,orbs%norb*orbs%nkpts)),1,&
            work(1),1)
@@ -456,14 +433,8 @@ subroutine gaussian_pdos(iproc,nproc,orbs,G,coeff,duals) !n(c) Gocc (arg:4)
          &   pdos(1,1),(G%ncoeff+1)*orbs%norb_par(:,0),(G%ncoeff+1)*norb_displ,mpidtypw,&
          &   0,bigdft_mpi%mpi_comm,ierr)
 
-      i_all=-product(shape(work))*kind(work)
-      deallocate(work,stat=i_stat)
-      call memocc(i_stat,i_all,'work',subname)
-
-
-      i_all=-product(shape(norb_displ))*kind(norb_displ)
-      deallocate(norb_displ,stat=i_stat)
-      call memocc(i_stat,i_all,'norb_displ',subname)
+      call f_free(work)
+      call f_free(norb_displ)
    end if
 
    !now the results have to be written
@@ -505,9 +476,7 @@ subroutine gaussian_pdos(iproc,nproc,orbs,G,coeff,duals) !n(c) Gocc (arg:4)
      end do
    end if
 
-   i_all=-product(shape(pdos))*kind(pdos)
-   deallocate(pdos,stat=i_stat)
-   call memocc(i_stat,i_all,'pdos',subname)
+   call f_free(pdos)
 
 END SUBROUTINE gaussian_pdos
 

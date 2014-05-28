@@ -55,7 +55,7 @@ O2-Spin.psp: HGH-K/psppar.O
 ElectField.psp: HGH-K/psppar.H HGH-K/psppar.O
 
 
-SIC.test.post-in:
+SIC-test.post-in:
 	if [ ! -d data-PZ ] ; then mkdir data-PZ; fi
 	mv wavefunctions.gau data-PZ/
 

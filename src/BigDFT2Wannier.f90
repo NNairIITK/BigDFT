@@ -56,7 +56,7 @@ program BigDFT2Wannier
    real(kind=8), allocatable :: amnk(:,:), amnk_tot(:), amnk_guess(:), amnk_guess_sorted(:),overlap_proj(:,:)
    real(kind=8), allocatable :: mmnk_re(:,:,:), mmnk_im(:,:,:), mmnk_tot(:,:)
    integer :: i, j, k, np,i_all
-   character :: seedname*16
+   character :: seedname*16, dir*16
    logical :: calc_only_A 
    real, dimension(3,3) :: real_latt, recip_latt
    integer :: n_kpts, n_nnkpts, n_excb, n_at, s
@@ -73,6 +73,7 @@ program BigDFT2Wannier
    real(kind=8), parameter :: pi=3.141592653589793238462643383279d0
    integer, dimension(4) :: mpi_info
    type(dictionary), pointer :: user_inputs
+   external :: gather_timings
 
    call f_lib_initialize()
    !-finds the number of taskgroup size
@@ -96,6 +97,7 @@ program BigDFT2Wannier
 
    if (nconfig < 0) stop 'runs-file not supported for BigDFT2Wannier executable'
 
+   call dict_init(user_inputs)
    call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
         & 'posinp'//trim(bigdft_run_id_toa()), bigdft_mpi)
    call inputs_from_dict(input, atoms, user_inputs)
@@ -119,7 +121,8 @@ program BigDFT2Wannier
    ! Read input.inter file
    call timing(iproc,'Precondition  ','ON')
    call read_inter_header(iproc,seedname, filetype, residentity, write_resid, n_occ, pre_check, n_virt_tot,&
-         n_virt, w_unk, w_sph, w_ang, w_rad)
+         n_virt, w_unk, w_sph, w_ang, w_rad,dir)
+   !input%dir_output=trim(dir)//'/'
 
    if(n_virt_tot < n_virt) then
       if (iproc == 0) then
@@ -165,8 +168,7 @@ program BigDFT2Wannier
 !!$
 !!$   if (iproc == 0) call print_general_parameters(input,atoms)
 
-   allocate(radii_cf(atoms%astruct%ntypes,3+ndebug),stat=i_stat)
-   call memocc(i_stat,radii_cf,'radii_cf',subname)
+   radii_cf = f_malloc((/ atoms%astruct%ntypes, 3 /),id='radii_cf')
 
    call system_properties(iproc,nproc,input,atoms,orbs,radii_cf)
 
@@ -189,8 +191,7 @@ program BigDFT2Wannier
 
    ! don't need radii_cf anymore
    i_all = -product(shape(radii_cf))*kind(radii_cf)
-   deallocate(radii_cf,stat=i_stat)
-   call memocc(i_stat,i_all,'radii_cf',subname)
+   call f_free(radii_cf)
 
    ! Allocate communications arrays (allocate it before Projectors because of the definition of iskpts and nkptsp)
    call orbitals_communicators(iproc,nproc,lzd%Glr,orbs,comms)
@@ -268,14 +269,10 @@ program BigDFT2Wannier
 
    ! Allocations for Amnk calculation
    npsidim2=max((lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f)*orbsp%norbp,sum(commsp%ncntt(0:nproc-1)))
-   allocate(ylm(nx,ny,nz),stat=i_stat)
-   call memocc(i_stat,ylm,'ylm',subname)
-   allocate(func_r(nx,ny,nz),stat=i_stat)
-   call memocc(i_stat,func_r,'func_r',subname)
-   allocate(sph_har_etsf(nx*ny*nz),stat=i_stat)
-   call memocc(i_stat,sph_har_etsf,'sph_har_etsf',subname)
-   allocate(amnk_bands_sorted(n_virt),stat=i_stat)
-   call memocc(i_stat,amnk_bands_sorted,'amnk_bands_sorted',subname)
+   ylm = f_malloc((/ nx, ny, nz /),id='ylm')
+   func_r = f_malloc((/ nx, ny, nz /),id='func_r')
+   sph_har_etsf = f_malloc(nx*ny*nz,id='sph_har_etsf')
+   amnk_bands_sorted = f_malloc(n_virt,id='amnk_bands_sorted')
 
 
    call timing(iproc,'Precondition  ','OF')
@@ -289,9 +286,8 @@ program BigDFT2Wannier
 
          ! Read wavefunction from file and transforms it properly if hgrid or size of simulation cell have changed
          npsidim=max((lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f)*orbsv%norbp*orbsv%nspinor,sum(commsv%ncntt(0:nproc-1)))
-         allocate(psi_etsfv(npsidim),stat=i_stat)
-         call memocc(i_stat,psi_etsfv,'psi_etsfv',subname)
-         if(associated(orbsv%eval)) nullify(orbsv%eval)
+         psi_etsfv = f_malloc(npsidim,id='psi_etsfv')
+         nullify(orbsv%eval)
          orbsv%eval = f_malloc_ptr(orbsv%norb*orbsv%nkpts,id='orbsv%eval')
 
          filename= trim(input%dir_output) // 'virtuals'
@@ -299,15 +295,12 @@ program BigDFT2Wannier
               & input%hx,input%hy,input%hz,atoms,rxyz_old,atoms%astruct%rxyz,  & 
               lzd%Glr%wfd,psi_etsfv)
          call f_free_ptr(orbsv%eval)
-         nullify(orbsv%eval)
-
+         
          if(nproc > 1) then
-            allocate(pwork(npsidim),stat=i_stat)
-            call memocc(i_stat,pwork,'pwork',subname)
+            pwork = f_malloc_ptr(npsidim,id='pwork')
             call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,psi_etsfv(1),pwork(1))
             i_all = -product(shape(pwork))*kind(pwork)
-            deallocate(pwork,stat=i_stat)
-            call memocc(i_stat,i_all,'pwork',subname)
+            call f_free_ptr(pwork)
          end if
 
          ! - b1, b2 and b3 are the norm of the lattice parameters.
@@ -315,12 +308,9 @@ program BigDFT2Wannier
          b2=atoms%astruct%cell_dim(2)
          b3=atoms%astruct%cell_dim(3)
          ! - Allocations
-         allocate(amnk(orbsv%norb,orbsp%norb),stat=i_stat)
-         call memocc(i_stat,amnk,'amnk',subname)
-         allocate(amnk_guess(orbsv%norb),stat=i_stat)
-         call memocc(i_stat,amnk_guess,'amnk_guess',subname)
-         allocate(sph_daub(npsidim2), stat=i_stat)
-         call memocc(i_stat,sph_daub,'sph_daub',subname)
+         amnk = f_malloc((/ orbsv%norb, orbsp%norb /),id='amnk')
+         amnk_guess = f_malloc(orbsv%norb,id='amnk_guess')
+         sph_daub = f_malloc(npsidim2,id='sph_daub')
          call to_zero(npsidim2,sph_daub(1))
 
          ! Begining of the algorithm to compute the scalar product in order to find the best unoccupied orbitals
@@ -384,16 +374,13 @@ program BigDFT2Wannier
          call timing(iproc,'CrtProjectors ','OF')
 
          ! Tranposition of the distribution of the spherical harmonics: orbitals -> components.
-         allocate(pwork(npsidim2),stat=i_stat)
-         call memocc(i_stat,pwork,'pwork',subname)
+         pwork = f_malloc_ptr(npsidim2,id='pwork')
          call transpose_v(iproc,nproc,orbsp,lzd%glr%wfd,commsp,sph_daub(1),pwork(1))
-         i_all = -product(shape(pwork))*kind(pwork)
-         deallocate(pwork,stat=i_stat)
-         call memocc(i_stat,i_all,'pwork',subname)
+         call f_free_ptr(pwork)
          call timing(iproc,'ApplyProj     ','ON')
 
          ! calculate the inverse overlap of the projector to build proper amnk_tot
-         allocate(overlap_proj(orbsp%norb,orbsp%norb))
+         overlap_proj = f_malloc((/ orbsp%norb, orbsp%norb /),id='overlap_proj')
          nvctrp=commsp%nvctr_par(iproc,1)
          call gemm('T','N',orbsp%norb,orbsp%norb,nvctrp,1.0_wp,sph_daub(1),max(1,nvctrp),&
             &   sph_daub(1),max(1,nvctrp),0.0_wp,overlap_proj(1,1),orbsp%norb)
@@ -401,25 +388,16 @@ program BigDFT2Wannier
             call mpiallred(overlap_proj(1,1),orbsp%norb*orbsp%norb,MPI_SUM)
          end if
          !print *,'overlap_proj',overlap_proj
-         allocate(ipiv(orbsp%norb),stat=i_stat)
-         call memocc(i_stat,ipiv,'ipiv',subname)
+         ipiv = f_malloc(orbsp%norb,id='ipiv')
          call dgetrf( orbsp%norb, orbsp%norb, overlap_proj, orbsp%norb, ipiv, info )
-         allocate(pwork(1),stat=i_stat)
-         call memocc(i_stat,pwork,'pwork',subname)
+         pwork = f_malloc_ptr(1,id='pwork')
          call dgetri( orbsp%norb, overlap_proj, orbsp%norb, ipiv, pwork, -1, info )
          lwork = int(pwork(1))
-         i_all = -product(shape(pwork))*kind(pwork)
-         deallocate(pwork,stat=i_stat)
-         call memocc(i_stat,i_all,'pwork',subname)
-         allocate(pwork(lwork),stat=i_stat)
-         call memocc(i_stat,pwork,'pwork',subname)
+         call f_free_ptr(pwork)
+         pwork = f_malloc_ptr(lwork,id='pwork')
          call dgetri( orbsp%norb, overlap_proj, orbsp%norb, ipiv, pwork, lwork, info )
-         i_all = -product(shape(pwork))*kind(pwork)
-         deallocate(pwork,stat=i_stat)
-         call memocc(i_stat,i_all,'pwork',subname)
-         i_all = -product(shape(ipiv))*kind(ipiv)
-         deallocate(ipiv,stat=i_stat)
-         call memocc(i_stat,i_all,'ipiv',subname)
+         call f_free_ptr(pwork)
+         call f_free(ipiv)
          !print *,'inverse overlap_proj',overlap_proj
 
          ! Scalar product of amnk=<sph_daub|psi> in parallel.
@@ -455,8 +433,7 @@ program BigDFT2Wannier
             write(*,'(1a)') 'These are the virtual bands to use to construct the actual Amn and Mmn matrices :'
             write(*,'(A4,4x,A17)') 'Band', 'sqrt(amnk_guess)='
          end if
-         allocate(amnk_guess_sorted(n_virt),stat=i_stat)
-         call memocc(i_stat,amnk_guess_sorted,'amnk_guess_sorted',subname)
+         amnk_guess_sorted = f_malloc(n_virt,id='amnk_guess_sorted')
          do nb=1,n_virt
             amnk_guess_sorted(nb)=maxval(amnk_guess,1)
             amnk_bands_sorted(nb)=maxloc(amnk_guess,1)
@@ -465,18 +442,10 @@ program BigDFT2Wannier
          end do
 
          ! End of the pre-check mode
-         i_all = -product(shape(psi_etsfv))*kind(psi_etsfv)
-         deallocate(psi_etsfv,stat=i_stat)
-         call memocc(i_stat,i_all,'psi_etsfv',subname)
-         i_all = -product(shape(amnk))*kind(amnk)
-         deallocate(amnk,stat=i_stat)
-         call memocc(i_stat,i_all,'amnk',subname)
-         i_all = -product(shape(amnk_guess_sorted))*kind(amnk_guess_sorted)
-         deallocate(amnk_guess_sorted,stat=i_stat)
-         call memocc(i_stat,i_all,'amnk_guess_sorted',subname)
-         i_all = -product(shape(amnk_guess))*kind(amnk_guess)
-         deallocate(amnk_guess,stat=i_stat)
-         call memocc(i_stat,i_all,'amnk_guess',subname)
+         call f_free(psi_etsfv)
+         call f_free(amnk)
+         call f_free(amnk_guess_sorted)
+         call f_free(amnk_guess)
          call deallocate_comms(commsv,subname)
 
          if (iproc==0) then
@@ -499,8 +468,7 @@ program BigDFT2Wannier
 
       ! Define which unoccupied orbitals have to be read.
       ! Here, virt_list nominates the virtual orbitals chosen in pre-check mode.
-      allocate(virt_list(n_virt),stat=i_stat)
-      call memocc(i_stat,virt_list,'virt_list',subname)
+      virt_list = f_malloc(n_virt,id='virt_list')
 
       if (n_virt .ne. 0) then
          if (pre_check) then 
@@ -528,17 +496,14 @@ program BigDFT2Wannier
       call timing(iproc,'CrtProjectors ','ON')
 
       npsidim=max((lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f)*orbsb%norbp*orbsb%nspinor,sum(commsb%ncntt(0:nproc-1)))
-      allocate(psi_etsf(lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f,max(orbsb%norbp*orbsb%nspinor,1)),stat=i_stat)
-      call memocc(i_stat,psi_etsf,'psi_etsf',subname)
+      psi_etsf = f_malloc((/ lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f, max(orbsb%norbp*orbsb%nspinor, 1) /),id='psi_etsf')
 
       ! For the occupied orbitals, need to modifify norbp,isorb to match the total distributed scheme
       orbs%norbp = n_occ - orbsb%isorb
       if (orbsb%isorb + orbsb%norbp < n_occ ) orbs%norbp = orbsb%norbp
       if(orbsb%isorb > n_occ) orbs%norbp = 0
       orbs%isorb = orbsb%isorb
-      if(associated(orbs%iokpt)) then
-         call f_free_ptr(orbs%iokpt)
-      end if
+      call f_free_ptr(orbs%iokpt)
       orbs%iokpt = f_malloc_ptr(orbs%norbp,id='orbs%iokpt')
       orbs%iokpt=1
 
@@ -569,9 +534,7 @@ program BigDFT2Wannier
       if (orbsb%isorb > n_occ) orbsv%norbp = orbsb%norbp
       orbsv%isorb = 0
       if(orbsb%isorb >= n_occ) orbsv%isorb = orbsb%isorb - n_occ
-      if(associated(orbsv%iokpt)) then
-         call f_free_ptr(orbsv%iokpt)
-      end if
+      call f_free_ptr(orbsv%iokpt)
       orbsv%iokpt = f_malloc_ptr(orbsv%norbp,id='orbsv%iokpt')
       orbsv%iokpt=1
       !orbsv%spinsgn= 1.0
@@ -615,11 +578,9 @@ program BigDFT2Wannier
       b2=atoms%astruct%cell_dim(2)
       b3=atoms%astruct%cell_dim(3)
       ! - Allocations
-      allocate(amnk(orbsb%norb,orbsp%norb),stat=i_stat)
-      call memocc(i_stat,amnk,'amnk',subname)
+      amnk = f_malloc((/ orbsb%norb, orbsp%norb /),id='amnk')
       call to_zero(orbsb%norb*orbsp%norb,amnk(1,1))
-      allocate(amnk_tot(orbsb%norb),stat=i_stat)
-      call memocc(i_stat,amnk_tot,'amnk_tot',subname)
+      amnk_tot = f_malloc(orbsb%norb,id='amnk_tot')
 
       call timing(iproc,'CrtProjectors ','OF')
 
@@ -627,8 +588,7 @@ program BigDFT2Wannier
       ! It is done in the real space and then converted in the Daubechies representation.
       if(.not. pre_check .or. n_virt_tot == 0 .or. residentity) then
          call timing(iproc,'CrtProjectors ','ON')
-         allocate(sph_daub(npsidim2), stat=i_stat)
-         call memocc(i_stat,sph_daub,'sph_daub',subname)
+         sph_daub = f_malloc(npsidim2,id='sph_daub')
          if(npsidim2 > 0) call to_zero(npsidim2,sph_daub(1))
          !calculate buffer shifts
          perx=(lzd%Glr%geocode /= 'F')
@@ -677,17 +637,14 @@ program BigDFT2Wannier
          call timing(iproc,'CrtProjectors ','OF')
          ! Tranposition of distribution : orbitals -> components.
          if(nproc>1) then
-            allocate(pwork(npsidim2),stat=i_stat)
-            call memocc(i_stat,pwork,'pwork',subname)
+            pwork = f_malloc_ptr(npsidim2,id='pwork')
             call transpose_v(iproc,nproc,orbsp,lzd%glr%wfd,commsp,sph_daub(1),pwork(1))
-            i_all = -product(shape(pwork))*kind(pwork)
-            deallocate(pwork,stat=i_stat)
-            call memocc(i_stat,i_all,'pwork',subname)
+            call f_free_ptr(pwork)
          end if
          call deallocate_projectors()
 
          ! calculate the inverse overlap of the projector to build proper amnk_tot
-         allocate(overlap_proj(orbsp%norb,orbsp%norb))
+         overlap_proj = f_malloc((/ orbsp%norb, orbsp%norb /),id='overlap_proj')
          nvctrp=commsp%nvctr_par(iproc,1)
          call gemm('T','N',orbsp%norb,orbsp%norb,nvctrp,1.0_wp,sph_daub(1),max(1,nvctrp),&
             &   sph_daub(1),max(1,nvctrp),0.0_wp,overlap_proj(1,1),orbsp%norb)
@@ -695,25 +652,16 @@ program BigDFT2Wannier
             call mpiallred(overlap_proj(1,1),orbsp%norb*orbsp%norb,MPI_SUM)
          end if
          !print *,'overlap_proj',overlap_proj
-         allocate(ipiv(orbsp%norb),stat=i_stat)
-         call memocc(i_stat,ipiv,'ipiv',subname)
+         ipiv = f_malloc(orbsp%norb,id='ipiv')
          call dgetrf( orbsp%norb, orbsp%norb, overlap_proj, orbsp%norb, ipiv, info )
-         allocate(pwork(1),stat=i_stat)
-         call memocc(i_stat,pwork,'pwork',subname)
+         pwork = f_malloc_ptr(1,id='pwork')
          call dgetri( orbsp%norb, overlap_proj, orbsp%norb, ipiv, pwork, -1, info )
          lwork = int(pwork(1))
-         i_all = -product(shape(pwork))*kind(pwork)
-         deallocate(pwork,stat=i_stat)
-         call memocc(i_stat,i_all,'pwork',subname)
-         allocate(pwork(lwork),stat=i_stat)
-         call memocc(i_stat,pwork,'pwork',subname)
+         call f_free_ptr(pwork)
+         pwork = f_malloc_ptr(lwork,id='pwork')
          call dgetri( orbsp%norb, overlap_proj, orbsp%norb, ipiv, pwork, lwork, info )
-         i_all = -product(shape(pwork))*kind(pwork)
-         deallocate(pwork,stat=i_stat)
-         call memocc(i_stat,i_all,'pwork',subname)
-         i_all = -product(shape(ipiv))*kind(ipiv)
-         deallocate(ipiv,stat=i_stat)
-         call memocc(i_stat,i_all,'ipiv',subname)
+         call f_free_ptr(pwork)
+         call f_free(ipiv)
 
          !print *,'inverse overlap_proj',overlap_proj
 
@@ -722,32 +670,24 @@ program BigDFT2Wannier
       if(.not. residentity)then
          ! Tranposition of the distribution of the BigDFT wavefunctions : orbitals -> components.
          npsidim=max((lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f)*orbsb%norbp*orbsb%nspinor,sum(commsb%ncntt(0:nproc-1)))
-         allocate(psi_etsf2(npsidim),stat=i_stat) !!doing this because psi_etsfv does not incorporate enough space for transpose
-         call memocc(i_stat,psi_etsf2,'psi_etsf2',subname)
+         psi_etsf2 = f_malloc(npsidim,id='psi_etsf2')
          call to_zero(npsidim,psi_etsf2)
          if(nproc > 1) then
-            allocate(pwork(npsidim),stat=i_stat)
-            call memocc(i_stat,pwork,'pwork',subname)
+            pwork = f_malloc_ptr(npsidim,id='pwork')
             call transpose_v(iproc,nproc,orbsb,lzd%glr%wfd,commsb,psi_etsf(1,1),pwork(1),out_add=psi_etsf2(1))
-            i_all = -product(shape(pwork))*kind(pwork)
-            deallocate(pwork,stat=i_stat)
-            call memocc(i_stat,i_all,'pwork',subname)
+            call f_free_ptr(pwork)
          else
             call vcopy(orbsb%norb*orbsb%nspinor*(lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f),psi_etsf(1,1),1,psi_etsf2(1),1)
          end if
       else
          ! Tranposition of the distribution of the BigDFT occupied wavefunctions : orbitals -> components.
          npsidim=max((lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f)*orbsb%norbp*orbsb%nspinor,sum(commsb%ncntt(0:nproc-1)))
-         allocate(psi_etsf2(npsidim),stat=i_stat) 
-         call memocc(i_stat,psi_etsf2,'psi_etsf2',subname)
+         psi_etsf2 = f_malloc(npsidim,id='psi_etsf2')
          call to_zero(npsidim,psi_etsf2)
          if(nproc > 1) then
-            allocate(pwork(npsidim),stat=i_stat)
-            call memocc(i_stat,pwork,'pwork',subname)
+            pwork = f_malloc_ptr(npsidim,id='pwork')
             call transpose_v(iproc,nproc,orbsb,lzd%glr%wfd,commsb,psi_etsf(1,1),pwork(1),out_add=psi_etsf2(1))
-            i_all = -product(shape(pwork))*kind(pwork)
-            deallocate(pwork,stat=i_stat)
-            call memocc(i_stat,i_all,'pwork',subname)
+            call f_free_ptr(pwork)
          else
             call vcopy(orbsb%norb*orbs%nspinor*(lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f),psi_etsf(1,1),1,psi_etsf2(1),1)
          end if
@@ -782,12 +722,9 @@ program BigDFT2Wannier
 
          ! Now untranspose to make the psi
          if(nproc > 1) then
-            allocate(pwork(npsidim),stat=i_stat)
-            call memocc(i_stat,pwork,'pwork',subname)
+            pwork = f_malloc_ptr(npsidim,id='pwork')
             call untranspose_v(iproc,nproc,orbsb,lzd%Glr%wfd,commsb,psi_etsf2(1),pwork(1),out_add=psi_etsf(1,1))
-            i_all = -product(shape(pwork))*kind(pwork)
-            deallocate(pwork,stat=i_stat)
-            call memocc(i_stat,i_all,'pwork',subname)
+            call f_free_ptr(pwork)
          else
             call vcopy(orbsb%norb*orbsb%nspinor*(lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f),psi_etsf2(1),1,psi_etsf(1,1),1)
          end if
@@ -831,6 +768,7 @@ program BigDFT2Wannier
          write(*,*)
          write(*,*)
       end if
+      call f_free(overlap_proj)
  
      ! Write the .amn file
       if (iproc == 0) call write_amn(seedname, orbsb%norb, n_kpts, orbsp%norb, amnk)
@@ -932,22 +870,17 @@ program BigDFT2Wannier
          ! Tranposition of distribution : orbitals -> components
          if(nproc>0 .or. orbsb%nspinor /=1) then
             call timing(iproc,'Input_comput  ','OF')
-            allocate(pwork(npsidim),stat=i_stat)
-            call memocc(i_stat,pwork,'pwork',subname)
+            pwork = f_malloc_ptr(npsidim,id='pwork')
             call transpose_v(iproc,nproc,orbsb,lzd%glr%wfd,commsb,psi_daub_re(1),pwork(1))
             call transpose_v(iproc,nproc,orbsb,lzd%glr%wfd,commsb,psi_daub_im(1),pwork(1))
-            i_all = -product(shape(pwork))*kind(pwork)
-            deallocate(pwork,stat=i_stat)
-            call memocc(i_stat,i_all,'pwork',subname)
+            call f_free_ptr(pwork)
             call timing(iproc,'Input_comput  ','ON')
          end if
 
          ! Scalar product to compute the overlap matrix
          nvctrp=commsb%nvctr_par(iproc,1)
-         allocate(mmnk_v_re(orbsb%norb*orbsb%norb),stat=i_stat)
-         call memocc(i_stat,mmnk_v_re,'mmnk_v_re',subname)
-         allocate(mmnk_v_im(orbsb%norb*orbsb%norb),stat=i_stat)
-         call memocc(i_stat,mmnk_v_im,'mmnk_v_im',subname)
+         mmnk_v_re = f_malloc(orbsb%norb*orbsb%norb,id='mmnk_v_re')
+         mmnk_v_im = f_malloc(orbsb%norb*orbsb%norb,id='mmnk_v_im')
 
          call gemm('T','N',orbsb%norb,orbsb%norb,nvctrp,1.0_wp,psi_daub_re(1),max(1,nvctrp),&
             &   psi_etsf2(1),max(1,nvctrp),0.0_wp,mmnk_v_re(1),orbsb%norb)
@@ -964,12 +897,8 @@ program BigDFT2Wannier
          mmnk_re(:,:,inn)=reshape(mmnk_v_re,(/orbsb%norb,orbsb%norb/))
          mmnk_im(:,:,inn)=reshape(mmnk_v_im,(/orbsb%norb,orbsb%norb/))
 
-         i_all = -product(shape(mmnk_v_re))*kind(mmnk_v_re)
-         deallocate(mmnk_v_re,stat=i_stat)
-         call memocc(i_stat,i_all,'mmnk_v_re',subname)
-         i_all = -product(shape(mmnk_v_im))*kind(mmnk_v_im)
-         deallocate(mmnk_v_im,stat=i_stat)
-         call memocc(i_stat,i_all,'mmnk_v_im',subname)
+         call f_free(mmnk_v_re)
+         call f_free(mmnk_v_im)
 
          ! Check the normalisation
          do nb1=1, orbsb%norb
@@ -1002,7 +931,7 @@ program BigDFT2Wannier
       call timing(iproc,'Input_comput  ','OF')
 
 
-      call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm)    
+      call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm,nproc=bigdft_mpi%nproc,gather_routine=gather_timings)    
 
 call cpu_time(tcpu1)
 call system_clock(ncount1,ncount_rate,ncount_max)
@@ -1026,108 +955,57 @@ contains
 
 subroutine allocate_initial()
 
-  allocate(kpts(n_kpts,3),stat=i_stat)
-  call memocc(i_stat,kpts,'kpts',subname)
-  allocate(ctr_proj(n_proj,3),stat=i_stat)
-  call memocc(i_stat,ctr_proj,'ctr_proj',subname)
-  allocate(x_proj(n_proj,3),stat=i_stat)
-  call memocc(i_stat,x_proj,'x_proj',subname)
-  allocate(y_proj(n_proj,3),stat=i_stat)
-  call memocc(i_stat,y_proj,'y_proj',subname)
-  allocate(z_proj(n_proj,3),stat=i_stat)
-  call memocc(i_stat,z_proj,'z_proj',subname)
-  allocate(l(n_proj),stat=i_stat)
-  call memocc(i_stat,l,'l',subname)
-  allocate(mr(n_proj),stat=i_stat)
-  call memocc(i_stat,mr,'mr',subname)
-  allocate(rvalue(n_proj),stat=i_stat)
-  call memocc(i_stat,rvalue,'rvalue',subname)
-  allocate(zona(n_proj),stat=i_stat)
-  call memocc(i_stat,zona,'zona',subname)
-  allocate(k_plus_b(n_kpts*n_nnkpts,2),stat=i_stat)
-  call memocc(i_stat,k_plus_b,'k_plus_b',subname)
-  allocate(G_vec(n_kpts*n_nnkpts,3),stat=i_stat)
-  call memocc(i_stat,G_vec,'G_vec',subname)
-  allocate(excb(n_excb),stat=i_stat)
-  call memocc(i_stat,excb,'excb',subname)
-  allocate(rxyz_old(3,atoms%astruct%nat),stat=i_stat)
-  call memocc(i_stat,rxyz_old,'rxyz_old',subname)
+  kpts = f_malloc((/ n_kpts, 3 /),id='kpts')
+  ctr_proj = f_malloc((/ n_proj, 3 /),id='ctr_proj')
+  x_proj = f_malloc((/ n_proj, 3 /),id='x_proj')
+  y_proj = f_malloc((/ n_proj, 3 /),id='y_proj')
+  z_proj = f_malloc((/ n_proj, 3 /),id='z_proj')
+  l = f_malloc(n_proj,id='l')
+  mr = f_malloc(n_proj,id='mr')
+  rvalue = f_malloc(n_proj,id='rvalue')
+  zona = f_malloc(n_proj,id='zona')
+  k_plus_b = f_malloc((/ n_kpts*n_nnkpts, 2 /),id='k_plus_b')
+  G_vec = f_malloc((/ n_kpts*n_nnkpts, 3 /),id='G_vec')
+  excb = f_malloc(n_excb,id='excb')
+  rxyz_old = f_malloc_ptr((/ 3, atoms%astruct%nat /),id='rxyz_old')
 
 END SUBROUTINE allocate_initial
 
 subroutine mmnk_calculation_allocation()
 
-      allocate(mmnk_re(orbsb%norb,orbsb%norb,n_kpts*n_nnkpts),stat=i_stat)
-      call memocc(i_stat,mmnk_re,'mmnk_re',subname)
-      allocate(mmnk_im(orbsb%norb,orbsb%norb,n_kpts*n_nnkpts),stat=i_stat)
-      call memocc(i_stat,mmnk_im,'mmnk_im',subname)
-      allocate(mmnk_tot(orbsb%norb,n_kpts*n_nnkpts),stat=i_stat)
-      call memocc(i_stat,mmnk_tot,'mmnk_tot',subname)
-      allocate(psir(nx*ny*nz),stat=i_stat)
-      call memocc(i_stat,psir,'psir',subname)
-      allocate(psir_re(nx*ny*nz),stat=i_stat)
-      call memocc(i_stat,psir_re,'psir_re',subname)
-      allocate(psir_im(nx*ny*nz),stat=i_stat)
-      call memocc(i_stat,psir_im,'psir_im',subname)
-      allocate(psi_daub_re(npsidim),stat=i_stat)
-      call memocc(i_stat,psi_daub_re,'psi_daub_re',subname)
-      allocate(psi_daub_im(npsidim),stat=i_stat)
-      call memocc(i_stat,psi_daub_im,'psi_daub_im',subname)
+      mmnk_re = f_malloc((/ orbsb%norb, orbsb%norb, n_kpts*n_nnkpts /),id='mmnk_re')
+      mmnk_im = f_malloc((/ orbsb%norb, orbsb%norb, n_kpts*n_nnkpts /),id='mmnk_im')
+      mmnk_tot = f_malloc((/ orbsb%norb, n_kpts*n_nnkpts /),id='mmnk_tot')
+      psir = f_malloc(nx*ny*nz,id='psir')
+      psir_re = f_malloc(nx*ny*nz,id='psir_re')
+      psir_im = f_malloc(nx*ny*nz,id='psir_im')
+      psi_daub_re = f_malloc(npsidim,id='psi_daub_re')
+      psi_daub_im = f_malloc(npsidim,id='psi_daub_im')
 
 END SUBROUTINE mmnk_calculation_allocation
 
 subroutine deallocate_projectors()
 
-   i_all = -product(shape(zona))*kind(zona)
-   deallocate(zona,stat=i_stat)
-   call memocc(i_stat,i_all,'zona',subname)
-   i_all = -product(shape(rvalue))*kind(rvalue)
-   deallocate(rvalue,stat=i_stat)
-   call memocc(i_stat,i_all,'rvalue',subname)
-   i_all = -product(shape(l))*kind(l)
-   deallocate(l,stat=i_stat)
-   call memocc(i_stat,i_all,'l',subname)
-   i_all = -product(shape(x_proj))*kind(x_proj)
-   deallocate(x_proj,stat=i_stat) 
-   call memocc(i_stat,i_all,'x_proj',subname)
-   i_all = -product(shape(y_proj))*kind(y_proj)
-   deallocate(y_proj,stat=i_stat) 
-   call memocc(i_stat,i_all,'y_proj',subname)
-   i_all = -product(shape(z_proj))*kind(z_proj)
-   deallocate(z_proj,stat=i_stat) 
-   call memocc(i_stat,i_all,'z_proj',subname)
-   i_all = -product(shape(mr))*kind(mr)
-   deallocate(mr,stat=i_stat)
-   call memocc(i_stat,i_all,'mr',subname)
-   i_all = -product(shape(ctr_proj))*kind(ctr_proj)
-   deallocate(ctr_proj,stat=i_stat) 
-   call memocc(i_stat,i_all,'ctr_proj',subname) 
+   call f_free(zona)
+   call f_free(rvalue)
+   call f_free(l)
+   call f_free(x_proj)
+   call f_free(y_proj)
+   call f_free(z_proj)
+   call f_free(mr)
+   call f_free(ctr_proj)
 
 end subroutine deallocate_projectors
 
 subroutine deallocate_amnk_calculation()
 
-  i_all = -product(shape(sph_daub))*kind(sph_Daub)
-  deallocate(sph_daub,stat=i_stat)
-  call memocc(i_stat,i_all,'sph_daub',subname)
-  i_all = -product(shape(func_r))*kind(func_r)
-  deallocate(func_r,stat=i_stat)
-  call memocc(i_stat,i_all,'func_r',subname)
-  i_all = -product(shape(ylm))*kind(ylm)
-  deallocate(ylm,stat=i_stat)
-  call memocc(i_stat,i_all,'ylm',subname)
-  i_all = -product(shape(sph_har_etsf))*kind(sph_har_etsf)
-  deallocate(sph_har_etsf,stat=i_stat)
-  call memocc(i_stat,i_all,'sph_har_etsf',subname)
-  i_all = -product(shape(amnk_tot))*kind(amnk_tot)
-  deallocate(amnk_tot,stat=i_stat)
-  call memocc(i_stat,i_all,'amnk_tot',subname)
-  i_all = -product(shape(amnk_bands_sorted))*kind(amnk_bands_sorted)
-  deallocate(amnk_bands_sorted,stat=i_stat)
-  call memocc(i_stat,i_all,'amnk_bands_sorted',subname)
-  i_all = -product(shape(amnk))*kind(amnk)
-  deallocate(amnk,stat=i_stat)
-  call memocc(i_stat,i_all,'amnk',subname)
+  call f_free(sph_daub)
+  call f_free(func_r)
+  call f_free(ylm)
+  call f_free(sph_har_etsf)
+  call f_free(amnk_tot)
+  call f_free(amnk_bands_sorted)
+  call f_free(amnk)
 
 END SUBROUTINE deallocate_amnk_calculation
 
@@ -1135,51 +1013,21 @@ subroutine final_deallocations()
   use module_atoms, only: deallocate_atoms_data
 
   call deallocate_work_arrays_sumrho(w)
-  i_all = -product(shape(psi_etsf))*kind(psi_etsf)
-  deallocate(psi_etsf,stat=i_stat)
-  call memocc(i_stat,i_all,'psi_etsf',subname)
-  i_all = -product(shape(psir))*kind(psir)
-  deallocate(psir,stat=i_stat)
-  call memocc(i_stat,i_all,'psir',subname)
-  i_all = -product(shape(psir_re))*kind(psir_re)
-  deallocate(psir_re,stat=i_stat)
-  call memocc(i_stat,i_all,'psir_re',subname)
-  i_all = -product(shape(psir_im))*kind(psir_im)
-  deallocate(psir_im,stat=i_stat)
-  call memocc(i_stat,i_all,'psir_im',subname)
-  i_all = -product(shape(mmnk_tot))*kind(mmnk_tot)
-  deallocate(mmnk_tot,stat=i_stat)
-  call memocc(i_stat,i_all,'mmnk_tot',subname)
-  i_all = -product(shape(psi_etsf2))*kind(psi_etsf2)
-  deallocate(psi_etsf2,stat=i_stat)
-  call memocc(i_stat,i_all,'psi_etsf2',subname)
-  i_all = -product(shape(psi_daub_re))*kind(psi_daub_re)
-  deallocate(psi_daub_re,stat=i_stat)
-  call memocc(i_stat,i_all,'psi_daub_re',subname)
-  i_all = -product(shape(psi_daub_im))*kind(psi_daub_im)
-  deallocate(psi_daub_im,stat=i_stat)
-  call memocc(i_stat,i_all,'psi_daub_im',subname)
-  i_all = -product(shape(virt_list))*kind(virt_list)
-  deallocate(virt_list,stat=i_stat)
-  call memocc(i_stat,i_all,'virt_list',subname)
-  i_all = -product(shape(mmnk_re))*kind(mmnk_re)
-  deallocate(mmnk_re,stat=i_stat)
-  call memocc(i_stat,i_all,'mmnk_re',subname)
-  i_all = -product(shape(mmnk_im))*kind(mmnk_im)
-  deallocate(mmnk_im,stat=i_stat)
-  call memocc(i_stat,i_all,'mmnk_im',subname)
-  i_all = -product(shape(G_vec))*kind(G_vec)
-  deallocate(G_vec,stat=i_stat)
-  call memocc(i_stat,i_all,'G_vec',subname)
-  i_all = -product(shape(k_plus_b))*kind(k_plus_b)
-  deallocate(k_plus_b,stat=i_stat)
-  call memocc(i_stat,i_all,'k_plus_b',subname) 
-  i_all = -product(shape(kpts))*kind(kpts)
-  deallocate(kpts,stat=i_stat)
-  call memocc(i_stat,i_all,'kpts',subname)
-  i_all = -product(shape(excb))*kind(excb)
-  deallocate(excb,stat=i_stat)
-  call memocc(i_stat,i_all,'excb',subname)
+  call f_free(psi_etsf)
+  call f_free(psir)
+  call f_free(psir_re)
+  call f_free(psir_im)
+  call f_free(mmnk_tot)
+  call f_free(psi_etsf2)
+  call f_free(psi_daub_re)
+  call f_free(psi_daub_im)
+  call f_free(virt_list)
+  call f_free(mmnk_re)
+  call f_free(mmnk_im)
+  call f_free(G_vec)
+  call f_free(k_plus_b)
+  call f_free(kpts)
+  call f_free(excb)
 
   call deallocate_lr(lzd%Glr,subname)
   call deallocate_orbs(orbs,subname)
@@ -1200,7 +1048,7 @@ END SUBROUTINE final_deallocations
 END PROGRAM BigDFT2Wannier
 
 subroutine read_inter_header(iproc,seedname, filetype, residentity, write_resid, n_occ, pre_check,&
-           n_virt_tot, n_virt, w_unk, w_sph, w_ang, w_rad)
+           n_virt_tot, n_virt, w_unk, w_sph, w_ang, w_rad, dir)
 
    ! This routine reads the first lines of a .inter file
 
@@ -1208,7 +1056,7 @@ subroutine read_inter_header(iproc,seedname, filetype, residentity, write_resid,
 
    ! I/O variables
    integer, intent(in) :: iproc
-   character, intent(out) :: seedname*16, filetype*4
+   character, intent(out) :: seedname*16, filetype*4, dir*16
    integer, intent(out) :: n_occ, n_virt, n_virt_tot
    logical, intent(out) :: w_unk, w_sph, w_ang, w_rad, pre_check,residentity,write_resid
 
@@ -1216,6 +1064,7 @@ subroutine read_inter_header(iproc,seedname, filetype, residentity, write_resid,
    character :: char1*1, char2*1, char3*1, char4*1
    logical :: file_exist
    integer :: ierr
+   integer :: dummy1, dummy2, dummy3
 
    ! Should check if it exists, if not, make a nice output message
    inquire(file="input.inter",exist=file_exist)
@@ -1310,6 +1159,14 @@ subroutine read_inter_header(iproc,seedname, filetype, residentity, write_resid,
       if(iproc==0) write(*,*) 'Wrong value for w_rad'
       STOP
    end if
+
+   !sixth line
+
+   read(11,*) dummy1, dummy2, dummy3
+
+   ! seventh line
+   read(11,*) dir
+
 
    CLOSE(11)
 
@@ -2315,7 +2172,7 @@ subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt
 
    ! Read occupied orbitals
    if(n_occ > 0) then
-      if(associated(orbs%eval)) nullify(orbs%eval)
+      nullify(orbs%eval)
       orbs%eval = f_malloc_ptr(n_occ*orbs%nkpts,id='orbs%eval')
       filename=trim(input%dir_output) // 'wavefunction'
       call readmywaves(0,filename,iformat,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
@@ -2326,9 +2183,7 @@ subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt
    ! Read virtual orbitals chosen in pre-check mode 
    if(n_virt > 0) then
       filename=trim(input%dir_output) // 'virtuals'
-      if(associated(orbsv%eval)) then
-         call f_free_ptr(orbsv%eval)
-      end if
+      call f_free_ptr(orbsv%eval)
       orbsv%eval = f_malloc_ptr(n_virt*orbsv%nkpts,id='orbsv%eval')
       call readmywaves(0,filename,iformat,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
       Glr%wfd,psi_etsf(1,1+n_occ),virt_list)
@@ -2414,9 +2269,7 @@ subroutine split_vectors_for_parallel(iproc,nproc,nvctr,orbs)
    orbs%nkpts=1
    orbs%nspinor=1
    orbs%iskpts=0
-   if(associated(orbs%iokpt)) then
-      call f_free_ptr(orbs%iokpt)
-   end if
+   call f_free_ptr(orbs%iokpt)
    orbs%iokpt = f_malloc_ptr(orbs%norbp,id='orbs%iokpt')
    orbs%iokpt=1
 

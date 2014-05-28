@@ -57,24 +57,15 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
      w%nxf3=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
 
      !allocation of work arrays
-     allocate(w%y_c(w%nyc,nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,w%y_c,'y_c',subname)
-     allocate(w%y_f(w%nyf,nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,w%y_f,'y_f',subname)
-     allocate(w%x_c(w%nxc,nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,w%x_c,'x_c',subname)
-     allocate(w%x_f(w%nxf,nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,w%x_f,'x_f',subname)
-     allocate(w%w1(w%nw1+ndebug),stat=i_stat)
-     call memocc(i_stat,w%w1,'w1',subname)
-     allocate(w%w2(w%nw2+ndebug),stat=i_stat)
-     call memocc(i_stat,w%w2,'w2',subname)
-     allocate(w%x_f1(w%nxf1,nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,w%x_f1,'x_f1',subname)
-     allocate(w%x_f2(w%nxf2,nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,w%x_f2,'x_f2',subname)
-     allocate(w%x_f3(w%nxf3,nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,w%x_f3,'x_f3',subname)
+     w%y_c = f_malloc_ptr((/ w%nyc, nspinor /),id='w%y_c')
+     w%y_f = f_malloc_ptr((/ w%nyf, nspinor /),id='w%y_f')
+     w%x_c = f_malloc_ptr((/ w%nxc, nspinor /),id='w%x_c')
+     w%x_f = f_malloc_ptr((/ w%nxf, nspinor /),id='w%x_f')
+     w%w1 = f_malloc_ptr(w%nw1,id='w%w1')
+     w%w2 = f_malloc_ptr(w%nw2,id='w%w2')
+     w%x_f1 = f_malloc_ptr((/ w%nxf1, nspinor /),id='w%x_f1')
+     w%x_f2 = f_malloc_ptr((/ w%nxf2, nspinor /),id='w%x_f2')
+     w%x_f3 = f_malloc_ptr((/ w%nxf3, nspinor /),id='w%x_f3')
 
      !initialisation of the work arrays
      call to_zero(w%nxf1*nspinor,w%x_f1(1,1))
@@ -100,10 +91,8 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
      w%nxf3=0
 
      !allocation of work arrays
-     allocate(w%x_c(w%nxc,nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,w%x_c,'x_c',subname)
-     allocate(w%y_c(w%nyc,nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,w%y_c,'y_c',subname)
+     w%x_c = f_malloc_ptr((/ w%nxc, nspinor /),id='w%x_c')
+     w%y_c = f_malloc_ptr((/ w%nyc, nspinor /),id='w%y_c')
 
   case('P')
      if (lr%hybrid_on) then
@@ -128,24 +117,15 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
         w%nxf2=nf
         w%nxf3=nf
 
-        allocate(w%y_c(w%nyc,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,w%y_c,'y_c',subname)
-        allocate(w%y_f(w%nyf,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,w%y_f,'y_f',subname)
-        allocate(w%x_c(w%nxc,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,w%x_c,'x_c',subname)
-        allocate(w%x_f(w%nxf,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,w%x_f,'x_f',subname)
-        allocate(w%w1(w%nw1+ndebug),stat=i_stat)
-        call memocc(i_stat,w%w1,'w1',subname)
-        allocate(w%w2(w%nw2+ndebug),stat=i_stat)
-        call memocc(i_stat,w%w2,'w2',subname)
-        allocate(w%x_f1(w%nxf1,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,w%x_f1,'x_f1',subname)
-        allocate(w%x_f2(w%nxf2,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,w%x_f2,'x_f2',subname)
-        allocate(w%x_f3(w%nxf3,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,w%x_f3,'x_f3',subname)
+        w%y_c = f_malloc_ptr((/ w%nyc, nspinor /),id='w%y_c')
+        w%y_f = f_malloc_ptr((/ w%nyf, nspinor /),id='w%y_f')
+        w%x_c = f_malloc_ptr((/ w%nxc, nspinor /),id='w%x_c')
+        w%x_f = f_malloc_ptr((/ w%nxf, nspinor /),id='w%x_f')
+        w%w1 = f_malloc_ptr(w%nw1,id='w%w1')
+        w%w2 = f_malloc_ptr(w%nw2,id='w%w2')
+        w%x_f1 = f_malloc_ptr((/ w%nxf1, nspinor /),id='w%x_f1')
+        w%x_f2 = f_malloc_ptr((/ w%nxf2, nspinor /),id='w%x_f2')
+        w%x_f3 = f_malloc_ptr((/ w%nxf3, nspinor /),id='w%x_f3')
 
      else
 
@@ -159,10 +139,8 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
         w%nxf2=0
         w%nxf3=0
 
-        allocate(w%x_c(w%nxc,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,w%x_c,'x_c',subname)
-        allocate(w%y_c(w%nyc,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,w%y_c,'y_c',subname)
+        w%x_c = f_malloc_ptr((/ w%nxc, nspinor /),id='w%x_c')
+        w%y_c = f_malloc_ptr((/ w%nyc, nspinor /),id='w%y_c')
      endif
   end select
 
@@ -285,42 +263,18 @@ subroutine deallocate_work_arrays_locham(lr,w)
   character(len=*), parameter :: subname='deallocate_work_arrays_locham'
   integer :: i_stat,i_all
   
-  i_all=-product(shape(w%y_c))*kind(w%y_c)
-  deallocate(w%y_c,stat=i_stat)
-  call memocc(i_stat,i_all,'y_c',subname)
-  i_all=-product(shape(w%x_c))*kind(w%x_c)
-  deallocate(w%x_c,stat=i_stat)
-  call memocc(i_stat,i_all,'x_c',subname)
+  call f_free_ptr(w%y_c)
+  call f_free_ptr(w%x_c)
 
 
   if ((lr%geocode == 'P' .and. lr%hybrid_on) .or. lr%geocode == 'F') then
-     i_all=-product(shape(w%x_f1))*kind(w%x_f1)
-     deallocate(w%x_f1,stat=i_stat)
-     call memocc(i_stat,i_all,'x_f1',subname)
-
-     i_all=-product(shape(w%x_f2))*kind(w%x_f2)
-     deallocate(w%x_f2,stat=i_stat)
-     call memocc(i_stat,i_all,'x_f2',subname)
-
-     i_all=-product(shape(w%x_f3))*kind(w%x_f3)
-     deallocate(w%x_f3,stat=i_stat)
-     call memocc(i_stat,i_all,'x_f3',subname)
-
-     i_all=-product(shape(w%y_f))*kind(w%y_f)
-     deallocate(w%y_f,stat=i_stat)
-     call memocc(i_stat,i_all,'y_f',subname)
-
-     i_all=-product(shape(w%x_f))*kind(w%x_f)
-     deallocate(w%x_f,stat=i_stat)
-     call memocc(i_stat,i_all,'x_f',subname)
-
-     i_all=-product(shape(w%w1))*kind(w%w1)
-     deallocate(w%w1,stat=i_stat)
-     call memocc(i_stat,i_all,'w1',subname)
-
-     i_all=-product(shape(w%w2))*kind(w%w2)
-     deallocate(w%w2,stat=i_stat)
-     call memocc(i_stat,i_all,'w2',subname)
+     call f_free_ptr(w%x_f1)
+     call f_free_ptr(w%x_f2)
+     call f_free_ptr(w%x_f3)
+     call f_free_ptr(w%y_f)
+     call f_free_ptr(w%x_f)
+     call f_free_ptr(w%w1)
+     call f_free_ptr(w%w2)
   end if
 
   
@@ -1050,14 +1004,10 @@ subroutine initialize_work_arrays_sumrho(lr,w)
 
   end select
   !work arrays
-  allocate(w%x_c(w%nxc+ndebug),stat=i_stat)
-  call memocc(i_stat,w%x_c,'x_c',subname)
-  allocate(w%x_f(w%nxf+ndebug),stat=i_stat)
-  call memocc(i_stat,w%x_f,'x_f',subname)
-  allocate(w%w1(w%nw1+ndebug),stat=i_stat)
-  call memocc(i_stat,w%w1,'w1',subname)
-  allocate(w%w2(w%nw2+ndebug),stat=i_stat)
-  call memocc(i_stat,w%w2,'w2',subname)
+  w%x_c = f_malloc_ptr(w%nxc,id='w%x_c')
+  w%x_f = f_malloc_ptr(w%nxf,id='w%x_f')
+  w%w1 = f_malloc_ptr(w%nw1,id='w%w1')
+  w%w2 = f_malloc_ptr(w%nw2,id='w%w2')
   
 
   if (lr%geocode == 'F') then
@@ -1144,18 +1094,10 @@ subroutine deallocate_work_arrays_sumrho(w)
   character(len=*), parameter :: subname='deallocate_work_arrays_sumrho'
   integer :: i_all, i_stat
 
-  i_all=-product(shape(w%x_c))*kind(w%x_c)
-  deallocate(w%x_c,stat=i_stat)
-  call memocc(i_stat,i_all,'x_c',subname)
-  i_all=-product(shape(w%x_f))*kind(w%x_f)
-  deallocate(w%x_f,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f',subname)
-  i_all=-product(shape(w%w1))*kind(w%w1)
-  deallocate(w%w1,stat=i_stat)
-  call memocc(i_stat,i_all,'w1',subname)
-  i_all=-product(shape(w%w2))*kind(w%w2)
-  deallocate(w%w2,stat=i_stat)
-  call memocc(i_stat,i_all,'w2',subname)
+  call f_free_ptr(w%x_c)
+  call f_free_ptr(w%x_f)
+  call f_free_ptr(w%w1)
+  call f_free_ptr(w%w2)
   
 END SUBROUTINE deallocate_work_arrays_sumrho
 

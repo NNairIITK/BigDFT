@@ -425,9 +425,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
        psigau(1,1,min(tmb%orbs%isorb+1,tmb%orbs%norb)),tmb%psi)
 
 
-  iall=-product(shape(psigau))*kind(psigau)
-  deallocate(psigau,stat=istat)
-  call memocc(istat,iall,'psigau',subname)
+  call f_free_ptr(psigau)
 
   call deallocate_gwf(G,subname)
   ! Deallocate locrad, which is not used any longer.
@@ -721,6 +719,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   end if
 
+
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
        tmb%orbs, tmb%psi, tmb%collcom_sr)
 
@@ -802,14 +801,10 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   tmb%ham_descr%can_use_transposed = .false.
 
   if(associated(tmb%ham_descr%psit_c)) then
-      iall=-product(shape(tmb%ham_descr%psit_c))*kind(tmb%ham_descr%psit_c)
-      deallocate(tmb%ham_descr%psit_c, stat=istat)
-      call memocc(istat, iall, 'tmb%ham_descr%psit_c', subname)
+      call f_free_ptr(tmb%ham_descr%psit_c)
   end if
   if(associated(tmb%ham_descr%psit_f)) then
-      iall=-product(shape(tmb%ham_descr%psit_f))*kind(tmb%ham_descr%psit_f)
-      deallocate(tmb%ham_descr%psit_f, stat=istat)
-      call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
+      call f_free_ptr(tmb%ham_descr%psit_f)
   end if
   
   !if (iproc==0) then

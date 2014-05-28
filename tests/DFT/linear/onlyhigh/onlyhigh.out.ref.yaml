@@ -131,7 +131,7 @@
    check_matrix_compression            : Yes #    linear scaling perform a check of the matrix compression routines
    correction_co_contra                : No #     linear scaling correction covariant / contravariant gradient
  dft:
-   hgrids: [0.45000000000000001, 0.45000000000000001, 0.45000000000000001] # Grid spacing in the three directions (bohr)
+   hgrids: [0.45, 0.45, 0.45] #                   Grid spacing in the three directions (bohr)
    rmult: [5.0, 7.0] #                            c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
    ixc                                 : 1 #      Exchange-correlation parameter (LDA=1,PBE=11)
    ncharge                             : 0 #      Charge of the system
@@ -162,8 +162,8 @@
  geopt:
    method                              : none #   Geometry optimisation method
    ncount_cluster_x                    : 1 #      Maximum number of force evaluations
-   frac_fluct                          : 1.
-   forcemax                            : 0.
+   frac_fluct                          : 1. #     Fraction of force fluctuations. Stop if fmax < forces_fluct*frac_fluct
+   forcemax                            : 0. #     Max forces criterion when stop
    randdis                             : 0. #     Random displacement amplitude
    betax                               : 4. #     Stepsize for the geometry optimization
  mix:
@@ -243,13 +243,13 @@
    rloc_kernel                         : 9.0 #    localization radius for the density kernel
    rloc_kernel_foe                     : 14.0 #   cutoff radius for the FOE matrix vector multiplications
  posinp:
-   Positions:
+   positions:
    - O: [-0.1681115107138034, -0.42920822989500229, -0.50095257773681467]
    - O: [2.1574698798523846, 2.1891928255102462, 2.1287909880850253]
    - C: [0.99463420373525091, 0.88002343670668648, 0.81352957346984234]
-   Properties:
-     Format                            : xyz
-     Source                            : posinp
+   properties:
+     format                            : xyz
+     source                            : posinp
  psppar.O:
    Pseudopotential type                : HGH-K
    Atomic number                       : 8
@@ -267,10 +267,10 @@
      h_ij terms: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
    Source                              : Hard-coded
    Radii of active regions (AU):
-     Coarse                            : 1.2155757214997522
-     Fine                              : 0.22178613999999999
-     Coarse PSP                        : 0.22178613999999999
-     Source                            : Hard-coded
+     Coarse                            : 1.215575721499752
+     Fine                              : 0.22178614
+     Coarse PSP                        : 0.22178614
+     Source                            : Hard-Coded
  psppar.C:
    Pseudopotential type                : HGH-K
    Atomic number                       : 6
@@ -348,7 +348,7 @@
      Coarse                            :  1.21558
      Fine                              :  0.22179
      Coarse PSP                        :  0.55035
-     Source                            : PSP File
+     Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  0.55
    Pseudopotential type                : HGH-K
    Local Pseudo Potential (HGH convention):
@@ -370,7 +370,7 @@
      Coarse                            :  1.58437
      Fine                              :  0.23268
      Coarse PSP                        :  0.65261
-     Source                            : PSP File
+     Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  0.58
    Pseudopotential type                : HGH-K
    Local Pseudo Potential (HGH convention):

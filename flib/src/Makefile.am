@@ -84,7 +84,8 @@ endif
 
 CLEANFILES = $(modules) *.@MODULE_EXT@ $(mpi_include)
 
-AM_FCFLAGS = -I$(srcdir) $(mpi_inc) @LIBABINIT_INCLUDE@ @MPI_INCLUDE@
+#AM_FCFLAGS = -I$(srcdir) $(mpi_inc) @LIBABINIT_INCLUDE@ @MPI_INCLUDE@
+AM_FCFLAGS = -I$(srcdir) $(mpi_inc) @MPI_INCLUDE@
 AM_CFLAGS = @LIB_YAML_CFLAGS@
 
 # Dependencies
@@ -120,6 +121,7 @@ mpif.h:
 
 # Copy modules in a common include directory.
 all: all-am insmod
+check: check-am insmod
 insmod: $(modules)
 	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes
 	for mod in "$(modules)" ; do \

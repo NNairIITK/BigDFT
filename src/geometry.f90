@@ -146,6 +146,9 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   case('FIRE')
      if (iproc ==0) call yaml_map('ENTERING FIRE',ncount_bigdft)
      call fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
+  case('SBFGS')                                                  
+   if (iproc ==0) call yaml_map('ENTERING SBFGS',ncount_bigdft)
+   call sbfgs(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   case('DIIS')   
      if (iproc ==0) call yaml_map('ENTERING DIIS',ncount_bigdft)
      call rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
@@ -200,18 +203,12 @@ subroutine ab6md(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   end if
 
   ! Prepare the objects used by ABINIT.
-  allocate(amass(runObj%atoms%astruct%nat),stat=i_stat)
-  call memocc(i_stat,amass,'amass',subname)
-  allocate(xfhist(3, runObj%atoms%astruct%nat + 4, 2, runObj%inputs%ncount_cluster_x+1))
-  call memocc(i_stat,xfhist,'xfhist',subname)
-  allocate(vel(3, runObj%atoms%astruct%nat),stat=i_stat)
-  call memocc(i_stat,vel,'vel',subname)
-  allocate(xred(3, runObj%atoms%astruct%nat),stat=i_stat)
-  call memocc(i_stat,xred,'xred',subname)
-  allocate(iatfix(3, runObj%atoms%astruct%nat),stat=i_stat)
-  call memocc(i_stat,iatfix,'iatfix',subname)
-  allocate(fred(3, runObj%atoms%astruct%nat),stat=i_stat)
-  call memocc(i_stat,fred,'fred',subname)
+  amass = f_malloc(runObj%atoms%astruct%nat,id='amass')
+  xfhist = f_malloc((/ 3, runObj%atoms%astruct%nat + 4, 2, runObj%inputs%ncount_cluster_x+1 /),id='xfhist')
+  vel = f_malloc((/ 3, runObj%atoms%astruct%nat /),id='vel')
+  xred = f_malloc((/ 3, runObj%atoms%astruct%nat /),id='xred')
+  iatfix = f_malloc((/ 3, runObj%atoms%astruct%nat /),id='iatfix')
+  fred = f_malloc((/ 3, runObj%atoms%astruct%nat /),id='fred')
 
   nxfh = 0
   !acell = (/ runObj%atoms%astruct%cell_dim(1), runObj%atoms%astruct%cell_dim(2), runObj%atoms%astruct%cell_dim(3) /)
@@ -267,24 +264,12 @@ subroutine ab6md(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   end do
 
   !De-Allocations
-  i_all=-product(shape(fred))*kind(fred)
-  deallocate(fred,stat=i_stat)
-  call memocc(i_stat,i_all,'fred',subname)
-  i_all=-product(shape(iatfix))*kind(iatfix)
-  deallocate(iatfix,stat=i_stat)
-  call memocc(i_stat,i_all,'iatfix',subname)
-  i_all=-product(shape(xred))*kind(xred)
-  deallocate(xred,stat=i_stat)
-  call memocc(i_stat,i_all,'xred',subname)
-  i_all=-product(shape(vel))*kind(vel)
-  deallocate(vel,stat=i_stat)
-  call memocc(i_stat,i_all,'vel',subname)
-  i_all=-product(shape(amass))*kind(amass)
-  deallocate(amass,stat=i_stat)
-  call memocc(i_stat,i_all,'amass',subname)
-  i_all=-product(shape(xfhist))*kind(xfhist)
-  deallocate(xfhist,stat=i_stat)
-  call memocc(i_stat,i_all,'xfhist',subname)
+  call f_free(fred)
+  call f_free(iatfix)
+  call f_free(xred)
+  call f_free(vel)
+  call f_free(amass)
+  call f_free(xfhist)
 
   fail = (iexit == 0)
 END SUBROUTINE ab6md
@@ -479,12 +464,9 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   fluct=0.0_gp
 
   ! We save pointers on data used to call bigdft() routine.
-  allocate(previous_forces(3, outs%fdim, runObj%inputs%history+ndebug),stat=i_stat)
-  call memocc(i_stat,previous_forces,'previous_forces',subname)
-  allocate(previous_pos(3, RUNOBJ%ATOMS%astruct%NAT, runObj%inputs%history+ndebug),stat=i_stat)
-  call memocc(i_stat,previous_pos,'previous_pos',subname)
-  allocate(product_matrix(runObj%inputs%history, runObj%inputs%history+ndebug),stat=i_stat)
-  call memocc(i_stat,product_matrix,'product_matrix',subname)
+  previous_forces = f_malloc((/ 3, outs%fdim, runObj%inputs%history /),id='previous_forces')
+  previous_pos = f_malloc((/ 3, RUNOBJ%ATOMS%astruct%NAT, runObj%inputs%history /),id='previous_pos')
+  product_matrix = f_malloc((/ runObj%inputs%history, runObj%inputs%history /),id='product_matrix')
 
 
   ! Set to zero the arrays
@@ -506,14 +488,10 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 
      maxter = min(lter, runObj%inputs%history)
 
-     allocate(interchanges(maxter+1+ndebug),stat=i_stat)
-     call memocc(i_stat,interchanges,'interchanges',subname)
-     allocate(work((maxter+1) * (maxter+1)+ndebug),stat=i_stat)
-     call memocc(i_stat,work,'work',subname)
-     allocate(solution(maxter+1+ndebug),stat=i_stat)
-     call memocc(i_stat,solution,'solution',subname)
-     allocate(matrice(maxter+1, maxter+1))
-     call memocc(i_stat,matrice,'matrice',subname)
+     interchanges = f_malloc(maxter+1,id='interchanges')
+     work = f_malloc((maxter+1) * (maxter+1),id='work')
+     solution = f_malloc(maxter+1,id='solution')
+     matrice = f_malloc((/ maxter+1, maxter+1 /),id='matrice')
 
      ! If lter is greater than maxvec, we move the previous solution up by one
      if (lter > maxter) then
@@ -557,15 +535,9 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      !call dsysv('U',n, nrhs, matrice, n, interchanges, solution,n,work,lwork,i_err)
      call gesv(n, nrhs, matrice(1,1), n, interchanges(1), solution(1), n, i_err)
 
-     i_all=-product(shape(interchanges))*kind(interchanges)
-     deallocate(interchanges,stat=i_stat)
-     call memocc(i_stat,i_all,'interchanges',subname)
-     i_all=-product(shape(work))*kind(work)
-     deallocate(work,stat=i_stat)
-     call memocc(i_stat,i_all,'work',subname)
-     i_all=-product(shape(matrice))*kind(matrice)
-     deallocate(matrice,stat=i_stat)
-     call memocc(i_stat,i_all,'matrice',subname)
+     call f_free(interchanges)
+     call f_free(work)
+     call f_free(matrice)
 
 
      ! The solution that interests us is made of two parts
@@ -576,9 +548,7 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 !!$     !reput the modulo operation on the atoms
 !!$     call atomic_axpy(at,x,0.0_gp,x,x)
 
-     i_all=-product(shape(solution))*kind(solution)
-     deallocate(solution,stat=i_stat)
-     call memocc(i_stat,i_all,'solution',subname)
+     call f_free(solution)
 
      runObj%inputs%inputPsiId=1
      etotprev=outs%energy
@@ -612,8 +582,10 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      endif
 
      if(check > 5)then
-        if (iproc==0) write(ugeopt,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct', fnrm,fluct*runObj%inputs%frac_fluct,fluct
-        if (iproc==0) write(ugeopt,*) 'DIIS converged'
+        if (iproc==0) then
+           write(ugeopt,'(1x,a,3(1x,1pe14.5))') '# fnrm2,fluct*frac_fluct,fluct', fnrm,fluct*runObj%inputs%frac_fluct,fluct
+           write(ugeopt,*) '# DIIS converged'
+        end if
         exit
      endif
 
@@ -627,15 +599,9 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      call axpy(3 * runObj%atoms%astruct%nat, runObj%inputs%betax, outs%fxyz(1,1), 1, runObj%atoms%astruct%rxyz(1,1), 1)
   end do
 
-  i_all=-product(shape(previous_forces))*kind(previous_forces)
-  deallocate(previous_forces,stat=i_stat)
-  call memocc(i_stat,i_all,'previous_forces',subname)
-  i_all=-product(shape(previous_pos))*kind(previous_pos)
-  deallocate(previous_pos,stat=i_stat)
-  call memocc(i_stat,i_all,'previous_pos',subname)
-  i_all=-product(shape(product_matrix))*kind(product_matrix)
-  deallocate(product_matrix,stat=i_stat)
-  call memocc(i_stat,i_all,'product_matrix',subname)
+  call f_free(previous_forces)
+  call f_free(previous_pos)
+  call f_free(product_matrix)
 
   fail = (ncount_bigdft>runObj%inputs%ncount_cluster_x-1)
 END SUBROUTINE rundiis
@@ -743,7 +709,6 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
             call yaml_map('Geometry step',it)
             call yaml_map('Geometry Method','GEOPT_FIRE')
             call yaml_map('epred',(/ outs%energy,outs%energy-eprev /),fmt='(1pe21.14)')
-            call geometry_output(fmax,fnrm,fluct)
             call yaml_map('Alpha', alpha, fmt='(es7.2e1)')
             call yaml_map('dt',dt, fmt='(es7.2e1)')
             call yaml_map('vnrm',sqrt(vnrm), fmt='(es8.2)')

@@ -2,7 +2,7 @@
 noinst_LIBRARIES = libwrappers.a
 module_DATA = $(modules)
 
-MPI_INCLUDES = allreduce-inc.f90 allreduce-arr-inc.f90
+MPI_INCLUDES = allreduce-inc.f90 allreduce-arr-inc.f90 gather-inc.f90
 
 if USE_MPI
 #mpi_source =
@@ -64,7 +64,7 @@ interface_dgemmsy_fake.o: linalg.o
 mpi.o: $(mpi_include)
 
 
-AM_FCFLAGS = -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @MPI_INCLUDE@
+AM_FCFLAGS = -I$(top_builddir)/includes @MPI_INCLUDE@
 AM_CPPFLAGS = @DGEMMSY_CPPFLAGS@
 if USE_CUDA_GPU
 AM_CPPFLAGS += -I@CUDA_PATH@/include @LIBSGPU_INCLUDE@
@@ -84,6 +84,7 @@ CLEANFILES = $(modules) mpif.h
 
 # Copy modules in a common include directory.
 all: all-am insmod
+check: check-am insmod
 insmod: $(modules)
 	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes
 	for mod in "$(modules)" ; do \

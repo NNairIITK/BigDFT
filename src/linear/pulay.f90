@@ -659,9 +659,11 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   call f_free(lpsit_f)
   call f_free(lhphilarge)
 
+  !call f_free_ptr(denspot%pot_work)
   iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
-  deallocate(denspot%pot_work, stat=istat)
-  call memocc(istat, iall, 'denspot%pot_work', subname)
+  deallocate(denspot%pot_work,stat=istat)
+  call memocc(istat,iall,'denspot%pot_work',subname)
+
 
   do jdir=1,3
      call deallocate_sparse_matrix(dovrlp(jdir),subname)

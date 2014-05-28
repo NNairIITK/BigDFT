@@ -53,8 +53,7 @@ subroutine ana_rot_per_old(right,nt,c,cd_1)
   mod_left=1-m
   mod_right=2*len_2-2+m
 
-  allocate(mod_my(mod_left:mod_right+ndebug),stat=i_stat)
-  call memocc(i_stat,mod_my,'mod_my',subname)
+  mod_my = f_malloc(mod_left.to.mod_right,id='mod_my')
 
   do i=mod_left,mod_right
      mod_my(i)=modulo(i,lenc)
@@ -186,9 +185,7 @@ subroutine ana_rot_per_old(right,nt,c,cd_1)
   !        call system_clock(ncount2,ncount_rate,ncount_max)
   !        tel=dble(ncount2-ncount1)/dble(ncount_rate)
   !        write(95,'(a40,1x,e11.4,1x,f10.1,1x,i9)') 'ana_rot_per_old',tel,1.d-6*nflop/tel,nflop
-  i_all=-product(shape(mod_my))*kind(mod_my)
-  deallocate(mod_my,stat=i_stat) 
-  call memocc(i_stat,i_all,'mod_my',subname)
+  call f_free(mod_my)
 
 !write(*,*) 'ana_rot_per_old finished'
 
@@ -240,8 +237,7 @@ subroutine syn_rot_per_old(right1,nt,cd,c1)
   mod_left=-m_2
   mod_right=len_2-1+m_2
 
-  allocate(mod_my(mod_left:mod_right+ndebug),stat=i_stat)
-  call memocc(i_stat,mod_my,'mod_my',subname)
+  mod_my = f_malloc(mod_left.to.mod_right,id='mod_my')
 
 
   do i=mod_left,mod_right
@@ -380,8 +376,6 @@ subroutine syn_rot_per_old(right1,nt,cd,c1)
   !        call system_clock(ncount2,ncount_rate,ncount_max)
   !        tel=dble(ncount2-ncount1)/dble(ncount_rate)
   !        write(95,'(a40,1x,e11.4,1x,f10.1,1x,i9)') 'syn_rot_per_old',tel,1.d-6*nflop/tel,nflop
-  i_all=-product(shape(mod_my))*kind(mod_my)
-  deallocate(mod_my,stat=i_stat) 
-  call memocc(i_stat,i_all,'mod_my',subname)
+  call f_free(mod_my)
 
 END SUBROUTINE syn_rot_per_old

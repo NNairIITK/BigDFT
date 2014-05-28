@@ -670,12 +670,10 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
   !use a better basis than the input guess
   call gaussian_pswf_basis(31,.false.,iproc,nspin,at,rxyz,G,gbd_occ)
 
-  allocate(gaucoeffs(G%ncoeff,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
-  call memocc(i_stat,gaucoeffs,'gaucoeffs',subname)
+  gaucoeffs = f_malloc((/ G%ncoeff, orbs%norbp*orbs%nspinor /),id='gaucoeffs')
 
   !in view of complete gaussian calculation
-  allocate(ovrlp(G%ncoeff,G%ncoeff),stat=i_stat)
-  call memocc(i_stat,ovrlp,'ovrlp',subname)
+  ovrlp = f_malloc((/ G%ncoeff, G%ncoeff /),id='ovrlp')
 
 
   !the kinetic overlap is correctly calculated only with Free BC
@@ -732,10 +730,8 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
      !call kinetic_overlap(G,G,ovrlp)
      call gaussian_overlap(G,G,ovrlp)
      nwork=3*G%ncoeff+1
-     allocate(work(nwork+ndebug),stat=i_stat)
-     call memocc(i_stat,work,'work',subname)
-     allocate(ev(G%ncoeff+ndebug),stat=i_stat)
-     call memocc(i_stat,ev,'ev',subname)
+     work = f_malloc(nwork,id='work')
+     ev = f_malloc(G%ncoeff,id='ev')
 
 !!$  if (iproc == 0) then
 !!$     do iat=1,G%ncoeff
@@ -771,21 +767,15 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
         call vcopy(G%ncoeff,ovrlp(1,jorb),1,gaucoeffs(1,orbs%nspinor*(iorb-1)+1),orbs%nspinor)
      end do
 
-     i_all=-product(shape(work))*kind(work)
-     deallocate(work,stat=i_stat)
-     call memocc(i_stat,i_all,'work',subname)
-     i_all=-product(shape(ev))*kind(ev)
-     deallocate(ev,stat=i_stat)
-     call memocc(i_stat,i_all,'ev',subname)
+     call f_free(work)
+     call f_free(ev)
 
      !call MPI_BARRIER(MPI_COMM_WORLD,info)
      !stop
 
   end if
 
-  i_all=-product(shape(ovrlp))*kind(ovrlp)
-  deallocate(ovrlp,stat=i_stat)
-  call memocc(i_stat,i_all,'ovrlp',subname)
+  call f_free(ovrlp)
 
 !WARNING: not correct!
   call gaussians_to_wavelets_new(iproc,nproc,lr,orbs,G,&
@@ -794,12 +784,8 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
   call deallocate_gwf(G,subname)
 
   !deallocate gaussian array
-  i_all=-product(shape(gaucoeffs))*kind(gaucoeffs)
-  deallocate(gaucoeffs,stat=i_stat)
-  call memocc(i_stat,i_all,'gaucoeffs',subname)
-  i_all=-product(shape(gbd_occ))*kind(gbd_occ)
-  deallocate(gbd_occ,stat=i_stat)
-  call memocc(i_stat,i_all,'gbd_occ',subname)
+  call f_free(gaucoeffs)
+  call f_free_ptr(gbd_occ)
 
 END SUBROUTINE psi_from_gaussians
 
@@ -856,8 +842,7 @@ subroutine plot_wf_sandbox(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
 
   call initialize_work_arrays_sumrho(lr,w)
  
-  allocate(psir(-nl1:2*n1+1+nu1,-nl2:2*n2+1+nu2,-nl3:2*n3+1+nu3+ndebug),stat=i_stat)
-  call memocc(i_stat,psir,'psir',subname)
+  psir = f_malloc((/ -nl1.to.2*n1+1+nu1, -nl2.to.2*n2+1+nu2, -nl3.to.2*n3+1+nu3 /),id='psir')
   !initialisation
   if (lr%geocode == 'F') then
      call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
@@ -885,9 +870,7 @@ subroutine plot_wf_sandbox(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
   end do
   close(22)
 
-  i_all=-product(shape(psir))*kind(psir)
-  deallocate(psir,stat=i_stat)
-  call memocc(i_stat,i_all,'psir',subname)
+  call f_free(psir)
 
   call deallocate_work_arrays_sumrho(w)
 

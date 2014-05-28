@@ -993,20 +993,22 @@ subroutine image_calculate(img, iteration, id)
   integer :: iteration
   integer, intent(in) :: id
 
-  integer :: ierr, infocode
+  integer :: ierr, infocode, unit_log
   character(len = 4) :: fn4
 
   !Why (TD) ??
   img%run%inputs%inputpsiid = 0
   if (iteration > 0 .and. abs(img%id - id) < 2) img%run%inputs%inputpsiid = 1
 
+  unit_log = 0
   img%id = id
   if (trim(img%log_file) /= "" .and. bigdft_mpi%iproc == 0) then
-     call yaml_set_stream(unit = 9169 + id, filename = trim(img%log_file), istat = ierr)
+     call yaml_set_stream(filename = trim(img%log_file), istat = ierr)
+     if (ierr == 0) call yaml_get_default_stream(unit_log)
      call yaml_comment("NEB iteration #" // trim(yaml_toa(iteration, fmt = "(I3.3)")), hfill="-")
   end if
   call call_bigdft(img%run, img%outs, bigdft_mpi%nproc, bigdft_mpi%iproc, infocode)
-  if (trim(img%log_file) /= "" .and. bigdft_mpi%iproc == 0) call yaml_close_all_streams()
+  if (unit_log /= 0) call yaml_close_stream(unit_log)
 
   ! Output the corresponding file.
   if (bigdft_mpi%iproc == 0) then

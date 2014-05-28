@@ -133,7 +133,7 @@ subroutine sqnormm_v(cplex,index,mpi_comm, mpi_summarize,mult,nfft,norm2,npot,ns
 !XG030513 : MPIWF reduction (addition) on norm2 is needed here
  if (mpi_summarize) then
    call timab(48,1,tsec)
-   call xsum_mpi(norm2,mpi_comm ,ierr)
+   call xmpi_sum(norm2,mpi_comm ,ierr)
    call timab(48,2,tsec)
  end if
 

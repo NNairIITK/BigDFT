@@ -1,6 +1,7 @@
 subroutine md_nose_init(amass, natom, temp, vel)
   
   use defs_basis
+  use interfaces_14_hidewrite
 
   implicit none
 
@@ -77,6 +78,7 @@ subroutine md_nose(amass, dtion, fcart, fcart_mold, gnose, itime, ktemp, mditemp
      & xi_nose, xred_next)
   
   use defs_basis
+  use interfaces_14_hidewrite
 
   implicit none
 
@@ -250,6 +252,7 @@ subroutine md_nose_finalise(etotal, gnose, itime, ktemp, noseinert, snose, &
      & v2nose, xi_nose)
   
   use defs_basis
+  use interfaces_14_hidewrite
 
   implicit none
 

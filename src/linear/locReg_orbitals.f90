@@ -13,7 +13,7 @@
 subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
   use module_base
   use module_types
-  use ao_inguess, only: count_atomic_shells, ao_nspin_ig
+  !use ao_inguess, only: count_atomic_shells, ao_nspin_ig
   implicit none
 
   integer,intent(in):: iproc,nproc,nspin,nspinor
@@ -22,12 +22,12 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
   type(local_zone_descriptors) :: Lzd
   ! Local variables
   integer :: jproc,iiOrb,iorb,jorb,jat,i_stat,orbsc!,ispin
-  integer :: ind,i_all,noncoll,Lnorb,ilr,ierr!,dimtot,iat,npsidim
+  integer :: ind,i_all,noncoll,ilr,ierr!,dimtot,iat,npsidim,Lnorb
   character(len=*), parameter :: subname='assignToLocreg'
   integer, dimension(:), allocatable :: Localnorb
-  integer, parameter :: lmax=3,noccmax=2,nelecmax=32
-  integer, dimension(lmax+1) :: nmoments
-  real(gp), dimension(noccmax,lmax+1) :: occup              !dummy variable
+  !integer, parameter :: lmax=3,noccmax=2,nelecmax=32
+  !integer, dimension(lmax+1) :: nmoments
+  !real(gp), dimension(noccmax,lmax+1) :: occup              !dummy variable
 
 
 ! in the non-collinear case the number of orbitals double
@@ -42,12 +42,12 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
 
 ! NOTES: WORKS ONLY BECAUSE Llr coincides with the atoms !!
 ! NOTES: K-Points??
-  nmoments = 0
+  !nmoments = 0
   do ilr = 1, Lzd%nlr
-     call count_atomic_shells(ao_nspin_ig(nspin,nspinor=nspinor),&
-          atoms%aoig(ilr)%aocc,occup,nmoments)
-     Lnorb=(nmoments(1)+3*nmoments(2)+5*nmoments(3)+7*nmoments(4))
-     Localnorb(ilr) = Lnorb
+     !call count_atomic_shells(ao_nspin_ig(nspin,nspinor=nspinor),&
+     !     atoms%aoig(ilr)%aocc,occup,nmoments)
+     !Lnorb=(nmoments(1)+3*nmoments(2)+5*nmoments(3)+7*nmoments(4))
+     Localnorb(ilr) =atoms%aoig(ilr)%nao! Lnorb
   end do
 
 !!  already associated = 1 by default

@@ -12,7 +12,7 @@
 module m_ab6_symmetry
 
   use defs_basis
-  use iso_c_binding
+!  use iso_c_binding
 
   implicit none
 
@@ -44,7 +44,7 @@ module m_ab6_symmetry
      !> If .true. for Free Boundary Conditions use symmetry routines (no ABINIT origin)
      logical :: FBC
      !> C structure for FBC
-     type(c_ptr) :: cPointer
+     !type(c_ptr) :: cPointer
 
      ! The output characteristics
      ! The bravais parameters
@@ -196,7 +196,7 @@ contains
 
     type(symmetry_list), pointer :: token
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (associated(token)) then
        sym => token%data
@@ -205,7 +205,7 @@ contains
           call compute_matrices(sym, errno)
        end if
     else
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        nullify(sym)
     end if
   end subroutine symmetry_get_from_id
@@ -290,10 +290,10 @@ contains
 
     if (AB_DBG) write(0,*) "AB symmetry: call set tolerance."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
@@ -309,6 +309,12 @@ contains
 
   subroutine symmetry_set_lattice(id, rprimd, errno)
 
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+  use interfaces_42_geometry
+!End of the abilint section
+
     integer, intent(in) :: id
     real(dp), intent(in) :: rprimd(3,3)
     integer, intent(out) :: errno
@@ -322,10 +328,10 @@ contains
     if (AB_DBG) write(0, "(A,3F12.6,A)") "  (", rprimd(:,2), ")"
     if (AB_DBG) write(0, "(A,3F12.6,A)") "  (", rprimd(:,3), ")"
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
@@ -360,10 +366,10 @@ contains
        end do
     end if
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
@@ -398,14 +404,14 @@ contains
        end do
     end if
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
     if (token%data%nAtoms /= nAtoms) then
-       errno = AB6_ERROR_ARG
+       errno = AB7_ERROR_ARG
        return
     end if
 
@@ -437,14 +443,14 @@ contains
        end do
     end if
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
     if (token%data%nAtoms /= nAtoms) then
-       errno = AB6_ERROR_ARG
+       errno = AB7_ERROR_ARG
        return
     end if
 
@@ -469,10 +475,10 @@ contains
 
     if (AB_DBG) write(0,*) "AB symmetry: call set spin orbit."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
@@ -495,10 +501,10 @@ contains
 
     if (AB_DBG) write(0,*) "AB symmetry: call set field."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
@@ -523,10 +529,10 @@ contains
 
     if (AB_DBG) write(0,*) "AB symmetry: call set jellium."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
@@ -550,10 +556,10 @@ contains
     if (AB_DBG) write(0,*) "AB symmetry: call set periodicity."
     if (AB_DBG) write(0, "(A,3L1,A)") "  (", periodic, ")"
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
@@ -577,10 +583,10 @@ contains
 
     if (AB_DBG) write(0,*) "AB symmetry: call get nAtoms."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
@@ -635,16 +641,16 @@ contains
 
     if (AB_DBG) write(0,*) "AB symmetry: call get bravais."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
     if (token%data%FBC) then
        !No sense for FBC
-       errno = AB6_ERROR_ARG
+       errno = AB7_ERROR_ARG
        return
     end if
 
@@ -679,7 +685,7 @@ contains
     real(dp) :: transNon_(3, AB6_MAX_SYMMETRIES)
     integer  :: symAfm_(AB6_MAX_SYMMETRIES)
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
 
     if (sym%FBC) then
        !Calculation for Free Boundary conditions (isolated systems)
@@ -775,10 +781,10 @@ contains
 
     if (AB_DBG) write(0,*) "AB symmetry: call get nSym."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
@@ -804,15 +810,15 @@ contains
 
     if (AB_DBG) write(0,*) "AB symmetry: call get nSym."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
     if (nSym <= 0) then
-       errno = AB6_ERROR_ARG
+       errno = AB7_ERROR_ARG
        return
     else
        allocate(token%data%sym(3, 3, nSym))
@@ -844,10 +850,10 @@ contains
 
     if (AB_DBG) write(0,*) "AB symmetry: call get matrices."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
@@ -880,10 +886,10 @@ contains
 
     if (AB_DBG) write(0,*) "AB symmetry: call get matrices as pointers."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
@@ -912,10 +918,10 @@ contains
 
     if (AB_DBG) write(0,*) "AB symmetry: call get multiplicity."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
@@ -949,10 +955,10 @@ contains
 
     if (AB_DBG) write(0,*) "AB symmetry: call get group."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
@@ -962,7 +968,7 @@ contains
     end if
 
     if (token%data%multiplicity /= 1) then
-       errno = AB6_ERROR_SYM_NOT_PRIMITIVE
+       errno = AB7_ERROR_SYM_NOT_PRIMITIVE
        return
     end if
 
@@ -1021,15 +1027,15 @@ contains
 
     if (AB_DBG) write(0,*) "AB symmetry: call get equivalent."
 
-    errno = AB6_NO_ERROR
+    errno = AB7_NO_ERROR
     call get_item(token, id)
     if (.not. associated(token)) then
-       errno = AB6_ERROR_OBJ
+       errno = AB7_ERROR_OBJ
        return
     end if
 
     if (iAtom < 1 .or. iAtom > token%data%nAtoms) then
-       errno = AB6_ERROR_ARG
+       errno = AB7_ERROR_ARG
        return
     end if
 

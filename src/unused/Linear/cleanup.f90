@@ -294,3 +294,740 @@ subroutine deallocate_nonlocal_psp_descriptors(nlpspd, subname)
 end subroutine deallocate_nonlocal_psp_descriptors
 
 
+
+!> Module for the deallocation pointers used by linear version
+module deallocatePointers
+
+  implicit none
+
+  interface checkAndDeallocatePointer
+     module procedure checkAndDeallocatePointer_int_1, checkAndDeallocatePointer_sgl_1, &
+                      checkAndDeallocatePointer_dbl_1, checkAndDeallocatePointer_log_1
+     module procedure checkAndDeallocatePointer_int_2, checkAndDeallocatePointer_sgl_2, &
+                      checkAndDeallocatePointer_dbl_2, checkAndDeallocatePointer_log_2
+     module procedure checkAndDeallocatePointer_int_3, checkAndDeallocatePointer_sgl_3, &
+                      checkAndDeallocatePointer_dbl_3, checkAndDeallocatePointer_log_3
+     module procedure checkAndDeallocatePointer_int_4, checkAndDeallocatePointer_sgl_4, &
+                      checkAndDeallocatePointer_dbl_4, checkAndDeallocatePointer_log_4
+     module procedure checkAndDeallocatePointer_int_5, checkAndDeallocatePointer_sgl_5, &
+                      checkAndDeallocatePointer_dbl_5, checkAndDeallocatePointer_log_5
+     module procedure checkAndDeallocatePointer_int_6, checkAndDeallocatePointer_sgl_6, &
+                      checkAndDeallocatePointer_dbl_6, checkAndDeallocatePointer_log_6
+     module procedure checkAndDeallocatePointer_int_7, checkAndDeallocatePointer_sgl_7, &
+                      checkAndDeallocatePointer_dbl_7, checkAndDeallocatePointer_log_7
+  end interface
+
+  contains
+
+
+    subroutine checkAndDeallocatePointer_int_1(array, arrayname, subname)
+      use module_base, only: memocc
+      implicit none
+
+      ! Calling arguments
+      integer,dimension(:),pointer,intent(inout):: array
+      character(len=*),intent(in):: arrayname, subname
+      
+      ! Local variables
+      integer:: istat, iall
+
+      if(associated(array)) then
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
+      end if
+
+    end subroutine checkAndDeallocatepointer_int_1
+
+
+    subroutine checkAndDeallocatePointer_sgl_1(array, arrayname, subname)
+      use module_base, only: memocc
+      implicit none
+
+      ! Calling arguments
+      real(4),dimension(:),pointer,intent(inout):: array
+      character(len=*),intent(in):: arrayname, subname
+      
+      ! Local variables
+      integer:: istat, iall
+
+      if(associated(array)) then
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
+      end if
+
+    end subroutine checkAndDeallocatePointer_sgl_1
+
+
+    subroutine checkAndDeallocatePointer_dbl_1(array, arrayname, subname)
+      use module_base, only: memocc
+      implicit none
+
+      ! Calling arguments
+      real(8),dimension(:),pointer,intent(inout):: array
+      character(len=*),intent(in):: arrayname, subname
+      
+      ! Local variables
+      integer:: istat, iall
+
+      if(associated(array)) then
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
+      end if
+
+    end subroutine checkAndDeallocatePointer_dbl_1
+
+
+    subroutine checkAndDeallocatePointer_log_1(array, arrayname, subname)
+      use module_base, only: memocc
+      implicit none
+
+      ! Calling arguments
+      logical,dimension(:),pointer,intent(inout):: array
+      character(len=*),intent(in):: arrayname, subname
+      
+      ! Local variables
+      integer:: istat, iall
+
+      if(associated(array)) then
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
+      end if
+
+    end subroutine checkAndDeallocatePointer_log_1
+
+
+    subroutine checkAndDeallocatePointer_int_2(array, arrayname, subname)
+      use module_base, only: memocc
+      implicit none
+
+      ! Calling arguments
+      integer,dimension(:,:),pointer,intent(inout):: array
+      character(len=*),intent(in):: arrayname, subname
+      
+      ! Local variables
+      integer:: istat, iall
+
+      if(associated(array)) then
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
+      end if
+
+    end subroutine checkAndDeallocatepointer_int_2
+
+
+    subroutine checkAndDeallocatePointer_sgl_2(array, arrayname, subname)
+      use module_base, only: memocc
+      implicit none
+
+      ! Calling arguments
+      real(4),dimension(:,:),pointer,intent(inout):: array
+      character(len=*),intent(in):: arrayname, subname
+      
+      ! Local variables
+      integer:: istat, iall
+
+      if(associated(array)) then
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
+      end if
+
+    end subroutine checkAndDeallocatePointer_sgl_2
+
+
+    subroutine checkAndDeallocatePointer_dbl_2(array, arrayname, subname)
+      use module_base, only: memocc
+      implicit none
+
+      ! Calling arguments
+      real(8),dimension(:,:),pointer,intent(inout):: array
+      character(len=*),intent(in):: arrayname, subname
+      
+      ! Local variables
+      integer:: istat, iall
+
+      if(associated(array)) then
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
+      end if
+
+    end subroutine checkAndDeallocatePointer_dbl_2
+
+
+    subroutine checkAndDeallocatePointer_log_2(array, arrayname, subname)
+      use module_base, only: memocc
+      implicit none
+
+      ! Calling arguments
+      logical,dimension(:,:),pointer,intent(inout):: array
+      character(len=*),intent(in):: arrayname, subname
+      
+      ! Local variables
+      integer:: istat, iall
+
+      if(associated(array)) then
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
+      end if
+
+    end subroutine checkAndDeallocatePointer_log_2
+
+
+    subroutine checkAndDeallocatePointer_int_3(array, arrayname, subname)
+      use module_base, only: memocc
+      implicit none
+
+      ! Calling arguments
+      integer,dimension(:,:,:),pointer,intent(inout):: array
+      character(len=*),intent(in):: arrayname, subname
+      
+      ! Local variables
+      integer:: istat, iall
+
+      if(associated(array)) then
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
+      end if
+
+    end subroutine checkAndDeallocatepointer_int_3
+
+
+    subroutine checkAndDeallocatePointer_sgl_3(array, arrayname, subname)
+      use module_base, only: memocc
+      implicit none
+
+      ! Calling arguments
+      real(4),dimension(:,:,:),pointer,intent(inout):: array
+      character(len=*),intent(in):: arrayname, subname
+      
+      ! Local variables
+      integer:: istat, iall
+
+      if(associated(array)) then
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
+      end if
+
+    end subroutine checkAndDeallocatePointer_sgl_3
+
+
+    subroutine checkAndDeallocatePointer_dbl_3(array, arrayname, subname)
+      use module_base, only: memocc
+      implicit none
+
+      ! Calling arguments
+      real(8),dimension(:,:,:),pointer,intent(inout):: array
+      character(len=*),intent(in):: arrayname, subname
+      
+      ! Local variables
+      integer:: istat, iall
+
+      if(associated(array)) then
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
+      end if
+
+    end subroutine checkAndDeallocatePointer_dbl_3
+
+
+    subroutine checkAndDeallocatePointer_log_3(array, arrayname, subname)
+      use module_base, only: memocc
+      implicit none
+
+      ! Calling arguments
+      logical,dimension(:,:,:),pointer,intent(inout):: array
+      character(len=*),intent(in):: arrayname, subname
+      
+      ! Local variables
+      integer:: istat, iall
+
+      if(associated(array)) then
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
+      end if
+
+    end subroutine checkAndDeallocatePointer_log_3
+
+
+    subroutine checkAndDeallocatePointer_int_4(array, arrayname, subname)
+      use module_base, only: memocc
+      implicit none
+
+      ! Calling arguments
+      integer,dimension(:,:,:,:),pointer,intent(inout):: array
+      character(len=*),intent(in):: arrayname, subname
+      
+      ! Local variables
+      integer:: istat, iall
+
+      if(associated(array)) then
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
+      end if
+
+    end subroutine checkAndDeallocatepointer_int_4
+
+
+    subroutine checkAndDeallocatePointer_sgl_4(array, arrayname, subname)
+      use module_base, only: memocc
+      implicit none
+
+      ! Calling arguments
+      real(4),dimension(:,:,:,:),pointer,intent(inout):: array
+      character(len=*),intent(in):: arrayname, subname
+      
+      ! Local variables
+      integer:: istat, iall
+
+      if(associated(array)) then
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
+      end if
+
+    end subroutine checkAndDeallocatePointer_sgl_4
+
+
+    subroutine checkAndDeallocatePointer_dbl_4(array, arrayname, subname)
+      use module_base, only: memocc
+      implicit none
+
+      ! Calling arguments
+      real(8),dimension(:,:,:,:),pointer,intent(inout):: array
+      character(len=*),intent(in):: arrayname, subname
+      
+      ! Local variables
+      integer:: istat, iall
+
+      if(associated(array)) then
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
+      end if
+
+    end subroutine checkAndDeallocatePointer_dbl_4
+
+
+    subroutine checkAndDeallocatePointer_log_4(array, arrayname, subname)
+      use module_base, only: memocc
+      implicit none
+
+      ! Calling arguments
+      logical,dimension(:,:,:,:),pointer,intent(inout):: array
+      character(len=*),intent(in):: arrayname, subname
+      
+      ! Local variables
+      integer:: istat, iall
+
+      if(associated(array)) then
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
+      end if
+
+    end subroutine checkAndDeallocatePointer_log_4
+
+
+
+    subroutine checkAndDeallocatePointer_int_5(array, arrayname, subname)
+      use module_base, only: memocc
+      implicit none
+
+      ! Calling arguments
+      integer,dimension(:,:,:,:,:),pointer,intent(inout):: array
+      character(len=*),intent(in):: arrayname, subname
+      
+      ! Local variables
+      integer:: istat, iall
+
+      if(associated(array)) then
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
+      end if
+
+    end subroutine checkAndDeallocatepointer_int_5
+
+
+    subroutine checkAndDeallocatePointer_sgl_5(array, arrayname, subname)
+      use module_base, only: memocc
+      implicit none
+
+      ! Calling arguments
+      real(4),dimension(:,:,:,:,:),pointer,intent(inout):: array
+      character(len=*),intent(in):: arrayname, subname
+      
+      ! Local variables
+      integer:: istat, iall
+
+      if(associated(array)) then
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
+      end if
+
+    end subroutine checkAndDeallocatePointer_sgl_5
+
+
+    subroutine checkAndDeallocatePointer_dbl_5(array, arrayname, subname)
+      use module_base, only: memocc
+      implicit none
+
+      ! Calling arguments
+      real(8),dimension(:,:,:,:,:),pointer,intent(inout):: array
+      character(len=*),intent(in):: arrayname, subname
+      
+      ! Local variables
+      integer:: istat, iall
+
+      if(associated(array)) then
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
+      end if
+
+    end subroutine checkAndDeallocatePointer_dbl_5
+
+
+    subroutine checkAndDeallocatePointer_log_5(array, arrayname, subname)
+      use module_base, only: memocc
+      implicit none
+
+      ! Calling arguments
+      logical,dimension(:,:,:,:,:),pointer,intent(inout):: array
+      character(len=*),intent(in):: arrayname, subname
+      
+      ! Local variables
+      integer:: istat, iall
+
+      if(associated(array)) then
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
+      end if
+
+    end subroutine checkAndDeallocatePointer_log_5
+
+
+    subroutine checkAndDeallocatePointer_int_6(array, arrayname, subname)
+      use module_base, only: memocc
+      implicit none
+
+      ! Calling arguments
+      integer,dimension(:,:,:,:,:,:),pointer,intent(inout):: array
+      character(len=*),intent(in):: arrayname, subname
+      
+      ! Local variables
+      integer:: istat, iall
+
+      if(associated(array)) then
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
+      end if
+
+    end subroutine checkAndDeallocatepointer_int_6
+
+
+    subroutine checkAndDeallocatePointer_sgl_6(array, arrayname, subname)
+      use module_base, only: memocc
+      implicit none
+
+      ! Calling arguments
+      real(4),dimension(:,:,:,:,:,:),pointer,intent(inout):: array
+      character(len=*),intent(in):: arrayname, subname
+      
+      ! Local variables
+      integer:: istat, iall
+
+      if(associated(array)) then
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
+      end if
+
+    end subroutine checkAndDeallocatePointer_sgl_6
+
+
+    subroutine checkAndDeallocatePointer_dbl_6(array, arrayname, subname)
+      use module_base, only: memocc
+      implicit none
+
+      ! Calling arguments
+      real(8),dimension(:,:,:,:,:,:),pointer,intent(inout):: array
+      character(len=*),intent(in):: arrayname, subname
+      
+      ! Local variables
+      integer:: istat, iall
+
+      if(associated(array)) then
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
+      end if
+
+    end subroutine checkAndDeallocatePointer_dbl_6
+
+
+    subroutine checkAndDeallocatePointer_log_6(array, arrayname, subname)
+      use module_base, only: memocc
+      implicit none
+
+      ! Calling arguments
+      logical,dimension(:,:,:,:,:,:),pointer,intent(inout):: array
+      character(len=*),intent(in):: arrayname, subname
+      
+      ! Local variables
+      integer:: istat, iall
+
+      if(associated(array)) then
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
+      end if
+
+    end subroutine checkAndDeallocatePointer_log_6
+
+
+    subroutine checkAndDeallocatePointer_int_7(array, arrayname, subname)
+      use module_base, only: memocc
+      implicit none
+
+      ! Calling arguments
+      integer,dimension(:,:,:,:,:,:,:),pointer,intent(inout):: array
+      character(len=*),intent(in):: arrayname, subname
+      
+      ! Local variables
+      integer:: istat, iall
+
+      if(associated(array)) then
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
+      end if
+
+    end subroutine checkAndDeallocatepointer_int_7
+
+
+    subroutine checkAndDeallocatePointer_sgl_7(array, arrayname, subname)
+      use module_base, only: memocc
+      implicit none
+
+      ! Calling arguments
+      real(4),dimension(:,:,:,:,:,:,:),pointer,intent(inout):: array
+      character(len=*),intent(in):: arrayname, subname
+      
+      ! Local variables
+      integer:: istat, iall
+
+      if(associated(array)) then
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
+      end if
+
+    end subroutine checkAndDeallocatePointer_sgl_7
+
+
+    subroutine checkAndDeallocatePointer_dbl_7(array, arrayname, subname)
+      use module_base, only: memocc
+      implicit none
+
+      ! Calling arguments
+      real(8),dimension(:,:,:,:,:,:,:),pointer,intent(inout):: array
+      character(len=*),intent(in):: arrayname, subname
+      
+      ! Local variables
+      integer:: istat, iall
+
+      if(associated(array)) then
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
+      end if
+
+    end subroutine checkAndDeallocatePointer_dbl_7
+
+
+    subroutine checkAndDeallocatePointer_log_7(array, arrayname, subname)
+      use module_base, only: memocc
+      implicit none
+
+      ! Calling arguments
+      logical,dimension(:,:,:,:,:,:,:),pointer,intent(inout):: array
+      character(len=*),intent(in):: arrayname, subname
+      
+      ! Local variables
+      integer:: istat, iall
+
+      if(associated(array)) then
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
+      end if
+
+    end subroutine checkAndDeallocatePointer_log_7
+
+
+end module deallocatePointers
+
+
+
+
+
+!!$!> Module to deallocate the interfaces for the linear scaling version
+!!$module deallocationInterfaces
+!!$  implicit none
+!!$
+!!$  interface
+!!$    subroutine deallocate_local_zone_descriptors(lzd, subname)
+!!$      use module_types
+!!$      implicit none
+!!$      type(local_zone_descriptors),intent(inout):: lzd
+!!$      character(len=*),intent(in):: subname
+!!$    end subroutine deallocate_local_zone_descriptors
+!!$    
+!!$    subroutine deallocate_orbitals_data(orbs, subname)
+!!$      use module_types
+!!$      use deallocatePointers
+!!$      implicit none
+!!$      type(orbitals_data),intent(inout):: orbs
+!!$      character(len=*),intent(in):: subname
+!!$    end subroutine deallocate_orbitals_data
+!!$    
+!!$    subroutine deallocate_comms_cubic(comms, subname)
+!!$      
+!!$      use module_types
+!!$      use deallocatePointers
+!!$      implicit none
+!!$      type(comms_cubic),intent(inout):: comms
+!!$      character(len=*),intent(in):: subname
+!!$    end subroutine deallocate_comms_cubic
+!!$    
+!!$  end interface
+!!$
+!!$end module deallocationInterfaces

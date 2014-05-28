@@ -26,8 +26,7 @@ subroutine check_gaussian_expansion(iproc,nproc,orbs,Lzd,psi,G,coeffs)
   real(wp) :: maxdiffp,maxdiff,orbdiff
   real(wp), dimension(:), allocatable :: workpsi
 
-  allocate(workpsi((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,workpsi,'workpsi',subname)
+  workpsi = f_malloc((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%norbp,id='workpsi')
 
   !call gaussians_to_wavelets(iproc,nproc,lr%geocode,orbs,lr%d,hx,hy,hz,&
   !     lr%wfd,G,coeffs,workpsi)
@@ -58,9 +57,7 @@ subroutine check_gaussian_expansion(iproc,nproc,orbs,Lzd,psi,G,coeffs)
      & trim(yaml_toa(sqrt(maxdiff/real(orbs%norb,wp)),fmt='(1pe12.4)')))
   !   write(*,'(1x,a,1pe12.4)')'Mean L2 norm of gaussian-wavelet difference:',&
   !        sqrt(maxdiff/real(orbs%norb,wp))
-  i_all=-product(shape(workpsi))*kind(workpsi)
-  deallocate(workpsi,stat=i_stat)
-  call memocc(i_stat,i_all,'workpsi',subname)
+  call f_free(workpsi)
 
 END SUBROUTINE check_gaussian_expansion
 
@@ -103,8 +100,7 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
   nbx=0
   lmax=0
 
-  allocate(nshell(ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,nshell,'nshell',subname)
+  nshell = f_malloc(ntypes,id='nshell')
 
   open(unit=35,file=trim(basisfile),action='read')
 
@@ -150,14 +146,10 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
   rewind(35)
 
   !here allocate arrays
-  allocate(nam(nbx,ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,nam,'nam',subname)
-  allocate(ndoc(nbx,ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,ndoc,'ndoc',subname)
-  allocate(contcoeff(ngx,nbx,ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,contcoeff,'contcoeff',subname)
-  allocate(expo(ngx,nbx,ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,expo,'expo',subname)
+  nam = f_malloc((/ nbx, ntypes /),id='nam')
+  ndoc = f_malloc((/ nbx, ntypes /),id='ndoc')
+  contcoeff = f_malloc((/ ngx, nbx, ntypes /),id='contcoeff')
+  expo = f_malloc((/ ngx, nbx, ntypes /),id='expo')
   
   ityp=0
   ipg=0
@@ -212,8 +204,7 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
   CP2K%rxyz => rxyz
   !copy the parsed values in the gaussian structure
   !count also the total number of shells
-  allocate(CP2K%nshell(nat+ndebug),stat=i_stat)
-  call memocc(i_stat,CP2K%nshell,'CP2K%nshell',subname)
+  CP2K%nshell = f_malloc_ptr(nat,id='CP2K%nshell')
   
   CP2K%nshltot=0
   do iat=1,nat
@@ -222,10 +213,8 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
      CP2K%nshltot=CP2K%nshltot+nshell(ityp)
   end do
 
-  allocate(CP2K%ndoc(CP2K%nshltot+ndebug),stat=i_stat)
-  call memocc(i_stat,CP2K%ndoc,'CP2K%ndoc',subname)
-  allocate(CP2K%nam(CP2K%nshltot+ndebug),stat=i_stat)
-  call memocc(i_stat,CP2K%nam,'CP2K%nam',subname)
+  CP2K%ndoc = f_malloc_ptr(CP2K%nshltot,id='CP2K%ndoc')
+  CP2K%nam = f_malloc_ptr(CP2K%nshltot,id='CP2K%nam')
 
   !assign shell IDs and count the number of exponents and coefficients
   CP2K%ncplx=1
@@ -244,10 +233,8 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
   end do
 
   !allocate and assign the exponents and the coefficients
-  allocate(CP2K%xp(CP2K%ncplx,CP2K%nexpo+ndebug),stat=i_stat)
-  call memocc(i_stat,CP2K%xp,'CP2K%xp',subname)
-  allocate(CP2K%psiat(CP2K%ncplx,CP2K%nexpo+ndebug),stat=i_stat)
-  call memocc(i_stat,CP2K%psiat,'CP2K%psiat',subname)
+  CP2K%xp = f_malloc_ptr((/ CP2K%ncplx, CP2K%nexpo /),id='CP2K%xp')
+  CP2K%psiat = f_malloc_ptr((/ CP2K%ncplx, CP2K%nexpo /),id='CP2K%psiat')
 
   ishell=0
   iexpo=0
@@ -275,24 +262,17 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
 !!!  end do
 
 
-  i_all=-product(shape(contcoeff))*kind(contcoeff)
-  deallocate(contcoeff,stat=i_stat)
-  call memocc(i_stat,i_all,'contcoeff',subname)
-  i_all=-product(shape(expo))*kind(expo)
-  deallocate(expo,stat=i_stat)
-  call memocc(i_stat,i_all,'expo',subname)
+  call f_free(contcoeff)
+  call f_free(expo)
 
 
   mmax=2*lmax+1
   !now read the coefficients of the gaussian converged orbitals
   open(unit=36,file=trim(orbitalfile),action='read')
   !here there is the orbital label, for the moment it is assumed to vary between 1 and 4
-  allocate(ctmp(10+ndebug),stat=i_stat)
-  call memocc(i_stat,ctmp,'ctmp',subname)
-  allocate(iorbtmp(10+ndebug),stat=i_stat)
-  call memocc(i_stat,iorbtmp,'iorbtmp',subname)
-  allocate(cimu(mmax,nbx,nat,orbs%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,cimu,'cimu',subname)
+  ctmp = f_malloc(10,id='ctmp')
+  iorbtmp = f_malloc(10,id='iorbtmp')
+  cimu = f_malloc((/ mmax, nbx, nat, orbs%norb /),id='cimu')
 
   read(36,*)
   read_line1: do
@@ -383,8 +363,7 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
 !!!  end do
 
   !allocate and assign the coefficients of each orbital
-  allocate(wfn_cp2k(CP2K%ncoeff,orbs%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,wfn_cp2k,'wfn_cp2k',subname)
+  wfn_cp2k = f_malloc_ptr((/ CP2K%ncoeff, orbs%norbp /),id='wfn_cp2k')
   do iorb=1,orbs%norbp
      jorb=iorb+orbs%isorb
      icoeff=0
@@ -401,24 +380,12 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
      call gaudim_check(1,icoeff+1,ishell,0,CP2K%ncoeff,CP2K%nshltot)
   end do
 
-  i_all=-product(shape(ctmp))*kind(ctmp)
-  deallocate(ctmp,stat=i_stat)
-  call memocc(i_stat,i_all,'ctmp',subname)
-  i_all=-product(shape(iorbtmp))*kind(iorbtmp)
-  deallocate(iorbtmp,stat=i_stat)
-  call memocc(i_stat,i_all,'iorbtmp',subname)
-  i_all=-product(shape(nshell))*kind(nshell)
-  deallocate(nshell,stat=i_stat)
-  call memocc(i_stat,i_all,'nshell',subname)
-  i_all=-product(shape(nam))*kind(nam)
-  deallocate(nam,stat=i_stat)
-  call memocc(i_stat,i_all,'nam',subname)
-  i_all=-product(shape(ndoc))*kind(ndoc)
-  deallocate(ndoc,stat=i_stat)
-  call memocc(i_stat,i_all,'ndoc',subname)
-  i_all=-product(shape(cimu))*kind(cimu)
-  deallocate(cimu,stat=i_stat)
-  call memocc(i_stat,i_all,'cimu',subname)
+  call f_free(ctmp)
+  call f_free(iorbtmp)
+  call f_free(nshell)
+  call f_free(nam)
+  call f_free(ndoc)
+  call f_free(cimu)
 
   !if (iproc==0) write(*,'(1x,a)')'done.'
 
@@ -456,8 +423,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
      !write(*,'(1x,a)',advance='no')'Writing wavefunctions in wavelet form '
   !end if
 
-  allocate(tpsi(wfd%nvctr_c+7*wfd%nvctr_f+ndebug),stat=i_stat)
-  call memocc(i_stat,tpsi,'tpsi',subname)
+  tpsi = f_malloc(wfd%nvctr_c+7*wfd%nvctr_f,id='tpsi')
 
   !initialize the wavefunction
   call to_zero((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor,psi(1,1,1))
@@ -574,9 +540,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
      call yaml_map('Deviation from normalization',normdev,fmt='(1pe12.2)')
   end if
 
-  i_all=-product(shape(tpsi))*kind(tpsi)
-  deallocate(tpsi,stat=i_stat)
-  call memocc(i_stat,i_all,'tpsi',subname)
+  call f_free(tpsi)
 
 END SUBROUTINE gaussians_to_wavelets
 
@@ -694,14 +658,10 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   !but with at least ngx*nterm_max ~= 100 elements
   nterms_max=max(maxsizeKB*1024/(2*ncplx*max(lr%d%n1,lr%d%n2,lr%d%n3)),100)
 
-  allocate(work(0:nw,2,2+ndebug),stat=i_stat)
-  call memocc(i_stat,work,'work',subname)
-  allocate(wx(ncplx,0:lr%d%n1,2,nterms_max+ndebug),stat=i_stat)
-  call memocc(i_stat,wx,'wx',subname)
-  allocate(wy(ncplx,0:lr%d%n2,2,nterms_max+ndebug),stat=i_stat)
-  call memocc(i_stat,wy,'wy',subname)
-  allocate(wz(ncplx,0:lr%d%n3,2,nterms_max+ndebug),stat=i_stat)
-  call memocc(i_stat,wz,'wz',subname)
+  work = f_malloc((/ 0.to.nw, 1.to.2, 1.to.2 /),id='work')
+  wx = f_malloc((/ 1.to.ncplx, 0.to.lr%d%n1, 1.to.2, 1.to.nterms_max /),id='wx')
+  wy = f_malloc((/ 1.to.ncplx, 0.to.lr%d%n2, 1.to.2, 1.to.nterms_max /),id='wy')
+  wz = f_malloc((/ 1.to.ncplx, 0.to.lr%d%n3, 1.to.2, 1.to.nterms_max /),id='wz')
 
   !conditions for periodicity in the three directions
   perx=(lr%geocode /= 'F')
@@ -786,19 +746,10 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   call wfn_from_tensprod(lr,ncplx,nterms,wx,wy,wz,psi)
 !psi=1.d0
 
-  i_all=-product(shape(wx))*kind(wx)
-  deallocate(wx,stat=i_stat)
-  call memocc(i_stat,i_all,'wx',subname)
-  i_all=-product(shape(wy))*kind(wy)
-  deallocate(wy,stat=i_stat)
-  call memocc(i_stat,i_all,'wy',subname)
-  i_all=-product(shape(wz))*kind(wz)
-  deallocate(wz,stat=i_stat)
-  call memocc(i_stat,i_all,'wz',subname)
-
-  i_all=-product(shape(work))*kind(work)
-  deallocate(work,stat=i_stat)
-  call memocc(i_stat,i_all,'work',subname)
+  call f_free(wx)
+  call f_free(wy)
+  call f_free(wz)
+  call f_free(work)
 
 END SUBROUTINE gaussians_to_wavelets_orb
 
@@ -845,18 +796,11 @@ subroutine gaussians_c_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi,
   !but with at least ngx*nterm_max ~= 100 elements
   nterms_max=max(maxsizeKB*1024/(2*ncplxC*max(lr%d%n1,lr%d%n2,lr%d%n3)),100)
 
-  allocate(work(0:nw,2,2, ncplx+ndebug),stat=i_stat)
-  call memocc(i_stat,work,'work',subname)
-
-  allocate(wx( ncplxC, ncplx,0:lr%d%n1,2,nterms_max+ndebug),stat=i_stat)
-  call memocc(i_stat,wx,'wx',subname)
-  allocate(wy( ncplxC, ncplx,0:lr%d%n2,2,nterms_max+ndebug),stat=i_stat)
-  call memocc(i_stat,wy,'wy',subname)
-  allocate(wz(ncplxC, ncplx,0:lr%d%n3,2,nterms_max+ndebug),stat=i_stat)
-  call memocc(i_stat,wz,'wz',subname)
-
-  allocate(   cossinfacts(1:2, 1:nterms_max+ndebug) ,stat=i_stat)
-  call memocc(i_stat,cossinfacts,'cossinfacts',subname)
+  work = f_malloc((/ 0.to.nw, 1.to.2, 1.to.2, 1.to.ncplx /),id='work')
+  wx = f_malloc((/ 1.to.ncplxC, 1.to.ncplx, 0.to.lr%d%n1, 1.to.2, 1.to.nterms_max /),id='wx')
+  wy = f_malloc((/ 1.to.ncplxC, 1.to.ncplx, 0.to.lr%d%n2, 1.to.2, 1.to.nterms_max /),id='wy')
+  wz = f_malloc((/ 1.to.ncplxC, 1.to.ncplx, 0.to.lr%d%n3, 1.to.2, 1.to.nterms_max /),id='wz')
+  cossinfacts = f_malloc((/ 1.to.2, 1.to.nterms_max /),id='cossinfacts')
 
 
   !conditions for periodicity in the three directions
@@ -964,25 +908,11 @@ subroutine gaussians_c_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi,
 
 !psi=1.d0
 
-  i_all=-product(shape(wx))*kind(wx)
-  deallocate(wx,stat=i_stat)
-  call memocc(i_stat,i_all,'wx',subname)
-  i_all=-product(shape(wy))*kind(wy)
-  deallocate(wy,stat=i_stat)
-  call memocc(i_stat,i_all,'wy',subname)
-
-  i_all=-product(shape(wz))*kind(wz)
-  deallocate(wz,stat=i_stat)
-  call memocc(i_stat,i_all,'wz',subname)
-
-  i_all=-product(shape(cossinfacts))*kind(cossinfacts)
-  deallocate(cossinfacts,stat=i_stat)
-  call memocc(i_stat,i_all,'cossinfacts',subname)
-
-
-  i_all=-product(shape(work))*kind(work)
-  deallocate(work,stat=i_stat)
-  call memocc(i_stat,i_all,'work',subname)
+  call f_free(wx)
+  call f_free(wy)
+  call f_free(wz)
+  call f_free(cossinfacts)
+  call f_free(work)
 
 END SUBROUTINE gaussians_c_to_wavelets_orb
 
@@ -1873,8 +1803,7 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   nbx=0
   lmax=0
 
-  allocate(nshell(ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,nshell,'nshell',subname)
+  nshell = f_malloc(ntypes,id='nshell')
 
   open(unit=35,file='gaubasis.dat',action='read')
 
@@ -1921,14 +1850,10 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   rewind(35)
 
   !here allocate arrays
-  allocate(nam(nbx,ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,nam,'nam',subname)
-  allocate(ndoc(nbx,ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,ndoc,'ndoc',subname)
-  allocate(contcoeff(ngx,nbx,ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,contcoeff,'contcoeff',subname)
-  allocate(expo(ngx,nbx,ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,expo,'expo',subname)
+  nam = f_malloc((/ nbx, ntypes /),id='nam')
+  ndoc = f_malloc((/ nbx, ntypes /),id='ndoc')
+  contcoeff = f_malloc((/ ngx, nbx, ntypes /),id='contcoeff')
+  expo = f_malloc((/ ngx, nbx, ntypes /),id='expo')
   
   ityp=0
   ipg=0
@@ -2030,12 +1955,9 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   !now read the coefficients of the gaussian converged orbitals
   open(unit=36,file='gaucoeff.dat',action='read')
   !here there is the orbital label, for the moment it is assumed to vary between 1 and 4
-  allocate(ctmp(10+ndebug),stat=i_stat)
-  call memocc(i_stat,ctmp,'ctmp',subname)
-  allocate(iorbtmp(10+ndebug),stat=i_stat)
-  call memocc(i_stat,iorbtmp,'iorbtmp',subname)
-  allocate(cimu(mmax,nbx,nat,norb+ndebug),stat=i_stat)
-  call memocc(i_stat,cimu,'cimu',subname)
+  ctmp = f_malloc(10,id='ctmp')
+  iorbtmp = f_malloc(10,id='iorbtmp')
+  cimu = f_malloc((/ mmax, nbx, nat, norb /),id='cimu')
 
   read(36,*)
   read_line1: do
@@ -2124,12 +2046,8 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
 !!!     end do
 !!!  end do
 
-  i_all=-product(shape(ctmp))*kind(ctmp)
-  deallocate(ctmp,stat=i_stat)
-  call memocc(i_stat,i_all,'ctmp',subname)
-  i_all=-product(shape(iorbtmp))*kind(iorbtmp)
-  deallocate(iorbtmp,stat=i_stat)
-  call memocc(i_stat,i_all,'iorbtmp',subname)
+  call f_free(ctmp)
+  call f_free(iorbtmp)
 
 
   !now apply this basis set information to construct the wavelets wavefunctions
@@ -2140,12 +2058,9 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
      !write(*,'(1x,a)',advance='no')'Writing wavefunctions in wavelet form '
   end if
 
-  allocate(psiatn(ngx+ndebug),stat=i_stat)
-  call memocc(i_stat,psiatn,'psiatn',subname)
-  allocate(xp(ngx+ndebug),stat=i_stat)
-  call memocc(i_stat,xp,'xp',subname)
-  allocate(tpsi(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
-  call memocc(i_stat,tpsi,'tpsi',subname)
+  psiatn = f_malloc(ngx,id='psiatn')
+  xp = f_malloc(ngx,id='xp')
+  tpsi = f_malloc(nvctr_c+7*nvctr_f,id='tpsi')
 
   !initialize the wavefunction
   call to_zero((nvctr_c+7*nvctr_f)*norbp,psi)
@@ -2227,35 +2142,16 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
 
   !now we have to evaluate the eigenvalues of this hamiltonian
 
-  i_all=-product(shape(tpsi))*kind(tpsi)
-  deallocate(tpsi,stat=i_stat)
-  call memocc(i_stat,i_all,'tpsi',subname)
+  call f_free(tpsi)
+  call f_free(nshell)
+  call f_free(nam)
+  call f_free(ndoc)
+  call f_free(contcoeff)
+  call f_free(expo)
+  call f_free(cimu)
 
-  i_all=-product(shape(nshell))*kind(nshell)
-  deallocate(nshell,stat=i_stat)
-  call memocc(i_stat,i_all,'nshell',subname)
-  i_all=-product(shape(nam))*kind(nam)
-  deallocate(nam,stat=i_stat)
-  call memocc(i_stat,i_all,'nam',subname)
-  i_all=-product(shape(ndoc))*kind(ndoc)
-  deallocate(ndoc,stat=i_stat)
-  call memocc(i_stat,i_all,'ndoc',subname)
-  i_all=-product(shape(contcoeff))*kind(contcoeff)
-  deallocate(contcoeff,stat=i_stat)
-  call memocc(i_stat,i_all,'contcoeff',subname)
-  i_all=-product(shape(expo))*kind(expo)
-  deallocate(expo,stat=i_stat)
-  call memocc(i_stat,i_all,'expo',subname)
-  i_all=-product(shape(cimu))*kind(cimu)
-  deallocate(cimu,stat=i_stat)
-  call memocc(i_stat,i_all,'cimu',subname)
-
-  i_all=-product(shape(xp))*kind(xp)
-  deallocate(xp,stat=i_stat)
-  call memocc(i_stat,i_all,'xp',subname)
-  i_all=-product(shape(psiatn))*kind(psiatn)
-  deallocate(psiatn,stat=i_stat)
-  call memocc(i_stat,i_all,'psiatn',subname)
+  call f_free(xp)
+  call f_free(psiatn)
 
 END SUBROUTINE gautowav
 
@@ -2369,16 +2265,11 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
   perz=(geocode /= 'F')
 
 
-  allocate(wprojx(0:n1,2+ndebug),stat=i_stat)
-  call memocc(i_stat,wprojx,'wprojx',subname)
-  allocate(wprojy(0:n2,2+ndebug),stat=i_stat)
-  call memocc(i_stat,wprojy,'wprojy',subname)
-  allocate(wprojz(0:n3,2+ndebug),stat=i_stat)
-  call memocc(i_stat,wprojz,'wprojz',subname)
-  allocate(psig_c(nl1_c:nu1_c,nl2_c:nu2_c,nl3_c:nu3_c+ndebug),stat=i_stat)
-  call memocc(i_stat,psig_c,'psig_c',subname)
-  allocate(psig_f(7,nl1_f:nu1_f,nl2_f:nu2_f,nl3_f:nu3_f+ndebug),stat=i_stat)
-  call memocc(i_stat,psig_f,'psig_f',subname)
+  wprojx = f_malloc((/ 0.to.n1, 1.to.2 /),id='wprojx')
+  wprojy = f_malloc((/ 0.to.n2, 1.to.2 /),id='wprojy')
+  wprojz = f_malloc((/ 0.to.n3, 1.to.2 /),id='wprojz')
+  psig_c = f_malloc((/ nl1_c.to.nu1_c, nl2_c.to.nu2_c, nl3_c.to.nu3_c /),id='psig_c')
+  psig_f = f_malloc((/ 1.to.7, nl1_f.to.nu1_f, nl2_f.to.nu2_f, nl3_f.to.nu3_f /),id='psig_f')
 
   !print *,'limits',nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f
 
@@ -2564,20 +2455,10 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
 !$omp end parallel
   !print *,'nvctr_f',itp,mvctr_f
 
-  i_all=-product(shape(wprojx))*kind(wprojx)
-  deallocate(wprojx,stat=i_stat)
-  call memocc(i_stat,i_all,'wprojx',subname)
-  i_all=-product(shape(wprojy))*kind(wprojy)
-  deallocate(wprojy,stat=i_stat)
-  call memocc(i_stat,i_all,'wprojy',subname)
-  i_all=-product(shape(wprojz))*kind(wprojz)
-  deallocate(wprojz,stat=i_stat)
-  call memocc(i_stat,i_all,'wprojz',subname)
-  i_all=-product(shape(psig_c))*kind(psig_c)
-  deallocate(psig_c,stat=i_stat)
-  call memocc(i_stat,i_all,'psig_c',subname)
-  i_all=-product(shape(psig_f))*kind(psig_f)
-  deallocate(psig_f,stat=i_stat)
-  call memocc(i_stat,i_all,'psig_f',subname)
+  call f_free(wprojx)
+  call f_free(wprojy)
+  call f_free(wprojz)
+  call f_free(psig_c)
+  call f_free(psig_f)
 
 END SUBROUTINE crtonewave

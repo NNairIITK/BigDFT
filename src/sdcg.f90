@@ -33,10 +33,8 @@ subroutine conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
   character(len=40) :: comment
 
   check=0
-  allocate(tpos(3,runObj%atoms%astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,tpos,'tpos',subname)
-  allocate(hh(3,runObj%atoms%astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,hh,'hh',subname)
+  tpos = f_malloc((/ 3, runObj%atoms%astruct%nat /),id='tpos')
+  hh = f_malloc((/ 3, runObj%atoms%astruct%nat /),id='hh')
   call init_global_output(l_outs, runObj%atoms%astruct%nat)
 
   anoise=1.e-4_gp
@@ -311,12 +309,8 @@ contains
     implicit none
     !    Close the file
     !close(unit=16)
-    i_all=-product(shape(tpos))*kind(tpos)
-    deallocate(tpos,stat=i_stat)
-    call memocc(i_stat,i_all,'tpos',subname)
-    i_all=-product(shape(hh))*kind(hh)
-    deallocate(hh,stat=i_stat)
-    call memocc(i_stat,i_all,'hh',subname)
+    call f_free(tpos)
+    call f_free(hh)
     call deallocate_global_output(l_outs)
   END SUBROUTINE close_and_deallocate
 
@@ -349,8 +343,7 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
   character(len=4) :: fn4
   character(len=40) :: comment
 
-  allocate(tpos(3,runObj%atoms%astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,tpos,'tpos',subname)
+  tpos = f_malloc((/ 3, runObj%atoms%astruct%nat /),id='tpos')
 
   etotprev=outs%energy
   anoise=0.e-4_gp
@@ -390,9 +383,7 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
            end if
         end if
 
-        i_all=-product(shape(tpos))*kind(tpos)
-        deallocate(tpos,stat=i_stat)
-        call memocc(i_stat,i_all,'tpos',subname)
+        call f_free(tpos)
         return
      endif
 
@@ -587,9 +578,7 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
 
   if (iproc == 0 .and. parmin%verbosity > 0) write(16,*) 'SD FINISHED',iproc
 
-  i_all=-product(shape(tpos))*kind(tpos)
-  deallocate(tpos,stat=i_stat)
-  call memocc(i_stat,i_all,'tpos',subname)
+  call f_free(tpos)
 
 END SUBROUTINE steepdes
 
@@ -621,8 +610,7 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
 
   check=0
   etotprev=outs%energy
-  allocate(posold(3,runObj%atoms%astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,posold,'posold',subname)
+  posold = f_malloc((/ 3, runObj%atoms%astruct%nat /),id='posold')
   call init_global_output(outsold, runObj%atoms%astruct%nat)
 
   !n(c) anoise=1.e-4_gp
@@ -825,9 +813,7 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
   endif
 
 
-  i_all=-product(shape(posold))*kind(posold)
-  deallocate(posold,stat=i_stat)
-  call memocc(i_stat,i_all,'posold',subname)
+  call f_free(posold)
   call deallocate_global_output(outsold)
 
 END SUBROUTINE vstepsd

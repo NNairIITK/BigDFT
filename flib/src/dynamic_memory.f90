@@ -20,17 +20,17 @@ module dynamic_memory
 
   private 
 
-  logical, parameter :: track_origins=.true.!< when true keeps track of all the allocation statuses using dictionaries
-  integer, parameter :: namelen=f_malloc_namelen          !< length of the character variables
-  integer, parameter :: error_string_len=80 !< length of error string
-  integer, parameter :: ndebug=0            !< size of debug parameters
-!!$  integer, parameter :: max_rank=7          !< maximum rank in fortran
-  !maximum size of f_lib control variables
-  integer, parameter :: max_ctrl = 5 !<maximum number of nested levels
-  integer :: ictrl=0                 !<id of active control structure (<=max_ctrl)
+  logical, parameter :: track_origins=.true.      !< When true keeps track of all the allocation statuses using dictionaries
+  integer, parameter :: namelen=f_malloc_namelen  !< Length of the character variables
+  integer, parameter :: error_string_len=80       !< Length of error string
+  integer, parameter :: ndebug=0                  !< Size of debug parameters
+!!$  integer, parameter :: max_rank=7             !< Maximum rank in fortran
+  !> Maximum size of f_lib control variables
+  integer, parameter :: max_ctrl = 5 !< Maximum number of nested levels
+  integer :: ictrl=0                 !< Id of active control structure (<=max_ctrl)
 
 
-  !> parameters for defitions of internal dictionary
+  !> Parameters for defitions of internal dictionary
   character(len=*), parameter :: arrayid='Array Id'
   character(len=*), parameter :: routineid='Allocating Routine Id'
   character(len=*), parameter :: sizeid='Size (Bytes)'
@@ -42,21 +42,22 @@ module dynamic_memory
   character(len=*), parameter :: t0_time='Time of last opening'
   character(len=*), parameter :: tot_time='Total time (s)'
   character(len=*), parameter :: prof_enabled='Profiling Enabled'
+  character(len=*), parameter :: main='Main program'
 
-  !error codes
+  !> Error codes
   integer, save :: ERR_ALLOCATE
   integer, save :: ERR_DEALLOCATE
   integer, save :: ERR_MEMLIMIT
   integer, save :: ERR_INVALID_COPY
   integer, save :: ERR_MALLOC_INTERNAL
 
-  !timing categories
+  !> Timing categories
   integer, public, save :: TCAT_ARRAY_ALLOCATIONS
   integer, public, save :: TCAT_INIT_TO_ZERO
   integer, public, save :: TCAT_ROUTINE_PROFILING
 
-  !> control structure of flib library. 
-  !Contains all global variables of interest in a separate instance of f_lib
+  !> Control structure of flib library. 
+  !! Contains all global variables of interest in a separate instance of f_lib
   type :: mem_ctrl 
      logical :: profile_initialized  !< global variables for initialization
      logical :: routine_opened       !< global variable (can be stored in dictionaries)
@@ -69,19 +70,21 @@ module dynamic_memory
      type(dictionary), pointer :: dict_codepoint !<points to where we are in the previous dictionary
   end type mem_ctrl
   
-  !>global variable controlling the different instances of the calls
-  !the 0 component is supposed to be unused, it is allocated to avoid segfaults
-  !if the library routines are called without initialization
+  !> Global variable controlling the different instances of the calls
+  !! the 0 component is supposed to be unused, it is allocated to avoid segfaults
+  !! if the library routines are called without initialization
   type(mem_ctrl), dimension(0:max_ctrl) :: mems
 
   interface assignment(=)
      module procedure i1_all,i2_all,i3_all,i4_all
      module procedure l1_all,l2_all,l3_all
-     module procedure d1_all,d2_all,d3_all,d4_all,d5_all,d6_all
+     module procedure d1_all,d2_all,d3_all,d4_all,d5_all,d6_all,d7_all
      module procedure r1_all,r2_all,r3_all
      module procedure z2_all
-     module procedure d1_ptr,d2_ptr,d3_ptr,d4_ptr,d5_ptr
-     module procedure i1_ptr,i2_ptr,i3_ptr
+     module procedure d1_ptr,d2_ptr,d3_ptr,d4_ptr,d5_ptr,d6_ptr
+     module procedure i1_ptr,i2_ptr,i3_ptr,i4_ptr
+     module procedure l3_ptr
+     module procedure z1_ptr
      !strings and pointers for characters
      module procedure c1_all
 !     module procedure c1_ptr
@@ -91,15 +94,17 @@ module dynamic_memory
      module procedure i1_all_free,i2_all_free,i3_all_free,i4_all_free
      module procedure i1_all_free_multi
      module procedure l1_all_free,l2_all_free,l3_all_free
-     module procedure d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free,d5_all_free,d6_all_free
+     module procedure d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free,d5_all_free,d6_all_free,d7_all_free
      module procedure r1_all_free,r2_all_free,r3_all_free
      module procedure z2_all_free
   end interface
 
   interface f_free_ptr
-     module procedure i1_ptr_free,i2_ptr_free,i3_ptr_free
+     module procedure i1_ptr_free,i2_ptr_free,i3_ptr_free,i4_ptr_free
      module procedure i1_ptr_free_multi
-     module procedure d1_ptr_free,d2_ptr_free,d3_ptr_free,d4_ptr_free,d5_ptr_free
+     module procedure d1_ptr_free,d2_ptr_free,d3_ptr_free,d4_ptr_free,d5_ptr_free,d6_ptr_free
+     module procedure l3_ptr_free
+     module procedure z1_ptr_free
   end interface
 
   !> initialize to zero an array (should be called f_memset)
@@ -114,7 +119,8 @@ module dynamic_memory
   interface f_memcpy
      module procedure f_memcpy_i0,f_memcpy_i1
      module procedure f_memcpy_r0
-     module procedure f_memcpy_d0
+     module procedure f_memcpy_d0,f_memcpy_d1,f_memcpy_d2
+     module procedure f_memcpy_d1d2,f_memcpy_d2d1
      module procedure f_memcpy_l0
   end interface f_memcpy
 
@@ -403,7 +409,7 @@ contains
           
           nullify(mems(ictrl)%dict_routine)
        end if
-       !this means that the previous routine has not been closed
+       !this means that the previous routine has not been closed yet
        if (mems(ictrl)%routine_opened) then
           !call open_routine(dict_codepoint)
           mems(ictrl)%dict_codepoint=>mems(ictrl)%dict_codepoint//subprograms
@@ -443,7 +449,7 @@ contains
     implicit none
 
     if (f_err_raise(ictrl == 0,&
-         'ERROR (f_release_routine): the routine f_malloc_initialize has not been called',&
+         '(f_release_routine): the routine f_malloc_initialize has not been called',&
          ERR_MALLOC_INTERNAL)) return
 
     !profile the profiling
@@ -646,7 +652,7 @@ contains
     !Process Id (used to dump)
     call set(mems(ictrl)%dict_global//processid,0)
     !start the profiling of the main program
-    call f_routine(id='Main program')
+    call f_routine(id=main)
 
     !set status of library to the initial case
     call f_malloc_set_status(memory_limit=0.e0)
@@ -795,10 +801,13 @@ contains
      end do
   end subroutine dump_leaked_memory
 
-  subroutine f_malloc_dump_status(filename)
+  subroutine f_malloc_dump_status(filename,dict_summary)
     use yaml_output
     implicit none
     character(len=*), intent(in), optional :: filename
+    !> if present, this dictionary is filled with the summary of the 
+    !! dumped dictionary. Its presence disables the normal dumping
+    type(dictionary), pointer, optional, intent(out) :: dict_summary 
     !local variables
     integer, parameter :: iunit=97 !<if used switch to default
     integer :: iunt,iunit_def,istat
@@ -806,6 +815,14 @@ contains
     if (f_err_raise(ictrl == 0,&
          'ERROR (f_malloc_dump_status): the routine f_malloc_initialize has not been called',&
          ERR_MALLOC_INTERNAL)) return
+    if (present(dict_summary)) then
+       call dict_init(dict_summary)
+       call postreatment_of_calling_sequence(-1.d0,&
+            mems(ictrl)%dict_calling_sequence,dict_summary)
+       !call yaml_map('Codepoint',trim(dict_key(mems(ictrl)%dict_codepoint)))
+       return
+    end if
+
     !retrieve current unit
     call yaml_get_default_stream(iunit_def)
     iunt=iunit_def
@@ -842,6 +859,86 @@ contains
     end if
 
   end subroutine f_malloc_dump_status
+
+
+  !> This routine identify for each of the routines the most time consuming parts and print it in the logfile
+  recursive subroutine postreatment_of_calling_sequence(base_time,&
+       dict_cs,dict_pt)
+    implicit none
+    !>time on which percentages has to be given
+    double precision, intent(in) :: base_time 
+    type(dictionary), pointer :: dict_cs,dict_pt
+    !local variables
+    integer :: ikey,jkey,nkey,icalls
+    integer(kind=8) :: itime,jtime
+    double precision :: bt
+    character(len=info_length) :: keyval,percent
+    type(dictionary), pointer :: dict_tmp
+    integer, dimension(:), allocatable :: ipiv
+    double precision, dimension(:), allocatable :: time
+    character(len=info_length), dimension(:), allocatable :: keys
+
+    !build the dictionary of timings
+    nkey=dict_size(dict_cs)
+    time=f_malloc(nkey,id='time')
+    keys=f_malloc_str(info_length,nkey,id='keys')
+    ipiv=f_malloc(nkey,id='ipiv')
+
+    !now fill the timings with the values
+    dict_tmp=>dict_iter(dict_cs)
+    ikey=0
+    do while (associated(dict_tmp))
+       ikey=ikey+1       
+       keys(ikey)=dict_key(dict_tmp)
+       if (t0_time .in. dict_tmp) then
+          !measure the time from last opening
+          itime=f_time()
+          jtime=dict_tmp//t0_time
+          jtime=itime-jtime
+          time(ikey)=real(jtime,kind=8)*1.d-9
+          !add an asterisk to the key
+       else if (tot_time .in. dict_tmp) then
+          time(ikey)=dict_tmp//tot_time
+       else
+          time(ikey)=0.d0
+       end if
+       dict_tmp=>dict_next(dict_tmp)
+    end do
+
+    !now order the arrays from the most to the less expensive
+    call sort_positions(nkey,time,ipiv)
+    do ikey=1,nkey
+       jkey=ipiv(ikey)
+       icalls=dict_cs//trim(keys(jkey))//no_of_calls
+       if (base_time > 0.d0) then
+          percent(1:len(percent))=&
+               trim(yaml_toa(time(jkey)/base_time*100.d0,fmt='(f6.2)'))//'%'
+       else
+          percent(1:len(percent))='~'
+       end if
+       !add to the dictionary the information associated to this routine
+       call add(dict_pt,dict_new(trim(keys(jkey)) .is. &
+            list_new(.item. yaml_toa(time(jkey),fmt='(1pg12.3)'),&
+            .item. yaml_toa(icalls),.item. percent)&
+            ))
+    end do
+    call f_free(ipiv)
+    call f_free_str(info_length,keys)
+    call f_free(time)
+    !now that the routine level has been ordered, inspect lower levels,
+
+    do ikey=1,nkey
+       !the first key is the name of the routine
+       dict_tmp=>dict_iter(dict_pt//(ikey-1))
+       keyval=dict_key(dict_tmp)
+       bt=dict_tmp//0
+       if (subprograms .in. dict_cs//trim(keyval)) then
+          call postreatment_of_calling_sequence(bt,dict_cs//trim(keyval)//subprograms,&
+               dict_pt//(ikey-1)//subprograms)
+       end if
+    end do
+
+  end subroutine postreatment_of_calling_sequence
 
   !---Templates start here
   include 'malloc_templates-inc.f90'
