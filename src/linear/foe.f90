@@ -87,9 +87,6 @@ subroutine foe(iproc, nproc, tmprtr, &
 
   call timing(iproc, 'FOE_auxiliary ', 'ON')
 
-  !!! initialization
-  !!interpol_solution = 0.d0
-
 
 
   penalty_ev = f_malloc((/tmb%orbs%norb,tmb%orbs%norbp,2/),id='penalty_ev')
