@@ -144,7 +144,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   if (correction_co_contra) then
       !@NEW correction for contra / covariant gradient
 
-      if (method_updatekernel/=UPDATE_BY_FOE) then
+      if (method_updatekernel/=UPDATE_BY_FOE .or. target_function/=TARGET_FUNCTION_IS_HYBRID) then
           if(.not.associated(tmb%psit_c)) then
               tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
           end if
