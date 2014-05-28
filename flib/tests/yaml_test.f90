@@ -19,9 +19,9 @@ program yaml_test
 
    call f_lib_initialize()
 
-!   call profile_dictionary_usage()
-!!$   call f_lib_finalize()
-!!$   stop
+   call profile_dictionary_usage()
+   call f_lib_finalize()
+   stop
 
    !First document  
    call yaml_new_document()
@@ -75,7 +75,7 @@ program yaml_test
     call f_malloc_dump_status(dict_summary=dict_tmp)
     call yaml_map('Summary',dict_tmp)
     call dict_free(dict_tmp)
-   call f_lib_finalize()
+!   call f_lib_finalize()
 !stop
    call yaml_new_document()
     call test_copy_merge()

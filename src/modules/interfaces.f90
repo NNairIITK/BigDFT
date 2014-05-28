@@ -2463,7 +2463,8 @@ module module_interfaces
                   ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
                   energy_increased, tmb, lhphiold, overlap_calculated, &
                   energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
-                  energy_only, hpsi_small, experimental_mode, correction_co_contra, ksorbs, hpsi_noprecond, norder_taylor, method_updatekernel)
+                  energy_only, hpsi_small, experimental_mode, correction_co_contra, ksorbs, hpsi_noprecond, &
+                  norder_taylor, method_updatekernel)
          use module_base
          use module_types
          implicit none
