@@ -9,7 +9,7 @@
 
 
 !> Calculate the exact exchange potential
-subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p,&
+subroutine exact_exchange_potential(iproc,nproc,geocode,xc,nspin,lr,orbs,n3parr,n3p,&
      hxh,hyh,hzh,pkernel,psi,psir,eexctX)
 
   use module_base
@@ -23,6 +23,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
   integer, intent(in) :: iproc,nproc                  !< MPI information
   integer, intent(in) :: n3p,nspin                    !< spin and ...
   real(gp), intent(in) :: hxh,hyh,hzh                 !< hgrid
+  type(xc_info), intent(in) :: xc
   type(locreg_descriptors), intent(in) :: lr          !< Local region descriptors
   type(orbitals_data), intent(in) :: orbs             !< Orbitals
   integer, dimension(0:nproc-1), intent(in) :: n3parr
@@ -42,7 +43,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
 
   !call timing(iproc,'Exchangecorr  ','ON')
 
-  exctXfac = xc_exctXfac()
+  exctXfac = xc_exctXfac(xc)
 
   eexctX=0.0_gp
 
@@ -700,7 +701,7 @@ END SUBROUTINE exact_exchange_potential_virt
 !> Calculate the exact exchange potential on occupied orbitals
 !! within the symmetric round-robin scheme
 !! the psi is already given in the real-space form
-subroutine exact_exchange_potential_round(iproc,nproc,nspin,lr,orbs,&
+subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
      hxh,hyh,hzh,pkernel,psi,dpsir,eexctX)
   use module_base
   use module_types
@@ -710,6 +711,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,nspin,lr,orbs,&
   implicit none
   integer, intent(in) :: iproc,nproc,nspin
   real(gp), intent(in) :: hxh,hyh,hzh
+  type(xc_info), intent(in) :: xc
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(in) :: orbs
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
@@ -735,7 +737,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,nspin,lr,orbs,&
 
   !call timing(iproc,'Exchangecorr  ','ON')
 
-  exctXfac = xc_exctXfac()
+  exctXfac = xc_exctXfac(xc)
 
   eexctX=0.0_gp
 
@@ -1019,7 +1021,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,nspin,lr,orbs,&
 
      end do
 
-     if (nproc > 1) call mpiallred(ndatas(1,0,1),2*nproc*ngroup,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+     if (nproc > 1) call mpiallred(ndatas(1,0,1),2*nproc*ngroup,MPI_SUM,bigdft_mpi%mpi_comm)
      !if(iproc ==0)print *,'iproc,datas',iproc,ndatas
 
      do igroup=1,ngroupp
@@ -1310,7 +1312,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,nspin,lr,orbs,&
   end do
   
   !call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
-  if (nproc>1) call mpiallred(eexctX,1,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+  if (nproc>1) call mpiallred(eexctX,1,MPI_SUM,bigdft_mpi%mpi_comm)
   
   !the exact exchange energy is half the Hartree energy (which already has another half)
   eexctX=-exctXfac*eexctX

@@ -14,14 +14,14 @@
 ##
 ## You should have received a copy of the GNU Lesser General Public License
 ## along with this program; if not, write to the Free Software
-## Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
-## 02111-1307, USA.
+## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+## 02110-1301, USA.
 ##
 ## $Id$
 
 noinst_PROGRAMS = xc-get_data xc-consistency xc-regression
 dist_noinst_SCRIPTS = xc-run_testsuite xc-reference.pl
-TESTS = xc-run_testsuite
+#TESTS = xc-run_testsuite
 TESTS_ENVIRONMENT = buildir=$(top_builddir)/testsuite
 
 xc_get_data_SOURCES = xc-get_data.c

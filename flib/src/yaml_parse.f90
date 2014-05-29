@@ -47,6 +47,7 @@ contains
 
   end subroutine yaml_parse_errors
 
+  !> Create a dict from a file (fname is the buffer containing all the file)
   subroutine yaml_parse_from_file(dict, fname)
     use dictionaries
     implicit none
@@ -67,7 +68,7 @@ contains
     
     integer(kind = 8) :: parser
 
-    call yaml_parser_c_init_from_buf(parser, carr(1), size(carr))
+    call yaml_parser_c_init_from_buf(parser, carr, size(carr))
     dict => yaml_parse_(parser)
   end subroutine yaml_parse_from_char_array
 
@@ -109,7 +110,7 @@ contains
     if (YAML_PARSE_ERROR == 0) then
        call f_err_define(err_name='YAML_PARSE_ERROR',&
             err_msg='YAML parse error.',&
-            err_action='modify your inputs.',&
+            err_action='correct your YAML stream.',&
             err_id=YAML_PARSE_ERROR)
     end if
     if (YAML_PARSE_UNSUPPORTED == 0) then
@@ -145,12 +146,11 @@ contains
           call set(doc, val)
        end if
 
-       if (f_err_check()) exit
+       if (f_err_check(YAML_PARSE_ERROR)) exit
     end do
-    errid = 0
-    if (f_err_check()) then
+    errid = f_get_last_error(val)
+    if (f_err_check(YAML_PARSE_ERROR)) then
        if (associated(doc)) call add(dict, doc)
-       errid = f_get_last_error(val)
     end if
     call f_err_close_try()
 
@@ -158,7 +158,7 @@ contains
 
     output => dict
 
-    if (errid /= 0) call f_err_throw(err_id = errid, err_msg = val)
+    if (errid == YAML_PARSE_ERROR) call f_err_throw(err_id = errid, err_msg = val)
   contains
     !>determine which is the event that has been recognized, to be used mostly for debugging purposes
     function event_toa(event) result(toa)
@@ -242,10 +242,13 @@ contains
        else if (event == ALIAS) then
           call f_err_throw(err_id = YAML_PARSE_UNSUPPORTED, &
                & err_msg = "unsupported alias to " // trim(val))
-          return
+          ! Fallback to stringified alias.
+          if (len_trim(key) == 0) stop "no key"
+          call set(m // key, "*" // trim(val))
+          key(1:max_field_length) = " "
        end if
        
-       if (f_err_check()) return
+       if (f_err_check(YAML_PARSE_ERROR)) return
        
     end do
   end function build_map
@@ -285,10 +288,11 @@ contains
        else if (event == ALIAS) then
           call f_err_throw(err_id = YAML_PARSE_UNSUPPORTED, &
                & err_msg = "unsupported alias to " // trim(val))
-          return
+          ! Fallback to stringified alias.
+          call add(s, "*" // trim(val))
        end if
        
-       if (f_err_check()) return
+       if (f_err_check(YAML_PARSE_ERROR)) return
        
     end do
 

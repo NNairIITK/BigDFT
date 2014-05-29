@@ -77,20 +77,16 @@ program MINHOP
 
   !for each of the configuration set the input files
   !optimized input parameters
+  call dict_init(user_inputs)
   call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
        & 'poscur'//trim(bigdft_run_id_toa()), bigdft_mpi)
-  call inputs_from_dict(inputs_opt, atoms, user_inputs, .true.)
-  if (bigdft_mpi%iproc == 0) then
-     call print_general_parameters(inputs_opt,atoms)
-  end if
+  call inputs_from_dict(inputs_opt, atoms, user_inputs)
   call dict_free(user_inputs)
   !unoptimized input parameters
+  call dict_init(user_inputs)
   call user_dict_from_files(user_inputs, 'md'//trim(run_id)//trim(bigdft_run_id_toa()), &
        & 'poscur'//trim(bigdft_run_id_toa()), bigdft_mpi)
-  call inputs_from_dict(inputs_md, md_atoms, user_inputs, .true.)
-  if (bigdft_mpi%iproc == 0) then
-     call print_general_parameters(inputs_md,md_atoms)
-  end if
+  call inputs_from_dict(inputs_md, md_atoms, user_inputs)
   call dict_free(user_inputs)
 !   write(*,*) 'nat=',atoms%astruct%nat
   ! Create the DFT_global_output container.
@@ -619,7 +615,7 @@ program MINHOP
         fp(i)=fphop(i)
      enddo
      if (bigdft_mpi%iproc == 0) then
-       call yaml_open_map('(MH) Write poscur file')
+        !call yaml_open_map('(MH) Write poscur file')
        call write_atomic_file('poscur'//trim(bigdft_run_id_toa()),e_pos,pos,atoms,'')
        call yaml_map('(MH) poscur.xyz for  RESTART written',.true.)
 
@@ -753,7 +749,7 @@ end do hopping_loop
   call memocc(i_stat,i_all,'ksevals',subname)
 
   call deallocate_global_output(outs)
-
+  call run_objects_free_container(runObj)
   call free_input_variables(inputs_md)
   call free_input_variables(inputs_opt)
 
@@ -764,7 +760,7 @@ end do hopping_loop
 contains
 
 
-  !> Does a MD run with the atomic positiosn rxyz
+  !> Does a MD run with the atomic positions rxyz
   subroutine mdescape(nsoften,mdmin,ekinetic,gg,vxyz,dt,count_md, &
        runObj,outs,ngeopt,nproc,iproc)!  &
     use module_base
@@ -2221,9 +2217,9 @@ logical ,dimension(nat) :: onsurface
 ! occupied space= nonzero
     do iat=1,nat
         ic=nint((pos(2,iat)-ymin)*4.d0)  ! ygrid spacing=.25
-         ib=2.0d0*rcov(iat)*4.d0
-         if (ic-ib.lt.-100) stop "#MH error fixfrag_slab -100"
-         if (ic+ib.gt.1000) stop "#MH error fixfrag_slab 1000"
+         ib=nint(2.0d0*rcov(iat)*4.d0)
+         if (ic-ib < -100) stop "#MH error fixfrag_slab -100"
+         if (ic+ib > 1000) stop "#MH error fixfrag_slab 1000"
          do i=ic-ib,ic+ib
          ygrid(i)=ygrid(i)+1
          enddo

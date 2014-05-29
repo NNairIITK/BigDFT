@@ -30,8 +30,9 @@ module lanczos_interface
       type(comms_cubic) :: comms
       type(DFT_PSP_projectors), pointer :: nlpsp
       type(local_zone_descriptors), pointer :: Lzd
-      type(gaussian_basis), pointer :: Gabsorber    
+      !type(gaussian_basis), pointer :: Gabsorber    !unused?
       type(SIC_data), pointer :: SIC
+      type(xc_info), pointer :: xc
       integer, dimension(:,:), pointer :: ngatherarr 
       real(gp), dimension(:,:),  pointer :: rxyz,radii_cf
       !real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), pointer :: psi
@@ -42,8 +43,8 @@ module lanczos_interface
       type(pcproj_data_type), pointer :: PPD
       type(pawproj_data_type), pointer :: PAWD
       ! removed from orbs, not sure if needed here or not
-      integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
-      integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
+      !integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
+      !integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
    end type lanczos_args
 
    !calculate the allocation dimensions
@@ -1049,7 +1050,7 @@ nullify(Qvect,dumQvect)
 
      call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%rxyz,&
           ha%Lzd,ha%nlpsp,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
-          ha%energs,ha%SIC,ha%GPU)
+          ha%energs,ha%SIC,ha%GPU,ha%xc)
 
      call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
      call vcopy(EP_dim_tot,wrk(1),1,Qvect_tmp(1),1)
@@ -1057,7 +1058,7 @@ nullify(Qvect,dumQvect)
 
      call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%rxyz,&
           ha%Lzd,ha%nlpsp,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
-          ha%energs,ha%SIC,ha%GPU)
+          ha%energs,ha%SIC,ha%GPU,ha%xc)
 
      call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
 
@@ -1148,7 +1149,7 @@ nullify(Qvect,dumQvect)
 
      call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%rxyz,&
           ha%Lzd,ha%nlpsp,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
-          ha%energs,ha%SIC,ha%GPU)
+          ha%energs,ha%SIC,ha%GPU,ha%xc)
 
      if(  ha%iproc ==0 ) write(*,*)" done "
 
@@ -1648,10 +1649,11 @@ nullify(Qvect,dumQvect)
   !> Lanczos diagonalization
   subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
        radii_cf,nlpsp,Lzd,dpcom,potential,&
-       energs,nspin,GPU,in_iat_absorber,&
+       energs,xc,nspin,GPU,in_iat_absorber,&
        in , PAWD , orbs )! add to interface
     use module_base
     use module_types
+    use module_xc
     use lanczos_base
     use module_interfaces
     use communications_init, only: orbitals_communicators
@@ -1662,6 +1664,7 @@ nullify(Qvect,dumQvect)
     type(DFT_PSP_projectors), intent(in), target :: nlpsp
     type(local_zone_descriptors), intent(inout), target :: Lzd
     type(denspot_distribution), intent(in), target :: dpcom
+    type(xc_info), intent(in), target :: xc
     real(gp), dimension(3,at%astruct%nat), intent(in), target :: rxyz
     real(gp), dimension(at%astruct%ntypes,3), intent(in), target ::  radii_cf
     real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
@@ -1689,14 +1692,14 @@ nullify(Qvect,dumQvect)
             &   hx,hy,hz,Lzd%Glr%wfd,orbs,GPU)
     end if
     GPU%full_locham=.true.
-    if (OCLconv) then
+    if (GPU%OCLconv) then
        call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%astruct%geocode,&
             &   in%nspin,Lzd%Glr%wfd,orbs,GPU)
        if (iproc == 0) write(*,*) 'GPU data allocated'
     end if
 
 
-    allocate(orbs%eval(orbs%norb+ndebug),stat=i_stat)
+    orbs%eval = f_malloc_ptr(orbs%norb,id='orbs%eval')
     call memocc(i_stat,orbs%eval,'orbs%eval',subname)
     orbs%occup(1:orbs%norb)=1.0_gp
     orbs%spinsgn(1:orbs%norb)=1.0_gp
@@ -1704,7 +1707,7 @@ nullify(Qvect,dumQvect)
     !call allocate_comms(nproc,ha%comms,subname)
     call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,ha%comms)  
 
-    call local_potential_dimensions(iproc,Lzd,orbs,dpcom%ngatherarr(0,1))
+    call local_potential_dimensions(iproc,Lzd,orbs,xc,dpcom%ngatherarr(0,1))
 
     allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
     call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
@@ -1720,7 +1723,7 @@ nullify(Qvect,dumQvect)
        STOP     
     endif
 
-    call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,potential,pot)
+    call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,xc,potential,pot)
 
 !!$   call full_local_potential(iproc,nproc,ndimpot,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
 !!$        in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*in%nspin,0,&
@@ -1748,6 +1751,7 @@ nullify(Qvect,dumQvect)
     ha%Gabs_coeffs=>Gabs_coeffs
     ha%PAWD=> PAWD
     ha%SIC=>in%SIC
+    ha%xc=>xc
     ha%orbs=>orbs
 
     call EP_inizializza(ha) 
@@ -1787,19 +1791,17 @@ nullify(Qvect,dumQvect)
 
     if (GPUconv) then
        call free_gpu(GPU,orbs%norbp)
-    else if (OCLconv) then
+    else if (GPU%OCLconv) then
        call free_gpu_OCL(GPU,orbs,in%nspin)
     end if
 
-    i_all=-product(shape(orbs%eval))*kind(orbs%eval)
-    deallocate(orbs%eval,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%eval',subname)
+    call f_free_ptr(orbs%eval)
 
     i_all=-product(shape(Gabs_coeffs))*kind(Gabs_coeffs)
     deallocate(Gabs_coeffs,stat=i_stat)
     call memocc(i_stat,i_all,'Gabs_coeffs',subname)
 
-    call free_full_potential(dpcom%mpi_env%nproc,0,pot,subname)
+    call free_full_potential(dpcom%mpi_env%nproc,0,xc,pot,subname)
 
   END SUBROUTINE xabs_lanczos
 
@@ -1807,10 +1809,11 @@ nullify(Qvect,dumQvect)
   !> Chebychev polynomials to calculate the density of states
   subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
        radii_cf,nlpsp,Lzd,dpcom,potential,&
-       energs,nspin,GPU,in_iat_absorber,in, PAWD , orbs  )
+       energs,xc,nspin,GPU,in_iat_absorber,in, PAWD , orbs  )
 
     use module_base
     use module_types
+    use module_xc
     use lanczos_base
     ! per togliere il bug 
     use module_interfaces
@@ -1823,6 +1826,7 @@ nullify(Qvect,dumQvect)
     type(DFT_PSP_projectors), target :: nlpsp
     type(local_zone_descriptors), target :: Lzd
     type(denspot_distribution), intent(in), target :: dpcom
+    type(xc_info), intent(in), target :: xc
     real(gp), dimension(3,at%astruct%nat), target :: rxyz
     real(gp), dimension(at%astruct%ntypes,3), intent(in), target ::  radii_cf
     real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
@@ -1858,22 +1862,21 @@ nullify(Qvect,dumQvect)
 
     GPU%full_locham=.true.
 
-    if (OCLconv) then
+    if (GPU%OCLconv) then
        call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%astruct%geocode,&
             &   in%nspin,Lzd%Glr%wfd,orbs,GPU)
        if (iproc == 0) write(*,*)&
             &   'GPU data allocated'
     end if
 
-    allocate(orbs%eval(orbs%norb *orbs%nkpts  +ndebug),stat=i_stat)
-    call memocc(i_stat,orbs%eval,'orbs%eval',subname)
+    orbs%eval = f_malloc_ptr(orbs%norb*orbs%nkpts,id='orbs%eval')
     orbs%occup(1:orbs%norb*orbs%nkpts )=1.0_gp
     orbs%spinsgn(1:orbs%norb*orbs%nkpts )=1.0_gp
     orbs%eval(1:orbs%norb*orbs%nkpts )=1.0_gp
 
     call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,ha%comms)  
 
-    call local_potential_dimensions(iproc,Lzd,orbs,dpcom%ngatherarr(0,1))
+    call local_potential_dimensions(iproc,Lzd,orbs,xc,dpcom%ngatherarr(0,1))
 
     if(   at%paw_NofL( at%astruct%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
     else
@@ -1884,7 +1887,7 @@ nullify(Qvect,dumQvect)
        STOP     
     endif
 
-    call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,potential,pot)
+    call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,xc,potential,pot)
 !!$   call full_local_potential(iproc,nproc,ndimpot,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
 !!$        in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*in%nspin,0,&
 !!$        orbs,Lzd,0,ngatherarr,potential,pot)
@@ -1913,6 +1916,7 @@ nullify(Qvect,dumQvect)
     ha%PAWD=> PAWD
     ha%SIC=>in%SIC
     ha%orbs=>orbs
+    ha%xc=>xc
 
     call EP_inizializza(ha)  
 
@@ -1996,7 +2000,7 @@ nullify(Qvect,dumQvect)
        enddo
     endif
 
-    call free_full_potential(dpcom%mpi_env%nproc,0,pot,subname)
+    call free_full_potential(dpcom%mpi_env%nproc,0,xc,pot,subname)
     nullify(ha%potential)
 
 
@@ -2010,13 +2014,11 @@ nullify(Qvect,dumQvect)
 !!$
     if (GPUconv) then
        call free_gpu(GPU,orbs%norbp)
-    else if (OCLconv) then
+    else if (GPU%OCLconv) then
        call free_gpu_OCL(GPU,orbs,in%nspin)
     end if
 
-    i_all=-product(shape(orbs%eval))*kind(orbs%eval)
-    deallocate(orbs%eval,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%eval',subname)
+    call f_free_ptr(orbs%eval)
 
 
 !!$  i_all=-product(shape(Gabsorber%nshell))*kind(Gabsorber%nshell)
@@ -2051,11 +2053,12 @@ nullify(Qvect,dumQvect)
   !> Finds the spectra solving  (H-omega)x=b
   subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
        &   radii_cf,nlpsp,Lzd,dpcom,potential,&
-       &   energs,nspin,GPU,in_iat_absorber,&
+       &   energs,xc,nspin,GPU,in_iat_absorber,&
        &   in , rhoXanes, PAWD , PPD, orbs )
     use module_base
     use module_types
     use lanczos_base
+    use module_xc
     ! per togliere il bug 
     use module_interfaces
     use communications_init, only: orbitals_communicators
@@ -2069,6 +2072,7 @@ nullify(Qvect,dumQvect)
     type(local_zone_descriptors), target :: Lzd
     type(pcproj_data_type), target ::PPD
     type(denspot_distribution), intent(in), target :: dpcom
+    type(xc_info), intent(in), target :: xc
     real(gp), dimension(3,at%astruct%nat), target :: rxyz
     real(gp), dimension(at%astruct%ntypes,3), intent(in), target ::  radii_cf
     real(wp), dimension(max(dpcom%ndimpot,1),nspin), target :: potential
@@ -2106,15 +2110,14 @@ nullify(Qvect,dumQvect)
             &   hx,hy,hz,Lzd%Glr%wfd,orbs,GPU)
     end if
     GPU%full_locham=.true.
-    if (OCLconv) then
+    if (GPU%OCLconv) then
        call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%astruct%geocode,&
             &   in%nspin,Lzd%Glr%wfd,orbs,GPU)
        if (iproc == 0) write(*,*)&
             &   'GPU data allocated'
     end if
 
-    allocate(orbs%eval(orbs%norb+ndebug),stat=i_stat)
-    call memocc(i_stat,orbs%eval,'orbs%eval',subname)
+    orbs%eval = f_malloc_ptr(orbs%norb,id='orbs%eval')
 
     orbs%occup(1:orbs%norb)=1.0_gp
     orbs%spinsgn(1:orbs%norb)=1.0_gp
@@ -2122,7 +2125,7 @@ nullify(Qvect,dumQvect)
     !call allocate_comms(nproc,ha%comms,subname)
     call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,ha%comms)  
 
-    call local_potential_dimensions(iproc,Lzd,orbs,dpcom%ngatherarr(0,1))
+    call local_potential_dimensions(iproc,Lzd,orbs,xc,dpcom%ngatherarr(0,1))
 
     allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
     call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
@@ -2137,7 +2140,7 @@ nullify(Qvect,dumQvect)
        STOP     
     endif
 
-    call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,potential,pot)
+    call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,xc,potential,pot)
 !!$   call full_local_potential(iproc,nproc,ndimpot,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
 !!$        in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*in%nspin,0,&
 !!$        orbs,Lzd,0,ngatherarr,potential,pot)
@@ -2165,6 +2168,7 @@ nullify(Qvect,dumQvect)
     ha%PAWD=> PAWD 
     ha%PPD=> PPD
     ha%SIC=>in%SIC
+    ha%xc=>xc
     ha%orbs=>orbs
 
 
@@ -2222,13 +2226,11 @@ nullify(Qvect,dumQvect)
 
     if (GPUconv) then
        call free_gpu(GPU,orbs%norbp)
-    else if (OCLconv) then
+    else if (GPU%OCLconv) then
        call free_gpu_OCL(GPU,orbs,in%nspin)
     end if
 
-    i_all=-product(shape(orbs%eval))*kind(orbs%eval)
-    deallocate(orbs%eval,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%eval',subname)
+    call f_free_ptr(orbs%eval)
 
     i_all=-product(shape(Gabs_coeffs))*kind(Gabs_coeffs)
     deallocate(Gabs_coeffs,stat=i_stat)
@@ -2240,7 +2242,7 @@ nullify(Qvect,dumQvect)
        call memocc(i_stat,i_all,'potentialclone',subname)
     endif
 
-    call free_full_potential(dpcom%mpi_env%nproc,0,pot,subname)
+    call free_full_potential(dpcom%mpi_env%nproc,0,xc,pot,subname)
     nullify(ha%potential)
 
   END SUBROUTINE xabs_cg

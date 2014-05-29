@@ -57,7 +57,8 @@ program IO_wf_test
   write(*,"(A,3I10)")   " number of points in iscf representation: ", n1, n2, n3
   write(*,"(A,I2,A,22x,F12.8)")  " norm of orbital ", iorbp, ":", nrm
 
-  call free_wave_to_isf(psiscf)
+  call f_free_ptr(psiscf)
+  !call free_wave_to_isf(psiscf)
 
   !call memocc(0,0,'count','stop')
 

@@ -11,7 +11,7 @@
 !> Calculates the overall size of the simulation cell 
 !! and shifts the atoms such that their position is the most symmetric possible.
 !! Assign these values to the global localisation region descriptor.
-subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
+subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,OCLconv,Glr,shift)
    use module_base
    use module_types
    implicit none
@@ -20,6 +20,7 @@ subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
    real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
    real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
    real(gp), intent(inout) :: hx,hy,hz
+   logical, intent(in) :: OCLconv
    type(locreg_descriptors), intent(out) :: Glr
    real(gp), dimension(3), intent(out) :: shift
    !Local variables
@@ -353,7 +354,7 @@ subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
 END SUBROUTINE num_segkeys
 
 
-!>   Calculates the keys describing a wavefunction data structure
+!> Calculates the keys describing a wavefunction data structure
 subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
    implicit none
    integer, intent(in) :: n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,mseg
@@ -399,6 +400,7 @@ subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
    endif
    !mseg=nend
 END SUBROUTINE segkeys
+
 
 subroutine export_grids(fname, atoms, rxyz, hx, hy, hz, n1, n2, n3, logrid_c, logrid_f)
   use module_types
@@ -468,6 +470,7 @@ subroutine export_grids(fname, atoms, rxyz, hx, hy, hz, n1, n2, n3, logrid_c, lo
   end if
   close(22)
 END SUBROUTINE export_grids
+
 
 !> Set up an array logrid(i1,i2,i3) that specifies whether the grid point
 !! i1,i2,i3 is the center of a scaling function/wavelet

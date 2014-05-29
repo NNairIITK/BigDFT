@@ -12,8 +12,8 @@
 ##
 ## You should have received a copy of the GNU Lesser General Public License
 ## along with this program; if not, write to the Free Software
-## Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
-## 02111-1307, USA.
+## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+## 02110-1301, USA.
 ##
 ## $Id: configure.ac 2422 2006-09-23 20:43:15Z marques $
 
@@ -27,7 +27,10 @@ AC_CONFIG_MACRO_DIR([m4])
 # Library versioning (C:R:A == current:revision:age)
 # See the libtool manual for an explanation of the numbers
 #
-# libxc-2.0   1:0:0
+# libxc-2.0.0   1:0:0
+# libxc-2.0.1   1:1:0
+# libxc-2.0.2   1:2:0
+# libxc-2.0.3   1:3:0
 # 
 # Note that libtool versioning was not used prior to libxc-2.0.
 # Because of this, we will start counting at 1.
@@ -45,7 +48,7 @@ AC_CONFIG_MACRO_DIR([m4])
 # so set to 0 if both happened.
 
 XC_CURRENT=1
-XC_REVISION=0
+XC_REVISION=2
 XC_AGE=0
 
 XC_LT_VERSION="${XC_CURRENT}:${XC_REVISION}:${XC_AGE}"
@@ -113,8 +116,7 @@ if test $ac_cv_build_fortran = yes; then
   ACX_FCFLAGS
 
   dnl libxc needs the preprocessor. The result goes to FCCPP
-  dnl this is a hack, and should be changed in the future
-  AC_LANG_PREPROC
+  ACX_FCCPP
 
   dnl how Fortran mangles function names
   AC_FC_WRAPPERS

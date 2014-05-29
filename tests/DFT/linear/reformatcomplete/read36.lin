@@ -8,7 +8,7 @@
 0        0                       DIIS history for density mixing (low, high)
 1.d0     1.d0                    density mixing parameter (low, high)
 1.d-9    1.d-10                  outer loop convergence (low, high)
-5.d-6    1.d-6  1.d-4     1.d-4  basis convergence (low, high)
+5.d-6    1.d-6  1.d-4     1.d-4  1.d-3  basis convergence (low, high) ; early stop TMB optimization, dynamic gnrm, activate dyn (exp. mode only)
 0.5d0                            factor to reduce the confinement. Only used for hybrid mode
 1.d-5    1.d-5                   Kernel convergence (low, high) - directmin only
 1.d-10   1.d-10                  Density convergence (low, high)
@@ -17,7 +17,7 @@
 1.d0     1.d0                    initial step size for basis optimization (DIIS, SD)
 0.2d0    F                       initial step size for kernel update (SD), curve fitting for alpha update - directmin only
 -0.5d0   0.5d0                   lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted automatically if chosen too small
-5  1                             number of iterations in the preconditioner, order of Taylor approximations
+5                                number of iterations in the preconditioner
 8  1                             0-> exact Loewdin, 1-> Taylor expansion ; in orthoconstraint: correction for non-orthogonality (0) or no correction (1)
 5.d-2                            fscale: length scale over which complementary error function decays from 1 to 0
 0 F F F F                        output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ; calculate dipole ; Pulay corrections (old/new)

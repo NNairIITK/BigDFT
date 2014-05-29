@@ -182,7 +182,7 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 !DEBUG
 !write(6,*)' scfcge : enter '
 !ENDDEBUG
- errid = AB6_NO_ERROR
+ errid = AB7_NO_ERROR
  dbl_nnsclo = 0
 
 !reduction gives the level of reduction of the error in
@@ -318,7 +318,7 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 &     d2edv2_new,d2edv2_old,d2edv2_predict,&
 &     etotal,etotal_old,etotal_predict,&
 &     lambda_new,lambda_old,lambda_predict,errid_,message)
-     if (errid_ /= AB6_NO_ERROR) then
+     if (errid_ /= AB7_NO_ERROR) then
         call wrtout(std_out,message,'COLL')
      end if
 
@@ -388,7 +388,7 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 &   (abs(lambda_predict)<0.005_dp*lambda_adapt .and. iscf==6).or.  &
 &   ilinmin==mlinmin                                      )     )then
      if(number_of_restart>12)then
-        errid = AB6_ERROR_MIXING_CONVERGENCE
+        errid = AB7_ERROR_MIXING_CONVERGENCE
         write(errmess, '(a,a,a,a,a,i3,a,a,a,a,a)' ) ch10,&
 &       ' scfcge : ERROR -',ch10,&
 &       '  Potential-based CG line minimization not',&
@@ -572,7 +572,7 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 &     d2edv2_new,d2edv2_old,d2edv2_predict,&
 &     etotal,etotal_old,etotal_predict,&
 &     lambda_new,lambda_old,lambda_predict,errid_,message)
-     if (errid_ /= AB6_NO_ERROR) then
+     if (errid_ /= AB7_NO_ERROR) then
         call wrtout(std_out,message,'COLL')
      end if
      lambda_predict2=0.0_dp
@@ -836,7 +836,7 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 !  End of choice between initialisation or more developed
 !  parts of the CG algorithm
  else
-    errid = AB6_ERROR_MIXING_ARG
+    errid = AB7_ERROR_MIXING_ARG
    write(errmess, '(a,a,a,a)' ) ch10,&
 &   ' scfcge : BUG ',ch10,&
 &   '  You should not be here ! '

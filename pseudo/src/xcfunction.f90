@@ -267,4 +267,4 @@ SUBROUTINE XCFUNCTION(nspol,rho,grad,EXC,VXC,dEdg)
 
 END SUBROUTINE XCFUNCTION
 
-end module libxcmodule
+end module libxcModule

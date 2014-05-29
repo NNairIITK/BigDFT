@@ -85,7 +85,7 @@ func(const XC(func_type) *p, XC(gga_work_c_t) *r)
 
   den0 = -1.0/(1.0 + y);
   f0   = 1.0 + den0;
-  den1 = -exp(-y);
+  den1 = -EXP(-y);
   f1   = 1.0 + den1;
 
   t0  = aa[p->func][0] + f0*(aa[p->func][1] + f0*(aa[p->func][2] + f0*(aa[p->func][3] + f0*(aa[p->func][4] + f0*aa[p->func][5]))));
@@ -188,6 +188,7 @@ const XC(func_info_type) XC(func_info_gga_c_sogga11) = {
   gga_c_sogga11_init,
   NULL, NULL,
   work_gga_c,
+  NULL
 };
 
 const XC(func_info_type) XC(func_info_gga_c_sogga11_x) = {
@@ -201,5 +202,6 @@ const XC(func_info_type) XC(func_info_gga_c_sogga11_x) = {
   1e-26, 1e-32, 0.0, 1e-32,
   gga_c_sogga11_init, 
   NULL, NULL,
-  work_gga_c
+  work_gga_c,
+  NULL
 };

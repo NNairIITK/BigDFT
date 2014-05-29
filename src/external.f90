@@ -54,6 +54,7 @@ subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
   end if
 end subroutine bigdft_init
 
+
 subroutine bigdft_mpi_init(ierr)
   use wrapper_mpi, only: wmpi_init_thread,MPI_SUCCESS
   use module_types, only: bigdft_init_errors,bigdft_init_timing_categories
@@ -66,6 +67,7 @@ subroutine bigdft_mpi_init(ierr)
      call bigdft_init_timing_categories()
   end if
 end subroutine bigdft_mpi_init
+
 
 subroutine bigdft_init_mpi_env(mpi_info,mpi_groupsize, ierr)
   use BigDFT_API
@@ -265,6 +267,7 @@ subroutine bigdft_get_eigenvalues(rst,eval,istat)
 
 end subroutine bigdft_get_eigenvalues
 
+!> Abort bigdft program
 subroutine bigdft_severe_abort()
   use module_base
   use yaml_output, only: yaml_toa,yaml_comment
@@ -279,8 +282,10 @@ subroutine bigdft_severe_abort()
   call f_malloc_dump_status(filename=filename)
   !call f_dump_last_error()
   call f_dump_all_errors()
-  call yaml_comment('An error has occured, dumping run status in file(s) '//trim(filename))
-  call f_lib_finalize()
+  call yaml_comment('Error raised!',hfill='^')
+  call yaml_comment('Messages are above, dumping run status in file(s) '//trim(filename),hfill='^')
+  call yaml_comment('Exiting...',hfill='v')
+  !call f_lib_finalize()
   call MPI_ABORT(MPI_COMM_WORLD,816437,ierr)
   if (ierr/=0) stop 'Problem in MPI_ABORT'
 

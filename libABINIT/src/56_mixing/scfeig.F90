@@ -71,10 +71,10 @@ subroutine scfeig(istep,nfft,nspden,vrespc,vtrial,vtrial0,work,errid,errmess)
 
 ! *************************************************************************
  
- errid = AB6_NO_ERROR
+ errid = AB7_NO_ERROR
 
  if(nspden==4)then
-    errid = AB6_ERROR_MIXING_ARG
+    errid = AB7_ERROR_MIXING_ARG
     write(errmess, *) ' scfeig : does not work yet for nspden=4'
     return
  end if
@@ -103,7 +103,7 @@ subroutine scfeig(istep,nfft,nspden,vrespc,vtrial,vtrial0,work,errid,errmess)
 &   ' scfeig : initial PC_residual square =',resid_old
    call wrtout(std_out,message,'COLL')
    if(resid_old>1.0d-8)then
-      errid = AB6_ERROR_MIXING_ARG
+      errid = AB7_ERROR_MIXING_ARG
       write(errmess,'(a,a,a,a,a,a,a,a,a,a)') ch10,&
 &     ' scfeig : ERROR -',ch10,&
 &     '  This value is not good enough to allow',ch10,&

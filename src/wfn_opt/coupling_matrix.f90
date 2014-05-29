@@ -264,9 +264,9 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
   end do loop_i
 
   if (nproc > 1) then
-     call mpiallred(K(1,1),nmulti**2,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
-     if (nspin ==1) call mpiallred(Kaux(1,1),nmulti**2,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
-     call mpiallred(dipoles(1,1),3*nmulti,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+     call mpiallred(K(1,1),nmulti**2,MPI_SUM,bigdft_mpi%mpi_comm)
+     if (nspin ==1) call mpiallred(Kaux(1,1),nmulti**2,MPI_SUM,bigdft_mpi%mpi_comm)
+     call mpiallred(dipoles(1,1),3*nmulti,MPI_SUM,bigdft_mpi%mpi_comm)
   end if
 
   if (nspin==1) then

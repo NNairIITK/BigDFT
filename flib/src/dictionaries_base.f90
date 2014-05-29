@@ -13,19 +13,19 @@ module dictionaries_base
 
   implicit none
 
-  integer, parameter, public :: max_field_length = 256
+  integer, parameter, public :: max_field_length = 256    !< Maximum length of a field
   character(len=max_field_length), parameter :: TYPE_DICT='__dict__'
   character(len=max_field_length), parameter :: TYPE_LIST='__list__'
 
   character(len = max_field_length), parameter, private :: NOT_A_VALUE = "__not_a_value__"
 
-  !global variables associated to the number of dictionaries allocated
-  integer, private :: ndicts=0         !< number of dictionaries allocated simultaneously
-  integer, private :: ndicts_max=0     !< maximum number of dictionaries allocated
-  integer, private :: nfolders=0       !< number of libraries
-  integer, private :: nfolders_max=0   !< maximum number of libraries allocated
+  !> Global variables associated to the number of dictionaries allocated
+  integer, private :: ndicts=0         !< Number of dictionaries allocated simultaneously
+  integer, private :: ndicts_max=0     !< Maximum number of dictionaries allocated
+  integer, private :: nfolders=0       !< Number of libraries
+  integer, private :: nfolders_max=0   !< Maximum number of libraries allocated
   
-  integer, private :: nfolder_size=10000 !< size of the folder of pre-allocated dictionaries. Should be about 7 MB.
+  integer, private :: nfolder_size=10000 !< Size of the folder of pre-allocated dictionaries. Should be about 7 MB.
   
   
   type, public :: storage
@@ -45,6 +45,43 @@ module dictionaries_base
      type(dictionary), pointer :: child => null()
      type(dictionary), pointer :: previous => null()
   end type dictionary
+
+!!$  type :: values
+!!$     integer  :: inte 
+!!$     double precision :: rel
+!!$     integer(kind=8) :: value_type
+!!$     character, dimension(:), pointer :: char
+!!$     type(dictionary), pointer :: dict => null()
+!!$     type(list), pointer :: list => null()
+!!$  end type values
+!!$
+!!$  type :: link_elem
+!!$     character(len=max_field_length) :: key
+!!$     type(values), pointer :: elem
+!!$     type(link_elem), pointer :: next => null()
+!!$  end type link_elem
+!!$
+!!$  type, public :: dictionary
+!!$     integer :: nelems !< No. of items in the dictionary
+!!$     type(link_elem), dimension(:), pointer :: elements
+!!$  end type dictionary
+!!$
+!!$  type, public :: list
+!!$     integer :: nitems !< No. of items in the list
+!!$     type(values), dimension(:), pointer :: elements
+!!$  end type list
+!!$
+!!$  type, public :: list_iterator
+!!$     integer :: item
+!!$     type(list), pointer :: list
+!!$  end type list_iterator
+!!$
+!!$  type, public :: dict_iterator
+!!$     integer :: hash_index
+!!$     type(dictionary), pointer :: dict
+!!$     type(link_elem), pointer :: current
+!!$  end type dict_iterator
+
 
   !> the database book is a workspace of pre-allocated dictionaries, which is used to manage dictionary creation
   type, private :: database_book
@@ -68,10 +105,56 @@ module dictionaries_base
      module procedure get_child_ptr,get_list_ptr
   end interface
 
+!!$  interface operator(.val.)
+!!$     module procedure list_iter_to_value,dict_iter_to_value
+!!$  end interface
+
   private :: allocate_library, allocate_file, deallocate_file, destroy_library
+
 
 contains
   
+!!$  function list_iter_to_value(iter) return(val)
+!!$    implicit none
+!!$    type(list_iterator), intent(in) :: iter
+!!$    type(value) :: val
+!!$
+!!$    val=val_null()
+!!$    if (associated(iter%list)) then
+!!$       val = get_value(iter%list,iter%item)
+!!$    end if
+!!$  end function list_iter_to_value
+!!$
+!!$  function get_value(list,item) return(val)
+!!$    type(list) :: list
+!!$    type(value) :: val
+!!$    
+!!$    val=val_null()
+!!$    if (item < nitems) then
+!!$       val=list%elements(item+1)
+!!$    end if
+!!$  end function get_value
+!!$
+!!$  function dict_iter_to_value(iter) return(val)
+!!$    implicit none
+!!$    type(dict_iterator), intent(in) :: iter
+!!$    type(value) :: val
+!!$
+!!$    val=val_null()
+!!$    if (associated(iter%current)) then
+!!$       val = get_value(iter%current)
+!!$    end if
+!!$  end function list_iter_to_value
+!!$
+!!$  function get_value_le(link_elem) return(val)
+!!$    type(link_elem) :: link_
+!!$    type(value) :: val
+!!$
+!!$    val=link_elem%elem
+!!$  end function get_value_le
+
+          
+
   !> Test if keys are present
   pure function no_key(dict)
     implicit none
@@ -82,6 +165,7 @@ contains
          associated(dict%parent)
   end function no_key
 
+
   pure function no_value(dict)
     implicit none
     type(dictionary), intent(in) :: dict
@@ -89,6 +173,7 @@ contains
 
     no_value=trim(dict%data%value) == NOT_A_VALUE .and. .not. associated(dict%child)
   end function no_value
+
 
   pure function storage_null() result(st)
     type(storage) :: st
@@ -99,12 +184,14 @@ contains
     st%nelems=0
   end function storage_null
 
+
   pure subroutine dictionary_nullify(dict)
     implicit none
     type(dictionary), intent(inout) :: dict
     dict%data=storage_null()
     nullify(dict%child,dict%next,dict%parent,dict%previous)
   end subroutine dictionary_nullify
+
 
   pure subroutine allocate_library(library,previous)
     implicit none
@@ -122,6 +209,7 @@ contains
        library%registry(ifolder)=int(0,kind=8)
     end do
   end subroutine allocate_library
+
 
   !> assign a place in the library to the newcoming dictionary
   recursive function allocate_file(previous) result(dict)
@@ -166,6 +254,7 @@ contains
        dict=>library%files(ifolder)
     end if
   end function allocate_file
+
 
   recursive subroutine deallocate_file(file)
     implicit none
@@ -214,6 +303,7 @@ contains
     end subroutine deallocate_file_
   end subroutine deallocate_file
 
+
   !terminate the library and free all memory space
   recursive subroutine destroy_library()
     implicit none
@@ -239,6 +329,7 @@ contains
     end if
   end subroutine destroy_library
 
+
   subroutine dict_init(dict)
     implicit none
     type(dictionary), pointer :: dict
@@ -255,6 +346,7 @@ contains
     ndicts=ndicts+1
     ndicts_max=max(ndicts_max,ndicts)
   end subroutine dict_init
+
 
   !> destroy only one level
   subroutine dict_destroy(dict)
@@ -281,68 +373,55 @@ contains
     end if
   end subroutine dict_destroy
 
+
   subroutine dict_free(dict)
     type(dictionary), pointer :: dict
 
     if (associated(dict)) then
        call dict_free_(dict)
-       call dict_destroy(dict)
+!!$       call dict_destroy(dict)
        nullify(dict)
     end if
 
   contains
 
+    !implement the recursivity only on children 
     recursive subroutine dict_free_(dict)
       implicit none
       type(dictionary), pointer :: dict
       !local variables
-      type(dictionary), pointer :: dict_it0,dict_it,dict_it2,dict_tmp
+      type(dictionary), pointer :: dict_iter,child,current
+      
+      dict_iter=>dict
+      do while(associated(dict_iter))
+         child=>dict_iter%child
+         current=>dict_iter
+         dict_iter=>dict_iter%next
+         !destroy current
+         call dict_destroy(current)
+         !destroy the children
+         if (associated(child)) then
+            call dict_free_(child)
+         end if
+      end do
 
-!!$      !find last brother
-!!$      dict_it0=>dict
-!!$      general_loop: do while(associated(dict_it0))
-!!$         !find last children
-!!$         dict_it2=>dict_it0
-!!$         find_grandson: do while(associated(dict_it2%child))
-!!$            !if dictionary has brothers go next
-!!$            dict_it=>dict_it2
-!!$            find_benjamin: do while(associated(dict_it%next))
-!!$               !if the dictionary has children cycle loop
-!!$               if (associated(dict_it%child)) then
-!!$                  dict_it2=>dict_it
-!!$                  cycle find_grandson
-!!$               end if
-!!$               !The dictionary does not have children, it can be destroyed
-!!$               dict_tmp=>dict_it%next
-!!$               call dict_destroy(dict_it)
-!!$               !then continue with the next brother
-!!$               dict_it=>dict_tmp
-!!$            end do find_benjamin
-!!$            !here the dictionary does not have children or brothers anymore
-!!$            !it can be destroyed
-!!$            dict_tmp=>dict_it2%child
-!!$            call dict_destroy(dict_it2)
-!!$            !then continue with the next child
-!!$            dict_it2=>dict_tmp
-!!$         end do find_grandson
-!!$         dict_it0=>dict_it0%next
-!!$      end do general_loop
 !!$
-      !first destroy the children
-      if (associated(dict%child)) then
-         call dict_free_(dict%child)
-         call dict_destroy(dict%child)
-      end if
-      !then destroy younger brothers
-      if (associated(dict%next)) then
-         call dict_free_(dict%next)
-         call dict_destroy(dict%next)
-      end if
-      call dictionary_nullify(dict)
+!!$      !first destroy the children
+!!$      if (associated(dict%child)) then
+!!$         call dict_free_(dict%child)
+!!$         call dict_destroy(dict%child)
+!!$      end if
+!!$      !then destroy younger brothers
+!!$      if (associated(dict%next)) then
+!!$         call dict_free_(dict%next)
+!!$         call dict_destroy(dict%next)
+!!$      end if
+!!$      call dictionary_nullify(dict)
 
     end subroutine dict_free_
 
   end subroutine dict_free
+
 
   !> return the length of the list
   pure function dict_len(dict)
@@ -357,6 +436,7 @@ contains
     end if
   end function dict_len
 
+
   !> return the size of the dictionary
   pure function dict_size(dict)
     implicit none
@@ -369,6 +449,7 @@ contains
        dict_size=-1
     end if
   end function dict_size
+
 
   !> this function returns the key if present otherwise the value of the element if in a list
   pure function name_is(dict,name)
@@ -395,6 +476,7 @@ contains
     end if
   end function name_is
 
+
   !> fill output with input and the rest with blanks
   !! this routine is only useful for its interface
   pure subroutine set_field(input,output)
@@ -417,6 +499,7 @@ contains
 
   end subroutine set_field
 
+
   pure subroutine get_field(input,output)
     implicit none
     character(len=max_field_length), intent(in) :: input
@@ -434,6 +517,7 @@ contains
 
   end subroutine get_field
 
+
   !> returns the value of the key of the dictionary
   pure function dict_key(dict)
     type(dictionary), pointer, intent(in) :: dict
@@ -446,6 +530,7 @@ contains
        dict_key=repeat(' ',len(dict_key))
     end if
   end function dict_key
+
 
   !> returns the value of the key of the dictionary
   pure function dict_item(dict)
@@ -487,7 +572,9 @@ contains
 
   end function dict_value
 
+
   !non-pure subroutines, due to pointer assignments
+
 
   !> define the same parent(dict) for any of the elements of the linked chain (child)
   recursive subroutine define_parent(dict,child)
@@ -499,6 +586,7 @@ contains
     if (associated(child%next)) call define_parent(dict,child%next)
   end subroutine define_parent
 
+
   !> set brother as the previous element of dict
   subroutine define_brother(brother,dict)
     implicit none
@@ -507,6 +595,7 @@ contains
 
     dict%previous=>brother
   end subroutine define_brother
+
 
   !> this routine creates a key for the dictionary in case it is absent
   !! the it adds one to the number of elements of the parent dictionary
@@ -526,6 +615,7 @@ contains
 
   end subroutine set_elem
 
+
   !> associates an extra item to the dictionary and takes care of the 
   !! increment of the number of items
   !! this routine adds the check that the number of items is preserved
@@ -542,6 +632,7 @@ contains
     end if
 
   end subroutine set_item
+
 
   !> Retrieve the pointer to the dictionary which has this key.
   !! If the key does not exists, create it in the child chain
@@ -564,6 +655,7 @@ contains
     end if
 
   end function get_child_ptr
+
 
     !> Retrieve the pointer to the dictionary which has this key.
   !! If the key does not exists, create it in the next chain 
@@ -595,6 +687,7 @@ contains
 
   end function get_dict_ptr
 
+
   !> Retrieve the pointer to the item of the list.
   !! If the list does not exists, create it in the child chain.
   !! If the list is too short, create it in the next chain
@@ -620,6 +713,7 @@ contains
        item_ptr => dict%next
     end if
   end function get_item_ptr
+
 
   !> Retrieve the pointer to the item of the list.
   !! If the list does not exists, create it in the child chain.
@@ -680,6 +774,7 @@ contains
 
   end function get_list_ptr
 
+
   !> defines a storage structure with a key-value couple
   elemental pure function storage_data(key,val)
     character(len=*), intent(in) :: key,val
@@ -692,7 +787,7 @@ contains
 
   end function storage_data
 
-  !test to see the g95 behaviour
+  !> test to see the g95 behaviour
   pure function stored_key(st) result(key)
     implicit none
     type(storage), intent(in) :: st
@@ -700,7 +795,7 @@ contains
     call get_field(st%key,key)
   end function stored_key
 
-    !test to see the g95 behaviour
+  !> test to see the g95 behaviour
   pure function stored_value(st) result(val)
     implicit none
     type(storage), intent(in) :: st
@@ -708,8 +803,9 @@ contains
     call get_field(st%value,val)
   end function stored_value
 
+
   !> clean the child and put to zero the number of elements in the case of a dictionary
-  !pure 
+  !! pure 
   subroutine clean_subdict(dict)
     implicit none
     type(dictionary), pointer :: dict
@@ -722,6 +818,7 @@ contains
     end if
     
   end subroutine clean_subdict
+
 
   !!> export the number of dictionaries
   !! this routine is useful to understand the total usage of the 
@@ -739,17 +836,50 @@ contains
     nlibs_max=nfolders_max
   end subroutine dict_get_num
 
+  !>check for leaked dictionaries and prints out in stdout 
+  !! the dictionaries which have not been freed, without mutual structure
+  subroutine dictionary_check_leak()
+    implicit none
+    !local variables
+    integer :: ndict,ndict_max,nlibs,nlibs_max
+
+    call dict_get_num(ndict,ndict_max,nlibs,nlibs_max)
+    if (ndict /=0 ) then
+       print *,'Error, found unfreed dictionaries after finalization',&
+            ndict
+       call find_residual_dicts()
+    end if
+
+  end subroutine dictionary_check_leak
+
+  !>debug subroutine
+  subroutine find_residual_dicts()
+    implicit none
+    !local variables
+    integer :: i
+    type(database_book), pointer :: lib
+    nullify(lib)
+    if (associated(library)) then
+       lib=>library
+       do while(associated(lib%next))
+          lib=>lib%next
+       end do
+    end if
+    !then start by printing the residual keys
+    do while(associated(lib))
+       do i=1,nfolder_size
+          if (lib%registry(i) /= int(0,kind=8)) &
+               print *,'Unfreed key: ',trim(lib%files(i)%data%key),&
+               'value: ',trim(lib%files(i)%data%value)
+       end do
+       lib=>lib%previous
+    end do
+
+  end subroutine find_residual_dicts
 end module dictionaries_base
 
+
 !> Routines for bindings only (external of module)
-subroutine dict_new(dict)
-  use dictionaries_base
-  implicit none
-  type(dictionary), pointer :: dict
-
-  call dict_init(dict)
-end subroutine dict_new
-
 subroutine dict_free(dict)
   use dictionaries_base, mod_dict_free => dict_free
   implicit none

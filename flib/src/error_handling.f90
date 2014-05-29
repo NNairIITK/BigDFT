@@ -41,7 +41,7 @@
 !!$
 !!$contains
 
-  !> initialize module, in case it has not be done so
+  !> Initialize the module, in case it has not be done so
   !! the double initialization should not be possible when library is
   !! correctly set up
   subroutine f_err_initialize()
@@ -58,6 +58,8 @@
     end if
   end subroutine f_err_initialize
 
+  
+  !> Call at the end of the program to finalize the error module (deallocation + report)
   subroutine f_err_finalize()
     implicit none
     call f_err_unset_callback()
@@ -66,8 +68,9 @@
     call dict_free(dict_present_error)
   end subroutine f_err_finalize
 
+
   !> Define a new error specification and returns the corresponding error code
-  !! optionally, a error-specific callback function can be defined
+  !! optionally, an error-specific callback function can be defined
   !! @warning
   !!   gfortran complains on runtime (with option -Wextra) that this routine is recursive.
   recursive subroutine f_err_define(err_name,err_msg,err_id,err_action,callback,callback_data)
@@ -129,6 +132,7 @@
     end if
 
   end function f_err_check
+
 
   !> This routine should be generalized to allow the possiblity of addin customized message at the 
   !! raise of the error. Also customized callback should be allowed
@@ -192,13 +196,14 @@
     end if
   end function f_err_raise
 
-  !raise the error indicated
+
+  !> Raise the error indicated
   subroutine f_err_throw(err_msg,err_id,err_name,callback,callback_data)
     use yaml_strings, only: yaml_toa
     implicit none
     integer, intent(in), optional :: err_id !< the code of the error to be raised.
-                                      !! it should already have been defined by f_err_define
-    character(len=*), intent(in), optional :: err_name,err_msg !<search for the error and add a message to it 
+                                            !! it should already have been defined by f_err_define
+    character(len=*), intent(in), optional :: err_name,err_msg !< search for the error and add a message to it 
     integer(kind=8), intent(in), optional :: callback_data
     external :: callback
     optional :: callback
@@ -211,7 +216,7 @@
     
     !to prevent infinite loop due to not association of the error handling
     if (.not. associated(dict_present_error)) then
-       write(0,*)'error_handling library not initialized'
+       write(0,*) 'error_handling library not initialized'
        call f_err_severe()
     end if
 
@@ -265,6 +270,7 @@
     
   end subroutine f_err_throw
 
+
   function f_get_error_dict(icode)
     implicit none
     integer, intent(in) :: icode
@@ -274,12 +280,14 @@
     f_get_error_dict=>dict_errors//icode
   end function f_get_error_dict
 
+
   function f_get_no_of_errors()
     implicit none
     integer :: f_get_no_of_errors
 
     f_get_no_of_errors=dict_len(dict_present_error)
   end function f_get_no_of_errors
+
 
   function f_get_past_error(ierr_num,add_msg)
     implicit none
@@ -292,6 +300,7 @@
     
   end function f_get_past_error
 
+
   function get_error_id(ierr)
     implicit none
     integer, intent(in) :: ierr
@@ -302,6 +311,7 @@
        get_error_id=0
     end if
   end function get_error_id
+
 
   subroutine get_error_msg(ierr,add_msg)
     implicit none
@@ -315,7 +325,8 @@
     end if
   end subroutine get_error_msg
 
-  !> identify id of lastr error occured
+
+  !> Identify id of lastr error occured
   function f_get_last_error(add_msg)
     implicit none
     character(len=*), intent(out), optional :: add_msg
@@ -332,26 +343,56 @@
     end if
   end function f_get_last_error
 
-  !> clean the dictionary of present errors
+
+  !> Clean the dictionary of present errors
    subroutine f_err_clean()
     implicit none
     call dict_free(dict_present_error)
     call dict_init(dict_present_error)
   end subroutine f_err_clean
 
-  !> activate the exception handling for all errors
+
+  !> Clean last error, if any and get message.
+  function f_err_pop(err_id, err_name, add_msg)
+    implicit none
+    integer, intent(in), optional :: err_id            !< The code of the error to be checked for
+    character(len=*), intent(in), optional :: err_name !< Name of the error to search
+    character(len=*), intent(out), optional :: add_msg
+    integer :: f_err_pop
+    !local variables
+    include 'get_err-inc.f90'
+
+    if (get_error == -1) then
+       ierr=dict_len(dict_present_error)-1
+       get_error = 3
+    end if
+    if (ierr >= 0 .and. get_error > 0) then
+       f_err_pop=dict_present_error//ierr//errid
+       if (present(add_msg)) add_msg=dict_present_error//ierr//'Additional Info'
+       call pop(dict_present_error, ierr)
+       if (.not.associated(dict_present_error)) call dict_init(dict_present_error)
+    else
+       f_err_pop=0
+       if (present(add_msg)) add_msg=repeat(' ',len(add_msg))
+    end if
+  end function f_err_pop
+
+
+  !> Activate the exception handling for all errors
   subroutine f_err_open_try()
     implicit none
     call f_err_set_callback(f_err_ignore)
   end subroutine f_err_open_try
   
-  !> close the try environment
+
+  !> Close the try environment
   subroutine f_err_close_try()
     implicit none
     call f_err_clean() !no errors anymore
     call f_err_unset_callback()
   end subroutine f_err_close_try
   
+
   function f_get_error_definitions()
     implicit none
     type(dictionary), pointer :: f_get_error_definitions

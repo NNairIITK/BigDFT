@@ -143,17 +143,16 @@ subroutine dgemm_parallel(iproc, nproc, blocksize, comm, transa, transb, m, n, k
   
   
   ! Gather the result on all processes.
-  call mpiallred(c(1,1), m*n, mpi_sum, comm, ierr)
+  if (nproc > 1) then
+     call mpiallred(c(1,1), m*n, mpi_sum, comm)
+  end if
 
   !call blacs_exit(0)
 
 end subroutine dgemm_parallel
 
 
-
-
-
-!! ATTENTION: This works only if the matrices have the same sizes for all processes!!
+!> ATTENTION: This works only if the matrices have the same sizes for all processes!!
 subroutine dsymm_parallel(iproc, nproc, blocksize, comm, side, uplo, m, n, alpha, a, lda, b, ldb, beta, c, ldc)
 use module_base
 implicit none
@@ -288,8 +287,9 @@ character(len=*),parameter :: subname='dgemm_parallel'
   
   
   ! Gather the result on all processes.
-  call mpiallred(c(1,1), m*n, mpi_sum, comm, ierr)
-
+  if (nproc > 1) then
+     call mpiallred(c(1,1), m*n, mpi_sum, comm)
+  end if
 
   !call blacs_exit(0)
 
@@ -473,7 +473,9 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
   end if processIF
   
   ! Gather the eigenvectors on all processes.
-  call mpiallred(a(1,1), n**2, mpi_sum, comm, ierr)
+  if (nproc > 1) then
+     call mpiallred(a(1,1), n**2, mpi_sum, comm)
+  end if
   
   ! Broadcast the eigenvalues if required. If nproc_scalapack==nproc, then all processes
   ! diagonalized the matrix and therefore have the eigenvalues.
@@ -676,7 +678,9 @@ subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, 
   end if processIF
   
   ! Gather the eigenvectors on all processes.
-  call mpiallred(a(1,1), n**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (nproc > 1) then
+     call mpiallred(a(1,1), n**2, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
   
   ! Broadcast the eigenvalues if required. If nproc_scalapack==nproc, then all processes
   ! diagonalized the matrix and therefore have the eigenvalues.
@@ -822,7 +826,9 @@ subroutine dgesv_parallel(iproc, nproc, blocksize, comm, n, nrhs, a, lda, b, ldb
 
   
   ! Gather the result on all processes
-  call mpiallred(b(1,1), n*nrhs, mpi_sum, comm, ierr)
+  if (nproc > 1) then
+     call mpiallred(b(1,1), n*nrhs, mpi_sum, comm)
+  end if
   
   !call blacs_exit(0)
 
@@ -933,7 +939,9 @@ subroutine dpotrf_parallel(iproc, nproc, blocksize, comm, uplo, n, a, lda)
   
   
   ! Gather the result on all processes.
-  call mpiallred(a(1,1), n*n, mpi_sum, comm, ierr)
+  if (nproc > 1) then
+     call mpiallred(a(1,1), n*n, mpi_sum, comm)
+  end if
 
   !call blacs_exit(0)
 
@@ -1041,7 +1049,9 @@ subroutine dpotri_parallel(iproc, nproc, blocksize, comm, uplo, n, a, lda)
   
   
   ! Gather the result on all processes.
-  call mpiallred(a(1,1), n*n, mpi_sum, comm, ierr)
+  if (nproc > 1) then
+     call mpiallred(a(1,1), n*n, mpi_sum, comm)
+  end if
 
   !call blacs_exit(0)
 

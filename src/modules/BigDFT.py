@@ -10,6 +10,153 @@ __all__ = []
 def __is_dict_scalar__(v):
   return isinstance(v, int) or isinstance(v, float) or isinstance(v, str) or isinstance(v, bool)
 
+class DictAccessor:
+  def __init__(self, dict, position, elems = slice(0, -1, 1)):
+    self.dict = dict
+    self.position = position
+    self.elems = elems
+    
+  def __getitem__(self, k):
+    self.dict.move_to(self.position)
+    if isinstance(k, str):
+      (valid, it) = self.dict.move_to_key(k)
+    elif isinstance(k, int):
+      if k < 0:
+        k += self.dict.len()
+      (valid, it) = self.dict.move_to_item(k)
+    elif isinstance(k, slice):
+      return DictAccessor(self.dict, self.position, k)
+    else:
+      raise TypeError(type(k))
+    if not(valid):
+      raise KeyError(k)
+    return DictAccessor(self.dict, it)
+
+  def __setitem__(self, k, v):
+    self.dict.move_to(self.position)
+    if isinstance(k, str):
+      self.dict.pop(k)
+      self.dict.update(v, self.dict.insert(k))
+    elif isinstance(k, int):
+      (valid, it) = self.dict.move_to_item(k)
+      if not(valid):
+        raise KeyError(k)
+      self.dict.update(v, it)
+    else:
+      raise AttributeError
+
+  def __iter__(self):
+    if not(self.dict.value() == "__list__"):
+      raise TypeError("Not iterable")
+    self.dict.move_to(self.position)
+    self.indices = self.elems.indices(self.dict.len())
+    self.id = 0
+    return self
+
+  def next(self):
+    i = self.indices[0] + self.indices[2] * self.id
+    if i > self.indices[1]:
+      self.dict.move_to(self.position)
+      raise StopIteration
+    # Move to root of the list.
+    self.dict.move_to(self.position)
+    (valid, it) = self.dict.move_to_item(i)
+    if not(valid):
+      self.dict.move_to(self.position)
+      raise StopIteration
+    self.id += 1
+    return DictAccessor(self.dict, it)
+
+  def append(self, v):
+    self.dict.move_to(self.position)
+    if not(self.dict.value() == "__list__") and self.dict.len() > 0:
+      raise TypeError("Not a list")
+    self.dict.update(v, self.dict.append())
+
+  def items(self):
+    self.dict.move_to(self.position)
+    if not(self.dict.value() == "__dict__") and self.dict.len() > 0:
+      raise TypeError("Not a dictionary")
+    ret = []
+    (valid, current) = self.dict.iter()
+    while (valid):
+      ret.append((self.dict.key(), DictAccessor(self.dict, current)))
+      (valid, current) = self.dict.next()
+    return ret
+
+  def map(self, func):
+    self.dict.move_to(self.position)
+    val = self.dict.value()
+    if val == "__list__":
+      val = []
+      for ele in self:
+        val.append(ele.map(func))
+    elif val == "__dict__":
+      val = {}
+      (valid, current) = self.dict.iter()
+      while (valid):
+        # the func() call may move the current pointer of dict.
+        k = self.dict.key()
+        val[k] = DictAccessor(self.dict, current).map(func)
+        self.dict.move_to(current)
+        (valid, current) = self.dict.next()
+    else:
+      val = func(val)
+    return val
+
+  def float(self):
+    return numpy.array(self.map(float))
+
+  def __float__(self):
+    self.dict.move_to(self.position)
+    val = self.dict.value()
+    if not(val == "__list__") and not(val == "__dict__"):
+      return float(val)
+    else:
+      raise TypeError("%s is not a float" % val)
+
+  def __str__(self):
+    return str(self.map(str))
+
+  def __mul__(self, val):
+    if isinstance(val, int):
+      return numpy.array(self.map(int)) * val
+    elif isinstance(val, float):
+      return numpy.array(self.map(float)) * val
+    else:
+      raise TypeError
+
+  def __add__(self, val):
+    if isinstance(val, int):
+      return numpy.array(self.map(int)) + val
+    elif isinstance(val, float):
+      return numpy.array(self.map(float)) + val
+    else:
+      raise TypeError
+
+  def __len__(self):
+    self.dict.move_to(self.position)
+    return int(self.dict.len())
+
+  def __contains__(self, obj):
+    self.dict.move_to(self.position)
+    val = self.dict.value()
+    if val == "__list__":
+      for ele in self:
+        if ele == obj:
+          return True
+    elif val == "__dict__":
+      (valid, current) = self.dict.iter()
+      while (valid):
+        # the func() call may move the current pointer of dict.
+        k = self.dict.key()
+        if k == obj:
+          return True
+        (valid, current) = self.dict.next()
+    else:
+      return val == obj
+    return False
+
 class Dict(BigDFT.Dict):
   def __new__(cls, args = (), kwargs = {}):
     (obj, root) = BigDFT.Dict.new()
@@ -18,47 +165,61 @@ class Dict(BigDFT.Dict):
 
   def __init__(self, source = None):
     if source is not None:
-      self.update(source)
+      self.update(source, self.rootIter)
 
   def __dict_add__(self, var, it):
     for (k, v) in var.items():
       self.move_to(it)
-      if __is_dict_scalar__(v):
-        # scalar case
-        self.set(k, str(v))
-      elif isinstance(v, dict):
-        # dictionary case
-        self.__dict_add__(v, self.insert(k))
-      elif hasattr(v, "__iter__"):
-        # List case
-        self.__list_add__(v, self.insert(k))
-      else:
-        raise TypeError
+      self.update(v, self.insert(k))
 
   def __list_add__(self, var, it):
     for v in var:
       self.move_to(it)
-      if __is_dict_scalar__(v):
-        self.append()
-        self.set(None, str(v))
-      elif isinstance(v, dict):
-        self.__dict_add__(v, self.append())
-      elif hasattr(v, "__iter__"):
-        self.__list_add__(v, self.append())
-      else:
-        raise TypeError
+      self.update(v, self.append())
 
-  def update(self, add):
+  def update(self, add, it):
     if __is_dict_scalar__(add):
+      # scalar case
       self.set(None, str(add))
     elif isinstance(add, dict):
-      self.__dict_add__(add, self.rootIter)
+      # dictionary case
+      self.__dict_add__(add, it)
+    elif isinstance(add, Dict):
+      # Fortran dictionary case
+      add.move_to(None)
+      self.set_dict(None, add)
+    elif isinstance(add, DictAccessor):
+      # sub-Fortran dictionary case
+      add.dict.move_to(add.position)
+      self.set_dict(None, add.dict)
+    elif hasattr(add, "merge_to_dict"):
+      # BigDFT types that can be merged to dict.
+      add.merge_to_dict(it)
     elif hasattr(add, "__iter__"):
-      self.__list_add__(add, self.rootIter)
+      # List case
+      self.__list_add__(add, it)
     else:
       raise TypeError
-    self.dump()
 
+  def __getitem__(self, k):
+    return DictAccessor(self, None)[k]
+
+  def __setitem__(self, k, v):
+    DictAccessor(self, None)[k] = v
+
+  def __str__(self):
+    return str(DictAccessor(self, None))
+
+  def dump(self, args = ()):
+    if isinstance(args, str):
+      self.dump_to_file(args)
+    elif isinstance(args, int):
+      super(BigDFT.Dict, self).dump(args)
+    elif isinstance(args, tuple) and len(args) == 0:
+      super(BigDFT.Dict, self).dump(-1)
+    else:
+      raise TypeError
+    
 Dict = override(Dict)
 __all__.append('Dict')
 
@@ -101,6 +262,14 @@ class Atoms(BigDFT.Atoms):
     return numpy.ctypeslib.as_array(ctypes.cast(struct.unpack('q', s)[0],
                                                 ctypes.POINTER(ctypes.c_double)),
                                     shape = (self.nat, 3))
+
+  @property
+  def format(self):
+    return ''.join(map(chr, super(BigDFT.Atoms, self).format))
+
+  @property
+  def units(self):
+    return ''.join(map(chr, super(BigDFT.Atoms, self).units))
 
 Atoms = override(Atoms)
 __all__.append('Atoms')

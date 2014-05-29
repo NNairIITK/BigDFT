@@ -51,7 +51,7 @@ module memory_profiling
   !!
   !!   The file malloc.prc is not deleted if the final total memory is not equal
   !!   to zero.
-  !!   memdebug (parameter)
+  !!   debug (parameter)
   !!     == .true.  verbose format (useful with utils/scripts/memcheck.py)
   !!                then display a line per allocation or deallocation
   !!                a routine at the end parses the file
@@ -140,6 +140,8 @@ contains
   subroutine memocc_variables_init()
     memtot%memory=int(0,kind=8)
     memtot%peak=int(0,kind=8)
+    memtot%routine=''
+    memtot%array=''
     memalloc=0
     memdealloc=0
 
@@ -192,21 +194,23 @@ contains
     if (.not.meminit) then
        !the mpi routines have to be eliminated
        call memocc_variables_init()
-       !Use MPI to have the mpi rank
-       call MPI_INITIALIZED(lmpinit,ierr)
-       if (lmpinit) then
-          call MPI_COMM_RANK(MPI_COMM_WORLD,memproc,ierr)
-       else
-          !no-mpi case 
-          memproc=0
-       end if
-
-       !open the writing file for the root process
-       if (memproc == 0 .and. malloc_level > 0) then
-          if (len(trim(filename))==0) then
-             filename='malloc.prc'
+       if (trim(routine) /= "stop") then
+          !Use MPI to have the mpi rank
+          call MPI_INITIALIZED(lmpinit,ierr)
+          if (lmpinit) then
+             call MPI_COMM_RANK(MPI_COMM_WORLD,memproc,ierr)
+          else
+             !no-mpi case 
+             memproc=0
           end if
-          call memocc_open_file()
+
+          !open the writing file for the root process
+          if (memproc == 0 .and. malloc_level > 0) then
+             if (len(trim(filename))==0) then
+                filename='malloc.prc'
+             end if
+             call memocc_open_file()
+          end if
        end if
        meminit = .true.
     end if
@@ -325,7 +329,7 @@ contains
     if (malloc_level==2 .and. nalloc /= ndealloc) then
        !Use # to be yaml compliant (is a comment in yaml)
        write(*,*) &
-            "#Use the python script 'memcheck.py' in utils/scripts to check"//&
+            "#Use the python script 'memcheck.py' in utils/scripts to check "//&
             trim(filename)//" file"
     end if
   END SUBROUTINE memory_malloc_check

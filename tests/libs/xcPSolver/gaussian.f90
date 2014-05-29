@@ -17,7 +17,7 @@ program MP_gaussian
   real(gp) :: hgrid,pgauss,x0,reference,max1
   real(gp), dimension(0:nmoms,2) :: moments
   real(gp), dimension(3,2,0:nmoms) :: avgmaxmin
-  real(gp), dimension(:), allocatable :: fj_phi,fj_coll,fj_phi2
+  real(gp), dimension(:), allocatable :: fj_phi,fj_coll
   
 
   call f_lib_initialize()

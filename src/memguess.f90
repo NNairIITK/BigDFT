@@ -153,7 +153,9 @@ program memguess
             write(*,'(1x,5a)')&
                &   'convert "', trim(fileFrom),'" file to "', trim(fileTo),'"'
             exit loop_getargs
+
          else if (trim(tatonam)=='exportwf') then
+            !Export wavefunctions (cube format)
             exportwf=.true.
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = filename_wfn)
@@ -268,6 +270,7 @@ program memguess
       write(*,*) "Done"
       stop
    end if
+
    if (convertpos) then
       call set_astruct_from_file(trim(fileFrom),0,at%astruct,i_stat,fcomment,energy,fxyz)
       if (i_stat /=0) stop 'error on input file parsing' 
@@ -299,8 +302,6 @@ program memguess
       stop
    end if
 
-
-
    if (trim(radical) == "input") then
       posinp='posinp'
    else
@@ -330,8 +331,9 @@ program memguess
    !call cpu_time(tcpu0)
    !call system_clock(ncount0,ncount_rate,ncount_max)
 
+   inputpsi = runObj%inputs%inputPsiId
    call system_initialization(0, nproc, .true.,inputpsi, input_wf_format, .true., &
-        & runObj%inputs, runObj%atoms, runObj%atoms%astruct%rxyz, &
+        & runObj%inputs, runObj%atoms, runObj%atoms%astruct%rxyz, runObj%rst%GPU%OCLconv, &
         & runObj%rst%KSwfn%orbs, runObj%rst%tmb%npsidim_orbs, runObj%rst%tmb%npsidim_comp, &
         & runObj%rst%tmb%orbs, runObj%rst%KSwfn%Lzd, runObj%rst%tmb%Lzd, nlpsp, runObj%rst%KSwfn%comms, &
         & shift,runObj%radii_cf, ref_frags, output_grid = (output_grid > 0))
@@ -369,13 +371,15 @@ program memguess
       ! but used as an allocated array by take_psi_from_file().
       ! TO BE CORRECTED !!!!!
       if (.not.associated(ref_frags)) allocate(ref_frags(runObj%inputs%frag%nfrag_ref))
-      call take_psi_from_file(filename_wfn,runObj%inputs%frag,hx,hy,hz,runObj%rst%KSwfn%Lzd%Glr, &
+      call take_psi_from_file(filename_wfn,runObj%inputs%frag, &
+           & runObj%inputs%hx,runObj%inputs%hy,runObj%inputs%hz,runObj%rst%KSwfn%Lzd%Glr, &
            & runObj%atoms,runObj%atoms%astruct%rxyz,runObj%rst%KSwfn%orbs,runObj%rst%KSwfn%psi,&
            & iorbp,export_wf_ispinor,ref_frags)
       call filename_of_iorb(.false.,"wavefunction",runObj%rst%KSwfn%orbs,iorbp, &
            & export_wf_ispinor,filename_wfn,iorb_out)
 
-      call plot_wf(filename_wfn,1,runObj%atoms,1.0_wp,runObj%rst%KSwfn%Lzd%Glr,hx,hy,hz,runObj%atoms%astruct%rxyz, &
+      call plot_wf(filename_wfn,1,runObj%atoms,1.0_wp,runObj%rst%KSwfn%Lzd%Glr, &
+           & runObj%inputs%hx,runObj%inputs%hy,runObj%inputs%hz,runObj%atoms%astruct%rxyz, &
            & runObj%rst%KSwfn%psi((runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_c+&
            & 7*runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_f) * (export_wf_ispinor - 1) + 1))
    end if
@@ -396,8 +400,7 @@ program memguess
 
       call orbitals_descriptors(0,nproc,norb,norbu,norbd,runObj%inputs%nspin,nspinor, &
            runObj%inputs%gen_nkpt,runObj%inputs%gen_kpt,runObj%inputs%gen_wkpt,orbstst,.false.)
-      allocate(orbstst%eval(orbstst%norbp+ndebug),stat=i_stat)
-      call memocc(i_stat,orbstst%eval,'orbstst%eval',subname)
+      orbstst%eval = f_malloc_ptr(orbstst%norbp,id='orbstst%eval')
       do iorb=1,orbstst%norbp
          orbstst%eval(iorb)=-0.5_gp
       end do
@@ -423,9 +426,7 @@ program memguess
       call deallocate_orbs(orbstst,subname)
 
 
-      i_all=-product(shape(orbstst%eval))*kind(orbstst%eval)
-      deallocate(orbstst%eval,stat=i_stat)
-      call memocc(i_stat,i_all,'orbstst%eval',subname)
+      call f_free_ptr(orbstst%eval)
 
    end if
 
@@ -536,7 +537,7 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
 
    allocate(txyz(3,atoms%astruct%nat+ndebug),stat=i_stat)
    call memocc(i_stat,txyz,'txyz',subname)
-   call system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
+   call system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,.false.,Glr,shift)
    !call volume(nat,rxyz,vol)
    vol=atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3)
    write(*,'(1x,a,1pe16.8)')'Initial volume (Bohr^3)',vol
@@ -587,7 +588,7 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
          txyz(:,iat)=x*urot(:,1)+y*urot(:,2)+z*urot(:,3)
       enddo
 
-      call system_size(atoms,txyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
+      call system_size(atoms,txyz,radii_cf,crmult,frmult,hx,hy,hz,.false.,Glr,shift)
       tvol=atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3)
       !call volume(nat,txyz,tvol)
       if (tvol < vol) then
@@ -795,6 +796,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    real(kind=8) :: CPUtime,GPUtime
    type(gaussian_basis) :: G
    type(GPU_pointers) :: GPU
+   type(xc_info) :: xc
    integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
    real(wp), dimension(:,:,:,:), allocatable :: pot,rho
    real(wp), dimension(:), pointer:: pottmp
@@ -861,9 +863,15 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    allocate(ngatherarr(0:nproc-1,2+ndebug),stat=i_stat)
    call memocc(i_stat,nscatterarr,'nscatterarr',subname)
 
+   if (ixc < 0) then
+      call xc_init(xc, ixc, XC_MIXED, nspin)
+   else
+      call xc_init(xc, ixc, XC_ABINIT, nspin)
+   end if
+
    !normally nproc=1
    do jproc=0,nproc-1
-      call PS_dim4allocation(at%astruct%geocode,'D',jproc,nproc,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,xc_isgga(),(ixc/=13),&
+      call PS_dim4allocation(at%astruct%geocode,'D',jproc,nproc,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,xc_isgga(xc),(ixc/=13),&
          &   n3d,n3p,n3pi,i3xcsh,i3s)
       nscatterarr(jproc,1)=n3d
       nscatterarr(jproc,2)=n3p
@@ -882,7 +890,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    end if
 
    !flag for toggling the REDUCE_SCATTER stategy
-   rsflag = .not.xc_isgga()
+   rsflag = .not.xc_isgga(xc)
 
    !calculate dimensions of the complete array to be allocated before the reduction procedure
    if (rsflag) then
@@ -894,20 +902,20 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
       nrhotot=Lzd%Glr%d%n3i
    end if
 
-   call local_potential_dimensions(iproc,Lzd,orbs,ngatherarr(0,1))
+   call local_potential_dimensions(iproc,Lzd,orbs,xc,ngatherarr(0,1))
 
    !allocate the necessary objects on the GPU
    !set initialisation of GPU part 
    !initialise the acceleration strategy if required
    call init_material_acceleration(iproc,matacc,GPU)
 
-   if (GPUconv .eqv. OCLconv) stop 'ERROR: One (and only one) acceleration should be present with GPUtest'
+   if (GPUconv .eqv. GPU%OCLconv) stop 'ERROR: One (and only one) acceleration should be present with GPUtest'
 
    !allocate arrays for the GPU if a card is present
    if (GPUconv) then
       call prepare_gpu_for_locham(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,nspin,&
            hx,hy,hz,Lzd%Glr%wfd,orbs,GPU)
-   else if (OCLconv) then
+   else if (GPU%OCLconv) then
       !the same with OpenCL, but they cannot exist at same time
       call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,Lzd%Glr%geocode,&
            nspin,Lzd%Glr%wfd,orbs,GPU)
@@ -939,7 +947,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
       !switch between GPU/CPU treatment of the density
       if (GPUconv) then
          call local_partial_density_GPU(orbs,nrhotot,Lzd%Glr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,psi,rho,GPU)
-      else if (OCLconv) then
+      else if (GPU%OCLconv) then
          call local_partial_density_OCL(orbs,nrhotot,Lzd%Glr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,psi,rho,GPU)
       end if
    end do
@@ -995,16 +1003,18 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    !apply the CPU hamiltonian
    !take timings
    call nanosec(itsc0)
+   xc%ixc = 0
    do j=1,ntimes
       allocate(pottmp(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*(nspin+ndebug)),stat=i_stat)
       call memocc(i_stat,pottmp,'pottmp',subname)
       call vcopy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*(nspin+ndebug),pot(1,1,1,1),1,pottmp(1),1)
       call local_hamiltonian(iproc,nproc,orbs%npsidim_orbs,orbs,Lzd,hx,hy,hz,0,confdatarr,pottmp,psi,hpsi, &
-           fake_pkernelSIC,0,0.0_gp,ekin_sum,epot_sum,eSIC_DC)
+           fake_pkernelSIC,xc,0.0_gp,ekin_sum,epot_sum,eSIC_DC)
       i_all=-product(shape(pottmp))*kind(pottmp)
       deallocate(pottmp,stat=i_stat)
       call memocc(i_stat,i_all,'pottmp',subname)
    end do
+   xc%ixc = ixc
    call nanosec(itsc1)
    CPUtime=real(itsc1-itsc0,kind=8)*1.d-9
 
@@ -1023,11 +1033,11 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    do j=1,ntimes
       if (GPUconv) then
          call local_hamiltonian_GPU(orbs,Lzd%Glr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekinGPU,epotGPU,GPU)
-      else if (OCLconv) then
+      else if (GPU%OCLconv) then
          call local_hamiltonian_OCL(orbs,Lzd%Glr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekinGPU,epotGPU,GPU)
       end if
    end do
-   if(ASYNCconv .and. OCLconv) call finish_hamiltonian_OCL(orbs,ekinGPU,epotGPU,GPU)
+   if(ASYNCconv .and. GPU%OCLconv) call finish_hamiltonian_OCL(orbs,ekinGPU,epotGPU,GPU)
    call nanosec(itsc1)
    GPUtime=real(itsc1-itsc0,kind=8)*1.d-9
 
@@ -1131,7 +1141,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
       if (GPUconv) then
          call preconditionall_GPU(orbs,Lzd%Glr,hx,hy,hz,ncong,&
             &   GPU%hpsi_ASYNC,gnrmGPU,gnrm_zero,GPU)
-      else if (OCLconv) then
+      else if (GPU%OCLconv) then
          call preconditionall_OCL(orbs,Lzd%Glr,hx,hy,hz,ncong,&
             &   GPU%hpsi_ASYNC,gnrmGPU,gnrm_zero,GPU)
       end if
@@ -1159,9 +1169,11 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    !free the card at the end
    if (GPUconv) then
       call free_gpu(GPU,orbs%norbp)
-   else if (OCLconv) then
+   else if (GPU%OCLconv) then
       call free_gpu_OCL(GPU,orbs,nspin)
    end if
+
+   call xc_end(xc)
 
    !finalise the material accelearion usage
    call release_material_acceleration(GPU)

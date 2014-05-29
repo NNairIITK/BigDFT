@@ -349,7 +349,7 @@ subroutine dotprodm_vn(cplex,cpldot,denarr,dot,id,ip,mpi_comm, mpi_summarize,mul
 !XG030513 : MPIWF reduction (addition) on dot is needed here
  if (mpi_summarize) then
    call timab(48,1,tsec)
-   call xsum_mpi(dot,mpi_comm ,ierr)
+   call xmpi_sum(dot,mpi_comm ,ierr)
    call timab(48,2,tsec)
  end if
 

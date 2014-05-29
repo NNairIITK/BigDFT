@@ -7,7 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
-i
+
 !> Define the get_command_argument routine
 subroutine get_command_argument(count, value, status)
   implicit none

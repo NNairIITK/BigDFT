@@ -304,7 +304,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     !---------------------------------------------------------------------------
     !pnow%ncount=1
     !pnow%ncount_ll=0
-    nullify(dict)
+    call dict_init(dict)
     ncount_bigdft=0
     pnow%ifile=ifile
     parmin%ifile=ifile
@@ -327,16 +327,19 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     !-----------------------------------------------------------
     ! We read the input variable files.
     if(trim(pnow%hybrid)=='yes') then
-       call read_input_dict_from_files("ll_input", bigdft_mpi,dict)
+       call user_dict_from_files(dict,'ll_input','posinp',bigdft_mpi)
+       !call read_input_dict_from_files("ll_input", bigdft_mpi,dict)
     else
-       call read_input_dict_from_files("input", bigdft_mpi,dict)
+       call user_dict_from_files(dict,'input','posinp',bigdft_mpi)
+       !call read_input_dict_from_files("input", bigdft_mpi,dict)
     endif
-    ! We add the atomic data.
-    call astruct_merge_to_dict(dict // "posinp", atoms%astruct, atoms%astruct%rxyz)
-    call atoms_file_merge_to_dict(dict)
-    call atomic_data_file_merge_to_dict(dict, "Atomic occupation", "input.occup")
+!    ! We add the atomic data.
+!    call astruct_merge_to_dict(dict // "posinp", atoms%astruct, atoms%astruct%rx!yz)
+!    call atoms_file_merge_to_dict(dict)
+!    call atomic_data_file_merge_to_dict(dict, "Atomic occupation", "input.occup")
+
     ! We parse the dictionary.
-    call inputs_from_dict(ll_inputs, ll_atoms, dict, .true.)
+    call inputs_from_dict(ll_inputs, ll_atoms, dict)
     call dict_free(dict)
     call deallocate_atoms_data(ll_atoms)
     
@@ -1279,46 +1282,6 @@ subroutine neb(n,nr,np,x,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigd
     write(*         ,'(a,1x,a)') 'end of minimization_sp using ',parmin%approach
     endif
 end subroutine neb
-
-
-subroutine atomic_copymoving_forward(atoms,n,x,nr,xa)
-    use module_types
-    implicit none
-    type(atoms_data), intent(inout) :: atoms
-    integer::n,nr,i,iat,ixyz,ir
-    real(kind=8)::x(n),xa(nr)
-    logical::move_this_coordinate
-    ir=0
-    do i=1,3*atoms%astruct%nat
-        iat=(i-1)/3+1
-        ixyz=mod(i-1,3)+1
-        if(move_this_coordinate(atoms%astruct%ifrztyp(iat),ixyz)) then
-            ir=ir+1
-            xa(ir)=x(i)
-        endif
-    enddo
-    if(ir/=nr) stop 'ERROR: inconsistent number of relaxing DOF'
-end subroutine atomic_copymoving_forward
-
-
-subroutine atomic_copymoving_backward(atoms,nr,xa,n,x)
-    use module_types
-    implicit none
-    type(atoms_data), intent(inout) :: atoms
-    integer::n,nr,i,iat,ixyz,ir
-    real(kind=8)::x(n),xa(nr)
-    logical::move_this_coordinate
-    ir=0
-    do i=1,3*atoms%astruct%nat
-        iat=(i-1)/3+1
-        ixyz=mod(i-1,3)+1
-        if(move_this_coordinate(atoms%astruct%ifrztyp(iat),ixyz)) then
-            ir=ir+1
-            x(i)=xa(ir)
-        endif
-    enddo
-    if(ir/=nr) stop 'ERROR: inconsistent number of relaxing DOF'
-end subroutine atomic_copymoving_backward
 
 
 subroutine calmaxforcecomponentsub(atoms,f,fnrm,fspmax)
