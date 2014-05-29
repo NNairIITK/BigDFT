@@ -28,20 +28,21 @@
 subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       quiet,stress_tensor) !optional argument
    use yaml_output
+  use time_profiling, only: f_timing
    implicit none
    !>  kernel of the poisson equation. It is provided in distributed case, with
    !!  dimensions that are related to the output of the PS_dim4allocation routine
    !!  it MUST be created by following the same geocode as the Poisson Solver.
    type(coulomb_operator), intent(in) :: kernel
    character(len=1), intent(in) :: datacode !< @copydoc poisson_solver::doc::datacode
-   !> Total integral on the supercell of the final potential on output
    !! To be used only in the periodic case, ignored for other boundary conditions.
    logical, intent(in) :: sumpion
-   !> Logical value which states whether to sum pot_ion to the final result or not
-   !!   .true.  rhopot will be the Hartree potential + pot_ion+vxci
+   !< Logical value which states whether to sum pot_ion to the final result or not
+   !!   .true.  rhopot will be the Hartree potential + pot_ion
    !!           pot_ion will be untouched
    !!   .false. rhopot will be only the Hartree potential
-   !!           pot_ion will be the XC potential vxci
+   !!           pot_ion will be ignored
+   !> Total integral on the supercell of the final potential on output
    real(dp), intent(in) :: offset
    real(gp), intent(out) :: eh !< Hartree Energy
    !> On input, it represents the density values on the grid points
@@ -89,7 +90,8 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    ! rewrite
    if (wrtmsg) call yaml_open_map('Poisson Solver')
    
-   call timing(kernel%mpi_env%iproc,'PSolv_comput  ','ON')
+   !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','ON')
+   call f_timing(TCAT_PSOLV_COMPUT,'ON')
    !calculate the dimensions wrt the geocode
    if (kernel%geocode == 'P') then
       if (wrtmsg) &
@@ -186,15 +188,17 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    end do
    
    if (.not. cudasolver) then !CPU case
-   
-      call timing(kernel%mpi_env%iproc,'PSolv_comput  ','OF')
+
+      !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','OF')
+      call f_timing(TCAT_PSOLV_COMPUT,'OF')
       call G_PoissonSolver(kernel%mpi_env%iproc,kernel%mpi_env%nproc,&
            kernel%part_mpi%mpi_comm,kernel%inplane_mpi%iproc,kernel%inplane_mpi%mpi_comm,kernel%geocode,1,&
            n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,kernel%kernel,&
            zf(1,1,1),&
            scal,kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),offset,strten)
-      call timing(kernel%mpi_env%iproc,'PSolv_comput  ','ON')
-   
+      call f_timing(TCAT_PSOLV_COMPUT,'ON')
+      !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','ON')
+
       !check for the presence of the stress tensor
       if (present(stress_tensor)) then
          call vcopy(6,strten(1),1,stress_tensor(1),1)
@@ -341,14 +345,16 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    deallocate(zf,stat=i_stat)
    call memocc(i_stat,i_all,'zf',subname)
    
-   call timing(kernel%mpi_env%iproc,'PSolv_comput  ','OF')
-   
+   !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','OF')
+   !call f_timing(TCAT_PSOLV_COMPUT,'OF')
+
    !gathering the data to obtain the distribution array
    !evaluating the total ehartree
    eh=real(ehartreeLOC,gp)
    if (kernel%mpi_env%nproc > 1) then
-      call timing(kernel%mpi_env%iproc,'PSolv_commun  ','ON')
-   
+      !call timing(kernel%mpi_env%iproc,'PSolv_commun  ','ON')
+      !call f_timing(TCAT_PSOLV_COMPUT,'ON')
+
       eh=ehartreeLOC
       call mpiallred(eh,1,MPI_SUM,kernel%mpi_env%mpi_comm,ierr)
       !reduce also the value of the stress tensor
@@ -357,13 +363,15 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
          call mpiallred(stress_tensor(1),6,MPI_SUM,kernel%mpi_env%mpi_comm,ierr)
       end if
    
-      call timing(kernel%mpi_env%iproc,'PSolv_commun  ','OF')
-   
+      !call timing(kernel%mpi_env%iproc,'PSolv_commun  ','OF')
+      !call f_timing(TCAT_PSOLV_COMPUT,'OF')
+
       if (datacode == 'G') then
          !building the array of the data to be sent from each process
          !and the array of the displacement
    
-         call timing(kernel%mpi_env%iproc,'PSolv_comput  ','ON')
+         !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','ON')
+         !call f_timing(TCAT_PSOLV_COMPUT,'ON')
          allocate(gather_arr(0:kernel%mpi_env%nproc-1,2+ndebug),stat=i_stat)
          call memocc(i_stat,gather_arr,'gather_arr',subname)
          do jproc=0,kernel%mpi_env%nproc-1
@@ -372,31 +380,37 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
             gather_arr(jproc,1)=m1*m3*jend
             gather_arr(jproc,2)=m1*m3*istart
          end do
-   
          !gather all the results in the same rhopot array
          istart=min(kernel%mpi_env%iproc*(md2/kernel%mpi_env%nproc),m2-1)
    
-         call timing(kernel%mpi_env%iproc,'PSolv_comput  ','OF')
-         call timing(kernel%mpi_env%iproc,'PSolv_commun  ','ON')
+         !call f_timing(TCAT_PSOLV_COMPUT,'OF')
+         !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','OF')
+         !call timing(kernel%mpi_env%iproc,'PSolv_commun  ','ON')
+         !call f_timing(TCAT_PSOLV_COMPUT,'ON')
+
          istden=1+kernel%ndims(1)*kernel%ndims(2)*istart
          istglo=1
 !!$        call MPI_ALLGATHERV(rhopot(istden),gather_arr(kernel%mpi_env%iproc,1),mpidtypw,&
 !!$             rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
 !!$             kernel%mpi_env%mpi_comm,ierr)
-         call MPI_ALLGATHERV(MPI_IN_PLACE,gather_arr(kernel%mpi_env%iproc,1),mpidtypw,&
-              rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
-              kernel%mpi_env%mpi_comm,ierr)
-         call timing(kernel%mpi_env%iproc,'PSolv_commun  ','OF')
-         call timing(kernel%mpi_env%iproc,'PSolv_comput  ','ON')
-     
+         call mpiallgatherv(rhopot(istglo), gather_arr(:,1), gather_arr(:,2), &
+              & kernel%mpi_env%iproc, kernel%mpi_env%mpi_comm,ierr)
+!!$         call MPI_ALLGATHERV(MPI_IN_PLACE,gather_arr(kernel%mpi_env%iproc,1),mpidtypw,&
+!!$              rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
+!!$              kernel%mpi_env%mpi_comm,ierr)
+         !call f_timing(TCAT_PSOLV_COMPUT,'OF')
+         !call timing(kernel%mpi_env%iproc,'PSolv_commun  ','OF')
+         !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','ON')
+         !call f_timing(TCAT_PSOLV_COMPUT,'ON')
          i_all=-product(shape(gather_arr))*kind(gather_arr)
          deallocate(gather_arr,stat=i_stat)
          call memocc(i_stat,i_all,'gather_arr',subname)
-     
-         call timing(kernel%mpi_env%iproc,'PSolv_comput  ','OF')
+         !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','OF')
      
       end if
-  end if
+   end if
+
+   call f_timing(TCAT_PSOLV_COMPUT,'OF')
 
 END SUBROUTINE H_potential
 

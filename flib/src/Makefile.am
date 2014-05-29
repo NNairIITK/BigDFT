@@ -42,7 +42,8 @@ DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 \
 	f_malloc-bounds-inc.f90 f_malloc-simple-inc.f90 \
 	deallocate-multiple-inc.f90 deallocate-multiple-inc-ptr.f90
 
-YAML_INCLUDES = yaml_map-inc.f90 yaml_map-arr-inc.f90 yaml_map-mat-inc.f90
+YAML_INCLUDES = yaml_map-inc.f90 yaml_map-arr-inc.f90 \
+	yaml_map-mat-inc.f90 yaml_open-inc.f90
 STRINGS_INCLUDES = yaml_toa-inc.f90 yaml_toa-arr-inc.f90
 ERR_INCLUDES = get_err-inc.f90
 DICT_INCLUDES = error_handling.f90 dict_add-inc.f90 dict_getvec-inc.f90
@@ -61,7 +62,8 @@ modules = YAML_STRINGS.@MODULE_EXT@ \
 	DYNAMIC_MEMORY.@MODULE_EXT@ \
 	RANDOMDATA.@MODULE_EXT@ \
 	MEMORY_PROFILING.@MODULE_EXT@ \
-	EXCEPTION_CALLBACKS.@MODULE_EXT@
+	EXCEPTION_CALLBACKS.@MODULE_EXT@ \
+	TIME_PROFILING.@MODULE_EXT@
 else
 modules = yaml_strings.@MODULE_EXT@ \
 	dictionaries.@MODULE_EXT@ \
@@ -72,7 +74,8 @@ modules = yaml_strings.@MODULE_EXT@ \
 	dynamic_memory.@MODULE_EXT@ \
 	randomdata.@MODULE_EXT@ \
 	memory_profiling.@MODULE_EXT@ \
-	exception_callbacks.@MODULE_EXT@
+	exception_callbacks.@MODULE_EXT@ \
+	time_profiling.@MODULE_EXT@
 endif
 
 CLEANFILES = $(modules) *.@MODULE_EXT@ $(mpi_include)
@@ -90,11 +93,11 @@ yaml_parse.o : dictionaries.o
 #error_handling.o: dictionaries.o callbacks.o yaml_output.o $(ERR_INCLUDES)
 dynamic_memory.o: getadd.o yaml_strings.o yaml_output.o mem_profiling.o $(DYN_INCLUDES)
 mem_profiling.o: yaml_output.o $(mpi_include)
-f_lib_highlev.o: dictionaries.o yaml_output.o dynamic_memory.o yaml_parse.o
+f_lib_highlev.o: dictionaries.o yaml_output.o dynamic_memory.o yaml_parse.o time.o
 getadd.o: yaml_strings.o $(GETADD_INCLUDES)
 $(flush_object): yaml_output.o dictionaries.o
 
-time.o: $(mpi_include) #this is temporary, mpif.h should only be in wrappers
+time.o: dynamic_memory.o $(mpi_include) #this is temporary, mpif.h should only be in wrappers
 
 #Fake mpif.h for serial compilation
 mpif.h:

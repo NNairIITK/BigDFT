@@ -87,6 +87,7 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
   call f_release_routine()
 end subroutine read_input_dict_from_files
 
+
 !> Fill the input_variables structure with the information
 !! contained in the dictionary dict
 !! the dictionary should be completes to fill all the information
@@ -101,6 +102,7 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   use dynamic_memory
   use m_profiling, only: ab7_memocc_set_state => memocc_set_state !< abinit module to be removed
   use module_xc
+  use module_atoms, only: atoms_data,atoms_data_null,set_astruct_from_dict
   implicit none
   type(input_variables), intent(out) :: in
   type(atoms_data), intent(out) :: atoms
@@ -115,9 +117,9 @@ subroutine inputs_from_dict(in, atoms, dict, dump)
   call f_routine(id='inputs_from_dict')
 
   ! Atoms case.
-  atoms = atoms_null()
+  atoms = atoms_data_null()
   if (.not. has_key(dict, "posinp")) stop "missing posinp"
-  call astruct_set_from_dict(dict // "posinp", atoms%astruct)
+  call set_astruct_from_dict(dict // "posinp", atoms%astruct)
 
   ! Input variables case.
   call default_input_variables(in)
@@ -421,6 +423,7 @@ subroutine default_input_variables(in)
   nullify(in%lin%locrad_lowaccuracy)
   nullify(in%lin%locrad_highaccuracy)
   nullify(in%lin%locrad_type)
+  nullify(in%lin%kernel_cutoff_FOE)
   nullify(in%lin%kernel_cutoff)
   !nullify(in%frag%frag_info)
   nullify(in%frag%label)
@@ -521,6 +524,7 @@ subroutine allocateInputFragArrays(input_frag)
   allocate(input_frag%label(input_frag%nfrag_ref), stat=i_stat)
   call memocc(i_stat, input_frag%label, 'input_frag%label', subname)
 
+  !f_malloc0_str_ptr should be used here
   allocate(input_frag%dirname(input_frag%nfrag_ref), stat=i_stat)
   call memocc(i_stat, input_frag%dirname, 'input_frag%dirname', subname)
 
@@ -737,6 +741,7 @@ subroutine input_analyze(in)
      end if
      write(*,'(5x,a)') 'This values will be adjusted if it is larger than the number of orbitals.'
   end if
+  !@todo also the inputguess variable should be checked if BC are nonFree
 
   ! the DFT variables ------------------------------------------------------
   in%SIC%ixc = in%ixc
@@ -788,6 +793,7 @@ END SUBROUTINE input_analyze
 subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   use module_base
   use module_types
+  use module_atoms, only: symmetry_data
   use defs_basis
   use m_ab6_kpoints
   use yaml_output

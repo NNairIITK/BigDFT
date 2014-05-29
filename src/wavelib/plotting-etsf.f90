@@ -12,7 +12,7 @@ subroutine write_etsf_density(filename,message,at,rxyz,n1i,n2i,n3i,hxh,hyh,hzh,&
      x, nspin)
   use module_base
   use module_types
-
+  use ao_inguess, only: atomic_info
   use etsf_io_low_level
   use etsf_io
 
@@ -146,7 +146,8 @@ subroutine write_etsf_density(filename,message,at,rxyz,n1i,n2i,n3i,hxh,hyh,hzh,&
   allocate(spnames(at%astruct%ntypes),stat=i_stat)
   call memocc(i_stat,spnames,'spnames',subname)
   do iat = 1, at%astruct%ntypes, 1
-     call nzsymbol(at%nzatom(iat), spnames(iat))
+     !call nzsymbol(at%nzatom(iat), spnames(iat))
+     call atomic_info(at%nzatom(iat),at%nelpsp(iat),symbol=spnames(iat))
   end do
   geo%chemical_symbols       => spnames
   geo%primitive_vectors      => rprim

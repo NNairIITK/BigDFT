@@ -520,7 +520,7 @@ subroutine calculate_rmr_new(geocode,hybrid_on,ncplx,wfd,scal,r,b,rmr_new)
        geocode == 'F' .or. geocode == 'S')
 
   if (noscal) then
-     call dcopy(ncplx*(wfd%nvctr_c+7*wfd%nvctr_f),r(1,1),1,b(1,1),1) 
+     call vcopy(ncplx*(wfd%nvctr_c+7*wfd%nvctr_f),r(1,1),1,b(1,1),1) 
      rmr_new=dot(ncplx*(wfd%nvctr_c+7*wfd%nvctr_f),r(1,1),1,r(1,1),1)
   else 
      do idx=1,ncplx
@@ -571,7 +571,7 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
         if (inguess_on) then
            !the right hand side is temporarily stored in the rpsi array
            !rpsi=hpsi           
-           call dcopy(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,x(1,idx),1,b(1,idx),1) 
+           call vcopy(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,x(1,idx),1,b(1,idx),1) 
            !          and preconditioned with d^{-1/2} as usual:
            call wscalv_wrap(lr%wfd%nvctr_c,lr%wfd%nvctr_f,scal,b(1,idx))
            !hpsi is now diagonally preconditioned with alexey's old preconditioner;
@@ -589,7 +589,7 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
            call wscalv_wrap(lr%wfd%nvctr_c,lr%wfd%nvctr_f,scal,x(1,idx))
 
            !b=x
-           call dcopy(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,x(1,idx),1,b(1,idx),1) 
+           call vcopy(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,x(1,idx),1,b(1,idx),1) 
         endif
      end do
 
@@ -624,7 +624,7 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
      if (lr%hybrid_on) then
         do idx=1,ncplx
            !b=x
-           call dcopy(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,x(1,idx),1,b(1,idx),1) 
+           call vcopy(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,x(1,idx),1,b(1,idx),1) 
            
            call prec_fft_fast(lr%d%n1,lr%d%n2,lr%d%n3,&
                 lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
@@ -643,7 +643,7 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
            call wscal_per_self(lr%wfd%nvctr_c,lr%wfd%nvctr_f,scal,&
                 x(1,idx),x(lr%wfd%nvctr_c+1,idx))
            !b=x
-           call dcopy(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,x(1,idx),1,b(1,idx),1) 
+           call vcopy(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,x(1,idx),1,b(1,idx),1) 
 
            !if GPU is swithced on and there is no call to GPU preconditioner
            !do not do the FFT preconditioning (not valid anymore)
@@ -684,7 +684,7 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
         !end of that
 
         !b=x
-        call dcopy(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,x(1,idx),1,b(1,idx),1) 
+        call vcopy(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,x(1,idx),1,b(1,idx),1) 
         
         !	compute the input guess x via a Fourier transform in a cubic box.
         !	Arrays psifscf and ww serve as work arrays for the Fourier
@@ -1465,7 +1465,7 @@ subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   if (inguess_on) then
      !          the right hand side is temporarily stored in the rpsi array
      !rpsi=hpsi           
-     call dcopy(nvctr_c+7*nvctr_f,hpsi,1,rpsi,1) 
+     call vcopy(nvctr_c+7*nvctr_f,hpsi(1),1,rpsi(1),1) 
      !          and preconditioned with d^{-1/2} as usual:
      call  wscalv(nvctr_c,nvctr_f,scal,rpsi,rpsi(nvctr_c+1))
 

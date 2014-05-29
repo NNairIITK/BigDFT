@@ -88,11 +88,11 @@ static void bigdft_atoms_finalize(GObject *obj)
 void bigdft_atoms_get_nat_arrays(BigDFT_Atoms *atoms)
 {
   GET_ATTR_UINT  (atoms, ATOMS, iatype,   IATYPE);
-  GET_ATTR_UINT  (atoms, ATOMS, iasctype, IASCTYPE);
+  //  GET_ATTR_UINT  (atoms, ATOMS, iasctype, IASCTYPE);
   GET_ATTR_UINT  (atoms, ATOMS, natpol,   NATPOL);
   GET_ATTR_INT   (atoms, ATOMS, ifrztyp,  IFRZTYP);
   GET_ATTR_DBL   (atoms, ATOMS, amu,      AMU);
-  GET_ATTR_DBL_2D(atoms, ATOMS, aocc,     AOCC);
+  //  GET_ATTR_DBL_2D(atoms, ATOMS, aocc,     AOCC);
   GET_ATTR_DBL_2D(atoms, ATOMS, rxyz,     RXYZ);
 }
 void bigdft_atoms_get_ntypes_arrays(BigDFT_Atoms *atoms)
@@ -180,8 +180,8 @@ void bigdft_atoms_set_n_atoms(BigDFT_Atoms *atoms, guint nat)
 {
   const gchar subname[] = "bigdft_atoms_set_n_atoms";
 
-  FC_FUNC_(astruct_set_n_atoms, ASTRUCT_SET_N_ATOMS)(F_TYPE(atoms->astruct), (int*)(&nat),
-                                                     subname, strlen(subname));
+  FC_FUNC_(astruct_set_n_atoms, ASTRUCT_SET_N_ATOMS)(F_TYPE(atoms->astruct), (int*)(&nat));//,
+  //                                         subname, strlen(subname));
   atoms->nat = nat;
   bigdft_atoms_get_nat_arrays(atoms);
 }
@@ -213,8 +213,8 @@ void bigdft_atoms_set_types(BigDFT_Atoms *atoms, const gchar **names)
 
   for (ntypes = 0; names[ntypes]; ntypes++);
   FC_FUNC_(astruct_set_n_types, ASTRUCT_SET_N_TYPES)(F_TYPE(atoms->astruct),
-                                                     (int*)(&ntypes),
-                                                     subname, strlen(subname));
+                                                     (int*)(&ntypes)); //,
+  //subname, strlen(subname));
   atoms->ntypes = ntypes;
   bigdft_atoms_get_ntypes_arrays(atoms);
   atoms->atomnames = g_malloc(sizeof(gchar*) * (ntypes + 1));
@@ -353,9 +353,9 @@ void bigdft_atoms_set_psp(BigDFT_Atoms *atoms, int ixc, guint nspin, const gchar
   /* Allocate the atomic arrays if not already. */
   if (!atoms->psppar)
     {
-      FC_FUNC_(allocate_atoms_nat, ALLOCATE_ATOMS_NAT)(F_TYPE(atoms->data), subname, strlen(subname));
+      FC_FUNC_(allocate_atoms_nat, ALLOCATE_ATOMS_NAT)(F_TYPE(atoms->data)); //, subname, strlen(subname));
       bigdft_atoms_get_nat_arrays(atoms);
-      FC_FUNC_(allocate_atoms_ntypes, ALLOCATE_ATOMS_NTYPES)(F_TYPE(atoms->data), subname, strlen(subname));
+      FC_FUNC_(allocate_atoms_ntypes, ALLOCATE_ATOMS_NTYPES)(F_TYPE(atoms->data)); //, subname, strlen(subname));
       bigdft_atoms_get_ntypes_arrays(atoms);
     }
 

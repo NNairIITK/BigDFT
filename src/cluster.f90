@@ -240,10 +240,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   use constrained_dft
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use module_xc
+  use communications_init, only: orbitals_communicators
 !  use vdwcorrection
   use yaml_output
   use gaussians, only: gaussian_basis
   use psp_projectors
+  use sparsematrix_base, only: sparse_matrix_null
+  use sparsematrix_init, only: init_sparse_matrix, init_sparsity_from_distance, check_kernel_cutoff
+  use sparsematrix, only: check_matrix_compression
   implicit none
   integer, intent(in) :: nproc,iproc
   real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -307,7 +311,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
   ! testing
   real(kind=8),dimension(:,:),pointer :: locregcenters
-  integer :: ilr, nlr
+  integer :: ilr, nlr, iorb, jorb, ioffset, linear_iscf
   character(len=20) :: comment
 
   !debug
@@ -338,7 +342,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   else
      nproctiming=nproc
   end if
-  call timing(nproctiming,trim(in%dir_output)//'time.yaml','IN')
+  !call timing(nproctiming,trim(in%dir_output)//'time.yaml','IN')
+  call f_timing_reset(filename=trim(in%dir_output)//'time.yaml',master=iproc==0,&
+       verbose_mode=verbose>2 .and. nproc>1)
   call cpu_time(tcpu0)
   call system_clock(ncount0,ncount_rate,ncount_max)
 
@@ -451,61 +457,62 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
      call kswfn_init_comm(tmb, in, atoms, denspot%dpbox, iproc, nproc)
      call init_foe(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, .true.)
+     call increase_FOE_cutoff(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.true.)
 
-     call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot, in, atoms, rxyz, .false.)
+     call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,in, atoms, rxyz, .false.)
 
-     call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, in, tmb%linmat%ham)
+     call init_sparse_matrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, in, tmb%linmat%ham)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ham)
-     !tmb%linmat%ham%matrixindex_in_compressed_ptr => tmb%ham_descr%collcom%matrixindex_in_compressed
-     call initSparseMatrix(iproc, nproc, tmb%lzd, tmb%orbs, in, tmb%linmat%ovrlp)
+     call init_sparse_matrix(iproc, nproc, tmb%lzd, tmb%orbs, in, tmb%linmat%ovrlp)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ovrlp)
-     !tmb%linmat%ovrlp%matrixindex_in_compressed_ptr => tmb%collcom%matrixindex_in_compressed
-     !call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, tmb%linmat%inv_ovrlp)
-     call initSparseMatrix(iproc, nproc, tmb%ham_descr%lzd, tmb%orbs, in, tmb%linmat%denskern)
-     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
-          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern)
-     call nullify_sparsematrix(tmb%linmat%inv_ovrlp)
-     call sparse_copy_pattern(tmb%linmat%denskern,tmb%linmat%inv_ovrlp,iproc,subname) ! save recalculating
 
-     !!! This is nasty.. matrixindex_in_compressed_fortransposed should rather be
-     !!! in comms instead of spareMatrix
-     !!i_all=-product(shape(tmb%linmat%inv_ovrlp%matrixindex_in_compressed_fortransposed))*&
-     !!       kind(tmb%linmat%inv_ovrlp%matrixindex_in_compressed_fortransposed)
-     !!deallocate(tmb%linmat%inv_ovrlp%matrixindex_in_compressed_fortransposed,stat=i_stat)
-     !!call memocc(i_stat,i_all,'denspot%rho',subname)
-     !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
-     !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%inv_ovrlp)
-     !call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%inv_ovrlp)
-     !tmb%linmat%inv_ovrlp%matrixindex_in_compressed_ptr => tmb%ham_descr%collcom%matrixindex_in_compressed
-
-
-
-     if (iproc==0) call yaml_open_map('Checking Compression/Uncompression of sparse matrices')
+     if (iproc==0) call yaml_open_map('Checking Compression/Uncompression of small sparse matrices')
      call check_matrix_compression(iproc,tmb%linmat%ham)
      call check_matrix_compression(iproc,tmb%linmat%ovrlp)
-     !call check_matrix_compression(iproc,tmb%linmat%inv_ovrlp) ! same as denskern for now so won't check
-     call check_matrix_compression(iproc,tmb%linmat%denskern)
      if (iproc ==0) call yaml_close_map()
 
-     ! move allocation from here into initsparsematrix?! or new allocatesparsematrix
-     allocate(tmb%linmat%denskern%matrix_compr(tmb%linmat%denskern%nvctr), stat=i_stat)
-     call memocc(i_stat, tmb%linmat%denskern%matrix_compr, 'tmb%linmat%denskern%matrix_compr', subname)
-     allocate(tmb%linmat%ovrlp%matrix_compr(tmb%linmat%ovrlp%nvctr), stat=i_stat)
-     call memocc(i_stat, tmb%linmat%ovrlp%matrix_compr, 'tmb%linmat%ovrlp%matrix_compr', subname)
-     !allocate(tmb%linmat%inv_ovrlp%matrix_compr(tmb%linmat%inv_ovrlp%nvctr), stat=i_stat) ! only allocate when needed, unlike others
-     !call memocc(i_stat, tmb%linmat%inv_ovrlp%matrix_compr, 'tmb%linmat%inv_ovrlp%matrix_compr', subname)
-     allocate(tmb%linmat%ham%matrix_compr(tmb%linmat%ham%nvctr), stat=i_stat)
-     call memocc(i_stat, tmb%linmat%ham%matrix_compr, 'tmb%linmat%ham%matrix_compr', subname)
+
+
+     !!allocate(tmb%linmat%ovrlp%matrix_compr(tmb%linmat%ovrlp%nvctr), stat=i_stat)
+     !!call memocc(i_stat, tmb%linmat%ovrlp%matrix_compr, 'tmb%linmat%ovrlp%matrix_compr', subname)
+     !!allocate(tmb%linmat%ham%matrix_compr(tmb%linmat%ham%nvctr), stat=i_stat)
+     !!call memocc(i_stat, tmb%linmat%ham%matrix_compr, 'tmb%linmat%ham%matrix_compr', subname)
+     tmb%linmat%ovrlp%matrix_compr=f_malloc_ptr(tmb%linmat%ovrlp%nvctr,id='tmb%linmat%ovrlp%matrix_compr')
+     tmb%linmat%ham%matrix_compr=f_malloc_ptr(tmb%linmat%ham%nvctr,id='tmb%linmat%ham%matrix_compr')
+
+
+     ! check the extent of the kernel cutoff (must be at least shamop radius)
+     call check_kernel_cutoff(iproc, tmb%orbs, atoms, tmb%lzd)
+     call init_sparsity_from_distance(iproc, nproc, tmb%orbs, tmb%lzd, in, tmb%linmat%denskern_large)
+     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
+     !call nullify_sparse_matrix(tmb%linmat%inv_ovrlp_large)
+     tmb%linmat%inv_ovrlp_large=sparse_matrix_null()
+     call sparse_copy_pattern(tmb%linmat%denskern_large, tmb%linmat%inv_ovrlp_large, iproc, subname)
+
+
+     if (iproc==0) call yaml_open_map('Checking Compression/Uncompression of large sparse matrices')
+     call check_matrix_compression(iproc,tmb%linmat%denskern_large)
+     if (iproc ==0) call yaml_close_map()
+
+
+     !!allocate(tmb%linmat%denskern_large%matrix_compr(tmb%linmat%denskern_large%nvctr), stat=i_stat)
+     !!call memocc(i_stat, tmb%linmat%denskern_large%matrix_compr, 'tmb%linmat%denskern_large%matrix_compr', subname)
+     tmb%linmat%denskern_large%matrix_compr=f_malloc_ptr(tmb%linmat%denskern_large%nvctr,&
+         id='tmb%linmat%denskern_large%matrix_compr')
+
+
 
      if (in%check_sumrho>0) then
-         call check_communication_potential(denspot,tmb)
+         call check_communication_potential(iproc,denspot,tmb)
          call check_communication_sumrho(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom_sr, &
-              denspot, tmb%linmat%denskern, in%check_sumrho)
+              denspot, tmb%linmat%denskern_large, in%check_sumrho)
      end if
 
-     if (in%lin%scf_mode/=LINEAR_FOE .or. in%lin%pulay_correction) then
+     if (in%lin%scf_mode/=LINEAR_FOE .or. in%lin%pulay_correction .or.  in%lin%new_pulay_correction .or. &
+         (in%lin%plotBasisFunctions /= WF_FORMAT_NONE) .or. in%lin%diag_end) then
         allocate(tmb%coeff(tmb%orbs%norb,tmb%orbs%norb), stat=i_stat)
         call memocc(i_stat, tmb%coeff, 'tmb%coeff', subname)
      else
@@ -575,9 +582,53 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   if (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
       in%inputPsiId == INPUT_PSI_MEMORY_LINEAR .or. &
       in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
-      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpsp,KSwfn,tmb,energs,&
-           inputpsi,input_wf_format,norbv,lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft,&
-           locregcenters)
+     ! Setup the mixing, if necessary -- NEW
+     if (in%lin%mixHist_lowaccuracy /= in%lin%mixHist_highaccuracy) then
+         ! This must be fixed later
+         stop 'in%lin%mixHist_lowaccuracy /= in%lin%mixHist_highaccuracy'
+     end if
+     select case (in%lin%scf_mode) 
+     case (LINEAR_DIRECT_MINIMIZATION)
+         ! still do a density mixing, maybe  to be modified later
+         if (in%lin%mixHist_lowaccuracy==0) then
+             ! simple mixing
+             linear_iscf = 12
+         else
+             ! Pulay mixing
+             linear_iscf = 17
+         end if
+     case (LINEAR_MIXDENS_SIMPLE) 
+         if (in%lin%mixHist_lowaccuracy==0) then
+             ! simple mixing
+             linear_iscf = 12
+         else
+             ! Pulay mixing
+             linear_iscf = 17
+         end if
+     case (LINEAR_MIXPOT_SIMPLE) 
+         if (in%lin%mixHist_lowaccuracy==0) then
+             ! simple mixing
+             linear_iscf = 2
+         else
+             ! Pulay mixing
+             linear_iscf = 7
+         end if
+     case (LINEAR_FOE)
+         if (in%lin%mixHist_lowaccuracy==0) then
+             ! simple mixing
+             linear_iscf = 12
+         else
+             ! Pulay mixing
+             linear_iscf = 17
+         end if
+     case default
+         stop 'ERROR: wrong in%lin%scf_mode'
+     end select
+     call denspot_set_history(denspot,linear_iscf,in%nspin, &
+          KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i)
+     call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpsp,KSwfn,tmb,energs,&
+          inputpsi,input_wf_format,norbv,lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft,&
+          locregcenters)
   else
       call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpsp,KSwfn,tmb,energs,&
            inputpsi,input_wf_format,norbv,lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft)
@@ -597,19 +648,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
       in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
       call f_free_ptr(locregcenters)
   end if
-
-  !!do i_stat=1,KSwfn%orbs%norb*(KSwfn%lzd%glr%wfd%nvctr_c+7*KSwfn%lzd%glr%wfd%nvctr_f)
-  !!    write(601,'(i10,es16.7)') i_stat, KSwfn%psi(i_stat)
-  !!end do
-  !!ierr=(KSwfn%lzd%glr%wfd%nvctr_c+7*KSwfn%lzd%glr%wfd%nvctr_f)
-  !!do i_stat=1,KSwfn%orbs%norb
-  !!    write(*,*) 'partial ddot', ddot(ierr, KSwfn%psi((i_stat-1)*ierr+1), 1, KSwfn%psi((i_stat-1)*ierr+1), 1)
-  !!end do 
-
-  !!write(*,*) 'GLOBAL DDOT',ddot(KSwfn%orbs%norb*ierr, KSwfn%psi, 1, KSwfn%psi, 1)
-
-  !new position due to new input guess
-  !!!call plotOrbitals(iproc, KSwfn, KSwfn%psi, atoms%astruct%nat, rxyz, .125d0, .125d0, .125d0, 0, 'cubi')
 
   !call deallocate_wfd(wfd_old,subname)
   ! modified by SM
@@ -663,9 +701,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      allocate(fpulay(3,atoms%astruct%nat),stat=i_stat)
      call memocc(i_stat,fpulay,'fpulay',subname)
 
+
+
      call linearScaling(iproc,nproc,KSwfn,tmb,atoms,in,&
           rxyz,denspot,denspot0,nlpsp,GPU,energs,energy,fpulay,infocode,ref_frags,cdft,&
           fdisp, fion)
+
+     ! Clean denspot parts only needed in the SCF loop -- NEW
+     call denspot_free_history(denspot)
 
      ! maybe not the best place to keep it - think about it!
      if (in%lin%calc_transfer_integrals) then
@@ -676,7 +719,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
            if (iproc==0) write(*,*) '--------------------------------------------------------------------------------------'
 
            !in_frag_charge=f_malloc_ptr(in%frag%nfrag,id='in_frag_charge')
-           !call dcopy(in%frag%nfrag,in%frag%charge(1),1,in_frag_charge(1),1)
+           !call vcopy(in%frag%nfrag,in%frag%charge(1),1,in_frag_charge(1),1)
            !! assume all other fragments neutral, use total system charge to get correct charge for the other fragment
            !in_frag_charge(cdft%ifrag_charged(1))=in%ncharge - in_frag_charge(cdft%ifrag_charged(2))
            !overlap_calculated=.true.
@@ -702,7 +745,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
            !     tmb%collcom_sr, tmb%linmat%denskern, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
 
            !! Must initialize rhopotold (FOR NOW... use the trivial one)
-           !call dcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*in%nspin, &
+           !call vcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*in%nspin, &
            !     denspot%rhov(1), 1, denspot0(1), 1)
            !!!call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
            !call updatePotential(in%ixc,in%nspin,denspot,energs%eh,energs%exc,energs%evxc)
@@ -711,7 +754,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
            !! keep a copy of previous wavefunctions and energies...
            !allocate(psi_constrained(tmb%npsidim_orbs), stat=i_stat)
            !call memocc(i_stat, psi_constrained, 'psi_constrained', subname)
-           !call dcopy(tmb%npsidim_orbs,tmb%psi(1),1,psi_constrained(1),1)
+           !call vcopy(tmb%npsidim_orbs,tmb%psi(1),1,psi_constrained(1),1)
            !energy_constrained=energy
 
            !call linearScaling(iproc,nproc,KSwfn,tmb,atoms,in,&
@@ -752,10 +795,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      !!call finalize_p2p_tags()
   
      !temporary allocation of the density
-     allocate(denspot%rho_work(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)),stat=i_stat)
+     !!allocate(denspot%rho_work(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim)),stat=i_stat)
+     !!call memocc(i_stat,denspot%rho_work,'rho',subname)
+     !!call vcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),&
+     !!     denspot%rhov(1),1,denspot%rho_work(1),1)
+
+     ! keep only the essential part of the density, without the GGA bufffers
+     allocate(denspot%rho_work(denspot%dpbox%ndimpot),stat=i_stat)
      call memocc(i_stat,denspot%rho_work,'rho',subname)
-     call vcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),&
-          denspot%rhov(1),1,denspot%rho_work(1),1)
+     ioffset=kswfn%lzd%glr%d%n1i*kswfn%lzd%glr%d%n2i*denspot%dpbox%i3xcsh
+     call vcopy(denspot%dpbox%ndimpot,denspot%rhov(ioffset+1),1,denspot%rho_work(1),1)
 
      if (infocode==2) then
         !!! Allocate this array since it will be deallcoated in deallocate_before_exiting
@@ -1155,7 +1204,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
         !in the case of band structure calculation, copy the values of the eigenvectors
         !into a new array to write them afterwards
         if (associated(in%kptv) .and. in%nkptv > 0) then
-           call dcopy(VTwfn%orbs%norb*nkptv,VTwfn%orbs%eval(1),1,band_structure_eval(1,ikpt),1)
+           call vcopy(VTwfn%orbs%norb*nkptv,VTwfn%orbs%eval(1),1,band_structure_eval(1,ikpt),1)
            !increment the value of ikpt
            ikpt=ikpt+in%nkptsv_group(igroup)
         end if
@@ -1259,7 +1308,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
                 mpidtypd,denspot%dpbox%mpi_env%mpi_comm,ierr)
         end if
      else
-        call dcopy(n1i*n2i*n3i*in%nspin,denspot%rhov,1,denspot%pot_work,1)
+        call vcopy(n1i*n2i*n3i*in%nspin,denspot%rhov(1),1,denspot%pot_work(1),1)
      end if
 
      call dpbox_free(denspot%dpbox, subname)
@@ -1421,7 +1470,7 @@ contains
 
     !end of wavefunction minimisation
     call timing(bigdft_mpi%mpi_comm,'LAST','PR')
-    call timing(bigdft_mpi%mpi_comm,'              ','RE')
+    call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm)    
     call cpu_time(tcpu1)
     call system_clock(ncount1,ncount_rate,ncount_max)
     tel=dble(ncount1-ncount0)/dble(ncount_rate)
@@ -1500,7 +1549,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 !  if (iproc==0) call PAPIF_flops(rtime, ptime, flpops, mflops,ierr)
 
   ! Setup the mixing, if necessary
-  call denspot_set_history(denspot,opt%iscf,in%nspin,KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i)
+  call denspot_set_history(denspot,opt%iscf,in%nspin, &
+       KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i)
 
   ! allocate arrays necessary for DIIS convergence acceleration
   call allocate_diis_objects(idsx,in%alphadiis,sum(KSwfn%comms%ncntt(0:nproc-1)),&
@@ -1862,6 +1912,8 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   use module_interfaces, except_this_one => kswfn_post_treatments
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
+  use communications_base, only: deallocate_comms_linear
+  use communications, only: synchronize_onesided_communication
 
   implicit none
 
@@ -1888,6 +1940,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   integer :: i_all, i_stat, jproc, nsize_psi, imode
   real(dp), dimension(6) :: hstrten
   real(gp) :: ehart_fake
+
 
   !manipulate scatter array for avoiding the GGA shift
 !!$     call dpbox_repartition(denspot%dpbox%iproc,denspot%dpbox%nproc,atoms%astruct%geocode,'D',1,denspot%dpbox)
@@ -1923,7 +1976,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
         call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
      end if
      ! Density already present in denspot%rho_work
-     call dcopy(denspot%dpbox%ndimpot,denspot%rho_work,1,denspot%pot_work,1)
+     call vcopy(denspot%dpbox%ndimpot,denspot%rho_work(1),1,denspot%pot_work(1),1)
      call H_potential('D',denspot%pkernel,denspot%pot_work,denspot%pot_work,ehart_fake,&
           0.0_dp,.false.,stress_tensor=hstrten)
   else
@@ -1975,9 +2028,9 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      imode = 1
      nsize_psi=1
      ! This is just to save memory, since calculate_forces will require quite a lot
-     call deallocate_collective_comms(tmb%collcom, subname)
-     call deallocate_collective_comms(tmb%ham_descr%collcom, subname)
-     call deallocate_collective_comms(tmb%collcom_sr, subname)
+     call deallocate_comms_linear(tmb%collcom)
+     call deallocate_comms_linear(tmb%ham_descr%collcom)
+     call deallocate_comms_linear(tmb%collcom_sr)
   else
      imode = 0
      nsize_psi = (KSwfn%Lzd%Glr%wfd%nvctr_c+7*KSwfn%Lzd%Glr%wfd%nvctr_f)*KSwfn%orbs%nspinor*KSwfn%orbs%norbp
@@ -2002,7 +2055,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
      call deallocate_p2pComms(tmb%ham_descr%comgp, subname)
      call deallocate_local_zone_descriptors(tmb%ham_descr%lzd, subname)
-     call deallocate_collective_comms(tmb%ham_descr%collcom, subname)
+     call deallocate_comms_linear(tmb%ham_descr%collcom)
      call deallocate_auxiliary_basis_function(subname, tmb%ham_descr%psi, tmb%hpsi)
 
 !!!! TEST ##################

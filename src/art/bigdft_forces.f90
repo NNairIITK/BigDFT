@@ -17,6 +17,7 @@ module bigdft_forces
 
    use module_base!, only : gp,wp,dp,Bohr_Ang
    use module_types
+   use module_atoms
    use module_interfaces
    use defs, only : iproc
    implicit none
@@ -77,9 +78,10 @@ module bigdft_forces
       nproc = nproc_
       me = me_
 
-      call read_atomic_file(file,me_,atoms_all%astruct)
-      call allocate_atoms_nat(atoms_all, subname)
-      call allocate_atoms_ntypes(atoms_all, subname)
+      call set_astruct_from_file(file,me_,atoms_all%astruct)
+      call allocate_atoms_data(atoms_all)
+      !call allocate_atoms_nat(atoms_all)!, subname)
+      !call allocate_atoms_ntypes(atoms_all)!, subname)
       nat = atoms_all%astruct%nat
       boxtype = atoms_all%astruct%geocode
 
@@ -123,6 +125,7 @@ module bigdft_forces
    subroutine bigdft_init_art( nat, me_, nproc_, my_gnrm,passivate,total_nb_atoms )
      use dictionaries
      use module_input_dicts
+     use module_atoms, only: read_atomic_file=>set_astruct_from_file
       implicit none
 
       !Arguments
@@ -146,7 +149,7 @@ module bigdft_forces
       nproc = nproc_
 
       allocate(runObj%atoms)
-      runObj%atoms = atoms_null()
+      runObj%atoms = atoms_data_null()
       allocate(runObj%inputs)
       if (nat .eq. total_nb_atoms .and. .not. passivate) then 
          ! we just reread all atoms

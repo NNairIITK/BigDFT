@@ -58,9 +58,9 @@ PS_Exercise_LDADD = $(psolver_libraries)
 CLEANFILES = malloc.prc time.prc PS_Check.out.yaml fldiff.report.yaml
 
 PS_Check.out.yaml: PS_Check PS_Program PS_Exercise 
-	$(run_parallel) ./PS_Check 57 48 63  F  > PS_Check.out.yaml
-	$(run_parallel) ./PS_Check 64 64 64  P >> PS_Check.out.yaml
-	$(run_parallel) ./PS_Check 32 64 48  S >> PS_Check.out.yaml
+	-$(run_parallel) ./PS_Check 57 48 63  F  > PS_Check.out.yaml
+	-$(run_parallel) ./PS_Check 64 64 64  P >> PS_Check.out.yaml
+	-$(run_parallel) ./PS_Check 32 64 48  S >> PS_Check.out.yaml
 	cp PS_Check.out.yaml tmp
 	cat tmp | grep -v 'Unable to read mpd.hosts' > PS_Check.out.yaml
 	rm tmp

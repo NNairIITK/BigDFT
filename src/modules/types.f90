@@ -14,12 +14,15 @@ module module_types
 
   use m_ab7_mixing, only : ab7_mixing_object
   use module_base, only : gp,wp,dp,tp,uninitialized,mpi_environment,mpi_environment_null,&
-       bigdft_mpi,ndebug,memocc,vcopy
+       bigdft_mpi,ndebug,memocc!,vcopy
   use gaussians, only: gaussian_basis
   use Poisson_Solver, only: coulomb_operator
   use dictionaries, only: dictionary
   use locregs
   use psp_projectors
+  use module_atoms, only: atoms_data,symmetry_data,atomic_structure
+  use communications_base, only: comms_linear, comms_cubic
+  use sparsematrix_base, only: sparse_matrix
 
   implicit none
 
@@ -115,6 +118,10 @@ module module_types
   integer, parameter :: LINEAR_MIXDENS_SIMPLE=101
   integer, parameter :: LINEAR_MIXPOT_SIMPLE=102
   integer, parameter :: LINEAR_FOE=103
+
+  !> How to update the density kernel during teh support function optimization
+  integer, parameter :: UPDATE_BY_PURIFICATION = 0
+  integer, parameter :: UPDATE_BY_FOE = 1
   
   !> Type used for the orthogonalisation parameters
   type, public :: orthon_data
@@ -177,9 +184,11 @@ module module_types
     real(kind=8) :: lowaccuracy_conv_crit, convCritMix_lowaccuracy, convCritMix_highaccuracy
     real(kind=8) :: highaccuracy_conv_crit, support_functions_converged, alphaSD_coeff
     real(kind=8) :: convCritDmin_lowaccuracy, convCritDmin_highaccuracy
-    real(kind=8), dimension(:), pointer :: locrad, locrad_lowaccuracy, locrad_highaccuracy, locrad_type, kernel_cutoff
+    real(kind=8), dimension(:), pointer :: locrad, locrad_lowaccuracy, locrad_highaccuracy, kernel_cutoff_FOE
+    real(kind=8), dimension(:,:), pointer :: locrad_type
     real(kind=8), dimension(:), pointer :: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy, potentialPrefac_ao
-    real(kind=8) :: early_stop
+    real(kind=8), dimension(:),pointer :: kernel_cutoff, locrad_kernel
+    real(kind=8) :: early_stop, gnrm_dynamic
     integer, dimension(:), pointer :: norbsPerType
     integer :: scf_mode, nlevel_accuracy
     logical :: calc_dipole, pulay_correction, mixing_after_inputguess, iterative_orthogonalization, new_pulay_correction
@@ -350,6 +359,21 @@ module module_types
      
      !> linear scaling: calculate intermediate forces
      logical :: intermediate_forces
+
+     !> linear scaling: exit kappa for extended input guess (experimental mode)
+     real(kind=8) :: kappa_conv
+
+     !> linear scaling: number of FOE cycles before the eigenvalue bounds are shrinked
+     integer :: evbounds_nsatur
+
+     !> linear scaling: maximal number of unsuccessful eigenvalue bounds shrinkings
+     integer :: evboundsshrink_nsatur
+
+     !> linear scaling: how to update the density kernel during the support function optimization (0: purification, 1: FOE)
+     integer :: method_updatekernel
+
+     !> linear scaling: quick return in purification
+     logical :: purification_quickreturn
   end type input_variables
 
   !> Contains all energy terms
@@ -403,13 +427,6 @@ module module_types
      integer, dimension(:), pointer :: cseg_b,fseg_b
   end type rho_descriptors
 
-  !> Quantities used for the symmetry operators.
-  type, public :: symmetry_data
-     integer :: symObj    !< The symmetry object from ABINIT
-     integer, dimension(:,:,:), pointer :: irrzon
-     real(dp), dimension(:,:,:), pointer :: phnons
-  end type symmetry_data
-
 !> Contains arguments needed for rho_local for WVL+PAW
 
   type, public :: rholoc_objects
@@ -418,49 +435,6 @@ module module_types
     real(gp),pointer,dimension(:,:)  :: rad!radial mesh for local rho
     real(gp),pointer,dimension(:) :: radius !after this radius, rholoc is zero
   end type rholoc_objects
-
-  type, public :: atomic_structure
-    character(len=1) :: geocode          !< @copydoc poisson_solver::doc::geocode
-    character(len=5) :: inputfile_format !< Can be xyz ascii or yaml
-    character(len=20) :: units           !< Can be angstroem or bohr 
-    integer :: nat                       !< Number of atoms
-    integer :: ntypes                    !< Number of atomic species in the structure
-    real(gp), dimension(3) :: cell_dim   !< Dimensions of the simulation domain (each one periodic or free according to geocode)
-    !pointers
-    real(gp), dimension(:,:), pointer :: rxyz !< Atomic positions (always in AU, units variable is considered for I/O only)
-    character(len=20), dimension(:), pointer :: atomnames !< Atomic species names
-    integer, dimension(:), pointer :: iatype              !< Atomic species id
-    integer, dimension(:), pointer :: ifrztyp             !< Freeze atoms while updating structure
-    integer, dimension(:), pointer :: input_polarization  !< Used in AO generation for WFN input guess
-    type(symmetry_data) :: sym                      !< The symmetry operators
-  end type atomic_structure
-
-
-  !> Atomic data (name, polarisation, ...)
-  type, public :: atoms_data
-     type(atomic_structure) :: astruct
-     integer :: natsc
-     integer, dimension(:), pointer :: iasctype
-     integer, dimension(:), pointer :: nelpsp
-     integer, dimension(:), pointer :: npspcode
-     integer, dimension(:), pointer :: ixcpsp
-     integer, dimension(:), pointer :: nzatom
-     real(gp), dimension(:,:), pointer :: radii_cf         !< user defined radii_cf, overridden in sysprop.f90
-     real(gp), dimension(:), pointer :: amu                !< amu(ntypes)  Atomic Mass Unit for each type of atoms
-     real(gp), dimension(:,:), pointer :: aocc,rloc
-     real(gp), dimension(:,:,:), pointer :: psppar         !< pseudopotential parameters (HGH SR section)
-     logical :: donlcc                                     !< activate non-linear core correction treatment
-     integer, dimension(:), pointer :: nlcc_ngv,nlcc_ngc   !<number of valence and core gaussians describing NLCC 
-     real(gp), dimension(:,:), pointer :: nlccpar    !< parameters for the non-linear core correction, if present
-!     real(gp), dimension(:,:), pointer :: ig_nlccpar !< parameters for the input NLCC
-
-     !! for abscalc with pawpatch
-     integer, dimension(:), pointer ::  paw_NofL, paw_l, paw_nofchannels
-     integer, dimension(:), pointer ::  paw_nofgaussians
-     real(gp), dimension(:), pointer :: paw_Greal, paw_Gimag, paw_Gcoeffs
-     real(gp), dimension(:), pointer :: paw_H_matrices, paw_S_matrices, paw_Sm1_matrices
-     integer :: iat_absorber 
-  end type atoms_data
 
   !> Structure to store the density / potential distribution among processors.
   type, public :: denspot_distribution
@@ -471,7 +445,6 @@ module module_types
      integer, dimension(:,:), pointer :: nscatterarr, ngatherarr
      type(mpi_environment) :: mpi_env
   end type denspot_distribution
-
 
 !>   Structures of basis of gaussian functions of the form exp(-a*r2)cos/sin(b*r2)
   type, public :: gaussian_basis_c
@@ -498,13 +471,6 @@ module module_types
      integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
      integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
   end type orbitals_data
-
-  !> Contains the information needed for communicating the wavefunctions
-  !! between processors for the transposition
-  type, public :: communications_arrays
-     integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt
-     integer, dimension(:,:), pointer :: nvctr_par
-  end type communications_arrays
 
 
   !> Contains the pointers to be handled to control GPU information
@@ -599,50 +565,36 @@ module module_types
     real(kind=8) :: ef_interpol_det !<FOE: max determinant of cubic interpolation matrix
     real(kind=8) :: ef_interpol_chargediff !<FOE: max charge difference for interpolation
     real(kind=8) :: charge !total charge of the system
+    integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
   end type foe_data
 
-!!$  type, public :: sparseMatrix_metadata
+!!$  type, public :: sparse_matrix_metadata
 !!$     integer :: nvctr, nseg, full_dim1, full_dim2
 !!$     integer,dimension(:),pointer :: noverlaps
 !!$     integer,dimension(:,:),pointer :: overlaps
 !!$     integer,dimension(:),pointer :: keyv, nsegline, istsegline
 !!$     integer,dimension(:,:),pointer :: keyg
 !!$     integer,dimension(:,:),pointer :: matrixindex_in_compressed, orb_from_index
-!!$  end type sparseMatrix_metadata
+!!$  end type sparse_matrix_metadata
 
-  type,public :: sparseMatrix
-      integer :: nvctr, nseg, nvctrp, isvctr, parallel_compression, nfvctr, nfvctrp, isfvctr
-      integer,dimension(:),pointer :: keyv, nsegline, istsegline, isvctr_par, nvctr_par, isfvctr_par, nfvctr_par
-      integer,dimension(:,:),pointer :: keyg
-      !type(sparseMatrix_metadata), pointer :: pattern
-      real(kind=8),dimension(:),pointer :: matrix_compr,matrix_comprp
-      real(kind=8),dimension(:,:),pointer :: matrix,matrixp
-      !integer,dimension(:,:),pointer :: matrixindex_in_compressed, orb_from_index
-      integer,dimension(:,:),pointer :: matrixindex_in_compressed_arr, orb_from_index
-      integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed
-      logical :: store_index, can_use_dense
-      !!contains
-      !!  procedure,pass :: matrixindex_in_compressed
-  end type sparseMatrix
+  !!type,public :: sparse_matrix
+  !!    integer :: nvctr, nseg, nvctrp, isvctr, parallel_compression, nfvctr, nfvctrp, isfvctr
+  !!    integer,dimension(:),pointer :: keyv, nsegline, istsegline, isvctr_par, nvctr_par, isfvctr_par, nfvctr_par
+  !!    integer,dimension(:,:),pointer :: keyg
+  !!    !type(sparse_matrix_metadata), pointer :: pattern
+  !!    real(kind=8),dimension(:),pointer :: matrix_compr,matrix_comprp
+  !!    real(kind=8),dimension(:,:),pointer :: matrix,matrixp
+  !!    !integer,dimension(:,:),pointer :: matrixindex_in_compressed, orb_from_index
+  !!    integer,dimension(:,:),pointer :: matrixindex_in_compressed_arr, orb_from_index
+  !!    integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed
+  !!    logical :: store_index, can_use_dense
+  !!    !!contains
+  !!    !!  procedure,pass :: matrixindex_in_compressed
+  !!end type sparse_matrix
 
   type,public :: linear_matrices !may not keep
-      type(sparseMatrix) :: ham, ovrlp, denskern, inv_ovrlp
+      type(sparse_matrix) :: ham, ovrlp, denskern_large, inv_ovrlp_large
   end type linear_matrices
-
-  type:: collective_comms
-    integer :: nptsp_c, ndimpsi_c, ndimind_c, ndimind_f, nptsp_f, ndimpsi_f
-    integer,dimension(:),pointer :: nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c
-    integer,dimension(:),pointer :: isendbuf_c, iextract_c, iexpand_c, irecvbuf_c
-    integer,dimension(:),pointer :: norb_per_gridpoint_c, indexrecvorbital_c
-    integer,dimension(:),pointer :: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
-    integer,dimension(:),pointer :: isendbuf_f, iextract_f, iexpand_f, irecvbuf_f
-    integer,dimension(:),pointer :: norb_per_gridpoint_f, indexrecvorbital_f
-    integer,dimension(:),pointer :: isptsp_c, isptsp_f !<starting index of a given gridpoint (basically summation of norb_per_gridpoint_*)
-    real(kind=8),dimension(:),pointer :: psit_c, psit_f
-    integer,dimension(:),pointer :: nsendcounts_repartitionrho, nrecvcounts_repartitionrho
-    integer,dimension(:),pointer :: nsenddspls_repartitionrho, nrecvdspls_repartitionrho
-  end type collective_comms
-
 
   type,public:: workarrays_quartic_convolutions
     real(wp),dimension(:,:,:),pointer :: xx_c, xy_c, xz_c
@@ -662,15 +614,6 @@ module module_types
     real(wp),dimension(:,:,:,:),pointer :: xya_f, xyb_f, xyc_f, xye_f
     real(wp),dimension(:,:,:,:),pointer :: xza_f, xzb_f, xzc_f, xze_f
     real(wp),dimension(:,:,:,:),pointer :: yza_f, yzb_f, yzc_f, yze_f
-!are they used?
-!!$    real(wp),dimension(-17:17) :: aeff0, aeff1, aeff2, aeff3
-!!$    real(wp),dimension(-17:17) :: beff0, beff1, beff2, beff3
-!!$    real(wp),dimension(-17:17) :: ceff0, ceff1, ceff2, ceff3
-!!$    real(wp),dimension(-14:14) :: eeff0, eeff1, eeff2, eeff3
-!!$    real(wp),dimension(-17:17) :: aeff0_2, aeff1_2, aeff2_2, aeff3_2
-!!$    real(wp),dimension(-17:17) :: beff0_2, beff1_2, beff2_2, beff3_2
-!!$    real(wp),dimension(-17:17) :: ceff0_2, ceff1_2, ceff2_2, ceff3_2
-!!$    real(wp),dimension(-14:14) :: eeff0_2, eeff1_2, eeff2_2, eeff3_2
   end type workarrays_quartic_convolutions
 
   type,public:: localizedDIISParameters
@@ -770,7 +713,7 @@ module module_types
      integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
      integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
      type(local_zone_descriptors) :: Lzd !< data on the localisation regions, if associated
-     type(collective_comms) :: collcom ! describes collective communication
+     type(comms_linear) :: collcom ! describes collective communication
      type(p2pComms) :: comgp           !<describing p2p communications for distributing the potential
      real(wp), dimension(:), pointer :: psi,psit_c,psit_f !< these should eventually be eliminated
      logical :: can_use_transposed
@@ -791,15 +734,15 @@ module module_types
      !data properties
      logical :: can_use_transposed !< true if the transposed quantities are allocated and can be used
      type(orbitals_data) :: orbs !<wavefunction specification in terms of orbitals
-     type(communications_arrays) :: comms !< communication objects for the cubic approach
+     type(comms_cubic) :: comms !< communication objects for the cubic approach
      type(diis_objects) :: diis
      type(confpot_data), dimension(:), pointer :: confdatarr !<data for the confinement potential
      type(SIC_data) :: SIC !<control the activation of SIC scheme in the wavefunction
      type(orthon_data) :: orthpar !< control the application of the orthogonality scheme for cubic DFT wavefunction
      character(len=4) :: exctxpar !< Method for exact exchange parallelisation for the wavefunctions, in case
      type(p2pComms) :: comgp !<describing p2p communications for distributing the potential
-     type(collective_comms) :: collcom ! describes collective communication
-     type(collective_comms) :: collcom_sr ! describes collective communication for the calculation of the charge density
+     type(comms_linear) :: collcom ! describes collective communication
+     type(comms_linear) :: collcom_sr ! describes collective communication for the calculation of the charge density
      integer(kind = 8) :: c_obj !< Storage of the C wrapper object. it has to be initialized to zero
      type(foe_data) :: foe_obj        !<describes the structure of the matrices for the linear method foe
      type(linear_matrices) :: linmat
@@ -883,7 +826,7 @@ module module_types
   integer :: cplex_dij
    ! cplex=1 if dij are real, 2 if they are complex
 
-  !$integer :: has_dijexxcore
+  !!!!$integer :: has_dijexxcore !> does this makes sense?
    ! 1 if dijexxcore is allocated
    ! 2 if dijexxcore is already computed
 
@@ -1064,6 +1007,166 @@ module module_types
           & input_set_dict
   end interface input_set
 
+  !>timing categories
+  character(len=*), parameter, private :: tgrp_pot='Potential'
+  integer, save, public :: TCAT_EXCHANGECORR=TIMING_UNINITIALIZED
+  integer, parameter, private :: ncls_max=6,ncat_bigdft=138   ! define timimg categories and classes
+  character(len=14), dimension(ncls_max), parameter, private :: clss = (/ &
+       'Communications'    ,  &
+       'Convolutions  '    ,  &
+       'Linear Algebra'    ,  &
+       'Other         '    ,  &
+!       'Potential     '    ,  &
+       'Initialization'    ,  &
+       'Finalization  '    /)
+  character(len=14), dimension(3,ncat_bigdft), parameter, private :: cats = reshape((/ &
+                                !       Name           Class       Operation Kind
+       'ReformatWaves ','Initialization' ,'Small Convol  ' ,  &  !< Reformatting of input waves
+       'CrtDescriptors','Initialization' ,'RMA Pattern   ' ,  &  !< Calculation of descriptor arrays
+       'CrtLocPot     ','Initialization' ,'Miscellaneous ' ,  &  !< Calculation of local potential
+       'CrtProjectors ','Initialization' ,'RMA Pattern   ' ,  &  !< Calculation of projectors
+       'CrtPcProjects ','Initialization' ,'RMA Pattern   ' ,  &  !< Calculation of preconditioning projectors
+       'CrtPawProjects','Initialization' ,'RMA Pattern   ' ,  &  !< Calculation of abscalc-pawprojectors
+       'ApplyLocPotKin','Convolutions  ' ,'OpenCL ported ' ,  &  !< Application of PSP, kinetic energy
+       'ApplyProj     ','Other         ' ,'RMA pattern   ' ,  &  !< Application of nonlocal PSP
+       'Precondition  ','Convolutions  ' ,'OpenCL ported ' ,  &  !< Precondtioning
+       'Rho_comput    ','Convolutions  ' ,'OpenCL ported ' ,  &  !< Calculation of charge density (sumrho) computation
+       'Rho_commun    ','Communications' ,'AllReduce grid' ,  &  !< Calculation of charge density (sumrho) communication
+       'Pot_commun    ','Communications' ,'AllGathrv grid' ,  &  !< Communication of potential
+       'Pot_comm start','Communications' ,'MPI_types/_get' ,  &  !< Communication of potential
+       'Un-TransSwitch','Other         ' ,'RMA pattern   ' ,  &  !< Transposition of wavefunction, computation
+       'Un-TransComm  ','Communications' ,'ALLtoALLV     ' ,  &  !< Transposition of wavefunction, communication
+       'GramS_comput  ','Linear Algebra' ,'DPOTRF        ' ,  &  !< Gram Schmidt computation        
+       'GramS_commun  ','Communications' ,'ALLReduce orbs' ,  &  !< Gram Schmidt communication
+       'LagrM_comput  ','Linear Algebra' ,'DGEMM         ' ,  &  !< Lagrange Multipliers computation
+       'LagrM_commun  ','Communications' ,'ALLReduce orbs' ,  &  !< Lagrange Multipliers communication
+       'Diis          ','Other         ' ,'Other         ' ,  &  
+       !       'PSolv_comput  ','Potential     ' ,'3D FFT        ' ,  &  
+       !       'PSolv_commun  ','Communications' ,'ALLtoALL      ' ,  &  
+       !       'PSolvKernel   ','Initialization' ,'Miscellaneous ' ,  &  
+!       'Exchangecorr  ','Potential     ' ,'Miscellaneous ' ,  &  
+       'Forces        ','Finalization  ' ,'Miscellaneous ' ,  &  
+       'Tail          ','Finalization  ' ,'Miscellaneous ' ,  &
+       'Loewdin_comput','Linear Algebra' ,'              ' ,  &
+       'Loewdin_commun','Communications' ,'ALLReduce orbs' ,  &
+       'Chol_commun   ','Communications' ,'              ' ,  &
+       'Chol_comput   ','Linear Algebra' ,'ALLReduce orbs' ,  &
+       'GS/Chol_comput','Linear Algebra' ,'              ' ,  &
+       'GS/Chol_commun','Communications' ,'ALLReduce orbs' ,  &
+       'Input_comput  ','Initialization' ,'Miscellaneous ' ,  &
+       'Input_commun  ','Communications' ,'ALLtoALL+Reduc' ,  &
+       'Davidson      ','Finalization  ' ,'Complete SCF  ' ,  &
+       'check_IG      ','Initialization' ,'Linear Scaling' ,  &
+       'constrc_locreg','Initialization' ,'Miscellaneous ' ,  &
+       'wavefunction  ','Initialization' ,'Miscellaneous ' ,  &
+       'create_nlpspd ','Initialization' ,'RMA pattern   ' ,  &
+       'p2pOrtho_post ','Communications' ,'irecv / irsend' ,  &
+       'p2pOrtho_wait ','Communications' ,'mpi_waitany   ' ,  &
+       'lovrlp_comm   ','Communications' ,'mpi_allgatherv' ,  &
+       'lovrlp_comp   ','Linear Algebra' ,'many ddots    ' ,  &
+       'lovrlp_compr  ','Other         ' ,'cut out zeros ' ,  &
+       'lovrlp_uncompr','Other         ' ,'insert zeros  ' ,  &
+       'extract_orbs  ','Other         ' ,'copy to sendb ' ,  &
+       'lovrlp^-1/2   ','Linear Algebra' ,'exact or appr ' ,  &
+       'lovrlp^-1/2old','Linear Algebra' ,'exact or appr ' ,  &
+       'lovrlp^-1/2com','Linear Algebra' ,'exact or appr ' ,  &
+       'lovrlp^-1/2par','Linear Algebra' ,'exact or appr ' ,  &
+       'build_lincomb ','Linear Algebra' ,'many daxpy    ' ,  &
+       'convolQuartic ','Convolutions  ' ,'No OpenCL     ' ,  &
+       'p2pSumrho_wait','Communications' ,'mpi_test/wait ' ,  &
+       'sumrho_TMB    ','Other         ' ,'port to GPU?  ' ,  &
+       'TMB_kernel    ','Linear Algebra' ,'dgemm         ' ,  &
+       'diagonal_seq  ','Linear Algebra' ,'dsygv         ' ,  &
+       'diagonal_par  ','Linear Algebra' ,'pdsygvx       ' ,  &
+       'lovrlp^-1     ','Linear Algebra' ,'exact or appr ' ,  &
+       'lagmat_orthoco','Linear Algebra' ,'dgemm seq/par ' ,  &
+       'optimize_DIIS ','Other         ' ,'Other         ' ,  &
+       'optimize_SD   ','Other         ' ,'Other         ' ,  &
+       'mix_linear    ','Other         ' ,'Other         ' ,  &
+       'mix_DIIS      ','Other         ' ,'Other         ' ,  &
+       'ig_matric_comm','Communications' ,'mpi p2p       ' ,  &
+       'wf_signals    ','Communications' ,'Socket transf.' ,  &
+       'energs_signals','Communications' ,'Socket transf.' ,  &
+       'rhov_signals  ','Communications' ,'Socket transf.' ,  &
+       'init_locregs  ','Initialization' ,'Miscellaneous ' ,  &
+       'init_commSumro','Initialization' ,'Miscellaneous ' ,  &
+       'init_commPot  ','Initialization' ,'Miscellaneous ' ,  &
+       'init_commOrtho','Initialization' ,'Miscellaneous ' ,  &
+       'init_inguess  ','Initialization' ,'Miscellaneous ' ,  &
+       'init_matrCompr','Initialization' ,'Miscellaneous ' ,  &
+       'init_collcomm ','Initialization' ,'Miscellaneous ' ,  &
+       'init_collco_sr','Initialization' ,'Miscellaneous ' ,  &
+       'init_orbs_lin ','Initialization' ,'Miscellaneous ' ,  &
+       'init_repart   ','Initialization' ,'Miscellaneous ' ,  &
+       'initMatmulComp','Initialization' ,'Miscellaneous ' ,  &
+       'Pot_after_comm','Other         ' ,'global_to_loca' ,  & 
+       !       'Init to Zero  ','Other         ' ,'Memset        ' ,  &
+       'calc_kernel   ','Other         ' ,'Miscellaneous ' ,  &
+       'commun_kernel ','Communications' ,'mpi_allgatherv' ,  &
+       'getlocbasinit ','Other         ' ,'Miscellaneous ' ,  &
+       'updatelocreg1 ','Other         ' ,'Miscellaneous ' ,  &
+       'linscalinit   ','Other         ' ,'Miscellaneous ' ,  &
+       'commbasis4dens','Communications' ,'Miscellaneous ' ,  &
+       'eglincomms    ','Communications' ,'Miscellaneous ' ,  &
+       'allocommsumrho','Communications' ,'Miscellaneous ' ,  &
+       'ovrlptransComp','Other         ' ,'Miscellaneous ' ,  &
+       'ovrlptransComm','Communications' ,'mpi_allreduce ' ,  &
+       'lincombtrans  ','Other         ' ,'Miscellaneous ' ,  &
+       'glsynchham1   ','Other         ' ,'Miscellaneous ' ,  &
+       'glsynchham2   ','Other         ' ,'Miscellaneous ' ,  &
+       'gauss_proj    ','Other         ' ,'Miscellaneous ' ,  &
+       'sumrho_allred ','Communications' ,'mpiallred     ' ,  &
+       'deallocprec   ','Other         ' ,'Miscellaneous ' ,  &
+       'large2small   ','Other         ' ,'Miscellaneous ' ,  &
+       'small2large   ','Other         ' ,'Miscellaneous ' ,  &
+       'renormCoefCom1','Linear Algebra' ,'Miscellaneous ' ,  &
+       'renormCoefCom2','Linear Algebra' ,'Miscellaneous ' ,  &
+       'renormCoefComm','Communications' ,'Miscellaneous ' ,  &
+       'waitAllgatKern','Other         ' ,'Miscellaneous ' ,  &
+       'UnBlockPot    ','Other         ' ,'Overlap comms ' ,  &
+       'UnBlockDen    ','Other         ' ,'Overlap comms ' ,  &
+       'global_local  ','Initialization' ,'Unknown       ' ,  &
+       'wfd_creation  ','Other         ' ,'Miscellaneous ' ,  & 
+       'comm_llr      ','Communications' ,'Miscellaneous ' ,  &
+       !       'AllocationProf','Other         ' ,'Allocate arrs ' ,  &
+       'dirmin_lagmat1','Linear Algebra' ,'grad calc     ' ,  &
+       'dirmin_lagmat2','Linear Algebra' ,'allgatherv    ' ,  &
+       'dirmin_dgesv  ','Linear Algebra' ,'dgesv/pdgesv  ' ,  &
+       'dirmin_sddiis ','Linear Algebra' ,'Miscellaneous ' ,  &
+       'dirmin_allgat ','Linear Algebra' ,'allgatherv    ' ,  &
+       'dirmin_sdfit  ','Linear Algebra' ,'allgatherv etc' ,  &
+       'chebyshev_comp','Linear Algebra' ,'matmul/matadd ' ,  &
+       'chebyshev_comm','Communications' ,'allreduce     ' ,  &
+       'chebyshev_coef','Other         ' ,'Miscellaneous ' ,  &
+       'FOE_auxiliary ','Other         ' ,'Miscellaneous ' ,  &
+       'FOE_init      ','Other         ' ,'Miscellaneous ' ,  &
+       'compress_uncom','Other         ' ,'Miscellaneous ' ,  &
+       'norm_trans    ','Other         ' ,'Miscellaneous ' ,  &
+       'misc          ','Other         ' ,'Miscellaneous ' ,  &
+       'sparse_copy   ','Other         ' ,'Miscellaneous ' ,  &
+       'constraineddft','Other         ' ,'Miscellaneous ' ,  &
+       'transfer_int  ','Other         ' ,'Miscellaneous ' ,  &
+       'Reformatting  ','Initialization' ,'Interpolation ' ,  &
+       'restart_wvl   ','Initialization' ,'inguess    rst' ,  &
+       'restart_rsp   ','Initialization' ,'inguess    rst' ,  &
+       'check_sumrho  ','Initialization' ,'unitary check ' ,  &
+       'check_pot     ','Initialization' ,'unitary check ' ,  &
+       'ApplyLocPot   ','Convolutions  ' ,'OpenCL ported ' ,  &
+       'ApplyLocKin   ','Convolutions  ' ,'OpenCL ported ' ,  &
+       'kernel_init   ','Other         ' ,'Fragment calc ' ,  &
+       'calc_energy   ','Linear Algebra' ,'allred etc    ' ,  &
+       'new_pulay_corr','Other         ' ,'Pulay forces  ' ,  &
+       'dev_from_unity','Other         ' ,'Miscellaneous ' ,  &
+       'ks_residue    ','Linear Algebra' ,'Miscellaneous ' ,  &
+       'weightanalysis','Linear Algebra' ,'Fragment calc ' ,  &
+       'tmbrestart    ','Initialization' ,'Miscellaneous ' ,  &
+       'readtmbfiles  ','Initialization' ,'Miscellaneous ' ,  &
+       'readisffiles  ','Initialization' ,'Miscellaneous ' ,  &
+       'purify_kernel ','Linear Algebra' ,'dgemm         ' ,  &
+       'potential_dims','Other         ' ,'auxiliary     ' ,  &
+       'calc_bounds   ','Other         ' ,'Miscellaneous ' /),(/3,ncat_bigdft/))
+  integer, dimension(ncat_bigdft), private, save :: cat_ids !< id of the categories to be converted
+
 contains
 
   function old_wavefunction_null() result(wfn)
@@ -1113,82 +1216,6 @@ contains
     nullify(lzd%Llr)
   end function default_lzd
  
-  pure function symm_null() result(sym)
-     implicit none
-     type(symmetry_data) :: sym
-     call nullify_symm(sym)
-  end function symm_null
-
-  pure subroutine nullify_symm(sym)
-    type(symmetry_data), intent(out) :: sym
-    sym%symObj=-1
-    nullify(sym%irrzon)
-    nullify(sym%phnons)
-  end subroutine nullify_symm
-  pure subroutine nullify_sym(sym)
-     type(symmetry_data), intent(out) :: sym
-     sym%symObj=-1
-     nullify(sym%irrzon)
-     nullify(sym%phnons)
-  end subroutine nullify_sym
-
-  function atoms_null() result(at)
-     type(atoms_data) :: at
-     call nullify_atomic_structure(at%astruct)
-     !at%astruct=atomic_structure_null()
-     at%donlcc=.false.
-     at%iat_absorber=-1
-     nullify(at%iasctype)
-     nullify(at%nelpsp)
-     nullify(at%npspcode)
-     nullify(at%ixcpsp)
-     nullify(at%nzatom)
-     nullify(at%radii_cf)
-     nullify(at%amu)
-     nullify(at%aocc)
-     nullify(at%rloc)
-     nullify(at%psppar)
-     nullify(at%nlcc_ngv)
-     nullify(at%nlcc_ngc)
-     nullify(at%nlccpar)
-     !nullify(at%ig_nlccpar)
-     nullify(at%paw_NofL)
-     nullify(at%paw_l)
-     nullify(at%paw_nofchannels)
-     nullify(at%paw_nofgaussians)
-     nullify(at%paw_Greal)
-     nullify(at%paw_Gimag)
-     nullify(at%paw_Gcoeffs)
-     nullify(at%paw_H_matrices)
-     nullify(at%paw_S_matrices)
-     nullify(at%paw_Sm1_matrices)
-  end function atoms_null
-
-  pure function atomic_structure_null() result(astruct)
-    implicit none
-    type(atomic_structure) :: astruct
-     call nullify_atomic_structure(astruct)
-  end function atomic_structure_null
-
-  pure subroutine nullify_atomic_structure(astruct)
-    type(atomic_structure), intent(out) :: astruct
-
-    astruct%geocode='X'
-    astruct%inputfile_format=repeat(' ',len(astruct%inputfile_format))
-    astruct%units=repeat(' ',len(astruct%units))
-    astruct%nat=-1
-    astruct%ntypes=-1
-    astruct%cell_dim(1)=0.0_gp
-    astruct%cell_dim(2)=0.0_gp
-    astruct%cell_dim(3)=0.0_gp
-    nullify(astruct%input_polarization)
-    nullify(astruct%ifrztyp)
-    nullify(astruct%atomnames)
-    nullify(astruct%iatype)
-    nullify(astruct%rxyz)
-    call nullify_symm(astruct%sym)
-  end subroutine nullify_atomic_structure
-
   function bigdft_run_id_toa()
     use yaml_output
     implicit none
@@ -1205,6 +1232,7 @@ contains
   !> Fills the old_wavefunction structure with corresponding data
   !! Deallocate previous workspaces if already existing
   subroutine old_wavefunction_set(wfn,nat,norbp,Lzd,rxyz,psi)
+    
     implicit none
     integer, intent(in) :: nat,norbp
     type(local_zone_descriptors), intent(in) :: Lzd
@@ -1254,12 +1282,12 @@ contains
   end subroutine old_wavefunction_free
    
 
-!> De-Allocate communications_arrays
+!> De-Allocate comms_cubic
   subroutine deallocate_comms(comms,subname)
     use module_base
     implicit none
     character(len=*), intent(in) :: subname
-    type(communications_arrays), intent(inout) :: comms
+    type(comms_cubic), intent(inout) :: comms
     !local variables
     integer :: i_all,i_stat
 
@@ -1640,34 +1668,6 @@ subroutine deallocate_orbs(orbs,subname)
 !    end if
   END SUBROUTINE deallocate_lr
 
-  subroutine deallocate_symmetry(sym, subname)
-    use module_base
-    use m_ab6_symmetry
-    implicit none
-    type(symmetry_data), intent(inout) :: sym
-    character(len = *), intent(in) :: subname
-
-    integer :: i_stat, i_all
-
-    if (sym%symObj >= 0) then
-       call symmetry_free(sym%symObj)
-    end if
-
-    if (associated(sym%irrzon)) then
-       i_all=-product(shape(sym%irrzon))*kind(sym%irrzon)
-       deallocate(sym%irrzon,stat=i_stat)
-       call memocc(i_stat,i_all,'irrzon',subname)
-       nullify(sym%irrzon)
-    end if
-
-    if (associated(sym%phnons)) then
-       i_all=-product(shape(sym%phnons))*kind(sym%phnons)
-       deallocate(sym%phnons,stat=i_stat)
-       call memocc(i_stat,i_all,'phnons',subname)
-       nullify(sym%phnons)
-    end if
-  end subroutine deallocate_symmetry
-
   subroutine deallocate_Lzd(Lzd,subname)
     use module_base
     character(len=*), intent(in) :: subname
@@ -1945,39 +1945,6 @@ subroutine nullify_rho_descriptors(rhod)
   nullify(rhod%cseg_b)
   nullify(rhod%fseg_b)
 end subroutine nullify_rho_descriptors
-
-subroutine nullify_atoms_data(at)
-  implicit none
-  type(atoms_data),intent(out) :: at
-
-  nullify(at%astruct%atomnames)
-  nullify(at%astruct%iatype)
-  nullify(at%iasctype)
-  nullify(at%nelpsp)
-  nullify(at%npspcode)
-  nullify(at%ixcpsp)
-  nullify(at%nzatom) 
-  nullify(at%radii_cf)
-  nullify(at%astruct%ifrztyp)
-  nullify(at%amu)
-  nullify(at%aocc)
-  nullify(at%rloc)
-  nullify(at%psppar)
-  nullify(at%nlcc_ngv)
-  nullify(at%nlcc_ngc)
-  nullify(at%nlccpar)
-  !nullify(at%ig_nlccpar)
-  nullify(at%paw_NofL)
-  nullify(at%paw_l)
-  nullify(at%paw_nofchannels)
-  nullify(at%paw_nofgaussians)
-  nullify(at%paw_Greal) 
-  nullify(at%paw_Gimag) 
-  nullify(at%paw_Gcoeffs)
-  nullify(at%paw_H_matrices) 
-  nullify(at%paw_S_matrices) 
-  nullify(at%paw_Sm1_matrices)
-end subroutine nullify_atoms_data
 
 subroutine nullify_GPU_pointers(gpup)
   implicit none
@@ -2268,12 +2235,75 @@ subroutine bigdft_init_errors()
   call f_err_severe_override(bigdft_severe_abort)
 end subroutine bigdft_init_errors
 
+!> initialize the timing categories for BigDFT runs.
+!! It is of course assumed that f_lib_initialize has already been called
+subroutine bigdft_init_timing_categories()
+  use Poisson_Solver, only: PS_initialize_timing_categories
+  implicit none
+  !local variables
+  integer :: icls,icat
+
+  !initialize categories for the Poisson Solver
+  call PS_initialize_timing_categories()
+
+  !initialize groups
+  call f_timing_category_group(tgrp_pot,'Operations for local potential construction (mainly XC)')
+
+  do icls=2,ncls_max
+     call f_timing_category_group(trim(clss(icls)),'Empty description for the moment')
+  end do
+
+  !define the timing categories for exchange and correlation
+  call f_timing_category('Exchange-Correlation',tgrp_pot,&
+       'Operations needed to construct local XC potential',&
+       TCAT_EXCHANGECORR)
+
+
+  !! little by little, these categories should be transformed in the 
+  !! new scheme dictated by f_timing API in time_profiling module of f_lib.
+
+  !initialize categories
+  do icat=1,ncat_bigdft
+     call f_timing_category(trim(cats(1,icat)),trim(cats(2,icat)),trim(cats(3,icat)),&
+          cat_ids(icat))
+  end do
+
+end subroutine bigdft_init_timing_categories
+
+!> routine to convert timing categories from the old scheme to the API of f_lib
+!! as soon as the timing categories are identified with their ID, this routine should disappear
+subroutine find_category(category,cat_id)
+  use yaml_output, only: yaml_warning
+  implicit none
+  character(len=*), intent(in) :: category
+  integer, intent(out) :: cat_id !< id of the found category
+  !local variables
+  integer :: i
+  !controls if the category exists
+  cat_id=0
+  do i=1,ncat_bigdft
+     if (trim(category) == trim(cats(1,i))) then
+        cat_id=cat_ids(i)
+        exit
+     endif
+  enddo
+  if (cat_id==0) then
+     call f_err_throw('Timing routine error,'//&
+          ' requested category '//trim(category)//' has not been found',&
+          err_id=TIMING_INVALID)
+!!$     if (bigdft_mpi%iproc==0) &
+!!$          call yaml_warning('Requested timing category '//trim(category)//&
+!!$          ' has not been found')
+     cat_id=TIMING_UNINITIALIZED
+  end if
+end subroutine find_category
+
 
 !!integer function matrixindex_in_compressed(this, iorb, jorb)
 !!  implicit none
 !!
 !!  ! Calling arguments
-!!  class(sparseMatrix),intent(in) :: this
+!!  class(sparse_matrix),intent(in) :: this
 !!  integer,intent(in) :: iorb, jorb
 !!
 !!  ! Local variables
@@ -2296,7 +2326,7 @@ end subroutine bigdft_init_errors
 !!    
 !!      ! Calling arguments
 !!      integer,intent(in) :: irow, jcol, norb
-!!      type(sparseMatrix),intent(in) :: sparsemat
+!!      type(sparse_matrix),intent(in) :: sparsemat
 !!    
 !!      ! Local variables
 !!      integer :: ii, iseg
@@ -2480,23 +2510,28 @@ end subroutine bigdft_init_errors
     type(input_variables), intent(inout) :: in
     type(dictionary), pointer :: val
     character(len = *), intent(in) :: level
-
+    integer, dimension(2) :: dummy_int !<to use as filling for input variables
+    real(gp), dimension(3) :: dummy_gp !< to fill the input variables
     character(len = max_field_length) :: str
     integer :: i, ipos
 
     if (index(dict_key(val), "_attributes") > 0) return
 
     select case(trim(level))
-    case ("dft")
+    case (DFT_VARIABLES)
        ! the DFT variables ------------------------------------------------------
        select case (trim(dict_key(val)))
        case (HGRIDS)
-          in%hx = val//0 !grid spacings (profiles can be used if we already read PSPs)
-          in%hy = val//1
-          in%hz = val//2
+          !grid spacings (profiles can be used if we already read PSPs)
+          dummy_gp(1:3)=val
+          in%hx = dummy_gp(1)
+          in%hy = dummy_gp(2)
+          in%hz = dummy_gp(3)
        case (RMULT)
-          in%crmult = val//0 !coarse and fine radii around atoms
-          in%frmult = val//1
+          !coarse and fine radii around atoms
+          dummy_gp(1:2)=val
+          in%crmult = dummy_gp(1)
+          in%frmult = dummy_gp(2)
        case (IXC)
           in%ixc = val !XC functional (ABINIT XC codes)
        case (NCHARGE)
@@ -2542,9 +2577,9 @@ end subroutine bigdft_init_errors
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
        ! the KPT variables ------------------------------------------------------
-    case (kpt)
+    case (KPT_VARIABLES)
        stop "kpt set_input not implemented"
-    case ("perf")
+    case (PERF_VARIABLES)
        ! the PERF variables -----------------------------------------------------
        select case (trim(dict_key(val)))       
        case (DEBUG)
@@ -2611,8 +2646,9 @@ end subroutine bigdft_init_errors
           in%orthpar%methOrtho = val
        case (IG_BLOCKS)
           !Block size used for the orthonormalization
-          in%orthpar%bsLow = val // 0
-          in%orthpar%bsUp  = val // 1
+          dummy_int(1:2)=val
+          in%orthpar%bsLow = dummy_int(1)
+          in%orthpar%bsUp  = dummy_int(2)
        case (RHO_COMMUN)
           in%rho_commun = val
        case (PSOLVER_GROUPSIZE)
@@ -2663,15 +2699,30 @@ end subroutine bigdft_init_errors
        case (WRITE_ORBITALS)
           ! linear scaling: write KS orbitals for cubic restart
           in%write_orbitals = val
-    case (EXPLICIT_LOCREGCENTERS)
-       ! linear scaling: explicitely specify localization centers
-       in%explicit_locregcenters = val
-    case (CALCULATE_KS_RESIDUE)
-       ! linear scaling: calculate Kohn-Sham residue
-       in%calculate_KS_residue = val
-    case (INTERMEDIATE_FORCES)
-       ! linear scaling: calculate intermediate forces
-       in%intermediate_forces = val
+       case (EXPLICIT_LOCREGCENTERS)
+          ! linear scaling: explicitely specify localization centers
+          in%explicit_locregcenters = val
+       case (CALCULATE_KS_RESIDUE)
+          ! linear scaling: calculate Kohn-Sham residue
+          in%calculate_KS_residue = val
+       case (INTERMEDIATE_FORCES)
+          ! linear scaling: calculate intermediate forces
+          in%intermediate_forces = val
+       case (KAPPA_CONV)
+          ! linear scaling: exit kappa for extended input guess (experimental mode)
+          in%kappa_conv = val
+       case (EVBOUNDS_NSATUR)
+           ! linear scaling: number of FOE cycles before the eigenvalue bounds are shrinked
+           in%evbounds_nsatur = val
+       case(EVBOUNDSSHRINK_NSATUR)
+           ! linear scaling: maximal number of unsuccessful eigenvalue bounds shrinkings
+           in%evboundsshrink_nsatur = val
+       case (METHOD_UPDATEKERNEL)
+           ! linear scaling: how to update the density kernel during the support function optimization (0: purification, 1: FOE)
+           in%method_updatekernel = val
+       case (PURIFICATION_QUICKRETURN)
+           ! linear scaling: quick return in purification
+           in%purification_quickreturn = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
@@ -2705,7 +2756,7 @@ end subroutine bigdft_init_errors
           in%mdwall = val
        case (QMASS)
           in%nnos = dict_len(val)
-          if (associated(in%qmass)) call f_free_ptr(in%qmass)
+          call f_free_ptr(in%qmass)
           in%qmass = f_malloc_ptr(in%nnos, id = "in%qmass")
           do i=1,in%nnos-1
              in%qmass(i) = dict_len(val // (i-1))
@@ -2725,7 +2776,7 @@ end subroutine bigdft_init_errors
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
-    case ("mix")
+    case (MIX_VARIABLES)
        ! the MIX variables ------------------------------------------------------
        select case (trim(dict_key(val)))
        case (ISCF)
@@ -2749,7 +2800,7 @@ end subroutine bigdft_init_errors
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
-    case ("sic")
+    case (SIC_VARIABLES)
        ! the SIC variables ------------------------------------------------------
        select case (trim(dict_key(val)))
        case (SIC_APPROACH)
@@ -2761,17 +2812,54 @@ end subroutine bigdft_init_errors
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
-    case ("tddft")
+    case (TDDFT_VARIABLES)
        ! the TDDFT variables ----------------------------------------------------
        select case (trim(dict_key(val)))
        case (TDDFT_APPROACH)
           in%tddft_approach = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
-       end select
+       end select      
     case DEFAULT
        call yaml_warning("unknown level '" // trim(level) //"'")
     end select
   END SUBROUTINE input_set_dict
+
+  subroutine basis_params_set_dict(dict_basis,lin,jtype)
+    use module_input_keys
+    use dictionaries
+    implicit none
+    integer, intent(in) :: jtype !< local type of which we are filling the values
+    type(dictionary), pointer :: dict_basis
+    type(linearInputParameters),intent(inout) :: lin
+    !local variables
+    real(gp), dimension(2) :: dummy_darr
+    !-- default parameters for the basis set of linear scaling
+
+    !then update the values of each parameter if present
+    select case(trim(dict_key(dict_basis)))
+    case(NBASIS)
+       lin%norbsPerType(jtype)=dict_basis !npt
+    case(AO_CONFINEMENT)
+       lin%potentialPrefac_ao(jtype)=dict_basis !ppao
+    case(CONFINEMENT)
+       dummy_darr=dict_basis
+       lin%potentialPrefac_lowaccuracy(jtype)=dummy_darr(1)!ppl
+       lin%potentialPrefac_highaccuracy(jtype)=dummy_darr(2)!pph
+    case(RLOC)
+       dummy_darr=dict_basis
+       !locradType(jtype)=dummy_darr(1) !lrl
+       lin%locrad_type(jtype,1)=dummy_darr(1) !lrl
+       lin%locrad_type(jtype,2)=dummy_darr(2) !lrh
+       !locradType_lowaccur(jtype)=dummy_darr(1) !lrl
+       !locradType_highaccur(jtype)=dummy_darr(2) !lrh
+       !atoms%rloc(jtype,:)=locradType(jtype)
+    case(RLOC_KERNEL) 
+         lin%kernel_cutoff(jtype)=dict_basis !kco
+    case(RLOC_KERNEL_FOE) 
+       lin%kernel_cutoff_FOE(jtype)=dict_basis !kco_FOE
+    end select
+    
+  end subroutine basis_params_set_dict
 
 end module module_types

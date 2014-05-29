@@ -13,15 +13,17 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthonormalizeLocalized
+  use communications, only: transpose_localized, untranspose_localized
+  use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: iproc,nproc,methTransformOverlap,npsidim_orbs
   type(orbitals_data),intent(in) :: orbs
   type(local_zone_descriptors),intent(in) :: lzd
-  type(sparseMatrix),intent(inout) :: ovrlp
-  type(sparseMatrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
-  type(collective_comms),intent(in) :: collcom
+  type(sparse_matrix),intent(inout) :: ovrlp
+  type(sparse_matrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
+  type(comms_linear),intent(in) :: collcom
   type(orthon_data),intent(in) :: orthpar
   real(kind=8),dimension(npsidim_orbs), intent(inout) :: lphi
   real(kind=8),dimension(:),pointer :: psit_c, psit_f
@@ -31,7 +33,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
   integer :: it, istat, iall
   !integer :: irow, ii, iorb, jcol, jorb
   real(kind=8), dimension(:),allocatable :: psittemp_c, psittemp_f, norm
-  !type(sparseMatrix) :: inv_ovrlp_half
+  !type(sparse_matrix) :: inv_ovrlp_half
   character(len=*), parameter :: subname='orthonormalizeLocalized'
   !real(kind=8), dimension(orbs%norb,orbs%norb) :: tempmat
   real(kind=8),dimension(:,:),pointer :: inv_ovrlp_null
@@ -39,10 +41,11 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
 
   if(orthpar%nItOrtho>1) write(*,*) 'WARNING: might create memory problems...'
 
-  !call nullify_sparsematrix(inv_ovrlp_half)
+  !call nullify_sparse_matrix(inv_ovrlp_half)
   !call sparse_copy_pattern(inv_ovrlp, inv_ovrlp_half, iproc, subname)
-  allocate(inv_ovrlp_half%matrix_compr(inv_ovrlp_half%nvctr), stat=istat)
-  call memocc(istat, inv_ovrlp_half%matrix_compr, 'inv_ovrlp_half%matrix_compr', subname)
+  !!allocate(inv_ovrlp_half%matrix_compr(inv_ovrlp_half%nvctr), stat=istat)
+  !!call memocc(istat, inv_ovrlp_half%matrix_compr, 'inv_ovrlp_half%matrix_compr', subname)
+  inv_ovrlp_half%matrix_compr=f_malloc_ptr(inv_ovrlp_half%nvctr,id='inv_ovrlp_half%matrix_compr')
 
   do it=1,orthpar%nItOrtho
 
@@ -94,8 +97,8 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
       allocate(psittemp_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
       call memocc(istat, psittemp_f, 'psittemp_f', subname)
 
-      call dcopy(sum(collcom%nrecvcounts_c), psit_c, 1, psittemp_c, 1)
-      call dcopy(7*sum(collcom%nrecvcounts_f), psit_f, 1, psittemp_f, 1)
+      call vcopy(sum(collcom%nrecvcounts_c), psit_c(1), 1, psittemp_c(1), 1)
+      call vcopy(7*sum(collcom%nrecvcounts_f), psit_f(1), 1, psittemp_f(1), 1)
       call build_linear_combination_transposed(collcom, inv_ovrlp_half, &
            psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
       allocate(norm(orbs%norb), stat=istat)
@@ -115,10 +118,11 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
       call memocc(istat, iall, 'psittemp_f', subname)
   end do
 
-  !call deallocate_sparseMatrix(inv_ovrlp_half, subname)
-  iall=-product(shape(inv_ovrlp_half%matrix_compr))*kind(inv_ovrlp_half%matrix_compr)
-  deallocate(inv_ovrlp_half%matrix_compr, stat=istat)
-  call memocc(istat, iall, 'inv_ovrlp_half%matrix_compr', subname)
+  !call deallocate_sparse_matrix(inv_ovrlp_half, subname)
+  !!iall=-product(shape(inv_ovrlp_half%matrix_compr))*kind(inv_ovrlp_half%matrix_compr)
+  !!deallocate(inv_ovrlp_half%matrix_compr, stat=istat)
+  !!call memocc(istat, iall, 'inv_ovrlp_half%matrix_compr', subname)
+  call f_free_ptr(inv_ovrlp_half%matrix_compr)
 
 end subroutine orthonormalizeLocalized
 
@@ -132,6 +136,9 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   use module_types
   use module_interfaces, exceptThisOne => orthoconstraintNonorthogonal
   use yaml_output
+  use communications, only: transpose_localized, untranspose_localized
+  use sparsematrix_init, only: matrixindex_in_compressed
+  use sparsematrix, only: uncompress_matrix
   implicit none
 
   ! Calling arguments
@@ -139,20 +146,20 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   type(local_zone_descriptors),intent(in) :: lzd
   !type(orbitals_Data),intent(in) :: orbs
   type(orbitals_Data),intent(inout) :: orbs !temporary inout
-  type(collective_comms),intent(in) :: collcom
+  type(comms_linear),intent(in) :: collcom
   type(orthon_data),intent(in) :: orthpar
   integer,intent(in) :: correction_orthoconstraint
   real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(in) :: lphi
   real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(inout) :: lhphi
-  type(SparseMatrix),intent(inout) :: lagmat
+  type(sparse_matrix),intent(inout) :: lagmat
   real(kind=8),dimension(:),pointer :: psit_c, psit_f, hpsit_c, hpsit_f
   logical,intent(inout) :: can_use_transposed, overlap_calculated
   type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
   logical,intent(in) :: experimental_mode
 
   ! Local variables
-  integer :: istat, iall, iorb, jorb, ii, ii_trans, matrixindex_in_compressed, irow, jcol, info, lwork, jj
-  !type(SparseMatrix) :: tmp_mat
+  integer :: istat, iall, iorb, jorb, ii, ii_trans, irow, jcol, info, lwork, jj
+  !type(sparse_matrix) :: tmp_mat
   real(kind=8),dimension(:),allocatable :: tmp_mat_compr, lagmat_tmp_compr, work
   character(len=*),parameter :: subname='orthoconstraintNonorthogonal'
   real(kind=8),dimension(:,:),allocatable :: tmp_mat, tmp_mat2, tmp_mat3
@@ -185,7 +192,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
   call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat)
 
-  !call nullify_sparseMatrix(tmp_mat)
+  !call nullify_sparse_matrix(tmp_mat)
   !call sparse_copy_pattern(lagmat,tmp_mat,iproc,subname)
   !allocate(tmp_mat%matrix_compr(tmp_mat%nvctr), stat=istat)
   !call memocc(istat, tmp_mat%matrix_compr, 'tmp_mat%matrix_compr', subname)
@@ -222,8 +229,8 @@ call timing(iproc,'misc','ON')
       ! WARNING: it is mandatory that the overlap matrix has been calculated before
       !!call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, linmat%ovrlp)
       if (iproc==0) write(*,*) 'correction orthoconstraint'
-      allocate(linmat%ovrlp%matrix(orbs%norb,orbs%norb))
-      call uncompressMatrix(iproc,linmat%ovrlp)
+      linmat%ovrlp%matrix=f_malloc_ptr((/orbs%norb,orbs%norb/),id='linmat%ovrlp%matrix')
+      call uncompress_matrix(iproc,linmat%ovrlp)
       allocate(tmp_mat(orbs%norb,orbs%norb))
       allocate(tmp_mat2(orbs%norb,orbs%norb))
       call to_zero(orbs%norb**2, tmp_mat(1,1))
@@ -264,7 +271,7 @@ call timing(iproc,'misc','ON')
          !!                                          jj, irow, jcol, tmp_mat_compr(jj), tmp_mat2(irow,jcol)
          tmp_mat_compr(jj)=tmp_mat2(irow,jcol)
       end do
-      deallocate(linmat%ovrlp%matrix)
+      call f_free_ptr(linmat%ovrlp%matrix)
       deallocate(tmp_mat)
       deallocate(tmp_mat2)
       deallocate(ipiv)
@@ -289,7 +296,7 @@ call timing(iproc,'misc','OF')
   !!! TEST ORTHOGONALITY OF GRADIENT AND TMBs ##############################
   !!call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, linmat%ovrlp)
   !!allocate(linmat%ovrlp%matrix(orbs%norb,orbs%norb))
-  !!call uncompressMatrix(iproc,linmat%ovrlp)
+  !!call uncompress_matrix(iproc,linmat%ovrlp)
   !!if (iproc==0) then
   !!  do iorb=1,orbs%norb
   !!    do jorb=1,orbs%norb
@@ -306,7 +313,7 @@ call timing(iproc,'misc','OF')
   deallocate(lagmat_tmp_compr, stat=istat)
   call memocc(istat, iall, 'lagmat_tmp_compr', subname)
 
-  !call deallocate_sparseMatrix(tmp_mat, subname)
+  !call deallocate_sparse_matrix(tmp_mat, subname)
 
   call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, hpsit_c, hpsit_f, lhphi, lzd)
 
@@ -356,10 +363,12 @@ end subroutine setCommsParameters
 !contents of %matrix not guaranteed to be correct though - inv_ovrlp_smat%can_use_dense set accordingly
 !power: -2 -> S^-1/2, 2 -> S^1/2, 1 -> S^-1
 subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovrlp, inv_ovrlp, error, orbs, &
-     ovrlp_smat, inv_ovrlp_smat)
+     ovrlp_smat, inv_ovrlp_smat, check_accur)
   use module_base
   use module_types
   use module_interfaces, except_this_one => overlapPowerGeneral
+  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix, only: compress_matrix, uncompress_matrix
   implicit none
   
   ! Calling arguments
@@ -368,7 +377,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
   real(kind=8),dimension(:,:),pointer :: inv_ovrlp
   real(kind=8),intent(out) :: error
   type(orbitals_data), optional, intent(in) :: orbs
-  type(sparseMatrix), optional, intent(inout) :: ovrlp_smat, inv_ovrlp_smat
+  type(sparse_matrix), optional, intent(inout) :: ovrlp_smat, inv_ovrlp_smat
+  logical,intent(in),optional :: check_accur
   
   ! Local variables
   integer :: iorb, jorb, info, iiorb, isorb, norbp, ii, ii_inv, iii, ierr, i
@@ -377,7 +387,13 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
   real(kind=8), dimension(:,:), pointer :: inv_ovrlp_half_tmp
   real(kind=8) :: factor, newfactor
   logical :: ovrlp_allocated, inv_ovrlp_allocated
-  logical, parameter :: check_accuracy=.false. ! move to input.perf
+  logical :: check_accuracy
+
+  if (present(check_accur)) then
+      check_accuracy=check_accur
+  else
+      check_accuracy=.false.
+  end if
 
 
   call f_routine(id='overlapPowerGeneral')
@@ -395,7 +411,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
      if (present(inv_ovrlp_smat)) then
         if (.not. ovrlp_allocated) ovrlp_smat%matrix=f_malloc_ptr((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/),&
              id='ovrlp_smat%matrix')
-        if (.not.(ovrlp_smat%can_use_dense.and.ovrlp_allocated)) call uncompressMatrix(iproc,ovrlp_smat)
+        if (.not.(ovrlp_smat%can_use_dense.and.ovrlp_allocated)) call uncompress_matrix(iproc,ovrlp_smat)
         if (.not. inv_ovrlp_allocated) inv_ovrlp_smat%matrix=f_malloc_ptr((/inv_ovrlp_smat%nfvctr,inv_ovrlp_smat%nfvctr/),&
              id='inv_ovrlp_smat%matrix')
         call vcopy(norb*norb,ovrlp_smat%matrix(1,1),1,inv_ovrlp_smat%matrix(1,1),1)
@@ -419,7 +435,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
         call overlap_plus_minus_one_half_exact(norb,blocksize,.false.,inv_ovrlp,orbs)
      end if
      if (present(inv_ovrlp_smat)) then
-        call compress_matrix_for_allreduce(iproc,inv_ovrlp_smat)
+        call compress_matrix(iproc,inv_ovrlp_smat)
         nullify(inv_ovrlp)
         if (.not. inv_ovrlp_allocated) then
            call f_free_ptr(inv_ovrlp_smat%matrix)
@@ -442,10 +458,10 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
         end if
         if (iorder>1) then
            if (.not. inv_ovrlp_allocated) inv_ovrlp_smat%matrix=f_malloc_ptr((/norb,norb/),id='inv_ovrlp_smat%matrix')
-           call uncompressMatrix(iproc,inv_ovrlp_smat)
+           call uncompress_matrix(iproc,inv_ovrlp_smat)
            inv_ovrlp => inv_ovrlp_smat%matrix
            if (.not. ovrlp_allocated) ovrlp_smat%matrix=f_malloc_ptr((/norb,norb/),id='ovrlp_smat%matrix')
-           call uncompressMatrix(iproc,ovrlp_smat)
+           call uncompress_matrix(iproc,ovrlp_smat)
            ovrlp => ovrlp_smat%matrix
         end if
      end if
@@ -461,7 +477,11 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
            isorb=0
            inv_ovrlpp => inv_ovrlp
         end if
-        if (.not.present(inv_ovrlp_smat)) call first_order_taylor_dense(norb,isorb,norbp,power,ovrlp(1,isorb+1),inv_ovrlpp)
+        if (.not.present(inv_ovrlp_smat)) then
+            if (norbp>0) then
+                call first_order_taylor_dense(norb,isorb,norbp,power,ovrlp(1,isorb+1),inv_ovrlpp)
+            end if
+        end if
      end if
 
      ! add sparse here once we have sparse matrix multiply
@@ -517,7 +537,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
            nullify(inv_ovrlpp)
         end if
         if (present(inv_ovrlp_smat)) then
-           call compress_matrix_for_allreduce(iproc,inv_ovrlp_smat)
+           call compress_matrix(iproc,inv_ovrlp_smat)
            if (.not. inv_ovrlp_allocated) then
               call f_free_ptr(inv_ovrlp_smat%matrix)
            else
@@ -534,15 +554,15 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, norb, ovr
   if (check_accuracy) then
      if (present(inv_ovrlp_smat)) then
         if (.not.inv_ovrlp_allocated) inv_ovrlp_smat%matrix=f_malloc_ptr((/norb,norb/),id='inv_ovrlp_smat%matrix')
-        if (.not.(inv_ovrlp_smat%can_use_dense.and.inv_ovrlp_allocated)) call uncompressMatrix(iproc,inv_ovrlp_smat)
+        if (.not.(inv_ovrlp_smat%can_use_dense.and.inv_ovrlp_allocated)) call uncompress_matrix(iproc,inv_ovrlp_smat)
         if (.not.ovrlp_allocated) ovrlp_smat%matrix=f_malloc_ptr((/norb,norb/),id='ovrlp_smat%matrix')
-        if (.not.(ovrlp_smat%can_use_dense.and.ovrlp_allocated)) call uncompressMatrix(iproc,ovrlp_smat)
+        if (.not.(ovrlp_smat%can_use_dense.and.ovrlp_allocated)) call uncompress_matrix(iproc,ovrlp_smat)
 
-        call check_accuracy_overlap_minus_one(iproc,norb,power,ovrlp_smat%matrix,inv_ovrlp_smat%matrix,error)
+        call check_accuracy_overlap_minus_one(iproc,norb,norbp,isorb,power,ovrlp_smat%matrix,inv_ovrlp_smat%matrix,error)
         if (.not.ovrlp_allocated) call f_free_ptr(ovrlp_smat%matrix)
         if (.not.inv_ovrlp_allocated) call f_free_ptr(inv_ovrlp_smat%matrix)
      else
-        call check_accuracy_overlap_minus_one(iproc,norb,power,ovrlp,inv_ovrlp,error)
+        call check_accuracy_overlap_minus_one(iproc,norb,norbp,isorb,power,ovrlp,inv_ovrlp,error)
      end if
      !if (iproc==0) print*,'Accuracy of inverse overlap calculation: power, order, error',power,iorder,error
   else
@@ -598,12 +618,14 @@ end subroutine matrix_minus_identity_dense
 subroutine first_order_taylor_sparse(power,ovrlp,inv_ovrlp)
   use module_base
   use module_types
+  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
   integer, intent(in) :: power
-  type(sparseMatrix),intent(in) :: ovrlp
-  type(sparseMatrix),intent(out) :: inv_ovrlp
+  type(sparse_matrix),intent(in) :: ovrlp
+  type(sparse_matrix),intent(out) :: inv_ovrlp
 
-  integer :: ii,iii,iorb,jorb,ii_inv,matrixindex_in_compressed,ierr,iii_inv
+  integer :: ii,iii,iorb,jorb,ii_inv,ierr,iii_inv
 
   if (power/=1 .and. power/=2 .and. power/=-2) stop 'Error in first_order_taylor_sparse'
 
@@ -874,6 +896,11 @@ subroutine overlap_plus_minus_one_half_exact(norb,blocksize,plusminus,inv_ovrlp_
         lwork = int(work(1))
         call f_free(work)
         work=f_malloc(lwork,id='work')
+           !!do iorb=1,norb
+           !!   do jorb=1,norb
+           !!      write(2000+bigdft_mpi%iproc,'(a,3i8,es16.7)') 'iproc, iorb, jorb, val', bigdft_mpi%iproc, iorb, jorb, inv_ovrlp_half(jorb,iorb)
+           !!   end do
+           !!end do
         call dsyev('v', 'l', norb, inv_ovrlp_half(1,1), norb, eval, work, lwork, info)
         if (check_lapack) then
            tempArr=f_malloc((/norb,norb/), id='tempArr')
@@ -1037,38 +1064,40 @@ end subroutine overlap_plus_minus_one_half_exact
 
 
 
-subroutine check_accuracy_overlap_minus_one(iproc,norb,power,ovrlp,inv_ovrlp,error)
+subroutine check_accuracy_overlap_minus_one(iproc,norb,norbp,isorb,power,ovrlp,inv_ovrlp,error)
   use module_base
   implicit none
-  integer,intent(in) :: iproc, norb, power
+  integer,intent(in) :: iproc, norb, norbp, isorb, power
   real(kind=8),dimension(norb,norb),intent(in) :: ovrlp, inv_ovrlp
   real(kind=8),intent(out) :: error
 
   real(kind=8), allocatable, dimension(:,:) :: tmp, tmp2
+  real(kind=8), allocatable, dimension(:,:) :: tmpp, tmp2p
+  integer :: ierr, i,j
 
-  tmp=f_malloc((/norb,norb/),id='tmp')
+  tmpp=f_malloc((/norb,norbp/),id='tmpp')
   if (power==1) then
-     call dgemm('n', 'n', norb, norb, norb, 1.d0, inv_ovrlp(1,1), &
-          norb, ovrlp(1,1), norb, 0.d0, tmp(1,1), norb)
-     call deviation_from_unity(iproc, norb, tmp, error)
+     call dgemm('n', 'n', norb, norbp, norb, 1.d0, inv_ovrlp(1,1), &
+          norb, ovrlp(1,isorb+1), norb, 0.d0, tmpp(1,1), norb)
+     call deviation_from_unity_parallel(iproc, norb, norbp, isorb, tmpp, error)
   else if (power==2) then
-     call dgemm('n', 'n', norb, norb, norb, 1.d0, inv_ovrlp(1,1), &
-          norb, inv_ovrlp(1,1), norb, 0.d0, tmp(1,1), norb)
-     call max_matrix_diff(iproc, norb, tmp, ovrlp, error)
+     call dgemm('n', 'n', norb, norbp, norb, 1.d0, inv_ovrlp(1,1), &
+          norb, inv_ovrlp(1,isorb+1), norb, 0.d0, tmpp(1,1), norb)
+     call max_matrix_diff_parallel(iproc, norb, norbp, tmpp, ovrlp(1,isorb+1), error)
      error=0.5d0*error
   else if (power==-2) then
-     call dgemm('n', 'n', norb, norb, norb, 1.d0, inv_ovrlp(1,1), &
-          norb, inv_ovrlp(1,1), norb, 0.d0, tmp(1,1), norb)
-     tmp2=f_malloc((/norb,norb/),id='tmp2')
-     call dgemm('n', 'n', norb, norb, norb, 1.d0, ovrlp(1,1), &
-          norb, tmp(1,1), norb, 0.d0, tmp2(1,1), norb)
-     call deviation_from_unity(iproc, norb, tmp2, error)
+     call dgemm('n', 'n', norb, norbp, norb, 1.d0, inv_ovrlp(1,1), &
+          norb, inv_ovrlp(1,isorb+1), norb, 0.d0, tmpp(1,1), norb)
+     tmp2p=f_malloc((/norb,norbp/),id='tmp2p')
+     call dgemm('n', 'n', norb, norbp, norb, 1.d0, ovrlp(1,1), &
+          norb, tmpp(1,1), norb, 0.d0, tmp2p(1,1), norb)
+     call deviation_from_unity_parallel(iproc, norb, norbp, isorb, tmp2p, error)
      error=0.5d0*error
-     call f_free(tmp2)
+     call f_free(tmp2p)
   else
      stop 'Error in check_accuracy_overlap_minus_one'
   end if
-  call f_free(tmp)
+  call f_free(tmpp)
 
 end subroutine check_accuracy_overlap_minus_one
 
@@ -1098,6 +1127,36 @@ subroutine max_matrix_diff(iproc, norb, mat1, mat2, deviation)
   call timing(iproc,'dev_from_unity','OF') 
 
 end subroutine max_matrix_diff
+
+
+subroutine max_matrix_diff_parallel(iproc, norb, norbp, mat1, mat2, deviation)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: iproc, norb, norbp
+  real(8),dimension(norb,norbp),intent(in):: mat1, mat2
+  real(8),intent(out):: deviation
+
+  ! Local variables
+  integer:: iorb, jorb, ierr
+  real(8):: error
+
+  call timing(iproc,'dev_from_unity','ON') 
+  deviation=0.d0
+  do iorb=1,norbp
+     do jorb=1,norb
+        error=abs(mat1(jorb,iorb)-mat2(jorb,iorb))
+        deviation=max(error,deviation)
+     end do
+  end do
+  call mpiallred(deviation, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+  call timing(iproc,'dev_from_unity','OF') 
+
+end subroutine max_matrix_diff_parallel
+
+
 
 subroutine deviation_from_unity(iproc, norb, ovrlp, deviation)
   use module_base
@@ -1129,6 +1188,40 @@ subroutine deviation_from_unity(iproc, norb, ovrlp, deviation)
 
 end subroutine deviation_from_unity
 
+
+subroutine deviation_from_unity_parallel(iproc, norb, norbp, isorb, ovrlp, deviation)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: iproc, norb, norbp, isorb
+  real(8),dimension(norb,norbp),intent(in):: ovrlp
+  real(8),intent(out):: deviation
+
+  ! Local variables
+  integer:: iorb, iiorb, jorb, ierr
+  real(8):: error
+
+  call timing(iproc,'dev_from_unity','ON') 
+  deviation=0.d0
+  do iorb=1,norbp
+     iiorb=iorb+isorb
+     do jorb=1,norb
+        if(iiorb==jorb) then
+           error=abs(ovrlp(jorb,iorb)-1.d0)
+        else
+           error=abs(ovrlp(jorb,iorb))
+        end if
+        deviation=max(error,deviation)
+     end do
+  end do
+  call mpiallred(deviation, 1, mpi_max, bigdft_mpi%mpi_comm, ierr)
+  call timing(iproc,'dev_from_unity','OF') 
+
+end subroutine deviation_from_unity_parallel
+
+
 subroutine deviation_from_symmetry(iproc, norb, ovrlp, deviation)
   use module_base
   use module_types
@@ -1159,17 +1252,19 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
   use module_base
   use module_types
   use module_interfaces
+  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, meth_overlap
   type(orbitals_data),intent(in) :: orbs
-  type(sparseMatrix),intent(in) :: ovrlp
-  type(sparseMatrix),intent(inout) :: inv_ovrlp_half
+  type(sparse_matrix),intent(in) :: ovrlp
+  type(sparse_matrix),intent(inout) :: inv_ovrlp_half
 
   ! Local variables
   integer :: iend, i, iorb, n, istat, iall, jorb, korb, jjorb, kkorb!, ilr
-  integer :: iiorb, ierr, ii, iseg, ind, matrixindex_in_compressed
+  integer :: iiorb, ierr, ii, iseg, ind
   real(kind=8) :: error
   real(kind=8),dimension(:,:),pointer :: ovrlp_tmp, ovrlp_tmp_inv_half
   logical,dimension(:),allocatable :: in_neighborhood
@@ -1325,6 +1420,9 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthonormalize_subset
+  use communications, only: transpose_localized, untranspose_localized
+  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
 
   ! Calling arguments
@@ -1333,30 +1431,31 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   type(atoms_data),intent(in) :: at
   integer,dimension(at%astruct%ntypes),intent(in) :: minorbs_type, maxorbs_type
   type(local_zone_descriptors),intent(in) :: lzd
-  type(sparseMatrix),intent(inout) :: ovrlp
-  type(sparseMatrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
-  type(collective_comms),intent(in) :: collcom
+  type(sparse_matrix),intent(inout) :: ovrlp
+  type(sparse_matrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
+  type(comms_linear),intent(in) :: collcom
   type(orthon_data),intent(in) :: orthpar
   real(kind=8),dimension(npsidim_orbs), intent(inout) :: lphi
   real(kind=8),dimension(:),pointer :: psit_c, psit_f
   logical,intent(inout) :: can_use_transposed
 
   ! Local variables
-  integer :: it, istat, iall, iorb, jorb, iat, jat, ii, matrixindex_in_compressed
+  integer :: it, istat, iall, iorb, jorb, iat, jat, ii
   logical :: iout, jout
   integer,dimension(:),allocatable :: icount_norb, jcount_norb
   real(kind=8),dimension(:),allocatable :: psittemp_c, psittemp_f, norm
-  !type(sparseMatrix) :: inv_ovrlp_half
+  !type(sparse_matrix) :: inv_ovrlp_half
   character(len=*),parameter :: subname='orthonormalize_subset'
   real(kind=8),dimension(:,:),pointer :: inv_ovrlp_null
   real(kind=8) :: error
 
   if(orthpar%nItOrtho>1) write(*,*) 'WARNING: might create memory problems...'
 
-  !call nullify_sparsematrix(inv_ovrlp_half)
+  !call nullify_sparse_matrix(inv_ovrlp_half)
   !call sparse_copy_pattern(inv_ovrlp, inv_ovrlp_half, iproc, subname)
-  allocate(inv_ovrlp_half%matrix_compr(inv_ovrlp_half%nvctr), stat=istat)
-  call memocc(istat, inv_ovrlp_half%matrix_compr, 'inv_ovrlp_half%matrix_compr', subname)
+  !!allocate(inv_ovrlp_half%matrix_compr(inv_ovrlp_half%nvctr), stat=istat)
+  !!call memocc(istat, inv_ovrlp_half%matrix_compr, 'inv_ovrlp_half%matrix_compr', subname)
+  inv_ovrlp_half%matrix_compr=f_malloc_ptr(inv_ovrlp_half%nvctr,id='inv_ovrlp_half%matrix_compr')
 
   do it=1,orthpar%nItOrtho
 
@@ -1484,8 +1583,8 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
       allocate(psittemp_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
       call memocc(istat, psittemp_f, 'psittemp_f', subname)
 
-      call dcopy(sum(collcom%nrecvcounts_c), psit_c, 1, psittemp_c, 1)
-      call dcopy(7*sum(collcom%nrecvcounts_f), psit_f, 1, psittemp_f, 1)
+      call vcopy(sum(collcom%nrecvcounts_c), psit_c(1), 1, psittemp_c(1), 1)
+      call vcopy(7*sum(collcom%nrecvcounts_f), psit_f(1), 1, psittemp_f(1), 1)
 
       call build_linear_combination_transposed(collcom, inv_ovrlp_half, &
            psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
@@ -1506,10 +1605,11 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
       call memocc(istat, iall, 'psittemp_f', subname)
   end do
 
-  !call deallocate_sparseMatrix(inv_ovrlp_half, subname)
-  iall=-product(shape(inv_ovrlp_half%matrix_compr))*kind(inv_ovrlp_half%matrix_compr)
-  deallocate(inv_ovrlp_half%matrix_compr, stat=istat)
-  call memocc(istat, iall, 'inv_ovrlp_half%matrix_compr', subname)
+  !call deallocate_sparse_matrix(inv_ovrlp_half, subname)
+  !!iall=-product(shape(inv_ovrlp_half%matrix_compr))*kind(inv_ovrlp_half%matrix_compr)
+  !!deallocate(inv_ovrlp_half%matrix_compr, stat=istat)
+  !!call memocc(istat, iall, 'inv_ovrlp_half%matrix_compr', subname)
+  call f_free_ptr(inv_ovrlp_half%matrix_compr)
 
 end subroutine orthonormalize_subset
 
@@ -1521,6 +1621,9 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => gramschmidt_subset
+  use communications, only: transpose_localized, untranspose_localized
+  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_init, only: matrixindex_in_compressed
   implicit none
 
   ! Calling arguments
@@ -1529,28 +1632,29 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   type(atoms_data),intent(in) :: at
   integer,dimension(at%astruct%ntypes),intent(in) :: minorbs_type, maxorbs_type
   type(local_zone_descriptors),intent(in) :: lzd
-  type(sparseMatrix),intent(inout) :: ovrlp
-  type(sparseMatrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
-  type(collective_comms),intent(in) :: collcom
+  type(sparse_matrix),intent(inout) :: ovrlp
+  type(sparse_matrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
+  type(comms_linear),intent(in) :: collcom
   type(orthon_data),intent(in) :: orthpar
   real(kind=8),dimension(npsidim_orbs), intent(inout) :: lphi
   real(kind=8),dimension(:),pointer :: psit_c, psit_f
   logical,intent(inout) :: can_use_transposed
 
   ! Local variables
-  integer :: it, istat, iall, iorb, jorb, iat, jat, ii, matrixindex_in_compressed
+  integer :: it, istat, iall, iorb, jorb, iat, jat, ii
   logical :: iout, jout
   integer,dimension(:),allocatable :: icount_norb, jcount_norb
   real(kind=8),dimension(:),allocatable :: psittemp_c, psittemp_f, norm
-  !type(sparseMatrix) :: inv_ovrlp_half
+  !type(sparse_matrix) :: inv_ovrlp_half
   character(len=*),parameter :: subname='gramschmidt_subset'
 
   if(orthpar%nItOrtho>1) write(*,*) 'WARNING: might create memory problems...'
 
-  !call nullify_sparsematrix(inv_ovrlp_half)
+  !call nullify_sparse_matrix(inv_ovrlp_half)
   !call sparse_copy_pattern(inv_ovrlp, inv_ovrlp_half, iproc, subname)
-  allocate(inv_ovrlp_half%matrix_compr(inv_ovrlp_half%nvctr), stat=istat)
-  call memocc(istat, inv_ovrlp_half%matrix_compr, 'inv_ovrlp_half%matrix_compr', subname)
+  !!allocate(inv_ovrlp_half%matrix_compr(inv_ovrlp_half%nvctr), stat=istat)
+  !!call memocc(istat, inv_ovrlp_half%matrix_compr, 'inv_ovrlp_half%matrix_compr', subname)
+  inv_ovrlp_half%matrix_compr=f_malloc_ptr(inv_ovrlp_half%nvctr,id='inv_ovrlp_half%matrix_compr')
 
   do it=1,orthpar%nItOrtho
 
@@ -1684,8 +1788,8 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
       allocate(psittemp_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
       call memocc(istat, psittemp_f, 'psittemp_f', subname)
 
-      call dcopy(sum(collcom%nrecvcounts_c), psit_c, 1, psittemp_c, 1)
-      call dcopy(7*sum(collcom%nrecvcounts_f), psit_f, 1, psittemp_f, 1)
+      call vcopy(sum(collcom%nrecvcounts_c), psit_c(1), 1, psittemp_c(1), 1)
+      call vcopy(7*sum(collcom%nrecvcounts_f), psit_f(1), 1, psittemp_f(1), 1)
       !!call build_linear_combination_transposed(collcom, inv_ovrlp_half, &
       !!     psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
       call build_linear_combination_transposed(collcom, ovrlp, &
@@ -1707,9 +1811,193 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
       call memocc(istat, iall, 'psittemp_f', subname)
   end do
 
-  !call deallocate_sparseMatrix(inv_ovrlp_half, subname)
-  iall=-product(shape(inv_ovrlp_half%matrix_compr))*kind(inv_ovrlp_half%matrix_compr)
-  deallocate(inv_ovrlp_half%matrix_compr, stat=istat)
-  call memocc(istat, iall, 'inv_ovrlp_half%matrix_compr', subname)
+  !call deallocate_sparse_matrix(inv_ovrlp_half, subname)
+  !!iall=-product(shape(inv_ovrlp_half%matrix_compr))*kind(inv_ovrlp_half%matrix_compr)
+  !!deallocate(inv_ovrlp_half%matrix_compr, stat=istat)
+  !!call memocc(istat, iall, 'inv_ovrlp_half%matrix_compr', subname)
+  call f_free_ptr(inv_ovrlp_half%matrix_compr)
 
 end subroutine gramschmidt_subset
+
+
+
+
+
+subroutine diagonalize_localized(iproc, nproc, orbs, ovrlp, inv_ovrlp_half)
+  use module_base
+  use module_types
+  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_init, only: matrixindex_in_compressed
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(orbitals_data),intent(in) :: orbs
+  type(sparse_matrix),intent(in) :: ovrlp
+  type(sparse_matrix),intent(inout) :: inv_ovrlp_half
+
+  ! Local variables
+  integer :: iend, i, iorb, n, istat, iall, jorb, korb, jjorb, kkorb!, ilr
+  integer :: iiorb, ierr, ii, iseg, ind, lwork
+  real(kind=8) :: error
+  real(kind=8),dimension(:,:),pointer :: ovrlp_tmp, ovrlp_tmp_inv_half
+  real(kind=8),dimension(:),allocatable :: eval, work
+  logical,dimension(:),allocatable :: in_neighborhood
+  character(len=*),parameter :: subname='overlap_power_minus_one_half_parallel'
+
+  call timing(iproc,'lovrlp^-1/2par','ON')
+
+  allocate(in_neighborhood(orbs%norb), stat=istat)
+  call memocc(istat, in_neighborhood, 'in_neighborhood', subname)
+  call to_zero(inv_ovrlp_half%nvctr, inv_ovrlp_half%matrix_compr(1))
+
+  !DEBUG
+  !if (iproc==0) then
+  !   jjorb=0
+  !   do jorb=1,orbs%norb
+  !      do korb=1,orbs%norb
+  !         ind = ovrlp%matrixindex_in_compressed(korb, jorb)
+  !         if (ind>0) then
+  !            print*, korb,jorb,ovrlp%matrix_compr(ind)
+  !         else
+  !            print*, korb,jorb,0.0d0
+  !         end if
+  !         !write(1200+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
+  !      end do
+  !   end do
+  !end if
+  !call mpi_barrier(bigdft_mpi%mpi_comm,istat)
+
+  do iorb=1,orbs%norbp
+     iiorb=orbs%isorb+iorb
+     !ilr=orbs%inwhichlocreg(iiorb)
+     ! We are at the start of a new atom
+     ! Count all orbitals that are in the neighborhood
+
+     iseg=inv_ovrlp_half%istsegline(iiorb)
+     iend=iiorb*orbs%norb
+     n=0
+     in_neighborhood(:)=.false.
+     do 
+        do i=inv_ovrlp_half%keyg(1,iseg),inv_ovrlp_half%keyg(2,iseg)
+           ii=i-(iiorb-1)*orbs%norb
+           in_neighborhood(ii)=.true.
+           n=n+1
+        end do
+        iseg=iseg+1
+        if (iseg>inv_ovrlp_half%nseg) exit
+        if (inv_ovrlp_half%keyg(1,iseg)>iend) exit
+     end do
+
+     allocate(ovrlp_tmp(n,n), stat=istat)
+     call memocc(istat, ovrlp_tmp, 'ovrlp_tmp', subname)
+     call to_zero(n*n, ovrlp_tmp(1,1))
+
+     jjorb=0
+     do jorb=1,orbs%norb
+        if (.not.in_neighborhood(jorb)) cycle
+        jjorb=jjorb+1
+        kkorb=0
+        do korb=1,orbs%norb
+           if (.not.in_neighborhood(korb)) cycle
+           kkorb=kkorb+1
+           ind = matrixindex_in_compressed(ovrlp,korb, jorb)
+           if (ind>0) then
+              ovrlp_tmp(kkorb,jjorb)=ovrlp%matrix_compr(ind)
+           else
+              ovrlp_tmp(kkorb,jjorb)=0.d0
+           end if
+           !write(1200+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
+        end do
+     end do
+          
+     allocate(ovrlp_tmp_inv_half(n,n),stat=istat)
+     call memocc(istat, ovrlp_tmp_inv_half, 'ovrlp_tmp_inv_half', subname)
+
+     !if (iiorb==orbs%norb) then
+     !print*,''
+     !print*,'ovrlp_tmp',n,iiorb
+     !do jorb=1,n
+     !print*,jorb,ovrlp_tmp(:,jorb)
+     !end do
+     !end if
+
+     call vcopy(n*n, ovrlp_tmp(1,1), 1, ovrlp_tmp_inv_half(1,1), 1)
+     ! Diagonalize the small matrix
+     lwork=n**2
+     allocate(work(lwork),stat=istat)
+     call memocc(istat,work,'work',subname)
+     allocate(eval(n),stat=istat)
+     call memocc(istat,eval,'eval',subname)
+     call dsyev('v', 'l', n, ovrlp_tmp_inv_half, n, eval, work, lwork, istat)
+     if (istat/=0) stop 'error in dsyev'
+     iall=-product(shape(work))*kind(work)
+     deallocate(work, stat=istat)
+     call memocc(istat, iall, 'work', subname)
+     iall=-product(shape(eval))*kind(eval)
+     deallocate(eval, stat=istat)
+     call memocc(istat, iall, 'eval', subname)
+
+     !if (iiorb==orbs%norb) then
+     !print*,''
+     !print*,'inv_ovrlp_tmp',n,iiorb,error
+     !do jorb=1,n
+     !print*,jorb,ovrlp_tmp_inv_half(:,jorb)
+     !end do
+     !end if
+
+     jjorb=0
+     do jorb=1,orbs%norb
+        if (.not.in_neighborhood(jorb)) cycle
+        jjorb=jjorb+1
+        kkorb=0
+        if (jorb==iiorb) then
+           do korb=1,orbs%norb
+              if (.not.in_neighborhood(korb)) cycle
+              kkorb=kkorb+1
+              ind = matrixindex_in_compressed(inv_ovrlp_half,korb,jorb)
+              if (ind>0) then
+                 inv_ovrlp_half%matrix_compr(ind)=ovrlp_tmp_inv_half(kkorb,jjorb)
+                 !if (iiorb==orbs%norb) print*,'problem here?!',iiorb,kkorb,jjorb,korb,jorb,ind,ovrlp_tmp_inv_half(kkorb,jjorb)
+              end if
+              !write(1300+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
+           end do
+           exit !no need to keep looping
+        end if
+     end do
+
+     iall=-product(shape(ovrlp_tmp_inv_half))*kind(ovrlp_tmp_inv_half)
+     deallocate(ovrlp_tmp_inv_half, stat=istat)
+     call memocc(istat, iall, 'ovrlp_tmp_inv_half', subname)
+
+     iall=-product(shape(ovrlp_tmp))*kind(ovrlp_tmp)
+     deallocate(ovrlp_tmp, stat=istat)
+     call memocc(istat, iall, 'ovrlp_tmp', subname)
+  end do
+
+  call mpiallred(inv_ovrlp_half%matrix_compr(1), inv_ovrlp_half%nvctr, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+
+  iall=-product(shape(in_neighborhood))*kind(in_neighborhood)
+  deallocate(in_neighborhood, stat=istat)
+  call memocc(istat, iall, 'in_neighborhood', subname)
+
+  !if (iproc==0) then
+  !   jjorb=0
+  !   do jorb=1,orbs%norb
+  !      do korb=1,orbs%norb
+  !         ind = inv_ovrlp_half%matrixindex_in_compressed(korb, jorb)
+  !         if (ind>0) then
+  !            print*, korb,jorb,inv_ovrlp_half%matrix_compr(ind)
+  !         else
+  !            print*, korb,jorb,0.0d0
+  !         end if
+  !         !write(1200+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
+  !      end do
+  !   end do
+  !end if
+  !call mpi_finalize(ind)
+  !stop
+
+  call timing(iproc,'lovrlp^-1/2par','OF')
+
+end subroutine diagonalize_localized

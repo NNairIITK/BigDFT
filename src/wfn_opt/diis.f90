@@ -24,7 +24,7 @@
 !!    integer, intent(in) :: iproc,nproc,ncong,iscf,iter,nspin,ixc
 !!    real(gp), intent(in) :: hx,hy,hz
 !!    type(orbitals_data), intent(inout) :: orbs
-!!    type(communications_arrays), intent(in) :: comms
+!!    type(comms_cubic), intent(in) :: comms
 !!    type(locreg_descriptors), intent(in) :: lr
 !!    type(GPU_pointers), intent(inout) :: GPU
 !!    type(orthon_data), intent(in) :: orthpar
@@ -93,7 +93,7 @@
 !!    call memocc(i_stat,psiw,'psiw',subname)
 !!  
 !!    !put the hpsi wavefunction in the work array
-!!    call dcopy(orbs%npsidim,hpsi,1,psiw,1)
+!!    call vcopy(orbs%npsidim,hpsi,1,psiw,1)
 !!  
 !!    call DiagHam(iproc,nproc,0,orbs%nspin,orbs,lr%wfd,comms,&
 !!       psi,psiw,psit,orthpar,passmat)
@@ -126,7 +126,7 @@
 !!    !fill the other part, for spin, polarised
 !!    npot=lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2) !n1i*n2i*n3d
 !!    if (nspin == 2) then
-!!       call dcopy(npot,rhopot(1),1,rhopot(1+npot),1)
+!!       call vcopy(npot,rhopot(1),1,rhopot(1+npot),1)
 !!    end if
 !!    !spin up and down together with the XC part
 !!    call axpy(npot*nspin,1.0_dp,potxc(1),1,rhopot(1),1)
@@ -164,7 +164,7 @@
 !!  !!$  !end do
 !!  !!$
 !!  !!$  !call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,psiw,work=psit,outadd=hpsi(1))
-!!  !!$  !call dcopy(orbs%npsidim,psi,1,psiw,1)
+!!  !!$  !call vcopy(orbs%npsidim,psi,1,psiw,1)
 !!  !!$  call DiagHam(iproc,nproc,0,orbs%nspin,orbs,lr%wfd,comms,&
 !!  !!$     psi,psiw,psit,orthpar,passmat)
 !!  !!$
@@ -193,7 +193,7 @@
 !!  !!$  call memocc(i_stat,hamovr,'hamovr',subname)
 !!  !!$
 !!  !!$  !initialise hamovr
-!!  !!$  call razero(nspin*ndim_hamovr*2*orbsu%nkpts,hamovr)
+!!  !!$  call to_zero(nspin*ndim_hamovr*2*orbsu%nkpts,hamovr)
 !!  !!$  ispsi=1
 !!  !!$  do ikptp=1,orbsu%nkptsp
 !!  !!$     ikpt=orbsu%iskpts+ikptp!orbsu%ikptsp(ikptp)
@@ -512,7 +512,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   deallocate(user_data,stat=i_stat)
   call memocc(i_stat,i_all,'user_data',subname)
   ! Copy new in vrespc
-  call dcopy(npoints, rhopot(1), 1, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1)
+  call vcopy(npoints, rhopot(1), 1, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1)
 
 END SUBROUTINE mix_rhopot
 
@@ -523,10 +523,11 @@ subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
   use module_interfaces, except_this_one => psimix
   use yaml_output
   use diis_sd_optimization
+  use communications_base, only: comms_cubic
   implicit none
   integer, intent(in) :: iproc,nproc,ndim_psi
   type(orbitals_data), intent(in) :: orbs
-  type(communications_arrays), intent(in) :: comms
+  type(comms_cubic), intent(in) :: comms
   type(diis_objects), intent(inout) :: diis
   real(wp), dimension(ndim_psi), intent(inout) :: psit,hpsit
   !real(wp), dimension(:), pointer :: psit,hpsit
@@ -694,11 +695,12 @@ END SUBROUTINE diis_or_sd
 subroutine diisstp(iproc,nproc,orbs,comms,diis)
   use module_base
   use module_types
+  use communications_base, only: comms_cubic
   implicit none
 ! Arguments
   integer, intent(in) :: nproc,iproc
   type(orbitals_data), intent(in) :: orbs
-  type(communications_arrays), intent(in) :: comms
+  type(comms_cubic), intent(in) :: comms
   type(diis_objects), intent(inout) :: diis
 ! Local variables
   character(len=*), parameter :: subname='diisstp'
@@ -782,7 +784,7 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
                    diis%hpsidst(ispsidst+ipsi_spin_sh+(mi-1)*nvctrp*orbs%norb*orbs%nspinor),1)
            end if
         end do
-        !copy the complex result in the rds array (DCOPY TO BE REDEFINED)
+        !copy the complex result in the rds array (vcopy TO BE REDEFINED)
         if (ncplx == 2) call vcopy(2,zdres,1,rds(1,i-ist+1,1,ikpt),1)
      end do
      ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*diis%idsx
@@ -876,9 +878,9 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
 
         !recreate the wavefunction using the new weigths
 !!$        do iorb=iorb_group_sh+1,norbi+iorb_group_sh!1,orbs%norb
-!!$           call razero(nvctrp*orbs%nspinor,psit(ispsi+(iorb-1)*nvctrp*orbs%nspinor))
+!!$           call to_zero(nvctrp*orbs%nspinor,psit(ispsi+(iorb-1)*nvctrp*orbs%nspinor))
         
-        !call razero(nvctrp*orbs%nspinor*norbi,psit(ispsi+iorb_group_sh*nvctrp*orbs%nspinor))
+        !call to_zero(nvctrp*orbs%nspinor*norbi,psit(ispsi+iorb_group_sh*nvctrp*orbs%nspinor))
         !change the approach and fill only the difference between the original psit and the updated one
         jst=max(1,diis%ids-diis%idsx+1)
         !use the array which will be erased in the next step as the work array
@@ -1063,7 +1065,7 @@ end function s2d_dot
 !!  implicit none
 !!  integer, intent(in) :: iproc,nproc
 !!  type(orbitals_data), intent(in) :: orbs
-!!  type(communications_arrays), intent(in) :: comms
+!!  type(comms_cubic), intent(in) :: comms
 !!  type(diis_objects), intent(inout) :: diis
 !!  type(diis_objects),dimension(orbs%norb),intent(in out):: diisArr
 !!  real(wp), dimension(sum(comms%ncntt(0:nproc-1))), intent(inout) :: psit,hpsit
@@ -1084,11 +1086,11 @@ end function s2d_dot
 !!        
 !!     !here we can choose to store the DIIS arrays with single precision
 !!     !psidst=psit
-!!        call dcopy(nvctrp*orbs%norb*orbs%nspinor,&
+!!        call vcopy(nvctrp*orbs%norb*orbs%nspinor,&
 !!             psit(ispsi),1,&
 !!             diis%psidst(ispsidst+nvctrp*orbs%nspinor*orbs%norb*(diis%mids-1)),1)
 !!     !hpsidst=hpsi
-!!     !   call dcopy(nvctrp*orbs%norb*orbs%nspinor,&
+!!     !   call vcopy(nvctrp*orbs%norb*orbs%nspinor,&
 !!     !        hpsit(ispsi),1,&
 !!     !        hpsidst(ispsidst+nvctrp*orbs%nspinor*orbs%norb*(mids-1)),1)
 !!
@@ -1143,7 +1145,7 @@ end function s2d_dot
 !!! Arguments
 !!  integer, intent(in) :: nproc,iproc
 !!  type(orbitals_data), intent(in) :: orbs
-!!  type(communications_arrays), intent(in) :: comms
+!!  type(comms_cubic), intent(in) :: comms
 !!  type(diis_objects), intent(inout) :: diis
 !!  type(diis_objects),dimension(orbs%norb),intent(in out):: diisArr
 !!  real(wp), dimension(sum(comms%ncntt(0:nproc-1))), intent(out) :: psit
@@ -1171,7 +1173,7 @@ end function s2d_dot
 !!
 !!
 !!  orbsLoop: do iorb=1,orbs%norb
-!!      call razero((diisArr(iorb)%idsx+1)*orbs%nkpts,rds)
+!!      call to_zero((diisArr(iorb)%idsx+1)*orbs%nkpts,rds)
 !!
 !!      ispsidst=1
 !!      do ikptp=1,orbs%nkptsp
@@ -1261,7 +1263,7 @@ end function s2d_dot
 !!
 !!! new guess
 !!     !do iorb=1,orbs%norb
-!!         call razero(nvctrp*orbs%nspinor,psit(ispsi+(iorb-1)*nvctrp*orbs%nspinor))
+!!         call to_zero(nvctrp*orbs%nspinor,psit(ispsi+(iorb-1)*nvctrp*orbs%nspinor))
 !!         
 !!         jst=max(1,diisArr(iorb)%ids-diisArr(iorb)%idsx+1)
 !!         jj=0

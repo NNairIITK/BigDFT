@@ -64,7 +64,7 @@ else
    !sum the two potentials in rhopot array
    !fill the other part, for spin, polarised
    if (nspin == 2) then
-      call dcopy(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,denspot%rhov(1),1,&
+      call vcopy(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,denspot%rhov(1),1,&
            denspot%rhov(1+denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p),1)
    end if
    !spin up and down together with the XC part

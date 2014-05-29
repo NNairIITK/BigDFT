@@ -13,6 +13,7 @@ module lanczos_interface
    use module_base
    use module_types
    use module_abscalc
+   use communications_base, only: comms_cubic
    implicit none
 
    private
@@ -26,7 +27,7 @@ module lanczos_interface
       !real(gp) :: ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC
       type(atoms_data), pointer :: at
       type(orbitals_data), pointer :: orbs
-      type(communications_arrays) :: comms
+      type(comms_cubic) :: comms
       type(DFT_PSP_projectors), pointer :: nlpsp
       type(local_zone_descriptors), pointer :: Lzd
       type(gaussian_basis), pointer :: Gabsorber    
@@ -356,16 +357,16 @@ nullify(Qvect,dumQvect)
      integer, intent(in) :: i,j
 
      if( i.ge.0 .and. j.ge.0) then
-        call dcopy(EP_dim,Qvect(1,j),1,Qvect(1,i),1)
+        call vcopy(EP_dim,Qvect(1,j),1,Qvect(1,i),1)
         !Qvect(:,i)=Qvect(:,j)
      else  if( i.lt.0 .and. j.ge.0) then
-        call dcopy(EP_dim,Qvect(1,j),1,dumQvect(1,-i),1)
+        call vcopy(EP_dim,Qvect(1,j),1,dumQvect(1,-i),1)
         !dumQvect(:,-i)=Qvect(:,j)
      else  if( i.ge.0 .and. j.lt.0) then
-        call dcopy(EP_dim,dumQvect(1,-j),1,Qvect(1,i),1)
+        call vcopy(EP_dim,dumQvect(1,-j),1,Qvect(1,i),1)
         !Qvect(:,i)=dumQvect(:,-j)
      else 
-        call dcopy(EP_dim,dumQvect(1,-j),1,dumQvect(1,-i),1)
+        call vcopy(EP_dim,dumQvect(1,-j),1,dumQvect(1,-i),1)
         !dumQvect(:,-i)=dumQvect(:,-j)
      endif
 
@@ -400,8 +401,8 @@ nullify(Qvect,dumQvect)
      real(wp) :: ovrlp_local ( ha%orbs%nkpts  )
      real(wp) :: ovrlp_global( ha%orbs%nkpts  )
      integer :: ik, ipos, ic, iorb
-     call razero(ha%orbs%nkpts,ovrlp_local)
-     call razero(ha%orbs%nkpts,ovrlp_global)
+     call to_zero(ha%orbs%nkpts,ovrlp_local)
+     call to_zero(ha%orbs%nkpts,ovrlp_global)
      if(ha%orbs%nspinor==1) then
         ipos=1
         do ik = 1, ha%orbs%nkptsp  !! this supposes norb=1 for chebychev
@@ -501,14 +502,15 @@ nullify(Qvect,dumQvect)
 
   subroutine  EP_copia_per_prova(psi)
      use module_interfaces
+     use communications, only: transpose_v
      !Arguments
      real(wp), dimension(*), target :: psi ! per testare happlication
      !Local variables
      integer :: i
 
      if( ha%nproc/=1) then
-        call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-           &   psi(1),work=wrk,outadd=Qvect(1,0))  
+        call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lzd%glr%wfd,ha%comms,&
+           &   psi(1),wrk(1),out_add=Qvect(1,0))  
      else
         do i=1, EP_dim_tot
            Qvect(i,0)= psi(i)
@@ -519,13 +521,14 @@ nullify(Qvect,dumQvect)
 
   subroutine EP_initialize_start()
      use module_interfaces
+     use communications, only: transpose_v
      !Local variables
      integer :: i
 
      if ( ha%at%paw_NofL(ha%at%astruct%iatype(ha%in_iat_absorber )).gt.0  ) then
         if (ha%iproc == 0) write(*,*) "USING PTILDES TO BUILD INITIAL WAVE"
         !!if(EP_dim_tot.gt.0) then
-        call razero(EP_dim_tot  ,  Qvect_tmp  )
+        call to_zero(EP_dim_tot  ,  Qvect_tmp  )
         call applyPAWprojectors(ha%orbs,ha%at,&
            &   ha%hx,ha%hy,ha%hz,ha%Lzd%Glr,ha%PAWD,Qvect_tmp,Qvect_tmp, ha%at%paw_S_matrices, &
            &   .true. ,    ha%in_iat_absorber, ha%Labsorber+1, &
@@ -543,7 +546,7 @@ nullify(Qvect,dumQvect)
      !!$    if(exist) then
      !!$       if(  sum( ha%at%paw_NofL ).gt.0 ) then
      !!$          if(  associated( ha%PAWD) ) then
-     !!$             call razero(EP_dim_tot  ,  wrk  )
+     !!$             call to_zero(EP_dim_tot  ,  wrk  )
      !!$             call applyPAWprojectors(ha%orbs,ha%at,&
      !!$                  ha%hx,ha%hy,ha%hz,ha%Lzd%Glr,ha%PAWD,Qvect_tmp,wrk, ha%at%paw_S_matrices, &
      !!$                  .false.)      
@@ -562,8 +565,8 @@ nullify(Qvect,dumQvect)
      end if
 
      if( ha%nproc/=1) then
-        call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-           &   Qvect_tmp,work=wrk,outadd=Qvect(1,0))  
+        call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lzd%glr%wfd,ha%comms,&
+           &   Qvect_tmp(1),wrk(1),out_add=Qvect(1,0))
      else
         do i=1, EP_dim_tot
            Qvect(i,0)= Qvect_tmp(i)
@@ -860,6 +863,7 @@ nullify(Qvect,dumQvect)
   subroutine EP_precondition(p,i, ene, gamma)
      use module_interfaces
      use module_base
+     use communications, only: transpose_v, untranspose_v
      !Arguments
      implicit none
      integer, intent(in) :: p,i
@@ -896,10 +900,10 @@ nullify(Qvect,dumQvect)
      if( ha%nproc > 1) then
         if(i>=0) then
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   Qvect(1,i), wrk(1),out_add=Qvect_tmp(1) )  
         else
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   dumQvect(1,-i), wrk(1),out_add=Qvect_tmp(1) )  
         endif
      else
         if(i>=0) then
@@ -929,18 +933,18 @@ nullify(Qvect,dumQvect)
      !!$       wrk(ind+7)=Qvect_tmp(ind+7)*scal(7)       !  2 2 2
      !!$    enddo
 
-     call dcopy(EP_dim_tot, Qvect_tmp(1),1,wrk(1),1) 
+     call vcopy(EP_dim_tot, Qvect_tmp(1),1,wrk(1),1) 
 
 
      if( dopcproj) then
 
-        call razero(EP_dim_tot  ,  wrk1  )
+        call to_zero(EP_dim_tot  ,  wrk1  )
         ha%PPD%iproj_to_factor(:) =  1.0_gp
         call applyPCprojectors(ha%orbs,ha%at,ha%hx,ha%hy,ha%hz,&
            &   ha%Lzd%Glr,ha%PPD,wrk,wrk1 )
 
 
-        call razero(EP_dim_tot  ,  wrk2  )
+        call to_zero(EP_dim_tot  ,  wrk2  )
         !!$       do k=1, ha%PPD%mprojtot
         !!$          print *, ha%PPD%iproj_to_ene(k), ha%PPD%iproj_to_l(k)
         !!$       end do
@@ -968,7 +972,7 @@ nullify(Qvect,dumQvect)
 
      if( dopcproj) then
 
-        call razero(EP_dim_tot  ,  wrk1  )
+        call to_zero(EP_dim_tot  ,  wrk1  )
         ha%PPD%iproj_to_factor(:) =  1.0_gp
         call applyPCprojectors(ha%orbs,ha%at,ha%hx,ha%hy,ha%hz,&
            &   ha%Lzd%Glr,ha%PPD,wrk,wrk1)
@@ -985,8 +989,8 @@ nullify(Qvect,dumQvect)
 
      if(p<0) then
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lzd%glr%wfd,ha%comms,&
+              &   wrk(1),Qvect_tmp(1),out_add=dumQvect(1,-p))  
         else
            do k=1, EP_dim_tot
               dumQvect(k,-p) =  wrk(k)
@@ -994,8 +998,8 @@ nullify(Qvect,dumQvect)
         endif
      else
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=Qvect(1,p))  
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lzd%glr%wfd,ha%comms,&
+              &   wrk(1),Qvect_tmp(1),out_add=Qvect(1,p))  
         else
            do k=1, EP_dim_tot
               Qvect(k,p) =  wrk(k)
@@ -1011,6 +1015,7 @@ nullify(Qvect,dumQvect)
   subroutine EP_Moltiplica4spectra(p,i, ene, gamma)
      use module_interfaces
      use gaussians, only: gaussian_basis
+     use communications, only: transpose_v, untranspose_v
      !Arguments
      implicit none
      integer, intent(in) :: p,i
@@ -1022,10 +1027,10 @@ nullify(Qvect,dumQvect)
      if( ha%nproc > 1) then
         if(i>=0) then
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   Qvect(1,i),wrk(1),out_add=Qvect_tmp(1) )  
         else
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   dumQvect(1,-i),wrk(1),out_add=Qvect_tmp(1) )  
         endif
      else
 
@@ -1060,8 +1065,8 @@ nullify(Qvect,dumQvect)
 
      if(p<0) then
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lzd%glr%wfd,ha%comms,&
+              &   wrk(1),Qvect_tmp(1),out_add=dumQvect(1,-p))  
         else
            do k=1, EP_dim_tot
               dumQvect(k,-p) =  wrk(k)
@@ -1081,8 +1086,8 @@ nullify(Qvect,dumQvect)
 
      else
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=Qvect(1,p))  
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lzd%glr%wfd,ha%comms,&
+              &   wrk(1),Qvect_tmp(1),Qvect(1,p))  
         else
            do k=1, EP_dim_tot
               Qvect(k,p) =  wrk(k)
@@ -1106,6 +1111,7 @@ nullify(Qvect,dumQvect)
 
   subroutine EP_Moltiplica(p,i)
      use module_interfaces
+     use communications, only: transpose_v, untranspose_v
      !Arguments
      implicit none
      integer, intent(in) :: p,i
@@ -1116,10 +1122,10 @@ nullify(Qvect,dumQvect)
      if( ha%nproc > 1) then
         if(i>=0) then
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   Qvect(1,i),wrk(1),out_add=Qvect_tmp(1) )  
         else
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   dumQvect(1,-i),wrk(1),out_add=Qvect_tmp(1) )  
         endif
      else
         if(i>=0) then
@@ -1152,7 +1158,7 @@ nullify(Qvect,dumQvect)
            call applyPAWprojectors(ha%orbs,ha%at,&
               &   ha%hx,ha%hy,ha%hz,ha%Lzd%Glr,ha%PAWD,Qvect_tmp,wrk,ha%at%paw_H_matrices, .false.  )
 
-           !!$          call razero(EP_dim_tot  ,  wrk1  )
+           !!$          call to_zero(EP_dim_tot  ,  wrk1  )
            !!$          call applyPAWprojectors(ha%orbs,ha%at,&
            !!$               ha%hx,ha%hy,ha%hz,ha%Lzd%Glr,ha%PAWD,wrk,wrk1, ha%at%paw_S_matrices )
            !!$          do k=1, EP_dim_tot
@@ -1181,8 +1187,8 @@ nullify(Qvect,dumQvect)
 
      if(p<0) then
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lzd%glr%wfd,ha%comms,&
+              &   wrk(1),Qvect_tmp(1),out_add=dumQvect(1,-p))  
         else
            do k=1, EP_dim_tot
               dumQvect(k,-p) =  wrk(k)
@@ -1190,8 +1196,8 @@ nullify(Qvect,dumQvect)
         endif
      else
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=Qvect(1,p))  
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lzd%glr%wfd,ha%comms,&
+              &   wrk(1),Qvect_tmp(1),out_add=Qvect(1,p))  
         else
            do k=1, EP_dim_tot
               Qvect(k,p) =  wrk(k)
@@ -1203,6 +1209,7 @@ nullify(Qvect,dumQvect)
 
   subroutine EP_ApplySinv(p,i)
      use module_interfaces
+     use communications, only: transpose_v, untranspose_v
      !Arguments
      implicit none
      integer, intent(in) :: p,i
@@ -1212,10 +1219,10 @@ nullify(Qvect,dumQvect)
      if( ha%nproc > 1) then
         if(i>=0) then
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   Qvect(1,i),wrk(1),out_add=Qvect_tmp(1) )  
         else
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   dumQvect(1,-i),wrk(1),out_add=Qvect_tmp(1) )  
         endif
      else
         if(i>=0) then
@@ -1228,7 +1235,7 @@ nullify(Qvect,dumQvect)
            enddo
         endif
      endif
-     call razero(EP_dim_tot  ,  wrk  )
+     call to_zero(EP_dim_tot  ,  wrk  )
      if(  sum( ha%at%paw_NofL ).gt.0 ) then
         if(  associated( ha%PAWD) ) then
            call applyPAWprojectors(ha%orbs,ha%at,&
@@ -1245,8 +1252,8 @@ nullify(Qvect,dumQvect)
 
      if(p<0) then
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lzd%glr%wfd,ha%comms,&
+              &   wrk(1),Qvect_tmp(1),out_add=dumQvect(1,-p))  
         else
            do k=1, EP_dim_tot
               dumQvect(k,-p) =  wrk(k)
@@ -1254,8 +1261,8 @@ nullify(Qvect,dumQvect)
         endif
      else
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=Qvect(1,p))  
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lzd%glr%wfd,ha%comms,&
+              &   wrk(1),Qvect_tmp(1),out_add=Qvect(1,p))  
         else
            do k=1, EP_dim_tot
               Qvect(k,p) =  wrk(k)
@@ -1270,6 +1277,7 @@ nullify(Qvect,dumQvect)
 
   subroutine EP_ApplyS(p,i)
      use module_interfaces
+     use communications, only: transpose_v, untranspose_v
      !Arguments
      implicit none
      integer, intent(in) :: p,i
@@ -1279,10 +1287,10 @@ nullify(Qvect,dumQvect)
      if( ha%nproc > 1) then
         if(i>=0) then
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   Qvect(1:,i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   Qvect(1,i),wrk(1),out_add=Qvect_tmp(1) )  
         else
            call untranspose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   dumQvect(1:,-i), work=wrk,outadd= Qvect_tmp(1) )  
+              &   dumQvect(1,-i),wrk(1),out_add=Qvect_tmp(1) )  
         endif
      else
         if(i>=0) then
@@ -1295,7 +1303,7 @@ nullify(Qvect,dumQvect)
            enddo
         endif
      endif
-     call razero(EP_dim_tot  ,  wrk  )
+     call to_zero(EP_dim_tot  ,  wrk  )
      if(  sum( ha%at%paw_NofL ).gt.0 ) then
         if(  associated( ha%PAWD) ) then
            call applyPAWprojectors(ha%orbs,ha%at,&
@@ -1310,8 +1318,8 @@ nullify(Qvect,dumQvect)
 
      if(p<0) then
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=dumQvect(1,-p))  
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lzd%glr%wfd,ha%comms,&
+              &   wrk(1),Qvect_tmp(1),out_add=dumQvect(1,-p))  
         else
            do k=1, EP_dim_tot
               dumQvect(k,-p) =  wrk(k)
@@ -1319,8 +1327,8 @@ nullify(Qvect,dumQvect)
         endif
      else
         if(  ha%nproc/=1) then
-           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%Lzd%Glr%wfd,ha%comms,&
-              &   wrk , work= Qvect_tmp ,outadd=Qvect(1,p))  
+           call transpose_v(ha%iproc,ha%nproc,ha%orbs,ha%lzd%glr%wfd,ha%comms,&
+              &   wrk(1),Qvect_tmp(1),out_add=Qvect(1,p))  
         else
            do k=1, EP_dim_tot
               Qvect(k,p) =  wrk(k)
@@ -1388,7 +1396,7 @@ nullify(Qvect,dumQvect)
      call memocc(i_stat,tpsi,'tpsi',subname)
 
      !initialize the wavefunction
-     call razero((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor,psi)
+     call to_zero((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor,psi)
      !this can be changed to be passed only once to all the gaussian basis
      !eks=0.d0
      !loop over the atoms
@@ -1646,6 +1654,7 @@ nullify(Qvect,dumQvect)
     use module_types
     use lanczos_base
     use module_interfaces
+    use communications_init, only: orbitals_communicators
     implicit none
     integer, intent(in) :: iproc,nproc,nspin
     real(gp), intent(in) :: hx,hy,hz
@@ -1695,7 +1704,7 @@ nullify(Qvect,dumQvect)
     !call allocate_comms(nproc,ha%comms,subname)
     call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,ha%comms)  
 
-    call local_potential_dimensions(Lzd,orbs,dpcom%ngatherarr(0,1))
+    call local_potential_dimensions(iproc,Lzd,orbs,dpcom%ngatherarr(0,1))
 
     allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
     call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
@@ -1805,6 +1814,7 @@ nullify(Qvect,dumQvect)
     use lanczos_base
     ! per togliere il bug 
     use module_interfaces
+    use communications_init, only: orbitals_communicators
 
     implicit none
     integer  :: iproc,nproc,nspin
@@ -1863,7 +1873,7 @@ nullify(Qvect,dumQvect)
 
     call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,ha%comms)  
 
-    call local_potential_dimensions(Lzd,orbs,dpcom%ngatherarr(0,1))
+    call local_potential_dimensions(iproc,Lzd,orbs,dpcom%ngatherarr(0,1))
 
     if(   at%paw_NofL( at%astruct%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
     else
@@ -2048,6 +2058,7 @@ nullify(Qvect,dumQvect)
     use lanczos_base
     ! per togliere il bug 
     use module_interfaces
+    use communications_init, only: orbitals_communicators
 
     implicit none
 
@@ -2111,7 +2122,7 @@ nullify(Qvect,dumQvect)
     !call allocate_comms(nproc,ha%comms,subname)
     call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,ha%comms)  
 
-    call local_potential_dimensions(Lzd,orbs,dpcom%ngatherarr(0,1))
+    call local_potential_dimensions(iproc,Lzd,orbs,dpcom%ngatherarr(0,1))
 
     allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
     call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)

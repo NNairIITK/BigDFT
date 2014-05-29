@@ -60,7 +60,7 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,psi,rho,vh,
   end if
 
   !calculate electrostatic potential
-  call dcopy(dpbox%ndimpot,rho,1,vh,1)
+  call vcopy(dpbox%ndimpot,rho(1),1,vh(1),1)
   
   call H_potential('D',pkernel,vh,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten)
   !in principle symmetrization of the stress tensor is not needed since the density has been 
@@ -422,7 +422,7 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
    !initialisation
    !print *,iproc,'there'
    if (lr%geocode == 'F') then
-      call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*npsir,psir)
+      call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*npsir,psir)
    end if
 
    do iorb=1,orbs%norbp

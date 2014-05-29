@@ -314,7 +314,7 @@ contains
     if (xc%kind == XC_ABINIT) then
        call tenminustwenty(n,rho,nproc)
     else
-       call razero(n,rho)
+       call to_zero(n,rho)
     end if
   end subroutine xc_init_rho
 
@@ -532,7 +532,7 @@ contains
        if (nspden == 1) then
           rho_ = real(2,dp) * reshape(rho, (/ nspden, npts /))
        else
-          call dcopy(npts * nspden, rho, 1, rho_, 1)
+          call vcopy(npts * nspden, rho(1,1), 1, rho_(1,1), 1)
        end if
 
        exc(1) = UNINITIALIZED(1.d0)
@@ -555,8 +555,8 @@ contains
           end if
 
           if (exc(1) == UNINITIALIZED(1.d0)) then
-             call dcopy(npts, exc_, 1, exc, 1)
-             call dcopy(npts * nspden, vxc_, 1, vxc, 1)
+             call vcopy(npts, exc_(1), 1, exc(1), 1)
+             call vcopy(npts * nspden, vxc_(1,1), 1, vxc(1,1), 1)
           else
              call daxpy(npts, 1.d0, exc_, 1, exc, 1)
              call daxpy(npts * nspden, 1.d0, vxc_, 1, vxc, 1)

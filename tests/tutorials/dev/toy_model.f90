@@ -17,7 +17,9 @@ program wvl
   use yaml_output
   use module_input_dicts
   use module_interfaces, only: inputs_from_dict
-  
+  use module_atoms, only: deallocate_atoms_data
+  use communications_init, only: orbitals_communicators
+  use communications, only: transpose_v, untranspose_v
   implicit none
 
   type(input_variables)             :: inputs
@@ -25,7 +27,7 @@ program wvl
 
   type(local_zone_descriptors)          :: Lzd
   type(orbitals_data)               :: orbs
-  type(communications_arrays)       :: comms
+  type(comms_cubic)       :: comms
   type(workarr_sumrho)              :: wisf
   real(wp), dimension(:), pointer   :: psi, psir
 
@@ -149,7 +151,7 @@ program wvl
   !---------------------------!
   allocate(w(max(orbs%npsidim_orbs,orbs%npsidim_comp)))
   ! Transpose the psi wavefunction
-  call transpose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psi, work=w)
+  call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),work_add=w(1))
   !write(*,*) "Proc", iproc, " treats ", comms%nvctr_par(iproc, 0) * orbs%norb, "components of all orbitals."
   call yaml_comment("Proc" // trim(yaml_toa(iproc)) // " treats " // &
                    & trim(yaml_toa(comms%nvctr_par(iproc, 0) * orbs%norb)) // "components of all orbitals.")
@@ -188,7 +190,7 @@ program wvl
   deallocate(ovrlp)
 
   ! Retranspose the psi wavefunction
-  call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psi, work=w)
+  call untranspose_v(iproc,nproc,orbs,Lzd%glr%wfd,comms,psi(1),work_add=w(1))
   deallocate(w)
 
   call bigdft_utils_flush(unit=6)
@@ -228,7 +230,7 @@ program wvl
 !!$       & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
 !!$       & atoms%astruct%rxyz,inputs%crmult,inputs%frmult,radii_cf,inputs%nspin,'D',inputs%ixc, &
 !!$       & inputs%rho_commun,n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
-  call local_potential_dimensions(Lzd,orbs,dpcom%ngatherarr(0,1))
+  call local_potential_dimensions(iproc,Lzd,orbs,dpcom%ngatherarr(0,1))
 
   allocate(rhor(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * dpcom%n3d))
   allocate(irrzon(1,2,1))
@@ -295,7 +297,7 @@ program wvl
 
   call deallocate_orbs(orbs,"main")
 
-  call deallocate_atoms(atoms,"main") 
+  call deallocate_atoms_data(atoms) 
   call dpbox_free(dpcom,'main')
   call pkernel_free(pkernel,'main')
   call free_input_variables(inputs)

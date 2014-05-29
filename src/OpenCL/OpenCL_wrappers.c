@@ -85,15 +85,15 @@ void FC_FUNC_(ocl_build_programs,OCL_BUILD_PROGRAMS)(bigdft_context * context) {
     build_fft_programs(context);
 }
 
-void create_kernels(struct bigdft_kernels *kernels){
-    create_magicfilter_kernels(kernels);
-    create_benchmark_kernels(kernels);
-    create_kinetic_kernels(kernels);
-    create_wavelet_kernels(kernels);
-    create_uncompress_kernels(kernels);
-    create_initialize_kernels(kernels);
-    create_reduction_kernels(kernels);
-    create_fft_kernels(kernels);
+void create_kernels(bigdft_context * context, struct bigdft_kernels *kernels){
+    create_magicfilter_kernels(context, kernels);
+    create_benchmark_kernels(context, kernels);
+    create_kinetic_kernels(context, kernels);
+    create_wavelet_kernels(context, kernels);
+    create_uncompress_kernels(context, kernels);
+    create_initialize_kernels(context, kernels);
+    create_reduction_kernels(context, kernels);
+    create_fft_kernels(context, kernels);
 }
 
 
@@ -135,7 +135,8 @@ void FC_FUNC_(ocl_create_context,OCL_CREATE_CONTEXT)(bigdft_context * context, c
     //printf("num_platforms: %d\n",num_platforms);
     if(num_platforms == 0) {
       fprintf(stderr,"No OpenCL platform available!\n");
-      exit(1);
+      *context=NULL;
+      return;
     }
     platform_ids = (cl_platform_id *)malloc(num_platforms * sizeof(cl_platform_id));
     clGetPlatformIDs(num_platforms, platform_ids, NULL);
@@ -169,7 +170,8 @@ void FC_FUNC_(ocl_create_context,OCL_CREATE_CONTEXT)(bigdft_context * context, c
       }
       if(!found) {
         fprintf(stderr, "No matching OpenCL platform available : %s!\n", platform);
-        exit(1);
+	*context=NULL;
+        return;
       }
     } else {
       properties[1] = (cl_context_properties) platform_ids[0];
@@ -180,6 +182,10 @@ void FC_FUNC_(ocl_create_context,OCL_CREATE_CONTEXT)(bigdft_context * context, c
       fprintf(stderr,"Error: Failed to create context (out of memory)!\n");
       exit(1);
     }
+    (*context)->fft_size[0] = 0;
+    (*context)->fft_size[1] = 0;
+    (*context)->fft_size[2] = 0;
+
     cl_device_type type;
     if(*device_type == 2) {
       type = CL_DEVICE_TYPE_GPU;
@@ -199,7 +205,9 @@ void FC_FUNC_(ocl_create_context,OCL_CREATE_CONTEXT)(bigdft_context * context, c
       clGetDeviceIDs((cl_platform_id)properties[1], type, 0, NULL, &num_devices);
       if(num_devices == 0) {
         fprintf(stderr,"No device of type %d!\n", (int)type);
-        exit(1);
+	free(*context);
+	*context=NULL;
+        return;
       }
       device_ids = (cl_device_id *)malloc(num_devices * sizeof(cl_device_id));
       matching_device_ids = (cl_device_id *)malloc(num_devices * sizeof(cl_device_id));
@@ -218,7 +226,9 @@ void FC_FUNC_(ocl_create_context,OCL_CREATE_CONTEXT)(bigdft_context * context, c
       }
       if(!found) {
         fprintf(stderr, "No matching OpenCL device available : %s!\n", devices);
-        exit(1);
+	free(*context);
+	*context=NULL;
+        return;
       }
       (*context)->context = clCreateContext(properties, found, matching_device_ids, NULL, NULL, &ciErrNum);
       free(matching_device_ids);
@@ -268,6 +278,10 @@ void FC_FUNC_(ocl_create_gpu_context,OCL_CREATE_GPU_CONTEXT)(bigdft_context * co
       fprintf(stderr,"Error: Failed to create context (out of memory)!\n");
       exit(1);
     }
+    (*context)->fft_size[0] = 0;
+    (*context)->fft_size[1] = 0;
+    (*context)->fft_size[2] = 0;
+
     (*context)->context = clCreateContextFromType( properties , CL_DEVICE_TYPE_GPU, NULL, NULL, &ciErrNum);
 #if DEBUG
     printf("%s %s\n", __func__, __FILE__);
@@ -306,6 +320,10 @@ void FC_FUNC_(ocl_create_cpu_context,OCL_CREATE_CPU_CONTEXT)(bigdft_context * co
       fprintf(stderr,"Error: Failed to create context (out of memory)!\n");
       exit(1);
     }
+    (*context)->fft_size[0] = 0;
+    (*context)->fft_size[1] = 0;
+    (*context)->fft_size[2] = 0;
+
     (*context)->context = clCreateContextFromType( properties , CL_DEVICE_TYPE_CPU, NULL, NULL, &ciErrNum);
 #if DEBUG
     printf("%s %s\n", __func__, __FILE__);
@@ -604,7 +622,8 @@ void FC_FUNC_(ocl_create_command_queue,OCL_CREATE_COMMAND_QUEUE)(bigdft_command_
     printf("%s %s\n", __func__, __FILE__);
     printf("contexte address: %p, command queue: %p\n",*context, (*command_queue)->command_queue);
 #endif
-    create_kernels(&((*command_queue)->kernels));
+    (*command_queue)->context = *context;
+    create_kernels(&((*command_queue)->context), &((*command_queue)->kernels));
 }
 
 void FC_FUNC_(ocl_create_command_queue_id,OCL_CREATE_COMMAND_QUEUE_ID)(bigdft_command_queue *command_queue, bigdft_context *context, cl_uint *index){
@@ -641,7 +660,8 @@ void FC_FUNC_(ocl_create_command_queue_id,OCL_CREATE_COMMAND_QUEUE_ID)(bigdft_co
     printf("%s %s\n", __func__, __FILE__);
     printf("contexte address: %p, command queue: %p\n",*context, (*command_queue)->command_queue);
 #endif
-    create_kernels(&((*command_queue)->kernels));
+    (*command_queue)->context = *context;
+    create_kernels(&((*command_queue)->context), &((*command_queue)->kernels));
 }
 
 size_t shrRoundUp(size_t group_size, size_t global_size)
@@ -684,23 +704,23 @@ void FC_FUNC_(ocl_clean_command_queue,OCL_CLEAN_COMMAND_QUEUE)(bigdft_command_qu
   clean_wavelet_kernels(&((*command_queue)->kernels));
   clean_uncompress_kernels(&((*command_queue)->kernels));
   clean_reduction_kernels(&((*command_queue)->kernels));
-  clean_fft_kernels(&((*command_queue)->kernels));
+  clean_fft_kernels(&((*command_queue)->context), &((*command_queue)->kernels));
   clReleaseCommandQueue((*command_queue)->command_queue);
   free(*command_queue);
 }
 
 void FC_FUNC_(ocl_clean,OCL_CLEAN)(bigdft_context *context){
   size_t i;
-  clean_magicfilter_programs();
-  clean_benchmark_programs();
-  clean_kinetic_programs();
-  clean_initialize_programs();
-  clean_wavelet_programs();
-  clean_uncompress_programs();
-  clean_reduction_programs();
-  clean_fft_programs();
-  for(i=0;i<event_number;i++){
-    clReleaseEvent(event_list[i].e);
+  clean_magicfilter_programs(context);
+  clean_benchmark_programs(context);
+  clean_kinetic_programs(context);
+  clean_initialize_programs(context);
+  clean_wavelet_programs(context);
+  clean_uncompress_programs(context);
+  clean_reduction_programs(context);
+  clean_fft_programs(context);
+  for(i=0;i<(*context)->event_number;i++){
+    clReleaseEvent((*context)->event_list[i].e);
   }
   clReleaseContext((*context)->context);
   free(*context);

@@ -247,14 +247,14 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,nlpspd,hx,hy,hz,at,rxyz,&
   if(useTMO) then
      allocate(scalprod(2,0:3,7,3,4,at%nat,max(linorbs%norbp,1)*linorbs%nspinor+ndebug),stat=i_stat)   
      call memocc(i_stat,scalprod,'scalprod',subname)
-     call razero(2*4*7*3*4*at%nat*max(linorbs%norbp,1)*linorbs%nspinor,scalprod)
+     call to_zero(2*4*7*3*4*at%nat*max(linorbs%norbp,1)*linorbs%nspinor,scalprod)
      allocate(nonzeroValue(max(linorbs%norbp,1),at%nat), stat=i_stat)
      call memocc(i_stat,nonzeroValue,'nonzeroValue',subname)
      nonzeroValue=.false.
   else
      allocate(scalprod(2,0:3,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)   
      call memocc(i_stat,scalprod,'scalprod',subname)
-     call razero(2*4*7*3*4*at%nat*orbs%norbp*orbs%nspinor,scalprod)
+     call to_zero(2*4*7*3*4*at%nat*orbs%norbp*orbs%nspinor,scalprod)
   end if
 
   !##############################################################################################
@@ -768,7 +768,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,nlpspd,hx,hy,hz,at,rxyz,&
      ! loop over all my orbitals for calculating forces
      !do iorb=1,orbs%norbp
      do iorb=1,maxval(orbs%norb_par)
-        call razero(3*at%nat,fxyz_orb)
+        call to_zero(3*at%nat,fxyz_orb)
         timecomp1=0.d0
         timecomp2=0.d0
         timecomm1=0.d0
@@ -799,7 +799,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,nlpspd,hx,hy,hz,at,rxyz,&
                  jst=(ii-1)*ncount*linorbs%norbp*linorbs%nspinor+1
                  do jorb=1,linorbs%norbp*linorbs%nspinor
                     if(nonzeroValue(jorb,jat)) then
-                       call dcopy(ncount, scalprod(1,0,1,1,1,jat,jorb), 1, temparr(jst), 1)
+                       call vcopy(ncount, scalprod(1,0,1,1,1,jat,jorb), 1, temparr(jst), 1)
                        jst=jst+ncount
                     end if
                  end do
@@ -878,8 +878,8 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,nlpspd,hx,hy,hz,at,rxyz,&
            t2=mpi_wtime()
            timecomm1=timecomm1+t2-t1
 
-           call razero(3*linorbs%norb*linorbs%norb, fxyz_tmo(1,1,1,ioverlap))
-           call razero(3*linorbs%norb*linorbs%norbp, fxyz_tmo_temp(1,1,1,ioverlap))
+           call to_zero(3*linorbs%norb*linorbs%norb, fxyz_tmo(1,1,1,ioverlap))
+           call to_zero(3*linorbs%norb*linorbs%norbp, fxyz_tmo_temp(1,1,1,ioverlap))
            jorb=0
            t1=mpi_wtime()
            do itmorb = 1,linorbs%norbp
@@ -961,7 +961,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,nlpspd,hx,hy,hz,at,rxyz,&
               ! Copy scalprod to temporary array for communication.
               do jorb=1,linorbs%norbp*linorbs%nspinor
                  if(nonzeroValue(jorb,iat+nitoverlaps)) then
-                    call dcopy(ncount, scalprod(1,0,1,1,1,iat+nitoverlaps,jorb), 1, temparr(jst), 1)
+                    call vcopy(ncount, scalprod(1,0,1,1,1,iat+nitoverlaps,jorb), 1, temparr(jst), 1)
                     jst=jst+ncount
                  end if
               end do
@@ -1118,7 +1118,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,nlpspd,hx,hy,hz,at,rxyz,&
         ! loop over all my orbitals for calculating forces
         do iorb=isorb,ieorb
            ! loop over all projectors
-           call razero(3*at%nat,fxyz_orb)
+           call to_zero(3*at%nat,fxyz_orb)
            jorb = iorb + kptshft
            do ispinor=1,orbs%nspinor,ncplx
               do iat=1,at%nat

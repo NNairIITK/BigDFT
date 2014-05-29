@@ -193,7 +193,7 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
   !inquire whether the input file is present, otherwise put velocities to zero
   inquire(file=filename,exist=exists)
   if (.not. exists) then  
-     call razero(3*atoms%astruct%nat,vxyz)
+     call to_zero(3*atoms%astruct%nat,vxyz)
      return
   end if
 

@@ -25,4 +25,4 @@
   !otherwise write it in free format
   if (trim(str) == repeat('*',len_trim(str))) write(str,*) data
   !print *,'hereagain',str,data,fmt
-  str=yaml_adjust(str)
+  str=yaml_adjust(str,clean=.not. present(fmt))

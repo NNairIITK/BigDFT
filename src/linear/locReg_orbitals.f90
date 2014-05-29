@@ -46,7 +46,8 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
 ! NOTES: K-Points??
   nmoments = 0
   do ilr = 1, Lzd%nlr
-     call count_atomic_shells(ao_nspin_ig(nspin,nspinor=nspinor),atoms%aocc(1:,ilr),occup,nmoments)
+     call count_atomic_shells(ao_nspin_ig(nspin,nspinor=nspinor),&
+          atoms%aoig(ilr)%aocc,occup,nmoments)
      Lnorb=(nmoments(1)+3*nmoments(2)+5*nmoments(3)+7*nmoments(4))
      Localnorb(ilr) = Lnorb
   end do
