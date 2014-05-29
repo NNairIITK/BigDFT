@@ -1259,3 +1259,23 @@ subroutine update_auxiliary_basis_function(subname, npsidim, lphi, lhphi, lphiol
 
 end subroutine update_auxiliary_basis_function
 
+integer function optimalLength(totalLength, value)
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in) :: totalLength, value
+  
+  optimalLength=totalLength-ceiling(log10(dble(value+1)+1.d-10))
+
+end function optimalLength
+
+
+function megabytes(bytes)
+  implicit none
+  
+  integer,intent(in) :: bytes
+  integer :: megabytes
+  
+  megabytes=nint(dble(bytes)/1048576.d0)
+  
+end function megabytes

@@ -1,3 +1,14 @@
+/** @file 
+     Define KeyIds for BigDFT input paramater structure.
+    @author
+     Copyright (C) 2011-2013 BigDFT group (DC)
+     This file is distributed under the terms of the
+     GNU General Public License, see ~/COPYING file
+     or http://www.gnu.org/copyleft/gpl.txt .
+     For the list of contributors, see ~/AUTHORS 
+*/
+
+
 typedef enum {
   INPUTS_DFT_VARIABLES,
   INPUTS_HGRIDS,
@@ -98,6 +109,7 @@ typedef enum {
   INPUTS_VERBOSITY,
   INPUTS_OUTDIR,
   INPUTS_PSP_ONFLY,
+  INPUTS_MULTIPOLE_PRESERVING,
   INPUTS_PDSYEV_BLOCKSIZE,
   INPUTS_PDGEMM_BLOCKSIZE,
   INPUTS_MAXPROC_PDSYEV,

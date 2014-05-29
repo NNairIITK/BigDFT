@@ -28,7 +28,7 @@
    J.P. Perdew & Y. Wang
    Ortiz & Ballone
 
-Note that the PW modified, corresponds to the version of PW used in the 
+Note that the PW modified corresponds to the version of PW used in the 
 original PBE routine. This amounts to adding some more digits in some of
 the constants of PW.
 ************************************************************************/
@@ -54,7 +54,7 @@ lda_c_pw_init(XC(func_type) *p)
 
 
 /* Function g defined by Eq. 10 of the original paper,
-   and it's derivative with respect to rs, Eq. A5 */
+   and its derivative with respect to rs, Eq. A5 */
 static void g(int func, int order, int k, FLOAT *rs, 
 	      FLOAT *f, FLOAT *dfdrs, FLOAT *d2fdrs2, FLOAT *d3fdrs3)
 {
@@ -104,7 +104,7 @@ static void g(int func, int order, int k, FLOAT *rs,
   q1  =  2.0*a[func][k];
   q1 *= beta[func][k][0]*rs[0] + beta[func][k][1]*rs[1] + 
     beta[func][k][2]*rs[0]*rs[1] + beta[func][k][3]*POW(rs[1], 1.0 + pp[func][k]);
-  q2  = log(1.0 + 1.0/q1);
+  q2  = LOG(1.0 + 1.0/q1);
 
   /* the function */
   *f = q0*q2;
@@ -247,6 +247,8 @@ const XC(func_info_type) XC(func_info_lda_c_pw) = {
   lda_c_pw_init, /* init */
   NULL,     /* end  */
   work_lda, /* lda  */
+  NULL,
+  NULL
 };
 
 const XC(func_info_type) XC(func_info_lda_c_pw_mod) = {
@@ -262,6 +264,8 @@ const XC(func_info_type) XC(func_info_lda_c_pw_mod) = {
   lda_c_pw_init, /* init */
   NULL,     /* end  */
   work_lda, /* lda  */
+  NULL,
+  NULL
 };
 
 const XC(func_info_type) XC(func_info_lda_c_ob_pw) = {
@@ -277,6 +281,8 @@ const XC(func_info_type) XC(func_info_lda_c_ob_pw) = {
   lda_c_pw_init, /* init */
   NULL,     /* end  */
   work_lda, /* lda  */
+  NULL,
+  NULL
 };
 
 const XC(func_info_type) XC(func_info_lda_c_pw_rpa) = {
@@ -290,4 +296,6 @@ const XC(func_info_type) XC(func_info_lda_c_pw_rpa) = {
   lda_c_pw_init, /* init */
   NULL,     /* end  */
   work_lda, /* lda  */
+  NULL,
+  NULL
 };

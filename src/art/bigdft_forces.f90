@@ -142,7 +142,7 @@ module bigdft_forces
       type(dictionary), pointer :: dict
       !_______________________
 
-      nullify(dict)
+      call dict_init(dict)
       call read_input_dict_from_files("input", bigdft_mpi,dict)
 
       me = me_
@@ -167,7 +167,7 @@ module bigdft_forces
       call atoms_file_merge_to_dict(dict)
 
       call standard_inputfile_names(runObj%inputs,'input')
-      call inputs_from_dict(runObj%inputs, runObj%atoms, dict, .true.)
+      call inputs_from_dict(runObj%inputs, runObj%atoms, dict)
 
       call dict_free(dict)
       
@@ -188,6 +188,7 @@ module bigdft_forces
            & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
 
    END SUBROUTINE bigdft_init_art
+
 
    !> ART calcforce_bigdft
    !! Calculation of forces

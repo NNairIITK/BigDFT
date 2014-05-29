@@ -40,7 +40,7 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
 
   do iat=1,at%astruct%nat
 
-     if(at%npspcode(at%astruct%iatype(iat))==7) then
+     if(at%npspcode(at%astruct%iatype(iat)) == PSPCODE_PAW) then
        call numb_proj_paw_tr(at%astruct%iatype(iat),at%astruct%ntypes,proj_G(at%astruct%iatype(iat)),mproj)
      else
        call numb_proj(at%astruct%iatype(iat),at%astruct%ntypes,at%psppar,at%npspcode,mproj)
@@ -148,7 +148,7 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
 
 ! Skip this zerovol test for PAW, since the HGH/GTH parameters 
 ! are not used.
-  if (all(at%npspcode(:)/=7)) then
+  if (all(at%npspcode(:) /= PSPCODE_PAW)) then
      !calculate the fraction of the projector array used for allocate zero values
      !control the hardest and the softest gaussian
      totzerovol=0.0_gp
@@ -185,7 +185,7 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
            nl%zerovol=totzerovol/totfullvol
         end if
      end if
-  end if !npspcode==7
+  end if !npspcode == PSPCODE_PAW
 
   !here is the point in which the projector strategy should be decided
   !DistProjApply shoud never change after this point
@@ -733,9 +733,10 @@ end subroutine gamma_factor
 END SUBROUTINE projector_paw
 
 
-!>   Determines the number of projectors (valid for GTH and HGH pseudopotentials)
+!> Determines the number of projectors (valid for GTH and HGH pseudopotentials)
 subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
-  use module_base
+  use module_base, only: gp
+  use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
   !use module_types
   implicit none
   integer, intent(in) :: ityp,ntypes
@@ -746,25 +747,25 @@ subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
   integer :: l,i
 
   mproj=0
-  if (npspcode(ityp) == 2) then !GTH
+  select case(npspcode(ityp))
+  case(PSPCODE_GTH) !GTH
      do l=1,2 
         do i=1,2 
            if (psppar(l,i,ityp) /= 0.0_gp) mproj=mproj+2*l-1
         enddo
      enddo
-  else if (npspcode(ityp) == 3 .or. npspcode(ityp) == 10 &
-       .or. npspcode(ityp) == 12) then !HGH and HGH-K
+  case(PSPCODE_HGH,PSPCODE_HGH_K,PSPCODE_HGH_K_NLCC) !HGH and HGH-K
      do l=1,4 
         do i=1,3 
            if (psppar(l,i,ityp) /= 0.0_gp) mproj=mproj+2*l-1
         enddo
      enddo
-  end if
+  end select
 
 END SUBROUTINE numb_proj
 
 
-!>   Determines the number of projectors (for PAW, T.Rangel)
+!> Determines the number of projectors (for PAW, T.Rangel)
 subroutine numb_proj_paw_tr(ityp,ntypes,proj_G,mproj)
 use module_base
 use module_types
@@ -785,9 +786,9 @@ end do
 END SUBROUTINE numb_proj_paw_tr
 
 
-!>   Returns the compressed form of a Gaussian projector 
-!!   @f$ x^lx * y^ly * z^lz * exp (-1/(2*gau_a^2) *((x-rx)^2 + (y-ry)^2 + (z-rz)^2 )) @f$
-!!   in the arrays proj_c, proj_f
+!> Returns the compressed form of a Gaussian projector 
+!! @f$ x^lx * y^ly * z^lz * exp (-1/(2*gau_a^2) *((x-rx)^2 + (y-ry)^2 + (z-rz)^2 )) @f$
+!! in the arrays proj_c, proj_f
 subroutine crtproj(geocode,nterm,lr, & 
      hx,hy,hz,kx,ky,kz,ncplx_g,ncplx_k,&
      gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
@@ -876,7 +877,6 @@ subroutine crtproj(geocode,nterm,lr, &
   perx=(geocode /= 'F')
   pery=(geocode == 'P')
   perz=(geocode /= 'F')
-
 
   ! make sure that the coefficients returned by CALL GAUSS_TO_DAUB are zero outside [ml:mr] 
   !n(c) err_norm=0.0_gp 

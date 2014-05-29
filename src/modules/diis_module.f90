@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> Module handling DIIS (Direct Inversion in the Iterative Subspace) and SD (Steepest Descent) optimisation
+!> Module handling DIIS (Direct Inversion in the Iterative Subspace) and SD (Steepest Descent) optimization
 module diis_sd_optimization
   use module_base
 
@@ -158,7 +158,7 @@ contains
     type(DIIS_obj), intent(inout) :: diis
     ! Local variables
     character(len=*), parameter :: subname='diisstp'
-    integer :: i,j,ist,jst,mi,info,jj,mj,ierr
+    integer :: i,j,ist,jst,mi,info,jj,mj
     integer :: ispsi,ispsidst,ncomp,iacc_add,igrpp,igrp
     real(tp) :: psicoeff
     integer, dimension(:), allocatable :: ipiv
@@ -199,8 +199,9 @@ contains
        ispsidst=ispsidst+ncomp*diis%idsx
     end do
     if (nproc > 1) then
-       call mpiallred(rds(1,1),(diis%idsx+1)*ngrp,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
-       if (f_err_raise(ierr/=0,'Error in allreduce operation, '//subname,BIGDFT_MPI_ERROR)) then
+       call mpiallred(rds(1,1),(diis%idsx+1)*ngrp,MPI_SUM,bigdft_mpi%mpi_comm)
+       if (f_err_raise(f_err_check(err_name='ERR_MPI_WRAPPERS'),&
+            'Error in allreduce operation, '//subname,BIGDFT_MPI_ERROR)) then
           call free_and_exit()
           return
        end if

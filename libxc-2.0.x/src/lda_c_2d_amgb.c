@@ -23,10 +23,10 @@
 
 /************************************************************************
  Correlation energy per particle and potentials for a homogeneous electron
- gas in 2D, as parametrized by Attacalite et al.
+ gas in 2D, as parametrized by Attaccalite et al.
 ************************************************************************/
 
-#define XC_LDA_C_2D_AMGB  15   /* Attacalite et al             */
+#define XC_LDA_C_2D_AMGB  15   /* Attaccalite et al             */
 
 
 /* parameters necessary to the calculation */
@@ -97,8 +97,8 @@ malpha(int order, int i, FLOAT *rs,
 }
 
 
-static void
-func(const XC(func_type) *p, XC(lda_work_t) *r)
+void
+XC(lda_c_2d_amgb_func)(const XC(func_type) *p, XC(lda_work_t) *r)
 {
   FLOAT ecp, vcp, fcp, kcp;
   FLOAT ecf, vcf, fcf, kcf;
@@ -126,7 +126,7 @@ func(const XC(func_type) *p, XC(lda_work_t) *r)
     fz  = 0.5*(POW(1.0 + r->zeta, 3.0/2.0) + POW(1.0 - r->zeta, 3.0/2.0));
     ex6 = ex*(fz - 1.0 - 3.0/8.0*z2 - 3.0/128.0*z4);
 
-    r->zk = ecp + ecf*z2 + alpha*z4 + (exp(-beta*r->rs[1]) - 1.0)*ex6;
+    r->zk = ecp + ecf*z2 + alpha*z4 + (EXP(-beta*r->rs[1]) - 1.0)*ex6;
   }
 
   if(r->order < 1) return;
@@ -141,8 +141,8 @@ func(const XC(func_type) *p, XC(lda_work_t) *r)
     dex6drs = dex*(fz - 1.0 - (3.0/8.0)*z2 - (3.0/128.0)*z4);
     dex6dz  =  ex*(dfz - 2.0*(3.0/8.0)*r->zeta - 4.0*(3.0/128.0)*z3);
 
-    r->dedrs = vcp + vcf*z2 + dalpha*z4 + exp(-beta*r->rs[1])*(dex6drs - beta*ex6) - dex6drs;
-    r->dedz  = 2.0*ecf*r->zeta + 4.0*alpha*z3 + (exp(-beta*r->rs[1]) - 1.0)*dex6dz;
+    r->dedrs = vcp + vcf*z2 + dalpha*z4 + EXP(-beta*r->rs[1])*(dex6drs - beta*ex6) - dex6drs;
+    r->dedz  = 2.0*ecf*r->zeta + 4.0*alpha*z3 + (EXP(-beta*r->rs[1]) - 1.0)*dex6dz;
   }
 
   if(r->order < 2) return;
@@ -159,9 +159,9 @@ func(const XC(func_type) *p, XC(lda_work_t) *r)
     d2ex6dz2  =   ex*(d2fz   - 2.0*(3.0/8.0)        - 12.0*(3.0/128.0)*z2);
 
     r->d2edrs2 = fcp + fcf*z2 + d2alpha*z4 + 
-      exp(-beta*r->rs[1])*(d2ex6drs2 - 2.0*beta*dex6drs + beta*beta*ex6) - d2ex6drs2;
-    r->d2edrsz = 2.0*vcf*r->zeta + 4.0*dalpha*z3 + exp(-beta*r->rs[1])*(d2ex6drsz - beta*dex6dz) - d2ex6drsz;
-    r->d2edz2  = 2.0*ecf + 12.0*alpha*z2 + (exp(-beta*r->rs[1]) - 1.0)*d2ex6dz2;
+      EXP(-beta*r->rs[1])*(d2ex6drs2 - 2.0*beta*dex6drs + beta*beta*ex6) - d2ex6drs2;
+    r->d2edrsz = 2.0*vcf*r->zeta + 4.0*dalpha*z3 + EXP(-beta*r->rs[1])*(d2ex6drsz - beta*dex6dz) - d2ex6drsz;
+    r->d2edz2  = 2.0*ecf + 12.0*alpha*z2 + (EXP(-beta*r->rs[1]) - 1.0)*d2ex6dz2;
   }
 
   if(r->order < 3) return;
@@ -179,15 +179,16 @@ func(const XC(func_type) *p, XC(lda_work_t) *r)
     d3ex6dz3   =   ex*(d3fz                          - 24.0*(3.0/128.0)*r->zeta);
 
     r->d3edrs3  = kcp + kcf*z2 + d3alpha*z4 + 
-      exp(-beta*r->rs[1])*(d3ex6drs3 - 3.0*beta*d2ex6drs2 + 3.0*beta*beta*dex6drs - beta*beta*beta*ex6) - d3ex6drs3;
+      EXP(-beta*r->rs[1])*(d3ex6drs3 - 3.0*beta*d2ex6drs2 + 3.0*beta*beta*dex6drs - beta*beta*beta*ex6) - d3ex6drs3;
     r->d3edrs2z = 2.0*fcf*r->zeta + 4.0*d2alpha*z3 + 
-      exp(-beta*r->rs[1])*(d3ex6drs2z - 2.0*beta*d2ex6drsz + beta*beta*dex6dz) - d3ex6drs2z;
-    r->d3edrsz2 = 2.0*vcf + 12.0*dalpha*z2 + exp(-beta*r->rs[1])*(d3ex6drsz2 - beta*d2ex6dz2) - d3ex6drsz2;
-    r->d3edz3   = 24.0*alpha*r->zeta + (exp(-beta*r->rs[1]) - 1.0)*d3ex6dz3;
+      EXP(-beta*r->rs[1])*(d3ex6drs2z - 2.0*beta*d2ex6drsz + beta*beta*dex6dz) - d3ex6drs2z;
+    r->d3edrsz2 = 2.0*vcf + 12.0*dalpha*z2 + EXP(-beta*r->rs[1])*(d3ex6drsz2 - beta*d2ex6dz2) - d3ex6drsz2;
+    r->d3edz3   = 24.0*alpha*r->zeta + (EXP(-beta*r->rs[1]) - 1.0)*d3ex6dz3;
   }
 }
 
 #define XC_DIMENSIONS 2
+#define func XC(lda_c_2d_amgb_func)
 #include "work_lda.c"
 
 const XC(func_info_type) XC(func_info_lda_c_2d_amgb) = {
@@ -195,11 +196,13 @@ const XC(func_info_type) XC(func_info_lda_c_2d_amgb) = {
   XC_CORRELATION,
   "AMGB (for 2D systems)",
   XC_FAMILY_LDA,
-  "C Attacalite et al, Phys. Rev. Lett. 88, 256601 (2002)\n"
-  "C Attacalite, PhD thesis",
+  "C Attaccalite et al, Phys. Rev. Lett. 88, 256601 (2002)\n"
+  "C Attaccalite, PhD thesis",
   XC_FLAGS_2D | XC_FLAGS_HAVE_EXC | XC_FLAGS_HAVE_VXC | XC_FLAGS_HAVE_FXC | XC_FLAGS_HAVE_KXC,
   1e-9, 0.0, 0.0, 1e-32,
   lda_c_2d_amgb_init,
   NULL,
-  work_lda
+  work_lda,
+  NULL,
+  NULL
 };

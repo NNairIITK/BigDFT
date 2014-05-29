@@ -12,8 +12,8 @@
 !!
 !! You should have received a copy of the GNU Lesser General Public License
 !! along with this program; if not, write to the Free Software
-!! Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
-!! 02111-1307, USA.
+!! Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+!! 02110-1301, USA.
 !!
 !! $Id: libxc.f90 3550 2007-11-19 14:32:49Z marques $
 
@@ -59,7 +59,8 @@ module XC_F90(lib_m)
     XC_FAMILY_MGGA          =   4,  &
     XC_FAMILY_LCA           =   8,  &
     XC_FAMILY_OEP           =  16,  &
-    XC_FAMILY_HYB_GGA       =  32
+    XC_FAMILY_HYB_GGA       =  32,  &
+    XC_FAMILY_HYB_MGGA       = 64
 
   integer, parameter ::             &
     XC_UNPOLARIZED          =   1,  &  ! Spin unpolarized
@@ -88,9 +89,10 @@ module XC_F90(lib_m)
     XC_FLAGS_STABLE         =  512,  &
     XC_FLAGS_DEVELOPMENT    = 1024
  
-  ! This value was redefined as XC_GGA_X_LB, we define it here to keep
-  ! compatibility.
-  integer, parameter :: XC_GGA_XC_LB = 160
+  ! These are old names keep for compatibility, and that should disappear soon
+  integer, parameter :: XC_GGA_XC_LB   = 160
+  integer, parameter :: XC_GGA_K_ABSR1 = 506
+  integer, parameter :: XC_GGA_K_ABSR2 = 507
 
   !----------------------------------------------------------------
   interface
@@ -134,6 +136,15 @@ module XC_F90(lib_m)
       type(XC_F90(pointer_t)),  intent(inout) :: str    ! this will hold a (char **) pointer
       character(len=*),         intent(out)   :: s      ! the string that is output
     end subroutine XC_F90(info_refs)
+
+    subroutine XC_F90(functional_get_name)(func_number, func_string)
+      integer, intent(in) :: func_number
+      character(len=256), intent(out) :: func_string
+    end subroutine XC_F90(functional_get_name)
+
+    integer function XC_F90(functional_get_number)(func_string)
+      character(len=*), intent(in) :: func_string
+    end function XC_F90(functional_get_number)
 
     integer function XC_F90(family_from_id)(id)
       use XC_F90(types_m)
@@ -255,7 +266,8 @@ module XC_F90(lib_m)
   ! GGAs
   !----------------------------------------------------------------
   interface
-    subroutine XC_F90(gga)(p, np, rho, sigma, zk, vrho, vsigma, v2rho2, v2rhosigma, v2sigma2)
+    subroutine XC_F90(gga)(p, np, rho, sigma, zk, vrho, vsigma, &
+        v2rho2, v2rhosigma, v2sigma2, v3rho3, v3rho2sigma, v3rhosigma2, v3sigma3)
       use XC_F90(types_m)
       type(XC_F90(pointer_t)), intent(in)  :: p
       integer,                 intent(in)  :: np
@@ -267,6 +279,10 @@ module XC_F90(lib_m)
       real(xc_f90_kind),       intent(out) :: v2rho2
       real(xc_f90_kind),       intent(out) :: v2rhosigma
       real(xc_f90_kind),       intent(out) :: v2sigma2
+      real(xc_f90_kind),       intent(out) :: v3rho3
+      real(xc_f90_kind),       intent(out) :: v3rho2sigma
+      real(xc_f90_kind),       intent(out) :: v3rhosigma2
+      real(xc_f90_kind),       intent(out) :: v3sigma3
     end subroutine XC_F90(gga)
 
     subroutine XC_F90(gga_exc)(p, np, rho, sigma, zk)
@@ -281,34 +297,46 @@ module XC_F90(lib_m)
     subroutine XC_F90(gga_exc_vxc)(p, np, rho, sigma, zk, vrho, vsigma)
       use XC_F90(types_m)
       type(XC_F90(pointer_t)), intent(in)  :: p
-      integer,              intent(in)  :: np
-      real(xc_f90_kind),    intent(in)  :: rho
-      real(xc_f90_kind),    intent(in)  :: sigma
-      real(xc_f90_kind),    intent(out) :: zk
-      real(xc_f90_kind),    intent(out) :: vrho
-      real(xc_f90_kind),    intent(out) :: vsigma
+      integer,                 intent(in)  :: np
+      real(xc_f90_kind),       intent(in)  :: rho
+      real(xc_f90_kind),       intent(in)  :: sigma
+      real(xc_f90_kind),       intent(out) :: zk
+      real(xc_f90_kind),       intent(out) :: vrho
+      real(xc_f90_kind),       intent(out) :: vsigma
     end subroutine XC_F90(gga_exc_vxc)
 
     subroutine XC_F90(gga_vxc)(p, np, rho, sigma, vrho, vsigma)
       use XC_F90(types_m)
       type(XC_F90(pointer_t)), intent(in)  :: p
-      integer,              intent(in)  :: np
-      real(xc_f90_kind),    intent(in)  :: rho
-      real(xc_f90_kind),    intent(in)  :: sigma
-      real(xc_f90_kind),    intent(out) :: vrho
-      real(xc_f90_kind),    intent(out) :: vsigma
+      integer,                 intent(in)  :: np
+      real(xc_f90_kind),       intent(in)  :: rho
+      real(xc_f90_kind),       intent(in)  :: sigma
+      real(xc_f90_kind),       intent(out) :: vrho
+      real(xc_f90_kind),       intent(out) :: vsigma
     end subroutine XC_F90(gga_vxc)
 
     subroutine XC_F90(gga_fxc)(p, np, rho, sigma, v2rho2, v2rhosigma, v2sigma2)
       use XC_F90(types_m)
       type(XC_F90(pointer_t)), intent(in)  :: p
-      integer,              intent(in)  :: np
-      real(xc_f90_kind),    intent(in)  :: rho
-      real(xc_f90_kind),    intent(in)  :: sigma
-      real(xc_f90_kind),    intent(out) :: v2rho2
-      real(xc_f90_kind),    intent(out) :: v2rhosigma
-      real(xc_f90_kind),    intent(out) :: v2sigma2
+      integer,                 intent(in)  :: np
+      real(xc_f90_kind),       intent(in)  :: rho
+      real(xc_f90_kind),       intent(in)  :: sigma
+      real(xc_f90_kind),       intent(out) :: v2rho2
+      real(xc_f90_kind),       intent(out) :: v2rhosigma
+      real(xc_f90_kind),       intent(out) :: v2sigma2
     end subroutine XC_F90(gga_fxc)
+
+    subroutine XC_F90(gga_kxc)(p, np, rho, sigma, v3rho3, v3rho2sigma, v3rhosigma2, v3sigma3)
+      use XC_F90(types_m)
+      type(XC_F90(pointer_t)), intent(in)  :: p
+      integer,                 intent(in)  :: np
+      real(xc_f90_kind),       intent(in)  :: rho
+      real(xc_f90_kind),       intent(in)  :: sigma
+      real(xc_f90_kind),       intent(out) :: v3rho3
+      real(xc_f90_kind),       intent(out) :: v3rho2sigma
+      real(xc_f90_kind),       intent(out) :: v3rhosigma2
+      real(xc_f90_kind),       intent(out) :: v3sigma3
+    end subroutine XC_F90(gga_kxc)
   end interface
 
   !----------------------------------------------------------------
@@ -354,6 +382,15 @@ module XC_F90(lib_m)
       type(XC_F90(pointer_t)), intent(in)  :: p
       real(xc_f90_kind),       intent(in)  :: omega       ! range separation
     end subroutine XC_F90(gga_x_hjs_set_par)
+  end interface
+
+  !----------------------------------------------------------------
+  interface
+    subroutine XC_F90(gga_ak13_get_asymptotic)(homo, asymp)
+      use XC_F90(types_m)
+      real(xc_f90_kind),       intent(in)  :: homo
+      real(xc_f90_kind),       intent(out) :: asymp
+    end subroutine XC_F90(gga_ak13_get_asymptotic)
   end interface
 
   !----------------------------------------------------------------

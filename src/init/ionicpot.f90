@@ -30,12 +30,13 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   real(dp), dimension(*), intent(out) :: pot_ion
   !local variables
   character(len=*), parameter :: subname='IonicEnergyandForces'
+  real(kind=8), parameter :: pi=4.d0*datan(1.d0)
   logical :: slowion=.false.
   logical :: perx,pery,perz,gox,goy,goz
   integer :: n1i,n2i,n3i,i3s,n3pi
   integer :: i,iat,ii,i_all,i_stat,ityp,jat,jtyp,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
   integer :: isx,iex,isy,iey,isz,iez,i1,i2,i3,j1,j2,j3,ind,ierr
-  real(gp) :: ucvol,rloc,twopitothreehalf,pi,atint,shortlength,charge,eself,rx,ry,rz
+  real(gp) :: ucvol,rloc,twopitothreehalf,atint,shortlength,charge,eself,rx,ry,rz
   real(gp) :: fxion,fyion,fzion,dist,fxerf,fyerf,fzerf,cutoff
   real(gp) :: hxh,hyh,hzh
   real(gp) :: hxx,hxy,hxz,hyy,hyz,hzz,chgprod
@@ -61,7 +62,6 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   i3s = dpbox%i3s+dpbox%i3xcsh
   n3pi = dpbox%n3pi
 
-  pi=4.d0*datan(1.d0)
   psoffset=0.0_gp
   ewaldstr=0.0_gp
   if (at%astruct%geocode == 'P') then
@@ -140,7 +140,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      eion=eion+charge/ucvol*(psoffset+shortlength)
 
      !symmetrization of ewald stress (probably not needed)
-     if (at%astruct%sym%symObj >= 0) call symm_stress((iproc==0),ewaldstr,at%astruct%sym%symObj)
+     if (at%astruct%sym%symObj >= 0) call symm_stress(ewaldstr,at%astruct%sym%symObj)
      !PSP core correction of the stress tensor (diag.)
      ewaldstr(1:3)=ewaldstr(1:3)-charge*(psoffset+shortlength)/ucvol/ucvol
 
@@ -425,7 +425,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      end do
 
      if (pkernel%mpi_env%nproc > 1) then
-        call mpiallred(fion(1,1),3*at%astruct%nat,MPI_SUM,pkernel%mpi_env%mpi_comm,ierr)
+        call mpiallred(fion(1,1),3*at%astruct%nat,MPI_SUM,pkernel%mpi_env%mpi_comm)
      end if
 
      !if (iproc ==0) print *,'eion',eion,psoffset,shortlength
@@ -528,12 +528,13 @@ subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, sh
 END SUBROUTINE createEffectiveIonicPotential
 
 
+!> Create the ionic potential
 subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
      hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset,rholoc)
   use module_base
   use module_types
   use yaml_output
-  !use gaussians
+  use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
 !  use module_interfaces, except_this_one => createIonicPotential
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
@@ -550,11 +551,12 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 
   !local variables
   character(len=*), parameter :: subname='createIonicPotential'
+  real(kind=8), parameter :: pi=4.d0*atan(1.d0)
   character(len = 3) :: quiet
   logical :: perx,pery,perz,gox,goy,goz,htoobig=.false.,efwrite,check_potion=.false.
   integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp !n(c) nspin
   integer :: ind,i_all,i_stat,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nloc,iloc
-  real(kind=8) :: pi,rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
+  real(kind=8) :: rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
   real(kind=8) :: tt_tot,rholeaked_tot,potxyz
   real(kind=8) :: raux,raux2,rr,r2paw
   real(wp) :: maxdiff
@@ -565,9 +567,9 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 
   call timing(iproc,'CrtLocPot     ','ON')
 
-  !call initialize_real_space_conversion() !initialize the work arrays needed to integrate with isf
+  !initialize the work arrays needed to integrate with isf
+  if (at%multipole_preserving) call initialize_real_space_conversion()
 
-  pi=4.d0*atan(1.d0)
   ! Ionic charge (must be calculated for the PS active processes)
   rholeaked=0.d0
   ! Ionic energy (can be calculated for all the processors)
@@ -607,7 +609,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 !       Calculate Ionic Density
 !       using HGH parameters.
 !       Eq. 1.104, T. Deutsch and L. Genovese, JDN. 12, 2011
-        if( .not. any(at%npspcode == 7) ) then
+        if( .not. any(at%npspcode == PSPCODE_PAW) ) then
 
            do i3=isz,iez
               z=real(i3,kind=8)*hzh-rz
@@ -621,11 +623,14 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                     call ind_positions(perx,i1,n1,j1,gox)
                     r2=x**2+y**2+z**2
                     arg=r2/rloc**2
-                    !use multipole-preserving function
-!!$                    xp=mp_exp(hxh,rx,0.5_gp/(rloc**2),i1,0,.true.)*&
-!!$                         mp_exp(hyh,ry,0.5_gp/(rloc**2),i2,0,.true.)*&
-!!$                         mp_exp(hzh,rz,0.5_gp/(rloc**2),i3,0,.true.)
-                    xp=exp(-.5d0*arg)
+                    if (at%multipole_preserving) then
+                       !use multipole-preserving function
+                       xp=mp_exp(hxh,rx,0.5_gp/(rloc**2),i1,0,.true.)*&
+                          mp_exp(hyh,ry,0.5_gp/(rloc**2),i2,0,.true.)*&
+                          mp_exp(hzh,rz,0.5_gp/(rloc**2),i3,0,.true.)
+                    else
+                       xp=exp(-.5d0*arg)
+                    end if
                     if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
                        ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
                        pot_ion(ind)=pot_ion(ind)-xp*charge
@@ -661,11 +666,14 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                     else
                       !Take the HGH form for rho_L (long range)
                       arg=r2/rloc**2
-                      !use multipole-preserving function
-!!$                      xp=mp_exp(hxh,rx,0.5_gp/(rloc**2),i1,0,.true.)*&
-!!$                           mp_exp(hyh,ry,0.5_gp/(rloc**2),i2,0,.true.)*&
-!!$                           mp_exp(hzh,rz,0.5_gp/(rloc**2),i3,0,.true.)
-                      xp=exp(-.5d0*arg)
+                      if (at%multipole_preserving) then
+                         !use multipole-preserving function
+                         xp=mp_exp(hxh,rx,0.5_gp/(rloc**2),i1,0,.true.)*&
+                            mp_exp(hyh,ry,0.5_gp/(rloc**2),i2,0,.true.)*&
+                            mp_exp(hzh,rz,0.5_gp/(rloc**2),i3,0,.true.)
+                      else
+                         xp=exp(-.5d0*arg)
+                      end if
                       raux=-xp*charge
                     end if
                     !raux=-4.d0**(3.0d0/2.0d0)*exp(-4.d0*pi*r2)
@@ -708,7 +716,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
      charges_mpi(1)=tt
      charges_mpi(2)=rholeaked
 
-     call mpiallred(charges_mpi(1),2,MPI_SUM,pkernel%mpi_env%mpi_comm,ierr)
+     call mpiallred(charges_mpi(1),2,MPI_SUM,pkernel%mpi_env%mpi_comm)
 
      tt_tot=charges_mpi(1)
      rholeaked_tot=charges_mpi(2)
@@ -779,7 +787,9 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
            end do
         end do
 
-        call mpiallred(maxdiff,1,MPI_MAX,pkernel%mpi_env%mpi_comm,ierr)
+        if (pkernel%mpi_env%nproc > 1) then
+           call mpiallred(maxdiff,1,MPI_MAX,pkernel%mpi_env%mpi_comm)
+        end if
 
         if (iproc == 0) call yaml_map('Check the ionic potential',maxdiff,fmt='(1pe24.17)')
         !if (iproc == 0) write(*,'(1x,a,1pe24.17)')'...done. MaxDiff=',maxdiff
@@ -822,7 +832,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
         iey=ceiling((ry+cutoff)/hyh)
         iez=ceiling((rz+cutoff)/hzh)
         
-        if( at%npspcode(1) .ne.7) then
+        if( at%npspcode(1) /= PSPCODE_PAW) then
 
 !          Add the remaining local terms of Eq. (9)
 !          in JCP 129, 014109(2008)
@@ -852,11 +862,15 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                                 r2=x**2+y**2+z**2
                                 arg=r2/rloc**2
 
-                                !use multipole-preserving function
-!!$                                xp=mp_exp(hxh,rx,0.5_gp/(rloc**2),i1,0,.true.)*&
-!!$                                     mp_exp(hyh,ry,0.5_gp/(rloc**2),i2,0,.true.)*&
-!!$                                     mp_exp(hzh,rz,0.5_gp/(rloc**2),i3,0,.true.)
-                                xp=exp(-.5d0*arg)
+                                if (at%multipole_preserving) then
+                                   !use multipole-preserving function
+                                   xp=mp_exp(hxh,rx,0.5_gp/(rloc**2),i1,0,.true.)*&
+                                      mp_exp(hyh,ry,0.5_gp/(rloc**2),i2,0,.true.)*&
+                                      mp_exp(hzh,rz,0.5_gp/(rloc**2),i3,0,.true.)
+                                 else
+                                    xp=exp(-.5d0*arg)
+                                 end if
+
                                 tt=at%psppar(0,nloc,ityp)
                                 do iloc=nloc-1,1,-1
                                    tt=arg*tt+at%psppar(0,iloc,ityp)
@@ -910,7 +924,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                  enddo
               end if
            end do
-        end if ! at%npspcode(iat) .ne.7
+        end if ! at%npspcode(iat) /= PSPCODE_PAW
      end do !iat
      !debug exit
 
@@ -1010,7 +1024,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
      end if
   end if
 
-  !call finalize_real_space_conversion(subname)
+  if (at%multipole_preserving) call finalize_real_space_conversion(subname)
 
   call timing(iproc,'CrtLocPot     ','OF')
 
@@ -1121,12 +1135,11 @@ subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
   real(gp), dimension(3,nat), intent(in) :: rxyz
   real(wp), intent(out) :: potxyz
   !local variables
+  real(kind=8), parameter :: pi=4.0_wp*atan(1.0_wp)
   integer :: iat,ityp
-  real(wp) :: pi,charge
+  real(wp) :: charge
   real(gp) :: r,sq2rl,rx,ry,rz,derf_val
   
-  pi=4.0_wp*atan(1.0_wp)
-
   potxyz =0.0_wp
 
   do iat=1,nat
@@ -1180,8 +1193,8 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   use module_input_dicts
   use dictionaries
   use yaml_output
-  use module_atoms, only: deallocate_atoms_data,set_astruct_from_dict,nullify_atoms_data
-  !use gaussians
+  use module_atoms, only: deallocate_atoms_data,nullify_atoms_data
+  use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: iproc,nproc,n3pi,i3s
@@ -1193,11 +1206,12 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   real(wp), dimension(*), intent(inout) :: pot_ion
   !local variables
   character(len=*), parameter :: subname='CounterIonPotential'
+  real(kind=8), parameter :: pi=4.d0*atan(1.d0)
   logical :: htoobig=.false.,check_potion=.false.
   logical :: perx,pery,perz,gox,goy,goz
   integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp,nspin
   integer :: ind,i_all,i_stat,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
-  real(kind=8) :: pi,rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
+  real(kind=8) :: rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
   real(kind=8) :: tt_tot,rholeaked_tot,potxyz
   real(wp) :: maxdiff
   real(gp) :: ehart
@@ -1208,8 +1222,9 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   real(gp), dimension(:,:), allocatable :: radii_cf
 
   call timing(iproc,'CrtLocPot     ','ON')
-
-  !call initialize_real_space_conversion() !initialize the work arrays needed to integrate with isf
+  
+  !initialize the work arrays needed to integrate with isf
+  if (at%multipole_preserving) call initialize_real_space_conversion()
 
   if (iproc.eq.0) then
      write(*,'(1x,a)')&
@@ -1220,7 +1235,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   !read the positions of the counter ions from file
   call dict_init(dict)
   call astruct_file_merge_to_dict(dict, "posinp", 'posinp_ci')
-  call set_astruct_from_dict(dict // "posinp", at%astruct)
+  call astruct_set_from_dict(dict // "posinp", at%astruct)
 
   call atoms_file_merge_to_dict(dict)
   do ityp = 1, at%astruct%ntypes, 1
@@ -1228,7 +1243,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   end do
   call psp_dict_analyse(dict, at)
   ! Read associated pseudo files.
-  call atomic_data_file_merge_to_dict(dict, "Atomic occupation", 'input.occup')
+  !call atomic_data_file_merge_to_dict(dict, "Atomic occupation", 'input.occup')
   call atomic_data_set_from_dict(dict, "Atomic occupation", at, in%nspin)
   call dict_free(dict)
 
@@ -1239,7 +1254,6 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   call read_radii_variables(at, radii_cf, in%crmult, in%frmult, in%projrad)
   if (iproc == 0) call print_atomic_variables(at, radii_cf, max(in%hx,in%hy,in%hz), in%ixc, in%dispersion)
 
-  pi=4.d0*atan(1.d0)
   ! Ionic charge (must be calculated for the PS active processes)
   rholeaked=0.d0
   ! Ionic energy (can be calculated for all the processors)
@@ -1297,11 +1311,15 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
                  r2=x**2+y**2+z**2
                  arg=r2/rloc**2
 
-                 !multipole-preserving approach
-!!$                 xp=mp_exp(hxh,rx,0.5_gp/(rloc**2),i1,0,.true.)*&
-!!$                      mp_exp(hyh,ry,0.5_gp/(rloc**2),i2,0,.true.)*&
-!!$                      mp_exp(hzh,rz,0.5_gp/(rloc**2),i3,0,.true.)
-                 xp=exp(-.5d0*arg)
+                 if (at%multipole_preserving) then
+                    !multipole-preserving approach
+                    xp=mp_exp(hxh,rx,0.5_gp/(rloc**2),i1,0,.true.)*&
+                       mp_exp(hyh,ry,0.5_gp/(rloc**2),i2,0,.true.)*&
+                       mp_exp(hzh,rz,0.5_gp/(rloc**2),i3,0,.true.)
+                 else
+                    xp=exp(-.5d0*arg)
+                 end if
+
                  if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
                     ind=j1+1+nbl1+(j2+nbl2)*grid%n1i+(j3-i3s+1-1)*grid%n1i*grid%n2i
                     pot_ion(ind)=pot_ion(ind)-xp*charge
@@ -1334,7 +1352,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
      charges_mpi(1)=tt
      charges_mpi(2)=rholeaked
 
-     call mpiallred(charges_mpi(1),2,MPI_SUM,pkernel%mpi_env%mpi_comm,ierr)
+     call mpiallred(charges_mpi(1),2,MPI_SUM,pkernel%mpi_env%mpi_comm)
 
      tt_tot=charges_mpi(1)
      rholeaked_tot=charges_mpi(2)
@@ -1395,7 +1413,9 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
            end do
         end do
 
-        call mpiallred(maxdiff,1,MPI_MAX,pkernel%mpi_env%mpi_comm,ierr)
+        if (pkernel%mpi_env%nproc > 1) then
+           call mpiallred(maxdiff,1,MPI_MAX,pkernel%mpi_env%mpi_comm)
+        end if
 
         if (iproc == 0) call yaml_map('Check the ionic potential',maxdiff,fmt='(1pe24.17)')
         !if (iproc == 0) write(*,'(1x,a,1pe24.17)')'...done. MaxDiff=',maxdiff
@@ -1439,7 +1459,8 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   call memocc(i_stat,i_all,'at%astruct%rxyz',subname)
 
 
-  !call finalize_real_space_conversion(subname)
+  if (at%multipole_preserving) call finalize_real_space_conversion(subname)
+
   call timing(iproc,'CrtLocPot     ','OF')
 
 END SUBROUTINE CounterIonPotential

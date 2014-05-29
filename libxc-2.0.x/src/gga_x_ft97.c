@@ -49,7 +49,7 @@ func(const XC(func_type) *p, int order, FLOAT x, FLOAT sigma,
   }
 
   x2 = x*x;
-  f2 = beta*asinh(x2);
+  f2 = beta*ASINH(x2);
   f3 = SQRT(1.0 + 9.0*x2*f2*f2);
   *f = 1.0 + beta/X_FACTOR_C*x2/f3;
  
@@ -96,7 +96,8 @@ const XC(func_info_type) XC(func_info_gga_x_ft97_a) = {
   XC_FLAGS_3D | XC_FLAGS_HAVE_EXC | XC_FLAGS_HAVE_VXC | XC_FLAGS_HAVE_FXC,
   1e-32, 1e-32, 0.0, 1e-32,
   NULL, NULL, NULL, 
-  work_gga_x
+  work_gga_x,
+  NULL
 };
 
 const XC(func_info_type) XC(func_info_gga_x_ft97_b) = {
@@ -108,5 +109,6 @@ const XC(func_info_type) XC(func_info_gga_x_ft97_b) = {
   XC_FLAGS_3D | XC_FLAGS_HAVE_EXC | XC_FLAGS_HAVE_VXC | XC_FLAGS_HAVE_FXC,
   1e-32, 1e-32, 0.0, 1e-32,
   NULL, NULL, NULL, 
-  work_gga_x
+  work_gga_x,
+  NULL
 };

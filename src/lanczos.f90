@@ -76,11 +76,11 @@ function GetBottom(atoms,nspin)
 
    integer :: ity,  i_all
    real(gp) , pointer :: expo(:)
-   real(gp)   psi(ng,10)
+   real(gp) :: psi(ng,10)
 
    integer :: i_stat
    real(gp) :: gaenes_aux(10)
-   integer nspinor, iat, noncoll,nspin_ig
+   integer :: nspinor, iat, nspin_ig
 
    ! if (in_iat_absorber.ne.0) then
 

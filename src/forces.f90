@@ -30,6 +30,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   integer, dimension(:), allocatable :: kmoves
   real(gp), dimension(:), allocatable :: functional,dfunctional
   real(gp), dimension(:,:), allocatable :: radii_cf, rxyz_ref,fxyz_fake
+  logical :: move_this_coordinate
 
 !!$  interface !not needed anymore
 !!$     subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
@@ -123,12 +124,13 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
 
   do iat=1,atoms%astruct%nat
 
-     if (atoms%astruct%ifrztyp(iat) == 1) then
-        if (iproc == 0) write(*,"(1x,a,i0,a)") '=F:The atom ',iat,' is frozen.'
-        cycle
-     end if
-
      do i=1,3 !a step in each of the three directions
+
+        if (.not.move_this_coordinate(atoms%astruct%ifrztyp(iat),i)) then
+           if (iproc == 0) write(*,"(1x,a,i0,a,i0,a)") '=F:The direction ',i,' of the atom ',iat,' is frozen.'
+           cycle
+        end if
+
         ii = i+3*(iat-1)
         if (i==1) then
            alat=atoms%astruct%cell_dim(1)
@@ -295,6 +297,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_forces
+  use communications_base
   use yaml_output
   implicit none
   logical, intent(in) :: refill_proj
@@ -314,11 +317,10 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
   type(DFT_wavefunction),intent(in) :: tmb
   !local variables
-  integer :: ierr,iat,i,j
-  real(gp) :: charge,ucvol
+  integer :: iat,i,j
+  real(gp) :: charge,ucvol,maxdiff
   real(gp), dimension(6,4) :: strtens!local,nonlocal,kin,erf
   character(len=16), dimension(4) :: messages
-
 
 
   call to_zero(6,strten(1))
@@ -340,12 +342,12 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
  
   if (imode==0) then
       !cubic version of nonlocal forces
-      call nonlocal_forces(iproc,Glr,hx,hy,hz,atoms,rxyz,&
+      call nonlocal_forces(Glr,hx,hy,hz,atoms,rxyz,&
            orbs,nlpsp,Glr%wfd,psi,fxyz,refill_proj,strtens(1,2))
   else if (imode==1) then
       !linear version of nonlocal forces
       call nonlocal_forces_linear(iproc,nproc,tmb%npsidim_orbs,tmb%lzd%glr,hx,hy,hz,atoms,rxyz,&
-           tmb%orbs,nlpsp,tmb%lzd,tmb%collcom,tmb%psi,tmb%linmat%denskern_large,fxyz,refill_proj,&
+           tmb%orbs,nlpsp,tmb%lzd,tmb%collcom,tmb%psi,tmb%linmat%l,tmb%linmat%kernel_,fxyz,refill_proj,&
            strtens(1,2))
   else
       stop 'wrong imode'
@@ -363,31 +365,43 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
           iproc,nproc,ngatherarr,rho,strtens(1,4)) !shouud not be reduced for the moment
   end if
 
+  !add to the forces the ionic and dispersion contribution 
+  if (.not. experimental_modulebase_var_onlyfion) then !normal case
+     if (iproc==0) then
+        do iat=1,atoms%astruct%nat
+           fxyz(1,iat)=fxyz(1,iat)+fion(1,iat)+fdisp(1,iat)+fpulay(1,iat)
+           fxyz(2,iat)=fxyz(2,iat)+fion(2,iat)+fdisp(2,iat)+fpulay(2,iat)
+           fxyz(3,iat)=fxyz(3,iat)+fion(3,iat)+fdisp(3,iat)+fpulay(3,iat)
+        enddo
+     end if
+  else
+     if (iproc==0) then
+        call vcopy(3*atoms%astruct%nat,fion(1,1),1,fxyz(1,1),1)
+     else
+        call to_zero(3*atoms%astruct%nat,fxyz)
+     end if
+  end if
+
   ! Add up all the force contributions
   if (nproc > 1) then
      !TD: fxyz(1,1) not used in case of no atoms
-     call mpiallred(fxyz,3*atoms%astruct%nat,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+     call mpiallred(fxyz,MPI_SUM,comm=bigdft_mpi%mpi_comm)
        if (atoms%astruct%geocode == 'P') &
-            call mpiallred(strtens(1,1),6*3,MPI_SUM,bigdft_mpi%mpi_comm,ierr) !do not reduce erfstr
-     call mpiallred(charge,1,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
-  end if
-
-  !add to the forces the ionic and dispersion contribution 
-  if (.not. experimental_modulebase_var_onlyfion) then !normal case
-     do iat=1,atoms%astruct%nat
-        fxyz(1,iat)=fxyz(1,iat)+fion(1,iat)+fdisp(1,iat)+fpulay(1,iat)
-        fxyz(2,iat)=fxyz(2,iat)+fion(2,iat)+fdisp(2,iat)+fpulay(2,iat)
-        fxyz(3,iat)=fxyz(3,iat)+fion(3,iat)+fdisp(3,iat)+fpulay(3,iat)
-     enddo
-  else
-     call vcopy(3*atoms%astruct%nat,fion(1,1),1,fxyz(1,1),1)
+            call mpiallred(strtens(1,1),6*3,MPI_SUM,bigdft_mpi%mpi_comm) !do not reduce erfstr
+     call mpiallred(charge,1,MPI_SUM,bigdft_mpi%mpi_comm)
   end if
 
   !clean the center mass shift and the torque in isolated directions
   call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
 
   ! Apply symmetries when needed
-  if (atoms%astruct%sym%symObj >= 0) call symmetrise_forces(iproc,fxyz,atoms)
+  if (atoms%astruct%sym%symObj >= 0) call symmetrise_forces(fxyz,atoms)
+
+  ! Check forces consistency.
+  call check_array_consistency(maxdiff, nproc, fxyz, bigdft_mpi%mpi_comm)
+  if (iproc==0 .and. maxdiff > epsilon(1.0_gp)) &
+       call yaml_warning('Output forces not identical! '//&
+       '(difference:'//trim(yaml_toa(maxdiff))//' )')
 
   if (iproc == 0) call write_forces(atoms,fxyz)
 
@@ -412,7 +426,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
      messages(4)='PSP Long Range'
      !here we should add the pretty printings
      do i=1,4
-        if (atoms%astruct%sym%symObj >= 0) call symm_stress((iproc==0 .and. i==1),strtens(1,i),atoms%astruct%sym%symObj)
+        if (atoms%astruct%sym%symObj >= 0) call symm_stress(strtens(1,i),atoms%astruct%sym%symObj)
         if (iproc==0 .and. verbose>2)&
              call write_strten_info(.false.,strtens(1,i),ucvol,pressure,trim(messages(i)))
         do j=1,6
@@ -585,7 +599,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   use module_base
   use module_types
   use yaml_output
-  !use gaussians
+  use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
   implicit none
   !Arguments---------
   type(atoms_data), intent(in) :: at
@@ -597,8 +611,9 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   real(gp), dimension(3,at%astruct%nat), intent(out) :: floc
   real(gp), dimension(6), intent(out) :: locstrten
   !Local variables---------
+  real(kind=8), parameter :: pi=4.d0*atan(1.d0)
   logical :: perx,pery,perz,gox,goy,goz
-  real(kind=8) :: pi,prefactor,cutoff,rloc,Vel,rhoel
+  real(kind=8) :: prefactor,cutoff,rloc,Vel,rhoel
   real(kind=8) :: fxerf,fyerf,fzerf,fxion,fyion,fzion,fxgau,fygau,fzgau,forceleaked,forceloc
   real(kind=8) :: rx,ry,rz,x,y,z,arg,r2,xp,tt,Txx,Tyy,Tzz,Txy,Txz,Tyz
   integer :: i1,i2,i3,ind,iat,ityp,nloc,iloc
@@ -606,22 +621,20 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   !array of coefficients of the derivative
   real(kind=8), dimension(4) :: cprime 
 
-  !call initialize_real_space_conversion()
+  if (at%multipole_preserving) call initialize_real_space_conversion()
   
-  pi=4.d0*atan(1.d0)
-
   locstrten=0.0_gp
 
-charge=0.d0
-do i3=1,n3pi
-        do i2=1,n2i
-           do i1=1,n1i
-              ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
-charge=charge+rho(ind)
-           enddo
+  charge=0.d0
+  do i3=1,n3pi
+     do i2=1,n2i
+        do i1=1,n1i
+           ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
+           charge=charge+rho(ind)
         enddo
      enddo
-charge=charge*hxh*hyh*hzh
+  enddo
+  charge=charge*hxh*hyh*hzh
 
  !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Calculate local forces...'
   if (iproc == 0 .and. verbose > 1) call yaml_open_map('Calculate local forces',flow=.true.)
@@ -691,7 +704,7 @@ charge=charge*hxh*hyh*hzh
 
      !calculate the forces near the atom due to the error function part of the potential
      !calculate forces for all atoms only in the distributed part of the simulation box
-     if (n3pi >0 ) then
+     if (n3pi > 0) then
         do i3=isz,iez
            z=real(i3,kind=8)*hzh-rz
            call ind_positions(perz,i3,n3,j3,goz) 
@@ -705,11 +718,15 @@ charge=charge*hxh*hyh*hzh
                  r2=x**2+y**2+z**2
                  arg=r2/rloc**2
 
-                 !use multipole-preserving function
-!!$                 xp=mp_exp(hxh,rx,0.5_gp/(rloc**2),i1,0,.true.)*&
-!!$                      mp_exp(hyh,ry,0.5_gp/(rloc**2),i2,0,.true.)*&
-!!$                      mp_exp(hzh,rz,0.5_gp/(rloc**2),i3,0,.true.)
-                 xp=exp(-.5d0*arg)
+                 if (at%multipole_preserving) then
+                    !use multipole-preserving function
+                    xp=mp_exp(hxh,rx,0.5_gp/(rloc**2),i1,0,.true.)*&
+                       mp_exp(hyh,ry,0.5_gp/(rloc**2),i2,0,.true.)*&
+                       mp_exp(hzh,rz,0.5_gp/(rloc**2),i3,0,.true.)
+                 else
+                    xp=exp(-.5d0*arg)
+                 end if
+
                  if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
                     ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
                     !gaussian part
@@ -784,7 +801,7 @@ charge=charge*hxh*hyh*hzh
      call yaml_close_map()
   end if
 
-  !call finalize_real_space_conversion('local_forces')
+  if (at%multipole_preserving) call finalize_real_space_conversion('local_forces')
 
 END SUBROUTINE local_forces
 
@@ -792,7 +809,7 @@ END SUBROUTINE local_forces
 !> Calculates the nonlocal forces on all atoms arising from the wavefunctions 
 !! belonging to iproc and adds them to the force array
 !! recalculate the projectors at the end if refill flag is .true.
-subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
+subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
      orbs,nlpsp,wfd,psi,fsep,refill,strten)
   use module_base
   use module_types
@@ -803,7 +820,6 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
   logical, intent(in) :: refill
-  integer, intent(in) :: iproc
   real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors) :: lr
   type(orbitals_data), intent(in) :: orbs
@@ -824,7 +840,8 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod
   real(gp), dimension(6) :: sab
   type(gaussian_basis),dimension(at%astruct%ntypes)::proj_G
-call f_routine(id=subname)
+
+  call f_routine(id=subname)
   call to_zero(6,strten(1)) 
   
   !nullify PAW objects
@@ -1090,15 +1107,16 @@ orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
                  end do
               end do
               !HGH case, offdiagonal terms
-              if (at%npspcode(ityp) == 3 .or. at%npspcode(ityp) == 10 &
-                                         .or. at%npspcode(ityp) == 12 ) then
+              if (at%npspcode(ityp) == PSPCODE_HGH .or. &
+                  at%npspcode(ityp) == PSPCODE_HGH_K .or. &
+                  at%npspcode(ityp) == PSPCODE_HGH_K_NLCC ) then
                  do l=1,3 !no offdiagoanl terms for l=4 in HGH-K case
                     do i=1,2
                        if (at%psppar(l,i,ityp) /= 0.0_gp) then 
                           loop_j: do j=i+1,3
                              if (at%psppar(l,j,ityp) == 0.0_gp) exit loop_j
                              !offdiagonal HGH term
-                             if (at%npspcode(ityp) == 3) then !traditional HGH convention
+                             if (at%npspcode(ityp) == PSPCODE_HGH) then !traditional HGH convention
                                 hij=offdiagarr(i,j-i,l)*at%psppar(l,j,ityp)
                              else !HGH-K convention
                                 hij=at%psppar(l,i+j+1,ityp)
@@ -1116,16 +1134,13 @@ orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
                                            hij*(sp0j*spi+spj*sp0i)
                                    end do
 
-Enl=Enl+2.0_gp*sp0i*sp0j*hij&
-*orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-                                  do idir=4,9
-spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
-spj=real(scalprod(icplx,idir,m,j,l,iat,jorb),gp)
-sab(idir-3)=&
-sab(idir-3)+&   
-2.0_gp*hij*(sp0j*spi+sp0i*spj)&
-*orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-                                  end do
+                                   Enl = Enl + 2.0_gp*sp0i*sp0j*hij*orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
+                                   do idir=4,9
+                                      spi = real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
+                                      spj = real(scalprod(icplx,idir,m,j,l,iat,jorb),gp)
+                                      sab(idir-3) = sab(idir-3) + &   
+                                      2.0_gp*hij*(sp0j*spi+sp0i*spj)*orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
+                                   end do
                                 end do
                              end do
                           end do loop_j
@@ -1139,13 +1154,14 @@ sab(idir-3)+&
         !orbital-dependent factor for the forces
         orbfac=orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*2.0_gp
 
-!seq: strten(1:6) =  11 22 33 23 13 12 
-strten(1)=strten(1)+sab(1)/vol 
-strten(2)=strten(2)+sab(2)/vol 
-strten(3)=strten(3)+sab(3)/vol 
-strten(4)=strten(4)+sab(5)/vol
-strten(5)=strten(5)+sab(6)/vol
-strten(6)=strten(6)+sab(4)/vol
+        !seq: strten(1:6) =  11 22 33 23 13 12 
+        strten(1)=strten(1)+sab(1)/vol 
+        strten(2)=strten(2)+sab(2)/vol 
+        strten(3)=strten(3)+sab(3)/vol 
+        strten(4)=strten(4)+sab(5)/vol
+        strten(5)=strten(5)+sab(6)/vol
+        strten(6)=strten(6)+sab(4)/vol
+
         do iat=1,at%astruct%nat
            fsep(1,iat)=fsep(1,iat)+orbfac*fxyz_orb(1,iat)
            fsep(2,iat)=fsep(2,iat)+orbfac*fxyz_orb(2,iat)
@@ -3696,6 +3712,10 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   !my variables
   real(gp):: fmax1,t1,t2,t3,fnrm1
   real(gp):: fmax2,fnrm2
+  !local variables for blocs (FL)
+  integer :: n_bloc1, n_bloc2                 !< Number of atoms allowed to move only as blocs.
+  real(gp), dimension(3) :: f_bloc1, f_bloc2  !< Sum, then average of the forces in blocs.
+
 
   !The maximum force and force norm is computed prior to modification of the forces
   fmax1=0._gp
@@ -3762,12 +3782,24 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
      enddo
   end if
   
-  !clean the forces for blocked atoms
+  !Clean the forces for blocked atoms
+  !Modification by FL: atom possibly frozen in moving blocs.
+  !@todo Need a better handling of the given constraints
+  f_bloc1 = 0.0_gp
+  f_bloc2 = 0.0_gp
+  n_bloc1 = 0
+  n_bloc2 = 0
   do iat=1,at%astruct%nat
-     if (at%astruct%ifrztyp(iat) < 9000) then
+     if (at%astruct%ifrztyp(iat) < 1000) then
         do ixyz=1,3
            if (.not. move_this_coordinate(at%astruct%ifrztyp(iat),ixyz)) fxyz(ixyz,iat)=0.0_gp
         end do
+     else if (at%astruct%ifrztyp(iat) == 1001)   then   ! atom "iat" in bloc 1.
+       f_bloc1 = f_bloc1 + fxyz(:,iat)
+       n_bloc1 = n_bloc1 + 1                            ! could be done once, after reading the inputs.
+     else if (at%astruct%ifrztyp(iat) == 1002)   then   ! atom "iat" in bloc 2. Can't be in 2 blocs.
+       f_bloc2 = f_bloc2 + fxyz(:,iat)
+       n_bloc2 = n_bloc2 + 1  ! could be done once, after reading the inputs.
      else
         ! Projection on a plane, defined by Miller indices stored in ifrztyp:
         !  ifrztyp(iat) = 9ijk
@@ -3784,6 +3816,24 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
         fxyz(3,iat)=fxyz(3,iat) - scal * u(3)
      end if
   end do
+  !--- We don't do the following in most of the cases ; only when blocs are defined:
+  if ( n_bloc1 .ne. 0 )   f_bloc1 = f_bloc1 / n_bloc1
+  if ( n_bloc2 .ne. 0 )   f_bloc2 = f_bloc2 / n_bloc2
+  if_atoms_in_blocs: &
+  if ( n_bloc1 .ne. 0  .or.  n_bloc2 .ne. 0 )   then
+    !--- Forces of atoms in blocs are replaced by the average force in the bloc. Then
+       ! - by action and reaction principle, internal forces are suppressed;
+       ! - all atoms in a bloc have the same force => same displacments;
+       ! - gradient of E relative to the bloc center of gravity is -n_bloc*f_bloc.
+    do iat=1,at%astruct%nat
+      if (at%astruct%ifrztyp(iat) == 1001)   then   ! atom "iat" in bloc 1.
+         fxyz(:,iat) = f_bloc1
+      else if (at%astruct%ifrztyp(iat) == 1002)   then   ! atom "iat" in bloc 2. Can't be in 2 blocs.
+         fxyz(:,iat) = f_bloc2
+      end if
+    end do
+  end if if_atoms_in_blocs
+  !--- End of "Modification by FL: atom possibly frozen in moving blocs".
   
   !the noise of the forces is the norm of the translational force
 !  fnoise=real(at%astruct%nat,gp)**2*(sumx**2+sumy**2+sumz**2)
@@ -3818,8 +3868,7 @@ END SUBROUTINE clean_forces
 
 
 !> Symmetrize stress (important with special k points)
-!@todo: modifiy the arguments of this routine
-subroutine symm_stress(dump,tens,symobj)
+subroutine symm_stress(tens,symobj)
   use defs_basis
   use module_base, only: verbose,gp
   use m_ab6_symmetry
@@ -3827,7 +3876,6 @@ subroutine symm_stress(dump,tens,symobj)
   use yaml_output
   implicit none
   !Arguments
-  logical, intent(in) :: dump
   integer, intent(in) :: symobj
   real(gp), dimension(6), intent(inout) :: tens
   !Local variables
@@ -3839,11 +3887,8 @@ subroutine symm_stress(dump,tens,symobj)
   real(gp),dimension(3,3) :: symtens
 
   call symmetry_get_matrices_p(symObj, nsym, sym, transNon, symAfm, errno)
-  if (errno /= AB6_NO_ERROR) stop
+  if (errno /= AB7_NO_ERROR) stop
   if (nsym < 2) return
-
-  !write(*,"(1x,A,I0,A)") "Symmetrize stress tensor with ", nsym, "symmetries."
-  !if (dump) call yaml_map('Number of Symmetries for stress symmetrization',nsym,fmt='(i0)')
 
   !Get the symmetry matrices in terms of reciprocal basis
   allocate(symrec(3, 3, nsym))
@@ -3878,16 +3923,11 @@ subroutine symm_stress(dump,tens,symobj)
   tens(5)=symtens(1,3)
   tens(6)=symtens(1,2)
 
- !  if (iproc == 0 .and. verbose > 2) then
- !     write(*,*) '=== SYMMETRISED ==='
- !     write(*,*) tens(:)
- !  end if
-
-
 end subroutine symm_stress
 
+
 !> Symmetrise the atomic forces (needed with special k points)
-subroutine symmetrise_forces(iproc, fxyz, at)
+subroutine symmetrise_forces(fxyz, at)
   use defs_basis
   use m_ab6_symmetry
   use module_types
@@ -3895,9 +3935,10 @@ subroutine symmetrise_forces(iproc, fxyz, at)
 
   implicit none
 
-  integer, intent(in) :: iproc
+  !Arguments
   type(atoms_data), intent(in) :: at
   real(gp), intent(inout) :: fxyz(3, at%astruct%nat)
+  !Local variables
   integer :: ia, mu, isym, errno, ind, nsym
   integer :: indsym(4, AB6_MAX_SYMMETRIES)
   real(gp) :: summ
@@ -3909,7 +3950,7 @@ subroutine symmetrise_forces(iproc, fxyz, at)
   real(gp), pointer :: transNon(:,:)
 
   call symmetry_get_matrices_p(at%astruct%sym%symObj, nsym, sym, transNon, symAfm, errno)
-  if (errno /= AB6_NO_ERROR) stop
+  if (errno /= AB7_NO_ERROR) stop
   if (nsym < 2) return
  !if (iproc == 0) write(*,"(1x,A,I0,A)") "Symmetrise forces with ", nsym, " symmetries."
   !if (iproc == 0) call yaml_map('Number of Symmetries for forces symmetrization',nsym,fmt='(i0)')
@@ -3932,7 +3973,7 @@ subroutine symmetrise_forces(iproc, fxyz, at)
   ! actually conduct symmetrization
   do ia = 1, at%astruct%nat
      call symmetry_get_equivalent_atom(at%astruct%sym%symObj, indsym, ia, errno)
-     if (errno /= AB6_NO_ERROR) stop
+     if (errno /= AB7_NO_ERROR) stop
      do mu = 1, 3
         summ = real(0, gp)
         do isym = 1, nsym
@@ -3971,12 +4012,10 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian_stress'
   integer :: i_all,i_stat,iorb,npot,oidx
-  real(wp) :: exctXcoeff,kinstr(6)
+  real(wp) :: kinstr(6)
   real(gp) :: ekin,kx,ky,kz,etest
   type(workarr_locham) :: wrk_lh
   real(wp), dimension(:,:), allocatable :: psir,hpsi
-
-  exctXcoeff=xc_exctXfac()
 
   !initialise the work arrays
   call initialize_work_arrays_locham(lr,orbs%nspinor,wrk_lh)  
@@ -4182,17 +4221,14 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
 END SUBROUTINE erf_stress
 
 
-
-
-
 !> Calculates the nonlocal forces on all atoms arising from the wavefunctions 
 !! belonging to iproc and adds them to the force array
 !! recalculate the projectors at the end if refill flag is .true.
 subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
-     orbs,nlpsp,lzd,collcom,phi,denskern,fsep,refill,strten)
+     orbs,nlpsp,lzd,collcom,phi,denskern,denskern_mat,fsep,refill,strten)
   use module_base
   use module_types
-  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_base, only: sparse_matrix, matrices
   implicit none
   !Arguments-------------
   type(atoms_data), intent(in) :: at
@@ -4207,6 +4243,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), dimension(npsidim_orbs), intent(in) :: phi
   type(sparse_matrix),intent(in) :: denskern
+  type(matrices),intent(in) :: denskern_mat
   real(gp), dimension(3,at%astruct%nat), intent(inout) :: fsep
   real(gp), dimension(6), intent(out) :: strten
   !local variables--------------
@@ -4280,9 +4317,6 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   allocate(scalprod(2,0:ndir,7,3,4,at%astruct%nat,max(1,orbs%norbp*orbs%nspinor+ndebug)),stat=i_stat)
   call memocc(i_stat,scalprod,'scalprod',subname)
   call to_zero(2*(ndir+1)*7*3*4*at%astruct%nat*max(1,orbs%norbp*orbs%nspinor),scalprod(1,0,1,1,1,1,1))
-
-
-
 
 
   Enl=0._gp
@@ -4534,9 +4568,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
   end if norbp_if
 
-
   !!call mpiallred(scalprodglobal(1,0,1,1,1,1,1), 2*10*7*3*4*at%astruct%nat*orbsglobal%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-
 
      !!do iorb=1,orbsglobal%norb
      !!   ! loop over all projectors
@@ -4559,9 +4591,6 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
      !!      end do
      !!   end do
      !!end do
-
-
-
 
 
   allocate(scalprod_sendbuf(2,0:ndir,7,3,4,max(1,orbs%norbp*orbs%nspinor)+ndebug,at%astruct%nat),stat=i_stat)
@@ -4627,7 +4656,6 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   end do
 
 
-
   allocate(fxyz_orb(3,at%astruct%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fxyz_orb,'fxyz_orb',subname)
 
@@ -4666,7 +4694,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                   ind=ii
                   !write(100+iproc,'(a,3i8,es20.10)') 'iorbout, jorb, ind, denskern%matrix_compr(ind)', iorbout, jorb, ind, denskern%matrix_compr(ind)
                   !if (kernel(jorb,iorbout)==0.d0) cycle
-                  if (denskern%matrix_compr(ind)==0.d0) cycle
+                  if (denskern_mat%matrix_compr(ind)==0.d0) cycle
                   !do iat=1,at%astruct%nat
                   do iat=1,nat_par(iproc)
                      iiat=isat_par(iproc)+iat
@@ -4690,7 +4718,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                        !fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
                                        !     kernel(jorb,iorbout)*at%psppar(l,i,ityp)*sp0*spi
                                        fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
-                                            denskern%matrix_compr(ind)*at%psppar(l,i,ityp)*sp0*spi
+                                            denskern_mat%matrix_compr(ind)*at%psppar(l,i,ityp)*sp0*spi
                                        !if (kernel(jorb,iorbout)/=0.d0) then
                                            !!write(110+iproc,'(a,10i6,es18.8)') 'iorbout,jorb,icplx,0,m,i,l,iat,iiat,&
                                            !!                                    &idir,fxyz_orb(idir,iat)', &
@@ -4714,15 +4742,16 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                         end do
                      end do
                      !HGH case, offdiagonal terms
-                     if (at%npspcode(ityp) == 3 .or. at%npspcode(ityp) == 10 &
-                                                .or. at%npspcode(ityp) == 12) then
+                     if (at%npspcode(ityp) == PSPCODE_HGH .or. &
+                         at%npspcode(ityp) == PSPCODE_HGH_K .or. &
+                         at%npspcode(ityp) == PSPCODE_HGH_K_NLCC) then
                         do l=1,3 !no offdiagoanl terms for l=4 in HGH-K case
                            do i=1,2
                               if (at%psppar(l,i,ityp) /= 0.0_gp) then 
                                  loop_j: do j=i+1,3
                                     if (at%psppar(l,j,ityp) == 0.0_gp) exit loop_j
                                     !offdiagonal HGH term
-                                    if (at%npspcode(ityp) == 3) then !traditional HGH convention
+                                    if (at%npspcode(ityp) == PSPCODE_HGH) then !traditional HGH convention
                                        hij=offdiagarr(i,j-i,l)*at%psppar(l,j,ityp)
                                     else !HGH-K convention
                                        hij=at%psppar(l,i+j+1,ityp)
@@ -4742,7 +4771,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                              !fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
                                              !     kernel(jorb,iorbout)*hij*(sp0j*spi+spj*sp0i)
                                              fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
-                                                  denskern%matrix_compr(ind)*hij*(sp0j*spi+spj*sp0i)
+                                                  denskern_mat%matrix_compr(ind)*hij*(sp0j*spi+spj*sp0i)
                                           end do
                                           sp0i=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
                                           !!Enl=Enl+2.0_gp*sp0i*sp0j*hij&
@@ -4835,6 +4864,5 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   i_all=-product(shape(scalprod_recvbuf))*kind(scalprod_recvbuf)
   deallocate(scalprod_recvbuf,stat=i_stat)
   call memocc(i_stat,i_all,'scalprod_recvbuf',subname)
-
 
 END SUBROUTINE nonlocal_forces_linear

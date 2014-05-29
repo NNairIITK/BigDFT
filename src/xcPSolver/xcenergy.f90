@@ -255,7 +255,7 @@ end function spherical_gaussian_value
 !!    is IMPERATIVE to use the PS_dim4allocation routine for calculation arrays sizes.
 !!    Moreover, for the cases with the exchange and correlation the density must be initialised
 !!    to 10^-20 and not to zero.
-subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,ixc,hx,hy,hz,&
+subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,hx,hy,hz,&
      rho,exc,vxc,nspin,rhocore,potxc,xcstr,dvxcdrho,rhohat)
   use module_base
   !Rename dp into except_dp in order to avoid conflict with the definitions provided by module_base
@@ -267,9 +267,10 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,ixc,hx
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   character(len=1), intent(in) :: datacode !< @copydoc poisson_solver::doc::datacode
-  integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,mpi_comm
+  integer, intent(in) :: iproc,nproc,n01,n02,n03,mpi_comm
   integer, intent(in) :: nspin !< Value of the spin-polarisation
   real(gp), intent(in) :: hx,hy,hz
+  type(xc_info), intent(in) :: xcObj
   real(gp), intent(out) :: exc,vxc
   real(dp), dimension(*), intent(inout) :: rho
   real(wp), dimension(:,:,:,:), pointer :: rhocore !associated if useful
@@ -309,22 +310,22 @@ call to_zero(6,rhocstr(1))
   if (geocode == 'P') then
      if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
-          'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
+          'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',xcObj%ixc,' ... '
      call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,.false.)
   else if (geocode == 'S') then
      if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
-          'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
+          'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',xcObj%ixc,' ... '
      call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
   else if (geocode == 'F') then
      if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
-          'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
+          'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',xcObj%ixc,' ... '
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
   else if (geocode == 'W') then
      if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
-          'PSolver, wires  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ... '
+          'PSolver, wires  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',xcObj%ixc,' ... '
      call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
   else
      stop 'XC potential: geometry code not admitted'
@@ -347,12 +348,13 @@ call to_zero(6,rhocstr(1))
   istart=iproc*(md2/nproc)
   iend=min((iproc+1)*md2/nproc,m2)
 
-  call xc_dimensions(geocode,xc_isgga(),(ixc/=13),istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s_fake,i3xcsh_fake)
+  call xc_dimensions(geocode,xc_isgga(xcObj),(xcObj%ixc/=13),istart,iend,&
+       & m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s_fake,i3xcsh_fake)
   nwb=nxcl+nxc+nxcr-2
   nxt=nwbr+nwb+nwbl
 
   !quick return if no Semilocal XC potential is required (Hartree or Hartree-Fock)
-  if (ixc == 0 .or. ixc == 100) then
+  if (xcObj%ixc == 0 .or. xcObj%ixc == 100) then
      if (datacode == 'G') then
         call to_zero(n01*n02*n03*nspin,potxc(1))
         !call dscal(n01*n02*n03,0.0_dp,potxc,1)
@@ -449,7 +451,7 @@ call to_zero(6,rhocstr(1))
   end if
 
   !calculate gradient
-  if (xc_isgga() .and. nxc > 0) then
+  if (xc_isgga(xcObj) .and. nxc > 0) then
      !computation of the gradient
      allocate(gradient(m1,m3,nwb,2*nspin-1,0:3+ndebug),stat=i_stat)
      call memocc(i_stat,gradient,'gradient',subname)
@@ -493,7 +495,7 @@ call to_zero(6,rhocstr(1))
           ((nspin==2 .and. nproc > 1) .or. i3start <=0 .or. i3start+nxt-1 > n03 )) then
         !allocation of an auxiliary array for avoiding the shift
         call xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
-             ixc,hx,hy,hz,rho_G,gradient,vxci,&
+             xcObj,hx,hy,hz,rho_G,gradient,vxci,&
              eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin,wbstr)
         !restoring the density on the original form
         do ispin=1,nspin
@@ -512,7 +514,7 @@ call to_zero(6,rhocstr(1))
         call memocc(i_stat,i_all,'rho_G',subname)
      else
         call xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
-             ixc,hx,hy,hz,rho(1+n01*n02*(i3start-1)),gradient,vxci,&
+             xcObj,hx,hy,hz,rho(1+n01*n02*(i3start-1)),gradient,vxci,&
              eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin,wbstr)
      end if
   else
@@ -582,7 +584,7 @@ call to_zero(6,rhocstr(1))
 
      energies_mpi(1)=eexcuLOC
      energies_mpi(2)=vexcuLOC
-     call mpiallred(energies_mpi(1),2,MPI_SUM,mpi_comm,ierr)
+     call mpiallred(energies_mpi(1),2,MPI_SUM,mpi_comm)
      exc=energies_mpi(1)
      vxc=energies_mpi(2)
 
@@ -591,12 +593,12 @@ call to_zero(6,rhocstr(1))
 
         if (associated(rhocore)) then
         call calc_rhocstr(rhocstr,nxc,nxt,m1,m3,i3xcsh_fake,nspin,potxc,rhocore)
-        call mpiallred(rhocstr(1),6,MPI_SUM,mpi_comm,ierr)
+        call mpiallred(rhocstr(1),6,MPI_SUM,mpi_comm)
         rhocstr=rhocstr/real(n01*n02*n03,dp)
         end if
 
      xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/hx/hy/hz
-     call mpiallred(wbstr(1),6,MPI_SUM,mpi_comm,ierr)
+     call mpiallred(wbstr(1),6,MPI_SUM,mpi_comm)
      wbstr=wbstr/real(n01*n02*n03,dp)
      xcstr(:)=xcstr(:)+wbstr(:)+rhocstr(:)
   end if
@@ -758,7 +760,7 @@ END SUBROUTINE XC_potential
 !!    Since the arguments of these routines are indicated with the *,
 !!    it is IMPERATIVE to refer to PSolver routine for the correct allocation sizes.
 subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
-     nxcl,nxcr,ixc,hx,hy,hz,rho,gradient,vxci,exc,vxc,order,ndvxc,dvxci,nspden,wbstr)
+     nxcl,nxcr,xc,hx,hy,hz,rho,gradient,vxci,exc,vxc,order,ndvxc,dvxci,nspden,wbstr)
 
   use module_base
   use module_xc
@@ -790,7 +792,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   !!   for calculating XC energies and potential. 
   !!   ixc=0 indicates that no XC terms are computed. 
   !!   The XC functional codes follow the ABINIT convention or if negative the libXC one.
-  integer, intent(in) :: ixc
+  type(xc_info), intent(in) :: xc
   integer, intent(in) :: order,ndvxc,nspden
   real(gp), intent(in) :: hx,hy,hz                            !< Grid spacings. 
   real(dp), dimension(*), intent(in) :: gradient              !< of size 1 if not needed
@@ -821,7 +823,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   !starting point of the density array for the GGA cases in parallel
   offset=nwbl+1
   !divide by two the density to applicate it in the ABINIT xc routines
-  use_gradient = xc_isgga()
+  use_gradient = xc_isgga(xc)
 
   if (use_gradient) then
 !!$     !computation of the gradient
@@ -855,14 +857,14 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   !do a separate calculation of the grid to allow for OMP parallelisation
   ! Do the calculation.
   if (abs(order) == 1) then
-     call xc_getvxc(npts,exci,nspden,rho(1,1,offset,1),vxci,gradient,dvxcdgr)
+     call xc_getvxc(xc, npts,exci,nspden,rho(1,1,offset,1),vxci,gradient,dvxcdgr)
   else if (abs(order) == 2) then
-     call xc_getvxc(npts,exci,nspden,rho(1,1,offset,1),vxci,gradient,dvxcdgr,dvxci)
+     call xc_getvxc(xc, npts,exci,nspden,rho(1,1,offset,1),vxci,gradient,dvxcdgr,dvxci)
   end if
   wbstr(:)=0._dp
   if (use_gradient) then
      ! Do not calculate the White-Bird term in the Leeuwen Baerends XC case
-     if (ixc /= 13 .and. ixc /= -160) then
+     if (xc%ixc /= 13 .and. xc%ixc /= -160) then
         call vxcpostprocessing(geocode,m1,m3,nwb,nxc,nxcl,nxcr,nspden,3,gradient,&
              real(hx,dp),real(hy,dp),real(hz,dp),dvxcdgr,vxci,wbstr)
      end if
@@ -1027,7 +1029,7 @@ END SUBROUTINE xc_energy_new
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
 !!    is IMPERATIVE to refer to PSolver routine for the correct allocation sizes.
 subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
-     nxcl,nxcr,ixc,hx,hy,hz,rhopot,pot_ion,sumpion,zf,zfionxc,exc,vxc,nproc,nspden)
+     nxcl,nxcr,xc,hx,hy,hz,rhopot,pot_ion,sumpion,zf,zfionxc,exc,vxc,nproc,nspden)
 
   use module_base
   use module_xc
@@ -1039,9 +1041,10 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   !Arguments----------------------
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   logical, intent(in) :: sumpion
-  integer, intent(in) :: m1,m3,nxc,nwb,nxcl,nxcr,nxt,md1,md2,md3,ixc,nproc,nspden
+  integer, intent(in) :: m1,m3,nxc,nwb,nxcl,nxcr,nxt,md1,md2,md3,nproc,nspden
   integer, intent(in) :: nwbl,nwbr
   real(gp), intent(in) :: hx,hy,hz
+  type(xc_info), intent(in) :: xc
   real(dp), dimension(m1,m3,nxt,nspden), intent(inout) :: rhopot
   real(wp), dimension(*), intent(in) :: pot_ion
   real(dp), dimension(md1,md3,md2/nproc), intent(out) :: zf
@@ -1074,7 +1077,7 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   
   !starting point of the density array for the GGA cases in parallel
   offset=nwbl+1
-  if (ixc/=0) then
+  if (xc%ixc/=0) then
      !divide by two the density to applicate it in the ABINIT xc routines
      if(nspden==1) then
         do i3=1,nxt
@@ -1095,11 +1098,11 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 !           end do
 !        end do
 !     end do
-     use_gradient = xc_isgga()
+     use_gradient = xc_isgga(xc)
 
      !Allocations of the exchange-correlation terms, depending on the ixc value
      nd2vxc=1
-     call size_dvxc(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
+     call size_dvxc(xc%ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
 
      if (use_gradient) then
         !computation of the gradient
@@ -1135,7 +1138,7 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
         allocate(dvxcdgr(m1,m3,nwb,nvxcdgr+ndebug),stat=i_stat)
         call memocc(i_stat,dvxcdgr,'dvxcdgr',subname)
      end if
-     if ((ixc==3 .or. (ixc>=7 .and. ixc<=15)) .and. order==3) then
+     if ((xc%ixc==3 .or. (xc%ixc>=7 .and. xc%ixc<=15)) .and. order==3) then
         allocate(d2vxci(m1,m3,nwb+ndebug),stat=i_stat)
         call memocc(i_stat,d2vxci,'d2vxci',subname)
      end if
@@ -1150,53 +1153,53 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      npts=m1*m3*nwb
      !let us apply ABINIT routines
      !case with gradient
-     if (ixc >= 11 .and. ixc <= 16) then
-        if (order**2 <= 1 .or. ixc == 16) then
-           if (ixc /= 13) then             
-              call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+     if (xc%ixc >= 11 .and. xc%ixc <= 16) then
+        if (order**2 <= 1 .or. xc%ixc == 16) then
+           if (xc%ixc /= 13) then             
+              call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                    &grho2_updn=gradient,vxcgr=dvxcdgr) 
            else
-              call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+              call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                    &grho2_updn=gradient) 
            end if
         else if (order /= 3) then
-           if (ixc /= 13) then             
-              call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+           if (xc%ixc /= 13) then             
+              call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                    &dvxc=dvxci,grho2_updn=gradient,vxcgr=dvxcdgr) 
            else
-              call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+              call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                    &dvxc=dvxci,grho2_updn=gradient) 
            end if
         else if (order == 3) then
-           if (ixc /= 13) then             
-              call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+           if (xc%ixc /= 13) then             
+              call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                    &dvxc=dvxci,d2vxc=d2vxci,grho2_updn=gradient,vxcgr=dvxcdgr) 
            else
-              call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+              call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                    &dvxc=dvxci,d2vxc=d2vxci,grho2_updn=gradient) 
            end if
         end if
 
         !cases without gradient
-     else if (ixc >= 0) then
-        if (order**2 <=1 .or. ixc >= 31 .and. ixc<=34) then
-           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr)
-        else if (order==3 .and. (ixc==3 .or. ixc>=7 .and. ixc<=10)) then
-           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+     else if (xc%ixc >= 0) then
+        if (order**2 <=1 .or. xc%ixc >= 31 .and. xc%ixc<=34) then
+           call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr)
+        else if (order==3 .and. (xc%ixc==3 .or. xc%ixc>=7 .and. xc%ixc<=10)) then
+           call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                 &dvxc=dvxci,d2vxc=d2vxci)
         else
-           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+           call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                 &dvxc=dvxci)
         end if
         !case with libXC, with and without gradient
-     else if (ixc < 0) then
-        call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,     &
+     else if (xc%ixc < 0) then
+        call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,     &
              &      grho2_updn=gradient,vxcgr=dvxcdgr)
      end if
 
      if (use_gradient) then
         !do not calculate the White-Bird term in the Leeuwen Baerends XC case
-        if (ixc/=13) then
+        if (xc%ixc/=13) then
            call vxcpostprocessing(geocode,m1,m3,nwb,nxc,nxcl,nxcr,nspden,nvxcdgr,gradient,&
                 real(hx,dp),real(hy,dp),real(hz,dp),dvxcdgr,vxci,wbstr)
         end if

@@ -181,7 +181,8 @@ subroutine test_dictionaries1()
   use dictionaries
   implicit none
   !local variables
-   integer :: ival,i,j
+   integer :: ival,i
+!   integer :: j
    type(dictionary), pointer :: dict2
    type(dictionary), pointer :: dict,dictA
    type(dictionary), pointer :: dictA2,dict_tmp,zero1,zero2
@@ -533,7 +534,8 @@ subroutine test_dictionary_for_atoms()
   use yaml_output
   implicit none
 
-  character(len = 50) :: gu,fmts
+!!$  character(len = 50) :: gu
+  character(len = 50) :: fmts
   double precision, dimension(3) :: cell, xred, hgrids
   double precision :: tt
 
@@ -664,14 +666,14 @@ subroutine profile_dictionary_usage()
   !local variables
   integer :: nprof,ntry,nstep,iprof,jprof,itry,ival
   integer(kind=8) :: t0,t1
-  double precision :: tel
+  double precision :: tel,tot
   type(dictionary), pointer :: dict
   integer, dimension(:), allocatable :: itest !< used to simulate search with an array
   
 
 !!$!$  !profiling
   nprof=100001
-  ntry=100
+  ntry=1000
   nstep=10000
   allocate(itest(nprof))
   itest=0
@@ -687,10 +689,11 @@ subroutine profile_dictionary_usage()
      t1=f_time()
      !call system_clock(ncount1,ncount_rate,ncount_max)
      !tel=dble(ncount1-ncount0)/dble(ncount_rate)*(1d6/dble(ntry))
-     tel = dble(t1-t0)/dble(ntry)*1.d-3
+     tot=dble(ntry)*dble(nprof)
+     tel = dble(t1-t0)/tot
      call yaml_open_map('Timings for search',flow=.true.)
      call yaml_map('No. of items',iprof)
-     call yaml_map('Elapsed time (mus)',tel,fmt='(f12.2)')
+     call yaml_map('Elapsed time (ns)',tel,fmt='(f12.2)')
      call yaml_close_map() 
   end do
   call yaml_map('Some value',itest(1)+itest(ntry))
@@ -707,9 +710,11 @@ subroutine profile_dictionary_usage()
      end do
 
      !call system_clock(ncount0,ncount_rate,ncount_max)
+     tot=0.d0
      t0=f_time()
      do itry=1,ntry
         ival=dict//'Test'//(iprof-1)
+        tot=tot+dble(ival)
      end do
      t1=f_time()
      !call system_clock(ncount1,ncount_rate,ncount_max)
@@ -720,6 +725,7 @@ subroutine profile_dictionary_usage()
      call yaml_map('Elapsed time (mus)',tel,fmt='(f12.2)')
      call yaml_close_map() 
   end do
+  call yaml_map('Other value',tot)
   call dict_free(dict)
 
 

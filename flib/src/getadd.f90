@@ -123,6 +123,12 @@ module metadata_interfaces
        integer(kind=8), intent(out) :: iadd
      end subroutine getdp6
 
+     subroutine getz2(array,iadd)
+       implicit none
+       double complex, dimension(:,:), allocatable, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine getz2
+
      subroutine getdp1ptr(array,iadd)
        implicit none
        double precision, dimension(:), pointer, intent(in) :: array
@@ -187,6 +193,7 @@ interface pad_array
   module procedure pad_l1,pad_l2,pad_l3
   module procedure pad_r1,pad_r2,pad_r3
   module procedure pad_dp1,pad_dp2,pad_dp3,pad_dp4,pad_dp5,pad_dp6
+  module procedure pad_z2
 end interface
 
 public :: pad_array,geti1,geti2,geti3,geti4
@@ -194,6 +201,7 @@ public :: getc1
 public :: getl1,getl2,getl3
 public :: getr1,getr2,getr3
 public :: getdp1,getdp2,getdp3,getdp4,getdp5,getdp6!,getlongaddress
+public :: getz2
 public :: getdp1ptr,getdp2ptr,getdp3ptr,getdp4ptr,getdp5ptr
 public :: geti1ptr,geti2ptr,geti3ptr
 public :: getc1ptr
@@ -390,6 +398,16 @@ contains
 
   end subroutine pad_dp6
 
+  subroutine pad_z2(array,init_to_zero,shp,ndebug)
+    implicit none
+    logical, intent(in) :: init_to_zero
+    integer, intent(in) :: ndebug
+    integer, dimension(2), intent(in) :: shp
+    double complex, dimension(shp(1),shp(2)+ndebug), intent(out) :: array
+    
+    call pad_double_complex(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
+
+  end subroutine pad_z2
 
   subroutine pad_double(array,init,ndim_tot,ndim_extra)
     implicit none
@@ -404,6 +422,20 @@ contains
        array(i)=d_nan()
     end do
   end subroutine pad_double
+
+  subroutine pad_double_complex(array,init,ndim_tot,ndim_extra)
+    implicit none
+    logical, intent(in) :: init
+    integer, intent(in) :: ndim_tot, ndim_extra
+    double complex, dimension(ndim_extra), intent(out) :: array
+    !local variables
+    integer :: i
+
+    if (init) call razero(ndim_tot,array)
+    do i=ndim_tot+1,ndim_extra
+       array(i)=(1.d0,1.d0)*d_nan()
+    end do
+  end subroutine pad_double_complex
 
   subroutine pad_simple(array,init,ndim_tot,ndim_extra)
     implicit none

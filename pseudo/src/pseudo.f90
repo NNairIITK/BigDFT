@@ -158,7 +158,7 @@ end module gatomvars
 !!  nonlinear core corrections and has a gpu accelerated version of the
 !!  wavelet part.
 program pseudo
-   use libxcmodule
+   use libxcModule
    use pseudovars
    use penaltyvars
    use ppackvars

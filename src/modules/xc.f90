@@ -36,7 +36,7 @@ module module_xc
 
   !> Structure containing the information about the xc functionals
   type xc_info
-     private
+     integer :: ixc        !< input XC code
      integer :: kind       !< ABINIT or LibXC
      integer :: family(2)  !< LDA, GGA, etc.
      integer :: id(2)      !< Identifier
@@ -44,14 +44,15 @@ module module_xc
      type(libxc_functional) :: funcs(2)
   end type xc_info
 
-  type(xc_info) :: xc      !< Global structure about the used xc functionals
+  !type(xc_info) :: xc      !< Global structure about the used xc functionals
 
   logical :: abinit_init = .false.            !< .True. if already ABINIT_XC_NAMES intialized
-  logical :: libxc_init = .false.             !< .true. wha the libXC library has been initalized
+  !logical :: libxc_init = .false.             !< .true. wha the libXC library has been initalized
   character(len=500) :: ABINIT_XC_NAMES(0:28) !< Names of the xc functionals used by ABINIT
 
   private
-  public :: xc_init, &
+  public :: xc_info, &
+       &    xc_init, &
        &    xc_dump, &
        &    xc_init_rho, &
        &    xc_clean_rho, &
@@ -79,6 +80,7 @@ contains
 
     ! **
 
+    xcObj%ixc  = ixc
     xcObj%kind = kind
     if (kind == XC_LIBXC .or. kind == XC_MIXED) then
        xcObj%id(2) = abs(ixc) / 1000
@@ -184,6 +186,43 @@ contains
     end if
   end subroutine obj_get_name_
 
+  !>  Dump XC info on screen.
+  subroutine obj_dump_(xcObj)
+    implicit none
+    type(xc_info), intent(in) :: xcObj
+
+    integer :: i, ii
+    type(xc_f90_pointer_t) :: str
+    character(len=500) :: message
+
+    ! Dump functional information
+    call obj_get_name_(xcObj, message)
+    !write(*,"(1x,a19,a65)") "Exchange-corr. ref.", "("//trim(message)//")"
+    call yaml_map('Exchange-Correlation reference','"'//trim(message)//'"')
+    if (xcObj%kind == XC_ABINIT) then
+       call yaml_map('XC functional implementation','ABINIT')
+       !write(*,"(1x,A84)") "XC functional provided by ABINIT."
+    else
+       call yaml_map('XC functional implementation','libXC')
+       call yaml_open_sequence('Reference Papers')
+       call yaml_sequence('"Comput. Phys. Commun. 183, 2272 (2012)"')
+       do i = 1, 2
+          if (xcObj%family(i) == 0) cycle
+          
+          ii = 0
+          if (xcObj%id(i) > 0) then
+             call xc_f90_info_refs(xcObj%funcs(i)%info,ii,str,message)
+             do while (ii >= 0)
+                !write(*,"(1x,a1,1x,a82)") "|", trim(message)
+                call yaml_sequence('"'//trim(message)//'"')
+                call xc_f90_info_refs(xcObj%funcs(i)%info,ii,str,message)
+             end do
+          end if
+       end do
+       call yaml_close_sequence()
+    end if
+  end subroutine obj_dump_
+
   !>  Get a name, corresponding to the given XC id.
   subroutine xc_get_name(name,ixc,kind)
     implicit none
@@ -199,134 +238,118 @@ contains
     call obj_free_(xcObj)
   end subroutine xc_get_name
 
+  !>  Dump XC info on screen.
+  subroutine xc_dump(ixc,kind,nspden)
+    implicit none
+    integer, intent(in) :: kind
+    integer, intent(in) :: ixc
+    integer, intent(in) :: nspden
+
+    type(xc_info) :: xcObj
+
+    call obj_init_(xcObj, ixc, kind, nspden)
+    call obj_dump_(xcObj)
+    call obj_free_(xcObj)
+  end subroutine xc_dump
+
   !>  Initialize the desired XC functional, from LibXC.
-  subroutine xc_init(ixc,kind,nspden)
+  subroutine xc_init(xcObj,ixc,kind,nspden)
     implicit none
 
     !Arguments
     !scalars
+    type(xc_info), intent(out) :: xcObj
     integer, intent(in) :: nspden
     integer, intent(in) :: kind
     integer, intent(in) :: ixc
     !local variables
-    integer :: ixc_prev
+!!$    integer :: ixc_prev
 
     !check if we are trying to initialize the libXC to a different functional
-    if (libxc_init) then
-       ixc_prev=xc%id(1)+1000*xc%id(2)
-       if (f_err_raise(((xc%kind== XC_LIBXC .or. kind == XC_MIXED) .and. ixc/=-ixc_prev),&
-            'LibXC library has been already initialized with ixc='//trim(yaml_toa(ixc_prev))//&
-            ', finalize it first to reinitialize it with ixc='//trim(yaml_toa(ixc)),&
-            err_name='BIGDFT_RUNTIME_ERROR')) return
-    end if
-    libxc_init=.true.
-    call obj_init_(xc, ixc, kind, nspden)
+!!$    if (libxc_init) then
+!!$       ixc_prev=xc%id(1)+1000*xc%id(2)
+!!$       if (f_err_raise(((xc%kind== XC_LIBXC .or. kind == XC_MIXED) .and. ixc/=-ixc_prev),&
+!!$            'LibXC library has been already initialized with ixc='//trim(yaml_toa(ixc_prev))//&
+!!$            ', finalize it first to reinitialize it with ixc='//trim(yaml_toa(ixc)),&
+!!$            err_name='BIGDFT_RUNTIME_ERROR')) return
+!!$    end if
+!!$    libxc_init=.true.
+    call obj_init_(xcObj, ixc, kind, nspden)
   end subroutine xc_init
-
-  !>  Dump XC info on screen.
-  subroutine xc_dump()
-    implicit none
-
-    integer :: i, ii
-    type(xc_f90_pointer_t) :: str
-    character(len=500) :: message
-
-    ! Dump functional information
-    call obj_get_name_(xc, message)
-    !write(*,"(1x,a19,a65)") "Exchange-corr. ref.", "("//trim(message)//")"
-    call yaml_map('Exchange-Correlation reference','"'//trim(message)//'"')
-    if (xc%kind == XC_ABINIT) then
-       call yaml_map('XC functional implementation','ABINIT')
-       !write(*,"(1x,A84)") "XC functional provided by ABINIT."
-    else
-       call yaml_map('XC functional implementation','libXC')
-       call yaml_open_sequence('Reference Papers')
-       call yaml_sequence('"Comput. Phys. Commun. 183, 2272 (2012)"')
-       do i = 1, 2
-          if (xc%family(i) == 0) cycle
-          
-          ii = 0
-          if (xc%id(i) > 0) then
-             call xc_f90_info_refs(xc%funcs(i)%info,ii,str,message)
-             do while (ii >= 0)
-                !write(*,"(1x,a1,1x,a82)") "|", trim(message)
-                call yaml_sequence('"'//trim(message)//'"')
-                call xc_f90_info_refs(xc%funcs(i)%info,ii,str,message)
-             end do
-          end if
-       end do
-       call yaml_close_sequence()
-    end if
-  end subroutine xc_dump
 
   !> End usage of LibXC functional. Call LibXC end function,
   !! and deallocate module contents.
-  subroutine xc_end()
+  subroutine xc_end(xcObj)
     implicit none
+    type(xc_info), intent(inout) :: xcObj
 
     !here no exception is needed if finalization has already been done
-    if (libxc_init) then
-       call obj_free_(xc)
-       libxc_init=.false.
-    end if
+    !if (libxc_init) then
+    call obj_free_(xcObj)
+    !   libxc_init=.false.
+    !end if
 
   end subroutine xc_end
 
   !> Test function to identify whether the presently used functional
   !! is a GGA or not
-  function xc_isgga()
+  function xc_isgga(xcObj)
     implicit none
+    type(xc_info), intent(in) :: xcObj
 
     logical :: xc_isgga
 
-    if (any(xc%family == XC_FAMILY_GGA) .or. &
-         & any(xc%family == XC_FAMILY_HYB_GGA)) then
+    if (any(xcObj%family == XC_FAMILY_GGA) .or. &
+         & any(xcObj%family == XC_FAMILY_HYB_GGA)) then
        xc_isgga = .true.
     else
        xc_isgga = .false.
     end if
   end function xc_isgga
 
-  real(kind=8) function xc_exctXfac()
+  real(kind=8) function xc_exctXfac(xcObj)
     implicit none
+    type(xc_info), intent(in) :: xcObj
 
     xc_exctXfac = 0.d0
-    if (any(xc%family == XC_FAMILY_HYB_GGA)) then
+    if (any(xcObj%family == XC_FAMILY_HYB_GGA)) then
        !factors for the exact exchange contribution of different hybrid functionals
-       if (any(xc%id == XC_HYB_GGA_XC_PBEH)) then
+       if (any(xcObj%id == XC_HYB_GGA_XC_PBEH)) then
           xc_exctXfac = 0.25d0 
        end if
     end if
 
     !hartree-fock value
-    if (xc%id(1) == 100 .and. xc%id(2) == 0) then
+    if (xcObj%id(1) == 100 .and. xcObj%id(2) == 0) then
        xc_exctXfac = 1.d0 
     end if
 
   end function xc_exctXfac
 
-  subroutine xc_init_rho(n, rho, nproc)
+  subroutine xc_init_rho(xcObj, n, rho, nproc)
     implicit none
     ! Arguments
+    type(xc_info), intent(in) :: xcObj
     integer :: n,nproc
     real(dp) :: rho(n)
 
-    if (xc%kind == XC_ABINIT) then
+    if (xcObj%kind == XC_ABINIT) then
        call tenminustwenty(n,rho,nproc)
     else
        call to_zero(n,rho)
     end if
   end subroutine xc_init_rho
 
-  subroutine xc_clean_rho(n, rho, nproc)
+  subroutine xc_clean_rho(xcObj, n, rho, nproc)
     implicit none
     ! Arguments
+    type(xc_info), intent(in) :: xcObj
     integer :: n,nproc
     real(dp) :: rho(n)
 
     integer :: i
 
-    if (xc%kind == XC_ABINIT) then
+    if (xcObj%kind == XC_ABINIT) then
        do i = 1, n, 1
           if (rho(i) < 1d-20) then
              rho(i) = 1d-20 / real(nproc,kind=dp)
@@ -342,10 +365,11 @@ contains
   end subroutine xc_clean_rho
 
   !> Return XC potential and energy, from input density (even gradient etc...)
-  subroutine xc_getvxc(npts,exc,nspden,rho,vxc,grho2,vxcgr,dvxci)
+  subroutine xc_getvxc(xcObj, npts,exc,nspden,rho,vxc,grho2,vxcgr,dvxci)
     implicit none
 
     !Arguments ------------------------------------
+    type(xc_info), intent(in) :: xcObj
     integer, intent(in) :: npts,nspden
     real(dp),intent(out), dimension(npts) :: exc
     real(dp),intent(in), dimension(npts,nspden)  :: rho
@@ -366,9 +390,9 @@ contains
     real(dp), allocatable :: rho_(:,:), exc_(:), vxc_(:,:)
     !n(c) character(len=*), parameter :: subname='xc_getvxc'
 
-    if (xc%kind == XC_ABINIT) then
+    if (xcObj%kind == XC_ABINIT) then
        ! ABINIT case, call drivexc
-       ixc = xc%id(1)
+       ixc = xcObj%id(1)
        !Allocations of the exchange-correlation terms, depending on the ixc value
        order = 1
        if (present(dvxci) .and. nspden == 1) order = -2
@@ -377,7 +401,7 @@ contains
        call size_dvxc(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
 
        !let us apply ABINIT routines
-       select case (xc%family(1))
+       select case (xcObj%family(1))
        case (XC_FAMILY_LDA)
           if (order**2 <=1 .or. ixc >= 31 .and. ixc <= 34) then
              call drivexc(exc,ixc,npts,nspden,order,rho,vxc,&
@@ -399,12 +423,12 @@ contains
                   grho2_updn=grho2) 
           end if
        end select
-    else if (xc%kind == XC_MIXED) then
+    else if (xcObj%kind == XC_MIXED) then
        ! LibXC case with ABINIT rho distribution.
        ! Inititalize all relevant arrays to zero
        vxc=real(0,dp)
        exc=real(0,dp)
-       if (xc_isgga()) call to_zero(npts * 3, vxcgr(1))
+       if (xc_isgga(xcObj)) call to_zero(npts * 3, vxcgr(1))
        if (present(dvxci)) dvxci=real(0,dp)
 
        !Loop over points
@@ -427,7 +451,7 @@ contains
              rhotmp(1, 1:nb) = rho(ipts:ipte,1)
              rhotmp(2, 1:nb) = rho(ipts:ipte,2)
           end if
-          if (xc_isgga()) then
+          if (xc_isgga(xcObj)) then
              sigma=real(0,dp)
              if (nspden==1) then
                 ! ABINIT passes |rho_up|^2 while Libxc needs |rho_tot|^2
@@ -446,24 +470,24 @@ contains
 
           !Loop over functionals
           do i = 1,2
-             if (xc%id(i) == 0) cycle
+             if (xcObj%id(i) == 0) cycle
 
              !Get the potential (and possibly the energy)
-             if (iand(xc_f90_info_flags(xc%funcs(i)%info), XC_FLAGS_HAVE_EXC) .ne. 0) then
-                select case (xc%family(i))
+             if (iand(xc_f90_info_flags(xcObj%funcs(i)%info), XC_FLAGS_HAVE_EXC) .ne. 0) then
+                select case (xcObj%family(i))
                 case (XC_FAMILY_LDA)
-                   call xc_f90_lda_exc_vxc(xc%funcs(i)%conf,nb,rhotmp(1,1),exctmp(1),vxctmp(1,1))
+                   call xc_f90_lda_exc_vxc(xcObj%funcs(i)%conf,nb,rhotmp(1,1),exctmp(1),vxctmp(1,1))
                 case (XC_FAMILY_GGA, XC_FAMILY_HYB_GGA)
-                   call xc_f90_gga_exc_vxc(xc%funcs(i)%conf,nb,rhotmp(1,1),sigma(1,1),exctmp(1),vxctmp(1,1),vsigma(1,1))
+                   call xc_f90_gga_exc_vxc(xcObj%funcs(i)%conf,nb,rhotmp(1,1),sigma(1,1),exctmp(1),vxctmp(1,1),vsigma(1,1))
                 end select
 
              else
                 exctmp=real(0,dp)
-                select case (xc%family(i))
+                select case (xcObj%family(i))
                 case (XC_FAMILY_LDA)
-                   call xc_f90_lda_vxc(xc%funcs(i)%conf,nb,rhotmp(1,1),vxctmp(1,1))
+                   call xc_f90_lda_vxc(xcObj%funcs(i)%conf,nb,rhotmp(1,1),vxctmp(1,1))
                 case (XC_FAMILY_GGA, XC_FAMILY_HYB_GGA)
-                   call xc_f90_gga_vxc(xc%funcs(i)%conf,nb,rhotmp(1,1),sigma(1,1),vxctmp(1,1),vsigma(1,1))
+                   call xc_f90_gga_vxc(xcObj%funcs(i)%conf,nb,rhotmp(1,1),sigma(1,1),vxctmp(1,1),vsigma(1,1))
                 end select
              end if
 
@@ -471,12 +495,12 @@ contains
                 v2rho2     = real(0, dp)
                 v2rhosigma = real(0, dp)
                 v2sigma2   = real(0, dp)
-                if (iand(xc_f90_info_flags(xc%funcs(i)%info), XC_FLAGS_HAVE_FXC) .ne. 0) then
-                   select case (xc%family(i))
+                if (iand(xc_f90_info_flags(xcObj%funcs(i)%info), XC_FLAGS_HAVE_FXC) .ne. 0) then
+                   select case (xcObj%family(i))
                    case (XC_FAMILY_LDA)
-                      call xc_f90_lda_fxc(xc%funcs(i)%conf,nb,rhotmp(1,1),v2rho2(1,1))
+                      call xc_f90_lda_fxc(xcObj%funcs(i)%conf,nb,rhotmp(1,1),v2rho2(1,1))
                    case (XC_FAMILY_GGA, XC_FAMILY_HYB_GGA)
-                      call xc_f90_gga_fxc(xc%funcs(i)%conf,nb,rhotmp(1,1),sigma(1,1), &
+                      call xc_f90_gga_fxc(xcObj%funcs(i)%conf,nb,rhotmp(1,1),sigma(1,1), &
                            & v2rho2(1,1),v2rhosigma(1,1), v2sigma2(1,1))
                    end select
                 end if
@@ -487,7 +511,7 @@ contains
                 vxc(ipts:ipte,j) = vxc(ipts:ipte,j) + vxctmp(j, 1:nb)
              end do
              
-             if (xc_isgga()) then
+             if (xc_isgga(xcObj)) then
                 !Convert the quantities returned by Libxc to the ones needed by ABINIT
                 if (nspden == 1) then
                       vxcgr(ipts + 2 * npts:ipte + 2 * npts) = &
@@ -520,7 +544,7 @@ contains
        end do
        !$omp end parallel do
 
-    else if (xc%kind == XC_LIBXC) then
+    else if (xcObj%kind == XC_LIBXC) then
        ! Pure LibXC case.
        ! WARNING: LDA implementation only, first derivative, no fxc
 
@@ -538,19 +562,19 @@ contains
        exc(1) = UNINITIALIZED(1.d0)
        !Loop over functionals
        do i = 1,2
-          if (xc%id(i) == 0) cycle
+          if (xcObj%id(i) == 0) cycle
 
           !Get the potential (and possibly the energy)
-          if (iand(xc_f90_info_flags(xc%funcs(i)%info), XC_FLAGS_HAVE_EXC) .ne. 0) then
-             select case (xc%family(i))
+          if (iand(xc_f90_info_flags(xcObj%funcs(i)%info), XC_FLAGS_HAVE_EXC) .ne. 0) then
+             select case (xcObj%family(i))
              case (XC_FAMILY_LDA)
-                call xc_f90_lda_exc_vxc(xc%funcs(i)%conf,npts,rho_(1,1),exc_(1),vxc_(1,1))
+                call xc_f90_lda_exc_vxc(xcObj%funcs(i)%conf,npts,rho_(1,1),exc_(1),vxc_(1,1))
              end select
           else
              exc_=real(0,dp)
-             select case (xc%family(i))
+             select case (xcObj%family(i))
              case (XC_FAMILY_LDA)
-                call xc_f90_lda_vxc(xc%funcs(i)%conf,npts,rho_(1,1),vxc_(1,1))
+                call xc_f90_lda_vxc(xcObj%funcs(i)%conf,npts,rho_(1,1),vxc_(1,1))
              end select
           end if
 

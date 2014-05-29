@@ -69,7 +69,7 @@ program WaCo
    logical :: idemp
    integer, dimension(4) :: mpi_info
    type(dictionary), pointer :: user_inputs
-
+   external :: gather_timings
    ! ONLY FOR DEBUG
 !   real(gp) :: Gnorm, Lnorm
 !   integer :: indL,ilr
@@ -115,12 +115,10 @@ program WaCo
 
    if (nconfig < 0) stop 'runs-file not supported for WaCo executable'
 
+   call dict_init(user_inputs)
    call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
         & 'posinp'//trim(bigdft_run_id_toa()), bigdft_mpi)
-   call inputs_from_dict(input, atoms, user_inputs, .true.)
-   if (iproc == 0) then
-      call print_general_parameters(input,atoms)
-   end if
+   call inputs_from_dict(input, atoms, user_inputs)
    call dict_free(user_inputs)
 
 !!$   if (input%verbosity > 2) then
@@ -130,9 +128,9 @@ program WaCo
 !!$   end if
 
    !call timing(nproctiming,'WaCo_time.prc','IN')
-   call f_timing_reset(filename=trim(in%dir_output)//'WaCo_time.yaml',&
+   call f_timing_reset(filename=trim(input%dir_output)//'WaCo_time.yaml',&
         master=iproc==0,&
-        debug_mode=input%verbosity>2)
+        verbose_mode=input%verbosity>2)
 
 
    call cpu_time(tcpu0)
@@ -163,7 +161,7 @@ program WaCo
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
    call system_size(atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
-        Glr,shift)
+        .false.,Glr,shift)
    if (iproc == 0) &
         & call print_atoms_and_grid(Glr, atoms, atoms%astruct%rxyz, shift, input%hx,input%hy,input%hz)
    
@@ -903,26 +901,17 @@ program WaCo
      if (orbsw%isorb + orbsw%norbp < n_occ ) orbs%norbp = orbsw%norbp
      if(orbsw%isorb > n_occ) orbs%norbp = 0
      orbs%isorb = orbsw%isorb
-     if(associated(orbs%iokpt)) then
-        i_all = -product(shape(orbs%iokpt))*kind(orbs%iokpt)
-        deallocate(orbs%iokpt,stat=i_stat)
-        call memocc(i_stat,i_all,'orbs%iokpt',subname)
-     end if
-     allocate(orbs%iokpt(orbs%norbp),stat=i_stat)
-     call memocc(i_stat,orbs%iokpt,'orbs%iokpt',subname)
+     call f_free_ptr(orbs%iokpt)
+     orbs%iokpt = f_malloc_ptr(orbs%norbp,id='orbs%iokpt')
      orbs%iokpt=1
      if(orbs%norbp > 0) then
-        if(associated(orbs%eval)) nullify(orbs%eval)
-        allocate(orbs%eval(orbs%norb*orbs%nkpts), stat=i_stat)
-        call memocc(i_stat,orbs%eval,'orbs%eval',subname)
+        nullify(orbs%eval)
+        orbs%eval = f_malloc_ptr(orbs%norb*orbs%nkpts,id='orbs%eval')
         filename=trim(input%dir_output) // 'wavefunction'
         call readmywaves(iproc,filename,iformat,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
              & input%hx,input%hy,input%hz,atoms,rxyz_old,atoms%astruct%rxyz,  & 
              Glr%wfd,psi(1,1))
-        i_all = -product(shape(orbs%eval))*kind(orbs%eval)
-        deallocate(orbs%eval,stat=i_stat)
-        call memocc(i_stat,i_all,'orbs%eval',subname)
-     
+        call f_free_ptr(orbs%eval)
      end if
 
      ! For the non-occupied orbitals, need to change norbp,isorb
@@ -932,34 +921,25 @@ program WaCo
      orbsv%isorb = 0
      if(orbsw%isorb >= n_occ) orbsv%isorb = orbsw%isorb - n_occ
      if(associated(orbsv%iokpt)) then
-        i_all = -product(shape(orbsv%iokpt))*kind(orbsv%iokpt)
-        deallocate(orbsv%iokpt,stat=i_stat)
-        call memocc(i_stat,i_all,'orbsv%iokpt',subname)
+        call f_free_ptr(orbsv%iokpt)
      end if
-     allocate(orbsv%iokpt(orbsv%norbp),stat=i_stat)
-     call memocc(i_stat,orbsv%iokpt,'orbsv%iokpt',subname)
+     orbsv%iokpt = f_malloc_ptr(orbsv%norbp,id='orbsv%iokpt')
      orbsv%iokpt=1
 
      ! read unoccupied wavefunctions
      if(orbsv%norbp > 0) then
         filename=trim(input%dir_output) // 'virtuals'
         if(associated(orbsv%eval)) nullify(orbsv%eval)
-        allocate(orbsv%eval(orbsv%norb*orbsv%nkpts), stat=i_stat)
-        call memocc(i_stat,orbsv%eval,'orbsv%eval',subname)
+        orbsv%eval = f_malloc_ptr(orbsv%norb*orbsv%nkpts,id='orbsv%eval')
         call readmywaves(iproc,filename,iformat,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
              & input%hx,input%hy,input%hz,atoms,rxyz_old,atoms%astruct%rxyz,  & 
              Glr%wfd,psi(1,1+orbs%norbp),virt_list)
-        i_all = -product(shape(orbsv%eval))*kind(orbsv%eval)
-        deallocate(orbsv%eval,stat=i_stat)
-        call memocc(i_stat,i_all,'orbsv%eval',subname)
+        call f_free_ptr(orbsv%eval)
      end if
 
-     i_all = -product(shape(rxyz_old))*kind(rxyz_old)
-     deallocate(rxyz_old,stat=i_stat)
-     call memocc(i_stat,i_all,'rxyz_old',subname)
-     i_all = -product(shape(virt_list))*kind(virt_list)
-     deallocate(virt_list,stat=i_stat)
-     call memocc(i_stat,i_all,'virt_list',subname)
+
+     call f_free_ptr(rxyz_old)
+     call f_free_ptr(virt_list)
 
 
      call timing(iproc,'CrtProjectors ','OF')
@@ -1029,7 +1009,7 @@ program WaCo
         end do
 
         ! Construction of the Wannier function.
-        call mpiallred(wann(1),Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call mpiallred(wann(1),Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,MPI_SUM)
 
         if(iproc == 0) then
            write(num,'(i4.4)') iwann
@@ -1038,11 +1018,8 @@ program WaCo
               call daub_to_isf(Glr,w,wann(1),wannr)
               call write_wannier_cube(ifile,trim(seedname)//'_'//num//'.cube',atoms,Glr,input,atoms%astruct%rxyz,wannr)
            else if(trim(outputype)=='bin') then
-              i_all = -product(shape(orbsw%iokpt))*kind(orbsw%iokpt)
-              deallocate(orbsw%iokpt,stat=i_stat)
-              call memocc(i_stat,i_all,'orbsw%iokpt',subname)
-              allocate(orbsw%iokpt(nwannCon),stat=i_stat)
-              call memocc(i_stat,orbsw%iokpt,'orbsw%iokpt',subname)
+              call f_free_ptr(orbsw%iokpt)
+              orbsw%iokpt = f_malloc_ptr(nwannCon,id='orbsw%iokpt')
               orbsw%iokpt=1
               if(hamilana .and. linear) then
                  call yaml_sequence(advance='no')
@@ -1304,12 +1281,15 @@ program WaCo
   !call deallocate_atoms_scf(atoms,subname)
   call deallocate_atoms_data(atoms)
 !  call free_input_variables(input)
-  call bigdft_free_input(input)
+  call free_input_variables(input)
+  call f_lib_finalize()
+  !free all yaml_streams active
+  call yaml_close_all_streams()
 
   !#########################################################
   ! Ending timing and MPI
   !#########################################################
-  call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm)
+  call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm,nproc=bigdft_mpi%nproc,gather_routine=gather_timings)
 
   call cpu_time(tcpu1)
   call system_clock(ncount1,ncount_rate,ncount_max)

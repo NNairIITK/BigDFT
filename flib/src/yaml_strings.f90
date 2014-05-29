@@ -19,25 +19,27 @@ module yaml_strings
 
   integer :: max_value_length=95 !< Not a parameter in order to be used by C bindings but constant
 
-  character(len=*), parameter :: yaml_int_fmt  = '(i0)'       !< Default format for integer
-  character(len=*), parameter :: yaml_real_fmt = '(1pe18.9)' !< Default format for single
-  character(len=*), parameter :: yaml_dble_fmt = '(1pg26.17e3)'!'(1pe25.17)' !< Default format for double
-  character(len=*), parameter :: yaml_char_fmt = '(a)' !< Default format for strings
+  character(len=*), parameter :: yaml_int_fmt  = '(i0)'                      !< Default format for integer
+  character(len=*), parameter :: yaml_real_fmt = '(1pe18.9)'                 !< Default format for single
+  character(len=*), parameter :: yaml_dble_fmt = '(1pg26.16e3)'!'(1pe25.17)' !< Default format for double
+  character(len=*), parameter :: yaml_char_fmt = '(a)'                       !< Default format for strings
 
   interface yaml_toa             !< Convert into a character string yaml_toa(xxx,fmt)
      module procedure yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_ctoa
      module procedure yaml_dvtoa,yaml_ivtoa,yaml_cvtoa,yaml_ztoa,yaml_zvtoa,yaml_lvtoa,yaml_rvtoa
   end interface
 
-  interface cnv_fmt
+  interface cnv_fmt  !< Give the default format corresponding to the nature of the data
      module procedure fmt_i,fmt_r,fmt_d,fmt_a,fmt_li
   end interface
 
   !Public routines
   public ::  yaml_toa, buffer_string, align_message, shiftstr,yaml_date_toa
   public :: yaml_date_and_time_toa,yaml_time_toa,is_atoi,is_atof,is_atol
+  public :: read_fraction_string
 
 contains
+
 
   pure function fmt_li(data)
     implicit none
@@ -75,7 +77,7 @@ contains
   end function fmt_a
 
 
-  !write the strings as they were written by write
+  !> Write the strings as they were written by write
   pure subroutine string_assignment(stra,strb)
     implicit none
     character(len=*), intent(out) :: stra
@@ -90,6 +92,7 @@ contains
     end do
     
   end subroutine string_assignment
+
 
   !> Add a buffer to a string and increase its length
   pure subroutine buffer_string(string,string_lgt,buffer,string_pos,back,istat)
@@ -150,6 +153,7 @@ contains
 
   end subroutine buffer_string
 
+
   !> Add the spaces necessary to align the first occurrence of a given anchor
   !! into a tabular value. Can be done either by moving rigidly the message or 
   !! by adding spaces between the anchor and the rest of the message
@@ -176,6 +180,7 @@ contains
     end if
 
   end subroutine align_message
+
 
   !> Convert integer to character
   pure function yaml_itoa(data,fmt) result(str)
@@ -212,9 +217,14 @@ contains
     character(len=max_value_length) :: yaml_ctoa
     character(len=*), optional, intent(in) :: fmt
 
-    yaml_ctoa(1:max_value_length)=trim(d)
+    if (present(fmt)) then
+       write(yaml_ctoa(1:max_value_length),fmt) trim(d)
+    else
+       yaml_ctoa(1:max_value_length)=trim(d)
+    end if
 
   end function yaml_ctoa
+
 
   !> Convert double complex to character
   !! use python notation for yaml complex
@@ -430,7 +440,7 @@ contains
     character(len=*), intent(in) :: str
     character(len=max_value_length) :: clean_zero
     !local variables
-    integer :: idot,iexpo,i,iend
+    integer :: idot,iexpo,i
 
     !first fill with all the values up to the dot if it exist
     idot=scan(str,'.')
@@ -517,6 +527,38 @@ contains
     yes=scan(str(is:ie),' ') ==0 !there is no other space in the string
     if (yes) yes= (ie-is+1==3 .and. str(is:ie)=='Yes') .or. (ie-is+1==2 .and. str(is:ie)=='No')
   end function is_atol
+
+  !> Read a real or real/real, real:real 
+  !! Here the fraction is indicated by the ':' or '/'
+  !! The problem is that / is a separator for Fortran
+  pure subroutine read_fraction_string(string,var,ierror)
+    implicit none
+    !Arguments
+    character(len=*), intent(in) :: string
+    double precision, intent(out) :: var
+    integer, intent(out) :: ierror
+    !Local variables
+    character(len=256) :: tmp
+    integer :: num,den,pfr,psp
+
+    !First look at the first blank after trim
+    tmp(1:len(tmp))=trim(adjustl(string))
+    psp = scan(tmp,' ')
+    !see whether there is a fraction in the string
+    if(psp==0) psp=len(tmp)
+    pfr = scan(tmp(1:psp),':')
+    if (pfr == 0) pfr = scan(tmp(1:psp),'/')
+    !It is not a fraction
+    if (pfr == 0) then
+       read(tmp(1:psp),*,iostat=ierror) var
+    else 
+       read(tmp(1:pfr-1),*,iostat=ierror) num
+       read(tmp(pfr+1:psp),*,iostat=ierror) den
+       if (ierror == 0) var=dble(num)/dble(den)
+    end if
+    !Value by defaut
+    if (ierror /= 0) var = huge(1.d0) 
+  END SUBROUTINE read_fraction_string
 
 
 

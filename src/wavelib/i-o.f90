@@ -25,7 +25,7 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
   !local variables
   character(len=*), parameter :: subname='reformatonewave'
   logical :: cif1,cif2,cif3,perx,pery,perz
-  integer :: i_stat,i_all,i1,i2,i3,j1,j2,j3,l1,l2,iat,nb1,nb2,nb3,ind,jj1,jj2,jj3a,jj3b,jj3c
+  integer :: i1,i2,i3,j1,j2,j3,l1,l2,iat,nb1,nb2,nb3,ind,jj1,jj2,jj3a,jj3b,jj3c
   real(gp) :: hxh,hyh,hzh,hxh_old,hyh_old,hzh_old,x,y,z,dx,dy,dz,xold,yold,zold,mindist
   real(wp) :: zr,yr,xr,ym1,y00,yp1
   real(wp), dimension(-1:1,-1:1) :: xya
@@ -253,7 +253,16 @@ END SUBROUTINE ext_buffers_coarse
 module internal_io
   implicit none
 
+  private
+
+  public :: io_error, io_warning, io_open
+  public :: io_read_descr, read_psi_compress
+  public :: io_gcoordToLocreg
+  public :: read_psig
+
 contains
+
+
   subroutine io_error(error)
     use module_defs
 
@@ -266,6 +275,7 @@ contains
     call MPI_ABORT(bigdft_mpi%mpi_comm, ierr)
   END SUBROUTINE io_error
 
+
   subroutine io_warning(error)
     use module_defs
 
@@ -276,6 +286,8 @@ contains
     write(0,"(2A)") "WARNING! ", trim(error)
   END SUBROUTINE io_warning
 
+
+  !> Read the input/output descriptors (for a wavefunction for instance)
   subroutine io_read_descr(unitwf, formatted, iorb_old, eval, n1_old, n2_old, n3_old, &
        & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, nat)
     use module_base
@@ -370,19 +382,20 @@ contains
     lstat = .true.
   END SUBROUTINE io_read_descr
 
+
   subroutine io_gcoordToLocreg(n1, n2, n3, nvctr_c, nvctr_f, gcoord_c, gcoord_f, lr)
     use module_defs
     use module_types
 
     implicit none
-
+    !Arguments
     integer, intent(in) :: n1, n2, n3, nvctr_c, nvctr_f
     integer, dimension(3, nvctr_c), intent(in) :: gcoord_c
     integer, dimension(3, nvctr_f), intent(in) :: gcoord_f
     type(locreg_descriptors), intent(out) :: lr
-
+    !Local variables
     character(len = *), parameter :: subname = "io_gcoordToLocreg"
-    integer :: i, i_stat, i_all
+    integer :: i
     logical, dimension(:,:,:), allocatable :: logrid_c, logrid_f
 
     call f_routine(id=subname)
@@ -528,6 +541,7 @@ contains
     lstat = .true.
   END SUBROUTINE read_psi_compress
 
+
   subroutine read_psig(unitwf, formatted, nvctr_c, nvctr_f, n1, n2, n3, psig, lstat, error)
     use module_base
     use module_types
@@ -598,6 +612,7 @@ contains
 END MODULE internal_io
 
 
+!> Read one wavefunction
 subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
      & hx,hy,hz,at,wfd,rxyz_old,rxyz,psi,eval,psifscf)
   use module_base
@@ -619,7 +634,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   character(len=*), parameter :: subname='readonewave'
   character(len = 256) :: error
   logical :: perx,pery,perz,lstat
-  integer :: iorb_old,n1_old,n2_old,n3_old,iat,iel,nvctr_c_old,nvctr_f_old,i_stat,i_all,i1,i2,i3
+  integer :: iorb_old,n1_old,n2_old,n3_old,iat,iel,nvctr_c_old,nvctr_f_old,i1,i2,i3
   real(wp) :: tt,t1,t2,t3,t4,t5,t6,t7
   real(gp) :: tx,ty,tz,displ,hx_old,hy_old,hz_old,mindist
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
@@ -709,6 +724,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
 
 END SUBROUTINE readonewave
 
+
 subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
      & n1, n2, n3, nspinor, psiscf)
   use module_base
@@ -725,7 +741,7 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
   logical, intent(out) :: lstat
 
   character(len = *), parameter :: subname = "readwavetoisf"
-  integer :: unitwf, iorb, i_all, i_stat, ispinor, ispin, ikpt
+  integer :: unitwf, iorb, ispinor, ispin, ikpt
   integer, dimension(:,:), allocatable :: gcoord_c, gcoord_f
   real(wp) :: eval
   real(wp), dimension(:), allocatable :: psi
@@ -741,6 +757,7 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
   ! We open the Fortran file
   call io_open(unitwf, filename, formatted)
   if (unitwf < 0) then
+     call f_release_routine()
      return
   end if
 
@@ -749,12 +766,14 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
        & hx, hy, hz, lstat, error, lr%wfd%nvctr_c, lr%wfd%nvctr_f)
   if (.not. lstat) then
      call io_warning(trim(error))
+     call f_release_routine()
      return
   end if
   ! Do a magic here with the filenames...
   call readwavedescr(lstat, filename, iorb, ispin, ikpt, ispinor, nspinor, fileRI)
   if (.not. lstat) then
      call io_warning("cannot read wave ids from filename.")
+     call f_release_routine()
      return
   end if
 
@@ -842,21 +861,17 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
 contains
 
   subroutine deallocate_local()
+    implicit none
     character(len = *), parameter :: subname = "readwavetoisf"
 
     ! We close the file.
     close(unit=unitwf)
 
-    if (allocated(psi)) then
-       call f_free(psi)
-    end if
-
-    if (allocated(gcoord_c)) then
-       call f_free(gcoord_c)
-    end if
-    if (allocated(gcoord_f)) then
-       call f_free(gcoord_f)
-    end if
+    !allocation status of a allocatable array is undefined, cannot do that
+    !as we do not have any way to deallocate an array
+    call f_free(psi)
+    call f_free(gcoord_c)
+    call f_free(gcoord_f)
 
     if (associated(w%x_c)) then
        call deallocate_work_arrays_sumrho(w)
@@ -1044,7 +1059,6 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
   !local variables
   character(len=*), parameter :: subname='reformatonesupportfunction'
   logical, dimension(3) :: per
-  integer :: i_stat,i_all
   integer, dimension(3) :: nb, ndims_tmp
   real(gp), dimension(3) :: hgridsh,hgridsh_old
   real(wp) :: dnrm2
@@ -1053,8 +1067,8 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
   real(wp), dimension(:,:), allocatable :: y_phi
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psig
   real(wp), dimension(:,:,:), pointer :: psifscfold, psifscf
-  integer :: itype, nd, nrange,isgn,i,iz
-  real(gp), dimension(3) :: rrow
+  integer :: itype, nd, nrange
+!!$  real(gp), dimension(3) :: rrow
   real(gp), dimension(3,3) :: rmat !< rotation matrix
   real(gp) :: sint,cost,onemc,ux,uy,uz
   integer, dimension(3) :: irp
@@ -1240,7 +1254,7 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
 
   contains
 
-    !>select the best possible rotation sequence by 
+    !> Select the best possible rotation sequence by 
     !! considering the values of the coefficients of the 
     !! rotation matrix
     pure function selection(rmat) result(irp)
@@ -1251,7 +1265,7 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
       !local variables
       integer :: i,isgn
       integer, dimension(3) :: ib1,ib3
-      real(gp), dimension(3) :: rrow
+!!$      real(gp), dimension(3) :: rrow
 
       !determine ideal sequence for rotation, for important rows
       ib1=reorder(rmat(:,1),1)
@@ -1414,7 +1428,7 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
       real(gp), dimension(3), intent(in) :: vec
       integer, dimension(3) :: imax
       !local variables
-      integer, dimension(3,3) :: ibest
+!!$      integer, dimension(3,3) :: ibest
 
       !initialization
       imax(1)=1
@@ -1521,6 +1535,7 @@ subroutine find_inverse(nin,iout,t0_field,t0_l,k1)
 
 end subroutine find_inverse
 
+
 subroutine my_scaling_function4b2B(itype,nd,nrange,a,x)
    use module_base
    implicit none
@@ -1535,7 +1550,7 @@ subroutine my_scaling_function4b2B(itype,nd,nrange,a,x)
    !Local variables
    character(len=*), parameter :: subname='scaling_function4b2B'
    real(kind=8), dimension(:), allocatable :: y
-   integer :: i,nt,ni,i_all,i_stat  
+   integer :: i,nt,ni
    
    call f_routine(id=subname)
 
@@ -2062,57 +2077,57 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
     end function ind2
 
  
-     pure subroutine shift_and_start(ntr,istep,i2,i3,j1,j2,j3,&
-          dt,istart,ms,me)
-       use module_base
-       implicit none
-       integer, intent(in) :: ntr !< id of the dimension to be transformed
-       integer, intent(in) :: istep,i2,i3
-       integer, intent(in) :: j1,j2,j3
-       integer, intent(out) :: istart,ms,me
-       real(gp), intent(out) :: dt
-       !local variables
+    pure subroutine shift_and_start(ntr,istep,i2,i3,j1,j2,j3,&
+         dt,istart,ms,me)
+      use module_base
+      implicit none
+      integer, intent(in) :: ntr !< id of the dimension to be transformed
+      integer, intent(in) :: istep,i2,i3
+      integer, intent(in) :: j1,j2,j3
+      integer, intent(out) :: istart,ms,me
+      real(gp), intent(out) :: dt
+      !local variables
       integer :: ivars,istart_shift!,istep,i1,i2,i3
-       real(gp), dimension(3) :: t
-      real(gp) :: t0_l,coord_old
+      real(gp), dimension(3) :: t
+      real(gp) :: coord_old
 
-       !define the coordinates in the reference frame, which depends on the transformed variables
-       t(1)=-centre_new(1)+real(j1-1,gp)*hgrids_new(1) !the first step is always the same
-       if (istep >=2) then
-          t(2)=-centre_new(2)+real(j2-1,gp)*hgrids_new(2)
-       else
-          t(2)=-centre_old(i2)+real(j2-1,gp)*hgrids_old(i2)
-       end if
-       if (istep ==3) then
-          t(3)=-centre_new(3)+real(j3-1,gp)*hgrids_new(3)
-       else
-          t(3)=-centre_old(i3)+real(j3-1,gp)*hgrids_old(i3)
-       end if
+      !define the coordinates in the reference frame, which depends on the transformed variables
+      t(1)=-centre_new(1)+real(j1-1,gp)*hgrids_new(1) !the first step is always the same
+      if (istep >=2) then
+         t(2)=-centre_new(2)+real(j2-1,gp)*hgrids_new(2)
+      else
+         t(2)=-centre_old(i2)+real(j2-1,gp)*hgrids_old(i2)
+      end if
+      if (istep ==3) then
+         t(3)=-centre_new(3)+real(j3-1,gp)*hgrids_new(3)
+      else
+         t(3)=-centre_old(i3)+real(j3-1,gp)*hgrids_old(i3)
+      end if
 
-       !code for the coords
-       ivars=1000*istep+100+10*i2+i3
+      !code for the coords
+      ivars=1000*istep+100+10*i2+i3
 
-       !define the value of the shift of the variable we are going to transform
-      !coordinate that has to be found in the old box, including the shift
+      !define the value of the shift of the variable we are going to transform
+     !coordinate that has to be found in the old box, including the shift
       coord_old=coord(ntr,ivars,newz,cost,sint,onemc,t(1),t(2),t(3))-da(ntr)
 
-      !central point of the convolution rounded to the grid points
-      istart=min(max(1,nint((coord_old+centre_old(ntr)+hgrids_old(ntr))&
-            /hgrids_old(ntr))),ndims_old(ntr))
-      
-      !this shift brings the old point in the new reference frame
-      dt=real(istart,gp)-(coord_old+centre_new(ntr)+hgrids_new(ntr))/hgrids_old(ntr)
+     !central point of the convolution rounded to the grid points
+     istart=min(max(1,nint((coord_old+centre_old(ntr)+hgrids_old(ntr))&
+           /hgrids_old(ntr))),ndims_old(ntr))
+     
+     !this shift brings the old point in the new reference frame
+     dt=real(istart,gp)-(coord_old+centre_new(ntr)+hgrids_new(ntr))/hgrids_old(ntr)
 
-      !purify the shift to be a inferior than multiple of the grid spacing
-      istart_shift=nint(dt)
-      dt=dt-real(istart_shift,gp)
-      istart=istart-istart_shift
+     !purify the shift to be a inferior than multiple of the grid spacing
+     istart_shift=nint(dt)
+     dt=dt-real(istart_shift,gp)
+     istart=istart-istart_shift
 
-      !identify extremes for the convolution
+     !identify extremes for the convolution
       ms=-min(m_isf,istart-1)
       me=min(m_isf,ndims_old(ntr)-istart)
 
-     end subroutine shift_and_start
+    end subroutine shift_and_start
 
 
     pure function coord(icrd,ivars,u,C,S,onemc,x,y,z)

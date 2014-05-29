@@ -60,7 +60,7 @@ static inline FLOAT FT_inter(FLOAT x, int interaction)
 
   if(interaction == 0){
     FLOAT x2 = x*x;
-    return expint_e1(x2)*exp(x2);
+    return expint_e1(x2)*EXP(x2);
   }else
     return 2.0*bessel_K0(x); 
 }
@@ -164,4 +164,6 @@ const XC(func_info_type) XC(func_info_lda_x_1d) = {
   lda_x_1d_init,    /* init */
   NULL,             /* end  */
   work_lda,         /* lda  */
+  NULL,
+  NULL
 };

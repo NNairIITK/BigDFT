@@ -1,5 +1,5 @@
 !> @file
-!!  Bader charge density analysis program
+!!  Module for the Bader charge density analysis program
 !! @author
 !!  Copyright 2009
 !! Wenjie Tang, Andri Arnaldsson, Samuel T. Chill, and Graeme Henkelman

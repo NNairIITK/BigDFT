@@ -1,3 +1,13 @@
+!> @file
+!>  Modules which contains all the interfaces to parse input dictionary.
+!! @author
+!!    Copyright (C) 2013-2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
 !>  Modules which contains all interfaces to parse input dictionary.
 module module_input_dicts
 
@@ -7,6 +17,12 @@ module module_input_dicts
 
   !parameters to avoid typos in dictionary keys
   character(len=*), parameter :: ATOMIC_OCC="Atomic occupation"
+  character(len=*), parameter :: ASTRUCT_UNITS = 'units' 
+  character(len=*), parameter :: ASTRUCT_CELL = 'cell' 
+  character(len=*), parameter :: ASTRUCT_POSITIONS = 'positions' 
+  character(len=*), parameter :: ASTRUCT_PROPERTIES = 'properties' 
+  character(len=*), parameter :: GOUT_ENERGY = 'energy (Ha)' 
+  character(len=*), parameter :: GOUT_FORCES = 'forces (Ha/Bohr)' 
 
   ! update a dictionary from a input file
   public :: merge_input_file_to_dict
@@ -17,20 +33,26 @@ module module_input_dicts
   ! Dictionary completion
   public :: psp_dict_fill_all, psp_dict_analyse
 
+  ! Dictionary inquire
+  public :: astruct_dict_get_source, astruct_dict_get_types
+
   ! Types from dictionaries
+  public :: astruct_set_from_dict
   public :: psp_set_from_dict, nlcc_set_from_dict
   public :: atomic_data_set_from_dict
   public :: occupation_set_from_dict
+  public :: neb_set_from_dict
+  public :: global_output_set_from_dict
 
   ! Types to dictionaries
   public :: psp_data_merge_to_dict
   public :: astruct_merge_to_dict
+  public :: global_output_merge_to_dict
 
   ! Dictionaries from files (old formats).
   public :: psp_file_merge_to_dict, nlcc_file_merge_to_dict
   public :: atoms_file_merge_to_dict
   public :: astruct_file_merge_to_dict
-  public :: atomic_data_file_merge_to_dict
   public :: occupation_data_file_merge_to_dict
 
 contains
@@ -40,8 +62,9 @@ contains
     use module_base, only: f_err_raise
     use yaml_output, only: yaml_toa
     implicit none
-    character(len=*), intent(in) :: filename
-    logical :: exists
+    !Arguments
+    character(len=*), intent(in) :: filename !< Filename
+    logical :: exists                        !< Result
     !local variables
     integer :: ierr
     inquire(file = filename, exist = exists,iostat=ierr)
@@ -53,6 +76,7 @@ contains
     end if
   end function file_exists
 
+
   !> Routine to read YAML input files and create input dictionary.
   !! Update the input dictionary with the result of yaml_parse
   subroutine merge_input_file_to_dict(dict, fname, mpi_env)
@@ -60,10 +84,12 @@ contains
     !use yaml_output, only :yaml_map
     use dictionaries
     use yaml_parse, only: yaml_parse_from_char_array
+    use yaml_output
     implicit none
-    type(dictionary), pointer :: dict !<dictionary of the input files. Should be initialized on entry
-    character(len = *), intent(in) :: fname !<name of the file where the dictionaryt has to be read from 
-    type(mpi_environment), intent(in) :: mpi_env !<environment of the reading. Used for broadcasting the result
+    !Arguments
+    type(dictionary), pointer :: dict            !< Dictionary of the input files. Should be initialized on entry
+    character(len = *), intent(in) :: fname      !< Name of the file where the dictionaryt has to be read from 
+    type(mpi_environment), intent(in) :: mpi_env !< Environment of the reading. Used for broadcasting the result
     !local variables
     integer(kind = 8) :: cbuf, cbuf_len
     integer :: ierr
@@ -83,19 +109,22 @@ contains
     fbuf=f_malloc0_str(1,int(cbuf_len),id='fbuf')
 
     if (mpi_env%iproc == 0) then
-       call copyCBuffer(fbuf(1), cbuf, cbuf_len)
+       call copyCBuffer(fbuf, cbuf, cbuf_len)
        call freeCBuffer(cbuf)
-       if (mpi_env%nproc > 1) &
+       if (mpi_env%nproc > 1 .and. cbuf_len > 0) &
             & call mpi_bcast(fbuf(1), int(cbuf_len), MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
     else
-       call mpi_bcast(fbuf(1), int(cbuf_len), MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
+       if (cbuf_len > 0) call mpi_bcast(fbuf(1), int(cbuf_len), MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
     end if
 
     call f_err_open_try()
     call yaml_parse_from_char_array(udict, fbuf)
-    ! Handle with possible partial dictionary.
     call f_free_str(1,fbuf)
-    call dict_update(dict, udict // 0)
+    ! Handle with possible partial dictionary.
+    if (dict_len(udict) > 0) then
+       call dict_update(dict, udict // 0)
+    end if
+
     call dict_free(udict)
     ierr = 0
     if (f_err_check()) ierr = f_get_last_error(val)
@@ -104,35 +133,46 @@ contains
     if (ierr /= 0) call f_err_throw(err_id = ierr, err_msg = val)
     call f_release_routine()
 
-  end subroutine merge_input_file_to_dict
+  END SUBROUTINE merge_input_file_to_dict
 
 
+  !> Read from all input files and build a dictionary
   subroutine user_dict_from_files(dict,radical,posinp, mpi_env)
     use dictionaries
     use dictionaries_base, only: TYPE_DICT, TYPE_LIST
     use module_defs, only: mpi_environment
     use module_interfaces, only: read_input_dict_from_files
     implicit none
-    type(dictionary), pointer :: dict
-    character(len = *), intent(in) :: radical, posinp
-    type(mpi_environment), intent(in) :: mpi_env
-
+    !Arguments
+    type(dictionary), pointer :: dict                  !< Contains (out) all the information
+    character(len = *), intent(in) :: radical          !< Radical for the input files
+    character(len = *), intent(in) :: posinp           !< If the dict has no posinp key, use it
+    type(mpi_environment), intent(in) :: mpi_env       !< MPI Environment
+    !Local variables
+    type(dictionary), pointer :: at
     character(len = max_field_length) :: str
-
-    nullify(dict)
-
 
     !read the input file(s) and transform them into a dictionary
     call read_input_dict_from_files(trim(radical), mpi_env, dict)
 
-    !consider to move the reading of the atomic position at first place
-    if (.not. has_key(dict, "posinp")) then
-       !Add old posinp formats
-       call astruct_file_merge_to_dict(dict, "posinp", trim(posinp))
-    else
+    !possible overwrite with a specific posinp file.
+    call astruct_file_merge_to_dict(dict, "posinp", trim(posinp))
+
+    if (has_key(dict, "posinp")) then
        str = dict_value(dict // "posinp")
        if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
+          !str contains a file name so add atomic positions from it.
           call astruct_file_merge_to_dict(dict, "posinp", trim(str))
+       else
+          !The yaml file contains the atomic positions
+          !Only add the format
+          at => dict // "posinp"
+          if (.not. has_key(at, ASTRUCT_PROPERTIES)) then
+             call set(at // ASTRUCT_PROPERTIES // "format", "yaml")
+          else
+             at => at // ASTRUCT_PROPERTIES
+             if (.not. has_key(at, "format")) call set(at // "format", "yaml")
+          end if
        end if
     end if
 
@@ -166,23 +206,28 @@ contains
           call occupation_data_file_merge_to_dict(dict, "occupation", trim(str))
        end if
     end if
+
   end subroutine user_dict_from_files
 
+
+  !> Fill up the dict with all pseudopotential information
   subroutine psp_dict_fill_all(dict, atomname, run_ixc)
     use module_defs, only: gp, UNINITIALIZED, bigdft_mpi
     use ao_inguess, only: atomic_info
+    use module_atoms, only : RADII_SOURCE, RADII_SOURCE_HARD_CODED, RADII_SOURCE_FILE
     use dictionaries
     use dynamic_memory
     implicit none
-    type(dictionary), pointer :: dict
-    character(len = *), intent(in) :: atomname
-    integer, intent(in) :: run_ixc
-
+    !Arguments
+    type(dictionary), pointer :: dict          !< Input dictionary (inout)
+    character(len = *), intent(in) :: atomname !< Atome name
+    integer, intent(in) :: run_ixc             !< XC functional
+    !Local variables
     integer :: ixc, ierr
     character(len=27) :: filename
     logical :: exists
     integer :: nzatom, nelpsp, npspcode
-    real(gp) :: psppar(0:4,0:6)
+    real(gp), dimension(0:4,0:6) :: psppar
 !    integer, parameter :: nmax=6,lmax=4
     !integer, parameter :: nelecmax=32
 !    character(len=2) :: symbol
@@ -212,7 +257,7 @@ contains
             & nelpsp, npspcode, ixc, psppar(:,:), exists)
        call psp_data_merge_to_dict(dict // filename, nzatom, nelpsp, npspcode, ixc, &
             & psppar(0:4,0:6), radii_cf, UNINITIALIZED(1._gp), UNINITIALIZED(1._gp))
-       call set(dict // filename // "Source", "Hard-coded")
+       call set(dict // filename // "Source", "Hard-Coded")
     else
        nzatom = dict // filename // "Atomic number"
        nelpsp = dict // filename // "No. of Electrons"
@@ -227,7 +272,7 @@ contains
        stop
     end if
 
-    write(source, "(A)") "User-defined"
+    write(source, "(A)") RADII_SOURCE(RADII_SOURCE_FILE)
     if (radii_cf(1) == UNINITIALIZED(1.0_gp)) then
        !see whether the atom is semicore or not
        !and consider the ground state electronic configuration
@@ -237,7 +282,7 @@ contains
 
        !assigning the radii by calculating physical parameters
        radii_cf(1)=1._gp/sqrt(abs(2._gp*ehomo))
-       write(source, "(A)") "Hard-coded"
+       write(source, "(A)") RADII_SOURCE(RADII_SOURCE_HARD_CODED)
     end if
     if (radii_cf(2) == UNINITIALIZED(1.0_gp)) then
        radfine = dict // filename // "Local Pseudo Potential (HGH convention)" // "Rloc"
@@ -250,11 +295,11 @@ contains
           end do
        end if
        radii_cf(2)=radfine
-       write(source, "(A)") "Hard-coded"
+       write(source, "(A)") RADII_SOURCE(RADII_SOURCE_HARD_CODED)
     end if
     if (radii_cf(3) == UNINITIALIZED(1.0_gp)) then
        radii_cf(3)=radfine
-       write(source, "(A)") "Hard-coded"
+       write(source, "(A)") RADII_SOURCE(RADII_SOURCE_HARD_CODED)
     end if
     radii => dict // filename // "Radii of active regions (AU)"
     call set(radii // "Coarse", radii_cf(1))
@@ -263,15 +308,18 @@ contains
     call set(radii // "Source", source)
   end subroutine psp_dict_fill_all
 
+  
+  !> Fill up the atoms structure from dict
   subroutine psp_dict_analyse(dict, atoms)
     use module_defs, only: gp
     use module_types, only: atoms_data
     use module_atoms, only: allocate_atoms_data
     use dictionaries
     implicit none
-    type(dictionary), pointer :: dict
-    type(atoms_data), intent(inout) :: atoms
-
+    !Arguments
+    type(dictionary), pointer :: dict        !< Input dictionary
+    type(atoms_data), intent(inout) :: atoms !Atoms structure to fill up
+    !Local variables
     integer :: ityp
     character(len = 27) :: filename
     real(gp), dimension(3) :: radii_cf
@@ -289,7 +337,7 @@ contains
        filename = 'psppar.'//atoms%astruct%atomnames(ityp)
        call psp_set_from_dict(dict // filename, &
             & atoms%nzatom(ityp), atoms%nelpsp(ityp), atoms%npspcode(ityp), &
-            & atoms%ixcpsp(ityp), atoms%psppar(:,:,ityp), radii_cf)
+            & atoms%ixcpsp(ityp), atoms%iradii_source(ityp), atoms%psppar(:,:,ityp), radii_cf)
        !To eliminate the runtime warning due to the copy of the array (TD)
        atoms%radii_cf(ityp,:)=radii_cf(:)
 
@@ -299,6 +347,7 @@ contains
     end do
     call nlcc_set_from_dict(dict, atoms)
 
+    !For PAW psp
     if (pawpatch) then
        paw_tot_l=0
        paw_tot_q=0
@@ -321,6 +370,7 @@ contains
        nullify(atoms%paw_Gcoeffs,atoms%paw_H_matrices,atoms%paw_S_matrices,atoms%paw_Sm1_matrices)
     end if
   end subroutine psp_dict_analyse
+
 
   subroutine nlcc_set_from_dict(dict, atoms)
     use module_defs, only: gp
@@ -401,17 +451,23 @@ contains
     end if
   end subroutine nlcc_set_from_dict
 
-  subroutine psp_set_from_dict(dict, nzatom, nelpsp, npspcode, ixcpsp, &
-       & psppar, radii_cf)
-    use module_defs, only: gp, UNINITIALIZED
-    use dictionaries
-    implicit none
-    type(dictionary), pointer :: dict
-    integer, intent(out) :: nzatom, nelpsp, npspcode, ixcpsp
-    real(gp), intent(out) :: psppar(0:4,0:6), radii_cf(3)
 
+  !> Set the value for atoms_data from the dictionary
+  subroutine psp_set_from_dict(dict, &
+       & nzatom, nelpsp, npspcode, ixcpsp, iradii_source, psppar, radii_cf)
+    use module_defs, only: gp, UNINITIALIZED
+    use module_atoms
+    use dictionaries
+    use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
+    implicit none
+    !Arguments
+    type(dictionary), pointer :: dict
+    integer, intent(out) :: nzatom, nelpsp, npspcode, ixcpsp, iradii_source
+    real(gp), dimension(0:4,0:6), intent(out) :: psppar
+    !Local variables
     type(dictionary), pointer :: loc
     character(len = max_field_length) :: str
+    real(gp), dimension(3) :: radii_cf
     integer :: i, l
 
     nzatom = -1
@@ -456,17 +512,17 @@ contains
     str = dict // "Pseudopotential type"
     select case(trim(str))
     case("GTH")
-       npspcode = 2
+       npspcode = PSPCODE_GTH
     case("HGH")
-       npspcode = 3
+       npspcode = PSPCODE_HGH
     case("HGH-K")
-       npspcode = 10
+       npspcode = PSPCODE_HGH_K
     case("HGH-K + NLCC")
-       npspcode = 12
+       npspcode = PSPCODE_HGH_K_NLCC
     case default
        return
     end select
-    if (npspcode == 12) then
+    if (npspcode == PSPCODE_HGH_K_NLCC) then
        if (.not. has_key(dict, 'Non Linear Core Correction term')) return
        loc => dict // 'Non Linear Core Correction term'
        if (.not. has_key(loc, "Rcore")) return
@@ -482,31 +538,58 @@ contains
        if (has_key(loc, "Coarse")) radii_cf(1) =  loc // "Coarse"
        if (has_key(loc, "Fine")) radii_cf(2) =  loc // "Fine"
        if (has_key(loc, "Coarse PSP")) radii_cf(3) =  loc // "Coarse PSP"
+       
+       if (has_key(loc, "Source")) then
+          ! Source of the radii
+          str = loc // "Source"
+          select case(str)
+          case(RADII_SOURCE(RADII_SOURCE_HARD_CODED))
+             iradii_source = RADII_SOURCE_HARD_CODED
+          case(RADII_SOURCE(RADII_SOURCE_FILE))
+             iradii_source = RADII_SOURCE_FILE
+          case(RADII_SOURCE(RADII_SOURCE_USER))
+             iradii_source = RADII_SOURCE_USER
+          case default
+             !Undefined: we assume this the name of a file
+             iradii_source = RADII_SOURCE_UNKNOWN
+          end select
+       end if
+
+    else
+       iradii_source = RADII_SOURCE_HARD_CODED
     end if
+
   end subroutine psp_set_from_dict
 
+
+  !> Merge all psp data (coming from a file) in the dictionary
   subroutine psp_data_merge_to_dict(dict, nzatom, nelpsp, npspcode, ixcpsp, &
        & psppar, radii_cf, rcore, qcore)
     use module_defs, only: gp, UNINITIALIZED
+    use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
+    use module_atoms, only: RADII_SOURCE_FILE
     use dictionaries
     use yaml_strings
     implicit none
+    !Arguments
     type(dictionary), pointer :: dict
     integer, intent(in) :: nzatom, nelpsp, npspcode, ixcpsp
-    real(gp), intent(in) :: psppar(0:4,0:6), radii_cf(3), rcore, qcore
-
+    real(gp), dimension(0:4,0:6), intent(in) :: psppar
+    real(gp), dimension(3), intent(in) :: radii_cf
+    real(gp), intent(in) :: rcore, qcore
+    !Local variables
     type(dictionary), pointer :: channel, radii
     integer :: l, i
 
     ! Type
     select case(npspcode)
-    case(2)
+    case(PSPCODE_GTH)
        call set(dict // "Pseudopotential type", 'GTH')
-    case(3)
+    case(PSPCODE_HGH)
        call set(dict // "Pseudopotential type", 'HGH')
-    case(10)
+    case(PSPCODE_HGH_K)
        call set(dict // "Pseudopotential type", 'HGH-K')
-    case(12)
+    case(PSPCODE_HGH_K_NLCC)
        call set(dict // "Pseudopotential type", 'HGH-K + NLCC')
     end select
 
@@ -525,7 +608,7 @@ contains
     end if
 
     ! nlcc term
-    if (npspcode == 12) then
+    if (npspcode == PSPCODE_HGH_K_NLCC) then
        call set(dict // 'Non Linear Core Correction term', &
             & dict_new( 'Rcore' .is. yaml_toa(rcore), &
             & 'Core charge' .is. yaml_toa(qcore)))
@@ -550,10 +633,14 @@ contains
        if (radii_cf(1) /= UNINITIALIZED(1._gp)) call set(radii // "Coarse", radii_cf(1))
        if (radii_cf(2) /= UNINITIALIZED(1._gp)) call set(radii // "Fine", radii_cf(2))
        if (radii_cf(3) /= UNINITIALIZED(1._gp)) call set(radii // "Coarse PSP", radii_cf(3))
+       call set(radii // "Source", RADII_SOURCE_FILE)
        call set(dict // "Radii of active regions (AU)", radii)
     end if
+
   end subroutine psp_data_merge_to_dict
 
+
+  !> Read old psppar file (check if not already in the dictionary) and merge to dict
   subroutine atoms_file_merge_to_dict(dict)
     use dictionaries
     use dictionaries_base, only: TYPE_DICT, TYPE_LIST
@@ -561,7 +648,7 @@ contains
     implicit none
     type(dictionary), pointer :: dict
 
-    type(dictionary), pointer :: types, at
+    type(dictionary), pointer :: types
     character(len = max_field_length) :: str
     integer :: iat
     character(max_field_length), dimension(:), allocatable :: keys
@@ -569,15 +656,7 @@ contains
     logical :: exists
 
     ! Loop on types for atomic data.
-    call dict_init(types)
-    do iat = 0, dict_len(dict // "posinp" // "Positions") - 1, 1
-       at => dict_iter(dict // "posinp" // "Positions" // iat)
-       do while(associated(at))
-          str = dict_key(at)
-          if (dict_len(at) == 3 .and. .not. has_key(types, str)) call set(types // str, ".")
-          at => dict_next(at)
-       end do
-    end do
+    call astruct_dict_get_types(dict // "posinp", types)
     allocate(keys(dict_size(types)))
     keys = dict_keys(types)
     do iat = 1, dict_size(types), 1
@@ -587,6 +666,7 @@ contains
        if (exists) then
           str = dict_value(dict // key)
           if (trim(str) /= "" .and. trim(str) /= TYPE_LIST .and. trim(str) /= TYPE_DICT) then
+             !Read the PSP file and merge to dict
              call psp_file_merge_to_dict(dict, key, trim(str))
              if (.not. has_key(dict // key, 'Pseudopotential XC')) then
                 call yaml_warning("Pseudopotential file '" // trim(str) // &
@@ -606,19 +686,22 @@ contains
     call dict_free(types)
   end subroutine atoms_file_merge_to_dict
 
+
+  !> Read psp file and merge to dict
   subroutine psp_file_merge_to_dict(dict, key, filename)
     use module_defs, only: gp, UNINITIALIZED
     use dictionaries
     use yaml_strings
     implicit none
+    !Arguments
     type(dictionary), pointer :: dict
     character(len = *), intent(in) :: filename, key
-
+    !Local variables
     integer :: nzatom, nelpsp, npspcode, ixcpsp
     real(gp) :: psppar(0:4,0:6), radii_cf(3), rcore, qcore
     logical :: exists, donlcc, pawpatch
 
-    !ALEX: if npspcode==12, nlccpar are read from psppar.Xy via rcore and qcore 
+    !ALEX: if npspcode==PSPCODE_HGH_K_NLCC, nlccpar are read from psppar.Xy via rcore and qcore 
     call psp_from_file(filename, nzatom, nelpsp, npspcode, ixcpsp, &
          & psppar, donlcc, rcore, qcore, radii_cf, exists, pawpatch)
     if (.not.exists) return
@@ -628,6 +711,7 @@ contains
     call set(dict // key // "PAW patch", pawpatch)
     call set(dict // key // "Source", filename)
   end subroutine psp_file_merge_to_dict
+
 
   subroutine nlcc_file_merge_to_dict(dict, key, filename)
     use module_defs, only: gp, UNINITIALIZED
@@ -676,8 +760,9 @@ contains
     close(unit=79)
   end subroutine nlcc_file_merge_to_dict
 
+
   !> Convert astruct to dictionary for later dump.
-  subroutine astruct_merge_to_dict(dict, astruct, rxyz, fxyz, energy, comment)
+  subroutine astruct_merge_to_dict(dict, astruct, rxyz, comment)
     use module_defs, only: gp, UNINITIALIZED, Bohr_Ang
     use module_atoms, only: atomic_structure
     use dictionaries
@@ -686,9 +771,7 @@ contains
     type(dictionary), pointer :: dict
     type(atomic_structure), intent(in) :: astruct
     real(gp), dimension(3, astruct%nat), intent(in) :: rxyz
-    real(gp), dimension(3, astruct%nat), intent(in), optional :: fxyz
-    real(gp), intent(in), optional :: energy
-    character(len = 1024), intent(in), optional :: comment
+    character(len = *), intent(in), optional :: comment
     !local variables
     type(dictionary), pointer :: pos, at
     integer :: iat,ichg,ispol
@@ -702,10 +785,10 @@ contains
     factor=1.0_gp
     Units: select case(trim(astruct%units))
     case('angstroem','angstroemd0')
-       call set(dict // "Units", 'angstroem')
+       call set(dict // ASTRUCT_UNITS, 'angstroem')
        factor=Bohr_Ang
     case('reduced')
-       call set(dict // "Units", 'reduced')
+       call set(dict // ASTRUCT_UNITS, 'reduced')
        reduced = .true.
     case('atomic','atomicd0','bohr','bohrd0')
        ! Default, store nothing
@@ -714,25 +797,25 @@ contains
     !cell information
     BC :select case(astruct%geocode)
     case('S')
-       call add(dict // "Cell", yaml_toa(astruct%cell_dim(1)*factor(1)))
-       call add(dict // "Cell", '.inf')
-       call add(dict // "Cell", yaml_toa(astruct%cell_dim(3)*factor(3)))
+       call set(dict // ASTRUCT_CELL // 0, yaml_toa(astruct%cell_dim(1)*factor(1)))
+       call set(dict // ASTRUCT_CELL // 1, '.inf')
+       call set(dict // ASTRUCT_CELL // 2, yaml_toa(astruct%cell_dim(3)*factor(3)))
        !angdeg to be added
        if (reduced) then
           factor(1) = 1._gp / astruct%cell_dim(1)
           factor(3) = 1._gp / astruct%cell_dim(3)
        end if
     case('W')
-       call add(dict // "Cell", '.inf')
-       call add(dict // "Cell", '.inf')
-       call add(dict // "Cell", yaml_toa(astruct%cell_dim(3)*factor(3)))
+       call set(dict // ASTRUCT_CELL // 0, '.inf')
+       call set(dict // ASTRUCT_CELL // 1, '.inf')
+       call set(dict // ASTRUCT_CELL // 2, yaml_toa(astruct%cell_dim(3)*factor(3)))
        if (reduced) then
           factor(3) = 1._gp / astruct%cell_dim(3)
        end if
     case('P')
-       call add(dict // "Cell", yaml_toa(astruct%cell_dim(1)*factor(1)))
-       call add(dict // "Cell", yaml_toa(astruct%cell_dim(2)*factor(2)))
-       call add(dict // "Cell", yaml_toa(astruct%cell_dim(3)*factor(3)))
+       call set(dict // ASTRUCT_CELL // 0, yaml_toa(astruct%cell_dim(1)*factor(1)))
+       call set(dict // ASTRUCT_CELL // 1, yaml_toa(astruct%cell_dim(2)*factor(2)))
+       call set(dict // ASTRUCT_CELL // 2, yaml_toa(astruct%cell_dim(3)*factor(3)))
        !angdeg to be added
        if (reduced) then
           factor(1) = 1._gp / astruct%cell_dim(1)
@@ -740,10 +823,12 @@ contains
           factor(3) = 1._gp / astruct%cell_dim(3)
        end if
     case('F')
-       ! Default, store nothing
+       ! Default, store nothing and erase key if already exist.
+       if (has_key(dict, ASTRUCT_CELL)) call pop(dict, ASTRUCT_CELL)
     end select BC
 
-    pos => dict // "Positions"
+    if (has_key(dict, ASTRUCT_POSITIONS)) call pop(dict, ASTRUCT_POSITIONS)
+    pos => dict // ASTRUCT_POSITIONS
     do iat=1,astruct%nat
        call dict_init(at)
        call add(at // astruct%atomnames(astruct%iatype(iat)), rxyz(1,iat) * factor(1))
@@ -759,51 +844,228 @@ contains
        call add(pos, at)
     end do
 
-    if (present(fxyz)) then
-       pos => dict // "Forces (Ha/Bohr)"
-       do iat=1,astruct%nat
-          call add(pos, yaml_toa(fxyz(:, iat)))
-       end do
-    end if
-
-    if (present(energy)) then
-       if (energy /= UNINITIALIZED(energy)) &
-            & call add(dict // "Properties" // "Energy (Ha)", energy)
-    end if
-
     if (present(comment)) then
        if (len_trim(comment) > 0) &
-            & call add(dict // "Properties" // "Info", comment)
+            & call add(dict // ASTRUCT_PROPERTIES // "info", comment)
     end if
 
     if (len_trim(astruct%inputfile_format) > 0) &
-         & call set(dict // "Properties" // "Format", astruct%inputfile_format)
+         & call set(dict // ASTRUCT_PROPERTIES // "format", astruct%inputfile_format)
   end subroutine astruct_merge_to_dict
 
+  
+  subroutine astruct_dict_get_types(dict, types)
+    use dictionaries
+    implicit none
+    type(dictionary), pointer :: dict, types
 
+    type(dictionary), pointer :: atoms, at
+    character(len = max_field_length) :: str
+    integer :: iat, ityp
+
+    call dict_init(types)
+    atoms => dict // ASTRUCT_POSITIONS
+    ityp = 0
+    do iat = 1, dict_len(atoms), 1
+       at => dict_iter(atoms // (iat - 1))
+       do while(associated(at))
+          str = dict_key(at)
+          if (dict_len(at) == 3 .and. .not. has_key(types, str)) then
+             ityp = ityp + 1
+             call set(types // str, ityp)
+             nullify(at)
+          else
+             at => dict_next(at)
+          end if
+       end do
+    end do
+  end subroutine astruct_dict_get_types
+
+  subroutine astruct_dict_get_source(dict, source)
+    use dictionaries, only: max_field_length, dictionary, has_key, operator(//), dict_value
+    implicit none
+    type(dictionary), pointer :: dict
+    character(len = max_field_length), intent(out) :: source
+    
+    write(source, "(A)") ""
+    if (has_key(dict, ASTRUCT_PROPERTIES)) then
+       if (has_key(dict // ASTRUCT_PROPERTIES, "source")) &
+            & source = dict_value(dict // ASTRUCT_PROPERTIES // "source")
+    end if
+  end subroutine astruct_dict_get_source
+
+  !> Read Atomic positions to dict
   subroutine astruct_file_merge_to_dict(dict, key, filename)
     use module_base, only: gp, UNINITIALIZED, bigdft_mpi,f_routine,f_release_routine
     use module_atoms, only: set_astruct_from_file,atomic_structure,&
          nullify_atomic_structure,deallocate_atomic_structure
+    use module_types, only: DFT_global_output, nullify_global_output, deallocate_global_output
     use dictionaries
     use yaml_strings
     implicit none
-    type(dictionary), pointer :: dict
+    !Arguments
+    type(dictionary), pointer :: dict  !< Contains (out) all the information
     character(len = *), intent(in) :: filename, key
-    
+    !Local variables
     type(atomic_structure) :: astruct
+    type(DFT_global_output) :: outs
     integer :: ierr
+
     call f_routine(id='astruct_file_merge_to_dict')
     ! Read atomic file, old way
     call nullify_atomic_structure(astruct)
-    call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, status = ierr)
+    call nullify_global_output(outs)
+    call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, status = ierr, &
+         & energy = outs%energy, fxyz = outs%fxyz)
     if (ierr == 0) then
        call astruct_merge_to_dict(dict // key, astruct, astruct%rxyz)
-       call set(dict // key // "Properties" // "Source", filename)
+       call set(dict // key // ASTRUCT_PROPERTIES // "source", filename)
+       call global_output_merge_to_dict(dict // key, outs, astruct)
        call deallocate_atomic_structure(astruct)
     end if
+    call deallocate_global_output(outs)
     call f_release_routine()
   end subroutine astruct_file_merge_to_dict
+
+
+  !> Allocate the astruct variable from the dictionary of input data
+  !! retrieve also other information like the energy and the forces if requested
+  !! and presend in the dictionary
+  subroutine astruct_set_from_dict(dict, astruct, comment)
+    use module_defs, only: gp, Bohr_Ang, UNINITIALIZED
+    use module_atoms, only: atomic_structure, nullify_atomic_structure
+    use dictionaries
+    use dynamic_memory
+    implicit none
+    !Arguments
+    type(dictionary), pointer :: dict !< dictionary of the input variables
+    !! the keys have to be declared like input_dicts module
+    type(atomic_structure), intent(out) :: astruct !<structure created from the file
+    !> extra comment retrieved from the file if present
+    character(len = 1024), intent(out), optional :: comment
+    !local variables
+    character(len=*), parameter :: subname='astruct_set_from_dict'
+    type(dictionary), pointer :: pos, at, types
+    character(len = max_field_length) :: str
+    integer :: iat, ityp, units, igspin, igchrg, nsgn, ntyp, ierr
+
+    call nullify_atomic_structure(astruct)
+    astruct%nat = -1
+    if (present(comment)) write(comment, "(A)") " "
+    if (.not. has_key(dict, ASTRUCT_POSITIONS)) return
+
+    ! The units
+    units = 0
+    write(astruct%units, "(A)") "bohr"
+    if (has_key(dict, ASTRUCT_UNITS)) astruct%units = dict // ASTRUCT_UNITS
+    select case(trim(astruct%units))
+    case('atomic','atomicd0','bohr','bohrd0')
+       units = 0
+    case('angstroem','angstroemd0')
+       units = 1
+    case('reduced')
+       units = 2
+    end select
+    ! The cell
+    astruct%cell_dim = 0.0_gp
+    if (.not. has_key(dict, ASTRUCT_CELL)) then
+       astruct%geocode = 'F'
+    else
+       astruct%geocode = 'P'
+       ! z
+       astruct%cell_dim(3) = dict // ASTRUCT_CELL // 2
+       ! y
+       str = dict // ASTRUCT_CELL // 1
+       if (trim(str) == ".inf") then
+          astruct%geocode = 'S'
+       else
+          astruct%cell_dim(2) = dict // ASTRUCT_CELL // 1
+       end if
+       ! x
+       str = dict // ASTRUCT_CELL // 0
+       if (trim(str) == ".inf") then
+          astruct%geocode = 'W'
+       else
+          astruct%cell_dim(1) = dict // ASTRUCT_CELL // 0
+       end if
+    end if
+    if (units == 1) astruct%cell_dim = astruct%cell_dim / Bohr_Ang
+    ! The types
+    call astruct_dict_get_types(dict, types)
+    ntyp = dict_size(types)
+    call astruct_set_n_types(astruct, ntyp)
+    ! astruct%atomnames = dict_keys(types)
+    ityp = 1
+    at => dict_iter(types)
+    do while (associated(at))
+       astruct%atomnames(ityp) = dict_key(at)
+       ityp = ityp + 1
+       at => dict_next(at)
+    end do
+    ! The atoms
+    pos => dict // ASTRUCT_POSITIONS
+    call astruct_set_n_atoms(astruct, dict_len(pos))
+    do iat = 1, astruct%nat
+       igspin = 0
+       igchrg = 0
+       nsgn   = 1
+       !at => pos // (iat - 1)
+       at => dict_iter(pos//(iat-1))!at%child
+       do while(associated(at))
+          str = dict_key(at)
+          if (trim(str) == "Frozen") then
+             str = dict_value(at)
+             call frozen_ftoi(str(1:4), astruct%ifrztyp(iat),ierr)
+          else if (trim(str) == "IGSpin") then
+             igspin = at
+          else if (trim(str) == "IGChg") then
+             igchrg = at
+             if (igchrg >= 0) then
+                nsgn = 1
+             else
+                nsgn = -1
+             end if
+          else if (dict_len(at) == 3) then
+             astruct%iatype(iat) = types // dict_key(at)
+             astruct%rxyz(:, iat) = at
+          end if
+          at => dict_next(at)
+       end do
+       astruct%input_polarization(iat) = 1000 * igchrg + nsgn * 100 + igspin
+       if (units == 1) then
+          astruct%rxyz(1,iat) = astruct%rxyz(1,iat) / Bohr_Ang
+          astruct%rxyz(2,iat) = astruct%rxyz(2,iat) / Bohr_Ang
+          astruct%rxyz(3,iat) = astruct%rxyz(3,iat) / Bohr_Ang
+       endif
+       if (units == 2) then !add treatment for reduced coordinates
+          if (astruct%cell_dim(1) > 0.) astruct%rxyz(1,iat)=&
+               modulo(astruct%rxyz(1,iat),1.0_gp) * astruct%cell_dim(1)
+          if (astruct%cell_dim(2) > 0.) astruct%rxyz(2,iat)=&
+               modulo(astruct%rxyz(2,iat),1.0_gp) * astruct%cell_dim(2)
+          if (astruct%cell_dim(3) > 0.) astruct%rxyz(3,iat)=&
+               modulo(astruct%rxyz(3,iat),1.0_gp) * astruct%cell_dim(3)
+       else if (astruct%geocode == 'P') then
+          astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),astruct%cell_dim(1))
+          astruct%rxyz(2,iat)=modulo(astruct%rxyz(2,iat),astruct%cell_dim(2))
+          astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
+       else if (astruct%geocode == 'S') then
+          astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),astruct%cell_dim(1))
+          astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
+       else if (astruct%geocode == 'W') then
+          astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
+       end if
+    end do
+
+    if (has_key(dict, ASTRUCT_PROPERTIES)) then
+       pos => dict // ASTRUCT_PROPERTIES
+       if (has_key(pos, "info") .and. present(comment)) comment = pos // "info"
+       if (has_key(pos, "format")) astruct%inputfile_format = pos // "format"
+    end if
+
+    call dict_free(types)
+
+  end subroutine astruct_set_from_dict
+
 
   subroutine aocc_to_dict(dict, nspin, noncoll, nstart, aocc, nelecmax, lmax, nsccode)
     use module_defs, only: gp
@@ -824,7 +1086,8 @@ contains
     iocc=0
     do l = 1, lmax
        iocc=iocc+1
-       ! Get number of shells for this channel
+       ! Get number of shells for this channel 
+       !(to be corrected, the rule is not the same)
        nl = int(aocc(iocc))
        ! Get number of semi cores for this channel
        nsc = modulo(sccode, 4)
@@ -846,6 +1109,7 @@ contains
     end do
   end subroutine aocc_to_dict
 
+
   subroutine atomic_data_set_from_dict(dict, key, atoms, nspin)
     use module_defs, only: gp
     use ao_inguess, only: ao_ig_charge,atomic_info,aoig_set_from_dict,&
@@ -860,8 +1124,7 @@ contains
     character(len = *), intent(in) :: key
     integer, intent(in) :: nspin
 
-    integer :: iat, ityp, nsccode, mxpl, mxchg, nsp, nspinor
-    integer :: ichg, ispol, icoll, iocc, ispin, l, inl, m, nl, noncoll
+    integer :: iat, ityp
     real(gp) :: rcov,elec!,rprb,ehomo,elec
     character(len = max_field_length) :: at
     type(dictionary), pointer :: dict_tmp
@@ -892,7 +1155,7 @@ contains
                 !check the total number of electrons
                 elec=ao_ig_charge(nspin,atoms%aoig(iat)%aocc)
                 if (nint(elec) /= atoms%nelpsp(ityp)) then
-                   call print_eleconf(nspin,atoms%aoig(iat)%aocc,atoms%aoig(iat)%iasctype)
+                   call print_eleconf(nspin,atoms%aoig(iat)%aocc,atoms%aoig(iat)%nl_sc)
                    call yaml_warning('The total atomic charge '//trim(yaml_toa(elec))//&
                         ' is different from the PSP charge '//trim(yaml_toa(atoms%nelpsp(ityp))))
                 end if
@@ -905,49 +1168,12 @@ contains
     !number of atoms with semicore channels
     atoms%natsc = 0
     do iat=1,atoms%astruct%nat
-       if (atoms%aoig(iat)%iasctype /= 0) atoms%natsc=atoms%natsc+1
+       if (atoms%aoig(iat)%nao_sc /= 0) atoms%natsc=atoms%natsc+1
+       !if (atoms%aoig(iat)%iasctype /= 0) atoms%natsc=atoms%natsc+1
     enddo
   end subroutine atomic_data_set_from_dict
+  
 
-  subroutine atomic_data_file_merge_to_dict(dict, key, filename)
-    use module_defs, only: gp, UNINITIALIZED
-    use dictionaries
-    use yaml_output
-    implicit none
-    type(dictionary), pointer :: dict
-    character(len = *), intent(in) :: filename, key
-
-    logical :: exists
-    integer :: ierror, jat, nsp, nsccode
-    character(len = 1024) :: string
-    character(len = max_field_length) :: at
-    integer, parameter :: nelecmax = 32, noccmax = 4, lmax = 4
-    real(gp), dimension(nelecmax) :: aocc
-    type(dictionary), pointer :: val
-    
-    inquire(file = filename, exist = exists)
-    if (.not. exists) return
-
-    open(unit=91,file=filename,status='old',iostat=ierror)
-    !Check the open statement
-    if (f_err_raise(ierror /= 0,'Failed to open the existing file '// trim(filename),&
-         err_name='BIGDFT_RUNTIME_ERROR')) return
-
-    parse_inocc: do
-       read(91,'(a1024)',iostat=ierror)string
-       if (ierror /= 0) exit parse_inocc !file ends
-       read(string,*,iostat=ierror)jat
-       if (ierror /=0) stop 'Error reading line'
-
-       write(at, "(A, I0)") "Atom ", jat
-       call read_eleconf(string,noccmax,nelecmax,lmax,aocc,nsccode,nsp)
-       call aocc_to_dict(val, nsp, 1, 0, aocc, nelecmax, lmax, nsccode)
-       call set(dict // key // at, val)
-    end do parse_inocc
-
-    close(unit = 91)
-
-  end subroutine atomic_data_file_merge_to_dict
 
   subroutine occupation_set_from_dict(dict, key, norbu, norbd, occup, &
        & nkpts, nspin, norbsempty, nelec_up, nelec_down, norb_max)
@@ -1128,6 +1354,7 @@ contains
     end subroutine fill_for_kpt
   end subroutine occupation_set_from_dict
 
+
   subroutine occupation_data_file_merge_to_dict(dict, key, filename)
     use module_defs, only: gp, UNINITIALIZED
     use dictionaries
@@ -1217,4 +1444,93 @@ contains
 
   end subroutine occupation_data_file_merge_to_dict
 
+  subroutine global_output_merge_to_dict(dict, outs, astruct)
+    use module_defs, only: gp, UNINITIALIZED
+    use module_types, only: atomic_structure, DFT_global_output
+    use dictionaries
+    implicit none
+    type(dictionary), pointer :: dict
+    type(DFT_global_output), intent(in) :: outs
+    type(atomic_structure), intent(in) :: astruct
+
+    integer :: iat
+    type(dictionary), pointer :: pos, fxyz
+
+    if (has_key(dict, GOUT_FORCES)) call pop(dict, GOUT_FORCES)
+    if (associated(outs%fxyz)) then
+       pos => dict // GOUT_FORCES
+       do iat=1,astruct%nat
+          call dict_init(fxyz)
+          call set(fxyz // astruct%atomnames(astruct%iatype(iat)) // 0, outs%fxyz(1, iat))
+          call set(fxyz // astruct%atomnames(astruct%iatype(iat)) // 1, outs%fxyz(2, iat))
+          call set(fxyz // astruct%atomnames(astruct%iatype(iat)) // 2, outs%fxyz(3, iat))
+          call add(pos, fxyz)
+       end do
+    end if
+
+    if (has_key(dict, GOUT_ENERGY)) call pop(dict, GOUT_ENERGY)
+    if (outs%energy /= UNINITIALIZED(outs%energy)) &
+         & call set(dict // GOUT_ENERGY, outs%energy)
+
+  end subroutine global_output_merge_to_dict
+
+  subroutine global_output_set_from_dict(outs, dict)
+    use module_types, only: DFT_global_output, init_global_output
+    use dictionaries
+    implicit none
+    type(dictionary), pointer :: dict
+    type(DFT_global_output), intent(inout) :: outs
+    
+    integer :: i
+    type(dictionary), pointer :: it
+
+    if (has_key(dict, GOUT_FORCES)) then
+       if (.not. associated(outs%fxyz)) &
+            & call init_global_output(outs, dict_len(dict // GOUT_FORCES))
+       do i = 1, outs%fdim, 1
+          it => dict_iter(dict // GOUT_FORCES // (i - 1))
+          do while (associated(it))
+             if (dict_len(it) == 3) then
+                outs%fxyz(1, i) = it // 0
+                outs%fxyz(2, i) = it // 1
+                outs%fxyz(3, i) = it // 2
+                exit
+             end if
+             it => dict_next(it)
+          end do
+       end do
+    end if
+
+    if (has_key(dict, GOUT_ENERGY)) outs%energy = dict // GOUT_ENERGY
+  end subroutine global_output_set_from_dict
+
+  subroutine neb_set_from_dict(dict, opt, climbing_, imax, nimg_, &
+       & cv, tol, ds_, kmin, kmax, temp_, damp_, meth)
+    use module_defs, only: gp
+    use dictionaries
+    use module_input_keys
+    use yaml_output
+    implicit none
+    type(dictionary), pointer :: dict
+    logical, intent(out) :: opt, climbing_
+    integer, intent(out) :: imax, nimg_
+    real(kind = gp), intent(out) :: cv, tol, ds_, damp_, kmin, kmax, temp_
+    character(len = max_field_length), intent(out) :: meth
+
+    if (.not. has_key(dict, GEOPT_VARIABLES)) return
+    if (trim(dict_value(dict // GEOPT_VARIABLES // GEOPT_METHOD)) /= "NEB") return
+
+    opt       = dict // GEOPT_VARIABLES // EXTREMA_OPT
+    climbing_ = dict // GEOPT_VARIABLES // NEB_CLIMBING
+    imax      = dict // GEOPT_VARIABLES // NCOUNT_CLUSTER_X
+    nimg_     = dict // GEOPT_VARIABLES // NIMG
+    cv        = dict // GEOPT_VARIABLES // FORCEMAX
+    tol       = dict // GEOPT_VARIABLES // FIX_TOL
+    ds_       = dict // GEOPT_VARIABLES // BETAX
+    kmin      = dict // GEOPT_VARIABLES // SPRINGS_K // 0
+    kmax      = dict // GEOPT_VARIABLES // SPRINGS_K // 1
+    meth      = dict // GEOPT_VARIABLES // NEB_METHOD
+    if (has_key(dict // GEOPT_VARIABLES, TEMP)) temp_ = dict // GEOPT_VARIABLES // TEMP
+    if (has_key(dict // GEOPT_VARIABLES, NEB_DAMP)) damp_ = dict // GEOPT_VARIABLES // NEB_DAMP
+  end subroutine neb_set_from_dict
 end module module_input_dicts
