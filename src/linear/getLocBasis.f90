@@ -378,7 +378,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       if (iproc==0) call yaml_map('method','FOE')
       tmprtr=0.d0
       call foe(iproc, nproc, tmprtr, &
-           energs%ebs, itout,it_scc, order_taylor, purification_quickreturn, adjust_FOE_temperature, &
+           energs%ebs, itout,it_scc, order_taylor, purification_quickreturn, &
            1, FOE_ACCURATE, tmb, tmb%foe_obj)
       !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
       ! Eigenvalues not available, therefore take -.5d0
@@ -458,13 +458,12 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
  
   ! Local variables
   real(kind=8) :: fnrmMax, meanAlpha, ediff_best, alpha_max, delta_energy, delta_energy_prev, ediff
-  integer :: iorb, istat, ierr, it, iall, it_tot, ncount, jorb, ncharge
+  integer :: iorb, it, it_tot, ncount, jorb, ncharge
   real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_noconf, psidiff
   real(kind=8),dimension(:),allocatable :: delta_energy_arr
   real(kind=8),dimension(:),allocatable :: hpsi_noprecond, occup_tmp, kernel_compr_tmp, philarge
   real(kind=8),dimension(:,:),allocatable :: coeff_old
   logical :: energy_increased, overlap_calculated
-  character(len=*),parameter :: subname='getLocalizedBasis'
   real(kind=8),dimension(:),pointer :: lhphiold, lphiold, hpsit_c, hpsit_f, hpsi_small
   type(energy_terms) :: energs
   real(kind=8), dimension(2):: reducearr
@@ -478,8 +477,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   integer,save :: nkappa_history
   logical,save :: has_already_converged
   logical,dimension(7) :: exit_loop
-  logical :: associated_psit_c, associated_psit_f
-  logical :: associated_psitlarge_c, associated_psitlarge_f
 
   call f_routine(id='getLocalizedBasis')
 
@@ -676,7 +673,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               if (iproc==0) call yaml_newline()
               if (iproc==0) call yaml_open_sequence('kernel update by FOE')
               call foe(iproc, nproc, 0.d0, &
-                   energs%ebs, -1, -10, order_taylor, purification_quickreturn, adjust_FOE_temperature, 0, &
+                   energs%ebs, -1, -10, order_taylor, purification_quickreturn, 0, &
                    FOE_FAST, tmb, tmb%foe_obj)
               if (iproc==0) call yaml_close_sequence()
               !if (.not.associated_psitlarge_c) then
@@ -889,16 +886,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           tmb%ham_descr%can_use_transposed=.false.
           call vcopy(tmb%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
           can_use_ham=.false.
-          !!if (scf_mode/=LINEAR_FOE) then
-          !!    ! Recalculate the kernel with the old coefficients
-          !!    call vcopy(tmb%orbs%norb*tmb%orbs%norb, coeff_old(1,1), 1, tmb%coeff(1,1), 1)
-          !!    call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, &
-          !!         tmb%coeff, tmb%linmat%denskern)
-          !!else
-          !call vcopy(tmb%linmat%denskern%nvctr, kernel_best(1), 1, tmb%linmat%denskern%matrix_compr(1), 1)
-          !call vcopy(tmb%linmat%l%nvctr, kernel_best(1), 1, tmb%linmat%denskern_large%matrix_compr(1), 1)
           call vcopy(tmb%linmat%l%nvctr, kernel_best(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
-          !!end if
           trH_old=0.d0
           it=it-2 !go back one iteration (minus 2 since the counter was increased)
           !if(associated(tmb%ham_descr%psit_c)) then
@@ -915,8 +903,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               call bigdft_utils_flush(unit=6)
              cycle
           else if(it_tot<3*nit_basis) then ! stop orthonormalizing the tmbs
-             !if (iproc==0) write(*,*) 'WARNING: SWITCHING OFF ORTHO COMMENTED'
-             !if (iproc==0) write(*,'(a)') 'Energy increasing, switching off orthonormalization of tmbs'
              if (iproc==0) call yaml_newline()
              if (iproc==0) call yaml_warning('Energy increasing, switching off orthonormalization of tmbs')
              ortho_on=.false.
@@ -1036,11 +1022,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           delta_energy_arr(max(it,1))=delta_energy !max since the counter was decreased if there are problems, might lead to wrong results otherwise
       end if
 
-      ! Copy the coefficients to coeff_old. The coefficients will be modified in reconstruct_kernel.
-      if (scf_mode/=LINEAR_FOE) then
-          call vcopy(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1), 1, coeff_old(1,1), 1)
-      end if
-
 
       ! Only need to reconstruct the kernel if it is actually used.
       if ((target_function/=TARGET_FUNCTION_IS_TRACE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) &
@@ -1156,11 +1137,6 @@ contains
       psidiff = f_malloc(tmb%npsidim_orbs,id='psidiff')
       hpsi_noprecond = f_malloc(tmb%npsidim_orbs,id='hpsi_noprecond')
 
-      if (scf_mode/=LINEAR_FOE) then
-          coeff_old = f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='coeff_old')
-      end if
-
-
     end subroutine allocateLocalArrays
 
 
@@ -1183,10 +1159,6 @@ contains
     call f_free(hpsi_noconf)
     call f_free(psidiff)
     call f_free(hpsi_noprecond)
-
-    if (scf_mode/=LINEAR_FOE) then
-        call f_free(coeff_old)
-    end if
 
     end subroutine deallocateLocalArrays
 
