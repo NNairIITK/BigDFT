@@ -1696,8 +1696,6 @@ subroutine corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, 
 end subroutine corrections_for_negative_charge
 
 
-
-
 subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero)
       use module_base
       use module_types
@@ -1799,6 +1797,7 @@ subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero
       call f_free(noverlapsarr)
       call f_free(overlaps_op)
     
+      call f_release_routine()
     
     !!  iall=-product(shape(overlapMatrix))*kind(overlapMatrix)
     !!  deallocate(overlapMatrix, stat=istat)

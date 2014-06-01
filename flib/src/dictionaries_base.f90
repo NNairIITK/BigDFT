@@ -845,7 +845,7 @@ contains
 
     call dict_get_num(ndict,ndict_max,nlibs,nlibs_max)
     if (ndict /=0 ) then
-       print *,'Error, found unfreed dictionaries after finalization',&
+       print *,'#Error, found unfreed dictionaries after finalization',&
             ndict
        call find_residual_dicts()
     end if

@@ -589,10 +589,15 @@ contains
       dict_tmp => dict_iter(dict//LIN_BASIS_PARAMS)
       do while(associated(dict_tmp))
        category=dict_key(dict_tmp)
-       !Pb with stack (Cray - ftn 05/2015)
+       !Pb with stack (Cray - ftn 05/2015), solved with the cat_found temporary variable
        cat_found = category .in. parameters//LIN_BASIS_PARAMS
        if (.not. cat_found .and. index(category,ATTRS) == 0 ) then
-           call dict_copy(minimal//LIN_BASIS_PARAMS//category,dict_tmp)
+          !verify that no parameters correspond to default values
+          call minimal_category(parameters//LIN_BASIS_PARAMS,dict_tmp,min_cat)
+          if (associated(min_cat)) then
+             !call dict_copy(minimal//LIN_BASIS_PARAMS//category,dict_tmp)
+             call set(minimal//LIN_BASIS_PARAMS//category,min_cat)
+          end if
        end if
        dict_tmp => dict_next(dict_tmp)
       end do
@@ -653,10 +658,40 @@ contains
                  end if
                  defvar => dict_next(defvar)
               end do check_profile
-              !the key has not been found, among the profiles, therefore it should be entered as is
+              !the key has not been found among the profiles, therefore it should be entered as is
               if (.not. profile_found .and. len_trim(dict_value(input//def_var))/=0) then
                  if (.not. associated(minim)) call dict_init(minim)
-                 call dict_copy(minim//def_var,input//def_var)
+                 !clean the list items if the dictionary is a list with all the items identical
+                 defvar => dict_iter(input//def_var)
+                 var_prof=repeat(' ',len(var_prof))
+                 if (dict_len(input // def_var)==0) nullify(defvar)
+                 compact_list: do while(associated(defvar))
+                    !if scalar, retrieve the value, otherwise exit
+                    if (dict_size(defvar) == 0 .and. dict_len(defvar)==0) then
+                       prof_var=defvar
+                    else
+                       var_prof=repeat(' ',len(var_prof))
+                       exit compact_list
+                    end if
+                    !check if all the values of the list are equal to the first one
+                    if (len_trim(var_prof) == 0) then
+                       var_prof=prof_var
+                    else
+                       !check if all the values are OK, otherwise exit at first failure
+                       if (var_prof /= prof_var) then
+                         var_prof=repeat(' ',len(var_prof))
+                         exit compact_list
+                      end if
+                    end if
+                    defvar => dict_next(defvar)
+                 end do compact_list
+                 !if the dictionary is not a one-level list or if it is a list with different values
+                 ! copy it as-is
+                 if (len_trim(var_prof) == 0) then
+                    call dict_copy(minim//def_var,input//def_var)
+                 else !otherwise put the scalar value associated
+                    call set(minim//def_var,var_prof)
+                 end if
               end if
            end if
            var => dict_next(var)

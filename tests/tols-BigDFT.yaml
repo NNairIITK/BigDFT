@@ -169,7 +169,7 @@ CH3-:
 
 scalability:
  Energies: 1.e-9
- EKS: 2.0e-10
+ EKS: 2.14e-10
  Total electronic charge: 1.9e-11
  Expected kinetic energy: 1.1e-10
 
@@ -529,7 +529,7 @@ fructose:
  D eF: 3.9e-5
  D Tr: 5.4e-6
  eF: 5.4e-5
- EH: 1.0e-9
+ EH: 1.01e-9
  EvXC: 1.1e-10
  energy: 1.43e-10
  Omega: 1.41e-10
@@ -560,6 +560,7 @@ geopt_foe:
  ebs: 2.1e-7
  ebs_check: 1.1e-8
  diff: 2.1e-7
+ Positions: 2.1e-9
 
 geopt_diag:
  Epot: 1.1e-10
@@ -656,7 +657,7 @@ deltascf_write_neut:
 
 foe:
  Epot: 1.1e-10
- energy: 1.32e-10
+ energy: 1.378e-10
  EH: 1.0e-9
  Omega: 1.64e-10
  EXC: 7.1e-10
@@ -895,10 +896,10 @@ DIIShistory:
 
 sparsity:
  Total charge: 1.1e-10
- Omega: 5.6e-10
+ Omega: 1.03e-9
  Clean forces norm (Ha/Bohr): 7.7e-11
  Raw forces norm (Ha/Bohr): 1.4e-11
- Total ionic charge: 2.2e-11
+ Total ionic charge: 2.41e-11
  charge diff: 1.1e-9
  energy: 1.1e-9
  EXC: 1.1e-10
@@ -916,6 +917,9 @@ PBE_densmixlin:
  energy: 1.1e-10
  Omega: 2.0e-1
  EvXC: 1.1e-10
+ EXC: 1.01e-10
+ EH: 1.0e-9
+ Total charge: 2.01e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -928,6 +932,7 @@ PBE_potmixlin:
  energy: 1.1e-10
  Omega: 1.1e-10
  delta out: 1.1e-9
+ Total charge: 2.01e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -946,6 +951,7 @@ PBE_potmixdiis:
  EH: 6.3e-8
  Ekin: 1.2e-8
  Enl: 2.2e-9
+ Total charge: 2.01e-11
  multiplicator for the confinement: 4.3e-8
 
 PBE_densmixdiis:
@@ -954,3 +960,5 @@ PBE_densmixdiis:
  Enl: 1.1e-10
  energy: 1.1e-10
  Omega: 1.1e-10
+ Total charge: 2.01e-11
+ EH: 1.0e-9
