@@ -540,9 +540,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call yaml_map('Initial kernel purification',.true.)
       end if
       overlap_calculated=.true.
-      !tmb%can_use_transposed=.false.
       call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, order_taylor, purification_quickreturn)
-      !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
       if (iproc==0) call yaml_close_map()
   end if
 
@@ -665,18 +663,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
                    tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, tmb%linmat%ham_)
 
-              !!if(associated(tmb%psit_c)) then
-              !!    call f_free_ptr(tmb%psit_c)
-              !!    associated_psit_c=.true.
-              !!else
-              !!    associated_psit_c=.false.
-              !!end if
-              !!if(associated(tmb%psit_f)) then
-              !!    call f_free_ptr(tmb%psit_f)
-              !!    associated_psit_f=.true.
-              !!else
-              !!    associated_psit_f=.false.
-              !!end if
               if (.not.associated(tmb%psit_c)) then
                   tmb%psit_c = f_malloc_ptr(tmb%collcom%ndimind_c,id='tmb%psit_c')
               end if
@@ -687,26 +673,12 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                    tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
                    tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
-              ! This can then be deleted if the transition to the new type has been completed.
-              !tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
               if (iproc==0) call yaml_newline()
-              !if (iproc==0) call yaml_open_map(flow=.true.)
               if (iproc==0) call yaml_open_sequence('kernel update by FOE')
               call foe(iproc, nproc, 0.d0, &
                    energs%ebs, -1, -10, order_taylor, purification_quickreturn, adjust_FOE_temperature, 0, &
                    FOE_FAST, tmb, tmb%foe_obj)
-              !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
-              !if (iproc==0) call yaml_close_map()
               if (iproc==0) call yaml_close_sequence()
-              !!if (.not.associated_psit_c) then
-              !!    call f_free_ptr(tmb%psit_c)
-              !!end if
-              !!if (.not.associated_psit_f) then
-              !!    call f_free_ptr(tmb%psit_f)
-              !!end if
-              !!if (associated_psit_c .and. associated_psit_f) then
-              !!    tmb%can_use_transposed=.true.
-              !!end if
               if (.not.associated_psitlarge_c) then
                   call f_free_ptr(tmb%ham_descr%psit_c)
               end if
@@ -791,8 +763,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       !if (iproc==0) write(*,*) 'tmb%linmat%denskern%matrix_compr(1)',tmb%linmat%denskern%matrix_compr(1)
       call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
-           hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint_local, .false., hpsi_small, &
-           experimental_mode, correction_co_contra, orbs, hpsi_noprecond, order_taylor, method_updatekernel)
+           hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint_local, hpsi_small, &
+           experimental_mode, correction_co_contra, hpsi_noprecond, order_taylor, method_updatekernel)
 
 
       !!! PLOT ###########################################################################

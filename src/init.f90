@@ -1153,8 +1153,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
      hpsi = f_malloc_ptr(max(1,max(orbs%npsidim_orbs,orbs%npsidim_comp))+ndebug,id='hpsi')
 
      if(present(paw)) then
-        allocate(paw%spsi(max(1,max(orbs%npsidim_orbs,orbs%npsidim_comp))+ndebug),stat=i_stat)
-        call memocc(i_stat,paw%spsi,'spsi',subname)
+        paw%spsi = f_malloc_ptr(max(1,max(orbs%npsidim_orbs,orbs%npsidim_comp)),id='paw%spsi')
      end if
 
      !The following lines are copied from LDiagHam:

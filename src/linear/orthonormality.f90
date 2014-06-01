@@ -35,18 +35,14 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
 
   ! Local variables
   integer :: it, istat, iall
-  !integer :: irow, ii, iorb, jcol, jorb
   real(kind=8), dimension(:),allocatable :: psittemp_c, psittemp_f, norm
-  !type(sparse_matrix) :: inv_ovrlp_half
   character(len=*), parameter :: subname='orthonormalizeLocalized'
-  !real(kind=8), dimension(orbs%norb,orbs%norb) :: tempmat
   real(kind=8),dimension(:,:),pointer :: inv_ovrlp_null
   real(kind=8) :: error
   logical :: ovrlp_associated, inv_ovrlp_associated
   type(matrices) :: ovrlp_, inv_ovrlp_half_
 
 
-  !inv_ovrlp_half%matrix_compr=f_malloc_ptr(inv_ovrlp_half%nvctr,id='inv_ovrlp_half%matrix_compr')
 
   inv_ovrlp_half_ = matrices_null()
   call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='inv_ovrlp_half_', mat=inv_ovrlp_half_)
@@ -54,14 +50,18 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
 
 
   if(.not.can_use_transposed) then
-      if(associated(psit_c)) then
-          call f_free_ptr(psit_c)
+      !!if(associated(psit_c)) then
+      !!    call f_free_ptr(psit_c)
+      !!end if
+      !!if(associated(psit_f)) then
+      !!    call f_free_ptr(psit_f)
+      !!end if
+      if (.not.associated(psit_c)) then
+          psit_c = f_malloc_ptr(sum(collcom%nrecvcounts_c),id='psit_c')
       end if
-      if(associated(psit_f)) then
-          call f_free_ptr(psit_f)
+      if (.not.associated(psit_f)) then
+          psit_f = f_malloc_ptr(7*sum(collcom%nrecvcounts_f),id='psit_f')
       end if
-      psit_c = f_malloc_ptr(sum(collcom%nrecvcounts_c),id='psit_c')
-      psit_f = f_malloc_ptr(7*sum(collcom%nrecvcounts_f),id='psit_f')
 
       call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
       can_use_transposed=.true.
@@ -76,7 +76,6 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
 
   if (methTransformOverlap==-1) then
       call overlap_power_minus_one_half_parallel(iproc, nproc, 0, orbs, ovrlp, ovrlp_, inv_ovrlp_half, inv_ovrlp_half_)
-      !!inv_ovrlp_half_%matrix_compr = inv_ovrlp_half%matrix_compr
   else
       !ovrlp%matrix_compr=ovrlp_%matrix_compr
       call overlapPowerGeneral(iproc, nproc, methTransformOverlap, -2, &

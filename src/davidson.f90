@@ -162,8 +162,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
       !reallocate the work array with the good size
       psiw = f_malloc_ptr(max(VTwfn%orbs%npsidim_orbs, VTwfn%orbs%npsidim_comp),id='psiw')
    else
-      allocate(psiw(1+ndebug),stat=i_stat)
-      call memocc(i_stat,psiw,'psiw',subname)
+      psiw = f_malloc_ptr(1,id='psiw')
    end if
 
    call untranspose_v(iproc,nproc,VTwfn%orbs,VTwfn%Lzd%Glr%wfd,VTwfn%comms,VTwfn%psi(1),psiw(1))

@@ -12,7 +12,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
            energy_increased, tmb, lhphiold, overlap_calculated, &
            energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
-           energy_only, hpsi_small, experimental_mode, correction_co_contra, ksorbs, hpsi_noprecond, &
+           hpsi_small, experimental_mode, correction_co_contra, hpsi_noprecond, &
            norder_taylor, method_updatekernel)
   use module_base
   use module_types
@@ -39,9 +39,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   type(energy_terms), intent(in) :: energs
   real(kind=8), dimension(:), pointer:: hpsit_c, hpsit_f
   integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
-  logical, intent(in) :: energy_only, experimental_mode, correction_co_contra
+  logical, intent(in) :: experimental_mode, correction_co_contra
   real(kind=8), dimension(tmb%npsidim_orbs), intent(out) :: hpsi_small
-  type(orbitals_data),intent(in) :: ksorbs
   real(kind=8), dimension(tmb%npsidim_orbs), optional,intent(out) :: hpsi_noprecond
 
   ! Local variables
@@ -352,7 +351,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! if energy has increased or we only wanted to calculate the energy, not gradient, we can return here
   ! rather than calculating the preconditioning for nothing
-  if ((energy_increased .or. energy_only) .and. target_function/=TARGET_FUNCTION_IS_HYBRID) return
+  if ((energy_increased) .and. target_function/=TARGET_FUNCTION_IS_HYBRID) return
 
 
 
@@ -402,39 +401,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       call yaml_map('Preconditioning',.true.)
   end if
 
-
-  !!!!sum over all the partial residues
-  !!!if (nproc > 1) then
-  !!!    garray(1)=gnrm
-  !!!    garray(2)=gnrm_zero
-  !!!    call mpiallred(garray(1),2,MPI_SUM,bigdft_mpi%mpi_comm)
-  !!!    gnrm     =garray(1)
-  !!!    gnrm_zero=garray(2)
-  !!!end if
-  !!!if (iproc==0) call yaml_map('gnrm/dble(tmb%orbs%norb)', gnrm/dble(tmb%orbs%norb))
-
-  !!!call timing(iproc,'eglincomms','ON')
-  !!!ist=1
-  !!!gnrm_old=gnrm
-  !!!gnrm=0.d0
-  !!!gnrmMax=0.d0
-  !!!do iorb=1,tmb%orbs%norbp
-  !!!    iiorb=tmb%orbs%isorb+iorb
-  !!!    ilr=tmb%orbs%inwhichlocreg(iiorb)
-  !!!    ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-  !!!    gnrmArr=ddot(ncount, hpsi_small(ist), 1, hpsi_small(ist), 1)
-  !!!    gnrm=gnrm+gnrmArr
-  !!!    if(gnrmArr>gnrmMax) gnrmMax=gnrmArr
-  !!!    ist=ist+ncount
-  !!!end do
-
-  !!!if (nproc > 1) then
-  !!!   call mpiallred(gnrm, 1, mpi_sum, bigdft_mpi%mpi_comm)
-  !!!   call mpiallred(gnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm)
-  !!!end if
-  !!!gnrm=sqrt(gnrm/dble(tmb%orbs%norb))
-  !!!gnrmMax=sqrt(gnrmMax)
-  !!!call timing(iproc,'eglincomms','OF')
 
 
 end subroutine calculate_energy_and_gradient_linear
