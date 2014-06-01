@@ -93,12 +93,12 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   ! Calculate the overlap matrix if required.
   if(calculate_overlap_matrix) then
       if(.not.tmb%can_use_transposed) then
-          if(.not.associated(tmb%psit_c)) then
-              tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
-          end if
-          if(.not.associated(tmb%psit_f)) then
-              tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
-          end if
+          !!if(.not.associated(tmb%psit_c)) then
+          !!    tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
+          !!end if
+          !!if(.not.associated(tmb%psit_f)) then
+          !!    tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
+          !!end if
           call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
                tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
           tmb%can_use_transposed=.true.
@@ -663,12 +663,12 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
                    tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, tmb%linmat%ham_)
 
-              if (.not.associated(tmb%psit_c)) then
-                  tmb%psit_c = f_malloc_ptr(tmb%collcom%ndimind_c,id='tmb%psit_c')
-              end if
-              if (.not.associated(tmb%psit_f)) then
-                  tmb%psit_f = f_malloc_ptr(7*tmb%collcom%ndimind_f,id='tmb%psit_f')
-              end if
+              !!if (.not.associated(tmb%psit_c)) then
+              !!    tmb%psit_c = f_malloc_ptr(tmb%collcom%ndimind_c,id='tmb%psit_c')
+              !!end if
+              !!if (.not.associated(tmb%psit_f)) then
+              !!    tmb%psit_f = f_malloc_ptr(7*tmb%collcom%ndimind_f,id='tmb%psit_f')
+              !!end if
               call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
                    tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
@@ -1764,14 +1764,14 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
   ! Calculate the overlap matrix between the TMBs.
   if(.not. overlap_calculated) then
      if(.not.tmb%can_use_transposed) then
-         if(associated(tmb%psit_c)) then
-             call f_free_ptr(tmb%psit_c)
-         end if
-         if(associated(tmb%psit_f)) then
-             call f_free_ptr(tmb%psit_f)
-         end if
-         tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
-         tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
+         !!if(associated(tmb%psit_c)) then
+         !!    call f_free_ptr(tmb%psit_c)
+         !!end if
+         !!if(associated(tmb%psit_f)) then
+         !!    call f_free_ptr(tmb%psit_f)
+         !!end if
+         !!tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
+         !!tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
          call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
               tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
          tmb%can_use_transposed=.true.
@@ -2182,14 +2182,14 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   ! Calculate the overlap matrix between the TMBs.
   if(.not. overlap_calculated) then
      if(.not.tmb%can_use_transposed) then
-         if(associated(tmb%psit_c)) then
-             call f_free_ptr(tmb%psit_c)
-         end if
-         if(associated(tmb%psit_f)) then
-             call f_free_ptr(tmb%psit_f)
-         end if
-         tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
-         tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
+         !!if(associated(tmb%psit_c)) then
+         !!    call f_free_ptr(tmb%psit_c)
+         !!end if
+         !!if(associated(tmb%psit_f)) then
+         !!    call f_free_ptr(tmb%psit_f)
+         !!end if
+         !!tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
+         !!tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
          call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
               tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
          tmb%can_use_transposed=.true.

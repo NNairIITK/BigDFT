@@ -143,12 +143,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       !@NEW correction for contra / covariant gradient
 
       if (method_updatekernel/=UPDATE_BY_FOE .or. target_function/=TARGET_FUNCTION_IS_HYBRID) then
-          if(.not.associated(tmb%psit_c)) then
-              tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
-          end if
-          if(.not.associated(tmb%psit_f)) then
-              tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
-          end if
+          !!if(.not.associated(tmb%psit_c)) then
+          !!    tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
+          !!end if
+          !!if(.not.associated(tmb%psit_f)) then
+          !!    tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
+          !!end if
           call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
                tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
           tmb%can_use_transposed=.true.
@@ -179,12 +179,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   ! Calculate the overlap matrix, can be optimized ############################
   if (.not.correction_co_contra) then
       !if(.not.tmb%can_use_transposed) then
-          if(.not.associated(tmb%psit_c)) then
-              tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
-          end if
-          if(.not.associated(tmb%psit_f)) then
-              tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
-          end if
+          !!if(.not.associated(tmb%psit_c)) then
+          !!    tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
+          !!end if
+          !!if(.not.associated(tmb%psit_f)) then
+          !!    tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
+          !!end if
       !end if
       call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
            tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
@@ -596,8 +596,8 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
 
   ! The transposed quantities can now not be used any more...
   if(tmb%can_use_transposed) then
-      call f_free_ptr(tmb%psit_c)
-      call f_free_ptr(tmb%psit_f)
+      !!call f_free_ptr(tmb%psit_c)
+      !!call f_free_ptr(tmb%psit_f)
       tmb%can_use_transposed=.false.
   end if
 

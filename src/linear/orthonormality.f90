@@ -1864,14 +1864,14 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
 
 
   if(.not.can_use_transposed) then
-      if(associated(psit_c)) then
-          call f_free_ptr(psit_c)
-      end if
-      if(associated(psit_f)) then
-          call f_free_ptr(psit_f)
-      end if
-      psit_c = f_malloc_ptr(sum(collcom%nrecvcounts_c),id='psit_c')
-      psit_f = f_malloc_ptr(7*sum(collcom%nrecvcounts_f),id='psit_f')
+      !!if(associated(psit_c)) then
+      !!    call f_free_ptr(psit_c)
+      !!end if
+      !!if(associated(psit_f)) then
+      !!    call f_free_ptr(psit_f)
+      !!end if
+      !!psit_c = f_malloc_ptr(sum(collcom%nrecvcounts_c),id='psit_c')
+      !!psit_f = f_malloc_ptr(7*sum(collcom%nrecvcounts_f),id='psit_f')
 
       call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
       can_use_transposed=.true.
@@ -2051,14 +2051,14 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
 
 
   if(.not.can_use_transposed) then
-      if(associated(psit_c)) then
-          call f_free_ptr(psit_c)
-      end if
-      if(associated(psit_f)) then
-          call f_free_ptr(psit_f)
-      end if
-      psit_c = f_malloc_ptr(sum(collcom%nrecvcounts_c),id='psit_c')
-      psit_f = f_malloc_ptr(7*sum(collcom%nrecvcounts_f),id='psit_f')
+      !!if(associated(psit_c)) then
+      !!    call f_free_ptr(psit_c)
+      !!end if
+      !!if(associated(psit_f)) then
+      !!    call f_free_ptr(psit_f)
+      !!end if
+      !!psit_c = f_malloc_ptr(sum(collcom%nrecvcounts_c),id='psit_c')
+      !!psit_f = f_malloc_ptr(7*sum(collcom%nrecvcounts_f),id='psit_f')
 
       call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
       can_use_transposed=.true.

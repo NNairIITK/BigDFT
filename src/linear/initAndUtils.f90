@@ -19,6 +19,8 @@ subroutine allocateBasicArraysInputLin(lin, ntypes)
   ! Local variables
   integer :: istat
   character(len=*),parameter :: subname='allocateBasicArrays'
+
+  call f_routine(id='allocateBasicArraysInputLin')
   
   lin%norbsPerType = f_malloc_ptr(ntypes,id='lin%norbsPerType')
   lin%potentialPrefac_ao = f_malloc_ptr(ntypes,id='lin%potentialPrefac_ao')
@@ -28,6 +30,8 @@ subroutine allocateBasicArraysInputLin(lin, ntypes)
   lin%locrad_type = f_malloc_ptr((/ ntypes, 2 /),id='lin%locrad_type')
   lin%kernel_cutoff_FOE = f_malloc_ptr(ntypes,id='lin%kernel_cutoff_FOE')
   lin%kernel_cutoff = f_malloc_ptr(ntypes,id='lin%kernel_cutoff')
+
+  call f_release_routine()
 
 end subroutine allocateBasicArraysInputLin
 
@@ -42,6 +46,8 @@ subroutine deallocateBasicArraysInput(lin)
   ! Local variables
   integer :: i_stat,i_all
   character(len=*),parameter :: subname='deallocateBasicArrays'
+
+  call f_routine(id='deallocateBasicArraysInput')
  
   if(associated(lin%potentialPrefac_ao)) then
     call f_free_ptr(lin%potentialPrefac_ao)
@@ -100,6 +106,8 @@ subroutine deallocateBasicArraysInput(lin)
     call f_free_ptr(lin%kernel_cutoff)
     nullify(lin%kernel_cutoff)
   end if 
+
+  call f_release_routine()
 
 end subroutine deallocateBasicArraysInput
 
@@ -546,6 +554,8 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
   character(len=*),parameter :: subname='init_orbitals_data_for_linear'
 
   call timing(iproc,'init_orbs_lin ','ON')
+
+  call f_routine(id='init_orbitals_data_for_linear')
   
   call nullify_orbitals_data(lorbs)
  
@@ -601,6 +611,8 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
   call f_free(locregCenter)
   call f_free(norbsPerAtom)
 
+  call f_release_routine()
+
   call timing(iproc,'init_orbs_lin ','OF')
 
 end subroutine init_orbitals_data_for_linear
@@ -628,6 +640,9 @@ subroutine lzd_init_llr(iproc, nproc, input, astruct, rxyz, orbs, lzd)
   real(8):: t1, t2
 
   call timing(iproc,'init_locregs  ','ON')
+
+  call f_routine(id='lzd_init_llr')
+
   t1=mpi_wtime()
   
   nullify(lzd%llr)
@@ -661,6 +676,9 @@ subroutine lzd_init_llr(iproc, nproc, input, astruct, rxyz, orbs, lzd)
   
   t2=mpi_wtime()
   !if(iproc==0) write(*,*) 'in lzd_init_llr: time',t2-t1
+
+  call f_release_routine()
+
   call timing(iproc,'init_locregs  ','OF')
 
 end subroutine lzd_init_llr
@@ -703,6 +721,9 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
   character(len=*),parameter :: subname='update_locreg'
 
   call timing(iproc,'updatelocreg1','ON') 
+
+  call f_routine(id='update_locreg')
+
   !if (present(lfoe)) call nullify_foe(lfoe)
   if (present(lfoe)) lfoe = foe_data_null()
   !call nullify_comms_linear(lbcollcom)
@@ -767,6 +788,8 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
 
   call initialize_communication_potential(iproc, nproc, nscatterarr, orbs, lzd, lbcomgp)
   call allocate_p2pComms_buffer(lbcomgp)
+
+  call f_release_routine()
 
 end subroutine update_locreg
 
@@ -881,7 +904,11 @@ subroutine destroy_DFT_wavefunction(wfn)
   integer :: istat, iall
   character(len=*),parameter :: subname='destroy_DFT_wavefunction'
 
+  call f_routine(id='destroy_DFT_wavefunction')
+
   call f_free_ptr(wfn%psi)
+  call f_free_ptr(wfn%psit_c)
+  call f_free_ptr(wfn%psit_f)
 
   call deallocate_p2pComms(wfn%comgp)
   call deallocate_sparse_matrix(wfn%linmat%s, subname)
@@ -900,6 +927,8 @@ subroutine destroy_DFT_wavefunction(wfn)
   if (associated(wfn%coeff)) then
       call f_free_ptr(wfn%coeff)
   end if
+
+  call f_release_routine()
 
 end subroutine destroy_DFT_wavefunction
 
@@ -921,6 +950,8 @@ subroutine update_wavefunctions_size(lzd,npsidim_orbs,npsidim_comp,orbs,iproc,np
   integer, allocatable, dimension(:) :: ncntt 
   integer, allocatable, dimension(:,:) :: nvctr_par
   character(len = *), parameter :: subname = "update_wavefunctions_size"
+
+  call f_routine(id='update_wavefunctions_size')
 
   npsidim = 0
   do iorb=1,orbs%norbp
@@ -956,6 +987,8 @@ subroutine update_wavefunctions_size(lzd,npsidim_orbs,npsidim_comp,orbs,iproc,np
   call f_free(nvctr_par)
 
   call f_free(ncntt)
+
+  call f_release_routine()
 
 end subroutine update_wavefunctions_size
 
@@ -1181,6 +1214,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   type(local_zone_descriptors) :: lzd_tmp
   character(len=*), parameter :: subname='adjust_locregs_and_confinement'
 
+  call f_routine(id='adjust_locregs_and_confinement')
+
   locreg_increased=.false.
   if(lowaccur_converged ) then
       do ilr = 1, tmb%lzd%nlr
@@ -1258,7 +1293,12 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      call deallocate_local_zone_descriptors(lzd_tmp, subname)
      call f_free_ptr(tmb%psi)
+     call f_free_ptr(tmb%psit_c)
+     call f_free_ptr(tmb%psit_f)
      tmb%psi = f_malloc_ptr(tmb%npsidim_orbs,id='tmb%psi')
+     tmb%psit_c = f_malloc_ptr(tmb%collcom%ndimind_c,id='tmb%psit_c')
+     tmb%psit_f = f_malloc_ptr(7*tmb%collcom%ndimind_f,id='tmb%psit_f')
+
      call vcopy(tmb%npsidim_orbs, lphilarge(1), 1, tmb%psi(1), 1)
      call f_free(lphilarge)
      
@@ -1348,6 +1388,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
           4,input%lin%potentialPrefac_highaccuracy,tmb%ham_descr%lzd,tmb%orbs%onwhichatom)
 
   end if
+
+  call f_release_routine()
 
 end subroutine adjust_locregs_and_confinement
 
@@ -1479,6 +1521,8 @@ subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs,
   real(kind=8),dimension(:,:),allocatable :: locreg_centers
   character(len=*),parameter :: subname='increase_FOE_cutoff'
 
+  call f_routine(id='increase_FOE_cutoff')
+
   ! Just initialize the save variable
   if (init) then
       cutoff_incr=0.d0
@@ -1504,6 +1548,8 @@ subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs,
   call init_foe(iproc, nproc, lzd%nlr, locreg_centers, astruct, input, orbs_KS, orbs, foe_obj, reset=.false., &
        cutoff_incr=cutoff_incr)
   call f_free(locreg_centers)
+
+  call f_release_routine()
 
 end subroutine increase_FOE_cutoff
 
