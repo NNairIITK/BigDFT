@@ -730,6 +730,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   real(kind=8) :: pnrm
   logical :: rho_negative
 
+  call f_routine(id='input_memory_linear')
+
   ! Determine size of phi_old and phi
   ndim_old=0
   ndim=0
@@ -849,8 +851,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       !nullify(tmb%psit_f)
       call reconstruct_kernel(iproc, nproc, input%lin%order_taylor, tmb%orthpar%blocksize_pdsyev, &
            tmb%orthpar%blocksize_pdgemm, KSwfn%orbs, tmb, overlap_calculated)
-      call f_free_ptr(tmb%psit_c)
-      call f_free_ptr(tmb%psit_f)
+      !call f_free_ptr(tmb%psit_c)
+      !call f_free_ptr(tmb%psit_f)
   else
      ! By doing an LCAO input guess
      tmb%can_use_transposed=.false.
@@ -866,8 +868,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
      !!deallocate(phi_tmp, stat=i_stat)
      !!call memocc(i_stat, i_all, 'phi_tmp', subname)
      if(tmb%can_use_transposed) then
-         call f_free_ptr(tmb%psit_c)
-         call f_free_ptr(tmb%psit_f)
+         !call f_free_ptr(tmb%psit_c)
+         !call f_free_ptr(tmb%psit_f)
      end if
   end if
 
@@ -922,6 +924,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
            tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed, &
            tmb%foe_obj)
   end if  
+
+  call f_release_routine()
 
 END SUBROUTINE input_memory_linear
 
@@ -1845,8 +1849,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      tmb%can_use_transposed=.true.
      overlap_calculated=.false.
-     tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
-     tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
+     !tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
+     !tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
 
      call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
           tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
@@ -1963,10 +1967,10 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !!call f_free_ptr(tmb%linmat%denskern%matrix)   
 
      tmb%can_use_transposed=.false. ! - do we really need to deallocate here?
-     call f_free_ptr(tmb%psit_c)
-     call f_free_ptr(tmb%psit_f)
-     nullify(tmb%psit_c)
-     nullify(tmb%psit_f)
+     !call f_free_ptr(tmb%psit_c)
+     !call f_free_ptr(tmb%psit_f)
+     !nullify(tmb%psit_c)
+     !nullify(tmb%psit_f)
 
      ! Now need to calculate the charge density and the potential related to this inputguess
      call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
