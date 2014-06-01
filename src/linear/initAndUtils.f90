@@ -1043,8 +1043,8 @@ subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,input, at, 
        tmb%ham_descr%psi, tmb%hpsi)
 
   tmb%ham_descr%can_use_transposed=.false.
-  nullify(tmb%ham_descr%psit_c)
-  nullify(tmb%ham_descr%psit_f)
+  !!nullify(tmb%ham_descr%psit_c)
+  !!nullify(tmb%ham_descr%psit_f)
   allocate(tmb%confdatarr(tmb%orbs%norbp), stat=istat)
 
   if(.not.lowaccur_converged) then
@@ -1320,14 +1320,18 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      call deallocate_auxiliary_basis_function(subname, tmb%ham_descr%psi, tmb%hpsi)
      if(tmb%ham_descr%can_use_transposed) then
-        call f_free_ptr(tmb%ham_descr%psit_c)
-        call f_free_ptr(tmb%ham_descr%psit_f)
+        !call f_free_ptr(tmb%ham_descr%psit_c)
+        !call f_free_ptr(tmb%ham_descr%psit_f)
         tmb%ham_descr%can_use_transposed=.false.
      end if
      
      deallocate(tmb%confdatarr, stat=istat)
 
      call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp, input, at, rxyz, lowaccur_converged)
+     call f_free_ptr(tmb%ham_descr%psit_c)
+     call f_free_ptr(tmb%ham_descr%psit_f)
+     tmb%ham_descr%psit_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='tmb%ham_descr%psit_c')
+     tmb%ham_descr%psit_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='tmb%ham_descr%psit_f')
 
      ! check the extent of the kernel cutoff (must be at least shamop radius)
      call check_kernel_cutoff(iproc, tmb%orbs, at, tmb%lzd)
