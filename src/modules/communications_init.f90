@@ -2520,6 +2520,7 @@ module communications_init
     subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
       use module_base
       use module_types
+      use yaml_output, only: yaml_toa
       implicit none
       integer, intent(in) :: iproc,nproc
       type(locreg_descriptors), intent(in) :: lr
@@ -2576,8 +2577,11 @@ module communications_init
                norb_tot=norb_tot+norb_par(jproc,ikpts)
             end do
             if(norb_tot /= orbs%norb) then
-               write(*,'(a,3i9)')'ERROR: partition of orbitals incorrect; kpoint, norb_tot, orbs%norb:',ikpts, norb_tot, orbs%norb
-               stop
+               call f_err_throw('Orbital partition is incorrect for k-point'//&
+                    trim(yaml_toa(ikpts))//'; expected '//&
+                    trim(yaml_toa(orbs%norb))//' orbitals, found'//&
+                    trim(yaml_toa(norb_tot)),&
+                    err_name='BIGDFT_RUNTIME_ERROR')
             end if
          end do
       end if

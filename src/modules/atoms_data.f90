@@ -182,9 +182,7 @@ module module_atoms
       end if
       call f_free_ptr(sym%irrzon)
       call f_free_ptr(sym%phnons)
-
     end subroutine deallocate_symmetry_data
-
 
     !> Deallocate the structure atoms_data.
     subroutine deallocate_atomic_structure(astruct)!,subname) 
@@ -199,19 +197,19 @@ module module_atoms
 
 
       ! Deallocations for the geometry part.
-      !if (astruct%nat > 0) then
+      if (astruct%nat >= 0) then
          call f_free_ptr(astruct%ifrztyp)
          call f_free_ptr(astruct%iatype)
          call f_free_ptr(astruct%input_polarization)
          call f_free_ptr(astruct%rxyz)
-      !end if
-!      if (astruct%ntypes > 0) then
-      if (associated(astruct%atomnames)) then
-         i_all=-product(shape(astruct%atomnames))*kind(astruct%atomnames)
-         deallocate(astruct%atomnames, stat=i_stat)
-         call memocc(i_stat, i_all, 'astruct%atomnames', subname)
       end if
-!      end if
+      if (astruct%ntypes >= 0) then
+          if (associated(astruct%atomnames)) then
+             i_all=-product(shape(astruct%atomnames))*kind(astruct%atomnames)
+             deallocate(astruct%atomnames, stat=i_stat)
+             call memocc(i_stat, i_all, 'astruct%atomnames', subname)
+          end if
+      end if
       ! Free additional stuff.
       call deallocate_symmetry_data(astruct%sym)
 
@@ -525,7 +523,8 @@ module module_atoms
       end if
       if (present(fxyz)) then
          if (associated(fxyz_)) then
-            fxyz = f_malloc_ptr(src = fxyz_, id = "fxyz")
+            !fxyz = f_malloc_ptr(src = fxyz_, id = "fxyz") not needed anymore
+            fxyz => fxyz_
          else
             nullify(fxyz)
          end if
