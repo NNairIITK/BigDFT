@@ -174,8 +174,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   end if
 
   tmb%can_use_transposed=.false.
-  nullify(tmb%psit_c)
-  nullify(tmb%psit_f)
+  !nullify(tmb%psit_c)
+  !nullify(tmb%psit_f)
 
   call timing(iproc,'linscalinit','OF') !lr408t
 
@@ -469,12 +469,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
       ! Do nothing if no low accuracy is desired.
       if (nit_lowaccuracy==0 .and. itout==0) then
-          if (associated(tmb%psit_c)) then
-              call f_free_ptr(tmb%psit_c)
-          end if
-          if (associated(tmb%psit_f)) then
-              call f_free_ptr(tmb%psit_f)
-          end if
+          !!if (associated(tmb%psit_c)) then
+          !!    call f_free_ptr(tmb%psit_c)
+          !!end if
+          !!if (associated(tmb%psit_f)) then
+          !!    call f_free_ptr(tmb%psit_f)
+          !!end if
           tmb%can_use_transposed=.false.
           if (iproc==0) then
               call yaml_sequence(advance='no')
@@ -626,12 +626,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                ! and start with a new AO input guess.
                if (iproc==0) write(*,'(1x,a)') 'There are convergence problems after the restart. &
                                                 &Start over again with an AO input guess.'
-               if (associated(tmb%psit_c)) then
-                   call f_free_ptr(tmb%psit_c)
-               end if
-               if (associated(tmb%psit_f)) then
-                   call f_free_ptr(tmb%psit_f)
-               end if
+               !!if (associated(tmb%psit_c)) then
+               !!    call f_free_ptr(tmb%psit_c)
+               !!end if
+               !!if (associated(tmb%psit_f)) then
+               !!    call f_free_ptr(tmb%psit_f)
+               !!end if
                infocode=2
                exit outerLoop
            end if
@@ -1129,8 +1129,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       ! CDFT: end of CDFT loop to find V which correctly imposes constraint and corresponding density
 
       if(tmb%can_use_transposed) then
-          call f_free_ptr(tmb%psit_c)
-          call f_free_ptr(tmb%psit_f)
+          !!call f_free_ptr(tmb%psit_c)
+          !!call f_free_ptr(tmb%psit_f)
           tmb%can_use_transposed=.false.
       end if
 
@@ -1472,12 +1472,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                     call yaml_warning('The pulay force is too large after the restart. &
                          &Start over again with an AO input guess.')
                 end if
-                if (associated(tmb%psit_c)) then
-                    call f_free_ptr(tmb%psit_c)
-                end if
-                if (associated(tmb%psit_f)) then
-                    call f_free_ptr(tmb%psit_f)
-                end if
+                !!if (associated(tmb%psit_c)) then
+                !!    call f_free_ptr(tmb%psit_c)
+                !!end if
+                !!if (associated(tmb%psit_f)) then
+                !!    call f_free_ptr(tmb%psit_f)
+                !!end if
                 tmb%can_use_transposed=.false.
                 nit_lowaccuracy=input%lin%nit_lowaccuracy
                 nit_highaccuracy=input%lin%nit_highaccuracy
@@ -1752,14 +1752,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       ioffset=kswfn%Lzd%Glr%d%n1i*kswfn%Lzd%Glr%d%n2i*denspot%dpbox%i3xcsh
 
       if (denspot%dpbox%ndimpot>0) then
-          !denspot%pot_work=f_malloc_ptr(denspot%dpbox%ndimpot+ndebug,id='denspot%dpbox%ndimpot+ndebug')
-          allocate(denspot%pot_work(denspot%dpbox%ndimpot+ndebug),stat=i_stat)
-          call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
+          denspot%pot_work=f_malloc_ptr(denspot%dpbox%ndimpot+ndebug,id='denspot%dpbox%ndimpot+ndebug')
 
       else
-          !denspot%pot_work=f_malloc_ptr(1+ndebug,id='denspot%dpbox%ndimpot+ndebug')
-          allocate(denspot%pot_work(1+ndebug),stat=i_stat)
-          call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
+          denspot%pot_work=f_malloc_ptr(1+ndebug,id='denspot%dpbox%ndimpot+ndebug')
       end if
       if (denspot%dpbox%ndimrhopot>0) then
           rhopot_work=f_malloc(denspot%dpbox%ndimrhopot+ndebug,id='rhopot_work')
@@ -1812,10 +1808,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
       call f_free(rhopot_work)
       call f_free_ptr(denspot%rho_work)
-      !call f_free_ptr(denspot%pot_work)
-      i_all=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
-      deallocate(denspot%pot_work,stat=i_stat)
-      call memocc(i_stat,i_all,'denspot%pot_work',subname)
+      call f_free_ptr(denspot%pot_work)
 
 
     end subroutine intermediate_forces

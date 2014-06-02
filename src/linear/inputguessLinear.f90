@@ -800,12 +800,12 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   ! Important: Don't use for the rest of the code
   tmb%ham_descr%can_use_transposed = .false.
 
-  if(associated(tmb%ham_descr%psit_c)) then
-      call f_free_ptr(tmb%ham_descr%psit_c)
-  end if
-  if(associated(tmb%ham_descr%psit_f)) then
-      call f_free_ptr(tmb%ham_descr%psit_f)
-  end if
+  !if(associated(tmb%ham_descr%psit_c)) then
+  !    call f_free_ptr(tmb%ham_descr%psit_c)
+  !end if
+  !if(associated(tmb%ham_descr%psit_f)) then
+  !    call f_free_ptr(tmb%ham_descr%psit_f)
+  !end if
   
   !if (iproc==0) then
   !    call yaml_close_map()

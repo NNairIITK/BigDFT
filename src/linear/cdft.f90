@@ -76,12 +76,12 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,nfrag_charged,ifrag_char
 
   if (calculate_overlap_matrix) then
      if(.not.tmb%can_use_transposed) then
-         if(.not.associated(tmb%psit_c)) then
-             tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
-         end if
-         if(.not.associated(tmb%psit_f)) then
-             tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
-         end if
+         !if(.not.associated(tmb%psit_c)) then
+         !    tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
+         !end if
+         !if(.not.associated(tmb%psit_f)) then
+         !    tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
+         !end if
          call transpose_localized(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
               tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
          tmb%can_use_transposed=.true.
@@ -214,24 +214,21 @@ subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,den
 
   print *,'CDFT Ekin,Epot,Eproj,Eh,Exc,Evxc',energs%ekin,energs%epot,energs%eproj,energs%eh,energs%exc,energs%evxc
 
-  !!call f_free_ptr(denspot%pot_work)
-  iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
-  deallocate(denspot%pot_work,stat=istat)
-  call memocc(istat,iall,'denspot%pot_work',subname)
+  call f_free_ptr(denspot%pot_work)
 
 
   ! calculate w_ab
   ! Calculate the matrix elements <phi|H|phi>.
   if(.not.tmb%ham_descr%can_use_transposed) then
-      if(associated(tmb%ham_descr%psit_c)) then
-          call f_free_ptr(tmb%ham_descr%psit_c)
-      end if
-      if(associated(tmb%ham_descr%psit_f)) then
-          call f_free_ptr(tmb%ham_descr%psit_f)
-      end if
+      !!if(associated(tmb%ham_descr%psit_c)) then
+      !!    call f_free_ptr(tmb%ham_descr%psit_c)
+      !!end if
+      !!if(associated(tmb%ham_descr%psit_f)) then
+      !!    call f_free_ptr(tmb%ham_descr%psit_f)
+      !!end if
 
-      tmb%ham_descr%psit_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='tmb%ham_descr%psit_c')
-      tmb%ham_descr%psit_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='tmb%ham_descr%psit_f')
+      !!tmb%ham_descr%psit_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='tmb%ham_descr%psit_c')
+      !!tmb%ham_descr%psit_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='tmb%ham_descr%psit_f')
       call transpose_localized(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs, &
            tmb%ham_descr%collcom,tmb%ham_descr%psi,tmb%ham_descr%psit_c,tmb%ham_descr%psit_f,tmb%ham_descr%lzd)
       tmb%ham_descr%can_use_transposed=.true.

@@ -2463,7 +2463,7 @@ module module_interfaces
                   ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
                   energy_increased, tmb, lhphiold, overlap_calculated, &
                   energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
-                  energy_only, hpsi_small, experimental_mode, correction_co_contra, ksorbs, hpsi_noprecond, &
+                  hpsi_small, experimental_mode, correction_co_contra, hpsi_noprecond, &
                   norder_taylor, method_updatekernel)
          use module_base
          use module_types
@@ -2481,9 +2481,8 @@ module module_interfaces
          type(energy_terms),intent(in) :: energs
          real(8),dimension(:),pointer:: hpsit_c, hpsit_f
          integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
-         logical, intent(in) :: energy_only, experimental_mode, correction_co_contra
+         logical, intent(in) :: experimental_mode, correction_co_contra
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_small
-         type(orbitals_data),intent(in) :: ksorbs
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: hpsi_noprecond
        end subroutine calculate_energy_and_gradient_linear
 
@@ -3205,7 +3204,7 @@ module module_interfaces
         end subroutine sumrho_for_TMBs
 
         subroutine foe(iproc, nproc, tmprtr, &
-                   ebs, itout, it_scc, order_taylor, purification_quickreturn, adjust_FOE_temperature, foe_verbosity, &
+                   ebs, itout, it_scc, order_taylor, purification_quickreturn, foe_verbosity, &
                    accuracy_level, tmb, foe_obj)
           use module_base
           use module_types
@@ -3214,7 +3213,7 @@ module module_interfaces
           integer,intent(in) :: iproc, nproc, itout, it_scc, order_taylor
           real(kind=8),intent(in) :: tmprtr
           real(kind=8),intent(out) :: ebs
-          logical,intent(in) :: purification_quickreturn, adjust_FOE_temperature
+          logical,intent(in) :: purification_quickreturn
           integer :: foe_verbosity
           integer,intent(in) :: accuracy_level
           type(DFT_wavefunction),intent(inout) :: tmb
