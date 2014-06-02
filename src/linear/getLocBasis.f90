@@ -66,6 +66,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   real(kind=8) :: deviation, KSres, sumn
   integer :: iat, iiorb, jjorb, lwork,jorb, ii, irow, icol
 
+  call f_routine(id='get_coeff')
+
   ! Option to only calculate the energy without updating the kernel
   if (present(updatekernel)) then
       update_kernel=updatekernel
@@ -401,6 +403,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
 
   if (iproc==0) call yaml_close_map() !close kernel update
+
+  call f_release_routine()
 
 end subroutine get_coeff
 

@@ -1524,13 +1524,13 @@ subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs,
   integer :: ilr
   real(kind=8),save :: cutoff_incr
   real(kind=8),dimension(:,:),allocatable :: locreg_centers
-  character(len=*),parameter :: subname='increase_FOE_cutoff'
 
   call f_routine(id='increase_FOE_cutoff')
 
   ! Just initialize the save variable
   if (init) then
       cutoff_incr=0.d0
+      call f_release_routine()
       return
   end if
 
