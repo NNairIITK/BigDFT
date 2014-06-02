@@ -660,7 +660,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode,input%lin%early_stop,&
          input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
          can_use_ham, input%lin%order_taylor, input%kappa_conv, input%method_updatekernel,&
-         input%purification_quickreturn, input%adjust_FOE_temperature, input%correction_co_contra)
+         input%purification_quickreturn, input%correction_co_contra)
      reduce_conf=.true.
      call yaml_close_sequence()
      call yaml_close_map()
@@ -698,7 +698,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0,0,input%lin%order_taylor,&
-           input%purification_quickreturn,input%adjust_FOE_temperature,&
+           input%purification_quickreturn,&
            input%calculate_KS_residue,input%calculate_gap)
 
       if (input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
@@ -708,7 +708,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0,0,input%lin%order_taylor,&
-           input%purification_quickreturn,input%adjust_FOE_temperature,&
+           input%purification_quickreturn,&
            input%calculate_KS_residue,input%calculate_gap)
 
       call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)

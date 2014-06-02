@@ -1463,7 +1463,7 @@ module module_interfaces
           correction_orthoconstraint,nit_basis,&
           ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
           gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, kappa_conv, method_updatekernel,&
-          purification_quickreturn, adjust_FOE_temperature, correction_co_contra)
+          purification_quickreturn, correction_co_contra)
         use module_base
         use module_types
         implicit none
@@ -1490,7 +1490,7 @@ module module_interfaces
         integer, intent(in) :: extra_states
         integer,intent(in) :: itout
         real(kind=8),intent(in) :: conv_crit, early_stop, gnrm_dynamic, min_gnrm_for_dynamic, kappa_conv
-        logical,intent(in) :: experimental_mode, purification_quickreturn, adjust_FOE_temperature
+        logical,intent(in) :: experimental_mode, purification_quickreturn
         logical,intent(out) :: can_use_ham
         integer,intent(in) :: method_updatekernel
         logical,intent(in) :: correction_co_contra
@@ -1511,7 +1511,7 @@ module module_interfaces
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
         energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
         calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,order_taylor,purification_quickreturn,&
-        adjust_FOE_temperature,calculate_KS_residue,calculate_gap,&
+        calculate_KS_residue,calculate_gap,&
         convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
       use module_base
       use module_types
@@ -1534,7 +1534,7 @@ module module_interfaces
       type(SIC_data),intent(in) :: SIC
       type(DFT_wavefunction),intent(inout) :: tmb
       logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho, purification_quickreturn
-      logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap, adjust_FOE_temperature
+      logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap
       type(sparse_matrix), intent(inout) :: ham_small ! for foe only
       type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
       integer, intent(in), optional :: nitdmin ! for dmin only
