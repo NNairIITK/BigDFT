@@ -84,16 +84,17 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    !in the case of a spin-polarised calculation
    !also for non-collinear case
    !nspin*noncoll is always <= 2
-   if (iversion==1) then
+   select case(iversion)
+   case(1)
        call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
             nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.false.,&
             basedist=orbs%norb_par(0:,1:))
-   else if (iversion==2) then
+   case(2)
        call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
             nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.true.)
-   else
-       stop 'wrong value of iversion'
-   end if
+   case default
+       call f_err_throw('wrong value of iversion',err_id=BIGDFT_RUNTIME_ERROR)
+   end select
    do ikpt = 1, orbse%nkpts
       ist=1 + (ikpt - 1 ) * nspin*noncoll*norbe
       do ispin=1,nspin
@@ -424,8 +425,10 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
          end do
       end do
       if (ishltmp /= G%nshell(iat)) then
-         write(*,*)'ERROR: ishelltmp <> nshell',ishell,G%nshell(iat)
-         stop 
+         call f_err_throw('Input Guess ishelltmp (' // trim(yaml_toa(ishell)) // ') /= nshell (' &
+             & // trim(yaml_toa(G%nshell(iat))) // ')', err_id=BIGDFT_INPUT_VARIABLES_ERROR)
+         !write(*,*)'ERROR: ishelltmp <> nshell',ishell,G%nshell(iat)
+         !stop 
       end if
    end do
    if (iproc == 0 .and. verbose > 1) then
@@ -435,8 +438,10 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
 
    !print *,'nl',nl,norbe,G%ncoeff
    if (norbe /= G%ncoeff) then
-      write(*,*)'ERROR: norbe /= G%ncoeff',norbe,G%ncoeff
-      stop 
+         call f_err_throw('Input Guess norbe(' // trim(yaml_toa(norbe)) // ') /= G%ncoeff (' &
+             & // trim(yaml_toa(G%ncoeff)) // ')', err_id=BIGDFT_INPUT_VARIABLES_ERROR)
+      !write(*,*)'ERROR: norbe /= G%ncoeff',norbe,G%ncoeff
+      !stop 
    end if
 
    call to_zero(orbse%norbp*orbse%nspinor*G%ncoeff,gaucoeff)
@@ -463,10 +468,13 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       do iat=1,at%astruct%nat
          read(unit=22,fmt=*,iostat=i_stat) mx,my,mz
          if (i_stat > 0) then
-            write(unit=*,fmt='(a,i0,a,i0,a)') &
-               &   'The file "moments" has the line ',iat,&
-               &   ' which have not 3 numbers for the atom ',iat,'.'
-            stop 'The file "moments" is not correct!'
+            call f_err_throw('The file "moments" is not correct!' // &
+               & 'The file "moments" has the line ' // trim(yaml_toa(iat)) // &
+               & ' which have not 3 numbers for the atom ' // trim(yaml_toa(iat)) // '.', &
+               & err_id=BIGDFT_INPUT_VARIABLES_ERROR)
+            !write(unit=*,fmt='(a,i0,a,i0,a)') 'The file "moments" has the line ',iat,&
+            !   &   ' which have not 3 numbers for the atom ',iat,'.'
+            !stop 'The file "moments" is not correct!'
          end if
          atmoments(1,iat)=mx
          atmoments(2,iat)=my
@@ -509,8 +517,11 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       ictotpsi=0
       nctot=sum(at%aoig(iat)%nl)!(nl(1)+nl(2)+nl(3)+nl(4))
       if (iorbsc(1)+nctot > norbe .and. iorbv(1)+nctot > norbe) then
-         print *,'transgpw occupe',at%aoig(iat)%nl,norbe
+         call f_err_throw('transgpw occupe ' // trim(yaml_toa(at%aoig(iat)%nl)) // ' ' // &
+           & trim(yaml_toa(norbe)), err_id=BIGDFT_RUNTIME_ERROR)
          stop
+         !print *,'transgpw occupe',at%aoig(iat)%nl,norbe
+         !stop
       end if
       iocc=0
       do l=1,4
@@ -693,25 +704,37 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
          end do
       end do
 
-      if (ictotpsi /= nctot) stop 'Atomic orbitals: error (nctot)'
+      !if (ictotpsi /= nctot) stop 'Atomic orbitals: error (nctot)'
+      if (ictotpsi /= nctot) &
+         & call f_err_throw('Atomic orbitals: error (nctot)', err_id=BIGDFT_INPUT_VARIABLES_ERROR)
    end do
    if (iexpo /= G%nexpo) then
-      write(*,*)'ERROR: iexpo <> nexpo',iexpo,G%nexpo
-      stop 
+      call f_err_throw('iexpo <> nexpo ' // trim(yaml_toa(iexpo)) // trim(yaml_toa(G%nexpo)), &
+           & err_id=BIGDFT_INPUT_VARIABLES_ERROR)
+      !write(*,*)'ERROR: iexpo <> nexpo',iexpo,G%nexpo
+      !stop 
    end if
 
    !print *,'icoeff,ncoeff',icoeff,G%ncoeff
 
    if (iorbsc(1) /= norbsc) then
-      print *,iorbsc(1),norbsc
-      stop 'Atomic orbitals: error (iorbsc)'
+      call f_err_throw('Atomic orbitals error (iorbsc) ' // trim(yaml_toa(iorbsc(1))) // trim(yaml_toa(norbsc)), &
+           & err_id=BIGDFT_INPUT_VARIABLES_ERROR)
+      !print *,iorbsc(1),norbsc
+      !stop 'Atomic orbitals: error (iorbsc)'
    end if
-   if (iorbv(1)/= noncoll*norbe) stop 'Atomic orbitals: error (iorbv)'
-   if (iatsc /= at%natsc) stop 'Atomic orbitals: error (iatsc)'
+   if (iorbv(1) /= noncoll*norbe) call f_err_throw('Atomic orbitals: error (iorbv)',err_id=BIGDFT_INPUT_VARIABLES_ERROR)
+   if (iatsc /= at%natsc) call f_err_throw('Atomic orbitals: error (iatsc)',err_id=BIGDFT_INPUT_VARIABLES_ERROR)
+   !if (iorbv(1) /= noncoll*norbe) stop 'Atomic orbitals: error (iorbv)'
+   !if (iatsc /= at%natsc) stop 'Atomic orbitals: error (iatsc)'
 
    if (nspin==2) then
-      if (iorbsc(2)/= norbsc+norbe) stop 'createAtomic orbitals: error (iorbsc) nspin=2'
-      if (iorbv(2) /= 2*norbe) stop 'createAtomic orbitals: error (iorbv) nspin=2'
+      if (iorbsc(2) /= norbsc+norbe) call f_err_throw('createAtomic orbitals: error (iorbsc) nspin=2',&
+                                     & err_id=BIGDFT_INPUT_VARIABLES_ERROR)
+      if (iorbv(2) /= 2*norbe) call f_err_throw('createAtomic orbitals: error (iorbv) nspin=2', &
+                                     & err_id=BIGDFT_INPUT_VARIABLES_ERROR)
+      !if (iorbsc(2) /= norbsc+norbe) stop 'createAtomic orbitals: error (iorbsc) nspin=2'
+      !if (iorbv(2) /= 2*norbe) stop 'createAtomic orbitals: error (iorbv) nspin=2'
    end if
 
    i_all=-product(shape(xp))*kind(xp)
@@ -734,7 +757,6 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       call memocc(i_stat,i_all,'atmoments',subname)
    end if
 
-
    !  if (iproc ==0 .and. verbose > 1) then
    !     write(*,'(1x,a)')'done.'
    !  end if
@@ -742,11 +764,12 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
 END SUBROUTINE AtomicOrbitals
 
 
-
-!>   Calculates the kinetic energy of an atomic wavefunction expressed in Gaussians
-!!   the output psiatn is a normalized version of psiat
+!> Calculates the kinetic energy of an atomic wavefunction expressed in Gaussians
+!! the output psiatn is a normalized version of psiat
 subroutine atomkin(l,ng,xp,psiat,psiatn,ek)
    use module_base
+   use module_types, only: f_err_throw, BIGDFT_RUNTIME_ERROR
+   use yaml_output, only: yaml_toa
    implicit none
    integer, intent(in) :: l,ng
    real(gp), dimension(ng), intent(in) :: xp,psiat
@@ -758,17 +781,20 @@ subroutine atomkin(l,ng,xp,psiat,psiatn,ek)
 
    !        gml=.5d0*gamma_restricted(.5d0+l)
    gml = 0.0_gp
-   if (l.eq.0) then 
+
+   select case(l)
+   case(0) 
       gml=0.88622692545275801365_gp
-   else if (l.eq.1) then 
+   case(1)
       gml=0.44311346272637900682_gp
-   else if (l.eq.2) then 
+   case(2)
       gml=0.66467019408956851024_gp
-   else if (l.eq.3) then 
+   case(3) 
       gml=1.6616754852239212756_gp
-   else
-      stop 'atomkin'
-   endif
+   case default
+      call f_err_throw('atomkin, l too big (' // trim(yaml_toa(l)) // ')',err_id=BIGDFT_RUNTIME_ERROR)
+      !stop 'atomkin'
+   end select
 
    ek=0.0_gp
    tt=0.0_gp
@@ -810,6 +836,8 @@ END SUBROUTINE atomkin
 
 subroutine calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
    use module_base
+   use module_types, only: f_err_throw, BIGDFT_RUNTIME_ERROR
+   use yaml_output, only: yaml_toa
    implicit none
    integer, intent(in) :: l,m,nterm_max
    integer, intent(out) :: nterm
@@ -909,10 +937,14 @@ subroutine calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
       fac_arr(1)=2.890611442640554_gp
    else
       write(*,*) 'l,m',l,m
-      stop 'input guess format error'
+      call f_err_throw('input guess format error (l=' // trim(yaml_toa(l)) // ', m=' &
+         & // trim(yaml_toa(m)) // ')',err_id=BIGDFT_RUNTIME_ERROR)
+      !write(*,*) 'l,m',l,m
+      !stop 'input guess format error'
    endif
 
 END SUBROUTINE calc_coeff_inguess
+
 
 !!$subroutine iguess_generator_modified(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,ng,nl,&
 !!$      &   nmax_occ,noccmax,lmax,occup,expo,psiat,enlargerprb,gaenes_aux)
@@ -1129,7 +1161,8 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
       &   zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,nintp,&
       &   aeval,ng,psi,res,chrg,iorder)
    use module_base, only: gp
-   !implicit real(gp) (a-h,o-z)
+   use module_types, only: f_err_throw,BIGDFT_RUNTIME_ERROR
+   use yaml_output, only: yaml_toa
    implicit none
    integer, parameter :: n_int=100
    !Arguments
@@ -1164,16 +1197,18 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
    real(kind=8), external :: ddot,gamma_restricted
    real(gp), external :: spherical_gaussian_value
 
-   if(iorder/=2 .and. iorder/=4) then
-       stop 'ERROR: can only use qudratic or quartic potential'
+   if(iorder /= 2 .and. iorder /= 4) then
+       call f_err_throw('Can only use quadratic or quartic potential', err_id=BIGDFT_RUNTIME_ERROR)
+       stop 'ERROR: can only use quadratic or quartic potential'
    end if
 
    if (nintp.ne.n_int) then
-      stop 'n_int/=nintp'
+      call f_err_throw('n_int /= nintp',err_id=BIGDFT_RUNTIME_ERROR)
+      !stop 'n_int/=nintp'
    end if
 
    do l=0,lmax
-      if (occup(1,l+1).gt.0._gp) lcx=l
+      if (occup(1,l+1) > 0._gp) lcx=l
    end do
    !write(6,*) 'lcx',lcx
 
@@ -1315,23 +1350,25 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
                    hh(i,j)=hh(i,j) +&
                       &   .5_gp*const*sxp**2*(real(l,gp)+.5_gp)*(real(l,gp)+1.5_gp)/rprb**4 *sxp*(l+5/2)
                end if
-               ! hartree potential from ionic core charge
+               ! Hartree potential from ionic core charge
                tt=sqrt(1._gp+2._gp*alpz**2*d)
-               if (l.eq.0) then
+               select case(l)
+               case(0)
                   hh(i,j)=hh(i,j) -zion/(2._gp*d*tt)
-               else if (l.eq.1) then
+               case(1)
                   hh(i,j)=hh(i,j) -zion* &
                      &   (1._gp + 3._gp*alpz**2*d)/(2._gp*d**2*tt**3)
-               else if (l.eq.2) then
+               case(2)
                   hh(i,j)=hh(i,j) -zion* &
                      &   (2._gp + 10._gp*alpz**2*d + 15._gp*alpz**4*d**2)/(2._gp*d**3*tt**5)
-               else if (l.eq.3) then
+               case(3)
                   hh(i,j)=hh(i,j) -zion*3._gp* &
                      &   (2._gp +14._gp*alpz**2*d +35._gp*alpz**4*d**2 +35._gp*alpz**6*d**3)/&
                      &   (2._gp*d**4*tt**7)
-               else 
-                  stop 'l too big'
-               end if
+               case default
+                  call f_err_throw('l too big',err_id=BIGDFT_RUNTIME_ERROR)
+                  !stop 'l too big'
+               end select
                ! potential from repulsive gauss potential
                tt=alpl**2/(.5_gp+d*alpl**2)
                hh(i,j)=hh(i,j)+ gpot(1)*.5_gp*gamma_restricted(1.5_gp+real(l,gp))*&
@@ -1420,7 +1457,8 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
       &   potgrd,xcgrd,noproj)
 
    ! charge up to radius rcov
-   if (lmax.gt.3) stop 'cannot calculate chrg'
+   if (lmax > 3) call f_err_throw('cannot calculate chrg', err_id=BIGDFT_RUNTIME_ERROR)
+   !if (lmax > 3) stop 'cannot calculate chrg'
    do l=0,lmax
       do iocc=1,noccmax
          chrg(iocc,l+1)=0._gp
@@ -1623,10 +1661,22 @@ END SUBROUTINE resid
 
 subroutine crtvh(ng,lmax,xp,vh,rprb,fact,n_int,rmt)
    use module_base, only: gp
-   implicit real(gp) (a-h,o-z)
-   dimension vh(0:ng,0:ng,0:3,0:ng,0:ng,0:3),xp(0:ng),&
-      &   rmt(n_int,0:ng,0:ng,lmax+1)
-   if (lmax.gt.3) stop 'crtvh'
+   use module_types, only: f_err_throw,BIGDFT_RUNTIME_ERROR
+   use yaml_output, only: yaml_toa
+   implicit none
+   !implicit real(gp) (a-h,o-z)
+   !Arguments
+   integer, intent(in) :: ng,lmax,n_int
+   real(gp), intent(in) ::rprb,fact
+   real(gp), dimension(0:ng), intent(in) :: xp
+   real(gp), dimension(0:ng,0:ng,0:3,0:ng,0:ng,0:3), intent(out) :: vh
+   real(gp), dimension(n_int,0:ng,0:ng,lmax+1), intent(out) :: rmt
+   !Local variables
+   integer :: i,j,ip,jp,k,l
+   real(gp) :: c,d,scpd,dr,r
+
+   if (lmax > 3) call f_err_throw('crtvh', err_id=BIGDFT_RUNTIME_ERROR)
+   !if (lmax > 3) stop 'crtvh'
 
    dr=fact*rprb/real(n_int,gp)
    do l=0,lmax
@@ -1765,11 +1815,11 @@ function emuxc(rho)
 END FUNCTION emuxc
 
 
-
-!>   Restricted version of the Gamma function
-!!
+!> Restricted version of the Gamma function
 function gamma_restricted(x)
    use module_base, only: gp
+   use module_types, only: f_err_throw,BIGDFT_RUNTIME_ERROR
+   use yaml_output, only: yaml_toa
    implicit none
    !Arguments
    real(gp), intent(in) :: x
@@ -1777,14 +1827,15 @@ function gamma_restricted(x)
    !Local variables
    integer :: ii,i
 
-   if (x.le.0._gp) stop 'wrong argument for gamma_restricted'
-   if (mod(x,1._gp).eq.0._gp) then
+   if (x <= 0._gp) call f_err_throw('wrong argument for gamma_restricted', err_id=BIGDFT_RUNTIME_ERROR)
+   !if (x <= 0._gp) stop 'wrong argument for gamma_restricted'
+   if (mod(x,1._gp) == 0._gp) then
       ii=int(x)
       gamma_restricted=1.0_gp
       do i=2,ii
          gamma_restricted=gamma_restricted*real(i-1,gp)
       end do
-   else if (mod(x,.5_gp).eq.0._gp) then
+   else if (mod(x,.5_gp) == 0._gp) then
       ii=int(x-.5_gp)
       !     gamma_restricted=sqrt(3.14159265358979_gp)
       gamma_restricted=1.772453850905516027_gp
@@ -1792,7 +1843,8 @@ function gamma_restricted(x)
          gamma_restricted=gamma_restricted*(real(i,gp)-.5_gp)
       end do
    else
-      stop 'wrong argument for gamma_restricted'
+      call f_err_throw('wrong argument for gamma_restricted', err_id=BIGDFT_RUNTIME_ERROR)
+      !stop 'wrong argument for gamma_restricted'
    end if
 END FUNCTION gamma_restricted
 
