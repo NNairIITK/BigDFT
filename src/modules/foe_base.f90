@@ -6,17 +6,19 @@ module foe_base
   private
 
   type,public :: foe_data
-    real(kind=8) :: ef                     !< Fermi energy for FOE
-    real(kind=8) :: evlow, evhigh          !< Eigenvalue bounds for FOE 
-    real(kind=8) :: bisection_shift        !< Bisection shift to find Fermi energy (FOE)
-    real(kind=8) :: fscale                 !< Length scale for complementary error function (FOE)
-    real(kind=8) :: ef_interpol_det        !< FOE: max determinant of cubic interpolation matrix
-    real(kind=8) :: ef_interpol_chargediff !< FOE: max charge difference for interpolation
-    real(kind=8) :: charge                 !< Total charge of the system
-    real(kind=8) :: fscale_lowerbound      !< lower bound for the error function decay length
-    real(kind=8) :: fscale_upperbound      !< upper bound for the error function decay length
+    real(kind=8),dimension(:),pointer :: ef             !< Fermi energy for FOE
+    real(kind=8) :: evlow, evhigh                       !< Eigenvalue bounds for FOE 
+    real(kind=8) :: bisection_shift                     !< Bisection shift to find Fermi energy (FOE)
+    real(kind=8) :: fscale                              !< Length scale for complementary error function (FOE)
+    real(kind=8) :: ef_interpol_det                     !< FOE: max determinant of cubic interpolation matrix
+    real(kind=8) :: ef_interpol_chargediff              !< FOE: max charge difference for interpolation
+    real(kind=8) :: charge                              !< Total charge of the system
+    real(kind=8),dimension(:),pointer :: charge_partial !< Total charge of the system
+    real(kind=8) :: fscale_lowerbound                   !< lower bound for the error function decay length
+    real(kind=8) :: fscale_upperbound                   !< upper bound for the error function decay length
     integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
     logical :: adjust_FOE_temperature
+    integer :: nkernel                                  !< number of kernels to be calculated
   end type foe_data
 
 
@@ -27,6 +29,7 @@ module foe_base
   public :: foe_data_set_real
   public :: foe_data_get_real
   public :: foe_data_get_logical
+  public :: foe_allocate_arrays
 
 
   contains
@@ -35,13 +38,14 @@ module foe_base
     function foe_data_null() result(foe_obj)
       implicit none
       type(foe_data) :: foe_obj
-      foe_obj%ef                     = uninitialized(foe_obj%ef)
+      nullify(foe_obj%ef)
       foe_obj%evlow                  = uninitialized(foe_obj%evlow)
       foe_obj%bisection_shift        = uninitialized(foe_obj%bisection_shift)
       foe_obj%fscale                 = uninitialized(foe_obj%fscale)
       foe_obj%ef_interpol_det        = uninitialized(foe_obj%ef_interpol_det)
       foe_obj%ef_interpol_chargediff = uninitialized(foe_obj%ef_interpol_chargediff)
       foe_obj%charge                 = uninitialized(foe_obj%charge)
+      nullify(foe_obj%charge_partial)
       foe_obj%fscale_lowerbound      = uninitialized(foe_obj%fscale_lowerbound)
       foe_obj%fscale_upperbound      = uninitialized(foe_obj%fscale_upperbound)
       foe_obj%evbounds_isatur        = uninitialized(foe_obj%evbounds_isatur)
@@ -52,14 +56,13 @@ module foe_base
     end function foe_data_null
 
 
-    subroutine foe_data_set_int(foe_obj, fieldname, val)
+    subroutine foe_data_set_int(foe_obj, fieldname, val, ind)
       type(foe_data) :: foe_obj
       character(len=*),intent(in) :: fieldname
       integer,intent(in) :: val
+      integer,intent(in),optional :: ind
 
       select case (fieldname)
-      case ("nseg")
-          !!foe_obj%nseg = val
       case ("evbounds_isatur")
           foe_obj%evbounds_isatur = val
       case ("evboundsshrink_isatur")
@@ -68,6 +71,8 @@ module foe_base
           foe_obj%evbounds_nsatur = val
       case ("evboundsshrink_nsatur")
           foe_obj%evboundsshrink_nsatur = val
+      case ("nkernel")
+          foe_obj%nkernel = val
       case default
           stop 'wrong arguments'
       end select
@@ -75,14 +80,12 @@ module foe_base
     end subroutine foe_data_set_int
 
 
-    integer function foe_data_get_int(foe_obj, fieldname) result(val)
+    integer function foe_data_get_int(foe_obj, fieldname, ind) result(val)
       type(foe_data) :: foe_obj
       character(len=*),intent(in) :: fieldname
-      !integer,intent(in) :: val
+      integer,intent(in),optional :: ind
 
       select case (fieldname)
-      case ("nseg")
-          !!val = foe_obj%nseg
       case ("evbounds_isatur")
           val = foe_obj%evbounds_isatur
       case ("evboundsshrink_isatur")
@@ -91,6 +94,8 @@ module foe_base
           val = foe_obj%evbounds_nsatur
       case ("evboundsshrink_nsatur")
           val = foe_obj%evboundsshrink_nsatur
+      case ("nkernel")
+          val = foe_obj%nkernel
       case default
           stop 'wrong arguments'
       end select
@@ -98,14 +103,19 @@ module foe_base
     end function foe_data_get_int
 
 
-    subroutine foe_data_set_real(foe_obj, fieldname, val)
+    subroutine foe_data_set_real(foe_obj, fieldname, val, ind)
       type(foe_data) :: foe_obj
       character(len=*),intent(in) :: fieldname
       real(kind=8),intent(in) :: val
+      integer,intent(in),optional :: ind
 
       select case (fieldname)
       case ("ef")
-          foe_obj%ef = val
+          if (present(ind)) then
+              foe_obj%ef(ind) = val
+          else
+              foe_obj%ef = val
+          end if
       case ("evlow")
           foe_obj%evlow = val
       case ("evhigh")
@@ -120,6 +130,12 @@ module foe_base
           foe_obj%ef_interpol_chargediff = val
       case ("charge")
           foe_obj%charge = val
+      case ("charge_partial")
+          if (present(ind)) then
+              foe_obj%charge_partial(ind) = val
+          else
+              foe_obj%charge_partial = val
+          end if
       case ("fscale_lowerbound")
           foe_obj%fscale_lowerbound = val
       case ("fscale_upperbound")
@@ -131,13 +147,23 @@ module foe_base
     end subroutine foe_data_set_real
 
 
-    real(kind=8) function foe_data_get_real(foe_obj, fieldname) result(val)
+    real(kind=8) function foe_data_get_real(foe_obj, fieldname, ind) result(val)
       type(foe_data) :: foe_obj
       character(len=*),intent(in) :: fieldname
+      integer,intent(in),optional :: ind
+
+      ! Local variables
+      integer :: indl
+
+      if (present(ind)) then
+          indl=ind
+      else
+          indl=1
+      end if
 
       select case (fieldname)
       case ("ef")
-          val = foe_obj%ef
+          val = foe_obj%ef(indl)
       case ("evlow")
           val = foe_obj%evlow
       case ("evhigh")
@@ -152,6 +178,8 @@ module foe_base
           val = foe_obj%ef_interpol_chargediff
       case ("charge")
           val = foe_obj%charge
+      case ("charge_partial")
+          val = foe_obj%charge_partial(indl)
       case ("fscale_lowerbound")
           val = foe_obj%fscale_lowerbound
       case ("fscale_upperbound")
@@ -190,6 +218,14 @@ module foe_base
       end select
 
     end function foe_data_get_logical
+
+
+    subroutine foe_allocate_arrays(foe_obj)
+      implicit none
+      type(foe_data),intent(inout) :: foe_obj
+      foe_obj%ef = f_malloc_ptr(foe_obj%nkernel,id='foe_obj%ef')
+      foe_obj%charge_partial = f_malloc_ptr(foe_obj%nkernel,id='foe_obj%charge_partial')
+    end subroutine foe_allocate_arrays
 
 
 end module foe_base

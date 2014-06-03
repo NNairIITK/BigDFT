@@ -184,7 +184,8 @@ subroutine init_foe(iproc, nproc, nlr, locregcenter, astruct, input, orbs_KS, or
   use module_base
   use module_atoms, only: atomic_structure
   use module_types
-  use foe_base, only: foe_data, foe_data_set_int, foe_data_set_real, foe_data_set_logical, foe_data_get_real, foe_data_null
+  use foe_base, only: foe_data, foe_data_set_int, foe_data_set_real, foe_data_set_logical, foe_data_get_real, &
+                      foe_data_get_int, foe_data_null, foe_allocate_arrays
   implicit none
   
   ! Calling arguments
@@ -200,7 +201,7 @@ subroutine init_foe(iproc, nproc, nlr, locregcenter, astruct, input, orbs_KS, or
   
   ! Local variables
   integer :: iorb, iiorb, jjorb, istat, iseg, ilr, jlr
-  integer :: iwa, jwa, itype, jtype, ierr, iall, isegstart
+  integer :: iwa, jwa, itype, jtype, ierr, iall, isegstart, ncharge
   logical :: seg_started
   real(kind=8) :: tt, cut, incr
   logical,dimension(:,:),allocatable :: kernel_locreg
@@ -218,6 +219,32 @@ subroutine init_foe(iproc, nproc, nlr, locregcenter, astruct, input, orbs_KS, or
   foe_obj = foe_data_null()
 
   if (reset) then
+     call foe_data_set_real(foe_obj,"charge",0.d0)
+     do iorb=1,orbs_KS%norb
+          call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge")+orbs_KS%occup(iorb))
+     end do
+
+     ! Determine whether there is an even or odd number of electrons
+     ncharge=nint(foe_data_get_real(foe_obj,"charge"))
+     if (mod(ncharge,2)==0) then
+         ! even number, calculate one kernel
+         call foe_data_set_int(foe_obj,"nkernel",1)
+     else if (mod(ncharge,2)==1) then
+         ! odd number, calculate two kernels
+         call foe_data_set_int(foe_obj,"nkernel",2)
+     else
+         stop 'should not happen'
+     end if
+
+     call foe_allocate_arrays(foe_obj)
+
+     if (foe_data_get_int(foe_obj,"nkernel")==1) then
+         call foe_data_set_real(foe_obj,"charge_partial",foe_data_get_real(foe_obj,"charge"))
+     else
+         call foe_data_set_real(foe_obj,"charge_partial",0.5d0*foe_data_get_real(foe_obj,"charge")-0.5d0,ind=1)
+         call foe_data_set_real(foe_obj,"charge_partial",0.5d0*foe_data_get_real(foe_obj,"charge")+0.5d0,ind=2)
+     end if
+
      call foe_data_set_real(foe_obj,"ef",0.d0)
      call foe_data_set_real(foe_obj,"evlow",input%lin%evlow)
      call foe_data_set_real(foe_obj,"evhigh",input%lin%evhigh)
@@ -225,10 +252,6 @@ subroutine init_foe(iproc, nproc, nlr, locregcenter, astruct, input, orbs_KS, or
      call foe_data_set_real(foe_obj,"fscale",input%lin%fscale)
      call foe_data_set_real(foe_obj,"ef_interpol_det",input%lin%ef_interpol_det)
      call foe_data_set_real(foe_obj,"ef_interpol_chargediff",input%lin%ef_interpol_chargediff)
-     call foe_data_set_real(foe_obj,"charge",0.d0)
-     do iorb=1,orbs_KS%norb
-          call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge")+orbs_KS%occup(iorb))
-     end do
      call foe_data_set_int(foe_obj,"evbounds_isatur",0)
      call foe_data_set_int(foe_obj,"evboundsshrink_isatur",0)
      call foe_data_set_int(foe_obj,"evbounds_nsatur",input%evbounds_nsatur)
