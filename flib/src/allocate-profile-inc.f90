@@ -7,8 +7,8 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
-  integer :: ierror
-  integer(kind=8) :: iadd
+  integer :: ierror,sizeof
+  integer(kind=8) :: iadd,ilsize
 
   if (f_err_raise(ictrl == 0,&
        'ERROR (f_malloc): the routine f_malloc_initialize has not been called',&

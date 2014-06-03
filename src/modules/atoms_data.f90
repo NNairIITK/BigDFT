@@ -182,22 +182,7 @@ module module_atoms
       end if
       call f_free_ptr(sym%irrzon)
       call f_free_ptr(sym%phnons)
-
-!!$      if (associated(sym%irrzon)) then
-!!$         i_all=-product(shape(sym%irrzon))*kind(sym%irrzon)
-!!$         deallocate(sym%irrzon,stat=i_stat)
-!!$         call memocc(i_stat,i_all,'irrzon',subname)
-!!$         nullify(sym%irrzon)
-!!$      end if
-!!$
-!!$      if (associated(sym%phnons)) then
-!!$         i_all=-product(shape(sym%phnons))*kind(sym%phnons)
-!!$         deallocate(sym%phnons,stat=i_stat)
-!!$         call memocc(i_stat,i_all,'phnons',subname)
-!!$         nullify(sym%phnons)
-!!$      end if
     end subroutine deallocate_symmetry_data
-
 
     !> Deallocate the structure atoms_data.
     subroutine deallocate_atomic_structure(astruct)!,subname) 
@@ -212,7 +197,7 @@ module module_atoms
 
 
       ! Deallocations for the geometry part.
-!      if (astruct%nat > 0) then
+      if (astruct%nat >= 0) then
          i_all=-product(shape(astruct%ifrztyp))*kind(astruct%ifrztyp)
          deallocate(astruct%ifrztyp,stat=i_stat)
          call memocc(i_stat,i_all,'astruct%ifrztyp',subname)
@@ -225,12 +210,12 @@ module module_atoms
          i_all=-product(shape(astruct%rxyz))*kind(astruct%rxyz)
          deallocate(astruct%rxyz,stat=i_stat)
          call memocc(i_stat,i_all,'astruct%rxyz',subname)
-!      end if
-!      if (astruct%ntypes > 0) then
+      end if
+      if (astruct%ntypes >= 0) then
          i_all=-product(shape(astruct%atomnames))*kind(astruct%atomnames)
          deallocate(astruct%atomnames,stat=i_stat)
          call memocc(i_stat,i_all,'astruct%atomnames',subname)
-!      end if
+      end if
       ! Free additional stuff.
       call deallocate_symmetry_data(astruct%sym)
 
@@ -629,7 +614,8 @@ module module_atoms
       end if
       if (present(fxyz)) then
          if (associated(fxyz_)) then
-            fxyz = f_malloc_ptr(src = fxyz_, id = "fxyz")
+            !fxyz = f_malloc_ptr(src = fxyz_, id = "fxyz") not needed anymore
+            fxyz => fxyz_
          else
             nullify(fxyz)
          end if

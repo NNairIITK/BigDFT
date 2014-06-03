@@ -1855,6 +1855,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            if(iproc==0) then
               if (opt%itrp == opt%itrpmax .and. opt%gnrm_cv > 0.0_gp) &
                    call yaml_warning('Wavefunctions not converged after cycle '// trim(yaml_toa(opt%itrep,fmt='(i0)')))
+              if (opt%itrpmax > 1 .and. opt%itrp == opt%itrpmax .and. opt%gnrm > sqrt(opt%rpnrm)) &
+                   call yaml_warning('Wavefunction residue is not consistent with density convergence (T_el too small?)')
               if (opt%itrep < opt%nrepmax) call yaml_comment('restart after diagonalisation')
               ! write(*,*) ' WARNING: Wavefunctions not converged after cycle',opt%itrep
               ! if (opt%itrep < opt%nrepmax) write(*,*)' restart after diagonalisation'

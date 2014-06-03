@@ -357,6 +357,13 @@ module module_types
      real(gp) :: dtinit, dtmax           !< For FIRE
      character(len=10) :: tddft_approach !< TD-DFT variables from *.tddft
      type(SIC_data) :: SIC               !< Parameters for the SIC methods
+     !variables for SBFGS
+     integer  :: nhistx
+     real(gp) :: maxrise
+     real(gp) :: cutoffratio
+     real(gp) :: steepthresh
+     real(gp) :: trustr
+
 
      ! Performance variables from input.perf
      logical :: debug      !< Debug option (used by memocc)
@@ -2120,6 +2127,32 @@ subroutine deallocate_global_output(outs, fxyz)
   end if
 END SUBROUTINE deallocate_global_output
 
+subroutine copy_global_output(outsA,outsB)
+!copies outsA to outsB
+   use module_base
+  implicit none
+  type(DFT_global_output), intent(in) :: outsA
+  type(DFT_global_output), intent(inout) :: outsB
+  integer :: i
+
+  if(outsA%fdim /= outsB%fdim)then
+   write(*,*)"Error in copy_global_output: outsA and outsB have different sizes",outsA%fdim,outsB%fdim
+   stop
+  endif
+  !outsA%fdim == outsB%fdim so it does not have to be copied
+
+   outsB%energy = outsA%energy
+   outsB%fnoise = outsA%fnoise
+   outsB%pressure = outsA%pressure
+   !8.5.2014: outs%energs does not contain any pointers,
+   !so we use intrinisc copy:
+   outsB%energs = outsA%energs
+   call vcopy(3 * outsB%fdim, outsA%fxyz(1,1), 1, outsB%fxyz(1,1), 1)
+   do i=1,6
+      outsB%strten(i) = outsA%strten(i)
+   enddo
+end subroutine
+
 !> cprj_clean will be obsolete with the PAW library
 !! this is cprj_free in abinit.
  subroutine cprj_clean(cprj)
@@ -2842,6 +2875,16 @@ end subroutine find_category
           in%dtinit = val
        case (DTMAX)
           in%dtmax = val
+       case (NHISTX)
+          in%nhistx = val
+       case (MAXRISE)
+          in%maxrise = val
+       case (CUTOFFRATIO)
+          in%cutoffratio = val
+       case (STEEPTHRESH)
+          in%steepthresh = val
+       case (TRUSTR)
+          in%trustr = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select

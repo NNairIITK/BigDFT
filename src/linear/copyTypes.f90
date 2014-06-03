@@ -558,7 +558,7 @@ orbsout%efermi = orbsin%efermi
 call f_free_ptr(orbsout%norb_par)
 if(associated(orbsin%norb_par)) then
    orbsout%norb_par = &
-        f_malloc_ptr(src=orbsin%norb_par,id='orbsout%norb_par')
+        f_malloc_ptr(src=orbsin%norb_par,lbounds=lbound(orbsin%norb_par),id='orbsout%norb_par')
 !!$
 !!$    iis1=lbound(orbsin%norb_par,1)
 !!$    iie1=ubound(orbsin%norb_par,1)
@@ -574,7 +574,7 @@ end if
 
 call f_free_ptr(orbsout%iokpt)
 if(associated(orbsin%iokpt)) then
-   orbsout%iokpt = f_malloc_ptr(src=orbsin%iokpt,id='orbsout%iokpt')
+   orbsout%iokpt = f_malloc_ptr(src=orbsin%iokpt,lbounds=lbound(orbsin%iokpt),id='orbsout%iokpt')
 !!$    iis1=lbound(orbsin%iokpt,1)
 !!$    iie1=ubound(orbsin%iokpt,1)
 !!$    orbsout%iokpt = f_malloc_ptr(iis1.to.iie1,id='orbsout%iokpt')
@@ -585,7 +585,8 @@ end if
 
 call f_free_ptr(orbsout%ikptproc)
 if(associated(orbsin%ikptproc)) then
-   orbsout%ikptproc = f_malloc_ptr(src=orbsin%ikptproc,id='orbsout%ikptproc')
+   orbsout%ikptproc = f_malloc_ptr(src=orbsin%ikptproc,&
+        lbounds=lbound(orbsin%ikptproc),id='orbsout%ikptproc')
 !!$    iis1=lbound(orbsin%ikptproc,1)
 !!$    iie1=ubound(orbsin%ikptproc,1)
 !!$    orbsout%ikptproc = f_malloc_ptr(iis1.to.iie1,id='orbsout%ikptproc')
@@ -597,7 +598,9 @@ end if
 call f_free_ptr(orbsout%inwhichlocreg)
     
 if(associated(orbsin%inwhichlocreg)) then
-   orbsout%inwhichlocreg = f_malloc_ptr(src=orbsin%inwhichlocreg,id='orbsout%inwhichlocreg')
+   orbsout%inwhichlocreg = &
+        f_malloc_ptr(src=orbsin%inwhichlocreg,&
+        lbounds=lbound(orbsin%inwhichlocreg),id='orbsout%inwhichlocreg')
        
 !!$    iis1=lbound(orbsin%inwhichlocreg,1)
 !!$    iie1=ubound(orbsin%inwhichlocreg,1)
@@ -610,7 +613,8 @@ end if
 call f_free_ptr(orbsout%onwhichatom)
 if(associated(orbsin%onwhichatom)) then
     orbsout%onwhichatom = &
-         f_malloc_ptr(src=orbsin%onwhichatom,id='orbsout%onwhichatom')
+         f_malloc_ptr(src=orbsin%onwhichatom,lbounds=lbound(orbsin%onwhichatom),&
+         id='orbsout%onwhichatom')
 !!$    iis1=lbound(orbsin%onwhichatom,1)
 !!$    iie1=ubound(orbsin%onwhichatom,1)
 !!$    orbsout%onwhichatom = f_malloc_ptr(iis1.to.iie1,id='orbsout%onwhichatom')

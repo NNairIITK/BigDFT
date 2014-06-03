@@ -154,5 +154,4 @@ subroutine f_lib_finalize()
   call f_timing_finalize()
   !debug, once again
   call dictionary_check_leak()
-
 end subroutine f_lib_finalize

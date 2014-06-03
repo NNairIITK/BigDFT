@@ -271,6 +271,7 @@
        DIIS:   Direct inversion of iterative subspace
        FIRE:   Fast Inertial Relaxation Engine as described by Bitzek et al.
        NEB: Nudged Elastic Band
+       SBFGS: Stefans new optimizer
      default: none
    ncount_cluster_x:
      COMMENT: Maximum number of force evaluations
@@ -305,6 +306,7 @@
        - DIIS
        - FIRE
        - NEB
+       - SBFGS
        - none
      PROFILE_FROM: method
      RANGE: [0., 100.]
@@ -335,6 +337,46 @@
        - FIRE
      RANGE: [0, 1e4]
      default: 1.5
+   nhistx:
+     COMMENT: maximum history length
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - SBFGS
+     RANGE: [0, 1000]
+     default: 10
+   maxrise:
+     COMMENT: maximum allowed rise in energy in one geopt step
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - SBFGS
+     RANGE: [0., 1e10]
+     default: 1e-6
+   cutoffratio:
+     COMMENT: if ratio of eigenvalues of displacement overlapmatrix is smaller than cutoffratio, the corresponding directions are not used
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - SBFGS
+     RANGE: [0., 1.]
+     default: 1e-4
+   steepthresh:
+     COMMENT: if fnrm < steepthresh, geopt method uses steepest descent
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - SBFGS
+     RANGE: [0., 1e10]
+     default: 0.5
+   trustr:
+     COMMENT: maximum displacement of single atom
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - SBFGS
+     RANGE: [0., 1e10]
+     default: 0.5
    ionmov:
      COMMENT: Movement ion method
      CONDITION:

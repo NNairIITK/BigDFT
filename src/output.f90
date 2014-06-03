@@ -676,31 +676,24 @@ subroutine write_eigenvalues_data(etol,orbs,mom_vec)
   else
      tolerance=etol
   end if
+  
+  ! Calculate and print the magnetisation, no matter the verbosity
+  if (orbs%nspin == 2) then
+     mpol = 0._gp
+     do ikpt=1,orbs%nkpts
+        isorb = (ikpt - 1) * orbs%norb
+        do iorb = 1, orbs%norbu
+           mpol = mpol + orbs%occup(isorb + iorb) * orbs%kwgts(ikpt)
+        end do
+        do iorb = orbs%norbu + 1, orbs%norb, 1
+           mpol = mpol - orbs%occup(isorb + iorb) * orbs%kwgts(ikpt)
+        end do
+     end do
+     call yaml_map("Total magnetization",mpol,fmt='(f9.6)')
+  end if
 
   if (verbose > 1) then
      call yaml_comment('Eigenvalues and New Occupation Numbers')
-     !call yaml_open_map('Eigenvalues and New Occupation Numbers')
-     !write(*,'(1x,a)')&
-     !     &   '--------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers'
-     ! Calculate and print the magnetisation
-     if (orbs%nspin == 2) then
-        mpol = 0._gp
-        do ikpt=1,orbs%nkpts
-           isorb = (ikpt - 1) * orbs%norb
-           do iorb = 1, orbs%norbu
-              mpol = mpol + orbs%occup(isorb + iorb) * orbs%kwgts(ikpt)
-           end do
-           do iorb = orbs%norbu + 1, orbs%norb, 1
-              mpol = mpol - orbs%occup(isorb + iorb) * orbs%kwgts(ikpt)
-           end do
-        end do
-        !write(*,"(1x,A,f9.6)")"Total magnetisation: ", mpol
-        call yaml_map("Total magnetization",mpol,fmt='(f9.6)')
-     end if
-     !if (orbs%nspinor ==4) then
-     !   write(*,'(1x,a)')&
-     !        &   '           Eigenvalue                                      m_x       m_y       m_z'
-     !end if
 
      call yaml_open_sequence('Orbitals',flow=.true.)
      call yaml_newline()

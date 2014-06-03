@@ -79,7 +79,7 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
      call read_neb_from_text_format(mpi_env%iproc,dict//GEOPT_VARIABLES, trim(f0))
   else
      ! We add an overloading input.perf (for automatic test purposes).
-     ! This will be changed in far future when only YAML input will be allowed.
+     ! This will be changed in future when only YAML input will be allowed.
      call set_inputfile(f0, radical, PERF_VARIABLES)
      call read_perf_from_text_format(mpi_env%iproc,dict//PERF_VARIABLES, trim(f0))
   end if
