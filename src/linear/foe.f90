@@ -119,9 +119,9 @@ subroutine foe(iproc, nproc, tmprtr, &
   interpol_matrix = f_malloc((/4,4,nkernel/),id='interpol_matrix')
   interpol_vector = f_malloc((/4,nkernel/),id='interpol_vector')
   bisection_bounds_ok = f_malloc((/2,nkernel/),id='bisection_bounds_ok')
-  adjust_lower_bound = f_malloc(2,id='adjust_lower_bound')
-  adjust_upper_bound = f_malloc(2,id='adjust_upper_bound')
-  kernel_converged = f_malloc(2,id='kernel_converged')
+  adjust_lower_bound = f_malloc(nkernel,id='adjust_lower_bound')
+  adjust_upper_bound = f_malloc(nkernel,id='adjust_upper_bound')
+  kernel_converged = f_malloc(nkernel,id='kernel_converged')
 
 
   call timing(iproc, 'FOE_auxiliary ', 'OF')
@@ -538,12 +538,14 @@ subroutine foe(iproc, nproc, tmprtr, &
                           if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
                                (/eval_bounds_ok(1),eval_bounds_ok(2),&
                                bisection_bounds_ok(1,ikernel),bisection_bounds_ok(2,ikernel)/))
-                          call yaml_close_map()
+                          !call yaml_close_map()
                       end if
                       if (ikernel==nkernel) then
                           call f_free(cc_check)
+                          if (iproc==0) call yaml_close_map()
                           cycle main_loop
                       else
+                          if (iproc==0) call yaml_newline()
                           cycle
                       end if
                   end if
@@ -569,13 +571,15 @@ subroutine foe(iproc, nproc, tmprtr, &
                            bisection_bounds_ok(1,ikernel),bisection_bounds_ok(2,ikernel)/))
                   end if
                   if (restart) then
-                      if (iproc==0) then
-                          call yaml_close_map()
-                      end if
+                      !if (iproc==0) then
+                      !    call yaml_close_map()
+                      !end if
                       if (ikernel==nkernel) then
                           call f_free(cc_check)
+                          if (iproc==0) call yaml_close_map()
                           cycle main_loop
                       else
+                          if (iproc==0) call yaml_newline()
                           cycle
                       end if
                   end if
@@ -678,6 +682,9 @@ subroutine foe(iproc, nproc, tmprtr, &
                   end if
 
                   call determine_new_fermi_level()
+                  if (ikernel<nkernel) then
+                      if (iproc==0) call yaml_newline()
+                  end if
 
               end do
 
