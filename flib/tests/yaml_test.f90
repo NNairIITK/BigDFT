@@ -19,10 +19,6 @@ program yaml_test
 
    call f_lib_initialize()
 
-   call profile_dictionary_usage()
-   call f_lib_finalize()
-   stop
-
    !First document  
    call yaml_new_document()
    call yaml_comment('Yaml Output Module Test',hfill='~')
@@ -87,6 +83,8 @@ program yaml_test
    call yaml_new_document()
    call test_dictionary_for_atoms()
    call yaml_release_document()
+
+   call profile_dictionary_usage()
 
    !prepare the finalization of the library
    call f_lib_finalize()

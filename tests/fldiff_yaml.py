@@ -110,7 +110,7 @@ def compare_seq(seq, ref, tols, always_fails=False):
                     else:
                         tols[0] = max(newtols, tols[0])
         else:
-            print 'problem with length 1',
+            print 'compare sequence: problem with length 1'
             failed_checks += 1
             if len(tols) == 0:
                 tols.append("NOT SAME LENGTH")
@@ -132,7 +132,7 @@ def compare_seq(seq, ref, tols, always_fails=False):
                     if failed:
                         tols[0] = newtols
         else:
-            print 'problem with length 2',
+            print 'compare sequence: problem with length 2'
             failed_checks += 1
             if len(tols) == 0:
                 tols.append("NOT SAME LENGTH")
@@ -157,15 +157,12 @@ def compare_map(map, ref, tols, always_fails=False):
             else:
                 value = map[key]
             if isinstance(tols,dict) and key in tols:
-                (failed, newtols) = compare(
-                    value, ref[key], tols[key], always_fails)
+                (failed, newtols) = compare(value, ref[key], tols[key], always_fails)
             # def tols is rigorously a one-level only dictionary
             elif key in def_tols:
-                (failed, newtols) = compare(
-                    value, ref[key], def_tols[key], always_fails)
+                (failed, newtols) = compare(value, ref[key], def_tols[key], always_fails)
             else:
-                (failed, newtols) = compare(
-                    value, ref[key], always_fails=always_fails)
+                (failed, newtols) = compare(value, ref[key], always_fails=always_fails)
             # add to the tolerance dictionary a failed result
             if failed:
                 if isinstance(tols,dict) and key in tols:
@@ -229,7 +226,7 @@ def compare_scl(scl, ref, tols, always_fails=False):
     return ret
 
 
-def document_report(hostname, tol, biggest_disc, nchecks, leaks, nmiss, miss_it, timet):
+def document_report(hostname, tol, biggest_disc, nchecks, leaks, nmiss, miss_it, timet, message=""):
     "Report about the document"
     results = {}
     failure_reason = None
@@ -239,7 +236,7 @@ def document_report(hostname, tol, biggest_disc, nchecks, leaks, nmiss, miss_it,
             failure_reason = "Memory Leak"
         elif nmiss > 0:
             failure_reason = "Information"
-        elif tol == -1:
+        elif tol == -1 and "No such file" in message:
             failure_reason = "Missing File"
         elif tol == 0 and biggest_disc == 0 and timet == 0:
             failure_reason = "Yaml Standard"
@@ -299,7 +296,7 @@ def fatal_error(args, reports, message='Error in reading datas, Yaml Standard vi
     "Fatal Error: exit after writing the report, assume that the report file is already open)"
     global options
     print message
-    finres = document_report('None', -1., 0., 1, 0, 0, 0, 0)
+    finres = document_report('None', -1., 0., 1, 0, 0, 0, 0,message=message)
     reports.write(
         yaml.dump(finres, default_flow_style=False, explicit_start=True))
     newreport = open("report", "w")
@@ -422,7 +419,7 @@ if len(references) != len(datas):
 
 for i in range(len(references)):
     tols = {}  # copy.deepcopy(orig_tols)
-    #  print data
+    #global variable!
     failed_checks = 0
     docmiss = 0
     docmiss_it = []

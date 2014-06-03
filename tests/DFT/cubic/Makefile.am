@@ -82,7 +82,7 @@ SIC-test.post-in:
 	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
 		-r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@ 
 
-H-Rydberg.test.post-in:
+H-Rydberg-test.post-in:
 	@if test -f "H.perf" ; then \
 		echo >> H.yaml ; \
 		echo "perf:" >> H.yaml ; \
