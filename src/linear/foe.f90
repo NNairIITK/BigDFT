@@ -392,13 +392,13 @@ subroutine foe(iproc, nproc, tmprtr, &
     
               if (calculate_SHS) then
                   ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
-                  if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','recalculated')
                   !!call chebyshev_clean(iproc, nproc, npl, cc(1,1,1), tmb%orbs, foe_obj, &
                   !!     tmb%linmat%l, hamscal_compr, &
                   !!     inv_ovrlp%matrix_compr, calculate_SHS, &
                   !!     nsize_polynomial, SHS, tmb%linmat%kernel_%matrixp, penalty_ev, chebyshev_polynomials, &
                   !!     emergency_stop)
                   if (ikernel==1) then
+                      if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','recalculated')
                       call chebyshev_clean(iproc, nproc, npl, cc(1,1,1), tmb%orbs, foe_obj, &
                            tmb%linmat%l, hamscal_compr, &
                            inv_ovrlp%matrix_compr, calculate_SHS, &
@@ -407,6 +407,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                   else
                       !!call chebyshev_fast(iproc, nsize_polynomial, npl, tmb%orbs, &
                       !!    tmb%linmat%l, chebyshev_polynomials, cc(1,1,2), tmb%linmat%kernel_%matrixp(1,1,2))
+                      if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','from memory')
                       call chebyshev_fast(iproc, nsize_polynomial, npl, tmb%orbs, &
                           tmb%linmat%l, chebyshev_polynomials, cc(1,1,2), fermip(1,1,2))
                   end if
@@ -473,9 +474,6 @@ subroutine foe(iproc, nproc, tmprtr, &
                   end if
               end if
     
-              if (ikernel==nkernel) then
-                  call f_free(cc)
-              end if
     
               if (ikernel==1) then
                   if (restart) then
@@ -491,6 +489,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                           call yaml_close_map()
                           !call bigdft_utils_flush(unit=6)
                       end if
+                      call f_free(cc)
                       call f_free(cc_check)
                       cycle main_loop
                   end if
@@ -500,6 +499,10 @@ subroutine foe(iproc, nproc, tmprtr, &
                       call foe_data_set_int(foe_obj,"evbounds_isatur",foe_data_get_int(foe_obj,"evbounds_isatur")+1)
                   end if
 
+              end if
+
+              if (ikernel==nkernel) then
+                  call f_free(cc)
               end if
 
 
