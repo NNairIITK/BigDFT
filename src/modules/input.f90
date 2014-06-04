@@ -2160,7 +2160,7 @@ contains
     !call yaml_map('Fragment dictionary',dict_frag)
 
     call dict_update(dict,dict_frag)
-    !call dict_free(dict_frag)
+    call dict_free(dict_frag)
 
   END SUBROUTINE fragment_input_variables_from_text_format
 

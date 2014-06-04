@@ -601,8 +601,9 @@ subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_o
   character(len=500) :: filename_out
 
   if(present(iiorb)) then   
-     !call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iiorb) 
-     call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out) 
+     call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iiorb)
+     !restore previous behaviour even though the wannier construction can be compromised
+     !call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out) 
   else
      call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out)
   end if
@@ -2604,6 +2605,8 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
                  call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),full_filename, &
                       & orbs,iorbp,ispinor,iorb_out,iforb)
                       !& ref_frags(ifrag_ref)%fbasis%forbs,iforb,ispinor,iorb_out)
+
+                 !print *,'before crash',iorbp,trim(full_filename),iiorb,iforb
   
                  call io_read_descr_linear(99,(iformat == WF_FORMAT_PLAIN), iorb_old, eval, n_old(1), n_old(2), n_old(3), &
                       ns_old(1), ns_old(2), ns_old(3), hgrids_old, lstat, error, orbs%onwhichatom(iiorb), &
