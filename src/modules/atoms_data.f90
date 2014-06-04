@@ -619,7 +619,7 @@ module module_atoms
          else
             nullify(fxyz)
          end if
-         call f_free_ptr(fxyz_)
+         !call f_free_ptr(fxyz_)
       else if (associated(fxyz_)) then
          call f_free_ptr(fxyz_)
       end if

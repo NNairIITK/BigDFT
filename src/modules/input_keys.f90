@@ -165,6 +165,7 @@ module module_input_keys
   character(len=*), parameter, public :: LIN_BASIS       ='lin_basis'
   character(len=*), parameter, public :: LIN_KERNEL      ='lin_kernel'
   character(len=*), parameter, public :: LIN_BASIS_PARAMS='lin_basis_params'
+  character(len=*), parameter, public :: FRAG_VARIABLES  ='frag'
   character(len=*), parameter, public :: HYBRID          ='hybrid'
   character(len=*), parameter, public :: LINEAR_METHOD   ='linear_method'
   character(len=*), parameter, public :: MIXING_METHOD   ='mixing_method'
@@ -200,8 +201,8 @@ module module_input_keys
   character(len=*), parameter, public :: CORRECTION_ORTHOCONSTRAINT='correction_orthoconstraint'
   character(len=*), parameter, public :: FSCALE_LOWERBOUND="fscale_lowerbound"
   character(len=*), parameter, public :: FSCALE_UPPERBOUND="fscale_upperbound"
-
-
+  character(len=*), parameter, public :: EXTRA_STATES="extra_states"
+  character(len=*), parameter, public :: FRAGMENT_NO="Fragment No. "
 
   !> Error ids for this module.
   integer, public :: INPUT_VAR_NOT_IN_LIST = 0
@@ -601,7 +602,11 @@ contains
        end if
        dict_tmp => dict_next(dict_tmp)
       end do
-    end if
+   end if
+
+   !fragment dictionary has to be copied as-is
+   if (FRAG_VARIABLES .in. dict) &
+        call dict_copy(minimal//FRAG_VARIABLES,dict//FRAG_VARIABLES)
 
     contains
       
