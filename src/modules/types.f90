@@ -258,7 +258,7 @@ module module_types
      character(len=100) :: file_frag   !< Fragments
      character(len=max_field_length) :: dir_output  !< Strings of the directory which contains all data output files
      character(len=max_field_length) :: run_name    !< Contains the prefix (by default input) used for input files as input.dft
-     integer :: files                  !< Existing files.
+     !integer :: files                  !< Existing files.
 
      !> Miscellaneous variables
      logical :: gaussian_help
@@ -2964,6 +2964,8 @@ end subroutine find_category
           in%lin%new_pulay_correction = dummy_log(2)
        case (SUBSPACE_DIAG)
           in%lin%diag_end = val
+       case (EXTRA_STATES)
+          in%lin%extra_states = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
@@ -3102,5 +3104,132 @@ end subroutine find_category
     end select
     
   end subroutine basis_params_set_dict
+
+  subroutine frag_from_dict(dict,frag)
+    use module_base
+    use yaml_output, only: yaml_map,is_atoi
+    use module_input_keys
+    implicit none
+    type(dictionary), pointer :: dict
+    type(fragmentInputParameters), intent(out) :: frag
+    !local variables
+    integer :: frag_num,ncount,ncharged,ifrag
+    character(len=max_field_length) :: frg_key
+    type(dictionary), pointer :: dict_tmp,tmp2
+
+    !now simulate the reading of the fragment structure from the dictionary
+!!$  !to be continued after having fixed linear variables
+    !iteration over the dictionary
+    !count the number of reference fragments
+    call nullifyInputFragParameters(frag)
+    frag%nfrag_ref=0
+    frag%nfrag=0
+!some sanity checks have to be added to this section
+    dict_tmp=>dict_iter(dict)
+    do while(associated(dict_tmp))
+       select case(trim(dict_key(dict_tmp)))
+       case(TRANSFER_INTEGRALS)
+          !frag%calc_transfer_integrals=dict_tmp
+       case(CONSTRAINED_DFT)
+          ncharged=dict_size(dict_tmp)
+          !constrained_dft=ncharged > 0
+       case default
+          frag%nfrag_ref=frag%nfrag_ref+1
+          !count the number of fragments for this reference
+          call count_local_fragments(dict_tmp,ncount)
+          frag%nfrag=frag%nfrag+ncount
+       end select
+       dict_tmp=>dict_next(dict_tmp)
+    end do
+    
+    if (frag%nfrag*frag%nfrag_ref == 0) then
+       call f_err_throw('Fragment dictionary for the input is invalid',&
+            err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+       return
+    end if
+    call allocateInputFragArrays(frag)
+    frag%charge=0.d0 !f_memset to be used
+
+    dict_tmp=>dict_iter(dict)
+    frag_num=0
+    do while(associated(dict_tmp))
+       select case(trim(dict_key(dict_tmp)))
+       case(TRANSFER_INTEGRALS)
+       case(CONSTRAINED_DFT)
+          tmp2=>dict_iter(dict_tmp)
+          !iterate over the charge TODO
+          do while(associated(tmp2))
+             frg_key=dict_key(tmp2)
+             if (index(frg_key,FRAGMENT_NO) == 0 .or. &
+                  .not. is_atoi(frg_key(len(FRAGMENT_NO)+1:))) then
+                call f_err_throw('Invalid key in '//CONSTRAINED_DFT//&
+                     ' section, key= '//trim(frg_key),&
+                     err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+             end if
+             read(frg_key(len(FRAGMENT_NO)+1:),*)ifrag
+             frag%charge(ifrag)=tmp2
+             tmp2=>dict_next(tmp2)
+          end do
+       case default
+          frag_num=frag_num+1
+          frag%label(frag_num)=repeat(' ',len(frag%label(frag_num)))
+          frag%label(frag_num)=trim(dict_key(dict_tmp))
+          !update directory name
+          frag%dirname(frag_num)='data-'//trim(frag%label(frag_num))//'/'
+          call count_local_fragments(dict_tmp,ncount,frag_index=frag%frag_index,frag_id=frag_num)
+       end select
+       dict_tmp=>dict_next(dict_tmp)
+    end do
+
+    contains
+      subroutine count_local_fragments(dict_tmp,icount,frag_index,frag_id)
+        use yaml_strings, only: is_atoi
+        implicit none
+        integer, intent(out) :: icount
+        type(dictionary), pointer :: dict_tmp
+        integer, dimension(:), intent(inout), optional :: frag_index
+        integer, intent(in), optional :: frag_id
+
+        !local variables
+        integer :: idum,istart,i
+        type(dictionary), pointer :: d_tmp
+        character(len=max_field_length) :: val
+
+        !iteration over the whole list
+        icount=0
+        istart=0
+        d_tmp=>dict_iter(dict_tmp)
+        do while(associated(d_tmp))
+           val=d_tmp
+           !if string is a integer consider it
+           if (is_atoi(val)) then
+              idum=d_tmp
+              if (f_err_raise(istart>=idum,'error in entering fragment ids',&
+                   err_name='BIGDFT_INPUT_VARIABLES_ERROR')) return
+              if (istart /=0) then
+                 icount=icount+idum-istart
+                 if (present(frag_index) .and. present(frag_id)) then
+                    do i=istart,idum
+                       frag_index(i)=frag_id
+                    end do
+                 end if
+                 istart=0
+              else
+                 icount=icount+1
+                 if (present(frag_index) .and. present(frag_id)) frag_index(idum)=frag_id
+              end if
+           else if (f_err_raise(adjustl(trim(val))/='...',&
+                'the only allowed values in the fragment list are integers or "..." string',&
+                err_name='BIGDFT_INPUT_VARIABLES_ERROR')) then
+              return
+           else
+              istart=idum
+           end if
+           d_tmp=>dict_next(d_tmp)
+        end do
+      end subroutine count_local_fragments
+
+  end subroutine frag_from_dict
+
 
 end module module_types

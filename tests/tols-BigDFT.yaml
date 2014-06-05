@@ -242,8 +242,8 @@ N2:
 
 mixpotential:
  Epot: 1.1e-10
- energy: 6.55e-11
- Omega: 6.55e-11
+ energy: 7.07e-11
+ Omega: 6.58e-11
  Ekin: 1.1e-10
  EXC: 1.1e-10
 
@@ -679,7 +679,7 @@ foe:
 
 onlyhigh:
  Energies: 2.1e-9
- energy: 3.1e-10
+ energy: 3.13e-10
  Omega: 8.0e-10
  Orbitals: 1.1e-9
  Pulay Forces (Ha/Bohr): 1.4e-10

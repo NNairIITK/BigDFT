@@ -869,6 +869,10 @@
      subspace_diag: #called calc_ks, to be renamed
        COMMENT: diagonalization at the end
        default: No
+     extra_states:
+       COMMENT: extra states to optimize (dmin only)
+       default: 0
+       RANGE: [0, 10000]
 #Parameters for the localised basis set (or support function) for the linear scaling version
  lin_basis:
      nit:
