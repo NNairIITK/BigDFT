@@ -19,9 +19,9 @@ program yaml_test
 
    call f_lib_initialize()
 
-   call profile_dictionary_usage()
-   call f_lib_finalize()
-   stop
+!!$   call profile_dictionary_usage()
+!!$   call f_lib_finalize()
+!!$   stop
 
    !First document  
    call yaml_new_document()

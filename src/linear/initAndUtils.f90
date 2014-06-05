@@ -35,6 +35,54 @@ subroutine allocateBasicArraysInputLin(lin, ntypes)
 
 end subroutine allocateBasicArraysInputLin
 
+subroutine allocate_extra_lin_arrays(lin,astruct)
+  use module_atoms, only: atomic_structure
+  use module_types, only: linearInputParameters
+  use module_base, only: memocc
+  implicit none
+  type(atomic_structure), intent(in) :: astruct
+  type(linearInputParameters), intent(inout) :: lin
+  !local variables
+  character(len=*), parameter :: subname='allocate_extra_lin_arrays'
+  integer :: nlr,iat,itype,iiorb,iorb,istat
+  !then perform extra allocations
+  nlr=0
+  do iat=1,astruct%nat
+     itype=astruct%iatype(iat)
+     nlr=nlr+lin%norbsPerType(itype)
+  end do
+
+  allocate(lin%locrad(nlr),stat=istat)
+  call memocc(istat,lin%locrad,'lin%locrad',subname)
+
+  allocate(lin%locrad_kernel(nlr),stat=istat)
+  call memocc(istat,lin%locrad_kernel,'lin%locrad_kernel',subname)
+
+  allocate(lin%locrad_mult(nlr),stat=istat)
+  call memocc(istat,lin%locrad_mult,'lin%locrad_mult',subname)
+
+  allocate(lin%locrad_lowaccuracy(nlr),stat=istat)
+  call memocc(istat,lin%locrad_lowaccuracy,'lin%locrad_lowaccuracy',subname)
+
+  allocate(lin%locrad_highaccuracy(nlr),stat=istat)
+  call memocc(istat,lin%locrad_highaccuracy,'lin%locrad_highaccuracy',subname)
+
+  ! Assign the localization radius to each atom.
+  iiorb=0
+  do iat=1,astruct%nat
+     itype=astruct%iatype(iat)
+     do iorb=1,lin%norbsPerType(itype)
+        iiorb=iiorb+1
+        lin%locrad(iiorb)=lin%locrad_type(itype,1)
+        lin%locrad_kernel(iiorb)=lin%kernel_cutoff(itype)
+        lin%locrad_mult(iiorb)=lin%kernel_cutoff_FOE(itype)
+        lin%locrad_lowaccuracy(iiorb)=lin%locrad_type(itype,1) 
+        lin%locrad_highaccuracy(iiorb)=lin%locrad_type(itype,2)
+     end do
+  end do
+end subroutine allocate_extra_lin_arrays
+
+
 subroutine deallocateBasicArraysInput(lin)
   use module_base
   use module_types
