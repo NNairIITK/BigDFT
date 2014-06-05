@@ -552,6 +552,7 @@ geopt_foe:
  eF: 2.2e-7
  Epot: 1.1e-10
  EH: 1.1e-10
+ Ekin: 1.1e-10
  charge diff: 7.1e-6
  diff from idempotency: 2.1e-09
  tr(KS) before purification: 2.6e-07
