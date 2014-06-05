@@ -677,6 +677,7 @@ foe:
  decay length of error function: 1.1e-5
  ebs: 7.1e-8
  diff: 7.1e-8
+ ebs_check: 1.1e-10
 
 onlyhigh:
  Energies: 2.1e-9
@@ -958,6 +959,7 @@ PBE_potmixdiis:
 PBE_densmixdiis:
  Epot: 1.1e-10
  EvXC: 1.1e-10
+ EXC: 1.1e-10
  Enl: 1.1e-10
  energy: 1.1e-10
  Omega: 1.1e-10
