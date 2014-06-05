@@ -565,18 +565,23 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
 
   total_charge=0.d0
   irho=0
+
+!ispin=1
   !$omp parallel default(private) &
   !$omp shared(total_charge, collcom_sr, factor, denskern, denskern_, rho_local, irho)
   !$omp do schedule(static,50) reduction(+:total_charge, irho)
   do ipt=1,collcom_sr%nptsp_c
       ii=collcom_sr%norb_per_gridpoint_c(ipt)
+
       i0=collcom_sr%isptsp_c(ipt)
       tt=1.e-20_dp
       do i=1,ii
           iiorb=collcom_sr%indexrecvorbital_c(i0+i)
+!ispin=spinsgn(iiorb) 
           tt1=collcom_sr%psit_c(i0+i)
           ind=denskern%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
           tt=tt+denskern_%matrix_compr(ind)*tt1*tt1
+!tt(ispin)=tt(ispin)+denskern_%matrix_compr(ind)*tt1*tt1
           do j=i+1,ii
               jjorb=collcom_sr%indexrecvorbital_c(i0+j)
               ind=denskern%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
@@ -587,6 +592,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
       tt=factor*tt
       total_charge=total_charge+tt
       rho_local(ipt)=tt
+!rho_local(ipt,ispin)=tt(ispin)
       if (tt<0.d0) irho=irho+1
   end do
   !$omp end do
