@@ -239,6 +239,8 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   real(wp), dimension(:,:,:), allocatable :: hamovr
   real(wp), dimension(:), pointer :: psiw
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
+
+  call f_routine(id='LDiagHam')
      
   tolerance=etol
 
@@ -537,6 +539,8 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
 
   ! reput the good wavefunction dimensions:  
   if(.not. Lzd%linear) call wavefunction_dimension(Lzd,orbs)     
+
+  call f_release_routine()
 
 END SUBROUTINE LDiagHam
 
