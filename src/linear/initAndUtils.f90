@@ -38,7 +38,7 @@ end subroutine allocateBasicArraysInputLin
 subroutine allocate_extra_lin_arrays(lin,astruct)
   use module_atoms, only: atomic_structure
   use module_types, only: linearInputParameters
-  use module_base, only: memocc
+  use dynamic_memory
   implicit none
   type(atomic_structure), intent(in) :: astruct
   type(linearInputParameters), intent(inout) :: lin
@@ -52,20 +52,11 @@ subroutine allocate_extra_lin_arrays(lin,astruct)
      nlr=nlr+lin%norbsPerType(itype)
   end do
 
-  allocate(lin%locrad(nlr),stat=istat)
-  call memocc(istat,lin%locrad,'lin%locrad',subname)
-
-  allocate(lin%locrad_kernel(nlr),stat=istat)
-  call memocc(istat,lin%locrad_kernel,'lin%locrad_kernel',subname)
-
-  allocate(lin%locrad_mult(nlr),stat=istat)
-  call memocc(istat,lin%locrad_mult,'lin%locrad_mult',subname)
-
-  allocate(lin%locrad_lowaccuracy(nlr),stat=istat)
-  call memocc(istat,lin%locrad_lowaccuracy,'lin%locrad_lowaccuracy',subname)
-
-  allocate(lin%locrad_highaccuracy(nlr),stat=istat)
-  call memocc(istat,lin%locrad_highaccuracy,'lin%locrad_highaccuracy',subname)
+  lin%locrad = f_malloc_ptr(nlr,id='lin%locrad')
+  lin%locrad_kernel = f_malloc_ptr(nlr,id='lin%locrad_kernel')
+  lin%locrad_mult = f_malloc_ptr(nlr,id='lin%locrad_mult')
+  lin%locrad_lowaccuracy = f_malloc_ptr(nlr,id='lin%locrad_lowaccuracy')
+  lin%locrad_highaccuracy = f_malloc_ptr(nlr,id='lin%locrad_highaccuracy')
 
   ! Assign the localization radius to each atom.
   iiorb=0
