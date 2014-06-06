@@ -21,6 +21,7 @@
 ############################################
 # Density Functional Theory parameters
  dft:
+   DESCRIPTION: Density Functional Theory parameters
    hgrids:
      COMMENT: Grid spacing in the three directions (bohr)
      DESCRIPTION: Grid spacing in three directions (Bohr units) of the coarse mesh as [0.5, 0.45, 0.4].
@@ -172,8 +173,10 @@
      COMMENT: Disable the symmetry detection
      DESCRIPTION: Disable the symmetry detection (by default No except for isolated systems)
      default: No
+
 #K points parameters
  kpt:
+   DESCRIPTION: K points defined in the Brillouin zone for periodic system calculations
    method:
      COMMENT: K-point sampling method
      EXCLUSIVE:
@@ -256,8 +259,10 @@
        WHEN:
        - Yes
      default: ''
+
 #Geometry Optimisation  and Molecular Dynamics parameters
  geopt:
+   DESCRIPTION: Parameters for the geometry relaxation and molecular dynamics
    method:
      COMMENT: Geometry optimisation method
      EXCLUSIVE:
@@ -531,9 +536,13 @@
        WHEN:
        - NEB
      default: 15
+
+#Mixing parameters (do diagonalisation scheme instead of direct minimisation one)
  mix:
+   DESCRIPTION: Mixing parameters for SCF
    iscf:
      COMMENT: Mixing parameters
+     DESCRIPTION: Describe the scheme used to solve the self-consistent field
      EXCLUSIVE:
        -1: Reserved, do not use it.
        0:  Direct minimization
@@ -582,8 +591,10 @@
      COMMENT: Multiplying factors for the electronic DIIS
      RANGE: [0., 10.]
      default: 2.
+
 #Self-Interaction Correction
  sic:
+   DESCRIPTION: Self-Interaction Correction parameters 
    sic_approach:
      COMMENT: SIC (self-interaction correction) method
      EXCLUSIVE:

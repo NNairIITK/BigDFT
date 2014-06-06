@@ -218,9 +218,13 @@ module module_input_keys
   character(len = *), parameter :: PROF_KEY = "PROFILE_FROM"
   character(len = *), parameter :: USER_KEY = "USER_DEFINED"
 
-  character(len = *), parameter :: RANGE = "RANGE", EXCLUSIVE = "EXCLUSIVE"
-  character(len = *), parameter :: DEFAULT = "default", COMMENT = "COMMENT"
-  character(len = *), parameter :: COND = "CONDITION", WHEN = "WHEN"
+  character(len = *), parameter :: COMMENT = "COMMENT"
+  character(len = *), parameter :: DESCRIPTION = "DESCRIPTION"
+  character(len = *), parameter :: RANGE = "RANGE"
+  character(len = *), parameter :: EXCLUSIVE = "EXCLUSIVE"
+  character(len = *), parameter :: DEFAULT = "default"
+  character(len = *), parameter :: COND = "CONDITION"
+  character(len = *), parameter :: WHEN = "WHEN"
   character(len = *), parameter :: MASTER_KEY = "MASTER_KEY"
 
   public :: input_keys_init, input_keys_finalize
@@ -530,12 +534,12 @@ contains
     meth = dict // GEOPT_VARIABLES // GEOPT_METHOD
     if (input_keys_equal(trim(meth), "FIRE")) then
        prof = input_keys_get_source(dict // GEOPT_VARIABLES, DTMAX, user_defined)
-       if (trim(prof) == "default" .and. .not. user_defined) then
+       if (trim(prof) == DEFAULT .and. .not. user_defined) then
           betax_ = dict // GEOPT_VARIABLES // BETAX
           call set(dict // GEOPT_VARIABLES // DTMAX, 0.25 * pi_param * sqrt(betax_), fmt = "(F7.4)")
        end if
        prof = input_keys_get_source(dict // GEOPT_VARIABLES, DTINIT, user_defined)
-       if (trim(prof) == "default" .and. .not. user_defined) then
+       if (trim(prof) == DEFAULT .and. .not. user_defined) then
           dtmax_ = dict // GEOPT_VARIABLES // DTMAX
           call set(dict // GEOPT_VARIABLES // DTINIT, 0.5 * dtmax_, fmt = "(F7.4)")
        end if
@@ -716,24 +720,33 @@ contains
 
     integer :: i
     logical :: user, hasUserDef
-    type(dictionary), pointer :: ref
+    type(dictionary), pointer :: ref,ref_iter
     character(len=max_field_length), dimension(:), allocatable :: keys
     
 !    call f_routine(id='input_keys_fill')
 
     ref => parameters // file
 
-    keys = f_malloc_str(max_field_length,dict_size(ref),id='keys')
-    keys = dict_keys(ref)
-
+    ref_iter => dict_iter(parameters // file)
     hasUserDef = .false.
-    do i = 1, size(keys), 1
-          call input_keys_set(user, dict // file, file, keys(i))
+    do while(associated(ref_iter))
+       if (trim(dict_key(ref_iter)) /= DESCRIPTION) then
+          call input_keys_set(user, dict // file, file, dict_key(ref_iter))
           hasUserDef = (hasUserDef .or. user)
+       end if
+       ref_iter=> dict_next(ref_iter)
     end do
-    call set(dict // (trim(file) // ATTRS) // USER_KEY, hasUserDef)
 
-    call f_free_str(max_field_length, keys)
+!    keys = f_malloc_str(max_field_length,dict_size(ref),id='keys')
+!    keys = dict_keys(ref)
+!    hasUserDef = .false.
+!    do i=1,size(keys)
+!       call input_keys_set(user, dict // file, file, keys(i))
+!        hasUserDef = (hasUserDef .or. user)
+!    end do
+!    call set(dict // (trim(file) // ATTRS) // USER_KEY, hasUserDef)
+!
+!    call f_free_str(max_field_length, keys)
 !    call f_release_routine()
   END SUBROUTINE input_keys_fill
 
