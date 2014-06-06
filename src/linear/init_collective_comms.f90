@@ -26,7 +26,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
    character(len=*), parameter :: subname='check_communications'
    integer, parameter :: ilog=6
    integer :: i,ispinor,iorb,indspin,i_stat,i_all,ikptsp
-   integer :: ikpt,ierr,i0,ifine,ii,iiorb,ipt,jorb
+   integer :: ikpt,ierr,i0,ifine,ii,iiorb,ipt,jorb,indorb_tmp
    integer :: icomp
    !!$integer :: ipsi,ipsic,ipsif,ipsiworkc,ipsiworkf,jcomp,jkpt
    real(wp) :: psival,maxdiff,tt
@@ -40,7 +40,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
    psit_c = f_malloc(sum(collcom%nrecvcounts_c),id='psit_c')
    psit_f = f_malloc(7*sum(collcom%nrecvcounts_f),id='psit_f')
    !some problem with checksum using f_malloc?!
-   checksum = f_malloc((/ orbs%norb*orbs%nspinor, 2 /),id='checksum')
+   checksum = f_malloc0((/ orbs%norb*orbs%nspinor, 2 /),id='checksum')
    !allocate(checksum(orbs%norb*orbs%nspinor,2), stat=i_stat)
    !call memocc(i_stat, checksum, 'checksum', subname)
    if (orbs%norbp>0) then
@@ -49,19 +49,23 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
       tol=0.0_wp
    end if
 
-   checksum(:,:)=0.0_wp
    do iorb=1,orbs%norbp
       ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
+      indorb_tmp=ind_orb(iorb)
       do ispinor=1,orbs%nspinor
-         indspin=(ispinor-1)*nvctr_orb(iorb)
-         checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)=0.0_wp
+         indspin=(ispinor-1)*nvctr_orb(iorb)+indorb_tmp
+         !checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)=0.0_wp
+         tt=0.0_wp
          do i=1,nvctr_orb(iorb)
             !vali=real(i,wp)/512.0_wp  ! *1.d-5
             call test_value_locreg(ikpt,orbs%isorb+iorb-(ikpt-1)*orbs%norb,ispinor,i,psival)
-            psi(i+indspin+ind_orb(iorb))=psival!(valorb+vali)*(-1)**(ispinor-1)
-            checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)=&
-                 checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)+psival
+            !psi(i+indspin+ind_orb(iorb))=psival!(valorb+vali)*(-1)**(ispinor-1)
+            psi(i+indspin)=psival!(valorb+vali)*(-1)**(ispinor-1)
+            tt=tt+psival
+            !checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)=&
+            !     checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)+psival
          end do
+         checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)=tt
       end do
    end do
 
@@ -113,7 +117,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
 !!$               do jorb=1,iiorb-1
 !!$                  ipsi=ipsi-nvctr_f_orb(jorb)
 !!$               end do
-
+               tt=0.d0
                do ifine=1,7
 !!$                  call test_value_locreg(ikpt,iiorb-(ikpt-1)*orbs%norb,ispinor,&
 !!$                       nvctr_c_orb(iiorb)+7*(ipsi-1)+ifine,psival) 
@@ -122,8 +126,10 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
 !!$                     maxdiff=tt
 !!$                     !call wrong_components(psival,jkpt,jorb,jcomp)
 !!$                  end if
-                  checksum(iiorb,2)=checksum(iiorb,2)+psit_f(7*(i0+i-1)+ifine)
+                  !checksum(iiorb,2)=checksum(iiorb,2)+psit_f(7*(i0+i-1)+ifine)
+                  tt=tt+psit_f(7*(i0+i-1)+ifine)
                end do
+               checksum(iiorb,2)=checksum(iiorb,2)+tt
                !icomp=icomp+1
             end do
          end do
@@ -165,7 +171,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
       abort=.true.
    end if
 
-   if (abort) call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
+   if (abort) call MPI_ABORT(bigdft_mpi%mpi_comm,10,ierr)
 
 
    call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, psi, lzd)
