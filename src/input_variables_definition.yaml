@@ -24,8 +24,9 @@
    DESCRIPTION: Density Functional Theory parameters
    hgrids:
      COMMENT: Grid spacing in the three directions (bohr)
-     DESCRIPTION: Grid spacing in three directions (Bohr units) of the coarse mesh as [0.5, 0.45, 0.4].
-                  A scalar can also be given as 0.45.
+     DESCRIPTION: |
+      Grid spacing in three directions (Bohr units) of the coarse mesh as [0.5, 0.45, 0.4].
+      A scalar can also be given as 0.45.
      RANGE: [0., 2.]
      default: [0.45, 0.45, 0.45]
      fast: [0.55, 0.55, 0.55]
