@@ -281,10 +281,12 @@ subroutine bigdft_severe_abort()
        '-'//trim(adjustl(yaml_toa(bigdft_mpi%igroup)))//'.yaml'
   call f_malloc_dump_status(filename=filename)
   !call f_dump_last_error()
-  call f_dump_all_errors()
-  call yaml_comment('Error raised!',hfill='^')
-  call yaml_comment('Messages are above, dumping run status in file(s) '//trim(filename),hfill='^')
-  call yaml_comment('Exiting...',hfill='v')
+  if (bigdft_mpi%iproc ==0) then
+     call f_dump_all_errors()
+     call yaml_comment('Error raised!',hfill='^')
+     call yaml_comment('Messages are above, dumping run status in file(s) '//trim(filename),hfill='^')
+     call yaml_comment('Exiting...',hfill='v')
+  end if
   !call f_lib_finalize()
   call MPI_ABORT(MPI_COMM_WORLD,816437,ierr)
   if (ierr/=0) stop 'Problem in MPI_ABORT'

@@ -73,13 +73,14 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
      call read_sic_from_text_format(mpi_env%iproc,dict//SIC_VARIABLES, trim(f0))
      call set_inputfile(f0, radical, TDDFT_VARIABLES)
      call read_tddft_from_text_format(mpi_env%iproc,dict//TDDFT_VARIABLES, trim(f0))
-     call set_inputfile(f0, radical, 'lin')
-     call read_lin_from_text_format(mpi_env%iproc,dict, trim(f0))
+     !call set_inputfile(f0, radical, 'lin')
+     call read_lin_and_frag_from_text_format(mpi_env%iproc,dict,trim(radical)) !as it also reads fragment
+
      call set_inputfile(f0, radical, 'neb')
      call read_neb_from_text_format(mpi_env%iproc,dict//GEOPT_VARIABLES, trim(f0))
   else
      ! We add an overloading input.perf (for automatic test purposes).
-     ! This will be changed in far future when only YAML input will be allowed.
+     ! This will be changed in future when only YAML input will be allowed.
      call set_inputfile(f0, radical, PERF_VARIABLES)
      call read_perf_from_text_format(mpi_env%iproc,dict//PERF_VARIABLES, trim(f0))
   end if
@@ -108,6 +109,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   use dynamic_memory
   use m_profiling, only: ab7_memocc_set_state => memocc_set_state !< abinit module to be removed
   use module_xc
+  use input_old_text_format, only: dict_from_frag
   use module_atoms, only: atoms_data,atoms_data_null
   implicit none
   !Arguments
@@ -118,7 +120,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   !type(dictionary), pointer :: profs
   integer :: ierr, ityp, nelec_up, nelec_down, norb_max, jtype
   character(len = max_field_length) :: writing_dir, output_dir, run_name, msg
-  type(dictionary), pointer :: dict_minimal, var
+  type(dictionary), pointer :: dict_minimal, var,dict_frag
 
   call f_routine(id='inputs_from_dict')
 
@@ -155,10 +157,6 @@ subroutine inputs_from_dict(in, atoms, dict)
   end if
   if (associated(dict_minimal)) call dict_free(dict_minimal)
 
-  !call yaml_map('Dictionary completed',dict)
-
-  !call yaml_map('Minimal dictionary',dict_minimal)
-  !stop
   ! Transfer dict values into input_variables structure.
   var => dict_iter(dict // PERF_VARIABLES)
   do while(associated(var))
@@ -205,6 +203,18 @@ subroutine inputs_from_dict(in, atoms, dict)
      call input_set(in, LIN_KERNEL, var)
      var => dict_next(var)
   end do
+
+  !status of the allocation verbosity and profiling
+  if (.not. in%debug) then
+     call ab7_memocc_set_state(1)
+     call f_malloc_set_status(output_level=1)
+  end if
+  call set_cache_size(in%ncache_fft)
+  if (in%verbosity == 0 ) then
+     call ab7_memocc_set_state(0)
+     call f_malloc_set_status(output_level=0)
+  end if
+
   call nullifyInputLinparameters(in%lin)
   call allocateBasicArraysInputLin(in%lin, atoms%astruct%ntypes)
 
@@ -226,26 +236,10 @@ subroutine inputs_from_dict(in, atoms, dict)
      end do
   end do
 
-
-  if (.not. in%debug) then
-     call ab7_memocc_set_state(1)
-     call f_malloc_set_status(output_level=1)
-  end if
-  call set_cache_size(in%ncache_fft)
-  if (in%verbosity == 0 ) then
-     call ab7_memocc_set_state(0)
-     call f_malloc_set_status(output_level=0)
-  end if
+  call allocate_extra_lin_arrays(in%lin,atoms%astruct)
 
   ! Cross check values of input_variables.
   call input_analyze(in,atoms%astruct)
-
-  ! Initialise XC calculation
-!!$  if (in%ixc < 0) then
-!!$     call xc_init(in%xcObj, in%ixc, XC_MIXED, in%nspin)
-!!$  else
-!!$     call xc_init(in%xcObj, in%ixc, XC_ABINIT, in%nspin)
-!!$  end if
 
   ! Shake atoms, if required.
   call astruct_set_displacement(atoms%astruct, in%randdis)
@@ -333,8 +327,27 @@ subroutine inputs_from_dict(in, atoms, dict)
   in%run_name          = run_name
   in%writing_directory = writing_dir
   in%dir_output        = output_dir
-  call input_variables_from_old_text_format(in, atoms, trim(in%run_name))
+  ! not sure whether to actually make this an input variable or not so just set to false for now
+  in%lin%diag_start=.false.
 
+  !then fill also fragment variables
+  in%lin%fragment_calculation=FRAG_VARIABLES .in. dict
+  in%lin%calc_transfer_integrals=.false.
+  in%lin%constrained_dft=.false.
+  if (in%lin%fragment_calculation) then
+     in%lin%constrained_dft=CONSTRAINED_DFT .in. dict // FRAG_VARIABLES
+     if (TRANSFER_INTEGRALS .in. dict // FRAG_VARIABLES) &
+          in%lin%calc_transfer_integrals=dict//FRAG_VARIABLES//TRANSFER_INTEGRALS
+     call frag_from_dict(dict//FRAG_VARIABLES,in%frag)
+
+!!$     ! again recheck
+!!$     call dict_from_frag(in%frag,dict_frag)
+!!$     call yaml_map('again',dict_frag)
+!!$     call dict_free(dict_frag)
+!!$     stop
+  else
+     call default_fragmentInputParameters(in%frag)
+  end if
   if (bigdft_mpi%iproc==0) then
      call input_keys_dump(dict)
   end if
@@ -579,6 +592,8 @@ subroutine allocateInputFragArrays(input_frag)
   allocate(input_frag%dirname(input_frag%nfrag_ref), stat=i_stat)
   call memocc(i_stat, input_frag%dirname, 'input_frag%dirname', subname)
 
+  !set the variables to their default value
+
 end subroutine allocateInputFragArrays
 
 
@@ -631,6 +646,26 @@ subroutine deallocateInputFragArrays(input_frag)
 
 end subroutine deallocateInputFragArrays
 
+!> initialize fragment input parameters to their default value
+subroutine default_fragmentInputParameters(frag)
+  use module_types, only: fragmentInputParameters
+  implicit none
+  type(fragmentInputParameters),intent(out) :: frag
+
+  !first nullify
+  call nullifyInputFragParameters(frag)
+  !then set defaults
+  frag%nfrag_ref=1
+  frag%nfrag=1
+  !then allocate
+  call allocateInputFragArrays(frag)
+  !and fill to neutral values
+  frag%label(1)=repeat(' ',len(frag%label))
+  frag%dirname(1)=repeat(' ',len(frag%dirname))
+  frag%frag_index(1)=1
+  frag%charge(1)=0.0d0
+
+end subroutine default_fragmentInputParameters
 
 !> Nullify the parameters related to the fragments
 subroutine nullifyInputFragParameters(input_frag)
@@ -640,6 +675,7 @@ subroutine nullifyInputFragParameters(input_frag)
   ! Calling arguments
   type(fragmentInputParameters),intent(inout) :: input_frag
 
+  !default scalar variables
   nullify(input_frag%frag_index)
   nullify(input_frag%charge)
   !nullify(input_frag%frag_info)
@@ -647,6 +683,7 @@ subroutine nullifyInputFragParameters(input_frag)
   nullify(input_frag%dirname)
 
 end subroutine nullifyInputFragParameters
+
 
 !> Creation of the log file (by default log.yaml)
 !>  Free all dynamically allocated memory from the kpt input file.
@@ -782,7 +819,7 @@ subroutine input_analyze(in,astruct)
                           LINEAR_DIRECT_MINIMIZATION, LINEAR_MIXDENS_SIMPLE, LINEAR_MIXPOT_SIMPLE, LINEAR_FOE
   use module_atoms, only: atomic_structure
   use module_defs, only: gp
-  use dynamic_memory
+  use module_base
   use module_input_keys, only: input_keys_equal
   implicit none
   type(input_variables), intent(inout) :: in
@@ -876,6 +913,13 @@ subroutine input_analyze(in,astruct)
   case default
       stop 'wrong value of in%lin%kernel_mode'
   end select
+
+  ! It is not possible to use both the old and the new Pulay correction at the same time
+  if (in%lin%pulay_correction .and. in%lin%new_pulay_correction) then
+     call f_err_throw('It is not possible to use both the old and the new Pulay correction at the same time!',&
+          err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+  end if
+
 
   call f_release_routine()
 END SUBROUTINE input_analyze

@@ -614,6 +614,9 @@ contains
          'Unit '//trim(yaml_toa(unt))//' inconsistent',&
          err_id=YAML_UNIT_INCONSISTENCY)) return
 
+    !release all the documents to print out warnings and free warning dictionary if it existed
+    call yaml_release_document(unit=unt)
+
     !close files which are not stdout and remove them from stream_files
     if (unt /= 6) close(unt)
     iter => dict_iter(stream_files)

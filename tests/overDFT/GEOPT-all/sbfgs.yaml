@@ -1,0 +1,11 @@
+ geopt:
+   method: SBFGS
+   ncount_cluster_x: 10
+   frac_fluct: 1.0
+   forcemax: 1.E-2
+   betax: 4.0
+   nhistx: 10
+   cutoffratio: 1e-4
+   steepthresh: .1
+   trustr: 0.2
+   maxrise: 1e-6

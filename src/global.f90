@@ -315,32 +315,33 @@ program MINHOP
 
         write(fn5,'(i5.5)') ilmin
         filename = 'poslow'//fn5//'_'//trim(bigdft_run_id_toa())//'.xyz'
-        open(unit=9,file=filename,status='old',iostat=ierror)
+        open(unit=192,file=filename,status='old',iostat=ierror)
         if (ierror == 0) then
         else
            write(*,*) bigdft_mpi%iproc,' COULD not read file ',filename
            exit
         end if
-        read(9,*) natp,unitsp,en_arr(ilmin)
+        read(192,*) natp,unitsp,en_arr(ilmin)
         if (natoms.ne.natp) stop   'nat <> natp'
         if (trim(unitsp).ne.trim(atoms%astruct%units) .and. bigdft_mpi%iproc.eq.0) write(*,*)  & 
                  '(MH) different units in poslow and poscur file: ',trim(unitsp),' ',trim(atoms%astruct%units)
         if (trim(unitsp).ne.trim(atoms%astruct%units) .and. bigdft_mpi%iproc.eq.0) call yaml_scalar( &
                  '(MH) different units in poslow and poscur file: '//trim(unitsp)//' , '//trim(atoms%astruct%units))
-        read(9,*)
+        write(*,*) "Bohr_Ang",Bohr_Ang
+        read(192,*) 
         do iat=1,natoms
-          read(9,*) atmn,t1,t2,t3
+          read(192,*) atmn,t1,t2,t3
           if (atoms%astruct%units=='angstroem' .or. atoms%astruct%units=='angstroemd0') then ! if Angstroem convert to Bohr
-              pl_arr(1,iat,ilmin)=t1/bohr2ang
-              pl_arr(2,iat,ilmin)=t2/bohr2ang
-              pl_arr(3,iat,ilmin)=t3/bohr2ang
+              pl_arr(1,iat,ilmin)=t1/Bohr_Ang
+              pl_arr(2,iat,ilmin)=t2/Bohr_Ang
+              pl_arr(3,iat,ilmin)=t3/Bohr_Ang
           else
               pl_arr(1,iat,ilmin)=t1
               pl_arr(2,iat,ilmin)=t2
               pl_arr(3,iat,ilmin)=t3
           endif
         enddo
-        close(9)
+        close(192)
         if (bigdft_mpi%iproc == 0) call yaml_scalar('(MH) read file '//trim(filename))
      end do
      if (bigdft_mpi%iproc == 0) call yaml_map('(MH) number of read poslow files', nlmin)
@@ -788,7 +789,7 @@ contains
   !        call expdist(nat,rxyz,vxyz)
   !! or localized velocities
   !        call localdist(nat,rxyz,vxyz)
-    call randdist(atoms%astruct%nat,atoms%astruct%rxyz,vxyz)
+    call randdist(atoms%astruct%nat,atoms%astruct%geocode,atoms%astruct%rxyz,vxyz)
 
     !!! Put to zero the velocities for all boron atoms
     !!do iat=1,atoms%astruct%nat
@@ -1058,8 +1059,10 @@ rkin=dot(3*atoms%astruct%nat,vxyz(1,1),1,vxyz(1,1),1)
        write(comment,'(a,1pe10.3)')'curv= ',curv
        if (iproc == 0) &
             call write_atomic_file(trim(inputs_md%dir_output)//'posvxyz',0.d0,vxyz,atoms,trim(comment),forces=outs%fxyz)
+
        call elim_moment(atoms%astruct%nat,vxyz)
-       call elim_torque_reza(atoms%astruct%nat,pos0,vxyz)
+       if (atoms%astruct%geocode == 'F') &
+           & call elim_torque_reza(atoms%astruct%nat,pos0,vxyz)
 
        svxyz=0.d0
        do i=1,3*atoms%astruct%nat
@@ -1192,13 +1195,14 @@ END SUBROUTINE velnorm
 
 
 !> create a random displacement vector without translational and angular moment
-subroutine randdist(nat,rxyz,vxyz)
+subroutine randdist(nat,geocode,rxyz,vxyz)
   use BigDFT_API !,only: gp !module_base
   use yaml_output
   implicit none
   integer, intent(in) :: nat
   real(gp), dimension(3*nat), intent(in) :: rxyz
   real(gp), dimension(3*nat), intent(out) :: vxyz
+  character(len=1) :: geocode
   !local variables
   integer :: i,idum=0
   real(kind=4) :: tt,builtin_rand
@@ -1212,16 +1216,18 @@ subroutine randdist(nat,rxyz,vxyz)
 
   call elim_moment(nat,vxyz)
   !if (bigdft_mpi%iproc==0) call yaml_map('After mom',vxyz,unit=6)
-  call elim_torque_reza(nat,rxyz,vxyz)
+  if (geocode == 'F') &
+     & call elim_torque_reza(nat,rxyz,vxyz)
   !if (bigdft_mpi%iproc==0) call yaml_map('After torque',vxyz,unit=6)
 
 END SUBROUTINE randdist
 
 
 !>  generates 3*nat random numbers distributed according to  exp(-.5*vxyz**2)
-subroutine gausdist(nat,rxyz,vxyz)
+subroutine gausdist(nat,geocode,rxyz,vxyz)
   implicit real*8 (a-h,o-z)
   real s1,s2
+  character(len=1) :: geocode
   !C On Intel the random_number can take on the values 0. and 1.. To prevent overflow introduce eps
   parameter(eps=1.d-8)
   dimension vxyz(3*nat),rxyz(3*nat)
@@ -1243,15 +1249,17 @@ subroutine gausdist(nat,rxyz,vxyz)
   vxyz(3*nat)=tt*cos(6.28318530717958648d0*t2)
 
   call elim_moment(nat,vxyz)
-  call  elim_torque_reza(nat,rxyz,vxyz)
+  if (geocode == 'F') &
+           & call  elim_torque_reza(nat,rxyz,vxyz)
   return
 END SUBROUTINE gausdist
 
 
 !>  generates n random numbers distributed according to  exp(-x)
-subroutine expdist(nat,rxyz,vxyz)
+subroutine expdist(nat,geocode,rxyz,vxyz)
   implicit real*8 (a-h,o-z)
   real ss
+  character(len=1) :: geocode
   !C On Intel the random_number can take on the values 0. and 1.. To prevent overflow introduce eps
   parameter(eps=1.d-8)
   dimension rxyz(3*nat),vxyz(3*nat)
@@ -1263,7 +1271,8 @@ subroutine expdist(nat,rxyz,vxyz)
   enddo
 
   call elim_moment(nat,vxyz)
-  call  elim_torque_reza(nat,rxyz,vxyz)
+  if (geocode == 'F') &
+     & call  elim_torque_reza(nat,rxyz,vxyz)
 
   return
 END SUBROUTINE expdist
