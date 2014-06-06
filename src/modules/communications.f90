@@ -585,13 +585,15 @@ module communications
       real(kind=8),dimension(:),allocatable :: psiwork_c, psiwork_f, psitwork_c, psitwork_f
       integer :: istat, iall
       character(len=*),parameter :: subname='transpose_localized'
+
+      call timing(iproc,'Un-TransSwitch','ON')
+      call f_routine(id='transpose_localized')
       
       psiwork_c = f_malloc(collcom%ndimpsi_c,id='psiwork_c')
       psiwork_f = f_malloc(7*collcom%ndimpsi_f,id='psiwork_f')
       psitwork_c = f_malloc(sum(collcom%nrecvcounts_c),id='psitwork_c')
       psitwork_f = f_malloc(7*sum(collcom%nrecvcounts_f),id='psitwork_f')
       
-      call timing(iproc,'Un-TransSwitch','ON')
       if(present(lzd)) then
           call transpose_switch_psi(npsidim_orbs, orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
       else
@@ -610,12 +612,14 @@ module communications
     
       call timing(iproc,'Un-TransSwitch','ON')
       call transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit_f)
-      call timing(iproc,'Un-TransSwitch','OF')
       
       call f_free(psiwork_c)
       call f_free(psiwork_f)
       call f_free(psitwork_c)
       call f_free(psitwork_f)
+
+      call f_release_routine()
+      call timing(iproc,'Un-TransSwitch','OF')
       
     end subroutine transpose_localized
 
@@ -640,6 +644,8 @@ module communications
       real(kind=8),dimension(:),allocatable :: psiwork_c, psiwork_f, psitwork_c, psitwork_f
       integer :: istat, iall
       character(len=*),parameter :: subname='untranspose_localized'
+
+      call f_routine(id='untranspose_localized')
       
       psiwork_c = f_malloc(collcom%ndimpsi_c,id='psiwork_c')
       psiwork_f = f_malloc(7*collcom%ndimpsi_f,id='psiwork_f')
@@ -671,6 +677,8 @@ module communications
       call f_free(psiwork_f)
       call f_free(psitwork_c)
       call f_free(psitwork_f)
+
+      call f_release_routine()
       
     end subroutine untranspose_localized
 

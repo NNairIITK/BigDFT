@@ -320,12 +320,14 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
 
   call timing(iproc,'ovrlptransComp','ON') !lr408t
 
+  call f_routine(id='calculate_overlap_transposed')
+
   call to_zero(smat%nvctr, ovrlp%matrix_compr(1))
 
   nthreads=1
   !$  nthreads = OMP_GET_max_threads()
-  allocate(n(nthreads),stat=istat)
-  allocate(numops(orbs%norb),stat=istat)
+  n = f_malloc(nthreads,id='n')
+  numops = f_malloc(orbs%norb,id='numops')
 
   ! calculate number of operations for better load balancing of OpenMP
   if (nthreads>1) then
@@ -363,7 +365,8 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
         if (i/=nthreads) avops=totops/(nthreads-i)
      end do
   
-     deallocate(numops)
+     !deallocate(numops)
+     call f_free(numops)
   end if
 
   n(nthreads)=orbs%norb
@@ -456,8 +459,11 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
       call mpiallred(ovrlp%matrix_compr(1), smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
+  call f_free(n)
 
   smat%can_use_dense=.false.
+
+  call f_release_routine()
   call timing(iproc,'ovrlptransComm','OF') !lr408t
 
 end subroutine calculate_overlap_transposed
