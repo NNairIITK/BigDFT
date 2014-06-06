@@ -258,8 +258,7 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   PPD%pc_nl%natoms=at%astruct%nat
   allocate(PPD%pc_nl%pspd(at%astruct%nat),stat=i_stat)
 
-  allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-  call memocc(i_stat,logrid,'logrid',subname)
+  logrid = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='logrid')
 
 
   call localize_projectors(iproc,n1,n2,n3,hx,hy,hz,Pcpmult,fpmult,rxyz,radii_cf,&
@@ -364,18 +363,10 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 !  allocate(PPD%pc_nl%proj(PPD%pc_nl%nprojel+ndebug),stat=i_stat)
 !  call memocc(i_stat,PPD%pc_proj,'pc_proj',subname)
 
-  allocate(PPD%ilr_to_mproj(at%astruct%nat  +ndebug ) , stat=i_stat)
-  call memocc(i_stat,PPD%ilr_to_mproj,'ilr_to_mproj',subname)
 
-  allocate(PPD%iproj_to_ene(mprojtot +ndebug ) , stat=i_stat)
-  call memocc(i_stat ,PPD%iproj_to_ene,'iproj_to_ene',subname)
-
-  allocate(PPD%iproj_to_factor(mprojtot +ndebug ) , stat=i_stat)
-  call memocc(i_stat ,PPD%iproj_to_factor,'iproj_to_factor',subname)
-
-  allocate(PPD%iproj_to_l(mprojtot +ndebug ) , stat=i_stat)
-  call memocc(i_stat ,PPD%iproj_to_l,'iproj_to_l',subname)
-
+  PPD%iproj_to_ene = f_malloc_ptr(mprojtot ,id='PPD%iproj_to_ene')
+  PPD%iproj_to_factor = f_malloc_ptr(mprojtot ,id='PPD%iproj_to_factor')
+  PPD%iproj_to_l = f_malloc_ptr(mprojtot ,id='PPD%iproj_to_l')
   PPD%mprojtot=mprojtot
 
 
@@ -457,34 +448,17 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
      call deallocate_gwf(PPD%G,subname)
   endif
 
-  i_all=-product(shape(logrid))*kind(logrid)
-  deallocate(logrid,stat=i_stat)
-  call memocc(i_stat,i_all,'logrid',subname)
-
-  i_all=-product(shape(Gocc))*kind(Gocc)
-  deallocate(Gocc,stat=i_stat)
-  call memocc(i_stat,i_all,'Gocc',subname)
+  call f_free(logrid)
+  call f_free_ptr(Gocc)
 
 !!$  i_all=-product(shape(iorbtolr))*kind(iorbtolr)
 !!$  deallocate(iorbtolr,stat=i_stat)
 !!$  call memocc(i_stat,i_all,'iorbtolr',subname)
 
-  i_all=-product(shape(iorbto_l))*kind(iorbto_l)
-  deallocate(iorbto_l,stat=i_stat)
-  call memocc(i_stat,i_all,'iorbto_l',subname)
-
-  i_all=-product(shape(iorbto_m))*kind(iorbto_m)
-  deallocate(iorbto_m,stat=i_stat)
-  call memocc(i_stat,i_all,'iorbto_m',subname)
-
-  i_all=-product(shape(iorbto_ishell))*kind(iorbto_ishell)
-  deallocate(iorbto_ishell,stat=i_stat)
-  call memocc(i_stat,i_all,'iorbto_ishell',subname)
-
-
-  i_all=-product(shape(iorbto_iexpobeg))*kind(iorbto_iexpobeg)
-  deallocate(iorbto_iexpobeg,stat=i_stat)
-  call memocc(i_stat,i_all,'iorbto_iexpobeg',subname)
+  call f_free_ptr(iorbto_l)
+  call f_free_ptr(iorbto_m)
+  call f_free_ptr(iorbto_ishell)
+  call f_free_ptr(iorbto_iexpobeg)
 
 END SUBROUTINE createPcProjectorsArrays
 
@@ -545,8 +519,7 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
        &   iorbto_paw_nchannels, PAWD%iprojto_imatrixbeg )  
 
 
-  allocate(Gocc(PAWD%G%ncoeff+ndebug),stat=i_stat)
-  call memocc(i_stat,Gocc,'Gocc',subname)
+  Gocc = f_malloc_ptr(PAWD%G%ncoeff,id='Gocc')
   call to_zero(PAWD%G%ncoeff,Gocc)
 
   ! allocated  : gaenes, Gocc , PAWD%iorbtolr,iorbto_l, iorbto_m,  iorbto_ishell,iorbto_iexpobeg, iorbto_paw_nchannels
@@ -556,8 +529,7 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   !start from a null structure
   PAWD%paw_nl=DFT_PSP_projectors_null()
 
-  allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-  call memocc(i_stat,logrid,'logrid',subname)
+  logrid = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='logrid')
 
   call localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,Pcpmult,1*fpmult,rxyz,radii_cf,&
        &   logrid,at,orbs,PAWD)
@@ -576,14 +548,9 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 !!$  allocate(PAWD%paw_proj(PAWD%paw_nlpspd%nprojel+ndebug),stat=i_stat)
 !!$  call memocc(i_stat,PAWD%paw_proj,'paw_proj',subname)
 
-  allocate(PAWD%ilr_to_mproj(PAWD%G%nat  +ndebug ) , stat=i_stat)
-  call memocc(i_stat,PAWD%ilr_to_mproj,'ilr_to_mproj',subname)
-
-  allocate(PAWD%iproj_to_l(PAWD%paw_nl%nproj +ndebug ) , stat=i_stat)
-  call memocc(i_stat ,PAWD%iproj_to_l,'iproj_to_l',subname)
-
-  allocate(PAWD%iproj_to_paw_nchannels( PAWD%paw_nl%nproj+ndebug ) , stat=i_stat)
-  call memocc(i_stat ,PAWD%iproj_to_paw_nchannels,'iproj_to_paw_nchannels',subname)
+  PAWD%ilr_to_mproj = f_malloc_ptr(PAWD%G%nat  ,id='PAWD%ilr_to_mproj')
+  PAWD%iproj_to_l = f_malloc_ptr(PAWD%paw_nl%nproj ,id='PAWD%iproj_to_l')
+  PAWD%iproj_to_paw_nchannels = f_malloc_ptr(PAWD%paw_nl%nproj,id='PAWD%iproj_to_paw_nchannels')
 
 !!$ =========================================================================================  
 
@@ -708,42 +675,23 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
      call deallocate_gwf_c(PAWD%G,subname)
   endif
 
-  i_all=-product(shape(logrid))*kind(logrid)
-  deallocate(logrid,stat=i_stat)
-  call memocc(i_stat,i_all,'logrid',subname)
-
-  i_all=-product(shape(Gocc))*kind(Gocc)
-  deallocate(Gocc,stat=i_stat)
-  call memocc(i_stat,i_all,'Gocc',subname)
+  call f_free(logrid)
+  call f_free_ptr(Gocc)
 
 !!$  i_all=-product(shape(iorbtolr))*kind(iorbtolr)
 !!$  deallocate(iorbtolr,stat=i_stat)
 !!$  call memocc(i_stat,i_all,'iorbtolr',subname)
 
-  i_all=-product(shape(iorbto_l))*kind(iorbto_l)
-  deallocate(iorbto_l,stat=i_stat)
-  call memocc(i_stat,i_all,'iorbto_l',subname)
-
-  i_all=-product(shape(iorbto_paw_nchannels))*kind(iorbto_paw_nchannels)
-  deallocate(iorbto_paw_nchannels,stat=i_stat)
-  call memocc(i_stat,i_all,'iorbto_paw_nchannels',subname)
+  call f_free_ptr(iorbto_l)
+  call f_free_ptr(iorbto_paw_nchannels)
 
 
 
 
 
-  i_all=-product(shape(iorbto_m))*kind(iorbto_m)
-  deallocate(iorbto_m,stat=i_stat)
-  call memocc(i_stat,i_all,'iorbto_m',subname)
-
-  i_all=-product(shape(iorbto_ishell))*kind(iorbto_ishell)
-  deallocate(iorbto_ishell,stat=i_stat)
-  call memocc(i_stat,i_all,'iorbto_ishell',subname)
-
-
-  i_all=-product(shape(iorbto_iexpobeg))*kind(iorbto_iexpobeg)
-  deallocate(iorbto_iexpobeg,stat=i_stat)
-  call memocc(i_stat,i_all,'iorbto_iexpobeg',subname)
+  call f_free_ptr(iorbto_m)
+  call f_free_ptr(iorbto_ishell)
+  call f_free_ptr(iorbto_iexpobeg)
 
 
 END SUBROUTINE createPawProjectorsArrays

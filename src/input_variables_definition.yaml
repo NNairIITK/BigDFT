@@ -742,6 +742,7 @@
      COMMENT: FOE max charge difference for interpolation
      RANGE: [0., 1000.]
      default: 10.
+     best: 1.0
    mixing_after_inputguess:
      COMMENT: Mixing step after linear input guess (T/F)
      default: Yes
@@ -783,9 +784,11 @@
    method_updatekernel:
      COMMENT: linear scaling update density kernel during the sup. func. optimization (0 purification, 1 FOE)
      default: 0
+     best: 1
    purification_quickreturn:
      COMMENT: linear scaling quick return in purification
      default: No
+     best: Yes
    adjust_FOE_temperature:
      COMMENT: linear scaling dynamic adjustment of the decay length of the FOE error function
      default: Yes
@@ -801,6 +804,7 @@
    correction_co_contra:
      COMMENT: linear scaling correction covariant / contravariant gradient
      default: No
+     best: Yes
    fscale_lowerbound:
      COMMENT: linear scaling lower bound for the error function decay length
      RANGE: [1.e-4,1.e-2]
@@ -882,6 +886,7 @@
        COMMENT: dynamic convergence criterion ('experimental_mode' only)
        RANGE: [1.e-7,1.e-1]
        default: 1.e-4
+       best: 5.e-4
      min_gnrm_for_dynamic:
        COMMENT: minimal gnrm to active the dynamic gnrm criterion
        RANGE: [1.e-7,1.0]
@@ -905,6 +910,7 @@
        COMMENT: fix the support functions if the density change is below this threshold
        RANGE: [1.e-14,1.e-6]
        default: 1.e-10
+       best: 1.e-12
      correction_orthoconstraint:
        COMMENT: correction for the slight non-orthonormality in the orthoconstraint
        default: 1 
@@ -926,11 +932,12 @@
        COMMENT: mixing method; 0 -> linear mixing, >=1 -> Pulay mixing
        RANGE: [0,20]
        default: [0,0]
-       best: [6,0]
+       best: [4,0]
      alphamix:
        COMMENT: mixing parameter (low/high accuracy)
        RANGE: [0.0,1.0]
        default: [0.5,0.5]
+       best: [0.2,0.2]
      gnrm_cv_coeff:
        COMMENT: convergence criterion for directmin (low/high)?
        default: [1.e-5,1.e-5]
@@ -938,6 +945,7 @@
        COMMENT: convergence criterion (change in density/potential) for the kernel optimization
        RANGE: [1.e-14,1.e-5]
        default: [1.e-10,1.e-10]
+       best: [1.e-12,1.e-12]
      linear_method:
        COMMENT: method to optimize the density kernel
        EXCLUSIVE:
@@ -962,10 +970,12 @@
        COMMENT: lower and upper bound of the eigenvalue spectrum, will be adjusted automatically if chosen unproperly
        RANGE: [-10.0,10.0]
        default: [-0.5,0.5]
+       best: [-1.0,1.0]
      fscale_foe: 
        COMMENT: decay length of the error function
        RANGE: [1.e-3,5.e-2]
        default: 2.e-2
+       best: 1.e-2
 #Parameters to define the localized basis set or support functions (linear scaling version)
  lin_basis_params:
      nbasis:
@@ -998,7 +1008,7 @@
        default: 14.0
 --- #here starts the document of possible input files
 best:
-  COMMENT: this input file should be used for something
+  COMMENT: appropriate input parameters for a linear scaling calculation
   DESCRIPTION: Extended description of the file
   dft:
     hgrids: accurate

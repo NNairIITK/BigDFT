@@ -57,14 +57,14 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   end if
 
   ! calculate the overlap matrix
-  if(.not.associated(tmb%psit_c)) then
-      isize=sum(tmb%collcom%nrecvcounts_c)
-      tmb%psit_c=f_malloc_ptr(isize,id='tmb%psit_c')
-  end if
-  if(.not.associated(tmb%psit_f)) then
-      isize=7*sum(tmb%collcom%nrecvcounts_f)
-      tmb%psit_f=f_malloc_ptr(isize,id=' tmb%psit_f')
-  end if
+  !!if(.not.associated(tmb%psit_c)) then
+  !!    isize=sum(tmb%collcom%nrecvcounts_c)
+  !!    tmb%psit_c=f_malloc_ptr(isize,id='tmb%psit_c')
+  !!end if
+  !!if(.not.associated(tmb%psit_f)) then
+  !!    isize=7*sum(tmb%collcom%nrecvcounts_f)
+  !!    tmb%psit_f=f_malloc_ptr(isize,id=' tmb%psit_f')
+  !!end if
   call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
        tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
@@ -73,8 +73,8 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   !tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
 
 
-  call f_free_ptr(tmb%psit_c)
-  call f_free_ptr(tmb%psit_f)
+  !!call f_free_ptr(tmb%psit_c)
+  !!call f_free_ptr(tmb%psit_f)
 
 
   ! Construct the array chi
@@ -483,6 +483,8 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   character(len=*),parameter :: subname='pulay_correction'
   type(matrices) :: ham_
 
+  call f_routine(id='pulay_correction')
+
   ! Begin by updating the Hpsi
   call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
 
@@ -659,9 +661,8 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   call f_free(lpsit_f)
   call f_free(lhphilarge)
 
-  iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
-  deallocate(denspot%pot_work, stat=istat)
-  call memocc(istat, iall, 'denspot%pot_work', subname)
+  call f_free_ptr(denspot%pot_work)
+
 
   do jdir=1,3
      call deallocate_sparse_matrix(dovrlp(jdir),subname)
@@ -669,6 +670,8 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   end do
 
   !!if(iproc==0) write(*,'(1x,a)') 'done.'
+
+  call f_release_routine()
 
 end subroutine pulay_correction
 

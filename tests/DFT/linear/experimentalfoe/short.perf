@@ -4,3 +4,4 @@ kappa_conv 0.7
 evbounds_nsatur 100
 calculate_gap T
 method_updatekernel 1
+correction_co_contra

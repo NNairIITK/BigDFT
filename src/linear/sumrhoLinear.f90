@@ -527,6 +527,8 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
   logical :: print_local
   integer :: size_of_double, info, mpisource, istsource, istdest, nsize, jproc, irho
 
+  call f_routine('sumrho_for_TMBs')
+
   ! check whether all entries of the charge density are positive
   rho_negative=.false.
 
@@ -682,6 +684,8 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
   !!call mpi_finalize(ierr)
   !!stop
 
+  call f_release_routine()
+
 end subroutine sumrho_for_TMBs
 
 !!$!> this routine is important to create the density needed for GGA XC functionals calculation
@@ -829,9 +833,8 @@ subroutine check_communication_potential(iproc,denspot,tmb)
   end if
   if (bigdft_mpi%iproc==0) call yaml_close_map()
 
-  i_all=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
-  deallocate(denspot%pot_work,stat=i_stat)
-  call memocc(i_stat,i_all,'denspot%pot_work',subname)
+  call f_free_ptr(denspot%pot_work)
+
   nullify(denspot%pot_work)
 
   call timing(bigdft_mpi%iproc,'check_pot','OF')

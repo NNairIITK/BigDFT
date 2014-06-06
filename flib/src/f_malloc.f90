@@ -510,7 +510,7 @@ contains
 
   function f_malloc_ptr_i2(src,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none
-    integer, dimension(:,:), intent(in) :: src
+    integer, dimension(:,:), pointer, intent(in) :: src
     integer, dimension(:), intent(in), optional :: lbounds,ubounds
     type(malloc_information_ptr) :: m
     include 'f_malloc-base-inc.f90'

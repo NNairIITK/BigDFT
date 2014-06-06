@@ -60,10 +60,8 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,xc,nspin,lr,orbs,n3parr,
   ngran=1
 
   !partial densities with a given granularity
-  allocate(rp_ij(lr%d%n1i,lr%d%n2i,n3p,ngran+ndebug),stat=i_stat)
-  call memocc(i_stat,rp_ij,'rp_ij',subname)
-  allocate(psiw(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,n3parr(0)*orbs%norb),1)+ndebug),stat=i_stat)
-  call memocc(i_stat,psiw,'psiw',subname)
+  rp_ij = f_malloc((/ lr%d%n1i, lr%d%n2i, n3p, ngran /),id='rp_ij')
+  psiw = f_malloc(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp, n3parr(0)*orbs%norb), 1),id='psiw')
 
   if (geocode == 'F') then
      call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psiw)
@@ -100,8 +98,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,xc,nspin,lr,orbs,n3parr,
      !and only real functions (nspinor=1)
      !this distribution is in principle valid also for k-points
 
-     allocate(ncommarr(0:nproc-1,4+ndebug),stat=i_stat)
-     call memocc(i_stat,ncommarr,'ncommarr',subname)
+     ncommarr = f_malloc((/ 0.to.nproc-1, 1.to.4 /),id='ncommarr')
 
      !count array for orbitals => components
      do jproc=0,nproc-1
@@ -304,19 +301,12 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,xc,nspin,lr,orbs,n3parr,
      end do
   end if
 
-  i_all=-product(shape(rp_ij))*kind(rp_ij)
-  deallocate(rp_ij,stat=i_stat)
-  call memocc(i_stat,i_all,'rp_ij',subname)
-  
-  i_all=-product(shape(psiw))*kind(psiw)
-  deallocate(psiw,stat=i_stat)
-  call memocc(i_stat,i_all,'psiw',subname)
+  call f_free(rp_ij)
+  call f_free(psiw)
 
 
   if (nproc > 1) then
-     i_all=-product(shape(ncommarr))*kind(ncommarr)
-     deallocate(ncommarr,stat=i_stat)
-     call memocc(i_stat,i_all,'ncommarr',subname)
+     call f_free(ncommarr)
   end if
 
   !call timing(iproc,'Exchangecorr  ','OF')
@@ -344,8 +334,7 @@ subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
 
   call initialize_work_arrays_sumrho(lr,w)
 
-  allocate(psiwocc(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsocc%norbp,n3parr(0)*orbsocc%norb),1)+ndebug),stat=i_stat)
-  call memocc(i_stat,psiwocc,'psiwocc',subname)
+  psiwocc = f_malloc(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsocc%norbp, n3parr(0)*orbsocc%norb), 1),id='psiwocc')
 
   call to_zero(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsocc%norbp,n3parr(0)*orbsocc%norb),1),psiwocc)
 
@@ -386,8 +375,7 @@ subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
      !valid only for one k-point for the moment
      !and only real functions (nspinor=1)
      !this distribution is in principle valid also for k-points
-     allocate(ncommocc(0:nproc-1,4+ndebug),stat=i_stat)
-     call memocc(i_stat,ncommocc,'ncommocc',subname)
+     ncommocc = f_malloc((/ 0.to.nproc-1, 1.to.4 /),id='ncommocc')
 
      !count occay for orbitals => components
      do jproc=0,nproc-1
@@ -413,14 +401,10 @@ subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
   else
      call vcopy(lr%d%n1i*lr%d%n2i*n3p*orbsocc%norb,psiwocc(1),1,psirocc(1),1)
   end if
-  i_all=-product(shape(psiwocc))*kind(psiwocc)
-  deallocate(psiwocc,stat=i_stat)
-  call memocc(i_stat,i_all,'psiwocc',subname)
+  call f_free(psiwocc)
 
   if (nproc > 1) then
-     i_all=-product(shape(ncommocc))*kind(ncommocc)
-     deallocate(ncommocc,stat=i_stat)
-     call memocc(i_stat,i_all,'ncommocc',subname)
+     call f_free(ncommocc)
   end if
 
 END SUBROUTINE prepare_psirocc
@@ -466,10 +450,8 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
   ngran=1
 
   !partial densities with a given granularity
-  allocate(rp_ij(lr%d%n1i,lr%d%n2i,n3p,ngran+ndebug),stat=i_stat)
-  call memocc(i_stat,rp_ij,'rp_ij',subname)
-  allocate(psiwvirt(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsvirt%norbp,n3parr(0)*orbsvirt%norb),1)+ndebug),stat=i_stat)
-  call memocc(i_stat,psiwvirt,'psiwvirt',subname)
+  rp_ij = f_malloc((/ lr%d%n1i, lr%d%n2i, n3p, ngran /),id='rp_ij')
+  psiwvirt = f_malloc(max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsvirt%norbp, n3parr(0)*orbsvirt%norb), 1),id='psiwvirt')
 
   if (geocode == 'F') then
      call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsvirt%norbp,psiwvirt)
@@ -509,8 +491,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
      !and only real functions (nspinor=1)
      !this distribution is in principle valid also for k-points
 
-     allocate(ncommvirt(0:nproc-1,4+ndebug),stat=i_stat)
-     call memocc(i_stat,ncommvirt,'ncommvirt',subname)
+     ncommvirt = f_malloc((/ 0.to.nproc-1, 1.to.4 /),id='ncommvirt')
 
      !count array for orbitals => components
      do jproc=0,nproc-1
@@ -680,19 +661,12 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
      end do
   end if
 
-  i_all=-product(shape(rp_ij))*kind(rp_ij)
-  deallocate(rp_ij,stat=i_stat)
-  call memocc(i_stat,i_all,'rp_ij',subname)
-
-  i_all=-product(shape(psiwvirt))*kind(psiwvirt)
-  deallocate(psiwvirt,stat=i_stat)
-  call memocc(i_stat,i_all,'psiwvirt',subname)
+  call f_free(rp_ij)
+  call f_free(psiwvirt)
 
 
   if (nproc > 1) then
-     i_all=-product(shape(ncommvirt))*kind(ncommvirt)
-     deallocate(ncommvirt,stat=i_stat)
-     call memocc(i_stat,i_all,'ncommvirt',subname)
+     call f_free(ncommvirt)
   end if
 
 END SUBROUTINE exact_exchange_potential_virt
@@ -760,15 +734,12 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
   !since the orbitals are all occupied we have to use the symmetric scheme
   !we have first to define the number of groups, which correspond to the repartition 
   !of spin up and spin down orbitals
-  allocate(nvctr_par(0:nproc-1,ngroup+ndebug),stat=i_stat)
-  call memocc(i_stat,nvctr_par,'nvctr_par',subname)
+  nvctr_par = f_malloc((/ 0.to.nproc-1, 1.to.ngroup /),id='nvctr_par')
 
-  allocate(iorbgr(2,0:nproc-1,ngroup+ndebug),stat=i_stat)
-  call memocc(i_stat,iorbgr,'iorbgr',subname)
+  iorbgr = f_malloc((/ 1.to.2, 0.to.nproc-1, 1.to.ngroup /),id='iorbgr')
 
   !test array for data sending
-  allocate(ndatas(2,0:nproc-1,ngroup+ndebug),stat=i_stat)
-  call memocc(i_stat,ndatas,'ndatas',subname)
+  ndatas = f_malloc((/ 1.to.2, 0.to.nproc-1, 1.to.ngroup /),id='ndatas')
 
   
   if (ngroup==2) then
@@ -818,14 +789,11 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
   end do
 
   !determine the array of the groups which are of interest for this processor
-  allocate(igrpr(ngroupp+ndebug),stat=i_stat)
-  call memocc(i_stat,igrpr,'igrpr',subname)
-  allocate(iprocpm1(2,0:nproc-1,ngroupp+ndebug),stat=i_stat)
-  call memocc(i_stat,iprocpm1,'iprocpm1',subname)
+  igrpr = f_malloc(ngroupp,id='igrpr')
+  iprocpm1 = f_malloc((/ 1.to.2, 0.to.nproc-1, 1.to.ngroupp /),id='iprocpm1')
 
   !test array for data calculation
-  allocate(ndatac(ngroupp+ndebug),stat=i_stat)
-  call memocc(i_stat,ndatac,'ndatac',subname)
+  ndatac = f_malloc(ngroupp,id='ndatac')
 
 
   !determine for each processor the groups which has to be used
@@ -874,8 +842,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
 
   !calculate the list of send-receive operations which have to be performed per group
   !allocate it at the maximum size needed
-  allocate(jprocsr(4,0:nproc/2+1,ngroupp+ndebug),stat=i_stat)
-  call memocc(i_stat,jprocsr,'jprocsr',subname)
+  jprocsr = f_malloc((/ 1.to.4, 0.to.nproc/2+1, 1.to.ngroupp /),id='jprocsr')
   !initalise array to minus one
   jprocsr=-1
 
@@ -1041,8 +1008,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
   !open(100+iproc)  
   
   call initialize_work_arrays_sumrho(lr,w)
-  allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,psir,'psir',subname)
+  psir = f_malloc((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%norbp /),id='psir')
   
   call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psir(1,1))
   
@@ -1054,13 +1020,10 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
   
   call deallocate_work_arrays_sumrho(w)
   
-  allocate(psiw(lr%d%n1i*lr%d%n2i*lr%d%n3i,maxval(orbs%norb_par(:,0)),2,ngroupp+ndebug),stat=i_stat)
-  call memocc(i_stat,psiw,'psiw',subname)
-  allocate(dpsiw(lr%d%n1i*lr%d%n2i*lr%d%n3i,maxval(orbs%norb_par(:,0)),3,ngroupp+ndebug),stat=i_stat)
-  call memocc(i_stat,dpsiw,'dpsiw',subname)
+  psiw = f_malloc((/ 1.to.lr%d%n1i*lr%d%n2i*lr%d%n3i, 1.to.maxval(orbs%norb_par(:,0)), 1.to.2, 1.to.ngroupp /),id='psiw')
+  dpsiw = f_malloc((/ 1.to.lr%d%n1i*lr%d%n2i*lr%d%n3i, 1.to.maxval(orbs%norb_par(:,0)), 1.to.3, 1.to.ngroupp /),id='dpsiw')
   !partial densities and potentials
-  allocate(rp_ij(lr%d%n1i*lr%d%n2i*lr%d%n3i+ndebug),stat=i_stat)
-  call memocc(i_stat,rp_ij,'rp_ij',subname)
+  rp_ij = f_malloc(lr%d%n1i*lr%d%n2i*lr%d%n3i,id='rp_ij')
   
   !this is the array of the actions of the X potential on psi
   ii=lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))*2*ngroupp
@@ -1321,52 +1284,17 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
   !if (iproc == 0) write(*,'(1x,a,1x,1pe18.11)')'Exact Exchange Energy:',eexctX
 
   !close(100+iproc)
-  i_all=-product(shape(nvctr_par))*kind(nvctr_par)
-  deallocate(nvctr_par,stat=i_stat)
-  call memocc(i_stat,i_all,'nvctr_par',subname)
-  
-  i_all=-product(shape(iorbgr))*kind(iorbgr)
-  deallocate(iorbgr,stat=i_stat)
-  call memocc(i_stat,i_all,'iorbgr',subname)
-
-
-  i_all=-product(shape(ndatas))*kind(ndatas)
-  deallocate(ndatas,stat=i_stat)
-  call memocc(i_stat,i_all,'ndatas',subname)
-
-  i_all=-product(shape(ndatac))*kind(ndatac)
-  deallocate(ndatac,stat=i_stat)
-  call memocc(i_stat,i_all,'ndatac',subname)
-
-  i_all=-product(shape(rp_ij))*kind(rp_ij)
-  deallocate(rp_ij,stat=i_stat)
-  call memocc(i_stat,i_all,'rp_ij',subname)
-  
-  i_all=-product(shape(psiw))*kind(psiw)
-  deallocate(psiw,stat=i_stat)
-  call memocc(i_stat,i_all,'psiw',subname)
-
-  i_all=-product(shape(dpsiw))*kind(dpsiw)
-  deallocate(dpsiw,stat=i_stat)
-  call memocc(i_stat,i_all,'dpsiw',subname)
-
-
-  i_all=-product(shape(psir))*kind(psir)
-  deallocate(psir,stat=i_stat)
-  call memocc(i_stat,i_all,'psir',subname)
-
-  i_all=-product(shape(igrpr))*kind(igrpr)
-  deallocate(igrpr,stat=i_stat)
-  call memocc(i_stat,i_all,'igrpr',subname)
-
-  i_all=-product(shape(iprocpm1))*kind(iprocpm1)
-  deallocate(iprocpm1,stat=i_stat)
-  call memocc(i_stat,i_all,'iprocpm1',subname)
-
-  i_all=-product(shape(jprocsr))*kind(jprocsr)
-  deallocate(jprocsr,stat=i_stat)
-  call memocc(i_stat,i_all,'jprocsr',subname)
-
+  call f_free(nvctr_par)
+  call f_free(iorbgr)
+  call f_free(ndatas)
+  call f_free(ndatac)
+  call f_free(rp_ij)
+  call f_free(psiw)
+  call f_free(dpsiw)
+  call f_free(psir)
+  call f_free(igrpr)
+  call f_free(iprocpm1)
+  call f_free(jprocsr)
   !call timing(iproc,'Exchangecorr  ','OF')
 
 END SUBROUTINE exact_exchange_potential_round

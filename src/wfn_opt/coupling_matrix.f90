@@ -101,10 +101,8 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
   end do
 
   !partial densities and potentials
-  allocate(rho_ias(lr%d%n1i,lr%d%n2i,n3p,nmulti+ndebug),stat=i_stat)
-  call memocc(i_stat,rho_ias,'rho_ias',subname)
-  allocate(v_ias(lr%d%n1i,lr%d%n2i,n3p+ndebug),stat=i_stat)
-  call memocc(i_stat,v_ias,'v_ias',subname)
+  rho_ias = f_malloc((/ lr%d%n1i, lr%d%n2i, n3p, nmulti /),id='rho_ias')
+  v_ias = f_malloc((/ lr%d%n1i, lr%d%n2i, n3p /),id='v_ias')
 
   if (nspin == 1) then
      ndipoles=2*nmulti
@@ -112,21 +110,15 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
      ndipoles=nmulti
   end if
 
-  allocate(dipoles(3,ndipoles+ndebug),stat=i_stat)
-  call memocc(i_stat,dipoles,'dipoles',subname)
+  dipoles = f_malloc((/ 3, ndipoles /),id='dipoles')
   call to_zero(3*ndipoles,dipoles)
 
   !allocate coupling matrix elements
-  allocate(K(nmulti,nmulti+ndebug),stat=i_stat)
-  call memocc(i_stat,K,'K',subname)
-
-  call to_zero((nmulti)**2,K)
+  K = f_malloc0((/ nmulti, nmulti /),id='K')
 
   !for nspin==1, define an auxiliary matrix for spin-off-diagonal terms (fxc part)
   if (nspin==1) then
-     allocate(Kaux(nmulti,nmulti+ndebug),stat=i_stat)
-     call memocc(i_stat,Kaux,'Kaux',subname)
-     call to_zero((nmulti)**2,Kaux)
+     Kaux = f_malloc0((/ nmulti, nmulti /),id='Kaux')
   end if
 
 
@@ -322,23 +314,18 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
 !     if (iproc == 0) write(*,*) 'iorba,iorbi,K',iorba,iorbi,K(ik,ik)
   end do loop_i3
 
-  i_all=-product(shape(v_ias))*kind(v_ias)
-  deallocate(v_ias,stat=i_stat)
-  call memocc(i_stat,i_all,'v_ias',subname)
+  call f_free(v_ias)
 
 
   if (tda) then
 
      !oscillator strength
-     allocate(fi(3,ndipoles+ndebug),stat=i_stat)
-     call memocc(i_stat,fi,'fi',subname)
+     fi = f_malloc((/ 3, ndipoles /),id='fi')
 
 
      if (nspin == 1) then
-        allocate(Kbig(2*nmulti,2*nmulti+ndebug),stat=i_stat)
-        call memocc(i_stat,Kbig,'Kbig',subname)
+        Kbig = f_malloc0((/ 2*nmulti, 2*nmulti /),id='Kbig')
 
-        call to_zero(4*nmulti**2,Kbig)
         do ik=1,nmulti
            do jk=1,nmulti
               Kbig(ik,jk)=K(ik,jk)
@@ -347,12 +334,10 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
               Kbig(ik,jk+nmulti)=Kaux(ik,jk)
            end do
         end do
-        allocate(omega(2*nmulti+ndebug),stat=i_stat)
-        call memocc(i_stat,omega,'omega',subname)
+        omega = f_malloc(2*nmulti,id='omega')
 
         lwork=6*nmulti !safe value
-        allocate(work(lwork+ndebug),stat=i_stat)
-        call memocc(i_stat,work,'work',subname)
+        work = f_malloc(lwork,id='work')
 
 
         call DSYEV('V','U',2*nmulti,Kbig,2*nmulti,omega,work,lwork,info)
@@ -462,22 +447,14 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
 
         end if
 
-        i_all=-product(shape(Kbig))*kind(Kbig)
-        deallocate(Kbig,stat=i_stat)
-        call memocc(i_stat,i_all,'Kbig',subname)
+        call f_free(Kbig)
      
-        i_all=-product(shape(omega))*kind(omega)
-        deallocate(omega,stat=i_stat)
-        call memocc(i_stat,i_all,'omega',subname)
-        allocate(omega(nmulti+ndebug),stat=i_stat)
-        call memocc(i_stat,omega,'omega',subname)
+        call f_free(omega)
+        omega = f_malloc(nmulti,id='omega')
 
-        i_all=-product(shape(work))*kind(work)
-        deallocate(work,stat=i_stat)
-        call memocc(i_stat,i_all,'work',subname)
+        call f_free(work)
         lwork=3*nmulti !safe value
-        allocate(work(lwork+ndebug),stat=i_stat)
-        call memocc(i_stat,work,'work',subname)
+        work = f_malloc(lwork,id='work')
 
 
         !this second part is not needed
@@ -507,35 +484,18 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
          
      end if
      
-     i_all=-product(shape(omega))*kind(omega)
-     deallocate(omega,stat=i_stat)
-     call memocc(i_stat,i_all,'omega',subname)
-     
-     i_all=-product(shape(work))*kind(work)
-     deallocate(work,stat=i_stat)
-     call memocc(i_stat,i_all,'work',subname)
+     call f_free(omega)
+     call f_free(work)
   end if  
 
-  i_all=-product(shape(fi))*kind(fi)
-  deallocate(fi,stat=i_stat)
-  call memocc(i_stat,i_all,'fi',subname)
-
-  i_all=-product(shape(rho_ias))*kind(rho_ias)
-  deallocate(rho_ias,stat=i_stat)
-  call memocc(i_stat,i_all,'rho_ias',subname)
+  call f_free(fi)
+  call f_free(rho_ias)
 
   if (nspin ==1 ) then
-     i_all=-product(shape(Kaux))*kind(Kaux)
-     deallocate(Kaux,stat=i_stat)
-     call memocc(i_stat,i_all,'Kaux',subname)
+     call f_free(Kaux)
   end if
 
-  i_all=-product(shape(K))*kind(K)
-  deallocate(K,stat=i_stat)
-  call memocc(i_stat,i_all,'K',subname)
-
-  i_all=-product(shape(dipoles))*kind(dipoles)
-  deallocate(dipoles,stat=i_stat)
-  call memocc(i_stat,i_all,'dipoles',subname)
+  call f_free(K)
+  call f_free(dipoles)
 
 END SUBROUTINE coupling_matrix_prelim

@@ -202,25 +202,15 @@ contains
     integer :: i_all,i_stat
     if(associated(pawproj_data%paw_nl%proj)) then
 
-       i_all=-product(shape( pawproj_data%ilr_to_mproj   ))*kind(pawproj_data% ilr_to_mproj   )
-       deallocate( pawproj_data% ilr_to_mproj  ,stat=i_stat)
-       call memocc(i_stat,i_all,'ilr_to_mproj',subname)
+       call f_free_ptr(pawproj_data% ilr_to_mproj)
 
-       i_all=-product(shape( pawproj_data% iproj_to_l  ))*kind( pawproj_data% iproj_to_l  )
-       deallocate(pawproj_data%  iproj_to_l  ,stat=i_stat)
-       call memocc(i_stat,i_all,'iproj_to_l',subname)
+       call f_free_ptr(pawproj_data%  iproj_to_l)
 
-       i_all=-product(shape( pawproj_data% iproj_to_paw_nchannels  ))*kind( pawproj_data% iproj_to_paw_nchannels  )
-       deallocate(pawproj_data%  iproj_to_paw_nchannels  ,stat=i_stat)
-       call memocc(i_stat,i_all,'iproj_to_paw_nchannels',subname)
+       call f_free_ptr(pawproj_data%  iproj_to_paw_nchannels)
 
-       i_all=-product(shape( pawproj_data% iprojto_imatrixbeg  ))*kind( pawproj_data% iprojto_imatrixbeg  )
-       deallocate(pawproj_data%  iprojto_imatrixbeg  ,stat=i_stat)
-       call memocc(i_stat,i_all,'iorbto_imatrixbeg',subname)
+       call f_free_ptr(pawproj_data%  iprojto_imatrixbeg)
 
-       i_all=-product(shape( pawproj_data% iorbtolr   ))*kind( pawproj_data% iorbtolr  )
-       deallocate(pawproj_data%  iorbtolr  ,stat=i_stat)
-       call memocc(i_stat,i_all,'iorbtolr',subname)
+       call f_free_ptr(pawproj_data%  iorbtolr)
 
        call free_DFT_PSP_projectors(pawproj_data%paw_nl)
 
@@ -240,29 +230,17 @@ contains
     !local variables
     integer :: i_all,i_stat
     if(associated(pcproj_data%pc_nl%proj)) then
-       i_all=-product(shape( pcproj_data%ilr_to_mproj   ))*kind(pcproj_data% ilr_to_mproj   )
-       deallocate( pcproj_data% ilr_to_mproj  ,stat=i_stat)
-       call memocc(i_stat,i_all,'ilr_to_mproj',subname)
+       call f_free_ptr( pcproj_data% ilr_to_mproj)
 
-       i_all=-product(shape( pcproj_data% iproj_to_ene  ))*kind( pcproj_data% iproj_to_ene  )
-       deallocate(  pcproj_data% iproj_to_ene ,stat=i_stat)
-       call memocc(i_stat,i_all,'iproj_to_ene',subname)
+       call f_free_ptr(  pcproj_data% iproj_to_ene)
 
-       i_all=-product(shape( pcproj_data% iproj_to_factor  ))*kind( pcproj_data% iproj_to_factor  )
-       deallocate(  pcproj_data% iproj_to_factor ,stat=i_stat)
-       call memocc(i_stat,i_all,'iproj_to_factor',subname)
+       call f_free_ptr(  pcproj_data% iproj_to_factor)
 
-       i_all=-product(shape( pcproj_data% iproj_to_l  ))*kind( pcproj_data% iproj_to_l  )
-       deallocate(pcproj_data%  iproj_to_l  ,stat=i_stat)
-       call memocc(i_stat,i_all,'iproj_to_l',subname)
+       call f_free_ptr(pcproj_data%  iproj_to_l)
 
-       i_all=-product(shape( pcproj_data% iorbtolr   ))*kind( pcproj_data% iorbtolr  )
-       deallocate(pcproj_data%  iorbtolr  ,stat=i_stat)
-       call memocc(i_stat,i_all,'iorbtolr',subname)
+       call f_free_ptr(pcproj_data%  iorbtolr)
 
-       i_all=-product(shape( pcproj_data% gaenes   ))*kind( pcproj_data% gaenes  )
-       deallocate(pcproj_data%  gaenes  ,stat=i_stat)
-       call memocc(i_stat,i_all,'gaenes',subname)
+       call f_free_ptr(pcproj_data%  gaenes)
 
 
        call free_DFT_PSP_projectors(pcproj_data%pc_nl)

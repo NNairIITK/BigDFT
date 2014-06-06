@@ -84,8 +84,7 @@ function GetBottom(atoms,nspin)
 
    ! if (in_iat_absorber.ne.0) then
 
-   allocate(expo(ng +ndebug  ), stat=i_stat)
-   call memocc(i_stat,expo,'expo',subname)
+   expo = f_malloc_ptr(ng ,id='expo')
 
    GetBottom=1.0e4_gp
 
@@ -104,8 +103,6 @@ function GetBottom(atoms,nspin)
       if( minval(gaenes_aux ) < GetBottom) GetBottom=minval(gaenes_aux )
    enddo
 
-   i_all=-product(shape(expo))*kind(expo)
-   deallocate(expo,stat=i_stat)
-   call memocc(i_stat,i_all,'expo',subname)
+   call f_free_ptr(expo)
 
 END FUNCTION GetBottom

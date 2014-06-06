@@ -375,7 +375,7 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i1
 ! Local variable
  integer :: ispin,i1,i2,i3,ii1,ii2,ii3  !integer for loops
  integer :: indSmall, indSpin, indLarge ! indexes for the arrays
- integer :: ist2S,ist3S, ist2L, ist3L
+ integer :: ist2S,ist3S, ist2L, ist3L, istsa, ists, istl
 
  
  ! Cut out a piece of the quantity (rho) from the global region (rho) and
@@ -388,16 +388,19 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i1
          i3 = mod(ii3-1,Glr%d%n3i)+1
          ist3S = (ii3-i3s)*Llr%d%n2i*Llr%d%n1i
          ist3L = (i3-1)*ni2*ni1
+         istsa=ist3S-i1s+1
          do ii2=i2s,i2e
              i2 = mod(ii2-1,Glr%d%n2i)+1
              ist2S = (ii2-i2s)*Llr%d%n1i 
              ist2L = (i2-1)*ni1
+             ists=istsa+ist2S
+             istl=ist3L+ist2L
              do ii1=i1s,i1e
                  i1 = mod(ii1-1,Glr%d%n1i)+1
                  ! indSmall is the index in the local localization region
-                 indSmall=ist3S + ist2S + ii1-i1s+1
+                 indSmall=ists+ii1
                  ! indLarge is the index in the global localization region. 
-                 indLarge= ist3L + ist2L + i1
+                 indLarge= i1+istl
                  Lrho(indSmall)=rho(indLarge+indSpin)
              end do
          end do

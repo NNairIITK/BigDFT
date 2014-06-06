@@ -51,8 +51,7 @@ subroutine plot_density_cube_old(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,n
 
   if (nproc > 1) then
      !allocate full density in pot_ion array
-     allocate(pot_ion(n1i*n2i*n3i,nspin+ndebug),stat=i_stat)
-     call memocc(i_stat,pot_ion,'pot_ion',subname)
+     pot_ion = f_malloc_ptr((/ n1i*n2i*n3i, nspin /),id='pot_ion')
 
      call MPI_ALLGATHERV(rho(1,1),n1i*n2i*n3p,&
           mpidtypd,pot_ion(1,1),ngatherarr(0,1),&
@@ -115,9 +114,7 @@ subroutine plot_density_cube_old(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,n
   end if
 
   if (nproc > 1) then
-     i_all=-product(shape(pot_ion))*kind(pot_ion)
-     deallocate(pot_ion,stat=i_stat)
-     call memocc(i_stat,i_all,'pot_ion',subname)
+     call f_free_ptr(pot_ion)
   end if
 
 contains
@@ -224,23 +221,17 @@ contains
         !atomic number and positions
 
         if( associated(rxyz) ) then
-           i_all=-product(shape(rxyz))*kind(rxyz)
-           deallocate(rxyz,stat=i_stat)
-           call memocc(i_stat,i_all,'rxyz',subname)
+           call f_free_ptr(rxyz)
         end if
         
-        allocate(rxyz(3,nat+ndebug),stat=i_stat)
-        call memocc(i_stat,rxyz,'rxyz',subname)
+        rxyz = f_malloc_ptr((/ 3, nat /),id='rxyz')
         
 
         if( associated(rho ).and. ia==1 ) then
-           i_all=-product(shape(rho))*kind(rho)
-           deallocate(rho,stat=i_stat)
-           call memocc(i_stat,i_all,'rho',subname)
+           call f_free_ptr(rho)
         end if
         if(ia==1) then
-           allocate(rho(n1i*n2i*n3i+ndebug) ,stat=i_stat)
-           call memocc(i_stat,rho,'rho',subname)
+           rho = f_malloc_ptr(n1i*n2i*n3i,id='rho')
         endif
 
         do iat=1,nat
@@ -448,8 +439,7 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
 
   if (nproc > 1) then
      !allocate full density in pot_ion array
-     allocate(pot_ion(box%ndimgrid,nspin+ndebug),stat=i_stat)
-     call memocc(i_stat,pot_ion,'pot_ion',subname)
+     pot_ion = f_malloc_ptr((/ box%ndimgrid, nspin /),id='pot_ion')
 
      call MPI_ALLGATHERV(rho(1,1),box%ndimpot,&
           mpidtypd,pot_ion(1,1),box%ngatherarr(0,1),&
@@ -556,9 +546,7 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
 
 
   if (nproc > 1) then
-     i_all=-product(shape(pot_ion))*kind(pot_ion)
-     deallocate(pot_ion,stat=i_stat)
-     call memocc(i_stat,i_all,'pot_ion',subname)
+     call f_free_ptr(pot_ion)
   end if
 
 END SUBROUTINE plot_density
@@ -625,15 +613,9 @@ subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      znucl => znucl_read
      nat=nat_read
   else
-     i_all=-product(shape(rxyz_read))*kind(rxyz_read)
-     deallocate(rxyz_read,stat=i_stat)
-     call memocc(i_stat,i_all,'rxyz_read',subname)
-     i_all=-product(shape(iatypes_read))*kind(iatypes_read)
-     deallocate(iatypes_read,stat=i_stat)
-     call memocc(i_stat,i_all,'iatypes_read',subname)
-     i_all=-product(shape(znucl_read))*kind(znucl_read)
-     deallocate(znucl_read,stat=i_stat)
-     call memocc(i_stat,i_all,'znucl_read',subname)
+     call f_free_ptr(rxyz_read)
+     call f_free_ptr(iatypes_read)
+     call f_free_ptr(znucl_read)
   end if
 END SUBROUTINE read_density
 
@@ -671,8 +653,7 @@ subroutine plot_wf(orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi)
 
   call initialize_work_arrays_sumrho(lr,w)
 
-  allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i+ndebug),stat=i_stat)
-  call memocc(i_stat,psir,'psir',subname)
+  psir = f_malloc(lr%d%n1i*lr%d%n2i*lr%d%n3i,id='psir')
   !initialisation
   if (lr%geocode == 'F') then
      call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
@@ -684,9 +665,7 @@ subroutine plot_wf(orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi)
        at,factor,rxyz,n1i,n2i,n3i,n1s,n2s,n3s,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
        1.0_gp,psir,nexpo,0.0_gp,psir)
 
-  i_all=-product(shape(psir))*kind(psir)
-  deallocate(psir,stat=i_stat)
-  call memocc(i_stat,i_all,'psir',subname)
+  call f_free(psir)
 
   call deallocate_work_arrays_sumrho(w)
 
@@ -726,8 +705,7 @@ subroutine read_potential_from_disk(iproc,nproc,filename,geocode,ngatherarr,n1i,
         call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
      end if
   else
-     allocate(pot_from_disk(1,1,1,nspin+ndebug),stat=i_stat)
-     call memocc(i_stat,pot_from_disk,'pot_from_disk',subname)
+     pot_from_disk = f_malloc_ptr((/ 1, 1, 1, nspin /),id='pot_from_disk')
   end if
 
   if (nproc > 1) then
@@ -741,9 +719,7 @@ subroutine read_potential_from_disk(iproc,nproc,filename,geocode,ngatherarr,n1i,
      call vcopy(n1i*n2i*n3i*nspin,pot_from_disk(1,1,1,1),1,pot(1,1,1,1),1)
   end if
 
-  i_all=-product(shape(pot_from_disk))*kind(pot_from_disk)
-  deallocate(pot_from_disk,stat=i_stat)
-  call memocc(i_stat,i_all,'pot_from_disk',subname)
+  call f_free_ptr(pot_from_disk)
 
 end subroutine read_potential_from_disk
 
@@ -871,22 +847,16 @@ contains
     n3i=2*n3+(1-nbz)+2*nl3
 
     !atomic positions
-    allocate(rxyz(3,nat+ndebug),stat=i_stat)
-    call memocc(i_stat,rxyz,'rxyz',subname)
-    allocate(iatypes(nat+ndebug),stat=i_stat)
-    call memocc(i_stat,iatypes,'iatypes',subname)
-    allocate(znucl_(nat+ndebug),stat=i_stat)
-    call memocc(i_stat,znucl_,'znucl_',subname)
+    rxyz = f_malloc_ptr((/ 3, nat /),id='rxyz')
+    iatypes = f_malloc_ptr(nat,id='iatypes')
+    znucl_ = f_malloc(nat,id='znucl_')
     znucl_(:) = -1
 
     if(associated(rho)) then
-       i_all=-product(shape(rho))*kind(rho)
-       deallocate(rho,stat=i_stat)
-       call memocc(i_stat,i_all,'rho',subname)
+       call f_free_ptr(rho)
     end if
 
-    allocate(rho(n1i,n2i,n3i,nspin+ndebug) ,stat=i_stat)
-    call memocc(i_stat,rho,'rho',subname)
+    rho = f_malloc_ptr((/ n1i, n2i, n3i, nspin /),id='rho')
 
     do iat=1,nat
        read(22,'(i5,4(f12.6))') idum , dum1 , (rxyz(j,iat),j=1,3)
@@ -905,13 +875,10 @@ contains
           exit
        end if
     end do
-    allocate(znucl(j-1+ndebug),stat=i_stat)
-    call memocc(i_stat,znucl,'znucl',subname)
+    znucl = f_malloc_ptr(j-1,id='znucl')
     znucl(1:j-1) = znucl_(1:j-1)
 
-    i_all=-product(shape(znucl_))*kind(znucl_)
-    deallocate(znucl_,stat=i_stat)
-    call memocc(i_stat,i_all,'znucl_',subname)
+    call f_free(znucl_)
 
     close(22)
      
@@ -1040,8 +1007,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
 
   if (box%mpi_env%nproc > 1) then
      !allocate full density in pot_ion array
-     allocate(ele_rho(n1i,n2i,n3i,nspin),stat=i_stat)
-     call memocc(i_stat,ele_rho,'ele_rho',subname)
+     ele_rho = f_malloc_ptr((/ n1i, n2i, n3i, nspin /),id='ele_rho')
 
 !Commented out, it is enough to allocate the rho at 1
 !!$     ! rho_buf is used instead of rho for avoiding the case n3p=0 in 
@@ -1315,9 +1281,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
   endif
 
   if (box%mpi_env%nproc > 1) then
-     i_all=-product(shape(ele_rho))*kind(ele_rho)
-     deallocate(ele_rho,stat=i_stat)
-     call memocc(i_stat,i_all,'ele_rho',subname)
+     call f_free_ptr(ele_rho)
 !!$     i_all=-product(shape(rho_buf))*kind(rho_buf)
 !!$     deallocate(rho_buf,stat=i_stat)
 !!$     call memocc(i_stat,i_all,'rho_buf',subname)

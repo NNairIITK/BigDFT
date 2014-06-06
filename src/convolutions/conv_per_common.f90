@@ -122,11 +122,8 @@ subroutine syn_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
 
   if (num_trans >= 1)  then
 
-     allocate(yy((nd1+1)*(nd2+1)*(nd3+1)+ndebug),stat=i_stat)
-     call memocc(i_stat,yy,'yy',subname)
-
-     allocate(xx((nd1+1)*(nd2+1)*(nd3+1)+ndebug),stat=i_stat)
-     call memocc(i_stat,xx,'xx',subname)
+     yy = f_malloc((nd1+1)*(nd2+1)*(nd3+1),id='yy')
+     xx = f_malloc((nd1+1)*(nd2+1)*(nd3+1),id='xx')
 
   endif
 
@@ -136,8 +133,7 @@ subroutine syn_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
      nn2=(nd2+1)/2-1
      nn3=(nd3+1)/2-1
 
-     allocate(ww((nn1+1)*(nn2+1)*(nn3+1)+ndebug),stat=i_stat)
-     call memocc(i_stat,ww,'ww',subname)
+     ww = f_malloc((nn1+1)*(nn2+1)*(nn3+1),id='ww')
 
      do i_trans=1,num_trans-1
 
@@ -174,9 +170,7 @@ subroutine syn_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
         !$omp end parallel do
      enddo
 
-     i_all=-product(shape(ww))*kind(ww)
-     deallocate(ww,stat=i_stat)
-     call memocc(i_stat,i_all,'ww',subname)
+     call f_free(ww)
 
   endif
 
@@ -188,13 +182,8 @@ subroutine syn_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
 
      call synthese_per_old_self(n1,n2,n3,x,xx,yy)
 
-     i_all=-product(shape(xx))*kind(xx)
-     deallocate(xx,stat=i_stat)
-     call memocc(i_stat,i_all,'xx',subname)
-
-     i_all=-product(shape(yy))*kind(yy)
-     deallocate(yy,stat=i_stat)
-     call memocc(i_stat,i_all,'yy',subname)
+     call f_free(xx)
+     call f_free(yy)
 
   endif
 
@@ -221,11 +210,8 @@ subroutine ana_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
 
   if (num_trans.ge.1)  then
 
-     allocate(yy((nd1+1)*(nd2+1)*(nd3+1)+ndebug),stat=i_stat)
-     call memocc(i_stat,yy,'yy',subname)
-
-     allocate(xx((nd1+1)*(nd2+1)*(nd3+1)+ndebug),stat=i_stat)
-     call memocc(i_stat,xx,'xx',subname)
+     yy = f_malloc((nd1+1)*(nd2+1)*(nd3+1),id='yy')
+     xx = f_malloc((nd1+1)*(nd2+1)*(nd3+1),id='xx')
 
      call analyse_per_old_self(n1,n2,n3,x,yy,xx)
 
@@ -237,8 +223,7 @@ subroutine ana_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
 
   if (num_trans.ge.2) then
 
-     allocate(ww((n1+1)*(n2+1)*(n3+1)+ndebug),stat=i_stat)
-     call memocc(i_stat,ww,'ww',subname)
+     ww = f_malloc((n1+1)*(n2+1)*(n3+1),id='ww')
 
      do i_trans=2,num_trans
 
@@ -272,20 +257,13 @@ subroutine ana_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
 
      enddo
 
-     i_all=-product(shape(ww))*kind(ww)
-     deallocate(ww,stat=i_stat)
-     call memocc(i_stat,i_all,'ww',subname)
+     call f_free(ww)
 
   endif
 
   if (num_trans.ge.1) then 
-     i_all=-product(shape(xx))*kind(xx)
-     deallocate(xx,stat=i_stat)
-     call memocc(i_stat,i_all,'xx',subname)
-
-     i_all=-product(shape(yy))*kind(yy)
-     deallocate(yy,stat=i_stat)
-     call memocc(i_stat,i_all,'yy',subname)
+     call f_free(xx)
+     call f_free(yy)
   endif
 
 END SUBROUTINE ana_repeated_per

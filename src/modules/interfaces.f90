@@ -1463,7 +1463,7 @@ module module_interfaces
           correction_orthoconstraint,nit_basis,&
           ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
           gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, kappa_conv, method_updatekernel,&
-          purification_quickreturn, adjust_FOE_temperature, correction_co_contra)
+          purification_quickreturn, correction_co_contra)
         use module_base
         use module_types
         implicit none
@@ -1490,7 +1490,7 @@ module module_interfaces
         integer, intent(in) :: extra_states
         integer,intent(in) :: itout
         real(kind=8),intent(in) :: conv_crit, early_stop, gnrm_dynamic, min_gnrm_for_dynamic, kappa_conv
-        logical,intent(in) :: experimental_mode, purification_quickreturn, adjust_FOE_temperature
+        logical,intent(in) :: experimental_mode, purification_quickreturn
         logical,intent(out) :: can_use_ham
         integer,intent(in) :: method_updatekernel
         logical,intent(in) :: correction_co_contra
@@ -1511,7 +1511,7 @@ module module_interfaces
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
         energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
         calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,order_taylor,purification_quickreturn,&
-        adjust_FOE_temperature,calculate_KS_residue,calculate_gap,&
+        calculate_KS_residue,calculate_gap,&
         convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
       use module_base
       use module_types
@@ -1534,7 +1534,7 @@ module module_interfaces
       type(SIC_data),intent(in) :: SIC
       type(DFT_wavefunction),intent(inout) :: tmb
       logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho, purification_quickreturn
-      logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap, adjust_FOE_temperature
+      logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap
       type(sparse_matrix), intent(inout) :: ham_small ! for foe only
       type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
       integer, intent(in), optional :: nitdmin ! for dmin only
@@ -1963,14 +1963,16 @@ module module_interfaces
      end subroutine initInputguessConfinement
 
       subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
-                 correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, hpsit_c, hpsit_f, &
-                 can_use_transposed, overlap_calculated, experimental_mode, norder_taylor)
+                 correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, &
+           hpsit_c, hpsit_f, hpsit_nococontra_c, hpsit_nococontra_f, &
+                 can_use_transposed, overlap_calculated, experimental_mode, norder_taylor, &
+           npsidim_orbs_small, lzd_small, hpsi_noprecond)
         use module_base
         use module_types
         use yaml_output
         implicit none
-        integer,intent(in) :: iproc, nproc, npsidim_orbs, npsidim_comp
-        type(local_zone_descriptors),intent(in) :: lzd
+        integer,intent(in) :: iproc, nproc, npsidim_orbs, npsidim_comp, npsidim_orbs_small
+        type(local_zone_descriptors),intent(in) :: lzd, lzd_small
         type(orbitals_Data),intent(inout) :: orbs !temporary inout
         type(comms_linear),intent(in) :: collcom
         type(orthon_data),intent(in) :: orthpar
@@ -1980,10 +1982,13 @@ module module_interfaces
         type(sparse_matrix),intent(inout) :: lagmat
         type(matrices),intent(out) :: lagmat_
         real(kind=8),dimension(:),pointer :: psit_c, psit_f, hpsit_c, hpsit_f
+        real(kind=8),dimension(collcom%ndimind_c),intent(in) :: hpsit_nococontra_c
+        real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: hpsit_nococontra_f
         logical,intent(inout) :: can_use_transposed, overlap_calculated
         type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
         logical,intent(in) :: experimental_mode
         integer,intent(in) :: norder_taylor
+        real(kind=8),dimension(npsidim_orbs_small),intent(out) :: hpsi_noprecond
       end subroutine orthoconstraintNonorthogonal
 
 
@@ -2458,11 +2463,12 @@ module module_interfaces
                   ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
                   energy_increased, tmb, lhphiold, overlap_calculated, &
                   energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
-                  energy_only, hpsi_small, experimental_mode, correction_co_contra, ksorbs, hpsi_noprecond, norder_taylor)
+                  hpsi_small, experimental_mode, correction_co_contra, hpsi_noprecond, &
+                  norder_taylor, method_updatekernel)
          use module_base
          use module_types
          implicit none
-         integer,intent(in) :: iproc, nproc, it, norder_taylor
+         integer,intent(in) :: iproc, nproc, it, norder_taylor, method_updatekernel
          type(DFT_wavefunction),target,intent(inout):: tmb
          type(localizedDIISParameters),intent(inout) :: ldiis
          real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
@@ -2475,9 +2481,8 @@ module module_interfaces
          type(energy_terms),intent(in) :: energs
          real(8),dimension(:),pointer:: hpsit_c, hpsit_f
          integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
-         logical, intent(in) :: energy_only, experimental_mode, correction_co_contra
+         logical, intent(in) :: experimental_mode, correction_co_contra
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_small
-         type(orbitals_data),intent(in) :: ksorbs
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: hpsi_noprecond
        end subroutine calculate_energy_and_gradient_linear
 
@@ -2831,11 +2836,13 @@ module module_interfaces
         end subroutine local_forces
 
         subroutine denspot_set_history(denspot, iscf, nspin, &
-             & n1i, n2i) !to be removed arguments when denspot has dimensions
+             & n1i, n2i, & !to be removed arguments when denspot has dimensions
+             npulayit)
           use module_types
           implicit none
           type(DFT_local_fields), intent(inout) :: denspot
           integer, intent(in) :: iscf, n1i, n2i, nspin
+          integer,intent(in),optional :: npulayit
         end subroutine denspot_set_history
 
         subroutine denspot_free_history(denspot)
@@ -3197,7 +3204,7 @@ module module_interfaces
         end subroutine sumrho_for_TMBs
 
         subroutine foe(iproc, nproc, tmprtr, &
-                   ebs, itout, it_scc, order_taylor, purification_quickreturn, adjust_FOE_temperature, foe_verbosity, &
+                   ebs, itout, it_scc, order_taylor, purification_quickreturn, foe_verbosity, &
                    accuracy_level, tmb, foe_obj)
           use module_base
           use module_types
@@ -3206,7 +3213,7 @@ module module_interfaces
           integer,intent(in) :: iproc, nproc, itout, it_scc, order_taylor
           real(kind=8),intent(in) :: tmprtr
           real(kind=8),intent(out) :: ebs
-          logical,intent(in) :: purification_quickreturn, adjust_FOE_temperature
+          logical,intent(in) :: purification_quickreturn
           integer :: foe_verbosity
           integer,intent(in) :: accuracy_level
           type(DFT_wavefunction),intent(inout) :: tmb

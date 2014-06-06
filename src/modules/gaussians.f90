@@ -12,7 +12,7 @@
 !! Spherical harmonics are used in the cartesian form
 module gaussians
 
-  use module_base, only: gp,memocc,ndebug
+  use module_base
 
   private
 
@@ -76,14 +76,14 @@ contains
   end function gaussian_basis_null
 
 
-  function gaussian_basis_init(nat,nshell,rxyz) result(G)
+  subroutine init_gaussian_basis(nat,nshell,rxyz,G)
     implicit none
     integer, intent(in) :: nat
     integer, dimension(nat), intent(in) :: nshell
     real(gp), dimension(3,nat), intent(in), target :: rxyz
-    type(gaussian_basis_new) :: G
+    type(gaussian_basis_new),intent(out) :: G
     !local variables
-    character(len=*), parameter :: subname='gaussian_basis_init'
+    character(len=*), parameter :: subname='init_gaussian_basis'
     integer :: i_stat,iat
 
     G=gaussian_basis_null()
@@ -92,8 +92,7 @@ contains
     G%rxyz => rxyz
 
     !number of shells per atoms
-    allocate(G%nshell(G%nat+ndebug),stat=i_stat)
-    call memocc(i_stat,G%nshell,'G%nshell',subname)
+    G%nshell = f_malloc_ptr(G%nat,id='G%nshell')
 
     G%nshltot=0
     do iat=1,nat
@@ -101,10 +100,9 @@ contains
        G%nshltot=G%nshltot+nshell(iat)
     end do
 
-    allocate(G%shid(NSHID_,G%nshltot+ndebug),stat=i_stat)
-    call memocc(i_stat,G%shid,'G%shid',subname)
+    G%shid = f_malloc_ptr((/ NSHID_, G%nshltot /),id='G%shid')
 
-  end function gaussian_basis_init
+  end subroutine init_gaussian_basis
 
 
   subroutine gaussian_basis_convert(G,Gold)
@@ -115,7 +113,8 @@ contains
     character(len=*), parameter :: subname='gaussian_basis_convert'
     integer :: ishell,i_stat,iexpo
 
-    G=gaussian_basis_init(Gold%nat,Gold%nshell,Gold%rxyz)
+    !G=init_gaussian_basis(Gold%nat,Gold%nshell,Gold%rxyz)
+    call init_gaussian_basis(Gold%nat,Gold%nshell,Gold%rxyz,G)
     G%ncplx=1
     G%nexpo=0
     do ishell=1,G%nshltot
@@ -126,8 +125,7 @@ contains
        G%ncoeff=G%ncoeff+2*Gold%nam(ishell)-1
     end do
     !allocate storage space (real exponents and coeffs for the moment)
-    allocate(G%sd(G%ncplx*NSD_,G%nexpo+ndebug),stat=i_stat)
-    call memocc(i_stat,G%sd,'G%sd',subname)
+    G%sd = f_malloc_ptr((/ G%ncplx*NSD_, G%nexpo /),id='G%sd')
 
     do iexpo=1,G%nexpo
        G%sd(EXPO_,iexpo)=0.5_gp/Gold%xp(1,iexpo)**2
@@ -147,21 +145,9 @@ contains
     !do not deallocate the atomic centers
     if (associated(G%rxyz)) nullify(G%rxyz)
 
-    if (associated(G%sd)) then
-       i_all=-product(shape(G%sd))*kind(G%sd)
-       deallocate(G%sd,stat=i_stat)
-       call memocc(i_stat,i_all,'G%sd',subname)
-    end if
-    if (associated(G%shid)) then
-       i_all=-product(shape(G%shid))*kind(G%shid)
-       deallocate(G%shid,stat=i_stat)
-       call memocc(i_stat,i_all,'G%shid',subname)
-    end if
-    if (associated(G%nshell)) then
-       i_all=-product(shape(G%nshell))*kind(G%nshell)
-       deallocate(G%nshell,stat=i_stat)
-       call memocc(i_stat,i_all,'G%nshell',subname)
-    end if
+    call f_free_ptr(G%sd)
+    call f_free_ptr(G%shid)
+    call f_free_ptr(G%nshell)
 
     G=gaussian_basis_null()
 
@@ -186,18 +172,14 @@ contains
     if (present(npoints)) n_scf=2*itype_scf*npoints
 
     !allocations for scaling function data array
-    allocate(x_scf(0:n_scf),stat=i_stat)
-    call memocc(i_stat,x_scf,'x_scf',subname)
+    x_scf = f_malloc(0.to.n_scf,id='x_scf')
 
-    allocate(scf_data(0:n_scf),stat=i_stat)
-    call memocc(i_stat,scf_data,'scf_data',subname)
+    scf_data = f_malloc(0.to.n_scf,id='scf_data')
 
     !Build the scaling function external routine coming from Poisson Solver. To be customized accordingly
     call scaling_function(itype_scf,n_scf,n_range,x_scf,scf_data)
 
-    i_all=-product(shape(x_scf))*kind(x_scf)
-    deallocate(x_scf,stat=i_stat)
-    call memocc(i_stat,i_all,'x_scf',subname)
+    call f_free(x_scf)
 
   end subroutine initialize_real_space_conversion
 
@@ -211,9 +193,7 @@ contains
 
     itype_scf=0
     n_scf=-1
-    i_all=-product(shape(scf_data))*kind(scf_data)
-    deallocate(scf_data,stat=i_stat)
-    call memocc(i_stat,i_all,'scf_data',subname)
+    call f_free(scf_data)
 
   end subroutine finalize_real_space_conversion
 

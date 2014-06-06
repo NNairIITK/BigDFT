@@ -298,6 +298,8 @@ type(mixrhopotDIISParameters),intent(out):: mixdiis
 integer:: istat
 character(len=*),parameter:: subname='initializeMixrhopotDIIS'
 
+call f_routine(id='initializeMixrhopotDIIS')
+
 
 mixdiis%isx=isx
 mixdiis%is=0
@@ -305,6 +307,7 @@ mixdiis%mat = f_malloc_ptr((/mixdiis%isx,mixdiis%isx/),id='mixdiis%mat')
 mixdiis%rhopotHist = f_malloc_ptr(mixdiis%isx*max(1,ndim),id='mixdiis%rhopotHist')
 mixdiis%rhopotresHist = f_malloc_ptr(mixdiis%isx*max(1,ndim),id='mixdiis%rhopotresHist')
 
+call f_release_routine()
 
 end subroutine initializeMixrhopotDIIS
 
@@ -322,9 +325,12 @@ type(mixrhopotDIISParameters),intent(inout):: mixdiis
 integer:: istat, iall
 character(len=*),parameter:: subname='deallocateMixrhopotDIIS'
 
+call f_routine(id='deallocateMixrhopotDIIS')
 
 call f_free_ptr(mixdiis%mat)
 call f_free_ptr(mixdiis%rhopotHist)
 call f_free_ptr(mixdiis%rhopotresHist)
+
+call f_release_routine()
 
 end subroutine deallocateMixrhopotDIIS
