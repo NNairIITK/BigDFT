@@ -63,9 +63,9 @@
                   this description should be on multiple lines et cetera
             
      RANGE: [1.e-20, 1.]
-     default: 1e-4
-     fast: 1e-3
-     accurate: 1e-5
+     default: 1.e-4
+     fast: 1.e-3
+     accurate: 1.e-5
    itermax:
      COMMENT: Max. iterations of wfn. opt. steps
      RANGE: [0, 10000]
