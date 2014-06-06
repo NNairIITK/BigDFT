@@ -10,10 +10,12 @@
 
 
 subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs,npsidim_comp)
-   use module_base
-   use module_types
+   use module_base, only: wp, bigdft_mpi, mpi_sum, mpi_max, mpiallred
+   use module_types, only: orbitals_data, local_zone_descriptors
    use yaml_output
+   use communications_base, only: comms_linear
    use communications, only: transpose_localized, untranspose_localized
+   use dynamic_memory
    implicit none
    integer, intent(in) :: iproc,nproc
    type(orbitals_data), intent(in) :: orbs
@@ -73,7 +75,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
    do ikptsp=1,1!orbs%nkptsp !should be one for the moment
       ikpt=orbs%iskpts+ikptsp!orbs%ikptsp(ikptsp)
       ispinor=1 !for the (long?) moment
-      icomp=1
+      !icomp=1
       if (collcom%nptsp_c>0) then
          do ipt=1,collcom%nptsp_c 
             ii=collcom%norb_per_gridpoint_c(ipt)
@@ -94,11 +96,11 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
 !!$               indspin=(ispinor-1)*nvctr_orb(iiorb)
 !!$               maxdiff=max(abs(psit_c(i0+i)-psival),maxdiff)
                checksum(iiorb,2)=checksum(iiorb,2)+psit_c(i0+i)
-               icomp=icomp+1
+               !icomp=icomp+1
             end do
          end do
       end if
-      icomp=1
+      !icomp=1
       if (collcom%nptsp_f>0) then
          do ipt=1,collcom%nptsp_f 
             ii=collcom%norb_per_gridpoint_f(ipt) 
@@ -122,7 +124,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
 !!$                  end if
                   checksum(iiorb,2)=checksum(iiorb,2)+psit_f(7*(i0+i-1)+ifine)
                end do
-               icomp=icomp+1
+               !icomp=icomp+1
             end do
          end do
       end if
@@ -153,6 +155,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
    end if
    if (iproc==0) call yaml_map('Maxdiff for transpose (checksum)',&
         maxdiff,fmt='(1pe25.17)')
+
 
    abort = .false.
    if (abs(maxdiff) >tol) then

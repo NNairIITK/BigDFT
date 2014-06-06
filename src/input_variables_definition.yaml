@@ -820,6 +820,10 @@
        best: Yes
      nit:
        COMMENT: number of iteration with low/high accuracy
+       DESCRIPTION: |
+                    maximal number of outer loop iterations (high / low accuracy).
+                    In each iteration both the support function and the kernel are optimized.
+                    When the hybrid mode is employed, the second entry is ignored.
        RANGE: [0,1000]
        PROFILE_FROM: hybrid
        default: [100,100]
@@ -836,7 +840,7 @@
        COMMENT: order of the Taylor approximation; 0 -> exact
        RANGE: [-100,100]
        default: 0
-       best: 6
+       best: 10
      output_wf:
        COMMENT: output basis functions; 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
        EXCLUSIVE:
@@ -868,11 +872,11 @@
        COMMENT: maximal number of iterations in the optimization of the support functions
        RANGE: [0,100]
        default: [4,5]
-       best: [10,1]
+       best: [10,10]
      idsx:
        COMMENT: DIIS history for optimization of the support function (low/high accuracy); 0 -> SD
        RANGE: [0,20]
-       default: [6,0]
+       default: [6,6]
      gnrm_cv:
        COMMENT: convergence criterion for the optimization of the support functions (low/high accuracy)
        RANGE: [1.e-6,1.0]
@@ -914,6 +918,7 @@
      correction_orthoconstraint:
        COMMENT: correction for the slight non-orthonormality in the orthoconstraint
        default: 1 
+       best: 0
  #Parameters for the calculation of the kernel (linear scaling version)
  lin_kernel:
      nstep:
