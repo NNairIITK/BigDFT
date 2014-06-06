@@ -11,7 +11,6 @@
 !> Module defining routines related to communications (mainly transpositions)
 module communications
 
-  use module_base
   use communications_base, only: comms_linear, comms_cubic
 
   implicit none
@@ -34,13 +33,14 @@ module communications
   contains
 
     subroutine transpose_switch_psi(npsidim_orbs, orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
-      use module_base
-      use module_types
+      use module_types, only: orbitals_data, local_zone_descriptors
+      use wrapper_linalg, only: vcopy
+      use dynamic_memory
       implicit none
       
       ! Calling arguments
       integer, intent(in) :: npsidim_orbs
-      type(orbitals_Data),intent(in) :: orbs
+      type(orbitals_data),intent(in) :: orbs
       type(comms_linear),intent(in) :: collcom
       real(kind=8),dimension(npsidim_orbs),intent(in) :: psi
       real(kind=8),dimension(collcom%ndimpsi_c),intent(out) :: psiwork_c
@@ -137,8 +137,8 @@ module communications
 
 
     subroutine transpose_communicate_psi(iproc, nproc, collcom, psiwork_c, psiwork_f, psitwork_c, psitwork_f)
-      use module_base
-      use module_types
+      use module_base, only: bigdft_mpi, mpi_double_precision
+      use dynamic_memory
       implicit none
       
       ! Calling arguments
@@ -146,14 +146,11 @@ module communications
       type(comms_linear),intent(in) :: collcom
       real(kind=8),dimension(collcom%ndimpsi_c),intent(in) :: psiwork_c
       real(kind=8),dimension(7*collcom%ndimpsi_f),intent(in) :: psiwork_f
-      !real(kind=8),dimension(sum(collcom%nrecvcounts_c)),intent(out) :: psitwork_c
-      !real(kind=8),dimension(7*sum(collcom%nrecvcounts_f)),intent(out) :: psitwork_f
       real(kind=8),dimension(collcom%ndimind_c),intent(out) :: psitwork_c
       real(kind=8),dimension(7*collcom%ndimind_f),intent(out) :: psitwork_f
       
       ! Local variables
-      integer :: ierr, istat, iall
-      !!integer :: iisend, iirecv, ist, ist_c, ist_f, jproc
+      integer :: ierr
       real(kind=8),dimension(:),allocatable :: psiwork, psitwork
       integer,dimension(:),allocatable :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
       character(len=*),parameter :: subname='transpose_communicate_psi'
@@ -228,8 +225,6 @@ module communications
 
 
     subroutine transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit_f)
-      use module_base
-      use module_types
       implicit none
       
       ! Calling arguments
@@ -296,8 +291,6 @@ module communications
 
 
     subroutine transpose_switch_psit(collcom, psit_c, psit_f, psitwork_c, psitwork_f)
-      use module_base
-      use module_types
       implicit none
     
       ! Calling arguments
@@ -362,8 +355,7 @@ module communications
 
 
     subroutine transpose_communicate_psit(iproc, nproc, collcom, psitwork_c, psitwork_f, psiwork_c, psiwork_f)
-      use module_base
-      use module_types
+      use module_base, only: bigdft_mpi, mpi_double_precision
       implicit none
     
       ! Calling arguments
@@ -464,8 +456,9 @@ module communications
 
 
     subroutine transpose_unswitch_psi(npsidim_orbs, orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
-      use module_base
-      use module_types
+      use module_types, only: orbitals_data, local_zone_descriptors
+      use wrapper_linalg, only: vcopy
+      use dynamic_memory
       implicit none
       
       ! Caling arguments
@@ -567,8 +560,8 @@ module communications
 
 
     subroutine transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psi, psit_c, psit_f, lzd)
-      use module_base
-      use module_types
+      use module_types, only: orbitals_data, local_zone_descriptors
+      use dynamic_memory
       !use module_interfaces, except_this_one => transpose_localized
       implicit none
       
@@ -585,13 +578,15 @@ module communications
       real(kind=8),dimension(:),allocatable :: psiwork_c, psiwork_f, psitwork_c, psitwork_f
       integer :: istat, iall
       character(len=*),parameter :: subname='transpose_localized'
+
+      call timing(iproc,'Un-TransSwitch','ON')
+      call f_routine(id='transpose_localized')
       
       psiwork_c = f_malloc(collcom%ndimpsi_c,id='psiwork_c')
       psiwork_f = f_malloc(7*collcom%ndimpsi_f,id='psiwork_f')
       psitwork_c = f_malloc(sum(collcom%nrecvcounts_c),id='psitwork_c')
       psitwork_f = f_malloc(7*sum(collcom%nrecvcounts_f),id='psitwork_f')
       
-      call timing(iproc,'Un-TransSwitch','ON')
       if(present(lzd)) then
           call transpose_switch_psi(npsidim_orbs, orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
       else
@@ -610,20 +605,22 @@ module communications
     
       call timing(iproc,'Un-TransSwitch','ON')
       call transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit_f)
-      call timing(iproc,'Un-TransSwitch','OF')
       
       call f_free(psiwork_c)
       call f_free(psiwork_f)
       call f_free(psitwork_c)
       call f_free(psitwork_f)
+
+      call f_release_routine()
+      call timing(iproc,'Un-TransSwitch','OF')
       
     end subroutine transpose_localized
 
 
 
     subroutine untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, psi, lzd)
-      use module_base
-      use module_types
+      use module_types, only: orbitals_data, local_zone_descriptors
+      use dynamic_memory
       !use module_interfaces, except_this_one => untranspose_localized
       implicit none
       
@@ -640,6 +637,8 @@ module communications
       real(kind=8),dimension(:),allocatable :: psiwork_c, psiwork_f, psitwork_c, psitwork_f
       integer :: istat, iall
       character(len=*),parameter :: subname='untranspose_localized'
+
+      call f_routine(id='untranspose_localized')
       
       psiwork_c = f_malloc(collcom%ndimpsi_c,id='psiwork_c')
       psiwork_f = f_malloc(7*collcom%ndimpsi_f,id='psiwork_f')
@@ -671,6 +670,8 @@ module communications
       call f_free(psiwork_f)
       call f_free(psitwork_c)
       call f_free(psitwork_f)
+
+      call f_release_routine()
       
     end subroutine untranspose_localized
 
@@ -680,8 +681,6 @@ module communications
 
 
     subroutine transpose_switch_psir(collcom_sr, psir, psirwork)
-      use module_base
-      use module_types
       implicit none
     
       ! Calling arguments
@@ -719,8 +718,8 @@ module communications
     end subroutine transpose_switch_psir
     
     subroutine transpose_communicate_psir(iproc, nproc, collcom_sr, psirwork, psirtwork)
-      use module_base
-      use module_types
+      use module_base, only: bigdft_mpi, mpi_double_precision
+      use wrapper_linalg, only: vcopy
       implicit none
     
       ! Calling arguments
@@ -744,8 +743,6 @@ module communications
     end subroutine transpose_communicate_psir
     
     subroutine transpose_unswitch_psirt(collcom_sr, psirtwork, psirt)
-      use module_base
-      use module_types
       implicit none
     
       ! Calling arguments
@@ -793,7 +790,7 @@ module communications
  
     subroutine start_onesided_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, recvbuf, comm, lzd)
       use module_base
-      use module_types
+      use module_types, only: p2pComms, local_zone_descriptors
       implicit none
       
       ! Calling arguments
@@ -877,7 +874,7 @@ module communications
     
     subroutine synchronize_onesided_communication(iproc, nproc, comm)
       use module_base
-      use module_types
+      use module_types, only: p2pComms
       implicit none
       
       ! Calling arguments
@@ -907,7 +904,7 @@ module communications
     !> Locreg communication
     subroutine communicate_locreg_descriptors_basics(iproc, nlr, rootarr, orbs, llr)
       use module_base
-      use module_types
+      use module_types, only: orbitals_data, locreg_descriptors
       implicit none
     
       ! Calling arguments
@@ -1052,7 +1049,8 @@ module communications
     
     subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, rootarr, onwhichmpi)
        use module_base
-       use module_types
+       use module_types, only: orbitals_data, locreg_descriptors
+       use locregs, only: allocate_wfd
        use yaml_output
        implicit none
     

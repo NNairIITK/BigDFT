@@ -499,6 +499,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    real(gp) :: evsic_tmp
    type(coulomb_operator) :: pkernelSIC
 
+   call f_routine(id='LocalHamiltonianApplication')
 
    ! local potential and kinetic energy for all orbitals belonging to iproc
    !if (iproc==0 .and. verbose > 1) then
@@ -676,6 +677,8 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    if (ipotmethod == 2 .or. ipotmethod==3) then
       nullify(pkernelSIC%kernel)
    end if
+
+   call f_release_routine()
 
 END SUBROUTINE LocalHamiltonianApplication
 
@@ -1032,6 +1035,8 @@ subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,
    integer :: i_all,i_stat,ierr,iorb,ispsi,ilr
    real(gp), dimension(4) :: wrkallred
 
+   call f_routine(id='SynchronizeHamiltonianApplication')
+
    if(GPU%OCLconv .or. GPUconv) then! needed also in the non_ASYNC since now NlPSP is before .and. ASYNCconv)) then
       if (GPU%OCLconv) call finish_hamiltonian_OCL(orbs,ekin_sum,epot_sum,GPU)
       ispsi=1
@@ -1068,6 +1073,8 @@ subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,
    !exact exchange operator (twice the exact exchange energy)
    !this operation should be done only here since the exctX energy is already reduced
    if (exctX) epot_sum=epot_sum+2.0_gp*eexctX
+
+   call f_release_routine()
 
 END SUBROUTINE SynchronizeHamiltonianApplication
 
@@ -1108,6 +1115,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
    real(wp), dimension(:), pointer :: pot1
    
    call timing(iproc,'Pot_commun    ','ON')
+   call f_routine(id='full_local_potential')
 
    odp = (xc_exctXfac(xc) /= 0.0_gp .or. (dpbox%i3rho_add /= 0 .and. orbs%norbp > 0))
 
@@ -1328,6 +1336,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
       end if
    end if
 
+   call f_release_routine()
    call timing(iproc,'Pot_after_comm','OF')
 
    !!call mpi_finalize(ierr)

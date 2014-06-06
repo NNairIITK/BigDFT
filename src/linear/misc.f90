@@ -671,6 +671,7 @@ subroutine local_potential_dimensions(iproc,Lzd,orbs,xc,ndimfirstproc)
   integer, dimension(:,:), allocatable :: ilrtable
 
   call timing(iproc, 'calc_bounds   ', 'ON')
+  call f_routine(id='local_potential_dimensions')
   
   if(Lzd%nlr > 1) then
      ilrtable = f_malloc((/ orbs%norbp, 2 /),id='ilrtable')
@@ -757,7 +758,7 @@ subroutine local_potential_dimensions(iproc,Lzd,orbs,xc,ndimfirstproc)
 
   call f_free(ilrtable)
 
-
+  call f_release_routine()
   call timing(iproc, 'calc_bounds   ', 'OF')
 
 end subroutine local_potential_dimensions
