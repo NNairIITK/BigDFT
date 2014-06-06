@@ -973,7 +973,7 @@
                     possible values: 2 positive real numbers
                     The initial step size which is used to optimize the support functions with steepest descent.
                     If the specified value is not appropriate, it will be adjusted automatically.
-                    The first entry for the low accuracy part, the second one for the high accuracy part.
+                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
                     When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [1.e-4,10.0]
        default: 1.0
@@ -1007,6 +1007,11 @@
        default: [1,1]
      nit:
        COMMENT: number of iterations in the optimization of the density kernel
+       DESCRIPTION: |
+                    possible value: 2 non-negative integers
+                    Indicates the number of iterations in the optimization of the density kernel.
+                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
+                    When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [0,100]
        default: [5,5]
        best: [3,1]
@@ -1016,11 +1021,24 @@
        default: [0,0]
      idsx:
        COMMENT: mixing method; 0 -> linear mixing, >=1 -> Pulay mixing
+       DESCRIPTION: |
+                    possible value: 2 non-negative integer numbers
+                    Indicates how the density / potential mixing shall be performed:
+                    n=0 => linear mixing
+                    n=1 => Pulay mixing with history length n
+                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
+                    When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [0,20]
        default: [0,0]
        best: [4,0]
      alphamix:
        COMMENT: mixing parameter (low/high accuracy)
+       DESCRIPTION: |
+                    possible value: 2 non-negative real numbers
+                    Indicates the mixing parameter used for the mixing of the charge density / potential.
+                    The larger the value, the more of the previous value will be kept.
+                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
+                    When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [0.0,1.0]
        default: [0.5,0.5]
        best: [0.2,0.2]
@@ -1029,11 +1047,22 @@
        default: [1.e-5,1.e-5]
      rpnrm_cv:
        COMMENT: convergence criterion (change in density/potential) for the kernel optimization
+       DESCRIPTION: |
+                    possible value: 2 non-negative real numbers
+                    The optimization of the density kernel is stopped as soon as the mean change of the charge density / potential between two iterations falls below this threshold.
+                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
+                    When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [1.e-14,1.e-5]
        default: [1.e-10,1.e-10]
        best: [1.e-12,1.e-12]
      linear_method:
        COMMENT: method to optimize the density kernel
+       DESCRIPTION: |
+                    possible value: string
+                    Indicates the method with which the density kernel is optimized:
+                     * DIRMIN => direct minimization
+                     * DIAG => diagonalization with density mixing
+                     * FOE => Fermi Operator Expansion
        EXCLUSIVE:
          DIRMIN: direct minimization
          DIAG: diagonalization
@@ -1042,6 +1071,11 @@
        best: FOE
      mixing_method:
        COMMENT: quantity to be mixed
+       DESCRIPTION: |
+                    possible value: string
+                    Indicates which quantity should be used for the mixing procedure:
+                     DEN => density mixing
+                     POT => potential mixing
        EXCLUSIVE:
          DEN: density mixing
          POT: potential mixing
@@ -1054,11 +1088,19 @@
        default: No
      eval_range_foe:
        COMMENT: lower and upper bound of the eigenvalue spectrum, will be adjusted automatically if chosen unproperly
+       DESCRIPTION: |
+                    possible value: 2 real numbers (one negative, one positive)
+                    Indicates the lower and upper bound of the eigenvalue spectrum which is used for the Fermi Operator Expansion.
+                    This spectrum will be adjusted automatically if not chosen appropriately.
        RANGE: [-10.0,10.0]
        default: [-0.5,0.5]
        best: [-1.0,1.0]
      fscale_foe: 
        COMMENT: decay length of the error function
+       DESCRIPTION: |
+                    possible value: non-negative real number
+                    Indicates the decay length of the error function which is used by the Fermi Operator Expasion to construct the density kernel.
+                    This value will be adjusted automatically if not chosen appropriately.
        RANGE: [1.e-3,5.e-2]
        default: 2.e-2
        best: 1.e-2
