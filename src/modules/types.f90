@@ -52,9 +52,9 @@ module module_types
   integer, parameter :: INPUT_PSI_LCAO_GAUSS   = 10
   integer, parameter :: INPUT_PSI_MEMORY_GAUSS = 11
   integer, parameter :: INPUT_PSI_DISK_GAUSS   = 12
-  integer, parameter :: INPUT_PSI_LINEAR_AO    = 100    !< Input PSI from Atomic Orbital for linear
+  integer, parameter :: INPUT_PSI_LINEAR_AO    = 100    !< Input PSI for linear from Atomic Orbital
   integer, parameter :: INPUT_PSI_MEMORY_LINEAR= 101    !< Input PSI for linear in memory
-  integer, parameter :: INPUT_PSI_DISK_LINEAR  = 102
+  integer, parameter :: INPUT_PSI_DISK_LINEAR  = 102    !< Input PSI for linear from disk
 
   !> All possible values of input psi (determination of the input guess)
   integer, dimension(12), parameter :: input_psi_values = &
@@ -519,7 +519,12 @@ module module_types
   !> Define the structure used for the atomic positions
   !> Structure to store the density / potential distribution among processors.
   type, public :: denspot_distribution
-     integer :: n3d,n3p,n3pi,i3xcsh,i3s,nrhodim,i3rho_add
+     integer :: n3d,n3p,n3pi,i3xcsh,i3s,nrhodim
+     !> Integer which controls the presence of a density after the potential array
+     !! if different than zero, at the address ndimpot*nspin+i3rho_add starts the spin up component of the density
+     !! the spin down component can be found at the ndimpot*nspin+i3rho_add+ndimpot, contiguously
+     !! the same holds for non-collinear calculations
+     integer :: i3rho_add
      integer :: ndimpot,ndimgrid,ndimrhopot 
      integer, dimension(3) :: ndims !< box containing the grid dimensions in ISF basis
      real(gp), dimension(3) :: hgrids !< grid spacings of the box (half of wavelet ones)
@@ -745,7 +750,7 @@ module module_types
      real(gp) :: psoffset                 !< offset of the Poisson Solver in the case of Periodic BC
      type(rho_descriptors) :: rhod        !< descriptors of the density for parallel communication
      type(denspot_distribution) :: dpbox  !< distribution of density and potential box
-     type(xc_info) :: xc !< structure about the used xc functionals
+     type(xc_info) :: xc                  !< structure about the used xc functionals
      character(len=3) :: PSquiet
      !real(gp), dimension(3) :: hgrids    !< grid spacings of denspot grid (half of the wvl grid)
      type(coulomb_operator) :: pkernel    !< kernel of the Poisson Solver used for V_H[rho]
@@ -1363,15 +1368,14 @@ contains
   END SUBROUTINE deallocate_abscalc_input
 
 
-!> De-Allocate orbitals data structure, except eval pointer
-!! which is not allocated in the orbitals_descriptor routine
-subroutine deallocate_orbs(orbs,subname)
-  use module_base
-  implicit none
-    character(len=*), intent(in) :: subname
-    type(orbitals_data), intent(inout) :: orbs
-    !local variables
-    integer :: i_all,i_stat
+  !> De-Allocate orbitals data structure, except eval pointer
+  !! which is not allocated in the orbitals_descriptor routine
+  subroutine deallocate_orbs(orbs,subname)
+    use module_base
+    implicit none
+    !Arguments
+    character(len=*), intent(in) :: subname    !< Name of the subroutine
+    type(orbitals_data), intent(inout) :: orbs !< Orbital to de-allocate
 
     call f_free_ptr(orbs%norb_par)
 
@@ -1804,7 +1808,9 @@ subroutine deallocate_orbs(orbs,subname)
          & (fid >= 0 .and. fid < size(output_denspot_format_names))
   end function output_denspot_validate
 
-subroutine nullify_DFT_local_fields(denspot)
+
+  !> Nullify a DFT_local_fields structure
+  subroutine nullify_DFT_local_fields(denspot)
   implicit none
   type(DFT_local_fields),intent(out) :: denspot
 

@@ -42,16 +42,16 @@ module gaussians
 
   !> Structures of basis of gaussian functions
   type :: gaussian_basis_new
-     integer :: nat  !< number of centers
-     integer :: ncoeff !< number of total basis elements
-     integer :: nshltot !< total number of shells (m quantum number ignored) 
-     integer :: nexpo !< number of exponents (sum of the contractions)
-     integer :: ncplx !< =1 if traditional, =2 if complex gaussians
+     integer :: nat     !< Number of centers
+     integer :: ncoeff  !< Number of total basis elements
+     integer :: nshltot !< Total number of shells (m quantum number ignored) 
+     integer :: nexpo   !< Number of exponents (sum of the contractions)
+     integer :: ncplx   !< =1 if traditional, =2 if complex gaussians
      !storage units
-     integer, dimension(:), pointer :: nshell !< number of shells for any of the centers
-     integer, dimension(:,:), pointer :: shid !< degree of contraction, angular momentum and principal quantum number
-     real(gp), dimension(:,:), pointer :: sd !<sigma and contraction coefficients the exponents (complex numbers are allowed)
-     real(gp), dimension(:,:), pointer :: rxyz !<positions of the centers
+     integer, dimension(:), pointer :: nshell  !< Number of shells for any of the centers
+     integer, dimension(:,:), pointer :: shid  !< Degree of contraction, angular momentum and principal quantum number
+     real(gp), dimension(:,:), pointer :: sd   !< Sigma and contraction coefficients the exponents (complex numbers are allowed)
+     real(gp), dimension(:,:), pointer :: rxyz !< Positions of the centers
   end type gaussian_basis_new
 
   public :: gaudim_check,normalize_shell,gaussian_overlap,kinetic_overlap,gauint0
@@ -61,6 +61,7 @@ module gaussians
 contains
 
 
+  !> Nullify the pointers of the structure gaussian_basis_new
   function gaussian_basis_null() result(G)
     implicit none
     type(gaussian_basis_new) :: G
@@ -460,7 +461,7 @@ contains
     integer :: i1,i2
     real(gp) :: a1,a2,c1,c2,govrlpr
 
-    ovrlp=0.d0
+    ovrlp=0.0_gp
     do i1=1,ng1
        a1=expo1(i1)
        a1=0.5_gp/a1**2
@@ -497,7 +498,7 @@ contains
     integer :: i1,i2
     real(gp) :: a1,a2,c1,c2,govrlpr
 
-    ovrlp=0.d0
+    ovrlp=0.0_gp
     do i1=1,ng1
        a1=expo1(i1)
        a1=0.5_gp/a1**2
@@ -536,7 +537,7 @@ contains
          iw(1),iw(nx+1),iw(2*nx+1),rw(1))
     call calc_coeff_inguess(l2,m2,nx,n2,&
          iw(3*nx+1),iw(4*nx+1),iw(5*nx+1),rw(n1+1))
-    ovrlp=0.d0
+    ovrlp=0.0_gp
     do i2=1,n2
        qx=iw(3*nx+i2)
        qy=iw(4*nx+i2)
@@ -924,7 +925,7 @@ contains
     real(gp) :: prefac,stot,aeff,ceff,tt,fsum!,gauint,gauint0
 
     !quick check
-    if (d==0.0_gp) then
+    if (d == 0.0_gp) then
        govrlp=gauint0(a1+a2,l1+l2)
        return
     end if
@@ -993,7 +994,7 @@ contains
          iw(1),iw(nx+1),iw(2*nx+1),rw(1))
     call calc_coeff_inguess(l2,m2,nx,n2,&
          iw(3*nx+1),iw(4*nx+1),iw(5*nx+1),rw(n1+1))
-    ovrlp=0.d0
+    ovrlp=0.0_gp
     do i2=1,n2
        qx=iw(3*nx+i2)
        qy=iw(4*nx+i2)
@@ -1048,43 +1049,46 @@ contains
   END FUNCTION kinovrlp
 
 
-  !> Calculates @f$\int \exp^{-a*x^2} x^l dx@f$
+  !> Calculates @f$ I(l) = \int \exp^{-a*x^2} x^l dx @f$ i.e. the moments of the gaussian
+  !! @f$ I(0)  = \sqrt{\pi} @f$
+  !! @f$ I(2p) = (p-1/2) I(2p-2) @f$
   !! this works for all l
   pure function gauint0(a,l)
     implicit none
+    !Arguments
     integer, intent(in) :: l
     real(gp), intent(in) :: a
     real(gp) :: gauint0
     !local variables
-    real(gp), parameter :: gammaonehalf=1.772453850905516027298d0
+    real(gp), parameter :: gammaonehalf=1.772453850905516027298_gp ! i.e. sqrt(pi)
     integer :: p
     real(gp) :: prefac,tt
     !build the prefactor
-    prefac=sqrt(a)
-    prefac=1.d0/prefac
+    prefac=1.0_gp/sqrt(a)
     prefac=gammaonehalf*prefac**(l+1)
 
     p=l/2
     if (2*p < l) then
+       ! l is odd
        gauint0=0.0_gp
-       return
+    else
+       tt=xfac(1,p,-0.5_gp)
+       !final result
+       gauint0=prefac*tt
     end if
-    tt=xfac(1,p,-0.5d0)
-    !final result
-    gauint0=prefac*tt
 
   END FUNCTION gauint0
 
 
   !> Calculates @f$\int \exp^{-a*(x-c)^2} x^l dx@f$
-  !! this works ONLY when c/=0.d0
+  !! this works ONLY when c /= 0.d0
   pure function gauint(a,c,l)
     implicit none
     integer, intent(in) :: l
     real(gp), intent(in) :: a,c
     real(gp) :: gauint
     !local variables
-    real(gp), parameter :: gammaonehalf=1.772453850905516027298d0
+    real(gp), parameter :: gammaonehalf=1.772453850905516027298_gp
     integer :: p
     real(gp) :: prefac,stot,fsum,tt!,firstprod
 
@@ -1095,7 +1099,7 @@ contains
 
     !build the prefactor
     prefac=sqrt(a)
-    prefac=1.d0/prefac
+    prefac=1.0_gp/prefac
     prefac=gammaonehalf*prefac
 
     !the first term of the sum is one
@@ -1149,7 +1153,6 @@ contains
   END FUNCTION gauint
 
 
-  !>
   pure function firstprod(p)
     implicit none
     integer, intent(in) :: p
@@ -1167,7 +1170,6 @@ contains
   END FUNCTION firstprod
 
 
-  !>
   subroutine gaudim_check(iexpo,icoeff,ishell,nexpo,ncoeff,nshltot)
     implicit none
     integer, intent(in) :: iexpo,icoeff,ishell,nexpo,ncoeff,nshltot
@@ -1195,7 +1197,7 @@ contains
     integer :: i,j
     real(gp) :: norm,tt,e1,ex,c1,c2!,gauint0
 
-    norm=0.d0
+    norm=0.0_gp
     do i=1,ng
        e1=expo(i)
        c1=coeff(i)
@@ -1225,7 +1227,7 @@ contains
     !local variables
     integer :: i
     real(gp) :: tt
-    rfac=1.d0
+    rfac=1.0_gp
     do i=is,ie
        tt=real(i,gp)
        rfac=rfac*tt
@@ -1234,16 +1236,18 @@ contains
 
 
   !> Partial factorial, with real shift
-  !! With this function n!=xfac(1,n,0.d0)
+  !! With this function n! = xfac(1,n,0.d0)
+  !! @f$ \prod_1^n (n - s) @f$
   pure function xfac(is,ie,sh)
     implicit none
+    !Arguments
     integer, intent(in) :: is,ie
     real(gp), intent(in) :: sh
     real(gp) :: xfac
     !local variables
     integer :: i
     real(gp) :: tt
-    xfac=1.d0
+    xfac=1.0_gp
     do i=is,ie
        tt=real(i,gp)+sh
        xfac=xfac*tt
@@ -1254,6 +1258,7 @@ contains
   !> Routine to extract the coefficients from the quantum numbers and the operation
   pure subroutine tensor_product_decomposition(n,l,ntpd_shell,ntpd,pow,ftpd)
     implicit none
+    !Arguments
     integer, intent(in) :: n,l
     integer, intent(out) :: ntpd_shell !< No. of terms for the whole shell
     integer, dimension(2*l+1), intent(out) :: ntpd !< number of terms per shell element

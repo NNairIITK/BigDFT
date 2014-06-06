@@ -158,7 +158,7 @@ END SUBROUTINE  MPI_REDUCE_SCATTER
 
 subroutine  MPI_ABORT()
   implicit none
-  stop 'MPIFAKE: MPI_ABORT'
+  stop ' MPIFAKE: MPI_ABORT'
 END SUBROUTINE  MPI_ABORT
 
 subroutine  MPI_IRECV()

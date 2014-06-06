@@ -16,21 +16,29 @@
 ## default: value of the default, written as a string 
 ## profile1: value1 # if the user specifies inputvar: profile1 then inputvars will be value1
 ## profile2: value2
+##
+## DO NOT USE the character ':' and "" in the COMMENT of DESCRIPTION
 ############################################
 # Density Functional Theory parameters
  dft:
+   DESCRIPTION: Density Functional Theory parameters
    hgrids:
      COMMENT: Grid spacing in the three directions (bohr)
+     DESCRIPTION: Grid spacing in three directions (Bohr units) of the coarse mesh as [0.5, 0.45, 0.4].
+                  A scalar can also be given as 0.45.
      RANGE: [0., 2.]
      default: [0.45, 0.45, 0.45]
      fast: [0.55, 0.55, 0.55]
      accurate: [0.30, 0.30, 0.30]
    rmult:
      COMMENT: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
+     DESCRIPTION: Coarse and fine multiplier as [4.0, 8.0].
+                 These numbers determine the extension of the coarse and fine region respectively.
      RANGE: [0., 100.]
      default: [5., 8.]
    ixc:
      COMMENT: Exchange-correlation parameter (LDA=1,PBE=11)
+     DESCRIPTION: Determine the exchange-correlation functional.
      default: 1
      #Here follow a number of possibilities for the different XC functionals
      LDA (ABINIT): 1
@@ -40,15 +48,22 @@
      PBE0: -406
      B97-D: -170 #to be verified
      B3LYP: -402
+     HF: 100 #Hartree-Fock
    ncharge:
      COMMENT: Charge of the system
+     DESCRIPTION: Total charge of the system. A negative value means that extra electrons are added.
      RANGE: [-500., 500.]
      default: 0
    elecfield:
      COMMENT: Electric field (Ex,Ey,Ez)
      default: [0., 0., 0.]
    nspin:
-     COMMENT: Spin polarization
+     COMMENT: Spin polarization treatment
+     DESCRIPTION: |
+            Spin polarization treatment;
+            1 no spin (as LDA),
+            2 spin-polarisation (LSD or collinear) and
+            4 non-collinear i.e. two components per electron.
      EXCLUSIVE:
        1: No spin
        2: Collinear
@@ -56,12 +71,13 @@
      default: 1
    mpol:
      COMMENT: Total magnetic moment
+     DESCRIPTION: Total magnetic moment which has to be the same parity 
+                  as the total number of electrons (nelec_up-nelec_down=mpol).
+                  You should also define the keyword 'IGSpin' or add a spin per atom to specify the polarisation for the input guess.
      default: 0
    gnrm_cv:
-     COMMENT: Convergence criterion gradient
-     DESCRIPTION: Here should follow the extended description for this input variable
-                  this description should be on multiple lines et cetera
-            
+     COMMENT: convergence criterion gradient
+     DESCRIPTION: Maximal value of the norm 2 of the electronic orbitals used as convergence criterion
      RANGE: [1.e-20, 1.]
      default: 1.e-4
      fast: 1.e-3
@@ -157,8 +173,10 @@
      COMMENT: Disable the symmetry detection
      DESCRIPTION: Disable the symmetry detection (by default No except for isolated systems)
      default: No
+
 #K points parameters
  kpt:
+   DESCRIPTION: K points defined in the Brillouin zone for periodic system calculations
    method:
      COMMENT: K-point sampling method
      EXCLUSIVE:
@@ -241,8 +259,10 @@
        WHEN:
        - Yes
      default: ''
+
 #Geometry Optimisation  and Molecular Dynamics parameters
  geopt:
+   DESCRIPTION: Parameters for the geometry relaxation and molecular dynamics
    method:
      COMMENT: Geometry optimisation method
      EXCLUSIVE:
@@ -516,9 +536,13 @@
        WHEN:
        - NEB
      default: 15
+
+#Mixing parameters (do diagonalisation scheme instead of direct minimisation one)
  mix:
+   DESCRIPTION: Mixing parameters for SCF
    iscf:
      COMMENT: Mixing parameters
+     DESCRIPTION: Describe the scheme used to solve the self-consistent field
      EXCLUSIVE:
        -1: Reserved, do not use it.
        0:  Direct minimization
@@ -567,8 +591,10 @@
      COMMENT: Multiplying factors for the electronic DIIS
      RANGE: [0., 10.]
      default: 2.
+
 #Self-Interaction Correction
  sic:
+   DESCRIPTION: Self-Interaction Correction parameters 
    sic_approach:
      COMMENT: SIC (self-interaction correction) method
      EXCLUSIVE:

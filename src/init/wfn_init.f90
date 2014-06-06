@@ -398,7 +398,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
 
         !assign the value for the orbital
         call vcopy(orbs%norbu,orbse%eval((ikpt-1)*orbse%norb+1),1,orbs%eval((ikpt-1)*orbs%norb+1),1)
-        if (orbs%norbd >0) then
+        if (orbs%norbd > 0) then
            call vcopy(orbs%norbd,orbse%eval((ikpt-1)*orbse%norb+orbse%norbu+1),1,orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+1),1)
         end if
      end do
@@ -417,11 +417,9 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
      call to_zero(orbse%norb*orbse%nkpts,orbse%occup(1))
         !put the actual values on it
      do ikpt=1,orbs%nkpts
-        call vcopy(orbs%norbu,orbs%occup((ikpt-1)*orbs%norb+1),1,&
-             orbse%occup((ikpt-1)*orbse%norb+1),1)
+        call vcopy(orbs%norbu,orbs%occup((ikpt-1)*orbs%norb+1),1, orbse%occup((ikpt-1)*orbse%norb+1),1)
         if (orbs%norbd > 0) then
-           call vcopy(orbs%norbd,orbs%occup((ikpt-1)*orbs%norb+orbs%norbu+1),1,&
-                orbse%occup((ikpt-1)*orbse%norb+orbse%norbu+1),1)
+           call vcopy(orbs%norbd,orbs%occup((ikpt-1)*orbs%norb+orbs%norbu+1),1, orbse%occup((ikpt-1)*orbse%norb+orbse%norbu+1),1)
         end if
      end do
 
@@ -519,8 +517,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   end if
 
   !this untranspose also the wavefunctions 
-  call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,&
-       psit(1),hpsi(1),out_add=psi(1))
+  call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms, psit(1),hpsi(1),out_add=psi(1))
 
 !!$!here the checksum of the wavefunction can be extracted
 !!$do jproc=0,bigdft_mpi%nproc-1

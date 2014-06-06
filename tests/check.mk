@@ -181,9 +181,8 @@ $(PSPS):
 
 %.clean:
 	@name=`basename $@ .clean` ; dir=$$name-test ; \
-    rm -rf $$dir ; \
-	rm -f $$name.* ; \
-    echo "Clean "$$dir
+	rm -rf $$dir ; rm -f $$name.* ; \
+    echo "Clean $$dir"
 
 %.post-in: ;
 %.psp: ;
