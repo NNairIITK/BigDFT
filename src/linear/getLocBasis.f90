@@ -1493,7 +1493,7 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, npsidim, 
   character(len=*),parameter :: subname='comm_basis_for_dens_coll'
 
   call timing(iproc,'commbasis4dens','ON')
-  call f_routine(id='comm_basis_for_dens_coll')
+  call f_routine(id='communicate_basis_for_density_collective')
 
   psir = f_malloc(collcom_sr%ndimpsi_c,id='psir')
 
