@@ -175,6 +175,8 @@ subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locreg
   character(len=*),parameter :: subname='initLocregs'
   logical,dimension(:),allocatable :: calculateBounds
 
+  call f_routine(id=subname)
+
   
   calculateBounds = f_malloc(lzd%nlr,id='calculateBounds')
   calculateBounds=.false.
@@ -213,6 +215,8 @@ subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locreg
   !END DEBUG
   
   lzd%linear=.true.
+
+  call f_release_routine()
 
 end subroutine initLocregs
 
