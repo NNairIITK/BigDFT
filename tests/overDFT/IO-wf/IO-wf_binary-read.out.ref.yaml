@@ -407,6 +407,7 @@
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - symmetries have been disabled, k points are not irreductible.
+ - No convergence within the allowed number of minimization steps
  - Wavefunctions not converged after cycle  1
  Status of the memory at finalization:
    Timestamp of Profile initialization:

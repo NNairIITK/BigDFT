@@ -211,45 +211,46 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum,spsi) !n
   use module_interfaces, except_this_one => orthoconstraint
   use communications_base, only: comms_cubic
   implicit none
-          logical, intent(in) :: symm !< symmetrize the lagrange multiplier after calculation
-          integer, intent(in) :: iproc,nproc
-          type(orbitals_data), intent(in) :: orbs
-          type(comms_cubic), intent(in) :: comms
-          !n(c) type(wavefunctions_descriptors), intent(in) :: wfd
-          real(wp), dimension(orbs%npsidim_comp), intent(in) :: psi
-          real(wp), dimension(orbs%npsidim_comp), optional, intent(in) :: spsi
-          real(wp), dimension(orbs%npsidim_comp), intent(inout) :: hpsi
-          real(dp), intent(out) :: scprsum
-          !local variables
-          character(len=*), parameter :: subname='orthoconstraint'
-          integer :: i_stat,i_all,ierr,iorb,ialag,jorb !n(c) ise
-          integer :: ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
-          real(dp) :: occ !n(c) tt
-          real(gp), dimension(2) :: aij,aji
-          integer, dimension(:,:), allocatable :: ndim_ovrlp
-          real(wp), dimension(:), allocatable :: alag,paw_ovrlp
 
-          !separate the orthogonalisation procedure for up and down orbitals 
-          !and for different k-points
-          call timing(iproc,'LagrM_comput  ','ON')
+  logical, intent(in) :: symm !< symmetrize the lagrange multiplier after calculation
+  integer, intent(in) :: iproc,nproc
+  type(orbitals_data), intent(in) :: orbs
+  type(comms_cubic), intent(in) :: comms
+  !n(c) type(wavefunctions_descriptors), intent(in) :: wfd
+  real(wp), dimension(orbs%npsidim_comp), intent(in) :: psi
+  real(wp), dimension(orbs%npsidim_comp), optional, intent(in) :: spsi
+  real(wp), dimension(orbs%npsidim_comp), intent(inout) :: hpsi
+  real(dp), intent(out) :: scprsum
+  !local variables
+  character(len=*), parameter :: subname='orthoconstraint'
+  integer :: i_stat,i_all,ierr,iorb,ialag,jorb !n(c) ise
+  integer :: ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
+  real(dp) :: occ !n(c) tt
+  real(gp), dimension(2) :: aij,aji
+  integer, dimension(:,:), allocatable :: ndim_ovrlp
+  real(wp), dimension(:), allocatable :: alag,paw_ovrlp
 
-          !number of components of the overlap matrix for parallel case
-          !calculate the dimension of the overlap matrix for each k-point
-          if (orbs%norbd > 0) then
-             nspin=2
-          else
-             nspin=1
-          end if
+  !separate the orthogonalisation procedure for up and down orbitals 
+  !and for different k-points
+  call timing(iproc,'LagrM_comput  ','ON')
 
-          !number of components for the overlap matrix in wp-kind real numbers
+  !number of components of the overlap matrix for parallel case
+  !calculate the dimension of the overlap matrix for each k-point
+  if (orbs%norbd > 0) then
+     nspin=2
+  else
+     nspin=1
+  end if
 
-          allocate(ndim_ovrlp(nspin,0:orbs%nkpts+ndebug),stat=i_stat)
-          call memocc(i_stat,ndim_ovrlp,'ndim_ovrlp',subname)
+  !number of components for the overlap matrix in wp-kind real numbers
 
-          call dimension_ovrlp(nspin,orbs,ndim_ovrlp)
+  allocate(ndim_ovrlp(nspin,0:orbs%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,ndim_ovrlp,'ndim_ovrlp',subname)
 
-          allocate(alag(ndim_ovrlp(nspin,orbs%nkpts)+ndebug),stat=i_stat)
-          call memocc(i_stat,alag,'alag',subname)
+  call dimension_ovrlp(nspin,orbs,ndim_ovrlp)
+
+  allocate(alag(ndim_ovrlp(nspin,orbs%nkpts)+ndebug),stat=i_stat)
+  call memocc(i_stat,alag,'alag',subname)
   
   !Allocate ovrlp for PAW: 
   if(present(spsi)) then
@@ -258,22 +259,22 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum,spsi) !n
     call memocc(i_stat,paw_ovrlp,'paw_ovrlp',subname)
   end if
 
-          !put to zero all the k-points which are not needed
-          call to_zero(ndim_ovrlp(nspin,orbs%nkpts),alag)
+  !put to zero all the k-points which are not needed
+  call to_zero(ndim_ovrlp(nspin,orbs%nkpts),alag)
 
-          !do it for each of the k-points and separate also between up and down orbitals in the non-collinear case
-          ispsi=1
-          do ikptp=1,orbs%nkptsp
-             ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
+  !do it for each of the k-points and separate also between up and down orbitals in the non-collinear case
+  ispsi=1
+  do ikptp=1,orbs%nkptsp
+     ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
 
-             do ispin=1,nspin
+     do ispin=1,nspin
 
-                call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
-                     nvctrp,norb,norbs,ncomp,nspinor)
-                if (nvctrp == 0) cycle
+        call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
+             nvctrp,norb,norbs,ncomp,nspinor)
+        if (nvctrp == 0) cycle
         ialag=ndim_ovrlp(ispin,ikpt-1)+1
 
-                if(nspinor==1) then
+        if(nspinor==1) then
            if (symm) then
               !call gemmsy('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
               call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&

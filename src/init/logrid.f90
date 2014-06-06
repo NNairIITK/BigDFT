@@ -8,11 +8,11 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>   Cleaned version of the logrid_old.f90 in the unused directory (with newmethod=.true.)
+!> Cleaned version of the logrid_old.f90 in the unused directory (with newmethod=.true.)
+!! Creates complicated ib arrays    
 subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      ibxy_c,ibzzx_c,ibyyzz_c,ibxy_f,ibxy_ff,ibzzx_f,ibyyzz_f,&
      ibyz_c,ibzxx_c,ibxxyy_c,ibyz_f,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
-  !    creates complicated ib arrays    
   use module_base
   use module_interfaces, except_this_one => make_all_ib
   implicit none
@@ -38,7 +38,7 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   integer,intent(out):: ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
   integer,intent(out):: ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
 
-  character(len=*), parameter :: subname=' make_all_ib'
+  character(len=*), parameter :: subname='make_all_ib'
   logical,allocatable:: logrid_big(:)
 
   !    for real space:
@@ -103,7 +103,7 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 END SUBROUTINE make_all_ib
 
 
-!>   This subroutine mimics the comb_grow_f one
+!> This subroutine mimics the comb_grow_f one
 subroutine make_ib_inv(logrid_big,ibxy,ibzzx,ibyyzz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
   use module_interfaces, except_this_one => make_ib_inv
   implicit none
@@ -285,10 +285,10 @@ subroutine ib_from_logrid(ib,logrid,ml1,mu1,ndat)
 END SUBROUTINE ib_from_logrid
 
 
-!>   Modifies the ib array
-!!   so that it is made up of blocks of size 2
-!!   the localization region is enlarged as a result
-!!   works for even nfl2 only
+!> Modifies the ib array
+!! so that it is made up of blocks of size 2
+!! the localization region is enlarged as a result
+!! works for even nfl2 only
 subroutine squares_1d(ib,nfl2,nfu2,nfl3,nfu3)
   implicit none
   !Arguments
@@ -314,15 +314,19 @@ subroutine squares_1d(ib,nfl2,nfu2,nfl3,nfu3)
 END SUBROUTINE squares_1d
 
 
-!>   Modifies the ib array 
-!!   so that it is made up of squares 2x2
-!!   the localization region is enlarged as a result
+!> Modifies the ib array 
+!! so that it is made up of squares 2x2
+!! the localization region is enlarged as a result
 subroutine squares(ib,n2,n3)
   implicit none
-  integer,intent(in)::n2,n3
-  integer,intent(inout)::ib(2,0:n2,0:n3)
+  !Arguments
+  integer, intent(in) :: n2, n3
+  integer, dimension(2,0:n2,0:n3), intent(inout) :: ib
+  !Local variables
+  integer :: i2,i3,ii2,ii3,ibmin,ibmax
 
-  integer i2,i3,ii2,ii3,ibmin,ibmax
+  !If one dimension is zero: do nothing
+  if (n2 == 0 .or. n3 == 0) return
 
   do i3=0,(n3-1)/2
      do i2=0,(n2-1)/2

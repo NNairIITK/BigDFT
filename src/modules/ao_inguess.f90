@@ -20,34 +20,35 @@ module ao_inguess
 
   integer, parameter :: nmax_ao=7              !< Maximum allowed value of principal quantum number for the electron configuration
   integer, parameter :: lmax_ao=3              !< Maximum value of the angular momentum for the electron configuration
-  integer, parameter :: nelecmax_ao=32         !< Size of the interesting values of the compressed atomic input polarization
+  integer, parameter :: nelecmax_ao=33         !< Size of the interesting values of the compressed atomic input polarization
   integer, parameter :: noccmax_ao=3           !< Maximum number of the occupied input guess orbitals for a given shell
   integer, parameter, public :: nmax_occ_ao=10 !< Maximum number of total occupied orbitals for generating the ig functions
 
   private :: nmax_ao,lmax_ao,nelecmax_ao,noccmax_ao,at_occnums,spin_variables
 
-  !>parameters of the input guess atomic orbitals, to be continued
+  !> Parameters of the input guess atomic orbitals, to be continued
   type, public :: aoig_data
 !!$     !> code associated to the semicore orbitals of the atom
 !!$     !! The integer is the n_s + 4*n_p + 16* n_d + 64* n_f
 !!$     !! where n_l are the number of semicore orbitals for a given angular momentum
 !!$     !! starting from the lower principal quantum number of course
 !!$     integer :: iasctype 
-     !> number of atomic orbitals, counting the total number of shells with nonzero occupation
-     integer :: nao      
-     !> number of atomic orbitals which have to be considered as semicore orbitals
-     integer :: nao_sc
-     integer, dimension(0:lmax_ao) :: nl !< number of orbitals in each of the shells
-     integer, dimension(0:lmax_ao) :: nl_sc !< number of semicore orbitals in each of the shells
-     real(gp), dimension(nelecmax_ao) :: aocc !< compressed information of the occupation numbers. 
-                                              !! adapted at each run to meet the nspin and nspinor conditions
+     integer :: nao     !< Number of atomic orbitals, counting the total number of shells with nonzero occupation
+     integer :: nao_sc  !< Number of atomic orbitals which have to be considered as semicore orbitals
+     integer, dimension(0:lmax_ao) :: nl      !< Number of orbitals in each of the shells
+     integer, dimension(0:lmax_ao) :: nl_sc   !< Number of semicore orbitals in each of the shells
+     real(gp), dimension(nelecmax_ao) :: aocc !< Compressed information of the occupation numbers. 
   end type aoig_data
 
-  public :: atomic_info,ao_nspin_ig,iguess_generator,count_atomic_shells,print_eleconf,aoig_set_from_dict
-  public :: ao_ig_charge,aoig_set,aoig_data_null
+
+  public :: atomic_info
+  public :: iguess_generator,count_atomic_shells,print_eleconf
+  public :: ao_nspin_ig,ao_ig_charge,aoig_set_from_dict,aoig_set,aoig_data_null
   public :: set_aocc_from_string
 
+
 contains
+
 
   !> Initializator for the aoig_data structure
   pure function aoig_data_null() result(aoig)
@@ -61,7 +62,8 @@ contains
     aoig%aocc=0
   end function aoig_data_null
 
-  !>control the variables associated to the spin
+
+  !> Control the variables associated to the spin
   subroutine spin_variables(nspin_in,nspin,nspinor,noncoll)
     use yaml_output, only: yaml_toa
     implicit none
@@ -91,7 +93,8 @@ contains
 
   end subroutine spin_variables
 
-  !> inverse of the spin_variables routine, used for building and simplifying module routines. To be eventually removed
+
+  !> Inverse of the spin_variables routine, used for building and simplifying module routines. To be eventually removed
   function ao_nspin_ig(nspin,nspinor,noncoll)
     implicit none
     integer, intent(in) :: nspin !<the only compulsory
@@ -106,6 +109,7 @@ contains
        if (noncoll==2) ao_nspin_ig=4
     end if
   end function ao_nspin_ig
+
 
   subroutine iguess_generator(izatom,ielpsp,zion,nspin,occupIG,&
        psppar,npspcode,ngv,ngc,nlccpar,ng,&
@@ -444,7 +448,8 @@ contains
 
   END SUBROUTINE count_atomic_shells
 
-  !> fill the corresponding arrays with atomic information, compressed as indicated in the module. start from input polarization and charge if present
+
+  !> Fill the corresponding arrays with atomic information, compressed as indicated in the module. start from input polarization and charge if present
   function aoig_set(zatom,zion,input_pol,nspin) result(aoig)
     use yaml_output, only: yaml_toa
     implicit none
@@ -539,7 +544,8 @@ contains
     character(len = max_field_length) :: key
     !character(max_field_length), dimension(:), allocatable :: keys
     integer :: ln
-    integer :: m,n,iocc,icoll,inl,noncoll,l,ispin,is,lsc,nspin
+    integer :: m,n,iocc,icoll,inl,noncoll,l,ispin,is,nspin
+!!$ integer :: lsc
     real(gp) :: tt,sh_chg
     integer, dimension(lmax_ao+1) :: nl,nlsc
     real(gp), dimension(2*(2*lmax_ao-1),nmax_ao,lmax_ao+1) :: allocc
@@ -773,7 +779,8 @@ contains
     !local variables
     character(len=10) :: tmp
     character(len=500) :: string
-    integer :: i,m,iocc,icoll,inl,nspin,noncoll,l,ispin,is,nl,niasc,lsc,nlsc,ntmp,iss
+    integer :: i,m,iocc,icoll,inl,nspin,noncoll,l,ispin,is,nl,ntmp,iss
+!!$ integer :: niasc,lsc,nlsc
     !logical, dimension(4,2) :: scorb
 
     !control the spin
@@ -1147,7 +1154,7 @@ contains
     !local variables
     character(len=1024) :: string
     character(len=20), dimension(2*(2*lmax_ao+1)) :: tmp
-    integer :: i,m,iocc,icoll,inl,l,ispin,is,lsc,j,ist,ierror,nvals
+    integer :: i,m,iocc,inl,l,is,lsc,j,ist,ierror,nvals
     logical, dimension(lmax_ao+1,noccmax_ao) :: scorb
     integer, dimension(lmax_ao+1) :: nl,nlsc
     real(gp), dimension(2*(2*lmax_ao+1),noccmax_ao,lmax_ao+1) :: allocc

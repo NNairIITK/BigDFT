@@ -58,7 +58,7 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   call memocc(i_stat,logrid_f,'logrid_f',subname)
 
   ! coarse/fine grid quantities
-  if (atoms%astruct%ntypes >0) then
+  if (atoms%astruct%ntypes > 0) then
      call fill_logrid(atoms%astruct%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%astruct%nat,&
           &   atoms%astruct%ntypes,atoms%astruct%iatype,rxyz,radii_cf(1,1),crmult,hx,hy,hz,logrid_c)
      call fill_logrid(atoms%astruct%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%astruct%nat,&
@@ -1030,6 +1030,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   use module_base
   use module_interfaces, except_this_one => input_wf_diag
   use module_types
+  use module_xc, only: XC_NO_HARTREE
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
   use gaussians
@@ -1265,26 +1266,44 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
   !spin adaptation for the IG in the spinorial case
   orbse%nspin=nspin
-  call sumrho(denspot%dpbox,orbse,Lzde,GPUe,at%astruct%sym,denspot%rhod,denspot%xc,psi,denspot%rho_psi)
-  call communicate_density(denspot%dpbox,orbse%nspin,denspot%rhod,denspot%rho_psi,denspot%rhov,.false.)
-  call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, 0, iproc, nproc)
 
-  orbse%nspin=nspin_ig
+  if (ixc /= XC_NO_HARTREE) then
 
-  !before creating the potential, save the density in the second part 
-  !if the case of NK SIC, so that the potential can be created afterwards
-  !copy the density contiguously since the GGA is calculated inside the NK routines
-  if (input%SIC%approach=='NK') then
-     irhotot_add=Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,4)+1
-     irho_add=Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1)*input%nspin+1
+     !> Calculate the electronic density
+     call sumrho(denspot%dpbox,orbse,Lzde,GPUe,at%astruct%sym,denspot%rhod,denspot%xc,psi,denspot%rho_psi)
+
+     call communicate_density(denspot%dpbox,orbse%nspin,denspot%rhod,denspot%rho_psi,denspot%rhov,.false.)
+     call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, 0, iproc, nproc)
+
+     !before creating the potential, save the density in the second part 
+     !if the case of NK SIC, so that the potential can be created afterwards
+     !copy the density contiguously since the GGA is calculated inside the NK routines
+     if (input%SIC%approach=='NK') then
+        irhotot_add=Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,4)+1
+        irho_add=Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1)*input%nspin+1
+        do ispin=1,input%nspin
+           call vcopy(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,2),&
+                denspot%rhov(irhotot_add),1,denspot%rhov(irho_add),1)
+           irhotot_add=irhotot_add+Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1)
+           irho_add=irho_add+Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,2)
+        end do
+     end if
+
+     !Now update the potential
+     call updatePotential(nspin,denspot,energs%eh,energs%exc,energs%evxc)
+
+  else
+     !Put to zero the density if no Hartree
+     irho_add = 1
      do ispin=1,input%nspin
-        call vcopy(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,2),&
-             denspot%rhov(irhotot_add),1,denspot%rhov(irho_add),1)
-        irhotot_add=irhotot_add+Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1)
+        !call vcopy(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,2),&
+        !     denspot%V_ext,1,denspot%rhov(irho_add),1)
+        call f_memcpy(n=size(denspot%V_ext),src=denspot%V_ext(1,1,1,1),dest=denspot%rhov(irho_add))
         irho_add=irho_add+Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,2)
      end do
   end if
-  call updatePotential(nspin,denspot,energs%eh,energs%exc,energs%evxc)
+
+  orbse%nspin=nspin_ig
 
 !!$   !experimental
 !!$   if (nproc == 1) then
@@ -1597,6 +1616,7 @@ contains
 END SUBROUTINE input_wf_diag
 
 
+!> Determine the input guess wavefunctions
 subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      denspot,denspot0,nlpsp,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
      lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft,&
@@ -1808,14 +1828,15 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
              rxyz,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
              KSwfn%Lzd%Glr%d,KSwfn%Lzd%Glr%wfd,KSwfn%psi, KSwfn%orbs,KSwfn%lzd,displ)
         call timing(iproc,'restart_rsp   ','OF')
-    else
+     else
         !stop 'Wrong value of inguess_geopt in input.perf'
         call f_err_throw('Wrong value of inguess_geopt in input.perf', &
              err_name='BIGDFT_RUNTIME_ERROR')
-    end if
+     end if
 
      if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) &
            call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)
+
   case(INPUT_PSI_MEMORY_LINEAR)
      if (iproc == 0) then
         call yaml_comment('Support functions Restart',hfill='-')
@@ -1823,6 +1844,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      end if
       call input_memory_linear(iproc, nproc, atoms, KSwfn, tmb, tmb_old, denspot, in, &
            rxyz_old, rxyz, denspot0, energs, nlpsp, GPU, ref_frags)
+
   case(INPUT_PSI_DISK_WVL)
      if (iproc == 0) then
         !write( *,'(1x,a)')&
@@ -1896,6 +1918,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
          deallocate(tmb%psit_f, stat=i_stat)
          call memocc(i_stat, i_all, 'tmb%psit_f', subname)
      end if
+
   case (INPUT_PSI_DISK_LINEAR)
      if (iproc == 0) then
         !write( *,'(1x,a)')&

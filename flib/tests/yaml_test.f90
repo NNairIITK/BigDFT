@@ -88,6 +88,8 @@ program yaml_test
    call test_dictionary_for_atoms()
    call yaml_release_document()
 
+   call profile_dictionary_usage()
+
    !prepare the finalization of the library
    call f_lib_finalize()
 end program yaml_test
