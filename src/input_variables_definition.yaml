@@ -744,6 +744,7 @@
      default: 10.
      linear_accurate: 1.0
      linear_moderate: 1.0
+     linear_fast: 1.0
    mixing_after_inputguess:
      COMMENT: Mixing step after linear input guess (T/F)
      default: Yes
@@ -762,6 +763,7 @@
      default: No
      linear_accurate: Yes
      linear_moderate: Yes
+     linear_fast: Yes
    write_orbitals:
      COMMENT: Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
      default: No
@@ -788,11 +790,13 @@
      default: 0
      linear_accurate: 1
      linear_moderate: 1
+     linear_fast: 1
    purification_quickreturn:
      COMMENT: linear scaling quick return in purification
      default: No
      linear_accurate: Yes
      linear_moderate: Yes
+     linear_fast: Yes
    adjust_FOE_temperature:
      COMMENT: linear scaling dynamic adjustment of the decay length of the FOE error function
      default: Yes
@@ -810,6 +814,7 @@
      default: No
      linear_accurate: Yes
      linear_moderate: Yes
+     linear_fast: Yes
    fscale_lowerbound:
      COMMENT: linear scaling lower bound for the error function decay length
      RANGE: [1.e-4,1.e-2]
@@ -824,6 +829,7 @@
        default: No
        linear_accurate: Yes
        linear_moderate: Yes
+       linear_fast: Yes
      nit:
        COMMENT: number of iteration with low/high accuracy
        DESCRIPTION: |
@@ -866,6 +872,7 @@
        default: 0
        linear_accurate: 10
        linear_moderate: 10
+       linear_fast: 10
      output_wf:
        COMMENT: output basis functions; 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
        DESCRIPTION: |
@@ -920,6 +927,7 @@
        default: [4,5]
        linear_accurate: [10,10]
        linear_moderate: [10,10]
+       linear_fast: [10,10]
      idsx:
        COMMENT: DIIS history for optimization of the support functions (low/high accuracy); 0 -> SD
        DESCRIPTION: |
@@ -940,6 +948,7 @@
        default: [1.e-2,1.e-4]
        linear_accurate: [1.e-3,1.e-3]
        linear_moderate: [2.e-3,2.e-3]
+       linear_fast: [5.e-3,5.e-3]
      deltae_cv:
        COMMENT: total relative energy difference to stop the optimization ('experimental_mode' only)
        DESCRIPTION: |
@@ -960,6 +969,7 @@
        default: 1.e-4
        linear_accurate: 5.e-4
        linear_moderate: 1.e-3
+       linear_fast: 2.5e-3
      min_gnrm_for_dynamic:
        COMMENT: minimal gnrm to active the dynamic gnrm criterion
        DESCRIPTION: |
@@ -978,6 +988,7 @@
        default: 1.0
        linear_accurate: 0.5
        linear_moderate: 0.5
+       linear_fast: 0.5
      alpha_sd:
        COMMENT: initial step size for SD
        DESCRIPTION: |
@@ -990,6 +1001,7 @@
        default: 1.0
        linear_accurate: 0.5
        linear_moderate: 0.5
+       linear_fast: 0.5
      nstep_prec:
        COMMENT: number of iterations in the preconditioner
        DESCRIPTION: |
@@ -999,12 +1011,14 @@
        default: 5
        linear_accurate: 6
        linear_moderate: 6
+       linear_fast: 6
      fix_basis:
        COMMENT: fix the support functions if the density change is below this threshold
        RANGE: [1.e-14,1.e-6]
        default: 1.e-10
        linear_accurate: 1.e-12
-       linear_moderate: 1.e-12
+       linear_moderate: 1.e-11
+       linear_fast: 1.e-10
      correction_orthoconstraint:
        COMMENT: correction for the slight non-orthonormality in the orthoconstraint
        DESCRIPTION: |
@@ -1015,6 +1029,7 @@
        default: 1 
        linear_accurate: 0
        linear_moderate: 0
+       linear_fast: 0
  #Parameters for the calculation of the kernel (linear scaling version)
  lin_kernel:
      nstep:
@@ -1031,6 +1046,7 @@
        default: [5,5]
        linear_accurate: [10,10]
        linear_moderate: [10,10]
+       linear_fast: [10,10]
 # check whether there are different DIIS histories...
      idsx_coeff:
        COMMENT: DIIS history for directmin?
@@ -1048,6 +1064,7 @@
        default: [0,0]
        linear_accurate: [6,0]
        linear_moderate: [6,0]
+       linear_fast: [6,0]
      alphamix:
        COMMENT: mixing parameter (low/high accuracy)
        DESCRIPTION: |
@@ -1060,6 +1077,7 @@
        default: [0.5,0.5]
        linear_accurate: [0.2,0.2]
        linear_moderate: [0.2,0.2]
+       linear_fast: [0.2,0.2]
      gnrm_cv_coeff:
        COMMENT: convergence criterion for directmin (low/high)?
        default: [1.e-5,1.e-5]
@@ -1074,6 +1092,7 @@
        default: [1.e-10,1.e-10]
        linear_accurate: [1.e-12,1.e-12]
        linear_moderate: [1.e-11,1.e-11]
+       linear_fast: [1.e-10,1.e-10]
      linear_method:
        COMMENT: method to optimize the density kernel
        DESCRIPTION: |
@@ -1089,6 +1108,7 @@
        default: DIAG
        linear_accurate: FOE
        linear_moderate: FOE
+       linear_fast: FOE
      mixing_method:
        COMMENT: quantity to be mixed
        DESCRIPTION: |
@@ -1116,6 +1136,7 @@
        default: [-0.5,0.5]
        linear_accurate: [-1.0,1.0]
        linear_moderate: [-1.0,1.0]
+       linear_fast: [-1.0,1.0]
      fscale_foe: 
        COMMENT: decay length of the error function
        DESCRIPTION: |
@@ -1126,6 +1147,7 @@
        default: 2.e-2
        linear_accurate: 1.e-2
        linear_moderate: 1.e-2
+       linear_fast: 1.e-2
 #Parameters to define the localized basis set or support functions (linear scaling version)
  lin_basis_params:
      nbasis:
