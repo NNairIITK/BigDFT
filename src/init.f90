@@ -1582,7 +1582,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   real(gp), dimension(:), pointer :: in_frag_charge
   integer :: infoCoeff, iorb, nstates_max
   real(kind=8) :: pnrm
-  type(sparse_matrix) :: ham_small
   !!real(gp), dimension(:,:), allocatable :: ks, ksk
   !!real(gp) :: nonidem
 
@@ -2059,7 +2058,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !end if
         call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,atoms,rxyz,denspot,GPU,&
              infoCoeff,energs,nlpsp,in%SIC,tmb,pnrm,.false.,.false.,&
-             .true.,ham_small,0,0,0,0,in%lin%order_taylor,&
+             .true.,0,0,0,0,in%lin%order_taylor,&
              in%purification_quickreturn,in%calculate_KS_residue,in%calculate_gap) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
 
         !if (iproc==0) then

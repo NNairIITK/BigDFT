@@ -1510,7 +1510,7 @@ module module_interfaces
     
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
         energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-        calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,order_taylor,purification_quickreturn,&
+        calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,purification_quickreturn,&
         calculate_KS_residue,calculate_gap,&
         convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
       use module_base
@@ -1535,7 +1535,6 @@ module module_interfaces
       type(DFT_wavefunction),intent(inout) :: tmb
       logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho, purification_quickreturn
       logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap
-      type(sparse_matrix), intent(inout) :: ham_small ! for foe only
       type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
       integer, intent(in), optional :: nitdmin ! for dmin only
       real(kind=gp), intent(in), optional :: convcrit_dmin ! for dmin only
@@ -2573,14 +2572,13 @@ module module_interfaces
          real(8), dimension(tmb%lzd%nlr), intent(inout) :: locrad
        end subroutine adjust_locregs_and_confinement
 
-       subroutine adjust_DIIS_for_high_accuracy(input, denspot, mixdiis, lowaccur_converged, &
+       subroutine adjust_DIIS_for_high_accuracy(input, denspot, lowaccur_converged, &
                   ldiis_coeff_hist, ldiis_coeff_changed)
          use module_base
          use module_types
          implicit none
          type(input_variables),intent(in):: input
          type(DFT_local_fields),intent(inout) :: denspot
-         type(mixrhopotDIISParameters),intent(inout):: mixdiis
          logical, intent(in) :: lowaccur_converged
          integer, intent(inout) :: ldiis_coeff_hist
          logical, intent(out) :: ldiis_coeff_changed  

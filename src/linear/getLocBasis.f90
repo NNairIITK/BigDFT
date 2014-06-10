@@ -10,7 +10,7 @@
 
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-    calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,order_taylor,purification_quickreturn, &
+    calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,purification_quickreturn, &
     calculate_KS_residue,calculate_gap,&
     convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
   use module_base
@@ -41,7 +41,6 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   type(DFT_wavefunction),intent(inout) :: tmb
   logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho, purification_quickreturn
   logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap
-  type(sparse_matrix), intent(inout) :: ham_small ! for foe only
   type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
   integer, intent(in), optional :: nitdmin ! for dmin only
   real(kind=gp), intent(in), optional :: convcrit_dmin ! for dmin only
@@ -53,7 +52,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   ! Local variables 
   integer :: istat, iall, iorb, info
-  integer :: isegsmall, iseglarge, iismall, iilarge, i, is, ie
+  integer :: iismall, iilarge, i, is, ie
   real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f, evalsmall, work
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements, smallmat
   real(kind=8),dimension(:,:),allocatable ::KH, KHKH, Kgrad, ovrlp_fullp
@@ -227,27 +226,6 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 !!      end do
 !!  end if
 
-
-      if (scf_mode==LINEAR_FOE) then
-         ! NOT ENTIRELY GENERAL HERE - assuming ovrlp is small and ham is large, converting ham to match ovrlp
-         call timing(iproc,'FOE_init','ON') !lr408t
-         iismall=0
-         iseglarge=1
-         do isegsmall=1,tmb%linmat%s%nseg
-            do
-               is=max(tmb%linmat%s%keyg(1,isegsmall),tmb%linmat%m%keyg(1,iseglarge))
-               ie=min(tmb%linmat%s%keyg(2,isegsmall),tmb%linmat%m%keyg(2,iseglarge))
-               iilarge=tmb%linmat%m%keyv(iseglarge)-tmb%linmat%m%keyg(1,iseglarge)
-               do i=is,ie
-                  iismall=iismall+1
-                  ham_small%matrix_compr(iismall)=tmb%linmat%ham_%matrix_compr(iilarge+i)
-               end do
-               if (ie>=is) exit
-               iseglarge=iseglarge+1
-            end do
-         end do
-         call timing(iproc,'FOE_init','OF') !lr408t
-      end if
 
   else
       !!if(iproc==0) write(*,*) 'No Hamiltonian application required.'
