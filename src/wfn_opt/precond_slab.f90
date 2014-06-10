@@ -250,8 +250,8 @@ subroutine apply_hp_slab_sd_scal(n1,n2,n3, &
 END SUBROUTINE apply_hp_slab_sd_scal
 
 
-!>   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
-!!   hpsi is the right hand side on input and the solution on output
+!> Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
+!! hpsi is the right hand side on input and the solution on output
 subroutine prec_fft_slab_fast(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,hpsi,kern_k1,kern_k3,z,x_c)
@@ -287,8 +287,8 @@ subroutine prec_fft_slab_fast(n1,n2,n3, &
 END SUBROUTINE prec_fft_slab_fast
 
 
-!>   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
-!!   hpsi is the right hand side on input and the solution on output
+!> Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
+!! hpsi is the right hand side on input and the solution on output
 subroutine prec_fft_slab(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,hpsi)
@@ -342,9 +342,9 @@ contains
 END SUBROUTINE prec_fft_slab
 
 
-!>   Solve the discretized equation
-!!   (-d^2/dy^2+ct(k1,k3)) zx(output) = zx(input)
-!!   for all k1,k3 via Lapack
+!> Solve the discretized equation
+!! (-d^2/dy^2+ct(k1,k3)) zx(output) = zx(input)
+!! for all k1,k3 via Lapack
 subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
   use module_base
   implicit none
