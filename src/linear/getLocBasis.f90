@@ -53,17 +53,16 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   ! Local variables 
   integer :: istat, iall, iorb, info
   integer :: iismall, iilarge, i, is, ie
-  real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f, evalsmall, work
-  real(kind=8),dimension(:,:,:),allocatable :: matrixElements, smallmat
-  real(kind=8),dimension(:,:),allocatable ::KH, KHKH, Kgrad, ovrlp_fullp
+  real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f
+  real(kind=8),dimension(:,:,:),allocatable :: matrixElements
+  real(kind=8),dimension(:,:),allocatable :: ovrlp_fullp
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   type(sparse_matrix) :: gradmat 
   logical :: update_kernel, overlap_calculated
 
   character(len=*),parameter :: subname='get_coeff'
   real(kind=gp) :: tmprtr, factor
-  real(kind=8) :: deviation, KSres, sumn
-  integer :: iat, iiorb, jjorb, lwork,jorb, ii, irow, icol
+  real(kind=8) :: deviation, KSres
 
   call f_routine(id='get_coeff')
 
@@ -444,7 +443,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_noconf, psidiff
   real(kind=8),dimension(:),allocatable :: delta_energy_arr
   real(kind=8),dimension(:),allocatable :: hpsi_noprecond, occup_tmp, kernel_compr_tmp, philarge
-  real(kind=8),dimension(:,:),allocatable :: coeff_old
   logical :: energy_increased, overlap_calculated
   real(kind=8),dimension(:),pointer :: lhphiold, lphiold, hpsit_c, hpsit_f, hpsi_small
   type(energy_terms) :: energs
@@ -453,7 +451,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   integer :: i, ist, iiorb, ilr, ii, kappa_satur
   real(kind=8) :: energy_first, hxh, hyh, hzh, trH_ref, charge
   real(kind=8),dimension(:),allocatable :: kernel_best
-  integer ::  correction_orthoconstraint_local, npsidim_small, npsidim_large, ists, istl, sdim, ldim, nspin, nit_exit
+  integer ::  correction_orthoconstraint_local, npsidim_large, ists, istl, sdim, ldim, nspin, nit_exit
   logical :: energy_diff, energy_increased_previous, complete_reset, even
   real(kind=8),dimension(3),save :: kappa_history
   integer,save :: nkappa_history

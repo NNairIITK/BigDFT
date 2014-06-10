@@ -56,7 +56,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   type(localizedDIISParameters) :: ldiis
   type(DIIS_obj) :: ldiis_coeff, vdiis
   logical :: can_use_ham, update_phi, locreg_increased, reduce_conf, orthonormalization_on
-  logical :: fix_support_functions, check_initialguess
+  logical :: fix_support_functions
   integer :: itype, istart, nit_lowaccuracy, nit_highaccuracy
   integer :: ldiis_coeff_hist, nitdmin
   logical :: ldiis_coeff_changed
@@ -98,7 +98,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   lowaccur_converged=.false.
   info_basis_functions=-1
   fix_support_functions=.false.
-  check_initialguess=.true.
   cur_it_highaccuracy=0
   trace_old=0.0d0
   ldiis_coeff_hist=input%lin%dmin_hist_lowaccuracy
