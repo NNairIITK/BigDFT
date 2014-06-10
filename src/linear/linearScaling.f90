@@ -73,38 +73,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   
   real(kind=gp) :: ebs, vgrad_old, vgrad, valpha, vold, vgrad2, vold_tmp, conv_crit_TMB
   real(kind=gp), allocatable, dimension(:,:) :: coeff_tmp
-  integer :: ind_denskern, ind_ham, jorb, cdft_it, nelec, iat, ityp, ifrag, ifrag_charged, ifrag_ref, isforb, itmb
+  integer :: ind_denskern, ind_ham, jorb, cdft_it, nelec, iat, ityp
   integer :: dmin_diag_it, dmin_diag_freq, ioffset
   logical :: reorder, rho_negative
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
-
-  !!! EXPERIMENTAL ############################################
-  type(sparse_matrix) :: denskern_init
-  real(8),dimension(:),allocatable :: rho_init, rho_init_old, philarge
-  real(8) :: tt, ddot, tt_old, meanconf_der, weight_boundary, weight_tot
-  integer :: idens_cons, ii, sdim, ldim, npsidim_large, ists, istl, nspin, unitname, ilr
-  real(8),dimension(10000) :: meanconf_array
-  character(len=5) :: num
-  character(len=50) :: filename
-  real(kind=8),dimension(:,:),allocatable :: phi_delta
-  !!! #########################################################
-
-  ! DEBUG - for calculating centres
-  type(workarr_sumrho) :: w
-  real(gp), allocatable, dimension(:,:,:,:) :: psir
-  integer :: ind, i_all, i_stat, nspinor, ix, iy, iz, iix, iiy, iiz
-  real(gp) :: psix, psiy, psiz, xcent, ycent, zcent
-
-  character(len=12) :: orbname
-  real(gp), allocatable, dimension(:) :: psi2, gpsi, gpsi2
-  real(gp), allocatable, dimension(:,:,:,:) :: psir2
-  real(gp) :: tmb_diff, max_tmb_diff, cut
-  integer :: j, k, n1i, n2i, n3i, i1, i2, i3, num_points, num_points_tot
-
-  integer :: ist, iiorb, ncount
-  real(kind=8) :: fnoise, pressure, ehart_fake, dnrm2
-  real(kind=8),dimension(:,:),allocatable :: fxyz
-
+  real(gp) :: cut
   type(matrices) :: weight_matrix_
 
   call timing(iproc,'linscalinit','ON') !lr408t
@@ -243,21 +216,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      call timing(iproc,'constraineddft','OF')
   end if
 
-  !!! EXPERIMENTAL #######################
-  !!denskern_init=tmb%linmat%denskern
-  !!nullify(denskern_init%matrix_compr)
-  !!!nullify(denskern_init%matrix)
-  !!allocate(denskern_init%matrix_compr(size(tmb%linmat%denskern%matrix_compr)))
-  !!!allocate(denskern_init%matrix(size(tmb%linmat%denskern%matrix)))
-  !!call vcopy(size(tmb%linmat%denskern%matrix_compr), tmb%linmat%denskern%matrix_compr, 1, denskern_init%matrix_compr, 1)
-  !!!call vcopy(size(tmb%linmat%denskern%matrix), tmb%linmat%denskern%matrix, 1, denskern_init%matrix, 1)
-  !!allocate(rho_init(size(denspot%rhov)))
-  !!allocate(rho_init_old(size(denspot%rhov)))
-  !!tt_old=1.d100
-  !!rho_init=0.d0
-  !!rho_init_old=0.d0
-  !!idens_cons=0
-  !!! ####################################
 
   ! modify tmb%orbs%occup, as we normally use orbs%occup elsewhere
   if (input%lin%extra_states>0) then
@@ -300,49 +258,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   call timing(iproc,'linscalinit','OF') !lr408t
 
-  !! DEBUG - check centres
-  !ind=1
-  !do iorb=1,tmb%orbs%norbp
-  !   iat=tmb%orbs%onwhichatom(iorb+tmb%orbs%isorb)
-  !   ilr=tmb%orbs%inwhichlocreg(iorb+tmb%orbs%isorb)
-  !
-  !   allocate(psir(tmb%lzd%llr(ilr)%d%n1i, tmb%lzd%llr(ilr)%d%n2i, tmb%lzd%llr(ilr)%d%n3i, 1+ndebug),stat=i_stat)
-  !   call memocc(i_stat,psir,'psir',subname)
-  !   call initialize_work_arrays_sumrho(tmb%lzd%llr(ilr),w)
-  !
-  !   call daub_to_isf(tmb%lzd%llr(ilr),w,tmb%psi(ind),psir)
-  !
-  !   xcent=0.0d0
-  !   ycent=0.0d0
-  !   zcent=0.0d0
-  !   do iz=1,tmb%lzd%llr(ilr)%d%n3i
-  !      iiz=iz-15+tmb%lzd%llr(ilr)%nsi3
-  !      do iy=1,tmb%lzd%llr(ilr)%d%n2i
-  !         iiy=iy-15+tmb%lzd%llr(ilr)%nsi2
-  !         do ix=1,tmb%lzd%llr(ilr)%d%n1i
-  !            iix=ix-15+tmb%lzd%llr(ilr)%nsi1
-  !            psix=psir(ix,iy,iz,1)*(iix*tmb%lzd%hgrids(1)*0.5d0)
-  !            psiy=psir(ix,iy,iz,1)*(iiy*tmb%lzd%hgrids(2)*0.5d0)
-  !            psiz=psir(ix,iy,iz,1)*(iiz*tmb%lzd%hgrids(3)*0.5d0)
-  !            xcent=xcent+psir(ix,iy,iz,1)*psix
-  !            ycent=ycent+psir(ix,iy,iz,1)*psiy
-  !            zcent=zcent+psir(ix,iy,iz,1)*psiz
-  !         end do
-  !      end do
-  !   end do
-  !
-  !   write(*,'(a,4I4,3(F12.8,x),3(F8.4,x))') 'iproc,iorb,ilr,iat,(xcent,ycent,zcent)-locregcenter,xcent,ycent,zcent',&
-  !        iproc,iorb+tmb%orbs%isorb,ilr,iat,xcent-tmb%lzd%llr(ilr)%locregcenter(1),&
-  !        ycent-tmb%lzd%llr(ilr)%locregcenter(2),zcent-tmb%lzd%llr(ilr)%locregcenter(3),&
-  !        xcent,ycent,zcent
-  !
-  !   ind=ind+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-  !   call deallocate_work_arrays_sumrho(w)
-  !   i_all=-product(shape(psir))*kind(psir)
-  !   deallocate(psir,stat=i_stat)
-  !   call memocc(i_stat,i_all,'psir',subname)
-  !end do
-  !! END DEBUG - check centres
 
   ! Add one iteration if no low accuracy is desired since we need then a first fake iteration, with istart=0
   istart = min(1,nit_lowaccuracy)
@@ -368,22 +283,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix, conv_crit_TMB)
                convcrit_dmin=input%lin%convCritDmin_highaccuracy
                nitdmin=input%lin%nItdmin_highaccuracy
-
-         !! lowaccur_converged=.false.
-         !! do iorb=1,tmb%orbs%norbp
-         !!     ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
-         !!     iiat=tmb%orbs%onwhichatom(tmb%orbs%isorb+iorb)
-         !!     tmb%confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%astruct%iatype(iiat))
-         !! end do
-         !! target_function=TARGET_FUNCTION_IS_HYBRID
-         !! nit_basis=input%lin%nItBasis_lowaccuracy
-         !! nit_scc=input%lin%nitSCCWhenFixed_lowaccuracy
-         !! mix_hist=input%lin%mixHist_lowaccuracy
-         !! do ilr=1,tmb%lzd%nlr
-         !!     locrad(ilr)=input%lin%locrad_lowaccuracy(ilr)
-         !! end do
-         !! alpha_mix=input%lin%alpha_mix_lowaccuracy
-         !! convCritMix=input%lin%convCritMix_lowaccuracy
       end if
 
       ! Do one fake iteration if no low accuracy is desired.
@@ -558,64 +457,20 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                call yaml_open_sequence('support function optimization',label=&
                               'it_supfun'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
            end if
-           !!if (itout<=2) then
-               call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
-                   info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
-                   input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
-                   nit_basis,&
-                   ratio_deltas,orthonormalization_on,input%lin%extra_states,itout,conv_crit_TMB,input%experimental_mode,&
-                   input%lin%early_stop, input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
-                   can_use_ham, input%lin%order_taylor, input%kappa_conv,&
-                   input%method_updatekernel,input%purification_quickreturn, &
-                   input%correction_co_contra)
-               reduce_conf=.true.
-           !!else
-           !!    cut=cut-0.5d0
-           !!    if (iproc==0) write(*,'(a,f7.2)') 'new cutoff:', cut
-           !!    call cut_at_boundaries(cut, tmb)
-           !!    ist=1
-           !!    do iorb=1,tmb%orbs%norbp
-           !!        iiorb=tmb%orbs%isorb+iorb
-           !!        ilr=tmb%orbs%inwhichlocreg(iiorb)
-           !!        ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-           !!        tt=dnrm2(ncount, tmb%psi(ist), 1, tmb)
-           !!        tt=1/tt
-           !!        !call dscal(ncount, tt, tmb%psi(ist), 1)
-           !!        tt=dnrm2(ncount, tmb%psi(ist), 1, tmb)
-           !!        write(*,*) 'iiorb, tt', iiorb, tt
-           !!        ist=ist+ncount
-           !!    end do
-           !!end if
+           call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
+               info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
+               input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
+               nit_basis,&
+               ratio_deltas,orthonormalization_on,input%lin%extra_states,itout,conv_crit_TMB,input%experimental_mode,&
+               input%lin%early_stop, input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
+               can_use_ham, input%lin%order_taylor, input%kappa_conv,&
+               input%method_updatekernel,input%purification_quickreturn, &
+               input%correction_co_contra)
+           reduce_conf=.true.
            if (iproc==0) then
                call yaml_close_sequence()
            end if
 
-           !!! WRITE SUPPORT FUNCTIONS TO DISK ############################################
-           !!npsidim_large=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f                                                 
-           !!allocate(philarge((tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)*tmb%orbs%norbp))                          
-           !!philarge=0.d0
-           !!ists=1                                                                                                          
-           !!istl=1
-           !!do iorb=1,tmb%orbs%norbp
-           !!    ilr = tmb%orbs%inWhichLocreg(tmb%orbs%isorb+iorb)                                                           
-           !!    sdim=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f                                            
-           !!    ldim=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f                                                      
-           !!    nspin=1 !this must be modified later
-           !!    call Lpsi_to_global2(iproc, sdim, ldim, tmb%orbs%norb, tmb%orbs%nspinor, nspin, tmb%lzd%glr, &              
-           !!         tmb%lzd%llr(ilr), tmb%psi(ists), philarge(istl))                                                       
-           !!    write(num,'(i5.5)') tmb%orbs%isorb+iorb
-           !!    filename='supfun_'//num
-           !!    unitname=100*iproc+5
-           !!    open(unit=unitname,file=trim(filename))
-           !!    do i=1,tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
-           !!        write(unitname,'(es25.17)') philarge(istl+i-1)
-           !!    end do
-           !!    close(unit=unitname)
-           !!    ists=ists+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f                                       
-           !!    istl=istl+tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f                                                 
-           !!end do
-           !!deallocate(philarge)
-           !!! ############################################################################
 
            tmb%can_use_transposed=.false. !since basis functions have changed...
 
@@ -744,22 +599,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 call yaml_comment('kernel iter:'//yaml_toa(it_scc,fmt='(i6)'),hfill='-')
              end if
              if(update_phi .and. can_use_ham) then! .and. info_basis_functions>=0) then
-                !!! TEST ###############################################################
-                !!phi_delta=f_malloc0((/tmb%npsidim_orbs,3/),id='phi_delta')
-                !!! Get the values of the support functions on the boundary of the localization region
-                !!call extract_boundary(tmb, phi_delta, num_points, num_points_tot)
-                !!weight_boundary=ddot(3*tmb%npsidim_orbs, phi_delta(1,1), 1, phi_delta(1,1), 1)
-                !!call mpiallred(weight_boundary, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-                !!weight_boundary=sqrt(weight_boundary/tmb%orbs%norb)
-                !!weight_tot=ddot(tmb%npsidim_orbs, tmb%psi(1), 1, tmb%psi(1), 1)
-                !!call mpiallred(weight_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-                !!weight_tot=sqrt(weight_tot/tmb%orbs%norb)
-                !!call mpiallred(num_points, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-                !!call mpiallred(num_points_tot, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-                !!if (iproc==0) write(*,'(a,3es12.4,2I10)') 'weight boundary, weight tot, ratio, num points', &
-                !!    weight_boundary, weight_tot, weight_boundary/weight_tot, num_points, num_points_tot
-                !!call f_free(phi_delta)
-                !!! END TEST ###########################################################
                 if (input%lin%constrained_dft) then
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,update_phi,&
@@ -793,14 +632,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 end if
              end if
 
-
-             !!! TEMPORARY ##########################################################################
-             !!do ii=1,tmb%linmat%denskern%nvctr
-             !!     iorb = tmb%linmat%denskern%orb_from_index(1,ii)
-             !!     jorb = tmb%linmat%denskern%orb_from_index(2,ii)
-             !!     if (iproc==0) write(*,*) 'iorb, jorb, denskern', iorb, jorb, tmb%linmat%denskern%matrix_compr(ii)
-             !!  end do
-             !!! END TEMPORARY ######################################################################
 
 
              ! Since we do not update the basis functions anymore in this loop
@@ -1291,116 +1122,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      call write_linear_matrices(iproc,nproc,trim(input%dir_output),input%lin%plotBasisFunctions,tmb,at,rxyz)
   end if
 
-  ! not necessarily the best place for it
-  !if (input%lin%fragment_calculation) then
-  !   !input%lin%plotBasisFunctions
-  !   call output_fragment_rotations(iproc,at%astruct%nat,rxyz,1,trim(input%dir_output),input%frag,ref_frags)
-  !end if 
-
-  !DEBUG
-  !ind=1
-  !do iorb=1,tmb%orbs%norbp
-  !   write(orbname,*) iorb
-  !   ilr=tmb%orbs%inwhichlocreg(iorb+tmb%orbs%isorb)
-  !   call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,tmb%lzd%llr(ilr),KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),&
-  !        KSwfn%Lzd%hgrids(3),rxyz,tmb%psi(ind:ind+tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f))
-  !   ind=ind+tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f
-  !end do
-  ! END DEBUG
-
-  !!! write tmbs in isf format as well
-  !!if (input%lin%plotBasisFunctions /= WF_FORMAT_NONE) then
-  !!   ! DEBUG - daub_to_isf, write_cube, read_cube, isf_to_daub check the same as starting psi
-  !!   ind=1
-  !!   !allocate(psi2(tmb%npsidim_orbs),stat=i_stat)
-  !!   !call memocc(i_stat,psi2,'psi2',subname)
-  !!   do iorb=1,tmb%orbs%norbp
-  !!      iat=tmb%orbs%onwhichatom(iorb+tmb%orbs%isorb)
-  !!      ilr=tmb%orbs%inwhichlocreg(iorb+tmb%orbs%isorb)
-  !!   
-  !!      allocate(psir(tmb%lzd%llr(ilr)%d%n1i, tmb%lzd%llr(ilr)%d%n2i, tmb%lzd%llr(ilr)%d%n3i, 1+ndebug),stat=i_stat)
-  !!      call memocc(i_stat,psir,'psir',subname)
-  !!      !allocate(psir2(tmb%lzd%llr(ilr)%d%n1i, tmb%lzd%llr(ilr)%d%n2i, tmb%lzd%llr(ilr)%d%n3i, 1+ndebug),stat=i_stat)
-  !!      !call memocc(i_stat,psir,'psir2',subname)
-  !!      call initialize_work_arrays_sumrho(tmb%lzd%llr(ilr),w)
-  !!   
-  !!      call daub_to_isf(tmb%lzd%llr(ilr),w,tmb%psi(ind),psir)
-  !!   
-  !!      write(orbname,*) iorb+tmb%orbs%isorb
-  !!      !call write_cube_fields('tmbisf'//trim(adjustl(orbname)),'tmb in isf',at,1.0d0,rxyz,&
-  !!      !     tmb%lzd%llr(ilr)%d%n1i,tmb%lzd%llr(ilr)%d%n2i,tmb%lzd%llr(ilr)%d%n3i,&
-  !!      !     tmb%lzd%llr(ilr)%nsi1,tmb%lzd%llr(ilr)%nsi2,tmb%lzd%llr(ilr)%nsi3,&
-  !!      !     tmb%Lzd%hgrids(1)*0.5d0,tmb%Lzd%hgrids(2)*0.5d0,tmb%Lzd%hgrids(3)*0.5d0,&
-  !!      !     1.0_gp,psir,1,0.0_gp,psir)
-
-  !!      open(99,file=trim(input%dir_output)//'tmbisf'//trim(adjustl(orbname))//'.dat',&
-  !!                form="unformatted",status='unknown')
-  !!      write(99) 'Tmb in isf format, to be used in conjunction with minbasis files'
-  !!      write(99) tmb%lzd%llr(ilr)%d%n1i,tmb%lzd%llr(ilr)%d%n2i,tmb%lzd%llr(ilr)%d%n3i
-  !!      write(99) tmb%lzd%llr(ilr)%nsi1,tmb%lzd%llr(ilr)%nsi2,tmb%lzd%llr(ilr)%nsi3
-  !!      do k=1,tmb%lzd%llr(ilr)%d%n3i
-  !!         do j=1,tmb%lzd%llr(ilr)%d%n2i
-  !!            do i=1,tmb%lzd%llr(ilr)%d%n1i
-  !!                 write(99) psir(i,j,k,1)
-  !!            end do
-  !!         end do
-  !!      end do
-  !!      close(99)
-
-  !!      !!call read_cube_field('tmbisf'//trim(adjustl(orbname)),tmb%lzd%llr(ilr)%geocode,&
-  !!      !!     tmb%lzd%llr(ilr)%d%n1i,tmb%lzd%llr(ilr)%d%n2i,tmb%lzd%llr(ilr)%d%n3i,psir2)
-
-  !!      !open(370,file='tmbisf'//trim(adjustl(orbname))//'.dat')
-  !!      !do i=1,tmb%lzd%llr(ilr)%d%n1i
-  !!      !do j=1,tmb%lzd%llr(ilr)%d%n2i
-  !!      !do k=1,tmb%lzd%llr(ilr)%d%n3i
-  !!      !   read(370,*) psir2(i,j,k,1)
-  !!      !end do
-  !!      !end do
-  !!      !end do
-  !!      !close(370)
-
-  !!      !call to_zero(tmb%npsidim_orbs,psi2)
-  !!      !call isf_to_daub(tmb%lzd%llr(ilr),w,psir2,psi2(ind))
-  !!   
-  !!      !!tmb_diff=0.0d0
-  !!      !!max_tmb_diff=0.0d0
-  !!      !!do i=1,tmb%lzd%llr(ilr)%d%n1i
-  !!      !!do j=1,tmb%lzd%llr(ilr)%d%n2i
-  !!      !!do k=1,tmb%lzd%llr(ilr)%d%n3i
-  !!      !!   tmb_diff=tmb_diff+dabs(psir(i,j,k,1)-psir2(i,j,k,1))
-  !!      !!   max_tmb_diff=max(max_tmb_diff,dabs(psir(i,j,k,1)-psir2(i,j,k,1)))
-  !!      !!!   write(370+iorb+tmb%orbs%isorb,*) psir(i,j,k,1),psir2(i,j,k,1),dabs(psir(i,j,k,1)-psir2(i,j,k,1))
-  !!      !!end do
-  !!      !!end do
-  !!      !!end do
-  !!      !!print*,'tmbr diff',iorb+tmb%orbs%isorb,tmb_diff,max_tmb_diff
-
-  !!      !tmb_diff=0.0d0
-  !!      !max_tmb_diff=0.0d0
-  !!      !n1i=tmb%lzd%llr(ilr)%d%n1i
-  !!      !n2i=tmb%lzd%llr(ilr)%d%n2i
-  !!      !n3i=tmb%lzd%llr(ilr)%d%n3i
-  !!      !do i=0,tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f-1
-  !!      !   i3=(i/(n1i*n2i))+1
-  !!      !   i2=(i-(i3-1)*n1i*n2i)/n1i+1
-  !!      !   i1=mod(i,n1i)+1
-  !!      !   tmb_diff=tmb_diff+dabs(tmb%psi(ind+i)-psi2(ind+i))
-  !!      !   max_tmb_diff=max(max_tmb_diff,dabs(tmb%psi(ind+i)-psi2(ind+i)))
-  !!      !   !write(270+iorb+tmb%orbs%isorb,*) tmb%psi(ind+i),psi2(ind+i),dabs(tmb%psi(ind+i)-psi2(ind+i))
-  !!      !   !if (dabs(tmb%psi(ind+i)-psi2(ind+i))>1.0d-5) print*,'large error',iorb+tmb%orbs%isorb,&
-  !!      !   !     tmb%psi(ind+i),psi2(ind+i),dabs(tmb%psi(ind+i)-psi2(ind+i)),i1,i2,i3,n1i,n2i,n3i
-  !!      !end do
-  !!      !print*,'tmb diff',iorb+tmb%orbs%isorb,tmb_diff/(tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f),max_tmb_diff
-
-  !!      ind=ind+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-  !!      call deallocate_work_arrays_sumrho(w)
-  !!      i_all=-product(shape(psir))*kind(psir)
-  !!      deallocate(psir,stat=i_stat)
-  !!      call memocc(i_stat,i_all,'psir',subname)
-  !!   end do
-  !!end if
-
 
   ! check why this is here!
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
@@ -1736,8 +1457,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
       ! Local variables
       real(kind=8) :: eh_tmp, exc_tmp, evxc_tmp, eexctX_tmp
+      real(kind=8) :: fnoise, pressure, ehart_fake
       real(kind=8),dimension(6) :: ewaldstr, hstrten, xcstr, strten
       real(kind=8),dimension(:),allocatable :: rhopot_work
+          real(kind=8),dimension(:,:),allocatable :: fxyz
 
       ! TEST: calculate forces here ####################################################
       fxyz=f_malloc((/3,at%astruct%nat/),id='fxyz')
