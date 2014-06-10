@@ -167,7 +167,7 @@
  lin_basis:
    nit: [4, 5] #                                  maximal number of iterations in the optimization of the 
     #                                              support functions
-   idsx: [6, 0] #                                 DIIS history for optimization of the support function 
+   idsx: [6, 6] #                                 DIIS history for optimization of the support function 
     #                                              (low/high accuracy); 0 -> SD
    gnrm_cv: [1.e-2, 1.e-4] #                      convergence criterion for the optimization of the support functions 
     #                                              (low/high accuracy)
