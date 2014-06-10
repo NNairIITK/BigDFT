@@ -1098,7 +1098,7 @@
      fscale_foe: 
        COMMENT: decay length of the error function
        DESCRIPTION: |
-                    possible value: non-negative real number
+                    possible value: 1 non-negative real number
                     Indicates the decay length of the error function which is used by the Fermi Operator Expasion to construct the density kernel.
                     This value will be adjusted automatically if not chosen appropriately.
        RANGE: [1.e-3,5.e-2]
@@ -1108,6 +1108,13 @@
  lin_basis_params:
      nbasis:
        COMMENT: number of support functions per atom
+       DESCRIPTION: |
+                    possible value: 1 positive integer
+                    Indicates the number of support fuctions centered on this atom type. Possible values are:
+                     * 1 (s orbital type)
+                     * 4 (s,p orbital types)
+                     * 9 (s,p,d orbital types)
+                     * 16 (s,p,d,f orbital types)
        EXCLUSIVE:
          1: s orbital type
          4: s,p orbital types
@@ -1116,22 +1123,43 @@
        default: 4
      ao_confinement:
        COMMENT: prefactor for the input guess confining potential
+       DESCRIPTION: |
+                    possible value: 1 non-negative real value
+                    Indicates the prefactor of the confining potential of this atom type which is used to generate the input guess.
        RANGE: [0.0,10.0]
        default: 8.3e-3
      confinement:
        COMMENT: prefactor for the confining potential (low/high accuracy)
+       DESCRIPTION: |
+                    possible value: 2 non-negative real values
+                    Indicates the prefactor of the confining potential of this atom type.
+                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
+                    When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [0.0,10.0]
        default: [8.3e-3,0.0]
      rloc:
        COMMENT: localization radius for the support functions
+       DESCRIPTION: |
+                    possible value: 2 real numbers
+                    Indicates the cutoff radius for the support functions.
+                    The first entry is used for the low accuracy part, the second one for the high accuracy part; the second value must not be smaller than the first one.
+                    When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [2.0,1000.0]
        default: [7.0,7.0]
      rloc_kernel:
        COMMENT: localization radius for the density kernel
+       DESCRIPTION: |
+                    possible value: 1 real number
+                    Indicates the cutoff radius for the density kernel.
+                    Must be at least as large as the support function cutoff plus 8 times the grid spacing; will be adjusted automatically if it is chosen too small.
        RANGE: [2.0,1000.0] 
        default: 9.0
      rloc_kernel_foe:
        COMMENT: cutoff radius for the FOE matrix vector multiplications
+       DESCRIPTION: |
+                    possible value: 1 real number
+                    Indicates the cutoff radius used for the matrix vector multiplications.
+                    Must be at least as large as the kernel cutoff.
        RANGE: [2.0,1000]
        default: 14.0
 --- #here starts the document of possible input files
