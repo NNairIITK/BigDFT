@@ -169,6 +169,8 @@ static void bigdft_dict_init(BigDFT_Dict *obj)
   memset(obj, 0, sizeof(BigDFT_Dict));
   G_OBJECT(obj)->ref_count = 1;
 #endif
+
+  /* g_message("New dict %p.", (gpointer)obj); */
 }
 #ifdef HAVE_GLIB
 static void bigdft_dict_dispose(GObject *obj)
@@ -187,6 +189,7 @@ static void bigdft_dict_finalize(GObject *obj)
 {
   BigDFT_Dict *dict = BIGDFT_DICT(obj);
 
+  /* g_message("Killing %p (%p).", (gpointer)obj, dict->root); */
   if (F_TYPE(dict->root))
     FC_FUNC_(dict_free, DICT_FREE)(&dict->root);
 
@@ -249,7 +252,12 @@ BigDFT_Dict *bigdft_dict_new_from_yaml(const gchar *buf, BigDFT_DictIter *root)
 {
   BigDFT_Dict *dict;
 
-  dict = bigdft_dict_new(NULL);
+#ifdef HAVE_GLIB
+  dict = BIGDFT_DICT(g_object_new(BIGDFT_DICT_TYPE, NULL));
+#else
+  dict = g_malloc(sizeof(BigDFT_Dict));
+  bigdft_dict_init(dict);
+#endif
   FC_FUNC_(dict_parse, DICT_PARSE)(&dict->root, buf, strlen(buf));
   dict->current = dict->root;
 
