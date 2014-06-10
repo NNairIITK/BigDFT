@@ -53,7 +53,7 @@ program yaml_test
 
    !Fourth-B document, to be moved
    call yaml_new_document()
-    call test_error_handling()
+   call test_error_handling()
    call yaml_release_document()
 
    !Fifth document
@@ -61,20 +61,24 @@ program yaml_test
     call test_dictionaries0()
    call yaml_release_document()
 
+   !Sixth document: test dictionaries
    call yaml_new_document()
    call test_dictionaries1()
    call yaml_release_document()
 
+   !Seventh document: Test dynamic memory allocation
    call yaml_new_document()
-    call test_dynamic_memory()
-    call yaml_release_document()
-    call f_malloc_dump_status(dict_summary=dict_tmp)
-    call yaml_map('Summary',dict_tmp)
-    call dict_free(dict_tmp)
+   call test_dynamic_memory()
+   call yaml_release_document()
+
+   call f_malloc_dump_status(dict_summary=dict_tmp)
+   call yaml_map('Summary',dict_tmp)
+   call dict_free(dict_tmp)
 !   call f_lib_finalize()
 !stop
+
    call yaml_new_document()
-    call test_copy_merge()
+   call test_copy_merge()
    call yaml_release_document()
 
    !test the yaml parsing

@@ -35,7 +35,7 @@ The <tt>tests</tt> directory contains some useful examples and tests.
 @brief flib error handling routines
 @details
 The flib library provides routines to handle the exceptions and the errors with a mechanism of callback routines.
-There are many examples in the file errs.f90
+There are many examples in the file errs.f90.
 
 
 @defgroup FLIB_DICTIONARY   Dictionary type and methods (flib)
