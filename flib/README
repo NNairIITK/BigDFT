@@ -34,8 +34,29 @@ The <tt>tests</tt> directory contains some useful examples and tests.
 @ingroup FLIB
 @brief flib error handling routines
 @details
-The flib library provides routines to handle the exceptions and the errors with a mechanism of callback routines.
+The flib library provides routines to handle the exceptions and the errors with a mechanism of callback routines
+(see the file callbacks.f90).
 There are many examples in the file errs.f90.
+
+First, we define an error using the routine @ref f_err_define as:
+@code
+call f_err_define(err_name='ERROR_ONE', err_msg='This is an error,err_id=error_one)
+@endcode
+The optional argument <tt>err_id</tt> is optional and is the way to have the id of the associated error
+Then, we can raise an exception use @ref f_err_throw
+@code
+call f_err_throw('We raise the error ERROR_ONE',err_name='ERROR_ONE')
+@endcode
+or
+@code
+call f_err_throw('We raise the error ERROR_ONE',err_id=error_one)
+@endcode
+if the variable <tt>err_one</tt> does exist in the same scope.
+
+We can test also a condition and raise the error using the function @ref f_err_raise:
+@code
+if (f_err_raise(x>0,'X has to be strictly positive',err_name='ERRO_ONE')) return
+@endcode
 
 
 @defgroup FLIB_DICTIONARY   Dictionary type and methods (flib)
