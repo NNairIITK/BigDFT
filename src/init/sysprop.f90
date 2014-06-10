@@ -155,10 +155,8 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   if (inputpsi /= INPUT_PSI_RANDOM) then
 
      ! Allocations for readAtomicOrbitals (check inguess.dat and psppar files)
-     allocate(norbsc_arr(atoms%natsc+1,in%nspin+ndebug),stat=i_stat)
-     call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
-     allocate(locrad(atoms%astruct%nat+ndebug),stat=i_stat)
-     call memocc(i_stat,locrad,'locrad',subname)
+     norbsc_arr = f_malloc((/ atoms%natsc+1, in%nspin /),id='norbsc_arr')
+     locrad = f_malloc(atoms%astruct%nat,id='locrad')
 
      !calculate the inputguess orbitals
      !spin for inputguess orbitals
@@ -178,12 +176,8 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      end if
 
      ! De-allocations
-     i_all=-product(shape(locrad))*kind(locrad)
-     deallocate(locrad,stat=i_stat)
-     call memocc(i_stat,i_all,'locrad',subname)
-     i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
-     deallocate(norbsc_arr,stat=i_stat)
-     call memocc(i_stat,i_all,'norbsc_arr',subname)
+     call f_free(locrad)
+     call f_free(norbsc_arr)
 
      ! Check the maximum number of orbitals
      if (in%nspin==1 .or. in%nspin==4) then
@@ -441,8 +435,7 @@ subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
 
   if (at%donlcc) then
      !allocate pointer rhocore
-     allocate(rhocore(d%n1i,d%n2i,n3d,10+ndebug),stat=i_stat)
-     call memocc(i_stat,rhocore,'rhocore',subname)
+     rhocore = f_malloc_ptr((/ d%n1i , d%n2i , n3d , 10+ndebug /),id='rhocore')
      !initalise it 
      if (n3d > 0) call to_zero(d%n1i*d%n2i*n3d*10,rhocore(1,1,1,1))
      !perform the loop on any of the atoms which have this feature
@@ -703,14 +696,10 @@ contains
    !reciprocal space approaches (plane-waves):
      mqgrid_shp=0; mqgrid_ff=0; mqgrid_vl=0 
                              
-     allocate(qgrid_ff(mqgrid_ff),stat=i_stat)
-     call memocc(i_stat,qgrid_ff,'qgrid_ff',subname)
-     allocate(qgrid_vl(mqgrid_vl),stat=i_stat)
-     call memocc(i_stat,qgrid_vl,'qgrid_vl',subname)
-     allocate(ffspl(mqgrid_ff,2,lnmax),stat=i_stat)
-     call memocc(i_stat,ffspl,'ffspl',subname)
-     allocate(vlspl(mqgrid_vl,2),stat=i_stat)
-     call memocc(i_stat,vlspl,'vlpsl',subname)
+   qgrid_ff = f_malloc(mqgrid_ff,id='qgrid_ff')
+   qgrid_vl = f_malloc(mqgrid_vl,id='qgrid_vl')
+   ffspl = f_malloc((/ mqgrid_ff, 2, lnmax /),id='ffspl')
+   vlspl = f_malloc((/ mqgrid_vl, 2 /),id='vlspl')
 
    ! Define parameters:
      pawxcdev=1; usewvl=1 ; usexcnhat=0 !default
@@ -747,22 +736,10 @@ contains
      call pawrad_destroy(pawrad)
      call pawtab_destroy(pawtab)
 
-     !
-     i_all=-product(shape(qgrid_ff))*kind(qgrid_ff)
-     deallocate(qgrid_ff,stat=i_stat)
-     call memocc(i_stat,i_all,'qgrid_ff',subname)
-     !
-     i_all=-product(shape(qgrid_vl))*kind(qgrid_vl)
-     deallocate(qgrid_vl,stat=i_stat)
-     call memocc(i_stat,i_all,'qgrid_vl',subname)
-     !
-     i_all=-product(shape(ffspl))*kind(ffspl)
-     deallocate(ffspl,stat=i_stat)
-     call memocc(i_stat,i_all,'ffspl',subname)
-     !
-     i_all=-product(shape(vlspl))*kind(vlspl)
-     deallocate(vlspl,stat=i_stat)
-     call memocc(i_stat,i_all,'vlspl',subname)
+   call f_free(qgrid_ff)
+   call f_free(qgrid_vl)
+   call f_free(ffspl)
+   call f_free(vlspl)
 
    !PAW is not yet working!
    !Exit here
@@ -1526,8 +1503,7 @@ subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,inf
      end if
   end do
 
-  allocate(load_unbalancing(0:nproc-1,2+ndebug),stat=i_stat)
-  call memocc(i_stat,load_unbalancing,'load_unbalancing',subname)
+  load_unbalancing = f_malloc((/ 0.to.nproc-1, 1.to.2 /),id='load_unbalancing')
 
   do jproc=0,nproc-1
      load_unbalancing(jproc,:)=0
@@ -1550,9 +1526,7 @@ subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,inf
   if (info==0) write(*,*)' Kpoints Distribuitions are compatible, load unbalancings, orbs,comps:',lub_orbs,&
        '/',max(minval(load_unbalancing(:,1)),1),lub_comps,'/',minval(load_unbalancing(:,2))
   info=0
-  i_all=-product(shape(load_unbalancing))*kind(load_unbalancing)
-  deallocate(load_unbalancing,stat=i_stat)
-  call memocc(i_stat,i_all,'load_unbalancing',subname)
+  call f_free(load_unbalancing)
 
 
 END SUBROUTINE check_kpt_distributions
@@ -1737,8 +1711,7 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
   if(.not. storeit) then
      !if(ityp == 1) then !this implies that the PSP are all present
      if (.not. associated(atoms%paw_NofL)) then
-        allocate(atoms%paw_NofL(atoms%astruct%ntypes+ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_NofL,'atoms%paw_NofL',subname)
+        atoms%paw_NofL = f_malloc_ptr(atoms%astruct%ntypes+ndebug,id='atoms%paw_NofL')
      end if
      ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
      open(unit=11,file=trim(filename),status='old',iostat=ierror)
@@ -1809,33 +1782,15 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
 
   else
      if(ityp.eq.1) then
-        allocate(atoms%paw_l  (paw_tot_l+ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_l,'atoms%paw_l',subname)
-        
-        allocate(atoms%paw_nofchannels  (paw_tot_l+ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_nofchannels,'atoms%paw_nofchannels',subname)
-        
-        allocate(atoms%paw_nofgaussians  (paw_tot_l+ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_nofgaussians,'atoms%paw_nofgaussians',subname)
-        
-        allocate(atoms%paw_Greal  (paw_tot_l+ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_Greal,'atoms%paw_Greal',subname)
-        
-        allocate(atoms%paw_Gimag ( paw_tot_q   +  ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_Gimag,'atoms%paw_Gimag',subname)
-        
-        allocate(atoms%paw_Gcoeffs ( paw_tot_coefficients  +  ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_Gcoeffs,'atoms%paw_Gcoeffs',subname)
-        
-        allocate(atoms%paw_H_matrices(paw_tot_matrices+ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_H_matrices,'atoms%paw_H_matrices',subname)
-        
-        allocate(atoms%paw_S_matrices ( paw_tot_matrices  +  ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_S_matrices,'atoms%paw_S_matrices',subname)
-        
-        
-        allocate(atoms%paw_Sm1_matrices ( paw_tot_matrices  +  ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_Sm1_matrices,'atoms%paw_Sm1_matrices',subname)
+        atoms%paw_l   = f_malloc_ptr(paw_tot_l,id='atoms%paw_l  ')
+        atoms%paw_nofchannels   = f_malloc_ptr(paw_tot_l,id='atoms%paw_nofchannels  ')
+        atoms%paw_nofgaussians   = f_malloc_ptr(paw_tot_l,id='atoms%paw_nofgaussians  ')
+        atoms%paw_Greal   = f_malloc_ptr(paw_tot_l,id='atoms%paw_Greal  ')
+        atoms%paw_Gimag  = f_malloc_ptr(paw_tot_q   ,id='atoms%paw_Gimag ')
+        atoms%paw_Gcoeffs  = f_malloc_ptr(paw_tot_coefficients  ,id='atoms%paw_Gcoeffs ')
+        atoms%paw_H_matrices = f_malloc_ptr(paw_tot_matrices,id='atoms%paw_H_matrices')
+        atoms%paw_S_matrices  = f_malloc_ptr(paw_tot_matrices  ,id='atoms%paw_S_matrices ')
+        atoms%paw_Sm1_matrices  = f_malloc_ptr(paw_tot_matrices  ,id='atoms%paw_Sm1_matrices ')
         
         
         paw_tot_l=0

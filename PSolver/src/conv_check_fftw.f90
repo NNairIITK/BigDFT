@@ -80,20 +80,12 @@ program conv_check_fft
   hgriddim(3)=hx
   
    !allocate arrays
-   allocate(psi_in(2,n1,n2*n3,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_in,'psi_in',subname)
-   allocate(psi_out(2,n2*n3,n1,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_out,'psi_out',subname)
-
-   allocate(rhopot(n1*n2*n3+ndebug),stat=i_stat)
-   call memocc(i_stat,rhopot,'rhopot',subname)
-   allocate(rhopot2(n1*n2*n3+ndebug),stat=i_stat)
-   call memocc(i_stat,rhopot2,'rhopot2',subname)
-
-   allocate(work1_fftw(2*n1*n2*n3+ndebug),stat=i_stat)
-   call memocc(i_stat,work1_fftw,'work1_fftw',subname)
-   allocate(work2_fftw(2*n1*n2*n3+ndebug),stat=i_stat)
-   call memocc(i_stat,work2_fftw,'work2_fftw',subname)
+   psi_in = f_malloc((/ 2, n1, n2*n3, 1 /),id='psi_in')
+   psi_out = f_malloc((/ 2, n2*n3, n1, 1 /),id='psi_out')
+   rhopot = f_malloc(n1*n2*n3,id='rhopot')
+   rhopot2 = f_malloc(n1*n2*n3,id='rhopot2')
+   work1_fftw = f_malloc(2*n1*n2*n3,id='work1_fftw')
+   work2_fftw = f_malloc(2*n1*n2*n3,id='work2_fftw')
 
    !initialise array
    sigma2=0.25d0*((n1*hx)**2)
@@ -327,12 +319,8 @@ ntimes=1
    call pkernel_free(pkernel,subname)
    call pkernel_free(pkernel2,subname)
 
-  i_all=-product(shape(rhopot))*kind(rhopot)
-  deallocate(rhopot,stat=i_stat)
-  call memocc(i_stat,i_all,'rhopot',subname)
-  i_all=-product(shape(rhopot2))*kind(rhopot2)
-  deallocate(rhopot2,stat=i_stat)
-  call memocc(i_stat,i_all,'rhopot2',subname)
+  call f_free(rhopot)
+  call f_free(rhopot2)
 
 contains
 
@@ -575,8 +563,7 @@ contains
        stop 'ERROR(transpose_kernel_forGPU): geometry code not admitted'
     end if
 
-    allocate(pkernel2((n1/2+1)*n2*n3+ndebug),stat=i_stat)
-    call memocc(i_stat,pkernel2,'pkernel2',subname)
+    pkernel2 = f_malloc_ptr((n1/2+1)*n2*n3,id='pkernel2')
 
     do i3=1,n3
        j3=i3+(i3/(n3/2+2))*(n3+2-2*i3)!injective dimension
@@ -628,8 +615,7 @@ contains
        stop 'ERROR(transpose_kernel_forGPU): geometry code not admitted'
     end if
 
-    allocate(pkernel2(n1*n2*n3+ndebug),stat=i_stat)
-    call memocc(i_stat,pkernel2,'pkernel2',subname)
+    pkernel2 = f_malloc_ptr(n1*n2*n3,id='pkernel2')
 
     do i3=1,n3
        j3=i3+(i3/(n3/2+2))*(n3+2-2*i3)!injective dimension

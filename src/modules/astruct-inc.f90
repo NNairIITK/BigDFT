@@ -46,13 +46,13 @@ subroutine read_xyz_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
      write(*,*) "Error: unexpected end of file."
      stop
   end if
+  energy = UNINITIALIZED(energy)
   read(line,*, iostat = ierrsfx) iat,astruct%units,energy,comment
   if (ierrsfx /= 0) then
      read(line,*, iostat = ierrsfx) iat,astruct%units,energy
      write(comment, "(A)") ""
      if (ierrsfx /= 0) then
         read(line,*, iostat = ierrsfx) iat,astruct%units
-        energy = UNINITIALIZED(energy)
         if (ierrsfx /= 0) then
            read(line,*, iostat = ierrsfx) iat
            write(astruct%units, "(A)") "bohr"
@@ -218,7 +218,7 @@ subroutine read_xyz_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
   ! Try forces
   call getLine(line, ifile, eof)
   if ((.not. eof) .and. (adjustl(trim(line)) == "forces")) then
-     fxyz = f_malloc_ptr((/3,iat/), id = "fxyz")
+     fxyz = f_malloc_ptr((/ 3, iat /),id='fxyz')
      do iat=1,astruct%nat
         !xyz input file, allow extra information
         call getLine(line, ifile, eof)
@@ -479,7 +479,7 @@ subroutine read_ascii_positions(iproc,ifile,astruct,comment,energy,fxyz,getline)
   end if
 
   if (forces) then
-     fxyz = f_malloc_ptr((/3,astruct%nat/),id="fxyz")
+     fxyz = f_malloc_ptr((/ 3, astruct%nat /),id='fxyz')
 
      count = 0
      forces = .false.

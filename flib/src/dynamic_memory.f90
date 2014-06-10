@@ -78,11 +78,13 @@ module dynamic_memory
   interface assignment(=)
      module procedure i1_all,i2_all,i3_all,i4_all
      module procedure l1_all,l2_all,l3_all
-     module procedure d1_all,d2_all,d3_all,d4_all,d5_all,d6_all
+     module procedure d1_all,d2_all,d3_all,d4_all,d5_all,d6_all,d7_all
      module procedure r1_all,r2_all,r3_all
      module procedure z2_all
-     module procedure d1_ptr,d2_ptr,d3_ptr,d4_ptr,d5_ptr
-     module procedure i1_ptr,i2_ptr,i3_ptr
+     module procedure d1_ptr,d2_ptr,d3_ptr,d4_ptr,d5_ptr,d6_ptr
+     module procedure i1_ptr,i2_ptr,i3_ptr,i4_ptr
+     module procedure l3_ptr
+     module procedure z1_ptr
      !strings and pointers for characters
      module procedure c1_all
 !     module procedure c1_ptr
@@ -92,15 +94,17 @@ module dynamic_memory
      module procedure i1_all_free,i2_all_free,i3_all_free,i4_all_free
      module procedure i1_all_free_multi
      module procedure l1_all_free,l2_all_free,l3_all_free
-     module procedure d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free,d5_all_free,d6_all_free
+     module procedure d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free,d5_all_free,d6_all_free,d7_all_free
      module procedure r1_all_free,r2_all_free,r3_all_free
      module procedure z2_all_free
   end interface
 
   interface f_free_ptr
-     module procedure i1_ptr_free,i2_ptr_free,i3_ptr_free
+     module procedure i1_ptr_free,i2_ptr_free,i3_ptr_free,i4_ptr_free
      module procedure i1_ptr_free_multi
-     module procedure d1_ptr_free,d2_ptr_free,d3_ptr_free,d4_ptr_free,d5_ptr_free
+     module procedure d1_ptr_free,d2_ptr_free,d3_ptr_free,d4_ptr_free,d5_ptr_free,d6_ptr_free
+     module procedure l3_ptr_free
+     module procedure z1_ptr_free
   end interface
 
   !> initialize to zero an array (should be called f_memset)

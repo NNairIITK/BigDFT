@@ -29,6 +29,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       quiet,stress_tensor) !optional argument
    use yaml_output
    use time_profiling, only: f_timing
+   use dynamic_memory
    implicit none
 
    !> kernel of the Poisson equation. It is provided in distributed case, with
@@ -161,8 +162,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    !here the case ncplx/= 1 should be added
    
    !array allocations
-   allocate(zf(md1,md3,2*md2/kernel%mpi_env%nproc+ndebug),stat=i_stat)
-   call memocc(i_stat,zf,'zf',subname)
+   zf = f_malloc((/ md1, md3, 2*md2/kernel%mpi_env%nproc /),id='zf')
    !initalise to zero the zf array
    call to_zero(md1*md3*(md2/kernel%mpi_env%nproc),zf(1,1,1))
    
@@ -235,8 +235,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       endif
    
     if (kernel%mpi_env%nproc > 1) then
-      allocate(zf1(md1*md3*md2),stat=i_stat)
-      call memocc(i_stat,zf1,'zf1',subname)
+      zf1 = f_malloc(md1*md3*md2,id='zf1')
    
       call mpi_gather(zf,size1/kernel%mpi_env%nproc,mpidtypd,zf1,size1/kernel%mpi_env%nproc, &
            mpidtypd,0,kernel%mpi_env%mpi_comm,ierr)
@@ -263,9 +262,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
        call MPI_Scatter(zf1,size1/kernel%mpi_env%nproc,mpidtypd,zf,size1/kernel%mpi_env%nproc, &
             mpidtypd,0,kernel%mpi_env%mpi_comm,ierr)
    
-       i_all=-product(shape(zf1))*kind(zf1)
-       deallocate(zf1,stat=i_stat)
-       call memocc(i_stat,i_all,'zf1',subname)
+       call f_free(zf1)
    
     else
    
@@ -355,9 +352,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    
    ehartreeLOC=ehartreeLOC*0.5_dp*product(kernel%hgrids)!hx*hy*hz
    
-   i_all=-product(shape(zf))*kind(zf)
-   deallocate(zf,stat=i_stat)
-   call memocc(i_stat,i_all,'zf',subname)
+   call f_free(zf)
    
    !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','OF')
    !call f_timing(TCAT_PSOLV_COMPUT,'OF')
@@ -386,8 +381,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    
          !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','ON')
          !call f_timing(TCAT_PSOLV_COMPUT,'ON')
-         allocate(gather_arr(0:kernel%mpi_env%nproc-1,2+ndebug),stat=i_stat)
-         call memocc(i_stat,gather_arr,'gather_arr',subname)
+         gather_arr = f_malloc((/ 0.to.kernel%mpi_env%nproc-1, 1.to.2 /),id='gather_arr')
          do jproc=0,kernel%mpi_env%nproc-1
             istart=min(jproc*(md2/kernel%mpi_env%nproc),m2-1)
             jend=max(min(md2/kernel%mpi_env%nproc,m2-md2/kernel%mpi_env%nproc*jproc),0)
@@ -416,9 +410,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
          !call timing(kernel%mpi_env%iproc,'PSolv_commun  ','OF')
          !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','ON')
          !call f_timing(TCAT_PSOLV_COMPUT,'ON')
-         i_all=-product(shape(gather_arr))*kind(gather_arr)
-         deallocate(gather_arr,stat=i_stat)
-         call memocc(i_stat,i_all,'gather_arr',subname)
+         call f_free(gather_arr)
          !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','OF')
      
       end if

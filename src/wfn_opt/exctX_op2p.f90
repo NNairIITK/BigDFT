@@ -87,8 +87,7 @@ contains
     !it is assumed that all the products are done on the same dimension
     ndim=product(pkernel%ndims)
 
-    allocate(rp_ij(ndim+ndebug),stat=i_stat)
-    call memocc(i_stat,rp_ij,'rp_ij',subname)
+    rp_ij = f_malloc(ndim,id='rp_ij')
     !print *,'norbi,norbj,jorbs,iorbs,isorb,jsorb',norbi,norbj,jorbs,iorbs,isorb,jsorb
     !for the first step do only the upper triangular part
     do iorb=1,norbi
@@ -173,9 +172,7 @@ contains
        end do
     end do
 
-    i_all=-product(shape(rp_ij))*kind(rp_ij)
-    deallocate(rp_ij,stat=i_stat)
-    call memocc(i_stat,i_all,'rp_ij',subname)
+    call f_free(rp_ij)
 
   end subroutine internal_exctx_operation
 
@@ -214,8 +211,7 @@ contains
     if (orbs%nkpts /=1) stop 'OP2P not allowed with K-points so far' 
 
     !build the array of the groups needed for OP2P module
-    allocate(orbs_attributes(orbs%norb,3+ndebug),stat=i_stat)
-    call memocc(i_stat,orbs_attributes,'orbs_attributes',subname)
+    orbs_attributes = f_malloc((/ orbs%norb, 3 /),id='orbs_attributes')
     !the rule for the objects are listed here
     !objects_attributes(:,1) <= group to which the object belongs
     !objects_attributes(:,2) <= size in number of elements of the object
@@ -246,9 +242,7 @@ contains
 
     !call the module for executing the exctX routine
 
-    i_all=-product(shape(orbs_attributes))*kind(orbs_attributes)
-    deallocate(orbs_attributes,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs_attributes',subname)
+    call f_free(orbs_attributes)
 
     if (orbs%nspin==2) then
        sfac=1.0_gp
@@ -288,8 +282,7 @@ subroutine exact_exchange_potential_op2p(iproc,nproc,xc,lr,orbs,pkernel,psi,dpsi
   real(wp), dimension(:,:), allocatable :: psir
 
   call initialize_work_arrays_sumrho(lr,w)
-  allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,psir,'psir',subname)
+  psir = f_malloc((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%norbp /),id='psir')
 
   call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,dpsir(1,1))
 
@@ -318,9 +311,7 @@ subroutine exact_exchange_potential_op2p(iproc,nproc,xc,lr,orbs,pkernel,psi,dpsi
   exctXfac = xc_exctXfac(xc)
   eexctX=-exctXfac*eexctX
 
-  i_all=-product(shape(psir))*kind(psir)
-  deallocate(psir,stat=i_stat)
-  call memocc(i_stat,i_all,'psir',subname)
+  call f_free(psir)
 
 end subroutine exact_exchange_potential_op2p
 

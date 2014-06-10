@@ -177,8 +177,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   end if
 
   tmb%can_use_transposed=.false.
-  nullify(tmb%psit_c)
-  nullify(tmb%psit_f)
+  !nullify(tmb%psit_c)
+  !nullify(tmb%psit_f)
 
   call timing(iproc,'linscalinit','OF') !lr408t
 
@@ -428,7 +428,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                      infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,update_phi,&
                      .true.,ham_small,input%lin%extra_states,itout,0,0,input%lin%order_taylor,&
-                     input%purification_quickreturn,input%adjust_FOE_temperature,&
+                     input%purification_quickreturn,&
                      input%calculate_KS_residue,input%calculate_gap,&
                      convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
              end if
@@ -472,16 +472,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
       ! Do nothing if no low accuracy is desired.
       if (nit_lowaccuracy==0 .and. itout==0) then
-          if (associated(tmb%psit_c)) then
-              iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-              deallocate(tmb%psit_c, stat=istat)
-              call memocc(istat, iall, 'tmb%psit_c', subname)
-          end if
-          if (associated(tmb%psit_f)) then
-              iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-              deallocate(tmb%psit_f, stat=istat)
-              call memocc(istat, iall, 'tmb%psit_f', subname)
-          end if
+          !!if (associated(tmb%psit_c)) then
+          !!    call f_free_ptr(tmb%psit_c)
+          !!end if
+          !!if (associated(tmb%psit_f)) then
+          !!    call f_free_ptr(tmb%psit_f)
+          !!end if
           tmb%can_use_transposed=.false.
           if (iproc==0) then
               call yaml_sequence(advance='no')
@@ -573,7 +569,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    ratio_deltas,orthonormalization_on,input%lin%extra_states,itout,conv_crit_TMB,input%experimental_mode,&
                    input%lin%early_stop, input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
                    can_use_ham, input%lin%order_taylor, input%kappa_conv,&
-                   input%method_updatekernel,input%purification_quickreturn, input%adjust_FOE_temperature, &
+                   input%method_updatekernel,input%purification_quickreturn, &
                    input%correction_co_contra)
                reduce_conf=.true.
            !!else
@@ -633,16 +629,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                ! and start with a new AO input guess.
                if (iproc==0) write(*,'(1x,a)') 'There are convergence problems after the restart. &
                                                 &Start over again with an AO input guess.'
-               if (associated(tmb%psit_c)) then
-                   iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-                   deallocate(tmb%psit_c, stat=istat)
-                   call memocc(istat, iall, 'tmb%psit_c', subname)
-               end if
-               if (associated(tmb%psit_f)) then
-                   iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-                   deallocate(tmb%psit_f, stat=istat)
-                   call memocc(istat, iall, 'tmb%psit_f', subname)
-               end if
+               !!if (associated(tmb%psit_c)) then
+               !!    call f_free_ptr(tmb%psit_c)
+               !!end if
+               !!if (associated(tmb%psit_f)) then
+               !!    call f_free_ptr(tmb%psit_f)
+               !!end if
                infocode=2
                exit outerLoop
            end if
@@ -775,14 +767,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,update_phi,&
                         .false.,ham_small,input%lin%extra_states,itout,it_scc,cdft_it,input%lin%order_taylor,&
-                        input%purification_quickreturn,input%adjust_FOE_temperature,&
+                        input%purification_quickreturn,&
                         input%calculate_KS_residue,input%calculate_gap,&
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,update_phi,&
                         .false.,ham_small,input%lin%extra_states,itout,it_scc,cdft_it,input%lin%order_taylor,&
-                        input%purification_quickreturn,input%adjust_FOE_temperature,&
+                        input%purification_quickreturn,&
                         input%calculate_KS_residue,input%calculate_gap,&
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
                 end if
@@ -791,14 +783,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,update_phi,&
                         .true.,ham_small,input%lin%extra_states,itout,it_scc,cdft_it,input%lin%order_taylor,&
-                        input%purification_quickreturn,input%adjust_FOE_temperature,&
+                        input%purification_quickreturn,&
                         input%calculate_KS_residue,input%calculate_gap,&
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,update_phi,&
                         .true.,ham_small,input%lin%extra_states,itout,it_scc,cdft_it,input%lin%order_taylor,&
-                        input%purification_quickreturn,input%adjust_FOE_temperature,&
+                        input%purification_quickreturn,&
                         input%calculate_KS_residue,input%calculate_gap,&
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
                 end if
@@ -1140,12 +1132,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       ! CDFT: end of CDFT loop to find V which correctly imposes constraint and corresponding density
 
       if(tmb%can_use_transposed) then
-          iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-          deallocate(tmb%psit_c, stat=istat)
-          call memocc(istat, iall, 'tmb%psit_c', subname)
-          iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-          deallocate(tmb%psit_f, stat=istat)
-          call memocc(istat, iall, 'tmb%psit_f', subname)
+          !!call f_free_ptr(tmb%psit_c)
+          !!call f_free_ptr(tmb%psit_f)
           tmb%can_use_transposed=.false.
       end if
 
@@ -1197,7 +1185,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.false.,&
            .true.,ham_small,input%lin%extra_states,itout,0,0,input%lin%order_taylor,&
-           input%purification_quickreturn,input%adjust_FOE_temperature,&
+           input%purification_quickreturn,&
            input%calculate_KS_residue,input%calculate_gap)
 
        !!if (input%lin%scf_mode==LINEAR_FOE) then
@@ -1218,7 +1206,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
           infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.false.,&
           .true.,ham_small,input%lin%extra_states,itout,0,0,input%lin%order_taylor,&
-          input%purification_quickreturn,input%adjust_FOE_temperature,&
+          input%purification_quickreturn,&
           input%calculate_KS_residue,input%calculate_gap)
       !!call scalprod_on_boundary(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
       call pulay_correction_new(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
@@ -1286,12 +1274,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   end if
 
   if(tmb%ham_descr%can_use_transposed) then
-      iall=-product(shape(tmb%ham_descr%psit_c))*kind(tmb%ham_descr%psit_c)
-      deallocate(tmb%ham_descr%psit_c, stat=istat)
-      call memocc(istat, iall, 'tmb%ham_descr%psit_c', subname)
-      iall=-product(shape(tmb%ham_descr%psit_f))*kind(tmb%ham_descr%psit_f)
-      deallocate(tmb%ham_descr%psit_f, stat=istat)
-      call memocc(istat, iall, 'tmb%ham_descr%psit_f', subname)
+      call f_free_ptr(tmb%ham_descr%psit_c)
+      call f_free_ptr(tmb%ham_descr%psit_f)
       tmb%ham_descr%can_use_transposed=.false.
   end if
   ! here or cluster, not sure which is best
@@ -1434,8 +1418,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
 
   ! Otherwise there are some problems... Check later.
-  allocate(KSwfn%psi(1),stat=istat)
-  call memocc(istat,KSwfn%psi,'KSwfn%psi',subname)
+  KSwfn%psi = f_malloc_ptr(1,id='KSwfn%psi')
   nullify(KSwfn%psit)
 
   nullify(rho,pot)
@@ -1492,16 +1475,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                     call yaml_warning('The pulay force is too large after the restart. &
                          &Start over again with an AO input guess.')
                 end if
-                if (associated(tmb%psit_c)) then
-                    iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-                    deallocate(tmb%psit_c, stat=istat)
-                    call memocc(istat, iall, 'tmb%psit_c', subname)
-                end if
-                if (associated(tmb%psit_f)) then
-                    iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-                    deallocate(tmb%psit_f, stat=istat)
-                    call memocc(istat, iall, 'tmb%psit_f', subname)
-                end if
+                !!if (associated(tmb%psit_c)) then
+                !!    call f_free_ptr(tmb%psit_c)
+                !!end if
+                !!if (associated(tmb%psit_f)) then
+                !!    call f_free_ptr(tmb%psit_f)
+                !!end if
                 tmb%can_use_transposed=.false.
                 nit_lowaccuracy=input%lin%nit_lowaccuracy
                 nit_highaccuracy=input%lin%nit_highaccuracy
@@ -1777,6 +1756,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
       if (denspot%dpbox%ndimpot>0) then
           denspot%pot_work=f_malloc_ptr(denspot%dpbox%ndimpot+ndebug,id='denspot%dpbox%ndimpot+ndebug')
+
       else
           denspot%pot_work=f_malloc_ptr(1+ndebug,id='denspot%dpbox%ndimpot+ndebug')
       end if
@@ -1832,6 +1812,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       call f_free(rhopot_work)
       call f_free_ptr(denspot%rho_work)
       call f_free_ptr(denspot%pot_work)
+
 
     end subroutine intermediate_forces
 

@@ -38,11 +38,9 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,
 
   if (.not. associated(rho)) then
      if (dpbox%ndimpot>0) then
-        allocate(rho(dpbox%ndimpot*orbs%nspin+ndebug),stat=i_stat)
-        call memocc(i_stat,rho,'rho',subname)
+        rho = f_malloc_ptr(dpbox%ndimpot*orbs%nspin,id='rho')
      else
-        allocate(rho(1*orbs%nspin+ndebug),stat=i_stat)
-        call memocc(i_stat,rho,'rho',subname)
+        rho = f_malloc_ptr(1*orbs%nspin,id='rho')
      end if
 
      nullify(rho_p)
@@ -55,11 +53,9 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,
      call axpy(dpbox%ndimpot,1.0_dp,rho(1+dpbox%ndimpot),1,rho(1),1)
   end if
   if (dpbox%ndimpot>0) then
-     allocate(vh(dpbox%ndimpot+ndebug),stat=i_stat)
-     call memocc(i_stat,vh,'vh',subname)
+     vh = f_malloc_ptr(dpbox%ndimpot+ndebug,id='vh')
   else
-     allocate(vh(1+ndebug),stat=i_stat)
-     call memocc(i_stat,vh,'vh',subname)
+     vh = f_malloc_ptr(1+ndebug,id='vh')
   end if
 
   if (xc%id(1) /= XC_NO_HARTREE) then
@@ -129,8 +125,7 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,xc,psi,rho_p,mapping)
    end if
    !print *,'here',Lzd%linear,present(mapping),dpbox%iproc_world
    !write(*,*) 'iproc,rhoarray dim', iproc, Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,nspinn+ndebug
-   allocate(rho_p(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*rhodsc%nrhotot,nspinn+ndebug),stat=i_stat)
-   call memocc(i_stat,rho_p,'rho_p',subname)
+   rho_p = f_malloc_ptr((/ Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*rhodsc%nrhotot , nspinn+ndebug /),id='rho_p')
 
    !switch between GPU/CPU treatment of the density
    !here also one might decide to save the value of psir and of its laplacian 
@@ -148,16 +143,13 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,xc,psi,rho_p,mapping)
            end if
            !write(*,'(1x,a)') &
            !    'WARNING: mapping is not present, using fake local mapping array. Check whether this is correct!'
-           allocate(localmapping(orbs%norb), stat=i_stat)
-           call memocc(i_stat,localmapping,'localmapping',subname)
+           localmapping = f_malloc(orbs%norb,id='localmapping')
            do iorb=1,orbs%norb
                localmapping(iorb)=iorb
            end do
            call local_partial_densityLinear(dpbox%mpi_env%nproc,(rhodsc%icomm==1),dpbox%nscatterarr,rhodsc%nrhotot,&
                 Lzd,dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3),xc,orbs%nspin,orbs,localmapping,psi,rho_p)
-           i_all=-product(shape(localmapping))*kind(localmapping)
-           deallocate(localmapping,stat=i_stat)
-           call memocc(i_stat,i_all,'localmapping',subname)
+           call f_free(localmapping)
        else
            call local_partial_densityLinear(dpbox%mpi_env%nproc,(rhodsc%icomm==1),dpbox%nscatterarr,rhodsc%nrhotot,&
                 Lzd,dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3),xc,orbs%nspin,orbs,mapping,psi,rho_p)
@@ -241,10 +233,8 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
 
         !call system_clock(ncount0,ncount_rate,ncount_max)
 
-        allocate(sprho_comp(rhodsc%sp_size,nspin),stat=i_stat)
-        call memocc(i_stat,sprho_comp,'sprho_comp',subname)
-        allocate(dprho_comp(rhodsc%dp_size,nspin),stat=i_stat)
-        call memocc(i_stat,dprho_comp,'dprho_comp',subname)
+        sprho_comp = f_malloc((/ rhodsc%sp_size, nspin /),id='sprho_comp')
+        dprho_comp = f_malloc((/ rhodsc%dp_size, nspin /),id='dprho_comp')
         call compress_rho(rho_p,dpbox%ndimgrid,nspin,rhodsc,sprho_comp,dprho_comp)
 
         !call system_clock(ncount1,ncount_rate,ncount_max)
@@ -262,12 +252,8 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
         !write(*,*) 'TIMING:ARED3',real(ncount3-ncount2)/real(ncount_rate)
          !write(*,*) 'TIMING:MIX',real(ncount3-ncount0)/real(ncount_rate)
 
-        i_all=-product(shape(sprho_comp))*kind(sprho_comp)
-        deallocate(sprho_comp,stat=i_stat)
-        call memocc(i_stat,i_all,'sprho_comp',subname)
-        i_all=-product(shape(dprho_comp))*kind(dprho_comp)
-        deallocate(dprho_comp,stat=i_stat)
-        call memocc(i_stat,i_all,'dprho_comp',subname)
+        call f_free(sprho_comp)
+        call f_free(dprho_comp)
 
         !naive communication (unsplitted GGA case) (icomm=0)
      else if (rhodsc%icomm==0) then
@@ -317,8 +303,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
      itmred=1
   end if
   !use this check also for the magnetic density orientation
-  allocate(tmred(nspin+1,itmred+ndebug),stat=i_stat)
-  call memocc(i_stat,tmred,'tmred',subname)
+  tmred = f_malloc((/ nspin+1, itmred /),id='tmred')
 
 
 
@@ -337,9 +322,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
   end do
 
   if (.not. keep_rhop) then
-     i_all=-product(shape(rho_p))*kind(rho_p)
-     deallocate(rho_p,stat=i_stat)
-     call memocc(i_stat,i_all,'rho_p',subname)
+     call f_free_ptr(rho_p)
   end if
   
   !print *,'okhere1',dpbox%iproc_world
@@ -381,9 +364,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
   end if
 !call yaml_close_map()
 
-  i_all=-product(shape(tmred))*kind(tmred)
-  deallocate(tmred,stat=i_stat)
-  call memocc(i_stat,i_all,'tmred',subname)
+  call f_free(tmred)
 
   call timing(dpbox%mpi_env%iproc,'Rho_comput    ','OF')
 
@@ -428,8 +409,7 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
       ncomplex=orbs%nspinor-1
    end if
 
-   allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,npsir+ndebug),stat=i_stat)
-   call memocc(i_stat,psir,'psir',subname)
+   psir = f_malloc((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, npsir /),id='psir')
    !initialisation
    !print *,iproc,'there'
    if (lr%geocode == 'F') then
@@ -487,9 +467,7 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
    enddo
    
 
-   i_all=-product(shape(psir))*kind(psir)
-   deallocate(psir,stat=i_stat)
-   call memocc(i_stat,i_all,'psir',subname)
+   call f_free(psir)
    call deallocate_work_arrays_sumrho(w)
 
 END SUBROUTINE local_partial_density
@@ -758,15 +736,12 @@ subroutine symmetrise_density(iproc,nproc,geocode,n1i,n2i,n3i,nspin,rho,& !n(c) 
   n2i_eff = n2i
   if (geocode == "S") then
      n2i_eff = 1
-     allocate(zw(2,ncache/4,2+ndebug),stat=i_stat)
-     call memocc(i_stat,zw,'zw',subname)
+     zw = f_malloc((/ 2, ncache/4, 2 /),id='zw')
      !use this check also for the magnetic density orientation
-     allocate(rhog(2,n1i+1,1,n3i+1,2+ndebug),stat=i_stat)
-     call memocc(i_stat,rhog,'rhog',subname)
+     rhog = f_malloc((/ 2, n1i+1, 1, n3i+1, 2 /),id='rhog')
   else
      !use this check also for the magnetic density orientation
-     allocate(rhog(2,n1i+1,n2i+1,n3i+1,2+ndebug),stat=i_stat)
-     call memocc(i_stat,rhog,'rhog',subname)
+     rhog = f_malloc((/ 2, n1i+1, n2i+1, n3i+1, 2 /),id='rhog')
   end if
 
 
@@ -822,8 +797,7 @@ subroutine symmetrise_density(iproc,nproc,geocode,n1i,n2i,n3i,nspin,rho,& !n(c) 
 
         !    Get maxvalue of izone
         izone_max=count(sym%irrzon(:,2,imagn)>0)
-        allocate(rhosu12(2,izone_max+ndebug),stat=i_stat)
-        call memocc(i_stat,rhosu12,'rhosu12',subname)
+        rhosu12 = f_malloc((/ 2, izone_max /),id='rhosu12')
 
         numpt=0
         do izone=1,n1i*n2i_eff*n3i
@@ -913,9 +887,7 @@ subroutine symmetrise_density(iproc,nproc,geocode,n1i,n2i,n3i,nspin,rho,& !n(c) 
            !      End loop over izone
         end do
 
-        i_all=-product(shape(rhosu12))*kind(rhosu12)
-        deallocate(rhosu12,stat=i_stat)
-        call memocc(i_stat,i_all,'rhosu12',subname)
+        call f_free(rhosu12)
 
         !    Pull out full or spin up density, now symmetrized
         !!     call fourdp(cplex,rhog,work,1,mpi_enreg,nfft,ngfft,paral_kgb,0)
@@ -942,13 +914,9 @@ subroutine symmetrise_density(iproc,nproc,geocode,n1i,n2i,n3i,nspin,rho,& !n(c) 
 
   end do ! ispden
 
-  i_all=-product(shape(rhog))*kind(rhog)
-  deallocate(rhog,stat=i_stat)
-  call memocc(i_stat,i_all,'rhog',subname)
+  call f_free(rhog)
   if (geocode == "S") then
-     i_all=-product(shape(zw))*kind(zw)
-     deallocate(zw,stat=i_stat)
-     call memocc(i_stat,i_all,'zw',subname)
+     call f_free(zw)
   end if
 
 END SUBROUTINE symmetrise_density
@@ -1177,12 +1145,9 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
    !integer :: ncount0,ncount1,ncount2,ncount3,ncount4,ncount_rate,ncount_max
    !$ integer :: omp_get_thread_num,omp_get_num_threads
 
-   allocate(reg(n1i*n2i*n3i+ndebug),stat=i_stat)
-   call memocc(i_stat,reg,'reg',subname)
-   allocate(dpkey(n1i*n2i*n3i,2+ndebug),stat=i_stat)
-   call memocc(i_stat,dpkey,'dpkey',subname)
-   allocate(spkey(n1i*n2i*n3i,2+ndebug),stat=i_stat)
-   call memocc(i_stat,spkey,'spkey',subname)
+   reg = f_malloc(n1i*n2i*n3i,id='reg')
+   dpkey = f_malloc((/ n1i*n2i*n3i, 2 /),id='dpkey')
+   spkey = f_malloc((/ n1i*n2i*n3i, 2 /),id='spkey')
 
 
    ithread=0
@@ -1390,14 +1355,10 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
    rhodsc%n_fsegs=n_fsegs
    rhodsc%n_csegs=n_csegs
 
-   allocate(rhodsc%dpkey(n_fsegs,2+ndebug),stat=i_stat)
-   call memocc(i_stat,rhodsc%dpkey,'dpkey',subname)
-   allocate(rhodsc%spkey(n_csegs,2+ndebug),stat=i_stat)
-   call memocc(i_stat,rhodsc%spkey,'spkey',subname)
-   allocate(rhodsc%cseg_b(n_csegs+ndebug),stat=i_stat)
-   call memocc(i_stat,rhodsc%cseg_b,'csegb',subname)
-   allocate(rhodsc%fseg_b(n_fsegs+ndebug),stat=i_stat)
-   call memocc(i_stat,rhodsc%fseg_b,'fsegb',subname)
+   rhodsc%dpkey = f_malloc_ptr((/ n_fsegs, 2 /),id='rhodsc%dpkey')
+   rhodsc%spkey = f_malloc_ptr((/ n_csegs, 2 /),id='rhodsc%spkey')
+   rhodsc%cseg_b = f_malloc_ptr(n_csegs,id='rhodsc%cseg_b')
+   rhodsc%fseg_b = f_malloc_ptr(n_fsegs,id='rhodsc%fseg_b')
 
    csegstot=1
    fsegstot=1
@@ -1414,15 +1375,9 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
       csegstot=csegstot+spkey(iseg,2)-spkey(iseg,1)+1
    enddo
 
-   i_all=-product(shape(reg))*kind(reg)
-   deallocate(reg,stat=i_stat)
-   call memocc(i_stat,i_all,'reg',subname)
-   i_all=-product(shape(dpkey))*kind(dpkey)
-   deallocate(dpkey,stat=i_stat)
-   call memocc(i_stat,i_all,'dpkey',subname)
-   i_all=-product(shape(spkey))*kind(spkey)
-   deallocate(spkey,stat=i_stat)
-   call memocc(i_stat,i_all,'spkey',subname)
+   call f_free(reg)
+   call f_free(dpkey)
+   call f_free(spkey)
 
 
    if (iprint) then

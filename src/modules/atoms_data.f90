@@ -192,29 +192,23 @@ module module_atoms
       !character(len=*), intent(in) :: subname
       type(atomic_structure), intent(inout) :: astruct
       !local variables
-      character(len=*), parameter :: subname='dellocate_atomic_structure' !remove
+      character(len=*), parameter :: subname='deallocate_atomic_structure' !remove
       integer :: i_stat, i_all
 
 
       ! Deallocations for the geometry part.
       if (astruct%nat >= 0) then
-         i_all=-product(shape(astruct%ifrztyp))*kind(astruct%ifrztyp)
-         deallocate(astruct%ifrztyp,stat=i_stat)
-         call memocc(i_stat,i_all,'astruct%ifrztyp',subname)
-         i_all=-product(shape(astruct%iatype))*kind(astruct%iatype)
-         deallocate(astruct%iatype,stat=i_stat)
-         call memocc(i_stat,i_all,'astruct%iatype',subname)
-         i_all=-product(shape(astruct%input_polarization))*kind(astruct%input_polarization)
-         deallocate(astruct%input_polarization,stat=i_stat)
-         call memocc(i_stat,i_all,'astruct%input_polarization',subname)
-         i_all=-product(shape(astruct%rxyz))*kind(astruct%rxyz)
-         deallocate(astruct%rxyz,stat=i_stat)
-         call memocc(i_stat,i_all,'astruct%rxyz',subname)
+         call f_free_ptr(astruct%ifrztyp)
+         call f_free_ptr(astruct%iatype)
+         call f_free_ptr(astruct%input_polarization)
+         call f_free_ptr(astruct%rxyz)
       end if
       if (astruct%ntypes >= 0) then
-         i_all=-product(shape(astruct%atomnames))*kind(astruct%atomnames)
-         deallocate(astruct%atomnames,stat=i_stat)
-         call memocc(i_stat,i_all,'astruct%atomnames',subname)
+          if (associated(astruct%atomnames)) then
+             i_all=-product(shape(astruct%atomnames))*kind(astruct%atomnames)
+             deallocate(astruct%atomnames, stat=i_stat)
+             call memocc(i_stat, i_all, 'astruct%atomnames', subname)
+          end if
       end if
       ! Free additional stuff.
       call deallocate_symmetry_data(astruct%sym)
@@ -236,108 +230,54 @@ module module_atoms
 
       ! Deallocations related to pseudos.
       if (associated(atoms%nzatom)) then
-         i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
-         deallocate(atoms%nzatom,stat=i_stat)
-         call memocc(i_stat,i_all,'atoms%nzatom',subname)
-         i_all=-product(shape(atoms%psppar))*kind(atoms%psppar)
-         deallocate(atoms%psppar,stat=i_stat)
-         call memocc(i_stat,i_all,'atoms%psppar',subname)
-         i_all=-product(shape(atoms%nelpsp))*kind(atoms%nelpsp)
-         deallocate(atoms%nelpsp,stat=i_stat)
-         call memocc(i_stat,i_all,'atoms%nelpsp',subname)
-         i_all=-product(shape(atoms%ixcpsp))*kind(atoms%ixcpsp)
-         deallocate(atoms%ixcpsp,stat=i_stat)
-         call memocc(i_stat,i_all,'atoms%ixcpsp',subname)
-         i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
-         deallocate(atoms%npspcode,stat=i_stat)
-         call memocc(i_stat,i_all,'atoms%npspcode',subname)
-         i_all=-product(shape(atoms%nlcc_ngv))*kind(atoms%nlcc_ngv)
-         deallocate(atoms%nlcc_ngv,stat=i_stat)
-         call memocc(i_stat,i_all,'atoms%nlcc_ngv',subname)
-         i_all=-product(shape(atoms%nlcc_ngc))*kind(atoms%nlcc_ngc)
-         deallocate(atoms%nlcc_ngc,stat=i_stat)
-         call memocc(i_stat,i_all,'atoms%nlcc_ngc',subname)
-         i_all=-product(shape(atoms%radii_cf))*kind(atoms%radii_cf)
-         deallocate(atoms%radii_cf,stat=i_stat)
-         call memocc(i_stat,i_all,'atoms%radii_cf',subname)
-         i_all=-product(shape(atoms%iradii_source))*kind(atoms%iradii_source)
-         deallocate(atoms%iradii_source,stat=i_stat)
-         call memocc(i_stat,i_all,'atoms%iradii_source',subname)
-         ! Parameters for Linear input guess
-         !i_all=-product(shape(atoms%rloc))*kind(atoms%rloc)
-         !deallocate(atoms%rloc,stat=i_stat)
-         !call memocc(i_stat,i_all,'atoms%rloc',subname)
-         i_all=-product(shape(atoms%amu))*kind(atoms%amu)
-         deallocate(atoms%amu,stat=i_stat)
-         call memocc(i_stat,i_all,'atoms%amu',subname)
+         call f_free_ptr(atoms%nzatom)
+         call f_free_ptr(atoms%psppar)
+         call f_free_ptr(atoms%nelpsp)
+         call f_free_ptr(atoms%ixcpsp)
+         call f_free_ptr(atoms%npspcode)
+         call f_free_ptr(atoms%nlcc_ngv)
+         call f_free_ptr(atoms%nlcc_ngc)
+         call f_free_ptr(atoms%radii_cf)
+         call f_free_ptr(atoms%iradii_source)
+         call f_free_ptr(atoms%amu)
       end if
       if (associated(atoms%aoig)) then
          !no flib calls for derived types for the moment
          deallocate(atoms%aoig)
          nullify(atoms%aoig)
       end if
-!!$      if (associated(atoms%iasctype)) then
-!!$         i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
-!!$         deallocate(atoms%iasctype,stat=i_stat)
-!!$         call memocc(i_stat,i_all,'atoms%iasctype',subname)
-!!$         i_all=-product(shape(atoms%aocc))*kind(atoms%aocc)
-!!$         deallocate(atoms%aocc,stat=i_stat)
-!!$         call memocc(i_stat,i_all,'atoms%aocc',subname)
-!!$      end if
-!      if (associated(atoms%nlccpar)) then
          call f_free_ptr(atoms%nlccpar)
-!      end if
 
       !  Free data for pawpatch
       if(associated(atoms%paw_l)) then
-         i_all=-product(shape(atoms%paw_l ))*kind(atoms%paw_l )
-         deallocate(atoms%paw_l,stat=i_stat)
-         call memocc(i_stat,i_all,'atoms%paw_l',subname)
+         call f_free_ptr(atoms%paw_l)
       end if
       if(associated(atoms%paw_NofL)) then
-         i_all=-product(shape(  atoms%paw_NofL ))*kind(atoms%paw_NofL )
-         deallocate(atoms%paw_NofL,stat=i_stat)
-         call memocc(i_stat,i_all,'atoms%paw_NofL',subname)
+         call f_free_ptr(atoms%paw_NofL)
       end if
       if(associated(atoms%paw_nofchannels)) then
-         i_all=-product(shape(  atoms%paw_nofchannels ))*kind(atoms%paw_nofchannels )
-         deallocate(atoms%paw_nofchannels,stat=i_stat)
-         call memocc(i_stat,i_all,'atoms%paw_nofchannels',subname)
+         call f_free_ptr(atoms%paw_nofchannels)
       end if
       if(associated(atoms%paw_nofgaussians)) then
-         i_all=-product(shape(  atoms%paw_nofgaussians ))*kind(atoms%paw_nofgaussians )
-         deallocate(atoms%paw_nofgaussians,stat=i_stat)
-         call memocc(i_stat,i_all,'atoms%paw_nofgaussians',subname)
+         call f_free_ptr(atoms%paw_nofgaussians)
       end if
       if(associated(atoms%paw_Greal)) then
-         i_all=-product(shape(  atoms%paw_Greal ))*kind(atoms%paw_Greal )
-         deallocate(atoms%paw_Greal,stat=i_stat)
-         call memocc(i_stat,i_all,'atoms%paw_Greal',subname)
+         call f_free_ptr(atoms%paw_Greal)
       end if
       if(associated(atoms%paw_Gimag)) then
-         i_all=-product(shape(  atoms%paw_Gimag ))*kind(atoms%paw_Gimag )
-         deallocate(atoms%paw_Gimag,stat=i_stat)
-         call memocc(i_stat,i_all,'atoms%paw_Gimag',subname)
+         call f_free_ptr(atoms%paw_Gimag)
       end if
       if(associated(atoms%paw_Gcoeffs)) then
-         i_all=-product(shape(  atoms%paw_Gcoeffs ))*kind(atoms%paw_Gcoeffs )
-         deallocate(atoms%paw_Gcoeffs,stat=i_stat)
-         call memocc(i_stat,i_all,'atoms%paw_Gcoeffs',subname)
+         call f_free_ptr(atoms%paw_Gcoeffs)
       end if
       if(associated(atoms%paw_H_matrices)) then
-         i_all=-product(shape(  atoms%paw_H_matrices ))*kind(atoms%paw_H_matrices )
-         deallocate(atoms%paw_H_matrices,stat=i_stat)
-         call memocc(i_stat,i_all,'atoms%paw_H_matrices',subname)
+         call f_free_ptr(atoms%paw_H_matrices)
       end if
       if(associated(atoms%paw_S_matrices)) then
-         i_all=-product(shape(  atoms%paw_S_matrices ))*kind(atoms%paw_S_matrices )
-         deallocate(atoms%paw_S_matrices,stat=i_stat)
-         call memocc(i_stat,i_all,'atoms%paw_S_matrices',subname)
+         call f_free_ptr(atoms%paw_S_matrices)
       end if
       if(associated(atoms%paw_Sm1_matrices)) then
-         i_all=-product(shape(  atoms%paw_Sm1_matrices ))*kind(atoms%paw_Sm1_matrices )
-         deallocate(atoms%paw_Sm1_matrices,stat=i_stat)
-         call memocc(i_stat,i_all,'atoms%paw_Sm1_matrices',subname)
+         call f_free_ptr(atoms%paw_Sm1_matrices)
       end if
 
     END SUBROUTINE deallocate_atoms_data
@@ -361,19 +301,6 @@ module module_atoms
       call f_free_ptr(sym%irrzon)
       call f_free_ptr(sym%phnons)
 
-!!$      if (associated(sym%irrzon)) then
-!!$         i_all=-product(shape(sym%irrzon))*kind(sym%irrzon)
-!!$         deallocate(sym%irrzon,stat=i_stat)
-!!$         call memocc(i_stat,i_all,'irrzon',subname)
-!!$         nullify(sym%irrzon)
-!!$      end if
-!!$
-!!$      if (associated(sym%phnons)) then
-!!$         i_all=-product(shape(sym%phnons))*kind(sym%phnons)
-!!$         deallocate(sym%phnons,stat=i_stat)
-!!$         call memocc(i_stat,i_all,'phnons',subname)
-!!$         nullify(sym%phnons)
-!!$      end if
 
       if (sym%symObj >= 0) then
          call symmetry_get_n_sym(sym%symObj, nsym, i_stat)
@@ -384,20 +311,12 @@ module module_atoms
             if (geocode == "S") i_third = n2i
             sym%irrzon=f_malloc_ptr((/n1i*(n2i - i_third + 1)*n3i,2,i_third/),id='sym%irrzon')
             sym%phnons=f_malloc_ptr((/2,n1i*(n2i - i_third + 1)*n3i,i_third/),id='sym%phnons')
-!!$            allocate(sym%irrzon(n1i*(n2i - i_third + 1)*n3i,2,i_third+ndebug),stat=i_stat)
-!!$            call memocc(i_stat,sym%irrzon,'irrzon',subname)
-!!$            allocate(sym%phnons(2,n1i*(n2i - i_third + 1)*n3i,i_third+ndebug),stat=i_stat)
-!!$            call memocc(i_stat,sym%phnons,'phnons',subname)
             if (geocode /= "S") then
                call kpoints_get_irreductible_zone(sym%irrzon, sym%phnons, &
                     &   n1i, n2i, n3i, nspin, nspin, sym%symObj, i_stat)
             else
                irrzon=f_malloc((/n1i*n3i,2,1/),id='irrzon')
                phnons=f_malloc((/2,n1i*n3i,1/),id='phnons')
-!!$               allocate(irrzon(n1i*n3i,2,1+ndebug),stat=i_stat)
-!!$               call memocc(i_stat,irrzon,'irrzon',subname)
-!!$               allocate(phnons(2,n1i*n3i,1+ndebug),stat=i_stat)
-!!$               call memocc(i_stat,phnons,'phnons',subname)
                do i_third = 1, n2i, 1
                   call kpoints_get_irreductible_zone(irrzon, phnons, n1i, 1, n3i, &
                        & nspin, nspin, sym%symObj, i_stat)
@@ -406,12 +325,6 @@ module module_atoms
                end do
                call f_free(irrzon)
                call f_free(phnons)
-!!$               i_all=-product(shape(irrzon))*kind(irrzon)
-!!$               deallocate(irrzon,stat=i_stat)
-!!$               call memocc(i_stat,i_all,'irrzon',subname)
-!!$               i_all=-product(shape(phnons))*kind(phnons)
-!!$               deallocate(phnons,stat=i_stat)
-!!$               call memocc(i_stat,i_all,'phnons',subname)
             end if
          end if
       end if
@@ -420,10 +333,6 @@ module module_atoms
          ! Allocate anyway to small size otherwise the bounds check does not pass.
          sym%irrzon=f_malloc_ptr((/1,2,1/),id='sym%irrzon')
          sym%phnons=f_malloc_ptr((/2,1,1/),id='sym%phnons')
-!!$         allocate(sym%irrzon(1,2,1+ndebug),stat=i_stat)
-!!$         call memocc(i_stat,sym%irrzon,'irrzon',subname)
-!!$         allocate(sym%phnons(2,1,1+ndebug),stat=i_stat)
-!!$         call memocc(i_stat,sym%phnons,'phnons',subname)
       end if
     END SUBROUTINE set_symmetry_data
 
@@ -657,14 +566,10 @@ subroutine astruct_set_n_atoms(astruct, nat)
   astruct%nat = nat
 
   ! Allocate geometry related stuff.
-  allocate(astruct%iatype(astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,astruct%iatype,'astruct%iatype',subname)
-  allocate(astruct%ifrztyp(astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,astruct%ifrztyp,'astruct%ifrztyp',subname)
-  allocate(astruct%input_polarization(astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,astruct%input_polarization,'astruct%input_polarization',subname)
-  allocate(astruct%rxyz(3, astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,astruct%rxyz,'astruct%rxyz',subname)
+  astruct%iatype = f_malloc_ptr(astruct%nat+ndebug,id='astruct%iatype')
+  astruct%ifrztyp = f_malloc_ptr(astruct%nat+ndebug,id='astruct%ifrztyp')
+  astruct%input_polarization = f_malloc_ptr(astruct%nat+ndebug,id='astruct%input_polarization')
+  astruct%rxyz = f_malloc_ptr((/ 3,astruct%nat+ndebug /),id='astruct%rxyz')
 
   !this array is useful for frozen atoms, no atom is frozen by default
   astruct%ifrztyp(:)=0
@@ -677,7 +582,7 @@ subroutine astruct_set_n_atoms(astruct, nat)
 END SUBROUTINE astruct_set_n_atoms
 
 
-!> allocation of the memoey space associated to the number of types astruct%ntypes
+!> allocation of the memory space associated to the number of types astruct%ntypes
 subroutine astruct_set_n_types(astruct, ntypes)
   use module_base
   use module_atoms, only: atomic_structure
@@ -753,15 +658,12 @@ subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
      if (astruct%geocode == 'S') rprimd(2,2) = 1000._gp
      rprimd(3,3) = astruct%cell_dim(3)
      call symmetry_set_lattice(astruct%sym%symObj, rprimd, ierr)
-     allocate(xRed(3, astruct%nat+ndebug),stat=i_stat)
-     call memocc(i_stat,xRed,'xRed',subname)
+     xRed = f_malloc((/ 3 , astruct%nat+ndebug /),id='xRed')
      xRed(1,:) = modulo(astruct%rxyz(1, :) / rprimd(1,1), 1._gp)
      xRed(2,:) = modulo(astruct%rxyz(2, :) / rprimd(2,2), 1._gp)
      xRed(3,:) = modulo(astruct%rxyz(3, :) / rprimd(3,3), 1._gp)
      call symmetry_set_structure(astruct%sym%symObj, astruct%nat, astruct%iatype, xRed, ierr)
-     i_all=-product(shape(xRed))*kind(xRed)
-     deallocate(xRed,stat=i_stat)
-     call memocc(i_stat,i_all,'xRed',subname)
+     call f_free(xRed)
      if (astruct%geocode == 'S') then
         call symmetry_set_periodicity(astruct%sym%symObj, &
              & (/ .true., .false., .true. /), ierr)
@@ -822,13 +724,6 @@ subroutine allocate_atoms_nat(atoms)
      atoms%aoig(iat)=aoig_data_null()
   end do
 
-!!$  ! Allocate geometry related stuff.
-!!$  ! semicores useful only for the input guess
-!!$  allocate(atoms%iasctype(atoms%astruct%nat+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,atoms%iasctype,'atoms%iasctype',subname)
-!!$
-!!$  allocate(atoms%aocc(nelecmax,atoms%astruct%nat+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,atoms%aocc,'atoms%aocc',subname)
 END SUBROUTINE allocate_atoms_nat
 
 
@@ -843,30 +738,17 @@ subroutine allocate_atoms_ntypes(atoms)
 
   ! Allocate pseudo related stuff.
   ! store PSP parameters, modified to accept both GTH and HGHs pseudopotential types
-  allocate(atoms%amu(atoms%astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%amu,'atoms%amu',subname)
-  allocate(atoms%psppar(0:4,0:6,atoms%astruct%ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%psppar,'atoms%psppar',subname)
-  allocate(atoms%nelpsp(atoms%astruct%ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%nelpsp,'atoms%nelpsp',subname)
-  allocate(atoms%npspcode(atoms%astruct%ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%npspcode,'atoms%npspcode',subname)
-  allocate(atoms%nzatom(atoms%astruct%ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%nzatom,'atoms%nzatom',subname)
-  allocate(atoms%ixcpsp(atoms%astruct%ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%ixcpsp,'atoms%ixcpsp',subname)
-  allocate(atoms%radii_cf(atoms%astruct%ntypes,3+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%radii_cf,'atoms%radii_cf',subname)
-  allocate(atoms%iradii_source(atoms%astruct%ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%iradii_source,'atoms%iradii_source',subname)
+  atoms%amu = f_malloc_ptr(atoms%astruct%nat,id='atoms%amu')
+  atoms%psppar = f_malloc_ptr((/ 0.to.4 , 0.to.6 , 1.to.atoms%astruct%ntypes /),id='atoms%psppar')
+  atoms%nelpsp = f_malloc_ptr(atoms%astruct%ntypes,id='atoms%nelpsp')
+  atoms%npspcode = f_malloc_ptr(atoms%astruct%ntypes,id='atoms%npspcode')
+  atoms%nzatom = f_malloc_ptr(atoms%astruct%ntypes,id='atoms%nzatom')
+  atoms%ixcpsp = f_malloc_ptr(atoms%astruct%ntypes,id='atoms%ixcpsp')
+  atoms%radii_cf = f_malloc_ptr((/ atoms%astruct%ntypes , 3 /),id='atoms%radii_cf')
+  atoms%iradii_source = f_malloc_ptr(atoms%astruct%ntypes,id='atoms%iradii_source')
   ! parameters for NLCC
-  allocate(atoms%nlcc_ngv(atoms%astruct%ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%nlcc_ngv,'atoms%nlcc_ngv',subname)
-  allocate(atoms%nlcc_ngc(atoms%astruct%ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%nlcc_ngc,'atoms%nlcc_ngc',subname)
-  ! Parameters for Linear input guess
-  !allocate(atoms%rloc(atoms%astruct%ntypes,3),stat=i_stat)
-  !call memocc(i_stat,atoms%rloc,'atoms%rloc',subname)
+  atoms%nlcc_ngv = f_malloc_ptr(atoms%astruct%ntypes,id='atoms%nlcc_ngv')
+  atoms%nlcc_ngc = f_malloc_ptr(atoms%astruct%ntypes,id='atoms%nlcc_ngc')
 END SUBROUTINE allocate_atoms_ntypes
 
 

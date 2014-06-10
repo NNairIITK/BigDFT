@@ -83,7 +83,9 @@
   if (size(shape(array))==m%rank) then
      call pad_array(array,m%put_to_zero,m%shape,ndebug)
      !also fill the array with the values of the source if the address is identified in the source
-     if (m%srcdata_add /= 0) call c_memcopy(array,m%srcdata_add,product(shape(array))*kind(array))
+     if (m%srcdata_add /= 0) then
+        call c_memcopy(array,m%srcdata_add,product(shape(array))*kind(array))
+     end if
      !profile the array allocation
      if (m%profile) then
         sizeof=kind(array)

@@ -56,8 +56,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   !create an array which indicate which processor has a GPU associated 
   !from the viewpoint of the BLAS routines (deprecated, not used anymore)
   if (.not. GPUshare) then
-     allocate(GPU_for_orbs(0:nproc-1+ndebug),stat=i_stat)
-     call memocc(i_stat,GPU_for_orbs,'GPU_for_orbs',subname)
+     GPU_for_orbs = f_malloc(0.to.nproc-1,id='GPU_for_orbs')
      
      if (nproc > 1) then
         call MPI_ALLGATHER(GPUconv,1,MPI_LOGICAL,GPU_for_orbs(0),1,MPI_LOGICAL,&
@@ -66,13 +65,10 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
         GPU_for_orbs(0)=GPUconv
      end if
      
-     i_all=-product(shape(GPU_for_orbs))*kind(GPU_for_orbs)
-     deallocate(GPU_for_orbs,stat=i_stat)
-     call memocc(i_stat,i_all,'GPU_for_orbs',subname)
+     call f_free(GPU_for_orbs)
   end if
 
-  allocate(norb_par(0:nproc-1,orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,norb_par,'norb_par',subname)
+  norb_par = f_malloc((/ 0.to.nproc-1, 1.to.orbs%nkpts /),id='norb_par')
 
   !old system for calculating k-point repartition
 !!$  call parallel_repartition_with_kpoints(nproc,orbs%nkpts,norb,orbs%norb_par)
@@ -142,9 +138,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   !orbs%ikptsp(1:orbs%nkptsp)=mykpts(1:orbs%nkptsp)
 
   !this array will be reconstructed in the orbitals_communicators routine
-  i_all=-product(shape(norb_par))*kind(norb_par)
-  deallocate(norb_par,stat=i_stat)
-  call memocc(i_stat,i_all,'norb_par',subname)
+  call f_free(norb_par)
 
   !assign the values of the orbitals data
   orbs%norb=norb

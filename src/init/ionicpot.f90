@@ -47,10 +47,8 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   real(gp), dimension(:,:), allocatable :: fewald,xred
   real(gp), dimension(3) :: cc
 
-  allocate(fion(3,at%astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,fion,'fion',subname)
-  allocate(fdisp(3,at%astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,fdisp,'fdisp',subname)
+  fion = f_malloc_ptr((/ 3, at%astruct%nat /),id='fion')
+  fdisp = f_malloc_ptr((/ 3, at%astruct%nat /),id='fdisp')
 
   ! Aliasing
   hxh = dpbox%hgrids(1)
@@ -66,10 +64,8 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   ewaldstr=0.0_gp
   if (at%astruct%geocode == 'P') then
      !here we insert the calculation of the ewald forces
-     allocate(fewald(3,at%astruct%nat+ndebug),stat=i_stat)
-     call memocc(i_stat,fewald,'fewald',subname)
-     allocate(xred(3,at%astruct%nat+ndebug),stat=i_stat)
-     call memocc(i_stat,xred,'xred',subname)
+     fewald = f_malloc((/ 3, at%astruct%nat /),id='fewald')
+     xred = f_malloc((/ 3, at%astruct%nat /),id='xred')
 
      !calculate rprimd
      rprimd(:,:)=0.0_gp
@@ -109,12 +105,8 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
         !if (nproc==1 .and. slowion) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
      end do
 
-     i_all=-product(shape(xred))*kind(xred)
-     deallocate(xred,stat=i_stat)
-     call memocc(i_stat,i_all,'xred',subname)
-     i_all=-product(shape(fewald))*kind(fewald)
-     deallocate(fewald,stat=i_stat)
-     call memocc(i_stat,i_all,'fewald',subname)
+     call f_free(xred)
+     call f_free(fewald)
 
      !now calculate the integral of the local psp
      !this is the offset to be applied in the Poisson Solver to have a neutralizing background
@@ -507,11 +499,9 @@ subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, sh
   inquire(file='posinp_ci.xyz',exist=counterions)
   if (counterions) then
      if (rhopotd%n3pi > 0) then
-        allocate(counter_ions(Glr%d%n1i*Glr%d%n2i*rhopotd%n3pi+ndebug),stat=i_stat)
-        call memocc(i_stat,counter_ions,'counter_ions',subname)
+        counter_ions = f_malloc(Glr%d%n1i*Glr%d%n2i*rhopotd%n3pi,id='counter_ions')
      else
-        allocate(counter_ions(1+ndebug),stat=i_stat)
-        call memocc(i_stat,counter_ions,'counter_ions',subname)
+        counter_ions = f_malloc(1,id='counter_ions')
      end if
 
      call CounterIonPotential(atoms%astruct%geocode,iproc,nproc,in,shift,&
@@ -521,9 +511,7 @@ subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, sh
      call axpy(Glr%d%n1i*Glr%d%n2i*rhopotd%n3pi,1.0_dp,counter_ions(1),1,&
           &   pot_ion(1),1)
 
-     i_all=-product(shape(counter_ions))*kind(counter_ions)
-     deallocate(counter_ions,stat=i_stat)
-     call memocc(i_stat,i_all,'counter_ions',subname)
+     call f_free(counter_ions)
   end if
 END SUBROUTINE createEffectiveIonicPotential
 
@@ -751,8 +739,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
      if (check_potion) then
         !if (iproc == 0) write(*,'(1x,a)',advance='no') 'Check the ionic potential...'
           
-        allocate(potion_corr(n1i*n2i*n3pi+ndebug),stat=i_stat)
-        call memocc(i_stat,potion_corr,'potion_corr',subname)
+        potion_corr = f_malloc(n1i*n2i*n3pi,id='potion_corr')
 
         call to_zero(n1i*n2i*n3pi,potion_corr)
 
@@ -796,9 +783,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 
         stop
 
-        i_all=-product(shape(potion_corr))*kind(potion_corr)
-        deallocate(potion_corr,stat=i_stat)
-        call memocc(i_stat,i_all,'potion_corr',subname)
+        call f_free(potion_corr)
 
      end if
 
@@ -1247,8 +1232,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   call atomic_data_set_from_dict(dict, "Atomic occupation", at, in%nspin)
   call dict_free(dict)
 
-  allocate(radii_cf(at%astruct%ntypes,3+ndebug),stat=i_stat)
-  call memocc(i_stat,radii_cf,'radii_cf',subname)
+  radii_cf = f_malloc((/ at%astruct%ntypes, 3 /),id='radii_cf')
 
   !read the specifications of the counter ions from pseudopotentials
   call read_radii_variables(at, radii_cf, in%crmult, in%frmult, in%projrad)
@@ -1376,8 +1360,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
      if (check_potion) then
         !if (iproc == 0) write(*,'(1x,a)',advance='no') 'Check the ionic potential...'
           
-        allocate(potion_corr(grid%n1i*grid%n2i*n3pi+ndebug),stat=i_stat)
-        call memocc(i_stat,potion_corr,'potion_corr',subname)
+        potion_corr = f_malloc(grid%n1i*grid%n2i*n3pi,id='potion_corr')
 
         call to_zero(grid%n1i*grid%n2i*n3pi,potion_corr)
 
@@ -1422,9 +1405,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
 
         stop
 
-        i_all=-product(shape(potion_corr))*kind(potion_corr)
-        deallocate(potion_corr,stat=i_stat)
-        call memocc(i_stat,i_all,'potion_corr',subname)
+        call f_free(potion_corr)
 
      end if
 
@@ -1450,13 +1431,9 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   !deallocations
   call deallocate_atoms_data(at) 
 
-  i_all=-product(shape(radii_cf))*kind(radii_cf)
-  deallocate(radii_cf,stat=i_stat)
-  call memocc(i_stat,i_all,'radii_cf',subname)
+  call f_free(radii_cf)
 
-  i_all=-product(shape(at%astruct%rxyz))*kind(at%astruct%rxyz)
-  deallocate(at%astruct%rxyz,stat=i_stat)
-  call memocc(i_stat,i_all,'at%astruct%rxyz',subname)
+  call f_free_ptr(at%astruct%rxyz)
 
 
   if (at%multipole_preserving) call finalize_real_space_conversion(subname)

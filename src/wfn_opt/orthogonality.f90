@@ -48,12 +48,10 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
   if(present(paw)) usepaw=paw%usepaw
 
   ! ndim_ovrlp describes the shape of the overlap matrix.
-  allocate(ndim_ovrlp(nspin,0:orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,ndim_ovrlp,'ndim_ovrlp',subname)
+  ndim_ovrlp = f_malloc((/ 1.to.nspin, 0.to.orbs%nkpts /),id='ndim_ovrlp')
   
   ! Allocate norbArr which contains the number of up and down orbitals.
-  allocate(norbArr(nspin), stat=i_stat)
-  call memocc(i_stat,norbArr,'norbArr',subname)
+  norbArr = f_malloc(nspin,id='norbArr')
   do ispin=1,nspin
      if(ispin==1) norbArr(ispin)=orbs%norbu
      if(ispin==2) norbArr(ispin)=orbs%norbd
@@ -70,8 +68,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
      call dimension_ovrlp(nspin,orbs,ndim_ovrlp)
 
      ! Allocate the overlap matrix
-     allocate(ovrlp(ndim_ovrlp(nspin,orbs%nkpts)+ndebug),stat=i_stat)
-     call memocc(i_stat,ovrlp,'ovrlp',subname)
+     ovrlp = f_malloc(ndim_ovrlp(nspin, orbs%nkpts),id='ovrlp')
 
      ! Make a loop over npsin; calculate the overlap matrix (for up/down, resp.) and orthogonalize (again for up/down, resp.).
      do ispin=1,nspin
@@ -117,9 +114,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
 
 
              ! Deallocate the arrays.
-             i_all=-product(shape(ovrlp))*kind(ovrlp)
-             deallocate(ovrlp,stat=i_stat)
-             call memocc(i_stat,i_all,'ovrlp',subname)
+             call f_free(ovrlp)
 
 
           else if(orthpar%methOrtho==1) then
@@ -140,8 +135,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
              call dimension_ovrlp(nspin,orbs,ndim_ovrlp)
              
              ! Allocate the overlap matrix
-             allocate(ovrlp(ndim_ovrlp(nspin,orbs%nkpts)+ndebug),stat=i_stat)
-             call memocc(i_stat,ovrlp,'ovrlp',subname)
+             ovrlp = f_malloc(ndim_ovrlp(nspin, orbs%nkpts),id='ovrlp')
                   
              ! Make a loop over npsin; calculate the overlap matrix (for up/down,resp.) and orthogonalize (again for up/down,resp.).
              do ispin=1,nspin
@@ -160,9 +154,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
              end do
              
              ! Deallocate the arrays.
-             i_all=-product(shape(ovrlp))*kind(ovrlp)
-             deallocate(ovrlp,stat=i_stat)
-             call memocc(i_stat,i_all,'ovrlp',subname)
+             call f_free(ovrlp)
                   
           else
              if(iproc==0) write(*,'(a,i0)') 'ERROR: invalid choice for methOrtho:',orthpar%methOrtho
@@ -171,13 +163,8 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
           end if
 
           ! Deallocate the remaining arrays.
-          i_all=-product(shape(norbArr))*kind(norbArr)
-          deallocate(norbArr, stat=i_stat)
-          call memocc(i_stat,i_all,'norbArr',subname)
-
-          i_all=-product(shape(ndim_ovrlp))*kind(ndim_ovrlp)
-          deallocate(ndim_ovrlp, stat=i_stat)
-          call memocc(i_stat,i_all,'ndim_ovrlp',subname)
+          call f_free(norbArr)
+          call f_free(ndim_ovrlp)
 
 
           call timing(iproc,trim(category)//'_comput','OF')
@@ -244,19 +231,16 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum,spsi) !n
 
   !number of components for the overlap matrix in wp-kind real numbers
 
-  allocate(ndim_ovrlp(nspin,0:orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,ndim_ovrlp,'ndim_ovrlp',subname)
+          ndim_ovrlp = f_malloc((/ 1.to.nspin, 0.to.orbs%nkpts /),id='ndim_ovrlp')
 
   call dimension_ovrlp(nspin,orbs,ndim_ovrlp)
 
-  allocate(alag(ndim_ovrlp(nspin,orbs%nkpts)+ndebug),stat=i_stat)
-  call memocc(i_stat,alag,'alag',subname)
+          alag = f_malloc(ndim_ovrlp(nspin, orbs%nkpts),id='alag')
   
   !Allocate ovrlp for PAW: 
   if(present(spsi)) then
     norb=max(orbs%norbu,orbs%norbd,1)
-    allocate(paw_ovrlp(norb+ndebug),stat=i_stat)
-    call memocc(i_stat,paw_ovrlp,'paw_ovrlp',subname)
+    paw_ovrlp = f_malloc(norb,id='paw_ovrlp')
   end if
 
   !put to zero all the k-points which are not needed
@@ -438,19 +422,13 @@ do ikptp=1,orbs%nkptsp
              !call MPI_ALLREDUCE(tt,scprsum,1,mpidtypd,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
           end if
 
-          i_all=-product(shape(alag))*kind(alag)
-          deallocate(alag,stat=i_stat)
-          call memocc(i_stat,i_all,'alag',subname)
+          call f_free(alag)
 
   if(present(spsi)) then
-    i_all=-product(shape(paw_ovrlp))*kind(paw_ovrlp)
-    deallocate(paw_ovrlp,stat=i_stat)
-    call memocc(i_stat,i_all,'paw_ovrlp',subname)
+    call f_free(paw_ovrlp)
   end if
 
-  i_all=-product(shape(ndim_ovrlp))*kind(ndim_ovrlp)
-  deallocate(ndim_ovrlp,stat=i_stat)
-  call memocc(i_stat,i_all,'ndim_ovrlp',subname)
+  call f_free(ndim_ovrlp)
 
   call timing(iproc,'LagrM_comput  ','OF')
 
@@ -497,13 +475,11 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   end if
 
   !number of components for the overlap matrix in wp-kind real numbers
-  allocate(ndim_ovrlp(nspin,0:orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,ndim_ovrlp,'ndim_ovrlp',subname)
+  ndim_ovrlp = f_malloc((/ 1.to.nspin, 0.to.orbs%nkpts /),id='ndim_ovrlp')
 
   call dimension_ovrlp(nspin,orbs,ndim_ovrlp)
 
-  allocate(hamks(ndim_ovrlp(nspin,orbs%nkpts)+ndebug),stat=i_stat)
-  call memocc(i_stat,hamks,'hamks',subname)
+  hamks = f_malloc(ndim_ovrlp(nspin, orbs%nkpts),id='hamks')
 
   !put to zero all the k-points which are not needed
   call to_zero(ndim_ovrlp(nspin,orbs%nkpts),hamks)
@@ -554,13 +530,9 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   !this is somehow redundant but it is one way of reducing the number of communications
   !without defining group of processors
 
-  allocate(work_lp(n_lp*2+ndebug),stat=i_stat)
-  call memocc(i_stat,work_lp,'work_lp',subname)
-  allocate(work_rp(n_rp+ndebug),stat=i_stat)
-  call memocc(i_stat,work_rp,'work_rp',subname)
-
-  allocate(psiw(npsiw+ndebug),stat=i_stat)
-  call memocc(i_stat,psiw,'psiw',subname)
+  work_lp = f_malloc(n_lp*2,id='work_lp')
+  work_rp = f_malloc(n_rp,id='work_rp')
+  psiw = f_malloc(npsiw,id='psiw')
 
   !!if(iproc==0) then
   !!    ierr=0
@@ -761,24 +733,11 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
      call mpiallred(evsum,1,MPI_SUM,bigdft_mpi%mpi_comm)
   end if
 
-  i_all=-product(shape(psiw))*kind(psiw)
-  deallocate(psiw,stat=i_stat)
-  call memocc(i_stat,i_all,'psiw',subname)
-
-  i_all=-product(shape(work_lp))*kind(work_lp)
-  deallocate(work_lp,stat=i_stat)
-  call memocc(i_stat,i_all,'work_lp',subname)
-  i_all=-product(shape(work_rp))*kind(work_rp)
-  deallocate(work_rp,stat=i_stat)
-  call memocc(i_stat,i_all,'work_rp',subname)
-
-  i_all=-product(shape(hamks))*kind(hamks)
-  deallocate(hamks,stat=i_stat)
-  call memocc(i_stat,i_all,'hamks',subname)
-
-  i_all=-product(shape(ndim_ovrlp))*kind(ndim_ovrlp)
-  deallocate(ndim_ovrlp,stat=i_stat)
-  call memocc(i_stat,i_all,'ndim_ovrlp',subname)
+  call f_free(psiw)
+  call f_free(work_lp)
+  call f_free(work_rp)
+  call f_free(hamks)
+  call f_free(ndim_ovrlp)
 
 END SUBROUTINE subspace_diagonalisation
 
@@ -821,13 +780,11 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
 
   !number of components for the overlap matrix in wp-kind real numbers
 
-  allocate(ndim_ovrlp(nspin,0:orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,ndim_ovrlp,'ndim_ovrlp',subname)
+  ndim_ovrlp = f_malloc((/ 1.to.nspin, 0.to.orbs%nkpts /),id='ndim_ovrlp')
 
   call dimension_ovrlp_virt(nspin,orbs,orbsv,ndim_ovrlp)
 
-  allocate(alag(ndim_ovrlp(nspin,orbs%nkpts)+ndebug),stat=i_stat)
-  call memocc(i_stat,alag,'alag',subname)
+  alag = f_malloc(ndim_ovrlp(nspin, orbs%nkpts),id='alag')
 
   !put to zero all the k-points which are not needed
   call to_zero(ndim_ovrlp(nspin,orbs%nkpts),alag)
@@ -949,13 +906,8 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
           end do
 
 
-          i_all=-product(shape(alag))*kind(alag)
-          deallocate(alag,stat=i_stat)
-          call memocc(i_stat,i_all,'alag',subname)
-
-          i_all=-product(shape(ndim_ovrlp))*kind(ndim_ovrlp)
-          deallocate(ndim_ovrlp,stat=i_stat)
-          call memocc(i_stat,i_all,'ndim_ovrlp',subname)
+          call f_free(alag)
+          call f_free(ndim_ovrlp)
 
           call timing(iproc,'LagrM_comput  ','OF')
 
@@ -1125,8 +1077,7 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
      ncomp=2
   end if
 
-  allocate(alag(norbs,norb,istart+ndebug),stat=i_stat)
-  call memocc(i_stat,alag,'alag',subname)
+  alag = f_malloc((/ norbs, norb, istart /),id='alag')
 
   !initialise if nvctrp=0
   if (nvctrp == 0) then
@@ -1188,9 +1139,7 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
   end if
 
 
-  i_all=-product(shape(alag))*kind(alag)
-  deallocate(alag,stat=i_stat)
-  call memocc(i_stat,i_all,'alag',subname)
+  call f_free(alag)
 
 
 
@@ -1266,8 +1215,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,psit,nspinor)
         ncomp=2
      end if
 
-     allocate(ovrlp(norbs,norb,istart+ndebug),stat=i_stat)
-     call memocc(i_stat,ovrlp,'ovrlp',subname)
+     ovrlp = f_malloc((/ norbs, norb, istart /),id='ovrlp')
 
      call to_zero(norbs*norb*istart,ovrlp(1,1,1))
 
@@ -1364,9 +1312,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,psit,nspinor)
 
      end if
 
-     i_all=-product(shape(ovrlp))*kind(ovrlp)
-     deallocate(ovrlp,stat=i_stat)
-     call memocc(i_stat,i_all,'ovrlp',subname)
+     call f_free(ovrlp)
 
   end if
 
@@ -1416,10 +1362,8 @@ subroutine loewe_p(iproc,norb,ndim,nvctrp,nvctr_tot,psit)
 
   else
 
-     allocate(ovrlp(norb,norb,3+ndebug),stat=i_stat)
-     call memocc(i_stat,ovrlp,'ovrlp',subname)
-     allocate(evall(norb+ndebug),stat=i_stat)
-     call memocc(i_stat,evall,'evall',subname)
+     ovrlp = f_malloc((/ norb, norb, 3 /),id='ovrlp')
+     evall = f_malloc(norb,id='evall')
 
      ! Upper triangle of overlap matrix using BLAS
      !     ovrlp(iorb,jorb)=psit(k,iorb)*psit(k,jorb) ; upper triangle
@@ -1466,22 +1410,15 @@ subroutine loewe_p(iproc,norb,ndim,nvctrp,nvctr_tot,psit)
      call DGEMM('N','T',norb,norb,norb,1.d0,ovrlp(1,1,1),norb,&
           ovrlp(1,1,2),norb,0.d0,ovrlp(1,1,3),norb)
 
-     allocate(psitt(nvctrp,ndim+ndebug),stat=i_stat)
-     call memocc(i_stat,psitt,'psitt',subname)
+     psitt = f_malloc((/ nvctrp, ndim /),id='psitt')
      ! new eigenvectors
      !   psitt(i,iorb)=psit(i,jorb)*ovrlp(jorb,iorb,3)
      call DGEMM('N','N',nvctrp,norb,norb,1.d0,psit,nvctrp,ovrlp(1,1,3),norb,0.d0,psitt,nvctrp)
      call vcopy(nvctrp*ndim,psitt(1,1),1,psit(1,1),1)
-     i_all=-product(shape(psitt))*kind(psitt)
-     deallocate(psitt,stat=i_stat)
-     call memocc(i_stat,i_all,'psitt',subname)
+     call f_free(psitt)
 
-     i_all=-product(shape(ovrlp))*kind(ovrlp)
-     deallocate(ovrlp,stat=i_stat)
-     call memocc(i_stat,i_all,'ovrlp',subname)
-     i_all=-product(shape(evall))*kind(evall)
-     deallocate(evall,stat=i_stat)
-     call memocc(i_stat,i_all,'evall',subname)
+     call f_free(ovrlp)
+     call f_free(evall)
 
   end if
 
@@ -1508,10 +1445,8 @@ subroutine loewe(norb,nvctrp,psi)
 
   else
 
-     allocate(ovrlp(norb,norb,3+ndebug),stat=i_stat)
-     call memocc(i_stat,ovrlp,'ovrlp',subname)
-     allocate(evall(norb+ndebug),stat=i_stat)
-     call memocc(i_stat,evall,'evall',subname)
+     ovrlp = f_malloc((/ norb, norb, 3 /),id='ovrlp')
+     evall = f_malloc(norb,id='evall')
 
      ! Overlap matrix using BLAS
      !     ovrlp(iorb,jorb)=psi(k,iorb)*psi(k,jorb) ; upper triangle
@@ -1549,21 +1484,14 @@ subroutine loewe(norb,nvctrp,psi)
      call DGEMM('N','T',norb,norb,norb,1.d0,ovrlp(1,1,1),norb,ovrlp(1,1,2),norb,0.d0,ovrlp(1,1,3),norb)
 
      ! new eigenvectors
-     allocate(tpsi(nvctrp,norb+ndebug),stat=i_stat)
-     call memocc(i_stat,tpsi,'tpsi',subname)
+     tpsi = f_malloc((/ nvctrp, norb /),id='tpsi')
      !   tpsi(i,iorb)=psi(i,jorb)*ovrlp(jorb,iorb,3)
      call DGEMM('N','N',nvctrp,norb,norb,1.d0,psi(1,1),nvctrp,ovrlp(1,1,3),norb,0.d0,tpsi,nvctrp)
      call vcopy(nvctrp*norb,tpsi(1,1),1,psi(1,1),1)
-     i_all=-product(shape(tpsi))*kind(tpsi)
-     deallocate(tpsi,stat=i_stat)
-     call memocc(i_stat,i_all,'tpsi',subname)
+     call f_free(tpsi)
 
-     i_all=-product(shape(ovrlp))*kind(ovrlp)
-     deallocate(ovrlp,stat=i_stat)
-     call memocc(i_stat,i_all,'ovrlp',subname)
-     i_all=-product(shape(evall))*kind(evall)
-     deallocate(evall,stat=i_stat)
-     call memocc(i_stat,i_all,'evall',subname)
+     call f_free(ovrlp)
+     call f_free(evall)
 
   endif
 
@@ -1578,8 +1506,7 @@ subroutine checkortho_paw(iproc,norb,nvctrp,psit,spsi)
   character(len=*), parameter :: subname='checkortho_paw'
   real(kind=8), allocatable :: ovrlp(:,:,:)
 
-  allocate(ovrlp(norb,norb,2+ndebug),stat=i_stat)
-  call memocc(i_stat,ovrlp,'ovrlp',subname)
+  ovrlp = f_malloc((/ norb, norb, 2 /),id='ovrlp')
   ovrlp=0.d0
 
   do iorb=1,norb
@@ -1615,9 +1542,7 @@ subroutine checkortho_paw(iproc,norb,nvctrp,psit,spsi)
 
   if (dev.gt.toler) write(*,'(1x,a,i0,1pe13.5)') 'Deviation from orthogonality ',iproc,dev
 
-  i_all=-product(shape(ovrlp))*kind(ovrlp)
-  deallocate(ovrlp,stat=i_stat)
-  call memocc(i_stat,i_all,'ovrlp',subname)
+  call f_free(ovrlp)
 
 END SUBROUTINE checkortho_paw
 
@@ -1629,8 +1554,7 @@ subroutine checkortho_p(iproc,norb,nvctrp,psit)
   character(len=*), parameter :: subname='checkortho_p'
   real(kind=8), allocatable :: ovrlp(:,:,:)
 
-  allocate(ovrlp(norb,norb,2+ndebug),stat=i_stat)
-  call memocc(i_stat,ovrlp,'ovrlp',subname)
+  ovrlp = f_malloc((/ norb, norb, 2 /),id='ovrlp')
 
   do iorb=1,norb
      do jorb=1,norb
@@ -1661,9 +1585,7 @@ subroutine checkortho_p(iproc,norb,nvctrp,psit)
 
   if (dev.gt.toler) write(*,'(1x,a,i0,1pe13.5)') 'Deviation from orthogonality ',iproc,dev
 
-  i_all=-product(shape(ovrlp))*kind(ovrlp)
-  deallocate(ovrlp,stat=i_stat)
-  call memocc(i_stat,i_all,'ovrlp',subname)
+  call f_free(ovrlp)
 
 END SUBROUTINE checkortho_p
 
@@ -1675,8 +1597,7 @@ subroutine checkortho(norb,nvctrp,psi)
   character(len=*), parameter :: subname='checkortho'
   real(kind=8), allocatable :: ovrlp(:,:,:)
 
-  allocate(ovrlp(norb,norb,1+ndebug),stat=i_stat)
-  call memocc(i_stat,ovrlp,'ovrlp',subname)
+  ovrlp = f_malloc((/ norb, norb, 1 /),id='ovrlp')
 
   do iorb=1,norb
      do jorb=1,norb
@@ -1703,9 +1624,7 @@ subroutine checkortho(norb,nvctrp,psi)
 
   if (dev.gt.1.d-10) write(*,'(1x,a,i0,1pe13.5)') 'Deviation from orthogonality ',0,dev
 
-  i_all=-product(shape(ovrlp))*kind(ovrlp)
-  deallocate(ovrlp,stat=i_stat)
-  call memocc(i_stat,i_all,'ovrlp',subname)
+  call f_free(ovrlp)
 
 
 END SUBROUTINE checkortho
@@ -1743,8 +1662,7 @@ subroutine KStrans_p(nproc,norb,nvctrp,occup,  &
      norbs=norb
   end if
   ! set up Hamiltonian matrix
-  allocate(hamks(norbs,norb,2+ndebug),stat=i_stat)
-  call memocc(i_stat,hamks,'hamks',subname)
+  hamks = f_malloc((/ norbs, norb, 2 /),id='hamks')
 
   do jorb=1,norb
      do iorb=1,norbs
@@ -1784,19 +1702,15 @@ subroutine KStrans_p(nproc,norb,nvctrp,occup,  &
   !        enddo
 
   n_lp=max(4*norbs,1000)
-  allocate(work_lp(n_lp*2+ndebug),stat=i_stat)
-  call memocc(i_stat,work_lp,'work_lp',subname)
+  work_lp = f_malloc(n_lp*2,id='work_lp')
   if(nspinor==1) then
      call  syev('V','U',norb,hamks(1,1,1),norb,eval(1),work_lp(1),n_lp,info)
   else
-     allocate(work_rp(3*norb+1+ndebug),stat=i_stat)
-     call memocc(i_stat,work_rp,'work_rp',subname)
+     work_rp = f_malloc(3*norb+1,id='work_rp')
      
      call  heev('V','U',norb,hamks(1,1,1),norb,eval(1),work_lp(1),n_lp,work_rp(1),info)
      
-     i_all=-product(shape(work_rp))*kind(work_rp)
-     deallocate(work_rp,stat=i_stat)
-     call memocc(i_stat,i_all,'work_rp',subname)
+     call f_free(work_rp)
   end if
 
   evsum=0.0_wp
@@ -1804,13 +1718,10 @@ subroutine KStrans_p(nproc,norb,nvctrp,occup,  &
      evsum=evsum+eval(iorb)*real(occup(iorb),wp)
      !if (iproc.eq.0) write(*,'(1x,a,i0,a,1x,1pe21.14)') 'eval(',iorb,')=',eval(iorb)
   enddo
-  i_all=-product(shape(work_lp))*kind(work_lp)
-  deallocate(work_lp,stat=i_stat)
-  call memocc(i_stat,i_all,'work_lp',subname)
+  call f_free(work_lp)
   if (info.ne.0) write(*,*) 'DSYEV ERROR',info
 
-  allocate(psitt(nvctrp*nspinor,norb+ndebug),stat=i_stat)
-  call memocc(i_stat,psitt,'psitt',subname)
+  psitt = f_malloc((/ nvctrp*nspinor, norb /),id='psitt')
   ! Transform to KS orbitals
   ! dgemm can be used instead of daxpy
   if(nspinor==1) then
@@ -1829,14 +1740,10 @@ subroutine KStrans_p(nproc,norb,nvctrp,occup,  &
         enddo
      enddo
   end if
-  i_all=-product(shape(hamks))*kind(hamks)
-  deallocate(hamks,stat=i_stat)
-  call memocc(i_stat,i_all,'hamks',subname)
+  call f_free(hamks)
 
   call vcopy(nvctrp*norb*nspinor,psitt(1,1),1,psit(1,1),1)
-  i_all=-product(shape(psitt))*kind(psitt)
-  deallocate(psitt,stat=i_stat)
-  call memocc(i_stat,i_all,'psitt',subname)
+  call f_free(psitt)
 
 END SUBROUTINE KStrans_p
 
@@ -1898,8 +1805,7 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndim_ovrlp,no
      
      ! Get the dimensions of the overlap matrix for handling blocksize orbitals.
      call dimension_ovrlpFixedNorb(nspin,orbs,ndim_ovrlp,blocksize)
-     allocate(ovrlp(ndim_ovrlp(nspin,orbs%nkpts)+ndebug),stat=i_stat)
-     call memocc(i_stat,ovrlp,'ovrlp',subname)
+     ovrlp = f_malloc(ndim_ovrlp(nspin, orbs%nkpts),id='ovrlp')
      
      ! Make a loop over all blocks.
      do iblock=1,iter
@@ -1937,9 +1843,7 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndim_ovrlp,no
     
     end do
 
-    i_all=-product(shape(ovrlp))*kind(ovrlp)
-    deallocate(ovrlp, stat=i_stat)
-    call memocc(i_stat,i_all,'ovrlp',subname)
+    call f_free(ovrlp)
     
 
     ! Orthonormalize the remaining vectors, if there are any.
@@ -1953,8 +1857,7 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndim_ovrlp,no
 
         ! Get the dimensions of the overlap matrix for handling blocksize orbitals.
         call dimension_ovrlpFixedNorb(nspin,orbs,ndim_ovrlp,blocksizeSmall)
-        allocate(ovrlp(ndim_ovrlp(nspin,orbs%nkpts)+ndebug),stat=i_stat)
-        call memocc(i_stat,ovrlp,'ovrlp',subname)
+        ovrlp = f_malloc(ndim_ovrlp(nspin, orbs%nkpts),id='ovrlp')
 
         ! Determine how many blocks can be created with this new block size.
         iter2=(norbArr(ispin)-ist+1)/blocksizeSmall
@@ -1992,9 +1895,7 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndim_ovrlp,no
                     orbs, comms, ndim_ovrlp, ovrlp(1), norbArr, ist, ispin)
             end if
         end do
-        i_all=-product(shape(ovrlp))*kind(ovrlp)
-        deallocate(ovrlp, stat=i_stat)
-        call memocc(i_stat,i_all,'ovrlp',subname)
+        call f_free(ovrlp)
     end if remainingIf
     
 end do
@@ -2069,8 +1970,7 @@ do ikptp=1,orbs%nkptsp
         norb=norbIn
 
         ! Allocate the matrix A which will hold some partial results.
-        allocate(A1D(nvctrp*norb*nspinor), stat=i_stat)
-        call memocc(i_stat, A1D, 'A1D', subname)
+        A1D = f_malloc(nvctrp*norb*nspinor,id='A1D')
 
         ! Count up the starting indices.
         istThis=istThis+nvctrp*(block1-1)*nspinor
@@ -2142,9 +2042,7 @@ do ikptp=1,orbs%nkptsp
         istThis=istThis+nvctrp*(norbTot(ispin)-block1+1)*nspinor
         istOther=istOther+nvctrp*(norbTot(ispin)-block2+1)*nspinor
 
-        i_all=-product(shape(A1D))*kind(A1D)
-        deallocate(A1D)
-        call memocc(i_stat,i_all,'A1D',subname)
+        call f_free(A1D)
     end do
 end do
 
@@ -2257,8 +2155,7 @@ do ikptp=1,orbs%nkptsp
             if(usepaw==1) then
               !Pending: check that this works in parallel, and with nspinor=2
               !update cprj
-              allocate(raux(2*paw%lmnmax,norb*nspinor),stat=i_stat)
-              call memocc(i_stat,raux,'raux',subname)
+              raux = f_malloc((/ 2*paw%lmnmax, norb*nspinor /),id='raux')
               do iat=1,paw%natom
                 raux=0.d0
                 !copy cprj%cp objet to a simple array 'raux'
@@ -2275,9 +2172,7 @@ do ikptp=1,orbs%nkptsp
                 !copy back raux to cprj%cp
                 call cprj_to_array(paw%cprj(iat,:),raux,norb,nspinor,ndim_ovrlp(ispin,ikpt-1),2)
               end do
-              i_all=-product(shape(raux))*kind(raux)
-              deallocate(raux,stat=i_stat)
-              call memocc(i_stat,i_all,'raux',subname)
+              call f_free(raux)
  
             end if !usepaw
         end if !InSpin
@@ -2340,11 +2235,8 @@ if(present(paw))usepaw=paw%usepaw
 
 ! Allocate the work arrays.
 lwork=nspinor*norbIn**2+10
-allocate(tempArr(norbIn**2*nspinor,2), stat=i_stat)
-call memocc(i_stat,tempArr,'tempArr',subname)
-
-allocate(evall(norbIn), stat=i_stat)
-call memocc(i_stat,evall,'evall',subname)
+tempArr = f_malloc((/ norbIn**2*nspinor , 2 /),id='tempArr')
+evall = f_malloc(norbIn,id='evall')
 
 ist=1
 ! Make a loop over the number of k-points handled by the process.
@@ -2404,8 +2296,7 @@ do ikptp=1,orbs%nkptsp
 
             ! Now calculate the orthonormal orbitals by applying S^{-1/2} to the orbitals.
             ! This requires the use of a temporary variable psitt.
-            allocate(psitt(nvctrp*norb*nspinor),stat=i_stat)
-            call memocc(i_stat,psitt,'psitt',subname)
+            psitt = f_malloc(nvctrp*norb*nspinor,id='psitt')
             if(nspinor==1) then
                 call dgemm('n', 'n', nvctrp, norb, norb, 1.d0, psit(ist), &
                      nvctrp, tempArr(1,2), norb, 0.d0, psitt, nvctrp)
@@ -2435,8 +2326,7 @@ do ikptp=1,orbs%nkptsp
                !Pending: check that this works for more than 1 orbital, and in parallel
                !update cprj
                !icprj=icprj+(block1-1)*nspinor
-               allocate(raux(2,paw%lmnmax,paw%natom,norb*nspinor))
-               call memocc(i_stat,raux,'raux',subname)
+               raux = f_malloc((/ 2, paw%lmnmax, paw%natom, norb*nspinor /),id='raux')
                raux=0.d0
                ii=0
                do iorb=1,norb
@@ -2467,15 +2357,11 @@ do ikptp=1,orbs%nkptsp
                  end do
                end do
                !
-               i_all=-product(shape(raux))*kind(raux)
-               deallocate(raux,stat=i_stat)
-               call memocc(i_stat,i_all,'raux',subname)
+               call f_free(raux)
             end if !usepaw
 
             ! Deallocate the temporary variable psitt.
-            i_all=-product(shape(psitt))*kind(psitt)
-            deallocate(psitt,stat=i_stat)
-            call memocc(i_stat,i_all,'psitt',subname)
+            call f_free(psitt)
 
         end if
         ! Increase the starting index.
@@ -2487,13 +2373,8 @@ end do
 
 
 ! Deallocate the remaining arrays.
-i_all=-product(shape(tempArr))*kind(tempArr)
-deallocate(tempArr,stat=i_stat)
-call memocc(i_stat,i_all,'tempArr',subname)
-
-i_all=-product(shape(evall))*kind(evall)
-deallocate(evall,stat=i_stat)
-call memocc(i_stat,i_all,'evall',subname)
+call f_free(tempArr)
+call f_free(evall)
 
 END SUBROUTINE loewdin
 

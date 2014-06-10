@@ -72,7 +72,7 @@ module module_defs
 
   !interface for uninitialized variable
   interface UNINITIALIZED
-     module procedure uninitialized_dbl,uninitialized_int,uninitialized_real,uninitialized_long
+     module procedure uninitialized_dbl,uninitialized_int,uninitialized_real,uninitialized_long, uninitialized_logical
   end interface
 
   interface
@@ -118,6 +118,15 @@ module module_defs
       foo = kind(one)
       uninitialized_dbl=-123456789.d0
     end function uninitialized_dbl
+
+    function uninitialized_logical(one) 
+      implicit none
+      logical, intent(in) :: one
+      logical :: uninitialized_logical
+      integer :: foo
+      foo = kind(one)
+      uninitialized_logical=.false.
+    end function uninitialized_logical
 
     function fnrm_denpot(x,cplex,nfft,nspden,opt_denpot,user_data)
       use m_ab7_mixing, only: AB7_MIXING_DENSITY
