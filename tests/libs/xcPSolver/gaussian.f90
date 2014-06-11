@@ -1,20 +1,27 @@
 !> @file
 !!  Use integral form for Poisson solver
 !! @author
-!!    Copyright (c) 2010-2013 BigDFT group
+!!    Copyright (c) 2013-2014 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+
+
 !> Program testing new ideas like momentum-preserving gaussian integrals
 program MP_gaussian
   use module_base
   use gaussians
   use yaml_output
   implicit none
-  integer, parameter :: nmoms=16,nstep=10,nsigma=1
-  integer :: npts,j,imoms,pow,istep,isigma
-  real(gp) :: hgrid,pgauss,x0,reference,max1
+  integer, parameter :: iunit=16        !< File unit for the plot
+  integer, parameter :: nmoms=16        !< Number of calculated moments
+  integer, parameter :: nstep=10        !> Number of resolution to calculate the moments
+  integer, parameter :: nsigma=1        !< Number of different gaussian functions
+  integer, parameter :: npts=1000       !< Arrays from -npts to npts
+  real(gp), parameter :: hgrid = 1.0_gp !< Step grid
+  integer :: j,imoms,pow,istep,isigma
+  real(gp) :: pgauss,x0,reference,max1
   real(gp), dimension(0:nmoms,2) :: moments
   real(gp), dimension(3,2,0:nmoms) :: avgmaxmin
   real(gp), dimension(:), allocatable :: fj_phi,fj_coll
@@ -22,10 +29,6 @@ program MP_gaussian
 
   call f_lib_initialize()
 
-  !number of points of the array
-  npts=1000
-  hgrid=1.0_gp
-  x0=0.1_gp
   pow=1
 
   !pgauss=0.5_gp/((0.1_gp*hgrid)**2)!8.0e-3_dp*1.25_dp**(6*(8-1))
@@ -34,15 +37,16 @@ program MP_gaussian
   fj_coll=f_malloc(-npts .to. npts,id='fj_coll')
   call initialize_real_space_conversion() !initialize the work arrays needed to integrate with isf
 
+  ! Calculate for different nsigma sigma
   do isigma=1,nsigma
      pgauss=0.5_gp/((0.7_gp+0.01_gp*(isigma-1)*hgrid)**2)
      call yaml_map('sigma/h',sqrt(0.5_gp/pgauss)/hgrid)
-     !plot raw function
+     !plot raw function (fort.iunit)
      do j=-npts,npts
         if (pow /= 0) then
-           write(16,*)j,exp(-pgauss*(j*hgrid-x0)**2)*((j*hgrid-x0)**pow)
+           write(iunit,*) j,exp(-pgauss*(j*hgrid-x0)**2)*((j*hgrid-x0)**pow)
         else
-           write(16,*)j,exp(-pgauss*(j*hgrid-x0)**2)
+           write(iunit,*) j,exp(-pgauss*(j*hgrid-x0)**2)
         end if
      end do
 
@@ -68,24 +72,30 @@ program MP_gaussian
 !!$     call yaml_comment('Ref: '//trim(yaml_toa(reference,fmt='(1pe22.14)')))
 !!$  end do
 
-        !calculate average, maximum and minimum
+        !calculate the average, maximum and minimum of each moment in function of the reference
+        !j=1 use the elemental property of the mp_exp function with fj_phi
+        !j=2 collocation array with fj_coll
         do j=1,2
            do imoms=0,nmoms
               reference=gauint0(pgauss,imoms+pow)
-              if (reference /=0.0_gp) then
-                 moments(imoms,j)=abs((moments(imoms,j)-reference)/reference)
+              if (reference /= 0.0_gp) then
+                 !x^even
+                 moments(imoms,j) = abs((moments(imoms,j)-reference)/reference)
               else
-                 moments(imoms,j)=abs(moments(imoms,j))
+                 !x^odd
+                 moments(imoms,j) = abs(moments(imoms,j))
               end if
-              avgmaxmin(1,j,imoms)=avgmaxmin(1,j,imoms)+moments(imoms,j)/real(nstep,gp)
-              avgmaxmin(2,j,imoms)=max(moments(imoms,j),avgmaxmin(2,j,imoms))
-              avgmaxmin(3,j,imoms)=min(moments(imoms,j),avgmaxmin(3,j,imoms))
+              avgmaxmin(1,j,imoms) = avgmaxmin(1,j,imoms)+moments(imoms,j)/real(nstep,gp)
+              avgmaxmin(2,j,imoms) = max(moments(imoms,j),avgmaxmin(2,j,imoms))
+              avgmaxmin(3,j,imoms) = min(moments(imoms,j),avgmaxmin(3,j,imoms))
            end do
         end do
      end do
 
-     write(17,'(104(1pe14.5))')sqrt(0.5_gp/pgauss)/hgrid,avgmaxmin
-     print *,'maxdiff',sqrt(0.5_gp/pgauss)/hgrid,max1
+     !Plot fort.(iunit+1)
+     write(iunit+1,'(104(1pe14.5))') sqrt(0.5_gp/pgauss)/hgrid,avgmaxmin
+     call yaml_map('maxdiff' // trim(yaml_toa(isigma)), (/ sqrt(0.5_gp/pgauss)/hgrid, max1 /) )
+     !print *,'maxdiff',sqrt(0.5_gp/pgauss)/hgrid,max1
   end do
   call yaml_map('Results',reshape(avgmaxmin,(/6,nmoms+1/)),fmt='(1pe14.5)')
 
@@ -95,11 +105,13 @@ program MP_gaussian
   call f_lib_finalize()
 end program MP_gaussian
 
-!> classify the quality of a multipole extraction in both cases
+
+!> Classify the quality of a multipole extraction in both cases
 subroutine evaluate_moments(nmoms,npts,hgrid,pgauss,pow,x0,fj_phi,fj_coll,moments)
   use module_base, only: gp
   use gaussians, only: mp_exp
   implicit none
+  !Arguments
   integer, intent(in) :: npts,pow,nmoms
   real(gp), intent(in) :: hgrid,pgauss,x0
   real(gp), dimension(0:nmoms,2), intent(out) :: moments
@@ -123,10 +135,12 @@ subroutine evaluate_moments(nmoms,npts,hgrid,pgauss,pow,x0,fj_phi,fj_coll,moment
 
 end subroutine evaluate_moments
 
-!>calculate the moments of a array with respect to a reference point 
+
+!> Calculate the moments of an array with respect to a reference point 
 subroutine moments_1d(n,array,x0,h,nmoms,moments)
   use module_base, only:gp
   implicit none
+  !Arguments
   integer, intent(in) :: nmoms,n
   real(gp), intent(in) :: x0,h !<grid spacing
   real(gp), dimension(n), intent(in) :: array

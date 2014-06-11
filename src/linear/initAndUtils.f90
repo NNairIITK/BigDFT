@@ -13,12 +13,14 @@ subroutine allocateBasicArraysInputLin(lin, ntypes)
   implicit none
   
   ! Calling arguments
-  type(linearInputParameters),intent(inout) :: lin
+  type(linearInputParameters), intent(inout) :: lin
   integer, intent(in) :: ntypes
   
   ! Local variables
   integer :: istat
-  character(len=*),parameter :: subname='allocateBasicArrays'
+  character(len=*), parameter :: subname='allocateBasicArrays'
+
+  call f_routine(id='allocateBasicArraysInputLin')
   
   lin%norbsPerType = f_malloc_ptr(ntypes,id='lin%norbsPerType')
   lin%potentialPrefac_ao = f_malloc_ptr(ntypes,id='lin%potentialPrefac_ao')
@@ -29,7 +31,48 @@ subroutine allocateBasicArraysInputLin(lin, ntypes)
   lin%kernel_cutoff_FOE = f_malloc_ptr(ntypes,id='lin%kernel_cutoff_FOE')
   lin%kernel_cutoff = f_malloc_ptr(ntypes,id='lin%kernel_cutoff')
 
+  call f_release_routine()
+
 end subroutine allocateBasicArraysInputLin
+
+subroutine allocate_extra_lin_arrays(lin,astruct)
+  use module_atoms, only: atomic_structure
+  use module_types, only: linearInputParameters
+  use dynamic_memory
+  implicit none
+  type(atomic_structure), intent(in) :: astruct
+  type(linearInputParameters), intent(inout) :: lin
+  !local variables
+  character(len=*), parameter :: subname='allocate_extra_lin_arrays'
+  integer :: nlr,iat,itype,iiorb,iorb,istat
+  !then perform extra allocations
+  nlr=0
+  do iat=1,astruct%nat
+     itype=astruct%iatype(iat)
+     nlr=nlr+lin%norbsPerType(itype)
+  end do
+
+  lin%locrad = f_malloc_ptr(nlr,id='lin%locrad')
+  lin%locrad_kernel = f_malloc_ptr(nlr,id='lin%locrad_kernel')
+  lin%locrad_mult = f_malloc_ptr(nlr,id='lin%locrad_mult')
+  lin%locrad_lowaccuracy = f_malloc_ptr(nlr,id='lin%locrad_lowaccuracy')
+  lin%locrad_highaccuracy = f_malloc_ptr(nlr,id='lin%locrad_highaccuracy')
+
+  ! Assign the localization radius to each atom.
+  iiorb=0
+  do iat=1,astruct%nat
+     itype=astruct%iatype(iat)
+     do iorb=1,lin%norbsPerType(itype)
+        iiorb=iiorb+1
+        lin%locrad(iiorb)=lin%locrad_type(itype,1)
+        lin%locrad_kernel(iiorb)=lin%kernel_cutoff(itype)
+        lin%locrad_mult(iiorb)=lin%kernel_cutoff_FOE(itype)
+        lin%locrad_lowaccuracy(iiorb)=lin%locrad_type(itype,1) 
+        lin%locrad_highaccuracy(iiorb)=lin%locrad_type(itype,2)
+     end do
+  end do
+end subroutine allocate_extra_lin_arrays
+
 
 subroutine deallocateBasicArraysInput(lin)
   use module_base
@@ -37,11 +80,13 @@ subroutine deallocateBasicArraysInput(lin)
   implicit none
   
   ! Calling arguments
-  type(linearinputParameters),intent(inout) :: lin
+  type(linearinputParameters), intent(inout) :: lin
   
   ! Local variables
   integer :: i_stat,i_all
-  character(len=*),parameter :: subname='deallocateBasicArrays'
+  character(len=*), parameter :: subname='deallocateBasicArrays'
+
+  call f_routine(id='deallocateBasicArraysInput')
  
   if(associated(lin%potentialPrefac_ao)) then
     call f_free_ptr(lin%potentialPrefac_ao)
@@ -101,6 +146,8 @@ subroutine deallocateBasicArraysInput(lin)
     nullify(lin%kernel_cutoff)
   end if 
 
+  call f_release_routine()
+
 end subroutine deallocateBasicArraysInput
 
 
@@ -114,19 +161,19 @@ subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locreg
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc
-  type(local_zone_descriptors),intent(inout) :: lzd
-  real(kind=8),intent(in) :: hx, hy, hz
-  type(atomic_structure),intent(in) :: astruct
-  type(orbitals_data),intent(in) :: orbs
-  type(locreg_descriptors),intent(in) :: Glr
-  character(len=1),intent(in) :: locregShape
+  integer, intent(in) :: iproc, nproc
+  type(local_zone_descriptors), intent(inout) :: lzd
+  real(kind=8), intent(in) :: hx, hy, hz
+  type(atomic_structure), intent(in) :: astruct
+  type(orbitals_data), intent(in) :: orbs
+  type(locreg_descriptors), intent(in) :: Glr
+  character(len=1), intent(in) :: locregShape
   type(orbitals_data),optional,intent(in) :: lborbs
   
   ! Local variables
   integer :: istat, jorb, jjorb, jlr, iall
-  character(len=*),parameter :: subname='initLocregs'
-  logical,dimension(:),allocatable :: calculateBounds
+  character(len=*), parameter :: subname='initLocregs'
+  logical,dimension(:), allocatable :: calculateBounds
 
   
   calculateBounds = f_malloc(lzd%nlr,id='calculateBounds')
@@ -176,17 +223,17 @@ subroutine init_foe(iproc, nproc, nlr, locregcenter, astruct, input, orbs_KS, or
   use module_base
   use module_atoms, only: atomic_structure
   use module_types
-  use foe_base, only: foe_data, foe_data_set_int, foe_data_set_real, foe_data_get_real, foe_data_null
+  use foe_base, only: foe_data, foe_data_set_int, foe_data_set_real, foe_data_set_logical, foe_data_get_real, foe_data_null
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, nlr
-  real(kind=8),dimension(3,nlr),intent(in) :: locregcenter
-  !!type(local_zone_descriptors),intent(in) :: lzd
-  type(atomic_structure),intent(in) :: astruct
-  type(input_variables),intent(in) :: input
-  type(orbitals_data),intent(in) :: orbs_KS, orbs
-  type(foe_data),intent(out) :: foe_obj
+  integer, intent(in) :: iproc, nproc, nlr
+  real(kind=8),dimension(3,nlr), intent(in) :: locregcenter
+  !!type(local_zone_descriptors), intent(in) :: lzd
+  type(atomic_structure), intent(in) :: astruct
+  type(input_variables), intent(in) :: input
+  type(orbitals_data), intent(in) :: orbs_KS, orbs
+  type(foe_data), intent(out) :: foe_obj
   logical, intent(in) :: reset
   real(kind=8),optional,intent(in) :: cutoff_incr
   
@@ -195,8 +242,8 @@ subroutine init_foe(iproc, nproc, nlr, locregcenter, astruct, input, orbs_KS, or
   integer :: iwa, jwa, itype, jtype, ierr, iall, isegstart
   logical :: seg_started
   real(kind=8) :: tt, cut, incr
-  logical,dimension(:,:),allocatable :: kernel_locreg
-  character(len=*),parameter :: subname='init_foe'
+  logical,dimension(:,:), allocatable :: kernel_locreg
+  character(len=*), parameter :: subname='init_foe'
 
   if (present(cutoff_incr)) then
       incr=cutoff_incr
@@ -227,6 +274,7 @@ subroutine init_foe(iproc, nproc, nlr, locregcenter, astruct, input, orbs_KS, or
      call foe_data_set_int(foe_obj,"evboundsshrink_nsatur",input%evboundsshrink_nsatur)
      call foe_data_set_real(foe_obj,"fscale_lowerbound",input%fscale_lowerbound)
      call foe_data_set_real(foe_obj,"fscale_upperbound",input%fscale_upperbound)
+     call foe_data_set_logical(foe_obj,"adjust_FOE_temperature",input%adjust_FOE_temperature)
   end if
 
   call timing(iproc,'init_matrCompr','OF')
@@ -245,7 +293,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
   integer, intent(in) :: iproc,nproc,nspin
   type(local_zone_descriptors), intent(inout) :: Lzd
   type(atoms_data), intent(in) :: atoms
-  type(orbitals_data),intent(inout) :: orbs
+  type(orbitals_data), intent(inout) :: orbs
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   integer, intent(in) :: linType
 !  real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
@@ -255,7 +303,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
   real(gp) :: rcov
   integer :: iat,ityp,nspin_ig,i_all,i_stat,ilr
   real(gp), dimension(:), allocatable :: locrad
-  logical,dimension(:),allocatable :: calculateBounds
+  logical,dimension(:), allocatable :: calculateBounds
 
   !default variables
   Lzd%nlr = 1
@@ -377,7 +425,7 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
   real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors), intent(in) :: Glr
   type(atoms_data), intent(in) :: atoms
-  type(orbitals_data),intent(inout) :: orbs
+  type(orbitals_data), intent(inout) :: orbs
   integer, intent(in) :: linearmode
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   type(local_zone_descriptors), intent(inout) :: Lzd
@@ -389,7 +437,7 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
   integer :: iat,ityp,nspin_ig,ilr
   real(gp) :: rcov
   real(gp), dimension(:), allocatable :: locrad
-  logical,dimension(:),allocatable :: calculateBounds,lr_mask
+  logical,dimension(:), allocatable :: calculateBounds,lr_mask
 
   call f_routine(id=subname)
   !default variables
@@ -533,19 +581,21 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, nspinor
-  type(input_variables),intent(in) :: input
-  type(atomic_structure),intent(in) :: astruct
-  real(kind=8),dimension(3,astruct%nat),intent(in) :: rxyz
-  type(orbitals_data),intent(out) :: lorbs
+  integer, intent(in) :: iproc, nproc, nspinor
+  type(input_variables), intent(in) :: input
+  type(atomic_structure), intent(in) :: astruct
+  real(kind=8),dimension(3,astruct%nat), intent(in) :: rxyz
+  type(orbitals_data), intent(out) :: lorbs
   
   ! Local variables
   integer :: norb, norbu, norbd, ityp, iat, ilr, istat, iall, iorb, nlr
-  integer,dimension(:),allocatable :: norbsPerLocreg, norbsPerAtom
-  real(kind=8),dimension(:,:),allocatable :: locregCenter
-  character(len=*),parameter :: subname='init_orbitals_data_for_linear'
+  integer, dimension(:), allocatable :: norbsPerLocreg, norbsPerAtom
+  real(kind=8),dimension(:,:), allocatable :: locregCenter
+  character(len=*), parameter :: subname='init_orbitals_data_for_linear'
 
   call timing(iproc,'init_orbs_lin ','ON')
+
+  call f_routine(id='init_orbitals_data_for_linear')
   
   call nullify_orbitals_data(lorbs)
  
@@ -601,6 +651,8 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
   call f_free(locregCenter)
   call f_free(norbsPerAtom)
 
+  call f_release_routine()
+
   call timing(iproc,'init_orbs_lin ','OF')
 
 end subroutine init_orbitals_data_for_linear
@@ -614,20 +666,23 @@ subroutine lzd_init_llr(iproc, nproc, input, astruct, rxyz, orbs, lzd)
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc
-  type(input_variables),intent(in) :: input
-  type(atomic_structure),intent(in) :: astruct
-  real(kind=8),dimension(3,astruct%nat),intent(in) :: rxyz
-  type(orbitals_data),intent(in) :: orbs
-  type(local_zone_descriptors),intent(inout) :: lzd
+  integer, intent(in) :: iproc, nproc
+  type(input_variables), intent(in) :: input
+  type(atomic_structure), intent(in) :: astruct
+  real(kind=8),dimension(3,astruct%nat), intent(in) :: rxyz
+  type(orbitals_data), intent(in) :: orbs
+  type(local_zone_descriptors), intent(inout) :: lzd
   
   ! Local variables
   integer :: iat, ityp, ilr, istat, iorb, iall
-  real(kind=8),dimension(:,:),allocatable :: locregCenter
-  character(len=*),parameter :: subname='lzd_init_llr'
+  real(kind=8),dimension(:,:), allocatable :: locregCenter
+  character(len=*), parameter :: subname='lzd_init_llr'
   real(8):: t1, t2
 
   call timing(iproc,'init_locregs  ','ON')
+
+  call f_routine(id='lzd_init_llr')
+
   t1=mpi_wtime()
   
   nullify(lzd%llr)
@@ -661,6 +716,9 @@ subroutine lzd_init_llr(iproc, nproc, input, astruct, rxyz, orbs, lzd)
   
   t2=mpi_wtime()
   !if(iproc==0) write(*,*) 'in lzd_init_llr: time',t2-t1
+
+  call f_release_routine()
+
   call timing(iproc,'init_locregs  ','OF')
 
 end subroutine lzd_init_llr
@@ -679,30 +737,33 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, nlr
-  integer,intent(out) :: npsidim_orbs, npsidim_comp
+  integer, intent(in) :: iproc, nproc, nlr
+  integer, intent(out) :: npsidim_orbs, npsidim_comp
   logical,intent(in) :: useDerivativeBasisFunctions
-  integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-  real(kind=8),intent(in) :: hx, hy, hz
-  type(atomic_structure),intent(in) :: astruct
-  type(input_variables),intent(in) :: input
-  real(kind=8),dimension(nlr),intent(in) :: locrad, locrad_kernel, locrad_mult
-  type(orbitals_data),intent(in) :: orbs_KS, orbs
-  real(kind=8),dimension(3,nlr),intent(in) :: locregCenter
-  type(locreg_descriptors),intent(in) :: glr_tmp
-  type(local_zone_descriptors),intent(inout) :: lzd
-  type(p2pComms),intent(inout) :: lbcomgp
-  type(foe_data),intent(inout),optional :: lfoe
-  type(comms_linear),intent(inout) :: lbcollcom
-  type(comms_linear),intent(inout),optional :: lbcollcom_sr
+  integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+  real(kind=8), intent(in) :: hx, hy, hz
+  type(atomic_structure), intent(in) :: astruct
+  type(input_variables), intent(in) :: input
+  real(kind=8),dimension(nlr), intent(in) :: locrad, locrad_kernel, locrad_mult
+  type(orbitals_data), intent(in) :: orbs_KS, orbs
+  real(kind=8),dimension(3,nlr), intent(in) :: locregCenter
+  type(locreg_descriptors), intent(in) :: glr_tmp
+  type(local_zone_descriptors), intent(inout) :: lzd
+  type(p2pComms), intent(inout) :: lbcomgp
+  type(foe_data), intent(inout),optional :: lfoe
+  type(comms_linear), intent(inout) :: lbcollcom
+  type(comms_linear), intent(inout),optional :: lbcollcom_sr
 
   
   ! Local variables
   integer :: iorb, ilr, npsidim, istat
-  real(kind=8),dimension(:,:),allocatable :: locreg_centers
-  character(len=*),parameter :: subname='update_locreg'
+  real(kind=8),dimension(:,:), allocatable :: locreg_centers
+  character(len=*), parameter :: subname='update_locreg'
 
   call timing(iproc,'updatelocreg1','ON') 
+
+  call f_routine(id='update_locreg')
+
   !if (present(lfoe)) call nullify_foe(lfoe)
   if (present(lfoe)) lfoe = foe_data_null()
   !call nullify_comms_linear(lbcollcom)
@@ -768,6 +829,8 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
   call initialize_communication_potential(iproc, nproc, nscatterarr, orbs, lzd, lbcomgp)
   call allocate_p2pComms_buffer(lbcomgp)
 
+  call f_release_routine()
+
 end subroutine update_locreg
 
 
@@ -777,9 +840,9 @@ subroutine update_ldiis_arrays(tmb, subname, ldiis)
   implicit none
 
   ! Calling arguments
-  type(DFT_wavefunction),intent(in) :: tmb
-  character(len=*),intent(in) :: subname
-  type(localizedDIISParameters),intent(inout) :: ldiis
+  type(DFT_wavefunction), intent(in) :: tmb
+  character(len=*), intent(in) :: subname
+  type(localizedDIISParameters), intent(inout) :: ldiis
 
   ! Local variables
   integer :: iall, istat, ii, iorb, ilr
@@ -804,9 +867,9 @@ subroutine allocate_auxiliary_basis_function(npsidim, subname, lphi, lhphi)
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: npsidim
-  real(kind=8),dimension(:),pointer,intent(out) :: lphi, lhphi
-  character(len=*),intent(in) :: subname
+  integer, intent(in) :: npsidim
+  real(kind=8),dimension(:), pointer,intent(out) :: lphi, lhphi
+  character(len=*), intent(in) :: subname
 
   ! Local variables
   integer :: istat
@@ -825,8 +888,8 @@ subroutine deallocate_auxiliary_basis_function(subname, lphi, lhphi)
   implicit none
 
   ! Calling arguments
-  real(kind=8),dimension(:),pointer :: lphi, lhphi
-  character(len=*),intent(in) :: subname
+  real(kind=8),dimension(:), pointer :: lphi, lhphi
+  character(len=*), intent(in) :: subname
 
   ! Local variables
   integer :: istat, iall
@@ -847,11 +910,11 @@ subroutine destroy_new_locregs(iproc, nproc, tmb)
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc
-  type(DFT_wavefunction),intent(inout) :: tmb
+  integer, intent(in) :: iproc, nproc
+  type(DFT_wavefunction), intent(inout) :: tmb
 
   ! Local variables
-  character(len=*),parameter :: subname='destroy_new_locregs'
+  character(len=*), parameter :: subname='destroy_new_locregs'
 
   !!call wait_p2p_communication(iproc, nproc, tmb%comgp)
   call synchronize_onesided_communication(iproc, nproc, tmb%comgp)
@@ -875,13 +938,17 @@ subroutine destroy_DFT_wavefunction(wfn)
   implicit none
   
   ! Calling arguments
-  type(DFT_wavefunction),intent(inout) :: wfn
+  type(DFT_wavefunction), intent(inout) :: wfn
 
   ! Local variables
   integer :: istat, iall
-  character(len=*),parameter :: subname='destroy_DFT_wavefunction'
+  character(len=*), parameter :: subname='destroy_DFT_wavefunction'
+
+  call f_routine(id='destroy_DFT_wavefunction')
 
   call f_free_ptr(wfn%psi)
+  call f_free_ptr(wfn%psit_c)
+  call f_free_ptr(wfn%psit_f)
 
   call deallocate_p2pComms(wfn%comgp)
   call deallocate_sparse_matrix(wfn%linmat%s, subname)
@@ -901,6 +968,8 @@ subroutine destroy_DFT_wavefunction(wfn)
       call f_free_ptr(wfn%coeff)
   end if
 
+  call f_release_routine()
+
 end subroutine destroy_DFT_wavefunction
 
 
@@ -910,8 +979,8 @@ subroutine update_wavefunctions_size(lzd,npsidim_orbs,npsidim_comp,orbs,iproc,np
   implicit none
 
   ! Calling arguments
-  type(local_zone_descriptors),intent(in) :: lzd
-  type(orbitals_data),intent(in) :: orbs
+  type(local_zone_descriptors), intent(in) :: lzd
+  type(orbitals_data), intent(in) :: orbs
   integer, intent(in) :: iproc, nproc
   integer, intent(out) :: npsidim_orbs, npsidim_comp
 
@@ -921,6 +990,8 @@ subroutine update_wavefunctions_size(lzd,npsidim_orbs,npsidim_comp,orbs,iproc,np
   integer, allocatable, dimension(:) :: ncntt 
   integer, allocatable, dimension(:,:) :: nvctr_par
   character(len = *), parameter :: subname = "update_wavefunctions_size"
+
+  call f_routine(id='update_wavefunctions_size')
 
   npsidim = 0
   do iorb=1,orbs%norbp
@@ -957,6 +1028,8 @@ subroutine update_wavefunctions_size(lzd,npsidim_orbs,npsidim_comp,orbs,iproc,np
 
   call f_free(ncntt)
 
+  call f_release_routine()
+
 end subroutine update_wavefunctions_size
 
 
@@ -967,21 +1040,21 @@ subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,input, at, 
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(DFT_Wavefunction),intent(inout):: KSwfn, tmb
-  type(DFT_local_fields),intent(in):: denspot
+  integer, intent(in):: iproc, nproc
+  type(DFT_Wavefunction), intent(inout):: KSwfn, tmb
+  type(DFT_local_fields), intent(in):: denspot
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
-  type(input_variables),intent(in):: input
-  type(atoms_data),intent(in):: at
-  real(8),dimension(3,at%astruct%nat),intent(in):: rxyz
+  type(input_variables), intent(in):: input
+  type(atoms_data), intent(in):: at
+  real(8),dimension(3,at%astruct%nat), intent(in):: rxyz
   logical,intent(in):: lowaccur_converged
 
   ! Local variables
   integer:: iorb, ilr, istat
   logical, dimension(:), allocatable :: lr_mask
-  real(8),dimension(:,:),allocatable:: locrad_tmp
-  real(8),dimension(:,:),allocatable:: locregCenter
-  character(len=*),parameter:: subname='create_large_tmbs'
+  real(8),dimension(:,:), allocatable:: locrad_tmp
+  real(8),dimension(:,:), allocatable:: locregCenter
+  character(len=*), parameter:: subname='create_large_tmbs'
 
   call f_routine(id=subname)
 
@@ -1010,8 +1083,8 @@ subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,input, at, 
        tmb%ham_descr%psi, tmb%hpsi)
 
   tmb%ham_descr%can_use_transposed=.false.
-  nullify(tmb%ham_descr%psit_c)
-  nullify(tmb%ham_descr%psit_f)
+  !!nullify(tmb%ham_descr%psit_c)
+  !!nullify(tmb%ham_descr%psit_f)
   allocate(tmb%confdatarr(tmb%orbs%norbp), stat=istat)
 
   if(.not.lowaccur_converged) then
@@ -1075,12 +1148,12 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: nlr
-  type(orbitals_data),intent(in) :: lorbs
-  type(input_variables),intent(in) :: input
-  type(atoms_data),intent(in) :: at
-  integer,dimension(lorbs%norb),intent(in) :: onwhichatom
-  type(confpot_data),dimension(lorbs%norbp),intent(inout) :: confdatarr
+  integer, intent(in) :: nlr
+  type(orbitals_data), intent(in) :: lorbs
+  type(input_variables), intent(in) :: input
+  type(atoms_data), intent(in) :: at
+  integer, dimension(lorbs%norb), intent(in) :: onwhichatom
+  type(confpot_data),dimension(lorbs%norbp), intent(inout) :: confdatarr
   real(kind=8), intent(out) :: convCritMix, alpha_mix, convcrit_dmin, conv_crit_TMB
   logical, intent(in) :: lowaccur_converged
   integer, intent(out) :: nit_scc, mix_hist, nitdmin
@@ -1161,25 +1234,27 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   implicit none
   
   ! Calling argument
-  integer,intent(in) :: iproc, nproc
-  real(8),intent(in) :: hx, hy, hz
-  type(atoms_data),intent(in) :: at
-  type(input_variables),intent(in) :: input
-  real(8),dimension(3,at%astruct%nat),intent(in):: rxyz
-  type(DFT_wavefunction),intent(inout) :: KSwfn, tmb
-  type(DFT_local_fields),intent(inout) :: denspot
+  integer, intent(in) :: iproc, nproc
+  real(8), intent(in) :: hx, hy, hz
+  type(atoms_data), intent(in) :: at
+  type(input_variables), intent(in) :: input
+  real(8),dimension(3,at%astruct%nat), intent(in):: rxyz
+  type(DFT_wavefunction), intent(inout) :: KSwfn, tmb
+  type(DFT_local_fields), intent(inout) :: denspot
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
-  type(localizedDIISParameters),intent(inout) :: ldiis
+  type(localizedDIISParameters), intent(inout) :: ldiis
   logical, intent(out) :: locreg_increased
   logical, intent(in) :: lowaccur_converged
   real(8), dimension(tmb%lzd%nlr), intent(inout) :: locrad
 
   ! Local variables
   integer :: iall, istat, ilr, npsidim_orbs_tmp, npsidim_comp_tmp
-  real(kind=8),dimension(:,:),allocatable :: locregCenter
-  real(kind=8),dimension(:),allocatable :: lphilarge, locrad_kernel, locrad_mult
+  real(kind=8),dimension(:,:), allocatable :: locregCenter
+  real(kind=8),dimension(:), allocatable :: lphilarge, locrad_kernel, locrad_mult
   type(local_zone_descriptors) :: lzd_tmp
   character(len=*), parameter :: subname='adjust_locregs_and_confinement'
+
+  call f_routine(id='adjust_locregs_and_confinement')
 
   locreg_increased=.false.
   if(lowaccur_converged ) then
@@ -1258,7 +1333,12 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      call deallocate_local_zone_descriptors(lzd_tmp, subname)
      call f_free_ptr(tmb%psi)
+     call f_free_ptr(tmb%psit_c)
+     call f_free_ptr(tmb%psit_f)
      tmb%psi = f_malloc_ptr(tmb%npsidim_orbs,id='tmb%psi')
+     tmb%psit_c = f_malloc_ptr(tmb%collcom%ndimind_c,id='tmb%psit_c')
+     tmb%psit_f = f_malloc_ptr(7*tmb%collcom%ndimind_f,id='tmb%psit_f')
+
      call vcopy(tmb%npsidim_orbs, lphilarge(1), 1, tmb%psi(1), 1)
      call f_free(lphilarge)
      
@@ -1280,14 +1360,18 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      call deallocate_auxiliary_basis_function(subname, tmb%ham_descr%psi, tmb%hpsi)
      if(tmb%ham_descr%can_use_transposed) then
-        call f_free_ptr(tmb%ham_descr%psit_c)
-        call f_free_ptr(tmb%ham_descr%psit_f)
+        !call f_free_ptr(tmb%ham_descr%psit_c)
+        !call f_free_ptr(tmb%ham_descr%psit_f)
         tmb%ham_descr%can_use_transposed=.false.
      end if
      
      deallocate(tmb%confdatarr, stat=istat)
 
      call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp, input, at, rxyz, lowaccur_converged)
+     call f_free_ptr(tmb%ham_descr%psit_c)
+     call f_free_ptr(tmb%ham_descr%psit_f)
+     tmb%ham_descr%psit_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='tmb%ham_descr%psit_c')
+     tmb%ham_descr%psit_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='tmb%ham_descr%psit_f')
 
      ! check the extent of the kernel cutoff (must be at least shamop radius)
      call check_kernel_cutoff(iproc, tmb%orbs, at, tmb%lzd)
@@ -1349,6 +1433,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
   end if
 
+  call f_release_routine()
+
 end subroutine adjust_locregs_and_confinement
 
 
@@ -1360,9 +1446,9 @@ subroutine adjust_DIIS_for_high_accuracy(input, denspot, mixdiis, lowaccur_conve
   implicit none
   
   ! Calling arguments
-  type(input_variables),intent(in) :: input
-  type(DFT_local_fields),intent(inout) :: denspot
-  type(mixrhopotDIISParameters),intent(inout) :: mixdiis
+  type(input_variables), intent(in) :: input
+  type(DFT_local_fields), intent(inout) :: denspot
+  type(mixrhopotDIISParameters), intent(inout) :: mixdiis
   logical, intent(in) :: lowaccur_converged
   integer, intent(inout) :: ldiis_coeff_hist
   logical, intent(out) :: ldiis_coeff_changed  
@@ -1398,9 +1484,9 @@ subroutine check_whether_lowaccuracy_converged(itout, nit_lowaccuracy, lowaccura
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: itout
-  integer,intent(in) :: nit_lowaccuracy
-  real(8),intent(in) :: lowaccuracy_convcrit
+  integer, intent(in) :: itout
+  integer, intent(in) :: nit_lowaccuracy
+  real(8), intent(in) :: lowaccuracy_convcrit
   logical, intent(inout) :: lowaccur_converged
   real(kind=8), intent(in) :: pnrm_out
   
@@ -1422,15 +1508,15 @@ subroutine set_variables_for_hybrid(nlr, input, at, orbs, lowaccur_converged, co
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: nlr
-  type(input_variables),intent(in) :: input
-  type(atoms_data),intent(in) :: at
-  type(orbitals_data),intent(in) :: orbs
+  integer, intent(in) :: nlr
+  type(input_variables), intent(in) :: input
+  type(atoms_data), intent(in) :: at
+  type(orbitals_data), intent(in) :: orbs
   logical,intent(out) :: lowaccur_converged
-  type(confpot_data),dimension(orbs%norbp),intent(inout) :: confdatarr
-  integer,intent(out) :: target_function, nit_basis, nit_scc, mix_hist
-  real(kind=8),dimension(nlr),intent(out) :: locrad
-  real(kind=8),intent(out) :: alpha_mix, convCritMix, conv_crit_TMB
+  type(confpot_data),dimension(orbs%norbp), intent(inout) :: confdatarr
+  integer, intent(out) :: target_function, nit_basis, nit_scc, mix_hist
+  real(kind=8),dimension(nlr), intent(out) :: locrad
+  real(kind=8), intent(out) :: alpha_mix, convCritMix, conv_crit_TMB
 
   ! Local variables
   integer :: iorb, ilr, iiat
@@ -1466,22 +1552,24 @@ subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs,
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc
-  type(local_zone_descriptors),intent(in) :: lzd
-  type(atomic_structure),intent(in) :: astruct
-  type(input_variables),intent(in) :: input
-  type(orbitals_data),intent(in) :: orbs_KS, orbs
-  type(foe_data),intent(out) :: foe_obj
+  integer, intent(in) :: iproc, nproc
+  type(local_zone_descriptors), intent(in) :: lzd
+  type(atomic_structure), intent(in) :: astruct
+  type(input_variables), intent(in) :: input
+  type(orbitals_data), intent(in) :: orbs_KS, orbs
+  type(foe_data), intent(out) :: foe_obj
   logical,intent(in) :: init
   ! Local variables
   integer :: ilr
   real(kind=8),save :: cutoff_incr
-  real(kind=8),dimension(:,:),allocatable :: locreg_centers
-  character(len=*),parameter :: subname='increase_FOE_cutoff'
+  real(kind=8),dimension(:,:), allocatable :: locreg_centers
+
+  call f_routine(id='increase_FOE_cutoff')
 
   ! Just initialize the save variable
   if (init) then
       cutoff_incr=0.d0
+      call f_release_routine()
       return
   end if
 
@@ -1505,6 +1593,8 @@ subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs,
        cutoff_incr=cutoff_incr)
   call f_free(locreg_centers)
 
+  call f_release_routine()
+
 end subroutine increase_FOE_cutoff
 
 
@@ -1515,8 +1605,8 @@ subroutine clean_rho(iproc, nproc, npt, rho)
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, npt
-  real(kind=8),dimension(npt),intent(inout) :: rho
+  integer, intent(in) :: iproc, nproc, npt
+  real(kind=8),dimension(npt), intent(inout) :: rho
 
   ! Local variables
   integer :: ncorrection, ipt, ierr
@@ -1573,11 +1663,11 @@ subroutine corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, 
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc
-  type(DFT_wavefunction),intent(in) :: KSwfn
-  type(atoms_data),intent(in) :: at
-  type(input_variables),intent(in) :: input
-  type(DFT_wavefunction),intent(inout) :: tmb
+  integer, intent(in) :: iproc, nproc
+  type(DFT_wavefunction), intent(in) :: KSwfn
+  type(atoms_data), intent(in) :: at
+  type(input_variables), intent(in) :: input
+  type(DFT_wavefunction), intent(inout) :: tmb
   type(DFT_local_fields), intent(inout) :: denspot
 
   !!if (iproc==0) then
@@ -1597,8 +1687,6 @@ subroutine corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, 
 end subroutine corrections_for_negative_charge
 
 
-
-
 subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero)
       use module_base
       use module_types
@@ -1606,22 +1694,22 @@ subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc
-      type(orbitals_data),intent(in) :: orbs
-      type(local_zone_descriptors),intent(in) :: lzd
-      integer,intent(out) :: nnonzero
-      integer,dimension(:),pointer,intent(out) :: nonzero
+      integer, intent(in) :: iproc, nproc
+      type(orbitals_data), intent(in) :: orbs
+      type(local_zone_descriptors), intent(in) :: lzd
+      integer, intent(out) :: nnonzero
+      integer, dimension(:), pointer,intent(out) :: nonzero
     
       ! Local variables
-      integer :: jproc, iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold
-      integer :: iiorb, istat, iall, noverlaps, ierr, ii
+      integer :: iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold
+      integer :: iiorb, iall, ierr, ii
+      !!integer :: istat
       logical :: isoverlap
       integer :: onseg
-      logical,dimension(:,:),allocatable :: overlapMatrix
-      integer,dimension(:),allocatable :: noverlapsarr, displs, recvcnts, op_noverlaps
-      integer,dimension(:,:),allocatable :: overlaps_op, op_overlaps
-      integer,dimension(:,:,:),allocatable :: overlaps_nseg
-      !character(len=*),parameter :: subname='determine_overlap_from_descriptors'
+      logical, dimension(:,:), allocatable :: overlapMatrix
+      integer, dimension(:), allocatable :: noverlapsarr, displs, op_noverlaps
+      integer, dimension(:,:), allocatable :: overlaps_op
+      !character(len=*), parameter :: subname='determine_overlap_from_descriptors'
 
       call f_routine('determine_sparsity_pattern')
     
@@ -1712,12 +1800,12 @@ subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonz
   implicit none
 
   ! Calling arguments
-  type(orbitals_data),intent(in) :: orbs
-  type(local_zone_descriptors),intent(in) :: lzd
-  type(atomic_structure),intent(in) :: astruct
-  real(kind=8),dimension(lzd%nlr),intent(in) :: cutoff
-  integer,intent(out) :: nnonzero
-  integer,dimension(:),pointer,intent(out) :: nonzero
+  type(orbitals_data), intent(in) :: orbs
+  type(local_zone_descriptors), intent(in) :: lzd
+  type(atomic_structure), intent(in) :: astruct
+  real(kind=8),dimension(lzd%nlr), intent(in) :: cutoff
+  integer, intent(out) :: nnonzero
+  integer, dimension(:), pointer,intent(out) :: nonzero
 
   ! Local variables
   integer :: iorb, iiorb, ilr, iwa, itype, jjorb, jlr, jwa, jtype, ii
@@ -1783,19 +1871,19 @@ subroutine init_sparse_matrix_wrapper(iproc, nproc, orbs, lzd, astruct, store_in
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, imode
-  type(orbitals_data),intent(in) :: orbs
-  type(local_zone_descriptors),intent(in) :: lzd
-  type(atomic_structure),intent(in) :: astruct
+  integer, intent(in) :: iproc, nproc, imode
+  type(orbitals_data), intent(in) :: orbs
+  type(local_zone_descriptors), intent(in) :: lzd
+  type(atomic_structure), intent(in) :: astruct
   logical,intent(in) :: store_index
   type(sparse_matrix), intent(out) :: smat
   
   ! Local variables
   integer :: nnonzero, nnonzero_mult, ilr
-  integer,dimension(:),pointer :: nonzero, nonzero_mult
-  real(kind=8),dimension(:),allocatable :: cutoff
-  integer,parameter :: KEYS=1
-  integer,parameter :: DISTANCE=2
+  integer, dimension(:), pointer :: nonzero, nonzero_mult
+  real(kind=8),dimension(:), allocatable :: cutoff
+  integer, parameter :: KEYS=1
+  integer, parameter :: DISTANCE=2
 
   cutoff = f_malloc(lzd%nlr,id='cutoff')
 
@@ -1829,16 +1917,16 @@ subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, nextra
-  type(orbitals_data),intent(in) :: orbs
-  type(input_variables),intent(in) :: input
-  type(sparse_matrix),intent(out) :: smat, smat_extra
+  integer, intent(in) :: iproc, nproc, nextra
+  type(orbitals_data), intent(in) :: orbs
+  type(input_variables), intent(in) :: input
+  type(sparse_matrix), intent(out) :: smat, smat_extra
 
   ! Local variables
   integer :: i, iorb, iiorb, jorb, ind
-  integer,dimension(:),allocatable :: nonzero
+  integer, dimension(:), allocatable :: nonzero
   type(orbitals_data) :: orbs_aux
-  character(len=*),parameter :: subname='init_sparse_matrix_for_KSorbs'
+  character(len=*), parameter :: subname='init_sparse_matrix_for_KSorbs'
 
   call f_routine('init_sparse_matrix_for_KSorbs')
 

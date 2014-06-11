@@ -15,34 +15,34 @@
 subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
      hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder)
 
-   use module_base
-   use module_types
+  use module_base
+  use module_types
 
-   implicit none
-   integer, intent(in) :: iproc,nproc
-   integer, intent(in) :: ncong                !> number of CG iterations
-   integer, intent(in) :: ncplx                !> real or complex??
-   integer, intent(in) :: confPotOrder         
-   real(gp), intent(in) :: hx,hy,hz            !> hgrid in x, y and z direction
-   real(gp), intent(in) :: cprecr              !> preconditioning constant
-   real(gp), intent(in) :: kx,ky,kz            !> kpoints in x, y and z direction
-   type(locreg_descriptors), intent(in) :: lr  !> Type describing the localization region
-   !> on input: the right hand side of the equation (i.e. y)
-   !! on output: the solution of the equation (i.e. x)
-   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(inout) :: x
-   real(kind=8), dimension(3), intent(in) :: rxyzParab !> the center of the confinement potential
-   type(orbitals_data), intent(in) :: orbs     !> type describing the orbitals
-   real(kind=8) :: potentialPrefac             !> prefactor for the confinement potential
+  implicit none
+  integer, intent(in) :: iproc,nproc
+  integer, intent(in) :: ncong                !> number of CG iterations
+  integer, intent(in) :: ncplx                !> real or complex??
+  integer, intent(in) :: confPotOrder         
+  real(gp), intent(in) :: hx,hy,hz            !> hgrid in x, y and z direction
+  real(gp), intent(in) :: cprecr              !> preconditioning constant
+  real(gp), intent(in) :: kx,ky,kz            !> kpoints in x, y and z direction
+  type(locreg_descriptors), intent(in) :: lr  !> Type describing the localization region
+  !> on input: the right hand side of the equation (i.e. y)
+  !! on output: the solution of the equation (i.e. x)
+  real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(inout) :: x
+  real(kind=8), dimension(3), intent(in) :: rxyzParab !> the center of the confinement potential
+  type(orbitals_data), intent(in) :: orbs     !> type describing the orbitals
+  real(kind=8) :: potentialPrefac             !> prefactor for the confinement potential
 
-   ! Local variables
-   character(len=*), parameter :: subname='precondition_residue'
-   real(gp), dimension(0:7) :: scal
-   real(wp) :: rmr_old,rmr_new,alpha,beta
-   integer :: i_stat,i_all,icong
-   type(workarr_precond) :: w
-   real(wp), dimension(:), allocatable :: b,r,d
-   logical:: with_confpot
-   type(workarrays_quartic_convolutions):: work_conv
+  ! Local variables
+  character(len=*), parameter :: subname='precondition_residue'
+  real(gp), dimension(0:7) :: scal
+  real(wp) :: rmr_old,rmr_new,alpha,beta
+  integer :: i_stat,i_all,icong
+  type(workarr_precond) :: w
+  real(wp), dimension(:), allocatable :: b,r,d
+  logical:: with_confpot
+  type(workarrays_quartic_convolutions):: work_conv
 
   !arrays for the CG procedure
   b = f_malloc(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),id='b')

@@ -38,7 +38,7 @@ contains
 
     call f_err_define(err_name='YAML_PARSE_ERROR',&
          err_msg='YAML parse error.',&
-         err_action='modify your inputs.',&
+         err_action='Modify your inputs.',&
          err_id=YAML_PARSE_ERROR)
     call f_err_define(err_name='YAML_PARSE_UNSUPPORTED',&
          err_msg='YAML standard not supported.',&

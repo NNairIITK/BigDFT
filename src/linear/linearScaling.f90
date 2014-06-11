@@ -32,15 +32,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   integer,intent(in) :: iproc, nproc
   type(atoms_data),intent(inout) :: at
   type(input_variables),intent(in) :: input ! need to hack to be inout for geopt changes
-  real(8),dimension(3,at%astruct%nat),intent(inout) :: rxyz
-  real(8),dimension(3,at%astruct%nat),intent(out) :: fpulay
+  real(kind=8),dimension(3,at%astruct%nat),intent(inout) :: rxyz
+  real(kind=8),dimension(3,at%astruct%nat),intent(out) :: fpulay
   type(DFT_local_fields), intent(inout) :: denspot
   real(gp), dimension(*), intent(inout) :: rhopotold
   type(DFT_PSP_projectors),intent(inout) :: nlpsp
   type(GPU_pointers),intent(inout) :: GPU
   type(energy_terms),intent(inout) :: energs
   real(gp), dimension(:), pointer :: rho,pot
-  real(8),intent(out) :: energy
+  real(kind=8),intent(out) :: energy
   type(DFT_wavefunction),intent(inout),target :: tmb
   type(DFT_wavefunction),intent(inout),target :: KSwfn
   integer,intent(out) :: infocode
@@ -48,24 +48,24 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   type(cdft_data), intent(inout) :: cdft
   real(kind=8),dimension(3,at%astruct%nat),intent(in) :: fdisp, fion
   
-  real(8) :: pnrm,trace,trace_old,fnrm_tmb
+  real(kind=8) :: pnrm,trace,trace_old,fnrm_tmb
   integer :: infoCoeff,istat,iall,it_scc,itout,info_scf,i,ierr,iorb
   character(len=*), parameter :: subname='linearScaling'
-  real(8),dimension(:),allocatable :: rhopotold_out
-  real(8) :: energyold, energyDiff, energyoldout, fnrm_pulay, convCritMix
+  real(kind=8),dimension(:),allocatable :: rhopotold_out
+  real(kind=8) :: energyold, energyDiff, energyoldout, fnrm_pulay, convCritMix
   type(mixrhopotDIISParameters) :: mixdiis
   type(localizedDIISParameters) :: ldiis!, ldiis_coeff
   type(DIIS_obj) :: ldiis_coeff, vdiis
   logical :: can_use_ham, update_phi, locreg_increased, reduce_conf, orthonormalization_on
   logical :: fix_support_functions, check_initialguess
   integer :: itype, istart, nit_lowaccuracy, nit_highaccuracy
-  real(8),dimension(:),allocatable :: locrad_tmp
+  real(kind=8),dimension(:),allocatable :: locrad_tmp
   integer :: ldiis_coeff_hist, nitdmin
   logical :: ldiis_coeff_changed
   integer :: mix_hist, info_basis_functions, nit_scc, cur_it_highaccuracy
-  real(8) :: pnrm_out, alpha_mix, ratio_deltas, convcrit_dmin
+  real(kind=8) :: pnrm_out, alpha_mix, ratio_deltas, convcrit_dmin
   logical :: lowaccur_converged, exit_outer_loop
-  real(8),dimension(:),allocatable :: locrad
+  real(kind=8),dimension(:),allocatable :: locrad
   integer:: target_function, nit_basis
   type(sparse_matrix) :: ham_small
   integer :: isegsmall, iseglarge, iismall, iilarge, is, ie
@@ -80,26 +80,29 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   !!! EXPERIMENTAL ############################################
   type(sparse_matrix) :: denskern_init
-  real(8),dimension(:),allocatable :: rho_init, rho_init_old, philarge
-  real(8) :: tt, ddot, tt_old, meanconf_der, weight_boundary, weight_tot
-  integer :: idens_cons, ii, sdim, ldim, npsidim_large, ists, istl, nspin, unitname, ilr
-  real(8),dimension(10000) :: meanconf_array
-  character(len=5) :: num
+  !!real(kind=8),dimension(:),allocatable :: rho_init, rho_init_old, philarge
+  real(kind=8) :: ddot, meanconf_der
+  !!real(kind=8) :: weight_tot, weight_boundary, tt_old, tt
+  !!integer :: unitname, sdim, num_points, num_points_tot
+  integer :: idens_cons, ii, ldim, npsidim_large, ists, istl, nspin, ilr
+  real(kind=8),dimension(10000) :: meanconf_array
+  !!character(len=5) :: num
   character(len=50) :: filename
-  real(kind=8),dimension(:,:),allocatable :: phi_delta
+  !!real(kind=8),dimension(:,:),allocatable :: phi_delta
   !!! #########################################################
 
   ! DEBUG - for calculating centres
-  type(workarr_sumrho) :: w
-  real(gp), allocatable, dimension(:,:,:,:) :: psir
+  !!type(workarr_sumrho) :: w
+  !!real(gp), allocatable, dimension(:,:,:,:) :: psir
   integer :: ind, i_all, i_stat, nspinor, ix, iy, iz, iix, iiy, iiz
-  real(gp) :: psix, psiy, psiz, xcent, ycent, zcent
+  !!real(gp) :: psix, psiy, psiz, xcent, ycent, zcent
 
-  character(len=12) :: orbname
-  real(gp), allocatable, dimension(:) :: psi2, gpsi, gpsi2
-  real(gp), allocatable, dimension(:,:,:,:) :: psir2
-  real(gp) :: tmb_diff, max_tmb_diff, cut
-  integer :: j, k, n1i, n2i, n3i, i1, i2, i3, num_points, num_points_tot
+  !!character(len=12) :: orbname
+  !!real(gp), allocatable, dimension(:) :: psi2, gpsi, gpsi2
+  !!real(gp), allocatable, dimension(:,:,:,:) :: psir2
+  real(gp) :: max_tmb_diff, cut
+  !!real(gp) :: tmb_diff
+  integer :: j, k, n1i, n2i, n3i, i1, i2, i3
 
   integer :: ist, iiorb, ncount
   real(kind=8) :: fnoise, pressure, ehart_fake, dnrm2
@@ -174,8 +177,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   end if
 
   tmb%can_use_transposed=.false.
-  nullify(tmb%psit_c)
-  nullify(tmb%psit_f)
+  !nullify(tmb%psit_c)
+  !nullify(tmb%psit_f)
 
   call timing(iproc,'linscalinit','OF') !lr408t
 
@@ -306,7 +309,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   !   iat=tmb%orbs%onwhichatom(iorb+tmb%orbs%isorb)
   !   ilr=tmb%orbs%inwhichlocreg(iorb+tmb%orbs%isorb)
   !
-  !   allocate(psir(tmb%lzd%llr(ilr)%d%n1i, tmb%lzd%llr(ilr)%d%n2i, tmb%lzd%llr(ilr)%d%n3i, 1+ndebug),stat=i_stat)
+  !   allocate(psir(tmb%lzd%llr(ilr)%d%n1i, tmb%lzd%llr(ilr)%d%n2i, tmb%lzd%llr(ilr)%d%n3i, 1+ndebug),stat=I_stat)
   !   call memocc(i_stat,psir,'psir',subname)
   !   call initialize_work_arrays_sumrho(tmb%lzd%llr(ilr),w)
   !
@@ -425,7 +428,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                      infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,update_phi,&
                      .true.,ham_small,input%lin%extra_states,itout,0,0,input%lin%order_taylor,&
-                     input%purification_quickreturn,input%adjust_FOE_temperature,&
+                     input%purification_quickreturn,&
                      input%calculate_KS_residue,input%calculate_gap,&
                      convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
              end if
@@ -469,12 +472,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
       ! Do nothing if no low accuracy is desired.
       if (nit_lowaccuracy==0 .and. itout==0) then
-          if (associated(tmb%psit_c)) then
-              call f_free_ptr(tmb%psit_c)
-          end if
-          if (associated(tmb%psit_f)) then
-              call f_free_ptr(tmb%psit_f)
-          end if
+          !!if (associated(tmb%psit_c)) then
+          !!    call f_free_ptr(tmb%psit_c)
+          !!end if
+          !!if (associated(tmb%psit_f)) then
+          !!    call f_free_ptr(tmb%psit_f)
+          !!end if
           tmb%can_use_transposed=.false.
           if (iproc==0) then
               call yaml_sequence(advance='no')
@@ -566,7 +569,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    ratio_deltas,orthonormalization_on,input%lin%extra_states,itout,conv_crit_TMB,input%experimental_mode,&
                    input%lin%early_stop, input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
                    can_use_ham, input%lin%order_taylor, input%kappa_conv,&
-                   input%method_updatekernel,input%purification_quickreturn, input%adjust_FOE_temperature, &
+                   input%method_updatekernel,input%purification_quickreturn, &
                    input%correction_co_contra)
                reduce_conf=.true.
            !!else
@@ -626,12 +629,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                ! and start with a new AO input guess.
                if (iproc==0) write(*,'(1x,a)') 'There are convergence problems after the restart. &
                                                 &Start over again with an AO input guess.'
-               if (associated(tmb%psit_c)) then
-                   call f_free_ptr(tmb%psit_c)
-               end if
-               if (associated(tmb%psit_f)) then
-                   call f_free_ptr(tmb%psit_f)
-               end if
+               !!if (associated(tmb%psit_c)) then
+               !!    call f_free_ptr(tmb%psit_c)
+               !!end if
+               !!if (associated(tmb%psit_f)) then
+               !!    call f_free_ptr(tmb%psit_f)
+               !!end if
                infocode=2
                exit outerLoop
            end if
@@ -764,14 +767,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,update_phi,&
                         .false.,ham_small,input%lin%extra_states,itout,it_scc,cdft_it,input%lin%order_taylor,&
-                        input%purification_quickreturn,input%adjust_FOE_temperature,&
+                        input%purification_quickreturn,&
                         input%calculate_KS_residue,input%calculate_gap,&
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,update_phi,&
                         .false.,ham_small,input%lin%extra_states,itout,it_scc,cdft_it,input%lin%order_taylor,&
-                        input%purification_quickreturn,input%adjust_FOE_temperature,&
+                        input%purification_quickreturn,&
                         input%calculate_KS_residue,input%calculate_gap,&
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
                 end if
@@ -780,14 +783,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,update_phi,&
                         .true.,ham_small,input%lin%extra_states,itout,it_scc,cdft_it,input%lin%order_taylor,&
-                        input%purification_quickreturn,input%adjust_FOE_temperature,&
+                        input%purification_quickreturn,&
                         input%calculate_KS_residue,input%calculate_gap,&
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,update_phi,&
                         .true.,ham_small,input%lin%extra_states,itout,it_scc,cdft_it,input%lin%order_taylor,&
-                        input%purification_quickreturn,input%adjust_FOE_temperature,&
+                        input%purification_quickreturn,&
                         input%calculate_KS_residue,input%calculate_gap,&
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
                 end if
@@ -1129,8 +1132,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       ! CDFT: end of CDFT loop to find V which correctly imposes constraint and corresponding density
 
       if(tmb%can_use_transposed) then
-          call f_free_ptr(tmb%psit_c)
-          call f_free_ptr(tmb%psit_f)
+          !!call f_free_ptr(tmb%psit_c)
+          !!call f_free_ptr(tmb%psit_f)
           tmb%can_use_transposed=.false.
       end if
 
@@ -1182,7 +1185,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.false.,&
            .true.,ham_small,input%lin%extra_states,itout,0,0,input%lin%order_taylor,&
-           input%purification_quickreturn,input%adjust_FOE_temperature,&
+           input%purification_quickreturn,&
            input%calculate_KS_residue,input%calculate_gap)
 
        !!if (input%lin%scf_mode==LINEAR_FOE) then
@@ -1203,7 +1206,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
           infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.false.,&
           .true.,ham_small,input%lin%extra_states,itout,0,0,input%lin%order_taylor,&
-          input%purification_quickreturn,input%adjust_FOE_temperature,&
+          input%purification_quickreturn,&
           input%calculate_KS_residue,input%calculate_gap)
       !!call scalprod_on_boundary(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
       call pulay_correction_new(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
@@ -1447,7 +1450,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
 
     subroutine check_inputguess()
-      real(8) :: dnrm2
+      real(kind=8) :: dnrm2
       if (input%inputPsiId==101) then           !should we put 102 also?
 
           if (input%lin%pulay_correction) then
@@ -1472,12 +1475,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                     call yaml_warning('The pulay force is too large after the restart. &
                          &Start over again with an AO input guess.')
                 end if
-                if (associated(tmb%psit_c)) then
-                    call f_free_ptr(tmb%psit_c)
-                end if
-                if (associated(tmb%psit_f)) then
-                    call f_free_ptr(tmb%psit_f)
-                end if
+                !!if (associated(tmb%psit_c)) then
+                !!    call f_free_ptr(tmb%psit_c)
+                !!end if
+                !!if (associated(tmb%psit_f)) then
+                !!    call f_free_ptr(tmb%psit_f)
+                !!end if
                 tmb%can_use_transposed=.false.
                 nit_lowaccuracy=input%lin%nit_lowaccuracy
                 nit_highaccuracy=input%lin%nit_highaccuracy
@@ -1607,7 +1610,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
     subroutine print_info(final)
       implicit none
 
-      real(8) :: energyDiff, mean_conf
+      real(kind=8) :: energyDiff, mean_conf
       logical, intent(in) :: final
 
       energyDiff = energy - energyoldout
@@ -1752,14 +1755,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       ioffset=kswfn%Lzd%Glr%d%n1i*kswfn%Lzd%Glr%d%n2i*denspot%dpbox%i3xcsh
 
       if (denspot%dpbox%ndimpot>0) then
-          !denspot%pot_work=f_malloc_ptr(denspot%dpbox%ndimpot+ndebug,id='denspot%dpbox%ndimpot+ndebug')
-          allocate(denspot%pot_work(denspot%dpbox%ndimpot+ndebug),stat=i_stat)
-          call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
+          denspot%pot_work=f_malloc_ptr(denspot%dpbox%ndimpot+ndebug,id='denspot%dpbox%ndimpot+ndebug')
 
       else
-          !denspot%pot_work=f_malloc_ptr(1+ndebug,id='denspot%dpbox%ndimpot+ndebug')
-          allocate(denspot%pot_work(1+ndebug),stat=i_stat)
-          call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
+          denspot%pot_work=f_malloc_ptr(1+ndebug,id='denspot%dpbox%ndimpot+ndebug')
       end if
       if (denspot%dpbox%ndimrhopot>0) then
           rhopot_work=f_malloc(denspot%dpbox%ndimrhopot+ndebug,id='rhopot_work')
@@ -1812,10 +1811,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
       call f_free(rhopot_work)
       call f_free_ptr(denspot%rho_work)
-      !call f_free_ptr(denspot%pot_work)
-      i_all=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
-      deallocate(denspot%pot_work,stat=i_stat)
-      call memocc(i_stat,i_all,'denspot%pot_work',subname)
+      call f_free_ptr(denspot%pot_work)
 
 
     end subroutine intermediate_forces
@@ -1840,7 +1836,7 @@ subroutine output_fragment_rotations(iproc,nat,rxyz,iformat,filename,input_frag,
   type(fragmentInputParameters), intent(in) :: input_frag
   type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
   !Local variables
-  integer :: i_stat, i_all, ifrag, jfrag, ifrag_ref, jfrag_ref, iat, isfat, jsfat
+  integer :: ifrag, jfrag, ifrag_ref, jfrag_ref, iat, isfat, jsfat
   real(kind=gp), dimension(:,:), allocatable :: rxyz_ref, rxyz_new
   real(kind=gp) :: null_axe
   type(fragment_transformation) :: frag_trans

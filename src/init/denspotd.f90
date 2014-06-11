@@ -7,6 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+
 !> Denspot initialization
 subroutine initialize_DFT_local_fields(denspot, ixc, nspden)
   use module_base

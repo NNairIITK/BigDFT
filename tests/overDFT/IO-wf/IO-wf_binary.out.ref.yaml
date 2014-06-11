@@ -218,6 +218,15 @@
  - O: {AU:  [  0.0000,  0.0000,  0.0000 ], GU:  [  0.0000,  0.0000,  0.0000 ]} # 0001
  - O: {AU:  [  0.0000,  0.0000,  2.2828 ], GU:  [  0.0000,  0.0000,  6.4427 ]} # 0002
  Rigid Shift Applied (AU)              :  [  0.0000,  0.0000,  0.0000 ]
+ Atomic structure:
+   Units                               : angstroem
+   Cell                                :  [  4.5,  4.5,  4.5 ]
+   Positions:
+   -  {O: [ 0.000000000,  0.000000000,  0.000000000],  # [  0.00,  0.00,  0.00 ] 0001
+ IGSpin:  2}
+   -  {O: [ 0.000000000,  0.000000000,  1.208000000],  # [  0.00,  0.00,  3.41 ] 0002
+ IGSpin:  2}
+   Rigid Shift Applied (AU)            :  [  0.0000,  0.0000,  0.0000 ]
   #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.3543,  0.3543,  0.3543 ]
  Sizes of the simulation domain:
@@ -470,6 +479,7 @@
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - symmetries have been disabled, k points are not irreductible.
+ - No convergence within the allowed number of minimization steps
  - Wavefunctions not converged after cycle  1
  - Self-consistent cycle did not meet convergence criteria
  Memory Consumption Report:

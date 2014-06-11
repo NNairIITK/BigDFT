@@ -39,6 +39,8 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    type(energy_terms) :: energs
    real(wp), dimension(:), pointer :: psiw,psirocc,pot
 
+   call f_routine(id='direct_minimization')
+
    !supplementary messages
    msg=.false.
 
@@ -127,7 +129,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
       !transpose the wavefunction psi 
       call transpose_v(iproc,nproc,KSwfn%orbs,KSwfn%lzd%glr%wfd,KSwfn%comms,KSwfn%psi(1),psiw(1))
 
-         call f_free_ptr(psiw)
+      call f_free_ptr(psiw)
    end if
 
    VTwfn%orbs%eval = f_malloc_ptr(VTwfn%orbs%norb*VTwfn%orbs%nkpts,id='VTwfn%orbs%eval')
@@ -162,8 +164,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
       !reallocate the work array with the good size
       psiw = f_malloc_ptr(max(VTwfn%orbs%npsidim_orbs, VTwfn%orbs%npsidim_comp),id='psiw')
    else
-      allocate(psiw(1+ndebug),stat=i_stat)
-      call memocc(i_stat,psiw,'psiw',subname)
+      psiw = f_malloc_ptr(1,id='psiw')
    end if
 
    call untranspose_v(iproc,nproc,VTwfn%orbs,VTwfn%Lzd%Glr%wfd,VTwfn%comms,VTwfn%psi(1),psiw(1))
@@ -328,9 +329,9 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
 
    call untranspose_v(iproc,nproc,KSwfn%orbs,KSwfn%Lzd%Glr%wfd,KSwfn%comms,KSwfn%psi(1),psiw(1))
 
-   if(nproc > 1) then
+   !!if(nproc > 1) then
       call f_free_ptr(psiw)
-   end if
+   !!end if
    !!!!! end point of the direct minimisation procedure
 
    !deallocate potential
@@ -347,6 +348,8 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    !the plotting should be added here (perhaps build a common routine?)
    call write_eigen_objects(iproc,occorbs,in%nspin,nvirt,in%nplot,VTwfn%Lzd%hgrids(1),VTwfn%Lzd%hgrids(2),VTwfn%Lzd%hgrids(3),&
         at,rxyz,KSwfn%Lzd%Glr,KSwfn%orbs,VTwfn%orbs,KSwfn%psi,VTwfn%psi,in%output_wf_format)
+
+   call f_release_routine()
 
  END SUBROUTINE direct_minimization
 
@@ -1186,8 +1189,10 @@ subroutine davidson(iproc,nproc,in,at,&
       call timing(iproc,'Davidson      ','ON')
       iter=iter+1
       if(iter>in%itermax+100)then !an input variable should be put
-         if(iproc==0)write(*,'(1x,a)')&
-            &   'No convergence within the allowed number of minimization steps (itermax + 100)'
+         if(iproc==0) call yaml_warning( &
+            &   'No convergence within the allowed number of minimization steps (itermax + 100)')
+         !if(iproc==0)write(*,'(1x,a)')&
+         !   &   'No convergence within the allowed number of minimization steps (itermax + 100)'
          exit davidson_loop
       end if
 

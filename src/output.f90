@@ -676,31 +676,24 @@ subroutine write_eigenvalues_data(etol,orbs,mom_vec)
   else
      tolerance=etol
   end if
+  
+  ! Calculate and print the magnetisation, no matter the verbosity
+  if (orbs%nspin == 2) then
+     mpol = 0._gp
+     do ikpt=1,orbs%nkpts
+        isorb = (ikpt - 1) * orbs%norb
+        do iorb = 1, orbs%norbu
+           mpol = mpol + orbs%occup(isorb + iorb) * orbs%kwgts(ikpt)
+        end do
+        do iorb = orbs%norbu + 1, orbs%norb, 1
+           mpol = mpol - orbs%occup(isorb + iorb) * orbs%kwgts(ikpt)
+        end do
+     end do
+     call yaml_map("Total magnetization",mpol,fmt='(f9.6)')
+  end if
 
   if (verbose > 1) then
      call yaml_comment('Eigenvalues and New Occupation Numbers')
-     !call yaml_open_map('Eigenvalues and New Occupation Numbers')
-     !write(*,'(1x,a)')&
-     !     &   '--------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers'
-     ! Calculate and print the magnetisation
-     if (orbs%nspin == 2) then
-        mpol = 0._gp
-        do ikpt=1,orbs%nkpts
-           isorb = (ikpt - 1) * orbs%norb
-           do iorb = 1, orbs%norbu
-              mpol = mpol + orbs%occup(isorb + iorb) * orbs%kwgts(ikpt)
-           end do
-           do iorb = orbs%norbu + 1, orbs%norb, 1
-              mpol = mpol - orbs%occup(isorb + iorb) * orbs%kwgts(ikpt)
-           end do
-        end do
-        !write(*,"(1x,A,f9.6)")"Total magnetisation: ", mpol
-        call yaml_map("Total magnetization",mpol,fmt='(f9.6)')
-     end if
-     !if (orbs%nspinor ==4) then
-     !   write(*,'(1x,a)')&
-     !        &   '           Eigenvalue                                      m_x       m_y       m_z'
-     !end if
 
      call yaml_open_sequence('Orbitals',flow=.true.)
      call yaml_newline()
@@ -1470,6 +1463,8 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
   !  end if
 END SUBROUTINE print_atomic_variables
 
+
+!> Display an estimation of the occupied memory
 subroutine print_memory_estimation(mem)
   use module_types
   use yaml_output
@@ -1531,17 +1526,20 @@ contains
 
 END SUBROUTINE print_memory_estimation
 
+
+!> Display information about the box and the grid
 subroutine print_atoms_and_grid(Glr, atoms, rxyz, shift, hx, hy, hz)
   use module_defs
   use module_types
   use yaml_output
   implicit none
+  !Arguments
   type(atoms_data), intent(in) :: atoms
   type(locreg_descriptors), intent(in) :: Glr
   real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz
   real(gp), dimension(3), intent(in) :: shift
   real(gp), intent(in) :: hx, hy, hz
-
+  !Local variables
   integer :: iat, iunit
 
   if (atoms%astruct%ntypes > 0) then
@@ -1676,6 +1674,7 @@ subroutine print_nlpsp(nlpsp)
 END SUBROUTINE print_nlpsp
 
 
+!> Display information about the electronic orbitals
 subroutine print_orbitals(orbs, geocode)
   use module_types, only: orbitals_data
   use module_defs, only: gp

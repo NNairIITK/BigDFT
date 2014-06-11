@@ -1793,7 +1793,7 @@ nullify(Qvect,dumQvect)
 
     !Local variables
     character(len=*), parameter :: subname='chebychev'
-    integer :: i_stat,i_all
+!!$    integer :: i_stat,i_all
     type(lanczos_args) :: ha
     integer :: i
 

@@ -301,35 +301,36 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
   !call timing(iproc,'Exchangecorr  ','ON')
   call f_timing(TCAT_EXCHANGECORR,'ON')
 
-call to_zero(6,xcstr(1))
-call to_zero(6,wbstr(1))
-call to_zero(6,rhocstr(1))
+  call to_zero(6,xcstr(1))
+  call to_zero(6,wbstr(1))
+  call to_zero(6,rhocstr(1))
 
   wrtmsg=.false.
   !calculate the dimensions wrt the geocode
-  if (geocode == 'P') then
+  select case(geocode)
+  case('P')
      if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',xcObj%ixc,' ... '
      call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,.false.)
-  else if (geocode == 'S') then
+  case('S')
      if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',xcObj%ixc,' ... '
      call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
-  else if (geocode == 'F') then
+  case('F')
      if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',xcObj%ixc,' ... '
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
-  else if (geocode == 'W') then
+  case('W')
      if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i7,a)',advance='no')&
           'PSolver, wires  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',xcObj%ixc,' ... '
      call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
-  else
+  case default
      stop 'XC potential: geometry code not admitted'
-  end if
+  end select
 
   !dimension for exchange-correlation (different in the global or distributed case)
   !let us calculate the dimension of the portion of the rho array to be passed 
@@ -354,7 +355,7 @@ call to_zero(6,rhocstr(1))
   nxt=nwbr+nwb+nwbl
 
   !quick return if no Semilocal XC potential is required (Hartree or Hartree-Fock)
-  if (xcObj%ixc == 0 .or. xcObj%ixc == 100) then
+  if (xcObj%ixc == XC_HARTREE .or. xcObj%ixc == XC_HARTREE_FOCK .or. xcObj%ixc == XC_NO_HARTREE) then
      if (datacode == 'G') then
         call to_zero(n01*n02*n03*nspin,potxc(1))
         !call dscal(n01*n02*n03,0.0_dp,potxc,1)

@@ -98,9 +98,9 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
   verbose=runObj%inputs%verbosity
 
   ! Use the restart for the linear scaling version... probably to be modified.
-  if(runObj%inputs%inputPsiId==1) then
+  if(runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_WVL) then
       if (runObj%rst%version == LINEAR_VERSION) then
-          runObj%inputs%inputPsiId=101
+          runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_LINEAR
           do iorb=1,runObj%rst%tmb%orbs%norb
               if (runObj%inputs%lin%locrad_lowaccuracy(iorb) /=  runObj%inputs%lin%locrad_highaccuracy(iorb))then
                   stop 'ERROR: at the moment the radii for low and high accuracy must be the same &
@@ -121,65 +121,69 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
         end do
      end if
 
-     if (runObj%inputs%inputPsiId == 0 .and. associated(runObj%rst%KSwfn%psi)) then
+     if (runObj%inputs%inputPsiId == INPUT_PSI_LCAO .and. associated(runObj%rst%KSwfn%psi)) then
         !call f_free_ptr(runObj%rst%KSwfn%psi)
-        i_all=-product(shape(runObj%rst%KSwfn%psi))*kind(runObj%rst%KSwfn%psi)
-        deallocate(runObj%rst%KSwfn%psi,stat=i_stat)
-        call memocc(i_stat,i_all,'runObj%rst%KSwfn%psi',subname)
+        call f_free_ptr(runObj%rst%KSwfn%psi)
 
         call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
 
         call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
      end if
+
      !experimental, finite difference method for calculating forces on particular quantities
      inquire(file='input.finite_difference_forces',exist=exists)
      if (exists) then
         runObj%inputs%last_run=1 !do the last_run things nonetheless
-        runObj%inputs%inputPsiId=0 !the first run always restart from IG
+        runObj%inputs%inputPsiId = INPUT_PSI_LCAO !the first run always restart from IG
         !experimental_modulebase_var_onlyfion=.true. !put only ionic forces in the forces
      end if
+
+     !Main routine calculating the KS orbitals
      call cluster(nproc,iproc,runObj%atoms,runObj%rst%rxyz_new, runObj%radii_cf, &
           & outs%energy, outs%energs, outs%fxyz, outs%strten, outs%fnoise, outs%pressure,&
           runObj%rst%KSwfn,runObj%rst%tmb,&!psi,runObj%rst%Lzd,runObj%rst%gaucoeffs,runObj%rst%gbd,runObj%rst%orbs,&
           runObj%rst%rxyz_old,runObj%rst%hx_old,runObj%rst%hy_old,runObj%rst%hz_old,runObj%inputs,runObj%rst%GPU,infocode)
+
      !save the new atomic positions in the rxyz_old array
      do iat=1,runObj%atoms%astruct%nat
         runObj%rst%rxyz_old(1,iat)=runObj%rst%rxyz_new(1,iat)
         runObj%rst%rxyz_old(2,iat)=runObj%rst%rxyz_new(2,iat)
         runObj%rst%rxyz_old(3,iat)=runObj%rst%rxyz_new(3,iat)
      enddo
+
      if (exists) then
         call forces_via_finite_differences(iproc,nproc,runObj%atoms,runObj%inputs, &
              & outs%energy,outs%fxyz,outs%fnoise,runObj%rst,infocode)
      end if
 
-     if (runObj%inputs%inputPsiId==1 .and. infocode==2) then
+     !Check infocode in function of the inputPsiId parameters
+     !and change the strategy of input guess psi
+     if (runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_WVL .and. infocode==2) then
         if (runObj%inputs%gaussian_help) then
-           runObj%inputs%inputPsiId=11
+           runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_GAUSS
         else
-           runObj%inputs%inputPsiId=0
+           runObj%inputs%inputPsiId = INPUT_PSI_LCAO
         end if
-     else if (runObj%inputs%inputPsiId==101 .and. infocode==2) then
+     else if (runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_LINEAR .and. infocode==2) then
          ! problems after restart for linear version
-         runObj%inputs%inputPsiId=100
-     else if ((runObj%inputs%inputPsiId==1 .or. runObj%inputs%inputPsiId==0) .and. infocode==1) then
-        !runObj%inputs%inputPsiId=0 !better to diagonalise than to restart an input guess
-        runObj%inputs%inputPsiId=1
+         runObj%inputs%inputPsiId = INPUT_PSI_LINEAR_AO
+     else if ((runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_WVL .or. &
+               runObj%inputs%inputPsiId == INPUT_PSI_LCAO) .and. infocode==1) then
+        !runObj%inputs%inputPsiId=INPUT_PSI_LCAO !better to diagonalise than to restart an input guess
+        runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_WVL
         !if (iproc==0) then
         !   call yaml_warning('Self-consistent cycle did not meet convergence criteria')
         !   write(*,*)&
         !        &   ' WARNING: Self-consistent cycle did not meet convergence criteria'
         !end if
         exit loop_cluster
-     else if (runObj%inputs%inputPsiId == 0 .and. infocode==3) then
+     else if (runObj%inputs%inputPsiId == INPUT_PSI_LCAO .and. infocode==3) then
         if (iproc == 0) then
            write( *,'(1x,a)')'Convergence error, cannot proceed.'
            write( *,'(1x,a)')' writing positions in file posfail.xyz then exiting'
            write(comment,'(a)')'UNCONVERGED WF '
            !call wtxyz('posfail',energy,rxyz,atoms,trim(comment))
-
            call write_atomic_file("posfail",outs%energy,runObj%rst%rxyz_new,runObj%atoms,trim(comment))
-
         end if
 
         call f_free_ptr(runObj%rst%KSwfn%psi)
@@ -250,10 +254,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   !!   - 0 run successfully succeded
   !!   - 1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
   !!       forces may be meaningless   
-  !!   - 2 (present only for inputPsiId=1) gnrm of the first iteration > 1 AND growing in
+  !!   - 2 (present only for inputPsiId=INPUT_PSI_MEMORY_WVL) gnrm of the first iteration > 1 AND growing in
   !!       the second iteration OR grnm 1st >2.
   !!       Input wavefunctions need to be recalculated. Routine exits.
-  !!   - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
+  !!   - 3 (present only for inputPsiId=INPUT_PSI_LCAO) gnrm > 4. SCF error. Routine exits.
   integer, intent(out) :: infocode
   !local variables
   character(len=*), parameter :: subname='cluster'
@@ -314,7 +318,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   !real(kind=8) :: ddot
 
   call f_routine(id=subname)
-
 
   !copying the input variables for readability
   !this section is of course not needed
@@ -514,7 +517,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
 
 
-
      ! check the extent of the kernel cutoff (must be at least shamop radius)
      call check_kernel_cutoff(iproc, tmb%orbs, atoms, tmb%lzd)
 
@@ -553,7 +555,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
          call check_matrix_compression(iproc, tmb%linmat%l, tmb%linmat%kernel_)
          if (iproc ==0) call yaml_close_map()
      end if
-
 
 
 
@@ -739,7 +740,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      end if
   else
 
-     ! Allococation of array for Pulay forces (only needed for linear version)
+     ! Allocation of array for Pulay forces (only needed for linear version)
      fpulay = f_malloc_ptr((/ 3, atoms%astruct%nat /),id='fpulay')
 
 
@@ -1292,8 +1293,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      !    Calculate energy correction due to finite size effects
      !    ---reformat potential
      !!denspot%pot_work = f_malloc_ptr(n1i*n2i*n3i*in%nspin,id='denspot%pot_work')
-     allocate(denspot%pot_work(n1i*n2i*n3i*in%nspin),stat=i_stat)
-     call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
+     denspot%pot_work = f_malloc_ptr(n1i*n2i*n3i*in%nspin,id='denspot%pot_work')
 
 
      if (nproc > 1) then
@@ -1325,9 +1325,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
           KSwfn%psi,(in%output_denspot /= 0),energs%ekin,energs%epot,energs%eproj)
 
      !call f_free_ptr(denspot%pot_work)
-     i_all=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
-     deallocate(denspot%pot_work,stat=i_stat)
-     call memocc(i_stat,i_all,'denspot%pot_work',subname)
+     call f_free_ptr(denspot%pot_work)
 
 
      energs%ebs=energs%ekin+energs%epot+energs%eproj
@@ -1400,12 +1398,8 @@ contains
 
        call dpbox_free(denspot%dpbox, subname)
 
-       i_all=-product(shape(fion))*kind(fion)
-       deallocate(fion,stat=i_stat)
-       call memocc(i_stat,i_all,'fion',subname)
-       i_all=-product(shape(fdisp))*kind(fdisp)
-       deallocate(fdisp,stat=i_stat)
-       call memocc(i_stat,i_all,'fdisp',subname)
+       call f_free_ptr(fion)
+       call f_free_ptr(fdisp)
     end if
     call xc_end(denspot%xc)
 
@@ -1540,7 +1534,6 @@ contains
 
   end subroutine build_dict_info
 
-
 END SUBROUTINE cluster
 
 
@@ -1551,6 +1544,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   use module_base
   use module_types
   use module_interfaces, except_this_one => kswfn_optimization_loop
+  use module_xc, only: XC_NO_HARTREE
   use yaml_output
   implicit none
   real(dp), dimension(6), intent(out) :: xcstr
@@ -1606,7 +1600,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   end if
   opt%itrp=1
   rhopot_loop: do
-  KSwfn%diis%energy_old=1.d100
+     KSwfn%diis%energy_old=1.d100
      if (opt%itrp > opt%itrpmax) exit
      !yaml output 
      if (iproc==0) then
@@ -1667,13 +1661,16 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            !stop the partial timing counter if necessary
            if (endloop .and. opt%itrpmax==1) call timing(bigdft_mpi%mpi_comm,'WFN_OPT','PR')
            !logical flag for the self-consistent potential
-           scpot=(opt%iscf > SCF_KIND_DIRECT_MINIMIZATION .and. opt%iter==1 .and. opt%itrep==1) .or. & !mixing to be done
-                (opt%iscf <= SCF_KIND_DIRECT_MINIMIZATION)!direct minimisation
+           scpot=((opt%iscf > SCF_KIND_DIRECT_MINIMIZATION .and. opt%iter==1 .and. opt%itrep==1) .or. & !mixing to be done
+                (opt%iscf <= SCF_KIND_DIRECT_MINIMIZATION)) .and. & !direct minimisation
+                .not. (denspot%xc%ixc == XC_NO_HARTREE) ! Need to calculate the scp pot (i.e. Hartree + XC)
            !allocate the potential in the full box
            !temporary, should change the use of flag in full_local_potential2
            linflag = 1                                 
            if(in%linear == INPUT_IG_OFF) linflag = 0
            if(in%linear == INPUT_IG_TMO) linflag = 2
+
+           !Calculates the application of the Hamiltonian on the wavefunction
            call psitohpsi(iproc,nproc,atoms,scpot,denspot,opt%itrp,opt%iter,opt%iscf,alphamix,&
                 nlpsp,rxyz,linflag,in%unblock_comms,GPU,KSwfn,energs,opt%rpnrm,xcstr)
 
@@ -1775,7 +1772,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
         if (iproc==0) then
            call yaml_close_sequence() !wfn iterations
            if (opt%iter == opt%itermax .and. opt%infocode/=0) &
-             &  call yaml_comment('No convergence within the allowed number of minimization steps')
+             &  call yaml_warning('No convergence within the allowed number of minimization steps')
              !&   write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
         end if
         call last_orthon(iproc,nproc,opt%iter,KSwfn,energs%evsum,.true.) !never deallocate psit and hpsi
@@ -1790,6 +1787,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            if(iproc==0) then
               if (opt%itrp == opt%itrpmax .and. opt%gnrm_cv > 0.0_gp) &
                    call yaml_warning('Wavefunctions not converged after cycle '// trim(yaml_toa(opt%itrep,fmt='(i0)')))
+              if (opt%itrpmax > 1 .and. opt%itrp == opt%itrpmax .and. opt%gnrm > sqrt(opt%rpnrm)) &
+                   call yaml_warning('Wavefunction residue is not consistent with density convergence (T_el too small?)')
               if (opt%itrep < opt%nrepmax) call yaml_comment('restart after diagonalisation')
               ! write(*,*) ' WARNING: Wavefunctions not converged after cycle',opt%itrep
               ! if (opt%itrep < opt%nrepmax) write(*,*)' restart after diagonalisation'
@@ -2000,12 +1999,10 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   if (linear) then
      if (denspot%dpbox%ndimpot>0) then
         !!denspot%pot_work = f_malloc_ptr(denspot%dpbox%ndimpot,id='denspot%pot_work')
-        allocate(denspot%pot_work(denspot%dpbox%ndimpot),stat=i_stat)
-        call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
+        denspot%pot_work = f_malloc_ptr(denspot%dpbox%ndimpot,id='denspot%pot_work')
      else
         !!denspot%pot_work = f_malloc_ptr(1,id='denspot%pot_work')
-        allocate(denspot%pot_work(1),stat=i_stat)
-        call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
+        denspot%pot_work = f_malloc_ptr(1,id='denspot%pot_work')
      end if
      ! Density already present in denspot%rho_work
      call vcopy(denspot%dpbox%ndimpot,denspot%rho_work(1),1,denspot%pot_work(1),1)
@@ -2077,9 +2074,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
 
   call f_free_ptr(denspot%rho_work)
   !call f_free_ptr(denspot%pot_work)
-  i_all=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
-  deallocate(denspot%pot_work,stat=i_stat)
-  call memocc(i_stat,i_all,'denspot%pot_work',subname)
+  call f_free_ptr(denspot%pot_work)
   nullify(denspot%rho_work,denspot%pot_work)
 
   if (linear) then
