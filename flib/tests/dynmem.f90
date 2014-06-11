@@ -238,7 +238,7 @@ call f_free(weight)
   call yaml_comment('Start OpenMP and f_malloc test',hfill='-')
   call f_err_open_try()
   total=0.d0
-  !$omp parallel private(ab)
+  !$omp parallel private(ab,ithread,within_openmp)
   !$omp critical ! (allocate_critical)
   !$ ithread=omp_get_thread_num()
 !  ab = f_malloc((/ 10, 10 /),id='ab'//trim(yaml_toa(ithread)))
