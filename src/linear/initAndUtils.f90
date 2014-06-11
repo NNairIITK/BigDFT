@@ -175,6 +175,8 @@ subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locreg
   character(len=*), parameter :: subname='initLocregs'
   logical,dimension(:), allocatable :: calculateBounds
 
+  call f_routine(id=subname)
+
   
   calculateBounds = f_malloc(lzd%nlr,id='calculateBounds')
   calculateBounds=.false.
@@ -213,6 +215,8 @@ subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locreg
   !END DEBUG
   
   lzd%linear=.true.
+
+  call f_release_routine()
 
 end subroutine initLocregs
 
@@ -1439,7 +1443,7 @@ end subroutine adjust_locregs_and_confinement
 
 
 
-subroutine adjust_DIIS_for_high_accuracy(input, denspot, mixdiis, lowaccur_converged, ldiis_coeff_hist, ldiis_coeff_changed)
+subroutine adjust_DIIS_for_high_accuracy(input, denspot, lowaccur_converged, ldiis_coeff_hist, ldiis_coeff_changed)
   use module_base
   use module_types
   use module_interfaces, except_this_one => adjust_DIIS_for_high_accuracy
@@ -1448,17 +1452,11 @@ subroutine adjust_DIIS_for_high_accuracy(input, denspot, mixdiis, lowaccur_conve
   ! Calling arguments
   type(input_variables), intent(in) :: input
   type(DFT_local_fields), intent(inout) :: denspot
-  type(mixrhopotDIISParameters), intent(inout) :: mixdiis
   logical, intent(in) :: lowaccur_converged
   integer, intent(inout) :: ldiis_coeff_hist
   logical, intent(out) :: ldiis_coeff_changed  
 
   if(lowaccur_converged) then
-     if(input%lin%mixHist_lowaccuracy==0 .and. input%lin%mixHist_highaccuracy>0) then
-        call initializeMixrhopotDIIS(input%lin%mixHist_highaccuracy, denspot%dpbox%ndimrhopot, mixdiis)
-     else if(input%lin%mixHist_lowaccuracy>0 .and. input%lin%mixHist_highaccuracy==0) then
-        call deallocateMixrhopotDIIS(mixdiis)
-     end if
      if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
         ! check whether ldiis_coeff_hist arrays will need reallocating due to change in history length
         if (ldiis_coeff_hist /= input%lin%dmin_hist_highaccuracy) then

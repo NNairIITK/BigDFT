@@ -374,9 +374,9 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
         if (i/=nthreads) avops=totops/(nthreads-i)
      end do
   
-     !deallocate(numops)
-     call f_free(numops)
   end if
+
+  call f_free(numops)
 
   n(nthreads)=orbs%norb
 
@@ -575,6 +575,7 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork
   ! Local variables
   integer :: i0, ipt, ii, j, iiorb, jjorb, i, m, ind0, ind1, ind2, ind3, i0i, i0j, i07i, i07j
 
+  call f_routine(id='build_linear_combination_transposed')
   call timing(iproc,'lincombtrans  ','ON') !lr408t
   if(reset) then
       if(collcom%ndimind_c>0) call to_zero(collcom%ndimind_c, psit_c(1))
@@ -662,6 +663,7 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork
   !$omp end do
   !$omp end parallel
 
+  call f_release_routine()
   call timing(iproc,'lincombtrans  ','OF') !lr408t
 
 end subroutine build_linear_combination_transposed

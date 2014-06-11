@@ -59,6 +59,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8) :: fnrm_low, fnrm_high
   type(matrices) :: matrixm
 
+  call f_routine(id='calculate_energy_and_gradient_linear')
+
   if (target_function==TARGET_FUNCTION_IS_HYBRID) then
       hpsi_conf = f_malloc(tmb%npsidim_orbs,id='hpsi_conf')
       call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
@@ -401,6 +403,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       call yaml_map('Preconditioning',.true.)
   end if
 
+  call f_release_routine()
 
 
 end subroutine calculate_energy_and_gradient_linear
@@ -429,6 +432,8 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   type(matrices) :: grad_ovrlp_
   character(len=256) :: subname='calculate_residue_ks'
 
+
+  call f_routine(id='calculate_residue_ks')
 
   ! want to calculate the residue of the KS states here, not just the tmbs
   ! for now just occupied, eventually would want occupied+num_extra
@@ -521,6 +526,8 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   call f_free(grad_coeff)
   call f_free(ksres)
 
+  call f_release_routine()
+
 end subroutine calculate_residue_ks
 
 
@@ -553,6 +560,8 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   character(len=*), parameter :: subname='hpsitopsi_linear'
   real(kind=8), dimension(:), allocatable :: norm
   real(kind=8) :: ddot, dnrm2, tt
+
+  call f_routine(id='hpsitopsi_linear')
 
   call DIISorSD(iproc, it, trH, tmb, ldiis, alpha, alphaDIIS, lphiold, trH_ref, kernel_best, complete_reset)
   if(iproc==0) then
@@ -748,5 +757,6 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
      call kswfn_emit_psi(tmb, it, 0, iproc, nproc)
   end if
 
-end subroutine hpsitopsi_linear
+  call f_release_routine
 
+end subroutine hpsitopsi_linear

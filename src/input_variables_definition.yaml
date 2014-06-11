@@ -769,7 +769,6 @@
      COMMENT: FOE max charge difference for interpolation
      RANGE: [0., 1000.]
      default: 10.
-     best: 1.0
    mixing_after_inputguess:
      COMMENT: Mixing step after linear input guess (T/F)
      default: Yes
@@ -786,7 +785,6 @@
    experimental_mode:
      COMMENT: Activate the experimental mode in linear scaling
      default: No
-     best: Yes
    write_orbitals:
      COMMENT: Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
      default: No
@@ -811,11 +809,9 @@
    method_updatekernel:
      COMMENT: linear scaling update density kernel during the sup. func. optimization (0 purification, 1 FOE)
      default: 0
-     best: 1
    purification_quickreturn:
      COMMENT: linear scaling quick return in purification
      default: No
-     best: Yes
    adjust_FOE_temperature:
      COMMENT: linear scaling dynamic adjustment of the decay length of the FOE error function
      default: Yes
@@ -831,7 +827,6 @@
    correction_co_contra:
      COMMENT: linear scaling correction covariant / contravariant gradient
      default: No
-     best: Yes
    fscale_lowerbound:
      COMMENT: linear scaling lower bound for the error function decay length
      RANGE: [1.e-4,1.e-2]
@@ -844,32 +839,55 @@
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
        default: No
-       best: Yes
      nit:
        COMMENT: number of iteration with low/high accuracy
        DESCRIPTION: |
-                    maximal number of outer loop iterations (high / low accuracy).
+                    possible value: 2 non-negative integer numbers
+                    Maximal number of outer loop iterations (high / low accuracy).
                     In each iteration both the support function and the kernel are optimized.
-                    When the hybrid mode is employed, the second entry is ignored.
+                    When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [0,1000]
        PROFILE_FROM: hybrid
        default: [100,100]
        Yes: [100, 1]
      rpnrm_cv:
        COMMENT: convergence criterion for low/high accuracy
+       DESCRIPTION: |
+                    possible value: 2 non-negative real numbers
+                    Convergence criterion for the outer loop iterations (high / low accuracy).
+                    The optimization stops if the mean change of the charge density / potential falls below this threshold.
+                    When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [1.e-15,1.e-5]
        default: [1.e-12,1.e-12]
      conf_damping:
        COMMENT: how the confinement should be decreased, only relevant for hybrid mode; negative -> automatic
+       DESCRIPTION: |
+                    possible value: 1 real number
+                    Prescription how the prefactor for the confining potential should be decreased:
+                     * negative value => automatic adjustment (recommended)
+                     * positive value => at each iteration the prefactor is multiplied with the specified value
+                    This variable is only relevant for the hybrid mode.
        RANGE: [-1.0,1.0]
        default: -0.5
      taylor_order:
        COMMENT: order of the Taylor approximation; 0 -> exact
+       DESCRIPTION: |
+                    possible value: 1 integer number
+                    Indicates how the matrix powers are calculated:
+                     * n<0 => Laura's method of order n
+                     * n=0 => exact calculation
+                     * n>0 => Taylor series of order n
        RANGE: [-100,100]
        default: 0
-       best: 10
      output_wf:
        COMMENT: output basis functions; 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
+       DESCRIPTION: |
+                    possible value: 1 nonnegative-integer number
+                    Indicates how the support functions should be written to disk at the end of the run:
+                     * 0 => no output
+                     * 1 => formatted output
+                     * 2 => Fortran bin
+                     * 3 => ETSF
        EXCLUSIVE:
          0: no output
          1: formatted output
@@ -877,17 +895,26 @@
          3: ETSF
        default: 0
      calc_dipole:
+       DESCRIPTION: |
+                    possible value: 1 logical
+                    Indicates whether the dipole moment should be calculated at the run or not
        COMMENT: calculate dipole
        default: No
 # this is now an array!
      calc_pulay:
        COMMENT: calculate Pulay forces (old/new version)
+       DESCRIPTION: |
+                    possible value: 2 logicals
+                    Indicates whether the Pulay corrections (old / new) shall be calculated at the end of the run
        default: [No,No]
        new: [ No, Yes]
        old: [ Yes, No] 
 # this name might be misleading
      subspace_diag: #called calc_ks, to be renamed
        COMMENT: diagonalization at the end
+       DESCRIPTION: |
+                    possible value: logical
+                    Indicates whether a diagonliazation shall be performed at the end of the run
        default: No
      extra_states:
        COMMENT: extra states to optimize (dmin only)
@@ -897,55 +924,94 @@
  lin_basis:
      nit:
        COMMENT: maximal number of iterations in the optimization of the support functions
+       DESCRIPTION: |
+                    possible value: 2 non-negative integers
+                    Maximla number of iterations in the optimization of the support functions.
+                    The first number is used for the low accuracy part, the second one for the high accuracy part.
+                    If the hybrid mode is used, only the first value is taken into account.
        RANGE: [0,100]
        default: [4,5]
-       best: [10,10]
      idsx:
-       COMMENT: DIIS history for optimization of the support function (low/high accuracy); 0 -> SD
+       COMMENT: DIIS history for optimization of the support functions (low/high accuracy); 0 -> SD
+       DESCRIPTION: |
+                    possible values: 2 non-negative integers
+                    Indicates the method with which the support functions are optimized
+                     * n=0 => steepest descent
+                     * n>0 => DIIS with history length n
        RANGE: [0,20]
        default: [6,6]
      gnrm_cv:
        COMMENT: convergence criterion for the optimization of the support functions (low/high accuracy)
+       DESCRIPTION: |
+                    possible value: 2 non-negative real numbers
+                    Convergence criterion for optimization of the support functions (high / low accuracy).
+                    The optimization stops if the mean gradient norm falls below this threshold.
+                    When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [1.e-6,1.0]
        default: [1.e-2,1.e-4]
-       best: [1.e-3,1.e-3]
      deltae_cv:
        COMMENT: total relative energy difference to stop the optimization ('experimental_mode' only)
+       DESCRIPTION: |
+                    possible value: 1 non-negative real number
+                    The optimization of the support functions stops if the total relative gain in the target function during the given cycle of support function optimization falls below this threshold
        RANGE: [1.e-6,1.e-1]
        default: 1.e-4
      gnrm_dyn:
        COMMENT: dynamic convergence criterion ('experimental_mode' only)
+       DESCRIPTION: |
+                    possible value: 1 non-negative real number
+                    From this value the effective dynamic convergence criterion is calculated by a division by kappa.
+                    Then the optimization of the support functions stops if the mean gradient norm falls below this effective dynamic convergence criterion 
+                    and is at the same time smaller than the value of min_gnrm_for_dynamic.
+                    The specified value should be approximately 10 times smaller than the value of gnrm_cv.
+                    This value is only used for the experimental mode.
        RANGE: [1.e-7,1.e-1]
        default: 1.e-4
-       best: 5.e-4
      min_gnrm_for_dynamic:
        COMMENT: minimal gnrm to active the dynamic gnrm criterion
+       DESCRIPTION: |
+                    possible value: non-negative real number
+                    The dynamic convergence criterion (specified by gnrm_dyn) is only active if the mean gradient norm of the support functions is below this threshold
        RANGE: [1.e-7,1.0]
        default: 1.e-3
      alpha_diis:
-       COMMENT: multiplactor for DIIS
+       COMMENT: multiplicator for DIIS
+       DESCRIPTION: |
+                    possible value: 2 positive real numbers
+                    The support functions gradient is multiplied by this number before being used for the DIIS optimization.
+                    The first entry for the low accuracy part, the second one for the high accuracy part.
+                    When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [0.1,10]
        default: 1.0
-       best: 0.5
      alpha_sd:
        COMMENT: initial step size for SD
+       DESCRIPTION: |
+                    possible values: 2 positive real numbers
+                    The initial step size which is used to optimize the support functions with steepest descent.
+                    If the specified value is not appropriate, it will be adjusted automatically.
+                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
+                    When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [1.e-4,10.0]
        default: 1.0
-       best: 0.5
      nstep_prec:
        COMMENT: number of iterations in the preconditioner
+       DESCRIPTION: |
+                    possible values: non-negative integer
+                    Indicates how many iterations in the preconditioning of the gradient shall be performed
        RANGE: [1,30]
        default: 5
-       best: 6
      fix_basis:
        COMMENT: fix the support functions if the density change is below this threshold
        RANGE: [1.e-14,1.e-6]
        default: 1.e-10
-       best: 1.e-12
      correction_orthoconstraint:
        COMMENT: correction for the slight non-orthonormality in the orthoconstraint
+       DESCRIPTION: |
+                    possible values: non-negative integer
+                    Indicates whether the slight non-orthogonality of the support functions should be taken into account during the application of the orthogonality constraint:
+                      * 0 => take into account
+                      * 1 => don't take into account
        default: 1 
-       best: 0
  #Parameters for the calculation of the kernel (linear scaling version)
  lin_kernel:
      nstep:
@@ -953,41 +1019,70 @@
        default: [1,1]
      nit:
        COMMENT: number of iterations in the optimization of the density kernel
+       DESCRIPTION: |
+                    possible value: 2 non-negative integers
+                    Indicates the number of iterations in the optimization of the density kernel.
+                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
+                    When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [0,100]
        default: [5,5]
-       best: [3,1]
 # check whether there are different DIIS histories...
      idsx_coeff:
        COMMENT: DIIS history for directmin?
        default: [0,0]
      idsx:
        COMMENT: mixing method; 0 -> linear mixing, >=1 -> Pulay mixing
+       DESCRIPTION: |
+                    possible value: 2 non-negative integer numbers
+                    Indicates how the density / potential mixing shall be performed:
+                    n=0 => linear mixing
+                    n=1 => Pulay mixing with history length n
+                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
+                    When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [0,20]
        default: [0,0]
-       best: [4,0]
      alphamix:
        COMMENT: mixing parameter (low/high accuracy)
+       DESCRIPTION: |
+                    possible value: 2 non-negative real numbers
+                    Indicates the mixing parameter used for the mixing of the charge density / potential.
+                    The larger the value, the more of the previous value will be kept.
+                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
+                    When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [0.0,1.0]
        default: [0.5,0.5]
-       best: [0.2,0.2]
      gnrm_cv_coeff:
        COMMENT: convergence criterion for directmin (low/high)?
        default: [1.e-5,1.e-5]
      rpnrm_cv:
        COMMENT: convergence criterion (change in density/potential) for the kernel optimization
+       DESCRIPTION: |
+                    possible value: 2 non-negative real numbers
+                    The optimization of the density kernel is stopped as soon as the mean change of the charge density / potential between two iterations falls below this threshold.
+                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
+                    When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [1.e-14,1.e-5]
        default: [1.e-10,1.e-10]
-       best: [1.e-12,1.e-12]
      linear_method:
        COMMENT: method to optimize the density kernel
+       DESCRIPTION: |
+                    possible value: string
+                    Indicates the method with which the density kernel is optimized:
+                     * DIRMIN => direct minimization
+                     * DIAG => diagonalization with density mixing
+                     * FOE => Fermi Operator Expansion
        EXCLUSIVE:
          DIRMIN: direct minimization
          DIAG: diagonalization
          FOE: Fermi Operator Expansion
        default: DIAG
-       best: FOE
      mixing_method:
        COMMENT: quantity to be mixed
+       DESCRIPTION: |
+                    possible value: string
+                    Indicates which quantity should be used for the mixing procedure:
+                     DEN => density mixing
+                     POT => potential mixing
        EXCLUSIVE:
          DEN: density mixing
          POT: potential mixing
@@ -1000,18 +1095,31 @@
        default: No
      eval_range_foe:
        COMMENT: lower and upper bound of the eigenvalue spectrum, will be adjusted automatically if chosen unproperly
+       DESCRIPTION: |
+                    possible value: 2 real numbers (one negative, one positive)
+                    Indicates the lower and upper bound of the eigenvalue spectrum which is used for the Fermi Operator Expansion.
+                    This spectrum will be adjusted automatically if not chosen appropriately.
        RANGE: [-10.0,10.0]
        default: [-0.5,0.5]
-       best: [-1.0,1.0]
      fscale_foe: 
        COMMENT: decay length of the error function
+       DESCRIPTION: |
+                    possible value: 1 non-negative real number
+                    Indicates the decay length of the error function which is used by the Fermi Operator Expasion to construct the density kernel.
+                    This value will be adjusted automatically if not chosen appropriately.
        RANGE: [1.e-3,5.e-2]
        default: 2.e-2
-       best: 1.e-2
 #Parameters to define the localized basis set or support functions (linear scaling version)
  lin_basis_params:
      nbasis:
        COMMENT: number of support functions per atom
+       DESCRIPTION: |
+                    possible value: 1 positive integer
+                    Indicates the number of support fuctions centered on this atom type. Possible values are:
+                     * 1 (s orbital type)
+                     * 4 (s,p orbital types)
+                     * 9 (s,p,d orbital types)
+                     * 16 (s,p,d,f orbital types)
        EXCLUSIVE:
          1: s orbital type
          4: s,p orbital types
@@ -1020,36 +1128,139 @@
        default: 4
      ao_confinement:
        COMMENT: prefactor for the input guess confining potential
+       DESCRIPTION: |
+                    possible value: 1 non-negative real value
+                    Indicates the prefactor of the confining potential of this atom type which is used to generate the input guess.
        RANGE: [0.0,10.0]
        default: 8.3e-3
      confinement:
        COMMENT: prefactor for the confining potential (low/high accuracy)
+       DESCRIPTION: |
+                    possible value: 2 non-negative real values
+                    Indicates the prefactor of the confining potential of this atom type.
+                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
+                    When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [0.0,10.0]
        default: [8.3e-3,0.0]
      rloc:
        COMMENT: localization radius for the support functions
+       DESCRIPTION: |
+                    possible value: 2 real numbers
+                    Indicates the cutoff radius for the support functions.
+                    The first entry is used for the low accuracy part, the second one for the high accuracy part; the second value must not be smaller than the first one.
+                    When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [2.0,1000.0]
        default: [7.0,7.0]
      rloc_kernel:
        COMMENT: localization radius for the density kernel
+       DESCRIPTION: |
+                    possible value: 1 real number
+                    Indicates the cutoff radius for the density kernel.
+                    Must be at least as large as the support function cutoff plus 8 times the grid spacing; will be adjusted automatically if it is chosen too small.
        RANGE: [2.0,1000.0] 
        default: 9.0
      rloc_kernel_foe:
        COMMENT: cutoff radius for the FOE matrix vector multiplications
+       DESCRIPTION: |
+                    possible value: 1 real number
+                    Indicates the cutoff radius used for the matrix vector multiplications.
+                    Must be at least as large as the kernel cutoff.
        RANGE: [2.0,1000]
        default: 14.0
 --- #here starts the document of possible input files
-best:
-  COMMENT: appropriate input parameters for a linear scaling calculation
-  DESCRIPTION: Extended description of the file
+linear_accurate:
+  COMMENT: appropriate input parameters for a high accuracy linear scaling calculation
+  DESCRIPTION: This profile should be chosen if highly accurate energy differences are required
   dft:
     hgrids: accurate
     ixc: PBE
-    nrepmax: 2
+  perf:
+    ef_interpol_chargediff: 1.0
+    experimental_mode: Yes
+    method_updatekernel: 1
+    purification_quickreturn: Yes
+    correction_co_contra: Yes
   lin_general:
-    hybrid: best
+    hybrid: Yes
+    taylor_order: 10
   lin_basis:
-    nit: [100,1]
+    nit: [10,10]
+    gnrm_cv: [5.e-4,5.e-4]
+    gnrm_dyn: 5.e-5
+    min_gnrm_for_dynamic: 2.e-3
+    alpha_diis: 0.5
+    alpha_sd: 0.5
+    nstep_prec: 6
+    fix_basis: 1.e-12
+    correction_orthoconstraint: 0
+  lin_kernel:
+    nit: [10,10]
+    idsx: [6,0]
+    alphamix: [0.2,0.2]
+    rpnrm_cv: [1.e-12,1.e-12]
+    linear_method: FOE
+linear_moderate:
+  COMMENT: appropriate input parameters for a moderate accuracy linear scaling calculation
+  DESCRIPTION: This profile should be chosen if accurate forces are required, but there is no need for extremely accurate energies
+  dft:
+    hgrids: accurate
+    ixc: PBE
+  perf:
+    ef_interpol_chargediff: 1.0
+    experimental_mode: Yes
+    method_updatekernel: 1
+    purification_quickreturn: Yes
+    correction_co_contra: Yes
+  lin_general:
+    hybrid: Yes
+    taylor_order: 10
+  lin_basis:
+    nit: [10,10]
+    gnrm_cv: [1.e-3,1.e-3]
+    gnrm_dyn: 1.e-4
+    min_gnrm_for_dynamic: 4.e-3
+    alpha_diis: 0.5
+    alpha_sd: 0.5
+    nstep_prec: 6
+    fix_basis: 1.e-11
+    correction_orthoconstraint: 0
+  lin_kernel:
+    nit: [10,10]
+    idsx: [6,0]
+    alphamix: [0.2,0.2]
+    rpnrm_cv: [1.e-11,1.e-11]
+    linear_method: FOE
+linear_fast:
+  COMMENT: appropriate input parameters for a low accuracy linear scaling calculation
+  DESCRIPTION: This profile should be chosen if speed is more important than accuracy
+  dft:
+    hgrids: accurate
+    ixc: PBE
+  perf:
+    ef_interpol_chargediff: 1.0
+    experimental_mode: Yes
+    method_updatekernel: 1
+    purification_quickreturn: Yes
+    correction_co_contra: Yes
+  lin_general:
+    hybrid: Yes
+    taylor_order: 10
+  lin_basis:
+    nit: [10,10]
+    gnrm_cv: [2.e-3,2.e-3]
+    gnrm_dyn: 2.e-4
+    min_gnrm_for_dynamic: 8.e-3
+    alpha_diis: 0.5
+    alpha_sd: 0.5
+    nstep_prec: 6
+    fix_basis: 1.e-10
+    correction_orthoconstraint: 0
+  lin_kernel:
+    nit: [10,10]
+    idsx: [6,0]
+    alphamix: [0.2,0.2]
+    rpnrm_cv: [1.e-10,1.e-10]
+    linear_method: FOE
 structural:
   COMMENT: for geopt
   dft:

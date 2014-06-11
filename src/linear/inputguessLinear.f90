@@ -59,7 +59,6 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   real(kind=8) :: rcov,rprb,ehomo,amu,pnrm
   integer :: nsccode,mxpl,mxchg,inl
   type(mixrhopotDIISParameters) :: mixdiis
-  type(sparse_matrix) :: ham_small ! for FOE
   logical :: finished, can_use_ham
   type(confpot_data), dimension(:), allocatable :: confdatarrtmp
   integer :: info_basis_functions
@@ -670,8 +669,6 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
  end if
 
 
-  !call nullify_sparse_matrix(ham_small) ! nullify anyway
-  ham_small=sparse_matrix_null()
 
   !!if (iproc==0) then
   !!    call yaml_close_map()
@@ -691,23 +688,16 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   if (input%lin%scf_mode==LINEAR_FOE) then
 
-      call sparse_copy_pattern(tmb%linmat%s,ham_small,iproc,subname)
-      !!allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
-      !!call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
-      ham_small%matrix_compr=f_malloc_ptr(ham_small%nvctr,id='ham_small%matrix_compr')
 
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
-           input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0,0,input%lin%order_taylor,&
+           input%SIC,tmb,fnrm,.true.,.false.,.true.,0,0,0,0,input%lin%order_taylor,&
            input%purification_quickreturn,&
            input%calculate_KS_residue,input%calculate_gap)
 
-      if (input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
-         call deallocate_sparse_matrix(ham_small,subname)
-      end if
 
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
-           input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0,0,input%lin%order_taylor,&
+           input%SIC,tmb,fnrm,.true.,.false.,.true.,0,0,0,0,input%lin%order_taylor,&
            input%purification_quickreturn,&
            input%calculate_KS_residue,input%calculate_gap)
 
