@@ -2066,7 +2066,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   character(len=*),parameter :: subname='gramschmidt_subset'
   type(matrices) :: ovrlp_
 
-  call f_routine(gramschmidt_subset)
+  call f_routine('gramschmidt_subset')
 
 
   !call nullify_sparse_matrix(inv_ovrlp_half)
