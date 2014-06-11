@@ -374,9 +374,9 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
         if (i/=nthreads) avops=totops/(nthreads-i)
      end do
   
-     !deallocate(numops)
-     call f_free(numops)
   end if
+
+  call f_free(numops)
 
   n(nthreads)=orbs%norb
 

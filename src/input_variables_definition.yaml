@@ -769,9 +769,6 @@
      COMMENT: FOE max charge difference for interpolation
      RANGE: [0., 1000.]
      default: 10.
-     linear_accurate: 1.0
-     linear_moderate: 1.0
-     linear_fast: 1.0
    mixing_after_inputguess:
      COMMENT: Mixing step after linear input guess (T/F)
      default: Yes
@@ -788,9 +785,6 @@
    experimental_mode:
      COMMENT: Activate the experimental mode in linear scaling
      default: No
-     linear_accurate: Yes
-     linear_moderate: Yes
-     linear_fast: Yes
    write_orbitals:
      COMMENT: Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
      default: No
@@ -815,15 +809,9 @@
    method_updatekernel:
      COMMENT: linear scaling update density kernel during the sup. func. optimization (0 purification, 1 FOE)
      default: 0
-     linear_accurate: 1
-     linear_moderate: 1
-     linear_fast: 1
    purification_quickreturn:
      COMMENT: linear scaling quick return in purification
      default: No
-     linear_accurate: Yes
-     linear_moderate: Yes
-     linear_fast: Yes
    adjust_FOE_temperature:
      COMMENT: linear scaling dynamic adjustment of the decay length of the FOE error function
      default: Yes
@@ -839,9 +827,6 @@
    correction_co_contra:
      COMMENT: linear scaling correction covariant / contravariant gradient
      default: No
-     linear_accurate: Yes
-     linear_moderate: Yes
-     linear_fast: Yes
    fscale_lowerbound:
      COMMENT: linear scaling lower bound for the error function decay length
      RANGE: [1.e-4,1.e-2]
@@ -854,9 +839,6 @@
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
        default: No
-       linear_accurate: Yes
-       linear_moderate: Yes
-       linear_fast: Yes
      nit:
        COMMENT: number of iteration with low/high accuracy
        DESCRIPTION: |
@@ -897,9 +879,6 @@
                      * n>0 => Taylor series of order n
        RANGE: [-100,100]
        default: 0
-       linear_accurate: 10
-       linear_moderate: 10
-       linear_fast: 10
      output_wf:
        COMMENT: output basis functions; 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
        DESCRIPTION: |
@@ -952,9 +931,6 @@
                     If the hybrid mode is used, only the first value is taken into account.
        RANGE: [0,100]
        default: [4,5]
-       linear_accurate: [10,10]
-       linear_moderate: [10,10]
-       linear_fast: [10,10]
      idsx:
        COMMENT: DIIS history for optimization of the support functions (low/high accuracy); 0 -> SD
        DESCRIPTION: |
@@ -973,9 +949,6 @@
                     When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [1.e-6,1.0]
        default: [1.e-2,1.e-4]
-       linear_accurate: [1.e-3,1.e-3]
-       linear_moderate: [2.e-3,2.e-3]
-       linear_fast: [5.e-3,5.e-3]
      deltae_cv:
        COMMENT: total relative energy difference to stop the optimization ('experimental_mode' only)
        DESCRIPTION: |
@@ -994,9 +967,6 @@
                     This value is only used for the experimental mode.
        RANGE: [1.e-7,1.e-1]
        default: 1.e-4
-       linear_accurate: 5.e-4
-       linear_moderate: 1.e-3
-       linear_fast: 2.5e-3
      min_gnrm_for_dynamic:
        COMMENT: minimal gnrm to active the dynamic gnrm criterion
        DESCRIPTION: |
@@ -1013,9 +983,6 @@
                     When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [0.1,10]
        default: 1.0
-       linear_accurate: 0.5
-       linear_moderate: 0.5
-       linear_fast: 0.5
      alpha_sd:
        COMMENT: initial step size for SD
        DESCRIPTION: |
@@ -1026,9 +993,6 @@
                     When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [1.e-4,10.0]
        default: 1.0
-       linear_accurate: 0.5
-       linear_moderate: 0.5
-       linear_fast: 0.5
      nstep_prec:
        COMMENT: number of iterations in the preconditioner
        DESCRIPTION: |
@@ -1036,16 +1000,10 @@
                     Indicates how many iterations in the preconditioning of the gradient shall be performed
        RANGE: [1,30]
        default: 5
-       linear_accurate: 6
-       linear_moderate: 6
-       linear_fast: 6
      fix_basis:
        COMMENT: fix the support functions if the density change is below this threshold
        RANGE: [1.e-14,1.e-6]
        default: 1.e-10
-       linear_accurate: 1.e-12
-       linear_moderate: 1.e-11
-       linear_fast: 1.e-10
      correction_orthoconstraint:
        COMMENT: correction for the slight non-orthonormality in the orthoconstraint
        DESCRIPTION: |
@@ -1054,9 +1012,6 @@
                       * 0 => take into account
                       * 1 => don't take into account
        default: 1 
-       linear_accurate: 0
-       linear_moderate: 0
-       linear_fast: 0
  #Parameters for the calculation of the kernel (linear scaling version)
  lin_kernel:
      nstep:
@@ -1071,9 +1026,6 @@
                     When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [0,100]
        default: [5,5]
-       linear_accurate: [10,10]
-       linear_moderate: [10,10]
-       linear_fast: [10,10]
 # check whether there are different DIIS histories...
      idsx_coeff:
        COMMENT: DIIS history for directmin?
@@ -1089,9 +1041,6 @@
                     When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [0,20]
        default: [0,0]
-       linear_accurate: [6,0]
-       linear_moderate: [6,0]
-       linear_fast: [6,0]
      alphamix:
        COMMENT: mixing parameter (low/high accuracy)
        DESCRIPTION: |
@@ -1102,9 +1051,6 @@
                     When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [0.0,1.0]
        default: [0.5,0.5]
-       linear_accurate: [0.2,0.2]
-       linear_moderate: [0.2,0.2]
-       linear_fast: [0.2,0.2]
      gnrm_cv_coeff:
        COMMENT: convergence criterion for directmin (low/high)?
        default: [1.e-5,1.e-5]
@@ -1117,9 +1063,6 @@
                     When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [1.e-14,1.e-5]
        default: [1.e-10,1.e-10]
-       linear_accurate: [1.e-12,1.e-12]
-       linear_moderate: [1.e-11,1.e-11]
-       linear_fast: [1.e-10,1.e-10]
      linear_method:
        COMMENT: method to optimize the density kernel
        DESCRIPTION: |
@@ -1133,9 +1076,6 @@
          DIAG: diagonalization
          FOE: Fermi Operator Expansion
        default: DIAG
-       linear_accurate: FOE
-       linear_moderate: FOE
-       linear_fast: FOE
      mixing_method:
        COMMENT: quantity to be mixed
        DESCRIPTION: |
@@ -1161,9 +1101,6 @@
                     This spectrum will be adjusted automatically if not chosen appropriately.
        RANGE: [-10.0,10.0]
        default: [-0.5,0.5]
-       linear_accurate: [-1.0,1.0]
-       linear_moderate: [-1.0,1.0]
-       linear_fast: [-1.0,1.0]
      fscale_foe: 
        COMMENT: decay length of the error function
        DESCRIPTION: |
@@ -1172,9 +1109,6 @@
                     This value will be adjusted automatically if not chosen appropriately.
        RANGE: [1.e-3,5.e-2]
        default: 2.e-2
-       linear_accurate: 1.e-2
-       linear_moderate: 1.e-2
-       linear_fast: 1.e-2
 #Parameters to define the localized basis set or support functions (linear scaling version)
  lin_basis_params:
      nbasis:
@@ -1235,16 +1169,98 @@
        default: 14.0
 --- #here starts the document of possible input files
 linear_accurate:
-  COMMENT: appropriate input parameters for a linear scaling calculation
-  DESCRIPTION: Extended description of the file
+  COMMENT: appropriate input parameters for a high accuracy linear scaling calculation
+  DESCRIPTION: This profile should be chosen if highly accurate energy differences are required
   dft:
     hgrids: accurate
     ixc: PBE
-    nrepmax: 2
+  perf:
+    ef_interpol_chargediff: 1.0
+    experimental_mode: Yes
+    method_updatekernel: 1
+    purification_quickreturn: Yes
+    correction_co_contra: Yes
   lin_general:
-    hybrid: best
+    hybrid: Yes
+    taylor_order: 10
   lin_basis:
-    nit: [100,1]
+    nit: [10,10]
+    gnrm_cv: [5.e-4,5.e-4]
+    gnrm_dyn: 5.e-5
+    min_gnrm_for_dynamic: 2.e-3
+    alpha_diis: 0.5
+    alpha_sd: 0.5
+    nstep_prec: 6
+    fix_basis: 1.e-12
+    correction_orthoconstraint: 0
+  lin_kernel:
+    nit: [10,10]
+    idsx: [6,0]
+    alphamix: [0.2,0.2]
+    rpnrm_cv: [1.e-12,1.e-12]
+    linear_method: FOE
+linear_moderate:
+  COMMENT: appropriate input parameters for a moderate accuracy linear scaling calculation
+  DESCRIPTION: This profile should be chosen if accurate forces are required, but there is no need for extremely accurate energies
+  dft:
+    hgrids: accurate
+    ixc: PBE
+  perf:
+    ef_interpol_chargediff: 1.0
+    experimental_mode: Yes
+    method_updatekernel: 1
+    purification_quickreturn: Yes
+    correction_co_contra: Yes
+  lin_general:
+    hybrid: Yes
+    taylor_order: 10
+  lin_basis:
+    nit: [10,10]
+    gnrm_cv: [1.e-3,1.e-3]
+    gnrm_dyn: 1.e-4
+    min_gnrm_for_dynamic: 4.e-3
+    alpha_diis: 0.5
+    alpha_sd: 0.5
+    nstep_prec: 6
+    fix_basis: 1.e-11
+    correction_orthoconstraint: 0
+  lin_kernel:
+    nit: [10,10]
+    idsx: [6,0]
+    alphamix: [0.2,0.2]
+    rpnrm_cv: [1.e-11,1.e-11]
+    linear_method: FOE
+linear_fast:
+  COMMENT: appropriate input parameters for a low accuracy linear scaling calculation
+  DESCRIPTION: This profile should be chosen if speed is more important than accuracy
+  dft:
+    hgrids: accurate
+    ixc: PBE
+  perf:
+    ef_interpol_chargediff: 1.0
+    experimental_mode: Yes
+    method_updatekernel: 1
+    purification_quickreturn: Yes
+    correction_co_contra: Yes
+  lin_general:
+    hybrid: Yes
+    taylor_order: 10
+  lin_basis:
+    nit: [10,10]
+    gnrm_cv: [2.e-3,2.e-3]
+    gnrm_dyn: 2.e-4
+    min_gnrm_for_dynamic: 8.e-3
+    alpha_diis: 0.5
+    alpha_sd: 0.5
+    nstep_prec: 6
+    fix_basis: 1.e-10
+    correction_orthoconstraint: 0
+  lin_kernel:
+    nit: [10,10]
+    idsx: [6,0]
+    alphamix: [0.2,0.2]
+    rpnrm_cv: [1.e-10,1.e-10]
+    linear_method: FOE
 structural:
   COMMENT: for geopt
   dft:
