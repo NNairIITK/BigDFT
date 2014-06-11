@@ -32,15 +32,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   integer,intent(in) :: iproc, nproc
   type(atoms_data),intent(inout) :: at
   type(input_variables),intent(in) :: input ! need to hack to be inout for geopt changes
-  real(8),dimension(3,at%astruct%nat),intent(inout) :: rxyz
-  real(8),dimension(3,at%astruct%nat),intent(out) :: fpulay
+  real(kind=8),dimension(3,at%astruct%nat),intent(inout) :: rxyz
+  real(kind=8),dimension(3,at%astruct%nat),intent(out) :: fpulay
   type(DFT_local_fields), intent(inout) :: denspot
   real(gp), dimension(*), intent(inout) :: rhopotold
   type(DFT_PSP_projectors),intent(inout) :: nlpsp
   type(GPU_pointers),intent(inout) :: GPU
   type(energy_terms),intent(inout) :: energs
   real(gp), dimension(:), pointer :: rho,pot
-  real(8),intent(out) :: energy
+  real(kind=8),intent(out) :: energy
   type(DFT_wavefunction),intent(inout),target :: tmb
   type(DFT_wavefunction),intent(inout),target :: KSwfn
   integer,intent(out) :: infocode
@@ -48,11 +48,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   type(cdft_data), intent(inout) :: cdft
   real(kind=8),dimension(3,at%astruct%nat),intent(in) :: fdisp, fion
   
-  real(8) :: pnrm,trace,trace_old,fnrm_tmb
+  real(kind=8) :: pnrm,trace,trace_old,fnrm_tmb
   integer :: infoCoeff,istat,it_scc,itout,info_scf,i,ierr,iorb
   character(len=*), parameter :: subname='linearScaling'
-  real(8),dimension(:),allocatable :: rhopotold_out
-  real(8) :: energyold, energyDiff, energyoldout, fnrm_pulay, convCritMix
+  real(kind=8),dimension(:),allocatable :: rhopotold_out
+  real(kind=8) :: energyold, energyDiff, energyoldout, fnrm_pulay, convCritMix
   type(localizedDIISParameters) :: ldiis
   type(DIIS_obj) :: ldiis_coeff, vdiis
   logical :: can_use_ham, update_phi, locreg_increased, reduce_conf, orthonormalization_on
@@ -61,9 +61,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   integer :: ldiis_coeff_hist, nitdmin
   logical :: ldiis_coeff_changed
   integer :: mix_hist, info_basis_functions, nit_scc, cur_it_highaccuracy
-  real(8) :: pnrm_out, alpha_mix, ratio_deltas, convcrit_dmin
+  real(kind=8) :: pnrm_out, alpha_mix, ratio_deltas, convcrit_dmin
   logical :: lowaccur_converged, exit_outer_loop
-  real(8),dimension(:),allocatable :: locrad
+  real(kind=8),dimension(:),allocatable :: locrad
   integer:: target_function, nit_basis
   integer :: isegsmall, iseglarge, iismall, iilarge, is, ie
   integer :: matrixindex_in_compressed
@@ -74,6 +74,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   integer :: dmin_diag_it, dmin_diag_freq, ioffset
   logical :: reorder, rho_negative
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
+  real(kind=8),dimension(10000) :: meanconf_array
+  !!character(len=5) :: num
+  integer :: j, k, n1i, n2i, n3i, i1, i2, i3
   type(matrices) :: weight_matrix_
 
   call timing(iproc,'linscalinit','ON') !lr408t
@@ -1086,7 +1089,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
 
     subroutine check_inputguess()
-      real(8) :: dnrm2
+      real(kind=8) :: dnrm2
       if (input%inputPsiId==101) then           !should we put 102 also?
 
           if (input%lin%pulay_correction) then
@@ -1246,7 +1249,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
     subroutine print_info(final)
       implicit none
 
-      real(8) :: energyDiff, mean_conf
+      real(kind=8) :: energyDiff, mean_conf
       logical, intent(in) :: final
 
       energyDiff = energy - energyoldout
@@ -1474,7 +1477,7 @@ subroutine output_fragment_rotations(iproc,nat,rxyz,iformat,filename,input_frag,
   type(fragmentInputParameters), intent(in) :: input_frag
   type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
   !Local variables
-  integer :: i_stat, i_all, ifrag, jfrag, ifrag_ref, jfrag_ref, iat, isfat, jsfat
+  integer :: ifrag, jfrag, ifrag_ref, jfrag_ref, iat, isfat, jsfat
   real(kind=gp), dimension(:,:), allocatable :: rxyz_ref, rxyz_new
   real(kind=gp) :: null_axe
   type(fragment_transformation) :: frag_trans

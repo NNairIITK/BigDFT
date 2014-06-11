@@ -391,8 +391,6 @@ module sparsematrix
     end subroutine transform_sparse_matrix
 
 
-
-
    subroutine compress_matrix_distributed(iproc, smat, matrixp, matrix_compr)
      use module_base
      implicit none
@@ -404,7 +402,7 @@ module sparsematrix
      real(kind=8),dimension(smat%nvctr),intent(out) :: matrix_compr
 
      ! Local variables
-     integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, ierr
+     integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb
 
      call timing(iproc,'compress_uncom','ON')
 

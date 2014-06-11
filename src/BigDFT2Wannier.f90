@@ -414,12 +414,14 @@ program BigDFT2Wannier
          ! For each unoccupied orbitals, check how they project on spherical harmonics.
          ! The greater amnk_guess(nb) is, the more they project on spherical harmonics.
          do nb=1,orbsv%norb
-            amnk_guess(nb)=0.0
+            amnk_guess(nb)=0.0d0
             do np=1,orbsp%norb
                do j=1,orbsp%norb
-                  amnk_guess(nb)= amnk_guess(nb) + amnk(nb,np)*amnk(nb,j)*overlap_proj(np,j)
+                  amnk_guess(nb)= amnk_guess(nb) +&
+                       amnk(nb,np)*amnk(nb,j)*overlap_proj(np,j)
                end do
             end do
+            print *,'debugiproc',amnk_guess(nb),iproc,dsqrt(amnk_guess(nb))
             if (iproc==0) then
                call yaml_map('Virtual band',nb)
                call yaml_map('amnk_guess(nb)',sqrt(amnk_guess(nb)))

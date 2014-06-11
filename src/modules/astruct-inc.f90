@@ -46,13 +46,13 @@ subroutine read_xyz_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
      write(*,*) "Error: unexpected end of file."
      stop
   end if
+  energy = UNINITIALIZED(energy)
   read(line,*, iostat = ierrsfx) iat,astruct%units,energy,comment
   if (ierrsfx /= 0) then
      read(line,*, iostat = ierrsfx) iat,astruct%units,energy
      write(comment, "(A)") ""
      if (ierrsfx /= 0) then
         read(line,*, iostat = ierrsfx) iat,astruct%units
-        energy = UNINITIALIZED(energy)
         if (ierrsfx /= 0) then
            read(line,*, iostat = ierrsfx) iat
            write(astruct%units, "(A)") "bohr"

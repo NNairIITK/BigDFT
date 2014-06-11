@@ -2541,7 +2541,8 @@ module communications_init
          write(*,*)'ERROR: norb_par array not allocated'
          stop
       end if
-    
+   
+      !Allocations of nvctr_par and norb_par
       nvctr_par = f_malloc((/ 0.to.nproc-1, 0.to.orbs%nkpts /),id='nvctr_par')
       norb_par = f_malloc((/ 0.to.nproc-1, 0.to.orbs%nkpts /),id='norb_par')
       mykpts = f_malloc(orbs%nkpts,id='mykpts')

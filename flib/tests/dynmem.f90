@@ -14,14 +14,17 @@ subroutine test_dynamic_memory()
    use dynamic_memory
    use dictionaries
    implicit none
+
    type :: dummy_type
       integer :: i
       double precision, dimension(:), pointer :: ptr
    end type dummy_type
+
    !logical :: fl
    integer :: i
    real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,xc_pot
    real(kind=8), dimension(:), pointer :: extra_ref
+   real(kind=8), dimension(:,:), allocatable :: ab
    integer, dimension(:), allocatable :: i1_all,i1_src
    integer, dimension(:), pointer :: i1_ptr,ptr1
    integer, dimension(:), pointer :: ptr2
@@ -33,8 +36,6 @@ subroutine test_dynamic_memory()
   
    call yaml_comment('Routine-Tree creation example',hfill='~')
    !call dynmem_sandbox()
-
-
 
    i1_all=f_malloc(0,id='i1_all')
    call yaml_map('Address of first element',f_loc(i1_all))
@@ -223,10 +224,25 @@ call f_free(weight)
 !!$   !   call yaml_open_map('Last')
 !!$   !   call f_malloc_dump_status()
 !!$   !   call yaml_close_map()
+
+  !Allocation in an omp section is not permissible
+  !$omp parallel
+  !$omp critical (allocate_critical)
+  ab = f_malloc((/ 10, 10 /),id='ab')
+  !$omp end critical (allocate_critical)
+
+  !$omp critical (deallocate_critical)
+  call f_free(ab)
+  !$omp end critical (deallocate_critical)
+  !$omp end parallel
+
+
    call f_routine(id='Routine A')
    call f_release_routine()
+
    call f_routine(id='Routine A')
    call f_release_routine()
+
    call f_routine(id='Routine A')
    call f_release_routine()
 

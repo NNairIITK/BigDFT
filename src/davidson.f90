@@ -1189,8 +1189,10 @@ subroutine davidson(iproc,nproc,in,at,&
       call timing(iproc,'Davidson      ','ON')
       iter=iter+1
       if(iter>in%itermax+100)then !an input variable should be put
-         if(iproc==0)write(*,'(1x,a)')&
-            &   'No convergence within the allowed number of minimization steps (itermax + 100)'
+         if(iproc==0) call yaml_warning( &
+            &   'No convergence within the allowed number of minimization steps (itermax + 100)')
+         !if(iproc==0)write(*,'(1x,a)')&
+         !   &   'No convergence within the allowed number of minimization steps (itermax + 100)'
          exit davidson_loop
       end if
 
