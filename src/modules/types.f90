@@ -1520,10 +1520,7 @@ subroutine deallocate_orbs(orbs,subname)
     call deallocate_locreg_descriptors(rst%KSwfn%Lzd%Glr)
 
     if (associated(rst%KSwfn%psi)) then
-       !call f_free_ptr(rst%KSwfn%psi)
-       i_all = -product(shape(rst%KSwfn%psi))*kind(rst%KSwfn%psi)
-       deallocate(rst%KSwfn%psi,stat=i_stat)
-       call memocc(i_stat,i_all,'rst%KSwfn%psi',subname)
+       call f_free_ptr(rst%KSwfn%psi)
     end if
 
     if (associated(rst%KSwfn%orbs%eval)) then

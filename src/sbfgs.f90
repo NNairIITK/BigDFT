@@ -545,5 +545,6 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
    call f_free(dd)
    call f_free(fff)
    call f_free(rrr)
+   call f_free(scpr)
    call deallocate_global_output(outs)
 end

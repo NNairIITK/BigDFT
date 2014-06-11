@@ -11,7 +11,7 @@
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
     calculate_ham,ham_small,extra_states,itout,it_scc,it_cdft,order_taylor,purification_quickreturn, &
-    adjust_FOE_temperature,calculate_KS_residue,calculate_gap,&
+    calculate_KS_residue,calculate_gap,&
     convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
   use module_base
   use module_types
@@ -40,7 +40,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   type(SIC_data),intent(in) :: SIC
   type(DFT_wavefunction),intent(inout) :: tmb
   logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho, purification_quickreturn
-  logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap, adjust_FOE_temperature
+  logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap
   type(sparse_matrix), intent(inout) :: ham_small ! for foe only
   type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
   integer, intent(in), optional :: nitdmin ! for dmin only
@@ -65,6 +65,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   real(kind=gp) :: tmprtr, factor
   real(kind=8) :: deviation, KSres, sumn
   integer :: iat, iiorb, jjorb, lwork,jorb, ii, irow, icol
+
+  call f_routine(id='get_coeff')
 
   ! Option to only calculate the energy without updating the kernel
   if (present(updatekernel)) then
@@ -93,12 +95,12 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   ! Calculate the overlap matrix if required.
   if(calculate_overlap_matrix) then
       if(.not.tmb%can_use_transposed) then
-          if(.not.associated(tmb%psit_c)) then
-              tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
-          end if
-          if(.not.associated(tmb%psit_f)) then
-              tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
-          end if
+          !!if(.not.associated(tmb%psit_c)) then
+          !!    tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
+          !!end if
+          !!if(.not.associated(tmb%psit_f)) then
+          !!    tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
+          !!end if
           call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
                tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
           tmb%can_use_transposed=.true.
@@ -186,24 +188,21 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       !end if
       !END DEBUG
 
-      !call f_free_ptr(denspot%pot_work)
-      iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
-      deallocate(denspot%pot_work,stat=istat)
-      call memocc(istat,iall,'denspot%pot_work',subname)
+      call f_free_ptr(denspot%pot_work)
 
       !!if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application done.'
 
       ! Calculate the matrix elements <phi|H|phi>.
       if(.not.tmb%ham_descr%can_use_transposed) then
-          if(associated(tmb%ham_descr%psit_c)) then
-              call f_free_ptr(tmb%ham_descr%psit_c)
-          end if
-          if(associated(tmb%ham_descr%psit_f)) then
-              call f_free_ptr(tmb%ham_descr%psit_f)
-          end if
+          !!if(associated(tmb%ham_descr%psit_c)) then
+          !!    call f_free_ptr(tmb%ham_descr%psit_c)
+          !!end if
+          !!if(associated(tmb%ham_descr%psit_f)) then
+          !!    call f_free_ptr(tmb%ham_descr%psit_f)
+          !!end if
 
-          tmb%ham_descr%psit_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='tmb%ham_descr%psit_c')
-          tmb%ham_descr%psit_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='tmb%ham_descr%psit_f')
+          !!tmb%ham_descr%psit_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='tmb%ham_descr%psit_c')
+          !!tmb%ham_descr%psit_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='tmb%ham_descr%psit_f')
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
           tmb%ham_descr%can_use_transposed=.true.
@@ -381,7 +380,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       if (iproc==0) call yaml_map('method','FOE')
       tmprtr=0.d0
       call foe(iproc, nproc, tmprtr, &
-           energs%ebs, itout,it_scc, order_taylor, purification_quickreturn, adjust_FOE_temperature, &
+           energs%ebs, itout,it_scc, order_taylor, purification_quickreturn, &
            1, FOE_ACCURATE, tmb, tmb%foe_obj)
       !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
       ! Eigenvalues not available, therefore take -.5d0
@@ -405,6 +404,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   if (iproc==0) call yaml_close_map() !close kernel update
 
+  call f_release_routine()
+
 end subroutine get_coeff
 
 
@@ -415,7 +416,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     correction_orthoconstraint,nit_basis,&
     ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
     gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, kappa_conv, method_updatekernel,&
-    purification_quickreturn, adjust_FOE_temperature, correction_co_contra)
+    purification_quickreturn, correction_co_contra)
   !
   ! Purpose:
   ! ========
@@ -454,20 +455,19 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   integer, intent(in) :: extra_states
   integer,intent(in) :: itout
   real(kind=8),intent(in) :: conv_crit, early_stop, gnrm_dynamic, min_gnrm_for_dynamic, kappa_conv
-  logical,intent(in) :: experimental_mode, purification_quickreturn, adjust_FOE_temperature
+  logical,intent(in) :: experimental_mode, purification_quickreturn
   logical,intent(out) :: can_use_ham
   integer,intent(in) :: method_updatekernel
   logical,intent(in) :: correction_co_contra
  
   ! Local variables
   real(kind=8) :: fnrmMax, meanAlpha, ediff_best, alpha_max, delta_energy, delta_energy_prev, ediff
-  integer :: iorb, istat, ierr, it, iall, it_tot, ncount, jorb, ncharge
+  integer :: iorb, it, it_tot, ncount, jorb, ncharge
   real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_noconf, psidiff
   real(kind=8),dimension(:),allocatable :: delta_energy_arr
   real(kind=8),dimension(:),allocatable :: hpsi_noprecond, occup_tmp, kernel_compr_tmp, philarge
   real(kind=8),dimension(:,:),allocatable :: coeff_old
   logical :: energy_increased, overlap_calculated
-  character(len=*),parameter :: subname='getLocalizedBasis'
   real(kind=8),dimension(:),pointer :: lhphiold, lphiold, hpsit_c, hpsit_f, hpsi_small
   type(energy_terms) :: energs
   real(kind=8), dimension(2):: reducearr
@@ -481,8 +481,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   integer,save :: nkappa_history
   logical,save :: has_already_converged
   logical,dimension(7) :: exit_loop
-  logical :: associated_psit_c, associated_psit_f
-  logical :: associated_psitlarge_c, associated_psitlarge_f
 
   call f_routine(id='getLocalizedBasis')
 
@@ -543,9 +541,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call yaml_map('Initial kernel purification',.true.)
       end if
       overlap_calculated=.true.
-      !tmb%can_use_transposed=.false.
       call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, order_taylor, purification_quickreturn)
-      !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
       if (iproc==0) call yaml_close_map()
   end if
 
@@ -648,77 +644,51 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                hpsi_noconf, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
           if (method_updatekernel==UPDATE_BY_FOE) then
               !@NEW
-              if(associated(tmb%ham_descr%psit_c)) then
-                  call f_free_ptr(tmb%ham_descr%psit_c)
-                  associated_psitlarge_c=.true.
-              else
-                  associated_psitlarge_c=.false.
-              end if
-              if(associated(tmb%ham_descr%psit_f)) then
-                  call f_free_ptr(tmb%ham_descr%psit_f)
-                  associated_psitlarge_f=.true.
-              else
-                  associated_psitlarge_f=.false.
-              end if
+              !!if(associated(tmb%ham_descr%psit_c)) then
+              !!    call f_free_ptr(tmb%ham_descr%psit_c)
+              !!    associated_psitlarge_c=.true.
+              !!else
+              !!    associated_psitlarge_c=.false.
+              !!end if
+              !!if(associated(tmb%ham_descr%psit_f)) then
+              !!    call f_free_ptr(tmb%ham_descr%psit_f)
+              !!    associated_psitlarge_f=.true.
+              !!else
+              !!    associated_psitlarge_f=.false.
+              !!end if
 
-              tmb%ham_descr%psit_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='tmb%ham_descr%psit_c')
-              tmb%ham_descr%psit_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='tmb%ham_descr%psit_f')
+              !!tmb%ham_descr%psit_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='tmb%ham_descr%psit_c')
+              !!tmb%ham_descr%psit_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='tmb%ham_descr%psit_f')
               call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                    tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
                    tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, tmb%linmat%ham_)
 
-              !!if(associated(tmb%psit_c)) then
-              !!    call f_free_ptr(tmb%psit_c)
-              !!    associated_psit_c=.true.
-              !!else
-              !!    associated_psit_c=.false.
+              !!if (.not.associated(tmb%psit_c)) then
+              !!    tmb%psit_c = f_malloc_ptr(tmb%collcom%ndimind_c,id='tmb%psit_c')
               !!end if
-              !!if(associated(tmb%psit_f)) then
-              !!    call f_free_ptr(tmb%psit_f)
-              !!    associated_psit_f=.true.
-              !!else
-              !!    associated_psit_f=.false.
+              !!if (.not.associated(tmb%psit_f)) then
+              !!    tmb%psit_f = f_malloc_ptr(7*tmb%collcom%ndimind_f,id='tmb%psit_f')
               !!end if
-              if (.not.associated(tmb%psit_c)) then
-                  tmb%psit_c = f_malloc_ptr(tmb%collcom%ndimind_c,id='tmb%psit_c')
-              end if
-              if (.not.associated(tmb%psit_f)) then
-                  tmb%psit_f = f_malloc_ptr(7*tmb%collcom%ndimind_f,id='tmb%psit_f')
-              end if
               call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
                    tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
                    tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
-              ! This can then be deleted if the transition to the new type has been completed.
-              !tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
               if (iproc==0) call yaml_newline()
-              !if (iproc==0) call yaml_open_map(flow=.true.)
               if (iproc==0) call yaml_open_sequence('kernel update by FOE')
               call foe(iproc, nproc, 0.d0, &
-                   energs%ebs, -1, -10, order_taylor, purification_quickreturn, adjust_FOE_temperature, 0, &
+                   energs%ebs, -1, -10, order_taylor, purification_quickreturn, 0, &
                    FOE_FAST, tmb, tmb%foe_obj)
-              !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
-              !if (iproc==0) call yaml_close_map()
               if (iproc==0) call yaml_close_sequence()
-              !!if (.not.associated_psit_c) then
-              !!    call f_free_ptr(tmb%psit_c)
-              !!end if
-              !!if (.not.associated_psit_f) then
-              !!    call f_free_ptr(tmb%psit_f)
-              !!end if
-              !!if (associated_psit_c .and. associated_psit_f) then
-              !!    tmb%can_use_transposed=.true.
-              !!end if
-              if (.not.associated_psitlarge_c) then
-                  call f_free_ptr(tmb%ham_descr%psit_c)
-              end if
-              if (.not.associated_psitlarge_f) then
-                  call f_free_ptr(tmb%ham_descr%psit_f)
-              end if
-              if (associated_psitlarge_c .and. associated_psitlarge_f) then
+              !if (.not.associated_psitlarge_c) then
+              !    call f_free_ptr(tmb%ham_descr%psit_c)
+              !end if
+              !if (.not.associated_psitlarge_f) then
+              !    call f_free_ptr(tmb%ham_descr%psit_f)
+              !end if
+              !if (associated_psitlarge_c .and. associated_psitlarge_f) then
                   tmb%ham_descr%can_use_transposed=.true.
-              end if
+              !end if
               !@ENDNEW
           end if
       else
@@ -794,8 +764,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       !if (iproc==0) write(*,*) 'tmb%linmat%denskern%matrix_compr(1)',tmb%linmat%denskern%matrix_compr(1)
       call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
-           hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint_local, .false., hpsi_small, &
-           experimental_mode, correction_co_contra, orbs, hpsi_noprecond, order_taylor, method_updatekernel)
+           hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint_local, hpsi_small, &
+           experimental_mode, correction_co_contra, hpsi_noprecond, order_taylor, method_updatekernel)
 
 
       !!! PLOT ###########################################################################
@@ -920,24 +890,15 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           tmb%ham_descr%can_use_transposed=.false.
           call vcopy(tmb%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
           can_use_ham=.false.
-          !!if (scf_mode/=LINEAR_FOE) then
-          !!    ! Recalculate the kernel with the old coefficients
-          !!    call vcopy(tmb%orbs%norb*tmb%orbs%norb, coeff_old(1,1), 1, tmb%coeff(1,1), 1)
-          !!    call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, &
-          !!         tmb%coeff, tmb%linmat%denskern)
-          !!else
-          !call vcopy(tmb%linmat%denskern%nvctr, kernel_best(1), 1, tmb%linmat%denskern%matrix_compr(1), 1)
-          !call vcopy(tmb%linmat%l%nvctr, kernel_best(1), 1, tmb%linmat%denskern_large%matrix_compr(1), 1)
           call vcopy(tmb%linmat%l%nvctr, kernel_best(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
-          !!end if
           trH_old=0.d0
           it=it-2 !go back one iteration (minus 2 since the counter was increased)
-          if(associated(tmb%ham_descr%psit_c)) then
-              call f_free_ptr(tmb%ham_descr%psit_c)
-          end if
-          if(associated(tmb%ham_descr%psit_f)) then
-              call f_free_ptr(tmb%ham_descr%psit_f)
-          end if
+          !if(associated(tmb%ham_descr%psit_c)) then
+          !    call f_free_ptr(tmb%ham_descr%psit_c)
+          !end if
+          !if(associated(tmb%ham_descr%psit_f)) then
+          !    call f_free_ptr(tmb%ham_descr%psit_f)
+          !end if
           !!if(iproc==0) write(*,*) 'it_tot',it_tot
           overlap_calculated=.false.
           ! print info here anyway for debugging
@@ -946,8 +907,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               call bigdft_utils_flush(unit=6)
              cycle
           else if(it_tot<3*nit_basis) then ! stop orthonormalizing the tmbs
-             !if (iproc==0) write(*,*) 'WARNING: SWITCHING OFF ORTHO COMMENTED'
-             !if (iproc==0) write(*,'(a)') 'Energy increasing, switching off orthonormalization of tmbs'
              if (iproc==0) call yaml_newline()
              if (iproc==0) call yaml_warning('Energy increasing, switching off orthonormalization of tmbs')
              ortho_on=.false.
@@ -1048,8 +1007,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       overlap_calculated=.false.
       ! It is now not possible to use the transposed quantities, since they have changed.
       if(tmb%ham_descr%can_use_transposed) then
-          call f_free_ptr(tmb%ham_descr%psit_c)
-          call f_free_ptr(tmb%ham_descr%psit_f)
+          !call f_free_ptr(tmb%ham_descr%psit_c)
+          !call f_free_ptr(tmb%ham_descr%psit_f)
           tmb%ham_descr%can_use_transposed=.false.
       end if
 
@@ -1065,11 +1024,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !if (iproc==0) write(*,*) 'delta_energy', delta_energy
           delta_energy_prev=delta_energy
           delta_energy_arr(max(it,1))=delta_energy !max since the counter was decreased if there are problems, might lead to wrong results otherwise
-      end if
-
-      ! Copy the coefficients to coeff_old. The coefficients will be modified in reconstruct_kernel.
-      if (scf_mode/=LINEAR_FOE) then
-          call vcopy(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1), 1, coeff_old(1,1), 1)
       end if
 
 
@@ -1135,10 +1089,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
 
   ! Deallocate potential
-  !call f_free_ptr(denspot%pot_work)
-  iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
-  deallocate(denspot%pot_work,stat=istat)
-  call memocc(istat,iall,'denspot%pot_work',subname)
+  call f_free_ptr(denspot%pot_work)
 
 
   ! Keep the values for the next iteration
@@ -1190,11 +1141,6 @@ contains
       psidiff = f_malloc(tmb%npsidim_orbs,id='psidiff')
       hpsi_noprecond = f_malloc(tmb%npsidim_orbs,id='hpsi_noprecond')
 
-      if (scf_mode/=LINEAR_FOE) then
-          coeff_old = f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='coeff_old')
-      end if
-
-
     end subroutine allocateLocalArrays
 
 
@@ -1217,10 +1163,6 @@ contains
     call f_free(hpsi_noconf)
     call f_free(psidiff)
     call f_free(hpsi_noprecond)
-
-    if (scf_mode/=LINEAR_FOE) then
-        call f_free(coeff_old)
-    end if
 
     end subroutine deallocateLocalArrays
 
@@ -1798,14 +1740,14 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
   ! Calculate the overlap matrix between the TMBs.
   if(.not. overlap_calculated) then
      if(.not.tmb%can_use_transposed) then
-         if(associated(tmb%psit_c)) then
-             call f_free_ptr(tmb%psit_c)
-         end if
-         if(associated(tmb%psit_f)) then
-             call f_free_ptr(tmb%psit_f)
-         end if
-         tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
-         tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
+         !!if(associated(tmb%psit_c)) then
+         !!    call f_free_ptr(tmb%psit_c)
+         !!end if
+         !!if(associated(tmb%psit_f)) then
+         !!    call f_free_ptr(tmb%psit_f)
+         !!end if
+         !!tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
+         !!tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
          call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
               tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
          tmb%can_use_transposed=.true.
@@ -2216,14 +2158,14 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   ! Calculate the overlap matrix between the TMBs.
   if(.not. overlap_calculated) then
      if(.not.tmb%can_use_transposed) then
-         if(associated(tmb%psit_c)) then
-             call f_free_ptr(tmb%psit_c)
-         end if
-         if(associated(tmb%psit_f)) then
-             call f_free_ptr(tmb%psit_f)
-         end if
-         tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
-         tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
+         !!if(associated(tmb%psit_c)) then
+         !!    call f_free_ptr(tmb%psit_c)
+         !!end if
+         !!if(associated(tmb%psit_f)) then
+         !!    call f_free_ptr(tmb%psit_f)
+         !!end if
+         !!tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
+         !!tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
          call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
               tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
          tmb%can_use_transposed=.true.

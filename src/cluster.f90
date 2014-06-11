@@ -123,9 +123,7 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
 
      if (runObj%inputs%inputPsiId == 0 .and. associated(runObj%rst%KSwfn%psi)) then
         !call f_free_ptr(runObj%rst%KSwfn%psi)
-        i_all=-product(shape(runObj%rst%KSwfn%psi))*kind(runObj%rst%KSwfn%psi)
-        deallocate(runObj%rst%KSwfn%psi,stat=i_stat)
-        call memocc(i_stat,i_all,'runObj%rst%KSwfn%psi',subname)
+        call f_free_ptr(runObj%rst%KSwfn%psi)
 
         call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
 
@@ -1292,8 +1290,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      !    Calculate energy correction due to finite size effects
      !    ---reformat potential
      !!denspot%pot_work = f_malloc_ptr(n1i*n2i*n3i*in%nspin,id='denspot%pot_work')
-     allocate(denspot%pot_work(n1i*n2i*n3i*in%nspin),stat=i_stat)
-     call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
+     denspot%pot_work = f_malloc_ptr(n1i*n2i*n3i*in%nspin,id='denspot%pot_work')
 
 
      if (nproc > 1) then
@@ -1325,9 +1322,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
           KSwfn%psi,(in%output_denspot /= 0),energs%ekin,energs%epot,energs%eproj)
 
      !call f_free_ptr(denspot%pot_work)
-     i_all=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
-     deallocate(denspot%pot_work,stat=i_stat)
-     call memocc(i_stat,i_all,'denspot%pot_work',subname)
+     call f_free_ptr(denspot%pot_work)
 
 
      energs%ebs=energs%ekin+energs%epot+energs%eproj
@@ -1400,12 +1395,8 @@ contains
 
        call dpbox_free(denspot%dpbox, subname)
 
-       i_all=-product(shape(fion))*kind(fion)
-       deallocate(fion,stat=i_stat)
-       call memocc(i_stat,i_all,'fion',subname)
-       i_all=-product(shape(fdisp))*kind(fdisp)
-       deallocate(fdisp,stat=i_stat)
-       call memocc(i_stat,i_all,'fdisp',subname)
+       call f_free_ptr(fion)
+       call f_free_ptr(fdisp)
     end if
     call xc_end(denspot%xc)
 
@@ -1790,6 +1781,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            if(iproc==0) then
               if (opt%itrp == opt%itrpmax .and. opt%gnrm_cv > 0.0_gp) &
                    call yaml_warning('Wavefunctions not converged after cycle '// trim(yaml_toa(opt%itrep,fmt='(i0)')))
+              if (opt%itrpmax > 1 .and. opt%itrp == opt%itrpmax .and. opt%gnrm > sqrt(opt%rpnrm)) &
+                   call yaml_warning('Wavefunction residue is not consistent with density convergence (T_el too small?)')
               if (opt%itrep < opt%nrepmax) call yaml_comment('restart after diagonalisation')
               ! write(*,*) ' WARNING: Wavefunctions not converged after cycle',opt%itrep
               ! if (opt%itrep < opt%nrepmax) write(*,*)' restart after diagonalisation'
@@ -2000,12 +1993,10 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   if (linear) then
      if (denspot%dpbox%ndimpot>0) then
         !!denspot%pot_work = f_malloc_ptr(denspot%dpbox%ndimpot,id='denspot%pot_work')
-        allocate(denspot%pot_work(denspot%dpbox%ndimpot),stat=i_stat)
-        call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
+        denspot%pot_work = f_malloc_ptr(denspot%dpbox%ndimpot,id='denspot%pot_work')
      else
         !!denspot%pot_work = f_malloc_ptr(1,id='denspot%pot_work')
-        allocate(denspot%pot_work(1),stat=i_stat)
-        call memocc(i_stat,denspot%pot_work,'denspot%pot_work',subname)
+        denspot%pot_work = f_malloc_ptr(1,id='denspot%pot_work')
      end if
      ! Density already present in denspot%rho_work
      call vcopy(denspot%dpbox%ndimpot,denspot%rho_work(1),1,denspot%pot_work(1),1)
@@ -2077,9 +2068,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
 
   call f_free_ptr(denspot%rho_work)
   !call f_free_ptr(denspot%pot_work)
-  i_all=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
-  deallocate(denspot%pot_work,stat=i_stat)
-  call memocc(i_stat,i_all,'denspot%pot_work',subname)
+  call f_free_ptr(denspot%pot_work)
   nullify(denspot%rho_work,denspot%pot_work)
 
   if (linear) then

@@ -19,6 +19,8 @@ subroutine allocateBasicArraysInputLin(lin, ntypes)
   ! Local variables
   integer :: istat
   character(len=*),parameter :: subname='allocateBasicArrays'
+
+  call f_routine(id='allocateBasicArraysInputLin')
   
   lin%norbsPerType = f_malloc_ptr(ntypes,id='lin%norbsPerType')
   lin%potentialPrefac_ao = f_malloc_ptr(ntypes,id='lin%potentialPrefac_ao')
@@ -28,6 +30,8 @@ subroutine allocateBasicArraysInputLin(lin, ntypes)
   lin%locrad_type = f_malloc_ptr((/ ntypes, 2 /),id='lin%locrad_type')
   lin%kernel_cutoff_FOE = f_malloc_ptr(ntypes,id='lin%kernel_cutoff_FOE')
   lin%kernel_cutoff = f_malloc_ptr(ntypes,id='lin%kernel_cutoff')
+
+  call f_release_routine()
 
 end subroutine allocateBasicArraysInputLin
 
@@ -42,6 +46,8 @@ subroutine deallocateBasicArraysInput(lin)
   ! Local variables
   integer :: i_stat,i_all
   character(len=*),parameter :: subname='deallocateBasicArrays'
+
+  call f_routine(id='deallocateBasicArraysInput')
  
   if(associated(lin%potentialPrefac_ao)) then
     call f_free_ptr(lin%potentialPrefac_ao)
@@ -100,6 +106,8 @@ subroutine deallocateBasicArraysInput(lin)
     call f_free_ptr(lin%kernel_cutoff)
     nullify(lin%kernel_cutoff)
   end if 
+
+  call f_release_routine()
 
 end subroutine deallocateBasicArraysInput
 
@@ -176,7 +184,7 @@ subroutine init_foe(iproc, nproc, nlr, locregcenter, astruct, input, orbs_KS, or
   use module_base
   use module_atoms, only: atomic_structure
   use module_types
-  use foe_base, only: foe_data, foe_data_set_int, foe_data_set_real, foe_data_get_real, foe_data_null
+  use foe_base, only: foe_data, foe_data_set_int, foe_data_set_real, foe_data_set_logical, foe_data_get_real, foe_data_null
   implicit none
   
   ! Calling arguments
@@ -227,6 +235,7 @@ subroutine init_foe(iproc, nproc, nlr, locregcenter, astruct, input, orbs_KS, or
      call foe_data_set_int(foe_obj,"evboundsshrink_nsatur",input%evboundsshrink_nsatur)
      call foe_data_set_real(foe_obj,"fscale_lowerbound",input%fscale_lowerbound)
      call foe_data_set_real(foe_obj,"fscale_upperbound",input%fscale_upperbound)
+     call foe_data_set_logical(foe_obj,"adjust_FOE_temperature",input%adjust_FOE_temperature)
   end if
 
   call timing(iproc,'init_matrCompr','OF')
@@ -546,6 +555,8 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
   character(len=*),parameter :: subname='init_orbitals_data_for_linear'
 
   call timing(iproc,'init_orbs_lin ','ON')
+
+  call f_routine(id='init_orbitals_data_for_linear')
   
   call nullify_orbitals_data(lorbs)
  
@@ -601,6 +612,8 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
   call f_free(locregCenter)
   call f_free(norbsPerAtom)
 
+  call f_release_routine()
+
   call timing(iproc,'init_orbs_lin ','OF')
 
 end subroutine init_orbitals_data_for_linear
@@ -628,6 +641,9 @@ subroutine lzd_init_llr(iproc, nproc, input, astruct, rxyz, orbs, lzd)
   real(8):: t1, t2
 
   call timing(iproc,'init_locregs  ','ON')
+
+  call f_routine(id='lzd_init_llr')
+
   t1=mpi_wtime()
   
   nullify(lzd%llr)
@@ -661,6 +677,9 @@ subroutine lzd_init_llr(iproc, nproc, input, astruct, rxyz, orbs, lzd)
   
   t2=mpi_wtime()
   !if(iproc==0) write(*,*) 'in lzd_init_llr: time',t2-t1
+
+  call f_release_routine()
+
   call timing(iproc,'init_locregs  ','OF')
 
 end subroutine lzd_init_llr
@@ -703,6 +722,9 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
   character(len=*),parameter :: subname='update_locreg'
 
   call timing(iproc,'updatelocreg1','ON') 
+
+  call f_routine(id='update_locreg')
+
   !if (present(lfoe)) call nullify_foe(lfoe)
   if (present(lfoe)) lfoe = foe_data_null()
   !call nullify_comms_linear(lbcollcom)
@@ -767,6 +789,8 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
 
   call initialize_communication_potential(iproc, nproc, nscatterarr, orbs, lzd, lbcomgp)
   call allocate_p2pComms_buffer(lbcomgp)
+
+  call f_release_routine()
 
 end subroutine update_locreg
 
@@ -881,7 +905,11 @@ subroutine destroy_DFT_wavefunction(wfn)
   integer :: istat, iall
   character(len=*),parameter :: subname='destroy_DFT_wavefunction'
 
+  call f_routine(id='destroy_DFT_wavefunction')
+
   call f_free_ptr(wfn%psi)
+  call f_free_ptr(wfn%psit_c)
+  call f_free_ptr(wfn%psit_f)
 
   call deallocate_p2pComms(wfn%comgp)
   call deallocate_sparse_matrix(wfn%linmat%s, subname)
@@ -900,6 +928,8 @@ subroutine destroy_DFT_wavefunction(wfn)
   if (associated(wfn%coeff)) then
       call f_free_ptr(wfn%coeff)
   end if
+
+  call f_release_routine()
 
 end subroutine destroy_DFT_wavefunction
 
@@ -921,6 +951,8 @@ subroutine update_wavefunctions_size(lzd,npsidim_orbs,npsidim_comp,orbs,iproc,np
   integer, allocatable, dimension(:) :: ncntt 
   integer, allocatable, dimension(:,:) :: nvctr_par
   character(len = *), parameter :: subname = "update_wavefunctions_size"
+
+  call f_routine(id='update_wavefunctions_size')
 
   npsidim = 0
   do iorb=1,orbs%norbp
@@ -956,6 +988,8 @@ subroutine update_wavefunctions_size(lzd,npsidim_orbs,npsidim_comp,orbs,iproc,np
   call f_free(nvctr_par)
 
   call f_free(ncntt)
+
+  call f_release_routine()
 
 end subroutine update_wavefunctions_size
 
@@ -1010,8 +1044,8 @@ subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,input, at, 
        tmb%ham_descr%psi, tmb%hpsi)
 
   tmb%ham_descr%can_use_transposed=.false.
-  nullify(tmb%ham_descr%psit_c)
-  nullify(tmb%ham_descr%psit_f)
+  !!nullify(tmb%ham_descr%psit_c)
+  !!nullify(tmb%ham_descr%psit_f)
   allocate(tmb%confdatarr(tmb%orbs%norbp), stat=istat)
 
   if(.not.lowaccur_converged) then
@@ -1181,6 +1215,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   type(local_zone_descriptors) :: lzd_tmp
   character(len=*), parameter :: subname='adjust_locregs_and_confinement'
 
+  call f_routine(id='adjust_locregs_and_confinement')
+
   locreg_increased=.false.
   if(lowaccur_converged ) then
       do ilr = 1, tmb%lzd%nlr
@@ -1258,7 +1294,12 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      call deallocate_local_zone_descriptors(lzd_tmp, subname)
      call f_free_ptr(tmb%psi)
+     call f_free_ptr(tmb%psit_c)
+     call f_free_ptr(tmb%psit_f)
      tmb%psi = f_malloc_ptr(tmb%npsidim_orbs,id='tmb%psi')
+     tmb%psit_c = f_malloc_ptr(tmb%collcom%ndimind_c,id='tmb%psit_c')
+     tmb%psit_f = f_malloc_ptr(7*tmb%collcom%ndimind_f,id='tmb%psit_f')
+
      call vcopy(tmb%npsidim_orbs, lphilarge(1), 1, tmb%psi(1), 1)
      call f_free(lphilarge)
      
@@ -1280,14 +1321,18 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      call deallocate_auxiliary_basis_function(subname, tmb%ham_descr%psi, tmb%hpsi)
      if(tmb%ham_descr%can_use_transposed) then
-        call f_free_ptr(tmb%ham_descr%psit_c)
-        call f_free_ptr(tmb%ham_descr%psit_f)
+        !call f_free_ptr(tmb%ham_descr%psit_c)
+        !call f_free_ptr(tmb%ham_descr%psit_f)
         tmb%ham_descr%can_use_transposed=.false.
      end if
      
      deallocate(tmb%confdatarr, stat=istat)
 
      call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp, input, at, rxyz, lowaccur_converged)
+     call f_free_ptr(tmb%ham_descr%psit_c)
+     call f_free_ptr(tmb%ham_descr%psit_f)
+     tmb%ham_descr%psit_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='tmb%ham_descr%psit_c')
+     tmb%ham_descr%psit_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='tmb%ham_descr%psit_f')
 
      ! check the extent of the kernel cutoff (must be at least shamop radius)
      call check_kernel_cutoff(iproc, tmb%orbs, at, tmb%lzd)
@@ -1348,6 +1393,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
           4,input%lin%potentialPrefac_highaccuracy,tmb%ham_descr%lzd,tmb%orbs%onwhichatom)
 
   end if
+
+  call f_release_routine()
 
 end subroutine adjust_locregs_and_confinement
 
@@ -1477,11 +1524,13 @@ subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs,
   integer :: ilr
   real(kind=8),save :: cutoff_incr
   real(kind=8),dimension(:,:),allocatable :: locreg_centers
-  character(len=*),parameter :: subname='increase_FOE_cutoff'
+
+  call f_routine(id='increase_FOE_cutoff')
 
   ! Just initialize the save variable
   if (init) then
       cutoff_incr=0.d0
+      call f_release_routine()
       return
   end if
 
@@ -1504,6 +1553,8 @@ subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs,
   call init_foe(iproc, nproc, lzd%nlr, locreg_centers, astruct, input, orbs_KS, orbs, foe_obj, reset=.false., &
        cutoff_incr=cutoff_incr)
   call f_free(locreg_centers)
+
+  call f_release_routine()
 
 end subroutine increase_FOE_cutoff
 
@@ -1595,8 +1646,6 @@ subroutine corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, 
   end if
 
 end subroutine corrections_for_negative_charge
-
-
 
 
 subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero)
