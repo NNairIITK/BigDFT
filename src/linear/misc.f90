@@ -879,7 +879,6 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   ! Local variables
   type(orbitals_data) :: orbs
   type(comms_cubic) :: comms
-  type(sparse_matrix) :: ham_small ! for FOE
   real(gp) :: fnrm
   logical :: rho_negative
   integer :: infoCoeff, nvctrp, npsidim_global
@@ -909,7 +908,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
 
   tmb%can_use_transposed=.false.
   call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
-       energs, nlpsp, input%SIC, tmb, fnrm, .true., .false., .true., ham_small, 0, 0, 0, 0, &
+       energs, nlpsp, input%SIC, tmb, fnrm, .true., .false., .true., 0, 0, 0, 0, &
        input%lin%order_taylor,input%purification_quickreturn,&
        input%calculate_KS_residue,input%calculate_gap)
 
@@ -1011,7 +1010,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
   tmb%can_use_transposed=.false.
   call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
-       energs, nlpsp, input%SIC, tmb, fnrm, .true., .false., .true., ham_small, 0, 0, 0, 0, &
+       energs, nlpsp, input%SIC, tmb, fnrm, .true., .false., .true., 0, 0, 0, 0, &
        input%lin%order_taylor, input%purification_quickreturn, &
        input%calculate_KS_residue, input%calculate_gap, updatekernel=.false.)
   energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
