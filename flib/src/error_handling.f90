@@ -128,7 +128,7 @@
     if (get_error==-1) then
        f_err_check = dict_len(dict_present_error) /= 0 
     else
-       !othewise check is some error is present
+       !otherwise check is some error is present
        f_err_check =  get_error/=0
     end if
 
@@ -137,7 +137,7 @@
 
   !> This routine should be generalized to allow the possiblity of addin customized message at the 
   !! raise of the error. Also customized callback should be allowed
-  !! @warning This function is detected as recrusive by gfortran
+  !! @warning This function is detected as recursive by gfortran
   recursive function f_err_raise(condition,err_msg,err_id,err_name,callback,callback_data)
     use yaml_strings, only: yaml_toa
     !use yaml_output, only: yaml_dict_dump,yaml_map
@@ -167,7 +167,7 @@
     !once the error has been identified add it to the present errors and call callback function if needed
     if (f_err_raise) then
 
-       !trow the error with the annoying stuff of optional variables
+       !throw the error with the annoying stuff of optional variables
        if (present(err_msg)) then
           message(1:len(message))=err_msg
        else
@@ -327,7 +327,7 @@
   end subroutine get_error_msg
 
 
-  !> Identify id of lastr error occured
+  !> Identify id of last error occured
   function f_get_last_error(add_msg)
     implicit none
     character(len=*), intent(out), optional :: add_msg

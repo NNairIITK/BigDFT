@@ -100,6 +100,7 @@ module dictionaries
    public :: operator(.is.),operator(.item.),operator(==),operator(/=),operator(.in.)
    public :: dictionary,max_field_length,dict_get_num
 
+
    !> Header of error handling part
    !! Some parameters
    character(len=*), parameter :: errid='Id'
@@ -116,11 +117,14 @@ module dictionaries
    type(dictionary), pointer :: dict_errors=>null()        !< the global dictionaries of possible errors, nullified if not initialized
    type(dictionary), pointer :: dict_present_error=>null() !< local pointer of present error, nullified if success
 
-   public :: f_err_initialize,f_err_finalize,f_get_last_error,f_get_error_definitions
+   !> Public variables of the error handling module
+   public :: f_err_initialize,f_err_finalize
+   public :: f_get_last_error,f_get_error_definitions
    public :: f_err_define,f_err_check,f_err_raise,f_err_clean,f_err_pop,f_get_error_dict,f_err_throw
 
-   !public variables of the callback module
-   public :: f_err_set_callback,f_err_unset_callback,f_err_open_try,f_err_close_try
+   ! Public variables of the callback module
+   public :: f_err_set_callback,f_err_unset_callback
+   public :: f_err_open_try,f_err_close_try
    public :: f_err_severe,f_err_severe_override,f_err_severe_restore,f_err_ignore
    public :: f_loc,f_get_past_error,f_get_no_of_errors
 
@@ -964,6 +968,7 @@ contains
      end if
      if (f_err_raise(ierror/=0 .or. .not. is_atoi(val),'Value '//val,err_id=DICT_CONVERSION_ERROR)) return    
    end subroutine get_integer
+
 
    !> Set and get routines for different types
    subroutine get_long(ival,dict)

@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>  Control the accuracy of the expansion in gaussian
+!> Control the accuracy of the expansion in gaussian
 subroutine check_gaussian_expansion(iproc,nproc,orbs,Lzd,psi,G,coeffs)
   use module_base
   use module_types
@@ -22,7 +22,8 @@ subroutine check_gaussian_expansion(iproc,nproc,orbs,Lzd,psi,G,coeffs)
   real(wp), dimension(G%ncoeff,orbs%norbp), intent(in) :: coeffs
   !local variables
   character(len=*), parameter :: subname='check_gaussian_expansion'
-  integer :: iorb,i_stat,i_all,i,j,ierr
+  integer :: iorb,i,j,ierr
+!! integer :: i_stat,i_all,
   real(wp) :: maxdiffp,maxdiff,orbdiff
   real(wp), dimension(:), allocatable :: workpsi
 
@@ -83,7 +84,8 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
   character(len=100) :: line
   !n(c) integer, parameter :: nterm_max=3
   integer :: ngx,nbx,nst,nend,num,mmax,myshift,i,ipar,ipg,jat
-  integer :: iorb,jorb,iat,ityp,i_all,i_stat,ibas,ig,iset,jbas,ishell,lmax
+  integer :: iorb,jorb,iat,ityp,i_stat,ibas,ig,iset,jbas,ishell,lmax
+!! integer :: i_all,
   integer :: isat,iexpo,icoeff,iam
   real(dp) :: tt
   real(gp) :: exponent,coefficient
@@ -412,7 +414,8 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
   character(len=*), parameter :: subname='gaussians_to_wavelets'
   integer, parameter :: nterm_max=3
   logical :: maycalc
-  integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,iorb,jorb,nterm,ierr,ispinor
+  integer :: ishell,iexpo,icoeff,iat,isat,ng,l,m,iorb,jorb,nterm,ierr,ispinor
+!! integer :: i_stat,i_all,
   real(dp) :: normdev,tt,scpr,totnorm
   real(gp) :: rx,ry,rz
   integer, dimension(nterm_max) :: lx,ly,lz
@@ -544,6 +547,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
 
 END SUBROUTINE gaussians_to_wavelets
 
+
 subroutine gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,wfn_gau,psi)
   use module_base
   use module_types
@@ -626,7 +630,6 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,wfn_gau,psi)
 END SUBROUTINE gaussians_to_wavelets_new
 
 
-
 subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   use module_base
   use module_types
@@ -643,7 +646,8 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   character(len=*), parameter :: subname='gaussians_to_wavelets_orb'
   integer, parameter :: nterm_max=3,maxsizeKB=2048,nw=65536
   logical :: perx,pery,perz
-  integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,i,nterm,ig
+  integer :: ishell,iexpo,icoeff,iat,isat,ng,l,m,i,nterm,ig
+!! integer :: i_stat,i_all,
   integer :: nterms_max,nterms,iterm,n_gau,ml1,mu1,ml2,mu2,ml3,mu3 !n(c) iscoeff
   real(gp) :: rx,ry,rz,gau_cut
   real(gp),dimension(ncplx_g):: gau_a
@@ -754,8 +758,6 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
 END SUBROUTINE gaussians_to_wavelets_orb
 
 
-
-
 subroutine gaussians_c_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi, cutoff)
   use module_base
   use module_types
@@ -773,7 +775,8 @@ subroutine gaussians_c_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi,
   character(len=*), parameter :: subname='gaussians_to_wavelets_orb'
   integer, parameter :: nterm_max=3,maxsizeKB=2048,nw=65536
   logical :: perx,pery,perz
-  integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,i,nterm,ig
+  integer :: ishell,iexpo,icoeff,iat,isat,ng,l,m,i,nterm,ig
+!! integer :: i_stat,i_all,
   integer :: nterms_max,nterms,iscoeff,iterm,n_gau,ml1,mu1,ml2,mu2,ml3,mu3
   real(gp) :: rx,ry,rz,gau_a, gau_bf
   integer, dimension(nterm_max) :: lx,ly,lz
@@ -788,7 +791,6 @@ subroutine gaussians_c_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi,
   ! if ( ncplx.ne.1) then
   !    stop ' ncplx must be 1 in  actual version of  gaussians_c_to_wavelets_orb'
   ! end if
-
 
   !calculate nterms_max:
   !allows only maxsizeKB per one-dimensional array
@@ -837,7 +839,6 @@ subroutine gaussians_c_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi,
         !print *,iproc,iat,ishell,G%nam(ishell),G%nshell(iat)
         !multiply the values of the gaussian contraction times the orbital coefficient
     
-
         do m=1,2*l-1
            call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
            !control whether the basis element may be
@@ -899,12 +900,7 @@ subroutine gaussians_c_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi,
 
   !accumulate wavefuncton
 
-
   call wfn_from_tensprod_cossin(lr, ncplx,  cossinfacts    ,nterms,wx,wy,wz,psi)
-
-
-
-
 
 !psi=1.d0
 
@@ -1109,6 +1105,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
   !!$omp end parallel
 
 contains 
+
   !> Real part of the complex product
   pure function re_cmplx_prod(a,b,c)
     use module_base, only: wp
@@ -1124,7 +1121,7 @@ contains
   END FUNCTION re_cmplx_prod
 
 
-  !>   Imaginary part of the complex product
+  !> Imaginary part of the complex product
   pure function im_cmplx_prod(a,b,c)
     use module_base, only: wp
     implicit none
@@ -1261,9 +1258,6 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
      end do
   else if (ncplx ==2) then
 
-
-
-
      nvctr=0
      do iseg=1,lr%wfd%nseg_c
         call segments_to_grid(lr%wfd%keyvglob(iseg),lr%wfd%keyglob(1,iseg),lr%d,i0,i1,i2,i3,jj)
@@ -1374,9 +1368,6 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
            end do
         end do
 
-
-
-
      end do
 
      !!$  end if
@@ -1433,6 +1424,7 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
 !!$omp end parallel
 
 contains 
+
   !> Real part of the complex product
   pure function re_cmplx_prod(a,b,c)
     use module_base, only: wp
@@ -1448,7 +1440,7 @@ contains
   END FUNCTION re_cmplx_prod
 
 
-  !>   Imaginary part of the complex product
+  !> Imaginary part of the complex product
   pure function im_cmplx_prod(a,b,c)
     use module_base, only: wp
     implicit none
@@ -1461,6 +1453,7 @@ contains
          +a(1)*b(1)*c(2)
 
   END FUNCTION im_cmplx_prod
+
 
   pure function re_re_cmplx_prod(a,b,c)
     use module_base
@@ -1521,8 +1514,6 @@ contains
 
 
 END SUBROUTINE wfn_from_tensprod_cossin
-
-
 
 
 subroutine segments_to_grid(keyv,keyg,grid,i0,i1,i2,i3,jj)
@@ -1781,7 +1772,8 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   character(len=100) :: line
   integer, parameter :: nterm_max=3
   integer :: ngx,nbx,nst,nend,ng,num,mmax,myshift,i,ipar,ipg,jat
-  integer :: iorb,jorb,iat,ityp,l,m,nterm,i_all,i_stat,ibas,ig,iset,jbas,ishell,lmax
+  integer :: iorb,jorb,iat,ityp,l,m,nterm,i_stat,ibas,ig,iset,jbas,ishell,lmax
+!! integer :: i_all,
   integer :: ierr
   real(dp) :: tt,normdev
   real(gp) :: rx,ry,rz
@@ -2252,7 +2244,8 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
   character(len=*), parameter :: subname='crtonewave'
   integer, parameter ::nw=32000
   logical :: perx,pery,perz
-  integer:: iterm,itp,n_gau,ml1,mu1,ml2,mu2,ml3,mu3,i1,i2,i3,i_all,i_stat,iseg,ii,jj,j0,j1,i0,i
+  integer:: iterm,itp,n_gau,ml1,mu1,ml2,mu2,ml3,mu3,i1,i2,i3,iseg,ii,jj,j0,j1,i0,i
+!! integer :: i_stat,i_all,
   real(gp) :: gau_a,te
   real(wp), dimension(0:nw,2) :: work
   real(wp), dimension(:,:), allocatable :: wprojx,wprojy,wprojz

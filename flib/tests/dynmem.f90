@@ -21,7 +21,7 @@ subroutine test_dynamic_memory()
    end type dummy_type
 
    !logical :: fl
-   integer :: i
+   integer :: i,id
    real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,xc_pot
    real(kind=8), dimension(:), pointer :: extra_ref
    real(kind=8), dimension(:,:), allocatable :: ab
@@ -32,8 +32,14 @@ subroutine test_dynamic_memory()
    integer,dimension(:,:,:),allocatable :: weight
    integer,dimension(:,:,:,:),allocatable :: orbital_id
    type(dummy_type) :: dummy_test
+   logical :: within_openmp
+   real(kind=8) :: total
+   character(len=250) :: message
    external :: abort2
-  
+   integer ithread
+   !$ logical :: omp_in_parallel, omp_get_nested
+   !$ integer :: omp_get_thread_num
+  ithread=0
    call yaml_comment('Routine-Tree creation example',hfill='~')
    !call dynmem_sandbox()
 
@@ -225,18 +231,41 @@ call f_free(weight)
 !!$   !   call f_malloc_dump_status()
 !!$   !   call yaml_close_map()
 
+
   !Allocation in an omp section is not permissible
-  !$omp parallel
-  !$omp critical (allocate_critical)
-  ab = f_malloc((/ 10, 10 /),id='ab')
-  !$omp end critical (allocate_critical)
+  !We check that.
+  call f_err_severe_override(f_err_ignore)
+  call yaml_comment('Start OpenMP and f_malloc test',hfill='-')
+  call f_err_open_try()
+  total=0.d0
+  !$omp parallel private(ab)
+  !$omp critical ! (allocate_critical)
+  !$ ithread=omp_get_thread_num()
+!  ab = f_malloc((/ 10, 10 /),id='ab'//trim(yaml_toa(ithread)))
+!  allocate(ab(10,10))
+!  ab=1
+!  !$omp end critical (allocate_critical)
+!total=total+sum(ab)
+!deallocate(ab)
+!  !$omp critical (deallocate_critical)
+!  call f_free(ab)
+  !$omp end critical ! (deallocate_critical)
+  within_openmp=.false.
+!$ within_openmp=omp_in_parallel() .or. omp_get_nested()
+!$omp end parallel
+  call f_err_close_try()
+  if (within_openmp) then
+     if (f_err_check()) then
+        id = f_get_last_error(message)
+        call yaml_map('Error when f_malloc inside OpenMP', message)
+     else
+        call yaml_map('Error when f_malloc inside OpenMP', .false.)
+     end if
+  else
+     call yaml_map('Error when f_malloc inside OpenMP', .false.)
+  end if
 
-  !$omp critical (deallocate_critical)
-  call f_free(ab)
-  !$omp end critical (deallocate_critical)
-  !$omp end parallel
-
-
+!call yaml_map('Total of the allocations',total)
    call f_routine(id='Routine A')
    call f_release_routine()
 
