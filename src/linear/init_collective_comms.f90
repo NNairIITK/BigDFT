@@ -209,9 +209,6 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
    call f_free(psit_c)
    call f_free(psit_f)
    call f_free(checksum)
-   !i_all=-product(shape(checksum))*kind(checksum)
-   !deallocate(checksum, stat=i_stat)
-   !call memocc(i_stat, i_all, 'checksum', subname)
 
  contains
    
