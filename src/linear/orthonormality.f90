@@ -43,6 +43,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
   type(matrices) :: ovrlp_, inv_ovrlp_half_
 
 
+  call f_routine(id='orthonormalizeLocalized')
 
   inv_ovrlp_half_ = matrices_null()
   call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='inv_ovrlp_half_', mat=inv_ovrlp_half_)
@@ -109,6 +110,8 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
 
   call deallocate_matrices(inv_ovrlp_half_)
 
+  call f_release_routine()
+
 end subroutine orthonormalizeLocalized
 
 
@@ -161,6 +164,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   type(matrices) :: inv_ovrlp_
   real(8),dimension(:),allocatable :: inv_ovrlp_seq
   real(8),dimension(:,:),allocatable :: lagmatp, inv_lagmatp
+
+  call f_routine(id='orthoconstraintNonorthogonal')
 
 
   if(.not. can_use_transposed) then
@@ -248,6 +253,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   call f_free(hpsit_tmp_c)
   call f_free(hpsit_tmp_f)
   call f_free(hphi_nococontra)
+
+  call f_release_routine()
 
 end subroutine orthoconstraintNonorthogonal
 
@@ -1169,6 +1176,9 @@ subroutine overlap_plus_minus_one_half_exact(nproc,norb,blocksize,plusminus,inv_
   logical, parameter :: symmetric=.true.
   logical, parameter :: check_lapack=.true.
 
+
+  call f_routine(id='overlap_plus_minus_one_half_exact')
+
   if (nproc>1) then
       if (.not.present(smat)) then 
           call f_err_throw('overlap_plus_minus_one_half_exact: for nproc>1, smat must be present!', &
@@ -1367,6 +1377,8 @@ subroutine overlap_plus_minus_one_half_exact(nproc,norb,blocksize,plusminus,inv_
   call f_free_ptr(inv_ovrlp_halfp)
   call f_free(tempArr)
 
+  call f_release_routine()
+
 end subroutine overlap_plus_minus_one_half_exact
 
 
@@ -1392,6 +1404,8 @@ subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, smat, norb, norbp,
   real(kind=8), allocatable, dimension(:,:) :: tmp, tmp2
   real(kind=8), allocatable, dimension(:,:) :: tmpp, tmp2p
   integer :: ierr, i,j
+
+  call f_routine(id='check_accur_overlap_minus_one_sparse')
 
   tmpp=f_malloc0((/norb,norbp/),id='tmpp')
   if (power==1) then
@@ -1423,6 +1437,8 @@ subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, smat, norb, norbp,
   end if
   call f_free(tmpp)
 
+  call f_release_routine()
+
 end subroutine check_accur_overlap_minus_one_sparse
 
 
@@ -1438,6 +1454,8 @@ subroutine check_accur_overlap_minus_one(iproc,nproc,norb,norbp,isorb,power,ovrl
   real(kind=8), allocatable, dimension(:,:) :: tmp, tmp2
   real(kind=8), allocatable, dimension(:,:) :: tmpp, tmp2p
   integer :: ierr, i,j
+
+  call f_routine(id='check_accur_overlap_minus_one')
 
   tmpp=f_malloc((/norb,norbp/),id='tmpp')
   if (power==1) then
@@ -1470,6 +1488,8 @@ subroutine check_accur_overlap_minus_one(iproc,nproc,norb,norbp,isorb,power,ovrl
      stop 'Error in check_accur_overlap_minus_one'
   end if
   call f_free(tmpp)
+
+  call f_release_routine()
 
 end subroutine check_accur_overlap_minus_one
 
@@ -1852,6 +1872,8 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   real(kind=8) :: error
   type(matrices) :: ovrlp_, inv_ovrlp_half_
 
+  call f_routine(id='orthonormalize_subset')
+
 
   !call nullify_sparse_matrix(inv_ovrlp_half)
   !call sparse_copy_pattern(inv_ovrlp, inv_ovrlp_half, iproc, subname)
@@ -2004,6 +2026,8 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   call f_free(psittemp_f)
   call f_free_ptr(inv_ovrlp_half%matrix_compr)
 
+  call f_release_routine()
+
 end subroutine orthonormalize_subset
 
 
@@ -2041,6 +2065,8 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   !type(sparse_matrix) :: inv_ovrlp_half
   character(len=*),parameter :: subname='gramschmidt_subset'
   type(matrices) :: ovrlp_
+
+  call f_routine(gramschmidt_subset)
 
 
   !call nullify_sparse_matrix(inv_ovrlp_half)
@@ -2199,6 +2225,8 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   call f_free(psittemp_f)
   call f_free_ptr(inv_ovrlp_half%matrix_compr)
 
+  call f_release_routine()
+
 end subroutine gramschmidt_subset
 
 subroutine gramschmidt_coeff(iproc,nproc,norb,basis_orbs,basis_overlap,basis_overlap_mat,coeff)
@@ -2217,6 +2245,8 @@ subroutine gramschmidt_coeff(iproc,nproc,norb,basis_orbs,basis_overlap,basis_ove
   real(kind=8), dimension(:,:), allocatable :: ovrlp_coeff, coeff_tmp, coeff_trans
   real(kind=4) :: tr0, tr1
   real(kind=8) :: time0, time1, time2, time3, time4, time5
+
+  call f_routine(id='gramschmidt_coeff')
 
   time0=0.0d0
   time1=0.0d0
@@ -2309,6 +2339,7 @@ subroutine gramschmidt_coeff(iproc,nproc,norb,basis_orbs,basis_overlap,basis_ove
   !if (iproc==0) print*,'Time in gramschmidt_coeff',time0,time1,time2,time3,time4,time5,&
   !     time0+time1+time2+time3+time4+time5
 
+  call f_release_routine()
 
 end subroutine gramschmidt_coeff
 
@@ -2329,6 +2360,8 @@ subroutine gramschmidt_coeff_trans(iproc,nproc,norb,basis_orbs,basis_overlap,bas
 
   real(kind=4) :: tr0, tr1
   real(kind=8) :: time0, time1, time2, time3, time4, time5
+
+  call f_routine(id='gramschmidt_coeff_trans')
 
   time0=0.0d0
   time1=0.0d0
@@ -2455,6 +2488,8 @@ subroutine gramschmidt_coeff_trans(iproc,nproc,norb,basis_orbs,basis_overlap,bas
   !if (iproc==0) print*,'Time in gramschmidt_coeff',time0,time1,time2,time3,time4,time5,&
   !     time0+time1+time2+time3+time4+time5
 
+  call f_release_routine()
+
 
 end subroutine gramschmidt_coeff_trans
 
@@ -2542,7 +2577,7 @@ subroutine overlap_minus_one_half_serial(iproc, nproc, iorder, power, blocksize,
   !!write(*,*) 'iorder',iorder
 
 
-  call f_routine(id='overlapPowerGeneral')
+  call f_routine(id='overlap_minus_one_half_serial')
   call timing(iproc,'lovrlp^-1     ','ON')
 
   if (nproc>1) then

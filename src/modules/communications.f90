@@ -920,6 +920,8 @@ module communications
       integer,dimension(:,:),allocatable :: worksend_int, workrecv_int
       real(8),dimension(:,:),allocatable :: worksend_dbl, workrecv_dbl
       character(len=*),parameter :: subname='communicate_locreg_descriptors_basics'
+
+      call f_routine(id=subname)
     
       allocate(worksend_char(orbs%norbp), stat=istat)
       call memocc(istat, worksend_char, 'worksend_char', subname)
@@ -1043,6 +1045,8 @@ module communications
       call f_free(workrecv_log)
       call f_free(workrecv_int)
       call f_free(workrecv_dbl)
+
+      call f_release_routine()
     
     end subroutine communicate_locreg_descriptors_basics
     
@@ -1066,11 +1070,13 @@ module communications
        integer:: ierr, istat, iall, jorb, ilr, jlr, jtask, root, icomm, nrecv, nalloc, max_sim_comms
        integer :: maxrecvdim, maxsenddim
        logical :: isoverlap
-       character(len=*),parameter:: subname='communicate_wavefunctions_descriptors2'
+       character(len=*),parameter:: subname='communicate_locreg_descriptors_keys'
        integer,dimension(:),allocatable :: requests
        integer,dimension(:,:),allocatable :: worksend_int, workrecv_int
        logical,dimension(:,:),allocatable :: covered
        !integer :: total_sent, total_recv
+
+       call f_routine(id=subname)
     
        ! This maxval is put out of the allocate to avoid compiler crash with PathScale.
        jorb = maxval(orbs%norb_par(:,0))
@@ -1211,6 +1217,8 @@ module communications
        !print*,'iproc,sent,received,num sent,num received',iproc,total_sent,total_recv,nsend,nrecv
        call f_free(requests)
        call f_free(covered)
+
+       call f_release_routine()
     
     contains
     

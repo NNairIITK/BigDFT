@@ -346,6 +346,7 @@ subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
   integer :: i_stat,i_all
   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
 
+  call f_routine(id=subname)
 
   !define logrids
   logrid_c = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='logrid_c')
@@ -388,6 +389,8 @@ subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
        bounds%kb%ibyz_c,bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,&
        bounds%kb%ibyz_f,bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,&
        bounds%ibyyzz_r)
+
+  call f_release_routine()
 
 END SUBROUTINE locreg_bounds
 
