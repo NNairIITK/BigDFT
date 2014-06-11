@@ -275,8 +275,8 @@
        AB6MD:  Molecular dynamics from ABINIT
        DIIS:   Direct inversion of iterative subspace
        FIRE:   Fast Inertial Relaxation Engine as described by Bitzek et al.
-       NEB: Nudged Elastic Band
-       SBFGS: Stefans new optimizer
+       NEB:    Nudged Elastic Band
+       SBFGS:  Stefans new optimizer
      default: none
    ncount_cluster_x:
      COMMENT: Maximum number of force evaluations
@@ -293,7 +293,7 @@
      RANGE: [0., 10.]
      PROFILE_FROM: method
      default: 0.
-     NEB: 5e-2
+     NEB: 5e-3
    randdis:
      COMMENT: Random displacement amplitude
      RANGE: [0., 10.]

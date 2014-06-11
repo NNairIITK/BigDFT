@@ -130,6 +130,8 @@ MODULE NEB_routines
            & neb_%max_iterations, num_of_images, neb_%convergence, tolerance, &
            & neb_%ds, neb_%k_min, neb_%k_max, neb_%temp_req, neb_%damp, &
            & minimization_scheme)
+      ! NEB is using cv criterion in ev per ang.
+      neb_%convergence = neb_%convergence * Ha_eV / Bohr_Ang
       call dict_free(dict)
       call dict_free(dict_min)
       IF ( minimization_scheme == "steepest_descent" ) THEN
@@ -205,8 +207,6 @@ MODULE NEB_routines
          call global_output_set_from_dict(imgs(i)%outs, dict // "posinp")
       end do
       call dict_free(dict)
-      ! End of trick.
-      bigdft_mpi = bigdft_mpi_svg
 
       data_file          = trim(job_name) // ".NEB.dat"
       interpolation_file = trim(job_name) // ".NEB.int"
@@ -276,8 +276,9 @@ MODULE NEB_routines
             do j = istart + 1, istop - 1, 1
                atoms(j)%astruct%rxyz = atoms(j - 1)%astruct%rxyz + d_R
                ! Dump generated image positions on disk.
-               call write_atomic_file(trim(arr_posinp(j)) // ".in", UNINITIALIZED(1.d0), &
-                    & atoms(j)%astruct%rxyz, atoms(j), "NEB generated")
+               if (bigdft_mpi%iproc == 0) then
+                  call write_atomic_file(trim(arr_posinp(j)) // ".in", UNINITIALIZED(1.d0), &
+                       & atoms(j)%astruct%rxyz, atoms(j), "NEB generated")
                ! Erase forces.
                imgs(j)%outs%fxyz(:,:) = UNINITIALIZED(1.d0)
             end do
@@ -291,6 +292,9 @@ MODULE NEB_routines
       WHERE ( ABS( d_R ) <=  tolerance ) fix_atom = 0
 
       DEALLOCATE( d_R )
+
+      ! End of trick.
+      bigdft_mpi = bigdft_mpi_svg
 
 !!$     END IF
     END SUBROUTINE read_input
