@@ -10,10 +10,12 @@
 
 
 subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs,npsidim_comp)
-   use module_base
-   use module_types
+   use module_base, only: wp, bigdft_mpi, mpi_sum, mpi_max, mpiallred
+   use module_types, only: orbitals_data, local_zone_descriptors
    use yaml_output
+   use communications_base, only: comms_linear
    use communications, only: transpose_localized, untranspose_localized
+   use dynamic_memory
    implicit none
    integer, intent(in) :: iproc,nproc
    type(orbitals_data), intent(in) :: orbs
@@ -24,7 +26,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
    character(len=*), parameter :: subname='check_communications'
    integer, parameter :: ilog=6
    integer :: i,ispinor,iorb,indspin,i_stat,i_all,ikptsp
-   integer :: ikpt,ierr,i0,ifine,ii,iiorb,ipt,jorb
+   integer :: ikpt,ierr,i0,ifine,ii,iiorb,ipt,jorb,indorb_tmp
    integer :: icomp
    !!$integer :: ipsi,ipsic,ipsif,ipsiworkc,ipsiworkf,jcomp,jkpt
    real(wp) :: psival,maxdiff,tt
@@ -38,7 +40,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
    psit_c = f_malloc(sum(collcom%nrecvcounts_c),id='psit_c')
    psit_f = f_malloc(7*sum(collcom%nrecvcounts_f),id='psit_f')
    !some problem with checksum using f_malloc?!
-   checksum = f_malloc((/ orbs%norb*orbs%nspinor, 2 /),id='checksum')
+   checksum = f_malloc0((/ orbs%norb*orbs%nspinor, 2 /),id='checksum')
    !allocate(checksum(orbs%norb*orbs%nspinor,2), stat=i_stat)
    !call memocc(i_stat, checksum, 'checksum', subname)
    if (orbs%norbp>0) then
@@ -47,19 +49,23 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
       tol=0.0_wp
    end if
 
-   checksum(:,:)=0.0_wp
    do iorb=1,orbs%norbp
       ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
+      indorb_tmp=ind_orb(iorb)
       do ispinor=1,orbs%nspinor
-         indspin=(ispinor-1)*nvctr_orb(iorb)
-         checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)=0.0_wp
+         indspin=(ispinor-1)*nvctr_orb(iorb)+indorb_tmp
+         !checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)=0.0_wp
+         tt=0.0_wp
          do i=1,nvctr_orb(iorb)
             !vali=real(i,wp)/512.0_wp  ! *1.d-5
             call test_value_locreg(ikpt,orbs%isorb+iorb-(ikpt-1)*orbs%norb,ispinor,i,psival)
-            psi(i+indspin+ind_orb(iorb))=psival!(valorb+vali)*(-1)**(ispinor-1)
-            checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)=&
-                 checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)+psival
+            !psi(i+indspin+ind_orb(iorb))=psival!(valorb+vali)*(-1)**(ispinor-1)
+            psi(i+indspin)=psival!(valorb+vali)*(-1)**(ispinor-1)
+            tt=tt+psival
+            !checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)=&
+            !     checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)+psival
          end do
+         checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)=tt
       end do
    end do
 
@@ -73,7 +79,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
    do ikptsp=1,1!orbs%nkptsp !should be one for the moment
       ikpt=orbs%iskpts+ikptsp!orbs%ikptsp(ikptsp)
       ispinor=1 !for the (long?) moment
-      icomp=1
+      !icomp=1
       if (collcom%nptsp_c>0) then
          do ipt=1,collcom%nptsp_c 
             ii=collcom%norb_per_gridpoint_c(ipt)
@@ -94,11 +100,11 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
 !!$               indspin=(ispinor-1)*nvctr_orb(iiorb)
 !!$               maxdiff=max(abs(psit_c(i0+i)-psival),maxdiff)
                checksum(iiorb,2)=checksum(iiorb,2)+psit_c(i0+i)
-               icomp=icomp+1
+               !icomp=icomp+1
             end do
          end do
       end if
-      icomp=1
+      !icomp=1
       if (collcom%nptsp_f>0) then
          do ipt=1,collcom%nptsp_f 
             ii=collcom%norb_per_gridpoint_f(ipt) 
@@ -111,7 +117,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
 !!$               do jorb=1,iiorb-1
 !!$                  ipsi=ipsi-nvctr_f_orb(jorb)
 !!$               end do
-
+               tt=0.d0
                do ifine=1,7
 !!$                  call test_value_locreg(ikpt,iiorb-(ikpt-1)*orbs%norb,ispinor,&
 !!$                       nvctr_c_orb(iiorb)+7*(ipsi-1)+ifine,psival) 
@@ -120,9 +126,11 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
 !!$                     maxdiff=tt
 !!$                     !call wrong_components(psival,jkpt,jorb,jcomp)
 !!$                  end if
-                  checksum(iiorb,2)=checksum(iiorb,2)+psit_f(7*(i0+i-1)+ifine)
+                  !checksum(iiorb,2)=checksum(iiorb,2)+psit_f(7*(i0+i-1)+ifine)
+                  tt=tt+psit_f(7*(i0+i-1)+ifine)
                end do
-               icomp=icomp+1
+               checksum(iiorb,2)=checksum(iiorb,2)+tt
+               !icomp=icomp+1
             end do
          end do
       end if
@@ -154,6 +162,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
    if (iproc==0) call yaml_map('Maxdiff for transpose (checksum)',&
         maxdiff,fmt='(1pe25.17)')
 
+
    abort = .false.
    if (abs(maxdiff) >tol) then
       call yaml_comment('ERROR (Transposition): process'//trim(yaml_toa(iproc))//&
@@ -162,7 +171,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
       abort=.true.
    end if
 
-   if (abort) call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
+   if (abort) call MPI_ABORT(bigdft_mpi%mpi_comm,10,ierr)
 
 
    call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, psi, lzd)
@@ -320,12 +329,14 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
 
   call timing(iproc,'ovrlptransComp','ON') !lr408t
 
+  call f_routine(id='calculate_overlap_transposed')
+
   call to_zero(smat%nvctr, ovrlp%matrix_compr(1))
 
   nthreads=1
   !$  nthreads = OMP_GET_max_threads()
-  allocate(n(nthreads),stat=istat)
-  allocate(numops(orbs%norb),stat=istat)
+  n = f_malloc(nthreads,id='n')
+  numops = f_malloc(orbs%norb,id='numops')
 
   ! calculate number of operations for better load balancing of OpenMP
   if (nthreads>1) then
@@ -363,7 +374,8 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
         if (i/=nthreads) avops=totops/(nthreads-i)
      end do
   
-     deallocate(numops)
+     !deallocate(numops)
+     call f_free(numops)
   end if
 
   n(nthreads)=orbs%norb
@@ -456,8 +468,11 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
       call mpiallred(ovrlp%matrix_compr(1), smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
+  call f_free(n)
 
   smat%can_use_dense=.false.
+
+  call f_release_routine()
   call timing(iproc,'ovrlptransComm','OF') !lr408t
 
 end subroutine calculate_overlap_transposed
@@ -560,6 +575,7 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork
   ! Local variables
   integer :: i0, ipt, ii, j, iiorb, jjorb, i, m, ind0, ind1, ind2, ind3, i0i, i0j, i07i, i07j
 
+  call f_routine(id='build_linear_combination_transposed')
   call timing(iproc,'lincombtrans  ','ON') !lr408t
   if(reset) then
       if(collcom%ndimind_c>0) call to_zero(collcom%ndimind_c, psit_c(1))
@@ -647,6 +663,7 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork
   !$omp end do
   !$omp end parallel
 
+  call f_release_routine()
   call timing(iproc,'lincombtrans  ','OF') !lr408t
 
 end subroutine build_linear_combination_transposed

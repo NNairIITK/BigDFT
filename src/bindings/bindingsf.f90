@@ -642,14 +642,15 @@ subroutine inputs_get_perf(in, linear)
   
   linear = in%linear
 END SUBROUTINE inputs_get_perf
-subroutine inputs_get_files(in, files)
-  use module_types
-  implicit none
-  type(input_variables), intent(in) :: in
-  integer, intent(out) :: files
-
-  files = in%files
-END SUBROUTINE inputs_get_files
+!seems not used anymore as the filling of files variables has disappeared in most of the cases
+!!$subroutine inputs_get_files(in, files)
+!!$  use module_types
+!!$  implicit none
+!!$  type(input_variables), intent(in) :: in
+!!$  integer, intent(out) :: files
+!!$
+!!$  files = in%files
+!!$END SUBROUTINE inputs_get_files
 subroutine inputs_get_linear(linear, inputPsiId)
   use module_types
   implicit none

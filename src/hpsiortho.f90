@@ -23,7 +23,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
   use gaussians, only: gaussian_basis
   implicit none
   !Arguments
-  logical, intent(in) :: scf
+  logical, intent(in) :: scf  !< If .false. do not calculate the self-consistent potential
   integer, intent(in) :: iproc,nproc,itrp,iscf,linflag,itwfn
   character(len=3), intent(in) :: unblock_comms
   real(gp), intent(in) :: alphamix
@@ -47,7 +47,6 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
   !integer :: ii,jj
   !$ integer :: omp_get_max_threads,omp_get_thread_num,omp_get_num_threads
 
-  
 
   !in the default case, non local hamiltonian is done after potential creation
   whilepot=.true.
@@ -289,7 +288,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
 
 
   !non self-consistent case: rhov should be the total potential
-  if (denspot%rhov_is/=KS_POTENTIAL) then
+  if (denspot%rhov_is /= KS_POTENTIAL) then
      stop 'psitohpsi: KS_potential not available' 
   end if
 
@@ -499,6 +498,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    real(gp) :: evsic_tmp
    type(coulomb_operator) :: pkernelSIC
 
+   call f_routine(id='LocalHamiltonianApplication')
 
    ! local potential and kinetic energy for all orbitals belonging to iproc
    !if (iproc==0 .and. verbose > 1) then
@@ -676,6 +676,8 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    if (ipotmethod == 2 .or. ipotmethod==3) then
       nullify(pkernelSIC%kernel)
    end if
+
+   call f_release_routine()
 
 END SUBROUTINE LocalHamiltonianApplication
 
@@ -1029,8 +1031,10 @@ subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,
    !local variables
    character(len=*), parameter :: subname='SynchronizeHamiltonianApplication'
    logical :: exctX
-   integer :: i_all,i_stat,ierr,iorb,ispsi,ilr
+   integer :: i_all,i_stat,iorb,ispsi,ilr
    real(gp), dimension(4) :: wrkallred
+
+   call f_routine(id='SynchronizeHamiltonianApplication')
 
    if(GPU%OCLconv .or. GPUconv) then! needed also in the non_ASYNC since now NlPSP is before .and. ASYNCconv)) then
       if (GPU%OCLconv) call finish_hamiltonian_OCL(orbs,ekin_sum,epot_sum,GPU)
@@ -1069,15 +1073,13 @@ subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,
    !this operation should be done only here since the exctX energy is already reduced
    if (exctX) epot_sum=epot_sum+2.0_gp*eexctX
 
+   call f_release_routine()
+
 END SUBROUTINE SynchronizeHamiltonianApplication
 
 
 !> Build the potential in the whole box
 !! Control also the generation of an orbital
-!! @ param i3rho_add Integer which controls the presence of a density after the potential array
-!!                   if different than zero, at the address ndimpot*nspin+i3rho_add starts the spin up component of the density
-!!                   the spin down component can be found at the ndimpot*nspin+i3rho_add+ndimpot, contiguously
-!!                   the same holds for non-collinear calculations
 subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,pot,comgp)
   !ndimpot,ndimgrid,nspin,&
   !   ndimrhopot,i3rho_add,orbs,&
@@ -1088,6 +1090,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
    use communications_base, only: p2pComms
    use communications, only: synchronize_onesided_communication
    implicit none
+   !Arguments
    integer, intent(in) :: iproc,nproc,iflag!,nspin,ndimpot,ndimgrid
    !integer, intent(in) :: ndimrhopot,i3rho_add
    type(orbitals_data),intent(in) :: orbs
@@ -1108,6 +1111,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
    real(wp), dimension(:), pointer :: pot1
    
    call timing(iproc,'Pot_commun    ','ON')
+   call f_routine(id='full_local_potential')
 
    odp = (xc_exctXfac(xc) /= 0.0_gp .or. (dpbox%i3rho_add /= 0 .and. orbs%norbp > 0))
 
@@ -1328,6 +1332,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
       end if
    end if
 
+   call f_release_routine()
    call timing(iproc,'Pot_after_comm','OF')
 
    !!call mpi_finalize(ierr)
@@ -1408,7 +1413,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   !local variables
   character(len=*), parameter :: subname='calculate_energy_and_gradient' 
   logical :: lcs
-  integer :: ierr,ikpt,iorb,i_all,i_stat,k
+  integer :: ikpt,iorb,i_all,i_stat,k
   real(gp) :: rzeroorbs,tt,garray(2)
   real(wp), dimension(:,:,:), pointer :: mom_vec
 
@@ -1475,11 +1480,9 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
     call orthoconstraint(iproc,nproc,wfn%orbs,wfn%comms,wfn%SIC%alpha/=0.0_gp,wfn%psit,wfn%hpsi,energs%trH) !n(m)
   end if
 
-
-
   !retranspose the hpsi wavefunction
   call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,wfn%hpsi(1),wfn%psi(1))
-  
+
   if(present(paw)) then
    !retranspose the spsi wavefunction
    call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,paw%spsi(1),wfn%psi(1))
@@ -2432,6 +2435,7 @@ subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
 END SUBROUTINE calc_moments
 
 
+!> Check communications (transpose and untranspose orbitals)
 subroutine check_communications(iproc,nproc,orbs,lzd,comms)
    use module_base
    use module_types
@@ -2455,11 +2459,9 @@ subroutine check_communications(iproc,nproc,orbs,lzd,comms)
    character(len = 25) :: filename
    logical :: abort
 
-
    !allocate the "wavefunction" amd fill it, and also the workspace
    psi = f_malloc(max(orbs%npsidim_orbs, orbs%npsidim_comp),id='psi')
    pwork = f_malloc_ptr(max(orbs%npsidim_orbs, orbs%npsidim_comp),id='pwork')
-
 
    do iorb=1,orbs%norbp
       ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
@@ -3069,11 +3071,6 @@ END SUBROUTINE broadcast_kpt_objects
 !!  call untranspose_v(iproc, nproc, orbs, wfd, comms, hpsi, work=psiwork)
 !!
 !!
-!!
-!!
-!!
-!!
-!!
 !!  i_all=-product(shape(omat))*kind(omat)
 !!  deallocate(omat,stat=i_stat)
 !!  call memocc(i_stat,i_all,'omat',subname)
@@ -3124,6 +3121,7 @@ END SUBROUTINE broadcast_kpt_objects
 !!
 !!
 !!end subroutine minimize_by_orthogonal_transformation
+
 
 subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GPU,xc,nlpsp,rxyz)
   use module_base

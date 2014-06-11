@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
  
 
-!>    Calls the preconditioner for each orbital treated by the processor
+!> Calls the preconditioner for each orbital treated by the processor
 subroutine preconditionall(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
   use module_base
   use module_types
@@ -122,7 +122,7 @@ subroutine preconditionall(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
 END SUBROUTINE preconditionall
 
 
-! Generalized for the Linearscaling code
+!> Generalized for the Linearscaling code
 subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,confdatarr,gnrm,gnrm_zero)
   use module_base
   use module_types
@@ -155,6 +155,8 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
 !!$  integer :: iter=0
 !!$  iter=iter+1
 
+  call f_routine(id=subname)
+
   ! Preconditions all orbitals belonging to iproc
   !and calculate the norm of the residue
   ! norm of gradient
@@ -163,7 +165,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
   gnrm_zero=0.0_dp
 
   !prepare the arrays for the 
-  if (verbose >=3) then
+  if (verbose >= 3) then
      gnrmp = f_malloc(max(orbs%norbp, 1),id='gnrmp')
   end if
 
@@ -348,6 +350,8 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
      call f_free(gnrms)
      call f_free(gnrmp)
   end if
+
+  call f_release_routine()
 
 END SUBROUTINE preconditionall2
 
