@@ -39,10 +39,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
    psi = f_malloc(max(npsidim_orbs, npsidim_comp),id='psi')
    psit_c = f_malloc(sum(collcom%nrecvcounts_c),id='psit_c')
    psit_f = f_malloc(7*sum(collcom%nrecvcounts_f),id='psit_f')
-   !some problem with checksum using f_malloc?!
    checksum = f_malloc0((/ orbs%norb*orbs%nspinor, 2 /),id='checksum')
-   !allocate(checksum(orbs%norb*orbs%nspinor,2), stat=i_stat)
-   !call memocc(i_stat, checksum, 'checksum', subname)
    if (orbs%norbp>0) then
       tol=1.e-10*real(npsidim_orbs,wp)/real(orbs%norbp,wp)
    else
