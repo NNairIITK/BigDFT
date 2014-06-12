@@ -205,7 +205,7 @@ H2-spin:
 
 
 H-Rydberg_H:
- Gradient Norm: 5.e-10
+ Gradient Norm: 6.1e-10
  Eigenvalues and eigenstate residue: 6.3e-10
  norm(P): 1.1e-10
 
@@ -435,6 +435,7 @@ rotatesmall_write:
 
 wrappers.out:
  EH: 1.1e-10
+ fnrm2: 1.1e-10
 
 rotatesmall_read:
  Epsilon: 2.4e-11

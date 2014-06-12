@@ -10,6 +10,7 @@
 
 !> Module containing routines to parse a yaml input
 module yaml_parse
+  use dictionaries, only: dictionary
   implicit none
 
   private
@@ -20,6 +21,9 @@ module yaml_parse
   integer :: MAPPING_START, MAPPING_END
   integer :: ALIAS, SCALAR, ERROR
 
+  !> Contains some keys to better explain the yaml parse errors
+  type(dictionary), pointer :: dict_yaml_errs=>null()
+
   integer, public :: YAML_PARSE_ERROR       = 0
   integer, public :: YAML_PARSE_UNSUPPORTED = 0
 
@@ -29,23 +33,31 @@ module yaml_parse
 
   !for internal f_lib usage
   public :: yaml_parse_errors
+  public :: yaml_parse_errors_finalize
 
 contains
 
   subroutine yaml_parse_errors()
-    use dictionaries, only: f_err_define
+    use dictionaries
     implicit none
 
     call f_err_define(err_name='YAML_PARSE_ERROR',&
          err_msg='YAML parse error.',&
          err_action='Modify your inputs.',&
          err_id=YAML_PARSE_ERROR)
+         
+    !Define a dictionary to have a more verbosity of yaml_parse_error
+    call dict_init(dict_yaml_errs)
+    call set(dict_yaml_errs//"<document start> ",&
+         "Coucou")
+
     call f_err_define(err_name='YAML_PARSE_UNSUPPORTED',&
          err_msg='YAML standard not supported.',&
          err_action='kindly ask developers to finish implementation.',&
          err_id=YAML_PARSE_UNSUPPORTED)
 
   end subroutine yaml_parse_errors
+
 
   !> Create a dict from a file (fname is the buffer containing all the file)
   subroutine yaml_parse_from_file(dict, fname)
@@ -60,6 +72,7 @@ contains
     dict => yaml_parse_(parser)
   end subroutine yaml_parse_from_file
 
+
   subroutine yaml_parse_from_char_array(dict, carr)
     use dictionaries
     implicit none
@@ -72,6 +85,7 @@ contains
     dict => yaml_parse_(parser)
   end subroutine yaml_parse_from_char_array
 
+
   subroutine yaml_parse_from_string(dict, str)
     use dictionaries
     implicit none
@@ -83,6 +97,7 @@ contains
     call yaml_parser_c_init_from_buf(parser, str, len_trim(str))
     dict => yaml_parse_(parser)
   end subroutine yaml_parse_from_string
+
 
   function yaml_parse_(parser) result(output)
     use dictionaries
@@ -129,6 +144,7 @@ contains
        call yaml_parser_c_next(parser, event, val, max_field_length)
        !print *,'event',event_toa(event),event,trim(val),'end'
        if (event == ERROR) then
+          !search
           call f_err_throw(err_id = YAML_PARSE_ERROR, err_msg = trim(val))
           exit
        end if
@@ -297,5 +313,12 @@ contains
     end do
 
   end function build_seq
+
+  !> Nullify the dictionary dict_yaml_errs
+  subroutine yaml_parse_errors_finalize()
+     use dictionaries, only: dict_free
+     implicit none
+     call dict_free(dict_yaml_errs)
+  end subroutine yaml_parse_errors_finalize
 
 end module yaml_parse

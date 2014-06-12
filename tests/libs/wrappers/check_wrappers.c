@@ -29,7 +29,8 @@ int main(int argc, const char **argv)
 "   ixc                                 : 11\n"
 "   hgrids: [2/5, 0.55, 0.55]\n"
 "   nspin                               : 2\n"
-"   itermax                             : 4";
+"   itermax                             : 4\n"
+"   disablesym                          : No";
 
   BigDFT_Dict *dict;
   /* BigDFT_DictIter root, coords; */
