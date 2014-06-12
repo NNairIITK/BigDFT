@@ -926,7 +926,7 @@
        COMMENT: maximal number of iterations in the optimization of the support functions
        DESCRIPTION: |
                     possible value: 2 non-negative integers
-                    Maximla number of iterations in the optimization of the support functions.
+                    Maximal number of iterations in the optimization of the support functions.
                     The first number is used for the low accuracy part, the second one for the high accuracy part.
                     If the hybrid mode is used, only the first value is taken into account.
        RANGE: [0,100]
@@ -1015,20 +1015,26 @@
  #Parameters for the calculation of the kernel (linear scaling version)
  lin_kernel:
      nstep:
-       COMMENT: don't know what this variable stands for...
-       default: [1,1]
-     nit:
-       COMMENT: number of iterations in the optimization of the density kernel
+       COMMENT: number of steps taken when updating the coefficients via direct minimization for each iteration of the density kernel loop
        DESCRIPTION: |
                     possible value: 2 non-negative integers
-                    Indicates the number of iterations in the optimization of the density kernel.
+                    Indicates the number of steps taken when updating the coefficients via direct minimization for each iteration of the density kernel loop.
+                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
+                    When the hybrid mode is used, only the first entry is taken into account.
+       RANGE: [0,100]
+       default: [1,1]
+     nit:
+       COMMENT: number of iterations in the (self-consistent) optimization of the density kernel
+       DESCRIPTION: |
+                    possible value: 2 non-negative integers
+                    Indicates the number of iterations in the (self-consistent) optimization of the density kernel.
                     The first entry is used for the low accuracy part, the second one for the high accuracy part.
                     When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [0,100]
        default: [5,5]
 # check whether there are different DIIS histories...
      idsx_coeff:
-       COMMENT: DIIS history for directmin?
+       COMMENT: DIIS history for direct mininimization
        default: [0,0]
      idsx:
        COMMENT: mixing method; 0 -> linear mixing, >=1 -> Pulay mixing
@@ -1052,7 +1058,12 @@
        RANGE: [0.0,1.0]
        default: [0.5,0.5]
      gnrm_cv_coeff:
-       COMMENT: convergence criterion for directmin (low/high)?
+       COMMENT: convergence criterion on the gradient for direct minimization
+       DESCRIPTION: |
+                    possible value: 2 non-negative real numbers
+                    Convergence criterion on the gradient for direct minimization.
+                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
+                    When the hybrid mode is used, only the first entry is taken into account.
        default: [1.e-5,1.e-5]
      rpnrm_cv:
        COMMENT: convergence criterion (change in density/potential) for the kernel optimization
@@ -1088,10 +1099,10 @@
          POT: potential mixing
        default: DEN
      alpha_sd_coeff:
-       COMMENT: step size for direct minimization?
+       COMMENT: initial step size for SD for direct minimization
        default: 0.2
      alpha_fit_coeff:
-       COMMENT: don't know exactly what this means
+       COMMENT: update the SD step size by fitting a quadratic polynomial to the energy along the direction of the gradient during direct mininimization.     
        default: No
      eval_range_foe:
        COMMENT: lower and upper bound of the eigenvalue spectrum, will be adjusted automatically if chosen unproperly
