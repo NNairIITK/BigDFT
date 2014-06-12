@@ -33,3 +33,9 @@ test-coordinatetransform.report.yaml: $(srcdir)/test-coordinatetransform.ref.yam
 test-coordinatetransform.out.yaml: driver
 	cp $(srcdir)/posinp1.xyz $(PWD)/posinp.xyz
 	$(run_parallel) ./driver > test-coordinatetransform.out.yaml
+	cp $(srcdir)/posinp2.xyz $(PWD)/posinp.xyz
+	$(run_parallel) ./driver >> test-coordinatetransform.out.yaml
+	cp $(srcdir)/posinp3.xyz $(PWD)/posinp.xyz
+	$(run_parallel) ./driver >> test-coordinatetransform.out.yaml
+	cp $(srcdir)/posinp4.xyz $(PWD)/posinp.xyz
+	$(run_parallel) ./driver >> test-coordinatetransform.out.yaml

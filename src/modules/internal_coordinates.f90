@@ -277,17 +277,18 @@ module internal_coordinates
     
     
     
-    subroutine internal_to_cartesian(nat, xyz_int, xyz_cart)
+    subroutine internal_to_cartesian(nat, na, nb, nc, xyz_int, xyz_cart)
       use vector_operations
       implicit none
     
       ! Calling arguments
       integer,intent(in) :: nat
+      integer,dimension(nat),intent(in) :: na, nb, nc
       real(kind=8),dimension(3,nat),intent(in) :: xyz_int
       real(kind=8),dimension(3,nat),intent(out) :: xyz_cart
     
       ! Local variables
-      integer :: iat
+      integer :: iat, irefa, irefb, irefc
       real(kind=8) :: tt
       real(kind=8),dimension(3) :: vector, vector1, vector2
     
@@ -305,35 +306,41 @@ module internal_coordinates
               xyz_cart(3,2)=xyz_int(1,2)
           else if (iat==3) then
               ! third atom, put at the given distance and angle in the yz-plane
-              xyz_cart(1,3) = 0.d0
+              !xyz_cart(1,3) = 0.d0
               !!write(*,*) 'cos(xyz_int(2,3))',cos(xyz_int(2,3))
               !!write(*,*) 'sin(xyz_int(2,3))',sin(xyz_int(2,3))
               !!xyz_cart(2,3) = xyz_cart(3,2) - xyz_int(1,3)*cos(xyz_int(2,3))
               !!xyz_cart(3,3) = xyz_cart(3,2) + xyz_int(1,3)*sin(xyz_int(2,3))
-              xyz_cart(2,3) = 0.d0
-              xyz_cart(3,3) = xyz_cart(3,2) + xyz_int(1,3)
+              !xyz_cart(2,3) = 0.d0
+              irefc=na(iat)
+              irefb=nb(iat)
+              vector(1:3) = xyz_cart(1:3,irefc)-xyz_cart(1:3,irefb)
+              tt = sqrt( vector(1)**2 + vector(2)**2 + vector(3)**2 )
+              vector(1:3) = vector(1:3) / tt
+              xyz_cart(1:3,iat) = xyz_cart(1:3,irefc) + xyz_int(1,iat)*vector(1:3)
               !xyz_cart(2,3) = -cos(xyz_int(2,3))*xyz_cart(2,3) + sin(xyz_int(2,3))*xyz_cart(3,3)
               !xyz_cart(3,3) = -cos(xyz_int(2,3))*xyz_cart(3,3) - sin(xyz_int(2,3))*xyz_cart(2,3)
               ! First shift the rotation center (point C) to the origin
-              xyz_cart(1:3,iat) = xyz_cart(1:3,iat) - xyz_cart(1:3,iat-1)
-              !!write(*,'(a,3f9.2)') 'before rot: xyz_cart(1:3,iat)',xyz_cart(1:3,iat)
+              xyz_cart(1:3,iat) = xyz_cart(1:3,iat) - xyz_cart(1:3,irefc)
               vector1(1)=0.d0 ; vector1(2)=xyz_cart(2,iat) ; vector1(3)=xyz_cart(3,iat)
               vector2(1)=0.d0 ; vector2(2)=-xyz_cart(3,iat) ; vector2(3)=xyz_cart(2,iat)
               xyz_cart(1:3,3) = cos(xyz_int(2,3))*vector1(1:3) + sin(xyz_int(2,3))*vector2(1:3)
               !xyz_cart(2,3) = cos(xyz_int(2,3))*xyz_cart(2,3) - sin(xyz_int(2,3))*xyz_cart(3,3)
               !xyz_cart(3,3) = cos(xyz_int(2,3))*xyz_cart(3,3) + sin(xyz_int(2,3))*xyz_cart(2,3)
-              !!write(*,'(a,3f9.2)') 'after rot: xyz_cart(1:3,iat)',xyz_cart(1:3,iat)
               ! Undo the shift
-              xyz_cart(1:3,iat) = xyz_cart(1:3,iat) + xyz_cart(1:3,iat-1)
+              xyz_cart(1:3,iat) = xyz_cart(1:3,iat) + xyz_cart(1:3,irefc)
           else
               ! General case
     
               ! First put the new atom D at the distance "bond" away from atom C, extending
               ! along the axis BC.
-              vector(1:3) = xyz_cart(1:3,iat-1)-xyz_cart(1:3,iat-2)
+              irefc=na(iat)
+              irefb=nb(iat)
+              irefa=nc(iat)
+              vector(1:3) = xyz_cart(1:3,irefc)-xyz_cart(1:3,irefb)
               tt = sqrt( vector(1)**2 + vector(2)**2 + vector(3)**2 )
               vector(1:3) = vector(1:3) / tt
-              xyz_cart(1:3,iat) = xyz_cart(1:3,iat-1) + xyz_int(1,iat)*vector(1:3)
+              xyz_cart(1:3,iat) = xyz_cart(1:3,irefc) + xyz_int(1,iat)*vector(1:3)
               !!write(*,'(a,3f9.2)') 'xyz_cart(1:3,iat-1)', xyz_cart(1:3,iat-1)
               !!write(*,'(a,3f9.2)') 'vector', vector(1:3)
               !!write(*,'(a,3f9.2)') 'xyz_cart(1:3,iat)', xyz_cart(1:3,iat)
@@ -342,8 +349,8 @@ module internal_coordinates
     
               ! Determine the rotation axis
               ! n = AB x bcn / |AB x bcn|, with bcn = BC/|BC|
-              vector1(1:3) = xyz_cart(1:3,iat-2) - xyz_cart(1:3,iat-3)
-              vector2(1:3) = xyz_cart(1:3,iat-1) - xyz_cart(1:3,iat-2)
+              vector1(1:3) = xyz_cart(1:3,irefb) - xyz_cart(1:3,irefa)
+              vector2(1:3) = xyz_cart(1:3,irefc) - xyz_cart(1:3,irefb)
               tt = sqrt( vector2(1)**2 + vector2(2)**2 + vector2(3)**2 )
               vector2(1:3) = vector2(1:3) / tt
               vector(1:3) = cross_product(vector1, vector2)
@@ -352,30 +359,30 @@ module internal_coordinates
     
               ! Apply the rotation
               ! First shift the rotation center (point C) to the origin
-              xyz_cart(1:3,iat) = xyz_cart(1:3,iat) - xyz_cart(1:3,iat-1)
+              xyz_cart(1:3,iat) = xyz_cart(1:3,iat) - xyz_cart(1:3,irefc)
               vector1(1:3) = cross_product(vector, xyz_cart(1:3,iat))
               vector2(1:3) = cross_product(vector1, vector)
               tt = vector(1)*xyz_cart(1,iat) + vector(2)*xyz_cart(2,iat) + vector(3)*xyz_cart(3,iat)
               xyz_cart(1:3,iat) = tt*vector(1:3) + cos(xyz_int(2,iat))*vector2(1:3) + sin(xyz_int(2,iat))*vector1(1:3)
               ! Undo the shift
-              xyz_cart(1:3,iat) = xyz_cart(1:3,iat) + xyz_cart(1:3,iat-1)
+              xyz_cart(1:3,iat) = xyz_cart(1:3,iat) + xyz_cart(1:3,irefc)
     
     
               ! Then rotate around BC
               ! Determine the rotation axis
-              vector(1:3) = xyz_cart(1:3,iat-1) - xyz_cart(1:3,iat-2)
+              vector(1:3) = xyz_cart(1:3,irefc) - xyz_cart(1:3,irefb)
               tt = sqrt( vector(1)**2 + vector(2)**2 + vector(3)**2 )
               vector(1:3) = vector(1:3) / tt
     
               ! Apply the rotation
               ! First shift the rotation center (point C) to the origin
-              xyz_cart(1:3,iat) = xyz_cart(1:3,iat) - xyz_cart(1:3,iat-1)
+              xyz_cart(1:3,iat) = xyz_cart(1:3,iat) - xyz_cart(1:3,irefc)
               vector1(1:3) = cross_product(vector, xyz_cart(1:3,iat))
               vector2(1:3) = cross_product(vector1, vector)
               tt = vector(1)*xyz_cart(1,iat) + vector(2)*xyz_cart(2,iat) + vector(3)*xyz_cart(3,iat)
               xyz_cart(1:3,iat) = tt*vector(1:3) + cos(xyz_int(3,iat))*vector2(1:3) + sin(xyz_int(3,iat))*vector1(1:3)
               ! Undo the shift
-              xyz_cart(1:3,iat) = xyz_cart(1:3,iat) + xyz_cart(1:3,iat-1)
+              xyz_cart(1:3,iat) = xyz_cart(1:3,iat) + xyz_cart(1:3,irefc)
     
           end if
     
