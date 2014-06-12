@@ -60,6 +60,7 @@ program carint
   end do
   call yaml_close_sequence()
 
+  call get_neighbors(xyz_init,nat,na,nb,nc)
   call xyzint(xyz_init,nat,na,nb,nc,degree,geo)
 
 
