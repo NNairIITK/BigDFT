@@ -320,6 +320,20 @@ program memguess
    if (cart_to_int) then
        write(*,*) 'Converting cartesian coordinates to internal coordinates.'
        call set_astruct_from_file(trim(fileFrom),0,at%astruct,i_stat,fcomment,energy,fxyz)
+       if (i_stat /=0) stop 'error on input file parsing' 
+       !find the format of the output file
+       if (index(fileTo,'.xyz') > 0) then
+          irad=index(fileTo,'.xyz')
+          at%astruct%inputfile_format='xyz  '
+       else if (index(fileTo,'.ascii') > 0) then
+          irad=index(fileTo,'.ascii')
+          at%astruct%inputfile_format='ascii'
+       else if (index(fileTo,'.yaml') > 0) then
+          irad=index(fileTo,'.yaml')
+          at%astruct%inputfile_format='yaml '
+       else
+          irad = len(trim(fileTo)) + 1
+       end if
        !!call bigdft_get_run_ids(nconfig,trim(run_id),arr_radical,arr_posinp,ierror)
        !!call run_objects_init_from_files(runObj, radical, posinp)
        write(*,*) 'associated(at%astruct%rxyz)',associated(at%astruct%rxyz)
@@ -332,8 +346,8 @@ program memguess
        call get_neighbors(at%astruct%rxyz, at%astruct%nat, na, nb, nc)
        call xyzint(at%astruct%rxyz, at%astruct%nat, na, nb, nc, degree, rxyz_int)
 
-       call write_atomic_file(trim(fileTo),-123.d0,at%astruct%rxyz,at,&
-            trim(fcomment) // ' (converted from '//trim(fileFrom)//")",coord='car')
+       call write_atomic_file(trim(fileTo(1:irad-1)),UNINITIALIZED(123.d0),rxyz_int,at,&
+            trim(fcomment) // ' (converted from '//trim(fileFrom)//")",coord='int',na=na,nb=nb,nc=nc)
 
        call f_free(na)
        call f_free(nb)
