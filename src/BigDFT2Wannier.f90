@@ -1202,7 +1202,7 @@ subroutine read_inter_list(iproc,n_virt, virt_list)
    !   write(*,*) '!  Reading virtual orbitals list : !'
    !   write(*,*) '!==================================!'
 
-   do i=1,6
+   do i=1,7
       read(11,*,iostat=ierr) ! Skip first lines                                                                                                                                                               
    end do
    read(11,*,iostat=ierr) (virt_list(j), j=1,n_virt)
@@ -1974,7 +1974,7 @@ subroutine write_inter(n_virt, nx, ny, nz, amnk_bands_sorted)
 
    ! Local variables
    integer :: i
-   character :: seedname*20, pre_check_mode*1, filetype*4
+   character :: seedname*20, pre_check_mode*1, filetype*4, dir*128
    integer :: n_occ, n_virt_tot, ng(3)
    character :: char1*1,char2*1
 
@@ -1989,6 +1989,7 @@ subroutine write_inter(n_virt, nx, ny, nz, amnk_bands_sorted)
    read(11,*) pre_check_mode, n_virt_tot
    read(11,*) char1
    read(11,*) ng(1), ng(2), ng(3)
+   read(11,*) dir
    if (pre_check_mode == 'F') then
       read(11,*) (amnk_bands_sorted(i), i=1,n_virt)
    end if
@@ -2012,6 +2013,7 @@ subroutine write_inter(n_virt, nx, ny, nz, amnk_bands_sorted)
       &   'write_angular_parts, write_radial_parts'
    write(11,'(3(I4,1x),6x,a)') nx, ny, nz, '# Number of points for each axis in the cubic ' // &
       &   'BigDFT representation (information needed by Wannier90)'
+   write(11,'(A)') trim(dir)
    do i=1,n_virt
       write(11,'(I4, 1x)',advance='no') amnk_bands_sorted(i)
       !      if (filetype=='etsf' .or. filetype=='ETSF') write(11,'(I4, 1x)',advance='no') amnk_bands_sorted(i)!+n_occ
