@@ -85,7 +85,7 @@ contains
     type(gaussian_basis_new),intent(out) :: G
     !local variables
     character(len=*), parameter :: subname='init_gaussian_basis'
-    integer :: i_stat,iat
+    integer :: iat
 
     G=gaussian_basis_null()
 
@@ -112,7 +112,7 @@ contains
     type(gaussian_basis), intent(in) :: Gold
     !local variables
     character(len=*), parameter :: subname='gaussian_basis_convert'
-    integer :: ishell,i_stat,iexpo
+    integer :: ishell,iexpo
 
     !G=init_gaussian_basis(Gold%nat,Gold%nshell,Gold%rxyz)
     call init_gaussian_basis(Gold%nat,Gold%nshell,Gold%rxyz,G)
@@ -140,8 +140,6 @@ contains
     implicit none
     character(len=*), intent(in) :: subname
     type(gaussian_basis_new), intent(inout) :: G
-    !local variables
-    integer :: i_all,i_stat
 
     !do not deallocate the atomic centers
     if (associated(G%rxyz)) nullify(G%rxyz)
@@ -163,7 +161,7 @@ contains
     integer, intent(in), optional :: npoints,isf_m
     !local variables
     character(len=*), parameter :: subname='initialize_real_space_conversion'
-    integer :: i_stat,n_range,i_all
+    integer :: n_range
     real(gp), dimension(:), allocatable :: x_scf !< to be removed in a future implementation
 
     itype_scf=16
@@ -190,7 +188,6 @@ contains
     implicit none
     character(len=*), intent(in) :: subname
     !local variables
-    integer :: i_stat,i_all
 
     itype_scf=0
     n_scf=-1

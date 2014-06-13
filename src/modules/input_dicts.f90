@@ -998,7 +998,7 @@ contains
     ityp = 1
     at => dict_iter(types)
     do while (associated(at))
-       astruct%atomnames(ityp) = dict_key(at)
+       write(astruct%atomnames(ityp),'(a)') dict_key(at)
        ityp = ityp + 1
        at => dict_next(at)
     end do

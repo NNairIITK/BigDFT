@@ -112,6 +112,8 @@ module dictionaries
    character(len=*), parameter :: errunspec='UNSPECIFIED'
    character(len=*), parameter :: errundef='UNKNOWN'
 
+   character(len=*), parameter :: ERR_ADD_INFO='Additional Info'
+
    integer :: ERR_GENERIC,ERR_SUCCESS,ERR_NOT_DEFINED
 
    type(dictionary), pointer :: dict_errors=>null()        !< the global dictionaries of possible errors, nullified if not initialized

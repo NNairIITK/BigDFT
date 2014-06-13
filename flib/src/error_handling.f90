@@ -179,7 +179,7 @@
 
        if (present(callback)) then
           if (present(err_id)) then
-             call f_err_throw(message,err_id,callback=callback,callback_data=clbk_data_add)
+             call f_err_throw(message,err_id=err_id,callback=callback,callback_data=clbk_data_add)
           else if (present(err_name)) then
              call f_err_throw(message,err_name=err_name,callback=callback,callback_data=clbk_data_add) 
           else
@@ -187,7 +187,7 @@
           end if
        else
           if (present(err_id)) then
-             call f_err_throw(message,err_id,callback_data=clbk_data_add)
+             call f_err_throw(message,err_id=err_id,callback_data=clbk_data_add)
           else if (present(err_name)) then
              call f_err_throw(message,err_name=err_name,callback_data=clbk_data_add)
           else
@@ -202,9 +202,10 @@
   subroutine f_err_throw(err_msg,err_id,err_name,callback,callback_data)
     use yaml_strings, only: yaml_toa
     implicit none
-    integer, intent(in), optional :: err_id !< the code of the error to be raised.
-                                            !! it should already have been defined by f_err_define
-    character(len=*), intent(in), optional :: err_name,err_msg !< search for the error and add a message to it 
+    integer, intent(in), optional :: err_id                    !< The code of the error to be raised.
+                                                               !! it should already have been defined by f_err_define
+    character(len=*), intent(in), optional :: err_name,err_msg !< Search for the error and add a message to it
+    !type(dictionary), pointer, optional :: err_dict            !< Add a dictionary instead of a message
     integer(kind=8), intent(in), optional :: callback_data
     external :: callback
     optional :: callback
@@ -241,13 +242,24 @@
        end if
     end if
 
-    if (present(err_msg)) then
-       message(1:len(message))=err_msg
-    else
-       message(1:len(message))='UNKNOWN'
-    end if
-    call add(dict_present_error,&
-         dict_new((/ errid .is. yaml_toa(new_errcode),'Additional Info' .is. message/)))
+    !if (present(err_dict)) then
+    !   !to prevent infinite loop due to not association of the error handling
+    !   if (.not. associated(err_dict)) then
+    !      write(0,*) 'dictionary err_dict or initialized in f_err_throw'
+    !      call f_err_severe()
+    !   else
+    !   call add(dict_present_error,&
+    !        dict_new((/ errid .is. yaml_toa(new_errcode),ERR_ADD_INFO .is. err_dict/)))
+    !   end if
+    !else
+       if (present(err_msg)) then
+          message(1:len(message))=err_msg
+       else
+          message(1:len(message))='UNKNOWN'
+       end if
+       call add(dict_present_error,&
+            dict_new((/ errid .is. yaml_toa(new_errcode),ERR_ADD_INFO .is. message/)))
+    !end if
 
     !identify callback function 
     clbk_add=callback_add
@@ -320,7 +332,7 @@
     character(len=*), intent(out) :: add_msg
 
     if (ierr >=0) then
-       add_msg=dict_present_error//ierr//'Additional Info'
+       add_msg=dict_present_error//ierr//ERR_ADD_INFO
     else
        add_msg=repeat(' ',len(add_msg))
     end if
@@ -337,7 +349,7 @@
     ierr=dict_len(dict_present_error)-1
     if (ierr >= 0) then
        f_get_last_error=dict_present_error//ierr//errid
-       if (present(add_msg)) add_msg=dict_present_error//ierr//'Additional Info'
+       if (present(add_msg)) add_msg=dict_present_error//ierr//ERR_ADD_INFO
     else
        f_get_last_error=0
        if (present(add_msg)) add_msg=repeat(' ',len(add_msg))
@@ -369,7 +381,7 @@
     end if
     if (ierr >= 0 .and. get_error > 0) then
        f_err_pop=dict_present_error//ierr//errid
-       if (present(add_msg)) add_msg=dict_present_error//ierr//'Additional Info'
+       if (present(add_msg)) add_msg=dict_present_error//ierr//ERR_ADD_INFO
        call pop(dict_present_error, ierr)
        if (.not.associated(dict_present_error)) call dict_init(dict_present_error)
     else
