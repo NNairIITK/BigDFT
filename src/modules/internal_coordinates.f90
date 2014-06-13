@@ -13,6 +13,12 @@ end module vector_operations
 
 module internal_coordinates
 
+  private
+
+  public :: internal_to_cartesian
+  public :: get_neighbors
+  public :: xyzint
+
   contains
 
     !>calculates the dihedral angle between atoms i, j, k,

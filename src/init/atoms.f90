@@ -437,9 +437,18 @@ subroutine wtxyz(iunit,energy,rxyz,atoms,comment,coord,na,nb,nc)
   end if
 
   if (energy /= 0. .and. energy /= UNINITIALIZED(energy)) then
-     write(iunit,'(i6,2x,a,2x,1pe24.17,2x,a)') atoms%astruct%nat,trim(units),energy,trim(comment)
+     if (coord=='car') then
+         write(iunit,'(i6,2x,a,2x,1pe24.17,2x,a)') atoms%astruct%nat,trim(units),energy,trim(comment)
+     else if (coord=='int') then
+         write(iunit,'(i6,2x,a,2x,a,2x,1pe24.17,2x,a)') atoms%astruct%nat,trim(units),&
+             trim(atoms%astruct%angle),energy,trim(comment)
+     end if
   else
-     write(iunit,'(i6,2x,a,2x,a)') atoms%astruct%nat,trim(units),trim(comment)
+     if (coord=='car') then
+         write(iunit,'(i6,2x,a,2x,a)') atoms%astruct%nat,trim(units),trim(comment)
+     else if (coord=='int') then
+         write(iunit,'(i6,2x,a,2x,a,2x,a)') atoms%astruct%nat,trim(units),trim(atoms%astruct%angle),trim(comment)
+     end if
   end if
 
   select case(atoms%astruct%geocode)
