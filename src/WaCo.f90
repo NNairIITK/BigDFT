@@ -939,7 +939,7 @@ program WaCo
 
 
      call f_free_ptr(rxyz_old)
-     call f_free_ptr(virt_list)
+     deallocate(virt_list)
 
 
      call timing(iproc,'CrtProjectors ','OF')
