@@ -19,7 +19,7 @@ from optparse import OptionParser, OptionGroup
 # This list can be converted in a dictionary with also the extra arguments
 actions = ["memory-estimation", "rotate", "convert-field",
            "export-wf", "export-grid", "atomic-wf", "GPU-test", 
-           "convert-positions", "manual", "wizard", "cart_int"]
+           "convert-positions", "manual", "wizard", "transform-coordinates"]
 
 # Processed lines
 abs_srcdir = "@abs_srcdir@"
@@ -127,9 +127,11 @@ def parse():
                         "BigDFT wizard: help the user in finding the good input file")
     parser.add_option_group(group)
 
-    # conversion from cartesian to internal
+    # conversion from cartesian to internal or vice versa
     group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[10],
                         "conversion from cartesian to internal coordinates")
+    group.add_option("--direction", type="str", metavar="NAME",
+                     help="indicates the direction of the coordinate transform (carint = cartesian to internal, intcar = internal to cartesian")
     group.add_option("--infile", type="str", default="posinp.xyz", metavar="NAME",
                      help="input file to read the coordinates from [default: %default]")
     group.add_option("--outfile", type="str", default="posout.xyz", metavar="NAME",
@@ -581,7 +583,7 @@ options:
                 yaml.dump(doc, default_flow_style=False, explicit_start=True))
     if options.action == actions[10]:
         print 'calling memguess for coordinate conversion'
-        command = "%s 1 %s dd cart_int %s %s" % (memguess, options.name, options.infile, options.outfile)
+        command = "%s 1 %s dd transform-coordinates %s %s %s" % (memguess, options.name, options.direction, options.infile, options.outfile)
         print command
     # print command
     # print

@@ -1232,7 +1232,6 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,coord,forces,na,
   real(gp), dimension(3), parameter :: dummy = (/ 0._gp, 0._gp, 0._gp /)
   type(dictionary), pointer :: dict
 
-  write(*,*) 'in write_atomic_file'
 
   if (coord/='car' .and. coord/='int') then
       call f_err_throw("To write a file, the possible values for 'coord' are 'car' and 'int', but '" &

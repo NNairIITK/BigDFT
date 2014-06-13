@@ -23,13 +23,13 @@ program memguess
    use internal_coordinates
    implicit none
    character(len=*), parameter :: subname='memguess'
-   character(len=20) :: tatonam, radical
+   character(len=30) :: tatonam, radical
    character(len=40) :: comment
    character(len=1024) :: fcomment
    character(len=128) :: fileFrom, fileTo,filename_wfn
    character(len=50) :: posinp
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.
-   logical :: disable_deprecation = .false.,convertpos=.false.,cart_to_int=.false.
+   logical :: disable_deprecation = .false.,convertpos=.false.,transform_coordinates=.false.
    integer :: ntimes,nproc,i_stat,i_all,output_grid, i_arg,istat
    integer :: nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
    integer :: norbgpu,ng
@@ -60,7 +60,8 @@ program memguess
    integer :: ierror
    integer,dimension(:),allocatable :: na, nb, nc
    real(kind=8),dimension(:,:),allocatable :: rxyz_int
-   real(kind=8),parameter :: degree=57.2957795d0
+   real(kind=8),parameter :: degree=57.295779513d0
+   character(len=6) :: direction
 
    call f_lib_initialize()
    !initialize errors and timings as bigdft routines are called
@@ -224,15 +225,16 @@ program memguess
             write(*,'(1x,5a)')&
                &   'convert input file "', trim(fileFrom),'" file to "', trim(fileTo),'"'
             exit loop_getargs
-         else if (trim(tatonam)=='cart_int') then
+         else if (trim(tatonam)=='transform-coordinates') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = direction)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = fileFrom)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = fileTo)
             write(*,'(1x,5a)')&
                &   'convert input file "', trim(fileFrom),'" file to "', trim(fileTo),'"'
-            cart_to_int=.true.
-            write(*,*) 'here in memguess'
+            transform_coordinates=.true.
             exit loop_getargs
          else if (trim(tatonam) == 'dd') then
             ! dd: disable deprecation message
@@ -317,9 +319,16 @@ program memguess
       stop
    end if
 
-   if (cart_to_int) then
-       write(*,*) 'Converting cartesian coordinates to internal coordinates.'
-       call set_astruct_from_file(trim(fileFrom),0,at%astruct,i_stat,fcomment,energy,fxyz)
+   if (transform_coordinates) then
+       if (direction=='carint') then
+           write(*,*) 'Converting cartesian coordinates to internal coordinates.'
+           call set_astruct_from_file(trim(fileFrom),0,at%astruct,i_stat,fcomment,energy,fxyz)
+       else if (direction=='intcar') then
+           write(*,*) 'Converting internal coordinates to cartesian coordinates.'
+           stop 'can not read internal coordinate files at the moment'
+       else
+           call f_err_throw("wrong switch for coordinate transforms", err_name='BIGDFT_RUNTIME_ERROR')
+       end if
        if (i_stat /=0) stop 'error on input file parsing' 
        !find the format of the output file
        if (index(fileTo,'.xyz') > 0) then
@@ -336,18 +345,19 @@ program memguess
        end if
        !!call bigdft_get_run_ids(nconfig,trim(run_id),arr_radical,arr_posinp,ierror)
        !!call run_objects_init_from_files(runObj, radical, posinp)
-       write(*,*) 'associated(at%astruct%rxyz)',associated(at%astruct%rxyz)
-       write(*,*) 'at%astruct%rxyz',at%astruct%rxyz
        na = f_malloc(at%astruct%nat,id='na')
        nb = f_malloc(at%astruct%nat,id='nb')
        nc = f_malloc(at%astruct%nat,id='nc')
        rxyz_int = f_malloc((/ 3, at%astruct%nat /),id='rxyz_int')
 
-       call get_neighbors(at%astruct%rxyz, at%astruct%nat, na, nb, nc)
-       call xyzint(at%astruct%rxyz, at%astruct%nat, na, nb, nc, degree, rxyz_int)
+       if (direction=='carint') then
+           call get_neighbors(at%astruct%rxyz, at%astruct%nat, na, nb, nc)
+           call xyzint(at%astruct%rxyz, at%astruct%nat, na, nb, nc, degree, rxyz_int)
+           call write_atomic_file(trim(fileTo(1:irad-1)),UNINITIALIZED(123.d0),rxyz_int,at,&
+                trim(fcomment) // ' (converted from '//trim(fileFrom)//")",coord='int',na=na,nb=nb,nc=nc)
+       end if
 
-       call write_atomic_file(trim(fileTo(1:irad-1)),UNINITIALIZED(123.d0),rxyz_int,at,&
-            trim(fcomment) // ' (converted from '//trim(fileFrom)//")",coord='int',na=na,nb=nb,nc=nc)
+       write(*,*) 'Done.'
 
        call f_free(na)
        call f_free(nb)
