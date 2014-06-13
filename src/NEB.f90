@@ -279,6 +279,7 @@ MODULE NEB_routines
                if (bigdft_mpi%iproc == 0) then
                   call write_atomic_file(trim(arr_posinp(j)) // ".in", UNINITIALIZED(1.d0), &
                        & atoms(j)%astruct%rxyz, atoms(j), "NEB generated")
+               end if
                ! Erase forces.
                imgs(j)%outs%fxyz(:,:) = UNINITIALIZED(1.d0)
             end do
