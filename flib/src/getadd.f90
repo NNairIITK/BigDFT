@@ -679,7 +679,7 @@ end subroutine call_external
 
 !> Call the external routine with no argument
 !! to be generalized to the case where extra arguments are needed
-subroutine call_external_f(routine)!,args)
+recursive subroutine call_external_f(routine)!,args)
   implicit none
   external :: routine                  !< Routine to be called
 !  integer(kind=8), intent(in) :: args
