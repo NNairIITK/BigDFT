@@ -830,9 +830,9 @@ subroutine atoms_write(atoms, filename, forces, energy, comment)
   real(gp), dimension(:,:), pointer :: forces
 
   if (associated(forces)) then
-     call write_atomic_file(filename,energy,atoms%astruct%rxyz,atoms,comment,forces)
+     call write_atomic_file(filename,energy,atoms%astruct%rxyz,atoms,comment,coord='car',forces=forces)
   else
-     call write_atomic_file(filename,energy,atoms%astruct%rxyz,atoms,comment)
+     call write_atomic_file(filename,energy,atoms%astruct%rxyz,atoms,comment,coord='car')
   end if
 END SUBROUTINE atoms_write
 
@@ -1173,7 +1173,7 @@ END SUBROUTINE astruct_copy_alat
 
 !> Write an atomic file
 !! Yaml output included
-subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
+subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,coord,forces)
   use module_base
   use module_types
   use module_input_dicts
@@ -1183,6 +1183,7 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
   type(atoms_data), intent(in) :: atoms
   real(gp), intent(in) :: energy
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+  character(len=3),intent(in) :: coord
   real(gp), dimension(3,atoms%astruct%nat), intent(in), optional :: forces
   !local variables
   character(len = 15) :: arFile

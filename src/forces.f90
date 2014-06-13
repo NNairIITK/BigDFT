@@ -378,9 +378,9 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   !clean the center mass shift and the torque in isolated directions
   call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
 
-  ! @ NEW: POSSIBLE CONSTRAINTS IN INTERNAL COORDINATES ############
-  call internal_forces(atoms%astruct%nat, rxyz, fxyz)
-  ! @ ##############################################################
+  !@! @ NEW: POSSIBLE CONSTRAINTS IN INTERNAL COORDINATES ############
+  !@call internal_forces(atoms%astruct%nat, rxyz, fxyz)
+  !@! @ ##############################################################
 
   ! Apply symmetries when needed
   if (atoms%astruct%sym%symObj >= 0) call symmetrise_forces(fxyz,atoms)

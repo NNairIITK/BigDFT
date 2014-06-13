@@ -6,7 +6,7 @@ program carint
   use yaml_output
   implicit none
 
-  real(kind=8),parameter :: degree = 57.29578d+00
+  real(kind=8),parameter :: degree = 57.2957795d0
   !integer,parameter :: nmax=100
   integer :: nat, iat, iproc, nproc
   character(len=4) :: test

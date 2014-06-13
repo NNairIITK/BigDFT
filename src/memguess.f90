@@ -20,6 +20,7 @@ program memguess
    use module_fragments
    use yaml_output
    use module_atoms, only: set_astruct_from_file
+   use internal_coordinates
    implicit none
    character(len=*), parameter :: subname='memguess'
    character(len=20) :: tatonam, radical
@@ -28,7 +29,7 @@ program memguess
    character(len=128) :: fileFrom, fileTo,filename_wfn
    character(len=50) :: posinp
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.
-   logical :: disable_deprecation = .false.,convertpos=.false.
+   logical :: disable_deprecation = .false.,convertpos=.false.,cart_to_int=.false.
    integer :: ntimes,nproc,i_stat,i_all,output_grid, i_arg,istat
    integer :: nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
    integer :: norbgpu,ng
@@ -49,10 +50,17 @@ program memguess
    type(system_fragment), dimension(:), pointer :: ref_frags
    character(len=3) :: in_name !lr408
    integer :: i, inputpsi, input_wf_format
+   integer,parameter :: nconfig=1
+   character(len=60),dimension(nconfig) :: arr_radical,arr_posinp
+   character(len=60) :: run_id, infile, outfile
+   integer, dimension(4) :: mpi_info
    !real(gp) :: tcpu0,tcpu1,tel
    !integer :: ncount0,ncount1,ncount_max,ncount_rate
    !! By Ali
    integer :: ierror
+   integer,dimension(:),allocatable :: na, nb, nc
+   real(kind=8),dimension(:,:),allocatable :: rxyz_int
+   real(kind=8),parameter :: degree=57.2957795d0
 
    call f_lib_initialize()
    !initialize errors and timings as bigdft routines are called
@@ -216,6 +224,16 @@ program memguess
             write(*,'(1x,5a)')&
                &   'convert input file "', trim(fileFrom),'" file to "', trim(fileTo),'"'
             exit loop_getargs
+         else if (trim(tatonam)=='cart_int') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = fileFrom)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = fileTo)
+            write(*,'(1x,5a)')&
+               &   'convert input file "', trim(fileFrom),'" file to "', trim(fileTo),'"'
+            cart_to_int=.true.
+            write(*,*) 'here in memguess'
+            exit loop_getargs
          else if (trim(tatonam) == 'dd') then
             ! dd: disable deprecation message
             disable_deprecation = .true.
@@ -289,14 +307,39 @@ program memguess
       
       if (associated(fxyz)) then
          call write_atomic_file(fileTo(1:irad-1),energy,at%astruct%rxyz,at,&
-              trim(fcomment) // ' (converted from '//trim(fileFrom)//")", fxyz)
+              trim(fcomment) // ' (converted from '//trim(fileFrom)//")", coord='car', forces=fxyz)
 
          call f_free_ptr(fxyz)
       else
          call write_atomic_file(fileTo(1:irad-1),energy,at%astruct%rxyz,at,&
-              trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
+              trim(fcomment) // ' (converted from '//trim(fileFrom)//")",coord='car')
       end if
       stop
+   end if
+
+   if (cart_to_int) then
+       write(*,*) 'Converting cartesian coordinates to internal coordinates.'
+       call set_astruct_from_file(trim(fileFrom),0,at%astruct,i_stat,fcomment,energy,fxyz)
+       !!call bigdft_get_run_ids(nconfig,trim(run_id),arr_radical,arr_posinp,ierror)
+       !!call run_objects_init_from_files(runObj, radical, posinp)
+       write(*,*) 'associated(at%astruct%rxyz)',associated(at%astruct%rxyz)
+       write(*,*) 'at%astruct%rxyz',at%astruct%rxyz
+       na = f_malloc(at%astruct%nat,id='na')
+       nb = f_malloc(at%astruct%nat,id='nb')
+       nc = f_malloc(at%astruct%nat,id='nc')
+       rxyz_int = f_malloc((/ 3, at%astruct%nat /),id='rxyz_int')
+
+       call get_neighbors(at%astruct%rxyz, at%astruct%nat, na, nb, nc)
+       call xyzint(at%astruct%rxyz, at%astruct%nat, na, nb, nc, degree, rxyz_int)
+
+       call write_atomic_file(trim(fileTo),-123.d0,at%astruct%rxyz,at,&
+            trim(fcomment) // ' (converted from '//trim(fileFrom)//")",coord='car')
+
+       call f_free(na)
+       call f_free(nb)
+       call f_free(nc)
+       call f_free(rxyz_int)
+       stop
    end if
 
    if (trim(radical) == "input") then
@@ -318,7 +361,7 @@ program memguess
       end if
       write(*,'(1x,a)')'Writing optimised positions in file posopt.[xyz,ascii]...'
       write(comment,'(a)')'POSITIONS IN OPTIMIZED CELL '
-      call write_atomic_file('posopt',0.d0,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment))
+      call write_atomic_file('posopt',0.d0,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment),coord='car')
       !call wtxyz('posopt',0.d0,rxyz,atoms,trim(comment))
    end if
 

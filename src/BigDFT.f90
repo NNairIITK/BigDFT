@@ -61,12 +61,12 @@ program BigDFT
          call run_objects_init_from_files(runObj, arr_radical(iconfig), arr_posinp(iconfig))
          call init_global_output(outs, runObj%atoms%astruct%nat)
 
-         !@NEW ###########################################
-         allocate(fxyz(3,runObj%atoms%astruct%nat))
-         fxyz=0.d0
-         call internal_forces(runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz, fxyz)
-         deallocate(fxyz)
-         !################################################
+         !!@!@NEW ###########################################
+         !!@allocate(fxyz(3,runObj%atoms%astruct%nat))
+         !!@fxyz=0.d0
+         !!@call internal_forces(runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz, fxyz)
+         !!@deallocate(fxyz)
+         !!@!################################################
 
          call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
 
@@ -85,11 +85,11 @@ program BigDFT
          if (runObj%inputs%ncount_cluster_x > 1) then
             filename=trim('final_'//trim(arr_posinp(iconfig)))
             if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,outs%energy,runObj%atoms%astruct%rxyz, &
-                 & runObj%atoms,'FINAL CONFIGURATION',forces=outs%fxyz)
+                 & runObj%atoms,'FINAL CONFIGURATION',coord='car',forces=outs%fxyz)
          else
             filename=trim('forces_'//trim(arr_posinp(iconfig)))
             if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,outs%energy,runObj%atoms%astruct%rxyz, &
-                 & runObj%atoms,'Geometry + metaData forces',forces=outs%fxyz)
+                 & runObj%atoms,'Geometry + metaData forces',coord='car',forces=outs%fxyz)
          end if
 
          ! Deallocations.
