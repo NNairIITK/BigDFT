@@ -6,7 +6,7 @@ program carint
   use yaml_output
   implicit none
 
-  real(kind=8),parameter :: degree = 57.29578d+00
+  real(kind=8),parameter :: degree = 57.295779513d0
   !integer,parameter :: nmax=100
   integer :: nat, iat, iproc, nproc
   character(len=4) :: test
@@ -50,29 +50,34 @@ program carint
   close(unit=99)
 
 
-  call yaml_open_sequence('initial coordinates')
-  do i=1,nat
-     call yaml_sequence(advance='no')
-     call yaml_open_map(flow=.true.)
-     call yaml_map('id',i)
-     call yaml_map('positions',xyz_init(1:3,i),fmt='(es14.6)')
-     call yaml_close_map()
-  end do
-  call yaml_close_sequence()
+  if (iproc==0) then
+      call yaml_open_sequence('initial coordinates')
+      do i=1,nat
+         call yaml_sequence(advance='no')
+         call yaml_open_map(flow=.true.)
+         call yaml_map('id',i)
+         call yaml_map('positions',xyz_init(1:3,i),fmt='(es14.6)')
+         call yaml_close_map()
+      end do
+      call yaml_close_sequence()
+  end if
 
+  call get_neighbors(xyz_init,nat,na,nb,nc)
   call xyzint(xyz_init,nat,na,nb,nc,degree,geo)
 
 
-  call yaml_open_sequence('internal coordinates')
-  do i=1,nat
-     call yaml_sequence(advance='no')
-     call yaml_open_map(flow=.true.)
-     call yaml_map('id',i)
-     call yaml_map('refs',(/na(i),nb(i),nc(i)/))
-     call yaml_map('vals',geo(1:3,i),fmt='(es14.6)')
-     call yaml_close_map()
-  end do
-  call yaml_close_sequence()
+  if (iproc==0) then
+      call yaml_open_sequence('internal coordinates')
+      do i=1,nat
+         call yaml_sequence(advance='no')
+         call yaml_open_map(flow=.true.)
+         call yaml_map('id',i)
+         call yaml_map('refs',(/na(i),nb(i),nc(i)/))
+         call yaml_map('vals',geo(1:3,i),fmt='(es14.6)')
+         call yaml_close_map()
+      end do
+      call yaml_close_sequence()
+  end if
 
 
   ! The bond angle must be modified (take 180 degrees minus the angle)
@@ -82,30 +87,36 @@ program carint
   geo(2:3,1:nat) = geo(2:3,1:nat) / degree
   call internal_to_cartesian(nat, na, nb, nc, geo, xyz)
 
-  call yaml_open_sequence('final coordinates')
-  do i=1,nat
-     call yaml_sequence(advance='no')
-     call yaml_open_map(flow=.true.)
-     call yaml_map('id',i)
-     call yaml_map('positions',xyz(1:3,i),fmt='(es14.6)')
-     call yaml_close_map()
-  end do
-  call yaml_close_sequence()
+  if (iproc==0) then
+      call yaml_open_sequence('final coordinates')
+      do i=1,nat
+         call yaml_sequence(advance='no')
+         call yaml_open_map(flow=.true.)
+         call yaml_map('id',i)
+         call yaml_map('positions',xyz(1:3,i),fmt='(es14.6)')
+         call yaml_close_map()
+      end do
+      call yaml_close_sequence()
+  end if
 
   xyz_diff = xyz_init-xyz
 
-  call yaml_open_sequence('difference')
-  do i=1,nat
-     call yaml_sequence(advance='no')
-     call yaml_open_map(flow=.true.)
-     call yaml_map('id',i)
-     call yaml_map('positions',xyz_diff(1:3,i),fmt='(es14.6)')
-     call yaml_close_map()
-  end do
-  call yaml_close_sequence()
+  if (iproc==0) then
+      call yaml_open_sequence('difference')
+      do i=1,nat
+         call yaml_sequence(advance='no')
+         call yaml_open_map(flow=.true.)
+         call yaml_map('id',i)
+         call yaml_map('positions',xyz_diff(1:3,i),fmt='(es14.6)')
+         call yaml_close_map()
+      end do
+      call yaml_close_sequence()
+  end if
   xyz_diff=abs(xyz_diff)
   maxdiff=maxval(xyz_diff)
-  call yaml_map('maximal difference',maxdiff)
+  if (iproc==0) then
+      call yaml_map('maximal difference',maxdiff)
+  end if
 
 
 
@@ -119,6 +130,7 @@ program carint
 
   if (iproc==0) call yaml_comment('checks finished',hfill='=')
 
+  call bigdft_finalize(ierr)
   call f_lib_finalize()
 
 end program carint

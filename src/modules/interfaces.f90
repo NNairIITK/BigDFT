@@ -128,7 +128,7 @@ module module_interfaces
          real(gp), dimension(:,:), pointer :: rxyz
       END SUBROUTINE initialize_atomic_file
 
-      subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
+      subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,coord,forces,na,nb,nc)
          !n(c) use module_base
          use module_types
          implicit none
@@ -136,7 +136,9 @@ module module_interfaces
          type(atoms_data), intent(in) :: atoms
          real(gp), intent(in) :: energy
          real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+         character(len=3),intent(in) :: coord
          real(gp), dimension(3,atoms%astruct%nat), intent(in), optional :: forces
+         integer,dimension(atoms%astruct%nat),intent(in),optional :: na, nb, nc
       END SUBROUTINE write_atomic_file
 
       subroutine read_input_dict_from_files(radical, mpi_env,dict)
@@ -3992,6 +3994,19 @@ module module_interfaces
           integer, intent(out) :: nstates_max ! number of states in total if we consider all partially occupied fragment states to be fully occupied
           logical, intent(in) :: cdft
         end subroutine fragment_coeffs_to_kernel
+
+        subroutine wtxyz(iunit,energy,rxyz,atoms,comment,coord,na,nb,nc)
+          use module_base
+          use module_types
+          implicit none
+          integer, intent(in) :: iunit
+          character(len=*), intent(in) :: comment
+          type(atoms_data), intent(in) :: atoms
+          real(gp), intent(in) :: energy
+          real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+          character(len=3),intent(in) :: coord
+          integer,dimension(atoms%astruct%nat),intent(in),optional :: na, nb, nc
+        end subroutine wtxyz
   
   end interface
 END MODULE module_interfaces

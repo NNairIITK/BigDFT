@@ -378,7 +378,7 @@ END FUNCTION move_this_coordinate
 
 
 !> Write xyz atomic file.
-subroutine wtxyz(iunit,energy,rxyz,atoms,comment)
+subroutine wtxyz(iunit,energy,rxyz,atoms,comment,coord,na,nb,nc)
   use module_base
   use module_types
   implicit none
@@ -387,6 +387,9 @@ subroutine wtxyz(iunit,energy,rxyz,atoms,comment)
   type(atoms_data), intent(in) :: atoms
   real(gp), intent(in) :: energy
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+  character(len=3),intent(in) :: coord
+  integer,dimension(atoms%astruct%nat),intent(in),optional :: na, nb, nc
+
   !local variables
   character(len=20) :: symbol
   character(len=10) :: name
@@ -394,6 +397,19 @@ subroutine wtxyz(iunit,energy,rxyz,atoms,comment)
   character(len=50) :: extra
   integer :: iat,j
   real(gp) :: xmax,ymax,zmax,factor
+
+
+  if (coord/='car' .and. coord/='int') then
+      call f_err_throw("To write a file, the possible values for 'coord' are 'car' and 'int', but '" &
+                        //coord//"' was specified", err_name='BIGDFT_RUNTIME_ERROR')
+  end if
+
+  if (coord=='int') then
+      if (.not.present(na) .or. .not.present(nb) .or. .not.present(nc)) then
+          call f_err_throw('na, nb, nc must be present to write a file in internal coordinates', &
+               err_name='BIGDFT_RUNTIME_ERROR')
+       end if
+  end if
 
   xmax=0.0_gp
   ymax=0.0_gp
@@ -406,26 +422,52 @@ subroutine wtxyz(iunit,energy,rxyz,atoms,comment)
   enddo
   if (trim(atoms%astruct%units) == 'angstroem' .or. trim(atoms%astruct%units) == 'angstroemd0') then
      factor=Bohr_Ang
-     units='angstroemd0'
+     if (coord=='car') then
+         units='angstroemd0'
+     else if (coord=='int') then
+         units='internald0'
+     end if
   else
      factor=1.0_gp
-     units='atomicd0'
+     if (coord=='car') then
+         units='atomicd0'
+     else if (coord=='int') then
+         units='internald0'
+     end if
   end if
 
   if (energy /= 0. .and. energy /= UNINITIALIZED(energy)) then
-     write(iunit,'(i6,2x,a,2x,1pe24.17,2x,a)') atoms%astruct%nat,trim(units),energy,trim(comment)
+     if (coord=='car') then
+         write(iunit,'(i6,2x,a,2x,1pe24.17,2x,a)') atoms%astruct%nat,trim(units),energy,trim(comment)
+     else if (coord=='int') then
+         write(iunit,'(i6,2x,a,2x,a,2x,1pe24.17,2x,a)') atoms%astruct%nat,trim(units),&
+             trim(atoms%astruct%angle),energy,trim(comment)
+     end if
   else
-     write(iunit,'(i6,2x,a,2x,a)') atoms%astruct%nat,trim(units),trim(comment)
+     if (coord=='car') then
+         write(iunit,'(i6,2x,a,2x,a)') atoms%astruct%nat,trim(units),trim(comment)
+     else if (coord=='int') then
+         write(iunit,'(i6,2x,a,2x,a,2x,a)') atoms%astruct%nat,trim(units),trim(atoms%astruct%angle),trim(comment)
+     end if
   end if
 
   select case(atoms%astruct%geocode)
   case('P')
+     if (coord=='int') then
+          call f_err_throw("Internal coordinates not implemented for perdiodic BC", err_name='BIGDFT_RUNTIME_ERROR')
+     end if
      write(iunit,'(a,3(1x,1pe24.17))')'periodic',&
           atoms%astruct%cell_dim(1)*factor,atoms%astruct%cell_dim(2)*factor,atoms%astruct%cell_dim(3)*factor
   case('S')
+     if (coord=='int') then
+          call f_err_throw("Internal coordinates not implemented for surface BC", err_name='BIGDFT_RUNTIME_ERROR')
+     end if
      write(iunit,'(a,3(1x,1pe24.17))')'surface',&
           atoms%astruct%cell_dim(1)*factor,atoms%astruct%cell_dim(2)*factor,atoms%astruct%cell_dim(3)*factor
   case('W')
+     if (coord=='int') then
+          call f_err_throw("Internal coordinates not implemented for wire BC", err_name='BIGDFT_RUNTIME_ERROR')
+     end if
      write(iunit,'(a,3(1x,1pe24.17))')'wire',&
           atoms%astruct%cell_dim(1)*factor,atoms%astruct%cell_dim(2)*factor,atoms%astruct%cell_dim(3)*factor
   case('F')
@@ -444,7 +486,12 @@ subroutine wtxyz(iunit,energy,rxyz,atoms,comment)
 
      call write_extra_info(extra,atoms%astruct%input_polarization(iat),atoms%astruct%ifrztyp(iat))
 
-     write(iunit,'(a5,1x,3(1x,1pe24.17),2x,a50)')symbol,(rxyz(j,iat)*factor,j=1,3),extra
+     if (coord=='car') then
+         write(iunit,'(a5,1x,3(1x,1pe24.17),2x,a50)')symbol,(rxyz(j,iat)*factor,j=1,3),extra
+     else if (coord=='int') then
+         write(iunit,'(a5,1x,3(1x,i6,2x,1pe24.17),2x,a50)')symbol,na(iat),rxyz(1,iat)*factor,nb(iat),rxyz(2,iat)*factor,&
+                                                     nc(iat),rxyz(3,iat)*factor,extra
+     end if
   enddo
 
 END SUBROUTINE wtxyz
@@ -830,9 +877,9 @@ subroutine atoms_write(atoms, filename, forces, energy, comment)
   real(gp), dimension(:,:), pointer :: forces
 
   if (associated(forces)) then
-     call write_atomic_file(filename,energy,atoms%astruct%rxyz,atoms,comment,forces)
+     call write_atomic_file(filename,energy,atoms%astruct%rxyz,atoms,comment,coord='car',forces=forces)
   else
-     call write_atomic_file(filename,energy,atoms%astruct%rxyz,atoms,comment)
+     call write_atomic_file(filename,energy,atoms%astruct%rxyz,atoms,comment,coord='car')
   end if
 END SUBROUTINE atoms_write
 
@@ -1173,23 +1220,39 @@ END SUBROUTINE astruct_copy_alat
 
 !> Write an atomic file
 !! Yaml output included
-subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
+subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,coord,forces,na,nb,nc)
   use module_base
   use module_types
   use module_input_dicts
   use yaml_output
+  use module_interfaces, only: wtxyz
   implicit none
   character(len=*), intent(in) :: filename,comment
   type(atoms_data), intent(in) :: atoms
   real(gp), intent(in) :: energy
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+  character(len=3),intent(in) :: coord
   real(gp), dimension(3,atoms%astruct%nat), intent(in), optional :: forces
+  integer,dimension(atoms%astruct%nat),intent(in),optional :: na, nb, nc
   !local variables
   character(len = 15) :: arFile
   integer :: iunit
   character(len = 1024) :: fname
   real(gp), dimension(3), parameter :: dummy = (/ 0._gp, 0._gp, 0._gp /)
   type(dictionary), pointer :: dict
+
+
+  if (coord/='car' .and. coord/='int') then
+      call f_err_throw("To write a file, the possible values for 'coord' are 'car' and 'int', but '" &
+                        //coord//"' was specified", err_name='BIGDFT_RUNTIME_ERROR')
+  end if
+
+  if (coord=='int') then
+      if (.not.present(na) .or. .not.present(nb) .or. .not.present(nc)) then
+          call f_err_throw('na, nb, nc must be present to write a file in internal coordinates', &
+               err_name='BIGDFT_RUNTIME_ERROR')
+       end if
+  end if
 
   if (trim(filename) == "stdout") then
      iunit = 6
@@ -1206,8 +1269,12 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
 
   select case(atoms%astruct%inputfile_format)
      case('xyz')
-        call wtxyz(iunit,energy,rxyz,atoms,comment)
-        if (present(forces)) call wtxyz_forces(9,forces,atoms)
+        if (coord=='car') then
+            call wtxyz(iunit,energy,rxyz,atoms,comment,coord)
+            if (present(forces)) call wtxyz_forces(9,forces,atoms)
+        else if (coord=='int') then
+            call wtxyz(iunit,energy,rxyz,atoms,comment,coord,na,nb,nc)
+        end if
      case('ascii')
         call wtascii(iunit,energy,rxyz,atoms,comment)
         if (present(forces)) call wtascii_forces(9,forces,atoms)

@@ -183,7 +183,7 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
            write( *,'(1x,a)')' writing positions in file posfail.xyz then exiting'
            write(comment,'(a)')'UNCONVERGED WF '
            !call wtxyz('posfail',energy,rxyz,atoms,trim(comment))
-           call write_atomic_file("posfail",outs%energy,runObj%rst%rxyz_new,runObj%atoms,trim(comment))
+           call write_atomic_file("posfail",outs%energy,runObj%rst%rxyz_new,runObj%atoms,trim(comment),coord='car')
         end if
 
         call f_free_ptr(runObj%rst%KSwfn%psi)
@@ -711,6 +711,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
   !end of the initialization part
   call timing(bigdft_mpi%mpi_comm,'INIT','PR')
+
 
   !start the optimization
   energs%eexctX=0.0_gp

@@ -1085,6 +1085,11 @@ module communications
        worksend_int = f_malloc((/ 4, nlr /),id='worksend_int')
        workrecv_int = f_malloc((/ 4, nlr /),id='workrecv_int')
     
+       ! divide communications into chunks to avoid problems with memory (too many communications)
+       ! set maximum number of simultaneous communications
+       max_sim_comms=min(nlr,1000)
+
+
        nrecv=0
        !nsend=0
        icomm=0
@@ -1124,10 +1129,18 @@ module communications
                    end if
                end if
            end do
+           if (mod(ilr,max_sim_comms)==0 .or. ilr==nlr) then
+              call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
+              if (f_err_raise(ierr /= 0,'problem in communicate locregs: error in mpi_waitall '//&
+                   trim(yaml_toa(ierr))//' for process '//trim(yaml_toa(iproc)),&
+                   err_name='BIGDFT_RUNTIME_ERROR')) return
+              call mpi_barrier(mpi_comm_world,ierr)
+              icomm=0
+           end if
        end do
       
-       call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
-       call mpi_barrier(mpi_comm_world,ierr)
+       !!call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
+       !!call mpi_barrier(mpi_comm_world,ierr)
     
        call f_free(worksend_int)
     
@@ -1154,11 +1167,11 @@ module communications
        workrecv_int = f_malloc((/ 6*maxrecvdim, nlr /),id='workrecv_int')
        worksend_int = f_malloc((/ 6*maxsenddim, nlr /),id='worksend_int')
     
-       ! divide communications into chunks to avoid problems with memory (too many communications)
-       ! set maximum number of simultaneous communications
-       !total_sent=0
-       !total_recv=0
-       max_sim_comms=10000
+       !!! divide communications into chunks to avoid problems with memory (too many communications)
+       !!! set maximum number of simultaneous communications
+       !!!total_sent=0
+       !!!total_recv=0
+       !!max_sim_comms=1000
        icomm=0
        do ilr=1,nlr
           root=rootarr(ilr)
@@ -1227,7 +1240,8 @@ module communications
      integer, intent(in) :: ilr,recv
      integer :: itag
     
-     itag=ilr+recv*nlr
+     !itag=ilr+recv*nlr
+     itag=ilr+recv*max_sim_comms
     
      end function itag
     

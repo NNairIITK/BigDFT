@@ -1014,7 +1014,7 @@ subroutine image_calculate(img, iteration, id)
   if (bigdft_mpi%iproc == 0) then
      write(fn4, "(I4.4)") iteration
      call write_atomic_file(trim(img%run%inputs%dir_output)//'posout_'//fn4, &
-          & img%outs%energy, img%run%atoms%astruct%rxyz, img%run%atoms, "", forces = img%outs%fxyz)
+          & img%outs%energy, img%run%atoms%astruct%rxyz, img%run%atoms, "", coord='car', forces = img%outs%fxyz)
   end if
 end subroutine image_calculate
 

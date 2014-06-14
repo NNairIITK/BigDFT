@@ -221,7 +221,7 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
             write(comment,'(a)')'UNCONVERGED WF '
             !call wtxyz('posfail',energy,rxyz,atoms,trim(comment))
 
-            call write_atomic_file("posfail",energy,rxyz,atoms,trim(comment))
+            call write_atomic_file("posfail",energy,rxyz,atoms,trim(comment),coord='car')
 
          end if 
 
