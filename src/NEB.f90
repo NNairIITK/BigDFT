@@ -177,7 +177,7 @@ MODULE NEB_routines
          call user_dict_from_files(dict, trim(arr_radical(i)), &
               & trim(arr_posinp(i)), bigdft_mpi)
          ! Force no geometry relaxation
-         call pop(dict, GEOPT_VARIABLES)
+         call dict_remove(dict, GEOPT_VARIABLES)
          call inputs_from_dict(ins(i), atoms(i), dict)
 
          if (.not. external_call .and. i == 1) then

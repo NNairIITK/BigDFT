@@ -29,6 +29,7 @@ module yaml_parse
 
   !for internal f_lib usage
   public :: yaml_parse_errors
+  public :: yaml_a_todict
 
 contains
 
@@ -297,5 +298,20 @@ contains
     end do
 
   end function build_seq
+
+  function yaml_a_todict(string) result(dict)
+    use dictionaries
+    implicit none
+    character(len=*), intent(in) :: string
+    type(dictionary), pointer :: dict
+    !local variables
+    type(dictionary), pointer :: loaded_string
+    !parse from the given string
+    call yaml_parse_from_string(loaded_string,string)
+       
+    dict => loaded_string .pop. 0
+    if (associated(loaded_string)) call dict_free(loaded_string)
+    
+  end function yaml_a_todict
 
 end module yaml_parse

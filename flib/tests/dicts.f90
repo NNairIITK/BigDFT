@@ -230,29 +230,18 @@ subroutine test_dictionaries1()
    !print dictionary status
    call yaml_dict_dump(dict,flow=.true.)
 
-
    !popping a term from the dictionary
    !only a normal pointer can be used
    !try with these examples
-   call yaml_map('Size before popping',dict_size(dict2))
-   call pop(dict2,'One')
-   call pop(dict2,'Two')
+   call yaml_map('Size before removing',dict_size(dict2))
+   call dict_remove(dict2,'One')
+   call dict_remove(dict2,'Two')
 !   call pop(dict2,'Three')
    !a further element can be added
    call set(dict//'First'//'Four',4)
    call yaml_open_map('After pop')
    call yaml_dict_dump(dict)
    call yaml_close_map()
-
-   call pop(dict,'First')
-   call yaml_open_map('Complete pop')
-   call yaml_map('Size after popping',dict_size(dict))
-   call yaml_dict_dump(dict)
-   call yaml_close_map()
-
-   !note that we do not have a garbage collector!
-   !a call to this will produce a crash due to association above
-   !call set(dict2//'Five',5)
 
    !search for a key and point to it without modifying
    dict2=>find_key(dict,'Number of Gruops')
@@ -268,10 +257,49 @@ subroutine test_dictionaries1()
    ival=dict//'Number of Groups'
    call yaml_map('Alternative way',ival)
 
+   call yaml_map('Search for "First" key',find_key(dict,'First'))
+
+   !use now pop instead of remove
+   !call dict_remove(dict,'First')
+   !note that we do not have a garbage collector!
+   ! imagine we use the dict_remove above
+   !a call to this will produce a crash due to association above
+   !indeed, dict2 points to dict//First, which has been removed
+   !therefore dict2 is now pointing to a unallocated region
+   !call set(dict2//'Five',5)
+   
+   !for the same reason, extracting the value in this way
+   !ival = dict .pop. 'Number of Groups' 
+   !will lead to a memory leak, as the function in the right hand size
+   !will not be freed
+   
+   !in fortran, the correct way to free the memory is the following
+   dictA2 => dict .pop. 'Number of Groups' 
+   !extract value
+   ival=dictA2
+   call dict_free(dictA2)
+   call yaml_map('Extracted value',ival)
+
+
+   call yaml_map('Size after popping',dict_size(dict))
+   dictA => dict .pop. 'First'
+   call yaml_map('Size after popping again',dict_size(dict))
+   call yaml_open_map('Complete pop')
+   call yaml_map('Status of association',associated(dict))
+   call yaml_map('Size after popping',dict_size(dict))
+   call yaml_dict_dump(dict)
+   call yaml_close_map()
+
+   call yaml_map('DictA is associated',associated(dictA))
+   call yaml_map('DictA is now of size',dict_size(dictA))
+   call yaml_map('DictA is now',dictA)
+   call yaml_map('DictA key',dict_key(dictA))
+   call dict_free(dictA)
+
   !test if a complete pop will disassociate the dictionry
   call yaml_map('Dictionary associated before last pop',associated(dict))
-  call pop(dict,'Number of Groups')
-  call yaml_map('Last pop done, still associated',associated(dict))
+!  call dict_remove(dict,'Number of Groups')
+!  call yaml_map('Last pop done, still associated',associated(dict))
 
    call dict_init(dictA)
 
@@ -297,10 +325,10 @@ subroutine test_dictionaries1()
    call yaml_map('Values retrieved from the dict',tmp_arr,fmt='(1pg12.5)')
 
    dict2=>find_key(dictA,'Stack')
-   call pop(dict2)
+   call dict_remove_last(dict2)
 
 
-   call pop(dict2)
+   call dict_remove_last(dict2)
 
    !  call push(dict2,'Element')
    !  call append(dictA,dictA2)

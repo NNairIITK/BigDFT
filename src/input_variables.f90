@@ -41,7 +41,10 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
        & call set(dict // "radical", radical)
 
   ! Handle error with master proc only.
-  if (mpi_env%iproc > 0) call f_err_set_callback(f_err_ignore)
+  !LG: modified, better to handle errors with all the 
+  !! processors now that each of the cores has its own way of dumping 
+  !! error codes
+  !if (mpi_env%iproc > 0) call f_err_set_callback(f_err_ignore)
 
   ! We try first default.yaml
   inquire(file = "default.yaml", exist = exists_default)
@@ -85,7 +88,9 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
      call read_perf_from_text_format(mpi_env%iproc,dict//PERF_VARIABLES, trim(f0))
   end if
 
-  if (mpi_env%iproc > 0) call f_err_severe_restore()
+  !LG modfication of errors (see above)
+  !in case it should be restored the bigdft_severe shoudl be called instead
+  !if (mpi_env%iproc > 0) call f_err_severe_restore()
 
   ! We put a barrier here to be sure that non master proc will be stop
   ! by any issue on the master proc.

@@ -13,6 +13,7 @@ subroutine test_dynamic_memory()
    use yaml_output
    use dynamic_memory
    use dictionaries
+   use metadata_interfaces, only: getdp2
    implicit none
 
    type :: dummy_type
@@ -24,7 +25,8 @@ subroutine test_dynamic_memory()
    integer :: i
    real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,xc_pot
    real(kind=8), dimension(:), pointer :: extra_ref
-   real(kind=8), dimension(:,:), allocatable :: ab
+   real(kind=8), dimension(:,:), save, allocatable :: ab
+   real(kind=8), dimension(:,:), allocatable :: b
    integer, dimension(:), allocatable :: i1_all,i1_src
    integer, dimension(:), pointer :: i1_ptr,ptr1
    integer, dimension(:), pointer :: ptr2
@@ -33,7 +35,16 @@ subroutine test_dynamic_memory()
    integer,dimension(:,:,:,:),allocatable :: orbital_id
    type(dummy_type) :: dummy_test
    external :: abort2
-  
+   real(kind=8) :: total
+   integer :: ithread,ierror,n_err
+   integer(kind=8) :: iadd
+   integer(kind=8) :: lock
+   !$ integer, external :: omp_get_thread_num
+   
+   !$omp threadprivate(ab)
+
+   ithread=0
+
    call yaml_comment('Routine-Tree creation example',hfill='~')
    !call dynmem_sandbox()
 
@@ -195,7 +206,7 @@ call f_free(weight)
     call f_free(density)
    call f_release_routine()
    call f_routine(id='Routine F')
-   call f_release_routine()
+
    ! call f_malloc_dump_status()
 
    !Allocations, considering also spin density
@@ -214,8 +225,13 @@ call f_free(weight)
    call f_free(rhopot)
 !!$
 !!$   !   call f_free(density,potential,pot_ion,xc_pot,extra_ref)
-!!$!   call f_malloc_dump_status()
-!!$   !stop
+
+   !use yaml_syntax to retrieve list element
+   call retrieve_list_element('[ elem1, 1.d0, elem2, 3.d0]',0)
+
+   call f_malloc_dump_status()
+!   call f_malloc_finalize()
+!   stop
    call f_free(pot_ion)
    call f_free(potential)
    call f_free(xc_pot)
@@ -225,16 +241,99 @@ call f_free(weight)
 !!$   !   call f_malloc_dump_status()
 !!$   !   call yaml_close_map()
 
-  !Allocation in an omp section is not permissible
-  !$omp parallel
-  !$omp critical (allocate_critical)
-  ab = f_malloc((/ 10, 10 /),id='ab')
-  !$omp end critical (allocate_critical)
+   call yaml_comment('Entering in OpenMP section if available',hfill='-')
 
-  !$omp critical (deallocate_critical)
-  call f_free(ab)
-  !$omp end critical (deallocate_critical)
-  !$omp end parallel
+   !!define the lock
+   !$ call OMP_init_lock(lock)
+
+   !open try-catch section
+!   call f_err_open_try()
+   total=0.d0
+
+   !Allocation in an omp section is not permissible
+   !$omp parallel private(ithread,iadd,ierror,b) !firstprivate(ab)
+   !$omp critical (allocate_critical)
+   !$ ithread=omp_get_thread_num()
+   call getdp2(ab,iadd)
+   call yaml_map('Entering Thread No.',ithread)
+   call yaml_map('Address of metadata',iadd)
+
+!   call OMP_set_lock(lock)
+   ab = f_malloc((/ 10, 10 /),id='ab')
+!   call OMP_unset_lock(lock)
+   !allocate(ab(10,10),stat=ierror)
+   !call allocate_array(ab,ierror)
+
+   ab = 1.d0
+   total=total+sum(ab)
+   !$omp end critical (allocate_critical)
+
+   !verify is an error has occured
+   !$omp barrier
+   if (f_err_check(err_name='TIMING_ERROR')) then
+      if (ithread == 0) then
+         call yaml_map('Errors found while allocating ab',f_get_no_of_errors())
+         call f_dump_all_errors()
+      end if
+   else
+      !$omp critical (deallocate_critical)
+!      call OMP_set_lock(lock)
+      call f_free(ab)
+!      call OMP_unset_lock(lock)
+      !deallocate(ab)
+      !$omp end critical (deallocate_critical)
+   end if
+
+
+   if (f_err_check()) then
+      if (ithread == 0) then
+         call yaml_map('Errors found while deallocating ab',f_get_no_of_errors())
+         call f_dump_all_errors()
+      end if
+   else
+      if (ithread == 0) call yaml_map('Something to use ab',total)
+   end if
+
+   !$omp critical (allocate_critical)
+!   call OMP_set_lock(lock)
+   b = f_malloc((/ 10, 10 /),id='b')
+!   call OMP_unset_lock(lock)
+   !allocate(b(10,10),stat=ierror)
+   !call allocate_array(b,ierror)
+
+   b = 1.d0
+   total=total+sum(b)
+   !$omp end critical (allocate_critical)
+
+   !verify is an error has occured
+   !$omp barrier
+   if (f_err_check()) then
+      if (ithread == 0) then
+         call yaml_map('Errors found while allocating b',f_get_no_of_errors())
+         call f_dump_all_errors()
+      end if
+   else
+      !$omp critical (deallocate_critical)
+!      call OMP_set_lock(lock)
+      call f_free(b)
+!      call OMP_unset_lock(lock)
+      !deallocate(b)
+      !$omp end critical (deallocate_critical)
+   end if
+   !$omp end parallel
+   !$ call OMP_destroy_lock(lock)
+   if (f_err_check()) then
+      if (ithread == 0) then
+         call yaml_map('Errors found while deallocating b',f_get_no_of_errors())
+         call f_dump_all_errors()
+      end if
+   else
+      call yaml_map('Something to use b',total)
+   end if
+
+   call f_err_close_try()
+!stop
+   call f_release_routine()
 
 
    call f_routine(id='Routine A')
@@ -252,6 +351,62 @@ call f_free(weight)
    call f_malloc_dump_status()
 
    contains
+
+     !>routine to retrieve the list element from a string which is 
+     !! compliant with yaml standard
+     subroutine retrieve_list_element(string,item)
+       use yaml_parse, only: yaml_parse_from_string
+       implicit none
+       character(len=*), intent(in) :: string
+       integer, intent(in) :: item
+       !local variables
+       type(dictionary), pointer :: dict_string,loaded_string
+
+       !first, parse the string
+       call yaml_parse_from_string(loaded_string,string)
+       !this will give us a dictionary with a list inside
+       call yaml_map('Parsed string',loaded_string)
+
+       dict_string => loaded_string .pop. 0
+
+       call yaml_map('Associated after pop',associated(loaded_string))
+       if (associated(loaded_string)) call dict_free(loaded_string)
+       !this will give us a dictionary with a list inside
+       call yaml_map('Loaded string',dict_string)
+
+       call dict_free(dict_string)
+     end subroutine retrieve_list_element
+
+     subroutine allocate_array(array,ierror)
+       implicit none
+       real(kind=8), dimension(:,:), allocatable,  intent(inout) :: array
+       integer, intent(out) :: ierror
+       !local variables
+       integer(kind=8) :: iadd
+       logical :: in_omp
+       !$ integer, external :: omp_get_thread_num
+       !$ logical, external :: omp_in_parallel
+
+       in_omp=.false.
+       !$ in_omp=omp_in_parallel()
+       !detect if we are in a parallel section
+!       !$ if(in_omp) then
+!       !$omp critical (f_malloc_critical)
+!       !$ end if
+       ierror=-12345
+       call getdp2(array,iadd)
+       call yaml_map('Metadata address inside the routine',iadd)
+       call yaml_map('Parallel section',in_omp)
+       !$ call yaml_map('Thread in the routine',omp_get_thread_num())
+       call yaml_map('Array seems allocated',allocated(array))
+       allocate(array(10,10),stat=ierror)
+!       !$ if(in_omp) then
+!       !$omp end critical (f_malloc_critical)
+!       !$ end if
+       call yaml_map('Array seems allocated after allocation',allocated(array))
+       call yaml_map('Array allocation staus',ierror)
+
+     end subroutine allocate_array
      
      function dummy_init(n) result(dummy)
        implicit none
@@ -342,7 +497,7 @@ subroutine dynmem_sandbox()
 
      !call yaml_map('The routine which has to be converted is',trim(routinename))
 
-     call pop(dict,ival)
+     call dict_remove(dict,ival)
 
      dict_tmp=>dict//ival//trim(routinename)
      dict => dict_tmp
