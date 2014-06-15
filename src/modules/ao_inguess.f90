@@ -133,7 +133,7 @@ contains
     real(gp), parameter :: fact=4.0_gp
     !character(len=2) :: symbol
     integer :: lpx!,nsccode,mxpl,mxchg
-    integer :: l,i,j,iocc,i_all,i_stat,iorder
+    integer :: l,i,j,iocc,iorder
     real(gp) :: alpz,alpl,rprb,rcov,rij,a,a0,a0in,tt!,ehomo,amu
     !integer, dimension(6,4) :: neleconf
     !real(kind=8), dimension(6,4) :: neleconf

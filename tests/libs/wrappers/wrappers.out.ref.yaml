@@ -48,41 +48,41 @@
      CXXFLAGS                          : -g -O2 -fPIC
   #------------------------------------------------------------------------ Input parameters
  dft:
-   ixc                                 : 11 #     exchange-correlation parameter (LDA=1,PBE=11)
-   hgrids: [2/5, 0.55, 0.55] #                    grid spacing in the three directions (bohr)
-   nspin                               : 2 #      spin polarization
-   itermax                             : 4 #      max. # of wfn. opt. steps
-   rmult: [5., 8.] #                              c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-basec radius
-   ncharge                             : 0 #      charge of the system
-   elecfield: [0., 0., 0.] #                      electric fielc (Ex,Ey,Ez)
-   mpol                                : 0 #      total magnetic moment
-   gnrm_cv                             : 1e-4 #   convergence criterion gradient
-   nrepmax                             : 1 #      max. # of re-diag. runs
-   ncong                               : 6 #      # of CG it. for preconditioning eq.
-   idsx                                : 6 #      wfn. diis history
-   dispersion                          : 0 #      dispersion correction potential (values 1,2,3,4,5), 0=none
-   inputpsiid                          : 0
-   output_wf                           : 0
-   output_denspot                      : 0
-   rbuf                                : 0. #     length of the tail (AU)
-   ncongt                              : 30 #     # tail CG iterations
-   norbv                               : 0 #      Davidson subspace dim.
-   nvirt                               : 0 #      # of opt. orbs
-   nplot                               : 0 #      # of plottec orbs
-   disablesym                          : No #     disable the symmetry detection
+   ixc                                 : 11 #     Exchange-correlation parameter (LDA=1,PBE=11)
+   hgrids: [2/5, 0.55, 0.55] #                    Grid spacing in the three directions (bohr)
+   nspin                               : 2 #      Spin polarization treatment
+   itermax                             : 4 #      Max. iterations of wfn. opt. steps
+   disablesym                          : No #     Disable the symmetry detection
+   rmult: [5., 8.] #                              c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
+   ncharge                             : 0 #      Charge of the system
+   elecfield: [0., 0., 0.] #                      Electric field (Ex,Ey,Ez)
+   mpol                                : 0 #      Total magnetic moment
+   gnrm_cv                             : 1.e-4 #  convergence criterion gradient
+   nrepmax                             : 1 #      Max. number of re-diag. runs
+   ncong                               : 6 #      No. of CG it. for preconditioning eq.
+   idsx                                : 6 #      Wfn. diis history
+   dispersion                          : 0 #      Dispersion correction potential (values 1,2,3,4,5), 0=none
+   inputpsiid                          : 0 #      Input guess wavefunctions
+   output_wf                           : 0 #      Output of the wavefunctions
+   output_denspot                      : 0 #      Output of the density or the potential
+   rbuf                                : 0. #     Length of the tail (AU)
+   ncongt                              : 30 #     No. of tail CG iterations
+   norbv                               : 0 #      Davidson subspace dimension (No. virtual orbitals)
+   nvirt                               : 0 #      No. of virtual orbs
+   nplot                               : 0 #      No. of plotted orbs
  perf:
-   debug                               : No #     debug option
-   fftcache                            : 8192 #   cache size for the FFT
-   accel                               : No #     acceleration
+   debug                               : No #     Debug option
+   fftcache                            : 8192 #   Cache size for the FFT
+   accel                               : NO #     Acceleration (hardware)
    ocl_platform                        : ~ #      Chosen OCL platform
    ocl_devices                         : ~ #      Chosen OCL devices
    blas                                : No #     CUBLAS acceleration
    projrad                             : 15. #    Radius of the projector as a function of the maxrad
    exctxpar                            : OP2P #   Exact exchange parallelisation scheme
-   ig_diag                             : Yes #    Input guess: (T:Direct, F:Iterative) diag. of Ham.
-   ig_norbp                            : 5 #      Input guess: Orbitals per process for iterative diag.
-   ig_blocks: [300, 800] #                        Input guess: Block sizes for orthonormalisation
-   ig_tol                              : 1e-4 #   Input guess: Tolerance criterion
+   ig_diag                             : Yes #    Input guess (T=Direct, F=Iterative) diag. of Ham.
+   ig_norbp                            : 5 #      Input guess Orbitals per process for iterative diag.
+   ig_blocks: [300, 800] #                        Input guess Block sizes for orthonormalisation
+   ig_tol                              : 1e-4 #   Input guess Tolerance criterion
    methortho                           : 0 #      Orthogonalisation
    rho_commun                          : DEF #    Density communication scheme (DBL, RSC, MIX)
    psolver_groupsize                   : 0 #      Size of Poisson Solver taskgroups (0=nproc)
@@ -93,9 +93,9 @@
    signaling                           : No #     Expose calculation results on Network
    signaltimeout                       : 0 #      Time out on startup for signal connection (in seconds)
    domain                              : ~ #      Domain to add to the hostname to find the IP
-   inguess_geopt                       : 0 #      0= wavlet input guess, 1= real space input guess
-   store_index                         : Yes #    linear scaling: store indices or recalculate them
-   verbosity                           : 2 #      verbosity of the output
+   inguess_geopt                       : 0 #      Input guess to be used during the optimization
+   store_index                         : Yes #    Store indices or recalculate them for linear scaling
+   verbosity                           : 2 #      Verbosity of the output
    outdir                              : . #      Writing directory
    psp_onfly                           : Yes #    Calculate pseudopotential projectors on the fly
    pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
@@ -195,7 +195,7 @@
      Coarse PSP                        :  0.41429
      Source                            : Hard-Coded
    Grid Spacing threshold (AU)         :  0.53
-    #WARNING: Chosen Grids spacings seem too high for this atom. At you own risk!
+    #WARNING: Chosen Grid spacings seem too high for this atom. At you own risk!
    Pseudopotential type                : HGH-K
    Local Pseudo Potential (HGH convention):
      Rloc                              :  0.24455
@@ -214,6 +214,14 @@
  - C: {AU:  [  0.0000,  7.7000,  0.0000 ], GU:  [  0.0000,  14.000,  0.0000 ]} # 0001
  - O: {AU:  [  1.2300,  7.7000,  0.0000 ], GU:  [  3.4440,  14.000,  0.0000 ]} # 0002
  Rigid Shift Applied (AU)              :  [ -0.0000,  7.7000, -0.0000 ]
+ Atomic structure:
+   Cell: [ 10.0, .inf,  10.0]
+   Positions:
+   -  {C: [ 0.000000000,  7.700000000,  0.000000000],  # [  0.00,  14.00,  0.00 ] 0001
+ IGSpin: -1}
+   -  {O: [ 1.230000000,  7.700000000,  0.000000000],  # [  3.44,  14.00,  0.00 ] 0002
+ IGSpin:  1, Frozen: fy}
+   Rigid Shift Applied (AU)            :  [ -0.0000,  7.7000, -0.0000 ]
   #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.3571,  0.5500,  0.5000 ]
  Sizes of the simulation domain:
@@ -399,7 +407,8 @@
   #WARNING: Self-consistent cycle did not meet convergence criteria
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
- - Chosen Grids spacings seem too high for this atom. At you own risk!
+ - Chosen Grid spacings seem too high for this atom. At you own risk!
+ - No convergence within the allowed number of minimization steps
  - Wavefunctions not converged after cycle  1
  - Self-consistent cycle did not meet convergence criteria
  Memory Consumption Report:

@@ -1299,7 +1299,6 @@ contains
     type(old_wavefunction), intent(inout) :: wfn
     !local variables
     character(len=*), parameter :: subname='old_wavefunction_set'
-    integer :: i_stat
 
     !first, free the workspace if not already done
     call old_wavefunction_free(wfn,subname)
@@ -1320,7 +1319,6 @@ contains
     character(len=*), intent(in) :: subname
     type(old_wavefunction), intent(inout) :: wfn
     !local variables
-    integer :: i_all,i_stat
 
     if (associated(wfn%psi)) then
        call f_free_ptr(wfn%psi)
@@ -1341,7 +1339,6 @@ contains
     character(len=*), intent(in) :: subname
     type(comms_cubic), intent(inout) :: comms
     !local variables
-    integer :: i_all,i_stat
 
     call f_free_ptr(comms%nvctr_par)
     call f_free_ptr(comms%ncntd)
@@ -1479,8 +1476,7 @@ contains
     character(len=*), intent(in) :: subname
     integer, intent(in) :: nat
     type(restart_objects), intent(inout) :: rst
-    !local variables
-    integer :: i_all,i_stat
+
     if (associated(rst%rxyz_old)) then
        call f_free_ptr(rst%rxyz_old)
     end if
@@ -1511,7 +1507,7 @@ contains
     character(len=*), intent(in) :: subname
     type(restart_objects) :: rst
     !local variables
-    integer :: i_all,i_stat,istep
+    integer :: istep
 
     if (rst%version == LINEAR_VERSION) then
        call destroy_DFT_wavefunction(rst%tmb)
@@ -1569,8 +1565,6 @@ contains
     implicit none
     type(rho_descriptors) :: rhodsc
     character(len=*), intent(in) :: subname
-    !local variables
-    integer :: i_all,i_stat
 
     if (associated(rhodsc%spkey))then
        call f_free_ptr(rhodsc%spkey)
@@ -1594,11 +1588,8 @@ contains
     implicit none
     type(gaussian_basis) :: G
     character(len=*), intent(in) :: subname
-    !local variables
-    integer :: i_all,i_stat
 
     !normally positions should be deallocated outside
-    
     call f_free_ptr(G%ndoc)
     call f_free_ptr(G%nam)
     call f_free_ptr(G%nshell)
@@ -1614,11 +1605,8 @@ contains
     implicit none
     type(gaussian_basis_c) :: G
     character(len=*), intent(in) :: subname
-    !local variables
-    integer :: i_all,i_stat
 
     !normally positions should be deallocated outside
-    
     call f_free_ptr(G%ndoc)
     call f_free_ptr(G%nam)
     call f_free_ptr(G%nshell)
@@ -1836,8 +1824,6 @@ subroutine deallocate_denspot_distribution(dpbox,subname)
   implicit none
   character(len=*), intent(in) :: subname
   type(denspot_distribution),intent(inout)::dpbox
-  !local variables
-  integer :: i_all,i_stat
   
   if(associated(dpbox%nscatterarr)) then
     call f_free_ptr(dpbox%nscatterarr)
@@ -1860,8 +1846,6 @@ subroutine copy_coulomb_operator(coul1,coul2,subname)
   type(coulomb_operator),intent(in) :: coul1
   type(coulomb_operator),intent(inout) :: coul2
   character(len=*), intent(in) :: subname
-  !local variables
-  integer :: i_all,i_stat
 
   if(associated(coul2%kernel)) then
     call f_free_ptr(coul2%kernel)
@@ -1895,8 +1879,6 @@ subroutine deallocate_coulomb_operator(coul_op,subname)
   implicit none
   type(coulomb_operator),intent(inout) :: coul_op
   character(len=*), intent(in) :: subname
-  !local variables
-  integer :: i_all,i_stat
 
   if(associated(coul_op%kernel)) then
     call f_free_ptr(coul_op%kernel)

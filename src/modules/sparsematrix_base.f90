@@ -174,7 +174,6 @@ module sparsematrix_base
       implicit none
       type(sparse_matrix),intent(inout) :: sparsemat
       logical,intent(in) :: allocate_full
-      integer :: istat
       sparsemat%matrix_compr = f_malloc_ptr(sparsemat%nvctr,id='sparsemat%matrix_compr')
       sparsemat%matrix_comprp = f_malloc_ptr(sparsemat%nvctrp,id='sparsemat%matrix_comprp')
       if (allocate_full) sparsemat%matrix = f_malloc_ptr((/sparsemat%nfvctr,sparsemat%nfvctr/),id='sparsemat%matrix')

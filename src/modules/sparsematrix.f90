@@ -522,7 +522,7 @@ module sparsematrix
      !character(len=*), parameter :: subname='sparsemm'
      integer :: i,jorb,jjorb,m,mp1
      integer :: iorb, ii, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6, iout
-     real(kind=8) :: tt, t1, t2, tt0, tt1, tt2, tt3, tt4, tt5, tt6
+     real(kind=8) :: tt0, tt1, tt2, tt3, tt4, tt5, tt6
    
      call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'IR')
 

@@ -122,10 +122,10 @@ subroutine inputs_from_dict(in, atoms, dict)
   type(atoms_data), intent(out) :: atoms
   type(dictionary), pointer :: dict
   !Local variables
-  !type(dictionary), pointer :: profs
+  !type(dictionary), pointer :: profs, dict_frag
   integer :: ierr, ityp, nelec_up, nelec_down, norb_max, jtype
   character(len = max_field_length) :: writing_dir, output_dir, run_name, msg
-  type(dictionary), pointer :: dict_minimal, var,dict_frag
+  type(dictionary), pointer :: dict_minimal, var
 
   call f_routine(id='inputs_from_dict')
 
@@ -723,7 +723,7 @@ subroutine free_geopt_variables(in)
   implicit none
   type(input_variables), intent(inout) :: in
   character(len=*), parameter :: subname='free_geopt_variables'
-  integer :: i_stat, i_all
+  ! integer :: i_stat, i_all
 
   if (associated(in%qmass)) then
      call f_free_ptr(in%qmass)

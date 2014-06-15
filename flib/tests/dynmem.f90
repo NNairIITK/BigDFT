@@ -1,7 +1,7 @@
 !> @file
 !! Test the dynamic memory allocation of the flib library
 !! @author
-!!    Copyright (C) 2013-2013 BigDFT group
+!!    Copyright (C) 2013-2014 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -22,7 +22,7 @@ subroutine test_dynamic_memory()
    end type dummy_type
 
    !logical :: fl
-   integer :: i
+   integer :: i,id
    real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,xc_pot
    real(kind=8), dimension(:), pointer :: extra_ref
    real(kind=8), dimension(:,:), save, allocatable :: ab
@@ -34,6 +34,9 @@ subroutine test_dynamic_memory()
    integer,dimension(:,:,:),allocatable :: weight
    integer,dimension(:,:,:,:),allocatable :: orbital_id
    type(dummy_type) :: dummy_test
+   logical :: within_openmp
+   real(kind=8) :: total
+   character(len=250) :: message
    external :: abort2
    real(kind=8) :: total
    integer :: ithread,ierror,n_err
@@ -335,7 +338,7 @@ call f_free(weight)
 !stop
    call f_release_routine()
 
-
+!call yaml_map('Total of the allocations',total)
    call f_routine(id='Routine A')
    call f_release_routine()
 

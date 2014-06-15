@@ -2073,10 +2073,10 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   call uncompress_matrix(iproc, tmb%linmat%l, &
        inmat=tmb%linmat%kernel_%matrix_compr, outmat=tmb%linmat%kernel_%matrix)
 
-  ks=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
-  ksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/))
-  ksksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
-  kernel_prime=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
+  ks=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='ks')
+  ksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/),id='ksk')
+  ksksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='ksksk')
+  kernel_prime=f_malloc([tmb%orbs%norb,tmb%orbs%norb],id='kernel_prime')
 
   !ovrlp_onehalf=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='ovrlp_onehalf')
   !ovrlp_minusonehalf=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='ovrlp_minusonehalf')
