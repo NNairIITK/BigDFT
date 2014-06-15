@@ -35,7 +35,6 @@ subroutine test_dynamic_memory()
    integer,dimension(:,:,:,:),allocatable :: orbital_id
    type(dummy_type) :: dummy_test
    logical :: within_openmp
-   real(kind=8) :: total
    character(len=250) :: message
    external :: abort2
    real(kind=8) :: total
@@ -250,13 +249,15 @@ call f_free(weight)
    !$ call OMP_init_lock(lock)
 
    !open try-catch section
-!   call f_err_open_try()
+   call f_err_open_try()
+
    total=0.d0
 
    !Allocation in an omp section is not permissible
    !$omp parallel private(ithread,iadd,ierror,b) !firstprivate(ab)
-   !$omp critical (allocate_critical)
+   !$omp critical (allocate_critical1)
    !$ ithread=omp_get_thread_num()
+
    call getdp2(ab,iadd)
    call yaml_map('Entering Thread No.',ithread)
    call yaml_map('Address of metadata',iadd)
@@ -269,33 +270,26 @@ call f_free(weight)
 
    ab = 1.d0
    total=total+sum(ab)
-   !$omp end critical (allocate_critical)
+   !$omp end critical (allocate_critical1)
 
    !verify is an error has occured
    !$omp barrier
-   if (f_err_check(err_name='TIMING_ERROR')) then
-      if (ithread == 0) then
-         call yaml_map('Errors found while allocating ab',f_get_no_of_errors())
-         call f_dump_all_errors()
-      end if
-   else
-      !$omp critical (deallocate_critical)
-!      call OMP_set_lock(lock)
+   if ( .not. f_err_check()) then
+      !$omp critical (deallocate_critical1)
+      !      call OMP_set_lock(lock)
       call f_free(ab)
-!      call OMP_unset_lock(lock)
+      !      call OMP_unset_lock(lock)
       !deallocate(ab)
-      !$omp end critical (deallocate_critical)
+      !$omp end critical (deallocate_critical1)
    end if
 
-
-   if (f_err_check()) then
-      if (ithread == 0) then
-         call yaml_map('Errors found while deallocating ab',f_get_no_of_errors())
-         call f_dump_all_errors()
-      end if
-   else
+   !$omp barrier
+   if (.not. f_err_check()) then
       if (ithread == 0) call yaml_map('Something to use ab',total)
    end if
+   !open try-catch section
+   call f_err_open_try()
+   !$omp barrier
 
    !$omp critical (allocate_critical)
 !   call OMP_set_lock(lock)
@@ -310,12 +304,7 @@ call f_free(weight)
 
    !verify is an error has occured
    !$omp barrier
-   if (f_err_check()) then
-      if (ithread == 0) then
-         call yaml_map('Errors found while allocating b',f_get_no_of_errors())
-         call f_dump_all_errors()
-      end if
-   else
+   if ( .not. f_err_check()) then
       !$omp critical (deallocate_critical)
 !      call OMP_set_lock(lock)
       call f_free(b)
@@ -327,7 +316,7 @@ call f_free(weight)
    !$ call OMP_destroy_lock(lock)
    if (f_err_check()) then
       if (ithread == 0) then
-         call yaml_map('Errors found while deallocating b',f_get_no_of_errors())
+         call yaml_map('Errors found while (de)allocating ab and b',f_get_no_of_errors())
          call f_dump_all_errors()
       end if
    else

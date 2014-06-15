@@ -288,7 +288,7 @@ subroutine test_dictionaries1()
    call yaml_open_map('Complete pop')
    call yaml_map('Status of association',associated(dict))
    call yaml_map('Size after popping',dict_size(dict))
-   call yaml_dict_dump(dict)
+   call yaml_map('Present status',dict)
    call yaml_close_map()
 
    call yaml_map('DictA is associated',associated(dictA))

@@ -215,7 +215,7 @@
     character(len=max_field_length), dimension(1) :: keys
     type(dictionary), pointer :: dict_tmp
     character(len=max_field_length) :: message
-    
+
     !to prevent infinite loop due to not association of the error handling
     if (.not. associated(dict_present_error)) then
        write(0,*) 'error_handling library not initialized'
