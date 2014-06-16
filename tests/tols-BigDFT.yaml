@@ -981,3 +981,6 @@ PBE_densmixdiis:
  Ekin: 1.1e-9
  Total charge: 2.01e-11
  EH: 1.0e-9
+
+test-bigdft-tool:
+ positions: 5.1e-8

@@ -21,7 +21,7 @@ driver_SOURCES = driver.f90
 driver_LDADD = -lbigdft-1 @LINALG_LIBS@
 
 
-CLEANFILES = test-coordinatetransform.out.yaml test-bigdft-tool.out.yaml
+CLEANFILES = *.yaml posinp.* malloc.prc report
 
 check: test-coordinatetransform.report.yaml
 check: test-bigdft-tool.report.yaml
@@ -47,29 +47,25 @@ test-bigdft-tool.report.yaml: $(srcdir)/test-bigdft-tool.ref.yaml test-bigdft-to
 test-bigdft-tool.out.yaml: $(abs_top_builddir)/src/bigdft-tool
 	cp $(srcdir)/posinp1.xyz $(PWD)/posinp.xyz
 	$(run_parallel) $(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=carint --infile=posinp.xyz --outfile=posout.int
-	cat posout.int > test-bigdft-tool.out.yaml
 	$(run_parallel) $(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=intcar --infile=posout.int --outfile=posout.xyz
-	cat posout.xyz >> test-bigdft-tool.out.yaml
-	tail -n +3 posinp.xyz > in.xyz ; tail -n +3 posout.xyz > out.xyz
-	paste in.xyz out.xyz | awk '{print $$2-$$6, $$3-$$7, $$4-$$8}' >> test-bigdft-tool.out.yaml
+	$(run_parallel) $(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=carcar --infile=posout.xyz --outfile=posout.yaml
+	cat posout.yaml > test-bigdft-tool.out.yaml
+	rm -f posout.*
 	cp $(srcdir)/posinp2.xyz $(PWD)/posinp.xyz
 	$(run_parallel) $(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=carint --infile=posinp.xyz --outfile=posout.int
-	cat posout.int >> test-bigdft-tool.out.yaml
 	$(run_parallel) $(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=intcar --infile=posout.int --outfile=posout.xyz
-	cat posout.xyz >> test-bigdft-tool.out.yaml
-	tail -n +3 posinp.xyz > in.xyz ; tail -n +3 posout.xyz > out.xyz
-	paste in.xyz out.xyz | awk '{print $$2-$$6, $$3-$$7, $$4-$$8}' >> test-bigdft-tool.out.yaml
+	$(run_parallel) $(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=carcar --infile=posout.xyz --outfile=posout.yaml
+	cat posout.yaml >> test-bigdft-tool.out.yaml
+	rm -f posout.*
 	cp $(srcdir)/posinp3.xyz $(PWD)/posinp.xyz
 	$(run_parallel) $(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=carint --infile=posinp.xyz --outfile=posout.int
-	cat posout.int >> test-bigdft-tool.out.yaml
 	$(run_parallel) $(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=intcar --infile=posout.int --outfile=posout.xyz
-	cat posout.xyz >> test-bigdft-tool.out.yaml
-	tail -n +3 posinp.xyz > in.xyz ; tail -n +3 posout.xyz > out.xyz
-	paste in.xyz out.xyz | awk '{print $$2-$$6, $$3-$$7, $$4-$$8}' >> test-bigdft-tool.out.yaml
+	$(run_parallel) $(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=carcar --infile=posout.xyz --outfile=posout.yaml
+	cat posout.yaml >> test-bigdft-tool.out.yaml
+	rm -f posout.*
 	cp $(srcdir)/posinp4.xyz $(PWD)/posinp.xyz
 	$(run_parallel) $(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=carint --infile=posinp.xyz --outfile=posout.int
-	cat posout.int >> test-bigdft-tool.out.yaml
 	$(run_parallel) $(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=intcar --infile=posout.int --outfile=posout.xyz
-	cat posout.xyz >> test-bigdft-tool.out.yaml
-	tail -n +3 posinp.xyz > in.xyz ; tail -n +3 posout.xyz > out.xyz
-	paste in.xyz out.xyz | awk '{print $$2-$$6, $$3-$$7, $$4-$$8}' >> test-bigdft-tool.out.yaml
+	$(run_parallel) $(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=carcar --infile=posout.xyz --outfile=posout.yaml
+	cat posout.yaml >> test-bigdft-tool.out.yaml
+	rm -f posout.*
