@@ -21,7 +21,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
    integer, intent(in)                    :: iproc
    type(run_objects), intent(inout)       :: runObj
    type(DFT_global_output), intent(inout) :: outsIO
-   integer, intent(out)                   :: ncount_bigdft
+   integer, intent(inout)                 :: ncount_bigdft
    logical, intent(out)                   :: fail
    !local variables
    character(len=*), parameter :: subname='sbfgs'

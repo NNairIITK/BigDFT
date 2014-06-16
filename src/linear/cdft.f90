@@ -275,6 +275,7 @@ subroutine calculate_weight_function(in,ref_frags,cdft,ndimrho_all_fragments,rho
   use module_types
   use module_fragments
   use constrained_dft
+  use module_interfaces, only: plot_density
   implicit none
   type(input_variables), intent(in) :: in
   type(system_fragment), dimension(in%frag%nfrag_ref), intent(inout) :: ref_frags
@@ -323,6 +324,7 @@ subroutine calculate_weight_function(in,ref_frags,cdft,ndimrho_all_fragments,rho
   cdft%charge=ref_frags(ref_frag_charged)%nelec-in%frag%charge(ref_frag_charged)
 
   ! plot the weight function, fragment density and initial total density (the denominator) to check
+
   call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,'fragment_density.cube', &
        atoms,rxyz,denspot%dpbox,1,ref_frags(ref_frag_charged)%fbasis%density)
 
