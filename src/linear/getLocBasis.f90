@@ -1800,8 +1800,8 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
      call deviation_from_unity_parallel(iproc, 1, norb, norb, 0, ovrlp_coeff(1,1), error)    
   end if
 
-  ! should convert this to yaml
-  if (iproc==0) print*,'Deviation from unity in reorthonormalize_coeff',error
+  ! should convert this to yaml (LG: easily done)
+  if (iproc==0) call yaml_map('Deviation from unity in reorthonormalize_coeff',error)
 
   if (error>5.0d0.and.orbs%norb==norb) then
      if (iproc==0) print*,'Error in reorthonormalize_coeff too large, reverting to gram-schmidt orthonormalization'
