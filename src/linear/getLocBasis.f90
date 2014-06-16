@@ -2534,6 +2534,8 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, tmb, ovrlp, ovrlp_old)
   real(kind=8) :: error
   type(matrices) :: inv_ovrlp
 
+  call f_routine(id='renormalize_kernel')
+
   inv_ovrlp%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
                            iaction=SPARSE_FULL, id='inv_ovrlp%matrix_compr')
 
@@ -2557,6 +2559,8 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, tmb, ovrlp, ovrlp_old)
   call retransform()
 
   call f_free_ptr(inv_ovrlp%matrix_compr)
+
+  call f_release_routine()
 
   contains
 

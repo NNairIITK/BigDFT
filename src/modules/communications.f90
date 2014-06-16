@@ -1068,7 +1068,7 @@ module communications
     
        ! Local variables
        integer:: ierr, istat, iall, jorb, ilr, jlr, jtask, root, icomm, nrecv, nalloc, max_sim_comms
-       integer :: maxrecvdim, maxsenddim
+       integer :: maxrecvdim, maxsenddim, ilr_old
        logical :: isoverlap
        character(len=*),parameter:: subname='communicate_locreg_descriptors_keys'
        integer,dimension(:),allocatable :: requests
@@ -1173,6 +1173,7 @@ module communications
        !!!total_recv=0
        !!max_sim_comms=1000
        icomm=0
+       ilr_old=0
        do ilr=1,nlr
           root=rootarr(ilr)
           do jtask=0,nproc-1
@@ -1199,7 +1200,8 @@ module communications
              end if
           end do
           if (mod(ilr,max_sim_comms)==0 .or. ilr==nlr) then
-             do jlr=max(ilr-max_sim_comms+1,1),ilr
+             !do jlr=max(ilr-max_sim_comms+1,1),ilr
+             do jlr=ilr_old+1,ilr
                 if (covered(jlr,iproc))  call allocate_wfd(llr(jlr)%wfd)
              end do
              call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
@@ -1208,6 +1210,7 @@ module communications
                   err_name='BIGDFT_RUNTIME_ERROR')) return
              call mpi_barrier(mpi_comm_world,ierr)
              icomm=0
+             ilr_old=ilr
           end if
        end do
     
