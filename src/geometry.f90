@@ -101,7 +101,7 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
      write(fn4,fmt) ncount_bigdft
      write(comment,'(a)')'INITIAL CONFIGURATION '
      call write_atomic_file(trim(runObj%inputs%dir_output)//trim(outfile)//'_'//trim(fn4),&
-          & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment),coord='car',forces=outs%fxyz)
+          & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
      call yaml_new_document()
      call yaml_comment('Geometry minimization using ' // trim(parmin%approach),hfill='-')
      call yaml_map('Begin of minimization using ',parmin%approach)
@@ -578,7 +578,7 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
         write(fn4,'(i4.4)') ncount_bigdft
         write(comment,'(a,1pe10.3)')'DIIS:fnrm= ',sqrt(fnrm)
         call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-             & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment),coord='car',forces=outs%fxyz)
+             & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
      endif
 
      if(check > 5)then
@@ -694,7 +694,7 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
         write(fn4,'(i4.4)') ncount_bigdft
         write(comment,'(a,1pe10.3)')'FIRE:fnrm= ',sqrt(fnrm)
         call  write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4,&
-             & outs%energy,pospred,runObj%atoms,trim(comment),coord='car',forces=fpred)
+             & outs%energy,pospred,runObj%atoms,trim(comment),forces=fpred)
      endif
      if (fmax < 3.d-1) call updatefluctsum(outs%fnoise,fluct) !n(m)
 

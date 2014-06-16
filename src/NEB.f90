@@ -277,7 +277,7 @@ MODULE NEB_routines
                atoms(j)%astruct%rxyz = atoms(j - 1)%astruct%rxyz + d_R
                ! Dump generated image positions on disk.
                call write_atomic_file(trim(arr_posinp(j)) // ".in", UNINITIALIZED(1.d0), &
-                    & atoms(j)%astruct%rxyz, atoms(j), "NEB generated", coord='car')
+                    & atoms(j)%astruct%rxyz, atoms(j), "NEB generated")
                ! Erase forces.
                imgs(j)%outs%fxyz(:,:) = UNINITIALIZED(1.d0)
             end do
@@ -390,7 +390,7 @@ MODULE NEB_routines
          do i = 1, size(imgs), 1
             filename=trim('final_'//trim(arr_posinp(i)))
             call write_atomic_file(filename, imgs(i)%outs%energy,imgs(i)%run%atoms%astruct%rxyz, &
-                 & imgs(i)%run%atoms,'FINAL CONFIGURATION',coord='car',forces=imgs(i)%outs%fxyz)
+                 & imgs(i)%run%atoms,'FINAL CONFIGURATION',forces=imgs(i)%outs%fxyz)
          end do
       end if
     END SUBROUTINE search_MEP

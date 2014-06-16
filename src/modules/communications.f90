@@ -852,7 +852,8 @@ module communications
               ist3=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i
               do i2=comm%ise(3,iproc),comm%ise(4,iproc)
                   ist2=(i2-1)*lzd%glr%d%n1i
-                  call vcopy(comm%ise(2,iproc)-comm%ise(1,iproc)+1, sendbuf(ist3+ist2+1), 1, recvbuf(ist), 1)
+                  !call vcopy(comm%ise(2,iproc)-comm%ise(1,iproc)+1, sendbuf(ist3+ist2+1), 1, recvbuf(ist), 1)
+                  call vcopy(comm%ise(2,iproc)-comm%ise(1,iproc)+1, sendbuf(ist3+ist2+comm%ise(1,iproc)), 1, recvbuf(ist), 1)
                   ist=ist+comm%ise(2,iproc)-comm%ise(1,iproc)+1
               end do
           end do
@@ -931,6 +932,8 @@ module communications
     
       allocate(workrecv_char(orbs%norb), stat=istat)
       call memocc(istat, workrecv_char, 'workrecv_char', subname)
+      !workrecv_char = f_malloc_str(1,orbs%norb,id='workrecv_char')
+      !call f_free_str(1,workrecv_str)
       workrecv_log = f_malloc(orbs%norb,id='workrecv_log')
       workrecv_int = f_malloc((/ 11, orbs%norb /),id='workrecv_int')
       workrecv_dbl = f_malloc((/ 6, orbs%norb /),id='workrecv_dbl')
@@ -1088,6 +1091,7 @@ module communications
        ! divide communications into chunks to avoid problems with memory (too many communications)
        ! set maximum number of simultaneous communications
        max_sim_comms=min(nlr,1000)
+       !max_sim_comms=min(nlr,2)
 
 
        nrecv=0
@@ -1200,6 +1204,7 @@ module communications
           end do
           if (mod(ilr,max_sim_comms)==0 .or. ilr==nlr) then
              do jlr=max(ilr-max_sim_comms+1,1),ilr
+                !write(*,*) 'iproc, jlr', iproc, jlr
                 if (covered(jlr,iproc))  call allocate_wfd(llr(jlr)%wfd)
              end do
              call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)

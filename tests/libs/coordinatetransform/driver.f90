@@ -65,6 +65,8 @@ program carint
   call get_neighbors(xyz_init,nat,na,nb,nc)
   call xyzint(xyz_init,nat,na,nb,nc,degree,geo)
 
+  ! The bond angle must be modified (take 180 degrees minus the angle)
+  geo(2:2,1:nat) = 180.d0 - geo(2:2,1:nat)
 
   if (iproc==0) then
       call yaml_open_sequence('internal coordinates')
@@ -80,8 +82,6 @@ program carint
   end if
 
 
-  ! The bond angle must be modified (take 180 degrees minus the angle)
-  geo(2:2,1:nat) = 180.d0 - geo(2:2,1:nat)
 
   ! convert to rad
   geo(2:3,1:nat) = geo(2:3,1:nat) / degree
