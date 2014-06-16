@@ -914,7 +914,7 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
               istart_c=1
               call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
                    lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpsp%pspd(iat)%plr,&
-                   nlpsp%proj,nwarnings,proj_G)
+                   nlpsp%proj,nwarnings)!,proj_G)
               !!do i_all=1,nlpspd%nprojel
               !!    write(850+iat,*) i_all, proj(i_all)
               !!end do

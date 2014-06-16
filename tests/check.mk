@@ -165,9 +165,9 @@ $(abs_top_builddir)/src/BigDFT2Wannier:
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.b2w.out: $(abs_top_builddir)/src/BigDFT2Wannier
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
-	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@
+	$(run_parallel) $(abs_top_builddir)/src/bigdft > $@
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
-	$(run_parallel) $(abs_top_builddir)/src/BigDFT2Wannier $$name > $@
+	$(run_parallel) $(abs_top_builddir)/src/BigDFT2Wannier > $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.testforces.out: $(abs_top_builddir)/src/test_forces

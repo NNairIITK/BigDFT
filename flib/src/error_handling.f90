@@ -215,7 +215,7 @@
     character(len=max_field_length), dimension(1) :: keys
     type(dictionary), pointer :: dict_tmp
     character(len=max_field_length) :: message
-    
+
     !to prevent infinite loop due to not association of the error handling
     if (.not. associated(dict_present_error)) then
        write(0,*) 'error_handling library not initialized'
@@ -261,24 +261,31 @@
             dict_new((/ errid .is. yaml_toa(new_errcode),ERR_ADD_INFO .is. message/)))
     !end if
 
-    !identify callback function 
-    clbk_add=callback_add
-    clbk_data_add=callback_data_add
-    if (present(callback_data)) clbk_data_add=callback_data
-    if (present(callback)) then
-       clbk_add=f_loc(callback)
+    !if we are in a try-catch environment, no callback has
+    !to be called after the error is produced
+    if (try_environment) then
+       !identify callback function 
+       clbk_add=f_loc(f_err_ignore)
+       clbk_data_add=int(0,kind=8)
     else
-       !find the callback in the error definition
-       !these data can be inserted in a function
-       dict_tmp=>f_get_error_dict(new_errcode)
-       !that is how dict_keys function should be called      
-       if (dict_size(dict_tmp) <= size(keys)) keys=dict_keys(dict_tmp)
-       dict_tmp=>dict_tmp//trim(keys(1))
+       !identify callback function 
+       clbk_add=callback_add
+       clbk_data_add=callback_data_add
+       if (present(callback_data)) clbk_data_add=callback_data
+       if (present(callback)) then
+          clbk_add=f_loc(callback)
+       else
+          !find the callback in the error definition
+          !these data can be inserted in a function
+          dict_tmp=>f_get_error_dict(new_errcode)
+          !that is how dict_keys function should be called      
+          if (dict_size(dict_tmp) <= size(keys)) keys=dict_keys(dict_tmp)
+          dict_tmp=>dict_tmp//trim(keys(1))
 
-       if (has_key(dict_tmp,errclbk)) clbk_add=dict_tmp//errclbk
-       if (has_key(dict_tmp,errclbkadd)) clbk_data_add=dict_tmp//errclbkadd
+          if (has_key(dict_tmp,errclbk)) clbk_add=dict_tmp//errclbk
+          if (has_key(dict_tmp,errclbkadd)) clbk_data_add=dict_tmp//errclbkadd
+       end if
     end if
-
     call err_abort(clbk_add,clbk_data_add)
     
   end subroutine f_err_throw
@@ -350,12 +357,12 @@
     if (ierr >= 0) then
        f_get_last_error=dict_present_error//ierr//errid
        if (present(add_msg)) add_msg=dict_present_error//ierr//ERR_ADD_INFO
+      
     else
        f_get_last_error=0
        if (present(add_msg)) add_msg=repeat(' ',len(add_msg))
     end if
   end function f_get_last_error
-
 
   !> Clean the dictionary of present errors
    subroutine f_err_clean()
@@ -363,7 +370,6 @@
     call dict_free(dict_present_error)
     call dict_init(dict_present_error)
   end subroutine f_err_clean
-
 
   !> Clean last error, if any and get message.
   function f_err_pop(err_id, err_name, add_msg)
@@ -382,7 +388,7 @@
     if (ierr >= 0 .and. get_error > 0) then
        f_err_pop=dict_present_error//ierr//errid
        if (present(add_msg)) add_msg=dict_present_error//ierr//ERR_ADD_INFO
-       call pop(dict_present_error, ierr)
+       call dict_remove(dict_present_error, ierr)
        if (.not.associated(dict_present_error)) call dict_init(dict_present_error)
     else
        f_err_pop=0
@@ -390,21 +396,25 @@
     end if
   end function f_err_pop
 
-
   !> Activate the exception handling for all errors
+  !! also the errors which have f_err_severe as callbacks
+  !! multiple calls to f_err_open_try have the same effect of one call
   subroutine f_err_open_try()
     implicit none
-    call f_err_set_callback(f_err_ignore)
+    !call f_err_set_callback(f_err_ignore)
+    try_environment=.true.
   end subroutine f_err_open_try
-  
 
-  !> Close the try environment
+  !> Close the try environment. At the end of the try environment
+  !! the errors are cleaned. To recover an error in a try environment 
+  !! the correct behviour is to perform f_err_check before calling 
+  !! f_err_close_try
   subroutine f_err_close_try()
     implicit none
     call f_err_clean() !no errors anymore
-    call f_err_unset_callback()
+    try_environment=.false.
+    !call f_err_unset_callback()
   end subroutine f_err_close_try
-  
 
   function f_get_error_definitions()
     implicit none

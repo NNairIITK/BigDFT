@@ -726,8 +726,6 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
 
     end subroutine init_nonzero_arrays
 
-
-
 end subroutine sparse_matrix_init_fake
 
 

@@ -54,11 +54,16 @@ yaml_test:
    - date
    - Id
    - Summary
+   - ERR_ALLOCATE
+   - Routine dictionary
+   - Errors found while (de)allocating ab and b
+   - Calling sequence of Main program (routines with * are not closed yet)
+   - Additional Info
  Patterns to ignore:
    - errcode
    - time
    - Time
-
+   - Global dictionary
 
 #Runs which update and override the default
 AgBulk:
@@ -88,7 +93,7 @@ SiBulk:
  Atomic Forces (Ha/Bohr): 1.3e-10
  Clean forces norm (Ha/Bohr): 8.3e-11
  Average noise forces: 2.4e-11
- Optimization of virtual orbitals: 7.71e-9
+ Optimization of virtual orbitals: 2.97e-8
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
   - Residues per orbital
@@ -205,8 +210,8 @@ H2-spin:
 
 
 H-Rydberg_H:
- Gradient Norm: 6.1e-10
- Eigenvalues and eigenstate residue: 6.3e-10
+ Gradient Norm: 5.8e-9
+ Eigenvalues and eigenstate residue: 5.1e-9
  norm(P): 1.1e-10
 
 TiSmear:
@@ -327,8 +332,8 @@ TDDFT:
   Epot: 1.1e-10
   Gradient Norm: 4.0e-8
   L2 Norm - 1 and Rayleigh quotient (Davidson): 1.1e-6
-  Excitation Energy and Oscillator Strength: 1.9e-6
-  Transition energies (eV): 1.1e-4
+  Excitation Energy and Oscillator Strength: 1.3e-5
+  Transition energies (eV): 3.01e-4
 
 BigDFT2Wannier.b2w.ref.yaml:
   amnk_guess(nb): 1.31e-10
