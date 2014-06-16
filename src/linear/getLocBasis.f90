@@ -593,34 +593,13 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                hpsi_noconf, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
-          if (method_updatekernel==UPDATE_BY_FOE) then
-              !@NEW
-              !!if(associated(tmb%ham_descr%psit_c)) then
-              !!    call f_free_ptr(tmb%ham_descr%psit_c)
-              !!    associated_psitlarge_c=.true.
-              !!else
-              !!    associated_psitlarge_c=.false.
-              !!end if
-              !!if(associated(tmb%ham_descr%psit_f)) then
-              !!    call f_free_ptr(tmb%ham_descr%psit_f)
-              !!    associated_psitlarge_f=.true.
-              !!else
-              !!    associated_psitlarge_f=.false.
-              !!end if
-
-              !!tmb%ham_descr%psit_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='tmb%ham_descr%psit_c')
-              !!tmb%ham_descr%psit_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='tmb%ham_descr%psit_f')
-              call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-                   tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
-              call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
-                   tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, tmb%linmat%ham_)
-
-              !!if (.not.associated(tmb%psit_c)) then
-              !!    tmb%psit_c = f_malloc_ptr(tmb%collcom%ndimind_c,id='tmb%psit_c')
-              !!end if
-              !!if (.not.associated(tmb%psit_f)) then
-              !!    tmb%psit_f = f_malloc_ptr(7*tmb%collcom%ndimind_f,id='tmb%psit_f')
-              !!end if
+          if (method_updatekernel==UPDATE_BY_FOE .or. method_updatekernel==UPDATE_BY_RENORMALIZATION) then
+              if (method_updatekernel==UPDATE_BY_FOE) then
+                  call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+                       tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
+                  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
+                       tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, tmb%linmat%ham_)
+              end if
               call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
                    tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
               call vcopy(tmb%linmat%s%nvctr, tmb%linmat%ovrlp_%matrix_compr(1), 1, ovrlp_old%matrix_compr(1), 1)
@@ -628,21 +607,15 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                    tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
               if (iproc==0) call yaml_newline()
               if (iproc==0) call yaml_open_sequence('kernel update by FOE')
-              call renormalize_kernel(iproc, nproc, order_taylor, tmb, tmb%linmat%ovrlp_, ovrlp_old)
-              !call foe(iproc, nproc, 0.d0, &
-              !     energs%ebs, -1, -10, order_taylor, purification_quickreturn, 0, &
-              !     FOE_FAST, tmb, tmb%foe_obj)
+              if (method_updatekernel==UPDATE_BY_RENORMALIZATION) then
+                  call renormalize_kernel(iproc, nproc, order_taylor, tmb, tmb%linmat%ovrlp_, ovrlp_old)
+              else if (method_updatekernel==UPDATE_BY_FOE) then
+                  call foe(iproc, nproc, 0.d0, &
+                       energs%ebs, -1, -10, order_taylor, purification_quickreturn, 0, &
+                       FOE_FAST, tmb, tmb%foe_obj)
+              end if
               if (iproc==0) call yaml_close_sequence()
-              !if (.not.associated_psitlarge_c) then
-              !    call f_free_ptr(tmb%ham_descr%psit_c)
-              !end if
-              !if (.not.associated_psitlarge_f) then
-              !    call f_free_ptr(tmb%ham_descr%psit_f)
-              !end if
-              !if (associated_psitlarge_c .and. associated_psitlarge_f) then
                   tmb%ham_descr%can_use_transposed=.true.
-              !end if
-              !@ENDNEW
           end if
       else
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &

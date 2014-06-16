@@ -785,7 +785,11 @@ experimentalfoe_short:
  D: 1.1e-4
  decay length of error function: 1.1e-5
 
-
+experimentalfoe_medium:
+ charge diff: 3.1e-8
+ eF: 8.3e-8
+ D Tr: 1.2e-11
+ D eF: 9.1e-9 
 
 newpulay:
  EXC: 1.1e-10
