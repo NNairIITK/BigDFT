@@ -884,6 +884,7 @@ contains
     double precision, intent(in) :: base_time 
     type(dictionary), pointer :: dict_cs,dict_pt
     !local variables
+    logical :: found
     integer :: ikey,jkey,nkey,icalls,ikeystar
     integer(kind=8) :: itime,jtime
     double precision :: bt
@@ -966,7 +967,8 @@ contains
        dict_tmp=>dict_iter(dict_pt//(ikey-1))
        keyval=dict_key(dict_tmp)
        bt=dict_tmp//0
-       if (subprograms .in. dict_cs//trim(keyval)) then
+       found = subprograms .in. dict_cs//trim(keyval)  
+       if (found) then
           call postreatment_of_calling_sequence(bt,dict_cs//trim(keyval)//subprograms,&
                dict_pt//(ikey-1)//subprograms)
        end if

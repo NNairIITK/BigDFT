@@ -123,6 +123,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   type(dictionary), pointer :: dict
   !Local variables
   !type(dictionary), pointer :: profs, dict_frag
+  logical :: found
   integer :: ierr, ityp, nelec_up, nelec_down, norb_max, jtype
   character(len = max_field_length) :: writing_dir, output_dir, run_name, msg
   type(dictionary), pointer :: dict_minimal, var
@@ -341,8 +342,8 @@ subroutine inputs_from_dict(in, atoms, dict)
   in%lin%constrained_dft=.false.
   if (in%lin%fragment_calculation) then
      in%lin%constrained_dft=CONSTRAINED_DFT .in. dict // FRAG_VARIABLES
-     if (TRANSFER_INTEGRALS .in. dict // FRAG_VARIABLES) &
-          in%lin%calc_transfer_integrals=dict//FRAG_VARIABLES//TRANSFER_INTEGRALS
+     found = TRANSFER_INTEGRALS .in. dict // FRAG_VARIABLES
+     if (found) in%lin%calc_transfer_integrals=dict//FRAG_VARIABLES//TRANSFER_INTEGRALS
      call frag_from_dict(dict//FRAG_VARIABLES,in%frag)
 
 !!$     ! again recheck
