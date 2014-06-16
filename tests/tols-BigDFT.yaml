@@ -55,11 +55,15 @@ yaml_test:
    - Id
    - Summary
    - ERR_ALLOCATE
+   - Routine dictionary
+   - Errors found while (de)allocating ab and b
+   - Calling sequence of Main program (routines with * are not closed yet)
+   - Additional Info
  Patterns to ignore:
    - errcode
    - time
    - Time
-
+   - Global dictionary
 
 #Runs which update and override the default
 AgBulk:
