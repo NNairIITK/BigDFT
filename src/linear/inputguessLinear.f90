@@ -724,7 +724,6 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
        tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
        denspot%rhov, rho_negative)
-  write(*,*) 'sum(denspot%rhov), rho_negative',sum(denspot%rhov), rho_negative
   if (rho_negative) then
       call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
       !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
