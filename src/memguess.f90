@@ -373,14 +373,19 @@ program memguess
        rxyz_int = f_malloc((/ 3, at%astruct%nat /),id='rxyz_int')
 
        if (direction=='carint') then
-           call get_neighbors(at%astruct%rxyz, at%astruct%nat, at%astruct%ixyz_int(1,:), at%astruct%ixyz_int(2,:),at%astruct%ixyz_int(3,:))
-           call xyzint(at%astruct%rxyz, at%astruct%nat, at%astruct%ixyz_int(1,:), at%astruct%ixyz_int(2,:),at%astruct%ixyz_int(3,:), degree, at%astruct%rxyz_int)
-           call write_atomic_file(trim(fileTo(1:irad-1)),UNINITIALIZED(123.d0),at%astruct%rxyz_int,at,&
-                trim(fcomment) // ' (converted from '//trim(fileFrom)//")",coord='int',na=at%astruct%ixyz_int(1,:),nb=at%astruct%ixyz_int(2,:),nc=at%astruct%ixyz_int(1,:))
+           call get_neighbors(at%astruct%rxyz, at%astruct%nat, &
+                at%astruct%ixyz_int(1,:), at%astruct%ixyz_int(2,:),at%astruct%ixyz_int(3,:))
+           call xyzint(at%astruct%rxyz, at%astruct%nat, &
+                at%astruct%ixyz_int(1,:), at%astruct%ixyz_int(2,:),at%astruct%ixyz_int(3,:), &
+                degree, at%astruct%rxyz_int)
+           call write_atomic_file(trim(fileTo(1:irad-1)),UNINITIALIZED(123.d0),at%astruct%rxyz_int,at, &
+                trim(fcomment) // ' (converted from '//trim(fileFrom)//")",coord='int', &
+                na=at%astruct%ixyz_int(1,:),nb=at%astruct%ixyz_int(2,:),nc=at%astruct%ixyz_int(1,:))
        else if (direction=='intcar') then
            ! convert to rad
            !at%astruct%rxyz_int(2:3,1:at%astruct%nat) = at%astruct%rxyz_int(2:3,1:at%astruct%nat) / degree
-           call internal_to_cartesian(at%astruct%nat, at%astruct%ixyz_int(1,:), at%astruct%ixyz_int(2,:), at%astruct%ixyz_int(3,:), &
+           call internal_to_cartesian(at%astruct%nat, &
+                at%astruct%ixyz_int(1,:), at%astruct%ixyz_int(2,:), at%astruct%ixyz_int(3,:), &
                 at%astruct%rxyz_int, at%astruct%rxyz)
            do i_stat=1,at%astruct%nat
                write(*,'(3(i4,3x,f12.5))') at%astruct%ixyz_int(1,i_stat),at%astruct%rxyz_int(1,i_stat),&
