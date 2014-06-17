@@ -16,22 +16,30 @@ subroutine xx_all(array,m)
   !--- allocate_profile-inc.f90
   integer :: ierror,sizeof
   integer(kind=8) :: iadd,ilsize
+  !$ logical :: not_omp
+  !$ logical, external :: omp_in_parallel,omp_get_nested
 
   if (f_err_raise(ictrl == 0,&
        'ERROR (f_malloc): the routine f_malloc_initialize has not been called',&
        ERR_MALLOC_INTERNAL)) return
 
+  !$ not_omp=.not. (omp_in_parallel() .or. omp_get_nested())
+
   !here we should add a control of the OMP behaviour of allocation
   !in particular for what concerns the OMP nesting procedure
   !the following action is the allocation
+  !$ if(not_omp) then
   call f_timer_interrupt(TCAT_ARRAY_ALLOCATIONS)
+  !$ end if
   !END--- allocate_profile-inc.f90
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
   !--- allocate-inc.f90
   if (ierror/=0) then
-     call f_err_throw('Allocation problem, error code '//trim(yaml_toa(ierror)),ERR_ALLOCATE)
+     !$ if(not_omp) then
      call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
+     !$ end if
+     call f_err_throw('Allocation problem, error code '//trim(yaml_toa(ierror)),ERR_ALLOCATE)
      return
   end if
   if (size(shape(array))==m%rank) then
@@ -52,24 +60,28 @@ subroutine xx_all(array,m)
                  call dict_init(mems(ictrl)%dict_routine)
               end if
               call set(mems(ictrl)%dict_routine//long_toa(iadd),&
-                   dict_new(arrayid .is. trim(m%array_id),&
-                   routineid .is. trim(m%routine_id),&
-                   sizeid .is. trim(yaml_toa(ilsize)),&
-                   'Rank' .is. trim(yaml_toa(m%rank))))
-              !'[ '//trim(m%array_id)//', '//trim(m%routine_id)//', '//&
-              ! trim(yaml_toa(ilsize))//', '//trim(yaml_toa(m%rank))//']')
+                   !dict_new(arrayid .is. trim(m%array_id),&
+                   !routineid .is. trim(m%routine_id),&
+                   !sizeid .is. trim(yaml_toa(ilsize)),&
+                   !'Rank' .is. trim(yaml_toa(m%rank))))
+              '[ '//trim(m%array_id)//', '//trim(m%routine_id)//', '//&
+               trim(yaml_toa(ilsize))//', '//trim(yaml_toa(m%rank))//']')
            end if
         end if
         call memocc(ierror,int(ilsize),m%array_id,m%routine_id)
      end if
   else
+     !$ if(not_omp) then
+     call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
+     !$ end if
      call f_err_throw('Rank specified by f_malloc ('//trim(yaml_toa(m%rank))//&
           ') is not coherent with the one of the array ('//trim(yaml_toa(size(shape(array))))//')',&
           ERR_INVALID_MALLOC)
-     call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
      return
   end if
+  !$ if(not_omp) then
   call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
+  !$ end if
   !END--- allocate-inc.f90
 end subroutine xx_all
 
@@ -81,20 +93,27 @@ subroutine xx_all_free(array)
   !local variables
   integer :: ierror
   logical :: use_global
+  !$ logical :: not_omp
+  !$ logical, external :: omp_in_parallel,omp_get_nested
   integer(kind=8) :: ilsize,jlsize,iadd
   character(len=namelen) :: array_id,routine_id
+  character(len=info_length) :: array_info
   type(dictionary), pointer :: dict_add
 
   if (f_err_raise(ictrl == 0,&
        'ERROR (f_free): the routine f_malloc_initialize has not been called',&
        ERR_MALLOC_INTERNAL)) return
 
+  !$ not_omp=.not. (omp_in_parallel() .or. omp_get_nested())
+
   !here we should add a control of the OMP behaviour of allocation
   !in particular for what concerns the OMP nesting procedure
 
   !END--'deallocate-profile-inc.f90'
   !-- 'deallocate-inc.f90' 
+  !$ if (not_omp) then
   call f_timer_interrupt(TCAT_ARRAY_ALLOCATIONS)
+  !$ end if
 
   !here the size should be corrected with ndebug (or maybe not)
   ilsize=int(product(shape(array))*kind(array),kind=8)
@@ -105,6 +124,9 @@ subroutine xx_all_free(array)
   deallocate(array,stat=ierror)
 
   if (ierror/=0) then
+     !$ if (not_omp) then
+     call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
+     !$ end if
      call f_err_throw('Deallocation problem, error code '//trim(yaml_toa(ierror)),&
           ERR_DEALLOCATE)
      return
@@ -117,14 +139,15 @@ subroutine xx_all_free(array)
      !hopefully only address is necessary for the deallocation
 
      !search in the dictionaries the address
-     !a error event should be raised in this case
      dict_add=>find_key(mems(ictrl)%dict_routine,long_toa(iadd))
      if (.not. associated(dict_add)) then
         dict_add=>find_key(mems(ictrl)%dict_global,long_toa(iadd))
         if (.not. associated(dict_add)) then
+           !$ if (not_omp) then
+           call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
+           !$ end if
            call f_err_throw('Address '//trim(long_toa(iadd))//&
                 ' not present in dictionary',ERR_INVALID_MALLOC)
-           call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
            return
         else
            use_global=.true.
@@ -133,22 +156,35 @@ subroutine xx_all_free(array)
         use_global=.false.
      end if
 
-     !here the array information can be retrieved from the database
-     array_id=dict_add//arrayid
-     routine_id=dict_add//routineid
-     jlsize=dict_add//sizeid
+     !transform the dict_add in a list
+     !retrieve the string associated to the database
+     array_info=dict_add
+     dict_add => yaml_a_todict(array_info)
+     !then retrieve the array information
+     array_id=dict_add//0
+     routine_id=dict_add//1
+     jlsize=dict_add//2
+
+     call dict_free(dict_add)
+     
+!!$     !here the array information can be retrieved from the database
+!!$     array_id=dict_add//arrayid
+!!$     routine_id=dict_add//routineid
+!!$     jlsize=dict_add//sizeid
      if (ilsize /= jlsize) then
+        !$ if (not_omp) then
+        call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
+        !$ end if
         call f_err_throw('Size of array '//trim(array_id)//&
              ' ('//trim(yaml_toa(ilsize))//') not coherent with dictionary, found='//&
              trim(yaml_toa(jlsize)),ERR_MALLOC_INTERNAL)
-        call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
         return
      end if
      if (use_global) then
         !call yaml_dict_dump(dict_global)
-        call pop(mems(ictrl)%dict_global,long_toa(iadd))
+        call dict_remove(mems(ictrl)%dict_global,long_toa(iadd))
      else
-        call pop(mems(ictrl)%dict_routine,long_toa(iadd))
+        call dict_remove(mems(ictrl)%dict_routine,long_toa(iadd))
      end if
   else
      array_id(1:len(array_id))=arrayid
@@ -157,8 +193,9 @@ subroutine xx_all_free(array)
 
   call memocc(ierror,-int(ilsize),trim(array_id),trim(routine_id))
 
+  !$ if (not_omp) then
   call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
-
+  !$ end if
   !END-- 'deallocate-inc.f90' 
 end subroutine xx_all_free
 
@@ -503,6 +540,28 @@ subroutine d6_all_free(array)
   include 'deallocate-inc.f90' 
 end subroutine d6_all_free
 
+subroutine d7_all(array,m)
+  use metadata_interfaces, metadata_address => getdp7
+  implicit none
+  type(malloc_information_all), intent(in) :: m
+  double precision, dimension(:,:,:,:,:,:,:), allocatable, intent(inout) :: array
+  !local variables
+  include 'allocate-profile-inc.f90' 
+  allocate(array(m%lbounds(1):m%ubounds(1),&
+       m%lbounds(2):m%ubounds(2),m%lbounds(3):m%ubounds(3),&
+       m%lbounds(4):m%ubounds(4),m%lbounds(5):m%ubounds(5),&
+       m%lbounds(6):m%ubounds(6),m%lbounds(7):m%ubounds(7)+ndebug),stat=ierror)
+  include 'allocate-inc.f90'
+end subroutine d7_all
+
+subroutine d7_all_free(array)
+  use metadata_interfaces, metadata_address => getdp7
+  implicit none
+  double precision, dimension(:,:,:,:,:,:,:), allocatable, intent(inout) :: array
+  include 'deallocate-profile-inc.f90' 
+  include 'deallocate-inc.f90' 
+end subroutine d7_all_free
+
 !test to see if this is convenient
 subroutine d1_all_free_multi(arrayA,arrayB,arrayC,arrayD,arrayE,arrayF,arrayG,arrayH)
   implicit none
@@ -705,6 +764,28 @@ subroutine i3_ptr_free(array)
   nullify(array)
 end subroutine i3_ptr_free
 
+subroutine i4_ptr(array,m)
+  use metadata_interfaces, metadata_address => geti4ptr
+  implicit none
+  type(malloc_information_ptr), intent(in) :: m
+  integer, dimension(:,:,:,:), pointer, intent(inout) :: array
+  include 'allocate-profile-inc.f90' 
+  !allocate the array
+  allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
+       m%lbounds(3):m%ubounds(3),m%lbounds(4):m%ubounds(4)+ndebug),stat=ierror)
+  include 'allocate-inc.f90'
+end subroutine i4_ptr
+
+subroutine i4_ptr_free(array)
+  use metadata_interfaces, metadata_address => geti4ptr
+  implicit none
+  integer, dimension(:,:,:,:), pointer, intent(inout) :: array
+  include 'deallocate-profile-inc.f90' 
+  if (.not. associated(array)) return
+  include 'deallocate-inc.f90'
+  nullify(array)
+end subroutine i4_ptr_free
+
 subroutine d4_ptr(array,m)
   use metadata_interfaces, metadata_address => getdp4ptr
   implicit none
@@ -750,6 +831,49 @@ subroutine d5_ptr_free(array)
   nullify(array)
 end subroutine d5_ptr_free
 
+subroutine d6_ptr(array,m)
+  use metadata_interfaces, metadata_address => getdp6ptr
+  implicit none
+  type(malloc_information_ptr), intent(in) :: m
+  double precision, dimension(:,:,:,:,:,:), pointer, intent(inout) :: array
+  include 'allocate-profile-inc.f90' 
+  !allocate the array
+  allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
+       m%lbounds(3):m%ubounds(3),m%lbounds(4):m%ubounds(4),&
+       m%lbounds(5):m%ubounds(5),m%lbounds(6):m%ubounds(6)+ndebug),stat=ierror)
+  include 'allocate-inc.f90'
+end subroutine d6_ptr
+
+subroutine d6_ptr_free(array)
+  use metadata_interfaces, metadata_address => getdp6ptr
+  implicit none
+  double precision, dimension(:,:,:,:,:,:), pointer, intent(inout) :: array
+  include 'deallocate-profile-inc.f90' 
+  if (.not. associated(array)) return
+  include 'deallocate-inc.f90'
+  nullify(array)
+end subroutine d6_ptr_free
+
+subroutine l3_ptr(array,m)
+  use metadata_interfaces, metadata_address => getl3ptr
+  implicit none
+  type(malloc_information_ptr), intent(in) :: m
+  logical, dimension(:,:,:), pointer, intent(inout) :: array
+  include 'allocate-profile-inc.f90' 
+  !allocate the array
+  allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
+       m%lbounds(3):m%ubounds(3)+ndebug),stat=ierror)
+  include 'allocate-inc.f90'
+end subroutine l3_ptr
+
+subroutine l3_ptr_free(array)
+  use metadata_interfaces, metadata_address => getl3ptr
+  implicit none
+  logical, dimension(:,:,:), pointer, intent(inout) :: array
+  include 'deallocate-profile-inc.f90' 
+  include 'deallocate-inc.f90' 
+end subroutine l3_ptr_free
+
 !character arrays
 subroutine c1_ptr(array,m)
   use metadata_interfaces, metadata_address => getc1ptr
@@ -775,3 +899,26 @@ subroutine f_free_str_ptr(length,array)
   include 'deallocate-inc.f90'
   nullify(array)
 end subroutine f_free_str_ptr
+
+subroutine z1_ptr(array,m)
+  use metadata_interfaces, metadata_address => getz1ptr
+  implicit none
+  type(malloc_information_ptr), intent(in) :: m
+  double complex, dimension(:), pointer, intent(inout) :: array
+  !local variables
+  include 'allocate-profile-inc.f90' 
+  !allocate the array
+  allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
+
+  include 'allocate-inc.f90'
+end subroutine z1_ptr
+
+subroutine z1_ptr_free(array)
+  use metadata_interfaces, metadata_address => getz1ptr
+  implicit none
+  double complex, dimension(:), pointer, intent(inout) :: array
+  include 'deallocate-profile-inc.f90' 
+  if (.not. associated(array)) return
+  include 'deallocate-inc.f90'
+  nullify(array)
+end subroutine z1_ptr_free

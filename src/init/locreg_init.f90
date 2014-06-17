@@ -291,10 +291,8 @@ subroutine draw_locregs(nlr,hx,hy,hz,Llr)
 
   do ilr=1,nlr
      !define logrids
-     allocate(logrid_c(0:Llr(ilr)%d%n1,0:Llr(ilr)%d%n2,0:Llr(ilr)%d%n3+ndebug),stat=i_stat)
-     call memocc(i_stat,logrid_c,'logrid_c',subname)
-     allocate(logrid_f(0:Llr(ilr)%d%n1,0:Llr(ilr)%d%n2,0:Llr(ilr)%d%n3+ndebug),stat=i_stat)
-     call memocc(i_stat,logrid_f,'logrid_f',subname)
+     logrid_c = f_malloc((/ 0.to.Llr(ilr)%d%n1, 0.to.Llr(ilr)%d%n2, 0.to.Llr(ilr)%d%n3 /),id='logrid_c')
+     logrid_f = f_malloc((/ 0.to.Llr(ilr)%d%n1, 0.to.Llr(ilr)%d%n2, 0.to.Llr(ilr)%d%n3 /),id='logrid_f')
 
      call wfd_to_logrids(Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3,Llr(ilr)%wfd,&
           logrid_c,logrid_f)
@@ -323,12 +321,8 @@ subroutine draw_locregs(nlr,hx,hy,hz,Llr)
      enddo
 
 
-     i_all=-product(shape(logrid_c))*kind(logrid_c)
-     deallocate(logrid_c,stat=i_stat)
-     call memocc(i_stat,i_all,'logrid_c',subname)
-     i_all=-product(shape(logrid_f))*kind(logrid_f)
-     deallocate(logrid_f,stat=i_stat)
-     call memocc(i_stat,i_all,'logrid_f',subname)
+     call f_free(logrid_c)
+     call f_free(logrid_f)
   end do
 
   !close file for writing
@@ -352,64 +346,42 @@ subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
   integer :: i_stat,i_all
   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
 
+  call f_routine(id=subname)
 
   !define logrids
-  allocate(logrid_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-  call memocc(i_stat,logrid_c,'logrid_c',subname)
-  allocate(logrid_f(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-  call memocc(i_stat,logrid_f,'logrid_f',subname)
+  logrid_c = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='logrid_c')
+  logrid_f = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='logrid_f')
   
   call wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
 
   !allocate and calculate kinetic bounds
-  allocate(bounds%kb%ibyz_c(2,0:n2,0:n3+ndebug),stat=i_stat)
-  call memocc(i_stat,bounds%kb%ibyz_c,'bounds%kb%ibyz_c',subname)
-  allocate(bounds%kb%ibxz_c(2,0:n1,0:n3+ndebug),stat=i_stat)
-  call memocc(i_stat,bounds%kb%ibxz_c,'bounds%kb%ibxz_c',subname)
-  allocate(bounds%kb%ibxy_c(2,0:n1,0:n2+ndebug),stat=i_stat)
-  call memocc(i_stat,bounds%kb%ibxy_c,'bounds%kb%ibxy_c',subname)
-  allocate(bounds%kb%ibyz_f(2,0:n2,0:n3+ndebug),stat=i_stat)
-  call memocc(i_stat,bounds%kb%ibyz_f,'bounds%kb%ibyz_f',subname)
-  allocate(bounds%kb%ibxz_f(2,0:n1,0:n3+ndebug),stat=i_stat)
-  call memocc(i_stat,bounds%kb%ibxz_f,'bounds%kb%ibxz_f',subname)
-  allocate(bounds%kb%ibxy_f(2,0:n1,0:n2+ndebug),stat=i_stat)
-  call memocc(i_stat,bounds%kb%ibxy_f,'bounds%kb%ibxy_f',subname)
+  bounds%kb%ibyz_c = f_malloc_ptr((/ 1.to.2,0.to.n2,0.to.n3+ndebug /),id='bounds%kb%ibyz_c')
+  bounds%kb%ibxz_c = f_malloc_ptr((/ 1.to.2,0.to.n1,0.to.n3+ndebug /),id='bounds%kb%ibxz_c')
+  bounds%kb%ibxy_c = f_malloc_ptr((/ 1.to.2,0.to.n1,0.to.n2+ndebug /),id='bounds%kb%ibxy_c')
+  bounds%kb%ibyz_f = f_malloc_ptr((/ 1.to.2,0.to.n2,0.to.n3+ndebug /),id='bounds%kb%ibyz_f')
+  bounds%kb%ibxz_f = f_malloc_ptr((/ 1.to.2,0.to.n1,0.to.n3+ndebug /),id='bounds%kb%ibxz_f')
+  bounds%kb%ibxy_f = f_malloc_ptr((/ 1.to.2,0.to.n1,0.to.n2+ndebug /),id='bounds%kb%ibxy_f')
 
   call make_bounds(n1,n2,n3,logrid_c,bounds%kb%ibyz_c,bounds%kb%ibxz_c,bounds%kb%ibxy_c)
   call make_bounds(n1,n2,n3,logrid_f,bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f)
 
-  i_all=-product(shape(logrid_c))*kind(logrid_c)
-  deallocate(logrid_c,stat=i_stat)
-  call memocc(i_stat,i_all,'logrid_c',subname)
-  i_all=-product(shape(logrid_f))*kind(logrid_f)
-  deallocate(logrid_f,stat=i_stat)
-  call memocc(i_stat,i_all,'logrid_f',subname)
+  call f_free(logrid_c)
+  call f_free(logrid_f)
   
   !allocate grow, shrink and real bounds
-  allocate(bounds%gb%ibzxx_c(2,0:n3,-14:2*n1+16+ndebug),stat=i_stat)
-  call memocc(i_stat,bounds%gb%ibzxx_c,'bounds%gb%ibzxx_c',subname)
-  allocate(bounds%gb%ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16+ndebug),stat=i_stat)
-  call memocc(i_stat,bounds%gb%ibxxyy_c,'bounds%gb%ibxxyy_c',subname)
-  allocate(bounds%gb%ibyz_ff(2,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
-  call memocc(i_stat,bounds%gb%ibyz_ff,'bounds%gb%ibyz_ff',subname)
-  allocate(bounds%gb%ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16+ndebug),stat=i_stat)
-  call memocc(i_stat,bounds%gb%ibzxx_f,'bounds%gb%ibzxx_f',subname)
-  allocate(bounds%gb%ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16+ndebug),stat=i_stat)
-  call memocc(i_stat,bounds%gb%ibxxyy_f,'bounds%gb%ibxxyy_f',subname)
+  bounds%gb%ibzxx_c = f_malloc_ptr((/ 1.to.2, 0.to.n3, -14.to.2*n1+16 /),id='bounds%gb%ibzxx_c')
+  bounds%gb%ibxxyy_c = f_malloc_ptr((/ 1.to.2, -14.to.2*n1+16, -14.to.2*n2+16 /),id='bounds%gb%ibxxyy_c')
+  bounds%gb%ibyz_ff = f_malloc_ptr((/ 1.to.2, nfl2.to.nfu2, nfl3.to.nfu3 /),id='bounds%gb%ibyz_ff')
+  bounds%gb%ibzxx_f = f_malloc_ptr((/ 1.to.2, nfl3.to.nfu3, 2*nfl1-14.to.2*nfu1+16 /),id='bounds%gb%ibzxx_f')
+  bounds%gb%ibxxyy_f = f_malloc_ptr((/ 1.to.2, 2*nfl1-14.to.2*nfu1+16, 2*nfl2-14.to.2*nfu2+16 /),id='bounds%gb%ibxxyy_f')
 
-  allocate(bounds%sb%ibzzx_c(2,-14:2*n3+16,0:n1+ndebug),stat=i_stat)
-  call memocc(i_stat,bounds%sb%ibzzx_c,'bounds%sb%ibzzx_c',subname)
-  allocate(bounds%sb%ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16+ndebug),stat=i_stat)
-  call memocc(i_stat,bounds%sb%ibyyzz_c,'bounds%sb%ibyyzz_c',subname)
-  allocate(bounds%sb%ibxy_ff(2,nfl1:nfu1,nfl2:nfu2+ndebug),stat=i_stat)
-  call memocc(i_stat,bounds%sb%ibxy_ff,'bounds%sb%ibxy_ff',subname)
-  allocate(bounds%sb%ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1+ndebug),stat=i_stat)
-  call memocc(i_stat,bounds%sb%ibzzx_f,'bounds%sb%ibzzx_f',subname)
-  allocate(bounds%sb%ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16+ndebug),stat=i_stat)
-  call memocc(i_stat,bounds%sb%ibyyzz_f,'bounds%sb%ibyyzz_f',subname)
+  bounds%sb%ibzzx_c = f_malloc_ptr((/ 1.to.2 , -14.to.2*n3+16 , 0.to.n1+ndebug /),id='bounds%sb%ibzzx_c')
+  bounds%sb%ibyyzz_c = f_malloc_ptr((/ 1.to.2, -14.to.2*n2+16, -14.to.2*n3+16 /),id='bounds%sb%ibyyzz_c')
+  bounds%sb%ibxy_ff = f_malloc_ptr((/ 1.to.2, nfl1.to.nfu1, nfl2.to.nfu2 /),id='bounds%sb%ibxy_ff')
+  bounds%sb%ibzzx_f = f_malloc_ptr((/ 1.to.2, -14+2*nfl3.to.2*nfu3+16, nfl1.to.nfu1 /),id='bounds%sb%ibzzx_f')
+  bounds%sb%ibyyzz_f = f_malloc_ptr((/ 1.to.2, -14+2*nfl2.to.2*nfu2+16, -14+2*nfl3.to.2*nfu3+16 /),id='bounds%sb%ibyyzz_f')
 
-  allocate(bounds%ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16+ndebug),stat=i_stat)
-  call memocc(i_stat,bounds%ibyyzz_r,'bounds%ibyyzz_r',subname)
+  bounds%ibyyzz_r = f_malloc_ptr((/ 1.to.2,-14.to.2*n2+16,-14.to.2*n3+16+ndebug/),id='bounds%ibyyzz_r')
 
   call make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        bounds%kb%ibxy_c,bounds%sb%ibzzx_c,bounds%sb%ibyyzz_c,&
@@ -417,6 +389,8 @@ subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
        bounds%kb%ibyz_c,bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,&
        bounds%kb%ibyz_f,bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,&
        bounds%ibyyzz_r)
+
+  call f_release_routine()
 
 END SUBROUTINE locreg_bounds
 

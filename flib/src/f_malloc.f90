@@ -100,12 +100,28 @@ module module_f_malloc
      module procedure nullify_malloc_information_str_ptr
   end interface 
 
+  !> Fake structure needed to document common arguments of the module
+  type, private :: doc
+     !> integer indicating the size of the array. Can be specified only if the target 
+     !! array has to be of rank one.
+     integer :: size
+     !> identification of the allocation. Usually called as the name of the allocatable variable
+     character(len=1) :: id
+  end type doc
+
+  !> Structure to perform heap allocation. Can be used to allocate allocatable arrays of any intrinsic
+  !! type, kind and rank.
+  !! The assignment of an allocatable array to this structure will allocate the array according to the
+  !! specifications. It will also store the information about the allocation in an iternal database
+  !! so that memory leaks and allocation problems can be more easily detected.
+  !! @param mapname  @copydoc doc::size
+  !! @param id       @copydoc doc::id
   interface f_malloc
      module procedure f_malloc,f_malloc_simple
      module procedure f_malloc_bounds,f_malloc_bound
      !here also the procedures for the copying of arrays have to be defined
-     module procedure f_malloc_i2
-     module procedure f_malloc_d1,f_malloc_d2
+     module procedure f_malloc_i2,f_malloc_d2
+     module procedure f_malloc_d1,f_malloc_i3
   end interface
 
   interface f_malloc0
@@ -370,26 +386,18 @@ contains
     m%put_to_zero=.true.
   end function f_malloc0_str_ptr_bounds
 
-  !> Define the allocation information for  arrays of different rank
-  function f_malloc(sizes,id,routine_id,lbounds,ubounds,profile,src) result(m)
+  !> Define the allocation information for arrays of different rank
+  function f_malloc(sizes,id,routine_id,lbounds,ubounds,profile,src,src_ptr) result(m)
     implicit none
     !the integer array src is here added to avoid problems in resolving the ambiguity with f_malloc_src
     integer, dimension(:), intent(in), optional :: src
+    integer, dimension(:), pointer, intent(in), optional :: src_ptr
     type(malloc_information_all) :: m
     integer, dimension(:), intent(in), optional :: sizes,lbounds,ubounds
     !local variables
     integer :: i
     include 'f_malloc-base-inc.f90'
-    if (present(src)) then
-       include 'f_malloc-inc.f90'
-       !when src is given there is no need anymore to continue the routine
-       if (present(lbounds) .or. present(ubounds) .or. present(sizes)) then
-          call f_err_throw(&
-               'The presence of lbounds, ubounds or sizes is forbidden when src is present',&
-               ERR_INVALID_MALLOC)
-       end if
-       return
-    end if
+    include 'f_malloc-check-inc.f90'
     include 'f_malloc-extra-inc.f90'
   end function f_malloc
   !> define the allocation information for  arrays of different rank
@@ -400,25 +408,17 @@ contains
     m%put_to_zero=.true.
   end function f_malloc0
   !> Define the allocation information for  arrays of different rank
-  function f_malloc_ptr(sizes,id,routine_id,lbounds,ubounds,profile,src) result(m)
+  function f_malloc_ptr(sizes,id,routine_id,lbounds,ubounds,profile,src,src_ptr) result(m)
     implicit none
     !the integer array src is here added to avoid problems in resolving the ambiguity
     integer, dimension(:), intent(in), optional :: src
+    integer, dimension(:), pointer, intent(in), optional :: src_ptr
     type(malloc_information_ptr) :: m
     integer, dimension(:), intent(in), optional :: sizes,lbounds,ubounds
     !local variables
     integer :: i
     include 'f_malloc-base-inc.f90'
-    if (present(src)) then
-       include 'f_malloc-inc.f90'
-       !when src is given there is no need anymore to continue the routine
-       if (present(lbounds) .or. present(ubounds) .or. present(sizes)) then
-          call f_err_throw(&
-               'The presence of lbounds, ubounds or sizes is forbidden whe src is present',&
-               ERR_INVALID_MALLOC)
-       end if
-       return
-    end if
+    include 'f_malloc-check-inc.f90'
     include 'f_malloc-extra-inc.f90'
   end function f_malloc_ptr
   !> Define the allocation information for  arrays of different rank
@@ -463,49 +463,73 @@ contains
     m%put_to_zero=.true.
   end function f_malloc0_str_ptr
 
-  function f_malloc_i2(src,id,routine_id,profile) result(m)
-    implicit none
-    integer, dimension(:,:), intent(in) :: src
-    type(malloc_information_all) :: m
-    include 'f_malloc-base-inc.f90'
-    include 'f_malloc-inc.f90'
-  end function f_malloc_i2
-
-  function f_malloc_d1(src,id,routine_id,profile) result(m)
+  function f_malloc_d1(src,lbounds,ubounds,id,routine_id,profile) result(m)
     implicit none
     double precision, dimension(:), intent(in) :: src
+    integer, dimension(:), intent(in), optional :: lbounds,ubounds
     type(malloc_information_all) :: m
     include 'f_malloc-base-inc.f90'
     include 'f_malloc-inc.f90'
   end function f_malloc_d1
 
-  function f_malloc_d2(src,id,routine_id,profile) result(m)
+  !this template is here waiting for a new unambiguous module procedure
+!!$  function f_malloc_d1_sp(src_ptr,id,routine_id,profile) result(m)
+!!$    implicit none
+!!$    double precision, dimension(:), pointer, intent(in) :: src_ptr
+!!$    type(malloc_information_all) :: m
+!!$    include 'f_malloc-base-inc.f90'
+!!$    include 'f_malloc-ptr-inc.f90'
+!!$  end function f_malloc_d1_sp
+
+  function f_malloc_d2(src,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none
     double precision, dimension(:,:), intent(in) :: src
+    integer, dimension(:), intent(in), optional :: lbounds,ubounds
     type(malloc_information_all) :: m
     include 'f_malloc-base-inc.f90'
     include 'f_malloc-inc.f90'
   end function f_malloc_d2
 
-  function f_malloc_ptr_i2(src,id,routine_id,profile) result(m)
+  function f_malloc_i2(src,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none
     integer, dimension(:,:), intent(in) :: src
+    integer, dimension(:), intent(in), optional :: lbounds,ubounds
+    type(malloc_information_all) :: m
+    include 'f_malloc-base-inc.f90'
+    include 'f_malloc-inc.f90'
+  end function f_malloc_i2
+
+  function f_malloc_i3(src,id,routine_id,lbounds,ubounds,profile) result(m)
+    implicit none
+    integer, dimension(:,:,:), intent(in) :: src
+    integer, dimension(:), intent(in), optional :: lbounds,ubounds
+    type(malloc_information_all) :: m
+    include 'f_malloc-base-inc.f90'
+    include 'f_malloc-inc.f90'
+  end function f_malloc_i3
+
+  function f_malloc_ptr_i2(src,id,routine_id,lbounds,ubounds,profile) result(m)
+    implicit none
+    integer, dimension(:,:), pointer, intent(in) :: src
+    integer, dimension(:), intent(in), optional :: lbounds,ubounds
     type(malloc_information_ptr) :: m
     include 'f_malloc-base-inc.f90'
     include 'f_malloc-inc.f90'
   end function f_malloc_ptr_i2
 
-  function f_malloc_ptr_d1(src,id,routine_id,profile) result(m)
+  function f_malloc_ptr_d1(src,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none
     double precision, dimension(:), intent(in) :: src
+    integer, dimension(:), intent(in), optional :: lbounds,ubounds
     type(malloc_information_ptr) :: m
     include 'f_malloc-base-inc.f90'
     include 'f_malloc-inc.f90'
   end function f_malloc_ptr_d1
   
-  function f_malloc_ptr_d2(src,id,routine_id,profile) result(m)
+  function f_malloc_ptr_d2(src,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none
     double precision, dimension(:,:), intent(in) :: src
+    integer, dimension(:), intent(in), optional :: lbounds,ubounds
     type(malloc_information_ptr) :: m
     include 'f_malloc-base-inc.f90'
     include 'f_malloc-inc.f90'

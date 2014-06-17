@@ -107,7 +107,7 @@ module yaml_output
      !! then the field is ignored.
      integer :: tabbing
      !> unit of the yaml_stream to be used for output. 
-     !! its value is specified by the user according to the specification of the @link yaml_set_stream @endlink routine
+     !! its value is specified by the user according to the specification of the @link yaml_output::yaml_set_stream @endlink routine
      integer:: unit
      !> key of the mapping (or sequence). It represents the identifier of the value field which is associated to it
      character(len=1) :: mapname
@@ -120,17 +120,17 @@ module yaml_output
      !! see http://www.yaml.org/spec/1.2/spec.html#id2760395.
      character(len=1) :: label 
      !> define whether the i/o should be advancing (advance='yes') or not (advance='no').
-     !! if the mapping (in the case of @link yaml_open_map @endlink) or sequencing @link yaml_open_sequence @endlink)
+     !! if the mapping (in the case of @link yaml_output::yaml_open_map @endlink) or sequencing @link yaml_output::yaml_open_sequence @endlink)
      !!has been opened with the value of flow  = .true.
      !! (or if the flow has been opened at a upper level) the output is always non-advancing
-     !! (See @link yaml_newline @endlink for add a line in a output of a flow mapping).
+     !! (See @link yaml_output::yaml_newline @endlink for add a line in a output of a flow mapping).
      !! Otherwise, if absent, the output is always advancing.
      !! non-advancing i/o is useful for example when one wants to leave a comment after the end of a mapping.
      character(len=1) :: advance 
      !> tag description. Unused and should be probably removed
      character(len=1) :: tag 
      !> scalar value of the mapping may be of any scalar type
-     !! it is internally converted to character with the usage of @link yaml_toa @endlink function
+     !! it is internally converted to character with the usage of @link yaml_output::yaml_toa @endlink function
      character(len=1) :: mapvalue
   end type doc
 
@@ -140,23 +140,23 @@ module yaml_output
   !! Here follows the routines which are important for the usage of the yaml_output module
   !! which is a part of flib library.@n
   !! By clicking the links below you should be redirected to the documentation of the important routines
-  !! @link yaml_new_document @endlink,  @link yaml_release_document @endlink, 
-  !! @link yaml_map @endlink, 
-  !! @link yaml_open_map @endlink,      @link yaml_close_map @endlink, 
-  !! @link yaml_sequence @endlink, 
-  !! @link yaml_open_sequence @endlink, @link yaml_close_sequence @endlink, 
-  !! @link yaml_comment @endlink, 
-  !! @link yaml_warning @endlink, 
-  !! @link yaml_scalar @endlink, 
-  !! @link yaml_newline @endlink, 
-  !! @link yaml_toa @endlink, 
-  !! @link yaml_date_and_time_toa @endlink, @link yaml_date_toa @endlink, @link yaml_time_toa @endlink.
+  !! @link yaml_output::yaml_new_document @endlink,  @link yaml_output::yaml_release_document @endlink, 
+  !! @link yaml_output::yaml_map @endlink, 
+  !! @link yaml_output::yaml_open_map @endlink,      @link yaml_output::yaml_close_map @endlink, 
+  !! @link yaml_output::yaml_sequence @endlink, 
+  !! @link yaml_output::yaml_open_sequence @endlink, @link yaml_output::yaml_close_sequence @endlink, 
+  !! @link yaml_output::yaml_comment @endlink, 
+  !! @link yaml_output::yaml_warning @endlink, 
+  !! @link yaml_output::yaml_scalar @endlink, 
+  !! @link yaml_output::yaml_newline @endlink, 
+  !! @link yaml_output::yaml_toa @endlink, 
+  !! @link yaml_output::yaml_date_and_time_toa @endlink, @link yaml_output::yaml_date_toa @endlink, @link yaml_output::yaml_time_toa @endlink.
   !! @n@n
-  !! There are also @link yaml_set_stream routine @endlink, @link yaml_set_default_stream @endlink, 
-  !!                @link yaml_close_stream @endlink,       @link yaml_swap_stream @endlink, 
-  !!                @link yaml_get_default_stream @endlink, @link yaml_stream_attributes @endlink, 
-  !!                @link yaml_close_all_streams @endlink,  @link yaml_dict_dump @endlink, 
-  !!                @link yaml_dict_dump_all @endlink
+  !! There are also @link yaml_output::yaml_set_stream routine @endlink, @link yaml_output::yaml_set_default_stream @endlink, 
+  !!                @link yaml_output::yaml_close_stream @endlink,       @link yaml_output::yaml_swap_stream @endlink, 
+  !!                @link yaml_output::yaml_get_default_stream @endlink, @link yaml_output::yaml_stream_attributes @endlink, 
+  !!                @link yaml_output::yaml_close_all_streams @endlink,  @link yaml_output::yaml_dict_dump @endlink, 
+  !!                @link yaml_output::yaml_dict_dump_all @endlink
   !! @} 
 
  
@@ -298,7 +298,7 @@ contains
     integer, optional, intent(in) :: unit              !< File unit specified by the user.(by default 6) Returns a error code if the unit
                                                        !! is not 6 and it has already been opened by the processor
     integer, optional, intent(in) :: tabbing           !< Indicate a tabbing for the stream (0 no tabbing, default)
-    integer, optional, intent(in) :: record_length     !< Maximum number of columns of the stream (default @link yaml_stream::tot_max_record_length @endlink)
+    integer, optional, intent(in) :: record_length     !< Maximum number of columns of the stream (default @link yaml_output::yaml_stream::tot_max_record_length @endlink)
     character(len=*), optional, intent(in) :: filename !< Filename of the stream
     character(len=*), optional, intent(in) :: position !< specifier of the position while opening the unit (all fortran values of position specifier in open statement are valid)
     integer, optional, intent(out) :: istat            !< Status, zero if suceeded. When istat is present this routine is non-blocking, i.e. it does not raise exceptions.
@@ -614,6 +614,9 @@ contains
          'Unit '//trim(yaml_toa(unt))//' inconsistent',&
          err_id=YAML_UNIT_INCONSISTENCY)) return
 
+    !release all the documents to print out warnings and free warning dictionary if it existed
+    call yaml_release_document(unit=unt)
+
     !close files which are not stdout and remove them from stream_files
     if (unt /= 6) close(unt)
     iter => dict_iter(stream_files)
@@ -621,10 +624,10 @@ contains
        funt = iter
        if (funt == unt) then
           if (dict_size(stream_files) == 1) then
-             call pop(stream_files, dict_key(iter))
+             call dict_remove(stream_files, dict_key(iter))
              call dict_init(stream_files)
           else
-             call pop(stream_files, dict_key(iter))
+             call dict_remove(stream_files, dict_key(iter))
           end if
           exit
        end if
@@ -832,7 +835,7 @@ contains
   !! Essentially, a mapping field can be thought as a dictionary of mappings.
   !! See yaml spec at <a href="http://www.yaml.org/spec/1.2/spec.html#id2760395"> this page </a>
   !! Therefore the yaml_open_map routine is necessary each time that
-  !! the value of a map is another map. See also @link yaml_map @endlink and @link yaml_close_map @endlink routines
+  !! the value of a map is another map. See also @link yaml_output::yaml_map @endlink and @link yaml_output::yaml_close_map @endlink routines
   !! @ingroup FLIB_YAML
   subroutine yaml_open_map(mapname,label,tag,flow,tabbing,advance,unit)
     implicit none
@@ -889,7 +892,7 @@ contains
   end subroutine yaml_open_map
 
 
-  !> Close the mapping. The mapping should have been previously opened by @link yaml_open_map @endlink
+  !> Close the mapping. The mapping should have been previously opened by @link yaml_output::yaml_open_map @endlink
   !! @ingroup FLIB_YAML
   subroutine yaml_close_map(advance,unit)
     implicit none
@@ -1013,7 +1016,7 @@ contains
     implicit none
     character(len=*), intent(in) :: mapname             !< @copydoc doc::mapname
     character(len=*), intent(in) :: mapvalue            !< scalar value of the mapping may be of any scalar type
-                                                        !! it is internally converted to character with the usage of @link yaml_toa @endlink function
+                                                        !! it is internally converted to character with the usage of @link yaml_output::yaml_toa @endlink function
     character(len=*), optional, intent(in) :: label     !< @copydoc doc::label
     character(len=*), optional, intent(in) :: tag       !< @copydoc doc::tag
     character(len=*), optional, intent(in) :: advance   !< @copydoc doc::advance
@@ -1118,7 +1121,7 @@ contains
     implicit none
     character(len=*), intent(in) :: mapname             !< @copydoc doc::mapname
     type(dictionary), pointer, intent(in) :: mapvalue   !< scalar value of the mapping may be of any scalar type
-                                                        !! it is internally converted to character with the usage of @link yaml_toa @endlink function
+                                                        !! it is internally converted to character with the usage of @link yaml_output::yaml_toa @endlink function
     character(len=*), optional, intent(in) :: label     !< @copydoc doc::label
     integer, optional, intent(in) :: unit               !< @copydoc doc::unit
     logical, optional, intent(in) :: flow               !< @copydoc doc::flow
@@ -1829,7 +1832,6 @@ contains
 
   end subroutine close_flow_level
 
-
   !> Increase the indentation of the strean without changing the flow level
   subroutine open_indent_level(stream)
     implicit none
@@ -1867,7 +1869,9 @@ contains
     verb=.false.
     if (present(verbatim)) verb=verbatim
 
-    if (associated(dict%child)) then
+    if (.not. associated(dict)) then
+       call scalar('<nullified dictionary>')
+    else if (associated(dict%child)) then
        call yaml_dict_dump_(dict%child)
     else
        call scalar(dict_value(dict))

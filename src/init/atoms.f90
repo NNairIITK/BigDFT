@@ -301,7 +301,7 @@ subroutine frozen_ftoi(frzchain,ifrztyp,ierr)
         if (ifrztyp < 1 .or. ifrztyp > 999) ierr = 2
         ! f001 will give 9001 value.
         ifrztyp = 9000 + ifrztyp
-     else if (frzchain(1:2) == 'fb' .and. verify(frzchain(3:), '12') == 0) then
+     else if (frzchain(1:2) == 'fb' .and. verify(frzchain(3:), '12 ') == 0) then !space nedded since frzchain is a 4 character string
         ! (FL) atom possibly frozen in moving blocks
         read(frzchain(3:), *) ifrztyp
         ! Two blocks are possible
@@ -1453,8 +1453,7 @@ subroutine initialize_atomic_file(iproc,atoms,rxyz)
   integer :: i_stat
   integer :: iat,i,ierr
 
-  allocate(atoms%amu(atoms%astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%amu,'atoms%amu',subname)
+  atoms%amu = f_malloc_ptr(atoms%astruct%nat+ndebug)
 
   if (atoms%astruct%geocode=='S') then 
         atoms%astruct%cell_dim(2)=0.0_gp

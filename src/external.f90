@@ -58,10 +58,12 @@ end subroutine bigdft_init
 subroutine bigdft_mpi_init(ierr)
   use wrapper_mpi, only: wmpi_init_thread,MPI_SUCCESS
   use module_types, only: bigdft_init_errors,bigdft_init_timing_categories
+  use exception_callbacks, only: severe_callback_add
   implicit none
   integer, intent(out) :: ierr
 
   call wmpi_init_thread(ierr)
+
   if (ierr == MPI_SUCCESS) then
      call bigdft_init_errors()
      call bigdft_init_timing_categories()
@@ -275,16 +277,18 @@ subroutine bigdft_severe_abort()
   integer :: ierr
   !local variables
   character(len=128) :: filename
-
   !the MPI_ABORT works only in MPI_COMM_WORLD
   filename(1:len(filename))='bigdft-err-'//trim(adjustl(yaml_toa(bigdft_mpi%iproc)))//&
        '-'//trim(adjustl(yaml_toa(bigdft_mpi%igroup)))//'.yaml'
   call f_malloc_dump_status(filename=filename)
   !call f_dump_last_error()
-  call f_dump_all_errors()
-  call yaml_comment('Error raised!',hfill='^')
-  call yaml_comment('Messages are above, dumping run status in file(s) '//trim(filename),hfill='^')
-  call yaml_comment('Exiting...',hfill='v')
+  if (bigdft_mpi%iproc ==0) then
+     call f_dump_all_errors()
+     call yaml_comment('Error raised!',hfill='^')
+     call yaml_comment('Messages are above, dumping run status in file(s) '//&
+          'bigdft-err-*.yaml',hfill='^')
+     call yaml_comment('Exiting...',hfill='~')
+  end if
   !call f_lib_finalize()
   call MPI_ABORT(MPI_COMM_WORLD,816437,ierr)
   if (ierr/=0) stop 'Problem in MPI_ABORT'

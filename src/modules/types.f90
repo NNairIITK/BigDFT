@@ -52,9 +52,9 @@ module module_types
   integer, parameter :: INPUT_PSI_LCAO_GAUSS   = 10
   integer, parameter :: INPUT_PSI_MEMORY_GAUSS = 11
   integer, parameter :: INPUT_PSI_DISK_GAUSS   = 12
-  integer, parameter :: INPUT_PSI_LINEAR_AO    = 100    !< Input PSI from Atomic Orbital for linear
+  integer, parameter :: INPUT_PSI_LINEAR_AO    = 100    !< Input PSI for linear from Atomic Orbital
   integer, parameter :: INPUT_PSI_MEMORY_LINEAR= 101    !< Input PSI for linear in memory
-  integer, parameter :: INPUT_PSI_DISK_LINEAR  = 102
+  integer, parameter :: INPUT_PSI_DISK_LINEAR  = 102    !< Input PSI for linear from disk
 
   !> All possible values of input psi (determination of the input guess)
   integer, dimension(12), parameter :: input_psi_values = &
@@ -258,7 +258,7 @@ module module_types
      character(len=100) :: file_frag   !< Fragments
      character(len=max_field_length) :: dir_output  !< Strings of the directory which contains all data output files
      character(len=max_field_length) :: run_name    !< Contains the prefix (by default input) used for input files as input.dft
-     integer :: files                  !< Existing files.
+     !integer :: files                  !< Existing files.
 
      !> Miscellaneous variables
      logical :: gaussian_help
@@ -519,7 +519,12 @@ module module_types
   !> Define the structure used for the atomic positions
   !> Structure to store the density / potential distribution among processors.
   type, public :: denspot_distribution
-     integer :: n3d,n3p,n3pi,i3xcsh,i3s,nrhodim,i3rho_add
+     integer :: n3d,n3p,n3pi,i3xcsh,i3s,nrhodim
+     !> Integer which controls the presence of a density after the potential array
+     !! if different than zero, at the address ndimpot*nspin+i3rho_add starts the spin up component of the density
+     !! the spin down component can be found at the ndimpot*nspin+i3rho_add+ndimpot, contiguously
+     !! the same holds for non-collinear calculations
+     integer :: i3rho_add
      integer :: ndimpot,ndimgrid,ndimrhopot 
      integer, dimension(3) :: ndims !< box containing the grid dimensions in ISF basis
      real(gp), dimension(3) :: hgrids !< grid spacings of the box (half of wavelet ones)
@@ -745,7 +750,7 @@ module module_types
      real(gp) :: psoffset                 !< offset of the Poisson Solver in the case of Periodic BC
      type(rho_descriptors) :: rhod        !< descriptors of the density for parallel communication
      type(denspot_distribution) :: dpbox  !< distribution of density and potential box
-     type(xc_info) :: xc !< structure about the used xc functionals
+     type(xc_info) :: xc                  !< structure about the used xc functionals
      character(len=3) :: PSquiet
      !real(gp), dimension(3) :: hgrids    !< grid spacings of denspot grid (half of the wvl grid)
      type(coulomb_operator) :: pkernel    !< kernel of the Poisson Solver used for V_H[rho]
@@ -1294,19 +1299,16 @@ contains
     type(old_wavefunction), intent(inout) :: wfn
     !local variables
     character(len=*), parameter :: subname='old_wavefunction_set'
-    integer :: i_stat
 
     !first, free the workspace if not already done
     call old_wavefunction_free(wfn,subname)
     !then allocate the workspaces and fill them
-    allocate(wfn%psi((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*norbp+ndebug),stat=i_stat)
-    call memocc(i_stat,wfn%psi,'psi',subname)
+    wfn%psi = f_malloc_ptr((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*norbp+ndebug,id='wfn%psi')
     
     if (norbp>0) call vcopy((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*norbp,&
          psi(1),1,wfn%psi(1),1)
 
-    allocate(wfn%rxyz(3,nat+ndebug),stat=i_stat)
-    call memocc(i_stat,wfn%rxyz,'rxyz',subname)
+    wfn%rxyz = f_malloc_ptr((/ 3, nat /),id='wfn%rxyz')
     if (nat>0) call vcopy(3*nat,rxyz(1,1),1,wfn%rxyz(1,1),1)
     call copy_local_zone_descriptors(Lzd,wfn%Lzd,subname)
 
@@ -1317,17 +1319,12 @@ contains
     character(len=*), intent(in) :: subname
     type(old_wavefunction), intent(inout) :: wfn
     !local variables
-    integer :: i_all,i_stat
 
     if (associated(wfn%psi)) then
-       i_all=-product(shape(wfn%psi))*kind(wfn%psi)
-       deallocate(wfn%psi,stat=i_stat)
-       call memocc(i_stat,i_all,'psi',subname)
+       call f_free_ptr(wfn%psi)
     end if
     if (associated(wfn%rxyz)) then
-       i_all=-product(shape(wfn%rxyz))*kind(wfn%rxyz)
-       deallocate(wfn%rxyz,stat=i_stat)
-       call memocc(i_stat,i_all,'rxyz',subname)
+       call f_free_ptr(wfn%rxyz)
     end if
     !lzd should be deallocated also (to be checked again)
     call deallocate_local_zone_descriptors(wfn%Lzd, subname)
@@ -1342,23 +1339,12 @@ contains
     character(len=*), intent(in) :: subname
     type(comms_cubic), intent(inout) :: comms
     !local variables
-    integer :: i_all,i_stat
 
-    i_all=-product(shape(comms%nvctr_par))*kind(comms%nvctr_par)
-    deallocate(comms%nvctr_par,stat=i_stat)
-    call memocc(i_stat,i_all,'nvctr_par',subname)
-    i_all=-product(shape(comms%ncntd))*kind(comms%ncntd)
-    deallocate(comms%ncntd,stat=i_stat)
-    call memocc(i_stat,i_all,'ncntd',subname)
-    i_all=-product(shape(comms%ncntt))*kind(comms%ncntt)
-    deallocate(comms%ncntt,stat=i_stat)
-    call memocc(i_stat,i_all,'ncntt',subname)
-    i_all=-product(shape(comms%ndspld))*kind(comms%ndspld)
-    deallocate(comms%ndspld,stat=i_stat)
-    call memocc(i_stat,i_all,'ndspld',subname)
-    i_all=-product(shape(comms%ndsplt))*kind(comms%ndsplt)
-    deallocate(comms%ndsplt,stat=i_stat)
-    call memocc(i_stat,i_all,'ndsplt',subname)
+    call f_free_ptr(comms%nvctr_par)
+    call f_free_ptr(comms%ncntd)
+    call f_free_ptr(comms%ncntt)
+    call f_free_ptr(comms%ndspld)
+    call f_free_ptr(comms%ndsplt)
   END SUBROUTINE deallocate_comms
 
 
@@ -1371,22 +1357,22 @@ contains
     !local variables
     integer :: i_all,i_stat
 
-    i_all=-product(shape(in%Gabs_coeffs))*kind(in%Gabs_coeffs)
-    deallocate(in%Gabs_coeffs, stat=i_stat)
+    i_all = -product(shape(in%Gabs_coeffs))*kind(in%Gabs_coeffs)
+    deallocate(in%Gabs_coeffs,stat=i_stat)
     call memocc(i_stat,i_all,'in%Gabs_coeffs',subname)
+
 
   END SUBROUTINE deallocate_abscalc_input
 
 
-!> De-Allocate orbitals data structure, except eval pointer
-!! which is not allocated in the orbitals_descriptor routine
-subroutine deallocate_orbs(orbs,subname)
-  use module_base
-  implicit none
-    character(len=*), intent(in) :: subname
-    type(orbitals_data), intent(inout) :: orbs
-    !local variables
-    integer :: i_all,i_stat
+  !> De-Allocate orbitals data structure, except eval pointer
+  !! which is not allocated in the orbitals_descriptor routine
+  subroutine deallocate_orbs(orbs,subname)
+    use module_base
+    implicit none
+    !Arguments
+    character(len=*), intent(in) :: subname    !< Name of the subroutine
+    type(orbitals_data), intent(inout) :: orbs !< Orbital to de-allocate
 
     call f_free_ptr(orbs%norb_par)
 
@@ -1490,24 +1476,17 @@ subroutine deallocate_orbs(orbs,subname)
     character(len=*), intent(in) :: subname
     integer, intent(in) :: nat
     type(restart_objects), intent(inout) :: rst
-    !local variables
-    integer :: i_all,i_stat
+
     if (associated(rst%rxyz_old)) then
-       i_all=-product(shape(rst%rxyz_old))*kind(rst%rxyz_old)
-       deallocate(rst%rxyz_old,stat=i_stat)
-       call memocc(i_stat,i_all,'rxyz_old',subname)
+       call f_free_ptr(rst%rxyz_old)
     end if
     if (associated(rst%rxyz_new)) then
-       i_all=-product(shape(rst%rxyz_new))*kind(rst%rxyz_new)
-       deallocate(rst%rxyz_new,stat=i_stat)
-       call memocc(i_stat,i_all,'rxyz_new',subname)
+       call f_free_ptr(rst%rxyz_new)
     end if
 
     rst%nat = nat
-    allocate(rst%rxyz_new(3,nat+ndebug),stat=i_stat)
-    call memocc(i_stat,rst%rxyz_new,'rxyz_new',subname)
-    allocate(rst%rxyz_old(3,nat+ndebug),stat=i_stat)
-    call memocc(i_stat,rst%rxyz_old,'rxyz_old',subname)
+    rst%rxyz_new = f_malloc_ptr((/ 3, nat /),id='rst%rxyz_new')
+    rst%rxyz_old = f_malloc_ptr((/ 3, nat /),id='rst%rxyz_old')
   END SUBROUTINE restart_objects_set_nat
 
   subroutine restart_objects_set_mat_acc(rst, iproc, matacc)
@@ -1528,7 +1507,7 @@ subroutine deallocate_orbs(orbs,subname)
     character(len=*), intent(in) :: subname
     type(restart_objects) :: rst
     !local variables
-    integer :: i_all,i_stat,istep
+    integer :: istep
 
     if (rst%version == LINEAR_VERSION) then
        call destroy_DFT_wavefunction(rst%tmb)
@@ -1541,9 +1520,7 @@ subroutine deallocate_orbs(orbs,subname)
     call deallocate_locreg_descriptors(rst%KSwfn%Lzd%Glr)
 
     if (associated(rst%KSwfn%psi)) then
-       i_all=-product(shape(rst%KSwfn%psi))*kind(rst%KSwfn%psi)
-       deallocate(rst%KSwfn%psi,stat=i_stat)
-       call memocc(i_stat,i_all,'psi',subname)
+       call f_free_ptr(rst%KSwfn%psi)
     end if
 
     if (associated(rst%KSwfn%orbs%eval)) then
@@ -1559,14 +1536,10 @@ subroutine deallocate_orbs(orbs,subname)
 
 
     if (associated(rst%rxyz_old)) then
-       i_all=-product(shape(rst%rxyz_old))*kind(rst%rxyz_old)
-       deallocate(rst%rxyz_old,stat=i_stat)
-       call memocc(i_stat,i_all,'rxyz_old',subname)
+       call f_free_ptr(rst%rxyz_old)
     end if
     if (associated(rst%rxyz_new)) then
-       i_all=-product(shape(rst%rxyz_new))*kind(rst%rxyz_new)
-       deallocate(rst%rxyz_new,stat=i_stat)
-       call memocc(i_stat,i_all,'rxyz_new',subname)
+       call f_free_ptr(rst%rxyz_new)
     end if
 
     !The gaussian basis descriptors are always allocated together
@@ -1577,9 +1550,7 @@ subroutine deallocate_orbs(orbs,subname)
     end if
 
     if (associated(rst%KSwfn%gaucoeffs)) then
-       i_all=-product(shape(rst%KSwfn%gaucoeffs))*kind(rst%KSwfn%gaucoeffs)
-       deallocate(rst%KSwfn%gaucoeffs,stat=i_stat)
-       call memocc(i_stat,i_all,'gaucoeffs',subname)
+       call f_free_ptr(rst%KSwfn%gaucoeffs)
     end if
 
     !finalise the material accelearion usage
@@ -1594,28 +1565,18 @@ subroutine deallocate_orbs(orbs,subname)
     implicit none
     type(rho_descriptors) :: rhodsc
     character(len=*), intent(in) :: subname
-    !local variables
-    integer :: i_all,i_stat
 
     if (associated(rhodsc%spkey))then
-       i_all=-product(shape(rhodsc%spkey))*kind(rhodsc%spkey)
-       deallocate(rhodsc%spkey,stat=i_stat)
-       call memocc(i_stat,i_all,'spkey',subname)
+       call f_free_ptr(rhodsc%spkey)
     end if
     if (associated(rhodsc%dpkey))then
-       i_all=-product(shape(rhodsc%dpkey))*kind(rhodsc%dpkey)
-       deallocate(rhodsc%dpkey,stat=i_stat)
-       call memocc(i_stat,i_all,'dpkey',subname)
+       call f_free_ptr(rhodsc%dpkey)
     end if
     if (associated(rhodsc%cseg_b))then
-       i_all=-product(shape(rhodsc%cseg_b))*kind(rhodsc%cseg_b)
-       deallocate(rhodsc%cseg_b,stat=i_stat)
-       call memocc(i_stat,i_all,'csegb',subname)
+       call f_free_ptr(rhodsc%cseg_b)
     end if
     if (associated(rhodsc%fseg_b))then
-       i_all=-product(shape(rhodsc%fseg_b))*kind(rhodsc%fseg_b)
-       deallocate(rhodsc%fseg_b,stat=i_stat)
-       call memocc(i_stat,i_all,'fsegb',subname)
+       call f_free_ptr(rhodsc%fseg_b)
     end if
 
   end subroutine deallocate_rho_descriptors
@@ -1627,26 +1588,13 @@ subroutine deallocate_orbs(orbs,subname)
     implicit none
     type(gaussian_basis) :: G
     character(len=*), intent(in) :: subname
-    !local variables
-    integer :: i_all,i_stat
 
     !normally positions should be deallocated outside
-    
-    i_all=-product(shape(G%ndoc))*kind(G%ndoc)
-    deallocate(G%ndoc,stat=i_stat)
-    call memocc(i_stat,i_all,'ndoc',subname)
-    i_all=-product(shape(G%nam))*kind(G%nam)
-    deallocate(G%nam,stat=i_stat)
-    call memocc(i_stat,i_all,'nam',subname)
-    i_all=-product(shape(G%nshell))*kind(G%nshell)
-    deallocate(G%nshell,stat=i_stat)
-    call memocc(i_stat,i_all,'nshell',subname)
-    i_all=-product(shape(G%psiat))*kind(G%psiat)
-    deallocate(G%psiat,stat=i_stat)
-    call memocc(i_stat,i_all,'psiat',subname)
-    i_all=-product(shape(G%xp))*kind(G%xp)
-    deallocate(G%xp,stat=i_stat)
-    call memocc(i_stat,i_all,'xp',subname)
+    call f_free_ptr(G%ndoc)
+    call f_free_ptr(G%nam)
+    call f_free_ptr(G%nshell)
+    call f_free_ptr(G%psiat)
+    call f_free_ptr(G%xp)
 
   END SUBROUTINE deallocate_gwf
 
@@ -1657,31 +1605,14 @@ subroutine deallocate_orbs(orbs,subname)
     implicit none
     type(gaussian_basis_c) :: G
     character(len=*), intent(in) :: subname
-    !local variables
-    integer :: i_all,i_stat
 
     !normally positions should be deallocated outside
-    
-    i_all=-product(shape(G%ndoc))*kind(G%ndoc)
-    deallocate(G%ndoc,stat=i_stat)
-    call memocc(i_stat,i_all,'G%ndoc',subname)
-    i_all=-product(shape(G%nam))*kind(G%nam)
-    deallocate(G%nam,stat=i_stat)
-    call memocc(i_stat,i_all,'nam',subname)
-    i_all=-product(shape(G%nshell))*kind(G%nshell)
-    deallocate(G%nshell,stat=i_stat)
-    call memocc(i_stat,i_all,'G%nshell',subname)
-    i_all=-product(shape(G%psiat))*kind(G%psiat)
-    deallocate(G%psiat,stat=i_stat)
-    call memocc(i_stat,i_all,'G%psiat',subname)
-
-    i_all=-product(shape(G%expof))*kind(G%expof)
-    deallocate(G%expof,stat=i_stat)
-    call memocc(i_stat,i_all,'G%expof',subname)
-
-    i_all=-product(shape(G%rxyz))*kind(G%rxyz)
-    deallocate(G%rxyz,stat=i_stat)
-    call memocc(i_stat,i_all,'G%rxyz',subname)
+    call f_free_ptr(G%ndoc)
+    call f_free_ptr(G%nam)
+    call f_free_ptr(G%nshell)
+    call f_free_ptr(G%psiat)
+    call f_free_ptr(G%expof)
+    call f_free_ptr(G%rxyz)
 
   END SUBROUTINE 
 
@@ -1865,7 +1796,9 @@ subroutine deallocate_orbs(orbs,subname)
          & (fid >= 0 .and. fid < size(output_denspot_format_names))
   end function output_denspot_validate
 
-subroutine nullify_DFT_local_fields(denspot)
+
+  !> Nullify a DFT_local_fields structure
+  subroutine nullify_DFT_local_fields(denspot)
   implicit none
   type(DFT_local_fields),intent(out) :: denspot
 
@@ -1891,18 +1824,12 @@ subroutine deallocate_denspot_distribution(dpbox,subname)
   implicit none
   character(len=*), intent(in) :: subname
   type(denspot_distribution),intent(inout)::dpbox
-  !local variables
-  integer :: i_all,i_stat
   
   if(associated(dpbox%nscatterarr)) then
-    i_all=-product(shape(dpbox%nscatterarr))*kind(dpbox%nscatterarr)
-    deallocate(dpbox%nscatterarr,stat=i_stat)
-    call memocc(i_stat,i_all,'nscatterarr',subname)
+    call f_free_ptr(dpbox%nscatterarr)
   end if
   if(associated(dpbox%ngatherarr)) then
-    i_all=-product(shape(dpbox%ngatherarr))*kind(dpbox%ngatherarr)
-    deallocate(dpbox%ngatherarr,stat=i_stat)
-    call memocc(i_stat,i_all,'ngatherarr',subname)
+    call f_free_ptr(dpbox%ngatherarr)
   end if
 
 end subroutine deallocate_denspot_distribution
@@ -1919,13 +1846,9 @@ subroutine copy_coulomb_operator(coul1,coul2,subname)
   type(coulomb_operator),intent(in) :: coul1
   type(coulomb_operator),intent(inout) :: coul2
   character(len=*), intent(in) :: subname
-  !local variables
-  integer :: i_all,i_stat
 
   if(associated(coul2%kernel)) then
-    i_all=-product(shape(coul2%kernel))*kind(coul2%kernel)
-    deallocate(coul2%kernel,stat=i_stat)
-    call memocc(i_stat,i_all,'coul%kernel',subname)
+    call f_free_ptr(coul2%kernel)
   end if
   coul2%kernel   =>coul1%kernel
   coul2%itype_scf= coul1%itype_scf
@@ -1956,13 +1879,9 @@ subroutine deallocate_coulomb_operator(coul_op,subname)
   implicit none
   type(coulomb_operator),intent(inout) :: coul_op
   character(len=*), intent(in) :: subname
-  !local variables
-  integer :: i_all,i_stat
 
   if(associated(coul_op%kernel)) then
-    i_all=-product(shape(coul_op%kernel))*kind(coul_op%kernel)
-    deallocate(coul_op%kernel,stat=i_stat)
-    call memocc(i_stat,i_all,'coul_op%kernel',subname)
+    call f_free_ptr(coul_op%kernel)
   end if
   call nullify_coulomb_operator(coul_op)
 end subroutine deallocate_coulomb_operator
@@ -2102,7 +2021,7 @@ subroutine init_global_output(outs, nat)
 
   call nullify_global_output(outs)
   outs%fdim = nat
-  outs%fxyz = f_malloc_ptr((/3, outs%fdim/), id = "outs%fxyz")
+  outs%fxyz = f_malloc_ptr((/ 3, outs%fdim /),id='outs%fxyz')
   outs%fxyz(:,:) = UNINITIALIZED(1.0_gp)
 END SUBROUTINE init_global_output
 
@@ -2166,10 +2085,10 @@ end subroutine
  do jj=1,n2dim
    do ii=1,n1dim
      if (associated(cprj(ii,jj)%cp))  then
-       deallocate(cprj(ii,jj)%cp)
+       call f_free_ptr(cprj(ii, jj)%cp)
      end if
      if (associated(cprj(ii,jj)%dcp))  then
-       deallocate(cprj(ii,jj)%dcp)
+       call f_free_ptr(cprj(ii, jj)%dcp)
      end if
    end do
  end do
@@ -2204,14 +2123,14 @@ end subroutine cprj_clean
 
      nn=nlmn(ii)
      cprj(ii,jj)%nlmn=nn
-     ALLOCATE(cprj(ii,jj)%cp(2,nn))
+     cprj(ii,jj)%cp = f_malloc_ptr((/ 2 , nn /),id='cprj(ii,jj)%cp')
 !    XG 080820 Was needed to get rid of problems with test paral#R with four procs
      cprj(ii,jj)%cp=0.0_dp
 !    END XG 080820
 
      cprj(ii,jj)%ncpgr=ncpgr
      if (ncpgr>0) then
-       ALLOCATE(cprj(ii,jj)%dcp(2,ncpgr,nn))
+       cprj(ii,jj)%dcp = f_malloc_ptr((/ 2 , ncpgr,  nn /),id='cprj(ii,jj)%cp')
        cprj(ii,jj)%dcp=0.0_dp
      end if
    end do
@@ -2958,6 +2877,8 @@ end subroutine find_category
           in%lin%new_pulay_correction = dummy_log(2)
        case (SUBSPACE_DIAG)
           in%lin%diag_end = val
+       case (EXTRA_STATES)
+          in%lin%extra_states = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
@@ -3096,5 +3017,132 @@ end subroutine find_category
     end select
     
   end subroutine basis_params_set_dict
+
+  subroutine frag_from_dict(dict,frag)
+    use module_base
+    use yaml_output, only: yaml_map,is_atoi
+    use module_input_keys
+    implicit none
+    type(dictionary), pointer :: dict
+    type(fragmentInputParameters), intent(out) :: frag
+    !local variables
+    integer :: frag_num,ncount,ncharged,ifrag
+    character(len=max_field_length) :: frg_key
+    type(dictionary), pointer :: dict_tmp,tmp2
+
+    !now simulate the reading of the fragment structure from the dictionary
+!!$  !to be continued after having fixed linear variables
+    !iteration over the dictionary
+    !count the number of reference fragments
+    call nullifyInputFragParameters(frag)
+    frag%nfrag_ref=0
+    frag%nfrag=0
+!some sanity checks have to be added to this section
+    dict_tmp=>dict_iter(dict)
+    do while(associated(dict_tmp))
+       select case(trim(dict_key(dict_tmp)))
+       case(TRANSFER_INTEGRALS)
+          !frag%calc_transfer_integrals=dict_tmp
+       case(CONSTRAINED_DFT)
+          ncharged=dict_size(dict_tmp)
+          !constrained_dft=ncharged > 0
+       case default
+          frag%nfrag_ref=frag%nfrag_ref+1
+          !count the number of fragments for this reference
+          call count_local_fragments(dict_tmp,ncount)
+          frag%nfrag=frag%nfrag+ncount
+       end select
+       dict_tmp=>dict_next(dict_tmp)
+    end do
+    
+    if (frag%nfrag*frag%nfrag_ref == 0) then
+       call f_err_throw('Fragment dictionary for the input is invalid',&
+            err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+       return
+    end if
+    call allocateInputFragArrays(frag)
+    frag%charge=0.d0 !f_memset to be used
+
+    dict_tmp=>dict_iter(dict)
+    frag_num=0
+    do while(associated(dict_tmp))
+       select case(trim(dict_key(dict_tmp)))
+       case(TRANSFER_INTEGRALS)
+       case(CONSTRAINED_DFT)
+          tmp2=>dict_iter(dict_tmp)
+          !iterate over the charge TODO
+          do while(associated(tmp2))
+             frg_key=dict_key(tmp2)
+             if (index(frg_key,FRAGMENT_NO) == 0 .or. &
+                  .not. is_atoi(frg_key(len(FRAGMENT_NO)+1:))) then
+                call f_err_throw('Invalid key in '//CONSTRAINED_DFT//&
+                     ' section, key= '//trim(frg_key),&
+                     err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+             end if
+             read(frg_key(len(FRAGMENT_NO)+1:),*)ifrag
+             frag%charge(ifrag)=tmp2
+             tmp2=>dict_next(tmp2)
+          end do
+       case default
+          frag_num=frag_num+1
+          frag%label(frag_num)=repeat(' ',len(frag%label(frag_num)))
+          frag%label(frag_num)=trim(dict_key(dict_tmp))
+          !update directory name
+          frag%dirname(frag_num)='data-'//trim(frag%label(frag_num))//'/'
+          call count_local_fragments(dict_tmp,ncount,frag_index=frag%frag_index,frag_id=frag_num)
+       end select
+       dict_tmp=>dict_next(dict_tmp)
+    end do
+
+    contains
+      subroutine count_local_fragments(dict_tmp,icount,frag_index,frag_id)
+        use yaml_strings, only: is_atoi
+        implicit none
+        integer, intent(out) :: icount
+        type(dictionary), pointer :: dict_tmp
+        integer, dimension(:), intent(inout), optional :: frag_index
+        integer, intent(in), optional :: frag_id
+
+        !local variables
+        integer :: idum,istart,i
+        type(dictionary), pointer :: d_tmp
+        character(len=max_field_length) :: val
+
+        !iteration over the whole list
+        icount=0
+        istart=0
+        d_tmp=>dict_iter(dict_tmp)
+        do while(associated(d_tmp))
+           val=d_tmp
+           !if string is a integer consider it
+           if (is_atoi(val)) then
+              idum=d_tmp
+              if (f_err_raise(istart>=idum,'error in entering fragment ids',&
+                   err_name='BIGDFT_INPUT_VARIABLES_ERROR')) return
+              if (istart /=0) then
+                 icount=icount+idum-istart
+                 if (present(frag_index) .and. present(frag_id)) then
+                    do i=istart,idum
+                       frag_index(i)=frag_id
+                    end do
+                 end if
+                 istart=0
+              else
+                 icount=icount+1
+                 if (present(frag_index) .and. present(frag_id)) frag_index(idum)=frag_id
+              end if
+           else if (f_err_raise(adjustl(trim(val))/='...',&
+                'the only allowed values in the fragment list are integers or "..." string',&
+                err_name='BIGDFT_INPUT_VARIABLES_ERROR')) then
+              return
+           else
+              istart=idum
+           end if
+           d_tmp=>dict_next(d_tmp)
+        end do
+      end subroutine count_local_fragments
+
+  end subroutine frag_from_dict
+
 
 end module module_types

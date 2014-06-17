@@ -42,9 +42,9 @@ program driver
   integer,parameter :: SPARSE=1
   integer,parameter :: DENSE=2
 
-  integer :: ncount1, ncount_rate, ncount_max, ncount2
+  integer :: ncount1, ncount_rate, ncount_max, ncount2, i, j, start
   real(kind=4) :: tr0, tr1
-  real(kind=8) :: time, time2,tt
+  real(kind=8) :: time, time2, tmp, tt
   real :: rn
   real(kind=8), external :: ddot, dnrm2
   logical, parameter :: timer_on=.false.        !time the different methods
@@ -119,6 +119,19 @@ program driver
               end if
           end do
       end do
+  !DEBUG
+  !else if (orbs%norb==984.or..true.) then
+  !    start=241
+  !    open(100)
+  !    do iorb=1,984
+  !        do jorb=1,984
+  !            read(100,*) i,j,tmp
+  !            if (iorb<orbs%norb+start.and.jorb<orbs%norb+start.and.iorb>=start.and.jorb>=start) &
+  !                 ovrlp(jorb-start+1,iorb-start+1)=tmp
+  !        end do
+  !    end do
+  !    close(100)
+  !END DEBUG
   else
       ! above approach has problems for testing larger matrices
       allocate(ovrlp2(orbs%norb,orbs%norb))

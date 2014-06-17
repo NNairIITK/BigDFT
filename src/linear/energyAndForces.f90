@@ -19,9 +19,9 @@ use module_interfaces, exceptThisOne => updatePotential
 implicit none
 
 ! Calling arguments
-integer, intent(in) :: nspin
-type(DFT_local_fields), intent(inout) :: denspot
-real(kind=8),intent(out) :: ehart, eexcu, vexcu
+integer, intent(in) :: nspin                     !< Spin number
+type(DFT_local_fields), intent(inout) :: denspot !< in=density, out=pot
+real(kind=8), intent(out) :: ehart, eexcu, vexcu !> Energies (Hartree, XC and XC potential energy)
 
 ! Local variables
 character(len=*), parameter :: subname='updatePotential'
@@ -43,11 +43,10 @@ else
    if (.not. associated(denspot%V_XC)) then   
       !Allocate XC potential
       if (denspot%dpbox%n3p >0) then
-         allocate(denspot%V_XC(denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%n3p,nspin+ndebug),stat=istat)
-         call memocc(istat,denspot%V_XC,'denspot%V_XC',subname)
+         denspot%V_XC = f_malloc_ptr((/ denspot%dpbox%ndims(1) , denspot%dpbox%ndims(2) , denspot%dpbox%n3p , nspin+ndebug /),&
+                            id='denspot%V_XC')
       else
-         allocate(denspot%V_XC(1,1,1,1+ndebug),stat=istat)
-         call memocc(istat,denspot%V_XC,'denspot%V_XC',subname)
+         denspot%V_XC = f_malloc_ptr((/ 1 , 1 , 1 , 1+ndebug /),id='denspot%V_XC')
       end if
       nullifyVXC=.true.
    end if
@@ -72,9 +71,7 @@ else
         denspot%rhov(1),1)
    
    if (nullifyVXC) then
-      iall=-product(shape(denspot%V_XC))*kind(denspot%V_XC)
-      deallocate(denspot%V_XC,stat=istat)
-      call memocc(istat,iall,'denspot%V_XC',subname)
+      call f_free_ptr(denspot%V_XC)
    end if
 
 end if

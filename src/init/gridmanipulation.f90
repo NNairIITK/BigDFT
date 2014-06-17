@@ -26,9 +26,9 @@ subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,OCLconv,Glr,sh
    !Local variables
    !character(len=*), parameter :: subname='system_size'
    integer, parameter :: lupfil=14
-   real(gp), parameter ::eps_mach=1.e-12_gp
+   real(gp), parameter :: eps_mach=1.e-12_gp
    integer :: iat,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
-   real(gp) :: rad,cxmin,cxmax,cymin,cymax,czmin,czmax,alatrue1,alatrue2,alatrue3
+   real(gp) :: ri,rad,cxmin,cxmax,cymin,cymax,czmin,czmax,alatrue1,alatrue2,alatrue3
 
    !check the geometry code with the grid spacings
    if (atoms%astruct%geocode == 'F' .and. (hx/=hy .or. hx/=hz .or. hy/=hz)) then
@@ -37,15 +37,22 @@ subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,OCLconv,Glr,sh
       stop
    end if
 
+   !Special case if no atoms (no posinp by error or electron gas)
+   if (atoms%astruct%nat == 0) then
+      ri = 0.0_gp
+   else
+      ri = 1.e10_gp
+   end if
+
    !calculate the extremes of the boxes taking into account the spheres around the atoms
-   cxmax=-1.e10_gp 
-   cxmin=1.e10_gp
+   cxmax = -ri 
+   cxmin =  ri
 
-   cymax=-1.e10_gp 
-   cymin=1.e10_gp
+   cymax = -ri 
+   cymin =  ri
 
-   czmax=-1.e10_gp 
-   czmin=1.e10_gp
+   czmax = -ri 
+   czmin =  ri
 
    do iat=1,atoms%astruct%nat
 
@@ -71,7 +78,9 @@ subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,OCLconv,Glr,sh
    !!  czmin=czmin-eps_mach
 
    !define the box sizes for free BC, and calculate dimensions for the fine grid with ISF
-   if (atoms%astruct%geocode == 'F') then
+   select case (atoms%astruct%geocode)
+   
+   case('F')
       atoms%astruct%cell_dim(1)=(cxmax-cxmin)
       atoms%astruct%cell_dim(2)=(cymax-cymin)
       atoms%astruct%cell_dim(3)=(czmax-czmin)
@@ -91,7 +100,7 @@ subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,OCLconv,Glr,sh
       n2i=2*n2+31
       n3i=2*n3+31
 
-   else if (atoms%astruct%geocode == 'P') then 
+   case('P')
       !define the grid spacings, controlling the FFT compatibility
       call correct_grid(atoms%astruct%cell_dim(1),hx,n1)
       call correct_grid(atoms%astruct%cell_dim(2),hy,n2)
@@ -104,7 +113,7 @@ subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,OCLconv,Glr,sh
       n2i=2*n2+2
       n3i=2*n3+2
 
-   else if (atoms%astruct%geocode == 'S') then
+   case('S')
       call correct_grid(atoms%astruct%cell_dim(1),hx,n1)
       atoms%astruct%cell_dim(2)=(cymax-cymin)
       call correct_grid(atoms%astruct%cell_dim(3),hz,n3)
@@ -118,7 +127,10 @@ subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,OCLconv,Glr,sh
       n2i=2*n2+31
       n3i=2*n3+2
 
-   end if
+   case default
+      call f_err_throw('Illegal geocode in system_size',err_id=BIGDFT_INPUT_VARIABLES_ERROR)
+
+   end select
 
    !balanced shift taking into account the missing space
    cxmin=cxmin+0.5_gp*(atoms%astruct%cell_dim(1)-alatrue1)
@@ -126,21 +138,22 @@ subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,OCLconv,Glr,sh
    czmin=czmin+0.5_gp*(atoms%astruct%cell_dim(3)-alatrue3)
 
    !correct the box sizes for the isolated case
-   if (atoms%astruct%geocode == 'F') then
+   select case(atoms%astruct%geocode)
+   case('F')
       atoms%astruct%cell_dim(1)=alatrue1
       atoms%astruct%cell_dim(2)=alatrue2
       atoms%astruct%cell_dim(3)=alatrue3
-   else if (atoms%astruct%geocode == 'S') then
+   case('S')
       cxmin=0.0_gp
       atoms%astruct%cell_dim(2)=alatrue2
       czmin=0.0_gp
-   else if (atoms%astruct%geocode == 'P') then
+   case('P')
       !for the moment we do not put the shift, at the end it will be tested
       !here we should put the center of mass
       cxmin=0.0_gp
       cymin=0.0_gp
       czmin=0.0_gp
-   end if
+   end select
 
    !assign the shift to the atomic positions
    shift(1)=cxmin
@@ -255,8 +268,8 @@ subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,OCLconv,Glr,sh
 END SUBROUTINE system_size
 
 
-!>   Here the dimensions should be corrected in order to 
-!!   allow the fft for the preconditioner and for Poisson Solver
+!> Here the dimensions should be corrected in order to 
+!! allow the fft for the preconditioner and for Poisson Solver
 subroutine correct_grid(a,h,n)
    use module_base
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
@@ -363,16 +376,18 @@ subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
    integer, dimension(2,mseg), intent(out) :: keyg
    !local variables
    logical :: plogrid
-   integer :: mvctr,nsrt,nend,i1,i2,i3,ngridp
+   integer :: mvctr,nsrt,nend,i1,i2,i3,ngridp,np,n1p1
 
    mvctr=0
    nsrt=0
    nend=0
+   n1p1=n1+1
+   np=n1p1*(n2+1)
    do i3=nl3,nu3 
       do i2=nl2,nu2
          plogrid=.false.
          do i1=nl1,nu1
-            ngridp=i3*((n1+1)*(n2+1)) + i2*(n1+1) + i1+1
+            ngridp=i3*np + i2*n1p1 + i1+1
             if (logrid(i1,i2,i3)) then
                mvctr=mvctr+1
                if (.not. plogrid) then

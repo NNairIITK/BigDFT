@@ -165,6 +165,7 @@ module module_input_keys
   character(len=*), parameter, public :: LIN_BASIS       ='lin_basis'
   character(len=*), parameter, public :: LIN_KERNEL      ='lin_kernel'
   character(len=*), parameter, public :: LIN_BASIS_PARAMS='lin_basis_params'
+  character(len=*), parameter, public :: FRAG_VARIABLES  ='frag'
   character(len=*), parameter, public :: HYBRID          ='hybrid'
   character(len=*), parameter, public :: LINEAR_METHOD   ='linear_method'
   character(len=*), parameter, public :: MIXING_METHOD   ='mixing_method'
@@ -200,8 +201,8 @@ module module_input_keys
   character(len=*), parameter, public :: CORRECTION_ORTHOCONSTRAINT='correction_orthoconstraint'
   character(len=*), parameter, public :: FSCALE_LOWERBOUND="fscale_lowerbound"
   character(len=*), parameter, public :: FSCALE_UPPERBOUND="fscale_upperbound"
-
-
+  character(len=*), parameter, public :: EXTRA_STATES="extra_states"
+  character(len=*), parameter, public :: FRAGMENT_NO="Fragment No. "
 
   !> Error ids for this module.
   integer, public :: INPUT_VAR_NOT_IN_LIST = 0
@@ -217,9 +218,13 @@ module module_input_keys
   character(len = *), parameter :: PROF_KEY = "PROFILE_FROM"
   character(len = *), parameter :: USER_KEY = "USER_DEFINED"
 
-  character(len = *), parameter :: RANGE = "RANGE", EXCLUSIVE = "EXCLUSIVE"
-  character(len = *), parameter :: DEFAULT = "default", COMMENT = "COMMENT"
-  character(len = *), parameter :: COND = "CONDITION", WHEN = "WHEN"
+  character(len = *), parameter :: COMMENT = "COMMENT"
+  character(len = *), parameter :: DESCRIPTION = "DESCRIPTION"
+  character(len = *), parameter :: RANGE = "RANGE"
+  character(len = *), parameter :: EXCLUSIVE = "EXCLUSIVE"
+  character(len = *), parameter :: DEFAULT = "default"
+  character(len = *), parameter :: COND = "CONDITION"
+  character(len = *), parameter :: WHEN = "WHEN"
   character(len = *), parameter :: MASTER_KEY = "MASTER_KEY"
 
   public :: input_keys_init, input_keys_finalize
@@ -529,12 +534,12 @@ contains
     meth = dict // GEOPT_VARIABLES // GEOPT_METHOD
     if (input_keys_equal(trim(meth), "FIRE")) then
        prof = input_keys_get_source(dict // GEOPT_VARIABLES, DTMAX, user_defined)
-       if (trim(prof) == "default" .and. .not. user_defined) then
+       if (trim(prof) == DEFAULT .and. .not. user_defined) then
           betax_ = dict // GEOPT_VARIABLES // BETAX
           call set(dict // GEOPT_VARIABLES // DTMAX, 0.25 * pi_param * sqrt(betax_), fmt = "(F7.4)")
        end if
        prof = input_keys_get_source(dict // GEOPT_VARIABLES, DTINIT, user_defined)
-       if (trim(prof) == "default" .and. .not. user_defined) then
+       if (trim(prof) == DEFAULT .and. .not. user_defined) then
           dtmax_ = dict // GEOPT_VARIABLES // DTMAX
           call set(dict // GEOPT_VARIABLES // DTINIT, 0.5 * dtmax_, fmt = "(F7.4)")
        end if
@@ -589,14 +594,23 @@ contains
       dict_tmp => dict_iter(dict//LIN_BASIS_PARAMS)
       do while(associated(dict_tmp))
        category=dict_key(dict_tmp)
-       !Pb with stack (Cray - ftn 05/2015)
+       !Pb with stack (Cray - ftn 05/2015), solved with the cat_found temporary variable
        cat_found = category .in. parameters//LIN_BASIS_PARAMS
        if (.not. cat_found .and. index(category,ATTRS) == 0 ) then
-           call dict_copy(minimal//LIN_BASIS_PARAMS//category,dict_tmp)
+          !verify that no parameters correspond to default values
+          call minimal_category(parameters//LIN_BASIS_PARAMS,dict_tmp,min_cat)
+          if (associated(min_cat)) then
+             !call dict_copy(minimal//LIN_BASIS_PARAMS//category,dict_tmp)
+             call set(minimal//LIN_BASIS_PARAMS//category,min_cat)
+          end if
        end if
        dict_tmp => dict_next(dict_tmp)
       end do
-    end if
+   end if
+
+   !fragment dictionary has to be copied as-is
+   if (FRAG_VARIABLES .in. dict) &
+        call dict_copy(minimal//FRAG_VARIABLES,dict//FRAG_VARIABLES)
 
     contains
       
@@ -653,10 +667,40 @@ contains
                  end if
                  defvar => dict_next(defvar)
               end do check_profile
-              !the key has not been found, among the profiles, therefore it should be entered as is
+              !the key has not been found among the profiles, therefore it should be entered as is
               if (.not. profile_found .and. len_trim(dict_value(input//def_var))/=0) then
                  if (.not. associated(minim)) call dict_init(minim)
-                 call dict_copy(minim//def_var,input//def_var)
+                 !clean the list items if the dictionary is a list with all the items identical
+                 defvar => dict_iter(input//def_var)
+                 var_prof=repeat(' ',len(var_prof))
+                 if (dict_len(input // def_var)==0) nullify(defvar)
+                 compact_list: do while(associated(defvar))
+                    !if scalar, retrieve the value, otherwise exit
+                    if (dict_size(defvar) == 0 .and. dict_len(defvar)==0) then
+                       prof_var=defvar
+                    else
+                       var_prof=repeat(' ',len(var_prof))
+                       exit compact_list
+                    end if
+                    !check if all the values of the list are equal to the first one
+                    if (len_trim(var_prof) == 0) then
+                       var_prof=prof_var
+                    else
+                       !check if all the values are OK, otherwise exit at first failure
+                       if (var_prof /= prof_var) then
+                         var_prof=repeat(' ',len(var_prof))
+                         exit compact_list
+                      end if
+                    end if
+                    defvar => dict_next(defvar)
+                 end do compact_list
+                 !if the dictionary is not a one-level list or if it is a list with different values
+                 ! copy it as-is
+                 if (len_trim(var_prof) == 0) then
+                    call dict_copy(minim//def_var,input//def_var)
+                 else !otherwise put the scalar value associated
+                    call set(minim//def_var,var_prof)
+                 end if
               end if
            end if
            var => dict_next(var)
@@ -671,29 +715,39 @@ contains
     use dynamic_memory
     use yaml_output
     implicit none
+    !Arguments
     type(dictionary), pointer :: dict
     character(len = *), intent(in) :: file
-
-    integer :: i
+    !Local variables
+    !integer :: i
     logical :: user, hasUserDef
-    type(dictionary), pointer :: ref
-    character(len=max_field_length), dimension(:), allocatable :: keys
+    type(dictionary), pointer :: ref,ref_iter
+    !character(len=max_field_length), dimension(:), allocatable :: keys
     
 !    call f_routine(id='input_keys_fill')
 
     ref => parameters // file
 
-    keys = f_malloc_str(max_field_length,dict_size(ref),id='keys')
-    keys = dict_keys(ref)
-
+    ref_iter => dict_iter(parameters // file)
     hasUserDef = .false.
-    do i = 1, size(keys), 1
-          call input_keys_set(user, dict // file, file, keys(i))
+    do while(associated(ref_iter))
+       if (trim(dict_key(ref_iter)) /= DESCRIPTION) then
+          call input_keys_set(user, dict // file, file, dict_key(ref_iter))
           hasUserDef = (hasUserDef .or. user)
+       end if
+       ref_iter=> dict_next(ref_iter)
     end do
-    call set(dict // (trim(file) // ATTRS) // USER_KEY, hasUserDef)
 
-    call f_free_str(max_field_length, keys)
+!    keys = f_malloc_str(max_field_length,dict_size(ref),id='keys')
+!    keys = dict_keys(ref)
+!    hasUserDef = .false.
+!    do i=1,size(keys)
+!       call input_keys_set(user, dict // file, file, keys(i))
+!        hasUserDef = (hasUserDef .or. user)
+!    end do
+!    call set(dict // (trim(file) // ATTRS) // USER_KEY, hasUserDef)
+!
+!    call f_free_str(max_field_length, keys)
 !    call f_release_routine()
   END SUBROUTINE input_keys_fill
 

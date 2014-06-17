@@ -45,7 +45,7 @@ module overlap_point_to_point
       type(OP2P_descriptors), intent(out) :: OP2P
       !local variables
       character(len=*), parameter :: subname='initialize_OP2P_communications'
-      integer :: i_stat,ndebug=0  !< to be removed whenever with module_base
+      !integer :: ndebug=0  !< to be removed whenever with module_base
       integer :: igroup,iobject,jproc,ioffset_local,ioffset_global,iobj,nsize,igroup_previous
       integer :: nprocgr_max,iprocgrs,iprocgrr,icount,istep,kproc,nstepsm1
       integer :: iaddress_local,iaddress_results_local,nsize_results
@@ -67,11 +67,8 @@ module overlap_point_to_point
       end do parse_groups
 
       !allocate arrays which depends of the number of groups
-      allocate(OP2P%nvctr_par(0:nproc-1,OP2P%ngroup,2+ndebug),stat=i_stat)
-      call memocc(i_stat,OP2P%nvctr_par,'OP2P%nvctr_par',subname)
-
-      allocate(OP2P%ioffp_group(5,0:nproc-1,OP2P%ngroup+ndebug),stat=i_stat)
-      call memocc(i_stat,OP2P%ioffp_group,'OP2P%ioffp_group',subname)
+      OP2P%nvctr_par = f_malloc_ptr((/ 0.to.nproc-1, 1.to.OP2P%ngroup, 1.to.2 /),id='OP2P%nvctr_par')
+      OP2P%ioffp_group = f_malloc_ptr((/ 1.to.5, 0.to.nproc-1, 1.to.OP2P%ngroup /),id='OP2P%ioffp_group')
 
       !fill these arrays
       !initialise the arrays
@@ -145,8 +142,7 @@ module overlap_point_to_point
          end do
       end do
 
-      allocate(OP2P%ngroupp(0:nproc-1+ndebug),stat=i_stat)
-      call memocc(i_stat,OP2P%ngroupp,'OP2P%ngroupp',subname)
+      OP2P%ngroupp = f_malloc_ptr(0.to.nproc-1,id='OP2P%ngroupp')
 
       !calculate the number of groups which belong to each processor
       !here we can allocate the working arrays giving the maximum
@@ -170,8 +166,7 @@ module overlap_point_to_point
 
       !print *,'ngroupp_max,nproc,ngroupp',ngroupp_max,nproc,ngroupp
 
-      allocate(OP2P%nprocgr(OP2P%ngroup+ndebug),stat=i_stat)
-      call memocc(i_stat,OP2P%nprocgr,'OP2P%nprocgr',subname)
+      OP2P%nprocgr = f_malloc_ptr(OP2P%ngroup,id='OP2P%nprocgr')
 
       !calculate the number of processors which belong to each group
       !here we can allocate the working arrays giving the maximum
@@ -193,11 +188,9 @@ module overlap_point_to_point
       end if
       !print *,'nsteps',OP2P%nsteps_max
       !determine the array of the groups which are of interest for this processor
-      allocate(OP2P%igrpr(OP2P%ngroupp_max,0:nproc-1+ndebug),stat=i_stat)
-      call memocc(i_stat,OP2P%igrpr,'OP2P%igrpr',subname)
+      OP2P%igrpr = f_malloc_ptr((/ 1.to.OP2P%ngroupp_max, 0.to.nproc-1 /),id='OP2P%igrpr')
       !processors lying above and below iproc in the list of communicating process
-      allocate(OP2P%iprocpm1(2,0:nprocgr_max,OP2P%ngroupp_max,0:nproc-1+ndebug),stat=i_stat)
-      call memocc(i_stat,OP2P%iprocpm1,'OP2P%iprocpm1',subname)
+      OP2P%iprocpm1 = f_malloc_ptr((/ 1.to.2, 0.to.nprocgr_max, 1.to.OP2P%ngroupp_max, 0.to.nproc-1 /),id='OP2P%iprocpm1')
 
       !determine for each processor the groups which has to be used
       OP2P%iprocpm1(:,:,:,:)=UNINITIALIZED(1)
@@ -234,8 +227,8 @@ module overlap_point_to_point
 
       !calculate the list of send-receive operations which have to be performed per group
       !allocate it at the maximum size needed (to be changed if symmetric
-      allocate(OP2P%communication_schedule(4,0:OP2P%nsteps_max,OP2P%ngroupp_max,0:nproc-1+ndebug),stat=i_stat)
-      call memocc(i_stat,OP2P%communication_schedule,'OP2P%communication_schedule',subname)
+      OP2P%communication_schedule = f_malloc_ptr((/ 1.to.4, 0.to.OP2P%nsteps_max, 1.to.OP2P%ngroupp_max, 0.to.nproc-1 /),&
+          id='OP2P%communication_schedule')
 
       !un-initalize array, no communication in any step
       OP2P%communication_schedule(:,:,:,:)=UNINITIALIZED(1)
@@ -388,7 +381,7 @@ module overlap_point_to_point
       character(len=*), parameter :: subname='op2p_communication'
       logical :: doit,remote_result
       integer :: isnow,ncommsstep,irnow,igroup,istep,isnow_results,irnow_results,ncommsstep_results,iaddress_local
-      integer :: istart_results,i_all,i_stat,nvctri,nvctrj,nvctri_results,nvctrj_results
+      integer :: istart_results,nvctri,nvctrj,nvctri_results,nvctrj_results
       integer :: isorb,jsorb,iorbs,jorbs,norbi,norbj,jproc,istart,jproc_to_send,jproc_to_recv,nelems_to_send,nelems_to_recv
       integer, dimension(:,:), allocatable :: mpireq
       real(kind=8), dimension(:,:,:), allocatable :: sendreceive_buffer,restemp_buffer
@@ -399,15 +392,12 @@ module overlap_point_to_point
       if (OP2P%ngroupp(iproc) == 0) return
 
       !allocate the array of sendreceive buffers
-      allocate(sendreceive_buffer(OP2P%ncomponents_max,2,OP2P%ngroupp(iproc)+ndebug),stat=i_stat)
-      call memocc(i_stat,sendreceive_buffer,'sendreceive_buffer',subname)
+      sendreceive_buffer = f_malloc((/ OP2P%ncomponents_max, 2, OP2P%ngroupp(iproc) /),id='sendreceive_buffer')
       !allocate the results buffer only in the case of symmetric OP2P communication
       !if (OP2P%forsym) then
-      allocate(restemp_buffer(OP2P%ncomponents_results_max,3,OP2P%ngroupp(iproc)+ndebug),stat=i_stat)
-      call memocc(i_stat,restemp_buffer,'restemp_buffer',subname)
+      restemp_buffer = f_malloc((/ OP2P%ncomponents_results_max, 3, OP2P%ngroupp(iproc) /),id='restemp_buffer')
       !end if
-      allocate(mpireq(2*OP2P%ngroupp_max,2+ndebug),stat=i_stat)
-      call memocc(i_stat,mpireq,'mpireq',subname)
+      mpireq = f_malloc((/ 2*OP2P%ngroupp_max, 2 /),id='mpireq')
       !ncalls=0
       !real communication
       isnow=1
@@ -602,50 +592,29 @@ module overlap_point_to_point
          !print *,'iproc,istep',iproc,istep
       end do
 
-      i_all=-product(shape(sendreceive_buffer))*kind(sendreceive_buffer)
-      deallocate(sendreceive_buffer,stat=i_stat)
-      call memocc(i_stat,i_all,'sendreceive_buffer',subname)
+      call f_free(sendreceive_buffer)
       !if (OP2P%forsymop) then
-      i_all=-product(shape(restemp_buffer))*kind(restemp_buffer)
-      deallocate(restemp_buffer,stat=i_stat)
-      call memocc(i_stat,i_all,'restemp_buffer',subname)
+      call f_free(restemp_buffer)
       !end if
-      i_all=-product(shape(mpireq))*kind(mpireq)
-      deallocate(mpireq,stat=i_stat)
-      call memocc(i_stat,i_all,'mpireq',subname)
+      call f_free(mpireq)
 
    END SUBROUTINE OP2P_communication
+
 
    !> Deallocate everything for OP2P communications
    subroutine free_OP2P_descriptors(OP2P,subname)
       implicit none
       character(len=*), intent(in) :: subname
       type(OP2P_descriptors), intent(inout) :: OP2P
-      !local variables
-      integer :: i_all,i_stat
-      !debugbprint *,'ecco5'
 
-      i_all=-product(shape(OP2P%ngroupp))*kind(OP2P%ngroupp)
-      deallocate(OP2P%ngroupp,stat=i_stat)
-      call memocc(i_stat,i_all,'ngroupp',subname)
-      i_all=-product(shape(OP2P%nprocgr))*kind(OP2P%nprocgr)
-      deallocate(OP2P%nprocgr,stat=i_stat)
-      call memocc(i_stat,i_all,'nprocgr',subname)
-      i_all=-product(shape(OP2P%igrpr))*kind(OP2P%igrpr)
-      deallocate(OP2P%igrpr,stat=i_stat)
-      call memocc(i_stat,i_all,'igrpr',subname)
-      i_all=-product(shape(OP2P%nvctr_par))*kind(OP2P%nvctr_par)
-      deallocate(OP2P%nvctr_par,stat=i_stat)
-      call memocc(i_stat,i_all,'nvctr_par',subname)
-      i_all=-product(shape(OP2P%ioffp_group))*kind(OP2P%ioffp_group)
-      deallocate(OP2P%ioffp_group,stat=i_stat)
-      call memocc(i_stat,i_all,'ioffp_group',subname)
-      i_all=-product(shape(OP2P%iprocpm1))*kind(OP2P%iprocpm1)
-      deallocate(OP2P%iprocpm1,stat=i_stat)
-      call memocc(i_stat,i_all,'iprocpm1',subname)
-      i_all=-product(shape(OP2P%communication_schedule))*kind(OP2P%communication_schedule)
-      deallocate(OP2P%communication_schedule,stat=i_stat)
-      call memocc(i_stat,i_all,'communication_schedule',subname)
+      !debugbprint *,'ecco5'
+      call f_free_ptr(OP2P%ngroupp)
+      call f_free_ptr(OP2P%nprocgr)
+      call f_free_ptr(OP2P%igrpr)
+      call f_free_ptr(OP2P%nvctr_par)
+      call f_free_ptr(OP2P%ioffp_group)
+      call f_free_ptr(OP2P%iprocpm1)
+      call f_free_ptr(OP2P%communication_schedule)
 
    END SUBROUTINE free_OP2P_descriptors
 

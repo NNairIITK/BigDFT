@@ -10,10 +10,12 @@
 
 
 subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs,npsidim_comp)
-   use module_base
-   use module_types
+   use module_base, only: wp, bigdft_mpi, mpi_sum, mpi_max, mpiallred
+   use module_types, only: orbitals_data, local_zone_descriptors
    use yaml_output
+   use communications_base, only: comms_linear
    use communications, only: transpose_localized, untranspose_localized
+   use dynamic_memory
    implicit none
    integer, intent(in) :: iproc,nproc
    type(orbitals_data), intent(in) :: orbs
@@ -24,7 +26,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
    character(len=*), parameter :: subname='check_communications'
    integer, parameter :: ilog=6
    integer :: i,ispinor,iorb,indspin,i_stat,i_all,ikptsp
-   integer :: ikpt,ierr,i0,ifine,ii,iiorb,ipt,jorb
+   integer :: ikpt,ierr,i0,ifine,ii,iiorb,ipt,jorb,indorb_tmp
    integer :: icomp
    !!$integer :: ipsi,ipsic,ipsif,ipsiworkc,ipsiworkf,jcomp,jkpt
    real(wp) :: psival,maxdiff,tt
@@ -34,33 +36,33 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
    logical :: abort
 
    !allocate the "wavefunction" and fill it, and also the workspace
-   allocate(psi(max(npsidim_orbs,npsidim_comp)+ndebug),stat=i_stat)
-   call memocc(i_stat,psi,'psi',subname)
-   allocate(psit_c(sum(collcom%nrecvcounts_c)), stat=i_stat)
-   call memocc(i_stat, psit_c, 'psit_c', subname)
-   allocate(psit_f(7*sum(collcom%nrecvcounts_f)), stat=i_stat)
-   call memocc(i_stat, psit_f, 'psit_f', subname)
-   allocate(checksum(orbs%norb*orbs%nspinor,2), stat=i_stat)
-   call memocc(i_stat, checksum, 'checksum', subname)
+   psi = f_malloc(max(npsidim_orbs, npsidim_comp),id='psi')
+   psit_c = f_malloc(sum(collcom%nrecvcounts_c),id='psit_c')
+   psit_f = f_malloc(7*sum(collcom%nrecvcounts_f),id='psit_f')
+   checksum = f_malloc0((/ orbs%norb*orbs%nspinor, 2 /),id='checksum')
    if (orbs%norbp>0) then
       tol=1.e-10*real(npsidim_orbs,wp)/real(orbs%norbp,wp)
    else
       tol=0.0_wp
    end if
 
-   checksum(:,:)=0.0_wp
    do iorb=1,orbs%norbp
       ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
+      indorb_tmp=ind_orb(iorb)
       do ispinor=1,orbs%nspinor
-         indspin=(ispinor-1)*nvctr_orb(iorb)
-         checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)=0.0_wp
+         indspin=(ispinor-1)*nvctr_orb(iorb)+indorb_tmp
+         !checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)=0.0_wp
+         tt=0.0_wp
          do i=1,nvctr_orb(iorb)
             !vali=real(i,wp)/512.0_wp  ! *1.d-5
             call test_value_locreg(ikpt,orbs%isorb+iorb-(ikpt-1)*orbs%norb,ispinor,i,psival)
-            psi(i+indspin+ind_orb(iorb))=psival!(valorb+vali)*(-1)**(ispinor-1)
-            checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)=&
-                 checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)+psival
+            !psi(i+indspin+ind_orb(iorb))=psival!(valorb+vali)*(-1)**(ispinor-1)
+            psi(i+indspin)=psival!(valorb+vali)*(-1)**(ispinor-1)
+            tt=tt+psival
+            !checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)=&
+            !     checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)+psival
          end do
+         checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)=tt
       end do
    end do
 
@@ -74,7 +76,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
    do ikptsp=1,1!orbs%nkptsp !should be one for the moment
       ikpt=orbs%iskpts+ikptsp!orbs%ikptsp(ikptsp)
       ispinor=1 !for the (long?) moment
-      icomp=1
+      !icomp=1
       if (collcom%nptsp_c>0) then
          do ipt=1,collcom%nptsp_c 
             ii=collcom%norb_per_gridpoint_c(ipt)
@@ -95,11 +97,11 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
 !!$               indspin=(ispinor-1)*nvctr_orb(iiorb)
 !!$               maxdiff=max(abs(psit_c(i0+i)-psival),maxdiff)
                checksum(iiorb,2)=checksum(iiorb,2)+psit_c(i0+i)
-               icomp=icomp+1
+               !icomp=icomp+1
             end do
          end do
       end if
-      icomp=1
+      !icomp=1
       if (collcom%nptsp_f>0) then
          do ipt=1,collcom%nptsp_f 
             ii=collcom%norb_per_gridpoint_f(ipt) 
@@ -112,7 +114,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
 !!$               do jorb=1,iiorb-1
 !!$                  ipsi=ipsi-nvctr_f_orb(jorb)
 !!$               end do
-
+               tt=0.d0
                do ifine=1,7
 !!$                  call test_value_locreg(ikpt,iiorb-(ikpt-1)*orbs%norb,ispinor,&
 !!$                       nvctr_c_orb(iiorb)+7*(ipsi-1)+ifine,psival) 
@@ -121,9 +123,11 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
 !!$                     maxdiff=tt
 !!$                     !call wrong_components(psival,jkpt,jorb,jcomp)
 !!$                  end if
-                  checksum(iiorb,2)=checksum(iiorb,2)+psit_f(7*(i0+i-1)+ifine)
+                  !checksum(iiorb,2)=checksum(iiorb,2)+psit_f(7*(i0+i-1)+ifine)
+                  tt=tt+psit_f(7*(i0+i-1)+ifine)
                end do
-               icomp=icomp+1
+               checksum(iiorb,2)=checksum(iiorb,2)+tt
+               !icomp=icomp+1
             end do
          end do
       end if
@@ -155,6 +159,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
    if (iproc==0) call yaml_map('Maxdiff for transpose (checksum)',&
         maxdiff,fmt='(1pe25.17)')
 
+
    abort = .false.
    if (abs(maxdiff) >tol) then
       call yaml_comment('ERROR (Transposition): process'//trim(yaml_toa(iproc))//&
@@ -163,7 +168,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
       abort=.true.
    end if
 
-   if (abort) call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
+   if (abort) call MPI_ABORT(bigdft_mpi%mpi_comm,10,ierr)
 
 
    call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, psi, lzd)
@@ -197,19 +202,10 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
 
    if (iproc==0) call yaml_map('Maxdiff for untranspose',maxdiff,fmt='(1pe25.17)')
 
-   i_all=-product(shape(psi))*kind(psi)
-   deallocate(psi,stat=i_stat)
-   call memocc(i_stat,i_all,'psi',subname)
-   i_all=-product(shape(psit_c))*kind(psit_c)
-   deallocate(psit_c, stat=i_stat)
-   call memocc(i_stat, i_all, 'psit_c', subname)
-   i_all=-product(shape(psit_f))*kind(psit_f)
-   deallocate(psit_f, stat=i_stat)
-   call memocc(i_stat, i_all, 'psit_f', subname)
-   i_all=-product(shape(checksum))*kind(checksum)
-   deallocate(checksum, stat=i_stat)
-   call memocc(i_stat, i_all, 'checksum', subname)
-
+   call f_free(psi)
+   call f_free(psit_c)
+   call f_free(psit_f)
+   call f_free(checksum)
 
  contains
    
@@ -319,121 +315,141 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
 
   ! Local variables
   integer :: i0, ipt, ii, iiorb, j, jjorb, i, ierr, istat, m, tid, norb, nthreads
-  integer :: istart, iend, orb_rest, ind0, ind1, ind2, ind3
+  integer :: istart, iend, orb_rest, ind0, ind1, ind2, ind3, i07i, i07j, i0i, i0j
   integer,dimension(:),allocatable :: n
   !$ integer  :: omp_get_thread_num,omp_get_max_threads
+  integer :: totops, avops, ops, opsn
+  integer, allocatable, dimension(:) :: numops
 
   call timing(iproc,'ovrlptransComp','ON') !lr408t
+
+  call f_routine(id='calculate_overlap_transposed')
 
   call to_zero(smat%nvctr, ovrlp%matrix_compr(1))
 
   nthreads=1
   !$  nthreads = OMP_GET_max_threads()
-
-  allocate(n(nthreads),stat=istat)
-
-  norb = orbs%norb / nthreads
+  n = f_malloc(nthreads,id='n')
+  numops = f_malloc(orbs%norb,id='numops')
+  ! calculate number of operations for better load balancing of OpenMP
+  if (nthreads>1) then
+     numops=0
+     do ipt=1,collcom%nptsp_c
+        ii=collcom%norb_per_gridpoint_c(ipt)
+        i0 = collcom%isptsp_c(ipt)
+        do i=1,ii
+           iiorb=collcom%indexrecvorbital_c(i0+i)
+           numops(iiorb)=numops(iiorb)+ii
+        end do
+     end do
+     totops=sum(numops)
+     avops=totops/nthreads
+     jjorb=1
+     do i=1,nthreads
+        ops=0
+        do j=jjorb,orbs%norb
+           opsn=ops+numops(j)
+           if (opsn>=avops) then
+              if ((opsn-avops)<(avops-ops)) then
+                 n(i)=j
+                 jjorb=j+1
+                 totops=totops-opsn
+              else
+                 n(i)=j-1
+                 jjorb=j
+                 totops=totops-ops
+              end if
+              exit
+           end if
+           ops=opsn
+        end do
+        if (i/=nthreads) avops=nint(dble(totops)/dble(nthreads-i))
+     end do
   
-  orb_rest = orbs%norb-norb*nthreads
+  end if
 
-  n = norb
+  call f_free(numops)
 
-  do i = 1,orb_rest
-     n(i) = n(i) + 1
-  end do
+  n(nthreads)=orbs%norb
+
 
   !$omp parallel default(private) &
   !$omp shared(collcom, smat, ovrlp, psit_c1, psit_c2, psit_f1, psit_f2, n)
   tid=0
   !$ tid = OMP_GET_THREAD_NUM()
-  istart = 1
-  iend = 0
-
-  do i = 0,tid-1
-     istart = istart + n(i+1) 
-  end do
-
-  do i = 0,tid
-     iend = iend + n(i+1)
-  end do
-
- ! write(*,*) '#########################################',tid,istart,iend
+  iend=n(tid+1)
+  if (tid==0) then
+     istart=1
+  else
+     istart=n(tid)+1
+  end if
 
   if (collcom%nptsp_c>0) then
-  
+
       do ipt=1,collcom%nptsp_c 
           ii=collcom%norb_per_gridpoint_c(ipt) 
           i0 = collcom%isptsp_c(ipt)
-
           do i=1,ii
-              iiorb=collcom%indexrecvorbital_c(i0+i)
+              i0i=i0+i
+              iiorb=collcom%indexrecvorbital_c(i0i)
               if(iiorb < istart .or. iiorb > iend) cycle
-
               m=mod(ii,4)
               if(m/=0) then
                   do j=1,m
-                      jjorb=collcom%indexrecvorbital_c(i0+j)
+                      i0j=i0+j
+                      jjorb=collcom%indexrecvorbital_c(i0j)
                       ind0 = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                      !ind0 = collcom%matrixindex_in_compressed(jjorb,iiorb)
-                      ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_c1(i0+i)*psit_c2(i0+j)
+                      ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_c1(i0i)*psit_c2(i0j)
                   end do
               end if
               do j=m+1,ii,4
+                  i0j=i0+j
 
-                  jjorb=collcom%indexrecvorbital_c(i0+j+0)
+                  jjorb=collcom%indexrecvorbital_c(i0j+0)
                   ind0 = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                  !ind0 = collcom%matrixindex_in_compressed(jjorb,iiorb)
-                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_c1(i0+i)*psit_c2(i0+j+0)
+                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_c1(i0i)*psit_c2(i0j+0)
 
-                  jjorb=collcom%indexrecvorbital_c(i0+j+1)
+                  jjorb=collcom%indexrecvorbital_c(i0j+1)
                   ind1 = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                  !ind1 = collcom%matrixindex_in_compressed(jjorb,iiorb)
-                  ovrlp%matrix_compr(ind1) = ovrlp%matrix_compr(ind1) + psit_c1(i0+i)*psit_c2(i0+j+1)
+                  ovrlp%matrix_compr(ind1) = ovrlp%matrix_compr(ind1) + psit_c1(i0i)*psit_c2(i0j+1)
 
-                  jjorb=collcom%indexrecvorbital_c(i0+j+2)
+                  jjorb=collcom%indexrecvorbital_c(i0j+2)
                   ind2 = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                  !ind2 = collcom%matrixindex_in_compressed(jjorb,iiorb)
-                  ovrlp%matrix_compr(ind2) = ovrlp%matrix_compr(ind2) + psit_c1(i0+i)*psit_c2(i0+j+2)
+                  ovrlp%matrix_compr(ind2) = ovrlp%matrix_compr(ind2) + psit_c1(i0i)*psit_c2(i0j+2)
 
-                  jjorb=collcom%indexrecvorbital_c(i0+j+3)
+                  jjorb=collcom%indexrecvorbital_c(i0j+3)
                   ind3 = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                  !ind3 = collcom%matrixindex_in_compressed(jjorb,iiorb)
-                  ovrlp%matrix_compr(ind3) = ovrlp%matrix_compr(ind3) + psit_c1(i0+i)*psit_c2(i0+j+3)
+                  ovrlp%matrix_compr(ind3) = ovrlp%matrix_compr(ind3) + psit_c1(i0i)*psit_c2(i0j+3)
 
               end do
           end do
       end do
-
   end if
-  
-
   if (collcom%nptsp_f>0) then
-   
       do ipt=1,collcom%nptsp_f 
           ii=collcom%norb_per_gridpoint_f(ipt) 
           i0 = collcom%isptsp_f(ipt)
-
           do i=1,ii
-
-              iiorb=collcom%indexrecvorbital_f(i0+i)
+              i0i=i0+i
+              iiorb=collcom%indexrecvorbital_f(i0i)
               if(iiorb < istart .or. iiorb > iend) cycle
-
+              i07i=7*i0i
               do j=1,ii
-                  jjorb=collcom%indexrecvorbital_f(i0+j)
+                  i0j=i0+j
+                  i07j=7*i0j
+                  jjorb=collcom%indexrecvorbital_f(i0j)
                   ind0 = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                  !ind0 = collcom%matrixindex_in_compressed(jjorb,iiorb)
-                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(7*(i0+i)-6)*psit_f2(7*(i0+j)-6)
-                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(7*(i0+i)-5)*psit_f2(7*(i0+j)-5)
-                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(7*(i0+i)-4)*psit_f2(7*(i0+j)-4)
-                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(7*(i0+i)-3)*psit_f2(7*(i0+j)-3)
-                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(7*(i0+i)-2)*psit_f2(7*(i0+j)-2)
-                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(7*(i0+i)-1)*psit_f2(7*(i0+j)-1)
-                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(7*(i0+i)-0)*psit_f2(7*(i0+j)-0)
+                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(i07i-6)*psit_f2(i07j-6)
+                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(i07i-5)*psit_f2(i07j-5)
+                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(i07i-4)*psit_f2(i07j-4)
+                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(i07i-3)*psit_f2(i07j-3)
+                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(i07i-2)*psit_f2(i07j-2)
+                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(i07i-1)*psit_f2(i07j-1)
+                  ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_f1(i07i-0)*psit_f2(i07j-0)
               end do
           end do
       end do
   end if
-
   !$omp end parallel
 
   call timing(iproc,'ovrlptransComp','OF') !lr408t
@@ -444,8 +460,11 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
       call mpiallred(ovrlp%matrix_compr(1), smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
+  call f_free(n)
 
   smat%can_use_dense=.false.
+
+  call f_release_routine()
   call timing(iproc,'ovrlptransComm','OF') !lr408t
 
 end subroutine calculate_overlap_transposed
@@ -546,8 +565,9 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork
   real(kind=8),dimension(7*collcom%ndimind_f),intent(inout) :: psit_f
   integer, intent(in) :: iproc
   ! Local variables
-  integer :: i0, ipt, ii, j, iiorb, jjorb, i, m, ind0, ind1, ind2, ind3
+  integer :: i0, ipt, ii, j, iiorb, jjorb, i, m, ind0, ind1, ind2, ind3, i0i, i0j, i07i, i07j
 
+  call f_routine(id='build_linear_combination_transposed')
   call timing(iproc,'lincombtrans  ','ON') !lr408t
   if(reset) then
       if(collcom%ndimind_c>0) call to_zero(collcom%ndimind_c, psit_c(1))
@@ -563,73 +583,79 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork
   !!ubound(sparsemat%matrixindex_in_compressed_fortransposed,2),&
   !!minval(collcom%indexrecvorbital_c),maxval(collcom%indexrecvorbital_c)
 
-  !$omp do
+  !$omp do schedule(static,1)
    do ipt=1,collcom%nptsp_c 
       ii=collcom%norb_per_gridpoint_c(ipt) 
       i0 = collcom%isptsp_c(ipt)
       do i=1,ii
-          iiorb=collcom%indexrecvorbital_c(i0+i)
+          i0i=i0+i
+          iiorb=collcom%indexrecvorbital_c(i0i)
           m=mod(ii,4)
           if(m/=0) then
               do j=1,m
-                  jjorb=collcom%indexrecvorbital_c(i0+j)
+                  i0j=i0+j
+                  jjorb=collcom%indexrecvorbital_c(i0j)
                   ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
                   !ind0 = collcom%matrixindex_in_compressed(jjorb,iiorb)
                   !write(41,*) jjorb, iiorb, sparsemat%matrixindex_in_compressed(jjorb,iiorb)
                   !write(42,*) jjorb, iiorb, collcom%matrixindex_in_compressed(jjorb,iiorb)
-                  psit_c(i0+i)=psit_c(i0+i)+mat%matrix_compr(ind0)*psitwork_c(i0+j)
+                  psit_c(i0i)=psit_c(i0i)+mat%matrix_compr(ind0)*psitwork_c(i0j)
               end do
           end if
           do j=m+1,ii,4
-              jjorb=collcom%indexrecvorbital_c(i0+j+0)
+              i0j=i0+j
+              jjorb=collcom%indexrecvorbital_c(i0j+0)
               ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
               !ind0 = collcom%matrixindex_in_compressed(jjorb,iiorb)
-              psit_c(i0+i)=psit_c(i0+i)+mat%matrix_compr(ind0)*psitwork_c(i0+j+0)
+              psit_c(i0i)=psit_c(i0i)+mat%matrix_compr(ind0)*psitwork_c(i0j+0)
 
-              jjorb=collcom%indexrecvorbital_c(i0+j+1)
+              jjorb=collcom%indexrecvorbital_c(i0j+1)
               ind1 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
               !ind1 = collcom%matrixindex_in_compressed(jjorb,iiorb)
-              psit_c(i0+i)=psit_c(i0+i)+mat%matrix_compr(ind1)*psitwork_c(i0+j+1)
+              psit_c(i0i)=psit_c(i0i)+mat%matrix_compr(ind1)*psitwork_c(i0j+1)
 
-              jjorb=collcom%indexrecvorbital_c(i0+j+2)
+              jjorb=collcom%indexrecvorbital_c(i0j+2)
               ind2 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
               !ind2 = collcom%matrixindex_in_compressed(jjorb,iiorb)
-              psit_c(i0+i)=psit_c(i0+i)+mat%matrix_compr(ind2)*psitwork_c(i0+j+2)
+              psit_c(i0i)=psit_c(i0i)+mat%matrix_compr(ind2)*psitwork_c(i0j+2)
 
-              jjorb=collcom%indexrecvorbital_c(i0+j+3)
+              jjorb=collcom%indexrecvorbital_c(i0j+3)
               ind3 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
               !ind3 = collcom%matrixindex_in_compressed(jjorb,iiorb)
-              psit_c(i0+i)=psit_c(i0+i)+mat%matrix_compr(ind3)*psitwork_c(i0+j+3)
-
+              psit_c(i0i)=psit_c(i0i)+mat%matrix_compr(ind3)*psitwork_c(i0j+3)
           end do
       end do
   end do
   !$omp end do
 
-  !$omp do
+  !$omp do schedule(static,1)
   do ipt=1,collcom%nptsp_f 
       ii=collcom%norb_per_gridpoint_f(ipt) 
-       i0 = collcom%isptsp_f(ipt)
+      i0 = collcom%isptsp_f(ipt)
       do i=1,ii
-          iiorb=collcom%indexrecvorbital_f(i0+i)
+          i0i=i0+i
+          i07i=7*i0i
+          iiorb=collcom%indexrecvorbital_f(i0i)
           do j=1,ii
-              jjorb=collcom%indexrecvorbital_f(i0+j)
+              i0j=i0+j
+              i07j=7*i0j
+              jjorb=collcom%indexrecvorbital_f(i0j)
               ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
               !ind0 = collcom%matrixindex_in_compressed(jjorb,iiorb)
-              psit_f(7*(i0+i)-6) = psit_f(7*(i0+i)-6) + mat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-6)
-              psit_f(7*(i0+i)-5) = psit_f(7*(i0+i)-5) + mat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-5)
-              psit_f(7*(i0+i)-4) = psit_f(7*(i0+i)-4) + mat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-4)
-              psit_f(7*(i0+i)-3) = psit_f(7*(i0+i)-3) + mat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-3)
-              psit_f(7*(i0+i)-2) = psit_f(7*(i0+i)-2) + mat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-2)
-              psit_f(7*(i0+i)-1) = psit_f(7*(i0+i)-1) + mat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-1)
-              psit_f(7*(i0+i)-0) = psit_f(7*(i0+i)-0) + mat%matrix_compr(ind0)*psitwork_f(7*(i0+j)-0)
+              psit_f(i07i-6) = psit_f(i07i-6) + mat%matrix_compr(ind0)*psitwork_f(i07j-6)
+              psit_f(i07i-5) = psit_f(i07i-5) + mat%matrix_compr(ind0)*psitwork_f(i07j-5)
+              psit_f(i07i-4) = psit_f(i07i-4) + mat%matrix_compr(ind0)*psitwork_f(i07j-4)
+              psit_f(i07i-3) = psit_f(i07i-3) + mat%matrix_compr(ind0)*psitwork_f(i07j-3)
+              psit_f(i07i-2) = psit_f(i07i-2) + mat%matrix_compr(ind0)*psitwork_f(i07j-2)
+              psit_f(i07i-1) = psit_f(i07i-1) + mat%matrix_compr(ind0)*psitwork_f(i07j-1)
+              psit_f(i07i-0) = psit_f(i07i-0) + mat%matrix_compr(ind0)*psitwork_f(i07j-0)
           end do
-      end do
-     
+      end do  
   end do
   !$omp end do
   !$omp end parallel
 
+  call f_release_routine()
   call timing(iproc,'lincombtrans  ','OF') !lr408t
 
 end subroutine build_linear_combination_transposed
@@ -722,7 +748,7 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, nor
   real(8),dimension(orbs%norb),intent(out):: norm
   
   ! Local variables
-  integer:: i0, ipt, ii, iiorb, i, ierr, iorb
+  integer:: i0, ipt, ii, iiorb, i, ierr, iorb, i07i, i0i
 
   call timing(iproc,'norm_trans','ON')
 
@@ -730,15 +756,15 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, nor
 
   !$omp parallel default(private) &
   !$omp shared(collcom, norm, psit_c,psit_f,orbs)
-
   if (collcom%nptsp_c>0) then
       !$omp do reduction(+:norm)
       do ipt=1,collcom%nptsp_c 
           ii=collcom%norb_per_gridpoint_c(ipt)
           i0 = collcom%isptsp_c(ipt) 
           do i=1,ii
-              iiorb=collcom%indexrecvorbital_c(i0+i)
-              norm(iiorb)=norm(iiorb)+psit_c(i0+i)**2
+              i0i=i0+i
+              iiorb=collcom%indexrecvorbital_c(i0i)
+              norm(iiorb)=norm(iiorb)+psit_c(i0i)**2
           end do
       end do
       !$omp end do
@@ -750,19 +776,20 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, nor
           ii=collcom%norb_per_gridpoint_f(ipt) 
           i0 = collcom%isptsp_f(ipt) 
           do i=1,ii
-              iiorb=collcom%indexrecvorbital_f(i0+i)
-              norm(iiorb)=norm(iiorb)+psit_f(7*(i0+i)-6)**2
-              norm(iiorb)=norm(iiorb)+psit_f(7*(i0+i)-5)**2
-              norm(iiorb)=norm(iiorb)+psit_f(7*(i0+i)-4)**2
-              norm(iiorb)=norm(iiorb)+psit_f(7*(i0+i)-3)**2
-              norm(iiorb)=norm(iiorb)+psit_f(7*(i0+i)-2)**2
-              norm(iiorb)=norm(iiorb)+psit_f(7*(i0+i)-1)**2
-              norm(iiorb)=norm(iiorb)+psit_f(7*(i0+i)-0)**2
+              i0i=i0+i
+              i07i=7*i0i
+              iiorb=collcom%indexrecvorbital_f(i0i)
+              norm(iiorb)=norm(iiorb)+psit_f(i07i-6)**2
+              norm(iiorb)=norm(iiorb)+psit_f(i07i-5)**2
+              norm(iiorb)=norm(iiorb)+psit_f(i07i-4)**2
+              norm(iiorb)=norm(iiorb)+psit_f(i07i-3)**2
+              norm(iiorb)=norm(iiorb)+psit_f(i07i-2)**2
+              norm(iiorb)=norm(iiorb)+psit_f(i07i-1)**2
+              norm(iiorb)=norm(iiorb)+psit_f(i07i-0)**2
           end do
       end do
       !$omp end do
   end if
-
   !$omp end parallel
   
   if(nproc>1) then
@@ -779,10 +806,10 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, nor
       ii=collcom%norb_per_gridpoint_c(ipt)
       i0=collcom%isptsp_c(ipt)
       do i=1,ii
-          iiorb=collcom%indexrecvorbital_c(i0+i)
-          psit_c(i0+i)=psit_c(i0+i)*norm(iiorb)
-      end do
-    
+          i0i=i0+i
+          iiorb=collcom%indexrecvorbital_c(i0i)
+          psit_c(i0i)=psit_c(i0i)*norm(iiorb)
+      end do 
   end do
   !$omp end do
   !$omp do
@@ -790,19 +817,20 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, nor
       ii=collcom%norb_per_gridpoint_f(ipt)
       i0 = collcom%isptsp_f(ipt) 
       do i=1,ii
-          iiorb=collcom%indexrecvorbital_f(i0+i)
-          psit_f(7*(i0+i)-6)=psit_f(7*(i0+i)-6)*norm(iiorb)
-          psit_f(7*(i0+i)-5)=psit_f(7*(i0+i)-5)*norm(iiorb)
-          psit_f(7*(i0+i)-4)=psit_f(7*(i0+i)-4)*norm(iiorb)
-          psit_f(7*(i0+i)-3)=psit_f(7*(i0+i)-3)*norm(iiorb)
-          psit_f(7*(i0+i)-2)=psit_f(7*(i0+i)-2)*norm(iiorb)
-          psit_f(7*(i0+i)-1)=psit_f(7*(i0+i)-1)*norm(iiorb)
-          psit_f(7*(i0+i)-0)=psit_f(7*(i0+i)-0)*norm(iiorb)
+          i0i=i0+i
+          i07i=7*i0i
+          iiorb=collcom%indexrecvorbital_f(i0i)
+          psit_f(i07i-6)=psit_f(i07i-6)*norm(iiorb)
+          psit_f(i07i-5)=psit_f(i07i-5)*norm(iiorb)
+          psit_f(i07i-4)=psit_f(i07i-4)*norm(iiorb)
+          psit_f(i07i-3)=psit_f(i07i-3)*norm(iiorb)
+          psit_f(i07i-2)=psit_f(i07i-2)*norm(iiorb)
+          psit_f(i07i-1)=psit_f(i07i-1)*norm(iiorb)
+          psit_f(i07i-0)=psit_f(i07i-0)*norm(iiorb)
       end do
-  
   end do
-!$omp end do
-!$omp end parallel
+  !$omp end do
+  !$omp end parallel
 
   call timing(iproc,'norm_trans','OF')
 
@@ -850,7 +878,7 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
   sparsemat%matrixindex_in_compressed_fortransposed=f_malloc_ptr((/imin.to.imax,imin.to.imax/),&
       id='sparsemat%matrixindex_in_compressed_fortransposed')
 
-
+  !$omp parallel do default(private) shared(sparsemat,orbs,imin,imax)  
   do iorb=imin,imax
       do jorb=imin,imax
           sparsemat%matrixindex_in_compressed_fortransposed(iorb,jorb)=compressed_index(iorb,jorb,orbs%norb,sparsemat)
@@ -858,5 +886,6 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
           !sendbuf(iorb,jorb)=compressed_index(iiorb,jorb,orbs%norb,sparsemat)
       end do
   end do
+  !$omp end parallel do
 
 end subroutine init_matrixindex_in_compressed_fortransposed

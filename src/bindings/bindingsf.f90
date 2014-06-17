@@ -175,9 +175,7 @@ subroutine deallocate_double_1D(array)
   integer :: i_all, i_stat
 
   if (associated(array)) then
-     i_all=-product(shape(array))*kind(array)
-     deallocate(array,stat=i_stat)
-     call memocc(i_stat,i_all,'array',"deallocate_double")
+     call f_free_ptr(array)
   end if
 end subroutine deallocate_double_1D
 
@@ -190,9 +188,7 @@ subroutine deallocate_double_2D(array)
   integer :: i_all, i_stat
 
   if (associated(array)) then
-     i_all=-product(shape(array))*kind(array)
-     deallocate(array,stat=i_stat)
-     call memocc(i_stat,i_all,'array',"deallocate_double")
+     call f_free_ptr(array)
   end if
 end subroutine deallocate_double_2D
 
@@ -646,14 +642,15 @@ subroutine inputs_get_perf(in, linear)
   
   linear = in%linear
 END SUBROUTINE inputs_get_perf
-subroutine inputs_get_files(in, files)
-  use module_types
-  implicit none
-  type(input_variables), intent(in) :: in
-  integer, intent(out) :: files
-
-  files = in%files
-END SUBROUTINE inputs_get_files
+!seems not used anymore as the filling of files variables has disappeared in most of the cases
+!!$subroutine inputs_get_files(in, files)
+!!$  use module_types
+!!$  implicit none
+!!$  type(input_variables), intent(in) :: in
+!!$  integer, intent(out) :: files
+!!$
+!!$  files = in%files
+!!$END SUBROUTINE inputs_get_files
 subroutine inputs_get_linear(linear, inputPsiId)
   use module_types
   implicit none
@@ -928,9 +925,7 @@ subroutine localfields_free(denspotd, fion, fdisp)
   call dpbox_free(denspotd%dpbox, subname)
   
   if (associated(denspotd%V_ext)) then
-     i_all=-product(shape(denspotd%V_ext))*kind(denspotd%V_ext)
-     deallocate(denspotd%V_ext,stat=i_stat)
-     call memocc(i_stat,i_all,'denspotd%V_ext',subname)
+     call f_free_ptr(denspotd%V_ext)
   end if
   
   if (associated(denspotd%pkernelseq%kernel,target=denspotd%pkernel%kernel)) then
@@ -941,34 +936,24 @@ subroutine localfields_free(denspotd, fion, fdisp)
   call pkernel_free(denspotd%pkernel,subname)
 
   if (associated(denspotd%rhov)) then
-     i_all=-product(shape(denspotd%rhov))*kind(denspotd%rhov)
-     deallocate(denspotd%rhov,stat=i_stat)
-     call memocc(i_stat,i_all,'denspotd%rhov',subname)
+     call f_free_ptr(denspotd%rhov)
   end if
 
   if (associated(denspotd%V_XC)) then
-     i_all=-product(shape(denspotd%V_XC))*kind(denspotd%V_XC)
-     deallocate(denspotd%V_XC,stat=i_stat)
-     call memocc(i_stat,i_all,'denspotd%V_XC',subname)
+     call f_free_ptr(denspotd%V_XC)
   end if
 
   if(associated(denspotd%rho_C)) then
-     i_all=-product(shape(denspotd%rho_C))*kind(denspotd%rho_C)
-     deallocate(denspotd%rho_C,stat=i_stat)
-     call memocc(i_stat,i_all,'denspotd%rho_C',subname)
+     call f_free_ptr(denspotd%rho_C)
   end if
 
   deallocate(denspotd)
 
   if (associated(fion)) then
-     i_all=-product(shape(fion))*kind(fion)
-     deallocate(fion,stat=i_stat)
-     call memocc(i_stat,i_all,'fion',subname)
+     call f_free_ptr(fion)
   end if
   if (associated(fdisp)) then
-     i_all=-product(shape(fdisp))*kind(fdisp)
-     deallocate(fdisp,stat=i_stat)
-     call memocc(i_stat,i_all,'fdisp',subname)
+     call f_free_ptr(fdisp)
   end if
 END SUBROUTINE localfields_free
 subroutine localfields_copy_metadata(denspot, rhov_is, hgrid, ni, psoffset)
@@ -1108,19 +1093,13 @@ subroutine wf_empty(wf)
   integer :: i_all, i_stat
 
   if (associated(wf%psi)) then
-     i_all=-product(shape(wf%psi))*kind(wf%psi)
-     deallocate(wf%psi,stat=i_stat)
-     call memocc(i_stat,i_all,'psi', "wf_empty")
+     call f_free_ptr(wf%psi)
   end if
   if (associated(wf%psit)) then
-     i_all=-product(shape(wf%psit))*kind(wf%psit)
-     deallocate(wf%psit,stat=i_stat)
-     call memocc(i_stat,i_all,'psit', "wf_empty")
+     call f_free_ptr(wf%psit)
   end if
   if (associated(wf%hpsi)) then
-     i_all=-product(shape(wf%hpsi))*kind(wf%hpsi)
-     deallocate(wf%hpsi,stat=i_stat)
-     call memocc(i_stat,i_all,'hpsi', "wf_empty")
+     call f_free_ptr(wf%hpsi)
   end if
 END SUBROUTINE wf_empty
 subroutine wf_free(wf)
@@ -1656,7 +1635,7 @@ subroutine dict_parse(dict, buf)
   end if
 END SUBROUTINE dict_parse
 subroutine dict_pop(dict, exists, key)
-  use dictionaries, only: dictionary, has_key, pop, dict_init
+  use dictionaries, only: dictionary, has_key, dict_remove, dict_init
   implicit none
   type(dictionary), pointer :: dict
   logical, intent(out) :: exists
@@ -1664,7 +1643,7 @@ subroutine dict_pop(dict, exists, key)
 
   exists = (has_key(dict, key(1:len(key))))
   if (exists) then
-     call pop(dict, key(1:len(key)))
+     call dict_remove(dict, key(1:len(key)))
      if (.not. associated(dict)) call dict_init(dict)
   end if
 END SUBROUTINE dict_pop

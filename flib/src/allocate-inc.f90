@@ -75,9 +75,14 @@
 !!$  end subroutine profile
 !!$
 
+!!! cosider the possiblity of defining the metadata address
+!!$     call f_err_throw('Allocation problem for metadata add'//&
+!!$          trim(yaml_toa(iadd))//', error code '//trim(yaml_toa(ierror)),ERR_ALLOCATE)
   if (ierror/=0) then
-     call f_err_throw('Allocation problem, error code '//trim(yaml_toa(ierror)),ERR_ALLOCATE)
+     !$ if(not_omp) then
      call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
+     !$ end if
+     call f_err_throw('Allocation problem, error code '//trim(yaml_toa(ierror)),ERR_ALLOCATE)
      return
   end if
   if (size(shape(array))==m%rank) then
@@ -98,21 +103,26 @@
                  call dict_init(mems(ictrl)%dict_routine)
               end if
               call set(mems(ictrl)%dict_routine//long_toa(iadd),&
-                   dict_new(arrayid .is. trim(m%array_id),&
-                   routineid .is. trim(m%routine_id),&
-                   sizeid .is. trim(yaml_toa(ilsize)),&
-                   'Rank' .is. trim(yaml_toa(m%rank))))
-              !'[ '//trim(m%array_id)//', '//trim(m%routine_id)//', '//&
-              ! trim(yaml_toa(ilsize))//', '//trim(yaml_toa(m%rank))//']')
+                   !dict_new(arrayid .is. trim(m%array_id),&
+                   !routineid .is. trim(m%routine_id),&
+                   !sizeid .is. trim(yaml_toa(ilsize)),&
+                   !'Rank' .is. trim(yaml_toa(m%rank))))
+              '[ '//trim(m%array_id)//', '//trim(m%routine_id)//', '//&
+               trim(yaml_toa(ilsize))//', '//trim(yaml_toa(m%rank))//']')
            end if
         end if
         call memocc(ierror,int(ilsize),m%array_id,m%routine_id)
      end if
   else
+     !$ if(not_omp) then
+     call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
+     !$ end if
      call f_err_throw('Rank specified by f_malloc ('//trim(yaml_toa(m%rank))//&
           ') is not coherent with the one of the array ('//trim(yaml_toa(size(shape(array))))//')',&
           ERR_INVALID_MALLOC)
-     call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
      return
   end if
+  !$ if(not_omp) then
   call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
+  !$ end if
+  

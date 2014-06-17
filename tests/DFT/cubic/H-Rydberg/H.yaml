@@ -1,0 +1,30 @@
+dft:
+  ixc: 1000
+  hgrids: 0.8
+  rmult: [15.0, 8.0]
+  nvirt: 4
+  norbv: 4
+
+perf:
+  multipole_preserving: Yes
+  outdir: ./
+
+Atomic occupation:
+  H: { 1s: 1, 2p: 0, 2s: 0}
+
+posinp:
+  positions:
+  - {H: [0.0, 0.0, 0.0], Frozen: fxyz, IGSpin: 1}
+
+psppar.H:
+  Pseudopotential type                : HGH-K
+  Atomic number                       : 1
+  No. of Electrons                    : 1
+  Pseudopotential XC                  : 1
+  Local Pseudo Potential (HGH convention):
+    Rloc                              : 0.2
+    Coefficients (c1 .. c4): [-4.1802368, 0.72507482, 0.0, 0.0]
+  Radii of active regions (AU):
+    Coarse                            : 1.463418464633951
+    Fine                              : 0.2
+    Coarse PSP                        : 0.2

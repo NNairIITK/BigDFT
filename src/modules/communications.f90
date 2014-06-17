@@ -8,10 +8,9 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> Module defining routines related to communications (maily transpositions)
+!> Module defining routines related to communications (mainly transpositions)
 module communications
 
-  use module_base
   use communications_base, only: comms_linear, comms_cubic
 
   implicit none
@@ -33,14 +32,16 @@ module communications
 
   contains
 
+
     subroutine transpose_switch_psi(npsidim_orbs, orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
-      use module_base
-      use module_types
+      use module_types, only: orbitals_data, local_zone_descriptors
+      use wrapper_linalg, only: vcopy
+      use dynamic_memory
       implicit none
       
       ! Calling arguments
       integer, intent(in) :: npsidim_orbs
-      type(orbitals_Data),intent(in) :: orbs
+      type(orbitals_data),intent(in) :: orbs
       type(comms_linear),intent(in) :: collcom
       real(kind=8),dimension(npsidim_orbs),intent(in) :: psi
       real(kind=8),dimension(collcom%ndimpsi_c),intent(out) :: psiwork_c
@@ -48,14 +49,12 @@ module communications
       type(local_zone_descriptors),intent(in),optional :: lzd
       
       ! Local variables
-      integer :: i_tot, i_c, i_f, iorb, iiorb, ilr, i, ind, istat, iall,m
+      integer :: i_tot, i_c, i_f, iorb, iiorb, ilr, i, ind, m, ind7, i7
       real(kind=8),dimension(:),allocatable :: psi_c, psi_f
       character(len=*),parameter :: subname='transpose_switch_psi'
     
-      allocate(psi_c(collcom%ndimpsi_c), stat=istat)
-      call memocc(istat, psi_c, 'psi_c', subname)
-      allocate(psi_f(7*collcom%ndimpsi_f), stat=istat)
-      call memocc(istat, psi_f, 'psi_f', subname)
+      psi_c = f_malloc(collcom%ndimpsi_c,id='psi_c')
+      psi_f = f_malloc(7*collcom%ndimpsi_f,id='psi_f')
     
     
       if(present(lzd)) then
@@ -116,33 +115,31 @@ module communications
     
       !$omp do
        do i=1,collcom%ndimpsi_f
-           ind=collcom%isendbuf_f(i)
-          psiwork_f(7*ind-6)=psi_f(7*i-6)
-          psiwork_f(7*ind-5)=psi_f(7*i-5)
-          psiwork_f(7*ind-4)=psi_f(7*i-4)
-          psiwork_f(7*ind-3)=psi_f(7*i-3)
-          psiwork_f(7*ind-2)=psi_f(7*i-2)
-          psiwork_f(7*ind-1)=psi_f(7*i-1)
-          psiwork_f(7*ind-0)=psi_f(7*i-0)
+          ind=collcom%isendbuf_f(i)
+          i7=7*i
+          ind7=7*ind
+          psiwork_f(ind7-6)=psi_f(i7-6)
+          psiwork_f(ind7-5)=psi_f(i7-5)
+          psiwork_f(ind7-4)=psi_f(i7-4)
+          psiwork_f(ind7-3)=psi_f(i7-3)
+          psiwork_f(ind7-2)=psi_f(i7-2)
+          psiwork_f(ind7-1)=psi_f(i7-1)
+          psiwork_f(ind7-0)=psi_f(i7-0)
       end do
       !$omp end do
       !$omp end parallel
     
     
-      iall=-product(shape(psi_c))*kind(psi_c)
-      deallocate(psi_c, stat=istat)
-      call memocc(istat, iall, 'psi_c', subname)
-      iall=-product(shape(psi_f))*kind(psi_f)
-      deallocate(psi_f, stat=istat)
-      call memocc(istat, iall, 'psi_f', subname)
+      call f_free(psi_c)
+      call f_free(psi_f)
       
     end subroutine transpose_switch_psi
 
 
 
     subroutine transpose_communicate_psi(iproc, nproc, collcom, psiwork_c, psiwork_f, psitwork_c, psitwork_f)
-      use module_base
-      use module_types
+      use module_base, only: bigdft_mpi, mpi_double_precision
+      use dynamic_memory
       implicit none
       
       ! Calling arguments
@@ -150,14 +147,11 @@ module communications
       type(comms_linear),intent(in) :: collcom
       real(kind=8),dimension(collcom%ndimpsi_c),intent(in) :: psiwork_c
       real(kind=8),dimension(7*collcom%ndimpsi_f),intent(in) :: psiwork_f
-      !real(kind=8),dimension(sum(collcom%nrecvcounts_c)),intent(out) :: psitwork_c
-      !real(kind=8),dimension(7*sum(collcom%nrecvcounts_f)),intent(out) :: psitwork_f
       real(kind=8),dimension(collcom%ndimind_c),intent(out) :: psitwork_c
       real(kind=8),dimension(7*collcom%ndimind_f),intent(out) :: psitwork_f
       
       ! Local variables
-      integer :: ierr, istat, iall
-      !!integer :: iisend, iirecv, ist, ist_c, ist_f, jproc
+      integer :: ierr
       real(kind=8),dimension(:),allocatable :: psiwork, psitwork
       integer,dimension(:),allocatable :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
       character(len=*),parameter :: subname='transpose_communicate_psi'
@@ -165,18 +159,12 @@ module communications
       !call mpi_comm_size(bigdft_mpi%mpi_comm, nproc, ierr)
       !call mpi_comm_rank(bigdft_mpi%mpi_comm, iproc, ierr)
     
-      allocate(psiwork(collcom%ndimpsi_c+7*collcom%ndimpsi_f), stat=istat)
-      call memocc(istat, psiwork, 'psiwork', subname)
-      allocate(psitwork(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f)), stat=istat)
-      call memocc(istat, psitwork, 'psitwork', subname)
-      allocate(nsendcounts(0:nproc-1), stat=istat)
-      call memocc(istat, nsendcounts, 'nsendcounts', subname)
-      allocate(nsenddspls(0:nproc-1), stat=istat)
-      call memocc(istat, nsenddspls, 'nsenddspls', subname)
-      allocate(nrecvcounts(0:nproc-1), stat=istat)
-      call memocc(istat, nrecvcounts, 'nrecvcounts', subname)
-      allocate(nrecvdspls(0:nproc-1), stat=istat)
-      call memocc(istat, nrecvdspls, 'nrecvdspls', subname)
+      psiwork = f_malloc(collcom%ndimpsi_c+7*collcom%ndimpsi_f,id='psiwork')
+      psitwork = f_malloc(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f),id='psitwork')
+      nsendcounts = f_malloc(0.to.nproc-1,id='nsendcounts')
+      nsenddspls = f_malloc(0.to.nproc-1,id='nsenddspls')
+      nrecvcounts = f_malloc(0.to.nproc-1,id='nrecvcounts')
+      nrecvdspls = f_malloc(0.to.nproc-1,id='nrecvdspls')
     
       !!ist=1
       !!ist_c=1
@@ -225,24 +213,12 @@ module communications
       !!    ist=ist+7*collcom%nrecvcounts_f(jproc)
       !!end do
     
-      iall=-product(shape(psiwork))*kind(psiwork)
-      deallocate(psiwork, stat=istat)
-      call memocc(istat, iall, 'psiwork', subname)
-      iall=-product(shape(psitwork))*kind(psitwork)
-      deallocate(psitwork, stat=istat)
-      call memocc(istat, iall, 'psitwork', subname)
-      iall=-product(shape(nsendcounts))*kind(nsendcounts)
-      deallocate(nsendcounts, stat=istat)
-      call memocc(istat, iall, 'nsendcounts', subname)
-      iall=-product(shape(nsenddspls))*kind(nsenddspls)
-      deallocate(nsenddspls, stat=istat)
-      call memocc(istat, iall, 'nsenddspls', subname)
-      iall=-product(shape(nrecvcounts))*kind(nrecvcounts)
-      deallocate(nrecvcounts, stat=istat)
-      call memocc(istat, iall, 'nrecvcounts', subname)
-      iall=-product(shape(nrecvdspls))*kind(nrecvdspls)
-      deallocate(nrecvdspls, stat=istat)
-      call memocc(istat, iall, 'nrecvdspls', subname)
+      call f_free(psiwork)
+      call f_free(psitwork)
+      call f_free(nsendcounts)
+      call f_free(nsenddspls)
+      call f_free(nrecvcounts)
+      call f_free(nrecvdspls)
     
     
     end subroutine transpose_communicate_psi
@@ -250,8 +226,6 @@ module communications
 
 
     subroutine transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit_f)
-      use module_base
-      use module_types
       implicit none
       
       ! Calling arguments
@@ -262,12 +236,12 @@ module communications
       real(kind=8),dimension(7*collcom%ndimind_f),intent(out) :: psit_f
       
       ! Local variables
-      integer :: i, ind, sum_c,sum_f,m
+      integer :: i,ind,sum_c,sum_f,m,i7,ind7
     
       sum_c = sum(collcom%nrecvcounts_c)
       sum_f = sum(collcom%nrecvcounts_f)
     
-      !$omp parallel private(i,ind) &
+      !$omp parallel private(i,ind,i7,ind7) &
       !$omp shared(psit_c,psit_f, psitwork_c, psitwork_f,collcom,sum_c,sum_f,m)
     
     
@@ -299,13 +273,15 @@ module communications
       !$omp do
       do i=1,sum_f
           ind=collcom%iextract_f(i)
-          psit_f(7*ind-6)=psitwork_f(7*i-6)
-          psit_f(7*ind-5)=psitwork_f(7*i-5)
-          psit_f(7*ind-4)=psitwork_f(7*i-4)
-          psit_f(7*ind-3)=psitwork_f(7*i-3)
-          psit_f(7*ind-2)=psitwork_f(7*i-2)
-          psit_f(7*ind-1)=psitwork_f(7*i-1)
-          psit_f(7*ind-0)=psitwork_f(7*i-0)
+          i7=7*i
+          ind7=7*ind
+          psit_f(ind7-6)=psitwork_f(i7-6)
+          psit_f(ind7-5)=psitwork_f(i7-5)
+          psit_f(ind7-4)=psitwork_f(i7-4)
+          psit_f(ind7-3)=psitwork_f(i7-3)
+          psit_f(ind7-2)=psitwork_f(i7-2)
+          psit_f(ind7-1)=psitwork_f(i7-1)
+          psit_f(ind7-0)=psitwork_f(i7-0)
       end do
       !$omp end do
       
@@ -316,8 +292,6 @@ module communications
 
 
     subroutine transpose_switch_psit(collcom, psit_c, psit_f, psitwork_c, psitwork_f)
-      use module_base
-      use module_types
       implicit none
     
       ! Calling arguments
@@ -328,7 +302,7 @@ module communications
       real(kind=8),dimension(7*collcom%ndimind_f),intent(out) :: psitwork_f
       
       ! Local variables
-      integer :: i, ind, sum_c,sum_f,m
+      integer :: i, ind, sum_c,sum_f,m, i7, ind7
     
       sum_c = sum(collcom%nrecvcounts_c)
       sum_f = sum(collcom%nrecvcounts_f)
@@ -363,14 +337,16 @@ module communications
     
       !$omp do
       do i=1,sum_f
+          i7=7*i
           ind=collcom%iexpand_f(i)
-          psitwork_f(7*ind-6)=psit_f(7*i-6)
-          psitwork_f(7*ind-5)=psit_f(7*i-5)
-          psitwork_f(7*ind-4)=psit_f(7*i-4)
-          psitwork_f(7*ind-3)=psit_f(7*i-3)
-          psitwork_f(7*ind-2)=psit_f(7*i-2)
-          psitwork_f(7*ind-1)=psit_f(7*i-1)
-          psitwork_f(7*ind-0)=psit_f(7*i-0)
+          ind7=7*ind
+          psitwork_f(ind7-6)=psit_f(i7-6)
+          psitwork_f(ind7-5)=psit_f(i7-5)
+          psitwork_f(ind7-4)=psit_f(i7-4)
+          psitwork_f(ind7-3)=psit_f(i7-3)
+          psitwork_f(ind7-2)=psit_f(i7-2)
+          psitwork_f(ind7-1)=psit_f(i7-1)
+          psitwork_f(ind7-0)=psit_f(i7-0)
       end do
       !$omp end do
       !$omp end parallel
@@ -380,8 +356,7 @@ module communications
 
 
     subroutine transpose_communicate_psit(iproc, nproc, collcom, psitwork_c, psitwork_f, psiwork_c, psiwork_f)
-      use module_base
-      use module_types
+      use module_base, only: bigdft_mpi, mpi_double_precision
       implicit none
     
       ! Calling arguments
@@ -482,8 +457,9 @@ module communications
 
 
     subroutine transpose_unswitch_psi(npsidim_orbs, orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
-      use module_base
-      use module_types
+      use module_types, only: orbitals_data, local_zone_descriptors
+      use wrapper_linalg, only: vcopy
+      use dynamic_memory
       implicit none
       
       ! Caling arguments
@@ -496,15 +472,13 @@ module communications
       type(local_zone_descriptors),intent(in),optional :: lzd
       
       ! Local variables
-      integer :: i, ind, iorb, iiorb, ilr, i_tot, i_c, i_f, istat, iall,m
+      integer :: i, ind, iorb, iiorb, ilr, i_tot, i_c, i_f, m, i7, ind7
       real(kind=8),dimension(:),allocatable :: psi_c, psi_f
       character(len=*),parameter :: subname='transpose_unswitch_psi'
       
       
-      allocate(psi_c(collcom%ndimpsi_c), stat=istat)
-      call memocc(istat, psi_c, 'psi_c', subname)
-      allocate(psi_f(7*collcom%ndimpsi_f), stat=istat)
-      call memocc(istat, psi_f, 'psi_f', subname)
+      psi_c = f_malloc(collcom%ndimpsi_c,id='psi_c')
+      psi_f = f_malloc(7*collcom%ndimpsi_f,id='psi_f')
       
       !$omp parallel default(private) &
       !$omp shared(collcom, psiwork_c, psi_c,psi_f,psiwork_f,m)
@@ -537,13 +511,15 @@ module communications
       !$omp do
        do i=1,collcom%ndimpsi_f
             ind=collcom%irecvbuf_f(i)
-            psi_f(7*ind-6)=psiwork_f(7*i-6)
-            psi_f(7*ind-5)=psiwork_f(7*i-5)
-            psi_f(7*ind-4)=psiwork_f(7*i-4)
-            psi_f(7*ind-3)=psiwork_f(7*i-3)
-            psi_f(7*ind-2)=psiwork_f(7*i-2)
-            psi_f(7*ind-1)=psiwork_f(7*i-1)
-            psi_f(7*ind-0)=psiwork_f(7*i-0)
+            i7=7*i
+            ind7=7*ind
+            psi_f(ind7-6)=psiwork_f(i7-6)
+            psi_f(ind7-5)=psiwork_f(i7-5)
+            psi_f(ind7-4)=psiwork_f(i7-4)
+            psi_f(ind7-3)=psiwork_f(i7-3)
+            psi_f(ind7-2)=psiwork_f(i7-2)
+            psi_f(ind7-1)=psiwork_f(i7-1)
+            psi_f(ind7-0)=psiwork_f(i7-0)
         end do
       !$omp end do
       !$omp end parallel
@@ -577,20 +553,16 @@ module communications
             call vcopy(collcom%ndimpsi_c, psi_c(1), 1, psi(1), 1)
         end if
       
-      iall=-product(shape(psi_c))*kind(psi_c)
-      deallocate(psi_c, stat=istat)
-      call memocc(istat, iall, 'psi_c', subname)
-      iall=-product(shape(psi_f))*kind(psi_f)
-      deallocate(psi_f, stat=istat)
-      call memocc(istat, iall, 'psi_f', subname)
+      call f_free(psi_c)
+      call f_free(psi_f)
     
     end subroutine transpose_unswitch_psi
 
 
 
     subroutine transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psi, psit_c, psit_f, lzd)
-      use module_base
-      use module_types
+      use module_types, only: orbitals_data, local_zone_descriptors
+      use dynamic_memory
       !use module_interfaces, except_this_one => transpose_localized
       implicit none
       
@@ -605,19 +577,16 @@ module communications
       
       ! Local variables
       real(kind=8),dimension(:),allocatable :: psiwork_c, psiwork_f, psitwork_c, psitwork_f
-      integer :: istat, iall
       character(len=*),parameter :: subname='transpose_localized'
-      
-      allocate(psiwork_c(collcom%ndimpsi_c), stat=istat)
-      call memocc(istat, psiwork_c, 'psiwork_c', subname)
-      allocate(psiwork_f(7*collcom%ndimpsi_f), stat=istat)
-      call memocc(istat, psiwork_f, 'psiwork_f', subname)
-      allocate(psitwork_c(sum(collcom%nrecvcounts_c)), stat=istat)
-      call memocc(istat, psitwork_c, 'psitwork_c', subname)
-      allocate(psitwork_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-      call memocc(istat, psitwork_f, 'psitwork_f', subname)
-      
+
       call timing(iproc,'Un-TransSwitch','ON')
+      call f_routine(id='transpose_localized')
+      
+      psiwork_c = f_malloc(collcom%ndimpsi_c,id='psiwork_c')
+      psiwork_f = f_malloc(7*collcom%ndimpsi_f,id='psiwork_f')
+      psitwork_c = f_malloc(sum(collcom%nrecvcounts_c),id='psitwork_c')
+      psitwork_f = f_malloc(7*sum(collcom%nrecvcounts_f),id='psitwork_f')
+      
       if(present(lzd)) then
           call transpose_switch_psi(npsidim_orbs, orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
       else
@@ -636,28 +605,22 @@ module communications
     
       call timing(iproc,'Un-TransSwitch','ON')
       call transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit_f)
-      call timing(iproc,'Un-TransSwitch','OF')
       
-      iall=-product(shape(psiwork_c))*kind(psiwork_c)
-      deallocate(psiwork_c, stat=istat)
-      call memocc(istat, iall, 'psiwork_c', subname)
-      iall=-product(shape(psiwork_f))*kind(psiwork_f)
-      deallocate(psiwork_f, stat=istat)
-      call memocc(istat, iall, 'psiwork_f', subname)
-      iall=-product(shape(psitwork_c))*kind(psitwork_c)
-      deallocate(psitwork_c, stat=istat)
-      call memocc(istat, iall, 'psitwork_c', subname)
-      iall=-product(shape(psitwork_f))*kind(psitwork_f)
-      deallocate(psitwork_f, stat=istat)
-      call memocc(istat, iall, 'psitwork_f', subname)
+      call f_free(psiwork_c)
+      call f_free(psiwork_f)
+      call f_free(psitwork_c)
+      call f_free(psitwork_f)
+
+      call f_release_routine()
+      call timing(iproc,'Un-TransSwitch','OF')
       
     end subroutine transpose_localized
 
 
 
     subroutine untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, psi, lzd)
-      use module_base
-      use module_types
+      use module_types, only: orbitals_data, local_zone_descriptors
+      use dynamic_memory
       !use module_interfaces, except_this_one => untranspose_localized
       implicit none
       
@@ -672,17 +635,14 @@ module communications
       
       ! Local variables
       real(kind=8),dimension(:),allocatable :: psiwork_c, psiwork_f, psitwork_c, psitwork_f
-      integer :: istat, iall
       character(len=*),parameter :: subname='untranspose_localized'
+
+      call f_routine(id='untranspose_localized')
       
-      allocate(psiwork_c(collcom%ndimpsi_c), stat=istat)
-      call memocc(istat, psiwork_c, 'psiwork_c', subname)
-      allocate(psiwork_f(7*collcom%ndimpsi_f), stat=istat)
-      call memocc(istat, psiwork_f, 'psiwork_f', subname)
-      allocate(psitwork_c(sum(collcom%nrecvcounts_c)), stat=istat)
-      call memocc(istat, psitwork_c, 'psitwork_c', subname)
-      allocate(psitwork_f(7*sum(collcom%nrecvcounts_f)), stat=istat)
-      call memocc(istat, psitwork_f, 'psitwork_f', subname)
+      psiwork_c = f_malloc(collcom%ndimpsi_c,id='psiwork_c')
+      psiwork_f = f_malloc(7*collcom%ndimpsi_f,id='psiwork_f')
+      psitwork_c = f_malloc(sum(collcom%nrecvcounts_c),id='psitwork_c')
+      psitwork_f = f_malloc(7*sum(collcom%nrecvcounts_f),id='psitwork_f')
     
       call timing(iproc,'Un-TransSwitch','ON')
       call transpose_switch_psit(collcom, psit_c, psit_f, psitwork_c, psitwork_f)
@@ -705,18 +665,12 @@ module communications
       end if
       call timing(iproc,'Un-TransSwitch','OF')
       
-      iall=-product(shape(psiwork_c))*kind(psiwork_c)
-      deallocate(psiwork_c, stat=istat)
-      call memocc(istat, iall, 'psiwork_c', subname)
-      iall=-product(shape(psiwork_f))*kind(psiwork_f)
-      deallocate(psiwork_f, stat=istat)
-      call memocc(istat, iall, 'psiwork_f', subname)
-      iall=-product(shape(psitwork_c))*kind(psitwork_c)
-      deallocate(psitwork_c, stat=istat)
-      call memocc(istat, iall, 'psitwork_c', subname)
-      iall=-product(shape(psitwork_f))*kind(psitwork_f)
-      deallocate(psitwork_f, stat=istat)
-      call memocc(istat, iall, 'psitwork_f', subname)
+      call f_free(psiwork_c)
+      call f_free(psiwork_f)
+      call f_free(psitwork_c)
+      call f_free(psitwork_f)
+
+      call f_release_routine()
       
     end subroutine untranspose_localized
 
@@ -726,8 +680,6 @@ module communications
 
 
     subroutine transpose_switch_psir(collcom_sr, psir, psirwork)
-      use module_base
-      use module_types
       implicit none
     
       ! Calling arguments
@@ -765,8 +717,8 @@ module communications
     end subroutine transpose_switch_psir
     
     subroutine transpose_communicate_psir(iproc, nproc, collcom_sr, psirwork, psirtwork)
-      use module_base
-      use module_types
+      use module_base, only: bigdft_mpi, mpi_double_precision
+      use wrapper_linalg, only: vcopy
       implicit none
     
       ! Calling arguments
@@ -790,8 +742,6 @@ module communications
     end subroutine transpose_communicate_psir
     
     subroutine transpose_unswitch_psirt(collcom_sr, psirtwork, psirt)
-      use module_base
-      use module_types
       implicit none
     
       ! Calling arguments
@@ -839,7 +789,7 @@ module communications
  
     subroutine start_onesided_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, recvbuf, comm, lzd)
       use module_base
-      use module_types
+      use module_types, only: p2pComms, local_zone_descriptors
       implicit none
       
       ! Calling arguments
@@ -923,7 +873,7 @@ module communications
     
     subroutine synchronize_onesided_communication(iproc, nproc, comm)
       use module_base
-      use module_types
+      use module_types, only: p2pComms
       implicit none
       
       ! Calling arguments
@@ -953,7 +903,7 @@ module communications
     !> Locreg communication
     subroutine communicate_locreg_descriptors_basics(iproc, nlr, rootarr, orbs, llr)
       use module_base
-      use module_types
+      use module_types, only: orbitals_data, locreg_descriptors
       implicit none
     
       ! Calling arguments
@@ -969,24 +919,20 @@ module communications
       integer,dimension(:,:),allocatable :: worksend_int, workrecv_int
       real(8),dimension(:,:),allocatable :: worksend_dbl, workrecv_dbl
       character(len=*),parameter :: subname='communicate_locreg_descriptors_basics'
+
+      call f_routine(id=subname)
     
       allocate(worksend_char(orbs%norbp), stat=istat)
       call memocc(istat, worksend_char, 'worksend_char', subname)
-      allocate(worksend_log(orbs%norbp), stat=istat)
-      call memocc(istat, worksend_log, 'worksend_log', subname)
-      allocate(worksend_int(11,orbs%norbp), stat=istat)
-      call memocc(istat, worksend_int, 'worksend_int', subname)
-      allocate(worksend_dbl(6,orbs%norbp), stat=istat)
-      call memocc(istat, worksend_dbl, 'worksend_dbl', subname)
+      worksend_log = f_malloc(orbs%norbp,id='worksend_log')
+      worksend_int = f_malloc((/ 11, orbs%norbp /),id='worksend_int')
+      worksend_dbl = f_malloc((/ 6, orbs%norbp /),id='worksend_dbl')
     
       allocate(workrecv_char(orbs%norb), stat=istat)
       call memocc(istat, workrecv_char, 'workrecv_char', subname)
-      allocate(workrecv_log(orbs%norb), stat=istat)
-      call memocc(istat, workrecv_log, 'workrecv_log', subname)
-      allocate(workrecv_int(11,orbs%norb), stat=istat)
-      call memocc(istat, workrecv_int, 'workrecv_int', subname)
-      allocate(workrecv_dbl(6,orbs%norb), stat=istat)
-      call memocc(istat, workrecv_dbl, 'workrecv_dbl', subname)
+      workrecv_log = f_malloc(orbs%norb,id='workrecv_log')
+      workrecv_int = f_malloc((/ 11, orbs%norb /),id='workrecv_int')
+      workrecv_dbl = f_malloc((/ 6, orbs%norb /),id='workrecv_dbl')
     
     
       iilr=0
@@ -1039,16 +985,10 @@ module communications
       end do
     
     
-      iall=-product(shape(worksend_int))*kind(worksend_int)
-      deallocate(worksend_int,stat=istat)
-      call memocc(istat, iall, 'worksend_int', subname)
-      iall=-product(shape(workrecv_int))*kind(workrecv_int)
-      deallocate(workrecv_int,stat=istat)
-      call memocc(istat, iall, 'workrecv_int', subname)
-      allocate(worksend_int(13,orbs%norbp), stat=istat)
-      call memocc(istat, worksend_int, 'worksend_int', subname)
-      allocate(workrecv_int(13,orbs%norb), stat=istat)
-      call memocc(istat, workrecv_int, 'workrecv_int', subname)
+      call f_free(worksend_int)
+      call f_free(workrecv_int)
+      worksend_int = f_malloc((/ 13, orbs%norbp /),id='worksend_int')
+      workrecv_int = f_malloc((/ 13, orbs%norb /),id='workrecv_int')
     
     
       iilr=0
@@ -1094,35 +1034,26 @@ module communications
       iall=-product(shape(worksend_char))*kind(worksend_char)
       deallocate(worksend_char,stat=istat)
       call memocc(istat, iall, 'worksend_char', subname)
-      iall=-product(shape(worksend_log))*kind(worksend_log)
-      deallocate(worksend_log,stat=istat)
-      call memocc(istat, iall, 'worksend_log', subname)
-      iall=-product(shape(worksend_int))*kind(worksend_int)
-      deallocate(worksend_int,stat=istat)
-      call memocc(istat, iall, 'worksend_int', subname)
-      iall=-product(shape(worksend_dbl))*kind(worksend_dbl)
-      deallocate(worksend_dbl,stat=istat)
-      call memocc(istat, iall, 'worksend_dbl', subname)
-    
+      call f_free(worksend_log)
+      call f_free(worksend_int)
+      call f_free(worksend_dbl)
+
       iall=-product(shape(workrecv_char))*kind(workrecv_char)
       deallocate(workrecv_char,stat=istat)
       call memocc(istat, iall, 'workrecv_char', subname)
-      iall=-product(shape(workrecv_log))*kind(workrecv_log)
-      deallocate(workrecv_log,stat=istat)
-      call memocc(istat, iall, 'workrecv_log', subname)
-      iall=-product(shape(workrecv_int))*kind(workrecv_int)
-      deallocate(workrecv_int,stat=istat)
-      call memocc(istat, iall, 'workrecv_int', subname)
-      iall=-product(shape(workrecv_dbl))*kind(workrecv_dbl)
-      deallocate(workrecv_dbl,stat=istat)
-      call memocc(istat, iall, 'workrecv_dbl', subname)
+      call f_free(workrecv_log)
+      call f_free(workrecv_int)
+      call f_free(workrecv_dbl)
+
+      call f_release_routine()
     
     end subroutine communicate_locreg_descriptors_basics
     
     
     subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, rootarr, onwhichmpi)
        use module_base
-       use module_types
+       use module_types, only: orbitals_data, locreg_descriptors
+       use locregs, only: allocate_wfd
        use yaml_output
        implicit none
     
@@ -1135,28 +1066,23 @@ module communications
        integer,dimension(orbs%norb),intent(in) :: onwhichmpi
     
        ! Local variables
-       integer:: ierr, istat, iall, jorb, ilr, jlr, jtask, root, icomm, nrecv, nalloc, max_sim_comms
+       integer:: ierr, jorb, ilr, jlr, jtask, root, icomm, nrecv, nalloc, max_sim_comms
        integer :: maxrecvdim, maxsenddim
        logical :: isoverlap
-       character(len=*),parameter:: subname='communicate_wavefunctions_descriptors2'
+       character(len=*),parameter:: subname='communicate_locreg_descriptors_keys'
        integer,dimension(:),allocatable :: requests
        integer,dimension(:,:),allocatable :: worksend_int, workrecv_int
        logical,dimension(:,:),allocatable :: covered
        !integer :: total_sent, total_recv
+
+       call f_routine(id=subname)
     
        ! This maxval is put out of the allocate to avoid compiler crash with PathScale.
        jorb = maxval(orbs%norb_par(:,0))
-       allocate(requests(8*nproc*jorb), stat=istat)
-       call memocc(istat, requests, 'requests', subname)
-    
-       allocate(covered(nlr,0:nproc-1), stat=istat)
-       call memocc(istat, covered, 'covered', subname)
-    
-       allocate(worksend_int(4,nlr), stat=istat)
-       call memocc(istat, worksend_int, 'worksend_int', subname)
-    
-       allocate(workrecv_int(4,nlr), stat=istat)
-       call memocc(istat, workrecv_int, 'workrecv_int', subname)
+       requests = f_malloc(8*nproc*jorb,id='requests')
+       covered = f_malloc((/ 1.to.nlr, 0.to.nproc-1 /),id='covered')
+       worksend_int = f_malloc((/ 4, nlr /),id='worksend_int')
+       workrecv_int = f_malloc((/ 4, nlr /),id='workrecv_int')
     
        nrecv=0
        !nsend=0
@@ -1202,9 +1128,7 @@ module communications
        call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
        call mpi_barrier(mpi_comm_world,ierr)
     
-       iall=-product(shape(worksend_int))*kind(worksend_int)
-       deallocate(worksend_int,stat=istat)
-       call memocc(istat, iall, 'worksend_int', subname)
+       call f_free(worksend_int)
     
        nalloc=0
        maxrecvdim=0
@@ -1223,15 +1147,11 @@ module communications
             trim(yaml_toa(nrecv))//' and allocates '//trim(yaml_toa(nalloc))//' for process '//trim(yaml_toa(iproc)),&
             err_name='BIGDFT_RUNTIME_ERROR')) return
     
-       iall=-product(shape(workrecv_int))*kind(workrecv_int)
-       deallocate(workrecv_int,stat=istat)
-       call memocc(istat, iall, 'workrecv_int', subname)
+       call f_free(workrecv_int)
     
        !should reduce memory by not allocating for all llr
-       allocate(workrecv_int(6*maxrecvdim,nlr), stat=istat)
-       call memocc(istat, workrecv_int, 'workrecv_int', subname)
-       allocate(worksend_int(6*maxsenddim,nlr), stat=istat)
-       call memocc(istat, worksend_int, 'worksend_int', subname)
+       workrecv_int = f_malloc((/ 6*maxrecvdim, nlr /),id='workrecv_int')
+       worksend_int = f_malloc((/ 6*maxsenddim, nlr /),id='worksend_int')
     
        ! divide communications into chunks to avoid problems with memory (too many communications)
        ! set maximum number of simultaneous communications
@@ -1277,9 +1197,7 @@ module communications
           end if
        end do
     
-       iall=-product(shape(worksend_int))*kind(worksend_int)
-       deallocate(worksend_int,stat=istat)
-       call memocc(istat, iall, 'worksend_int', subname)
+       call f_free(worksend_int)
     
        do ilr=1,nlr 
           if (covered(ilr,iproc)) then
@@ -1293,18 +1211,13 @@ module communications
           end if
        end do
     
-       iall=-product(shape(workrecv_int))*kind(workrecv_int)
-       deallocate(workrecv_int,stat=istat)
-       call memocc(istat, iall, 'workrecv_int', subname)
+       call f_free(workrecv_int)
     
        !print*,'iproc,sent,received,num sent,num received',iproc,total_sent,total_recv,nsend,nrecv
-       iall=-product(shape(requests))*kind(requests)
-       deallocate(requests,stat=istat)
-       call memocc(istat, iall, 'requests', subname)
-    
-       iall=-product(shape(covered))*kind(covered)
-       deallocate(covered,stat=istat)
-       call memocc(istat, iall, 'covered', subname)
+       call f_free(requests)
+       call f_free(covered)
+
+       call f_release_routine()
     
     contains
     
@@ -1602,7 +1515,6 @@ subroutine unswitch_waves_v(nproc,orbs,nvctr,nvctr_par,psiw,psi)
 END SUBROUTINE unswitch_waves_v
 
 
-
 !> The cubic routines
 subroutine psitransspi(nvctrp,orbs,psi,forward)
   use module_base
@@ -1614,11 +1526,10 @@ subroutine psitransspi(nvctrp,orbs,psi,forward)
   real(wp), dimension(orbs%nspinor*nvctrp,orbs%norb,orbs%nkpts), intent(inout) :: psi
   !local variables
   character(len=*), parameter :: subname='psitransspi'
-  integer :: i,iorb,isp,i_all,i_stat,ikpts
+  integer :: i,iorb,isp,ikpts
   real(wp), dimension(:,:,:,:), allocatable :: tpsit
 
-  allocate(tpsit(nvctrp,orbs%nspinor,orbs%norb,orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,tpsit,'tpsit',subname)
+  tpsit = f_malloc((/ nvctrp, orbs%nspinor, orbs%norb, orbs%nkpts /),id='tpsit')
   if(forward) then
      !we can use vcopy here
      do ikpts=1,orbs%nkpts
@@ -1686,9 +1597,7 @@ subroutine psitransspi(nvctrp,orbs,psi,forward)
      end do
   end if
 
-  i_all=-product(shape(tpsit))*kind(tpsit)
-  deallocate(tpsit,stat=i_stat)
-  call memocc(i_stat,i_all,'tpsit',subname)
+  call f_free(tpsit)
 END SUBROUTINE psitransspi
 
 
@@ -1709,7 +1618,6 @@ subroutine toglobal_and_transpose(iproc,nproc,orbs,Lzd,comms,psi,&
   real(wp), dimension(*), intent(out), optional :: outadd
   !local variables
   character(len=*), parameter :: subname='toglobal_and_transpose'
-  integer :: i_all,i_stat
   integer :: psishift1,totshift,iorb,ilr,ldim,Gdim
   real(wp) :: workdum
   real(wp), dimension(:), pointer :: workarr
@@ -1723,8 +1631,7 @@ subroutine toglobal_and_transpose(iproc,nproc,orbs,Lzd,comms,psi,&
      totshift = 1
      Gdim = max((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor,&
            sum(comms%ncntt(0:nproc-1)))
-     allocate(workarr(Gdim+ndebug),stat=i_stat)
-     call memocc(i_stat,workarr,'workarr',subname)
+     workarr = f_malloc_ptr(Gdim,id='workarr')
      call to_zero(Gdim,workarr)
      do iorb=1,orbs%norbp
         ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
@@ -1739,15 +1646,10 @@ subroutine toglobal_and_transpose(iproc,nproc,orbs,Lzd,comms,psi,&
      end do
 
      !reallocate psi to the global dimensions
-     i_all=-product(shape(psi))*kind(psi)
-     deallocate(psi,stat=i_stat)
-     call memocc(i_stat,i_all,'psi',subname)
-     allocate(psi(Gdim+ndebug),stat=i_stat)
-     call memocc(i_stat,psi,'psi',subname)
+     call f_free_ptr(psi)
+     psi = f_malloc_ptr(Gdim,id='psi')
      call vcopy(Gdim,workarr(1),1,psi(1),1) !psi=work
-     i_all=-product(shape(workarr))*kind(workarr)
-     deallocate(workarr,stat=i_stat)
-     call memocc(i_stat,i_all,'workarr',subname)
+     call f_free_ptr(workarr)
   end if
 
   if (nproc > 1 .and. .not. associated(work)) then

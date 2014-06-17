@@ -16,14 +16,17 @@ module foe_base
     real(kind=8) :: fscale_lowerbound      !< lower bound for the error function decay length
     real(kind=8) :: fscale_upperbound      !< upper bound for the error function decay length
     integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
+    logical :: adjust_FOE_temperature
   end type foe_data
 
 
   public :: foe_data_null
   public :: foe_data_set_int
   public :: foe_data_get_int
+  public :: foe_data_set_logical
   public :: foe_data_set_real
   public :: foe_data_get_real
+  public :: foe_data_get_logical
 
 
   contains
@@ -45,6 +48,7 @@ module foe_base
       foe_obj%evboundsshrink_isatur  = uninitialized(foe_obj%evboundsshrink_isatur)
       foe_obj%evbounds_nsatur        = uninitialized(foe_obj%evbounds_nsatur)
       foe_obj%evboundsshrink_nsatur  = uninitialized(foe_obj%evboundsshrink_nsatur)
+      foe_obj%adjust_FOE_temperature = uninitialized(foe_obj%adjust_FOE_temperature)
     end function foe_data_null
 
 
@@ -157,6 +161,35 @@ module foe_base
       end select
 
     end function foe_data_get_real
+
+
+    subroutine foe_data_set_logical(foe_obj, fieldname, val)
+      type(foe_data) :: foe_obj
+      character(len=*),intent(in) :: fieldname
+      logical,intent(in) :: val
+
+      select case (fieldname)
+      case ("adjust_FOE_temperature")
+          foe_obj%adjust_FOE_temperature = val
+      case default
+          stop 'wrong arguments'
+      end select
+
+    end subroutine foe_data_set_logical
+
+
+    logical function foe_data_get_logical(foe_obj, fieldname) result(val)
+      type(foe_data) :: foe_obj
+      character(len=*),intent(in) :: fieldname
+
+      select case (fieldname)
+      case ("adjust_FOE_temperature")
+          val = foe_obj%adjust_FOE_temperature
+      case default
+          stop 'wrong arguments'
+      end select
+
+    end function foe_data_get_logical
 
 
 end module foe_base

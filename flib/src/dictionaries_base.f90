@@ -452,6 +452,8 @@ contains
 
 
   !> this function returns the key if present otherwise the value of the element if in a list
+  !! this is a function indended for internal flib usage which 
+  !! can be used for lists of hash table, as dictionasy type is "polymorph"
   pure function name_is(dict,name)
     implicit none
     type(dictionary), pointer, intent(in) :: dict
@@ -836,7 +838,7 @@ contains
     nlibs_max=nfolders_max
   end subroutine dict_get_num
 
-  !>check for leaked dictionaries and prints out in stdout 
+  !> Check for leaked dictionaries and prints out in stdout 
   !! the dictionaries which have not been freed, without mutual structure
   subroutine dictionary_check_leak()
     implicit none
@@ -844,15 +846,15 @@ contains
     integer :: ndict,ndict_max,nlibs,nlibs_max
 
     call dict_get_num(ndict,ndict_max,nlibs,nlibs_max)
-    if (ndict /=0 ) then
-       print *,'Error, found unfreed dictionaries after finalization',&
-            ndict
+    if (ndict /= 0 ) then
+       write(*,'(a,i0)') '#Error, found unfreed dictionaries after finalization: ',ndict
        call find_residual_dicts()
     end if
 
   end subroutine dictionary_check_leak
 
-  !>debug subroutine
+
+  !> Debug subroutine
   subroutine find_residual_dicts()
     implicit none
     !local variables
@@ -868,9 +870,9 @@ contains
     !then start by printing the residual keys
     do while(associated(lib))
        do i=1,nfolder_size
-          if (lib%registry(i) /= int(0,kind=8)) &
-               print *,'Unfreed key: ',trim(lib%files(i)%data%key),&
-               'value: ',trim(lib%files(i)%data%value)
+          if (lib%registry(i) /= int(0,kind=8))  write(*,'(a,a,a,a,a)') &
+             & '#Unfreed key: "',trim(lib%files(i)%data%key),&
+             & '" value: "',trim(lib%files(i)%data%value),'"'
        end do
        lib=>lib%previous
     end do

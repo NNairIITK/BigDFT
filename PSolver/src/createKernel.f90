@@ -110,6 +110,7 @@ end function pkernel_init
 !> Free memory used by the kernerl operation
 !! @ingroup PSOLVER
 subroutine pkernel_free(kernel,subname)
+  use dynamic_memory
   implicit none
   character(len=*), intent(in) :: subname
   type(coulomb_operator), intent(inout) :: kernel
@@ -117,9 +118,7 @@ subroutine pkernel_free(kernel,subname)
   integer :: i_all,i_stat
 
   if (associated(kernel%kernel)) then
-     i_all=-product(shape(kernel%kernel))*kind(kernel%kernel)
-     deallocate(kernel%kernel,stat=i_stat)
-     call memocc(i_stat,i_all,'kernel',subname)
+     call f_free_ptr(kernel%kernel)
   end if
 
   !free GPU data
@@ -218,11 +217,10 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
           m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernelnproc,.false.)
 
      if (kernel%igpu == 2) then
-       allocate(kernel%kernel((n1/2+1)*n2*n3/kernelnproc+ndebug),stat=i_stat)
+       kernel%kernel = f_malloc_ptr((n1/2+1)*n2*n3/kernelnproc,id='kernel%kernel')
      else
-       allocate(kernel%kernel(nd1*nd2*nd3/kernelnproc+ndebug),stat=i_stat)
+       kernel%kernel = f_malloc_ptr(nd1*nd2*nd3/kernelnproc,id='kernel%kernel')
      endif
-     call memocc(i_stat,kernel%kernel,'kernel',subname)
      !!! PSolver n1-n2 plane mpi partitioning !!!   
      call inplane_partitioning(kernel%mpi_env,md2,n2,n3/2+1,kernel%part_mpi,kernel%inplane_mpi,n3pr1,n3pr2)
 !!$     if (kernel%mpi_env%nproc>2*(n3/2+1)-1) then
@@ -273,11 +271,10 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
           m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernelnproc,kernel%igpu,.false.)
      
      if (kernel%igpu == 2) then
-       allocate(kernel%kernel((n1/2+1)*n2*n3/kernelnproc+ndebug),stat=i_stat)
+       kernel%kernel = f_malloc_ptr((n1/2+1)*n2*n3/kernelnproc,id='kernel%kernel')
      else
-       allocate(kernel%kernel(nd1*nd2*nd3/kernelnproc+ndebug),stat=i_stat)
+       kernel%kernel = f_malloc_ptr(nd1*nd2*nd3/kernelnproc,id='kernel%kernel')
      endif
-     call memocc(i_stat,kernel%kernel,'kernel',subname)
 
      !!! PSolver n1-n2 plane mpi partitioning !!!   
      call inplane_partitioning(kernel%mpi_env,md2,n2,n3/2+1,kernel%part_mpi,kernel%inplane_mpi,n3pr1,n3pr2)
@@ -340,13 +337,12 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
           md1,md2,md3,nd1,nd2,nd3,kernelnproc,kernel%igpu,.false.)
  
      if (kernel%igpu == 2) then
-       allocate(kernel%kernel((n1/2+1)*n2*n3/kernelnproc+ndebug),stat=i_stat)
+       kernel%kernel = f_malloc_ptr((n1/2+1)*n2*n3/kernelnproc,id='kernel%kernel')
      else
        !allocate(kernel%kernel(nd1*nd2*nd3/kernelnproc+ndebug),stat=i_stat)
-       allocate(kernel%kernel(nd1*nd2*(nd3/kernelnproc)+ndebug),stat=i_stat)
+       kernel%kernel = f_malloc_ptr(nd1*nd2*(nd3/kernelnproc),id='kernel%kernel')
      endif
 
-     call memocc(i_stat,kernel%kernel,'kernel',subname)
      !!! PSolver n1-n2 plane mpi partitioning !!!   
      call inplane_partitioning(kernel%mpi_env,md2,n2/2,n3/2+1,kernel%part_mpi,kernel%inplane_mpi,n3pr1,n3pr2)
 !!$     if (kernel%mpi_env%nproc>2*(n3/2+1)-1) then
@@ -398,9 +394,9 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
           m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernelnproc,kernel%igpu,.false.)
 
      if (kernel%igpu == 2) then
-       allocate(kernel%kernel((n1/2+1)*n2*n3/kernelnproc+ndebug),stat=i_stat)
+       kernel%kernel = f_malloc_ptr((n1/2+1)*n2*n3/kernelnproc,id='kernel%kernel')
      else
-       allocate(kernel%kernel(nd1*nd2*(nd3/kernelnproc)+ndebug),stat=i_stat)
+       kernel%kernel = f_malloc_ptr(nd1*nd2*(nd3/kernelnproc),id='kernel%kernel')
      endif
 
      !!! PSolver n1-n2 plane mpi partitioning !!!   
@@ -536,8 +532,7 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
       if (i_stat /= 0) print *,'error cudamalloc',i_stat
     endif
 
-    allocate(pkernel2((n1/2+1)*n2*n3+ndebug),stat=i_stat)
-    call memocc(i_stat,pkernel2,'pkernel2',subname)
+    pkernel2 = f_malloc((n1/2+1)*n2*n3,id='pkernel2')
 
     ! transpose kernel for GPU
     do i3=1,n3
@@ -593,9 +588,7 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
       endif
     endif
 
-    i_all=-product(shape(pkernel2))*kind(pkernel2)
-    deallocate(pkernel2,stat=i_stat)
-    call memocc(i_stat,i_all,'pkernel2',subname)  
+    call f_free(pkernel2)
   endif
 
  endif

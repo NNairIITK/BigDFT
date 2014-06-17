@@ -42,7 +42,8 @@ DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 \
 F_MALLOC_INCLUDES = f_malloc-inc.f90 f_malloc-extra-inc.f90 \
 	f_malloc-base-inc.f90 f_malloc-null-inc.f90 \
 	f_malloc-total-inc.f90 f_malloc-bound-inc.f90 \
-	f_malloc-bounds-inc.f90 f_malloc-simple-inc.f90
+	f_malloc-bounds-inc.f90 f_malloc-simple-inc.f90 \
+	f_malloc-ptr-inc.f90 f_malloc-check-inc.f90
 
 YAML_INCLUDES = yaml_map-inc.f90 yaml_map-arr-inc.f90 \
 	yaml_map-mat-inc.f90 yaml_open-inc.f90
@@ -97,7 +98,7 @@ yaml_output.o : dictionaries.o $(YAML_INCLUDES)
 yaml_parse.o : dictionaries.o
 #error_handling.o: dictionaries.o callbacks.o yaml_output.o $(ERR_INCLUDES)
 f_malloc.o: dictionaries.o $(F_MALLOC_INCLUDES)
-dynamic_memory.o: getadd.o yaml_strings.o yaml_output.o mem_profiling.o f_malloc.o $(DYN_INCLUDES)
+dynamic_memory.o: getadd.o yaml_strings.o yaml_output.o yaml_parse.o mem_profiling.o f_malloc.o $(DYN_INCLUDES)
 mem_profiling.o: yaml_output.o $(mpi_include)
 f_lib_highlev.o: dictionaries.o yaml_output.o dynamic_memory.o yaml_parse.o time.o
 getadd.o: yaml_strings.o $(GETADD_INCLUDES)

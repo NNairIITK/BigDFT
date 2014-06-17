@@ -10,7 +10,7 @@
 
 !> Could still do more tidying - assuming all sparse matrices except for Fermi have the same pattern
 subroutine foe(iproc, nproc, tmprtr, &
-           ebs, itout, it_scc, order_taylor, purification_quickreturn, adjust_FOE_temperature, foe_verbosity, &
+           ebs, itout, it_scc, order_taylor, purification_quickreturn, foe_verbosity, &
            accuracy_level, tmb, foe_obj)
   use module_base
   use module_types
@@ -22,14 +22,15 @@ subroutine foe(iproc, nproc, tmprtr, &
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, &
                           uncompress_matrix_distributed
-  use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real
+  use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
+                      foe_data_get_logical
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc,itout,it_scc, order_taylor
   real(kind=8),intent(in) :: tmprtr
   real(kind=8),intent(out) :: ebs
-  logical,intent(in) :: purification_quickreturn, adjust_FOE_temperature
+  logical,intent(in) :: purification_quickreturn
   integer,intent(in) :: foe_verbosity
   integer,intent(in) :: accuracy_level
   type(DFT_wavefunction),intent(inout) :: tmb
@@ -86,9 +87,6 @@ subroutine foe(iproc, nproc, tmprtr, &
 
 
   call timing(iproc, 'FOE_auxiliary ', 'ON')
-
-  !!! initialization
-  !!interpol_solution = 0.d0
 
 
 
@@ -620,7 +618,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           call yaml_map('diff',ebs_check-ebs)
       end if
 
-      if (adjust_FOE_temperature .and. foe_verbosity>=1) then
+      if (foe_data_get_logical(foe_obj,"adjust_FOE_temperature") .and. foe_verbosity>=1) then
           if (diff<5.d-3) then
               ! can decrease polynomial degree
               call foe_data_set_real(foe_obj,"fscale", 1.25d0*foe_data_get_real(foe_obj,"fscale"))

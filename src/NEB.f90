@@ -130,6 +130,8 @@ MODULE NEB_routines
            & neb_%max_iterations, num_of_images, neb_%convergence, tolerance, &
            & neb_%ds, neb_%k_min, neb_%k_max, neb_%temp_req, neb_%damp, &
            & minimization_scheme)
+      ! NEB is using cv criterion in ev per ang.
+      neb_%convergence = neb_%convergence * Ha_eV / Bohr_Ang
       call dict_free(dict)
       call dict_free(dict_min)
       IF ( minimization_scheme == "steepest_descent" ) THEN
@@ -177,7 +179,7 @@ MODULE NEB_routines
          call user_dict_from_files(dict, trim(arr_radical(i)), &
               & trim(arr_posinp(i)), bigdft_mpi)
          ! Force no geometry relaxation
-         call pop(dict, GEOPT_VARIABLES)
+         call dict_remove(dict, GEOPT_VARIABLES)
          call inputs_from_dict(ins(i), atoms(i), dict)
 
          if (.not. external_call .and. i == 1) then
@@ -205,8 +207,6 @@ MODULE NEB_routines
          call global_output_set_from_dict(imgs(i)%outs, dict // "posinp")
       end do
       call dict_free(dict)
-      ! End of trick.
-      bigdft_mpi = bigdft_mpi_svg
 
       data_file          = trim(job_name) // ".NEB.dat"
       interpolation_file = trim(job_name) // ".NEB.int"
@@ -276,8 +276,10 @@ MODULE NEB_routines
             do j = istart + 1, istop - 1, 1
                atoms(j)%astruct%rxyz = atoms(j - 1)%astruct%rxyz + d_R
                ! Dump generated image positions on disk.
-               call write_atomic_file(trim(arr_posinp(j)) // ".in", UNINITIALIZED(1.d0), &
-                    & atoms(j)%astruct%rxyz, atoms(j), "NEB generated")
+               if (bigdft_mpi%iproc == 0) then
+                  call write_atomic_file(trim(arr_posinp(j)) // ".in", UNINITIALIZED(1.d0), &
+                       & atoms(j)%astruct%rxyz, atoms(j), "NEB generated")
+               end if
                ! Erase forces.
                imgs(j)%outs%fxyz(:,:) = UNINITIALIZED(1.d0)
             end do
@@ -291,6 +293,9 @@ MODULE NEB_routines
       WHERE ( ABS( d_R ) <=  tolerance ) fix_atom = 0
 
       DEALLOCATE( d_R )
+
+      ! End of trick.
+      bigdft_mpi = bigdft_mpi_svg
 
 !!$     END IF
     END SUBROUTINE read_input
@@ -320,7 +325,8 @@ MODULE NEB_routines
          call yaml_open_sequence("Restarting images", unit = 6)
          do i = 1, size(imgs), 1
             call yaml_sequence(trim(yaml_toa(all(imgs(i)%outs%fxyz /= UNINITIALIZED(1.d0)))), unit = 6, advance = "no")
-            call yaml_comment(yaml_toa(i, fmt = "(I2.2)"))
+            call yaml_comment(yaml_toa(i, fmt = "(I2.2)"), unit = 6)
+            call yaml_newline(unit = 6)
          end do
          call yaml_close_sequence(unit = 6)
       end if

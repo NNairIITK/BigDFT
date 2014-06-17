@@ -495,6 +495,8 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
   character(len=*), parameter :: subname='determine_wfdSphere'
 !!  integer :: nseg_c,nseg_f,nvctr_c,nvctr_f      ! total number of sgements and elements
 
+   call f_routine(id=subname)
+
    !starting point of locreg (always inside global locreg)
    isdir(1) = Llr(ilr)%ns1
    isdir(2) = Llr(ilr)%ns2
@@ -600,6 +602,8 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
         llr(ilr)%wfd%keyvloc(llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)), &
         llr(ilr)%wfd%keyvglob(llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)))
 
+    call f_release_routine()
+
 
 END SUBROUTINE determine_wfdSphere
 
@@ -615,7 +619,7 @@ subroutine num_segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvct
   integer, dimension(3),intent(in) :: outofzone
   !local variables
   logical :: lseg,go1,go2,go3
-  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,nsrt,nend,nvctr_check
+  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,nsrt,nend,nvctr_check,n1p1,np
 
   nvctr_loc=0
   !control variable
@@ -624,15 +628,16 @@ subroutine num_segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvct
   nsrt=0
   nend=0
 
+  n1p1=n1+1
+  np=n1p1*(n2+1)
   do iseg=1,nseg
-     jj=keyv(iseg)
      j0=keyg(1,iseg)
      j1=keyg(2,iseg)
      ii=j0-1
-     i3=ii/((n1+1)*(n2+1))
-     ii=ii-i3*(n1+1)*(n2+1)
-     i2=ii/(n1+1)
-     i0=ii-i2*(n1+1)
+     i3=ii/np
+     ii=ii-i3*np
+     i2=ii/n1p1
+     i0=ii-i2*n1p1
      i1=i0+j1-j0
      lseg=.false.
      ! overlap conditions if zone completely inside simulation box
@@ -694,7 +699,7 @@ subroutine num_segkeys_sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, hx, hy, hz,
   integer,intent(out) :: nseg, nvctr
   !local variables
   logical :: segment
-  integer :: i, i1, i2, i3, nstart, nend, i2old, iseg, jj, j0, j1, ii, i0, ii1, ii2, ii3
+  integer :: i, i1, i2, i3, nstart, nend, i2old, iseg, jj, j0, j1, ii, i0, ii1, ii2, ii3, n1p1, np
   real(kind=8) :: cut, dx,dy, dz
 
 
@@ -705,24 +710,25 @@ subroutine num_segkeys_sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, hx, hy, hz,
 
   cut=locrad**2
   i2old=-1
+  n1p1=n1+1
+  np=n1p1*(n2+1)
   do iseg=1,nsegglob
-      jj=keyvglob(iseg)
       j0=keygglob(1,iseg)
       j1=keygglob(2,iseg)
       ii=j0-1
-      i3=ii/((n1+1)*(n2+1))
-      ii=ii-i3*(n1+1)*(n2+1)
-      i2=ii/(n1+1)
-      i0=ii-i2*(n1+1)
+      i3=ii/np
+      ii=ii-i3*np
+      i2=ii/n1p1
+      i0=ii-i2*n1p1
       i1=i0+j1-j0
 
       ii2=i2+nl2glob
       ii3=i3+nl3glob
 
+      dz=((ii3*hz)-locregCenter(3))**2
+      dy=((ii2*hy)-locregCenter(2))**2
       do i=i0,i1
           ii1=i+nl1glob
-          dz=((ii3*hz)-locregCenter(3))**2
-          dy=((ii2*hy)-locregCenter(2))**2
           dx=((ii1*hx)-locregCenter(1))**2
           if(dx+dy+dz<=cut) then
               nvctr=nvctr+1
@@ -768,7 +774,7 @@ subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, 
   integer,dimension(nsegglob),intent(in) :: keyvglob
   integer,intent(out) :: ixmin, iymin, izmin, ixmax, iymax, izmax
   !local variables
-  integer :: i, i1, i2, i3, iseg, jj, j0, j1, ii, i0, ii1, ii2, ii3
+  integer :: i, i1, i2, i3, iseg, jj, j0, j1, ii, i0, ii1, ii2, ii3, n1p1, np
   real(kind=8) :: cut, dx,dy, dz
   !debug
   integer :: iiimin, isegmin
@@ -784,24 +790,25 @@ subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, 
   izmin=nl3glob+n3glob
 
   cut=locrad**2
+  n1p1=n1glob+1
+  np=n1p1*(n2glob+1)
   do iseg=1,nsegglob
-      jj=keyvglob(iseg)
       j0=keygglob(1,iseg)
       j1=keygglob(2,iseg)
       ii=j0-1
-      i3=ii/((n1glob+1)*(n2glob+1))
-      ii=ii-i3*(n1glob+1)*(n2glob+1)
-      i2=ii/(n1glob+1)
-      i0=ii-i2*(n1glob+1)
+      i3=ii/np
+      ii=ii-i3*np
+      i2=ii/n1p1
+      i0=ii-i2*n1p1
       i1=i0+j1-j0
 
       ii2=i2+nl2glob
       ii3=i3+nl3glob
 
+      dz=((ii3*hz)-locregCenter(3))**2
+      dy=((ii2*hy)-locregCenter(2))**2
       do i=i0,i1
           ii1=i+nl1glob
-          dz=((ii3*hz)-locregCenter(3))**2
-          dy=((ii2*hy)-locregCenter(2))**2
           dx=((ii1*hx)-locregCenter(1))**2
           if(dx+dy+dz<=cut) then
               if(ii1>ixmax) ixmax=ii1
@@ -832,10 +839,12 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
   !local variables
   character(len=*),parameter :: subname = 'segkeys_periodic'
   logical :: go1,go2,go3,lseg
-  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,nsrt,nend,nvctr_check,n1l,n2l,n3l,i1l,i2l,i3l
+  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,nsrt,nend,nvctr_check,n1l,n2l,n3l,i1l,i2l,i3l,n1p1,np,n1lp1,nlp
   integer :: i_stat, i_all
   integer :: ngridp,ngridlob,loc
   integer, allocatable :: keyg_loc(:,:)
+
+  call f_routine('segkeys_periodic')
 
   !should be initialized
   ngridp=-1000
@@ -855,15 +864,18 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
   !start and end points
   nsrt=0
   nend=0
+  n1p1=n1+1
+  np=n1p1*(n2+1)
+  n1lp1=n1l+1
+  nlp=n1lp1*(n2l+1)
   do iseg=1,nseg
-     jj=keyv(iseg)
      j0=keyg(1,iseg)
      j1=keyg(2,iseg)
      ii=j0-1
-     i3=ii/((n1+1)*(n2+1))
-     ii=ii-i3*(n1+1)*(n2+1)
-     i2=ii/(n1+1)
-     i0=ii-i2*(n1+1)
+     i3=ii/np
+     ii=ii-i3*np
+     i2=ii/n1p1
+     i0=ii-i2*n1p1
      i1=i0+j1-j0
      lseg=.false.
 
@@ -885,8 +897,8 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
           if(outofzone(2) > 0 .and. i2 <= outofzone(2))i2l = i2 - i2sc + n2 + 1
           i3l=i3-i3sc
           if(outofzone(3) > 0 .and. i3 <= outofzone(3))i3l = i3 - i3sc + n3 + 1
-          ngridp=i3l*((n1l+1)*(n2l+1)) + i2l*(n1l+1) + i1l+1
-          ngridlob = i3 * ((n1+1)*(n2+1)) + i2 * (n1+1) + i + 1
+          ngridp=i3l*nlp + i2l*n1lp1 + i1l+1
+          ngridlob = i3 * np + i2 * n1p1 + i + 1
 
           nvctr_check=nvctr_check+1
           if (.not. lseg) then
@@ -939,6 +951,8 @@ subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,ke
 
  call f_free(keyg_loc)
 
+ call f_release_routine()
+
 END SUBROUTINE segkeys_periodic
 
 
@@ -957,10 +971,12 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
   !local variables
   character(len=*),parameter :: subname = 'segkeys_Sphere'
   integer :: i, i1, i2, i3, nstart, nend, nvctr, igridpoint, igridglob, i2old, iseg, jj, j0, j1, ii, i0, n1l, n2l, n3l
-  integer :: i1l, i2l, i3l, ii1, ii2, ii3, istat, iall, loc
+  integer :: i1l, i2l, i3l, ii1, ii2, ii3, istat, iall, loc, n1p1, np, n1lp1, nlp, igridpointa, igridgloba
   real(kind=8) :: cut, dx, dy, dz
   logical :: segment
   integer, allocatable :: keygloc(:,:)
+
+  call f_routine('segkeys_Sphere')
 
   keygloc = f_malloc((/ 2, nseg /),id='keygloc')
 
@@ -980,30 +996,33 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
 
   cut=locrad**2
   i2old=-1
+  n1p1=n1+1
+  np=n1p1*(n2+1)
+  n1lp1=n1l+1
+  nlp=n1lp1*(n2l+1)
   do iseg=1,nsegglob
-      jj=keyvglob(iseg)
       j0=keygglob(1,iseg)
       j1=keygglob(2,iseg)
       ii=j0-1
-      i3=ii/((n1+1)*(n2+1))
-      ii=ii-i3*(n1+1)*(n2+1)
-      i2=ii/(n1+1)
-      i0=ii-i2*(n1+1)
+      i3=ii/np
+      ii=ii-i3*np
+      i2=ii/n1p1
+      i0=ii-i2*n1p1
       i1=i0+j1-j0
-
       ii2=i2+nl2glob
       ii3=i3+nl3glob
-
+      dz=((ii3*hz)-locregCenter(3))**2
+      dy=((ii2*hy)-locregCenter(2))**2
+      i2l=ii2-nl2
+      i3l=ii3-nl3
+      igridpointa=i3l*nlp+i2l*n1lp1+1
+      igridgloba=ii3*np+ii2*n1p1+1 
       do i=i0,i1
           ii1=i+nl1glob
-          dz=((ii3*hz)-locregCenter(3))**2
-          dy=((ii2*hy)-locregCenter(2))**2
           dx=((ii1*hx)-locregCenter(1))**2
           i1l=ii1-nl1
-          i2l=ii2-nl2
-          i3l=ii3-nl3
-          igridpoint=i3l*((n1l+1)*(n2l+1)) + i2l*(n1l+1) + i1l+1
-          igridglob = ii3*(n1+1)*(n2+1) + ii2*(n1+1) + ii1 + 1 
+          igridpoint=igridpointa+i1l
+          igridglob=igridgloba+ii1 
           if(dx+dy+dz<=cut) then
               ! Check that we are not outside the global region
               if(ii1>nu1) then
@@ -1066,6 +1085,8 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
 !    print *,'iseg,keyglob,keyvglob,keygloc,keyvloc',iseg,keyglob(1,iseg),keyvglob(iseg),keygloc(1,iseg),keyvloc(iseg)
   end do
   call f_free(keygloc)
+
+  call f_release_routine()
 
 END SUBROUTINE segkeys_Sphere
 
@@ -1611,16 +1632,19 @@ subroutine transform_keyglob_to_keygloc(Glr,Llr,nseg,keyglob,keygloc)
   integer, dimension(2,nseg),intent(in) :: keyglob
   integer, dimension(2,nseg),intent(out) :: keygloc
   !local variables
-  integer :: i, j, j0, ii, iz, iy, ix
+  integer :: i, j, j0, ii, iz, iy, ix, n1p1, np
+
+  n1p1=Glr%d%n1+1
+  np=n1p1*(Glr%d%n2+1)
   do i = 1 , 2
      do j = 1, nseg
         ! Writing keyglob in cartesian coordinates
         j0 = keyglob(i,j)
         ii = j0-1
-        iz = ii/((Glr%d%n1+1)*(Glr%d%n2+1))
-        ii = ii-iz*(Glr%d%n1+1)*(Glr%d%n2+1)
-        iy = ii/(Glr%d%n1+1)
-        ix = ii-iy*(Glr%d%n1+1)
+        iz = ii/np
+        ii = ii-iz*np
+        iy = ii/n1p1
+        ix = ii-iy*n1p1
 
         ! Checking consistency
         if(iz < Llr%ns3 .or. iy < Llr%ns2 .or. ix < Llr%ns1) stop 'transform_keyglob_to_keygloc : minimum overflow'

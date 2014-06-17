@@ -50,12 +50,9 @@ subroutine bfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft)
 
     !Allocations
     nwork=nr*nr+3*nr+3*nr*nr+3*nr
-    allocate(work(nwork),stat=i_stat)
-    call memocc(i_stat,work,'work',subname)
-    allocate(x(nr),stat=i_stat)
-    call memocc(i_stat,x,'x',subname)
-    allocate(f(nr),stat=i_stat)
-    call memocc(i_stat,f,'f',subname)
+    work = f_malloc(nwork,id='work')
+    x = f_malloc(nr,id='x')
+    f = f_malloc(nr,id='f')
 
     icall=0
     do 
@@ -113,17 +110,9 @@ subroutine bfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft)
     enddo
 
     !De-Allocations
-    i_all=-product(shape(work))*kind(work)
-    deallocate(work,stat=i_stat)
-    call memocc(i_stat,i_all,'work',subname)
-
-    i_all=-product(shape(x))*kind(x)
-    deallocate(x,stat=i_stat)
-    call memocc(i_stat,i_all,'x',subname)
-
-    i_all=-product(shape(f))*kind(f)
-    deallocate(f,stat=i_stat)
-    call memocc(i_stat,i_all,'f',subname)
+    call f_free(work)
+    call f_free(x)
+    call f_free(f)
 
 END SUBROUTINE bfgsdriver
 
@@ -146,8 +135,13 @@ subroutine inithess(iproc,nr,nat,rat,atoms,hess)
        if (iproc == 0) call yaml_warning('This subroutine works only for systems without fixed atoms.')
        stop
    endif
-   allocate(ita(nat),isb(10*nat,2),r0bonds(10*nat),fcbonds(10*nat))
-   allocate(evec(nr,nr),eval(nr),wa(nrsqtwo))
+   ita = f_malloc(nat,id='ita')
+   isb = f_malloc((/ 10*nat, 2 /),id='isb')
+   r0bonds = f_malloc(10*nat,id='r0bonds')
+   fcbonds = f_malloc(10*nat,id='fcbonds')
+   evec = f_malloc((/ nr, nr /),id='evec')
+   eval = f_malloc(nr,id='eval')
+   wa = f_malloc(nrsqtwo,id='wa')
    do iat=1,nat
        if(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='H') then
            ita(iat)=1
@@ -241,7 +235,13 @@ subroutine inithess(iproc,nr,nat,rat,atoms,hess)
        hess(i,j)=hess(j,i)
    enddo
    enddo
-   deallocate(ita,isb,r0bonds,fcbonds,evec,eval,wa)
+   call f_free(ita)
+   call f_free(isb)
+   call f_free(r0bonds)
+   call f_free(fcbonds)
+   call f_free(evec)
+   call f_free(eval)
+   call f_free(wa)
 end subroutine inithess
 
 
@@ -647,14 +647,10 @@ subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   NDIM=nr
   NWORK=NDIM*(2*parmin%MSAVE +1)+2*parmin%MSAVE
    
-  allocate(X(NDIM),stat=i_stat)
-  call memocc(i_stat,X,'X',subname)
-  allocate(G(NDIM),stat=i_stat)
-  call memocc(i_stat,G,'G',subname)
-  allocate(DIAG(NDIM),stat=i_stat)
-  call memocc(i_stat,DIAG,'DIAG',subname)
-  allocate(W(NWORK),stat=i_stat)
-  call memocc(i_stat,W,'W',subname)
+  X = f_malloc(NDIM,id='X')
+  G = f_malloc(NDIM,id='G')
+  DIAG = f_malloc(NDIM,id='DIAG')
+  W = f_malloc(NWORK,id='W')
 
   call atomic_copymoving_forward(runObj%atoms,n,runObj%atoms%astruct%rxyz,nr,X)
 
@@ -769,18 +765,10 @@ subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail)
        fail=.true.
 100 CONTINUE
        
-  i_all=-product(shape(X))*kind(X)
-  deallocate(X,stat=i_stat)
-  call memocc(i_stat,i_all,'X',subname)
-  i_all=-product(shape(G))*kind(G)
-  deallocate(G,stat=i_stat)
-  call memocc(i_stat,i_all,'G',subname)
-  i_all=-product(shape(DIAG))*kind(DIAG)
-  deallocate(DIAG,stat=i_stat)
-  call memocc(i_stat,i_all,'DIAG',subname)
-  i_all=-product(shape(W))*kind(W)
-  deallocate(W,stat=i_stat)
-  call memocc(i_stat,i_all,'W',subname)
+  call f_free(X)
+  call f_free(G)
+  call f_free(DIAG)
+  call f_free(W)
 
 END SUBROUTINE lbfgsdriver
 

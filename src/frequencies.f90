@@ -752,7 +752,7 @@ subroutine frequencies_input_variables_new(iproc,dump,filename,in)
 
   !Frequencies parameters
   call input_set_file(iproc,dump,trim(filename),exists,'Frequencies Parameters')  
-  if (exists) in%files = in%files + INPUTS_FREQ
+  !if (exists) in%files = in%files + INPUTS_FREQ
   !call the variable, its default value, the line ends if there is a comment
 
   !Read in%freq_alpha (possible 1/64)

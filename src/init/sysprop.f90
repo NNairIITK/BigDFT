@@ -155,10 +155,8 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   if (inputpsi /= INPUT_PSI_RANDOM) then
 
      ! Allocations for readAtomicOrbitals (check inguess.dat and psppar files)
-     allocate(norbsc_arr(atoms%natsc+1,in%nspin+ndebug),stat=i_stat)
-     call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
-     allocate(locrad(atoms%astruct%nat+ndebug),stat=i_stat)
-     call memocc(i_stat,locrad,'locrad',subname)
+     norbsc_arr = f_malloc((/ atoms%natsc+1, in%nspin /),id='norbsc_arr')
+     locrad = f_malloc(atoms%astruct%nat,id='locrad')
 
      !calculate the inputguess orbitals
      !spin for inputguess orbitals
@@ -178,12 +176,8 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      end if
 
      ! De-allocations
-     i_all=-product(shape(locrad))*kind(locrad)
-     deallocate(locrad,stat=i_stat)
-     call memocc(i_stat,i_all,'locrad',subname)
-     i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
-     deallocate(norbsc_arr,stat=i_stat)
-     call memocc(i_stat,i_all,'norbsc_arr',subname)
+     call f_free(locrad)
+     call f_free(norbsc_arr)
 
      ! Check the maximum number of orbitals
      if (in%nspin==1 .or. in%nspin==4) then
@@ -287,7 +281,6 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 !  print *,'here the localization regions should have been filled already'
 !  stop
 
-
   if (present(denspot)) then
      !here dpbox can be put as input
      call density_descriptors(iproc,nproc,denspot%xc,in%nspin,in%crmult,in%frmult,atoms,&
@@ -312,8 +305,15 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
       if(iproc==0) call yaml_warning('Do not call check_communications in the linear scaling version!')
       !if(iproc==0) write(*,*) 'WARNING: do not call check_communications in the linear scaling version!'
   end if
+
+  !Check if orbitals and electrons
+  if (orbs%norb*orbs%nkpts == 0) &
+     & call f_err_throw('No electrons in the system! Check your input variables or atomic positions.', &
+     & err_id=BIGDFT_INPUT_VARIABLES_ERROR)
+
   call f_release_routine()
   !---end of system definition routine
+
 END SUBROUTINE system_initialization
 
 
@@ -392,6 +392,12 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf)
        in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,.false.)
   orbs%occup(1:orbs%norb*orbs%nkpts) = in%gen_occup
   if (iproc==0) call print_orbitals(orbs, atoms%astruct%geocode)
+
+  !Check if orbitals and electrons
+  if (orbs%norb*orbs%nkpts == 0) &
+     & call f_err_throw('No electrons in the system. Check your input variables or atomic positions', &
+     & err_id=BIGDFT_INPUT_VARIABLES_ERROR)
+
 END SUBROUTINE system_properties
 
 
@@ -429,8 +435,7 @@ subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
 
   if (at%donlcc) then
      !allocate pointer rhocore
-     allocate(rhocore(d%n1i,d%n2i,n3d,10+ndebug),stat=i_stat)
-     call memocc(i_stat,rhocore,'rhocore',subname)
+     rhocore = f_malloc_ptr((/ d%n1i , d%n2i , n3d , 10+ndebug /),id='rhocore')
      !initalise it 
      if (n3d > 0) call to_zero(d%n1i*d%n2i*n3d*10,rhocore(1,1,1,1))
      !perform the loop on any of the atoms which have this feature
@@ -691,14 +696,10 @@ contains
    !reciprocal space approaches (plane-waves):
      mqgrid_shp=0; mqgrid_ff=0; mqgrid_vl=0 
                              
-     allocate(qgrid_ff(mqgrid_ff),stat=i_stat)
-     call memocc(i_stat,qgrid_ff,'qgrid_ff',subname)
-     allocate(qgrid_vl(mqgrid_vl),stat=i_stat)
-     call memocc(i_stat,qgrid_vl,'qgrid_vl',subname)
-     allocate(ffspl(mqgrid_ff,2,lnmax),stat=i_stat)
-     call memocc(i_stat,ffspl,'ffspl',subname)
-     allocate(vlspl(mqgrid_vl,2),stat=i_stat)
-     call memocc(i_stat,vlspl,'vlpsl',subname)
+   qgrid_ff = f_malloc(mqgrid_ff,id='qgrid_ff')
+   qgrid_vl = f_malloc(mqgrid_vl,id='qgrid_vl')
+   ffspl = f_malloc((/ mqgrid_ff, 2, lnmax /),id='ffspl')
+   vlspl = f_malloc((/ mqgrid_vl, 2 /),id='vlspl')
 
    ! Define parameters:
      pawxcdev=1; usewvl=1 ; usexcnhat=0 !default
@@ -735,22 +736,10 @@ contains
      call pawrad_destroy(pawrad)
      call pawtab_destroy(pawtab)
 
-     !
-     i_all=-product(shape(qgrid_ff))*kind(qgrid_ff)
-     deallocate(qgrid_ff,stat=i_stat)
-     call memocc(i_stat,i_all,'qgrid_ff',subname)
-     !
-     i_all=-product(shape(qgrid_vl))*kind(qgrid_vl)
-     deallocate(qgrid_vl,stat=i_stat)
-     call memocc(i_stat,i_all,'qgrid_vl',subname)
-     !
-     i_all=-product(shape(ffspl))*kind(ffspl)
-     deallocate(ffspl,stat=i_stat)
-     call memocc(i_stat,i_all,'ffspl',subname)
-     !
-     i_all=-product(shape(vlspl))*kind(vlspl)
-     deallocate(vlspl,stat=i_stat)
-     call memocc(i_stat,i_all,'vlspl',subname)
+   call f_free(qgrid_ff)
+   call f_free(qgrid_vl)
+   call f_free(ffspl)
+   call f_free(vlspl)
 
    !PAW is not yet working!
    !Exit here
@@ -859,18 +848,19 @@ subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
 END SUBROUTINE read_radii_variables
 
 
+!> Calculate the number of electrons and check the polarisation (mpol)
 subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
      & atoms, ncharge, nspin, mpol, norbsempty)
-  use module_types, only: atoms_data
+  use module_types, only: atoms_data, f_err_throw
   use module_defs, only: gp
+  use yaml_output, only: yaml_toa , yaml_warning, yaml_comment
   !use ao_inguess, only : count_atomic_shells
-  use yaml_output
   implicit none
   type(atoms_data), intent(in) :: atoms
   integer, intent(out) :: nelec_up, nelec_down, norbe
   integer, intent(in) :: ncharge, nspin, mpol, norbsempty, iproc
 
-  integer :: nelec, iat, ityp, ispinsum, ichgsum, ichg, ispol, nspin_, nspinor
+  integer :: nelec, iat, ityp, ispinsum, ichgsum, ichg, ispol!, nspinor
   !integer, parameter :: nelecmax=32,lmax=4,noccmax=2
   !integer, dimension(lmax) :: nl
   !real(gp), dimension(noccmax,lmax) :: occup
@@ -885,10 +875,12 @@ subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
   nelec=nelec-ncharge
 
   if(nelec < 0.0 ) then
-    if(iproc==0) write(*,*)'ERROR: Number of electrons is negative:',nelec,'.'
-    if(iproc==0) write(*,*)'FIX: decrease charge of system.'
-    call mpi_finalize(iat)
-    stop
+    !if(iproc==0) write(*,*)'ERROR: Number of electrons is negative:',nelec,'.'
+    !if(iproc==0) write(*,*)'FIX: decrease charge of system.'
+    !call mpi_finalize(iat)
+    !stop
+    call f_err_throw('Number of electrons is negative:' // trim(yaml_toa(nelec)) // &
+      & '. FIX: decrease charge of system.', err_name='BIGDFT_RUNTIME_ERROR')
   end if
 
   ! Number of orbitals
@@ -900,8 +892,11 @@ subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
      nelec_down=0
   else 
      if (mod(nelec+mpol,2) /=0) then
-        write(*,*)'ERROR: the mpol polarization should have the same parity of the number of electrons'
-        stop
+          call f_err_throw('The mpol polarization should have the same parity of the number of electrons. ' // &
+            & '(mpol=' // trim(yaml_toa(mpol)) // ' and nelec=' // trim(yaml_toa(nelec)) // ')', &
+            & err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+        !write(*,*)'ERROR: '
+        !stop
      end if
      nelec_up=min((nelec+mpol)/2,nelec)
      nelec_down=nelec-nelec_up
@@ -916,20 +911,32 @@ subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
      end do
 
      if (ispinsum /= nelec_up-nelec_down) then
-        call yaml_warning('Total input polarisation (found ' // trim(yaml_toa(ispinsum)) &
-             & // ') must be equal to nelec_up-nelec_down.')
-        call yaml_comment('With nelec=' // trim(yaml_toa(nelec)) &
-             & // ' and mpol=' // trim(yaml_toa(mpol)) // &
-             & ' nelec_up-nelec_down=' // trim((yaml_toa(nelec_up-nelec_down))))
-        stop
+        !call yaml_warning('Total input polarisation (found ' // trim(yaml_toa(ispinsum)) &
+        !     & // ') must be equal to nelec_up-nelec_down.')
+        !call yaml_comment('With nelec=' // trim(yaml_toa(nelec)) &
+        !     & // ' and mpol=' // trim(yaml_toa(mpol)) // &
+        !     & ' nelec_up-nelec_down=' // trim((yaml_toa(nelec_up-nelec_down))))
+        !stop
+        call f_err_throw('Total polarisation for the input guess (found ' // trim(yaml_toa(ispinsum)) // &
+           & ') must be equal to nelec_up-nelec_down ' // &
+           & '(nelec=' // trim(yaml_toa(nelec)) // ', mpol=' // trim(yaml_toa(mpol)) // &
+           & ', nelec_up-nelec_down=' // trim((yaml_toa(nelec_up-nelec_down))) // &
+           & ', nelec_up=' // trim((yaml_toa(nelec_up))) // &
+           & ', nelec_down=' // trim((yaml_toa(nelec_down))) // &
+           & '). Use the keyword "IGSpin" or add a spin component for the input guess per atom.', &
+           & err_name='BIGDFT_INPUT_VARIABLES_ERROR')
      end if
 
      if (ichgsum /= ncharge .and. ichgsum /= 0) then
-        call yaml_warning('Total input charge (found ' // trim(yaml_toa(ichgsum)) &
-             & // ') cannot be different than charge.')
-        call yaml_comment('With charge =' // trim(yaml_toa(ncharge)) &
-             & // ' and input charge=' // trim(yaml_toa(ichgsum)))
-        stop
+        !call yaml_warning('Total input charge (found ' // trim(yaml_toa(ichgsum)) &
+        !     & // ') cannot be different than charge.')
+        !call yaml_comment('With charge =' // trim(yaml_toa(ncharge)) &
+        !     & // ' and input charge=' // trim(yaml_toa(ichgsum)))
+        !stop
+        call f_err_throw('Total input charge (found ' // trim(yaml_toa(ichgsum)) // &
+             & ') cannot be different than charge. With charge =' // trim(yaml_toa(ncharge)) // &
+             & ' and input charge=' // trim(yaml_toa(ichgsum)), &
+             & err_name='BIGDFT_INPUT_VARIABLES_ERROR')
      end if
 
      !now warn if there is no input guess spin polarisation
@@ -949,10 +956,8 @@ subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
 
   norbe = 0
   !if(nspin==4) then
-  !   nspin_=1
   !   nspinor=4
   !else
-  !   nspin_=nspin
   !   nspinor=1
   !end if
   do iat=1,atoms%astruct%nat
@@ -961,6 +966,7 @@ subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
      norbe=norbe+atoms%aoig(iat)%nao!nl(1)+3*nl(2)+5*nl(3)+7*nl(4)
   end do
 end subroutine read_n_orbitals
+
 
 !> Find the correct position of the nlcc parameters
 subroutine nlcc_start_position(ityp,atoms,ngv,ngc,islcc)
@@ -1207,12 +1213,14 @@ END SUBROUTINE nlcc_start_position
 !!!END SUBROUTINE orbitals_descriptors_forLinear
 
 
-!> Routine which assign to each processor the repartition of nobj*nkpts objects
+!> Routine which assigns to each processor the repartition of nobj*nkpts objects
 subroutine kpts_to_procs_via_obj(nproc,nkpts,nobj,nobj_par)
   use module_base
   implicit none
-  integer, intent(in) :: nproc,nkpts,nobj
-  integer, dimension(0:nproc-1,nkpts), intent(out) :: nobj_par
+  integer, intent(in) :: nproc !< No. of proc
+  integer, intent(in) :: nkpts !< No. K points
+  integer, intent(in) :: nobj  !< Object number (i.e. nvctr)
+  integer, dimension(0:nproc-1,nkpts), intent(out) :: nobj_par !< iresult of the partition
   !local varaibles
   logical :: intrep
   integer :: jproc,ikpt,iobj,nobjp_max_kpt,nprocs_with_floor,jobj,nobjp
@@ -1335,9 +1343,12 @@ subroutine kpts_to_procs_via_obj(nproc,nkpts,nobj,nobj_par)
   end if
 END SUBROUTINE kpts_to_procs_via_obj
 
+
 subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par)
-  use module_base
+  use module_base, only: gp, f_err_throw, to_zero
+  use module_types, only: BIGDFT_RUNTIME_ERROR, UNINITIALIZED
   implicit none
+  !Arguments
   integer, intent(in) :: nproc,nkpts,nvctr,norb
   integer, dimension(0:nproc-1,nkpts), intent(in) :: norb_par
   integer, dimension(0:nproc-1,nkpts), intent(out) :: nvctr_par
@@ -1345,12 +1356,10 @@ subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par
   integer :: ikpt,jsproc,jeproc,kproc,icount,ivctr,jproc,numproc
   real(gp) :: strprc,endprc
 
-  ! This variable is not initialized...
-  icount=0
-
   !for any of the k-points find the processors which have such k-point associated
   call to_zero(nproc*nkpts,nvctr_par(0,1))
 
+  !Loop over each k point
   do ikpt=1,nkpts
      jsproc=UNINITIALIZED(1)
      jeproc=UNINITIALIZED(1)
@@ -1360,7 +1369,7 @@ subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par
            exit find_start
         end if
      end do find_start
-     if (jsproc == UNINITIALIZED(1)) stop 'ERROR in kpt assignments'
+     if (jsproc == UNINITIALIZED(1)) call f_err_throw('ERROR in kpt assignments',err_id=BIGDFT_RUNTIME_ERROR)
      if(norb_par(jsproc,ikpt) /= norb) then
         strprc=real(norb_par(jsproc,ikpt),gp)/real(norb,gp)     
      else
@@ -1377,7 +1386,7 @@ subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par
               exit find_end
            end if
         end do find_end
-        if (jeproc == UNINITIALIZED(1)) stop 'ERROR in kpt assignments'
+        if (jeproc == UNINITIALIZED(1)) call f_err_throw('ERROR in kpt assignments',err_id=BIGDFT_RUNTIME_ERROR)
      else
         jeproc=nproc-1
      end if
@@ -1388,11 +1397,12 @@ subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par
      end if
      !if the number of processors is bigger than the number of orbitals this means 
      !that strprc and endprc are not correctly evaluated
-     !evaluate the percentace on the number of components
+     !evaluate the percentage on the number of components
      if (jeproc-jsproc+1 > norb) then
         strprc=1.0_gp/real(jeproc-jsproc+1,gp)
         endprc=strprc
      end if
+
      !assign the number of components which corresponds to the same orbital distribution
      numproc=jeproc-jsproc+1
      icount=0
@@ -1410,8 +1420,7 @@ subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par
              nvctr_par(kproc,ikpt)==ceiling(strprc*real(nvctr,gp)-epsilon(1.0_gp))) then
            !do nothing, skip away
         else
-           nvctr_par(kproc,ikpt)=&
-                nvctr_par(kproc,ikpt)+1
+           nvctr_par(kproc,ikpt) = nvctr_par(kproc,ikpt)+1
            ivctr=ivctr+1
         end if
      end do fill_array
@@ -1494,8 +1503,7 @@ subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,inf
      end if
   end do
 
-  allocate(load_unbalancing(0:nproc-1,2+ndebug),stat=i_stat)
-  call memocc(i_stat,load_unbalancing,'load_unbalancing',subname)
+  load_unbalancing = f_malloc((/ 0.to.nproc-1, 1.to.2 /),id='load_unbalancing')
 
   do jproc=0,nproc-1
      load_unbalancing(jproc,:)=0
@@ -1518,9 +1526,7 @@ subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,inf
   if (info==0) write(*,*)' Kpoints Distribuitions are compatible, load unbalancings, orbs,comps:',lub_orbs,&
        '/',max(minval(load_unbalancing(:,1)),1),lub_comps,'/',minval(load_unbalancing(:,2))
   info=0
-  i_all=-product(shape(load_unbalancing))*kind(load_unbalancing)
-  deallocate(load_unbalancing,stat=i_stat)
-  call memocc(i_stat,i_all,'load_unbalancing',subname)
+  call f_free(load_unbalancing)
 
 
 END SUBROUTINE check_kpt_distributions
@@ -1705,8 +1711,7 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
   if(.not. storeit) then
      !if(ityp == 1) then !this implies that the PSP are all present
      if (.not. associated(atoms%paw_NofL)) then
-        allocate(atoms%paw_NofL(atoms%astruct%ntypes+ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_NofL,'atoms%paw_NofL',subname)
+        atoms%paw_NofL = f_malloc_ptr(atoms%astruct%ntypes+ndebug,id='atoms%paw_NofL')
      end if
      ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
      open(unit=11,file=trim(filename),status='old',iostat=ierror)
@@ -1777,33 +1782,15 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
 
   else
      if(ityp.eq.1) then
-        allocate(atoms%paw_l  (paw_tot_l+ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_l,'atoms%paw_l',subname)
-        
-        allocate(atoms%paw_nofchannels  (paw_tot_l+ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_nofchannels,'atoms%paw_nofchannels',subname)
-        
-        allocate(atoms%paw_nofgaussians  (paw_tot_l+ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_nofgaussians,'atoms%paw_nofgaussians',subname)
-        
-        allocate(atoms%paw_Greal  (paw_tot_l+ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_Greal,'atoms%paw_Greal',subname)
-        
-        allocate(atoms%paw_Gimag ( paw_tot_q   +  ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_Gimag,'atoms%paw_Gimag',subname)
-        
-        allocate(atoms%paw_Gcoeffs ( paw_tot_coefficients  +  ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_Gcoeffs,'atoms%paw_Gcoeffs',subname)
-        
-        allocate(atoms%paw_H_matrices(paw_tot_matrices+ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_H_matrices,'atoms%paw_H_matrices',subname)
-        
-        allocate(atoms%paw_S_matrices ( paw_tot_matrices  +  ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_S_matrices,'atoms%paw_S_matrices',subname)
-        
-        
-        allocate(atoms%paw_Sm1_matrices ( paw_tot_matrices  +  ndebug), stat=i_stat)
-        call memocc(i_stat,atoms%paw_Sm1_matrices,'atoms%paw_Sm1_matrices',subname)
+        atoms%paw_l   = f_malloc_ptr(paw_tot_l,id='atoms%paw_l  ')
+        atoms%paw_nofchannels   = f_malloc_ptr(paw_tot_l,id='atoms%paw_nofchannels  ')
+        atoms%paw_nofgaussians   = f_malloc_ptr(paw_tot_l,id='atoms%paw_nofgaussians  ')
+        atoms%paw_Greal   = f_malloc_ptr(paw_tot_l,id='atoms%paw_Greal  ')
+        atoms%paw_Gimag  = f_malloc_ptr(paw_tot_q   ,id='atoms%paw_Gimag ')
+        atoms%paw_Gcoeffs  = f_malloc_ptr(paw_tot_coefficients  ,id='atoms%paw_Gcoeffs ')
+        atoms%paw_H_matrices = f_malloc_ptr(paw_tot_matrices,id='atoms%paw_H_matrices')
+        atoms%paw_S_matrices  = f_malloc_ptr(paw_tot_matrices  ,id='atoms%paw_S_matrices ')
+        atoms%paw_Sm1_matrices  = f_malloc_ptr(paw_tot_matrices  ,id='atoms%paw_Sm1_matrices ')
         
         
         paw_tot_l=0

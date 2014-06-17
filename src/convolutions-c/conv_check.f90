@@ -263,20 +263,13 @@ program conv_check
            n3 = n1+2
            !set of one-dimensional convolutions
            !allocate arrays
-           allocate(psi_in(n1,ndat,1+ndebug),stat=i_stat)
-           call memocc(i_stat,psi_in,'psi_in',subname)
-           allocate(psi_out(ndat,n1,1+ndebug),stat=i_stat)
-           call memocc(i_stat,psi_out,'psi_out',subname)
-           allocate(psi_cuda(ndat,n1,1+ndebug),stat=i_stat)
-           call memocc(i_stat,psi_cuda,'psi_cuda',subname)
-           allocate(psi_3d_in(n1,n2,n3,ntimes+ndebug),stat=i_stat)
-           call memocc(i_stat,psi_3d_in,'psi_3d_in',subname)
-           allocate(psi_3d_out(n1,n2,n3,ntimes+ndebug),stat=i_stat)
-           call memocc(i_stat,psi_3d_out,'psi_3d_out',subname)
-           allocate(psi_3d_cuda(n1,n2,n3,ntimes+ndebug),stat=i_stat)
-           call memocc(i_stat,psi_3d_cuda,'psi_3d_cuda',subname)
-           allocate(psi_3d_tmp(n1,n2,n3,ntimes+ndebug),stat=i_stat)
-           call memocc(i_stat,psi_3d_tmp,'psi_3d_tmp',subname)
+           psi_in = f_malloc((/ n1, ndat, 1 /),id='psi_in')
+           psi_out = f_malloc((/ ndat, n1, 1 /),id='psi_out')
+           psi_cuda = f_malloc((/ ndat, n1, 1 /),id='psi_cuda')
+           psi_3d_in = f_malloc((/ n1, n2, n3, ntimes /),id='psi_3d_in')
+           psi_3d_out = f_malloc((/ n1, n2, n3, ntimes /),id='psi_3d_out')
+           psi_3d_cuda = f_malloc((/ n1, n2, n3, ntimes /),id='psi_3d_cuda')
+           psi_3d_tmp = f_malloc((/ n1, n2, n3, ntimes /),id='psi_3d_tmp')
 
 
            !initialise array

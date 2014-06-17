@@ -35,6 +35,7 @@ Keys to ignore:
  - Cumulative size of masking arrays
  - Dictionary for lin
  - Raw version
+ - Size of the global database
 Patterns to ignore:
  - Timestamp
  - memory
@@ -53,12 +54,51 @@ yaml_test:
    - date
    - Id
    - Summary
+   - ERR_ALLOCATE
+   - Routine dictionary
+   - Errors found while (de)allocating ab and b
+   - Calling sequence of Main program (routines with * are not closed yet)
+   - Additional Info
  Patterns to ignore:
    - errcode
    - time
    - Time
+   - Global dictionary
 
 #Runs which update and override the default
+AgBulk:
+ Grid Spacing threshold (AU): 1.e-2
+ Residues per orbital: 2.2e-8
+ EH: 2.51e-11
+ EXC: 4.52e-11
+ Ekin: 1.81e-11
+ Enl: 3.71e-11
+ Epot: 3.21e-11
+ EvXC: 7.1e-11
+ tr(H): 4.1e-11
+ # Necessary for GPU runs, to be updated...
+ Keys to ignore:
+  - Residues per orbital
+  - Calculating wavelets expansion of projectors, found warnings
+
+
+SiBulk:
+ Wavefunctions Iterations: 1.1e-10
+ Residues per orbital: 8.0e-10
+ maxval: 1.3e-10
+ # Ekin: 2.1e-11
+ # Enl: 5.1e-11
+ # Epot: 1.0e-10
+ # EvXC: 1.1e-10
+ Atomic Forces (Ha/Bohr): 1.3e-10
+ Clean forces norm (Ha/Bohr): 8.3e-11
+ Average noise forces: 2.4e-11
+ Optimization of virtual orbitals: 2.97e-8
+ # Necessary for GPU runs, to be updated...
+ Keys to ignore:
+  - Residues per orbital
+
+
 SiH4:
  #due to lack of functionality in fldiff, since energies field is updated
  Energies: &etol 4.6e-9
@@ -76,37 +116,6 @@ SiH4:
  maxval: 2.e-9
  Average noise forces: 1.5e-10
  Average CG stepsize in terms of betax: 1.1e-5
-
-AgBulk:
- Grid Spacing threshold (AU): 1.e-2
- Residues per orbital: 2.2e-8
- EH: 2.51e-11
- EXC: 4.52e-11
- Ekin: 1.81e-11
- Enl: 3.71e-11
- Epot: 3.21e-11
- EvXC: 7.1e-11
- tr(H): 4.1e-11
- # Necessary for GPU runs, to be updated...
- Keys to ignore:
-  - Residues per orbital
-  - Calculating wavelets expansion of projectors, found warnings
-
-SiBulk:
- Wavefunctions Iterations: 1.1e-10
- Residues per orbital: 8.0e-10
- maxval: 1.3e-10
- # Ekin: 2.1e-11
- # Enl: 5.1e-11
- # Epot: 1.0e-10
- # EvXC: 1.1e-10
- Atomic Forces (Ha/Bohr): 1.3e-10
- Clean forces norm (Ha/Bohr): 8.3e-11
- Average noise forces: 2.4e-11
- Optimization of virtual orbitals: 7.71e-9
- # Necessary for GPU runs, to be updated...
- Keys to ignore:
-  - Residues per orbital
 
 Mn2:
  Keys to ignore:
@@ -169,30 +178,41 @@ CH3-:
 
 scalability:
  Energies: 1.e-9
- EKS: 2.0e-10
+ EKS: 2.14e-10
  Total electronic charge: 1.9e-11
  Expected kinetic energy: 1.1e-10
+
 
 ElecField:
  Epsilon: 1.1e-10 
 
+
 FeHyb:
  EKS: 6.e-11
  y: 1.51e-11
+
 
 Li+:
  Epsilon: 1.1e-10
  D: 1.01e-10
  Epot: 1.01e-10
 
+
 O2-Spin:
  Epsilon: 1.1e-10
+
 
 H2-spin:
  Estimation of Finite-Size Corrections:
   Corrected Energies:
    Epot: 2.1e-11
   Total energy with tail correction: 1.51e-11
+
+
+H-Rydberg_H:
+ Gradient Norm: 5.8e-9
+ Eigenvalues and eigenstate residue: 5.1e-9
+ norm(P): 1.1e-10
 
 TiSmear:
  Epsilon: 5.e-11
@@ -242,8 +262,8 @@ N2:
 
 mixpotential:
  Epot: 1.1e-10
- energy: 6.55e-11
- Omega: 6.55e-11
+ energy: 7.07e-11
+ Omega: 6.58e-11
  Ekin: 1.1e-10
  EXC: 1.1e-10
 
@@ -312,8 +332,8 @@ TDDFT:
   Epot: 1.1e-10
   Gradient Norm: 4.0e-8
   L2 Norm - 1 and Rayleigh quotient (Davidson): 1.1e-6
-  Excitation Energy and Oscillator Strength: 1.9e-6
-  Transition energies (eV): 1.1e-4
+  Excitation Energy and Oscillator Strength: 1.3e-5
+  Transition energies (eV): 3.01e-4
 
 BigDFT2Wannier.b2w.ref.yaml:
   amnk_guess(nb): 1.31e-10
@@ -341,7 +361,7 @@ directmin:
  Epsilon: 3.5e-10
  mean alpha: 1.1e-04
  max alpha: 1.1e-04
- Ekin: 4.1e-10
+ Ekin: 5.1e-10
  norm(P): 1.1e-7
 
 experimentalmode:
@@ -370,7 +390,7 @@ restartdisk_charge:
  - Wavefunction written
 
 restartdisk_read:
- EH: 1.0e-10
+ EH: 1.1e-10
  Epot: 1.1e-10
 
 H2-freq: &freq
@@ -420,6 +440,7 @@ rotatesmall_write:
 
 wrappers.out:
  EH: 1.1e-10
+ fnrm2: 1.1e-10
 
 rotatesmall_read:
  Epsilon: 2.4e-11
@@ -529,7 +550,7 @@ fructose:
  D eF: 3.9e-5
  D Tr: 5.4e-6
  eF: 5.4e-5
- EH: 1.0e-9
+ EH: 1.01e-9
  EvXC: 1.1e-10
  energy: 1.43e-10
  Omega: 1.41e-10
@@ -548,9 +569,10 @@ fructose:
 geopt_foe:
  D eF: 7.1e-6
  D: 1.e-10
- eF: 2.1e-7
+ eF: 2.2e-7
  Epot: 1.1e-10
  EH: 1.1e-10
+ Ekin: 1.1e-10
  charge diff: 7.1e-6
  diff from idempotency: 2.1e-09
  tr(KS) before purification: 2.6e-07
@@ -560,6 +582,7 @@ geopt_foe:
  ebs: 2.1e-7
  ebs_check: 1.1e-8
  diff: 2.1e-7
+ Positions: 2.1e-9
 
 geopt_diag:
  Epot: 1.1e-10
@@ -656,7 +679,7 @@ deltascf_write_neut:
 
 foe:
  Epot: 1.1e-10
- energy: 1.32e-10
+ energy: 1.378e-10
  EH: 1.0e-9
  Omega: 1.64e-10
  EXC: 7.1e-10
@@ -675,10 +698,11 @@ foe:
  decay length of error function: 1.1e-5
  ebs: 7.1e-8
  diff: 7.1e-8
+ ebs_check: 1.1e-10
 
 onlyhigh:
  Energies: 2.1e-9
- energy: 3.1e-10
+ energy: 3.13e-10
  Omega: 8.0e-10
  Orbitals: 1.1e-9
  Pulay Forces (Ha/Bohr): 1.4e-10
@@ -698,7 +722,7 @@ linearcubic_cubic:
  Ekin: 1.1e-9
  EH: 1.01e-9
  energy: 1.83e-10
- EKS: 2.44e-10
+ EKS: 2.6e-10
  Epot: 1.1e-9
 
 linearcubic_linear:
@@ -895,10 +919,10 @@ DIIShistory:
 
 sparsity:
  Total charge: 1.1e-10
- Omega: 5.6e-10
+ Omega: 1.03e-9
  Clean forces norm (Ha/Bohr): 7.7e-11
  Raw forces norm (Ha/Bohr): 1.4e-11
- Total ionic charge: 2.2e-11
+ Total ionic charge: 2.41e-11
  charge diff: 1.1e-9
  energy: 1.1e-9
  EXC: 1.1e-10
@@ -916,6 +940,9 @@ PBE_densmixlin:
  energy: 1.1e-10
  Omega: 2.0e-1
  EvXC: 1.1e-10
+ EXC: 1.01e-10
+ EH: 1.0e-9
+ Total charge: 2.01e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -928,6 +955,7 @@ PBE_potmixlin:
  energy: 1.1e-10
  Omega: 1.1e-10
  delta out: 1.1e-9
+ Total charge: 2.01e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -946,11 +974,16 @@ PBE_potmixdiis:
  EH: 6.3e-8
  Ekin: 1.2e-8
  Enl: 2.2e-9
+ Total charge: 2.01e-11
  multiplicator for the confinement: 4.3e-8
 
 PBE_densmixdiis:
  Epot: 1.1e-10
  EvXC: 1.1e-10
+ EXC: 1.1e-10
  Enl: 1.1e-10
  energy: 1.1e-10
  Omega: 1.1e-10
+ Ekin: 1.1e-9
+ Total charge: 2.01e-11
+ EH: 1.0e-9

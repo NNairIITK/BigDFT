@@ -9,6 +9,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
+
 !!$module error_handling
 !!$  use exception_callbacks
 !!$  use dictionaries, dict_msg_len=>max_field_length
@@ -127,7 +128,7 @@
     if (get_error==-1) then
        f_err_check = dict_len(dict_present_error) /= 0 
     else
-       !othewise check is some error is present
+       !otherwise check is some error is present
        f_err_check =  get_error/=0
     end if
 
@@ -136,7 +137,7 @@
 
   !> This routine should be generalized to allow the possiblity of addin customized message at the 
   !! raise of the error. Also customized callback should be allowed
-  !! @warning This function is detected as recrusive by gfortran
+  !! @warning This function is detected as recursive by gfortran
   recursive function f_err_raise(condition,err_msg,err_id,err_name,callback,callback_data)
     use yaml_strings, only: yaml_toa
     !use yaml_output, only: yaml_dict_dump,yaml_map
@@ -166,7 +167,7 @@
     !once the error has been identified add it to the present errors and call callback function if needed
     if (f_err_raise) then
 
-       !trow the error with the annoying stuff of optional variables
+       !throw the error with the annoying stuff of optional variables
        if (present(err_msg)) then
           message(1:len(message))=err_msg
        else
@@ -178,7 +179,7 @@
 
        if (present(callback)) then
           if (present(err_id)) then
-             call f_err_throw(message,err_id,callback=callback,callback_data=clbk_data_add)
+             call f_err_throw(message,err_id=err_id,callback=callback,callback_data=clbk_data_add)
           else if (present(err_name)) then
              call f_err_throw(message,err_name=err_name,callback=callback,callback_data=clbk_data_add) 
           else
@@ -186,7 +187,7 @@
           end if
        else
           if (present(err_id)) then
-             call f_err_throw(message,err_id,callback_data=clbk_data_add)
+             call f_err_throw(message,err_id=err_id,callback_data=clbk_data_add)
           else if (present(err_name)) then
              call f_err_throw(message,err_name=err_name,callback_data=clbk_data_add)
           else
@@ -201,9 +202,10 @@
   subroutine f_err_throw(err_msg,err_id,err_name,callback,callback_data)
     use yaml_strings, only: yaml_toa
     implicit none
-    integer, intent(in), optional :: err_id !< the code of the error to be raised.
-                                            !! it should already have been defined by f_err_define
-    character(len=*), intent(in), optional :: err_name,err_msg !< search for the error and add a message to it 
+    integer, intent(in), optional :: err_id                    !< The code of the error to be raised.
+                                                               !! it should already have been defined by f_err_define
+    character(len=*), intent(in), optional :: err_name,err_msg !< Search for the error and add a message to it
+    !type(dictionary), pointer, optional :: err_dict            !< Add a dictionary instead of a message
     integer(kind=8), intent(in), optional :: callback_data
     external :: callback
     optional :: callback
@@ -213,7 +215,7 @@
     character(len=max_field_length), dimension(1) :: keys
     type(dictionary), pointer :: dict_tmp
     character(len=max_field_length) :: message
-    
+
     !to prevent infinite loop due to not association of the error handling
     if (.not. associated(dict_present_error)) then
        write(0,*) 'error_handling library not initialized'
@@ -240,32 +242,50 @@
        end if
     end if
 
-    if (present(err_msg)) then
-       message(1:len(message))=err_msg
+    !if (present(err_dict)) then
+    !   !to prevent infinite loop due to not association of the error handling
+    !   if (.not. associated(err_dict)) then
+    !      write(0,*) 'dictionary err_dict or initialized in f_err_throw'
+    !      call f_err_severe()
+    !   else
+    !   call add(dict_present_error,&
+    !        dict_new((/ errid .is. yaml_toa(new_errcode),ERR_ADD_INFO .is. err_dict/)))
+    !   end if
+    !else
+       if (present(err_msg)) then
+          message(1:len(message))=err_msg
+       else
+          message(1:len(message))='UNKNOWN'
+       end if
+       call add(dict_present_error,&
+            dict_new((/ errid .is. yaml_toa(new_errcode),ERR_ADD_INFO .is. message/)))
+    !end if
+
+    !if we are in a try-catch environment, no callback has
+    !to be called after the error is produced
+    if (try_environment) then
+       !identify callback function 
+       clbk_add=f_loc(f_err_ignore)
+       clbk_data_add=int(0,kind=8)
     else
-       message(1:len(message))='UNKNOWN'
+       !identify callback function 
+       clbk_add=callback_add
+       clbk_data_add=callback_data_add
+       if (present(callback_data)) clbk_data_add=callback_data
+       if (present(callback)) then
+          clbk_add=f_loc(callback)
+       else
+          !find the callback in the error definition
+          !these data can be inserted in a function
+          dict_tmp=>f_get_error_dict(new_errcode)
+          !that is how dict_keys function should be called      
+          if (dict_size(dict_tmp) <= size(keys)) keys=dict_keys(dict_tmp)
+          dict_tmp=>dict_tmp//trim(keys(1))
+
+          if (has_key(dict_tmp,errclbk)) clbk_add=dict_tmp//errclbk
+          if (has_key(dict_tmp,errclbkadd)) clbk_data_add=dict_tmp//errclbkadd
+       end if
     end if
-    call add(dict_present_error,&
-         dict_new((/ errid .is. yaml_toa(new_errcode),'Additional Info' .is. message/)))
-
-    !identify callback function 
-    clbk_add=callback_add
-    clbk_data_add=callback_data_add
-    if (present(callback_data)) clbk_data_add=callback_data
-    if (present(callback)) then
-       clbk_add=f_loc(callback)
-    else
-       !find the callback in the error definition
-       !these data can be inserted in a function
-       dict_tmp=>f_get_error_dict(new_errcode)
-       !that is how dict_keys function should be called      
-       if (dict_size(dict_tmp) <= size(keys)) keys=dict_keys(dict_tmp)
-       dict_tmp=>dict_tmp//trim(keys(1))
-
-       if (has_key(dict_tmp,errclbk)) clbk_add=dict_tmp//errclbk
-       if (has_key(dict_tmp,errclbkadd)) clbk_data_add=dict_tmp//errclbkadd
-    end if
-
     call err_abort(clbk_add,clbk_data_add)
     
   end subroutine f_err_throw
@@ -319,14 +339,14 @@
     character(len=*), intent(out) :: add_msg
 
     if (ierr >=0) then
-       add_msg=dict_present_error//ierr//'Additional Info'
+       add_msg=dict_present_error//ierr//ERR_ADD_INFO
     else
        add_msg=repeat(' ',len(add_msg))
     end if
   end subroutine get_error_msg
 
 
-  !> Identify id of lastr error occured
+  !> Identify id of last error occured
   function f_get_last_error(add_msg)
     implicit none
     character(len=*), intent(out), optional :: add_msg
@@ -336,13 +356,13 @@
     ierr=dict_len(dict_present_error)-1
     if (ierr >= 0) then
        f_get_last_error=dict_present_error//ierr//errid
-       if (present(add_msg)) add_msg=dict_present_error//ierr//'Additional Info'
+       if (present(add_msg)) add_msg=dict_present_error//ierr//ERR_ADD_INFO
+      
     else
        f_get_last_error=0
        if (present(add_msg)) add_msg=repeat(' ',len(add_msg))
     end if
   end function f_get_last_error
-
 
   !> Clean the dictionary of present errors
    subroutine f_err_clean()
@@ -350,7 +370,6 @@
     call dict_free(dict_present_error)
     call dict_init(dict_present_error)
   end subroutine f_err_clean
-
 
   !> Clean last error, if any and get message.
   function f_err_pop(err_id, err_name, add_msg)
@@ -368,8 +387,8 @@
     end if
     if (ierr >= 0 .and. get_error > 0) then
        f_err_pop=dict_present_error//ierr//errid
-       if (present(add_msg)) add_msg=dict_present_error//ierr//'Additional Info'
-       call pop(dict_present_error, ierr)
+       if (present(add_msg)) add_msg=dict_present_error//ierr//ERR_ADD_INFO
+       call dict_remove(dict_present_error, ierr)
        if (.not.associated(dict_present_error)) call dict_init(dict_present_error)
     else
        f_err_pop=0
@@ -377,21 +396,25 @@
     end if
   end function f_err_pop
 
-
   !> Activate the exception handling for all errors
+  !! also the errors which have f_err_severe as callbacks
+  !! multiple calls to f_err_open_try have the same effect of one call
   subroutine f_err_open_try()
     implicit none
-    call f_err_set_callback(f_err_ignore)
+    !call f_err_set_callback(f_err_ignore)
+    try_environment=.true.
   end subroutine f_err_open_try
-  
 
-  !> Close the try environment
+  !> Close the try environment. At the end of the try environment
+  !! the errors are cleaned. To recover an error in a try environment 
+  !! the correct behviour is to perform f_err_check before calling 
+  !! f_err_close_try
   subroutine f_err_close_try()
     implicit none
     call f_err_clean() !no errors anymore
-    call f_err_unset_callback()
+    try_environment=.false.
+    !call f_err_unset_callback()
   end subroutine f_err_close_try
-  
 
   function f_get_error_definitions()
     implicit none

@@ -104,83 +104,35 @@ subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
 contains
 
   subroutine allocate_all
-    allocate(modul1(lowfil:n1+lupfil+ndebug),stat=i_stat)
-    call memocc(i_stat,modul1,'modul1','precong_per')
-    allocate(modul2(lowfil:n2+lupfil+ndebug),stat=i_stat)
-    call memocc(i_stat,modul2,'modul2','precong_per')
-    allocate(modul3(lowfil:n3+lupfil+ndebug),stat=i_stat)
-    call memocc(i_stat,modul3,'modul3','precong_per')
-    allocate(af(lowfil:lupfil,3+ndebug),stat=i_stat)
-    call memocc(i_stat,af,'af','precong_per')
-    allocate(bf(lowfil:lupfil,3+ndebug),stat=i_stat)
-    call memocc(i_stat,bf,'bf','precong_per')
-    allocate(cf(lowfil:lupfil,3+ndebug),stat=i_stat)
-    call memocc(i_stat,cf,'cf','precong_per')
-    allocate(ef(lowfil:lupfil,3+ndebug),stat=i_stat)
-    call memocc(i_stat,ef,'ef','precong_per')
-
-    allocate(b(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
-    call memocc(i_stat,b,'b','precong_per')
-    allocate(r(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
-    call memocc(i_stat,r,'r','precong_per')
-    allocate(d(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
-    call memocc(i_stat,d,'d','precong_per')
-    allocate( psifscf((2*n1+2)*(2*n2+2)*(2*n3+2)+ndebug),stat=i_stat )
-    call memocc(i_stat,psifscf,'psifscf','precong_per')
-    allocate( ww((2*n1+2)*(2*n2+2)*(2*n3+2)+ndebug) ,stat=i_stat)
-    call memocc(i_stat,ww,'ww','precong_per')
+    modul1 = f_malloc(lowfil.to.n1+lupfil,id='modul1')
+    modul2 = f_malloc(lowfil.to.n2+lupfil,id='modul2')
+    modul3 = f_malloc(lowfil.to.n3+lupfil,id='modul3')
+    af = f_malloc((/ lowfil.to.lupfil, 1.to.3 /),id='af')
+    bf = f_malloc((/ lowfil.to.lupfil, 1.to.3 /),id='bf')
+    cf = f_malloc((/ lowfil.to.lupfil, 1.to.3 /),id='cf')
+    ef = f_malloc((/ lowfil.to.lupfil, 1.to.3 /),id='ef')
+    b = f_malloc(nvctr_c+7*nvctr_f,id='b')
+    r = f_malloc(nvctr_c+7*nvctr_f,id='r')
+    d = f_malloc(nvctr_c+7*nvctr_f,id='d')
+    psifscf = f_malloc((2*n1+2)*(2*n2+2)*(2*n3+2),id='psifscf')
+    ww = f_malloc((2*n1+2)*(2*n2+2)*(2*n3+2),id='ww')
   END SUBROUTINE allocate_all
 
   subroutine deallocate_all
 
-    i_all=-product(shape(modul1))*kind(modul1)
-    deallocate(modul1,stat=i_stat)
-    call memocc(i_stat,i_all,'modul1','precong_per')
+    call f_free(modul1)
+    call f_free(modul2)
+    call f_free(modul3)
+    call f_free(af)
+    call f_free(bf)
+    call f_free(cf)
+    call f_free(ef)
+    call f_free(psifscf)
+    call f_free(ww)
+    call f_free(b)
+    call f_free(r)
+    call f_free(d)
 
-    i_all=-product(shape(modul2))*kind(modul2)
-    deallocate(modul2,stat=i_stat)
-    call memocc(i_stat,i_all,'modul2','precong_per')
-
-    i_all=-product(shape(modul3))*kind(modul3)
-    deallocate(modul3,stat=i_stat)
-    call memocc(i_stat,i_all,'modul3','precong_per')
-
-    i_all=-product(shape(af))*kind(af)
-    deallocate(af,stat=i_stat)
-    call memocc(i_stat,i_all,'af','precong_per')
-
-    i_all=-product(shape(bf))*kind(bf)
-    deallocate(bf,stat=i_stat)
-    call memocc(i_stat,i_all,'bf','precong_per')
-
-    i_all=-product(shape(cf))*kind(cf)
-    deallocate(cf,stat=i_stat)
-    call memocc(i_stat,i_all,'cf','precong_per')
-
-    i_all=-product(shape(ef))*kind(ef)
-    deallocate(ef,stat=i_stat)
-    call memocc(i_stat,i_all,'ef','precong_per')
-
-
-    i_all=-product(shape(psifscf))*kind(psifscf)
-    deallocate(psifscf,stat=i_stat)
-    call memocc(i_stat,i_all,'psifscf','precong_per')
-
-    i_all=-product(shape(ww))*kind(ww)
-    deallocate(ww,stat=i_stat)
-    call memocc(i_stat,i_all,'ww','precong_per')
-
-    i_all=-product(shape(b))*kind(b)
-    deallocate(b,stat=i_stat)
-    call memocc(i_stat,i_all,'b','precong_per')
-
-    i_all=-product(shape(r))*kind(r)
-    deallocate(r,stat=i_stat)
-    call memocc(i_stat,i_all,'r','precong_per')
-
-    i_all=-product(shape(d))*kind(d)
-    deallocate(d,stat=i_stat)
-    call memocc(i_stat,i_all,'d','precong_per')
   END SUBROUTINE deallocate_all
 
 END SUBROUTINE precong_per
@@ -315,45 +267,21 @@ subroutine prec_fft(n1,n2,n3, &
 contains
 
   subroutine allocate_all
-    allocate(kern_k1(0:n1+ndebug),stat=i_stat)
-    call memocc(i_stat,kern_k1,'kern_k1',subname)
-    allocate(kern_k2(0:n2+ndebug),stat=i_stat)
-    call memocc(i_stat,kern_k2,'kern_k2',subname)
-    allocate(kern_k3(0:n3+ndebug),stat=i_stat)
-    call memocc(i_stat,kern_k3,'kern_k3',subname)
-    allocate(z1(2,nd1b,nd2,nd3,2+ndebug),stat=i_stat) ! work array for fft
-    call memocc(i_stat,z1,'z1',subname)
-    allocate(z3(2,nd1,nd2,nd3f,2+ndebug),stat=i_stat) ! work array for fft
-    call memocc(i_stat,z3,'z3',subname)
-    allocate(x_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-    call memocc(i_stat,x_c,'x_c',subname)
+    kern_k1 = f_malloc(0.to.n1,id='kern_k1')
+    kern_k2 = f_malloc(0.to.n2,id='kern_k2')
+    kern_k3 = f_malloc(0.to.n3,id='kern_k3')
+    z1 = f_malloc((/ 2, nd1b, nd2, nd3, 2 /),id='z1')
+    z3 = f_malloc((/ 2, nd1, nd2, nd3f, 2 /),id='z3')
+    x_c = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='x_c')
   END SUBROUTINE allocate_all
 
   subroutine deallocate_all
-    i_all=-product(shape(z1))*kind(z1)
-    deallocate(z1,stat=i_stat)
-    call memocc(i_stat,i_all,'z1',subname)
-
-    i_all=-product(shape(z3))*kind(z3)
-    deallocate(z3,stat=i_stat)
-    call memocc(i_stat,i_all,'z3',subname)
-
-    i_all=-product(shape(kern_k1))*kind(kern_k1)
-    deallocate(kern_k1,stat=i_stat)
-    call memocc(i_stat,i_all,'kern_k1',subname)
-
-    i_all=-product(shape(kern_k2))*kind(kern_k2)
-    deallocate(kern_k2,stat=i_stat)
-    call memocc(i_stat,i_all,'kern_k2',subname)
-
-    i_all=-product(shape(kern_k3))*kind(kern_k3)
-    deallocate(kern_k3,stat=i_stat)
-    call memocc(i_stat,i_all,'kern_k3',subname)
-
-    i_all=-product(shape(x_c))*kind(x_c)
-    deallocate(x_c,stat=i_stat)
-    call memocc(i_stat,i_all,'x_c',subname)
-
+    call f_free(z1)
+    call f_free(z3)
+    call f_free(kern_k1)
+    call f_free(kern_k2)
+    call f_free(kern_k3)
+    call f_free(x_c)
   END SUBROUTINE deallocate_all
 
 END SUBROUTINE prec_fft

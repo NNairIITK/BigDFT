@@ -16,6 +16,7 @@ module dynamic_memory
   use dictionaries, info_length => max_field_length
   use yaml_strings, only: yaml_toa,yaml_date_and_time_toa
   use module_f_malloc
+  use yaml_parse, only: yaml_a_todict
   implicit none
 
   private 
@@ -78,11 +79,13 @@ module dynamic_memory
   interface assignment(=)
      module procedure i1_all,i2_all,i3_all,i4_all
      module procedure l1_all,l2_all,l3_all
-     module procedure d1_all,d2_all,d3_all,d4_all,d5_all,d6_all
+     module procedure d1_all,d2_all,d3_all,d4_all,d5_all,d6_all,d7_all
      module procedure r1_all,r2_all,r3_all
      module procedure z2_all
-     module procedure d1_ptr,d2_ptr,d3_ptr,d4_ptr,d5_ptr
-     module procedure i1_ptr,i2_ptr,i3_ptr
+     module procedure d1_ptr,d2_ptr,d3_ptr,d4_ptr,d5_ptr,d6_ptr
+     module procedure i1_ptr,i2_ptr,i3_ptr,i4_ptr
+     module procedure l3_ptr
+     module procedure z1_ptr
      !strings and pointers for characters
      module procedure c1_all
 !     module procedure c1_ptr
@@ -92,15 +95,17 @@ module dynamic_memory
      module procedure i1_all_free,i2_all_free,i3_all_free,i4_all_free
      module procedure i1_all_free_multi
      module procedure l1_all_free,l2_all_free,l3_all_free
-     module procedure d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free,d5_all_free,d6_all_free
+     module procedure d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free,d5_all_free,d6_all_free,d7_all_free
      module procedure r1_all_free,r2_all_free,r3_all_free
      module procedure z2_all_free
   end interface
 
   interface f_free_ptr
-     module procedure i1_ptr_free,i2_ptr_free,i3_ptr_free
+     module procedure i1_ptr_free,i2_ptr_free,i3_ptr_free,i4_ptr_free
      module procedure i1_ptr_free_multi
-     module procedure d1_ptr_free,d2_ptr_free,d3_ptr_free,d4_ptr_free,d5_ptr_free
+     module procedure d1_ptr_free,d2_ptr_free,d3_ptr_free,d4_ptr_free,d5_ptr_free,d6_ptr_free
+     module procedure l3_ptr_free
+     module procedure z1_ptr_free
   end interface
 
   !> initialize to zero an array (should be called f_memset)
@@ -127,7 +132,6 @@ module dynamic_memory
        integer(kind=8), intent(out) :: itime
      end subroutine nanosec
   end interface
-
 
   !> Public routines
   public :: f_malloc,f_malloc0,f_malloc_ptr,f_malloc0_ptr,f_malloc_dump_status
@@ -526,7 +530,7 @@ contains
 
     !call yaml_map('The routine which has to be converted is',trim(routinename))
 
-    call pop(dict,ival)
+    call dict_remove(dict,ival)
 
     dict_tmp=>dict//ival//trim(routinename)
 
@@ -562,7 +566,7 @@ contains
        jtime=itime-jtime
        rtime=dict//tot_time
        call set(dict//tot_time,rtime+real(jtime,kind=8)*1.d-9,fmt='(1pe15.7)')
-       call pop(dict,t0_time)
+       call dict_remove(dict,t0_time)
     else
        call f_err_throw('Key '//t0_time//&
             ' not found, most likely f_release_routine has been called too many times',&
@@ -592,10 +596,12 @@ contains
   !routine which is called for most of the errors of the module
   subroutine f_malloc_callback()
     use yaml_output, only: yaml_warning
+    use exception_callbacks, only: severe_callback_add 
     implicit none
-
     call yaml_warning('An error occured in dynamic memory module. Printing info')
-    call f_malloc_dump_status()
+    !if f_err_severe is not overridden, dump memory
+    !status in the default stream
+    if (severe_callback_add == 0) call f_malloc_dump_status()
     call f_err_severe()
   end subroutine f_malloc_callback
 
@@ -770,8 +776,9 @@ contains
      type(dictionary), pointer, intent(in) :: dict
      integer, intent(in), optional :: unit
      !Local variables
-     type(dictionary), pointer :: dict_ptr!, dict_tmp
-     character(len=256) :: array_id
+     type(dictionary), pointer :: dict_ptr, dict_list
+     character(len=namelen) :: array_id
+     character(len=info_length) :: array_info
      integer :: iunt
 
      if (present(unit)) then
@@ -781,18 +788,22 @@ contains
      end if
      dict_ptr => dict_next(dict)
      do while(associated(dict_ptr))
-        if (has_key(dict_ptr,trim(arrayid))) then
-           array_id = dict_ptr//arrayid
-           call yaml_open_map(trim(array_id),unit=iunt)
-           call yaml_dict_dump(dict_ptr,unit=iunt)
-           call yaml_map(metadatadd,trim(dict_key(dict_ptr)),unit=iunt)
-           call yaml_close_map(unit=iunt)
-        else
-           call yaml_map(trim(dict_key(dict_ptr)),dict_ptr,unit=iunt)
-
-!!$           call yaml_dict_dump(dict_ptr)
-!!$           call yaml_close_map()
-        end if
+        !can be used if one wants more verbose information
+!!$        array_info=dict_ptr
+!!$        dict_list => yaml_a_todict(array_info)
+!!$        !then retrieve the array information
+!!$        array_id=dict_list//0
+!!$        routine_id=dict_list//1
+!!$        jlsize=dict_list//2
+!!$        if (has_key(dict_ptr,trim(arrayid))) then
+!!$           array_id = dict_ptr//arrayid
+!!$           call yaml_open_map(trim(array_id),unit=iunt)
+!!$           call yaml_dict_dump(dict_ptr,unit=iunt)
+!!$           call yaml_map(metadatadd,trim(dict_key(dict_ptr)),unit=iunt)
+!!$           call yaml_close_map(unit=iunt)
+!!$        else
+        call yaml_map(trim(dict_key(dict_ptr)),dict_ptr,unit=iunt)
+!!$        end if
         dict_ptr=>dict_next(dict_ptr)
      end do
   end subroutine dump_leaked_memory
@@ -807,6 +818,7 @@ contains
     !local variables
     integer, parameter :: iunit=97 !<if used switch to default
     integer :: iunt,iunit_def,istat
+    type(dictionary), pointer :: dict_compact
 
     if (f_err_raise(ictrl == 0,&
          'ERROR (f_malloc_dump_status): the routine f_malloc_initialize has not been called',&
@@ -836,9 +848,16 @@ contains
     end if
 
     call yaml_newline(unit=iunt)
-    call yaml_open_map('Calling sequence of Main program',unit=iunt)
-      call yaml_dict_dump(mems(ictrl)%dict_calling_sequence,unit=iunt)
-    call yaml_close_map(unit=iunt)
+!    call yaml_open_map('Calling sequence of Main program',unit=iunt)
+!      call yaml_dict_dump(mems(ictrl)%dict_calling_sequence,unit=iunt)
+!    call yaml_close_map(unit=iunt)
+    !use the new compact version for the calling sequence
+    call dict_init(dict_compact)
+    call postreatment_of_calling_sequence(-1.d0,&
+         mems(ictrl)%dict_calling_sequence,dict_compact)
+    call yaml_map('Calling sequence of Main program (routines with * are not closed yet)',&
+         dict_compact,unit=iunt)
+    call dict_free(dict_compact)
     if (associated(mems(ictrl)%dict_routine)) then
        call yaml_open_map('Routine dictionary',unit=iunt)
        call dump_leaked_memory(mems(ictrl)%dict_routine,unit=iunt)
@@ -865,9 +884,11 @@ contains
     double precision, intent(in) :: base_time 
     type(dictionary), pointer :: dict_cs,dict_pt
     !local variables
-    integer :: ikey,jkey,nkey,icalls
+    logical :: found
+    integer :: ikey,jkey,nkey,icalls,ikeystar
     integer(kind=8) :: itime,jtime
     double precision :: bt
+    character(len=1) :: extra
     character(len=info_length) :: keyval,percent
     type(dictionary), pointer :: dict_tmp
     integer, dimension(:), allocatable :: ipiv
@@ -876,13 +897,20 @@ contains
 
     !build the dictionary of timings
     nkey=dict_size(dict_cs)
-    time=f_malloc(nkey,id='time')
-    keys=f_malloc_str(info_length,nkey,id='keys')
-    ipiv=f_malloc(nkey,id='ipiv')
+    !here f_malloc cannot be used as this routine
+    !is also called in case of errors 
+    if (f_err_check()) then
+       allocate(time(nkey),keys(nkey),ipiv(nkey))
+    else
+       time=f_malloc(nkey,id='time')
+       keys=f_malloc_str(info_length,nkey,id='keys')
+       ipiv=f_malloc(nkey,id='ipiv')
+    end if
 
     !now fill the timings with the values
     dict_tmp=>dict_iter(dict_cs)
     ikey=0
+    ikeystar=-1
     do while (associated(dict_tmp))
        ikey=ikey+1       
        keys(ikey)=dict_key(dict_tmp)
@@ -893,6 +921,7 @@ contains
           jtime=itime-jtime
           time(ikey)=real(jtime,kind=8)*1.d-9
           !add an asterisk to the key
+          ikeystar=ikey
        else if (tot_time .in. dict_tmp) then
           time(ikey)=dict_tmp//tot_time
        else
@@ -906,21 +935,31 @@ contains
     do ikey=1,nkey
        jkey=ipiv(ikey)
        icalls=dict_cs//trim(keys(jkey))//no_of_calls
+       !add to the dictionary the information associated to this routine
+       if (jkey == ikeystar) then
+          extra='*'
+       else
+          extra=' '
+       end if
+
        if (base_time > 0.d0) then
           percent(1:len(percent))=&
-               trim(yaml_toa(time(jkey)/base_time*100.d0,fmt='(f6.2)'))//'%'
+               trim(yaml_toa(time(jkey)/base_time*100.d0,fmt='(f6.2)'))//'%'//extra
        else
-          percent(1:len(percent))='~'
+          percent(1:len(percent))='~'//extra
        end if
-       !add to the dictionary the information associated to this routine
        call add(dict_pt,dict_new(trim(keys(jkey)) .is. &
             list_new(.item. yaml_toa(time(jkey),fmt='(1pg12.3)'),&
-            .item. yaml_toa(icalls),.item. percent)&
+            .item. yaml_toa(icalls), .item. percent)&
             ))
     end do
-    call f_free(ipiv)
-    call f_free_str(info_length,keys)
-    call f_free(time)
+    if (f_err_check()) then
+       deallocate(ipiv,keys,time)
+    else
+       call f_free(ipiv)
+       call f_free_str(info_length,keys)
+       call f_free(time)
+    end if
     !now that the routine level has been ordered, inspect lower levels,
 
     do ikey=1,nkey
@@ -928,7 +967,8 @@ contains
        dict_tmp=>dict_iter(dict_pt//(ikey-1))
        keyval=dict_key(dict_tmp)
        bt=dict_tmp//0
-       if (subprograms .in. dict_cs//trim(keyval)) then
+       found = subprograms .in. dict_cs//trim(keyval)  
+       if (found) then
           call postreatment_of_calling_sequence(bt,dict_cs//trim(keyval)//subprograms,&
                dict_pt//(ikey-1)//subprograms)
        end if

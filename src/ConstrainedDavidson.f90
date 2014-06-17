@@ -914,8 +914,10 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      !
      iter=iter+1
      if (iter>in%itermax) then 
-        if(iproc==0)write(*,'(1x,a)')&
-             'No convergence within the allowed number of minimization steps (itermax)'
+        if(iproc==0) call yaml_warning( &
+          &   'No convergence within the allowed number of minimization steps (itermax)')
+        !if(iproc==0) write(*,'(1x,a)')&
+        !     'No convergence within the allowed number of minimization steps (itermax)'
         exit davidson_loop
      end if
      !

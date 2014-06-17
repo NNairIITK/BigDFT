@@ -31,13 +31,8 @@ subroutine tddft_casida(iproc,nproc,atoms,rxyz,hxh,hyh,hzh,n3p,n3parr,Glr,orbs,o
   real(wp), dimension(:), allocatable :: psirocc,psirvirt
 
   !temporary call to the coupling matrix calculation
-  allocate(psirocc(max(max(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*orbs%norbp,&
-       n3parr(0)*orbs%norb),1)+ndebug),stat=i_stat)
-  call memocc(i_stat,psirocc,'psirocc',subname)
-
-  allocate(psirvirt(max(max(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*orbsv%norbp,&
-       n3parr(0)*orbsv%norb),1)+ndebug),stat=i_stat)
-  call memocc(i_stat,psirvirt,'psirvirt',subname)
+  psirocc = f_malloc(max(max(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*orbs%norbp, n3parr(0)*orbs%norb), 1),id='psirocc')
+  psirvirt = f_malloc(max(max(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*orbsv%norbp, n3parr(0)*orbsv%norb), 1),id='psirvirt')
 
   call prepare_psirocc(iproc,nproc,Glr,orbs,n3p,n3parr,psi,psirocc)
 
@@ -48,12 +43,8 @@ subroutine tddft_casida(iproc,nproc,atoms,rxyz,hxh,hyh,hzh,n3p,n3parr,Glr,orbs,o
   call coupling_matrix_prelim(iproc,nproc,atoms%astruct%geocode,orbs%nspin,Glr,orbs,orbsv,&
        i3s,n3p,hxh,hyh,hzh,chargec,pkernelseq,fxc,psirocc,psirvirt)
 
-  i_all=-product(shape(psirocc))*kind(psirocc)
-  deallocate(psirocc,stat=i_stat)
-  call memocc(i_stat,i_all,'psirocc',subname)
+  call f_free(psirocc)
 
-  i_all=-product(shape(psirvirt))*kind(psirvirt)
-  deallocate(psirvirt,stat=i_stat)
-  call memocc(i_stat,i_all,'psirvirt',subname)
+  call f_free(psirvirt)
 
 end subroutine tddft_casida
