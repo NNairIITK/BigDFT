@@ -542,13 +542,11 @@ subroutine read_int_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
   integer :: na, nb, nc
   character(len=20), dimension(100) :: atomnames
 
-  write(*,*) '0'
   call getLine(line, ifile, eof)
   if (eof) then
      write(*,*) "Error: unexpected end of file."
      stop
   end if
-  write(*,*) '1'
   energy = UNINITIALIZED(energy)
   read(line,*, iostat = ierrsfx) iat,astruct%units,astruct%angle,energy,comment
   if (ierrsfx /= 0) then
@@ -583,7 +581,6 @@ subroutine read_int_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
      write(*,*) "Error: unexpected end of file."
      stop
   end if
-  write(*,*) '2'
 
 !!!  !old format, still here for backward compatibility
 !!!  !admits only simple precision calculation
@@ -656,7 +653,6 @@ subroutine read_int_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
 
   ntyp=0
   do iat=1,astruct%nat
-     write(*,*) 'iat',iat
      !int input file, allow extra information
      call getLine(line, ifile, eof)
      if (f_err_raise(eof,"Unexpected end of file.",err_name='BIGDFT_RUNTIME_ERROR')) return

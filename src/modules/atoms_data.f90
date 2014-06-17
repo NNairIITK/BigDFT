@@ -116,6 +116,7 @@ module module_atoms
       astruct%geocode='X'
       astruct%inputfile_format=repeat(' ',len(astruct%inputfile_format))
       astruct%units=repeat(' ',len(astruct%units))
+      astruct%angle=repeat(' ',len(astruct%angle))
       astruct%nat=-1
       astruct%ntypes=-1
       astruct%cell_dim=0.0_gp
@@ -509,14 +510,14 @@ module module_atoms
          !!astruct%rxyz_int(2:3,1:astruct%nat) = astruct%rxyz_int(2:3,1:astruct%nat) / degree
          call internal_to_cartesian(astruct%nat, astruct%ixyz_int(1,:), astruct%ixyz_int(2,:), astruct%ixyz_int(3,:), &
               astruct%rxyz_int, astruct%rxyz)
-         do i_stat=1,astruct%nat
-             write(*,'(3(i4,3x,f12.5))') astruct%ixyz_int(1,i_stat),astruct%rxyz_int(1,i_stat),&
-                                         astruct%ixyz_int(2,i_stat),astruct%rxyz_int(2,i_stat),&
-                                         astruct%ixyz_int(3,i_stat),astruct%rxyz_int(3,i_stat)
-         end do
-         do i_stat=1,astruct%nat
-             write(*,*) astruct%rxyz(:,i_stat)
-         end do
+         !!do i_stat=1,astruct%nat
+         !!    write(*,'(3(i4,3x,f12.5))') astruct%ixyz_int(1,i_stat),astruct%rxyz_int(1,i_stat),&
+         !!                                astruct%ixyz_int(2,i_stat),astruct%rxyz_int(2,i_stat),&
+         !!                                astruct%ixyz_int(3,i_stat),astruct%rxyz_int(3,i_stat)
+         !!end do
+         !!do i_stat=1,astruct%nat
+         !!    write(*,*) astruct%rxyz(:,i_stat)
+         !!end do
       else if (astruct%inputfile_format == "yaml" .and. index(file,'posinp') /= 0) then
          ! Pb if toto.yaml because means that there is already no key posinp in the file toto.yaml!!
          call f_err_throw("Atomic input file in YAML not yet supported, call 'astruct_set_from_dict()' instead.",&

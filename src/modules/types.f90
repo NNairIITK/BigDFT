@@ -131,6 +131,7 @@ module module_types
   !> How to update the density kernel during teh support function optimization
   integer, parameter :: UPDATE_BY_PURIFICATION = 0
   integer, parameter :: UPDATE_BY_FOE = 1
+  integer, parameter :: UPDATE_BY_RENORMALIZATION = 2
   
   !> Type used for the orthogonalisation parameters
   type, public :: orthon_data

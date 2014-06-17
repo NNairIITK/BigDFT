@@ -852,7 +852,8 @@ module communications
               ist3=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i
               do i2=comm%ise(3,iproc),comm%ise(4,iproc)
                   ist2=(i2-1)*lzd%glr%d%n1i
-                  call vcopy(comm%ise(2,iproc)-comm%ise(1,iproc)+1, sendbuf(ist3+ist2+1), 1, recvbuf(ist), 1)
+                  !call vcopy(comm%ise(2,iproc)-comm%ise(1,iproc)+1, sendbuf(ist3+ist2+1), 1, recvbuf(ist), 1)
+                  call vcopy(comm%ise(2,iproc)-comm%ise(1,iproc)+1, sendbuf(ist3+ist2+comm%ise(1,iproc)), 1, recvbuf(ist), 1)
                   ist=ist+comm%ise(2,iproc)-comm%ise(1,iproc)+1
               end do
           end do
@@ -931,6 +932,8 @@ module communications
     
       allocate(workrecv_char(orbs%norb), stat=istat)
       call memocc(istat, workrecv_char, 'workrecv_char', subname)
+      !workrecv_char = f_malloc_str(1,orbs%norb,id='workrecv_char')
+      !call f_free_str(1,workrecv_str)
       workrecv_log = f_malloc(orbs%norb,id='workrecv_log')
       workrecv_int = f_malloc((/ 11, orbs%norb /),id='workrecv_int')
       workrecv_dbl = f_malloc((/ 6, orbs%norb /),id='workrecv_dbl')
@@ -1068,7 +1071,7 @@ module communications
     
        ! Local variables
        integer:: ierr, istat, iall, jorb, ilr, jlr, jtask, root, icomm, nrecv, nalloc, max_sim_comms
-       integer :: maxrecvdim, maxsenddim
+       integer :: maxrecvdim, maxsenddim, ilr_old
        logical :: isoverlap
        character(len=*),parameter:: subname='communicate_locreg_descriptors_keys'
        integer,dimension(:),allocatable :: requests
@@ -1088,6 +1091,7 @@ module communications
        ! divide communications into chunks to avoid problems with memory (too many communications)
        ! set maximum number of simultaneous communications
        max_sim_comms=min(nlr,1000)
+       !max_sim_comms=min(nlr,2)
 
 
        nrecv=0
@@ -1173,6 +1177,7 @@ module communications
        !!!total_recv=0
        !!max_sim_comms=1000
        icomm=0
+       ilr_old=0
        do ilr=1,nlr
           root=rootarr(ilr)
           do jtask=0,nproc-1
@@ -1199,7 +1204,8 @@ module communications
              end if
           end do
           if (mod(ilr,max_sim_comms)==0 .or. ilr==nlr) then
-             do jlr=max(ilr-max_sim_comms+1,1),ilr
+             !do jlr=max(ilr-max_sim_comms+1,1),ilr
+             do jlr=ilr_old+1,ilr
                 if (covered(jlr,iproc))  call allocate_wfd(llr(jlr)%wfd)
              end do
              call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
@@ -1208,6 +1214,7 @@ module communications
                   err_name='BIGDFT_RUNTIME_ERROR')) return
              call mpi_barrier(mpi_comm_world,ierr)
              icomm=0
+             ilr_old=ilr
           end if
        end do
     

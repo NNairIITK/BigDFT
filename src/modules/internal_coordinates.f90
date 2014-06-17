@@ -362,6 +362,7 @@ module internal_coordinates
       integer :: iat, irefa, irefb, irefc
       real(kind=8) :: tt
       real(kind=8),dimension(3) :: vector, vector1, vector2
+
     
       do iat=1,nat
     

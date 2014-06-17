@@ -60,7 +60,8 @@ program memguess
    integer :: ierror
    integer,dimension(:),allocatable :: na, nb, nc
    real(kind=8),dimension(:,:),allocatable :: rxyz_int
-   real(kind=8),parameter :: degree=57.295779513d0
+   !real(kind=8),parameter :: degree=57.295779513d0
+   real(kind=8),parameter :: degree=1.d0
    character(len=6) :: direction
 
    call f_lib_initialize()
@@ -309,12 +310,12 @@ program memguess
       
       if (associated(fxyz)) then
          call write_atomic_file(fileTo(1:irad-1),energy,at%astruct%rxyz,at,&
-              trim(fcomment) // ' (converted from '//trim(fileFrom)//")", coord='car', forces=fxyz)
+              trim(fcomment) // ' (converted from '//trim(fileFrom)//")", forces=fxyz)
 
          call f_free_ptr(fxyz)
       else
          call write_atomic_file(fileTo(1:irad-1),energy,at%astruct%rxyz,at,&
-              trim(fcomment) // ' (converted from '//trim(fileFrom)//")",coord='car')
+              trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
       end if
       stop
    end if
@@ -322,14 +323,14 @@ program memguess
    if (transform_coordinates) then
        if (direction=='carint') then
            write(*,*) 'Converting cartesian coordinates to internal coordinates.'
-           call set_astruct_from_file(trim(fileFrom),0,at%astruct,i_stat,fcomment,energy,fxyz)
        else if (direction=='intcar') then
            write(*,*) 'Converting internal coordinates to cartesian coordinates.'
-           !stop 'can not read internal coordinate files at the moment'
-           call set_astruct_from_file(trim(fileFrom),0,at%astruct,i_stat,fcomment,energy,fxyz)
+       else if (direction=='carcar') then
+           write(*,*) 'Converting cartesian coordinates to cartesian coordinates.'
        else
            call f_err_throw("wrong switch for coordinate transforms", err_name='BIGDFT_RUNTIME_ERROR')
        end if
+       call set_astruct_from_file(trim(fileFrom),0,at%astruct,i_stat,fcomment,energy,fxyz)
        if (i_stat /=0) stop 'error on input file parsing' 
 
        !find the format of the output file
@@ -355,8 +356,8 @@ program memguess
            if (at%astruct%inputfile_format/='int  ')then
                call f_err_throw("wrong output format for the coordinate transform", err_name='BIGDFT_RUNTIME_ERROR')
            end if
-       else if (direction=='intcar') then
-           ! output file must be .int
+       else if (direction=='intcar' .or. direction=='carcar') then
+           ! output file must be .xyz, .ascii or. .yaml
            if (at%astruct%inputfile_format/='xyz  ' .and. &
                at%astruct%inputfile_format/='ascii' .and. &
                at%astruct%inputfile_format/='yaml ')then
@@ -373,25 +374,19 @@ program memguess
        rxyz_int = f_malloc((/ 3, at%astruct%nat /),id='rxyz_int')
 
        if (direction=='carint') then
-           call get_neighbors(at%astruct%rxyz, at%astruct%nat, at%astruct%ixyz_int(1,:), at%astruct%ixyz_int(2,:),at%astruct%ixyz_int(3,:))
-           call xyzint(at%astruct%rxyz, at%astruct%nat, at%astruct%ixyz_int(1,:), at%astruct%ixyz_int(2,:),at%astruct%ixyz_int(3,:), degree, at%astruct%rxyz_int)
-           call write_atomic_file(trim(fileTo(1:irad-1)),UNINITIALIZED(123.d0),at%astruct%rxyz_int,at,&
-                trim(fcomment) // ' (converted from '//trim(fileFrom)//")",coord='int',na=at%astruct%ixyz_int(1,:),nb=at%astruct%ixyz_int(2,:),nc=at%astruct%ixyz_int(1,:))
-       else if (direction=='intcar') then
-           ! convert to rad
-           !at%astruct%rxyz_int(2:3,1:at%astruct%nat) = at%astruct%rxyz_int(2:3,1:at%astruct%nat) / degree
-           call internal_to_cartesian(at%astruct%nat, at%astruct%ixyz_int(1,:), at%astruct%ixyz_int(2,:), at%astruct%ixyz_int(3,:), &
-                at%astruct%rxyz_int, at%astruct%rxyz)
-           do i_stat=1,at%astruct%nat
-               write(*,'(3(i4,3x,f12.5))') at%astruct%ixyz_int(1,i_stat),at%astruct%rxyz_int(1,i_stat),&
-                                           at%astruct%ixyz_int(2,i_stat),at%astruct%rxyz_int(2,i_stat),&
-                                           at%astruct%ixyz_int(3,i_stat),at%astruct%rxyz_int(3,i_stat)
-           end do
-           do i_stat=1,at%astruct%nat
-               write(*,*) at%astruct%rxyz(:,i_stat)
-           end do
+           call get_neighbors(at%astruct%rxyz, at%astruct%nat, &
+                at%astruct%ixyz_int(1,:), at%astruct%ixyz_int(2,:),at%astruct%ixyz_int(3,:))
+           call xyzint(at%astruct%rxyz, at%astruct%nat, &
+                at%astruct%ixyz_int(1,:), at%astruct%ixyz_int(2,:),at%astruct%ixyz_int(3,:), &
+                degree, at%astruct%rxyz_int)
+           ! The bond angle must be modified (take 180 degrees minus the angle)
+           at%astruct%rxyz_int(2:2,1:at%astruct%nat) = pi_param - at%astruct%rxyz_int(2:2,1:at%astruct%nat)
+           call write_atomic_file(trim(fileTo(1:irad-1)),UNINITIALIZED(123.d0),at%astruct%rxyz_int,at, &
+                trim(fcomment) // ' (converted from '//trim(fileFrom)//")", &
+                na=at%astruct%ixyz_int(1,:),nb=at%astruct%ixyz_int(2,:),nc=at%astruct%ixyz_int(3,:))
+       else if (direction=='intcar' .or. direction=='carcar') then
            call write_atomic_file(trim(fileTo(1:irad-1)),UNINITIALIZED(123.d0),at%astruct%rxyz,at,&
-                trim(fcomment) // ' (converted from '//trim(fileFrom)//")",coord='car')
+                trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
        end if
 
        write(*,*) 'Done.'
@@ -422,7 +417,7 @@ program memguess
       end if
       write(*,'(1x,a)')'Writing optimised positions in file posopt.[xyz,ascii]...'
       write(comment,'(a)')'POSITIONS IN OPTIMIZED CELL '
-      call write_atomic_file('posopt',0.d0,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment),coord='car')
+      call write_atomic_file('posopt',0.d0,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment))
       !call wtxyz('posopt',0.d0,rxyz,atoms,trim(comment))
    end if
 

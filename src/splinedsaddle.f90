@@ -497,7 +497,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     if (iproc==0) then
         call atomic_dot(atoms,fatsp,fatsp,fnrm);fnrm=sqrt(fnrm)
        write(comment,'(a,1pe10.3)')'CONJG:fnrm= ',fnrm
-       call write_atomic_file('saddle',epot_sp,ratsp,atoms,trim(comment),coord='car')
+       call write_atomic_file('saddle',epot_sp,ratsp,atoms,trim(comment))
     endif
     if(iproc==0) then
         mm1=pnow%ncount
