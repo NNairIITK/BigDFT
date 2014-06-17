@@ -71,7 +71,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   real(kind=gp) :: ebs, vgrad_old, vgrad, valpha, vold, vgrad2, vold_tmp, conv_crit_TMB
   real(kind=gp), allocatable, dimension(:,:) :: coeff_tmp
   integer :: ind_denskern, ind_ham, jorb, cdft_it, nelec, iat, ityp
-  integer :: dmin_diag_it, dmin_diag_freq, ioffset, iconv
+  integer :: dmin_diag_it, dmin_diag_freq, ioffset
   logical :: reorder, rho_negative
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
   real(kind=8),dimension(10000) :: meanconf_array
@@ -327,20 +327,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 !!$         end if
       end if
 
-      ! Get the convergence reason of the support function optimization
-      iconv=floor(real(info_basis_functions,kind=8)/1000.d0)
-      write(*,*) 'iconv',iconv
-
-      if((itout>1 .or. (nit_lowaccuracy==0 .and. itout==1)) .and. (.not.input%keep_DIIS_history .or. iconv==3)) then
+      if(itout>1 .or. (nit_lowaccuracy==0 .and. itout==1)) then
           call deallocateDIIS(ldiis)
-          if (iproc==0) call yaml_map('DIIS deallocate','yes')
       end if
-      if ((lowaccur_converged .and. itout==1) .and. (.not.input%keep_DIIS_history .or. iconv==3)) then
+      if (lowaccur_converged) then
           call initializeDIIS(input%lin%DIIS_hist_highaccur, tmb%lzd, tmb%orbs, ldiis)
-          if (iproc==0) call yaml_map('DIIS: allocate','yes')
-      else if (itout==1 .and. (.not.input%keep_DIIS_history .or. iconv==3)) then
+      else
           call initializeDIIS(input%lin%DIIS_hist_lowaccur, tmb%lzd, tmb%orbs, ldiis)
-          if (iproc==0) call yaml_map('DIIS: allocate','yes')
       end if
       if(itout==1) then
           ldiis%alphaSD=input%lin%alphaSD
@@ -1294,7 +1287,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
               call yaml_warning('support function optimization not converged')
               call yaml_newline()
           else
-              call yaml_map('iterations to converge support functions',mod(info_basis_functions,1000))
+              call yaml_map('iterations to converge support functions',info_basis_functions)
           end if
           if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
               call yaml_map('kernel optimization','DIRMIN')

@@ -507,8 +507,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       it=max(it,1) !since it could become negative (2 is subtracted if the loop cycles)
       it_tot=it_tot+1
 
-      if (iproc==0) write(*,*) 'ldiis%is',ldiis%is
-
       fnrmMax=0.d0
       fnrm=0.d0
   
@@ -817,24 +815,24 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               if (iproc==0) call yaml_map('exit criterion','total number of iterations')
           end if
           if (exit_loop(3)) then
-              infoBasisFunctions=it+3000
+              infoBasisFunctions=it
               if (iproc==0) call yaml_map('exit criterion','energy difference')
           end if
           if (exit_loop(4)) then
               if (iproc==0) call yaml_map('exit criterion','gradient')
-              infoBasisFunctions=it+4000
+              infoBasisFunctions=it
           end if
           if (exit_loop(5)) then
               if (iproc==0) call yaml_map('exit criterion','dynamic gradient')
-              infoBasisFunctions=it+5000
+              infoBasisFunctions=it
               has_already_converged=.true.
           end if
           if (exit_loop(6)) then
-              infoBasisFunctions=it+6000
+              infoBasisFunctions=it
               if (iproc==0) call yaml_map('exit criterion','extended input guess')
           end if
           if (exit_loop(7)) then
-              infoBasisFunctions=it+7000
+              infoBasisFunctions=it
               if (iproc==0) call yaml_map('exit criterion','kappa')
           end if
           if (can_use_ham) then

@@ -1796,6 +1796,7 @@ contains
     call input_var("fscale_upperbound", 5.d-2, "upper bound for the error function decay length", dummy_real)
     call set(dict // FSCALE_UPPERBOUND, dummy_real)
 
+
     call input_free(.false.)
 
   END SUBROUTINE read_perf_from_text_format

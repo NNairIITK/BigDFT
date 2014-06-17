@@ -450,9 +450,6 @@ module module_types
      !> linear scaling: upper bound for the error function decay length
      real(kind=8) :: fscale_upperbound
 
-     !> linear scaling: keep the DIIS history over different iterations of the outer loop when optimizing the support function
-     logical :: keep_DIIS_history
-
   end type input_variables
 
 
@@ -2742,9 +2739,6 @@ end subroutine find_category
        case (FSCALE_UPPERBOUND)
            ! linear scaling: upper bound for the error function decay length
            in%fscale_upperbound = val
-       case (keep_DIIS_history)
-           ! linear scaling: keep the DIIS history over different iterations of t he outer loop when optimizing the support function
-           in%keep_DIIS_history = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
