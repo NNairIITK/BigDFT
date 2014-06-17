@@ -374,13 +374,16 @@ program memguess
        rxyz_int = f_malloc((/ 3, at%astruct%nat /),id='rxyz_int')
 
        if (direction=='carint') then
-           call get_neighbors(at%astruct%rxyz, at%astruct%nat, at%astruct%ixyz_int(1,:), at%astruct%ixyz_int(2,:),at%astruct%ixyz_int(3,:))
-           call xyzint(at%astruct%rxyz, at%astruct%nat, at%astruct%ixyz_int(1,:), at%astruct%ixyz_int(2,:),at%astruct%ixyz_int(3,:), degree, at%astruct%rxyz_int)
+           call get_neighbors(at%astruct%rxyz, at%astruct%nat, &
+                at%astruct%ixyz_int(1,:), at%astruct%ixyz_int(2,:),at%astruct%ixyz_int(3,:))
            ! The bond angle must be modified (take 180 degrees minus the angle)
            at%astruct%rxyz_int(2:2,1:at%astruct%nat) = pi_param - at%astruct%rxyz_int(2:2,1:at%astruct%nat)
-           call write_atomic_file(trim(fileTo(1:irad-1)),UNINITIALIZED(123.d0),at%astruct%rxyz_int,at,&
-                trim(fcomment) // ' (converted from '//trim(fileFrom)//")",na=at%astruct%ixyz_int(1,:),nb=at%astruct%ixyz_int(2,:),nc=at%astruct%ixyz_int(3,:))
+                degree, at%astruct%rxyz_int)
+           call write_atomic_file(trim(fileTo(1:irad-1)),UNINITIALIZED(123.d0),at%astruct%rxyz_int,at, &
+                trim(fcomment) // ' (converted from '//trim(fileFrom)//")", &
+                na=at%astruct%ixyz_int(1,:),nb=at%astruct%ixyz_int(2,:),nc=at%astruct%ixyz_int(3,:))
        else if (direction=='intcar' .or. direction=='carcar') then
+                at%astruct%ixyz_int(1,:), at%astruct%ixyz_int(2,:), at%astruct%ixyz_int(3,:), &
            call write_atomic_file(trim(fileTo(1:irad-1)),UNINITIALIZED(123.d0),at%astruct%rxyz,at,&
                 trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
        end if
