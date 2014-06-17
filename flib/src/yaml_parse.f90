@@ -10,6 +10,7 @@
 
 !> Module containing routines to parse a yaml input
 module yaml_parse
+  use dictionaries, only: dictionary
   implicit none
 
   private
@@ -20,6 +21,10 @@ module yaml_parse
   integer :: MAPPING_START, MAPPING_END
   integer :: ALIAS, SCALAR, ERROR
 
+  !> Contains some keys to better explain the yaml parse errors
+  type(dictionary), pointer :: dict_yaml_errs=>null()
+
+  !> Two possible errors when parsing
   integer, public :: YAML_PARSE_ERROR       = 0
   integer, public :: YAML_PARSE_UNSUPPORTED = 0
 
@@ -29,23 +34,38 @@ module yaml_parse
 
   !for internal f_lib usage
   public :: yaml_parse_errors
+  public :: yaml_parse_errors_finalize
+  public :: yaml_a_todict
+
 
 contains
 
+
+  !> Define the errors related to the parsing of the yaml files
   subroutine yaml_parse_errors()
-    use dictionaries, only: f_err_define
+    use dictionaries
     implicit none
 
     call f_err_define(err_name='YAML_PARSE_ERROR',&
          err_msg='YAML parse error.',&
          err_action='Modify your inputs.',&
          err_id=YAML_PARSE_ERROR)
+         
+    !Define a dictionary to have a more verbosity of yaml_parse_error
+    call dict_init(dict_yaml_errs)
+    call set(dict_yaml_errs//"<document start>",&
+         "The first indentation is different at this line in front of the given key.")
+    call set(dict_yaml_errs//"mapping values",&
+         "The indentation is different at this line.")
+
+
     call f_err_define(err_name='YAML_PARSE_UNSUPPORTED',&
          err_msg='YAML standard not supported.',&
          err_action='kindly ask developers to finish implementation.',&
          err_id=YAML_PARSE_UNSUPPORTED)
 
   end subroutine yaml_parse_errors
+
 
   !> Create a dict from a file (fname is the buffer containing all the file)
   subroutine yaml_parse_from_file(dict, fname)
@@ -60,6 +80,7 @@ contains
     dict => yaml_parse_(parser)
   end subroutine yaml_parse_from_file
 
+
   subroutine yaml_parse_from_char_array(dict, carr)
     use dictionaries
     implicit none
@@ -72,6 +93,7 @@ contains
     dict => yaml_parse_(parser)
   end subroutine yaml_parse_from_char_array
 
+
   subroutine yaml_parse_from_string(dict, str)
     use dictionaries
     implicit none
@@ -83,6 +105,7 @@ contains
     call yaml_parser_c_init_from_buf(parser, str, len_trim(str))
     dict => yaml_parse_(parser)
   end subroutine yaml_parse_from_string
+
 
   function yaml_parse_(parser) result(output)
     use dictionaries
@@ -129,6 +152,7 @@ contains
        call yaml_parser_c_next(parser, event, val, max_field_length)
        !print *,'event',event_toa(event),event,trim(val),'end'
        if (event == ERROR) then
+          !search
           call f_err_throw(err_id = YAML_PARSE_ERROR, err_msg = trim(val))
           exit
        end if
@@ -158,9 +182,12 @@ contains
 
     output => dict
 
-    if (errid == YAML_PARSE_ERROR) call f_err_throw(err_id = errid, err_msg = val)
+    !if (errid == YAML_PARSE_ERROR) call f_err_throw(err_id = errid, err_msg = trim(val))
+    if (errid == YAML_PARSE_ERROR) call yaml_parse_error_throw(val)
+
   contains
-    !>determine which is the event that has been recognized, to be used mostly for debugging purposes
+
+    !> Determine which is the event that has been recognized, to be used mostly for debugging purposes
     function event_toa(event) result(toa)
       implicit none
       integer, intent(in) :: event
@@ -191,7 +218,9 @@ contains
          toa(1:len(toa))='UNKNOWN'
       end if
     end function event_toa
+
   end function yaml_parse_
+
 
   recursive function build_map(parser) result(map)
     use dictionaries
@@ -214,6 +243,7 @@ contains
 
        if (event == ERROR) then
           call f_err_throw(err_id = YAML_PARSE_ERROR, err_msg = trim(val))
+          !call yaml_parse_error_throw(val)
           return
        end if
 
@@ -253,6 +283,7 @@ contains
     end do
   end function build_map
 
+
   recursive function build_seq(parser) result(seq)
     use dictionaries
     implicit none
@@ -272,6 +303,7 @@ contains
 
        if (event == ERROR) then
           call f_err_throw(err_id = YAML_PARSE_ERROR, err_msg = trim(val))
+          !call yaml_parse_error_throw(val)
           return
        end if
 
@@ -297,5 +329,64 @@ contains
     end do
 
   end function build_seq
+
+  function yaml_a_todict(string) result(dict)
+    use dictionaries
+    implicit none
+    character(len=*), intent(in) :: string
+    type(dictionary), pointer :: dict
+    !local variables
+    type(dictionary), pointer :: loaded_string
+    !parse from the given string
+    call yaml_parse_from_string(loaded_string,string)
+       
+    dict => loaded_string .pop. 0
+    if (associated(loaded_string)) call dict_free(loaded_string)
+    
+  end function yaml_a_todict
+
+  !> Throw an error with YAML_PARSE_ERROR trying to give a better understandable message
+  subroutine yaml_parse_error_throw(val)
+    use dictionaries
+    implicit none
+    !Argument
+    character(max_field_length) :: val
+    !Local variables
+    type(dictionary), pointer :: error
+    !type(dictionary), pointer :: dict_error
+    character(max_field_length) :: key,message
+    integer :: pp
+
+    !dict_error=>dict_new()
+    !pp = index(val,':')
+    !key = val(1:pp-1)
+    !message = val(pp+1:)
+    !call set(dict_error//trim(key),trim(message))
+    error=>dict_iter(dict_yaml_errs)
+    message = trim(val)
+    do while(associated(error))
+      key = dict_key(error)
+      if (index(val,trim(key)) /= 0) then
+        !call set(dict_error//'Info',trim(dict_value(error)))
+        message = trim(message) // '. ' // trim(dict_value(error))
+        exit
+      end if
+      error=>dict_next(error)
+    end do
+    !call f_err_throw(err_id = YAML_PARSE_ERROR, err_dict = dict_error)
+    !We add quite to have a yaml standard output.
+    call f_err_throw(err_msg = '"'//trim(message)//'"',err_id = YAML_PARSE_ERROR)
+     
+  end subroutine yaml_parse_error_throw
+
+
+  !> Nullify the dictionary dict_yaml_errs
+  subroutine yaml_parse_errors_finalize()
+     use dictionaries, only: dict_free
+     implicit none
+     call dict_free(dict_yaml_errs)
+
+  end subroutine yaml_parse_errors_finalize
+
 
 end module yaml_parse

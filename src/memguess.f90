@@ -20,15 +20,16 @@ program memguess
    use module_fragments
    use yaml_output
    use module_atoms, only: set_astruct_from_file
+   use internal_coordinates
    implicit none
    character(len=*), parameter :: subname='memguess'
-   character(len=20) :: tatonam, radical
+   character(len=30) :: tatonam, radical
    character(len=40) :: comment
    character(len=1024) :: fcomment
    character(len=128) :: fileFrom, fileTo,filename_wfn
    character(len=50) :: posinp
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.
-   logical :: disable_deprecation = .false.,convertpos=.false.
+   logical :: disable_deprecation = .false.,convertpos=.false.,transform_coordinates=.false.
    integer :: ntimes,nproc,i_stat,i_all,output_grid, i_arg,istat
    integer :: nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
    integer :: norbgpu,ng
@@ -49,10 +50,19 @@ program memguess
    type(system_fragment), dimension(:), pointer :: ref_frags
    character(len=3) :: in_name !lr408
    integer :: i, inputpsi, input_wf_format
+   integer,parameter :: nconfig=1
+   character(len=60),dimension(nconfig) :: arr_radical,arr_posinp
+   character(len=60) :: run_id, infile, outfile
+   integer, dimension(4) :: mpi_info
    !real(gp) :: tcpu0,tcpu1,tel
    !integer :: ncount0,ncount1,ncount_max,ncount_rate
    !! By Ali
    integer :: ierror
+   integer,dimension(:),allocatable :: na, nb, nc
+   real(kind=8),dimension(:,:),allocatable :: rxyz_int
+   !real(kind=8),parameter :: degree=57.295779513d0
+   real(kind=8),parameter :: degree=1.d0
+   character(len=6) :: direction
 
    call f_lib_initialize()
    !initialize errors and timings as bigdft routines are called
@@ -216,6 +226,17 @@ program memguess
             write(*,'(1x,5a)')&
                &   'convert input file "', trim(fileFrom),'" file to "', trim(fileTo),'"'
             exit loop_getargs
+         else if (trim(tatonam)=='transform-coordinates') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = direction)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = fileFrom)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = fileTo)
+            write(*,'(1x,5a)')&
+               &   'convert input file "', trim(fileFrom),'" file to "', trim(fileTo),'"'
+            transform_coordinates=.true.
+            exit loop_getargs
          else if (trim(tatonam) == 'dd') then
             ! dd: disable deprecation message
             disable_deprecation = .true.
@@ -289,7 +310,7 @@ program memguess
       
       if (associated(fxyz)) then
          call write_atomic_file(fileTo(1:irad-1),energy,at%astruct%rxyz,at,&
-              trim(fcomment) // ' (converted from '//trim(fileFrom)//")", fxyz)
+              trim(fcomment) // ' (converted from '//trim(fileFrom)//")", forces=fxyz)
 
          call f_free_ptr(fxyz)
       else
@@ -297,6 +318,84 @@ program memguess
               trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
       end if
       stop
+   end if
+
+   if (transform_coordinates) then
+       if (direction=='carint') then
+           write(*,*) 'Converting cartesian coordinates to internal coordinates.'
+       else if (direction=='intcar') then
+           write(*,*) 'Converting internal coordinates to cartesian coordinates.'
+       else if (direction=='carcar') then
+           write(*,*) 'Converting cartesian coordinates to cartesian coordinates.'
+       else
+           call f_err_throw("wrong switch for coordinate transforms", err_name='BIGDFT_RUNTIME_ERROR')
+       end if
+       call set_astruct_from_file(trim(fileFrom),0,at%astruct,i_stat,fcomment,energy,fxyz)
+       if (i_stat /=0) stop 'error on input file parsing' 
+
+       !find the format of the output file
+       if (index(fileTo,'.xyz') > 0) then
+          irad=index(fileTo,'.xyz')
+          at%astruct%inputfile_format='xyz  '
+       else if (index(fileTo,'.ascii') > 0) then
+          irad=index(fileTo,'.ascii')
+          at%astruct%inputfile_format='ascii'
+       else if (index(fileTo,'.int') > 0) then
+          irad=index(fileTo,'.int')
+          at%astruct%inputfile_format='int  '
+       else if (index(fileTo,'.yaml') > 0) then
+          irad=index(fileTo,'.yaml')
+          at%astruct%inputfile_format='yaml '
+       else
+          irad = len(trim(fileTo)) + 1
+       end if
+
+       ! Check whether the output file format is correct
+       if (direction=='carint') then
+           ! output file must be .int
+           if (at%astruct%inputfile_format/='int  ')then
+               call f_err_throw("wrong output format for the coordinate transform", err_name='BIGDFT_RUNTIME_ERROR')
+           end if
+       else if (direction=='intcar' .or. direction=='carcar') then
+           ! output file must be .xyz, .ascii or. .yaml
+           if (at%astruct%inputfile_format/='xyz  ' .and. &
+               at%astruct%inputfile_format/='ascii' .and. &
+               at%astruct%inputfile_format/='yaml ')then
+               call f_err_throw("wrong output format for the coordinate transform", err_name='BIGDFT_RUNTIME_ERROR')
+           end if
+       end if
+
+
+       !!call bigdft_get_run_ids(nconfig,trim(run_id),arr_radical,arr_posinp,ierror)
+       !!call run_objects_init_from_files(runObj, radical, posinp)
+       na = f_malloc(at%astruct%nat,id='na')
+       nb = f_malloc(at%astruct%nat,id='nb')
+       nc = f_malloc(at%astruct%nat,id='nc')
+       rxyz_int = f_malloc((/ 3, at%astruct%nat /),id='rxyz_int')
+
+       if (direction=='carint') then
+           call get_neighbors(at%astruct%rxyz, at%astruct%nat, &
+                at%astruct%ixyz_int(1,:), at%astruct%ixyz_int(2,:),at%astruct%ixyz_int(3,:))
+           call xyzint(at%astruct%rxyz, at%astruct%nat, &
+                at%astruct%ixyz_int(1,:), at%astruct%ixyz_int(2,:),at%astruct%ixyz_int(3,:), &
+                degree, at%astruct%rxyz_int)
+           ! The bond angle must be modified (take 180 degrees minus the angle)
+           at%astruct%rxyz_int(2:2,1:at%astruct%nat) = pi_param - at%astruct%rxyz_int(2:2,1:at%astruct%nat)
+           call write_atomic_file(trim(fileTo(1:irad-1)),UNINITIALIZED(123.d0),at%astruct%rxyz_int,at, &
+                trim(fcomment) // ' (converted from '//trim(fileFrom)//")", &
+                na=at%astruct%ixyz_int(1,:),nb=at%astruct%ixyz_int(2,:),nc=at%astruct%ixyz_int(3,:))
+       else if (direction=='intcar' .or. direction=='carcar') then
+           call write_atomic_file(trim(fileTo(1:irad-1)),UNINITIALIZED(123.d0),at%astruct%rxyz,at,&
+                trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
+       end if
+
+       write(*,*) 'Done.'
+
+       call f_free(na)
+       call f_free(nb)
+       call f_free(nc)
+       call f_free(rxyz_int)
+       stop
    end if
 
    if (trim(radical) == "input") then

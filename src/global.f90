@@ -797,7 +797,8 @@ rkin=dot(3*atoms%astruct%nat,vxyz(1,1),1,vxyz(1,1),1)
 
        if (iproc == 0) then
           write(fn4,'(i4.4)') istep
-          call write_atomic_file(trim(inputs_md%dir_output)//'posmd_'//fn4,outs%energy,atoms%astruct%rxyz,atoms,'',forces=outs%fxyz)
+          call write_atomic_file(trim(inputs_md%dir_output)//'posmd_'//fn4,outs%energy,atoms%astruct%rxyz,atoms,&
+               '',forces=outs%fxyz)
        end if
 
        en0000=outs%energy-e0

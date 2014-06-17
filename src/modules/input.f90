@@ -1769,7 +1769,7 @@ contains
     call input_var("evboundsshrink_nsatur", 4, "maximal number of unsuccessful eigenvalue bounds shrinkings", dummy_int)
     call set(dict // EVBOUNDSSHRINK_NSATUR, dummy_int)
 
-    call input_var("method_updatekernel", 0, (/0,1/), "kernel update during the sup. fun. opt. (0: purific., 1: FOE)", dummy_int)
+    call input_var("method_updatekernel", 0, (/0,1,2/), "K update (sup fun opt) (0: purific., 1: FOE, 2: renorm.)", dummy_int)
     call set(dict // METHOD_UPDATEKERNEL, dummy_int)
 
     call input_var("purification_quickreturn", .false., "linear scaling: quick return in purification", dummy_bool)
@@ -2086,10 +2086,10 @@ contains
     !character(len=*), parameter :: subname='fragment_input_variables'
     logical :: exists
     character(len=256) :: comments
-    integer :: ifrag, frag_num, ierr
+    integer :: ifrag, frag_num
     real(gp) :: charge
     type(fragmentInputParameters) :: frag
-    type(dictionary), pointer :: dict_frag,frag_list
+    type(dictionary), pointer :: dict_frag
 
     !Linear input parameters
     call input_set_file(iproc,dump,trim(filename),exists,'Fragment Parameters') 

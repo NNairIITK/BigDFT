@@ -624,10 +624,10 @@ contains
        funt = iter
        if (funt == unt) then
           if (dict_size(stream_files) == 1) then
-             call pop(stream_files, dict_key(iter))
+             call dict_remove(stream_files, dict_key(iter))
              call dict_init(stream_files)
           else
-             call pop(stream_files, dict_key(iter))
+             call dict_remove(stream_files, dict_key(iter))
           end if
           exit
        end if
@@ -1832,7 +1832,6 @@ contains
 
   end subroutine close_flow_level
 
-
   !> Increase the indentation of the strean without changing the flow level
   subroutine open_indent_level(stream)
     implicit none
@@ -1870,7 +1869,9 @@ contains
     verb=.false.
     if (present(verbatim)) verb=verbatim
 
-    if (associated(dict%child)) then
+    if (.not. associated(dict)) then
+       call scalar('<nullified dictionary>')
+    else if (associated(dict%child)) then
        call yaml_dict_dump_(dict%child)
     else
        call scalar(dict_value(dict))

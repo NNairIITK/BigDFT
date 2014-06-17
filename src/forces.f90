@@ -378,6 +378,10 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   !clean the center mass shift and the torque in isolated directions
   call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
 
+  !@! @ NEW: POSSIBLE CONSTRAINTS IN INTERNAL COORDINATES ############
+  !@call internal_forces(atoms%astruct%nat, rxyz, fxyz)
+  !@! @ ##############################################################
+
   ! Apply symmetries when needed
   if (atoms%astruct%sym%symObj >= 0) call symmetrise_forces(fxyz,atoms)
 
@@ -914,7 +918,7 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
               istart_c=1
               call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
                    lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpsp%pspd(iat)%plr,&
-                   nlpsp%proj,nwarnings,proj_G)
+                   nlpsp%proj,nwarnings)!,proj_G)
               !!do i_all=1,nlpspd%nprojel
               !!    write(850+iat,*) i_all, proj(i_all)
               !!end do
@@ -4801,3 +4805,92 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   call f_release_routine()
 
 END SUBROUTINE nonlocal_forces_linear
+
+
+
+
+
+subroutine internal_forces(nat, rxyz, fxyz)
+  use module_base
+  use dynamic_memory
+  use internal_coordinates
+  use yaml_output
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: nat
+  real(gp),dimension(3,nat),intent(in) :: rxyz
+  real(gp),dimension(3,nat),intent(inout) :: fxyz
+
+  ! Local variables
+  integer,dimension(:),allocatable :: na, nb, nc
+  real(gp),parameter :: degree=57.29578d0
+  real(gp),dimension(:,:),allocatable :: geo, rxyz_tmp, geo_tmp, fxyz_int, tmp
+  real(gp),parameter :: alpha=1.d-3
+
+  call f_routine(id='internal_forces')
+
+  na = f_malloc(nat,id='na')
+  nb = f_malloc(nat,id='nb')
+  nc = f_malloc(nat,id='nc')
+  geo = f_malloc((/3,nat/),id='geo')
+  rxyz_tmp = f_malloc((/3,nat/),id='rxyz_tmp')
+  geo_tmp = f_malloc((/3,nat/),id='geo_tmp')
+  fxyz_int = f_malloc((/3,nat/),id='fxyz_int')
+  tmp = f_malloc((/3,nat/),id='tmp')
+
+  call yaml_map('force start',fxyz)
+  call yaml_map('rxyz start',rxyz)
+
+  ! Get the neighbor lists
+  call get_neighbors(rxyz, nat, na, nb, nc)
+  
+  ! Transform the atomic positions to internal coordinates 
+  call xyzint(rxyz, nat, na, nb, nc, degree, geo)
+
+  ! Shift the atomic positions according to the forces
+  rxyz_tmp = rxyz + alpha*fxyz
+
+  ! Transform these new atomic positions to internal coordinates
+  call xyzint(rxyz_tmp, nat, na, nb, nc, degree, geo_tmp)
+
+  !!! Define the forces in internal coordinates
+  !!fxyz_int = geo_tmp - geo
+
+  ! Apply some constraints if required
+
+  ! Transform the atomic positions back to cartesian coordinates
+  ! The bond angle must be modified (take 180 degrees minus the angle)
+  geo_tmp(2:2,1:nat) = 180.d0 - geo_tmp(2:2,1:nat)
+  geo(2:2,1:nat) = 180.d0 - geo(2:2,1:nat)
+  !fxyz_int(2:2,1:nat) = 180.d0 - fxyz_int(2:2,1:nat)
+  ! convert to rad
+  geo_tmp(2:3,1:nat) = geo_tmp(2:3,1:nat) / degree
+  geo(2:3,1:nat) = geo(2:3,1:nat) / degree
+  !fxyz_int(2:3,1:nat) = fxyz_int(2:3,1:nat) / degree
+  call internal_to_cartesian(nat, na, nb, nc, geo_tmp, rxyz_tmp)
+  call internal_to_cartesian(nat, na, nb, nc, geo, tmp)
+  !call internal_to_cartesian(nat, na, nb, nc, fxyz_int, fxyz)
+
+  ! Define the new forces
+  fxyz = rxyz_tmp - tmp
+  fxyz = fxyz/alpha
+
+  call yaml_map('force end',fxyz)
+  call yaml_map('rxyz end',rxyz)
+  call yaml_map('rxyz_tmp end',rxyz_tmp)
+
+
+
+  call f_free(na)
+  call f_free(nb)
+  call f_free(nc)
+  call f_free(geo)
+  call f_free(rxyz_tmp)
+  call f_free(geo_tmp)
+  call f_free(fxyz_int)
+  call f_free(tmp)
+
+  call f_release_routine()
+
+end subroutine internal_forces

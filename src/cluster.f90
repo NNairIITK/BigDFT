@@ -712,6 +712,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   !end of the initialization part
   call timing(bigdft_mpi%mpi_comm,'INIT','PR')
 
+
   !start the optimization
   energs%eexctX=0.0_gp
   ! Skip the following part in the linear scaling case.

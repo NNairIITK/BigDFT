@@ -30,6 +30,7 @@ program BigDFT
    !information for mpi_initalization
    integer, dimension(4) :: mpi_info
    integer :: iconfig,nconfig,ngroups,igroup
+   real(kind=8),dimension(:,:),allocatable :: fxyz
 
    call f_lib_initialize()
 
@@ -59,6 +60,13 @@ program BigDFT
          ! Read all input files.
          call run_objects_init_from_files(runObj, arr_radical(iconfig), arr_posinp(iconfig))
          call init_global_output(outs, runObj%atoms%astruct%nat)
+
+         !!@!@NEW ###########################################
+         !!@allocate(fxyz(3,runObj%atoms%astruct%nat))
+         !!@fxyz=0.d0
+         !!@call internal_forces(runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz, fxyz)
+         !!@deallocate(fxyz)
+         !!@!################################################
 
          call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
 

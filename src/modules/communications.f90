@@ -32,6 +32,7 @@ module communications
 
   contains
 
+
     subroutine transpose_switch_psi(npsidim_orbs, orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
       use module_types, only: orbitals_data, local_zone_descriptors
       use wrapper_linalg, only: vcopy
@@ -48,7 +49,7 @@ module communications
       type(local_zone_descriptors),intent(in),optional :: lzd
       
       ! Local variables
-      integer :: i_tot, i_c, i_f, iorb, iiorb, ilr, i, ind, istat, iall, m, ind7, i7
+      integer :: i_tot, i_c, i_f, iorb, iiorb, ilr, i, ind, m, ind7, i7
       real(kind=8),dimension(:),allocatable :: psi_c, psi_f
       character(len=*),parameter :: subname='transpose_switch_psi'
     
@@ -471,7 +472,7 @@ module communications
       type(local_zone_descriptors),intent(in),optional :: lzd
       
       ! Local variables
-      integer :: i, ind, iorb, iiorb, ilr, i_tot, i_c, i_f, istat, iall, m, i7, ind7
+      integer :: i, ind, iorb, iiorb, ilr, i_tot, i_c, i_f, m, i7, ind7
       real(kind=8),dimension(:),allocatable :: psi_c, psi_f
       character(len=*),parameter :: subname='transpose_unswitch_psi'
       
@@ -576,7 +577,6 @@ module communications
       
       ! Local variables
       real(kind=8),dimension(:),allocatable :: psiwork_c, psiwork_f, psitwork_c, psitwork_f
-      integer :: istat, iall
       character(len=*),parameter :: subname='transpose_localized'
 
       call timing(iproc,'Un-TransSwitch','ON')
@@ -635,7 +635,6 @@ module communications
       
       ! Local variables
       real(kind=8),dimension(:),allocatable :: psiwork_c, psiwork_f, psitwork_c, psitwork_f
-      integer :: istat, iall
       character(len=*),parameter :: subname='untranspose_localized'
 
       call f_routine(id='untranspose_localized')
@@ -852,7 +851,8 @@ module communications
               ist3=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i
               do i2=comm%ise(3,iproc),comm%ise(4,iproc)
                   ist2=(i2-1)*lzd%glr%d%n1i
-                  call vcopy(comm%ise(2,iproc)-comm%ise(1,iproc)+1, sendbuf(ist3+ist2+1), 1, recvbuf(ist), 1)
+                  !call vcopy(comm%ise(2,iproc)-comm%ise(1,iproc)+1, sendbuf(ist3+ist2+1), 1, recvbuf(ist), 1)
+                  call vcopy(comm%ise(2,iproc)-comm%ise(1,iproc)+1, sendbuf(ist3+ist2+comm%ise(1,iproc)), 1, recvbuf(ist), 1)
                   ist=ist+comm%ise(2,iproc)-comm%ise(1,iproc)+1
               end do
           end do
@@ -931,6 +931,8 @@ module communications
     
       allocate(workrecv_char(orbs%norb), stat=istat)
       call memocc(istat, workrecv_char, 'workrecv_char', subname)
+      !workrecv_char = f_malloc_str(1,orbs%norb,id='workrecv_char')
+      !call f_free_str(1,workrecv_str)
       workrecv_log = f_malloc(orbs%norb,id='workrecv_log')
       workrecv_int = f_malloc((/ 11, orbs%norb /),id='workrecv_int')
       workrecv_dbl = f_malloc((/ 6, orbs%norb /),id='workrecv_dbl')
@@ -1067,8 +1069,8 @@ module communications
        integer,dimension(orbs%norb),intent(in) :: onwhichmpi
     
        ! Local variables
-       integer:: ierr, istat, iall, jorb, ilr, jlr, jtask, root, icomm, nrecv, nalloc, max_sim_comms
-       integer :: maxrecvdim, maxsenddim
+       integer:: ierr, jorb, ilr, jlr, jtask, root, icomm, nrecv, nalloc, max_sim_comms
+       integer :: maxrecvdim, maxsenddim, ilr_old
        logical :: isoverlap
        character(len=*),parameter:: subname='communicate_locreg_descriptors_keys'
        integer,dimension(:),allocatable :: requests
@@ -1085,6 +1087,12 @@ module communications
        worksend_int = f_malloc((/ 4, nlr /),id='worksend_int')
        workrecv_int = f_malloc((/ 4, nlr /),id='workrecv_int')
     
+       ! divide communications into chunks to avoid problems with memory (too many communications)
+       ! set maximum number of simultaneous communications
+       max_sim_comms=min(nlr,1000)
+       !max_sim_comms=min(nlr,2)
+
+
        nrecv=0
        !nsend=0
        icomm=0
@@ -1124,10 +1132,18 @@ module communications
                    end if
                end if
            end do
+           if (mod(ilr,max_sim_comms)==0 .or. ilr==nlr) then
+              call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
+              if (f_err_raise(ierr /= 0,'problem in communicate locregs: error in mpi_waitall '//&
+                   trim(yaml_toa(ierr))//' for process '//trim(yaml_toa(iproc)),&
+                   err_name='BIGDFT_RUNTIME_ERROR')) return
+              call mpi_barrier(mpi_comm_world,ierr)
+              icomm=0
+           end if
        end do
       
-       call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
-       call mpi_barrier(mpi_comm_world,ierr)
+       !!call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
+       !!call mpi_barrier(mpi_comm_world,ierr)
     
        call f_free(worksend_int)
     
@@ -1154,12 +1170,13 @@ module communications
        workrecv_int = f_malloc((/ 6*maxrecvdim, nlr /),id='workrecv_int')
        worksend_int = f_malloc((/ 6*maxsenddim, nlr /),id='worksend_int')
     
-       ! divide communications into chunks to avoid problems with memory (too many communications)
-       ! set maximum number of simultaneous communications
-       !total_sent=0
-       !total_recv=0
-       max_sim_comms=10000
+       !!! divide communications into chunks to avoid problems with memory (too many communications)
+       !!! set maximum number of simultaneous communications
+       !!!total_sent=0
+       !!!total_recv=0
+       !!max_sim_comms=1000
        icomm=0
+       ilr_old=0
        do ilr=1,nlr
           root=rootarr(ilr)
           do jtask=0,nproc-1
@@ -1186,7 +1203,8 @@ module communications
              end if
           end do
           if (mod(ilr,max_sim_comms)==0 .or. ilr==nlr) then
-             do jlr=max(ilr-max_sim_comms+1,1),ilr
+             !do jlr=max(ilr-max_sim_comms+1,1),ilr
+             do jlr=ilr_old+1,ilr
                 if (covered(jlr,iproc))  call allocate_wfd(llr(jlr)%wfd)
              end do
              call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
@@ -1195,6 +1213,7 @@ module communications
                   err_name='BIGDFT_RUNTIME_ERROR')) return
              call mpi_barrier(mpi_comm_world,ierr)
              icomm=0
+             ilr_old=ilr
           end if
        end do
     
@@ -1227,7 +1246,8 @@ module communications
      integer, intent(in) :: ilr,recv
      integer :: itag
     
-     itag=ilr+recv*nlr
+     !itag=ilr+recv*nlr
+     itag=ilr+recv*max_sim_comms
     
      end function itag
     
@@ -1516,7 +1536,6 @@ subroutine unswitch_waves_v(nproc,orbs,nvctr,nvctr_par,psiw,psi)
 END SUBROUTINE unswitch_waves_v
 
 
-
 !> The cubic routines
 subroutine psitransspi(nvctrp,orbs,psi,forward)
   use module_base
@@ -1528,7 +1547,7 @@ subroutine psitransspi(nvctrp,orbs,psi,forward)
   real(wp), dimension(orbs%nspinor*nvctrp,orbs%norb,orbs%nkpts), intent(inout) :: psi
   !local variables
   character(len=*), parameter :: subname='psitransspi'
-  integer :: i,iorb,isp,i_all,i_stat,ikpts
+  integer :: i,iorb,isp,ikpts
   real(wp), dimension(:,:,:,:), allocatable :: tpsit
 
   tpsit = f_malloc((/ nvctrp, orbs%nspinor, orbs%norb, orbs%nkpts /),id='tpsit')
@@ -1620,7 +1639,6 @@ subroutine toglobal_and_transpose(iproc,nproc,orbs,Lzd,comms,psi,&
   real(wp), dimension(*), intent(out), optional :: outadd
   !local variables
   character(len=*), parameter :: subname='toglobal_and_transpose'
-  integer :: i_all,i_stat
   integer :: psishift1,totshift,iorb,ilr,ldim,Gdim
   real(wp) :: workdum
   real(wp), dimension(:), pointer :: workarr

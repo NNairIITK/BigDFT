@@ -138,7 +138,7 @@ module bigdft_forces
       !Local variables
       character(len=*), parameter :: subname='bigdft_init_art'
       real(gp),dimension(3*total_nb_atoms) :: posquant
-      integer :: natoms_calcul, i_stat
+      integer :: natoms_calcul
       type(dictionary), pointer :: dict
       !_______________________
 

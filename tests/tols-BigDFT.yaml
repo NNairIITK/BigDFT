@@ -54,11 +54,16 @@ yaml_test:
    - date
    - Id
    - Summary
+   - ERR_ALLOCATE
+   - Routine dictionary
+   - Errors found while (de)allocating ab and b
+   - Calling sequence of Main program (routines with * are not closed yet)
+   - Additional Info
  Patterns to ignore:
    - errcode
    - time
    - Time
-
+   - Global dictionary
 
 #Runs which update and override the default
 AgBulk:
@@ -88,7 +93,7 @@ SiBulk:
  Atomic Forces (Ha/Bohr): 1.3e-10
  Clean forces norm (Ha/Bohr): 8.3e-11
  Average noise forces: 2.4e-11
- Optimization of virtual orbitals: 7.71e-9
+ Optimization of virtual orbitals: 2.97e-8
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
   - Residues per orbital
@@ -205,8 +210,8 @@ H2-spin:
 
 
 H-Rydberg_H:
- Gradient Norm: 5.e-10
- Eigenvalues and eigenstate residue: 6.3e-10
+ Gradient Norm: 5.8e-9
+ Eigenvalues and eigenstate residue: 5.1e-9
  norm(P): 1.1e-10
 
 TiSmear:
@@ -327,8 +332,8 @@ TDDFT:
   Epot: 1.1e-10
   Gradient Norm: 4.0e-8
   L2 Norm - 1 and Rayleigh quotient (Davidson): 1.1e-6
-  Excitation Energy and Oscillator Strength: 1.9e-6
-  Transition energies (eV): 1.1e-4
+  Excitation Energy and Oscillator Strength: 1.3e-5
+  Transition energies (eV): 3.01e-4
 
 BigDFT2Wannier.b2w.ref.yaml:
   amnk_guess(nb): 1.31e-10
@@ -435,6 +440,7 @@ rotatesmall_write:
 
 wrappers.out:
  EH: 1.1e-10
+ fnrm2: 1.1e-10
 
 rotatesmall_read:
  Epsilon: 2.4e-11
@@ -785,7 +791,19 @@ experimentalfoe_short:
  D: 1.1e-4
  decay length of error function: 1.1e-5
 
-
+experimentalfoe_medium:
+ charge diff: 2.5e-7
+ eF: 8.3e-8
+ D Tr: 1.1e-9
+ D eF: 2.5e-8 
+ Tr(K): 2.5e-7
+ ebs: 2.5e-7
+ ebs_check: 2.8e-11
+ Epot: 1.1e-9
+ Total charge: 3.1e-11
+ energy: 8.3e-11
+ Omega: 5.1e-11
+ decay length of error function: 1.1e-5
 
 newpulay:
  EXC: 1.1e-10
@@ -915,7 +933,7 @@ sparsity:
  Total charge: 1.1e-10
  Omega: 1.03e-9
  Clean forces norm (Ha/Bohr): 7.7e-11
- Raw forces norm (Ha/Bohr): 1.4e-11
+ Raw forces norm (Ha/Bohr): 1.1e-9
  Total ionic charge: 2.41e-11
  charge diff: 1.1e-9
  energy: 1.1e-9
@@ -981,3 +999,6 @@ PBE_densmixdiis:
  Ekin: 1.1e-9
  Total charge: 2.01e-11
  EH: 1.0e-9
+
+test-bigdft-tool:
+ positions: 5.1e-8
