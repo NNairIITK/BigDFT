@@ -405,6 +405,7 @@ module module_atoms
             open(unit=99,file=trim(filename),status='old')
          end if
       end if
+
       ! Test posinp.ascii
       if (.not. file_exists) then
          inquire(FILE = file//'.ascii', EXIST = file_exists)
@@ -414,6 +415,7 @@ module module_atoms
             open(unit=99,file=trim(filename),status='old')
          end if
       end if
+
       ! Test posinp.yaml
       if (.not. file_exists) then
          inquire(FILE = file//'.yaml', EXIST = file_exists)

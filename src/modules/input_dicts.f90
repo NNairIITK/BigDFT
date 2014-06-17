@@ -881,6 +881,7 @@ contains
     end do
   end subroutine astruct_dict_get_types
 
+
   subroutine astruct_dict_get_source(dict, source)
     use dictionaries, only: max_field_length, dictionary, has_key, operator(//), dict_value
     implicit none
@@ -894,7 +895,8 @@ contains
     end if
   end subroutine astruct_dict_get_source
 
-  !> Read Atomic positions to dict
+
+  !> Read Atomic positions and merge into dict
   subroutine astruct_file_merge_to_dict(dict, key, filename)
     use module_base, only: gp, UNINITIALIZED, bigdft_mpi,f_routine,f_release_routine
     use module_atoms, only: set_astruct_from_file,atomic_structure,&
@@ -904,8 +906,9 @@ contains
     use yaml_strings
     implicit none
     !Arguments
-    type(dictionary), pointer :: dict  !< Contains (out) all the information
-    character(len = *), intent(in) :: filename, key
+    type(dictionary), pointer :: dict          !< Contains (out) all the information
+    character(len = *), intent(in) :: key      !< Key of the dictionary where it should be have the information
+    character(len = *), intent(in) :: filename !< Name of the filename where the astruct should be read
     !Local variables
     type(atomic_structure) :: astruct
     type(DFT_global_output) :: outs
@@ -925,6 +928,7 @@ contains
     end if
     call deallocate_global_output(outs)
     call f_release_routine()
+
   end subroutine astruct_file_merge_to_dict
 
 

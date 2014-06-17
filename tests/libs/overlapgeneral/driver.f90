@@ -42,9 +42,11 @@ program driver
   integer,parameter :: SPARSE=1
   integer,parameter :: DENSE=2
 
-  integer :: ncount1, ncount_rate, ncount_max, ncount2, i, j, start
+  integer :: ncount1, ncount_rate, ncount_max, ncount2
+!! integer :: i, j, start
   real(kind=4) :: tr0, tr1
-  real(kind=8) :: time, time2, tmp, tt
+  real(kind=8) :: time, time2, tt
+!! real(kind=8) :: tmp
   real :: rn
   real(kind=8), external :: ddot, dnrm2
   logical, parameter :: timer_on=.false.        !time the different methods

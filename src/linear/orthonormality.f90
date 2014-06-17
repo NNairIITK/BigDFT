@@ -115,8 +115,8 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
 end subroutine orthonormalizeLocalized
 
 
-! can still tidy this up more when tmblarge is removed
-! use sparsity of density kernel for all inverse quantities
+!> Can still tidy this up more when tmblarge is removed
+!! use sparsity of density kernel for all inverse quantities
 subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
            correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, &
            hpsit_c, hpsit_f, hpsit_nococontra_c, hpsit_nococontra_f, &
@@ -294,11 +294,11 @@ subroutine setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, ta
 end subroutine setCommsParameters
 
 
-!S^-1 exact only works for symmetric matrices
-!BOTH sparse matrices must be present together and inv_ovrlp should be nullified pointer, NOT inv_ovrlp_smat%matrix
-!when sparse matrices present, check is performed to see whether %matrix is allocated so that its allocated status remains unchanged
-!contents of %matrix not guaranteed to be correct though - inv_ovrlp_smat%can_use_dense set accordingly
-!power: -2 -> S^-1/2, 2 -> S^1/2, 1 -> S^-1
+!> S^-1 exact only works for symmetric matrices
+!! BOTH sparse matrices must be present together and inv_ovrlp should be nullified pointer, NOT inv_ovrlp_smat%matrix
+!! when sparse matrices present, check is performed to see whether %matrix is allocated so that its allocated status remains unchanged
+!! contents of %matrix not guaranteed to be correct though - inv_ovrlp_smat%can_use_dense set accordingly
+!! power: -2 -> S^-1/2, 2 -> S^1/2, 1 -> S^-1
 subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
            ovrlp_smat, inv_ovrlp_smat, ovrlp_mat, inv_ovrlp_mat, check_accur, &
            error)
@@ -367,8 +367,6 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
       call yaml_map('order',iorder)
       call yaml_close_sequence()
   end if
-
-
 
 
   ! Perform a check of the arguments
@@ -466,7 +464,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                    ovrlp_smat%nfvctr, Amat22p(1,1), ovrlp_smat%nfvctr, 0.0d0, Amat12p(1,1), ovrlp_smat%nfvctr)
               if (norbp>0) call dgemm('n', 'n', ovrlp_smat%nfvctr, norbp, ovrlp_smat%nfvctr, 1.0d0, Amat21(1,1), &
                    ovrlp_smat%nfvctr, Amat11p(1,1), ovrlp_smat%nfvctr, 0.0d0, Amat21p(1,1), ovrlp_smat%nfvctr)
-              !if(nproc > 1) then
+              if(nproc > 1) then
                   call timing(iproc,'lovrlp^-1     ','OF')
                   call timing(iproc,'lovrlp_comm   ','ON')
                   call mpi_allgatherv(Amat12p, ovrlp_smat%nfvctr*norbp, mpi_double_precision, Amat12, &
@@ -477,10 +475,10 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                        mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
                   call timing(iproc,'lovrlp_comm   ','OF')
                   call timing(iproc,'lovrlp^-1     ','ON')
-              !else
-              !    call vcopy(ovrlp_smat%nfvctr**2,Amat12p(1,1),1,Amat12(1,1),1)
-              !    call vcopy(ovrlp_smat%nfvctr**2,Amat21p(1,1),1,Amat21(1,1),1)
-              !end if
+              else
+                  call vcopy(ovrlp_smat%nfvctr**2,Amat12p(1,1),1,Amat12(1,1),1)
+                  call vcopy(ovrlp_smat%nfvctr**2,Amat21p(1,1),1,Amat21(1,1),1)
+              end if
           end do
 
           nullify(Amat22p)
@@ -489,7 +487,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
           if (power==1) then
               if (norbp>0) call dgemm('n', 'n', ovrlp_smat%nfvctr, norbp, ovrlp_smat%nfvctr, 1.0d0, Amat21(1,1), &
                    ovrlp_smat%nfvctr, Amat21p(1,1), ovrlp_smat%nfvctr, 0.0d0, Amat12p(1,1), ovrlp_smat%nfvctr)
-              !if (nproc>1) then
+              if (nproc>1) then
                   call timing(iproc,'lovrlp^-1     ','OF')
                   call timing(iproc,'lovrlp_comm   ','ON')
                   call mpi_allgatherv(Amat12p, ovrlp_smat%nfvctr*norbp, mpi_double_precision, inv_ovrlp_mat%matrix, &
@@ -497,9 +495,9 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                        mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
                   call timing(iproc,'lovrlp_comm   ','OF')
                   call timing(iproc,'lovrlp^-1     ','ON')
-              !else
-              !    call vcopy(ovrlp_smat%nfvctr**2, Amat12p(1,1), 1, inv_ovrlp_mat%matrix(1,1), 1)
-              !end if
+              else
+                  call vcopy(ovrlp_smat%nfvctr**2, Amat12p(1,1), 1, inv_ovrlp_mat%matrix(1,1), 1)
+              end if
           !else if (power==2) then
           !   call vcopy(ovrlp_smat%nfvctr**2,Amat12(1,1),1,inv_ovrlp_mat%matrix(1,1),1)
           else if (power==-2) then
@@ -1382,7 +1380,6 @@ subroutine overlap_plus_minus_one_half_exact(nproc,norb,blocksize,plusminus,inv_
 end subroutine overlap_plus_minus_one_half_exact
 
 
-
 subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, smat, norb, norbp, isorb, nseq, nout, &
            ivectorindex, onedimindices, amat_seq, bmatp, power, &
            error, &
@@ -1440,8 +1437,6 @@ subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, smat, norb, norbp,
   call f_release_routine()
 
 end subroutine check_accur_overlap_minus_one_sparse
-
-
 
 
 subroutine check_accur_overlap_minus_one(iproc,nproc,norb,norbp,isorb,power,ovrlp,inv_ovrlp,error)
@@ -1555,7 +1550,6 @@ subroutine max_matrix_diff_parallel(iproc, norb, norbp, mat1, mat2, deviation)
   call timing(iproc,'dev_from_unity','OF') 
 
 end subroutine max_matrix_diff_parallel
-
 
 
 subroutine deviation_from_unity(iproc, norb, ovrlp, deviation)
