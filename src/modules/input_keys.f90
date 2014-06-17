@@ -203,6 +203,7 @@ module module_input_keys
   character(len=*), parameter, public :: FSCALE_UPPERBOUND="fscale_upperbound"
   character(len=*), parameter, public :: EXTRA_STATES="extra_states"
   character(len=*), parameter, public :: FRAGMENT_NO="Fragment No. "
+  character(len=*), parameter, public :: KEEP_diis_HISTORY="keep_DIIS_history"
 
   !> Error ids for this module.
   integer, public :: INPUT_VAR_NOT_IN_LIST = 0

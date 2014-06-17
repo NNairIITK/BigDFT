@@ -800,6 +800,9 @@ experimentalfoe_medium:
  ebs: 2.5e-7
  ebs_check: 2.8e-11
  Epot: 1.1e-9
+ Total charge: 3.1e-11
+ energy: 8.3e-11
+ Omega: 5.1e-11
  decay length of error function: 1.1e-5
 
 newpulay:

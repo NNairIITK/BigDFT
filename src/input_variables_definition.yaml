@@ -839,6 +839,9 @@
      COMMENT: linear scaling upper bound for the error function decay length
      default: 5.e-2
      RANGE: [1.e-2,1.0]
+   keep_DIIS_history:
+     COMMENT: keep the DIIS history over different iterations of the outer loop when optimizing the support function
+     default: No
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
