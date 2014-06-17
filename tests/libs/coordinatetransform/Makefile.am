@@ -27,6 +27,8 @@ check: test-coordinatetransform.report.yaml
 check: test-bigdft-tool.report.yaml
 
 test-coordinatetransform.report.yaml: $(srcdir)/test-coordinatetransform.ref.yaml test-coordinatetransform.out.yaml
+	@export PYTHONPATH=${PYTHONPATH} ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
 		-r $< -d test-coordinatetransform.out.yaml -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=test-coordinatetransform -o $@ 
 
