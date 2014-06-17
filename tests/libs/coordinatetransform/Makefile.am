@@ -46,26 +46,26 @@ test-bigdft-tool.report.yaml: $(srcdir)/test-bigdft-tool.ref.yaml test-bigdft-to
 
 test-bigdft-tool.out.yaml: $(abs_top_builddir)/src/bigdft-tool
 	cp $(srcdir)/posinp1.xyz $(PWD)/posinp.xyz
-	$(run_parallel) $(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=carint --infile=posinp.xyz --outfile=posout.int
-	$(run_parallel) $(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=intcar --infile=posout.int --outfile=posout.xyz
-	$(run_parallel) $(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=carcar --infile=posout.xyz --outfile=posout.yaml
+	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=carint --infile=posinp.xyz --outfile=posout.int
+	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=intcar --infile=posout.int --outfile=posout.xyz
+	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=carcar --infile=posout.xyz --outfile=posout.yaml
 	cat posout.yaml > test-bigdft-tool.out.yaml
 	rm -f posout.*
 	cp $(srcdir)/posinp2.xyz $(PWD)/posinp.xyz
-	$(run_parallel) $(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=carint --infile=posinp.xyz --outfile=posout.int
-	$(run_parallel) $(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=intcar --infile=posout.int --outfile=posout.xyz
-	$(run_parallel) $(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=carcar --infile=posout.xyz --outfile=posout.yaml
+	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=carint --infile=posinp.xyz --outfile=posout.int
+	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=intcar --infile=posout.int --outfile=posout.xyz
+	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=carcar --infile=posout.xyz --outfile=posout.yaml
 	cat posout.yaml >> test-bigdft-tool.out.yaml
 	rm -f posout.*
 	cp $(srcdir)/posinp3.xyz $(PWD)/posinp.xyz
-	$(run_parallel) $(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=carint --infile=posinp.xyz --outfile=posout.int
-	$(run_parallel) $(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=intcar --infile=posout.int --outfile=posout.xyz
-	$(run_parallel) $(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=carcar --infile=posout.xyz --outfile=posout.yaml
+	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=carint --infile=posinp.xyz --outfile=posout.int
+	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=intcar --infile=posout.int --outfile=posout.xyz
+	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=carcar --infile=posout.xyz --outfile=posout.yaml
 	cat posout.yaml >> test-bigdft-tool.out.yaml
 	rm -f posout.*
 	cp $(srcdir)/posinp4.xyz $(PWD)/posinp.xyz
-	$(run_parallel) $(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=carint --infile=posinp.xyz --outfile=posout.int
-	$(run_parallel) $(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=intcar --infile=posout.int --outfile=posout.xyz
-	$(run_parallel) $(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=carcar --infile=posout.xyz --outfile=posout.yaml
+	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=carint --infile=posinp.xyz --outfile=posout.int
+	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=intcar --infile=posout.int --outfile=posout.xyz
+	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --direction=carcar --infile=posout.xyz --outfile=posout.yaml
 	cat posout.yaml >> test-bigdft-tool.out.yaml
 	rm -f posout.*
