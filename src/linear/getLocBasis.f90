@@ -1649,7 +1649,8 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   use module_types
   use module_interfaces, except_this_one => reorthonormalize_coeff
   use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, &
-                         allocate_matrices, deallocate_matrices
+       allocate_matrices, deallocate_matrices
+  use yaml_output, only: yaml_map
   implicit none
 
   ! Calling arguments
@@ -1779,8 +1780,8 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
      call deviation_from_unity_parallel(iproc, 1, norb, norb, 0, ovrlp_coeff(1,1), error)    
   end if
 
-  ! should convert this to yaml
-  if (iproc==0) print*,'Deviation from unity in reorthonormalize_coeff',error
+  ! should convert this to yaml (LG: easily done)
+  if (iproc==0) call yaml_map('Deviation from unity in reorthonormalize_coeff',error)
 
   if (error>5.0d0.and.orbs%norb==norb) then
      if (iproc==0) print*,'Error in reorthonormalize_coeff too large, reverting to gram-schmidt orthonormalization'
@@ -2052,10 +2053,10 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   call uncompress_matrix(iproc, tmb%linmat%l, &
        inmat=tmb%linmat%kernel_%matrix_compr, outmat=tmb%linmat%kernel_%matrix)
 
-  ks=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
-  ksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/))
-  ksksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
-  kernel_prime=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
+  ks=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='ks')
+  ksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/),id='ksk')
+  ksksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='ksksk')
+  kernel_prime=f_malloc([tmb%orbs%norb,tmb%orbs%norb],id='kernel_prime')
 
   !ovrlp_onehalf=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='ovrlp_onehalf')
   !ovrlp_minusonehalf=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='ovrlp_minusonehalf')

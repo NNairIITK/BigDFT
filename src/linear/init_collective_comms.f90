@@ -331,7 +331,6 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
   !$  nthreads = OMP_GET_max_threads()
   n = f_malloc(nthreads,id='n')
   numops = f_malloc(orbs%norb,id='numops')
-
   ! calculate number of operations for better load balancing of OpenMP
   if (nthreads>1) then
      numops=0
@@ -344,7 +343,6 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
         end do
      end do
      totops=sum(numops)
-
      avops=totops/nthreads
      jjorb=1
      do i=1,nthreads
@@ -365,7 +363,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
            end if
            ops=opsn
         end do
-        if (i/=nthreads) avops=totops/(nthreads-i)
+        if (i/=nthreads) avops=nint(dble(totops)/dble(nthreads-i))
      end do
   
   end if
@@ -373,6 +371,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
   call f_free(numops)
 
   n(nthreads)=orbs%norb
+
 
   !$omp parallel default(private) &
   !$omp shared(collcom, smat, ovrlp, psit_c1, psit_c2, psit_f1, psit_f2, n)
@@ -426,7 +425,6 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
           end do
       end do
   end if
-
   if (collcom%nptsp_f>0) then
       do ipt=1,collcom%nptsp_f 
           ii=collcom%norb_per_gridpoint_f(ipt) 

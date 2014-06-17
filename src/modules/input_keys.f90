@@ -715,13 +715,14 @@ contains
     use dynamic_memory
     use yaml_output
     implicit none
+    !Arguments
     type(dictionary), pointer :: dict
     character(len = *), intent(in) :: file
-
-    integer :: i
+    !Local variables
+    !integer :: i
     logical :: user, hasUserDef
     type(dictionary), pointer :: ref,ref_iter
-    character(len=max_field_length), dimension(:), allocatable :: keys
+    !character(len=max_field_length), dimension(:), allocatable :: keys
     
 !    call f_routine(id='input_keys_fill')
 

@@ -41,7 +41,10 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
        & call set(dict // "radical", radical)
 
   ! Handle error with master proc only.
-  if (mpi_env%iproc > 0) call f_err_set_callback(f_err_ignore)
+  !LG: modified, better to handle errors with all the 
+  !! processors now that each of the cores has its own way of dumping 
+  !! error codes
+  !if (mpi_env%iproc > 0) call f_err_set_callback(f_err_ignore)
 
   ! We try first default.yaml
   inquire(file = "default.yaml", exist = exists_default)
@@ -85,7 +88,9 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
      call read_perf_from_text_format(mpi_env%iproc,dict//PERF_VARIABLES, trim(f0))
   end if
 
-  if (mpi_env%iproc > 0) call f_err_severe_restore()
+  !LG modfication of errors (see above)
+  !in case it should be restored the bigdft_severe shoudl be called instead
+  !if (mpi_env%iproc > 0) call f_err_severe_restore()
 
   ! We put a barrier here to be sure that non master proc will be stop
   ! by any issue on the master proc.
@@ -117,10 +122,11 @@ subroutine inputs_from_dict(in, atoms, dict)
   type(atoms_data), intent(out) :: atoms
   type(dictionary), pointer :: dict
   !Local variables
-  !type(dictionary), pointer :: profs
+  !type(dictionary), pointer :: profs, dict_frag
+  logical :: found
   integer :: ierr, ityp, nelec_up, nelec_down, norb_max, jtype
   character(len = max_field_length) :: writing_dir, output_dir, run_name, msg
-  type(dictionary), pointer :: dict_minimal, var,dict_frag
+  type(dictionary), pointer :: dict_minimal, var
 
   call f_routine(id='inputs_from_dict')
 
@@ -336,8 +342,8 @@ subroutine inputs_from_dict(in, atoms, dict)
   in%lin%constrained_dft=.false.
   if (in%lin%fragment_calculation) then
      in%lin%constrained_dft=CONSTRAINED_DFT .in. dict // FRAG_VARIABLES
-     if (TRANSFER_INTEGRALS .in. dict // FRAG_VARIABLES) &
-          in%lin%calc_transfer_integrals=dict//FRAG_VARIABLES//TRANSFER_INTEGRALS
+     found = TRANSFER_INTEGRALS .in. dict // FRAG_VARIABLES
+     if (found) in%lin%calc_transfer_integrals=dict//FRAG_VARIABLES//TRANSFER_INTEGRALS
      call frag_from_dict(dict//FRAG_VARIABLES,in%frag)
 
 !!$     ! again recheck
@@ -718,7 +724,7 @@ subroutine free_geopt_variables(in)
   implicit none
   type(input_variables), intent(inout) :: in
   character(len=*), parameter :: subname='free_geopt_variables'
-  integer :: i_stat, i_all
+  ! integer :: i_stat, i_all
 
   if (associated(in%qmass)) then
      call f_free_ptr(in%qmass)

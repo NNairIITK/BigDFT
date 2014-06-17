@@ -20,9 +20,12 @@ module ao_inguess
 
   integer, parameter :: nmax_ao=7              !< Maximum allowed value of principal quantum number for the electron configuration
   integer, parameter :: lmax_ao=3              !< Maximum value of the angular momentum for the electron configuration
-  integer, parameter :: nelecmax_ao=33         !< Size of the interesting values of the compressed atomic input polarization
   integer, parameter :: noccmax_ao=3           !< Maximum number of the occupied input guess orbitals for a given shell
-  integer, parameter, public :: nmax_occ_ao=10 !< Maximum number of total occupied orbitals for generating the ig functions
+  !> Size of the interesting values of the compressed atomic input polarization
+  !! should be able to contain all the possible configuration
+  integer, parameter :: nelecmax_ao=((lmax_ao+1)**2)*2*noccmax_ao+(lmax_ao+1) !100 in this case
+  !> Maximum number of total occupied orbitals for generating the ig functions
+  integer, parameter, public :: nmax_occ_ao=(lmax_ao+1)*noccmax_ao !12 in present case 
 
   private :: nmax_ao,lmax_ao,nelecmax_ao,noccmax_ao,at_occnums,spin_variables
 
@@ -133,7 +136,7 @@ contains
     real(gp), parameter :: fact=4.0_gp
     !character(len=2) :: symbol
     integer :: lpx!,nsccode,mxpl,mxchg
-    integer :: l,i,j,iocc,i_all,i_stat,iorder
+    integer :: l,i,j,iocc,iorder
     real(gp) :: alpz,alpl,rprb,rcov,rij,a,a0,a0in,tt!,ehomo,amu
     !integer, dimension(6,4) :: neleconf
     !real(kind=8), dimension(6,4) :: neleconf

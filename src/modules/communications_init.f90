@@ -154,7 +154,7 @@ module communications_init
       real(kind=8),intent(out) :: weight_c_tot, weight_f_tot
       
       ! Local variables
-      integer :: iorb, iiorb, i0, i1, i2, i3, ii, jj, iseg, ilr, istart, iend, i, j0, j1, ii1, ii2, ii3, n1p1, np
+      integer :: iorb, iiorb, i0, i1, i2, i3, ii, iseg, ilr, istart, iend, i, j0, j1, ii1, ii2, ii3, n1p1, np
     
     
       ii=(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1)
@@ -285,9 +285,9 @@ module communications_init
       integer,intent(out) :: nvalp_c, nvalp_f
       
       ! Local variables
-      integer :: jproc, i1, i2, i3, ii, istart, iend, jj, j0, j1, ii_c, ii_f, n1p1, np
+      integer :: jproc, i1, i2, i3, ii, istart, iend, j0, j1, ii_c, ii_f, n1p1, np
       !!$$integer :: ii2, iiseg, jprocdone
-      integer :: i, iseg, i0, iitot, istat, iall
+      integer :: i, iseg, i0, iitot
       real(kind=8) :: tt, tt2, weight_c_ideal, weight_f_ideal, ttt
       real(kind=8),dimension(:,:),allocatable :: weights_c_startend, weights_f_startend
       character(len=*),parameter :: subname='assign_weight_to_process'
@@ -592,11 +592,7 @@ module communications_init
            end do
         end do
     
-    
-    
     end subroutine get_index_in_global2
-
-
 
 
     subroutine determine_communication_arrays(iproc, nproc, npsidim_orbs, orbs, lzd, &
@@ -618,8 +614,8 @@ module communications_init
       integer,dimension(0:nproc-1),intent(out) :: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
       
       ! Local variables
-      integer :: iorb, iiorb, i1, i2, i3, ii, jproc, jproctarget, ierr, jj, ilr, j0, j1, i0, i, ind, n1p1, np
-      integer :: istat, ii1, ii2, ii3, iseg, istart, iend, iall
+      integer :: iorb, iiorb, i1, i2, i3, ii, jproc, jproctarget, ierr, ilr, j0, j1, i0, i, ind, n1p1, np
+      integer :: ii1, ii2, ii3, iseg, istart, iend
       integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp
       character(len=*),parameter :: subname='determine_communication_arrays'
     
@@ -906,8 +902,9 @@ module communications_init
       integer,dimension(ndimind_f),intent(out) :: indexrecvorbital_f, iextract_f, iexpand_f
       
       ! Local variables
-      integer :: i, iorb, iiorb, i1, i2, i3, ind, jproc, jproctarget, ii, ierr, jj, iseg, iitot, ilr, n1p1, np
-      integer :: istart, iend, indglob, ii1, ii2, ii3, j1, i0, j0, istat, iall
+      integer :: i, iorb, iiorb, i1, i2, i3, ind, jproc, jproctarget, ii, ierr, iseg, iitot, ilr, n1p1, np
+      !integer :: jj
+      integer :: istart, iend, indglob, ii1, ii2, ii3, j1, i0, j0
       integer,dimension(:),allocatable :: nsend_c,nsend_f, indexsendorbital2, indexrecvorbital2
       integer,dimension(:),allocatable :: gridpoint_start_c, gridpoint_start_f
       real(kind=8),dimension(:,:,:),allocatable :: weight_c, weight_f
@@ -1346,7 +1343,7 @@ module communications_init
       type(comms_linear),intent(inout) :: collcom_sr
     
       ! Local variables
-      integer :: istat, iall, ipt, ii
+      integer :: ipt, ii
       real(kind=8) :: weight_tot, weight_ideal
       integer,dimension(:,:),allocatable :: istartend
       character(len=*),parameter :: subname='init_comms_linear_sumrho'
@@ -1724,7 +1721,7 @@ module communications_init
       integer,intent(out) :: ndimpsi
     
       ! Local variables
-      integer :: iorb, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, jproc, i3, i2, i1, ind, ii, istat, iall, ierr, ii0
+      integer :: iorb, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, jproc, i3, i2, i1, ind, ii, ierr, ii0
       integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp
       character(len=*),parameter :: subname='determine_communication_arrays_sumrho'
     
@@ -1841,7 +1838,7 @@ module communications_init
       integer,dimension(ndimind),intent(out) :: iextract, iexpand, indexrecvorbital
     
       ! Local variables
-      integer :: jproc, iitot, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, i3, i2, i1, ind, indglob, istat, iall, ierr, ii
+      integer :: jproc, iitot, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, i3, i2, i1, ind, indglob, ierr, ii
       integer :: iorb, i, ipt, indglob2, indglob3, indglob3a, itotadd
       integer,dimension(:),allocatable :: nsend, indexsendbuf, indexsendorbital, indexsendorbital2, indexrecvorbital2
       integer,dimension(:),allocatable :: gridpoint_start, indexrecvbuf
@@ -2239,7 +2236,7 @@ module communications_init
       type(p2pComms),intent(out):: comgp
       
       ! Local variables
-      integer:: is1, ie1, is2, ie2, is3, ie3, ilr, ii, iorb, iiorb, jproc, kproc, istat, istsource
+      integer:: is1, ie1, is2, ie2, is3, ie3, ilr, ii, iorb, iiorb, jproc, kproc, istsource
       integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, istdest, ioffsetx, ioffsety, ioffsetz
       integer :: is3min, ie3max, tag, ncount, ierr, nmaxoverlap
       logical :: datatype_defined
@@ -2512,7 +2509,7 @@ module communications_init
       !local variables
       character(len=*), parameter :: subname='orbitals_communicators'
       logical :: yesorb,yescomp
-      integer :: jproc,nvctr_tot,ikpts,iorbp,jorb,norb_tot,ikpt,i_stat,i_all
+      integer :: jproc,nvctr_tot,ikpts,iorbp,jorb,norb_tot,ikpt
       integer :: nkptsp,ierr,kproc,jkpts,jkpte,jsorb,lubo,lubc,info,jkpt
       integer, dimension(:), allocatable :: mykpts
       logical, dimension(:), allocatable :: GPU_for_comp

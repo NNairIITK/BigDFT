@@ -238,6 +238,8 @@ def document_report(hostname, tol, biggest_disc, nchecks, leaks, nmiss, miss_it,
             failure_reason = "Information"
         elif tol == -1 and "No such file" in message:
             failure_reason = "Missing File"
+        elif tol == -1 and "while parsing" in message:
+            failure_reason = "Yaml Standard"
         elif tol == 0 and biggest_disc == 0 and timet == 0:
             failure_reason = "Yaml Standard"
         else:

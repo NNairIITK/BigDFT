@@ -229,7 +229,6 @@ module module_atoms
       type(atoms_data), intent(inout) :: atoms
       !local variables
       character(len=*), parameter :: subname='dellocate_atoms_data' !remove
-      integer :: i_stat, i_all
 
       ! Deallocate atomic structure
       call deallocate_atomic_structure(atoms%astruct) 
@@ -600,7 +599,6 @@ subroutine astruct_set_n_atoms(astruct, nat)
   integer, intent(in) :: nat
   !local variables
   character(len=*), parameter :: subname='astruct_set_n_atoms' !<remove
-  integer :: i_stat
 
   astruct%nat = nat
 
@@ -676,7 +674,7 @@ subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
   integer, intent(in) :: nspin
   !local variables
   character(len=*), parameter :: subname='astruct_set_symmetries'
-  integer :: i_stat, ierr, i_all
+  integer :: ierr
   real(gp), dimension(3,3) :: rprimd
   real(gp), dimension(:,:), allocatable :: xRed
   integer, dimension(3, 3, AB6_MAX_SYMMETRIES) :: sym
@@ -775,7 +773,6 @@ subroutine allocate_atoms_ntypes(atoms)
   type(atoms_data), intent(inout) :: atoms
   !local variables
   character(len = *), parameter :: subname='allocate_atoms_ntypes'
-  integer :: i_stat
 
   ! Allocate pseudo related stuff.
   ! store PSP parameters, modified to accept both GTH and HGHs pseudopotential types

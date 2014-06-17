@@ -355,17 +355,21 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
   real(wp),intent(inout) :: zx(2,0:(n1+1)/2,0:n2,0:n3)
 
   real(gp) :: ct
-  real(gp),allocatable,dimension(:,:) :: ab
+  real(gp),allocatable,dimension(:,:), save :: ab
   !real(wp) :: b(0:n2,2)
-  real(wp),allocatable,dimension(:,:) :: b
+  real(wp),allocatable,dimension(:,:), save :: b
   !     .. Scalar Arguments ..
-  INTEGER :: INFO, Kd, LDAB, LDB, NRHS=2,n
+  INTEGER :: NRHS=2
+  INTEGER :: INFO, Kd, LDAB, LDB, n
   integer :: i1,i2,i3,i,j,i_stat,i_all
 
   integer,parameter :: lowfil=-14,lupfil=14
   real(gp) :: scale
   real(gp) :: fil(lowfil:lupfil)
+  !$omp threadprivate(b,ab)
 
+  call f_routine(id='segment_invert')
+  
   scale=-.5_gp/hgrid**2
 
   ! second derivative filters for Daubechies 16
@@ -398,16 +402,16 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
   ldb=n2+1
 
   ! hit the fourier transform of x with the kernel
-
+  !We avoid to use f_malloc in an omp parallel section
   !$omp parallel default(none) & 
-  !$omp private (b,ab,i3,i1,i2,j,i,ct,info,i_stat,i_all) &
+  !$omp private (i3,i1,i2,j,i,ct,info,i_stat,i_all) &
   !$omp shared (n1,n2,n3,zx,fil,kd,ldb,ldab,nrhs,n,c,kern_k1,kern_k3)
-  !$omp critical (allocate_critical)
+
+  !$omp critical
   ab = f_malloc((/ ldab, n /),id='ab')
-  !b = f_malloc((/ 0.to.n2, 1.to.2 /),id='b')
-  allocate(b(0:n2,1:2),stat=i_stat)
-  call memocc(i_stat,b,'b','segment_invert')
-  !$omp end critical (allocate_critical)
+  b = f_malloc((/ 0.to.n2, 1.to.2 /),id='b')
+  !$omp end critical
+
   !$omp do schedule(static,1)
   do i3=0,n3
      !   do i1=0,n1
@@ -436,13 +440,124 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
      enddo
   enddo
   !$omp end do
-  !$omp critical (deallocate_critical)
+
+  !$omp critical
   call f_free(ab)
-  !call f_free(b)
-  i_all = -product(shape(b))*kind(b)
-  deallocate(b,stat=i_stat)
-  call memocc(i_stat,i_all,'b','segment_invert')
-  !$omp end critical (deallocate_critical)
+  call f_free(b)
+  !$omp end critical
+
   !$omp end parallel
 
+call f_release_routine()
+
 END SUBROUTINE segment_invert
+
+
+!!! subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
+!!!   use module_base
+!!!   use yaml_output, only: yaml_map
+!!!   implicit none
+!!!   integer,intent(in) :: n1,n2,n3
+!!!   real(wp),intent(in) :: kern_k1(0:n1)
+!!!   real(wp),intent(in) :: kern_k3(0:n3)
+!!!   real(gp),intent(in) :: c,hgrid
+!!!   real(wp),intent(inout) :: zx(2,0:(n1+1)/2,0:n2,0:n3)
+!!! 
+!!!   real(gp) :: ct
+!!!   real(gp),allocatable,dimension(:,:,:) :: ab
+!!!   !real(wp) :: b(0:n2,2)
+!!!   real(wp),allocatable,dimension(:,:,:) :: b
+!!!   !     .. Scalar Arguments ..
+!!!   INTEGER :: NRHS=2
+!!!   INTEGER :: INFO, Kd, LDAB, LDB, n, itime,jtime
+!!!   integer :: i1,i2,i3,i,j,i_stat,i_all
+!!!   !$ integer :: nthread,ithread, omp_get_max_threads, omp_get_thread_num
+!!! 
+!!!   integer,parameter :: lowfil=-14,lupfil=14
+!!!   real(gp) :: scale
+!!!   real(gp) :: fil(lowfil:lupfil)
+!!! 
+!!!   call f_routine(id='segment_invert')
+!!!   
+!!!   scale=-.5_gp/hgrid**2
+!!! 
+!!!   ! second derivative filters for Daubechies 16
+!!!   fil(0)=   -3.5536922899131901941296809374_gp*scale
+!!!   fil(1)=    2.2191465938911163898794546405_gp*scale
+!!!   fil(2)=   -0.6156141465570069496314853949_gp*scale
+!!!   fil(3)=    0.2371780582153805636239247476_gp*scale
+!!!   fil(4)=   -0.0822663999742123340987663521_gp*scale
+!!!   fil(5)=    0.02207029188482255523789911295638968409_gp*scale
+!!!   fil(6)=   -0.409765689342633823899327051188315485e-2_gp*scale
+!!!   fil(7)=    0.45167920287502235349480037639758496e-3_gp*scale
+!!!   fil(8)=   -0.2398228524507599670405555359023135e-4_gp*scale
+!!!   fil(9)=    2.0904234952920365957922889447361e-6_gp*scale
+!!!   fil(10)=  -3.7230763047369275848791496973044e-7_gp*scale
+!!!   fil(11)=  -1.05857055496741470373494132287e-8_gp*scale
+!!!   fil(12)=  -5.813879830282540547959250667e-11_gp*scale
+!!!   fil(13)=   2.70800493626319438269856689037647576e-13_gp*scale
+!!!   fil(14)=  -6.924474940639200152025730585882e-18_gp*scale
+!!! 
+!!!   do i=1,14
+!!!      fil(-i)=fil(i)
+!!!   enddo
+!!! 
+!!!   fil=fil*(n1+1)*(n3+1) ! include the factor from the Fourier transform
+!!! 
+!!!   ! initialize the variables for matrix inversion
+!!!   n=n2+1
+!!!   kd=lupfil
+!!!   ldab=kd+1!
+!!!   ldb=n2+1
+!!! 
+!!!   ! hit the fourier transform of x with the kernel
+!!! itime=f_time()
+!!!   !We avoid to use f_malloc in an omp parallel section
+!!!   nthread = 1
+!!!   !$ nthread = omp_get_max_threads()
+!!!   ab = f_malloc((/ 1.to.ldab, 1.to.n, 0.to.nthread-1 /),id='ab')
+!!!   b = f_malloc((/ 0.to.n2, 1.to.2, 0.to.nthread-1 /),id='b')
+!!!   !$omp parallel default(none) & 
+!!!   !$omp private (i3,i1,i2,j,i,ct,info,i_stat,i_all,ithread) &
+!!!   !$omp shared (ab,b,n1,n2,n3,zx,fil,kd,ldb,ldab,nrhs,n,c,kern_k1,kern_k3)
+!!!   ithread = 0
+!!!   !$ ithread = omp_get_thread_num()
+!!!   !$omp do schedule(static,1)
+!!!   do i3=0,n3
+!!!      !   do i1=0,n1
+!!!      do i1=0,(n1+1)/2
+!!!         !      ct=kern_k1(i1)+kern_k3(i3)+c
+!!!         ct=(kern_k1(i1)+kern_k3(i3)+c)*(n1+1)*(n3+1)
+!!!         ! ab has to be reinitialized each time
+!!!         ! since it is overwritten in the course of  dgbsv
+!!!         do j=1,n
+!!!            do i=max(1,j-lupfil),j
+!!!               ab(kd+1+i-j,j,ithread)=fil(i-j)
+!!!            enddo
+!!!            ab(kd+1,j,ithread)=fil(0)+ct
+!!!         enddo
+!!!         do i2=0,n2
+!!!            b(i2,1,ithread)=zx(1,i1,i2,i3)
+!!!            b(i2,2,ithread)=zx(2,i1,i2,i3)
+!!!         enddo
+!!!         !      call DGBSV( N, KL, KU, NRHS, ab , LDAB, IPIV, b, LDB, INFO )
+!!!         call DPBSV( 'U', N, KD, NRHS, AB(1,1,ithread), LDAB, B(0,1,ithread), LDB, INFO )
+!!!         if (info.ne.0) stop 'error in matrix inversion'
+!!!         do i2=0,n2
+!!!            zx(1,i1,i2,i3)=b(i2,1,ithread)
+!!!            zx(2,i1,i2,i3)=b(i2,2,ithread)
+!!!         enddo
+!!!      enddo
+!!!   enddo
+!!!   !$omp end do
+!!!   !$omp end parallel
+!!!   call f_free(ab)
+!!!   call f_free(b)
+!!! 
+!!! jtime=f_time()
+!!! 
+!!! call yaml_map('Time elapsed (ns)',jtime-itime)
+!!! 
+!!! call f_release_routine()
+!!! 
+!!! END SUBROUTINE segment_invert

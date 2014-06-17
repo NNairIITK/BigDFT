@@ -60,7 +60,8 @@ END SUBROUTINE dirac_hara
 function GetBottom(atoms,nspin)
 
    use module_base
-   use ao_inguess, only: iguess_generator,ao_nspin_ig,count_atomic_shells
+   use ao_inguess, only: &
+        iguess_generator,ao_nspin_ig,nmax_occ_ao
    use module_types
    use module_interfaces
 
@@ -79,7 +80,7 @@ function GetBottom(atoms,nspin)
    real(gp) :: psi(ng,10)
 
    integer :: i_stat
-   real(gp) :: gaenes_aux(10)
+   real(gp), dimension(nmax_occ_ao) :: gaenes_aux
    integer :: nspinor, iat, nspin_ig
 
    ! if (in_iat_absorber.ne.0) then
@@ -95,10 +96,10 @@ function GetBottom(atoms,nspin)
          if (ity.eq.atoms%astruct%iatype(iat)) exit
       end do
       call iguess_generator(atoms%nzatom(ity),atoms%nelpsp(ity),&
-         &   real(atoms%nelpsp(ity),gp),nspin_ig,atoms%aoig(iat)%aocc,atoms%psppar(0:,0:,ity),&
-         &   atoms%npspcode(ity),  &
-         &   atoms%nlcc_ngv(ity),atoms%nlcc_ngc(ity),atoms%nlccpar(0:,ity),&
-         &   ng-1,expo,psi,.false., gaenes_aux=gaenes_aux  )
+           real(atoms%nelpsp(ity),gp),nspin_ig,atoms%aoig(iat)%aocc,atoms%psppar(0:,0:,ity),&
+           atoms%npspcode(ity),  &
+           atoms%nlcc_ngv(ity),atoms%nlcc_ngc(ity),atoms%nlccpar(0:,ity),&
+           ng-1,expo,psi,.false., gaenes_aux=gaenes_aux  )
 
       if( minval(gaenes_aux ) < GetBottom) GetBottom=minval(gaenes_aux )
    enddo

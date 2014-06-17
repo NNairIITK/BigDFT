@@ -824,10 +824,10 @@ contains
        end if
     case('F')
        ! Default, store nothing and erase key if already exist.
-       if (has_key(dict, ASTRUCT_CELL)) call pop(dict, ASTRUCT_CELL)
+       if (has_key(dict, ASTRUCT_CELL)) call dict_remove(dict, ASTRUCT_CELL)
     end select BC
 
-    if (has_key(dict, ASTRUCT_POSITIONS)) call pop(dict, ASTRUCT_POSITIONS)
+    if (has_key(dict, ASTRUCT_POSITIONS)) call dict_remove(dict, ASTRUCT_POSITIONS)
     pos => dict // ASTRUCT_POSITIONS
     do iat=1,astruct%nat
        call dict_init(at)
@@ -1456,7 +1456,7 @@ contains
     integer :: iat
     type(dictionary), pointer :: pos, fxyz
 
-    if (has_key(dict, GOUT_FORCES)) call pop(dict, GOUT_FORCES)
+    if (has_key(dict, GOUT_FORCES)) call dict_remove(dict, GOUT_FORCES)
     if (associated(outs%fxyz)) then
        pos => dict // GOUT_FORCES
        do iat=1,astruct%nat
@@ -1468,7 +1468,7 @@ contains
        end do
     end if
 
-    if (has_key(dict, GOUT_ENERGY)) call pop(dict, GOUT_ENERGY)
+    if (has_key(dict, GOUT_ENERGY)) call dict_remove(dict, GOUT_ENERGY)
     if (outs%energy /= UNINITIALIZED(outs%energy)) &
          & call set(dict // GOUT_ENERGY, outs%energy)
 
