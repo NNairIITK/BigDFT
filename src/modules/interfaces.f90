@@ -21,7 +21,7 @@ module module_interfaces
          implicit none
          integer, intent(in) :: iproc,nproc
          type(run_objects), intent(inout) :: runObj
-         type(DFT_global_output), intent(out) :: outs
+         type(DFT_global_output), intent(inout) :: outs
          integer, intent(inout) :: infocode
       END SUBROUTINE call_bigdft
 
@@ -1982,8 +1982,8 @@ module module_interfaces
         type(sparse_matrix),intent(inout) :: lagmat
         type(matrices),intent(out) :: lagmat_
         real(kind=8),dimension(:),pointer :: psit_c, psit_f, hpsit_c, hpsit_f
-        real(kind=8),dimension(collcom%ndimind_c),intent(in) :: hpsit_nococontra_c
-        real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: hpsit_nococontra_f
+        real(kind=8),dimension(collcom%ndimind_c),intent(inout) :: hpsit_nococontra_c
+        real(kind=8),dimension(7*collcom%ndimind_f),intent(inout) :: hpsit_nococontra_f
         logical,intent(inout) :: can_use_transposed, overlap_calculated
         type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
         logical,intent(in) :: experimental_mode

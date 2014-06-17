@@ -183,8 +183,8 @@ contains
     character(len=*), intent(in) :: array,routine
 
     ! Local variables
-    logical :: lmpinit
-    integer :: ierr,istat_del
+    !logical :: lmpinit
+    integer :: ierr,istat_del,impinit
     character(len=256) :: message
 
     include 'mpif.h'
@@ -196,8 +196,8 @@ contains
        call memocc_variables_init()
        if (trim(routine) /= "stop") then
           !Use MPI to have the mpi rank
-          call MPI_INITIALIZED(lmpinit,ierr)
-          if (lmpinit) then
+          call MPI_INITIALIZED(impinit,ierr)
+          if (impinit /= 0) then
              call MPI_COMM_RANK(MPI_COMM_WORLD,memproc,ierr)
           else
              !no-mpi case 

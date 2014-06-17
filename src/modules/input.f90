@@ -2086,10 +2086,10 @@ contains
     !character(len=*), parameter :: subname='fragment_input_variables'
     logical :: exists
     character(len=256) :: comments
-    integer :: ifrag, frag_num, ierr
+    integer :: ifrag, frag_num
     real(gp) :: charge
     type(fragmentInputParameters) :: frag
-    type(dictionary), pointer :: dict_frag,frag_list
+    type(dictionary), pointer :: dict_frag
 
     !Linear input parameters
     call input_set_file(iproc,dump,trim(filename),exists,'Fragment Parameters') 

@@ -259,8 +259,6 @@ contains
     logical, intent(in) :: hybrid_on 
     type(convolutions_bounds) :: bounds
     character(len=*), intent(in) :: subname
-    !local variables
-    integer :: i_all,i_stat
 
     if ((geocode == 'P' .and. hybrid_on) .or. geocode == 'F') then
        ! Just test the first one...

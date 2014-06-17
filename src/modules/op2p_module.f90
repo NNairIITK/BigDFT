@@ -45,7 +45,7 @@ module overlap_point_to_point
       type(OP2P_descriptors), intent(out) :: OP2P
       !local variables
       character(len=*), parameter :: subname='initialize_OP2P_communications'
-      integer :: i_stat,ndebug=0  !< to be removed whenever with module_base
+      !integer :: ndebug=0  !< to be removed whenever with module_base
       integer :: igroup,iobject,jproc,ioffset_local,ioffset_global,iobj,nsize,igroup_previous
       integer :: nprocgr_max,iprocgrs,iprocgrr,icount,istep,kproc,nstepsm1
       integer :: iaddress_local,iaddress_results_local,nsize_results
@@ -381,7 +381,7 @@ module overlap_point_to_point
       character(len=*), parameter :: subname='op2p_communication'
       logical :: doit,remote_result
       integer :: isnow,ncommsstep,irnow,igroup,istep,isnow_results,irnow_results,ncommsstep_results,iaddress_local
-      integer :: istart_results,i_all,i_stat,nvctri,nvctrj,nvctri_results,nvctrj_results
+      integer :: istart_results,nvctri,nvctrj,nvctri_results,nvctrj_results
       integer :: isorb,jsorb,iorbs,jorbs,norbi,norbj,jproc,istart,jproc_to_send,jproc_to_recv,nelems_to_send,nelems_to_recv
       integer, dimension(:,:), allocatable :: mpireq
       real(kind=8), dimension(:,:,:), allocatable :: sendreceive_buffer,restemp_buffer
@@ -600,15 +600,14 @@ module overlap_point_to_point
 
    END SUBROUTINE OP2P_communication
 
+
    !> Deallocate everything for OP2P communications
    subroutine free_OP2P_descriptors(OP2P,subname)
       implicit none
       character(len=*), intent(in) :: subname
       type(OP2P_descriptors), intent(inout) :: OP2P
-      !local variables
-      integer :: i_all,i_stat
-      !debugbprint *,'ecco5'
 
+      !debugbprint *,'ecco5'
       call f_free_ptr(OP2P%ngroupp)
       call f_free_ptr(OP2P%nprocgr)
       call f_free_ptr(OP2P%igrpr)

@@ -1635,7 +1635,7 @@ subroutine dict_parse(dict, buf)
   end if
 END SUBROUTINE dict_parse
 subroutine dict_pop(dict, exists, key)
-  use dictionaries, only: dictionary, has_key, pop, dict_init
+  use dictionaries, only: dictionary, has_key, dict_remove, dict_init
   implicit none
   type(dictionary), pointer :: dict
   logical, intent(out) :: exists
@@ -1643,7 +1643,7 @@ subroutine dict_pop(dict, exists, key)
 
   exists = (has_key(dict, key(1:len(key))))
   if (exists) then
-     call pop(dict, key(1:len(key)))
+     call dict_remove(dict, key(1:len(key)))
      if (.not. associated(dict)) call dict_init(dict)
   end if
 END SUBROUTINE dict_pop

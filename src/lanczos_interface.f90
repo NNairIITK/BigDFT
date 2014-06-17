@@ -665,8 +665,9 @@ nullify(Qvect,dumQvect)
      ! The latter thing could be done separately by the subroutine z3_to_z1 that is contained
      ! in FFT_back, but then the code would be slower.
 
-     !$omp parallel default (private) shared(z1,z3,kern_k1,kern_k2,kern_k3)&
-     !$omp & shared(n1b,n3f,inzee,n1,n2,n3,ene,gamma)
+     !$omp parallel default (none) &
+     !$omp private(i1,i2,i3,tt) &
+     !$omp shared(z1,z3,kern_k1,kern_k2,kern_k3,n1b,n3f,inzee,n1,n2,n3,ene,gamma)
 
      ! i3=1: then z1 is contained in z3 
      !$omp do 

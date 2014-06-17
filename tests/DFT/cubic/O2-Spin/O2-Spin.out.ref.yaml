@@ -98,7 +98,6 @@
  #|0. 0. 0. 1.    K-pt coords, K-pt weigth                                                   
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data/
- Material acceleration                 :  No #iproc=0
   #-------------------------------------------------- Input Atomic System (file: posinp.xyz)
  Atomic System Properties:
    Number of atomic types              :  1
@@ -110,11 +109,12 @@
   #------------------------------ Geometry optimization Input Parameters (file: input.geopt)
  Geometry Optimization Parameters:
    Maximum steps                       :  1
-   Algorithm                           : BFGS
+   Algorithm                           : none
    Random atomic displacement          :  0.0E+00
    Fluctuation in forces               :  1.0E+00
    Maximum in forces                   :  0.0E+00
    Steepest descent step               :  4.0E+00
+ Material acceleration                 :  No #iproc=0
   #------------------------------------------------------------------------ Input parameters
  DFT parameters:
    eXchange Correlation:
@@ -173,6 +173,14 @@
  - O: {AU:  [  7.2000,  7.2000,  7.2586 ], GU:  [  18.000,  18.000,  18.147 ]} # 0001
  - O: {AU:  [  7.2000,  7.2000,  9.5414 ], GU:  [  18.000,  18.000,  23.853 ]} # 0002
  Rigid Shift Applied (AU)              :  [  7.2000,  7.2000,  7.2586 ]
+ Atomic structure:
+   Units                               : angstroem
+   Positions:
+   -  {O: [ 3.810075918,  3.810075918,  3.841088571],  # [  9.53,  9.53,  9.60 ] 0001
+ IGSpin:  2}
+   -  {O: [ 3.810075918,  3.810075918,  5.049088571],  # [  9.53,  9.53,  12.62 ] 0002
+ IGSpin:  2}
+   Rigid Shift Applied (AU)            :  [  7.2000,  7.2000,  7.2586 ]
   #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4000,  0.4000,  0.4000 ]
  Sizes of the simulation domain:
@@ -422,7 +430,9 @@
   #WARNING: Self-consistent cycle did not meet convergence criteria
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
+ - No convergence within the allowed number of minimization steps
  - Wavefunctions not converged after cycle  1
+ - No convergence within the allowed number of minimization steps
  - Wavefunctions not converged after cycle  2
  - Self-consistent cycle did not meet convergence criteria
  Memory Consumption Report:

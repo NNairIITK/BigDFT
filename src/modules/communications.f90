@@ -32,6 +32,7 @@ module communications
 
   contains
 
+
     subroutine transpose_switch_psi(npsidim_orbs, orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
       use module_types, only: orbitals_data, local_zone_descriptors
       use wrapper_linalg, only: vcopy
@@ -48,7 +49,7 @@ module communications
       type(local_zone_descriptors),intent(in),optional :: lzd
       
       ! Local variables
-      integer :: i_tot, i_c, i_f, iorb, iiorb, ilr, i, ind, istat, iall, m, ind7, i7
+      integer :: i_tot, i_c, i_f, iorb, iiorb, ilr, i, ind, m, ind7, i7
       real(kind=8),dimension(:),allocatable :: psi_c, psi_f
       character(len=*),parameter :: subname='transpose_switch_psi'
     
@@ -471,7 +472,7 @@ module communications
       type(local_zone_descriptors),intent(in),optional :: lzd
       
       ! Local variables
-      integer :: i, ind, iorb, iiorb, ilr, i_tot, i_c, i_f, istat, iall, m, i7, ind7
+      integer :: i, ind, iorb, iiorb, ilr, i_tot, i_c, i_f, m, i7, ind7
       real(kind=8),dimension(:),allocatable :: psi_c, psi_f
       character(len=*),parameter :: subname='transpose_unswitch_psi'
       
@@ -576,7 +577,6 @@ module communications
       
       ! Local variables
       real(kind=8),dimension(:),allocatable :: psiwork_c, psiwork_f, psitwork_c, psitwork_f
-      integer :: istat, iall
       character(len=*),parameter :: subname='transpose_localized'
 
       call timing(iproc,'Un-TransSwitch','ON')
@@ -635,7 +635,6 @@ module communications
       
       ! Local variables
       real(kind=8),dimension(:),allocatable :: psiwork_c, psiwork_f, psitwork_c, psitwork_f
-      integer :: istat, iall
       character(len=*),parameter :: subname='untranspose_localized'
 
       call f_routine(id='untranspose_localized')
@@ -1070,7 +1069,7 @@ module communications
        integer,dimension(orbs%norb),intent(in) :: onwhichmpi
     
        ! Local variables
-       integer:: ierr, istat, iall, jorb, ilr, jlr, jtask, root, icomm, nrecv, nalloc, max_sim_comms
+       integer:: ierr, jorb, ilr, jlr, jtask, root, icomm, nrecv, nalloc, max_sim_comms
        integer :: maxrecvdim, maxsenddim, ilr_old
        logical :: isoverlap
        character(len=*),parameter:: subname='communicate_locreg_descriptors_keys'
@@ -1537,7 +1536,6 @@ subroutine unswitch_waves_v(nproc,orbs,nvctr,nvctr_par,psiw,psi)
 END SUBROUTINE unswitch_waves_v
 
 
-
 !> The cubic routines
 subroutine psitransspi(nvctrp,orbs,psi,forward)
   use module_base
@@ -1549,7 +1547,7 @@ subroutine psitransspi(nvctrp,orbs,psi,forward)
   real(wp), dimension(orbs%nspinor*nvctrp,orbs%norb,orbs%nkpts), intent(inout) :: psi
   !local variables
   character(len=*), parameter :: subname='psitransspi'
-  integer :: i,iorb,isp,i_all,i_stat,ikpts
+  integer :: i,iorb,isp,ikpts
   real(wp), dimension(:,:,:,:), allocatable :: tpsit
 
   tpsit = f_malloc((/ nvctrp, orbs%nspinor, orbs%norb, orbs%nkpts /),id='tpsit')
@@ -1641,7 +1639,6 @@ subroutine toglobal_and_transpose(iproc,nproc,orbs,Lzd,comms,psi,&
   real(wp), dimension(*), intent(out), optional :: outadd
   !local variables
   character(len=*), parameter :: subname='toglobal_and_transpose'
-  integer :: i_all,i_stat
   integer :: psishift1,totshift,iorb,ilr,ldim,Gdim
   real(wp) :: workdum
   real(wp), dimension(:), pointer :: workarr
