@@ -13,7 +13,8 @@
 !! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method.
 !! x is the right hand side on input and the solution on output
 subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
-     hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder)
+     hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder, &
+     work_conv)
 
   use module_base
   use module_types
@@ -33,6 +34,7 @@ subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
   real(kind=8), dimension(3), intent(in) :: rxyzParab !> the center of the confinement potential
   type(orbitals_data), intent(in) :: orbs     !> type describing the orbitals
   real(kind=8) :: potentialPrefac             !> prefactor for the confinement potential
+  type(workarrays_quartic_convolutions),intent(inout):: work_conv !< workarrays for the convolutions
 
   ! Local variables
   character(len=*), parameter :: subname='precondition_residue'
@@ -42,7 +44,7 @@ subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
   type(workarr_precond) :: w
   real(wp), dimension(:), allocatable :: b,r,d
   logical:: with_confpot
-  type(workarrays_quartic_convolutions):: work_conv
+  !!type(workarrays_quartic_convolutions):: work_conv
 
   !arrays for the CG procedure
   b = f_malloc(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),id='b')
@@ -54,7 +56,10 @@ subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
   call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
 
   with_confpot=(potentialPrefac/=0.d0)
-  call init_local_work_arrays(lr%d%n1, lr%d%n2, lr%d%n3, &
+  !!call init_local_work_arrays(lr%d%n1, lr%d%n2, lr%d%n3, &
+  !!     lr%d%nfl1, lr%d%nfu1, lr%d%nfl2, lr%d%nfu2, lr%d%nfl3, lr%d%nfu3, &
+  !!     with_confpot, work_conv)
+  call zero_local_work_arrays(lr%d%n1, lr%d%n2, lr%d%n3, &
        lr%d%nfl1, lr%d%nfu1, lr%d%nfl2, lr%d%nfu2, lr%d%nfl3, lr%d%nfu3, &
        with_confpot, work_conv, subname)
   !!call allocate_workarrays_quartic_convolutions(lr, subname, work_conv)
@@ -99,7 +104,7 @@ subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
 
   call finalise_precond_residue(lr%geocode,lr%hybrid_on,ncplx,lr%wfd,scal,x)
 
-  call deallocate_workarrays_quartic_convolutions(lr, subname, work_conv)
+  !!call deallocate_workarrays_quartic_convolutions(work_conv)
 
   call f_free(b)
   call f_free(r)

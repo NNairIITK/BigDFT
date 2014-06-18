@@ -417,6 +417,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   logical,save :: has_already_converged
   logical,dimension(7) :: exit_loop
   type(matrices) :: ovrlp_old
+  type(workarrays_quartic_convolutions),dimension(:),allocatable :: precond_workarrays
 
   call f_routine(id='getLocalizedBasis')
 
@@ -645,7 +646,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
            hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, hpsi_small, &
-           experimental_mode, correction_co_contra, hpsi_noprecond, order_taylor, method_updatekernel)
+           experimental_mode, correction_co_contra, hpsi_noprecond, order_taylor, method_updatekernel, &
+           precond_workarrays)
 
 
       if (experimental_mode) then
@@ -960,6 +962,9 @@ contains
     ! ========
     !   This subroutine allocates all local arrays.
     !
+    logical :: with_confpot
+    integer :: iiorb, ilr
+
       alpha = f_malloc(tmb%orbs%norbp,id='alpha')
       alphaDIIS = f_malloc(tmb%orbs%norbp,id='alphaDIIS')
       fnrmOldArr = f_malloc(tmb%orbs%norb,id='fnrmOldArr')
@@ -973,6 +978,17 @@ contains
       hpsi_noconf = f_malloc(tmb%ham_descr%npsidim_orbs,id='hpsi_noconf')
       psidiff = f_malloc(tmb%npsidim_orbs,id='psidiff')
       hpsi_noprecond = f_malloc(tmb%npsidim_orbs,id='hpsi_noprecond')
+      allocate(precond_workarrays(tmb%orbs%norbp))
+      do iorb=1,tmb%orbs%norbp
+          iiorb=tmb%orbs%isorb+iorb
+          ilr=tmb%orbs%inwhichlocreg(iiorb)
+          with_confpot = (tmb%confdatarr(iorb)%prefac/=0.d0)
+          call init_local_work_arrays(tmb%lzd%llr(ilr)%d%n1, tmb%lzd%llr(ilr)%d%n2, tmb%lzd%llr(ilr)%d%n3, &
+               tmb%lzd%llr(ilr)%d%nfl1, tmb%lzd%llr(ilr)%d%nfu1, &
+               tmb%lzd%llr(ilr)%d%nfl2, tmb%lzd%llr(ilr)%d%nfu2, &
+               tmb%lzd%llr(ilr)%d%nfl3, tmb%lzd%llr(ilr)%d%nfu3, &
+               with_confpot, precond_workarrays(iorb))
+      end do
 
     end subroutine allocateLocalArrays
 
@@ -996,6 +1012,10 @@ contains
     call f_free(hpsi_noconf)
     call f_free(psidiff)
     call f_free(hpsi_noprecond)
+    do iorb=1,tmb%orbs%norbp
+        call deallocate_workarrays_quartic_convolutions(precond_workarrays(iorb))
+    end do
+    deallocate(precond_workarrays)
 
     end subroutine deallocateLocalArrays
 
