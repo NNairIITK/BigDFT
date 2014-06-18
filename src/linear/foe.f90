@@ -731,6 +731,9 @@ subroutine foe(iproc, nproc, tmprtr, &
         subroutine overlap_minus_onehalf()
           implicit none
           real(kind=8) :: error
+
+          call f_routine(id='overlap_minus_onehalf')
+
           ! Taylor approximation of S^-1/2 up to higher order
           if (imode==DENSE) then
               tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, &
@@ -762,6 +765,8 @@ subroutine foe(iproc, nproc, tmprtr, &
 
               call f_free_ptr(tmb%linmat%ovrlp_%matrix)
           end if
+
+          call f_release_routine()
       end subroutine overlap_minus_onehalf
 
 
@@ -779,6 +784,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           integer,dimension(:,:,:),allocatable :: istindexarr
           integer :: nout, nseq, nmaxsegk, nmaxvalk
 
+          call f_routine(id='retransform')
 
           inv_ovrlpp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_PARALLEL, id='inv_ovrlpp')
           tempp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_PARALLEL, id='inv_ovrlpp')
@@ -803,6 +809,8 @@ subroutine foe(iproc, nproc, tmprtr, &
           call f_free(inv_ovrlp_compr_seq)
           call f_free(kernel_compr_seq)
 
+          call f_release_routine()
+
       end subroutine retransform
 
 
@@ -811,6 +819,9 @@ subroutine foe(iproc, nproc, tmprtr, &
       subroutine calculate_trace_distributed(matrixp, trace)
           real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp),intent(in) :: matrixp
           real(kind=8),intent(out) :: trace
+
+          call f_routine(id='calculate_trace_distributed')
+
           trace=0.d0
           if (tmb%orbs%norbp>0) then
               isegstart=tmb%linmat%l%istsegline(tmb%orbs%isorb_par(iproc)+1)
@@ -837,6 +848,8 @@ subroutine foe(iproc, nproc, tmprtr, &
           if (nproc > 1) then
               call mpiallred(trace, 1, mpi_sum, bigdft_mpi%mpi_comm)
           end if
+
+          call f_release_routine()
       end subroutine calculate_trace_distributed
 
 
@@ -1018,6 +1031,8 @@ subroutine chebft(A,B,N,cc,ef,fscale,tmprtr)
   real(kind=8),dimension(50000) :: cf
   !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
 
+  call f_routine(id='chebft')
+
   if (n>50000) stop 'chebft'
   bma=0.5d0*(b-a)
   bpa=0.5d0*(b+a)
@@ -1038,6 +1053,8 @@ subroutine chebft(A,B,N,cc,ef,fscale,tmprtr)
       end do
       cc(j)=fac*tt
   end do
+
+  call f_release_routine()
 
 end subroutine chebft
 
@@ -1060,6 +1077,8 @@ subroutine chebft2(a,b,n,cc)
   real(kind=8) :: tt, y, arg, fac, bma, bpa
   real(kind=8),dimension(50000) :: cf
 
+  call f_routine(id='chebft2')
+
   if (n>50000) stop 'chebft2'
   bma=0.5d0*(b-a)
   bpa=0.5d0*(b+a)
@@ -1079,6 +1098,9 @@ subroutine chebft2(a,b,n,cc)
       end do
       cc(j)=fac*tt
   end do
+
+  call f_release_routine()
+
 end subroutine chebft2
 
 
@@ -1096,6 +1118,8 @@ subroutine chder(a,b,c,cder,n)
   integer :: j
   real(kind=8) :: con
 
+  call f_routine(id='chder')
+
   cder(n)=0.d0
   cder(n-1)=2*(n-1)*c(n)
   if(n>=3)then
@@ -1107,6 +1131,8 @@ subroutine chder(a,b,c,cder,n)
   do j=1,n
       cder(j)=cder(j)*con
   end do
+
+  call f_release_routine()
 
 end subroutine chder
 
@@ -1123,6 +1149,8 @@ subroutine evnoise(npl,cc,evlow,evhigh,anoise)
   
   ! Local variables
   real(kind=8) :: fact, dist, ddx, cent, tt, x, chebev
+
+  call f_routine(id='evnoise')
   
   fact=1.d0
   dist=(fact*evhigh-fact*evlow)
@@ -1144,6 +1172,8 @@ subroutine evnoise(npl,cc,evlow,evhigh,anoise)
   end do
   !anoise=1.d0*tt
   anoise=20.d0*tt
+
+  call f_release_routine()
 
 end subroutine evnoise
 
