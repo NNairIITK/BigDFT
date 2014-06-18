@@ -596,9 +596,6 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork
                   i0j=i0+j
                   jjorb=collcom%indexrecvorbital_c(i0j)
                   ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                  !ind0 = collcom%matrixindex_in_compressed(jjorb,iiorb)
-                  !write(41,*) jjorb, iiorb, sparsemat%matrixindex_in_compressed(jjorb,iiorb)
-                  !write(42,*) jjorb, iiorb, collcom%matrixindex_in_compressed(jjorb,iiorb)
                   psit_c(i0i)=psit_c(i0i)+mat%matrix_compr(ind0)*psitwork_c(i0j)
               end do
           end if
@@ -606,22 +603,18 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork
               i0j=i0+j
               jjorb=collcom%indexrecvorbital_c(i0j+0)
               ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-              !ind0 = collcom%matrixindex_in_compressed(jjorb,iiorb)
               psit_c(i0i)=psit_c(i0i)+mat%matrix_compr(ind0)*psitwork_c(i0j+0)
 
               jjorb=collcom%indexrecvorbital_c(i0j+1)
               ind1 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-              !ind1 = collcom%matrixindex_in_compressed(jjorb,iiorb)
               psit_c(i0i)=psit_c(i0i)+mat%matrix_compr(ind1)*psitwork_c(i0j+1)
 
               jjorb=collcom%indexrecvorbital_c(i0j+2)
               ind2 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-              !ind2 = collcom%matrixindex_in_compressed(jjorb,iiorb)
               psit_c(i0i)=psit_c(i0i)+mat%matrix_compr(ind2)*psitwork_c(i0j+2)
 
               jjorb=collcom%indexrecvorbital_c(i0j+3)
               ind3 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-              !ind3 = collcom%matrixindex_in_compressed(jjorb,iiorb)
               psit_c(i0i)=psit_c(i0i)+mat%matrix_compr(ind3)*psitwork_c(i0j+3)
           end do
       end do
@@ -641,7 +634,6 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork
               i07j=7*i0j
               jjorb=collcom%indexrecvorbital_f(i0j)
               ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-              !ind0 = collcom%matrixindex_in_compressed(jjorb,iiorb)
               psit_f(i07i-6) = psit_f(i07i-6) + mat%matrix_compr(ind0)*psitwork_f(i07j-6)
               psit_f(i07i-5) = psit_f(i07i-5) + mat%matrix_compr(ind0)*psitwork_f(i07j-5)
               psit_f(i07i-4) = psit_f(i07i-4) + mat%matrix_compr(ind0)*psitwork_f(i07j-4)

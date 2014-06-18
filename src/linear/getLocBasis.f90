@@ -1270,6 +1270,8 @@ subroutine small_to_large_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, 
   integer :: ists, istl, iorb, ilr, sdim, ldim, nspin
   logical :: global
 
+  call f_routine(id='small_to_large_locreg')
+
   if (present(to_global)) then
       global=to_global
   else
@@ -1309,6 +1311,7 @@ subroutine small_to_large_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, 
       stop
   end if
        call timing(iproc,'small2large','OF') ! lr408t 
+  call f_release_routine()
 end subroutine small_to_large_locreg
 
 
@@ -1974,6 +1977,8 @@ subroutine estimate_energy_change(npsidim_orbs, orbs, lzd, psidiff, hpsi_nopreco
   integer :: ist, iorb, iiorb, ilr, ncount, ierr
   real(kind=8) :: tt, ddot
 
+  call f_routine(id='estimate_energy_change')
+
   ist=1
   delta_energy=0.d0
   do iorb=1,orbs%norbp
@@ -1988,6 +1993,8 @@ subroutine estimate_energy_change(npsidim_orbs, orbs, lzd, psidiff, hpsi_nopreco
   if (bigdft_mpi%nproc > 1) then
       call mpiallred(delta_energy, 1, mpi_sum, bigdft_mpi%mpi_comm)
   end if
+
+  call f_release_routine()
 
 end subroutine estimate_energy_change
 
@@ -2578,9 +2585,9 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, tmb, ovrlp, ovrlp_old)
           call uncompress_matrix_distributed(iproc, tmb%linmat%l, &
                inv_ovrlp%matrix_compr, inv_ovrlpp)
 
-          tempp=0.d0
+          call to_zero(tmb%linmat%l%nvctr, tempp(1,1))
           call sparsemm(tmb%linmat%l, kernel_compr_seq, inv_ovrlpp, tempp)
-          inv_ovrlpp=0.d0
+          call to_zero(tmb%linmat%l%nvctr, inv_ovrlpp(1,1))
           call sparsemm(tmb%linmat%l, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
 
           call to_zero(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1))

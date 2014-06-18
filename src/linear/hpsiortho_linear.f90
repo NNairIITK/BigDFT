@@ -55,6 +55,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8), dimension(:), allocatable :: hpsi_conf, hpsi_tmp
   real(kind=8), dimension(:), pointer :: kernel_compr_tmp
   real(kind=8), dimension(:), allocatable :: prefac, hpsit_nococontra_c, hpsit_nococontra_f
+  real(kind=8),dimension(3) :: reducearr
   real(wp), dimension(2) :: garray
   real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
   type(matrices) :: matrixm
@@ -273,9 +274,17 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   end do
 
   if (nproc > 1) then
-     if (it>1) call mpiallred(fnrmOvrlp_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
-     call mpiallred(fnrm_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
-     call mpiallred(fnrmOld_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
+     reducearr(1)=fnrm_tot
+     reducearr(2)=fnrmOld_tot
+     if (it>1) then
+         reducearr(3)=fnrmOvrlp_tot
+         call mpiallred(reducearr(1), 3, mpi_sum, bigdft_mpi%mpi_comm)
+         fnrmOvrlp_tot=reducearr(3)
+     else
+         call mpiallred(reducearr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+     end if
+     fnrm_tot=reducearr(1)
+     fnrmOld_tot=reducearr(2)
   end if
 
   ! ###########################################
