@@ -2068,15 +2068,6 @@ module module_interfaces
          real(kind=8),optional,intent(in) :: cutoff_incr
        end subroutine init_foe
 
-      subroutine allocate_workarrays_quartic_convolutions(lr, subname, work)
-        use module_base
-        use module_types
-        implicit none
-        type(locreg_descriptors),intent(in):: lr
-        character(len=*),intent(in):: subname
-        type(workarrays_quartic_convolutions),intent(out):: work
-      end subroutine allocate_workarrays_quartic_convolutions
-
       subroutine deallocate_workarrays_quartic_convolutions(lr, subname, work)
         use module_base
         use module_types

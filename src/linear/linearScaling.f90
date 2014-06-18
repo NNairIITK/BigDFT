@@ -65,17 +65,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   logical :: lowaccur_converged, exit_outer_loop
   real(kind=8),dimension(:),allocatable :: locrad
   integer:: target_function, nit_basis
-  integer :: isegsmall, iseglarge, iismall, iilarge, is, ie
-  integer :: matrixindex_in_compressed
   
   real(kind=gp) :: ebs, vgrad_old, vgrad, valpha, vold, vgrad2, vold_tmp, conv_crit_TMB
   real(kind=gp), allocatable, dimension(:,:) :: coeff_tmp
-  integer :: ind_denskern, ind_ham, jorb, cdft_it, nelec, iat, ityp
+  integer :: jorb, cdft_it, nelec, iat, ityp
   integer :: dmin_diag_it, dmin_diag_freq, ioffset
   logical :: reorder, rho_negative
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
-  real(kind=8),dimension(10000) :: meanconf_array
-  !!character(len=5) :: num
   integer :: j, k, n1i, n2i, n3i, i1, i2, i3
   type(matrices) :: weight_matrix_
 
