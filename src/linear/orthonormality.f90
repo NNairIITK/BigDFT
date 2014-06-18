@@ -169,9 +169,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
 
   if(.not. can_use_transposed) then
-      !psit_c = f_malloc_ptr(sum(collcom%nrecvcounts_c),id='psit_c')
-      !psit_f = f_malloc_ptr(7*sum(collcom%nrecvcounts_f),id='psit_f')
-
       call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
       can_use_transposed=.true.
   end if
@@ -180,8 +177,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   if(.not.associated(hpsit_c)) then
       hpsit_c = f_malloc_ptr(sum(collcom%nrecvcounts_c),id='hpsit_c')
       hpsit_f = f_malloc_ptr(7*sum(collcom%nrecvcounts_f),id='hpsit_f')
- 
-     call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lhphi, hpsit_c, hpsit_f, lzd)
+      call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lhphi, hpsit_c, hpsit_f, lzd)
   end if
 
 

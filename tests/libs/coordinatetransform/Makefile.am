@@ -43,6 +43,8 @@ test-coordinatetransform.out.yaml: driver
 	$(run_parallel) ./driver >> test-coordinatetransform.out.yaml
 
 test-bigdft-tool.report.yaml: $(srcdir)/test-bigdft-tool.ref.yaml test-bigdft-tool.out.yaml
+	@export PYTHONPATH=${PYTHONPATH} ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
 		-r $< -d test-bigdft-tool.out.yaml -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=test-bigdft-tool -o $@ 
 
