@@ -165,19 +165,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
       call f_free_ptr(denspot%pot_work)
 
-      !!if(iproc==0) write(*,'(1x,a)') 'Hamiltonian application done.'
-
       ! Calculate the matrix elements <phi|H|phi>.
       if(.not.tmb%ham_descr%can_use_transposed) then
-          !!if(associated(tmb%ham_descr%psit_c)) then
-          !!    call f_free_ptr(tmb%ham_descr%psit_c)
-          !!end if
-          !!if(associated(tmb%ham_descr%psit_f)) then
-          !!    call f_free_ptr(tmb%ham_descr%psit_f)
-          !!end if
-
-          !!tmb%ham_descr%psit_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='tmb%ham_descr%psit_c')
-          !!tmb%ham_descr%psit_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='tmb%ham_descr%psit_f')
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
           tmb%ham_descr%can_use_transposed=.true.
@@ -191,8 +180,6 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
            tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, tmb%linmat%ham_)
-      ! This can then be deleted if the transition to the new type has been completed.
-      !tmb%linmat%ham%matrix_compr=tmb%linmat%ham_%matrix_compr
 
 
 !!  call diagonalize_subset(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%ovrlp_, tmb%linmat%m, tmb%linmat%ham_)
@@ -430,6 +417,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   logical,save :: has_already_converged
   logical,dimension(7) :: exit_loop
   type(matrices) :: ovrlp_old
+  type(workarrays_quartic_convolutions),dimension(:),allocatable :: precond_convol_workarrays
+  type(workarr_precond),dimension(:),allocatable :: precond_workarrays
 
   call f_routine(id='getLocalizedBasis')
 
@@ -446,7 +435,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
   call timing(iproc,'getlocbasinit','ON')
   tmb%can_use_transposed=.false.
-  !!if(iproc==0) write(*,'(1x,a)') '======================== Creation of the basis functions... ========================'
 
   alpha=ldiis%alphaSD
   alphaDIIS=ldiis%alphaDIIS
@@ -525,7 +513,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
 
       ! Calculate the unconstrained gradient by applying the Hamiltonian.
-      !!if (iproc==0) write(*,*) 'tmb%psi(1)',tmb%psi(1)
       if (tmb%ham_descr%npsidim_orbs > 0)  call to_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
       call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
            tmb%orbs, tmb%psi, tmb%ham_descr%psi)
@@ -599,6 +586,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                        tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
                   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
                        tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, tmb%linmat%ham_)
+                  tmb%ham_descr%can_use_transposed=.true.
+              else
+                  tmb%ham_descr%can_use_transposed=.false.
               end if
               call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
                    tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
@@ -615,7 +605,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                        FOE_FAST, tmb, tmb%foe_obj)
               end if
               if (iproc==0) call yaml_close_sequence()
-                  tmb%ham_descr%can_use_transposed=.true.
           end if
       else
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
@@ -658,7 +647,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
            hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, hpsi_small, &
-           experimental_mode, correction_co_contra, hpsi_noprecond, order_taylor, method_updatekernel)
+           experimental_mode, correction_co_contra, hpsi_noprecond, order_taylor, method_updatekernel, &
+           precond_convol_workarrays, precond_workarrays)
 
 
       if (experimental_mode) then
@@ -753,13 +743,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call vcopy(tmb%linmat%l%nvctr, kernel_best(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
           trH_old=0.d0
           it=it-2 !go back one iteration (minus 2 since the counter was increased)
-          !if(associated(tmb%ham_descr%psit_c)) then
-          !    call f_free_ptr(tmb%ham_descr%psit_c)
-          !end if
-          !if(associated(tmb%ham_descr%psit_f)) then
-          !    call f_free_ptr(tmb%ham_descr%psit_f)
-          !end if
-          !!if(iproc==0) write(*,*) 'it_tot',it_tot
           overlap_calculated=.false.
           ! print info here anyway for debugging
           if (it_tot<2*nit_basis) then ! just in case the step size is the problem
@@ -840,8 +823,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               ! iteration of get_coeff.
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
                    tmb%ham_descr%psit_c, hpsit_c_tmp, tmb%ham_descr%psit_f, hpsit_f_tmp, tmb%linmat%m, tmb%linmat%ham_)
-              ! This can then be deleted if the transition to the new type has been completed.
-              !tmb%linmat%ham%matrix_compr=tmb%linmat%ham_%matrix_compr
           end if
 
           if (iproc==0) then
@@ -860,15 +841,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
            lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho_on, psidiff, &
            experimental_mode, order_taylor, trH_ref, kernel_best, complete_reset)
-      !if (iproc==0) write(*,*) 'kernel_best(1)',kernel_best(1)
-      !if (iproc==0) write(*,*) 'tmb%linmat%denskern%matrix_compr(1)',tmb%linmat%denskern%matrix_compr(1)
 
 
       overlap_calculated=.false.
       ! It is now not possible to use the transposed quantities, since they have changed.
       if(tmb%ham_descr%can_use_transposed) then
-          !call f_free_ptr(tmb%ham_descr%psit_c)
-          !call f_free_ptr(tmb%ham_descr%psit_f)
           tmb%ham_descr%can_use_transposed=.false.
       end if
 
@@ -901,7 +878,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                       call yaml_newline()
                   end if
                   call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, order_taylor, purification_quickreturn)
-                  !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
               else if (method_updatekernel==UPDATE_BY_FOE) then
                   if (iproc==0) then
                       call yaml_map('purify kernel',.false.)
@@ -911,7 +887,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
 
       if (iproc==0) then
-          !yaml output
           call yaml_close_map() !iteration
           call bigdft_utils_flush(unit=6)
       end if
@@ -988,6 +963,10 @@ contains
     ! ========
     !   This subroutine allocates all local arrays.
     !
+    logical :: with_confpot
+    integer :: iiorb, ilr, ncplx
+    real(gp) :: kx, ky, kz
+
       alpha = f_malloc(tmb%orbs%norbp,id='alpha')
       alphaDIIS = f_malloc(tmb%orbs%norbp,id='alphaDIIS')
       fnrmOldArr = f_malloc(tmb%orbs%norb,id='fnrmOldArr')
@@ -1002,6 +981,30 @@ contains
       psidiff = f_malloc(tmb%npsidim_orbs,id='psidiff')
       hpsi_noprecond = f_malloc(tmb%npsidim_orbs,id='hpsi_noprecond')
 
+
+      allocate(precond_convol_workarrays(tmb%orbs%norbp))
+      allocate(precond_workarrays(tmb%orbs%norbp))
+      do iorb=1,tmb%orbs%norbp
+          iiorb=tmb%orbs%isorb+iorb
+          ilr=tmb%orbs%inwhichlocreg(iiorb)
+          with_confpot = (tmb%confdatarr(iorb)%prefac/=0.d0)
+          call init_local_work_arrays(tmb%lzd%llr(ilr)%d%n1, tmb%lzd%llr(ilr)%d%n2, tmb%lzd%llr(ilr)%d%n3, &
+               tmb%lzd%llr(ilr)%d%nfl1, tmb%lzd%llr(ilr)%d%nfu1, &
+               tmb%lzd%llr(ilr)%d%nfl2, tmb%lzd%llr(ilr)%d%nfu2, &
+               tmb%lzd%llr(ilr)%d%nfl3, tmb%lzd%llr(ilr)%d%nfu3, &
+               with_confpot, precond_convol_workarrays(iorb))
+          kx=tmb%orbs%kpts(1,tmb%orbs%iokpt(iorb))
+          ky=tmb%orbs%kpts(2,tmb%orbs%iokpt(iorb))
+          kz=tmb%orbs%kpts(3,tmb%orbs%iokpt(iorb))
+          if (kx**2+ky**2+kz**2 > 0.0_gp .or. tmb%orbs%nspinor==2 ) then
+             ncplx=2
+          else
+             ncplx=1
+          end if
+          call allocate_work_arrays(tmb%lzd%llr(ilr)%geocode, tmb%lzd%llr(ilr)%hybrid_on, &
+               ncplx, tmb%lzd%llr(ilr)%d, precond_workarrays(iorb))
+      end do
+
     end subroutine allocateLocalArrays
 
 
@@ -1011,6 +1014,9 @@ contains
     ! ========
     !   This subroutine deallocates all local arrays.
     !
+    integer :: iiorb, ilr, ncplx
+    real(gp) :: kx, ky, kz
+
     call f_free(alpha)
     call f_free(alphaDIIS)
     call f_free(fnrmOldArr)
@@ -1024,6 +1030,23 @@ contains
     call f_free(hpsi_noconf)
     call f_free(psidiff)
     call f_free(hpsi_noprecond)
+    do iorb=1,tmb%orbs%norbp
+        iiorb=tmb%orbs%isorb+iorb
+        ilr=tmb%orbs%inwhichlocreg(iiorb)
+        call deallocate_workarrays_quartic_convolutions(precond_convol_workarrays(iorb))
+        kx=tmb%orbs%kpts(1,tmb%orbs%iokpt(iorb))
+        ky=tmb%orbs%kpts(2,tmb%orbs%iokpt(iorb))
+        kz=tmb%orbs%kpts(3,tmb%orbs%iokpt(iorb))
+        if (kx**2+ky**2+kz**2 > 0.0_gp .or. tmb%orbs%nspinor==2 ) then
+           ncplx=2
+        else
+           ncplx=1
+        end if
+        call deallocate_work_arrays(tmb%lzd%llr(ilr)%geocode, tmb%lzd%llr(ilr)%hybrid_on, &
+             ncplx, precond_workarrays(iorb))
+    end do
+    deallocate(precond_convol_workarrays)
+    deallocate(precond_workarrays)
 
     end subroutine deallocateLocalArrays
 
@@ -1274,8 +1297,6 @@ subroutine small_to_large_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, 
           call Lpsi_to_global2(iproc, sdim, ldim, orbs%norb, orbs%nspinor, nspin, lzdlarge%llr(ilr), &
                lzdsmall%llr(ilr), phismall(ists), philarge(istl))
       end if
-      !!ists=ists+lzdsmall%llr(ilr)%wfd%nvctr_c+7*lzdsmall%llr(ilr)%wfd%nvctr_f
-      !!istl=istl+lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
       ists=ists+sdim
       istl=istl+ldim
   end do

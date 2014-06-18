@@ -796,7 +796,8 @@ module module_interfaces
          real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp,orbs%nspinor), intent(inout) :: hpsi
       END SUBROUTINE preconditionall
 
-      subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,confdatarr,gnrm,gnrm_zero)
+      subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,confdatarr,gnrm,gnrm_zero, &
+                 linear_precond_convol_workarrays, linear_precond_workarrays)
         use module_base
         use module_types
         implicit none
@@ -807,6 +808,8 @@ module module_interfaces
         real(dp), intent(out) :: gnrm,gnrm_zero
         real(wp), dimension(npsidim), intent(inout) :: hpsi
         type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
+        type(workarrays_quartic_convolutions),dimension(orbs%norbp),intent(inout),optional :: linear_precond_convol_workarrays !< convolution workarrays for the linear case
+        type(workarr_precond),dimension(orbs%norbp),intent(inout),optional :: linear_precond_workarrays !< workarrays for the linear case
       end subroutine preconditionall2
 
       subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
@@ -2068,21 +2071,10 @@ module module_interfaces
          real(kind=8),optional,intent(in) :: cutoff_incr
        end subroutine init_foe
 
-      subroutine allocate_workarrays_quartic_convolutions(lr, subname, work)
+      subroutine deallocate_workarrays_quartic_convolutions(work)
         use module_base
         use module_types
         implicit none
-        type(locreg_descriptors),intent(in):: lr
-        character(len=*),intent(in):: subname
-        type(workarrays_quartic_convolutions),intent(out):: work
-      end subroutine allocate_workarrays_quartic_convolutions
-
-      subroutine deallocate_workarrays_quartic_convolutions(lr, subname, work)
-        use module_base
-        use module_types
-        implicit none
-        type(locreg_descriptors),intent(in):: lr
-        character(len=*),intent(in):: subname
         type(workarrays_quartic_convolutions),intent(out):: work
       end subroutine deallocate_workarrays_quartic_convolutions
 
@@ -2464,7 +2456,7 @@ module module_interfaces
                   energy_increased, tmb, lhphiold, overlap_calculated, &
                   energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
                   hpsi_small, experimental_mode, correction_co_contra, hpsi_noprecond, &
-                  norder_taylor, method_updatekernel)
+                  norder_taylor, method_updatekernel, precond_convol_workarrays, precond_workarrays)
          use module_base
          use module_types
          implicit none
@@ -2484,6 +2476,8 @@ module module_interfaces
          logical, intent(in) :: experimental_mode, correction_co_contra
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_small
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: hpsi_noprecond
+         type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
+         type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
        end subroutine calculate_energy_and_gradient_linear
 
        subroutine improveOrbitals(iproc, nproc, tmb, ldiis, alpha, gradient, experimental_mode)
@@ -3017,7 +3011,8 @@ module module_interfaces
 
 
         subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
-             hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder)
+             hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder,&
+             work_conv, w)
           use module_base
           use module_types
           implicit none
@@ -3028,16 +3023,17 @@ module module_interfaces
           real(8),dimension(3),intent(in):: rxyzParab
           type(orbitals_data), intent(in):: orbs
           real(8):: potentialPrefac
+          type(workarrays_quartic_convolutions),intent(inout):: work_conv !< workarrays for the convolutions
+          type(workarr_precond),intent(inout) :: w !< workarrays
         end subroutine solvePrecondEquation
 
-        subroutine init_local_work_arrays(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, with_confpot, work, subname)
+        subroutine init_local_work_arrays(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, with_confpot, work)
           use module_base
           use module_types
           implicit none
           integer,intent(in)::n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3
           logical,intent(in):: with_confpot
           type(workarrays_quartic_convolutions),intent(inout):: work
-          character(len=*),intent(in):: subname
         end subroutine init_local_work_arrays
 
         subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum)

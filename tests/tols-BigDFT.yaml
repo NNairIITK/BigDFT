@@ -795,11 +795,15 @@ experimentalfoe_medium:
  charge diff: 2.5e-7
  eF: 8.3e-8
  D Tr: 1.1e-9
- D eF: 2.2e-8 
+ D eF: 2.5e-8 
  Tr(K): 2.5e-7
- ebs: 2.8e-11
+ ebs: 2.5e-7
  ebs_check: 2.8e-11
  Epot: 1.1e-9
+ Total charge: 3.1e-11
+ energy: 8.3e-11
+ Omega: 5.1e-11
+ decay length of error function: 1.1e-5
 
 newpulay:
  EXC: 1.1e-10
@@ -929,7 +933,7 @@ sparsity:
  Total charge: 1.1e-10
  Omega: 1.03e-9
  Clean forces norm (Ha/Bohr): 7.7e-11
- Raw forces norm (Ha/Bohr): 1.4e-11
+ Raw forces norm (Ha/Bohr): 1.1e-9
  Total ionic charge: 2.41e-11
  charge diff: 1.1e-9
  energy: 1.1e-9

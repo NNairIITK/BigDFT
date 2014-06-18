@@ -13,7 +13,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            energy_increased, tmb, lhphiold, overlap_calculated, &
            energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
            hpsi_small, experimental_mode, correction_co_contra, hpsi_noprecond, &
-           norder_taylor, method_updatekernel)
+           norder_taylor, method_updatekernel, precond_convol_workarrays, precond_workarrays)
   use module_base
   use module_types
   use yaml_output
@@ -42,6 +42,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   logical, intent(in) :: experimental_mode, correction_co_contra
   real(kind=8), dimension(tmb%npsidim_orbs), intent(out) :: hpsi_small
   real(kind=8), dimension(tmb%npsidim_orbs), optional,intent(out) :: hpsi_noprecond
+  type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
+  type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
 
   ! Local variables
   integer :: iorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall, ii, jjorb, i
@@ -142,7 +144,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   if (correction_co_contra) then
       !@NEW correction for contra / covariant gradient
 
-      if (method_updatekernel/=UPDATE_BY_FOE .or. target_function/=TARGET_FUNCTION_IS_HYBRID) then
+      if ((method_updatekernel/=UPDATE_BY_FOE .and. method_updatekernel/=UPDATE_BY_RENORMALIZATION) &
+           .or. target_function/=TARGET_FUNCTION_IS_HYBRID) then
           call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
                tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
           tmb%can_use_transposed=.true.
@@ -355,7 +358,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
      call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
-          nit_precond,tmb%npsidim_orbs,hpsi_tmp,tmb%confdatarr,gnrm,gnrm_zero)
+          nit_precond,tmb%npsidim_orbs,hpsi_tmp,tmb%confdatarr,gnrm,gnrm_zero, &
+          precond_convol_workarrays, precond_workarrays)
 
      ! temporarily turn confining potential off...
      prefac = f_malloc(tmb%orbs%norbp,id='prefac')
@@ -363,7 +367,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      tmb%confdatarr(:)%prefac=0.0d0
      call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
-          nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero) ! prefac should be zero
+          nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero, & ! prefac should be zero
+          precond_convol_workarrays, precond_workarrays)
      call daxpy(tmb%npsidim_orbs, 1.d0, hpsi_tmp(1), 1, hpsi_small(1), 1)
      ! ...revert back to correct value
      tmb%confdatarr(:)%prefac=prefac
@@ -374,7 +379,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   else
      call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
-          nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero)
+          nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero,&
+          precond_convol_workarrays, precond_workarrays)
   end if
 
   if (iproc==0) then
