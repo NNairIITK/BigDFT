@@ -1106,6 +1106,7 @@ end subroutine chebft2
 
 ! Calculates chebychev expansion of the derivative of Fermi distribution.
 subroutine chder(a,b,c,cder,n)
+  use dynamic_memory
   implicit none
 
   ! Calling arguments
@@ -1139,6 +1140,7 @@ end subroutine chder
 
 !> Determine noise level
 subroutine evnoise(npl,cc,evlow,evhigh,anoise)
+  use dynamic_memory
   implicit none
   
   ! Calling arguments
