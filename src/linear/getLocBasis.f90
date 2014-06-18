@@ -2528,11 +2528,17 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, tmb, ovrlp, ovrlp_old)
   ! Local variables
   real(kind=8) :: error
   type(matrices) :: inv_ovrlp
+  real(kind=8),dimension(:,:),pointer :: inv_ovrlpp, tempp
+  real(kind=8),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
 
   call f_routine(id='renormalize_kernel')
 
   inv_ovrlp%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
                            iaction=SPARSE_FULL, id='inv_ovrlp%matrix_compr')
+  inv_ovrlpp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_PARALLEL, id='inv_ovrlpp')
+  tempp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_PARALLEL, id='inv_ovrlpp')
+  inv_ovrlp_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
+  kernel_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
 
 
   ! Calculate S^1/2 for the old overlap matrix
@@ -2553,6 +2559,10 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, tmb, ovrlp, ovrlp_old)
   ! Calculate S^-1/2 * K * S^-1/2
   call retransform()
 
+  call f_free_ptr(inv_ovrlpp)
+  call f_free_ptr(tempp)
+  call f_free(inv_ovrlp_compr_seq)
+  call f_free(kernel_compr_seq)
   call f_free_ptr(inv_ovrlp%matrix_compr)
 
   call f_release_routine()
@@ -2561,39 +2571,20 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, tmb, ovrlp, ovrlp_old)
 
       subroutine retransform()
           use sparsematrix, only: sequential_acces_matrix_fast, sparsemm
-          ! Calling arguments
 
-          ! Local variables
-          real(kind=8),dimension(:,:),pointer :: inv_ovrlpp, tempp
-          integer,dimension(:,:),pointer :: onedimindices
-          real(kind=8),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
-          integer,dimension(:),allocatable :: ivectorindex
-          integer,dimension(:,:,:),allocatable :: istindexarr
-          integer :: nout, nseq, nmaxsegk, nmaxvalk
-
-
-          inv_ovrlpp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_PARALLEL, id='inv_ovrlpp')
-          tempp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_PARALLEL, id='inv_ovrlpp')
-          inv_ovrlp_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
-          kernel_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
           call sequential_acces_matrix_fast(tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, kernel_compr_seq)
           call sequential_acces_matrix_fast(tmb%linmat%l, &
                inv_ovrlp%matrix_compr, inv_ovrlp_compr_seq)
           call uncompress_matrix_distributed(iproc, tmb%linmat%l, &
                inv_ovrlp%matrix_compr, inv_ovrlpp)
 
-           tempp=0.d0
+          tempp=0.d0
           call sparsemm(tmb%linmat%l, kernel_compr_seq, inv_ovrlpp, tempp)
           inv_ovrlpp=0.d0
           call sparsemm(tmb%linmat%l, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
 
           call to_zero(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1))
           call compress_matrix_distributed(iproc, tmb%linmat%l, inv_ovrlpp, tmb%linmat%kernel_%matrix_compr)
-
-          call f_free_ptr(inv_ovrlpp)
-          call f_free_ptr(tempp)
-          call f_free(inv_ovrlp_compr_seq)
-          call f_free(kernel_compr_seq)
 
       end subroutine retransform
 
