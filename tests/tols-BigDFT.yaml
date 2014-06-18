@@ -795,14 +795,14 @@ experimentalfoe_medium:
  charge diff: 2.5e-7
  eF: 8.3e-8
  D Tr: 1.1e-9
- D eF: 2.5e-8 
+ D eF: 3.4e-8 
  Tr(K): 2.5e-7
  ebs: 2.5e-7
- ebs_check: 2.8e-11
+ ebs_check: 4.4e-8
  Epot: 1.1e-9
  Total charge: 3.1e-11
  energy: 8.3e-11
- Omega: 5.1e-11
+ Omega: 8.1e-10
  decay length of error function: 1.1e-5
 
 newpulay:
