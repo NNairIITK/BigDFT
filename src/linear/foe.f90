@@ -1036,6 +1036,10 @@ subroutine chebft(A,B,N,cc,ef,fscale,tmprtr)
   if (n>50000) stop 'chebft'
   bma=0.5d0*(b-a)
   bpa=0.5d0*(b+a)
+  fac=2.d0/n
+  !$omp parallel default(none) shared(bma,bpa,fac,n,tmprtr,cf,fscale,ef,cc) &
+  !$omp private(k,y,arg,tt)
+  !$omp do
   do k=1,n
       y=cos(pi*(k-0.5d0)*(1.d0/n))
       arg=y*bma+bpa
@@ -1045,7 +1049,8 @@ subroutine chebft(A,B,N,cc,ef,fscale,tmprtr)
           cf(k)=1.d0/(1.d0+exp( (arg-ef)*(1.d0/tmprtr) ) )
       end if
   end do
-  fac=2.d0/n
+  !$omp end do
+  !$omp do
   do j=1,n
       tt=0.d0
       do  k=1,n
@@ -1053,6 +1058,8 @@ subroutine chebft(A,B,N,cc,ef,fscale,tmprtr)
       end do
       cc(j)=fac*tt
   end do
+  !$omp end do
+  !$omp end parallel
 
   call f_release_routine()
 
@@ -1074,7 +1081,7 @@ subroutine chebft2(a,b,n,cc)
   ! Local variables
   integer :: k, j
   !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
-  real(kind=8) :: tt, y, arg, fac, bma, bpa
+  real(kind=8) :: tt, ttt, y, arg, fac, bma, bpa
   real(kind=8),dimension(50000) :: cf
 
   call f_routine(id='chebft2')
@@ -1083,14 +1090,19 @@ subroutine chebft2(a,b,n,cc)
   bma=0.5d0*(b-a)
   bpa=0.5d0*(b+a)
   ! 3 gives broder safety zone than 4
-  !tt=3.0d0*n/(b-a)
-  tt=4.d0*n/(b-a)
+  !ttt=3.0d0*n/(b-a)
+  ttt=4.d0*n/(b-a)
+  fac=2.d0/n
+  !$omp parallel default(none) shared(bma,bpa,ttt,fac,n,cf,b,cc) &
+  !$omp private(k,y,arg,tt)
+  !$omp do
   do k=1,n
       y=cos(pi*(k-0.5d0)*(1.d0/n))
       arg=y*bma+bpa
-      cf(k)=exp((arg-b)*tt)
+      cf(k)=exp((arg-b)*ttt)
   end do
-  fac=2.d0/n
+  !$omp end do
+  !$omp do
   do j=1,n
       tt=0.d0
       do k=1,n
@@ -1098,6 +1110,8 @@ subroutine chebft2(a,b,n,cc)
       end do
       cc(j)=fac*tt
   end do
+  !$omp end do
+  !$omp end parallel
 
   call f_release_routine()
 
@@ -1150,6 +1164,7 @@ subroutine evnoise(npl,cc,evlow,evhigh,anoise)
   real(kind=8),intent(out) :: anoise
   
   ! Local variables
+  integer :: i, n
   real(kind=8) :: fact, dist, ddx, cent, tt, x, chebev
 
   call f_routine(id='evnoise')
@@ -1163,15 +1178,21 @@ subroutine evnoise(npl,cc,evlow,evhigh,anoise)
   !!    tt=max(tt,abs(chebev(evlow,evhigh,npl,cent+x,cc)), &
   !!       & abs(chebev(evlow,evhigh,npl,cent-x,cc)))
   !!end do
-  ! Rewritten version ob the above loop
+  ! Rewritten version of the above loop
   tt=abs(chebev(evlow,evhigh,npl,cent,cc))
   x=ddx
-  do 
+  n=ceiling((0.25d0*dist-ddx)/ddx)
+  !$omp parallel default(none) shared(n,ddx,tt,evlow,evhigh,npl,cent,cc) private(i,x)
+  !$omp do reduction(max:tt)
+  do i=1,n
+      x=real(i,kind=8)*ddx
       tt=max(tt,abs(chebev(evlow,evhigh,npl,cent+x,cc)), &
          & abs(chebev(evlow,evhigh,npl,cent-x,cc)))
-      x=x+ddx
-      if (x>=.25d0*dist) exit
+      !x=x+ddx
+      !if (x>=.25d0*dist) exit
   end do
+  !$omp end do
+  !$omp end parallel
   !anoise=1.d0*tt
   anoise=20.d0*tt
 
