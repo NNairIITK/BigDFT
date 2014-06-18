@@ -466,7 +466,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                    ovrlp_smat%nfvctr, Amat22p(1,1), ovrlp_smat%nfvctr, 0.0d0, Amat12p(1,1), ovrlp_smat%nfvctr)
               if (norbp>0) call dgemm('n', 'n', ovrlp_smat%nfvctr, norbp, ovrlp_smat%nfvctr, 1.0d0, Amat21(1,1), &
                    ovrlp_smat%nfvctr, Amat11p(1,1), ovrlp_smat%nfvctr, 0.0d0, Amat21p(1,1), ovrlp_smat%nfvctr)
-              !if(nproc > 1) then
+              if(nproc > 1) then
                   call timing(iproc,'lovrlp^-1     ','OF')
                   call timing(iproc,'lovrlp_comm   ','ON')
                   call mpi_allgatherv(Amat12p, ovrlp_smat%nfvctr*norbp, mpi_double_precision, Amat12, &
@@ -477,10 +477,10 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                        mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
                   call timing(iproc,'lovrlp_comm   ','OF')
                   call timing(iproc,'lovrlp^-1     ','ON')
-              !else
-              !    call vcopy(ovrlp_smat%nfvctr**2,Amat12p(1,1),1,Amat12(1,1),1)
-              !    call vcopy(ovrlp_smat%nfvctr**2,Amat21p(1,1),1,Amat21(1,1),1)
-              !end if
+              else
+                  call vcopy(ovrlp_smat%nfvctr**2,Amat12p(1,1),1,Amat12(1,1),1)
+                  call vcopy(ovrlp_smat%nfvctr**2,Amat21p(1,1),1,Amat21(1,1),1)
+              end if
           end do
 
           nullify(Amat22p)
@@ -489,7 +489,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
           if (power==1) then
               if (norbp>0) call dgemm('n', 'n', ovrlp_smat%nfvctr, norbp, ovrlp_smat%nfvctr, 1.0d0, Amat21(1,1), &
                    ovrlp_smat%nfvctr, Amat21p(1,1), ovrlp_smat%nfvctr, 0.0d0, Amat12p(1,1), ovrlp_smat%nfvctr)
-              !if (nproc>1) then
+              if (nproc>1) then
                   call timing(iproc,'lovrlp^-1     ','OF')
                   call timing(iproc,'lovrlp_comm   ','ON')
                   call mpi_allgatherv(Amat12p, ovrlp_smat%nfvctr*norbp, mpi_double_precision, inv_ovrlp_mat%matrix, &
@@ -497,9 +497,9 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                        mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
                   call timing(iproc,'lovrlp_comm   ','OF')
                   call timing(iproc,'lovrlp^-1     ','ON')
-              !else
-              !    call vcopy(ovrlp_smat%nfvctr**2, Amat12p(1,1), 1, inv_ovrlp_mat%matrix(1,1), 1)
-              !end if
+              else
+                  call vcopy(ovrlp_smat%nfvctr**2, Amat12p(1,1), 1, inv_ovrlp_mat%matrix(1,1), 1)
+              end if
           !else if (power==2) then
           !   call vcopy(ovrlp_smat%nfvctr**2,Amat12(1,1),1,inv_ovrlp_mat%matrix(1,1),1)
           else if (power==-2) then
