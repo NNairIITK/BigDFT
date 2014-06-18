@@ -14,7 +14,7 @@
 !! x is the right hand side on input and the solution on output
 subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
      hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder, &
-     work_conv)
+     work_conv, w)
 
   use module_base
   use module_types
@@ -35,13 +35,13 @@ subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
   type(orbitals_data), intent(in) :: orbs     !> type describing the orbitals
   real(kind=8) :: potentialPrefac             !> prefactor for the confinement potential
   type(workarrays_quartic_convolutions),intent(inout):: work_conv !< workarrays for the convolutions
+  type(workarr_precond),intent(inout) :: w !< workarrays
 
   ! Local variables
   character(len=*), parameter :: subname='precondition_residue'
   real(gp), dimension(0:7) :: scal
   real(wp) :: rmr_old,rmr_new,alpha,beta
   integer :: i_stat,i_all,icong
-  type(workarr_precond) :: w
   real(wp), dimension(:), allocatable :: b,r,d
   logical:: with_confpot
   !!type(workarrays_quartic_convolutions):: work_conv
@@ -51,7 +51,7 @@ subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
   r = f_malloc(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),id='r')
   d = f_malloc(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),id='d')
 
-  call allocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,lr%d,w)
+  !call allocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,lr%d,w)
 
   call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
 
@@ -110,9 +110,9 @@ subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
   call f_free(r)
   call f_free(d)
 
-  call timing(iproc,'deallocprec','ON') ! lr408t
-  call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
-  call timing(iproc,'deallocprec','OF') ! lr408t
+  !call timing(iproc,'deallocprec','ON') ! lr408t
+  !call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
+  !call timing(iproc,'deallocprec','OF') ! lr408t
 END SUBROUTINE solvePrecondEquation
 
 
