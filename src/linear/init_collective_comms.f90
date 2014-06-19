@@ -692,11 +692,6 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork
   !$omp parallel default(private) &
   !$omp shared(collcom, psit_c, psitwork_c, psit_f, psitwork_f, sparsemat, mat)
 
-  !!write(*,'(a,i4,4i8)') 'iproc, lbound, ubound, minval, maxval',&
-  !!iproc, lbound(sparsemat%matrixindex_in_compressed_fortransposed,2),&
-  !!ubound(sparsemat%matrixindex_in_compressed_fortransposed,2),&
-  !!minval(collcom%indexrecvorbital_c),maxval(collcom%indexrecvorbital_c)
-
   !$omp do schedule(static,1)
    do ipt=1,collcom%nptsp_c 
       ii=collcom%norb_per_gridpoint_c(ipt) 
@@ -711,7 +706,6 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork
                   i0j=i0+j
                   jjorb=collcom%indexrecvorbital_c(i0j)
                   ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                  !psit_c(i0i)=psit_c(i0i)+mat%matrix_compr(ind0)*psitwork_c(i0j)
                   tt0=tt0+mat%matrix_compr(ind0)*psitwork_c(i0j)
               end do
           end if
@@ -773,13 +767,6 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork
                   i07j=7*i0j
                   jjorb=collcom%indexrecvorbital_f(i0j)
                   ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                  !psit_f(i07i-6) = psit_f(i07i-6) + mat%matrix_compr(ind0)*psitwork_f(i07j-6)
-                  !psit_f(i07i-5) = psit_f(i07i-5) + mat%matrix_compr(ind0)*psitwork_f(i07j-5)
-                  !psit_f(i07i-4) = psit_f(i07i-4) + mat%matrix_compr(ind0)*psitwork_f(i07j-4)
-                  !psit_f(i07i-3) = psit_f(i07i-3) + mat%matrix_compr(ind0)*psitwork_f(i07j-3)
-                  !psit_f(i07i-2) = psit_f(i07i-2) + mat%matrix_compr(ind0)*psitwork_f(i07j-2)
-                  !psit_f(i07i-1) = psit_f(i07i-1) + mat%matrix_compr(ind0)*psitwork_f(i07j-1)
-                  !psit_f(i07i-0) = psit_f(i07i-0) + mat%matrix_compr(ind0)*psitwork_f(i07j-0)
                   tt06 = tt06 + mat%matrix_compr(ind0)*psitwork_f(i07j-6)
                   tt05 = tt05 + mat%matrix_compr(ind0)*psitwork_f(i07j-5)
                   tt04 = tt04 + mat%matrix_compr(ind0)*psitwork_f(i07j-4)
@@ -794,13 +781,6 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork
               i07j=7*i0j
               jjorb0=collcom%indexrecvorbital_f(i0j+0)
               ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
-              !psit_f(i07i-6) = psit_f(i07i-6) + mat%matrix_compr(ind0)*psitwork_f(i07j-6)
-              !psit_f(i07i-5) = psit_f(i07i-5) + mat%matrix_compr(ind0)*psitwork_f(i07j-5)
-              !psit_f(i07i-4) = psit_f(i07i-4) + mat%matrix_compr(ind0)*psitwork_f(i07j-4)
-              !psit_f(i07i-3) = psit_f(i07i-3) + mat%matrix_compr(ind0)*psitwork_f(i07j-3)
-              !psit_f(i07i-2) = psit_f(i07i-2) + mat%matrix_compr(ind0)*psitwork_f(i07j-2)
-              !psit_f(i07i-1) = psit_f(i07i-1) + mat%matrix_compr(ind0)*psitwork_f(i07j-1)
-              !psit_f(i07i-0) = psit_f(i07i-0) + mat%matrix_compr(ind0)*psitwork_f(i07j-0)
               tt06 = tt06 + mat%matrix_compr(ind0)*psitwork_f(i07j-6)
               tt05 = tt05 + mat%matrix_compr(ind0)*psitwork_f(i07j-5)
               tt04 = tt04 + mat%matrix_compr(ind0)*psitwork_f(i07j-4)
