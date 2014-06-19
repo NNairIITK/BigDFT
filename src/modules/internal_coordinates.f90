@@ -227,17 +227,28 @@ module internal_coordinates
     !!
     !!
     !!   on input xyz    = cartesian array of numat atoms
-    subroutine get_neighbors(xyz,numat,na,nb,nc)
+    subroutine get_neighbors(xyz,numat,na,nb,nc,atoms_ref)
+      use dynamic_memory
       implicit none
     
       ! Calling arguments
       integer,intent(in) :: numat
       real(kind=8),dimension(3,numat),intent(in) :: xyz
       integer,dimension(numat),intent(out) :: na, nb, nc
+      integer,dimension(numat),target,intent(in),optional :: atoms_ref !< indicates the reference atoms 
     
       ! Local variables
       integer :: nai1, nai2, i, j, im1, k
       real(kind=8) :: sum, r
+      integer,dimension(:),pointer :: iref
+
+      if (present(atoms_ref)) then
+          iref => atoms_ref
+      else
+          iref = f_malloc_ptr(numat,id='iref')
+          iref = -1
+      end if
+
     
       nai1=0
       nai2=0
@@ -247,19 +258,26 @@ module internal_coordinates
          nc(i)=4
          im1=i-1
          if(im1.eq.0) cycle
-         sum=100.d0
-         do  j=1,im1
-            r=(xyz(1,i)-xyz(1,j))**2+&
-                 (xyz(2,i)-xyz(2,j))**2+&
-                 (xyz(3,i)-xyz(3,j))**2
-            if(r.lt.sum.and.na(j).ne.j.and.nb(j).ne.j) then
-               sum=r
-               k=j
-            endif
-         end do
-         !
-         !   atom i is nearest to atom k
-         !
+         if (iref(i)>0) then
+             ! take the indicated atom as reference
+             if (iref(i)>numat) stop 'iref(i)>numat'
+             k=iref(i)
+         else
+             ! take the nearest atom as reference
+             sum=100.d0
+             do  j=1,im1
+                r=(xyz(1,i)-xyz(1,j))**2+&
+                     (xyz(2,i)-xyz(2,j))**2+&
+                     (xyz(3,i)-xyz(3,j))**2
+                if(r.lt.sum.and.na(j).ne.j.and.nb(j).ne.j) then
+                   sum=r
+                   k=j
+                endif
+             end do
+             !
+             !   atom i is nearest to atom k
+             !
+         end if
          na(i)=k
          if(i.gt.2)nb(i)=na(k)
          if(i.gt.3)nc(i)=nb(k)
@@ -273,6 +291,10 @@ module internal_coordinates
       nb(2)=0
       nc(2)=0
       nc(3)=0
+
+      if (.not.present(atoms_ref)) then
+          call f_free_ptr(iref)
+      end if
     
     end subroutine get_neighbors
 

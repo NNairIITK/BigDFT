@@ -128,7 +128,7 @@ module module_interfaces
          real(gp), dimension(:,:), pointer :: rxyz
       END SUBROUTINE initialize_atomic_file
 
-      subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces,na,nb,nc)
+      subroutine write_atomic_file(filename,energy,rxyz,ixyz,atoms,comment,forces)
          !n(c) use module_base
          use module_types
          implicit none
@@ -136,8 +136,8 @@ module module_interfaces
          type(atoms_data), intent(in) :: atoms
          real(gp), intent(in) :: energy
          real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+         integer,dimension(3,atoms%astruct%nat),intent(in) :: ixyz
          real(gp), dimension(3,atoms%astruct%nat), intent(in), optional :: forces
-         integer,dimension(atoms%astruct%nat),intent(in),optional :: na, nb, nc
       END SUBROUTINE write_atomic_file
 
       subroutine read_input_dict_from_files(radical, mpi_env,dict)

@@ -278,7 +278,7 @@ MODULE NEB_routines
                ! Dump generated image positions on disk.
                if (bigdft_mpi%iproc == 0) then
                   call write_atomic_file(trim(arr_posinp(j)) // ".in", UNINITIALIZED(1.d0), &
-                       & atoms(j)%astruct%rxyz, atoms(j), "NEB generated")
+                       & atoms(j)%astruct%rxyz, atoms(j)%astruct%ixyz_int, atoms(j), "NEB generated")
                end if
                ! Erase forces.
                imgs(j)%outs%fxyz(:,:) = UNINITIALIZED(1.d0)
@@ -395,6 +395,7 @@ MODULE NEB_routines
          do i = 1, size(imgs), 1
             filename=trim('final_'//trim(arr_posinp(i)))
             call write_atomic_file(filename, imgs(i)%outs%energy,imgs(i)%run%atoms%astruct%rxyz, &
+                 imgs(i)%run%atoms%astruct%ixyz_int, &
                  & imgs(i)%run%atoms,'FINAL CONFIGURATION',forces=imgs(i)%outs%fxyz)
          end do
       end if

@@ -922,9 +922,9 @@ subroutine atoms_write(atoms, filename, forces, energy, comment)
   real(gp), dimension(:,:), pointer :: forces
 
   if (associated(forces)) then
-     call write_atomic_file(filename,energy,atoms%astruct%rxyz,atoms,comment,forces=forces)
+     call write_atomic_file(filename,energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,comment,forces=forces)
   else
-     call write_atomic_file(filename,energy,atoms%astruct%rxyz,atoms,comment)
+     call write_atomic_file(filename,energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,comment)
   end if
 END SUBROUTINE atoms_write
 
@@ -1265,24 +1265,27 @@ END SUBROUTINE astruct_copy_alat
 
 !> Write an atomic file
 !! Yaml output included
-subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces,na,nb,nc)
+subroutine write_atomic_file(filename,energy,rxyz,ixyz,atoms,comment,forces)
   use module_base
   use module_types
   use module_input_dicts
   use yaml_output
+  use internal_coordinates, only : xyzint
   implicit none
   character(len=*), intent(in) :: filename,comment
   type(atoms_data), intent(in) :: atoms
   real(gp), intent(in) :: energy
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+  integer,dimension(3,atoms%astruct%nat),intent(in) :: ixyz
   real(gp), dimension(3,atoms%astruct%nat), intent(in), optional :: forces
-  integer,dimension(atoms%astruct%nat),intent(in),optional :: na, nb, nc
   !local variables
   character(len = 15) :: arFile
   integer :: iunit
   character(len = 1024) :: fname
   real(gp), dimension(3), parameter :: dummy = (/ 0._gp, 0._gp, 0._gp /)
   type(dictionary), pointer :: dict
+  real(gp),dimension(:,:),allocatable :: rxyz_int
+  real(kind=8),parameter :: degree=1.d0
 
 
   if (trim(filename) == "stdout") then
@@ -1306,11 +1309,17 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces,na,nb,nc)
         call wtascii(iunit,energy,rxyz,atoms,comment)
         if (present(forces)) call wtascii_forces(9,forces,atoms)
      case ('int')
-       if (.not.present(na) .or. .not.present(nb) .or. .not.present(nc)) then
-           call f_err_throw('na, nb, nc must be present to write a file in internal coordinates', &
-                err_name='BIGDFT_RUNTIME_ERROR')
-       end if
-        call wtint(iunit,energy,rxyz,atoms,comment,na,nb,nc)
+       !if (.not.present(na) .or. .not.present(nb) .or. .not.present(nc)) then
+       !    call f_err_throw('na, nb, nc must be present to write a file in internal coordinates', &
+       !         err_name='BIGDFT_RUNTIME_ERROR')
+       !end if
+        rxyz_int = f_malloc((/3,atoms%astruct%nat/),id='rxyz_int')
+        !call wtint(iunit,energy,rxyz,atoms,comment,ixyz(1,:),ixyz(2,:),ixyz(3,:))
+        call xyzint(atoms%astruct%rxyz, atoms%astruct%nat, &
+             atoms%astruct%ixyz_int(1,:), atoms%astruct%ixyz_int(2,:),atoms%astruct%ixyz_int(3,:), &
+             degree, rxyz_int)
+        call wtint(iunit,energy,rxyz_int,atoms,comment,ixyz(1,:),ixyz(2,:),ixyz(3,:))
+        call f_free(rxyz_int)
      case('yaml')
         call yaml_new_document(unit = iunit)
      call dict_init(dict)
