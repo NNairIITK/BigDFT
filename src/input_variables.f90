@@ -7,8 +7,9 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-!> this function returns a dictionary with all the input variables of a BigDFT run filled
-!! this dictionary is constructed from a updated version of the input variables dictionary
+
+!> This function returns a dictionary with all the input variables of a BigDFT run filled.
+!! This dictionary is constructed from a updated version of the input variables dictionary
 !! following the input files as defined  by the user
 subroutine read_input_dict_from_files(radical,mpi_env,dict)
   use dictionaries
@@ -17,10 +18,11 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
   use module_input_dicts, only: merge_input_file_to_dict
   use input_old_text_format
   use yaml_output
+  use dynamic_memory
   implicit none
-  character(len = *), intent(in) :: radical !< the name of the run. use "input" if empty
-  type(mpi_environment), intent(in) :: mpi_env !< the environment where the variables have to be updated
-  type(dictionary), pointer :: dict !< input dictionary, has to be nullified at input
+  character(len = *), intent(in) :: radical    !< The name of the run. use "input" if empty
+  type(mpi_environment), intent(in) :: mpi_env !< The environment where the variables have to be updated
+  type(dictionary), pointer :: dict            !< Input dictionary, has to be nullified at input
   !local variables
   integer :: ierr
   logical :: exists_default, exists_user
@@ -29,12 +31,12 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
 
   call f_routine(id='read_input_dict_from_files')
 
-  if (f_err_raise(associated(dict),'The output dictionary should be nullified at input',&
-       err_name='BIGDFT_RUNTIME_ERROR')) return
+!!$  if (f_err_raise(associated(dict),'The output dictionary should be nullified at input',&
+!!$       err_name='BIGDFT_RUNTIME_ERROR')) return
+!!$
+!!$  nullify(dict) !this is however put in the case the dictionary comes undefined
 
-  nullify(dict) !this is however put in the case the dictionary comes undefined
-
-  call dict_init(dict)
+!!$  call dict_init(dict)
   if (trim(radical) /= "" .and. trim(radical) /= "input") &
        & call set(dict // "radical", radical)
 
@@ -71,11 +73,14 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
      call read_sic_from_text_format(mpi_env%iproc,dict//SIC_VARIABLES, trim(f0))
      call set_inputfile(f0, radical, TDDFT_VARIABLES)
      call read_tddft_from_text_format(mpi_env%iproc,dict//TDDFT_VARIABLES, trim(f0))
-     call set_inputfile(f0, radical, 'lin')
-     call read_lin_from_text_format(mpi_env%iproc,dict, trim(f0))
+     !call set_inputfile(f0, radical, 'lin')
+     call read_lin_and_frag_from_text_format(mpi_env%iproc,dict,trim(radical)) !as it also reads fragment
+
+     call set_inputfile(f0, radical, 'neb')
+     call read_neb_from_text_format(mpi_env%iproc,dict//GEOPT_VARIABLES, trim(f0))
   else
      ! We add an overloading input.perf (for automatic test purposes).
-     ! This will be changed in far future when only YAML input will be allowed.
+     ! This will be changed in future when only YAML input will be allowed.
      call set_inputfile(f0, radical, PERF_VARIABLES)
      call read_perf_from_text_format(mpi_env%iproc,dict//PERF_VARIABLES, trim(f0))
   end if
@@ -90,7 +95,7 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
 end subroutine read_input_dict_from_files
 
 
-!> Fill the input_variables structure with the information
+!> Fill the input_variables and atoms_data structures from the information
 !! contained in the dictionary dict
 !! the dictionary should be completes to fill all the information
 subroutine inputs_from_dict(in, atoms, dict)
@@ -104,16 +109,18 @@ subroutine inputs_from_dict(in, atoms, dict)
   use dynamic_memory
   use m_profiling, only: ab7_memocc_set_state => memocc_set_state !< abinit module to be removed
   use module_xc
-  use module_atoms, only: atoms_data,atoms_data_null,set_astruct_from_dict
+  use input_old_text_format, only: dict_from_frag
+  use module_atoms, only: atoms_data,atoms_data_null
   implicit none
+  !Arguments
   type(input_variables), intent(out) :: in
   type(atoms_data), intent(out) :: atoms
   type(dictionary), pointer :: dict
-
+  !Local variables
   !type(dictionary), pointer :: profs
   integer :: ierr, ityp, nelec_up, nelec_down, norb_max, jtype
   character(len = max_field_length) :: writing_dir, output_dir, run_name, msg
-  type(dictionary), pointer :: dict_minimal, var
+  type(dictionary), pointer :: dict_minimal, var,dict_frag
 
   call f_routine(id='inputs_from_dict')
 
@@ -123,7 +130,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   ! Atoms case.
   atoms = atoms_data_null()
   if (.not. has_key(dict, "posinp")) stop "missing posinp"
-  call set_astruct_from_dict(dict // "posinp", atoms%astruct)
+  call astruct_set_from_dict(dict // "posinp", atoms%astruct)
 
   ! Input variables case.
   call default_input_variables(in)
@@ -150,10 +157,6 @@ subroutine inputs_from_dict(in, atoms, dict)
   end if
   if (associated(dict_minimal)) call dict_free(dict_minimal)
 
-  !call yaml_map('Dictionary completed',dict)
-
-  !call yaml_map('Minimal dictionary',dict_minimal)
-  !stop
   ! Transfer dict values into input_variables structure.
   var => dict_iter(dict // PERF_VARIABLES)
   do while(associated(var))
@@ -200,10 +203,22 @@ subroutine inputs_from_dict(in, atoms, dict)
      call input_set(in, LIN_KERNEL, var)
      var => dict_next(var)
   end do
+
+  !status of the allocation verbosity and profiling
+  if (.not. in%debug) then
+     call ab7_memocc_set_state(1)
+     call f_malloc_set_status(output_level=1)
+  end if
+  call set_cache_size(in%ncache_fft)
+  if (in%verbosity == 0 ) then
+     call ab7_memocc_set_state(0)
+     call f_malloc_set_status(output_level=0)
+  end if
+
   call nullifyInputLinparameters(in%lin)
   call allocateBasicArraysInputLin(in%lin, atoms%astruct%ntypes)
 
-  !first fill all the types by the default, then override by per-type values
+  !First fill all the types by the default, then override by per-type values
   do jtype=1,atoms%astruct%ntypes
      var => dict_iter(dict//LIN_BASIS_PARAMS)
      do while(associated(var))
@@ -221,26 +236,10 @@ subroutine inputs_from_dict(in, atoms, dict)
      end do
   end do
 
-
-  if (.not. in%debug) then
-     call ab7_memocc_set_state(1)
-     call f_malloc_set_status(output_level=1)
-  end if
-  call set_cache_size(in%ncache_fft)
-  if (in%verbosity == 0 ) then
-     call ab7_memocc_set_state(0)
-     call f_malloc_set_status(output_level=0)
-  end if
+  call allocate_extra_lin_arrays(in%lin,atoms%astruct)
 
   ! Cross check values of input_variables.
-  call input_analyze(in)
-
-  ! Initialise XC calculation
-!!$  if (in%ixc < 0) then
-!!$     call xc_init(in%xcObj, in%ixc, XC_MIXED, in%nspin)
-!!$  else
-!!$     call xc_init(in%xcObj, in%ixc, XC_ABINIT, in%nspin)
-!!$  end if
+  call input_analyze(in,atoms%astruct)
 
   ! Shake atoms, if required.
   call astruct_set_displacement(atoms%astruct, in%randdis)
@@ -260,6 +259,9 @@ subroutine inputs_from_dict(in, atoms, dict)
   call psp_dict_analyse(dict, atoms)
   call atomic_data_set_from_dict(dict, "Atomic occupation", atoms, in%nspin)
 
+  ! Add multipole preserving information
+  atoms%multipole_preserving = in%multipole_preserving
+
   ! Generate orbital occupation
   call read_n_orbitals(bigdft_mpi%iproc, nelec_up, nelec_down, norb_max, atoms, &
        & in%ncharge, in%nspin, in%mpol, in%norbsempty)
@@ -274,7 +276,9 @@ subroutine inputs_from_dict(in, atoms, dict)
      call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if
   
-  if(in%inputpsiid==100 .or. in%inputpsiid==101 .or. in%inputpsiid==102) &
+  if(in%inputpsiid == INPUT_PSI_LINEAR_AO .or. &
+     in%inputpsiid == INPUT_PSI_MEMORY_LINEAR .or. &
+     in%inputpsiid == INPUT_PSI_DISK_LINEAR) &
       DistProjApply=.true.
   if(in%linear /= INPUT_IG_OFF .and. in%linear /= INPUT_IG_LIG) then
      !only on the fly calculation
@@ -323,8 +327,27 @@ subroutine inputs_from_dict(in, atoms, dict)
   in%run_name          = run_name
   in%writing_directory = writing_dir
   in%dir_output        = output_dir
-  call input_variables_from_old_text_format(in, atoms, trim(in%run_name))
+  ! not sure whether to actually make this an input variable or not so just set to false for now
+  in%lin%diag_start=.false.
 
+  !then fill also fragment variables
+  in%lin%fragment_calculation=FRAG_VARIABLES .in. dict
+  in%lin%calc_transfer_integrals=.false.
+  in%lin%constrained_dft=.false.
+  if (in%lin%fragment_calculation) then
+     in%lin%constrained_dft=CONSTRAINED_DFT .in. dict // FRAG_VARIABLES
+     if (TRANSFER_INTEGRALS .in. dict // FRAG_VARIABLES) &
+          in%lin%calc_transfer_integrals=dict//FRAG_VARIABLES//TRANSFER_INTEGRALS
+     call frag_from_dict(dict//FRAG_VARIABLES,in%frag)
+
+!!$     ! again recheck
+!!$     call dict_from_frag(in%frag,dict_frag)
+!!$     call yaml_map('again',dict_frag)
+!!$     call dict_free(dict_frag)
+!!$     stop
+  else
+     call default_fragmentInputParameters(in%frag)
+  end if
   if (bigdft_mpi%iproc==0) then
      call input_keys_dump(dict)
   end if
@@ -344,6 +367,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   call f_release_routine()
 
 end subroutine inputs_from_dict
+
 
 !> Check the directory of data (create if not present)
 subroutine check_for_data_writing_directory(iproc,in)
@@ -382,8 +406,11 @@ subroutine check_for_data_writing_directory(iproc,in)
      if (iproc==0) call yaml_map('Data Writing directory','./')
      in%dir_output=repeat(' ',len(in%dir_output))
   end if
+
 END SUBROUTINE check_for_data_writing_directory
 
+
+!> Create the directory output
 subroutine create_dir_output(iproc, in)
   use yaml_output
   use module_types
@@ -407,6 +434,7 @@ subroutine create_dir_output(iproc, in)
   call MPI_BCAST(dirname,len(dirname),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
   in%dir_output=dirname
 END SUBROUTINE create_dir_output
+
 
 !> Set default values for input variables
 subroutine default_input_variables(in)
@@ -462,6 +490,7 @@ subroutine default_input_variables(in)
   nullify(in%frag%charge)
 END SUBROUTINE default_input_variables
 
+
 !> Assign default values for mixing variables
 subroutine mix_input_variables_default(in)
   use module_base
@@ -481,6 +510,7 @@ subroutine mix_input_variables_default(in)
   in%alphadiis=2.d0
 
 END SUBROUTINE mix_input_variables_default
+
 
 !> Assign default values for GEOPT variables
 subroutine geopt_input_variables_default(in)
@@ -507,6 +537,7 @@ subroutine geopt_input_variables_default(in)
 
 END SUBROUTINE geopt_input_variables_default
 
+
 !> Assign default values for self-interaction correction variables
 subroutine sic_input_variables_default(in)
   use module_base
@@ -520,6 +551,7 @@ subroutine sic_input_variables_default(in)
 
 END SUBROUTINE sic_input_variables_default
 
+
 !> Assign default values for TDDFT variables
 subroutine tddft_input_variables_default(in)
   use module_base
@@ -531,6 +563,8 @@ subroutine tddft_input_variables_default(in)
 
 END SUBROUTINE tddft_input_variables_default
 
+
+!> Allocate the arrays for the input related to the fragment
 subroutine allocateInputFragArrays(input_frag)
   use module_types
   implicit none
@@ -558,8 +592,12 @@ subroutine allocateInputFragArrays(input_frag)
   allocate(input_frag%dirname(input_frag%nfrag_ref), stat=i_stat)
   call memocc(i_stat, input_frag%dirname, 'input_frag%dirname', subname)
 
+  !set the variables to their default value
+
 end subroutine allocateInputFragArrays
 
+
+!> Deallocate the arrays related to the input for the fragments
 subroutine deallocateInputFragArrays(input_frag)
   use module_types
   implicit none
@@ -608,7 +646,28 @@ subroutine deallocateInputFragArrays(input_frag)
 
 end subroutine deallocateInputFragArrays
 
+!> initialize fragment input parameters to their default value
+subroutine default_fragmentInputParameters(frag)
+  use module_types, only: fragmentInputParameters
+  implicit none
+  type(fragmentInputParameters),intent(out) :: frag
 
+  !first nullify
+  call nullifyInputFragParameters(frag)
+  !then set defaults
+  frag%nfrag_ref=1
+  frag%nfrag=1
+  !then allocate
+  call allocateInputFragArrays(frag)
+  !and fill to neutral values
+  frag%label(1)=repeat(' ',len(frag%label))
+  frag%dirname(1)=repeat(' ',len(frag%dirname))
+  frag%frag_index(1)=1
+  frag%charge(1)=0.0d0
+
+end subroutine default_fragmentInputParameters
+
+!> Nullify the parameters related to the fragments
 subroutine nullifyInputFragParameters(input_frag)
   use module_types
   implicit none
@@ -616,6 +675,7 @@ subroutine nullifyInputFragParameters(input_frag)
   ! Calling arguments
   type(fragmentInputParameters),intent(inout) :: input_frag
 
+  !default scalar variables
   nullify(input_frag%frag_index)
   nullify(input_frag%charge)
   !nullify(input_frag%frag_info)
@@ -624,6 +684,8 @@ subroutine nullifyInputFragParameters(input_frag)
 
 end subroutine nullifyInputFragParameters
 
+
+!> Creation of the log file (by default log.yaml)
 !>  Free all dynamically allocated memory from the kpt input file.
 subroutine free_kpt_variables(in)
   use module_base
@@ -675,6 +737,7 @@ subroutine free_geopt_variables(in)
   end if
   nullify(in%qmass)
 end subroutine free_geopt_variables
+
 
 !>  Free all dynamically allocated memory from the input variable structure.
 subroutine free_input_variables(in)
@@ -728,6 +791,7 @@ subroutine abscalc_input_variables_default(in)
   in%abscalc_Sinv_do_cg=.false.
 END SUBROUTINE abscalc_input_variables_default
 
+
 !> Assign default values for frequencies variables
 !!    freq_alpha: frequencies step for finite difference = alpha*hx, alpha*hy, alpha*hz
 !!    freq_order; order of the finite difference (2 or 3 i.e. 2 or 4 points)
@@ -743,18 +807,23 @@ subroutine frequencies_input_variables_default(in)
   in%freq_method=1
 END SUBROUTINE frequencies_input_variables_default
 
-subroutine input_analyze(in)
+
+!> Cross check values of input_variables.
+!! and change if necessary
+subroutine input_analyze(in,astruct)
   use module_types, only: input_variables
   use module_types, only: output_denspot_FORMAT_CUBE, output_denspot_NONE, WF_FORMAT_NONE
   use module_types, only: bigdft_mpi
   use module_types, only: KERNELMODE_DIRMIN, KERNELMODE_DIAG, KERNELMODE_FOE, &
                           MIXINGMODE_DENS, MIXINGMODE_POT, &
                           LINEAR_DIRECT_MINIMIZATION, LINEAR_MIXDENS_SIMPLE, LINEAR_MIXPOT_SIMPLE, LINEAR_FOE
+  use module_atoms, only: atomic_structure
   use module_defs, only: gp
-  use dynamic_memory
+  use module_base
   use module_input_keys, only: input_keys_equal
   implicit none
   type(input_variables), intent(inout) :: in
+  type(atomic_structure), intent(in) :: astruct
 
   integer :: ierr
 
@@ -809,6 +878,11 @@ subroutine input_analyze(in)
   else
      in%last_run=0
   end if
+
+  if (astruct%geocode == 'F' .or. astruct%nat == 0) then
+     !Disable the symmetry
+     in%disableSym = .true.
+  end if
   
   ! the GEOPT variables ----------------------------------------------------
   !target stress tensor
@@ -821,7 +895,7 @@ subroutine input_analyze(in)
      end if
   end if
 
-  ! determine the scf mode
+  ! Determine the SCF mode
   select case (in%lin%kernel_mode)
   case (KERNELMODE_DIRMIN)
       in%lin%scf_mode = LINEAR_DIRECT_MINIMIZATION
@@ -840,9 +914,18 @@ subroutine input_analyze(in)
       stop 'wrong value of in%lin%kernel_mode'
   end select
 
+  ! It is not possible to use both the old and the new Pulay correction at the same time
+  if (in%lin%pulay_correction .and. in%lin%new_pulay_correction) then
+     call f_err_throw('It is not possible to use both the old and the new Pulay correction at the same time!',&
+          err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+  end if
+
+
   call f_release_routine()
 END SUBROUTINE input_analyze
 
+
+!> Analyse the kpt input and calculates k points if needed
 subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   use module_base
   use module_types
@@ -853,17 +936,21 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   use module_input_keys
   use dictionaries
   implicit none
+  !Arguments
   integer, intent(in) :: iproc
   type(input_variables), intent(inout) :: in
-  type(dictionary), pointer :: dict
+  type(dictionary), pointer, intent(in) :: dict
   type(symmetry_data), intent(in) :: sym
   character(len = 1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-  real(gp), intent(in) :: alat(3)
+  real(gp), dimension(3), intent(in) :: alat
   !local variables
   logical :: lstat
   character(len=*), parameter :: subname='kpt_input_analyse'
-  integer :: i_stat,ierror,i,nshiftk, ngkpt_(3), ikpt, j, ncount, nseg, iseg_, ngranularity_
-  real(gp) :: kptrlen_, shiftk_(3,8), norm, alat_(3)
+  integer :: i_stat,ierror,i, nshiftk, ikpt, j, ncount, nseg, iseg_, ngranularity_
+  integer, dimension(3) :: ngkpt_
+  real(gp), dimension(3) :: alat_
+  real(gp), dimension(3,8) :: shiftk_
+  real(gp) :: kptrlen_, norm
   character(len = 6) :: method
   
   ! Set default values.
@@ -956,7 +1043,7 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
         in%gen_kpt(3, i) = dict // KPT // (i-1) // 2
         if (geocode == 'S' .and. in%gen_kpt(2,i) /= 0.) then
            in%gen_kpt(2,i) = 0.
-           if (iproc==0) call yaml_warning('Surface conditions, supressing k-points along y.')
+           if (iproc==0) call yaml_warning('Surface conditions, suppressing k-points along y.')
         end if
         in%gen_wkpt(i) = dict // WKPT // (i-1)
         if (geocode == 'F') then
@@ -1056,6 +1143,7 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
 
   if (in%nkptv > 0 .and. geocode == 'F' .and. iproc == 0) &
        & call yaml_warning('Defining a k-point path in free boundary conditions.') 
+
 END SUBROUTINE kpt_input_analyse
 
 !!$  ! linear scaling: explicitely specify localization centers

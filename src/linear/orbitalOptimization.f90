@@ -8,52 +8,51 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-subroutine optimizeDIIS(iproc, npsidim, orbs, lzd, hphi, phi, ldiis, experimental_mode)
-use module_base
-use module_types
-use module_interfaces, exceptThisOne => optimizeDIIS
-implicit none
+subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, lzd, hphi, phi, ldiis, experimental_mode)
 
-! Calling arguments
-integer,intent(in):: iproc, npsidim
-type(orbitals_data),intent(in):: orbs
-type(local_zone_descriptors),intent(in):: lzd
-real(8),dimension(npsidim),intent(in):: hphi
-real(8),dimension(npsidim),intent(inout):: phi
-type(localizedDIISParameters),intent(inout):: ldiis
-logical,intent(in) :: experimental_mode                       
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => optimizeDIIS
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc
+  integer,intent(in):: npsidim
+  type(orbitals_data),intent(in):: orbs
+  type(local_zone_descriptors),intent(in):: lzd
+  real(8),dimension(npsidim),intent(in):: hphi
+  real(8),dimension(npsidim),intent(inout):: phi
+  type(localizedDIISParameters),intent(inout):: ldiis
+  logical,intent(in) :: experimental_mode                       
 
 
-! Local variables
-integer:: iorb, jorb, ist, ilr, ncount, jst, i, j, mi, ist1, ist2, jlr, istat, info
-integer:: mj, jj, k, jjst, isthist, iall, ierr
-real(8):: ddot
-real(8),dimension(:,:),allocatable:: mat, totmat
-real(8),dimension(:),allocatable:: rhs
-integer,dimension(:),allocatable:: ipiv
-character(len=*),parameter:: subname='optimizeDIIS'
+  ! Local variables
+  integer:: iorb, jorb, ist, ilr, ncount, jst, i, j, mi, ist1, ist2, jlr, istat, info
+  integer:: mj, jj, k, jjst, isthist, iall, ierr
+  real(8):: ddot
+  real(8),dimension(:,:),allocatable:: mat, totmat
+  real(8),dimension(:),allocatable:: rhs
+  integer,dimension(:),allocatable:: ipiv
+  character(len=*),parameter:: subname='optimizeDIIS'
 
-call timing(iproc,'optimize_DIIS ','ON')
+  call timing(iproc,'optimize_DIIS ','ON')
 
-! Allocate the local arrays.
-allocate(mat(ldiis%isx+1,ldiis%isx+1), stat=istat)
-call memocc(istat, mat, 'mat', subname)
-allocate(rhs(ldiis%isx+1), stat=istat)
-call memocc(istat, rhs, 'rhs', subname)
-!lwork=100*ldiis%isx
-!allocate(work(lwork), stat=istat)
-!call memocc(istat, work, 'work', subname)
-allocate(ipiv(ldiis%isx+1), stat=istat)
-call memocc(istat, ipiv, 'ipiv', subname)
+  ! Allocate the local arrays.
+  mat = f_malloc((/ ldiis%isx+1, ldiis%isx+1 /),id='mat')
+  rhs = f_malloc(ldiis%isx+1,id='rhs')
+  !lwork=100*ldiis%isx
+  !allocate(work(lwork), stat=istat)
+  !call memocc(istat, work, 'work', subname)
+  ipiv = f_malloc(ldiis%isx+1,id='ipiv')
 
-!!mat=0.d0
-!!rhs=0.d0
-call to_zero((ldiis%isx+1)**2, mat(1,1))
-call to_zero(ldiis%isx+1, rhs(1))
+  !!mat=0.d0
+  !!rhs=0.d0
+  call to_zero((ldiis%isx+1)**2, mat(1,1))
+  call to_zero(ldiis%isx+1, rhs(1))
 
-! Copy phi and hphi to history.
-ist=1
-do iorb=1,orbs%norbp
+  ! Copy phi and hphi to history.
+  ist=1
+  do iorb=1,orbs%norbp
     jst=1
     do jorb=1,iorb-1
         !jlr=onWhichAtom(jorb)
@@ -74,9 +73,9 @@ do iorb=1,orbs%norbp
     ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
     ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
     ist=ist+ncount
-end do
+  end do
 
-do iorb=1,orbs%norbp
+  do iorb=1,orbs%norbp
     ! Shift the DIIS matrix left up if we reached the maximal history length.
     if(ldiis%is>ldiis%isx) then
        do i=1,ldiis%isx-1
@@ -86,9 +85,9 @@ do iorb=1,orbs%norbp
           end do
        end do
     end if
-end do
+  end do
 
-do iorb=1,orbs%norbp
+  do iorb=1,orbs%norbp
 
     ! Calculate a new line for the matrix.
     i=max(1,ldiis%is-ldiis%isx+1)
@@ -116,18 +115,21 @@ do iorb=1,orbs%norbp
        !!write(3200+iproc,'(4i8,2es20.12)') mi, ldiis%is, ist1, ist2, hphi(ist1), ldiis%hphiHist(ist2)
        ist2=ist2+ncount
     end do
-end do
+  end do
 
-! Sum up all partial matrices
-allocate(totmat(ldiis%isx,ldiis%isx))
-totmat=0.d0
-do iorb=1,orbs%norbp
-    totmat(:,:)=totmat(:,:)+ldiis%mat(:,:,iorb)
-end do
-call mpiallred(totmat(1,1), ldiis%isx**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  ! Sum up all partial matrices
+  totmat = f_malloc((/ ldiis%isx, ldiis%isx /),id='totmat')
+  totmat=0.d0
+  do iorb=1,orbs%norbp
+      totmat(:,:)=totmat(:,:)+ldiis%mat(:,:,iorb)
+  end do
 
-ist=1
-do iorb=1,orbs%norbp
+  if (nproc > 1) then
+    call mpiallred(totmat(1,1), ldiis%isx**2, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
+
+  ist=1
+  do iorb=1,orbs%norbp
     
     ! Copy the matrix to an auxiliary array and fill with the zeros and ones.
     do i=1,min(ldiis%isx,ldiis%is)
@@ -226,31 +228,17 @@ do iorb=1,orbs%norbp
     ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
     ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
     ist=ist+ncount
-end do
+  end do
 
-deallocate(totmat)
+  call f_free(totmat)
 
-iall=-product(shape(mat))*kind(mat)
-deallocate(mat, stat=istat)
-call memocc(istat, iall, 'mat', subname)
+  call f_free(mat)
+  call f_free(rhs)
+  call f_free(ipiv)
 
-iall=-product(shape(rhs))*kind(rhs)
-deallocate(rhs, stat=istat)
-call memocc(istat, iall, 'rhs', subname)
-
-!iall=-product(shape(work))*kind(work)
-!deallocate(work, stat=istat)
-!call memocc(istat, iall, 'work', subname)
-
-iall=-product(shape(ipiv))*kind(ipiv)
-deallocate(ipiv, stat=istat)
-call memocc(istat, iall, 'ipiv', subname)
-
-call timing(iproc,'optimize_DIIS ','OF')
-
+  call timing(iproc,'optimize_DIIS ','OF')
 
 end subroutine optimizeDIIS
-
 
 
 subroutine initializeDIIS(isx, lzd, orbs, ldiis)
@@ -281,8 +269,8 @@ ldiis%icountSwitch=0
 ldiis%icountDIISFailureTot=0
 ldiis%icountDIISFailureCons=0
 
-allocate(ldiis%mat(ldiis%isx,ldiis%isx,orbs%norbp), stat=istat)
-call memocc(istat, ldiis%mat, 'ldiis%mat', subname)
+ldiis%mat = f_malloc_ptr((/ldiis%isx,ldiis%isx,orbs%norbp/),id='ldiis%mat')
+
 if (ldiis%isx**2*orbs%norbp>0) call to_zero(ldiis%isx**2*orbs%norbp,ldiis%mat(1,1,1))
 
 ii=0
@@ -290,12 +278,9 @@ do iorb=1,orbs%norbp
     ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
     ii=ii+ldiis%isx*(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)
 end do
-allocate(ldiis%phiHist(ii), stat=istat)
-call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
-allocate(ldiis%hphiHist(ii), stat=istat)
-call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
-allocate(ldiis%energy_hist(isx), stat=istat)
-call memocc(istat, ldiis%energy_hist, 'ldiis%energy_hist', subname)
+ldiis%phiHist = f_malloc_ptr(ii,id='ldiis%phiHist')
+ldiis%hphiHist = f_malloc_ptr(ii,id='ldiis%hphiHist')
+ldiis%energy_hist = f_malloc_ptr(isx,id='ldiis%energy_hist')
 
 end subroutine initializeDIIS
 
@@ -313,21 +298,10 @@ type(localizedDIISParameters),intent(inout):: ldiis
 integer:: istat, iall
 character(len=*),parameter:: subname='deallocateDIIS'
 
-iall=-product(shape(ldiis%mat))*kind(ldiis%mat)
-deallocate(ldiis%mat, stat=istat)
-call memocc(istat, iall, 'ldiis%mat', subname)
-
-iall=-product(shape(ldiis%phiHist))*kind(ldiis%phiHist)
-deallocate(ldiis%phiHist, stat=istat)
-call memocc(istat, iall, 'ldiis%phiHist', subname)
-
-iall=-product(shape(ldiis%hphiHist))*kind(ldiis%hphiHist)
-deallocate(ldiis%hphiHist, stat=istat)
-call memocc(istat, iall, 'ldiis%hphiHist', subname)
-
-iall=-product(shape(ldiis%energy_hist))*kind(ldiis%energy_hist)
-deallocate(ldiis%energy_hist, stat=istat)
-call memocc(istat, iall, 'ldiis%energy_hist', subname)
+call f_free_ptr(ldiis%mat)
+call f_free_ptr(ldiis%phiHist)
+call f_free_ptr(ldiis%hphiHist)
+call f_free_ptr(ldiis%energy_hist)
 
 end subroutine deallocateDIIS
 

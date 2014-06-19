@@ -15,21 +15,22 @@ module dynamic_memory
   use memory_profiling, except => ndebug
   use dictionaries, info_length => max_field_length
   use yaml_strings, only: yaml_toa,yaml_date_and_time_toa
+  use module_f_malloc
   implicit none
 
   private 
 
-  logical, parameter :: track_origins=.true.!< when true keeps track of all the allocation statuses using dictionaries
-  integer, parameter :: namelen=32          !< length of the character variables
-  integer, parameter :: error_string_len=80 !< length of error string
-  integer, parameter :: ndebug=0            !< size of debug parameters
-  integer, parameter :: max_rank=7          !< maximum rank in fortran
-  !maximum size of f_lib control variables
-  integer, parameter :: max_ctrl = 5 !<maximum number of nested levels
-  integer :: ictrl=0                 !<id of active control structure (<=max_ctrl)
+  logical, parameter :: track_origins=.true.      !< When true keeps track of all the allocation statuses using dictionaries
+  integer, parameter :: namelen=f_malloc_namelen  !< Length of the character variables
+  integer, parameter :: error_string_len=80       !< Length of error string
+  integer, parameter :: ndebug=0                  !< Size of debug parameters
+!!$  integer, parameter :: max_rank=7             !< Maximum rank in fortran
+  !> Maximum size of f_lib control variables
+  integer, parameter :: max_ctrl = 5 !< Maximum number of nested levels
+  integer :: ictrl=0                 !< Id of active control structure (<=max_ctrl)
 
 
-  !> parameters for defitions of internal dictionary
+  !> Parameters for defitions of internal dictionary
   character(len=*), parameter :: arrayid='Array Id'
   character(len=*), parameter :: routineid='Allocating Routine Id'
   character(len=*), parameter :: sizeid='Size (Bytes)'
@@ -41,22 +42,22 @@ module dynamic_memory
   character(len=*), parameter :: t0_time='Time of last opening'
   character(len=*), parameter :: tot_time='Total time (s)'
   character(len=*), parameter :: prof_enabled='Profiling Enabled'
+  character(len=*), parameter :: main='Main program'
 
-  !error codes
+  !> Error codes
   integer, save :: ERR_ALLOCATE
   integer, save :: ERR_DEALLOCATE
   integer, save :: ERR_MEMLIMIT
-  integer, save :: ERR_INVALID_MALLOC
-  integer, save :: ERR_INVALID_RANK
+  integer, save :: ERR_INVALID_COPY
   integer, save :: ERR_MALLOC_INTERNAL
 
-  !timing categories
+  !> Timing categories
   integer, public, save :: TCAT_ARRAY_ALLOCATIONS
   integer, public, save :: TCAT_INIT_TO_ZERO
   integer, public, save :: TCAT_ROUTINE_PROFILING
 
-  !> control structure of flib library. 
-  !Contains all global variables of interest in a separate instance of f_lib
+  !> Control structure of flib library. 
+  !! Contains all global variables of interest in a separate instance of f_lib
   type :: mem_ctrl 
      logical :: profile_initialized  !< global variables for initialization
      logical :: routine_opened       !< global variable (can be stored in dictionaries)
@@ -69,82 +70,17 @@ module dynamic_memory
      type(dictionary), pointer :: dict_codepoint !<points to where we are in the previous dictionary
   end type mem_ctrl
   
-  !>global variable controlling the different instances of the calls
-  !the 0 component is supposed to be unused, it is allocated to avoid segfaults
-  !if the library routines are called without initialization
+  !> Global variable controlling the different instances of the calls
+  !! the 0 component is supposed to be unused, it is allocated to avoid segfaults
+  !! if the library routines are called without initialization
   type(mem_ctrl), dimension(0:max_ctrl) :: mems
-
-  !> Structure needed to allocate an allocatable array
-  type, public :: malloc_information_all
-     logical :: pin                          !< flag to control the pinning of the address
-     logical :: profile                      !< activate profiling for this allocation
-     logical :: put_to_zero                  !< initialize to zero after allocation
-     integer :: rank                         !< rank of the array
-     integer, dimension(max_rank) :: shape   !< shape of the structure 
-     integer, dimension(max_rank) :: lbounds !< lower bounds
-     integer, dimension(max_rank) :: ubounds !< upper bounds
-     integer(kind=8) :: srcdata_add          !< physical address of source data
-     character(len=namelen) :: array_id      !< label the array
-     character(len=namelen) :: routine_id    !< label the routine
-     
-  end type malloc_information_all
-
-  !> Structure needed to allocate an allocatable array of string of implicit length (for non-2003 compilers)
-  type, public :: malloc_information_str_all
-     logical :: pin                          !< flag to control the pinning of the address
-     logical :: profile                      !< activate profiling for this allocation
-     logical :: put_to_zero                  !< initialize to zero after allocation
-     integer :: rank                         !< rank of the array
-     integer :: len                          !< length of the character
-     integer, dimension(max_rank) :: shape   !< shape of the structure 
-     integer, dimension(max_rank) :: lbounds !< lower bounds
-     integer, dimension(max_rank) :: ubounds !< upper bounds
-     integer(kind=8) :: srcdata_add          !< physical address of source data
-     character(len=namelen) :: array_id      !< label the array
-     character(len=namelen) :: routine_id    !< label the routine
-  end type malloc_information_str_all
-
-  !> Structure needed to allocate a pointer
-  type, public :: malloc_information_ptr
-     logical :: ptr                          !< just to make the structures different, to see if needed
-     logical :: pin                          !< flag to control the pinning of the address
-     logical :: profile                      !< activate profiling for this allocation
-     logical :: put_to_zero                  !< initialize to zero after allocation
-     integer :: rank                         !< rank of the pointer
-     integer, dimension(max_rank) :: shape   !< shape of the structure 
-     integer, dimension(max_rank) :: lbounds !< lower bounds
-     integer, dimension(max_rank) :: ubounds !< upper bounds
-     integer(kind=8) :: srcdata_add          !< physical address of source data
-     character(len=namelen) :: array_id      !< label the array
-     character(len=namelen) :: routine_id    !< label the routine
-  end type malloc_information_ptr
-
-  !> Structure needed to allocate a pointer of string of implicit length (for non-2003 complilers)
-  type, public :: malloc_information_str_ptr
-     logical :: ptr                          !< just to make the structures different, to see if needed
-     logical :: pin                          !< flag to control the pinning of the address
-     logical :: profile                      !< activate profiling for this allocation
-     logical :: put_to_zero                  !< initialize to zero after allocation
-     integer :: rank                         !< rank of the pointer
-     integer :: len                          !< length of the character
-     integer, dimension(max_rank) :: shape   !< shape of the structure 
-     integer, dimension(max_rank) :: lbounds !< lower bounds
-     integer, dimension(max_rank) :: ubounds !< upper bounds
-     integer(kind=8) :: srcdata_add          !< physical address of source data
-     character(len=namelen) :: array_id      !< label the array
-     character(len=namelen) :: routine_id    !< label the routine
-  end type malloc_information_str_ptr
-
-  type, public :: array_bounds
-     integer :: nlow  !<lower bounds
-     integer :: nhigh !<higher bounds
-  end type array_bounds
 
   interface assignment(=)
      module procedure i1_all,i2_all,i3_all,i4_all
      module procedure l1_all,l2_all,l3_all
      module procedure d1_all,d2_all,d3_all,d4_all,d5_all,d6_all
      module procedure r1_all,r2_all,r3_all
+     module procedure z2_all
      module procedure d1_ptr,d2_ptr,d3_ptr,d4_ptr,d5_ptr
      module procedure i1_ptr,i2_ptr,i3_ptr
      !strings and pointers for characters
@@ -152,23 +88,13 @@ module dynamic_memory
 !     module procedure c1_ptr
   end interface
 
-  interface operator(.to.)
-     module procedure bounds
-  end interface
-
-  interface nullify_malloc_information
-     module procedure nullify_malloc_information_all
-     module procedure nullify_malloc_information_ptr
-     module procedure nullify_malloc_information_str_all
-     module procedure nullify_malloc_information_str_ptr
-  end interface nullify_malloc_information
-
   interface f_free
      module procedure i1_all_free,i2_all_free,i3_all_free,i4_all_free
      module procedure i1_all_free_multi
      module procedure l1_all_free,l2_all_free,l3_all_free
      module procedure d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free,d5_all_free,d6_all_free
      module procedure r1_all_free,r2_all_free,r3_all_free
+     module procedure z2_all_free
   end interface
 
   interface f_free_ptr
@@ -176,14 +102,6 @@ module dynamic_memory
      module procedure i1_ptr_free_multi
      module procedure d1_ptr_free,d2_ptr_free,d3_ptr_free,d4_ptr_free,d5_ptr_free
   end interface
-
-!  interface f_free_str
-!     module procedure c1_all_free
-!  end interface f_free_str
-
-!  interface f_free_str_ptr
-!     module procedure c1_ptr_free
-!  end interface f_free_str_ptr
 
   !> initialize to zero an array (should be called f_memset)
   interface to_zero
@@ -194,49 +112,13 @@ module dynamic_memory
            put_to_zero_integer
   end interface
 
-  interface f_malloc
-     module procedure f_malloc,f_malloc_simple
-     module procedure f_malloc_bounds,f_malloc_bound
-     !here also the procedures for the copying of arrays have to be defined
-     module procedure f_malloc_i2
-  end interface
-
-  interface f_malloc0
-     module procedure f_malloc0,f_malloc0_simple
-     module procedure f_malloc0_bounds,f_malloc0_bound
-  end interface
-
-  interface f_malloc_ptr
-     module procedure f_malloc_ptr,f_malloc_ptr_simple
-     module procedure f_malloc_ptr_bounds,f_malloc_ptr_bound
-     module procedure f_malloc_ptr_i2
-  end interface
-
-  interface f_malloc0_ptr
-     module procedure f_malloc0_ptr,f_malloc0_ptr_simple
-     module procedure f_malloc0_ptr_bounds,f_malloc0_ptr_bound
-  end interface
-
-  interface f_malloc_str
-     module procedure f_malloc_str,f_malloc_str_simple
-     module procedure f_malloc_str_bounds,f_malloc_str_bound
-  end interface
-
-  interface f_malloc0_str
-     module procedure f_malloc0_str,f_malloc0_str_simple
-     module procedure f_malloc0_str_bounds,f_malloc0_str_bound
-  end interface
-
-  interface f_malloc_str_ptr
-     module procedure f_malloc_str_ptr,f_malloc_str_ptr_simple
-     module procedure f_malloc_str_ptr_bounds,f_malloc_str_ptr_bound
-  end interface
-
-  interface f_malloc0_str_ptr
-     module procedure f_malloc0_str_ptr,f_malloc0_str_ptr_simple
-     module procedure f_malloc0_str_ptr_bounds,f_malloc0_str_ptr_bound
-  end interface
-
+  interface f_memcpy
+     module procedure f_memcpy_i0,f_memcpy_i1
+     module procedure f_memcpy_r0
+     module procedure f_memcpy_d0,f_memcpy_d1,f_memcpy_d2
+     module procedure f_memcpy_d1d2,f_memcpy_d2d1
+     module procedure f_memcpy_l0
+  end interface f_memcpy
 
   !to be verified if clock_gettime is without side-effect, otherwise the routine cannot be pure
   interface
@@ -252,7 +134,7 @@ module dynamic_memory
   public :: f_malloc_str,f_malloc0_str,f_malloc_str_ptr,f_malloc0_str_ptr
   public :: f_free,f_free_ptr,f_free_str,f_free_str_ptr
   public :: f_routine,f_release_routine,f_malloc_set_status,f_malloc_initialize,f_malloc_finalize
-  public :: f_time,to_zero
+  public :: f_time,to_zero,f_memcpy
   public :: assignment(=),operator(.to.)
 
   !for internal f_lib usage
@@ -268,14 +150,54 @@ contains
     f_time=itime
   end function f_time
 
-  elemental pure function bounds(nlow,nhigh)
+  pure function mem_ctrl_null() result(mem)
+    type(mem_ctrl) :: mem
+    call nullify_mem_ctrl(mem)
+  end function mem_ctrl_null
+  pure subroutine nullify_mem_ctrl(mem)
     implicit none
-    integer, intent(in) :: nlow,nhigh
-    type(array_bounds) :: bounds
+    type(mem_ctrl), intent(out) :: mem
+    mem%profile_initialized=.false. 
+    mem%routine_opened=.false.      
+    mem%profile_routine=.true.
+    mem%present_routine=repeat(' ',namelen)
+    !>dictionaries needed for profiling storage
+    nullify(mem%dict_global)
+    nullify(mem%dict_routine)
+    nullify(mem%dict_calling_sequence)
+    nullify(mem%dict_codepoint)
+  end subroutine nullify_mem_ctrl
 
-    bounds%nlow=nlow
-    bounds%nhigh=nhigh
-  end function bounds
+  !pure 
+  function mem_ctrl_init() result(mem)
+    type(mem_ctrl) :: mem
+    call nullify_mem_ctrl(mem)
+    call initialize_mem_ctrl(mem)
+  end function mem_ctrl_init
+  !pure 
+  subroutine initialize_mem_ctrl(mem)
+    implicit none
+    type(mem_ctrl), intent(out) :: mem
+    mem%profile_initialized=.true.
+    !initalize the dictionary with the allocation information
+    nullify(mem%dict_routine)
+    call dict_init(mem%dict_global)
+    call dict_init(mem%dict_calling_sequence)
+    !in principle the calling sequence starts from the main
+    mem%dict_codepoint => mem%dict_calling_sequence
+    call set_routine_info(mem%present_routine,mem%profile_routine)
+  end subroutine initialize_mem_ctrl
+
+  !>transfer to the f_malloc_module the information of the routine
+  subroutine set_routine_info(name,profile)
+    implicit none
+    logical, intent(in) :: profile
+    character(len=*), intent(in) :: name
+
+    f_malloc_routine_name(1:len(f_malloc_routine_name))=name
+    f_malloc_default_profiling=profile
+  end subroutine set_routine_info
+
 
   subroutine put_to_zero_simple(n,da)
     implicit none
@@ -427,72 +349,8 @@ contains
     if (.not. within_openmp) call f_timer_resume()
   end subroutine put_to_zero_integer
 
-
-  pure function mem_ctrl_null() result(mem)
-    type(mem_ctrl) :: mem
-    call nullify_mem_ctrl(mem)
-  end function mem_ctrl_null
-  pure subroutine nullify_mem_ctrl(mem)
-    implicit none
-    type(mem_ctrl), intent(out) :: mem
-    mem%profile_initialized=.false. 
-    mem%routine_opened=.false.      
-    mem%profile_routine=.true.
-    mem%present_routine=repeat(' ',namelen)
-    !>dictionaries needed for profiling storage
-    nullify(mem%dict_global)
-    nullify(mem%dict_routine)
-    nullify(mem%dict_calling_sequence)
-    nullify(mem%dict_codepoint)
-  end subroutine nullify_mem_ctrl
-
-  !pure 
-  function mem_ctrl_init() result(mem)
-    type(mem_ctrl) :: mem
-    call nullify_mem_ctrl(mem)
-    call initialize_mem_ctrl(mem)
-  end function mem_ctrl_init
-  !pure 
-  subroutine initialize_mem_ctrl(mem)
-    implicit none
-    type(mem_ctrl), intent(out) :: mem
-    mem%profile_initialized=.true.
-    !initalize the dictionary with the allocation information
-    nullify(mem%dict_routine)
-    call dict_init(mem%dict_global)
-    call dict_init(mem%dict_calling_sequence)
-    !in principle the calling sequence starts from the main
-    mem%dict_codepoint => mem%dict_calling_sequence
-  end subroutine initialize_mem_ctrl
-
-  pure subroutine nullify_malloc_information_all(m)
-    implicit none
-    type(malloc_information_all), intent(out) :: m
-    include 'f_malloc-null-inc.f90'
-  end subroutine nullify_malloc_information_all
-
-  pure subroutine nullify_malloc_information_ptr(m)
-    implicit none
-    type(malloc_information_ptr), intent(out) :: m
-    include 'f_malloc-null-inc.f90'
-    m%ptr=.true.
-  end subroutine nullify_malloc_information_ptr
-
-  pure subroutine nullify_malloc_information_str_all(m)
-    implicit none
-    type(malloc_information_str_all), intent(out) :: m
-    include 'f_malloc-null-inc.f90'
-    m%len=0
-  end subroutine nullify_malloc_information_str_all
-  
-  pure subroutine nullify_malloc_information_str_ptr(m)
-    implicit none
-    type(malloc_information_str_ptr), intent(out) :: m
-    include 'f_malloc-null-inc.f90'
-    m%len=0
-    m%ptr=.true.
-  end subroutine nullify_malloc_information_str_ptr
-
+  !>copy the contents of an array into another one
+  include 'f_memcpy-inc.f90'
 
   !> This routine adds the corresponding subprogram name to the dictionary
   !! and prepend the dictionary to the global info dictionary
@@ -547,7 +405,7 @@ contains
           
           nullify(mems(ictrl)%dict_routine)
        end if
-       !this means that the previous routine has not been closed
+       !this means that the previous routine has not been closed yet
        if (mems(ictrl)%routine_opened) then
           !call open_routine(dict_codepoint)
           mems(ictrl)%dict_codepoint=>mems(ictrl)%dict_codepoint//subprograms
@@ -577,6 +435,7 @@ contains
        mems(ictrl)%present_routine(1:lgt)=id(1:lgt)
 
     end if
+    call set_routine_info(mems(ictrl)%present_routine,mems(ictrl)%profile_routine)
     call f_timer_resume()
   end subroutine f_routine
 
@@ -586,7 +445,7 @@ contains
     implicit none
 
     if (f_err_raise(ictrl == 0,&
-         'ERROR (f_release_routine): the routine f_malloc_initialize has not been called',&
+         '(f_release_routine): the routine f_malloc_initialize has not been called',&
          ERR_MALLOC_INTERNAL)) return
 
     !profile the profiling
@@ -640,6 +499,7 @@ contains
 
     mems(ictrl)%profile_routine=mems(ictrl)%dict_codepoint//prof_enabled! 
 
+    call set_routine_info(mems(ictrl)%present_routine,mems(ictrl)%profile_routine)
     !debug
 !!$    call yaml_open_map('Codepoint after closing')
 !!$    call yaml_map('Potential Reference Routine',trim(dict_key(mems(ictrl)%dict_codepoint)))
@@ -753,6 +613,11 @@ contains
     call f_err_define(err_name='ERR_MEMLIMIT',err_msg='Memory limit reached',err_id=ERR_MEMLIMIT,&
          err_action='Control the size of the arrays needed for this run with bigdft-tool program',&
          callback=f_malloc_callback)
+    call f_err_define(err_name='ERR_INVALID_COPY',err_msg='Copy not allowed',&
+         err_id=ERR_INVALID_COPY,&
+         err_action=&
+         'A f_memcpy command failed, probably invalid sizes: check sizes of arrays at runtime',&
+         callback=f_malloc_callback)
     call f_err_define(err_name='ERR_INVALID_MALLOC',err_msg='Invalid specification of f_malloc',&
          err_id=ERR_INVALID_MALLOC,&
          err_action='Put coherent data for the memory space allocation',&
@@ -783,7 +648,7 @@ contains
     !Process Id (used to dump)
     call set(mems(ictrl)%dict_global//processid,0)
     !start the profiling of the main program
-    call f_routine(id='Main program')
+    call f_routine(id=main)
 
     !set status of library to the initial case
     call f_malloc_set_status(memory_limit=0.e0)
@@ -932,10 +797,13 @@ contains
      end do
   end subroutine dump_leaked_memory
 
-  subroutine f_malloc_dump_status(filename)
+  subroutine f_malloc_dump_status(filename,dict_summary)
     use yaml_output
     implicit none
     character(len=*), intent(in), optional :: filename
+    !> if present, this dictionary is filled with the summary of the 
+    !! dumped dictionary. Its presence disables the normal dumping
+    type(dictionary), pointer, optional, intent(out) :: dict_summary 
     !local variables
     integer, parameter :: iunit=97 !<if used switch to default
     integer :: iunt,iunit_def,istat
@@ -943,6 +811,14 @@ contains
     if (f_err_raise(ictrl == 0,&
          'ERROR (f_malloc_dump_status): the routine f_malloc_initialize has not been called',&
          ERR_MALLOC_INTERNAL)) return
+    if (present(dict_summary)) then
+       call dict_init(dict_summary)
+       call postreatment_of_calling_sequence(-1.d0,&
+            mems(ictrl)%dict_calling_sequence,dict_summary)
+       !call yaml_map('Codepoint',trim(dict_key(mems(ictrl)%dict_codepoint)))
+       return
+    end if
+
     !retrieve current unit
     call yaml_get_default_stream(iunit_def)
     iunt=iunit_def
@@ -980,301 +856,85 @@ contains
 
   end subroutine f_malloc_dump_status
 
-!---routines for low-level dynamic memory handling
 
-  !> For rank-1 arrays
-  pure function f_malloc_simple(size,id,routine_id,profile) result(m)
+  !> This routine identify for each of the routines the most time consuming parts and print it in the logfile
+  recursive subroutine postreatment_of_calling_sequence(base_time,&
+       dict_cs,dict_pt)
     implicit none
-    type(malloc_information_all) :: m
-    include 'f_malloc-simple-inc.f90'
-  end function f_malloc_simple
-  !> For rank-1 arrays
-  pure function f_malloc0_simple(size,id,routine_id,profile) result(m)
-    implicit none
-    type(malloc_information_all) :: m
-    include 'f_malloc-simple-inc.f90'
-    m%put_to_zero=.true.
-  end function f_malloc0_simple
-  !> For rank-1 arrays
-  pure function f_malloc_ptr_simple(size,id,routine_id,profile) result(m)
-    implicit none
-    type(malloc_information_ptr) :: m
-    include 'f_malloc-simple-inc.f90'
-  end function f_malloc_ptr_simple
-  !> For rank-1 arrays
-  pure function f_malloc0_ptr_simple(size,id,routine_id,profile) result(m)
-    implicit none
-    type(malloc_information_ptr) :: m
-    include 'f_malloc-simple-inc.f90'
-    m%put_to_zero=.true.
-  end function f_malloc0_ptr_simple
-  !> For rank-1 arrays
-  pure function f_malloc_str_simple(length,size,id,routine_id,profile) result(m)
-    implicit none
-    type(malloc_information_str_all) :: m
-    integer, intent(in) :: length
-    include 'f_malloc-simple-inc.f90'
-    m%len=length
-  end function f_malloc_str_simple
-  !> For rank-1 arrays
-  pure function f_malloc0_str_simple(length,size,id,routine_id,profile) result(m)
-    implicit none
-    type(malloc_information_str_all) :: m
-    integer, intent(in) :: length
-    include 'f_malloc-simple-inc.f90'
-    m%len=length
-    m%put_to_zero=.true.
-  end function f_malloc0_str_simple
-  !> For rank-1 arrays
-  pure function f_malloc_str_ptr_simple(length,size,id,routine_id,profile) result(m)
-    implicit none
-    type(malloc_information_str_ptr) :: m
-    integer, intent(in) :: length
-    include 'f_malloc-simple-inc.f90'
-    m%len=length
-  end function f_malloc_str_ptr_simple
-  !> For rank-1 arrays
-  pure function f_malloc0_str_ptr_simple(length,size,id,routine_id,profile) result(m)
-    implicit none
-    type(malloc_information_str_ptr) :: m
-    integer, intent(in) :: length
-    include 'f_malloc-simple-inc.f90'
-    m%len=length
-    m%put_to_zero=.true.
-  end function f_malloc0_str_ptr_simple
-
-
-  !> For rank-1 arrays, with bounds
-  pure function f_malloc_bound(bounds,id,routine_id,profile) result(m)
-    implicit none
-    type(malloc_information_all) :: m
-    include 'f_malloc-bound-inc.f90'
-  end function f_malloc_bound
-  !>for rank-1 arrays, with boundaries
-  pure function f_malloc0_bound(bounds,id,routine_id,profile) result(m)
-    implicit none
-    type(malloc_information_all) :: m
-    include 'f_malloc-bound-inc.f90'
-    m%put_to_zero=.true.
-  end function f_malloc0_bound
-  !> For rank-1 arrays
-  pure function f_malloc_ptr_bound(bounds,id,routine_id,profile) result(m)
-    implicit none
-    type(malloc_information_ptr) :: m
-    include 'f_malloc-bound-inc.f90'
-  end function f_malloc_ptr_bound
-  !> For rank-1 arrays
-  pure function f_malloc0_ptr_bound(bounds,id,routine_id,profile) result(m)
-    implicit none
-    type(malloc_information_ptr) :: m
-    include 'f_malloc-bound-inc.f90'
-    m%put_to_zero=.true.
-  end function f_malloc0_ptr_bound
-  !> For rank-1 arrays, with bounds
-  pure function f_malloc_str_bound(length,bounds,id,routine_id,profile) result(m)
-    implicit none
-    type(malloc_information_str_all) :: m
-    integer, intent(in) :: length
-    include 'f_malloc-bound-inc.f90'
-    m%len=length
-  end function f_malloc_str_bound
-  !>for rank-1 arrays, with boundaries
-  pure function f_malloc0_str_bound(length,bounds,id,routine_id,profile) result(m)
-    implicit none
-    type(malloc_information_str_all) :: m
-    integer, intent(in) :: length
-    include 'f_malloc-bound-inc.f90'
-    m%len=length
-    m%put_to_zero=.true.
-  end function f_malloc0_str_bound
-  !> For rank-1 arrays
-  pure function f_malloc_str_ptr_bound(length,bounds,id,routine_id,profile) result(m)
-    implicit none
-    type(malloc_information_str_ptr) :: m
-    integer, intent(in) :: length
-    include 'f_malloc-bound-inc.f90'
-    m%len=length
-  end function f_malloc_str_ptr_bound
-  !> For rank-1 arrays
-  pure function f_malloc0_str_ptr_bound(length,bounds,id,routine_id,profile) result(m)
-    implicit none
-    type(malloc_information_str_ptr) :: m
-    integer, intent(in) :: length
-    include 'f_malloc-bound-inc.f90'
-    m%len=length
-    m%put_to_zero=.true.
-  end function f_malloc0_str_ptr_bound
-
-
-  !> Define the allocation information for  arrays of different rank
-  pure function f_malloc_bounds(bounds,id,routine_id,profile) result(m)
-    implicit none
-    type(malloc_information_all) :: m
-    include 'f_malloc-bounds-inc.f90'
-  end function f_malloc_bounds
-  pure function f_malloc0_bounds(bounds,id,routine_id,profile) result(m)
-    implicit none
-    type(malloc_information_all) :: m
-    include 'f_malloc-bounds-inc.f90'
-    m%put_to_zero=.true.
-  end function f_malloc0_bounds
-  !> Define the allocation information for  arrays of different rank
-  pure function f_malloc_ptr_bounds(bounds,id,routine_id,profile) result(m)
-    implicit none
-    type(malloc_information_ptr) :: m
-    include 'f_malloc-bounds-inc.f90'
-  end function f_malloc_ptr_bounds
-  !> Define the allocation information for  arrays of different rank
-  pure function f_malloc0_ptr_bounds(bounds,id,routine_id,profile) result(m)
-    implicit none
-    type(malloc_information_ptr) :: m
-    include 'f_malloc-bounds-inc.f90'
-    m%put_to_zero=.true.
-  end function f_malloc0_ptr_bounds
-  !> Define the allocation information for  arrays of different rank
-  pure function f_malloc_str_bounds(length,bounds,id,routine_id,profile) result(m)
-    implicit none
-    type(malloc_information_str_all) :: m
-    integer, intent(in) :: length
-    include 'f_malloc-bounds-inc.f90'
-    m%len=length
-  end function f_malloc_str_bounds
-  pure function f_malloc0_str_bounds(length,bounds,id,routine_id,profile) result(m)
-    implicit none
-    type(malloc_information_str_all) :: m
-    integer, intent(in) :: length
-    include 'f_malloc-bounds-inc.f90'
-    m%len=length
-    m%put_to_zero=.true.
-  end function f_malloc0_str_bounds
-  !> Define the allocation information for  arrays of different rank
-  pure function f_malloc_str_ptr_bounds(length,bounds,id,routine_id,profile) result(m)
-    implicit none
-    type(malloc_information_str_ptr) :: m
-    integer, intent(in) :: length
-    include 'f_malloc-bounds-inc.f90'
-    m%len=length
-  end function f_malloc_str_ptr_bounds
-  !> Define the allocation information for  arrays of different rank
-  pure function f_malloc0_str_ptr_bounds(length,bounds,id,routine_id,profile) result(m)
-    implicit none
-    type(malloc_information_str_ptr) :: m
-    integer, intent(in) :: length
-    include 'f_malloc-bounds-inc.f90'
-    m%len=length
-    m%put_to_zero=.true.
-  end function f_malloc0_str_ptr_bounds
-
-  !> Define the allocation information for  arrays of different rank
-  function f_malloc(sizes,id,routine_id,lbounds,ubounds,profile,src) result(m)
-    implicit none
-    !the integer array src is here added to avoid problems in resolving the ambiguity with f_malloc_src
-    integer, dimension(:), intent(in), optional :: src
-    type(malloc_information_all) :: m
-    integer, dimension(:), intent(in), optional :: sizes,lbounds,ubounds
+    !>time on which percentages has to be given
+    double precision, intent(in) :: base_time 
+    type(dictionary), pointer :: dict_cs,dict_pt
     !local variables
-    integer :: i
-    include 'f_malloc-base-inc.f90'
-    if (present(src)) then
-       include 'f_malloc-inc.f90'
-       !when src is given there is no need anymore to continue the routine
-       if (present(lbounds) .or. present(ubounds) .or. present(sizes)) then
-          call f_err_throw(&
-               'The presence of lbounds, ubounds or sizes is forbidden whe src is present',&
-               ERR_INVALID_MALLOC)
-       end if
-       return
-    end if
-    include 'f_malloc-extra-inc.f90'
-  end function f_malloc
-  !> define the allocation information for  arrays of different rank
-  function f_malloc0(sizes,id,routine_id,lbounds,ubounds,profile) result(m)
-    implicit none
-    type(malloc_information_all) :: m
-    include 'f_malloc-total-inc.f90'
-    m%put_to_zero=.true.
-  end function f_malloc0
-  !> Define the allocation information for  arrays of different rank
-  function f_malloc_ptr(sizes,id,routine_id,lbounds,ubounds,profile,src) result(m)
-    implicit none
-    !the integer array src is here added to avoid problems in resolving the ambiguity
-    integer, dimension(:), intent(in), optional :: src
-    type(malloc_information_ptr) :: m
-    integer, dimension(:), intent(in), optional :: sizes,lbounds,ubounds
-    !local variables
-    integer :: i
-    include 'f_malloc-base-inc.f90'
-    if (present(src)) then
-       include 'f_malloc-inc.f90'
-       !when src is given there is no need anymore to continue the routine
-       if (present(lbounds) .or. present(ubounds) .or. present(sizes)) then
-          call f_err_throw(&
-               'The presence of lbounds, ubounds or sizes is forbidden whe src is present',&
-               ERR_INVALID_MALLOC)
-       end if
-       return
-    end if
-    include 'f_malloc-extra-inc.f90'
-  end function f_malloc_ptr
-  !> Define the allocation information for  arrays of different rank
-  function f_malloc0_ptr(sizes,id,routine_id,lbounds,ubounds,profile) result(m)
-    implicit none
-    type(malloc_information_ptr) :: m
-    include 'f_malloc-total-inc.f90'
-    m%put_to_zero=.true.
-  end function f_malloc0_ptr
-  !> Define the allocation information for  arrays of different rank
-  function f_malloc_str(length,sizes,id,routine_id,lbounds,ubounds,profile) result(m)
-    implicit none
-    type(malloc_information_str_all) :: m
-    integer, intent(in) :: length
-    include 'f_malloc-total-inc.f90'
-    m%len=length
-  end function f_malloc_str
-  !> define the allocation information for  arrays of different rank
-  function f_malloc0_str(length,sizes,id,routine_id,lbounds,ubounds,profile) result(m)
-    implicit none
-    type(malloc_information_str_all) :: m
-    integer, intent(in) :: length
-    include 'f_malloc-total-inc.f90'
-    m%len=length
-    m%put_to_zero=.true.
-  end function f_malloc0_str
-  !> Define the allocation information for  arrays of different rank
-  function f_malloc_str_ptr(length,sizes,id,routine_id,lbounds,ubounds,profile) result(m)
-    implicit none
-    type(malloc_information_str_ptr) :: m
-    integer, intent(in) :: length
-    include 'f_malloc-total-inc.f90'
-    m%len=length
-  end function f_malloc_str_ptr
-  !> Define the allocation information for  arrays of different rank
-  function f_malloc0_str_ptr(length,sizes,id,routine_id,lbounds,ubounds,profile) result(m)
-    implicit none
-    type(malloc_information_str_ptr) :: m
-    integer, intent(in) :: length
-    include 'f_malloc-total-inc.f90'
-    m%len=length
-    m%put_to_zero=.true.
-  end function f_malloc0_str_ptr
+    integer :: ikey,jkey,nkey,icalls
+    integer(kind=8) :: itime,jtime
+    double precision :: bt
+    character(len=info_length) :: keyval,percent
+    type(dictionary), pointer :: dict_tmp
+    integer, dimension(:), allocatable :: ipiv
+    double precision, dimension(:), allocatable :: time
+    character(len=info_length), dimension(:), allocatable :: keys
 
-  !> Define the allocation information for  arrays of different rank
-  function f_malloc_i2(src,id,routine_id,profile) result(m)
-    implicit none
-    integer, dimension(:,:), intent(in) :: src
-    type(malloc_information_all) :: m
-    include 'f_malloc-base-inc.f90'
-    include 'f_malloc-inc.f90'
-  end function f_malloc_i2
+    !build the dictionary of timings
+    nkey=dict_size(dict_cs)
+    time=f_malloc(nkey,id='time')
+    keys=f_malloc_str(info_length,nkey,id='keys')
+    ipiv=f_malloc(nkey,id='ipiv')
 
-  !> Define the allocation information for  arrays of different rank
-  function f_malloc_ptr_i2(src,id,routine_id,profile) result(m)
-    implicit none
-    integer, dimension(:,:), intent(in) :: src
-    type(malloc_information_ptr) :: m
-    include 'f_malloc-base-inc.f90'
-    include 'f_malloc-inc.f90'
-  end function f_malloc_ptr_i2
+    !now fill the timings with the values
+    dict_tmp=>dict_iter(dict_cs)
+    ikey=0
+    do while (associated(dict_tmp))
+       ikey=ikey+1       
+       keys(ikey)=dict_key(dict_tmp)
+       if (t0_time .in. dict_tmp) then
+          !measure the time from last opening
+          itime=f_time()
+          jtime=dict_tmp//t0_time
+          jtime=itime-jtime
+          time(ikey)=real(jtime,kind=8)*1.d-9
+          !add an asterisk to the key
+       else if (tot_time .in. dict_tmp) then
+          time(ikey)=dict_tmp//tot_time
+       else
+          time(ikey)=0.d0
+       end if
+       dict_tmp=>dict_next(dict_tmp)
+    end do
+
+    !now order the arrays from the most to the less expensive
+    call sort_positions(nkey,time,ipiv)
+    do ikey=1,nkey
+       jkey=ipiv(ikey)
+       icalls=dict_cs//trim(keys(jkey))//no_of_calls
+       if (base_time > 0.d0) then
+          percent(1:len(percent))=&
+               trim(yaml_toa(time(jkey)/base_time*100.d0,fmt='(f6.2)'))//'%'
+       else
+          percent(1:len(percent))='~'
+       end if
+       !add to the dictionary the information associated to this routine
+       call add(dict_pt,dict_new(trim(keys(jkey)) .is. &
+            list_new(.item. yaml_toa(time(jkey),fmt='(1pg12.3)'),&
+            .item. yaml_toa(icalls),.item. percent)&
+            ))
+    end do
+    call f_free(ipiv)
+    call f_free_str(info_length,keys)
+    call f_free(time)
+    !now that the routine level has been ordered, inspect lower levels,
+
+    do ikey=1,nkey
+       !the first key is the name of the routine
+       dict_tmp=>dict_iter(dict_pt//(ikey-1))
+       keyval=dict_key(dict_tmp)
+       bt=dict_tmp//0
+       if (subprograms .in. dict_cs//trim(keyval)) then
+          call postreatment_of_calling_sequence(bt,dict_cs//trim(keyval)//subprograms,&
+               dict_pt//(ikey-1)//subprograms)
+       end if
+    end do
+
+  end subroutine postreatment_of_calling_sequence
 
   !---Templates start here
   include 'malloc_templates-inc.f90'

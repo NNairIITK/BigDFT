@@ -18,6 +18,7 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,
   use module_interfaces, fake_name => density_and_hpot
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
+  !Arguments
   type(denspot_distribution), intent(in) :: dpbox
   type(rho_descriptors),intent(inout) :: rhodsc
   type(orbitals_data), intent(in) :: orbs
@@ -49,7 +50,7 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,
      call communicate_density(dpbox,orbs%nspin,rhodsc,rho_p,rho,.false.)
   end if
 
-  !calculate the total density in the case of nspin==2
+  !Calculate the total density in the case of nspin==2
   if (orbs%nspin==2) then
      call axpy(dpbox%ndimpot,1.0_dp,rho(1+dpbox%ndimpot),1,rho(1),1)
   end if
@@ -61,15 +62,20 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,
      call memocc(i_stat,vh,'vh',subname)
   end if
 
-  !calculate electrostatic potential
-  call vcopy(dpbox%ndimpot,rho(1),1,vh(1),1)
-  
-  call H_potential('D',pkernel,vh,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten)
-  !in principle symmetrization of the stress tensor is not needed since the density has been 
-  !already symmetrized
+  if (xc%id(1) /= XC_NO_HARTREE) then
+     !Calculate electrostatic potential
+     call vcopy(dpbox%ndimpot,rho(1),1,vh(1),1)
+     call H_potential('D',pkernel,vh,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten)
+  else
+     !Only to_zero vh
+     vh=0.0_dp
+     ehart_fake=0.0_dp
+  end if
 
+  !In principle symmetrization of the stress tensor is not needed since the density has been 
+  !already symmetrized
   if (symObj%symObj >= 0 .and. pkernel%geocode=='P') &
-       call symm_stress((dpbox%mpi_env%iproc+dpbox%mpi_env%igroup==0),hstrten,symObj%symObj)
+       call symm_stress(hstrten,symObj%symObj)
 
 END SUBROUTINE density_and_hpot
 
@@ -177,7 +183,8 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,xc,psi,rho_p,mapping)
 
  END SUBROUTINE sumrho
  
-   !starting point for the communication routine of the density
+
+!> Starting point for the communication routine of the density
 subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
   use module_base
   use module_types
@@ -230,7 +237,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
              rhotot_dbl=rhotot_dbl+rho_p(irho,ispin)*product(dpbox%hgrids)!hxh*hyh*hzh
            enddo
         enddo
-        call mpiallred(rhotot_dbl,1,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+        call mpiallred(rhotot_dbl,1,MPI_SUM,bigdft_mpi%mpi_comm)
 
         !call system_clock(ncount0,ncount_rate,ncount_max)
 
@@ -242,8 +249,8 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
 
         !call system_clock(ncount1,ncount_rate,ncount_max)
         !write(*,*) 'TIMING:ARED1',real(ncount1-ncount0)/real(ncount_rate)
-        call mpiallred(sprho_comp(1,1),rhodsc%sp_size*nspin,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
-        call mpiallred(dprho_comp(1,1),rhodsc%dp_size*nspin,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+        call mpiallred(sprho_comp(1,1),rhodsc%sp_size*nspin,MPI_SUM,bigdft_mpi%mpi_comm)
+        call mpiallred(dprho_comp(1,1),rhodsc%dp_size*nspin,MPI_SUM,bigdft_mpi%mpi_comm)
         !call system_clock(ncount2,ncount_rate,ncount_max)
         !write(*,*) 'TIMING:ARED2',real(ncount2-ncount1)/real(ncount_rate)
 
@@ -266,7 +273,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
      else if (rhodsc%icomm==0) then
         if (dump) call yaml_map('Rho Commun','ALLRED')
         call mpiallred(rho_p(1,1),dpbox%ndimgrid*nspin,&
-             &   MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+             &   MPI_SUM,bigdft_mpi%mpi_comm)
          !call system_clock(ncount1,ncount_rate,ncount_max)
          !write(*,*) 'TIMING:DBL',real(ncount1-ncount0)/real(ncount_rate)
      else
@@ -711,13 +718,15 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
 END SUBROUTINE partial_density_free
 
 
+!> Symmetrise the density using the symmetry operation
 subroutine symmetrise_density(iproc,nproc,geocode,n1i,n2i,n3i,nspin,rho,& !n(c) nscatterarr (arg:6)
      sym)
   use module_base!, only: gp,dp,wp,ndebug,memocc
   use module_types
   use m_ab6_symmetry
-
+  use yaml_output, only: yaml_warning
   implicit none
+  !Arguments
   integer, intent(in) :: iproc,nproc,nspin, n1i, n2i, n3i
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   !n(c) integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -738,6 +747,10 @@ subroutine symmetrise_density(iproc,nproc,geocode,n1i,n2i,n3i,nspin,rho,& !n(c) 
 
   call symmetry_get_matrices_p(sym%symObj, nSym, symRel, transNon, symAfm, errno)
   if (nSym == 1) return
+  if (geocode == 'F') then
+     !call yaml_warning('The symmetrization of the density is not implemented for the isolated systems')
+     return
+  end if
 
 !!$  ! Array sizes for the real-to-complex FFT: note that n1(there)=n1(here)+1
 !!$  ! and the same for n2,n3. Not needed for the moment

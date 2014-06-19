@@ -60,6 +60,8 @@ subroutine test_error_handling()
   call yaml_map("Error check value",f_err_check())
   call yaml_map("Error check code",f_err_check(err_id=ERR_TOTO))
   call yaml_map("Error check code2",f_err_check(err_id=ERR_TITI))
+  call yaml_map("Error check code, name",f_err_check(err_name='ERR_TOTO'))
+  call yaml_map("Error check code, name",f_err_check(err_name='ERR_TITI'))
 
   call f_err_unset_callback()
   call f_err_severe_restore()

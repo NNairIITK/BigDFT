@@ -27,6 +27,11 @@ module module_xc
   integer, public, parameter :: XC_LIBXC  = 2  !< xc from libxc
   integer, public, parameter :: XC_MIXED  = 3  !> xc mixing the origin of the xc functionals
 
+  integer, public, parameter :: XC_HARTREE = 0        !< IXC code for Hartree
+  integer, public, parameter :: XC_HARTREE_FOCK = 100 !< IXC code for Hartree-Fock
+  integer, public, parameter :: XC_NO_HARTREE = 1000  !< IXC code for no Hartree and no functional (ex. hydrogen atom)
+
+
   !> Structure containing the information to call the routines for the calculation of the xc functionals
   type libxc_functional
      private
@@ -46,11 +51,14 @@ module module_xc
 
   !type(xc_info) :: xc      !< Global structure about the used xc functionals
 
-  logical :: abinit_init = .false.            !< .True. if already ABINIT_XC_NAMES intialized
-  !logical :: libxc_init = .false.             !< .true. wha the libXC library has been initalized
-  character(len=500) :: ABINIT_XC_NAMES(0:28) !< Names of the xc functionals used by ABINIT
+  logical :: abinit_init = .false.                                   !< .True. if already ABINIT_XC_NAMES intialized
+  !logical :: libxc_init = .false.                                   !< .True. if the libXC library has been initialized
+  integer, parameter :: ABINIT_N_NAMES = 29                          !< Number of names for ABINIT_XC_NAMES
+  character(len=500), dimension(0:ABINIT_N_NAMES) :: ABINIT_XC_NAMES !< Names of the xc functionals used by ABINIT
 
   private
+
+  !> Public routines
   public :: xc_info, &
        &    xc_init, &
        &    xc_dump, &
@@ -120,7 +128,7 @@ contains
           xcObj%family(1) = XC_FAMILY_GGA
        else if (xcObj%id(1) >= 31 .and. xcObj%id(1) < 35) then
           xcObj%family(1) = XC_FAMILY_LDA
-       else if (xcObj%id(1) == 0 .or. xcObj%id(1)==100) then
+       else if (xcObj%id(1) == XC_HARTREE .or. xcObj%id(1) == XC_HARTREE_FOCK .or. xcObj%id(1) == XC_NO_HARTREE) then
           xcObj%family(1) = 0
        else
           write(*,*) "Error: unsupported functional, change ixc."
@@ -141,12 +149,14 @@ contains
 
   end subroutine obj_free_
 
+
+  !> Give the name of the XC functional
   subroutine obj_get_name_(xcObj, name)
     implicit none
-
-    character(len=500), intent(out) :: name
-    type(xc_info), intent(in) :: xcObj
-    
+    !Arguments
+    type(xc_info), intent(in) :: xcObj      !< XC objects
+    character(len=500), intent(out) :: name !< XC functional name
+    !Local variables
     integer :: i
     character(len = 500) :: messX, messC, messXC
 
@@ -182,9 +192,15 @@ contains
        end if
     else if (xcObj%kind == XC_ABINIT) then
        call obj_init_abinit_xc_names_()
-       write(name, "(A)") ABINIT_XC_NAMES(min(xcObj%id(1),28))
+       if (xcObj%id(1) == 1000) then
+          !No Hartree and No functional
+          write(name,"(A)") ABINIT_XC_NAMES(ABINIT_N_NAMES-1)
+       else
+          write(name, "(A)") ABINIT_XC_NAMES(min(xcObj%id(1),ABINIT_N_NAMES))
+       end if
     end if
   end subroutine obj_get_name_
+
 
   !>  Dump XC info on screen.
   subroutine obj_dump_(xcObj)
@@ -263,7 +279,7 @@ contains
     integer, intent(in) :: kind
     integer, intent(in) :: ixc
     !local variables
-    integer :: ixc_prev
+!!$    integer :: ixc_prev
 
     !check if we are trying to initialize the libXC to a different functional
 !!$    if (libxc_init) then
@@ -307,6 +323,7 @@ contains
     end if
   end function xc_isgga
 
+  !> Calculate the exchange-correlation factor (percentage) to add in the functional
   real(kind=8) function xc_exctXfac(xcObj)
     implicit none
     type(xc_info), intent(in) :: xcObj
@@ -319,8 +336,8 @@ contains
        end if
     end if
 
-    !hartree-fock value
-    if (xcObj%id(1) == 100 .and. xcObj%id(2) == 0) then
+    !Hartree-Fock value
+    if (xcObj%id(1) == XC_HARTREE_FOCK .and. xcObj%id(2) == 0) then
        xc_exctXfac = 1.d0 
     end if
 
@@ -620,8 +637,9 @@ contains
     write(ABINIT_XC_NAMES(23), "(A)") "X-: Wu & Cohen"
     write(ABINIT_XC_NAMES(26), "(A)") "XC: HCTH/147"
     write(ABINIT_XC_NAMES(27), "(A)") "XC: HCTH/407"
-    !Hatree-fock (always the last - ixc=100)
-    write(ABINIT_XC_NAMES(28), "(A)") "Hartree-Fock Exchange only"
+    write(ABINIT_XC_NAMES(28), "(A)") "No Hartree and XC terms"
+    !Hartree-Fock (always the last - ixc=100)
+    write(ABINIT_XC_NAMES(29), "(A)") "Hartree-Fock Exchange only"
 
     abinit_init = .true.
   end subroutine obj_init_abinit_xc_names_

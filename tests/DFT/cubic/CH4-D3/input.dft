@@ -10,4 +10,4 @@
 0 0 0          InputPsiId, output_wf, output_grid
 0.0 30         rbuf, ncongt: length of the tail (AU),# tail CG iterations
 0 0 0          Davidson subspace dim., # of opt. orbs, # of plotted orbs
-F              disable the symmetry detection
+T              disable the symmetry detection

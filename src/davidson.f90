@@ -124,21 +124,19 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
          allocate(psiw(max(KSwfn%orbs%npsidim_orbs,KSwfn%orbs%npsidim_comp)+ndebug),stat=i_stat)
          call memocc(i_stat,psiw,'psiw',subname)
       else
-         psiw => null()
+         allocate(psiw(1+ndebug),stat=i_stat)
+         call memocc(i_stat,psiw,'psiw',subname)
       endif
 
       !transpose the wavefunction psi 
       call transpose_v(iproc,nproc,KSwfn%orbs,KSwfn%lzd%glr%wfd,KSwfn%comms,KSwfn%psi(1),psiw(1))
 
-      if (nproc > 1) then
-         i_all=-product(shape(psiw))*kind(psiw)
-         deallocate(psiw,stat=i_stat)
-         call memocc(i_stat,i_all,'psiw',subname)
-      end if
+      i_all=-product(shape(psiw))*kind(psiw)
+      deallocate(psiw,stat=i_stat)
+      call memocc(i_stat,i_all,'psiw',subname)
    end if
 
-   allocate(VTwfn%orbs%eval(VTwfn%orbs%norb*VTwfn%orbs%nkpts+ndebug),stat=i_stat)
-   call memocc(i_stat,VTwfn%orbs%eval,'eval',subname)
+   VTwfn%orbs%eval = f_malloc_ptr(VTwfn%orbs%norb*VTwfn%orbs%nkpts,id='VTwfn%orbs%eval')
 
    VTwfn%orbs%eval(1:VTwfn%orbs%norb*VTwfn%orbs%nkpts)=-0.5d0
 
@@ -169,6 +167,9 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    if(nproc > 1)then
       !reallocate the work array with the good size
       allocate(psiw(max(VTwfn%orbs%npsidim_orbs,VTwfn%orbs%npsidim_comp)+ndebug),stat=i_stat)
+      call memocc(i_stat,psiw,'psiw',subname)
+   else
+      allocate(psiw(1+ndebug),stat=i_stat)
       call memocc(i_stat,psiw,'psiw',subname)
    end if
 
@@ -233,10 +234,14 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    !previous value of idsx_actual to control if switching has appeared
    idsx_actual_before=VTwfn%diis%idsx
 
+   if (iproc == 0) call yaml_open_sequence('Optimization of virtual orbitals')
+
    wfn_loop: do iter=1,in%itermax+100
 
       if (iproc == 0 .and. verbose > 0) then 
          call yaml_comment('iter=' // trim(yaml_toa(iter)),hfill='-')
+         call yaml_sequence(advance='no')
+         call yaml_open_map(flow=.true.)
          !write( *,'(1x,a,i0)') repeat('~',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
       endif
       !control whether the minimisation iterations ended
@@ -266,24 +271,13 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
       if (endloop) then 
          if (iproc == 0) then 
             if (verbose > 1) call yaml_map('Minimization iterations required',iter)
-            call yaml_comment('End of Virtual Wavefunction Optimisation',hfill='-')
             call write_energies(iter,0,energs,gnrm,0.d0,' ')
-            !call yaml_map('Final Ekin, Epot, Eproj', (/ energs%ekin,energs%epot,energs%eproj /),fmt='(1pe18.11)')
-            !call yaml_map('Total energy',energs%eKS,fmt='(1pe24.17)')
-            !call yaml_map('gnrm',gnrm,fmt='(1pe9.2)')
+            call yaml_close_map()
+            call yaml_comment('End of Virtual Wavefunction Optimisation',hfill='-')
             if (VTwfn%diis%energy > VTwfn%diis%energy_min) then
                call yaml_warning('Found an energy value lower than the FINAL energy, delta' // &
                     & trim(yaml_toa(VTwfn%diis%energy-VTwfn%diis%energy_min,fmt='(1pe9.2)')))
             end if
-            !if (verbose > 1) write( *,'(1x,a,i0,a)')'done. ',iter,' minimization iterations required'
-            !write( *,'(1x,a)') &
-            !   &   '------------------------------------------- End of Virtual Wavefunction Optimisation'
-            !write( *,'(1x,a,3(1x,1pe18.11))') &
-            !   &   'final  ekin,  epot,  eproj ',energs%ekin,energs%epot,energs%eproj
-            !write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') &
-            !   &   'FINAL iter,total "energy",gnrm',iter,energs%eKS,gnrm
-            !if ( VTwfn%diis%energy > VTwfn%diis%energy_min) write( *,'(1x,a,2(1pe9.2))')&
-            !   &   'WARNING: Found an energy value lower than the FINAL energy, delta:',VTwfn%diis%energy-VTwfn%diis%energy_min
          end if
          exit wfn_loop 
       endif
@@ -312,10 +306,18 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
             &   psiw(1),out_add=VTwfn%psi(1))
       end if
 
+      if (iproc == 0) call yaml_close_map()
+
    end do wfn_loop
-   if (iter == in%itermax+100 .and. iproc == 0 ) &
-      &   call yaml_warning('No convergence within the allowed number of minimization steps')
-      !&   write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
+
+   if (iproc == 0) then
+      call yaml_close_sequence() !wfn iterations
+      if (iter == in%itermax+100) then
+         call yaml_warning('No convergence within the allowed number of minimization steps')
+      else if (verbose > 1) then
+         call yaml_map('Minimization iterations required',iter)
+      end if
+   end if
 
    !deallocate real array of wavefunctions
    if(exctX .or. in%SIC%approach=='NK')then
@@ -330,22 +332,22 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    call last_orthon(iproc,nproc,iter,VTwfn,energs%evsum)
 
    !resize work array before final transposition
+   i_all=-product(shape(psiw))*kind(psiw)
+   deallocate(psiw,stat=i_stat)
+   call memocc(i_stat,i_all,'psiw',subname)
    if(nproc > 1)then
-      i_all=-product(shape(psiw))*kind(psiw)
-      deallocate(psiw,stat=i_stat)
-      call memocc(i_stat,i_all,'psiw',subname)
-
       allocate(psiw(max(KSwfn%orbs%npsidim_orbs,KSwfn%orbs%npsidim_comp)+ndebug),stat=i_stat)
+      call memocc(i_stat,psiw,'psiw',subname)
+   else
+      allocate(psiw(1+ndebug),stat=i_stat)
       call memocc(i_stat,psiw,'psiw',subname)
    end if
 
    call untranspose_v(iproc,nproc,KSwfn%orbs,KSwfn%Lzd%Glr%wfd,KSwfn%comms,KSwfn%psi(1),psiw(1))
 
-   if(nproc > 1) then
-      i_all=-product(shape(psiw))*kind(psiw)
-      deallocate(psiw,stat=i_stat)
-      call memocc(i_stat,i_all,'psiw',subname)
-   end if
+   i_all=-product(shape(psiw))*kind(psiw)
+   deallocate(psiw,stat=i_stat)
+   call memocc(i_stat,i_all,'psiw',subname)
    !!!!! end point of the direct minimisation procedure
 
    !deallocate potential
@@ -549,8 +551,7 @@ subroutine davidson(iproc,nproc,in,at,&
       call memocc(i_stat,i_all,'psiw',subname)
    end if
 
-   allocate(orbsv%eval(orbsv%norb*orbsv%nkpts+ndebug),stat=i_stat)
-   call memocc(i_stat,orbsv%eval,'eval',subname)
+   orbsv%eval = f_malloc_ptr(orbsv%norb*orbsv%nkpts+ndebug,id='orbsv%eval')
 
    orbsv%eval(1:orbsv%norb*orbsv%nkpts)=-0.5d0
 
@@ -666,8 +667,7 @@ subroutine davidson(iproc,nproc,in,at,&
    if(nproc > 1)then
       !sum up the contributions of nproc sets with 
       !commsv%nvctr_par(iproc,1) wavelet coefficients each
-      call mpiallred(e(1,1,1),2*orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
-
+      call mpiallred(e(1,1,1),2*orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
    end if
 
    !if(iproc==0)write(*,'(1x,a)')"done."
@@ -778,7 +778,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
       if(nproc > 1)then
          !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-         call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+         call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
       end if
 
       gnrm=0._dp
@@ -858,7 +858,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
          if(nproc > 1)then
             !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-            call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+            call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
          end if
 
          gnrm=0._dp
@@ -973,7 +973,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
          if(nproc > 1)then
             !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-            call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+            call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
          end if
 
          gnrm=0.0_dp
@@ -1024,8 +1024,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
       if(nproc > 1)then
          !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-         call mpiallred(hamovr(1),8*ndimovrlp(nspin,orbsv%nkpts),&
-            &   MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+         call mpiallred(hamovr(1),8*ndimovrlp(nspin,orbsv%nkpts),MPI_SUM,bigdft_mpi%mpi_comm)
       end if
 
       !if(iproc==0)write(*,'(1x,a)')"done."
@@ -1229,8 +1228,10 @@ subroutine davidson(iproc,nproc,in,at,&
       call timing(iproc,'Davidson      ','ON')
       iter=iter+1
       if(iter>in%itermax+100)then !an input variable should be put
-         if(iproc==0)write(*,'(1x,a)')&
-            &   'No convergence within the allowed number of minimization steps (itermax + 100)'
+         if(iproc==0) call yaml_warning( &
+            &   'No convergence within the allowed number of minimization steps (itermax + 100)')
+         !if(iproc==0)write(*,'(1x,a)')&
+         !   &   'No convergence within the allowed number of minimization steps (itermax + 100)'
          exit davidson_loop
       end if
 

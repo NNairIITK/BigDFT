@@ -625,6 +625,7 @@ Using the executable \texttt{frequencies}, it is possible to calculate the vibra
 a system by finite difference. The atomic system is moving for each direction and each atom in a
 small step in order to calculate the Hessian matrix by a finite difference scheme.
 A checkpoint restart is implemented. The file 'frequencies.res' contains the previous calculations.
+The imaginary frequencies (the square root of the negative eigenvalues) are output as negative values.
 
 \subsection{The '\texttt{input.freq}' file}
 There are three parameters:
@@ -640,6 +641,7 @@ There are three parameters:
 \item \texttt{freq\_method} which determines the method (only 1 at the present stage).
 \end{itemize}
 
+The file 'frequencies.xyz' contains the eigenmodes using the format readable by v\_sim.
 
 \chapter{XANES calculations}
 

@@ -153,7 +153,9 @@ program memguess
             write(*,'(1x,5a)')&
                &   'convert "', trim(fileFrom),'" file to "', trim(fileTo),'"'
             exit loop_getargs
+
          else if (trim(tatonam)=='exportwf') then
+            !Export wavefunctions (cube format)
             exportwf=.true.
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = filename_wfn)
@@ -268,6 +270,7 @@ program memguess
       write(*,*) "Done"
       stop
    end if
+
    if (convertpos) then
       call set_astruct_from_file(trim(fileFrom),0,at%astruct,i_stat,fcomment,energy,fxyz)
       if (i_stat /=0) stop 'error on input file parsing' 
@@ -298,8 +301,6 @@ program memguess
       end if
       stop
    end if
-
-
 
    if (trim(radical) == "input") then
       posinp='posinp'
@@ -370,15 +371,19 @@ program memguess
       ! but used as an allocated array by take_psi_from_file().
       ! TO BE CORRECTED !!!!!
       if (.not.associated(ref_frags)) allocate(ref_frags(runObj%inputs%frag%nfrag_ref))
-      call take_psi_from_file(filename_wfn,runObj%inputs%frag,hx,hy,hz,runObj%rst%KSwfn%Lzd%Glr, &
+      call take_psi_from_file(filename_wfn,runObj%inputs%frag, &
+           & runObj%inputs%hx,runObj%inputs%hy,runObj%inputs%hz,runObj%rst%KSwfn%Lzd%Glr, &
            & runObj%atoms,runObj%atoms%astruct%rxyz,runObj%rst%KSwfn%orbs,runObj%rst%KSwfn%psi,&
            & iorbp,export_wf_ispinor,ref_frags)
       call filename_of_iorb(.false.,"wavefunction",runObj%rst%KSwfn%orbs,iorbp, &
            & export_wf_ispinor,filename_wfn,iorb_out)
 
-      call plot_wf(filename_wfn,1,runObj%atoms,1.0_wp,runObj%rst%KSwfn%Lzd%Glr,hx,hy,hz,runObj%atoms%astruct%rxyz, &
+      call plot_wf(filename_wfn,1,runObj%atoms,1.0_wp,runObj%rst%KSwfn%Lzd%Glr, &
+           & runObj%inputs%hx,runObj%inputs%hy,runObj%inputs%hz,runObj%atoms%astruct%rxyz, &
            & runObj%rst%KSwfn%psi((runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_c+&
            & 7*runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_f) * (export_wf_ispinor - 1) + 1))
+      deallocate(ref_frags)
+      nullify(ref_frags)
    end if
 
    if (GPUtest) then
@@ -397,8 +402,7 @@ program memguess
 
       call orbitals_descriptors(0,nproc,norb,norbu,norbd,runObj%inputs%nspin,nspinor, &
            runObj%inputs%gen_nkpt,runObj%inputs%gen_kpt,runObj%inputs%gen_wkpt,orbstst,.false.)
-      allocate(orbstst%eval(orbstst%norbp+ndebug),stat=i_stat)
-      call memocc(i_stat,orbstst%eval,'orbstst%eval',subname)
+      orbstst%eval = f_malloc_ptr(orbstst%norbp,id='orbstst%eval')
       do iorb=1,orbstst%norbp
          orbstst%eval(iorb)=-0.5_gp
       end do
@@ -424,9 +428,7 @@ program memguess
       call deallocate_orbs(orbstst,subname)
 
 
-      i_all=-product(shape(orbstst%eval))*kind(orbstst%eval)
-      deallocate(orbstst%eval,stat=i_stat)
-      call memocc(i_stat,i_all,'orbstst%eval',subname)
+      call f_free_ptr(orbstst%eval)
 
    end if
 

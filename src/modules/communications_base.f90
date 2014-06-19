@@ -1,18 +1,29 @@
+!> @file
+!!  File defining the structures and the routines for the communication between processes
+!! @author
+!!    Copyright (C) 2013-2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Module defining structures and routines related to basic communications
 module communications_base
   use module_base
   implicit none
 
   private
 
-
   !> Contains the information needed for communicating the wavefunctions
   !! between processors for the transposition
   type, public :: comms_cubic
-     integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt
+     integer, dimension(:), pointer :: ncntd,ncntt
+     integer, dimension(:), pointer :: ndspld,ndsplt
      integer, dimension(:,:), pointer :: nvctr_par
   end type comms_cubic
 
-
+  !> Contains the information needed for communicating in the linear version
   type,public:: comms_linear
     integer :: nptsp_c, ndimpsi_c, ndimind_c, ndimind_f, nptsp_f, ndimpsi_f
     integer,dimension(:),pointer :: nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c
@@ -21,7 +32,7 @@ module communications_base
     integer,dimension(:),pointer :: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
     integer,dimension(:),pointer :: isendbuf_f, iextract_f, iexpand_f, irecvbuf_f
     integer,dimension(:),pointer :: norb_per_gridpoint_f, indexrecvorbital_f
-    integer,dimension(:),pointer :: isptsp_c, isptsp_f !<starting index of a given gridpoint (basically summation of norb_per_gridpoint_*)
+    integer,dimension(:),pointer :: isptsp_c, isptsp_f !< starting index of a given gridpoint (basically summation of norb_per_gridpoint_*)
     real(kind=8),dimension(:),pointer :: psit_c, psit_f
     integer,dimension(:),pointer :: nsendcounts_repartitionrho, nrecvcounts_repartitionrho
     integer,dimension(:),pointer :: nsenddspls_repartitionrho, nrecvdspls_repartitionrho
@@ -29,9 +40,27 @@ module communications_base
     integer,dimension(:,:),pointer :: commarr_repartitionrho
   end type comms_linear
 
+  !> Contains all parameters needed for the point to point communication of the potential
+  type, public :: p2pComms
+    integer, dimension(:), pointer :: noverlaps
+    real(kind=8), dimension(:), pointer :: recvBuf
+    integer, dimension(:,:,:), pointer :: comarr
+    integer :: nrecvBuf
+    integer :: window
+    integer, dimension(:,:), pointer :: ise !< Starting / ending index of recvBuf in x,y,z dimension after communication (glocal coordinates)
+    integer, dimension(:,:), pointer :: mpi_datatypes
+    logical :: communication_complete
+  end type p2pComms
 
+  interface check_array_consistency
+     module procedure check_array_consistency0
+     module procedure check_array_consistency1
+     module procedure check_array_consistency2
+  end interface
+       
   !> Public routines
   public :: comms_linear_null
+  public :: p2pComms_null
   public :: allocate_MPI_communication_arrays
   public :: allocate_local_comms_cubic
   public :: allocate_MPI_comms_cubic_repartition
@@ -40,18 +69,21 @@ module communications_base
   public :: deallocate_MPI_communication_arrays
   public :: deallocate_MPI_comms_cubic_repartition
   public :: deallocate_MPI_comms_cubic_repartitionp2p
+  public :: deallocate_p2pComms
+  public :: allocate_p2pComms_buffer
+  public :: deallocate_p2pComms_buffer
 
   public :: check_array_consistency
 
   contains
 
     !> Creators and destructors
-
     pure function comms_linear_null() result(comms)
       implicit none
       type(comms_linear) :: comms
       call nullify_comms_linear(comms)
     end function comms_linear_null
+
 
     pure subroutine nullify_comms_linear(comms)
       implicit none
@@ -86,6 +118,23 @@ module communications_base
       nullify(comms%nrecvdspls_repartitionrho)
       nullify(comms%commarr_repartitionrho)
     end subroutine nullify_comms_linear
+
+
+    pure function p2pComms_null() result(comms)
+      implicit none
+      type(p2pComms) :: comms
+      call nullify_p2pComms(comms)
+    end function p2pComms_null
+
+    pure subroutine nullify_p2pComms(comms)
+      implicit none
+      type(p2pComms),intent(inout) :: comms
+      nullify(comms%noverlaps)
+      nullify(comms%recvBuf)
+      nullify(comms%comarr)
+      nullify(comms%ise)
+      nullify(comms%mpi_datatypes)
+    end subroutine nullify_p2pComms
 
     subroutine allocate_MPI_communication_arrays(nproc, comms, only_coarse)
       implicit none
@@ -165,8 +214,8 @@ module communications_base
       call deallocate_MPI_communication_arrays(comms)
       call deallocate_local_comms_cubic(comms)
       call deallocate_MPI_comms_cubic_repartition(comms)
-      if (associated(comms%psit_c)) call f_free_ptr(comms%psit_c)
-      if (associated(comms%psit_f)) call f_free_ptr(comms%psit_f)
+      call f_free_ptr(comms%psit_c)
+      call f_free_ptr(comms%psit_f)
       call deallocate_MPI_comms_cubic_repartitionp2p(comms%commarr_repartitionrho)
     end subroutine deallocate_comms_linear
 
@@ -174,81 +223,134 @@ module communications_base
     subroutine deallocate_MPI_communication_arrays(comms)
       implicit none
       type(comms_linear),intent(inout) :: comms
-      if (associated(comms%nsendcounts_c)) call f_free_ptr(comms%nsendcounts_c)
-      if (associated(comms%nsenddspls_c)) call f_free_ptr(comms%nsenddspls_c)
-      if (associated(comms%nrecvcounts_c)) call f_free_ptr(comms%nrecvcounts_c)
-      if (associated(comms%nrecvdspls_c)) call f_free_ptr(comms%nrecvdspls_c)
-      if (associated(comms%nsendcounts_f)) call f_free_ptr(comms%nsendcounts_f)
-      if (associated(comms%nsenddspls_f)) call f_free_ptr(comms%nsenddspls_f)
-      if (associated(comms%nrecvcounts_f)) call f_free_ptr(comms%nrecvcounts_f)
-      if (associated(comms%nrecvdspls_f)) call f_free_ptr(comms%nrecvdspls_f)
+      call f_free_ptr(comms%nsendcounts_c)
+      call f_free_ptr(comms%nsenddspls_c)
+      call f_free_ptr(comms%nrecvcounts_c)
+      call f_free_ptr(comms%nrecvdspls_c)
+      call f_free_ptr(comms%nsendcounts_f)
+      call f_free_ptr(comms%nsenddspls_f)
+      call f_free_ptr(comms%nrecvcounts_f)
+      call f_free_ptr(comms%nrecvdspls_f)
     end subroutine deallocate_MPI_communication_arrays
 
     subroutine deallocate_local_comms_cubic(comms)
       implicit none
       type(comms_linear),intent(inout) :: comms
-      if (associated(comms%irecvbuf_c)) call f_free_ptr(comms%irecvbuf_c)
-      if (associated(comms%indexrecvorbital_c)) call f_free_ptr(comms%indexrecvorbital_c)
-      if (associated(comms%iextract_c)) call f_free_ptr(comms%iextract_c)
-      if (associated(comms%iexpand_c)) call f_free_ptr(comms%iexpand_c)
-      if (associated(comms%isendbuf_c)) call f_free_ptr(comms%isendbuf_c)
-      if (associated(comms%irecvbuf_f)) call f_free_ptr(comms%irecvbuf_f)
-      if (associated(comms%indexrecvorbital_f)) call f_free_ptr(comms%indexrecvorbital_f)
-      if (associated(comms%iextract_f)) call f_free_ptr(comms%iextract_f)
-      if (associated(comms%iexpand_f)) call f_free_ptr(comms%iexpand_f)
-      if (associated(comms%isendbuf_f)) call f_free_ptr(comms%isendbuf_f)
-      if (associated(comms%isptsp_c)) call f_free_ptr(comms%isptsp_c)
-      if (associated(comms%isptsp_f)) call f_free_ptr(comms%isptsp_f)
-      if (associated(comms%norb_per_gridpoint_c)) call f_free_ptr(comms%norb_per_gridpoint_c)
-      if (associated(comms%norb_per_gridpoint_f)) call f_free_ptr(comms%norb_per_gridpoint_f)
+      call f_free_ptr(comms%irecvbuf_c)
+      call f_free_ptr(comms%indexrecvorbital_c)
+      call f_free_ptr(comms%iextract_c)
+      call f_free_ptr(comms%iexpand_c)
+      call f_free_ptr(comms%isendbuf_c)
+      call f_free_ptr(comms%irecvbuf_f)
+      call f_free_ptr(comms%indexrecvorbital_f)
+      call f_free_ptr(comms%iextract_f)
+      call f_free_ptr(comms%iexpand_f)
+      call f_free_ptr(comms%isendbuf_f)
+      call f_free_ptr(comms%isptsp_c)
+      call f_free_ptr(comms%isptsp_f)
+      call f_free_ptr(comms%norb_per_gridpoint_c)
+      call f_free_ptr(comms%norb_per_gridpoint_f)
     end subroutine deallocate_local_comms_cubic
 
     subroutine deallocate_MPI_comms_cubic_repartition(comms)
       implicit none
       type(comms_linear),intent(inout) :: comms
-      if (associated(comms%nsendcounts_repartitionrho)) call f_free_ptr(comms%nsendcounts_repartitionrho)
-      if (associated(comms%nrecvcounts_repartitionrho)) call f_free_ptr(comms%nrecvcounts_repartitionrho)
-      if (associated(comms%nsenddspls_repartitionrho)) call f_free_ptr(comms%nsenddspls_repartitionrho)
-      if (associated(comms%nrecvdspls_repartitionrho)) call f_free_ptr(comms%nrecvdspls_repartitionrho)
+      call f_free_ptr(comms%nsendcounts_repartitionrho)
+      call f_free_ptr(comms%nrecvcounts_repartitionrho)
+      call f_free_ptr(comms%nsenddspls_repartitionrho)
+      call f_free_ptr(comms%nrecvdspls_repartitionrho)
     end subroutine deallocate_MPI_comms_cubic_repartition
 
 
     subroutine deallocate_MPI_comms_cubic_repartitionp2p(commarr_repartitionrho)
       implicit none
-      integer,dimension(:,:),pointer,intent(inout) :: commarr_repartitionrho
+      integer, dimension(:,:), pointer,intent(inout) :: commarr_repartitionrho
       call f_free_ptr(commarr_repartitionrho)
     end subroutine deallocate_MPI_comms_cubic_repartitionp2p
 
+    subroutine deallocate_p2pComms(p2pcomm)
+      implicit none
+      ! Calling arguments
+      type(p2pComms),intent(inout):: p2pcomm
+      ! Local variables
+      call f_free_ptr(p2pcomm%noverlaps)
+      call f_free_ptr(p2pcomm%recvBuf)
+      call f_free_ptr(p2pcomm%comarr)
+      call f_free_ptr(p2pcomm%ise)
+      if (.not.p2pcomm%communication_complete) then
+          stop 'cannot deallocate mpi data types if communication has not completed'
+      end if
+      call f_free_ptr(p2pcomm%mpi_datatypes)
+    end subroutine deallocate_p2pComms
 
-    subroutine check_array_consistency(maxdiff, nproc, array, ndims, mpi_comm)
+
+    subroutine allocate_p2pComms_buffer(comgp)
+      implicit none
+      ! Calling arguments
+      type(p2pComms),intent(inout):: comgp
+      comgp%recvBuf = f_malloc_ptr(comgp%nrecvBuf,id='comgp%recvBuf')
+    end subroutine allocate_p2pComms_buffer
+    
+    
+    subroutine deallocate_p2pComms_buffer(comgp)
+      implicit none
+      type(p2pComms),intent(inout):: comgp
+      call f_free_ptr(comgp%recvBuf)
+    end subroutine deallocate_p2pComms_buffer
+
+
+    !> Check the consistency of arrays after a gather (example: atomic coordinates)
+    subroutine check_array_consistency0(maxdiff, nproc, array, ndims, mpi_comm)
       use dynamic_memory
       implicit none
       integer, intent(in) :: mpi_comm
       integer, intent(in) :: ndims, nproc
-      real(gp), intent(in) :: array
+      real(gp), intent(inout) :: array
       real(gp), intent(out) :: maxdiff
 
       integer :: ierr, jproc, i
       real(gp), dimension(:,:), allocatable :: rxyz_glob
 
-      maxdiff=0.0_gp
+      include 'check_array-inc.f90'
 
-      if (nproc == 1) return
+    END SUBROUTINE check_array_consistency0
 
-      !check that the positions are identical for all the processes
-      rxyz_glob=f_malloc((/ndims,nproc/),id='rxyz_glob')
 
-      !gather the results for all the processors
-      call MPI_GATHER(array,ndims,mpidtypg,&
-           rxyz_glob,ndims,mpidtypg,0,mpi_comm,ierr)
-      do jproc=2,nproc
-         do i=1,ndims
-            maxdiff=max(maxdiff,&
-                 abs(rxyz_glob(i,jproc)-rxyz_glob(i,1)))
-         end do
-      end do
+    !> Check the consistency of arrays after a gather (example: atomic coordinates)
+    subroutine check_array_consistency1(maxdiff, nproc, array, mpi_comm)
+      use dynamic_memory
+      implicit none
+      integer, intent(in) :: mpi_comm
+      integer, intent(in) :: nproc
+      real(gp), dimension(:), intent(in) :: array
+      real(gp), intent(out) :: maxdiff
 
-      call f_free(rxyz_glob)
-    END SUBROUTINE check_array_consistency
+      integer :: ierr, jproc, i, ndims
+      real(gp), dimension(:,:), allocatable :: rxyz_glob
+
+      ndims = size(array)
+
+      include 'check_array-inc.f90'
+
+    END SUBROUTINE check_array_consistency1
+
+
+    !> Check the consistency of arrays after a gather (example: atomic coordinates)
+    subroutine check_array_consistency2(maxdiff, nproc, array, mpi_comm)
+      use dynamic_memory
+      implicit none
+      integer, intent(in) :: mpi_comm
+      integer, intent(in) :: nproc
+      real(gp), dimension(:,:), intent(in) :: array
+      real(gp), intent(out) :: maxdiff
+
+      integer :: ierr, jproc, i, ndims
+      real(gp), dimension(:,:), allocatable :: rxyz_glob
+
+      ndims = size(array)
+
+      include 'check_array-inc.f90'
+
+    END SUBROUTINE check_array_consistency2
 
 end module communications_base

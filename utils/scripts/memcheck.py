@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
-# Copyright (C) 2009 BigDFT group (TD)
+# Copyright (C) 2009-2014 BigDFT group (TD)
 # This file is distributed under the terms of the
 # GNU General Public License, see ~abinit/COPYING
 # or http://www.gnu.org/copyleft/gpl.txt .
@@ -41,6 +41,7 @@ nalloc = 0
 nzero = 0
 ndealloc = 0
 for line in fd:
+    #2 space to avoid pb with 'Main program'
     a = line.split()
     #Not used
     routine = a[0]

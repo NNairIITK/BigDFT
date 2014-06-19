@@ -7,6 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+
 !> Routines to handle the argument objects of call_bigdft().
 subroutine run_objects_nullify(runObj)
   use module_types
@@ -20,6 +21,8 @@ subroutine run_objects_nullify(runObj)
   nullify(runObj%radii_cf)
 END SUBROUTINE run_objects_nullify
 
+
+!> Freed the run_objects structure
 subroutine run_objects_free(runObj, subname)
   use module_types
   use module_base
@@ -30,8 +33,6 @@ subroutine run_objects_free(runObj, subname)
   implicit none
   type(run_objects), intent(inout) :: runObj
   character(len = *), intent(in) :: subname
-
-  integer :: i_all, i_stat
 
   if (associated(runObj%user_inputs)) then
      call dict_free(runObj%user_inputs)
@@ -55,6 +56,8 @@ subroutine run_objects_free(runObj, subname)
   !call yaml_close_all_streams()
 END SUBROUTINE run_objects_free
 
+
+!> Deallocate run_objects
 subroutine run_objects_free_container(runObj)
   use module_types
   use module_base
@@ -63,28 +66,24 @@ subroutine run_objects_free_container(runObj)
   implicit none
   type(run_objects), intent(inout) :: runObj
 
-  integer :: i_all, i_stat
-
   ! User inputs are always owned by run objects.
   if (associated(runObj%user_inputs)) then
      call dict_free(runObj%user_inputs)
   end if
   ! Radii_cf are always owned by run objects.
-  if (associated(runObj%radii_cf)) then
-     call f_free_ptr(runObj%radii_cf)
-  end if
+  call f_free_ptr(runObj%radii_cf)
   ! Currently do nothing except nullifying everything.
   call run_objects_nullify(runObj)
 END SUBROUTINE run_objects_free_container
 
+
+!> Read all input files and create the objects to run BigDFT
 subroutine run_objects_init_from_files(runObj, radical, posinp)
   use module_types
   use module_input_dicts, only: user_dict_from_files
   implicit none
   type(run_objects), intent(out) :: runObj
   character(len = *), intent(in) :: radical, posinp
-
-  integer(kind = 8) :: dummy
 
   call run_objects_nullify(runObj)
 
@@ -93,6 +92,7 @@ subroutine run_objects_init_from_files(runObj, radical, posinp)
   call restart_objects_new(runObj%rst)
 
   ! Generate input dictionary and parse it.
+  call dict_init(runObj%user_inputs)
   call user_dict_from_files(runObj%user_inputs, radical, posinp, bigdft_mpi)
   call run_objects_parse(runObj)
 
@@ -103,6 +103,7 @@ subroutine run_objects_init_from_files(runObj, radical, posinp)
      call bigdft_signals_start(runObj%inputs%gmainloop, runObj%inputs%signalTimeout)
   end if
 END SUBROUTINE run_objects_init_from_files
+
 
 subroutine run_objects_update(runObj, dict)
   use module_types
@@ -119,6 +120,8 @@ subroutine run_objects_update(runObj, dict)
   call run_objects_parse(runObj)
 END SUBROUTINE run_objects_update
 
+
+!> Parse the input dictiionary and create all run_objects
 subroutine run_objects_parse(runObj)
   use module_types
   use module_interfaces, only: atoms_new, inputs_new, inputs_from_dict, create_log_file
@@ -127,17 +130,20 @@ subroutine run_objects_parse(runObj)
   use module_atoms, only: deallocate_atoms_data
   implicit none
   type(run_objects), intent(inout) :: runObj
+  character(len=*), parameter :: subname = "run_objects_parse"
 
   ! Free potential previous inputs and atoms.
   if (associated(runObj%atoms)) then
      call deallocate_atoms_data(runObj%atoms) 
      deallocate(runObj%atoms)
   end if
+  ! Allocate atoms_data structure
   call atoms_new(runObj%atoms)
   if (associated(runObj%inputs)) then
      call free_input_variables(runObj%inputs)
      deallocate(runObj%inputs)
   end if
+  !Allocation input_variables structure and initialize it with default values
   call inputs_new(runObj%inputs)
 
   ! Regenerate inputs and atoms.
@@ -147,7 +153,7 @@ subroutine run_objects_parse(runObj)
   if (runObj%rst%nat > 0 .and. runObj%rst%nat /= runObj%atoms%astruct%nat) then
      stop "nat changed"
   else if (runObj%rst%nat == 0) then
-     call restart_objects_set_nat(runObj%rst, runObj%atoms%astruct%nat, "run_objects_parse")
+     call restart_objects_set_nat(runObj%rst, runObj%atoms%astruct%nat, subname)
   end if
   call restart_objects_set_mode(runObj%rst, runObj%inputs%inputpsiid)
   if (associated(runObj%rst)) then
@@ -159,10 +165,13 @@ subroutine run_objects_parse(runObj)
   if (associated(runObj%radii_cf)) then
      call f_free_ptr(runObj%radii_cf)
   end if
-  runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /), "run_objects_parse")
+
+  runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /), id="runObj%radii_cf")
   call read_radii_variables(runObj%atoms, runObj%radii_cf, &
        & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
+
 END SUBROUTINE run_objects_parse
+
 
 subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
   use module_types
@@ -181,10 +190,11 @@ subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
      call vcopy(3 * atoms%astruct%nat, rxyz0, 1, runObj%atoms%astruct%rxyz(1,1), 1)
   end if
 
-  runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /), "run_objects_associate")
+  runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /), id="runObj%radii_cf")
   call read_radii_variables(runObj%atoms, runObj%radii_cf, &
        & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
 END SUBROUTINE run_objects_associate
+
 
 subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
   use module_types
@@ -230,6 +240,7 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
   call deallocate_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
   call nullify_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
 END SUBROUTINE run_objects_system_setup
+
 
 !> Read the options in the command line using get_command statement
 subroutine command_line_information(mpi_groupsize,posinp_file,run_id,ierr)
@@ -310,7 +321,8 @@ contains
     write(*,*)' --help : prints this help screen'
   end subroutine help_screen
 
-end subroutine command_line_information
+END SUBROUTINE command_line_information
+
 
 !> Initialization of acceleration (OpenCL)
 subroutine init_material_acceleration(iproc,matacc,GPU)
@@ -323,7 +335,9 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
   type(GPU_pointers), intent(out) :: GPU
   !local variables
   integer :: iconv,iblas,initerror,ierror,useGPU,mproc,ierr,nproc_node
+  logical :: noaccel
 
+  noaccel = .true.
   if (matacc%iacceleration == 1) then
      call MPI_COMM_SIZE(bigdft_mpi%mpi_comm,mproc,ierr)
      !initialize the id_proc per node
@@ -358,6 +372,7 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
        ! write(*,'(1x,a)') 'CUDA support activated (iproc=0)'
     end if
 
+    noaccel = .false.
   else if (matacc%iacceleration >= 2) then
      ! OpenCL convolutions are activated
      ! use CUBLAS for the linear algebra for the moment
@@ -373,30 +388,33 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
      call init_acceleration_OCL(matacc,GPU)
      !   end if
      !end do
-     GPU%ndevices=min(GPU%ndevices,nproc_node)
-     if (iproc == 0) then
-        call yaml_map('Material acceleration','OpenCL',advance='no')
-        call yaml_comment('iproc=0')
-        call yaml_open_map('Number of OpenCL devices per node',flow=.true.)
-        call yaml_map('used',trim(yaml_toa(min(GPU%ndevices,nproc_node),fmt='(i0)')))
-        call yaml_map('available',trim(yaml_toa(GPU%ndevices,fmt='(i0)')))
-        !write(*,'(1x,a,i5,i5)') 'OpenCL support activated, No. devices per node (used, available):',&
-        !     min(GPU%ndevices,nproc_node),GPU%ndevices
-        call yaml_close_map()
-     end if
-     !the number of devices is the min between the number of processes per node
-     GPU%ndevices=min(GPU%ndevices,nproc_node)
-     GPU%OCLconv=.true.
-
-  else
-     if (iproc == 0) then
-        call yaml_map('Material acceleration',.false.,advance='no')
-        call yaml_comment('iproc=0')
-        ! write(*,'(1x,a)') 'No material acceleration (iproc=0)'
+     if (GPU%context /= 0.) then
+        GPU%ndevices=min(GPU%ndevices,nproc_node)
+        if (iproc == 0) then
+           call yaml_map('Material acceleration','OpenCL',advance='no')
+           call yaml_comment('iproc=0')
+           call yaml_open_map('Number of OpenCL devices per node',flow=.true.)
+           call yaml_map('used',trim(yaml_toa(min(GPU%ndevices,nproc_node),fmt='(i0)')))
+           call yaml_map('available',trim(yaml_toa(GPU%ndevices,fmt='(i0)')))
+           !write(*,'(1x,a,i5,i5)') 'OpenCL support activated, No. devices per node (used, available):',&
+           !     min(GPU%ndevices,nproc_node),GPU%ndevices
+           call yaml_close_map()
+        end if
+        !the number of devices is the min between the number of processes per node
+        GPU%ndevices=min(GPU%ndevices,nproc_node)
+        GPU%OCLconv=.true.
+        noaccel = .false.
      end if
   end if
 
+  if (noaccel .and. iproc == 0) then
+     call yaml_map('Material acceleration',.false.,advance='no')
+     call yaml_comment('iproc=0')
+     ! write(*,'(1x,a)') 'No material acceleration (iproc=0)'
+  end if
+
 END SUBROUTINE init_material_acceleration
+
 
 subroutine release_material_acceleration(GPU)
   use module_base
@@ -422,8 +440,8 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
   use module_types
   use dynamic_memory
   implicit none
-  integer, intent(in) :: iproc,nproc
-  integer, intent(out) :: iproc_node,nproc_node
+  integer, intent(in) :: iproc, nproc
+  integer, intent(out) :: iproc_node, nproc_node
   !local variables
   character(len=*), parameter :: subname='processor_id_per_node'
   integer :: ierr,namelen,jproc
@@ -474,6 +492,7 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
   end if
   call f_release_routine()
 END SUBROUTINE processor_id_per_node
+
 
 subroutine create_log_file(dict, writing_directory, dir_output, run_name)
 

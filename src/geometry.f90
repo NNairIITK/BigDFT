@@ -1,5 +1,5 @@
 !> @file
-!!  Routines to do geometry optimisation
+!!  Routines to do geometry optmization
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
@@ -50,11 +50,13 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   use dictionaries
   use minpar
   implicit none
+  !Arguments
   type(run_objects), intent(inout) :: runObj
   type(DFT_global_output), intent(inout) :: outs
   integer, intent(in) :: nproc,iproc
   integer, intent(out) :: ncount_bigdft
   !local variables
+  integer, parameter :: ugeopt = 16
   logical :: fail
   integer :: ibfgs,ierr
   character(len=6) :: outfile, fmt
@@ -67,23 +69,24 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   call geopt_init()
 
   filename=trim(runObj%inputs%dir_output)//'geopt.mon'
-  !open(unit=16,file=filename,status='unknown',position='append')
+  !open(unit=ugeopt,file=filename,status='unknown',position='append')
   !without istat this opening should crash 
   !do nothing if the unit is already opened
-  if (iproc == 0) call yaml_set_stream(unit=16,filename=trim(filename),tabbing=0,record_length=100,setdefault=.false.,istat=ierr)
+  if (iproc == 0) &
+     call yaml_set_stream(unit=ugeopt,filename=trim(filename),tabbing=0,record_length=100,setdefault=.false.,istat=ierr)
   if (iproc ==0 ) call yaml_comment('Geopt file opened, name: '//trim(filename)//', timestamp: '//trim(yaml_date_and_time_toa()),&
-       hfill='-',unit=16)
-  !write(16,*) '----------------------------------------------------------------------------'
+       hfill='-',unit=ugeopt)
+  !write(ugeopt,*) '----------------------------------------------------------------------------'
 
-  if (iproc == 0 .and. parmin%verbosity > 0 .and. ierr /= 0)  &!write(16,'(a)')  & 
-     call yaml_comment('Geometry optimization log file, grep for GEOPT for consistent output',unit=16)
-  if (iproc == 0 .and. parmin%verbosity > 0) write(16,'(a)')  & 
+  if (iproc == 0 .and. parmin%verbosity > 0 .and. ierr /= 0)  &!write(ugeopt,'(a)')  & 
+     call yaml_comment('Geometry optimization log file, grep for GEOPT for consistent output',unit=ugeopt)
+  if (iproc == 0 .and. parmin%verbosity > 0) write(ugeopt,'(a)')  & 
       '# COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO'
 
   !if (iproc ==0 .and. parmin%verbosity > 0) write(* ,'(a)') & 
   !    '# COUNT  IT  GEOPT_METHOD  ENERGY                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO'
 
-  !assign the geometry optimisation method
+  !assign the geometry optmization method
   parmin%approach=runObj%inputs%geopt_approach
 
   outs%strten=0 !not used for the moment
@@ -143,6 +146,9 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   case('FIRE')
      if (iproc ==0) call yaml_map('ENTERING FIRE',ncount_bigdft)
      call fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
+  case('SBFGS')                                                  
+   if (iproc ==0) call yaml_map('ENTERING SBFGS',ncount_bigdft)
+   call sbfgs(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   case('DIIS')   
      if (iproc ==0) call yaml_map('ENTERING DIIS',ncount_bigdft)
      call rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
@@ -155,7 +161,7 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
      return
   end select
 
-  if (iproc==0) call yaml_close_stream(unit=16)
+  if (iproc==0) call yaml_close_stream(unit=ugeopt)
 
   if (iproc==0) call yaml_map('End of minimization using ',parmin%approach)
 
@@ -449,12 +455,14 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   use module_types
   use module_interfaces
   implicit none
+  !Arguments
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: ncount_bigdft
   type(run_objects), intent(inout) :: runObj
   type(DFT_global_output), intent(inout) :: outs
   logical, intent(out) :: fail
   !local variables
+  integer, parameter :: ugeopt=16
   character(len=*), parameter :: subname='rundiis'
   real(gp), dimension(:,:,:), allocatable  :: previous_forces
   real(gp), dimension(:,:,:), allocatable  :: previous_pos
@@ -594,7 +602,7 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      call convcheck(fmax,fluct*runObj%inputs%frac_fluct,runObj%inputs%forcemax,check) !n(m)
 
      if (iproc==0) then 
-        write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,es11.3,3(1pe10.2),2x,i3)')  & 
+        write(ugeopt,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,es11.3,3(1pe10.2),2x,i3)')  & 
           ncount_bigdft,lter,"GEOPT_DIIS",outs%energy,outs%energy-etotprev, &
           & fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct,check
 
@@ -607,14 +615,16 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      endif
 
      if(check > 5)then
-        if (iproc==0) write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct', fnrm,fluct*runObj%inputs%frac_fluct,fluct
-        if (iproc==0) write(16,*) 'DIIS converged'
+        if (iproc==0) then
+           write(ugeopt,'(1x,a,3(1x,1pe14.5))') '# fnrm2,fluct*frac_fluct,fluct', fnrm,fluct*runObj%inputs%frac_fluct,fluct
+           write(ugeopt,*) '# DIIS converged'
+        end if
         exit
      endif
 
      if(ncount_bigdft>runObj%inputs%ncount_cluster_x-1)  then 
       if (iproc==0)  &
-           write(16,*) 'DIIS exited before the geometry optimization converged because more than ',& 
+           write(ugeopt,*) 'DIIS exited before the geometry optimization converged because more than ',& 
                             runObj%inputs%ncount_cluster_x,' wavefunction optimizations were required'
       exit
      endif
@@ -650,12 +660,14 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   use communications_base
 
   implicit none
+  !Arguments
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: ncount_bigdft
   type(run_objects), intent(inout) :: runObj
   type(DFT_global_output), intent(inout) :: outs
   logical, intent(inout) :: fail
-
+  !Local variables
+  integer, parameter :: ugeopt=16
   real(gp) :: fluct,fnrm
   real(gp) :: fmax,vmax,maxdiff
   integer :: check
@@ -726,7 +738,7 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      if (fmax < 3.d-1) call updatefluctsum(outs%fnoise,fluct) !n(m)
 
      if (iproc==0.and.parmin%verbosity > 0) then
-         write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),  & 
+         write(ugeopt,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),  & 
          & 2x,a6,es8.2e1,2x,a3,es8.2e1,2x,a6,es9.2,2x,a6,I5,2x,a2,es9.2)') &
          & ncount_bigdft,it,"GEOPT_FIRE",outs%energy,outs%energy-eprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct, &
          & "alpha=",alpha, "dt=",dt, "vnrm=",sqrt(vnrm), "nstep=",nstep,"P=",P
@@ -736,7 +748,6 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
             call yaml_map('Geometry step',it)
             call yaml_map('Geometry Method','GEOPT_FIRE')
             call yaml_map('epred',(/ outs%energy,outs%energy-eprev /),fmt='(1pe21.14)')
-            call geometry_output(fmax,fnrm,fluct)
             call yaml_map('Alpha', alpha, fmt='(es7.2e1)')
             call yaml_map('dt',dt, fmt='(es7.2e1)')
             call yaml_map('vnrm',sqrt(vnrm), fmt='(es8.2)')
@@ -761,7 +772,7 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 
      if(check > 5) then
         if(iproc==0)  call yaml_map('Iterations when FIRE converged',it)
-        !if(iproc==0)  write(16,'(a,i0,a)') "   FIRE converged in ",it," iterations"
+        !if(iproc==0)  write(ugeopt,'(a,i0,a)') "   FIRE converged in ",it," iterations"
         !Exit from the loop (the calculation is finished).
         exit Big_loop
      endif
@@ -794,8 +805,7 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      nstep=nstep+1
 
      ! Check velcur consistency.
-     call check_array_consistency(maxdiff, nproc, velcur(1), &
-          & 3 * runObj%atoms%astruct%nat, bigdft_mpi%mpi_comm)
+     call check_array_consistency(maxdiff, nproc, velcur, bigdft_mpi%mpi_comm)
      if (iproc==0 .and. maxdiff > epsilon(1.0_gp)) &
           call yaml_warning('Fire velocities not identical! '//&
           '(difference:'//trim(yaml_toa(maxdiff))//' )')

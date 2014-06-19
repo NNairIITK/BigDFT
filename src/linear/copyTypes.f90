@@ -33,7 +33,7 @@ subroutine copy_tmbs(iproc, tmbin, tmbout, subname)
 
   ! should technically copy these across as well but not needed for restart and will eventually be removing wfnmd as a type
   !nullify(tmbout%linmat%denskern%matrix_compr)
-  nullify(tmbout%linmat%denskern_large%matrix_compr)
+  !nullify(tmbout%linmat%denskern_large%matrix_compr)
 
   ! should also copy/nullify p2pcomms etc
 
@@ -555,226 +555,162 @@ orbsout%nkptsp = orbsin%nkptsp
 orbsout%iskpts = orbsin%iskpts
 orbsout%efermi = orbsin%efermi
 
-if(associated(orbsout%norb_par)) then
-    iall=-product(shape(orbsout%norb_par))*kind(orbsout%norb_par)
-    deallocate(orbsout%norb_par, stat=istat)
-    call memocc(istat, iall, 'orbsout%norb_par', subname)
-end if
+call f_free_ptr(orbsout%norb_par)
 if(associated(orbsin%norb_par)) then
-    iis1=lbound(orbsin%norb_par,1)
-    iie1=ubound(orbsin%norb_par,1)
-    iis2=lbound(orbsin%norb_par,2)
-    iie2=ubound(orbsin%norb_par,2)
-    allocate(orbsout%norb_par(iis1:iie1,iis2:iie2), stat=istat)
-    call memocc(istat, orbsout%norb_par, 'orbsout%norb_par', subname)
-    do i1=iis1,iie1
-       do i2 = iis2,iie2
-        orbsout%norb_par(i1,i2) = orbsin%norb_par(i1,i2)
-       end do
-    end do
+   orbsout%norb_par = &
+        f_malloc_ptr(src=orbsin%norb_par,lbounds=lbound(orbsin%norb_par),id='orbsout%norb_par')
+!!$
+!!$    iis1=lbound(orbsin%norb_par,1)
+!!$    iie1=ubound(orbsin%norb_par,1)
+!!$    iis2=lbound(orbsin%norb_par,2)
+!!$    iie2=ubound(orbsin%norb_par,2)
+!!$    orbsout%norb_par = f_malloc_ptr((/ iis1.to.iie1 , iis2.to.iie2 /),id='orbsout%norb_par')
+!!$    do i1=iis1,iie1
+!!$       do i2 = iis2,iie2
+!!$        orbsout%norb_par(i1,i2) = orbsin%norb_par(i1,i2)
+!!$       end do
+!!$    end do
 end if
 
-if(associated(orbsout%iokpt)) then
-    iall=-product(shape(orbsout%iokpt))*kind(orbsout%iokpt)
-    deallocate(orbsout%iokpt, stat=istat)
-    call memocc(istat, iall, 'orbsout%iokpt', subname)
-end if
+call f_free_ptr(orbsout%iokpt)
 if(associated(orbsin%iokpt)) then
-    iis1=lbound(orbsin%iokpt,1)
-    iie1=ubound(orbsin%iokpt,1)
-    allocate(orbsout%iokpt(iis1:iie1), stat=istat)
-    call memocc(istat, orbsout%iokpt, 'orbsout%iokpt', subname)
-    do i1=iis1,iie1
-        orbsout%iokpt(i1) = orbsin%iokpt(i1)
-    end do
+   orbsout%iokpt = f_malloc_ptr(src=orbsin%iokpt,lbounds=lbound(orbsin%iokpt),id='orbsout%iokpt')
+!!$    iis1=lbound(orbsin%iokpt,1)
+!!$    iie1=ubound(orbsin%iokpt,1)
+!!$    orbsout%iokpt = f_malloc_ptr(iis1.to.iie1,id='orbsout%iokpt')
+!!$    do i1=iis1,iie1
+!!$        orbsout%iokpt(i1) = orbsin%iokpt(i1)
+!!$    end do
 end if
 
-if(associated(orbsout%ikptproc)) then
-    iall=-product(shape(orbsout%ikptproc))*kind(orbsout%ikptproc)
-    deallocate(orbsout%ikptproc, stat=istat)
-    call memocc(istat, iall, 'orbsout%ikptproc', subname)
-end if
+call f_free_ptr(orbsout%ikptproc)
 if(associated(orbsin%ikptproc)) then
-    iis1=lbound(orbsin%ikptproc,1)
-    iie1=ubound(orbsin%ikptproc,1)
-    allocate(orbsout%ikptproc(iis1:iie1), stat=istat)
-    call memocc(istat, orbsout%ikptproc, 'orbsout%ikptproc', subname)
-    do i1=iis1,iie1
-        orbsout%ikptproc(i1) = orbsin%ikptproc(i1)
-    end do
+   orbsout%ikptproc = f_malloc_ptr(src=orbsin%ikptproc,&
+        lbounds=lbound(orbsin%ikptproc),id='orbsout%ikptproc')
+!!$    iis1=lbound(orbsin%ikptproc,1)
+!!$    iie1=ubound(orbsin%ikptproc,1)
+!!$    orbsout%ikptproc = f_malloc_ptr(iis1.to.iie1,id='orbsout%ikptproc')
+!!$    do i1=iis1,iie1
+!!$        orbsout%ikptproc(i1) = orbsin%ikptproc(i1)
+!!$    end do
 end if
 
-if(associated(orbsout%inwhichlocreg)) then
-    iall=-product(shape(orbsout%inwhichlocreg))*kind(orbsout%inwhichlocreg)
-    deallocate(orbsout%inwhichlocreg, stat=istat)
-    call memocc(istat, iall, 'orbsout%inwhichlocreg', subname)
-end if
+call f_free_ptr(orbsout%inwhichlocreg)
+    
 if(associated(orbsin%inwhichlocreg)) then
-    iis1=lbound(orbsin%inwhichlocreg,1)
-    iie1=ubound(orbsin%inwhichlocreg,1)
-    allocate(orbsout%inwhichlocreg(iis1:iie1), stat=istat)
-    call memocc(istat, orbsout%inwhichlocreg, 'orbsout%inwhichlocreg', subname)
-    do i1=iis1,iie1
-        orbsout%inwhichlocreg(i1) = orbsin%inwhichlocreg(i1)
-    end do
+   orbsout%inwhichlocreg = &
+        f_malloc_ptr(src=orbsin%inwhichlocreg,&
+        lbounds=lbound(orbsin%inwhichlocreg),id='orbsout%inwhichlocreg')
+       
+!!$    iis1=lbound(orbsin%inwhichlocreg,1)
+!!$    iie1=ubound(orbsin%inwhichlocreg,1)
+!!$    orbsout%inwhichlocreg = f_malloc_ptr(iis1.to.iie1,id='orbsout%inwhichlocreg')
+!!$    do i1=iis1,iie1
+!!$        orbsout%inwhichlocreg(i1) = orbsin%inwhichlocreg(i1)
+!!$    end do
 end if
 
-if(associated(orbsout%onwhichatom)) then
-    iall=-product(shape(orbsout%onwhichatom))*kind(orbsout%onwhichatom)
-    deallocate(orbsout%onwhichatom, stat=istat)
-    call memocc(istat, iall, 'orbsout%onwhichatom', subname)
-end if
+call f_free_ptr(orbsout%onwhichatom)
 if(associated(orbsin%onwhichatom)) then
-    iis1=lbound(orbsin%onwhichatom,1)
-    iie1=ubound(orbsin%onwhichatom,1)
-    allocate(orbsout%onwhichatom(iis1:iie1), stat=istat)
-    call memocc(istat, orbsout%onwhichatom, 'orbsout%onwhichatom', subname)
-    do i1=iis1,iie1
-        orbsout%onwhichatom(i1) = orbsin%onwhichatom(i1)
-    end do
+    orbsout%onwhichatom = &
+         f_malloc_ptr(src=orbsin%onwhichatom,lbounds=lbound(orbsin%onwhichatom),&
+         id='orbsout%onwhichatom')
+!!$    iis1=lbound(orbsin%onwhichatom,1)
+!!$    iie1=ubound(orbsin%onwhichatom,1)
+!!$    orbsout%onwhichatom = f_malloc_ptr(iis1.to.iie1,id='orbsout%onwhichatom')
+!!$    do i1=iis1,iie1
+!!$        orbsout%onwhichatom(i1) = orbsin%onwhichatom(i1)
+!!$    end do
 end if
 
-if(associated(orbsout%isorb_par)) then
-    iall=-product(shape(orbsout%isorb_par))*kind(orbsout%isorb_par)
-    deallocate(orbsout%isorb_par, stat=istat)
-    call memocc(istat, iall, 'orbsout%isorb_par', subname)
-end if
+call f_free_ptr(orbsout%isorb_par)
 if(associated(orbsin%isorb_par)) then
-    iis1=lbound(orbsin%isorb_par,1)
-    iie1=ubound(orbsin%isorb_par,1)
-    allocate(orbsout%isorb_par(iis1:iie1), stat=istat)
-    call memocc(istat, orbsout%isorb_par, 'orbsout%isorb_par', subname)
-    do i1=iis1,iie1
-        orbsout%isorb_par(i1) = orbsin%isorb_par(i1)
-    end do
+   orbsout%isorb_par = f_malloc_ptr(src=orbsin%isorb_par,id='orbsout%isorb_par')
+!!$    iis1=lbound(orbsin%isorb_par,1)
+!!$    iie1=ubound(orbsin%isorb_par,1)
+!!$    orbsout%isorb_par = f_malloc_ptr(iis1.to.iie1,id='orbsout%isorb_par')
+!!$    do i1=iis1,iie1
+!!$        orbsout%isorb_par(i1) = orbsin%isorb_par(i1)
+!!$    end do
 end if
 
-if(associated(orbsout%eval)) then
-    iall=-product(shape(orbsout%eval))*kind(orbsout%eval)
-    deallocate(orbsout%eval, stat=istat)
-    call memocc(istat, iall, 'orbsout%eval', subname)
-end if
-if(associated(orbsin%eval)) then
-    iis1=lbound(orbsin%eval,1)
-    iie1=ubound(orbsin%eval,1)
-    if(iie1 /= iis1 ) then
-       allocate(orbsout%eval(iis1:iie1), stat=istat)
-       call memocc(istat, orbsout%eval, 'orbsout%eval', subname)
-       do i1=iis1,iie1
-           orbsout%eval(i1) = orbsin%eval(i1)
-       end do
-    end if
+    call f_free_ptr(orbsout%eval)
+    if(associated(orbsin%eval)) then
+       orbsout%eval = f_malloc_ptr(src=orbsin%eval,id='orbsout%eval')
+!!$    iis1=lbound(orbsin%eval,1)
+!!$    iie1=ubound(orbsin%eval,1)
+!!$    if(iie1 /= iis1 ) then
+!!$       orbsout%eval = f_malloc_ptr(iis1.to.iie1,id='orbsout%eval')
+!!$       do i1=iis1,iie1
+!!$           orbsout%eval(i1) = orbsin%eval(i1)
+!!$       end do
+!!$    end if
 end if
 
-if(associated(orbsout%occup)) then
-    iall=-product(shape(orbsout%occup))*kind(orbsout%occup)
-    deallocate(orbsout%occup, stat=istat)
-    call memocc(istat, iall, 'orbsout%occup', subname)
-end if
+    call f_free_ptr(orbsout%occup)
 if(associated(orbsin%occup)) then
-    iis1=lbound(orbsin%occup,1)
-    iie1=ubound(orbsin%occup,1)
-    allocate(orbsout%occup(iis1:iie1), stat=istat)
-    call memocc(istat, orbsout%occup, 'orbsout%occup', subname)
-    do i1=iis1,iie1
-        orbsout%occup(i1) = orbsin%occup(i1)
-    end do
+   orbsout%occup = f_malloc_ptr(src=orbsin%occup,id='orbsout%occup')
+!!$    iis1=lbound(orbsin%occup,1)
+!!$    iie1=ubound(orbsin%occup,1)
+!!$    orbsout%occup = f_malloc_ptr(iis1.to.iie1,id='orbsout%occup')
+!!$    do i1=iis1,iie1
+!!$        orbsout%occup(i1) = orbsin%occup(i1)
+!!$    end do
 end if
 
-if(associated(orbsout%spinsgn)) then
-    iall=-product(shape(orbsout%spinsgn))*kind(orbsout%spinsgn)
-    deallocate(orbsout%spinsgn, stat=istat)
-    call memocc(istat, iall, 'orbsout%spinsgn', subname)
-end if
+
+    call f_free_ptr(orbsout%spinsgn)
+
 if(associated(orbsin%spinsgn)) then
-    iis1=lbound(orbsin%spinsgn,1)
-    iie1=ubound(orbsin%spinsgn,1)
-    allocate(orbsout%spinsgn(iis1:iie1), stat=istat)
-    call memocc(istat, orbsout%spinsgn, 'orbsout%spinsgn', subname)
-    do i1=iis1,iie1
-        orbsout%spinsgn(i1) = orbsin%spinsgn(i1)
-    end do
+   orbsout%spinsgn = f_malloc_ptr(src=orbsin%spinsgn,id='orbsout%spinsgn')
+!!$    iis1=lbound(orbsin%spinsgn,1)
+!!$    iie1=ubound(orbsin%spinsgn,1)
+!!$    orbsout%spinsgn = f_malloc_ptr(iis1.to.iie1,id='orbsout%spinsgn')
+!!$    do i1=iis1,iie1
+!!$        orbsout%spinsgn(i1) = orbsin%spinsgn(i1)
+!!$    end do
 end if
 
 
-if(associated(orbsout%kwgts)) then
-    iall=-product(shape(orbsout%kwgts))*kind(orbsout%kwgts)
-    deallocate(orbsout%kwgts, stat=istat)
-    call memocc(istat, iall, 'orbsout%kwgts', subname)
-end if
+   call f_free_ptr(orbsout%kwgts)
 if(associated(orbsin%kwgts)) then
-    iis1=lbound(orbsin%kwgts,1)
-    iie1=ubound(orbsin%kwgts,1)
-    allocate(orbsout%kwgts(iis1:iie1), stat=istat)
-    call memocc(istat, orbsout%kwgts, 'orbsout%kwgts', subname)
-    do i1=iis1,iie1
-        orbsout%kwgts(i1) = orbsin%kwgts(i1)
-    end do
+   orbsout%kwgts = f_malloc_ptr(src=orbsin%kwgts,id='orbsout%kwgts')
+!!$    iis1=lbound(orbsin%kwgts,1)
+!!$    iie1=ubound(orbsin%kwgts,1)
+!!$    orbsout%kwgts = f_malloc_ptr(iis1.to.iie1,id='orbsout%kwgts')
+!!$    do i1=iis1,iie1
+!!$        orbsout%kwgts(i1) = orbsin%kwgts(i1)
+!!$    end do
 end if
 
-
-if(associated(orbsout%kpts)) then
-    iall=-product(shape(orbsout%kpts))*kind(orbsout%kpts)
-    deallocate(orbsout%kpts, stat=istat)
-    call memocc(istat, iall, 'orbsout%kpts', subname)
-end if
+call f_free_ptr(orbsout%kpts)
 if(associated(orbsin%kpts)) then
-    iis1=lbound(orbsin%kpts,1)
-    iie1=ubound(orbsin%kpts,1)
-    iis2=lbound(orbsin%kpts,2)
-    iie2=ubound(orbsin%kpts,2)
-    allocate(orbsout%kpts(iis1:iie1,iis2:iie2), stat=istat)
-    call memocc(istat, orbsout%kpts, 'orbsout%kpts', subname)
-    do i2=iis2,iie2
-        do i1=iis1,iie1
-            orbsout%kpts(i1,i2) = orbsin%kpts(i1,i2)
-        end do
-    end do
+   orbsout%kpts = f_malloc_ptr(src=orbsin%kpts,id='orbsout%kpts')
+!!$    iis1=lbound(orbsin%kpts,1)
+!!$    iie1=ubound(orbsin%kpts,1)
+!!$    iis2=lbound(orbsin%kpts,2)
+!!$    iie2=ubound(orbsin%kpts,2)
+!!$    orbsout%kpts = f_malloc_ptr((/ iis1.to.iie1 , iis2.to.iie2 /),id='orbsout%kpts')
+!!$    do i2=iis2,iie2
+!!$        do i1=iis1,iie1
+!!$            orbsout%kpts(i1,i2) = orbsin%kpts(i1,i2)
+!!$        end do
+!!$    end do
 end if
 
-
-if(associated(orbsout%ispot)) then
-    iall=-product(shape(orbsout%ispot))*kind(orbsout%ispot)
-    deallocate(orbsout%ispot, stat=istat)
-    call memocc(istat, iall, 'orbsout%ispot', subname)
-end if
+call f_free_ptr(orbsout%ispot)
 if(associated(orbsin%ispot)) then
-    iis1=lbound(orbsin%ispot,1)
-    iie1=ubound(orbsin%ispot,1)
-    allocate(orbsout%ispot(iis1:iie1), stat=istat)
-    call memocc(istat, orbsout%ispot, 'orbsout%ispot', subname)
-    do i1=iis1,iie1
-        orbsout%ispot(i1) = orbsin%ispot(i1)
-    end do
+   orbsout%ispot = f_malloc_ptr(src=orbsin%ispot,id='orbsout%ispot')
+!!$    iis1=lbound(orbsin%ispot,1)
+!!$    iie1=ubound(orbsin%ispot,1)
+!!$    orbsout%ispot = f_malloc_ptr(iis1.to.iie1,id='orbsout%ispot')
+!!$    do i1=iis1,iie1
+!!$        orbsout%ispot(i1) = orbsin%ispot(i1)
+!!$    end do
 end if
 
 
 end subroutine copy_orbitals_data
-
-
-subroutine copy_orthon_data(odin, odout, subname)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling aruments
-  type(orthon_data),intent(in):: odin
-  type(orthon_data),intent(out):: odout
-  character(len=*),intent(in):: subname
-
-  odout%directDiag=odin%directDiag
-  odout%norbpInguess=odin%norbpInguess
-  odout%bsLow=odin%bsLow
-  odout%bsUp=odin%bsUp
-  odout%methOrtho=odin%methOrtho
-  odout%iguessTol=odin%iguessTol
-  odout%methTransformOverlap=odin%methTransformOverlap
-  odout%nItOrtho=odin%nItOrtho
-  odout%blocksize_pdsyev=odin%blocksize_pdsyev
-  odout%blocksize_pdgemm=odin%blocksize_pdgemm
-  odout%nproc_pdsyev=odin%nproc_pdsyev
-
-end subroutine copy_orthon_data
 
 
 subroutine copy_local_zone_descriptors(lzd_in, lzd_out, subname)
@@ -998,7 +934,100 @@ subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
      end do
   end if
 
+
+  sparsemat_out%smmm%nout = sparsemat_in%smmm%nout
+  sparsemat_out%smmm%nseq = sparsemat_in%smmm%nseq
+  sparsemat_out%smmm%nmaxsegk = sparsemat_in%smmm%nmaxsegk
+  sparsemat_out%smmm%nmaxvalk = sparsemat_in%smmm%nmaxvalk
+  sparsemat_out%smmm%nseg = sparsemat_in%smmm%nseg
+  
+  if(associated(sparsemat_out%smmm%ivectorindex)) then
+     call f_free_ptr(sparsemat_out%smmm%ivectorindex)
+  end if
+  if(associated(sparsemat_in%smmm%ivectorindex)) then
+     iis1=lbound(sparsemat_in%smmm%ivectorindex,1)
+     iie1=ubound(sparsemat_in%smmm%ivectorindex,1)
+     sparsemat_out%smmm%ivectorindex=f_malloc_ptr(iis1.to.iie1,id='sparsemat_out%smmm%ivectorindex')
+     do i1=iis1,iie1
+        sparsemat_out%smmm%ivectorindex(i1) = sparsemat_in%smmm%ivectorindex(i1)
+     end do
+  end if
+
+  if(associated(sparsemat_out%smmm%nsegline)) then
+     call f_free_ptr(sparsemat_out%smmm%nsegline)
+  end if
+  if(associated(sparsemat_in%smmm%nsegline)) then
+     iis1=lbound(sparsemat_in%smmm%nsegline,1)
+     iie1=ubound(sparsemat_in%smmm%nsegline,1)
+     sparsemat_out%smmm%nsegline=f_malloc_ptr(iis1.to.iie1,id='sparsemat_out%smmm%nsegline')
+     do i1=iis1,iie1
+        sparsemat_out%smmm%nsegline(i1) = sparsemat_in%smmm%nsegline(i1)
+     end do
+  end if
+
+  if(associated(sparsemat_out%smmm%istsegline)) then
+     call f_free_ptr(sparsemat_out%smmm%istsegline)
+  end if
+  if(associated(sparsemat_in%smmm%istsegline)) then
+     iis1=lbound(sparsemat_in%smmm%istsegline,1)
+     iie1=ubound(sparsemat_in%smmm%istsegline,1)
+     sparsemat_out%smmm%istsegline=f_malloc_ptr(iis1.to.iie1,id='sparsemat_out%smmm%istsegline')
+     do i1=iis1,iie1
+        sparsemat_out%smmm%istsegline(i1) = sparsemat_in%smmm%istsegline(i1)
+     end do
+  end if
+
+  if(associated(sparsemat_out%smmm%indices_extract_sequential)) then
+     call f_free_ptr(sparsemat_out%smmm%indices_extract_sequential)
+  end if
+  if(associated(sparsemat_in%smmm%indices_extract_sequential)) then
+     iis1=lbound(sparsemat_in%smmm%indices_extract_sequential,1)
+     iie1=ubound(sparsemat_in%smmm%indices_extract_sequential,1)
+     sparsemat_out%smmm%indices_extract_sequential=f_malloc_ptr(iis1.to.iie1,id='sparsemat_out%smmm%indices_extract_sequential')
+     do i1=iis1,iie1
+        sparsemat_out%smmm%indices_extract_sequential(i1) = sparsemat_in%smmm%indices_extract_sequential(i1)
+     end do
+  end if
+
+  if(associated(sparsemat_out%smmm%onedimindices)) then
+     call f_free_ptr(sparsemat_out%smmm%onedimindices)
+  end if
+  if(associated(sparsemat_in%smmm%onedimindices)) then
+     iis1=lbound(sparsemat_in%smmm%onedimindices,1)
+     iie1=ubound(sparsemat_in%smmm%onedimindices,1)
+     iis2=lbound(sparsemat_in%smmm%onedimindices,2)
+     iie2=ubound(sparsemat_in%smmm%onedimindices,2)
+     sparsemat_out%smmm%onedimindices=f_malloc_ptr((/iis1.to.iie1,iis2.to.iie2/),&
+         id='sparsemat_out%smmm%onedimindices')
+     do i1=iis1,iie1
+        do i2 = iis2,iie2
+           sparsemat_out%smmm%onedimindices(i1,i2) = &
+                sparsemat_in%smmm%onedimindices(i1,i2)
+        end do
+     end do
+  end if
+
+  if(associated(sparsemat_out%smmm%keyg)) then
+     call f_free_ptr(sparsemat_out%smmm%keyg)
+  end if
+  if(associated(sparsemat_in%smmm%keyg)) then
+     iis1=lbound(sparsemat_in%smmm%keyg,1)
+     iie1=ubound(sparsemat_in%smmm%keyg,1)
+     iis2=lbound(sparsemat_in%smmm%keyg,2)
+     iie2=ubound(sparsemat_in%smmm%keyg,2)
+     sparsemat_out%smmm%keyg=f_malloc_ptr((/iis1.to.iie1,iis2.to.iie2/),&
+         id='sparsemat_out%smmm%keyg')
+     do i1=iis1,iie1
+        do i2 = iis2,iie2
+           sparsemat_out%smmm%keyg(i1,i2) = &
+                sparsemat_in%smmm%keyg(i1,i2)
+        end do
+     end do
+  end if
+
+
   call timing(iproc,'sparse_copy','OF')
 
 end subroutine sparse_copy_pattern
+
 

@@ -19,9 +19,9 @@ use module_interfaces, exceptThisOne => updatePotential
 implicit none
 
 ! Calling arguments
-integer, intent(in) :: nspin
-type(DFT_local_fields), intent(inout) :: denspot
-real(kind=8),intent(out) :: ehart, eexcu, vexcu
+integer, intent(in) :: nspin                     !< Spin number
+type(DFT_local_fields), intent(inout) :: denspot !< in=density, out=pot
+real(kind=8), intent(out) :: ehart, eexcu, vexcu !> Energies (Hartree, XC and XC potential energy)
 
 ! Local variables
 character(len=*), parameter :: subname='updatePotential'

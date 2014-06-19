@@ -10,7 +10,7 @@
 !variable declaration, to be included in dynamic_memory.f90
   !local variables
   integer :: ierror
-  character(len=info_length) :: address
+!!$  character(len=info_length) :: address
   logical :: use_global
   integer(kind=8) :: ilsize,jlsize,iadd
   character(len=namelen) :: array_id,routine_id

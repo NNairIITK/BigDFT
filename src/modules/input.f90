@@ -1,5 +1,5 @@
 !> @file
-!!  Module to handle input variables
+!!  Modules to handle input variables
 !! @author
 !!    Copyright (C) 2010-2013 BigDFT group
 !!    This file is distributed under the terms of the
@@ -18,6 +18,7 @@
 module module_input
 
    use module_base
+   use yaml_strings, only: read_fraction_string
    implicit none
    private
 
@@ -49,17 +50,15 @@ module module_input
    public :: input_set_file,input_set_stdout
    public :: input_var
    public :: input_free
-   public :: read_fraction_string
-   public :: read_fraction_string_old
 
    contains
 
-     subroutine input_set_stdout(unit)
-       implicit none
-       integer, intent(in) :: unit
-       
-       stdout=unit
-     end subroutine input_set_stdout
+   subroutine input_set_stdout(unit)
+     implicit none
+     integer, intent(in) :: unit
+     
+     stdout=unit
+   end subroutine input_set_stdout
 
    subroutine input_set_file(iproc, dump, filename, exists,comment_file_usage)
       integer, intent(in) :: iproc
@@ -402,67 +401,6 @@ module module_input
       end if
 
    END SUBROUTINE find
-
-
-   !> Read a real or real/real, real:real 
-   !! Here the fraction is indicated by the ':' or '/'
-   !! The problem is that / is a separator for Fortran
-   subroutine read_fraction_string(string,var,ierror)
-      use module_base
-      implicit none
-      !Arguments
-      character(len=*), intent(in) :: string
-      real(gp), intent(out) :: var
-      integer, intent(out) :: ierror
-      !Local variables
-      character(len=200) :: tmp
-      integer :: num,den,pfr,psp
-
-      !First look at the first blank after trim
-      tmp=trim(string)
-      psp = scan(tmp,' ')
-
-      !see whether there is a fraction in the string
-      if(psp==0) psp=len(tmp)
-      pfr = scan(tmp(1:psp),':')
-      if (pfr == 0) pfr = scan(tmp(1:psp),'/')
-      !It is not a fraction
-      if (pfr == 0) then
-         read(tmp(1:psp),*,iostat=ierror) var
-      else 
-         read(tmp(1:pfr-1),*,iostat=ierror) num
-         read(tmp(pfr+1:psp),*,iostat=ierror) den
-         if (ierror == 0) var=real(num,gp)/real(den,gp)
-      end if
-      !Value by defaut
-      if (ierror /= 0) var = huge(1_gp) 
-   END SUBROUTINE read_fraction_string
-
-   !>  Here the fraction is indicated by the :
-   subroutine read_fraction_string_old(l,string,occ)
-      use module_base
-      implicit none
-      integer, intent(in) :: l
-      character(len=*), intent(in) :: string
-      real(gp), intent(out) :: occ
-      !local variables
-      integer :: num,den,pfr
-
-      !see whether there is a fraction in the string
-      if (l>3) then
-         pfr=3
-      else
-         pfr=2
-      end if
-      if (string(pfr:pfr) == ':') then
-         read(string(1:pfr-1),*)num
-         read(string(pfr+1:2*pfr-1),*)den
-         occ=real(num,gp)/real(den,gp)
-      else
-         read(string,*)occ
-      end if
-   END SUBROUTINE read_fraction_string_old
-
 
    !> Compare two strings (case-insensitive). Blanks are relevant!
    function case_insensitive_equiv(stra,strb)
@@ -1224,6 +1162,8 @@ module module_input
 
 END MODULE module_input
 
+
+!> Module reading the old format (before 1.7) for the input
 module input_old_text_format
   implicit none
   public
@@ -1266,61 +1206,42 @@ contains
     call input_var(dummy_real3(2),'0.45',dict//HGRIDS//1,ranges=hgrid_rng)
     call input_var(dummy_real3(3),'0.45',dict//HGRIDS//2,ranges=hgrid_rng,&
          comment='hx,hy,hz: grid spacing in the three directions')
-!!$    call set(dict//HGRIDS//0, dummy_real3(1), fmt = "(F7.5)")
-!!$    call set(dict//HGRIDS//1, dummy_real3(2), fmt = "(F7.5)")
-!!$    call set(dict//HGRIDS//2, dummy_real3(3), fmt = "(F7.5)")
-!!$  call input_var(dummy_real3,'0.45',ranges=hgrid_rng,key='hx,hy,hz',comment='grid spacing in the three directions'
 
     !coarse and fine radii around atoms
     call input_var(dummy_real,'5.0',dict//RMULT//0,ranges=xrmult_rng)
-    !call set(dict//RMULT//0, dummy_real, fmt = "(F5.2)")
     call input_var(dummy_real,'8.0',dict//RMULT//1,ranges=xrmult_rng,&
          comment='c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius')
-    !call set(dict//RMULT//1, dummy_real, fmt = "(F5.2)")
 
     !XC functional (ABINIT XC codes)
     call input_var(dummy_int,'1',dict//IXC,comment='ixc: exchange-correlation parameter (LDA=1,PBE=11)')
-    !call set(dict//IXC, dummy_int)
 
     !charge and electric field
     call input_var(dummy_int,'0',dict//NCHARGE,ranges=(/-500,500/))
-    !call set(dict//NCHARGE, dummy_int)
+
     call input_var(dummy_real3(1),'0.',dict//ELECFIELD//0)
     call input_var(dummy_real3(2),'0.',dict//ELECFIELD//1)
     call input_var(dummy_real3(3),'0.',dict//ELECFIELD//2,&
          comment='charge of the system, Electric field (Ex,Ey,Ez)')
-!!$    call set(dict//ELECFIELD//0, dummy_real3(1), fmt = "(F6.4)")
-!!$    call set(dict//ELECFIELD//1, dummy_real3(2), fmt = "(F6.4)")
-!!$    call set(dict//ELECFIELD//2, dummy_real3(3), fmt = "(F6.4)")
-    !call input_var(in%elecfield(3),'0.',comment='ncharge: charge of the system, Electric field (Ex,Ey,Ez)')
 
     !spin and polarization
     call input_var(dummy_int,'1',dict//NSPIN,exclusive=(/1,2,4/))
-    !call set(dict//NSPIN, dummy_int)
     call input_var(dummy_int,'0',dict//MPOL,comment='nspin=1 non-spin polarization, mpol=total magnetic moment')
-    !call set(dict//MPOL, dummy_int)
 
     !convergence parameters
     call input_var(dummy_real,'1.e-4',dict//GNRM_CV,ranges=(/1.e-20_gp,1.0_gp/),&
          comment='gnrm_cv: convergence criterion gradient')
-    !call set(dict//GNRM_CV, dummy_real, fmt = "(E8.1)")
     call input_var(dummy_int,'50',dict//ITERMAX,ranges=(/0,10000/))
-    !call set(dict//ITERMAX, dummy_int)
     call input_var(dummy_int,'1',dict//NREPMAX,ranges=(/0,1000/),&
          comment='itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs')
-    !call set(dict//NREPMAX, dummy_int)
 
     !convergence parameters
     call input_var(dummy_int,'6',dict//NCONG,ranges=(/0,20/))
-    !call set(dict//NCONG, dummy_int)
     call input_var(dummy_int,'6',dict//IDSX,ranges=(/0,15/),&
          comment='ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history')
-    !call set(dict//IDSX, dummy_int)
 
     !dispersion parameter
     call input_var(dummy_int,'0',dict//DISPERSION,ranges=(/0,5/),&
          comment='dispersion correction potential (values 1,2,3,4,5), 0=none')
-    !call set(dict//DISPERSION, dummy_int)
 
     ! Now the variables which are to be used only for the last run
     call input_var(dummy_int,'0',dict//INPUTPSIID,&
@@ -1331,7 +1252,6 @@ contains
        call input_psi_help()
        call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierror)
     end if
-    !call set(dict//INPUTPSIID, dummy_int)
 
     call input_var(dummy_int,'0',dict//OUTPUT_WF,exclusive=(/0,1,2,3/),input_iostat=ierror)
     ! Validate output_wf value.
@@ -1340,39 +1260,30 @@ contains
        call output_wf_format_help()
        call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierror)
     end if
-    !call set(dict//OUTPUT_WF, dummy_int)
 
     call input_var(dummy_int,'0',dict//OUTPUT_DENSPOT,exclusive=(/0,1,2,10,11,12,20,21,22/),&
          comment='InputPsiId, output_wf, output_denspot')
-    !call set(dict//OUTPUT_DENSPOT, dummy_int)
 
     ! Tail treatment.
     call input_var(dummy_real,'0.0',dict//RBUF,ranges=(/0.0_gp,10.0_gp/))
-    !call set(dict//RBUF, dummy_real, fmt = "(F5.2)")
     call input_var(dummy_int,'30',dict//NCONGT,ranges=(/1,50/),&
          comment='rbuf, ncongt: length of the tail (AU),# tail CG iterations')
-    !call set(dict//NCONGT, dummy_int)
 
     !davidson treatment
     call input_var(dummy_int,'0',dict//NORBV,ranges=(/-9999,9999/))
-    !call set(dict//NORBV, dummy_int)
     call input_var(dummy_int,'0',dict//NVIRT)
-    !call set(dict//NVIRT, dummy_int)
     call input_var(dummy_int,'0',dict//NPLOT,&
          comment='Davidson subspace dim., # of opt. orbs, # of plotted orbs')
-    !call set(dict//NPLOT, dummy_int)
 
     ! Line to disable automatic behaviours (currently only symmetries).
     call input_var(dummy_bool,'F',dict//DISABLE_SYM,comment='disable the symmetry detection')
-    !call set(dict//DISABLE_SYM, dummy_bool)
 
     call input_free(.false.)
 
-    !  call yaml_dict_dump(dict)
-
   end subroutine read_dft_from_text_format
 
-  !> Read the input variables needed for the geometry optimisation
+
+  !> Read the input variables needed for the geometry optmization
   !! Every argument should be considered as mandatory
   subroutine read_geopt_from_text_format(iproc,dict,filename)
     use module_base
@@ -1473,7 +1384,7 @@ contains
 
   END SUBROUTINE read_geopt_from_text_format
 
-  !> Read the input variables needed for the geometry optimisation
+  !> Read the input variables needed for the geometry optmization
   !!    Every argument should be considered as mandatory
   subroutine read_mix_from_text_format(iproc,dict,filename)
     use module_base
@@ -1710,6 +1621,7 @@ contains
 
   end subroutine read_kpt_from_text_format
 
+
   !> Read the input variables which can be used for performances
   subroutine read_perf_from_text_format(iproc,dict,filename)
     use module_input
@@ -1785,19 +1697,23 @@ contains
     call set(dict // SIGNALTIMEOUT, dummy_int)
     call input_var("domain", "", "Domain to add to the hostname to find the IP", dummy_str)
     call set(dict // DOMAIN, dummy_str)
-    call input_var("inguess_geopt", 0,"0= wavlet input ",dummy_int)
+    call input_var("inguess_geopt", 0,"0= wavelet input ",dummy_int)
     call set(dict // INGUESS_GEOPT, dummy_int)
-    call input_var("store_index", .true., "linear scaling: store ", dummy_bool)
+    call input_var("store_index", .true., "Linear scaling: store ", dummy_bool)
     call set(dict // STORE_INDEX, dummy_bool)
     !verbosity of the output
-    call input_var("verbosity", 2, "rbosity of the output 0=low, 2=high",dummy_int)
+    call input_var("verbosity", 2, "Verbosity of the output 0=low, 2=high",dummy_int)
     call set(dict // VERBOSITY, dummy_int)
     call input_var("outdir", ".","Writing directory", dummy_path)
     call set(dict // OUTDIR, dummy_path)
 
     !If false, apply the projectors in the once-and-for-all scheme, otherwise on-the-fly
-    call input_var("psp_onfly", .true., "Calculate ",dummy_bool)
+    call input_var("psp_onfly", .true., "Calculate the PSP projectors on the fly (less memory)",dummy_bool)
     call set(dict // PSP_ONFLY, dummy_bool)
+
+    !If true, preserve the multipole of the ionic part (local potential) projecting on delta instead of ISF
+    call input_var("multipole_preserving", .false., "Preserve multipole moment of the ionic charge",dummy_bool)
+    call set(dict // MULTIPOLE_PRESERVING, dummy_bool)
 
     !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
     call input_var("pdsyev_blocksize",-8,"SCALAPACK linear scaling blocksize",dummy_int) !ranges=(/-100,1000/)
@@ -1859,28 +1775,51 @@ contains
     call input_var("purification_quickreturn", .false., "linear scaling: quick return in purification", dummy_bool)
     call set(dict // PURIFICATION_QUICKRETURN, dummy_bool)
 
+    call input_var("adjust_FOE_temperature", .true., "dynamic adjustment of FOE error function decay length", dummy_bool)
+    call set(dict // ADJUST_FOE_TEMPERATURE, dummy_bool)
+
+    call input_var("calculate_gap", .false., "calculate the HOMO LUMO gap", dummy_bool)
+    call set(dict // CALCULATE_GAP, dummy_bool)
+
+    call input_var("loewdin_charge_analysis", .false., "perform a Loewdin charge analysis at the end", dummy_bool)
+    call set(dict // LOEWDIN_CHARGE_ANALYSIS, dummy_bool)
+
+    call input_var("check_matrix_compression", .true., "perform a check of the matrix compression routines", dummy_bool)
+    call set(dict // CHECK_MATRIX_COMPRESSION, dummy_bool)
+
+    call input_var("correction_co_contra", .false., "correction covariant / contravariant gradient", dummy_bool)
+    call set(dict // CORRECTION_CO_CONTRA, dummy_bool)
+
+    call input_var("fscale_lowerbound", 5.d-3, "lower bound for the error function decay length", dummy_real)
+    call set(dict // FSCALE_LOWERBOUND, dummy_real)
+
+    call input_var("fscale_upperbound", 5.d-2, "upper bound for the error function decay length", dummy_real)
+    call set(dict // FSCALE_UPPERBOUND, dummy_real)
+
+
     call input_free(.false.)
 
   END SUBROUTINE read_perf_from_text_format
 
   !> Read the linear input variables
-  subroutine read_lin_from_text_format(iproc,dict,filename)
+  subroutine read_lin_and_frag_from_text_format(iproc,dict,run_name)
     use module_base
     use module_input
     use module_input_keys
-    use dictionaries
     implicit none
-    character(len=*), intent(in) :: filename
+    character(len=*), intent(in) :: run_name
     type(dictionary), pointer :: dict
     integer, intent(in) :: iproc
     !local variables
     !n(c) character(len=*), parameter :: subname='perf_input_variables'
-    logical :: exists, dummy_bool
+    logical :: exists, dummy_bool,frag_bool
     integer :: dummy_int,ios
     double precision :: dummy_real
-    character(len=256) :: comments,dummy_char
+    character(len=256) :: comments,dummy_char,filename
     type(dictionary), pointer :: dict_basis
 
+    filename=repeat(' ',len(filename))
+    call set_inputfile(filename, trim(run_name),    "lin")
     ! This name seems to be too long..
     !call input_set_file(iproc,(iproc == 0),trim(filename),exists,'Parameters for Localized basis generation (O(N) approach)')
     call input_set_file(iproc,(iproc == 0),trim(filename),exists,'Parameters for O(N) approach')
@@ -1894,8 +1833,6 @@ contains
     end if
 
     if (.not. associated(dict)) call dict_init(dict)
-
-
 
     ! General variables #######################################################
 
@@ -1943,17 +1880,18 @@ contains
     call input_var(dummy_real,'1.d-8' ,dict//LIN_GENERAL//RPNRM_CV//0,ranges=(/0.d0,1.d0/))
     call input_var(dummy_real,'1.d-12',dict//LIN_GENERAL//RPNRM_CV//1,ranges=(/0.d0,1.d0/),comment=comments)
 
-    comments = 'basis convergence (low, high) ; early stop TMB optimization, dynamic gnrm (experimental mode only)'
+    comments = 'basis convergence (low, high) ; early stop TMB optimization, dynamic gnrm, activate dyn (exp. mode only)'
     call input_var(dummy_real,'1.d-3',dict//LIN_BASIS//GNRM_CV//0,ranges=(/0.0_gp,1.0_gp/))
     call input_var(dummy_real,'1.d-5',dict//LIN_BASIS//GNRM_CV//1,ranges=(/0.0_gp,1.0_gp/))
     call input_var(dummy_real,'1.d-4',dict//LIN_BASIS//DELTAE_CV,ranges=(/0.0_gp,1.0_gp/))
-    call input_var(dummy_real,'1.d-4',dict//LIN_BASIS//GNRM_DYN,ranges=(/0.0_gp,1.0_gp/),comment=comments)
+    call input_var(dummy_real,'1.d-4',dict//LIN_BASIS//GNRM_DYN,ranges=(/0.0_gp,1.0_gp/))
+    call input_var(dummy_real,'1.d-3',dict//LIN_BASIS//MIN_GNRM_FOR_DYNAMIC,ranges=(/1.d-7,1.0_gp/),comment=comments)
 
     comments = 'factor to reduce the confinement. Only used for hybrid mode.'
     call input_var(dummy_real,'0.5d0',dict//LIN_GENERAL//CONF_DAMPING,ranges=(/-1.d100,1.d0/),comment=comments)
 
     comments = 'kernel convergence (low, high) - directmin only'
-    call input_var(dummy_real,'1.d-5',dict//LIN_KERNEL//GNRM_CV_COEFF//0,ranges=(/0.d0,1.d0/))
+    call input_var(dummy_real,'75.d-5',dict//LIN_KERNEL//GNRM_CV_COEFF//0,ranges=(/0.d0,1.d0/))
     call input_var(dummy_real,'1.d-5',dict//LIN_KERNEL//GNRM_CV_COEFF//1,ranges=(/0.d0,1.d0/),comment=comments)
 
     comments = 'density convergence (low, high)'
@@ -1991,15 +1929,16 @@ contains
     call input_var(dummy_real,'-.5d0',dict//LIN_KERNEL//EVAL_RANGE_FOE//0,ranges=(/-10.d0,-1.d-10/))
     call input_var(dummy_real,'-.5d0',dict//LIN_KERNEL//EVAL_RANGE_FOE//1,ranges=(/1.d-10,10.d0/),comment=comments)
 
-    comments='number of iterations in the preconditioner, order of Taylor approximations'
-    call input_var(dummy_int,'5',dict//LIN_BASIS//NSTEP_PREC,ranges=(/1,100/))
-    call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/1,100/),comment=comments)
+    !comments='number of iterations in the preconditioner, order of Taylor approximations'
+    comments='number of iterations in the preconditioner'
+    call input_var(dummy_int,'5',dict//LIN_BASIS//NSTEP_PREC,ranges=(/1,100/),comment=comments)
+    !!call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-100,100/),comment=comments)
     !call input_var(in%lin%order_taylor,'1',ranges=(/1,100/),comment=comments)
 
     comments = '0-> exact Loewdin, 1-> taylor expansion; &
                &in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
-    call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-1,10000/))
-    call input_var(dummy_int,'1',ranges=(/0,1/),comment=comments)
+    call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-100,100/))
+    call input_var(dummy_int,'1',dict//LIN_BASIS//CORRECTION_ORTHOCONSTRAINT,comment=comments)
     !call input_var(in%lin%correctionOrthoconstraint,'1',ranges=(/0,1/),comment=comments)
 
     comments='fscale: length scale over which complementary error function decays from 1 to 0'
@@ -2017,13 +1956,6 @@ contains
 !    call input_var(in%lin%new_pulay_correction,'F')
     call input_var(dummy_bool,'F',dict//LIN_GENERAL//SUBSPACE_DIAG,comment=comments)
 
-
-
-
-
-
-
-
   !fragment calculation and transfer integrals: true or false
   comments='fragment calculation; calculate transfer_integrals; constrained DFT calculation; extra states to optimize (dmin only)'
   !these should becode dummy variables to build dictionary
@@ -2031,10 +1963,14 @@ contains
   !!call input_var(in%lin%calc_transfer_integrals,'F')
   !!call input_var(in%lin%constrained_dft,'F')
   !!call input_var(in%lin%extra_states,'0',ranges=(/0,10000/),comment=comments)
+  call input_var(frag_bool,'F')
+  !this variable makes sense only if fragments are specified
   call input_var(dummy_bool,'F')
-  call input_var(dummy_bool,'F')
-  call input_var(dummy_bool,'F')
-  call input_var(dummy_int,'0',ranges=(/0,10000/),comment=comments)
+  if (frag_bool) call dict_set(dict//FRAG_VARIABLES//TRANSFER_INTEGRALS,dummy_bool)
+  
+  call input_var(dummy_bool,'F') !constrained DFT, obtained via the charges
+  call input_var(dummy_int,'0',dict//LIN_GENERAL//EXTRA_STATES,&
+       ranges=(/0,10000/),comment=comments)
 
   ! Now read in the parameters specific for each atom type.
   comments = 'Atom name, number of basis functions per atom, prefactor for confinement potential,'//&
@@ -2043,29 +1979,6 @@ contains
   !!   if (exists) then
         call input_var(dummy_char,'C',input_iostat=ios)
         if (ios /= 0) exit read_basis
-  !!      dict_basis=>dict//BASIS_PARAMS//trim(atomname)
-  !!   else
-  !!      call input_var(atomname,'C')!trim(atoms%astruct%atomnames(1)))
-  !!      dict_basis=>dict//BASIS_PARAMS! default values
-  !!      !itype = itype + 1
-  !!   end if
-
-     !number of basis functions for this atom type
-     !!call input_var(npt,'1',dict_basis//NBASIS,ranges=(/1,100/),input_iostat=ios)
-     !!call input_var(ppao,'1.2d-2',dict_basis//AO_CONFINEMENT,&
-     !!     ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
-     !!call input_var(ppl,'1.2d-2',dict_basis//CONFINEMENT//0,&
-     !!     ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
-     !!call input_var(pph,'5.d-5',dict_basis//CONFINEMENT//1,&
-     !!     ranges=(/0.0_gp,1.0_gp/),input_iostat=ios)
-     !!call input_var(lrl,'10.d0',dict_basis//RLOC//0,&
-     !!     ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
-     !!call input_var(lrh,'10.d0',dict_basis//RLOC//1,&
-     !!     ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
-     !!call input_var(kco,'12.d0',dict_basis//RLOC_KERNEL,&
-     !!     ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios)
-     !!call input_var(kco_FOE,'20.d0',dict_basis//RLOC_KERNEL_FOE,&
-     !!     ranges=(/1.0_gp,10000.0_gp/),input_iostat=ios,comment=comments)
      dict_basis=>dict//LIN_BASIS_PARAMS//trim(dummy_char)
      call input_var(dummy_int,'1',dict_basis//NBASIS,ranges=(/1,100/))
      call input_var(dummy_real,'1.2d-2',dict_basis//AO_CONFINEMENT,&
@@ -2086,136 +1999,249 @@ contains
   !!   if (.not. exists) exit read_basis !default has been filled
   end do read_basis
 
+    call input_free(.false.)
+
+    !read extensively the file and build the temporary variable
+    !from which the input dictionary is updated
+    if (frag_bool) then
+       filename=repeat(' ',len(filename))
+       call set_inputfile(filename, run_name,   "frag")
+       call fragment_input_variables_from_text_format(iproc,.false.,&
+            trim(filename),frag_bool,dict//FRAG_VARIABLES)
+    end if
+
+  END SUBROUTINE read_lin_and_frag_from_text_format
+
+  subroutine read_neb_from_text_format(iproc,dict,filename)
+    use module_base
+    use module_input
+    use module_input_keys
+    use dictionaries
+    implicit none
+    character(len=*), intent(in) :: filename
+    type(dictionary), pointer :: dict
+    integer, intent(in) :: iproc
+
+    INTEGER :: num_of_images
+    CHARACTER (LEN=20) :: minimization_scheme
+    logical :: climbing, optimization, restart, exists
+    integer :: max_iterations
+    real(gp) :: convergence, damp, k_min, k_max, ds, temp_req, tolerance
+    CHARACTER (LEN=80) :: first_config, last_config, job_name, scratch_dir
+
+    NAMELIST /NEB/ scratch_dir,         &
+         climbing,            &
+         optimization,        &
+         minimization_scheme, &
+         damp,                &
+         temp_req,            &
+         k_max, k_min,        &
+         ds,                  &
+         max_iterations,      &
+         tolerance,           &
+         convergence,         &
+         num_of_images,       &
+         restart,             & ! not used
+         job_name,            & ! not used
+         first_config,        & ! not used
+         last_config            ! not used
+
+    inquire(file=trim(filename),exist=exists)
+    if (.not. exists) return
+
+    open(unit = 123, file = trim(filename), action = "read")
+    READ(123 , NML=NEB )
+    close(123)
+
+    call set(dict // GEOPT_METHOD, "NEB")
+    call set(dict // NEB_CLIMBING, climbing)
+    call set(dict // EXTREMA_OPT, optimization)
+    call set(dict // NEB_METHOD, minimization_scheme)
+    call set(dict // NEB_DAMP, damp)
+    call set(dict // SPRINGS_K // 0, k_min)
+    call set(dict // SPRINGS_K // 1, k_max)
+    call set(dict // TEMP, temp_req)
+    call set(dict // BETAX, ds)
+    call set(dict // NCOUNT_CLUSTER_X, max_iterations)
+    call set(dict // FIX_TOL, tolerance)
+    call set(dict // FORCEMAX, convergence)
+    call set(dict // NIMG, num_of_images)
+
+  end subroutine read_neb_from_text_format
+
+  !> Read fragment input parameters
+  subroutine fragment_input_variables_from_text_format(iproc,dump,filename,shouldexist,dict)
+    use module_base
+    use module_types
+    use module_input
+    use module_input_keys
+    use yaml_output, only: yaml_toa,yaml_map
+    implicit none
+    logical, intent(in) :: shouldexist
+    integer, intent(in) :: iproc
+    character(len=*), intent(in) :: filename
+    type(dictionary), pointer :: dict
+    logical, intent(in) :: dump
+    !local variables
+    !character(len=*), parameter :: subname='fragment_input_variables'
+    logical :: exists
+    character(len=256) :: comments
+    integer :: ifrag, frag_num, ierr
+    real(gp) :: charge
+    type(fragmentInputParameters) :: frag
+    type(dictionary), pointer :: dict_frag,frag_list
+
+    !Linear input parameters
+    call input_set_file(iproc,dump,trim(filename),exists,'Fragment Parameters') 
+
+    if (.not. exists .and. shouldexist) then ! we should be doing a fragment calculation, so this is a problem
+       call f_err_throw("The file 'input.frag' is missing and fragment calculation was specified",&
+            err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+       call input_free(.false.)
+       return
+    end if
+
+    call nullifyInputFragParameters(frag)
+
+    !example of interpreted fragment yaml file
+    !!frag:
+    !!  transfer_integrals: Yes
+    !!  frag_name1: [1, ... , 3, 5, ... , 8]
+    !!  frag_name2: [9, 10, 13, 16, ... ,18]
+    !!  frag_name3: [11, 12, 15]
+    !!  constrained_dft:
+    !!    Fragment No. 9: +1
+    !!    Fragment No. 15: -1
+    !!
+
+    ! number of reference fragments
+    comments='# number of fragments in reference system, number of fragments in current system'
+    call input_var(frag%nfrag_ref,'1',ranges=(/1,100000/))
+    call input_var(frag%nfrag,'1',ranges=(/1,100000/),comment=comments)
+
+    ! Allocate fragment pointers
+    call allocateInputFragArrays(frag)
+
+    ! ADD A SENSIBLE DEFAULT AND ALLOW FOR USER NOT TO SPECIFY FRAGMENT NAMES
+    comments = '#  reference fragment number i, fragment label'
+    do ifrag=1,frag%nfrag_ref
+       call input_var(frag_num,'1',ranges=(/1,frag%nfrag_ref/))
+       if (frag_num/=ifrag) then
+          call f_err_throw("The file 'input.frag'  has an error when specifying"//&
+               " the reference fragments",err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+       end if
+       call input_var(frag%label(frag_num),' ',comment=comments)
+       frag%label(frag_num)=trim(frag%label(frag_num))
+       ! keep dirname blank if this isn't a fragment calculation
+       if (len(trim(frag%label(frag_num)))>=1) then
+          frag%dirname(frag_num)='data-'//trim(frag%label(frag_num))//'/'
+       else
+          frag%dirname(frag_num)=''
+       end if
+    end do
+
+    comments = '# fragment number j, reference fragment i this corresponds to, charge on this fragment'
+    do ifrag=1,frag%nfrag
+       call input_var(frag_num,'1',ranges=(/1,frag%nfrag/))
+       if (frag_num/=ifrag) then
+          call f_err_throw("The file 'input.frag'  has an error when specifying"//&
+               " the system fragments",err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+       end if
+       call input_var(frag%frag_index(frag_num),'1',ranges=(/0,100000/))
+       call input_var(charge,'0.d0',ranges=(/-500.d0,500.d0/),comment=comments)
+       frag%charge(frag_num)=charge
+       !call input_var(frag%charge(frag_num),'1',ranges=(/-500,500/),comment=comments)
+    end do
 
     call input_free(.false.)
 
+    call dict_from_frag(frag,dict_frag)
+
+    !call yaml_map('Fragment dictionary',dict_frag)
+
+    call dict_update(dict,dict_frag)
+    call dict_free(dict_frag)
+    call deallocateInputFragArrays(frag)
+
+  END SUBROUTINE fragment_input_variables_from_text_format
+
+  !> routine to build dictionary of fragment for purposes of backward compatibility with the old format
+  subroutine dict_from_frag(frag,dict_frag)
+    use module_base
+    use module_types, only: fragmentInputParameters
+    use yaml_output, only: yaml_toa
+    use module_input_keys
+    implicit none
+    type(fragmentInputParameters), intent(in) :: frag
+    type(dictionary), pointer :: dict_frag
+    !local variables
+    integer :: ifrag
+    type(dictionary), pointer :: frag_list
+
+    !create a dictionary with the given information
+    call dict_init(dict_frag)
+    do ifrag=1,frag%nfrag_ref
+       !build the list of fragments associated to the reference
+       call build_frag_list(ifrag,frag%nfrag,frag%frag_index,frag_list)
+       call dict_set(dict_frag//trim(frag%label(ifrag)),frag_list)
+    end do
+    !then set the constrained DFT elements in case there is a charge
+    do ifrag=1,frag%nfrag
+       if (frag%charge(ifrag) /= 0.d0) &
+            call dict_set(dict_frag//CONSTRAINED_DFT//(FRAGMENT_NO//&
+            trim(adjustl(yaml_toa(ifrag)))),frag%charge(ifrag),fmt='(f7.2)')
+    end do
+
+  contains
+
+    subroutine build_frag_list(ifrag_ref,nfrag,frag_index,frag_list)
+      implicit none
+      integer, intent(in) :: nfrag,ifrag_ref
+      integer, dimension(nfrag), intent(in) :: frag_index
+      type(dictionary), pointer :: frag_list
+      !local variables
+      logical :: agree,willagree
+      integer :: ifrag,istart,iend
+
+      call dict_init(frag_list)
+
+      !for each segment find the starting and ending point 
+      ifrag=1
+      istart=0
+      iend=0
+      find_segment: do while(ifrag <= nfrag)
+         agree=frag_index(ifrag)== ifrag_ref
+         willagree= ifrag < nfrag
+         if (willagree) willagree=frag_index(ifrag+1) == ifrag_ref
+         if (agree) then
+            !starting point if it has not been found yet
+            if (istart==0) then
+               istart=ifrag
+            end if
+            if (willagree) then
+               iend=0
+            else
+               iend=ifrag
+            end if
+         end if
+         if (istart*iend /= 0) then
+            if (istart==iend) then
+               call add(frag_list,istart)
+            else if (iend == istart+1) then
+               call add(frag_list,istart)
+               call add(frag_list,iend)
+            else
+               call add(frag_list,istart)
+               call add(frag_list,'...')
+               call add(frag_list,iend)
+            end if
+            istart=0
+            iend=0
+         end if
+         ifrag=ifrag+1
+      end do find_segment
+    end subroutine build_frag_list
+  end subroutine dict_from_frag
 
 
-  !!   ! General variables #######################################################
-
-  !!   comments='number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybrid mode)'
-  !!   call input_var(dummy_int,'2',ranges=(/1,2/),comment=comments)
-  !!   call dict_set(dict//LIN_GENERAL//HYBRID,dummy_int==1)
-
-  !!   ! number of iterations
-  !!   comments = 'outer loop iterations (low, high)'
-  !!   call input_var(dummy_int,'15',dict//LIN_GENERAL//NIT//0,ranges=(/0,100000/))
-  !!   call input_var(dummy_int,'1',dict//LIN_GENERAL//NIT//1,ranges=(/0,100000/),comment=comments)
-
-  !!   ! Convergence criteria
-  !!   comments = 'outer loop convergence (low, high)'
-  !!   call input_var(dummy_real,'1.d-8' ,dict//LIN_GENERAL//RPNRM_CV//0,ranges=(/0.d0,1.d0/))
-  !!   call input_var(dummy_real,'1.d-12',dict//LIN_GENERAL//RPNRM_CV//1,ranges=(/0.d0,1.d0/),comment=comments)
-
-  !!   comments = 'factor to reduce the confinement. Only used for hybrid mode.'
-  !!   call input_var(dummy_real,'0.5d0',dict//LIN_GENERAL//CONF_DAMPING,ranges=(/-1.d100,1.d0/),comment=comments)
-
-  !!   comments = '0-> exact Loewdin, 1-> taylor expansion; &
-  !!              &in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
-  !!   call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-1,10000/))
-  !!   call input_var(in%lin%correctionOrthoconstraint,'1',ranges=(/0,1/),comment=comments)
-
-  !!   !plot basis functions: true or false
-  !!   comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ;'//&
-  !!            'calculate dipole ; pulay correction (old and new); diagonalization at the end (dmin, FOE)'
-  !!   call input_var(dummy_int,'0',dict//LIN_GENERAL//OUTPUT_WF,ranges=(/0,3/))
-  !!   call input_var(dummy_bool,'F',dict//LIN_GENERAL//CALC_DIPOLE)
-  !!   call input_var(dummy_bool,'T',dict//LIN_GENERAL//CALC_PULAY)
-  !!   in%lin%pulay_correction=dummy_bool
-  !!   call input_var(in%lin%new_pulay_correction,'F')
-  !!   call input_var(dummy_bool,'F',dict//LIN_GENERAL//SUBSPACE_DIAG,comment=comments)
-
-
-  !!   ! Basis variables #######################################################
-
-  !!   comments = 'basis iterations (low, high)'
-  !!   call input_var(dummy_int,'12',dict//LIN_BASIS//NIT//0,ranges=(/0,100000/))
-  !!   call input_var(dummy_int,'50',dict//LIN_BASIS//NIT//1,ranges=(/0,100000/),comment=comments)
-
-  !!   ! DIIS history lengths
-  !!   comments = 'DIIS history for basis (low, high)'
-  !!   call input_var(dummy_int,'5',dict//LIN_BASIS//IDSX//0,ranges=(/0,100/))
-  !!   call input_var(dummy_int,'0',dict//LIN_BASIS//IDSX//1,ranges=(/0,100/),comment=comments)
-
-  !!   comments = 'basis convergence (low, high) ; early stop TMB optimization, dynamic gnrm (experimental mode only)'
-  !!   call input_var(dummy_real,'1.d-3',dict//LIN_BASIS//GNRM_CV//0,ranges=(/0.0_gp,1.0_gp/))
-  !!   call input_var(dummy_real,'1.d-5',dict//LIN_BASIS//GNRM_CV//1,ranges=(/0.0_gp,1.0_gp/))
-  !!   call input_var(dummy_real,'1.d-4',dict//LIN_BASIS//DELTAE_CV,ranges=(/0.0_gp,1.0_gp/))
-  !!   call input_var(dummy_real,'1.d-4',dict//LIN_BASIS//GNRM_DYN,ranges=(/0.0_gp,1.0_gp/),comment=comments)
-
-  !!   comments = 'initial step size for basis optimization (DIIS, SD)' ! DELETE ONE
-  !!   call input_var(dummy_real,'1.d0',dict//LIN_BASIS//ALPHA_DIIS,ranges=(/0.0_gp,10.0_gp/))
-  !!   call input_var(dummy_real,'1.d0',dict//LIN_BASIS//ALPHA_SD,ranges=(/0.0_gp,10.0_gp/),comment=comments)
-
-  !!   comments='number of iterations in the preconditioner, order of Taylor approximations'
-  !!   call input_var(dummy_int,'5',dict//LIN_BASIS//NSTEP_PREC,ranges=(/1,100/))
-  !!   call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/1,100/),comment=comments)
-  !!   !call input_var(in%lin%order_taylor,'1',ranges=(/1,100/),comment=comments)
-
-
-  !!   ! Kernel variables #######################################################
-
-  !!   comments = 'kernel iterations (low, high) - directmin only'
-  !!   call input_var(dummy_int,'1',dict//LIN_KERNEL//NSTEP//0,ranges=(/0,1000/))
-  !!   call input_var(dummy_int,'1',dict//LIN_KERNEL//NSTEP//1,ranges=(/0,1000/),comment=comments)
-
-  !!   comments = 'density iterations (low, high)'
-  !!   call input_var(dummy_int,'15',dict//LIN_KERNEL//NIT//0,ranges=(/0,1000/))
-  !!   call input_var(dummy_int,'15',dict//LIN_KERNEL//NIT//1,ranges=(/0,1000/),comment=comments)
-
-  !!   comments = 'DIIS history for kernel (low, high) - directmin only'
-  !!   call input_var(dummy_int,'0',dict//LIN_KERNEL//IDSX_COEFF//0,ranges=(/0,100/))
-  !!   call input_var(dummy_int,'0',dict//LIN_KERNEL//IDSX_COEFF//1,ranges=(/0,100/),comment=comments)
-
-  !!   comments = 'DIIS history for density mixing (low, high)'
-  !!   call input_var(dummy_int,'0',dict//LIN_KERNEL//IDSX//0,ranges=(/0,100/))
-  !!   call input_var(dummy_int,'0',dict//LIN_KERNEL//IDSX//1,ranges=(/0,100/),comment=comments)
-
-  !!   ! mixing parameters
-  !!   comments = 'density mixing parameter (low, high)'
-  !!   call input_var(dummy_real,'.5d0',dict//LIN_KERNEL//ALPHAMIX//0,ranges=(/0.d0,1.d0/))
-  !!   call input_var(dummy_real,'.5d0',dict//LIN_KERNEL//ALPHAMIX//1,ranges=(/0.d0,1.d0/),comment=comments)
-
-  !!   comments = 'kernel convergence (low, high) - directmin only'
-  !!   call input_var(dummy_real,'1.d-5',dict//LIN_KERNEL//GNRM_CV_COEFF//0,ranges=(/0.d0,1.d0/))
-  !!   call input_var(dummy_real,'1.d-5',dict//LIN_KERNEL//GNRM_CV_COEFF//1,ranges=(/0.d0,1.d0/),comment=comments)
-
-  !!   comments = 'density convergence (low, high)'
-  !!   call input_var(dummy_real,'1.d-13',dict//LIN_KERNEL//RPNRM_CV//0,ranges=(/0.d0,1.d0/))
-  !!   call input_var(dummy_real,'1.d-13',dict//LIN_KERNEL//RPNRM_CV//1,ranges=(/0.d0,1.d0/),comment=comments)
-
-  !!   comments='mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing), 103 (FOE)'
-  !!   call input_var(dummy_int,'100',ranges=(/100,103/),comment=comments)
-  !!   select case(dummy_int)
-  !!   case(100)
-  !!      call dict_set(dict//LIN_KERNEL//LINEAR_METHOD,'DIRMIN')
-  !!   case(101) 
-  !!      call dict_set(dict//LIN_KERNEL//LINEAR_METHOD,'DIAG')
-  !!      call dict_set(dict//LIN_KERNEL//MIXING_METHOD,'DEN')
-  !!   case(102)      
-  !!      call dict_set(dict//LIN_KERNEL//LINEAR_METHOD,'DIAG')
-  !!      call dict_set(dict//LIN_KERNEL//MIXING_METHOD,'POT')
-  !!   case(103)
-  !!      call dict_set(dict//LIN_KERNEL//LINEAR_METHOD,'FOE')
-  !!   end select
-
-  !!   comments = 'initial step size for kernel update (SD), curve fitting for alpha update - directmin only'
-  !!   call input_var(dummy_real,'1.d0',dict//LIN_KERNEL//ALPHA_SD_COEFF,ranges=(/0.0_gp,10.0_gp/))
-  !!   call input_var(dummy_bool,'F',dict//LIN_KERNEL//ALPHA_FIT_COEFF,comment=comments)
-
-  !!   comments = 'lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted automatically if chosen too small'
-  !!   call input_var(dummy_real,'-.5d0',dict//LIN_KERNEL//EVAL_RANGE_FOE//0,ranges=(/-10.d0,-1.d-10/))
-  !!   call input_var(dummy_real,'-.5d0',dict//LIN_KERNEL//EVAL_RANGE_FOE//1,ranges=(/1.d-10,10.d0/),comment=comments)
-
-  !!   comments='fscale: length scale over which complementary error function decays from 1 to 0'
-  !!   call input_var(dummy_real,'1.d-2',dict//LIN_KERNEL//FSCALE_FOE,ranges=(/0.d0,1.d0/),comment=comments)
-
-
-  !! !these variables seems deprecated, put them to their default value
-
-  !! comments = 'convergence criterion on density to fix TMBS'
-  !! call input_var(in%lin%support_functions_converged,'1.d-10',ranges=(/0.d0,1.d0/),comment=comments)
-
-
-  END SUBROUTINE read_lin_from_text_format
 end module input_old_text_format

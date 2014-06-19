@@ -40,10 +40,6 @@ EXTRA_DIST = Figures \
      Xabs \
      Wannier
 
-# Additional post-in commands
-# Remove HF.perf in case of acceleration
-N2.post-in :
-	rm -f input.perf
 
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
@@ -54,11 +50,14 @@ endif
 
 
 # Additional rules for the dev tutorial.
-dev.check: dev/toy_model
-dev/toy_model toy_model: $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90
+dev.check: dev-test/toy_model
+dev-test/toy_model: $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90
 	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90 \
 			$(AM_LDFLAGS) $(LDFLAGS) -lbigdft-1 $(LIBS)
-dev-N2.out.post-out: dev-N2.out.out toy_model 
+toy_model:
+	cd ..; $(MAKE) dev/toy_model
+dev-N2.out.post-out: dev-N2.out.out toy_model
+	rm -f input.perf 
 	$(run_serial) ./toy_model > log-model.yaml
 dev.post-clean:
 	rm -f toy_model
@@ -70,8 +69,6 @@ dev.post-clean:
           *) mode="";; \
         esac ; \
         case $* in \
-          CH3-.out*) prec="5.2e-7" ;; \
-          scalability.out*)  prec="1.e-9" ;; \
           *) prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@

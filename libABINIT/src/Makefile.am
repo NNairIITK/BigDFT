@@ -32,6 +32,8 @@ EXTRA_DIST = 72_geomoptim/isokinetic.F90 \
 	12_hide_mpi/xmpi_send.finc \
 	12_hide_mpi/xmpi_sum.finc \
 	12_hide_mpi/xmpi_sum_master.finc \
+	42_geometry/symmetry-main.c \
+	42_geometry/symmetry.h \
 	incs/abi_common.h
 
 lib_LIBRARIES = libabinit.a
@@ -54,10 +56,13 @@ MPI_DEFS = -DHAVE_MPI -DHAVE_MPI1
 
 DEFS = $(MPI_DEFS) $(LIBXC_DEFS) $(LIBPAW_DEFS)
 
+DEFS_1 = $(DEFS:-D%=@FCDEFS@-D%)
+DEFS_FORTRAN = $(DEFS_1:-U%=@FCDEFS@-U%)
+
 AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@ -I$(srcdir)/72_geomoptim -I$(srcdir)/incs
 
 # Hack for XLF strange DEFS option.
-PPFCCOMPILE = $(FC) $(DEFS:-D%=@FCDEFS@%) $(DEFAULT_INCLUDES) $(INCLUDES) \
+PPFCCOMPILE = $(FC) $(DEFS_FORTRAN) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_FCFLAGS) $(FCFLAGS)
 
 libabinit_a_SOURCES = \
@@ -80,7 +85,7 @@ libabinit_a_SOURCES = \
 	18_timing/timab.F90 \
 	18_memory/m_profiling.F90 \
 	28_numeric_noabirule/interfaces_28_numeric_noabirule.F90 \
-        28_numeric_noabirule/m_splines.F90 \
+	28_numeric_noabirule/m_splines.F90 \
 	28_numeric_noabirule/sort_dp.F90 \
 	28_numeric_noabirule/sort_int.F90 \
 	28_numeric_noabirule/uniformrandom.F90 \
@@ -197,11 +202,12 @@ libabinit_a_SOURCES = \
 	56_recipspace/symkpt.F90 \
 	56_recipspace/testkgrid.F90 \
 	67_common/ewald.F90 \
-        67_common/ewald2.F90 \
+	67_common/ewald2.F90 \
 	67_common/fconv.F90 \
 	67_common/prtxvf.F90 \
 	72_geomoptim/ab6_moldyn.F90 \
-	72_geomoptim/xfpack.F90
+	72_geomoptim/xfpack.F90 \
+	42_geometry/symmetry.c
 
 CLEANFILES = mpif.h *.@MODULE_EXT@
 
@@ -215,9 +221,13 @@ mpif.h:
 	 echo "integer, parameter :: MPI_DOUBLE_COMPLEX=1, MPI_STATUS_IGNORE=1" >> mpif.h &&\
 	 echo "integer, parameter :: MPI_STATUS_SIZE=1, MPI_ERR_UNKNOWN=1" >> mpif.h &&\
 	 echo "integer, parameter :: MPI_TAG_UB=1" >> mpif.h &&\
-	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
+	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1, MPI_INTEGER8=1" >> mpif.h &&\
 	 echo "integer, parameter :: MPI_STATUSES_IGNORE=1, MPI_LOGICAL=1" >> mpif.h &&\
 	 echo "integer, parameter :: MPI_MIN=1, MPI_MAX=1,MPI_CHARACTER=1,MPI_REAL8=1" >> mpif.h
+	 echo "integer, parameter :: MPI_ANY_SOURCE=1, MPI_SUCCESS=1, MPI_GROUP_NULL=1" >> mpif.h
+	 echo "integer, parameter :: MPI_REQUEST_NULL=1, MPI_PACKED=1, MPI_ERRORS_RETURN=1" >> mpif.h
+	 echo "integer, parameter :: MPI_ERR_COMM=1, MPI_ERR_GROUP=1" >> mpif.h
+	 echo "real(kind=8), external :: MPI_WTICK" >> mpif.h
 
 # Automatic ones...
 include $(srcdir)/deps

@@ -1,6 +1,9 @@
 /*! @file
 @brief README of the non-regression tests for the cubic version (ground-state calculations).
 
+@dir
+@brief Contains the non-regression test for the cubic version (ground-state calculations)
+
 @page TESTS_DFT_CUBIC Test the cubic version of the code.
 @brief Non-regression tests (ground-state with the cubic version)
 
@@ -27,6 +30,7 @@ The command <tt>make check</tt> performs the series of tests:
 - @b H2O-CP2K:    Tests import wavefunctions from a gaussian basis set
 - @b H2-spin:     Uses the spin in the calculation of hydrogen atom
 - @b H:           Tests the hydrogen in a periodic box
+- @b H-Rydberg:   Calculate the first Rydberg states using no Hartree and XC terms
 - @b Li+:         Calculates an isolated charged system
 - @b Mn2:         Tests non-collinear spin
 - @b NaCl:        Tests non-local pseudo-potential and adaptive mesh

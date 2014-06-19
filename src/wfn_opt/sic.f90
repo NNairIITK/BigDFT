@@ -1,3 +1,13 @@
+!> @file
+!!  Routines to build the Self-Interaction Correction
+!! @author
+!!    Copyright (C) 2013-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 !> Construct a Self-Interaction-Corrected potential based on the 
 !! Perdew-Zunger prescription (Phys. Rev. B 23, 10, 5048 (1981))
 subroutine PZ_SIC_potential(iorb,lr,orbs,xc,hxh,hyh,hzh,pkernel,psir,vpsir,eSICi,eSIC_DCi)
@@ -180,6 +190,7 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,xc,hxh,hyh,hzh,pkernel,psir,vpsir,eSICi
   call memocc(i_stat,i_all,'nscarr_fake',subname)
 
 end subroutine PZ_SIC_potential
+
 
 !> Construct a Self-Interaction-Corrected potential based on the 
 !! Koopmans' correction for DFT (Phys. Rev. B 82 115121 (2010))
@@ -471,7 +482,7 @@ subroutine NK_SIC_potential(lr,orbs,xc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_DC
 
   if (.not. virtual) then
      !sum up the results of the off diagonal term
-     if (nproc >1) call mpiallred(wxd(1,1),lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+     if (nproc >1) call mpiallred(wxd(1,1),lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,MPI_SUM,bigdft_mpi%mpi_comm)
 
      if (.not. savewxd) then
         !add to the potential orbital per orbital
@@ -521,18 +532,18 @@ subroutine NK_SIC_potential(lr,orbs,xc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_DC
 
 end subroutine NK_SIC_potential
 
+
 !> Squares the wavefunction in the real space for building the density.
 !! Accumulate the result in rhoi, which has to be previously initialized
 !! It squares complex and spinorial wavefunctions in the proper way
-!! @ param fi occupation number times k-point weigth divided by the volume unit
-!! @ param spinval value of the spin of the psir 
 subroutine psir_to_rhoi(fi,spinval,nspinrho,nspinor,lr,psir,rhoi)
   use module_base
   use module_types
   use module_interfaces
   implicit none
   integer, intent(in) :: nspinrho,nspinor
-  real(gp), intent(in) :: fi,spinval
+  real(gp), intent(in) :: fi      !< fi occupation number times k-point weigth divided by the volume unit
+  real(gp), intent(in) :: spinval !< spinval value of the spin of the psir
   type(locreg_descriptors), intent(in) :: lr
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(in) :: psir
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinrho), intent(inout) :: rhoi
@@ -575,4 +586,3 @@ subroutine psir_to_rhoi(fi,spinval,nspinrho,nspinor,lr,psir,rhoi)
   end do
 
 end subroutine psir_to_rhoi
-

@@ -112,7 +112,7 @@
    norbv                               : 0 #      Davidson subspace dim.
    nvirt                               : 0
    nplot                               : 0
-   disablesym                          : No #     disable the symmetry detection
+   disablesym                          : Yes #    disable the symmetry detection
  kpt:
    method                              : manual # K-point sampling method
    kpt: #                                         Kpt coordinates
@@ -141,12 +141,12 @@
  tddft:
    tddft_approach                      : none #   TDDFT method
  posinp:
-   Positions:
+   positions:
    - Li: [0.0, 0.0, 0.0]
      IGChg                             : 1
-   Properties:
-     Format                            : xyz
-     Source                            : posinp
+   properties:
+     format                            : xyz
+     source                            : posinp
  psppar.Li:
    Pseudopotential type                : GTH
    Atomic number                       : 3

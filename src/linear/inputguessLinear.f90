@@ -1,7 +1,7 @@
 !> @file 
 !!   Input guess for the linear version
 !! @author
-!!   Copyright (C) 2011-2012 BigDFT group 
+!!   Copyright (C) 2011-2013 BigDFT group 
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
@@ -46,9 +46,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:), allocatable :: locrad
   real(wp), dimension(:,:,:), pointer :: psigau
-  integer, dimension(:),allocatable :: norbsPerAt, mapping, inversemapping, minorbs_type, maxorbs_type
-  logical,dimension(:),allocatable :: covered, type_covered
-  !real(kind=8),dimension(:,:),allocatable :: aocc
+  integer, dimension(:), allocatable :: norbsPerAt, mapping, inversemapping, minorbs_type, maxorbs_type
+  logical, dimension(:), allocatable :: covered, type_covered
+  real(kind=8), dimension(:,:), allocatable :: aocc
   integer, dimension(:,:), allocatable :: nl_copy 
   integer :: ist,jorb,iadd,ii,jj,ityp,itype,iortho
   integer :: jlr,iiorb
@@ -61,9 +61,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   type(mixrhopotDIISParameters) :: mixdiis
   type(sparse_matrix) :: ham_small ! for FOE
   logical :: finished, can_use_ham
-  type(confpot_data),dimension(:),allocatable :: confdatarrtmp
-  real(kind=8),dimension(:),allocatable :: philarge
-  integer :: npsidim_large, sdim, ldim, ists, istl, ilr, nspin, info_basis_functions
+  type(confpot_data), dimension(:), allocatable :: confdatarrtmp
+  integer :: info_basis_functions
   real(kind=8) :: ratio_deltas, trace, trace_old, fnrm_tmb
   logical :: ortho_on, reduce_conf, rho_negative
   type(localizedDIISParameters) :: ldiis
@@ -75,18 +74,12 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   nullify(mom_vec_fake)
 
   ! Allocate some arrays we need for the input guess.
-  allocate(norbsc_arr(at%natsc+1,input%nspin+ndebug),stat=istat)
-  call memocc(istat,norbsc_arr,'norbsc_arr',subname)
-  allocate(locrad(at%astruct%nat+ndebug),stat=istat)
-  call memocc(istat,locrad,'locrad',subname)
-  allocate(norbsPerAt(at%astruct%nat), stat=istat)
-  call memocc(istat, norbsPerAt, 'norbsPerAt', subname)
-  allocate(mapping(tmb%orbs%norb), stat=istat)
-  call memocc(istat, mapping, 'mapping', subname)
-  allocate(covered(tmb%orbs%norb), stat=istat)
-  call memocc(istat, covered, 'covered', subname)
-  allocate(inversemapping(tmb%orbs%norb), stat=istat)
-  call memocc(istat, inversemapping, 'inversemapping', subname)
+  norbsc_arr = f_malloc((/at%natsc+1,input%nspin/),id='norbsc_arr')
+  locrad = f_malloc(at%astruct%nat,id='locrad')
+  norbsPerAt = f_malloc(at%astruct%nat,id='norbsPerAt')
+  mapping = f_malloc(tmb%orbs%norb,id='mapping')
+  covered = f_malloc(tmb%orbs%norb,id='covered')
+  inversemapping = f_malloc(tmb%orbs%norb,id='inversemapping')
 
 
   GPUe = GPU
@@ -100,7 +93,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   ! Keep the natural occupations
   
-  nl_copy=f_malloc((/0 .to. 3,1 .to. at%astruct%nat/),id='nl_copy')
+  nl_copy=f_malloc((/0.to.3,1.to.at%astruct%nat/),id='nl_copy')
   do iat=1,at%astruct%nat
      nl_copy(:,iat)=at%aoig(iat)%nl
   end do
@@ -431,15 +424,14 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   call gaussians_to_wavelets_new(iproc,nproc,tmb%lzd,orbs_gauss,G,&
        psigau(1,1,min(tmb%orbs%isorb+1,tmb%orbs%norb)),tmb%psi)
 
+
   iall=-product(shape(psigau))*kind(psigau)
   deallocate(psigau,stat=istat)
   call memocc(istat,iall,'psigau',subname)
 
   call deallocate_gwf(G,subname)
   ! Deallocate locrad, which is not used any longer.
-  iall=-product(shape(locrad))*kind(locrad)
-  deallocate(locrad,stat=istat)
-  call memocc(istat,iall,'locrad',subname)
+  call f_free(locrad)
 
   ! Create the potential. First calculate the charge density.
   do iorb=1,tmb%orbs%norb
@@ -455,27 +447,26 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   !Put the Density kernel to identity for now
   !call to_zero(tmb%linmat%denskern%nvctr, tmb%linmat%denskern%matrix_compr(1))
-  call to_zero(tmb%linmat%denskern_large%nvctr, tmb%linmat%denskern_large%matrix_compr(1))
+  call to_zero(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1))
   do iorb=1,tmb%orbs%norb
      !ii=matrixindex_in_compressed(tmb%linmat%denskern,iorb,iorb)
-     ii=matrixindex_in_compressed(tmb%linmat%denskern_large,iorb,iorb)
+     ii=matrixindex_in_compressed(tmb%linmat%l,iorb,iorb)
      !tmb%linmat%denskern%matrix_compr(ii)=1.d0*tmb%orbs%occup(inversemapping(iorb))
      !tmb%linmat%denskern%matrix_compr(ii)=1.d0*tmb%orbs%occup(iorb)
-     tmb%linmat%denskern_large%matrix_compr(ii)=1.d0*tmb%orbs%occup(iorb)
+     tmb%linmat%kernel_%matrix_compr(ii)=1.d0*tmb%orbs%occup(iorb)
   end do
- !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
 
   !Calculate the density in the new scheme
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
        tmb%orbs, tmb%psi, tmb%collcom_sr)
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
-       tmb%collcom_sr, tmb%linmat%denskern_large, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+       tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
        denspot%rhov, rho_negative)
   if (rho_negative) then
       call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
       !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
       !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
-      !!call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+      !!call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
   end if
 
 
@@ -562,19 +553,17 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       !minval(tmb%collcom%indexrecvorbital_c),maxval(tmb%collcom%indexrecvorbital_c)
       !!if (iproc==0) write(*,*) 'WARNING: no ortho in inguess'
       call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
-           tmb%linmat%ovrlp, tmb%linmat%inv_ovrlp_large, &
-           tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+           tmb%linmat%s, tmb%linmat%l, &
+           tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed, &
+           tmb%foe_obj)
             
  else
      ! Iterative orthonomalization
      !!if(iproc==0) write(*,*) 'calling generalized orthonormalization'
      if (iproc==0) call yaml_map('orthonormalization of input guess','generalized')
-     allocate(maxorbs_type(at%astruct%ntypes),stat=istat)
-     call memocc(istat,maxorbs_type,'maxorbs_type',subname)
-     allocate(minorbs_type(at%astruct%ntypes),stat=istat)
-     call memocc(istat,minorbs_type,'minorbs_type',subname)
-     allocate(type_covered(at%astruct%ntypes),stat=istat)
-     call memocc(istat,type_covered,'type_covered',subname)
+     maxorbs_type = f_malloc(at%astruct%ntypes,id='maxorbs_type')
+     minorbs_type = f_malloc(at%astruct%ntypes,id='minorbs_type')
+     type_covered = f_malloc(at%astruct%ntypes,id='type_covered')
      minorbs_type(1:at%astruct%ntypes)=0
      iortho=0
      ortho_loop: do
@@ -612,27 +601,21 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          end do
          if (iortho>0) then
              call gramschmidt_subset(iproc, nproc, -1, tmb%npsidim_orbs, &                                  
-                  tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%ovrlp, &
-                  tmb%linmat%inv_ovrlp_large, tmb%collcom, tmb%orthpar, &
+                  tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%s, &
+                  tmb%linmat%l, tmb%collcom, tmb%orthpar, &
                   tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
          end if
          call orthonormalize_subset(iproc, nproc, -1, tmb%npsidim_orbs, &                                  
-              tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%ovrlp, &
-              tmb%linmat%inv_ovrlp_large, tmb%collcom, tmb%orthpar, &
+              tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%s, &
+              tmb%linmat%l, tmb%collcom, tmb%orthpar, &
               tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
          if (finished) exit ortho_loop
          iortho=iortho+1
          minorbs_type(1:at%astruct%ntypes)=maxorbs_type(1:at%astruct%ntypes)+1
      end do ortho_loop
-     iall=-product(shape(maxorbs_type))*kind(maxorbs_type)
-     deallocate(maxorbs_type,stat=istat)
-     call memocc(istat, iall,'maxorbs_type',subname)
-     iall=-product(shape(minorbs_type))*kind(minorbs_type)
-     deallocate(minorbs_type,stat=istat)
-     call memocc(istat, iall,'minorbs_type',subname)
-     iall=-product(shape(type_covered))*kind(type_covered)
-     deallocate(type_covered,stat=istat)
-     call memocc(istat, iall,'type_covered',subname)
+     call f_free(maxorbs_type)
+     call f_free(minorbs_type)
+     call f_free(type_covered)
 
  end if
 
@@ -677,8 +660,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
          50,&
          ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode,input%lin%early_stop,&
-         input%lin%gnrm_dynamic, can_use_ham, input%lin%order_taylor, input%kappa_conv, input%method_updatekernel,&
-         input%purification_quickreturn)
+         input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
+         can_use_ham, input%lin%order_taylor, input%kappa_conv, input%method_updatekernel,&
+         input%purification_quickreturn, input%adjust_FOE_temperature, input%correction_co_contra)
      reduce_conf=.true.
      call yaml_close_sequence()
      call yaml_close_map()
@@ -709,14 +693,15 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   if (input%lin%scf_mode==LINEAR_FOE) then
 
-      call sparse_copy_pattern(tmb%linmat%ovrlp,ham_small,iproc,subname)
+      call sparse_copy_pattern(tmb%linmat%s,ham_small,iproc,subname)
       !!allocate(ham_small%matrix_compr(ham_small%nvctr), stat=istat)
       !!call memocc(istat, ham_small%matrix_compr, 'ham_small%matrix_compr', subname)
       ham_small%matrix_compr=f_malloc_ptr(ham_small%nvctr,id='ham_small%matrix_compr')
 
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0,0,input%lin%order_taylor,&
-           input%purification_quickreturn,input%calculate_KS_residue)
+           input%purification_quickreturn,input%adjust_FOE_temperature,&
+           input%calculate_KS_residue,input%calculate_gap)
 
       if (input%lin%scf_mode==LINEAR_FOE) then ! deallocate ham_small
          call deallocate_sparse_matrix(ham_small,subname)
@@ -725,7 +710,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.false.,.true.,ham_small,0,0,0,0,input%lin%order_taylor,&
-           input%purification_quickreturn,input%calculate_KS_residue)
+           input%purification_quickreturn,input%adjust_FOE_temperature,&
+           input%calculate_KS_residue,input%calculate_gap)
 
       call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
       call evaltoocc(iproc,nproc,.false.,input%tel,kswfn%orbs,input%occopt)
@@ -747,13 +733,13 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   end if
 
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
-       tmb%collcom_sr, tmb%linmat%denskern_large, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+       tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
        denspot%rhov, rho_negative)
   if (rho_negative) then
       call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
       !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
       !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
-      !!call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+      !!call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
   end if
 
   !!!call plot_density(iproc,nproc,'initial',at,rxyz,denspot%dpbox,input%nspin,denspot%rhov)
@@ -840,25 +826,11 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   call deallocate_orbitals_data(orbs_gauss, subname)
 
   ! Deallocate all remaining local arrays.
-  iall=-product(shape(norbsc_arr))*kind(norbsc_arr)
-  deallocate(norbsc_arr,stat=istat)
-  call memocc(istat,iall,'norbsc_arr',subname)
-
-  iall=-product(shape(norbsPerAt))*kind(norbsPerAt)
-  deallocate(norbsPerAt, stat=istat)
-  call memocc(istat, iall, 'norbsPerAt',subname)
-
-  iall=-product(shape(mapping))*kind(mapping)
-  deallocate(mapping, stat=istat)
-  call memocc(istat, iall, 'mapping',subname)
-
-  iall=-product(shape(covered))*kind(covered)
-  deallocate(covered, stat=istat)
-  call memocc(istat, iall, 'covered',subname)
-
-  iall=-product(shape(inversemapping))*kind(inversemapping)
-  deallocate(inversemapping, stat=istat)
-  call memocc(istat, iall, 'inversemapping',subname)
+  call f_free(norbsc_arr)
+  call f_free(norbsPerAt)
+  call f_free(mapping)
+  call f_free(covered)
+  call f_free(inversemapping)
 
   call f_release_routine()
 

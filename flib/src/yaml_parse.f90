@@ -38,7 +38,7 @@ contains
 
     call f_err_define(err_name='YAML_PARSE_ERROR',&
          err_msg='YAML parse error.',&
-         err_action='modify your inputs.',&
+         err_action='Modify your inputs.',&
          err_id=YAML_PARSE_ERROR)
     call f_err_define(err_name='YAML_PARSE_UNSUPPORTED',&
          err_msg='YAML standard not supported.',&
@@ -47,6 +47,7 @@ contains
 
   end subroutine yaml_parse_errors
 
+  !> Create a dict from a file (fname is the buffer containing all the file)
   subroutine yaml_parse_from_file(dict, fname)
     use dictionaries
     implicit none
@@ -67,7 +68,7 @@ contains
     
     integer(kind = 8) :: parser
 
-    call yaml_parser_c_init_from_buf(parser, carr(1), size(carr))
+    call yaml_parser_c_init_from_buf(parser, carr, size(carr))
     dict => yaml_parse_(parser)
   end subroutine yaml_parse_from_char_array
 

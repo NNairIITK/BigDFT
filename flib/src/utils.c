@@ -2,7 +2,7 @@
 !> @file
 !!  Routines to access easily to the filesystem and to other C goodies.
 !! @author
-!!    Copyright (C) 2007-2011 BigDFT group 
+!!    Copyright (C) 2007-2013 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -171,6 +171,7 @@ void FC_FUNC(getfilecontent, GETFILECONTENT)(void **pt, long *pt_len, const char
 {
   FILE *f;
   char *buf, *fname_;
+  size_t r;
   long s;
 
   fname_ = strndup(fname, (size_t)*ln);
@@ -182,7 +183,7 @@ void FC_FUNC(getfilecontent, GETFILECONTENT)(void **pt, long *pt_len, const char
   rewind(f);
 
   buf = malloc(sizeof(char) * (s + 1));
-  fread(buf, s, 1, f);
+  r = fread(buf, s, 1, f);
   buf[s] = '\0';
 
   fclose(f);

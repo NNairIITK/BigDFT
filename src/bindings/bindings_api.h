@@ -1,9 +1,18 @@
+/** @file
+ * Bindings for the BigDFT package
+ * @author
+ * Copyright (C) 2013-2013 BigDFT group (DC)
+ * This file is distributed under the terms of the
+ * GNU General Public License, see ~/COPYING file
+ * or http://www.gnu.org/copyleft/gpl.txt .
+ * For the list of contributors, see ~/AUTHORS
+**/
 #ifndef BINDINGS_API_H
 #define BINDINGS_API_H
 
 #undef hz
 
-/* atoms_get_amu src/init/atoms.f90:907 */
+/* atoms_get_amu src/init/atoms.f90:886 */
 /* Fortran header:
 subroutine atoms_get_amu(atoms, amu)
 use module_types
@@ -13,7 +22,7 @@ real(gp), dimension(:), pointer :: amu
 */
 void FC_FUNC_(atoms_get_amu, ATOMS_GET_AMU)(const f90_atoms_data *atoms, 
                                             f90_pointer_double *amu);
-/* atoms_get_iatype src/init/atoms.f90:797 */
+/* atoms_get_iatype src/init/atoms.f90:776 */
 /* Fortran header:
 subroutine atoms_get_iatype(atoms, iatype)
 use module_types
@@ -23,7 +32,7 @@ integer, dimension(:), pointer :: iatype
 */
 void FC_FUNC_(atoms_get_iatype, ATOMS_GET_IATYPE)(const f90_atoms_data *atoms, 
                                                   f90_pointer_int *iatype);
-/* atoms_get_ifrztyp src/init/atoms.f90:829 */
+/* atoms_get_ifrztyp src/init/atoms.f90:808 */
 /* Fortran header:
 subroutine atoms_get_ifrztyp(atoms, ifrztyp)
 use module_types
@@ -33,7 +42,7 @@ integer, dimension(:), pointer :: ifrztyp
 */
 void FC_FUNC_(atoms_get_ifrztyp, ATOMS_GET_IFRZTYP)(const f90_atoms_data *atoms, 
                                                     f90_pointer_int *ifrztyp);
-/* atoms_get_ixcpsp src/init/atoms.f90:897 */
+/* atoms_get_ixcpsp src/init/atoms.f90:876 */
 /* Fortran header:
 subroutine atoms_get_ixcpsp(atoms, ixcpsp)
 use module_types
@@ -43,7 +52,7 @@ integer, dimension(:), pointer :: ixcpsp
 */
 void FC_FUNC_(atoms_get_ixcpsp, ATOMS_GET_IXCPSP)(const f90_atoms_data *atoms, 
                                                   f90_pointer_int *ixcpsp);
-/* atoms_get_natpol src/init/atoms.f90:819 */
+/* atoms_get_natpol src/init/atoms.f90:798 */
 /* Fortran header:
 subroutine atoms_get_natpol(atoms, natpol)
 use module_types
@@ -53,7 +62,7 @@ integer, dimension(:), pointer :: natpol
 */
 void FC_FUNC_(atoms_get_natpol, ATOMS_GET_NATPOL)(const f90_atoms_data *atoms, 
                                                   f90_pointer_int *natpol);
-/* atoms_get_nelpsp src/init/atoms.f90:849 */
+/* atoms_get_nelpsp src/init/atoms.f90:828 */
 /* Fortran header:
 subroutine atoms_get_nelpsp(atoms, nelpsp)
 use module_types
@@ -63,7 +72,7 @@ integer, dimension(:), pointer :: nelpsp
 */
 void FC_FUNC_(atoms_get_nelpsp, ATOMS_GET_NELPSP)(const f90_atoms_data *atoms, 
                                                   f90_pointer_int *nelpsp);
-/* atoms_get_nlcc_ngc src/init/atoms.f90:887 */
+/* atoms_get_nlcc_ngc src/init/atoms.f90:866 */
 /* Fortran header:
 subroutine atoms_get_nlcc_ngc(atoms, nlcc_ngc)
 use module_types
@@ -73,7 +82,7 @@ integer, dimension(:), pointer :: nlcc_ngc
 */
 void FC_FUNC_(atoms_get_nlcc_ngc, ATOMS_GET_NLCC_NGC)(const f90_atoms_data *atoms, 
                                                       f90_pointer_int *nlcc_ngc);
-/* atoms_get_nlcc_ngv src/init/atoms.f90:879 */
+/* atoms_get_nlcc_ngv src/init/atoms.f90:858 */
 /* Fortran header:
 subroutine atoms_get_nlcc_ngv(atoms, nlcc_ngv)
 use module_types
@@ -83,7 +92,7 @@ integer, dimension(:), pointer :: nlcc_ngv
 */
 void FC_FUNC_(atoms_get_nlcc_ngv, ATOMS_GET_NLCC_NGV)(const f90_atoms_data *atoms, 
                                                       f90_pointer_int *nlcc_ngv);
-/* atoms_get_nlccpar src/init/atoms.f90:947 */
+/* atoms_get_nlccpar src/init/atoms.f90:926 */
 /* Fortran header:
 subroutine atoms_get_nlccpar(atoms, nlccpar)
 use module_types
@@ -93,7 +102,7 @@ real(gp), dimension(:,:), pointer :: nlccpar
 */
 void FC_FUNC_(atoms_get_nlccpar, ATOMS_GET_NLCCPAR)(const f90_atoms_data *atoms, 
                                                     f90_pointer_double_2D *nlccpar);
-/* atoms_get_npspcode src/init/atoms.f90:859 */
+/* atoms_get_npspcode src/init/atoms.f90:838 */
 /* Fortran header:
 subroutine atoms_get_npspcode(atoms, npspcode)
 use module_types
@@ -103,7 +112,7 @@ integer, dimension(:), pointer :: npspcode
 */
 void FC_FUNC_(atoms_get_npspcode, ATOMS_GET_NPSPCODE)(const f90_atoms_data *atoms, 
                                                       f90_pointer_int *npspcode);
-/* atoms_get_nzatom src/init/atoms.f90:869 */
+/* atoms_get_nzatom src/init/atoms.f90:848 */
 /* Fortran header:
 subroutine atoms_get_nzatom(atoms, nzatom)
 use module_types
@@ -113,7 +122,7 @@ integer, dimension(:), pointer :: nzatom
 */
 void FC_FUNC_(atoms_get_nzatom, ATOMS_GET_NZATOM)(const f90_atoms_data *atoms, 
                                                   f90_pointer_int *nzatom);
-/* atoms_get_psppar src/init/atoms.f90:938 */
+/* atoms_get_psppar src/init/atoms.f90:917 */
 /* Fortran header:
 subroutine atoms_get_psppar(atoms, psppar)
 use module_types
@@ -123,7 +132,7 @@ real(gp), dimension(:,:,:), pointer :: psppar
 */
 void FC_FUNC_(atoms_get_psppar, ATOMS_GET_PSPPAR)(const f90_atoms_data *atoms, 
                                                   f90_pointer_double_3D *psppar);
-/* atoms_get_radii_cf src/init/atoms.f90:928 */
+/* atoms_get_radii_cf src/init/atoms.f90:907 */
 /* Fortran header:
 subroutine atoms_get_radii_cf(atoms, radii_cf)
 use module_types
@@ -133,7 +142,7 @@ real(gp), dimension(:,:), pointer :: radii_cf
 */
 void FC_FUNC_(atoms_get_radii_cf, ATOMS_GET_RADII_CF)(const f90_atoms_data *atoms, 
                                                       f90_pointer_double_2D *radii_cf);
-/* atoms_get_rxyz src/init/atoms.f90:839 */
+/* atoms_get_rxyz src/init/atoms.f90:818 */
 /* Fortran header:
 subroutine atoms_get_rxyz(atoms, rxyz)
 use module_types
@@ -143,7 +152,7 @@ real(gp), dimension(:,:), pointer :: rxyz
 */
 void FC_FUNC_(atoms_get_rxyz, ATOMS_GET_RXYZ)(const f90_atoms_data *atoms, 
                                               f90_pointer_double_2D *rxyz);
-/* localfields_get_rhov src/bindings/bindingsf.f90:916 */
+/* localfields_get_rhov src/bindings/bindingsf.f90:920 */
 /* Fortran header:
 subroutine localfields_get_rhov(denspot, rhov)
 use module_types
@@ -153,7 +162,7 @@ real(dp), dimension(:), pointer :: rhov
 */
 void FC_FUNC_(localfields_get_rhov, LOCALFIELDS_GET_RHOV)(const f90_DFT_local_fields *denspot, 
                                                           f90_pointer_double *rhov);
-/* localfields_get_v_ext src/bindings/bindingsf.f90:924 */
+/* localfields_get_v_ext src/bindings/bindingsf.f90:928 */
 /* Fortran header:
 subroutine localfields_get_v_ext(denspot, v_ext)
 use module_types
@@ -163,7 +172,7 @@ real(wp), dimension(:,:,:,:), pointer :: v_ext
 */
 void FC_FUNC_(localfields_get_v_ext, LOCALFIELDS_GET_V_EXT)(const f90_DFT_local_fields *denspot, 
                                                             f90_pointer_double_4D *v_ext);
-/* localfields_get_v_xc src/bindings/bindingsf.f90:932 */
+/* localfields_get_v_xc src/bindings/bindingsf.f90:936 */
 /* Fortran header:
 subroutine localfields_get_v_xc(denspot, v_xc)
 use module_types
@@ -173,7 +182,7 @@ real(wp), dimension(:,:,:,:), pointer :: v_xc
 */
 void FC_FUNC_(localfields_get_v_xc, LOCALFIELDS_GET_V_XC)(const f90_DFT_local_fields *denspot, 
                                                           f90_pointer_double_4D *v_xc);
-/* orbs_get_eval src/bindings/bindingsf.f90:711 */
+/* orbs_get_eval src/bindings/bindingsf.f90:715 */
 /* Fortran header:
 subroutine orbs_get_eval(orbs, eval)
 use module_types
@@ -183,7 +192,7 @@ real(wp), dimension(:), pointer :: eval
 */
 void FC_FUNC_(orbs_get_eval, ORBS_GET_EVAL)(f90_orbitals_data *orbs, 
                                             f90_pointer_double *eval);
-/* orbs_get_inwhichlocreg src/bindings/bindingsf.f90:743 */
+/* orbs_get_inwhichlocreg src/bindings/bindingsf.f90:747 */
 /* Fortran header:
 subroutine orbs_get_inwhichlocreg(orbs, locreg)
 use module_types
@@ -193,7 +202,7 @@ integer, dimension(:), pointer :: locreg
 */
 void FC_FUNC_(orbs_get_inwhichlocreg, ORBS_GET_INWHICHLOCREG)(f90_orbitals_data *orbs, 
                                                               f90_pointer_int *locreg);
-/* orbs_get_kpts src/bindings/bindingsf.f90:727 */
+/* orbs_get_kpts src/bindings/bindingsf.f90:731 */
 /* Fortran header:
 subroutine orbs_get_kpts(orbs, kpts)
 use module_types
@@ -203,7 +212,7 @@ real(gp), dimension(:,:), pointer :: kpts
 */
 void FC_FUNC_(orbs_get_kpts, ORBS_GET_KPTS)(f90_orbitals_data *orbs, 
                                             f90_pointer_double_2D *kpts);
-/* orbs_get_kwgts src/bindings/bindingsf.f90:735 */
+/* orbs_get_kwgts src/bindings/bindingsf.f90:739 */
 /* Fortran header:
 subroutine orbs_get_kwgts(orbs, kwgts)
 use module_types
@@ -213,7 +222,7 @@ real(gp), dimension(:), pointer :: kwgts
 */
 void FC_FUNC_(orbs_get_kwgts, ORBS_GET_KWGTS)(f90_orbitals_data *orbs, 
                                               f90_pointer_double *kwgts);
-/* orbs_get_occup src/bindings/bindingsf.f90:719 */
+/* orbs_get_occup src/bindings/bindingsf.f90:723 */
 /* Fortran header:
 subroutine orbs_get_occup(orbs, occup)
 use module_types
@@ -223,7 +232,7 @@ real(gp), dimension(:), pointer :: occup
 */
 void FC_FUNC_(orbs_get_occup, ORBS_GET_OCCUP)(f90_orbitals_data *orbs, 
                                               f90_pointer_double *occup);
-/* orbs_get_onwhichatom src/bindings/bindingsf.f90:751 */
+/* orbs_get_onwhichatom src/bindings/bindingsf.f90:755 */
 /* Fortran header:
 subroutine orbs_get_onwhichatom(orbs, atom)
 use module_types
@@ -234,7 +243,7 @@ integer, dimension(:), pointer :: atom
 void FC_FUNC_(orbs_get_onwhichatom, ORBS_GET_ONWHICHATOM)(f90_orbitals_data *orbs, 
                                                           f90_pointer_int *atom);
 /* orbs_get_onwhichmpi  */
-/* allocate_atoms_nat src/modules/atoms_data.f90:933 */
+/* allocate_atoms_nat src/modules/atoms_data.f90:770 */
 /* Fortran header:
 subroutine allocate_atoms_nat(atoms)
 use module_base
@@ -245,7 +254,7 @@ type(atoms_data), intent(inout) :: atoms
 integer :: iat
 */
 void FC_FUNC_(allocate_atoms_nat, ALLOCATE_ATOMS_NAT)(f90_atoms_data *atoms);
-/* allocate_atoms_ntypes src/modules/atoms_data.f90:956 */
+/* allocate_atoms_ntypes src/modules/atoms_data.f90:793 */
 /* Fortran header:
 subroutine allocate_atoms_ntypes(atoms)
 use module_base
@@ -279,7 +288,7 @@ void FC_FUNC(allocaterhopot, ALLOCATERHOPOT)(const int *iproc,
                                              const f90_atoms_data *atoms, 
                                              const double *rxyz, 
                                              f90_DFT_local_fields *denspot);
-/* astruct_copy_alat src/init/atoms.f90:1019 */
+/* astruct_copy_alat src/init/atoms.f90:998 */
 /* Fortran header:
 subroutine astruct_copy_alat(astruct, alat)
 use module_types
@@ -289,7 +298,7 @@ real(gp), intent(out) :: alat(3)
 */
 void FC_FUNC_(astruct_copy_alat, ASTRUCT_COPY_ALAT)(const f90_atomic_structure *astruct, 
                                                     double *alat);
-/* astruct_copy_geometry_data src/init/atoms.f90:966 */
+/* astruct_copy_geometry_data src/init/atoms.f90:945 */
 /* Fortran header:
 subroutine astruct_copy_geometry_data(astruct, geocode, format, units)
 use module_types
@@ -306,7 +315,7 @@ void FC_FUNC_(astruct_copy_geometry_data, ASTRUCT_COPY_GEOMETRY_DATA)(const f90_
                                                                       int str_ln_1, 
                                                                       int str_ln_2, 
                                                                       int str_ln_3);
-/* astruct_copy_name src/init/atoms.f90:992 */
+/* astruct_copy_name src/init/atoms.f90:971 */
 /* Fortran header:
 subroutine astruct_copy_name(astruct, ityp, name, ln)
 use module_types
@@ -325,7 +334,7 @@ void FC_FUNC_(astruct_copy_name, ASTRUCT_COPY_NAME)(const f90_atomic_structure *
                                                     char *name, 
                                                     int *ln, 
                                                     int str_ln_1);
-/* astruct_copy_nat src/init/atoms.f90:777 */
+/* astruct_copy_nat src/init/atoms.f90:756 */
 /* Fortran header:
 subroutine astruct_copy_nat(astruct, nat)
 use module_types
@@ -335,7 +344,7 @@ integer, intent(out) :: nat
 */
 void FC_FUNC_(astruct_copy_nat, ASTRUCT_COPY_NAT)(const f90_atomic_structure *astruct, 
                                                   int *nat);
-/* astruct_copy_ntypes src/init/atoms.f90:787 */
+/* astruct_copy_ntypes src/init/atoms.f90:766 */
 /* Fortran header:
 subroutine astruct_copy_ntypes(astruct, ntypes)
 use module_types
@@ -370,7 +379,7 @@ real(gp) :: tt
 */
 void FC_FUNC_(astruct_set_displacement, ASTRUCT_SET_DISPLACEMENT)(f90_atomic_structure *astruct, 
                                                                   const double *randdis);
-/* astruct_set_from_file src/modules/atoms_data.f90:844 */
+/* astruct_set_from_file src/modules/atoms_data.f90:681 */
 /* Fortran header:
 subroutine astruct_set_from_file(lstat, astruct, filename)
 use module_base
@@ -386,7 +395,7 @@ void FC_FUNC_(astruct_set_from_file, ASTRUCT_SET_FROM_FILE)(int *lstat,
                                                             f90_atomic_structure *astruct, 
                                                             const char *filename, 
                                                             int str_ln_1);
-/* astruct_set_geometry src/init/atoms.f90:749 */
+/* astruct_set_geometry src/init/atoms.f90:728 */
 /* Fortran header:
 subroutine astruct_set_geometry(astruct, alat, geocode, format, units)
 use module_types
@@ -405,7 +414,7 @@ void FC_FUNC_(astruct_set_geometry, ASTRUCT_SET_GEOMETRY)(f90_atomic_structure *
                                                           int str_ln_1, 
                                                           int str_ln_2, 
                                                           int str_ln_3);
-/* astruct_set_n_atoms src/modules/atoms_data.f90:788 */
+/* astruct_set_n_atoms src/modules/atoms_data.f90:625 */
 /* Fortran header:
 subroutine astruct_set_n_atoms(astruct, nat)
 use module_base
@@ -419,7 +428,7 @@ integer :: i_stat
 */
 void FC_FUNC_(astruct_set_n_atoms, ASTRUCT_SET_N_ATOMS)(f90_atomic_structure *astruct, 
                                                         const int *nat);
-/* astruct_set_n_types src/modules/atoms_data.f90:821 */
+/* astruct_set_n_types src/modules/atoms_data.f90:658 */
 /* Fortran header:
 subroutine astruct_set_n_types(astruct, ntypes)
 use module_base
@@ -434,7 +443,7 @@ integer :: i, i_stat
 */
 void FC_FUNC_(astruct_set_n_types, ASTRUCT_SET_N_TYPES)(f90_atomic_structure *astruct, 
                                                         const int *ntypes);
-/* astruct_set_symmetries src/modules/atoms_data.f90:859 */
+/* astruct_set_symmetries src/modules/atoms_data.f90:696 */
 /* Fortran header:
 subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
 use module_base
@@ -459,7 +468,7 @@ void FC_FUNC_(astruct_set_symmetries, ASTRUCT_SET_SYMMETRIES)(f90_atomic_structu
                                                               const double *elecfield, 
                                                               const int *nspin);
 /* atoms_copy_alat  */
-/* atoms_empty src/init/atoms.f90:729 */
+/* atoms_empty src/init/atoms.f90:708 */
 /* Fortran header:
 subroutine atoms_empty(atoms)
 use module_atoms, only: atoms_data, deallocate_atoms_data
@@ -467,7 +476,7 @@ implicit none
 type(atoms_data), intent(inout) :: atoms
 */
 void FC_FUNC_(atoms_empty, ATOMS_EMPTY)(f90_atoms_data *atoms);
-/* atoms_free src/modules/atoms_data.f90:1007 */
+/* atoms_free src/modules/atoms_data.f90:844 */
 /* Fortran header:
 subroutine atoms_free(atoms)
 use module_atoms, only: atoms_data,deallocate_atoms_data
@@ -475,7 +484,7 @@ implicit none
 type(atoms_data), pointer :: atoms
 */
 void FC_FUNC_(atoms_free, ATOMS_FREE)(f90_atoms_data_pointer *atoms);
-/* atoms_get src/init/atoms.f90:765 */
+/* atoms_get src/init/atoms.f90:744 */
 /* Fortran header:
 subroutine atoms_get(atoms, astruct, symObj)
 use module_types
@@ -487,7 +496,7 @@ type(symmetry_data), pointer :: symObj
 void FC_FUNC_(atoms_get, ATOMS_GET)(const f90_atoms_data *atoms, 
                                     f90_atomic_structure_pointer *astruct, 
                                     f90_symmetry_data_pointer *symObj);
-/* atoms_new src/modules/atoms_data.f90:994 */
+/* atoms_new src/modules/atoms_data.f90:831 */
 /* Fortran header:
 subroutine atoms_new(atoms)
 use module_atoms, only: atoms_data,nullify_atoms_data
@@ -497,7 +506,7 @@ type(atoms_data), pointer :: atoms
 type(atoms_data), pointer :: intern
 */
 void FC_FUNC_(atoms_new, ATOMS_NEW)(f90_atoms_data_pointer *atoms);
-/* atoms_set_name src/init/atoms.f90:738 */
+/* atoms_set_name src/init/atoms.f90:717 */
 /* Fortran header:
 subroutine atoms_set_name(atoms, ityp, name)
 use module_types
@@ -510,7 +519,7 @@ void FC_FUNC_(atoms_set_name, ATOMS_SET_NAME)(f90_atoms_data *atoms,
                                               const int *ityp, 
                                               const char *name, 
                                               int str_ln_1);
-/* atoms_write src/init/atoms.f90:710 */
+/* atoms_write src/init/atoms.f90:689 */
 /* Fortran header:
 subroutine atoms_write(atoms, filename, forces, energy, comment)
 use module_types
@@ -577,6 +586,7 @@ use module_base
 use module_types
 use module_interfaces, except_this_one => call_bigdft
 use yaml_output
+use communications_base
 implicit none
 integer, intent(in) :: iproc,nproc
 type(run_objects), intent(inout) :: runObj
@@ -589,14 +599,13 @@ character(len=40) :: comment
 logical :: exists
 integer :: i_stat,i_all,ierr,inputPsiId_orig,iat,iorb,istep,i,jproc
 real(gp) :: maxdiff
-real(gp), dimension(:,:,:), allocatable :: rxyz_glob
 */
 void FC_FUNC_(call_bigdft, CALL_BIGDFT)(f90_run_objects *runObj, 
                                         f90_DFT_global_output *outs, 
                                         const int *nproc, 
                                         const int *iproc, 
                                         int *infocode);
-/* check_linear_and_create_lzd src/linear/initAndUtils.f90:337 */
+/* check_linear_and_create_lzd src/linear/initAndUtils.f90:345 */
 /* Fortran header:
 subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,rxyz)
 use module_base
@@ -699,8 +708,9 @@ type(DFT_PSP_projectors), intent(out) :: nl
 logical, intent(in) :: dry_run 
 
 character(len=*), parameter :: subname='createProjectorsArrays'
-integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj
+integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj,nbseg_dim,npack_dim,mproj_max
 integer :: iat,i_stat,i_all,iseg
+integer, dimension(:), allocatable :: nbsegs_cf,keyg_lin
 logical, dimension(:,:,:), allocatable :: logrid
 */
 void FC_FUNC(createprojectorsarrays, CREATEPROJECTORSARRAYS)(const f90_locreg_descriptors *lr, 
@@ -821,7 +831,7 @@ void FC_FUNC_(denspot_full_v_ext, DENSPOT_FULL_V_EXT)(const f90_DFT_local_fields
                                                       f90_pointer_double *pot_full, 
                                                       const int *iproc, 
                                                       int *new);
-/* dict_append src/bindings/bindingsf.f90:1529 */
+/* dict_append src/bindings/bindingsf.f90:1535 */
 /* Fortran header:
 subroutine dict_append(dict)
 use dictionaries, only: dictionary, operator(//), dict_len
@@ -829,7 +839,7 @@ implicit none
 type(dictionary), pointer :: dict
 */
 void FC_FUNC_(dict_append, DICT_APPEND)(f90_dictionary_pointer *dict);
-/* dict_copy src/bindings/bindingsf.f90:1634 */
+/* dict_copy src/bindings/bindingsf.f90:1660 */
 /* Fortran header:
 subroutine dict_copy(dict, ref)
 use dictionaries, only: dictionary, wrapper => dict_copy
@@ -838,7 +848,7 @@ type(dictionary), pointer :: dict, ref
 */
 void FC_FUNC_(dict_copy, DICT_COPY)(f90_dictionary_pointer *dict, 
                                     f90_dictionary_pointer *ref);
-/* dict_dump src/bindings/bindingsf.f90:1545 */
+/* dict_dump src/bindings/bindingsf.f90:1551 */
 /* Fortran header:
 subroutine dict_dump(dict, unit)
 use dictionaries, only: dictionary
@@ -849,8 +859,22 @@ integer, intent(in) :: unit
 */
 void FC_FUNC_(dict_dump, DICT_DUMP)(f90_dictionary_pointer *dict, 
                                     const int *unit);
+/* dict_dump_to_file src/bindings/bindingsf.f90:1564 */
+/* Fortran header:
+subroutine dict_dump_to_file(dict, path)
+use dictionaries, only: dictionary
+use yaml_output, only: yaml_dict_dump, yaml_set_stream, yaml_close_stream, yaml_get_default_stream
+implicit none
+type(dictionary), pointer :: dict
+character(len = *), intent(in) :: path
+
+integer :: unit
+*/
+void FC_FUNC_(dict_dump_to_file, DICT_DUMP_TO_FILE)(f90_dictionary_pointer *dict, 
+                                                    const char *path, 
+                                                    int str_ln_1);
 /* dict_free  */
-/* dict_init src/bindings/bindingsf.f90:1648 */
+/* dict_init src/bindings/bindingsf.f90:1674 */
 /* Fortran header:
 subroutine dict_init(dict)
 use dictionaries, only: dictionary, wrapper => dict_init
@@ -858,7 +882,7 @@ implicit none
 type(dictionary), pointer :: dict
 */
 void FC_FUNC_(dict_init, DICT_INIT)(f90_dictionary_pointer *dict);
-/* dict_insert src/bindings/bindingsf.f90:1520 */
+/* dict_insert src/bindings/bindingsf.f90:1526 */
 /* Fortran header:
 subroutine dict_insert(dict, key)
 use dictionaries, only: dictionary, operator(//)
@@ -869,7 +893,7 @@ character(len = *), intent(in) :: key
 void FC_FUNC_(dict_insert, DICT_INSERT)(f90_dictionary_pointer *dict, 
                                         const char *key, 
                                         int str_ln_1);
-/* dict_iter src/bindings/bindingsf.f90:1594 */
+/* dict_iter src/bindings/bindingsf.f90:1620 */
 /* Fortran header:
 subroutine dict_iter(dict, exists)
 use dictionaries, only: dictionary, wrapper => dict_iter
@@ -881,7 +905,7 @@ type(dictionary), pointer :: start
 */
 void FC_FUNC_(dict_iter, DICT_ITER)(f90_dictionary_pointer *dict, 
                                     int *exists);
-/* dict_key src/bindings/bindingsf.f90:1586 */
+/* dict_key src/bindings/bindingsf.f90:1612 */
 /* Fortran header:
 subroutine dict_key(dict, buf)
 use dictionaries, only: dictionary, max_field_length, wrapper => dict_key
@@ -892,7 +916,7 @@ character(len = max_field_length), intent(out) :: buf
 void FC_FUNC_(dict_key, DICT_KEY)(f90_dictionary_pointer *dict, 
                                   char *buf, 
                                   int str_ln_1);
-/* dict_len src/bindings/bindingsf.f90:1618 */
+/* dict_len src/bindings/bindingsf.f90:1644 */
 /* Fortran header:
 subroutine dict_len(dict, ln)
 use dictionaries, only: dictionary, wrapper => dict_len
@@ -902,7 +926,7 @@ integer, intent(out) :: ln
 */
 void FC_FUNC_(dict_len, DICT_LEN)(f90_dictionary_pointer *dict, 
                                   int *ln);
-/* dict_move_to_item src/bindings/bindingsf.f90:1510 */
+/* dict_move_to_item src/bindings/bindingsf.f90:1516 */
 /* Fortran header:
 subroutine dict_move_to_item(dict, exists, id)
 use dictionaries, only: dictionary, operator(//), dict_len
@@ -914,7 +938,7 @@ integer, intent(in) :: id
 void FC_FUNC_(dict_move_to_item, DICT_MOVE_TO_ITEM)(f90_dictionary_pointer *dict, 
                                                     int *exists, 
                                                     const int *id);
-/* dict_move_to_key src/bindings/bindingsf.f90:1500 */
+/* dict_move_to_key src/bindings/bindingsf.f90:1506 */
 /* Fortran header:
 subroutine dict_move_to_key(dict, exists, key)
 use dictionaries, only: dictionary, operator(//), has_key
@@ -927,7 +951,7 @@ void FC_FUNC_(dict_move_to_key, DICT_MOVE_TO_KEY)(f90_dictionary_pointer *dict,
                                                   int *exists, 
                                                   const char *key, 
                                                   int str_ln_1);
-/* dict_next src/bindings/bindingsf.f90:1606 */
+/* dict_next src/bindings/bindingsf.f90:1632 */
 /* Fortran header:
 subroutine dict_next(dict, exists)
 use dictionaries, only: dictionary, wrapper => dict_next
@@ -939,10 +963,10 @@ type(dictionary), pointer :: next
 */
 void FC_FUNC_(dict_next, DICT_NEXT)(f90_dictionary_pointer *dict, 
                                     int *exists);
-/* dict_parse src/bindings/bindingsf.f90:1558 */
+/* dict_parse src/bindings/bindingsf.f90:1579 */
 /* Fortran header:
 subroutine dict_parse(dict, buf)
-use dictionaries, only: dictionary, operator(//)
+use dictionaries, only: dictionary, operator(//), dict_len
 use yaml_parse, only: yaml_parse_from_string
 implicit none
 type(dictionary), pointer :: dict
@@ -951,10 +975,10 @@ character(len = *), intent(in) :: buf
 void FC_FUNC_(dict_parse, DICT_PARSE)(f90_dictionary_pointer *dict, 
                                       const char *buf, 
                                       int str_ln_1);
-/* dict_pop src/bindings/bindingsf.f90:1568 */
+/* dict_pop src/bindings/bindingsf.f90:1591 */
 /* Fortran header:
 subroutine dict_pop(dict, exists, key)
-use dictionaries, only: dictionary, has_key, pop
+use dictionaries, only: dictionary, has_key, pop, dict_init
 implicit none
 type(dictionary), pointer :: dict
 logical, intent(out) :: exists
@@ -964,7 +988,7 @@ void FC_FUNC_(dict_pop, DICT_POP)(f90_dictionary_pointer *dict,
                                   int *exists, 
                                   const char *key, 
                                   int str_ln_1);
-/* dict_put src/bindings/bindingsf.f90:1536 */
+/* dict_put src/bindings/bindingsf.f90:1542 */
 /* Fortran header:
 subroutine dict_put(dict, val)
 use dictionaries, only: dictionary, set
@@ -975,7 +999,7 @@ character(len = *), intent(in) :: val
 void FC_FUNC_(dict_put, DICT_PUT)(f90_dictionary_pointer *dict, 
                                   const char *val, 
                                   int str_ln_1);
-/* dict_size src/bindings/bindingsf.f90:1626 */
+/* dict_size src/bindings/bindingsf.f90:1652 */
 /* Fortran header:
 subroutine dict_size(dict, ln)
 use dictionaries, only: dictionary, wrapper => dict_size
@@ -985,7 +1009,7 @@ integer, intent(out) :: ln
 */
 void FC_FUNC_(dict_size, DICT_SIZE)(f90_dictionary_pointer *dict, 
                                     int *ln);
-/* dict_update src/bindings/bindingsf.f90:1641 */
+/* dict_update src/bindings/bindingsf.f90:1667 */
 /* Fortran header:
 subroutine dict_update(dict, ref)
 use dictionaries, only: dictionary, wrapper => dict_update
@@ -994,7 +1018,7 @@ type(dictionary), pointer :: dict, ref
 */
 void FC_FUNC_(dict_update, DICT_UPDATE)(f90_dictionary_pointer *dict, 
                                         f90_dictionary_pointer *ref);
-/* dict_value src/bindings/bindingsf.f90:1578 */
+/* dict_value src/bindings/bindingsf.f90:1604 */
 /* Fortran header:
 subroutine dict_value(dict, buf)
 use dictionaries, only: dictionary, max_field_length, wrapper => dict_value
@@ -1016,7 +1040,7 @@ type(denspot_distribution), intent(inout) :: dpbox
 */
 void FC_FUNC_(dpbox_set_box, DPBOX_SET_BOX)(f90_denspot_distribution *dpbox, 
                                             const f90_local_zone_descriptors *Lzd);
-/* energs_copy_data src/bindings/bindingsf.f90:1185 */
+/* energs_copy_data src/bindings/bindingsf.f90:1191 */
 /* Fortran header:
 subroutine energs_copy_data(energs, eh, exc, evxc, eion, edisp, ekin, epot,  eproj, eexctX, ebs, eKS, trH, evsum, evsic)
 use module_types
@@ -1118,7 +1142,7 @@ void FC_FUNC(geopt, GEOPT)(f90_run_objects *runObj,
                            const int *nproc, 
                            const int *iproc, 
                            int *ncount_bigdft);
-/* global_output_free src/bindings/bindingsf.f90:1156 */
+/* global_output_free src/bindings/bindingsf.f90:1162 */
 /* Fortran header:
 subroutine global_output_free(outs)
 use module_types
@@ -1126,7 +1150,7 @@ implicit none
 type(DFT_global_output), pointer :: outs
 */
 void FC_FUNC_(global_output_free, GLOBAL_OUTPUT_FREE)(f90_DFT_global_output_pointer *outs);
-/* global_output_get src/bindings/bindingsf.f90:1164 */
+/* global_output_get src/bindings/bindingsf.f90:1170 */
 /* Fortran header:
 subroutine global_output_get(outs, energs, fxyz, fdim, fnoise, pressure, strten, etot)
 use module_types
@@ -1147,7 +1171,7 @@ void FC_FUNC_(global_output_get, GLOBAL_OUTPUT_GET)(const f90_DFT_global_output 
                                                     double *pressure, 
                                                     double *strten, 
                                                     double *etot);
-/* global_output_new src/bindings/bindingsf.f90:1138 */
+/* global_output_new src/bindings/bindingsf.f90:1144 */
 /* Fortran header:
 subroutine global_output_new(self, outs, energs, fxyz, nat)
 use module_types
@@ -1346,7 +1370,7 @@ void FC_FUNC_(glr_wfd_get_data, GLR_WFD_GET_DATA)(const f90_wavefunctions_descri
                                                   f90_pointer_int_2D *keygloc, 
                                                   f90_pointer_int *keyvglob, 
                                                   f90_pointer_int *keyvloc);
-/* gpu_free src/bindings/bindingsf.f90:980 */
+/* gpu_free src/bindings/bindingsf.f90:984 */
 /* Fortran header:
 subroutine gpu_free(GPU)
 use module_types
@@ -1354,7 +1378,7 @@ implicit none
 type(GPU_pointers), pointer :: GPU
 */
 void FC_FUNC_(gpu_free, GPU_FREE)(f90_GPU_pointers_pointer *GPU);
-/* gpu_new src/bindings/bindingsf.f90:973 */
+/* gpu_new src/bindings/bindingsf.f90:977 */
 /* Fortran header:
 subroutine gpu_new(GPU)
 use module_types
@@ -1374,13 +1398,13 @@ type(run_image), intent(inout) :: img
 integer :: iteration
 integer, intent(in) :: id
 
-integer :: ierr, infocode
+integer :: ierr, infocode, unit_log
 character(len = 4) :: fn4
 */
 void FC_FUNC_(image_calculate, IMAGE_CALCULATE)(f90_run_image *img, 
                                                 int *iteration, 
                                                 const int *id);
-/* image_free src/images.f90:1082 */
+/* image_free src/images.f90:1084 */
 /* Fortran header:
 subroutine image_free(img, run, outs)
 use module_types
@@ -1394,7 +1418,7 @@ type(DFT_global_output), pointer :: outs
 void FC_FUNC_(image_free, IMAGE_FREE)(f90_run_image_pointer *img, 
                                       f90_run_objects_pointer *run, 
                                       f90_DFT_global_output_pointer *outs);
-/* image_get_attributes src/images.f90:1101 */
+/* image_get_attributes src/images.f90:1103 */
 /* Fortran header:
 subroutine image_get_attributes(img, error, F, id)
 use module_images
@@ -1409,7 +1433,7 @@ void FC_FUNC_(image_get_attributes, IMAGE_GET_ATTRIBUTES)(const f90_run_image *i
                                                           double *error, 
                                                           double *F, 
                                                           int *id);
-/* images_distribute_tasks src/images.f90:1012 */
+/* images_distribute_tasks src/images.f90:1014 */
 /* Fortran header:
 subroutine images_distribute_tasks(igroup, update, nimages, ngroup)
 implicit none
@@ -1500,7 +1524,7 @@ integer, intent(in) :: ixc, nspden
 void FC_FUNC_(initialize_dft_local_fields, INITIALIZE_DFT_LOCAL_FIELDS)(f90_DFT_local_fields *denspot, 
                                                                         const int *ixc, 
                                                                         const int *nspden);
-/* init_orbitals_data_for_linear src/linear/initAndUtils.f90:639 */
+/* init_orbitals_data_for_linear src/linear/initAndUtils.f90:651 */
 /* Fortran header:
 subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, rxyz, lorbs)
 use module_base
@@ -1691,7 +1715,7 @@ void FC_FUNC_(inputs_set_dict, INPUTS_SET_DICT)(f90_input_variables *in,
                                                 const char *level, 
                                                 f90_dictionary_pointer *val, 
                                                 int str_ln_1);
-/* input_wf src/init.f90:1521 */
+/* input_wf src/init.f90:1592 */
 /* Fortran header:
 subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpsp,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft,locregcenters)
 use module_defs
@@ -1702,6 +1726,8 @@ use constrained_dft
 use dynamic_memory
 use yaml_output
 use gaussians, only:gaussian_basis
+use sparsematrix_base, only: sparse_matrix
+use communications, only: transpose_localized, untranspose_localized
 implicit none
 
 integer, intent(in) :: iproc, nproc, inputpsi, input_wf_format
@@ -1736,12 +1762,12 @@ real(wp), allocatable, dimension(:) :: norm
 integer :: iatyp
 type(gaussian_basis),dimension(atoms%astruct%ntypes)::proj_G
 type(paw_objects)::paw
-logical :: overlap_calculated, perx,pery,perz
+logical :: overlap_calculated, perx,pery,perz, rho_negative
 real(gp) :: tx,ty,tz,displ,mindist
 real(gp), dimension(:), pointer :: in_frag_charge
 integer :: infoCoeff, iorb, nstates_max
 real(kind=8) :: pnrm
-type(sparseMatrix) :: ham_small
+type(sparse_matrix) :: ham_small
 */
 void FC_FUNC_(input_wf, INPUT_WF)(const int *iproc, 
                                   const int *nproc, 
@@ -1825,7 +1851,7 @@ void FC_FUNC(ionicenergyandforces, IONICENERGYANDFORCES)(const int *iproc,
                                                          double *pot_ion, 
                                                          const f90_coulomb_operator *pkernel, 
                                                          double *psoffset);
-/* kernel_get_comm src/bindings/bindingsf.f90:810 */
+/* kernel_get_comm src/bindings/bindingsf.f90:814 */
 /* Fortran header:
 subroutine kernel_get_comm(pkernel, igroup, ngroup, iproc_grp,  nproc_grp, mpi_comm)
 use module_types
@@ -1844,6 +1870,8 @@ void FC_FUNC_(kernel_get_comm, KERNEL_GET_COMM)(const f90_coulomb_operator *pker
 subroutine kswfn_init_comm(wfn, in, atoms, dpbox, iproc, nproc)
 use module_types
 use module_interfaces, except_this_one => kswfn_init_comm
+use communications_base, only: comms_linear_null
+use communications_init, only: init_comms_linear, init_comms_linear_sumrho, initialize_communication_potential
 implicit none
 integer, intent(in) :: iproc, nproc
 type(DFT_wavefunction), intent(inout) :: wfn
@@ -1873,7 +1901,7 @@ void FC_FUNC_(kswfn_mpi_copy, KSWFN_MPI_COPY)(double *psic,
                                               const int *jproc, 
                                               const int *psiStart, 
                                               const int *psiSize);
-/* kswfn_optimization_loop src/cluster.f90:1473 */
+/* kswfn_optimization_loop src/cluster.f90:1514 */
 /* Fortran header:
 subroutine kswfn_optimization_loop(iproc, nproc, opt,  alphamix, idsx, inputpsi, KSwfn, denspot, nlpsp, energs, atoms, rxyz, GPU, xcstr,  in)
 use module_base
@@ -1915,7 +1943,7 @@ void FC_FUNC_(kswfn_optimization_loop, KSWFN_OPTIMIZATION_LOOP)(const int *iproc
                                                                 f90_GPU_pointers *GPU, 
                                                                 double *xcstr, 
                                                                 const f90_input_variables *in);
-/* kswfn_post_treatments src/cluster.f90:1859 */
+/* kswfn_post_treatments src/cluster.f90:1901 */
 /* Fortran header:
 subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear,  fxyz, fnoise, fion, fdisp, fpulay,  strten, pressure, ewaldstr, xcstr,  GPU, denspot, atoms, rxyz, nlpsp,  output_denspot, dir_output, gridformat, refill_proj, calculate_dipole)
 use module_base
@@ -1923,6 +1951,8 @@ use module_types
 use module_interfaces, except_this_one => kswfn_post_treatments
 use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
 use yaml_output
+use communications_base, only: deallocate_comms_linear
+use communications, only: synchronize_onesided_communication
 
 implicit none
 
@@ -1976,7 +2006,7 @@ void FC_FUNC_(kswfn_post_treatments, KSWFN_POST_TREATMENTS)(const int *iproc,
                                                             const int *calculate_dipole, 
                                                             int str_ln_1, 
                                                             int str_ln_2);
-/* localfields_copy_metadata src/bindings/bindingsf.f90:903 */
+/* localfields_copy_metadata src/bindings/bindingsf.f90:907 */
 /* Fortran header:
 subroutine localfields_copy_metadata(denspot, rhov_is, hgrid, ni, psoffset)
 use module_types
@@ -1991,7 +2021,7 @@ void FC_FUNC_(localfields_copy_metadata, LOCALFIELDS_COPY_METADATA)(const f90_DF
                                                                     double *hgrid, 
                                                                     int *ni, 
                                                                     double *psoffset);
-/* localfields_free src/bindings/bindingsf.f90:845 */
+/* localfields_free src/bindings/bindingsf.f90:849 */
 /* Fortran header:
 subroutine localfields_free(denspotd, fion, fdisp)
 use module_types
@@ -2007,7 +2037,7 @@ integer :: i_stat, i_all
 void FC_FUNC_(localfields_free, LOCALFIELDS_FREE)(f90_DFT_local_fields_pointer *denspotd, 
                                                   f90_pointer_double_2D *fion, 
                                                   f90_pointer_double_2D *fdisp);
-/* localfields_get_data src/bindings/bindingsf.f90:835 */
+/* localfields_get_data src/bindings/bindingsf.f90:839 */
 /* Fortran header:
 subroutine localfields_get_data(denspotd, rhod, dpbox)
 use module_types
@@ -2019,7 +2049,7 @@ type(rho_descriptors), pointer :: rhod
 void FC_FUNC_(localfields_get_data, LOCALFIELDS_GET_DATA)(const f90_DFT_local_fields *denspotd, 
                                                           f90_rho_descriptors_pointer *rhod, 
                                                           f90_denspot_distribution_pointer *dpbox);
-/* localfields_get_pkernel src/bindings/bindingsf.f90:940 */
+/* localfields_get_pkernel src/bindings/bindingsf.f90:944 */
 /* Fortran header:
 subroutine localfields_get_pkernel(denspot, pkernel)
 use module_types
@@ -2029,7 +2059,7 @@ type(coulomb_operator), pointer :: pkernel
 */
 void FC_FUNC_(localfields_get_pkernel, LOCALFIELDS_GET_PKERNEL)(const f90_DFT_local_fields *denspot, 
                                                                 f90_coulomb_operator_pointer *pkernel);
-/* localfields_get_pkernelseq src/bindings/bindingsf.f90:948 */
+/* localfields_get_pkernelseq src/bindings/bindingsf.f90:952 */
 /* Fortran header:
 subroutine localfields_get_pkernelseq(denspot, pkernelseq)
 use module_types
@@ -2039,7 +2069,7 @@ type(coulomb_operator), pointer :: pkernelseq
 */
 void FC_FUNC_(localfields_get_pkernelseq, LOCALFIELDS_GET_PKERNELSEQ)(const f90_DFT_local_fields *denspot, 
                                                                       f90_coulomb_operator_pointer *pkernelseq);
-/* localfields_new src/bindings/bindingsf.f90:822 */
+/* localfields_new src/bindings/bindingsf.f90:826 */
 /* Fortran header:
 subroutine localfields_new(self, denspotd, rhod, dpbox)
 use module_types
@@ -2123,7 +2153,7 @@ type(locreg_descriptors), pointer :: glr
 */
 void FC_FUNC_(lzd_init, LZD_INIT)(f90_local_zone_descriptors *lzd, 
                                   f90_locreg_descriptors_pointer *glr);
-/* lzd_init_llr src/linear/initAndUtils.f90:737 */
+/* lzd_init_llr src/linear/initAndUtils.f90:749 */
 /* Fortran header:
 subroutine lzd_init_llr(iproc, nproc, input, astruct, rxyz, orbs, lzd)
 use module_base
@@ -2160,7 +2190,7 @@ implicit none
 type(local_zone_descriptors), pointer :: lzd
 */
 void FC_FUNC_(lzd_new, LZD_NEW)(f90_local_zone_descriptors_pointer *lzd);
-/* lzd_set_hgrids src/init/wavefunctions.f90:681 */
+/* lzd_set_hgrids src/init/wavefunctions.f90:330 */
 /* Fortran header:
 subroutine lzd_set_hgrids(Lzd, hgrids)
 use module_base
@@ -2187,7 +2217,7 @@ void FC_FUNC_(lzd_set_nlr, LZD_SET_NLR)(f90_local_zone_descriptors *lzd,
                                         const int *nlr, 
                                         const char *geocode, 
                                         int str_ln_1);
-/* mem_destroy src/bindings/bindingsf.f90:1466 */
+/* mem_destroy src/bindings/bindingsf.f90:1472 */
 /* Fortran header:
 subroutine mem_destroy(mem)
 use module_types, only: memory_estimation
@@ -2195,7 +2225,7 @@ implicit none
 type(memory_estimation), pointer :: mem
 */
 void FC_FUNC_(mem_destroy, MEM_DESTROY)(f90_memory_estimation_pointer *mem);
-/* mem_new src/bindings/bindingsf.f90:1459 */
+/* mem_new src/bindings/bindingsf.f90:1465 */
 /* Fortran header:
 subroutine mem_new(mem)
 use module_types, only: memory_estimation
@@ -2238,7 +2268,7 @@ void FC_FUNC(memoryestimator, MEMORYESTIMATOR)(const int *nproc,
                                                const int *itrpmax, 
                                                const int *iscf, 
                                                f90_memory_estimation *mem);
-/* mem_to_c src/bindings/bindingsf.f90:1474 */
+/* mem_to_c src/bindings/bindingsf.f90:1480 */
 /* Fortran header:
 subroutine mem_to_c(mem, submat, ncomponents, norb, norbp, oneorb, allpsi_mpi,  psistorage, projarr, grid, workarr, kernel, density, psolver, ham, peak)
 use module_types, only: memory_estimation
@@ -2263,7 +2293,7 @@ void FC_FUNC_(mem_to_c, MEM_TO_C)(const f90_memory_estimation *mem,
                                   double *psolver, 
                                   double *ham, 
                                   double *peak);
-/* neb_free src/images.f90:1129 */
+/* neb_free src/images.f90:1131 */
 /* Fortran header:
 subroutine neb_free(neb)
 use module_images
@@ -2271,7 +2301,7 @@ implicit none
 type(NEB_data), pointer :: neb
 */
 void FC_FUNC_(neb_free, NEB_FREE)(f90_NEB_data_pointer *neb);
-/* neb_new src/images.f90:1115 */
+/* neb_new src/images.f90:1117 */
 /* Fortran header:
 subroutine neb_new(neb)
 use module_images
@@ -2279,7 +2309,7 @@ implicit none
 type(NEB_data), pointer :: neb
 */
 void FC_FUNC_(neb_new, NEB_NEW)(f90_NEB_data_pointer *neb);
-/* optloop_bcast src/bindings/bindingsf.f90:1321 */
+/* optloop_bcast src/bindings/bindingsf.f90:1327 */
 /* Fortran header:
 subroutine optloop_bcast(optloop, iproc)
 use module_base
@@ -2293,7 +2323,7 @@ real(gp) :: rData(3)
 */
 void FC_FUNC_(optloop_bcast, OPTLOOP_BCAST)(f90_DFT_optimization_loop *optloop, 
                                             const int *iproc);
-/* optloop_copy_data src/bindings/bindingsf.f90:1225 */
+/* optloop_copy_data src/bindings/bindingsf.f90:1231 */
 /* Fortran header:
 subroutine optloop_copy_data(optloop, gnrm_cv, rpnrm_cv, gnrm_startmix, gnrm, rpnrm,   itrpmax, nrepmax, itermax, itrp, itrep, iter, iscf, infocode)
 use module_types
@@ -2316,7 +2346,7 @@ void FC_FUNC_(optloop_copy_data, OPTLOOP_COPY_DATA)(const f90_DFT_optimization_l
                                                     int *iter, 
                                                     int *iscf, 
                                                     int *infocode);
-/* optloop_free src/bindings/bindingsf.f90:1218 */
+/* optloop_free src/bindings/bindingsf.f90:1224 */
 /* Fortran header:
 subroutine optloop_free(optloop)
 use module_types
@@ -2324,7 +2354,7 @@ implicit none
 type(DFT_optimization_loop), pointer :: optloop
 */
 void FC_FUNC_(optloop_free, OPTLOOP_FREE)(f90_DFT_optimization_loop_pointer *optloop);
-/* optloop_new src/bindings/bindingsf.f90:1209 */
+/* optloop_new src/bindings/bindingsf.f90:1215 */
 /* Fortran header:
 subroutine optloop_new(self, optloop)
 use module_types
@@ -2334,7 +2364,7 @@ type(DFT_optimization_loop), pointer :: optloop
 */
 void FC_FUNC_(optloop_new, OPTLOOP_NEW)(const long *self, 
                                         f90_DFT_optimization_loop_pointer *optloop);
-/* optloop_sync_data src/bindings/bindingsf.f90:1248 */
+/* optloop_sync_data src/bindings/bindingsf.f90:1254 */
 /* Fortran header:
 subroutine optloop_sync_data(optloop, gnrm_cv, rpnrm_cv, gnrm_startmix, gnrm, rpnrm,   itrpmax, nrepmax, itermax, itrp, itrep, iter, iscf, infocode)
 use module_types
@@ -2357,39 +2387,42 @@ void FC_FUNC_(optloop_sync_data, OPTLOOP_SYNC_DATA)(f90_DFT_optimization_loop *o
                                                     const int *iter, 
                                                     const int *iscf, 
                                                     const int *infocode);
-/* orbs_comm_empty src/bindings/bindingsf.f90:680 */
+/* orbs_comm_empty src/bindings/bindingsf.f90:683 */
 /* Fortran header:
 subroutine orbs_comm_empty(comms)
 use module_base
 use module_types
+use communications_base, only: comms_cubic
 
 implicit none
-type(communications_arrays), intent(inout) :: comms
+type(comms_cubic), intent(inout) :: comms
 */
-void FC_FUNC_(orbs_comm_empty, ORBS_COMM_EMPTY)(f90_communications_arrays *comms);
-/* orbs_comm_free src/bindings/bindingsf.f90:671 */
+void FC_FUNC_(orbs_comm_empty, ORBS_COMM_EMPTY)(f90_comms_cubic *comms);
+/* orbs_comm_free src/bindings/bindingsf.f90:673 */
 /* Fortran header:
 subroutine orbs_comm_free(comms)
 use module_base
 use module_types
+use communications_base, only: comms_cubic
 
 implicit none
-type(communications_arrays), pointer :: comms
+type(comms_cubic), pointer :: comms
 */
-void FC_FUNC_(orbs_comm_free, ORBS_COMM_FREE)(f90_communications_arrays_pointer *comms);
-/* orbs_comm_init src/bindings/bindingsf.f90:659 */
+void FC_FUNC_(orbs_comm_free, ORBS_COMM_FREE)(f90_comms_cubic_pointer *comms);
+/* orbs_comm_init src/bindings/bindingsf.f90:660 */
 /* Fortran header:
 subroutine orbs_comm_init(comms, orbs, lr, iproc, nproc)
 use module_base
 use module_types
-use module_interfaces, only: orbitals_communicators
+use communications_base, only: comms_cubic
+use communications_init, only: orbitals_communicators
 implicit none
 integer, intent(in) :: iproc,nproc
 type(locreg_descriptors), intent(in) :: lr
 type(orbitals_data), intent(inout) :: orbs
-type(communications_arrays), intent(inout) :: comms
+type(comms_cubic), intent(inout) :: comms
 */
-void FC_FUNC_(orbs_comm_init, ORBS_COMM_INIT)(f90_communications_arrays *comms, 
+void FC_FUNC_(orbs_comm_init, ORBS_COMM_INIT)(f90_comms_cubic *comms, 
                                               f90_orbitals_data *orbs, 
                                               const f90_locreg_descriptors *lr, 
                                               const int *iproc, 
@@ -2399,11 +2432,12 @@ void FC_FUNC_(orbs_comm_init, ORBS_COMM_INIT)(f90_communications_arrays *comms,
 subroutine orbs_comm_new(comms)
 use module_base
 use module_types
+use communications_base, only: comms_cubic
 
 implicit none
-type(communications_arrays), pointer :: comms
+type(comms_cubic), pointer :: comms
 */
-void FC_FUNC_(orbs_comm_new, ORBS_COMM_NEW)(f90_communications_arrays_pointer *comms);
+void FC_FUNC_(orbs_comm_new, ORBS_COMM_NEW)(f90_comms_cubic_pointer *comms);
 /* orbs_empty src/bindings/bindingsf.f90:642 */
 /* Fortran header:
 subroutine orbs_empty(orbs)
@@ -2421,7 +2455,7 @@ implicit none
 type(orbitals_data), pointer :: orbs
 */
 void FC_FUNC_(orbs_free, ORBS_FREE)(f90_orbitals_data_pointer *orbs);
-/* orbs_get_dimensions src/bindings/bindingsf.f90:691 */
+/* orbs_get_dimensions src/bindings/bindingsf.f90:695 */
 /* Fortran header:
 subroutine orbs_get_dimensions(orbs, norb, norbp, norbu, norbd, nspin, nspinor, npsidim,  nkpts, nkptsp, isorb, iskpts)
 use module_types
@@ -2441,7 +2475,7 @@ void FC_FUNC_(orbs_get_dimensions, ORBS_GET_DIMENSIONS)(const f90_orbitals_data 
                                                         int *nkptsp, 
                                                         int *isorb, 
                                                         int *iskpts);
-/* orbs_get_iorbp src/bindings/bindingsf.f90:1111 */
+/* orbs_get_iorbp src/bindings/bindingsf.f90:1117 */
 /* Fortran header:
 subroutine orbs_get_iorbp(orbs, iorbp, isorb, iproc, ikpt, iorb, ispin, ispinor)
 use module_types
@@ -2475,7 +2509,7 @@ implicit none
 type(orbitals_data), pointer :: orbs
 */
 void FC_FUNC_(orbs_new, ORBS_NEW)(f90_orbitals_data_pointer *orbs);
-/* orbs_open_file src/bindings/bindingsf.f90:759 */
+/* orbs_open_file src/bindings/bindingsf.f90:763 */
 /* Fortran header:
 subroutine orbs_open_file(orbs, unitwf, name, ln, iformat, iorbp, ispinor)
 use module_types
@@ -2505,7 +2539,7 @@ implicit none
 type(memory_estimation), intent(in) :: mem
 */
 void FC_FUNC_(print_memory_estimation, PRINT_MEMORY_ESTIMATION)(const f90_memory_estimation *mem);
-/* proj_free src/bindings/bindingsf.f90:785 */
+/* proj_free src/bindings/bindingsf.f90:789 */
 /* Fortran header:
 subroutine proj_free(nlpspd, proj)
 use psp_projectors
@@ -2519,7 +2553,7 @@ integer :: i_stat, i_all
 */
 void FC_FUNC_(proj_free, PROJ_FREE)(f90_DFT_PSP_projectors_pointer *nlpspd, 
                                     f90_pointer_double *proj);
-/* proj_get_dimensions src/bindings/bindingsf.f90:800 */
+/* proj_get_dimensions src/bindings/bindingsf.f90:804 */
 /* Fortran header:
 subroutine proj_get_dimensions(nlpspd, nproj, nprojel)
 use module_types
@@ -2530,7 +2564,7 @@ integer, intent(out) :: nproj, nprojel
 void FC_FUNC_(proj_get_dimensions, PROJ_GET_DIMENSIONS)(const f90_DFT_PSP_projectors *nlpspd, 
                                                         int *nproj, 
                                                         int *nprojel);
-/* proj_new src/bindings/bindingsf.f90:778 */
+/* proj_new src/bindings/bindingsf.f90:782 */
 /* Fortran header:
 subroutine proj_new(nlpspd)
 use module_types
@@ -2539,7 +2573,7 @@ type(nonlocal_psp_descriptors), pointer :: nlpspd
 */
 void FC_FUNC_(proj_new, PROJ_NEW)(f90_nonlocal_psp_descriptors_pointer *nlpspd);
 /* read_orbital_variables  */
-/* read_radii_variables src/init/sysprop.f90:819 */
+/* read_radii_variables src/init/sysprop.f90:823 */
 /* Fortran header:
 subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
 use module_base
@@ -2621,7 +2655,7 @@ void FC_FUNC_(read_wave_to_isf, READ_WAVE_TO_ISF)(int *lstat,
                                                   int *nspinor, 
                                                   f90_pointer_double_4D *psiscf, 
                                                   int str_ln_1);
-/* run_objects_destroy src/bindings/bindingsf.f90:1372 */
+/* run_objects_destroy src/bindings/bindingsf.f90:1378 */
 /* Fortran header:
 subroutine run_objects_destroy(runObj)
 use module_types
@@ -2631,7 +2665,7 @@ implicit none
 type(run_objects), pointer :: runObj
 */
 void FC_FUNC_(run_objects_destroy, RUN_OBJECTS_DESTROY)(f90_run_objects_pointer *runObj);
-/* run_objects_dump_to_file src/bindings/bindingsf.f90:1396 */
+/* run_objects_dump_to_file src/bindings/bindingsf.f90:1402 */
 /* Fortran header:
 subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly)
 use dictionaries, only: dictionary
@@ -2653,7 +2687,7 @@ void FC_FUNC_(run_objects_dump_to_file, RUN_OBJECTS_DUMP_TO_FILE)(int *iostat,
                                                                   const char *fname, 
                                                                   const int *userOnly, 
                                                                   int str_ln_1);
-/* run_objects_get src/bindings/bindingsf.f90:1383 */
+/* run_objects_get src/bindings/bindingsf.f90:1389 */
 /* Fortran header:
 subroutine run_objects_get(runObj, dict, inputs, atoms)
 use module_types
@@ -2668,7 +2702,7 @@ void FC_FUNC_(run_objects_get, RUN_OBJECTS_GET)(const f90_run_objects *runObj,
                                                 f90_dictionary_pointer *dict, 
                                                 f90_input_variables_pointer *inputs, 
                                                 f90_atoms_data_pointer *atoms);
-/* run_objects_init_from_files src/initialization.f90:80 */
+/* run_objects_init_from_files src/initialization.f90:76 */
 /* Fortran header:
 subroutine run_objects_init_from_files(runObj, radical, posinp)
 use module_types
@@ -2676,15 +2710,13 @@ use module_input_dicts, only: user_dict_from_files
 implicit none
 type(run_objects), intent(out) :: runObj
 character(len = *), intent(in) :: radical, posinp
-
-integer(kind = 8) :: dummy
 */
 void FC_FUNC_(run_objects_init_from_files, RUN_OBJECTS_INIT_FROM_FILES)(f90_run_objects *runObj, 
                                                                         const char *radical, 
                                                                         const char *posinp, 
                                                                         int str_ln_1, 
                                                                         int str_ln_2);
-/* run_objects_new src/bindings/bindingsf.f90:1357 */
+/* run_objects_new src/bindings/bindingsf.f90:1363 */
 /* Fortran header:
 subroutine run_objects_new(runObj)
 use module_types
@@ -2694,7 +2726,7 @@ type(run_objects), pointer :: runObj
 type(run_objects), pointer :: intern
 */
 void FC_FUNC_(run_objects_new, RUN_OBJECTS_NEW)(f90_run_objects_pointer *runObj);
-/* run_objects_nullify_dict src/bindings/bindingsf.f90:1443 */
+/* run_objects_nullify_dict src/bindings/bindingsf.f90:1449 */
 /* Fortran header:
 subroutine run_objects_nullify_dict(runObj)
 use module_types, only: run_objects
@@ -2702,7 +2734,7 @@ implicit none
 type(run_objects), intent(inout) :: runObj
 */
 void FC_FUNC_(run_objects_nullify_dict, RUN_OBJECTS_NULLIFY_DICT)(f90_run_objects *runObj);
-/* run_objects_nullify_volatile src/bindings/bindingsf.f90:1450 */
+/* run_objects_nullify_volatile src/bindings/bindingsf.f90:1456 */
 /* Fortran header:
 subroutine run_objects_nullify_volatile(runObj)
 use module_types, only: run_objects
@@ -2710,18 +2742,19 @@ implicit none
 type(run_objects), intent(inout) :: runObj
 */
 void FC_FUNC_(run_objects_nullify_volatile, RUN_OBJECTS_NULLIFY_VOLATILE)(f90_run_objects *runObj);
-/* run_objects_parse src/initialization.f90:122 */
+/* run_objects_parse src/initialization.f90:117 */
 /* Fortran header:
 subroutine run_objects_parse(runObj)
 use module_types
 use module_interfaces, only: atoms_new, inputs_new, inputs_from_dict, create_log_file
 use dynamic_memory
 use dictionaries
+use module_atoms, only: deallocate_atoms_data
 implicit none
 type(run_objects), intent(inout) :: runObj
 */
 void FC_FUNC_(run_objects_parse, RUN_OBJECTS_PARSE)(f90_run_objects *runObj);
-/* run_objects_set_dict src/bindings/bindingsf.f90:1432 */
+/* run_objects_set_dict src/bindings/bindingsf.f90:1438 */
 /* Fortran header:
 subroutine run_objects_set_dict(runObj, dict)
 use module_types, only: run_objects
@@ -2732,7 +2765,7 @@ type(dictionary), pointer :: dict
 */
 void FC_FUNC_(run_objects_set_dict, RUN_OBJECTS_SET_DICT)(f90_run_objects *runObj, 
                                                           f90_dictionary_pointer *dict);
-/* run_objects_system_setup src/initialization.f90:188 */
+/* run_objects_system_setup src/initialization.f90:184 */
 /* Fortran header:
 subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
 use module_types
@@ -2757,7 +2790,7 @@ void FC_FUNC_(run_objects_system_setup, RUN_OBJECTS_SYSTEM_SETUP)(f90_run_object
                                                                   double *rxyz, 
                                                                   double *shift, 
                                                                   f90_memory_estimation *mem);
-/* run_objects_update src/initialization.f90:107 */
+/* run_objects_update src/initialization.f90:102 */
 /* Fortran header:
 subroutine run_objects_update(runObj, dict)
 use module_types
@@ -2770,7 +2803,7 @@ type(dictionary), pointer :: dict
 void FC_FUNC_(run_objects_update, RUN_OBJECTS_UPDATE)(f90_run_objects *runObj, 
                                                       f90_dictionary_pointer *dict);
 /* symmetry_set_irreductible_zone  */
-/* system_createkernels src/init/sysprop.f90:351 */
+/* system_createkernels src/init/sysprop.f90:355 */
 /* Fortran header:
 subroutine system_createKernels(denspot, verb)
 use module_base
@@ -2782,7 +2815,7 @@ type(DFT_local_fields), intent(inout) :: denspot
 */
 void FC_FUNC_(system_createkernels, SYSTEM_CREATEKERNELS)(f90_DFT_local_fields *denspot, 
                                                           const int *verb);
-/* system_initkernels src/init/sysprop.f90:322 */
+/* system_initkernels src/init/sysprop.f90:326 */
 /* Fortran header:
 subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
 use module_types
@@ -2837,7 +2870,7 @@ void FC_FUNC_(system_size, SYSTEM_SIZE)(f90_atoms_data *atoms,
                                         const int *OCLconv, 
                                         f90_locreg_descriptors *Glr, 
                                         double *shift);
-/* update_wavefunctions_size src/linear/initAndUtils.f90:1046 */
+/* update_wavefunctions_size src/linear/initAndUtils.f90:1067 */
 /* Fortran header:
 subroutine update_wavefunctions_size(lzd,npsidim_orbs,npsidim_comp,orbs,iproc,nproc)
 use module_base
@@ -2863,7 +2896,7 @@ void FC_FUNC_(update_wavefunctions_size, UPDATE_WAVEFUNCTIONS_SIZE)(const f90_lo
                                                                     const f90_orbitals_data *orbs, 
                                                                     const int *iproc, 
                                                                     const int *nproc);
-/* wf_empty src/bindings/bindingsf.f90:1029 */
+/* wf_empty src/bindings/bindingsf.f90:1035 */
 /* Fortran header:
 subroutine wf_empty(wf)
 use module_types
@@ -2874,7 +2907,7 @@ type(DFT_wavefunction), intent(inout) :: wf
 integer :: i_all, i_stat
 */
 void FC_FUNC_(wf_empty, WF_EMPTY)(f90_DFT_wavefunction *wf);
-/* wf_free src/bindings/bindingsf.f90:1053 */
+/* wf_free src/bindings/bindingsf.f90:1059 */
 /* Fortran header:
 subroutine wf_free(wf)
 use module_types
@@ -2883,21 +2916,22 @@ implicit none
 type(DFT_wavefunction), pointer :: wf
 */
 void FC_FUNC_(wf_free, WF_FREE)(f90_DFT_wavefunction_pointer *wf);
-/* wf_get_data src/bindings/bindingsf.f90:1017 */
+/* wf_get_data src/bindings/bindingsf.f90:1022 */
 /* Fortran header:
 subroutine wf_get_data(wf, orbs, comm, lzd)
 use module_types
+use communications_base, only: comms_cubic
 implicit none
 type(DFT_wavefunction), target, intent(in) :: wf
 type(orbitals_data), pointer :: orbs
-type(communications_arrays), pointer :: comm
+type(comms_cubic), pointer :: comm
 type(local_zone_descriptors), pointer :: lzd
 */
 void FC_FUNC_(wf_get_data, WF_GET_DATA)(const f90_DFT_wavefunction *wf, 
                                         f90_orbitals_data_pointer *orbs, 
-                                        f90_communications_arrays_pointer *comm, 
+                                        f90_comms_cubic_pointer *comm, 
                                         f90_local_zone_descriptors_pointer *lzd);
-/* wf_get_psi src/bindings/bindingsf.f90:1064 */
+/* wf_get_psi src/bindings/bindingsf.f90:1070 */
 /* Fortran header:
 subroutine wf_get_psi(wf, psi, hpsi)
 use module_types
@@ -2909,7 +2943,7 @@ integer(kind = 8), intent(out) :: hpsi
 void FC_FUNC_(wf_get_psi, WF_GET_PSI)(const f90_DFT_wavefunction *wf, 
                                       long *psi, 
                                       long *hpsi);
-/* wf_get_psi_size src/bindings/bindingsf.f90:1080 */
+/* wf_get_psi_size src/bindings/bindingsf.f90:1086 */
 /* Fortran header:
 subroutine wf_get_psi_size(psi, psiSize)
 use module_types
@@ -2919,7 +2953,7 @@ integer(kind = 8), intent(out) :: psiSize
 */
 void FC_FUNC_(wf_get_psi_size, WF_GET_PSI_SIZE)(f90_pointer_double *psi, 
                                                 long *psiSize);
-/* wf_iorbp_to_psi src/bindings/bindingsf.f90:1088 */
+/* wf_iorbp_to_psi src/bindings/bindingsf.f90:1094 */
 /* Fortran header:
 subroutine wf_iorbp_to_psi(psir, psi, lr)
 use module_types
@@ -2934,21 +2968,22 @@ type(workarr_sumrho) :: w
 void FC_FUNC_(wf_iorbp_to_psi, WF_IORBP_TO_PSI)(double *psir, 
                                                 const double *psi, 
                                                 const f90_locreg_descriptors *lr);
-/* wf_new src/bindings/bindingsf.f90:988 */
+/* wf_new src/bindings/bindingsf.f90:992 */
 /* Fortran header:
 subroutine wf_new(self, wf, orbs, comm, lzd)
 use module_types
+use communications_base, only: comms_cubic
 implicit none
 integer(kind = 8), intent(in) :: self
 type(DFT_wavefunction), pointer :: wf
 type(orbitals_data), pointer :: orbs
-type(communications_arrays), pointer :: comm
+type(comms_cubic), pointer :: comm
 type(local_zone_descriptors), pointer :: lzd
 */
 void FC_FUNC_(wf_new, WF_NEW)(const long *self, 
                               f90_DFT_wavefunction_pointer *wf, 
                               f90_orbitals_data_pointer *orbs, 
-                              f90_communications_arrays_pointer *comm, 
+                              f90_comms_cubic_pointer *comm, 
                               f90_local_zone_descriptors_pointer *lzd);
 /* write_extra_info src/init/atoms.f90:463 */
 /* Fortran header:

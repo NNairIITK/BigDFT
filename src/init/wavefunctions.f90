@@ -32,16 +32,13 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   !eTS value, updated in evaltocc
   orbs%eTS=0.0_gp
 
-  allocate(orbs%norb_par(0:nproc-1,0:nkpt+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%norb_par,'orbs%norb_par',subname)
+  orbs%norb_par = f_malloc_ptr((/ 0.to.nproc-1 , 0.to.nkpt /),id='orbs%norb_par')
 
   !assign the value of the k-points
   orbs%nkpts=nkpt
   !allocate vectors related to k-points
-  allocate(orbs%kpts(3,orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%kpts,'orbs%kpts',subname)
-  allocate(orbs%kwgts(orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%kwgts,'orbs%kwgts',subname)
+  orbs%kpts = f_malloc_ptr( (/3 , orbs%nkpts/),id='orbs%kpts')
+  orbs%kwgts = f_malloc_ptr(orbs%nkpts,id='orbs%kwgts')
   orbs%kpts(:,1:nkpt) = kpt(:,:)
   orbs%kwgts(1:nkpt) = wkpt(:)
 
@@ -162,8 +159,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
           orbs%norbp,orbs%isorb)
   end if
 
-  allocate(orbs%iokpt(orbs%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%iokpt,'orbs%iokpt',subname)
+  orbs%iokpt = f_malloc_ptr(orbs%norbp,id='orbs%iokpt')
 
   !assign the k-point to the given orbital, counting one orbital after each other
   jorb=0
@@ -178,10 +174,8 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
 
   !allocate occupation number and spinsign
   !fill them in normal way
-  allocate(orbs%occup(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%occup,'orbs%occup',subname)
-  allocate(orbs%spinsgn(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%spinsgn,'orbs%spinsgn',subname)
+  orbs%occup = f_malloc_ptr(orbs%norb*orbs%nkpts,id='orbs%occup')
+  orbs%spinsgn = f_malloc_ptr(orbs%norb*orbs%nkpts,id='orbs%spinsgn')
   orbs%occup(1:orbs%norb*orbs%nkpts)=1.0_gp 
   do ikpt=1,orbs%nkpts
      do iorb=1,orbs%norbu
@@ -198,33 +192,28 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   orbs%HLgap = UNINITIALIZED(orbs%HLgap)
 
   ! allocate inwhichlocreg
-  allocate(orbs%inwhichlocreg(orbs%norb*orbs%nkpts),stat=i_stat)
-  call memocc(i_stat,orbs%inwhichlocreg,'orbs%inwhichlocreg',subname)
+  orbs%inwhichlocreg = f_malloc_ptr(orbs%norb*orbs%nkpts,id='orbs%inwhichlocreg')
   ! default for inwhichlocreg (all orbitals are situated in the same locreg)
   orbs%inwhichlocreg = 1
 
   ! allocate onwhichatom
-  allocate(orbs%onwhichatom(orbs%norb*orbs%nkpts),stat=i_stat)
-  call memocc(i_stat,orbs%onwhichatom,'orbs%onwhichatom',subname)
+  orbs%onwhichatom = f_malloc_ptr(orbs%norb*orbs%nkpts,id='orbs%onwhichatom')
   ! default for onwhichatom (all orbitals are situated in the same locreg)
   orbs%onwhichatom = 1
 
   !initialize the starting point of the potential for each orbital (to be removed?)
-  allocate(orbs%ispot(orbs%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%ispot,'orbs%ispot',subname)
+  orbs%ispot = f_malloc_ptr(orbs%norbp,id='orbs%ispot')
 
 
   !allocate the array which assign the k-point to processor in transposed version
-  allocate(orbs%ikptproc(orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%ikptproc,'orbs%ikptproc',subname)
+  orbs%ikptproc = f_malloc_ptr(orbs%nkpts,id='orbs%ikptproc')
 
   ! Define two new arrays:
   ! - orbs%isorb_par is the same as orbs%isorb, but every process also knows
   !   the reference orbital of each other process.
   ! - orbs%onWhichMPI indicates on which MPI process a given orbital
   !   is located.
-  allocate(orbs%isorb_par(0:nproc-1), stat=i_stat)
-  call memocc(i_stat, orbs%isorb_par, 'orbs%isorb_par', subname)
+  orbs%isorb_par = f_malloc_ptr(0.to.nproc-1,id='orbs%isorb_par')
   iiorb=0
   orbs%isorb_par=0
   do jproc=0,nproc-1
@@ -236,7 +225,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   !this mpiflag is added to make memguess working
   call MPI_Initialized(mpiflag,ierr)
   if(nproc >1 .and. mpiflag /= 0) &
-       call mpiallred(orbs%isorb_par(0),nproc,mpi_sum,bigdft_mpi%mpi_comm,ierr)
+       call mpiallred(orbs%isorb_par(0),nproc,mpi_sum,bigdft_mpi%mpi_comm)
 
 END SUBROUTINE orbitals_descriptors
 
@@ -288,7 +277,7 @@ subroutine repartitionOrbitals(iproc,nproc,norb,norb_par,norbp,isorb_par,isorb,o
   end do
   !call MPI_Initialized(mpiflag,ierr)
   if(nproc >1) &!mpiflag /= 0) 
-       call mpiallred(isorb_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+       call mpiallred(isorb_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
 
 end subroutine repartitionOrbitals
 
@@ -343,6 +332,7 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
   use module_base
   use module_input
   use yaml_output
+  use yaml_strings, only: read_fraction_string
   implicit none
   ! Arguments
   logical, intent(in) :: verb

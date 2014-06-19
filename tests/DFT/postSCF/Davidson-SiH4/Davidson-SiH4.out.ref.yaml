@@ -47,9 +47,9 @@
      CXXFLAGS                          : -g -O2 -fPIC
   #------------------------------------------------------------------------ Input parameters
  perf:
-   debug                               : No #     debug option
-   fftcache                            : 8192 #   cache size for the FFT
-   accel                               : NO #     acceleration
+   debug                               : No #     Debug option
+   fftcache                            : 8192 #   Cache size for the FFT
+   accel                               : NO #     Acceleration (hardware)
    ocl_platform                        : ~ #      Chosen OCL platform
    ocl_devices                         : ~ #      Chosen OCL devices
    blas                                : No #     CUBLAS acceleration
@@ -107,9 +107,9 @@
    norbv                               : 4 #      Davidson subspace dim.
    nvirt                               : 4
    nplot                               : 4
-   disablesym                          : No #     disable the symmetry detection
+   disablesym                          : Yes #    disable the symmetry detection
  kpt:
-   method                              : manual # K-point sampling method
+   method                              : Manual # K-point sampling method
    kpt: #                                         Kpt coordinates
    -  [0., 0., 0.]
    wkpt: [1.] #                                   Kpt weights
@@ -136,15 +136,15 @@
  tddft:
    tddft_approach                      : none #   TDDFT method
  posinp:
-   Positions:
+   positions:
    - Si: [0.0, 0.0, 0.0]
    - H: [1.6200000047683716, 1.6200000047683716, 1.6200000047683716]
    - H: [-1.6200000047683716, -1.6200000047683716, 1.6200000047683716]
    - H: [1.6200000047683716, -1.6200000047683716, -1.6200000047683716]
    - H: [-1.6200000047683716, 1.6200000047683716, -1.6200000047683716]
-   Properties:
-     Format                            : xyz
-     Source                            : posinp
+   properties:
+     format                            : xyz
+     source                            : posinp
  psppar.Si:
    Pseudopotential type                : GTH
    Atomic number                       : 14
@@ -632,23 +632,6 @@
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - A bigger number of virtual orbitals may be needed for better convergence
- Status of the memory at finalization:
-   wfd%keyvloc:
-     Array Id                          : wfd%keyvloc
-     Size (Bytes)                      : 4712
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x182c040
-     Address of metadata               : 22697584
-   wfd%keyglob:
-     Array Id                          : wfd%keyglob
-     Size (Bytes)                      : 9424
-     Allocating Routine Id             : system_initialization
-     Address of first element          : 0x182f720
-     Address of metadata               : 22697440
-   Timestamp of Profile initialization:
-     2014-02-04 15:33:59.275
-   Process Id:
-     0
  Memory Consumption Report:
    Tot. No. of Allocations             :  2630
    Tot. No. of Deallocations           :  2630

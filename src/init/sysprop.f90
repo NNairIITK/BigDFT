@@ -50,7 +50,6 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   real(gp), dimension(3) :: h_input
   logical:: present_inwhichlocreg_old, present_onwhichatom_old, output_grid_
   integer, dimension(:,:), allocatable :: norbsc_arr
-  logical, dimension(:,:,:), allocatable :: scorb
   real(kind=8), dimension(:), allocatable :: locrad
   !Note proj_G should be filled for PAW:
   type(gaussian_basis),dimension(atoms%astruct%ntypes)::proj_G
@@ -156,8 +155,6 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   if (inputpsi /= INPUT_PSI_RANDOM) then
 
      ! Allocations for readAtomicOrbitals (check inguess.dat and psppar files)
-     allocate(scorb(4,2,atoms%natsc+ndebug),stat=i_stat)
-     call memocc(i_stat,scorb,'scorb',subname)
      allocate(norbsc_arr(atoms%natsc+1,in%nspin+ndebug),stat=i_stat)
      call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
      allocate(locrad(atoms%astruct%nat+ndebug),stat=i_stat)
@@ -173,7 +170,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
      ! Read the inguess.dat file or generate the input guess via the inguess_generator
      call readAtomicOrbitals(atoms,norbe,norbsc,nspin_ig,orbs%nspinor,&
-          &   scorb,norbsc_arr,locrad)
+          norbsc_arr,locrad)
 
      if (in%nspin==4) then
         !in that case the number of orbitals doubles
@@ -184,9 +181,6 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      i_all=-product(shape(locrad))*kind(locrad)
      deallocate(locrad,stat=i_stat)
      call memocc(i_stat,i_all,'locrad',subname)
-     i_all=-product(shape(scorb))*kind(scorb)
-     deallocate(scorb,stat=i_stat)
-     call memocc(i_stat,i_all,'scorb',subname)
      i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
      deallocate(norbsc_arr,stat=i_stat)
      call memocc(i_stat,i_all,'norbsc_arr',subname)
@@ -293,7 +287,6 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 !  print *,'here the localization regions should have been filled already'
 !  stop
 
-
   if (present(denspot)) then
      !here dpbox can be put as input
      call density_descriptors(iproc,nproc,denspot%xc,in%nspin,in%crmult,in%frmult,atoms,&
@@ -318,8 +311,15 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
       if(iproc==0) call yaml_warning('Do not call check_communications in the linear scaling version!')
       !if(iproc==0) write(*,*) 'WARNING: do not call check_communications in the linear scaling version!'
   end if
+
+  !Check if orbitals and electrons
+  if (orbs%norb*orbs%nkpts == 0) &
+     & call f_err_throw('No electrons in the system! Check your input variables or atomic positions.', &
+     & err_id=BIGDFT_INPUT_VARIABLES_ERROR)
+
   call f_release_routine()
   !---end of system definition routine
+
 END SUBROUTINE system_initialization
 
 
@@ -398,17 +398,23 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf)
        in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,.false.)
   orbs%occup(1:orbs%norb*orbs%nkpts) = in%gen_occup
   if (iproc==0) call print_orbitals(orbs, atoms%astruct%geocode)
+
+  !Check if orbitals and electrons
+  if (orbs%norb*orbs%nkpts == 0) &
+     & call f_err_throw('No electrons in the system. Check your input variables or atomic positions', &
+     & err_id=BIGDFT_INPUT_VARIABLES_ERROR)
+
 END SUBROUTINE system_properties
 
 
 !> Check for the need of a core density and fill the rhocore array which
 !! should be passed at the rhocore pointer
-subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
+subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
   use module_base
   use module_types
   use yaml_output
   implicit none
-  integer, intent(in) :: iproc,i3s,n3d,i3xcsh,n3p
+  integer, intent(in) :: i3s,n3d,i3xcsh,n3p
   real(gp), intent(in) :: hxh,hyh,hzh
   type(atoms_data), intent(in) :: at
   type(grid_dimensions), intent(in) :: d
@@ -416,7 +422,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
   real(wp), dimension(:,:,:,:), pointer :: rhocore
   !local variables
   character(len=*), parameter :: subname='calculate_rhocore'
-  integer :: ityp,iat,i_stat,j3,i1,i2,ierr!,ind
+  integer :: ityp,iat,i_stat,j3,i1,i2 !,ierr,ind
   real(wp) :: tt
   real(gp) :: rx,ry,rz,rloc,cutoff
   
@@ -447,8 +453,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 !!$        if (exists) then
         if (at%nlcc_ngv(ityp)/=UNINITIALIZED(1) .or.&
              at%nlcc_ngc(ityp)/=UNINITIALIZED(1) ) then
-           if (iproc == 0) call yaml_map('NLCC, Calculate core density for atom',trim(at%astruct%atomnames(ityp)))
-           !if (iproc == 0) write(*,'(1x,a)',advance='no') 'NLCC: calculate core density for atom: '// trim(at%astruct%atomnames(ityp))//';'
+           if (bigdft_mpi%iproc == 0) call yaml_map('NLCC, Calculate core density for atom',trim(at%astruct%atomnames(ityp)))
            rx=rxyz(1,iat) 
            ry=rxyz(2,iat)
            rz=rxyz(3,iat)
@@ -456,10 +461,9 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
            rloc=at%psppar(0,0,ityp)
            cutoff=10.d0*rloc
 
-           call calc_rhocore_iat(iproc,at,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
+           call calc_rhocore_iat(bigdft_mpi%iproc,at,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
                 d%n1,d%n2,d%n3,d%n1i,d%n2i,d%n3i,i3s,n3d,rhocore)
 
-           !if (iproc == 0) write(*,'(1x,a)')'done.'
         end if
      end do
 
@@ -488,10 +492,9 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
         enddo
      enddo
 
-     call mpiallred(tt,1,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+     if (bigdft_mpi%nproc > 1) call mpiallred(tt,1,MPI_SUM,bigdft_mpi%mpi_comm)
      tt=tt*hxh*hyh*hzh
-     if (iproc == 0) call yaml_map('Total core charge on the grid (To be compared with analytic one)', tt,fmt='(f15.7)')
-     !if (iproc == 0) write(*,'(1x,a,f15.7)') 'Total core charge on the grid (To be compared with analytic one): ',tt
+     if (bigdft_mpi%iproc == 0) call yaml_map('Total core charge on the grid (To be compared with analytic one)', tt,fmt='(f15.7)')
 
   else
      !No NLCC needed, nullify the pointer 
@@ -499,6 +502,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
   end if
 
 END SUBROUTINE calculate_rhocore
+
 
 subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
      & ixcpsp, psppar, donlcc, rcore, qcore, radii_cf, exists, pawpatch)
@@ -629,147 +633,142 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
 
 contains
 
-subroutine psp_from_file_paw()
-  use module_base
-  use m_pawpsp, only: pawpsp_main, pawpsp_read_header, pawpsp_read_header_2
-  use defs_basis, only: tol14, fnlen
-  use m_pawrad, only: pawrad_type, pawrad_nullify, pawrad_destroy
-  use m_pawtab, only: pawtab_type, pawtab_nullify, pawtab_destroy
-  implicit none
-  integer:: icoulomb,ipsp,ixc,i_all,i_stat,lnmax
-  integer:: lloc,l_size,lmax,mmax,pspcod,pspxc
-  integer:: pspversion,basis_size,lmn_size
-  integer:: mpsang,mqgrid_ff,mqgrid_vl,mqgrid_shp
-  integer:: pawxcdev,usewvl,usexcnhat,xclevel
-  integer::pspso
-  real(dp):: r2well,wvl_crmult,wvl_frmult
-  real(dp):: xc_denpos,zionpsp,znuclpsp
-  real(dp)::epsatm,xcccrc
-  character(len=fnlen):: filpsp   ! name of the psp file
-  character(len = *), parameter :: subname = "psp_from_file_paw"
-  type(pawrad_type):: pawrad
-  type(pawtab_type):: pawtab
-  integer:: comm_mpi
-!  type(paw_setup_t),optional,intent(in) :: psxml
-!!arrays
- integer:: wvl_ngauss(2)
- real(dp),allocatable:: qgrid_ff(:),qgrid_vl(:)
- real(dp),allocatable:: ffspl(:,:,:)
- real(dp),allocatable:: vlspl(:,:)
-!!Here we can use bigdft variables
-! real(dp)::gth_psppar(0:4,0:6),gth_radii_cf(3)
- integer:: gth_semicore
- integer:: mesh_size
- real(dp)::gth_radii_cov
- logical:: gth_hasGeometry
+   subroutine psp_from_file_paw()
+     use module_base
+     use m_pawpsp, only: pawpsp_main, pawpsp_read_header, pawpsp_read_header_2
+     use defs_basis, only: tol14, fnlen
+     use m_pawrad, only: pawrad_type, pawrad_nullify, pawrad_destroy
+     use m_pawtab, only: pawtab_type, pawtab_nullify, pawtab_destroy
+     implicit none
+     integer:: icoulomb,ipsp,ixc,i_all,i_stat,lnmax
+     integer:: lloc,l_size,lmax,mmax,pspcod,pspxc
+     integer:: pspversion,basis_size,lmn_size
+     integer:: mpsang,mqgrid_ff,mqgrid_vl,mqgrid_shp
+     integer:: pawxcdev,usewvl,usexcnhat,xclevel
+     integer::pspso
+     real(dp):: r2well,wvl_crmult,wvl_frmult
+     real(dp):: xc_denpos,zionpsp,znuclpsp
+     real(dp)::epsatm,xcccrc
+     character(len=fnlen):: filpsp   ! name of the psp file
+     character(len = *), parameter :: subname = "psp_from_file_paw"
+     type(pawrad_type):: pawrad
+     type(pawtab_type):: pawtab
+     integer:: comm_mpi
+   !  type(paw_setup_t),optional,intent(in) :: psxml
+   !!arrays
+    integer:: wvl_ngauss(2)
+    real(dp),allocatable:: qgrid_ff(:),qgrid_vl(:)
+    real(dp),allocatable:: ffspl(:,:,:)
+    real(dp),allocatable:: vlspl(:,:)
+   !!Here we can use bigdft variables
+   ! real(dp)::gth_psppar(0:4,0:6),gth_radii_cf(3)
+    integer:: gth_semicore
+    integer:: mesh_size
+    real(dp)::gth_radii_cov
+    logical:: gth_hasGeometry
 
 
-  !These should be passed as arguments:
-  !crmult and frmult to set the GTH radius (needed for the initial guess)
-  wvl_crmult=8; wvl_frmult=8
-  !Defines the number of Gaussian functions for projectors
-  !See ABINIT input files documentation
-  wvl_ngauss=[10,10]
-  icoulomb= 1 !Fake argument, this only indicates that we are inside bigdft..
-              !do not change, even if icoulomb/=1
-  ipsp=1      !This is relevant only for XML.
-              !This is not yet working
-  xclevel=1 ! xclevel=XC functional level (1=LDA, 2=GGA)
-            ! For the moment, it will just work for LDA
-  pspso=0 !No spin-orbit for the moment
+     !These should be passed as arguments:
+     !crmult and frmult to set the GTH radius (needed for the initial guess)
+     wvl_crmult=8; wvl_frmult=8
+     !Defines the number of Gaussian functions for projectors
+     !See ABINIT input files documentation
+     wvl_ngauss=[10,10]
+     icoulomb= 1 !Fake argument, this only indicates that we are inside bigdft..
+                 !do not change, even if icoulomb/=1
+     ipsp=1      !This is relevant only for XML.
+                 !This is not yet working
+     xclevel=1 ! xclevel=XC functional level (1=LDA, 2=GGA)
+               ! For the moment, it will just work for LDA
+     pspso=0 !No spin-orbit for the moment
 
-! Read PSP header:
-  rewind(11)
-  call pawpsp_read_header(lloc,l_size,mmax,pspcod,pspxc,r2well,zionpsp,znuclpsp)
-  call pawpsp_read_header_2(pspversion,basis_size,lmn_size)
+   ! Read PSP header:
+     rewind(11)
+     call pawpsp_read_header(lloc,l_size,mmax,pspcod,pspxc,r2well,zionpsp,znuclpsp)
+     call pawpsp_read_header_2(pspversion,basis_size,lmn_size)
 
-! Problem lnmax are unknown here,
-! we have to read all of the pseudo files to know it!
-! We should change the way this is done in ABINIT:
-! For the moment lnmax=basis_size
-! The same problem for mpsang
-  lnmax=basis_size
-  lmax=l_size
-!  do ii=1,psps%npsp
-!   mpsang=max(pspheads(ii)%lmax+1,mpsang)
-!  end do
-  mpsang=lmax+1
+   ! Problem lnmax are unknown here,
+   ! we have to read all of the pseudo files to know it!
+   ! We should change the way this is done in ABINIT:
+   ! For the moment lnmax=basis_size
+   ! The same problem for mpsang
+     lnmax=basis_size
+     lmax=l_size
+   !  do ii=1,psps%npsp
+   !   mpsang=max(pspheads(ii)%lmax+1,mpsang)
+   !  end do
+     mpsang=lmax+1
 
-! These are just useful for 
-!reciprocal space approaches (plane-waves):
-  mqgrid_shp=0; mqgrid_ff=0; mqgrid_vl=0 
-                          
-  allocate(qgrid_ff(mqgrid_ff),stat=i_stat)
-  call memocc(i_stat,qgrid_ff,'qgrid_ff',subname)
-  allocate(qgrid_vl(mqgrid_vl),stat=i_stat)
-  call memocc(i_stat,qgrid_vl,'qgrid_vl',subname)
-  allocate(ffspl(mqgrid_ff,2,lnmax),stat=i_stat)
-  call memocc(i_stat,ffspl,'ffspl',subname)
-  allocate(vlspl(mqgrid_vl,2),stat=i_stat)
-  call memocc(i_stat,vlspl,'vlpsl',subname)
+   ! These are just useful for 
+   !reciprocal space approaches (plane-waves):
+     mqgrid_shp=0; mqgrid_ff=0; mqgrid_vl=0 
+                             
+     allocate(qgrid_ff(mqgrid_ff),stat=i_stat)
+     call memocc(i_stat,qgrid_ff,'qgrid_ff',subname)
+     allocate(qgrid_vl(mqgrid_vl),stat=i_stat)
+     call memocc(i_stat,qgrid_vl,'qgrid_vl',subname)
+     allocate(ffspl(mqgrid_ff,2,lnmax),stat=i_stat)
+     call memocc(i_stat,ffspl,'ffspl',subname)
+     allocate(vlspl(mqgrid_vl,2),stat=i_stat)
+     call memocc(i_stat,vlspl,'vlpsl',subname)
 
-! Define parameters:
-  pawxcdev=1; usewvl=1 ; usexcnhat=0 !default
-  xc_denpos=tol14
-  filpsp=trim(filename)
-  comm_mpi=bigdft_mpi%mpi_comm  
-  mesh_size=mmax
+   ! Define parameters:
+     pawxcdev=1; usewvl=1 ; usexcnhat=0 !default
+     xc_denpos=tol14
+     filpsp=trim(filename)
+     comm_mpi=bigdft_mpi%mpi_comm  
+     mesh_size=mmax
 
-  call pawrad_nullify(pawrad)
-  call pawtab_nullify(pawtab)
+     call pawrad_nullify(pawrad)
+     call pawtab_nullify(pawtab)
 
-  close(11)
+     close(11)
 
-  call pawpsp_main( &
-& pawrad,pawtab,&
-& filpsp,usewvl,icoulomb,ixc,xclevel,pawxcdev,usexcnhat,&
-& qgrid_ff,qgrid_vl,ffspl,vlspl,epsatm,xcccrc,zionpsp,znuclpsp,&
-& gth_hasGeometry,psppar,radii_cf,gth_radii_cov,gth_semicore,&
-& wvl_crmult,wvl_frmult,wvl_ngauss,comm_mpi=comm_mpi)
+     call pawpsp_main( &
+   & pawrad,pawtab,&
+   & filpsp,usewvl,icoulomb,ixc,xclevel,pawxcdev,usexcnhat,&
+   & qgrid_ff,qgrid_vl,ffspl,vlspl,epsatm,xcccrc,zionpsp,znuclpsp,&
+   & gth_hasGeometry,psppar,radii_cf,gth_radii_cov,gth_semicore,&
+   & wvl_crmult,wvl_frmult,wvl_ngauss,comm_mpi=comm_mpi)
 
+   !Print out data to validate this test:
+     write(*,'(a)') 'PAW Gaussian projectors:'
+     write(*,'("No. of Gaussians:", i4)')pawtab%wvl%pngau
+     write(*,'("First five Gaussian complex coefficients:")')
+     write(*,'(5("(",f13.7,",",f13.7")"))')pawtab%wvl%parg(:,1:5)
+     write(*,'("First five Gaussian complex factors:")')
+     write(*,'(5("(",f13.7,",",f13.7")"))')pawtab%wvl%pfac(:,1:5)
+   !
+     write(*,'(a)') 'GTH parameters (for initial guess):'
+     write(*,'("radii_cf= ",3f10.7)')radii_cf(:)
+     write(*,'("psppar(0:1,0)= ",2f10.7)')psppar(0:1,0)
 
+   ! Destroy and deallocate objects
+     call pawrad_destroy(pawrad)
+     call pawtab_destroy(pawtab)
 
+     !
+     i_all=-product(shape(qgrid_ff))*kind(qgrid_ff)
+     deallocate(qgrid_ff,stat=i_stat)
+     call memocc(i_stat,i_all,'qgrid_ff',subname)
+     !
+     i_all=-product(shape(qgrid_vl))*kind(qgrid_vl)
+     deallocate(qgrid_vl,stat=i_stat)
+     call memocc(i_stat,i_all,'qgrid_vl',subname)
+     !
+     i_all=-product(shape(ffspl))*kind(ffspl)
+     deallocate(ffspl,stat=i_stat)
+     call memocc(i_stat,i_all,'ffspl',subname)
+     !
+     i_all=-product(shape(vlspl))*kind(vlspl)
+     deallocate(vlspl,stat=i_stat)
+     call memocc(i_stat,i_all,'vlspl',subname)
 
-!Print out data to validate this test:
-  write(*,'(a)') 'PAW Gaussian projectors:'
-  write(*,'("No. of Gaussians:", i4)')pawtab%wvl%pngau
-  write(*,'("First five Gaussian complex coefficients:")')
-  write(*,'(5("(",f13.7,",",f13.7")"))')pawtab%wvl%parg(:,1:5)
-  write(*,'("First five Gaussian complex factors:")')
-  write(*,'(5("(",f13.7,",",f13.7")"))')pawtab%wvl%pfac(:,1:5)
-!
-  write(*,'(a)') 'GTH parameters (for initial guess):'
-  write(*,'("radii_cf= ",3f10.7)')radii_cf(:)
-  write(*,'("psppar(0:1,0)= ",2f10.7)')psppar(0:1,0)
+   !PAW is not yet working!
+   !Exit here
+    stop
 
-! Destroy and deallocate objects
-  call pawrad_destroy(pawrad)
-  call pawtab_destroy(pawtab)
-
-  !
-  i_all=-product(shape(qgrid_ff))*kind(qgrid_ff)
-  deallocate(qgrid_ff,stat=i_stat)
-  call memocc(i_stat,i_all,'qgrid_ff',subname)
-  !
-  i_all=-product(shape(qgrid_vl))*kind(qgrid_vl)
-  deallocate(qgrid_vl,stat=i_stat)
-  call memocc(i_stat,i_all,'qgrid_vl',subname)
-  !
-  i_all=-product(shape(ffspl))*kind(ffspl)
-  deallocate(ffspl,stat=i_stat)
-  call memocc(i_stat,i_all,'ffspl',subname)
-  !
-  i_all=-product(shape(vlspl))*kind(vlspl)
-  deallocate(vlspl,stat=i_stat)
-  call memocc(i_stat,i_all,'vlspl',subname)
-
-!PAW is not yet working!
-!Exit here
- stop
-
-END SUBROUTINE psp_from_file_paw
-
-
+   END SUBROUTINE psp_from_file_paw
 
 END SUBROUTINE psp_from_file
 
@@ -839,18 +838,19 @@ subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
 
      call atomic_info(atoms%nzatom(ityp),atoms%nelpsp(ityp),ehomo=ehomo)
           
-     if (atoms%radii_cf(ityp, 1) == UNINITIALIZED(1.0_gp)) then
+     if (any(atoms%radii_cf(ityp, :) == UNINITIALIZED(1.0_gp))) then
         !assigning the radii by calculating physical parameters
-        radii_cf(ityp,1)=1._gp/sqrt(abs(2._gp*ehomo))
+        if (radii_cf(ityp,1) == UNINITIALIZED(1.0_gp)) radii_cf(ityp,1)=1._gp/sqrt(abs(2._gp*ehomo))
         radfine=100._gp
         do i=0,4
            if (atoms%psppar(i,0,ityp)/=0._gp) then
               radfine=min(radfine,atoms%psppar(i,0,ityp))
            end if
         end do
-        radii_cf(ityp,2)=radfine
-        radii_cf(ityp,3)=radfine
+        if (radii_cf(ityp,2) == UNINITIALIZED(1.0_gp)) radii_cf(ityp,2)=radfine
+        if (radii_cf(ityp,3) == UNINITIALIZED(1.0_gp)) radii_cf(ityp,3)=radfine
      else
+        !Everything is already provided
         radii_cf(ityp, :) = atoms%radii_cf(ityp, :)
      end if
 
@@ -870,21 +870,23 @@ subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
   enddo
 END SUBROUTINE read_radii_variables
 
+
+!> Calculate the number of electrons and check the polarisation (mpol)
 subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
      & atoms, ncharge, nspin, mpol, norbsempty)
-  use module_types, only: atoms_data
+  use module_types, only: atoms_data, f_err_throw
   use module_defs, only: gp
-  use ao_inguess, only : count_atomic_shells
-  use yaml_output
+  use yaml_output, only: yaml_toa , yaml_warning, yaml_comment
+  !use ao_inguess, only : count_atomic_shells
   implicit none
   type(atoms_data), intent(in) :: atoms
   integer, intent(out) :: nelec_up, nelec_down, norbe
   integer, intent(in) :: ncharge, nspin, mpol, norbsempty, iproc
 
-  integer :: nelec, iat, ityp, ispinsum, ichgsum, ichg, ispol, nspin_, nspinor
-  integer, parameter :: nelecmax=32,lmax=4,noccmax=2
-  integer, dimension(lmax) :: nl
-  real(gp), dimension(noccmax,lmax) :: occup
+  integer :: nelec, iat, ityp, ispinsum, ichgsum, ichg, ispol!, nspinor
+  !integer, parameter :: nelecmax=32,lmax=4,noccmax=2
+  !integer, dimension(lmax) :: nl
+  !real(gp), dimension(noccmax,lmax) :: occup
 
   !calculate number of electrons and orbitals
   ! Number of electrons and number of semicore atoms
@@ -896,10 +898,12 @@ subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
   nelec=nelec-ncharge
 
   if(nelec < 0.0 ) then
-    if(iproc==0) write(*,*)'ERROR: Number of electrons is negative:',nelec,'.'
-    if(iproc==0) write(*,*)'FIX: decrease charge of system.'
-    call mpi_finalize(iat)
-    stop
+    !if(iproc==0) write(*,*)'ERROR: Number of electrons is negative:',nelec,'.'
+    !if(iproc==0) write(*,*)'FIX: decrease charge of system.'
+    !call mpi_finalize(iat)
+    !stop
+    call f_err_throw('Number of electrons is negative:' // trim(yaml_toa(nelec)) // &
+      & '. FIX: decrease charge of system.', err_name='BIGDFT_RUNTIME_ERROR')
   end if
 
   ! Number of orbitals
@@ -911,8 +915,11 @@ subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
      nelec_down=0
   else 
      if (mod(nelec+mpol,2) /=0) then
-        write(*,*)'ERROR: the mpol polarization should have the same parity of the number of electrons'
-        stop
+          call f_err_throw('The mpol polarization should have the same parity of the number of electrons. ' // &
+            & '(mpol=' // trim(yaml_toa(mpol)) // ' and nelec=' // trim(yaml_toa(nelec)) // ')', &
+            & err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+        !write(*,*)'ERROR: '
+        !stop
      end if
      nelec_up=min((nelec+mpol)/2,nelec)
      nelec_down=nelec-nelec_up
@@ -927,20 +934,32 @@ subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
      end do
 
      if (ispinsum /= nelec_up-nelec_down) then
-        call yaml_warning('Total input polarisation (found ' // trim(yaml_toa(ispinsum)) &
-             & // ') must be equal to nelec_up-nelec_down.')
-        call yaml_comment('With nelec=' // trim(yaml_toa(nelec)) &
-             & // ' and mpol=' // trim(yaml_toa(mpol)) // &
-             & ' nelec_up-nelec_down=' // trim((yaml_toa(nelec_up-nelec_down))))
-        stop
+        !call yaml_warning('Total input polarisation (found ' // trim(yaml_toa(ispinsum)) &
+        !     & // ') must be equal to nelec_up-nelec_down.')
+        !call yaml_comment('With nelec=' // trim(yaml_toa(nelec)) &
+        !     & // ' and mpol=' // trim(yaml_toa(mpol)) // &
+        !     & ' nelec_up-nelec_down=' // trim((yaml_toa(nelec_up-nelec_down))))
+        !stop
+        call f_err_throw('Total polarisation for the input guess (found ' // trim(yaml_toa(ispinsum)) // &
+           & ') must be equal to nelec_up-nelec_down ' // &
+           & '(nelec=' // trim(yaml_toa(nelec)) // ', mpol=' // trim(yaml_toa(mpol)) // &
+           & ', nelec_up-nelec_down=' // trim((yaml_toa(nelec_up-nelec_down))) // &
+           & ', nelec_up=' // trim((yaml_toa(nelec_up))) // &
+           & ', nelec_down=' // trim((yaml_toa(nelec_down))) // &
+           & '). Use the keyword "IGSpin" or add a spin component for the input guess per atom.', &
+           & err_name='BIGDFT_INPUT_VARIABLES_ERROR')
      end if
 
      if (ichgsum /= ncharge .and. ichgsum /= 0) then
-        call yaml_warning('Total input charge (found ' // trim(yaml_toa(ichgsum)) &
-             & // ') cannot be different than charge.')
-        call yaml_comment('With charge =' // trim(yaml_toa(ncharge)) &
-             & // ' and input charge=' // trim(yaml_toa(ichgsum)))
-        stop
+        !call yaml_warning('Total input charge (found ' // trim(yaml_toa(ichgsum)) &
+        !     & // ') cannot be different than charge.')
+        !call yaml_comment('With charge =' // trim(yaml_toa(ncharge)) &
+        !     & // ' and input charge=' // trim(yaml_toa(ichgsum)))
+        !stop
+        call f_err_throw('Total input charge (found ' // trim(yaml_toa(ichgsum)) // &
+             & ') cannot be different than charge. With charge =' // trim(yaml_toa(ncharge)) // &
+             & ' and input charge=' // trim(yaml_toa(ichgsum)), &
+             & err_name='BIGDFT_INPUT_VARIABLES_ERROR')
      end if
 
      !now warn if there is no input guess spin polarisation
@@ -959,19 +978,18 @@ subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
   end if
 
   norbe = 0
-  if(nspin==4) then
-     nspin_=1
-     nspinor=4
-  else
-     nspin_=nspin
-     nspinor=1
-  end if
+  !if(nspin==4) then
+  !   nspinor=4
+  !else
+  !   nspinor=1
+  !end if
   do iat=1,atoms%astruct%nat
-     ityp=atoms%astruct%iatype(iat)
-        call count_atomic_shells(nspin,atoms%aoig(iat)%aocc,occup,nl)
-     norbe=norbe+nl(1)+3*nl(2)+5*nl(3)+7*nl(4)
+     !ityp=atoms%astruct%iatype(iat)
+     !call count_atomic_shells(nspin,atoms%aoig(iat)%aocc,occup,nl)
+     norbe=norbe+atoms%aoig(iat)%nao!nl(1)+3*nl(2)+5*nl(3)+7*nl(4)
   end do
 end subroutine read_n_orbitals
+
 
 !> Find the correct position of the nlcc parameters
 subroutine nlcc_start_position(ityp,atoms,ngv,ngc,islcc)
@@ -1218,12 +1236,14 @@ END SUBROUTINE nlcc_start_position
 !!!END SUBROUTINE orbitals_descriptors_forLinear
 
 
-!> Routine which assign to each processor the repartition of nobj*nkpts objects
+!> Routine which assigns to each processor the repartition of nobj*nkpts objects
 subroutine kpts_to_procs_via_obj(nproc,nkpts,nobj,nobj_par)
   use module_base
   implicit none
-  integer, intent(in) :: nproc,nkpts,nobj
-  integer, dimension(0:nproc-1,nkpts), intent(out) :: nobj_par
+  integer, intent(in) :: nproc !< No. of proc
+  integer, intent(in) :: nkpts !< No. K points
+  integer, intent(in) :: nobj  !< Object number (i.e. nvctr)
+  integer, dimension(0:nproc-1,nkpts), intent(out) :: nobj_par !< iresult of the partition
   !local varaibles
   logical :: intrep
   integer :: jproc,ikpt,iobj,nobjp_max_kpt,nprocs_with_floor,jobj,nobjp
@@ -1346,9 +1366,12 @@ subroutine kpts_to_procs_via_obj(nproc,nkpts,nobj,nobj_par)
   end if
 END SUBROUTINE kpts_to_procs_via_obj
 
+
 subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par)
-  use module_base
+  use module_base, only: gp, f_err_throw, to_zero
+  use module_types, only: BIGDFT_RUNTIME_ERROR, UNINITIALIZED
   implicit none
+  !Arguments
   integer, intent(in) :: nproc,nkpts,nvctr,norb
   integer, dimension(0:nproc-1,nkpts), intent(in) :: norb_par
   integer, dimension(0:nproc-1,nkpts), intent(out) :: nvctr_par
@@ -1356,12 +1379,10 @@ subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par
   integer :: ikpt,jsproc,jeproc,kproc,icount,ivctr,jproc,numproc
   real(gp) :: strprc,endprc
 
-  ! This variable qas not initialized...
-  icount=0
-
   !for any of the k-points find the processors which have such k-point associated
   call to_zero(nproc*nkpts,nvctr_par(0,1))
 
+  !Loop over each k point
   do ikpt=1,nkpts
      jsproc=UNINITIALIZED(1)
      jeproc=UNINITIALIZED(1)
@@ -1371,7 +1392,7 @@ subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par
            exit find_start
         end if
      end do find_start
-     if (jsproc == UNINITIALIZED(1)) stop 'ERROR in kpt assignments'
+     if (jsproc == UNINITIALIZED(1)) call f_err_throw('ERROR in kpt assignments',err_id=BIGDFT_RUNTIME_ERROR)
      if(norb_par(jsproc,ikpt) /= norb) then
         strprc=real(norb_par(jsproc,ikpt),gp)/real(norb,gp)     
      else
@@ -1388,7 +1409,7 @@ subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par
               exit find_end
            end if
         end do find_end
-        if (jeproc == UNINITIALIZED(1)) stop 'ERROR in kpt assignments'
+        if (jeproc == UNINITIALIZED(1)) call f_err_throw('ERROR in kpt assignments',err_id=BIGDFT_RUNTIME_ERROR)
      else
         jeproc=nproc-1
      end if
@@ -1399,11 +1420,12 @@ subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par
      end if
      !if the number of processors is bigger than the number of orbitals this means 
      !that strprc and endprc are not correctly evaluated
-     !evaluate the percentace on the number of components
+     !evaluate the percentage on the number of components
      if (jeproc-jsproc+1 > norb) then
         strprc=1.0_gp/real(jeproc-jsproc+1,gp)
         endprc=strprc
      end if
+
      !assign the number of components which corresponds to the same orbital distribution
      numproc=jeproc-jsproc+1
      icount=0
@@ -1421,8 +1443,7 @@ subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par
              nvctr_par(kproc,ikpt)==ceiling(strprc*real(nvctr,gp)-epsilon(1.0_gp))) then
            !do nothing, skip away
         else
-           nvctr_par(kproc,ikpt)=&
-                nvctr_par(kproc,ikpt)+1
+           nvctr_par(kproc,ikpt) = nvctr_par(kproc,ikpt)+1
            ivctr=ivctr+1
         end if
      end do fill_array

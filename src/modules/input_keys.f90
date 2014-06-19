@@ -1,11 +1,12 @@
 !> @file
 !!  Module to store all dictionary keys of the input files.
 !! @author
-!!    Copyright (C) 2010-2011 BigDFT group
+!!    Copyright (C) 2010-2013 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+
 
 !> Define all static strings to store input variables
 module module_input_keys
@@ -69,6 +70,22 @@ module module_input_keys
   character(len = *), parameter, public :: HISTORY = "history"
   character(len = *), parameter, public :: DTINIT = "dtinit"
   character(len = *), parameter, public :: DTMAX = "dtmax"
+  character(len = *), parameter, public :: NEB_RESTART = "restart"
+  character(len = *), parameter, public :: NEB_CLIMBING = "climbing"
+  character(len = *), parameter, public :: EXTREMA_OPT = "extrema_opt"
+  character(len = *), parameter, public :: NEB_METHOD = "neb_method"
+  character(len = *), parameter, public :: TEMP = "temp"
+  character(len = *), parameter, public :: NEB_DAMP = "damp"
+  character(len = *), parameter, public :: SPRINGS_K = "springs_k"
+  character(len = *), parameter, public :: FIX_TOL = "fix_tol"
+  character(len = *), parameter, public :: NIMG = "nimg"
+  !SBFGS parameters:
+  character(len = *), parameter, public :: NHISTX = "nhistx"
+  character(len = *), parameter, public :: MAXRISE = "maxrise"
+  character(len = *), parameter, public :: CUTOFFRATIO = "cutoffratio"
+  character(len = *), parameter, public :: STEEPTHRESH = "steepthresh"
+  character(len = *), parameter, public :: TRUSTR = "trustr"
+
 
   character(len = *), parameter, public :: MIX_VARIABLES = "mix"
   character(len = *), parameter, public :: ISCF = "iscf"
@@ -124,6 +141,7 @@ module module_input_keys
   character(len = *), parameter, public :: EF_INTERPOL_CHARGEDIFF = "ef_interpol_chargediff"
   character(len = *), parameter, public :: MIXING_AFTER_INPUTGUESS = "mixing_after_inputguess"
   character(len = *), parameter, public :: ITERATIVE_ORTHOGONALIZATION = "iterative_orthogonalization"
+  character(len = *), parameter, public :: MULTIPOLE_PRESERVING = "multipole_preserving"
   character(len = *), parameter, public :: CHECK_SUMRHO = "check_sumrho"
   character(len = *), parameter, public :: EXPERIMENTAL_MODE = "experimental_mode"
   character(len = *), parameter, public :: WRITE_ORBITALS = "write_orbitals"
@@ -135,6 +153,11 @@ module module_input_keys
   character(len = *), parameter, public :: EVBOUNDSSHRINK_NSATUR = "evboundsshrink_nsatur"
   character(len = *), parameter, public :: METHOD_UPDATEKERNEL = "method_updatekernel"
   character(len = *), parameter, public :: PURIFICATION_QUICKRETURN = "purification_quickreturn"
+  character(len = *), parameter, public :: ADJUST_FOE_TEMPERATURE = "adjust_FOE_temperature"
+  character(len = *), parameter, public :: CALCULATE_GAP = "calculate_gap"
+  character(len = *), parameter, public :: LOEWDIN_CHARGE_ANALYSIS = "loewdin_charge_analysis"
+  character(len = *), parameter, public :: CHECK_MATRIX_COMPRESSION = "check_matrix_compression"
+  character(len = *), parameter, public :: CORRECTION_CO_CONTRA = "correction_co_contra"
 
   !keys for linear input variables
   !level keys
@@ -142,6 +165,7 @@ module module_input_keys
   character(len=*), parameter, public :: LIN_BASIS       ='lin_basis'
   character(len=*), parameter, public :: LIN_KERNEL      ='lin_kernel'
   character(len=*), parameter, public :: LIN_BASIS_PARAMS='lin_basis_params'
+  character(len=*), parameter, public :: FRAG_VARIABLES  ='frag'
   character(len=*), parameter, public :: HYBRID          ='hybrid'
   character(len=*), parameter, public :: LINEAR_METHOD   ='linear_method'
   character(len=*), parameter, public :: MIXING_METHOD   ='mixing_method'
@@ -151,6 +175,7 @@ module module_input_keys
   character(len=*), parameter, public :: GNRM_CV_COEFF   ='gnrm_cv_coeff'
   character(len=*), parameter, public :: DELTAE_CV       ='deltae_cv'
   character(len=*), parameter, public :: GNRM_DYN        ='gnrm_dyn'
+  character(len=*), parameter, public :: MIN_GNRM_FOR_DYNAMIC = 'min_gnrm_for_dynamic'
   character(len=*), parameter, public :: CONF_DAMPING    ='conf_damping'
   character(len=*), parameter, public :: TAYLOR_ORDER    ='taylor_order'
   character(len=*), parameter, public :: CALC_DIPOLE     ='calc_dipole'
@@ -173,8 +198,11 @@ module module_input_keys
   character(len=*), parameter, public :: TRANSFER_INTEGRALS='transfer_integrals'
   character(len=*), parameter, public :: CONSTRAINED_DFT  ='constrained_dft'
   character(len=*), parameter, public :: FIX_BASIS       ='fix_basis' 
-
-
+  character(len=*), parameter, public :: CORRECTION_ORTHOCONSTRAINT='correction_orthoconstraint'
+  character(len=*), parameter, public :: FSCALE_LOWERBOUND="fscale_lowerbound"
+  character(len=*), parameter, public :: FSCALE_UPPERBOUND="fscale_upperbound"
+  character(len=*), parameter, public :: EXTRA_STATES="extra_states"
+  character(len=*), parameter, public :: FRAGMENT_NO="Fragment No. "
 
   !> Error ids for this module.
   integer, public :: INPUT_VAR_NOT_IN_LIST = 0
@@ -190,9 +218,13 @@ module module_input_keys
   character(len = *), parameter :: PROF_KEY = "PROFILE_FROM"
   character(len = *), parameter :: USER_KEY = "USER_DEFINED"
 
-  character(len = *), parameter :: RANGE = "RANGE", EXCLUSIVE = "EXCLUSIVE"
-  character(len = *), parameter :: DEFAULT = "default", COMMENT = "COMMENT"
-  character(len = *), parameter :: COND = "CONDITION", WHEN = "WHEN"
+  character(len = *), parameter :: COMMENT = "COMMENT"
+  character(len = *), parameter :: DESCRIPTION = "DESCRIPTION"
+  character(len = *), parameter :: RANGE = "RANGE"
+  character(len = *), parameter :: EXCLUSIVE = "EXCLUSIVE"
+  character(len = *), parameter :: DEFAULT = "default"
+  character(len = *), parameter :: COND = "CONDITION"
+  character(len = *), parameter :: WHEN = "WHEN"
   character(len = *), parameter :: MASTER_KEY = "MASTER_KEY"
 
   public :: input_keys_init, input_keys_finalize
@@ -206,6 +238,8 @@ module module_input_keys
 
 contains
 
+
+  !> Callback routine when an error occurs
   subroutine abort_excl()
     use yaml_output
     use dictionaries
@@ -218,10 +252,13 @@ contains
     call f_err_severe()
   end subroutine abort_excl
 
+
+  !> Callback routine for illegal input variables
   subroutine warn_illegal()
     implicit none
     
   end subroutine warn_illegal
+
 
   subroutine input_keys_init()
     use yaml_output
@@ -271,6 +308,7 @@ contains
     end if
   END SUBROUTINE input_keys_init
   
+
   subroutine input_keys_finalize()
     use dictionaries
     implicit none
@@ -283,15 +321,17 @@ contains
     end if
   END SUBROUTINE input_keys_finalize
 
+
   subroutine input_keys_dump_def(fname, file)
     use dictionaries
     use yaml_output
     implicit none
     character(len = *), intent(in) :: fname
-    character(len = *), intent(in), optional :: file !<subsection of the input to be printed (old input.file)
+    character(len = *), intent(in), optional :: file !< Subsection of the input to be printed (old input.file)
     !local variables
-    integer, parameter :: unt=789159 !to be sure is not opened
+    integer, parameter :: unt=789159 !< To be sure is not opened
     integer :: ierr !, iunit_def
+    !integer :: iunit_def
 
     ! Switch YAML output stream (not needed anymore)
     !call yaml_get_default_stream(iunit_def)
@@ -315,7 +355,8 @@ contains
     !call yaml_set_default_stream(iunit_def,ierr)
   end subroutine input_keys_dump_def
 
-  !> get for each keys available profiles.
+
+  !> Get for each keys available profiles.
   function input_keys_get_profiles(file)
     use dictionaries
     implicit none
@@ -344,7 +385,9 @@ contains
     call input_keys_finalize()
 
     input_keys_get_profiles => p
+
   contains
+
     subroutine vars(dict, ref)
       use dictionaries
       implicit none
@@ -399,6 +442,7 @@ contains
     end subroutine generate
   END FUNCTION input_keys_get_profiles
 
+
   !> Compare two strings (case-insensitive). Blanks are relevant!
   function input_keys_equal(stra,strb)
     implicit none
@@ -421,6 +465,7 @@ contains
     end do
   END FUNCTION input_keys_equal
 
+
   function input_keys_get_source(dict, key, user_defined)
     use dictionaries
     implicit none
@@ -440,6 +485,8 @@ contains
     end if
   end function input_keys_get_source
 
+
+  !> Fill all the input keys into dict
   subroutine input_keys_fill_all(dict,dict_minimal)
     use dictionaries
     use dynamic_memory
@@ -457,6 +504,11 @@ contains
          err_name='BIGDFT_RUNTIME_ERROR')) return
 
     call f_routine(id='input_keys_fill_all')
+
+    ! Overiding the default for isolated system
+    if (.not.has_key(dict//"posinp","Cell") .and. .not. has_key(dict//DFT_VARIABLES,DISABLE_SYM)) then
+       call set(dict // DFT_VARIABLES // DISABLE_SYM,.true.)
+    end if
 
     ! Check and complete dictionary.
     call input_keys_init()
@@ -482,12 +534,12 @@ contains
     meth = dict // GEOPT_VARIABLES // GEOPT_METHOD
     if (input_keys_equal(trim(meth), "FIRE")) then
        prof = input_keys_get_source(dict // GEOPT_VARIABLES, DTMAX, user_defined)
-       if (trim(prof) == "default" .and. .not. user_defined) then
+       if (trim(prof) == DEFAULT .and. .not. user_defined) then
           betax_ = dict // GEOPT_VARIABLES // BETAX
           call set(dict // GEOPT_VARIABLES // DTMAX, 0.25 * pi_param * sqrt(betax_), fmt = "(F7.4)")
        end if
        prof = input_keys_get_source(dict // GEOPT_VARIABLES, DTINIT, user_defined)
-       if (trim(prof) == "default" .and. .not. user_defined) then
+       if (trim(prof) == DEFAULT .and. .not. user_defined) then
           dtmax_ = dict // GEOPT_VARIABLES // DTMAX
           call set(dict // GEOPT_VARIABLES // DTINIT, 0.5 * dtmax_, fmt = "(F7.4)")
        end if
@@ -498,7 +550,8 @@ contains
     call f_release_routine()
   end subroutine input_keys_fill_all
 
-  !> this routine is used to create a minimal dictionary which can be used at the place 
+
+  !> This routine is used to create a minimal dictionary which can be used at the place 
   !! of the one provided as an indication on the understood variables
   subroutine input_minimal(dict,minimal)
     use dictionaries
@@ -509,6 +562,7 @@ contains
     !local variables
     type(dictionary), pointer :: dict_tmp,min_cat
     character(len=max_field_length) :: category
+    logical :: cat_found
 
     nullify(minimal)
 
@@ -532,6 +586,31 @@ contains
 !stop
        dict_tmp => dict_next(dict_tmp)
     end do
+
+    !then add other information to the minimal dictionary which is associated
+    !to specific system parameters
+    !! basis set
+    if (LIN_BASIS_PARAMS .in. dict) then
+      dict_tmp => dict_iter(dict//LIN_BASIS_PARAMS)
+      do while(associated(dict_tmp))
+       category=dict_key(dict_tmp)
+       !Pb with stack (Cray - ftn 05/2015), solved with the cat_found temporary variable
+       cat_found = category .in. parameters//LIN_BASIS_PARAMS
+       if (.not. cat_found .and. index(category,ATTRS) == 0 ) then
+          !verify that no parameters correspond to default values
+          call minimal_category(parameters//LIN_BASIS_PARAMS,dict_tmp,min_cat)
+          if (associated(min_cat)) then
+             !call dict_copy(minimal//LIN_BASIS_PARAMS//category,dict_tmp)
+             call set(minimal//LIN_BASIS_PARAMS//category,min_cat)
+          end if
+       end if
+       dict_tmp => dict_next(dict_tmp)
+      end do
+   end if
+
+   !fragment dictionary has to be copied as-is
+   if (FRAG_VARIABLES .in. dict) &
+        call dict_copy(minimal//FRAG_VARIABLES,dict//FRAG_VARIABLES)
 
     contains
       
@@ -567,9 +646,9 @@ contains
                  !exclude keys for definition of the variable
                  var_prof=dict_key(defvar)
 !              call yaml_map('key',var_prof)
-                 if (trim(var_prof)/=COMMENT .and. trim(var_prof)/=COND .and.&
-                      trim(var_prof)/=RANGE .and. trim(var_prof)/=PROF_KEY .and. &
-                      trim(var_prof)/=EXCLUSIVE) then
+                 if (trim(var_prof) /= COMMENT .and. trim(var_prof) /= COND .and.&
+                      trim(var_prof) /= RANGE .and. trim(var_prof) /= PROF_KEY .and. &
+                      trim(var_prof) /= EXCLUSIVE) then
                     !check if some profile meets desired values
 !call yaml_map('defvar',defvar)
 !call yaml_map('input',input//def_var)
@@ -588,21 +667,48 @@ contains
                  end if
                  defvar => dict_next(defvar)
               end do check_profile
-              !the key has not been found, among the profiles, therefore it should be entered as is
+              !the key has not been found among the profiles, therefore it should be entered as is
               if (.not. profile_found .and. len_trim(dict_value(input//def_var))/=0) then
                  if (.not. associated(minim)) call dict_init(minim)
-                 call dict_copy(minim//def_var,input//def_var)
+                 !clean the list items if the dictionary is a list with all the items identical
+                 defvar => dict_iter(input//def_var)
+                 var_prof=repeat(' ',len(var_prof))
+                 if (dict_len(input // def_var)==0) nullify(defvar)
+                 compact_list: do while(associated(defvar))
+                    !if scalar, retrieve the value, otherwise exit
+                    if (dict_size(defvar) == 0 .and. dict_len(defvar)==0) then
+                       prof_var=defvar
+                    else
+                       var_prof=repeat(' ',len(var_prof))
+                       exit compact_list
+                    end if
+                    !check if all the values of the list are equal to the first one
+                    if (len_trim(var_prof) == 0) then
+                       var_prof=prof_var
+                    else
+                       !check if all the values are OK, otherwise exit at first failure
+                       if (var_prof /= prof_var) then
+                         var_prof=repeat(' ',len(var_prof))
+                         exit compact_list
+                      end if
+                    end if
+                    defvar => dict_next(defvar)
+                 end do compact_list
+                 !if the dictionary is not a one-level list or if it is a list with different values
+                 ! copy it as-is
+                 if (len_trim(var_prof) == 0) then
+                    call dict_copy(minim//def_var,input//def_var)
+                 else !otherwise put the scalar value associated
+                    call set(minim//def_var,var_prof)
+                 end if
               end if
            end if
            var => dict_next(var)
-!if (trim(def_var) == 'shiftk') then
-!   call yaml_map('Finally',minim//def_var)
-!stop
-!end if
         end do
       end subroutine minimal_category
       
     end subroutine input_minimal
+
 
   subroutine input_keys_fill(dict, file)
     use dictionaries
@@ -614,26 +720,36 @@ contains
 
     integer :: i
     logical :: user, hasUserDef
-    type(dictionary), pointer :: ref
+    type(dictionary), pointer :: ref,ref_iter
     character(len=max_field_length), dimension(:), allocatable :: keys
     
 !    call f_routine(id='input_keys_fill')
 
     ref => parameters // file
 
-    keys = f_malloc_str(max_field_length,dict_size(ref),id='keys')
-    keys = dict_keys(ref)
-
+    ref_iter => dict_iter(parameters // file)
     hasUserDef = .false.
-    do i = 1, size(keys), 1
-          call input_keys_set(user, dict // file, file, keys(i))
+    do while(associated(ref_iter))
+       if (trim(dict_key(ref_iter)) /= DESCRIPTION) then
+          call input_keys_set(user, dict // file, file, dict_key(ref_iter))
           hasUserDef = (hasUserDef .or. user)
+       end if
+       ref_iter=> dict_next(ref_iter)
     end do
-    call set(dict // (trim(file) // ATTRS) // USER_KEY, hasUserDef)
 
-    call f_free_str(max_field_length, keys)
+!    keys = f_malloc_str(max_field_length,dict_size(ref),id='keys')
+!    keys = dict_keys(ref)
+!    hasUserDef = .false.
+!    do i=1,size(keys)
+!       call input_keys_set(user, dict // file, file, keys(i))
+!        hasUserDef = (hasUserDef .or. user)
+!    end do
+!    call set(dict // (trim(file) // ATTRS) // USER_KEY, hasUserDef)
+!
+!    call f_free_str(max_field_length, keys)
 !    call f_release_routine()
   END SUBROUTINE input_keys_fill
+
 
   !> control if all the keys which are defined in a given field are associated with a true input variable
   subroutine input_keys_control(dict,file)
@@ -649,7 +765,8 @@ contains
     !parse all the keys of the dictionary
     dict_tmp=>dict_iter(dict//file)
     do while(associated(dict_tmp))
-       if (.not. (dict_key(dict_tmp) .in. ref)) then
+       if (.not. (dict_key(dict_tmp) .in. ref) .and. &
+            & index(dict_key(dict_tmp), ATTRS) == 0) then
     !      call yaml_map('Allowed keys',dict_keys(ref))
           !even in a f_err_open_try section this error is assumed to be fatal
           !for the moment. A mechanism to downgrade its gravity should be
@@ -674,12 +791,14 @@ contains
     end do
   end subroutine input_keys_control
 
-subroutine input_control_callback()
+
+  subroutine input_control_callback()
     use yaml_output
     use dictionaries
     implicit none
     call f_err_severe()
-end subroutine input_control_callback
+  end subroutine input_control_callback
+
 
   subroutine input_keys_set(userDef, dict, file, key)
     use dictionaries
@@ -837,6 +956,7 @@ end subroutine input_control_callback
       end if
     end subroutine validate
   END SUBROUTINE input_keys_set
+
 
   !> Dump the dictionary of the input variables.
   !! Should dump only the keys relative to the iunput variables and

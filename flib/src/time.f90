@@ -14,7 +14,7 @@ module time_profiling
   use dynamic_memory, only: f_time
   implicit none
 
-  !private to be put
+  private 
 
   !>maximum number of allowed categories
   integer, parameter :: ncat_max=200
@@ -38,10 +38,11 @@ module time_profiling
   !unspecified timings
   integer, save :: TCAT_UNSPECIFIED=TIMING_UNINITIALIZED !<after initialization this should be 0
   !Error codes
-  integer, save :: TIMING_INVALID
+  integer, public, save :: TIMING_INVALID
  
   !> contains all global variables associated to time profiling
   type :: time_ctrl
+     logical :: master !<flag to store whether the instance can write on a file
      logical :: debugmode !<flag to store how to process the information
      integer :: cat_on !<id of the active category
      integer :: cat_paused !<id of paused category when interrupt action
@@ -60,6 +61,10 @@ module time_profiling
   !>global variable controlling the different instances of the calls
   type(time_ctrl), dimension(max_ctrl) :: times
 
+  public :: f_timing_reset,f_timing,f_timing_checkpoint,f_timing_stop,timing_errors
+  public :: f_timing_category,f_timing_category_group,f_timing_finalize,f_timing_initialize
+  public :: get_category_name
+
   contains
 
     pure function time_ctrl_null() result(time)
@@ -71,6 +76,7 @@ module time_profiling
       implicit none
       type(time_ctrl), intent(out) :: time
       
+      time%master=.false.
       time%debugmode=.false. 
       time%cat_on=0 
       time%cat_paused=0 
@@ -247,7 +253,7 @@ module time_profiling
       !! print out their information on the counters.
       logical, intent(in), optional :: verbose_mode 
       !local variables
-      integer :: icat,ictr,i,iunit_def
+      integer :: ictr,i,iunit_def
       integer(kind=8) :: itns
 
       !global timer
@@ -279,11 +285,12 @@ module time_profiling
 
       !no category has been used so far
       !init=.false.
+      times(ictrl)%master=master
       times(ictrl)%cat_on=0
       times(ictrl)%cat_paused=0 !no stopped category
       times(ictrl)%timing_nctr=0 !no partial counters activated
       !initialize the document
-      if (master) then
+      if (times(ictrl)%master) then
          call timing_open_stream(iunit_def)
          call yaml_new_document() !in principle is active only when the document is released
          call timing_close_stream(iunit_def)
@@ -293,16 +300,28 @@ module time_profiling
     !>perform a checkpoint of the chronometer with a partial counter
     !! the last active category is halted and a summary of the timing 
     !! is printed out
-    subroutine f_timing_checkpoint(ctr_name,mpi_comm)
+    subroutine f_timing_checkpoint(ctr_name,mpi_comm,nproc,gather_routine)
       use yaml_output, only: yaml_map,yaml_toa
+      use dynamic_memory
       implicit none
       !> name of the partial counter for checkpoint identification
       character(len=*), intent(in) :: ctr_name 
       !> handle of the mpi_communicator associated with the checkpoint 
-      integer, intent(in), optional :: mpi_comm 
+      integer, intent(in), optional :: mpi_comm,nproc 
+!!$      interface
+!!$         subroutine gather_routine(ndata,nproc,mpi_comm,src,dest)
+!!$           implicit none
+!!$           integer, intent(in) :: ndata !< number of categories of the array
+!!$           integer, intent(in) :: nproc !< number of MPI tasks
+!!$           real(kind=8), dimension(ndata), intent(in) :: src !< total timings of the instance
+!!$           real(kind=8), dimension(ndata,nproc), intent(inout) :: dest 
+!!$        end interface
+      external :: gather_routine
+      optional :: gather_routine !< routine to perform the gathering of counters
       !local variables
-      integer :: i
-      integer(kind=8) :: itns 
+      integer :: i,nnodes
+      integer(kind=8) :: itns
+      logical, dimension(3) :: test
 
       !global timer
       itns=f_time()
@@ -315,6 +334,15 @@ module time_profiling
               trim(yaml_toa(times(ictrl)%cat_on)),&
               err_id=TIMING_INVALID)
       end if
+      test=(/present(mpi_comm),present(nproc),present(gather_routine)/)
+      if (any(test) .and. .not. all(test)) then
+         call f_err_throw('mpi_comm and nproc should be present together '//&
+             'and consistent with each other. Also gather_routine should appear',&
+              err_id=TIMING_INVALID)
+      end if
+      nnodes=1
+      if (present(nproc)) nnodes=nproc
+
       times(ictrl)%timing_nctr=times(ictrl)%timing_nctr+1
       if (f_err_raise(times(ictrl)%timing_nctr > nctr_max,&
            'Max No. of partial counters reached',err_id=TIMING_INVALID)) return
@@ -327,24 +355,114 @@ module time_profiling
       times(ictrl)%counter_clocks(times(ictrl)%timing_nctr)=&
            times(ictrl)%clocks(times(ictrl)%timing_ncat+1)
 
-      call sum_results(times(ictrl)%timing_ncat,mpi_comm,&
-           times(ictrl)%counter_names(times(ictrl)%timing_nctr),&
-           times(ictrl)%clocks)
+      if (present(mpi_comm)) then
+         call gather_and_dump_results(times(ictrl)%master,&
+              times(ictrl)%timing_ncat,nnodes,&
+              times(ictrl)%counter_names(times(ictrl)%timing_nctr),&
+              times(ictrl)%clocks,mpi_comm,gather_routine)
+      else
+         call gather_and_dump_results(times(ictrl)%master,&
+              times(ictrl)%timing_ncat,nnodes,&
+              times(ictrl)%counter_names(times(ictrl)%timing_nctr),&
+              times(ictrl)%clocks)
+      end if
+
+!!$      call sum_results(times(ictrl)%timing_ncat,mpi_comm,&
+!!$           times(ictrl)%counter_names(times(ictrl)%timing_nctr),&
+!!$           times(ictrl)%clocks)
 
       !reset all timings
       times(ictrl)%time0=real(itns,kind=8)*1.d-9
       do i=1,times(ictrl)%timing_ncat
          times(ictrl)%clocks(i)=0.d0
       enddo
-      
+
     end subroutine f_timing_checkpoint
 
-    !>stop the timing and dump information of the partial counters
-    subroutine f_timing_stop(mpi_comm)
+    subroutine gather_and_dump_results(master,ncat,nnodes,message,clocks,mpi_comm,gather_routine)
+      use dynamic_memory
       implicit none
-      integer, intent(in) :: mpi_comm !< communicator for the results
+      logical, intent(in) :: master
+      integer, intent(in) :: ncat,nnodes
+      character(len=*), intent(in) :: message
+      double precision, dimension(ncat+1), intent(in) :: clocks
+      integer, intent(in), optional :: mpi_comm
+      external :: gather_routine
+      optional :: gather_routine
+      real(kind=8), dimension(:,:), allocatable :: timeall
+
+      !allocate total timings
+      timeall=f_malloc((/1.to.ncat+1,0.to.nnodes/),&
+           id='timeall')
+      !gather the results
+      if (nnodes > 1) then
+         if (present(mpi_comm)) call gather_routine(ncat+1,nnodes,mpi_comm,&
+              clocks,timeall)
+      else
+         call f_memcpy(src=clocks,dest=timeall)
+      end if
+      if (master) then
+         call timing_dump_results(ncat,nnodes,trim(message),timeall)
+      endif
+      call f_free(timeall)
+    end subroutine gather_and_dump_results
+
+    subroutine gather_and_dump_counters(master,ncnt,nnodes,pcnames,pctimes,dict_info,&
+         mpi_comm,gather_routine)
+      use dynamic_memory
+      implicit none
+      logical, intent(in) :: master
+      integer, intent(in) :: ncnt,nnodes
+      double precision, dimension(ncnt), intent(in) :: pctimes
+      character(len=10), dimension(ncnt), intent(in) :: pcnames
+      type(dictionary), pointer :: dict_info
+      integer, intent(in), optional :: mpi_comm
+      external :: gather_routine
+      optional :: gather_routine
       !local variables
+      double precision, dimension(:,:), allocatable :: timecnt 
+
+      !allocate total timings
+      timecnt=f_malloc((/1.to.ncnt,0.to.nnodes/),&
+           id='timecnt')
+      !gather the results
+      if (nnodes > 1) then
+         if (present(mpi_comm)) call gather_routine(ncnt,nnodes,mpi_comm,&
+              pctimes,timecnt)
+      else
+         call f_memcpy(src=pctimes,dest=timecnt)
+      end if
+      if (master) then
+         call timing_dump_counters(ncnt,nnodes,pcnames,timecnt,dict_info)
+      endif
+      call f_free(timecnt)
+    end subroutine gather_and_dump_counters
+
+    !>stop the timing and dump information of the partial counters
+    subroutine f_timing_stop(mpi_comm,nproc,gather_routine,dict_info)
+      use dynamic_memory
+      use dictionaries
+      implicit none
+      !> handle of the mpi_communicator associated with the results
+      integer, intent(in), optional :: mpi_comm,nproc 
+      type(dictionary), pointer, optional :: dict_info
+!!$      interface
+!!$         subroutine gather_routine(ndata,nproc,mpi_comm,src,dest)
+!!$           implicit none
+!!$           integer, intent(in) :: ndata !< number of categories of the array
+!!$           integer, intent(in) :: nproc !< number of MPI tasks
+!!$           real(kind=8), dimension(ndata), intent(in) :: src !< total timings of the instance
+!!$           real(kind=8), dimension(ndata,nproc), intent(inout) :: dest 
+!!$        end interface
+      external :: gather_routine
+      optional :: gather_routine !< routine to perform the gathering of counters
+
+      !local variables
+      logical, dimension(3) :: test
+      integer :: nnodes
       integer(kind=8) :: itns
+      type(dictionary), pointer :: dict_tmp
+      !$ integer :: omp_get_max_threads
 
       !global timer
       itns=f_time()
@@ -355,16 +473,49 @@ module time_profiling
               err_id=TIMING_INVALID)
       end if
 
+      test=(/present(mpi_comm),present(nproc),present(gather_routine)/)
+      if (any(test) .and. .not. all(test)) then
+         call f_err_throw('Timing Stop: mpi_comm and nproc should be present together '//&
+              'and consistent with each other. Also gather_routine should appear',&
+              err_id=TIMING_INVALID)
+      end if
+      nnodes=1
+      if (present(nproc)) nnodes=nproc
+
       if (times(ictrl)%timing_nctr == 0) then !no partial counters selected
          times(ictrl)%clocks(times(ictrl)%timing_ncat+1)&
               =real(itns,kind=8)*1.d-9-times(ictrl)%time0
-         !here iproc is the communicator
-         call sum_results(times(ictrl)%timing_ncat,mpi_comm,'ALL',&
-              times(ictrl)%clocks)
+
+         if (present(mpi_comm)) then
+            call gather_and_dump_results(times(ictrl)%master,&
+                 times(ictrl)%timing_ncat,nnodes,'ALL',times(ictrl)%clocks,mpi_comm,gather_routine)
+         else
+            call gather_and_dump_results(times(ictrl)%master,&
+                 times(ictrl)%timing_ncat,nnodes,'ALL',times(ictrl)%clocks)
+         end if
+
+!!$         call sum_results(times(ictrl)%timing_ncat,mpi_comm,'ALL',&
+!!$              times(ictrl)%clocks)
       else !consider only the results of the partial counters
-         call sum_counters(times(ictrl)%counter_clocks,&
-              times(ictrl)%counter_names,times(ictrl)%timing_nctr,mpi_comm,&
-              times(ictrl)%debugmode)
+         !creation of the dict_info        
+         if (present(dict_info)) then
+            dict_tmp=>dict_info
+         else
+            nullify(dict_tmp)
+         end if
+         if (present(mpi_comm)) then
+            call gather_and_dump_counters(times(ictrl)%master,&
+                 times(ictrl)%timing_nctr,nnodes,times(ictrl)%counter_names,&
+                 times(ictrl)%counter_clocks,dict_tmp,&
+                 mpi_comm,gather_routine)
+         else
+            call gather_and_dump_counters(times(ictrl)%master,&
+                 times(ictrl)%timing_nctr,nnodes,times(ictrl)%counter_names,&
+                 times(ictrl)%counter_clocks,dict_tmp)
+         end if
+!!$         call sum_counters(times(ictrl)%counter_clocks,&
+!!$              times(ictrl)%counter_names,times(ictrl)%timing_nctr,mpi_comm,&
+!!$              times(ictrl)%debugmode)
       end if
 
       !restore timing, categories can be manipulated now
@@ -382,7 +533,6 @@ module time_profiling
       integer, intent(in) :: cat_id
       character(len=2), intent(in) :: action      ! possibilities: INitialize, ON, OFf, REsults
       !Local variables
-      integer :: i
       integer(kind=8) :: itns
       real(kind=8) :: t1
 
@@ -555,6 +705,7 @@ module time_profiling
       end do
       call yaml_close_sequence(unit=unt)
 
+
     end subroutine timing_dump_line
 
     !>put the average value of timeall in the timesum array
@@ -594,6 +745,40 @@ module time_profiling
       end do
     end subroutine timing_data_synthesis
 
+    !>dump the final information of the partial counters
+    subroutine timing_dump_counters(ncounters,nproc,pcnames,timecnt,dict_info)
+      use yaml_output
+      implicit none
+      integer, intent(in) :: ncounters,nproc
+      character(len=10), dimension(ncounters), intent(in) :: pcnames
+      double precision, dimension(ncounters,0:nproc), intent(inout) :: timecnt
+      type(dictionary), pointer :: dict_info
+      !local variables
+      integer :: iunit_def,i
+      double precision :: pc
+      !synthesis of the counters
+      call timing_data_synthesis(nproc,ncounters,timecnt,timecnt(1,nproc))
+
+      call timing_open_stream(iunit_def)
+      call yaml_open_map('SUMMARY',advance='no')
+      call yaml_comment('     % ,  Time (s)',tabbing=tabfile)
+
+      !sum all the information by counters
+      do i=1,ncounters
+         pc=100.d0*timecnt(i,nproc)/sum(timecnt(1:ncounters,nproc))
+         call timing_dump_line(trim(pcnames(i)),tabfile,pc,timecnt(i,nproc))
+      end do
+      call timing_dump_line('Total',tabfile,100.d0,sum(timecnt(1:ncounters,nproc)))
+      call yaml_close_map() !summary
+
+      !dump extra info dictionary
+      if (associated(dict_info)) call yaml_dict_dump(dict_info)
+      call yaml_map('Report timestamp',trim(yaml_date_and_time_toa()))
+      !restore the default stream
+      call timing_close_stream(iunit_def)
+
+    end subroutine timing_dump_counters
+
     !> dump the results of the nonzero timings of the categories in the file indicated by filename_time
     !! the array timesum should contain the timings for each processor (from 0 to nproc-1)
     !! and will also contain the average value (in position nproc)
@@ -605,7 +790,7 @@ module time_profiling
       character(len=*), intent(in) :: message
       real(kind=8), dimension(ncat+1,0:nproc), intent(inout) :: timeall
       !local variables
-      integer :: ncls,i,ierr,j,icls,icat,jproc,iextra,iproc,iunit_def,nextra
+      integer :: ncls,i,j,icls,icat,jproc,iunit_def,nextra
       real(kind=8) :: total_pc,pc
       type(dictionary), pointer :: dict_cat
       character(len=max_field_length) :: name
@@ -678,8 +863,8 @@ module time_profiling
       total_pc=0.d0
       do icls=1,ncls
          pc=0.0d0
-         if (times(ictrl)%clocks(ncat+1)/=0.d0) &
-              pc=100.d0*timecls(icls,nproc)/times(ictrl)%clocks(ncat+1)
+         if (timeall(ncat+1,nproc)/=0.d0) &
+              pc=100.d0*timecls(icls,nproc)/timeall(ncat+1,nproc)!times(ictrl)%clocks(ncat+1)
          total_pc=total_pc+pc
          !only nonzero classes are printed out
          if (timecls(icls,nproc) /= 0.d0) then
@@ -695,19 +880,22 @@ module time_profiling
          i=isort(j)
          pc=0.d0
          !only nonzero categories are printed out
-         if (times(ictrl)%clocks(i) /= 0.d0) then
+         if (timeall(i,nproc) /= 0.d0) then
             dict_cat=>times(ictrl)%dict_timing_categories//i
-            if (times(ictrl)%clocks(ncat+1)/=0.d0)&
-                 pc=100.d0*times(ictrl)%clocks(i)/times(ictrl)%clocks(ncat+1)
+            if (timeall(ncat+1,nproc)/=0.d0)&
+                 pc=100.d0*timeall(i,nproc)/timeall(ncat+1,nproc)
             name=dict_cat//catname
-            call timing_dump_line(trim(name),tabfile,pc,times(ictrl)%clocks(i),&
+            call yaml_open_map(trim(name))
+            call timing_dump_line('Data',tabfile,pc,timeall(i,nproc),&
                  loads=timeall(i,0:nextra-1))
             name=dict_cat//grpname
             call yaml_map('Class',trim(name))
             name=dict_cat//catinfo
             call yaml_map('Info',trim(name))
+            call yaml_close_map()
          end if
       enddo
+
       call yaml_close_map() !categories
       call yaml_close_map() !counter
       !restore the default stream
@@ -715,146 +903,181 @@ module time_profiling
 
       call f_free_str(max_field_length,group_names)
       call f_free(timecls)
+      call f_release_routine()
     end subroutine timing_dump_results
+
+    !>extract the category name 
+    subroutine get_category_name(cat_id,getname)
+      use yaml_output, only: yaml_map
+      implicit none
+      integer, intent(in) :: cat_id
+      character(len=*), intent(inout) :: getname
+      !local variables
+      character(len=max_field_length) :: name
+
+      getname(1:len(getname))=' '
+      if (cat_id > 0 .and. cat_id < dict_len(times(ictrl)%dict_timing_categories)) then
+         name=times(ictrl)%dict_timing_categories//cat_id//catname
+         getname(1:len(getname))=name
+      end if
+    end subroutine get_category_name
 
   end module time_profiling
 
-  subroutine sum_counters(pctimes,pcnames,ncounters,mpi_comm,debugmode)
-    use yaml_output
-    use dynamic_memory
-    use time_profiling, only: timing_unit,timing_dump_line,timing_data_synthesis,&
-         timing_open_stream,timing_close_stream,tabfile
-
-  implicit none
-  include 'mpif.h'
-  logical, intent(in) :: debugmode
-  integer, intent(in) :: mpi_comm,ncounters
-  real(kind=8), dimension(ncounters), intent(in) :: pctimes
-  character(len=10), dimension(ncounters), intent(in) :: pcnames
-  !local variables
-  logical :: parallel
-  integer :: i,ierr,iproc,jproc,icat,nthreads,namelen,iunit_def,nproc
-  real(kind=8) :: pc
-  
-  character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
-  double precision, dimension(:,:), allocatable :: timecnt 
-  character(len=MPI_MAX_PROCESSOR_NAME), dimension(:), allocatable :: nodename
-  !$ integer :: omp_get_max_threads
-
-  ! Not initialised case.
-  if (mpi_comm==MPI_COMM_NULL) return
-  call f_routine(id='sum_counters')
-  
-  call MPI_COMM_SIZE(mpi_comm,nproc,ierr)
-  parallel=nproc>1
-
-  nodename=f_malloc_str(MPI_MAX_PROCESSOR_NAME,0.to.nproc-1,id='nodename')
-  timecnt=f_malloc((/1.to.ncounters,0.to.nproc/),id='timecnt')
-
-  if (parallel) then 
-     call MPI_COMM_RANK(mpi_comm,iproc,ierr)
-     call MPI_GATHER(pctimes,ncounters,MPI_DOUBLE_PRECISION,&
-          timecnt,ncounters,MPI_DOUBLE_PRECISION,0,mpi_comm,ierr)
-     if (debugmode) then
-        !initalise nodenames
-        do jproc=0,nproc-1
-           nodename(jproc)=repeat(' ',MPI_MAX_PROCESSOR_NAME)
-        end do
-
-        call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
-
-        !gather the result between all the process
-        call MPI_GATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
-             nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,0,&
-             mpi_comm,ierr)
-     end if
-
-  else
-     do i=1,ncounters
-        timecnt(i,0)=pctimes(i)
-     end do
-     iproc=0
-  endif
-
-  if (iproc == 0) then
-     !synthesis of the counters
-     call timing_data_synthesis(nproc,ncounters,timecnt,timecnt(1,nproc))
-
-     call timing_open_stream(iunit_def)
-     call yaml_open_map('SUMMARY',advance='no')
-     call yaml_comment('     % ,  Time (s)',tabbing=tabfile)
-     
-     !sum all the information by counters
-     do i=1,ncounters
-        pc=100.d0*timecnt(i,nproc)/sum(timecnt(1:ncounters,nproc))
-        call timing_dump_line(trim(pcnames(i)),tabfile,pc,timecnt(i,nproc))
-     end do
-     call timing_dump_line('Total',tabfile,100.d0,sum(timecnt(1:ncounters,nproc)))
-     call yaml_close_map() !summary
-
-     call yaml_open_map('CPU parallelism')
-     call yaml_map('MPI_tasks',nproc)
-     nthreads = 0
-     !$  nthreads=omp_get_max_threads()
-     if (nthreads /= 0) call yaml_map('OMP threads',nthreads)
-     call yaml_close_map()
-     if (debugmode .and. parallel) then
-        call yaml_open_sequence('Hostnames')
-        do jproc=0,nproc-1
-           call yaml_sequence(trim(nodename(jproc)))
-        end do
-        call yaml_close_sequence()
-     end if
-     call yaml_map('Report timestamp',trim(yaml_date_and_time_toa()))
-     !restore the default stream
-     call timing_close_stream(iunit_def)
-  end if
-  call f_free(timecnt)
-  call f_free_str(MPI_MAX_PROCESSOR_NAME,nodename)
-  call f_release_routine()
-end subroutine sum_counters
-
-
-subroutine sum_results(ncat,mpi_comm,message,timesum)
-  use dynamic_memory
-  use yaml_output
-  use time_profiling, only: timing_dump_results
-  implicit none
-  include 'mpif.h'
-  integer, intent(in) :: mpi_comm,ncat
-  character(len=*), intent(in) :: message
-  real(kind=8), dimension(ncat+1), intent(inout) :: timesum
-   !local variables
-  integer :: i,ierr,j,icls,icat,jproc,iextra,iproc,iunit_def,nproc
-  integer, dimension(ncat) :: isort
-  real(kind=8), dimension(:,:), allocatable :: timeall
-
-  ! Not initialised case.
-  if (mpi_comm==MPI_COMM_NULL) return
-  call f_routine(id='sum_results')
-
-  call MPI_COMM_SIZE(mpi_comm,nproc,ierr)
-  !allocate total timings
-  timeall=f_malloc((/1.to.ncat+1,0.to.nproc/),id='timeall')
-
-  if (nproc>1) then
-     call MPI_COMM_RANK(mpi_comm,iproc,ierr)
-     call MPI_GATHER(timesum,ncat+1,MPI_DOUBLE_PRECISION,&
-          timeall,ncat+1,MPI_DOUBLE_PRECISION,0,mpi_comm,ierr)
-  else
-     do i=1,ncat+1
-        timeall(i,0)=timesum(i)
-     end do
-     iproc=0
-  endif
-
-  if (iproc == 0) then
-     call timing_dump_results(ncat,nproc,message,timeall)
-  endif
-  call f_free(timeall)
-  call f_release_routine()
-
-END SUBROUTINE sum_results
+!!!  subroutine sum_counters(pctimes,pcnames,ncounters,mpi_comm,debugmode)
+!!!    use yaml_output
+!!!    use dynamic_memory
+!!!    use time_profiling, only: timing_unit,timing_dump_line,timing_data_synthesis,&
+!!!         timing_open_stream,timing_close_stream,tabfile
+!!!    use dictionaries
+!!!    
+!!!  implicit none
+!!!  include 'mpif.h'
+!!!  logical, intent(in) :: debugmode
+!!!  integer, intent(in) :: mpi_comm,ncounters
+!!!  real(kind=8), dimension(ncounters), intent(in) :: pctimes
+!!!  character(len=10), dimension(ncounters), intent(in) :: pcnames
+!!!  !local variables
+!!!  logical :: parallel
+!!!  integer :: i,ierr,iproc,jproc,icat,nthreads,namelen,iunit_def,nproc
+!!!  real(kind=8) :: pc
+!!!  
+!!!  character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
+!!!  double precision, dimension(:,:), allocatable :: timecnt 
+!!!  character(len=MPI_MAX_PROCESSOR_NAME), dimension(:), allocatable :: nodename
+!!!  type(dictionary), pointer :: dict_info
+!!!  !$ integer :: omp_get_max_threads
+!!!
+!!!  ! Not initialised case.
+!!!  if (mpi_comm==MPI_COMM_NULL) return
+!!!  call f_routine(id='sum_counters')
+!!!  
+!!!  call MPI_COMM_SIZE(mpi_comm,nproc,ierr)
+!!!  parallel=nproc>1
+!!!
+!!!  nodename=f_malloc_str(MPI_MAX_PROCESSOR_NAME,0.to.nproc-1,id='nodename')
+!!!  timecnt=f_malloc((/1.to.ncounters,0.to.nproc/),id='timecnt')
+!!!
+!!!  if (parallel) then 
+!!!     call MPI_COMM_RANK(mpi_comm,iproc,ierr)
+!!!     call MPI_GATHER(pctimes,ncounters,MPI_DOUBLE_PRECISION,&
+!!!          timecnt,ncounters,MPI_DOUBLE_PRECISION,0,mpi_comm,ierr)
+!!!     if (debugmode) then
+!!!        !initalise nodenames
+!!!        do jproc=0,nproc-1
+!!!           nodename(jproc)=repeat(' ',MPI_MAX_PROCESSOR_NAME)
+!!!        end do
+!!!
+!!!        call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
+!!!
+!!!        !gather the result between all the process
+!!!        call MPI_GATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
+!!!             nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,0,&
+!!!             mpi_comm,ierr)
+!!!     end if
+!!!
+!!!  else
+!!!     do i=1,ncounters
+!!!        timecnt(i,0)=pctimes(i)
+!!!     end do
+!!!     iproc=0
+!!!  endif
+!!!
+!!!  if (iproc == 0) then
+!!!!!$     !synthesis of the counters
+!!!!!$     call timing_data_synthesis(nproc,ncounters,timecnt,timecnt(1,nproc))
+!!!!!$
+!!!!!$     call timing_open_stream(iunit_def)
+!!!!!$     call yaml_open_map('SUMMARY',advance='no')
+!!!!!$     call yaml_comment('     % ,  Time (s)',tabbing=tabfile)
+!!!!!$     
+!!!!!$     !sum all the information by counters
+!!!!!$     do i=1,ncounters
+!!!!!$        pc=100.d0*timecnt(i,nproc)/sum(timecnt(1:ncounters,nproc))
+!!!!!$        call timing_dump_line(trim(pcnames(i)),tabfile,pc,timecnt(i,nproc))
+!!!!!$     end do
+!!!!!$     call timing_dump_line('Total',tabfile,100.d0,sum(timecnt(1:ncounters,nproc)))
+!!!!!$     call yaml_close_map() !summary
+!!!
+!!!     call dict_init(dict_info)
+!!!     !here this information can be dumped by adding an extra dictionary to the routine arguments
+!!!     !call yaml_open_map('CPU parallelism')
+!!!     !call yaml_map('MPI_tasks',nproc)
+!!!     nthreads = 0
+!!!     !$  nthreads=omp_get_max_threads()
+!!!     !if (nthreads /= 0) call yaml_map('OMP threads',nthreads)
+!!!     !call yaml_close_map()
+!!!     call set(dict_info//'CPU parallelism'//'MPI tasks',nproc)
+!!!     if (nthreads /= 0) call set(dict_info//'CPU parallelism'//'OMP threads',&
+!!!          nthreads)
+!!!
+!!!     if (debugmode .and. parallel) then
+!!!        !call yaml_open_sequence('Hostnames')
+!!!        !do jproc=0,nproc-1
+!!!        !   call yaml_sequence(trim(nodename(jproc)))
+!!!        !end do
+!!!        !call yaml_close_sequence()
+!!!        call set(dict_info//'Hostnames',&
+!!!             list_new(.item. nodename))
+!!!     end if
+!!!
+!!!     call timing_dump_counters(ncounters,nproc,pcnames,timecnt,dict_info)
+!!!
+!!!!!$     !dump extra info dictionary
+!!!!!$     if (associated(dict_info)) call yaml_dict_dump(dict_info)
+!!!!!$     call yaml_map('Report timestamp',trim(yaml_date_and_time_toa()))
+!!!!!$     !restore the default stream
+!!!!!$     call timing_close_stream(iunit_def)
+!!!     call dict_free(dict_info)
+!!!  end if
+!!!  call f_free(timecnt)
+!!!  call f_free_str(MPI_MAX_PROCESSOR_NAME,nodename)
+!!!  
+!!!  call f_release_routine()
+!!!end subroutine sum_counters
+!!!
+!!!
+!!!subroutine sum_results(ncat,mpi_comm,message,timesum)
+!!!  use dynamic_memory
+!!!  use yaml_output
+!!!  use time_profiling, only: timing_dump_results
+!!!  implicit none
+!!!  include 'mpif.h'
+!!!  integer, intent(in) :: mpi_comm,ncat
+!!!  character(len=*), intent(in) :: message
+!!!  real(kind=8), dimension(ncat+1), intent(inout) :: timesum
+!!!   !local variables
+!!!  integer :: i,ierr,j,icls,icat,jproc,iextra,iproc,iunit_def,nproc
+!!!  integer, dimension(ncat) :: isort
+!!!  real(kind=8), dimension(:,:), allocatable :: timeall
+!!!
+!!!  ! Not initialised case.
+!!!  if (mpi_comm==MPI_COMM_NULL) return
+!!!  call f_routine(id='sum_results')
+!!!
+!!!  call MPI_COMM_SIZE(mpi_comm,nproc,ierr)
+!!!  !allocate total timings
+!!!  timeall=f_malloc((/1.to.ncat+1,0.to.nproc/),id='timeall')
+!!!
+!!!  if (nproc>1) then
+!!!     call MPI_COMM_RANK(mpi_comm,iproc,ierr)
+!!!     call MPI_GATHER(timesum,ncat+1,MPI_DOUBLE_PRECISION,&
+!!!          timeall,ncat+1,MPI_DOUBLE_PRECISION,0,mpi_comm,ierr)
+!!!  else
+!!!     do i=1,ncat+1
+!!!        timeall(i,0)=timesum(i)
+!!!     end do
+!!!     iproc=0
+!!!  endif
+!!!
+!!!  if (iproc == 0) then
+!!!     call timing_dump_results(ncat,nproc,message,timeall)
+!!!  endif
+!!!  call f_free(timeall)
+!!!  call f_release_routine()
+!!!
+!!!END SUBROUTINE sum_results
+!!!
 
 !> interrupts all timing activities to profile the category indicated by cat_id
 !! see e.g. http://en.wikipedia.org/wiki/Interrupt 

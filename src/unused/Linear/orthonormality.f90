@@ -4946,7 +4946,3 @@ subroutine overlapPowerPlusMinusOneHalf_old(iproc, nproc, comm, methTransformOrd
   call timing(iproc,'lovrlp^-1/2old','OF')
 
 end subroutine overlapPowerPlusMinusOneHalf_old
-
-
-
-

@@ -501,9 +501,10 @@
   #WARNING: Self-consistent cycle did not meet convergence criteria
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
- - Input XC is "XC: Perdew, Burke & Ernzerhof"
+ - PSP generated with a different XC. Input XC is "XC: Perdew, Burke & Ernzerhof"
  - Odd number of electrons, no closed shell system
  - Wavefunctions not converged after cycle  1
+ - Wavefunction residue is not consistent with density convergence (T_el too small?)
  - Self-consistent cycle did not meet convergence criteria
  Memory Consumption Report:
    Tot. No. of Allocations             :  2862
