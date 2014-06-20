@@ -6,7 +6,7 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-!subroutine geopt(nat,wpos,etot,fout,fnrmtol,count,count_sd,displ)
+!subroutine geopt(nat,wpos,etot,fout,fnrmtol,count,count_sd,displr)
 subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
 !call_bigdft has to be run once on runObj and outs !before calling this routine
 !sbfgs will return to caller the energies and coordinates used/obtained from the last accepted iteration step
@@ -38,7 +38,12 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
    type(DFT_global_output) :: outs
    logical :: debug !< set .true. for debug output to fort.100
    logical :: steep !< steepest descent flag
-   real(gp) :: displ !< integrated path length
+   real(gp) :: displr !< (non-physical) integrated path length,
+                      !< includes displacements from rejctions
+                      !< (denoted as dsplr in geopt.mon)
+   real(gp) :: displp !< (physical) integrated path length,
+                      !< includes NO displacements from rejections
+                      !< (denoted as dsplp in geopt.mon)
    real(gp) :: etot 
    real(gp) :: fnrm
    real(gp) :: fmax
@@ -77,6 +82,10 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
    real(gp), allocatable, dimension(:)     :: rnorm
    character(len=4)                        :: fn4
    character(len=40)                       :: comment
+   character(len=9)                        :: cdmy9_1
+   character(len=9)                        :: cdmy9_2
+   character(len=9)                        :: cdmy9_3
+   character(len=8)                        :: cdmy8
 
 
    !set parameters
@@ -103,7 +112,8 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
    !init varaibles
    debug=.false.
    fail=.true.
-   displ=0.0_gp
+   displr=0.0_gp
+   displp=0.0_gp
    fluct=0.0_gp
    icheck=0
    detot=0.0_gp
@@ -153,9 +163,15 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
    etotp=etot
 
    if (iproc==0.and.parmin%verbosity > 0) then
-       write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,es9.2,xa5,i4.4,xa5,es9.2,xa6,es9.2)') &
+       !avoid space for leading sign (numbers are positive, anyway)
+       write(cdmy8,'(es8.1)')abs(maxd)
+       write(cdmy9_1,'(es9.2)')abs(displr)
+       write(cdmy9_2,'(es9.2)')abs(displp)
+       write(cdmy9_3,'(es9.2)')abs(beta)
+
+       write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,xa4,i3.3,xa5,a7,2(xa6,a8))') &
        ncount_bigdft,0,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct, &
-       'beta=',beta,'ndim=',ndim,'maxd=',maxd,'displ=',displ
+       'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy9_1)),'dsplp=',trim(adjustl(cdmy9_2))
    endif
 
    do it=1,nit!start main loop
@@ -253,7 +269,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
          tt=tt*scl
          maxd=maxd*scl
       endif
-      displ=displ+tt
+      displr=displr+tt
    
       !update positions
       do iat=1,nat
@@ -291,23 +307,6 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
               sqrt(dot_double(3*nat,fxyz(1,1,nhist),1,fxyz(1,1,nhist),1)*&
               dot_double(3*nat,dd(1,1),1,dd(1,1),1))
 
-      if (iproc==0.and.parmin%verbosity > 0) then
-         write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,es9.2,xa5,i4.4,xa5,es9.2,xa6,es9.2)') &
-          ncount_bigdft,it,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct, &
-          'beta=',beta,'ndim=',ndim,'maxd=',maxd,'displ=',displ
-         call yaml_open_map('Geometry')
-            call yaml_map('Ncount_BigDFT',ncount_bigdft)
-            call yaml_map('Geometry step',it)
-            call yaml_map('Geometry Method','GEOPT_SBFGS')
-            call yaml_map('ndim',ndim)
-            call yaml_map('etot', etotp,fmt='(1pe21.14)')
-            call yaml_map('detot',detot,fmt='(1pe21.14)')
-            call yaml_map('fmax',fmax,fmt='(1pe21.14)')
-            call yaml_map('fnrm',fnrm,fmt='(1pe21.14)')
-            call yaml_map('beta',beta,fmt='(1pe21.14)')
-            call geometry_output(fmax,fnrm,fluct)
-         call yaml_close_map()
-      end if
 
    
       if (detot.gt.maxrise .and. beta > 1.d-1*betax) then !
@@ -315,7 +314,30 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
          if (debug.and.iproc==0) write(16,'(a,i0,4(xe9.2))') &
              "WARNING GEOPT_SBFGS: Prevent energy to rise by more than maxrise: it,maxrise,detot,beta,1.d-1*betax ",&
              it,maxrise,detot,beta,1.d-1*betax
-
+         if (iproc==0.and.parmin%verbosity > 0) then
+            !avoid space for leading sign (numbers are positive, anyway)
+            write(cdmy8,'(es8.1)')abs(maxd)
+            write(cdmy9_1,'(es9.2)')abs(displr)
+            write(cdmy9_2,'(es9.2)')abs(displp)
+            write(cdmy9_3,'(es9.2)')abs(beta)
+   
+            write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,xa4,i3.3,xa5,a7,2(xa6,a8))') &
+             ncount_bigdft,it,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct, &
+             'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy9_1)),'dsplp=',trim(adjustl(cdmy9_2))
+            call yaml_open_map('Geometry')
+               call yaml_map('Ncount_BigDFT',ncount_bigdft)
+               call yaml_map('Geometry step',it)
+               call yaml_map('Geometry Method','GEOPT_SBFGS')
+               call yaml_map('ndim',ndim)
+               call yaml_map('etot', etotp,fmt='(1pe21.14)')
+               call yaml_map('detot',detot,fmt='(1pe21.14)')
+               call yaml_map('fmax',fmax,fmt='(1pe21.14)')
+               call yaml_map('fnrm',fnrm,fmt='(1pe21.14)')
+               call yaml_map('beta',beta,fmt='(1pe21.14)')
+               call geometry_output(fmax,fnrm,fluct)
+            call yaml_close_map()
+         end if
+    
          if(ncount_bigdft >= nit)then!no convergence within ncount_cluster_x energy evaluations
             !following copy of rxyz(1,1,nhist-1) to runObj is necessary for returning to the caller
             !the energies and coordinates used/obtained from/in the last ACCEPTED iteration step
@@ -343,6 +365,31 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
          endif
          goto  500
       endif
+
+      displp=displp+tt
+      if (iproc==0.and.parmin%verbosity > 0) then
+         !avoid space for leading sign (numbers are positive, anyway)
+         write(cdmy8,'(es8.1)')abs(maxd)
+         write(cdmy9_1,'(es9.2)')abs(displr)
+         write(cdmy9_2,'(es9.2)')abs(displp)
+         write(cdmy9_3,'(es9.2)')abs(beta)
+
+         write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,xa4,i3.3,xa5,a7,2(xa6,a8))') &
+          ncount_bigdft,it,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct, &
+          'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy9_1)),'dsplp=',trim(adjustl(cdmy9_2))
+         call yaml_open_map('Geometry')
+            call yaml_map('Ncount_BigDFT',ncount_bigdft)
+            call yaml_map('Geometry step',it)
+            call yaml_map('Geometry Method','GEOPT_SBFGS')
+            call yaml_map('ndim',ndim)
+            call yaml_map('etot', etotp,fmt='(1pe21.14)')
+            call yaml_map('detot',detot,fmt='(1pe21.14)')
+            call yaml_map('fmax',fmax,fmt='(1pe21.14)')
+            call yaml_map('fnrm',fnrm,fmt='(1pe21.14)')
+            call yaml_map('beta',beta,fmt='(1pe21.14)')
+            call geometry_output(fmax,fnrm,fluct)
+         call yaml_close_map()
+      end if
 
       etot    = etotp
       etotold = etot
