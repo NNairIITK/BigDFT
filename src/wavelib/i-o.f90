@@ -903,13 +903,14 @@ contains
        call deallocate_work_arrays_sumrho(w)
     end if
     if (associated(lr%bounds%kb%ibyz_f)) then
-       call deallocate_bounds(lr%geocode, lr%hybrid_on, lr%bounds, subname)
+       call deallocate_bounds(lr%geocode, lr%hybrid_on, lr%bounds)
     end if
     call deallocate_wfd(lr%wfd)
     
     call f_release_routine()
   END SUBROUTINE deallocate_local
 END SUBROUTINE readwavetoisf
+
 
 subroutine readwavedescr(lstat, filename, iorb, ispin, ikpt, ispinor, nspinor, fileRI)
   use module_base
@@ -1085,9 +1086,10 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
   !local variables
   character(len=*), parameter :: subname='reformatonesupportfunction'
   logical, dimension(3) :: per
-  integer, dimension(3) :: nb, ndims_tmp
+  integer, dimension(3) :: nb
+!!$  integer, dimension(3) :: ndims_tmp
   real(gp), dimension(3) :: hgridsh,hgridsh_old
-  real(wp) :: dnrm2
+!!$  real(wp) :: dnrm2
   real(wp), dimension(:), allocatable :: ww,wwold
   real(wp), dimension(:), allocatable :: x_phi
   real(wp), dimension(:,:), allocatable :: y_phi

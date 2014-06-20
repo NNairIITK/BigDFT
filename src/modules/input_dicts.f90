@@ -898,7 +898,8 @@ contains
 
   !> Read Atomic positions and merge into dict
   subroutine astruct_file_merge_to_dict(dict, key, filename)
-    use module_base, only: gp, UNINITIALIZED, bigdft_mpi,f_routine,f_release_routine
+    use module_base, only: gp, UNINITIALIZED, bigdft_mpi,f_routine,f_release_routine, &
+        & BIGDFT_INPUT_FILE_ERROR, BIGDFT_INPUT_VARIABLES_ERROR
     use module_atoms, only: set_astruct_from_file,atomic_structure,&
          nullify_atomic_structure,deallocate_atomic_structure
     use module_types, only: DFT_global_output, nullify_global_output, deallocate_global_output
@@ -912,20 +913,40 @@ contains
     !Local variables
     type(atomic_structure) :: astruct
     type(DFT_global_output) :: outs
+    character(len=max_field_length) :: msg
     integer :: ierr
 
     call f_routine(id='astruct_file_merge_to_dict')
     ! Read atomic file, old way
     call nullify_atomic_structure(astruct)
     call nullify_global_output(outs)
-    call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, status = ierr, &
+
+    !Try to read the atomic coordinates from files
+    call f_err_open_try()
+    call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, &
          & energy = outs%energy, fxyz = outs%fxyz)
+
+    !Check if BIGDFT_INPUT_FILE_ERROR
+    ierr = f_get_last_error() 
     if (ierr == 0) then
+       !No errors: we have all information
+       call f_err_close_try()
        call astruct_merge_to_dict(dict // key, astruct, astruct%rxyz)
        call set(dict // key // ASTRUCT_PROPERTIES // "source", filename)
        call global_output_merge_to_dict(dict // key, outs, astruct)
        call deallocate_atomic_structure(astruct)
+
+    else if (ierr == BIGDFT_INPUT_FILE_ERROR) then
+       !Found no file: maybe inside the yaml file
+       call f_err_close_try()
+
+    else 
+       !Close the try clause and raise an error
+       call f_err_close_try()
+       ierr = f_get_last_error(msg)
+       call f_err_throw(err_msg=msg,err_id=ierr)
     end if
+
     call deallocate_global_output(outs)
     call f_release_routine()
 
@@ -943,10 +964,9 @@ contains
     implicit none
     !Arguments
     type(dictionary), pointer :: dict !< dictionary of the input variables
-    !! the keys have to be declared like input_dicts module
-    type(atomic_structure), intent(out) :: astruct !<structure created from the file
-    !> extra comment retrieved from the file if present
-    character(len = 1024), intent(out), optional :: comment
+                                      !! the keys have to be declared like input_dicts module
+    type(atomic_structure), intent(out) :: astruct          !< Structure created from the file
+    character(len = 1024), intent(out), optional :: comment !< Extra comment retrieved from the file if present
     !local variables
     character(len=*), parameter :: subname='astruct_set_from_dict'
     type(dictionary), pointer :: pos, at, types
@@ -1002,7 +1022,7 @@ contains
     ityp = 1
     at => dict_iter(types)
     do while (associated(at))
-       astruct%atomnames(ityp) = dict_key(at)
+       astruct%atomnames(ityp) = trim(dict_key(at))
        ityp = ityp + 1
        at => dict_next(at)
     end do

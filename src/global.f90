@@ -34,7 +34,7 @@ program MINHOP
   real(kind=8),allocatable, dimension(:,:) :: fp_arr
   real(kind=8),allocatable, dimension(:) :: fp,wfp,fphop
   real(kind=8),allocatable, dimension(:,:,:) :: pl_arr
-  integer :: iproc,nproc,iat,i_stat,i_all,ierr,infocode,nksevals,i,igroup,ngroups,natoms
+  integer :: iproc,nproc,iat,ierr,infocode,nksevals,i,igroup,ngroups,natoms
   integer :: bigdft_get_number_of_atoms,bigdft_get_number_of_orbitals
   character(len=*), parameter :: subname='global'
   character(len=41) :: filename
@@ -175,7 +175,7 @@ program MINHOP
 
   inputs_opt%inputPsiId=0
 
-  call init_restart_objects(bigdft_mpi%iproc,inputs_opt,atoms,rst,subname)
+  call init_restart_objects(bigdft_mpi%iproc,inputs_opt,atoms,rst)
   call run_objects_nullify(runObj)
   call run_objects_associate(runObj, inputs_md, atoms, rst)
   call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
@@ -1449,7 +1449,7 @@ subroutine winter(nat,at,nid,nlminx,nlmin,en_delta,fp_delta, &
   real(gp), intent(in) :: en_arr(nlminx),ct_arr(nlminx),fp_arr(nid,nlminx),pl_arr(3,nat,nlminx)
   !local variables
   integer :: k,i
-  character(len=50) :: comment
+  !character(len=50) :: comment
   character(len=5) :: fn5
 
   call yaml_map('(MH) name of idarr','idarr'//trim(bigdft_run_id_toa()))
@@ -2895,7 +2895,7 @@ end subroutine fingerprint
    real(gp), dimension(3,nat), intent(inout) :: pos
    !local variables
    integer, parameter :: lwork=100
-   integer :: iat,i,info,j
+   integer :: iat,info,j
    real(gp) :: haratio,p1,p2,p3
    integer, dimension(3) :: ipiv
    real(gp), dimension(3) :: pos_s,theta_e,maxt

@@ -12,6 +12,7 @@
 subroutine restart_from_gaussians(iproc,nproc,orbs,Lzd,hx,hy,hz,psi,G,coeffs)
   use module_base
   use module_types
+  use gaussians, only: gaussian_basis, deallocate_gwf
   implicit none
   integer, intent(in) :: iproc,nproc
   real(gp), intent(in) :: hx,hy,hz
@@ -35,7 +36,7 @@ subroutine restart_from_gaussians(iproc,nproc,orbs,Lzd,hx,hy,hz,psi,G,coeffs)
   call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,coeffs,psi)
 
   !deallocate gaussian structure and coefficients
-  call deallocate_gwf(G,subname)
+  call deallocate_gwf(G)
   call f_free_ptr(coeffs)
 
   nullify(G%rxyz)

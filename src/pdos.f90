@@ -13,6 +13,7 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt
    use module_base
    use module_types
    use module_interfaces, except_this_one => local_analysis
+   use gaussians, only: deallocate_gwf
    implicit none
    integer, intent(in) :: iproc,nproc
    real(gp), intent(in) :: hx,hy,hz
@@ -23,7 +24,7 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt
    real(wp), dimension(:), pointer :: psi,psivirt
    !local variables
    character(len=*), parameter :: subname='local_analysis'
-   integer :: i_all,i_stat,norbpv
+   integer :: norbpv
    !type(input_variables) :: inc
    !type(atoms_data) :: atc
    type(gaussian_basis) :: G
@@ -98,7 +99,7 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt
    !also partial density of states can be analysed here
    call gaussian_pdos(iproc,nproc,orbs,G,allpsigau,dualcoeffs) !n(m)
 
-   call deallocate_gwf(G,subname)
+   call deallocate_gwf(G)
    nullify(G%rxyz)
 
    call f_free(allpsigau)
@@ -134,7 +135,7 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
   !local variables
   character(len=*), parameter :: subname='mulliken_charge_population'
   character(len=11) :: shname
-  integer :: icoeff,i_all,i_stat,ierr,ishell,iexpo,iat,l,ng,iorb,isat,m,ispin,ig,nchannels
+  integer :: icoeff,ishell,iexpo,iat,l,ng,iorb,isat,m,ispin,ig,nchannels
   integer :: ispinor,i
   real(wp) :: msum,rad,radnorm,r,sumch,mnrm
   real(wp), dimension(2) :: msumiat
@@ -388,7 +389,7 @@ subroutine gaussian_pdos(iproc,nproc,orbs,G,coeff,duals) !n(c) Gocc (arg:4)
    real(wp), dimension(G%ncoeff,orbs%norbp), intent(in) :: coeff,duals
    !local variables
    character(len=*), parameter :: subname='gaussian_pdos'
-   integer :: icoeff,i_all,i_stat,ierr,iorb,ikpt !n(c) ispin
+   integer :: icoeff,ierr,iorb,ikpt !n(c) ispin
    integer :: jproc!,nspin
    real(wp) :: rsum,tnorm
    integer, dimension(:), allocatable :: norb_displ

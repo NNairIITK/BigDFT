@@ -67,6 +67,13 @@ module module_defs
   !> Evergreens
   real(dp), parameter :: pi_param=3.141592653589793238462643383279502884197_dp
 
+  !> Error codes, to be documented little by little
+  integer :: BIGDFT_RUNTIME_ERROR                   !< Error during runtime
+  integer :: BIGDFT_MPI_ERROR                       !< See error definitions below
+  integer :: BIGDFT_LINALG_ERROR                    !< To be moved to linalg wrappers
+  integer :: BIGDFT_INPUT_VARIABLES_ERROR           !< Problems in parsing or in consistency of input variables
+  integer :: BIGDFT_INPUT_FILE_ERROR                !< The file does not exist!
+
   !> Code constants.
   !real(gp), parameter :: UNINITIALISED = -123456789._gp
 

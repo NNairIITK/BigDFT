@@ -18,6 +18,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   use module_base
   use module_interfaces, exceptThisOne => inputguessConfinement
   use module_types
+  use gaussians, only: gaussian_basis, deallocate_gwf
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
@@ -48,7 +49,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   real(wp), dimension(:,:,:), pointer :: psigau
   integer, dimension(:), allocatable :: norbsPerAt, mapping, inversemapping, minorbs_type, maxorbs_type
   logical, dimension(:), allocatable :: covered, type_covered
-  real(kind=8), dimension(:,:), allocatable :: aocc
+  !real(kind=8), dimension(:,:), allocatable :: aocc
   integer, dimension(:,:), allocatable :: nl_copy 
   integer :: ist,jorb,iadd,ii,jj,ityp,itype,iortho
   integer :: jlr,iiorb
@@ -56,11 +57,12 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   type(orbitals_data) :: orbs_gauss
   type(GPU_pointers) :: GPUe
   character(len=2) :: symbol
-  real(kind=8) :: rcov,rprb,ehomo,amu,pnrm
+  real(kind=8) :: rcov,rprb,pnrm
+  !real(kind=8) :: ehomo,amu
   integer :: nsccode,mxpl,mxchg,inl
   type(mixrhopotDIISParameters) :: mixdiis
   logical :: finished, can_use_ham
-  type(confpot_data), dimension(:), allocatable :: confdatarrtmp
+  !type(confpot_data), dimension(:), allocatable :: confdatarrtmp
   integer :: info_basis_functions
   real(kind=8) :: ratio_deltas, trace, trace_old, fnrm_tmb
   logical :: ortho_on, reduce_conf, rho_negative
@@ -426,7 +428,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   call f_free_ptr(psigau)
 
-  call deallocate_gwf(G,subname)
+  call deallocate_gwf(G)
   ! Deallocate locrad, which is not used any longer.
   call f_free(locrad)
 

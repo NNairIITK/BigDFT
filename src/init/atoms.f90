@@ -117,7 +117,7 @@ subroutine astruct_merge_to_dict(dict, astruct)
   type(dictionary), pointer :: dict
   type(atomic_structure), intent(in) :: astruct
 
-  call wrapper(dict, astruct, astruct%rxyz)
+  call wrapper(dict, astruct,astruct%rxyz)
 END SUBROUTINE astruct_merge_to_dict
 
 
@@ -1139,6 +1139,7 @@ subroutine astruct_copy_alat(astruct, alat)
   alat(3) = astruct%cell_dim(3)
 END SUBROUTINE astruct_copy_alat
 
+
 !!$!> Module used for the input positions lines variables
 !!$module position_files
 !!$   implicit none
@@ -1170,6 +1171,7 @@ END SUBROUTINE astruct_copy_alat
 !!$      if (i_stat /= 0) eof = .true.
 !!$   END SUBROUTINE archiveGetLine
 !!$end module position_files
+
 
 !> Write an atomic file
 !! Yaml output included
@@ -1450,7 +1452,6 @@ subroutine initialize_atomic_file(iproc,atoms,rxyz)
   real(gp), dimension(:,:), pointer :: rxyz
   !local variables
   character(len=*), parameter :: subname='initialize_atomic_file'
-  integer :: i_stat
   integer :: iat,i,ierr
 
   atoms%amu = f_malloc_ptr(atoms%astruct%nat+ndebug)
@@ -1557,12 +1558,11 @@ subroutine check_atoms_positions(astruct, simplify)
         end if
      end do
   end do
+
   if (nateq /= 0) then
      if (simplify) then
         call yaml_warning('Control your posinp file, cannot proceed')
         write(*,'(1x,a)',advance='no') 'Writing tentative alternative positions in the file posinp_alt...'
-        !write(*,'(1x,a)')'Control your posinp file, cannot proceed'
-        !write(*,'(1x,a)',advance='no') 'Writing tentative alternative positions in the file posinp_alt...'
         open(unit=iunit,file='posinp_alt')
         write(iunit,'(1x,a)')' ??? atomicd0'
         write(iunit,*)
@@ -1581,10 +1581,7 @@ subroutine check_atoms_positions(astruct, simplify)
         close(unit=iunit)
         call yaml_map('Writing tentative alternative positions in the file posinp_alt',.true.)
         call yaml_warning('Replace ??? in the file heading with the actual atoms number')               
-        !write(*,'(1x,a)')' done.'
-        !write(*,'(1x,a)')' Replace ??? in the file heading with the actual atoms number'               
      end if
      stop 'check_atoms_positions'
   end if
 END SUBROUTINE check_atoms_positions
-

@@ -8,14 +8,17 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+
 !> Read atomic positions from xyz file and create astruct structure from it
-subroutine read_xyz_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
-  use module_defs, only: gp,UNINITIALIZED,Bohr_Ang
-  use dictionaries, only: f_err_raise
+subroutine read_xyz_positions(ifile,filename,astruct,comment,energy,fxyz,getLine)
+  use module_defs, only: gp,UNINITIALIZED,Bohr_Ang, BIGDFT_INPUT_VARIABLES_ERROR
+  use dictionaries, only: f_err_raise, f_err_throw
   use module_base, only: ndebug,memocc
   use dynamic_memory
   implicit none
-  integer, intent(in) :: iproc,ifile
+  !Arguments
+  integer, intent(in) :: ifile
+  character(len=*), intent(in) :: filename
   type(atomic_structure), intent(inout) :: astruct
   real(gp), intent(out) :: energy
   real(gp), dimension(:,:), pointer :: fxyz
@@ -42,10 +45,11 @@ subroutine read_xyz_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
   character(len=20), dimension(100) :: atomnames
 
   call getLine(line, ifile, eof)
-  if (eof) then
-     write(*,*) "Error: unexpected end of file."
-     stop
-  end if
+  if (f_err_raise(eof,"Unexpected end of file '"//trim(filename)//"'.",err_id=BIGDFT_INPUT_VARIABLES_ERROR)) return
+  !if (eof) then
+  !   write(*,*) "Error: unexpected end of file."
+  !   stop
+  !end if
   energy = UNINITIALIZED(energy)
   read(line,*, iostat = ierrsfx) iat,astruct%units,energy,comment
   if (ierrsfx /= 0) then
@@ -75,10 +79,11 @@ subroutine read_xyz_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
 
   !read from positions of .xyz format, but accepts also the old .ascii format
   call getLine(line, ifile, eof)
-  if (eof) then
-     write(*,*) "Error: unexpected end of file."
-     stop
-  end if
+  if (f_err_raise(eof,"Unexpected end of file '"//trim(filename)//"'.",err_id=BIGDFT_INPUT_VARIABLES_ERROR)) return
+  !if (eof) then
+     !write(*,*) "Error: unexpected end of file."
+     !stop
+  !end if
 
 !!!  !old format, still here for backward compatibility
 !!!  !admits only simple precision calculation
@@ -122,10 +127,13 @@ subroutine read_xyz_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
 !!!  end if
 
   !reduced coordinates are possible only with periodic units
-  if (astruct%units == 'reduced' .and. astruct%geocode == 'F') then
-     if (iproc==0) write(*,'(1x,a)')&
-          'ERROR: Reduced coordinates are not allowed with isolated BC'
-  end if
+  if (f_err_raise( (astruct%units == 'reduced' .and. astruct%geocode == 'F'), &
+     & 'Reduced coordinates are not allowed with isolated BC', &
+       err_id=BIGDFT_INPUT_VARIABLES_ERROR)) return
+  !if (astruct%units == 'reduced' .and. astruct%geocode == 'F') then
+  !   if (iproc==0) write(*,'(1x,a)')&
+  !        'ERROR: Reduced coordinates are not allowed with isolated BC'
+  !end if
 
   !convert the values of the cell sizes in bohr
   if (astruct%units=='angstroem' .or. astruct%units=='angstroemd0') then
@@ -144,17 +152,19 @@ subroutine read_xyz_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
      astruct%cell_dim(2)=alat2d0
      astruct%cell_dim(3)=alat3d0
   else
-     write(*,*) 'length units in input file unrecognized'
-     write(*,*) 'recognized units are angstroem or atomic = bohr'
-     stop 
+     call f_err_throw('Length units in input file unrecognized.' // &
+          'Recognized units are angstroem or atomic = bohr',err_id=BIGDFT_INPUT_VARIABLES_ERROR)
+     return
+     !write(*,*) 'length units in input file unrecognized'
+     !write(*,*) 'recognized units are angstroem or atomic = bohr'
+     !stop 
   endif
 
   ntyp=0
   do iat=1,astruct%nat
      !xyz input file, allow extra information
      call getLine(line, ifile, eof)
-     if (f_err_raise(eof,"Unexpected end of file.",err_name='BIGDFT_RUNTIME_ERROR')) return
-
+     if (f_err_raise(eof,"Unexpected end of file '"//trim(filename)//"'.",err_id=BIGDFT_INPUT_VARIABLES_ERROR)) return
 
      !!if (lpsdbl) then
      !!   read(line,*,iostat=ierrsfx)symbol,rxd0,ryd0,rzd0,extra
@@ -199,7 +209,8 @@ subroutine read_xyz_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
         endif
      enddo
      ntyp=ntyp+1
-     if (ntyp > 100) stop 'more than 100 atomnames not permitted'
+     if (f_err_raise(ntyp > 100, "More than 100 atomnames not permitted", err_id=BIGDFT_INPUT_VARIABLES_ERROR)) return
+     !if (ntyp > 100) stop 'more than 100 atomnames not permitted'
      atomnames(ityp)=tatonam
      astruct%iatype(iat)=ntyp
 200  continue
@@ -222,10 +233,11 @@ subroutine read_xyz_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
      do iat=1,astruct%nat
         !xyz input file, allow extra information
         call getLine(line, ifile, eof)
-        if (eof) then
-           write(*,*) "Error: unexpected end of file."
-           stop
-        end if
+        if (f_err_raise(eof,"Unexpected end of file '"//trim(filename)//"'.",err_id=BIGDFT_INPUT_VARIABLES_ERROR)) return
+        !if (eof) then
+        !   write(*,*) "Error: unexpected end of file."
+        !   stop
+        !end if
         read(line,*,iostat=ierrsfx) symbol,fxyz(:,iat)
      end do
   end if
@@ -258,13 +270,15 @@ contains
 
 END SUBROUTINE read_xyz_positions
 
+
 !> Read atomic positions of ascii files.
-subroutine read_ascii_positions(iproc,ifile,astruct,comment,energy,fxyz,getline)
-  use yaml_output
+subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getline)
   use module_base
   use dynamic_memory
+  use yaml_output
   implicit none
-  integer, intent(in) :: iproc,ifile
+  integer, intent(in) :: ifile
+  character(len=*), intent(in) :: filename
   type(atomic_structure), intent(inout) :: astruct
   real(gp), intent(out) :: energy
   real(gp), dimension(:,:), pointer :: fxyz
@@ -300,16 +314,16 @@ subroutine read_ascii_positions(iproc,ifile,astruct,comment,energy,fxyz,getline)
         exit
      end if
      nlines = nlines + 1
-     if (nlines > 5000) then
-        if (iproc==0) call yaml_warning('Atomic input file too long (> 5000 lines).')
+     if (f_err_raise(nlines > 5000,  "Atomic input file '"//trim(filename)//"' too long (> 5000 lines).", &
+        & err_id=BIGDFT_INPUT_VARIABLES_ERROR)) then
         astruct%nat = -1
         return
      end if
   end do
   nlines = nlines - 1
 
-  if (nlines < 4) then
-     if (iproc==0) call yaml_warning('Error in ASCII file format, file has less than 4 lines.')
+  if (f_err_raise(nlines < 4, "Error in ASCII file format, file '" // trim(filename) // "' has less than 4 lines.", &
+     & err_id=BIGDFT_INPUT_VARIABLES_ERROR)) then
      astruct%nat = -1
      return
   end if
@@ -366,9 +380,8 @@ subroutine read_ascii_positions(iproc,ifile,astruct,comment,energy,fxyz,getline)
   if (lpsdbl) then
      read(lines(2),*) alat1d0,alat2d0,alat3d0
      read(lines(3),*) alat4d0,alat5d0,alat6d0
-     if (alat2d0 /= 0.d0 .or. alat4d0 /= 0.d0 .or. alat5d0 /= 0.d0) then
-        !if (iproc==0) 
-        write(*,*) 'Only orthorombic boxes are possible.'
+     if (f_err_raise( (alat2d0 /= 0.d0 .or. alat4d0 /= 0.d0 .or. alat5d0 /= 0.d0), &
+        & "File '" // trim(filename) // "': Only orthorombic boxes are possible.", err_id=BIGDFT_INPUT_VARIABLES_ERROR)) then
         astruct%nat = -1
         return
      end if
@@ -378,11 +391,9 @@ subroutine read_ascii_positions(iproc,ifile,astruct,comment,energy,fxyz,getline)
   else
      read(lines(2),*) alat1,alat2,alat3
      read(lines(3),*) alat4,alat5,alat6
-     if (alat2 /= 0. .or. alat4 /= 0. .or. alat5 /= 0.) then
-        !if (iproc==0) 
-           write(*,*) 'Only orthorombic boxes are possible.'
-        !if (iproc==0) 
-           write(*,*) ' but alat2, alat4 and alat5 = ', alat2, alat4, alat5
+     if (f_err_raise( (alat2 /= 0. .or. alat4 /= 0. .or. alat5 /= 0.), &
+        & "File '" // trim(filename) // "': Only orthorombic boxes are possible but alat2, alat4 and alat5 = " // &
+        & trim(yaml_toa( (/ alat2, alat4, alat5 /) )), err_id=BIGDFT_INPUT_VARIABLES_ERROR)) then
         astruct%nat = -1
         return
      end if
@@ -453,8 +464,10 @@ subroutine read_ascii_positions(iproc,ifile,astruct,comment,energy,fxyz,getline)
            endif
         enddo
         ntyp=ntyp+1
-        if (ntyp > 100) then
-           write(*,*) 'more than 100 atomnames not permitted'
+        if (f_err_raise(ntyp>100, "File '"//trim(filename)//"' more than 100 atomnames not permitted", &
+           & err_id=BIGDFT_INPUT_VARIABLES_ERROR)) then
+        !if (ntyp > 100) then
+        !   write(*,*) 'more than 100 atomnames not permitted'
            astruct%nat = -1
            return
         end if
@@ -508,7 +521,8 @@ subroutine read_ascii_positions(iproc,ifile,astruct,comment,energy,fxyz,getline)
   astruct%atomnames(1:astruct%ntypes)=atomnames(1:astruct%ntypes)
 END SUBROUTINE read_ascii_positions
 
-!local routines with explicit interface 
+
+!> Local routines with explicit interface 
 subroutine directGetLine(line, ifile, eof)
   !Arguments
   integer, intent(in) :: ifile
@@ -521,6 +535,7 @@ subroutine directGetLine(line, ifile, eof)
   read(ifile,'(a150)', iostat = i_stat) line
   if (i_stat /= 0) eof = .true.
 END SUBROUTINE directGetLine
+
 
 subroutine archiveGetLine(line, ifile, eof)
   !Arguments

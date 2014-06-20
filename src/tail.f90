@@ -461,7 +461,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   if (iproc == 0) then
      !write(*,'(1x,a)')'done.'
   end if
-  call deallocate_orbs(orbsb,subname)
+  call deallocate_orbs(orbsb)
 
   call f_free(txyz)
   call f_free(psir)

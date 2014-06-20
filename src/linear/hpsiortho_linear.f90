@@ -499,7 +499,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   call deallocate_matrices(grad_ovrlp_)
   if (iproc==0) write(*,*) 'KS residue from trace',dsqrt(ksres_sum)/real(tmb%orbs%norb,gp) ! should update normalization as would only be occ here not extra?
 
-  call deallocate_sparse_matrix(grad_ovrlp, subname)
+  call deallocate_sparse_matrix(grad_ovrlp)
 
   call f_free(grad_coeff)
   call f_free(ksres)

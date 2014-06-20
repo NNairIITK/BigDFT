@@ -420,7 +420,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
 
   call deallocate_matrices(inv_ovrlp)
 
-  call deallocate_sparse_matrix(weight_matrix, subname)
+  call deallocate_sparse_matrix(weight_matrix)
   call f_free(weight_coeff_diag)
   !call f_free(weight_coeff)
 

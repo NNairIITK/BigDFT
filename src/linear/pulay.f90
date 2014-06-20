@@ -438,14 +438,9 @@ subroutine extract_boundary(tmb, phi_delta, numpoints, numpoints_tot)
       call f_free(boundaryarray)
   end do
 
-
-
 call f_release_routine()
 
 end subroutine extract_boundary
-
-
-
 
 
 subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, GPU, tmb, fpulay)
@@ -665,8 +660,8 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
 
 
   do jdir=1,3
-     call deallocate_sparse_matrix(dovrlp(jdir),subname)
-     call deallocate_sparse_matrix(dham(jdir),subname)
+     call deallocate_sparse_matrix(dovrlp(jdir))
+     call deallocate_sparse_matrix(dham(jdir))
   end do
 
   !!if(iproc==0) write(*,'(1x,a)') 'done.'
@@ -674,4 +669,3 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   call f_release_routine()
 
 end subroutine pulay_correction
-

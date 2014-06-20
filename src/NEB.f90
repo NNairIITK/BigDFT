@@ -185,7 +185,7 @@ MODULE NEB_routines
          if (.not. external_call .and. i == 1) then
             call restart_objects_new(rst)
             call restart_objects_set_mode(rst, ins(1)%inputpsiid)
-            call restart_objects_set_nat(rst, atoms(1)%astruct%nat, "read_input")
+            call restart_objects_set_nat(rst, atoms(1)%astruct%nat)
             call restart_objects_set_mat_acc(rst, bigdft_mpi%iproc, ins(1)%matacc)
          end if
 

@@ -923,7 +923,6 @@ subroutine image_update_pos_from_file(img, iteration, filem1, filep1, km1, kp1, 
   real(gp), dimension(:,:), pointer :: rxyzm1, rxyzp1
   type(atomic_structure) :: astruct
   real(gp) :: Vm1, Vp1
-  integer :: stat
   call f_routine(id=subname)
 
   img%error = UNINITIALIZED(real(1, gp))
@@ -932,9 +931,11 @@ subroutine image_update_pos_from_file(img, iteration, filem1, filep1, km1, kp1, 
   call nullify_atomic_structure(astruct)
 
   if (trim(filem1) /= "") then
+     call f_err_open_try()
      call set_astruct_from_file(trim(filem1), bigdft_mpi%iproc, astruct, &
-          & status = stat, energy = Vm1)
-     if (stat /= 0 .or. astruct%nat /= img%run%atoms%astruct%nat) then
+          & energy = Vm1)
+     call f_err_close_try()
+     if (f_err_pop() /= 0 .or. astruct%nat /= img%run%atoms%astruct%nat) then
         call free_me()
         return
      end if
@@ -945,9 +946,11 @@ subroutine image_update_pos_from_file(img, iteration, filem1, filep1, km1, kp1, 
   end if
 
   if (trim(filep1) /= "") then
+     call f_err_open_try()
      call set_astruct_from_file(trim(filep1), bigdft_mpi%iproc, astruct, &
-          & status = stat, energy = Vp1)
-     if (stat /= 0 .or. astruct%nat /= img%run%atoms%astruct%nat) then
+          & energy = Vp1)
+       call f_err_close_try()
+     if (f_err_pop() /= 0 .or. astruct%nat /= img%run%atoms%astruct%nat) then
         call free_me()
         return
      end if

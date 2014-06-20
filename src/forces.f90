@@ -785,7 +785,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      call yaml_close_map()
   end if
 
-  if (at%multipole_preserving) call finalize_real_space_conversion('local_forces')
+  if (at%multipole_preserving) call finalize_real_space_conversion()
 
 END SUBROUTINE local_forces
 
@@ -797,7 +797,7 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
      orbs,nlpsp,wfd,psi,fsep,refill,strten)
   use module_base
   use module_types
-  use gaussians, only: gaussian_basis
+  use gaussians, only: gaussian_basis, nullify_gaussian_basis
   implicit none
   !Arguments-------------
   type(atoms_data), intent(in) :: at

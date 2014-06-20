@@ -18,7 +18,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   use module_interfaces, fake_name => system_initialization
   use module_xc
   use module_fragments
-  use gaussians, only: gaussian_basis
+  use gaussians, only: gaussian_basis, nullify_gaussian_basis
   use vdwcorrection
   use yaml_output
   use module_atoms, only: set_symmetry_data
@@ -46,7 +46,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   logical, intent(in), optional :: output_grid
   !local variables
   character(len = *), parameter :: subname = "system_initialization"
-  integer :: nB,nKB,nMB,ii,iat,iorb,iatyp,i_stat,i_all,nspin_ig,norbe,norbsc,ifrag,nspinor
+  integer :: nB,nKB,nMB,ii,iat,iorb,iatyp,nspin_ig,norbe,norbsc,ifrag,nspinor
   real(gp), dimension(3) :: h_input
   logical:: present_inwhichlocreg_old, present_onwhichatom_old, output_grid_
   integer, dimension(:,:), allocatable :: norbsc_arr
@@ -416,7 +416,7 @@ subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
   real(wp), dimension(:,:,:,:), pointer :: rhocore
   !local variables
   character(len=*), parameter :: subname='calculate_rhocore'
-  integer :: ityp,iat,i_stat,j3,i1,i2 !,ierr,ind
+  integer :: ityp,iat,j3,i1,i2 !,ierr,ind
   real(wp) :: tt
   real(gp) :: rx,ry,rz,rloc,cutoff
   
@@ -633,7 +633,7 @@ contains
      use m_pawrad, only: pawrad_type, pawrad_nullify, pawrad_destroy
      use m_pawtab, only: pawtab_type, pawtab_nullify, pawtab_destroy
      implicit none
-     integer:: icoulomb,ipsp,ixc,i_all,i_stat,lnmax
+     integer:: icoulomb,ipsp,ixc,lnmax
      integer:: lloc,l_size,lmax,mmax,pspcod,pspxc
      integer:: pspversion,basis_size,lmn_size
      integer:: mpsang,mqgrid_ff,mqgrid_vl,mqgrid_shp
@@ -1443,7 +1443,7 @@ subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,inf
   !local variables
   character(len=*), parameter :: subname='check_kpt_distributions'
   logical :: notcompatible,couldbe
-  integer :: ikpt,jproc,norbs,ncomps,i_all,i_stat,kproc,ieproc,isproc,jkpt
+  integer :: ikpt,jproc,norbs,ncomps,kproc,ieproc,isproc,jkpt
   integer, dimension(:,:), allocatable :: load_unbalancing
   !before printing the distribution schemes, check that the two distributions contain
   !the same k-points
@@ -1701,7 +1701,7 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
 
 !! local variables  
   character(len=*), parameter :: subname='pawpatch_from_file'
-  integer :: npawl, ipawl, paw_l, i_stat
+  integer :: npawl, ipawl, paw_l
   integer :: paw_nofgaussians, paw_nofchannels, il, ierror, ig
   real(gp) :: paw_greal, paw_gimag, paw_ccoeff, paw_scoeff, dumpaw
   character(len=100) :: string

@@ -1444,7 +1444,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
    use module_base
    use module_types
    use module_interfaces
-   use gaussians
+   use gaussians, only: gaussian_basis, deallocate_gwf, gaussian_overlap
    use communications_base, only: comms_cubic
    use communications, only: transpose_v
    implicit none
@@ -1602,7 +1602,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
    call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,gaucoeffs,psivirt)
 
    !deallocate the gaussian basis descriptors
-   call deallocate_gwf(G,subname)
+   call deallocate_gwf(G)
 
    !deallocate gaussian array
    call f_free(gaucoeffs)
@@ -1687,8 +1687,7 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
    real(wp), dimension(:), pointer :: psi,psivirt
    !local variables
    character(len=10) :: comment
-   character(len=11) :: orbname,denname
-   integer :: iorb,ikpt,jorb,ind,occnorb,occnorbu,occnorbd
+   integer :: iorb,ikpt,jorb,occnorb,occnorbu,occnorbd
    real(gp) :: valu,vald,val
 
    if (occorbs) then

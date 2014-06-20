@@ -54,7 +54,7 @@ subroutine copy_convolutions_bounds(geocode,boundsin, boundsout, subname)
   character(len=*),intent(in):: subname
   
   ! Local variables
-  integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat, iall
+  integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3
   
   call copy_kinetic_bounds(geocode, boundsin%kb, boundsout%kb, subname)
   call copy_shrink_bounds(geocode, boundsin%sb, boundsout%sb, subname)
@@ -96,7 +96,7 @@ type(kinetic_bounds),intent(inout):: kbout
 character(len=*),intent(in):: subname
 
 ! Local variables
-integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat, iall
+integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3
 
 if(geocode == 'F') then
    if(associated(kbout%ibyz_c)) then
@@ -242,7 +242,7 @@ type(shrink_bounds),intent(inout):: sbout
 character(len=*),intent(in):: subname
 
 ! Local variables
-integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat, iall
+integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3
 
 if(geocode == 'F') then
    if(associated(sbout%ibzzx_c)) then
@@ -368,7 +368,7 @@ type(grow_bounds),intent(inout):: gbout
 character(len=*),intent(in):: subname
 
 ! Local variables
-integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat, iall
+integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3
 
 if(geocode == 'F')then
    if(associated(gbout%ibzxx_c)) then
@@ -488,7 +488,7 @@ type(orbitals_data),intent(inout):: orbsout
 character(len=*),intent(in):: subname
 
 ! Local variables
-integer:: iis1, iie1, iis2, iie2, i1, i2, istat, iall
+integer:: iis1, iie1, iis2, iie2, i1, i2
 
 orbsout%norb = orbsin%norb
 orbsout%norbp = orbsin%norbp
@@ -716,7 +716,7 @@ subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
   character(len=*),intent(in):: subname
 
   ! Local variables
-  integer:: iis1, iie1, iis2, iie2, i1, i2, istat, iall
+  integer:: iis1, iie1, iis2, iie2, i1, i2
 
   call timing(iproc,'sparse_copy','ON')
 

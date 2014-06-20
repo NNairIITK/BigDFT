@@ -60,6 +60,17 @@ We can test also a condition and raise the error using the function @ref f_err_r
 if (f_err_raise(x>0,'X has to be strictly positive',err_name='ERROR_ONE')) return
 @endcode
 
+Finally, it is possible to try a call and check if an exception occured as:
+@code{.f90}
+call f_err_open_try()
+call f_err_throw(error,'Something is wrong',err_id=ERROR)
+if (f_err_pop()) print *,'An error occured'
+call f_err_close_try()
+@code
+
+It is also possible to check using the routine @ref f_err_check.
+
+
 
 @defgroup FLIB_DICTIONARY   Dictionary type and methods (flib)
 @ingroup FLIB

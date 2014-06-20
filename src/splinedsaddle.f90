@@ -290,7 +290,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     type(parameterminimization_sp)::parmin_neb,parmin
     real(gp) ::epot_sp,ratsp(3,atoms%astruct%nat),fatsp(3,atoms%astruct%nat)
     character(len=20) :: tatonam
-    integer::n,nr,istat,infocode,ixyz,i,mm1,mm2,mm3
+    integer::n,nr,infocode,ixyz,i,mm1,mm2,mm3,istat
     real(kind=8)::fnrm,fnrm1,fnrm2,tt1,tt2,tt3,time1,time2
     type(parametersplinedsaddle)::pnow
     type(dictionary), pointer :: dict
@@ -336,7 +336,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
        !call read_input_dict_from_files("input", bigdft_mpi,dict)
     endif
 !    ! We add the atomic data.
-!    call astruct_merge_to_dict(dict // "posinp", atoms%astruct, atoms%astruct%rx!yz)
+!    call astruct_merge_to_dict(dict // "posinp", atoms%astruct, atoms%astruct%rxyz)
 !    call atoms_file_merge_to_dict(dict)
 !    call atomic_data_file_merge_to_dict(dict, "Atomic occupation", "input.occup")
 

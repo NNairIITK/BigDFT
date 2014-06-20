@@ -74,7 +74,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    character(len=*), parameter :: subname='H_potential'
    logical :: wrtmsg,cudasolver
    integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3
-   integer :: i_all,i_stat,ierr,ind,ind2,ind3,indp,ind2p,ind3p,i
+   integer :: i_stat,ierr,ind,ind2,ind3,indp,ind2p,ind3p,i
    integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh
    integer :: nxc,istden,istglo
    real(dp) :: scal,ehartreeLOC,pot

@@ -355,7 +355,7 @@ contains
     type(dictionary), pointer :: error
     !type(dictionary), pointer :: dict_error
     character(max_field_length) :: key,message
-    integer :: pp
+    !integer :: pp
 
     !dict_error=>dict_new()
     !pp = index(val,':')

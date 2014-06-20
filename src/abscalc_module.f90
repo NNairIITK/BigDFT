@@ -15,13 +15,13 @@ module module_abscalc
   type, public :: pcproj_data_type
      type(DFT_PSP_projectors) :: pc_nl
 !     real(gp), pointer :: pc_proj(:)
-     integer , pointer , dimension(:) :: ilr_to_mproj, iproj_to_l
-     real(gp) , pointer ::  iproj_to_ene(:)
-     real(gp) , pointer ::  iproj_to_factor(:)
-     integer, pointer :: iorbtolr(:)
+     integer, dimension(:), pointer :: ilr_to_mproj, iproj_to_l
+     real(gp), dimension(:), pointer ::  iproj_to_ene
+     real(gp), dimension(:), pointer ::  iproj_to_factor
+     integer, dimension(:), pointer :: iorbtolr
      integer :: mprojtot
      type(gaussian_basis)  :: G          
-     real(gp), pointer :: gaenes(:)
+     real(gp), dimension(:), pointer :: gaenes
      real(gp) :: ecut_pc
      logical :: DistProjApply
   end type pcproj_data_type
@@ -198,60 +198,50 @@ contains
     implicit none
     character(len=*), intent(in) :: subname
     type(pawproj_data_type), intent(inout) :: pawproj_data
-    !local variables
-    integer :: i_all,i_stat
+
     if(associated(pawproj_data%paw_nl%proj)) then
 
        call f_free_ptr(pawproj_data% ilr_to_mproj)
-
        call f_free_ptr(pawproj_data%  iproj_to_l)
-
        call f_free_ptr(pawproj_data%  iproj_to_paw_nchannels)
-
        call f_free_ptr(pawproj_data%  iprojto_imatrixbeg)
-
        call f_free_ptr(pawproj_data%  iorbtolr)
 
        call free_DFT_PSP_projectors(pawproj_data%paw_nl)
 
        if(pawproj_data%DistProjApply) then
-          call deallocate_gwf_c(pawproj_data%G,subname)
+          call deallocate_gwf_c(pawproj_data%G)
        endif
     end if
+
   END SUBROUTINE deallocate_pawproj_data
 
 
   !> deallocate_pcproj_data
-  subroutine deallocate_pcproj_data(pcproj_data,subname)
+  subroutine deallocate_pcproj_data(pcproj_data)
     use module_base
+    use gaussians, only: deallocate_gwf
     implicit none
-    character(len=*), intent(in) :: subname
     type(pcproj_data_type), intent(inout) :: pcproj_data
-    !local variables
-    integer :: i_all,i_stat
+    
     if(associated(pcproj_data%pc_nl%proj)) then
        call f_free_ptr( pcproj_data% ilr_to_mproj)
-
        call f_free_ptr(  pcproj_data% iproj_to_ene)
-
        call f_free_ptr(  pcproj_data% iproj_to_factor)
-
        call f_free_ptr(pcproj_data%  iproj_to_l)
-
        call f_free_ptr(pcproj_data%  iorbtolr)
-
        call f_free_ptr(pcproj_data%  gaenes)
-
-
        call free_DFT_PSP_projectors(pcproj_data%pc_nl)
 
        if(pcproj_data%DistProjApply) then
-          call deallocate_gwf(pcproj_data%G,subname)
+          call deallocate_gwf(pcproj_data%G)
        endif
 
 
     end if
+
   END SUBROUTINE deallocate_pcproj_data
+
 
   subroutine applyPAWprojectors(orbs,at,&
        &   hx,hy,hz,Glr,PAWD,psi,hpsi,  paw_matrix, dosuperposition , &

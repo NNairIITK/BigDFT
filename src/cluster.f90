@@ -25,7 +25,7 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
   character(len=*), parameter :: subname='call_bigdft'
   character(len=40) :: comment
   logical :: exists
-  integer :: i_stat,i_all,ierr,inputPsiId_orig,iat,iorb,istep
+  integer :: ierr,inputPsiId_orig,iat,iorb,istep
   real(gp) :: maxdiff
 
   !temporary interface, not needed anymore since all arguments are structures
@@ -223,11 +223,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   use module_base
   use module_types
   use module_interfaces
+  use gaussians, only: nullify_gaussian_basis, deallocate_gwf
   use module_fragments
   use constrained_dft
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use module_xc
   use communications_init, only: orbitals_communicators
+  use communications_base, only: deallocate_comms
 !  use vdwcorrection
   use yaml_output
   use gaussians, only: gaussian_basis
@@ -268,7 +270,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   integer :: i, input_wf_format, output_denspot
   integer :: n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
-  integer :: i_all,i_stat,ierr,inputpsi,igroup,ikpt,nproctiming,ifrag
+  integer :: ierr,inputpsi,igroup,ikpt,nproctiming,ifrag
   real :: tcpu0,tcpu1
   real(kind=8) :: tel
   type(grid_dimensions) :: d_old
@@ -381,7 +383,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
                 KSwfn%Lzd%Glr%wfd,KSwfn%psi,d_old%n1,d_old%n2,d_old%n3,wfd_old,psi_old)
         end if
         !already here due to new input guess
-        call deallocate_bounds(KSwfn%Lzd%Glr%geocode, KSwfn%Lzd%Glr%hybrid_on, KSwfn%lzd%glr%bounds, subname)
+        call deallocate_bounds(KSwfn%Lzd%Glr%geocode, KSwfn%Lzd%Glr%hybrid_on, KSwfn%lzd%glr%bounds)
      else
         inputpsi = INPUT_PSI_LCAO
      end if
@@ -734,7 +736,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
      ! Treat the info code from the optimization routine.
      if (infocode == 2 .or. infocode == 3) then
-        call deallocate_bounds(KSwfn%Lzd%Glr%geocode, KSwfn%Lzd%Glr%hybrid_on, KSwfn%lzd%glr%bounds, subname)
+        call deallocate_bounds(KSwfn%Lzd%Glr%geocode, KSwfn%Lzd%Glr%hybrid_on, KSwfn%lzd%glr%bounds)
         call deallocate_before_exiting
         return
      end if
@@ -944,7 +946,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
         !control the accuracy of the expansion
         call check_gaussian_expansion(iproc,nproc,KSwfn%orbs,KSwfn%Lzd,KSwfn%psi,KSwfn%gbd,KSwfn%gaucoeffs)
 
-        call deallocate_gwf(KSwfn%gbd,subname)
+        call deallocate_gwf(KSwfn%gbd)
         call f_free_ptr(KSwfn%gaucoeffs)
         nullify(KSwfn%gbd%rxyz)
 
@@ -1204,8 +1206,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
         end if
 
-        call deallocate_comms(VTwfn%comms,subname)
-        call deallocate_orbs(VTwfn%orbs,subname)
+        call deallocate_comms(VTwfn%comms)
+        call deallocate_orbs(VTwfn%orbs)
 
         !in the case of band structure calculation, copy the values of the eigenvectors
         !into a new array to write them afterwards
@@ -1368,10 +1370,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   !?!    endif
 
   call deallocate_before_exiting
+
 contains
 
   !> Routine which deallocate the pointers and the arrays before exiting 
   subroutine deallocate_before_exiting
+    use communications_base, only: deallocate_comms
+    implicit none
     external :: gather_timings    
   !when this condition is verified we are in the middle of the SCF cycle
     if (infocode /=0 .and. infocode /=1 .and. inputpsi /= INPUT_PSI_EMPTY) then
@@ -1411,7 +1416,7 @@ contains
     end if
 
     ! Free all remaining parts of denspot
-    call deallocate_rho_descriptors(denspot%rhod,subname)
+    call deallocate_rho_descriptors(denspot%rhod)
     if(associated(denspot%rho_C)) then
        call f_free_ptr(denspot%rho_C)
     end if
@@ -1423,15 +1428,15 @@ contains
     !                 .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
     if (in%inguess_geopt/=1) then
         call deallocate_bounds(KSwfn%Lzd%Glr%geocode,KSwfn%Lzd%Glr%hybrid_on,&
-             KSwfn%Lzd%Glr%bounds,subname)
+             KSwfn%Lzd%Glr%bounds)
     end if
     call deallocate_Lzd_except_Glr(KSwfn%Lzd, subname)
 
 !    i_all=-product(shape(KSwfn%Lzd%Glr%projflg))*kind(KSwfn%Lzd%Glr%projflg)
 !    deallocate(KSwfn%Lzd%Glr%projflg,stat=i_stat)
 !    call memocc(i_stat,i_all,'Glr%projflg',subname)
-    call deallocate_comms(KSwfn%comms,subname)
-    call deallocate_orbs(KSwfn%orbs,subname)
+    call deallocate_comms(KSwfn%comms)
+    call deallocate_orbs(KSwfn%orbs)
     if (inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
         .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
        deallocate(KSwfn%confdatarr)
@@ -1966,7 +1971,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
 
   !Local variables
   character(len = *), parameter :: subname = "kswfn_post_treatments"
-  integer :: i_all, i_stat, jproc, nsize_psi, imode
+  integer ::  jproc, nsize_psi, imode
   real(dp), dimension(6) :: hstrten
   real(gp) :: ehart_fake
 

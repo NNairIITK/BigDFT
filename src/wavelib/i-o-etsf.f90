@@ -712,11 +712,12 @@ subroutine readwavetoisf_etsf(lstat, filename, iorbp, hx, hy, hz, &
          call deallocate_work_arrays_sumrho(w)
       end if
       if (associated(lr%bounds%kb%ibyz_f)) then
-         call deallocate_bounds(lr%geocode, lr%hybrid_on, lr%bounds, subname)
+         call deallocate_bounds(lr%geocode, lr%hybrid_on, lr%bounds)
       end if
       call deallocate_wfd(lr%wfd)
    END SUBROUTINE deallocate_local
 END SUBROUTINE readwavetoisf_etsf
+
 
 !>   Read a ETSF (NETCDF) file containing wavefunctions.
 !!    coordinates_of_grid_points is used to store the geometric

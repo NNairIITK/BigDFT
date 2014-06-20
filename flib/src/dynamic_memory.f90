@@ -776,9 +776,10 @@ contains
      type(dictionary), pointer, intent(in) :: dict
      integer, intent(in), optional :: unit
      !Local variables
-     type(dictionary), pointer :: dict_ptr, dict_list
-     character(len=namelen) :: array_id
-     character(len=info_length) :: array_info
+     type(dictionary), pointer :: dict_ptr
+!!$     type(dictionary), pointer :: dict_list
+!!$     character(len=namelen) :: array_id
+!!$     character(len=info_length) :: array_info
      integer :: iunt
 
      if (present(unit)) then

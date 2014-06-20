@@ -121,14 +121,14 @@ module dictionaries
 
    !> Header of error handling part
    !! Some parameters
-   character(len=*), parameter :: errid='Id'
-   character(len=*), parameter :: errmsg='Message'
-   character(len=*), parameter :: erract='Action'
-   character(len=*), parameter :: errclbk='Callback Procedure Address'
-   character(len=*), parameter :: errclbkadd='Callback Procedure Data Address'
+   character(len=*), parameter :: ERRID='Id'
+   character(len=*), parameter :: ERRMSG='Message'
+   character(len=*), parameter :: ERRACT='Action'
+   character(len=*), parameter :: ERRCLBK='Callback Procedure Address'
+   character(len=*), parameter :: ERRCLBKADD='Callback Procedure Data Address'
 
-   character(len=*), parameter :: errunspec='UNSPECIFIED'
-   character(len=*), parameter :: errundef='UNKNOWN'
+   character(len=*), parameter :: ERRUNSPEC='UNSPECIFIED'
+   character(len=*), parameter :: ERRUNDEF='UNKNOWN'
 
    character(len=*), parameter :: ERR_ADD_INFO='Additional Info'
 
@@ -139,8 +139,10 @@ module dictionaries
 
    !> Public variables of the error handling module
    public :: f_err_initialize,f_err_finalize
-   public :: f_get_last_error,f_get_error_definitions
-   public :: f_err_define,f_err_check,f_err_raise,f_err_clean,f_err_pop,f_get_error_dict,f_err_throw
+   !!@todo Change the names into f_err_xxx
+   public :: f_get_last_error,f_get_error_definitions,f_get_error_dict
+   public :: f_err_define
+   public :: f_err_check,f_err_raise,f_err_clean,f_err_pop,f_err_throw
 
    ! Public variables of the callback module
    public :: f_err_set_callback,f_err_unset_callback
@@ -195,7 +197,7 @@ contains
      type(dictionary), pointer :: subd
      !local variables
      integer :: indx
-     type(dictionary), pointer :: dict_item
+     !type(dictionary), pointer :: dict_item
 
      nullify(subd)
      indx=-1
@@ -234,7 +236,7 @@ contains
      integer, intent(in) :: item
      type(dictionary), pointer :: subd
      !local variables
-     type(dictionary), pointer :: dict_item
+     !type(dictionary), pointer :: dict_item
 
      nullify(subd)
 
@@ -736,7 +738,7 @@ contains
        logical, intent(in) :: dst
        !local variables
        type(dictionary), pointer :: dict_first !<in case of first occurrence
-       type(dictionary), pointer :: dict_update !<dict to update data%item field
+!!$       type(dictionary), pointer :: dict_update !<dict to update data%item field
 
        if (associated(dict)) then
 !          print *,dict%data%item,trim(dict%data%key)

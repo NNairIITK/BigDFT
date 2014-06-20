@@ -153,7 +153,7 @@ subroutine run_objects_parse(runObj)
   if (runObj%rst%nat > 0 .and. runObj%rst%nat /= runObj%atoms%astruct%nat) then
      stop "nat changed"
   else if (runObj%rst%nat == 0) then
-     call restart_objects_set_nat(runObj%rst, runObj%atoms%astruct%nat, subname)
+     call restart_objects_set_nat(runObj%rst, runObj%atoms%astruct%nat)
   end if
   call restart_objects_set_mode(runObj%rst, runObj%inputs%inputpsiid)
   if (associated(runObj%rst)) then
@@ -201,6 +201,7 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
   use module_fragments
   use module_interfaces, only: system_initialization
   use psp_projectors
+  use communications_base, only: deallocate_comms
   implicit none
   type(run_objects), intent(inout) :: runObj
   integer, intent(in) :: iproc, nproc
@@ -234,8 +235,8 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
 !!$  deallocate(rxyz,stat=i_stat)
 !!$  call memocc(i_stat,i_all,'rxyz',subname)
   call deallocate_Lzd_except_Glr(runObj%rst%KSwfn%Lzd, subname)
-  call deallocate_comms(runObj%rst%KSwfn%comms,subname)
-  call deallocate_orbs(runObj%rst%KSwfn%orbs,subname)
+  call deallocate_comms(runObj%rst%KSwfn%comms)
+  call deallocate_orbs(runObj%rst%KSwfn%orbs)
   call free_DFT_PSP_projectors(nlpsp)
   call deallocate_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
   call nullify_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)

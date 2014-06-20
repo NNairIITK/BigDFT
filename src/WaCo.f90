@@ -1120,9 +1120,9 @@ program WaCo
         call f_free(calcbounds)
      end if
      call deallocate_work_arrays_sumrho(w)
-     call deallocate_orbs(orbsv,subname)
-     call deallocate_orbs(orbsw,subname)
-     call deallocate_comms(commsw,subname)
+     call deallocate_orbs(orbsv)
+     call deallocate_orbs(orbsw)
+     call deallocate_comms(commsw)
 
 
      call f_free(wann)
@@ -1143,8 +1143,8 @@ program WaCo
      call f_free(ham)
   end if
   call f_free(wann_list)
-  call deallocate_lr(Glr,subname)
-  call deallocate_orbs(orbs,subname)
+  call deallocate_lr(Glr)
+  call deallocate_orbs(orbs)
   !call deallocate_atoms_scf(atoms,subname)
   call deallocate_atoms_data(atoms)
 !  call free_input_variables(input)

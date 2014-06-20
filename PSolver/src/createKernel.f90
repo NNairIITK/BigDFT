@@ -114,8 +114,6 @@ subroutine pkernel_free(kernel,subname)
   implicit none
   character(len=*), intent(in) :: subname
   type(coulomb_operator), intent(inout) :: kernel
-  !local variables
-  integer :: i_all,i_stat
 
   if (associated(kernel%kernel)) then
      call f_free_ptr(kernel%kernel)
@@ -182,7 +180,7 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
   integer :: jproc,nlimd,nlimk,jfd,jhd,jzd,jfk,jhk,jzk,npd,npk
   real(kind=8) :: alphat,betat,gammat,mu0t
   real(kind=8), dimension(:), allocatable :: pkernel2
-  integer :: i1,i2,i3,j1,j2,j3,ind,indt,switch_alg,size2,sizek,i_all,kernelnproc
+  integer :: i1,i2,i3,j1,j2,j3,ind,indt,switch_alg,size2,sizek,kernelnproc
   integer :: n3pr1,n3pr2
   integer,dimension(3) :: n
 
