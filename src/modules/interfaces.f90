@@ -3989,6 +3989,13 @@ module module_interfaces
           integer, intent(out) :: nstates_max ! number of states in total if we consider all partially occupied fragment states to be fully occupied
           logical, intent(in) :: cdft
         end subroutine fragment_coeffs_to_kernel
+
+        subroutine find_extra_info(line,extra,nspacex)
+          implicit none
+          character(len=150), intent(in) :: line
+          character(len=50), intent(out) :: extra
+          integer,intent(in),optional :: nspacex
+        end subroutine find_extra_info
   
   end interface
 END MODULE module_interfaces

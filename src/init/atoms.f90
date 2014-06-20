@@ -122,25 +122,27 @@ END SUBROUTINE astruct_merge_to_dict
 
 
 !> Find extra information
-subroutine find_extra_info(line,extra)
+subroutine find_extra_info(line,extra,nspace)
   implicit none
   character(len=150), intent(in) :: line
   character(len=50), intent(out) :: extra
+  integer,intent(in) :: nspace
   !local variables
   logical :: space
-  integer :: i,nspace
+  integer :: i,ispace
+
   i=1
   space=.true.
-  nspace=-1
+  ispace=-1
   !print *,'line',line
   find_space : do
      !toggle the space value for each time
      if ((line(i:i) == ' ' .or. line(i:i) == char(9)) .neqv. space) then
-        nspace=nspace+1
+        ispace=ispace+1
         space=.not. space
      end if
-     !print *,line(i:i),nspace
-     if (nspace==8) then
+     !print *,line(i:i),ispace
+     if (ispace==nspace) then
         extra=line(i:min(150,i+49))
         exit find_space
      end if
