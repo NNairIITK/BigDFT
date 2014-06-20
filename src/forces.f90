@@ -381,7 +381,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   ! @ NEW: POSSIBLE CONSTRAINTS IN INTERNAL COORDINATES ############
   if (atoms%astruct%inputfile_format=='int') then
       if (iproc==0) call yaml_map('converting to  internal coordinates','Yes')
-  if (bigdft_mpi%iproc==0) call yaml_map('force start',fxyz)
+      !!if (bigdft_mpi%iproc==0) call yaml_map('force start',fxyz)
       call internal_forces(atoms%astruct%nat, rxyz, atoms%astruct%ixyz_int, atoms%astruct%ifrztyp, fxyz)
   end if
   ! @ ##############################################################
@@ -4875,7 +4875,7 @@ subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
   
   ! Transform the atomic positions to internal coordinates 
   call xyzint(rxyz, nat, na, nb, nc, degree, geo)
-  if (bigdft_mpi%iproc==0) call yaml_map('internal orig',geo)
+  !!if (bigdft_mpi%iproc==0) call yaml_map('internal orig',geo)
 
   ! Shift the atomic positions according to the forces
   rxyz_tmp = rxyz + alpha*fxyz
@@ -4925,14 +4925,14 @@ subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
   call internal_to_cartesian(nat, na, nb, nc, geo, tmp)
   !call internal_to_cartesian(nat, na, nb, nc, fxyz_int, fxyz)
 
-  if (bigdft_mpi%iproc==0) call yaml_map('rxyz_tmp end',rxyz_tmp)
-  if (bigdft_mpi%iproc==0) call yaml_map('tmp end',tmp)
+  !if (bigdft_mpi%iproc==0) call yaml_map('rxyz_tmp end',rxyz_tmp)
+  !if (bigdft_mpi%iproc==0) call yaml_map('tmp end',tmp)
 
   ! Define the new forces
   fxyz = rxyz_tmp - tmp
   fxyz = fxyz/alpha
 
-  if (bigdft_mpi%iproc==0) call yaml_map('force end',fxyz)
+  !!if (bigdft_mpi%iproc==0) call yaml_map('force end',fxyz)
 
   ! Test
   rxyz_tmp = rxyz+alpha*fxyz
