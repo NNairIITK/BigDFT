@@ -246,6 +246,13 @@ subroutine valid_frzchain(frzchain,go)
   character(len=*), intent(in) :: frzchain
   logical, intent(out) :: go
 
+  ! x: fix x direction
+  ! y: fix z direction
+  ! z: fix z direction
+  ! b: fix bond length (internal coordinates)
+  ! p: fix angle phi (internal coordinates)
+  ! t: fix angle theta (internal coordinates)
+
   go = frzchain == 'f'    .or. &
        frzchain == 'fx'   .or. &
        frzchain == 'fy'   .or. &
@@ -253,7 +260,15 @@ subroutine valid_frzchain(frzchain,go)
        frzchain == 'fxy'  .or. &
        frzchain == 'fxz'  .or. &
        frzchain == 'fyz'  .or. &
-       frzchain == 'fxyz'
+       frzchain == 'fxyz' .or. &
+       frzchain == 'f'    .or. &
+       frzchain == 'fb'   .or. &
+       frzchain == 'fp'   .or. &
+       frzchain == 'ft'   .or. &
+       frzchain == 'fbp'  .or. &
+       frzchain == 'fbt'  .or. &
+       frzchain == 'fyt'  .or. &
+       frzchain == 'fbpt'
   if (.not.go .and. len_trim(frzchain) >= 3) then
     go = (frzchain(1:1) == 'f' .and. verify(frzchain(2:), '0123456789') == 0) .or. &
          (frzchain(1:2) == 'fb' .and. verify(frzchain(3:), '12') == 0)
@@ -295,6 +310,20 @@ subroutine frozen_ftoi(frzchain,ifrztyp,ierr)
      ifrztyp = 110
   case('fyz')
      ifrztyp = 011
+  case('fbpt')
+     ifrztyp = 222
+  case('fb')
+     ifrztyp = 200
+  case('fp')
+     ifrztyp = 020
+  case('ft')
+     ifrztyp = 002
+  case('fbt')
+     ifrztyp = 202
+  case('fbp')
+     ifrztyp = 220
+  case('fpt')
+     ifrztyp = 022
   case default
      !Check if we freeze the displacement of the atom only in a plane given by the Miller indices
      if (frzchain(1:1) == 'f' .and. verify(frzchain(2:), '0123456789') == 0) then
@@ -343,6 +372,20 @@ subroutine frozen_itof(ifrztyp,frzchain)
      frzchain = 'fxy '
   case(011)
      frzchain = 'fyz '
+  case(222)
+     frzchain = 'fbpt'
+  case(200)
+     frzchain = 'fb  '
+  case(020)
+     frzchain = 'fp  '
+  case(002)
+     frzchain = 'ft  '
+  case(202)
+     frzchain = 'fbt '
+  case(220)
+     frzchain = 'fbp '
+  case(022)
+     frzchain = 'fpt '
   case(1001)
      frzchain = 'fb1 '
   case(1002)

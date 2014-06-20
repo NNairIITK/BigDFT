@@ -841,6 +841,10 @@ contains
        call charge_and_spol(astruct%input_polarization(iat),ichg,ispol)
        if (ichg /= 0) call set(at // "IGChg", ichg)
        if (ispol /= 0) call set(at // "IGSpin", ispol)
+       ! information for internal coordinates
+       call set(at // "int_ref_atoms_1", astruct%ixyz_int(1,iat))
+       call set(at // "int_ref_atoms_2", astruct%ixyz_int(2,iat))
+       call set(at // "int_ref_atoms_3", astruct%ixyz_int(3,iat))
        call add(pos, at)
     end do
 
@@ -1025,6 +1029,12 @@ contains
              else
                 nsgn = -1
              end if
+          else if (trim(str) == "int_ref_atoms_1") then
+             astruct%ixyz_int(1,iat) = at
+          else if (trim(str) == "int_ref_atoms_2") then
+             astruct%ixyz_int(2,iat) = at
+          else if (trim(str) == "int_ref_atoms_3") then
+             astruct%ixyz_int(3,iat) = at
           else if (dict_len(at) == 3) then
              astruct%iatype(iat) = types // dict_key(at)
              astruct%rxyz(:, iat) = at

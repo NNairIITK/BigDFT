@@ -47,7 +47,6 @@ module module_atoms
      !pointers
      real(gp), dimension(:,:), pointer :: rxyz             !< Atomic positions (always in AU, units variable is considered for I/O only)
      real(gp), dimension(:,:), pointer :: rxyz_int         !< Atomic positions in internal coordinates (Z matrix)
-     logical, dimension(:,:), pointer :: fix_int           !< True if a given internal coordinates should be kept fixed
      integer, dimension(:,:), pointer :: ixyz_int          !< Neighbor list for internal coordinates (Z matrix)
      character(len=20), dimension(:), pointer :: atomnames !< Atomic species names
      integer, dimension(:), pointer :: iatype              !< Atomic species id
@@ -209,7 +208,6 @@ module module_atoms
          call f_free_ptr(astruct%rxyz)
          call f_free_ptr(astruct%rxyz_int)
          call f_free_ptr(astruct%ixyz_int)
-         call f_free_ptr(astruct%fix_int)
       end if
       if (astruct%ntypes >= 0) then
           if (associated(astruct%atomnames)) then
@@ -613,7 +611,6 @@ subroutine astruct_set_n_atoms(astruct, nat)
   astruct%rxyz = f_malloc_ptr((/ 3,astruct%nat+ndebug /),id='astruct%rxyz')
   astruct%rxyz_int = f_malloc_ptr((/ 3,astruct%nat+ndebug /),id='astruct%rxyz_int')
   astruct%ixyz_int = f_malloc_ptr((/ 3,astruct%nat+ndebug /),id='astruct%ixyz_int')
-  astruct%fix_int = f_malloc_ptr((/ 3,astruct%nat+ndebug /),id='astruct%fix_int')
 
   !this array is useful for frozen atoms, no atom is frozen by default
   astruct%ifrztyp(:)=0

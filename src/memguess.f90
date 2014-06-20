@@ -58,7 +58,8 @@ program memguess
    !integer :: ncount0,ncount1,ncount_max,ncount_rate
    !! By Ali
    integer :: ierror, iat
-   integer,dimension(:),allocatable :: na, nb, nc, atoms_ref
+   integer,dimension(:),allocatable :: na, nb, nc
+   integer,dimension(:,:),allocatable :: atoms_ref
    real(kind=8),dimension(:,:),allocatable :: rxyz_int
    !real(kind=8),parameter :: degree=57.295779513d0
    real(kind=8),parameter :: degree=1.d0
@@ -377,10 +378,10 @@ program memguess
        if (direction=='carint') then
            inquire(file='posinp.fix',exist=file_exists)
            if (file_exists) then
-               atoms_ref = f_malloc(at%astruct%nat,id='atoms_ref')
+               atoms_ref = f_malloc((/3,at%astruct%nat/),id='atoms_ref')
                open(unit=123,file='posinp.fix')
                do iat=1,at%astruct%nat
-                   read(123,*) atoms_ref(iat), at%astruct%fix_int(1:3,iat)
+                   read(123,*) atoms_ref(1:3,iat)
                end do
                call get_neighbors(at%astruct%rxyz, at%astruct%nat, &
                     at%astruct%ixyz_int(1,:), at%astruct%ixyz_int(2,:),at%astruct%ixyz_int(3,:), &

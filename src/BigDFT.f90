@@ -66,23 +66,25 @@ program BigDFT
          call init_global_output(outs, runObj%atoms%astruct%nat)
 
 
-         ! THIS IS TEMPORARY, SHOULD BE DONE IN A BETTER WAY ####################
-         inquire(file='posinp.fix',exist=file_exists)
-         if (file_exists) then
-             atoms_ref = f_malloc(runObj%atoms%astruct%nat,id='atoms_ref')
-             open(unit=123,file='posinp.fix')
-             do iat=1,runObj%atoms%astruct%nat
-                 read(123,*) atoms_ref(iat), runObj%atoms%astruct%fix_int(1:3,iat)
-             end do
-             close(unit=123)
-             call get_neighbors(runObj%atoms%astruct%rxyz, runObj%atoms%astruct%nat, runObj%atoms%astruct%ixyz_int(1,:), &
-                  runObj%atoms%astruct%ixyz_int(2,:), runObj%atoms%astruct%ixyz_int(3,:),atoms_ref)
-             call f_free(atoms_ref)
-         else
-             call get_neighbors(runObj%atoms%astruct%rxyz, runObj%atoms%astruct%nat, runObj%atoms%astruct%ixyz_int(1,:), &
-                  runObj%atoms%astruct%ixyz_int(2,:), runObj%atoms%astruct%ixyz_int(3,:))
-         end if
-         ! ######################################################################
+         !!! THIS IS TEMPORARY, SHOULD BE DONE IN A BETTER WAY ####################
+         !!inquire(file='posinp.fix',exist=file_exists)
+         !!if (file_exists) then
+         !!    atoms_ref = f_malloc(runObj%atoms%astruct%nat,id='atoms_ref')
+         !!    open(unit=123,file='posinp.fix')
+         !!    do iat=1,runObj%atoms%astruct%nat
+         !!        read(123,*) atoms_ref(iat), runObj%atoms%astruct%fix_int(1:3,iat)
+         !!    end do
+         !!    close(unit=123)
+         !!    if (iproc==0) call yaml_map('before: runObj%atoms%astruct%ixyz_int',runObj%atoms%astruct%ixyz_int)
+         !!    !!call get_neighbors(runObj%atoms%astruct%rxyz, runObj%atoms%astruct%nat, runObj%atoms%astruct%ixyz_int(1,:), &
+         !!    !!     runObj%atoms%astruct%ixyz_int(2,:), runObj%atoms%astruct%ixyz_int(3,:),atoms_ref)
+         !!    call f_free(atoms_ref)
+         !!    if (iproc==0) call yaml_map('after: runObj%atoms%astruct%ixyz_int',runObj%atoms%astruct%ixyz_int)
+         !!else
+         !!    call get_neighbors(runObj%atoms%astruct%rxyz, runObj%atoms%astruct%nat, runObj%atoms%astruct%ixyz_int(1,:), &
+         !!         runObj%atoms%astruct%ixyz_int(2,:), runObj%atoms%astruct%ixyz_int(3,:))
+         !!end if
+         !!! ######################################################################
 
          call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
 

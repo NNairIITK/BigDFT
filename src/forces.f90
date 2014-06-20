@@ -381,7 +381,8 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   ! @ NEW: POSSIBLE CONSTRAINTS IN INTERNAL COORDINATES ############
   if (atoms%astruct%inputfile_format=='int') then
       if (iproc==0) call yaml_map('converting to  internal coordinates','Yes')
-      call internal_forces(atoms%astruct%nat, rxyz, atoms%astruct%ixyz_int, atoms%astruct%fix_int, fxyz)
+  if (bigdft_mpi%iproc==0) call yaml_map('force start',fxyz)
+      call internal_forces(atoms%astruct%nat, rxyz, atoms%astruct%ixyz_int, atoms%astruct%ifrztyp, fxyz)
   end if
   ! @ ##############################################################
 
@@ -3770,9 +3771,13 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   n_bloc2 = 0
   do iat=1,at%astruct%nat
      if (at%astruct%ifrztyp(iat) < 1000) then
-        do ixyz=1,3
-           if (.not. move_this_coordinate(at%astruct%ifrztyp(iat),ixyz)) fxyz(ixyz,iat)=0.0_gp
-        end do
+        if (at%astruct%ifrztyp(iat) < 200) then
+           do ixyz=1,3
+              if (.not. move_this_coordinate(at%astruct%ifrztyp(iat),ixyz)) fxyz(ixyz,iat)=0.0_gp
+           end do
+        else
+           ! internal coordinates, will be handled separately
+        end if
      else if (at%astruct%ifrztyp(iat) == 1001)   then   ! atom "iat" in bloc 1.
        f_bloc1 = f_bloc1 + fxyz(:,iat)
        n_bloc1 = n_bloc1 + 1                            ! could be done once, after reading the inputs.
@@ -4813,7 +4818,7 @@ END SUBROUTINE nonlocal_forces_linear
 
 
 
-subroutine internal_forces(nat, rxyz, ixyz_int, fix_int, fxyz)
+subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
   use module_base
   use dynamic_memory
   use internal_coordinates
@@ -4824,16 +4829,17 @@ subroutine internal_forces(nat, rxyz, ixyz_int, fix_int, fxyz)
   integer,intent(in) :: nat
   real(gp),dimension(3,nat),intent(in) :: rxyz
   integer,dimension(3,nat),intent(in) :: ixyz_int
-  logical,dimension(3,nat),intent(in) :: fix_int
+  logical,dimension(nat),intent(in) :: ifrozen
   real(gp),dimension(3,nat),intent(inout) :: fxyz
 
   ! Local variables
-  integer :: iat, i
+  integer :: iat, i, ii
   integer,dimension(:),allocatable :: na, nb, nc
   real(gp),parameter :: degree=57.29578d0
   real(gp),dimension(:,:),allocatable :: geo, rxyz_tmp, geo_tmp, fxyz_int, tmp, rxyz_shifted
   real(gp),parameter :: alpha=1.d0
   real(kind=8),dimension(3) :: shift
+  logical :: fix_bond, fix_phi, fix_theta
 
   call f_routine(id='internal_forces')
 
@@ -4861,8 +4867,8 @@ subroutine internal_forces(nat, rxyz, ixyz_int, fix_int, fxyz)
       rxyz_shifted(3,iat)=rxyz(3,iat)-shift(3)
   end do
 
-  if (bigdft_mpi%iproc==0) call yaml_map('force start',fxyz)
-  if (bigdft_mpi%iproc==0) call yaml_map('rxyz_shifted start',rxyz_shifted)
+!!#  if (bigdft_mpi%iproc==0) call yaml_map('force start',fxyz)
+!!#  if (bigdft_mpi%iproc==0) call yaml_map('rxyz_shifted start',rxyz_shifted)
 
   !!! Get the neighbor lists
   !!call get_neighbors(rxyz, nat, na, nb, nc)
@@ -4882,13 +4888,27 @@ subroutine internal_forces(nat, rxyz, ixyz_int, fix_int, fxyz)
 
   ! Apply some constraints if required
   do iat=1,nat
-      do i=1,3
-          if(fix_int(i,iat)) then
-              ! keep the original value, i.e. don't let this value be modified by the forces
-              geo_tmp(i,iat)=geo(i,iat)
-              if (bigdft_mpi%iproc==0) call yaml_map('keep internal coordinate fixed',(/i,iat/))
-          end if
-      end do
+      ii=ifrozen(iat)
+      fix_theta = (mod(ii,10)==2)
+      if (fix_theta) ii=ii-2
+      fix_phi = (mod(ii,100)==20)
+      if (fix_phi) ii=ii-20
+      fix_bond = (mod(ii,1000)==200)
+      if (fix_bond) then
+          ! keep the original value, i.e. don't let this value be modified by the forces
+          geo_tmp(1,iat)=geo(1,iat)
+          if (bigdft_mpi%iproc==0) call yaml_map('keep internal coordinate fixed',(/1,iat/))
+      end if
+      if (fix_phi) then
+          ! keep the original value, i.e. don't let this value be modified by the forces
+          geo_tmp(2,iat)=geo(2,iat)
+          if (bigdft_mpi%iproc==0) call yaml_map('keep internal coordinate fixed',(/2,iat/))
+      end if
+      if (fix_theta) then
+          ! keep the original value, i.e. don't let this value be modified by the forces
+          geo_tmp(3,iat)=geo(3,iat)
+          if (bigdft_mpi%iproc==0) call yaml_map('keep internal coordinate fixed',(/3,iat/))
+      end if
   end do
 
 
@@ -4917,9 +4937,9 @@ subroutine internal_forces(nat, rxyz, ixyz_int, fix_int, fxyz)
   ! Test
   rxyz_tmp = rxyz+alpha*fxyz
   call xyzint(rxyz_tmp, nat, na, nb, nc, degree, geo_tmp)
-  if (bigdft_mpi%iproc==0) call yaml_map('cartesian end before',rxyz)
-  if (bigdft_mpi%iproc==0) call yaml_map('cartesian end after',rxyz_tmp)
-  if (bigdft_mpi%iproc==0) call yaml_map('internal end',geo_tmp)
+!!#  if (bigdft_mpi%iproc==0) call yaml_map('cartesian end before',rxyz)
+!!#  if (bigdft_mpi%iproc==0) call yaml_map('cartesian end after',rxyz_tmp)
+!!#  if (bigdft_mpi%iproc==0) call yaml_map('internal end',geo_tmp)
 
 
   call f_free(na)
