@@ -309,6 +309,15 @@ def fatal_error(args, reports, message='Error in reading datas, Yaml Standard vi
     hl.highlight()
     sys.exit(0)
 
+def highlight_iftty(options):
+    hl = yaml_hl.YAMLHighlight(options)
+    if os.isatty(hl.output.fileno()):
+        hl.highlight()
+    else:
+        hl.output.write(hl.input.read().encode('utf-8'))
+    
+
+    
 if __name__ == "__main__":
     parser = parse_arguments()
     (args, argtmp) = parser.parse_args()
@@ -460,8 +469,8 @@ for i in range(len(references)):
                               default_flow_style=False, explicit_start=True))
     newreport.close()
     reports.write(open("report", "rb").read())
-    hl = yaml_hl.YAMLHighlight(options)
-    hl.highlight()
+    #highlight report file if possible
+    highlight_iftty(options)
     sys.stdout.write("#Document: %2d, failed_checks: %d, Max. Diff. %10.2e, missed_items: %d memory_leaks (B): %d, Elapsed Time (s): %7.2f\n" %
                      (i, failed_checks, discrepancy, docmiss, docleaks, doctime))
 
@@ -475,8 +484,7 @@ if len(references) > 1:
         yaml.dump(finres, default_flow_style=False, explicit_start=True))
     newreport.close()
     reports.write(open("report", "rb").read())
-    hl = yaml_hl.YAMLHighlight(options)
-    hl.highlight()
+    highlight_iftty(options)
 
 # Then remove the file "report" (temporary file)
 os.remove("report")
