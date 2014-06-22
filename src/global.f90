@@ -465,7 +465,10 @@ program MINHOP
 
 
   call  ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
+  !change the value of inputpsiId for testing
+  inputs_opt%inputpsiid=0
   call run_objects_associate(runObj, inputs_opt, atoms, rst)
+
   call geopt(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of MD conf',ncount_bigdft)
      count_bfgs=count_bfgs+ncount_bigdft

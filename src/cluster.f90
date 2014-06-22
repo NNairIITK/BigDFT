@@ -59,7 +59,8 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
   call f_routine(id=subname)
 
   !Check the consistency between MPI processes of the atomic coordinates
-  call check_array_consistency(maxdiff, nproc, runObj%atoms%astruct%rxyz, bigdft_mpi%mpi_comm)
+  maxdiff=mpimaxdiff(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm)
+  !call check_array_consistency(maxdiff, nproc, runObj%atoms%astruct%rxyz, bigdft_mpi%mpi_comm)
   if (iproc==0 .and. maxdiff > epsilon(1.0_gp)) &
        call yaml_warning('Input positions not identical! '//&
        '(difference:'//trim(yaml_toa(maxdiff))//' )')
@@ -141,7 +142,7 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
      !Main routine calculating the KS orbitals
      call cluster(nproc,iproc,runObj%atoms,runObj%rst%rxyz_new, runObj%radii_cf, &
           & outs%energy, outs%energs, outs%fxyz, outs%strten, outs%fnoise, outs%pressure,&
-          runObj%rst%KSwfn,runObj%rst%tmb,&!psi,runObj%rst%Lzd,runObj%rst%gaucoeffs,runObj%rst%gbd,runObj%rst%orbs,&
+          runObj%rst%KSwfn,runObj%rst%tmb,&
           runObj%rst%rxyz_old,runObj%rst%hx_old,runObj%rst%hy_old,runObj%rst%hz_old,runObj%inputs,runObj%rst%GPU,infocode)
 
      !save the new atomic positions in the rxyz_old array
