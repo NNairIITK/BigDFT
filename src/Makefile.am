@@ -21,6 +21,7 @@ SUBDIRS = \
 	OpenCL \
 	bindings \
 	art \
+    mhgps \
 	$(sub_dirs_bin)
 
 EXTRA_DIST = \
