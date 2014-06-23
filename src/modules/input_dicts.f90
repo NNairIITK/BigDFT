@@ -519,6 +519,8 @@ contains
        npspcode = PSPCODE_HGH_K
     case("HGH-K + NLCC")
        npspcode = PSPCODE_HGH_K_NLCC
+    case("PAW")
+       npspcode = PSPCODE_PAW
     case default
        return
     end select
@@ -591,6 +593,8 @@ contains
        call set(dict // "Pseudopotential type", 'HGH-K')
     case(PSPCODE_HGH_K_NLCC)
        call set(dict // "Pseudopotential type", 'HGH-K + NLCC')
+    case(PSPCODE_PAW)
+       call set(dict // "Pseudopotential type", 'PAW')
     end select
 
     call set(dict // "Atomic number", nzatom)
