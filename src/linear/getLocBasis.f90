@@ -691,11 +691,14 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           if (iproc==0) call yaml_map('kappa',ratio_deltas,fmt='(es10.3)')
           if (target_function==TARGET_FUNCTION_IS_HYBRID) then
               !if (ratio_deltas>0.d0) then
-              if (ratio_deltas>1.d-12) then
+              !if (ratio_deltas>1.d-12) then
+              if (.not.energy_increased .and. .not.energy_increased_previous) then
                   if (iproc==0) call yaml_map('kappa to history',.true.)
                   nkappa_history=nkappa_history+1
                   ii=mod(nkappa_history-1,3)+1
                   kappa_history(ii)=ratio_deltas
+              else
+                  if (iproc==0) call yaml_map('kappa to history',.false.)
               end if
               !!if (nkappa_history>=3) then
               !!    kappa_mean=sum(kappa_history)/3.d0
@@ -725,7 +728,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       !!delta_energy_prev=delta_energy
 
-      if (energy_increased) then
+      if (energy_increased .and. ldiis%isx==0) then
           !if (iproc==0) write(*,*) 'WARNING: ENERGY INCREASED'
           !if (iproc==0) call yaml_warning('The target function increased, D='&
           !              //trim(adjustl(yaml_toa(trH-ldiis%trmin,fmt='(es10.3)'))))

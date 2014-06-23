@@ -218,8 +218,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   trH=trH-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
 
 
-  ! Cycle if the trace increased (steepest descent only)
-  if(.not. ldiis%switchSD .and. ldiis%isx==0) then
+  ! Determine whether the target function is increasing
+  !if(.not. ldiis%switchSD .and. ldiis%isx==0) then
+  if(.not. ldiis%switchSD) then
       if(trH > ldiis%trmin+1.d-12*abs(ldiis%trmin)) then !1.d-12 is here to tolerate some noise...
           !!if(iproc==0) write(*,'(1x,a,es18.10,a,es18.10)') &
           !!    'WARNING: the target function is larger than its minimal value reached so far:',trH,' > ', ldiis%trmin
@@ -343,7 +344,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! if energy has increased or we only wanted to calculate the energy, not gradient, we can return here
   ! rather than calculating the preconditioning for nothing
-  if ((energy_increased) .and. target_function/=TARGET_FUNCTION_IS_HYBRID) return
+  ! Do this only for steepest descent
+  if ((energy_increased) .and. target_function/=TARGET_FUNCTION_IS_HYBRID .and. ldiis%isx==0) return
 
 
 
