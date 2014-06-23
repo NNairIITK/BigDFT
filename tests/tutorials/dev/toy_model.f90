@@ -18,6 +18,7 @@ program wvl
   use module_input_dicts
   use module_interfaces, only: inputs_from_dict
   use module_atoms, only: deallocate_atoms_data
+  use communications_base, only: deallocate_comms
   use communications_init, only: orbitals_communicators
   use communications, only: transpose_v, untranspose_v
   implicit none
@@ -253,7 +254,7 @@ program wvl
   call sumrho(dpcom,orbs,Lzd,GPU,atoms%astruct%sym,rhodsc,xc,psi,rho_p)
   call communicate_density(dpcom,orbs%nspin,rhodsc,rho_p,rhor,.false.)
 
-  call deallocate_rho_descriptors(rhodsc,"main")
+  call deallocate_rho_descriptors(rhodsc)
 
   ! Example of calculation of the energy of the local potential of the pseudos.
   pkernel=pkernel_init(.true.,iproc,nproc,0,&
@@ -301,15 +302,15 @@ program wvl
   deallocate(rxyz_old)
   deallocate(psi)
 
-  call deallocate_comms(comms,"main")
+  call deallocate_comms(comms)
   call deallocate_wfd(Lzd%Glr%wfd)
 
-  call deallocate_bounds(Lzd%Glr%geocode,Lzd%Glr%hybrid_on,Lzd%Glr%bounds,"main")
+  call deallocate_bounds(Lzd%Glr%geocode,Lzd%Glr%hybrid_on,Lzd%Glr%bounds)
 
   call deallocate_Lzd_except_Glr(Lzd,"main")
   !deallocate(Lzd%Glr%projflg)
 
-  call deallocate_orbs(orbs,"main")
+  call deallocate_orbs(orbs)
 
   call deallocate_atoms_data(atoms) 
   call xc_end(xc)

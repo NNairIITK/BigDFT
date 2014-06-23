@@ -38,7 +38,7 @@ subroutine test_dynamic_memory()
    real(kind=8) :: total
    integer :: ithread
    integer(kind=8) :: iadd
-   !$ intgerger :: ierror
+   !$ integer :: ierror
    !$ integer(kind=8) :: lock
    !$ integer, external :: omp_get_thread_num
    
