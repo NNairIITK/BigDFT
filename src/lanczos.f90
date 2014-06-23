@@ -7,6 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+
 subroutine dirac_hara (rho, E , V)
    use module_base
 
@@ -47,7 +48,6 @@ subroutine dirac_hara (rho, E , V)
 
       x = xk *rs/ f
 
-
       if ((x-1)  < 1.0D-6) return
       Vcorr =V - (f/pi/rs) * ( log(abs((1+x) / (1-x))) * (1-x**2) / (2*x))
 
@@ -60,7 +60,8 @@ END SUBROUTINE dirac_hara
 function GetBottom(atoms,nspin)
 
    use module_base
-   use ao_inguess, only: iguess_generator,ao_nspin_ig,count_atomic_shells
+   use ao_inguess, only: &
+        iguess_generator,ao_nspin_ig,nmax_occ_ao
    use module_types
    use module_interfaces
 
@@ -78,7 +79,7 @@ function GetBottom(atoms,nspin)
    real(gp) , pointer :: expo(:)
    real(gp), dimension(ng,10) :: psi
 
-   real(gp), dimension(10) :: gaenes_aux
+   real(gp), dimension(nmax_occ_ao) :: gaenes_aux
    integer :: nspinor, iat, nspin_ig
 
    ! if (in_iat_absorber.ne.0) then
@@ -94,10 +95,10 @@ function GetBottom(atoms,nspin)
          if (ity.eq.atoms%astruct%iatype(iat)) exit
       end do
       call iguess_generator(atoms%nzatom(ity),atoms%nelpsp(ity),&
-         &   real(atoms%nelpsp(ity),gp),nspin_ig,atoms%aoig(iat)%aocc,atoms%psppar(0:,0:,ity),&
-         &   atoms%npspcode(ity),  &
-         &   atoms%nlcc_ngv(ity),atoms%nlcc_ngc(ity),atoms%nlccpar(0:,ity),&
-         &   ng-1,expo,psi,.false., gaenes_aux=gaenes_aux  )
+           real(atoms%nelpsp(ity),gp),nspin_ig,atoms%aoig(iat)%aocc,atoms%psppar(0:,0:,ity),&
+           atoms%npspcode(ity),  &
+           atoms%nlcc_ngv(ity),atoms%nlcc_ngc(ity),atoms%nlccpar(0:,ity),&
+           ng-1,expo,psi,.false., gaenes_aux=gaenes_aux  )
 
       if( minval(gaenes_aux ) < GetBottom) GetBottom=minval(gaenes_aux )
    enddo

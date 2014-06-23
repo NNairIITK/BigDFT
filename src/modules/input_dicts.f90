@@ -15,7 +15,7 @@ module module_input_dicts
 
   private
 
-  !parameters to avoid typos in dictionary keys
+  !> Parameters to avoid typos in dictionary keys
   character(len=*), parameter :: ATOMIC_OCC="Atomic occupation"
   character(len=*), parameter :: ASTRUCT_UNITS = 'units' 
   character(len=*), parameter :: ASTRUCT_CELL = 'cell' 
@@ -24,7 +24,7 @@ module module_input_dicts
   character(len=*), parameter :: GOUT_ENERGY = 'energy (Ha)' 
   character(len=*), parameter :: GOUT_FORCES = 'forces (Ha/Bohr)' 
 
-  ! update a dictionary from a input file
+  ! Update a dictionary from a input file
   public :: merge_input_file_to_dict
 
   ! Main creation routine
@@ -913,7 +913,7 @@ contains
     !Local variables
     type(atomic_structure) :: astruct
     type(DFT_global_output) :: outs
-    character(len=max_field_length) :: msg
+    character(len=max_field_length) :: msg,radical
     integer :: ierr
 
     call f_routine(id='astruct_file_merge_to_dict')
@@ -927,23 +927,30 @@ contains
          & energy = outs%energy, fxyz = outs%fxyz)
 
     !Check if BIGDFT_INPUT_FILE_ERROR
-    ierr = f_get_last_error() 
+    ierr = f_get_last_error(msg) 
+    call f_err_close_try()
+
     if (ierr == 0) then
-       !No errors: we have all information
-       call f_err_close_try()
+       !No errors: we have all information in astruct and put into dict
        call astruct_merge_to_dict(dict // key, astruct, astruct%rxyz)
        call set(dict // key // ASTRUCT_PROPERTIES // "source", filename)
        call global_output_merge_to_dict(dict // key, outs, astruct)
        call deallocate_atomic_structure(astruct)
 
     else if (ierr == BIGDFT_INPUT_FILE_ERROR) then
-       !Found no file: maybe inside the yaml file
-       call f_err_close_try()
-
+       !Found no file: maybe already inside the yaml file ?
+       !Check if posinp is in dict
+       if (.not.has_key(dict,"posinp")) then
+          ! Raise an error
+          if (has_key(dict,"radical")) then 
+             radical = dict//"radical"
+             msg = "No section 'posinp' for the atomic positions in the file '" &
+                 & // trim(radical) // ".yaml'. " // trim(msg)
+          end if
+          call f_err_throw(err_msg=msg,err_id=ierr)
+       end if
     else 
-       !Close the try clause and raise an error
-       call f_err_close_try()
-       ierr = f_get_last_error(msg)
+       ! Raise an error
        call f_err_throw(err_msg=msg,err_id=ierr)
     end if
 

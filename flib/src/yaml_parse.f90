@@ -52,11 +52,10 @@ contains
          err_id=YAML_PARSE_ERROR)
          
     !Define a dictionary to have a more verbosity of yaml_parse_error
-    call dict_init(dict_yaml_errs)
-    call set(dict_yaml_errs//"<document start>",&
-         "The first indentation is different at this line in front of the given key.")
-    call set(dict_yaml_errs//"mapping values",&
-         "The indentation is different at this line.")
+    dict_yaml_errs => dict_new("<document start>" .is. &
+         & "The first indentation is different at this line in front of the given key.", &
+         &                     "mapping values" .is. &
+         & "The indentation is different at this line." )
 
 
     call f_err_define(err_name='YAML_PARSE_UNSUPPORTED',&

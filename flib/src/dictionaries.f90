@@ -1271,9 +1271,9 @@ contains
 
      !take value
      val=dict
-     if (index(trim(val),'Yes') > 0) then
+     if (any(index(trim(val),['Yes', 'yes', 'YES']) > 0) .or. any(index(trim(val),['True', 'true', 'TRUE']) > 0)) then
         ival=.true.
-     else if (index(trim(val),'No') > 0) then
+     else if (any(index(trim(val),['No', 'no', 'NO']) > 0) .or. any(index(trim(val),['False', 'false', 'FALSE']) > 0)) then
         ival=.false.
      else
         call f_err_throw('Value '//val,err_id=DICT_CONVERSION_ERROR)

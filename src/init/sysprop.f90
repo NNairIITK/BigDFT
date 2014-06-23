@@ -856,10 +856,11 @@ subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
   use yaml_output, only: yaml_toa , yaml_warning, yaml_comment
   !use ao_inguess, only : count_atomic_shells
   implicit none
+  !Arguments
   type(atoms_data), intent(in) :: atoms
   integer, intent(out) :: nelec_up, nelec_down, norbe
   integer, intent(in) :: ncharge, nspin, mpol, norbsempty, iproc
-
+  !Local variables
   integer :: nelec, iat, ityp, ispinsum, ichgsum, ichg, ispol!, nspinor
   !integer, parameter :: nelecmax=32,lmax=4,noccmax=2
   !integer, dimension(lmax) :: nl

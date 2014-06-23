@@ -486,7 +486,8 @@ module module_atoms
             return
          else
             !There is a radical and the atomic positions are already dict; need to raise an exception
-            call f_err_throw('Good: already in the dictionary',err_id=BIGDFT_INPUT_FILE_ERROR)
+            call f_err_throw("Atomic input file not found. Files looked for were "//trim(files) //".", &
+           &  err_id=BIGDFT_INPUT_FILE_ERROR)
             return
          end if
 

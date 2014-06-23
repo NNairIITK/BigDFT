@@ -291,16 +291,25 @@
   end subroutine f_err_throw
 
 
-  function f_get_error_dict(icode)
+  !> Get the error ierr as a dictionary
+  function f_get_error_dict(ierror)
     implicit none
-    integer, intent(in) :: icode
+    integer, intent(in), optional :: ierror
     type(dictionary), pointer :: f_get_error_dict
     !local variables
+    integer :: ierr
+    if (present(ierror)) then
+       ierr=ierror
+    else
+       !Last error
+       ierr=dict_len(dict_present_error)-1
+    end if
+    f_get_error_dict=>dict_errors//ierr
 
-    f_get_error_dict=>dict_errors//icode
   end function f_get_error_dict
 
 
+  !> Get the number of errors (public)
   function f_get_no_of_errors()
     implicit none
     integer :: f_get_no_of_errors
@@ -321,6 +330,7 @@
   end function f_get_past_error
 
 
+  !> Get the Id of the error ierr (private)
   function get_error_id(ierr)
     implicit none
     integer, intent(in) :: ierr
@@ -333,6 +343,7 @@
   end function get_error_id
 
 
+  !> Get the message of the error given by its number (private).
   subroutine get_error_msg(ierr,add_msg)
     implicit none
     integer, intent(in) :: ierr
@@ -346,7 +357,7 @@
   end subroutine get_error_msg
 
 
-  !> Identify id of last error occured
+  !> Identify id of last error occured (public)
   function f_get_last_error(add_msg)
     implicit none
     character(len=*), intent(out), optional :: add_msg
@@ -363,6 +374,7 @@
        if (present(add_msg)) add_msg=repeat(' ',len(add_msg))
     end if
   end function f_get_last_error
+
 
   !> Clean the dictionary of present errors
    subroutine f_err_clean()
@@ -420,6 +432,7 @@
   end subroutine f_err_close_try
 
 
+  !> Give all define errors in a dictionary
   function f_get_error_definitions()
     implicit none
     type(dictionary), pointer :: f_get_error_definitions
