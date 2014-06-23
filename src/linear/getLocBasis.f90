@@ -406,6 +406,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8) :: fnrmMax, meanAlpha, ediff_best, alpha_max, delta_energy, delta_energy_prev, ediff
   real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_noconf, psidiff
   real(kind=8),dimension(:),allocatable :: delta_energy_arr, hpsi_noprecond, occup_tmp, kernel_compr_tmp, kernel_best
+  real(kind=8),dimension(:),allocatable :: kernel_old
   logical :: energy_increased, overlap_calculated, energy_diff, energy_increased_previous, complete_reset, even
   real(kind=8),dimension(:),pointer :: lhphiold, lphiold, hpsit_c, hpsit_f, hpsi_small
   type(energy_terms) :: energs
@@ -424,6 +425,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
   delta_energy_arr=f_malloc(nit_basis+6,id='delta_energy_arr')
   kernel_best=f_malloc(tmb%linmat%l%nvctr,id='kernel_best')
+  kernel_old=f_malloc(tmb%linmat%l%nvctr,id='kernel_old')
   energy_diff=.false.
 
   ovrlp_old%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
@@ -576,6 +578,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call yaml_map('Orthoconstraint',.true.)
       end if
 
+      ! keep the old kernel
+      call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_old(1), 1)
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
@@ -648,7 +652,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
            meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
            hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, hpsi_small, &
            experimental_mode, correction_co_contra, hpsi_noprecond, order_taylor, method_updatekernel, &
-           precond_convol_workarrays, precond_workarrays)
+           precond_convol_workarrays, precond_workarrays, kernel_old)
 
 
       if (experimental_mode) then
@@ -950,6 +954,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   call deallocateLocalArrays()
   call f_free(delta_energy_arr)
   call f_free(kernel_best)
+  call f_free(kernel_old)
   call f_free_ptr(ovrlp_old%matrix_compr)
 
   call f_release_routine()
