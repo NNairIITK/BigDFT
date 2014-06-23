@@ -59,7 +59,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   logical :: update_kernel
   character(len=*),parameter :: subname='get_coeff'
   real(kind=gp) :: tmprtr, factor
-  real(kind=8) :: max_deviation, mean_deviation, KSres
+  real(kind=8) :: deviation, KSres
 
   call f_routine(id='get_coeff')
 
@@ -101,12 +101,10 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   ovrlp_fullp=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/),id='ovrlp_fullp')
   call uncompress_matrix_distributed(iproc, tmb%linmat%s, tmb%linmat%ovrlp_%matrix_compr, ovrlp_fullp)
-  call deviation_from_unity_parallel(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, ovrlp_fullp, &
-       tmb%linmat%s,max_deviation, mean_deviation)
+  call deviation_from_unity_parallel(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, ovrlp_fullp, deviation)
   call f_free(ovrlp_fullp)
   if (iproc==0) then
-      call yaml_map('max dev from unity',max_deviation,fmt='(es9.2)')
-      call yaml_map('mean dev from unity',mean_deviation,fmt='(es9.2)')
+      call yaml_map('max dev from unity',deviation,fmt='(es9.2)')
   end if
 
 
@@ -408,6 +406,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8) :: fnrmMax, meanAlpha, ediff_best, alpha_max, delta_energy, delta_energy_prev, ediff
   real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_noconf, psidiff
   real(kind=8),dimension(:),allocatable :: delta_energy_arr, hpsi_noprecond, occup_tmp, kernel_compr_tmp, kernel_best
+  real(kind=8),dimension(:),allocatable :: kernel_old
   logical :: energy_increased, overlap_calculated, energy_diff, energy_increased_previous, complete_reset, even
   real(kind=8),dimension(:),pointer :: lhphiold, lphiold, hpsit_c, hpsit_f, hpsi_small
   type(energy_terms) :: energs
@@ -426,6 +425,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
   delta_energy_arr=f_malloc(nit_basis+6,id='delta_energy_arr')
   kernel_best=f_malloc(tmb%linmat%l%nvctr,id='kernel_best')
+  kernel_old=f_malloc(tmb%linmat%l%nvctr,id='kernel_old')
   energy_diff=.false.
 
   ovrlp_old%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
@@ -578,6 +578,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call yaml_map('Orthoconstraint',.true.)
       end if
 
+      ! keep the old kernel
+      call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_old(1), 1)
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
@@ -650,7 +652,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
            meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
            hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, hpsi_small, &
            experimental_mode, correction_co_contra, hpsi_noprecond, order_taylor, method_updatekernel, &
-           precond_convol_workarrays, precond_workarrays)
+           precond_convol_workarrays, precond_workarrays, kernel_old)
 
 
       if (experimental_mode) then
@@ -693,14 +695,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           if (iproc==0) call yaml_map('kappa',ratio_deltas,fmt='(es10.3)')
           if (target_function==TARGET_FUNCTION_IS_HYBRID) then
               !if (ratio_deltas>0.d0) then
-              !if (ratio_deltas>1.d-12) then
-              if (.not.energy_increased .and. .not.energy_increased_previous) then
+              if (ratio_deltas>1.d-12) then
                   if (iproc==0) call yaml_map('kappa to history',.true.)
                   nkappa_history=nkappa_history+1
                   ii=mod(nkappa_history-1,3)+1
                   kappa_history(ii)=ratio_deltas
-              else
-                  if (iproc==0) call yaml_map('kappa to history',.false.)
               end if
               !!if (nkappa_history>=3) then
               !!    kappa_mean=sum(kappa_history)/3.d0
@@ -730,7 +729,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       !!delta_energy_prev=delta_energy
 
-      if (energy_increased .and. ldiis%isx==0) then
+      if (energy_increased) then
           !if (iproc==0) write(*,*) 'WARNING: ENERGY INCREASED'
           !if (iproc==0) call yaml_warning('The target function increased, D='&
           !              //trim(adjustl(yaml_toa(trH-ldiis%trmin,fmt='(es10.3)'))))
@@ -955,6 +954,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   call deallocateLocalArrays()
   call f_free(delta_energy_arr)
   call f_free(kernel_best)
+  call f_free(kernel_old)
   call f_free_ptr(ovrlp_old%matrix_compr)
 
   call f_release_routine()
@@ -1699,7 +1699,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   character(len=*),parameter:: subname='reorthonormalize_coeff'
   type(matrices) :: KS_ovrlp_, inv_ovrlp_
   !integer :: iorb, jorb !DEBUG
-  real(kind=8) :: tt, max_error, mean_error!, tt2, tt3, ddot   !DEBUG
+  real(kind=8) :: tt, error!, tt2, tt3, ddot   !DEBUG
   !logical :: dense
   integer,parameter :: ALLGATHERV=1, ALLREDUCE=2
   integer, parameter :: communication_strategy=ALLGATHERV
@@ -1799,26 +1799,20 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   ! check whether this routine will be stable
   if (norb==orbs%norb) then
       if (orbs%norbp>0) then
-         call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, &
-              ovrlp_coeff(1:orbs%norb,orbs%isorb+1:orbs%isorb+orbs%norbp), &
-              basis_overlap, max_error, mean_error)
+         call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, ovrlp_coeff(1,orbs%isorb+1), error)
       else
          ! It is necessary to call the routine since it has a built-in mpiallred.
          ! Use the first element of ovrlp_coeff; thanks to orbs%norbp==0 this should be safe
-         call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, &
-              ovrlp_coeff(1:orbs%norb,1:orbs%norb), &
-              basis_overlap, max_error, mean_error)
+         call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, ovrlp_coeff(1,1), error)
       end if
   else
-     call deviation_from_unity_parallel(iproc, 1, norb, norb, 0, ovrlp_coeff(1:norb,1:norb), &
-          basis_overlap, max_error, mean_error)    
+     call deviation_from_unity_parallel(iproc, 1, norb, norb, 0, ovrlp_coeff(1,1), error)    
   end if
 
   ! should convert this to yaml (LG: easily done)
-  if (iproc==0) call yaml_map('Max deviation from unity in reorthonormalize_coeff',max_error)
-  if (iproc==0) call yaml_map('Mean deviation from unity in reorthonormalize_coeff',mean_error)
+  if (iproc==0) call yaml_map('Deviation from unity in reorthonormalize_coeff',error)
 
-  if (max_error>5.0d0.and.orbs%norb==norb) then
+  if (error>5.0d0.and.orbs%norb==norb) then
      if (iproc==0) print*,'Error in reorthonormalize_coeff too large, reverting to gram-schmidt orthonormalization'
      ! gram-schmidt as too far from orthonormality to use iterative schemes for S^-1/2
      call f_free_ptr(ovrlp_coeff)
@@ -1845,7 +1839,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
          inv_ovrlp_matrix = f_malloc_ptr((/norb,norb/), id='inv_ovrlp_matrix')
          call vcopy(norb**2, ovrlp_coeff(1,1), 1, ovrlp_matrix(1,1), 1)
          call overlap_minus_one_half_serial(iproc, 1, inversion_method, -2, blocksize_dsyev, &       
-              norb, ovrlp_matrix, inv_ovrlp_matrix, check_accur=.false., smat=basis_overlap)
+              norb, ovrlp_matrix, inv_ovrlp_matrix, check_accur=.false.)
          call f_free_ptr(ovrlp_matrix)
      !    call overlapPowerGeneral(iproc, 1, inversion_method, -2, &
      !         blocksize_dsyev, norb, orbs, imode=2, ovrlp_smat=basis_overlap, inv_ovrlp_smat=basis_overlap, &
@@ -1944,21 +1938,17 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
 
      if (norb==orbs%norb) then
         if (orbs%norbp>0) then
-           call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, &
-                ovrlp_coeff(1:orbs%norb,orbs%isorb+1:orbs%isorb+orbs%norbp), &
-                basis_overlap, max_error, mean_error)
+           call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, ovrlp_coeff(1,orbs%isorb+1), error)
         else
            ! It is necessary to call the routine since it has a built-in mpiallred.
            ! Use the first element of ovrlp_coeff; thanks to orbs%norbp==0 this should be safe
-           call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, ovrlp_coeff(1:orbs%norb,1:orbs%norb), &
-                basis_overlap, max_error, mean_error)
+           call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, ovrlp_coeff(1,1), error)
         end if
      else
-        call deviation_from_unity_parallel(iproc, 1, norb, norb, 0, ovrlp_coeff(1:norb,1:norb), basis_overlap, max_error, mean_error)    
+        call deviation_from_unity_parallel(iproc, 1, norb, norb, 0, ovrlp_coeff(1,1), error)    
      end if
 
-     if (iproc==0) print*,'Max deviation from unity following reorthonormalize_coeff',max_error
-     if (iproc==0) print*,'Mean deviation from unity following reorthonormalize_coeff',mean_error
+     if (iproc==0) print*,'Deviation from unity following reorthonormalize_coeff',error
 
      !do iorb=1,norb
      !   do jorb=1,norb
@@ -2041,7 +2031,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   real(kind=8),dimension(:,:),allocatable :: k, ks, ksk, ksksk, kernel, overlap, kernel_prime
   real(kind=8),dimension(:),allocatable :: eval, work
   character(len=*),parameter :: subname='purify_kernel'
-  real(kind=8) :: dnrm2, diff, ddot, tr_KS, chargediff, chargediff_old, max_error, mean_error
+  real(kind=8) :: dnrm2, diff, ddot, tr_KS, chargediff, chargediff_old, error
   logical :: overlap_associated, inv_ovrlp_associated
   real(kind=8),dimension(2) :: bisec_bounds
   logical,dimension(2) :: bisec_bounds_ok
@@ -2366,14 +2356,13 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           call overlapPowerGeneral(iproc, nproc, order_taylor, 2, -1, &
                imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=ovrlp_onehalf_, check_accur=.true., &
-               max_error=max_error, mean_error=mean_error)
+               error=error)
           call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, &
                imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=ovrlp_minusonehalf_, check_accur=.true., &
-               max_error=max_error, mean_error=mean_error)
+               error=error)
           if (iproc==0) then
-              call yaml_map('max error of S^-1/2',max_error,fmt='(es9.2)')
-              call yaml_map('mean error of S^-1/2',mean_error,fmt='(es9.2)')
+              call yaml_map('error of S^-1/2',error,fmt='(es9.2)')
           end if
       end subroutine calculate_overlap_onehalf
 
@@ -2549,7 +2538,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, tmb, ovrlp, ovrlp_old)
   type(matrices),intent(inout) :: ovrlp, ovrlp_old
 
   ! Local variables
-  real(kind=8) :: max_error, mean_error
+  real(kind=8) :: error
   type(matrices) :: inv_ovrlp
   real(kind=8),dimension(:,:),pointer :: inv_ovrlpp, tempp
   real(kind=8),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
@@ -2568,7 +2557,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, tmb, ovrlp, ovrlp_old)
   call overlapPowerGeneral(iproc, nproc, order_taylor, 2, -1, &
        imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
        ovrlp_mat=ovrlp_old, inv_ovrlp_mat=inv_ovrlp, &
-       check_accur=.true., max_error=max_error, mean_error=mean_error)
+       check_accur=.true., error=error)
 
   ! Calculate S^1/2 * K * S^1/2
   call retransform()
@@ -2577,7 +2566,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, tmb, ovrlp, ovrlp_old)
   call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, &
        imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
        ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, &
-       check_accur=.true., max_error=max_error, mean_error=mean_error)
+       check_accur=.true., error=error)
 
   ! Calculate S^-1/2 * K * S^-1/2
   call retransform()

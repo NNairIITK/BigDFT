@@ -15,6 +15,7 @@ program BigDFT
    use module_types
    use module_interfaces
    use yaml_output
+   use internal_coordinates, only : get_neighbors
 
    implicit none     !< As a general policy, we will have "implicit none" by assuming the same
 
@@ -31,6 +32,9 @@ program BigDFT
    integer, dimension(4) :: mpi_info
    integer :: iconfig,nconfig,ngroups,igroup
    real(kind=8),dimension(:,:),allocatable :: fxyz
+   integer :: iat
+   logical :: file_exists
+   integer,dimension(:),allocatable :: atoms_ref
 
    call f_lib_initialize()
 
@@ -61,12 +65,26 @@ program BigDFT
          call run_objects_init_from_files(runObj, arr_radical(iconfig), arr_posinp(iconfig))
          call init_global_output(outs, runObj%atoms%astruct%nat)
 
-         !!@!@NEW ###########################################
-         !!@allocate(fxyz(3,runObj%atoms%astruct%nat))
-         !!@fxyz=0.d0
-         !!@call internal_forces(runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz, fxyz)
-         !!@deallocate(fxyz)
-         !!@!################################################
+
+         !!! THIS IS TEMPORARY, SHOULD BE DONE IN A BETTER WAY ####################
+         !!inquire(file='posinp.fix',exist=file_exists)
+         !!if (file_exists) then
+         !!    atoms_ref = f_malloc(runObj%atoms%astruct%nat,id='atoms_ref')
+         !!    open(unit=123,file='posinp.fix')
+         !!    do iat=1,runObj%atoms%astruct%nat
+         !!        read(123,*) atoms_ref(iat), runObj%atoms%astruct%fix_int(1:3,iat)
+         !!    end do
+         !!    close(unit=123)
+         !!    if (iproc==0) call yaml_map('before: runObj%atoms%astruct%ixyz_int',runObj%atoms%astruct%ixyz_int)
+         !!    !!call get_neighbors(runObj%atoms%astruct%rxyz, runObj%atoms%astruct%nat, runObj%atoms%astruct%ixyz_int(1,:), &
+         !!    !!     runObj%atoms%astruct%ixyz_int(2,:), runObj%atoms%astruct%ixyz_int(3,:),atoms_ref)
+         !!    call f_free(atoms_ref)
+         !!    if (iproc==0) call yaml_map('after: runObj%atoms%astruct%ixyz_int',runObj%atoms%astruct%ixyz_int)
+         !!else
+         !!    call get_neighbors(runObj%atoms%astruct%rxyz, runObj%atoms%astruct%nat, runObj%atoms%astruct%ixyz_int(1,:), &
+         !!         runObj%atoms%astruct%ixyz_int(2,:), runObj%atoms%astruct%ixyz_int(3,:))
+         !!end if
+         !!! ######################################################################
 
          call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
 
@@ -85,11 +103,11 @@ program BigDFT
          if (runObj%inputs%ncount_cluster_x > 1) then
             filename=trim('final_'//trim(arr_posinp(iconfig)))
             if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,outs%energy,runObj%atoms%astruct%rxyz, &
-                 & runObj%atoms,'FINAL CONFIGURATION',forces=outs%fxyz)
+                 & runObj%atoms%astruct%ixyz_int, runObj%atoms,'FINAL CONFIGURATION',forces=outs%fxyz)
          else
             filename=trim('forces_'//trim(arr_posinp(iconfig)))
             if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,outs%energy,runObj%atoms%astruct%rxyz, &
-                 & runObj%atoms,'Geometry + metaData forces',forces=outs%fxyz)
+                 & runObj%atoms%astruct%ixyz_int, runObj%atoms,'Geometry + metaData forces',forces=outs%fxyz)
          end if
 
          ! Deallocations.

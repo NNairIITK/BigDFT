@@ -730,7 +730,7 @@ subroutine foe(iproc, nproc, tmprtr, &
 
         subroutine overlap_minus_onehalf()
           implicit none
-          real(kind=8) :: error
+          real(kind=8) :: max_error, mean_error
 
           call f_routine(id='overlap_minus_onehalf')
 
@@ -746,17 +746,18 @@ subroutine foe(iproc, nproc, tmprtr, &
               call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, &
                    imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                    ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
-                   check_accur=.true., error=error)
+                   check_accur=.true., max_error=max_error, mean_error=mean_error)
               call compress_matrix(iproc, tmb%linmat%l, inmat=inv_ovrlp%matrix, outmat=inv_ovrlp%matrix_compr)
           end if
           if (imode==SPARSE) then
               call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, &
                    imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                    ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
-                   check_accur=.true., error=error)
+                   check_accur=.true., max_error=max_error, mean_error=mean_error)
            end if
           if (foe_verbosity>=1 .and. iproc==0) then
-              call yaml_map('error of S^-1/2',error,fmt='(es9.2)')
+              call yaml_map('max error of S^-1/2',max_error,fmt='(es9.2)')
+              call yaml_map('mean error of S^-1/2',mean_error,fmt='(es9.2)')
           end if
 
 

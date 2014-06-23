@@ -163,7 +163,7 @@ subroutine read_xyz_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
      !!end if
      call check_line_integrity()
      !print *,'extra',iat,extra
-     call find_extra_info(line,extra)
+     call find_extra_info(line,extra,8)
      !print *,'then',iat,extra
      call parse_extra_info(iat,extra,astruct)
 
@@ -412,7 +412,7 @@ subroutine read_ascii_positions(iproc,ifile,astruct,comment,energy,fxyz,getline)
            read(line,*, iostat = i_stat) rx,ry,rz,symbol,extra
            if (i_stat /= 0) read(line,*) rx,ry,rz,symbol
         end if
-        call find_extra_info(line,extra)
+        call find_extra_info(line,extra,8)
         call parse_extra_info(iat,extra,astruct)
 
         tatonam=trim(symbol)
@@ -665,10 +665,9 @@ subroutine read_int_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
      !!end if
      call check_line_integrity()
      !print *,'extra',iat,extra
-     !call find_extra_info(line,extra)
+     call find_extra_info(line,extra,14)
      !print *,'then',iat,extra
-     !call parse_extra_info(iat,extra,astruct)
-     write(*,*) 'WARNING: extra infos not parsed!!'
+     call parse_extra_info(iat,extra,astruct)
 
      tatonam=trim(symbol)
 !!!     end if

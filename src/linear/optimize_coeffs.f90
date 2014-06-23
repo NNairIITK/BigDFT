@@ -357,7 +357,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   !real(kind=8), dimension(:,:,:), allocatable :: weight_coeff
   real(kind=8), dimension(:,:), allocatable :: weight_coeff_diag
   real(kind=8), dimension(:,:), pointer :: ovrlp_half
-  real(kind=8) :: error
+  real(kind=8) :: max_error, mean_error
   type(sparse_matrix) :: weight_matrix
   type(matrices) :: inv_ovrlp
   character(len=256) :: subname='coeff_weight_analysis'
@@ -384,7 +384,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
        tmb%orthpar%blocksize_pdsyev, imode=2, &
        ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
        ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
-       error=error)
+       max_error=max_error, mean_error=mean_error)
   call f_free_ptr(tmb%linmat%ovrlp_%matrix)
 
   do ifrag=1,input%frag%nfrag
@@ -1002,7 +1002,7 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,KSorbs,grad_cov
   integer :: itmp, itrials
   integer :: ncount1, ncount_rate, ncount_max, ncount2
   real(kind=4) :: tr0, tr1
-  real(kind=8) :: deviation, time, error, maxerror
+  real(kind=8) :: deviation, time, max_error, mean_error, maxerror
 
 
   call f_routine(id='calculate_coeff_gradient')
@@ -1090,7 +1090,7 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,KSorbs,grad_cov
           imode=2, &
           ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
           ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, check_accur=.true., &
-          error=error)
+          max_error=max_error, mean_error=mean_error)
 
      !!!DEBUG checking S^-1 etc.
      !!!test dense version of S^-1
@@ -1295,7 +1295,7 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
   real(gp),dimension(:,:),pointer ::  inv_ovrlp
   real(kind=gp), dimension(:), allocatable:: occup_tmp
   real(kind=gp), dimension(:,:), allocatable:: grad_full
-  real(kind=gp) :: error
+  real(kind=gp) :: max_error, mean_error
   type(matrices) :: inv_ovrlp_
 
   call f_routine(id='calculate_coeff_gradient_extra')
@@ -1400,7 +1400,7 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
      call overlapPowerGeneral(iproc, nproc, order_taylor, 1, -8, &
           imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
           ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, check_accur=.true., &
-          error=error)
+          max_error=max_error, mean_error=mean_error)
 
      if (tmb%orbs%norbp>0) then
         call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, inv_ovrlp_%matrix(1,1), &

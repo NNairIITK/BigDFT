@@ -507,6 +507,8 @@ module module_atoms
          ! Fill the ordinary rxyz array
          !!! convert to rad
          !!astruct%rxyz_int(2:3,1:astruct%nat) = astruct%rxyz_int(2:3,1:astruct%nat) / degree
+         ! The bond angle must be modified (take 180 degrees minus the angle)
+         astruct%rxyz_int(2:2,1:astruct%nat) = pi_param - astruct%rxyz_int(2:2,1:astruct%nat)
          call internal_to_cartesian(astruct%nat, astruct%ixyz_int(1,:), astruct%ixyz_int(2,:), astruct%ixyz_int(3,:), &
               astruct%rxyz_int, astruct%rxyz)
          !!do i_stat=1,astruct%nat
