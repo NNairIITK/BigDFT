@@ -766,7 +766,8 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      nstep=nstep+1
 
      ! Check velcur consistency.
-     call check_array_consistency(maxdiff, nproc, velcur, bigdft_mpi%mpi_comm)
+     maxdiff=mpimaxdiff(velcur,root=0,comm=bigdft_mpi%mpi_comm)
+     !call check_array_consistency(maxdiff, nproc, velcur, bigdft_mpi%mpi_comm)
      if (iproc==0 .and. maxdiff > epsilon(1.0_gp)) &
           call yaml_warning('Fire velocities not identical! '//&
           '(difference:'//trim(yaml_toa(maxdiff))//' )')

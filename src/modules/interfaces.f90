@@ -3355,8 +3355,7 @@ module module_interfaces
         end subroutine set_variables_for_hybrid
 
         subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
-          use module_base
-          use module_types
+          use locregs, only: wavefunctions_descriptors, convolutions_bounds
           implicit none
           integer, intent(in) :: n1,n2,n3
           integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
