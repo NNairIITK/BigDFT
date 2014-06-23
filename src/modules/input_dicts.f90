@@ -842,9 +842,11 @@ contains
        if (ichg /= 0) call set(at // "IGChg", ichg)
        if (ispol /= 0) call set(at // "IGSpin", ispol)
        ! information for internal coordinates
-       call set(at // "int_ref_atoms_1", astruct%ixyz_int(1,iat))
-       call set(at // "int_ref_atoms_2", astruct%ixyz_int(2,iat))
-       call set(at // "int_ref_atoms_3", astruct%ixyz_int(3,iat))
+       if (astruct%inputfile_format=='int') then
+           call set(at // "int_ref_atoms_1", astruct%ixyz_int(1,iat))
+           call set(at // "int_ref_atoms_2", astruct%ixyz_int(2,iat))
+           call set(at // "int_ref_atoms_3", astruct%ixyz_int(3,iat))
+       end if
        call add(pos, at)
     end do
 
