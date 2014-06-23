@@ -11,41 +11,7 @@
   !local variables
   integer :: iroot,mpi_comm,ntot,ntotrecv,ntasks,ierr
 
-  if (present(root)) then
-     iroot=root
-  else
-     iroot=0
-  end if
-  if (present(comm)) then
-     mpi_comm=comm
-  else
-     mpi_comm=MPI_COMM_WORLD !or bigdft_mpi%mpi_comm?
-  end if
   ntot=size(sendbuf)
   ntotrecv=size(recvbuf)
 
-  !verify the size of the receive buffer
-  call MPI_COMM_SIZE(mpi_comm,ntasks,ierr)
-  if (ierr /=0) then
-     call f_err_throw('An error in calling to MPI_COMM_SIZE occured',&
-          err_id=ERR_MPI_WRAPPERS)
-     return
-  end if
-  if (ntotrecv*kind(recvbuf) < ntot*ntasks*kind(sendbuf)) then
-     call f_err_throw('Error in mpigather; the size of receive buffer ('//&
-          trim(yaml_toa(ntotrecv*kind(recvbuf)))//&
-          ') is not enough to contain '//trim(yaml_toa(ntot*kind(sendbuf)))//&
-          ' * '//trim(yaml_toa(ntasks))//' elements',err_id=ERR_MPI_WRAPPERS)
-     return
-  end if
-  !then one can proceed with the MPI operation
-  ntotrecv=int(int(ntot,kind=8)*kind(sendbuf)/int(kind(recvbuf),kind=8))
-  call f_timer_interrupt(TCAT_GATHER)
-  call MPI_GATHER(sendbuf,ntot,mpitype(sendbuf),&
-       recvbuf,ntotrecv,mpitype(recvbuf),iroot,mpi_comm,ierr)
-  call f_timer_resume()
-  if (ierr /=0) then
-     call f_err_throw('An error in calling to MPI_GATHER occured',&
-          err_id=ERR_MPI_WRAPPERS)
-     return
-  end if
+  include 'gather-inner-inc.f90'

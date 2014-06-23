@@ -21,7 +21,7 @@ driver_SOURCES = driver.f90
 driver_LDADD = -lbigdft-1 @LINALG_LIBS@
 
 
-CLEANFILES = test-coordinatetransform.out.yaml 
+CLEANFILES = test-coordinatetransform.out.yaml test-coordinatetransform.report.yaml
 
 check: test-coordinatetransform.report.yaml
 
