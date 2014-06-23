@@ -640,25 +640,9 @@
      0
   #---------------------------------------------------- Entering in OpenMP section if available
  Entering Thread No.                   :  0
- Address of metadata                   :  7944480
- Entering Thread No.                   :  1
- Address of metadata                   :  47749499961216
- Something to use ab                   :  200.0
- Errors found while (de)allocating ab and b:  2
- ERR_ALLOCATE:
-   Id                                  : 15
-   Message                             : Allocation error
-   Action:
-     Control the order of the allocation or if the memory limit has been reached
-   Callback Procedure Address          : 4535568
- Additional Info                       : Allocation problem, error code  151
- ERR_ALLOCATE:
-   Id                                  : 15
-   Message                             : Allocation error
-   Action:
-     Control the order of the allocation or if the memory limit has been reached
-   Callback Procedure Address          : 4535568
- Additional Info                       : Allocation problem, error code  151
+ Address of metadata                   :  5434048
+ Something to use ab                   :  100.0
+ Something to use b                    :  200.0
  Calling sequence of Main program (routines with * are not closed yet):
  - Main program: [ 1.068E-02,  1, ~*]
    Subroutines:
