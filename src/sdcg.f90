@@ -555,29 +555,10 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
         endif
 !        if (iproc == 0 .and. parmrunObj%inputs%verbosity > 0) write(16,*) 'beta=',beta
 
-!@ TEST ##########################################
-  allocate(geo(3,runObj%atoms%astruct%nat))
-  call xyzint(runObj%atoms%astruct%rxyz, runObj%atoms%astruct%nat,&
-       runObj%atoms%astruct%ixyz_int(1,:), runObj%atoms%astruct%ixyz_int(2,:), runObj%atoms%astruct%ixyz_int(3,:), &
-       degree, geo)
-  if (bigdft_mpi%iproc==0) call yaml_map('BEFORE: cartesian',runObj%atoms%astruct%rxyz)
-  if (bigdft_mpi%iproc==0) call yaml_map('BEFORE: internal',geo)
-  deallocate(geo)
-!@ TEST ##########################################
-
 
         call vcopy(3 * runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1, tpos(1,1), 1)
         !call atomic_axpy(at,rxyz,beta,ff,rxyz)
         call axpy(3 * runObj%atoms%astruct%nat,beta,outs%fxyz(1,1),1,runObj%atoms%astruct%rxyz(1,1),1)
-!@ TEST ##########################################
-  allocate(geo(3,runObj%atoms%astruct%nat))
-  call xyzint(runObj%atoms%astruct%rxyz, runObj%atoms%astruct%nat,&
-       runObj%atoms%astruct%ixyz_int(1,:), runObj%atoms%astruct%ixyz_int(2,:), runObj%atoms%astruct%ixyz_int(3,:), &
-       degree, geo)
-  if (bigdft_mpi%iproc==0) call yaml_map('AFTER: cartesian',runObj%atoms%astruct%rxyz)
-  if (bigdft_mpi%iproc==0) call yaml_map('AFTER: internal',geo)
-  deallocate(geo)
-!@ TEST ##########################################
 
 !!!        do iat=1,runObj%atoms%nat
 !!!           tpos(1,iat)=rxyz(1,iat)
