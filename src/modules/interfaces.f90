@@ -1967,7 +1967,7 @@ module module_interfaces
 
       subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
                  correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, &
-           hpsit_c, hpsit_f, hpsit_c_old, hpsit_f_old, hpsit_nococontra_c, hpsit_nococontra_f, &
+           hpsit_c, hpsit_f, hpsit_nococontra_c, hpsit_nococontra_f, &
                  can_use_transposed, overlap_calculated, experimental_mode, norder_taylor, &
            npsidim_orbs_small, lzd_small, hpsi_noprecond)
         use module_base
@@ -1984,7 +1984,7 @@ module module_interfaces
         real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(inout) :: lhphi
         type(sparse_matrix),intent(inout) :: lagmat
         type(matrices),intent(out) :: lagmat_
-        real(kind=8),dimension(:),pointer :: psit_c, psit_f, hpsit_c, hpsit_f, hpsit_c_old, hpsit_f_old
+        real(kind=8),dimension(:),pointer :: psit_c, psit_f, hpsit_c, hpsit_f
         real(kind=8),dimension(collcom%ndimind_c),intent(inout) :: hpsit_nococontra_c
         real(kind=8),dimension(7*collcom%ndimind_f),intent(inout) :: hpsit_nococontra_f
         logical,intent(inout) :: can_use_transposed, overlap_calculated
@@ -2456,8 +2456,7 @@ module module_interfaces
                   energy_increased, tmb, lhphiold, overlap_calculated, &
                   energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
                   hpsi_small, experimental_mode, correction_co_contra, hpsi_noprecond, &
-                  norder_taylor, method_updatekernel, precond_convol_workarrays, precond_workarrays, &
-                  kernel_old)
+                  norder_taylor, method_updatekernel, precond_convol_workarrays, precond_workarrays)
          use module_base
          use module_types
          implicit none
@@ -2479,7 +2478,6 @@ module module_interfaces
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: hpsi_noprecond
          type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
          type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
-         real(kind=8),dimension(tmb%linmat%l%nvctr),intent(in) :: kernel_old
        end subroutine calculate_energy_and_gradient_linear
 
        subroutine improveOrbitals(iproc, nproc, tmb, ldiis, alpha, gradient, experimental_mode)
