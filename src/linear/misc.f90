@@ -1146,7 +1146,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   integer :: ifrag,iorb,ifrag_ref,isforb,istat,ierr,jorb
   real(kind=gp), allocatable, dimension(:,:) :: proj_mat, proj_ovrlp_half, weight_matrixp
   character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
-  real(kind=gp) :: error
+  real(kind=gp) :: max_error, mean_error
   type(matrices) :: inv_ovrlp
 
   ! new variables
@@ -1211,7 +1211,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
           tmb%orthpar%blocksize_pdsyev, &
           imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
           ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
-          error=error)
+          max_error=max_error, mean_error=mean_error)
      !!ovrlp_half=tmb%linmat%ovrlp%matrix
      call f_free_ptr(tmb%linmat%ovrlp_%matrix)
   end if

@@ -24,7 +24,7 @@ program driver
   integer,parameter :: itype=1
   character(len=1),parameter :: jobz='v', uplo='l'
   integer,parameter :: n=64
-  real(kind=8) :: val, error
+  real(kind=8) :: val, max_error, mean_error
   real(kind=8),dimension(:,:),allocatable :: ovrlp, ovrlp2
   integer :: norb, nseg, nvctr, iorb, jorb, iorder, power, blocksize, icheck, imode
 
@@ -194,8 +194,9 @@ program driver
       keyg_tmp(2,iseg)=iiorb
   end do
 
-  if (ortho_check) call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norb, 0, ovrlp, error)
-  if (ortho_check.and.iproc==0) call yaml_map('deviation from unity',error)
+  if (ortho_check) call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norb, 0, ovrlp, max_error, mean_error)
+  if (ortho_check.and.iproc==0) call yaml_map('max deviation from unity',max_error)
+  if (ortho_check.and.iproc==0) call yaml_map('mean deviation from unity',mean_error)
   if (iproc==0) call yaml_comment('starting the checks',hfill='=')
 
   do icheck=1,ncheck
@@ -222,7 +223,7 @@ program driver
           if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
           call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, &
                imode, ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, ovrlp_mat=mat_A, inv_ovrlp_mat=inv_mat_B, &
-               check_accur=.true., error=error)
+               check_accur=.true., max_error=max_error, mean_error=mean_error)
           if (timer_on) call cpu_time(tr1)
           if (timer_on) call system_clock(ncount2,ncount_rate,ncount_max)
           if (timer_on) time=real(tr1-tr0,kind=8)
@@ -235,7 +236,7 @@ program driver
           if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
           call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, &
                imode, ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, ovrlp_mat=mat_A, inv_ovrlp_mat=inv_mat_B, &
-               check_accur=.true., error=error)
+               check_accur=.true., max_error=max_error, mean_error=mean_error)
                !!foe_nseg=smat_A%nseg, foe_kernel_nsegline=smat_A%nsegline, &
                !!foe_istsegline=smat_A%istsegline, foe_keyg=smat_A%keyg)
            !if (iorder==0) call compress_matrix(iproc, smat_B)

@@ -3519,7 +3519,7 @@ module module_interfaces
 
         subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                    ovrlp_smat, inv_ovrlp_smat, ovrlp_mat, inv_ovrlp_mat, check_accur, &
-                   error)
+                   max_error, mean_error)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix, SPARSE_FULL, DENSE_PARALLEL, DENSE_FULL, SPARSEMM_SEQ
@@ -3530,7 +3530,7 @@ module module_interfaces
           type(sparse_matrix),intent(inout) :: ovrlp_smat, inv_ovrlp_smat
           type(matrices),intent(inout) :: ovrlp_mat, inv_ovrlp_mat
           logical,intent(in) :: check_accur
-          real(kind=8),intent(out),optional :: error
+          real(kind=8),intent(out),optional :: max_error, mean_error
         end subroutine overlapPowerGeneral
 
 
@@ -3857,8 +3857,7 @@ module module_interfaces
 
         subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, smat, norb, norbp, isorb, nseq, nout, &
                    ivectorindex, onedimindices, amat_seq, bmatp, power, &
-                   error, &
-                   dmat_seq, cmatp)
+                   max_error, mean_error, dmat_seq, cmatp)
           use module_base
           use sparsematrix_base, only: sparse_matrix
           implicit none
@@ -3868,7 +3867,7 @@ module module_interfaces
           integer,dimension(4,nout) :: onedimindices
           real(kind=8),dimension(nseq),intent(in) :: amat_seq
           real(kind=8),dimension(norb,norbp),intent(in) :: bmatp
-          real(kind=8),intent(out) :: error
+          real(kind=8),intent(out) :: max_error, mean_error
           real(kind=8),dimension(nseq),intent(in),optional :: dmat_seq
           real(kind=8),dimension(norb,norbp),intent(in),optional :: cmatp
         end subroutine check_accur_overlap_minus_one_sparse
@@ -3924,15 +3923,16 @@ module module_interfaces
 
         subroutine overlap_minus_one_half_serial(iproc, nproc, iorder, power, blocksize, &
                    norb, ovrlp_matrix, inv_ovrlp_matrix, check_accur, &
-                   error)
+                   smat, max_error, mean_error)
           use module_base
           use module_types
           implicit none
           integer,intent(in) :: iproc, nproc, iorder, blocksize, power, norb
           real(kind=8),dimension(norb,norb),intent(in) :: ovrlp_matrix
           real(kind=8),dimension(:,:),pointer,intent(out) :: inv_ovrlp_matrix
+          type(sparse_matrix),intent(in) :: smat
           logical,intent(in) :: check_accur
-          real(kind=8),intent(out),optional :: error
+          real(kind=8),intent(out),optional :: max_error, mean_error
         end subroutine overlap_minus_one_half_serial
 
         subroutine calculate_weight_matrix_lowdin(weight_matrix,nfrag_charged,ifrag_charged,tmb,input,ref_frags,&
@@ -3995,6 +3995,52 @@ module module_interfaces
           character(len=50), intent(out) :: extra
           integer,intent(in),optional :: nspacex
         end subroutine find_extra_info
+
+        subroutine check_accur_overlap_minus_one(iproc,nproc,norb,norbp,isorb,power,ovrlp,inv_ovrlp,&
+                   smat,max_error,mean_error)
+          use module_base
+          use sparsematrix_base, only: sparse_matrix
+          implicit none
+          integer,intent(in) :: iproc, nproc, norb, norbp, isorb, power
+          real(kind=8),dimension(norb,norb),intent(in) :: ovrlp, inv_ovrlp
+          type(sparse_matrix),intent(in) :: smat
+          real(kind=8),intent(out) :: max_error, mean_error
+        end subroutine check_accur_overlap_minus_one
+
+        subroutine max_matrix_diff(iproc, norb, mat1, mat2, smat, max_deviation, mean_deviation)
+          use module_base
+          use module_types
+          use sparsematrix_base, only: sparse_matrix
+          implicit none
+          integer,intent(in):: iproc, norb
+          real(8),dimension(norb,norb),intent(in):: mat1, mat2
+          type(sparse_matrix),intent(in) :: smat
+          real(8),intent(out):: max_deviation, mean_deviation
+        end subroutine max_matrix_diff
+
+        subroutine max_matrix_diff_parallel(iproc, norb, norbp, isorb, mat1, mat2, &
+                   smat, max_deviation, mean_deviation)
+          use module_base
+          use module_types
+          use sparsematrix_base, only: sparse_matrix
+          implicit none
+          integer,intent(in):: iproc, norb, norbp, isorb
+          real(8),dimension(norb,norbp),intent(in):: mat1, mat2
+          type(sparse_matrix),intent(in) :: smat
+          real(8),intent(out):: max_deviation, mean_deviation
+        end subroutine max_matrix_diff_parallel
+
+        subroutine deviation_from_unity_parallel(iproc, nproc, norb, norbp, isorb, ovrlp, &
+                   smat, max_deviation, mean_deviation)
+          use module_base
+          use module_types
+          use sparsematrix_base, only: sparse_matrix
+          implicit none
+          integer,intent(in):: iproc, nproc, norb, norbp, isorb
+          real(8),dimension(norb,norbp),intent(in):: ovrlp
+          type(sparse_matrix),intent(in) :: smat
+          real(8),intent(out):: max_deviation, mean_deviation
+        end subroutine deviation_from_unity_parallel
   
   end interface
 END MODULE module_interfaces
