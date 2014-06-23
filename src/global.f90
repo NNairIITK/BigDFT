@@ -228,8 +228,15 @@ program MINHOP
       close(864)
   endif
 
-  call ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
+  if (atoms%astruct%geocode=='F') call ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
 
+!  if ( .not. atoms%astruct%geocode=='F') then 
+!         write(*,*) 'Generating new input guess'
+!          inputs_opt%inputPsiId=0
+!          call run_objects_associate(runObj, inputs_opt, atoms, rst)
+!          call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+!          inputs_opt%inputPsiId=1
+!  endif   
   call run_objects_associate(runObj, inputs_opt, atoms, rst)
   call geopt(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of initial conf.',ncount_bigdft)
@@ -463,8 +470,15 @@ program MINHOP
       close(864)
   endif
 
+  if (atoms%astruct%geocode=='F') call  ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
 
-  call  ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
+!  if ( .not. atoms%astruct%geocode=='F') then 
+!         write(*,*) 'Generating new input guess'
+!          inputs_opt%inputPsiId=0
+!          call run_objects_associate(runObj, inputs_opt, atoms, rst)
+!          call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+!          inputs_opt%inputPsiId=1
+!  endif   
   call run_objects_associate(runObj, inputs_opt, atoms, rst)
   call geopt(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of MD conf',ncount_bigdft)
