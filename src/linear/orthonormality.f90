@@ -2905,6 +2905,7 @@ subroutine check_taylor_order(error, max_error, order_taylor)
 
   ! Local variables
   character(len=12) :: act
+  integer,parameter :: max_order=200
 
   if (order_taylor>0) then
       ! only do this if Taylor approximations are actually used
@@ -2917,6 +2918,11 @@ subroutine check_taylor_order(error, max_error, order_taylor)
           order_taylor = ceiling(1.1d0*real(order_taylor,kind=8))
       end if
       !if (bigdft_mpi%iproc==0) call yaml_map('new Taylor order',trim(yaml_toa(order_taylor,fmt='(i0)'))//act)
+  end if
+
+  if (order_taylor>max_order) then
+      order_taylor=max_order
+      if (bigdft_mpi%iproc==0) call yaml_warning('Taylor order reached maximum')
   end if
 
 end subroutine check_taylor_order
