@@ -30,14 +30,16 @@ use module_base
     write(*,*) 'FOUND ',nbond,' BOND'
 end subroutine
 
-subroutine findsad(imode,nat,alat,alpha0_trans,alpha0_rot,curvgraddiff,nit_trans,&
+subroutine findsad(glob,imode,nat,alat,alpha0_trans,alpha0_rot,curvgraddiff,nit_trans,&
            nit_rot,nhistx_trans,nhistx_rot,tolc,tolf,tightenfac,rmsdispl0,&
            trustr,wpos,etot,fout,minmode,fnrmtol,count,count_sd,displ,ec,&
            converged,atomnames,nbond,iconnect,alpha_stretch0,recompIfCurvPos,maxcurvrise,cutoffratio)
+use module_global_variables
 use module_base
 !imode=1 for clusters
 !imode=2 for biomolecules
         implicit none
+        type(globals), intent(inout) :: glob
         integer, intent(in) :: imode
         integer, intent(in) :: recompIfCurvPos
         real(gp), intent(in) :: alat(3)
@@ -123,7 +125,7 @@ minmode0=minmode
     count=count+1.d0
 !        call energyandforces(nat,rxyz(1,1,0),fxyz(1,1,0),etot)
 !        energyandforces(nat,alat,rxyz(1,1,0),fxyz(1,1,0),etot,'cnt_enf_geopt')
-    call minenergyandforces(imode,nat,alat,rxyz(1,1,0),rxyzraw(1,1,0),&
+    call minenergyandforces(glob,imode,nat,alat,rxyz(1,1,0),rxyzraw(1,1,0),&
     fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),etot,iconnect,nbond,atomnames,&
     wold,alpha_stretch0,alpha_stretch)
     ec=ec+1.d0
@@ -194,7 +196,7 @@ minmode0=minmode
 !       &.or. it==1&
        &.or. it==1 .or. (curv>=0.d0 .and. mod(it,recompIfCurvPos)==0)&
        &.or.recompute==it)then
-           call opt_curv(imode,nat,alat,alpha0_rot,curvgraddiff,nit_rot,nhistx_rot,rxyzraw(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
+           call opt_curv(glob,imode,nat,alat,alpha0_rot,curvgraddiff,nit_rot,nhistx_rot,rxyzraw(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
                         &minmode(1,1),curv,gradrot(1,1),&
                         &tol,count,count_sd,displ2,ec,check,optCurvConv,iconnect,nbond,atomnames,2.d-4,maxcurvrise,cutoffratio)
            minmode = minmode / dnrm2(3*nat,minmode(1,1),1)
@@ -251,7 +253,7 @@ stop 'opt_curv failed'
            count=count+1.d0
        endif
 
-       call minenergyandforces(imode,nat,alat,rxyz(1,1,nhist),rxyzraw(1,1,nhist),&
+       call minenergyandforces(glob,imode,nat,alat,rxyz(1,1,nhist),rxyzraw(1,1,nhist),&
             fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),etotp&
             ,iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
        ec=ec+1.d0
@@ -678,10 +680,12 @@ use module_base
     write(100,'(a,3(e11.3))') 'WARNING REMAINING TORQUE',t
 end subroutine
 
-subroutine opt_curv(imode,nat,alat,alpha0,curvgraddiff,nit,nhistx,rxyz_fix,fxyz_fix,dxyzin,curv,fout,fnrmtol&
+subroutine opt_curv(glob,imode,nat,alat,alpha0,curvgraddiff,nit,nhistx,rxyz_fix,fxyz_fix,dxyzin,curv,fout,fnrmtol&
                    &,count,count_sd,displ,ec,check,converged,iconnect,nbond,atomnames,alpha_stretch0,maxcurvrise,cutoffratio)!,mode)
+use module_global_variables
 use module_base
     implicit none
+    type(globals), intent(inout) :: glob
 integer, intent(in) :: imode
 integer, intent(in) :: nbond
 integer, intent(in) :: iconnect(2,nbond)
@@ -732,7 +736,7 @@ real(gp), intent(in) :: maxcurvrise,cutoffratio
 !    call minenergyandforces(nat,rxyz(1,1,0),rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),etot,iconnect,nbond,atomnames,wold,alpha_stretch)
 !    rxyz(:,:,0)=rxyz(:,:,0)+alpha_stretch*fstretch(:,:,0)
 !    ec=ec+1.d0
-     call mincurvgrad(imode,nat,alat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,0),&
+     call mincurvgrad(glob,imode,nat,alat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,0),&
           rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),curv,1,ec,&
           iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
     if(imode==2)rxyz(:,:,0)=rxyz(:,:,0)+alpha_stretch*fstretch(:,:,0)
@@ -805,7 +809,7 @@ real(gp), intent(in) :: maxcurvrise,cutoffratio
         else
             count=count+1.d0
         endif
-     call mincurvgrad(imode,nat,alat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
+     call mincurvgrad(glob,imode,nat,alat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
           rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),&
           curvp,1,ec,iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
         dcurv=curvp-curvold
@@ -1117,12 +1121,15 @@ end subroutine
 !end subroutine
 
 
-subroutine curvgrad(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ec)
+subroutine curvgrad(glob,nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ec)
     !computes the (curvature along vec) = vec^t H vec / (vec^t*vec)
     !vec mus be normalized
+use module_global_variables
 use module_base
+use module_energyandforces
     implicit none
     !parameters
+    type(globals), intent(inout) :: glob
     integer, intent(in) :: nat,imethod
     real(gp), intent(in) :: rxyz1(3,nat),fxyz1(3,nat),diff
     real(gp), intent(inout) :: vec(3,nat)
@@ -1150,7 +1157,7 @@ use module_base
 
     vec = vec / dnrm2(3*nat,vec(1,1),1)
     rxyz2 = rxyz1 + diff * vec
-    call energyandforces(nat,alat,rxyz2(1,1),fxyz2(1,1),etot2)
+    call energyandforces(glob,nat,alat,rxyz2(1,1),fxyz2(1,1),etot2)
 !    call energyandforces(nat, alat, rxyz2(1,1),fxyz2(1,1),etot2,'cnt_enf_forcebar_decomp')
     ec=ec+1.d0
 
@@ -2128,10 +2135,13 @@ use module_base
   enddo
 end subroutine give_rcov
 
-subroutine minenergyandforces(imode,nat,alat,rat,rxyzraw,fat,fstretch,&
+subroutine minenergyandforces(glob,imode,nat,alat,rat,rxyzraw,fat,fstretch,&
            fxyzraw,epot,iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
+use module_global_variables
 use module_base
+use module_energyandforces
     implicit real(gp) (a-h,o-z)
+    type(globals), intent(inout) :: glob
     dimension :: rat(3,nat),fat(3,nat),iconnect(2,nbond),fstretch(3,nat),fxyzraw(3,nat),rxyzraw(3,nat)
     dimension :: ss(nbond,nbond),w(nbond),vv(3,nat,nbond),wold(nbond)
     real(gp), intent(in) :: alpha_stretch0
@@ -2140,7 +2150,7 @@ use module_base
     character(5):: atomnames(nat)
 
     rxyzraw=rat
-    call energyandforces(nat,alat,rat,fat,epot)
+    call energyandforces(glob,nat,alat,rat,fat,epot)
     fxyzraw=fat
     fnrmold=dnrm2(3*nat,fat,1)
     fstretch=0.d0
@@ -2150,12 +2160,14 @@ use module_base
     endif
  
 end subroutine minenergyandforces
-subroutine mincurvgrad(imode,nat,alat,diff,rxyz1,fxyz1,vec,vecraw,&
+subroutine mincurvgrad(glob,imode,nat,alat,diff,rxyz1,fxyz1,vec,vecraw,&
            rotforce,rotfstretch,rotforceraw,curv,imethod,ec,&
            iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
+use module_global_variables
 use module_base
     implicit real(gp) (a-h,o-z)
     integer, intent(in) :: imode
+    type(globals), intent(inout) :: glob
     real(gp) :: alat(3)
     real(gp) :: rxyz1(3,nat),fxyz1(3,nat)
     real(gp) :: rxyz2(3,nat),fxyz2(3,nat)
@@ -2170,7 +2182,7 @@ use module_base
 
      vecraw=vec
 !    call energyandforces(nat,rat,fat,epot)
-     call curvgrad(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ec)
+     call curvgrad(glob,nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ec)
      rxyz2 =rxyz1+diff*vec
      rotforceraw=rotforce
      rotfstretch=0.d0

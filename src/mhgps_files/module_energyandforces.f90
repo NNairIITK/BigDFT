@@ -1,17 +1,32 @@
 module module_energyandforces
+    use module_global_variables
 
-subroutine energyandforces(nat,alat,rxyz,fxyz,epot)
-    use module_types
+contains
+
+subroutine energyandforces(glob,nat,alat,rxyz,fxyz,epot)
+   use module_base
+   use module_types
+   use module_interfaces
+   use yaml_output
+
+
     implicit none
+    type(globals), intent(inout) :: glob
+    integer, intent(in) :: nat
+    real(gp), intent(in) :: alat(3)
+    real(gp), intent(in) :: rxyz(3,nat)
+    real(gp), intent(in) :: fxyz(3,nat)
+    real(gp), intent(in) :: epot
+    !internal
     
-    if(trim(adjustl(efmethod))=='LJ')then
-        call lenjon(runObj%atoms%astruct%nat,runObj%atoms%astruct%rxyz(1,1),outs%fxyz(1,1),outs%energy)
-    else if(efmethod=='BIGDFT')then
-        call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+    if(trim(adjustl(glob%efmethod))=='LJ')then
+        call lenjon(nat,rxyz(1,1),fxyz(1,1),epot)
+        return
+    else if(trim(adjustl(glob%efmethod))=='BIGDFT')then
+        call call_bigdft(glob%runObj,glob%outs,bigdft_mpi%nproc,bigdft_mpi%iproc,glob%infocode)
+        return
     endif
 end subroutine
-
-subroutine
 
 subroutine lenjon(nat,rxyz,fxyz,etot)
     use module_base
@@ -46,7 +61,7 @@ subroutine lenjon(nat,rxyz,fxyz,etot)
         enddo
     enddo
     return
-end
+end subroutine
 
 
 end module

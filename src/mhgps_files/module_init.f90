@@ -1,44 +1,23 @@
-module module_global_variables
+module module_init
     use module_base !bigdft base module
+    use module_global_variables
     implicit none
 
-    type, public :: globals
-        !input parameters for mhgps
-        integer :: mhgps_verbosity=3
-        character(len=6) :: efmethod_known(2)=(/"LJ","BIGDFT"/)
-        character(len=6) :: efmethod="LJ" !method/force-field for energies, stresses and forces
-        logical :: biomode=.false.
-        integer :: nit_trans=5000
-        integer :: nit_rot=5000
-        integer :: nhistx_trans=40
-        integer :: nhistx_rot=4
-        real(gp) :: alpha0_trans=1.d-3
-        real(gp) :: alpha0_rot=1.d-3
-        real(gp) :: alpha_stretch0=4.d-4
-        real(gp) :: curvgraddiff=1.d-3
-        real(gp) :: rmsdispl0=0.04d0
-        real(gp) :: trustr=0.2d0
-        real(gp) :: tolc=7.d0
-        real(gp) :: tolf=7.d0
-        real(gp) :: tightenfac=-1.d0
-        real(gp) :: maxcurvrise=1.d-6
-        real(gp) :: cutoffratio=1.d-4
-        integer  :: recompIfCurvPos=5
-
-        !bigdft data types
-        type(run_objects) :: runObj
-        type(dictionary), pointer :: user_inputs
-        type(DFT_global_output) :: outs
-    end type
 contains
 
     subroutine init_global_variables(glob)
         implicit none
         !parameter
         type(globals), intent(out) :: glob
+        !internal
+        integer:: nconfig,ierr,run_id
+        call print_logo_mhgps()
         call read_input(glob)
         if(glob%efmethod=='BIGDFT')then
-        elseif(glov%efmethod=='LJ')then
+            call bigdft_init(glob%mpi_info,nconfig,run_id,ierr)
+            if (nconfig < 0) stop 'runs-file not supported for MHGPS executable'
+            call print_logo()
+        elseif(glob%efmethod=='LJ')then
 !        TODO
         endif
     end subroutine
@@ -105,5 +84,32 @@ contains
         close(u)
 
     end subroutine
+
+    subroutine print_logo_mhgps()
+        use yaml_output
+        implicit none
+
+        call yaml_comment('Minima Hopping Guided Path Sampling....',hfill='=')
+        
+        call yaml_open_map('MHGPS logo')
+        call yaml_scalar('      ___           ___           ___           ___           ___     ') 
+        call yaml_scalar('     /\__\         /\__\         /\  \         /\  \         /\  \    ')
+        call yaml_scalar('    /::|  |       /:/  /        /::\  \       /::\  \       /::\  \   ')
+        call yaml_scalar('   /:|:|  |      /:/__/        /:/\:\  \     /:/\:\  \     /:/\ \  \  ')
+        call yaml_scalar('  /:/|:|__|__   /::\  \ ___   /:/  \:\  \   /::\~\:\  \   _\:\~\ \  \ ')
+        call yaml_scalar(' /:/ |::::\__\ /:/\:\  /\__\ /:/__/_\:\__\ /:/\:\ \:\__\ /\ \:\ \ \__\')
+        call yaml_scalar(' \/__/~~/:/  / \/__\:\/:/  / \:\  /\ \/__/ \/__\:\/:/  / \:\ \:\ \/__/')
+        call yaml_scalar('       /:/  /       \::/  /   \:\ \:\__\        \::/  /   \:\ \:\__\  ')
+        call yaml_scalar('      /:/  /        /:/  /     \:\/:/  /         \/__/     \:\/:/  /  ')
+        call yaml_scalar('     /:/  /        /:/  /       \::/  /                     \::/  /   ')
+        call yaml_scalar('     \/__/         \/__/         \/__/                       \/__/    ')
+        call yaml_scalar('                                                   as post-processing ')
+        call yaml_scalar('')
+        call yaml_scalar('')
+        !call print_logo()
+        call yaml_close_map()
+        call yaml_map('Reference Paper','The Journal of Chemical Physics 140 (21):214102 (2014)')
+    end subroutine print_logo_mhgps
+
 
 end module

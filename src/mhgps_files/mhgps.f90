@@ -8,6 +8,7 @@ program mhgps
                             atomic_structure,&
                             read_atomic_file=>set_astruct_from_file
     use module_global_variables
+    use module_init
     use module_saddle
     implicit none
     integer :: bigdft_get_number_of_atoms,bigdft_get_number_of_orbitals
@@ -18,9 +19,10 @@ program mhgps
 
     write(*,*)'test'
     call f_lib_initialize()
+
     call init_global_variables(glob)
 
-    call read_atomic_file('posinp',iproc,astruct)
+!    call read_atomic_file('posinp',iproc,astruct)
 
 
 

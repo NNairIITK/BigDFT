@@ -21,7 +21,7 @@ SUBDIRS = \
 	OpenCL \
 	bindings \
 	art \
-    mhgps \
+    mhgps_files \
 	$(sub_dirs_bin)
 
 EXTRA_DIST = \
@@ -63,7 +63,7 @@ else
 lib_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft memguess splsad NEB frequencies global abscalc
+binaries_sources = bigdft memguess splsad NEB frequencies global abscalc mhgps
 local_binaries = test_forces
 scripts_sources = NEB_driver.sh bigdft-tool
 sub_dirs_bin = tools tools/bader
@@ -309,6 +309,10 @@ frequencies_LDADD = $(bigdft_library) @LINALG_LIBS@
 bart_SOURCES = art.f90
 bart_FCFLAGS = -I. -Iart -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 bart_LDADD = art/libart.a $(bigdft_library) @LINALG_LIBS@
+
+mhgps_SOURCES = mhgps/mhgps.f90
+mhgps_FCFLAGS = -I. -Imhgps -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+mhgps_LDADD = mhgps/libmhgps.a $(bigdft_library) @LINALG_LIBS@
 
 
 global_SOURCES = global.f90
