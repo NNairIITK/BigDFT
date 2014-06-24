@@ -1176,12 +1176,12 @@ subroutine overlap_plus_minus_one_half_exact(nproc,norb,blocksize,plusminus,inv_
 
   call f_routine(id='overlap_plus_minus_one_half_exact')
 
-  if (nproc>1) then
+  !if (nproc>1) then
       if (.not.present(smat)) then 
           call f_err_throw('overlap_plus_minus_one_half_exact: for nproc>1, smat must be present!', &
                err_name='BIGDFT_RUNTIME_ERROR')
       end if
-  end if
+  !end if
            
 
   eval=f_malloc(norb,id='eval')
@@ -1562,7 +1562,7 @@ subroutine max_matrix_diff_parallel(iproc, norb, norbp, isorb, mat1, mat2, &
   num=0.d0
   do iorb=1,norbp
      iiorb=iorb+isorb
-     !$omp parallel default(private) shared(iorb, iiorb, norb, mat1, mat2, max_deviation, mean_deviation, num)
+     !$omp parallel default(private) shared(iorb, iiorb, norb, mat1, mat2, max_deviation, mean_deviation, num, smat)
      !$omp do reduction(max:max_deviation) reduction(+:mean_deviation,num)
      do jorb=1,norb
         ind=matrixindex_in_compressed(smat,jorb,iiorb)
@@ -1653,7 +1653,7 @@ subroutine deviation_from_unity_parallel(iproc, nproc, norb, norbp, isorb, ovrlp
   num=0.d0
   do iorb=1,norbp
      iiorb=iorb+isorb
-     !$omp parallel default(private) shared(norb, iiorb, ovrlp, iorb, max_deviation, mean_deviation, num)
+     !$omp parallel default(private) shared(norb, iiorb, ovrlp, iorb, max_deviation, mean_deviation, num, smat)
      !$omp do reduction(max:max_deviation) reduction(+:mean_deviation,num)
      do jorb=1,norb
         ind=matrixindex_in_compressed(smat,jorb,iiorb)
@@ -1829,7 +1829,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
      !!     ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
      !!     ovrlp_mat=ovrlp_mat, inv_ovrlp_mat=inv_ovrlp_half_, check_accur=.true., &
      !!     ovrlp=ovrlp_tmp, inv_ovrlp=ovrlp_tmp_inv_half, error=error)
-     call overlap_plus_minus_one_half_exact(1, n, -8, .false., ovrlp_tmp_inv_half)
+     call overlap_plus_minus_one_half_exact(1, n, -8, .false., ovrlp_tmp_inv_half,inv_ovrlp_half)
 
 
      !if (iiorb==orbs%norb) then
@@ -2661,9 +2661,9 @@ subroutine overlap_minus_one_half_serial(iproc, nproc, iorder, power, blocksize,
           if (power==1) then
              call overlap_minus_one_exact_serial(norb,inv_ovrlp_matrix)
           else if (power==2) then
-             call overlap_plus_minus_one_half_exact(1,norb,blocksize,.true.,inv_ovrlp_matrix)
+             call overlap_plus_minus_one_half_exact(1,norb,blocksize,.true.,inv_ovrlp_matrix,smat)
           else if (power==-2) then
-             call overlap_plus_minus_one_half_exact(1,norb,blocksize,.false.,inv_ovrlp_matrix)
+             call overlap_plus_minus_one_half_exact(1,norb,blocksize,.false.,inv_ovrlp_matrix,smat)
           end if
       else if (iorder<0) then
           Amat12p = f_malloc((/norb,norb/), id='Amat12p')

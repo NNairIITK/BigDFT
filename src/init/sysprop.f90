@@ -113,7 +113,6 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   else
      nspinor=1
   end if
-  write(*,*) 'in%gen_norb,in%gen_norbu,in%gen_norbd',in%gen_norb,in%gen_norbu,in%gen_norbd
   call orbitals_descriptors(iproc, nproc,in%gen_norb,in%gen_norbu,in%gen_norbd,in%nspin,nspinor,&
        in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,.false.)
   orbs%occup(1:orbs%norb*orbs%nkpts) = in%gen_occup
