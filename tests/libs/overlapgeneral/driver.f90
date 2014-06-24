@@ -194,7 +194,7 @@ program driver
       keyg_tmp(2,iseg)=iiorb
   end do
 
-  if (ortho_check) call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norb, 0, ovrlp, max_error, mean_error)
+  if (ortho_check) call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norb, 0, ovrlp, smat_A, max_error, mean_error)
   if (ortho_check.and.iproc==0) call yaml_map('max deviation from unity',max_error)
   if (ortho_check.and.iproc==0) call yaml_map('mean deviation from unity',mean_error)
   if (iproc==0) call yaml_comment('starting the checks',hfill='=')
@@ -246,7 +246,8 @@ program driver
           if (timer_on) time2=dble(ncount2-ncount1)/dble(ncount_rate)
       end if
       if (print_matrices.and.iproc==0) call write_matrix_compressed('final result', smat_B, inv_mat_B)
-      if (iproc==0) call yaml_map('error of the result',error)
+      if (iproc==0) call yaml_map('Max error of the result',max_error)
+      if (iproc==0) call yaml_map('Mean error of the result',mean_error)
       if (timer_on.and.iproc==0) call yaml_map('time taken (cpu)',time)
       if (timer_on.and.iproc==0) call yaml_map('time taken (system)',time2)
   end do
