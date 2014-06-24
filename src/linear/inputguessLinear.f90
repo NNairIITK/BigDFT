@@ -41,7 +41,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   ! Local variables
   type(gaussian_basis) :: G !basis for davidson IG
   character(len=*), parameter :: subname='inputguessConfinement'
-  integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat
+  integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat,methTransformOverlap
   real(gp) :: hxh,hyh,hzh,eks,fnrm,V3prb,x0,tt
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:), allocatable :: locrad
@@ -541,7 +541,6 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   if (.not. input%lin%iterative_orthogonalization) then
       ! Standard orthonomalization
-      !!if(iproc==0) write(*,*) 'calling orthonormalizeLocalized (exact)'
       if (iproc==0) call yaml_map('orthonormalization of input guess','standard')
       ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
       !write(*,'(a,i4,4i8)') 'IG: iproc, lbound, ubound, minval, maxval',&
@@ -549,7 +548,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       !ubound(tmb%linmat%inv_ovrlp%matrixindex_in_compressed_fortransposed,2),&
       !minval(tmb%collcom%indexrecvorbital_c),maxval(tmb%collcom%indexrecvorbital_c)
       !!if (iproc==0) write(*,*) 'WARNING: no ortho in inguess'
-      call orthonormalizeLocalized(iproc, nproc, -1, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
+      methTransformOverlap=-1
+      call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, 1.d0, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
            tmb%linmat%s, tmb%linmat%l, &
            tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed, &
            tmb%foe_obj)
@@ -658,7 +658,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          50,&
          ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode,input%lin%early_stop,&
          input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
-         can_use_ham, input%lin%order_taylor, input%kappa_conv, input%method_updatekernel,&
+         can_use_ham, input%lin%order_taylor, input%max_inversion_error, input%kappa_conv, input%method_updatekernel,&
          input%purification_quickreturn, input%correction_co_contra)
      reduce_conf=.true.
      call yaml_close_sequence()
@@ -690,14 +690,14 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
 
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
-           input%SIC,tmb,fnrm,.true.,.false.,.true.,0,0,0,0,input%lin%order_taylor,&
+           input%SIC,tmb,fnrm,.true.,.false.,.true.,0,0,0,0,input%lin%order_taylor,input%max_inversion_error,&
            input%purification_quickreturn,&
            input%calculate_KS_residue,input%calculate_gap)
 
 
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
-           input%SIC,tmb,fnrm,.true.,.false.,.true.,0,0,0,0,input%lin%order_taylor,&
+           input%SIC,tmb,fnrm,.true.,.false.,.true.,0,0,0,0,input%lin%order_taylor,input%max_inversion_error,&
            input%purification_quickreturn,&
            input%calculate_KS_residue,input%calculate_gap)
 

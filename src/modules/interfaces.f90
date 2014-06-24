@@ -1466,14 +1466,16 @@ module module_interfaces
           nit_precond,target_function,&
           correction_orthoconstraint,nit_basis,&
           ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
-          gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, kappa_conv, method_updatekernel,&
+          gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, method_updatekernel,&
           purification_quickreturn, correction_co_contra)
         use module_base
         use module_types
         implicit none
       
         ! Calling arguments
-        integer,intent(in) :: iproc, nproc, order_taylor
+        integer,intent(in) :: iproc, nproc
+        integer,intent(inout) :: order_taylor
+        real(kind=8),intent(in) :: max_inversion_error
         integer,intent(out) :: infoBasisFunctions
         type(atoms_data), intent(in) :: at
         type(orbitals_data) :: orbs
@@ -1514,7 +1516,7 @@ module module_interfaces
     
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
         energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-        calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,purification_quickreturn,&
+        calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,purification_quickreturn,&
         calculate_KS_residue,calculate_gap,&
         convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
       use module_base
@@ -1525,7 +1527,9 @@ module module_interfaces
       use yaml_output
       use sparsematrix_base, only: sparse_matrix
       implicit none
-      integer,intent(in) :: iproc, nproc, scf_mode, itout, it_scc, it_cdft, order_taylor
+      integer,intent(in) :: iproc, nproc, scf_mode, itout, it_scc, it_cdft
+      integer,intent(inout) :: order_taylor
+      real(kind=8),intent(in) :: max_inversion_error
       type(orbitals_data),intent(inout) :: orbs
       type(atoms_data),intent(in) :: at
       real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
@@ -1762,14 +1766,16 @@ module module_interfaces
        integer,dimension(8),intent(out):: comarr
      end subroutine setCommsParameters
      
-     subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_orbs, &
+     subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inversion_error, npsidim_orbs, &
                 orbs, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed, foe_obj)
        use module_base
        use module_types
        use sparsematrix_base, only: sparse_matrix
        use foe_base, only: foe_data
        implicit none
-       integer,intent(in):: iproc,nproc,methTransformOverlap,npsidim_orbs
+       integer,intent(in) :: iproc,nproc,npsidim_orbs
+       integer,intent(inout) :: methTransformOverlap
+       real(kind=8),intent(in) :: max_inversion_error
        type(orbitals_data),intent(in):: orbs
        type(local_zone_descriptors),intent(in):: lzd
        type(sparse_matrix),intent(inout):: ovrlp
@@ -1968,7 +1974,7 @@ module module_interfaces
       subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
                  correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, &
            hpsit_c, hpsit_f, hpsit_nococontra_c, hpsit_nococontra_f, &
-                 can_use_transposed, overlap_calculated, experimental_mode, norder_taylor, &
+                 can_use_transposed, overlap_calculated, experimental_mode, norder_taylor, max_inversion_error, &
            npsidim_orbs_small, lzd_small, hpsi_noprecond)
         use module_base
         use module_types
@@ -1990,7 +1996,8 @@ module module_interfaces
         logical,intent(inout) :: can_use_transposed, overlap_calculated
         type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
         logical,intent(in) :: experimental_mode
-        integer,intent(in) :: norder_taylor
+        integer,intent(inout) :: norder_taylor
+        real(kind=8),intent(in) :: max_inversion_error
         real(kind=8),dimension(npsidim_orbs_small),intent(out) :: hpsi_noprecond
       end subroutine orthoconstraintNonorthogonal
 
@@ -2460,7 +2467,8 @@ module module_interfaces
          use module_base
          use module_types
          implicit none
-         integer,intent(in) :: iproc, nproc, it, norder_taylor, method_updatekernel
+         integer, intent(in) :: iproc, nproc, it, method_updatekernel
+         integer,intent(inout) :: norder_taylor
          type(DFT_wavefunction),target,intent(inout):: tmb
          type(localizedDIISParameters),intent(inout) :: ldiis
          real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
@@ -2494,11 +2502,13 @@ module module_interfaces
 
        subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
                   lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho, psidiff, &
-                  experimental_mode, order_taylor, trH_ref, kernel_best, complete_reset)
+                  experimental_mode, order_taylor, max_inversion_error, trH_ref, kernel_best, complete_reset)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: iproc, nproc, it, order_taylor
+         integer,intent(in) :: iproc, nproc, it
+         integer,intent(inout) :: order_taylor
+         real(kind=8),intent(in) :: max_inversion_error
          type(localizedDIISParameters),intent(inout):: ldiis
          type(DFT_wavefunction),target,intent(inout):: tmb
          real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lphiold
@@ -2958,7 +2968,7 @@ module module_interfaces
           use module_base
           use module_types
           implicit none
-          integer,intent(in):: iproc, nproc, iorder, blocksize_dsyev, blocksize_pdgemm
+          integer,intent(in):: iproc, nproc, blocksize_dsyev, blocksize_pdgemm, inversion_method
           type(orbitals_data),intent(in):: orbs
           type(DFT_wavefunction),intent(inout):: tmb
           logical,intent(inout):: overlap_calculated
@@ -3199,13 +3209,15 @@ module module_interfaces
         end subroutine sumrho_for_TMBs
 
         subroutine foe(iproc, nproc, tmprtr, &
-                   ebs, itout, it_scc, order_taylor, purification_quickreturn, foe_verbosity, &
+                   ebs, itout, it_scc, order_taylor, max_inversion_error, purification_quickreturn, foe_verbosity, &
                    accuracy_level, tmb, foe_obj)
           use module_base
           use module_types
           use foe_base, only: foe_data
           implicit none
-          integer,intent(in) :: iproc, nproc, itout, it_scc, order_taylor
+          integer,intent(in) :: iproc, nproc, itout, it_scc
+          integer,intent(inout) :: order_taylor
+          real(kind=8),intent(in) :: max_inversion_error
           real(kind=8),intent(in) :: tmprtr
           real(kind=8),intent(out) :: ebs
           logical,intent(in) :: purification_quickreturn
@@ -3541,7 +3553,7 @@ module module_interfaces
           integer,intent(in) :: nproc,norb,blocksize
           real(kind=8),dimension(:,:),pointer :: inv_ovrlp_half
           logical, intent(in) :: plusminus
-          type(sparse_matrix),intent(in),optional :: smat
+          type(sparse_matrix),intent(in) :: smat
         end subroutine overlap_plus_minus_one_half_exact
 
         subroutine input_wf_memory_new(nproc,iproc, atoms, &
@@ -3643,11 +3655,14 @@ module module_interfaces
           integer,intent(in) :: check_sumrho
         end subroutine check_communication_sumrho
 
-        subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt, order_taylor, purification_quickreturn)
+        subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt, order_taylor, &
+                   max_inversion_error, purification_quickreturn)
           use module_base
           use module_types
           implicit none
-          integer,intent(in) :: iproc, nproc, order_taylor
+          integer,intent(in) :: iproc, nproc
+          integer,intent(inout) :: order_taylor
+          real(kind=8),intent(in) :: max_inversion_error
           type(DFT_wavefunction),intent(inout):: tmb
           logical,intent(inout):: overlap_calculated
           integer,intent(in) :: it_shift, it_opt
@@ -3655,12 +3670,14 @@ module module_interfaces
         end subroutine purify_kernel
 
         subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit, itmax, energy, &
-               sd_fit_curve, factor, itout, it_scc, it_cdft, order_taylor, reorder, num_extra)
+               sd_fit_curve, factor, itout, it_scc, it_cdft, order_taylor, max_inversion_error, reorder, num_extra)
           use module_base
           use module_types
           use diis_sd_optimization
           implicit none
-          integer,intent(in):: iproc, nproc, itmax, itout, it_scc, it_cdft, order_taylor
+          integer,intent(in):: iproc, nproc, itmax, itout, it_scc, it_cdft
+          integer,intent(inout) :: order_taylor
+          real(kind=8),intent(in) :: max_inversion_error
           type(orbitals_data),intent(in):: orbs
           type(DFT_wavefunction),intent(inout):: tmb
           type(DIIS_obj), intent(inout) :: ldiis_coeff

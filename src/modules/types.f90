@@ -450,6 +450,9 @@ module module_types
      !> linear scaling: upper bound for the error function decay length
      real(kind=8) :: fscale_upperbound
 
+     !> linear scaling: maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
+     real(kind=8) :: max_inversion_error
+
   end type input_variables
 
 
@@ -2739,6 +2742,9 @@ end subroutine find_category
        case (FSCALE_UPPERBOUND)
            ! linear scaling: upper bound for the error function decay length
            in%fscale_upperbound = val
+       case (MAX_INVERSION_ERROR)
+           ! linear scaling: maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
+           in%max_inversion_error = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select

@@ -9,7 +9,7 @@
 
 
 !> Orthonormalized the localized orbitals
-subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_orbs, &
+subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inversion_error, npsidim_orbs, &
            orbs, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed, foe_obj)
   use module_base
   use module_types
@@ -21,7 +21,9 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc,nproc,methTransformOverlap,npsidim_orbs
+  integer,intent(in) :: iproc,nproc,npsidim_orbs
+  integer,intent(inout) :: methTransformOverlap
+  real(kind=8),intent(in) :: max_inversion_error
   type(orbitals_data),intent(in) :: orbs
   type(local_zone_descriptors),intent(in) :: lzd
   type(sparse_matrix),intent(inout) :: ovrlp
@@ -84,6 +86,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, npsidim_o
            imode=1, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
            ovrlp_mat=ovrlp_, inv_ovrlp_mat=inv_ovrlp_half_, &
            check_accur=.false.)!!, &
+      call check_taylor_order(mean_error, max_inversion_error, order_taylor)
   end if
 
   call deallocate_matrices(ovrlp_)
@@ -120,7 +123,7 @@ end subroutine orthonormalizeLocalized
 subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
            correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, &
            hpsit_c, hpsit_f, hpsit_nococontra_c, hpsit_nococontra_f, &
-           can_use_transposed, overlap_calculated, experimental_mode, norder_taylor, &
+           can_use_transposed, overlap_calculated, experimental_mode, norder_taylor, max_inversion_error, &
            npsidim_orbs_small, lzd_small, hpsi_noprecond)
   use module_base
   use module_types
@@ -153,7 +156,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   logical,intent(inout) :: can_use_transposed, overlap_calculated
   type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
   logical,intent(in) :: experimental_mode
-  integer,intent(in) :: norder_taylor
+  integer,intent(inout) :: norder_taylor
+  real(kind=8),intent(in) :: max_inversion_error
   real(kind=8),dimension(npsidim_orbs_small),intent(out) :: hpsi_noprecond
 
   ! Local variables
@@ -195,6 +199,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
        imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
        ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, &
        check_accur=.true., max_error=max_error, mean_error=mean_error)
+  call check_taylor_order(mean_error, max_inversion_error, order_taylor)
 
 
   ! Calculate <phi_alpha|g_beta>
@@ -1160,7 +1165,7 @@ subroutine overlap_plus_minus_one_half_exact(nproc,norb,blocksize,plusminus,inv_
   integer,intent(in) :: nproc,norb,blocksize
   real(kind=8),dimension(:,:),pointer :: inv_ovrlp_half
   logical, intent(in) :: plusminus
-  type(sparse_matrix),intent(in),optional :: smat
+  type(sparse_matrix),intent(in) :: smat
 
   integer :: info, iorb, jorb, ierr, iiorb, isorb, norbp, lwork, jjorb
   real(kind=8),dimension(:),allocatable :: eval, work
@@ -1176,12 +1181,12 @@ subroutine overlap_plus_minus_one_half_exact(nproc,norb,blocksize,plusminus,inv_
 
   call f_routine(id='overlap_plus_minus_one_half_exact')
 
-  !if (nproc>1) then
-      if (.not.present(smat)) then 
-          call f_err_throw('overlap_plus_minus_one_half_exact: for nproc>1, smat must be present!', &
-               err_name='BIGDFT_RUNTIME_ERROR')
-      end if
-  !end if
+  !!!if (nproc>1) then
+  !!    if (.not.present(smat)) then 
+  !!        call f_err_throw('overlap_plus_minus_one_half_exact: for nproc>1, smat must be present!', &
+  !!             err_name='BIGDFT_RUNTIME_ERROR')
+  !!    end if
+  !!!end if
            
 
   eval=f_malloc(norb,id='eval')
@@ -2886,3 +2891,30 @@ subroutine diagonalize_subset(iproc, nproc, orbs, ovrlp, ovrlp_mat, ham, ham_mat
   call f_release_routine()
 
 end subroutine diagonalize_subset
+
+
+
+subroutine check_taylor_order(error, max_error, order_taylor)
+  use module_base
+  implicit none
+
+  ! Calling arguments
+  real(kind=8),intent(in) :: error, max_error
+  integer,intent(inout) :: order_taylor
+
+  if (order_taylor>0) then
+      ! only do this if Taylor approximations are actually used
+      if (bigdft_mpi%iproc==0) call yaml_open_map(flow=.true.)
+      if (error<=max_error) then
+          ! error is small enough, so do nothing
+          if (bigdft_mpi%iproc==0) call yaml_map('Need to adjust Taylor order',.false.)
+      else
+          ! error is too big, increase the order of the Taylor series by 10%
+          if (bigdft_mpi%iproc==0) call yaml_map('Need to adjust Taylor order',.true.)
+          order_taylor = nint(1.1d0*real(order_taylor,kind=8))
+          if (bigdft_mpi%iproc==0) call yaml_map('New Value',order_taylor)
+      end if
+      if (bigdft_mpi%iproc==0) call yaml_close_map()
+  end if
+
+end subroutine check_taylor_order

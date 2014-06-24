@@ -10,7 +10,7 @@
 
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
-    calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,purification_quickreturn, &
+    calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,purification_quickreturn, &
     calculate_KS_residue,calculate_gap,&
     convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
   use module_base
@@ -27,7 +27,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, scf_mode, itout, it_scc, it_cdft, order_taylor
+  integer,intent(in) :: iproc, nproc, scf_mode, itout, it_scc, it_cdft
+  integer,intent(inout) :: order_taylor
+  real(kind=8),intent(in) :: max_inversion_error
   type(orbitals_data),intent(inout) :: orbs
   type(atoms_data),intent(in) :: at
   real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
@@ -262,10 +264,10 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
      if (iproc==0) call yaml_map('method','directmin')
      if (extra_states>0) then
         call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, energs%ebs, &
-             curvefit_dmin, factor, itout, it_scc, it_cdft, order_taylor, reorder, extra_states)
+             curvefit_dmin, factor, itout, it_scc, it_cdft, order_taylor, max_inversion_error, reorder, extra_states)
      else
         call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, energs%ebs, &
-             curvefit_dmin, factor, itout, it_scc, it_cdft, order_taylor, reorder)
+             curvefit_dmin, factor, itout, it_scc, it_cdft, order_taylor, max_inversion_error, reorder)
      end if
   end if
 
@@ -321,7 +323,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       if (iproc==0) call yaml_map('method','FOE')
       tmprtr=0.d0
       call foe(iproc, nproc, tmprtr, &
-           energs%ebs, itout,it_scc, order_taylor, purification_quickreturn, &
+           energs%ebs, itout,it_scc, order_taylor, max_inversion_error, purification_quickreturn, &
            1, FOE_ACCURATE, tmb, tmb%foe_obj)
       !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
       ! Eigenvalues not available, therefore take -.5d0
@@ -358,7 +360,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     nit_precond,target_function,&
     correction_orthoconstraint,nit_basis,&
     ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
-    gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, kappa_conv, method_updatekernel,&
+    gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, method_updatekernel,&
     purification_quickreturn, correction_co_contra)
   !
   ! Purpose:
@@ -377,7 +379,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, order_taylor
+  integer,intent(in) :: iproc, nproc
+  integer,intent(inout) :: order_taylor
+  real(kind=8),intent(in) :: max_inversion_error
   integer,intent(out) :: infoBasisFunctions
   type(atoms_data), intent(in) :: at
   type(orbitals_data) :: orbs
@@ -482,7 +486,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call yaml_map('Initial kernel purification',.true.)
       end if
       overlap_calculated=.true.
-      call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, order_taylor, purification_quickreturn)
+      call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, order_taylor, &
+           max_inversion_error, purification_quickreturn)
       if (iproc==0) call yaml_close_map()
   end if
 
@@ -600,10 +605,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               if (iproc==0) call yaml_newline()
               if (iproc==0) call yaml_open_sequence('kernel update by FOE')
               if (method_updatekernel==UPDATE_BY_RENORMALIZATION) then
-                  call renormalize_kernel(iproc, nproc, order_taylor, tmb, tmb%linmat%ovrlp_, ovrlp_old)
+                  call renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, tmb, tmb%linmat%ovrlp_, ovrlp_old)
               else if (method_updatekernel==UPDATE_BY_FOE) then
                   call foe(iproc, nproc, 0.d0, &
-                       energs%ebs, -1, -10, order_taylor, purification_quickreturn, 0, &
+                       energs%ebs, -1, -10, order_taylor, max_inversion_error, purification_quickreturn, 0, &
                        FOE_FAST, tmb, tmb%foe_obj)
               end if
               if (iproc==0) call yaml_close_sequence()
@@ -649,7 +654,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
            hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, hpsi_small, &
-           experimental_mode, correction_co_contra, hpsi_noprecond, order_taylor, method_updatekernel, &
+           experimental_mode, correction_co_contra, hpsi_noprecond, order_taylor, max_inversion_error, method_updatekernel, &
            precond_convol_workarrays, precond_workarrays)
 
 
@@ -845,7 +850,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
       call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
            lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho_on, psidiff, &
-           experimental_mode, order_taylor, trH_ref, kernel_best, complete_reset)
+           experimental_mode, order_taylor, max_inversion_error, trH_ref, kernel_best, complete_reset)
 
 
       overlap_calculated=.false.
@@ -882,7 +887,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                       call yaml_map('purify kernel',.true.)
                       call yaml_newline()
                   end if
-                  call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, order_taylor, purification_quickreturn)
+                  call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, &
+                       order_taylor, max_inversion_error, purification_quickreturn)
               else if (method_updatekernel==UPDATE_BY_FOE) then
                   if (iproc==0) then
                       call yaml_map('purify kernel',.false.)
@@ -2015,7 +2021,8 @@ end subroutine estimate_energy_change
 
 
 
-subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt, order_taylor, purification_quickreturn)
+subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt, order_taylor, &
+           max_inversion_error, purification_quickreturn)
   use module_base
   use module_types
   use yaml_output
@@ -2028,7 +2035,9 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, order_taylor
+  integer,intent(in) :: iproc, nproc
+  integer,intent(inout) :: order_taylor
+  real(kind=8),intent(in) :: max_inversion_error
   type(DFT_wavefunction),intent(inout):: tmb
   logical,intent(inout):: overlap_calculated
   integer,intent(in) :: it_shift, it_opt
@@ -2367,10 +2376,12 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
                imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=ovrlp_onehalf_, check_accur=.true., &
                max_error=max_error, mean_error=mean_error)
+          call check_taylor_order(mean_error, max_inversion_error, order_taylor)
           call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, &
                imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=ovrlp_minusonehalf_, check_accur=.true., &
                max_error=max_error, mean_error=mean_error)
+          call check_taylor_order(mean_error, max_inversion_error, order_taylor)
           if (iproc==0) then
               call yaml_map('max error of S^-1/2',max_error,fmt='(es9.2)')
               call yaml_map('mean error of S^-1/2',mean_error,fmt='(es9.2)')
@@ -2530,7 +2541,7 @@ end subroutine get_KS_residue
 
 
 
-subroutine renormalize_kernel(iproc, nproc, order_taylor, tmb, ovrlp, ovrlp_old)
+subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, tmb, ovrlp, ovrlp_old)
   use module_base
   use module_types
   use module_interfaces, only: overlapPowerGeneral
@@ -2544,7 +2555,9 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, tmb, ovrlp, ovrlp_old)
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, order_taylor
+  integer,intent(in) :: iproc, nproc
+  integer,intent(inout) :: order_taylor
+  real(kind=8),intent(in) :: max_inversion_error
   type(DFT_wavefunction),intent(inout) :: tmb
   type(matrices),intent(inout) :: ovrlp, ovrlp_old
 
@@ -2569,6 +2582,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, tmb, ovrlp, ovrlp_old)
        imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
        ovrlp_mat=ovrlp_old, inv_ovrlp_mat=inv_ovrlp, &
        check_accur=.true., max_error=max_error, mean_error=mean_error)
+  call check_taylor_order(mean_error, max_inversion_error, order_taylor)
 
   ! Calculate S^1/2 * K * S^1/2
   call retransform()
@@ -2578,6 +2592,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, tmb, ovrlp, ovrlp_old)
        imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
        ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, &
        check_accur=.true., max_error=max_error, mean_error=mean_error)
+  call check_taylor_order(mean_error, max_inversion_error, order_taylor)
 
   ! Calculate S^-1/2 * K * S^-1/2
   call retransform()

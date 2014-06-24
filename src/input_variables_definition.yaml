@@ -839,6 +839,15 @@
      COMMENT: linear scaling upper bound for the error function decay length
      default: 5.e-2
      RANGE: [1.e-2,1.0]
+   max_inversion_error:
+     COMMENT: linear scaling maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
+     DESCRIPTION: |
+                  possible value: 1 positive real number
+                  Maximal error of the Taylor approximations which are used to  calculate the inverse of the overlap matrix.
+                  If this error is larger than the specified value, the order of the Taylor approximation is increased.
+                  The default value is set very large, such such in this case no automatic adjustment is performed.
+     default: 1.d0
+     RANGE: [1.e-20,1.0]
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
