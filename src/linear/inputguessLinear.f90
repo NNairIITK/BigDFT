@@ -61,7 +61,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   type(mixrhopotDIISParameters) :: mixdiis
   logical :: finished, can_use_ham
   type(confpot_data), dimension(:), allocatable :: confdatarrtmp
-  integer :: info_basis_functions
+  integer :: info_basis_functions, order_taylor
   real(kind=8) :: ratio_deltas, trace, trace_old, fnrm_tmb
   logical :: ortho_on, reduce_conf, rho_negative
   type(localizedDIISParameters) :: ldiis
@@ -652,13 +652,14 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          call yaml_open_sequence('support function optimization',label=&
                                            'it_supfun'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))))
      end if
+     order_taylor=input%lin%order_taylor ! since this is intent(inout)
      call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
          info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
          input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
          50,&
          ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode,input%lin%early_stop,&
          input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
-         can_use_ham, input%lin%order_taylor, input%max_inversion_error, input%kappa_conv, input%method_updatekernel,&
+         can_use_ham, order_taylor, input%max_inversion_error, input%kappa_conv, input%method_updatekernel,&
          input%purification_quickreturn, input%correction_co_contra)
      reduce_conf=.true.
      call yaml_close_sequence()
@@ -686,18 +687,15 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       !call yaml_comment('kernel iter:'//yaml_toa(0,fmt='(i6)'),hfill='-')
   end if
 
+  order_taylor=input%lin%order_taylor ! since this is intent(inout)
   if (input%lin%scf_mode==LINEAR_FOE) then
-
-
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
-           input%SIC,tmb,fnrm,.true.,.false.,.true.,0,0,0,0,input%lin%order_taylor,input%max_inversion_error,&
+           input%SIC,tmb,fnrm,.true.,.false.,.true.,0,0,0,0,order_taylor,input%max_inversion_error,&
            input%purification_quickreturn,&
            input%calculate_KS_residue,input%calculate_gap)
-
-
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
-           input%SIC,tmb,fnrm,.true.,.false.,.true.,0,0,0,0,input%lin%order_taylor,input%max_inversion_error,&
+           input%SIC,tmb,fnrm,.true.,.false.,.true.,0,0,0,0,order_taylor,input%max_inversion_error,&
            input%purification_quickreturn,&
            input%calculate_KS_residue,input%calculate_gap)
 

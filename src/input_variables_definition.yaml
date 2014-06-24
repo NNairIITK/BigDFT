@@ -1103,7 +1103,7 @@
      mixing_method:
        COMMENT: quantity to be mixed
        DESCRIPTION: |
-                    possible value: string
+                    type: string scalar
                     Indicates which quantity should be used for the mixing procedure:
                      DEN => density mixing
                      POT => potential mixing

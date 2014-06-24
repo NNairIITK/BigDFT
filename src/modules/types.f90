@@ -214,6 +214,8 @@ module module_types
     logical :: calc_dipole, pulay_correction, mixing_after_inputguess, iterative_orthogonalization, new_pulay_correction
     logical :: fragment_calculation, calc_transfer_integrals, constrained_dft, curvefit_dmin, diag_end, diag_start
     integer :: extra_states, order_taylor
+    !> linear scaling: maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
+    real(kind=8) :: max_inversion_error
   end type linearInputParameters
 
   !> Contains all parameters for the calculation of the fragments
@@ -449,9 +451,6 @@ module module_types
 
      !> linear scaling: upper bound for the error function decay length
      real(kind=8) :: fscale_upperbound
-
-     !> linear scaling: maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
-     real(kind=8) :: max_inversion_error
 
   end type input_variables
 

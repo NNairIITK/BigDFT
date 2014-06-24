@@ -1601,7 +1601,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   logical :: overlap_calculated, perx,pery,perz, rho_negative
   real(gp) :: tx,ty,tz,displ,mindist
   real(gp), dimension(:), pointer :: in_frag_charge
-  integer :: infoCoeff, iorb, nstates_max
+  integer :: infoCoeff, iorb, nstates_max, order_taylor
   real(kind=8) :: pnrm
   !!real(gp), dimension(:,:), allocatable :: ks, ksk
   !!real(gp) :: nonidem
@@ -2080,9 +2080,10 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !tmb%coeff(1:4,iorb),tmb%coeff(5:8,iorb)
         !end do
         !end if
+        order_taylor=in%lin%order_taylor ! since this is intent(inout)
         call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,atoms,rxyz,denspot,GPU,&
              infoCoeff,energs,nlpsp,in%SIC,tmb,pnrm,.false.,.false.,&
-             .true.,0,0,0,0,in%lin%order_taylor,in%max_inversion_error,&
+             .true.,0,0,0,0,order_taylor,in%max_inversion_error,&
              in%purification_quickreturn,in%calculate_KS_residue,in%calculate_gap) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
 
         !if (iproc==0) then

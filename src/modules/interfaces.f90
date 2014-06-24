@@ -2463,12 +2463,13 @@ module module_interfaces
                   energy_increased, tmb, lhphiold, overlap_calculated, &
                   energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
                   hpsi_small, experimental_mode, correction_co_contra, hpsi_noprecond, &
-                  norder_taylor, method_updatekernel, precond_convol_workarrays, precond_workarrays)
+                  norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays)
          use module_base
          use module_types
          implicit none
          integer, intent(in) :: iproc, nproc, it, method_updatekernel
          integer,intent(inout) :: norder_taylor
+         real(kind=8),intent(in) :: max_inversion_error
          type(DFT_wavefunction),target,intent(inout):: tmb
          type(localizedDIISParameters),intent(inout) :: ldiis
          real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
@@ -2964,7 +2965,8 @@ module module_interfaces
           type(matrices), intent(out) :: denskern_
         end subroutine calculate_density_kernel
 
-        subroutine reconstruct_kernel(iproc, nproc, iorder, blocksize_dsyev, blocksize_pdgemm, orbs, tmb, overlap_calculated)
+        subroutine reconstruct_kernel(iproc, nproc, inversion_method, &
+                   blocksize_dsyev, blocksize_pdgemm, orbs, tmb, overlap_calculated)
           use module_base
           use module_types
           implicit none
@@ -3715,7 +3717,7 @@ module module_interfaces
         end subroutine write_energies
 
         subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
-                 energs, nlpsp, input, &
+                 energs, nlpsp, input, order_taylor, &
                  energy, energyDiff, energyold)
           use module_base
           use module_types
@@ -3729,6 +3731,7 @@ module module_interfaces
           type(energy_terms),intent(inout) :: energs
           type(DFT_PSP_projectors), intent(inout) :: nlpsp
           type(input_variables),intent(in) :: input
+          integer,intent(inout) :: order_taylor
           real(kind=8),intent(out) :: energy, energyDiff
           real(kind=8), intent(inout) :: energyold
         end subroutine build_ks_orbitals

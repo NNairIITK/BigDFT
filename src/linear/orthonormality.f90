@@ -40,7 +40,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
   real(kind=8), dimension(:),allocatable :: psittemp_c, psittemp_f, norm
   character(len=*), parameter :: subname='orthonormalizeLocalized'
   real(kind=8),dimension(:,:),pointer :: inv_ovrlp_null
-  real(kind=8) :: error
+  real(kind=8) :: mean_error, max_error
   logical :: ovrlp_associated, inv_ovrlp_associated
   type(matrices) :: ovrlp_, inv_ovrlp_half_
 
@@ -85,8 +85,8 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
            orthpar%blocksize_pdgemm, &
            imode=1, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
            ovrlp_mat=ovrlp_, inv_ovrlp_mat=inv_ovrlp_half_, &
-           check_accur=.false.)!!, &
-      call check_taylor_order(mean_error, max_inversion_error, order_taylor)
+           check_accur=.true., mean_error=mean_error, max_error=max_error)!!, &
+      call check_taylor_order(mean_error, max_inversion_error, methTransformOverlap)
   end if
 
   call deallocate_matrices(ovrlp_)
@@ -199,7 +199,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
        imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
        ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, &
        check_accur=.true., max_error=max_error, mean_error=mean_error)
-  call check_taylor_order(mean_error, max_inversion_error, order_taylor)
+  call check_taylor_order(mean_error, max_inversion_error, norder_taylor)
 
 
   ! Calculate <phi_alpha|g_beta>
@@ -2896,25 +2896,27 @@ end subroutine diagonalize_subset
 
 subroutine check_taylor_order(error, max_error, order_taylor)
   use module_base
+  use yaml_output
   implicit none
 
   ! Calling arguments
   real(kind=8),intent(in) :: error, max_error
   integer,intent(inout) :: order_taylor
 
+  ! Local variables
+  character(len=12) :: act
+
   if (order_taylor>0) then
       ! only do this if Taylor approximations are actually used
-      if (bigdft_mpi%iproc==0) call yaml_open_map(flow=.true.)
       if (error<=max_error) then
           ! error is small enough, so do nothing
-          if (bigdft_mpi%iproc==0) call yaml_map('Need to adjust Taylor order',.false.)
+          act=' (unchanged)'
       else
           ! error is too big, increase the order of the Taylor series by 10%
-          if (bigdft_mpi%iproc==0) call yaml_map('Need to adjust Taylor order',.true.)
+          act=' (increased)'
           order_taylor = nint(1.1d0*real(order_taylor,kind=8))
-          if (bigdft_mpi%iproc==0) call yaml_map('New Value',order_taylor)
       end if
-      if (bigdft_mpi%iproc==0) call yaml_close_map()
+      !if (bigdft_mpi%iproc==0) call yaml_map('new Taylor order',trim(yaml_toa(order_taylor,fmt='(i0)'))//act)
   end if
 
 end subroutine check_taylor_order
