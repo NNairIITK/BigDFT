@@ -930,6 +930,7 @@ DIIShistory:
  Locreg:
  EH: 2.0e-8
  Pulay forces (Ha/Bohr): 7.8e-09
+ Max deviation from unity in reorthonormalize_coeff: 1.1e-9
 
 sparsity:
  Total charge: 1.1e-10
