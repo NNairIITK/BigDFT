@@ -2741,9 +2741,6 @@ end subroutine find_category
        case (FSCALE_UPPERBOUND)
            ! linear scaling: upper bound for the error function decay length
            in%fscale_upperbound = val
-       case (MAX_INVERSION_ERROR)
-           ! linear scaling: maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
-           in%max_inversion_error = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
@@ -2885,6 +2882,9 @@ end subroutine find_category
           in%lin%diag_end = val
        case (EXTRA_STATES)
           in%lin%extra_states = val
+       case (MAX_INVERSION_ERROR)
+           ! maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
+           in%lin%max_inversion_error = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select

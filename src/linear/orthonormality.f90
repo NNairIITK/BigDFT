@@ -2914,7 +2914,7 @@ subroutine check_taylor_order(error, max_error, order_taylor)
       else
           ! error is too big, increase the order of the Taylor series by 10%
           act=' (increased)'
-          order_taylor = nint(1.1d0*real(order_taylor,kind=8))
+          order_taylor = ceiling(1.1d0*real(order_taylor,kind=8))
       end if
       !if (bigdft_mpi%iproc==0) call yaml_map('new Taylor order',trim(yaml_toa(order_taylor,fmt='(i0)'))//act)
   end if

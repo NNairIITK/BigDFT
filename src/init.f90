@@ -2083,7 +2083,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         order_taylor=in%lin%order_taylor ! since this is intent(inout)
         call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,atoms,rxyz,denspot,GPU,&
              infoCoeff,energs,nlpsp,in%SIC,tmb,pnrm,.false.,.false.,&
-             .true.,0,0,0,0,order_taylor,in%max_inversion_error,&
+             .true.,0,0,0,0,order_taylor,in%lin%max_inversion_error,&
              in%purification_quickreturn,in%calculate_KS_residue,in%calculate_gap) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
 
         !if (iproc==0) then
