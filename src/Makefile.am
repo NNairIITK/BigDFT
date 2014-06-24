@@ -311,7 +311,7 @@ bart_FCFLAGS = -I. -Iart -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_I
 bart_LDADD = art/libart.a $(bigdft_library) @LINALG_LIBS@
 
 mhgps_SOURCES = mhgps_files/mhgps.f90
-mhgps_FCFLAGS = -I. -Imhgps -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 mhgps_LDADD = mhgps_files/libmhgps.a $(bigdft_library) @LINALG_LIBS@
 
 

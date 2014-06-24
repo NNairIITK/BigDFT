@@ -1065,7 +1065,7 @@ src/OpenCL/Makefile
 src/convolutions-c/Makefile
 src/bindings/Makefile
 src/art/Makefile
-src/mhgps/Makefile
+src/mhgps_files/Makefile
 src/tools/Makefile
 src/tools/bader/Makefile
 utils/Makefile
