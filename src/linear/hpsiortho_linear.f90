@@ -13,7 +13,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            energy_increased, tmb, lhphiold, overlap_calculated, &
            energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
            hpsi_small, experimental_mode, correction_co_contra, hpsi_noprecond, &
-           norder_taylor, method_updatekernel, precond_convol_workarrays, precond_workarrays)
+           norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays)
   use module_base
   use module_types
   use yaml_output
@@ -26,7 +26,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   implicit none
 
   ! Calling arguments
-  integer, intent(in) :: iproc, nproc, it, norder_taylor, method_updatekernel
+  integer, intent(in) :: iproc, nproc, it, method_updatekernel
+  integer,intent(inout) :: norder_taylor
+  real(kind=8),intent(in) :: max_inversion_error
   type(DFT_wavefunction), target, intent(inout):: tmb
   type(localizedDIISParameters), intent(inout) :: ldiis
   real(kind=8), dimension(tmb%orbs%norb), intent(inout) :: fnrmOldArr
@@ -192,7 +194,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
        tmb%linmat, tmb%ham_descr%psi, tmb%hpsi, &
        tmb%linmat%m, tmb%linmat%ham_, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, &
        hpsit_c, hpsit_f, hpsit_nococontra_c, hpsit_nococontra_f, tmb%ham_descr%can_use_transposed, &
-       overlap_calculated, experimental_mode, norder_taylor, &
+       overlap_calculated, experimental_mode, norder_taylor, max_inversion_error, &
        tmb%npsidim_orbs, tmb%lzd, hpsi_noprecond)
 
   call f_free(hpsit_nococontra_c)
@@ -528,7 +530,7 @@ end subroutine calculate_residue_ks
 
 subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
            lphiold, alpha, trH, alpha_mean, alpha_max, alphaDIIS, hpsi_small, ortho, psidiff, &
-           experimental_mode, order_taylor,trH_ref, kernel_best, complete_reset)
+           experimental_mode, order_taylor, max_inversion_error, trH_ref, kernel_best, complete_reset)
   use module_base
   use module_types
   use yaml_output
@@ -537,7 +539,9 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, it, order_taylor
+  integer,intent(in) :: iproc, nproc, it
+  integer,intent(inout) :: order_taylor
+  real(kind=8),intent(in) :: max_inversion_error
   type(localizedDIISParameters), intent(inout) :: ldiis
   type(DFT_wavefunction), target,intent(inout) :: tmb
   real(kind=8), dimension(tmb%npsidim_orbs), intent(inout) :: lphiold
@@ -605,7 +609,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
           end do 
       end if
 
-      call orthonormalizeLocalized(iproc, nproc, order_taylor, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
+      call orthonormalizeLocalized(iproc, nproc, order_taylor, max_inversion_error, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
            tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
            tmb%can_use_transposed, tmb%foe_obj)
       if (iproc == 0) then

@@ -10,7 +10,7 @@
 
 !> Could still do more tidying - assuming all sparse matrices except for Fermi have the same pattern
 subroutine foe(iproc, nproc, tmprtr, &
-           ebs, itout, it_scc, order_taylor, purification_quickreturn, foe_verbosity, &
+           ebs, itout, it_scc, order_taylor, max_inversion_error, purification_quickreturn, foe_verbosity, &
            accuracy_level, tmb, foe_obj)
   use module_base
   use module_types
@@ -27,7 +27,9 @@ subroutine foe(iproc, nproc, tmprtr, &
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc,itout,it_scc, order_taylor
+  integer,intent(in) :: iproc, nproc,itout,it_scc
+  integer,intent(inout) :: order_taylor
+  real(kind=8),intent(in) :: max_inversion_error
   real(kind=8),intent(in) :: tmprtr
   real(kind=8),intent(out) :: ebs
   logical,intent(in) :: purification_quickreturn
@@ -665,7 +667,8 @@ subroutine foe(iproc, nproc, tmprtr, &
           else
               it_shift=1
           end if
-          call purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, 50, order_taylor, purification_quickreturn)
+          call purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, 50, &
+               order_taylor, max_inversion_error, purification_quickreturn)
           if (iproc==0) then
               call yaml_close_sequence()
           end if
@@ -754,7 +757,8 @@ subroutine foe(iproc, nproc, tmprtr, &
                    imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                    ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
                    check_accur=.true., max_error=max_error, mean_error=mean_error)
-           end if
+          end if
+          call check_taylor_order(mean_error, max_inversion_error, order_taylor)
           if (foe_verbosity>=1 .and. iproc==0) then
               call yaml_map('max error of S^-1/2',max_error,fmt='(es9.2)')
               call yaml_map('mean error of S^-1/2',mean_error,fmt='(es9.2)')

@@ -851,7 +851,7 @@ end subroutine print_orbital_distribution
 
 
 subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
-           energs, nlpsp, input, &
+           energs, nlpsp, input, order_taylor, &
            energy, energyDiff, energyold)
   use module_base
   use module_types
@@ -873,6 +873,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   type(energy_terms),intent(inout) :: energs
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
   type(input_variables),intent(in) :: input
+  integer,intent(inout) :: order_taylor
   real(kind=8),intent(out) :: energy, energyDiff
   real(kind=8), intent(inout) :: energyold
 
@@ -909,7 +910,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   tmb%can_use_transposed=.false.
   call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
        energs, nlpsp, input%SIC, tmb, fnrm, .true., .false., .true., 0, 0, 0, 0, &
-       input%lin%order_taylor,input%purification_quickreturn,&
+       order_taylor,input%lin%max_inversion_error,input%purification_quickreturn,&
        input%calculate_KS_residue,input%calculate_gap)
 
 
@@ -1011,7 +1012,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   tmb%can_use_transposed=.false.
   call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
        energs, nlpsp, input%SIC, tmb, fnrm, .true., .false., .true., 0, 0, 0, 0, &
-       input%lin%order_taylor, input%purification_quickreturn, &
+       order_taylor, input%lin%max_inversion_error, input%purification_quickreturn, &
        input%calculate_KS_residue, input%calculate_gap, updatekernel=.false.)
   energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
   energyDiff=energy-energyold

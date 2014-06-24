@@ -883,6 +883,15 @@
                      * n>0 => Taylor series of order n
        RANGE: [-100,100]
        default: 0
+     max_inversion_error:
+       COMMENT: linear scaling maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
+       DESCRIPTION: |
+                    possible value: 1 positive real number
+                    Maximal error of the Taylor approximations which are used to  calculate the inverse of the overlap matrix.
+                    If this error is larger than the specified value, the order of the Taylor approximation is increased.
+                    The default value is set very large, such such in this case no automatic adjustment is performed.
+       default: 1.d0
+       RANGE: [1.e-20,1.0]
      output_wf:
        COMMENT: output basis functions; 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
        DESCRIPTION: |
@@ -1094,7 +1103,7 @@
      mixing_method:
        COMMENT: quantity to be mixed
        DESCRIPTION: |
-                    possible value: string
+                    type: string scalar
                     Indicates which quantity should be used for the mixing procedure:
                      DEN => density mixing
                      POT => potential mixing
