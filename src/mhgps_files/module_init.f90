@@ -5,27 +5,10 @@ module module_init
 
 contains
 
-    subroutine init_global_variables(glob)
+    subroutine read_input()
+        use yaml_output
         implicit none
         !parameter
-        type(globals), intent(out) :: glob
-        !internal
-        integer:: nconfig,ierr,run_id
-        call print_logo_mhgps()
-        call read_input(glob)
-        if(glob%efmethod=='BIGDFT')then
-            call bigdft_init(glob%mpi_info,nconfig,run_id,ierr)
-            if (nconfig < 0) stop 'runs-file not supported for MHGPS executable'
-            call print_logo()
-        elseif(glob%efmethod=='LJ')then
-!        TODO
-        endif
-    end subroutine
-
-    subroutine read_input(glob)
-        implicit none
-        !parameter
-        type(globals), intent(out) :: glob
         !internal
         integer, parameter :: u=237
         character(9), parameter :: filename='mhgps.inp'
@@ -33,59 +16,62 @@ contains
 
         inquire(file=filename,exist=exists)
         if(.not. exists)then
-            call write_input(glob)
-            stop 'ERROR: mhgps.inp does not exist.&
-                  Wrote default input parameters to mhgps.inp_default.'
+            call write_input()
+            call yaml_warning('mhgps.inp does not exist. &
+                Wrote default input parameters to mhgps.inp_default.')
+            stop
         endif
         open(u,file=filename)
-            read(u,*)glob%mhgps_verbosity
-            read(u,*)glob%efmethod
-            read(u,*)glob%biomode
-            read(u,*)glob%nit_trans, glob%nit_rot
-            read(u,*)glob%nhistx_trans, glob%nhistx_rot
-            if(glob%biomode)then
-                read(u,*)glob%alpha0_trans, glob%alpha0_rot, glob%alpha_stretch0
+            read(u,*)mhgps_verbosity
+            read(u,*)efmethod
+            read(u,*)saddle_biomode
+            if(saddle_biomode)saddle_imode=2
+            read(u,*)saddle_nit_trans, saddle_nit_rot
+            read(u,*)saddle_nhistx_trans, saddle_nhistx_rot
+            read(u,*)saddle_fnrmtol
+            if(saddle_biomode)then
+                read(u,*)saddle_alpha0_trans, saddle_alpha0_rot, saddle_alpha_stretch0
             else
-                read(u,*)glob%alpha0_trans, glob%alpha0_rot
+                read(u,*)saddle_alpha0_trans, saddle_alpha0_rot
             endif
-            read(u,*)glob%curvgraddiff
-            read(u,*)glob%rmsdispl0,glob%trustr
-            read(u,*)glob%tolc,glob%tolf
-            read(u,*)glob%tightenfac
-            read(u,*)glob%maxcurvrise
-            read(u,*)glob%cutoffratio
-            read(u,*)glob%recompIfCurvPos
+            read(u,*)saddle_curvgraddiff
+            read(u,*)saddle_rmsdispl0,saddle_trustr
+            read(u,*)saddle_tolc,saddle_tolf
+            read(u,*)saddle_tightenfac
+            read(u,*)saddle_maxcurvrise
+            read(u,*)saddle_cutoffratio
+            read(u,*)saddle_recompIfCurvPos
         close(u)
     end subroutine
-    subroutine write_input(glob)
+    subroutine write_input()
         implicit none
         !parameter
-        type(globals), intent(in) :: glob
         integer, parameter :: u=237
         character(17), parameter :: filename='mhgps.inp_default'
         open(u,file=filename)
-            write(u,'(xi0.0,xa)')glob%mhgps_verbosity,' #mhgps_verbosity'
-            write(u,'(xa,xa)')trim(adjustl(glob%efmethod)),' #efmethod'
-            write(u,'(xL,xa)')glob%biomode,' #biomode'
-            write(u,'(xi0,xi0,xa)')glob%nit_trans, glob%nit_rot,'  #nit_trans, not_rot'
-            write(u,'(xi0,xi0,xa)')glob%nhistx_trans, glob%nhistx_rot,' #nhistx_trans, nhistx_rot'
-            if(glob%biomode)then
-                write(u,'(es10.3,2(xes10.3),a)')glob%alpha0_trans, glob%alpha0_rot, glob%alpha_stretch0,' #alpha0_trans, alpha0_rot, alpha_stretch0'
+            write(u,'(xi0.0,xa)')mhgps_verbosity,' #mhgps_verbosity'
+            write(u,'(xa,xa)')trim(adjustl(efmethod)),' #efmethod'
+            write(u,'(xL,xa)')saddle_biomode,' #biomode'
+            write(u,'(xi0,xi0,xa)')saddle_nit_trans, saddle_nit_rot,'  #nit_trans, not_rot'
+            write(u,'(xi0,xi0,xa)')saddle_nhistx_trans, saddle_nhistx_rot,' #nhistx_trans, nhistx_rot'
+            write(u,'(es10.3,xa)')saddle_fnrmtol,' #fnrm tolerence convergence criterion for saddle point'
+            if(saddle_biomode)then
+                write(u,'(es10.3,2(xes10.3),a)')saddle_alpha0_trans, saddle_alpha0_rot, saddle_alpha_stretch0,' #alpha0_trans, alpha0_rot, alpha_stretch0'
             else
-                write(u,'(es10.3,xes10.3,a)')glob%alpha0_trans, glob%alpha0_rot,' #alpha0_trans, alpha0_rot'
+                write(u,'(es10.3,xes10.3,a)')saddle_alpha0_trans, saddle_alpha0_rot,' #alpha0_trans, alpha0_rot'
             endif
-            write(u,'(es10.3,xa)')glob%curvgraddiff,' #curvgraddif'
-            write(u,'(es10.3,xes10.3,xa)')glob%rmsdispl0,glob%trustr,' #rmsdispl0, trustr'
-            write(u,'(es10.3,xes10.3,xa)')glob%tolc,glob%tolf,' #tolc, tolf'
-            write(u,'(es10.3,xa)')glob%tightenfac,' #tightenfac'
-            write(u,'(es10.3,xa)')glob%maxcurvrise,' #maxcurvrise'
-            write(u,'(es10.3,xa)')glob%cutoffratio,' #cutoffratio'
-            write(u,'(xi0,xa)')glob%recompIfCurvPos,' #recompIfCurvPos'
+            write(u,'(es10.3,xa)')saddle_curvgraddiff,' #curvgraddif'
+            write(u,'(es10.3,xes10.3,xa)')saddle_rmsdispl0,saddle_trustr,' #rmsdispl0, trustr'
+            write(u,'(es10.3,xes10.3,xa)')saddle_tolc,saddle_tolf,' #tolc, tolf'
+            write(u,'(es10.3,xa)')saddle_tightenfac,' #tightenfac'
+            write(u,'(es10.3,xa)')saddle_maxcurvrise,' #maxcurvrise'
+            write(u,'(es10.3,xa)')saddle_cutoffratio,' #cutoffratio'
+            write(u,'(xi0,xa)')saddle_recompIfCurvPos,' #recompIfCurvPos'
         close(u)
-
     end subroutine
 
     subroutine print_logo_mhgps()
+        use module_global_variables, only: mhgps_version
         use yaml_output
         implicit none
 
@@ -109,7 +95,205 @@ contains
         !call print_logo()
         call yaml_close_map()
         call yaml_map('Reference Paper','The Journal of Chemical Physics 140 (21):214102 (2014)')
+        call yaml_map('Version Number',mhgps_version)
+        call yaml_map('Timestamp of this run',yaml_date_and_time_toa())
     end subroutine print_logo_mhgps
 
 
+subroutine give_rcov(iproc,atoms,nat,rcov)
+  !    use module_base
+  use module_types
+  use yaml_output
+  implicit none
+  !Arguments
+  integer, intent(in) :: iproc,nat
+  type(atoms_data), intent(in) :: atoms
+  real(kind=8), intent(out) :: rcov(nat)
+  !Local variables
+  integer :: iat
+
+  do iat=1,nat
+     if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='H') then
+        rcov(iat)=0.75d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='LJ') then
+        rcov(iat)=0.56d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='He') then
+        rcov(iat)=0.75d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Li') then
+        rcov(iat)=3.40d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Be') then
+        rcov(iat)=2.30d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='B' ) then
+        rcov(iat)=1.55d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='C' ) then
+        rcov(iat)=1.45d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='N' ) then
+        rcov(iat)=1.42d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='O' ) then
+        rcov(iat)=1.38d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='F' ) then
+        rcov(iat)=1.35d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ne') then
+        rcov(iat)=1.35d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Na') then
+        rcov(iat)=3.40d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Mg') then
+        rcov(iat)=2.65d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Al') then
+        rcov(iat)=2.23d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Si') then
+        rcov(iat)=2.09d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='P' ) then
+        rcov(iat)=2.00d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='S' ) then
+        rcov(iat)=1.92d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cl') then
+        rcov(iat)=1.87d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ar') then
+        rcov(iat)=1.80d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='K' ) then
+        rcov(iat)=4.00d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ca') then
+        rcov(iat)=3.00d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sc') then
+        rcov(iat)=2.70d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ti') then
+        rcov(iat)=2.70d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='V' ) then
+        rcov(iat)=2.60d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cr') then
+        rcov(iat)=2.60d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Mn') then
+        rcov(iat)=2.50d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Fe') then
+        rcov(iat)=2.50d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Co') then
+        rcov(iat)=2.40d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ni') then
+        rcov(iat)=2.30d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cu') then
+        rcov(iat)=2.30d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Zn') then
+        rcov(iat)=2.30d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ga') then
+        rcov(iat)=2.10d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ge') then
+        rcov(iat)=2.40d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='As') then
+        rcov(iat)=2.30d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Se') then
+        rcov(iat)=2.30d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Br') then
+        rcov(iat)=2.20d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Kr') then
+        rcov(iat)=2.20d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Rb') then
+        rcov(iat)=4.50d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sr') then
+        rcov(iat)=3.30d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Y' ) then
+        rcov(iat)=3.30d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Zr') then
+        rcov(iat)=3.00d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Nb') then
+        rcov(iat)=2.92d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Mo') then
+        rcov(iat)=2.83d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Tc') then
+        rcov(iat)=2.75d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ru') then
+        rcov(iat)=2.67d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Rh') then
+        rcov(iat)=2.58d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pd') then
+        rcov(iat)=2.50d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ag') then
+        rcov(iat)=2.50d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cd') then
+        rcov(iat)=2.50d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='In') then
+        rcov(iat)=2.30d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sn') then
+        rcov(iat)=2.66d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sb') then
+        rcov(iat)=2.66d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Te') then
+        rcov(iat)=2.53d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='I' ) then
+        rcov(iat)=2.50d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Xe') then
+        rcov(iat)=2.50d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cs') then
+        rcov(iat)=4.50d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ba') then
+        rcov(iat)=4.00d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='La') then
+        rcov(iat)=3.50d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ce') then
+        rcov(iat)=3.50d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pr') then
+        rcov(iat)=3.44d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Nd') then
+        rcov(iat)=3.38d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pm') then
+        rcov(iat)=3.33d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sm') then
+        rcov(iat)=3.27d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Eu') then
+        rcov(iat)=3.21d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Gd') then
+        rcov(iat)=3.15d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Td') then
+        rcov(iat)=3.09d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Dy') then
+        rcov(iat)=3.03d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ho') then
+        rcov(iat)=2.97d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Er') then
+        rcov(iat)=2.92d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Tm') then
+        rcov(iat)=2.92d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Yb') then
+        rcov(iat)=2.80d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Lu') then
+        rcov(iat)=2.80d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Hf') then
+        rcov(iat)=2.90d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ta') then
+        rcov(iat)=2.70d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='W' ) then
+        rcov(iat)=2.60d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Re') then
+        rcov(iat)=2.60d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Os') then
+        rcov(iat)=2.50d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ir') then
+        rcov(iat)=2.50d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pt') then
+        rcov(iat)=2.60d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Au') then
+        rcov(iat)=2.70d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Hg') then
+        rcov(iat)=2.80d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Tl') then
+        rcov(iat)=2.50d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pb') then
+        rcov(iat)=3.30d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Bi') then
+        rcov(iat)=2.90d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Po') then
+        rcov(iat)=2.80d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='At') then
+        rcov(iat)=2.60d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Rn') then
+        rcov(iat)=2.60d0
+     else
+        call yaml_comment('(MH) no covalent radius stored for this atomtype '&
+             //trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))))
+     endif
+     if (iproc == 0) then
+        call yaml_map('(MHGPS) RCOV:'//trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),rcov(iat))
+     endif
+  enddo
+end subroutine give_rcov
 end module

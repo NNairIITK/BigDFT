@@ -30,24 +30,22 @@ use module_base
     write(*,*) 'FOUND ',nbond,' BOND'
 end subroutine
 
-subroutine findsad(glob,imode,nat,alat,alpha0_trans,alpha0_rot,curvgraddiff,nit_trans,&
+subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_trans,&
            nit_rot,nhistx_trans,nhistx_rot,tolc,tolf,tightenfac,rmsdispl0,&
            trustr,wpos,etot,fout,minmode,fnrmtol,count,count_sd,displ,ec,&
            converged,atomnames,nbond,iconnect,alpha_stretch0,recompIfCurvPos,maxcurvrise,cutoffratio)
-use module_global_variables
 use module_base
 !imode=1 for clusters
 !imode=2 for biomolecules
         implicit none
-        type(globals), intent(inout) :: glob
         integer, intent(in) :: imode
         integer, intent(in) :: recompIfCurvPos
-        real(gp), intent(in) :: alat(3)
+        real(gp), intent(in) :: alat(3),rcov(nat)
         integer :: nat,nbond
         integer,optional :: iconnect(2,nbond)
         real(gp), dimension(3,nat) :: wpos,fout
         real(gp) :: count
-        character(5):: atomnames(nat)
+        character(20):: atomnames(nat)
         real(gp), allocatable, dimension(:,:,:) :: rxyz,fxyz,ff,rr,rrr,fff,fstretch,fxyzraw,rxyzraw
         real(gp), allocatable, dimension(:,:) :: aa,dd,dds,delta
         real(gp), allocatable, dimension(:) ::eval,work,res,scpr,wold
@@ -66,7 +64,7 @@ real(gp) :: minmode(3,nat),tol,displold,rmsdispl,curv,displ2,overlap
 logical :: converged,optCurvConv
 logical :: flag,tooFar,fixfragmented,subspaceSucc
 real(gp), allocatable, dimension(:,:) :: gradrot,minmodeold
-real(gp) :: rcov(nat),tnatdmy(3,nat)
+real(gp) :: tnatdmy(3,nat)
 integer :: nputback,lastit
 real(gp), intent(in) :: maxcurvrise
 real(gp), intent(in) :: cutoffratio
@@ -82,7 +80,6 @@ character(len=100) :: filename
 
 minmode0=minmode
 
-    call give_rcov(nat,atomnames,rcov)
     rmsdispl=rmsdispl0
 
     flag=.true.
@@ -125,7 +122,7 @@ minmode0=minmode
     count=count+1.d0
 !        call energyandforces(nat,rxyz(1,1,0),fxyz(1,1,0),etot)
 !        energyandforces(nat,alat,rxyz(1,1,0),fxyz(1,1,0),etot,'cnt_enf_geopt')
-    call minenergyandforces(glob,imode,nat,alat,rxyz(1,1,0),rxyzraw(1,1,0),&
+    call minenergyandforces(imode,nat,alat,rxyz(1,1,0),rxyzraw(1,1,0),&
     fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),etot,iconnect,nbond,atomnames,&
     wold,alpha_stretch0,alpha_stretch)
     ec=ec+1.d0
@@ -196,7 +193,7 @@ minmode0=minmode
 !       &.or. it==1&
        &.or. it==1 .or. (curv>=0.d0 .and. mod(it,recompIfCurvPos)==0)&
        &.or.recompute==it)then
-           call opt_curv(glob,imode,nat,alat,alpha0_rot,curvgraddiff,nit_rot,nhistx_rot,rxyzraw(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
+           call opt_curv(imode,nat,alat,alpha0_rot,curvgraddiff,nit_rot,nhistx_rot,rxyzraw(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
                         &minmode(1,1),curv,gradrot(1,1),&
                         &tol,count,count_sd,displ2,ec,check,optCurvConv,iconnect,nbond,atomnames,2.d-4,maxcurvrise,cutoffratio)
            minmode = minmode / dnrm2(3*nat,minmode(1,1),1)
@@ -253,7 +250,7 @@ stop 'opt_curv failed'
            count=count+1.d0
        endif
 
-       call minenergyandforces(glob,imode,nat,alat,rxyz(1,1,nhist),rxyzraw(1,1,nhist),&
+       call minenergyandforces(imode,nat,alat,rxyz(1,1,nhist),rxyzraw(1,1,nhist),&
             fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),etotp&
             ,iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
        ec=ec+1.d0
@@ -680,16 +677,14 @@ use module_base
     write(100,'(a,3(e11.3))') 'WARNING REMAINING TORQUE',t
 end subroutine
 
-subroutine opt_curv(glob,imode,nat,alat,alpha0,curvgraddiff,nit,nhistx,rxyz_fix,fxyz_fix,dxyzin,curv,fout,fnrmtol&
+subroutine opt_curv(imode,nat,alat,alpha0,curvgraddiff,nit,nhistx,rxyz_fix,fxyz_fix,dxyzin,curv,fout,fnrmtol&
                    &,count,count_sd,displ,ec,check,converged,iconnect,nbond,atomnames,alpha_stretch0,maxcurvrise,cutoffratio)!,mode)
-use module_global_variables
 use module_base
     implicit none
-    type(globals), intent(inout) :: glob
 integer, intent(in) :: imode
 integer, intent(in) :: nbond
 integer, intent(in) :: iconnect(2,nbond)
-character(len=5) :: atomnames(nat)
+character(len=20) :: atomnames(nat)
 real(gp),intent(in) :: alpha_stretch0
 real(gp) :: alpha_stretch
 real(gp), intent(in) :: alat(3)
@@ -736,7 +731,7 @@ real(gp), intent(in) :: maxcurvrise,cutoffratio
 !    call minenergyandforces(nat,rxyz(1,1,0),rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),etot,iconnect,nbond,atomnames,wold,alpha_stretch)
 !    rxyz(:,:,0)=rxyz(:,:,0)+alpha_stretch*fstretch(:,:,0)
 !    ec=ec+1.d0
-     call mincurvgrad(glob,imode,nat,alat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,0),&
+     call mincurvgrad(imode,nat,alat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,0),&
           rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),curv,1,ec,&
           iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
     if(imode==2)rxyz(:,:,0)=rxyz(:,:,0)+alpha_stretch*fstretch(:,:,0)
@@ -809,7 +804,7 @@ real(gp), intent(in) :: maxcurvrise,cutoffratio
         else
             count=count+1.d0
         endif
-     call mincurvgrad(glob,imode,nat,alat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
+     call mincurvgrad(imode,nat,alat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
           rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),&
           curvp,1,ec,iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
         dcurv=curvp-curvold
@@ -1121,15 +1116,13 @@ end subroutine
 !end subroutine
 
 
-subroutine curvgrad(glob,nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ec)
+subroutine curvgrad(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ec)
     !computes the (curvature along vec) = vec^t H vec / (vec^t*vec)
     !vec mus be normalized
-use module_global_variables
 use module_base
 use module_energyandforces
     implicit none
     !parameters
-    type(globals), intent(inout) :: glob
     integer, intent(in) :: nat,imethod
     real(gp), intent(in) :: rxyz1(3,nat),fxyz1(3,nat),diff
     real(gp), intent(inout) :: vec(3,nat)
@@ -1157,7 +1150,7 @@ use module_energyandforces
 
     vec = vec / dnrm2(3*nat,vec(1,1),1)
     rxyz2 = rxyz1 + diff * vec
-    call energyandforces(glob,nat,alat,rxyz2(1,1),fxyz2(1,1),etot2)
+    call energyandforces(nat,alat,rxyz2(1,1),fxyz2(1,1),etot2)
 !    call energyandforces(nat, alat, rxyz2(1,1),fxyz2(1,1),etot2,'cnt_enf_forcebar_decomp')
     ec=ec+1.d0
 
@@ -1719,7 +1712,7 @@ use module_base
    implicit none
    integer :: iproc,nr,nat,nsb,nrsqtwo,i,j,k,info
    real(gp) :: rat(3,nat),fat(nr),soft,hard
-   character(5):: atomnames(nat)
+   character(20):: atomnames(nat)
    real(gp), allocatable::evec(:,:),eval(:),wa(:),hess(:,:)
    real(gp) :: dx,dy,dz,r,tt, DDOT
 
@@ -1762,7 +1755,7 @@ use module_base
    implicit none
    integer :: iproc,nr,nat,iat,jat,nsb,i,j,k,info
    real(gp) :: rat(3,nat),hess(nr,nr),r0types(4,4),fctypes(4,4)
-   character(5):: atomnames(nat)
+   character(20):: atomnames(nat)
    integer, allocatable::ita(:),isb(:,:)
    real(gp), allocatable::r0bonds(:),fcbonds(:)
    real(gp) :: dx,dy,dz,r,tt
@@ -1942,254 +1935,57 @@ use module_base
 end subroutine pseudohess
 !*****************************************************************************************
 
-subroutine give_rcov(nat,atomnames,rcov)
-use module_base
-  implicit real(gp) (a-h,o-z)
-  character(5) atomnames
-  dimension rcov(nat),atomnames(nat)
-
-  do iat=1,nat
-     write(*,*)  trim(atomnames(iat))
-
-     if (trim(atomnames(iat))=='H') then
-        rcov(iat)=0.75d0
-     else if (trim(atomnames(iat))=='LJ') then
-        rcov(iat)=0.56d0*1.889725989d0
-     else if (trim(atomnames(iat))=='A') then
-        rcov(iat)=0.56d0*1.889725989d0
-     else if (trim(atomnames(iat))=='He') then
-        rcov(iat)=0.75d0
-     else if (trim(atomnames(iat))=='Li') then
-        rcov(iat)=3.40d0
-     else if (trim(atomnames(iat))=='Be') then
-        rcov(iat)=2.30d0
-     else if (trim(atomnames(iat))=='B' ) then
-        rcov(iat)=1.55d0
-     else if (trim(atomnames(iat))=='C' ) then
-        rcov(iat)=1.45d0
-     else if (trim(atomnames(iat))=='N' ) then
-        rcov(iat)=1.42d0
-     else if (trim(atomnames(iat))=='O' ) then
-        rcov(iat)=1.38d0
-     else if (trim(atomnames(iat))=='F' ) then
-        rcov(iat)=1.35d0
-     else if (trim(atomnames(iat))=='Ne') then
-        rcov(iat)=1.35d0
-     else if (trim(atomnames(iat))=='Na') then
-        rcov(iat)=3.40d0
-     else if (trim(atomnames(iat))=='Mg') then
-        rcov(iat)=2.65d0
-     else if (trim(atomnames(iat))=='Al') then
-        rcov(iat)=2.23d0
-     else if (trim(atomnames(iat))=='Si') then
-        rcov(iat)=2.09d0
-     else if (trim(atomnames(iat))=='P' ) then
-        rcov(iat)=2.00d0
-     else if (trim(atomnames(iat))=='S' ) then
-        rcov(iat)=1.92d0
-     else if (trim(atomnames(iat))=='Cl') then
-        rcov(iat)=1.87d0
-     else if (trim(atomnames(iat))=='Ar') then
-        rcov(iat)=1.80d0
-     else if (trim(atomnames(iat))=='K' ) then
-        rcov(iat)=4.00d0
-     else if (trim(atomnames(iat))=='Ca') then
-        rcov(iat)=3.00d0
-     else if (trim(atomnames(iat))=='Sc') then
-        rcov(iat)=2.70d0
-     else if (trim(atomnames(iat))=='Ti') then
-        rcov(iat)=2.70d0
-     else if (trim(atomnames(iat))=='V' ) then
-        rcov(iat)=2.60d0
-     else if (trim(atomnames(iat))=='Cr') then
-        rcov(iat)=2.60d0
-     else if (trim(atomnames(iat))=='Mn') then
-        rcov(iat)=2.50d0
-     else if (trim(atomnames(iat))=='Fe') then
-        rcov(iat)=2.50d0
-     else if (trim(atomnames(iat))=='Co') then
-        rcov(iat)=2.40d0
-     else if (trim(atomnames(iat))=='Ni') then
-        rcov(iat)=2.30d0
-     else if (trim(atomnames(iat))=='Cu') then
-        rcov(iat)=2.30d0
-     else if (trim(atomnames(iat))=='Zn') then
-        rcov(iat)=2.30d0
-     else if (trim(atomnames(iat))=='Ga') then
-        rcov(iat)=2.10d0
-     else if (trim(atomnames(iat))=='Ge') then
-        rcov(iat)=2.40d0
-     else if (trim(atomnames(iat))=='As') then
-        rcov(iat)=2.30d0
-     else if (trim(atomnames(iat))=='Se') then
-        rcov(iat)=2.30d0
-     else if (trim(atomnames(iat))=='Br') then
-        rcov(iat)=2.20d0
-     else if (trim(atomnames(iat))=='Kr') then
-        rcov(iat)=2.20d0
-     else if (trim(atomnames(iat))=='Rb') then
-        rcov(iat)=4.50d0
-     else if (trim(atomnames(iat))=='Sr') then
-        rcov(iat)=3.30d0
-     else if (trim(atomnames(iat))=='Y' ) then
-        rcov(iat)=3.30d0
-     else if (trim(atomnames(iat))=='Zr') then
-        rcov(iat)=3.00d0
-     else if (trim(atomnames(iat))=='Nb') then
-        rcov(iat)=2.92d0
-     else if (trim(atomnames(iat))=='Mo') then
-        rcov(iat)=2.83d0
-     else if (trim(atomnames(iat))=='Tc') then
-        rcov(iat)=2.75d0
-     else if (trim(atomnames(iat))=='Ru') then
-        rcov(iat)=2.67d0
-     else if (trim(atomnames(iat))=='Rh') then
-        rcov(iat)=2.58d0
-     else if (trim(atomnames(iat))=='Pd') then
-        rcov(iat)=2.50d0
-     else if (trim(atomnames(iat))=='Ag') then
-        rcov(iat)=2.50d0
-     else if (trim(atomnames(iat))=='Cd') then
-        rcov(iat)=2.50d0
-     else if (trim(atomnames(iat))=='In') then
-        rcov(iat)=2.30d0
-     else if (trim(atomnames(iat))=='Sn') then
-        rcov(iat)=2.66d0
-     else if (trim(atomnames(iat))=='Sb') then
-        rcov(iat)=2.66d0
-     else if (trim(atomnames(iat))=='Te') then
-        rcov(iat)=2.53d0
-     else if (trim(atomnames(iat))=='I' ) then
-        rcov(iat)=2.50d0
-     else if (trim(atomnames(iat))=='Xe') then
-        rcov(iat)=2.50d0
-     else if (trim(atomnames(iat))=='Cs') then
-        rcov(iat)=4.50d0
-     else if (trim(atomnames(iat))=='Ba') then
-        rcov(iat)=4.00d0
-     else if (trim(atomnames(iat))=='La') then
-        rcov(iat)=3.50d0
-     else if (trim(atomnames(iat))=='Ce') then
-        rcov(iat)=3.50d0
-     else if (trim(atomnames(iat))=='Pr') then
-        rcov(iat)=3.44d0
-     else if (trim(atomnames(iat))=='Nd') then
-        rcov(iat)=3.38d0
-     else if (trim(atomnames(iat))=='Pm') then
-        rcov(iat)=3.33d0
-     else if (trim(atomnames(iat))=='Sm') then
-        rcov(iat)=3.27d0
-     else if (trim(atomnames(iat))=='Eu') then
-        rcov(iat)=3.21d0
-     else if (trim(atomnames(iat))=='Gd') then
-        rcov(iat)=3.15d0
-     else if (trim(atomnames(iat))=='Td') then
-        rcov(iat)=3.09d0
-     else if (trim(atomnames(iat))=='Dy') then
-        rcov(iat)=3.03d0
-     else if (trim(atomnames(iat))=='Ho') then
-        rcov(iat)=2.97d0
-     else if (trim(atomnames(iat))=='Er') then
-        rcov(iat)=2.92d0
-     else if (trim(atomnames(iat))=='Tm') then
-        rcov(iat)=2.92d0
-     else if (trim(atomnames(iat))=='Yb') then
-        rcov(iat)=2.80d0
-     else if (trim(atomnames(iat))=='Lu') then
-        rcov(iat)=2.80d0
-     else if (trim(atomnames(iat))=='Hf') then
-        rcov(iat)=2.90d0
-     else if (trim(atomnames(iat))=='Ta') then
-        rcov(iat)=2.70d0
-     else if (trim(atomnames(iat))=='W' ) then
-        rcov(iat)=2.60d0
-     else if (trim(atomnames(iat))=='Re') then
-        rcov(iat)=2.60d0
-     else if (trim(atomnames(iat))=='Os') then
-        rcov(iat)=2.50d0
-     else if (trim(atomnames(iat))=='Ir') then
-        rcov(iat)=2.50d0
-     else if (trim(atomnames(iat))=='Pt') then
-        rcov(iat)=2.60d0
-     else if (trim(atomnames(iat))=='Au') then
-        rcov(iat)=2.70d0
-     else if (trim(atomnames(iat))=='Hg') then
-        rcov(iat)=2.80d0
-     else if (trim(atomnames(iat))=='Tl') then
-        rcov(iat)=2.50d0
-     else if (trim(atomnames(iat))=='Pb') then
-        rcov(iat)=3.30d0
-     else if (trim(atomnames(iat))=='Bi') then
-        rcov(iat)=2.90d0
-     else if (trim(atomnames(iat))=='Po') then
-        rcov(iat)=2.80d0
-     else if (trim(atomnames(iat))=='At') then
-        rcov(iat)=2.60d0
-     else if (trim(atomnames(iat))=='Rn') then
-        rcov(iat)=2.60d0
-     else
-        write(*,*) '(MH) no covalent radius stored for this atomtype',trim(atomnames(iat))
-     endif
-        rcov(iat)=rcov(iat)/1.889725989d0
-        write(*,*) '(MH) RCOV:',trim(atomnames(iat)),rcov(iat)
-  enddo
-end subroutine give_rcov
-
-subroutine minenergyandforces(glob,imode,nat,alat,rat,rxyzraw,fat,fstretch,&
-           fxyzraw,epot,iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
-use module_global_variables
+subroutine minenergyandforces(imode,nat,alat,rat,rxyzraw,fat,fstretch,&
+           fxyzraw,epot,iconnect,nbond_,atomnames,wold,alpha_stretch0,alpha_stretch)
 use module_base
 use module_energyandforces
     implicit real(gp) (a-h,o-z)
-    type(globals), intent(inout) :: glob
-    dimension :: rat(3,nat),fat(3,nat),iconnect(2,nbond),fstretch(3,nat),fxyzraw(3,nat),rxyzraw(3,nat)
-    dimension :: ss(nbond,nbond),w(nbond),vv(3,nat,nbond),wold(nbond)
+    dimension :: rat(3,nat),fat(3,nat),iconnect(2,nbond_),fstretch(3,nat),fxyzraw(3,nat),rxyzraw(3,nat)
+    dimension :: ss(nbond_,nbond_),w(nbond_),vv(3,nat,nbond_),wold(nbond_)
     real(gp), intent(in) :: alpha_stretch0
     real(gp), intent(in) :: alat(3)
     character(100) filename
-    character(5):: atomnames(nat)
+    character(20):: atomnames(nat)
 
     rxyzraw=rat
-    call energyandforces(glob,nat,alat,rat,fat,epot)
+    call energyandforces(nat,alat,rat,fat,epot)
     fxyzraw=fat
     fnrmold=dnrm2(3*nat,fat,1)
     fstretch=0.d0
 
     if(imode==2)then
-        call projectbond(nat,nbond,rat,fat,fstretch,iconnect,atomnames,wold,alpha_stretch0,alpha_stretch)
+        call projectbond(nat,nbond_,rat,fat,fstretch,iconnect,atomnames,wold,alpha_stretch0,alpha_stretch)
     endif
  
 end subroutine minenergyandforces
-subroutine mincurvgrad(glob,imode,nat,alat,diff,rxyz1,fxyz1,vec,vecraw,&
+subroutine mincurvgrad(imode,nat,alat,diff,rxyz1,fxyz1,vec,vecraw,&
            rotforce,rotfstretch,rotforceraw,curv,imethod,ec,&
-           iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
-use module_global_variables
+           iconnect,nbond_,atomnames,wold,alpha_stretch0,alpha_stretch)
 use module_base
     implicit real(gp) (a-h,o-z)
     integer, intent(in) :: imode
-    type(globals), intent(inout) :: glob
     real(gp) :: alat(3)
     real(gp) :: rxyz1(3,nat),fxyz1(3,nat)
     real(gp) :: rxyz2(3,nat),fxyz2(3,nat)
     real(gp) :: vec(3,nat), vecraw(3,nat)
     real(gp) :: rotforce(3,nat),rotforceraw(3,nat)
     real(gp) :: rotfstretch(3,nat)
-    real(gp) :: wold(nbond)
+    real(gp) :: wold(nbond_)
     real(gp) :: curv,ec
     real(gp), intent(in) :: alpha_stretch0
-    integer :: imethod,nbond,iconnect(2,nbond)
-    character(5):: atomnames(nat)
+    integer :: imethod,nbond_,iconnect(2,nbond_)
+    character(20):: atomnames(nat)
 
      vecraw=vec
 !    call energyandforces(nat,rat,fat,epot)
-     call curvgrad(glob,nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ec)
+     call curvgrad(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ec)
      rxyz2 =rxyz1+diff*vec
      rotforceraw=rotforce
      rotfstretch=0.d0
      fnrmold=dnrm2(3*nat,rotforce,1)
 
      if(imode==2)then
-         call projectbond(nat,nbond,rxyz2,rotforce,rotfstretch,iconnect,atomnames,wold,alpha_stretch0,alpha_stretch)
+         call projectbond(nat,nbond_,rxyz2,rotforce,rotfstretch,iconnect,atomnames,wold,alpha_stretch0,alpha_stretch)
      endif
 
 end subroutine mincurvgrad
@@ -2203,7 +1999,7 @@ use module_base
     real(gp), intent(inout) :: fat(3,nat)
     real(gp), intent(inout) :: fstretch(3,nat)
     integer, intent(in) :: iconnect(2,nbond)
-    character(5), intent(in) :: atomnames(nat)
+    character(20), intent(in) :: atomnames(nat)
     real(gp), intent(inout) :: wold(nbond)
     real(gp), intent(in) :: alpha_stretch0
     real(gp), intent(inout) :: alpha_stretch

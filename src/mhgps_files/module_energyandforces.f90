@@ -3,7 +3,7 @@ module module_energyandforces
 
 contains
 
-subroutine energyandforces(glob,nat,alat,rxyz,fxyz,epot)
+subroutine energyandforces(nat,alat,rxyz,fxyz,epot)
    use module_base
    use module_types
    use module_interfaces
@@ -11,19 +11,25 @@ subroutine energyandforces(glob,nat,alat,rxyz,fxyz,epot)
 
 
     implicit none
-    type(globals), intent(inout) :: glob
     integer, intent(in) :: nat
     real(gp), intent(in) :: alat(3)
     real(gp), intent(in) :: rxyz(3,nat)
-    real(gp), intent(in) :: fxyz(3,nat)
-    real(gp), intent(in) :: epot
+    real(gp), intent(out) :: fxyz(3,nat)
+    real(gp), intent(out) :: epot
     !internal
     
-    if(trim(adjustl(glob%efmethod))=='LJ')then
+    if(trim(adjustl(efmethod))=='LJ')then
         call lenjon(nat,rxyz(1,1),fxyz(1,1),epot)
         return
-    else if(trim(adjustl(glob%efmethod))=='BIGDFT')then
-        call call_bigdft(glob%runObj,glob%outs,bigdft_mpi%nproc,bigdft_mpi%iproc,glob%infocode)
+    else if(trim(adjustl(efmethod))=='BIGDFT')then
+        if(nat/=runObj%atoms%astruct%nat)then
+            call yaml_warning('nat /= runObj%atoms%astruct%nat in energyandforces')
+            stop
+        endif
+        call vcopy(3 * runObj%atoms%astruct%nat, rxyz(1,1),1,runObj%atoms%astruct%rxyz(1,1), 1)
+        call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+        call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz(1,1), 1)
+        epot=outs%energy
         return
     endif
 end subroutine
