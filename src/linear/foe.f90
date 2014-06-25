@@ -24,6 +24,8 @@ subroutine foe(iproc, nproc, tmprtr, &
                           uncompress_matrix_distributed
   use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
                       foe_data_get_logical
+  use fermi_level, only: init_fermi_level, determine_fermi_level, &
+                         fermilevel_get_real, fermilevel_get_logical
   implicit none
 
   ! Calling arguments
@@ -55,8 +57,8 @@ subroutine foe(iproc, nproc, tmprtr, &
   real(kind=8),dimension(4) :: interpol_vector
   real(kind=8),parameter :: charge_tolerance=1.d-6 ! exit criterion
   logical,dimension(2) :: eval_bounds_ok, bisection_bounds_ok
-  real(kind=8) :: trace_sparse, temp_multiplicator, ebs_check
-  integer :: irow, icol, itemp, iflag
+  real(kind=8) :: trace_sparse, temp_multiplicator, ebs_check, ef
+  integer :: irow, icol, itemp, iflag,info
   logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit
   real(kind=8),parameter :: FSCALE_LOWER_LIMIT=5.d-3
   real(kind=8),parameter :: FSCALE_UPPER_LIMIT=5.d-2
@@ -179,6 +181,10 @@ subroutine foe(iproc, nproc, tmprtr, &
           efarr(2)=foe_data_get_real(foe_obj,"ef")+foe_data_get_real(foe_obj,"bisection_shift")
           sumnarr(1)=0.d0
           sumnarr(2)=1.d100
+          call init_fermi_level(foe_data_get_real(foe_obj,"charge"), foe_data_get_real(foe_obj,"ef"), &
+               foe_data_get_real(foe_obj,"bisection_shift"), foe_data_get_real(foe_obj,"ef_interpol_chargediff"), &
+               foe_data_get_real(foe_obj,"ef_interpol_det"), foe_verbosity)
+          call foe_data_set_real(foe_obj,"ef",efarr(1))
     
           adjust_lower_bound=.true.
           adjust_upper_bound=.true.
@@ -219,11 +225,11 @@ subroutine foe(iproc, nproc, tmprtr, &
                   if (foe_verbosity>=1) call yaml_comment('it FOE:'//yaml_toa(it,fmt='(i6)'),hfill='-')
               end if
               
-              if (adjust_lower_bound) then
-                  call foe_data_set_real(foe_obj,"ef",efarr(1))
-              else if (adjust_upper_bound) then
-                  call foe_data_set_real(foe_obj,"ef",efarr(2))
-              end if
+!!              if (adjust_lower_bound) then
+!!                  call foe_data_set_real(foe_obj,"ef",efarr(1))
+!!              else if (adjust_upper_bound) then
+!!                  call foe_data_set_real(foe_obj,"ef",efarr(2))
+!!              end if
           
     
               ! Scale the Hamiltonian such that all eigenvalues are in the intervall [-1:1]
@@ -288,7 +294,7 @@ subroutine foe(iproc, nproc, tmprtr, &
               if (iproc==0) then
                   if (foe_verbosity>=1) then
                       call yaml_map('bisec/eval bounds',&
-                           (/efarr(1),efarr(2),&
+                           (/fermilevel_get_real("efarr(1)"),fermilevel_get_real("efarr(2)"),&
                            foe_data_get_real(foe_obj,"evlow"),foe_data_get_real(foe_obj,"evhigh")/),fmt='(f5.2)')
                   else
                       call yaml_map('eval bounds',&
@@ -435,29 +441,22 @@ subroutine foe(iproc, nproc, tmprtr, &
             
               call calculate_trace_distributed(tmb%linmat%kernel_%matrixp, sumn)
     
-    
-              ! Make sure that the bounds for the bisection are negative and positive
-              restart=.false.
-              charge_diff = sumn-foe_data_get_real(foe_obj,"charge")
-              if (adjust_lower_bound) then
-                  !if (iproc==0) call yaml_map('checking lower bisection bound, charge diff',charge_diff,fmt='(es9.2)')
-                  if (charge_diff<=0.d0) then
-                      ! Lower bound okay
-                      adjust_lower_bound=.false.
-                      call foe_data_set_real(foe_obj,"bisection_shift",foe_data_get_real(foe_obj,"bisection_shift")*9.d-1)
-                      sumnarr(1)=sumn
-                      if (iproc==0) then
-                      end if
-                      restart=.true.
-                      bisection_bounds_ok(1)=.true.
-                  else
-                      efarr(1)=efarr(1)-foe_data_get_real(foe_obj,"bisection_shift")
-                      call foe_data_set_real(foe_obj,"bisection_shift",foe_data_get_real(foe_obj,"bisection_shift")*1.1d0)
-                      restart=.true.
-                      bisection_bounds_ok(1)=.false.
+
+              if (all(eval_bounds_ok) .and. all(bisection_bounds_ok)) then
+                  ! Print these informations already now if all entries are true.
+                  if (iproc==0) then
+                      if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
+                           (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
                   end if
               end if
-              if (restart) then
+              call determine_fermi_level(sumn, ef, info)
+              bisection_bounds_ok(1) = fermilevel_get_logical("bisection_bounds_ok(1)")
+              bisection_bounds_ok(2) = fermilevel_get_logical("bisection_bounds_ok(2)")
+!!              efarr(1) = fermilevel_get_real("efarr(1)")
+!!              efarr(2) = fermilevel_get_real("efarr(2)")
+              call foe_data_set_real(foe_obj,"ef",ef)
+              !write(*,*) 'main: efarr', efarr
+              if (info<0) then
                   if (iproc==0) then
                       if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
                            (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
@@ -466,83 +465,116 @@ subroutine foe(iproc, nproc, tmprtr, &
                   call f_free(cc_check)
                   cycle
               end if
-              if (adjust_upper_bound) then
-                  if (charge_diff>=0.d0) then
-                      ! Upper bound okay
-                      adjust_upper_bound=.false.
-                      call foe_data_set_real(foe_obj,"bisection_shift",foe_data_get_real(foe_obj,"bisection_shift")*9.d-1)
-                      sumnarr(2)=sumn
-                      restart=.false.
-                      bisection_bounds_ok(2)=.true.
-                  else
-                      efarr(2)=efarr(2)+foe_data_get_real(foe_obj,"bisection_shift")
-                      call foe_data_set_real(foe_obj,"bisection_shift",foe_data_get_real(foe_obj,"bisection_shift")*1.1d0)
-                      restart=.true.
-                      bisection_bounds_ok(2)=.false.
-                  end if
-              end if
+
+              charge_diff = sumn-foe_data_get_real(foe_obj,"charge")
     
-              if (iproc==0) then
-                  if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
-                       (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
-              end if
-              if (restart) then
-                  if (iproc==0) then
-                      call yaml_close_map()
-                  end if
-                  call f_free(cc_check)
-                  cycle
-              end if
+!!              ! Make sure that the bounds for the bisection are negative and positive
+!!              restart=.false.
+!!              charge_diff = sumn-foe_data_get_real(foe_obj,"charge")
+!!              if (adjust_lower_bound) then
+!!                  !if (iproc==0) call yaml_map('checking lower bisection bound, charge diff',charge_diff,fmt='(es9.2)')
+!!                  if (charge_diff<=0.d0) then
+!!                      ! Lower bound okay
+!!                      adjust_lower_bound=.false.
+!!                      call foe_data_set_real(foe_obj,"bisection_shift",foe_data_get_real(foe_obj,"bisection_shift")*9.d-1)
+!!                      sumnarr(1)=sumn
+!!                      if (iproc==0) then
+!!                      end if
+!!                      restart=.true.
+!!                      bisection_bounds_ok(1)=.true.
+!!                  else
+!!                      efarr(1)=efarr(1)-foe_data_get_real(foe_obj,"bisection_shift")
+!!                      call foe_data_set_real(foe_obj,"bisection_shift",foe_data_get_real(foe_obj,"bisection_shift")*1.1d0)
+!!                      restart=.true.
+!!                      bisection_bounds_ok(1)=.false.
+!!                  end if
+!!              end if
+!!              if (restart) then
+!!                  if (iproc==0) then
+!!                      if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
+!!                           (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
+!!                      call yaml_close_map()
+!!                  end if
+!!                  call f_free(cc_check)
+!!                  cycle
+!!              end if
+!!              if (adjust_upper_bound) then
+!!                  if (charge_diff>=0.d0) then
+!!                      ! Upper bound okay
+!!                      adjust_upper_bound=.false.
+!!                      call foe_data_set_real(foe_obj,"bisection_shift",foe_data_get_real(foe_obj,"bisection_shift")*9.d-1)
+!!                      sumnarr(2)=sumn
+!!                      restart=.false.
+!!                      bisection_bounds_ok(2)=.true.
+!!                  else
+!!                      efarr(2)=efarr(2)+foe_data_get_real(foe_obj,"bisection_shift")
+!!                      call foe_data_set_real(foe_obj,"bisection_shift",foe_data_get_real(foe_obj,"bisection_shift")*1.1d0)
+!!                      restart=.true.
+!!                      bisection_bounds_ok(2)=.false.
+!!                  end if
+!!              end if
+!!    
+!!              if (iproc==0) then
+!!                  if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
+!!                       (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
+!!              end if
+!!              if (restart) then
+!!                  if (iproc==0) then
+!!                      call yaml_close_map()
+!!                  end if
+!!                  call f_free(cc_check)
+!!                  cycle
+!!              end if
     
 
-              ! Adjust the bounds for the bisection.
-              if (charge_diff<0.d0) then
-                  efarr(1)=foe_data_get_real(foe_obj,"ef")
-                  sumnarr(1)=sumn
-              else if (charge_diff>=0.d0) then
-                  efarr(2)=foe_data_get_real(foe_obj,"ef")
-                  sumnarr(2)=sumn
-              end if
+!!              ! Adjust the bounds for the bisection.
+!!              if (charge_diff<0.d0) then
+!!                  efarr(1)=foe_data_get_real(foe_obj,"ef")
+!!                  sumnarr(1)=sumn
+!!              else if (charge_diff>=0.d0) then
+!!                  efarr(2)=foe_data_get_real(foe_obj,"ef")
+!!                  sumnarr(2)=sumn
+!!              end if
     
 
 
               it_solver=it_solver+1
     
-              ! Check whether the system behaves reasonably.
-              interpolation_possible=.true.
-              if (it_solver>1) then
-                  if (foe_verbosity>=1 .and. iproc==0) then
-                      call yaml_newline()
-                      call yaml_open_map('interpol check',flow=.true.)
-                      call yaml_map('D eF',foe_data_get_real(foe_obj,"ef")-ef_old,fmt='(es13.6)')
-                      call yaml_map('D Tr',sumn-sumn_old,fmt='(es13.6)')
-                  end if
-                  if (foe_data_get_real(foe_obj,"ef")>ef_old .and. sumn<sumn_old) then
-                      interpolation_possible=.false.
-                  end if
-                  if (foe_data_get_real(foe_obj,"ef")<ef_old .and. sumn>sumn_old) then
-                      interpolation_possible=.false.
-                  end if
-                  if (foe_data_get_real(foe_obj,"ef")>ef_old .and. sumn<sumn_old .or. &
-                      foe_data_get_real(foe_obj,"ef")<ef_old .and. sumn>sumn_old) then
-                      if (foe_verbosity>=1 .and. iproc==0) call yaml_map('interpol possible',.false.)
-                  else
-                      if (foe_verbosity>=1 .and. iproc==0) call yaml_map('interpol possible',.true.)
-                  end if
-                  if (foe_verbosity>=1 .and. iproc==0) call yaml_close_map()
-                  !!call bigdft_utils_flush(unit=6)
-                  if (foe_verbosity>=1 .and. iproc==0) call yaml_newline()
-              end if
-              if (.not.interpolation_possible) then
-                  ! Set the history for the interpolation to zero.
-                  it_solver=0
-              end if
+!!              ! Check whether the system behaves reasonably.
+!!              interpolation_possible=.true.
+!!              if (it_solver>1) then
+!!                  if (foe_verbosity>=1 .and. iproc==0) then
+!!                      call yaml_newline()
+!!                      call yaml_open_map('interpol check',flow=.true.)
+!!                      call yaml_map('D eF',foe_data_get_real(foe_obj,"ef")-ef_old,fmt='(es13.6)')
+!!                      call yaml_map('D Tr',sumn-sumn_old,fmt='(es13.6)')
+!!                  end if
+!!                  if (foe_data_get_real(foe_obj,"ef")>ef_old .and. sumn<sumn_old) then
+!!                      interpolation_possible=.false.
+!!                  end if
+!!                  if (foe_data_get_real(foe_obj,"ef")<ef_old .and. sumn>sumn_old) then
+!!                      interpolation_possible=.false.
+!!                  end if
+!!                  if (foe_data_get_real(foe_obj,"ef")>ef_old .and. sumn<sumn_old .or. &
+!!                      foe_data_get_real(foe_obj,"ef")<ef_old .and. sumn>sumn_old) then
+!!                      if (foe_verbosity>=1 .and. iproc==0) call yaml_map('interpol possible',.false.)
+!!                  else
+!!                      if (foe_verbosity>=1 .and. iproc==0) call yaml_map('interpol possible',.true.)
+!!                  end if
+!!                  if (foe_verbosity>=1 .and. iproc==0) call yaml_close_map()
+!!                  !!call bigdft_utils_flush(unit=6)
+!!                  if (foe_verbosity>=1 .and. iproc==0) call yaml_newline()
+!!              end if
+!!              if (.not.interpolation_possible) then
+!!                  ! Set the history for the interpolation to zero.
+!!                  it_solver=0
+!!              end if
     
               ef_old=foe_data_get_real(foe_obj,"ef")
               sumn_old=sumn
 
 
-              call determine_new_fermi_level()
+!!              call determine_new_fermi_level()
     
     
               if (iproc==0) then
