@@ -99,7 +99,7 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
      fmt = "(i4.4)"
      if (trim(parmin%approach)=='AB6MD') fmt = '(i5.5)'
      write(fn4,fmt) ncount_bigdft
-     write(comment,'(a)')'INITIAL CONFIGURATION '
+     write(comment,'(a)')'INITIAL_CONFIGURATION '
      call write_atomic_file(trim(runObj%inputs%dir_output)//trim(outfile)//'_'//trim(fn4),&
           & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,runObj%atoms,trim(comment),forces=outs%fxyz)
      call yaml_new_document()

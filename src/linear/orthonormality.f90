@@ -2905,7 +2905,7 @@ subroutine check_taylor_order(error, max_error, order_taylor)
 
   ! Local variables
   character(len=12) :: act
-  integer,parameter :: max_order=200
+  integer,parameter :: max_order=100
 
   if (order_taylor>0) then
       ! only do this if Taylor approximations are actually used
