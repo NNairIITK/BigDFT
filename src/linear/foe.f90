@@ -41,7 +41,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   type(foe_data),intent(inout) :: foe_obj
 
   ! Local variables
-  integer :: npl, jorb, ipl, it, ii, iiorb, jjorb, iseg, it_solver, iorb
+  integer :: npl, jorb, ipl, it, ii, iiorb, jjorb, iseg, iorb
   integer :: isegstart, isegend, iismall, iilarge, nsize_polynomial
   integer :: iismall_ovrlp, iismall_ham, ntemp, it_shift, npl_check, npl_boundaries
   integer,parameter :: nplx=50000
@@ -173,6 +173,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           call yaml_map('decay length multiplicator',temp_multiplicator,fmt='(es10.3)')
           call yaml_map('polynomial degree multiplicator',degree_multiplicator,fmt='(es10.3)')
       end if
+
     
           ! Don't let this value become too small.
           call foe_data_set_real(foe_obj,"bisection_shift",max(foe_data_get_real(foe_obj,"bisection_shift"),1.d-4))
@@ -211,7 +212,6 @@ subroutine foe(iproc, nproc, tmprtr, &
     
     
           it=0
-          it_solver=0
           eval_bounds_ok=.false.
           bisection_bounds_ok=.false.
           main_loop: do 
@@ -452,9 +452,6 @@ subroutine foe(iproc, nproc, tmprtr, &
               call determine_fermi_level(sumn, ef, info)
               bisection_bounds_ok(1) = fermilevel_get_logical("bisection_bounds_ok(1)")
               bisection_bounds_ok(2) = fermilevel_get_logical("bisection_bounds_ok(2)")
-!!              efarr(1) = fermilevel_get_real("efarr(1)")
-!!              efarr(2) = fermilevel_get_real("efarr(2)")
-              call foe_data_set_real(foe_obj,"ef",ef)
               !write(*,*) 'main: efarr', efarr
               if (info<0) then
                   if (iproc==0) then
@@ -463,119 +460,22 @@ subroutine foe(iproc, nproc, tmprtr, &
                       call yaml_close_map()
                   end if
                   call f_free(cc_check)
+                  ! Save the new fermi energy in the foe_obj structure
+                  call foe_data_set_real(foe_obj,"ef",ef)
                   cycle
               end if
 
+              ! Save the new fermi energy and bisection_shift in the foe_obj structure
+              call foe_data_set_real(foe_obj,"ef",ef)
+              call foe_data_set_real(foe_obj,"bisection_shift",fermilevel_get_real("bisection_shift"))
+
               charge_diff = sumn-foe_data_get_real(foe_obj,"charge")
     
-!!              ! Make sure that the bounds for the bisection are negative and positive
-!!              restart=.false.
-!!              charge_diff = sumn-foe_data_get_real(foe_obj,"charge")
-!!              if (adjust_lower_bound) then
-!!                  !if (iproc==0) call yaml_map('checking lower bisection bound, charge diff',charge_diff,fmt='(es9.2)')
-!!                  if (charge_diff<=0.d0) then
-!!                      ! Lower bound okay
-!!                      adjust_lower_bound=.false.
-!!                      call foe_data_set_real(foe_obj,"bisection_shift",foe_data_get_real(foe_obj,"bisection_shift")*9.d-1)
-!!                      sumnarr(1)=sumn
-!!                      if (iproc==0) then
-!!                      end if
-!!                      restart=.true.
-!!                      bisection_bounds_ok(1)=.true.
-!!                  else
-!!                      efarr(1)=efarr(1)-foe_data_get_real(foe_obj,"bisection_shift")
-!!                      call foe_data_set_real(foe_obj,"bisection_shift",foe_data_get_real(foe_obj,"bisection_shift")*1.1d0)
-!!                      restart=.true.
-!!                      bisection_bounds_ok(1)=.false.
-!!                  end if
-!!              end if
-!!              if (restart) then
-!!                  if (iproc==0) then
-!!                      if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
-!!                           (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
-!!                      call yaml_close_map()
-!!                  end if
-!!                  call f_free(cc_check)
-!!                  cycle
-!!              end if
-!!              if (adjust_upper_bound) then
-!!                  if (charge_diff>=0.d0) then
-!!                      ! Upper bound okay
-!!                      adjust_upper_bound=.false.
-!!                      call foe_data_set_real(foe_obj,"bisection_shift",foe_data_get_real(foe_obj,"bisection_shift")*9.d-1)
-!!                      sumnarr(2)=sumn
-!!                      restart=.false.
-!!                      bisection_bounds_ok(2)=.true.
-!!                  else
-!!                      efarr(2)=efarr(2)+foe_data_get_real(foe_obj,"bisection_shift")
-!!                      call foe_data_set_real(foe_obj,"bisection_shift",foe_data_get_real(foe_obj,"bisection_shift")*1.1d0)
-!!                      restart=.true.
-!!                      bisection_bounds_ok(2)=.false.
-!!                  end if
-!!              end if
-!!    
-!!              if (iproc==0) then
-!!                  if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
-!!                       (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
-!!              end if
-!!              if (restart) then
-!!                  if (iproc==0) then
-!!                      call yaml_close_map()
-!!                  end if
-!!                  call f_free(cc_check)
-!!                  cycle
-!!              end if
-    
 
-!!              ! Adjust the bounds for the bisection.
-!!              if (charge_diff<0.d0) then
-!!                  efarr(1)=foe_data_get_real(foe_obj,"ef")
-!!                  sumnarr(1)=sumn
-!!              else if (charge_diff>=0.d0) then
-!!                  efarr(2)=foe_data_get_real(foe_obj,"ef")
-!!                  sumnarr(2)=sumn
-!!              end if
-    
-
-
-              it_solver=it_solver+1
-    
-!!              ! Check whether the system behaves reasonably.
-!!              interpolation_possible=.true.
-!!              if (it_solver>1) then
-!!                  if (foe_verbosity>=1 .and. iproc==0) then
-!!                      call yaml_newline()
-!!                      call yaml_open_map('interpol check',flow=.true.)
-!!                      call yaml_map('D eF',foe_data_get_real(foe_obj,"ef")-ef_old,fmt='(es13.6)')
-!!                      call yaml_map('D Tr',sumn-sumn_old,fmt='(es13.6)')
-!!                  end if
-!!                  if (foe_data_get_real(foe_obj,"ef")>ef_old .and. sumn<sumn_old) then
-!!                      interpolation_possible=.false.
-!!                  end if
-!!                  if (foe_data_get_real(foe_obj,"ef")<ef_old .and. sumn>sumn_old) then
-!!                      interpolation_possible=.false.
-!!                  end if
-!!                  if (foe_data_get_real(foe_obj,"ef")>ef_old .and. sumn<sumn_old .or. &
-!!                      foe_data_get_real(foe_obj,"ef")<ef_old .and. sumn>sumn_old) then
-!!                      if (foe_verbosity>=1 .and. iproc==0) call yaml_map('interpol possible',.false.)
-!!                  else
-!!                      if (foe_verbosity>=1 .and. iproc==0) call yaml_map('interpol possible',.true.)
-!!                  end if
-!!                  if (foe_verbosity>=1 .and. iproc==0) call yaml_close_map()
-!!                  !!call bigdft_utils_flush(unit=6)
-!!                  if (foe_verbosity>=1 .and. iproc==0) call yaml_newline()
-!!              end if
-!!              if (.not.interpolation_possible) then
-!!                  ! Set the history for the interpolation to zero.
-!!                  it_solver=0
-!!              end if
-    
               ef_old=foe_data_get_real(foe_obj,"ef")
               sumn_old=sumn
 
 
-!!              call determine_new_fermi_level()
-    
     
               if (iproc==0) then
                   if (foe_verbosity>=1) call yaml_newline()
@@ -891,96 +791,96 @@ subroutine foe(iproc, nproc, tmprtr, &
 
 
 
-      subroutine determine_new_fermi_level()
-        implicit none
-        integer :: info, i
-        real(kind=8) :: determinant, m, b
-        real(kind=8),dimension(4,4) :: tmp_matrix
-        real(kind=8),dimension(4) :: interpol_solution
-        integer,dimension(4) :: ipiv
-
-        ! Shift up the old results.
-        if (it_solver>4) then
-            do i=1,4
-                interpol_matrix(1,i)=interpol_matrix(2,i)
-                interpol_matrix(2,i)=interpol_matrix(3,i)
-                interpol_matrix(3,i)=interpol_matrix(4,i)
-            end do
-            interpol_vector(1)=interpol_vector(2)
-            interpol_vector(2)=interpol_vector(3)
-            interpol_vector(3)=interpol_vector(4)
-        end if
-        !LG: if it_solver==0 this index comes out of bounds!
-        ii=max(min(it_solver,4),1)
-        interpol_matrix(ii,1)=foe_data_get_real(foe_obj,"ef")**3
-        interpol_matrix(ii,2)=foe_data_get_real(foe_obj,"ef")**2
-        interpol_matrix(ii,3)=foe_data_get_real(foe_obj,"ef")
-        interpol_matrix(ii,4)=1
-        interpol_vector(ii)=sumn-foe_data_get_real(foe_obj,"charge")
-    
-        ! Solve the linear system interpol_matrix*interpol_solution=interpol_vector
-        if (it_solver>=4) then
-            do i=1,ii
-                interpol_solution(i)=interpol_vector(i)
-                tmp_matrix(i,1)=interpol_matrix(i,1)
-                tmp_matrix(i,2)=interpol_matrix(i,2)
-                tmp_matrix(i,3)=interpol_matrix(i,3)
-                tmp_matrix(i,4)=interpol_matrix(i,4)
-            end do
-    
-            call dgesv(ii, 1, tmp_matrix, 4, ipiv, interpol_solution, 4, info)
-            if (info/=0) then
-               if (iproc==0) write(*,'(1x,a,i0)') 'ERROR in dgesv (FOE), info=',info
-            end if
-    
-    
-            call get_roots_of_cubic_polynomial(interpol_solution(1), interpol_solution(2), &
-                 interpol_solution(3), interpol_solution(4), foe_data_get_real(foe_obj,"ef"), ef_interpol)
-        end if
-    
-    
-    
-    
-        ! Calculate the new Fermi energy.
-        if (foe_verbosity>=1 .and. iproc==0) then
-            call yaml_newline()
-            call yaml_open_map('Search new eF',flow=.true.)
-        end if
-        if (it_solver>=4 .and.  &
-            abs(sumn-foe_data_get_real(foe_obj,"charge"))<foe_data_get_real(foe_obj,"ef_interpol_chargediff")) then
-            det=determinant(iproc,4,interpol_matrix)
-            if (foe_verbosity>=1 .and. iproc==0) then
-                call yaml_map('det',det,fmt='(es10.3)')
-                call yaml_map('limit',foe_data_get_real(foe_obj,"ef_interpol_det"),fmt='(es10.3)')
-            end if
-            if(abs(det)>foe_data_get_real(foe_obj,"ef_interpol_det")) then
-                call foe_data_set_real(foe_obj,"ef",ef_interpol)
-                if (foe_verbosity>=1 .and. iproc==0) call yaml_map('method','cubic interpolation')
-            else
-                ! linear interpolation
-                if (foe_verbosity>=1 .and. iproc==0) call yaml_map('method','linear interpolation')
-                m = (interpol_vector(4)-interpol_vector(3))/(interpol_matrix(4,3)-interpol_matrix(3,3))
-                b = interpol_vector(4)-m*interpol_matrix(4,3)
-                call foe_data_set_real(foe_obj,"ef", -b/m)
-            end if
-        else
-            ! Use mean value of bisection and secant method
-            ! Secant method solution
-            call foe_data_set_real(foe_obj,"ef", &
-                 efarr(2)-(sumnarr(2)-foe_data_get_real(foe_obj,"charge"))*(efarr(2)-efarr(1))/(sumnarr(2)-sumnarr(1)))
-            ! Add bisection solution
-            call foe_data_set_real(foe_obj,"ef", foe_data_get_real(foe_obj,"ef") + .5d0*(efarr(1)+efarr(2)))
-            ! Take the mean value
-            call foe_data_set_real(foe_obj,"ef", .5d0*foe_data_get_real(foe_obj,"ef"))
-            if (foe_verbosity>=1 .and. iproc==0) call yaml_map('method','bisection / secant method')
-        end if
-        if (foe_verbosity>=1 .and. iproc==0) then
-            call yaml_close_map()
-            !!call bigdft_utils_flush(unit=6)
-            !call yaml_newline()
-        end if
-
-      end subroutine determine_new_fermi_level
+!!      subroutine determine_new_fermi_level()
+!!        implicit none
+!!        integer :: info, i
+!!        real(kind=8) :: determinant, m, b
+!!        real(kind=8),dimension(4,4) :: tmp_matrix
+!!        real(kind=8),dimension(4) :: interpol_solution
+!!        integer,dimension(4) :: ipiv
+!!
+!!        ! Shift up the old results.
+!!        if (it_solver>4) then
+!!            do i=1,4
+!!                interpol_matrix(1,i)=interpol_matrix(2,i)
+!!                interpol_matrix(2,i)=interpol_matrix(3,i)
+!!                interpol_matrix(3,i)=interpol_matrix(4,i)
+!!            end do
+!!            interpol_vector(1)=interpol_vector(2)
+!!            interpol_vector(2)=interpol_vector(3)
+!!            interpol_vector(3)=interpol_vector(4)
+!!        end if
+!!        !LG: if it_solver==0 this index comes out of bounds!
+!!        ii=max(min(it_solver,4),1)
+!!        interpol_matrix(ii,1)=foe_data_get_real(foe_obj,"ef")**3
+!!        interpol_matrix(ii,2)=foe_data_get_real(foe_obj,"ef")**2
+!!        interpol_matrix(ii,3)=foe_data_get_real(foe_obj,"ef")
+!!        interpol_matrix(ii,4)=1
+!!        interpol_vector(ii)=sumn-foe_data_get_real(foe_obj,"charge")
+!!    
+!!        ! Solve the linear system interpol_matrix*interpol_solution=interpol_vector
+!!        if (it_solver>=4) then
+!!            do i=1,ii
+!!                interpol_solution(i)=interpol_vector(i)
+!!                tmp_matrix(i,1)=interpol_matrix(i,1)
+!!                tmp_matrix(i,2)=interpol_matrix(i,2)
+!!                tmp_matrix(i,3)=interpol_matrix(i,3)
+!!                tmp_matrix(i,4)=interpol_matrix(i,4)
+!!            end do
+!!    
+!!            call dgesv(ii, 1, tmp_matrix, 4, ipiv, interpol_solution, 4, info)
+!!            if (info/=0) then
+!!               if (iproc==0) write(*,'(1x,a,i0)') 'ERROR in dgesv (FOE), info=',info
+!!            end if
+!!    
+!!    
+!!            call get_roots_of_cubic_polynomial(interpol_solution(1), interpol_solution(2), &
+!!                 interpol_solution(3), interpol_solution(4), foe_data_get_real(foe_obj,"ef"), ef_interpol)
+!!        end if
+!!    
+!!    
+!!    
+!!    
+!!        ! Calculate the new Fermi energy.
+!!        if (foe_verbosity>=1 .and. iproc==0) then
+!!            call yaml_newline()
+!!            call yaml_open_map('Search new eF',flow=.true.)
+!!        end if
+!!        if (it_solver>=4 .and.  &
+!!            abs(sumn-foe_data_get_real(foe_obj,"charge"))<foe_data_get_real(foe_obj,"ef_interpol_chargediff")) then
+!!            det=determinant(iproc,4,interpol_matrix)
+!!            if (foe_verbosity>=1 .and. iproc==0) then
+!!                call yaml_map('det',det,fmt='(es10.3)')
+!!                call yaml_map('limit',foe_data_get_real(foe_obj,"ef_interpol_det"),fmt='(es10.3)')
+!!            end if
+!!            if(abs(det)>foe_data_get_real(foe_obj,"ef_interpol_det")) then
+!!                call foe_data_set_real(foe_obj,"ef",ef_interpol)
+!!                if (foe_verbosity>=1 .and. iproc==0) call yaml_map('method','cubic interpolation')
+!!            else
+!!                ! linear interpolation
+!!                if (foe_verbosity>=1 .and. iproc==0) call yaml_map('method','linear interpolation')
+!!                m = (interpol_vector(4)-interpol_vector(3))/(interpol_matrix(4,3)-interpol_matrix(3,3))
+!!                b = interpol_vector(4)-m*interpol_matrix(4,3)
+!!                call foe_data_set_real(foe_obj,"ef", -b/m)
+!!            end if
+!!        else
+!!            ! Use mean value of bisection and secant method
+!!            ! Secant method solution
+!!            call foe_data_set_real(foe_obj,"ef", &
+!!                 efarr(2)-(sumnarr(2)-foe_data_get_real(foe_obj,"charge"))*(efarr(2)-efarr(1))/(sumnarr(2)-sumnarr(1)))
+!!            ! Add bisection solution
+!!            call foe_data_set_real(foe_obj,"ef", foe_data_get_real(foe_obj,"ef") + .5d0*(efarr(1)+efarr(2)))
+!!            ! Take the mean value
+!!            call foe_data_set_real(foe_obj,"ef", .5d0*foe_data_get_real(foe_obj,"ef"))
+!!            if (foe_verbosity>=1 .and. iproc==0) call yaml_map('method','bisection / secant method')
+!!        end if
+!!        if (foe_verbosity>=1 .and. iproc==0) then
+!!            call yaml_close_map()
+!!            !!call bigdft_utils_flush(unit=6)
+!!            !call yaml_newline()
+!!        end if
+!!
+!!      end subroutine determine_new_fermi_level
 
 
       subroutine check_eigenvalue_spectrum()
