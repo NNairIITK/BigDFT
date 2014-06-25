@@ -24,7 +24,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                           uncompress_matrix_distributed
   use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
                       foe_data_get_logical
-  use fermi_level, only: init_fermi_level, determine_fermi_level, &
+  use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
                          fermilevel_get_real, fermilevel_get_logical
   implicit none
 
@@ -75,6 +75,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   integer,parameter :: SPARSE=1
   integer,parameter :: DENSE=2
   integer,parameter :: imode=SPARSE
+  type(fermi_aux) :: f
   
 
 
@@ -182,7 +183,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           efarr(2)=foe_data_get_real(foe_obj,"ef")+foe_data_get_real(foe_obj,"bisection_shift")
           sumnarr(1)=0.d0
           sumnarr(2)=1.d100
-          call init_fermi_level(foe_data_get_real(foe_obj,"charge"), foe_data_get_real(foe_obj,"ef"), &
+          call init_fermi_level(foe_data_get_real(foe_obj,"charge"), foe_data_get_real(foe_obj,"ef"), f, &
                foe_data_get_real(foe_obj,"bisection_shift"), foe_data_get_real(foe_obj,"ef_interpol_chargediff"), &
                foe_data_get_real(foe_obj,"ef_interpol_det"), foe_verbosity)
           call foe_data_set_real(foe_obj,"ef",efarr(1))
@@ -294,7 +295,7 @@ subroutine foe(iproc, nproc, tmprtr, &
               if (iproc==0) then
                   if (foe_verbosity>=1) then
                       call yaml_map('bisec/eval bounds',&
-                           (/fermilevel_get_real("efarr(1)"),fermilevel_get_real("efarr(2)"),&
+                           (/fermilevel_get_real(f,"efarr(1)"),fermilevel_get_real(f,"efarr(2)"),&
                            foe_data_get_real(foe_obj,"evlow"),foe_data_get_real(foe_obj,"evhigh")/),fmt='(f5.2)')
                   else
                       call yaml_map('eval bounds',&
@@ -449,9 +450,9 @@ subroutine foe(iproc, nproc, tmprtr, &
                            (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
                   end if
               end if
-              call determine_fermi_level(sumn, ef, info)
-              bisection_bounds_ok(1) = fermilevel_get_logical("bisection_bounds_ok(1)")
-              bisection_bounds_ok(2) = fermilevel_get_logical("bisection_bounds_ok(2)")
+              call determine_fermi_level(f, sumn, ef, info)
+              bisection_bounds_ok(1) = fermilevel_get_logical(f,"bisection_bounds_ok(1)")
+              bisection_bounds_ok(2) = fermilevel_get_logical(f,"bisection_bounds_ok(2)")
               !write(*,*) 'main: efarr', efarr
               if (info<0) then
                   if (iproc==0) then
@@ -467,7 +468,7 @@ subroutine foe(iproc, nproc, tmprtr, &
 
               ! Save the new fermi energy and bisection_shift in the foe_obj structure
               call foe_data_set_real(foe_obj,"ef",ef)
-              call foe_data_set_real(foe_obj,"bisection_shift",fermilevel_get_real("bisection_shift"))
+              call foe_data_set_real(foe_obj,"bisection_shift",fermilevel_get_real(f,"bisection_shift"))
 
               charge_diff = sumn-foe_data_get_real(foe_obj,"charge")
     

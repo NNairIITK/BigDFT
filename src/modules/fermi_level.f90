@@ -10,75 +10,79 @@ module fermi_level
   public :: fermilevel_get_real
   public :: fermilevel_get_logical
 
-  ! Variables local to the module
-  logical :: adjust_lower_bound_, adjust_upper_bound_
-  real(kind=8) :: target_charge_, bisection_shift_, ef_old_, sumn_old_
-  real(kind=8) :: ef_interpol_chargediff_, ef_interpol_det_
-  real(kind=8),dimension(2) :: sumnarr_, efarr_
-  logical,dimension(2) :: bisection_bounds_ok_
-  real(kind=8),dimension(4,4) :: interpol_matrix_
-  real(kind=8),dimension(4) :: interpol_vector_
-  integer :: it_, it_solver_, verbosity_
+  ! Auxiliary structure that holds the required data
+  type,public :: fermi_aux
+    logical :: adjust_lower_bound, adjust_upper_bound
+    real(kind=8) :: target_charge, bisection_shift, ef_old, sumn_old
+    real(kind=8) :: ef_interpol_chargediff, ef_interpol_det
+    real(kind=8),dimension(2) :: sumnarr, efarr
+    logical,dimension(2) :: bisection_bounds_ok
+    real(kind=8),dimension(4,4) :: interpol_matrix
+    real(kind=8),dimension(4) :: interpol_vector
+    integer :: it, it_solver, verbosity
+  end type fermi_aux
 
 
   contains
     
     !> Initialize the internal variables
-    subroutine init_fermi_level(target_charge, ef, bisection_shift, ef_interpol_chargediff, ef_interpol_det, verbosity)
+    subroutine init_fermi_level(target_charge, ef, f, bisection_shift, ef_interpol_chargediff, ef_interpol_det, verbosity)
       implicit none
 
       ! Calling arguments
       real(kind=8),intent(in) :: target_charge                   !< total charge of the system
       real(kind=8),intent(in) :: ef                              !< initial guess for the fermi level
+      type(fermi_aux),intent(out) :: f                           !< type that holds the internal data
       real(kind=8),intent(in),optional :: bisection_shift        !< shift to be used for the determination of the bisection bounds
       real(kind=8),intent(in),optional :: ef_interpol_chargediff !< charge difference below which the cubic interpolation is allowed
       real(kind=8),intent(in),optional :: ef_interpol_det        !< determinant of the interpolation matrix above which the cubic interpolation is allowed
       integer,intent(in),optional :: verbosity                   !< verbosity of the output: 0 for no output, 1 for more detailed output
 
-      adjust_lower_bound_ = .true.
-      adjust_upper_bound_ = .true.
-      target_charge_ = target_charge
-      sumnarr_(1) = 0.d0
-      sumnarr_(2) = 1.d100
+      f%adjust_lower_bound = .true.
+      f%adjust_upper_bound = .true.
+      f%target_charge = target_charge
+      f%sumnarr(1) = 0.d0
+      f%sumnarr(2) = 1.d100
       if (present(bisection_shift)) then
-          bisection_shift_ = bisection_shift
+          f%bisection_shift = bisection_shift
       else
-          bisection_shift_ = 0.1d0
+          f%bisection_shift = 0.1d0
       end if
-      ef_old_ = 0.d0
-      sumn_old_ = 0.d0
-      efarr_(1) = ef - bisection_shift_
-      efarr_(2) = ef + bisection_shift_
+      f%ef_old = 0.d0
+      f%sumn_old = 0.d0
+      f%efarr(1) = ef - f%bisection_shift
+      f%efarr(2) = ef + f%bisection_shift
       if (present(ef_interpol_chargediff)) then
-          ef_interpol_chargediff_ = ef_interpol_chargediff
+          f%ef_interpol_chargediff = ef_interpol_chargediff
       else
-          ef_interpol_chargediff_ = 1.d0
+          f%ef_interpol_chargediff = 1.d0
       end if
       if (present(ef_interpol_det)) then
-          ef_interpol_det_ = ef_interpol_det
+          f%ef_interpol_det = ef_interpol_det
       else
-          ef_interpol_det_ = 1.d-20
+          f%ef_interpol_det = 1.d-20
       end if
-      bisection_bounds_ok_(1) = .false.
-      bisection_bounds_ok_(2) = .false.
-      interpol_matrix_(:,:) = 0.d0
-      interpol_vector_(:) = 0.d0
-      it_ = 0
-      it_solver_ = 0
+      f%bisection_bounds_ok(1) = .false.
+      f%bisection_bounds_ok(2) = .false.
+      f%interpol_matrix(:,:) = 0.d0
+      f%interpol_vector(:) = 0.d0
+      f%it = 0
+      f%it_solver = 0
       if (present(verbosity)) then
-          verbosity_ = verbosity
+          f%verbosity = verbosity
       else
-          verbosity_ = 0
+          f%verbosity = 0
       end if
     end subroutine init_fermi_level
 
 
 
-    subroutine determine_fermi_level(sumn, ef, info)
+    subroutine determine_fermi_level(f, sumn, ef, info)
       use yaml_output
       implicit none
 
       ! Calling arguments
+      type(fermi_aux),intent(inout) :: f   !< type that holds the internal data
       real(kind=8),intent(in) :: sumn      !< charge of the system (which should be equal to the target charge once the correct Fermi level is found),
                                            !    obtained with the current value of ef
       real(kind=8),intent(inout) :: ef     !< on input: current value of the Fermi level
@@ -93,40 +97,40 @@ module fermi_level
 
 
       ! Make sure that the bounds for the bisection are negative and positive
-      charge_diff = sumn-target_charge_
-      if (adjust_lower_bound_) then
+      charge_diff = sumn-f%target_charge
+      if (f%adjust_lower_bound) then
           if (charge_diff <= 0.d0) then
               ! Lower bound okay
-              adjust_lower_bound_ = .false.
-              bisection_shift_ = bisection_shift_*0.9d0
-              sumnarr_(1) = sumn
-              bisection_bounds_ok_(1) = .true.
+              f%adjust_lower_bound = .false.
+              f%bisection_shift = f%bisection_shift*0.9d0
+              f%sumnarr(1) = sumn
+              f%bisection_bounds_ok(1) = .true.
           else
-              efarr_(1) = efarr_(1)-bisection_shift_
-              bisection_shift_ = bisection_shift_*1.1d0
-              bisection_bounds_ok_(1) = .false.
+              f%efarr(1) = f%efarr(1)-f%bisection_shift
+              f%bisection_shift = f%bisection_shift*1.1d0
+              f%bisection_bounds_ok(1) = .false.
           end if
-      else if (adjust_upper_bound_) then
+      else if (f%adjust_upper_bound) then
           if (charge_diff >= 0.d0) then
               ! Upper bound okay
-              adjust_upper_bound_ = .false.
-              bisection_shift_ = bisection_shift_*0.9d0
-              sumnarr_(2) = sumn
-              bisection_bounds_ok_(2) = .true.
+              f%adjust_upper_bound = .false.
+              f%bisection_shift = f%bisection_shift*0.9d0
+              f%sumnarr(2) = sumn
+              f%bisection_bounds_ok(2) = .true.
           else
-              efarr_(2) = efarr_(2)+bisection_shift_
-              bisection_shift_ = bisection_shift_*1.1d0
-              bisection_bounds_ok_(2)=.false.
+              f%efarr(2) = f%efarr(2)+f%bisection_shift
+              f%bisection_shift = f%bisection_shift*1.1d0
+              f%bisection_bounds_ok(2)=.false.
           end if
       end if
 
 
       internal_info = 0
-      if (adjust_lower_bound_) then
-          ef = efarr_(1)
+      if (f%adjust_lower_bound) then
+          ef = f%efarr(1)
           internal_info = -1
-      else if (adjust_upper_bound_) then
-          ef = efarr_(2)
+      else if (f%adjust_upper_bound) then
+          ef = f%efarr(2)
           internal_info = -2
       end if
       if (present(info)) then
@@ -140,46 +144,46 @@ module fermi_level
 
       ! Adjust the bounds for the bisection, i.e. make the search interval more narrow
       if (charge_diff < 0.d0) then
-          efarr_(1) = ef
-          sumnarr_(1) = sumn
+          f%efarr(1) = ef
+          f%sumnarr(1) = sumn
       else if (charge_diff >= 0.d0) then
-          efarr_(2) = ef
-          sumnarr_(2) = sumn
+          f%efarr(2) = ef
+          f%sumnarr(2) = sumn
       end if
 
 
-      it_solver_ = it_solver_+1
+      f%it_solver = f%it_solver+1
 
       ! Check whether the system behaves reasonably.
       interpolation_possible=.true.
-      if (it_solver_ > 1) then
-          if (verbosity_ >= 1 .and. bigdft_mpi%iproc==0) then
+      if (f%it_solver > 1) then
+          if (f%verbosity >= 1 .and. bigdft_mpi%iproc==0) then
               call yaml_newline()
               call yaml_open_map('interpol check',flow=.true.)
-              call yaml_map('D eF',ef-ef_old_,fmt='(es13.6)')
-              call yaml_map('D Tr',sumn-sumn_old_,fmt='(es13.6)')
+              call yaml_map('D eF',ef-f%ef_old,fmt='(es13.6)')
+              call yaml_map('D Tr',sumn-f%sumn_old,fmt='(es13.6)')
           end if
-          if (ef > ef_old_ .and. sumn < sumn_old_) then
+          if (ef > f%ef_old .and. sumn < f%sumn_old) then
               interpolation_possible = .false.
           end if
-          if (ef < ef_old_ .and. sumn > sumn_old_) then
+          if (ef < f%ef_old .and. sumn > f%sumn_old) then
               interpolation_possible = .false.
           end if
           if (interpolation_possible) then
-              if (verbosity_>=1 .and. bigdft_mpi%iproc==0) call yaml_map('interpol possible',.true.)
+              if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('interpol possible',.true.)
           else
-              if (verbosity_>=1 .and. bigdft_mpi%iproc==0) call yaml_map('interpol possible',.false.)
+              if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('interpol possible',.false.)
           end if
-          if (verbosity_>=1 .and. bigdft_mpi%iproc==0) call yaml_close_map()
-          if (verbosity_>=1 .and. bigdft_mpi%iproc==0) call yaml_newline()
+          if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_close_map()
+          if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_newline()
       end if
       if (.not.interpolation_possible) then
           ! Set the history for the interpolation to zero.
-          it_solver_=0
+          f%it_solver=0
       end if
 
-      ef_old_ = ef
-      sumn_old_ = sumn
+      f%ef_old = ef
+      f%sumn_old = sumn
 
       call determine_new_fermi_level()
 
@@ -195,32 +199,32 @@ module fermi_level
           integer,dimension(4) :: ipiv
 
           ! Shift up the old results.
-          if (it_solver_>4) then
+          if (f%it_solver>4) then
               do i=1,4
-                  interpol_matrix_(1,i)=interpol_matrix_(2,i)
-                  interpol_matrix_(2,i)=interpol_matrix_(3,i)
-                  interpol_matrix_(3,i)=interpol_matrix_(4,i)
+                  f%interpol_matrix(1,i)=f%interpol_matrix(2,i)
+                  f%interpol_matrix(2,i)=f%interpol_matrix(3,i)
+                  f%interpol_matrix(3,i)=f%interpol_matrix(4,i)
               end do
-              interpol_vector_(1)=interpol_vector_(2)
-              interpol_vector_(2)=interpol_vector_(3)
-              interpol_vector_(3)=interpol_vector_(4)
+              f%interpol_vector(1)=f%interpol_vector(2)
+              f%interpol_vector(2)=f%interpol_vector(3)
+              f%interpol_vector(3)=f%interpol_vector(4)
           end if
-          !LG: if it_solver_==0 this index comes out of bounds!
-          ii=max(min(it_solver_,4),1)
-          interpol_matrix_(ii,1)=ef**3
-          interpol_matrix_(ii,2)=ef**2
-          interpol_matrix_(ii,3)=ef
-          interpol_matrix_(ii,4)=1
-          interpol_vector_(ii)=sumn-target_charge_
+          !LG: if f%it_solver==0 this index comes out of bounds!
+          ii=max(min(f%it_solver,4),1)
+          f%interpol_matrix(ii,1)=ef**3
+          f%interpol_matrix(ii,2)=ef**2
+          f%interpol_matrix(ii,3)=ef
+          f%interpol_matrix(ii,4)=1
+          f%interpol_vector(ii)=sumn-f%target_charge
         
-          ! Solve the linear system interpol_matrix_*interpol_solution=interpol_vector_
-          if (it_solver_>=4) then
+          ! Solve the linear system f%interpol_matrix*interpol_solution=f%interpol_vector
+          if (f%it_solver>=4) then
               do i=1,ii
-                  interpol_solution(i)=interpol_vector_(i)
-                  tmp_matrix(i,1)=interpol_matrix_(i,1)
-                  tmp_matrix(i,2)=interpol_matrix_(i,2)
-                  tmp_matrix(i,3)=interpol_matrix_(i,3)
-                  tmp_matrix(i,4)=interpol_matrix_(i,4)
+                  interpol_solution(i)=f%interpol_vector(i)
+                  tmp_matrix(i,1)=f%interpol_matrix(i,1)
+                  tmp_matrix(i,2)=f%interpol_matrix(i,2)
+                  tmp_matrix(i,3)=f%interpol_matrix(i,3)
+                  tmp_matrix(i,4)=f%interpol_matrix(i,4)
               end do
         
               call dgesv(ii, 1, tmp_matrix, 4, ipiv, interpol_solution, 4, info)
@@ -237,37 +241,37 @@ module fermi_level
         
         
           ! Calculate the new Fermi energy.
-          if (verbosity_>=1 .and. bigdft_mpi%iproc==0) then
+          if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) then
               call yaml_newline()
               call yaml_open_map('Search new eF',flow=.true.)
           end if
-          if (it_solver_>=4 .and.  &
-              abs(sumn-target_charge_) < ef_interpol_chargediff_) then
-              det=determinant(bigdft_mpi%iproc,4,interpol_matrix_)
-              if (verbosity_ >= 1 .and. bigdft_mpi%iproc==0) then
+          if (f%it_solver>=4 .and.  &
+              abs(sumn-f%target_charge) < f%ef_interpol_chargediff) then
+              det=determinant(bigdft_mpi%iproc,4,f%interpol_matrix)
+              if (f%verbosity >= 1 .and. bigdft_mpi%iproc==0) then
                   call yaml_map('det',det,fmt='(es10.3)')
-                  call yaml_map('limit',ef_interpol_det_,fmt='(es10.3)')
+                  call yaml_map('limit',f%ef_interpol_det,fmt='(es10.3)')
               end if
-              if(abs(det) > ef_interpol_det_) then
+              if(abs(det) > f%ef_interpol_det) then
                   ef = ef_interpol
-                  if (verbosity_>=1 .and. bigdft_mpi%iproc==0) call yaml_map('method','cubic interpolation')
+                  if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('method','cubic interpolation')
               else
                   ! linear interpolation
-                  m = (interpol_vector_(4)-interpol_vector_(3))/(interpol_matrix_(4,3)-interpol_matrix_(3,3))
-                  b = interpol_vector_(4)-m*interpol_matrix_(4,3)
+                  m = (f%interpol_vector(4)-f%interpol_vector(3))/(f%interpol_matrix(4,3)-f%interpol_matrix(3,3))
+                  b = f%interpol_vector(4)-m*f%interpol_matrix(4,3)
                   ef = -b/m
               end if
           else
               ! Use mean value of bisection and secant method
               ! Secant method solution
-              ef = efarr_(2)-(sumnarr_(2)-target_charge_)*(efarr_(2)-efarr_(1))/(sumnarr_(2)-sumnarr_(1))
+              ef = f%efarr(2)-(f%sumnarr(2)-f%target_charge)*(f%efarr(2)-f%efarr(1))/(f%sumnarr(2)-f%sumnarr(1))
               ! Add bisection solution
-              ef = ef + 0.5d0*(efarr_(1)+efarr_(2))
+              ef = ef + 0.5d0*(f%efarr(1)+f%efarr(2))
               ! Take the mean value
               ef = 0.5d0*ef
-              if (verbosity_>=1 .and. bigdft_mpi%iproc==0) call yaml_map('method','bisection / secant method')
+              if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('method','bisection / secant method')
           end if
-          if (verbosity_>=1 .and. bigdft_mpi%iproc==0) then
+          if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) then
               call yaml_close_map()
           end if
 
@@ -277,33 +281,35 @@ module fermi_level
     end subroutine determine_fermi_level
 
 
-    function fermilevel_get_real(fieldname) result(val)
+    function fermilevel_get_real(f, fieldname) result(val)
         ! Calling arguments
+        type(fermi_aux),intent(in) :: f      !< type that holds the internal data
         character(len=*),intent(in) :: fieldname
         real(kind=8) :: val
 
         select case (trim(fieldname))
         case ("efarr(1)")
-            val = efarr_(1)
+            val = f%efarr(1)
         case ("efarr(2)")
-            val = efarr_(2)
+            val = f%efarr(2)
         case ("bisection_shift")
-            val = bisection_shift_
+            val = f%bisection_shift
         case default
             stop 'ERROR: wrong argument'
         end select
     end function fermilevel_get_real
 
-    function fermilevel_get_logical(fieldname) result(val)
+    function fermilevel_get_logical(f, fieldname) result(val)
         ! Calling arguments
+        type(fermi_aux),intent(in) :: f      !< type that holds the internal data
         character(len=*),intent(in) :: fieldname
         logical :: val
 
         select case (trim(fieldname))
         case ("bisection_bounds_ok(1)")
-            val = bisection_bounds_ok_(1)
+            val = f%bisection_bounds_ok(1)
         case ("bisection_bounds_ok(2)")
-            val = bisection_bounds_ok_(2)
+            val = f%bisection_bounds_ok(2)
         case default
             stop 'ERROR: wrong argument'
         end select
