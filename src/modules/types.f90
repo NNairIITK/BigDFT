@@ -2610,12 +2610,14 @@ end subroutine find_category
           !determine desired OCL platform which is used for acceleration
           in%matacc%OCL_platform = val
           ipos=min(len(in%matacc%OCL_platform),len(trim(in%matacc%OCL_platform))+1)
+          if (index(in%matacc%OCL_platform,'~') > 0) ipos=1 !restore empty information if not entered by the user
           do i=ipos,len(in%matacc%OCL_platform)
              in%matacc%OCL_platform(i:i)=achar(0)
           end do
        case (OCL_DEVICES)
           in%matacc%OCL_devices = val
           ipos=min(len(in%matacc%OCL_devices),len(trim(in%matacc%OCL_devices))+1)
+          if (index(in%matacc%OCL_devices,'~') > 0) ipos=1
           do i=ipos,len(in%matacc%OCL_devices)
              in%matacc%OCL_devices(i:i)=achar(0)
           end do
