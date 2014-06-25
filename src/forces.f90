@@ -4830,7 +4830,7 @@ subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
   integer,intent(in) :: nat
   real(gp),dimension(3,nat),intent(in) :: rxyz
   integer,dimension(3,nat),intent(in) :: ixyz_int
-  logical,dimension(nat),intent(in) :: ifrozen
+  integer,dimension(nat),intent(in) :: ifrozen
   real(gp),dimension(3,nat),intent(inout) :: fxyz
 
   ! Local variables
