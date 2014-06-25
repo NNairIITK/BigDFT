@@ -74,8 +74,9 @@ module locregs
      type(convolutions_bounds) :: bounds
   end type locreg_descriptors
 
-  public :: nullify_locreg_descriptors,locreg_null,deallocate_locreg_descriptors,deallocate_bounds
-  public :: deallocate_wfd,allocate_wfd,copy_locreg_descriptors,copy_grid_dimensions,nullify_wfd
+  public :: nullify_locreg_descriptors,locreg_null
+  public :: deallocate_locreg_descriptors,deallocate_bounds,deallocate_wfd
+  public :: allocate_wfd,copy_locreg_descriptors,copy_grid_dimensions,nullify_wfd
 
 contains
   
@@ -221,19 +222,17 @@ contains
     type(wavefunctions_descriptors) :: wfd
 
     !in case the two objects points to the same target
-    !pay attention that in this case odd behaviour of f_mallo may occur as the
-    !pointers have not been associated by the f_associate routine (to be implemented to date)
     if (associated(wfd%keyglob, target = wfd%keygloc)) then
        !assuming that globals has been created afterwards
-       call f_free_ptr(wfd%keyglob)
        nullify(wfd%keygloc)
+       call f_free_ptr(wfd%keyglob)
     else
        call f_free_ptr(wfd%keygloc)
        call f_free_ptr(wfd%keyglob)
     end if
     if (associated(wfd%keyvloc, target= wfd%keyvglob)) then
-       call f_free_ptr(wfd%keyvglob)
        nullify(wfd%keyvloc)
+       call f_free_ptr(wfd%keyvglob)
     else
        call f_free_ptr(wfd%keyvloc)
        call f_free_ptr(wfd%keyvglob)

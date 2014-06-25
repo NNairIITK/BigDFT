@@ -355,12 +355,12 @@ subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
   call wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
 
   !allocate and calculate kinetic bounds
-  bounds%kb%ibyz_c = f_malloc_ptr((/ 1.to.2,0.to.n2,0.to.n3+ndebug /),id='bounds%kb%ibyz_c')
-  bounds%kb%ibxz_c = f_malloc_ptr((/ 1.to.2,0.to.n1,0.to.n3+ndebug /),id='bounds%kb%ibxz_c')
-  bounds%kb%ibxy_c = f_malloc_ptr((/ 1.to.2,0.to.n1,0.to.n2+ndebug /),id='bounds%kb%ibxy_c')
-  bounds%kb%ibyz_f = f_malloc_ptr((/ 1.to.2,0.to.n2,0.to.n3+ndebug /),id='bounds%kb%ibyz_f')
-  bounds%kb%ibxz_f = f_malloc_ptr((/ 1.to.2,0.to.n1,0.to.n3+ndebug /),id='bounds%kb%ibxz_f')
-  bounds%kb%ibxy_f = f_malloc_ptr((/ 1.to.2,0.to.n1,0.to.n2+ndebug /),id='bounds%kb%ibxy_f')
+  bounds%kb%ibyz_c = f_malloc_ptr((/ 1.to.2,0.to.n2,0.to.n3/),id='bounds%kb%ibyz_c')
+  bounds%kb%ibxz_c = f_malloc_ptr((/ 1.to.2,0.to.n1,0.to.n3/),id='bounds%kb%ibxz_c')
+  bounds%kb%ibxy_c = f_malloc_ptr((/ 1.to.2,0.to.n1,0.to.n2/),id='bounds%kb%ibxy_c')
+  bounds%kb%ibyz_f = f_malloc_ptr((/ 1.to.2,0.to.n2,0.to.n3/),id='bounds%kb%ibyz_f')
+  bounds%kb%ibxz_f = f_malloc_ptr((/ 1.to.2,0.to.n1,0.to.n3/),id='bounds%kb%ibxz_f')
+  bounds%kb%ibxy_f = f_malloc_ptr((/ 1.to.2,0.to.n1,0.to.n2/),id='bounds%kb%ibxy_f')
 
   call make_bounds(n1,n2,n3,logrid_c,bounds%kb%ibyz_c,bounds%kb%ibxz_c,bounds%kb%ibxy_c)
   call make_bounds(n1,n2,n3,logrid_f,bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f)
@@ -375,13 +375,13 @@ subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
   bounds%gb%ibzxx_f = f_malloc_ptr((/ 1.to.2, nfl3.to.nfu3, 2*nfl1-14.to.2*nfu1+16 /),id='bounds%gb%ibzxx_f')
   bounds%gb%ibxxyy_f = f_malloc_ptr((/ 1.to.2, 2*nfl1-14.to.2*nfu1+16, 2*nfl2-14.to.2*nfu2+16 /),id='bounds%gb%ibxxyy_f')
 
-  bounds%sb%ibzzx_c = f_malloc_ptr((/ 1.to.2 , -14.to.2*n3+16 , 0.to.n1+ndebug /),id='bounds%sb%ibzzx_c')
+  bounds%sb%ibzzx_c = f_malloc_ptr((/ 1.to.2 , -14.to.2*n3+16 , 0.to.n1 /),id='bounds%sb%ibzzx_c')
   bounds%sb%ibyyzz_c = f_malloc_ptr((/ 1.to.2, -14.to.2*n2+16, -14.to.2*n3+16 /),id='bounds%sb%ibyyzz_c')
   bounds%sb%ibxy_ff = f_malloc_ptr((/ 1.to.2, nfl1.to.nfu1, nfl2.to.nfu2 /),id='bounds%sb%ibxy_ff')
   bounds%sb%ibzzx_f = f_malloc_ptr((/ 1.to.2, -14+2*nfl3.to.2*nfu3+16, nfl1.to.nfu1 /),id='bounds%sb%ibzzx_f')
   bounds%sb%ibyyzz_f = f_malloc_ptr((/ 1.to.2, -14+2*nfl2.to.2*nfu2+16, -14+2*nfl3.to.2*nfu3+16 /),id='bounds%sb%ibyyzz_f')
 
-  bounds%ibyyzz_r = f_malloc_ptr((/ 1.to.2,-14.to.2*n2+16,-14.to.2*n3+16+ndebug/),id='bounds%ibyyzz_r')
+  bounds%ibyyzz_r = f_malloc_ptr((/ 1.to.2,-14.to.2*n2+16,-14.to.2*n3+16/),id='bounds%ibyyzz_r')
 
   call make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        bounds%kb%ibxy_c,bounds%sb%ibzzx_c,bounds%sb%ibyyzz_c,&
