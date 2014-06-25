@@ -228,8 +228,15 @@ program MINHOP
       close(864)
   endif
 
-  call ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
+  if (atoms%astruct%geocode=='F') call ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
 
+!  if ( .not. atoms%astruct%geocode=='F') then 
+!         write(*,*) 'Generating new input guess'
+!          inputs_opt%inputPsiId=0
+!          call run_objects_associate(runObj, inputs_opt, atoms, rst)
+!          call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+!          inputs_opt%inputPsiId=1
+!  endif   
   call run_objects_associate(runObj, inputs_opt, atoms, rst)
   call geopt(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of initial conf.',ncount_bigdft)
@@ -463,10 +470,15 @@ program MINHOP
       close(864)
   endif
 
+  if (atoms%astruct%geocode=='F') call  ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
 
-  call  ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
-  !change the value of inputpsiId for testing
-  inputs_opt%inputpsiid=0
+!  if ( .not. atoms%astruct%geocode=='F') then 
+!         write(*,*) 'Generating new input guess'
+!          inputs_opt%inputPsiId=0
+!          call run_objects_associate(runObj, inputs_opt, atoms, rst)
+!          call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+!          inputs_opt%inputPsiId=1
+!  endif   
   call run_objects_associate(runObj, inputs_opt, atoms, rst)
 
   call geopt(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
@@ -2211,8 +2223,8 @@ logical ,dimension(nat) :: onsurface
 
     ylow=ymin+ilow*.25d0
     yhigh=ymin+ihigh*.25d0
-    if (iproc.eq.0) write(*,*) "#MH ylow,ycen,yhigh",ylow,ymin+icen*.25d0,yhigh
-             write(1000+iproc,*) "#MH ylow,ycen,yhigh",ylow,ymin+icen*.25d0,yhigh
+    if (iproc.eq.0) write(*,'(a,3(1x,e10.3))') "#MH ylow,ycen,yhigh",ylow,ymin+icen*.25d0,yhigh
+!             write(1000+iproc,'(a,3(1x,e10.3))') "#MH ylow,ycen,yhigh",ylow,ymin+icen*.25d0,yhigh
 
 if (option.eq.2) then
 
