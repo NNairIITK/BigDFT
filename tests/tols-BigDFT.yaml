@@ -694,7 +694,7 @@ foe:
  max alpha: 1.1e-4
  D eF: 7.1e-8
  Tr(K): 1.1e-08
- charge diff: 4.2e-11
+ charge diff: 2.1e-8
  D Tr: 7.0e-8
  tr(KS) before purification: 7.0e-8
  decay length of error function: 1.1e-5
