@@ -21,13 +21,18 @@ The <tt>tests</tt> directory contains some useful examples and tests.
 
 
 @defgroup FLIB    The Flib library
-@brief Low-level library used by BigDFT
+@brief Low-level library used by BigDFT (memory allocation, timers, dictionaries, exception handling and yaml output)
 @details
   The flib library is a low-level library used by BigDFT in order to do some low-level operations as:
-  - Error handling (see @ref FLIB_ERROR)
-  - Define the dictionary type (see @ref FLIB_DICTIONARY)
-  - Memory allocations and memory profiling (see @ref FLIB_MEMORY)
-  - Routines to handle yaml output (see @ref FLIB_YAML)
+  - Define the dictionary type: In order to handle the yaml components (list and sequence), we define a type dictionary
+    which is a cousin of a python dictionary (see @ref FLIB_DICTIONARY)
+  - Error handling: The goal is to manage the errors for the input variables, during the runtime and also for the MPI
+    calls (see @ref FLIB_ERROR)
+  - Memory allocations and memory profiling: all the allocations and de-allocations are managed in ordee to detect the
+    memory leak and have a good trace of the memory peak (see @ref FLIB_MEMORY)
+  - Timers
+  - Routines to handle yaml output in order to build lists and sequences. This is important for the pre and post
+    processing of all files related to BigDFT (see @ref FLIB_YAML)
 
 
 @defgroup FLIB_ERROR  Error Handling (flib)

@@ -7,7 +7,7 @@
 @page DOCUMENTATION Developing the BigDFT documentation and some coding rules
 
 At the beginning of each Fortran file, it is important to add the following lines:
-@verbatim
+@code{.f90}
 !> @file
 !! WHAT THIS FILE SHOULD PROVIDE
 !! @author
@@ -16,18 +16,18 @@ At the beginning of each Fortran file, it is important to add the following line
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-@endverbatim
+@endcode
 
 Then before each routine or module inside the corresponding file, you add some lines of comment as:
-@verbatim
+@code{.f90}
 !> Main program to calculate electronic structures
 program BigDFT
-@endverbatim
+@endcode
 
 We recommend STRONGLY to use implicit none.
 
 It is better to comment each argument of the routine in the same line of their declaration as:
-@verbatim
+@code{.f90}
    character(len=1), intent(in) :: geocode  !< @copydoc poisson_solver::doc::geocode
    character(len=1), intent(in) :: datacode !< @copydoc poisson_solver::doc::datacode
    integer, intent(in) :: iproc        !< Process Id
@@ -35,7 +35,7 @@ It is better to comment each argument of the routine in the same line of their d
    integer, intent(in) :: n01,n02,n03  !< Dimensions of the real space grid to be hit with the Poisson Solver
    logical, intent(in) :: use_gradient !< .true. if functional is using the gradient.
    logical, intent(in) :: use_wb_corr  !< .true. if functional is using WB corrections.
-@endverbatim
+@endcode
 
 In order to avoid the duplication, we define dummy structure as doc in order to specify the usual name used as
 arguments. Then you can insert as in the following example only @verbatim@copydoc poisson_solver::doc::geocode@endverbatim.

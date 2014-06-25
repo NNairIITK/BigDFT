@@ -58,6 +58,7 @@ MODULE NEB_variables
 
 END MODULE NEB_variables
 
+
 !> Module for NEB calculations
 MODULE NEB_routines
   use module_defs
@@ -552,16 +553,17 @@ MODULE NEB_routines
 
 END MODULE NEB_routines
 
+
 PROGRAM NEB
 
   USE NEB_routines
 
   IMPLICIT NONE
 
-  CALL read_input
+  CALL read_input()
 
-  CALL search_MEP
+  CALL search_MEP()
 
-  CALL deallocation
+  CALL deallocation()
 
 END PROGRAM NEB
