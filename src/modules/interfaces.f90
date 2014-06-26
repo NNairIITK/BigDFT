@@ -1973,7 +1973,7 @@ module module_interfaces
 
       subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
                  correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, &
-           hpsit_c, hpsit_f, hpsit_nococontra_c, hpsit_nococontra_f, &
+                 hpsit_c, hpsit_f, &
                  can_use_transposed, overlap_calculated, experimental_mode, norder_taylor, max_inversion_error, &
            npsidim_orbs_small, lzd_small, hpsi_noprecond)
         use module_base
@@ -1990,9 +1990,9 @@ module module_interfaces
         real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(inout) :: lhphi
         type(sparse_matrix),intent(inout) :: lagmat
         type(matrices),intent(out) :: lagmat_
-        real(kind=8),dimension(:),pointer :: psit_c, psit_f, hpsit_c, hpsit_f
-        real(kind=8),dimension(collcom%ndimind_c),intent(inout) :: hpsit_nococontra_c
-        real(kind=8),dimension(7*collcom%ndimind_f),intent(inout) :: hpsit_nococontra_f
+        real(kind=8),dimension(collcom%ndimind_c),intent(inout) :: hpsit_c
+        real(kind=8),dimension(7*collcom%ndimind_f),intent(inout) :: hpsit_f
+        real(kind=8),dimension(:),pointer :: psit_c, psit_f
         logical,intent(inout) :: can_use_transposed, overlap_calculated
         type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
         logical,intent(in) :: experimental_mode
@@ -2459,7 +2459,7 @@ module module_interfaces
        end subroutine mix_main
 
        subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
-                  ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
+                  ldiis, fnrmOldArr, fnrm_old, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
                   energy_increased, tmb, lhphiold, overlap_calculated, &
                   energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
                   hpsi_small, experimental_mode, correction_co_contra, hpsi_noprecond, &
@@ -2472,7 +2472,8 @@ module module_interfaces
          real(kind=8),intent(in) :: max_inversion_error
          type(DFT_wavefunction),target,intent(inout):: tmb
          type(localizedDIISParameters),intent(inout) :: ldiis
-         real(8),dimension(tmb%orbs%norb),intent(inout) :: fnrmOldArr
+         real(8),dimension(tmb%orbs%norbp),intent(inout) :: fnrmOldArr
+         real(kind=8),intent(in) :: fnrm_old
          real(8),dimension(tmb%orbs%norbp),intent(inout) :: alpha
          real(8),intent(out):: trH, fnrm, fnrmMax, alpha_mean, alpha_max
          real(8),intent(inout):: trHold
@@ -2480,11 +2481,12 @@ module module_interfaces
          real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphiold
          logical,intent(inout):: overlap_calculated
          type(energy_terms),intent(in) :: energs
-         real(8),dimension(:),pointer:: hpsit_c, hpsit_f
+         real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_c) :: hpsit_c
+         real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f) :: hpsit_f
          integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
          logical, intent(in) :: experimental_mode, correction_co_contra
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_small
-         real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: hpsi_noprecond
+         real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_noprecond
          type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
          type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
        end subroutine calculate_energy_and_gradient_linear
@@ -4061,6 +4063,17 @@ module module_interfaces
           type(sparse_matrix),intent(in) :: smat
           real(8),intent(out):: max_deviation, mean_deviation
         end subroutine deviation_from_unity_parallel
+
+        subroutine estimate_energy_change(npsidim_orbs, orbs, lzd, psidiff, hpsi_noprecond, delta_energy)
+          use module_base
+          use module_types
+          implicit none
+          integer, intent(in) :: npsidim_orbs
+          type(orbitals_data),intent(in) :: orbs
+          type(local_zone_descriptors),intent(in) :: lzd
+          real(kind=8),dimension(npsidim_orbs),intent(in) :: psidiff, hpsi_noprecond
+          real(kind=8),intent(out) :: delta_energy
+        end subroutine estimate_energy_change
   
   end interface
 END MODULE module_interfaces
