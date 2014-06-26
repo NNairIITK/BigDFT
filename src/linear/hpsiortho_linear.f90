@@ -32,7 +32,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   type(DFT_wavefunction), target, intent(inout):: tmb
   type(localizedDIISParameters), intent(inout) :: ldiis
   real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: fnrmOldArr
-  real(kind=8),intent(in) :: fnrm_old
+  real(kind=8),intent(inout) :: fnrm_old
   real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: alpha
   real(kind=8), intent(out):: trH, fnrm, fnrmMax, alpha_mean, alpha_max
   real(kind=8), intent(inout):: trHold
@@ -249,17 +249,19 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       tt = ddot(ncount, hpsi_small(ist), 1, hpsi_small(ist), 1)
       fnrm = fnrm + tt
       if(tt>fnrmMax) fnrmMax=tt
-      if(it>1 .and. ldiis%isx==0 .and. .not.ldiis%switchSD) then
-          ! Adapt step size for the steepest descent minimization.
+      if(it>1) then
           tt2=ddot(ncount, hpsi_small(ist), 1, lhphiold(ist), 1)
           fnrmOvrlp_tot = fnrmOvrlp_tot + tt2
-          if (.not.experimental_mode) then
-              tt2=tt2/sqrt(tt*fnrmOldArr(iorb))
-              ! apply thresholds so that alpha never goes below around 1.d-2 and above around 2
-              if(tt2>.6d0 .and. trH<trHold .and. alpha(iorb)<1.8d0) then
-                  alpha(iorb)=alpha(iorb)*1.1d0
-              else if (alpha(iorb)>1.7d-3) then
-                  alpha(iorb)=alpha(iorb)*.6d0
+          if(ldiis%isx==0 .and. .not.ldiis%switchSD) then
+              ! Adapt step size for the steepest descent minimization.
+              if (.not.experimental_mode) then
+                  tt2=tt2/sqrt(tt*fnrmOldArr(iorb))
+                  ! apply thresholds so that alpha never goes below around 1.d-2 and above around 2
+                  if(tt2>.6d0 .and. trH<trHold .and. alpha(iorb)<1.8d0) then
+                      alpha(iorb)=alpha(iorb)*1.1d0
+                  else if (alpha(iorb)>1.7d-3) then
+                      alpha(iorb)=alpha(iorb)*.6d0
+                  end if
               end if
           end if
       end if
@@ -273,23 +275,24 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   end if
 
 
-  if (experimental_mode .and. it>1) then
-      do iorb=1,tmb%orbs%norbp
-          fnrmOld_tot=fnrmOld_tot+fnrmOldArr(iorb)
-      end do
-      !if (nproc>1) then
-      !    call mpiallred(fnrmOld_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
-      !end if
+  if (experimental_mode .and. it>1 .and. ldiis%isx==0 .and. .not.ldiis%switchSD) then
+      !do iorb=1,tmb%orbs%norbp
+      !    fnrmOld_tot=fnrmOld_tot+fnrmOldArr(iorb)
+      !end do
+      if (nproc>1) then
+          call mpiallred(fnrmOvrlp_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
       !tt2=fnrmOvrlp_tot/sqrt(fnrm*fnrmOld_tot)
       tt2=fnrmOvrlp_tot/sqrt(fnrm*fnrm_old)
       ! apply thresholds so that alpha never goes below around 1.d-2 and above around 2
-      if(tt2>.6d0 .and. trH<trHold .and. alpha(iorb)<1.8d0) then
-          alpha(iorb)=alpha(iorb)*1.1d0
-      else if (alpha(iorb)>1.7d-3) then
-          alpha(iorb)=alpha(iorb)*.6d0
+      if(tt2>.6d0 .and. trH<trHold .and. alpha(1)<1.8d0) then ! take alpha(1) since the value is the same for all
+          alpha(:)=alpha(:)*1.1d0
+      else if (alpha(1)>1.7d-3) then
+          alpha(:)=alpha(:)*.6d0
       end if
   end if
 
+  fnrm_old=fnrm ! This value will be used in th next call to this routine
 
   fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
   fnrmMax=sqrt(fnrmMax)
