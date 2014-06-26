@@ -410,7 +410,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   ! Local variables
   integer :: iorb, it, it_tot, ncount, jorb, ncharge, ii, kappa_satur, nspin, nit_exit
   real(kind=8) :: fnrmMax, meanAlpha, ediff_best, alpha_max, delta_energy, delta_energy_prev, ediff
-  real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_noconf, psidiff
+  real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_tmp, psidiff
   real(kind=8),dimension(:),allocatable :: delta_energy_arr, hpsi_noprecond, occup_tmp, kernel_compr_tmp, kernel_best
   logical :: energy_increased, overlap_calculated, energy_diff, energy_increased_previous, complete_reset, even
   real(kind=8),dimension(:),pointer :: lhphiold, lphiold, hpsit_c, hpsit_f, hpsi_small
@@ -536,13 +536,13 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
            & denspot%xc,denspot%rhov,denspot%pot_work,tmb%ham_descr%comgp)
       ! only potential
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-          call vcopy(tmb%ham_descr%npsidim_orbs, tmb%hpsi(1), 1, hpsi_noconf(1), 1)
+          call vcopy(tmb%ham_descr%npsidim_orbs, tmb%hpsi(1), 1, hpsi_tmp(1), 1)
           call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
                tmb%ham_descr%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,&
                & tmb%ham_descr%psi,tmb%hpsi,energs,SIC,GPU,2,denspot%xc,&
                & pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,&
                & potential=denspot%rhov,comgp=tmb%ham_descr%comgp,&
-               hpsi_noconf=hpsi_noconf,econf=econf)
+               hpsi_tmp=hpsi_tmp,econf=econf)
 
           if (nproc>1) then
               call mpiallred(econf, 1, mpi_sum, bigdft_mpi%mpi_comm)
@@ -586,7 +586,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-               hpsi_noconf, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
+               hpsi_tmp, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
           if (method_updatekernel==UPDATE_BY_FOE .or. method_updatekernel==UPDATE_BY_RENORMALIZATION) then
               if (method_updatekernel==UPDATE_BY_FOE) then
                   call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
@@ -618,9 +618,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
       end if
 
-      ncount=sum(tmb%ham_descr%collcom%nrecvcounts_c)
+      ncount=tmb%ham_descr%collcom%ndimind_c
       if(ncount>0) call vcopy(ncount, hpsit_c(1), 1, hpsit_c_tmp(1), 1)
-      ncount=7*sum(tmb%ham_descr%collcom%nrecvcounts_f)
+      ncount=7*tmb%ham_descr%collcom%ndimind_f
       if(ncount>0) call vcopy(ncount, hpsit_f(1), 1, hpsit_f_tmp(1), 1)
 
       ! optimize the tmbs for a few extra states
@@ -651,11 +651,13 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
 
 
+      ! use hpsi_tmp as temporary array for hpsi_noprecond, even if it is allocated with a larger size
       call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
            hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, hpsi_small, &
-           experimental_mode, correction_co_contra, hpsi_noprecond, order_taylor, max_inversion_error, method_updatekernel, &
-           precond_convol_workarrays, precond_workarrays)
+           experimental_mode, correction_co_contra, hpsi_noprecond=hpsi_tmp, norder_taylor=order_taylor, &
+           max_inversion_error=max_inversion_error, method_updatekernel=method_updatekernel, &
+           precond_convol_workarrays=precond_convol_workarrays, precond_workarrays=precond_workarrays)
 
 
       if (experimental_mode) then
@@ -862,7 +864,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ! Estimate the energy change, that is to be expected in the next optimization
       ! step, given by the product of the force and the "displacement" .
       if (target_function==TARGET_FUNCTION_IS_HYBRID .or. experimental_mode) then
-          call estimate_energy_change(tmb%npsidim_orbs, tmb%orbs, tmb%lzd, psidiff, hpsi_noprecond, delta_energy)
+          call estimate_energy_change(tmb%npsidim_orbs, tmb%orbs, tmb%lzd, psidiff, &
+               hpsi_noprecond=hpsi_tmp, delta_energy=delta_energy)
           ! This is a hack...
           if (energy_increased) then
               delta_energy=1.d100
@@ -984,13 +987,13 @@ contains
       hpsi_small = f_malloc_ptr(max(tmb%npsidim_orbs, tmb%npsidim_comp),id='hpsi_small')
       lhphiold = f_malloc_ptr(max(tmb%npsidim_orbs, tmb%npsidim_comp),id='lhphiold')
       lphiold = f_malloc_ptr(size(tmb%psi),id='lphiold')
-      hpsit_c = f_malloc_ptr(sum(tmb%ham_descr%collcom%nrecvcounts_c),id='hpsit_c')
-      hpsit_f = f_malloc_ptr(7*sum(tmb%ham_descr%collcom%nrecvcounts_f),id='hpsit_f')
-      hpsit_c_tmp = f_malloc(sum(tmb%ham_descr%collcom%nrecvcounts_c),id='hpsit_c_tmp')
-      hpsit_f_tmp = f_malloc(7*sum(tmb%ham_descr%collcom%nrecvcounts_f),id='hpsit_f_tmp')
-      hpsi_noconf = f_malloc(tmb%ham_descr%npsidim_orbs,id='hpsi_noconf')
+      hpsit_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='hpsit_c')
+      hpsit_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='hpsit_f')
+      hpsit_c_tmp = f_malloc(tmb%ham_descr%collcom%ndimind_c,id='hpsit_c_tmp')
+      hpsit_f_tmp = f_malloc(7*tmb%ham_descr%collcom%ndimind_f,id='hpsit_f_tmp')
+      hpsi_tmp = f_malloc(tmb%ham_descr%npsidim_orbs,id='hpsi_tmp')
       psidiff = f_malloc(tmb%npsidim_orbs,id='psidiff')
-      hpsi_noprecond = f_malloc(tmb%npsidim_orbs,id='hpsi_noprecond')
+      !hpsi_noprecond = f_malloc(tmb%npsidim_orbs,id='hpsi_noprecond')
 
 
       allocate(precond_convol_workarrays(tmb%orbs%norbp))
@@ -1038,9 +1041,9 @@ contains
     call f_free_ptr(hpsit_f)
     call f_free(hpsit_c_tmp)
     call f_free(hpsit_f_tmp)
-    call f_free(hpsi_noconf)
+    call f_free(hpsi_tmp)
     call f_free(psidiff)
-    call f_free(hpsi_noprecond)
+    !call f_free(hpsi_noprecond)
     do iorb=1,tmb%orbs%norbp
         iiorb=tmb%orbs%isorb+iorb
         ilr=tmb%orbs%inwhichlocreg(iiorb)
