@@ -136,7 +136,9 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(inout) :: lhphi
   type(sparse_matrix),intent(inout) :: lagmat
   type(matrices),intent(out) :: lagmat_
-  real(kind=8),dimension(:),pointer :: psit_c, psit_f, hpsit_c, hpsit_f
+  real(kind=8),dimension(collcom%ndimind_c),intent(inout) :: hpsit_c
+  real(kind=8),dimension(7*collcom%ndimind_f),intent(inout) :: hpsit_f
+  real(kind=8),dimension(:),pointer :: psit_c, psit_f
   logical,intent(inout) :: can_use_transposed, overlap_calculated
   type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
   logical,intent(in) :: experimental_mode
@@ -161,16 +163,14 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
       can_use_transposed=.true.
   end if
 
-  ! It is assumed that this routine is called with the transposed gradient ready if it is associated...
-  if(.not.associated(hpsit_c)) then
-      hpsit_c = f_malloc_ptr(sum(collcom%nrecvcounts_c),id='hpsit_c')
-      hpsit_f = f_malloc_ptr(7*sum(collcom%nrecvcounts_f),id='hpsit_f')
-      call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lhphi, hpsit_c, hpsit_f, lzd)
-  end if
+  !!! It is assumed that this routine is called with the transposed gradient ready if it is associated...
+  !!if(.not.associated(hpsit_c)) then
+  !!    hpsit_c = f_malloc_ptr(sum(collcom%nrecvcounts_c),id='hpsit_c')
+  !!    hpsit_f = f_malloc_ptr(7*sum(collcom%nrecvcounts_f),id='hpsit_f')
+  !!    call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lhphi, hpsit_c, hpsit_f, lzd)
+  !!end if
 
 
-  hpsit_tmp_c = f_malloc(collcom%ndimind_c,id='psit_tmp_c')
-  hpsit_tmp_f = f_malloc(7*collcom%ndimind_f,id='psit_tmp_f')
 
 
   ! Invert the overlap matrix
@@ -225,6 +225,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   
 
   ! @NEW apply S^-1 to the gradient
+  hpsit_tmp_c = f_malloc(collcom%ndimind_c,id='psit_tmp_c')
+  hpsit_tmp_f = f_malloc(7*collcom%ndimind_f,id='psit_tmp_f')
   hphi_nococontra = f_malloc(npsidim_orbs,id='hphi_nococontra')
   call build_linear_combination_transposed(collcom, linmat%l, inv_ovrlp_, hpsit_c, hpsit_f, .true., hpsit_tmp_c, hpsit_tmp_f, iproc)
   call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, hpsit_tmp_c, hpsit_tmp_f, hphi_nococontra, lzd)

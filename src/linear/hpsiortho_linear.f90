@@ -39,11 +39,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8), dimension(tmb%npsidim_orbs), intent(inout):: lhphiold
   logical, intent(inout):: overlap_calculated
   type(energy_terms), intent(in) :: energs
-  real(kind=8), dimension(:), pointer:: hpsit_c, hpsit_f
+  real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_c) :: hpsit_c
+  real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f) :: hpsit_f
   integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
   logical, intent(in) :: experimental_mode, correction_co_contra
   real(kind=8), dimension(tmb%npsidim_orbs), intent(out) :: hpsi_small
-  real(kind=8), dimension(tmb%npsidim_orbs), optional,intent(out) :: hpsi_noprecond
+  real(kind=8), dimension(tmb%npsidim_orbs),intent(out) :: hpsi_noprecond
   type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
   type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
 
@@ -85,16 +86,16 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   energy_increased=.false.
 
 
-  hpsittmp_c = f_malloc_ptr(sum(tmb%ham_descr%collcom%nrecvcounts_c),id='hpsittmp_c')
-  hpsittmp_f = f_malloc_ptr(7*sum(tmb%ham_descr%collcom%nrecvcounts_f),id='hpsittmp_f')
+  hpsittmp_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='hpsittmp_c')
+  hpsittmp_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='hpsittmp_f')
 
   if(target_function==TARGET_FUNCTION_IS_ENERGY .or. &
      target_function==TARGET_FUNCTION_IS_HYBRID) then
 
-      if(sum(tmb%ham_descr%collcom%nrecvcounts_c)>0) &
-          call vcopy(sum(tmb%ham_descr%collcom%nrecvcounts_c), hpsit_c(1), 1, hpsittmp_c(1), 1)
-      if(sum(tmb%ham_descr%collcom%nrecvcounts_f)>0) &
-          call vcopy(7*sum(tmb%ham_descr%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
+      if(tmb%ham_descr%collcom%ndimind_c>0) &
+          call vcopy(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsittmp_c(1), 1)
+      if(tmb%ham_descr%collcom%ndimind_f>0) &
+          call vcopy(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsittmp_f(1), 1)
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           call timing(iproc,'eglincomms','ON')
@@ -153,22 +154,25 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       end if
       call vcopy(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsittmp_c(1), 1)
       call vcopy(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsittmp_f(1), 1)
-      matrixm = matrices_null()
-      matrixm%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%m, iaction=SPARSE_FULL, id='matrixm%matrix_compr')
-      call transform_sparse_matrix(tmb%linmat%s, tmb%linmat%m, &
-           tmb%linmat%ovrlp_%matrix_compr, matrixm%matrix_compr, 'small_to_large')
-      call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-           tmb%linmat%m, matrixm, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
 
-      call deallocate_matrices(matrixm)
+      !matrixm = matrices_null()
+      !matrixm%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%m, iaction=SPARSE_FULL, id='matrixm%matrix_compr')
+      ! Transform to the larger sparse region in order to be compatible with tmb%ham_descr%collcom.
+      ! To this end use ham_.
+      call transform_sparse_matrix(tmb%linmat%s, tmb%linmat%m, &
+           tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ham_%matrix_compr, 'small_to_large')
+      call build_linear_combination_transposed(tmb%ham_descr%collcom, &
+           tmb%linmat%m, tmb%linmat%ham_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+
+      !call deallocate_matrices(matrixm)
 
       !@END NEW correction for contra / covariant gradient
   end if
 
 
-
   call f_free_ptr(hpsittmp_c)
   call f_free_ptr(hpsittmp_f)
+
 
   ! Calculate the overlap matrix if necessary
   if (.not.correction_co_contra) then
@@ -182,7 +186,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
 
-  if (.not.present(hpsi_noprecond)) stop 'hpsi_noprecond not present'
   call orthoconstraintNonorthogonal(iproc, nproc, tmb%ham_descr%lzd, &
        tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &
        tmb%orbs, tmb%ham_descr%collcom, tmb%orthpar, correction_orthoconstraint, &

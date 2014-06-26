@@ -1990,7 +1990,9 @@ module module_interfaces
         real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(inout) :: lhphi
         type(sparse_matrix),intent(inout) :: lagmat
         type(matrices),intent(out) :: lagmat_
-        real(kind=8),dimension(:),pointer :: psit_c, psit_f, hpsit_c, hpsit_f
+        real(kind=8),dimension(collcom%ndimind_c),intent(inout) :: hpsit_c
+        real(kind=8),dimension(7*collcom%ndimind_f),intent(inout) :: hpsit_f
+        real(kind=8),dimension(:),pointer :: psit_c, psit_f
         logical,intent(inout) :: can_use_transposed, overlap_calculated
         type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
         logical,intent(in) :: experimental_mode
@@ -2478,11 +2480,12 @@ module module_interfaces
          real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphiold
          logical,intent(inout):: overlap_calculated
          type(energy_terms),intent(in) :: energs
-         real(8),dimension(:),pointer:: hpsit_c, hpsit_f
+         real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_c) :: hpsit_c
+         real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f) :: hpsit_f
          integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
          logical, intent(in) :: experimental_mode, correction_co_contra
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_small
-         real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: hpsi_noprecond
+         real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_noprecond
          type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
          type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
        end subroutine calculate_energy_and_gradient_linear
