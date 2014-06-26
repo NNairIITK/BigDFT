@@ -9,7 +9,7 @@
 
 
 subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
-           ldiis, fnrmOldArr, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
+           ldiis, fnrmOldArr, fnrm_old, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
            energy_increased, tmb, lhphiold, overlap_calculated, &
            energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
            hpsi_small, experimental_mode, correction_co_contra, hpsi_noprecond, &
@@ -31,7 +31,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8),intent(in) :: max_inversion_error
   type(DFT_wavefunction), target, intent(inout):: tmb
   type(localizedDIISParameters), intent(inout) :: ldiis
-  real(kind=8), dimension(tmb%orbs%norb), intent(inout) :: fnrmOldArr
+  real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: fnrmOldArr
+  real(kind=8),intent(in) :: fnrm_old
   real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: alpha
   real(kind=8), intent(out):: trH, fnrm, fnrmMax, alpha_mean, alpha_max
   real(kind=8), intent(inout):: trHold
@@ -51,14 +52,13 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   ! Local variables
   integer :: iorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall, ii, jjorb, i
   integer :: lwork, info
-  real(kind=8) :: ddot, tt, fnrmOvrlp_tot, fnrm_tot, fnrmold_tot
+  real(kind=8) :: ddot, tt, fnrmOvrlp_tot, fnrm_tot, fnrmold_tot, tt2
   character(len=*), parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8), dimension(:), pointer :: hpsittmp_c, hpsittmp_f
-  real(kind=8), dimension(:), allocatable :: fnrmOvrlpArr, fnrmArr
   real(kind=8), dimension(:), allocatable :: hpsi_conf, hpsi_tmp
   real(kind=8), dimension(:), pointer :: kernel_compr_tmp
   real(kind=8), dimension(:), allocatable :: prefac
-  real(kind=8),dimension(3) :: reducearr
+  real(kind=8),dimension(2) :: reducearr
   real(wp), dimension(2) :: garray
   real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
   type(matrices) :: matrixm
@@ -155,16 +155,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       call vcopy(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsittmp_c(1), 1)
       call vcopy(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsittmp_f(1), 1)
 
-      !matrixm = matrices_null()
-      !matrixm%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%m, iaction=SPARSE_FULL, id='matrixm%matrix_compr')
       ! Transform to the larger sparse region in order to be compatible with tmb%ham_descr%collcom.
       ! To this end use ham_.
       call transform_sparse_matrix(tmb%linmat%s, tmb%linmat%m, &
            tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ham_%matrix_compr, 'small_to_large')
       call build_linear_combination_transposed(tmb%ham_descr%collcom, &
            tmb%linmat%m, tmb%linmat%ham_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
-
-      !call deallocate_matrices(matrixm)
 
       !@END NEW correction for contra / covariant gradient
   end if
@@ -233,25 +229,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       end if
   end if
 
-  fnrmOvrlpArr = f_malloc(tmb%orbs%norb,id='fnrmOvrlpArr')
-  fnrmArr = f_malloc(tmb%orbs%norb,id='fnrmArr')
-
-  ! Calculate the norm of the gradient (fnrmArr) and determine the angle between the current gradient and that
-  ! of the previous iteration (fnrmOvrlpArr).
-  call timing(iproc,'eglincomms','ON')
-  ist=1
-  do iorb=1,tmb%orbs%norbp
-      iiorb=tmb%orbs%isorb+iorb
-      ilr=tmb%orbs%inwhichlocreg(iiorb)
-      ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-      if(it>1) then
-         fnrmOvrlpArr(iorb)=ddot(ncount, hpsi_small(ist), 1, lhphiold(ist), 1)
-         !fnrmOldArr(iorb)=ddot(ncount, lhphiold(ist), 1, lhphiold(ist), 1)
-      end if
-      fnrmArr(iorb)=ddot(ncount, hpsi_small(ist), 1, hpsi_small(ist), 1)
-      ist=ist+ncount
-  end do
-
 
 
   ! Determine the gradient norm and its maximal component. In addition, adapt the
@@ -260,58 +237,34 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   ! This is of course only necessary if we are using steepest descent and not DIIS.
   ! if newgradient is true, the angle criterion cannot be used and the choice whether to
   ! decrease or increase the step size is only based on the fact whether the trace decreased or increased.
-
-  ! TEMPORARY #################################
-  ! This is just for tests, can be improved
-  fnrmOvrlp_tot=0.d0
-  fnrm_tot=0.d0
-  fnrmOld_tot=0.d0
-  do iorb=1,tmb%orbs%norbp
-      if (it>1) fnrmOvrlp_tot=fnrmOvrlp_tot+fnrmOvrlpArr(iorb)
-      fnrm_tot=fnrm_tot+fnrmArr(iorb)
-      if (it>1) fnrmOld_tot=fnrmOld_tot+fnrmOldArr(iorb)
-  end do
-
-  if (nproc > 1) then
-     reducearr(1)=fnrm_tot
-     reducearr(2)=fnrmOld_tot
-     if (it>1) then
-         reducearr(3)=fnrmOvrlp_tot
-         call mpiallred(reducearr(1), 3, mpi_sum, bigdft_mpi%mpi_comm)
-         fnrmOvrlp_tot=reducearr(3)
-     else
-         call mpiallred(reducearr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
-     end if
-     fnrm_tot=reducearr(1)
-     fnrmOld_tot=reducearr(2)
-  end if
-
-  ! ###########################################
-
   fnrm=0.d0
   fnrmMax=0.d0
+  fnrmOvrlp_tot=0.d0
+  fnrmOld_tot=0.d0
+  ist=1
   do iorb=1,tmb%orbs%norbp
-      fnrm=fnrm+fnrmArr(iorb)
-      if(fnrmArr(iorb)>fnrmMax) fnrmMax=fnrmArr(iorb)
+      iiorb=tmb%orbs%isorb+iorb
+      ilr=tmb%orbs%inwhichlocreg(iiorb)
+      ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+      tt = ddot(ncount, hpsi_small(ist), 1, hpsi_small(ist), 1)
+      fnrm = fnrm + tt
+      if(tt>fnrmMax) fnrmMax=tt
       if(it>1 .and. ldiis%isx==0 .and. .not.ldiis%switchSD) then
-      ! Adapt step size for the steepest descent minimization.
-          if (experimental_mode) then
-              if (iproc==0 .and. iorb==1) then
-                  !write(*,*) 'WARNING: USING SAME STEP SIZE'
-                  call yaml_warning('Using same step size for all TMBs')
+          ! Adapt step size for the steepest descent minimization.
+          tt2=ddot(ncount, hpsi_small(ist), 1, lhphiold(ist), 1)
+          fnrmOvrlp_tot = fnrmOvrlp_tot + tt2
+          if (.not.experimental_mode) then
+              tt2=tt2/sqrt(tt*fnrmOldArr(iorb))
+              ! apply thresholds so that alpha never goes below around 1.d-2 and above around 2
+              if(tt2>.6d0 .and. trH<trHold .and. alpha(iorb)<1.8d0) then
+                  alpha(iorb)=alpha(iorb)*1.1d0
+              else if (alpha(iorb)>1.7d-3) then
+                  alpha(iorb)=alpha(iorb)*.6d0
               end if
-              tt=fnrmOvrlp_tot/sqrt(fnrm_tot*fnrmOld_tot)
-          else
-              tt=fnrmOvrlpArr(iorb)/sqrt(fnrmArr(iorb)*fnrmOldArr(iorb))
           end if
-          ! apply thresholds so that alpha never goes below around 1.d-2 and above around 2
-          if(tt>.6d0 .and. trH<trHold .and. alpha(iorb)<1.8d0) then
-              alpha(iorb)=alpha(iorb)*1.1d0
-          else if (alpha(iorb)>1.7d-3) then
-              alpha(iorb)=alpha(iorb)*.6d0
-          end if
-          !!alpha(iorb)=min(alpha(iorb),1.5d0)
       end if
+      fnrmOldArr(iorb)=tt
+      ist=ist+ncount
   end do
   
   if (nproc > 1) then
@@ -319,13 +272,29 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      call mpiallred(fnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm)
   end if
 
+
+  if (experimental_mode .and. it>1) then
+      do iorb=1,tmb%orbs%norbp
+          fnrmOld_tot=fnrmOld_tot+fnrmOldArr(iorb)
+      end do
+      !if (nproc>1) then
+      !    call mpiallred(fnrmOld_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      !end if
+      !tt2=fnrmOvrlp_tot/sqrt(fnrm*fnrmOld_tot)
+      tt2=fnrmOvrlp_tot/sqrt(fnrm*fnrm_old)
+      ! apply thresholds so that alpha never goes below around 1.d-2 and above around 2
+      if(tt2>.6d0 .and. trH<trHold .and. alpha(iorb)<1.8d0) then
+          alpha(iorb)=alpha(iorb)*1.1d0
+      else if (alpha(iorb)>1.7d-3) then
+          alpha(iorb)=alpha(iorb)*.6d0
+      end if
+  end if
+
+
   fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
   fnrmMax=sqrt(fnrmMax)
 
-  call vcopy(tmb%orbs%norb, fnrmArr(1), 1, fnrmOldArr(1), 1)
 
-  call f_free(fnrmOvrlpArr)
-  call f_free(fnrmArr)
 
   ! Determine the mean step size for steepest descent iterations.
   tt=sum(alpha)

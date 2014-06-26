@@ -417,7 +417,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   type(energy_terms) :: energs
   real(kind=8), dimension(2):: reducearr
   real(gp) :: econf, dynamic_convcrit, kappa_mean
-  real(kind=8) :: energy_first, trH_ref, charge
+  real(kind=8) :: energy_first, trH_ref, charge, fnrm_old
   real(kind=8),dimension(3),save :: kappa_history
   integer,save :: nkappa_history
   logical,save :: has_already_converged
@@ -468,6 +468,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   trH_ref=trH_old
   dynamic_convcrit=1.d-100
   kappa_satur=0
+  fnrm_old = 0.d0
 
 
   ! Count whether there is an even or an odd number of electrons
@@ -542,7 +543,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                & tmb%ham_descr%psi,tmb%hpsi,energs,SIC,GPU,2,denspot%xc,&
                & pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,&
                & potential=denspot%rhov,comgp=tmb%ham_descr%comgp,&
-               hpsi_tmp=hpsi_tmp,econf=econf)
+               hpsi_noconf=hpsi_tmp,econf=econf)
 
           if (nproc>1) then
               call mpiallred(econf, 1, mpi_sum, bigdft_mpi%mpi_comm)
@@ -652,12 +653,13 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
 
       ! use hpsi_tmp as temporary array for hpsi_noprecond, even if it is allocated with a larger size
-      call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
+      call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, fnrm_old, alpha, trH, trH_old, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
            hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, hpsi_small, &
            experimental_mode, correction_co_contra, hpsi_noprecond=hpsi_tmp, norder_taylor=order_taylor, &
            max_inversion_error=max_inversion_error, method_updatekernel=method_updatekernel, &
            precond_convol_workarrays=precond_convol_workarrays, precond_workarrays=precond_workarrays)
+      fnrm_old=fnrm
 
 
       if (experimental_mode) then
@@ -983,7 +985,7 @@ contains
 
       alpha = f_malloc(tmb%orbs%norbp,id='alpha')
       alphaDIIS = f_malloc(tmb%orbs%norbp,id='alphaDIIS')
-      fnrmOldArr = f_malloc(tmb%orbs%norb,id='fnrmOldArr')
+      fnrmOldArr = f_malloc(tmb%orbs%norbp,id='fnrmOldArr')
       hpsi_small = f_malloc_ptr(max(tmb%npsidim_orbs, tmb%npsidim_comp),id='hpsi_small')
       lhphiold = f_malloc_ptr(max(tmb%npsidim_orbs, tmb%npsidim_comp),id='lhphiold')
       lphiold = f_malloc_ptr(size(tmb%psi),id='lphiold')
