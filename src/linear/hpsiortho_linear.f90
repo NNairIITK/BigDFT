@@ -56,7 +56,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8), dimension(:), allocatable :: fnrmOvrlpArr, fnrmArr
   real(kind=8), dimension(:), allocatable :: hpsi_conf, hpsi_tmp
   real(kind=8), dimension(:), pointer :: kernel_compr_tmp
-  real(kind=8), dimension(:), allocatable :: prefac, hpsit_nococontra_c, hpsit_nococontra_f
+  real(kind=8), dimension(:), allocatable :: prefac
   real(kind=8),dimension(3) :: reducearr
   real(wp), dimension(2) :: garray
   real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
@@ -138,11 +138,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       end if
   end if
 
-  hpsit_nococontra_c = f_malloc(tmb%ham_descr%collcom%ndimind_c,id='hpsit_nococontra_c')
-  hpsit_nococontra_f = f_malloc(7*tmb%ham_descr%collcom%ndimind_f,id='hpsit_nococontra_f')
-
-  call vcopy(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsit_nococontra_c(1), 1)
-  call vcopy(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsit_nococontra_f(1), 1)
 
   if (correction_co_contra) then
       !@NEW correction for contra / covariant gradient
@@ -193,12 +188,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
        tmb%orbs, tmb%ham_descr%collcom, tmb%orthpar, correction_orthoconstraint, &
        tmb%linmat, tmb%ham_descr%psi, tmb%hpsi, &
        tmb%linmat%m, tmb%linmat%ham_, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, &
-       hpsit_c, hpsit_f, hpsit_nococontra_c, hpsit_nococontra_f, tmb%ham_descr%can_use_transposed, &
+       hpsit_c, hpsit_f, tmb%ham_descr%can_use_transposed, &
        overlap_calculated, experimental_mode, norder_taylor, max_inversion_error, &
        tmb%npsidim_orbs, tmb%lzd, hpsi_noprecond)
 
-  call f_free(hpsit_nococontra_c)
-  call f_free(hpsit_nococontra_f)
 
 
   call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &

@@ -53,19 +53,6 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
 
 
   if(.not.can_use_transposed) then
-      !!if(associated(psit_c)) then
-      !!    call f_free_ptr(psit_c)
-      !!end if
-      !!if(associated(psit_f)) then
-      !!    call f_free_ptr(psit_f)
-      !!end if
-      !if (.not.associated(psit_c)) then
-      !    psit_c = f_malloc_ptr(sum(collcom%nrecvcounts_c),id='psit_c')
-      !end if
-      !if (.not.associated(psit_f)) then
-      !    psit_f = f_malloc_ptr(7*sum(collcom%nrecvcounts_f),id='psit_f')
-      !end if
-
       call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
       can_use_transposed=.true.
 
@@ -80,7 +67,6 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
   if (methTransformOverlap==-1) then
       call overlap_power_minus_one_half_parallel(iproc, nproc, 0, orbs, ovrlp, ovrlp_, inv_ovrlp_half, inv_ovrlp_half_)
   else
-      !ovrlp%matrix_compr=ovrlp_%matrix_compr
       call overlapPowerGeneral(iproc, nproc, methTransformOverlap, -2, &
            orthpar%blocksize_pdgemm, &
            imode=1, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
@@ -122,7 +108,7 @@ end subroutine orthonormalizeLocalized
 ! use sparsity of density kernel for all inverse quantities
 subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
            correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, &
-           hpsit_c, hpsit_f, hpsit_nococontra_c, hpsit_nococontra_f, &
+           hpsit_c, hpsit_f, &
            can_use_transposed, overlap_calculated, experimental_mode, norder_taylor, max_inversion_error, &
            npsidim_orbs_small, lzd_small, hpsi_noprecond)
   use module_base
@@ -151,8 +137,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   type(sparse_matrix),intent(inout) :: lagmat
   type(matrices),intent(out) :: lagmat_
   real(kind=8),dimension(:),pointer :: psit_c, psit_f, hpsit_c, hpsit_f
-  real(kind=8),dimension(collcom%ndimind_c),intent(inout) :: hpsit_nococontra_c
-  real(kind=8),dimension(7*collcom%ndimind_f),intent(inout) :: hpsit_nococontra_f
   logical,intent(inout) :: can_use_transposed, overlap_calculated
   type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
   logical,intent(in) :: experimental_mode
@@ -187,8 +171,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
   hpsit_tmp_c = f_malloc(collcom%ndimind_c,id='psit_tmp_c')
   hpsit_tmp_f = f_malloc(7*collcom%ndimind_f,id='psit_tmp_f')
-  !!call vcopy(collcom%ndimind_c, hpsit_c(1), 1, hpsit_tmp_c(1), 1)
-  !!call vcopy(7*collcom%ndimind_f, hpsit_f(1), 1, hpsit_tmp_f(1), 1)
 
 
   ! Invert the overlap matrix
