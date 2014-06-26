@@ -2473,7 +2473,7 @@ module module_interfaces
          type(DFT_wavefunction),target,intent(inout):: tmb
          type(localizedDIISParameters),intent(inout) :: ldiis
          real(8),dimension(tmb%orbs%norbp),intent(inout) :: fnrmOldArr
-         real(kind=8),intent(in) :: fnrm_old
+         real(kind=8),intent(inout) :: fnrm_old
          real(8),dimension(tmb%orbs%norbp),intent(inout) :: alpha
          real(8),intent(out):: trH, fnrm, fnrmMax, alpha_mean, alpha_max
          real(8),intent(inout):: trHold

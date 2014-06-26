@@ -659,7 +659,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
            experimental_mode, correction_co_contra, hpsi_noprecond=hpsi_tmp, norder_taylor=order_taylor, &
            max_inversion_error=max_inversion_error, method_updatekernel=method_updatekernel, &
            precond_convol_workarrays=precond_convol_workarrays, precond_workarrays=precond_workarrays)
-      fnrm_old=fnrm
+      !fnrm_old=fnrm
 
 
       if (experimental_mode) then
