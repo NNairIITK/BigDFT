@@ -4081,23 +4081,6 @@ module module_interfaces
           real(kind=8),dimension(npsidim_orbs),intent(in) :: psidiff, hpsi_noprecond
           real(kind=8),intent(out) :: delta_energy
         end subroutine estimate_energy_change
-
-        !subroutine initialize_work_arrays_locham(nlr,lr,nspinor,allocate_arrays,w)
-        !  use module_base
-        !  use module_types
-        !  implicit none
-        !  integer, intent(in) :: nlr, nspinor
-        !  type(locreg_descriptors), dimension(nlr), intent(in) :: lr
-        !  logical,intent(in) :: allocate_arrays
-        !  type(workarr_locham), intent(out) :: w
-        !end subroutine initialize_work_arrays_locham
-
-        !subroutine deallocate_work_arrays_locham(w)
-        !  use module_base
-        !  use module_types
-        !  implicit none
-        !  type(workarr_locham), intent(inout) :: w
-        !end subroutine deallocate_work_arrays_locham
   
   end interface
 END MODULE module_interfaces

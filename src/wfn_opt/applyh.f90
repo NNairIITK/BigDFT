@@ -259,6 +259,8 @@ subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
       econf_sum=0.0_gp
   end if
 
+  call initialize_work_arrays_sumrho(lzd%nlr,lzd%llr,.true.,w)
+
   !loop on the localisation regions (so to create one work array set per lr)
   loop_lr: do ilr=1,Lzd%nlr
      !check if this localisation region is used by one of the orbitals
@@ -273,9 +275,9 @@ subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
      if (.not. dosome) cycle loop_lr
 
      !initialise the work arrays
-     if (.not.present_sumrho_workarrays) then
-         call initialize_work_arrays_sumrho(Lzd%Llr(ilr),w)
-     end if
+!!##     if (.not.present_sumrho_workarrays) then
+         call initialize_work_arrays_sumrho(1,lzd%llr(ilr),.false.,w)
+!!##     end if
 
      !box elements size
      nbox=Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i
@@ -404,11 +406,13 @@ subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
   if (ipotmethod == 2 .or. ipotmethod ==3) then
      call f_free(vsicpsir)
   end if
-  if (.not.present_sumrho_workarrays) then
-      call deallocate_work_arrays_sumrho(w)
-  end if
+!!##  if (.not.present_sumrho_workarrays) then
+!!##      call deallocate_work_arrays_sumrho(w)
+!!##  end if
 
 end do loop_lr
+
+call deallocate_work_arrays_sumrho(w)
 
 
 END SUBROUTINE psi_to_vlocpsi

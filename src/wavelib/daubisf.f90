@@ -1021,30 +1021,58 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_s
 END SUBROUTINE isf_to_daub_kinetic
 
 
-subroutine initialize_work_arrays_sumrho(lr,w)
+subroutine initialize_work_arrays_sumrho(nlr,lr,allocate_arrays,w)
   use module_base
   use module_types
   implicit none
-  type(locreg_descriptors), intent(in) :: lr
+  integer, intent(in) :: nlr
+  type(locreg_descriptors), dimension(nlr), intent(in) :: lr
+  logical, intent(in) :: allocate_arrays
   type(workarr_sumrho), intent(out) :: w
   !local variables
   character(len=*), parameter :: subname='initialize_work_arrays_sumrho'
   integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,i_stat !n(c) n1i,n2i,n3i
-  
-  n1=lr%d%n1
-  n2=lr%d%n2
-  n3=lr%d%n3
-  !n(c) n1i=lr%d%n1i
-  !n(c) n2i=lr%d%n2i
-  !n(c) n3i=lr%d%n3i
-  nfl1=lr%d%nfl1
-  nfl2=lr%d%nfl2
-  nfl3=lr%d%nfl3
-  nfu1=lr%d%nfu1
-  nfu2=lr%d%nfu2
-  nfu3=lr%d%nfu3
+  integer :: ilr
+  character(len=1) :: geo
+  logical :: hyb
 
-  select case(lr%geocode)
+  ! Determine the maximum array sizes for all locregs 1,..,nlr
+  ! If the sizes for a specific locreg are needed, simply call the routine with nlr=1
+  ! For the moment the geocode of all locregs must be the same
+  
+  n1=0
+  n2=0
+  n3=0
+  nfl1=0
+  nfl2=0
+  nfl3=0
+  nfu1=0
+  nfu2=0
+  nfu3=0
+  geo=lr(1)%geocode
+  hyb=lr(1)%hybrid_on
+  do ilr=1,nlr
+      n1=max(n1,lr(ilr)%d%n1)
+      n2=max(n2,lr(ilr)%d%n2)
+      n3=max(n3,lr(ilr)%d%n3)
+      nfl1=max(nfl1,lr(ilr)%d%nfl1)
+      nfl2=max(nfl2,lr(ilr)%d%nfl2)
+      nfl3=max(nfl3,lr(ilr)%d%nfl3)
+      nfu1=max(nfu1,lr(ilr)%d%nfu1)
+      nfu2=max(nfu2,lr(ilr)%d%nfu2)
+      nfu3=max(nfu3,lr(ilr)%d%nfu3)
+      if (lr(ilr)%geocode /= geo) stop 'lr(ilr)%geocode/=geo'
+      if (lr(ilr)%hybrid_on .neqv. hyb) stop 'lr(ilr)%hybrid_on .neqv. hyb'
+  end do
+
+  if (allocate_arrays) then
+     nullify(w%x_c)
+     nullify(w%x_f)
+     nullify(w%w1)
+     nullify(w%w2)
+  end if
+
+  select case(geo)
   case('F')
      !dimension of the work arrays
      ! shrink convention: nw1>nw2
@@ -1065,7 +1093,7 @@ subroutine initialize_work_arrays_sumrho(lr,w)
      w%nxc=(2*n1+2)*(2*n2+31)*(2*n3+2)
      w%nxf=1
   case('P')
-     if (lr%hybrid_on) then
+     if (hyb) then
         ! hybrid case:
         w%nxc=(n1+1)*(n2+1)*(n3+1)
         w%nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
@@ -1087,13 +1115,15 @@ subroutine initialize_work_arrays_sumrho(lr,w)
 
   end select
   !work arrays
-  w%x_c = f_malloc_ptr(w%nxc,id='w%x_c')
-  w%x_f = f_malloc_ptr(w%nxf,id='w%x_f')
-  w%w1 = f_malloc_ptr(w%nw1,id='w%w1')
-  w%w2 = f_malloc_ptr(w%nw2,id='w%w2')
+  if (allocate_arrays) then
+      w%x_c = f_malloc_ptr(w%nxc,id='w%x_c')
+      w%x_f = f_malloc_ptr(w%nxf,id='w%x_f')
+      w%w1 = f_malloc_ptr(w%nw1,id='w%w1')
+      w%w2 = f_malloc_ptr(w%nw2,id='w%w2')
+  end if
   
 
-  if (lr%geocode == 'F') then
+  if (geo == 'F') then
      call to_zero(w%nxc,w%x_c(1))
      call to_zero(w%nxf,w%x_f(1))
   end if

@@ -1025,7 +1025,7 @@ contains
           call allocate_work_arrays(tmb%lzd%llr(ilr)%geocode, tmb%lzd%llr(ilr)%hybrid_on, &
                ncplx, tmb%lzd%llr(ilr)%d, precond_workarrays(iorb))
           !!call initialize_work_arrays_locham(tmb%ham_descr%lzd%llr(ilr), tmb%orbs%nspinor, locham_workarrays(iorb))
-          call initialize_work_arrays_sumrho(tmb%ham_descr%lzd%llr(ilr), sumrho_workarrays(iorb))
+          !!call initialize_work_arrays_sumrho(tmb%ham_descr%lzd%llr(ilr), sumrho_workarrays(iorb))
       end do
 
 
@@ -1069,7 +1069,7 @@ contains
         call deallocate_work_arrays(tmb%lzd%llr(ilr)%geocode, tmb%lzd%llr(ilr)%hybrid_on, &
              ncplx, precond_workarrays(iorb))
         !!call deallocate_work_arrays_locham(tmb%lzd%llr(ilr), locham_workarrays(iorb))
-        call deallocate_work_arrays_sumrho(sumrho_workarrays(iorb))
+        !!call deallocate_work_arrays_sumrho(sumrho_workarrays(iorb))
     end do
     deallocate(precond_convol_workarrays)
     deallocate(precond_workarrays)
@@ -1418,7 +1418,7 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, npsidim, 
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inWhichLocreg(iiorb)
-      call initialize_work_arrays_sumrho(lzd%Llr(ilr), w)
+      call initialize_work_arrays_sumrho(1,lzd%Llr(ilr),.true.,w)
       call daub_to_isf(lzd%Llr(ilr), w, lphi(ist), psir(istr))
       call deallocate_work_arrays_sumrho(w)
       ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
