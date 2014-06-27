@@ -181,7 +181,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
 
-
   call orthoconstraintNonorthogonal(iproc, nproc, tmb%ham_descr%lzd, &
        tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &
        tmb%orbs, tmb%ham_descr%collcom, tmb%orthpar, correction_orthoconstraint, &
