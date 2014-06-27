@@ -163,20 +163,12 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
       can_use_transposed=.true.
   end if
 
-  !!! It is assumed that this routine is called with the transposed gradient ready if it is associated...
-  !!if(.not.associated(hpsit_c)) then
-  !!    hpsit_c = f_malloc_ptr(sum(collcom%nrecvcounts_c),id='hpsit_c')
-  !!    hpsit_f = f_malloc_ptr(7*sum(collcom%nrecvcounts_f),id='hpsit_f')
-  !!    call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lhphi, hpsit_c, hpsit_f, lzd)
-  !!end if
-
-
-
 
   ! Invert the overlap matrix
   inv_ovrlp_ = matrices_null()
-  call allocate_matrices(linmat%l, allocate_full=.false., &
-       matname='inv_ovrlp_', mat=inv_ovrlp_)
+  !call allocate_matrices(linmat%l, allocate_full=.false., &
+  !     matname='inv_ovrlp_', mat=inv_ovrlp_)
+  inv_ovrlp_%matrix_compr = sparsematrix_malloc_ptr(linmat%l,iaction=SPARSE_FULL,id='inv_ovrlp_%matrix_compr')
   call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, -1, &
        imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
        ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, &

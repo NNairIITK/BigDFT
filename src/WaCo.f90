@@ -866,7 +866,7 @@ program WaCo
 
      wann = f_malloc(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,id='wann')
      wannr = f_malloc(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,id='wannr')
-     call initialize_work_arrays_sumrho(Glr,w)
+     call initialize_work_arrays_sumrho(1,Glr,.true.,w)
 
 
      ! Separate plotwann

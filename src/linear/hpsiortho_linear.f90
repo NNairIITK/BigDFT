@@ -55,7 +55,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8) :: ddot, tt, fnrmOvrlp_tot, fnrm_tot, fnrmold_tot, tt2
   character(len=*), parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8), dimension(:), pointer :: hpsittmp_c, hpsittmp_f
-  real(kind=8), dimension(:), allocatable :: hpsi_conf, hpsi_tmp
+  real(kind=8), dimension(:), allocatable :: hpsi_conf
   real(kind=8), dimension(:), pointer :: kernel_compr_tmp
   real(kind=8), dimension(:), allocatable :: prefac
   real(kind=8),dimension(2) :: reducearr
@@ -178,7 +178,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
            tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
   end if
-
 
 
 
@@ -320,7 +319,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
   if(target_function==TARGET_FUNCTION_IS_HYBRID) then
-     hpsi_tmp = f_malloc(tmb%npsidim_orbs,id='hpsi_tmp')
      ist=1
      do iorb=1,tmb%orbs%norbp
         iiorb=tmb%orbs%isorb+iorb
@@ -329,17 +327,15 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
         tt=ddot(ncnt, hpsi_conf(ist), 1, hpsi_small(ist), 1)
         tt=tt/ddot(ncnt, hpsi_conf(ist), 1, hpsi_conf(ist), 1)
-        do i=ist,ist+ncnt-1
-           hpsi_tmp(i)=tt*hpsi_conf(i)
-        end do
         call daxpy(ncnt, -tt, hpsi_conf(ist), 1, hpsi_small(ist), 1)
+        call dscal(ncnt, tt, hpsi_conf(ist), 1)
 
         ist=ist+ncnt
      end do
 
      call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
-          nit_precond,tmb%npsidim_orbs,hpsi_tmp,tmb%confdatarr,gnrm,gnrm_zero, &
+          nit_precond,tmb%npsidim_orbs,hpsi_conf,tmb%confdatarr,gnrm,gnrm_zero, &
           precond_convol_workarrays, precond_workarrays)
 
      ! temporarily turn confining potential off...
@@ -350,13 +346,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
           nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero, & ! prefac should be zero
           precond_convol_workarrays, precond_workarrays)
-     call daxpy(tmb%npsidim_orbs, 1.d0, hpsi_tmp(1), 1, hpsi_small(1), 1)
+     call daxpy(tmb%npsidim_orbs, 1.d0, hpsi_conf(1), 1, hpsi_small(1), 1)
      ! ...revert back to correct value
      tmb%confdatarr(:)%prefac=prefac
 
      call f_free(prefac)
      call f_free(hpsi_conf)
-     call f_free(hpsi_tmp)
   else
      call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&

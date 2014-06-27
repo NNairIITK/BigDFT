@@ -4003,7 +4003,7 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
   real(wp), dimension(:,:), allocatable :: psir,hpsi
 
   !initialise the work arrays
-  call initialize_work_arrays_locham(lr,orbs%nspinor,wrk_lh)  
+  call initialize_work_arrays_locham(1,lr,orbs%nspinor,.true.,wrk_lh)  
 
   tens=0.d0
 
@@ -4049,7 +4049,7 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
 
   call f_free(hpsi)
 
-  call deallocate_work_arrays_locham(lr,wrk_lh)
+  call deallocate_work_arrays_locham(wrk_lh)
 
 END SUBROUTINE local_hamiltonian_stress
 

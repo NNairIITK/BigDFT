@@ -1147,7 +1147,7 @@ subroutine wf_iorbp_to_psi(psir, psi, lr)
   character(len=*), parameter :: subname='wf_orb_to_psi'
   type(workarr_sumrho) :: w
 
-  call initialize_work_arrays_sumrho(lr,w)
+  call initialize_work_arrays_sumrho(1,lr,.true.,w)
 
   !initialisation
   if (lr%geocode == 'F') then

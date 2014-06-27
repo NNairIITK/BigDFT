@@ -2307,7 +2307,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 
  ! Daubechies to ISF
   npsir=1
-  call initialize_work_arrays_sumrho(Lzd_old%Glr,w)
+  call initialize_work_arrays_sumrho(1,Lzd_old%Glr,.true.,w)
   nbox = lzd_old%Glr%d%n1i*Lzd_old%Glr%d%n2i*Lzd_old%Glr%d%n3i
 
   psir_old = f_malloc((/ nbox, npsir, orbs%norbp /),id='psir_old')
@@ -2546,7 +2546,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   !$OMP END PARALLEL DO
   end do
 
-  call initialize_work_arrays_sumrho(Lzd%Glr,w) 
+  call initialize_work_arrays_sumrho(1,Lzd%Glr,.true.,w) 
  
   ist=1
   loop_orbs_back: do iorb=1,orbs%norbp

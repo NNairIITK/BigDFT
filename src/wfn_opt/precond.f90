@@ -176,7 +176,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
 !!$  if (newp) then
 !!$     ilr=1
 !!$     hpsir=f_malloc(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,id='hpsir',routine_id=subname)
-!!$     call initialize_work_arrays_sumrho(Lzd%Llr(ilr),w)
+!!$     call initialize_work_arrays_sumrho(1,Lzd%Llr(ilr),.true.,w)
 !!$  end if
   !if (iproc.eq. 0 .and. verbose.ge.3) write(*,*) ' '
   ist = 0
