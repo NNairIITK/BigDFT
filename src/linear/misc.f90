@@ -45,7 +45,7 @@ subroutine plotOrbitals(iproc, tmb, phi, nat, rxyz, hxh, hyh, hzh, it, basename)
 
    phir = f_malloc(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n3i,id='phir')
 
-   call initialize_work_arrays_sumrho(tmb%lzd%glr,w)
+   call initialize_work_arrays_sumrho(1,tmb%lzd%glr,.true.,w)
    rxyzref=-555.55d0
 
    istart=0
@@ -1701,7 +1701,7 @@ subroutine support_function_multipoles(iproc, tmb, atoms, denspot)
       iiorb=tmb%orbs%isorb+iorb
       ilr=tmb%orbs%inwhichlocreg(iiorb)
       iat=tmb%orbs%onwhichatom(iiorb)
-      call initialize_work_arrays_sumrho(tmb%lzd%Llr(ilr), w)
+      call initialize_work_arrays_sumrho(1,tmb%lzd%Llr(ilr),.true.,w)
       ! Transform the support function to real space
       call daub_to_isf(tmb%lzd%llr(ilr), w, tmb%psi(ist), phir(istr))
       call deallocate_work_arrays_sumrho(w)

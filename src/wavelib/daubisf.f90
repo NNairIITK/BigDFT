@@ -1061,7 +1061,10 @@ subroutine initialize_work_arrays_sumrho(nlr,lr,allocate_arrays,w)
       nfu1=max(nfu1,lr(ilr)%d%nfu1)
       nfu2=max(nfu2,lr(ilr)%d%nfu2)
       nfu3=max(nfu3,lr(ilr)%d%nfu3)
-      if (lr(ilr)%geocode /= geo) stop 'lr(ilr)%geocode/=geo'
+      if (lr(ilr)%geocode /= geo) then
+          write(*,*) 'lr(ilr)%geocode, geo', lr(ilr)%geocode, geo
+          stop 'lr(ilr)%geocode/=geo'
+      end if
       if (lr(ilr)%hybrid_on .neqv. hyb) stop 'lr(ilr)%hybrid_on .neqv. hyb'
   end do
 
