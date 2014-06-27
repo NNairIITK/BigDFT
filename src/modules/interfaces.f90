@@ -542,7 +542,8 @@ module module_interfaces
 
        subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
             Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
-            energs,SIC,GPU,PotOrKin,xc,pkernel,orbsocc,psirocc,dpbox,potential,comgp,hpsi_noconf,econf)
+            energs,SIC,GPU,PotOrKin,xc,pkernel,orbsocc,psirocc,dpbox,potential,comgp,hpsi_noconf,econf,&
+            locham_workarrays)
          use module_base
          use module_types
          use module_xc
@@ -571,6 +572,7 @@ module module_interfaces
          type(p2pComms),intent(inout), optional:: comgp
          real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(inout),optional :: hpsi_noconf
          real(gp),intent(out),optional :: econf
+         type(workarr_locham),dimension(orbs%norbp),intent(in),optional :: locham_workarrays
        end subroutine LocalHamiltonianApplication
 
        subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
@@ -3050,7 +3052,8 @@ module module_interfaces
           type(workarrays_quartic_convolutions),intent(inout):: work
         end subroutine init_local_work_arrays
 
-        subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum)
+        subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum, &
+                   locham_workarrays)
           use module_base
           use module_types
           implicit none
@@ -3060,6 +3063,7 @@ module module_interfaces
           real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
           real(gp), intent(out) :: ekin_sum
           real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
+          type(workarr_locham),dimension(orbs%norbp),intent(in),optional :: locham_workarrays
         end subroutine psi_to_kinpsi
 
         subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)

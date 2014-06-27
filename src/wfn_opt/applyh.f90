@@ -396,7 +396,8 @@ end do loop_lr
 END SUBROUTINE psi_to_vlocpsi
 
 
-subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum)
+subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum, &
+           locham_workarrays)
   use module_base
   use module_types
   use module_interfaces, except_this_one => psi_to_kinpsi
@@ -407,15 +408,18 @@ subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum)
   real(wp), dimension(npsidim_orbs), intent(in) :: psi
   real(gp), intent(out) :: ekin_sum
   real(wp), dimension(npsidim_orbs), intent(inout) :: hpsi
+  type(workarr_locham),dimension(orbs%norbp),intent(in),optional :: locham_workarrays
 
   !local variables
   character(len=*), parameter :: subname='psi_to_kinpsi'
-  logical :: dosome
-  integer :: i_all,i_stat,iorb,ispsi,ilr,ilr_orb
+  logical :: dosome, present_locham_workarrays
+  integer :: i_all,i_stat,iorb,ispsi,ilr,ilr_orb,iiorb
   real(gp) :: ekin
   type(workarr_locham) :: wrk_lh
   real(wp), dimension(:,:), allocatable :: psir
   real(gp) :: kx,ky,kz
+
+  present_locham_workarrays = present(locham_workarrays)
 
   ekin=0.d0
   ekin_sum=0.0_gp
@@ -426,7 +430,10 @@ subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum)
     dosome=.false.
     do iorb=1,orbs%norbp
       dosome = (orbs%inwhichlocreg(iorb+orbs%isorb) == ilr)
-      if (dosome) exit
+      if (dosome) then
+          iiorb=iorb
+          exit
+      end if
     end do
     if (.not. dosome) cycle loop_lr
    
@@ -434,7 +441,12 @@ subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum)
     psir = f_malloc0((/ Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i, orbs%nspinor /),id='psir')
 
     !initialise the work arrays
-    call initialize_work_arrays_locham(Lzd%Llr(ilr),orbs%nspinor,wrk_lh)  
+    !nullify(wrk_lh)
+    if (present_locham_workarrays) then
+    !!    wrk_lh => locham_workarrays(iiorb)
+    else
+        call initialize_work_arrays_locham(Lzd%Llr(ilr),orbs%nspinor,wrk_lh)  
+    end if
    
     ispsi=1
     loop_orbs: do iorb=1,orbs%norbp
@@ -453,8 +465,14 @@ subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum)
 
       !call isf_to_daub_kinetic(lzd%hgrids(1),lzd%hgrids(2),lzd%hgrids(3),kx,ky,kz,orbs%nspinor,Lzd%Llr(ilr),wrk_lh,&
       !      psir(1,1),hpsi(ispsi),ekin)
-      call psi_to_tpsi(lzd%hgrids,orbs%kpts(1,orbs%iokpt(iorb)),orbs%nspinor,&
-           Lzd%Llr(ilr),psi(ispsi),wrk_lh,hpsi(ispsi),ekin)
+      if (.not.present_locham_workarrays) then
+          call psi_to_tpsi(lzd%hgrids,orbs%kpts(1,orbs%iokpt(iorb)),orbs%nspinor,&
+               Lzd%Llr(ilr),psi(ispsi),wrk_lh,hpsi(ispsi),ekin)
+      else
+          call zero_work_arrays_locham(Lzd%Llr(ilr),orbs%nspinor,locham_workarrays(iiorb))
+          call psi_to_tpsi(lzd%hgrids,orbs%kpts(1,orbs%iokpt(iorb)),orbs%nspinor,&
+               Lzd%Llr(ilr),psi(ispsi),locham_workarrays(iiorb),hpsi(ispsi),ekin)
+      end if
    
       ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
 
@@ -465,7 +483,10 @@ subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum)
 
     call f_free(psir)
 
-    call deallocate_work_arrays_locham(Lzd%Llr(ilr),wrk_lh)
+    if (.not.present_locham_workarrays) then
+        call deallocate_work_arrays_locham(Lzd%Llr(ilr),wrk_lh)
+    end if
+
    
   end do loop_lr
 

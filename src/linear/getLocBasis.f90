@@ -425,6 +425,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   type(matrices) :: ovrlp_old
   type(workarrays_quartic_convolutions),dimension(:),allocatable :: precond_convol_workarrays
   type(workarr_precond),dimension(:),allocatable :: precond_workarrays
+  type(workarr_locham),dimension(:),allocatable :: locham_workarrays
 
   call f_routine(id='getLocalizedBasis')
 
@@ -532,7 +533,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
            tmb%ham_descr%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,&
            & tmb%ham_descr%psi,tmb%hpsi,energs,SIC,GPU,3,denspot%xc,&
            & pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,&
-           & potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
+           & potential=denspot%rhov,comgp=tmb%ham_descr%comgp,&
+           locham_workarrays=locham_workarrays)
       call full_local_potential(iproc,nproc,tmb%orbs,tmb%ham_descr%lzd,2,denspot%dpbox,&
            & denspot%xc,denspot%rhov,denspot%pot_work,tmb%ham_descr%comgp)
       ! only potential
@@ -1000,6 +1002,7 @@ contains
 
       allocate(precond_convol_workarrays(tmb%orbs%norbp))
       allocate(precond_workarrays(tmb%orbs%norbp))
+      allocate(locham_workarrays(tmb%orbs%norbp))
       do iorb=1,tmb%orbs%norbp
           iiorb=tmb%orbs%isorb+iorb
           ilr=tmb%orbs%inwhichlocreg(iiorb)
@@ -1019,7 +1022,9 @@ contains
           end if
           call allocate_work_arrays(tmb%lzd%llr(ilr)%geocode, tmb%lzd%llr(ilr)%hybrid_on, &
                ncplx, tmb%lzd%llr(ilr)%d, precond_workarrays(iorb))
+          call initialize_work_arrays_locham(tmb%ham_descr%lzd%llr(ilr), tmb%orbs%nspinor, locham_workarrays(iorb))
       end do
+
 
     end subroutine allocateLocalArrays
 
@@ -1060,9 +1065,11 @@ contains
         end if
         call deallocate_work_arrays(tmb%lzd%llr(ilr)%geocode, tmb%lzd%llr(ilr)%hybrid_on, &
              ncplx, precond_workarrays(iorb))
+        call deallocate_work_arrays_locham(tmb%lzd%llr(ilr), locham_workarrays(iorb))
     end do
     deallocate(precond_convol_workarrays)
     deallocate(precond_workarrays)
+    deallocate(locham_workarrays)
 
     end subroutine deallocateLocalArrays
 

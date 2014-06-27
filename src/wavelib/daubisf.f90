@@ -249,6 +249,57 @@ subroutine memspace_work_arrays_locham(lr,memwork) !n(c) nspinor (arg:2)
 END SUBROUTINE memspace_work_arrays_locham
 
 
+!> Set to zero the work arrays for local hamiltonian
+subroutine zero_work_arrays_locham(lr,nspinor,w)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: nspinor
+  type(locreg_descriptors), intent(in) :: lr
+  type(workarr_locham), intent(out) :: w
+  !local variables
+  integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+
+  n1=lr%d%n1
+  n2=lr%d%n2
+  n3=lr%d%n3
+  nfl1=lr%d%nfl1
+  nfl2=lr%d%nfl2
+  nfl3=lr%d%nfl3
+  nfu1=lr%d%nfu1
+  nfu2=lr%d%nfu2
+  nfu3=lr%d%nfu3
+
+  select case(lr%geocode)
+
+  case('F')
+
+     w%nyc=(n1+1)*(n2+1)*(n3+1)
+     w%nyf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+     w%nxc=(n1+1)*(n2+1)*(n3+1)
+     w%nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+     w%nxf1=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+     w%nxf2=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+     w%nxf3=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+
+     !initialisation of the work arrays
+     call to_zero(w%nxf1*nspinor,w%x_f1(1,1))
+     call to_zero(w%nxf2*nspinor,w%x_f2(1,1))
+     call to_zero(w%nxf3*nspinor,w%x_f3(1,1))
+     call to_zero(w%nxc*nspinor,w%x_c(1,1))
+     call to_zero(w%nxf*nspinor,w%x_f(1,1))
+     call to_zero(w%nyc*nspinor,w%y_c(1,1))
+     call to_zero(w%nyf*nspinor,w%y_f(1,1))
+
+  case('S')
+
+  case('P')
+
+  end select
+
+END SUBROUTINE zero_work_arrays_locham
+
+
 
 !>
 !!
