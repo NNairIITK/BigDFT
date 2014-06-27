@@ -150,7 +150,7 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel
   write(fn5,'(i5.5)') itime+itime_shift_for_restart
   write(comment,'(a,1pe10.3)')'AB6MD:fnrm= ', sqrt(fnrm)
   call write_atomic_file(trim(scfloop_obj%inputs%dir_output)//'posmd_'//fn5, &
-       & epot + ekin, xcart, scfloop_obj%atoms, trim(comment),forces=fcart)
+       & epot + ekin, xcart, scfloop_obj%atoms%astruct%ixyz_int, scfloop_obj%atoms, trim(comment),forces=fcart)
 
   !write velocities
   write(comment,'(a,i6.6)')'Timestep= ',itime+itime_shift_for_restart

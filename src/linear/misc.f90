@@ -851,7 +851,7 @@ end subroutine print_orbital_distribution
 
 
 subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
-           energs, nlpsp, input, &
+           energs, nlpsp, input, order_taylor, &
            energy, energyDiff, energyold)
   use module_base
   use module_types
@@ -873,6 +873,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   type(energy_terms),intent(inout) :: energs
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
   type(input_variables),intent(in) :: input
+  integer,intent(inout) :: order_taylor
   real(kind=8),intent(out) :: energy, energyDiff
   real(kind=8), intent(inout) :: energyold
 
@@ -909,7 +910,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   tmb%can_use_transposed=.false.
   call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
        energs, nlpsp, input%SIC, tmb, fnrm, .true., .false., .true., 0, 0, 0, 0, &
-       input%lin%order_taylor,input%purification_quickreturn,&
+       order_taylor,input%lin%max_inversion_error,input%purification_quickreturn,&
        input%calculate_KS_residue,input%calculate_gap)
 
 
@@ -1011,7 +1012,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   tmb%can_use_transposed=.false.
   call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
        energs, nlpsp, input%SIC, tmb, fnrm, .true., .false., .true., 0, 0, 0, 0, &
-       input%lin%order_taylor, input%purification_quickreturn, &
+       order_taylor, input%lin%max_inversion_error, input%purification_quickreturn, &
        input%calculate_KS_residue, input%calculate_gap, updatekernel=.false.)
   energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
   energyDiff=energy-energyold
@@ -1146,7 +1147,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   integer :: ifrag,iorb,ifrag_ref,isforb,istat,ierr,jorb
   real(kind=gp), allocatable, dimension(:,:) :: proj_mat, proj_ovrlp_half, weight_matrixp
   character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
-  real(kind=gp) :: error
+  real(kind=gp) :: max_error, mean_error
   type(matrices) :: inv_ovrlp
 
   ! new variables
@@ -1211,7 +1212,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
           tmb%orthpar%blocksize_pdsyev, &
           imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
           ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
-          error=error)
+          max_error=max_error, mean_error=mean_error)
      !!ovrlp_half=tmb%linmat%ovrlp%matrix
      call f_free_ptr(tmb%linmat%ovrlp_%matrix)
   end if

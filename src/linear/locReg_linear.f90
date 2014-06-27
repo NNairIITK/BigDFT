@@ -970,7 +970,7 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
   integer,dimension(nseg),intent(out) :: keyv_loc, keyv_glob
   !local variables
   character(len=*),parameter :: subname = 'segkeys_Sphere'
-  integer :: i, i1, i2, i3, nstart, nend, nvctr, igridpoint, igridglob, i2old, iseg, jj, j0, j1, ii, i0, n1l, n2l, n3l
+  integer :: i, i1, i2, i3, nstart, nend, nvctr, igridpoint, igridglob, iseg, jj, j0, j1, ii, i0, n1l, n2l, n3l
   integer :: i1l, i2l, i3l, ii1, ii2, ii3, istat, iall, loc, n1p1, np, n1lp1, nlp, igridpointa, igridgloba
   real(kind=8) :: cut, dx, dy, dz
   logical :: segment
@@ -995,7 +995,6 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
   segment=.false.
 
   cut=locrad**2
-  i2old=-1
   n1p1=n1+1
   np=n1p1*(n2+1)
   n1lp1=n1l+1
@@ -1061,7 +1060,6 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
           keyg_glob(2,nend)=igridglob
           segment=.false.
       end if
-      i2old=i2
   end do
 
   if (nend /= nstart) then
