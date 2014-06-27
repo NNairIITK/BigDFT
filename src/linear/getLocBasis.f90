@@ -426,6 +426,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   type(workarrays_quartic_convolutions),dimension(:),allocatable :: precond_convol_workarrays
   type(workarr_precond),dimension(:),allocatable :: precond_workarrays
   type(workarr_locham),dimension(:),allocatable :: locham_workarrays
+  type(workarr_sumrho),dimension(:),allocatable :: sumrho_workarrays
 
   call f_routine(id='getLocalizedBasis')
 
@@ -545,7 +546,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                & tmb%ham_descr%psi,tmb%hpsi,energs,SIC,GPU,2,denspot%xc,&
                & pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,&
                & potential=denspot%rhov,comgp=tmb%ham_descr%comgp,&
-               hpsi_noconf=hpsi_tmp,econf=econf)
+               hpsi_noconf=hpsi_tmp,econf=econf,sumrho_workarrays=sumrho_workarrays)
 
           if (nproc>1) then
               call mpiallred(econf, 1, mpi_sum, bigdft_mpi%mpi_comm)
@@ -556,7 +557,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                tmb%ham_descr%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,&
                & denspot%pot_work,tmb%ham_descr%psi,tmb%hpsi,energs,SIC,GPU,2,denspot%xc,&
                & pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,&
-               & potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
+               & potential=denspot%rhov,comgp=tmb%ham_descr%comgp,sumrho_workarrays=sumrho_workarrays)
       end if
 
 
@@ -1003,6 +1004,7 @@ contains
       allocate(precond_convol_workarrays(tmb%orbs%norbp))
       allocate(precond_workarrays(tmb%orbs%norbp))
       allocate(locham_workarrays(tmb%orbs%norbp))
+      allocate(sumrho_workarrays(tmb%orbs%norbp))
       do iorb=1,tmb%orbs%norbp
           iiorb=tmb%orbs%isorb+iorb
           ilr=tmb%orbs%inwhichlocreg(iiorb)
@@ -1023,6 +1025,7 @@ contains
           call allocate_work_arrays(tmb%lzd%llr(ilr)%geocode, tmb%lzd%llr(ilr)%hybrid_on, &
                ncplx, tmb%lzd%llr(ilr)%d, precond_workarrays(iorb))
           call initialize_work_arrays_locham(tmb%ham_descr%lzd%llr(ilr), tmb%orbs%nspinor, locham_workarrays(iorb))
+          call initialize_work_arrays_sumrho(tmb%ham_descr%lzd%llr(ilr), sumrho_workarrays(iorb))
       end do
 
 
@@ -1066,10 +1069,12 @@ contains
         call deallocate_work_arrays(tmb%lzd%llr(ilr)%geocode, tmb%lzd%llr(ilr)%hybrid_on, &
              ncplx, precond_workarrays(iorb))
         call deallocate_work_arrays_locham(tmb%lzd%llr(ilr), locham_workarrays(iorb))
+        call deallocate_work_arrays_sumrho(sumrho_workarrays(iorb))
     end do
     deallocate(precond_convol_workarrays)
     deallocate(precond_workarrays)
     deallocate(locham_workarrays)
+    deallocate(sumrho_workarrays)
 
     end subroutine deallocateLocalArrays
 

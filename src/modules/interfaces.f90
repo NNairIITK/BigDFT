@@ -543,7 +543,7 @@ module module_interfaces
        subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
             Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
             energs,SIC,GPU,PotOrKin,xc,pkernel,orbsocc,psirocc,dpbox,potential,comgp,hpsi_noconf,econf,&
-            locham_workarrays)
+            locham_workarrays, sumrho_workarrays)
          use module_base
          use module_types
          use module_xc
@@ -573,6 +573,7 @@ module module_interfaces
          real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(inout),optional :: hpsi_noconf
          real(gp),intent(out),optional :: econf
          type(workarr_locham),dimension(orbs%norbp),intent(in),optional :: locham_workarrays
+         type(workarr_sumrho),dimension(orbs%norbp),intent(in),optional :: sumrho_workarrays
        end subroutine LocalHamiltonianApplication
 
        subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
@@ -2543,7 +2544,8 @@ module module_interfaces
        end subroutine DIISorSD
  
        subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
-            ipotmethod,confdatarr,pot,psi,vpsi,pkernel,xc,alphaSIC,epot_sum,evSIC,vpsi_noconf,econf_sum)
+            ipotmethod,confdatarr,pot,psi,vpsi,pkernel,xc,alphaSIC,epot_sum,evSIC,vpsi_noconf,econf_sum, &
+            sumrho_workarrays)
          use module_base
          use module_types
          use module_xc
@@ -2561,6 +2563,7 @@ module module_interfaces
          type(coulomb_operator), intent(in) ::  pkernel !< the PSolver kernel which should be associated for the SIC schemes
          real(wp), dimension(orbs%npsidim_orbs), intent(inout),optional :: vpsi_noconf
          real(gp),intent(out),optional :: econf_sum
+         type(workarr_sumrho),dimension(orbs%norbp),intent(in),optional :: sumrho_workarrays
        end subroutine psi_to_vlocpsi
 
        subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &

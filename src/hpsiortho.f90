@@ -461,7 +461,7 @@ END SUBROUTINE FullHamiltonianApplication
 subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
      Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
      energs,SIC,GPU,PotOrKin,xc,pkernel,orbsocc,psirocc,dpbox,potential,comgp,hpsi_noconf,econf,&
-     locham_workarrays)
+     locham_workarrays, sumrho_workarrays)
    use module_base
    use module_types
    use module_xc
@@ -495,6 +495,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    real(wp), target, dimension(max(1,npsidim_orbs)), intent(inout),optional :: hpsi_noconf
    real(gp),intent(out),optional :: econf
    type(workarr_locham),dimension(orbs%norbp),intent(in),optional :: locham_workarrays
+   type(workarr_sumrho),dimension(orbs%norbp),intent(in),optional :: sumrho_workarrays
    !local variables
    character(len=*), parameter :: subname='HamiltonianApplication'
    logical :: exctX,op2p
