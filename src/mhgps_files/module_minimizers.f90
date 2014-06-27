@@ -1,3 +1,7 @@
+module module_minimizers
+
+contains
+
 !> @file
 !!  Routines for Stefan's new minimization method
 !! @author
@@ -7,25 +11,27 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 !subroutine geopt(nat,wpos,etot,fout,fnrmtol,count,count_sd,displr)
-subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
-!call_bigdft has to be run once on runObj and outs !before calling this routine
+subroutine minimizer_sbfgs(runObj_,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
+!call_bigdft has to be run once on runObj_ and outs !before calling this routine
 !sbfgs will return to caller the energies and coordinates used/obtained from the last accepted iteration step
    use module_base
    use module_types
    use module_interfaces
    use yaml_output
+   use module_global_variables
+   use module_energyandforces
    implicit none
    !parameter
    integer, intent(in)                    :: nproc
    integer, intent(in)                    :: iproc
    integer, intent(in)                    :: verbosity
-   type(run_objects), intent(inout)       :: runObj
+   type(run_objects), intent(inout)       :: runObj_
    type(DFT_global_output), intent(inout) :: outsIO
    integer, intent(inout)                 :: ncount_bigdft
    logical, intent(out)                   :: fail
    !local variables
    character(len=*), parameter :: subname='sbfgs'
-   integer :: infocode,info !< variables containing state codes
+   integer :: info !< variables containing state codes
    integer :: nhistx !< maximum history length
    integer :: nhist  !< actual history length
    integer :: ndim   !< dimension of significant subspace
@@ -35,7 +41,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    integer :: lwork
    integer :: it,i,iat,l,j,idim,jdim,ihist,icheck !<counter variables
    integer :: itswitch
-   type(DFT_global_output) :: outs
+!   type(DFT_global_output) :: outs
    logical :: debug !< set .true. for debug output to fort.100
    logical :: steep !< steepest descent flag
    real(gp) :: displr !< (non-physical) integrated path length,
@@ -138,10 +144,10 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    fff = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='fff')
    rrr = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='rrr')
    scpr = f_malloc(nhistx,id='scpr')
-   call init_global_output(outs, runObj%atoms%astruct%nat)
+!   call init_global_output(outs, runObj%atoms%astruct%nat)
 
    !copy outs_datatype
-   call copy_global_output(outsIO,outs)
+!   call copy_global_output(outsIO,outs)
 
 
 
@@ -278,13 +284,15 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
          rxyz(3,iat,nhist)=rxyz(3,iat,nhist-1)-dd(3,iat)
       enddo
    
-!      call energyandforces(nat,rxyz(1,1,nhist),fxyz(1,1,nhist),etotp)
-      call vcopy(3 * runObj%atoms%astruct%nat, rxyz(1,1,nhist), 1,runObj%atoms%astruct%rxyz(1,1), 1)
       runObj%inputs%inputPsiId=1
-      call call_bigdft(runObj,outs,nproc,iproc,infocode)
-      ncount_bigdft=ncount_bigdft+1
-      call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz(1,1,nhist), 1)
-      etotp=outs%energy
+      call energyandforces(nat,runObj%atoms%astruct%cell_dim,rxyz(1,1,nhist),fxyz(1,1,nhist),etotp)
+!      call energyandforces(nat,rxyz(1,1,nhist),fxyz(1,1,nhist),etotp)
+!      call vcopy(3 * runObj%atoms%astruct%nat, rxyz(1,1,nhist), 1,runObj%atoms%astruct%rxyz(1,1), 1)
+!      runObj%inputs%inputPsiId=1
+!      call call_bigdft(runObj,outs,nproc,iproc,infocode)
+!      ncount_bigdft=ncount_bigdft+1
+!      call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz(1,1,nhist), 1)
+!      etotp=outs%energy
       detot=etotp-etotold
 
       if(debug.and.iproc==0)write(100,'(a,i6,2(1x,e21.14),1x,5(1x,e10.3),xi0)')&
@@ -394,7 +402,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
       etot    = etotp
       etotold = etot
       !copy outs_datatype
-      call copy_global_output(outs,outsIO)
+!      call copy_global_output(outs,outsIO)
 
       if(detot .gt. maxrise)then
          if (iproc==0) write(16,'(a,i0,4(xe9.2))') &
@@ -593,5 +601,6 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    call f_free(fff)
    call f_free(rrr)
    call f_free(scpr)
-   call deallocate_global_output(outs)
-end
+!   call deallocate_global_output(outs)
+end subroutine
+end module

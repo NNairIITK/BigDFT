@@ -35,6 +35,7 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_
            trustr,wpos,etot,fout,minmode,fnrmtol,count,count_sd,displ,ec,&
            converged,atomnames,nbond,iconnect,alpha_stretch0,recompIfCurvPos,maxcurvrise,cutoffratio)
 use module_base
+use module_global_variables, only: runObj
 !imode=1 for clusters
 !imode=2 for biomolecules
         implicit none
@@ -174,51 +175,51 @@ minmode0=minmode
             flag=.true.
        endif
 
-       !START FINDING LOWEST MODE
-       if(fnrm<=tightenfac*fnrmtol .and. flag .and. curv<0.d0)then
-!       if(fnrm<=tightenfac*fnrmtol .and. flag)then
-           if(check) write(100,*)'tighten'
-           write(*,*)'tighten'
-           tol=tolf
-           recompute=it
-           flag=.false.
-       else if(it==1)then
-           tol=tolc
-       else
-           tol=tolc
-       endif
-       !if(abs(displ-displold)>0.029d0*sqrt(dble(3*nat))&
-       tooFar = abs(displ-displold)>rmsdispl*sqrt(dble(3*nat))
-       if(tooFar&
-!       &.or. it==1&
-       &.or. it==1 .or. (curv>=0.d0 .and. mod(it,recompIfCurvPos)==0)&
-       &.or.recompute==it)then
-           call opt_curv(imode,nat,alat,alpha0_rot,curvgraddiff,nit_rot,nhistx_rot,rxyzraw(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
-                        &minmode(1,1),curv,gradrot(1,1),&
-                        &tol,count,count_sd,displ2,ec,check,optCurvConv,iconnect,nbond,atomnames,2.d-4,maxcurvrise,cutoffratio)
-           minmode = minmode / dnrm2(3*nat,minmode(1,1),1)
-           if(.not.optCurvConv)then
-               write(*,*) 'WARNING: opt_curv failed'
-               converged=.false.
-stop 'opt_curv failed'
-               return
-           endif
-           overlap=ddot(3*nat,minmodeold(1,1),1,minmode(1,1),1)
-           write(*,*)'overlap',overlap
-           minmodeold=minmode
-           displold=displ
-           recompute=huge(1)
-           if(tooFar)then
-               flag = .true.
-           endif
-       endif
-       !END FINDING LOWEST MODE
+!       !START FINDING LOWEST MODE
+!       if(fnrm<=tightenfac*fnrmtol .and. flag .and. curv<0.d0)then
+!!       if(fnrm<=tightenfac*fnrmtol .and. flag)then
+!           if(check) write(100,*)'tighten'
+!           write(*,*)'tighten'
+!           tol=tolf
+!           recompute=it
+!           flag=.false.
+!       else if(it==1)then
+!           tol=tolc
+!       else
+!           tol=tolc
+!       endif
+!       !if(abs(displ-displold)>0.029d0*sqrt(dble(3*nat))&
+!       tooFar = abs(displ-displold)>rmsdispl*sqrt(dble(3*nat))
+!       if(tooFar&
+!!       &.or. it==1&
+!       &.or. it==1 .or. (curv>=0.d0 .and. mod(it,recompIfCurvPos)==0)&
+!       &.or.recompute==it)then
+!           call opt_curv(imode,nat,alat,alpha0_rot,curvgraddiff,nit_rot,nhistx_rot,rxyzraw(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
+!                        &minmode(1,1),curv,gradrot(1,1),&
+!                        &tol,count,count_sd,displ2,ec,check,optCurvConv,iconnect,nbond,atomnames,2.d-4,maxcurvrise,cutoffratio)
+!           minmode = minmode / dnrm2(3*nat,minmode(1,1),1)
+!           if(.not.optCurvConv)then
+!               write(*,*) 'WARNING: opt_curv failed'
+!               converged=.false.
+!stop 'opt_curv failed'
+!               return
+!           endif
+!           overlap=ddot(3*nat,minmodeold(1,1),1,minmode(1,1),1)
+!           write(*,*)'overlap',overlap
+!           minmodeold=minmode
+!           displold=displ
+!           recompute=huge(1)
+!           if(tooFar)then
+!               flag = .true.
+!           endif
+!       endif
+!       !END FINDING LOWEST MODE
 
        600 continue
        call modify_gradient(check,nat,ndim,rrr(1,1,1),eval(1),res(1),fxyz(1,1,nhist-1),alpha,dd(1,1))
 
        !invert gradient in minmode direction
-       dd=dd-2.d0*ddot(3*nat,dd(1,1),1,minmode(1,1),1)*minmode
+!       dd=dd-2.d0*ddot(3*nat,dd(1,1),1,minmode(1,1),1)*minmode
 
        tt=0.d0
        dt=0.d0
@@ -250,6 +251,7 @@ stop 'opt_curv failed'
            count=count+1.d0
        endif
 
+       runObj%inputs%inputPsiId=1 
        call minenergyandforces(imode,nat,alat,rxyz(1,1,nhist),rxyzraw(1,1,nhist),&
             fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),etotp&
             ,iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
@@ -272,8 +274,8 @@ stop 'opt_curv failed'
 
        etot=etotp
        etotold=etot
-       if (fnrm.le.fnrmtol .and. curv<0.d0) goto 1000
-!       if (fnrm.le.fnrmtol) goto 1000
+!       if (fnrm.le.fnrmtol .and. curv<0.d0) goto 1000
+       if (fnrm.le.fnrmtol) goto 1000
 
        !now do step in hard directions
        if(imode==2)then
@@ -707,7 +709,6 @@ real(gp), intent(in) :: maxcurvrise,cutoffratio
     !functions
     real(gp) :: ddot
 
-
     alpha_stretch=alpha_stretch0
 
     converged =.false.
@@ -859,10 +860,11 @@ real(gp), intent(in) :: maxcurvrise,cutoffratio
         endif
 
         cosangle=-st/sqrt((t1+t2+t3)*s)
+write(*,*)'cosangle',cosangle
         if (cosangle.gt..20d0) then
             alpha=alpha*1.10d0
         else
-            alpha=max(alpha*.85d0,alpha0)
+            alpha=max(alpha*.85d0,0.5d0*alpha0)
         endif
         if (check) write(100,*) 'cosangle ',cosangle,alpha
 
@@ -1136,6 +1138,7 @@ use module_energyandforces
     real(gp),allocatable :: drxyz(:,:), dfxyz(:,:)
     !functions
     real(gp), external :: dnrm2,ddot
+real(gp) :: fluct
 
     
 !    diff=1.d-3 !lennard jones
@@ -1150,6 +1153,7 @@ use module_energyandforces
 
     vec = vec / dnrm2(3*nat,vec(1,1),1)
     rxyz2 = rxyz1 + diff * vec
+
     call energyandforces(nat,alat,rxyz2(1,1),fxyz2(1,1),etot2)
 !    call energyandforces(nat, alat, rxyz2(1,1),fxyz2(1,1),etot2,'cnt_enf_forcebar_decomp')
     ec=ec+1.d0
@@ -1166,7 +1170,8 @@ use module_energyandforces
         call elim_torque_reza(nat,rxyz1(1,1),rotforce(1,1))
 
         !remove numerical noise:
-        rotforce = rotforce - ddot(3*nat,rotforce(1,1),1,vec(1,1),1)*vec
+!write(*,*)'rotnoise',ddot(3*nat,rotforce(1,1),1,vec(1,1),1)
+!        rotforce = rotforce - ddot(3*nat,rotforce(1,1),1,vec(1,1),1)*vec
     else
         stop 'unknown method for curvature computation'
     endif

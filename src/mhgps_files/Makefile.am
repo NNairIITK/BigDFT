@@ -5,6 +5,7 @@ mhgps_objects = \
                module_global_variables.f90 \
                module_init.f90 \
                module_energyandforces.f90 \
+			   module_minimizers.f90 \
                module_saddle.f90
 
 mhgps_SOURCES = $(mhgps_objects)

@@ -12,6 +12,7 @@ program mhgps
     use module_init
     use module_energyandforces
     use module_saddle
+    use module_minimizers
     implicit none
     integer :: bigdft_get_number_of_atoms,bigdft_get_number_of_orbitals
     character(len=*), parameter :: subname='mhgps'
@@ -21,12 +22,26 @@ program mhgps
     integer :: ifolder, ifile
     logical :: xyzexists,asciiexists
 
-character(len=60) :: run_id
-integer :: ierr, nconfig
+    character(len=60) :: run_id
+    integer :: ierr, nconfig
 
-real(8) :: count,count_sd,displ,ec
-logical :: converged
-real(8), allocatable :: rcov(:)
+    real(gp) :: count,count_sd,displ,ec
+    logical :: converged
+    real(gp), allocatable :: rcov(:)
+
+integer :: ncount_bigdft
+logical :: fail
+
+real(gp) :: curv
+real(gp), allocatable, dimension(:,:) :: gradrot
+
+!simple atomic datastructre
+integer :: nat
+real(gp),allocatable :: rxyz(:,:),fxyz(:,:),rotforce(:,:)
+real(gp) :: energy
+integer :: i
+integer :: idum=0
+real(kind=4) :: tt,builtin_rand
 
     ifolder=1
     ifile=1
@@ -69,19 +84,29 @@ real(8), allocatable :: rcov(:)
         call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
         call init_global_output(outs, atoms%astruct%nat)
         if(iproc==0) call print_logo_mhgps()
-    !        TODO
     else
         call yaml_warning('Following method for evaluation of energies and forces is unknown: '//trim(adjustl(efmethod)))
         stop
     endif
 
-    !allocate more
-    allocate(iconnect(2,nbond))
-    allocate(minmode(3,atoms%astruct%nat))
-    allocate(rcov(atoms%astruct%nat))
+    !allocate more arrays
+    minmode  = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='minmode')
+    rxyz     = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='rxyz')
+    fxyz     = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='rxyz')
+    rcov     = f_malloc((/ 1.to.atoms%astruct%nat/),id='rcov')
+    iconnect = f_malloc((/ 1.to.2, 1.to.1000/),id='iconnect')
+allocate(gradrot(3,atoms%astruct%nat))
+allocate(rotforce(3,atoms%astruct%nat))
+
+    !if in biomode, determine bonds betweens atoms once and for all (it is
+    !assuemed that all conifugrations over which will be iterated have the same
+    !bonds)
+    if(saddle_biomode)then
+        call findbonds(atoms%astruct%nat,rcov,atoms%astruct%rxyz,nbond,iconnect)
+    endif
+
 
     call give_rcov(iproc,atoms,atoms%astruct%nat,rcov)
-
 
 
     do ifolder = 1,999
@@ -91,7 +116,6 @@ real(8), allocatable :: rcov(:)
             inquire(file=folder//'/'//filename//'.xyz',exist=xyzexists)
             inquire(file=folder//'/'//filename//'.ascii',exist=asciiexists)
             if(.not.(xyzexists.or.asciiexists))exit
-write(*,*)folder//'/'//filename
             call deallocate_atomic_structure(atoms%astruct)
             call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
 !            if(ifolder/=1.or.ifile/=1)then
@@ -99,16 +123,38 @@ write(*,*)folder//'/'//filename
 !            else
 !                runObj%inputs%inputPsiId=0
 !            endif
-!            call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,atoms%astruct%rxyz,outs%fxyz,outs%energy) 
+rxyz=atoms%astruct%rxyz
+fxyz=outs%fxyz
+            call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,energy)
+write(*,*)'BASTIAN',nat
+write(*,*)'BASTIAN',rxyz
+write(*,*)'BASTIAN',fxyz
+ 
 !            if(iproc==0)write(*,*)'Bastian',outs%energy
-           count=0.0_gp;count_sd=0.0_gp;displ=0.0_gp;ec=0.0_gp
-           call random_seed
-           call random_number(minmode)
+!           count=0.0_gp;count_sd=0.0_gp;displ=0.0_gp;ec=0.0_gp
+!           call random_seed
+!           call random_number(minmode)
+do i=1,atoms%astruct%nat
+minmode(1,i)=real(builtin_rand(idum),gp)
+minmode(2,i)=real(builtin_rand(idum),gp)
+minmode(3,i)=real(builtin_rand(idum),gp)
+enddo
+
            minmode=2.d0*(minmode-0.5d0)
-           call findsad(saddle_imode,atoms%astruct%nat,atoms%astruct%cell_dim,rcov,saddle_alpha0_trans,saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_trans,&
-           saddle_nit_rot,saddle_nhistx_trans,saddle_nhistx_rot,saddle_tolc,saddle_tolf,saddle_tightenfac,saddle_rmsdispl0,&
-           saddle_trustr,atoms%astruct%rxyz,outs%energy,outs%fxyz,minmode,saddle_fnrmtol,count,count_sd,displ,ec,&
-           converged,atoms%astruct%atomnames,nbond,iconnect,saddle_alpha_stretch0,saddle_recompIfCurvPos,saddle_maxcurvrise,saddle_cutoffratio)
+!           runObj%inputs%inputPsiId=1
+!!           call findsad(saddle_imode,atoms%astruct%nat,atoms%astruct%cell_dim,rcov,saddle_alpha0_trans,saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_trans,&
+!!           saddle_nit_rot,saddle_nhistx_trans,saddle_nhistx_rot,saddle_tolc,saddle_tolf,saddle_tightenfac,saddle_rmsdispl0,&
+!!           saddle_trustr,atoms%astruct%rxyz,outs%energy,outs%fxyz,minmode,saddle_fnrmtol,count,count_sd,displ,ec,&
+!!           converged,atoms%astruct%atomnames,nbond,iconnect,saddle_alpha_stretch0,saddle_recompIfCurvPos,saddle_maxcurvrise,saddle_cutoffratio)
+!call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+!call minimizer_sbfgs(runObj,outs,nproc,iproc,1,ncount_bigdft,fail)
+!rxyz=atoms%astruct%rxyz
+!fxyz=outs%fxyz
+!call curvgrad(atoms%astruct%nat,atoms%astruct%cell_dim,1.d-3,rxyz,fxyz,minmode,curv,rotforce,1,ec)
+!rxyz=atoms%astruct%rxyz
+!fxyz=outs%fxyz
+call opt_curv(saddle_imode,atoms%astruct%nat,atoms%astruct%cell_dim,saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_rot,saddle_nhistx_rot,rxyz,fxyz,minmode,curv,gradrot,saddle_tolf&
+            &,count,count_sd,displ,ec,.false.,converged,iconnect,nbond,atoms%astruct%atomnames,saddle_alpha_stretch0,saddle_maxcurvrise,saddle_cutoffratio)
         enddo
     enddo
 
@@ -118,7 +164,7 @@ write(*,*)folder//'/'//filename
 
 
 
-
+    !finalize (dealloctaion etc...)
     if(efmethod=='BIGDFT')then
         call free_restart_objects(rst,subname)
         call deallocate_atoms_data(atoms)
@@ -130,6 +176,12 @@ write(*,*)folder//'/'//filename
         call deallocate_atoms_data(atoms)
         call deallocate_global_output(outs)
     endif
-    call f_lib_finalize()
 
+    call f_free(minmode)
+    call f_free(rxyz)
+    call f_free(fxyz)
+    call f_free(rcov)
+    call f_free(iconnect)
+
+    call f_lib_finalize()
 end program
