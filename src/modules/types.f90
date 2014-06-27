@@ -1060,11 +1060,6 @@ module module_types
     real(gp),dimension(:),pointer :: rpaw
   end type paw_objects
 
-  type,public :: workarrays_local_hamiltonian
-      type(workarr_locham),pointer :: locham_workarrays
-      type(workarr_sumrho),pointer :: sumrho_workarrays
-  end type workarrays_local_hamiltonian
-
   interface input_set
      module procedure input_set_char, input_set_int, input_set_dbl, input_set_bool, &
           & input_set_int_array, input_set_dbl_array, input_set_bool_array, &

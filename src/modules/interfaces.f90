@@ -543,7 +543,7 @@ module module_interfaces
        subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
             Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
             energs,SIC,GPU,PotOrKin,xc,pkernel,orbsocc,psirocc,dpbox,potential,comgp,hpsi_noconf,econf,&
-            local_hamiltonian_workarrays)
+            locham_workarrays, sumrho_workarrays)
          use module_base
          use module_types
          use module_xc
@@ -572,7 +572,8 @@ module module_interfaces
          type(p2pComms),intent(inout), optional:: comgp
          real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(inout),optional :: hpsi_noconf
          real(gp),intent(out),optional :: econf
-         type(workarrays_local_hamiltonian),dimension(orbs%norbp),intent(in),optional :: sumrho_workarrays
+         type(workarr_locham),dimension(orbs%norbp),intent(in),optional :: locham_workarrays
+         type(workarr_sumrho),dimension(orbs%norbp),intent(in),optional :: sumrho_workarrays
        end subroutine LocalHamiltonianApplication
 
        subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
@@ -4080,6 +4081,23 @@ module module_interfaces
           real(kind=8),dimension(npsidim_orbs),intent(in) :: psidiff, hpsi_noprecond
           real(kind=8),intent(out) :: delta_energy
         end subroutine estimate_energy_change
+
+        !subroutine initialize_work_arrays_locham(nlr,lr,nspinor,allocate_arrays,w)
+        !  use module_base
+        !  use module_types
+        !  implicit none
+        !  integer, intent(in) :: nlr, nspinor
+        !  type(locreg_descriptors), dimension(nlr), intent(in) :: lr
+        !  logical,intent(in) :: allocate_arrays
+        !  type(workarr_locham), intent(out) :: w
+        !end subroutine initialize_work_arrays_locham
+
+        !subroutine deallocate_work_arrays_locham(w)
+        !  use module_base
+        !  use module_types
+        !  implicit none
+        !  type(workarr_locham), intent(inout) :: w
+        !end subroutine deallocate_work_arrays_locham
   
   end interface
 END MODULE module_interfaces

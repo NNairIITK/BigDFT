@@ -91,7 +91,7 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
     ! Wavefunction in real space
     psir = f_malloc0((/ Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i, orbs%nspinor /),id='psir')
 
-    call initialize_work_arrays_locham(Lzd%Llr(ilr),orbs%nspinor,wrk_lh)  
+    call initialize_work_arrays_locham(1,Lzd%Llr(ilr),orbs%nspinor,.true.,wrk_lh)  
   
     ! wavefunction after application of the self-interaction potential
     if (ipotmethod == 2 .or. ipotmethod == 3) then
@@ -190,7 +190,7 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
     if (ipotmethod == 2 .or. ipotmethod ==3) then
        call f_free(vsicpsir)
     end if
-    call deallocate_work_arrays_locham(Lzd%Llr(ilr),wrk_lh)
+    call deallocate_work_arrays_locham(wrk_lh)
    
   end do loop_lr
 !!$end if
@@ -426,7 +426,7 @@ subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum, &
   real(wp), dimension(npsidim_orbs), intent(in) :: psi
   real(gp), intent(out) :: ekin_sum
   real(wp), dimension(npsidim_orbs), intent(inout) :: hpsi
-  type(workarr_locham),dimension(orbs%norbp),intent(in),optional :: locham_workarrays
+  type(workarr_locham),dimension(orbs%norbp),intent(in),target,optional :: locham_workarrays
 
   !local variables
   character(len=*), parameter :: subname='psi_to_kinpsi'
@@ -441,6 +441,8 @@ subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum, &
 
   ekin=0.d0
   ekin_sum=0.0_gp
+
+  call initialize_work_arrays_locham(lzd%nlr,lzd%llr,orbs%nspinor,.true.,wrk_lh)  
 
   !loop on the localisation regions (so to create one work array set per lr)
   loop_lr: do ilr=1,Lzd%nlr
@@ -460,11 +462,11 @@ subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum, &
 
     !initialise the work arrays
     !nullify(wrk_lh)
-    if (present_locham_workarrays) then
-    !!    wrk_lh => locham_workarrays(iiorb)
-    else
-        call initialize_work_arrays_locham(Lzd%Llr(ilr),orbs%nspinor,wrk_lh)  
-    end if
+!!##    if (present_locham_workarrays) then
+!!##        wrk_lh => locham_workarrays(iiorb)
+!!##    else
+        call initialize_work_arrays_locham(1,Lzd%Llr(ilr),orbs%nspinor,.false.,wrk_lh)  
+!!##    end if
    
     ispsi=1
     loop_orbs: do iorb=1,orbs%norbp
@@ -483,14 +485,16 @@ subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum, &
 
       !call isf_to_daub_kinetic(lzd%hgrids(1),lzd%hgrids(2),lzd%hgrids(3),kx,ky,kz,orbs%nspinor,Lzd%Llr(ilr),wrk_lh,&
       !      psir(1,1),hpsi(ispsi),ekin)
-      if (.not.present_locham_workarrays) then
+!!##      if (.not.present_locham_workarrays) then
           call psi_to_tpsi(lzd%hgrids,orbs%kpts(1,orbs%iokpt(iorb)),orbs%nspinor,&
                Lzd%Llr(ilr),psi(ispsi),wrk_lh,hpsi(ispsi),ekin)
-      else
-          call zero_work_arrays_locham(Lzd%Llr(ilr),orbs%nspinor,locham_workarrays(iiorb))
-          call psi_to_tpsi(lzd%hgrids,orbs%kpts(1,orbs%iokpt(iorb)),orbs%nspinor,&
-               Lzd%Llr(ilr),psi(ispsi),locham_workarrays(iiorb),hpsi(ispsi),ekin)
-      end if
+!!##      else
+!!##          call zero_work_arrays_locham(Lzd%Llr(ilr),orbs%nspinor,locham_workarrays(iiorb))
+!!##          !!call psi_to_tpsi(lzd%hgrids,orbs%kpts(1,orbs%iokpt(iorb)),orbs%nspinor,&
+!!##          !!     Lzd%Llr(ilr),psi(ispsi),locham_workarrays(iiorb),hpsi(ispsi),ekin)
+!!##          call psi_to_tpsi(lzd%hgrids,orbs%kpts(1,orbs%iokpt(iorb)),orbs%nspinor,&
+!!##               Lzd%Llr(ilr),psi(ispsi),wrk_lh,hpsi(ispsi),ekin)
+!!##      end if
    
       ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
 
@@ -501,13 +505,14 @@ subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum, &
 
     call f_free(psir)
 
-    if (.not.present_locham_workarrays) then
-        call deallocate_work_arrays_locham(Lzd%Llr(ilr),wrk_lh)
-    end if
+!!##    if (.not.present_locham_workarrays) then
+!!##        call deallocate_work_arrays_locham(Lzd%Llr(ilr),wrk_lh)
+!!##    end if
 
    
   end do loop_lr
 
+  call deallocate_work_arrays_locham(wrk_lh)
 
 
 end subroutine psi_to_kinpsi

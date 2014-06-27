@@ -425,7 +425,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   type(matrices) :: ovrlp_old
   type(workarrays_quartic_convolutions),dimension(:),allocatable :: precond_convol_workarrays
   type(workarr_precond),dimension(:),allocatable :: precond_workarrays
-  type(workarrays_local_hamiltonian),dimension(:),allocatable :: local_hamiltonian_workarrays
+  type(workarr_locham),dimension(:),allocatable :: locham_workarrays
+  type(workarr_sumrho),dimension(:),allocatable :: sumrho_workarrays
 
   call f_routine(id='getLocalizedBasis')
 
@@ -1002,7 +1003,8 @@ contains
 
       allocate(precond_convol_workarrays(tmb%orbs%norbp))
       allocate(precond_workarrays(tmb%orbs%norbp))
-      allocate(local_hamiltonian_workarrays(tmb%orbs%norbp))
+      allocate(locham_workarrays(tmb%orbs%norbp))
+      allocate(sumrho_workarrays(tmb%orbs%norbp))
       do iorb=1,tmb%orbs%norbp
           iiorb=tmb%orbs%isorb+iorb
           ilr=tmb%orbs%inwhichlocreg(iiorb)
@@ -1022,10 +1024,8 @@ contains
           end if
           call allocate_work_arrays(tmb%lzd%llr(ilr)%geocode, tmb%lzd%llr(ilr)%hybrid_on, &
                ncplx, tmb%lzd%llr(ilr)%d, precond_workarrays(iorb))
-          call initialize_work_arrays_locham(tmb%ham_descr%lzd%llr(ilr), tmb%orbs%nspinor, &
-               local_hamiltonian_workarrays(iorb)%locham_workarrays)
-          call initialize_work_arrays_sumrho(tmb%ham_descr%lzd%llr(ilr), &
-               local_hamiltonian_workarrays(iorb)%sumrho_workarrays)
+          !!call initialize_work_arrays_locham(tmb%ham_descr%lzd%llr(ilr), tmb%orbs%nspinor, locham_workarrays(iorb))
+          call initialize_work_arrays_sumrho(tmb%ham_descr%lzd%llr(ilr), sumrho_workarrays(iorb))
       end do
 
 
@@ -1068,9 +1068,8 @@ contains
         end if
         call deallocate_work_arrays(tmb%lzd%llr(ilr)%geocode, tmb%lzd%llr(ilr)%hybrid_on, &
              ncplx, precond_workarrays(iorb))
-        call deallocate_work_arrays_locham(tmb%lzd%llr(ilr), &
-        local_hamiltonian_workarrays(iorb)%locham_workarrays)
-        call deallocate_work_arrays_sumrho(local_hamiltonian_workarrays(iorb)%sumrho_workarrays)
+        !!call deallocate_work_arrays_locham(tmb%lzd%llr(ilr), locham_workarrays(iorb))
+        call deallocate_work_arrays_sumrho(sumrho_workarrays(iorb))
     end do
     deallocate(precond_convol_workarrays)
     deallocate(precond_workarrays)
