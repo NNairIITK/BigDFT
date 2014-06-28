@@ -131,6 +131,7 @@ module module_types
   !> How to update the density kernel during teh support function optimization
   integer, parameter :: UPDATE_BY_PURIFICATION = 0
   integer, parameter :: UPDATE_BY_FOE = 1
+  integer, parameter :: UPDATE_BY_RENORMALIZATION = 2
   
   !> Type used for the orthogonalisation parameters
   type, public :: orthon_data
@@ -213,6 +214,8 @@ module module_types
     logical :: calc_dipole, pulay_correction, mixing_after_inputguess, iterative_orthogonalization, new_pulay_correction
     logical :: fragment_calculation, calc_transfer_integrals, constrained_dft, curvefit_dmin, diag_end, diag_start
     integer :: extra_states, order_taylor
+    !> linear scaling: maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
+    real(kind=8) :: max_inversion_error
   end type linearInputParameters
 
   !> Contains all parameters for the calculation of the fragments
@@ -2881,6 +2884,9 @@ end subroutine find_category
           in%lin%diag_end = val
        case (EXTRA_STATES)
           in%lin%extra_states = val
+       case (MAX_INVERSION_ERROR)
+           ! maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
+           in%lin%max_inversion_error = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select

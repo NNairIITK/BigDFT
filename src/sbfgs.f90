@@ -283,7 +283,8 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
          write(fn4,'(i4.4)') ncount_bigdft
          write(comment,'(a,1pe10.3)')'SBFGS:fnrm= ',fnrm
          call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-              outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
+              outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
+              runObj%atoms,trim(comment),forces=outs%fxyz)
       endif
 
       if (fmax < 3.d-1) call updatefluctsum(outs%fnoise,fluct)

@@ -807,8 +807,12 @@
      COMMENT: maximal number of unsuccessful eigenvalue bounds shrinkings
      default: 4
    method_updatekernel:
-     COMMENT: linear scaling update density kernel during the sup. func. optimization (0 purification, 1 FOE)
+     COMMENT: linear scaling update density kernel during the sup. func. optimization (0 purification, 1 FOE, 2 renormalization)
      default: 0
+     EXCLUSIVE:
+       0: purification
+       1: FOE
+       2: renormalization
    purification_quickreturn:
      COMMENT: linear scaling quick return in purification
      default: No
@@ -879,6 +883,15 @@
                      * n>0 => Taylor series of order n
        RANGE: [-100,100]
        default: 0
+     max_inversion_error:
+       COMMENT: linear scaling maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
+       DESCRIPTION: |
+                    possible value: 1 positive real number
+                    Maximal error of the Taylor approximations which are used to  calculate the inverse of the overlap matrix.
+                    If this error is larger than the specified value, the order of the Taylor approximation is increased.
+                    The default value is set very large, such such in this case no automatic adjustment is performed.
+       default: 1.d0
+       RANGE: [1.e-20,1.0]
      output_wf:
        COMMENT: output basis functions; 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
        DESCRIPTION: |
@@ -926,7 +939,7 @@
        COMMENT: maximal number of iterations in the optimization of the support functions
        DESCRIPTION: |
                     possible value: 2 non-negative integers
-                    Maximla number of iterations in the optimization of the support functions.
+                    Maximal number of iterations in the optimization of the support functions.
                     The first number is used for the low accuracy part, the second one for the high accuracy part.
                     If the hybrid mode is used, only the first value is taken into account.
        RANGE: [0,100]
@@ -1015,20 +1028,26 @@
  #Parameters for the calculation of the kernel (linear scaling version)
  lin_kernel:
      nstep:
-       COMMENT: don't know what this variable stands for...
-       default: [1,1]
-     nit:
-       COMMENT: number of iterations in the optimization of the density kernel
+       COMMENT: number of steps taken when updating the coefficients via direct minimization for each iteration of the density kernel loop
        DESCRIPTION: |
                     possible value: 2 non-negative integers
-                    Indicates the number of iterations in the optimization of the density kernel.
+                    Indicates the number of steps taken when updating the coefficients via direct minimization for each iteration of the density kernel loop.
+                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
+                    When the hybrid mode is used, only the first entry is taken into account.
+       RANGE: [0,100]
+       default: [1,1]
+     nit:
+       COMMENT: number of iterations in the (self-consistent) optimization of the density kernel
+       DESCRIPTION: |
+                    possible value: 2 non-negative integers
+                    Indicates the number of iterations in the (self-consistent) optimization of the density kernel.
                     The first entry is used for the low accuracy part, the second one for the high accuracy part.
                     When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [0,100]
        default: [5,5]
 # check whether there are different DIIS histories...
      idsx_coeff:
-       COMMENT: DIIS history for directmin?
+       COMMENT: DIIS history for direct mininimization
        default: [0,0]
      idsx:
        COMMENT: mixing method; 0 -> linear mixing, >=1 -> Pulay mixing
@@ -1052,7 +1071,12 @@
        RANGE: [0.0,1.0]
        default: [0.5,0.5]
      gnrm_cv_coeff:
-       COMMENT: convergence criterion for directmin (low/high)?
+       COMMENT: convergence criterion on the gradient for direct minimization
+       DESCRIPTION: |
+                    possible value: 2 non-negative real numbers
+                    Convergence criterion on the gradient for direct minimization.
+                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
+                    When the hybrid mode is used, only the first entry is taken into account.
        default: [1.e-5,1.e-5]
      rpnrm_cv:
        COMMENT: convergence criterion (change in density/potential) for the kernel optimization
@@ -1079,7 +1103,7 @@
      mixing_method:
        COMMENT: quantity to be mixed
        DESCRIPTION: |
-                    possible value: string
+                    type: string scalar
                     Indicates which quantity should be used for the mixing procedure:
                      DEN => density mixing
                      POT => potential mixing
@@ -1088,10 +1112,10 @@
          POT: potential mixing
        default: DEN
      alpha_sd_coeff:
-       COMMENT: step size for direct minimization?
+       COMMENT: initial step size for SD for direct minimization
        default: 0.2
      alpha_fit_coeff:
-       COMMENT: don't know exactly what this means
+       COMMENT: update the SD step size by fitting a quadratic polynomial to the energy along the direction of the gradient during direct mininimization.     
        default: No
      eval_range_foe:
        COMMENT: lower and upper bound of the eigenvalue spectrum, will be adjusted automatically if chosen unproperly
@@ -1177,16 +1201,18 @@ linear_accurate:
   perf:
     ef_interpol_chargediff: 1.0
     experimental_mode: Yes
-    method_updatekernel: 1
+    method_updatekernel: 2
     purification_quickreturn: Yes
     correction_co_contra: Yes
   lin_general:
     hybrid: Yes
     taylor_order: 10
+    max_inversion_error: 1.0e-8
   lin_basis:
     nit: [10,10]
-    gnrm_cv: [5.e-4,5.e-4]
-    gnrm_dyn: 5.e-5
+    gnrm_cv: [1.e-3,1.e-3]
+    gnrm_dyn: 1.e-4
+    deltae_cv: 5.e-5
     min_gnrm_for_dynamic: 2.e-3
     alpha_diis: 0.5
     alpha_sd: 0.5
@@ -1194,8 +1220,8 @@ linear_accurate:
     fix_basis: 1.e-12
     correction_orthoconstraint: 0
   lin_kernel:
-    nit: [10,10]
-    idsx: [6,0]
+    nit: [3,3]
+    idsx: [6,6]
     alphamix: [0.2,0.2]
     rpnrm_cv: [1.e-12,1.e-12]
     linear_method: FOE
@@ -1208,7 +1234,7 @@ linear_moderate:
   perf:
     ef_interpol_chargediff: 1.0
     experimental_mode: Yes
-    method_updatekernel: 1
+    method_updatekernel: 2
     purification_quickreturn: Yes
     correction_co_contra: Yes
   lin_general:
@@ -1216,8 +1242,9 @@ linear_moderate:
     taylor_order: 10
   lin_basis:
     nit: [10,10]
-    gnrm_cv: [1.e-3,1.e-3]
-    gnrm_dyn: 1.e-4
+    gnrm_cv: [2.e-3,2.e-3]
+    gnrm_dyn: 2.e-4
+    deltae_cv: 5.e-5
     min_gnrm_for_dynamic: 4.e-3
     alpha_diis: 0.5
     alpha_sd: 0.5
@@ -1225,8 +1252,8 @@ linear_moderate:
     fix_basis: 1.e-11
     correction_orthoconstraint: 0
   lin_kernel:
-    nit: [10,10]
-    idsx: [6,0]
+    nit: [3,3]
+    idsx: [6,6]
     alphamix: [0.2,0.2]
     rpnrm_cv: [1.e-11,1.e-11]
     linear_method: FOE
@@ -1239,7 +1266,7 @@ linear_fast:
   perf:
     ef_interpol_chargediff: 1.0
     experimental_mode: Yes
-    method_updatekernel: 1
+    method_updatekernel: 2
     purification_quickreturn: Yes
     correction_co_contra: Yes
   lin_general:
@@ -1247,8 +1274,9 @@ linear_fast:
     taylor_order: 10
   lin_basis:
     nit: [10,10]
-    gnrm_cv: [2.e-3,2.e-3]
-    gnrm_dyn: 2.e-4
+    gnrm_cv: [4.e-3,4.e-3]
+    gnrm_dyn: 4.e-4
+    deltae_cv: 5.e-5
     min_gnrm_for_dynamic: 8.e-3
     alpha_diis: 0.5
     alpha_sd: 0.5
