@@ -100,13 +100,14 @@ contains
     end subroutine print_logo_mhgps
 
 
-subroutine give_rcov(iproc,atoms,nat,rcov)
+subroutine give_rcov(atoms,nat,rcov)
   !    use module_base
   use module_types
   use yaml_output
+  use module_global_variables, only: iproc
   implicit none
   !Arguments
-  integer, intent(in) :: iproc,nat
+  integer, intent(in) :: nat
   type(atoms_data), intent(in) :: atoms
   real(kind=8), intent(out) :: rcov(nat)
   !Local variables

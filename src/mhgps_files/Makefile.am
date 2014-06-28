@@ -28,6 +28,7 @@ mhgps.o : $(mhgps_objects:.f90=.o) ../modules/BigDFT_API.o
 module_energyandforces.o : module_global_variables.o module_init.o ../modules/BigDFT_API.o
 module_init.o : module_global_variables.o ../modules/BigDFT_API.o 
 module_saddle.o : module_global_variables.o module_energyandforces.o ../modules/BigDFT_API.o
+module_minimizers.o : module_global_variables.o module_energyandforces.o ../modules/BigDFT_API.o 
 
 ##
 ##ions_mod.o matrix_mod.o options_mod.o: kind_mod.o

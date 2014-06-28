@@ -16,7 +16,6 @@ program mhgps
     implicit none
     integer :: bigdft_get_number_of_atoms,bigdft_get_number_of_orbitals
     character(len=*), parameter :: subname='mhgps'
-    integer :: iproc=0,nproc,igroup,ngroups
     character(len=8) :: folder
     character(len=6) :: filename
     integer :: ifolder, ifile
@@ -95,8 +94,8 @@ real(kind=4) :: tt,builtin_rand
     fxyz     = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='rxyz')
     rcov     = f_malloc((/ 1.to.atoms%astruct%nat/),id='rcov')
     iconnect = f_malloc((/ 1.to.2, 1.to.1000/),id='iconnect')
-allocate(gradrot(3,atoms%astruct%nat))
-allocate(rotforce(3,atoms%astruct%nat))
+    gradrot  = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='gradrot')
+    rotforce = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='rotforce')
 
     !if in biomode, determine bonds betweens atoms once and for all (it is
     !assuemed that all conifugrations over which will be iterated have the same
@@ -106,8 +105,16 @@ allocate(rotforce(3,atoms%astruct%nat))
     endif
 
 
-    call give_rcov(iproc,atoms,atoms%astruct%nat,rcov)
+    call give_rcov(atoms,atoms%astruct%nat,rcov)
 
+!    if (iproc == 0) &
+!        call yaml_set_stream(unit=usaddle,filename=trim(saddle_filename),tabbing=0,record_length=100,setdefault=.false.,istat=ierr)
+!    if(ierr==0)then
+!        call yaml_warning('Error while opening saddle.mon file. STOP.')
+!        stop
+!    endif
+!    if (iproc ==0 ) call yaml_comment('Saddle monitoring file opened, name:'//trim(filename)//', timestamp: '//trim(yaml_date_and_time_toa()),&
+!       hfill='-',unit=usaddle)
 
     do ifolder = 1,999
         do ifile = 1,999
@@ -118,34 +125,19 @@ allocate(rotforce(3,atoms%astruct%nat))
             if(.not.(xyzexists.or.asciiexists))exit
             call deallocate_atomic_structure(atoms%astruct)
             call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
-!            if(ifolder/=1.or.ifile/=1)then
-!                runObj%inputs%inputPsiId=1           
-!            else
-!                runObj%inputs%inputPsiId=0
-!            endif
-rxyz=atoms%astruct%rxyz
-fxyz=outs%fxyz
-            call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,energy)
-write(*,*)'BASTIAN',nat
-write(*,*)'BASTIAN',rxyz
-write(*,*)'BASTIAN',fxyz
- 
-!            if(iproc==0)write(*,*)'Bastian',outs%energy
-!           count=0.0_gp;count_sd=0.0_gp;displ=0.0_gp;ec=0.0_gp
-!           call random_seed
-!           call random_number(minmode)
-do i=1,atoms%astruct%nat
-minmode(1,i)=real(builtin_rand(idum),gp)
-minmode(2,i)=real(builtin_rand(idum),gp)
-minmode(3,i)=real(builtin_rand(idum),gp)
-enddo
+            call vcopy(3 * atoms%astruct%nat,atoms%astruct%rxyz(1,1),1,rxyz(1,1), 1)
+            call vcopy(3 * atoms%astruct%nat,outs%fxyz(1,1),1,fxyz(1,1), 1)
+!            call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,energy)
+            do i=1,atoms%astruct%nat
+                minmode(1,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+                minmode(2,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+                minmode(3,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+            enddo
 
-           minmode=2.d0*(minmode-0.5d0)
-!           runObj%inputs%inputPsiId=1
-!!           call findsad(saddle_imode,atoms%astruct%nat,atoms%astruct%cell_dim,rcov,saddle_alpha0_trans,saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_trans,&
-!!           saddle_nit_rot,saddle_nhistx_trans,saddle_nhistx_rot,saddle_tolc,saddle_tolf,saddle_tightenfac,saddle_rmsdispl0,&
-!!           saddle_trustr,atoms%astruct%rxyz,outs%energy,outs%fxyz,minmode,saddle_fnrmtol,count,count_sd,displ,ec,&
-!!           converged,atoms%astruct%atomnames,nbond,iconnect,saddle_alpha_stretch0,saddle_recompIfCurvPos,saddle_maxcurvrise,saddle_cutoffratio)
+           call findsad(saddle_imode,atoms%astruct%nat,atoms%astruct%cell_dim,rcov,saddle_alpha0_trans,saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_trans,&
+           saddle_nit_rot,saddle_nhistx_trans,saddle_nhistx_rot,saddle_tolc,saddle_tolf,saddle_tightenfac,saddle_rmsdispl0,&
+           saddle_trustr,rxyz,energy,fxyz,minmode,saddle_fnrmtol,count,count_sd,displ,ec,&
+           converged,atoms%astruct%atomnames,nbond,iconnect,saddle_alpha_stretch0,saddle_recompIfCurvPos,saddle_maxcurvrise,saddle_cutoffratio)
 !call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
 !call minimizer_sbfgs(runObj,outs,nproc,iproc,1,ncount_bigdft,fail)
 !rxyz=atoms%astruct%rxyz
@@ -153,14 +145,41 @@ enddo
 !call curvgrad(atoms%astruct%nat,atoms%astruct%cell_dim,1.d-3,rxyz,fxyz,minmode,curv,rotforce,1,ec)
 !rxyz=atoms%astruct%rxyz
 !fxyz=outs%fxyz
-call opt_curv(saddle_imode,atoms%astruct%nat,atoms%astruct%cell_dim,saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_rot,saddle_nhistx_rot,rxyz,fxyz,minmode,curv,gradrot,saddle_tolf&
-            &,count,count_sd,displ,ec,.false.,converged,iconnect,nbond,atoms%astruct%atomnames,saddle_alpha_stretch0,saddle_maxcurvrise,saddle_cutoffratio)
         enddo
     enddo
 
+!    !compute minmode only:
+!    do ifolder = 1,999
+!        do ifile = 1,999
+!            write(folder,'(a,i3.3)')'input',ifolder
+!            write(filename,'(a,i3.3)')'min',ifile
+!            inquire(file=folder//'/'//filename//'.xyz',exist=xyzexists)
+!            inquire(file=folder//'/'//filename//'.ascii',exist=asciiexists)
+!            if(.not.(xyzexists.or.asciiexists))exit
+!            call deallocate_atomic_structure(atoms%astruct)
+!            call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
+!            call vcopy(3 * atoms%astruct%nat,atoms%astruct%rxyz(1,1),1,rxyz(1,1), 1)
+!            call vcopy(3 * atoms%astruct%nat,outs%fxyz(1,1),1,fxyz(1,1), 1)
+!            call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,energy)
+! 
+!            do i=1,atoms%astruct%nat
+!                minmode(1,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+!                minmode(2,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+!                minmode(3,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+!            enddo
+!
+!            call opt_curv(saddle_imode,atoms%astruct%nat,atoms%astruct%cell_dim,&
+!                 saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_rot,saddle_nhistx_rot,&
+!                 rxyz,fxyz,minmode,curv,gradrot,saddle_tolf,count,count_sd,displ,ec,&
+!                 .false.,converged,iconnect,nbond,atoms%astruct%atomnames,&
+!                 saddle_alpha_stretch0,saddle_maxcurvrise,saddle_cutoffratio)
+!        enddo
+!    enddo
 
 
 
+
+!    if (iproc==0) call yaml_close_stream(unit=usaddle)
 
 
 
@@ -180,6 +199,8 @@ call opt_curv(saddle_imode,atoms%astruct%nat,atoms%astruct%cell_dim,saddle_alpha
     call f_free(minmode)
     call f_free(rxyz)
     call f_free(fxyz)
+    call f_free(gradrot)
+    call f_free(rotforce)
     call f_free(rcov)
     call f_free(iconnect)
 

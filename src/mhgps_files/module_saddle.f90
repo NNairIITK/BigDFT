@@ -35,7 +35,8 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_
            trustr,wpos,etot,fout,minmode,fnrmtol,count,count_sd,displ,ec,&
            converged,atomnames,nbond,iconnect,alpha_stretch0,recompIfCurvPos,maxcurvrise,cutoffratio)
 use module_base
-use module_global_variables, only: runObj
+use module_global_variables, only: inputPsiId, iproc
+use yaml_output
 !imode=1 for clusters
 !imode=2 for biomolecules
         implicit none
@@ -50,13 +51,13 @@ use module_global_variables, only: runObj
         real(gp), allocatable, dimension(:,:,:) :: rxyz,fxyz,ff,rr,rrr,fff,fstretch,fxyzraw,rxyzraw
         real(gp), allocatable, dimension(:,:) :: aa,dd,dds,delta
         real(gp), allocatable, dimension(:) ::eval,work,res,scpr,wold
-        real(gp) :: t1,t2,t3
-        real(gp) :: t1raw,t2raw,t3raw
+!        real(gp) :: t1,t2,t3
+!        real(gp) :: t1raw,t2raw,t3raw
         logical check,steep
         character(2) atomname
         real(gp) :: displ
         real(gp) :: maxd,scl
-        real(gp) :: alpha_stretch, fnrm,etotp,etotold,ec,alpha,tt,dt,count_sd,detot,s,fnrmtol,cosangle,etot,st
+        real(gp) :: alpha_stretch, fnrm,etotp,etotold,ec,alpha,tt,dt,count_sd,detot,s,fnrmtol,cosangle,etot,st,fmax
         integer :: lwork, iat , l, itswitch, nhist, ndim, it, ihist, i
 real(gp),optional :: alpha_stretch0
 real(gp) :: alpha0_trans,alpha0_rot,curvgraddiff,tolc,tolf,tightenfac,rmsdispl0,trustr
@@ -78,6 +79,10 @@ real(gp) :: minmode0(3,nat)
 character(len=100) :: filename
     !functions
     real(gp) :: ddot,dnrm2
+
+if(iproc==0)then
+    call yaml_comment('Start Saddle Search ....',hfill='-')
+endif
 
 minmode0=minmode
 
@@ -123,17 +128,20 @@ minmode0=minmode
     count=count+1.d0
 !        call energyandforces(nat,rxyz(1,1,0),fxyz(1,1,0),etot)
 !        energyandforces(nat,alat,rxyz(1,1,0),fxyz(1,1,0),etot,'cnt_enf_geopt')
+    inputPsiId=0
     call minenergyandforces(imode,nat,alat,rxyz(1,1,0),rxyzraw(1,1,0),&
     fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),etot,iconnect,nbond,atomnames,&
     wold,alpha_stretch0,alpha_stretch)
     ec=ec+1.d0
     if(imode==2)rxyz(:,:,0)=rxyz(:,:,0)+alpha_stretch*fstretch(:,:,0)
-    t1=0.d0 ; t2=0.d0 ; t3=0.d0
-    t1raw=0.d0 ; t2raw=0.d0 ; t3raw=0.d0
-    do iat=1,nat
-        t1raw=t1raw+fxyzraw(1,iat,0)**2 ; t2raw=t2raw+fxyzraw(2,iat,0)**2;t3raw=t3raw+fxyzraw(3,iat,0)**2
-    enddo
-    fnrm=sqrt(t1raw+t2raw+t3raw)
+!    t1=0.d0 ; t2=0.d0 ; t3=0.d0
+!    t1raw=0.d0 ; t2raw=0.d0 ; t3raw=0.d0
+!    do iat=1,nat
+!        t1raw=t1raw+fxyzraw(1,iat,0)**2 ; t2raw=t2raw+fxyzraw(2,iat,0)**2;t3raw=t3raw+fxyzraw(3,iat,0)**2
+!    enddo
+!    fnrm=sqrt(t1raw+t2raw+t3raw)
+    call fnrmandforcemax(fxyzraw(1,1,0),fnrm,fmax,nat)
+    fnrm=sqrt(fnrm)
     etotold=etot
     etotp=etot
 
@@ -175,51 +183,52 @@ minmode0=minmode
             flag=.true.
        endif
 
-!       !START FINDING LOWEST MODE
-!       if(fnrm<=tightenfac*fnrmtol .and. flag .and. curv<0.d0)then
-!!       if(fnrm<=tightenfac*fnrmtol .and. flag)then
-!           if(check) write(100,*)'tighten'
-!           write(*,*)'tighten'
-!           tol=tolf
-!           recompute=it
-!           flag=.false.
-!       else if(it==1)then
-!           tol=tolc
-!       else
-!           tol=tolc
-!       endif
-!       !if(abs(displ-displold)>0.029d0*sqrt(dble(3*nat))&
-!       tooFar = abs(displ-displold)>rmsdispl*sqrt(dble(3*nat))
-!       if(tooFar&
-!!       &.or. it==1&
-!       &.or. it==1 .or. (curv>=0.d0 .and. mod(it,recompIfCurvPos)==0)&
-!       &.or.recompute==it)then
-!           call opt_curv(imode,nat,alat,alpha0_rot,curvgraddiff,nit_rot,nhistx_rot,rxyzraw(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
-!                        &minmode(1,1),curv,gradrot(1,1),&
-!                        &tol,count,count_sd,displ2,ec,check,optCurvConv,iconnect,nbond,atomnames,2.d-4,maxcurvrise,cutoffratio)
-!           minmode = minmode / dnrm2(3*nat,minmode(1,1),1)
-!           if(.not.optCurvConv)then
-!               write(*,*) 'WARNING: opt_curv failed'
-!               converged=.false.
-!stop 'opt_curv failed'
-!               return
-!           endif
-!           overlap=ddot(3*nat,minmodeold(1,1),1,minmode(1,1),1)
-!           write(*,*)'overlap',overlap
-!           minmodeold=minmode
-!           displold=displ
-!           recompute=huge(1)
-!           if(tooFar)then
-!               flag = .true.
-!           endif
-!       endif
-!       !END FINDING LOWEST MODE
+       !START FINDING LOWEST MODE
+       if(fnrm<=tightenfac*fnrmtol .and. flag .and. curv<0.d0)then
+!       if(fnrm<=tightenfac*fnrmtol .and. flag)then
+           if(check) write(100,*)'tighten'
+           write(*,*)'tighten'
+           tol=tolf
+           recompute=it
+           flag=.false.
+       else if(it==1)then
+           tol=tolc
+       else
+           tol=tolc
+       endif
+       !if(abs(displ-displold)>0.029d0*sqrt(dble(3*nat))&
+       tooFar = abs(displ-displold)>rmsdispl*sqrt(dble(3*nat))
+       if(tooFar&
+!       &.or. it==1&
+       &.or. it==1 .or. (curv>=0.d0 .and. mod(it,recompIfCurvPos)==0)&
+       &.or.recompute==it)then
+    call yaml_comment('     METHOD  COUNT  IT  CURVATURE                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC    alpha  ndim  maxd  dsplp')
+           call opt_curv(imode,nat,alat,alpha0_rot,curvgraddiff,nit_rot,nhistx_rot,rxyzraw(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
+                        &minmode(1,1),curv,gradrot(1,1),&
+                        &tol,count,count_sd,displ2,ec,check,optCurvConv,iconnect,nbond,atomnames,2.d-4,maxcurvrise,cutoffratio)
+           minmode = minmode / dnrm2(3*nat,minmode(1,1),1)
+           if(.not.optCurvConv)then
+               write(*,*) 'WARNING: opt_curv failed'
+               converged=.false.
+stop 'opt_curv failed'
+               return
+           endif
+           overlap=ddot(3*nat,minmodeold(1,1),1,minmode(1,1),1)
+           write(*,*)'overlap',overlap
+           minmodeold=minmode
+           displold=displ
+           recompute=huge(1)
+           if(tooFar)then
+               flag = .true.
+           endif
+       endif
+       !END FINDING LOWEST MODE
 
        600 continue
        call modify_gradient(check,nat,ndim,rrr(1,1,1),eval(1),res(1),fxyz(1,1,nhist-1),alpha,dd(1,1))
 
        !invert gradient in minmode direction
-!       dd=dd-2.d0*ddot(3*nat,dd(1,1),1,minmode(1,1),1)*minmode
+       dd=dd-2.d0*ddot(3*nat,dd(1,1),1,minmode(1,1),1)*minmode
 
        tt=0.d0
        dt=0.d0
@@ -251,31 +260,43 @@ minmode0=minmode
            count=count+1.d0
        endif
 
-       runObj%inputs%inputPsiId=1 
+       inputPsiId=0
        call minenergyandforces(imode,nat,alat,rxyz(1,1,nhist),rxyzraw(1,1,nhist),&
             fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),etotp&
             ,iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
        ec=ec+1.d0
        detot=etotp-etotold
-       s=0.d0 ; st=0.d0
-       t1=0.d0 ; t2=0.d0 ; t3=0.d0
-       t1raw=0.d0 ; t2raw=0.d0 ; t3raw=0.d0
-       do iat=1,nat
-           t1raw=t1raw+fxyzraw(1,iat,nhist)**2 ; t2raw=t2raw+fxyzraw(2,iat,nhist)**2 ;t3raw=t3raw+fxyzraw(3,iat,nhist)**2
-           t1=t1+fxyz(1,iat,nhist)**2 ; t2=t2+fxyz(2,iat,nhist)**2 ;t3=t3+fxyz(3,iat,nhist)**2
-           s=s+dd(1,iat)**2+dd(2,iat)**2+dd(3,iat)**2
-           st=st+fxyz(1,iat,nhist)*dd(1,iat)+fxyz(2,iat,nhist)*dd(2,iat)+fxyz(3,iat,nhist)*dd(3,iat)
-       enddo
-       fnrm=sqrt(t1raw+t2raw+t3raw)
 
+       call fnrmandforcemax(fxyzraw(1,1,nhist),fnrm,fmax,nat)
+       fnrm=sqrt(fnrm)
+
+
+!       s=0.d0 ; st=0.d0
+!       t1=0.d0 ; t2=0.d0 ; t3=0.d0
+!!       t1raw=0.d0 ; t2raw=0.d0 ; t3raw=0.d0
+!       do iat=1,nat
+!!           t1raw=t1raw+fxyzraw(1,iat,nhist)**2 ; t2raw=t2raw+fxyzraw(2,iat,nhist)**2 ;t3raw=t3raw+fxyzraw(3,iat,nhist)**2
+!           t1=t1+fxyz(1,iat,nhist)**2 ; t2=t2+fxyz(2,iat,nhist)**2 ;t3=t3+fxyz(3,iat,nhist)**2
+!           s=s+dd(1,iat)**2+dd(2,iat)**2+dd(3,iat)**2
+!           st=st+fxyz(1,iat,nhist)*dd(1,iat)+fxyz(2,iat,nhist)*dd(2,iat)+fxyz(3,iat,nhist)*dd(3,iat)
+!       enddo
+!!       fnrm=sqrt(t1raw+t2raw+t3raw)
+       cosangle=-dot_double(3*nat,fxyz(1,1,nhist),1,dd(1,1),1)/&
+                sqrt(dot_double(3*nat,fxyz(1,1,nhist),1,fxyz(1,1,nhist),1)*&
+                dot_double(3*nat,dd(1,1),1,dd(1,1),1))
+
+
+!       write(173,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,xa4,i3.3,xa5,a7,2(xa6,a8))')&
+!       int(ec),it,'GEOPT',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct,&
+!       'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy9_1)),'dsplp=',trim(adjustl(cdmy9_2))
        write(*,'(a,i6,2(1x,e21.14),1x,2(1x,es10.3),xi6,2(xes10.3))')&
        &'GEOPT it,etot,etotold,Detot,fnrm,ndim,alpha,alpha_stretch',&
        &it-1,etotp,etotold,detot,fnrm,ndim,alpha,alpha_stretch
 
        etot=etotp
        etotold=etot
-!       if (fnrm.le.fnrmtol .and. curv<0.d0) goto 1000
-       if (fnrm.le.fnrmtol) goto 1000
+       if (fnrm.le.fnrmtol .and. curv<0.d0) goto 1000
+!       if (fnrm.le.fnrmtol) goto 1000
 
        !now do step in hard directions
        if(imode==2)then
@@ -313,7 +334,7 @@ write(*,*)'control',maxd
 !write(437,*)sqrt((rxyz(1,1,nhist)-rxyz(1,2,nhist))**2+(rxyz(2,1,nhist)-rxyz(2,2,nhist))**2+(rxyz(3,1,nhist)-rxyz(3,2,nhist))**2)
 
 
-       cosangle=-st/sqrt((t1+t2+t3)*s)
+!       cosangle=-st/sqrt((t1+t2+t3)*s)
        if (cosangle.gt..20d0) then
            alpha=alpha*1.10d0
        else
@@ -354,17 +375,17 @@ stop 'no convergence in findsad'
      enddo
      enddo
 
-             write(556,*)
-             write(556,*)10.d0,0.d0,10.d0
-             write(556,*)0.d0,0.d0,10.d0
-             do iat=1,nat
-               write(556,*) wpos(1,iat),wpos(2,iat),wpos(3,iat),atomnames(iat)
-             enddo
-!             write(556,*)nat
 !             write(556,*)
+!             write(556,*)10.d0,0.d0,10.d0
+!             write(556,*)0.d0,0.d0,10.d0
 !             do iat=1,nat
-!               write(556,*)atomnames(iat), wpos(1,iat),wpos(2,iat),wpos(3,iat)
+!               write(556,*) wpos(1,iat),wpos(2,iat),wpos(3,iat),atomnames(iat)
 !             enddo
+             write(556,*)nat
+             write(556,*)
+             do iat=1,nat
+               write(556,*)wpos(1,iat),wpos(2,iat),wpos(3,iat)
+             enddo
 
   end subroutine
 
@@ -682,6 +703,7 @@ end subroutine
 subroutine opt_curv(imode,nat,alat,alpha0,curvgraddiff,nit,nhistx,rxyz_fix,fxyz_fix,dxyzin,curv,fout,fnrmtol&
                    &,count,count_sd,displ,ec,check,converged,iconnect,nbond,atomnames,alpha_stretch0,maxcurvrise,cutoffratio)!,mode)
 use module_base
+use module_global_variables, only: inputPsiId
     implicit none
 integer, intent(in) :: imode
 integer, intent(in) :: nbond
@@ -702,7 +724,7 @@ real(gp), intent(in) :: maxcurvrise,cutoffratio
     integer :: lwork,nhist,i,iat,l,itswitch,ndim
     integer :: ihist,it,nat
     real(gp) :: displ,ec,curv,count
-    real(gp) :: count_sd,fnrmtol,curvold,t1,t2,t3,fnrm,curvp,t1raw,t2raw,t3raw
+    real(gp) :: count_sd,fnrmtol,curvold,fnrm,curvp,fmax
     real(gp) :: alpha,dcurv,s,st,tt,cosangle
     logical :: subspaceSucc
     real(gp),allocatable :: wold(:)
@@ -732,16 +754,19 @@ real(gp), intent(in) :: maxcurvrise,cutoffratio
 !    call minenergyandforces(nat,rxyz(1,1,0),rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),etot,iconnect,nbond,atomnames,wold,alpha_stretch)
 !    rxyz(:,:,0)=rxyz(:,:,0)+alpha_stretch*fstretch(:,:,0)
 !    ec=ec+1.d0
+     inputPsiId=0
      call mincurvgrad(imode,nat,alat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,0),&
           rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),curv,1,ec,&
           iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
     if(imode==2)rxyz(:,:,0)=rxyz(:,:,0)+alpha_stretch*fstretch(:,:,0)
-    t1=0.d0 ; t2=0.d0 ; t3=0.d0
-    t1raw=0.d0 ; t2raw=0.d0 ; t3raw=0.d0
-    do iat=1,nat
-       t1raw=t1raw+fxyzraw(1,iat,0)**2 ; t2raw=t2raw+fxyzraw(2,iat,0)**2;t3raw=t3raw+fxyzraw(3,iat,0)**2
-    enddo
-    fnrm=sqrt(t1raw+t2raw+t3raw)
+!    t1=0.d0 ; t2=0.d0 ; t3=0.d0
+!    t1raw=0.d0 ; t2raw=0.d0 ; t3raw=0.d0
+!    do iat=1,nat
+!       t1raw=t1raw+fxyzraw(1,iat,0)**2 ; t2raw=t2raw+fxyzraw(2,iat,0)**2;t3raw=t3raw+fxyzraw(3,iat,0)**2
+!    enddo
+!    fnrm=sqrt(t1raw+t2raw+t3raw)
+    call fnrmandforcemax(fxyzraw(1,1,0),fnrm,fmax,nat)
+    fnrm=sqrt(fnrm)
     curvold=curv
     curvp=curv
  
@@ -805,26 +830,37 @@ real(gp), intent(in) :: maxcurvrise,cutoffratio
         else
             count=count+1.d0
         endif
+     inputPsiId=0
      call mincurvgrad(imode,nat,alat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
           rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),&
           curvp,1,ec,iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
         dcurv=curvp-curvold
 
 
-        s=0.d0 ; st=0.d0
-        t1=0.d0 ; t2=0.d0 ; t3=0.d0
-        t1raw=0.d0 ; t2raw=0.d0 ; t3raw=0.d0
-        do iat=1,nat
-            t1raw=t1raw+fxyzraw(1,iat,nhist)**2 ; t2raw=t2raw+fxyzraw(2,iat,nhist)**2 ;t3raw=t3raw+fxyzraw(3,iat,nhist)**2
-            t1=t1+fxyz(1,iat,nhist)**2 ; t2=t2+fxyz(2,iat,nhist)**2 ;t3=t3+fxyz(3,iat,nhist)**2
-            s=s+dd(1,iat)**2+dd(2,iat)**2+dd(3,iat)**2
-            st=st+fxyz(1,iat,nhist)*dd(1,iat)+fxyz(2,iat,nhist)*dd(2,iat)+fxyz(3,iat,nhist)*dd(3,iat)
-         enddo
-         fnrm=sqrt(t1raw+t2raw+t3raw)
+!        s=0.d0 ; st=0.d0
+!        t1=0.d0 ; t2=0.d0 ; t3=0.d0
+!        t1raw=0.d0 ; t2raw=0.d0 ; t3raw=0.d0
+!        do iat=1,nat
+!            t1raw=t1raw+fxyzraw(1,iat,nhist)**2 ; t2raw=t2raw+fxyzraw(2,iat,nhist)**2 ;t3raw=t3raw+fxyzraw(3,iat,nhist)**2
+!            t1=t1+fxyz(1,iat,nhist)**2 ; t2=t2+fxyz(2,iat,nhist)**2 ;t3=t3+fxyz(3,iat,nhist)**2
+!            s=s+dd(1,iat)**2+dd(2,iat)**2+dd(3,iat)**2
+!            st=st+fxyz(1,iat,nhist)*dd(1,iat)+fxyz(2,iat,nhist)*dd(2,iat)+fxyz(3,iat,nhist)*dd(3,iat)
+!        enddo
+!        fnrm=sqrt(t1raw+t2raw+t3raw)
+        call fnrmandforcemax(fxyzraw(1,1,nhist),fnrm,fmax,nat)
+        fnrm=sqrt(fnrm)
+        cosangle=-dot_double(3*nat,fxyz(1,1,nhist),1,dd(1,1),1)/&
+                sqrt(dot_double(3*nat,fxyz(1,1,nhist),1,fxyz(1,1,nhist),1)*&
+                dot_double(3*nat,dd(1,1),1,dd(1,1),1))
 
-         write(*,'(a,i6,2(1x,es21.14),1x,4(1x,es10.3),xi6)')&
-        &'CURV  it,curv,curvold,Dcurv,fnrm,alpha,alpha_stretch,ndim',&
-        &it-1,curvp,curvold,dcurv,fnrm,alpha,alpha_stretch,ndim
+
+!         write(*,'(a,i6,2(1x,es21.14),1x,4(1x,es10.3),xi6)')&
+!        &'CURV  it,curv,curvold,Dcurv,fnrm,alpha,alpha_stretch,ndim',&
+!        &it-1,curvp,curvold,dcurv,fnrm,alpha,alpha_stretch,ndim
+
+!    call yaml_comment('        METHOD  COUNT  IT  CURVATURE                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC    alpha  ndim  maxd  dsplp')
+write(*,'(a,2xi4.4,xi4.4,xes21.14,xes9.2)')'(MHGPS) CURV  ',int(ec),it,curv,dcurv
+HIER WEITER HIER WEITER: beautify output
 
         if (dcurv.gt.maxcurvrise .and. alpha>1.d-1*alpha0) then 
             if (check) write(100,'(a,i4,1x,e9.2)') "WARN: it,dcurv", it,dcurv
@@ -859,8 +895,8 @@ real(gp), intent(in) :: maxcurvrise,cutoffratio
             rxyz(:,:,nhist)=rxyz(:,:,nhist)+alpha_stretch*fstretch(:,:,nhist)
         endif
 
-        cosangle=-st/sqrt((t1+t2+t3)*s)
-write(*,*)'cosangle',cosangle
+!        cosangle=-st/sqrt((t1+t2+t3)*s)
+!write(*,*)'cosangle',cosangle
         if (cosangle.gt..20d0) then
             alpha=alpha*1.10d0
         else

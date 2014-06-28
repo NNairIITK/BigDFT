@@ -1,5 +1,4 @@
 module module_energyandforces
-    use module_global_variables
 
 contains
 
@@ -8,6 +7,7 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,epot)
    use module_types
    use module_interfaces
    use yaml_output
+   use module_global_variables
 
 
     implicit none
@@ -27,6 +27,7 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,epot)
             stop
         endif
         call vcopy(3 * runObj%atoms%astruct%nat, rxyz(1,1),1,runObj%atoms%astruct%rxyz(1,1), 1)
+        runObj%inputs%inputPsiId=inputPsiId
         call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
         call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz(1,1), 1)
         epot=outs%energy

@@ -46,6 +46,8 @@ module module_global_variables
     integer          :: nbond               = 1
     integer, allocatable :: iconnect(:,:) 
     real(8), allocatable :: minmode(:,:)
+    integer,parameter :: usaddle=173
+    character(len=60) :: saddle_filename='saddle.mon'
 
 
     !bigdft data types and variables
@@ -57,4 +59,6 @@ module module_global_variables
     integer :: infocode
     type(input_variables), target :: inputs_opt
     type(restart_objects) :: rst
+    integer :: inputPsiId=0
+    integer :: iproc=0,nproc=1,igroup=0,ngroups=1
 end module
