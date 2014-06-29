@@ -448,6 +448,7 @@ subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum)
 
     !initialise the work arrays
     call initialize_work_arrays_locham(1,Lzd%Llr(ilr),orbs%nspinor,.false.,wrk_lh)  
+
    
     ispsi=1
     loop_orbs: do iorb=1,orbs%norbp
