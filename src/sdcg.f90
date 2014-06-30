@@ -169,8 +169,10 @@ subroutine conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
         if (iproc==0) then 
            write(fn4,'(i4.4)') ncount_bigdft
            write(comment,'(a,1pe10.3)')'CONJG:fnrm= ',sqrt(fnrm)
-           call  write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-                & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
+           call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
+                & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
+                runObj%atoms,trim(comment),&
+                forces=outs%fxyz)
         endif
 
         !if (iproc == 0) write(17,'(a,i5,1x,e17.10,1x,e9.2)') 'CG ',ncount_bigdft,etot,sqrt(fnrm)
@@ -324,6 +326,7 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
   use module_interfaces
   use minpar
   use yaml_output
+  use internal_coordinates, only : xyzint
   !use module_interfaces
   implicit none
   integer, intent(in) :: nproc,iproc,nitsd
@@ -342,6 +345,8 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
   real(gp), allocatable, dimension(:,:) :: tpos
   character(len=4) :: fn4
   character(len=40) :: comment
+  real(kind=8),dimension(:,:),allocatable :: geo
+  real(kind=8),parameter :: degree=1.d0
 
   tpos = f_malloc((/ 3, runObj%atoms%astruct%nat /),id='tpos')
 
@@ -455,7 +460,9 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
            write(fn4,'(i4.4)') ncount_bigdft 
            write(comment,'(a,1pe10.3)')'SD:fnrm= ',sqrt(fnrm)
            call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-                & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
+                & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int, &
+                runObj%atoms,trim(comment),&
+                forces=outs%fxyz)
 
            !write(17,'(a,i5,1x,e17.10,1x,e9.2)') 'SD ',ncount_bigdft,etot,sqrt(fnrm)
         end if
@@ -547,6 +554,7 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
 !!!           end if
         endif
 !        if (iproc == 0 .and. parmrunObj%inputs%verbosity > 0) write(16,*) 'beta=',beta
+
 
         call vcopy(3 * runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1, tpos(1,1), 1)
         !call atomic_axpy(at,rxyz,beta,ff,rxyz)
@@ -646,8 +654,10 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
 
      write(fn4,'(i4.4)') ncount_bigdft
      write(comment,'(a,1pe10.3)')'Initial VSSD:fnrm= ',sqrt(fnrm)
-     call  write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-          & outsold%energy,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment),forces=outsold%fxyz)
+     call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
+          & outsold%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
+          runObj%atoms,trim(comment),&
+          forces=outsold%fxyz)
 !     if (parmin%verbosity > 0) &
 !          & write(16,'(1x,e12.5,1x,e21.14,a,e10.3)')sqrt(fnrm),etotold,' GEOPT VSSD ',beta
   end if
@@ -726,8 +736,10 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
         if (iproc == 0) then
            write(fn4,'(i4.4)') ncount_bigdft-1
            write(comment,'(a,1pe10.3)')'VSSD:fnrm= ',sqrt(fnrm)
-           call  write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-                & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
+           call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
+                & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
+                runObj%atoms,trim(comment),&
+                forces=outs%fxyz)
         endif
 
         do iat=1,runObj%atoms%astruct%nat
@@ -808,8 +820,10 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
      end if
      write(fn4,'(i4.4)') ncount_bigdft-1
      write(comment,'(a,1pe10.3)')'VSSD:fnrm= ',sqrt(fnrm)
-     call  write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-          & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
+     call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
+          & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
+          runObj%atoms,trim(comment),&
+          forces=outs%fxyz)
   endif
 
 

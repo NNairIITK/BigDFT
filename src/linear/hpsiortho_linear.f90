@@ -13,7 +13,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            energy_increased, tmb, lhphiold, overlap_calculated, &
            energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
            hpsi_small, experimental_mode, correction_co_contra, hpsi_noprecond, &
-           norder_taylor, method_updatekernel)
+           norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays)
   use module_base
   use module_types
   use yaml_output
@@ -26,7 +26,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   implicit none
 
   ! Calling arguments
-  integer, intent(in) :: iproc, nproc, it, norder_taylor, method_updatekernel
+  integer, intent(in) :: iproc, nproc, it, method_updatekernel
+  integer,intent(inout) :: norder_taylor
+  real(kind=8),intent(in) :: max_inversion_error
   type(DFT_wavefunction), target, intent(inout):: tmb
   type(localizedDIISParameters), intent(inout) :: ldiis
   real(kind=8), dimension(tmb%orbs%norb), intent(inout) :: fnrmOldArr
@@ -42,6 +44,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   logical, intent(in) :: experimental_mode, correction_co_contra
   real(kind=8), dimension(tmb%npsidim_orbs), intent(out) :: hpsi_small
   real(kind=8), dimension(tmb%npsidim_orbs), optional,intent(out) :: hpsi_noprecond
+  type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
+  type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
 
   ! Local variables
   integer :: iorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall, ii, jjorb, i
@@ -53,6 +57,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8), dimension(:), allocatable :: hpsi_conf, hpsi_tmp
   real(kind=8), dimension(:), pointer :: kernel_compr_tmp
   real(kind=8), dimension(:), allocatable :: prefac, hpsit_nococontra_c, hpsit_nococontra_f
+  real(kind=8),dimension(3) :: reducearr
   real(wp), dimension(2) :: garray
   real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
   type(matrices) :: matrixm
@@ -142,7 +147,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   if (correction_co_contra) then
       !@NEW correction for contra / covariant gradient
 
-      if (method_updatekernel/=UPDATE_BY_FOE .or. target_function/=TARGET_FUNCTION_IS_HYBRID) then
+      if ((method_updatekernel/=UPDATE_BY_FOE .and. method_updatekernel/=UPDATE_BY_RENORMALIZATION) &
+           .or. target_function/=TARGET_FUNCTION_IS_HYBRID) then
           call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
                tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
           tmb%can_use_transposed=.true.
@@ -188,7 +194,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
        tmb%linmat, tmb%ham_descr%psi, tmb%hpsi, &
        tmb%linmat%m, tmb%linmat%ham_, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, &
        hpsit_c, hpsit_f, hpsit_nococontra_c, hpsit_nococontra_f, tmb%ham_descr%can_use_transposed, &
-       overlap_calculated, experimental_mode, norder_taylor, &
+       overlap_calculated, experimental_mode, norder_taylor, max_inversion_error, &
        tmb%npsidim_orbs, tmb%lzd, hpsi_noprecond)
 
   call f_free(hpsit_nococontra_c)
@@ -214,8 +220,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   trH=trH-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
 
 
-  ! Cycle if the trace increased (steepest descent only)
-  if(.not. ldiis%switchSD .and. ldiis%isx==0) then
+  ! Determine whether the target function is increasing
+  !if(.not. ldiis%switchSD .and. ldiis%isx==0) then
+  if(.not. ldiis%switchSD) then
       if(trH > ldiis%trmin+1.d-12*abs(ldiis%trmin)) then !1.d-12 is here to tolerate some noise...
           !!if(iproc==0) write(*,'(1x,a,es18.10,a,es18.10)') &
           !!    'WARNING: the target function is larger than its minimal value reached so far:',trH,' > ', ldiis%trmin
@@ -270,9 +277,17 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   end do
 
   if (nproc > 1) then
-     if (it>1) call mpiallred(fnrmOvrlp_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
-     call mpiallred(fnrm_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
-     call mpiallred(fnrmOld_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
+     reducearr(1)=fnrm_tot
+     reducearr(2)=fnrmOld_tot
+     if (it>1) then
+         reducearr(3)=fnrmOvrlp_tot
+         call mpiallred(reducearr(1), 3, mpi_sum, bigdft_mpi%mpi_comm)
+         fnrmOvrlp_tot=reducearr(3)
+     else
+         call mpiallred(reducearr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+     end if
+     fnrm_tot=reducearr(1)
+     fnrmOld_tot=reducearr(2)
   end if
 
   ! ###########################################
@@ -331,7 +346,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! if energy has increased or we only wanted to calculate the energy, not gradient, we can return here
   ! rather than calculating the preconditioning for nothing
-  if ((energy_increased) .and. target_function/=TARGET_FUNCTION_IS_HYBRID) return
+  ! Do this only for steepest descent
+  if ((energy_increased) .and. target_function/=TARGET_FUNCTION_IS_HYBRID .and. ldiis%isx==0) return
 
 
 
@@ -355,7 +371,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
      call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
-          nit_precond,tmb%npsidim_orbs,hpsi_tmp,tmb%confdatarr,gnrm,gnrm_zero)
+          nit_precond,tmb%npsidim_orbs,hpsi_tmp,tmb%confdatarr,gnrm,gnrm_zero, &
+          precond_convol_workarrays, precond_workarrays)
 
      ! temporarily turn confining potential off...
      prefac = f_malloc(tmb%orbs%norbp,id='prefac')
@@ -363,7 +380,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      tmb%confdatarr(:)%prefac=0.0d0
      call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
-          nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero) ! prefac should be zero
+          nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero, & ! prefac should be zero
+          precond_convol_workarrays, precond_workarrays)
      call daxpy(tmb%npsidim_orbs, 1.d0, hpsi_tmp(1), 1, hpsi_small(1), 1)
      ! ...revert back to correct value
      tmb%confdatarr(:)%prefac=prefac
@@ -374,7 +392,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   else
      call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
           tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
-          nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero)
+          nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero,&
+          precond_convol_workarrays, precond_workarrays)
   end if
 
   if (iproc==0) then
@@ -511,7 +530,7 @@ end subroutine calculate_residue_ks
 
 subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
            lphiold, alpha, trH, alpha_mean, alpha_max, alphaDIIS, hpsi_small, ortho, psidiff, &
-           experimental_mode, order_taylor,trH_ref, kernel_best, complete_reset)
+           experimental_mode, order_taylor, max_inversion_error, trH_ref, kernel_best, complete_reset)
   use module_base
   use module_types
   use yaml_output
@@ -520,7 +539,9 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   implicit none
   
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, it, order_taylor
+  integer,intent(in) :: iproc, nproc, it
+  integer,intent(inout) :: order_taylor
+  real(kind=8),intent(in) :: max_inversion_error
   type(localizedDIISParameters), intent(inout) :: ldiis
   type(DFT_wavefunction), target,intent(inout) :: tmb
   real(kind=8), dimension(tmb%npsidim_orbs), intent(inout) :: lphiold
@@ -588,7 +609,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
           end do 
       end if
 
-      call orthonormalizeLocalized(iproc, nproc, order_taylor, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
+      call orthonormalizeLocalized(iproc, nproc, order_taylor, max_inversion_error, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
            tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
            tmb%can_use_transposed, tmb%foe_obj)
       if (iproc == 0) then

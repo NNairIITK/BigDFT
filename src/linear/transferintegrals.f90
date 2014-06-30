@@ -285,9 +285,8 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ham_mat,ovrlp,ovr
   real(kind=gp), dimension(nstates), intent(inout) :: homo_ham, homo_ovrlp
 
   !Local variables
-  integer :: i_stat, i_all, ifrag, jfrag, ntmb_tot, ind, itmb, ierr, i, j, istate
+  integer :: istate
   real(gp), allocatable, dimension(:,:) :: coeff_tmp
-  real(gp) :: orthog_energy
 
   coeff_tmp=f_malloc((/orbs%norbp,nstates/), id='coeff_tmp')
 
@@ -363,7 +362,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
   type(matrices), intent(inout) :: ovrlp_mat, ham_mat
   type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
   !Local variables
-  integer :: i_stat, i_all, ifrag, jfrag, ntmb_tot, ind, itmb, ierr, i, j, nstates, istate, ih, ifrag_ref
+  integer :: ifrag, jfrag, ind, i, j, nstates, istate, ih, ifrag_ref
   integer :: ifrag_ref1, ifrag_ref2, homo1, homo2, jh, above_lumo, iind, jind, norb_tmp
   !integer :: jfrag_ref, jtmb
   real(gp), allocatable, dimension(:,:) :: coeffs_tmp, homo_coeffs, coeffs_orthog

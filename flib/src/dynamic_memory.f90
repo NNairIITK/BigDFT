@@ -84,7 +84,7 @@ module dynamic_memory
      module procedure z2_all
      module procedure d1_ptr,d2_ptr,d3_ptr,d4_ptr,d5_ptr,d6_ptr
      module procedure i1_ptr,i2_ptr,i3_ptr,i4_ptr
-     module procedure l3_ptr
+     module procedure l2_ptr, l3_ptr
      module procedure z1_ptr
      !strings and pointers for characters
      module procedure c1_all
@@ -104,7 +104,7 @@ module dynamic_memory
      module procedure i1_ptr_free,i2_ptr_free,i3_ptr_free,i4_ptr_free
      module procedure i1_ptr_free_multi
      module procedure d1_ptr_free,d2_ptr_free,d3_ptr_free,d4_ptr_free,d5_ptr_free,d6_ptr_free
-     module procedure l3_ptr_free
+     module procedure l2_ptr_free, l3_ptr_free
      module procedure z1_ptr_free
   end interface
 

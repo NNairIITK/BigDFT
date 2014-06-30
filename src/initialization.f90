@@ -173,6 +173,7 @@ subroutine run_objects_parse(runObj)
 END SUBROUTINE run_objects_parse
 
 
+!> Associate to the structure run_objects, the input_variable structure and the atomic positions (atoms_data)
 subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
   use module_types
   implicit none

@@ -59,11 +59,11 @@ program NEB_images
          if (runObj%inputs%ncount_cluster_x > 1) then
             filename=trim('final_'//trim(arr_posinp(iconfig)))
             if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,outs%energy,&
-                 & runObj%rxyz,runObj%atoms,'FINAL CONFIGURATION',forces=outs%fxyz)
+                 & runObj%rxyz,runObj%ixyz_int,runObj%atoms,'FINAL CONFIGURATION',forces=outs%fxyz)
          else
             filename=trim('forces_'//trim(arr_posinp(iconfig)))
             if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,outs%energy,&
-                 & runObj%rxyz,runObj%atoms,'Geometry + metaData forces',forces=outs%fxyz)
+                 & runObj%rxyz,runObj%ixyz_int,runObj%atoms,'Geometry + metaData forces',forces=outs%fxyz)
          end if
 
          ! Deallocations.

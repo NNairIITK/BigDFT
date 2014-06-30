@@ -259,7 +259,9 @@ module module_images
      real(gp), dimension(:), pointer :: old_grad, delta_pos, vel
   end type run_image
 
+
 contains
+
 
   FUNCTION norm(vect)
     IMPLICIT NONE
@@ -269,6 +271,7 @@ contains
 
     norm = SQRT( DOT_PRODUCT( vect , vect ) )
   END FUNCTION norm
+
 
   FUNCTION cubic_pbc( vect, Lx, Ly, Lz )
     IMPLICIT NONE    
@@ -297,6 +300,8 @@ contains
     END DO
   END FUNCTION cubic_pbc
 
+
+  !> Initialize the images (replica) of the atomic coordinates along the NEB
   subroutine image_init(img, inputs, atoms, rst, algorithm)
     use module_interfaces, only: run_objects_associate
     use dynamic_memory, only: to_zero
@@ -338,6 +343,7 @@ contains
     end if
   end subroutine image_init
 
+
   subroutine image_set_init_vel(img, ndim, vel0)
     implicit none
     integer, intent(in) :: ndim
@@ -346,6 +352,7 @@ contains
 
     call vcopy(ndim, vel0(1), 1, img%vel(1), 1)
   end subroutine image_set_init_vel
+
 
   subroutine image_deallocate(img, free_subs)
     implicit none
@@ -362,6 +369,7 @@ contains
     if (associated(img%vel)) deallocate(img%vel)
   end subroutine image_deallocate
 
+
   function images_get_energies(imgs)
     implicit none
     type(run_image), dimension(:), intent(in) :: imgs
@@ -373,6 +381,7 @@ contains
        images_get_energies(i) = imgs(i)%outs%energy
     end do
   end function images_get_energies
+
 
   function images_get_activation(imgs)
     implicit none
@@ -387,6 +396,7 @@ contains
     end do
   end function images_get_activation
 
+
   function images_get_errors(imgs)
     implicit none
     type(run_image), dimension(:), intent(in) :: imgs
@@ -398,6 +408,7 @@ contains
        images_get_errors(i) = imgs(i)%error
     end do
   end function images_get_errors
+
 
   subroutine compute_local_tangent(tgt, ndim, V, posm1, pos0, posp1, Lx, Ly, Lz)
     implicit none
@@ -449,6 +460,7 @@ contains
     tgt = tgt / norm( tgt )
   END SUBROUTINE compute_local_tangent
 
+
   SUBROUTINE compute_local_gradient(ndim, grad, posm1, pos0, posp1, tgt, PES_forces, Lx, Ly, Lz, &
        & k, full, climbing)
     IMPLICIT NONE
@@ -489,6 +501,7 @@ contains
     end if
   END SUBROUTINE compute_local_gradient
 
+
   subroutine compute_k(nimages, k, V, k_min, k_max)
     implicit none
     integer, intent(in) :: nimages
@@ -516,6 +529,7 @@ contains
        END IF
     end do elastic_const_loop
   END SUBROUTINE compute_k
+
 
   subroutine compute_neb_pos(imgs, iteration, neb)
     implicit none
@@ -557,6 +571,7 @@ contains
     ! Global line treatment.
     IF ( imgs(1)%algorithm == 6 ) CALL termalization(imgs, neb%temp_req)
   END SUBROUTINE compute_neb_pos
+
   
   SUBROUTINE termalization(imgs, temp_req)
     IMPLICIT NONE
@@ -580,6 +595,7 @@ contains
        imgs(i)%vel = imgs(i)%vel * fact
     end do
   END SUBROUTINE termalization
+
 
   SUBROUTINE write_restart(restart_file, imgs, fix_atom)
     IMPLICIT NONE
@@ -611,6 +627,7 @@ contains
     END DO
     CLOSE( UNIT = unit )
   END SUBROUTINE write_restart
+  
 
   SUBROUTINE write_restart_vel(velocity_file, imgs)
     IMPLICIT NONE
@@ -631,6 +648,7 @@ contains
     END DO
     CLOSE( UNIT = unit )
   END SUBROUTINE write_restart_vel
+
 
   SUBROUTINE write_dat_files(job_name, imgs, iter)
     IMPLICIT NONE
@@ -715,6 +733,7 @@ contains
 
   END SUBROUTINE write_dat_files
 
+
   subroutine images_output_step(imgs, full, iteration, tol)
     use yaml_output
     implicit none
@@ -771,6 +790,7 @@ contains
        end if
     end if
   END SUBROUTINE images_output_step
+
 
   subroutine images_collect_results(imgs, igroup, nimages, mpi_env)
     implicit none
@@ -986,6 +1006,7 @@ contains
   end subroutine free_me
 END SUBROUTINE image_update_pos_from_file
 
+
 subroutine image_calculate(img, iteration, id)
   use yaml_output
   use module_types
@@ -1017,9 +1038,11 @@ subroutine image_calculate(img, iteration, id)
   if (bigdft_mpi%iproc == 0) then
      write(fn4, "(I4.4)") iteration
      call write_atomic_file(trim(img%run%inputs%dir_output)//'posout_'//fn4, &
-          & img%outs%energy, img%run%atoms%astruct%rxyz, img%run%atoms, "", forces = img%outs%fxyz)
+          & img%outs%energy, img%run%atoms%astruct%rxyz,  img%run%atoms%astruct%ixyz_int, &
+          img%run%atoms, "", forces = img%outs%fxyz)
   end if
 end subroutine image_calculate
+
 
 subroutine images_distribute_tasks(igroup, update, nimages, ngroup)
   implicit none
@@ -1053,7 +1076,9 @@ subroutine images_distribute_tasks(igroup, update, nimages, ngroup)
   do i = m + 1, ngroup * min(1, l)
      call span_group(alpha, l, +1, i)
   end do
+
 contains
+
   subroutine span_group(it, n, dir, ig)
     integer, intent(inout) :: it
     integer, intent(in) :: n, dir, ig
@@ -1069,9 +1094,11 @@ contains
        end if
     end do
   end subroutine span_group
+
 END SUBROUTINE images_distribute_tasks
 
-! Routines for bindings.
+
+!> Routines for bindings.
 subroutine image_new(img, run, outs, atoms, inputs, rst, algorithm)
   use module_types
   use module_images
@@ -1090,6 +1117,7 @@ subroutine image_new(img, run, outs, atoms, inputs, rst, algorithm)
   run => img%run
   outs => img%outs
 END SUBROUTINE image_new
+
 
 subroutine image_free(img, run, outs)
   use module_types
@@ -1110,6 +1138,7 @@ subroutine image_free(img, run, outs)
   deallocate(img)
 END SUBROUTINE image_free
 
+
 subroutine image_get_attributes(img, error, F, id)
   use module_images
   use module_types
@@ -1124,6 +1153,7 @@ subroutine image_get_attributes(img, error, F, id)
   F = img%F
 END SUBROUTINE image_get_attributes
 
+
 subroutine neb_new(neb)
   use module_images
   implicit none
@@ -1137,6 +1167,7 @@ subroutine neb_new(neb)
   neb%max_iterations = 2
   neb%convergence = 0.5d0
 end subroutine neb_new
+
 
 subroutine neb_free(neb)
   use module_images

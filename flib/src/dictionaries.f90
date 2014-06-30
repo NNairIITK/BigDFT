@@ -92,7 +92,7 @@ module dictionaries
    end interface
 
    interface add
-      module procedure add_char,add_dict,add_integer,add_real,add_double,add_long
+      module procedure add_char,add_dict,add_integer,add_real,add_double,add_long, add_log
    end interface
 
    interface list_new
@@ -439,6 +439,12 @@ contains
      integer(kind=8), intent(in) :: val
      include 'dict_add-inc.f90'
    end subroutine add_long
+   subroutine add_log(dict,val)
+     implicit none
+     type(dictionary), pointer :: dict
+     logical, intent(in) :: val
+     include 'dict_add-inc.f90'
+   end subroutine add_log
 
 
 

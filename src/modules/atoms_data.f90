@@ -40,11 +40,14 @@ module module_atoms
      character(len=1) :: geocode          !< @copydoc poisson_solver::doc::geocode
      character(len=5) :: inputfile_format !< Can be xyz, ascii or yaml
      character(len=20) :: units           !< Can be angstroem or bohr 
+     character(len=20) :: angle           !< Can be radian or degree
      integer :: nat                       !< Number of atoms
      integer :: ntypes                    !< Number of atomic species in the structure
      real(gp), dimension(3) :: cell_dim   !< Dimensions of the simulation domain (each one periodic or free according to geocode)
      !pointers
      real(gp), dimension(:,:), pointer :: rxyz             !< Atomic positions (always in AU, units variable is considered for I/O only)
+     real(gp), dimension(:,:), pointer :: rxyz_int         !< Atomic positions in internal coordinates (Z matrix)
+     integer, dimension(:,:), pointer :: ixyz_int          !< Neighbor list for internal coordinates (Z matrix)
      character(len=20), dimension(:), pointer :: atomnames !< Atomic species names
      integer, dimension(:), pointer :: iatype              !< Atomic species id
      integer, dimension(:), pointer :: ifrztyp             !< Freeze atoms while updating structure
@@ -121,6 +124,7 @@ module module_atoms
       astruct%geocode='X'
       astruct%inputfile_format=repeat(' ',len(astruct%inputfile_format))
       astruct%units=repeat(' ',len(astruct%units))
+      astruct%angle=repeat(' ',len(astruct%angle))
       astruct%nat=-1
       astruct%ntypes=-1
       astruct%cell_dim=0.0_gp
@@ -211,6 +215,8 @@ module module_atoms
          call f_free_ptr(astruct%iatype)
          call f_free_ptr(astruct%input_polarization)
          call f_free_ptr(astruct%rxyz)
+         call f_free_ptr(astruct%rxyz_int)
+         call f_free_ptr(astruct%ixyz_int)
       end if
       if (astruct%ntypes >= 0) then
           if (associated(astruct%atomnames)) then
@@ -355,6 +361,7 @@ module module_atoms
       use module_base
       use dictionaries, only: set, dictionary
       use yaml_output, only : yaml_toa
+      use internal_coordinates, only: internal_to_cartesian
       implicit none
       !Arguments
       character(len=*), intent(in) :: file  !< File name containing the atomic positions
@@ -374,6 +381,7 @@ module module_atoms
       real(gp), dimension(:,:), pointer :: fxyz_
       character(len = 1024) :: comment_, files
       external :: openNextCompress, check_atoms_positions
+      real(gp),parameter :: degree = 57.295779513d0
 
       file_exists = .false.
       files = ''
@@ -421,7 +429,15 @@ module module_atoms
             open(unit=iunit,file=trim(filename),status='old')
          end if
       end if
-
+      ! Test posinp.int
+      if (.not. file_exists) then
+         inquire(FILE = file//'.int', EXIST = file_exists)
+         if (file_exists) then
+            write(filename, "(A)") file//'.int'!"posinp.int
+            write(astruct%inputfile_format, "(A)") "int"
+            open(unit=99,file=trim(filename),status='old')
+         end if
+      end if
       ! Test posinp.yaml
       if (.not. file_exists) then
          inquire(FILE = file//'.yaml', EXIST = file_exists)
@@ -444,11 +460,13 @@ module module_atoms
                write(astruct%inputfile_format, "(A)") "xyz"
             else if (file(l-5:l) == ".ascii") then
                write(astruct%inputfile_format, "(A)") "ascii"
+            else if (file(l-3:l) == ".int") then
+               write(astruct%inputfile_format, "(A)") "int"
             else if (file(l-4:l) == ".yaml") then
                write(astruct%inputfile_format, "(A)") "yaml"
             else
-               if (f_err_raise(err_msg="Atomic input file '" // trim(file) // "', format not recognised."// &
-                  & " File should be *.yaml, *.ascii or *.xyz.",err_id=BIGDFT_INPUT_FILE_ERROR)) return
+               call f_err_throw(err_msg="Atomic input file '" // trim(file) // "', format not recognised."// &
+                  & " File should be *.yaml, *.ascii or *.xyz.",err_id=BIGDFT_INPUT_FILE_ERROR)
                return
             end if
             if (trim(astruct%inputfile_format) /= "yaml") then
@@ -478,6 +496,29 @@ module module_atoms
          else
             call read_ascii_positions(iunit,filename,astruct,comment_,energy_,fxyz_,archiveGetLine)
          end if
+
+      case("int")
+         !read atomic positions
+         if (.not.archive) then
+            call read_int_positions(iproc,99,astruct,comment_,energy_,fxyz_,directGetLine)
+         else
+            call read_int_positions(iproc,99,astruct,comment_,energy_,fxyz_,archiveGetLine)
+         end if
+         ! Fill the ordinary rxyz array
+         !!! convert to rad
+         !!astruct%rxyz_int(2:3,1:astruct%nat) = astruct%rxyz_int(2:3,1:astruct%nat) / degree
+         ! The bond angle must be modified (take 180 degrees minus the angle)
+         astruct%rxyz_int(2:2,1:astruct%nat) = pi_param - astruct%rxyz_int(2:2,1:astruct%nat)
+         call internal_to_cartesian(astruct%nat, astruct%ixyz_int(1,:), astruct%ixyz_int(2,:), astruct%ixyz_int(3,:), &
+              astruct%rxyz_int, astruct%rxyz)
+         !!do i_stat=1,astruct%nat
+         !!    write(*,'(3(i4,3x,f12.5))') astruct%ixyz_int(1,i_stat),astruct%rxyz_int(1,i_stat),&
+         !!                                astruct%ixyz_int(2,i_stat),astruct%rxyz_int(2,i_stat),&
+         !!                                astruct%ixyz_int(3,i_stat),astruct%rxyz_int(3,i_stat)
+         !!end do
+         !!do i_stat=1,astruct%nat
+         !!    write(*,*) astruct%rxyz(:,i_stat)
+         !!end do
 
        case("yaml")
          if (f_err_raise(index(file,'posinp') /= 0, &
@@ -571,6 +612,8 @@ subroutine astruct_set_n_atoms(astruct, nat)
   astruct%ifrztyp = f_malloc_ptr(astruct%nat+ndebug,id='astruct%ifrztyp')
   astruct%input_polarization = f_malloc_ptr(astruct%nat+ndebug,id='astruct%input_polarization')
   astruct%rxyz = f_malloc_ptr((/ 3,astruct%nat+ndebug /),id='astruct%rxyz')
+  astruct%rxyz_int = f_malloc_ptr((/ 3,astruct%nat+ndebug /),id='astruct%rxyz_int')
+  astruct%ixyz_int = f_malloc_ptr((/ 3,astruct%nat+ndebug /),id='astruct%ixyz_int')
 
   !this array is useful for frozen atoms, no atom is frozen by default
   astruct%ifrztyp(:)=0

@@ -19,7 +19,8 @@ TESTDIRS = Locreg \
 	   sparsity \
 	   explicit_locregcenters \
 	   DIIShistory \
-	   PBE
+	   PBE \
+	   geoptconstrained
 
 EXTRA_TESTDIRS = reformatcomplete \
     water \
