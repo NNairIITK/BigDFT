@@ -821,7 +821,8 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
       do ilr=1,lzd%nlr
           locreg_centers(1:3,ilr)=lzd%llr(ilr)%locregcenter(1:3)
       end do
-      call init_foe(iproc, nproc, lzd%nlr, locreg_centers, astruct, input, orbs_KS, orbs, lfoe, .false.)
+      !call init_foe(iproc, nproc, lzd%nlr, locreg_centers, astruct, input, orbs_KS, orbs, lfoe, .false.)
+      call init_foe(iproc, nproc, lzd%nlr, locreg_centers, astruct, input, orbs_KS, orbs, lfoe, .true.)
       call f_free(locreg_centers)
   end if
 

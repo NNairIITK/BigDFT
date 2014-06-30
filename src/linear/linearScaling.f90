@@ -65,17 +65,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   logical :: lowaccur_converged, exit_outer_loop
   real(kind=8),dimension(:),allocatable :: locrad
   integer:: target_function, nit_basis
-  integer :: isegsmall, iseglarge, iismall, iilarge, is, ie
-  integer :: matrixindex_in_compressed
   
   real(kind=gp) :: ebs, vgrad_old, vgrad, valpha, vold, vgrad2, vold_tmp, conv_crit_TMB
   real(kind=gp), allocatable, dimension(:,:) :: coeff_tmp
-  integer :: ind_denskern, ind_ham, jorb, cdft_it, nelec, iat, ityp
+  integer :: jorb, cdft_it, nelec, iat, ityp, norder_taylor
   integer :: dmin_diag_it, dmin_diag_freq, ioffset
   logical :: reorder, rho_negative
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
-  real(kind=8),dimension(10000) :: meanconf_array
-  !!character(len=5) :: num
   integer :: j, k, n1i, n2i, n3i, i1, i2, i3
   type(matrices) :: weight_matrix_
 
@@ -111,6 +107,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   dmin_diag_freq=-1
   reorder=.false.
   nullify(mom_vec_fake)
+  norder_taylor=input%lin%order_taylor
 
 
 
@@ -297,7 +294,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              if (.not. input%lin%constrained_dft) then
                 call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                      infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                     .true.,input%lin%extra_states,itout,0,0,input%lin%order_taylor,&
+                     .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
                      input%purification_quickreturn,&
                      input%calculate_KS_residue,input%calculate_gap,&
                      convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
@@ -437,7 +434,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                nit_basis,&
                ratio_deltas,orthonormalization_on,input%lin%extra_states,itout,conv_crit_TMB,input%experimental_mode,&
                input%lin%early_stop, input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
-               can_use_ham, input%lin%order_taylor, input%kappa_conv,&
+               can_use_ham, norder_taylor, input%lin%max_inversion_error, input%kappa_conv,&
                input%method_updatekernel,input%purification_quickreturn, &
                input%correction_co_contra)
            reduce_conf=.true.
@@ -552,14 +549,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 if (input%lin%constrained_dft) then
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .false.,input%lin%extra_states,itout,it_scc,cdft_it,input%lin%order_taylor,&
+                        .false.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                         input%purification_quickreturn,&
                         input%calculate_KS_residue,input%calculate_gap,&
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .false.,input%lin%extra_states,itout,it_scc,cdft_it,input%lin%order_taylor,&
+                        .false.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                         input%purification_quickreturn,&
                         input%calculate_KS_residue,input%calculate_gap,&
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
@@ -568,14 +565,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 if (input%lin%constrained_dft) then
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .true.,input%lin%extra_states,itout,it_scc,cdft_it,input%lin%order_taylor,&
+                        .true.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                         input%purification_quickreturn,&
                         input%calculate_KS_residue,input%calculate_gap,&
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                 else
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,update_phi,&
-                        .true.,input%lin%extra_states,itout,it_scc,cdft_it,input%lin%order_taylor,&
+                        .true.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                         input%purification_quickreturn,&
                         input%calculate_KS_residue,input%calculate_gap,&
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
@@ -924,7 +921,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   if (input%write_orbitals) then
       call build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
-               energs, nlpsp, input, &
+               energs, nlpsp, input, norder_taylor,&
                energy, energyDiff, energyold)
   end if
 
@@ -941,7 +938,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
        call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.false.,&
-           .true.,input%lin%extra_states,itout,0,0,input%lin%order_taylor,&
+           .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
            input%calculate_KS_residue,input%calculate_gap)
 
@@ -961,10 +958,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       !!    tmb%coeff=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%coeff')
       !!end if
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
-          infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.false.,&
-          .true.,input%lin%extra_states,itout,0,0,input%lin%order_taylor,&
-          input%purification_quickreturn,&
-          input%calculate_KS_residue,input%calculate_gap)
+           infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.false.,&
+           .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
+           input%purification_quickreturn,&
+           input%calculate_KS_residue,input%calculate_gap)
       !!call scalprod_on_boundary(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
       call pulay_correction_new(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
       !!if (input%lin%scf_mode==LINEAR_FOE) then

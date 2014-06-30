@@ -651,7 +651,7 @@ subroutine plot_wf(orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi)
   n2i=lr%d%n2i
   n3i=lr%d%n3i
 
-  call initialize_work_arrays_sumrho(lr,w)
+  call initialize_work_arrays_sumrho(1,lr,.true.,w)
 
   psir = f_malloc(lr%d%n1i*lr%d%n2i*lr%d%n3i,id='psir')
   !initialisation

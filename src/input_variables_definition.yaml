@@ -883,6 +883,15 @@
                      * n>0 => Taylor series of order n
        RANGE: [-100,100]
        default: 0
+     max_inversion_error:
+       COMMENT: linear scaling maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
+       DESCRIPTION: |
+                    possible value: 1 positive real number
+                    Maximal error of the Taylor approximations which are used to  calculate the inverse of the overlap matrix.
+                    If this error is larger than the specified value, the order of the Taylor approximation is increased.
+                    The default value is set very large, such such in this case no automatic adjustment is performed.
+       default: 1.d0
+       RANGE: [1.e-20,1.0]
      output_wf:
        COMMENT: output basis functions; 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
        DESCRIPTION: |
@@ -1094,7 +1103,7 @@
      mixing_method:
        COMMENT: quantity to be mixed
        DESCRIPTION: |
-                    possible value: string
+                    type: string scalar
                     Indicates which quantity should be used for the mixing procedure:
                      DEN => density mixing
                      POT => potential mixing
@@ -1192,16 +1201,18 @@ linear_accurate:
   perf:
     ef_interpol_chargediff: 1.0
     experimental_mode: Yes
-    method_updatekernel: 1
+    method_updatekernel: 2
     purification_quickreturn: Yes
     correction_co_contra: Yes
   lin_general:
     hybrid: Yes
     taylor_order: 10
+    max_inversion_error: 1.0e-8
   lin_basis:
     nit: [10,10]
-    gnrm_cv: [5.e-4,5.e-4]
-    gnrm_dyn: 5.e-5
+    gnrm_cv: [1.e-3,1.e-3]
+    gnrm_dyn: 1.e-4
+    deltae_cv: 5.e-5
     min_gnrm_for_dynamic: 2.e-3
     alpha_diis: 0.5
     alpha_sd: 0.5
@@ -1209,8 +1220,8 @@ linear_accurate:
     fix_basis: 1.e-12
     correction_orthoconstraint: 0
   lin_kernel:
-    nit: [10,10]
-    idsx: [6,0]
+    nit: [3,3]
+    idsx: [6,6]
     alphamix: [0.2,0.2]
     rpnrm_cv: [1.e-12,1.e-12]
     linear_method: FOE
@@ -1223,7 +1234,7 @@ linear_moderate:
   perf:
     ef_interpol_chargediff: 1.0
     experimental_mode: Yes
-    method_updatekernel: 1
+    method_updatekernel: 2
     purification_quickreturn: Yes
     correction_co_contra: Yes
   lin_general:
@@ -1231,8 +1242,9 @@ linear_moderate:
     taylor_order: 10
   lin_basis:
     nit: [10,10]
-    gnrm_cv: [1.e-3,1.e-3]
-    gnrm_dyn: 1.e-4
+    gnrm_cv: [2.e-3,2.e-3]
+    gnrm_dyn: 2.e-4
+    deltae_cv: 5.e-5
     min_gnrm_for_dynamic: 4.e-3
     alpha_diis: 0.5
     alpha_sd: 0.5
@@ -1240,8 +1252,8 @@ linear_moderate:
     fix_basis: 1.e-11
     correction_orthoconstraint: 0
   lin_kernel:
-    nit: [10,10]
-    idsx: [6,0]
+    nit: [3,3]
+    idsx: [6,6]
     alphamix: [0.2,0.2]
     rpnrm_cv: [1.e-11,1.e-11]
     linear_method: FOE
@@ -1254,7 +1266,7 @@ linear_fast:
   perf:
     ef_interpol_chargediff: 1.0
     experimental_mode: Yes
-    method_updatekernel: 1
+    method_updatekernel: 2
     purification_quickreturn: Yes
     correction_co_contra: Yes
   lin_general:
@@ -1262,8 +1274,9 @@ linear_fast:
     taylor_order: 10
   lin_basis:
     nit: [10,10]
-    gnrm_cv: [2.e-3,2.e-3]
-    gnrm_dyn: 2.e-4
+    gnrm_cv: [4.e-3,4.e-3]
+    gnrm_dyn: 4.e-4
+    deltae_cv: 5.e-5
     min_gnrm_for_dynamic: 8.e-3
     alpha_diis: 0.5
     alpha_sd: 0.5

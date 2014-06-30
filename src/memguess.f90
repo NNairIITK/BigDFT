@@ -57,12 +57,14 @@ program memguess
    !real(gp) :: tcpu0,tcpu1,tel
    !integer :: ncount0,ncount1,ncount_max,ncount_rate
    !! By Ali
-   integer :: ierror
+   integer :: ierror, iat
    integer,dimension(:),allocatable :: na, nb, nc
+   integer,dimension(:,:),allocatable :: atoms_ref
    real(kind=8),dimension(:,:),allocatable :: rxyz_int
    !real(kind=8),parameter :: degree=57.295779513d0
    real(kind=8),parameter :: degree=1.d0
    character(len=6) :: direction
+   logical :: file_exists
 
    call f_lib_initialize()
    !initialize errors and timings as bigdft routines are called
@@ -309,12 +311,12 @@ program memguess
       end if
       
       if (associated(fxyz)) then
-         call write_atomic_file(fileTo(1:irad-1),energy,at%astruct%rxyz,at,&
+         call write_atomic_file(fileTo(1:irad-1),energy,at%astruct%rxyz,at%astruct%ixyz_int,at,&
               trim(fcomment) // ' (converted from '//trim(fileFrom)//")", forces=fxyz)
 
          call f_free_ptr(fxyz)
       else
-         call write_atomic_file(fileTo(1:irad-1),energy,at%astruct%rxyz,at,&
+         call write_atomic_file(fileTo(1:irad-1),energy,at%astruct%rxyz,at%astruct%ixyz_int,at,&
               trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
       end if
       stop
@@ -374,19 +376,31 @@ program memguess
        rxyz_int = f_malloc((/ 3, at%astruct%nat /),id='rxyz_int')
 
        if (direction=='carint') then
-           call get_neighbors(at%astruct%rxyz, at%astruct%nat, &
-                at%astruct%ixyz_int(1,:), at%astruct%ixyz_int(2,:),at%astruct%ixyz_int(3,:))
-           call xyzint(at%astruct%rxyz, at%astruct%nat, &
-                at%astruct%ixyz_int(1,:), at%astruct%ixyz_int(2,:),at%astruct%ixyz_int(3,:), &
-                degree, at%astruct%rxyz_int)
-           ! The bond angle must be modified (take 180 degrees minus the angle)
-           at%astruct%rxyz_int(2:2,1:at%astruct%nat) = pi_param - at%astruct%rxyz_int(2:2,1:at%astruct%nat)
-           call write_atomic_file(trim(fileTo(1:irad-1)),UNINITIALIZED(123.d0),at%astruct%rxyz_int,at, &
-                trim(fcomment) // ' (converted from '//trim(fileFrom)//")", &
-                na=at%astruct%ixyz_int(1,:),nb=at%astruct%ixyz_int(2,:),nc=at%astruct%ixyz_int(3,:))
+           inquire(file='posinp.fix',exist=file_exists)
+           if (file_exists) then
+               atoms_ref = f_malloc((/3,at%astruct%nat/),id='atoms_ref')
+               open(unit=123,file='posinp.fix')
+               do iat=1,at%astruct%nat
+                   read(123,*) atoms_ref(1:3,iat)
+               end do
+               call get_neighbors(at%astruct%rxyz, at%astruct%nat, &
+                    at%astruct%ixyz_int(1,:), at%astruct%ixyz_int(2,:),at%astruct%ixyz_int(3,:), &
+                    atoms_ref)
+               call f_free(atoms_ref)
+           else
+               call get_neighbors(at%astruct%rxyz, at%astruct%nat, &
+                    at%astruct%ixyz_int(1,:), at%astruct%ixyz_int(2,:),at%astruct%ixyz_int(3,:))
+           end if
+           !call xyzint(at%astruct%rxyz, at%astruct%nat, &
+           !     at%astruct%ixyz_int(1,:), at%astruct%ixyz_int(2,:),at%astruct%ixyz_int(3,:), &
+           !     degree, at%astruct%rxyz_int)
+           !! The bond angle must be modified (take 180 degrees minus the angle)
+           !at%astruct%rxyz_int(2:2,1:at%astruct%nat) = pi_param - at%astruct%rxyz_int(2:2,1:at%astruct%nat)
+           call write_atomic_file(trim(fileTo(1:irad-1)),UNINITIALIZED(123.d0),at%astruct%rxyz_int,&
+                at%astruct%ixyz_int,at,trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
        else if (direction=='intcar' .or. direction=='carcar') then
-           call write_atomic_file(trim(fileTo(1:irad-1)),UNINITIALIZED(123.d0),at%astruct%rxyz,at,&
-                trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
+           call write_atomic_file(trim(fileTo(1:irad-1)),UNINITIALIZED(123.d0),at%astruct%rxyz,&
+                at%astruct%ixyz_int,at,trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
        end if
 
        write(*,*) 'Done.'
@@ -417,7 +431,8 @@ program memguess
       end if
       write(*,'(1x,a)')'Writing optimised positions in file posopt.[xyz,ascii]...'
       write(comment,'(a)')'POSITIONS IN OPTIMIZED CELL '
-      call write_atomic_file('posopt',0.d0,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment))
+      call write_atomic_file('posopt',0.d0,runObj%atoms%astruct%rxyz,&
+           runObj%atoms%astruct%ixyz_int,runObj%atoms,trim(comment))
       !call wtxyz('posopt',0.d0,rxyz,atoms,trim(comment))
    end if
 

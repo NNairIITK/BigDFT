@@ -214,6 +214,8 @@ module module_types
     logical :: calc_dipole, pulay_correction, mixing_after_inputguess, iterative_orthogonalization, new_pulay_correction
     logical :: fragment_calculation, calc_transfer_integrals, constrained_dft, curvefit_dmin, diag_end, diag_start
     integer :: extra_states, order_taylor
+    !> linear scaling: maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
+    real(kind=8) :: max_inversion_error
   end type linearInputParameters
 
   !> Contains all parameters for the calculation of the fragments
@@ -2608,12 +2610,14 @@ end subroutine find_category
           !determine desired OCL platform which is used for acceleration
           in%matacc%OCL_platform = val
           ipos=min(len(in%matacc%OCL_platform),len(trim(in%matacc%OCL_platform))+1)
+          if (index(in%matacc%OCL_platform,'~') > 0) ipos=1 !restore empty information if not entered by the user
           do i=ipos,len(in%matacc%OCL_platform)
              in%matacc%OCL_platform(i:i)=achar(0)
           end do
        case (OCL_DEVICES)
           in%matacc%OCL_devices = val
           ipos=min(len(in%matacc%OCL_devices),len(trim(in%matacc%OCL_devices))+1)
+          if (index(in%matacc%OCL_devices,'~') > 0) ipos=1
           do i=ipos,len(in%matacc%OCL_devices)
              in%matacc%OCL_devices(i:i)=achar(0)
           end do
@@ -2880,6 +2884,9 @@ end subroutine find_category
           in%lin%diag_end = val
        case (EXTRA_STATES)
           in%lin%extra_states = val
+       case (MAX_INVERSION_ERROR)
+           ! maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
+           in%lin%max_inversion_error = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select

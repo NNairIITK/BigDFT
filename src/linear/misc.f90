@@ -45,7 +45,7 @@ subroutine plotOrbitals(iproc, tmb, phi, nat, rxyz, hxh, hyh, hzh, it, basename)
 
    phir = f_malloc(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n3i,id='phir')
 
-   call initialize_work_arrays_sumrho(tmb%lzd%glr,w)
+   call initialize_work_arrays_sumrho(1,tmb%lzd%glr,.true.,w)
    rxyzref=-555.55d0
 
    istart=0
@@ -851,7 +851,7 @@ end subroutine print_orbital_distribution
 
 
 subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
-           energs, nlpsp, input, &
+           energs, nlpsp, input, order_taylor, &
            energy, energyDiff, energyold)
   use module_base
   use module_types
@@ -873,6 +873,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   type(energy_terms),intent(inout) :: energs
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
   type(input_variables),intent(in) :: input
+  integer,intent(inout) :: order_taylor
   real(kind=8),intent(out) :: energy, energyDiff
   real(kind=8), intent(inout) :: energyold
 
@@ -909,7 +910,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   tmb%can_use_transposed=.false.
   call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
        energs, nlpsp, input%SIC, tmb, fnrm, .true., .false., .true., 0, 0, 0, 0, &
-       input%lin%order_taylor,input%purification_quickreturn,&
+       order_taylor,input%lin%max_inversion_error,input%purification_quickreturn,&
        input%calculate_KS_residue,input%calculate_gap)
 
 
@@ -1011,7 +1012,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   tmb%can_use_transposed=.false.
   call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
        energs, nlpsp, input%SIC, tmb, fnrm, .true., .false., .true., 0, 0, 0, 0, &
-       input%lin%order_taylor, input%purification_quickreturn, &
+       order_taylor, input%lin%max_inversion_error, input%purification_quickreturn, &
        input%calculate_KS_residue, input%calculate_gap, updatekernel=.false.)
   energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
   energyDiff=energy-energyold
@@ -1146,7 +1147,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   integer :: ifrag,iorb,ifrag_ref,isforb,istat,ierr,jorb
   real(kind=gp), allocatable, dimension(:,:) :: proj_mat, proj_ovrlp_half, weight_matrixp
   character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
-  real(kind=gp) :: error
+  real(kind=gp) :: max_error, mean_error
   type(matrices) :: inv_ovrlp
 
   ! new variables
@@ -1211,7 +1212,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
           tmb%orthpar%blocksize_pdsyev, &
           imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
           ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
-          error=error)
+          max_error=max_error, mean_error=mean_error)
      !!ovrlp_half=tmb%linmat%ovrlp%matrix
      call f_free_ptr(tmb%linmat%ovrlp_%matrix)
   end if
@@ -1700,7 +1701,7 @@ subroutine support_function_multipoles(iproc, tmb, atoms, denspot)
       iiorb=tmb%orbs%isorb+iorb
       ilr=tmb%orbs%inwhichlocreg(iiorb)
       iat=tmb%orbs%onwhichatom(iiorb)
-      call initialize_work_arrays_sumrho(tmb%lzd%Llr(ilr), w)
+      call initialize_work_arrays_sumrho(1,tmb%lzd%Llr(ilr),.true.,w)
       ! Transform the support function to real space
       call daub_to_isf(tmb%lzd%llr(ilr), w, tmb%psi(ist), phir(istr))
       call deallocate_work_arrays_sumrho(w)

@@ -584,8 +584,8 @@ module communications
       
       psiwork_c = f_malloc(collcom%ndimpsi_c,id='psiwork_c')
       psiwork_f = f_malloc(7*collcom%ndimpsi_f,id='psiwork_f')
-      psitwork_c = f_malloc(sum(collcom%nrecvcounts_c),id='psitwork_c')
-      psitwork_f = f_malloc(7*sum(collcom%nrecvcounts_f),id='psitwork_f')
+      psitwork_c = f_malloc(collcom%ndimind_c,id='psitwork_c')
+      psitwork_f = f_malloc(7*collcom%ndimind_f,id='psitwork_f')
       
       if(present(lzd)) then
           call transpose_switch_psi(npsidim_orbs, orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
@@ -641,8 +641,8 @@ module communications
       
       psiwork_c = f_malloc(collcom%ndimpsi_c,id='psiwork_c')
       psiwork_f = f_malloc(7*collcom%ndimpsi_f,id='psiwork_f')
-      psitwork_c = f_malloc(sum(collcom%nrecvcounts_c),id='psitwork_c')
-      psitwork_f = f_malloc(7*sum(collcom%nrecvcounts_f),id='psitwork_f')
+      psitwork_c = f_malloc(collcom%ndimind_c,id='psitwork_c')
+      psitwork_f = f_malloc(7*collcom%ndimind_f,id='psitwork_f')
     
       call timing(iproc,'Un-TransSwitch','ON')
       call transpose_switch_psit(collcom, psit_c, psit_f, psitwork_c, psitwork_f)

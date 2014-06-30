@@ -11,7 +11,7 @@
 !> Define the bounds of wavefunctions for periodic systems
 subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
   use module_base
-  use module_types
+  use locregs
   implicit none
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(convolutions_bounds),intent(out):: bounds

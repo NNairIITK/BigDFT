@@ -67,7 +67,7 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,nfrag_charged,ifrag_char
   integer :: ifrag,iorb,ifrag_ref,isforb,istat,ierr
   real(kind=gp), allocatable, dimension(:,:) :: proj_mat, proj_ovrlp_half, weight_matrixp
   character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
-  real(kind=gp) :: error
+  real(kind=gp) :: max_error, mean_error
   type(matrices) :: inv_ovrlp
 
   call f_routine(id='calculate_weight_matrix_lowdin')
@@ -104,7 +104,7 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,nfrag_charged,ifrag_char
           tmb%orthpar%blocksize_pdsyev, &
           imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%s, &
           ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
-          check_accur=.true., error=error)
+          check_accur=.true., max_error=max_error, mean_error=mean_error)
      call f_free_ptr(tmb%linmat%ovrlp_%matrix)
   end if
 

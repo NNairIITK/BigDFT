@@ -840,7 +840,7 @@ subroutine plot_wf_sandbox(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
      nu3=0
   end if
 
-  call initialize_work_arrays_sumrho(lr,w)
+  call initialize_work_arrays_sumrho(1,lr,.true.,w)
  
   psir = f_malloc((/ -nl1.to.2*n1+1+nu1, -nl2.to.2*n2+1+nu2, -nl3.to.2*n3+1+nu3 /),id='psir')
   !initialisation

@@ -188,6 +188,8 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
              denspot%rhov,denspot%pkernel%kernel,denspot%V_ext,&
              energs%eh,energs%exc,energs%evxc,0.d0,.true.,4)
      else
+
+!!           denspot%rhov denspot%rhov+2.e-7   STEFAN Goedecker
         call XC_potential(atoms%astruct%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
              denspot%pkernel%mpi_env%mpi_comm,&
              denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),denspot%xc,&
@@ -2063,6 +2065,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
    use module_types
    use dictionaries, only: f_err_throw
    use yaml_output
+   use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level
    implicit none
    logical, intent(in) :: filewrite
    integer, intent(in) :: iproc, nproc
@@ -2077,6 +2080,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
    real(gp) :: charge, chargef
    real(gp) :: ef,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff,full,res,resu,resd
    real(gp) :: a, x, xu, xd, f, df, tt
+   type(fermi_aux) :: ft
    !integer :: ierr
 
    !write(*,*)  'ENTER Fermilevel',orbs%norbu,orbs%norbd
@@ -2118,6 +2122,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
    end do
    melec=nint(charge)
    !if (iproc == 0) write(*,*) 'charge',charge,melec
+   call init_fermi_level(real(melec,gp)/full, 0.d0, ft)
 
    ! Send all eigenvalues to all procs (presumably not necessary)
    call broadcast_kpt_objects(nproc, orbs%nkpts, orbs%norb, &
@@ -2189,7 +2194,8 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
          if (corr < -1.d0*wf) corr=-1.d0*wf
          if (abs(dlectrons) < 1.d-18  .and. electrons > real(melec,gp)/full) corr=3.d0*wf
          if (abs(dlectrons) < 1.d-18  .and. electrons < real(melec,gp)/full) corr=-3.d0*wf
-         ef=ef-corr  ! Ef=Ef_guess+corr.
+         !ef=ef-corr  ! Ef=Ef_guess+corr.
+         call determine_fermi_level(ft, electrons, ef)
          !call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr) !debug
       end do loop_fermi
 
@@ -3166,7 +3172,7 @@ subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GP
 
   !helmholtz-based preconditioning
   ilr=1 !for the moment only cubic version
-  call initialize_work_arrays_sumrho(wfn%Lzd%Llr(ilr),w)
+  call initialize_work_arrays_sumrho(1,wfn%Lzd%Llr(ilr),.true.,w)
   !box elements size
   nbox=wfn%Lzd%Llr(ilr)%d%n1i*wfn%Lzd%Llr(ilr)%d%n2i*wfn%Lzd%Llr(ilr)%d%n3i
 

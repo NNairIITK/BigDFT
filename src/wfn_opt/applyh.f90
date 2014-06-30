@@ -91,7 +91,7 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
     ! Wavefunction in real space
     psir = f_malloc0((/ Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i, orbs%nspinor /),id='psir')
 
-    call initialize_work_arrays_locham(Lzd%Llr(ilr),orbs%nspinor,wrk_lh)  
+    call initialize_work_arrays_locham(1,Lzd%Llr(ilr),orbs%nspinor,.true.,wrk_lh)  
   
     ! wavefunction after application of the self-interaction potential
     if (ipotmethod == 2 .or. ipotmethod == 3) then
@@ -190,7 +190,7 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
     if (ipotmethod == 2 .or. ipotmethod ==3) then
        call f_free(vsicpsir)
     end if
-    call deallocate_work_arrays_locham(Lzd%Llr(ilr),wrk_lh)
+    call deallocate_work_arrays_locham(wrk_lh)
    
   end do loop_lr
 !!$end if
@@ -228,11 +228,12 @@ subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
   !local variables
   character(len=*), parameter :: subname='psi_to_vlocpsi'
   logical :: dosome
-  integer :: i_all,i_stat,iorb,npot,ispot,ispsi,ilr,ilr_orb,nbox,nvctr,ispinor
+  integer :: i_all,i_stat,iorb,npot,ispot,ispsi,ilr,ilr_orb,nbox,nvctr,ispinor,iiorb
   real(wp) :: exctXcoeff
   real(gp) :: epot,eSICi,eSIC_DCi,econf !n(c) etest
   type(workarr_sumrho) :: w
   real(wp), dimension(:,:), allocatable :: psir,vsicpsir,psir_noconf
+
 
   !some checks
   exctXcoeff=xc_exctXfac(xc)
@@ -255,18 +256,23 @@ subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
       econf_sum=0.0_gp
   end if
 
+  call initialize_work_arrays_sumrho(lzd%nlr,lzd%llr,.true.,w)
+
   !loop on the localisation regions (so to create one work array set per lr)
   loop_lr: do ilr=1,Lzd%nlr
      !check if this localisation region is used by one of the orbitals
      dosome=.false.
      do iorb=1,orbs%norbp
         dosome = (orbs%inwhichlocreg(iorb+orbs%isorb) == ilr)
-        if (dosome) exit
+        if (dosome) then
+            iiorb=iorb
+            exit
+        end if
      end do
      if (.not. dosome) cycle loop_lr
 
      !initialise the work arrays
-     call initialize_work_arrays_sumrho(Lzd%Llr(ilr),w)
+     call initialize_work_arrays_sumrho(1,lzd%llr(ilr),.false.,w)
 
      !box elements size
      nbox=Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i
@@ -367,10 +373,10 @@ subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
      end if
 
      do ispinor=1,orbs%nspinor
-        call isf_to_daub(Lzd%Llr(ilr),w,psir(1,ispinor),vpsi(ispsi+nvctr*(ispinor-1)))
-        if (present(vpsi_noconf)) then
-            call isf_to_daub(Lzd%Llr(ilr),w,psir_noconf(1,ispinor),vpsi_noconf(ispsi+nvctr*(ispinor-1)))
-        end if
+         call isf_to_daub(Lzd%Llr(ilr),w,psir(1,ispinor),vpsi(ispsi+nvctr*(ispinor-1)))
+         if (present(vpsi_noconf)) then
+             call isf_to_daub(Lzd%Llr(ilr),w,psir_noconf(1,ispinor),vpsi_noconf(ispsi+nvctr*(ispinor-1)))
+         end if
      end do
 
      epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
@@ -388,9 +394,10 @@ subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
   if (ipotmethod == 2 .or. ipotmethod ==3) then
      call f_free(vsicpsir)
   end if
-  call deallocate_work_arrays_sumrho(w)
 
 end do loop_lr
+
+call deallocate_work_arrays_sumrho(w)
 
 
 END SUBROUTINE psi_to_vlocpsi
@@ -411,14 +418,17 @@ subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum)
   !local variables
   character(len=*), parameter :: subname='psi_to_kinpsi'
   logical :: dosome
-  integer :: i_all,i_stat,iorb,ispsi,ilr,ilr_orb
+  integer :: i_all,i_stat,iorb,ispsi,ilr,ilr_orb,iiorb
   real(gp) :: ekin
   type(workarr_locham) :: wrk_lh
   real(wp), dimension(:,:), allocatable :: psir
   real(gp) :: kx,ky,kz
 
+
   ekin=0.d0
   ekin_sum=0.0_gp
+
+  call initialize_work_arrays_locham(lzd%nlr,lzd%llr,orbs%nspinor,.true.,wrk_lh)  
 
   !loop on the localisation regions (so to create one work array set per lr)
   loop_lr: do ilr=1,Lzd%nlr
@@ -426,7 +436,10 @@ subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum)
     dosome=.false.
     do iorb=1,orbs%norbp
       dosome = (orbs%inwhichlocreg(iorb+orbs%isorb) == ilr)
-      if (dosome) exit
+      if (dosome) then
+          iiorb=iorb
+          exit
+      end if
     end do
     if (.not. dosome) cycle loop_lr
    
@@ -434,7 +447,8 @@ subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum)
     psir = f_malloc0((/ Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i, orbs%nspinor /),id='psir')
 
     !initialise the work arrays
-    call initialize_work_arrays_locham(Lzd%Llr(ilr),orbs%nspinor,wrk_lh)  
+    call initialize_work_arrays_locham(1,Lzd%Llr(ilr),orbs%nspinor,.false.,wrk_lh)  
+
    
     ispsi=1
     loop_orbs: do iorb=1,orbs%norbp
@@ -465,10 +479,9 @@ subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum)
 
     call f_free(psir)
 
-    call deallocate_work_arrays_locham(Lzd%Llr(ilr),wrk_lh)
-   
   end do loop_lr
 
+  call deallocate_work_arrays_locham(wrk_lh)
 
 
 end subroutine psi_to_kinpsi

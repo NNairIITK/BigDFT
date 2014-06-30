@@ -123,9 +123,11 @@ END SUBROUTINE preconditionall
 
 
 !> Generalized for the Linearscaling code
-subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,confdatarr,gnrm,gnrm_zero)
+subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,confdatarr,gnrm,gnrm_zero,&
+                            linear_precond_convol_workarrays, linear_precond_workarrays)
   use module_base
   use module_types
+  use module_interfaces, except_this_one => preconditionall2
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
   implicit none
@@ -136,6 +138,8 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
   real(dp), intent(out) :: gnrm,gnrm_zero
   real(wp), dimension(npsidim), intent(inout) :: hpsi
   type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr !< used in the linear scaling but also for the cubic case
+  type(workarrays_quartic_convolutions),dimension(orbs%norbp),intent(inout),optional :: linear_precond_convol_workarrays !< convolution workarrays for the linear case
+  type(workarr_precond),dimension(orbs%norbp),intent(inout),optional :: linear_precond_workarrays !< workarrays for the linear case
   !local variables
   character(len=*), parameter :: subname='preconditionall2'
   integer :: iorb,inds,ncplx,ikpt,jorb,ist,ilr,i_all,i_stat,ierr,jproc
@@ -172,7 +176,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
 !!$  if (newp) then
 !!$     ilr=1
 !!$     hpsir=f_malloc(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,id='hpsir',routine_id=subname)
-!!$     call initialize_work_arrays_sumrho(Lzd%Llr(ilr),w)
+!!$     call initialize_work_arrays_sumrho(1,Lzd%Llr(ilr),.true.,w)
 !!$  end if
   !if (iproc.eq. 0 .and. verbose.ge.3) write(*,*) ' '
   ist = 0
@@ -285,12 +289,21 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
               !!write(1000+orbs%isorb+iorb,'(a,2i4,3x,2i8)') 'id, ilr, centery, starty', orbs%isorb+iorb, ilr, nint(Lzd%Llr(ilr)%locregCenter(2)/hy), lzd%llr(ilr)%ns2
               !!write(1000+orbs%isorb+iorb,'(a,2i4,3x,2i8)') 'id, ilr, centerz, startz', orbs%isorb+iorb, ilr, nint(Lzd%Llr(ilr)%locregCenter(3)/hz), lzd%llr(ilr)%ns3
 
+              if (.not.present(linear_precond_convol_workarrays)) then
+                  call f_err_throw("linear_precond_convol_workarrays must be present when calling the linear preconditioner", &
+                                   err_name='BIGDFT_RUNTIME_ERROR')
+              end if
+              if (.not.present(linear_precond_workarrays)) then
+                  call f_err_throw("linear_precond_workarrays must be present when calling the linear preconditioner", &
+                                   err_name='BIGDFT_RUNTIME_ERROR')
+              end if
                  call solvePrecondEquation(iproc,nproc,Lzd%Llr(ilr),ncplx,ncong,&
                       cprecr,&
                       hx,hy,hz,kx,ky,kz,hpsi(1+ist),&
                       Lzd%Llr(ilr)%locregCenter, orbs,&
                       confdatarr(iorb)%prefac,&
-                      confdatarr(iorb)%potorder)
+                      confdatarr(iorb)%potorder,&
+                      linear_precond_convol_workarrays(iorb),linear_precond_workarrays(iorb))
 
 !                 call solvePrecondEquation(Lzd%Llr(ilr),ncplx,ncong,cprecr,&
 !                   hx,hy,hz,kx,ky,kz,hpsi(1+ist), rxyz(1,ilr), orbs,&                         !here should change rxyz to be center of Locreg
