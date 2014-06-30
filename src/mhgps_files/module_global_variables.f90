@@ -12,6 +12,8 @@ module module_global_variables
 
     !input parameters for saddle_search
     logical          :: saddle_biomode             = .false.
+    logical          :: saddle_connect             = .false.
+    logical          :: random_minmode_guess       = .true.
     integer          :: saddle_imode               = 1
     integer          :: saddle_nit_trans           = 5000
     integer          :: saddle_nit_rot             = 5000
@@ -61,5 +63,5 @@ module module_global_variables
     type(restart_objects) :: rst
     integer :: inputPsiId=0
     integer :: iproc=0,nproc=1,igroup=0,ngroups=1
-    integer :: itermin=5
+    integer :: itermin=0
 end module

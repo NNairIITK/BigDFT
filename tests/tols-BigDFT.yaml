@@ -59,6 +59,8 @@ yaml_test:
    - Errors found while (de)allocating ab and b
    - Calling sequence of Main program (routines with * are not closed yet)
    - Additional Info
+   - Something to use ab
+   - Entering Thread No.
  Patterns to ignore:
    - errcode
    - time
@@ -692,7 +694,7 @@ foe:
  max alpha: 1.1e-4
  D eF: 7.1e-8
  Tr(K): 1.1e-08
- charge diff: 4.2e-11
+ charge diff: 2.1e-8
  D Tr: 7.0e-8
  tr(KS) before purification: 7.0e-8
  decay length of error function: 1.1e-5
@@ -729,6 +731,7 @@ linearcubic_linear:
  Epsilon: 1.1e-10
  EH: 1.1e-9
  Epot: 1.01e-9
+ Ekin: 1.1e-9
  energy: 1.841e-10
  Omega: 9.2e-10
  EvXC: 1.1e-9
@@ -791,7 +794,20 @@ experimentalfoe_short:
  D: 1.1e-4
  decay length of error function: 1.1e-5
 
-
+experimentalfoe_medium:
+ charge diff: 2.5e-7
+ eF: 8.3e-8
+ D Tr: 1.1e-6
+ D eF: 3.4e-8 
+ Tr(K): 2.5e-7
+ ebs: 2.5e-7
+ ebs_check: 4.4e-8
+ Epot: 1.1e-9
+ EH: 1.1e-9
+ Total charge: 3.1e-11
+ energy: 8.3e-11
+ Omega: 8.1e-10
+ decay length of error function: 1.1e-5
 
 newpulay:
  EXC: 1.1e-10
@@ -916,12 +932,13 @@ DIIShistory:
  Locreg:
  EH: 2.0e-8
  Pulay forces (Ha/Bohr): 7.8e-09
+ Max deviation from unity in reorthonormalize_coeff: 1.1e-9
 
 sparsity:
  Total charge: 1.1e-10
  Omega: 1.03e-9
  Clean forces norm (Ha/Bohr): 7.7e-11
- Raw forces norm (Ha/Bohr): 1.4e-11
+ Raw forces norm (Ha/Bohr): 1.1e-9
  Total ionic charge: 2.41e-11
  charge diff: 1.1e-9
  energy: 1.1e-9
@@ -987,3 +1004,13 @@ PBE_densmixdiis:
  Ekin: 1.1e-9
  Total charge: 2.01e-11
  EH: 1.0e-9
+
+test-bigdft-tool:
+ positions: 5.1e-8
+
+geoptconstrained:
+ eF: 1.1e-8
+ D eF: 1.1e-8
+ EH: 1.1e-10
+ charge diff: 4.2e-11
+ D Tr: 1.1e-9

@@ -52,11 +52,12 @@ module communications_base
     logical :: communication_complete
   end type p2pComms
 
-  interface check_array_consistency
-     module procedure check_array_consistency0
-     module procedure check_array_consistency1
-     module procedure check_array_consistency2
-  end interface
+  !substituted by function mpimaxdiff in wrappers/mpi.f90
+!!$  interface check_array_consistency
+!!$     module procedure check_array_consistency0
+!!$     module procedure check_array_consistency1
+!!$     module procedure check_array_consistency2
+!!$  end interface
        
   !> Public routines
   public :: comms_linear_null
@@ -73,7 +74,7 @@ module communications_base
   public :: allocate_p2pComms_buffer
   public :: deallocate_p2pComms_buffer
 
-  public :: check_array_consistency
+  !public :: check_array_consistency
 
   contains
 
@@ -299,58 +300,58 @@ module communications_base
     end subroutine deallocate_p2pComms_buffer
 
 
-    !> Check the consistency of arrays after a gather (example: atomic coordinates)
-    subroutine check_array_consistency0(maxdiff, nproc, array, ndims, mpi_comm)
-      use dynamic_memory
-      implicit none
-      integer, intent(in) :: mpi_comm
-      integer, intent(in) :: ndims, nproc
-      real(gp), intent(inout) :: array
-      real(gp), intent(out) :: maxdiff
-
-      integer :: ierr, jproc, i
-      real(gp), dimension(:,:), allocatable :: rxyz_glob
-
-      include 'check_array-inc.f90'
-
-    END SUBROUTINE check_array_consistency0
-
-
-    !> Check the consistency of arrays after a gather (example: atomic coordinates)
-    subroutine check_array_consistency1(maxdiff, nproc, array, mpi_comm)
-      use dynamic_memory
-      implicit none
-      integer, intent(in) :: mpi_comm
-      integer, intent(in) :: nproc
-      real(gp), dimension(:), intent(in) :: array
-      real(gp), intent(out) :: maxdiff
-
-      integer :: ierr, jproc, i, ndims
-      real(gp), dimension(:,:), allocatable :: rxyz_glob
-
-      ndims = size(array)
-
-      include 'check_array-inc.f90'
-
-    END SUBROUTINE check_array_consistency1
-
-
-    !> Check the consistency of arrays after a gather (example: atomic coordinates)
-    subroutine check_array_consistency2(maxdiff, nproc, array, mpi_comm)
-      use dynamic_memory
-      implicit none
-      integer, intent(in) :: mpi_comm
-      integer, intent(in) :: nproc
-      real(gp), dimension(:,:), intent(in) :: array
-      real(gp), intent(out) :: maxdiff
-
-      integer :: ierr, jproc, i, ndims
-      real(gp), dimension(:,:), allocatable :: rxyz_glob
-
-      ndims = size(array)
-
-      include 'check_array-inc.f90'
-
-    END SUBROUTINE check_array_consistency2
+!!$    !> Check the consistency of arrays after a gather (example: atomic coordinates)
+!!$    subroutine check_array_consistency0(maxdiff, nproc, array, ndims, mpi_comm)
+!!$      use dynamic_memory
+!!$      implicit none
+!!$      integer, intent(in) :: mpi_comm
+!!$      integer, intent(in) :: ndims, nproc
+!!$      real(gp), intent(inout) :: array
+!!$      real(gp), intent(out) :: maxdiff
+!!$
+!!$      integer :: ierr, jproc, i
+!!$      real(gp), dimension(:,:), allocatable :: rxyz_glob
+!!$
+!!$      include 'check_array-inc.f90'
+!!$
+!!$    END SUBROUTINE check_array_consistency0
+!!$
+!!$
+!!$    !> Check the consistency of arrays after a gather (example: atomic coordinates)
+!!$    subroutine check_array_consistency1(maxdiff, nproc, array, mpi_comm)
+!!$      use dynamic_memory
+!!$      implicit none
+!!$      integer, intent(in) :: mpi_comm
+!!$      integer, intent(in) :: nproc
+!!$      real(gp), dimension(:), intent(in) :: array
+!!$      real(gp), intent(out) :: maxdiff
+!!$
+!!$      integer :: ierr, jproc, i, ndims
+!!$      real(gp), dimension(:,:), allocatable :: rxyz_glob
+!!$
+!!$      ndims = size(array)
+!!$
+!!$      include 'check_array-inc.f90'
+!!$
+!!$    END SUBROUTINE check_array_consistency1
+!!$
+!!$
+!!$    !> Check the consistency of arrays after a gather (example: atomic coordinates)
+!!$    subroutine check_array_consistency2(maxdiff, nproc, array, mpi_comm)
+!!$      use dynamic_memory
+!!$      implicit none
+!!$      integer, intent(in) :: mpi_comm
+!!$      integer, intent(in) :: nproc
+!!$      real(gp), dimension(:,:), intent(in) :: array
+!!$      real(gp), intent(out) :: maxdiff
+!!$
+!!$      integer :: ierr, jproc, i, ndims
+!!$      real(gp), dimension(:,:), allocatable :: rxyz_glob
+!!$
+!!$      ndims = size(array)
+!!$
+!!$      include 'check_array-inc.f90'
+!!$
+!!$    END SUBROUTINE check_array_consistency2
 
 end module communications_base

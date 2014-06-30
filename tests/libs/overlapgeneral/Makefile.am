@@ -21,11 +21,13 @@ driver_SOURCES = driver.f90
 driver_LDADD = -lbigdft-1 @LINALG_LIBS@
 
 
-CLEANFILES = test-overlapgeneral.out.yaml 
+CLEANFILES = test-overlapgeneral.out.yaml test-overlapgeneral.report.yaml
 
 check: test-overlapgeneral.report.yaml
 
 test-overlapgeneral.report.yaml: $(srcdir)/test-overlapgeneral.ref.yaml test-overlapgeneral.out.yaml
+	@export PYTHONPATH=${PYTHONPATH} ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
 		-r $< -d test-overlapgeneral.out.yaml -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=test-overlapgeneral -o $@ 
 ##	python $(top_srcdir)/tests/fldiff_yaml.py $^ | tee $@

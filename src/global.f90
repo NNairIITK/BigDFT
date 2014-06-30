@@ -49,6 +49,7 @@ program MINHOP
   type(run_objects) :: runObj
   type(DFT_global_output) :: outs
   type(dictionary), pointer :: user_inputs
+integer:: fcount=0
 
   call f_lib_initialize()
   call bigdft_init(mpi_info,nconfig,run_id,ierr)
@@ -220,7 +221,7 @@ program MINHOP
      write(fn4,'(i4.4)') ngeopt
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
      call write_atomic_file('posimed_'//fn4//'_'//trim(bigdft_run_id_toa()),&
-          outs%energy,atoms%astruct%rxyz,atoms,trim(comment),forces=outs%fxyz)
+          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
       open(unit=864,file='ksemed_'//fn4//'_'//trim(bigdft_run_id_toa()))
       do i=1,nksevals
       write(864,*) ksevals(i)
@@ -228,8 +229,15 @@ program MINHOP
       close(864)
   endif
 
-  call ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
+  if (atoms%astruct%geocode=='F') call ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
 
+!  if ( .not. atoms%astruct%geocode=='F') then 
+!         write(*,*) 'Generating new input guess'
+!          inputs_opt%inputPsiId=0
+!          call run_objects_associate(runObj, inputs_opt, atoms, rst)
+!          call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+!          inputs_opt%inputPsiId=1
+!  endif   
   call run_objects_associate(runObj, inputs_opt, atoms, rst)
   call geopt(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of initial conf.',ncount_bigdft)
@@ -241,12 +249,22 @@ program MINHOP
      stop
   end if
 
+  if (bigdft_mpi%iproc == 0) then
+     tt=dnrm2(3*outs%fdim,outs%fxyz,1)
+     fcount=fcount+1
+     write(fn4,'(i4.4)')fcount
+     write(comment,'(a,1pe10.3)')'fnrm= ',tt
+     call write_atomic_file('posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
+  endif
+
+
   if (bigdft_mpi%iproc == 0) then 
      tt=dnrm2(3*outs%fdim,outs%fxyz,1)
      write(fn4,'(i4.4)') ngeopt
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
      call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
-          outs%energy,atoms%astruct%rxyz,atoms,trim(comment),forces=outs%fxyz)
+          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
       open(unit=864,file='kseloc_'//fn4//'_'//trim(bigdft_run_id_toa()))
       do i=1,nksevals
       write(864,*) ksevals(i)
@@ -455,7 +473,7 @@ program MINHOP
      write(fn4,'(i4.4)') ngeopt
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
      call write_atomic_file('posimed_'//fn4//'_'//trim(bigdft_run_id_toa()),&
-          e_pos,pos,atoms,trim(comment),forces=outs%fxyz)
+          e_pos,pos,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
       open(unit=864,file='ksemed_'//fn4//'_'//trim(bigdft_run_id_toa()))
       do i=1,nksevals
       write(864,*) ksevals(i)
@@ -463,9 +481,17 @@ program MINHOP
       close(864)
   endif
 
+  if (atoms%astruct%geocode=='F') call  ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
 
-  call  ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
+!  if ( .not. atoms%astruct%geocode=='F') then 
+!         write(*,*) 'Generating new input guess'
+!          inputs_opt%inputPsiId=0
+!          call run_objects_associate(runObj, inputs_opt, atoms, rst)
+!          call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+!          inputs_opt%inputPsiId=1
+!  endif   
   call run_objects_associate(runObj, inputs_opt, atoms, rst)
+
   call geopt(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of MD conf',ncount_bigdft)
      count_bfgs=count_bfgs+ncount_bigdft
@@ -484,7 +510,7 @@ program MINHOP
      write(fn4,'(i4.4)') ngeopt
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
      call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
-          outs%energy,atoms%astruct%rxyz,atoms,trim(comment),forces=outs%fxyz)
+          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
         open(unit=864,file='kseloc_'//fn4//'_'//trim(bigdft_run_id_toa()))
         do i=1,nksevals
           write(864,*) ksevals(i)
@@ -601,9 +627,16 @@ program MINHOP
      do i=1,nid
         fp(i)=fphop(i)
      enddo
+  if (bigdft_mpi%iproc == 0) then
+     fcount=fcount+1
+     write(fn4,'(i4.4)')fcount
+     call write_atomic_file('posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+          e_pos,pos,atoms%astruct%ixyz_int,atoms,'')
+  endif
+
      if (bigdft_mpi%iproc == 0) then
         !call yaml_open_map('(MH) Write poscur file')
-       call write_atomic_file('poscur'//trim(bigdft_run_id_toa()),e_pos,pos,atoms,'')
+       call write_atomic_file('poscur'//trim(bigdft_run_id_toa()),e_pos,pos,atoms%astruct%ixyz_int,atoms,'')
        call yaml_map('(MH) poscur.xyz for  RESTART written',.true.)
 
        write(2,'(1x,f10.0,1x,1pe21.14,2(1x,1pe10.3),3(1x,0pf5.2),a)')  &
@@ -797,7 +830,8 @@ rkin=dot(3*atoms%astruct%nat,vxyz(1,1),1,vxyz(1,1),1)
 
        if (iproc == 0) then
           write(fn4,'(i4.4)') istep
-          call write_atomic_file(trim(inputs_md%dir_output)//'posmd_'//fn4,outs%energy,atoms%astruct%rxyz,atoms,'',forces=outs%fxyz)
+          call write_atomic_file(trim(inputs_md%dir_output)//'posmd_'//fn4,outs%energy,&
+              atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,'',forces=outs%fxyz)
        end if
 
        en0000=outs%energy-e0
@@ -809,7 +843,7 @@ rkin=dot(3*atoms%astruct%nat,vxyz(1,1),1,vxyz(1,1),1)
           write(fn4,'(i4.4)') ngeopt
           write(comment,'(a,i3)')'nummin= ',nummin
           call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()), & 
-               outs%energy,atoms%astruct%rxyz,atoms,trim(comment),forces=outs%fxyz)
+               outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
        endif
        econs_max=max(econs_max,rkin+outs%energy)
        econs_min=min(econs_min,rkin+outs%energy)
@@ -963,7 +997,7 @@ rkin=dot(3*atoms%astruct%nat,vxyz(1,1),1,vxyz(1,1),1)
        write(comment,'(a,1pe10.3)')'res= ',res
        if (iproc == 0) &
             call write_atomic_file(trim(inputs_md%dir_output)//'possoft_'//fn4,&
-            outs%energy,atoms%astruct%rxyz,atoms,trim(comment),forces=outs%fxyz)
+            outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
       
        if(iproc==0) then
           call yaml_open_map('(MH) soften',flow=.true.)
@@ -1006,7 +1040,8 @@ rkin=dot(3*atoms%astruct%nat,vxyz(1,1),1,vxyz(1,1),1)
         call axpy(3*atoms%astruct%nat, -1.d0, pos0(1), 1, vxyz(1), 1)
        write(comment,'(a,1pe10.3)')'curv= ',curv
        if (iproc == 0) &
-            call write_atomic_file(trim(inputs_md%dir_output)//'posvxyz',0.d0,vxyz,atoms,trim(comment),forces=outs%fxyz)
+            call write_atomic_file(trim(inputs_md%dir_output)//'posvxyz',0.d0,vxyz,atoms%astruct%ixyz_int,&
+                 atoms,trim(comment),forces=outs%fxyz)
 
        call elim_moment(atoms%astruct%nat,vxyz)
        if (atoms%astruct%geocode == 'F') &
@@ -1485,7 +1520,8 @@ subroutine winter(nat,at,nid,nlminx,nlmin,en_delta,fp_delta, &
      !C generate filename and open files
      write(fn5,'(i5.5)') k
      !        write(comment,'(a,1pe15.8)')'energy= ',en_arr(k)
-     call  write_atomic_file('poslow'//fn5//'_'//trim(bigdft_run_id_toa()),en_arr(k),pl_arr(1,1,k),at,'')
+     call  write_atomic_file('poslow'//fn5//'_'//trim(bigdft_run_id_toa()),en_arr(k),pl_arr(1,1,k),&
+           at%astruct%ixyz_int,at,'')
   end do
 
   call yaml_map('(MH) poslow files written',.true.)
@@ -2205,8 +2241,8 @@ logical ,dimension(nat) :: onsurface
 
     ylow=ymin+ilow*.25d0
     yhigh=ymin+ihigh*.25d0
-    if (iproc.eq.0) write(*,*) "#MH ylow,ycen,yhigh",ylow,ymin+icen*.25d0,yhigh
-             write(1000+iproc,*) "#MH ylow,ycen,yhigh",ylow,ymin+icen*.25d0,yhigh
+    if (iproc.eq.0) write(*,'(a,3(1x,e10.3))') "#MH ylow,ycen,yhigh",ylow,ymin+icen*.25d0,yhigh
+!             write(1000+iproc,'(a,3(1x,e10.3))') "#MH ylow,ycen,yhigh",ylow,ymin+icen*.25d0,yhigh
 
 if (option.eq.2) then
 

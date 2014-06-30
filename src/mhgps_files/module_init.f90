@@ -23,6 +23,7 @@ contains
         endif
         open(u,file=filename)
             read(u,*)mhgps_verbosity
+            read(u,*)saddle_connect, random_minmode_guess
             read(u,*)efmethod
             read(u,*)saddle_biomode
             if(saddle_biomode)saddle_imode=2
@@ -50,6 +51,7 @@ contains
         character(17), parameter :: filename='mhgps.inp_default'
         open(u,file=filename)
             write(u,'(xi0.0,xa)')mhgps_verbosity,' #mhgps_verbosity'
+            write(u,'(xL,xL,xa)')saddle_connect,random_minmode_guess, ' #connect, random_minmode_guess'
             write(u,'(xa,xa)')trim(adjustl(efmethod)),' #efmethod'
             write(u,'(xL,xa)')saddle_biomode,' #biomode'
             write(u,'(xi0,xi0,xa)')saddle_nit_trans, saddle_nit_rot,'  #nit_trans, not_rot'

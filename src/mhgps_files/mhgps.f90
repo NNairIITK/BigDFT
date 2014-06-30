@@ -76,6 +76,11 @@ real(gp),allocatable :: eval(:),work(:)
         call init_restart_objects(bigdft_mpi%iproc,inputs_opt,atoms,rst,subname)
         call run_objects_nullify(runObj)
         call run_objects_associate(runObj, inputs_opt, atoms, rst)
+        if(runObj%inputs%itermin<5)then
+            itermin=5
+        else
+            itermin=runObj%inputs%itermin
+        endif
 
     elseif(efmethod=='LJ')then
         write(folder,'(a,i3.3)')'input',ifolder
@@ -122,47 +127,6 @@ real(gp),allocatable :: eval(:),work(:)
    LWORK=3*3*atoms%astruct%nat-1
    allocate(eval(3*atoms%astruct%nat),work(lwork))
 
-!    do ifolder = 1,999
-!        do ifile = 1,999
-!            write(folder,'(a,i3.3)')'input',ifolder
-!            write(filename,'(a,i3.3)')'min',ifile
-!            inquire(file=folder//'/'//filename//'.xyz',exist=xyzexists)
-!            inquire(file=folder//'/'//filename//'.ascii',exist=asciiexists)
-!            if(.not.(xyzexists.or.asciiexists))exit
-!            call deallocate_atomic_structure(atoms%astruct)
-!            call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
-!            call vcopy(3 * atoms%astruct%nat,atoms%astruct%rxyz(1,1),1,rxyz(1,1), 1)
-!            call vcopy(3 * atoms%astruct%nat,outs%fxyz(1,1),1,fxyz(1,1), 1)
-!!            call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,energy)
-!call cal_hessian_fd(iproc,atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,hess)
-!        call DSYEV('V','L',3*atoms%astruct%nat,hess,3*atoms%astruct%nat,eval,WORK,LWORK,INFO)
-!        if (info.ne.0) stop 'DSYEV'
-!        write(*,*) '---   App. eigenvalues in exact -------------'
-!        do j=1,10
-!            write(*,*) 'eval ',j,eval(j)
-!        enddo
-!
-!!!!            do i=1,atoms%astruct%nat
-!!!!                minmode(1,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
-!!!!                minmode(2,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
-!!!!                minmode(3,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
-!!!!            enddo
-!!!!
-!!!!           call findsad(saddle_imode,atoms%astruct%nat,atoms%astruct%cell_dim,rcov,saddle_alpha0_trans,saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_trans,&
-!!!!           saddle_nit_rot,saddle_nhistx_trans,saddle_nhistx_rot,saddle_tolc,saddle_tolf,saddle_tightenfac,saddle_rmsdispl0,&
-!!!!           saddle_trustr,rxyz,energy,fxyz,minmode,saddle_fnrmtol,count,count_sd,displ,ec,&
-!!!!           converged,atoms%astruct%atomnames,nbond,iconnect,saddle_alpha_stretch0,saddle_recompIfCurvPos,saddle_maxcurvrise,saddle_cutoffratio)
-!!call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
-!!call minimizer_sbfgs(runObj,outs,nproc,iproc,1,ncount_bigdft,fail)
-!!rxyz=atoms%astruct%rxyz
-!!fxyz=outs%fxyz
-!!call curvgrad(atoms%astruct%nat,atoms%astruct%cell_dim,1.d-3,rxyz,fxyz,minmode,curv,rotforce,1,ec)
-!!rxyz=atoms%astruct%rxyz
-!!fxyz=outs%fxyz
-!        enddo
-!    enddo
-
-    !compute minmode only:
     do ifolder = 1,999
         do ifile = 1,999
             write(folder,'(a,i3.3)')'input',ifolder
@@ -174,21 +138,62 @@ real(gp),allocatable :: eval(:),work(:)
             call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
             call vcopy(3 * atoms%astruct%nat,atoms%astruct%rxyz(1,1),1,rxyz(1,1), 1)
             call vcopy(3 * atoms%astruct%nat,outs%fxyz(1,1),1,fxyz(1,1), 1)
-            call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,energy)
- 
+!            call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,energy)
+!!call cal_hessian_fd(iproc,atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,hess)
+!!        call DSYEV('V','L',3*atoms%astruct%nat,hess,3*atoms%astruct%nat,eval,WORK,LWORK,INFO)
+!!        if (info.ne.0) stop 'DSYEV'
+!!        write(*,*) '---   App. eigenvalues in exact -------------'
+!!        do j=1,10
+!!            write(*,*) 'eval ',j,eval(j)
+!!        enddo
+
             do i=1,atoms%astruct%nat
                 minmode(1,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
                 minmode(2,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
                 minmode(3,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
             enddo
 
-            call opt_curv(saddle_imode,atoms%astruct%nat,atoms%astruct%cell_dim,&
-                 saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_rot,saddle_nhistx_rot,&
-                 rxyz,fxyz,minmode,curv,gradrot,saddle_tolf,count,count_sd,displ,ec,&
-                 .false.,converged,iconnect,nbond,atoms%astruct%atomnames,&
-                 saddle_alpha_stretch0,saddle_maxcurvrise,saddle_cutoffratio)
-       enddo
+           call findsad(saddle_imode,atoms%astruct%nat,atoms%astruct%cell_dim,rcov,saddle_alpha0_trans,saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_trans,&
+           saddle_nit_rot,saddle_nhistx_trans,saddle_nhistx_rot,saddle_tolc,saddle_tolf,saddle_tightenfac,saddle_rmsdispl0,&
+           saddle_trustr,rxyz,energy,fxyz,minmode,saddle_fnrmtol,count,count_sd,displ,ec,&
+           converged,atoms%astruct%atomnames,nbond,iconnect,saddle_alpha_stretch0,saddle_recompIfCurvPos,saddle_maxcurvrise,saddle_cutoffratio)
+!call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+!call minimizer_sbfgs(runObj,outs,nproc,iproc,1,ncount_bigdft,fail)
+!rxyz=atoms%astruct%rxyz
+!fxyz=outs%fxyz
+!call curvgrad(atoms%astruct%nat,atoms%astruct%cell_dim,1.d-3,rxyz,fxyz,minmode,curv,rotforce,1,ec)
+!rxyz=atoms%astruct%rxyz
+!fxyz=outs%fxyz
+        enddo
     enddo
+
+!    !compute minmode only:
+!    do ifolder = 1,999
+!        do ifile = 1,999
+!            write(folder,'(a,i3.3)')'input',ifolder
+!            write(filename,'(a,i3.3)')'min',ifile
+!            inquire(file=folder//'/'//filename//'.xyz',exist=xyzexists)
+!            inquire(file=folder//'/'//filename//'.ascii',exist=asciiexists)
+!            if(.not.(xyzexists.or.asciiexists))exit
+!            call deallocate_atomic_structure(atoms%astruct)
+!            call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
+!            call vcopy(3 * atoms%astruct%nat,atoms%astruct%rxyz(1,1),1,rxyz(1,1), 1)
+!            call vcopy(3 * atoms%astruct%nat,outs%fxyz(1,1),1,fxyz(1,1), 1)
+!            call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,energy)
+! 
+!            do i=1,atoms%astruct%nat
+!                minmode(1,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+!                minmode(2,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+!                minmode(3,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+!            enddo
+!
+!            call opt_curv(saddle_imode,atoms%astruct%nat,atoms%astruct%cell_dim,&
+!                 saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_rot,saddle_nhistx_rot,&
+!                 rxyz,fxyz,minmode,curv,gradrot,saddle_tolf,count,count_sd,displ,ec,&
+!                 .false.,converged,iconnect,nbond,atoms%astruct%atomnames,&
+!                 saddle_alpha_stretch0,saddle_maxcurvrise,saddle_cutoffratio)
+!       enddo
+!    enddo
 
 
 

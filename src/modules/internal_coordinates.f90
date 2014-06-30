@@ -13,6 +13,12 @@ end module vector_operations
 
 module internal_coordinates
 
+  private
+
+  public :: internal_to_cartesian
+  public :: get_neighbors
+  public :: xyzint
+
   contains
 
     !>calculates the dihedral angle between atoms i, j, k,
@@ -207,6 +213,147 @@ module internal_coordinates
       geo(3,3)=0.d0
     
     end subroutine xyzgeo
+
+
+
+    !> get_neighbors gives the neighbor lists used for the internal coordinates.
+    !!        the "rules" for the connectivity are as follows:
+    !!        atom i is defined as being at a distance from the nearest
+    !!        atom j, atom j already having been defined.
+    !!        atom i makes an angle with atom j and the atom k, which has
+    !!        already been defined, and is the nearest atom to j
+    !!        atom i makes a dihedral angle with atoms j, k, and l. l having
+    !!        been defined and is the nearest atom to k
+    !!
+    !!
+    !!   on input xyz    = cartesian array of numat atoms
+    subroutine get_neighbors(xyz,numat,na,nb,nc,atoms_ref)
+      use dynamic_memory
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: numat
+      real(kind=8),dimension(3,numat),intent(in) :: xyz
+      integer,dimension(numat),intent(out) :: na, nb, nc
+      integer,dimension(3,numat),target,intent(in),optional :: atoms_ref !< indicates the reference atoms 
+    
+      ! Local variables
+      integer :: nai1, nai2, i, j, im1, k
+      real(kind=8) :: sum, r
+      integer,dimension(:,:),pointer :: iref
+      logical :: found
+
+      if (present(atoms_ref)) then
+          iref => atoms_ref
+      else
+          iref = f_malloc_ptr((/3,numat/),id='iref')
+          iref = -1
+      end if
+
+      !na(1)=0
+      !nb(1)=0
+      !nc(1)=0
+      !nb(2)=1
+      !nc(2)=0
+      !nc(3)=1
+    
+      nai1=0
+      nai2=0
+      do  i=1,numat
+         na(i)=2
+         nb(i)=3
+         nc(i)=4
+         im1=i-1
+         if(im1.eq.0) cycle
+         if (iref(1,i)>0) then
+             ! take the indicated atom as reference
+             if (iref(1,i)>numat) stop 'iref(1,i)>numat'
+             k=iref(1,i)
+         else
+             ! take the nearest atom as reference
+             sum=100.d0
+             do  j=1,im1
+                r=(xyz(1,i)-xyz(1,j))**2+&
+                     (xyz(2,i)-xyz(2,j))**2+&
+                     (xyz(3,i)-xyz(3,j))**2
+                if(r<sum .and. na(j)/=j .and. nb(j)/=j .and. iref(2,j)/=j .and. iref(3,j)/=j) then
+                   sum=r
+                   k=j
+                endif
+             end do
+             !
+             !   atom i is nearest to atom k
+             !
+         end if
+         na(i)=k
+         if(i.gt.2) then
+             if (iref(2,i)>0) then
+                 ! take the indicated atom as reference
+                 if (iref(2,i)>numat) stop 'iref(2,i)>numat'
+                 nb(i)=iref(2,i)
+             else
+                 ! take the nearest atom of k, if this is not the same as
+                 ! the nearest of i (can only happen if na(i) was given manually)
+                 if (na(k)/=na(i)) then
+                     nb(i)=na(k)
+                 else
+                     ! chose another atom
+                     found=.false.
+                     do j=i-1,1,-1
+                         if (j/=na(i)) then
+                             nb(i)=j
+                             found=.true.
+                             exit
+                         end if
+                     end do
+                     if (.not.found) stop 'could not determine nb(i)'
+                 end if
+             end if
+         end if
+         if(i.gt.3) then
+             if (iref(3,i)>0) then
+                 ! take the indicated atom as reference
+                 if (iref(3,i)>numat) stop 'iref(3,i)>numat'
+                 nc(i)=iref(3,i)
+             else
+                 ! take the nearest atom of na(k), if this is not the same as
+                 ! the nearest of i and k (can only happen if na(i) or nb(i) was given manually)
+                 k=na(i)
+                 if (nb(k)/=na(i) .and. nb(k)/=nb(i)) then
+                     nc(i)=nb(k)
+                 else
+                     ! chose another atom
+                     found=.false.
+                     do j=i-1,1,-1
+                         if (j/=na(i).and. j/=nb(i)) then
+                             nc(i)=j
+                             found=.true.
+                             exit
+                         end if
+                     end do
+                     if (.not.found) stop 'could not determine nc(i)'
+                 end if
+             end if
+         end if
+         !
+         !   find any atom to relate to na(i)
+         !
+      end do
+      na(1)=0
+      nb(1)=0
+      nc(1)=0
+      nb(2)=0
+      nc(2)=0
+      nc(3)=0
+
+      if (.not.present(atoms_ref)) then
+          call f_free_ptr(iref)
+      end if
+    
+    end subroutine get_neighbors
+
+
+
     
     !> xyzint works out the internal coordinates of a molecule.
     !!        the "rules" for the connectivity are as follows:
@@ -229,47 +376,47 @@ module internal_coordinates
       integer,intent(in) :: numat
       real(kind=8),intent(in) :: degree
       real(kind=8),dimension(3,numat),intent(in) :: xyz
+      integer,dimension(numat),intent(in) :: na, nb, nc
       real(kind=8),dimension(3,numat),intent(out) :: geo
-      integer,dimension(numat),intent(out) :: na, nb, nc
     
       ! Local variables
       integer :: nai1, nai2, i, j, im1, k
       real(kind=8) :: sum, r
     
-      nai1=0
-      nai2=0
-      do  i=1,numat
-         na(i)=2
-         nb(i)=3
-         nc(i)=4
-         im1=i-1
-         if(im1.eq.0) cycle
-         sum=100.d0
-         do  j=1,im1
-            r=(xyz(1,i)-xyz(1,j))**2+&
-                 (xyz(2,i)-xyz(2,j))**2+&
-                 (xyz(3,i)-xyz(3,j))**2
-            if(r.lt.sum.and.na(j).ne.j.and.nb(j).ne.j) then
-               sum=r
-               k=j
-            endif
-         end do
-         !
-         !   atom i is nearest to atom k
-         !
-         na(i)=k
-         if(i.gt.2)nb(i)=na(k)
-         if(i.gt.3)nc(i)=nb(k)
-         !
-         !   find any atom to relate to na(i)
-         !
-      end do
-      na(1)=0
-      nb(1)=0
-      nc(1)=0
-      nb(2)=0
-      nc(2)=0
-      nc(3)=0
+      !!nai1=0
+      !!nai2=0
+      !!do  i=1,numat
+      !!   na(i)=2
+      !!   nb(i)=3
+      !!   nc(i)=4
+      !!   im1=i-1
+      !!   if(im1.eq.0) cycle
+      !!   sum=100.d0
+      !!   do  j=1,im1
+      !!      r=(xyz(1,i)-xyz(1,j))**2+&
+      !!           (xyz(2,i)-xyz(2,j))**2+&
+      !!           (xyz(3,i)-xyz(3,j))**2
+      !!      if(r.lt.sum.and.na(j).ne.j.and.nb(j).ne.j) then
+      !!         sum=r
+      !!         k=j
+      !!      endif
+      !!   end do
+      !!   !
+      !!   !   atom i is nearest to atom k
+      !!   !
+      !!   na(i)=k
+      !!   if(i.gt.2)nb(i)=na(k)
+      !!   if(i.gt.3)nc(i)=nb(k)
+      !!   !
+      !!   !   find any atom to relate to na(i)
+      !!   !
+      !!end do
+      !!na(1)=0
+      !!nb(1)=0
+      !!nc(1)=0
+      !!nb(2)=0
+      !!nc(2)=0
+      !!nc(3)=0
       call xyzgeo(xyz,numat,na,nb,nc,degree,geo)
     
     end subroutine xyzint
@@ -291,6 +438,7 @@ module internal_coordinates
       integer :: iat, irefa, irefb, irefc
       real(kind=8) :: tt
       real(kind=8),dimension(3) :: vector, vector1, vector2
+
     
       do iat=1,nat
     

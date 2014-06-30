@@ -63,6 +63,7 @@ module module_defs
   real(gp), parameter :: kb_HaK=8.617343d-5/Ha_eV                       !< Boltzmann constant in Ha/K
   real(gp), parameter :: amu_emass=1.660538782e-27_gp/9.10938215e-31_gp !< 1 atomic mass unit, in electronic mass
   real(gp), parameter :: AU_GPa=29421.010901602753_gp                   !< 1 Ha/Bohr^3 in GPa
+  real(gp), parameter :: Radian_Degree = 57.29577951308232087679_gp     !< 1 radian in degrees
 
   !> Evergreens
   real(dp), parameter :: pi_param=3.141592653589793238462643383279502884197_dp

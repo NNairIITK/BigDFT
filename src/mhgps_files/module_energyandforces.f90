@@ -28,7 +28,6 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,epot)
         endif
         call vcopy(3 * runObj%atoms%astruct%nat, rxyz(1,1),1,runObj%atoms%astruct%rxyz(1,1), 1)
         runObj%inputs%inputPsiId=inputPsiId
-write(831,*)itermin
         runObj%inputs%itermin=itermin
         call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
         call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz(1,1), 1)
