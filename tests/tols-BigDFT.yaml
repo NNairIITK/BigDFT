@@ -59,6 +59,8 @@ yaml_test:
    - Errors found while (de)allocating ab and b
    - Calling sequence of Main program (routines with * are not closed yet)
    - Additional Info
+   - Something to use ab
+   - Entering Thread No.
  Patterns to ignore:
    - errcode
    - time
