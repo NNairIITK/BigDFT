@@ -681,6 +681,7 @@ deltascf_write_neut:
 
 foe:
  Epot: 1.1e-10
+ Ekin: 1.1e-10
  energy: 1.378e-10
  EH: 1.0e-9
  Omega: 1.64e-10
