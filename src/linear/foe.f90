@@ -1362,6 +1362,7 @@ subroutine get_roots_of_cubic_polynomial(a, b, c, d, target_solution, solution)
   ! Local variables
   complex(kind=8) :: a_c, b_c, c_c, d_c, Q_c, S_c, ttp_c, ttm_c
   complex(kind=8),dimension(3) :: sol_c
+  double complex :: test
   real(kind=8) :: ttmin, tt
   integer :: i
 
@@ -1374,7 +1375,10 @@ subroutine get_roots_of_cubic_polynomial(a, b, c, d, target_solution, solution)
   S_c = ( .5d0*(Q_c+2*b_c**3-9*a_c*b_c*c_c+27*a_c**2*d_c) )**(1.d0/3.d0)
   ttp_c = cmplx(1.d0,sqrt(3.d0),kind=8)
   ttm_c = cmplx(1.d0,-sqrt(3.d0),kind=8)
-  sol_c(1) = -b_c/(3*a_c) - S_c/(3*a_c) - (b_c**2-3*a_c*c_c)/(3*a_c*S_c)
+
+  sol_c(1) = -b_c/(3*a_c) &
+       - S_c/(3*a_c) &
+       - (b_c**2-3*a_c*c_c)/(3*a_c*S_c)
   sol_c(2) = -b_c/(3*a_c) + (S_c*ttp_c)/(6*a_c) + ttm_c*(b_c**2-3*a_c*c_c)/(6*a_c*S_c)
   sol_c(3) = -b_c/(3*a_c) + (S_c*ttm_c)/(6*a_c) + ttp_c*(b_c**2-3*a_c*c_c)/(6*a_c*S_c)
   !!if (iproc==0) then
@@ -1387,10 +1391,10 @@ subroutine get_roots_of_cubic_polynomial(a, b, c, d, target_solution, solution)
   ttmin=1.d100
   do i=1,3
       if (abs(aimag(sol_c(i)))>1.d-14) cycle !complex solution
-      tt=abs(real(sol_c(i))-target_solution)
+      tt=abs(real(sol_c(i),kind=8)-target_solution)
       if (tt<ttmin) then
           ttmin=tt
-          solution=real(sol_c(i))
+          solution=real(sol_c(i),kind=8)
       end if
   end do
 

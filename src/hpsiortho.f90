@@ -2076,7 +2076,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
    real(gp), parameter :: pi=3.1415926535897932d0
    real(gp), parameter :: sqrtpi=sqrt(pi)
    real(gp), dimension(1,1,1) :: fakepsi
-   integer :: ikpt,iorb,melec,ii
+   integer :: ikpt,iorb,melec,ii,info_fermi
    real(gp) :: charge, chargef
    real(gp) :: ef,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff,full,res,resu,resd
    real(gp) :: a, x, xu, xd, f, df, tt
@@ -2194,8 +2194,12 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
          if (corr < -1.d0*wf) corr=-1.d0*wf
          if (abs(dlectrons) < 1.d-18  .and. electrons > real(melec,gp)/full) corr=3.d0*wf
          if (abs(dlectrons) < 1.d-18  .and. electrons < real(melec,gp)/full) corr=-3.d0*wf
-         !ef=ef-corr  ! Ef=Ef_guess+corr.
-         call determine_fermi_level(ft, electrons, ef)
+         !call determine_fermi_level(ft, electrons, ef,info_fermi)
+         !if (info_fermi /= 0) then
+         !   call f_err_throw('Difficulties in guessing the new Fermi energy, info='//trim(yaml_toa(info_fermi)),&
+         !        err_name='BIGDFT_RUNTIME_ERROR')
+         !end if
+         ef=ef-corr  ! Ef=Ef_guess+corr.
          !call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr) !debug
       end do loop_fermi
 
@@ -2277,10 +2281,11 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
             chargef=chargef+orbs%kwgts(ikpt) * orbs%occup(iorb+(ikpt-1)*orbs%norb)
          end do
       end do
-      if (abs(charge - chargef) > 1e-6)  then
+      !if (abs(charge - chargef) > 1e-6)  then
+      if (abs(real(melec,gp)- chargef) > 1e-6)  then
          if (orbs%nspinor /= 4) call eigensystem_info(iproc,nproc,1.e-8_gp,0,orbs,fakepsi)
          call f_err_throw('Failed to determine correctly the occupation number, expected='//yaml_toa(charge)// &
-            & ', found='//yaml_toa(chargef),err_name='BIGDFT_RUNTIME_ERROR')
+              ', found='//yaml_toa(chargef),err_name='BIGDFT_RUNTIME_ERROR')
       end if
       !DEBUG call yaml_map('Electronic charges (expected, found)', (/ charge, chargef /))
    else if(full==1.0_gp) then
