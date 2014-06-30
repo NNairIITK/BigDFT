@@ -36,11 +36,12 @@ real(gp), allocatable, dimension(:,:) :: gradrot
 
 !simple atomic datastructre
 integer :: nat
-real(gp),allocatable :: rxyz(:,:),fxyz(:,:),rotforce(:,:)
+real(gp),allocatable :: rxyz(:,:),fxyz(:,:),rotforce(:,:),hess(:,:)
 real(gp) :: energy
-integer :: i
+integer :: i,j,info,lwork
 integer :: idum=0
 real(kind=4) :: tt,builtin_rand
+real(gp),allocatable :: eval(:),work(:)
 
     ifolder=1
     ifile=1
@@ -96,6 +97,7 @@ real(kind=4) :: tt,builtin_rand
     iconnect = f_malloc((/ 1.to.2, 1.to.1000/),id='iconnect')
     gradrot  = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='gradrot')
     rotforce = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='rotforce')
+    hess     = f_malloc((/ 1.to.3*atoms%astruct%nat, 1.to.3*atoms%astruct%nat/),id='hess')
 
     !if in biomode, determine bonds betweens atoms once and for all (it is
     !assuemed that all conifugrations over which will be iterated have the same
@@ -116,39 +118,10 @@ real(kind=4) :: tt,builtin_rand
 !    if (iproc ==0 ) call yaml_comment('Saddle monitoring file opened, name:'//trim(filename)//', timestamp: '//trim(yaml_date_and_time_toa()),&
 !       hfill='-',unit=usaddle)
 
-    do ifolder = 1,999
-        do ifile = 1,999
-            write(folder,'(a,i3.3)')'input',ifolder
-            write(filename,'(a,i3.3)')'min',ifile
-            inquire(file=folder//'/'//filename//'.xyz',exist=xyzexists)
-            inquire(file=folder//'/'//filename//'.ascii',exist=asciiexists)
-            if(.not.(xyzexists.or.asciiexists))exit
-            call deallocate_atomic_structure(atoms%astruct)
-            call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
-            call vcopy(3 * atoms%astruct%nat,atoms%astruct%rxyz(1,1),1,rxyz(1,1), 1)
-            call vcopy(3 * atoms%astruct%nat,outs%fxyz(1,1),1,fxyz(1,1), 1)
-!            call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,energy)
-            do i=1,atoms%astruct%nat
-                minmode(1,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
-                minmode(2,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
-                minmode(3,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
-            enddo
 
-           call findsad(saddle_imode,atoms%astruct%nat,atoms%astruct%cell_dim,rcov,saddle_alpha0_trans,saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_trans,&
-           saddle_nit_rot,saddle_nhistx_trans,saddle_nhistx_rot,saddle_tolc,saddle_tolf,saddle_tightenfac,saddle_rmsdispl0,&
-           saddle_trustr,rxyz,energy,fxyz,minmode,saddle_fnrmtol,count,count_sd,displ,ec,&
-           converged,atoms%astruct%atomnames,nbond,iconnect,saddle_alpha_stretch0,saddle_recompIfCurvPos,saddle_maxcurvrise,saddle_cutoffratio)
-!call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
-!call minimizer_sbfgs(runObj,outs,nproc,iproc,1,ncount_bigdft,fail)
-!rxyz=atoms%astruct%rxyz
-!fxyz=outs%fxyz
-!call curvgrad(atoms%astruct%nat,atoms%astruct%cell_dim,1.d-3,rxyz,fxyz,minmode,curv,rotforce,1,ec)
-!rxyz=atoms%astruct%rxyz
-!fxyz=outs%fxyz
-        enddo
-    enddo
+   LWORK=3*3*atoms%astruct%nat-1
+   allocate(eval(3*atoms%astruct%nat),work(lwork))
 
-!    !compute minmode only:
 !    do ifolder = 1,999
 !        do ifile = 1,999
 !            write(folder,'(a,i3.3)')'input',ifolder
@@ -160,21 +133,62 @@ real(kind=4) :: tt,builtin_rand
 !            call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
 !            call vcopy(3 * atoms%astruct%nat,atoms%astruct%rxyz(1,1),1,rxyz(1,1), 1)
 !            call vcopy(3 * atoms%astruct%nat,outs%fxyz(1,1),1,fxyz(1,1), 1)
-!            call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,energy)
-! 
-!            do i=1,atoms%astruct%nat
-!                minmode(1,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
-!                minmode(2,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
-!                minmode(3,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
-!            enddo
+!!            call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,energy)
+!call cal_hessian_fd(iproc,atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,hess)
+!        call DSYEV('V','L',3*atoms%astruct%nat,hess,3*atoms%astruct%nat,eval,WORK,LWORK,INFO)
+!        if (info.ne.0) stop 'DSYEV'
+!        write(*,*) '---   App. eigenvalues in exact -------------'
+!        do j=1,10
+!            write(*,*) 'eval ',j,eval(j)
+!        enddo
 !
-!            call opt_curv(saddle_imode,atoms%astruct%nat,atoms%astruct%cell_dim,&
-!                 saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_rot,saddle_nhistx_rot,&
-!                 rxyz,fxyz,minmode,curv,gradrot,saddle_tolf,count,count_sd,displ,ec,&
-!                 .false.,converged,iconnect,nbond,atoms%astruct%atomnames,&
-!                 saddle_alpha_stretch0,saddle_maxcurvrise,saddle_cutoffratio)
+!!!!            do i=1,atoms%astruct%nat
+!!!!                minmode(1,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+!!!!                minmode(2,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+!!!!                minmode(3,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+!!!!            enddo
+!!!!
+!!!!           call findsad(saddle_imode,atoms%astruct%nat,atoms%astruct%cell_dim,rcov,saddle_alpha0_trans,saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_trans,&
+!!!!           saddle_nit_rot,saddle_nhistx_trans,saddle_nhistx_rot,saddle_tolc,saddle_tolf,saddle_tightenfac,saddle_rmsdispl0,&
+!!!!           saddle_trustr,rxyz,energy,fxyz,minmode,saddle_fnrmtol,count,count_sd,displ,ec,&
+!!!!           converged,atoms%astruct%atomnames,nbond,iconnect,saddle_alpha_stretch0,saddle_recompIfCurvPos,saddle_maxcurvrise,saddle_cutoffratio)
+!!call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+!!call minimizer_sbfgs(runObj,outs,nproc,iproc,1,ncount_bigdft,fail)
+!!rxyz=atoms%astruct%rxyz
+!!fxyz=outs%fxyz
+!!call curvgrad(atoms%astruct%nat,atoms%astruct%cell_dim,1.d-3,rxyz,fxyz,minmode,curv,rotforce,1,ec)
+!!rxyz=atoms%astruct%rxyz
+!!fxyz=outs%fxyz
 !        enddo
 !    enddo
+
+    !compute minmode only:
+    do ifolder = 1,999
+        do ifile = 1,999
+            write(folder,'(a,i3.3)')'input',ifolder
+            write(filename,'(a,i3.3)')'min',ifile
+            inquire(file=folder//'/'//filename//'.xyz',exist=xyzexists)
+            inquire(file=folder//'/'//filename//'.ascii',exist=asciiexists)
+            if(.not.(xyzexists.or.asciiexists))exit
+            call deallocate_atomic_structure(atoms%astruct)
+            call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
+            call vcopy(3 * atoms%astruct%nat,atoms%astruct%rxyz(1,1),1,rxyz(1,1), 1)
+            call vcopy(3 * atoms%astruct%nat,outs%fxyz(1,1),1,fxyz(1,1), 1)
+            call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,energy)
+ 
+            do i=1,atoms%astruct%nat
+                minmode(1,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+                minmode(2,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+                minmode(3,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+            enddo
+
+            call opt_curv(saddle_imode,atoms%astruct%nat,atoms%astruct%cell_dim,&
+                 saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_rot,saddle_nhistx_rot,&
+                 rxyz,fxyz,minmode,curv,gradrot,saddle_tolf,count,count_sd,displ,ec,&
+                 .false.,converged,iconnect,nbond,atoms%astruct%atomnames,&
+                 saddle_alpha_stretch0,saddle_maxcurvrise,saddle_cutoffratio)
+       enddo
+    enddo
 
 
 
@@ -201,8 +215,115 @@ real(kind=4) :: tt,builtin_rand
     call f_free(fxyz)
     call f_free(gradrot)
     call f_free(rotforce)
+    call f_free(hess)
     call f_free(rcov)
     call f_free(iconnect)
 
     call f_lib_finalize()
 end program
+
+subroutine cal_hessian_fd(iproc,nat,alat,pos,hess)
+use module_energyandforces
+    implicit none
+    integer, intent(in):: iproc, nat
+    real(8), intent(in) :: pos(3*nat),alat(3)
+    real(8), intent(inout) :: hess(3*nat,3*nat)
+    !local variables
+    integer :: iat
+    real(8) :: t1,t2,t3
+    !real(8), allocatable, dimension(:,:) :: hess
+    real(8), allocatable, dimension(:) :: tpos,grad,eval,work
+    real(8) :: h,rlarge,twelfth,twothird,etot,cmx,cmy,cmz,shift,dm,tt,s
+    integer :: i,j,k,lwork,info
+
+    !allocate(hess(3*nat,3*nat))
+    allocate(tpos(3*nat))
+    allocate(grad(3*nat))
+    allocate(eval(3*nat))
+
+    lwork=1000*nat
+    allocate(work(lwork))
+
+    !h=1.d-1
+    !h=7.5d-2
+    !h=5.d-2
+!    h=1.d-3
+    h=1.d-2
+    !h=2.d-2
+    rlarge=1.d0*1.d4
+    twelfth=-1.d0/(12.d0*h)
+    twothird=-2.d0/(3.d0*h)
+    if(iproc==0) write(*,*) '(hess) HESSIAN: h',h
+    !-------------------------------------------------------
+    do i=1,3*nat
+        iat=(i-1)/3+1
+        do k=1,3*nat
+            tpos(k)=pos(k)
+            grad(k)=0.d0
+        enddo
+        !-----------------------------------------
+        tpos(i)=tpos(i)-2*h
+        call energyandforces(nat,alat,tpos,grad,etot)
+        do j=1,3*nat
+            hess(j,i)=twelfth*grad(j)
+        enddo
+        !if(iproc==0) write(*,*) 'ALIREZA-6',i,iat
+        !-----------------------------------------
+        tpos(i)=tpos(i)+h
+        call energyandforces(nat,alat,tpos,grad,etot)
+        do j=1,3*nat
+        hess(j,i)=hess(j,i)-twothird*grad(j)
+        enddo
+        !-----------------------------------------
+        tpos(i)=tpos(i)+2*h
+        call energyandforces(nat,alat,tpos,grad,etot)
+        do j=1,3*nat
+        hess(j,i)=hess(j,i)+twothird*grad(j)
+        enddo
+        !-----------------------------------------
+        tpos(i)=tpos(i)+h
+        call energyandforces(nat,alat,tpos,grad,etot)
+        do j=1,3*nat
+        hess(j,i)=hess(j,i)-twelfth*grad(j)
+        !write(*,*) 'HESS ',j,i,hess(j,i)
+        enddo
+        !-----------------------------------------
+    enddo
+    !-------------------------------------------------------
+
+    !check symmetry
+    dm=0.d0
+    do i=1,3*nat
+    do j=1,i-1
+    s=.5d0*(hess(i,j)+hess(j,i))
+    tt=abs(hess(i,j)-hess(j,i))/(1.d0+abs(s))
+    dm=max(dm,tt)
+    hess(i,j)=s
+    hess(j,i)=s
+    enddo
+    enddo
+    if (dm.gt.1.d-1) write(*,*) '(hess) max dev from sym',dm
+
+!    do j=1,3*nat
+!    do i=1,3*nat
+!    write(*,*) '(hess) hier',nat,hess(i,j)
+!    write(499,*) hess(i,j)
+!    enddo
+!    enddo
+
+    !-------------------------------------------------------
+    !project out rotations
+    cmx=0.d0 ; cmy=0.d0 ; cmz=0.d0
+    do i=1,3*nat-2,3
+    cmx=cmx+pos(i+0)
+    cmy=cmy+pos(i+1)
+    cmz=cmz+pos(i+2)
+    enddo
+    cmx=cmx/nat ; cmy=cmy/nat ; cmz=cmz/nat
+  
+    !x-y plane
+    do i=1,3*nat-2,3
+    work(i+1)= (pos(i+0)-cmx)
+    work(i+0)=-(pos(i+1)-cmy)
+    enddo
+end subroutine cal_hessian_fd

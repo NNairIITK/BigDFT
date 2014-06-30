@@ -61,4 +61,5 @@ module module_global_variables
     type(restart_objects) :: rst
     integer :: inputPsiId=0
     integer :: iproc=0,nproc=1,igroup=0,ngroups=1
+    integer :: itermin=5
 end module

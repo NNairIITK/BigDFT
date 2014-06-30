@@ -278,6 +278,7 @@ module module_types
      integer :: ixc         !< XC functional Id
      integer :: ncharge     !< Total charge of the system
      integer :: itermax     !< Maximal number of SCF iterations
+     integer :: itermin     !< Minimum number of SCF iterations !Bastian
      integer :: nrepmax
      integer :: ncong       !< Number of conjugate gradient iterations for the preconditioner
      integer :: idsx        !< DIIS history
@@ -827,6 +828,7 @@ module module_types
      integer :: itrpmax !< specify the maximum number of mixing cycle on potential or density
      integer :: nrepmax !< specify the maximum number of restart after re-diagonalization
      integer :: itermax !< specify the maximum number of minimization iterations, self-consistent or not
+     integer :: itermin !< specify the minimum number of minimization iterations, self-consistent or not !Bastian
 
      integer :: itrp    !< actual number of mixing cycle.
      integer :: itrep   !< actual number of re-diagonalisation runs.
@@ -2538,6 +2540,8 @@ end subroutine find_category
           in%gnrm_cv = val !convergence parameters
        case (ITERMAX)
           in%itermax = val
+       case (ITERMIN)
+          in%itermin = val
        case (NREPMAX)
           in%nrepmax = val
        case (NCONG)

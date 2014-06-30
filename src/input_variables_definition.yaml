@@ -87,6 +87,10 @@
      COMMENT: Max. iterations of wfn. opt. steps
      RANGE: [0, 10000]
      default: 50
+   itermin:
+     COMMENT: Min. iterations of wfn. opt. steps
+     RANGE: [0, 10000]
+     default: 0
    nrepmax:
      COMMENT: Max. number of re-diag. runs
      RANGE: [0, 1000]

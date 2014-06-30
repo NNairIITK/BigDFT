@@ -11,7 +11,7 @@ contains
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 !subroutine geopt(nat,wpos,etot,fout,fnrmtol,count,count_sd,displr)
-subroutine minimizer_sbfgs(runObj_,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
+subroutine minimizer_sbfgs(runObj_,outsIO,verbosity,ncount_bigdft,fail)
 !call_bigdft has to be run once on runObj_ and outs !before calling this routine
 !sbfgs will return to caller the energies and coordinates used/obtained from the last accepted iteration step
    use module_base
@@ -22,8 +22,6 @@ subroutine minimizer_sbfgs(runObj_,outsIO,nproc,iproc,verbosity,ncount_bigdft,fa
    use module_energyandforces
    implicit none
    !parameter
-   integer, intent(in)                    :: nproc
-   integer, intent(in)                    :: iproc
    integer, intent(in)                    :: verbosity
    type(run_objects), intent(inout)       :: runObj_
    type(DFT_global_output), intent(inout) :: outsIO

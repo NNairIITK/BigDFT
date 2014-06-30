@@ -24,7 +24,7 @@ module module_input_keys
   character(len = *), parameter, public :: ELECFIELD = "elecfield"
   character(len = *), parameter, public :: NSPIN = "nspin", MPOL = "mpol"
   character(len = *), parameter, public :: GNRM_CV = "gnrm_cv"
-  character(len = *), parameter, public :: ITERMAX = "itermax", NREPMAX = "nrepmax"
+  character(len = *), parameter, public :: ITERMAX = "itermax",ITERMIN = "itermin", NREPMAX = "nrepmax"
   character(len = *), parameter, public :: NCONG = "ncong", IDSX = "idsx"
   character(len = *), parameter, public :: DISPERSION = "dispersion"
   character(len = *), parameter, public :: INPUTPSIID = "inputpsiid"

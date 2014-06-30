@@ -260,7 +260,7 @@ stop 'opt_curv failed'
            count=count+1.d0
        endif
 
-       inputPsiId=0
+       inputPsiId=1
        call minenergyandforces(imode,nat,alat,rxyz(1,1,nhist),rxyzraw(1,1,nhist),&
             fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),etotp&
             ,iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
@@ -754,7 +754,7 @@ real(gp), intent(in) :: maxcurvrise,cutoffratio
 !    call minenergyandforces(nat,rxyz(1,1,0),rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),etot,iconnect,nbond,atomnames,wold,alpha_stretch)
 !    rxyz(:,:,0)=rxyz(:,:,0)+alpha_stretch*fstretch(:,:,0)
 !    ec=ec+1.d0
-     inputPsiId=0
+     inputPsiId=1
      call mincurvgrad(imode,nat,alat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,0),&
           rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),curv,1,ec,&
           iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
@@ -830,7 +830,7 @@ real(gp), intent(in) :: maxcurvrise,cutoffratio
         else
             count=count+1.d0
         endif
-     inputPsiId=0
+     inputPsiId=1
      call mincurvgrad(imode,nat,alat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
           rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),&
           curvp,1,ec,iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
@@ -854,13 +854,13 @@ real(gp), intent(in) :: maxcurvrise,cutoffratio
                 dot_double(3*nat,dd(1,1),1,dd(1,1),1))
 
 
-!         write(*,'(a,i6,2(1x,es21.14),1x,4(1x,es10.3),xi6)')&
-!        &'CURV  it,curv,curvold,Dcurv,fnrm,alpha,alpha_stretch,ndim',&
-!        &it-1,curvp,curvold,dcurv,fnrm,alpha,alpha_stretch,ndim
+         write(*,'(a,i6,2(1x,es21.14),1x,4(1x,es10.3),xi6)')&
+        &'CURV  it,curv,curvold,Dcurv,fnrm,alpha,alpha_stretch,ndim',&
+        &it-1,curvp,curvold,dcurv,fnrm,alpha,alpha_stretch,ndim
 
 !    call yaml_comment('        METHOD  COUNT  IT  CURVATURE                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC    alpha  ndim  maxd  dsplp')
-write(*,'(a,2xi4.4,xi4.4,xes21.14,xes9.2)')'(MHGPS) CURV  ',int(ec),it,curv,dcurv
-HIER WEITER HIER WEITER: beautify output
+!write(*,'(a,2xi4.4,xi4.4,xes21.14,xes9.2)')'(MHGPS) CURV  ',int(ec),it,curv,dcurv
+!HIER WEITER HIER WEITER: beautify output
 
         if (dcurv.gt.maxcurvrise .and. alpha>1.d-1*alpha0) then 
             if (check) write(100,'(a,i4,1x,e9.2)') "WARN: it,dcurv", it,dcurv
@@ -1158,6 +1158,7 @@ subroutine curvgrad(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ec)
     !computes the (curvature along vec) = vec^t H vec / (vec^t*vec)
     !vec mus be normalized
 use module_base
+use module_global_variables, only: iproc
 use module_energyandforces
     implicit none
     !parameters
@@ -1174,7 +1175,7 @@ use module_energyandforces
     real(gp),allocatable :: drxyz(:,:), dfxyz(:,:)
     !functions
     real(gp), external :: dnrm2,ddot
-real(gp) :: fluct
+real(gp) :: fluct,noise
 
     
 !    diff=1.d-3 !lennard jones
@@ -1202,10 +1203,15 @@ real(gp) :: fluct
 
         rotforce = 2.d0*dfxyz*diffinv + 2.d0 * curv * drxyz
         call elim_moment_fs(nat,rotforce(1,1))
-!        call elim_torque_fs(nat,rxyz1(1,1),rotforce(1,1))
+!!        call elim_torque_fs(nat,rxyz1(1,1),rotforce(1,1))
         call elim_torque_reza(nat,rxyz1(1,1),rotforce(1,1))
+call torque(nat,rxyz1(1,1),rotforce(1,1))
 
         !remove numerical noise:
+        noise=ddot(3*nat,rotforce(1,1),1,vec(1,1),1)
+        if(noise>1.d-11.and.iproc==0)then
+            write(*,*)'WARNING rotforce not orthogonal on current direction',noise
+        endif
 !write(*,*)'rotnoise',ddot(3*nat,rotforce(1,1),1,vec(1,1),1)
 !        rotforce = rotforce - ddot(3*nat,rotforce(1,1),1,vec(1,1),1)*vec
     else
@@ -1213,6 +1219,32 @@ real(gp) :: fluct
     endif
     
 end subroutine
+
+subroutine torque(nat,rxyz,vxyz)
+  implicit real*8 (a-h,o-z)
+  dimension rxyz(3,nat),vxyz(3,nat)
+
+  ! center of mass
+  cmx=0.d0 ; cmy=0.d0 ; cmz=0.d0
+  do iat=1,nat
+     cmx=cmx+rxyz(1,iat)
+     cmy=cmy+rxyz(2,iat)
+     cmz=cmz+rxyz(3,iat)
+  enddo
+  cmy=cmy/real(nat,8)
+  cmz=cmz/real(nat,8)
+
+  ! torque
+  tx=0.d0 ; ty=0.d0 ; tz=0.d0
+  do iat=1,nat
+     tx=tx+(rxyz(2,iat)-cmy)*vxyz(3,iat)-(rxyz(3,iat)-cmz)*vxyz(2,iat)
+     ty=ty+(rxyz(3,iat)-cmz)*vxyz(1,iat)-(rxyz(1,iat)-cmx)*vxyz(3,iat)
+     tz=tz+(rxyz(1,iat)-cmx)*vxyz(2,iat)-(rxyz(2,iat)-cmy)*vxyz(1,iat)
+  enddo
+  write(*,'(a,3(xes9.2))')'torque',tx,ty,tz
+
+END SUBROUTINE torque
+
 
 
 subroutine precondition(nat,check,pos,force)
