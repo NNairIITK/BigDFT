@@ -1532,9 +1532,9 @@ subroutine checkortho_paw(iproc,norb,nvctrp,psit,spsi)
            dev=dev+scpr**2
         endif
         if (iproc == 0) then
-           if (iorb.eq.jorb .and. abs(scpr-1.d0).gt.toler) write(*,'(1x,a,2(1x,i0),1x,1pe12.6)')&
+           if (iorb.eq.jorb .and. abs(scpr-1.d0).gt.toler) write(*,'(1x,a,2(1x,i0),1x,1pe13.6)')&
                 'ERROR ORTHO',iorb,jorb,scpr
-           if (iorb.ne.jorb .and. abs(scpr).gt.toler)      write(*,'(1x,a,2(1x,i0),1x,1pe12.6)')&
+           if (iorb.ne.jorb .and. abs(scpr).gt.toler)      write(*,'(1x,a,2(1x,i0),1x,1pe13.6)')&
                 'ERROR ORTHO',iorb,jorb,scpr
         end if
      end do
@@ -1575,9 +1575,9 @@ subroutine checkortho_p(iproc,norb,nvctrp,psit)
            dev=dev+scpr**2
         endif
         if (iproc == 0) then
-           if (iorb.eq.jorb .and. abs(scpr-1.d0).gt.toler) write(*,'(1x,a,2(1x,i0),1x,1pe12.6)')&
+           if (iorb.eq.jorb .and. abs(scpr-1.d0).gt.toler) write(*,'(1x,a,2(1x,i0),1x,1pe13.6)')&
                 'ERROR ORTHO',iorb,jorb,scpr
-           if (iorb.ne.jorb .and. abs(scpr).gt.toler)      write(*,'(1x,a,2(1x,i0),1x,1pe12.6)')&
+           if (iorb.ne.jorb .and. abs(scpr).gt.toler)      write(*,'(1x,a,2(1x,i0),1x,1pe13.6)')&
                 'ERROR ORTHO',iorb,jorb,scpr
         end if
      end do
@@ -1615,9 +1615,9 @@ subroutine checkortho(norb,nvctrp,psi)
         else
            dev=dev+scpr**2
         endif
-        if (iorb.eq.jorb .and. abs(scpr-1.d0).gt.toler) write(*,'(1x,a,2(1x,i0),1x,1pe12.6)')&
+        if (iorb.eq.jorb .and. abs(scpr-1.d0).gt.toler) write(*,'(1x,a,2(1x,i0),1x,1pe13.6)')&
              'ERROR ORTHO',iorb,jorb,scpr
-        if (iorb.ne.jorb .and. abs(scpr).gt.toler)      write(*,'(1x,a,2(1x,i0),1x,1pe12.6)')&
+        if (iorb.ne.jorb .and. abs(scpr).gt.toler)      write(*,'(1x,a,2(1x,i0),1x,1pe13.6)')&
              'ERROR ORTHO',iorb,jorb,scpr
      enddo
   enddo

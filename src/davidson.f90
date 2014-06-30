@@ -1191,8 +1191,6 @@ subroutine davidson(iproc,nproc,in,at,&
       if(iter>in%itermax+100)then !an input variable should be put
          if(iproc==0) call yaml_warning( &
             &   'No convergence within the allowed number of minimization steps (itermax + 100)')
-         !if(iproc==0)write(*,'(1x,a)')&
-         !   &   'No convergence within the allowed number of minimization steps (itermax + 100)'
          exit davidson_loop
       end if
 
@@ -1565,7 +1563,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
       call dsyev('V','U',G%ncoeff,ovrlp(1,1),G%ncoeff,ev(1),work(1),nwork,info)
       if (info /= 0) then
          if (iproc == 0) then
-            write(*,*)'DSyev Error',info
+            write(*,*)'#DSyev Error',info
          end if
          stop
       end if
