@@ -136,6 +136,16 @@ module dictionaries
 
    type(dictionary), pointer :: dict_errors=>null()        !< the global dictionaries of possible errors, nullified if not initialized
    type(dictionary), pointer :: dict_present_error=>null() !< local pointer of present error, nullified if success
+  
+   
+   !> Stack of dict_present_error for nested try (opne and close)
+   type, private :: error_stack
+     type(dictionary), pointer :: current => null()   !< dict_present_error point to here.
+     type(error_stack), pointer :: previous => null() !< previous error
+   end type error_stack
+
+   type(error_stack), pointer :: error_pipelines=>null() !< Stack of errors for try clause
+ 
 
    !> Public variables of the error handling module
    public :: f_err_initialize,f_err_finalize
@@ -143,6 +153,7 @@ module dictionaries
    public :: f_get_last_error,f_get_error_definitions,f_get_error_dict
    public :: f_err_define
    public :: f_err_check,f_err_raise,f_err_clean,f_err_pop,f_err_throw
+
 
    ! Public variables of the callback module
    public :: f_err_set_callback,f_err_unset_callback

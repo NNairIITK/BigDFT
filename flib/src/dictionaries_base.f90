@@ -97,10 +97,10 @@ module dictionaries_base
   end type database_book
 
 
-  !>database of objects, associated contiguously and used for storage
+  !> Database of objects, associated contiguously and used for storage
   type(database_book), pointer, private :: library => null()
 
-  !> operator to access and create a key in the dictionary
+  !> Operator to access and create a key in the dictionary
   interface operator(//)
      module procedure get_child_ptr,get_list_ptr
   end interface
@@ -211,7 +211,7 @@ contains
   end subroutine allocate_library
 
 
-  !> assign a place in the library to the newcoming dictionary
+  !> Assign a place in the library to the newcoming dictionary
   recursive function allocate_file(previous) result(dict)
     implicit none
     type(dictionary), pointer :: dict
@@ -270,7 +270,8 @@ contains
     end if
 
   contains
-    !free the space from the library
+
+    !> Free the space from the library
     recursive subroutine deallocate_file_(file)
       implicit none
       integer(kind=8), intent(in) :: file !< the target is already inside
@@ -304,7 +305,7 @@ contains
   end subroutine deallocate_file
 
 
-  !terminate the library and free all memory space
+  !> Terminate the library and free all memory space
   recursive subroutine destroy_library()
     implicit none
     !first, find last library
@@ -348,7 +349,7 @@ contains
   end subroutine dict_init
 
 
-  !> destroy only one level
+  !> Destroy only one level
   subroutine dict_destroy(dict)
     implicit none
     type(dictionary), pointer :: dict
@@ -385,7 +386,7 @@ contains
 
   contains
 
-    !implement the recursivity only on children 
+    !> Implement the recursivity only on children 
     recursive subroutine dict_free_(dict)
       implicit none
       type(dictionary), pointer :: dict
@@ -423,7 +424,7 @@ contains
   end subroutine dict_free
 
 
-  !> return the length of the list
+  !> Return the length of the list
   pure function dict_len(dict)
     implicit none
     type(dictionary), intent(in), pointer :: dict
@@ -437,7 +438,7 @@ contains
   end function dict_len
 
 
-  !> return the size of the dictionary
+  !> Return the size of the dictionary
   pure function dict_size(dict)
     implicit none
     type(dictionary), intent(in), pointer :: dict
@@ -451,7 +452,7 @@ contains
   end function dict_size
 
 
-  !> this function returns the key if present otherwise the value of the element if in a list
+  !> This function returns the key if present otherwise the value of the element if in a list
   !! this is a function indended for internal flib usage which 
   !! can be used for lists of hash table, as dictionasy type is "polymorph"
   pure function name_is(dict,name)
@@ -479,7 +480,7 @@ contains
   end function name_is
 
 
-  !> fill output with input and the rest with blanks
+  !> Fill output with input and the rest with blanks
   !! this routine is only useful for its interface
   pure subroutine set_field(input,output)
     implicit none
@@ -520,7 +521,7 @@ contains
   end subroutine get_field
 
 
-  !> returns the value of the key of the dictionary
+  !> Returns the value of the key of the dictionary
   pure function dict_key(dict)
     type(dictionary), pointer, intent(in) :: dict
     character(len=max_field_length) :: dict_key
@@ -534,7 +535,7 @@ contains
   end function dict_key
 
 
-  !> returns the value of the key of the dictionary
+  !> Returns the value of the key of the dictionary
   pure function dict_item(dict)
     type(dictionary), pointer, intent(in) :: dict
     integer :: dict_item
@@ -547,8 +548,8 @@ contains
   end function dict_item
 
   
-  !>value of the dictionary, if present, otherwise empty
-  !if the value is a dictionary, it returns __dict__ in the character
+  !> Value of the dictionary, if present, otherwise empty
+  !! if the value is a dictionary, it returns __dict__ in the character
   pure function dict_value(dict)
     type(dictionary), pointer, intent(in) :: dict
     character(len=max_field_length) :: dict_value
@@ -578,7 +579,7 @@ contains
   !non-pure subroutines, due to pointer assignments
 
 
-  !> define the same parent(dict) for any of the elements of the linked chain (child)
+  !> Define the same parent(dict) for any of the elements of the linked chain (child)
   recursive subroutine define_parent(dict,child)
     implicit none
     type(dictionary), target :: dict
@@ -589,7 +590,7 @@ contains
   end subroutine define_parent
 
 
-  !> set brother as the previous element of dict
+  !> Set brother as the previous element of dict
   subroutine define_brother(brother,dict)
     implicit none
     type(dictionary), target :: brother
@@ -599,7 +600,7 @@ contains
   end subroutine define_brother
 
 
-  !> this routine creates a key for the dictionary in case it is absent
+  !> This routine creates a key for the dictionary in case it is absent
   !! the it adds one to the number of elements of the parent dictionary
   pure subroutine set_elem(dict,key)
     implicit none
@@ -618,7 +619,7 @@ contains
   end subroutine set_elem
 
 
-  !> associates an extra item to the dictionary and takes care of the 
+  !> Associates an extra item to the dictionary and takes care of the 
   !! increment of the number of items
   !! this routine adds the check that the number of items is preserved
   !! for the moment this check is removed
@@ -659,7 +660,7 @@ contains
   end function get_child_ptr
 
 
-    !> Retrieve the pointer to the dictionary which has this key.
+  !> Retrieve the pointer to the dictionary which has this key.
   !! If the key does not exists, create it in the next chain 
   !! Key Must be already present 
   recursive function get_dict_ptr(dict,key) result (dict_ptr)
@@ -777,7 +778,7 @@ contains
   end function get_list_ptr
 
 
-  !> defines a storage structure with a key-value couple
+  !> Defines a storage structure with a key-value couple
   elemental pure function storage_data(key,val)
     character(len=*), intent(in) :: key,val
     type(storage) :: storage_data
@@ -789,7 +790,7 @@ contains
 
   end function storage_data
 
-  !> test to see the g95 behaviour
+  !> Test to see the g95 behaviour
   pure function stored_key(st) result(key)
     implicit none
     type(storage), intent(in) :: st
@@ -806,7 +807,7 @@ contains
   end function stored_value
 
 
-  !> clean the child and put to zero the number of elements in the case of a dictionary
+  !> Clean the child and put to zero the number of elements in the case of a dictionary
   !! pure 
   subroutine clean_subdict(dict)
     implicit none
@@ -822,7 +823,7 @@ contains
   end subroutine clean_subdict
 
 
-  !!> export the number of dictionaries
+  !> Export the number of dictionaries
   !! this routine is useful to understand the total usage of the 
   !! dictionaries in the f_lib module
   subroutine dict_get_num(ndict,ndict_max,nlibs,nlibs_max)

@@ -32,6 +32,14 @@
 !!$  type(dictionary), pointer :: dict_errors=>null() !< the global dictionaries of possible errors, nullified if not initialized
 !!$  type(dictionary), pointer :: dict_present_error=>null() !< local pointer of present error, nullified if success
 !!$
+!!$  !> Stack of dict_present_error for nested try (opne and close)
+!!$  type, private :: error_stack
+!!$    type(dictionary), pointer :: current => null()   !< dict_present_error point to here.
+!!$    type(error_stack), pointer :: previous => null() !< previous error
+!!$  end type error_stack
+!!$
+!!$  type(error_stack), pointer :: error_pipelines=>null() !< Stack of errors for try clause
+!!$
 !!$  public :: f_err_initialize,f_err_finalize
 !!$  public :: f_err_define,f_err_check,f_err_raise,f_err_clean,f_get_error_dict
 !!$
@@ -49,14 +57,13 @@
     implicit none
     !local variables
     call f_err_unset_callback()
-    if (associated(dict_present_error)) then
-       call f_err_clean()
-    else
-       call dict_init(dict_present_error)
+    if (associated(error_pipelines)) then
+       call error_pipelines_clean()
     end if
-    if (.not. associated(dict_errors)) then
-       call dict_init(dict_errors)
-    end if
+    allocate(error_pipelines)
+    call dict_init(error_pipelines%current)
+    dict_present_error=>error_pipelines%current
+    call dict_init(dict_errors)
   end subroutine f_err_initialize
 
   
@@ -66,8 +73,22 @@
     call f_err_unset_callback()
     call f_err_severe_restore()
     call dict_free(dict_errors)
-    call dict_free(dict_present_error)
+    call error_pipelines_clean()
   end subroutine f_err_finalize
+
+
+  !> Clean the stack of dict_present_error for nested try
+  subroutine error_pipelines_clean()
+    implicit none
+    type(error_stack), pointer :: stack
+    call dict_free(dict_present_error)
+    do while(associated(error_pipelines))
+      call dict_free(error_pipelines%current)
+      stack=>error_pipelines%previous
+      deallocate(error_pipelines)
+      error_pipelines=>stack
+    end do
+  end subroutine error_pipelines_clean
 
 
   !> Define a new error specification and returns the corresponding error code
@@ -379,8 +400,10 @@
   !> Clean the dictionary of present errors
    subroutine f_err_clean()
     implicit none
-    call dict_free(dict_present_error)
-    call dict_init(dict_present_error)
+    nullify(dict_present_error)
+    call dict_free(error_pipelines%current)
+    call dict_init(error_pipelines%current)
+    dict_present_error=>error_pipelines%current
   end subroutine f_err_clean
 
 
@@ -415,8 +438,15 @@
   !! multiple calls to f_err_open_try have the same effect of one call
   subroutine f_err_open_try()
     implicit none
+    type(error_stack), pointer :: stack
     !call f_err_set_callback(f_err_ignore)
     try_environment=.true.
+    allocate(stack)
+    stack%previous=>error_pipelines
+    error_pipelines=>stack
+    call dict_init(error_pipelines%current)
+    dict_present_error=>error_pipelines%current
+
   end subroutine f_err_open_try
 
 
@@ -426,9 +456,21 @@
   !! f_err_close_try
   subroutine f_err_close_try()
     implicit none
-    call f_err_clean() !no errors anymore
-    try_environment=.false.
+    type(error_stack), pointer :: stack
     !call f_err_unset_callback()
+    if (associated(error_pipelines%previous)) then
+      nullify(dict_present_error)
+      call dict_free(error_pipelines%current)
+      stack=>error_pipelines%previous
+      deallocate(error_pipelines)
+      error_pipelines=>stack
+      call dict_init(error_pipelines%current)
+      dict_present_error=>error_pipelines%current
+      try_environment=.true.
+    else
+      call f_err_clean() !no errors anymore for this stack
+      try_environment=.false.
+    end if
   end subroutine f_err_close_try
 
 

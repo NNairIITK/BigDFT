@@ -63,6 +63,20 @@ subroutine test_error_handling()
   call yaml_map("Error check code, name",f_err_check(err_name='ERR_TOTO'))
   call yaml_map("Error check code, name",f_err_check(err_name='ERR_TITI'))
 
+
+  !Test the nested try
+  call yaml_comment("Test open try")
+  call f_err_open_try()
+     call f_err_throw('one',err_name='ERR_TOTO')
+     call f_err_open_try()
+        call f_err_throw('two',err_name='ERR_TOTO')
+        if (f_err_check()) call yaml_map('Nested try',.true.)
+        call f_err_open_try()
+           call f_err_throw('three',err_name='ERR_TOTO')
+        call f_err_close_try()
+     call f_err_close_try()
+  call f_err_close_try()
+
   call f_err_unset_callback()
   call f_err_severe_restore()
 
