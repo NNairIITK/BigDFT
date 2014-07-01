@@ -101,21 +101,24 @@ contains
     call f_routine(id='merge_input_file_to_dict')
     if (mpi_env%iproc == 0) then
        call getFileContent(cbuf, cbuf_len, fname, len_trim(fname))
-       if (mpi_env%nproc > 1) &
-            & call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm, ierr)
-    else
-       call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm, ierr)
+       !if (mpi_env%nproc > 1) &
+       !     & call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm, ierr)
+    !else
+       !call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm, ierr)
     end if
+    if (mpi_env%nproc > 1) call mpibcast(cbuf_len,comm=mpi_env%mpi_comm)
     fbuf=f_malloc0_str(1,int(cbuf_len),id='fbuf')
 
     if (mpi_env%iproc == 0) then
        call copyCBuffer(fbuf, cbuf, cbuf_len)
        call freeCBuffer(cbuf)
-       if (mpi_env%nproc > 1 .and. cbuf_len > 0) &
-            & call mpi_bcast(fbuf(1), int(cbuf_len), MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
-    else
-       if (cbuf_len > 0) call mpi_bcast(fbuf(1), int(cbuf_len), MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
+!       if (mpi_env%nproc > 1 .and. cbuf_len > 0) &
+!            & call mpi_bcast(fbuf(1), int(cbuf_len), MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
+!    else
+!       if (cbuf_len > 0) call mpi_bcast(fbuf(1), int(cbuf_len), MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
     end if
+    !this call can be replaced with the size of the character array
+    if (mpi_env%nproc > 1) call mpibcast(fbuf,comm=mpi_env%mpi_comm)
 
     call f_err_open_try()
     call yaml_parse_from_char_array(udict, fbuf)
@@ -181,9 +184,6 @@ contains
 
     !when the user has not specified the occupation in the input file
     if (.not. has_key(dict, ATOMIC_OCC)) then
-       ! Add old input.occup
-       !call atomic_data_file_merge_to_dict(dict, ATOMIC_OCC, &
-       !     & trim(radical) // ".occup")
        !yaml format should be used even for old method
        if (file_exists(trim(radical)//".occup")) &
             call merge_input_file_to_dict(dict//ATOMIC_OCC,trim(radical)//".occup",mpi_env)

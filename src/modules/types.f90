@@ -2198,6 +2198,7 @@ end subroutine nullify_local_zone_descriptors
 !> Define the BigDFT errors
 subroutine bigdft_init_errors()
   use dictionaries
+  use module_input_keys, only: input_keys_errors
   implicit none
   external :: bigdft_severe_abort
 
@@ -2221,6 +2222,9 @@ subroutine bigdft_init_errors()
        'An error while parsing the input variables occured',&
        BIGDFT_INPUT_VARIABLES_ERROR,&
        err_action='Check above which input variable has been not correctly parsed, or check their values')
+
+    !define the errors of internal modules
+    call input_keys_errors()
 
   !define the severe operation via MPI_ABORT
   call f_err_severe_override(bigdft_severe_abort)

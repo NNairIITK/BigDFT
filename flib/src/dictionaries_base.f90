@@ -534,7 +534,7 @@ contains
   end function dict_key
 
 
-  !> returns the value of the key of the dictionary
+  !> returns the value of the item of the dictionary
   pure function dict_item(dict)
     type(dictionary), pointer, intent(in) :: dict
     integer :: dict_item
