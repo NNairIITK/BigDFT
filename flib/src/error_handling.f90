@@ -64,7 +64,7 @@
     call dict_init(error_pipelines%current)
     dict_present_error=>error_pipelines%current
     call dict_init(dict_errors)
-  end subroutine f_err_initialize
+  end subroutine f_err_initialize 
 
   
   !> Call at the end of the program to finalize the error module (deallocation + report)
@@ -81,7 +81,7 @@
   subroutine error_pipelines_clean()
     implicit none
     type(error_stack), pointer :: stack
-    call dict_free(dict_present_error)
+    nullify(dict_present_error)
     do while(associated(error_pipelines))
       call dict_free(error_pipelines%current)
       stack=>error_pipelines%previous
@@ -312,7 +312,8 @@
   end subroutine f_err_throw
 
 
-  !> Get the error ierr as a dictionary
+  !> Get the error ierror as a dictionary
+  !! use as dict=>f_get_error_dict()
   function f_get_error_dict(ierror)
     implicit none
     integer, intent(in), optional :: ierror
@@ -323,7 +324,7 @@
        ierr=ierror
     else
        !Last error
-       ierr=dict_len(dict_present_error)-1
+       ierr=f_get_last_error() !dict_len(dict_present_error)-1
     end if
     f_get_error_dict=>dict_errors//ierr
 
@@ -425,7 +426,11 @@
        f_err_pop=dict_present_error//ierr//ERRID
        if (present(add_msg)) add_msg=dict_present_error//ierr//ERR_ADD_INFO
        call dict_remove(dict_present_error, ierr)
-       if (.not.associated(dict_present_error)) call dict_init(dict_present_error)
+       if (.not.associated(dict_present_error)) then
+         !call dict_init(dict_present_error)
+         call dict_init(error_pipelines%current)
+         dict_present_error => error_pipelines%current
+       end if
     else
        f_err_pop=0
        if (present(add_msg)) add_msg=repeat(' ',len(add_msg))
@@ -464,7 +469,6 @@
       stack=>error_pipelines%previous
       deallocate(error_pipelines)
       error_pipelines=>stack
-      call dict_init(error_pipelines%current)
       dict_present_error=>error_pipelines%current
       try_environment=.true.
     else

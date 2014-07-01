@@ -171,7 +171,7 @@ input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o types.o defs.o ao_ingue
 psp_projectors.o: locregs.o
 locregs.o: base.o
 ao_inguess.o: $(AO_INCLUDES) base.o psp_projectors.o
-atoms_data.o: $(ATOMS_INCLUDES) ao_inguess.o
+atoms_data.o: $(ATOMS_INCLUDES) ao_inguess.o internal_coordinates.o
 communications_base.o: base.o
 communications_init.o: base.o types.o communications_base.o
 communications.o: base.o types.o communications_base.o

@@ -14,8 +14,10 @@ subroutine test_error_handling()
   use dictionaries!error_handling
   implicit none
   !local variables
-  integer :: ival,ERR_TOTO,ERR_TITI,ERR_GRAVE
+  integer :: ival,ierr,ERR_TOTO,ERR_TITI,ERR_GRAVE
+  character(len=128) :: msg
   external :: abort_toto,abort_titi,abort1,abort2
+  type(dictionary), pointer :: dict
 
   call yaml_comment('Error Handling Module Test',hfill='~')
    
@@ -64,18 +66,27 @@ subroutine test_error_handling()
   call yaml_map("Error check code, name",f_err_check(err_name='ERR_TITI'))
 
 
-  !Test the nested try
-  call yaml_comment("Test open try")
-  call f_err_open_try()
-     call f_err_throw('one',err_name='ERR_TOTO')
-     call f_err_open_try()
-        call f_err_throw('two',err_name='ERR_TOTO')
-        if (f_err_check()) call yaml_map('Nested try',.true.)
-        call f_err_open_try()
-           call f_err_throw('three',err_name='ERR_TOTO')
-        call f_err_close_try()
-     call f_err_close_try()
-  call f_err_close_try()
+ !Test the nested try
+ call yaml_comment("Test open try")
+ call f_err_open_try()
+    call f_err_throw('one',err_name='ERR_TOTO')
+    call yaml_map("Number of errors(1)",f_get_no_of_errors())
+    call f_err_open_try()
+       call yaml_map("Number of errors(2)",f_get_no_of_errors())
+       call f_err_throw('two',err_name='ERR_TOTO')
+       if (f_err_check()) then
+          ierr=f_get_last_error(msg)
+          call yaml_map("ID",ierr)
+          call yaml_map("MSG",msg)
+          dict=>f_get_error_dict()
+          call yaml_dict_dump(dict)
+       end if
+       call f_err_open_try()
+          call f_err_throw('three',err_name='ERR_TOTO')
+          call yaml_map("Number of errors(3)",f_get_no_of_errors())
+       call f_err_close_try()
+    call f_err_close_try()
+ call f_err_close_try()
 
   call f_err_unset_callback()
   call f_err_severe_restore()

@@ -289,7 +289,19 @@
  Error check code, name                :  No
  Error check code, name                :  Yes
   #Test open try
- Nested try                            :  Yes
+ Number of errors(1)                   :  1
+ Number of errors(2)                   :  0
+ ID                                    :  22
+ MSG                                   : two
+ ERR_TOTO:
+   Id                                  : 22
+   Message:
+     This is the error message for the error of kind 1 and it is written extensively on 
+     purpose to see whether yaml module prints it
+   Action:
+     For this error, contact the routine developer at mail at univ dot gov
+   Callback Procedure Address          : 4204883
+ Number of errors(3)                   :  1
 ---
   #Now we test dictionaries inside yaml.
  ival not existing, fake value         :  0
