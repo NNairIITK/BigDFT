@@ -520,6 +520,7 @@ contains
 
     !> fill the list of valid entries
     valid_entries=>list_new([&
+         .item. RADICAL_NAME, &
          .item. POSINP,&  
          .item. PERF_VARIABLES,&  
          .item. DFT_VARIABLES,&   
