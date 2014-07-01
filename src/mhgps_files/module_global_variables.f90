@@ -50,6 +50,7 @@ module module_global_variables
     real(8), allocatable :: minmode(:,:)
     integer,parameter :: usaddle=173
     character(len=60) :: saddle_filename='saddle.mon'
+    logical :: isForceField=.false.
 
 
     !bigdft data types and variables

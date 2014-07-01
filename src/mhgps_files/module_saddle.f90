@@ -202,10 +202,14 @@ minmode0=minmode
 !       &.or. it==1&
        &.or. it==1 .or. (curv>=0.d0 .and. mod(it,recompIfCurvPos)==0)&
        &.or.recompute==it)then
-    call yaml_comment('     METHOD  COUNT  IT  CURVATURE                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC    alpha  ndim  maxd  dsplp')
+           if(iproc==0)call yaml_comment('(MHGPS) METHOD  COUNT  IT  CURVATURE             DIFF      FMAX      FNRM      alpha    ndim')
+           inputPsiId=1
+!           inputPsiId=0
            call opt_curv(imode,nat,alat,alpha0_rot,curvgraddiff,nit_rot,nhistx_rot,rxyzraw(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
                         &minmode(1,1),curv,gradrot(1,1),&
                         &tol,count,count_sd,displ2,ec,check,optCurvConv,iconnect,nbond,atomnames,2.d-4,maxcurvrise,cutoffratio)
+           inputPsiId=1
+           if(iproc==0)call yaml_comment('(MHGPS) METHOD  COUNT  IT  Energy                DIFF      FMAX      FNRM      alpha    ndim')
            minmode = minmode / dnrm2(3*nat,minmode(1,1),1)
            if(.not.optCurvConv)then
                write(*,*) 'WARNING: opt_curv failed'
@@ -248,7 +252,8 @@ stop 'opt_curv failed'
            scl=0.5d0*trustr/maxd
            dd=dd*scl
            tt=tt*scl
-        endif
+           maxd=0.5d0*trustr
+       endif
         !do the move
         rxyz(:,:,nhist)=rxyz(:,:,nhist-1)-dd(:,:)
        call fixfrag_posvel(nat,rcov,rxyz(1,1,nhist),tnatdmy,1,fixfragmented)
@@ -289,9 +294,11 @@ stop 'opt_curv failed'
 !       write(173,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,xa4,i3.3,xa5,a7,2(xa6,a8))')&
 !       int(ec),it,'GEOPT',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct,&
 !       'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy9_1)),'dsplp=',trim(adjustl(cdmy9_2))
-       write(*,'(a,i6,2(1x,e21.14),1x,2(1x,es10.3),xi6,2(xes10.3))')&
-       &'GEOPT it,etot,etotold,Detot,fnrm,ndim,alpha,alpha_stretch',&
-       &it-1,etotp,etotold,detot,fnrm,ndim,alpha,alpha_stretch
+!       write(*,'(a,i6,2(1x,e21.14),1x,2(1x,es10.3),xi6,2(xes10.3))')&
+!       &'GEOPT it,etot,etotold,Detot,fnrm,ndim,alpha,alpha_stretch',&
+!       &it-1,etotp,etotold,detot,fnrm,ndim,alpha,alpha_stretch
+!!!           call yaml_comment('     METHOD  COUNT  IT  CURVATURE             DIFF      FMAX      FNRM      alpha    ndim   maxd   dsplp')
+if(iproc==0)write(*,'(a,2xi4.4,xi4.4,xes21.14,4(xes9.2),xi3.3,xes9.2)')' (MHGPS)   GEOPT ',nint(ec),it,etotp,detot,fmax,fnrm, alpha,ndim!,maxd,
 
        etot=etotp
        etotold=etot
@@ -316,15 +323,15 @@ stop 'opt_curv failed'
                write(*,'(a,es10.3,xi0,xes10.3)')'hard direction step too large:maxd,it,alpha_stretch',maxd,it,alpha_stretch
                scl=0.5d0*trustr/maxd
                dds=dds*scl
-!control
-     dt=0.d0
-     maxd=-huge(1.d0)
-     do iat=1,nat
-         dt=dds(1,iat)**2+dds(2,iat)**2+dds(3,iat)**2
-         maxd=max(maxd,dt)
-     enddo
-     maxd=sqrt(maxd)
-write(*,*)'control',maxd
+!!control
+!     dt=0.d0
+!     maxd=-huge(1.d0)
+!     do iat=1,nat
+!         dt=dds(1,iat)**2+dds(2,iat)**2+dds(3,iat)**2
+!         maxd=max(maxd,dt)
+!     enddo
+!     maxd=sqrt(maxd)
+!write(*,*)'control',maxd
            endif
 
 !           rxyz(:,:,nhist)=rxyz(:,:,nhist)+alpha_stretch*fstretch(:,:,nhist)
@@ -703,7 +710,7 @@ end subroutine
 subroutine opt_curv(imode,nat,alat,alpha0,curvgraddiff,nit,nhistx,rxyz_fix,fxyz_fix,dxyzin,curv,fout,fnrmtol&
                    &,count,count_sd,displ,ec,check,converged,iconnect,nbond,atomnames,alpha_stretch0,maxcurvrise,cutoffratio)!,mode)
 use module_base
-use module_global_variables, only: inputPsiId
+use module_global_variables, only: inputPsiId, isForceField, iproc
     implicit none
 integer, intent(in) :: imode
 integer, intent(in) :: nbond
@@ -728,6 +735,7 @@ real(gp), intent(in) :: maxcurvrise,cutoffratio
     real(gp) :: alpha,dcurv,s,st,tt,cosangle
     logical :: subspaceSucc
     real(gp),allocatable :: wold(:)
+real(gp) :: edmy
     !functions
     real(gp) :: ddot
 
@@ -754,7 +762,6 @@ real(gp), intent(in) :: maxcurvrise,cutoffratio
 !    call minenergyandforces(nat,rxyz(1,1,0),rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),etot,iconnect,nbond,atomnames,wold,alpha_stretch)
 !    rxyz(:,:,0)=rxyz(:,:,0)+alpha_stretch*fstretch(:,:,0)
 !    ec=ec+1.d0
-     inputPsiId=1
      call mincurvgrad(imode,nat,alat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,0),&
           rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),curv,1,ec,&
           iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
@@ -830,7 +837,6 @@ real(gp), intent(in) :: maxcurvrise,cutoffratio
         else
             count=count+1.d0
         endif
-     inputPsiId=1
      call mincurvgrad(imode,nat,alat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
           rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),&
           curvp,1,ec,iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
@@ -854,12 +860,12 @@ real(gp), intent(in) :: maxcurvrise,cutoffratio
                 dot_double(3*nat,dd(1,1),1,dd(1,1),1))
 
 
-         write(*,'(a,i6,2(1x,es21.14),1x,4(1x,es10.3),xi6)')&
-        &'CURV  it,curv,curvold,Dcurv,fnrm,alpha,alpha_stretch,ndim',&
-        &it-1,curvp,curvold,dcurv,fnrm,alpha,alpha_stretch,ndim
+!         write(*,'(a,i6,2(1x,es21.14),1x,4(1x,es10.3),xi6)')&
+!        &'CURV  it,curv,curvold,Dcurv,fnrm,alpha,alpha_stretch,ndim',&
+!        &it-1,curvp,curvold,dcurv,fnrm,alpha,alpha_stretch,ndim
 
-!    call yaml_comment('        METHOD  COUNT  IT  CURVATURE                 DIFF       FMAX       FNRM      FRAC*FLUC FLUC    alpha  ndim  maxd  dsplp')
-!write(*,'(a,2xi4.4,xi4.4,xes21.14,xes9.2)')'(MHGPS) CURV  ',int(ec),it,curv,dcurv
+!!           call yaml_comment('     METHOD  COUNT  IT  CURVATURE             DIFF      FMAX      FNRM      alpha    ndim')
+if(iproc==0)write(*,'(a,2xi4.4,xi4.4,xes21.14,4(xes9.2),xi3.3)')' (MHGPS)   CUOPT ',nint(ec),it,curv,dcurv,fmax,fnrm, alpha,ndim
 !HIER WEITER HIER WEITER: beautify output
 
         if (dcurv.gt.maxcurvrise .and. alpha>1.d-1*alpha0) then 
@@ -868,6 +874,14 @@ real(gp), intent(in) :: maxcurvrise,cutoffratio
             alpha=.5d0*alpha
             if (check) write(100,'(a,1x,e9.2)') 'alpha reset ',alpha
             ndim=0
+if(.not. isForceField)then
+inputPsiId=0
+write(*,*)'bastian reset inputpsi'
+call mincurvgrad(imode,nat,alat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist-1),&
+    rxyzraw(1,1,nhist-1),fxyz(1,1,nhist-1),fstretch(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
+    curvold,1,ec,iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
+endif
+
 !            if(.not.steep)then
                 do iat=1,nat
                     rxyz(1,iat,0)=rxyzraw(1,iat,nhist-1)
@@ -1170,12 +1184,14 @@ use module_energyandforces
     real(gp), intent(inout) :: ec
     real(gp), intent(in) :: alat(3)
     !internal
+    integer :: iat
     real(gp) :: diffinv, etot2
     real(gp),allocatable :: rxyz2(:,:), fxyz2(:,:)
     real(gp),allocatable :: drxyz(:,:), dfxyz(:,:)
+    real(gp) :: sx,sy,sz
     !functions
     real(gp), external :: dnrm2,ddot
-real(gp) :: fluct,noise
+real(gp) :: fluct,fnoise,dd
 
     
 !    diff=1.d-3 !lennard jones
@@ -1202,15 +1218,26 @@ real(gp) :: fluct,noise
         curv  = - diffinv * ddot(3*nat,dfxyz(1,1),1,drxyz(1,1),1)
 
         rotforce = 2.d0*dfxyz*diffinv + 2.d0 * curv * drxyz
+
+        !compute noise
+        sx=0.d0; sy=0.d0; sz=0.d0
+        do iat=1,nat
+           sx=sx+rotforce(1,iat)
+           sy=sy+rotforce(2,iat)
+           sz=sz+rotforce(3,iat)
+        enddo
+        fnoise=sqrt((sx**2+sy**2+sz**2)/real(nat,gp))
+if(iproc==0)write(*,*)'fnoise',fnoise
+
         call elim_moment_fs(nat,rotforce(1,1))
 !!        call elim_torque_fs(nat,rxyz1(1,1),rotforce(1,1))
-        call elim_torque_reza(nat,rxyz1(1,1),rotforce(1,1))
 call torque(nat,rxyz1(1,1),rotforce(1,1))
+        call elim_torque_reza(nat,rxyz1(1,1),rotforce(1,1))
 
         !remove numerical noise:
-        noise=ddot(3*nat,rotforce(1,1),1,vec(1,1),1)
-        if(noise>1.d-11.and.iproc==0)then
-            write(*,*)'WARNING rotforce not orthogonal on current direction',noise
+        dd=ddot(3*nat,rotforce(1,1),1,vec(1,1),1)
+        if(dd>1.d-11.and.iproc==0)then
+            write(*,*)'WARNING rotforce not orthogonal on current direction',dd
         endif
 !write(*,*)'rotnoise',ddot(3*nat,rotforce(1,1),1,vec(1,1),1)
 !        rotforce = rotforce - ddot(3*nat,rotforce(1,1),1,vec(1,1),1)*vec
@@ -1219,6 +1246,19 @@ call torque(nat,rxyz1(1,1),rotforce(1,1))
     endif
     
 end subroutine
+
+subroutine moment(nat,vxyz)
+  implicit real*8 (a-h,o-z)
+  dimension vxyz(3,nat)
+
+  sx=0.d0 ; sy=0.d0 ; sz=0.d0
+  do iat=1,nat
+     sx=sx+vxyz(1,iat)
+     sy=sy+vxyz(2,iat)
+     sz=sz+vxyz(3,iat)
+  enddo
+  write(*,'(a,3(1pe11.3))') 'momentum',sx,sy,sz
+END SUBROUTINE moment
 
 subroutine torque(nat,rxyz,vxyz)
   implicit real*8 (a-h,o-z)

@@ -51,7 +51,9 @@ real(gp),allocatable :: eval(:),work(:)
     call f_lib_initialize()
 
     call read_input()
+    isForceField=.false.
     if(efmethod=='BIGDFT')then
+        isForceField=.false.
         call bigdft_init(mpi_info,nconfig,run_id,ierr)
         iproc=mpi_info(1)
         nproc=mpi_info(2)
@@ -83,6 +85,7 @@ real(gp),allocatable :: eval(:),work(:)
         endif
 
     elseif(efmethod=='LJ')then
+        isForceField=.true.
         write(folder,'(a,i3.3)')'input',ifolder
         write(filename,'(a,i3.3)')'min',ifile
         call deallocate_atomic_structure(atoms%astruct)
@@ -93,6 +96,7 @@ real(gp),allocatable :: eval(:),work(:)
         call yaml_warning('Following method for evaluation of energies and forces is unknown: '//trim(adjustl(efmethod)))
         stop
     endif
+    if(iproc==0) call print_input()
 
     !allocate more arrays
     minmode  = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='minmode')
@@ -152,7 +156,10 @@ real(gp),allocatable :: eval(:),work(:)
                 minmode(2,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
                 minmode(3,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
             enddo
-
+           count=0.0_gp
+           count_sd=0.0_gp
+           ec=0.0_gp
+        
            call findsad(saddle_imode,atoms%astruct%nat,atoms%astruct%cell_dim,rcov,saddle_alpha0_trans,saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_trans,&
            saddle_nit_rot,saddle_nhistx_trans,saddle_nhistx_rot,saddle_tolc,saddle_tolf,saddle_tightenfac,saddle_rmsdispl0,&
            saddle_trustr,rxyz,energy,fxyz,minmode,saddle_fnrmtol,count,count_sd,displ,ec,&
