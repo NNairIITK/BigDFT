@@ -81,7 +81,7 @@ character(len=100) :: filename
     real(gp) :: ddot,dnrm2
 
 if(iproc==0)then
-    call yaml_comment('Start Saddle Search ....',hfill='-')
+    call yaml_comment('(MHGPS) Start Saddle Search ....',hfill='-')
 endif
 
 minmode0=minmode
