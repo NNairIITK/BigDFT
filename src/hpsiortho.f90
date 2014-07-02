@@ -2122,7 +2122,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
    end do
    melec=nint(charge)
    !if (iproc == 0) write(*,*) 'charge',charge,melec
-   call init_fermi_level(real(melec,gp)/full, 0.d0, ft)
+   call init_fermi_level(real(melec,gp)/full, 0.d0, ft, ef_interpol_det=1.d-12, verbosity=1)
 
    ! Send all eigenvalues to all procs (presumably not necessary)
    call broadcast_kpt_objects(nproc, orbs%nkpts, orbs%norb, &
@@ -2175,11 +2175,14 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
                   f  = 0.d0
                   df = 0.d0
                end if
+               !call yaml_map('arg,f,orbs%kwgts(ikpt)',(/arg,f,orbs%kwgts(ikpt)/))
                electrons=electrons+ f  * orbs%kwgts(ikpt)  ! electrons := N_e(Ef+corr.)
                dlectrons=dlectrons+ df * orbs%kwgts(ikpt)  ! delectrons:= dN_e/darge ( Well! later we need dN_e/dEf=-1/wf*dN_e/darg
                !if(iproc==0) write(*,*) arg,   f , df
             enddo
          enddo
+         !call yaml_map('ef',ef)
+         !call yaml_map('electrons',electrons)
 
          dlectrons=dlectrons/(-wf)  ! df/dEf=df/darg * -1/wf
          diff=-real(melec,gp)/full+electrons
@@ -2194,12 +2197,12 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
          if (corr < -1.d0*wf) corr=-1.d0*wf
          if (abs(dlectrons) < 1.d-18  .and. electrons > real(melec,gp)/full) corr=3.d0*wf
          if (abs(dlectrons) < 1.d-18  .and. electrons < real(melec,gp)/full) corr=-3.d0*wf
-         !call determine_fermi_level(ft, electrons, ef,info_fermi)
+         call determine_fermi_level(ft, electrons, ef,info_fermi)
          !if (info_fermi /= 0) then
          !   call f_err_throw('Difficulties in guessing the new Fermi energy, info='//trim(yaml_toa(info_fermi)),&
          !        err_name='BIGDFT_RUNTIME_ERROR')
          !end if
-         ef=ef-corr  ! Ef=Ef_guess+corr.
+         !ef=ef-corr  ! Ef=Ef_guess+corr.
          !call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr) !debug
       end do loop_fermi
 
