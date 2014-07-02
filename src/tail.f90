@@ -89,7 +89,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 
   if (iproc == 0) then
      call yaml_comment('Finite-Size correction',hfill='-')
-     call yaml_open_map('Estimation of Finite-Size Corrections')
+     call yaml_mapping_open('Estimation of Finite-Size Corrections')
      call yaml_map('Effective AU space more around each external atom',rbuf,fmt='(f6.3)')
      call yaml_map('Adding grid points around cell',nbuf)
      call yaml_map('Effective box size (AU)', (/ alatb1,alatb2,alatb3 /), fmt='(1pe12.5)')
@@ -191,10 +191,10 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_c,nsegb_c,nvctrb_c)
 
   if (iproc == 0) then
-     call yaml_open_map('Coarse resolution grid',flow=.true.)
+     call yaml_mapping_open('Coarse resolution grid',flow=.true.)
      call yaml_map('Segments',nsegb_c)
      call yaml_map('Points',nsegb_c)
-     call yaml_close_map()
+     call yaml_mapping_close()
      !write(*,'(2(1x,a,i10))') &
      !     'Coarse resolution grid: Number of segments= ',nsegb_c,'points=',nvctrb_c
      !write(*,'(1x,a,2(1x,i10))') 'BIG: orbitals have coarse segment, elements',nsegb_c,nvctrb_c
@@ -207,10 +207,10 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_f,nsegb_f,nvctrb_f)
   if (iproc == 0) then
      !Bug in yaml_output solved
-     call yaml_open_map('Fine resolution grid',flow=.true.)
+     call yaml_mapping_open('Fine resolution grid',flow=.true.)
      call yaml_map('Segments',nsegb_f)
      call yaml_map('Points',nsegb_f)
-     call yaml_close_map()
+     call yaml_mapping_close()
      !write(*,'(2(1x,a,i10))') &
      !     '  Fine resolution grid: Number of segments= ',nsegb_f,'points=',nvctrb_f
      !write(*,'(1x,a,2(1x,i10))') 'BIG: orbitals have fine   segment, elements',nsegb_f,7*nvctrb_f

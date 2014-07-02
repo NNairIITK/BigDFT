@@ -285,7 +285,7 @@ program WaCo
   if(bondAna) then
      if (iproc == 0) then
          call yaml_comment('Bonding Analysis',hfill='-')
-         call yaml_open_map('Bonding Analysis')
+         call yaml_mapping_open('Bonding Analysis')
          !write(*,*) '!==================================!'
          !write(*,*) '!     Bonding Analysis :           !'
          !write(*,*) '!==================================!'
@@ -299,7 +299,7 @@ program WaCo
 
       ! Now calculate the bonding distances and ncenters
       if (iproc == 0) then
-         call yaml_open_sequence('Number of atoms associated to the WFs')
+         call yaml_sequence_open('Number of atoms associated to the WFs')
          call yaml_comment('WF   OWF   Nc   Spr(ang^2)   Atom numbers')
          !write(*,'(2x,A)') 'Number of atoms associated to the WFs'
          !write(*,'(3x,A,1x,A,4x,A,3x,A,3x,A)') 'WF','OWF','Spr(ang^2)','Nc','Atom numbers:'
@@ -318,16 +318,16 @@ program WaCo
          end do
          if(iproc == 0) then
            call yaml_sequence(advance="no")
-           call yaml_open_sequence(flow=.true.)
+           call yaml_sequence_open(flow=.true.)
               call yaml_sequence(trim(yaml_toa( (/ wann_list(iwann), iwann, ncenters(iwann) /) )))
               call yaml_sequence(trim(yaml_toa(sprd(iwann),fmt='(f14.6)')))
               call yaml_sequence(trim(yaml_toa(Zatoms(1:iat,iwann))))
-           call yaml_close_sequence()
+           call yaml_sequence_close()
            !write(*,'(2I4,F14.6,2x,I4,6(2x,I4))') &
            !   & wann_list(iwann),iwann, sprd(iwann), ncenters(iwann), (Zatoms(i_all,iwann),i_all=1,iat)
          end if
       end do
-      if (iproc == 0) call yaml_close_sequence()
+      if (iproc == 0) call yaml_sequence_close()
 
      ! Calculate occupation of the wannier functions
      wannocc = f_malloc(nwann,id='wannocc')
@@ -369,14 +369,14 @@ program WaCo
 !      end do
       if(iproc == 0) then
          call yaml_map('Total Wannier charge',sum(charge))
-         call yaml_open_map('Maximal charge',flow=.true.)
+         call yaml_mapping_open('Maximal charge',flow=.true.)
             call yaml_map('Atom', maxloc(charge))
             call yaml_map('Value',maxval(charge))
-         call yaml_close_map()
-         call yaml_open_map('Minimal charge',flow=.true.)
+         call yaml_mapping_close()
+         call yaml_mapping_open('Minimal charge',flow=.true.)
             call yaml_map('Atom', minloc(charge))
             call yaml_map('Value',minval(charge))
-         call yaml_close_map()
+         call yaml_mapping_close()
          !write(*,*) 'Total Wannier charge is : ',sum(charge)
          !write(*,*) 'Maximal charge is: ',maxval(charge), 'on atom :', maxloc(charge)
          !write(*,*) 'Minimal charge is: ',minval(charge), 'on atom :', minloc(charge)  
@@ -581,7 +581,7 @@ program WaCo
       end if
 
      if (iproc == 0) then
-         call yaml_close_map()
+         call yaml_mapping_close()
          !write(*,*) '!==================================!'
          !write(*,*) '!     Bonding Analysis : DONE      !' 
          !write(*,*) '!==================================!'
@@ -591,7 +591,7 @@ program WaCo
   if (hamilAna) then
      if (iproc == 0) then
         call yaml_comment('Hamiltonian Analysis',hfill='-') 
-        call yaml_open_map('Hamiltonian Analysis') 
+        call yaml_mapping_open('Hamiltonian Analysis') 
         !write(*,*) '!==================================!'
         !write(*,*) '!     Hamiltonian Analysis :       !' 
         !write(*,*) '!==================================!'
@@ -653,20 +653,20 @@ program WaCo
 
      diagT = f_malloc(plotwann,id='diagT')
 
-     if (iproc == 0) call yaml_open_sequence('Diagonal of the Hamiltonian (without empty WFs)')
+     if (iproc == 0) call yaml_sequence_open('Diagonal of the Hamiltonian (without empty WFs)')
      !if(iproc == 0) write(*,'(A)') 'Diagonal of the Hamiltonian (without empty WFs)'
      do i = 1, nrpts
         if (iproc == 0) then
            call yaml_sequence(advance='no')
            call yaml_comment(trim(yaml_toa(i,fmt='(i4.4)')))
-           call yaml_open_sequence(flow=.true.)
+           call yaml_sequence_open(flow=.true.)
         end if
         do iwann = 1, plotwann
            if (iproc == 0) then
-              call yaml_open_sequence(flow=.true.)
+              call yaml_sequence_open(flow=.true.)
               call yaml_sequence(trim(yaml_toa(ham(i,iwann,iwann),fmt='(e14.6')))
               if (bondAna) call yaml_sequence(trim(yaml_toa(ncenters(iwann))))
-              call yaml_close_sequence()
+              call yaml_sequence_close()
               call yaml_comment(trim(yaml_toa(iwann,fmt='(i4.4)')))
            end if
            !if (iproc == 0 .and. bondAna) then
@@ -676,9 +676,9 @@ program WaCo
            !end if
            diagT(iwann) = hamr(i,iwann,iwann)
         end do
-        if (iproc == 0) call yaml_close_sequence()
+        if (iproc == 0) call yaml_sequence_close()
      end do
-     if (iproc == 0) call yaml_close_sequence()
+     if (iproc == 0) call yaml_sequence_close()
 
      !Deallocate buf, because it is allocated again in scalar_kmeans_diffIG
      call f_free_ptr(buf)
@@ -694,7 +694,7 @@ program WaCo
      end if
 
      if (iproc == 0) then 
-        call yaml_close_map()
+        call yaml_mapping_close()
         !write(*,*) '!==================================!'
         !write(*,*) '!     Hamiltonian Analysis : DONE  !' 
         !write(*,*) '!==================================!'
@@ -727,21 +727,21 @@ program WaCo
 
        call read_centers(iproc,nwann,nwannCon,atoms%astruct%nat,seedname,ConstList,cxyz,rxyz_wann,.true.,sprd)
 
-       call yaml_open_sequence('Wannier centers')
+       call yaml_sequence_open('Wannier centers')
        do iwann = 1, nwannCon
           locrad(iwann) = sprdmult*(sprd(iwann)/(b2a*b2a))
           if (iproc == 0) then
              call yaml_sequence(advance='no')
-             call yaml_open_map('Wannier',flow=.true.)
+             call yaml_mapping_open('Wannier',flow=.true.)
                 call yaml_map('Center',cxyz(1:3,iwann))
                 call yaml_map('Locrad',locrad(iwann))
-             call yaml_close_map()
+             call yaml_mapping_close()
              call yaml_comment(trim(yaml_toa(iwann,fmt='(i4.4)')))
              !write(*,*) 'Wannier center for iwann ',iwann,'  :  ',(cxyz(i,iwann),i=1,3)
              !write(*,*) 'Locrad of iwann ',iwann, '  :  ', locrad(iwann)
           end if
        end do
-       if (iproc == 0) call yaml_close_sequence
+       if (iproc == 0) call yaml_sequence_close
 
        call f_free_ptr(rxyz_wann)
        call f_free(sprd)
@@ -857,7 +857,7 @@ program WaCo
      !#########################################################
 
      if (iproc == 0) then
-        call yaml_open_sequence('Constructing WFs')
+        call yaml_sequence_open('Constructing WFs')
         !write(*,*) '!==================================!'
         !write(*,*) '!     Constructing WFs :           !'
         !write(*,*) '!==================================!'
@@ -921,11 +921,11 @@ program WaCo
               orbsw%iokpt=1
               if(hamilana .and. linear) then
                  call yaml_sequence(advance='no')
-                 call yaml_open_map('orbs',flow=.true.)
+                 call yaml_mapping_open('orbs',flow=.true.)
                  call yaml_map('iiwann',iiwann)
                  call yaml_map('iwann',iwann)
                  call yaml_map('iokpt', (/ orbsw%iokpt(iiwann),orbsw%iokpt(iwann) /))
-                 call yaml_close_map()
+                 call yaml_mapping_close()
                  !write(*,*) 'iokpt',iiwann,orbsw%iokpt(iiwann),iwann,orbsw%iokpt(iwann)
                  call open_filename_of_iorb(ifile,.not.outformat,'minBasis',orbsw,iiwann,1,iwann_out)
                  ldim = Lzd%Llr(iiwann)%wfd%nvctr_c+7*Lzd%Llr(iiwann)%wfd%nvctr_f
@@ -1014,7 +1014,7 @@ program WaCo
      end if
 
      if (iproc==0) then
-        call yaml_close_sequence()
+        call yaml_sequence_close()
         !write(*,*) '!==================================!'
         !write(*,*) '!     Constructing WFs : DONE      !'
         !write(*,*) '!==================================!'
@@ -1351,7 +1351,7 @@ subroutine read_inter_header(iproc,seedname, filetype,residentity,write_resid, n
    open(unit=11, FILE=filename, STATUS='OLD')
 
    if (iproc == 0) then
-      call yaml_open_map('Reading input.inter header')
+      call yaml_mapping_open('Reading input.inter header')
       !write(*,*) '!==================================!'
       !write(*,*) '!   Reading input.inter header :   !'
       !write(*,*) '!==================================!'
@@ -1453,7 +1453,7 @@ subroutine read_inter_header(iproc,seedname, filetype,residentity,write_resid, n
    close(unit=11)
 
    if (iproc == 0) then
-      call yaml_close_map() 
+      call yaml_mapping_close() 
       !write(*,*) '!==================================!'
       !write(*,*) '! Reading input.inter header done  !'
       !write(*,*) '!==================================!'
@@ -1475,7 +1475,7 @@ subroutine read_umn(iproc,nwann,nband,seedname,umn)
    integer :: ierr, nwann_umn,nband_umn,iwann,iband,int1,int2
 
    if (iproc == 0) then
-      call yaml_open_map('Reading .umn')
+      call yaml_mapping_open('Reading .umn')
       write(*,*) '!==================================!'
       !write(*,*) '!==================================!'
       !write(*,*) '!     Reading .umn :               !' 
@@ -1522,7 +1522,7 @@ subroutine read_umn(iproc,nwann,nband,seedname,umn)
    if (iproc == 0) then
       call yaml_map('Number of Wannier functions',nwann_umn)
       call yaml_map('Number of orbitals used',nband_umn)
-      call yaml_close_map()
+      call yaml_mapping_close()
       !write(*,*) 'Number of Wannier functions : ',nwann_umn
       !write(*,*) 'Number of orbitals used     : ',nband_umn
       !write(*,*) '!==================================!'

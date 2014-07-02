@@ -140,11 +140,11 @@ subroutine conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
 
            if (iproc == 0 .and. parmin%verbosity > 0) then
               write(16,'(a,i5,2(1pe20.12))') 'switching back to SD:etot,etotprev',it,outs%energy,etotprev
-              call yaml_open_map('Switching back to SD',flow=.true.)
+              call yaml_mapping_open('Switching back to SD',flow=.true.)
                  call yaml_map('It',it)
                  call yaml_map('Etot',outs%energy)
                  call yaml_map('Etotprev',etotprev)
-              call yaml_close_map()
+              call yaml_mapping_close()
            end if
            !if (iproc == 0) write(*,'(a,i5,2(1pe20.12))') ' switching back to SD:etot,etotprev',it,etot,etotprev
            do iat=1,runObj%atoms%astruct%nat
@@ -201,7 +201,7 @@ subroutine conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
 
         call fnrmandforcemax(outs%fxyz,fnrm,fmax,outs%fdim)
         if (iproc == 0) then
-           call yaml_open_map('Geometry')
+           call yaml_mapping_open('Geometry')
               if (parmin%verbosity > 0) then
                  ! write(16,'(i5,1x,e12.5,1x,e21.14,a,1x,e9.2)')it,sqrt(fnrm),etot,' GEOPT CG ',beta/runObj%inputs%betax
                  ! write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct', fnrm,fluct*runObj%inputs%frac_fluct,fluct
@@ -223,7 +223,7 @@ subroutine conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
               !write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))')&
               !     'FORCES norm(Ha/Bohr): maxval=',    fmax,'fnrm=',    fnrm   , 'fluct=',fluct
               call geometry_output(fmax,fnrm,fluct)
-           call yaml_close_map()
+           call yaml_mapping_close()
         end if
 
         call convcheck(fmax,fluct*runObj%inputs%frac_fluct,runObj%inputs%forcemax,check) !n(m)
@@ -251,11 +251,11 @@ subroutine conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
            if (iproc == 0) then
               if (parmin%verbosity > 0) write(16,*) &
                    'NO conv in CG after 500 its: switching back to SD',it,fnrm,outs%energy
-              call yaml_open_map('NO conv in CG after 500 its: switching back to SD')
+              call yaml_mapping_open('NO conv in CG after 500 its: switching back to SD')
                  call yaml_map('Iteration',it)
                  call yaml_map('fnrm',fnrm)
                  call yaml_map('Total energy',outs%energy)
-              call yaml_close_map()
+              call yaml_mapping_close()
               !write(*,*) 'NO conv in CG after 500 its: switching back to SD',it,fnrm,etot
            end if
            do iat=1,runObj%atoms%astruct%nat
@@ -473,7 +473,7 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
                    ncount_bigdft,itsd,"GEOPT_SD  ",outs%energy, outs%energy-etotprev, &
                    & fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct,& 
                    "b/b0=",beta/runObj%inputs%betax,"nsat=",nsatur
-              call yaml_open_map('Geometry')
+              call yaml_mapping_open('Geometry')
                  call yaml_map('Ncount_BigDFT',ncount_bigdft)
                  call yaml_map('Iteration',itsd)
                  call yaml_map('Geometry Method','GEOPT_SD')
@@ -482,7 +482,7 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
                  call yaml_map('b/b0', beta/runObj%inputs%betax, fmt='(1pe8.2e1)')
                  call yaml_map('nsat',nsatur)
                  call geometry_output(fmax,fnrm,fluct)
-              call yaml_close_map()
+              call yaml_mapping_close()
               !write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1,2x,a,I2)') &
               !& ncount_bigdft,itsd,"GEOPT_SD  ",etot, etot-etotprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct, & 
               !& "b/b0=",beta/runObj%inputs%betax,"nsat=",nsatur
@@ -635,14 +635,14 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
         write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1)') &
           & ncount_bigdft,itsd,"GEOPT_VSSD",outsold%energy,outsold%energy-etotprev,fmax,sqrt(fnrm), &
           & fluct*runObj%inputs%frac_fluct,fluct,"beta=",beta
-        call yaml_open_map('Geometry')
+        call yaml_mapping_open('Geometry')
            call yaml_map('Ncount_BigDFT',ncount_bigdft)
            call yaml_map('Iteration',itsd)
            call yaml_map('Geometry Method','GEOPT_VSSD')
            call yaml_map('etotold',(/ outsold%energy,outsold%energy-etotprev /),fmt='(1pe21.14)')
            call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct /), fmt='(1pe10.2)')
            call yaml_map('beta', beta, fmt='(1pe8.2e1)')
-        call yaml_close_map()
+        call yaml_mapping_close()
         !if (parmrunObj%inputs%verbosity > 0)   write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1)') &
         !&ncount_bigdft,itsd,"GEOPT_VSSD",etotold,etotold-etotprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct,"beta=",beta
      end if
@@ -766,7 +766,7 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
      end if
 
      if (iproc == 0.and.parmin%verbosity > 0) then
-        call yaml_open_map('Geometry')
+        call yaml_mapping_open('Geometry')
            call yaml_map('Ncount_BigDFT',ncount_bigdft)
            call yaml_map('Iteration',itsd)
            call yaml_map('Geometry Method','GEOPT_VSSD')
@@ -775,7 +775,7 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
            call yaml_map('beta', beta, fmt='(1pe8.2e1)')
            call yaml_map('last beta', betalast, fmt='(1pe8.2e1)')
            call geometry_output(fmax,fnrm,fluct)
-        call yaml_close_map()
+        call yaml_mapping_close()
         !write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1,2x,a,1pe8.2E1)') &
         !ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct,& 
         !&"beta=",beta,"last beta=",betalast
@@ -796,7 +796,7 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
        "beta=",beta,"last beta=",betalast
 
   if (iproc == 0.and.parmin%verbosity > 0) then
-     call yaml_open_map('Geometry')
+     call yaml_mapping_open('Geometry')
         call yaml_map('Ncount_BigDFT',ncount_bigdft)
         call yaml_map('Iteration',itsd)
         call yaml_map('Geometry Method','GEOPT_VSSD')
@@ -805,7 +805,7 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
         call yaml_map('beta', beta, fmt='(1pe8.2e1)')
         call yaml_map('last beta', betalast, fmt='(1pe8.2e1)')
         call geometry_output(fmax,fnrm,fluct)
-     call yaml_close_map()
+     call yaml_mapping_close()
      !write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1,2x,a,1pe8.2E1)') &
      !&ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct,& 
      !&"beta=",beta,"last beta=",betalast

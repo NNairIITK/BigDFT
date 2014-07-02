@@ -275,7 +275,7 @@ subroutine draw_locregs(nlr,hx,hy,hz,Llr)
   !local variables
   character(len=*), parameter :: subname='draw_locregs'
   character(len=4) :: message
-  integer :: i1,i2,i3,ilr,nvctr_tot,i_stat,i_all
+  integer :: i1,i2,i3,ilr,nvctr_tot
   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
 
   !calculate total number
@@ -343,7 +343,6 @@ subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
   type(convolutions_bounds), intent(out) :: bounds
   !Local variables
   character(len=*), parameter :: subname='locreg_bounds'
-  integer :: i_stat,i_all
   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
 
   call f_routine(id=subname)

@@ -103,9 +103,9 @@ weight(1,1,2)=5
 call f_free(weight)
    call f_release_routine()
 
-!!$   call yaml_open_map('TemporaryA')
+!!$   call yaml_mapping_open('TemporaryA')
 !!$    call f_malloc_dump_status()
-!!$    call yaml_close_map()
+!!$    call yaml_mapping_close()
 !!$
 !!$
 !!$   call f_routine(id='Routine A')
@@ -114,16 +114,16 @@ call f_free(weight)
 !!$call f_free(weight)
 !!$   call f_release_routine()
 !!$
-!!$   call yaml_open_map('TemporaryB')
+!!$   call yaml_mapping_open('TemporaryB')
 !!$    call f_malloc_dump_status()
-!!$    call yaml_close_map()
+!!$    call yaml_mapping_close()
 
 
 !!$   call f_release_routine()
 !!$
-!!$   call yaml_open_map('Temporary')
+!!$   call yaml_mapping_open('Temporary')
 !!$    call f_malloc_dump_status()
-!!$    call yaml_close_map()
+!!$    call yaml_mapping_close()
 !!$stop
 !!$
 !!$!   call f_malloc_dump_status()
@@ -238,9 +238,9 @@ call f_free(weight)
    call f_free(xc_pot)
    !   call f_malloc_dump_status()
    call f_free_ptr(extra_ref)
-!!$   !   call yaml_open_map('Last')
+!!$   !   call yaml_mapping_open('Last')
 !!$   !   call f_malloc_dump_status()
-!!$   !   call yaml_close_map()
+!!$   !   call yaml_mapping_close()
 
    call yaml_comment('Entering in OpenMP section if available',hfill='-')
 
@@ -466,9 +466,9 @@ subroutine dynmem_sandbox()
    call add_routine(dict2,'Routine F')
 !   call yaml_comment('Look Below',hfill='v')
 
-   call yaml_open_map('Test Case before implementation')
+   call yaml_mapping_open('Test Case before implementation')
    call yaml_dict_dump(dictA)
-   call yaml_close_map()
+   call yaml_mapping_close()
 !   call yaml_comment('Look above',hfill='^')
 
    call dict_free(dictA)

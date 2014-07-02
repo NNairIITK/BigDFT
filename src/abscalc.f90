@@ -717,7 +717,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
       call extract_potential_for_spectra(iproc,nproc,atoms_clone,rhodsc,dpcom,&
           KSwfn%orbs,nvirt,comms,KSwfn%Lzd,hx,hy,hz,rxyz,rhopotExtra,rhocore,pot_ion,&
-          nlpsp,pkernel,pkernel,ixc,KSwfn%psi,hpsi,psit,Gvirt,&
+          nlpsp,pkernel,ixc,KSwfn%psi,Gvirt,&
           nspin, in%potshortcut, symObj, GPU,in)
       
       if( iand( in%potshortcut,32)  .gt. 0 .and. in%iabscalc_type==3 ) then
@@ -780,7 +780,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
       call extract_potential_for_spectra(iproc,nproc,atoms,rhodsc,dpcom,&
           KSwfn%orbs,nvirt,comms,KSwfn%Lzd,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
-          nlpsp,pkernel,pkernel,ixc,KSwfn%psi,hpsi,psit,Gvirt,&
+          nlpsp,pkernel,ixc,KSwfn%psi,Gvirt,&
           nspin, in%potshortcut, symObj, GPU, in)
 
       !call f_free_ptr(KSwfn%psi)
@@ -1613,7 +1613,7 @@ END SUBROUTINE read_potfile4b2B
 
 subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
      orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
-     nlpsp,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
+     nlpsp,pkernel,ixc,psi,G,&
      nspin,potshortcut,symObj,GPU,input)
    use module_base
    use module_interfaces, except_this_one => extract_potential_for_spectra
@@ -1643,9 +1643,9 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
    type(gaussian_basis), intent(out) :: G !basis for davidson IG
-   real(wp), dimension(:), pointer :: psi,hpsi,psit
+   real(wp), dimension(:), pointer :: psi
    real(wp), dimension(:,:,:,:), pointer :: rhocore
-   type(coulomb_operator), intent(in) :: pkernel,pkernelseq
+   type(coulomb_operator), intent(in) :: pkernel
    type(xc_info) :: xc
    integer, intent(in) ::potshortcut
 

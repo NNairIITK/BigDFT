@@ -23,7 +23,6 @@ subroutine restart_from_gaussians(iproc,nproc,orbs,Lzd,hx,hy,hz,psi,G,coeffs)
   real(wp), dimension(:,:), pointer :: coeffs
   !local variables
   character(len=*), parameter :: subname='restart_from_gaussians'
-  integer :: i_stat,i_all
 
   !the atomic positions corresponds to the new values
   !calculate the dual coefficients with the new positions
@@ -57,7 +56,7 @@ subroutine read_gaussian_information(orbs,G,coeffs,filename, opt_fillrxyz)
   !local variables
   character(len=*), parameter :: subname='read_gaussian_information'
   logical :: exists
-  integer :: i_stat,jexpo,iexpo,iat,iorb,jat,icoeff,jcoeff,jorb,j
+  integer :: jexpo,iexpo,iat,iorb,jat,icoeff,jcoeff,jorb,j
   real(gp) :: rx,ry
   real(gp), dimension(4) :: coeff
   logical fillrxyz
@@ -137,7 +136,7 @@ subroutine write_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
   real(wp), dimension(G%ncoeff,orbs%norbp*orbs%nspinor), intent(in) :: coeffs
   !local variables
   character(len=*), parameter :: subname='write_gaussian_information'
-  integer :: jproc,i_stat,i_all,ierr,iexpo,iat,iorb,icoeff,jorb,j,norb_tot
+  integer :: jproc,ierr,iexpo,iat,iorb,icoeff,jorb,j,norb_tot
   integer, dimension(:,:), allocatable :: gatherarr
   real(gp), dimension(:,:), allocatable :: gaupsi
 
@@ -221,7 +220,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
   character(len=*), parameter :: subname='gaussian_pswf_basis'
   !integer, parameter :: noccmax=2,lmax=4,nelecmax=32 !n(c) nmax=6
   logical :: occeq
-  integer :: i_stat,i_all,iat,ityp,ishell,iexpo,l,i,ig,ictotpsi,norbe,norbsc,ishltmp
+  integer :: iat,ityp,ishell,iexpo,l,i,ig,ictotpsi,norbe,norbsc,ishltmp
   integer :: ityx,ntypesx,nspinor,jat,noncoll,icoeff,iocc,nlo,ispin,m,icoll,ngv,ngc,islcc
   real(gp) :: ek
   !integer, dimension(lmax) :: nl
@@ -490,7 +489,7 @@ subroutine gaussian_pswf_basis_for_paw(at,rxyz,G,  &
   character(len=*), parameter :: subname='gaussian_pswf_basis_for_paw'
   !integer, parameter :: noccmax=2,lmax=4,nmax=6,nelecmax=32
   integer :: il, j
-  integer :: i_stat,iat,ityp,jtyp,ishell,iexpo,l,i
+  integer :: iat,ityp,jtyp,ishell,iexpo,l,i
   integer :: ig,iexpoat_qs , iexpoat_coeffs
   integer :: natpaw, imatrix
   integer :: nspinor,noncoll,icoeff,m
@@ -677,7 +676,7 @@ subroutine gaussian_psp_basis(at,rxyz,G)
   type(gaussian_basis), intent(out) :: G  
   !local variables
   character(len=*), parameter :: subname='gaussian_psp_basis'
-  integer :: iat,nshell,ityp,iexpo,l,ishell,i_stat
+  integer :: iat,nshell,ityp,iexpo,l,ishell
 
   G%nat=at%astruct%nat
   G%rxyz => rxyz
@@ -750,7 +749,7 @@ subroutine gaussian_orthogonality(iproc,nproc,norb,norbp,G,coeffs)
   real(wp), dimension(G%ncoeff,norbp), intent(inout) :: coeffs
   !local variables
   character(len=*), parameter :: subname='gaussian_orthogonality' 
-  integer :: iorb,i,jproc,i_stat,i_all,info,ierr
+  integer :: iorb,i,jproc,info,ierr
   integer, dimension(:,:), allocatable :: gatherarr
   real(gp), dimension(:,:), allocatable :: ovrlp,gaupsi,tmp,smat
 
@@ -1098,9 +1097,7 @@ subroutine orbital_projection(geocode,n1,n2,n3,nat,rxyz,thetaphi,nshell,ndoc,nam
   
 END SUBROUTINE orbital_projection
 
-!>
-!!
-!!
+
 subroutine dual_gaussian_coefficients(norbp,G,coeffs)
   use module_base
   use gaussians
@@ -1110,7 +1107,7 @@ subroutine dual_gaussian_coefficients(norbp,G,coeffs)
   real(gp), dimension(G%ncoeff,norbp), intent(inout) :: coeffs !warning: the precision here should be wp
   !local variables
   character(len=*), parameter :: subname='dual_gaussian_coefficients'
-  integer :: nwork,info,i_stat,i_all
+  integer :: nwork,info
   integer, dimension(:), allocatable :: iwork
   real(gp), dimension(:), allocatable :: ovrlp,work
 
@@ -1268,7 +1265,7 @@ subroutine wavetogau(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,
   character(len=*), parameter :: subname='wavetogau'
   integer, parameter ::nw=32000
   logical :: perx,pery,perz
-  integer:: iterm,itp,n_gau,ml1,mu1,ml2,mu2,ml3,mu3,i1,i2,i3,i_all,i_stat,iseg,ii,jj,j0,j1,i0,i
+  integer:: iterm,itp,n_gau,ml1,mu1,ml2,mu2,ml3,mu3,i1,i2,i3,iseg,ii,jj,j0,j1,i0,i
   real(wp) :: ovlp_c,ovlp_f1,ovlp_f2,ovlp_f3,ovlp_f4,ovlp_f5,ovlp_f6,ovlp_f7,ovlp
   real(gp) :: gau_a,te
   real(wp), dimension(0:nw,2) :: work

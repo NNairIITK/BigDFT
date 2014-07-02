@@ -1512,10 +1512,10 @@ contains
        !gaussian estimation valid only for Free BC
        if (at%astruct%geocode == 'F') then
           call yaml_newline()
-          call yaml_open_map('Accuracy estimation for this run')
+          call yaml_mapping_open('Accuracy estimation for this run')
           call yaml_map('Energy',accurex,fmt='(1pe9.2)')
           call yaml_map('Convergence Criterion',accurex/real(orbs%norb,kind=8),fmt='(1pe9.2)')
-          call yaml_close_map()
+          call yaml_mapping_close()
           !write(*,'(1x,a,1pe9.2)') 'expected accuracy in energy ',accurex
           !write(*,'(1x,a,1pe9.2)') &
           !&   'expected accuracy in energy per orbital ',accurex/real(orbs%norb,kind=8)
@@ -1678,7 +1678,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '------------------------------------------------- Empty wavefunctions initialization'
         call yaml_comment('Empty wavefunctions initialization',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
 
      call input_wf_empty(iproc, nproc,KSwfn%psi, KSwfn%hpsi, KSwfn%psit, KSwfn%orbs, &
@@ -1689,7 +1689,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '------------------------------------------------ Random wavefunctions initialization'
         call yaml_comment('Random wavefunctions Initialization',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
 
      call input_wf_random(KSwfn%psi, KSwfn%orbs)
@@ -1699,7 +1699,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write(*,'(1x,a)')&
         !     &   '--------------------------------------------------------- Import Gaussians from CP2K'
         call yaml_comment('Import Gaussians from CP2K',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
 
      call input_wf_cp2k(iproc, nproc, in%nspin, atoms, rxyz, KSwfn%Lzd, &
@@ -1710,7 +1710,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write(*,'(1x,a)')&
         !     &   '------------------------------------------------------- Input Wavefunctions Creation'
         call yaml_comment('Wavefunctions from PSP Atomic Orbitals Initialization',hfill='-')
-        call yaml_open_map('Input Hamiltonian')
+        call yaml_mapping_open('Input Hamiltonian')
      end if
      nspin=in%nspin
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
@@ -1725,7 +1725,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '-------------------------------------------------------------- Wavefunctions Restart'
         call yaml_comment('Wavefunctions Restart',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
      perx=(atoms%astruct%geocode /= 'F')
      pery=(atoms%astruct%geocode == 'P')
@@ -1773,7 +1773,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   case(INPUT_PSI_MEMORY_LINEAR)
      if (iproc == 0) then
         call yaml_comment('Support functions Restart',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
       call input_memory_linear(iproc, nproc, atoms, KSwfn, tmb, tmb_old, denspot, in, &
            rxyz_old, rxyz, denspot0, energs, nlpsp, GPU, ref_frags)
@@ -1783,7 +1783,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '---------------------------------------------------- Reading Wavefunctions from disk'
         call yaml_comment('Reading Wavefunctions from disk',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
      call input_wf_disk(iproc, nproc, input_wf_format, KSwfn%Lzd%Glr%d,&
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
@@ -1795,7 +1795,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '--------------------------------------- Quick Wavefunctions Restart (Gaussian basis)'
         call yaml_comment('Quick Wavefunctions Restart (Gaussian basis)',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
      call restart_from_gaussians(iproc,nproc,KSwfn%orbs,KSwfn%Lzd,&
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
@@ -1807,7 +1807,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '------------------------------------------- Reading Wavefunctions from gaussian file'
         call yaml_comment('Reading Wavefunctions from gaussian file',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
      call read_gaussian_information(KSwfn%orbs,KSwfn%gbd,KSwfn%gaucoeffs,&
           trim(in%dir_output)//'wavefunctions.gau')
@@ -1833,7 +1833,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write(*,'(1x,a)')&
         !     '------------------------------------------------------- Input Wavefunctions Creation'
         call yaml_comment('Input Wavefunctions Creation',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
 
      ! By doing an LCAO input guess
@@ -1853,7 +1853,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '---------------------------------------------------- Reading Wavefunctions from disk'
         call yaml_comment('Reading Wavefunctions from disk',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
 
      !if (in%lin%scf_mode==LINEAR_FOE) then
@@ -2143,8 +2143,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           KSwfn%psi,KSwfn%hpsi,KSwfn%psit,in%orthpar)
   end if
 
-  !if (iproc==0 .and. inputpsi /= INPUT_PSI_LINEAR_AO) call yaml_close_map() !input hamiltonian
-  if (iproc==0) call yaml_close_map() !input hamiltonian
+  !if (iproc==0 .and. inputpsi /= INPUT_PSI_LINEAR_AO) call yaml_mapping_close() !input hamiltonian
+  if (iproc==0) call yaml_mapping_close() !input hamiltonian
 
   if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
      inputpsi /= INPUT_PSI_MEMORY_LINEAR) then

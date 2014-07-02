@@ -20,7 +20,8 @@ PROGRAM rotate_posinp
    character(len=12) :: units
    character(len=8) :: boundary
    character(len=20) :: extra(natx) 
-   character(len=120) :: line,line2
+   character(len=120) :: line
+!   character(len=120) :: line2
    real(kind=8), dimension(3,natx) :: pos
    real(kind=8), dimension(3) :: pos_s
    real(kind=8) :: scale,t1,t2,t3,phi_1,phi_2,phi_3,alat1,alat2,alat3

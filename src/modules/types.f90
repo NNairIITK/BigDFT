@@ -1517,12 +1517,11 @@ contains
 
   
   !> De-Allocate restart_objects
-  subroutine free_restart_objects(rst,subname)
+  subroutine free_restart_objects(rst)
     use module_base
     use locregs
     use gaussians, only: deallocate_gwf
     implicit none
-    character(len=*), intent(in) :: subname
     type(restart_objects) :: rst
     !local variables
     integer :: istep

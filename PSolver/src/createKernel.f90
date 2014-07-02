@@ -77,9 +77,9 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
   if (iproc == 0 .and. verb) then 
      if (mu0t==0.0_gp) then 
         call yaml_comment('Kernel Initialization',hfill='-')
-        call yaml_open_map('Poisson Kernel Initialization')
+        call yaml_mapping_open('Poisson Kernel Initialization')
      else
-        call yaml_open_map('Helmholtz Kernel Initialization')
+        call yaml_mapping_open('Helmholtz Kernel Initialization')
          call yaml_map('Screening Length (AU)',1/mu0t,fmt='(g25.17)')
      end if
   end if
@@ -101,7 +101,7 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
      call yaml_map('MPI tasks',kernel%mpi_env%nproc)
      if (nthreads /=0) call yaml_map('OpenMP threads per MPI task',nthreads)
      if (kernel%igpu==1) call yaml_map('Kernel copied on GPU',.true.)
-     call yaml_close_map() !kernel
+     call yaml_mapping_close() !kernel
   end if
 
 end function pkernel_init
@@ -196,9 +196,9 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
 
   if (dump) then 
      if (mu0t==0.0_gp) then 
-        call yaml_open_map('Poisson Kernel Creation')
+        call yaml_mapping_open('Poisson Kernel Creation')
      else
-        call yaml_open_map('Helmholtz Kernel Creation')
+        call yaml_mapping_open('Helmholtz Kernel Creation')
         call yaml_map('Screening Length (AU)',1/mu0t,fmt='(g25.17)')
      end if
   end if
@@ -450,14 +450,14 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
 !call MPI_BARRIER(kernel%mpi_env%mpi_comm,ierr)
 
   if (dump) then
-     call yaml_open_map('Memory Requirements per MPI task')
+     call yaml_mapping_open('Memory Requirements per MPI task')
        call yaml_map('Density (MB)',8.0_gp*real(md1*md3,gp)*real(md2/kernel%mpi_env%nproc,gp)/(1024.0_gp**2),fmt='(f8.2)')
        call yaml_map('Kernel (MB)',8.0_gp*real(nd1*nd3,gp)*real(nd2/kernel%mpi_env%nproc,gp)/(1024.0_gp**2),fmt='(f8.2)')
        call yaml_map('Full Grid Arrays (MB)',&
             8.0_gp*real(kernel%ndims(1)*kernel%ndims(2),gp)*real(kernel%ndims(3),gp)/(1024.0_gp**2),fmt='(f8.2)')
        !print the load balancing of the different dimensions on screen
      if (kernel%mpi_env%nproc > 1) then
-        call yaml_open_map('Load Balancing of calculations')
+        call yaml_mapping_open('Load Balancing of calculations')
         jhd=10000
         jzd=10000
         npd=0
@@ -473,14 +473,14 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
               exit load_balancing
            end if
         end do load_balancing
-        call yaml_open_map('Density')
+        call yaml_mapping_open('Density')
          call yaml_map('MPI tasks 0-'//trim(yaml_toa(jfd,fmt='(i5)')),'100%')
          if (jfd < kernel%mpi_env%nproc-1) &
               call yaml_map('MPI task'//trim(yaml_toa(jhd,fmt='(i5)')),trim(yaml_toa(npd,fmt='(i5)'))//'%')
          if (jhd < kernel%mpi_env%nproc-1) &
               call yaml_map('MPI tasks'//trim(yaml_toa(jhd,fmt='(i5)'))//'-'//&
               yaml_toa(kernel%mpi_env%nproc-1,fmt='(i3)'),'0%')
-        call yaml_close_map()
+        call yaml_mapping_close()
         jhk=10000
         jzk=10000
         npk=0
@@ -497,7 +497,7 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
                  exit load_balancingk
               end if
            end do load_balancingk
-           call yaml_open_map('Kernel')
+           call yaml_mapping_open('Kernel')
            call yaml_map('MPI tasks 0-'//trim(yaml_toa(jfk,fmt='(i5)')),'100%')
 !           print *,'here,npk',npk
            if (jfk < kernel%mpi_env%nproc-1) &
@@ -505,11 +505,11 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
            if (jhk < kernel%mpi_env%nproc-1) &
                 call yaml_map('MPI tasks'//trim(yaml_toa(jhk,fmt='(i5)'))//'-'//&
                 yaml_toa(kernel%mpi_env%nproc-1,fmt='(i3)'),'0%')
-           call yaml_close_map()
+           call yaml_mapping_close()
         call yaml_map('Complete LB per task','1/3 LB_density + 2/3 LB_kernel')
-        call yaml_close_map()
+        call yaml_mapping_close()
      end if
-     call yaml_close_map() !memory
+     call yaml_mapping_close() !memory
 
   end if
 
@@ -596,7 +596,7 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
 !print *,'okcomm',kernel%mpi_comm,kernel%iproc
 !call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
 
-  if (dump) call yaml_close_map() !kernel
+  if (dump) call yaml_mapping_close() !kernel
 
   call f_timing(TCAT_PSOLV_KERNEL,'OF')
   !call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','OF')

@@ -344,17 +344,17 @@ MODULE NEB_routines
          inquire(file = trim(restart_file), exist = restart)
          call yaml_map("NEB restart", restart, unit = 6)
       else if (mpi_info(1) == 0 .and. mpi_info(3) == 0) then
-         call yaml_open_sequence("Restarting images", unit = 6)
+         call yaml_sequence_open("Restarting images", unit = 6)
          do i = 1, size(imgs), 1
             call yaml_sequence(trim(yaml_toa(all(imgs(i)%outs%fxyz /= UNINITIALIZED(1.d0)))), unit = 6, advance = "no")
             call yaml_comment(yaml_toa(i, fmt = "(I2.2)"), unit = 6)
             call yaml_newline(unit = 6)
          end do
-         call yaml_close_sequence(unit = 6)
+         call yaml_sequence_close(unit = 6)
       end if
 
       if (mpi_info(1) == 0 .and. mpi_info(3) == 0) &
-           & call yaml_open_sequence("NEB minimization loop", unit = 6)
+           & call yaml_sequence_open("NEB minimization loop", unit = 6)
       iteration = 0
       minimization: do
          if (external_call) then
@@ -405,7 +405,7 @@ MODULE NEB_routines
          END IF
       end do minimization
       if (mpi_info(1) == 0 .and. mpi_info(3) == 0) &
-           & call yaml_close_sequence(unit = 6)
+           & call yaml_sequence_close(unit = 6)
 
       if (mpi_info(1) == 0 .and. mpi_info(3) == 0) then
          call yaml_swap_stream(6, unt, ierr)
@@ -563,7 +563,7 @@ MODULE NEB_routines
       deallocate(arr_posinp,arr_radical)
 
       if (.not. external_call) then
-         call free_restart_objects(rst, "deallocation")
+         call free_restart_objects(rst)
          call f_lib_finalize()
       end if
 

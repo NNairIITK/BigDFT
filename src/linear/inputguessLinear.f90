@@ -648,10 +648,10 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      energs%eexctX=0.d0 !temporary fix
      trace_old=0.d0 !initialization
      if (iproc==0) then
-         !call yaml_close_map()
+         !call yaml_mapping_close()
          call yaml_comment('Extended input guess for experimental mode',hfill='-')
-         call yaml_open_map('Extended input guess')
-         call yaml_open_sequence('support function optimization',label=&
+         call yaml_mapping_open('Extended input guess')
+         call yaml_sequence_open('support function optimization',label=&
                                            'it_supfun'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))))
      end if
      order_taylor=input%lin%order_taylor ! since this is intent(inout)
@@ -664,28 +664,28 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          can_use_ham, order_taylor, input%lin%max_inversion_error, input%kappa_conv, input%method_updatekernel,&
          input%purification_quickreturn, input%correction_co_contra)
      reduce_conf=.true.
-     call yaml_close_sequence()
-     call yaml_close_map()
+     call yaml_sequence_close()
+     call yaml_mapping_close()
      call deallocateDIIS(ldiis)
-     !call yaml_open_map()
+     !call yaml_mapping_open()
      ! END NEW ############################################################################
  end if
 
 
 
   !!if (iproc==0) then
-  !!    call yaml_close_map()
+  !!    call yaml_mapping_close()
   !!end if
 
   if (iproc==0) then
-      !call yaml_open_sequence('First kernel')
-      !call yaml_open_sequence('kernel optimization',label=&
+      !call yaml_sequence_open('First kernel')
+      !call yaml_sequence_open('kernel optimization',label=&
       !                          'it_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
       !call yaml_sequence(advance='no')
-!      call yaml_open_map('Input Guess kernel ')
+!      call yaml_mapping_open('Input Guess kernel ')
 !      call yaml_map('Generation method',input%lin%scf_mode) 
       !call yaml_sequence(advance='no')
-      !call yaml_open_map(flow=.false.)
+      !call yaml_mapping_open(flow=.false.)
       !call yaml_comment('kernel iter:'//yaml_toa(0,fmt='(i6)'),hfill='-')
   end if
 
@@ -714,7 +714,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
        tmb%orbs, tmb%psi, tmb%collcom_sr)
 
   if (iproc==0) then
-      call yaml_open_map('Hamiltonian update',flow=.true.)
+      call yaml_mapping_open('Hamiltonian update',flow=.true.)
      ! Use this subroutine to write the energies, with some
      ! fake number
      ! to prevent it from writing too much
@@ -765,7 +765,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   end if
   if (iproc==0) call yaml_newline()
   call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
-  if(iproc==0) call yaml_close_map()
+  if(iproc==0) call yaml_mapping_close()
   ! Mix the potential.
   if (input%lin%mixing_after_inputguess .and. input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
      !!call mix_main(iproc, nproc, input%lin%scf_mode, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
@@ -798,9 +798,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !end if
   
   !if (iproc==0) then
-  !    call yaml_close_map()
-      !call yaml_close_sequence()
-      !call yaml_close_sequence()
+  !    call yaml_mapping_close()
+      !call yaml_sequence_close()
+      !call yaml_sequence_close()
   !end if
   !!if(iproc==0) write(*,'(1x,a)') '------------------------------------------------------------- Input guess generated.'
   if (iproc==0) call yaml_comment('Input guess generated',hfill='=')

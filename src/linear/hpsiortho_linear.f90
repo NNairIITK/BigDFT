@@ -565,7 +565,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   call DIISorSD(iproc, it, trH, tmb, ldiis, alpha, alphaDIIS, lphiold, trH_ref, kernel_best, complete_reset)
   if(iproc==0) then
       call yaml_newline()
-      call yaml_open_map('Optimization',flow=.true.)
+      call yaml_mapping_open('Optimization',flow=.true.)
       if(ldiis%isx>0) then
           call yaml_map('algorithm','DIIS')
           call yaml_map('history length',ldiis%isx)
@@ -577,7 +577,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
           call yaml_map('max alpha',alpha_max,fmt='(es9.3)')
           call yaml_map('consecutive successes',ldiis%icountSDSatur)
       end if
-      call yaml_close_map()
+      call yaml_mapping_close()
       call yaml_newline()
   end if
 

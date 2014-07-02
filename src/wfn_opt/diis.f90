@@ -437,7 +437,6 @@ subroutine deallocate_diis_objects(diis,subname)
   character(len=*), intent(in) :: subname
   type(diis_objects), intent(inout) :: diis
   !local variables
-  integer :: i_all,i_stat
 
   call f_free_ptr(diis%psidst)
   call f_free_ptr(diis%hpsidst)
@@ -692,7 +691,7 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
   type(diis_objects), intent(inout) :: diis
 ! Local variables
   character(len=*), parameter :: subname='diisstp'
-  integer :: i,j,ist,jst,mi,info,jj,mj,i_all,i_stat,ierr,ipsi_spin_sh,iorb_group_sh
+  integer :: i,j,ist,jst,mi,info,jj,mj,ipsi_spin_sh,iorb_group_sh
   integer :: ikptp,ikpt,ispsi,ispsidst,nvctrp,icplx,ncplx,norbi,ngroup,igroup,iacc_add
   complex(tp) :: zdres,zdotc
   real(tp), dimension(2) :: psicoeff

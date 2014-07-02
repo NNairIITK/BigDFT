@@ -751,22 +751,22 @@ contains
     if (present(full)) full_ = full
 
     if (full_) then
-       call yaml_open_sequence("Energy and error per image")
+       call yaml_sequence_open("Energy and error per image")
        DO i = 1, size(imgs)
           call yaml_sequence(advance='no')
-          call yaml_open_map(flow=.true.)
+          call yaml_mapping_open(flow=.true.)
           call yaml_map("Energy (eV)", imgs(i)%outs%energy * Ha_eV,fmt='(F16.8)')
           call yaml_map("error (eV/ang)", imgs(i)%error * ( Ha_eV / Bohr_Ang ),fmt='(F8.5)')
-          call yaml_close_map(advance='no')
+          call yaml_mapping_close(advance='no')
 !!$          call yaml_sequence( &
 !!$               dict((/ "Energy (eV)"      .is. yaml_toa(V(i) * Ha_eV,fmt='(F16.8)') ,&
 !!$                       "error (eV / ang)" .is. yaml_toa(error(i) * ( Ha_eV / Bohr_Ang ),fmt='(F8.5)') /), &
 !!$                       advance = "no")
           call yaml_comment(trim(yaml_toa(i,fmt='(i2.2)')))
        END DO
-       call yaml_close_sequence()
+       call yaml_sequence_close()
     else
-       call yaml_open_map(flow=.true.)
+       call yaml_mapping_open(flow=.true.)
        call yaml_map("Ea (eV)", images_get_activation(imgs) * Ha_eV,fmt='(F10.6)')
        if (present(tol)) then
           ! Print the update scheme.
@@ -783,10 +783,10 @@ contains
        end if
        call yaml_map("max err (eV/ang)", maxval(images_get_errors(imgs)) * ( Ha_eV / Bohr_Ang ),fmt='(F10.6)')
        if (present(iteration)) then
-          call yaml_close_map(advance="no")
+          call yaml_mapping_close(advance="no")
           call yaml_comment(trim(yaml_toa(iteration, fmt='(i3.3)')))
        else
-          call yaml_close_map()
+          call yaml_mapping_close()
        end if
     end if
   END SUBROUTINE images_output_step

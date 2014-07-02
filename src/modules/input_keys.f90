@@ -253,9 +253,9 @@ contains
     implicit none
 
     call f_dump_last_error()
-    call yaml_open_map("allowed values")
+    call yaml_mapping_open("allowed values")
     call yaml_dict_dump(failed_exclusive)
-    call yaml_close_map()
+    call yaml_mapping_close()
     call f_err_severe()
   end subroutine abort_excl
 
@@ -1128,27 +1128,27 @@ contains
 
          flow = (.not.associated(dict%child%child))
          if (.not.flow .and. trim(descr) /= "") then
-            call yaml_open_sequence(trim(dict%data%key), tag = tag, advance = "no")
+            call yaml_sequence_open(trim(dict%data%key), tag = tag, advance = "no")
             call yaml_comment(trim(descr), tabbing = 50)
          else
-            call yaml_open_sequence(trim(dict%data%key), tag = tag, flow=flow)
+            call yaml_sequence_open(trim(dict%data%key), tag = tag, flow=flow)
          end if
          do i = 0, dict_len(dict) - 1, 1
             call yaml_sequence("", advance = "no")
             call dict_dump_(dict // i)
          end do
          if (flow .and. trim(descr) /= "") then
-            call yaml_close_sequence(advance = "no")
+            call yaml_sequence_close(advance = "no")
             call yaml_comment(trim(descr), tabbing = 50)
          else
-            call yaml_close_sequence()
+            call yaml_sequence_close()
          end if
       else if (dict_size(dict) > 0) then
          ! Dictionary case
          if (userOnly_ .and. .not.userDef) return
 
          if (len_trim(dict%data%key) > 0) &
-              & call yaml_open_map(trim(dict%data%key),flow=.false.)
+              & call yaml_mapping_open(trim(dict%data%key),flow=.false.)
          iter => dict_next(dict)
          allocate(keys(dict_size(dict)))
          keys = dict_keys(dict)
@@ -1156,7 +1156,7 @@ contains
             call dict_dump_(dict // keys(i))
          end do
          deallocate(keys)
-         if (len_trim(dict%data%key) > 0) call yaml_close_map()
+         if (len_trim(dict%data%key) > 0) call yaml_mapping_close()
       else if (associated(dict)) then
          ! Leaf case.
          if (dict%data%item >= 0) then

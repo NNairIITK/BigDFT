@@ -63,7 +63,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
 
   if (iproc==0) then
       call yaml_newline()
-      call yaml_open_sequence('expansion coefficients optimization',label=&
+      call yaml_sequence_open('expansion coefficients optimization',label=&
            'it_coeff'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'_'//&
            trim(adjustl(yaml_toa(it_cdft,fmt='(i3.3)')))//&
            '_'//trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)'))))
@@ -75,7 +75,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
       if (iproc==0) then
           call yaml_newline()
           call yaml_sequence(advance='no')
-          call yaml_open_map(flow=.true.)
+          call yaml_mapping_open(flow=.true.)
           call yaml_comment('it coeff:'//yaml_toa(it,fmt='(i6)'),hfill='-')
       end if
 
@@ -292,7 +292,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      energy0=energy
 
      if (iproc==0) then
-         call yaml_close_map()
+         call yaml_mapping_close()
          call bigdft_utils_flush(unit=6)
      end if
 
@@ -307,19 +307,19 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
   !!    call yaml_sequence(label='final_coeff'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'_'//&
   !!         trim(adjustl(yaml_toa(it_cdft,fmt='(i3.3)')))//'_'//&
   !!         trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)'))),advance='no')
-  !!    call yaml_open_map(flow=.true.)
+  !!    call yaml_mapping_open(flow=.true.)
   !!    call yaml_comment('iter:'//yaml_toa(itlast,fmt='(i6)'),hfill='-')
   !!    call yaml_map('iter',itlast,fmt='(i6)')
   !!    call yaml_map('fnrm',fnrm,fmt='(es9.2)')
   !!    call yaml_map('eBS',energy0,fmt='(es24.17)')
   !!    call yaml_map('D',energy-energy0,fmt='(es10.3)')
-  !!    call yaml_close_map()
+  !!    call yaml_mapping_close()
   !!    call bigdft_utils_flush(unit=6)
   !!end if
 
 
   if (iproc==0) then
-      call yaml_close_sequence()
+      call yaml_sequence_close()
       call yaml_newline()
   end if
 
@@ -401,13 +401,13 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   end do
   !call f_free_ptr(ovrlp_half)
 
-  if (iproc==0) call yaml_open_sequence('Weight analysis',flow=.true.)
+  if (iproc==0) call yaml_sequence_open('Weight analysis',flow=.true.)
   if (iproc==0) call yaml_newline()
   if (iproc==0) call yaml_comment ('coeff, occ, eval, frac for each frag')
   ! only care about diagonal elements
   do iorb=1,ksorbs%norb
      if (iproc==0) then
-         call yaml_open_map(flow=.true.)
+         call yaml_mapping_open(flow=.true.)
          call yaml_map('iorb',iorb,fmt='(i4)')
          call yaml_map('occ',KSorbs%occup(iorb),fmt='(f6.4)')
          call yaml_map('eval',tmb%orbs%eval(iorb),fmt='(f10.6)')
@@ -415,10 +415,10 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
      do ifrag=1,input%frag%nfrag
         if (iproc==0) call yaml_map('frac',weight_coeff_diag(iorb,ifrag),fmt='(f6.4)')
      end do
-     if (iproc==0) call yaml_close_map()
+     if (iproc==0) call yaml_mapping_close()
      if (iproc==0) call yaml_newline()
   end do
-  if (iproc==0) call yaml_close_sequence()
+  if (iproc==0) call yaml_sequence_close()
 
   call deallocate_matrices(inv_ovrlp)
 

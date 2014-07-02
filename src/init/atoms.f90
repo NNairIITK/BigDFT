@@ -664,7 +664,7 @@ subroutine wtint(iunit,energy,rxyz,atoms,comment,na,nb,nc)
   character(len=10) :: name
   character(len=11) :: units, angle
   character(len=50) :: extra
-  integer :: iat,j
+  integer :: iat
   real(gp) :: xmax,ymax,zmax,factor,factor_angle
 
 
@@ -814,21 +814,21 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,wrtforces,forces, &
   perz = .false.
   BC :select case(atoms%astruct%geocode)
   case('S')
-     call yaml_open_sequence('Cell', flow=.true., unit = iunit)
+     call yaml_sequence_open('Cell', flow=.true., unit = iunit)
        call yaml_sequence(yaml_toa(atoms%astruct%cell_dim(1)*factor), unit = iunit) !x
        call yaml_sequence('.inf', unit = iunit)             !y
        call yaml_sequence(yaml_toa(atoms%astruct%cell_dim(3)*factor), unit = iunit) !z
-     call yaml_close_sequence(unit = iunit)
+     call yaml_sequence_close(unit = iunit)
      !angdeg to be added
      perx = .true.
      pery = .false.
      perz = .true.
   case('W')
-     call yaml_open_sequence('Cell', flow=.true., unit = iunit)
+     call yaml_sequence_open('Cell', flow=.true., unit = iunit)
        call yaml_sequence('.inf', unit = iunit)             !x
        call yaml_sequence('.inf', unit = iunit)             !y
        call yaml_sequence(yaml_toa(atoms%astruct%cell_dim(3)*factor), unit = iunit) !z
-     call yaml_close_sequence(unit = iunit)
+     call yaml_sequence_close(unit = iunit)
      perx = .false.
      pery = .false.
      perz = .true.
@@ -845,11 +845,11 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,wrtforces,forces, &
   end select BC
 
   !Write atomic positions
-  call yaml_open_sequence('Positions', unit = iunit)
+  call yaml_sequence_open('Positions', unit = iunit)
   do iat=1,atoms%astruct%nat
      call yaml_sequence(advance='no', unit = iunit)
      if (extra_info(iat)) then
-        call yaml_open_map(flow=.true., unit = iunit)
+        call yaml_mapping_open(flow=.true., unit = iunit)
      end if
      xred=rxyz(:,iat)
      if (reduced) then
@@ -880,29 +880,29 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,wrtforces,forces, &
            call frozen_itof(atoms%astruct%ifrztyp(iat),frzchain)
            call yaml_map('Frozen',frzchain, unit = iunit)
         end if
-        call yaml_close_map(unit = iunit)
+        call yaml_mapping_close(unit = iunit)
      end if
   end do
-  call yaml_close_sequence(unit = iunit) !positions
+  call yaml_sequence_close(unit = iunit) !positions
 
   !Write atomic forces
   if (wrtforces) then
-     call yaml_open_sequence('Forces (Ha/Bohr)', unit = iunit)
+     call yaml_sequence_open('Forces (Ha/Bohr)', unit = iunit)
      do iat=1,atoms%astruct%nat
         call yaml_sequence(advance='no', unit = iunit)
         call yaml_map(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),forces(:,iat),fmt='(1pg25.17)', unit = iunit)
      end do
-     call yaml_close_sequence(unit = iunit) !values
+     call yaml_sequence_close(unit = iunit) !values
   end if
   if (wrtlog) then
      call yaml_map('Rigid Shift Applied (AU)',(/-shift(1),-shift(2),-shift(3)/),fmt='(1pg12.5)')
   else
-     call yaml_open_map('Properties', unit = iunit)
+     call yaml_mapping_open('Properties', unit = iunit)
      call yaml_map('Timestamp',yaml_date_and_time_toa(), unit = iunit)
      if (energy /= 0. .and. energy /= UNINITIALIZED(energy)) then
         call yaml_map("Energy (Ha)", energy, unit = iunit)
      end if
-     call yaml_close_map(unit = iunit) !properties
+     call yaml_mapping_close(unit = iunit) !properties
   end if
 
 contains
@@ -923,11 +923,11 @@ contains
     character(len=*), parameter :: fmtat='(1pg18.10)',fmtg='(F6.2)',fmti='(i4.4)'
     integer :: i
 
-    call yaml_open_sequence(atomname,flow=.true.)
+    call yaml_sequence_open(atomname,flow=.true.)
     do i=1,3
        call yaml_sequence(yaml_toa(rxyz(i),fmt=fmtat))
     end do
-    call yaml_close_sequence(advance='no')
+    call yaml_sequence_close(advance='no')
     call yaml_comment(trim(yaml_toa(factor*rxyz/hgrids,fmt=fmtg))//trim(yaml_toa(id,fmt=fmti))) !we can also put tabbing=
 
   end subroutine print_one_atom

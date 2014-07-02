@@ -405,7 +405,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
 
   if (atoms%astruct%geocode == 'P') then
      ucvol=atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3) !orthorombic cell
-     if (iproc==0) call yaml_open_map('Stress Tensor')
+     if (iproc==0) call yaml_mapping_open('Stress Tensor')
      !sum and symmetrize results
      if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,ewaldstr,ucvol,pressure,'Ewald')
      if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,hstrten,ucvol,pressure,'Hartree')
@@ -429,7 +429,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
      !final result
      pressure=(strten(1)+strten(2)+strten(3))/3.0_gp
      if (iproc==0)call write_strten_info(.true.,strten,ucvol,pressure,'Total')
-     if (iproc==0) call yaml_close_map()
+     if (iproc==0) call yaml_mapping_close()
   end if
 !!$  if (iproc == 0) then
 !!$     sumx=0.d0 ; sumy=0.d0 ; sumz=0.d0
@@ -630,7 +630,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   charge=charge*hxh*hyh*hzh
 
  !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Calculate local forces...'
-  if (iproc == 0 .and. verbose > 1) call yaml_open_map('Calculate local forces',flow=.true.)
+  if (iproc == 0 .and. verbose > 1) call yaml_mapping_open('Calculate local forces',flow=.true.)
   forceleaked=0.d0
 
   !conditions for periodicity in the three directions
@@ -791,7 +791,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
  !if (iproc == 0 .and. verbose > 1) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked
   if (iproc == 0 .and. verbose > 1) then
      call yaml_map('Leaked force',trim(yaml_toa(forceleaked,fmt='(1pe12.5)')))
-     call yaml_close_map()
+     call yaml_mapping_close()
   end if
 
   if (at%multipole_preserving) call finalize_real_space_conversion()
@@ -3732,12 +3732,12 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
      !  'Subtracting center-mass shift of',sumx,sumy,sumz
 !           write(*,'(1x,a)')'the sum of the forces is'
 
-     call yaml_open_map('Average noise forces',flow=.true.)
+     call yaml_mapping_open('Average noise forces',flow=.true.)
      call yaml_map('x',sumx*sqrt(real(at%astruct%nat,gp)),fmt='(1pe16.8)')
      call yaml_map('y',sumy*sqrt(real(at%astruct%nat,gp)),fmt='(1pe16.8)')
      call yaml_map('z',sumz*sqrt(real(at%astruct%nat,gp)),fmt='(1pe16.8)')
      call yaml_map('total',sqrt(sumx**2+sumy**2+sumz**2)*sqrt(real(at%astruct%nat,gp)),fmt='(1pe16.8)')
-     call yaml_close_map()
+     call yaml_mapping_close()
      !     write(*,'(a,1pe16.8)')' average noise along x direction: ',sumx*sqrt(real(at%astruct%nat,gp))
      !     write(*,'(a,1pe16.8)')' average noise along y direction: ',sumy*sqrt(real(at%astruct%nat,gp))
      !     write(*,'(a,1pe16.8)')' average noise along z direction: ',sumz*sqrt(real(at%astruct%nat,gp))
@@ -3835,15 +3835,15 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   enddo
 
   if (iproc==0) then
-     call yaml_open_map('Clean forces norm (Ha/Bohr)',flow=.true.)
+     call yaml_mapping_open('Clean forces norm (Ha/Bohr)',flow=.true.)
      call yaml_map('maxval', fmax2,fmt='(1pe20.12)')
      call yaml_map('fnrm2',  fnrm2,fmt='(1pe20.12)')
-     call yaml_close_map()
+     call yaml_mapping_close()
      if (at%astruct%geocode /= 'P') then
-        call yaml_open_map('Raw forces norm (Ha/Bohr)',flow=.true.)
+        call yaml_mapping_open('Raw forces norm (Ha/Bohr)',flow=.true.)
         call yaml_map('maxval', fmax1,fmt='(1pe20.12)')
         call yaml_map('fnrm2',  fnrm1,fmt='(1pe20.12)')
-        call yaml_close_map()
+        call yaml_mapping_close()
      end if
      !write(*,'(2(1x,a,1pe20.12))') 'clean forces norm (Ha/Bohr): maxval=', fmax2, ' fnrm2=', fnrm2
      !if (at%astruct%geocode /= 'P') &

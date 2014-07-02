@@ -182,7 +182,7 @@ program wvl
   end if
   if (iproc == 0) then
      !uses yaml_output routine to provide example
-     call yaml_open_sequence('The overlap matrix is')
+     call yaml_sequence_open('The overlap matrix is')
           do j = 1, orbs%norb, 1
              call yaml_sequence(trim(yaml_toa(ovrlp(:, j),fmt='(g18.8)')))
           end do

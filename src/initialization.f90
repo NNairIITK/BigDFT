@@ -38,7 +38,7 @@ subroutine run_objects_free(runObj, subname)
      call dict_free(runObj%user_inputs)
   end if
   if (associated(runObj%rst)) then
-     call free_restart_objects(runObj%rst,subname)
+     call free_restart_objects(runObj%rst)
      deallocate(runObj%rst)
   end if
   if (associated(runObj%atoms)) then
@@ -395,12 +395,12 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
         if (iproc == 0) then
            call yaml_map('Material acceleration','OpenCL',advance='no')
            call yaml_comment('iproc=0')
-           call yaml_open_map('Number of OpenCL devices per node',flow=.true.)
+           call yaml_mapping_open('Number of OpenCL devices per node',flow=.true.)
            call yaml_map('used',trim(yaml_toa(min(GPU%ndevices,nproc_node),fmt='(i0)')))
            call yaml_map('available',trim(yaml_toa(GPU%ndevices,fmt='(i0)')))
            !write(*,'(1x,a,i5,i5)') 'OpenCL support activated, No. devices per node (used, available):',&
            !     min(GPU%ndevices,nproc_node),GPU%ndevices
-           call yaml_close_map()
+           call yaml_mapping_close()
         end if
         !the number of devices is the min between the number of processes per node
         GPU%ndevices=min(GPU%ndevices,nproc_node)

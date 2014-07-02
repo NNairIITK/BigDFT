@@ -159,7 +159,7 @@ module fermi_level
       if (f%it_solver > 1) then
           if (f%verbosity >= 1 .and. bigdft_mpi%iproc==0) then
               call yaml_newline()
-              call yaml_open_map('interpol check',flow=.true.)
+              call yaml_mapping_open('interpol check',flow=.true.)
               call yaml_map('D eF',ef-f%ef_old,fmt='(es13.6)')
               call yaml_map('D Tr',sumn-f%sumn_old,fmt='(es13.6)')
           end if
@@ -174,7 +174,7 @@ module fermi_level
           else
               if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('interpol possible',.false.)
           end if
-          if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_close_map()
+          if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_mapping_close()
           if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_newline()
       end if
       if (.not.interpolation_possible) then
@@ -245,7 +245,7 @@ module fermi_level
           ! Calculate the new Fermi energy.
           if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) then
               call yaml_newline()
-              call yaml_open_map('Search new eF',flow=.true.)
+              call yaml_mapping_open('Search new eF',flow=.true.)
           end if
           if (f%it_solver>=4 .and.  &
               abs(sumn-f%target_charge) < f%ef_interpol_chargediff) then
@@ -274,7 +274,7 @@ module fermi_level
               if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('method','bisection / secant method')
           end if
           if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) then
-              call yaml_close_map()
+              call yaml_mapping_close()
           end if
 
         end subroutine determine_new_fermi_level

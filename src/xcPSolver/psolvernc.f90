@@ -79,7 +79,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,xc,hx,hy,hz,&
   logical :: wrtmsg
   !n(c) integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
   integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3,i3s_fake,i3xcsh_fake
-  integer :: i_all,i_stat,ierr,ind,ind2,ind3,ind4,ind4sh,i,j
+  integer :: ierr,ind,ind2,ind3,ind4,ind4sh,i,j
   integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh,is_step,ind2nd
   integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,nlim,ispin,istden,istglo
   real(dp) :: scal,ehartreeLOC,eexcuLOC,vexcuLOC,pot,alphat,betat,gammat
@@ -472,12 +472,12 @@ contains
      implicit none
      integer, intent(in) :: n01,n02,n03,nproc,ixc
      character(len=*), intent(in) :: code
-     call yaml_open_map('PSolver',flow=.true.)
+     call yaml_mapping_open('PSolver',flow=.true.)
         call yaml_map('Geometry',trim(code))
         call yaml_map('dim',(/ n01,n02,n03 /))
         call yaml_map('proc',nproc)
         call yaml_map('ixc',ixc)
-     call yaml_close_map()
+     call yaml_mapping_close()
   end subroutine PSolver_yaml
 
 END SUBROUTINE PSolver
@@ -547,7 +547,7 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,xc,hx,hy,hz,&
   !local variables
   character(len=*), parameter :: subname='PSolverNC'
   real(dp) :: rhon,rhos,factor
-  integer :: i_all,i_stat,i1,i2,i3,idx,offs
+  integer :: i1,i2,i3,idx,offs
   real(dp), dimension(:,:,:), allocatable :: m_norm
   real(dp), dimension(:,:,:,:), allocatable :: rho_diag
 
