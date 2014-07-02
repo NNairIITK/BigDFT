@@ -293,6 +293,13 @@ def parse_arguments():
     # Return the parsing
     return parser
 
+def highlight_iftty(options):
+    hl = yaml_hl.YAMLHighlight(options)
+    if os.isatty(hl.output.fileno()):
+        hl.highlight()
+    else:
+        hl.output.write(hl.input.read().encode('utf-8'))
+
 
 def fatal_error(args, reports, message='Error in reading datas, Yaml Standard violated or missing file'):
     "Fatal Error: exit after writing the report, assume that the report file is already open)"
@@ -305,17 +312,10 @@ def fatal_error(args, reports, message='Error in reading datas, Yaml Standard vi
     newreport.write(
         yaml.dump(finres, default_flow_style=False, explicit_start=True))
     newreport.close()
-    hl = yaml_hl.YAMLHighlight(options)
-    hl.highlight()
+    highlight_iftty(options)
+    #hl = yaml_hl.YAMLHighlight(options)
+    #hl.highlight()
     sys.exit(0)
-
-def highlight_iftty(options):
-    hl = yaml_hl.YAMLHighlight(options)
-    if os.isatty(hl.output.fileno()):
-        hl.highlight()
-    else:
-        hl.output.write(hl.input.read().encode('utf-8'))
-    
 
     
 if __name__ == "__main__":
