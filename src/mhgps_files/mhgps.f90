@@ -78,11 +78,11 @@ real(gp),allocatable :: eval(:),work(:)
         call init_restart_objects(bigdft_mpi%iproc,inputs_opt,atoms,rst,subname)
         call run_objects_nullify(runObj)
         call run_objects_associate(runObj, inputs_opt, atoms, rst)
-        if(runObj%inputs%itermin<5)then
-            itermin=5
-        else
+!        if(runObj%inputs%itermin<5)then
+!            itermin=5
+!        else
             itermin=runObj%inputs%itermin
-        endif
+!        endif
 
     elseif(efmethod=='LJ')then
         isForceField=.true.
@@ -230,7 +230,7 @@ real(gp),allocatable :: eval(:),work(:)
     call f_free(hess)
     call f_free(rcov)
     call f_free(iconnect)
-
+    call yaml_map('(MHGPS) Run finished at',yaml_date_and_time_toa())
     call f_lib_finalize()
 end program
 

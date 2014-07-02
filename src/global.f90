@@ -229,7 +229,7 @@ integer:: fcount=0
       close(864)
   endif
 
-  if (atoms%astruct%geocode=='F') call ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
+!  if (atoms%astruct%geocode=='F') call ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
 
 !  if ( .not. atoms%astruct%geocode=='F') then 
 !         write(*,*) 'Generating new input guess'
@@ -454,6 +454,13 @@ integer:: fcount=0
   e_pos = outs%energy
   call mdescape(nsoften,mdmin,ekinetic,gg,vxyz,dt,count_md, runObj, outs, &
                 ngeopt,bigdft_mpi%nproc,bigdft_mpi%iproc)
+  if (bigdft_mpi%iproc == 0) then 
+     tt=dnrm2(3*outs%fdim,outs%fxyz,1)
+     write(fn4,'(i4.4)') nint(escape)
+     write(comment,'(a,1pe10.3)')'fnrm= ',tt
+     call write_atomic_file('posaftermd_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
+  endif
 
      if (atoms%astruct%geocode == 'F') &
           & call fixfrag_posvel(bigdft_mpi%iproc,atoms%astruct%nat,rcov,atoms%astruct%rxyz,vxyz,1,occured)
@@ -481,7 +488,7 @@ integer:: fcount=0
       close(864)
   endif
 
-  if (atoms%astruct%geocode=='F') call  ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
+!  if (atoms%astruct%geocode=='F') call  ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
 
 !  if ( .not. atoms%astruct%geocode=='F') then 
 !         write(*,*) 'Generating new input guess'

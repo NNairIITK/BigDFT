@@ -19,7 +19,7 @@ use module_base
     do iat=1,nat
         do jat=1,iat-1
             dist2=(pos(1,iat)-pos(1,jat))**2+(pos(2,iat)-pos(2,jat))**2+(pos(3,iat)-pos(3,jat))**2
-            if (dist2.le.(1.2d0*(rcov(iat)+rcov(jat)))**2) then
+            if (dist2.le.(1.2_gp*(rcov(iat)+rcov(jat)))**2) then
                 nbond=nbond+1
                 if (nbond.gt.1000) stop 'nbond>1000'
                 iconnect(1,nbond)=iat
@@ -49,7 +49,7 @@ use yaml_output
         real(gp) :: count
         character(20):: atomnames(nat)
         real(gp), allocatable, dimension(:,:,:) :: rxyz,fxyz,ff,rr,rrr,fff,fstretch,fxyzraw,rxyzraw
-        real(gp), allocatable, dimension(:,:) :: aa,dd,dds,delta
+        real(gp), allocatable, dimension(:,:) :: aa,dd,dds,dd0,delta
         real(gp), allocatable, dimension(:) ::eval,work,res,scpr,wold
 !        real(gp) :: t1,t2,t3
 !        real(gp) :: t1raw,t2raw,t3raw
@@ -97,10 +97,10 @@ minmode0=minmode
 
     check=.true.
 
-    displ=0.d0
-    displ2=0.d0
-    displold=0.d0
-    curv=1000.d0
+    displ=0.0_gp
+    displ2=0.0_gp
+    displold=0.0_gp
+    curv=1000.0_gp
     !allocate arrays
     lwork=1000+10*nat**2
 
@@ -111,11 +111,11 @@ minmode0=minmode
     lwork=1000+10*nat**2
     allocate(rxyz(3,nat,0:nhistx_trans),fxyz(3,nat,0:nhistx_trans),aa(nhistx_trans,nhistx_trans),fxyzraw(3,nat,0:nhistx_trans),rxyzraw(3,nat,0:nhistx_trans))
     allocate(eval(nhistx_trans),res(nhistx_trans),work(lwork))
-    allocate(ff(3,nat,0:nhistx_trans),rr(3,nat,0:nhistx_trans),dd(3,nat),dds(3,nat),delta(3,nat))
+    allocate(ff(3,nat,0:nhistx_trans),rr(3,nat,0:nhistx_trans),dd(3,nat),dds(3,nat),dd0(3,nat),delta(3,nat))
     allocate(fff(3,nat,0:nhistx_trans),rrr(3,nat,0:nhistx_trans),scpr(nhistx_trans),wold(nbond),fstretch(3,nat,0:nhistx_trans))
     allocate(gradrot(3,nat),minmodeold(3,nat))
-    wold=0.d0
-    fstretch=0.d0
+    wold=0.0_gp
+    fstretch=0.0_gp
 
     do iat=1,nat
         do l=1,3
@@ -125,17 +125,17 @@ minmode0=minmode
 
     call fixfrag_posvel(nat,rcov,rxyz(1,1,0),tnatdmy,1,fixfragmented)
 
-    count=count+1.d0
+    count=count+1.0_gp
 !        call energyandforces(nat,rxyz(1,1,0),fxyz(1,1,0),etot)
 !        energyandforces(nat,alat,rxyz(1,1,0),fxyz(1,1,0),etot,'cnt_enf_geopt')
     inputPsiId=0
     call minenergyandforces(imode,nat,alat,rxyz(1,1,0),rxyzraw(1,1,0),&
     fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),etot,iconnect,nbond,atomnames,&
     wold,alpha_stretch0,alpha_stretch)
-    ec=ec+1.d0
+    ec=ec+1.0_gp
     if(imode==2)rxyz(:,:,0)=rxyz(:,:,0)+alpha_stretch*fstretch(:,:,0)
-!    t1=0.d0 ; t2=0.d0 ; t3=0.d0
-!    t1raw=0.d0 ; t2raw=0.d0 ; t3raw=0.d0
+!    t1=0.0_gp ; t2=0.0_gp ; t3=0.0_gp
+!    t1raw=0.0_gp ; t2raw=0.0_gp ; t3raw=0.0_gp
 !    do iat=1,nat
 !        t1raw=t1raw+fxyzraw(1,iat,0)**2 ; t2raw=t2raw+fxyzraw(2,iat,0)**2;t3raw=t3raw+fxyzraw(3,iat,0)**2
 !    enddo
@@ -145,7 +145,8 @@ minmode0=minmode
     etotold=etot
     etotp=etot
 
-    itswitch=2
+!    itswitch=2
+    itswitch=-2
     ndim=0
     nhist=0
     alpha=alpha0_trans
@@ -153,7 +154,7 @@ minmode0=minmode
         if (check) write(100,*) 'it:',it,etot,fnrm,itswitch
         nhist=nhist+1
 
-        if ((.not. subspaceSucc) .or. fnrm.gt.100.d0 .or. it.le.itswitch) then
+        if ((.not. subspaceSucc) .or. fnrm.gt.100.0_gp .or. it.le.itswitch) then
           ndim=0
           steep=.true.
 !          if (it.gt.itswitch) itswitch=it+nhistx_trans
@@ -179,12 +180,12 @@ minmode0=minmode
             enddo
         endif
 
-       if(fnrm > 10.d0*fnrmtol)then
+       if(fnrm > 10.0_gp*fnrmtol)then
             flag=.true.
        endif
 
        !START FINDING LOWEST MODE
-       if(fnrm<=tightenfac*fnrmtol .and. flag .and. curv<0.d0)then
+       if(fnrm<=tightenfac*fnrmtol .and. flag .and. curv<0.0_gp)then
 !       if(fnrm<=tightenfac*fnrmtol .and. flag)then
            if(check) write(100,*)'tighten'
            write(*,*)'tighten'
@@ -196,32 +197,33 @@ minmode0=minmode
        else
            tol=tolc
        endif
-       !if(abs(displ-displold)>0.029d0*sqrt(dble(3*nat))&
+       !if(abs(displ-displold)>0.029_gp*sqrt(dble(3*nat))&
        tooFar = abs(displ-displold)>rmsdispl*sqrt(dble(3*nat))
        if(tooFar&
-!       &.or. it==1&
-       &.or. it==1 .or. (curv>=0.d0 .and. mod(it,recompIfCurvPos)==0)&
-       &.or.recompute==it)then
-           if(iproc==0)call yaml_comment('(MHGPS) METHOD  COUNT  IT  CURVATURE             DIFF      FMAX      FNRM      alpha    ndim')
+         .or. it==1&
+         .or. (curv>=0.0_gp .and. mod(it,recompIfCurvPos)==0)&
+         .or.recompute==it)then
+           if(iproc==0)call yaml_comment('(MHGPS) METHOD COUNT  IT  CURVATURE             DIFF      FMAX      FNRM      alpha    ndim')
            inputPsiId=1
 !           inputPsiId=0
            call opt_curv(imode,nat,alat,alpha0_rot,curvgraddiff,nit_rot,nhistx_rot,rxyzraw(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
                         &minmode(1,1),curv,gradrot(1,1),&
-                        &tol,count,count_sd,displ2,ec,check,optCurvConv,iconnect,nbond,atomnames,2.d-4,maxcurvrise,cutoffratio)
+                        &tol,count,count_sd,displ2,ec,check,optCurvConv,iconnect,nbond,atomnames,2.e-4_gp,maxcurvrise,cutoffratio)
            inputPsiId=1
-           if(iproc==0)call yaml_comment('(MHGPS) METHOD  COUNT  IT  Energy                DIFF      FMAX      FNRM      alpha    ndim')
+           if(iproc==0)call yaml_comment('(MHGPS) METHOD COUNT  IT  Energy                DIFF      FMAX      FNRM      alpha    ndim')
            minmode = minmode / dnrm2(3*nat,minmode(1,1),1)
            if(.not.optCurvConv)then
-               write(*,*) 'WARNING: opt_curv failed'
+               if(iproc==0)call yaml_warning('(MHGPS) opt_curv failed')
                converged=.false.
 stop 'opt_curv failed'
                return
            endif
            overlap=ddot(3*nat,minmodeold(1,1),1,minmode(1,1),1)
-           write(*,*)'overlap',overlap
+           if(iproc==0)call yaml_map('  (MHGPS) overap',overlap)
            minmodeold=minmode
            displold=displ
            recompute=huge(1)
+           !for what the following? can it be removed?(2.6.2014, Bastian)
            if(tooFar)then
                flag = .true.
            endif
@@ -232,11 +234,12 @@ stop 'opt_curv failed'
        call modify_gradient(check,nat,ndim,rrr(1,1,1),eval(1),res(1),fxyz(1,1,nhist-1),alpha,dd(1,1))
 
        !invert gradient in minmode direction
-       dd=dd-2.d0*ddot(3*nat,dd(1,1),1,minmode(1,1),1)*minmode
+       dd0=dd-ddot(3*nat,dd(1,1),1,minmode(1,1),1)*minmode
+       dd=dd-2.0_gp*ddot(3*nat,dd(1,1),1,minmode(1,1),1)*minmode
 
-       tt=0.d0
-       dt=0.d0
-       maxd=-huge(1.d0)
+       tt=0.0_gp
+       dt=0.0_gp
+       maxd=-huge(1.0_gp)
        do iat=1,nat
            dt=dd(1,iat)**2+dd(2,iat)**2+dd(3,iat)**2
            tt=tt+dt
@@ -246,13 +249,14 @@ stop 'opt_curv failed'
        maxd=sqrt(maxd)
 
        !trust radius approach
-!       if(maxd>trustr .and. alpha>1.d-1*alpha0_trans)then
+!       if(maxd>trustr .and. alpha>1.e-1_gp*alpha0_trans)then
        if(maxd>trustr)then
-           write(*,*)'step too large',maxd,it
-           scl=0.5d0*trustr/maxd
+!           write(*,*)'step too large',maxd,it
+           if(iproc==0)call yaml_map('  (MHGPS) step too large',maxd)
+           scl=0.5_gp*trustr/maxd
            dd=dd*scl
            tt=tt*scl
-           maxd=0.5d0*trustr
+           maxd=0.5_gp*trustr
        endif
         !do the move
         rxyz(:,:,nhist)=rxyz(:,:,nhist-1)-dd(:,:)
@@ -260,25 +264,25 @@ stop 'opt_curv failed'
 !       displ=displ+tt
 
        if (steep) then 
-           count_sd=count_sd+1.d0
+           count_sd=count_sd+1.0_gp
        else
-           count=count+1.d0
+           count=count+1.0_gp
        endif
 
        inputPsiId=1
        call minenergyandforces(imode,nat,alat,rxyz(1,1,nhist),rxyzraw(1,1,nhist),&
             fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),etotp&
             ,iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
-       ec=ec+1.d0
+       ec=ec+1.0_gp
        detot=etotp-etotold
 
        call fnrmandforcemax(fxyzraw(1,1,nhist),fnrm,fmax,nat)
        fnrm=sqrt(fnrm)
 
 
-!       s=0.d0 ; st=0.d0
-!       t1=0.d0 ; t2=0.d0 ; t3=0.d0
-!!       t1raw=0.d0 ; t2raw=0.d0 ; t3raw=0.d0
+!       s=0.0_gp ; st=0.0_gp
+!       t1=0.0_gp ; t2=0.0_gp ; t3=0.0_gp
+!!       t1raw=0.0_gp ; t2raw=0.0_gp ; t3raw=0.0_gp
 !       do iat=1,nat
 !!           t1raw=t1raw+fxyzraw(1,iat,nhist)**2 ; t2raw=t2raw+fxyzraw(2,iat,nhist)**2 ;t3raw=t3raw+fxyzraw(3,iat,nhist)**2
 !           t1=t1+fxyz(1,iat,nhist)**2 ; t2=t2+fxyz(2,iat,nhist)**2 ;t3=t3+fxyz(3,iat,nhist)**2
@@ -286,9 +290,12 @@ stop 'opt_curv failed'
 !           st=st+fxyz(1,iat,nhist)*dd(1,iat)+fxyz(2,iat,nhist)*dd(2,iat)+fxyz(3,iat,nhist)*dd(3,iat)
 !       enddo
 !!       fnrm=sqrt(t1raw+t2raw+t3raw)
-       cosangle=-dot_double(3*nat,fxyz(1,1,nhist),1,dd(1,1),1)/&
+       cosangle=-dot_double(3*nat,fxyz(1,1,nhist),1,dd0(1,1),1)/&
                 sqrt(dot_double(3*nat,fxyz(1,1,nhist),1,fxyz(1,1,nhist),1)*&
-                dot_double(3*nat,dd(1,1),1,dd(1,1),1))
+                dot_double(3*nat,dd0(1,1),1,dd0(1,1),1))
+!       cosangle=-dot_double(3*nat,fxyz(1,1,nhist),1,dd(1,1),1)/&
+!                sqrt(dot_double(3*nat,fxyz(1,1,nhist),1,fxyz(1,1,nhist),1)*&
+!                dot_double(3*nat,dd(1,1),1,dd(1,1),1))
 
 
 !       write(173,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,xa4,i3.3,xa5,a7,2(xa6,a8))')&
@@ -298,19 +305,19 @@ stop 'opt_curv failed'
 !       &'GEOPT it,etot,etotold,Detot,fnrm,ndim,alpha,alpha_stretch',&
 !       &it-1,etotp,etotold,detot,fnrm,ndim,alpha,alpha_stretch
 !!!           call yaml_comment('     METHOD  COUNT  IT  CURVATURE             DIFF      FMAX      FNRM      alpha    ndim   maxd   dsplp')
-if(iproc==0)write(*,'(a,2xi4.4,xi4.4,xes21.14,4(xes9.2),xi3.3,xes9.2)')' (MHGPS)   GEOPT ',nint(ec),it,etotp,detot,fmax,fnrm, alpha,ndim!,maxd,
+if(iproc==0)write(*,'(a,xi4.4,xi4.4,xes21.14,4(xes9.2),xi3.3,xes9.2)')'   (MHGPS) GEOPT ',nint(ec),it,etotp,detot,fmax,fnrm, alpha,ndim!,maxd,
 
        etot=etotp
        etotold=etot
-       if (fnrm.le.fnrmtol .and. curv<0.d0) goto 1000
+       if (fnrm.le.fnrmtol .and. curv<0.0_gp) goto 1000
 !       if (fnrm.le.fnrmtol) goto 1000
 
        !now do step in hard directions
        if(imode==2)then
-!           fstretch(:,:,nhist)=fstretch(:,:,nhist)-2.d0*ddot(3*nat,fstretch(1,1,nhist),1,minmode(1,1),1)*minmode
-           dds=alpha_stretch*(fstretch(:,:,nhist)-2.d0*ddot(3*nat,fstretch(1,1,nhist),1,minmode(1,1),1)*minmode)
-           dt=0.d0
-           maxd=-huge(1.d0)
+!           fstretch(:,:,nhist)=fstretch(:,:,nhist)-2.0_gp*ddot(3*nat,fstretch(1,1,nhist),1,minmode(1,1),1)*minmode
+           dds=alpha_stretch*(fstretch(:,:,nhist)-2.0_gp*ddot(3*nat,fstretch(1,1,nhist),1,minmode(1,1),1)*minmode)
+           dt=0.0_gp
+           maxd=-huge(1.0_gp)
            do iat=1,nat
 !               dt=fstretch(1,iat,nhist)**2+fstretch(2,iat,nhist)**2+fstretch(3,iat,nhist)**2
                dt=dds(1,iat)**2+dds(2,iat)**2+dds(3,iat)**2
@@ -321,11 +328,11 @@ if(iproc==0)write(*,'(a,2xi4.4,xi4.4,xes21.14,4(xes9.2),xi3.3,xes9.2)')' (MHGPS)
            !trust radius approach
            if(maxd>trustr)then
                write(*,'(a,es10.3,xi0,xes10.3)')'hard direction step too large:maxd,it,alpha_stretch',maxd,it,alpha_stretch
-               scl=0.5d0*trustr/maxd
+               scl=0.5_gp*trustr/maxd
                dds=dds*scl
 !!control
-!     dt=0.d0
-!     maxd=-huge(1.d0)
+!     dt=0.0_gp
+!     maxd=-huge(1.0_gp)
 !     do iat=1,nat
 !         dt=dds(1,iat)**2+dds(2,iat)**2+dds(3,iat)**2
 !         maxd=max(maxd,dt)
@@ -342,10 +349,11 @@ if(iproc==0)write(*,'(a,2xi4.4,xi4.4,xes21.14,4(xes9.2),xi3.3,xes9.2)')' (MHGPS)
 
 
 !       cosangle=-st/sqrt((t1+t2+t3)*s)
-       if (cosangle.gt..20d0) then
-           alpha=alpha*1.10d0
+if(iproc==0)write(888,*)cosangle,acos(cosangle)
+       if (cosangle.gt..20_gp) then
+           alpha=alpha*1.10_gp
        else
-           alpha=max(alpha*.85d0,alpha0_trans)
+           alpha=max(alpha*.85_gp,alpha0_trans)
        endif
        if (check) write(100,*) 'cosangle ',cosangle,alpha
 
@@ -383,8 +391,8 @@ stop 'no convergence in findsad'
      enddo
 
 !             write(556,*)
-!             write(556,*)10.d0,0.d0,10.d0
-!             write(556,*)0.d0,0.d0,10.d0
+!             write(556,*)10.0_gp,0.0_gp,10.0_gp
+!             write(556,*)0.0_gp,0.0_gp,10.0_gp
 !             do iat=1,nat
 !               write(556,*) wpos(1,iat),wpos(2,iat),wpos(3,iat),atomnames(iat)
 !             enddo
@@ -422,7 +430,7 @@ use module_base
         enddo
     enddo
     do i=1,ndim
-        scpr(i)=0.d0
+        scpr(i)=0.0_gp
         do iat=1,nat
             do l=1,3
                 scpr(i)=scpr(i)-fxyz(l,iat)*rrr(l,iat,i)
@@ -447,7 +455,7 @@ use module_base
     !quasi newton in relevant subspace
         tt=scpr(i)/sqrt(eval(i)**2+res(i)**2)
         if (check) write(100,'(a,i3,3(1x,es10.3))')'i,tt,eval,res',i,&
-                   1.d0/sqrt(eval(i)**2+res(i)**2),eval(i),res(i)
+                   1.0_gp/sqrt(eval(i)**2+res(i)**2),eval(i),res(i)
         do iat=1,nat
             do l=1,3
                 dd(l,iat)=dd(l,iat)+tt*rrr(l,iat,i)
@@ -463,7 +471,7 @@ subroutine getSubSpaceEvecEval(check,nat,nhist,nhistx,ndim,cutoffratio,lwork,wor
 use module_base
     !hard-coded parameters:
     !threshold for linear dependency:
-    !if (eval(idim)/eval(nhist).gt.1.d-4) then
+    !if (eval(idim)/eval(nhist).gt.1.e-4_gp) then
     implicit none
     !parameters
     logical :: check
@@ -490,7 +498,7 @@ use module_base
 !write(444,*)'nhist',nhist
     ! calculate norms
     do i=1,nhist
-        rnorm(i)=0.d0
+        rnorm(i)=0.0_gp
          do iat=1,nat
              do l=1,3
 !                rnorm(i)=rnorm(i) + drxyz(l,iat,i)**2
@@ -498,14 +506,14 @@ use module_base
 !write(444,*)(rxyz(l,iat,i)-rxyz(l,iat,i-1))
              enddo
          enddo
-         rnorm(i)=1.d0/sqrt(rnorm(i))
-!rnorm(i) = (0.5d0*(1.d0+(((dble(i)-0.2d0*dble(nhist))/(dble(nhist)*0.25d0))/sqrt(1.d0+((dble(i)-0.2d0*dble(nhist))/(dble(nhist)*0.25d0))**2))))/sqrt(rnorm(i))
-!rnorm(i)=1.d0
+         rnorm(i)=1.0_gp/sqrt(rnorm(i))
+!rnorm(i) = (0.5_gp*(1.0_gp+(((dble(i)-0.2_gp*dble(nhist))/(dble(nhist)*0.25_gp))/sqrt(1.0_gp+((dble(i)-0.2_gp*dble(nhist))/(dble(nhist)*0.25_gp))**2))))/sqrt(rnorm(i))
+!rnorm(i)=1.0_gp
     enddo
 
     do i=1,nhist
         do j=1,nhist
-            aa(i,j)=0.d0
+            aa(i,j)=0.0_gp
             do iat=1,nat
                 do l=1,3
                 !aa(i,j)=aa(i,j) + drxyz(l,iat,i)*drxyz(l,iat,j)
@@ -530,8 +538,8 @@ use module_base
     do idim=1,nhist
         do iat=1,nat
             do l=1,3
-                rr(l,iat,idim)=0.d0
-                ff(l,iat,idim)=0.d0
+                rr(l,iat,idim)=0.0_gp
+                ff(l,iat,idim)=0.0_gp
             enddo
         enddo
     enddo
@@ -571,10 +579,10 @@ use module_base
     ! Hessian matrix in significant orthogonal subspace
     do i=1,ndim
         do j=1,ndim
-            aa(i,j)=0.d0
+            aa(i,j)=0.0_gp
             do iat=1,nat
                 do l=1,3
-                    aa(i,j)=aa(i,j) + .5d0*(rr(l,iat,i)*ff(l,iat,j)+&
+                    aa(i,j)=aa(i,j) + .5_gp*(rr(l,iat,i)*ff(l,iat,j)+&
                                       &rr(l,iat,j)*ff(l,iat,i))
                 enddo
             enddo
@@ -592,14 +600,14 @@ use module_base
     do i=1,ndim
         do iat=1,nat
             do l=1,3
-                rrr(l,iat,i)=0.d0
-                fff(l,iat,i)=0.d0
+                rrr(l,iat,i)=0.0_gp
+                fff(l,iat,i)=0.0_gp
             enddo
         enddo
     enddo
 
     do i=1,ndim
-        tt=0.d0
+        tt=0.0_gp
         do j=1,ndim
             do iat=1,nat
                 do l=1,3
@@ -624,7 +632,7 @@ subroutine elim_moment_fs(nat,vxyz)
 use module_base
     implicit real(gp) (a-h,o-z)
     dimension vxyz(3,nat)
-    sx=0.d0 ; sy=0.d0 ; sz=0.d0
+    sx=0.0_gp ; sy=0.0_gp ; sz=0.0_gp
     do iat=1,nat
         sx=sx+vxyz(1,iat)
         sy=sy+vxyz(2,iat)
@@ -644,7 +652,7 @@ use module_base
     dimension rxyz(3,nat),vxyz(3,nat),t(3)
 
     ! center of mass
-    cmx=0.d0 ; cmy=0.d0 ; cmz=0.d0
+    cmx=0.0_gp ; cmy=0.0_gp ; cmz=0.0_gp
     do iat=1,nat
         cmx=cmx+rxyz(1,iat)
         cmy=cmy+rxyz(2,iat)
@@ -655,8 +663,8 @@ use module_base
     do it=1,100
 
         ! torque and radii in planes
-        t(1)=0.d0 ; t(2)=0.d0 ; t(3)=0.d0
-        sx=0.d0 ; sy=0.d0 ; sz=0.d0
+        t(1)=0.0_gp ; t(2)=0.0_gp ; t(3)=0.0_gp
+        sx=0.0_gp ; sy=0.0_gp ; sz=0.0_gp
         do iat=1,nat
             t(1)=t(1)+(rxyz(2,iat)-cmy)*vxyz(3,iat)-&
                 &(rxyz(3,iat)-cmz)*vxyz(2,iat)
@@ -669,10 +677,10 @@ use module_base
             sz=sz+(rxyz(3,iat)-cmz)**2
         enddo
 
-        if (t(1)**2+t(2)**2+t(3)**2.lt.1.d-22) return
+        if (t(1)**2+t(2)**2+t(3)**2.lt.1.e-22_gp) return
 
         ii=0
-        tmax=0.d0
+        tmax=0.0_gp
         do i=1,3
             if (t(i)**2.gt.tmax**2) then
                 ii=i
@@ -743,14 +751,14 @@ real(gp) :: edmy
 
     converged =.false.
     subspaceSucc=.true.
-    displ=0.d0
+    displ=0.0_gp
     ! allocate arrays
     lwork=1000+10*nat**2
     allocate(rxyz(3,nat,0:nhistx),fxyz(3,nat,0:nhistx),fxyzraw(3,nat,0:nhistx),rxyzraw(3,nat,0:nhistx),aa(nhistx,nhistx))
     allocate(eval(nhistx),res(nhistx),work(lwork))
     allocate(ff(3,nat,0:nhistx),rr(3,nat,0:nhistx),dd(3,nat))
     allocate(fff(3,nat,0:nhistx),rrr(3,nat,0:nhistx),scpr(nhistx),fstretch(3,nat,0:nhistx),wold(nbond))
-    wold=0.d0
+    wold=0.0_gp
 
     do iat=1,nat
        do l=1,3
@@ -758,16 +766,16 @@ real(gp) :: edmy
        enddo
     enddo
 
-    count=count+1.d0
+    count=count+1.0_gp
 !    call minenergyandforces(nat,rxyz(1,1,0),rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),etot,iconnect,nbond,atomnames,wold,alpha_stretch)
 !    rxyz(:,:,0)=rxyz(:,:,0)+alpha_stretch*fstretch(:,:,0)
-!    ec=ec+1.d0
+!    ec=ec+1.0_gp
      call mincurvgrad(imode,nat,alat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,0),&
           rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),curv,1,ec,&
           iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
     if(imode==2)rxyz(:,:,0)=rxyz(:,:,0)+alpha_stretch*fstretch(:,:,0)
-!    t1=0.d0 ; t2=0.d0 ; t3=0.d0
-!    t1raw=0.d0 ; t2raw=0.d0 ; t3raw=0.d0
+!    t1=0.0_gp ; t2=0.0_gp ; t3=0.0_gp
+!    t1raw=0.0_gp ; t2raw=0.0_gp ; t3raw=0.0_gp
 !    do iat=1,nat
 !       t1raw=t1raw+fxyzraw(1,iat,0)**2 ; t2raw=t2raw+fxyzraw(2,iat,0)**2;t3raw=t3raw+fxyzraw(3,iat,0)**2
 !    enddo
@@ -777,7 +785,8 @@ real(gp) :: edmy
     curvold=curv
     curvp=curv
  
-    itswitch=2
+!    itswitch=2
+    itswitch=-2
     ndim=0
     nhist=0
     alpha=alpha0
@@ -785,8 +794,8 @@ real(gp) :: edmy
         if (check) write(100,*) 'it:',it,curv,fnrm,itswitch
         nhist=nhist+1
  
-!        if (fnrm.gt.50.d0 .or. it.le.itswitch ) then
-        if ((.not. subspaceSucc) .or. fnrm.gt.2000.d0 .or. it.le.itswitch ) then
+!        if (fnrm.gt.50.0_gp .or. it.le.itswitch ) then
+        if ((.not. subspaceSucc) .or. fnrm.gt.2000.0_gp .or. it.le.itswitch ) then
             ndim=0
             steep=.true.
 !            if (it.gt.itswitch) itswitch=it+nhistx
@@ -816,7 +825,7 @@ real(gp) :: edmy
         call modify_gradient(check,nat,ndim,rrr(1,1,1),eval(1),res(1),fxyz(1,1,nhist-1),alpha,dd(1,1))
 
 
-        tt=0.d0
+        tt=0.0_gp
         do iat=1,nat
             do l=1,3
                 tt=tt+dd(l,iat)**2
@@ -833,9 +842,9 @@ real(gp) :: edmy
 !write(444,*)1,rxyz(1,1,nhist)
 
         if (steep) then 
-            count_sd=count_sd+1.d0
+            count_sd=count_sd+1.0_gp
         else
-            count=count+1.d0
+            count=count+1.0_gp
         endif
      call mincurvgrad(imode,nat,alat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
           rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),&
@@ -843,9 +852,9 @@ real(gp) :: edmy
         dcurv=curvp-curvold
 
 
-!        s=0.d0 ; st=0.d0
-!        t1=0.d0 ; t2=0.d0 ; t3=0.d0
-!        t1raw=0.d0 ; t2raw=0.d0 ; t3raw=0.d0
+!        s=0.0_gp ; st=0.0_gp
+!        t1=0.0_gp ; t2=0.0_gp ; t3=0.0_gp
+!        t1raw=0.0_gp ; t2raw=0.0_gp ; t3raw=0.0_gp
 !        do iat=1,nat
 !            t1raw=t1raw+fxyzraw(1,iat,nhist)**2 ; t2raw=t2raw+fxyzraw(2,iat,nhist)**2 ;t3raw=t3raw+fxyzraw(3,iat,nhist)**2
 !            t1=t1+fxyz(1,iat,nhist)**2 ; t2=t2+fxyz(2,iat,nhist)**2 ;t3=t3+fxyz(3,iat,nhist)**2
@@ -865,13 +874,13 @@ real(gp) :: edmy
 !        &it-1,curvp,curvold,dcurv,fnrm,alpha,alpha_stretch,ndim
 
 !!           call yaml_comment('     METHOD  COUNT  IT  CURVATURE             DIFF      FMAX      FNRM      alpha    ndim')
-if(iproc==0)write(*,'(a,2xi4.4,xi4.4,xes21.14,4(xes9.2),xi3.3)')' (MHGPS)   CUOPT ',nint(ec),it,curv,dcurv,fmax,fnrm, alpha,ndim
+if(iproc==0)write(*,'(a,xi4.4,xi4.4,xes21.14,4(xes9.2),xi3.3)')'   (MHGPS) CUOPT ',nint(ec),it,curvp,dcurv,fmax,fnrm, alpha,ndim
 !HIER WEITER HIER WEITER: beautify output
 
-        if (dcurv.gt.maxcurvrise .and. alpha>1.d-1*alpha0) then 
+        if (dcurv.gt.maxcurvrise .and. alpha>1.e-1_gp*alpha0) then 
             if (check) write(100,'(a,i4,1x,e9.2)') "WARN: it,dcurv", it,dcurv
-            !alpha=min(.5d0*alpha,alpha0)
-            alpha=.5d0*alpha
+            !alpha=min(.5_gp*alpha,alpha0)
+            alpha=.5_gp*alpha
             if (check) write(100,'(a,1x,e9.2)') 'alpha reset ',alpha
             ndim=0
 if(.not. isForceField)then
@@ -911,10 +920,10 @@ endif
 
 !        cosangle=-st/sqrt((t1+t2+t3)*s)
 !write(*,*)'cosangle',cosangle
-        if (cosangle.gt..20d0) then
-            alpha=alpha*1.10d0
+        if (cosangle.gt..20_gp) then
+            alpha=alpha*1.10_gp
         else
-            alpha=max(alpha*.85d0,0.5d0*alpha0)
+            alpha=max(alpha*.85_gp,alpha0)
         endif
         if (check) write(100,*) 'cosangle ',cosangle,alpha
 
@@ -965,7 +974,7 @@ end subroutine
 !   
 !    converged =.false. 
 !    subspaceSucc=.true.
-!    displ=0.d0
+!    displ=0.0_gp
 !    ! allocate arrays
 !    lwork=1000+10*nat**2
 !    allocate(rxyz(3,nat,0:nhistx),fxyz(3,nat,0:nhistx),aa(nhistx,nhistx))
@@ -979,10 +988,10 @@ end subroutine
 !        enddo
 !    enddo
 !
-!    count=count+1.d0
+!    count=count+1.0_gp
 !    call curvgrad(nat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,0)&
 !                 &,curv,fxyz(1,1,0),1,ec)
-!    t1=0.d0 ; t2=0.d0 ; t3=0.d0
+!    t1=0.0_gp ; t2=0.0_gp ; t3=0.0_gp
 !    do iat=1,nat
 !        t1=t1+fxyz(1,iat,0)**2 ; t2=t2+fxyz(2,iat,0)**2 ; t3=t3+fxyz(3,iat,0)**2
 !    enddo
@@ -998,8 +1007,8 @@ end subroutine
 !        if (check) write(100,*) 'it:',it,curv,fnrm,itswitch
 !        nhist=nhist+1
 !    
-!        !if (fnrm.gt.100.d0 .or. it.le.itswitch ) then
-!        if ((.not. subspaceSucc) .or. fnrm.gt.1000.d0 .or. it.le.itswitch ) then
+!        !if (fnrm.gt.100.0_gp .or. it.le.itswitch ) then
+!        if ((.not. subspaceSucc) .or. fnrm.gt.1000.0_gp .or. it.le.itswitch ) then
 !            ndim=0
 !            steep=.true.
 !            if (it.gt.itswitch) itswitch=it+nhistx
@@ -1029,7 +1038,7 @@ end subroutine
 !            enddo
 !        enddo
 !        do i=1,ndim
-!            scpr(i)=0.d0
+!            scpr(i)=0.0_gp
 !            do iat=1,nat
 !                do l=1,3
 !                    scpr(i)=scpr(i)-fxyz(l,iat,nhist-1)*rrr(l,iat,i)
@@ -1042,7 +1051,7 @@ end subroutine
 !            enddo
 !        enddo
 !
-!        ts=0.d0
+!        ts=0.0_gp
 !        do iat=1,nat
 !            do l=1,3
 !                ts=ts+dd(l,iat)**2
@@ -1059,7 +1068,7 @@ end subroutine
 !        do i=1,ndim
 !            tt=scpr(i)/sqrt(eval(i)**2+res(i)**2)
 !            if (check) write(100,'(a,i3,3(1x,e10.3))') 'i,tt,eval,res ',&
-!                       &i,1.d0/sqrt(eval(i)**2+res(i)**2),eval(i),res(i)
+!                       &i,1.0_gp/sqrt(eval(i)**2+res(i)**2),eval(i),res(i)
 !            do iat=1,nat
 !                do l=1,3
 !                    dd(l,iat)=dd(l,iat)+tt*rrr(l,iat,i)
@@ -1067,7 +1076,7 @@ end subroutine
 !            enddo
 !        enddo
 !
-!        tt=0.d0
+!        tt=0.0_gp
 !        do iat=1,nat
 !            do l=1,3
 !                tt=tt+dd(l,iat)**2
@@ -1082,9 +1091,9 @@ end subroutine
 !        enddo
 !    
 !        if (steep) then
-!            count_sd=count_sd+1.d0
+!            count_sd=count_sd+1.0_gp
 !        else
-!            count=count+1.d0
+!            count=count+1.0_gp
 !        endif
 !        call curvgrad(nat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
 !                     &curvp,fxyz(1,1,nhist),1,ec)
@@ -1094,8 +1103,8 @@ end subroutine
 !        &'CURV  it,curv,curvold,Dcurv,fnrm,fnrmp/fnrm,dnrm/fnrm,ndim',&
 !        &it-1,curvp,curvold,dcurv,fnrm,sqrt(ts)/fnrm,sqrt(tt)/fnrm,alpha,ndim
 !
-!        s=0.d0 ; st=0.d0
-!        t1=0.d0 ; t2=0.d0 ; t3=0.d0
+!        s=0.0_gp ; st=0.0_gp
+!        t1=0.0_gp ; t2=0.0_gp ; t3=0.0_gp
 !        do iat=1,nat
 !            t1=t1+fxyz(1,iat,nhist)**2 ; t2=t2+fxyz(2,iat,nhist)**2 ; t3=t3+&
 !                                                              &fxyz(3,iat,nhist)**2
@@ -1106,10 +1115,10 @@ end subroutine
 !        fnrm=sqrt(t1+t2+t3)
 !
 !
-!        if (dcurv.gt.1.d-9 .and. alpha>1.d-1*alpha0) then
+!        if (dcurv.gt.1.e-9_gp .and. alpha>1.e-1_gp*alpha0) then
 !            if (check) write(100,'(a,i4,1x,e9.2)') "WARN: it,dcurv", it,dcurv
-!            !alpha=min(.5d0*alpha,alpha0)
-!            alpha=.5d0*alpha
+!            !alpha=min(.5_gp*alpha,alpha0)
+!            alpha=.5_gp*alpha
 !            if (check) write(100,'(a,1x,e9.2)') 'alpha reset ',alpha
 !            ndim=0
 !            if(.not.steep)then
@@ -1130,16 +1139,16 @@ end subroutine
 !            curvold=curv
 !        endif
 !        if (fnrm.le.fnrmtol) goto 1000
-!!if(abs(ddot(3*nat,rxyz1(1,1),1,mode(1,1),1))>.99d0)then
+!!if(abs(ddot(3*nat,rxyz1(1,1),1,mode(1,1),1))>.99_gp)then
 !!goto 1000
 !!endif
 !
 !
 !        cosangle=-st/sqrt((t1+t2+t3)*s)
-!        if (cosangle.gt..20d0) then
-!            alpha=alpha*1.10d0
+!        if (cosangle.gt..20_gp) then
+!            alpha=alpha*1.10_gp
 !        else
-!            alpha=max(alpha*.85d0,alpha0)
+!            alpha=max(alpha*.85_gp,alpha0)
 !        endif
 !        if (check) write(100,*) 'cosangle ',cosangle,alpha
 !
@@ -1194,9 +1203,9 @@ use module_energyandforces
 real(gp) :: fluct,fnoise,dd
 
     
-!    diff=1.d-3 !lennard jones
+!    diff=1.e-3_gp !lennard jones
 
-    diffinv=1.0d0/(diff)
+    diffinv=1.0_gp/(diff)
 
     allocate(rxyz2(3,nat),fxyz2(3,nat))
     allocate(drxyz(3,nat),dfxyz(3,nat))
@@ -1209,7 +1218,7 @@ real(gp) :: fluct,fnoise,dd
 
     call energyandforces(nat,alat,rxyz2(1,1),fxyz2(1,1),etot2)
 !    call energyandforces(nat, alat, rxyz2(1,1),fxyz2(1,1),etot2,'cnt_enf_forcebar_decomp')
-    ec=ec+1.d0
+    ec=ec+1.0_gp
 
     if(imethod==1)then
         dfxyz = fxyz2(:,:)-fxyz1(:,:)
@@ -1217,10 +1226,10 @@ real(gp) :: fluct,fnoise,dd
         drxyz = drxyz * diffinv
         curv  = - diffinv * ddot(3*nat,dfxyz(1,1),1,drxyz(1,1),1)
 
-        rotforce = 2.d0*dfxyz*diffinv + 2.d0 * curv * drxyz
+        rotforce = 2.0_gp*dfxyz*diffinv + 2.0_gp * curv * drxyz
 
         !compute noise
-        sx=0.d0; sy=0.d0; sz=0.d0
+        sx=0.0_gp; sy=0.0_gp; sz=0.0_gp
         do iat=1,nat
            sx=sx+rotforce(1,iat)
            sy=sy+rotforce(2,iat)
@@ -1236,7 +1245,7 @@ call torque(nat,rxyz1(1,1),rotforce(1,1))
 
         !remove numerical noise:
         dd=ddot(3*nat,rotforce(1,1),1,vec(1,1),1)
-        if(dd>1.d-11.and.iproc==0)then
+        if(dd>1.e-11_gp.and.iproc==0)then
             write(*,*)'WARNING rotforce not orthogonal on current direction',dd
         endif
 !write(*,*)'rotnoise',ddot(3*nat,rotforce(1,1),1,vec(1,1),1)
@@ -1248,10 +1257,11 @@ call torque(nat,rxyz1(1,1),rotforce(1,1))
 end subroutine
 
 subroutine moment(nat,vxyz)
+use module_base
   implicit real*8 (a-h,o-z)
   dimension vxyz(3,nat)
 
-  sx=0.d0 ; sy=0.d0 ; sz=0.d0
+  sx=0.0_gp ; sy=0.0_gp ; sz=0.0_gp
   do iat=1,nat
      sx=sx+vxyz(1,iat)
      sy=sy+vxyz(2,iat)
@@ -1261,11 +1271,12 @@ subroutine moment(nat,vxyz)
 END SUBROUTINE moment
 
 subroutine torque(nat,rxyz,vxyz)
+use module_base
   implicit real*8 (a-h,o-z)
   dimension rxyz(3,nat),vxyz(3,nat)
 
   ! center of mass
-  cmx=0.d0 ; cmy=0.d0 ; cmz=0.d0
+  cmx=0.0_gp ; cmy=0.0_gp ; cmz=0.0_gp
   do iat=1,nat
      cmx=cmx+rxyz(1,iat)
      cmy=cmy+rxyz(2,iat)
@@ -1275,7 +1286,7 @@ subroutine torque(nat,rxyz,vxyz)
   cmz=cmz/real(nat,8)
 
   ! torque
-  tx=0.d0 ; ty=0.d0 ; tz=0.d0
+  tx=0.0_gp ; ty=0.0_gp ; tz=0.0_gp
   do iat=1,nat
      tx=tx+(rxyz(2,iat)-cmy)*vxyz(3,iat)-(rxyz(3,iat)-cmz)*vxyz(2,iat)
      ty=ty+(rxyz(3,iat)-cmz)*vxyz(1,iat)-(rxyz(1,iat)-cmx)*vxyz(3,iat)
@@ -1293,29 +1304,29 @@ use module_base
     dimension pos(3,nat),force(3,nat),dis(3,nat),d(3,nat),spring(nat,nat)
     logical check
 
-    fnrmout=0.d0
+    fnrmout=0.0_gp
     do iat=1,nat
         fnrmout=fnrmout+force(1,iat)**2+force(2,iat)**2+force(3,iat)**2
     enddo
     fnrmout=sqrt(fnrmout)
 
     nprec=1000
-    !beta=.5d-4
-    beta=.3d-4
+    !beta=.5e-4_gp
+    beta=.3e-4_gp
     do iat=1,nat
-        dis(1,iat)=0.d0
-        dis(2,iat)=0.d0
-        dis(3,iat)=0.d0
+        dis(1,iat)=0.0_gp
+        dis(2,iat)=0.0_gp
+        dis(3,iat)=0.0_gp
     enddo
 
     ! calculate spring constants
-    bondlength=1.0d0
-    cspring0=1000.d0
+    bondlength=1.0_gp
+    cspring0=1000.0_gp
     do iat=1,nat
         do jat=1,iat-1
             dd2=((pos(1,iat)-pos(1,jat))**2+(pos(2,iat)-pos(2,jat))**2&
                &+(pos(3,iat)-pos(3,jat))**2)/bondlength**2
-            spring(iat,jat)=cspring0*exp(.5d0-.5d0*dd2)
+            spring(iat,jat)=cspring0*exp(.5_gp-.5_gp*dd2)
         enddo
     enddo
 
@@ -1344,14 +1355,14 @@ use module_base
             enddo
         enddo
         ! write(24,'(i6,100(1x,e9.2))') iprec,force
-        fnrm=0.d0
+        fnrm=0.0_gp
         do iat=1,nat
             fnrm=fnrm+force(1,iat)**2+force(2,iat)**2+force(3,iat)**2
         enddo
         fnrm=sqrt(fnrm)
         !write(*,*) 'iprec ',iprec,fnrm
 
-        if (fnrm.lt.1.d-2*fnrmout) then
+        if (fnrm.lt.1.e-2_gp*fnrmout) then
             if(check) write(100,*) 'iprec=',iprec,fnrm,fnrmout
             goto 100
         endif
@@ -1397,7 +1408,7 @@ end subroutine
 !                do jat=1,nat
 !                    bondlength=rcov(iat)+rcov(jat)
 !                    xj=rxyz(1,jat) ; yj=rxyz(2,jat) ; zj=rxyz(3,jat)
-!                    if ( (xi-xj)**2+(yi-yj)**2+(zi-zj)**2 .le. (bondlength*1.25d0)**2) then
+!                    if ( (xi-xj)**2+(yi-yj)**2+(zi-zj)**2 .le. (bondlength*1.25_gp)**2) then
 !
 !                        if (belong(jat).eqv. .false.) nadd=nadd+1
 !                        belong(jat)=.true.
@@ -1440,7 +1451,7 @@ end subroutine
 !        !find minimum distance between clusters
 !        ii=-99999
 !                jj=-99999
-!        ddmin=1.d100
+!        ddmin=1.e100_gp
 !        do iat=1,nat
 !            if (belong(iat).eqv. .false.) then
 !                xi=rxyz(1,iat) ; yi=rxyz(2,iat) ; zi=rxyz(3,iat)
@@ -1468,9 +1479,9 @@ end subroutine
 !        tt=bondlength/sqrt(d1**2+d2**2+d3**2)
 !        do iat=1,nat
 !            if (belong(iat).eqv. .false.) then
-!                rxyz(1,iat)=rxyz(1,iat)+d1*(tt-1.0d0)
-!                rxyz(2,iat)=rxyz(2,iat)+d2*(tt-1.0d0)
-!                rxyz(3,iat)=rxyz(3,iat)+d3*(tt-1.0d0)
+!                rxyz(1,iat)=rxyz(1,iat)+d1*(tt-1.0_gp)
+!                rxyz(2,iat)=rxyz(2,iat)+d2*(tt-1.0_gp)
+!                rxyz(3,iat)=rxyz(3,iat)+d3*(tt-1.0_gp)
 !            endif
 !        enddo
 !    
@@ -1489,9 +1500,9 @@ end subroutine
 
 subroutine fixfrag_posvel(nat,rcov,pos,vel,option,occured)
 !UNTERSCHIED ZUR MH ROUTINE:
-!pos(:,iat)=pos(:,iat)+vec(:)*((mindist-1.0d0*bondlength)/mindist)
+!pos(:,iat)=pos(:,iat)+vec(:)*((mindist-1.0_gp*bondlength)/mindist)
 !ANSTATT
-!pos(:,iat)=pos(:,iat)+vec(:)*((mindist-1.5d0*bondlength)/mindist)
+!pos(:,iat)=pos(:,iat)+vec(:)*((mindist-1.5_gp*bondlength)/mindist)
 !MACHT GROSSEN PERFORMANCE UNTERSCHIED AUS
 !
 
@@ -1540,9 +1551,9 @@ logical, allocatable:: invert(:)
 !close(43)
 
 if (option == 1) then 
-   bfactor=1.5d0
+   bfactor=1.5_gp
 else if (option == 2) then 
-   bfactor=2.d0
+   bfactor=2.0_gp
 else
    stop 'wrong option'
 endif
@@ -1612,7 +1623,7 @@ write(671,*)'fragmentation occured'
 
       !Find the minimum distance between the clusters
       do ifrag=1,nfrag
-         mindist=1.d100
+         mindist=1.e100_gp
          if(ifrag.ne.natfragx(1)) then
             do iat=1,nat
                if(fragarr(iat)==ifrag) then
@@ -1642,7 +1653,7 @@ write(671,*)'fragmentation occured'
             bondlength=rcov(imin(1))+rcov(imin(2))
             do iat=1,nat        !Move fragments back towards the main fragment 
                if(fragarr(iat)==ifrag) then
-                  pos(:,iat)=pos(:,iat)+vec(:)*((mindist-1.0d0*bondlength)/mindist)
+                  pos(:,iat)=pos(:,iat)+vec(:)*((mindist-1.0_gp*bondlength)/mindist)
                   fragarr(iat)=natfragx(1)
                endif
             enddo
@@ -1670,11 +1681,11 @@ write(671,*)'fragmentation occured'
       !Compute center of mass of all fragments and the collectiove velocity of each fragment
       allocate(cm_frags(3,nfrag),vel_frags(3,nfrag),nat_frags(nfrag))
       allocate(invert(nfrag))
-      cm_frags(:,:)=0.d0
-      vel_frags(:,:)=0.d0
+      cm_frags(:,:)=0.0_gp
+      vel_frags(:,:)=0.0_gp
       nat_frags(:)=0         !number of atoms per fragment
-      cmass(:)=0.d0
-      velcm(:)=0.d0
+      cmass(:)=0.0_gp
+      velcm(:)=0.0_gp
       do iat=1,nat
          ifrag=fragarr(iat)
          nat_frags(ifrag)=nat_frags(ifrag)+1
@@ -1689,7 +1700,7 @@ write(671,*)'fragmentation occured'
          velcm(:)=velcm(:)+vel_frags(:,ifrag)*nat_frags(ifrag)/real(nat,8)
       enddo
 !      if (iproc==0) call yaml_map('(MH) CM VELOCITY',sqrt(velcm(1)**2+velcm(2)**2+velcm(3)**2))
-!      if (velcm(1)**2+velcm(2)**2+velcm(3)**2.gt.1.d-24) then
+!      if (velcm(1)**2+velcm(2)**2+velcm(3)**2.gt.1.e-24_gp) then
 !         if (iproc==0) call yaml_comment('(MH) NONZERO CM VELOCITY')
 !      endif
 
@@ -1697,14 +1708,14 @@ write(671,*)'fragmentation occured'
       ! now cm_frags contains the unit vector pointing from the center of mass of the entire system to the center of mass of the fragment
       do ifrag=1,nfrag
          cm_frags(:,ifrag)=cm_frags(:,ifrag)-cmass(:)
-         rnrmi=1.d0/sqrt(cm_frags(1,ifrag)**2+cm_frags(2,ifrag)**2+cm_frags(3,ifrag)**2)
+         rnrmi=1.0_gp/sqrt(cm_frags(1,ifrag)**2+cm_frags(2,ifrag)**2+cm_frags(3,ifrag)**2)
          cm_frags(1,ifrag)=cm_frags(1,ifrag)*rnrmi
          cm_frags(2,ifrag)=cm_frags(2,ifrag)*rnrmi
          cm_frags(3,ifrag)=cm_frags(3,ifrag)*rnrmi
          angle=cm_frags(1,ifrag)*vel_frags(1,ifrag)+cm_frags(2,ifrag)*vel_frags(2,ifrag)+cm_frags(3,ifrag)*vel_frags(3,ifrag)
-         rnrmi=1.d0/sqrt(vel_frags(1,ifrag)**2+vel_frags(2,ifrag)**2+vel_frags(3,ifrag)**2)
+         rnrmi=1.0_gp/sqrt(vel_frags(1,ifrag)**2+vel_frags(2,ifrag)**2+vel_frags(3,ifrag)**2)
          angle=angle*rnrmi
-         if (angle.gt.0.d0) then
+         if (angle.gt.0.0_gp) then
             invert(ifrag)=.true.
          else
             invert(ifrag)=.false.
@@ -1722,10 +1733,10 @@ write(671,*)'fragmentation occured'
       !paralle part if it point away from the CM
 
       !Check kinetic energy before inversion
-      ekin0=0.d0
-      vcm1=0.d0
-      vcm2=0.d0
-      vcm3=0.d0
+      ekin0=0.0_gp
+      vcm1=0.0_gp
+      vcm2=0.0_gp
+      vcm3=0.0_gp
       do iat=1,nat
          ekin0=ekin0+vel(1,iat)**2+vel(2,iat)**2+vel(3,iat)**2
          vcm1=vcm1+vel(1,iat)
@@ -1746,7 +1757,7 @@ write(671,*)'fragmentation occured'
          ifrag=fragarr(iat)
          if (invert(ifrag)) then
             scpr=cm_frags(1,ifrag)*vel(1,iat)+cm_frags(2,ifrag)*vel(2,iat)+cm_frags(3,ifrag)*vel(3,iat)
-            vel(:,iat)=vel(:,iat)-scpr*cm_frags(:,ifrag)*2.d0
+            vel(:,iat)=vel(:,iat)-scpr*cm_frags(:,ifrag)*2.0_gp
          endif
       enddo
 
@@ -1755,7 +1766,7 @@ write(671,*)'fragmentation occured'
       call elim_torque_reza(nat,pos,vel)
 
       ! scale velocities to regain initial ekin0
-      ekin=0.d0
+      ekin=0.0_gp
       do iat=1,nat
          ekin=ekin+vel(1,iat)**2+vel(2,iat)**2+vel(3,iat)**2
       enddo
@@ -1767,10 +1778,10 @@ write(671,*)'fragmentation occured'
       enddo
 
       !Check kinetic energy after inversion
-      ekin=0.d0
-      vcm1=0.d0
-      vcm2=0.d0
-      vcm3=0.d0
+      ekin=0.0_gp
+      vcm1=0.0_gp
+      vcm2=0.0_gp
+      vcm3=0.0_gp
       do iat=1,nat
          ekin=ekin+vel(1,iat)**2+vel(2,iat)**2+vel(3,iat)**2
          vcm1=vcm1+vel(1,iat)
@@ -1787,14 +1798,14 @@ write(671,*)'fragmentation occured'
       !Checkend kinetic energy after inversion
 
       !Check angle  after inversion
-      vel_frags(:,:)=0.d0
+      vel_frags(:,:)=0.0_gp
       do iat=1,nat
          ifrag=fragarr(iat)
          vel_frags(:,ifrag)=vel_frags(:,ifrag)+vel(:,iat)
       enddo
       do ifrag=1,nfrag
          angle=cm_frags(1,ifrag)*vel_frags(1,ifrag)+cm_frags(2,ifrag)*vel_frags(2,ifrag)+cm_frags(3,ifrag)*vel_frags(3,ifrag)
-         rnrmi=1.d0/sqrt(vel_frags(1,ifrag)**2+vel_frags(2,ifrag)**2+vel_frags(3,ifrag)**2)
+         rnrmi=1.0_gp/sqrt(vel_frags(1,ifrag)**2+vel_frags(2,ifrag)**2+vel_frags(3,ifrag)**2)
          angle=angle*rnrmi
 !         if (iproc==0) then
 !           call yaml_open_map('(MH) Frag',flow=.true.)
@@ -1854,9 +1865,9 @@ use module_base
        !write(*,'(i5,2es20.10)') k,eval(k),wa(k)
    enddo
    do i=1,nr
-      tt=0.d0
+      tt=0.0_gp
       do j=1,nr
-           tt=tt+(wa(j)/sqrt(eval(j)**2+ 66.d0**2))*evec(i,j)
+           tt=tt+(wa(j)/sqrt(eval(j)**2+ 66.0_gp**2))*evec(i,j)
            !tt=tt+(wa(j)/sqrt(eval(j)**2+soft**2))*evec(i,j)
       enddo
       fat(i)=tt
@@ -1899,7 +1910,7 @@ use module_base
        endif
    enddo
    call init_parameters(r0types,fctypes)
-   !r0types(1:4,1:4)=2.d0 ; fctypes(1:4,1:4)=5.d2
+   !r0types(1:4,1:4)=2.0_gp ; fctypes(1:4,1:4)=5.e2_gp
    nsb=0
    do iat=1,nat
        do jat=iat+1,nat
@@ -1908,9 +1919,9 @@ use module_base
            dz=rat(3,jat)-rat(3,iat)
            r=sqrt(dx**2+dy**2+dz**2)
            !if(iat==21 .and. jat==27 .and. iproc==0) then
-           !    write(*,*) 'REZA ',r,1.35d0*r0types(ita(iat),ita(jat))
+           !    write(*,*) 'REZA ',r,1.35_gp*r0types(ita(iat),ita(jat))
            !endif
-           if(r<1.35d0*r0types(ita(iat),ita(jat))) then
+           if(r<1.35_gp*r0types(ita(iat),ita(jat))) then
                nsb=nsb+1
                if(nsb>10*nat) stop 'ERROR: too many stretching bonds, is everything OK?'
                isb(nsb,1)=iat
@@ -1938,24 +1949,24 @@ use module_base
     implicit none
     integer :: i,j
     real(gp) :: r0(4,4),fc(4,4)
-    !real(gp):: units_r=1.d0/0.529d0
-    real(gp):: units_r=1.d0
-    !real(gp):: units_k=4.48d-4
-    real(gp):: units_k=1.d0
+    !real(gp):: units_r=1.0_gp/0.529_gp
+    real(gp):: units_r=1.0_gp
+    !real(gp):: units_k=4.48e-4_gp
+    real(gp):: units_k=1.0_gp
     !((0.0104 / 0.239) / 27.2114) * (0.529177^2) = 0.000447802457
-    r0(1,1)=0.80d0*units_r
-    r0(2,1)=1.09d0*units_r ; r0(2,2)=1.51d0*units_r
-    r0(3,1)=1.01d0*units_r ; r0(3,2)=1.39d0*units_r ; r0(3,3)=1.10d0*units_r
-    r0(4,1)=0.96d0*units_r ; r0(4,2)=1.26d0*units_r ; r0(4,3)=1.10d0*units_r ; r0(4,4)=1.10*units_r
+    r0(1,1)=0.80_gp*units_r
+    r0(2,1)=1.09_gp*units_r ; r0(2,2)=1.51_gp*units_r
+    r0(3,1)=1.01_gp*units_r ; r0(3,2)=1.39_gp*units_r ; r0(3,3)=1.10_gp*units_r
+    r0(4,1)=0.96_gp*units_r ; r0(4,2)=1.26_gp*units_r ; r0(4,3)=1.10_gp*units_r ; r0(4,4)=1.10*units_r
     do i=1,4
         do j=i+1,4
             r0(i,j)=r0(j,i)
         enddo
     enddo
-    fc(1,1)=1.00d3*units_k
-    fc(2,1)=3.40d2*units_k ; fc(2,2)=3.31d2*units_k
-    fc(3,1)=4.34d2*units_k ; fc(3,2)=4.13d2*units_k ; fc(3,3)=4.56d3*units_k
-    fc(4,1)=5.53d2*units_k ; fc(4,2)=5.43d2*units_k ; fc(4,3)=4.56d3*units_k ; fc(4,4)=4.56d3*units_k
+    fc(1,1)=1.00e3_gp*units_k
+    fc(2,1)=3.40e2_gp*units_k ; fc(2,2)=3.31e2_gp*units_k
+    fc(3,1)=4.34e2_gp*units_k ; fc(3,2)=4.13e2_gp*units_k ; fc(3,3)=4.56e3_gp*units_k
+    fc(4,1)=5.53e2_gp*units_k ; fc(4,2)=5.43e2_gp*units_k ; fc(4,3)=4.56e3_gp*units_k ; fc(4,4)=4.56e3_gp*units_k
     do i=1,4
         do j=i+1,4
             fc(i,j)=fc(j,i)
@@ -1975,7 +1986,7 @@ use module_base
     real(gp) :: h11,h22,h33,h12,h13,h23
     do j=1,3*nat
         do i=1,3*nat
-            hess(i,j)=0.d0
+            hess(i,j)=0.0_gp
         enddo
     enddo
     do ibond=1,nbond
@@ -1985,8 +1996,8 @@ use module_base
         dy=rat(2,iat)-rat(2,jat)
         dz=rat(3,iat)-rat(3,jat)
         r2=dx**2+dy**2+dz**2
-        r=sqrt(r2) ; rinv=1.d0/r !n(c) ; r3inv=rinv**3
-        !rinv2=1.d0/r2
+        r=sqrt(r2) ; rinv=1.0_gp/r !n(c) ; r3inv=rinv**3
+        !rinv2=1.0_gp/r2
         !rinv4=rinv2*rinv2
         !rinv8=rinv4*rinv4
         !rinv10=rinv8*rinv2
@@ -1994,10 +2005,10 @@ use module_base
         !rinv16=rinv8*rinv8
         dxsq=dx*dx ; dysq=dy*dy ; dzsq=dz*dz
         dxdy=dx*dy ; dxdz=dx*dz ; dydz=dy*dz
-        !tt1=672.d0*rinv16
-        !tt2=48.d0*rinv14
-        !tt3=192.d0*rinv10
-        !tt4=24.d0*rinv8
+        !tt1=672.0_gp*rinv16
+        !tt2=48.0_gp*rinv14
+        !tt3=192.0_gp*rinv10
+        !tt4=24.0_gp*rinv8
         tt1=sprcons(ibond)
         tt2=xl0(ibond)*rinv
         tt3=tt2*rinv**2
@@ -2010,9 +2021,9 @@ use module_base
         !h23=dydz*tt1-dydz*tt3
 
         !k_b*(1-l0/l+l0*(x_i-x_j)^2/l^3)
-        h11=tt1*(1.d0-tt2+dxsq*tt3)
-        h22=tt1*(1.d0-tt2+dysq*tt3)
-        h33=tt1*(1.d0-tt2+dzsq*tt3)
+        h11=tt1*(1.0_gp-tt2+dxsq*tt3)
+        h22=tt1*(1.0_gp-tt2+dysq*tt3)
+        h33=tt1*(1.0_gp-tt2+dzsq*tt3)
         h12=tt1*dxdy*tt3
         h13=tt1*dxdz*tt3
         h23=tt1*dydz*tt3
@@ -2064,7 +2075,7 @@ use module_energyandforces
     call energyandforces(nat,alat,rat,fat,epot)
     fxyzraw=fat
     fnrmold=dnrm2(3*nat,fat,1)
-    fstretch=0.d0
+    fstretch=0.0_gp
 
     if(imode==2)then
         call projectbond(nat,nbond_,rat,fat,fstretch,iconnect,atomnames,wold,alpha_stretch0,alpha_stretch)
@@ -2094,7 +2105,7 @@ use module_base
      call curvgrad(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ec)
      rxyz2 =rxyz1+diff*vec
      rotforceraw=rotforce
-     rotfstretch=0.d0
+     rotfstretch=0.0_gp
      fnrmold=dnrm2(3*nat,rotforce,1)
 
      if(imode==2)then
@@ -2123,10 +2134,10 @@ use module_base
     !functions
     real(gp) :: ddot
 
-    fstretch=0.d0
+    fstretch=0.0_gp
 
 ! set up positional overlap matrix
-     vv=0.d0
+     vv=0.0_gp
      do ibond=1,nbond
      iat=iconnect(1,ibond)
      jat=iconnect(2,ibond)
@@ -2145,18 +2156,18 @@ use module_base
 
      nsame=0
      do ibond=1,nbond
-      if ( wold(ibond)*w(ibond).gt.0.d0) nsame=nsame+1
+      if ( wold(ibond)*w(ibond).gt.0.0_gp) nsame=nsame+1
          wold(ibond)=w(ibond)
      enddo
      per=float(nsame)/nbond
-     if (per.gt. .66d0) then
-         alpha_stretch=alpha_stretch*1.10d0
-!         alpha_stretch=min(100.d0*alpha_stretch0,alpha_stretch*1.10d0)
-!         alpha_stretch=min(2.5d0*alpha_stretch0,alpha_stretch*1.10d0)
-!         alpha_stretch=min(1.d-3,alpha_stretch*1.10d0)
+     if (per.gt. .66_gp) then
+         alpha_stretch=alpha_stretch*1.10_gp
+!         alpha_stretch=min(100.0_gp*alpha_stretch0,alpha_stretch*1.10_gp)
+!         alpha_stretch=min(2.5_gp*alpha_stretch0,alpha_stretch*1.10_gp)
+!         alpha_stretch=min(1.e-3_gp,alpha_stretch*1.10_gp)
      else
-         alpha_stretch=max(1.d-2*alpha_stretch0,alpha_stretch/1.10d0)
-!         alpha_stretch=max(1.d-10,alpha_stretch/1.10d0)
+         alpha_stretch=max(1.e-2_gp*alpha_stretch0,alpha_stretch/1.10_gp)
+!         alpha_stretch=max(1.e-10_gp,alpha_stretch/1.10_gp)
      endif
      write(555,'(f5.1,a,1x,es10.3)') 100*per,' percent of bond directions did not switch sign',alpha_stretch
 
@@ -2168,7 +2179,7 @@ use module_base
 ! calculate projected force
      do iat=1,nat
      do l=1,3
-     fstretch(l,iat)=0.d0
+     fstretch(l,iat)=0.0_gp
      enddo
      enddo
 
@@ -2214,12 +2225,12 @@ real(gp) :: dnrm2
 !  call memocc(i_stat,amass,'amass',subname)
 
   rat=rat0
-  amass(1:nat)=1.0d0
+  amass(1:nat)=1.0_gp
   !project out rotations
-  totmass=0.0d0
-  cmx=0.0d0
-  cmy=0.0d0
-  cmz=0.0d0
+  totmass=0.0_gp
+  cmx=0.0_gp
+  cmy=0.0_gp
+  cmz=0.0_gp
   do i=1,3*nat-2,3
      iat=(i+2)/3
      cmx=cmx+amass(iat)*rat(i+0)
@@ -2254,15 +2265,15 @@ real(gp) :: dnrm2
   enddo
 
   vrotnrm=dnrm2(3*nat,vrot(1,1),1)
-  if (vrotnrm /= 0.0d0) vrot(1:3*nat,1)=vrot(1:3*nat,1)/vrotnrm
+  if (vrotnrm /= 0.0_gp) vrot(1:3*nat,1)=vrot(1:3*nat,1)/vrotnrm
   vrotnrm=dnrm2(3*nat,vrot(1,2),1)
-  if (vrotnrm /= 0.0d0) vrot(1:3*nat,2)=vrot(1:3*nat,2)/vrotnrm
+  if (vrotnrm /= 0.0_gp) vrot(1:3*nat,2)=vrot(1:3*nat,2)/vrotnrm
   vrotnrm=dnrm2(3*nat,vrot(1,3),1)
-  if (vrotnrm /= 0.0d0) vrot(1:3*nat,3)=vrot(1:3*nat,3)/vrotnrm
+  if (vrotnrm /= 0.0_gp) vrot(1:3*nat,3)=vrot(1:3*nat,3)/vrotnrm
 
   do i=1,3
-     alpha=0.0d0
-     if(abs(evaleria(i)).gt.1.d-10) then
+     alpha=0.0_gp
+     if(abs(evaleria(i)).gt.1.e-10_gp) then
         alpha=dot_product(vrot(:,i),fat(:))
         fat(:)=fat(:)-alpha*vrot(:,i)
      endif
@@ -2306,9 +2317,9 @@ use module_base
 !  call memocc(i_stat,amass,'amass',subname)
 
   !positions relative to center of geometry
-  amass(1:nat)=1.0d0
+  amass(1:nat)=1.0_gp
   !calculate inertia tensor
-  teneria(1:3,1:3)=0.0d0
+  teneria(1:3,1:3)=0.0_gp
   do iat=1,nat
      tt=amass(iat)
      teneria(1,1)=teneria(1,1)+tt*(rat(2,iat)*rat(2,iat)+rat(3,iat)*rat(3,iat))
@@ -2340,12 +2351,12 @@ use module_base
   integer :: i
   real(gp) :: vnrm
 
-  vnrm=0.0d0
+  vnrm=0.0_gp
   do i=1,n
      vnrm=vnrm+v(i)**2
   enddo
   vnrm=sqrt(vnrm)
-  if (vnrm /= 0.0d0) v(1:n)=v(1:n)/vnrm
+  if (vnrm /= 0.0_gp) v(1:n)=v(1:n)/vnrm
 
 END SUBROUTINE normalizevector
 end module

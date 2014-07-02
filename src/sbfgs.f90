@@ -157,7 +157,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 
    call fnrmandforcemax(fxyz(1,1,0),fnrm,fmax,nat)
    fnrm=sqrt(fnrm)
-   if (fmax < 3.d-1) call updatefluctsum(outs%fnoise,fluct)
+   if (fmax < 3.e-1_gp) call updatefluctsum(outs%fnoise,fluct)
 
    etotold=etot
    etotp=etot
@@ -303,18 +303,18 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
               runObj%atoms,trim(comment),forces=outs%fxyz)
       endif
 
-      if (fmax < 3.d-1) call updatefluctsum(outs%fnoise,fluct)
+      if (fmax < 3.e-1_gp) call updatefluctsum(outs%fnoise,fluct)
       cosangle=-dot_double(3*nat,fxyz(1,1,nhist),1,dd(1,1),1)/&
               sqrt(dot_double(3*nat,fxyz(1,1,nhist),1,fxyz(1,1,nhist),1)*&
               dot_double(3*nat,dd(1,1),1,dd(1,1),1))
 
 
    
-      if (detot.gt.maxrise .and. beta > 1.d-1*betax) then !
+      if (detot.gt.maxrise .and. beta > 1.e-1_gp*betax) then !
          if (debug.and.iproc==0) write(100,'(a,i0,1x,e9.2)') "WARN: it,detot", it,detot
          if (debug.and.iproc==0) write(16,'(a,i0,4(xe9.2))') &
-             "WARNING GEOPT_SBFGS: Prevent energy to rise by more than maxrise: it,maxrise,detot,beta,1.d-1*betax ",&
-             it,maxrise,detot,beta,1.d-1*betax
+             "WARNING GEOPT_SBFGS: Prevent energy to rise by more than maxrise: it,maxrise,detot,beta,1.e-1*betax ",&
+             it,maxrise,detot,beta,1.e-1_gp*betax
          if (iproc==0.and.verbosity > 0) then
             !avoid space for leading sign (numbers are positive, anyway)
             write(cdmy8,'(es8.1)')abs(maxd)
@@ -348,7 +348,6 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
          endif
 
          !beta=min(.50_gp*beta,betax)
-         !beta=max(.50_gp*beta,1.d-1*betax)
          beta=.50_gp*beta
          if (debug.and.iproc==0) write(100,'(a,1x,e9.2)') 'WARNING GEOPT_SBFGS: beta reset ',beta
          ndim=0
@@ -399,8 +398,8 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 
       if(detot .gt. maxrise)then
          if (iproc==0) write(16,'(a,i0,4(xe9.2))') &
-             "WARNING GEOPT_SBFGS: Allowed energy to rise by more than maxrise: it,maxrise,detot,beta,1.d-1*betax ",&
-             it,maxrise,detot,beta,1.d-1*betax
+             "WARNING GEOPT_SBFGS: Allowed energy to rise by more than maxrise: it,maxrise,detot,beta,1.e-1*betax ",&
+             it,maxrise,detot,beta,1.e-1_gp*betax
       endif
 
 
@@ -417,24 +416,20 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
       if (cosangle.gt..200_gp) then
          beta=beta*1.100_gp
       else
-         beta=max(beta*.850_gp,betax)
+         beta=max(beta*.850_gp,1.e-1_gp*betax)
       endif
    
       if (debug.and.iproc==0) write(100,*) 'cosangle ',cosangle,beta
 
       ! calculate norms
       do i=1,nhist
-           rnorm(i)=0.d0
+           rnorm(i)=0.0_gp
               do iat=1,nat
                  do l=1,3
                     rnorm(i)=rnorm(i) + (rxyz(l,iat,i)-rxyz(l,iat,i-1))**2
                  enddo
               enddo
-     rnorm(i)=1.d0/sqrt(rnorm(i))
-     !rnorm(i)=1.d0*sqrt(dble(i))/sqrt(rnorm(i))
-      !rnorm(i) =
-      !(0.5d0*(1.d0+(((dble(i)-dble(nhist))/(dble(nhist)*0.25d0))/sqrt(1.d0+((dble(i)-dble(nhist))/(dble(nhist)*0.25d0))**2))))/sqrt(rnorm(i))
-      !rnorm(i) = (0.5d0*(1.d0+(((dble(i)-0.2d0*dble(nhist))/(dble(nhist)*0.25d0))/sqrt(1.d0+((dble(i)-0.2d0*dble(nhist))/(dble(nhist)*0.25d0))**2))))/sqrt(rnorm(i))
+     rnorm(i)=1.0_gp/sqrt(rnorm(i))
 
       enddo
 
