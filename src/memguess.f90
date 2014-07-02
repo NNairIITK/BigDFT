@@ -595,7 +595,7 @@ program memguess
    ! Add the comparison between cuda hamiltonian and normal one if it is the case
 
    ! De-allocations
-   call deallocate_Lzd_except_Glr(runObj%rst%KSwfn%Lzd, subname)
+   call deallocate_Lzd_except_Glr(runObj%rst%KSwfn%Lzd)
    call deallocate_comms(runObj%rst%KSwfn%comms)
    call deallocate_orbs(runObj%rst%KSwfn%orbs)
    call free_DFT_PSP_projectors(nlpsp)

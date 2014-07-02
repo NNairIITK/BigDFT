@@ -239,16 +239,18 @@ contains
     end if
   END SUBROUTINE deallocate_wfd
 
-  !>desctructors
+
+  !> Destructors
   subroutine deallocate_locreg_descriptors(lr)
     implicit none
     ! Calling arguments
     type(locreg_descriptors),intent(inout):: lr
 
     call deallocate_wfd(lr%wfd)
-    call deallocate_convolutions_bounds(lr%bounds,'deallocate_locreg_descriptors')
+    call deallocate_convolutions_bounds(lr%bounds)
 
   end subroutine deallocate_locreg_descriptors
+
 
   !> De-Allocate convolutions_bounds type, depending of the geocode and the hybrid_on
   subroutine deallocate_bounds(geocode,hybrid_on,bounds)

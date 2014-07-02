@@ -259,8 +259,8 @@ program driver
   call f_free(keyg_tmp)
 
   call deallocate_orbitals_data(orbs, 'driver')
-  call deallocate_sparse_matrix(smat_A, 'driver')
-  call deallocate_sparse_matrix(smat_B, 'driver')
+  call deallocate_sparse_matrix(smat_A)
+  call deallocate_sparse_matrix(smat_B)
   call deallocate_matrices(mat_A)
   call deallocate_matrices(inv_mat_B)
 

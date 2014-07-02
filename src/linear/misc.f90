@@ -24,7 +24,7 @@ subroutine plotOrbitals(iproc, tmb, phi, nat, rxyz, hxh, hyh, hzh, it, basename)
    integer :: it
    character(len=4),intent(in) :: basename
 
-   integer :: ix, iy, iz, ix0, iy0, iz0, iiAt, jj, iorb, i1, i2, i3, istart, ii, istat, iat
+   integer :: ix, iy, iz, ix0, iy0, iz0, iiAt, jj, iorb, i1, i2, i3, istart, ii, iat
    integer :: unit1, unit2, unit3, unit4, unit5, unit6, unit7, unit8, unit9, unit10, unit11, unit12
    integer :: ixx, iyy, izz, maxid, i, ixmin, ixmax, iymin, iymax, izmin, izmax
    integer :: ilr
@@ -572,7 +572,7 @@ subroutine plotGrid(iproc, norb, nspinor, nspin, orbitalNumber, llr, glr, atoms,
   real(kind=8), intent(in) :: hx, hy, hz
   
   ! Local variables
-  integer :: iseg, jj, j0, j1, ii, i3, i2, i0, i1, i, ishift, iat, ldim, gdim, jjj, istat
+  integer :: iseg, jj, j0, j1, ii, i3, i2, i0, i1, i, ishift, iat, ldim, gdim, jjj
   character(len=10) :: num
   character(len=20) :: filename
   real(kind=8), dimension(:), allocatable :: lphi, phi
@@ -887,7 +887,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   character(len=*),parameter :: subname='build_ks_orbitals'
 
   !debug
-  integer :: iorb, jorb, ist, jst, ierr, i, istat, iall
+  integer :: iorb, jorb, ist, jst, ierr, i
   real(kind=8) :: ddot, tt
 
 
@@ -992,8 +992,8 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
        at, rxyz, KSwfn%Lzd%Glr%wfd, phiwork_global)
 
    call f_free_ptr(phiwork_global)
-   call deallocate_orbitals_data(orbs, subname)
-   call deallocate_comms_cubic(comms, subname)
+   call deallocate_orbitals_data(orbs)
+   call deallocate_comms_cubic(comms)
 
   ! To get consistent values of the energy and the Kohn-Sham residue with those
   ! which will be calculated by the cubic restart.
@@ -1144,14 +1144,14 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   integer,intent(in) :: meth_overlap
 
   !local variables
-  integer :: ifrag,iorb,ifrag_ref,isforb,istat,ierr,jorb
+  integer :: ifrag,iorb,ifrag_ref,isforb,ierr,jorb
   real(kind=gp), allocatable, dimension(:,:) :: proj_mat, proj_ovrlp_half, weight_matrixp
   character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
   real(kind=gp) :: max_error, mean_error
   type(matrices) :: inv_ovrlp
 
   ! new variables
-  integer :: iat, iall
+  integer :: iat
   real(kind=8),dimension(:,:),allocatable :: weight_matrix
   real(kind=gp),dimension(:,:),pointer :: ovrlp
   real(kind=8) :: total_charge, total_net_charge
@@ -1482,7 +1482,7 @@ subroutine charge_center(n1i, n2i, n3i, hgrids, phir, charge_center_elec)
 
 
   qtot=0.d0
-  jj=0.d0
+  jj=0
   do i3=1,n3i
       do i2=1,n2i
           do i1=1,n1i

@@ -1110,7 +1110,7 @@ program WaCo
 !END DEBUG
 
      if(linear)then
-        call deallocate_local_zone_descriptors(Lzd, subname)
+        call deallocate_local_zone_descriptors(Lzd)
         call f_free(locrad)
         call f_free_ptr(cxyz)
         if(iproc == 0) then

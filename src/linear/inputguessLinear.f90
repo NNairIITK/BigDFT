@@ -808,7 +808,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   ! Deallocate all local arrays.
 
   ! Deallocate all types that are not needed any longer.
-  call deallocate_orbitals_data(orbs_gauss, subname)
+  call deallocate_orbitals_data(orbs_gauss)
 
   ! Deallocate all remaining local arrays.
   call f_free(norbsc_arr)

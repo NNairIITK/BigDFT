@@ -442,7 +442,7 @@ subroutine lzd_free(lzd)
   implicit none
   type(local_zone_descriptors), pointer :: lzd
 
-  call deallocate_local_zone_descriptors(lzd, "lzd_free")
+  call deallocate_local_zone_descriptors(lzd)
   deallocate(lzd)
 end subroutine lzd_free
 
@@ -452,7 +452,7 @@ subroutine lzd_empty(lzd)
   implicit none
   type(local_zone_descriptors), intent(inout) :: lzd
 
-  call deallocate_Lzd_except_Glr(lzd, "lzd_empty")
+  call deallocate_Lzd_except_Glr(lzd)
 END SUBROUTINE lzd_empty
 
 
@@ -734,7 +734,7 @@ subroutine orbs_empty(orbs)
   implicit none
   type(orbitals_data), intent(inout) :: orbs
 
-  call deallocate_orbitals_data(orbs,"orbs_empty")
+  call deallocate_orbitals_data(orbs)
 END SUBROUTINE orbs_empty
 
 
@@ -1194,7 +1194,7 @@ subroutine wf_free(wf)
 
   call orbs_comm_empty(wf%comms)
   call orbs_empty(wf%orbs)
-  call deallocate_local_zone_descriptors(wf%lzd, "wf%lzd")
+  call deallocate_local_zone_descriptors(wf%lzd)
   deallocate(wf)
 end subroutine wf_free
 

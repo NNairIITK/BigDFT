@@ -706,7 +706,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   !call deallocate_wfd(wfd_old,subname)
   ! modified by SM
   call deallocate_wfd(wfd_old)
-  call deallocate_local_zone_descriptors(lzd_old,subname)
+  call deallocate_local_zone_descriptors(lzd_old)
 
   !save the new grid spacing into the hgrid_old value
   hx_old=KSwfn%Lzd%hgrids(1)
@@ -1433,7 +1433,7 @@ contains
         call deallocate_bounds(KSwfn%Lzd%Glr%geocode,KSwfn%Lzd%Glr%hybrid_on,&
              KSwfn%Lzd%Glr%bounds)
     end if
-    call deallocate_Lzd_except_Glr(KSwfn%Lzd, subname)
+    call deallocate_Lzd_except_Glr(KSwfn%Lzd)
 
 !    i_all=-product(shape(KSwfn%Lzd%Glr%projflg))*kind(KSwfn%Lzd%Glr%projflg)
 !    deallocate(KSwfn%Lzd%Glr%projflg,stat=i_stat)
@@ -2089,7 +2089,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      ! to eventually be better sorted
      call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
      call deallocate_p2pComms(tmb%ham_descr%comgp)
-     call deallocate_local_zone_descriptors(tmb%ham_descr%lzd, subname)
+     call deallocate_local_zone_descriptors(tmb%ham_descr%lzd)
      call deallocate_comms_linear(tmb%ham_descr%collcom)
      call deallocate_auxiliary_basis_function(subname, tmb%ham_descr%psi, tmb%hpsi)
 

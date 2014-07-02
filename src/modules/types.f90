@@ -1320,7 +1320,7 @@ contains
     character(len=*), parameter :: subname='old_wavefunction_set'
 
     !first, free the workspace if not already done
-    call old_wavefunction_free(wfn,subname)
+    call old_wavefunction_free(wfn)
     !then allocate the workspaces and fill them
     wfn%psi = f_malloc_ptr((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*norbp+ndebug,id='wfn%psi')
     
@@ -1334,9 +1334,8 @@ contains
   end subroutine old_wavefunction_set
 
 
-  subroutine old_wavefunction_free(wfn,subname)
+  subroutine old_wavefunction_free(wfn)
     implicit none
-    character(len=*), intent(in) :: subname
     type(old_wavefunction), intent(inout) :: wfn
     !local variables
 
@@ -1347,7 +1346,7 @@ contains
        call f_free_ptr(wfn%rxyz)
     end if
     !lzd should be deallocated also (to be checked again)
-    call deallocate_local_zone_descriptors(wfn%Lzd, subname)
+    call deallocate_local_zone_descriptors(wfn%Lzd)
 
   end subroutine old_wavefunction_free
    
@@ -1532,9 +1531,9 @@ contains
        call destroy_DFT_wavefunction(rst%tmb)
     end if
     !always deallocate lzd for new input guess
-    !call deallocate_lzd(rst%tmb%lzd, subname)
+    !call deallocate_lzd(rst%tmb%lzd)
     ! Modified by SM
-    call deallocate_local_zone_descriptors(rst%tmb%lzd, subname)
+    call deallocate_local_zone_descriptors(rst%tmb%lzd)
 
     call deallocate_locreg_descriptors(rst%KSwfn%Lzd%Glr)
 
@@ -1548,7 +1547,7 @@ contains
 
     if (associated(rst%KSwfn%oldpsis)) then
        do istep=0,product(shape(rst%KSwfn%oldpsis))-1
-          call old_wavefunction_free(rst%KSwfn%oldpsis(istep),subname)
+          call old_wavefunction_free(rst%KSwfn%oldpsis(istep))
        end do
        deallocate(rst%KSwfn%oldpsis)
     end if

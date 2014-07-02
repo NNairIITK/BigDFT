@@ -1862,41 +1862,37 @@ module module_interfaces
        type(mixrhopotDIISParameters),intent(inout):: mixdiis
      end subroutine deallocateMixrhopotDIIS
 
-    subroutine deallocate_local_zone_descriptors(lzd, subname)
+    subroutine deallocate_local_zone_descriptors(lzd)
       use module_base
       use module_types
       !use deallocatePointers
       implicit none
       type(local_zone_descriptors),intent(inout):: lzd
-      character(len=*),intent(in):: subname
     end subroutine deallocate_local_zone_descriptors
 
-    subroutine deallocate_Lzd_except_Glr(lzd, subname)
+    subroutine deallocate_Lzd_except_Glr(lzd)
       use module_base
       use module_types
       !use deallocatePointers
       implicit none
       type(local_zone_descriptors),intent(inout):: lzd
-      character(len=*),intent(in):: subname
     end subroutine deallocate_Lzd_except_Glr
 
-    subroutine deallocate_orbitals_data(orbs, subname)
+    subroutine deallocate_orbitals_data(orbs)
       use module_base
       use module_types
       !use deallocatePointers
       implicit none
       type(orbitals_data),intent(inout):: orbs
-      character(len=*),intent(in):: subname
     end subroutine deallocate_orbitals_data
 
-    subroutine deallocate_comms_cubic(comms, subname)
+    subroutine deallocate_comms_cubic(comms)
       use module_base
       use module_types
       use communications_base, only: comms_cubic
       !use deallocatePointers
       implicit none
       type(comms_cubic),intent(inout):: comms
-      character(len=*),intent(in):: subname
     end subroutine deallocate_comms_cubic
 
     !!subroutine nullify_foe(foe_obj)

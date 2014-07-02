@@ -289,6 +289,7 @@
  Error check code, name                :  No
  Error check code, name                :  Yes
   #Test open try
+ Error check value before try          :  No
  Number of errors(1)                   :  1
  Number of errors(2)                   :  0
  ID                                    :  22
@@ -302,6 +303,7 @@
      For this error, contact the routine developer at mail at univ dot gov
    Callback Procedure Address          : 4204883
  Number of errors(3)                   :  1
+ Error check value after try           :  No
 ---
   #Now we test dictionaries inside yaml.
  ival not existing, fake value         :  0

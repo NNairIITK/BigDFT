@@ -770,8 +770,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
      end do
   !end if
 
-  call deallocate_local_zone_descriptors(tmb_old%lzd, subname)
-  call deallocate_orbitals_data(tmb_old%orbs, subname)
+  call deallocate_local_zone_descriptors(tmb_old%lzd)
+  call deallocate_orbitals_data(tmb_old%orbs)
 
   call f_free_ptr(tmb_old%psi)
 
@@ -1536,7 +1536,7 @@ contains
 
     !here we can define the subroutine which generates the coefficients for the virtual orbitals
     call deallocate_gwf(G)
-    call deallocate_local_zone_descriptors(Lzde, subname)
+    call deallocate_local_zone_descriptors(Lzde)
 
     call f_free_ptr(psigau)
 

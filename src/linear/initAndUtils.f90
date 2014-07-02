@@ -171,7 +171,7 @@ subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locreg
   type(orbitals_data),optional,intent(in) :: lborbs
   
   ! Local variables
-  integer :: istat, jorb, jjorb, jlr, iall
+  integer :: istat, jorb, jjorb, jlr
   character(len=*), parameter :: subname='initLocregs'
   logical,dimension(:), allocatable :: calculateBounds
 
@@ -243,7 +243,7 @@ subroutine init_foe(iproc, nproc, nlr, locregcenter, astruct, input, orbs_KS, or
   
   ! Local variables
   integer :: iorb, iiorb, jjorb, istat, iseg, ilr, jlr
-  integer :: iwa, jwa, itype, jtype, ierr, iall, isegstart
+  integer :: iwa, jwa, itype, jtype, ierr, isegstart
   logical :: seg_started
   real(kind=8) :: tt, cut, incr
   logical,dimension(:,:), allocatable :: kernel_locreg
@@ -592,7 +592,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
   type(orbitals_data), intent(out) :: lorbs
   
   ! Local variables
-  integer :: norb, norbu, norbd, ityp, iat, ilr, istat, iall, iorb, nlr
+  integer :: norb, norbu, norbd, ityp, iat, ilr, istat, iorb, nlr
   integer, dimension(:), allocatable :: norbsPerLocreg, norbsPerAtom
   real(kind=8),dimension(:,:), allocatable :: locregCenter
   character(len=*), parameter :: subname='init_orbitals_data_for_linear'
@@ -678,7 +678,7 @@ subroutine lzd_init_llr(iproc, nproc, input, astruct, rxyz, orbs, lzd)
   type(local_zone_descriptors), intent(inout) :: lzd
   
   ! Local variables
-  integer :: iat, ityp, ilr, istat, iorb, iall
+  integer :: iat, ityp, ilr, istat, iorb
   real(kind=8),dimension(:,:), allocatable :: locregCenter
   character(len=*), parameter :: subname='lzd_init_llr'
   real(8):: t1, t2
@@ -849,7 +849,7 @@ subroutine update_ldiis_arrays(tmb, subname, ldiis)
   type(localizedDIISParameters), intent(inout) :: ldiis
 
   ! Local variables
-  integer :: iall, istat, ii, iorb, ilr
+  integer :: ii, iorb, ilr
 
   call f_free_ptr(ldiis%phiHist)
   call f_free_ptr(ldiis%hphiHist)
@@ -895,9 +895,6 @@ subroutine deallocate_auxiliary_basis_function(subname, lphi, lhphi)
   real(kind=8),dimension(:), pointer :: lphi, lhphi
   character(len=*), intent(in) :: subname
 
-  ! Local variables
-  integer :: istat, iall
-
   call f_free_ptr(lphi)
   call f_free_ptr(lhphi)
 
@@ -924,8 +921,8 @@ subroutine destroy_new_locregs(iproc, nproc, tmb)
   call synchronize_onesided_communication(iproc, nproc, tmb%comgp)
   call deallocate_p2pComms(tmb%comgp)
 
-  call deallocate_local_zone_descriptors(tmb%lzd, subname)
-  call deallocate_orbitals_data(tmb%orbs, subname)
+  call deallocate_local_zone_descriptors(tmb%lzd)
+  call deallocate_orbitals_data(tmb%orbs)
 
   call deallocate_comms_linear(tmb%collcom)
   call deallocate_comms_linear(tmb%collcom_sr)
@@ -944,11 +941,9 @@ subroutine destroy_DFT_wavefunction(wfn)
   ! Calling arguments
   type(DFT_wavefunction), intent(inout) :: wfn
 
-  ! Local variables
-  integer :: istat, iall
   character(len=*), parameter :: subname='destroy_DFT_wavefunction'
 
-  call f_routine(id='destroy_DFT_wavefunction')
+  call f_routine(id=subname)
 
   call f_free_ptr(wfn%psi)
   call f_free_ptr(wfn%psit_c)
@@ -963,10 +958,10 @@ subroutine destroy_DFT_wavefunction(wfn)
   call deallocate_matrices(wfn%linmat%ovrlp_)
   call deallocate_matrices(wfn%linmat%ham_)
   call deallocate_matrices(wfn%linmat%kernel_)
-  call deallocate_orbitals_data(wfn%orbs, subname)
+  call deallocate_orbitals_data(wfn%orbs)
   call deallocate_comms_linear(wfn%collcom)
   call deallocate_comms_linear(wfn%collcom_sr)
-  call deallocate_local_zone_descriptors(wfn%lzd, subname)
+  call deallocate_local_zone_descriptors(wfn%lzd)
 
   if (associated(wfn%coeff)) then
       call f_free_ptr(wfn%coeff)
@@ -990,7 +985,7 @@ subroutine update_wavefunctions_size(lzd,npsidim_orbs,npsidim_comp,orbs,iproc,np
 
   ! Local variables
   integer :: npsidim, ilr, iorb
-  integer :: nvctr_tot,jproc,istat,ierr,iall
+  integer :: nvctr_tot,jproc,istat,ierr
   integer, allocatable, dimension(:) :: ncntt 
   integer, allocatable, dimension(:,:) :: nvctr_par
   character(len = *), parameter :: subname = "update_wavefunctions_size"
@@ -1093,12 +1088,12 @@ subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,input, at, 
 
   if(.not.lowaccur_converged) then
       call define_confinement_data(tmb%confdatarr,tmb%orbs,rxyz,at,&
-           tmb%ham_descr%lzd%hgrids(1),tmb%ham_descr%lzd%hgrids(2),tmb%ham_descr%lzd%hgrids(3),&
-           4,input%lin%potentialPrefac_lowaccuracy,tmb%ham_descr%lzd,tmb%orbs%onwhichatom)
+           & tmb%ham_descr%lzd%hgrids(1),tmb%ham_descr%lzd%hgrids(2),tmb%ham_descr%lzd%hgrids(3),&
+           & 4,input%lin%potentialPrefac_lowaccuracy,tmb%ham_descr%lzd,tmb%orbs%onwhichatom)
   else
       call define_confinement_data(tmb%confdatarr,tmb%orbs,rxyz,at,&
-           tmb%ham_descr%lzd%hgrids(1),tmb%ham_descr%lzd%hgrids(2),tmb%ham_descr%lzd%hgrids(3),&
-           4,input%lin%potentialPrefac_highaccuracy,tmb%ham_descr%lzd,tmb%orbs%onwhichatom)
+           & tmb%ham_descr%lzd%hgrids(1),tmb%ham_descr%lzd%hgrids(2),tmb%ham_descr%lzd%hgrids(3),&
+           & 4,input%lin%potentialPrefac_highaccuracy,tmb%ham_descr%lzd,tmb%orbs%onwhichatom)
   end if
 
   call f_free(locregCenter)
@@ -1252,7 +1247,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   real(8), dimension(tmb%lzd%nlr), intent(inout) :: locrad
 
   ! Local variables
-  integer :: iall, istat, ilr, npsidim_orbs_tmp, npsidim_comp_tmp
+  integer :: ilr, npsidim_orbs_tmp, npsidim_comp_tmp
   real(kind=8),dimension(:,:), allocatable :: locregCenter
   real(kind=8),dimension(:), allocatable :: lphilarge, locrad_kernel, locrad_mult
   type(local_zone_descriptors) :: lzd_tmp
@@ -1290,7 +1285,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      call nullify_local_zone_descriptors(lzd_tmp)
      call copy_local_zone_descriptors(tmb%lzd, lzd_tmp, subname)
-     call deallocate_local_zone_descriptors(tmb%lzd, subname)
+     call deallocate_local_zone_descriptors(tmb%lzd)
 
      npsidim_orbs_tmp = tmb%npsidim_orbs
      npsidim_comp_tmp = tmb%npsidim_comp
@@ -1335,7 +1330,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call small_to_large_locreg(iproc, npsidim_orbs_tmp, tmb%npsidim_orbs, lzd_tmp, tmb%lzd, &
           tmb%orbs, tmb%psi, lphilarge)
 
-     call deallocate_local_zone_descriptors(lzd_tmp, subname)
+     call deallocate_local_zone_descriptors(lzd_tmp)
      call f_free_ptr(tmb%psi)
      call f_free_ptr(tmb%psit_c)
      call f_free_ptr(tmb%psit_f)
@@ -1359,7 +1354,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      ! to eventually be better sorted - replace with e.g. destroy_hamiltonian_descriptors
      call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
      call deallocate_p2pComms(tmb%ham_descr%comgp)
-     call deallocate_local_zone_descriptors(tmb%ham_descr%lzd, subname)
+     call deallocate_local_zone_descriptors(tmb%ham_descr%lzd)
      call deallocate_comms_linear(tmb%ham_descr%collcom)
 
      call deallocate_auxiliary_basis_function(subname, tmb%ham_descr%psi, tmb%hpsi)
@@ -1369,7 +1364,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
         tmb%ham_descr%can_use_transposed=.false.
      end if
      
-     deallocate(tmb%confdatarr, stat=istat)
+     deallocate(tmb%confdatarr)
 
      call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp, input, at, rxyz, lowaccur_converged)
      call f_free_ptr(tmb%ham_descr%psit_c)
@@ -1432,8 +1427,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   else ! no change in locrad, just confining potential that needs updating
 
      call define_confinement_data(tmb%confdatarr,tmb%orbs,rxyz,at,&
-          tmb%ham_descr%lzd%hgrids(1),tmb%ham_descr%lzd%hgrids(2),tmb%ham_descr%lzd%hgrids(3),&
-          4,input%lin%potentialPrefac_highaccuracy,tmb%ham_descr%lzd,tmb%orbs%onwhichatom)
+          & tmb%ham_descr%lzd%hgrids(1),tmb%ham_descr%lzd%hgrids(2),tmb%ham_descr%lzd%hgrids(3),&
+          & 4,input%lin%potentialPrefac_highaccuracy,tmb%ham_descr%lzd,tmb%orbs%onwhichatom)
 
   end if
 
@@ -1700,7 +1695,7 @@ subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero
     
       ! Local variables
       integer :: iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold
-      integer :: iiorb, iall, ierr, ii
+      integer :: iiorb, ierr, ii
       !!integer :: istat
       logical :: isoverlap
       integer :: onseg
@@ -1962,7 +1957,7 @@ subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat
   call init_sparse_matrix(iproc, nproc, orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, input%store_index, &
        orbs_aux%norb*orbs_aux%norbp, nonzero, orbs_aux%norb, nonzero, smat_extra, print_info_=.false.)
   call f_free(nonzero)
-  call deallocate_orbitals_data(orbs_aux, subname)
+  call deallocate_orbitals_data(orbs_aux)
 
   call f_release_routine()
 

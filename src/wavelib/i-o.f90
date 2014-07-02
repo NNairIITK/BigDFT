@@ -888,7 +888,6 @@ contains
 
   subroutine deallocate_local()
     implicit none
-    character(len = *), parameter :: subname = "readwavetoisf"
 
     ! We close the file.
     close(unit=unitwf)
@@ -909,6 +908,7 @@ contains
     
     call f_release_routine()
   END SUBROUTINE deallocate_local
+
 END SUBROUTINE readwavetoisf
 
 

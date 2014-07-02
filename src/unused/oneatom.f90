@@ -334,7 +334,7 @@ program oneatom
 
 
   call deallocate_lr(Glr)
-  call deallocate_comms(comms,subname)
+  call deallocate_comms(comms)
   call deallocate_orbs(orbs)
   call deallocate_proj_descr(nlpspd,subname)
 

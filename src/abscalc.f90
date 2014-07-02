@@ -1203,7 +1203,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
    call deallocate_before_exiting
-!   call deallocate_local_zone_descriptors(lzd, subname)
+!   call deallocate_local_zone_descriptors(lzd)
 
    contains
 
@@ -1293,7 +1293,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       !De-allocations
       call deallocate_bounds(atoms%astruct%geocode,KSwfn%Lzd%Glr%hybrid_on,&
            KSwfn%Lzd%Glr%bounds)
-      call deallocate_Lzd_except_Glr(KSwfn%Lzd, subname)
+      call deallocate_Lzd_except_Glr(KSwfn%Lzd)
 !      i_all=-product(shape(Lzd%Glr%projflg))*kind(Lzd%Glr%projflg)
 !      deallocate(Lzd%Glr%projflg,stat=i_stat)
 !      call memocc(i_stat,i_all,'Lzd%Glr%projflg',subname)  
@@ -1826,7 +1826,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
 
   !deallocate the gaussian basis descriptors
   call deallocate_gwf(G)
-  if(potshortcut<=0) call deallocate_local_zone_descriptors(Lzde, subname)  
+  if(potshortcut<=0) call deallocate_local_zone_descriptors(Lzde)  
 
 
 

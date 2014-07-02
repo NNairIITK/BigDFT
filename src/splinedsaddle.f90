@@ -28,7 +28,7 @@ program splined_saddle
   character(len=60) :: run_id
   !character(len=60) :: filename
   ! atomic coordinates, forces
-  integer :: iconfig,nconfig!,istat
+  integer :: iconfig,nconfig
   real(gp), dimension(:,:), allocatable :: ratsp,fatsp 
   integer, dimension(4) :: mpi_info
   !include 'mpif.h' !non-BigDFT
@@ -119,9 +119,9 @@ program splined_saddle
      call run_objects_free(runObj, subname)
 
 !!$
-!!$     call deallocate_atoms(atoms,subname) 
+!!$     call deallocate_atoms(atoms) 
 !!$
-!!$!     call deallocate_local_zone_descriptors(rst%Lzd, subname) 
+!!$!     call deallocate_local_zone_descriptors(rst%Lzd) 
 !!$     if(inputs%linear /= INPUT_IG_OFF .and. inputs%linear /= INPUT_IG_LIG) &
 !!$          & call deallocateBasicArraysInput(inputs%lin)
 !!$
@@ -2670,7 +2670,7 @@ subroutine guessinitialtmax_hermite(npv,pnow)
     use modulesplinedsaddle, only:parametersplinedsaddle
     use dynamic_memory
     implicit none
-    integer::npv,ipvt,istat,iroot,nroot,npvt
+    integer::npv,ipvt,iroot,nroot,npvt
     type(parametersplinedsaddle)::pnow
     real(kind=8)::p1,p2,p3,t1,t2,hi,discriminant,v,vcmax,roots(50)
     real(kind=8), allocatable::svt(:),hvt(:),ext(:),exdt(:),e1vt(:),e2vt(:),cvt(:)
@@ -2816,7 +2816,7 @@ subroutine fill_ex_exd(istep,n,np,x,outends,npv,pnow,pold,xt,ft,nproc,iproc,atom
     type(restart_objects), intent(inout) :: rst
     integer, intent(inout) :: ncount_bigdft
     type(DFT_global_output), dimension(2), intent(in) :: outends
-    integer::istep,n,np,ip,mp,istat,i,npv,infocode
+    integer::istep,n,np,ip,mp,i,npv,infocode
     real(kind=8)::x(n,0:np),xt(n),ft(n) !n(c) dt
     type(parametersplinedsaddle)::pnow,pold
     real(kind=8)::t1,tt,time1,time2
@@ -3335,7 +3335,7 @@ subroutine guessinitialtmax_cubic(npv,pnow)
     use modulesplinedsaddle, only:parametersplinedsaddle
     use dynamic_memory
     implicit none
-    integer::npv,ipvt,istat,iroot,nroot,npvt
+    integer::npv,ipvt,iroot,nroot,npvt
     type(parametersplinedsaddle)::pnow
     real(kind=8)::p1,p2,p3,t1,t2,hi,discriminant,vc,vcmax,roots(50)
     real(kind=8), allocatable::svt(:),hvt(:),ext(:),e1vt(:),e2vt(:),cvt(:)
@@ -3421,7 +3421,7 @@ subroutine guessinitialtmax_quintic(npv,pnow,iproc)
     use modulesplinedsaddle, only:parametersplinedsaddle
     use dynamic_memory
     implicit none
-    integer::npv,mpv,ipvt,istat,iroot,nroot,npvt,iproc
+    integer::npv,mpv,ipvt,iroot,nroot,npvt,iproc
     type(parametersplinedsaddle)::pnow
     real(kind=8)::p1,p2,p3,t1,t2,hi,discriminant,t,dt,vc,vcmax,vddq,roots(50)
     real(kind=8), allocatable::svt(:),hvt(:),ext(:),e1vt(:),e2vt(:),cvt(:)
@@ -3665,7 +3665,7 @@ subroutine prepdd(atoms,n,np,x,e1,e2,h,s,mp,tmax,dd)
     use module_types
     implicit none
     type(atoms_data), intent(inout) :: atoms
-    integer::n,np,mp,istat,i,info,ip,j,jp
+    integer::n,np,mp,i,info,ip,j,jp
     real(kind=8)::x(n,0:np),e1(np-1),e2(np-2),h(np),s(0:np),dd(n,n,np-1),tmax
     real(kind=8), allocatable::ainv(:,:)
     real(kind=8), allocatable::cd1(:)
@@ -3762,8 +3762,6 @@ subroutine prepdd(atoms,n,np,x,e1,e2,h,s,mp,tmax,dd)
     enddo
     call f_free(cd1)
     call f_free(cd2)
-    !deallocate(cd3,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating cd3.'
-    !deallocate(cd4,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating cd4.'
     call f_free(c)
     call f_free(ddt)
     call f_free(yi)
@@ -3775,7 +3773,7 @@ end subroutine prepdd
 subroutine prepcd3cd4(np,h,mp,ainv,i,j,yi,yj,cd1,cd2)
     use dynamic_memory
     implicit none
-    integer::np,mp,istat,i,j,ip,jp
+    integer::np,mp,i,j,ip,jp
     real(kind=8)::h(np),yi(0:np),yj(0:np),cd1(np-1),cd2(np-1),ainv(np-1,np-1)
     real(kind=8)::t1,t2,t3,t4,t5,t6,t7,t8,t9,tt1,tt2,delta
     real(kind=8), allocatable::ainvd(:,:)
@@ -3849,7 +3847,7 @@ end subroutine prepcd3cd4
 subroutine prepcd1cd2(np,h,mp,yi,yj,cd1,cd2,ainv)
     use dynamic_memory
     implicit none
-    integer::np,mp,istat,ip,jp
+    integer::np,mp,ip,jp
     real(kind=8)::h(np),yi(0:np),yj(0:np),cd1(np-1),cd2(np-1),ainv(np-1,np-1),t1,t2,t3,t4
     real(kind=8), allocatable::ainvd(:,:)
     integer, parameter::ndeb1=0 !n(c) ndeb2=0
@@ -3918,7 +3916,7 @@ subroutine func(tt,epot,ett,n,np,x,pnow,mp,xt,ft,nproc,iproc,atoms,rst,ll_inputs
     type(input_variables), intent(inout) :: ll_inputs
     type(restart_objects), intent(inout) :: rst
     integer, intent(inout) :: ncount_bigdft
-    integer::n,np,mp,i,istat,infocode
+    integer::n,np,mp,i,infocode
     type(parametersplinedsaddle)::pnow
     real(kind=8)::tt,ett,x(n,0:np),epot,xt(n),ft(n),t1,time1,time2
     real(kind=8), allocatable::tang(:)
@@ -4022,7 +4020,7 @@ end subroutine inter_cubic
 subroutine qdq(np,s,mp,tmax,c,h,i,j,yi,yj,cd1,cd2,dd)
     use dynamic_memory
     implicit none
-    integer::np,mp,i,j,ip,istat
+    integer::np,mp,i,j,ip
     real(kind=8)::s(0:np),tmax,c(0:np),h(np),yi(0:np),yj(0:np),cd1(np-1),cd2(np-1),dd(np-1)
     real(kind=8)::p0,p1,p2,p3,delta,t1,t2,t3,t4,t5,t6,t7
     real(kind=8), allocatable::sd1(:)
@@ -4151,7 +4149,6 @@ subroutine initminimize(parmin)
     use dynamic_memory
     implicit none
     type(parameterminimization_sp)::parmin
-    integer::istat
     character(2)::tapp1,tapp2
     character(4)::tapp3
     integer, parameter::ndeb1=0
@@ -4192,7 +4189,6 @@ subroutine finalminimize(parmin)
     use dynamic_memory
     implicit none
     type(parameterminimization_sp)::parmin
-    integer::istat
     !n(c) character(2)::tapp1,tapp2
     character(4)::tapp3
     !n(c) tapp1(1:2)=parmin%approach(1:2)
@@ -4627,7 +4623,7 @@ subroutine writepathway(n,np,x,filename,atoms)
     implicit none
     integer::n,np,jp,iat
     real(kind=8)::x(n,0:np),ed_tt,edd_tt,dtt,tt,xyz(3)
-    integer::istat,ip,i
+    integer :: ip,i
     type(atoms_data), intent(in) :: atoms
     character(len=10) :: name
     character(len=2) :: symbol
