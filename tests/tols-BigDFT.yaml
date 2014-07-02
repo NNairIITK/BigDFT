@@ -61,11 +61,13 @@ yaml_test:
    - Additional Info
    - Something to use ab
    - Entering Thread No.
+   - Elapsed time (ns)
+   - Elapsed time (mus)
  Patterns to ignore:
    - errcode
-   - time
    - Time
    - Global dictionary
+   - time
 
 #Runs which update and override the default
 AgBulk:

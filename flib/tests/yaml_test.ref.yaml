@@ -785,12 +785,12 @@
  Timings for search: {No. of items:  20001, Elapsed time (mus):  968.51}
  Other value                           :  2000000.0
  Memory Consumption Report:
-   Tot. No. of Allocations             :  89
-   Tot. No. of Deallocations           :  89
+   Tot. No. of Allocations             :  44
+   Tot. No. of Deallocations           :  44
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  0
      for the array                     : weight
      in the routine                    : Routine A
- Max No. of dictionaries used          :  25319 #( 260 still in use)
+ Max No. of dictionaries used          :  25217 #( 158 still in use)
  Number of dictionary folders allocated:  3

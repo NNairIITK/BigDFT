@@ -2170,6 +2170,7 @@ contains
   !> Define the BigDFT errors
   subroutine bigdft_init_errors()
     use dictionaries
+  use module_input_keys, only: input_keys_errors
     implicit none
     external :: bigdft_severe_abort
 
@@ -2193,6 +2194,9 @@ contains
          'An error while parsing the input variables occured',&
          BIGDFT_INPUT_VARIABLES_ERROR,&
          err_action='Check above which input variable has been not correctly parsed, or check their values')
+
+    !define the errors of internal modules
+    call input_keys_errors()
 
       call f_err_define('BIGDFT_INPUT_FILE_ERROR',&
       'The input file does not exist',&

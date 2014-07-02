@@ -73,6 +73,8 @@ if (f_err_pop()) print *,'An error occured'
 call f_err_close_try()
 @code
 
+Nested trys are allowed. When the f_err_close_try is done, the error stack of the corresponding try is lost.
+
 It is also possible to check using the routine @ref f_err_check.
 
 
