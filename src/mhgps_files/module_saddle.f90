@@ -94,8 +94,7 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_
     real(gp), allocatable, dimension(:)     :: res
     real(gp), allocatable, dimension(:)     :: scpr
     real(gp), allocatable, dimension(:)     :: wold
-    logical steep
-    character(2) atomname
+    logical :: steep
     real(gp) :: maxd,scl
     real(gp) :: alpha_stretch, fnrm,etotp,etotold,alpha,tt,dt,detot,s,cosangle,st,fmax
     integer :: lwork, iat , l, itswitch, nhist, ndim, it, ihist, i
@@ -1231,7 +1230,8 @@ subroutine curvgrad(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ener_cou
     !computes the (curvature along vec) = vec^t H vec / (vec^t*vec)
     !vec mus be normalized
 use module_base
-use module_global_variables, only: iproc
+use yaml_output
+use module_global_variables, only: iproc, mhgps_verbosity
 use module_energyandforces
     implicit none
     !parameters
@@ -1278,28 +1278,28 @@ real(gp) :: fluct,fnoise,dd
 
         rotforce = 2.0_gp*dfxyz*diffinv + 2.0_gp * curv * drxyz
 
-        !compute noise
-        sx=0.0_gp; sy=0.0_gp; sz=0.0_gp
-        do iat=1,nat
-           sx=sx+rotforce(1,iat)
-           sy=sy+rotforce(2,iat)
-           sz=sz+rotforce(3,iat)
-        enddo
-        fnoise=sqrt((sx**2+sy**2+sz**2)/real(nat,gp))
-if(iproc==0)write(*,*)'fnoise',fnoise
+!        !compute noise
+!        sx=0.0_gp; sy=0.0_gp; sz=0.0_gp
+!        do iat=1,nat
+!           sx=sx+rotforce(1,iat)
+!           sy=sy+rotforce(2,iat)
+!           sz=sz+rotforce(3,iat)
+!        enddo
+!        fnoise=sqrt((sx**2+sy**2+sz**2)/real(nat,gp))
+!if(iproc==0)write(*,*)'fnoise',fnoise
 
         call elim_moment_fs(nat,rotforce(1,1))
 !!        call elim_torque_fs(nat,rxyz1(1,1),rotforce(1,1))
-call torque(nat,rxyz1(1,1),rotforce(1,1))
+!call torque(nat,rxyz1(1,1),rotforce(1,1))
         call elim_torque_reza(nat,rxyz1(1,1),rotforce(1,1))
 
         !remove numerical noise:
         dd=ddot(3*nat,rotforce(1,1),1,vec(1,1),1)
         if(dd>1.e-11_gp.and.iproc==0)then
-            write(*,*)'WARNING rotforce not orthogonal on current direction',dd
+            call yaml_warning('(MHGPS) rotforce not orthogonal on current direction '//trim(yaml_toa(dd)))
         endif
 !write(*,*)'rotnoise',ddot(3*nat,rotforce(1,1),1,vec(1,1),1)
-!        rotforce = rotforce - ddot(3*nat,rotforce(1,1),1,vec(1,1),1)*vec
+        rotforce = rotforce - ddot(3*nat,rotforce(1,1),1,vec(1,1),1)*vec
     else
         stop 'unknown method for curvature computation'
     endif
