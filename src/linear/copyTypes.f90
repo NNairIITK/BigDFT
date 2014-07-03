@@ -20,16 +20,29 @@ subroutine copy_tmbs(iproc, tmbin, tmbout, subname)
   type(DFT_wavefunction), intent(out) :: tmbout
   character(len=*),intent(in):: subname
 
+  call f_routine(id='copy_tmbs')
+
   call nullify_orbitals_data(tmbout%orbs)
   call copy_orbitals_data(tmbin%orbs, tmbout%orbs, subname)
   call nullify_local_zone_descriptors(tmbout%lzd)
   call copy_old_supportfunctions(iproc,tmbin%orbs,tmbin%lzd,tmbin%psi,tmbout%lzd,tmbout%psi)
+
+  tmbout%npsidim_orbs = tmbin%npsidim_orbs
 
   if (associated(tmbin%coeff)) then !(in%lin%scf_mode/=LINEAR_FOE) then ! should move this check to copy_old_coeffs
       call copy_old_coefficients(tmbin%orbs%norb, tmbin%coeff, tmbout%coeff)
   else
       nullify(tmbout%coeff)
   end if
+
+  ! Parts of tmbout%lzd have been allocated in copy_old_supportfunctions, so deallocate everything and reallocate everything
+  ! properly. Of course this is a very bad solution.
+  call deallocate_local_zone_descriptors(tmbout%lzd, subname)
+  call copy_local_zone_descriptors(tmbin%lzd, tmbout%lzd, subname)
+
+  call copy_linear_matrices(tmbin%linmat, tmbout%linmat)
+
+  call copy_comms_linear(tmbin%collcom, tmbout%collcom)
 
   ! should technically copy these across as well but not needed for restart and will eventually be removing wfnmd as a type
   !nullify(tmbout%linmat%denskern%matrix_compr)
@@ -39,6 +52,8 @@ subroutine copy_tmbs(iproc, tmbin, tmbout, subname)
 
   !call copy_old_inwhichlocreg(tmbin%orbs%norb, tmbin%orbs%inwhichlocreg, tmbout%orbs%inwhichlocreg, &
   !     tmbin%orbs%onwhichatom, tmbout%orbs%onwhichatom)
+
+  call f_release_routine()
 
 end subroutine copy_tmbs
 
@@ -980,3 +995,163 @@ subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
 end subroutine sparse_copy_pattern
 
 
+
+subroutine copy_linear_matrices(linmat_in, linmat_out)
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(linear_matrices),intent(in) :: linmat_in
+  type(linear_matrices),intent(out) :: linmat_out
+
+  call copy_sparse_matrix(linmat_in%s, linmat_out%s)
+  call copy_sparse_matrix(linmat_in%m, linmat_out%m)
+  call copy_sparse_matrix(linmat_in%l, linmat_out%l)
+  call copy_sparse_matrix(linmat_in%ks, linmat_out%ks)
+  call copy_sparse_matrix(linmat_in%ks_e, linmat_out%ks_e)
+  call copy_matrices(linmat_in%ham_, linmat_out%ham_)
+  call copy_matrices(linmat_in%ovrlp_, linmat_out%ovrlp_)
+  call copy_matrices(linmat_in%kernel_, linmat_out%kernel_)
+
+end subroutine copy_linear_matrices
+
+
+subroutine copy_sparse_matrix(smat_in, smat_out)
+  use sparsematrix_base, only: sparse_matrix
+  use copy_utils, only: allocate_and_copy
+  implicit none
+
+  ! Calling arguments
+  type(sparse_matrix),intent(in) :: smat_in
+  type(sparse_matrix),intent(out) :: smat_out
+
+
+
+  smat_out%nvctr = smat_in%nvctr
+  smat_out%nseg = smat_in%nseg
+  smat_out%nvctrp = smat_in%nvctrp
+  smat_out%isvctr = smat_in%isvctr
+  smat_out%parallel_compression = smat_in%parallel_compression
+  smat_out%nfvctr = smat_in%nfvctr
+  smat_out%nfvctrp = smat_in%nfvctrp
+  smat_out%isfvctr = smat_in%isfvctr
+  smat_out%store_index = smat_in%store_index
+  smat_out%can_use_dense = smat_in%store_index
+
+  call allocate_and_copy(smat_in%keyv, smat_out%keyv, id='smat_out%')
+  call allocate_and_copy(smat_in%nsegline, smat_out%nsegline, id='smat_out%nsegline')
+  call allocate_and_copy(smat_in%istsegline, smat_out%istsegline, id='smat_out%istsegline')
+  call allocate_and_copy(smat_in%isvctr_par, smat_out%isvctr_par, id='smat_out%isvctr_par')
+  call allocate_and_copy(smat_in%nvctr_par, smat_out%nvctr_par, id='smat_out%nvctr_par')
+  call allocate_and_copy(smat_in%isfvctr_par, smat_out%isfvctr_par, id='smat_out%isfvctr_par')
+  call allocate_and_copy(smat_in%nfvctr_par, smat_out%nfvctr_par, id='smat_out%nfvctr_par')
+
+  call allocate_and_copy(smat_in%keyg, smat_out%keyg, id='smat_out%keyg')
+  call allocate_and_copy(smat_in%matrixindex_in_compressed_arr, smat_out%matrixindex_in_compressed_arr, &
+                         id='smat_out%matrixindex_in_compressed_arr')
+  call allocate_and_copy(smat_in%orb_from_index, smat_out%orb_from_index, id='smat_out%orb_from_index')
+  call allocate_and_copy(smat_in%matrixindex_in_compressed_fortransposed, smat_out%matrixindex_in_compressed_fortransposed, &
+                         id='smat_out%matrixindex_in_compressed_fortransposed')
+
+  call allocate_and_copy(smat_in%matrix_compr, smat_out%matrix_compr, id='smat_out%matrix_compr')
+  call allocate_and_copy(smat_in%matrix_comprp, smat_out%matrix_comprp, id='smat_out%matrix_comprp')
+
+  call allocate_and_copy(smat_in%matrix, smat_out%matrix, id='smat_out%matrix')
+  call allocate_and_copy(smat_in%matrixp, smat_out%matrixp, id='smat_out%matrixp')
+
+
+end subroutine copy_sparse_matrix
+
+
+subroutine copy_sparse_matrix_matrix_multiplication(smmm_in, smmm_out)
+  use sparsematrix_base, only: sparse_matrix_matrix_multiplication
+  use copy_utils, only: allocate_and_copy
+  implicit none
+
+  ! Calling arguments
+  type(sparse_matrix_matrix_multiplication),intent(in) :: smmm_in
+  type(sparse_matrix_matrix_multiplication),intent(out) :: smmm_out
+  smmm_out%nout = smmm_in%nout
+  smmm_out%nseq = smmm_in%nseq
+  smmm_out%nmaxsegk = smmm_in%nmaxsegk
+  smmm_out%nmaxvalk = smmm_in%nmaxvalk
+  smmm_out%nseg = smmm_in%nseg
+
+  call allocate_and_copy(smmm_in%ivectorindex, smmm_out%ivectorindex, id='ivectorindex')
+  call allocate_and_copy(smmm_in%nsegline, smmm_out%nsegline, id='nsegline')
+  call allocate_and_copy(smmm_in%istsegline, smmm_out%istsegline, id='istsegline')
+  call allocate_and_copy(smmm_in%indices_extract_sequential, smmm_out%indices_extract_sequential, id='indices_extract_sequential')
+end subroutine copy_sparse_matrix_matrix_multiplication
+
+
+subroutine copy_matrices(mat_in, mat_out)
+  use sparsematrix_base, only: matrices
+  use copy_utils, only: allocate_and_copy
+  implicit none
+
+  ! Calling arguments
+  type(matrices),intent(in) :: mat_in
+  type(matrices),intent(out) :: mat_out
+
+
+  call allocate_and_copy(mat_in%matrix_compr, mat_out%matrix_compr, id='mat_out%matrix_compr')
+  call allocate_and_copy(mat_in%matrix_comprp, mat_out%matrix_comprp, id='mat_out%matrix_comprp')
+
+  call allocate_and_copy(mat_in%matrix, mat_out%matrix, id='mat_out%matrix')
+  call allocate_and_copy(mat_in%matrixp, mat_out%matrixp, id='mat_out%matrixp')
+
+end subroutine copy_matrices
+
+
+subroutine copy_comms_linear(comms_in, comms_out)
+  use communications_base, only: comms_linear
+  use copy_utils, only: allocate_and_copy
+  implicit none
+
+  ! Calling arguments
+  type(comms_linear),intent(in) :: comms_in
+  type(comms_linear),intent(out) :: comms_out
+
+
+    comms_out%nptsp_c = comms_in%nptsp_c
+    comms_out%ndimpsi_c = comms_in%ndimpsi_c
+    comms_out%ndimind_c = comms_in%ndimind_c
+    comms_out%ndimind_f = comms_in%ndimind_f
+    comms_out%nptsp_f = comms_in%nptsp_f
+    comms_out%ndimpsi_f = comms_in%ndimpsi_f
+    comms_out%ncomms_repartitionrho = comms_in%ncomms_repartitionrho
+    comms_out%window = comms_in%window
+
+    call allocate_and_copy(comms_in%nsendcounts_c, comms_out%nsendcounts_c, id='comms_out%nsendcounts_c')
+    call allocate_and_copy(comms_in%nsenddspls_c, comms_out%nsenddspls_c, id='comms_out%nsenddspls_c')
+    call allocate_and_copy(comms_in%nrecvcounts_c, comms_out%nrecvcounts_c, id='comms_out%nrecvcounts_c')
+    call allocate_and_copy(comms_in%nrecvdspls_c, comms_out%nrecvdspls_c, id='comms_out%nrecvdspls_c')
+    call allocate_and_copy(comms_in%isendbuf_c, comms_out%isendbuf_c, id='comms_out%isendbuf_c')
+    call allocate_and_copy(comms_in%iextract_c, comms_out%iextract_c, id='comms_out%iextract_c')
+    call allocate_and_copy(comms_in%iexpand_c, comms_out%iexpand_c, id='comms_out%iexpand_c')
+    call allocate_and_copy(comms_in%irecvbuf_c, comms_out%irecvbuf_c, id='comms_out%irecvbuf_c')
+    call allocate_and_copy(comms_in%norb_per_gridpoint_c, comms_out%norb_per_gridpoint_c, id='comms_out%norb_per_gridpoint_c')
+    call allocate_and_copy(comms_in%indexrecvorbital_c, comms_out%indexrecvorbital_c, id='comms_out%indexrecvorbital_c')
+    call allocate_and_copy(comms_in%nsendcounts_f, comms_out%nsendcounts_f, id='comms_out%nsendcounts_f')
+    call allocate_and_copy(comms_in%nsenddspls_f, comms_out%nsenddspls_f, id='comms_out%nsenddspls_f')
+    call allocate_and_copy(comms_in%nrecvcounts_f, comms_out%nrecvcounts_f, id='comms_out%nrecvcounts_f')
+    call allocate_and_copy(comms_in%nrecvdspls_f, comms_out%nrecvdspls_f, id='comms_out%nrecvdspls_f')
+    call allocate_and_copy(comms_in%isendbuf_f, comms_out%isendbuf_f, id='comms_out%isendbuf_f')
+    call allocate_and_copy(comms_in%iextract_f, comms_out%iextract_f, id='comms_out%iextract_f')
+    call allocate_and_copy(comms_in%iexpand_f, comms_out%iexpand_f, id='comms_out%iexpand_f')
+    call allocate_and_copy(comms_in%irecvbuf_f, comms_out%irecvbuf_f, id='comms_out%irecvbuf_f')
+    call allocate_and_copy(comms_in%norb_per_gridpoint_f, comms_out%norb_per_gridpoint_f, id='ncomms_out%orb_per_gridpoint_f')
+    call allocate_and_copy(comms_in%indexrecvorbital_f, comms_out%indexrecvorbital_f, id='comms_out%indexrecvorbital_f')
+    call allocate_and_copy(comms_in%isptsp_c, comms_out%isptsp_c, id='comms_out%isptsp_c')
+    call allocate_and_copy(comms_in%isptsp_f, comms_out%isptsp_f, id='comms_out%isptsp_f')
+    call allocate_and_copy(comms_in%nsendcounts_repartitionrho, comms_out%nsendcounts_repartitionrho, id='comms_out%nsendcounts_repartitionrho')
+    call allocate_and_copy(comms_in%nrecvcounts_repartitionrho, comms_out%nrecvcounts_repartitionrho, id='comms_out%nrecvcounts_repartitionrho')
+    call allocate_and_copy(comms_in%nsenddspls_repartitionrho, comms_out%nsenddspls_repartitionrho, id='comms_out%nsenddspls_repartitionrho')
+    call allocate_and_copy(comms_in%nrecvdspls_repartitionrho, comms_out%nrecvdspls_repartitionrho, id='comms_out%nrecvdspls_repartitionrho')
+
+    call allocate_and_copy(comms_in%commarr_repartitionrho, comms_out%commarr_repartitionrho, id='comms_in%commarr_repartitionrho')
+
+    call allocate_and_copy(comms_in%psit_c, comms_out%psit_c, id='comms_out%psit_c')
+    call allocate_and_copy(comms_in%psit_f, comms_out%psit_f, id='comms_out%psit_f')
+
+end subroutine copy_comms_linear

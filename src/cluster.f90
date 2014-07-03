@@ -237,6 +237,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   use sparsematrix_base, only: sparse_matrix_null, matrices_null, allocate_matrices
   use sparsematrix_init, only: init_sparse_matrix, check_kernel_cutoff
   use sparsematrix, only: check_matrix_compression
+  use communications_base, only: comms_linear_null
   implicit none
   !Arguments
   integer, intent(in) :: nproc,iproc
@@ -399,12 +400,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      end if
   else if (in%inputPsiId == INPUT_PSI_MEMORY_LINEAR .and. associated(KSwfn%psi)) then
      if (associated(KSwfn%psi) .and. associated(tmb%psi)) then
+        tmb_old%lzd = local_zone_descriptors_null()
         tmb_old%linmat%s = sparse_matrix_null()
         tmb_old%linmat%m = sparse_matrix_null()
         tmb_old%linmat%l = sparse_matrix_null()
+        tmb_old%linmat%ks = sparse_matrix_null()
+        tmb_old%linmat%ks_e = sparse_matrix_null()
         tmb_old%linmat%ovrlp_ = matrices_null()
         tmb_old%linmat%ham_ = matrices_null()
         tmb_old%linmat%kernel_ = matrices_null()
+        tmb_old%collcom = comms_linear_null()
         call copy_tmbs(iproc, tmb, tmb_old, subname)
         call destroy_DFT_wavefunction(tmb)
         call f_free_ptr(KSwfn%psi)
@@ -678,6 +683,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      end select
      call denspot_set_history(denspot,linear_iscf,in%nspin, &
           KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,npulayit=in%lin%mixHist_lowaccuracy)
+     write(*,*) 'calling init: asociated(kernel)',associated(tmb_old%linmat%kernel_%matrix_compr)
      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpsp,KSwfn,tmb,energs,&
           inputpsi,input_wf_format,norbv,lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft,&
           locregcenters)
@@ -2061,7 +2067,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      imode = 1
      nsize_psi=1
      ! This is just to save memory, since calculate_forces will require quite a lot
-     call deallocate_comms_linear(tmb%collcom)
+     !call deallocate_comms_linear(tmb%collcom)
      call deallocate_comms_linear(tmb%ham_descr%collcom)
      call deallocate_comms_linear(tmb%collcom_sr)
   else

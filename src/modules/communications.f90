@@ -158,6 +158,10 @@ module communications
     
       !call mpi_comm_size(bigdft_mpi%mpi_comm, nproc, ierr)
       !call mpi_comm_rank(bigdft_mpi%mpi_comm, iproc, ierr)
+      write(*,*) 'collcom%ndimpsi_c', collcom%ndimpsi_c
+      write(*,*) 'collcom%ndimpsi_f', collcom%ndimpsi_f
+      write(*,*) 'collcom%nrecvcounts_c', collcom%nrecvcounts_c
+      write(*,*) 'collcom%nrecvcounts_f', collcom%nrecvcounts_f
     
       psiwork = f_malloc(collcom%ndimpsi_c+7*collcom%ndimpsi_f,id='psiwork')
       psitwork = f_malloc(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f),id='psitwork')

@@ -704,7 +704,11 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   use module_interfaces, except_this_one => input_memory_linear
   use module_fragments
   use yaml_output
+  use communications_base, only: deallocate_comms_linear
   use communications, only: transpose_localized, untranspose_localized
+  use sparsematrix_base, only: sparsematrix_malloc, DENSE_PARALLEL, assignment(=), &
+                               deallocate_sparse_matrix, deallocate_matrices
+  use sparsematrix, only: compress_matrix_distributed, uncompress_matrix_distributed
   implicit none
 
   ! Calling arguments
@@ -727,8 +731,12 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   real(wp), allocatable, dimension(:) :: norm
   type(fragment_transformation), dimension(:), pointer :: frag_trans
   character(len=*),parameter:: subname='input_memory_linear'
-  real(kind=8) :: pnrm
+  real(kind=8) :: pnrm, max_inversion_error
   logical :: rho_negative
+  integer,parameter :: RESTART_AO = 1
+  integer,parameter :: RESTART_REFORMAT = 2
+  integer,parameter :: restart_FOE = RESTART_AO!REFORMAT!AO
+  real(kind=8),dimension(:,:),allocatable :: kernelp, ovrlpp
 
   call f_routine(id='input_memory_linear')
 
@@ -747,7 +755,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
   ! Reformat the support functions if we are not using FOE. Otherwise an AO
   ! input guess wil be done below.
-  if (input%lin%scf_mode/=LINEAR_FOE) then
+  if (input%lin%scf_mode/=LINEAR_FOE .or. restart_FOE==RESTART_REFORMAT) then
 
      ! define fragment transformation - should eventually be done automatically...
      allocate(frag_trans(tmb%orbs%norbp))
@@ -775,10 +783,6 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
      end do
   !end if
 
-  call deallocate_local_zone_descriptors(tmb_old%lzd, subname)
-  call deallocate_orbitals_data(tmb_old%orbs, subname)
-
-  call f_free_ptr(tmb_old%psi)
 
   !!call deallocate_wfd(tmb_old%lzd%glr%wfd,subname)
   !!do ilr=1,tmb_old%lzd%nlr
@@ -788,6 +792,12 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
           ! Copy the coefficients
   if (input%lin%scf_mode/=LINEAR_FOE) then
       call vcopy(tmb%orbs%norb*tmb%orbs%norb, tmb_old%coeff(1,1), 1, tmb%coeff(1,1), 1)
+  else if (restart_FOE==RESTART_REFORMAT) then
+      ! Extract to a dense format, since this is independent of the sparsity pattern
+      kernelp = sparsematrix_malloc(tmb%linmat%l, iaction=DENSE_PARALLEL, id='kernelp')
+      call uncompress_matrix_distributed(iproc, tmb_old%linmat%l, tmb_old%linmat%kernel_%matrix_compr, kernelp)
+      call compress_matrix_distributed(iproc, tmb%linmat%l, kernelp, tmb%linmat%kernel_%matrix_compr)
+      call f_free(kernelp)
   end if
           !!write(*,*) 'after vcopy, iproc',iproc
 
@@ -808,9 +818,6 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   !!   call f_free_ptr(tmb_old%linmat%denskern_large%matrix_compr)
   !!end if
 
-  if (associated(tmb_old%linmat%kernel_%matrix_compr)) then
-     call f_free_ptr(tmb_old%linmat%kernel_%matrix_compr)
-  end if
 
   ! destroy it all together here - don't have all comms arrays
   !call destroy_DFT_wavefunction(tmb_old)
@@ -820,14 +827,9 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
    ! normalize tmbs - only really needs doing if we reformatted, but will need to calculate transpose after anyway
 
    ! Normalize the input guess. If FOE is used, the input guess will be generated below.
-   if (input%lin%scf_mode/=LINEAR_FOE) then
+   if (input%lin%scf_mode/=LINEAR_FOE .or. (restart_FOE==RESTART_REFORMAT .and. .not.input%experimental_mode)) then
        tmb%can_use_transposed=.true.
        overlap_calculated=.false.
-       !tmb%psit_c = f_malloc_ptr(tmb%collcom%ndimind_c,id='tmb%psit_c')
-       !tmb%psit_f = f_malloc_ptr(7*tmb%collcom%ndimind_f,id='tmb%psit_f')
-       !tmb%ham_descr%psit_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='tmb%ham_descr%psit_c')
-       !tmb%ham_descr%psit_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='tmb%ham_descr%psit_f')
-
 
        call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
             tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
@@ -841,6 +843,13 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
             tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
 
        call f_free(norm)
+   else if (restart_FOE==RESTART_REFORMAT .and. input%experimental_mode) then
+       ! Orthonormalize
+       tmb%can_use_transposed=.false.
+       methTransformOverlap=-1
+       call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inversion_error, tmb%npsidim_orbs, &
+            tmb%orbs, tmb%lzd, tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
+            tmb%can_use_transposed, tmb%foe_obj)
    end if
 
 
@@ -854,6 +863,29 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
            tmb%orthpar%blocksize_pdgemm, KSwfn%orbs, tmb, overlap_calculated)
       !call f_free_ptr(tmb%psit_c)
       !call f_free_ptr(tmb%psit_f)
+  else if (restart_FOE==RESTART_REFORMAT) then
+      ! Calculate the old and the new overlap matrix
+      write(*,*) 'associated(tmb_old%psit_c)', associated(tmb_old%psit_c)
+       tmb_old%psit_c = f_malloc_ptr(tmb_old%collcom%ndimind_c,id='tmb_old%psit_c')
+       tmb_old%psit_f = f_malloc_ptr(7*tmb_old%collcom%ndimind_f,id='tmb_old%psit_f')
+       call transpose_localized(iproc, nproc, tmb_old%npsidim_orbs, tmb_old%orbs, tmb_old%collcom, &
+            tmb_old%psi, tmb_old%psit_c, tmb_old%psit_f, tmb_old%lzd)
+       call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+            tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+       call calculate_overlap_transposed(iproc, nproc, tmb_old%orbs, tmb_old%collcom, tmb_old%psit_c, tmb_old%psit_c, &
+            tmb_old%psit_f, tmb_old%psit_f, tmb_old%linmat%s, tmb_old%linmat%ovrlp_)
+       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_c, &
+            tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+
+       call f_free_ptr(tmb_old%psit_c)
+       call f_free_ptr(tmb_old%psit_f)
+
+       ! Transform the old overap matrix to the new sparsity format, by going via the full format.
+       ovrlpp = sparsematrix_malloc(tmb%linmat%s, iaction=DENSE_PARALLEL, id='ovrlpp')
+       call uncompress_matrix_distributed(iproc, tmb_old%linmat%s, tmb_old%linmat%ovrlp_%matrix_compr, ovrlpp)
+       call compress_matrix_distributed(iproc, tmb%linmat%s, ovrlpp, tmb%linmat%ovrlp_%matrix_compr)
+       call f_free(ovrlpp)
+       call renormalize_kernel(iproc, nproc, input%lin%order_taylor, max_inversion_error, tmb, tmb%linmat%ovrlp_, tmb_old%linmat%ovrlp_)
   else
      ! By doing an LCAO input guess
      tmb%can_use_transposed=.false.
@@ -874,6 +906,24 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
      end if
   end if
 
+
+  write(*,*) 'calling deallocate_local_zone_descriptors'
+  call deallocate_local_zone_descriptors(tmb_old%lzd, subname)
+  call deallocate_orbitals_data(tmb_old%orbs, subname)
+  call f_free_ptr(tmb_old%psi)
+  call f_free_ptr(tmb_old%linmat%kernel_%matrix_compr)
+
+  call deallocate_sparse_matrix(tmb_old%linmat%s, subname)
+  call deallocate_sparse_matrix(tmb_old%linmat%m, subname)
+  call deallocate_sparse_matrix(tmb_old%linmat%l, subname)
+  call deallocate_sparse_matrix(tmb_old%linmat%ks, subname)
+  call deallocate_sparse_matrix(tmb_old%linmat%ks_e, subname)
+  call deallocate_matrices(tmb_old%linmat%ham_)
+  call deallocate_matrices(tmb_old%linmat%ovrlp_)
+  call deallocate_matrices(tmb_old%linmat%kernel_)
+  call deallocate_comms_linear(tmb_old%collcom)
+  
+
   !!if (iproc==0) then
   !!  do i_stat=1,size(tmb%linmat%denskern%matrix_compr)
   !!    write(*,'(a,i8,es20.10)') 'i_stat, tmb%linmat%denskern%matrix_compr(i_stat)', i_stat, tmb%linmat%denskern%matrix_compr(i_stat)
@@ -882,7 +932,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   !!end if
 
           ! Must initialize rhopotold (FOR NOW... use the trivial one)
-  if (input%lin%scf_mode/=LINEAR_FOE) then
+  if (input%lin%scf_mode/=LINEAR_FOE .or. restart_FOE==RESTART_REFORMAT) then
       call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
            tmb%orbs, tmb%psi, tmb%collcom_sr)
       !tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
