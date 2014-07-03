@@ -298,7 +298,7 @@ contains
        write(source, "(A)") RADII_SOURCE(RADII_SOURCE_HARD_CODED)
     end if
     if (radii_cf(3) == UNINITIALIZED(1.0_gp)) then
-       radii_cf(3)=radfine
+       radii_cf(3)=radii_cf(2)
        write(source, "(A)") RADII_SOURCE(RADII_SOURCE_HARD_CODED)
     end if
     radii => dict // filename // "Radii of active regions (AU)"
