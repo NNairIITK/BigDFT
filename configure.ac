@@ -65,6 +65,7 @@ AC_FC_WRAPPERS()
 AX_FC_FLUSH()
 AX_FC_DEFS()
 AX_FC_F2003()
+AX_FC_OPENMP()
 
 dnl Set if the module name are capitalized or not with the FC compiler. 
 AX_FC_MOD()
@@ -1139,6 +1140,7 @@ Build:
 Options:
   Debug version:             $ac_use_debug
   Max. Memory per task (GB): $MEMORY_LIMIT
+  With OpenMP:               $ax_fc_openmp_msg
   With MPI:                  $ac_use_mpi
    | include dir.:           $MPI_INCLUDE
    | linker flags:           $MPI_LDFLAGS
