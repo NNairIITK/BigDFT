@@ -17,7 +17,8 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,epot)
     real(gp), intent(out) :: fxyz(3,nat)
     real(gp), intent(out) :: epot
     !internal
-    
+
+    ef_counter=ef_counter+1.d0    
     if(trim(adjustl(efmethod))=='LJ')then
         call lenjon(nat,rxyz(1,1),fxyz(1,1),epot)
         return
@@ -31,6 +32,7 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,epot)
         runObj%inputs%itermin=itermin
         call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
         call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz(1,1), 1)
+        call vcopy(3 * runObj%atoms%astruct%nat, runObj%atoms%astruct%ixyz_int(1,1), 1, ixyz_int(1,1), 1)
         epot=outs%energy
         return
     endif

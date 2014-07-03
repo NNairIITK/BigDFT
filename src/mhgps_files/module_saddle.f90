@@ -31,45 +31,85 @@ use module_base
 end subroutine
 
 subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_trans,&
-           nit_rot,nhistx_trans,nhistx_rot,tolc,tolf,tightenfac,rmsdispl0,&
-           trustr,wpos,etot,fout,minmode,fnrmtol,count,count_sd,displ,ec,&
-           converged,atomnames,nbond,iconnect,alpha_stretch0,recompIfCurvPos,maxcurvrise,cutoffratio)
-use module_base
-use module_global_variables, only: inputPsiId, iproc
-use yaml_output
-!imode=1 for clusters
-!imode=2 for biomolecules
-        implicit none
-        integer, intent(in) :: imode
-        integer, intent(in) :: recompIfCurvPos
-        real(gp), intent(in) :: alat(3),rcov(nat)
-        integer :: nat,nbond
-        integer,optional :: iconnect(2,nbond)
-        real(gp), dimension(3,nat) :: wpos,fout
-        real(gp) :: count
-        character(20):: atomnames(nat)
-        real(gp), allocatable, dimension(:,:,:) :: rxyz,fxyz,ff,rr,rrr,fff,fstretch,fxyzraw,rxyzraw
-        real(gp), allocatable, dimension(:,:) :: aa,dd,dds,dd0,delta
-        real(gp), allocatable, dimension(:) ::eval,work,res,scpr,wold
-!        real(gp) :: t1,t2,t3
-!        real(gp) :: t1raw,t2raw,t3raw
-        logical check,steep
-        character(2) atomname
-        real(gp) :: displ
-        real(gp) :: maxd,scl
-        real(gp) :: alpha_stretch, fnrm,etotp,etotold,ec,alpha,tt,dt,count_sd,detot,s,fnrmtol,cosangle,etot,st,fmax
-        integer :: lwork, iat , l, itswitch, nhist, ndim, it, ihist, i
-real(gp),optional :: alpha_stretch0
-real(gp) :: alpha0_trans,alpha0_rot,curvgraddiff,tolc,tolf,tightenfac,rmsdispl0,trustr
-integer:: nit_trans,nit_rot,nhistx_trans,nhistx_rot,recompute
-real(gp) :: minmode(3,nat),tol,displold,rmsdispl,curv,displ2,overlap
-logical :: converged,optCurvConv
+    nit_rot,nhistx_trans,nhistx_rot,tolc,tolf,tightenfac,rmsdispl0,&
+    trustr,wpos,etot,fout,minmode,fnrmtol,displ,ener_count,&
+    converged,atomnames,nbond,iconnect,alpha_stretch0,recompIfCurvPos,maxcurvrise,cutoffratio)
+    use module_base
+    use module_interfaces
+    use module_global_variables, only: inputPsiId, iproc, ixyz_int, atoms, mhgps_verbosity
+    use yaml_output
+    !imode=1 for clusters
+    !imode=2 for biomolecules
+    implicit none
+    !parameters    
+    integer, intent(in)       :: imode
+    integer, intent(in)       :: nat
+    real(gp), intent(in)      :: alat(3)
+    real(gp), intent(in)      :: rcov(nat)
+    real(gp), intent(in)      :: alpha0_trans
+    real(gp), intent(in)      :: alpha0_rot
+    real(gp), intent(in)      :: curvgraddiff
+    integer, intent(in)       :: nit_trans
+    integer, intent(in)       :: nit_rot
+    integer, intent(in)       :: nhistx_trans
+    integer, intent(in)       :: nhistx_rot
+    real(gp), intent(in)      :: tolc
+    real(gp), intent(in)      :: tolf
+    real(gp), intent(in)      :: tightenfac
+    real(gp), intent(in)      :: rmsdispl0
+    real(gp), intent(in)      :: trustr
+    real(gp), intent(inout)   :: wpos(3,nat)
+    real(gp), intent(out)     :: etot
+    real(gp), intent(out)     :: fout(3,nat)
+    real(gp), intent(inout)   :: minmode(3,nat)
+    real(gp), intent(in)      :: fnrmtol
+    real(gp), intent(inout)   :: displ
+    real(gp), intent(inout)   :: ener_count
+    logical, intent(out)      :: converged
+    character(20), intent(in) :: atomnames(nat)
+    integer, intent(in)       :: nbond
+    integer, intent(in)       :: iconnect(2,nbond)
+    real(gp), intent(in)      :: alpha_stretch0
+    integer, intent(in)       :: recompIfCurvPos
+    real(gp), intent(in)      :: maxcurvrise
+    real(gp), intent(in)      :: cutoffratio
+    !internal
+    real(gp), allocatable, dimension(:,:,:) :: rxyz
+    real(gp), allocatable, dimension(:,:,:) :: fxyz
+    real(gp), allocatable, dimension(:,:,:) :: ff
+    real(gp), allocatable, dimension(:,:,:) :: rr
+    real(gp), allocatable, dimension(:,:,:) :: rrr
+    real(gp), allocatable, dimension(:,:,:) :: fff
+    real(gp), allocatable, dimension(:,:,:) :: fstretch
+    real(gp), allocatable, dimension(:,:,:) :: fxyzraw
+    real(gp), allocatable, dimension(:,:,:) :: rxyzraw
+    real(gp), allocatable, dimension(:,:)   :: aa
+    real(gp), allocatable, dimension(:,:)   :: dd
+    real(gp), allocatable, dimension(:,:)   :: dds
+    real(gp), allocatable, dimension(:,:)   :: dd0
+    real(gp), allocatable, dimension(:,:)   :: delta
+    real(gp), allocatable, dimension(:,:)   :: ftmp
+    real(gp), allocatable, dimension(:)     :: eval
+    real(gp), allocatable, dimension(:)     :: work
+    real(gp), allocatable, dimension(:)     :: res
+    real(gp), allocatable, dimension(:)     :: scpr
+    real(gp), allocatable, dimension(:)     :: wold
+    logical steep
+    character(2) atomname
+    real(gp) :: maxd,scl
+    real(gp) :: alpha_stretch, fnrm,etotp,etotold,alpha,tt,dt,detot,s,cosangle,st,fmax
+    integer :: lwork, iat , l, itswitch, nhist, ndim, it, ihist, i
+integer:: recompute
+real(gp) :: tol,displold,rmsdispl,curv,displ2,overlap
+logical :: optCurvConv
 logical :: flag,tooFar,fixfragmented,subspaceSucc
 real(gp), allocatable, dimension(:,:) :: gradrot,minmodeold
 real(gp) :: tnatdmy(3,nat)
 integer :: nputback,lastit
-real(gp), intent(in) :: maxcurvrise
-real(gp), intent(in) :: cutoffratio
+character(len=9) :: fn9
+integer, save :: fc=0
+character(len=60)                       :: comment
+real(gp) :: tmp
 
       
 integer :: j,jdim,idim,info
@@ -95,7 +135,6 @@ minmode0=minmode
     subspaceSucc=.true.
     lastit=-(10*nhistx_trans)
 
-    check=.true.
 
     displ=0.0_gp
     displ2=0.0_gp
@@ -111,9 +150,10 @@ minmode0=minmode
     lwork=1000+10*nat**2
     allocate(rxyz(3,nat,0:nhistx_trans),fxyz(3,nat,0:nhistx_trans),aa(nhistx_trans,nhistx_trans),fxyzraw(3,nat,0:nhistx_trans),rxyzraw(3,nat,0:nhistx_trans))
     allocate(eval(nhistx_trans),res(nhistx_trans),work(lwork))
-    allocate(ff(3,nat,0:nhistx_trans),rr(3,nat,0:nhistx_trans),dd(3,nat),dds(3,nat),dd0(3,nat),delta(3,nat))
+    allocate(ff(3,nat,0:nhistx_trans),rr(3,nat,0:nhistx_trans),dd(3,nat),dds(3,nat),dd0(3,nat),delta(3,nat),ftmp(3,nat))
     allocate(fff(3,nat,0:nhistx_trans),rrr(3,nat,0:nhistx_trans),scpr(nhistx_trans),wold(nbond),fstretch(3,nat,0:nhistx_trans))
     allocate(gradrot(3,nat),minmodeold(3,nat))
+    minmodeold=minmode
     wold=0.0_gp
     fstretch=0.0_gp
 
@@ -125,14 +165,13 @@ minmode0=minmode
 
     call fixfrag_posvel(nat,rcov,rxyz(1,1,0),tnatdmy,1,fixfragmented)
 
-    count=count+1.0_gp
 !        call energyandforces(nat,rxyz(1,1,0),fxyz(1,1,0),etot)
 !        energyandforces(nat,alat,rxyz(1,1,0),fxyz(1,1,0),etot,'cnt_enf_geopt')
     inputPsiId=0
     call minenergyandforces(imode,nat,alat,rxyz(1,1,0),rxyzraw(1,1,0),&
     fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),etot,iconnect,nbond,atomnames,&
     wold,alpha_stretch0,alpha_stretch)
-    ec=ec+1.0_gp
+    ener_count=ener_count+1.0_gp
     if(imode==2)rxyz(:,:,0)=rxyz(:,:,0)+alpha_stretch*fstretch(:,:,0)
 !    t1=0.0_gp ; t2=0.0_gp ; t3=0.0_gp
 !    t1raw=0.0_gp ; t2raw=0.0_gp ; t3raw=0.0_gp
@@ -151,14 +190,12 @@ minmode0=minmode
     nhist=0
     alpha=alpha0_trans
     do it=1,nit_trans
-        if (check) write(100,*) 'it:',it,etot,fnrm,itswitch
         nhist=nhist+1
 
         if ((.not. subspaceSucc) .or. fnrm.gt.100.0_gp .or. it.le.itswitch) then
           ndim=0
           steep=.true.
 !          if (it.gt.itswitch) itswitch=it+nhistx_trans
-          if (check) write(100,*) "STEEP"
       else
           steep=.false.
 !          alpha=alpha0_trans
@@ -187,7 +224,6 @@ minmode0=minmode
        !START FINDING LOWEST MODE
        if(fnrm<=tightenfac*fnrmtol .and. flag .and. curv<0.0_gp)then
 !       if(fnrm<=tightenfac*fnrmtol .and. flag)then
-           if(check) write(100,*)'tighten'
            write(*,*)'tighten'
            tol=tolf
            recompute=it
@@ -208,9 +244,8 @@ minmode0=minmode
 !           inputPsiId=0
            call opt_curv(imode,nat,alat,alpha0_rot,curvgraddiff,nit_rot,nhistx_rot,rxyzraw(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
                         &minmode(1,1),curv,gradrot(1,1),&
-                        &tol,count,count_sd,displ2,ec,check,optCurvConv,iconnect,nbond,atomnames,2.e-4_gp,maxcurvrise,cutoffratio)
+                        &tol,displ2,ener_count,optCurvConv,iconnect,nbond,atomnames,2.e-4_gp,maxcurvrise,cutoffratio)
            inputPsiId=1
-           if(iproc==0)call yaml_comment('(MHGPS) METHOD COUNT  IT  Energy                DIFF      FMAX      FNRM      alpha    ndim')
            minmode = minmode / dnrm2(3*nat,minmode(1,1),1)
            if(.not.optCurvConv)then
                if(iproc==0)call yaml_warning('(MHGPS) opt_curv failed')
@@ -219,7 +254,7 @@ stop 'opt_curv failed'
                return
            endif
            overlap=ddot(3*nat,minmodeold(1,1),1,minmode(1,1),1)
-           if(iproc==0)call yaml_map('  (MHGPS) overap',overlap)
+           if(iproc==0)call yaml_map('  (MHGPS) minmode overlap',overlap)
            minmodeold=minmode
            displold=displ
            recompute=huge(1)
@@ -227,15 +262,24 @@ stop 'opt_curv failed'
            if(tooFar)then
                flag = .true.
            endif
+           if(iproc==0)call yaml_comment('(MHGPS) METHOD COUNT  IT  Energy                DIFF      FMAX      FNRM      alpha    ndim')
        endif
        !END FINDING LOWEST MODE
 
        600 continue
-       call modify_gradient(check,nat,ndim,rrr(1,1,1),eval(1),res(1),fxyz(1,1,nhist-1),alpha,dd(1,1))
+       call modify_gradient(nat,ndim,rrr(1,1,1),eval(1),res(1),fxyz(1,1,nhist-1),alpha,dd(1,1))
+
+       !save a version of dd with minmode direction in dd0
+       !(used for gradient feedback)
+       !dd0=dd-ddot(3*nat,dd(1,1),1,minmode(1,1),1)*minmode
+       tmp=-ddot(3*nat,dd(1,1),1,minmode(1,1),1)
+       call vcopy(3*nat,dd(1,1),1,dd0(1,1),1) 
+       call daxpy(3*nat,tmp, minmode(1,1), 1, dd0(1,1), 1 )
 
        !invert gradient in minmode direction
-       dd0=dd-ddot(3*nat,dd(1,1),1,minmode(1,1),1)*minmode
-       dd=dd-2.0_gp*ddot(3*nat,dd(1,1),1,minmode(1,1),1)*minmode
+       !dd=dd-2.0_gp*ddot(3*nat,dd(1,1),1,minmode(1,1),1)*minmode
+       tmp=2.0_gp*tmp
+       call daxpy(3*nat,tmp, minmode(1,1), 1, dd(1,1), 1 )
 
        tt=0.0_gp
        dt=0.0_gp
@@ -263,21 +307,25 @@ stop 'opt_curv failed'
        call fixfrag_posvel(nat,rcov,rxyz(1,1,nhist),tnatdmy,1,fixfragmented)
 !       displ=displ+tt
 
-       if (steep) then 
-           count_sd=count_sd+1.0_gp
-       else
-           count=count+1.0_gp
-       endif
-
        inputPsiId=1
        call minenergyandforces(imode,nat,alat,rxyz(1,1,nhist),rxyzraw(1,1,nhist),&
             fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),etotp&
             ,iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
-       ec=ec+1.0_gp
+       ener_count=ener_count+1.0_gp
        detot=etotp-etotold
 
        call fnrmandforcemax(fxyzraw(1,1,nhist),fnrm,fmax,nat)
        fnrm=sqrt(fnrm)
+
+       if (iproc == 0 .and. mhgps_verbosity >=4) then
+          fc=fc+1
+          write(fn9,'(i9.9)') fc
+          write(comment,'(a,1pe10.3,5x1pe10.3)')'MHGPS:fnrm, fmax = ',fnrm,fmax
+          call write_atomic_file('posmhgps_'//fn9,&
+               etotp,rxyz(1,1,nhist),ixyz_int,&
+               atoms,trim(comment),forces=fxyzraw(1,1,nhist))
+       endif
+
 
 
 !       s=0.0_gp ; st=0.0_gp
@@ -289,9 +337,12 @@ stop 'opt_curv failed'
 !           s=s+dd(1,iat)**2+dd(2,iat)**2+dd(3,iat)**2
 !           st=st+fxyz(1,iat,nhist)*dd(1,iat)+fxyz(2,iat,nhist)*dd(2,iat)+fxyz(3,iat,nhist)*dd(3,iat)
 !       enddo
-!!       fnrm=sqrt(t1raw+t2raw+t3raw)
-       cosangle=-dot_double(3*nat,fxyz(1,1,nhist),1,dd0(1,1),1)/&
-                sqrt(dot_double(3*nat,fxyz(1,1,nhist),1,fxyz(1,1,nhist),1)*&
+!!       fnrm=sqrt(t1raw+t2raw+t3raw)  
+       tmp=-ddot(3*nat,fxyz(1,1,nhist),1,minmode(1,1),1)
+       call vcopy(3*nat,fxyz(1,1,nhist),1,ftmp(1,1),1) 
+       call daxpy(3*nat,tmp, minmode(1,1), 1, ftmp(1,1), 1 )
+       cosangle=-dot_double(3*nat,ftmp(1,1),1,dd0(1,1),1)/&
+                sqrt(dot_double(3*nat,ftmp(1,1),1,ftmp(1,1),1)*&
                 dot_double(3*nat,dd0(1,1),1,dd0(1,1),1))
 !       cosangle=-dot_double(3*nat,fxyz(1,1,nhist),1,dd(1,1),1)/&
 !                sqrt(dot_double(3*nat,fxyz(1,1,nhist),1,fxyz(1,1,nhist),1)*&
@@ -305,7 +356,8 @@ stop 'opt_curv failed'
 !       &'GEOPT it,etot,etotold,Detot,fnrm,ndim,alpha,alpha_stretch',&
 !       &it-1,etotp,etotold,detot,fnrm,ndim,alpha,alpha_stretch
 !!!           call yaml_comment('     METHOD  COUNT  IT  CURVATURE             DIFF      FMAX      FNRM      alpha    ndim   maxd   dsplp')
-if(iproc==0)write(*,'(a,xi4.4,xi4.4,xes21.14,4(xes9.2),xi3.3,xes9.2)')'   (MHGPS) GEOPT ',nint(ec),it,etotp,detot,fmax,fnrm, alpha,ndim!,maxd,
+       if(iproc==0)write(*,'(a,xi4.4,xi4.4,xes21.14,4(xes9.2),xi3.3,xes9.2)')&
+       '   (MHGPS) GEOPT ',nint(ener_count),it,etotp,detot,fmax,fnrm, alpha,ndim!,maxd,
 
        etot=etotp
        etotold=etot
@@ -327,7 +379,7 @@ if(iproc==0)write(*,'(a,xi4.4,xi4.4,xes21.14,4(xes9.2),xi3.3,xes9.2)')'   (MHGPS
 
            !trust radius approach
            if(maxd>trustr)then
-               write(*,'(a,es10.3,xi0,xes10.3)')'hard direction step too large:maxd,it,alpha_stretch',maxd,it,alpha_stretch
+               if(iproc==0)write(*,'(a,es10.3,xi0,xes10.3)')'(MHGPS) hard direction step too large:maxd,it,alpha_stretch',maxd,it,alpha_stretch
                scl=0.5_gp*trustr/maxd
                dds=dds*scl
 !!control
@@ -355,9 +407,8 @@ if(iproc==0)write(888,*)cosangle,acos(cosangle)
        else
            alpha=max(alpha*.85_gp,alpha0_trans)
        endif
-       if (check) write(100,*) 'cosangle ',cosangle,alpha
 
-       call getSubSpaceEvecEval(check,nat,nhist,nhistx_trans,ndim,cutoffratio,lwork,work,rxyz,&
+       call getSubSpaceEvecEval(nat,nhist,nhistx_trans,ndim,cutoffratio,lwork,work,rxyz,&
                               &fxyz,aa,rr,ff,rrr,fff,eval,res,subspaceSucc)
 
        delta=rxyz(:,:,nhist)-rxyz(:,:,nhist-1)
@@ -374,14 +425,14 @@ if(iproc==0)write(888,*)cosangle,acos(cosangle)
         write(557,'(3(1x,e24.17))') minmode0(1,iat),minmode0(2,iat),minmode0(3,iat)
     enddo
 
-    write(*,*) "No convergence in findsad"
+    if(iproc==0)call yaml_warning('(MHGPS) No convergence in findsad')
 stop 'no convergence in findsad'
     return
 
 1000 continue
      converged=.true.
      etot=etotp
-     write(*,*) "convergence at",it
+     if(iproc==0)call yaml_map( "(MHGPS) convergence at",nint(ener_count))
 
      do iat=1,nat
      do l=1,3
@@ -404,11 +455,10 @@ stop 'no convergence in findsad'
 
   end subroutine
 
-subroutine modify_gradient(check,nat,ndim,rrr,eval,res,fxyz,alpha,dd)
+subroutine modify_gradient(nat,ndim,rrr,eval,res,fxyz,alpha,dd)
 use module_base
     implicit none
     !parameters
-    logical, intent(in) :: check
     integer, intent(in) :: nat
     integer, intent(in) :: ndim
     real(gp), intent(out) :: dd(3,nat)
@@ -443,7 +493,6 @@ use module_base
         enddo
     enddo
     
-    if (check) write(100,*) 'alpha=',alpha
     !simple sd in space orthogonal to relevant subspace
     do iat=1,nat
         do l=1,3
@@ -454,8 +503,6 @@ use module_base
     do i=1,ndim
     !quasi newton in relevant subspace
         tt=scpr(i)/sqrt(eval(i)**2+res(i)**2)
-        if (check) write(100,'(a,i3,3(1x,es10.3))')'i,tt,eval,res',i,&
-                   1.0_gp/sqrt(eval(i)**2+res(i)**2),eval(i),res(i)
         do iat=1,nat
             do l=1,3
                 dd(l,iat)=dd(l,iat)+tt*rrr(l,iat,i)
@@ -466,15 +513,16 @@ use module_base
 end subroutine
 
 
-subroutine getSubSpaceEvecEval(check,nat,nhist,nhistx,ndim,cutoffratio,lwork,work,rxyz,&
+subroutine getSubSpaceEvecEval(nat,nhist,nhistx,ndim,cutoffratio,lwork,work,rxyz,&
                               &fxyz,aa,rr,ff,rrr,fff,eval,res,success)
 use module_base
+use module_global_variables, only: iproc, mhgps_verbosity
+use yaml_output
     !hard-coded parameters:
     !threshold for linear dependency:
     !if (eval(idim)/eval(nhist).gt.1.e-4_gp) then
     implicit none
     !parameters
-    logical :: check
     integer, intent(in) :: nat,nhist,nhistx,lwork
     integer, intent(out) :: ndim
     real(gp), intent(in) :: rxyz(3,nat,0:nhistx),fxyz(3,nat,0:nhistx)
@@ -527,13 +575,16 @@ use module_base
 
     call dsyev('V',"L",nhist,aa,nhistx,eval,work,lwork,info)
     if (info.ne.0) then
-        if (check) write(100,*) ' Over ', info
+        call yaml_warning('(MHGPS) 1st DSYEV (Overlapmatrix) in getSupSpaceEvecEval failed with info: '&
+                          // trim(yaml_toa(info))//', iproc: '//trim(yaml_toa(iproc)))
         return
 !        stop 'info'
     endif
-    do i=1,nhist
-        if (check) write(100,*) "Overl ",i,eval(i)
-    enddo
+    if(iproc==0 .and. mhgps_verbosity>=3)then
+        do i=1,nhist
+            call yaml_scalar('(MHGPS) Overlap eigenvalues: '//trim(yaml_toa(i))//' '//trim(yaml_toa(eval(i))))
+        enddo
+    endif
     
     do idim=1,nhist
         do iat=1,nat
@@ -573,7 +624,6 @@ use module_base
             enddo
         endif
     enddo
-    if (check) write(100,'(a,i3)') "ndim= ",ndim
 
 
     ! Hessian matrix in significant orthogonal subspace
@@ -591,7 +641,8 @@ use module_base
 
     call dsyev('V',"L",ndim,aa,nhistx,eval,work,lwork,info)
     if (info.ne.0) then
-        if(check) write(100,*) ' A ', info
+        call yaml_warning('(MHGPS) 2nd DSYEV (subpsace hessian) in getSupSpaceEvecEval failed with info: '&
+                          // trim(yaml_toa(info))//', iproc: '//trim(yaml_toa(iproc)))
         return
 !        stop 'info'
     endif
@@ -622,7 +673,10 @@ use module_base
             enddo
         enddo
         res(i)=sqrt(tt)
-        if (check) write(100,'(a,i3,e14.7,1x,e12.5,2(1x,e9.2))') 'EVAL,RES ',i,eval(i),res(i)
+        if(iproc==0 .and. mhgps_verbosity>=3)&
+            call yaml_scalar('(MHGPS) i, eigenvalue, residue: '&
+            //trim(yaml_toa(i))//' '//trim(yaml_toa(eval(i)))//&
+            ' '//trim(yaml_toa(res(i))))
     enddo
     success=.true.
 end subroutine
@@ -716,9 +770,10 @@ use module_base
 end subroutine
 
 subroutine opt_curv(imode,nat,alat,alpha0,curvgraddiff,nit,nhistx,rxyz_fix,fxyz_fix,dxyzin,curv,fout,fnrmtol&
-                   &,count,count_sd,displ,ec,check,converged,iconnect,nbond,atomnames,alpha_stretch0,maxcurvrise,cutoffratio)!,mode)
+                   &,displ,ener_count,converged,iconnect,nbond,atomnames,alpha_stretch0,maxcurvrise,cutoffratio)!,mode)
 use module_base
-use module_global_variables, only: inputPsiId, isForceField, iproc
+use module_global_variables, only: inputPsiId, isForceField, iproc, mhgps_verbosity
+use yaml_output
     implicit none
 integer, intent(in) :: imode
 integer, intent(in) :: nbond
@@ -735,11 +790,11 @@ real(gp), intent(in) :: maxcurvrise,cutoffratio
     real(gp), allocatable, dimension(:,:) :: aa,dd
     real(gp), allocatable, dimension(:) :: eval,work,res,scpr
     logical, intent(out) :: converged
-    logical check,steep
+    logical steep
     integer :: lwork,nhist,i,iat,l,itswitch,ndim
     integer :: ihist,it,nat
-    real(gp) :: displ,ec,curv,count
-    real(gp) :: count_sd,fnrmtol,curvold,fnrm,curvp,fmax
+    real(gp) :: displ,ener_count,curv
+    real(gp) :: fnrmtol,curvold,fnrm,curvp,fmax
     real(gp) :: alpha,dcurv,s,st,tt,cosangle
     logical :: subspaceSucc
     real(gp),allocatable :: wold(:)
@@ -766,12 +821,11 @@ real(gp) :: edmy
        enddo
     enddo
 
-    count=count+1.0_gp
 !    call minenergyandforces(nat,rxyz(1,1,0),rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),etot,iconnect,nbond,atomnames,wold,alpha_stretch)
 !    rxyz(:,:,0)=rxyz(:,:,0)+alpha_stretch*fstretch(:,:,0)
 !    ec=ec+1.0_gp
      call mincurvgrad(imode,nat,alat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,0),&
-          rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),curv,1,ec,&
+          rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),curv,1,ener_count,&
           iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
     if(imode==2)rxyz(:,:,0)=rxyz(:,:,0)+alpha_stretch*fstretch(:,:,0)
 !    t1=0.0_gp ; t2=0.0_gp ; t3=0.0_gp
@@ -791,7 +845,6 @@ real(gp) :: edmy
     nhist=0
     alpha=alpha0
     do it=1,nit
-        if (check) write(100,*) 'it:',it,curv,fnrm,itswitch
         nhist=nhist+1
  
 !        if (fnrm.gt.50.0_gp .or. it.le.itswitch ) then
@@ -799,7 +852,6 @@ real(gp) :: edmy
             ndim=0
             steep=.true.
 !            if (it.gt.itswitch) itswitch=it+nhistx
-            if (check) write(100,*) "STEEP"
         else
             steep=.false.
         endif
@@ -822,7 +874,7 @@ real(gp) :: edmy
 
 
         500 continue
-        call modify_gradient(check,nat,ndim,rrr(1,1,1),eval(1),res(1),fxyz(1,1,nhist-1),alpha,dd(1,1))
+        call modify_gradient(nat,ndim,rrr(1,1,1),eval(1),res(1),fxyz(1,1,nhist-1),alpha,dd(1,1))
 
 
         tt=0.0_gp
@@ -841,14 +893,9 @@ real(gp) :: edmy
         enddo
 !write(444,*)1,rxyz(1,1,nhist)
 
-        if (steep) then 
-            count_sd=count_sd+1.0_gp
-        else
-            count=count+1.0_gp
-        endif
      call mincurvgrad(imode,nat,alat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
           rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),&
-          curvp,1,ec,iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
+          curvp,1,ener_count,iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
         dcurv=curvp-curvold
 
 
@@ -874,21 +921,25 @@ real(gp) :: edmy
 !        &it-1,curvp,curvold,dcurv,fnrm,alpha,alpha_stretch,ndim
 
 !!           call yaml_comment('     METHOD  COUNT  IT  CURVATURE             DIFF      FMAX      FNRM      alpha    ndim')
-if(iproc==0)write(*,'(a,xi4.4,xi4.4,xes21.14,4(xes9.2),xi3.3)')'   (MHGPS) CUOPT ',nint(ec),it,curvp,dcurv,fmax,fnrm, alpha,ndim
+if(iproc==0)write(*,'(a,xi4.4,xi4.4,xes21.14,4(xes9.2),xi3.3)')'   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim
 !HIER WEITER HIER WEITER: beautify output
 
         if (dcurv.gt.maxcurvrise .and. alpha>1.e-1_gp*alpha0) then 
-            if (check) write(100,'(a,i4,1x,e9.2)') "WARN: it,dcurv", it,dcurv
+            if(iproc==0 .and. mhgps_verbosity>=3)&
+                call yaml_warning('(MHGPS) Curv. raised by more than maxcurvrise '//&
+                     trim(yaml_toa(it))//''//trim(yaml_toa(dcurv)))
             !alpha=min(.5_gp*alpha,alpha0)
             alpha=.5_gp*alpha
-            if (check) write(100,'(a,1x,e9.2)') 'alpha reset ',alpha
+            if(iproc==0 .and. mhgps_verbosity>=3)&
+                call yaml_warning('(MHGPS) alpha reset (opt. curv): '//&
+                     trim(yaml_toa(alpha)))
             ndim=0
 if(.not. isForceField)then
 inputPsiId=0
 write(*,*)'bastian reset inputpsi'
 call mincurvgrad(imode,nat,alat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist-1),&
     rxyzraw(1,1,nhist-1),fxyz(1,1,nhist-1),fstretch(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
-    curvold,1,ec,iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
+    curvold,1,ener_count,iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
 endif
 
 !            if(.not.steep)then
@@ -925,10 +976,9 @@ endif
         else
             alpha=max(alpha*.85_gp,alpha0)
         endif
-        if (check) write(100,*) 'cosangle ',cosangle,alpha
 
 
-       call getSubSpaceEvecEval(check,nat,nhist,nhistx,ndim,cutoffratio,lwork,work,rxyz,&
+       call getSubSpaceEvecEval(nat,nhist,nhistx,ndim,cutoffratio,lwork,work,rxyz,&
                               &fxyz,aa,rr,ff,rrr,fff,eval,res,subspaceSucc)
     enddo
 
@@ -1177,7 +1227,7 @@ end subroutine
 !end subroutine
 
 
-subroutine curvgrad(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ec)
+subroutine curvgrad(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ener_count)
     !computes the (curvature along vec) = vec^t H vec / (vec^t*vec)
     !vec mus be normalized
 use module_base
@@ -1190,7 +1240,7 @@ use module_energyandforces
     real(gp), intent(inout) :: vec(3,nat)
     real(gp), intent(out) :: curv
     real(gp), intent(out) :: rotforce(3,nat)
-    real(gp), intent(inout) :: ec
+    real(gp), intent(inout) :: ener_count
     real(gp), intent(in) :: alat(3)
     !internal
     integer :: iat
@@ -1218,7 +1268,7 @@ real(gp) :: fluct,fnoise,dd
 
     call energyandforces(nat,alat,rxyz2(1,1),fxyz2(1,1),etot2)
 !    call energyandforces(nat, alat, rxyz2(1,1),fxyz2(1,1),etot2,'cnt_enf_forcebar_decomp')
-    ec=ec+1.0_gp
+    ener_count=ener_count+1.0_gp
 
     if(imethod==1)then
         dfxyz = fxyz2(:,:)-fxyz1(:,:)
@@ -1298,11 +1348,10 @@ END SUBROUTINE torque
 
 
 
-subroutine precondition(nat,check,pos,force)
+subroutine precondition(nat,pos,force)
 use module_base
     implicit real(gp) (a-h,o-z)
     dimension pos(3,nat),force(3,nat),dis(3,nat),d(3,nat),spring(nat,nat)
-    logical check
 
     fnrmout=0.0_gp
     do iat=1,nat
@@ -1363,12 +1412,12 @@ use module_base
         !write(*,*) 'iprec ',iprec,fnrm
 
         if (fnrm.lt.1.e-2_gp*fnrmout) then
-            if(check) write(100,*) 'iprec=',iprec,fnrm,fnrmout
+!            if(check) write(100,*) 'iprec=',iprec,fnrm,fnrmout
             goto 100
         endif
 
     enddo
-    if(check) write(100,*) 'FAIL iprec=',iprec,fnrm,fnrmout
+!    if(check) write(100,*) 'FAIL iprec=',iprec,fnrm,fnrmout
 
     100 continue
     do iat=1,nat

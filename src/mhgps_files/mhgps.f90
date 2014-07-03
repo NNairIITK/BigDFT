@@ -24,7 +24,7 @@ program mhgps
     character(len=60) :: run_id
     integer :: ierr, nconfig
 
-    real(gp) :: count,count_sd,displ,ec
+    real(gp) :: displ,ec
     logical :: converged
     real(gp), allocatable :: rcov(:)
 
@@ -45,6 +45,7 @@ real(gp),allocatable :: eval(:),work(:)
 
     ifolder=1
     ifile=1
+    ef_counter=0.d0
 
 
 
@@ -104,9 +105,12 @@ real(gp),allocatable :: eval(:),work(:)
     fxyz     = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='rxyz')
     rcov     = f_malloc((/ 1.to.atoms%astruct%nat/),id='rcov')
     iconnect = f_malloc((/ 1.to.2, 1.to.1000/),id='iconnect')
+    ixyz_int = f_malloc((/ 1.to.3,1.to.atoms%astruct%nat/),id='atoms%astruct%nat')
     gradrot  = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='gradrot')
     rotforce = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='rotforce')
     hess     = f_malloc((/ 1.to.3*atoms%astruct%nat, 1.to.3*atoms%astruct%nat/),id='hess')
+    iconnect = 0
+    ixyz_int = 0
 
     !if in biomode, determine bonds betweens atoms once and for all (it is
     !assuemed that all conifugrations over which will be iterated have the same
@@ -156,13 +160,11 @@ real(gp),allocatable :: eval(:),work(:)
                 minmode(2,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
                 minmode(3,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
             enddo
-           count=0.0_gp
-           count_sd=0.0_gp
            ec=0.0_gp
         
            call findsad(saddle_imode,atoms%astruct%nat,atoms%astruct%cell_dim,rcov,saddle_alpha0_trans,saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_trans,&
            saddle_nit_rot,saddle_nhistx_trans,saddle_nhistx_rot,saddle_tolc,saddle_tolf,saddle_tightenfac,saddle_rmsdispl0,&
-           saddle_trustr,rxyz,energy,fxyz,minmode,saddle_fnrmtol,count,count_sd,displ,ec,&
+           saddle_trustr,rxyz,energy,fxyz,minmode,saddle_fnrmtol,displ,ec,&
            converged,atoms%astruct%atomnames,nbond,iconnect,saddle_alpha_stretch0,saddle_recompIfCurvPos,saddle_maxcurvrise,saddle_cutoffratio)
 !call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
 !call minimizer_sbfgs(runObj,outs,nproc,iproc,1,ncount_bigdft,fail)
@@ -196,7 +198,7 @@ real(gp),allocatable :: eval(:),work(:)
 !
 !            call opt_curv(saddle_imode,atoms%astruct%nat,atoms%astruct%cell_dim,&
 !                 saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_rot,saddle_nhistx_rot,&
-!                 rxyz,fxyz,minmode,curv,gradrot,saddle_tolf,count,count_sd,displ,ec,&
+!                 rxyz,fxyz,minmode,curv,gradrot,saddle_tolf,displ,ec,&
 !                 .false.,converged,iconnect,nbond,atoms%astruct%atomnames,&
 !                 saddle_alpha_stretch0,saddle_maxcurvrise,saddle_cutoffratio)
 !       enddo
@@ -230,7 +232,9 @@ real(gp),allocatable :: eval(:),work(:)
     call f_free(hess)
     call f_free(rcov)
     call f_free(iconnect)
-    call yaml_map('(MHGPS) Run finished at',yaml_date_and_time_toa())
+    call f_free(ixyz_int)
+    if(iproc==0)call yaml_map('(MHGPS) Calls to energy and forces',nint(ef_counter))
+    if(iproc==0)call yaml_map('(MHGPS) Run finished at',yaml_date_and_time_toa())
     call f_lib_finalize()
 end program
 

@@ -47,10 +47,12 @@ module module_global_variables
     !other
     integer          :: nbond               = 1
     integer, allocatable :: iconnect(:,:) 
-    real(8), allocatable :: minmode(:,:)
+    integer, allocatable :: ixyz_int(:,:)
+    real(gp), allocatable :: minmode(:,:)
     integer,parameter :: usaddle=173
     character(len=60) :: saddle_filename='saddle.mon'
     logical :: isForceField=.false.
+    real(gp) :: ef_counter=0.d0
 
 
     !bigdft data types and variables
