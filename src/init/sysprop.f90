@@ -507,6 +507,7 @@ END SUBROUTINE calculate_rhocore
 subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
      & ixcpsp, psppar, donlcc, rcore, qcore, radii_cf, exists, pawpatch)
   use module_base
+  use ao_inguess
   implicit none
   
   character(len = *), intent(in) :: filename
@@ -516,9 +517,10 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
   logical, intent(inout) ::  donlcc
   !ALEX: Some local variables
   real(gp):: fourpi, sqrt2pi
+  character(len=2) :: symbol
   character(len=20) :: skip
 
-  integer :: ierror, ierror1, i, j, nn, nlterms, nprl, l
+  integer :: ierror, ierror1, i, j, nn, nlterms, nprl, l, nzatom_, nelpsp_, npspcode_
   real(dp) :: nelpsp_dp,nzatom_dp
   character(len=100) :: line
 
@@ -555,9 +557,14 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
         read(11,*) skip !k coefficients, not used for the moment (no spin-orbit coupling)
      enddo
   else if (npspcode == 7) then !PAW Pseudos
-     !call yaml_comment('Reading of PAW atomic-data, under development')
-     write(*,'(a)') 'Reading of PAW atomic-data, under development'
+     ! Need NC psp for input guess.
+     call atomic_info(nzatom, nelpsp, symbol = symbol)
+     call psp_from_data(symbol, nzatom_, nelpsp_, npspcode_, ixcpsp, &
+          & psppar, exists)
+     if (.not.exists) stop "Implement here."
 
+     ! PAW format using libPAW.
+     write(*,*) 'Reading of PAW atomic-data, under development'
      call psp_from_file_paw()
      
   else if (npspcode == 10) then !HGH-K case
@@ -646,7 +653,7 @@ contains
      integer:: mpsang,mqgrid_ff,mqgrid_vl,mqgrid_shp
      integer:: pawxcdev,usewvl,usexcnhat,xclevel
      integer::pspso
-     real(dp):: r2well,wvl_crmult,wvl_frmult
+     real(dp):: r2well
      real(dp):: xc_denpos,zionpsp,znuclpsp
      real(dp)::epsatm,xcccrc
      character(len=fnlen):: filpsp   ! name of the psp file
@@ -660,17 +667,10 @@ contains
     real(dp),allocatable:: qgrid_ff(:),qgrid_vl(:)
     real(dp),allocatable:: ffspl(:,:,:)
     real(dp),allocatable:: vlspl(:,:)
-   !!Here we can use bigdft variables
-   ! real(dp)::gth_psppar(0:4,0:6),gth_radii_cf(3)
-    integer:: gth_semicore
     integer:: mesh_size
-    real(dp)::gth_radii_cov
-    logical:: gth_hasGeometry
 
 
      !These should be passed as arguments:
-     !crmult and frmult to set the GTH radius (needed for the initial guess)
-     wvl_crmult=8; wvl_frmult=8
      !Defines the number of Gaussian functions for projectors
      !See ABINIT input files documentation
      wvl_ngauss=[10,10]
@@ -728,8 +728,7 @@ contains
    & pawrad,pawtab,&
    & filpsp,usewvl,icoulomb,ixc,xclevel,pawxcdev,usexcnhat,&
    & qgrid_ff,qgrid_vl,ffspl,vlspl,epsatm,xcccrc,zionpsp,znuclpsp,&
-   & gth_hasGeometry,psppar,radii_cf,gth_radii_cov,gth_semicore,&
-   & wvl_crmult,wvl_frmult,wvl_ngauss,comm_mpi=comm_mpi)
+   & wvl_ngauss,comm_mpi=comm_mpi)
 
    !Print out data to validate this test:
      write(*,'(a)') 'PAW Gaussian projectors:'
