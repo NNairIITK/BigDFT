@@ -781,7 +781,7 @@ contains
 !!$       end do
 !!$    end if
 
-    call yaml_open_map('Electronic configuration',flow=.true.)
+    call yaml_mapping_open('Electronic configuration',flow=.true.)
 
     !initalise string
     string=repeat(' ',len(string))
@@ -819,7 +819,7 @@ contains
                    string(is:is)=')'
                    is=is+1
                 end if
-                call yaml_open_sequence(string(iss:is))
+                call yaml_sequence_open(string(iss:is))
              end if
              do ispin=1,nspin
                 do m=1,2*l-1
@@ -838,7 +838,7 @@ contains
              if (inl == i) then
                 string(is:is+2)=' , '
                 is=is+3
-                call yaml_close_sequence()
+                call yaml_sequence_close()
              end if
           end do
        end do
@@ -846,7 +846,7 @@ contains
 
     !write(*,'(2x,a,1x,a,1x,a)',advance='no')' Elec. Configuration:',trim(string),'...'
 
-    call yaml_close_map()
+    call yaml_mapping_close()
 
   END SUBROUTINE print_eleconf
 

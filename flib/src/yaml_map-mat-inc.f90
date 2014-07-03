@@ -26,9 +26,9 @@
 
   !open the sequence associated to the matrix
   if (present(label)) then
-     call yaml_open_sequence(mapname,label=label,advance=adv,unit=unt)
+     call yaml_sequence_open(mapname,label=label,advance=adv,unit=unt)
   else
-     call yaml_open_sequence(mapname,advance=adv,unit=unt)
+     call yaml_sequence_open(mapname,advance=adv,unit=unt)
   end if
   do irow=lbound(mapvalue,1),ubound(mapvalue,2)
      if (present(fmt)) then
@@ -40,4 +40,4 @@
      end if
   end do
 
-  call yaml_close_sequence(advance=adv,unit=unt)
+  call yaml_sequence_close(advance=adv,unit=unt)

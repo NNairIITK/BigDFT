@@ -1521,11 +1521,11 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
      call check_closed_shell(wfn%orbs,lcs)
      if (lcs) then
         call yaml_newline()
-        call yaml_open_map('Energy inconsistencies')
+        call yaml_mapping_open('Energy inconsistencies')
            call yaml_map('Band Structure Energy',energs%ebs,fmt='(1pe22.14)')
            call yaml_map('Trace of the Hamiltonian',energs%trH,fmt='(1pe22.14)')
            call yaml_map('Relative inconsistency',tt,fmt='(1pe9.2)')
-        call yaml_close_map()
+        call yaml_mapping_close()
 !        write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
 !             &   'ERROR: inconsistency between gradient and energy',tt,energs%ebs,energs%trH
      end if
@@ -1601,7 +1601,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   if (wfn%orbs%nspinor == 4) then
      !only the root process has the correct array
      if(iproc==0 .and. verbose > 0) then
-        call yaml_open_sequence('Magnetic polarization per orbital')
+        call yaml_sequence_open('Magnetic polarization per orbital')
         call yaml_newline()
         !write(*,'(1x,a)')&
         !     &   'Magnetic polarization per orbital'
@@ -1609,15 +1609,15 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
 !!$             &   '  iorb    m_x       m_y       m_z'
         do iorb=1,wfn%orbs%norb
            call yaml_sequence(advance='no')
-           call yaml_open_map(flow=.true.)
+           call yaml_mapping_open(flow=.true.)
            call yaml_map('iorb',iorb,fmt='(i5)')
            call yaml_map('M',(/(mom_vec(k,iorb,1)/mom_vec(1,iorb,1),k=2,4)/),fmt='(3f10.5)')
-           call yaml_close_map()
+           call yaml_mapping_close()
            if (iorb < wfn%orbs%norb)call yaml_newline()
            !write(*,'(1x,i5,3f10.5)') &
            !     &   iorb,(mom_vec(k,iorb,1)/mom_vec(1,iorb,1),k=2,4)
         end do
-        call yaml_close_sequence()
+        call yaml_sequence_close()
      end if
      call f_free_ptr(mom_vec)
   end if

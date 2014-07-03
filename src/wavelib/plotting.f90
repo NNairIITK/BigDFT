@@ -1230,15 +1230,15 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
      !dipole_el=dipole_el        !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
      !dipole_cores=dipole_cores  !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
      tmpdip=dipole_cores+dipole_el
-     call yaml_open_map('Electric Dipole Moment (AU)')
+     call yaml_mapping_open('Electric Dipole Moment (AU)')
        call yaml_map('P vector',tmpdip(1:3),fmt='(1pe13.4)')
        call yaml_map('norm(P)',sqrt(sum(tmpdip**2)),fmt='(1pe14.6)')
-     call yaml_close_map()
+     call yaml_mapping_close()
      tmpdip=tmpdip/0.393430307_gp  ! au2debye              
-     call yaml_open_map('Electric Dipole Moment (Debye)')
+     call yaml_mapping_open('Electric Dipole Moment (Debye)')
        call yaml_map('P vector',tmpdip(1:3),fmt='(1pe13.4)')
        call yaml_map('norm(P)',sqrt(sum(tmpdip**2)),fmt='(1pe14.6)')
-     call yaml_close_map()
+     call yaml_mapping_close()
 
 !!$     write(*,'(1x,a)')repeat('-',61)//' Electric Dipole Moment'
 
@@ -1256,24 +1256,24 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
 
 
       if (calculate_quadropole) then
-          !call yaml_open_sequence('core quadropole')
+          !call yaml_sequence_open('core quadropole')
           !do i=1,3
           !   call yaml_sequence(trim(yaml_toa(quadropole_cores(i,1:3),fmt='(es15.8)')))
           !end do
-          !call yaml_close_sequence()
+          !call yaml_sequence_close()
 
-          !call yaml_open_sequence('electronic quadropole')
+          !call yaml_sequence_open('electronic quadropole')
           !do i=1,3
           !   call yaml_sequence(trim(yaml_toa(quadropole_el(i,1:3),fmt='(es15.8)')))
           !end do
-          !call yaml_close_sequence()
+          !call yaml_sequence_close()
 
-          call yaml_open_sequence('Quadropole Moment (AU)')
+          call yaml_sequence_open('Quadropole Moment (AU)')
           do i=1,3
              call yaml_sequence(trim(yaml_toa(tmpquadrop(i,1:3),fmt='(es15.8)')))
           end do
           call yaml_map('trace',tmpquadrop(1,1)+tmpquadrop(2,2)+tmpquadrop(3,3),fmt='(es12.2)')
-          call yaml_close_sequence()
+          call yaml_sequence_close()
       end if
 
 

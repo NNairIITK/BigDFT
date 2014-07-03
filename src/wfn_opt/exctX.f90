@@ -33,7 +33,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,xc,nspin,lr,orbs,n3parr,
   real(wp), dimension(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,n3parr(0)*orbs%norb)), intent(out) :: psir
   !local variables
   character(len=*), parameter :: subname='exact_exchange_potential'
-  integer :: i_all,i_stat,ierr,ispinor,ispsiw,ispin,norb,ncall
+  integer :: ierr,ispinor,ispsiw,ispin,norb,ncall
   integer :: i1,i2,i3p,iorb,iorbs,jorb,jorbs,ispsir,ind3,ind2,ind1i,ind1j,jproc,igran,ngran
   real(gp) :: ehart,hfac,exctXfac,sign,sfac,hfaci,hfacj
   type(workarr_sumrho) :: w
@@ -199,8 +199,6 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,xc,nspin,lr,orbs,n3parr,
                  !write(*,*)'Exact exchange calculation: spin, orbitals:',ispin,iorb,jorb
                  call yaml_comment('Exact exchange calculation: ' // trim(yaml_toa( nint(real(ncall,gp)/ &
                  &    real(orbs%norbu*(orbs%norbu+1)/2+orbs%norbd*(orbs%norbd+1)/2,gp)*100.0_gp),fmt='(i3)')) // '%')
-                 !write(*,'(1x,a,i3,a2)')'Exact exchange calculation:',&
-                 !     nint(real(ncall,gp)/real(orbs%norbu*(orbs%norbu+1)/2+orbs%norbd*(orbs%norbd+1)/2,gp)*100.0_gp),'% '
               end if
               
               call H_potential('D',pkernel,rp_ij(1,1,1,igran),rp_ij,ehart,0.0_dp,.false.,&
@@ -326,7 +324,7 @@ subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
   real(wp), dimension(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsocc%norbp,n3parr(0)*orbsocc%norb)), intent(out) :: psirocc
   !local variables
   character(len=*), parameter :: subname='prepare_psirocc'
-  integer :: i_all,i_stat,ierr,ispinor,ispsiw
+  integer :: ierr,ispinor,ispsiw
   integer :: iorb,jorb,ispsir,jproc
   type(workarr_sumrho) :: w
   integer, dimension(:,:), allocatable :: ncommocc
@@ -432,7 +430,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
   real(wp), dimension(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsvirt%norbp,n3parr(0)*orbsvirt%norb)), intent(out) :: psirvirt
   !local variables
   character(len=*), parameter :: subname='exact_exchange_potential_virt'
-  integer :: i_all,i_stat,ierr,ispinor,ispsiw,ispin,norbocc,norbvirt
+  integer :: ierr,ispinor,ispsiw,ispin,norbocc,norbvirt
   integer :: i1,i2,i3p,iorb,iorbs,jorb,jorbs,ispsir,ind3,ind2,ind1i,ind1j,jproc,igran,ngran
   real(gp) :: ehart,hfac,sign,sfac,hfaci
   type(workarr_sumrho) :: w
@@ -695,7 +693,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
   !local variables
   character(len=*), parameter :: subname='exact_exchange_potential_round'
   logical :: doit
-  integer :: i_all,i_stat,ierr,ncommsstep,ncommsstep2,isnow,irnow,isnow2,irnow2,jsorb,kproc,norbp
+  integer :: ierr,ncommsstep,ncommsstep2,isnow,irnow,isnow2,irnow2,jsorb,kproc,norbp
   integer :: i,iorb,jorb,jproc,igroup,ngroup,ngroupp,nend,isorb,iorbs,jorbs,ii
   integer :: icount,nprocgr,iprocgrs,iprocgrr,itestproc,norbi,norbj,ncalltot,icountmax,iprocref,ncalls
   real(gp) :: ehart,hfac,exctXfac,sfac,hfaci,hfacj,hfac2
@@ -1322,7 +1320,7 @@ END SUBROUTINE exact_exchange_potential_round
 !!$  !local variables
 !!$  character(len=*), parameter :: subname='exact_exchange_potential_round_new'
 !!$  logical :: doit
-!!$  integer :: i_all,i_stat,ierr,ispin,ncommsstep,ncommsstep2,isnow,irnow,isnow2,irnow2,jsorb,kproc,norbp,jgroup
+!!$  integer :: ierr,ispin,ncommsstep,ncommsstep2,isnow,irnow,isnow2,irnow2,jsorb,kproc,norbp,jgroup
 !!$  integer :: i,iorb,jorb,jproc,igroup,ngroup,ngroupp,jprocsend,jprocrecv,jprocrecv2,nend,isorb,iorbs,iorbe,jorbs,jorbe
 !!$  integer :: icount,nprocgr,iprocgrs,iprocgrr,itestproc,norbi,norbj,iproclast,ncalltot,icountmax,iprocref,ncalls
 !!$  real(gp) :: ehart,hfac,exctXfac,sfac,hfaci,hfacj,hfac2

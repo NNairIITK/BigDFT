@@ -525,7 +525,10 @@ contains
     ie=len(trim(str))
     is=max(scan(trim(str),' '),1)
     yes=scan(str(is:ie),' ') ==0 !there is no other space in the string
-    if (yes) yes= (ie-is+1==3 .and. str(is:ie)=='Yes') .or. (ie-is+1==2 .and. str(is:ie)=='No')
+    if (yes) yes= (ie-is+1==3 .and. any(str(is:ie) == ['Yes', 'yes', 'YES'])) &
+       &     .or. (ie-is+1==2 .and. any(str(is:ie) == ['No', 'no', 'NO'])) &
+       &     .or. (ie-is+1==4 .and. any(str(is:ie) == ['True', 'true', 'TRUE'])) &
+       &     .or. (ie-is+1==5 .and. any(str(is:ie) == ['False', 'false', 'FALSE']))
   end function is_atol
 
   !> Read a real or real/real, real:real 

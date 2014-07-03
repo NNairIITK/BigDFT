@@ -333,9 +333,9 @@ program oneatom
   call memocc(i_stat,i_all,'radii_cf',subname)
 
 
-  call deallocate_lr(Glr,subname)
-  call deallocate_comms(comms,subname)
-  call deallocate_orbs(orbs,subname)
+  call deallocate_lr(Glr)
+  call deallocate_comms(comms)
+  call deallocate_orbs(orbs)
   call deallocate_proj_descr(nlpspd,subname)
 
   if (dokernel) then
@@ -357,7 +357,7 @@ program oneatom
   call memocc(i_stat,i_all,'rxyz',subname)
   call free_input_variables(in)
 
-  call deallocate_rho_descriptors(rhodsc,subname)
+  call deallocate_rho_descriptors(rhodsc)
   deallocate(confdatarr)
   !finalize memory counting
   call memocc(0,0,'count','stop')

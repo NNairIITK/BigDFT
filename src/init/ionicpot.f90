@@ -34,8 +34,8 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   logical :: slowion=.false.
   logical :: perx,pery,perz,gox,goy,goz
   integer :: n1i,n2i,n3i,i3s,n3pi
-  integer :: i,iat,ii,i_all,i_stat,ityp,jat,jtyp,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
-  integer :: isx,iex,isy,iey,isz,iez,i1,i2,i3,j1,j2,j3,ind,ierr
+  integer :: i,iat,ii,ityp,jat,jtyp,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
+  integer :: isx,iex,isy,iey,isz,iez,i1,i2,i3,j1,j2,j3,ind
   real(gp) :: ucvol,rloc,twopitothreehalf,atint,shortlength,charge,eself,rx,ry,rz
   real(gp) :: fxion,fyion,fzion,dist,fxerf,fyerf,fzerf,cutoff
   real(gp) :: hxh,hyh,hzh
@@ -487,7 +487,6 @@ subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, sh
 
   character(len = *), parameter :: subname = "createEffectiveIonicPotential"
   logical :: counterions
-  integer :: i_stat, i_all
   real(dp), dimension(:), allocatable :: counter_ions
 
   ! Compute the main ionic potential.
@@ -543,7 +542,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   character(len = 3) :: quiet
   logical :: perx,pery,perz,gox,goy,goz,htoobig=.false.,efwrite,check_potion=.false.
   integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp !n(c) nspin
-  integer :: ind,i_all,i_stat,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nloc,iloc
+  integer :: ind,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nloc,iloc
   real(kind=8) :: rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
   real(kind=8) :: tt_tot,rholeaked_tot,potxyz
   real(kind=8) :: raux,raux2,rr,r2paw
@@ -1009,7 +1008,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
      end if
   end if
 
-  if (at%multipole_preserving) call finalize_real_space_conversion(subname)
+  if (at%multipole_preserving) call finalize_real_space_conversion()
 
   call timing(iproc,'CrtLocPot     ','OF')
 
@@ -1194,8 +1193,8 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   real(kind=8), parameter :: pi=4.d0*atan(1.d0)
   logical :: htoobig=.false.,check_potion=.false.
   logical :: perx,pery,perz,gox,goy,goz
-  integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp,nspin
-  integer :: ind,i_all,i_stat,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
+  integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ityp,nspin
+  integer :: ind,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
   real(kind=8) :: rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
   real(kind=8) :: tt_tot,rholeaked_tot,potxyz
   real(wp) :: maxdiff
@@ -1436,7 +1435,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   call f_free_ptr(at%astruct%rxyz)
 
 
-  if (at%multipole_preserving) call finalize_real_space_conversion(subname)
+  if (at%multipole_preserving) call finalize_real_space_conversion()
 
   call timing(iproc,'CrtLocPot     ','OF')
 

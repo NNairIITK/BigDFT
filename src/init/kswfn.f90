@@ -28,7 +28,6 @@ subroutine kswfn_free_scf_data(KSwfn, freePsit)
   logical, intent(in) :: freePsit
   
   character(len = *), parameter :: subname = "kswfn_free_scf_data"
-  integer :: i_all, i_stat
 
   ! Clean KSwfn parts only needed in the SCF loop.
   call deallocate_diis_objects(KSwfn%diis,subname)

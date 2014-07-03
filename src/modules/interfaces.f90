@@ -1862,41 +1862,37 @@ module module_interfaces
        type(mixrhopotDIISParameters),intent(inout):: mixdiis
      end subroutine deallocateMixrhopotDIIS
 
-    subroutine deallocate_local_zone_descriptors(lzd, subname)
+    subroutine deallocate_local_zone_descriptors(lzd)
       use module_base
       use module_types
       !use deallocatePointers
       implicit none
       type(local_zone_descriptors),intent(inout):: lzd
-      character(len=*),intent(in):: subname
     end subroutine deallocate_local_zone_descriptors
 
-    subroutine deallocate_Lzd_except_Glr(lzd, subname)
+    subroutine deallocate_Lzd_except_Glr(lzd)
       use module_base
       use module_types
       !use deallocatePointers
       implicit none
       type(local_zone_descriptors),intent(inout):: lzd
-      character(len=*),intent(in):: subname
     end subroutine deallocate_Lzd_except_Glr
 
-    subroutine deallocate_orbitals_data(orbs, subname)
+    subroutine deallocate_orbitals_data(orbs)
       use module_base
       use module_types
       !use deallocatePointers
       implicit none
       type(orbitals_data),intent(inout):: orbs
-      character(len=*),intent(in):: subname
     end subroutine deallocate_orbitals_data
 
-    subroutine deallocate_comms_cubic(comms, subname)
+    subroutine deallocate_comms_cubic(comms)
       use module_base
       use module_types
       use communications_base, only: comms_cubic
       !use deallocatePointers
       implicit none
       type(comms_cubic),intent(inout):: comms
-      character(len=*),intent(in):: subname
     end subroutine deallocate_comms_cubic
 
     !!subroutine nullify_foe(foe_obj)
@@ -2295,7 +2291,7 @@ module module_interfaces
 
        subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpbox,&
             orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
-            nlpsp,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
+            nlpsp,pkernel,ixc,psi,G,&
             nspin,potshortcut,symObj,GPU,input)
          use module_base
          use module_types
@@ -2315,14 +2311,12 @@ module module_interfaces
          type(GPU_pointers), intent(inout) :: GPU
          type(input_variables):: input
          type(symmetry_data), intent(in) :: symObj
-         !integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-         !integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
          real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
          type(gaussian_basis), intent(out) :: G !basis for davidson IG
-         real(wp), dimension(:), pointer :: psi,hpsi,psit
+         real(wp), dimension(:), pointer :: psi
          real(wp), dimension(:,:,:,:), pointer :: rhocore
-         type(coulomb_operator), intent(in) :: pkernel,pkernelseq
+         type(coulomb_operator), intent(in) :: pkernel
          integer, intent(in) ::potshortcut
        end subroutine extract_potential_for_spectra
 

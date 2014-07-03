@@ -28,7 +28,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
   type(paw_objects),optional,intent(inout) :: paw
   !local variables
   character(len=*), parameter :: subname='orthogonalize'
-  integer :: i_stat,i_all
+  !integer :: i_stat,i_all
   !integer :: i,idx
   integer :: ispin,nspin,nspinor,usepaw=0
   integer, dimension(:,:), allocatable :: ndim_ovrlp
@@ -210,7 +210,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum,spsi) !n
   real(dp), intent(out) :: scprsum
   !local variables
   character(len=*), parameter :: subname='orthoconstraint'
-  integer :: i_stat,i_all,ierr,iorb,ialag,jorb !n(c) ise
+  integer :: ierr,iorb,ialag,jorb !n(c) ise
   integer :: ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
   real(dp) :: occ !n(c) tt
   real(gp), dimension(2) :: aij,aji
@@ -451,7 +451,7 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   real(wp), intent(out) :: evsum
   !local variables
   character(len=*), parameter :: subname='subspace_diagonalisation'
-  integer :: i_stat,i_all,ierr,info,iorb,n_lp,n_rp,npsiw,isorb,ise,jorb,ncplx
+  integer :: ierr,info,iorb,n_lp,n_rp,npsiw,isorb,ise,jorb,ncplx
   integer :: ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
   !integer :: istart
   real(wp) :: occ,asymm
@@ -579,7 +579,7 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
         call yaml_warning('KS Hamiltonian is not Hermitian in the subspace, diff:'//&
              trim(yaml_toa(asymm,fmt='(1pe9.2)')))
         if (verbose >= 3) then
-           call yaml_open_sequence('KS Hamiltonian Matrix(ces)',advance='no')
+           call yaml_sequence_open('KS Hamiltonian Matrix(ces)',advance='no')
            call yaml_comment('Rank of the matrix: '//adjustl(trim(yaml_toa(norb,fmt='(i6)'))))
            do ikpt=1,orbs%nkpts
               do ispin=1,nspin
@@ -593,10 +593,10 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
                  call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
                       nvctrp,norb,norbs,ncomp,nspinor)
                  !call yaml_stream_attributes(indent=indentlevel)
-                 call yaml_open_sequence(flow=.true.)
+                 call yaml_sequence_open(flow=.true.)
                  do iorb=1,norb
                     call yaml_sequence()
-                    call yaml_open_sequence()
+                    call yaml_sequence_open()
                     do jorb=1,norb
                        if (norbs == 2*norb) then
                           ncplx=2
@@ -610,13 +610,13 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
                                fmt='(1pe9.2)')))
                        end if
                     end do
-                    call yaml_close_sequence()
+                    call yaml_sequence_close()
                     if (iorb < norb) call yaml_newline()
                  end do
-                 call yaml_close_sequence()
+                 call yaml_sequence_close()
               end do
            end do
-           call yaml_close_sequence()
+           call yaml_sequence_close()
         end if
      end if
   end if
@@ -760,7 +760,7 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
   real(wp), dimension(commsv%nvctr_par(iproc,0)*orbsv%nspinor*orbsv%norb), intent(inout) :: psi_virt
   !local variables
   character(len=*), parameter :: subname='orthon_virt_occup'
-  integer :: i_stat,i_all,ierr,ispsiv,iorb,jorb,isorb
+  integer :: i_stat,i_all,ispsiv,iorb,jorb,isorb
   integer :: ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
   integer :: norbv,norbsv,ncompv,nvctrpv,nspinorv
   real(wp) :: scprsum,tt
@@ -1943,7 +1943,7 @@ real(wp),dimension(ndim_ovrlp(nspin,orbs%nkpts)):: ovrlp
 integer,dimension(nspin):: norbTot
 
 ! Local arguments
-integer:: nvctrp, i_stat, i_all, ncomp, ikptp, ikpt, ispin, norb, norbs, istThis, istOther,usepaw=0
+integer:: nvctrp, ncomp, ikptp, ikpt, ispin, norb, norbs, istThis, istOther,usepaw=0
 !real(kind=8),allocatable::raux(:)
 real(kind=8),dimension(:),allocatable:: A1D
 character(len=*),parameter:: subname='gramschmidt'
@@ -2224,7 +2224,7 @@ real(kind=8),dimension(ndim_ovrlp(nspin,orbs%nkpts)):: ovrlp
 integer,dimension(nspin):: norbTot
 
 ! Local variables
-integer:: jorb, lorb, i_stat, i_all, info, nvctrp, ispin, ist, ikptp, ikpt, ncomp, norbs, norb, lwork,usepaw=0
+integer:: jorb, lorb, info, nvctrp, ispin, ist, ikptp, ikpt, ncomp, norbs, norb, lwork,usepaw=0
 integer:: ii,iat,jj,shift,ispinor,iorb,ilmn
 real(kind=8),allocatable::raux(:,:,:,:)
 real(kind=8),dimension(:),allocatable:: evall, psitt
@@ -2418,7 +2418,7 @@ subroutine getOverlap(iproc,nproc,nspin,norbIn,orbs,comms,&
   integer,dimension(nspin),intent(in):: norbTot
 
   ! Local variables
-  integer:: ispsi,ikptp,ikpt,ispin,nspinor,ncomp,norbs,ierr,nvctrp,norb
+  integer:: ispsi,ikptp,ikpt,ispin,nspinor,ncomp,norbs,nvctrp,norb
 
 
 
@@ -2521,7 +2521,7 @@ subroutine getOverlap_paw(iproc,nproc,nspin,norbIn,orbs,comms,&
   integer,dimension(nspin),intent(in):: norbTot
 
   ! Local variables
-  integer:: ispsi,ikptp,ikpt,ispin,nspinor,ncomp,norbs,ierr,nvctrp,norb
+  integer:: ispsi,ikptp,ikpt,ispin,nspinor,ncomp,norbs,nvctrp,norb
   real(wp),dimension(ndim_ovrlp(nspin,orbs%nkpts)):: ovrlp_pw
 
 
@@ -2751,7 +2751,7 @@ subroutine getOverlapDifferentPsi_paw(iproc, nproc, nspin, norbIn, orbs, comms,&
   real(kind=8),dimension(ndim_ovrlp(nspin,orbs%nkpts)):: ovrlp
   integer,dimension(nspin):: norbTot
   ! Local variables
-  integer:: ikptp, ikpt, ispin, nspinor, ncomp, norbs, ierr, nvctrp, norb, ispsi1, ispsi2
+  integer:: ikptp, ikpt, ispin, nspinor, ncomp, norbs, nvctrp, norb, ispsi1, ispsi2
   real(kind=8),dimension(ndim_ovrlp(nspin,orbs%nkpts)):: ovrlp_pw
   
   ! Set the whole overlap matrix to zero. This is necessary since each process treats only a part

@@ -414,7 +414,7 @@ subroutine bfgs_reza(iproc,dir_output,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,nc
       !write(*,'(a10,i5,es23.15,es11.3,2es12.5,2es12.4,i3)') &
       !    'GEOPT_BFGS',parmin%iter,epot,de,fnrm,fmax,zeta,alpha,isatur
       !       '(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,I3,2x,a,1pe8.2E1)'
-      call yaml_open_map('Geometry')
+      call yaml_mapping_open('Geometry')
          call yaml_map('Ncount_BigDFT',ncount_bigdft)
          call yaml_map('Geometry step',parmin%iter)
          call yaml_map('Geometry Method','GEOPT_BFGS')
@@ -424,7 +424,7 @@ subroutine bfgs_reza(iproc,dir_output,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,nc
          call yaml_map('flt', (/ flt1, flt2 /), fmt='(es10.2)')
          call yaml_map('Alpha', alpha, fmt='(es7.2e1)')
          call yaml_map('isatur',isatur)
-      call yaml_close_map()
+      call yaml_mapping_close()
       !write(*,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a7,i3)') &
       !    ncount_bigdft,parmin%iter,'GEOPT_BFGS',epot,de,fmax,fnrm,flt1,flt2,'isatur=',isatur
       write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a7,i3)') &
@@ -443,11 +443,11 @@ subroutine bfgs_reza(iproc,dir_output,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,nc
        !parmin%converged=.true.
        parmin%iflag=0
        if(iproc==0) then
-          call yaml_open_map('BFGS FINISHED',flow=.true.)
+          call yaml_mapping_open('BFGS FINISHED',flow=.true.)
              call yaml_map('It',parmin%iter)
              call yaml_map('Etot',epot)
              call yaml_map('Forces', (/ fnrm,fmax /))
-          call yaml_close_map()
+          call yaml_mapping_close()
           !write(*,'(a,i4,es23.15,2es12.5)') &
           !    'BFGS FINISHED: itfire,epot,fnrm,fmax ',parmin%iter,epot,fnrm,fmax
        endif
@@ -691,7 +691,7 @@ subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail)
         & "BFGS-it=",parmin%finstep,"alpha=",parmin%alpha
   end if
   if (iproc==0.and.ICALL.ne.0.and.parmin%verbosity > 0) then
-     call yaml_open_map('Geometry')
+     call yaml_mapping_open('Geometry')
         call yaml_map('Ncount_BigDFT',ncount_bigdft)
         call yaml_map('ICALL',ICALL)
         call yaml_map('Geometry Method','GEOPT_LBFGS')
@@ -699,12 +699,12 @@ subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail)
         call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct /), fmt='(1pe10.2)')
         call yaml_map('BFGS-it',parmin%finstep)
         call yaml_map('Alpha', parmin%alpha, fmt='(1pe8.2e1)')
-        call yaml_open_map('FORCES norm(Ha/Bohr)',flow=.true.)
+        call yaml_mapping_open('FORCES norm(Ha/Bohr)',flow=.true.)
            call yaml_map(' maxval',fmax,fmt='(1pe14.5)')
            call yaml_map('fnrm2',fnrm,fmt='(1pe14.5)')
            call yaml_map('fluct',fluct,fmt='(1pe14.5)')
-        call yaml_close_map()
-     call yaml_close_map()
+        call yaml_mapping_close()
+     call yaml_mapping_close()
      !write(* ,'(I5,1x,I5,2x,a11,1x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,I3,2x,a,1pe8.2E1)')&
      !   & ncount_bigdft,ICALL,"GEOPT_LBFGS",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct&
      !   & ,"BFGS-it=",parmin%finstep,"alpha=",parmin%alpha

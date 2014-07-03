@@ -90,7 +90,9 @@ module module_atoms
   public :: set_astruct_from_file
   public :: allocate_atoms_data
 
+
   contains
+
 
     !> Creators and destructors
     pure function symmetry_data_null() result(sym)
@@ -98,6 +100,8 @@ module module_atoms
       type(symmetry_data) :: sym
       call nullify_symmetry_data(sym)
     end function symmetry_data_null
+
+
     pure subroutine nullify_symmetry_data(sym)
       type(symmetry_data), intent(out) :: sym
       sym%symObj=-1
@@ -105,11 +109,15 @@ module module_atoms
       nullify(sym%phnons)
     end subroutine nullify_symmetry_data
 
+
     pure function atomic_structure_null() result(astruct)
       implicit none
       type(atomic_structure) :: astruct
       call nullify_atomic_structure(astruct)
     end function atomic_structure_null
+
+
+    !> Initialize the structure atomic_structure
     pure subroutine nullify_atomic_structure(astruct)
       implicit none
       type(atomic_structure), intent(out) :: astruct
@@ -188,6 +196,7 @@ module module_atoms
       call f_free_ptr(sym%phnons)
     end subroutine deallocate_symmetry_data
 
+
     !> Deallocate the structure atoms_data.
     subroutine deallocate_atomic_structure(astruct)!,subname) 
       use dynamic_memory, only: f_free_ptr
@@ -220,6 +229,7 @@ module module_atoms
       call deallocate_symmetry_data(astruct%sym)
 
     END SUBROUTINE deallocate_atomic_structure
+
 
     !> Deallocate the structure atoms_data.
     subroutine deallocate_atoms_data(atoms) 
@@ -287,6 +297,7 @@ module module_atoms
 
     END SUBROUTINE deallocate_atoms_data
 
+
     !> set irreductible Brillouin zone
     subroutine set_symmetry_data(sym, geocode, n1i, n2i, n3i, nspin)
       use module_base
@@ -346,37 +357,35 @@ module module_atoms
 
 
     !> Read atomic file
-    subroutine set_astruct_from_file(file,iproc,astruct,status,comment,energy,fxyz)
+    subroutine set_astruct_from_file(file,iproc,astruct,comment,energy,fxyz)
       use module_base
-      use m_ab6_symmetry
-      use dynamic_memory
+      use dictionaries, only: set, dictionary
+      use yaml_output, only : yaml_toa
       use internal_coordinates, only: internal_to_cartesian
-      !use position_files
       implicit none
       !Arguments
       character(len=*), intent(in) :: file  !< File name containing the atomic positions
       integer, intent(in) :: iproc
       type(atomic_structure), intent(inout) :: astruct !< Contains all info
-      integer, intent(out), optional :: status
       real(gp), intent(out), optional :: energy
       real(gp), dimension(:,:), pointer, optional :: fxyz
       character(len = *), intent(out), optional :: comment
       !Local variables
-      character(len=*), parameter :: subname='read_atomic_file'
-      integer :: l, extract, i_stat
+      integer, parameter :: iunit=99
+      integer :: l, extract
       logical :: file_exists, archive
       character(len = 128) :: filename
       character(len = 15) :: arFile
       character(len = 6) :: ext
       real(gp) :: energy_
       real(gp), dimension(:,:), pointer :: fxyz_
-      character(len = 1024) :: comment_
+      character(len = 1024) :: comment_, files
       external :: openNextCompress, check_atoms_positions
       real(gp),parameter :: degree = 57.295779513d0
 
       file_exists = .false.
+      files = ''
       archive = .false.
-      if (present(status)) status = 0
       nullify(fxyz_)
 
       ! Extract from archive (posout_)
@@ -384,20 +393,15 @@ module module_atoms
          write(arFile, "(A)") "posout.tar.bz2"
          if (index(file, "posmd_") == 1) write(arFile, "(A)") "posmd.tar.bz2"
          inquire(FILE = trim(arFile), EXIST = file_exists)
+         !arFile tested
          if (file_exists) then
 !!$     call extractNextCompress(trim(arFile), len(trim(arFile)), &
 !!$          & trim(file), len(trim(file)), extract, ext)
             call openNextCompress(trim(arFile), len(trim(arFile)), &
                  & trim(file), len(trim(file)), extract, ext)
-            if (extract == 0) then
-               write(*,*) "Can't find '", file, "' in archive."
-               if (present(status)) then
-                  status = 1
-                  return
-               else
-                  stop
-               end if
-            end if
+            if (f_err_raise(extract == 0, &
+                  & "Can't find '"//trim(file) //"' in archive.", &
+                  & err_id=BIGDFT_INPUT_FILE_ERROR)) return
             archive = .true.
             write(filename, "(A)") file//'.'//trim(ext)
             write(astruct%inputfile_format, "(A)") trim(ext)
@@ -407,19 +411,22 @@ module module_atoms
       ! Test posinp.xyz
       if (.not. file_exists) then
          inquire(FILE = file//'.xyz', EXIST = file_exists)
+         files = trim(files) // "'" // trim(file)//".xyz'"
          if (file_exists) then
             write(filename, "(A)") file//'.xyz'!"posinp.xyz"
             write(astruct%inputfile_format, "(A)") "xyz"
-            open(unit=99,file=trim(filename),status='old')
+            open(unit=iunit,file=trim(filename),status='old')
          end if
       end if
+
       ! Test posinp.ascii
       if (.not. file_exists) then
          inquire(FILE = file//'.ascii', EXIST = file_exists)
+         files = trim(files) // ", '" //trim(file)//".ascii'"
          if (file_exists) then
             write(filename, "(A)") file//'.ascii'!"posinp.ascii"
             write(astruct%inputfile_format, "(A)") "ascii"
-            open(unit=99,file=trim(filename),status='old')
+            open(unit=iunit,file=trim(filename),status='old')
          end if
       end if
       ! Test posinp.int
@@ -434,15 +441,18 @@ module module_atoms
       ! Test posinp.yaml
       if (.not. file_exists) then
          inquire(FILE = file//'.yaml', EXIST = file_exists)
+         files = trim(files) // ", '" //trim(file)//".yaml'"
          if (file_exists) then
             write(filename, "(A)") file//'.yaml'!"posinp.yaml
             write(astruct%inputfile_format, "(A)") "yaml"
             ! Pb if toto.yaml because means that there is no key posinp!!
          end if
       end if
+
       ! Test the name directly
       if (.not. file_exists) then
          inquire(FILE = file, EXIST = file_exists)
+         files = trim(files) // ", '" //trim(file) // "'"
          if (file_exists) then
             write(filename, "(A)") file
             l = len(file)
@@ -455,49 +465,39 @@ module module_atoms
             else if (file(l-4:l) == ".yaml") then
                write(astruct%inputfile_format, "(A)") "yaml"
             else
-               write(*,*) "Atomic input file '" // trim(file) // "', format not recognised."
-               write(*,*) " File should be *.yaml, *.ascii, *.int or *.xyz."
-               if (present(status)) then
-                  status = 1
-                  return
-               else
-                  stop
-               end if
+               call f_err_throw(err_msg="Atomic input file '" // trim(file) // "', format not recognised."// &
+                  & " File should be *.yaml, *.ascii or *.xyz.",err_id=BIGDFT_INPUT_FILE_ERROR)
+               return
             end if
             if (trim(astruct%inputfile_format) /= "yaml") then
-               open(unit=99,file=trim(filename),status='old')
+               open(unit=iunit,file=trim(filename),status='old')
             end if
          end if
       end if
 
-      if (.not. file_exists) then
-         if (present(status)) then
-            status = 1
-            return
-         else
-            write(*,*) "Atomic input file not found."
-            write(*,*) " Files looked for were '"//file//".yaml', '"//file//".ascii', '"//file//".xyz' and '"//file//"'."
-            stop 
-         end if
-      end if
+      if (f_err_raise(.not.file_exists, &
+         &  "Atomic input file not found. Files looked for were "//trim(files) //".", &
+           &  err_id=BIGDFT_INPUT_FILE_ERROR)) return
 
-      if (astruct%inputfile_format == "xyz") then
+      !We found a file
+      select case (astruct%inputfile_format)
+      case("xyz")
          !read atomic positions
          if (.not.archive) then
-            call read_xyz_positions(iproc,99,astruct,comment_,energy_,fxyz_,directGetLine)
+            call read_xyz_positions(iunit,filename,astruct,comment_,energy_,fxyz_,directGetLine)
          else
-            call read_xyz_positions(iproc,99,astruct,comment_,energy_,fxyz_,archiveGetLine)
+            call read_xyz_positions(iunit,filename,astruct,comment_,energy_,fxyz_,archiveGetLine)
          end if
-      else if (astruct%inputfile_format == "ascii") then
-         i_stat = iproc
-         if (present(status)) i_stat = 1
+
+      case("ascii")
          !read atomic positions
          if (.not.archive) then
-            call read_ascii_positions(i_stat,99,astruct,comment_,energy_,fxyz_,directGetLine)
+            call read_ascii_positions(iunit,filename,astruct,comment_,energy_,fxyz_,directGetLine)
          else
-            call read_ascii_positions(i_stat,99,astruct,comment_,energy_,fxyz_,archiveGetLine)
+            call read_ascii_positions(iunit,filename,astruct,comment_,energy_,fxyz_,archiveGetLine)
          end if
-      else if (astruct%inputfile_format == "int") then
+
+      case("int")
          !read atomic positions
          if (.not.archive) then
             call read_int_positions(iproc,99,astruct,comment_,energy_,fxyz_,directGetLine)
@@ -519,23 +519,25 @@ module module_atoms
          !!do i_stat=1,astruct%nat
          !!    write(*,*) astruct%rxyz(:,i_stat)
          !!end do
-      else if (astruct%inputfile_format == "yaml" .and. index(file,'posinp') /= 0) then
-         ! Pb if toto.yaml because means that there is already no key posinp in the file toto.yaml!!
-         call f_err_throw("Atomic input file in YAML not yet supported, call 'astruct_set_from_dict()' instead.",&
-              err_name='BIGDFT_RUNTIME_ERROR')
-      end if
 
-      !Check the number of atoms
-      if (astruct%nat < 0) then
-         if (present(status)) then
-            status = 1
+       case("yaml")
+         if (f_err_raise(index(file,'posinp') /= 0, &
+             & "Atomic input file in YAML not yet supported, call 'astruct_set_from_dict()' instead.",&
+             &  err_name='BIGDFT_RUNTIME_ERROR')) then
             return
          else
-            write(*,'(1x,3a,i0,a)') "In the file '",trim(filename),&
-                 &  "', the number of atoms (",astruct%nat,") < 0 (should be >= 0)."
-            stop 
+            !There is a radical and the atomic positions are already dict; need to raise an exception
+            call f_err_throw("Atomic input file not found. Files looked for were "//trim(files) //".", &
+           &  err_id=BIGDFT_INPUT_FILE_ERROR)
+            return
          end if
-      end if
+
+      end select
+
+      !Check the number of atoms
+      if (f_err_raise(astruct%nat < 0, &
+              &  "In the file '"//trim(filename)//"' the number of atoms ("// &
+              &  trim(yaml_toa(astruct%nat))//") should be >= 0.",err_id=BIGDFT_INPUT_VARIABLES_ERROR)) return
 
       !control atom positions
       call check_atoms_positions(astruct,(iproc == 0))
@@ -549,7 +551,7 @@ module module_atoms
 
       ! close open file.
       if (.not.archive .and. trim(astruct%inputfile_format) /= "yaml") then
-         close(99)
+         close(iunit)
 !!$  else
 !!$     call unlinkExtract(trim(filename), len(trim(filename)))
       end if
@@ -574,6 +576,7 @@ module module_atoms
       end if
 
     END SUBROUTINE set_astruct_from_file
+
 
     include 'astruct-inc.f90'
 
@@ -646,19 +649,23 @@ subroutine astruct_set_n_types(astruct, ntypes)
   end do
 END SUBROUTINE astruct_set_n_types
 
-!> initialize the astruct variable from a file
+
+!> Initialize the astruct variable from a file
+!! Call the routine set_astruct_from_file with few arguments
 subroutine astruct_set_from_file(lstat, astruct, filename)
   use module_base
   use module_atoms, only: atomic_structure,read_atomic_file=>set_astruct_from_file
   implicit none
+  !Arguments
   logical, intent(out) :: lstat
   type(atomic_structure), intent(inout) :: astruct
   character(len = *), intent(in) :: filename
 
-  integer :: status
+  call f_err_open_try()
+  call read_atomic_file(filename, 0, astruct)
+  call f_err_close_try()
+  lstat = (f_err_pop(BIGDFT_INPUT_VARIABLES_ERROR) /= 0)
 
-  call read_atomic_file(filename, 0, astruct, status)
-  lstat = (status == 0)
 END SUBROUTINE astruct_set_from_file
 
 

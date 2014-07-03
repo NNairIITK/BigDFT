@@ -1501,6 +1501,11 @@
    Elapsed time (s)                    :  41.53
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
+ - Input file, section "lin_basis_params"; invalid key "S".
+ - Input file, section "lin_basis_params"; invalid key "N".
+ - Input file, section "lin_basis_params"; invalid key "C".
+ - Input file, section "lin_basis_params"; invalid key "O".
+ - Input file, section "lin_basis_params"; invalid key "H".
  - Do not call check_communications in the linear scaling version!
  - Using same step size for all TMBs
  - Using same step size for all TMBs
@@ -1520,147 +1525,10 @@
  - density optimization not converged
  - No orthogonalizing of the support functions
  - Using same step size for all TMBs
- Size of the global database           :  14
- Raw version:
-   72008912:
-     Array Id                          : KSwfn%psi
-     Size (Bytes)                      : 8
-     Allocating Routine Id             : linear_scaling
-     Address of first element          : 0x2b2a0c004a80
-   140736548899088:
-     Array Id                          : pot
-     Size (Bytes)                      : 89886656
-     Allocating Routine Id             : linear_scaling
-     Address of first element          : 0x2b2a190ff010
-   140736548899088:
-     Array Id                          : pot
-     Size (Bytes)                      : 89886656
-     Allocating Routine Id             : linear_scaling
-     Address of first element          : 0x2b2a190ff010
-   140736548899088:
-     Array Id                          : pot
-     Size (Bytes)                      : 89886656
-     Allocating Routine Id             : linear_scaling
-     Address of first element          : 0x2b2a190ff010
-   140736548899088:
-     Array Id                          : pot
-     Size (Bytes)                      : 89886656
-     Allocating Routine Id             : getLocalizedBasis
-     Address of first element          : 0x2b2a190ff010
-   140736548899088:
-     Array Id                          : pot
-     Size (Bytes)                      : 89886656
-     Allocating Routine Id             : linear_scaling
-     Address of first element          : 0x2b2a190ff010
-   140736548899088:
-     Array Id                          : pot
-     Size (Bytes)                      : 89886656
-     Allocating Routine Id             : linear_scaling
-     Address of first element          : 0x2b2a190ff010
-   140736548899088:
-     Array Id                          : pot
-     Size (Bytes)                      : 89886656
-     Allocating Routine Id             : linear_scaling
-     Address of first element          : 0x2b2a190ff010
-   140736548899088:
-     Array Id                          : pot
-     Size (Bytes)                      : 89886656
-     Allocating Routine Id             : getLocalizedBasis
-     Address of first element          : 0x2b2a190ff010
-   140736548899088:
-     Array Id                          : pot
-     Size (Bytes)                      : 89886656
-     Allocating Routine Id             : inputguessConfinement
-     Address of first element          : 0x2b2a14aff010
-   140736548899088:
-     Array Id                          : pot
-     Size (Bytes)                      : 89886656
-     Allocating Routine Id             : getLocalizedBasis
-     Address of first element          : 0x2b2a14aff010
-   140736548899088:
-     Array Id                          : pot
-     Size (Bytes)                      : 89886656
-     Allocating Routine Id             : determine_sparsity_pattern
-     Address of first element          : 0x2b2a087d9010
-   Timestamp of Profile initialization : 2014-05-27 15:42:47.462
-   Process Id                          : 0
- Status of the memory at finalization:
-   KSwfn%psi:
-     Array Id                          : KSwfn%psi
-     Size (Bytes)                      : 8
-     Allocating Routine Id             : linear_scaling
-     Address of first element          : 0x2b2a0c004a80
-     Address of metadata               : 72008912
-   pot:
-     Array Id                          : pot
-     Size (Bytes)                      : 89886656
-     Allocating Routine Id             : linear_scaling
-     Address of first element          : 0x2b2a190ff010
-     Address of metadata               : 140736548899088
-   pot:
-     Array Id                          : pot
-     Size (Bytes)                      : 89886656
-     Allocating Routine Id             : linear_scaling
-     Address of first element          : 0x2b2a190ff010
-     Address of metadata               : 140736548899088
-   pot:
-     Array Id                          : pot
-     Size (Bytes)                      : 89886656
-     Allocating Routine Id             : linear_scaling
-     Address of first element          : 0x2b2a190ff010
-     Address of metadata               : 140736548899088
-   pot:
-     Array Id                          : pot
-     Size (Bytes)                      : 89886656
-     Allocating Routine Id             : getLocalizedBasis
-     Address of first element          : 0x2b2a190ff010
-     Address of metadata               : 140736548899088
-   pot:
-     Array Id                          : pot
-     Size (Bytes)                      : 89886656
-     Allocating Routine Id             : linear_scaling
-     Address of first element          : 0x2b2a190ff010
-     Address of metadata               : 140736548899088
-   pot:
-     Array Id                          : pot
-     Size (Bytes)                      : 89886656
-     Allocating Routine Id             : linear_scaling
-     Address of first element          : 0x2b2a190ff010
-     Address of metadata               : 140736548899088
-   pot:
-     Array Id                          : pot
-     Size (Bytes)                      : 89886656
-     Allocating Routine Id             : linear_scaling
-     Address of first element          : 0x2b2a190ff010
-     Address of metadata               : 140736548899088
-   pot:
-     Array Id                          : pot
-     Size (Bytes)                      : 89886656
-     Allocating Routine Id             : getLocalizedBasis
-     Address of first element          : 0x2b2a190ff010
-     Address of metadata               : 140736548899088
-   pot:
-     Array Id                          : pot
-     Size (Bytes)                      : 89886656
-     Allocating Routine Id             : inputguessConfinement
-     Address of first element          : 0x2b2a14aff010
-     Address of metadata               : 140736548899088
-   pot:
-     Array Id                          : pot
-     Size (Bytes)                      : 89886656
-     Allocating Routine Id             : getLocalizedBasis
-     Address of first element          : 0x2b2a14aff010
-     Address of metadata               : 140736548899088
-   pot:
-     Array Id                          : pot
-     Size (Bytes)                      : 89886656
-     Allocating Routine Id             : determine_sparsity_pattern
-     Address of first element          : 0x2b2a087d9010
-     Address of metadata               : 140736548899088
-   Timestamp of Profile initialization:
-     2014-05-27 15:42:47.462
-   Process Id:
-     0
+  #-------------------------------------------------------------------- Timing for root process
+ Timings for root process:
+   CPU time (s)                        :  214.84
+   Elapsed time (s)                    :  73.68
  Memory Consumption Report:
    Tot. No. of Allocations             :  46755
    Tot. No. of Deallocations           :  46755

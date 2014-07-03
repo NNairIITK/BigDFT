@@ -162,18 +162,18 @@ MODULE dipole_mod
 
     !OPEN(UNIT=iunit,FILE='dipole.dat',STATUS='replace',ACTION='write')
     call yaml_set_stream(unit=iunit,filename=dfile)
-    call yaml_open_sequence('Atoms coordinates')
+    call yaml_sequence_open('Atoms coordinates')
     do i=1,ions%nions
        call yaml_sequence(advance='no')
        call yaml_comment('Atoms' // trim(yaml_toa(i)))
-       call yaml_open_map(flow=.true.)
+       call yaml_mapping_open(flow=.true.)
        call yaml_map('Coord.',ions%r_car(:,i))
        call yaml_map('Charge core',ions%ion_chg(i))
        call yaml_map('Charge elec.',-bdr%ionchg(i))
        call yaml_map('Charge net',dpl%ion_netchg(i))
-       call yaml_close_map(unit=iunit)
+       call yaml_mapping_close(unit=iunit)
     end do
-    call yaml_close_sequence(unit=iunit)
+    call yaml_sequence_close(unit=iunit)
 
     !WRITE(iunit,format_line) 
     !WRITE(iunit,'(a)') "Atoms coordinates: " 
@@ -195,20 +195,20 @@ MODULE dipole_mod
     ! WRITE(iunit,format_line) 
 
     call yaml_comment('Atomic polarization dipole-moments with respect to the corresponding nuclei positions [e.a0]')
-    call yaml_open_sequence('Atomic polarization dipole_moments')
+    call yaml_sequence_open('Atomic polarization dipole_moments')
     do i=1,ions%nions
        tmp1= dpl%ion_polar(i,:)*dipoleunits
        stmp = sqrt(dot_product(tmp1,tmp1))
        call yaml_sequence(advance='no')
        call yaml_comment('Atoms' // trim(yaml_toa(i)))
-       call yaml_open_map(flow=.true.)
+       call yaml_mapping_open(flow=.true.)
        call yaml_map('P',tmp1)
        call yaml_map('Norm P',sqrt(dot_product(tmp1,tmp1)))
-       call yaml_close_map(unit=iunit)
+       call yaml_mapping_close(unit=iunit)
        !WRITE(iunit,'(I3,33x,3F12.6,1x,F13.6,6x,F12.6,5x,F12.5)') & 
        !&   i , tmp1(:), sqrt(DOT_PRODUCT(tmp1(:),tmp1(:)))
     end do
-    call yaml_close_sequence(unit=iunit)
+    call yaml_sequence_close(unit=iunit)
 
     !WRITE(iunit,format_line) 
     tmp1(1)= sum(dpl%ion_polar(:,1))*dipoleunits

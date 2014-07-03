@@ -660,6 +660,8 @@
    Elapsed time (s)                    :  7.26
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
+ - Input file, section "lin_basis_params"; invalid key "Si".
+ - Input file, section "lin_basis_params"; invalid key "H".
  - Using fake local mapping array. Check whether this is correct!
  - Using fake local mapping array. Check whether this is correct!
  - Using fake local mapping array. Check whether this is correct!

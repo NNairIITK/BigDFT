@@ -239,25 +239,26 @@ contains
     end if
   END SUBROUTINE deallocate_wfd
 
-  !>desctructors
+
+  !> Destructors
   subroutine deallocate_locreg_descriptors(lr)
     implicit none
     ! Calling arguments
     type(locreg_descriptors),intent(inout):: lr
 
     call deallocate_wfd(lr%wfd)
-    call deallocate_convolutions_bounds(lr%bounds,'deallocate_locreg_descriptors')
+    call deallocate_convolutions_bounds(lr%bounds)
 
   end subroutine deallocate_locreg_descriptors
 
+
   !> De-Allocate convolutions_bounds type, depending of the geocode and the hybrid_on
-  subroutine deallocate_bounds(geocode,hybrid_on,bounds,subname)
+  subroutine deallocate_bounds(geocode,hybrid_on,bounds)
     use module_base
     implicit none
     character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
     logical, intent(in) :: hybrid_on 
     type(convolutions_bounds) :: bounds
-    character(len=*), intent(in) :: subname
 
     if ((geocode == 'P' .and. hybrid_on) .or. geocode == 'F') then
        ! Just test the first one...
@@ -317,9 +318,10 @@ contains
 
   END SUBROUTINE deallocate_bounds
 
-  !methods for copying the structures, can be needed to avoid recalculating them
-  !should be better by defining a f_malloc inheriting the shapes and the structure from other array
-  !of the type dest=f_malloc(src=source,id='dest')
+
+  !> Methods for copying the structures, can be needed to avoid recalculating them
+  !! should be better by defining a f_malloc inheriting the shapes and the structure from other array
+  !! of the type dest=f_malloc(src=source,id='dest')
   subroutine copy_locreg_descriptors(glrin, glrout)
     implicit none
     ! Calling arguments

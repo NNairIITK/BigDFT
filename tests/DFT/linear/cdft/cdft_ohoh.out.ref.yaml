@@ -8705,6 +8705,8 @@
    Elapsed time (s)                    :  63.08
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
+ - Input file, section "lin_basis_params"; invalid key "O".
+ - Input file, section "lin_basis_params"; invalid key "H".
  - Odd number of electrons, no closed shell system
  - Do not call check_communications in the linear scaling version!
  - support function optimization not converged

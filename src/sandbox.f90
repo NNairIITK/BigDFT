@@ -611,9 +611,9 @@ program sandbox
 !!  call memocc(i_stat,i_all,'radii_cf',subname)
 !!
 !!
-!!  call deallocate_lr(Glr,subname)
-!!  call deallocate_comms(comms,subname)
-!!  call deallocate_orbs(orbs,subname)
+!!  call deallocate_lr(Glr)
+!!  call deallocate_comms(comms)
+!!  call deallocate_orbs(orbs)
 !!  call deallocate_atoms_scf(atoms,subname) 
 !!  call deallocate_proj_descr(nlpspd,subname)
 !!
@@ -781,7 +781,7 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
   call gaussians_to_wavelets_new(iproc,nproc,lr,orbs,G,&
        gaucoeffs,psi)
   !deallocate the gaussian basis descriptors
-  call deallocate_gwf(G,subname)
+  call deallocate_gwf(G)
 
   !deallocate gaussian array
   call f_free(gaucoeffs)

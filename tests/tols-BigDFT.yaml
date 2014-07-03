@@ -59,13 +59,16 @@ yaml_test:
    - Errors found while (de)allocating ab and b
    - Calling sequence of Main program (routines with * are not closed yet)
    - Additional Info
+   - Something to use b
    - Something to use ab
    - Entering Thread No.
+   - Elapsed time (ns)
+   - Elapsed time (mus)
  Patterns to ignore:
    - errcode
-   - time
    - Time
    - Global dictionary
+   - time
 
 #Runs which update and override the default
 AgBulk:

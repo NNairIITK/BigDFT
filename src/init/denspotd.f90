@@ -121,7 +121,6 @@ subroutine dpbox_free(dpbox,subname)
   implicit none
   type(denspot_distribution), intent(inout) :: dpbox
   character(len = *), intent(in) :: subname
-  integer :: i_stat, i_all
 
   if (associated(dpbox%nscatterarr)) then
      call f_free_ptr(dpbox%nscatterarr)
@@ -224,7 +223,6 @@ subroutine denspot_communications(iproc,nproc,xc,nspin,geocode,SICapproach,dpbox
   type(denspot_distribution), intent(inout) :: dpbox
   !local variables
   character(len = *), parameter :: subname = 'denspot_communications' 
-  integer :: i_stat
 
   ! Create descriptors for density and potentials.
   ! ------------------
@@ -281,7 +279,7 @@ subroutine denspot_full_density(denspot, rho_full, iproc, new)
   real(gp), dimension(:), pointer :: rho_full
 
   character(len = *), parameter :: subname = "denspot_full_density"
-  integer :: i_stat, nslice, ierr, irhodim, irhoxcsh
+  integer :: nslice, ierr, irhodim, irhoxcsh
 
   new = 0
   nslice = max(denspot%dpbox%ndimpot, 1)
@@ -330,7 +328,7 @@ subroutine denspot_full_v_ext(denspot, pot_full, iproc, new)
   real(gp), pointer :: pot_full(:)
 
   character(len = *), parameter :: subname = "localfields_full_potential"
-  integer :: i_stat, ierr
+  integer :: ierr
 
   new = 0
   if (denspot%dpbox%ndimpot < denspot%dpbox%ndimgrid) then
@@ -362,7 +360,7 @@ subroutine denspot_emit_rhov(denspot, iter, iproc, nproc)
   character(len = *), parameter :: subname = "denspot_emit_rhov"
   integer, parameter :: SIGNAL_DONE = -1
   integer, parameter :: SIGNAL_DENSITY = 0
-  integer :: message, ierr, i_stat, i_all, new
+  integer :: message, ierr, new
   real(gp), pointer :: full_dummy(:)
   interface
      subroutine denspot_full_density(denspot, rho_full, iproc, new)
@@ -414,7 +412,7 @@ subroutine denspot_emit_v_ext(denspot, iproc, nproc)
   !Local variables
   character(len = *), parameter :: subname = "denspot_emit_v_ext"
   integer, parameter :: SIGNAL_DONE = -1
-  integer :: message, ierr, i_stat, i_all, new
+  integer :: message, ierr, new
   real(gp), pointer :: full_dummy(:)
   interface
      subroutine denspot_full_v_ext(denspot, pot_full, iproc, new)
@@ -468,7 +466,6 @@ subroutine allocateRhoPot(iproc,Glr,nspin,atoms,rxyz,denspot)
   type(DFT_local_fields), intent(inout) :: denspot
 
   character(len = *), parameter :: subname = "allocateRhoPot"
-  integer :: i_stat
 
   ! Allocate density and potentials.
   ! --------
@@ -756,7 +753,7 @@ subroutine print_distribution_schemes(unit,nproc,nkpts,norb_par,nvctr_par)
   integer :: iko,ikc,nko,nkc
   integer :: indentlevel
 
-  call yaml_open_sequence('Direct and transposed data repartition')
+  call yaml_sequence_open('Direct and transposed data repartition')
      !write(unit,'(1x,a,a)')repeat('-',46),'Direct and transposed data repartition'
      !write(unit,'(1x,8(a))')'| proc |',' N. Orbitals | K-pt |  Orbitals  ',&
      !     '|| N. Components | K-pt |    Components   |'
@@ -768,7 +765,7 @@ subroutine print_distribution_schemes(unit,nproc,nkpts,norb_par,nvctr_par)
         nko=ieko-isko+1
         nkc=iekc-iskc+1
         !print total number of orbitals and components
-        call yaml_open_map('Process'//trim(yaml_toa(jproc)))
+        call yaml_mapping_open('Process'//trim(yaml_toa(jproc)))
            call yaml_map('Orbitals and Components', (/ norbp, nvctrp /))
            !write(unit,'(1x,a,i4,a,i8,a,i13,a)')'| ',jproc,' |',norbp,&
            !     repeat(' ',5)//'|'//repeat('-',6)//'|'//repeat('-',12)//'||',&
@@ -777,18 +774,18 @@ subroutine print_distribution_schemes(unit,nproc,nkpts,norb_par,nvctr_par)
            !change the values to zero if there is no orbital
            if (norbp /= 0) then
               call yaml_stream_attributes(indent=indentlevel)
-              call yaml_open_sequence('Distribution',flow=.true.)
+              call yaml_sequence_open('Distribution',flow=.true.)
               call yaml_comment('Orbitals: [From, To], Components: [From, To]')
                  call yaml_newline()
                  do ikpt=1,min(nko,nkc)
                     call start_end_comps(nproc,jproc,norb_par(0,iko),isorb,ieorb)
                     call start_end_comps(nproc,jproc,nvctr_par(0,ikc),ispsi,iepsi)
                     call yaml_newline()
-                    call yaml_open_sequence(repeat(' ', max(indentlevel+1,0)) // &
+                    call yaml_sequence_open(repeat(' ', max(indentlevel+1,0)) // &
                          & "Kpt"//trim(yaml_toa(iko,fmt='(i4.4)')),flow=.true.)
                        call yaml_map("Orbitals",(/ isorb, ieorb /),fmt='(i5)')
                        call yaml_map("Components",(/ ispsi, iepsi /),fmt='(i8)')
-                    call yaml_close_sequence()
+                    call yaml_sequence_close()
                     !if (norbp/=0) then
                     !   write(unit,'(a,i4,a,i5,a,i5,a,i4,a,i8,a,i8,a)')&
                     !        ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|',&
@@ -809,9 +806,9 @@ subroutine print_distribution_schemes(unit,nproc,nkpts,norb_par,nvctr_par)
                     do ikpt=nkc+1,nko
                        !if (norbp/=0) then
                        call start_end_comps(nproc,jproc,norb_par(0,iko),isorb,ieorb)
-                       call yaml_open_sequence("Kpt"//trim(yaml_toa(iko,fmt='(i4.4)')),flow=.true.)
+                       call yaml_sequence_open("Kpt"//trim(yaml_toa(iko,fmt='(i4.4)')),flow=.true.)
                        call yaml_map("Orbitals",(/ isorb, ieorb /),fmt='(i5)')
-                       call yaml_close_sequence()
+                       call yaml_sequence_close()
                        call yaml_newline()
                        !write(unit,'(a,i4,a,i5,a,i5,2a)') &
                        !     & ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|',&
@@ -828,9 +825,9 @@ subroutine print_distribution_schemes(unit,nproc,nkpts,norb_par,nvctr_par)
                  else if (nkc > nko) then
                     do ikpt=nko+1,nkc
                        call start_end_comps(nproc,jproc,nvctr_par(0,ikc),ispsi,iepsi)
-                       call yaml_open_sequence("Kpt"//trim(yaml_toa(iko,fmt='(i4.4)')),flow=.true.)
+                       call yaml_sequence_open("Kpt"//trim(yaml_toa(iko,fmt='(i4.4)')),flow=.true.)
                        call yaml_map("Components",(/ ispsi, iepsi /),fmt='(i8)')
-                       call yaml_close_sequence()
+                       call yaml_sequence_close()
                        call yaml_newline()
                        !write(unit,'(a,i4,a,i8,a,i8,a)')&
                        !     ' |'//repeat(' ',6)//'|'//repeat(' ',13)//'|'//repeat(' ',4)//'  |'//&
@@ -839,11 +836,11 @@ subroutine print_distribution_schemes(unit,nproc,nkpts,norb_par,nvctr_par)
                        !ikc=ikc+1
                     end do
                  end if
-              call yaml_close_sequence()
+              call yaml_sequence_close()
            end if
-        call yaml_close_map() ! for Process jproc
+        call yaml_mapping_close() ! for Process jproc
      end do
-  call yaml_close_sequence()  ! for Data distribution
+  call yaml_sequence_close()  ! for Data distribution
   
 END SUBROUTINE print_distribution_schemes
 

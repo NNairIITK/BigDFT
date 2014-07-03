@@ -313,7 +313,7 @@ subroutine overlap_and_gather(iproc,nproc,mpirequests,ncmpts,natsc,nspin,ndimovr
   real(wp), dimension(nspin*ndimovrlp,2), intent(out) :: ovrlp
   !local variables
   character(len=*), parameter :: subname='overlap_and_gather'
-  integer :: ierr,iorb,jorb,imatrst,isorb,i_all,i_stat,jproc,norblt,i,ipos,nwrkdim
+  integer :: ierr,iorb,jorb,imatrst,isorb,jproc,norblt,i,ipos,nwrkdim
   integer :: iind,jind,iarr,iarrsum,ispin,norbi
   !integer, dimension(MPI_STATUS_SIZE) :: mpistatuses
   integer, dimension(:,:), allocatable :: mpicd

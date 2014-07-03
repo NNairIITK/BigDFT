@@ -25,7 +25,7 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
   character(len=*), parameter :: subname='call_bigdft'
   character(len=40) :: comment
   logical :: exists
-  integer :: i_stat,i_all,ierr,inputPsiId_orig,iat,iorb,istep
+  integer :: ierr,inputPsiId_orig,iat,iorb,istep
   real(gp) :: maxdiff
 
   !temporary interface, not needed anymore since all arguments are structures
@@ -225,11 +225,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   use module_base
   use module_types
   use module_interfaces
+  use gaussians, only: nullify_gaussian_basis, deallocate_gwf
   use module_fragments
   use constrained_dft
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use module_xc
   use communications_init, only: orbitals_communicators
+  use communications_base, only: deallocate_comms
 !  use vdwcorrection
   use yaml_output
   use gaussians, only: gaussian_basis
@@ -270,7 +272,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   integer :: i, input_wf_format, output_denspot
   integer :: n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
-  integer :: i_all,i_stat,ierr,inputpsi,igroup,ikpt,nproctiming,ifrag
+  integer :: ierr,inputpsi,igroup,ikpt,nproctiming,ifrag
   real :: tcpu0,tcpu1
   real(kind=8) :: tel
   type(grid_dimensions) :: d_old
@@ -383,7 +385,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
                 KSwfn%Lzd%Glr%wfd,KSwfn%psi,d_old%n1,d_old%n2,d_old%n3,wfd_old,psi_old)
         end if
         !already here due to new input guess
-        call deallocate_bounds(KSwfn%Lzd%Glr%geocode, KSwfn%Lzd%Glr%hybrid_on, KSwfn%lzd%glr%bounds, subname)
+        call deallocate_bounds(KSwfn%Lzd%Glr%geocode, KSwfn%Lzd%Glr%hybrid_on, KSwfn%lzd%glr%bounds)
      else
         inputpsi = INPUT_PSI_LCAO
      end if
@@ -509,12 +511,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%s)
 
      if (in%check_matrix_compression) then
-         if (iproc==0) call yaml_open_map('Checking Compression/Uncompression of small sparse matrices')
+         if (iproc==0) call yaml_mapping_open('Checking Compression/Uncompression of small sparse matrices')
          !call check_matrix_compression(iproc,tmb%linmat%ham)
          !call check_matrix_compression(iproc,tmb%linmat%ovrlp)
          call check_matrix_compression(iproc, tmb%linmat%m, tmb%linmat%ham_)
          call check_matrix_compression(iproc, tmb%linmat%s, tmb%linmat%ovrlp_)
-         if (iproc ==0) call yaml_close_map()
+         if (iproc ==0) call yaml_mapping_close()
      end if
 
 
@@ -552,10 +554,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
 
      if (in%check_matrix_compression) then
-         if (iproc==0) call yaml_open_map('Checking Compression/Uncompression of large sparse matrices')
+         if (iproc==0) call yaml_mapping_open('Checking Compression/Uncompression of large sparse matrices')
          !call check_matrix_compression(iproc,tmb%linmat%denskern_large)
          call check_matrix_compression(iproc, tmb%linmat%l, tmb%linmat%kernel_)
-         if (iproc ==0) call yaml_close_map()
+         if (iproc ==0) call yaml_mapping_close()
      end if
 
 
@@ -704,7 +706,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   !call deallocate_wfd(wfd_old,subname)
   ! modified by SM
   call deallocate_wfd(wfd_old)
-  call deallocate_local_zone_descriptors(lzd_old,subname)
+  call deallocate_local_zone_descriptors(lzd_old)
 
   !save the new grid spacing into the hgrid_old value
   hx_old=KSwfn%Lzd%hgrids(1)
@@ -737,7 +739,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
      ! Treat the info code from the optimization routine.
      if (infocode == 2 .or. infocode == 3) then
-        call deallocate_bounds(KSwfn%Lzd%Glr%geocode, KSwfn%Lzd%Glr%hybrid_on, KSwfn%lzd%glr%bounds, subname)
+        call deallocate_bounds(KSwfn%Lzd%Glr%geocode, KSwfn%Lzd%Glr%hybrid_on, KSwfn%lzd%glr%bounds)
         call deallocate_before_exiting
         return
      end if
@@ -947,7 +949,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
         !control the accuracy of the expansion
         call check_gaussian_expansion(iproc,nproc,KSwfn%orbs,KSwfn%Lzd,KSwfn%psi,KSwfn%gbd,KSwfn%gaucoeffs)
 
-        call deallocate_gwf(KSwfn%gbd,subname)
+        call deallocate_gwf(KSwfn%gbd)
         call f_free_ptr(KSwfn%gaucoeffs)
         nullify(KSwfn%gbd%rxyz)
 
@@ -1207,8 +1209,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
         end if
 
-        call deallocate_comms(VTwfn%comms,subname)
-        call deallocate_orbs(VTwfn%orbs,subname)
+        call deallocate_comms(VTwfn%comms)
+        call deallocate_orbs(VTwfn%orbs)
 
         !in the case of band structure calculation, copy the values of the eigenvectors
         !into a new array to write them afterwards
@@ -1335,13 +1337,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%evsic+energs%eion+energs%edisp-energs%eTS+energs%ePV
 
      if (iproc == 0) then
-        call yaml_open_map('Corrected Energies', flow=.true.)
+        call yaml_mapping_open('Corrected Energies', flow=.true.)
         call yaml_map('Ekin', energs%ekin, fmt='(1pe18.11)')
         call yaml_map('Epot', energs%epot, fmt='(1pe18.11)')
         call yaml_map('Eproj',energs%eproj,fmt='(1pe18.11)')
-        call yaml_close_map()
+        call yaml_mapping_close()
         call yaml_map('Total energy with tail correction',energy,fmt='(1pe24.17)')
-        call yaml_close_map()
+        call yaml_mapping_close()
         !write( *,'(1x,a,3(1x,1pe18.11))')&
         !     &   '  Corrected ekin,epot,eproj',energs%ekin,energs%epot,energs%eproj
         !write( *,'(1x,a,1x,1pe24.17)')&
@@ -1371,10 +1373,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   !?!    endif
 
   call deallocate_before_exiting
+
 contains
 
   !> Routine which deallocate the pointers and the arrays before exiting 
   subroutine deallocate_before_exiting
+    use communications_base, only: deallocate_comms
+    implicit none
     external :: gather_timings    
   !when this condition is verified we are in the middle of the SCF cycle
     if (infocode /=0 .and. infocode /=1 .and. inputpsi /= INPUT_PSI_EMPTY) then
@@ -1414,7 +1419,7 @@ contains
     end if
 
     ! Free all remaining parts of denspot
-    call deallocate_rho_descriptors(denspot%rhod,subname)
+    call deallocate_rho_descriptors(denspot%rhod)
     if(associated(denspot%rho_C)) then
        call f_free_ptr(denspot%rho_C)
     end if
@@ -1426,15 +1431,15 @@ contains
     !                 .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
     if (in%inguess_geopt/=1) then
         call deallocate_bounds(KSwfn%Lzd%Glr%geocode,KSwfn%Lzd%Glr%hybrid_on,&
-             KSwfn%Lzd%Glr%bounds,subname)
+             KSwfn%Lzd%Glr%bounds)
     end if
-    call deallocate_Lzd_except_Glr(KSwfn%Lzd, subname)
+    call deallocate_Lzd_except_Glr(KSwfn%Lzd)
 
 !    i_all=-product(shape(KSwfn%Lzd%Glr%projflg))*kind(KSwfn%Lzd%Glr%projflg)
 !    deallocate(KSwfn%Lzd%Glr%projflg,stat=i_stat)
 !    call memocc(i_stat,i_all,'Glr%projflg',subname)
-    call deallocate_comms(KSwfn%comms,subname)
-    call deallocate_orbs(KSwfn%orbs,subname)
+    call deallocate_comms(KSwfn%comms)
+    call deallocate_orbs(KSwfn%orbs)
     if (inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
         .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
        deallocate(KSwfn%confdatarr)
@@ -1477,10 +1482,10 @@ contains
     tel=dble(ncount1-ncount0)/dble(ncount_rate)
     if (iproc == 0) then
        call yaml_comment('Timing for root process',hfill='-')
-       call yaml_open_map('Timings for root process')
+       call yaml_mapping_open('Timings for root process')
        call yaml_map('CPU time (s)',tcpu1-tcpu0,fmt='(f12.2)')
        call yaml_map('Elapsed time (s)',tel,fmt='(f12.2)')
-       call yaml_close_map()
+       call yaml_mapping_close()
     end if
 
   END SUBROUTINE deallocate_before_exiting
@@ -1586,7 +1591,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   !yaml output
   if (iproc==0) then
      call yaml_comment('Self-Consistent Cycle',hfill='-')
-     call yaml_open_sequence('Ground State Optimization')
+     call yaml_sequence_open('Ground State Optimization')
   end if
   opt%itrp=1
   rhopot_loop: do
@@ -1595,7 +1600,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
      !yaml output 
      if (iproc==0) then
         call yaml_sequence(advance='no')
-        call yaml_open_sequence("Hamiltonian Optimization",label=&
+        call yaml_sequence_open("Hamiltonian Optimization",label=&
              'itrp'//trim(adjustl(yaml_toa(opt%itrp,fmt='(i3.3)'))))
 
      end if
@@ -1608,14 +1613,14 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
         !yaml output 
         if (iproc==0) then
            call yaml_sequence(advance='no')
-           call yaml_open_map("Subspace Optimization",label=&
+           call yaml_mapping_open("Subspace Optimization",label=&
                 'itrep'//trim(adjustl(yaml_toa(opt%itrp,fmt='(i3.3)')))//'-'//&
                 trim(adjustl(yaml_toa(opt%itrep,fmt='(i2.2)'))))
         end if
 
         !yaml output
         if (iproc==0) then
-           call yaml_open_sequence("Wavefunctions Iterations")
+           call yaml_sequence_open("Wavefunctions Iterations")
         end if
         opt%iter=1
         iter_for_diis=0
@@ -1635,7 +1640,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
               else
                  call yaml_sequence(advance='no')
               end if
-              call yaml_open_map(flow=.true.)
+              call yaml_mapping_open(flow=.true.)
               if (verbose > 0) &
                    call yaml_comment('iter:'//yaml_toa(opt%iter,fmt='(i6)'),hfill='-')
            endif
@@ -1697,7 +1702,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            !flush all writings on standart output
            if (iproc==0) then
               !yaml output
-              call yaml_close_map() !iteration
+              call yaml_mapping_close() !iteration
               call bigdft_utils_flush(unit=6)
            end if
            ! Emergency exit case
@@ -1705,10 +1710,10 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
               if (nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
               !>todo: change this return into a clean out of the routine, so the YAML is clean.
               if (iproc==0) then
-                 !call yaml_close_map()
-                 call yaml_close_sequence() !wfn iterations
-                 call yaml_close_map()
-                 call yaml_close_sequence() !itrep
+                 !call yaml_mapping_close()
+                 call yaml_sequence_close() !wfn iterations
+                 call yaml_mapping_close()
+                 call yaml_sequence_close() !itrep
                  if (opt%infocode==2) then
                     call yaml_warning('The norm of the residue is too large, need to recalculate input wavefunctions')
                  else if (opt%infocode ==3) then
@@ -1740,7 +1745,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
               write(final_out, "(A5)") "final"
            end if
            call write_energies(opt%iter,0,energs,opt%gnrm,gnrm_zero,final_out)
-           call yaml_close_map()
+           call yaml_mapping_close()
 
            if (opt%itrpmax >1) then
               if ( KSwfn%diis%energy > KSwfn%diis%energy_min) &
@@ -1758,7 +1763,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
         end if
 
         if (iproc==0) then
-           call yaml_close_sequence() !wfn iterations
+           call yaml_sequence_close() !wfn iterations
            if (opt%iter == opt%itermax .and. opt%infocode/=0) &
              &  call yaml_warning('No convergence within the allowed number of minimization steps')
              !&   write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
@@ -1804,7 +1809,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
         end if
 
         if (iproc==0) then
-           call yaml_close_map()
+           call yaml_mapping_close()
         end if
 
         if (opt%infocode ==0) exit subd_loop
@@ -1820,7 +1825,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
      end if
 
      if (iproc==0) then
-        call yaml_close_sequence() !itrep
+        call yaml_sequence_close() !itrep
      end if
 
 
@@ -1879,7 +1884,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   if (opt%c_obj /= 0) then
      call optloop_emit_done(opt, OPTLOOP_HAMILTONIAN, energs, iproc, nproc)
   end if
-  if (iproc==0) call yaml_close_sequence() !opt%itrp
+  if (iproc==0) call yaml_sequence_close() !opt%itrp
   !recuperate the information coming from the last iteration (useful for post-processing of the document)
   !only if everything got OK
   if (iproc==0 .and. opt%infocode == BIGDFT_SUCCESS) &
@@ -1902,11 +1907,11 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
      call check_closed_shell(KSwfn%orbs,lcs)  
      if (abs(energs%evsum-energs%ebs) > 1.d-8 .and. iproc==0 .and. lcs) then
         call yaml_newline()
-        call yaml_open_map('Energy inconsistencies')
+        call yaml_mapping_open('Energy inconsistencies')
         call yaml_map('Band Structure Energy',energs%ebs,fmt='(1pe22.14)')
         call yaml_map('Sum of Eigenvalues',energs%evsum,fmt='(1pe22.14)')
         if (energs%evsum /= 0.0_gp) call yaml_map('Relative inconsistency',(energs%ebs-energs%evsum)/energs%evsum,fmt='(1pe9.2)')
-        call yaml_close_map()
+        call yaml_mapping_close()
         !write( *,'(1x,a,2(1x,1pe20.13))')&
         !  &   'Difference:evsum,energybs',energs%evsum,energs%ebs
      end if
@@ -1954,7 +1959,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
 
   !Local variables
   character(len = *), parameter :: subname = "kswfn_post_treatments"
-  integer :: i_all, i_stat, jproc, nsize_psi, imode
+  integer ::  jproc, nsize_psi, imode
   real(dp), dimension(6) :: hstrten
   real(gp) :: ehart_fake
 
@@ -2069,7 +2074,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      ! to eventually be better sorted
      call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
      call deallocate_p2pComms(tmb%ham_descr%comgp)
-     call deallocate_local_zone_descriptors(tmb%ham_descr%lzd, subname)
+     call deallocate_local_zone_descriptors(tmb%ham_descr%lzd)
      call deallocate_comms_linear(tmb%ham_descr%collcom)
      call deallocate_auxiliary_basis_function(subname, tmb%ham_descr%psi, tmb%hpsi)
 
