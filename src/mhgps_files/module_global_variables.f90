@@ -53,6 +53,8 @@ module module_global_variables
     character(len=60) :: saddle_filename='saddle.mon'
     logical :: isForceField=.false.
     real(gp) :: ef_counter=0.d0
+    character(len=8) :: currDir
+    character(len=6) :: currFile
 
 
     !bigdft data types and variables

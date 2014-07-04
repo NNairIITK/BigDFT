@@ -8,7 +8,8 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_
     converged,atomnames,nbond,iconnect,alpha_stretch0,recompIfCurvPos,maxcurvrise,cutoffratio)
     use module_base
     use module_interfaces
-    use module_global_variables, only: inputPsiId, iproc, ixyz_int, atoms, mhgps_verbosity
+    use module_global_variables, only: inputPsiId, iproc, ixyz_int, atoms, mhgps_verbosity,&
+                                       currDir, currFile  
     use yaml_output
     !imode=1 for clusters
     !imode=2 for biomolecules
@@ -68,6 +69,7 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_
     real(gp), allocatable, dimension(:)     :: wold
     real(gp), allocatable, dimension(:,:)   :: gradrot
     real(gp), allocatable, dimension(:,:)   :: minmodeold
+    real(gp), allocatable, dimension(:,:)   :: minmode0
     logical  :: steep
     real(gp) :: maxd
     real(gp) :: alpha
@@ -90,7 +92,7 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_
     integer  :: ihist
     integer  :: i
     integer  :: recompute
-    integer, save :: fc=0
+    integer  :: fc=0
     real(gp) :: tol
     real(gp) :: displold
     real(gp) :: rmsdispl
@@ -110,7 +112,6 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_
       
 
 
-real(gp) :: minmode0(3,nat)
 character(len=100) :: filename
     !functions
     real(gp) :: ddot,dnrm2
@@ -124,9 +125,11 @@ minmode0=minmode
     rmsdispl=rmsdispl0
 
     flag=.true.
+    fc=0
     fixfragmented=.false.
     converged=.false.
     subspaceSucc=.true.
+    tol=tolc
 
 
     displ=0.0_gp
@@ -145,7 +148,7 @@ minmode0=minmode
     allocate(eval(nhistx_trans),res(nhistx_trans),work(lwork))
     allocate(ff(3,nat,0:nhistx_trans),rr(3,nat,0:nhistx_trans),dd(3,nat),dds(3,nat),dd0(3,nat),delta(3,nat),ftmp(3,nat))
     allocate(fff(3,nat,0:nhistx_trans),rrr(3,nat,0:nhistx_trans),scpr(nhistx_trans),wold(nbond),fstretch(3,nat,0:nhistx_trans))
-    allocate(gradrot(3,nat),minmodeold(3,nat))
+    allocate(gradrot(3,nat),minmodeold(3,nat),minmode0(3,nat))
     minmodeold=minmode
     wold=0.0_gp
     fstretch=0.0_gp
@@ -210,13 +213,31 @@ minmode0=minmode
             enddo
         endif
 
-       if(fnrm > 10.0_gp*fnrmtol)then
-            flag=.true.
-       endif
 
        !START FINDING LOWEST MODE
-       if(fnrm<=tightenfac*fnrmtol .and. flag .and. curv<0.0_gp)then
+
+       !Walked too far? Then recompute direction of lowest mode!
+       tooFar = abs(displ-displold)>rmsdispl*sqrt(dble(3*nat))
+
+       !reset flag if fnrm gets too big. (otherwise tightening
+       !might be only done in a flat region, but not at the end
+       !close to the transition state (may happen sometimes
+       !for biomolecules)
+       if(fnrm > 5.0_gp*tightenfac*fnrmtol)then
+            flag=.true.
+       endif
+       !determine if final tightening should be done:
+       if(fnrm<=tightenfac*fnrmtol .and. curv<0.d0 .and. (flag .or. tooFar))then
 !       if(fnrm<=tightenfac*fnrmtol .and. flag)then
+           if(iproc==0.and.mhgps_verbosity>=2)then
+               if(flag)then
+                   call yaml_comment('(MHGPS) tightening')
+               else
+                   call yaml_warning('(MHGPS) redo tightening&
+                        since walked too far at small forces.&
+                        Is tightenfac chosen too large?')
+               endif
+           endif
            write(*,*)'tighten'
            tol=tolf
            recompute=it
@@ -226,13 +247,12 @@ minmode0=minmode
        else
            tol=tolc
        endif
-       !if(abs(displ-displold)>0.029_gp*sqrt(dble(3*nat))&
-       tooFar = abs(displ-displold)>rmsdispl*sqrt(dble(3*nat))
-       if(tooFar&
-         .or. it==1&
-         .or. (curv>=0.0_gp .and. mod(it,recompIfCurvPos)==0)&
+       if(tooFar& !recompute lowest mode if walked too far
+         .or. it==1& !compute lowest mode at first step
+         .or. (curv>=0.0_gp .and. mod(it,recompIfCurvPos)==0)& !For LJ systems recomputation
+                                                               !every nth=recompIfCurvPos step raises stbility
          .or.recompute==it)then
-           if(iproc==0)call yaml_comment('(MHGPS) METHOD COUNT  IT  CURVATURE             DIFF      FMAX      FNRM      alpha    ndim')
+           if(iproc==0.and.mhgps_verbosity>=2)call yaml_comment('(MHGPS) METHOD COUNT  IT  CURVATURE             DIFF      FMAX      FNRM      alpha    ndim')
            inputPsiId=1
 !           inputPsiId=0
            call opt_curv(imode,nat,alat,alpha0_rot,curvgraddiff,nit_rot,nhistx_rot,rxyzraw(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
@@ -247,15 +267,11 @@ stop 'opt_curv failed'
                return
            endif
            overlap=ddot(3*nat,minmodeold(1,1),1,minmode(1,1),1)
-           if(iproc==0)call yaml_map('  (MHGPS) minmode overlap',overlap)
+           if(iproc==0.and.mhgps_verbosity>=2)call yaml_map('  (MHGPS) minmode overlap',overlap)
            minmodeold=minmode
            displold=displ
            recompute=huge(1)
-           !for what the following? can it be removed?(2.6.2014, Bastian)
-!           if(tooFar)then
-!               flag = .true.
-!           endif
-           if(iproc==0)call yaml_comment('(MHGPS) METHOD COUNT  IT  Energy                DIFF      FMAX      FNRM      alpha    ndim')
+           if(iproc==0.and.mhgps_verbosity>=2)call yaml_comment('(MHGPS) METHOD COUNT  IT  Energy                DIFF      FMAX      FNRM      alpha    ndim')
        endif
        !END FINDING LOWEST MODE
 
@@ -314,7 +330,7 @@ stop 'opt_curv failed'
           fc=fc+1
           write(fn9,'(i9.9)') fc
           write(comment,'(a,1pe10.3,5x1pe10.3)')'MHGPS:fnrm, fmax = ',fnrm,fmax
-          call write_atomic_file('posmhgps_'//fn9,&
+          call write_atomic_file(currDir//'/'//currFile//'_posmhgps_'//fn9,&
                etotp,rxyz(1,1,nhist),ixyz_int,&
                atoms,trim(comment),forces=fxyzraw(1,1,nhist))
        endif

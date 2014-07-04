@@ -137,11 +137,13 @@ real(gp),allocatable :: eval(:),work(:)
    allocate(eval(3*atoms%astruct%nat),work(lwork))
 
     do ifolder = 1,999
+        write(folder,'(a,i3.3)')'input',ifolder
+        currDir=folder
         do ifile = 1,999
-            write(folder,'(a,i3.3)')'input',ifolder
             write(filename,'(a,i3.3)')'min',ifile
             inquire(file=folder//'/'//filename//'.xyz',exist=xyzexists)
             inquire(file=folder//'/'//filename//'.ascii',exist=asciiexists)
+            currFile=filename
             if(.not.(xyzexists.or.asciiexists))exit
             call deallocate_atomic_structure(atoms%astruct)
             call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
