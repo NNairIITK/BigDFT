@@ -739,8 +739,12 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   real(kind=8),dimension(:,:),allocatable :: kernelp, ovrlpp
   type(localizedDIISParameters) :: ldiis
   logical :: ortho_on, reduce_conf, can_use_ham
-  real(kind=8) :: trace, trace_old, fnrm_tmb, ratio_deltas
-  integer :: order_taylor, info_basis_functions
+  real(kind=8) :: trace, trace_old, fnrm_tmb, ratio_deltas, ddot
+  integer :: order_taylor, info_basis_functions, iortho, iat, jj, itype, inl
+  integer,dimension(:),allocatable :: maxorbs_type, minorbs_type
+  integer,dimension(:,:),allocatable :: nl_copy
+  logical,dimension(:),allocatable :: type_covered
+  logical :: finished
 
 
   call f_routine(id='input_memory_linear')
@@ -849,12 +853,86 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
        call f_free(norm)
    else if (restart_FOE==RESTART_REFORMAT .and. input%experimental_mode) then
-       ! Orthonormalize
-       tmb%can_use_transposed=.false.
-       methTransformOverlap=-1
-       call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inversion_error, tmb%npsidim_orbs, &
-            tmb%orbs, tmb%lzd, tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
-            tmb%can_use_transposed, tmb%foe_obj)
+     !!%%  ! Orthonormalize
+     !!%%  tmb%can_use_transposed=.false.
+     !!%%  methTransformOverlap=-1
+     !!%%  call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inversion_error, tmb%npsidim_orbs, &
+     !!%%       tmb%orbs, tmb%lzd, tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
+     !!%%       tmb%can_use_transposed, tmb%foe_obj)
+     !!%% ! Standard orthonomalization
+     !!%% if (iproc==0) call yaml_map('orthonormalization of input guess','standard')
+     !!%% ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
+     !!%% !write(*,'(a,i4,4i8)') 'IG: iproc, lbound, ubound, minval, maxval',&
+     !!%% !iproc, lbound(tmb%linmat%inv_ovrlp%matrixindex_in_compressed_fortransposed,2),&
+     !!%% !ubound(tmb%linmat%inv_ovrlp%matrixindex_in_compressed_fortransposed,2),&
+     !!%% !minval(tmb%collcom%indexrecvorbital_c),maxval(tmb%collcom%indexrecvorbital_c)
+     !!%% !!if (iproc==0) write(*,*) 'WARNING: no ortho in inguess'
+      tmb%can_use_transposed=.false.
+      methTransformOverlap=-1
+      call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, 1.d0, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
+           tmb%linmat%s, tmb%linmat%l, &
+           tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed, &
+           tmb%foe_obj)
+            
+ else
+     ! Iterative orthonomalization
+     !!if(iproc==0) write(*,*) 'calling generalized orthonormalization'
+     if (iproc==0) call yaml_map('orthonormalization of input guess','generalized')
+     maxorbs_type = f_malloc(at%astruct%ntypes,id='maxorbs_type')
+     minorbs_type = f_malloc(at%astruct%ntypes,id='minorbs_type')
+     type_covered = f_malloc(at%astruct%ntypes,id='type_covered')
+     minorbs_type(1:at%astruct%ntypes)=0
+     iortho=0
+     ortho_loop: do
+         finished=.true.
+         type_covered=.false.
+         do iat=1,at%astruct%nat
+             itype=at%astruct%iatype(iat)
+             if (type_covered(itype)) cycle
+             type_covered(itype)=.true.
+             !jj=1*ceiling(aocc(1,iat))+3*ceiling(aocc(3,iat))+&
+             !     5*ceiling(aocc(7,iat))+7*ceiling(aocc(13,iat))
+             jj=nl_copy(0,iat)+3*nl_copy(1,iat)+5*nl_copy(2,iat)+7*nl_copy(3,iat)
+             maxorbs_type(itype)=jj
+             !should not enter in the conditional below due to the raise of the exception above
+             if (jj<input%lin%norbsPerType(at%astruct%iatype(iat))) then
+                 finished=.false.
+                 increase_count: do inl=1,4
+                    if (nl_copy(inl,iat)==0) then
+                       nl_copy(inl,iat)=1
+                       call f_err_throw('InputguessLinear: Should not be here',&
+                            err_name='BIGDFT_RUNTIME_ERROR')
+                       exit increase_count
+                    end if
+                 end do increase_count
+!!$                 if (ceiling(aocc(1,iat))==0) then
+!!$                     aocc(1,iat)=1.d0
+!!$                 else if (ceiling(aocc(3,iat))==0) then
+!!$                     aocc(3,iat)=1.d0
+!!$                 else if (ceiling(aocc(7,iat))==0) then
+!!$                     aocc(7,iat)=1.d0
+!!$                 else if (ceiling(aocc(13,iat))==0) then
+!!$                     aocc(13,iat)=1.d0
+!!$                 end if
+             end if
+         end do
+         if (iortho>0) then
+             call gramschmidt_subset(iproc, nproc, -1, tmb%npsidim_orbs, &                                  
+                  tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%s, &
+                  tmb%linmat%l, tmb%collcom, tmb%orthpar, &
+                  tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+         end if
+         call orthonormalize_subset(iproc, nproc, -1, tmb%npsidim_orbs, &                                  
+              tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%s, &
+              tmb%linmat%l, tmb%collcom, tmb%orthpar, &
+              tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+         if (finished) exit ortho_loop
+         iortho=iortho+1
+         minorbs_type(1:at%astruct%ntypes)=maxorbs_type(1:at%astruct%ntypes)+1
+     end do ortho_loop
+     call f_free(maxorbs_type)
+     call f_free(minorbs_type)
+     call f_free(type_covered)
    end if
 
 
@@ -872,12 +950,14 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       ! Calculate the old and the new overlap matrix
        tmb_old%psit_c = f_malloc_ptr(tmb_old%collcom%ndimind_c,id='tmb_old%psit_c')
        tmb_old%psit_f = f_malloc_ptr(7*tmb_old%collcom%ndimind_f,id='tmb_old%psit_f')
+       tmb%can_use_transposed=.false.
+       tmb_old%can_use_transposed=.false.
        call transpose_localized(iproc, nproc, tmb_old%npsidim_orbs, tmb_old%orbs, tmb_old%collcom, &
             tmb_old%psi, tmb_old%psit_c, tmb_old%psit_f, tmb_old%lzd)
-       call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-            tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
        call calculate_overlap_transposed(iproc, nproc, tmb_old%orbs, tmb_old%collcom, tmb_old%psit_c, tmb_old%psit_c, &
             tmb_old%psit_f, tmb_old%psit_f, tmb_old%linmat%s, tmb_old%linmat%ovrlp_)
+       call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+            tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
        call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_c, &
             tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
 
@@ -887,7 +967,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
        ! Transform the old overap matrix to the new sparsity format, by going via the full format.
        ovrlpp = sparsematrix_malloc(tmb%linmat%s, iaction=DENSE_PARALLEL, id='ovrlpp')
        call uncompress_matrix_distributed(iproc, tmb_old%linmat%s, tmb_old%linmat%ovrlp_%matrix_compr, ovrlpp)
-       call compress_matrix_distributed(iproc, tmb%linmat%s, ovrlpp, tmb%linmat%ovrlp_%matrix_compr)
+       call compress_matrix_distributed(iproc, tmb%linmat%s, ovrlpp, tmb_old%linmat%ovrlp_%matrix_compr)
        call f_free(ovrlpp)
        call renormalize_kernel(iproc, nproc, input%lin%order_taylor, max_inversion_error, tmb, tmb%linmat%ovrlp_, tmb_old%linmat%ovrlp_)
   else
@@ -941,6 +1021,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
            tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
            denspot%rhov, rho_negative)
+       write(*,*) 'calculated charge'
      if (rho_negative) then
          call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
          !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')

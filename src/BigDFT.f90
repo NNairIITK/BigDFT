@@ -38,6 +38,8 @@ program BigDFT
 
    call f_lib_initialize()
 
+!call test_yaml()
+
    !-finds the number of taskgroup size
    !-initializes the mpi_environment for each group
    !-decides the radical name for each run
@@ -126,3 +128,41 @@ program BigDFT
 
 END PROGRAM BigDFT
 
+   subroutine test_yaml()
+     use yaml_output
+
+     call yaml_comment('Yaml Invoice Example',hfill='-')
+     call yaml_map('invoice',34843)
+     call yaml_map('date',trim(yaml_date_toa()))
+     call yaml_open_map('bill-to',label='id001')
+       call yaml_map('given','Chris')
+       call yaml_open_map('address')
+         call yaml_open_map('lines')
+           call yaml_scalar('458 Walkman Dr.')
+           call yaml_scalar('Suite #292')
+         call yaml_close_map()
+       call yaml_close_map()
+     call yaml_close_map()
+     call yaml_map('ship_to','*id001')
+     call yaml_open_sequence('product')
+       call yaml_sequence(advance='no')
+       call yaml_map('sku','BL394D')
+       call yaml_map('quantity',4)
+       call yaml_map('description','Basketball')
+       call yaml_map('price',450.,fmt='(f6.2)')
+       call yaml_map('parcel dimensions',(/30,32,35/))
+       call yaml_sequence(advance='no')
+       call yaml_open_map(flow=.true.)
+         call yaml_map('sku','BL4438H')
+         call yaml_map('quantity',1)
+         call yaml_newline()
+         call yaml_map('description','Super Hoop')
+         call yaml_map('price',2392.,fmt='(f8.2)')
+         call yaml_map('parcel dimensions',(/120,20,15/))
+       call yaml_close_map()
+     call yaml_close_sequence()
+     call yaml_map('tax',251.42,fmt='(f6.2)')
+     call yaml_map('total',4443.52d0,fmt='(f6.2)') !wrong format on purpose
+     call yaml_map('comments','Late afternoon is best. Backup contact is Nancy Billsmer @ 338-4338.')
+
+   end subroutine test_yaml

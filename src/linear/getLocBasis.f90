@@ -2574,6 +2574,8 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   type(matrices) :: inv_ovrlp
   real(kind=8),dimension(:,:),pointer :: inv_ovrlpp, tempp
   real(kind=8),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
+  !!real(8) :: tr
+  !!integer :: ind, iorb
 
   call f_routine(id='renormalize_kernel')
 
@@ -2594,6 +2596,12 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
 
   ! Calculate S^1/2 * K * S^1/2
   call retransform()
+  !!tr=0.d0
+  !!do iorb=1,tmb%orbs%norb
+  !!    ind=tmb%linmat%l%matrixindex_in_compressed_fortransposed(iorb,iorb)
+  !!    tr = tr + tmb%linmat%kernel_%matrix_compr(ind)
+  !!end do
+  !!write(*,*) 'trace',tr
 
   ! Calculate S^-1/2 for the new overlap matrix
   call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, &
@@ -2604,6 +2612,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
 
   ! Calculate S^-1/2 * K * S^-1/2
   call retransform()
+
 
   call f_free_ptr(inv_ovrlpp)
   call f_free_ptr(tempp)
