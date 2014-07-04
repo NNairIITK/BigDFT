@@ -937,7 +937,7 @@ ac_build_libabinit=$ac_internal_libabinit
 if test "$ac_internal_libabinit" = "yes" ; then
   ac_build_libabinit="yes"
   ac_use_libabinit="yes"
-  AC_SUBST(LIBABINIT_INCLUDE, "-I\$(top_builddir)"/libABINIT/src)
+  ac_libabinit_incs="-I\$(top_builddir)/libABINIT/src"
   LDFLAGS="$LDFLAGS -L\$(top_builddir)/libABINIT/src"
 else
   if test -n "$ac_libabinit_dir" ; then
@@ -950,14 +950,33 @@ else
     AC_CHECK_FILE($ac_libabinit_dir/include/libxc_functionals.$ax_fc_mod_ext, libxc="yes", libxc="no")
     if test "$withlibabinit" = "yes" -a "$moldyn" = "yes" -a "$sym" = "yes" -a "$libxc" = "yes"; then
       ac_use_libabinit="yes"
-      AC_SUBST(LIBABINIT_INCLUDE, "-I"$ac_libabinit_dir/include)
+      ac_libabinit_incs="-I$ac_libabinit_dir/include"
     fi
   fi
 fi
 AM_CONDITIONAL(BUILD_LIBABINIT, test x"$ac_build_libabinit" = x"yes")
+dnl Test the libPAW library.
+ac_internal_libpaw="yes"
+AC_ARG_WITH(libpaw, AS_HELP_STRING([--with-libpaw],
+                                   [Give the path for an external libPAW library, lib and module files (default = internal).]),
+            ac_internal_libpaw=$withval, ac_internal_libpaw="yes")
+if test x"$ac_internal_libpaw" == x"yes" -o x"$ac_internal_libpaw" == x"internal" ; then
+   ac_internal_libpaw="yes"
+else
+   dnl Given path should be tested here.
+   ac_libpaw_incs="-I$ac_internal_libpaw/include"
+   LDFLAGS="$LDFLAGS -L$ac_internal_libpaw/lib"
+   LIBABINIT_LIBS="-lpaw $LIBABINIT_LIBS"
+fi
+AM_CONDITIONAL(BUILD_LIBPAW, test x"$ac_internal_libpaw" = x"yes")
 if test x"$ac_use_libabinit" = x"yes" ; then
   AC_DEFINE([HAVE_LIBABINIT], [1], [use libABINIT in BigDFT.])
-  LIBABINIT_LIBS="-labinit"
+  AC_SUBST(LIBABINIT_INCLUDE, "$ac_libpaw_incs $ac_libabinit_incs")
+  if test x"$ac_internal_libpaw" == x"yes" ; then
+    LIBABINIT_LIBS="-labinit"
+  else
+    LIBABINIT_LIBS="-lpaw -labinit"
+  fi
 fi
 
 dnl Test S_GPU library.
@@ -1128,6 +1147,7 @@ Basics:
   Fortran77 flags:           $FFLAGS
   Linker flags:              $LDFLAGS
   Linked libraries:          $LIBS_DEPENDENCIES $LIBS
+  Linked dependencies:       $LIBS_SHORT_DEPS
 
 Build:
   Library BigDFT:            $ac_build_lib_BigDFT
@@ -1135,7 +1155,7 @@ Build:
   atom and pseudo binaries:  $ac_build_bin_pseudo
   Bindings:                  $ac_build_bindings
   User documentation:        $ac_have_pdflatex
-  Devel. documentation:      $ac_have_doxygen / $ac_devel_doc
+  Devel. documentation:      $ac_devel_doc (Doxygen: $ac_have_doxygen)
 
 Options:
   Debug version:             $ac_use_debug
@@ -1157,6 +1177,8 @@ Options:
   With libXC:                $ac_use_libxc
    | internal built:         $ac_build_libxc
    | include dir.:           $LIBXC_INCLUDE
+  With libPAW:               $ac_use_libabinit
+   | path (or internal):     $ac_internal_libpaw
   With libABINIT:            $ac_use_libabinit
    | internal built:         $ac_build_libabinit
    | include dir.:           $LIBABINIT_INCLUDE

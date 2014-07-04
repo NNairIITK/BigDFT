@@ -65,6 +65,32 @@ AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@ -I$(srcdir)/72_geomoptim -I$(srcdir)/
 PPFCCOMPILE = $(FC) $(DEFS_FORTRAN) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_FCFLAGS) $(FCFLAGS)
 
+if BUILD_LIBPAW
+libpaw_files = \
+	42_libpaw/interfaces_42_libpaw.F90 \
+	42_libpaw/m_atompaw.F90 \
+	42_libpaw/m_gaussfit.F90 \
+	42_libpaw/m_paral_atom.F90 \
+	42_libpaw/m_paw_an.F90 \
+	42_libpaw/m_pawang.F90 \
+	42_libpaw/m_pawcprj.F90 \
+	42_libpaw/m_pawdij.F90 \
+	42_libpaw/m_pawfgrtab.F90 \
+	42_libpaw/m_paw_finegrid.F90 \
+	42_libpaw/m_paw_ij.F90 \
+	42_libpaw/m_pawio.F90 \
+	42_libpaw/m_paw_numeric.F90 \
+	42_libpaw/m_pawpsp.F90 \
+	42_libpaw/m_pawrad.F90 \
+	42_libpaw/m_pawrhoij.F90 \
+	42_libpaw/m_pawtab.F90 \
+	42_libpaw/m_pawxc.F90 \
+	42_libpaw/m_pawxmlps.F90 \
+	42_libpaw/m_sphharm.F90
+else
+libpaw_files =
+endif
+
 libabinit_a_SOURCES = \
 	01_interfaces_ext/interfaces_linalg.F90 \
 	10_defs/defs_basis.F90 \
@@ -162,26 +188,6 @@ libabinit_a_SOURCES = \
 	42_geometry/symspgr.F90 \
 	42_geometry/symzat.F90 \
 	42_geometry/xredxcart.F90 \
-	42_libpaw/interfaces_42_libpaw.F90 \
-	42_libpaw/m_atompaw.F90 \
-	42_libpaw/m_gaussfit.F90 \
-	42_libpaw/m_paral_atom.F90 \
-	42_libpaw/m_paw_an.F90 \
-	42_libpaw/m_pawang.F90 \
-	42_libpaw/m_pawcprj.F90 \
-	42_libpaw/m_pawdij.F90 \
-	42_libpaw/m_pawfgrtab.F90 \
-	42_libpaw/m_paw_finegrid.F90 \
-	42_libpaw/m_paw_ij.F90 \
-	42_libpaw/m_pawio.F90 \
-	42_libpaw/m_paw_numeric.F90 \
-	42_libpaw/m_pawpsp.F90 \
-	42_libpaw/m_pawrad.F90 \
-	42_libpaw/m_pawrhoij.F90 \
-	42_libpaw/m_pawtab.F90 \
-	42_libpaw/m_pawxc.F90 \
-	42_libpaw/m_pawxmlps.F90 \
-	42_libpaw/m_sphharm.F90 \
 	42_geometry/interfaces_42_geometry.F90 \
 	50_abitypes_defs/defs_abitypes.F90 \
 	56_mixing/aprxdr.F90 \
@@ -207,7 +213,8 @@ libabinit_a_SOURCES = \
 	67_common/prtxvf.F90 \
 	72_geomoptim/ab6_moldyn.F90 \
 	72_geomoptim/xfpack.F90 \
-	42_geometry/symmetry.c
+	42_geometry/symmetry.c \
+	$(libpaw_files)
 
 CLEANFILES = mpif.h *.@MODULE_EXT@
 
