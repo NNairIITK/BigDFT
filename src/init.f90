@@ -735,8 +735,13 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   logical :: rho_negative
   integer,parameter :: RESTART_AO = 1
   integer,parameter :: RESTART_REFORMAT = 2
-  integer,parameter :: restart_FOE = RESTART_AO!REFORMAT!AO
+  integer,parameter :: restart_FOE = RESTART_REFORMAT!AO
   real(kind=8),dimension(:,:),allocatable :: kernelp, ovrlpp
+  type(localizedDIISParameters) :: ldiis
+  logical :: ortho_on, reduce_conf, can_use_ham
+  real(kind=8) :: trace, trace_old, fnrm_tmb, ratio_deltas
+  integer :: order_taylor, info_basis_functions
+
 
   call f_routine(id='input_memory_linear')
 
@@ -961,6 +966,37 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
               pnrm,denspot%dpbox%nscatterarr)
       end if
       call local_potential_dimensions(iproc,tmb%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
+       if (input%experimental_mode) then
+           ! NEW: TRACE MINIMIZATION WITH ORTHONORMALIZATION ####################################
+           ortho_on=.true.
+           call initializeDIIS(input%lin%DIIS_hist_lowaccur, tmb%lzd, tmb%orbs, ldiis)
+           ldiis%alphaSD=input%lin%alphaSD
+           ldiis%alphaDIIS=input%lin%alphaDIIS
+           energs%eexctX=0.d0 !temporary fix
+           trace_old=0.d0 !initialization
+           if (iproc==0) then
+               !call yaml_close_map()
+               call yaml_comment('Extended input guess for experimental mode',hfill='-')
+               call yaml_open_map('Extended input guess')
+               call yaml_open_sequence('support function optimization',label=&
+                                                 'it_supfun'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))))
+           end if
+           order_taylor=input%lin%order_taylor ! since this is intent(inout)
+           call getLocalizedBasis(iproc,nproc,at,tmb%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
+               info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
+               input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
+               50,&
+               ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode,input%lin%early_stop,&
+               input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
+               can_use_ham, order_taylor, input%lin%max_inversion_error, input%kappa_conv, input%method_updatekernel,&
+               input%purification_quickreturn, input%correction_co_contra)
+           reduce_conf=.true.
+           call yaml_close_sequence()
+           call yaml_close_map()
+           call deallocateDIIS(ldiis)
+           !call yaml_open_map()
+           ! END NEW ############################################################################
+       end if
   end if
 
   ! Orthonormalize the input guess if necessary
