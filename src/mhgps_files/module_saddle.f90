@@ -15,7 +15,8 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_
     use module_base
     use module_interfaces
     use module_global_variables, only: inputPsiId, iproc, ixyz_int, atoms, mhgps_verbosity,&
-                                       currDir, currFile, ndim_rot, nhist_rot, alpha_rot
+                                       currDir, currFile, ndim_rot, nhist_rot, alpha_rot,&
+                                       alpha_stretch_rot, saddle_alpha_stretch0
  
     use yaml_output
     !imode=1 for clusters
@@ -814,7 +815,6 @@ integer, intent(in) :: nbond
 integer, intent(in) :: iconnect(2,nbond)
 character(len=20) :: atomnames(nat)
 real(gp),intent(in) :: alpha_stretch0
-real(gp) :: alpha_stretch
 real(gp), intent(in) :: alat(3)
 real(gp), intent(in) :: maxcurvrise,cutoffratio
     integer, intent(in) :: nit,nhistx

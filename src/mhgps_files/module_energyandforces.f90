@@ -60,7 +60,7 @@ subroutine lenjon(nat,rxyz,fxyz,etot)
     real(gp), intent(out) :: etot
     !internal
     integer :: iat, jat
-    real(g) :: dx,dy,dy,dd,dd2,dd6,dd12,tt,t1,t2,t3
+    real(gp) :: dx,dy,dz,dd,dd2,dd6,dd12,tt,t1,t2,t3
 
     etot=0.d0
     do iat=1,nat
