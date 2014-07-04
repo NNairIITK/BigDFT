@@ -112,6 +112,7 @@ real(gp),allocatable :: eval(:),work(:)
     hess     = f_malloc((/ 1.to.3*atoms%astruct%nat, 1.to.3*atoms%astruct%nat/),id='hess')
     iconnect = 0
     ixyz_int = 0
+allocate(rxyz_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),fxyz_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),fxyzraw_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),rxyzraw_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),fstretch_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),eval_rot(saddle_nhistx_rot),res_rot(saddle_nhistx_rot))
 
     !if in biomode, determine bonds betweens atoms once and for all (it is
     !assuemed that all conifugrations over which will be iterated have the same

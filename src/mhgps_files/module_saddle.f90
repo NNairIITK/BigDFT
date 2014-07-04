@@ -9,7 +9,8 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_
     use module_base
     use module_interfaces
     use module_global_variables, only: inputPsiId, iproc, ixyz_int, atoms, mhgps_verbosity,&
-                                       currDir, currFile  
+                                       currDir, currFile, ndim_rot, nhist_rot, alpha_rot
+ 
     use yaml_output
     !imode=1 for clusters
     !imode=2 for biomolecules
@@ -116,11 +117,15 @@ character(len=100) :: filename
     !functions
     real(gp) :: ddot,dnrm2
 
+    ndim_rot=0
+    nhist_rot=0
+    alpha_rot=alpha0_rot
+
+
 if(iproc==0)then
     call yaml_comment('(MHGPS) Start Saddle Search ....',hfill='-')
 endif
 
-minmode0=minmode
 
     rmsdispl=rmsdispl0
 
@@ -149,6 +154,7 @@ minmode0=minmode
     allocate(ff(3,nat,0:nhistx_trans),rr(3,nat,0:nhistx_trans),dd(3,nat),dds(3,nat),dd0(3,nat),delta(3,nat),ftmp(3,nat))
     allocate(fff(3,nat,0:nhistx_trans),rrr(3,nat,0:nhistx_trans),scpr(nhistx_trans),wold(nbond),fstretch(3,nat,0:nhistx_trans))
     allocate(gradrot(3,nat),minmodeold(3,nat),minmode0(3,nat))
+minmode0=minmode
     minmodeold=minmode
     wold=0.0_gp
     fstretch=0.0_gp
@@ -781,7 +787,17 @@ end subroutine
 subroutine opt_curv(imode,nat,alat,alpha0,curvgraddiff,nit,nhistx,rxyz_fix,fxyz_fix,dxyzin,curv,fout,fnrmtol&
                    &,displ,ener_count,converged,iconnect,nbond,atomnames,alpha_stretch0,maxcurvrise,cutoffratio)!,mode)
 use module_base
-use module_global_variables, only: inputPsiId, isForceField, iproc, mhgps_verbosity
+use module_global_variables, only: inputPsiId, isForceField, iproc, mhgps_verbosity,&
+                                   rxyz => rxyz_rot,&
+                                   rxyzraw => rxyzraw_rot,&
+                                   fxyz => fxyz_rot,&
+                                   fxyzraw => fxyzraw_rot,&
+                                   fstretch => fstretch_rot,&
+                                   nhist => nhist_rot,&
+                                   alpha => alpha_rot,&
+                                   ndim => ndim_rot,&
+                                   eval => eval_rot,&
+                                   res => res_rot
 use yaml_output
     implicit none
 integer, intent(in) :: imode
@@ -795,21 +811,24 @@ real(gp), intent(in) :: maxcurvrise,cutoffratio
     integer, intent(in) :: nit,nhistx
     real(gp), intent(in) :: alpha0,curvgraddiff
     real(gp), dimension(3,nat) :: dxyzin,fout,rxyz_fix,fxyz_fix!,mode
-    real(gp), allocatable, dimension(:,:,:) ::rxyz,fxyz,ff,rr,rrr,fff,fxyzraw,rxyzraw,fstretch
+    real(gp), allocatable, dimension(:,:,:) ::ff,rr,rrr,fff
+!    real(gp), allocatable, dimension(:,:,:) ::rxyz,fxyz,ff,rr,rrr,fff,fxyzraw,rxyzraw,fstretch
     real(gp), allocatable, dimension(:,:) :: aa,dd
-    real(gp), allocatable, dimension(:) :: eval,work,res,scpr
+    real(gp), allocatable, dimension(:) :: work,scpr
     logical, intent(out) :: converged
     logical steep
-    integer :: lwork,nhist,i,iat,l,itswitch,ndim
+    integer :: lwork,i,iat,l,itswitch
     integer :: ihist,it,nat
     real(gp) :: displ,ener_count,curv
     real(gp) :: fnrmtol,curvold,fnrm,curvp,fmax
-    real(gp) :: alpha,dcurv,s,st,tt,cosangle
+    real(gp) :: dcurv,s,st,tt,cosangle
     logical :: subspaceSucc
     real(gp),allocatable :: wold(:)
 real(gp) :: edmy
     !functions
     real(gp) :: ddot
+integer,save :: id=0
+write(*,*)'alpha in', alpha
 
     alpha_stretch=alpha_stretch0
 
@@ -818,41 +837,47 @@ real(gp) :: edmy
     displ=0.0_gp
     ! allocate arrays
     lwork=1000+10*nat**2
-    allocate(rxyz(3,nat,0:nhistx),fxyz(3,nat,0:nhistx),fxyzraw(3,nat,0:nhistx),rxyzraw(3,nat,0:nhistx),aa(nhistx,nhistx))
-    allocate(eval(nhistx),res(nhistx),work(lwork))
+    allocate(aa(nhistx,nhistx))
+!    allocate(rxyz(3,nat,0:nhistx),fxyz(3,nat,0:nhistx),fxyzraw(3,nat,0:nhistx),rxyzraw(3,nat,0:nhistx),aa(nhistx,nhistx))
+    allocate(work(lwork))
     allocate(ff(3,nat,0:nhistx),rr(3,nat,0:nhistx),dd(3,nat))
-    allocate(fff(3,nat,0:nhistx),rrr(3,nat,0:nhistx),scpr(nhistx),fstretch(3,nat,0:nhistx),wold(nbond))
+    allocate(fff(3,nat,0:nhistx),rrr(3,nat,0:nhistx),scpr(nhistx),wold(nbond))
     wold=0.0_gp
-
+   ndim=0
+   nhist=0
+   alpha=alpha0
+!id=id+1
+!if(id==1)then
     do iat=1,nat
        do l=1,3
-          rxyz(l,iat,0)=dxyzin(l,iat)
+          rxyz(l,iat,nhist)=dxyzin(l,iat)
        enddo
     enddo
+!endif
 
 !    call minenergyandforces(nat,rxyz(1,1,0),rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),etot,iconnect,nbond,atomnames,wold,alpha_stretch)
 !    rxyz(:,:,0)=rxyz(:,:,0)+alpha_stretch*fstretch(:,:,0)
 !    ec=ec+1.0_gp
-     call mincurvgrad(imode,nat,alat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,0),&
-          rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),curv,1,ener_count,&
+     call mincurvgrad(imode,nat,alat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
+          rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),curv,1,ener_count,&
           iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
-    if(imode==2)rxyz(:,:,0)=rxyz(:,:,0)+alpha_stretch*fstretch(:,:,0)
+    if(imode==2)rxyz(:,:,nhist)=rxyz(:,:,nhist)+alpha_stretch*fstretch(:,:,nhist)
 !    t1=0.0_gp ; t2=0.0_gp ; t3=0.0_gp
 !    t1raw=0.0_gp ; t2raw=0.0_gp ; t3raw=0.0_gp
 !    do iat=1,nat
 !       t1raw=t1raw+fxyzraw(1,iat,0)**2 ; t2raw=t2raw+fxyzraw(2,iat,0)**2;t3raw=t3raw+fxyzraw(3,iat,0)**2
 !    enddo
 !    fnrm=sqrt(t1raw+t2raw+t3raw)
-    call fnrmandforcemax(fxyzraw(1,1,0),fnrm,fmax,nat)
+    call fnrmandforcemax(fxyzraw(1,1,nhist),fnrm,fmax,nat)
     fnrm=sqrt(fnrm)
     curvold=curv
     curvp=curv
  
-!    itswitch=2
-    itswitch=-2
-    ndim=0
-    nhist=0
-    alpha=alpha0
+    itswitch=2
+    !itswitch=-2
+!    ndim=0
+!    nhist=0
+!    alpha=alpha0
     do it=1,nit
         nhist=nhist+1
  
@@ -1005,6 +1030,7 @@ stop 'no convergence in optcurv'
     return
     1000 continue
     converged=.true.
+write(*,*)'alpha out', alpha
     do iat=1,nat
         do l=1,3
             dxyzin(l,iat)= rxyz(l,iat,nhist)

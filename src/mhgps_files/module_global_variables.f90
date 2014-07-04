@@ -69,4 +69,11 @@ module module_global_variables
     integer :: inputPsiId=0
     integer :: iproc=0,nproc=1,igroup=0,ngroups=1
     integer :: itermin=0
+
+
+    !following variables might be packed in an own module...
+    !variables for rotation
+    integer :: nhist_rot,ndim_rot
+real(gp), allocatable :: rxyz_rot(:,:,:),fxyz_rot(:,:,:),fxyzraw_rot(:,:,:),rxyzraw_rot(:,:,:),fstretch_rot(:,:,:),eval_rot(:),res_rot(:)
+real(gp) :: alpha_rot
 end module
