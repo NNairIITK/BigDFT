@@ -933,13 +933,16 @@ if(iproc==0)write(*,'(a,xi4.4,xi4.4,xes21.14,4(xes9.2),xi3.3)')'   (MHGPS) CUOPT
                 call yaml_warning('(MHGPS) alpha reset (opt. curv): '//&
                      trim(yaml_toa(alpha)))
             ndim=0
-if(.not. isForceField)then
-inputPsiId=0
-write(*,*)'bastian reset inputpsi'
-call mincurvgrad(imode,nat,alat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist-1),&
-    rxyzraw(1,1,nhist-1),fxyz(1,1,nhist-1),fstretch(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
-    curvold,1,ener_count,iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
-endif
+        if(.not. isForceField)then
+            if(iproc==0 .and. mhgps_verbosity>=3)&
+                call yaml_warning('(MHGPS) Will use LCAO input guess&
+                 from now on (until end of current minmode optimization).')
+            inputPsiId=0
+            write(*,*)'bastian reset inputpsi'
+            call mincurvgrad(imode,nat,alat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist-1),&
+                rxyzraw(1,1,nhist-1),fxyz(1,1,nhist-1),fstretch(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
+                curvold,1,ener_count,iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
+        endif
 
 !            if(.not.steep)then
                 do iat=1,nat

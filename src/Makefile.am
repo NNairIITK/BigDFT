@@ -314,7 +314,6 @@ mhgps_SOURCES = mhgps_files/mhgps.f90
 mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 mhgps_LDADD = mhgps_files/libmhgps.a $(bigdft_library) @LINALG_LIBS@
 
-
 global_SOURCES = global.f90
 global_LDADD = $(bigdft_library) @LINALG_LIBS@
 

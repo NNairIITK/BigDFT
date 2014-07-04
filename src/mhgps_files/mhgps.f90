@@ -86,13 +86,14 @@ real(gp),allocatable :: eval(:),work(:)
 !        endif
 
     elseif(efmethod=='LJ')then
+        iproc=0
         isForceField=.true.
         write(folder,'(a,i3.3)')'input',ifolder
         write(filename,'(a,i3.3)')'min',ifile
         call deallocate_atomic_structure(atoms%astruct)
         call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
         call init_global_output(outs, atoms%astruct%nat)
-        if(iproc==0) call print_logo_mhgps()
+        call print_logo_mhgps()
     else
         call yaml_warning('Following method for evaluation of energies and forces is unknown: '//trim(adjustl(efmethod)))
         stop
