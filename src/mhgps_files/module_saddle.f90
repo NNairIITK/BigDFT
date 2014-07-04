@@ -2,34 +2,6 @@ module module_saddle
 
 contains
 
-subroutine findbonds(nat,rcov,pos,nbond,iconnect)
-!has to be called before findsad (if operating in biomolecule mode)
-use module_base
-    implicit none
-    !parameters
-    integer, intent(in) :: nat
-    real(gp), intent(in) :: rcov(nat)
-    real(gp), intent(in) :: pos(3,nat)
-    integer, intent(out) :: nbond
-    integer, intent(out) :: iconnect(2,1000)
-    !internal
-    integer :: iat,jat
-    real(gp) :: dist2
-    nbond=0
-    do iat=1,nat
-        do jat=1,iat-1
-            dist2=(pos(1,iat)-pos(1,jat))**2+(pos(2,iat)-pos(2,jat))**2+(pos(3,iat)-pos(3,jat))**2
-            if (dist2.le.(1.2_gp*(rcov(iat)+rcov(jat)))**2) then
-                nbond=nbond+1
-                if (nbond.gt.1000) stop 'nbond>1000'
-                iconnect(1,nbond)=iat
-                iconnect(2,nbond)=jat
-            endif
-        enddo
-    enddo
-    write(*,*) 'FOUND ',nbond,' BOND'
-end subroutine
-
 subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_trans,&
     nit_rot,nhistx_trans,nhistx_rot,tolc,tolf,tightenfac,rmsdispl0,&
     trustr,wpos,etot,fout,minmode,fnrmtol,displ,ener_count,&
@@ -94,24 +66,48 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_
     real(gp), allocatable, dimension(:)     :: res
     real(gp), allocatable, dimension(:)     :: scpr
     real(gp), allocatable, dimension(:)     :: wold
-    logical :: steep
-    real(gp) :: maxd,scl
-    real(gp) :: alpha_stretch, fnrm,etotp,etotold,alpha,tt,dt,detot,s,cosangle,st,fmax
-    integer :: lwork, iat , l, itswitch, nhist, ndim, it, ihist, i
-integer:: recompute
-real(gp) :: tol,displold,rmsdispl,curv,displ2,overlap
-logical :: optCurvConv
-logical :: flag,tooFar,fixfragmented,subspaceSucc
-real(gp), allocatable, dimension(:,:) :: gradrot,minmodeold
-real(gp) :: tnatdmy(3,nat)
-integer :: nputback,lastit
-character(len=9) :: fn9
-integer, save :: fc=0
-character(len=60)                       :: comment
-real(gp) :: tmp
+    real(gp), allocatable, dimension(:,:)   :: gradrot
+    real(gp), allocatable, dimension(:,:)   :: minmodeold
+    logical  :: steep
+    real(gp) :: maxd
+    real(gp) :: alpha
+    real(gp) :: alpha_stretch
+    real(gp) :: fnrm
+    real(gp) :: fmax
+    real(gp) :: etotp
+    real(gp) :: etotold
+    real(gp) :: detot
+    real(gp) :: cosangle
+    real(gp) :: scl
+    real(gp) :: tt
+    real(gp) :: dt
+    integer  :: lwork
+    integer  :: iat
+    integer  :: itswitch
+    integer  :: nhist
+    integer  :: ndim
+    integer  :: it
+    integer  :: ihist
+    integer  :: i
+    integer  :: recompute
+    integer, save :: fc=0
+    real(gp) :: tol
+    real(gp) :: displold
+    real(gp) :: rmsdispl
+    real(gp) :: curv
+    real(gp) :: displ2
+    real(gp) :: overlap
+    real(gp) :: tnatdmy(3,nat)
+    real(gp) :: tmp
+    logical  :: optCurvConv
+    logical  :: flag
+    logical  :: tooFar
+    logical  :: fixfragmented
+    logical  :: subspaceSucc
+    character(len=9)  :: fn9
+    character(len=60) :: comment
 
       
-integer :: j,jdim,idim,info
 
 
 real(gp) :: minmode0(3,nat)
@@ -129,10 +125,8 @@ minmode0=minmode
 
     flag=.true.
     fixfragmented=.false.
-    nputback=0
     converged=.false.
     subspaceSucc=.true.
-    lastit=-(10*nhistx_trans)
 
 
     displ=0.0_gp
@@ -157,8 +151,8 @@ minmode0=minmode
     fstretch=0.0_gp
 
     do iat=1,nat
-        do l=1,3
-            rxyz(l,iat,0)=wpos(l,iat)
+        do i=1,3
+            rxyz(i,iat,0)=wpos(i,iat)
         enddo
     enddo
 
@@ -205,12 +199,12 @@ minmode0=minmode
             nhist=nhistx_trans
             do ihist=0,nhist-1
                 do iat=1,nat
-                    do l=1,3
-                        rxyz(l,iat,ihist)=rxyz(l,iat,ihist+1)
-                        fxyz(l,iat,ihist)=fxyz(l,iat,ihist+1)
-                        rxyzraw(l,iat,ihist)=rxyzraw(l,iat,ihist+1)
-                        fxyzraw(l,iat,ihist)=fxyzraw(l,iat,ihist+1)
-                        fstretch(l,iat,ihist)=fstretch(l,iat,ihist+1)
+                    do i=1,3
+                        rxyz(i,iat,ihist)=rxyz(i,iat,ihist+1)
+                        fxyz(i,iat,ihist)=fxyz(i,iat,ihist+1)
+                        rxyzraw(i,iat,ihist)=rxyzraw(i,iat,ihist+1)
+                        fxyzraw(i,iat,ihist)=fxyzraw(i,iat,ihist+1)
+                        fstretch(i,iat,ihist)=fstretch(i,iat,ihist+1)
                      enddo
                 enddo
             enddo
@@ -227,8 +221,8 @@ minmode0=minmode
            tol=tolf
            recompute=it
            flag=.false.
-       else if(it==1)then
-           tol=tolc
+!       else if(it==1)then
+!           tol=tolc
        else
            tol=tolc
        endif
@@ -258,9 +252,9 @@ stop 'opt_curv failed'
            displold=displ
            recompute=huge(1)
            !for what the following? can it be removed?(2.6.2014, Bastian)
-           if(tooFar)then
-               flag = .true.
-           endif
+!           if(tooFar)then
+!               flag = .true.
+!           endif
            if(iproc==0)call yaml_comment('(MHGPS) METHOD COUNT  IT  Energy                DIFF      FMAX      FNRM      alpha    ndim')
        endif
        !END FINDING LOWEST MODE
@@ -355,7 +349,7 @@ stop 'opt_curv failed'
 !       &'GEOPT it,etot,etotold,Detot,fnrm,ndim,alpha,alpha_stretch',&
 !       &it-1,etotp,etotold,detot,fnrm,ndim,alpha,alpha_stretch
 !!!           call yaml_comment('     METHOD  COUNT  IT  CURVATURE             DIFF      FMAX      FNRM      alpha    ndim   maxd   dsplp')
-       if(iproc==0)write(*,'(a,xi4.4,xi4.4,xes21.14,4(xes9.2),xi3.3,xes9.2)')&
+       if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,xes21.14,4(xes9.2),xi3.3,xes9.2)')&
        '   (MHGPS) GEOPT ',nint(ener_count),it,etotp,detot,fmax,fnrm, alpha,ndim!,maxd,
 
        etot=etotp
@@ -434,9 +428,9 @@ stop 'no convergence in findsad'
      if(iproc==0)call yaml_map( "(MHGPS) convergence at",nint(ener_count))
 
      do iat=1,nat
-     do l=1,3
-     wpos(l,iat)= rxyz(l,iat,nhist)
-     fout(l,iat)= fxyzraw(l,iat,nhist)
+     do i=1,3
+     wpos(i,iat)= rxyz(i,iat,nhist)
+     fout(i,iat)= fxyzraw(i,iat,nhist)
      enddo
      enddo
 
@@ -920,7 +914,7 @@ real(gp) :: edmy
 !        &it-1,curvp,curvold,dcurv,fnrm,alpha,alpha_stretch,ndim
 
 !!           call yaml_comment('     METHOD  COUNT  IT  CURVATURE             DIFF      FMAX      FNRM      alpha    ndim')
-if(iproc==0)write(*,'(a,xi4.4,xi4.4,xes21.14,4(xes9.2),xi3.3)')'   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim
+if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,xes21.14,4(xes9.2),xi3.3)')'   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim
 !HIER WEITER HIER WEITER: beautify output
 
         if (dcurv.gt.maxcurvrise .and. alpha>1.e-1_gp*alpha0) then 
@@ -2411,4 +2405,32 @@ use module_base
   if (vnrm /= 0.0_gp) v(1:n)=v(1:n)/vnrm
 
 END SUBROUTINE normalizevector
+subroutine findbonds(nat,rcov,pos,nbond,iconnect)
+!has to be called before findsad (if operating in biomolecule mode)
+use module_base
+    implicit none
+    !parameters
+    integer, intent(in) :: nat
+    real(gp), intent(in) :: rcov(nat)
+    real(gp), intent(in) :: pos(3,nat)
+    integer, intent(out) :: nbond
+    integer, intent(out) :: iconnect(2,1000)
+    !internal
+    integer :: iat,jat
+    real(gp) :: dist2
+    nbond=0
+    do iat=1,nat
+        do jat=1,iat-1
+            dist2=(pos(1,iat)-pos(1,jat))**2+(pos(2,iat)-pos(2,jat))**2+(pos(3,iat)-pos(3,jat))**2
+            if (dist2.le.(1.2_gp*(rcov(iat)+rcov(jat)))**2) then
+                nbond=nbond+1
+                if (nbond.gt.1000) stop 'nbond>1000'
+                iconnect(1,nbond)=iat
+                iconnect(2,nbond)=jat
+            endif
+        enddo
+    enddo
+    write(*,*) 'FOUND ',nbond,' BOND'
+end subroutine
+
 end module

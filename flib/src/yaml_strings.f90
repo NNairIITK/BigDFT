@@ -36,7 +36,7 @@ module yaml_strings
   !Public routines
   public ::  yaml_toa, buffer_string, align_message, shiftstr,yaml_date_toa
   public :: yaml_date_and_time_toa,yaml_time_toa,is_atoi,is_atof,is_atol
-  public :: read_fraction_string
+  public :: read_fraction_string,f_strcpy
 
 contains
 
@@ -78,20 +78,20 @@ contains
 
 
   !> Write the strings as they were written by write
-  pure subroutine string_assignment(stra,strb)
+  pure subroutine f_strcpy(dest,src)
     implicit none
-    character(len=*), intent(out) :: stra
-    character(len=*), intent(in) :: strb
+    character(len=*), intent(out) :: dest
+    character(len=*), intent(in) :: src
     !local variables
     integer :: i
 
-    stra=repeat(' ',len(stra))
+    dest=repeat(' ',len(dest))
     
-    do i=1,min(len(stra),len(strb))
-       stra(i:i)=strb(i:i)
+    do i=1,min(len(src),len(dest))
+       dest(i:i)=src(i:i)
     end do
     
-  end subroutine string_assignment
+  end subroutine f_strcpy
 
 
   !> Add a buffer to a string and increase its length

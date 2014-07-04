@@ -29,6 +29,10 @@ module dictionaries
      type(dictionary), pointer :: child => null()
    end type dictionary_container
 
+   type, public :: f_dict 
+      type(dictionary), pointer :: d =>null()
+   end type f_dict
+
    !> Error codes
    integer, save, public :: DICT_KEY_ABSENT
    integer, save, public :: DICT_VALUE_ABSENT
@@ -660,7 +664,7 @@ contains
 
 
    !> Returns the position of the name in the dictionary
-   !! returns 0 if the dictionary is nullified or the name is absent
+   !! returns -1 if the dictionary is nullified or the name is absent
    function find_index(dict,name)
      implicit none
      type(dictionary), pointer, intent(in) :: dict
@@ -670,7 +674,7 @@ contains
      integer :: ind
      type(dictionary), pointer :: dict_tmp
 
-     find_index =0
+     find_index =-1
      ind=-1
      if (associated(dict)) then
         dict_tmp=>dict_next(dict)
