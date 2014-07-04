@@ -995,6 +995,40 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
            call yaml_close_map()
            call deallocateDIIS(ldiis)
            !call yaml_open_map()
+
+           ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+            call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
+                 tmb%orbs, tmb%psi, tmb%collcom_sr)
+            !tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
+            call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+                 tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+                 denspot%rhov, rho_negative)
+           if (rho_negative) then
+               call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+               !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+               !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+               !!call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+           end if
+      
+            call vcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*input%nspin, &
+                 denspot%rhov(1), 1, denspot0(1), 1)
+            if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
+               ! set the initial charge density
+               call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
+                    denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+                    at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+                    pnrm,denspot%dpbox%nscatterarr)
+            end if
+            call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+            if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+               ! set the initial potential
+               call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
+                    denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+                    at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+                    pnrm,denspot%dpbox%nscatterarr)
+            end if
+            call local_potential_dimensions(iproc,tmb%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
+
            ! END NEW ############################################################################
        end if
   end if
