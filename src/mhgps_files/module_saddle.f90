@@ -1,3 +1,9 @@
+!! @file
+!! @author Bastian Schaefer
+!! @section LICENCE
+!!    Copyright (C) 2014 UNIBAS
+!!    This file is not freely distributed.
+!!    A licence is necessary from UNIBAS
 module module_saddle
 
 contains
@@ -120,6 +126,7 @@ character(len=100) :: filename
     ndim_rot=0
     nhist_rot=0
     alpha_rot=alpha0_rot
+    alpha_stretch_rot=saddle_alpha_stretch0
 
 
 if(iproc==0)then
@@ -787,18 +794,20 @@ end subroutine
 subroutine opt_curv(imode,nat,alat,alpha0,curvgraddiff,nit,nhistx,rxyz_fix,fxyz_fix,dxyzin,curv,fout,fnrmtol&
                    &,displ,ener_count,converged,iconnect,nbond,atomnames,alpha_stretch0,maxcurvrise,cutoffratio)!,mode)
 use module_base
-use module_global_variables, only: inputPsiId, isForceField, iproc, mhgps_verbosity,&
-                                   rxyz => rxyz_rot,&
-                                   rxyzraw => rxyzraw_rot,&
-                                   fxyz => fxyz_rot,&
-                                   fxyzraw => fxyzraw_rot,&
-                                   fstretch => fstretch_rot,&
-                                   nhist => nhist_rot,&
-                                   alpha => alpha_rot,&
-                                   ndim => ndim_rot,&
-                                   eval => eval_rot,&
-                                   res => res_rot
 use yaml_output
+use module_global_variables, only: inputPsiId, isForceField, iproc, mhgps_verbosity,&
+                                   rxyz          => rxyz_rot,&
+                                   rxyzraw       => rxyzraw_rot,&
+                                   fxyz          => fxyz_rot,&
+                                   fxyzraw       => fxyzraw_rot,&
+                                   fstretch      => fstretch_rot,&
+                                   nhist         => nhist_rot,&
+                                   alpha         => alpha_rot,&
+                                   alpha_stretch => alpha_stretch_rot,&
+                                   ndim          => ndim_rot,&
+                                   eval          => eval_rot,&
+                                   res           => res_rot,&
+                                   share          => share_rot_history
     implicit none
 integer, intent(in) :: imode
 integer, intent(in) :: nbond
@@ -830,7 +839,12 @@ real(gp) :: edmy
 integer,save :: id=0
 write(*,*)'alpha in', alpha
 
-    alpha_stretch=alpha_stretch0
+    if(.not.share)then
+        alpha_stretch=alpha_stretch0
+        ndim=0
+        nhist=0
+        alpha=alpha0
+    endif
 
     converged =.false.
     subspaceSucc=.true.
@@ -843,9 +857,6 @@ write(*,*)'alpha in', alpha
     allocate(ff(3,nat,0:nhistx),rr(3,nat,0:nhistx),dd(3,nat))
     allocate(fff(3,nat,0:nhistx),rrr(3,nat,0:nhistx),scpr(nhistx),wold(nbond))
     wold=0.0_gp
-   ndim=0
-   nhist=0
-   alpha=alpha0
 !id=id+1
 !if(id==1)then
     do iat=1,nat
@@ -873,11 +884,8 @@ write(*,*)'alpha in', alpha
     curvold=curv
     curvp=curv
  
-    itswitch=2
-    !itswitch=-2
-!    ndim=0
-!    nhist=0
-!    alpha=alpha0
+!    itswitch=2
+   itswitch=-2
     do it=1,nit
         nhist=nhist+1
  

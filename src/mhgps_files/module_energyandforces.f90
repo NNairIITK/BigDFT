@@ -1,16 +1,22 @@
+!! @file
+!! @author Bastian Schaefer
+!! @section LICENCE
+!!    Copyright (C) 2014 UNIBAS
+!!    This file is not freely distributed.
+!!    A licence is necessary from UNIBAS
+
 module module_energyandforces
 
 contains
 
 subroutine energyandforces(nat,alat,rxyz,fxyz,epot)
-   use module_base
-   use module_types
-   use module_interfaces
-   use yaml_output
-   use module_global_variables
-
-
+    use module_base
+    use module_types
+    use module_interfaces
+    use yaml_output
+    use module_global_variables
     implicit none
+    !parameters
     integer, intent(in) :: nat
     real(gp), intent(in) :: alat(3)
     real(gp), intent(in) :: rxyz(3,nat)
@@ -46,8 +52,15 @@ subroutine lenjon(nat,rxyz,fxyz,etot)
     !output: etot: energy
     !        fxyz: forces (negative derivative of energy with respect to
     !        positions
-    implicit real(gp) (a-h,o-z)
-    dimension rxyz(3,nat),fxyz(3,nat)
+    implicit none
+    !parameters
+    integer, intent(in)   :: nat
+    real(gp), intent(in)  :: rxyz(3,nat)
+    real(gp), intent(out) :: fxyz(3,nat)
+    real(gp), intent(out) :: etot
+    !internal
+    integer :: iat, jat
+    real(g) :: dx,dy,dy,dd,dd2,dd6,dd12,tt,t1,t2,t3
 
     etot=0.d0
     do iat=1,nat
@@ -70,7 +83,6 @@ subroutine lenjon(nat,rxyz,fxyz,etot)
             fxyz(3,iat)=fxyz(3,iat)+t3 ; fxyz(3,jat)=fxyz(3,jat)-t3
         enddo
     enddo
-    return
 end subroutine
 
 

@@ -1,3 +1,9 @@
+!! @file
+!! @author Bastian Schaefer
+!! @section LICENCE
+!!    Copyright (C) 2014 UNIBAS
+!!    This file is not freely distributed.
+!!    A licence is necessary from UNIBAS
 program mhgps
     use module_base
     use module_types

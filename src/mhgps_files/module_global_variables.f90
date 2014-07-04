@@ -32,9 +32,11 @@ module module_global_variables
     real(gp)         :: saddle_cutoffratio         = 1.e-4_gp
     integer          :: saddle_recompIfCurvPos     = 5
     real(gp)         :: saddle_fnrmtol             = 1.e-3_gp
+    logical          :: share_rot_history          = .false. !not available via
+                                                            !input file
 
     !parameters for minimizers implemented in mhgps
-    logical :: internal=.true.
+    logical :: internal=.true. !unse internal or external optimizers?
         !SBFGS
         integer  :: mini_nhistx
         integer  :: mini_nit
@@ -45,16 +47,16 @@ module module_global_variables
         real(gp) :: mini_trustr
 
     !other
-    integer          :: nbond               = 1
-    integer, allocatable :: iconnect(:,:) 
-    integer, allocatable :: ixyz_int(:,:)
+    integer               :: nbond = 1
+    integer, allocatable  :: iconnect(:,:) 
+    integer, allocatable  :: ixyz_int(:,:)
     real(gp), allocatable :: minmode(:,:)
-    integer,parameter :: usaddle=173
-    character(len=60) :: saddle_filename='saddle.mon'
-    logical :: isForceField=.false.
-    real(gp) :: ef_counter=0.d0
-    character(len=8) :: currDir
-    character(len=6) :: currFile
+    integer,parameter     :: usaddle=173
+    character(len=60)     :: saddle_filename='saddle.mon'
+    logical               :: isForceField=.false.
+    real(gp)              :: ef_counter=0.d0
+    character(len=8)      :: currDir
+    character(len=6)      :: currFile
 
 
     !bigdft data types and variables
@@ -75,5 +77,5 @@ module module_global_variables
     !variables for rotation
     integer :: nhist_rot,ndim_rot
 real(gp), allocatable :: rxyz_rot(:,:,:),fxyz_rot(:,:,:),fxyzraw_rot(:,:,:),rxyzraw_rot(:,:,:),fstretch_rot(:,:,:),eval_rot(:),res_rot(:)
-real(gp) :: alpha_rot
+real(gp) :: alpha_rot, alpha_stretch_rot
 end module
