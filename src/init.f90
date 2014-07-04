@@ -865,7 +865,6 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       !call f_free_ptr(tmb%psit_f)
   else if (restart_FOE==RESTART_REFORMAT) then
       ! Calculate the old and the new overlap matrix
-      write(*,*) 'associated(tmb_old%psit_c)', associated(tmb_old%psit_c)
        tmb_old%psit_c = f_malloc_ptr(tmb_old%collcom%ndimind_c,id='tmb_old%psit_c')
        tmb_old%psit_f = f_malloc_ptr(7*tmb_old%collcom%ndimind_f,id='tmb_old%psit_f')
        call transpose_localized(iproc, nproc, tmb_old%npsidim_orbs, tmb_old%orbs, tmb_old%collcom, &
@@ -907,8 +906,6 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   end if
 
 
-  write(*,*) 'calling deallocate_local_zone_descriptors'
-  call deallocate_local_zone_descriptors(tmb_old%lzd, subname)
   call deallocate_orbitals_data(tmb_old%orbs, subname)
   call f_free_ptr(tmb_old%psi)
   call f_free_ptr(tmb_old%linmat%kernel_%matrix_compr)

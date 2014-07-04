@@ -87,7 +87,6 @@ program BigDFT
          !!! ######################################################################
 
          call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
-         write(*,*) 'associated(kernel)',associated(runObj%rst%tmb%linmat%kernel_%matrix_compr)
 
          if (runObj%inputs%ncount_cluster_x > 1) then
             if (iproc ==0 ) call yaml_map('Wavefunction Optimization Finished, exit signal',infocode)
