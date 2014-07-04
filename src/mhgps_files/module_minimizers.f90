@@ -36,7 +36,6 @@ subroutine minimizer_sbfgs(runObj_,outsIO,verbosity,ncount_bigdft,fail)
    integer :: nit    !< maximum number of iterations
    integer :: nat    !< number of atoms
    integer :: istat,iall
-   integer :: lwork
    integer :: it,i,iat,l,j,idim,jdim,ihist,icheck !<counter variables
    integer :: itswitch
 !   type(DFT_global_output) :: outs
@@ -80,7 +79,6 @@ subroutine minimizer_sbfgs(runObj_,outsIO,verbosity,ncount_bigdft,fail)
    real(gp), allocatable, dimension(:,:)   :: aa
    real(gp), allocatable, dimension(:,:)   :: dd
    real(gp), allocatable, dimension(:)     :: eval
-   real(gp), allocatable, dimension(:)     :: work
    real(gp), allocatable, dimension(:)     :: res
    real(gp), allocatable, dimension(:)     :: scpr
    real(gp), allocatable, dimension(:)     :: rnorm
@@ -128,14 +126,12 @@ subroutine minimizer_sbfgs(runObj_,outsIO,verbosity,ncount_bigdft,fail)
    maxd=0.0_gp
 
    ! allocate arrays
-   lwork=1000+10*nat**2
    rxyz = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='rxyz')
    fxyz = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='fxyz')
    aa = f_malloc((/ nhistx, nhistx /),id='aa')
    eval = f_malloc(nhistx,id='eval')
    res = f_malloc(nhistx,id='res')
    rnorm = f_malloc(nhistx,id='rnorm')
-   work = f_malloc(lwork,id='work')
    ff = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='ff')
    rr = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='rr')
    dd = f_malloc((/ 3, nat /),id='dd')
@@ -593,7 +589,6 @@ subroutine minimizer_sbfgs(runObj_,outsIO,verbosity,ncount_bigdft,fail)
    call f_free(eval)
    call f_free(res)
    call f_free(rnorm)
-   call f_free(work)
    call f_free(ff)
    call f_free(rr)
    call f_free(dd)

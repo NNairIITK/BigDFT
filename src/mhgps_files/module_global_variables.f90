@@ -1,3 +1,10 @@
+!! @file
+!! @author Bastian Schaefer
+!! @section LICENCE
+!!    Copyright (C) 2014 UNIBAS
+!!    This file is not freely distributed.
+!!    A licence is necessary from UNIBAS
+
 module module_global_variables
     use module_base !bigdft base module
     use module_types
@@ -30,9 +37,11 @@ module module_global_variables
     real(gp)         :: saddle_tightenfac          = -1.0_gp
     real(gp)         :: saddle_maxcurvrise         = 1.e-6_gp
     real(gp)         :: saddle_cutoffratio         = 1.e-4_gp
+    real(gp)         :: saddle_steepthresh_trans   = 1.e+2_gp
+    real(gp)         :: saddle_steepthresh_rot     = 2.e+3_gp
     integer          :: saddle_recompIfCurvPos     = 5
     real(gp)         :: saddle_fnrmtol             = 1.e-3_gp
-    logical          :: share_rot_history          = .true. !not available via
+    logical          :: share_rot_history          = .false. !not available via
                                                             !input file since
                                                             !sharing tends to
                                                             !introduce a slight
@@ -80,8 +89,41 @@ module module_global_variables
 
 
     !following variables might be packed in an own module...
+    integer               :: lwork
+    real(gp), allocatable :: work(:)
     !variables for rotation
     integer :: nhist_rot,ndim_rot
-real(gp), allocatable :: rxyz_rot(:,:,:),fxyz_rot(:,:,:),fxyzraw_rot(:,:,:),rxyzraw_rot(:,:,:),fstretch_rot(:,:,:),eval_rot(:),res_rot(:),rrr_rot(:,:,:)
-real(gp) :: alpha_rot, alpha_stretch_rot
+    real(gp), allocatable :: rxyz_rot(:,:,:)
+    real(gp), allocatable :: fxyz_rot(:,:,:)
+    real(gp), allocatable :: fxyzraw_rot(:,:,:)
+    real(gp), allocatable :: rxyzraw_rot(:,:,:)
+    real(gp), allocatable :: fstretch_rot(:,:,:)
+    real(gp), allocatable :: eval_rot(:)
+    real(gp), allocatable :: res_rot(:)
+    real(gp), allocatable :: rrr_rot(:,:,:)
+    real(gp), allocatable :: aa_rot(:,:)
+    real(gp), allocatable :: ff_rot(:,:,:)
+    real(gp), allocatable :: rr_rot(:,:,:)
+    real(gp), allocatable :: dd_rot(:,:)
+    real(gp), allocatable :: fff_rot(:,:,:)
+    real(gp), allocatable :: scpr_rot(:)
+    real(gp), allocatable :: wold_rot(:)
+    real(gp) :: alpha_rot, alpha_stretch_rot
+    !translation
+    real(gp), allocatable :: rxyz_trans(:,:,:)
+    real(gp), allocatable :: fxyz_trans(:,:,:)
+    real(gp), allocatable :: fxyzraw_trans(:,:,:)
+    real(gp), allocatable :: rxyzraw_trans(:,:,:)
+    real(gp), allocatable :: fstretch_trans(:,:,:)
+    real(gp), allocatable :: eval_trans(:)
+    real(gp), allocatable :: res_trans(:)
+    real(gp), allocatable :: rrr_trans(:,:,:)
+    real(gp), allocatable :: aa_trans(:,:)
+    real(gp), allocatable :: ff_trans(:,:,:)
+    real(gp), allocatable :: rr_trans(:,:,:)
+    real(gp), allocatable :: dd_trans(:,:)
+    real(gp), allocatable :: fff_trans(:,:,:)
+    real(gp), allocatable :: scpr_trans(:)
+    real(gp), allocatable :: wold_trans(:)
+
 end module

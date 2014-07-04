@@ -44,10 +44,10 @@ real(gp), allocatable, dimension(:,:) :: gradrot
 integer :: nat
 real(gp),allocatable :: rxyz(:,:),fxyz(:,:),rotforce(:,:),hess(:,:)
 real(gp) :: energy
-integer :: i,j,info,lwork
+integer :: i,j,info
 integer :: idum=0
 real(kind=4) :: tt,builtin_rand
-real(gp),allocatable :: eval(:),work(:)
+real(gp),allocatable :: eval(:)
 
     ifolder=1
     ifile=1
@@ -107,6 +107,8 @@ real(gp),allocatable :: eval(:),work(:)
     if(iproc==0) call print_input()
 
     !allocate more arrays
+    lwork=1000+10*atoms%astruct%nat**2
+    work = f_malloc((/1.to.lwork/),id='work')
     minmode  = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='minmode')
     rxyz     = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='rxyz')
     fxyz     = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='rxyz')
@@ -116,9 +118,40 @@ real(gp),allocatable :: eval(:),work(:)
     gradrot  = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='gradrot')
     rotforce = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='rotforce')
     hess     = f_malloc((/ 1.to.3*atoms%astruct%nat, 1.to.3*atoms%astruct%nat/),id='hess')
+    rxyz_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_rot/),id='rxyz_rot')
+    fxyz_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_rot/),id='fxyz_rot') 
+    fxyzraw_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_rot/),id='fxyzraw_rot')
+    rxyzraw_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_rot/),id='rxyzraw_rot')
+    fstretch_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_rot/),id='fstretch_rot')
+    eval_rot = f_malloc((/1.to.saddle_nhistx_rot/),id='eval_rot')
+    res_rot = f_malloc((/1.to.saddle_nhistx_rot/),id='res_rot')
+    rrr_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_rot/),id='rrr_rot')
+    aa_rot = f_malloc((/1.to.saddle_nhistx_rot,1.to.saddle_nhistx_rot/),id='aa_rot')
+    ff_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_rot/),id='ff_rot')
+    rr_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_rot/),id='rr_rot')
+    dd_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='dd_rot')
+    fff_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_rot/),id='fff_rot')
+    scpr_rot = f_malloc((/ 1.to.saddle_nhistx_rot/),id='scpr_rot')
+    wold_rot = f_malloc((/ 1.to.nbond/),id='wold_rot')
+    rxyz_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_trans/),id='rxyz_trans')
+    fxyz_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_trans/),id='fxyz_trans') 
+    fxyzraw_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_trans/),id='fxyzraw_trans')
+    rxyzraw_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_trans/),id='rxyzraw_trans')
+    fstretch_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_trans/),id='fstretch_trans')
+    eval_trans = f_malloc((/1.to.saddle_nhistx_trans/),id='eval_trans')
+    res_trans = f_malloc((/1.to.saddle_nhistx_trans/),id='res_trans')
+    rrr_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_trans/),id='rrr_trans')
+    aa_trans = f_malloc((/1.to.saddle_nhistx_trans,1.to.saddle_nhistx_trans/),id='aa_trans')
+    ff_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_trans/),id='ff_trans')
+    rr_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_trans/),id='rr_trans')
+    dd_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='dd_trans')
+    fff_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_trans/),id='fff_trans')
+    scpr_trans = f_malloc((/ 1.to.saddle_nhistx_trans/),id='scpr_trans')
+    wold_trans = f_malloc((/ 1.to.nbond/),id='wold_trans')
+    
     iconnect = 0
     ixyz_int = 0
-allocate(rxyz_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),fxyz_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),fxyzraw_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),rxyzraw_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),fstretch_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),eval_rot(saddle_nhistx_rot),res_rot(saddle_nhistx_rot),rrr_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot))
+!allocate(rxyz_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),fxyz_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),fxyzraw_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),rxyzraw_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),fstretch_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),eval_rot(saddle_nhistx_rot),res_rot(saddle_nhistx_rot),rrr_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot))
 
     !if in biomode, determine bonds betweens atoms once and for all (it is
     !assuemed that all conifugrations over which will be iterated have the same
@@ -140,8 +173,8 @@ allocate(rxyz_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),fxyz_rot(3,atoms%astr
 !       hfill='-',unit=usaddle)
 
 
-   LWORK=3*3*atoms%astruct%nat-1
-   allocate(eval(3*atoms%astruct%nat),work(lwork))
+!   LWORK=3*3*atoms%astruct%nat-1
+!   allocate(eval(3*atoms%astruct%nat))
 
     do ifolder = 1,999
         write(folder,'(a,i3.3)')'input',ifolder
@@ -243,6 +276,39 @@ allocate(rxyz_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),fxyz_rot(3,atoms%astr
     call f_free(rcov)
     call f_free(iconnect)
     call f_free(ixyz_int)
+    call f_free(work)
+    call f_free(rxyz_rot)
+    call f_free(fxyz_rot)
+    call f_free(fxyzraw_rot)
+    call f_free(rxyzraw_rot)
+    call f_free(fstretch_rot)
+    call f_free(eval_rot)
+    call f_free(res_rot)
+    call f_free(rrr_rot)
+    call f_free(aa_rot) 
+    call f_free(ff_rot)
+    call f_free(rr_rot)
+    call f_free(dd_rot) 
+    call f_free(fff_rot)
+    call f_free(scpr_rot)
+    call f_free(wold_rot)
+    call f_free(rxyz_trans)
+    call f_free(fxyz_trans)
+    call f_free(fxyzraw_trans)
+    call f_free(rxyzraw_trans)
+    call f_free(fstretch_trans)
+    call f_free(eval_trans)
+    call f_free(res_trans)
+    call f_free(rrr_trans)
+    call f_free(aa_trans) 
+    call f_free(ff_trans)
+    call f_free(rr_trans)
+    call f_free(dd_trans) 
+    call f_free(fff_trans)
+    call f_free(scpr_trans)
+    call f_free(wold_trans)
+
+
     if(iproc==0)call yaml_map('(MHGPS) Calls to energy and forces',nint(ef_counter))
     if(iproc==0)call yaml_map('(MHGPS) Run finished at',yaml_date_and_time_toa())
     call f_lib_finalize()
