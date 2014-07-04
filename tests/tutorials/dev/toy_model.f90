@@ -186,7 +186,7 @@ program wvl
           do j = 1, orbs%norb, 1
              call yaml_sequence(trim(yaml_toa(ovrlp(:, j),fmt='(g18.8)')))
           end do
-     call yaml_close_sequence()
+     call yaml_sequence_close()
      !write(*,*) "The overlap matrix is:"
      !do j = 1, orbs%norb, 1
      !   write(*, "(A)", advance = "NO") "("
@@ -307,7 +307,7 @@ program wvl
 
   call deallocate_bounds(Lzd%Glr%geocode,Lzd%Glr%hybrid_on,Lzd%Glr%bounds)
 
-  call deallocate_Lzd_except_Glr(Lzd,"main")
+  call deallocate_Lzd_except_Glr(Lzd)
   !deallocate(Lzd%Glr%projflg)
 
   call deallocate_orbs(orbs)

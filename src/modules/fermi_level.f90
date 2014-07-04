@@ -1,3 +1,14 @@
+!> @file
+!! BigDFT package performing ab initio calculation based on wavelets
+!! @author
+!!    Copyright (C) 2014-2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Determination of the Fermi level for the density matrix
 module fermi_level
   use module_base
   implicit none
@@ -157,25 +168,20 @@ module fermi_level
       ! Check whether the system behaves reasonably.
       interpolation_possible=.true.
       if (f%it_solver > 1) then
+          if (ef > f%ef_old .and. sumn < f%sumn_old) then
+              interpolation_possible = .false.
+          else if (ef < f%ef_old .and. sumn > f%sumn_old) then
+              interpolation_possible = .false.
+          end if
           if (f%verbosity >= 1 .and. bigdft_mpi%iproc==0) then
               call yaml_newline()
               call yaml_mapping_open('interpol check',flow=.true.)
-              call yaml_map('D eF',ef-f%ef_old,fmt='(es13.6)')
-              call yaml_map('D Tr',sumn-f%sumn_old,fmt='(es13.6)')
-          end if
-          if (ef > f%ef_old .and. sumn < f%sumn_old) then
-              interpolation_possible = .false.
-          end if
-          if (ef < f%ef_old .and. sumn > f%sumn_old) then
-              interpolation_possible = .false.
-          end if
-          if (interpolation_possible) then
-              if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('interpol possible',.true.)
-          else
-              if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('interpol possible',.false.)
-          end if
-          if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_mapping_close()
-          if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_newline()
+                 call yaml_map('D eF',ef-f%ef_old,fmt='(es13.6)')
+                 call yaml_map('D Tr',sumn-f%sumn_old,fmt='(es13.6)')
+                 call yaml_map('interpol possible',interpolation_possible)
+              call yaml_mapping_close()
+              call yaml_newline()
+           end if
       end if
       if (.not.interpolation_possible) then
           ! Set the history for the interpolation to zero.
