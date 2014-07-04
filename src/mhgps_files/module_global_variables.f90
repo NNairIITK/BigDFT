@@ -32,8 +32,14 @@ module module_global_variables
     real(gp)         :: saddle_cutoffratio         = 1.e-4_gp
     integer          :: saddle_recompIfCurvPos     = 5
     real(gp)         :: saddle_fnrmtol             = 1.e-3_gp
-    logical          :: share_rot_history          = .false. !not available via
-                                                            !input file
+    logical          :: share_rot_history          = .true. !not available via
+                                                            !input file since
+                                                            !sharing tends to
+                                                            !introduce a slight
+                                                            !inefficiency when
+                                                            !compared to no
+                                                            !sharing (roughly
+                                                            !10% for LJ75)
 
     !parameters for minimizers implemented in mhgps
     logical :: internal=.true. !unse internal or external optimizers?
@@ -76,6 +82,6 @@ module module_global_variables
     !following variables might be packed in an own module...
     !variables for rotation
     integer :: nhist_rot,ndim_rot
-real(gp), allocatable :: rxyz_rot(:,:,:),fxyz_rot(:,:,:),fxyzraw_rot(:,:,:),rxyzraw_rot(:,:,:),fstretch_rot(:,:,:),eval_rot(:),res_rot(:)
+real(gp), allocatable :: rxyz_rot(:,:,:),fxyz_rot(:,:,:),fxyzraw_rot(:,:,:),rxyzraw_rot(:,:,:),fstretch_rot(:,:,:),eval_rot(:),res_rot(:),rrr_rot(:,:,:)
 real(gp) :: alpha_rot, alpha_stretch_rot
 end module

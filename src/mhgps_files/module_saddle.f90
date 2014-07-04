@@ -808,7 +808,8 @@ use module_global_variables, only: inputPsiId, isForceField, iproc, mhgps_verbos
                                    ndim          => ndim_rot,&
                                    eval          => eval_rot,&
                                    res           => res_rot,&
-                                   share          => share_rot_history
+                                   share          => share_rot_history,&
+                                   rrr          => rrr_rot
     implicit none
 integer, intent(in) :: imode
 integer, intent(in) :: nbond
@@ -820,7 +821,7 @@ real(gp), intent(in) :: maxcurvrise,cutoffratio
     integer, intent(in) :: nit,nhistx
     real(gp), intent(in) :: alpha0,curvgraddiff
     real(gp), dimension(3,nat) :: dxyzin,fout,rxyz_fix,fxyz_fix!,mode
-    real(gp), allocatable, dimension(:,:,:) ::ff,rr,rrr,fff
+    real(gp), allocatable, dimension(:,:,:) ::ff,rr,fff
 !    real(gp), allocatable, dimension(:,:,:) ::rxyz,fxyz,ff,rr,rrr,fff,fxyzraw,rxyzraw,fstretch
     real(gp), allocatable, dimension(:,:) :: aa,dd
     real(gp), allocatable, dimension(:) :: work,scpr
@@ -836,8 +837,6 @@ real(gp), intent(in) :: maxcurvrise,cutoffratio
 real(gp) :: edmy
     !functions
     real(gp) :: ddot
-integer,save :: id=0
-write(*,*)'alpha in', alpha
 
     if(.not.share)then
         alpha_stretch=alpha_stretch0
@@ -855,16 +854,15 @@ write(*,*)'alpha in', alpha
 !    allocate(rxyz(3,nat,0:nhistx),fxyz(3,nat,0:nhistx),fxyzraw(3,nat,0:nhistx),rxyzraw(3,nat,0:nhistx),aa(nhistx,nhistx))
     allocate(work(lwork))
     allocate(ff(3,nat,0:nhistx),rr(3,nat,0:nhistx),dd(3,nat))
-    allocate(fff(3,nat,0:nhistx),rrr(3,nat,0:nhistx),scpr(nhistx),wold(nbond))
+    allocate(fff(3,nat,0:nhistx),scpr(nhistx),wold(nbond))
     wold=0.0_gp
-!id=id+1
-!if(id==1)then
-    do iat=1,nat
-       do l=1,3
-          rxyz(l,iat,nhist)=dxyzin(l,iat)
-       enddo
-    enddo
-!endif
+    if(nhist==0)then
+        do iat=1,nat
+           do l=1,3
+              rxyz(l,iat,nhist)=dxyzin(l,iat)
+           enddo
+        enddo
+    endif
 
 !    call minenergyandforces(nat,rxyz(1,1,0),rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),etot,iconnect,nbond,atomnames,wold,alpha_stretch)
 !    rxyz(:,:,0)=rxyz(:,:,0)+alpha_stretch*fstretch(:,:,0)
@@ -1009,7 +1007,12 @@ if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,xes21.14,4(xes9.2),xi
         endif
             curv=curvp
             curvold=curv
-        if (fnrm.le.fnrmtol) goto 1000
+!        if (fnrm.le.fnrmtol) goto 1000
+    do iat=1,nat
+        do l=1,3
+            dxyzin(l,iat)= rxyz(l,iat,nhist) !to be done before stretch modification
+        enddo
+    enddo
         if(imode==2)then
             rxyz(:,:,nhist)=rxyz(:,:,nhist)+alpha_stretch*fstretch(:,:,nhist)
         endif
@@ -1025,23 +1028,17 @@ if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,xes21.14,4(xes9.2),xi
 
        call getSubSpaceEvecEval(nat,nhist,nhistx,ndim,cutoffratio,lwork,work,rxyz,&
                               &fxyz,aa,rr,ff,rrr,fff,eval,res,subspaceSucc)
+        if (fnrm.le.fnrmtol) goto 1000 !has to be here for shared history case
     enddo
 
-    write(555,*) nat
-    write(555,*) "  "
-    do iat=1,nat
-        write(555,'(a,3(1x,e24.17))') trim(adjustl(atomnames(iat))),dxyzin(1,iat),dxyzin(2,iat),dxyzin(3,iat)
-    enddo
-    write(100,*) it,curv,fnrm
     write(*,*) "No convergence in optcurv"
 stop 'no convergence in optcurv'
     return
     1000 continue
     converged=.true.
-write(*,*)'alpha out', alpha
     do iat=1,nat
         do l=1,3
-            dxyzin(l,iat)= rxyz(l,iat,nhist)
+!            dxyzin(l,iat)= rxyz(l,iat,nhist)
             fout(l,iat)= fxyzraw(l,iat,nhist)
         enddo
     enddo
