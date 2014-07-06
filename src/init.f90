@@ -733,9 +733,9 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   character(len=*),parameter:: subname='input_memory_linear'
   real(kind=8) :: pnrm, max_inversion_error
   logical :: rho_negative
-  integer,parameter :: RESTART_AO = 1
-  integer,parameter :: RESTART_REFORMAT = 2
-  integer,parameter :: restart_FOE = RESTART_REFORMAT!AO
+  integer,parameter :: RESTART_AO = 0
+  integer,parameter :: RESTART_REFORMAT = 1
+  integer,parameter :: restart_FOE = RESTART_AO!REFORMAT!AO
   real(kind=8),dimension(:,:),allocatable :: kernelp, ovrlpp
   type(localizedDIISParameters) :: ldiis
   logical :: ortho_on, reduce_conf, can_use_ham
@@ -745,6 +745,9 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   integer,dimension(:,:),allocatable :: nl_copy
   logical,dimension(:),allocatable :: type_covered
   logical :: finished
+
+
+  write(*,*) 'input%FOE_restart', input%FOE_restart
 
 
   call f_routine(id='input_memory_linear')
@@ -764,7 +767,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
   ! Reformat the support functions if we are not using FOE. Otherwise an AO
   ! input guess wil be done below.
-  if (input%lin%scf_mode/=LINEAR_FOE .or. restart_FOE==RESTART_REFORMAT) then
+  if (input%lin%scf_mode/=LINEAR_FOE .or. input%FOE_restart==RESTART_REFORMAT) then
 
      ! define fragment transformation - should eventually be done automatically...
      allocate(frag_trans(tmb%orbs%norbp))
@@ -801,7 +804,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
           ! Copy the coefficients
   if (input%lin%scf_mode/=LINEAR_FOE) then
       call vcopy(tmb%orbs%norb*tmb%orbs%norb, tmb_old%coeff(1,1), 1, tmb%coeff(1,1), 1)
-  else if (restart_FOE==RESTART_REFORMAT) then
+  else if (input%FOE_restart==RESTART_REFORMAT) then
       ! Extract to a dense format, since this is independent of the sparsity pattern
       kernelp = sparsematrix_malloc(tmb%linmat%l, iaction=DENSE_PARALLEL, id='kernelp')
       call uncompress_matrix_distributed(iproc, tmb_old%linmat%l, tmb_old%linmat%kernel_%matrix_compr, kernelp)
@@ -836,7 +839,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
    ! normalize tmbs - only really needs doing if we reformatted, but will need to calculate transpose after anyway
 
    ! Normalize the input guess. If FOE is used, the input guess will be generated below.
-   if (input%lin%scf_mode/=LINEAR_FOE .or. (restart_FOE==RESTART_REFORMAT .and. .not.input%experimental_mode)) then
+   if (input%lin%scf_mode/=LINEAR_FOE .or. (input%FOE_restart==RESTART_REFORMAT .and. .not.input%experimental_mode)) then
        tmb%can_use_transposed=.true.
        overlap_calculated=.false.
 
@@ -852,87 +855,95 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
             tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
 
        call f_free(norm)
-   else if (restart_FOE==RESTART_REFORMAT .and. input%experimental_mode) then
-     !!%%  ! Orthonormalize
-     !!%%  tmb%can_use_transposed=.false.
-     !!%%  methTransformOverlap=-1
-     !!%%  call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inversion_error, tmb%npsidim_orbs, &
-     !!%%       tmb%orbs, tmb%lzd, tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
-     !!%%       tmb%can_use_transposed, tmb%foe_obj)
-     !!%% ! Standard orthonomalization
-     !!%% if (iproc==0) call yaml_map('orthonormalization of input guess','standard')
-     !!%% ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
-     !!%% !write(*,'(a,i4,4i8)') 'IG: iproc, lbound, ubound, minval, maxval',&
-     !!%% !iproc, lbound(tmb%linmat%inv_ovrlp%matrixindex_in_compressed_fortransposed,2),&
-     !!%% !ubound(tmb%linmat%inv_ovrlp%matrixindex_in_compressed_fortransposed,2),&
-     !!%% !minval(tmb%collcom%indexrecvorbital_c),maxval(tmb%collcom%indexrecvorbital_c)
-     !!%% !!if (iproc==0) write(*,*) 'WARNING: no ortho in inguess'
-      tmb%can_use_transposed=.false.
-      methTransformOverlap=-1
-      call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, 1.d0, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
-           tmb%linmat%s, tmb%linmat%l, &
-           tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed, &
-           tmb%foe_obj)
-            
- else
-     ! Iterative orthonomalization
-     !!if(iproc==0) write(*,*) 'calling generalized orthonormalization'
-     if (iproc==0) call yaml_map('orthonormalization of input guess','generalized')
-     maxorbs_type = f_malloc(at%astruct%ntypes,id='maxorbs_type')
-     minorbs_type = f_malloc(at%astruct%ntypes,id='minorbs_type')
-     type_covered = f_malloc(at%astruct%ntypes,id='type_covered')
-     minorbs_type(1:at%astruct%ntypes)=0
-     iortho=0
-     ortho_loop: do
-         finished=.true.
-         type_covered=.false.
+   else if (input%FOE_restart==RESTART_REFORMAT .and. input%experimental_mode) then
+      if (.not. input%lin%iterative_orthogonalization) then
+         !!%%  ! Orthonormalize
+         !!%%  tmb%can_use_transposed=.false.
+         !!%%  methTransformOverlap=-1
+         !!%%  call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inversion_error, tmb%npsidim_orbs, &
+         !!%%       tmb%orbs, tmb%lzd, tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
+         !!%%       tmb%can_use_transposed, tmb%foe_obj)
+         !!%% ! Standard orthonomalization
+         !!%% if (iproc==0) call yaml_map('orthonormalization of input guess','standard')
+         !!%% ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
+         !!%% !write(*,'(a,i4,4i8)') 'IG: iproc, lbound, ubound, minval, maxval',&
+         !!%% !iproc, lbound(tmb%linmat%inv_ovrlp%matrixindex_in_compressed_fortransposed,2),&
+         !!%% !ubound(tmb%linmat%inv_ovrlp%matrixindex_in_compressed_fortransposed,2),&
+         !!%% !minval(tmb%collcom%indexrecvorbital_c),maxval(tmb%collcom%indexrecvorbital_c)
+         !!%% !!if (iproc==0) write(*,*) 'WARNING: no ortho in inguess'
+          tmb%can_use_transposed=.false.
+          methTransformOverlap=-1
+          call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, 1.d0, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
+               tmb%linmat%s, tmb%linmat%l, &
+               tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed, &
+               tmb%foe_obj)
+                
+     else
+         ! Iterative orthonomalization
+         !!if(iproc==0) write(*,*) 'calling generalized orthonormalization'
+         if (iproc==0) call yaml_map('orthonormalization of input guess','generalized')
+         maxorbs_type = f_malloc(at%astruct%ntypes,id='maxorbs_type')
+         minorbs_type = f_malloc(at%astruct%ntypes,id='minorbs_type')
+         type_covered = f_malloc(at%astruct%ntypes,id='type_covered')
+         minorbs_type(1:at%astruct%ntypes)=0
+         nl_copy=f_malloc((/0.to.3,1.to.at%astruct%nat/),id='nl_copy')
          do iat=1,at%astruct%nat
-             itype=at%astruct%iatype(iat)
-             if (type_covered(itype)) cycle
-             type_covered(itype)=.true.
-             !jj=1*ceiling(aocc(1,iat))+3*ceiling(aocc(3,iat))+&
-             !     5*ceiling(aocc(7,iat))+7*ceiling(aocc(13,iat))
-             jj=nl_copy(0,iat)+3*nl_copy(1,iat)+5*nl_copy(2,iat)+7*nl_copy(3,iat)
-             maxorbs_type(itype)=jj
-             !should not enter in the conditional below due to the raise of the exception above
-             if (jj<input%lin%norbsPerType(at%astruct%iatype(iat))) then
-                 finished=.false.
-                 increase_count: do inl=1,4
-                    if (nl_copy(inl,iat)==0) then
-                       nl_copy(inl,iat)=1
-                       call f_err_throw('InputguessLinear: Should not be here',&
-                            err_name='BIGDFT_RUNTIME_ERROR')
-                       exit increase_count
-                    end if
-                 end do increase_count
-!!$                 if (ceiling(aocc(1,iat))==0) then
-!!$                     aocc(1,iat)=1.d0
-!!$                 else if (ceiling(aocc(3,iat))==0) then
-!!$                     aocc(3,iat)=1.d0
-!!$                 else if (ceiling(aocc(7,iat))==0) then
-!!$                     aocc(7,iat)=1.d0
-!!$                 else if (ceiling(aocc(13,iat))==0) then
-!!$                     aocc(13,iat)=1.d0
-!!$                 end if
-             end if
+            nl_copy(:,iat)=at%aoig(iat)%nl
          end do
-         if (iortho>0) then
-             call gramschmidt_subset(iproc, nproc, -1, tmb%npsidim_orbs, &                                  
+    
+         iortho=0
+         ortho_loop: do
+             finished=.true.
+             type_covered=.false.
+             do iat=1,at%astruct%nat
+                 itype=at%astruct%iatype(iat)
+                 if (type_covered(itype)) cycle
+                 type_covered(itype)=.true.
+                 !jj=1*ceiling(aocc(1,iat))+3*ceiling(aocc(3,iat))+&
+                 !     5*ceiling(aocc(7,iat))+7*ceiling(aocc(13,iat))
+                 jj=nl_copy(0,iat)+3*nl_copy(1,iat)+5*nl_copy(2,iat)+7*nl_copy(3,iat)
+                 maxorbs_type(itype)=jj
+                 !should not enter in the conditional below due to the raise of the exception above
+                 if (jj<input%lin%norbsPerType(at%astruct%iatype(iat))) then
+                     finished=.false.
+                     increase_count: do inl=1,4
+                        if (nl_copy(inl,iat)==0) then
+                           nl_copy(inl,iat)=1
+                           call f_err_throw('InputguessLinear: Should not be here',&
+                                err_name='BIGDFT_RUNTIME_ERROR')
+                           exit increase_count
+                        end if
+                     end do increase_count
+    !!$                 if (ceiling(aocc(1,iat))==0) then
+    !!$                     aocc(1,iat)=1.d0
+    !!$                 else if (ceiling(aocc(3,iat))==0) then
+    !!$                     aocc(3,iat)=1.d0
+    !!$                 else if (ceiling(aocc(7,iat))==0) then
+    !!$                     aocc(7,iat)=1.d0
+    !!$                 else if (ceiling(aocc(13,iat))==0) then
+    !!$                     aocc(13,iat)=1.d0
+    !!$                 end if
+                 end if
+             end do
+             if (iortho>0) then
+                 call gramschmidt_subset(iproc, nproc, -1, tmb%npsidim_orbs, &                                  
+                      tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%s, &
+                      tmb%linmat%l, tmb%collcom, tmb%orthpar, &
+                      tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+             end if
+             call orthonormalize_subset(iproc, nproc, -1, tmb%npsidim_orbs, &                                  
                   tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%s, &
                   tmb%linmat%l, tmb%collcom, tmb%orthpar, &
                   tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
-         end if
-         call orthonormalize_subset(iproc, nproc, -1, tmb%npsidim_orbs, &                                  
-              tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%s, &
-              tmb%linmat%l, tmb%collcom, tmb%orthpar, &
-              tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
-         if (finished) exit ortho_loop
-         iortho=iortho+1
-         minorbs_type(1:at%astruct%ntypes)=maxorbs_type(1:at%astruct%ntypes)+1
-     end do ortho_loop
-     call f_free(maxorbs_type)
-     call f_free(minorbs_type)
-     call f_free(type_covered)
+             if (finished) exit ortho_loop
+             iortho=iortho+1
+             minorbs_type(1:at%astruct%ntypes)=maxorbs_type(1:at%astruct%ntypes)+1
+         end do ortho_loop
+         call f_free(maxorbs_type)
+         call f_free(minorbs_type)
+         call f_free(type_covered)
+         call f_free(nl_copy)
+     end if
    end if
 
 
@@ -946,7 +957,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
            tmb%orthpar%blocksize_pdgemm, KSwfn%orbs, tmb, overlap_calculated)
       !call f_free_ptr(tmb%psit_c)
       !call f_free_ptr(tmb%psit_f)
-  else if (restart_FOE==RESTART_REFORMAT) then
+  else if (input%FOE_restart==RESTART_REFORMAT) then
       ! Calculate the old and the new overlap matrix
        tmb_old%psit_c = f_malloc_ptr(tmb_old%collcom%ndimind_c,id='tmb_old%psit_c')
        tmb_old%psit_f = f_malloc_ptr(7*tmb_old%collcom%ndimind_f,id='tmb_old%psit_f')
@@ -1004,6 +1015,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   call deallocate_matrices(tmb_old%linmat%ovrlp_)
   call deallocate_matrices(tmb_old%linmat%kernel_)
   call deallocate_comms_linear(tmb_old%collcom)
+  call deallocate_local_zone_descriptors(tmb_old%lzd, subname)
   
 
   !!if (iproc==0) then
@@ -1014,7 +1026,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   !!end if
 
           ! Must initialize rhopotold (FOR NOW... use the trivial one)
-  if (input%lin%scf_mode/=LINEAR_FOE .or. restart_FOE==RESTART_REFORMAT) then
+  if (input%lin%scf_mode/=LINEAR_FOE .or. input%FOE_restart==RESTART_REFORMAT) then
       call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
            tmb%orbs, tmb%psi, tmb%collcom_sr)
       !tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr

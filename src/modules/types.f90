@@ -452,6 +452,9 @@ module module_types
      !> linear scaling: upper bound for the error function decay length
      real(kind=8) :: fscale_upperbound
 
+     !> linear scaling: Restart method to be used for the FOE method
+     integer :: FOE_restart
+
   end type input_variables
 
 
@@ -2743,6 +2746,9 @@ end subroutine find_category
        case (FSCALE_UPPERBOUND)
            ! linear scaling: upper bound for the error function decay length
            in%fscale_upperbound = val
+       case (FOE_RESTART)
+           ! linear scaling: Restart method to be used for the FOE method
+           in%FOE_restart = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
