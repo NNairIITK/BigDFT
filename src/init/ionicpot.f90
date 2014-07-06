@@ -1175,6 +1175,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   use module_interfaces, except_this_one => CounterIonPotential
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use module_input_dicts
+  use module_input_keys, only: IG_OCCUPATION
   use dictionaries
   use yaml_output
   use module_atoms, only: deallocate_atoms_data,nullify_atoms_data
@@ -1227,8 +1228,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   end do
   call psp_dict_analyse(dict, at)
   ! Read associated pseudo files.
-  !call atomic_data_file_merge_to_dict(dict, "Atomic occupation", 'input.occup')
-  call atomic_data_set_from_dict(dict, "Atomic occupation", at, in%nspin)
+  call atomic_data_set_from_dict(dict,IG_OCCUPATION, at, in%nspin)
   call dict_free(dict)
 
   radii_cf = f_malloc((/ at%astruct%ntypes, 3 /),id='radii_cf')

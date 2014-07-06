@@ -151,6 +151,7 @@ subroutine inputs_from_dict(in, atoms, dict)
 
   ! Analyse the input dictionary and transfer it to in.
   call input_keys_validate(dict)
+
   ! extract also the minimal dictionary which is necessary to do this run
   call input_keys_fill_all(dict,dict_minimal)
 
@@ -254,7 +255,7 @@ subroutine inputs_from_dict(in, atoms, dict)
 
   ! Update atoms with pseudo information.
   call psp_dict_analyse(dict, atoms)
-  call atomic_data_set_from_dict(dict, "Atomic occupation", atoms, in%nspin)
+  call atomic_data_set_from_dict(dict,IG_OCCUPATION, atoms, in%nspin)
 
   ! Add multipole preserving information
   atoms%multipole_preserving = in%multipole_preserving
@@ -263,7 +264,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   call read_n_orbitals(bigdft_mpi%iproc, nelec_up, nelec_down, norb_max, atoms, &
        & in%ncharge, in%nspin, in%mpol, in%norbsempty)
   if (norb_max == 0) norb_max = nelec_up + nelec_down ! electron gas case
-  call occupation_set_from_dict(dict, "occupation", &
+  call occupation_set_from_dict(dict, OCCUPATION, &
        & in%gen_norbu, in%gen_norbd, in%gen_occup, &
        & in%gen_nkpt, in%nspin, in%norbsempty, nelec_up, nelec_down, norb_max)
   in%gen_norb = in%gen_norbu + in%gen_norbd

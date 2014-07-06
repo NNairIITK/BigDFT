@@ -928,7 +928,7 @@ contains
        call yaml_sequence(yaml_toa(rxyz(i),fmt=fmtat))
     end do
     call yaml_sequence_close(advance='no')
-    call yaml_comment(trim(yaml_toa(factor*rxyz/hgrids,fmt=fmtg))//trim(yaml_toa(id,fmt=fmti))) !we can also put tabbing=
+    call yaml_comment(trim(yaml_toa(rxyz/hgrids/factor,fmt=fmtg))//trim(yaml_toa(id,fmt=fmti))) !we can also put tabbing=
 
   end subroutine print_one_atom
 

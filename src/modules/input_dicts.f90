@@ -16,7 +16,6 @@ module module_input_dicts
   private
 
   !> Parameters to avoid typos in dictionary keys
-  character(len=*), parameter :: ATOMIC_OCC="Atomic occupation"
   character(len=*), parameter :: ASTRUCT_UNITS = 'units' 
   character(len=*), parameter :: ASTRUCT_CELL = 'cell' 
   character(len=*), parameter :: ASTRUCT_POSITIONS = 'positions' 
@@ -140,17 +139,18 @@ contains
 
 
   !> Read from all input files and build a dictionary
-  subroutine user_dict_from_files(dict,radical,posinp, mpi_env)
+  subroutine user_dict_from_files(dict,radical,posinp_name, mpi_env)
     use dictionaries
     use dictionaries_base, only: TYPE_DICT, TYPE_LIST
     use module_defs, only: mpi_environment
     use module_interfaces, only: read_input_dict_from_files
+    use module_input_keys, only: POSINP,IG_OCCUPATION
     use yaml_output
     implicit none
     !Arguments
     type(dictionary), pointer :: dict                  !< Contains (out) all the information
     character(len = *), intent(in) :: radical          !< Radical for the input files
-    character(len = *), intent(in) :: posinp           !< If the dict has no posinp key, use it
+    character(len = *), intent(in) :: posinp_name           !< If the dict has no posinp key, use it
     type(mpi_environment), intent(in) :: mpi_env       !< MPI Environment
     !Local variables
     type(dictionary), pointer :: at
@@ -160,17 +160,17 @@ contains
     call read_input_dict_from_files(trim(radical), mpi_env, dict)
 
     !possible overwrite with a specific posinp file.
-    call astruct_file_merge_to_dict(dict, "posinp", trim(posinp))
+    call astruct_file_merge_to_dict(dict,POSINP, trim(posinp_name))
 
-    if (has_key(dict, "posinp")) then
-       str = dict_value(dict // "posinp")
+    if (has_key(dict,POSINP)) then
+       str = dict_value(dict //POSINP)
        if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
           !str contains a file name so add atomic positions from it.
-          call astruct_file_merge_to_dict(dict, "posinp", trim(str))
+          call astruct_file_merge_to_dict(dict,POSINP, trim(str))
        else
           !The yaml file contains the atomic positions
           !Only add the format
-          at => dict // "posinp"
+          at => dict //POSINP
           if (.not. has_key(at, ASTRUCT_PROPERTIES)) then
              call set(at // ASTRUCT_PROPERTIES // "format", "yaml")
           else
@@ -184,16 +184,16 @@ contains
     call atoms_file_merge_to_dict(dict)
 
     !when the user has not specified the occupation in the input file
-    if (.not. has_key(dict, ATOMIC_OCC)) then
+    if (.not. has_key(dict,IG_OCCUPATION)) then
        !yaml format should be used even for old method
        if (file_exists(trim(radical)//".occup")) &
-            call merge_input_file_to_dict(dict//ATOMIC_OCC,trim(radical)//".occup",mpi_env)
+            call merge_input_file_to_dict(dict//IG_OCCUPATION,trim(radical)//".occup",mpi_env)
     else !otherwise the input file always supersedes
-       str = dict_value(dict // ATOMIC_OCC)
+       str = dict_value(dict //IG_OCCUPATION)
        if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
           !call atomic_data_file_merge_to_dict(dict, ATOMIC_OCC, trim(str))
           if (file_exists(trim(str))) &
-               call merge_input_file_to_dict(dict//ATOMIC_OCC,trim(str),mpi_env)
+               call merge_input_file_to_dict(dict//IG_OCCUPATION,trim(str),mpi_env)
        end if
     end if
 
@@ -299,7 +299,7 @@ contains
        write(source, "(A)") RADII_SOURCE(RADII_SOURCE_HARD_CODED)
     end if
     if (radii_cf(3) == UNINITIALIZED(1.0_gp)) then
-       radii_cf(3)=radfine
+       radii_cf(3)=radii_cf(2)
        write(source, "(A)") RADII_SOURCE(RADII_SOURCE_HARD_CODED)
     end if
     radii => dict // filename // "Radii of active regions (AU)"
@@ -520,6 +520,8 @@ contains
        npspcode = PSPCODE_HGH_K
     case("HGH-K + NLCC")
        npspcode = PSPCODE_HGH_K_NLCC
+    case("PAW")
+       npspcode = PSPCODE_PAW
     case default
        return
     end select
@@ -592,6 +594,8 @@ contains
        call set(dict // "Pseudopotential type", 'HGH-K')
     case(PSPCODE_HGH_K_NLCC)
        call set(dict // "Pseudopotential type", 'HGH-K + NLCC')
+    case(PSPCODE_PAW)
+       call set(dict // "Pseudopotential type", 'PAW')
     end select
 
     call set(dict // "Atomic number", nzatom)
@@ -646,6 +650,7 @@ contains
     use dictionaries
     use dictionaries_base, only: TYPE_DICT, TYPE_LIST
     use yaml_output, only: yaml_warning
+    use module_input_keys, only: POSINP
     implicit none
     type(dictionary), pointer :: dict
 
@@ -657,7 +662,7 @@ contains
     logical :: exists
 
     ! Loop on types for atomic data.
-    call astruct_dict_get_types(dict // "posinp", types)
+    call astruct_dict_get_types(dict //POSINP, types)
     allocate(keys(dict_size(types)))
     keys = dict_keys(types)
     do iat = 1, dict_size(types), 1
@@ -910,6 +915,7 @@ contains
     use module_atoms, only: set_astruct_from_file,atomic_structure,&
          nullify_atomic_structure,deallocate_atomic_structure
     use module_types, only: DFT_global_output, nullify_global_output, deallocate_global_output
+    use module_input_keys, only: POSINP,RADICAL_NAME
     use dictionaries
     use yaml_strings
     implicit none
@@ -947,10 +953,10 @@ contains
     else if (ierr == BIGDFT_INPUT_FILE_ERROR) then
        !Found no file: maybe already inside the yaml file ?
        !Check if posinp is in dict
-       if (.not.has_key(dict,"posinp")) then
+       if (.not.has_key(dict,POSINP)) then
           ! Raise an error
-          if (has_key(dict,"radical")) then 
-             radical = dict//"radical"
+          if (has_key(dict,RADICAL_NAME)) then 
+             radical = dict//RADICAL_NAME
              msg = "No section 'posinp' for the atomic positions in the file '" &
                  & // trim(radical) // ".yaml'. " // trim(msg)
           end if

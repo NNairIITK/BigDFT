@@ -190,7 +190,7 @@ contains
           'The item of this list is not correct',DICT_ITEM_NOT_VALID,&
           err_action='Internal error, contact developers')
      call f_err_define('DICT_VALUE_ABSENT',&
-          'The value for this key is absent',DICT_VALUE_ABSENT)
+          'The value for this key/value is absent',DICT_VALUE_ABSENT)
      call f_err_define('DICT_INVALID',&
           'Dictionary is not associated',DICT_INVALID)
      call f_err_define('DICT_INVALID_LIST',&
@@ -934,6 +934,17 @@ contains
         call dict_free(subd)
         return
      end if
+     !here the treatment of the scalar dictionary can be 
+     !inserted (left commented for the moment)
+!!$     if (associated(subd)) then
+!!$        !if the dictionary is a scalar free it
+!!$        if (dict_len(subd) == 0 .and. dict_size(subd) == 0 .and. &
+!!$             len_trim(dict_key(subd))==0) then 
+!!$           call set(dict,dict_value(subd))
+!!$           call dict_free(subd)
+!!$           return
+!!$        end if
+!!$     end if
 
      if (f_err_raise(no_key(dict),err_id=DICT_KEY_ABSENT)) return
 
@@ -1031,7 +1042,12 @@ contains
      character(len=*), intent(in) :: val
      if (f_err_raise(no_key(dict),err_id=DICT_KEY_ABSENT)) return
      !call check_key(dict)
-
+     !raise an error if not a value is put
+     if (trim(val) == NOT_A_VALUE) then
+        call f_err_throw('Invalid assignment for key "'//&
+             trim(dict%data%key)//'"',err_id=DICT_VALUE_ABSENT)
+        return
+     end if
      if (associated(dict%child)) call dict_free(dict%child)
 
      call set_field(val,dict%data%value)
