@@ -96,7 +96,8 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
   end if
 
   if (mod(input%norbsempty,input%frag%nfrag)/=0) then
-     if (bigdft_mpi%iproc==0) print*,'Warning, number of extra bands does not divide evenly among fragments'
+     if (bigdft_mpi%iproc==0) call yaml_warning('Number of extra bands does not divide evenly among fragments')
+     !if (bigdft_mpi%iproc==0) print*,'Warning, number of extra bands does not divide evenly among fragments'
      num_extra_per_frag=(input%norbsempty-mod(input%norbsempty,input%frag%nfrag))/input%frag%nfrag
   else
      num_extra_per_frag=input%norbsempty/input%frag%nfrag

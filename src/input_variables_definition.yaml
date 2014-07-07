@@ -571,7 +571,7 @@
      COMMENT: No. of additional bands
      RANGE: [0, 10000]
      default: 0
-   Tel:
+   tel:
      COMMENT: Electronic temperature
      RANGE: [0., 1e6]
      default: 0.
