@@ -536,7 +536,8 @@ contains
          .item. LIN_KERNEL,&      
          .item. LIN_BASIS_PARAMS,&
          .item. OCCUPATION,&
-         .item. IG_OCCUPATION ])
+         .item. IG_OCCUPATION,&
+         .item. FRAG_VARIABLES])
     
     !then the list of vaid patterns
     valid_patterns=>list_new(&

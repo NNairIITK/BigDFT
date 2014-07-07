@@ -238,25 +238,25 @@ module fermi_level
                   tmp_matrix(i,4)=f%interpol_matrix(i,4)
               end do
         
-              if (bigdft_mpi%iproc==0) then
+              !if (bigdft_mpi%iproc==0) then
                  !call yaml_map('matrix',tmp_matrix,fmt='(es10.3)')
                  !call yaml_map('interpol_vector',f%interpol_vector,fmt='(es12.5)')
                  !call yaml_newline()
                  !call yaml_map('solution',interpol_solution,fmt='(es10.3)')
                  !call yaml_map('determinant',determinant(bigdft_mpi%iproc,4,f%interpol_matrix),fmt='(es10.3)')
-              end if
+              !end if
               call dgesv(ii, 1, tmp_matrix, 4, ipiv, interpol_solution, 4, info)
               if (info/=0) then
                  if (bigdft_mpi%iproc==0) write(*,'(1x,a,i0)') 'ERROR in dgesv (FOE), info=',info
               end if
         
-              if (bigdft_mpi%iproc==0) call yaml_map('a x^3+b x^2 + c x + d',interpol_solution,fmt='(es10.3)')
+              !if (bigdft_mpi%iproc==0) call yaml_map('a x^3+b x^2 + c x + d',interpol_solution,fmt='(es10.3)')
               call get_roots_of_cubic_polynomial(interpol_solution(1), interpol_solution(2), &
                    interpol_solution(3), interpol_solution(4), ef, ef_interpol)
-              if (bigdft_mpi%iproc==0) then
-                  call yaml_newline()
-                  call yaml_map('zero of cubic polynomial',ef_interpol,fmt='(es10.3)')
-              end if
+              !if (bigdft_mpi%iproc==0) then
+              !    call yaml_newline()
+              !    call yaml_map('zero of cubic polynomial',ef_interpol,fmt='(es10.3)')
+              !end if
           end if
         
           ! Calculate the new Fermi energy.

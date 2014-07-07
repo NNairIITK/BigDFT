@@ -260,7 +260,7 @@
    properties:
      format                            : xyz
      source                            : posinp
- Atomic occupation:
+ ig_occupation:
    Be:
      2s                                : 2.0
      2p                                : 0.0

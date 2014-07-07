@@ -50,24 +50,6 @@
      CFLAGS                            : -O2
      FCFLAGS                           : -openmp -O3
      CXXFLAGS                          : -O3
-  #WARNING: Input file, section "lin_basis_params"; invalid key "O".
- Allowed keys:
- - nbasis
- - ao_confinement
- - confinement
- - rloc
- - rloc_kernel
- - rloc_kernel_foe
-  #WARNING: Input file, section "lin_basis_params"; invalid key "H".
- Allowed keys:
- - nbasis
- - ao_confinement
- - confinement
- - rloc
- - rloc_kernel
- - rloc_kernel_foe
-  #WARNING: An invalid key (O) has been found in section "lin_basis_params". Check above the
-  #WARNING: An invalid key (H) has been found in section "lin_basis_params". Check above the
   #------------------------------------------------------------------------ Input parameters
  radical                               : diag
  perf:
@@ -1359,8 +1341,6 @@
  -  {H: [-2.094808879830E-03, -2.879648479000E-02, -2.685329992716E-02]} # 0003
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
- - Input file, section "lin_basis_params"; invalid key "O".
- - Input file, section "lin_basis_params"; invalid key "H".
  - Do not call check_communications in the linear scaling version!
  - support function optimization not converged
  - density optimization not converged

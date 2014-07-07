@@ -2068,6 +2068,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
    use module_types
    use dictionaries, only: f_err_throw
    use yaml_output
+   use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level
    implicit none
    logical, intent(in) :: filewrite
    integer, intent(in) :: iproc, nproc
@@ -2084,7 +2085,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
    real(gp) :: ef,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff,full,res,resu,resd
    real(gp) :: a, x, xu, xd, f, df, tt
    !integer :: ierr
-
+   type(fermi_aux) :: ft
 
    exitfermi=.false.
    !if (iproc.lt.1)  write(1000+iproc,*)  'ENTER Fermilevel',orbs%norbu,orbs%norbd,occopt
@@ -2206,7 +2207,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
          ef=ef-corr  ! Ef=Ef_guess+corr.
          !if (iproc.lt.1) write(1000+iproc,'(i5,5(1pe17.8))') ii,electrons,ef,dlectrons,abs(dlectrons),corr
 !         if (iproc.lt.1) flush(1000+iproc)
-         call determine_fermi_level(ft, electrons, ef,info_fermi)
+         !call determine_fermi_level(ft, electrons, ef,info_fermi)
          !if (info_fermi /= 0) then
          !   call f_err_throw('Difficulties in guessing the new Fermi energy, info='//trim(yaml_toa(info_fermi)),&
          !        err_name='BIGDFT_RUNTIME_ERROR')
@@ -2295,7 +2296,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
          end do
       end do
       if (abs(melec - chargef) > 1e-9)  then
-      if (abs(real(melec,gp)- chargef) > 1e-6)  then
+      !if (abs(real(melec,gp)- chargef) > 1e-6)  then
          if (orbs%nspinor /= 4) call eigensystem_info(iproc,nproc,1.e-8_gp,0,orbs,fakepsi)
          call f_err_throw('Failed to determine correctly the occupation number, expected='//yaml_toa(charge)// &
               ', found='//yaml_toa(chargef),err_name='BIGDFT_RUNTIME_ERROR')

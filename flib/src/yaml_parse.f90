@@ -167,7 +167,7 @@ contains
   subroutine yaml_cl_parse_cmd_line(parser)
     use dictionaries
     use yaml_strings, only:f_strcpy
-    use yaml_output
+    !use yaml_output
     implicit none
     !> the parser which has to be updated
     type(yaml_cl_parse), intent(inout) :: parser
@@ -249,10 +249,10 @@ contains
            !then parse the value as a yaml_string
            jpos=jpos+1
            dict=>yaml_a_todict(trim(command(ipos+jpos:)),key)
-           call yaml_dict_dump(dict)
-           call yaml_map('key',dict_key(dict))
-           call yaml_map('size',dict_size(dict))
-           call yaml_map('now',dict//key)
+           !call yaml_dict_dump(dict)
+           !call yaml_map('key',dict_key(dict))
+           !call yaml_map('size',dict_size(dict))
+           !call yaml_map('now',dict//key)
         else
            !search for short string format (one letter only)
            !example -k yaml_dict
