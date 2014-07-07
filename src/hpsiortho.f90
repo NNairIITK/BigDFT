@@ -2577,14 +2577,14 @@ subroutine check_communications(iproc,nproc,orbs,lzd,comms)
       close(unit=22)
       abort = .true.
       write(filename, "(A,I0,A)") 'distscheme', iproc, '.log'
-      open(unit=22,file=trim(filename),status='unknown')
-      call print_distribution_schemes(22,nproc,orbs%nkpts,orbs%norb_par(0,1),comms%nvctr_par(0,1))
-      close(unit=22)
+      !open(unit=22,file=trim(filename),status='unknown')
+      call print_distribution_schemes(nproc,orbs%nkpts,orbs%norb_par(0,1),comms%nvctr_par(0,1))
+      !close(unit=22)
    end if
 
    call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
    if (abort) then
-      if (iproc == 0) call print_distribution_schemes(6,nproc,orbs%nkpts,orbs%norb_par(0,1),comms%nvctr_par(0,1))
+      if (iproc == 0) call print_distribution_schemes(nproc,orbs%nkpts,orbs%norb_par(0,1),comms%nvctr_par(0,1))
       call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
    end if
 

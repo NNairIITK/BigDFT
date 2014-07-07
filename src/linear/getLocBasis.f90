@@ -408,10 +408,12 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   logical,intent(in) :: correction_co_contra
  
   ! Local variables
-  integer :: iorb, it, it_tot, ncount, jorb, ncharge, ii, kappa_satur, nspin, nit_exit
+  integer :: iorb, it, it_tot, ncount, ncharge, ii, kappa_satur, nit_exit
+  !integer :: jorb, nspin
+  !real(kind=8),dimension(:),allocatable :: occup_tmp
   real(kind=8) :: fnrmMax, meanAlpha, ediff_best, alpha_max, delta_energy, delta_energy_prev, ediff
   real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_noconf, psidiff
-  real(kind=8),dimension(:),allocatable :: delta_energy_arr, hpsi_noprecond, occup_tmp, kernel_compr_tmp, kernel_best
+  real(kind=8),dimension(:),allocatable :: delta_energy_arr, hpsi_noprecond, kernel_compr_tmp, kernel_best
   logical :: energy_increased, overlap_calculated, energy_diff, energy_increased_previous, complete_reset, even
   real(kind=8),dimension(:),pointer :: lhphiold, lphiold, hpsit_c, hpsit_f, hpsi_small
   type(energy_terms) :: energs
@@ -1141,7 +1143,7 @@ subroutine diagonalizeHamiltonian2(iproc, norb, HamSmall, ovrlp, eval)
   real(kind=8),dimension(norb),intent(out) :: eval
 
   ! Local variables
-  integer :: lwork, info, istat, iall
+  integer :: lwork, info
   real(kind=8),dimension(:),allocatable :: work
   character(len=*),parameter :: subname='diagonalizeHamiltonian'
   !!real(8),dimension(:,:),pointer :: hamtmp, ovrlptmp, invovrlp, tmpmat, tmpmat2
@@ -1383,7 +1385,7 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, npsidim, 
   type(comms_linear),intent(inout) :: collcom_sr
   
   ! Local variables
-  integer :: ist, istr, iorb, iiorb, ilr, istat, iall
+  integer :: ist, istr, iorb, iiorb, ilr
   real(kind=8),dimension(:),allocatable :: psir, psirwork, psirtwork
   type(workarr_sumrho) :: w
   character(len=*),parameter :: subname='comm_basis_for_dens_coll'
@@ -1630,7 +1632,7 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
   logical,intent(inout):: overlap_calculated
 
   ! Local variables
-  integer:: istat, iall
+  !integer:: istat, iall
   character(len=*),parameter:: subname='reconstruct_kernel'
 
   !call timing(iproc,'renormCoefComp','ON')
@@ -1697,7 +1699,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(inout) :: coeff
   type(orbitals_data), intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
   ! Local variables
-  integer :: ierr, istat, iall, ind, iorb, korb, llorb, jorb
+  integer :: ierr, ind, iorb, korb, llorb, jorb
   integer :: npts_per_proc, ind_start, ind_end, indc
   real(kind=8), dimension(:,:), allocatable :: coeff_tmp, coefftrans
   real(kind=8), dimension(:,:), pointer :: ovrlp_coeff
@@ -1997,7 +1999,7 @@ subroutine estimate_energy_change(npsidim_orbs, orbs, lzd, psidiff, hpsi_nopreco
   real(kind=8),intent(out) :: delta_energy
 
   ! Local variables
-  integer :: ist, iorb, iiorb, ilr, ncount, ierr
+  integer :: ist, iorb, iiorb, ilr, ncount
   real(kind=8) :: tt, ddot
 
   call f_routine(id='estimate_energy_change')
@@ -2046,17 +2048,17 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   logical,intent(in) :: purification_quickreturn
 
   ! Local variables
-  integer :: istat, iall, it, lwork, info, iorb, jorb, ierr, jsegstart, jsegend, jseg, jjorb, iiorb
+  integer :: it, iorb, jorb, jsegstart, jsegend, jseg, jjorb, iiorb !info, lwork, 
   integer :: ishift
   real(kind=8) :: trace_sparse, alpha, shift
-  real(kind=8),dimension(:,:),allocatable :: k, ks, ksk, ksksk, kernel, overlap, kernel_prime
-  real(kind=8),dimension(:),allocatable :: eval, work
+  real(kind=8),dimension(:,:),allocatable :: ks, ksk, ksksk, kernel_prime
+  !real(kind=8),dimension(:),allocatable :: eval, work
   character(len=*),parameter :: subname='purify_kernel'
-  real(kind=8) :: dnrm2, diff, ddot, tr_KS, chargediff, chargediff_old, max_error, mean_error
-  logical :: overlap_associated, inv_ovrlp_associated
+  real(kind=8) :: diff, tr_KS, chargediff, max_error, mean_error
+  !logical :: overlap_associated, inv_ovrlp_associated
   real(kind=8),dimension(2) :: bisec_bounds
   logical,dimension(2) :: bisec_bounds_ok
-  real(kind=8),dimension(:,:),pointer :: ovrlp_onehalf, ovrlp_minusonehalf
+  !real(kind=8),dimension(:,:),pointer :: ovrlp_onehalf, ovrlp_minusonehalf
   type(matrices) :: ovrlp_onehalf_, ovrlp_minusonehalf_
 
   if (purification_quickreturn) then
@@ -2334,7 +2336,6 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
 
   call timing(iproc,'purify_kernel ','OF') 
 
-  !call f_free(k)
   call f_free(ks)
   call f_free(ksk)
   call f_free(ksksk)
@@ -2413,7 +2414,7 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   real(kind=8),intent(out) :: KSres
 
   ! Local variables
-  integer :: iorb, istat, ierr,  jorb
+  integer :: iorb!, ierr,  jorb
   real(kind=8) :: norbtot, scale_factor
   type(matrices) :: gradmat 
   real(kind=8),dimension(:,:),allocatable ::KH, KHKH, Kgrad

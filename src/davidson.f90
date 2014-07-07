@@ -210,7 +210,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    !the allocation with npsidim is not necessary here since DIIS arrays
    !are always calculated in the transpsed form
    call allocate_diis_objects(in%idsx,in%alphadiis,sum(VTwfn%comms%ncntt(0:nproc-1)),&
-      &   VTwfn%orbs%nkptsp,VTwfn%orbs%nspinor,VTwfn%diis,subname)  
+      &   VTwfn%orbs%nkptsp,VTwfn%orbs%nspinor,VTwfn%diis)  
    !print *,'check',in%idsx,sum(VTwfn%comms%ncntt(0:nproc-1)),VTwfn%orbs%nkptsp
 
    energs%eKS=1.d10
@@ -316,7 +316,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
       call f_free_ptr(psirocc)
    end if
 
-   call deallocate_diis_objects(VTwfn%diis,subname)
+   call deallocate_diis_objects(VTwfn%diis)
 
    !this deallocates also hpsivirt and psitvirt
    call last_orthon(iproc,nproc,iter,VTwfn,energs%evsum)

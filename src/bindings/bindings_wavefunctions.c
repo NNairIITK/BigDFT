@@ -637,8 +637,7 @@ void bigdft_wf_init_linear_comm(BigDFT_Wf *wf, const BigDFT_LocalFields *denspot
   if (!wf->parent.linear)
     return;
 
-  FC_FUNC_(kswfn_init_comm, KSWFN_INIT_COMM)(wf->data, in->data,
-                                             wf->lzd->parent.parent.data,
+  FC_FUNC_(kswfn_init_comm, KSWFN_INIT_COMM)(wf->data, 
                                              denspot->dpbox,
                                              (int*)&iproc, (int*)&nproc);
 }
@@ -1016,8 +1015,7 @@ static gpointer wf_optimization_thread(gpointer data)
   bigdft_localfields_create_effective_ionic_pot(ct->denspot, ct->wf->lzd,
                                                 ct->in, ct->iproc, ct->nproc);
   if (ct->wf->parent.linear)
-    FC_FUNC_(kswfn_init_comm, KSWFN_INIT_COMM)(ct->wf->data, ct->in->data,
-                                               ct->wf->lzd->parent.parent.data,
+    FC_FUNC_(kswfn_init_comm, KSWFN_INIT_COMM)(ct->wf->data,
                                                ct->denspot->dpbox,
                                                (int*)&ct->iproc, (int*)&ct->nproc);
   bigdft_wf_calculate_psi0(ct->wf, ct->denspot, ct->proj, ct->energs, ct->iproc, ct->nproc);

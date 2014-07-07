@@ -19,7 +19,7 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
   integer, intent(out) :: nstates_max ! number of states in total if we consider all partially occupied fragment states to be fully occupied
   logical, intent(in) :: cdft
 
-  integer :: iorb, isforb, jsforb, ifrag, ifrag_ref, itmb, jtmb, iall, istat, num_extra_per_frag
+  integer :: iorb, isforb, jsforb, ifrag, ifrag_ref, itmb, jtmb, num_extra_per_frag
   integer, allocatable, dimension(:) :: ipiv
   real(gp), dimension(:,:), allocatable :: coeff_final
   !real(gp), dimension(:,:), allocatable :: ks, ksk

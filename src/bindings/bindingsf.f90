@@ -980,7 +980,7 @@ subroutine localfields_free(denspotd, fion, fdisp)
   character(len = *), parameter :: subname = "localfields_free"
 
   call deallocate_rho_descriptors(denspotd%rhod)
-  call dpbox_free(denspotd%dpbox, subname)
+  call dpbox_free(denspotd%dpbox)
   
   if (associated(denspotd%V_ext)) then
      call f_free_ptr(denspotd%V_ext)

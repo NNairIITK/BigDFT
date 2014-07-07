@@ -473,7 +473,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      !!call init_p2p_tags(nproc)
      !!tag=0
 
-     call kswfn_init_comm(tmb, in, atoms, denspot%dpbox, iproc, nproc)
+     call kswfn_init_comm(tmb, denspot%dpbox, iproc, nproc)
      locreg_centers = f_malloc((/3,tmb%lzd%nlr/),id='locreg_centers')
      do ilr=1,tmb%lzd%nlr
          locreg_centers(1:3,ilr)=tmb%lzd%llr(ilr)%locregcenter(1:3)
@@ -1317,7 +1317,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
         call vcopy(n1i*n2i*n3i*in%nspin,denspot%rhov(1),1,denspot%pot_work(1),1)
      end if
 
-     call dpbox_free(denspot%dpbox, subname)
+     call dpbox_free(denspot%dpbox)
 
      call f_free_ptr(denspot%rhov)
 
@@ -1356,7 +1356,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      if (nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
      call f_free_ptr(denspot%rhov)
      call f_free_ptr(denspot%V_XC)
-     call dpbox_free(denspot%dpbox, subname)
+     call dpbox_free(denspot%dpbox)
   endif
   ! --- End if of tail calculation
 
@@ -1404,7 +1404,7 @@ contains
        call f_free_ptr(denspot%rhov)
        call f_free_ptr(denspot%V_XC)
 
-       call dpbox_free(denspot%dpbox, subname)
+       call dpbox_free(denspot%dpbox)
 
        call f_free_ptr(fion)
        call f_free_ptr(fdisp)
@@ -1586,7 +1586,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
   ! allocate arrays necessary for DIIS convergence acceleration
   call allocate_diis_objects(idsx,in%alphadiis,sum(KSwfn%comms%ncntt(0:nproc-1)),&
-       KSwfn%orbs%nkptsp,KSwfn%orbs%nspinor,KSwfn%diis,subname)
+       KSwfn%orbs%nkptsp,KSwfn%orbs%nspinor,KSwfn%diis)
 
   !number of switching betweed DIIS and SD during self-consistent loop
   ndiis_sd_sw=0

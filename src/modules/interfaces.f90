@@ -1450,11 +1450,11 @@ module module_interfaces
         type(denspot_distribution), intent(inout) :: dpbox
       end subroutine denspot_communications
 
-      subroutine allocateRhoPot(iproc,Glr,nspin,atoms,rxyz,denspot)
+      subroutine allocateRhoPot(Glr,nspin,atoms,rxyz,denspot)
         use module_base
         use module_types
         implicit none
-        integer, intent(in) :: iproc,nspin
+        integer, intent(in) :: nspin
         type(locreg_descriptors), intent(in) :: Glr
         type(atoms_data), intent(in) :: atoms
         real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
@@ -2777,11 +2777,10 @@ module module_interfaces
           integer, intent(in) :: ixc, nspden
         end subroutine initialize_DFT_local_fields
 
-        subroutine allocate_diis_objects(idsx,alphadiis,npsidim,nkptsp,nspinor,diis,subname) !n(m)
+        subroutine allocate_diis_objects(idsx,alphadiis,npsidim,nkptsp,nspinor,diis)
           use module_base
           use module_types
           implicit none
-          character(len=*), intent(in) :: subname
           integer, intent(in) :: idsx,npsidim,nkptsp,nspinor !n(m)
           real(gp), intent(in) :: alphadiis
           type(diis_objects), intent(inout) :: diis
@@ -3223,13 +3222,11 @@ module module_interfaces
           type(foe_data),intent(inout) :: foe_obj
         end subroutine foe
 
-        subroutine kswfn_init_comm(wfn, in, atoms, dpbox, iproc, nproc)
+        subroutine kswfn_init_comm(wfn, dpbox, iproc, nproc)
           use module_types
           implicit none
           integer, intent(in) :: iproc, nproc
           type(DFT_wavefunction), intent(inout) :: wfn
-          type(input_variables), intent(in) :: in
-          type(atoms_data),intent(in) :: atoms
           type(denspot_distribution), intent(in) :: dpbox
         end subroutine kswfn_init_comm
 

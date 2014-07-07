@@ -18,7 +18,6 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
   type(workarr_locham), intent(out) :: w
   !local variables
   character(len=*), parameter :: subname='initialize_work_arrays_locham'
-  integer :: i_stat
   integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,nw,nww,nf
 
   n1=lr%d%n1
@@ -146,9 +145,7 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
 
 END SUBROUTINE initialize_work_arrays_locham
 
-!>
-!!
-!!
+
 subroutine memspace_work_arrays_locham(lr,memwork) !n(c) nspinor (arg:2)
   !n(c) use module_base
   use module_types
@@ -249,10 +246,6 @@ subroutine memspace_work_arrays_locham(lr,memwork) !n(c) nspinor (arg:2)
 END SUBROUTINE memspace_work_arrays_locham
 
 
-
-!>
-!!
-!!
 subroutine deallocate_work_arrays_locham(lr,w)
   use module_base
   use module_types
@@ -261,7 +254,6 @@ subroutine deallocate_work_arrays_locham(lr,w)
   type(workarr_locham), intent(inout) :: w
   !local variables
   character(len=*), parameter :: subname='deallocate_work_arrays_locham'
-  integer :: i_stat,i_all
   
   call f_free_ptr(w%y_c)
   call f_free_ptr(w%x_c)
@@ -276,9 +268,9 @@ subroutine deallocate_work_arrays_locham(lr,w)
      call f_free_ptr(w%w1)
      call f_free_ptr(w%w2)
   end if
-
   
 END SUBROUTINE deallocate_work_arrays_locham
+
 
 subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
   use module_base
@@ -657,6 +649,7 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   
 END SUBROUTINE daub_to_isf_locham
 
+
 subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_strten)
   !use module_base
   use module_types
@@ -946,7 +939,7 @@ subroutine initialize_work_arrays_sumrho(lr,w)
   type(workarr_sumrho), intent(out) :: w
   !local variables
   character(len=*), parameter :: subname='initialize_work_arrays_sumrho'
-  integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,i_stat !n(c) n1i,n2i,n3i
+  integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3!n(c) n1i,n2i,n3i
   
   n1=lr%d%n1
   n2=lr%d%n2
@@ -1017,6 +1010,7 @@ subroutine initialize_work_arrays_sumrho(lr,w)
 
 
 END SUBROUTINE initialize_work_arrays_sumrho
+
 
 subroutine memspace_work_arrays_sumrho(lr,memwork)
   !n(c) use module_base
@@ -1092,7 +1086,6 @@ subroutine deallocate_work_arrays_sumrho(w)
   type(workarr_sumrho), intent(inout) :: w
   !local variables
   character(len=*), parameter :: subname='deallocate_work_arrays_sumrho'
-  integer :: i_all, i_stat
 
   call f_free_ptr(w%x_c)
   call f_free_ptr(w%x_f)
@@ -1100,6 +1093,7 @@ subroutine deallocate_work_arrays_sumrho(w)
   call f_free_ptr(w%w2)
   
 END SUBROUTINE deallocate_work_arrays_sumrho
+
 
 subroutine psig_to_psir_free(n1,n2,n3,work,psig_psir)
  implicit none
@@ -1109,12 +1103,13 @@ subroutine psig_to_psir_free(n1,n2,n3,work,psig_psir)
 
  call synthese_free_self(n1,n2,n3,psig_psir,work)
  call convolut_magic_n_free_self(2*n1+15,2*n2+15,2*n3+15,work,psig_psir)
-	
+
 end subroutine psig_to_psir_free
 
-!transform a daubechies function in compressed form to a function in real space via
-!the Magic Filter operation
-!do this for a single component (spinorial and/or complex)
+
+!> Transform a daubechies function in compressed form to a function in real space via
+!! the Magic Filter operation
+!! do this for a single component (spinorial and/or complex)
 subroutine daub_to_isf(lr,w,psi,psir)
   use module_base
   use module_types
@@ -1194,11 +1189,13 @@ subroutine daub_to_isf(lr,w,psi,psir)
 
 END SUBROUTINE daub_to_isf
 
-!>   Transforms a wavefunction written in real space basis into a 
-!!   wavefunction in Daubechies form
-!!   does the job for all supported BC
-!!   Warning: the psir is destroyed for some BCs (slab and periodic)
-!!   Warning: psi must already be initialized (to zero) before entering this routine
+
+!> Transforms a wavefunction written in real space basis into a 
+!! wavefunction in Daubechies form
+!! does the job for all supported BC
+!! @warning: 
+!!  - the psir is destroyed for some BCs (slab and periodic)
+!!  - psi must already be initialized (to zero) before entering this routine
 subroutine isf_to_daub(lr,w,psir,psi)
   !n(c) use module_base
   use module_types

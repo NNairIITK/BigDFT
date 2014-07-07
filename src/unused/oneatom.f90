@@ -162,7 +162,7 @@ program oneatom
   !the allocation with npsidim is not necessary here since DIIS arrays
   !are always calculated in the transposed form
   call allocate_diis_objects(in%idsx,in%alphadiis,sum(comms%ncntt(0:nproc-1)),&
-       orbs%nkptsp,orbs%nspinor,diis,subname)  
+       orbs%nkptsp,orbs%nspinor,diis)  
 
   !write the local potential in pot_ion array
   call createPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
@@ -296,7 +296,7 @@ program oneatom
   !call last_orthon(iproc,nproc,orbs,Glr%wfd,in%nspin,&
   !     comms,psi,hpsi,psit,evsum)
   
-  call deallocate_diis_objects(diis,subname)
+  call deallocate_diis_objects(diis)
 
   !i_all=-product(shape(proj_G))*kind(proj_G)
   deallocate(proj_G,stat=i_stat)
