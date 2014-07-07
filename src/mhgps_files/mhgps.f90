@@ -205,6 +205,8 @@ real(gp),allocatable :: eval(:)
     ixyz_int = 0
 !allocate(rxyz_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),fxyz_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),fxyzraw_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),rxyzraw_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),fstretch_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),eval_rot(saddle_nhistx_rot),res_rot(saddle_nhistx_rot),rrr_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot))
 
+    call give_rcov(atoms,atoms%astruct%nat,rcov)
+
     !if in biomode, determine bonds betweens atoms once and for all (it is
     !assuemed that all conifugrations over which will be iterated have the same
     !bonds)
@@ -213,7 +215,7 @@ real(gp),allocatable :: eval(:)
     endif
 
 
-    call give_rcov(atoms,atoms%astruct%nat,rcov)
+
 
 !    if (iproc == 0) &
 !        call yaml_set_stream(unit=usaddle,filename=trim(saddle_filename),tabbing=0,record_length=100,setdefault=.false.,istat=ierr)
@@ -241,7 +243,7 @@ real(gp),allocatable :: eval(:)
             call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
             call vcopy(3 * atoms%astruct%nat,atoms%astruct%rxyz(1,1),1,rxyz(1,1), 1)
             call vcopy(3 * atoms%astruct%nat,outs%fxyz(1,1),1,fxyz(1,1), 1)
-!            call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,energy)
+!!            call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,energy)
 !!call cal_hessian_fd(iproc,atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,hess)
 !!        call DSYEV('V','L',3*atoms%astruct%nat,hess,3*atoms%astruct%nat,eval,WORK,LWORK,INFO)
 !!        if (info.ne.0) stop 'DSYEV'
@@ -261,6 +263,12 @@ real(gp),allocatable :: eval(:)
            saddle_nit_rot,saddle_nhistx_trans,saddle_nhistx_rot,saddle_tolc,saddle_tolf,saddle_tightenfac,saddle_rmsdispl0,&
            saddle_trustr,rxyz,energy,fxyz,minmode,saddle_fnrmtol,displ,ec,&
            converged,atoms%astruct%atomnames,nbond,iconnect,saddle_alpha_stretch0,saddle_recompIfCurvPos,saddle_maxcurvrise,saddle_cutoffratio)
+           if (iproc == 0) then
+               call write_atomic_file(currDir//'/'//currFile//'_final',&
+               energy,rxyz(1,1),ixyz_int,&
+               atoms,'',forces=fxyz(1,1))
+           endif
+
 !call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
 !call minimizer_sbfgs(runObj,outs,nproc,iproc,1,ncount_bigdft,fail)
 !rxyz=atoms%astruct%rxyz

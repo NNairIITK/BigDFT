@@ -25,6 +25,7 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,epot)
     !internal
     !uncomment for amber:
         integer :: icc
+    real(gp) :: rxyzint(3,nat)
 
     ef_counter=ef_counter+1.d0    
     if(trim(adjustl(efmethod))=='LJ')then
@@ -32,8 +33,11 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,epot)
         return
     else if(trim(adjustl(efmethod))=='AMBER')then
         icc=1
-        call call_nab_gradient(rxyz(1,1),fxyz(1,1),epot,icc)
-        fxyz(1:3,1:nat)=-fxyz(1:3,1:nat)
+        !convert form bohr to ansgtroem
+        rxyzint=0.529177211_gp*rxyz
+        call call_nab_gradient(rxyzint(1,1),fxyz(1,1),epot,icc)
+        !convert from gradient in kcal/mol/angstorm to force in hartree/bohr
+        fxyz(1:3,1:nat)=-fxyz(1:3,1:nat)*0.000843298_gp
         return
     else if(trim(adjustl(efmethod))=='BIGDFT')then
         if(nat/=runObj%atoms%astruct%nat)then

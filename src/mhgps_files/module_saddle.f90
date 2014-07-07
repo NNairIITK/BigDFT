@@ -1831,10 +1831,11 @@ subroutine projectbond(nat,nbond,rat,fat,fstretch,iconnect,atomnames,wold,alpha_
          alpha_stretch=max(1.e-2_gp*alpha_stretch0,alpha_stretch/1.10_gp)
 !         alpha_stretch=max(1.e-10_gp,alpha_stretch/1.10_gp)
      endif
-     write(555,'(f5.1,a,1x,es10.3)') 100*per,' percent of bond directions did not switch sign',alpha_stretch
+!     write(555,'(f5.1,a,1x,es10.3)') 100*per,' percent of bond directions did not switch sign',alpha_stretch
 
      call DPOSV('L', nbond, 1, ss, nbond, w, nbond, info )
      if (info.ne.0) then
+        write(*,*)'info',info
         stop 'info DPOSV in minenergyforces'
      endif
 
