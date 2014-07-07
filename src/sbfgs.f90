@@ -416,7 +416,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
       if (cosangle.gt..200_gp) then
          beta=beta*1.100_gp
       else
-         beta=max(beta*.850_gp,1.e-1_gp*betax)
+         beta=max(beta*.850_gp,betax)
       endif
    
       if (debug.and.iproc==0) write(100,*) 'cosangle ',cosangle,beta

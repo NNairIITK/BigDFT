@@ -48,6 +48,12 @@ integer :: i,j,info
 integer :: idum=0
 real(kind=4) :: tt,builtin_rand
 real(gp),allocatable :: eval(:)
+        !alanine stuff ......................START!>
+        real(gp), allocatable :: rxyzdmy(:,:), fxyzdmy(:,:)
+        character(len=5) :: atomnamesdmy(:)
+        integer :: l_sat, nfnpdb
+        character(len=11) :: fnpdb
+        !alanine stuff ......................END!>
 
     ifolder=1
     ifile=1
@@ -100,6 +106,17 @@ real(gp),allocatable :: eval(:)
         call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
         call init_global_output(outs, atoms%astruct%nat)
         call print_logo_mhgps()
+    elseif(efmethod=='AMBER')then
+        !alanine stuff ......................START!>
+          l_sat=5
+          allocate(rxyzdmy(3,1000),fxyzdmy(3,1000),atomnamesdmy(1000))
+          fnpdb='ald_new.pdb'
+          nfnpdb=len(trim(fnpdb));
+          call nab_init(atoms%astruct%nat,rxyzdmy,fxyzdmy,trim(fnpdb),nfnpdb,l_sat,atomnamesdmy)
+          deallocate(rxyzdmy,fxyzdmy,atomnamesdmy)
+        !alanine stuff ......................END!>
+
+        call print_logo_mhgps()
     else
         call yaml_warning('Following method for evaluation of energies and forces is unknown: '//trim(adjustl(efmethod)))
         stop
@@ -109,43 +126,71 @@ real(gp),allocatable :: eval(:)
     !allocate more arrays
     lwork=1000+10*atoms%astruct%nat**2
     work = f_malloc((/1.to.lwork/),id='work')
-    minmode  = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='minmode')
-    rxyz     = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='rxyz')
-    fxyz     = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='rxyz')
+    minmode  = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),&
+                id='minmode')
+    rxyz     = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),&
+                id='rxyz')
+    fxyz     = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),&
+                id='rxyz')
     rcov     = f_malloc((/ 1.to.atoms%astruct%nat/),id='rcov')
     iconnect = f_malloc((/ 1.to.2, 1.to.1000/),id='iconnect')
-    ixyz_int = f_malloc((/ 1.to.3,1.to.atoms%astruct%nat/),id='atoms%astruct%nat')
-    gradrot  = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='gradrot')
-    rotforce = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='rotforce')
-    hess     = f_malloc((/ 1.to.3*atoms%astruct%nat, 1.to.3*atoms%astruct%nat/),id='hess')
-    rxyz_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_rot/),id='rxyz_rot')
-    fxyz_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_rot/),id='fxyz_rot') 
-    fxyzraw_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_rot/),id='fxyzraw_rot')
-    rxyzraw_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_rot/),id='rxyzraw_rot')
-    fstretch_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_rot/),id='fstretch_rot')
+    ixyz_int = f_malloc((/ 1.to.3,1.to.atoms%astruct%nat/),&
+                id='atoms%astruct%nat')
+    gradrot  = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),&
+                id='gradrot')
+    rotforce = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),&
+                id='rotforce')
+    hess     = f_malloc((/ 1.to.3*atoms%astruct%nat,&
+                1.to.3*atoms%astruct%nat/),id='hess')
+    rxyz_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+                0.to.saddle_nhistx_rot/),id='rxyz_rot')
+    fxyz_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+                0.to.saddle_nhistx_rot/),id='fxyz_rot') 
+    fxyzraw_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+                0.to.saddle_nhistx_rot/),id='fxyzraw_rot')
+    rxyzraw_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+                0.to.saddle_nhistx_rot/),id='rxyzraw_rot')
+    fstretch_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+                0.to.saddle_nhistx_rot/),id='fstretch_rot')
     eval_rot = f_malloc((/1.to.saddle_nhistx_rot/),id='eval_rot')
     res_rot = f_malloc((/1.to.saddle_nhistx_rot/),id='res_rot')
-    rrr_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_rot/),id='rrr_rot')
-    aa_rot = f_malloc((/1.to.saddle_nhistx_rot,1.to.saddle_nhistx_rot/),id='aa_rot')
-    ff_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_rot/),id='ff_rot')
-    rr_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_rot/),id='rr_rot')
-    dd_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='dd_rot')
-    fff_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_rot/),id='fff_rot')
+    rrr_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+                0.to.saddle_nhistx_rot/),id='rrr_rot')
+    aa_rot = f_malloc((/1.to.saddle_nhistx_rot,1.to.saddle_nhistx_rot/),&
+                id='aa_rot')
+    ff_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+                0.to.saddle_nhistx_rot/),id='ff_rot')
+    rr_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+                0.to.saddle_nhistx_rot/),id='rr_rot')
+    dd_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),&
+                id='dd_rot')
+    fff_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+                0.to.saddle_nhistx_rot/),id='fff_rot')
     scpr_rot = f_malloc((/ 1.to.saddle_nhistx_rot/),id='scpr_rot')
     wold_rot = f_malloc((/ 1.to.nbond/),id='wold_rot')
-    rxyz_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_trans/),id='rxyz_trans')
-    fxyz_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_trans/),id='fxyz_trans') 
-    fxyzraw_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_trans/),id='fxyzraw_trans')
-    rxyzraw_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_trans/),id='rxyzraw_trans')
-    fstretch_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_trans/),id='fstretch_trans')
+    rxyz_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+                0.to.saddle_nhistx_trans/),id='rxyz_trans')
+    fxyz_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+                0.to.saddle_nhistx_trans/),id='fxyz_trans') 
+    fxyzraw_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+                0.to.saddle_nhistx_trans/),id='fxyzraw_trans')
+    rxyzraw_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+                0.to.saddle_nhistx_trans/),id='rxyzraw_trans')
+    fstretch_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+                0.to.saddle_nhistx_trans/),id='fstretch_trans')
     eval_trans = f_malloc((/1.to.saddle_nhistx_trans/),id='eval_trans')
     res_trans = f_malloc((/1.to.saddle_nhistx_trans/),id='res_trans')
-    rrr_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_trans/),id='rrr_trans')
-    aa_trans = f_malloc((/1.to.saddle_nhistx_trans,1.to.saddle_nhistx_trans/),id='aa_trans')
-    ff_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_trans/),id='ff_trans')
-    rr_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_trans/),id='rr_trans')
+    rrr_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+                0.to.saddle_nhistx_trans/),id='rrr_trans')
+    aa_trans = f_malloc((/1.to.saddle_nhistx_trans,&
+                1.to.saddle_nhistx_trans/),id='aa_trans')
+    ff_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+                0.to.saddle_nhistx_trans/),id='ff_trans')
+    rr_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+                0.to.saddle_nhistx_trans/),id='rr_trans')
     dd_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='dd_trans')
-    fff_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,0.to.saddle_nhistx_trans/),id='fff_trans')
+    fff_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+                0.to.saddle_nhistx_trans/),id='fff_trans')
     scpr_trans = f_malloc((/ 1.to.saddle_nhistx_trans/),id='scpr_trans')
     wold_trans = f_malloc((/ 1.to.nbond/),id='wold_trans')
     

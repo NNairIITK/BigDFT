@@ -23,10 +23,17 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,epot)
     real(gp), intent(out) :: fxyz(3,nat)
     real(gp), intent(out) :: epot
     !internal
+    !uncomment for amber:
+        integer :: icc
 
     ef_counter=ef_counter+1.d0    
     if(trim(adjustl(efmethod))=='LJ')then
         call lenjon(nat,rxyz(1,1),fxyz(1,1),epot)
+        return
+    else if(trim(adjustl(efmethod))=='AMBER')then
+        icc=1
+        call call_nab_gradient(rxyz(1,1),fxyz(1,1),epot,icc)
+        fxyz(1:3,1:nat)=-fxyz(1:3,1:nat)
         return
     else if(trim(adjustl(efmethod))=='BIGDFT')then
         if(nat/=runObj%atoms%astruct%nat)then

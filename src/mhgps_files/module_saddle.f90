@@ -235,11 +235,17 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_
         endif
         if(tooFar& !recompute lowest mode if walked too far
           .or. it==1& !compute lowest mode at first step
-          .or. (curv>=0.0_gp .and. mod(it,recompIfCurvPos)==0)& !For LJ systems recomputation
-                                                                !every nth=recompIfCurvPos step raises stbility
+          .or. (curv>=0.0_gp .and. mod(it,recompIfCurvPos)==0)& !For LJ
+                                                                !systems
+                                                                !recomputation
+                                                                !every
+                                                                !nth=recompIfCurvPos
+                                                                !step raises
+                                                                !stability
           .or.recompute==it)then
             if(iproc==0.and.mhgps_verbosity>=2)call yaml_comment(&
-            '(MHGPS) METHOD COUNT  IT  CURVATURE             DIFF      FMAX      FNRM      alpha    ndim')
+            '(MHGPS) METHOD COUNT  IT  CURVATURE             &
+            DIFF      FMAX      FNRM      alpha    ndim')
             inputPsiId=1
              !inputPsiId=0
             call opt_curv(imode,nat,alat,alpha0_rot,curvgraddiff,nit_rot,&
@@ -256,17 +262,20 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_
                 return
             endif
             overlap=ddot(3*nat,minmodeold(1,1),1,minmode(1,1),1)
-            if(iproc==0.and.mhgps_verbosity>=2)call yaml_map('  (MHGPS) minmode overlap',overlap)
+            if(iproc==0.and.mhgps_verbosity>=2)&
+                call yaml_map('  (MHGPS) minmode overlap',overlap)
             minmodeold=minmode
             displold=displ
             recompute=huge(1)
             if(iproc==0.and.mhgps_verbosity>=2)call yaml_comment(&
-            '(MHGPS) METHOD COUNT  IT  Energy                DIFF      FMAX      FNRM      alpha    ndim')
+            '(MHGPS) METHOD COUNT  IT  Energy                &
+            DIFF      FMAX      FNRM      alpha    ndim')
         endif
         !END FINDING LOWEST MODE
         
         600 continue
-        call modify_gradient(nat,ndim,rrr(1,1,1),eval(1),res(1),fxyz(1,1,nhist-1),alpha,dd(1,1))
+        call modify_gradient(nat,ndim,rrr(1,1,1),eval(1),&
+             res(1),fxyz(1,1,nhist-1),alpha,dd(1,1))
  
         !save a version of dd with minmode direction in dd0
         !(used for gradient feedback)
@@ -305,9 +314,10 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_
         !displ=displ+tt
  
         inputPsiId=1
-        call minenergyandforces(imode,nat,alat,rxyz(1,1,nhist),rxyzraw(1,1,nhist),&
-             fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),etotp&
-             ,iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
+        call minenergyandforces(imode,nat,alat,rxyz(1,1,nhist),&
+                rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),&
+                fxyzraw(1,1,nhist),etotp,iconnect,nbond,atomnames,wold,&
+                alpha_stretch0,alpha_stretch)
         ener_count=ener_count+1.0_gp
         detot=etotp-etotold
  
@@ -330,8 +340,10 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_
                  sqrt(dot_double(3*nat,ftmp(1,1),1,ftmp(1,1),1)*&
                  dot_double(3*nat,dd0(1,1),1,dd0(1,1),1))
 
-        if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,xes21.14,4(xes9.2),xi3.3,xes9.2)')&
-        '   (MHGPS) GEOPT ',nint(ener_count),it,etotp,detot,fmax,fnrm, alpha,ndim!,maxd,
+        if(iproc==0.and.mhgps_verbosity>=2)&
+            write(*,'(a,xi4.4,xi4.4,xes21.14,4(xes9.2),xi3.3,xes9.2)')&
+            '   (MHGPS) GEOPT ',nint(ener_count),it,etotp,detot,fmax,&
+            fnrm, alpha,ndim!,maxd,
 
         etot=etotp
         etotold=etot
@@ -340,12 +352,15 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_
 
         !now do step in hard directions
         if(imode==2)then
-!           fstretch(:,:,nhist)=fstretch(:,:,nhist)-2.0_gp*ddot(3*nat,fstretch(1,1,nhist),1,minmode(1,1),1)*minmode
-            dds=alpha_stretch*(fstretch(:,:,nhist)-2.0_gp*ddot(3*nat,fstretch(1,1,nhist),1,minmode(1,1),1)*minmode)
+!           fstretch(:,:,nhist)=fstretch(:,:,nhist)-2.0_gp*&
+!            ddot(3*nat,fstretch(1,1,nhist),1,minmode(1,1),1)*minmode
+            dds=alpha_stretch*(fstretch(:,:,nhist)-&
+                2.0_gp*ddot(3*nat,fstretch(1,1,nhist),1,minmode(1,1),1)*minmode)
             dt=0.0_gp
             maxd=-huge(1.0_gp)
             do iat=1,nat
-                !dt=fstretch(1,iat,nhist)**2+fstretch(2,iat,nhist)**2+fstretch(3,iat,nhist)**2
+                !dt=fstretch(1,iat,nhist)**2+&
+                !fstretch(2,iat,nhist)**2+fstretch(3,iat,nhist)**2
                 dt=dds(1,iat)**2+dds(2,iat)**2+dds(3,iat)**2
                 maxd=max(maxd,dt)
             enddo
@@ -353,7 +368,9 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_
 
             !trust radius approach
             if(maxd>trustr)then
-                if(iproc==0)write(*,'(a,es10.3,xi0,xes10.3)')'(MHGPS) hard direction step too large:maxd,it,alpha_stretch',maxd,it,alpha_stretch
+                if(iproc==0)write(*,'(a,es10.3,xi0,xes10.3)')&
+                    '(MHGPS) hard direction step too large:maxd,it,alpha_stretch',&
+                    maxd,it,alpha_stretch
                 scl=0.5_gp*trustr/maxd
                 dds=dds*scl
             endif
@@ -368,8 +385,9 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_
             alpha=max(alpha*.85_gp,alpha0_trans)
         endif
 
-        call getSubSpaceEvecEval(nat,nhist,nhistx_trans,ndim,cutoffratio,lwork,work,rxyz,&
-                             &fxyz,aa,rr,ff,rrr,fff,eval,res,subspaceSucc)
+        call getSubSpaceEvecEval(nat,nhist,nhistx_trans,ndim,&
+                cutoffratio,lwork,work,rxyz,fxyz,aa,rr,ff,rrr,fff,&
+                eval,res,subspaceSucc)
 
         delta=rxyz(:,:,nhist)-rxyz(:,:,nhist-1)
         displ=displ+dnrm2(3*nat,delta(1,1),1)
