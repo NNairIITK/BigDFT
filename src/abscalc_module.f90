@@ -192,11 +192,11 @@ module module_abscalc
 
 
 contains
-  !!
-  subroutine deallocate_pawproj_data(pawproj_data,subname)
+  
+
+  subroutine deallocate_pawproj_data(pawproj_data)
     use module_base
     implicit none
-    character(len=*), intent(in) :: subname
     type(pawproj_data_type), intent(inout) :: pawproj_data
 
     if(associated(pawproj_data%paw_nl%proj)) then

@@ -237,7 +237,6 @@ module fermi_level
                   tmp_matrix(i,3)=f%interpol_matrix(i,3)
                   tmp_matrix(i,4)=f%interpol_matrix(i,4)
               end do
-        
               !if (bigdft_mpi%iproc==0) then
                  !call yaml_map('matrix',tmp_matrix,fmt='(es10.3)')
                  !call yaml_map('interpol_vector',f%interpol_vector,fmt='(es12.5)')

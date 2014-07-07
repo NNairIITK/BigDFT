@@ -7,6 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
+
 subroutine center_of_charge(at,rxyz,cc)
   use module_base
   use module_types
@@ -63,7 +64,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
   !local variables
   character(len=*), parameter :: subname='coupling_matrix_prelim'
   logical :: tda=.true.,onlyfxc=.false.,dofxc=.true.,perx,pery,perz
-  integer :: i_all,i_stat,ierr,imulti,jmulti,jorba,jorbi,index
+  integer :: imulti,jmulti,jorba,jorbi,index
   integer :: i1,i2,i3p,iorbi,iorba,indi,inda,ind2,ind3,ntda,ispin,jspin
   integer :: ik,jk,nmulti,lwork,info,nbl1,nbl2,nbl3,nbr3,nbr2,nbr1,ndipoles
   real(gp) :: ehart,hfac,x,y,z

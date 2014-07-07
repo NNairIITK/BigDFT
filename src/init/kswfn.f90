@@ -24,13 +24,14 @@ subroutine kswfn_free_scf_data(KSwfn, freePsit)
   use module_types
   use memory_profiling
   implicit none
+  !Arguments
   type(DFT_wavefunction), intent(inout) :: KSwfn
   logical, intent(in) :: freePsit
-  
+  !Local variables
   character(len = *), parameter :: subname = "kswfn_free_scf_data"
 
   ! Clean KSwfn parts only needed in the SCF loop.
-  call deallocate_diis_objects(KSwfn%diis,subname)
+  call deallocate_diis_objects(KSwfn%diis)
   call f_free_ptr(KSwfn%hpsi)
   if (freePsit) then
      call f_free_ptr(KSwfn%psit)
@@ -112,7 +113,7 @@ subroutine kswfn_mpi_copy(psic, jproc, psiStart, psiSize)
 END SUBROUTINE kswfn_mpi_copy
 
 
-subroutine kswfn_init_comm(wfn, in, atoms, dpbox, iproc, nproc)
+subroutine kswfn_init_comm(wfn, dpbox, iproc, nproc)
   use module_types
   use module_interfaces, except_this_one => kswfn_init_comm
   use communications_base, only: comms_linear_null
@@ -121,8 +122,6 @@ subroutine kswfn_init_comm(wfn, in, atoms, dpbox, iproc, nproc)
   implicit none
   integer, intent(in) :: iproc, nproc
   type(DFT_wavefunction), intent(inout) :: wfn
-  type(input_variables), intent(in) :: in
-  type(atoms_data),intent(in) :: atoms
   type(denspot_distribution), intent(in) :: dpbox
 
   ! Nullify all pointers

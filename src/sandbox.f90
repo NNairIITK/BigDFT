@@ -158,7 +158,7 @@ program sandbox
 !!  !the allocation with npsidim is not necessary here since DIIS arrays
 !!  !are always calculated in the transposed form
 !!  if (in%idsx > 0) then
-!!     call allocate_diis_objects(in%idsx,sum(comms%ncntt(0:nproc-1)),orbs%nkptsp,diis,subname)  
+!!     call allocate_diis_objects(in%idsx,sum(comms%ncntt(0:nproc-1)),orbs%nkptsp,diis)  
 !!  endif
 !!
 !!  sum_pot = 0.0d0
@@ -577,7 +577,7 @@ program sandbox
 !!       comms,psi,hpsi,psit,evsum)
 !!  
 !!  if (in%idsx > 0) then
-!!     call deallocate_diis_objects(diis,subname)
+!!     call deallocate_diis_objects(diis)
 !!  end if
 !!
 !!  if (nproc > 1) then

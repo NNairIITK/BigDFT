@@ -654,7 +654,6 @@ subroutine plotGrid(iproc, norb, nspinor, nspin, orbitalNumber, llr, glr, atoms,
 end subroutine plotGrid
 
 
-
 subroutine local_potential_dimensions(iproc,Lzd,orbs,xc,ndimfirstproc)
   use module_base
   use module_types
@@ -667,7 +666,7 @@ subroutine local_potential_dimensions(iproc,Lzd,orbs,xc,ndimfirstproc)
   !local variables
   character(len=*), parameter :: subname='local_potential_dimensions'
   logical :: newvalue
-  integer :: i_all,i_stat,ii,iilr,ilr,iorb,iorb2,nilr,ispin
+  integer :: ii,iilr,ilr,iorb,iorb2,nilr,ispin
   integer, dimension(:,:), allocatable :: ilrtable
 
   call timing(iproc, 'calc_bounds   ', 'ON')
@@ -775,8 +774,9 @@ integer, intent(in) :: iproc, nproc
 type(orbitals_data), intent(in) :: orbs
 
 ! Local variables
-integer :: jproc, len1, len2, space1, space2, jpst, norb0,  norb1
-logical :: written
+integer :: jproc, jpst, norb0,  norb1
+!integer :: space1, space2, len1, len2, 
+!logical :: written
 
 !!write(*,'(1x,a)') '------------------------------------------------------------------------------------'
 !!written=.false.
@@ -887,8 +887,8 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   character(len=*),parameter :: subname='build_ks_orbitals'
 
   !debug
-  integer :: iorb, jorb, ist, jst, ierr, i
-  real(kind=8) :: ddot, tt
+  !integer :: iorb, jorb, ist, jst, ierr, i
+  !real(kind=8) :: ddot, tt
 
 
   ! Get the expansion coefficients
@@ -1144,7 +1144,8 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   integer,intent(in) :: meth_overlap
 
   !local variables
-  integer :: ifrag,iorb,ifrag_ref,isforb,ierr,jorb
+  !integer :: ifrag,ifrag_ref,isforb,jorb
+  integer :: iorb,ierr
   real(kind=gp), allocatable, dimension(:,:) :: proj_mat, proj_ovrlp_half, weight_matrixp
   character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
   real(kind=gp) :: max_error, mean_error
@@ -1153,10 +1154,10 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   ! new variables
   integer :: iat
   real(kind=8),dimension(:,:),allocatable :: weight_matrix
-  real(kind=gp),dimension(:,:),pointer :: ovrlp
+  !real(kind=gp),dimension(:,:),pointer :: ovrlp
   real(kind=8) :: total_charge, total_net_charge
   real(kind=8),dimension(:),allocatable :: charge_per_atom
-  logical :: psit_c_associated, psit_f_associated
+  !logical :: psit_c_associated, psit_f_associated
 
 
   ! needs parallelizing/converting to sparse

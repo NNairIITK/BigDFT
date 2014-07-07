@@ -1314,8 +1314,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       if( in%iabscalc_type==3) then
          call deallocate_pcproj_data(PPD)
       endif
-      if(sum(atoms%paw_NofL).gt.0) then
-         call deallocate_pawproj_data(PAWD,subname)       
+      if(sum(atoms%paw_NofL) > 0) then
+         call deallocate_pawproj_data(PAWD)       
       endif
       !! this is included in deallocate_atomdatapaw
       !! call deallocate_atomdatapaw(atoms,subname)

@@ -286,7 +286,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      call density_descriptors(iproc,nproc,denspot%xc,in%nspin,in%crmult,in%frmult,atoms,&
           denspot%dpbox,in%rho_commun,rxyz,radii_cf,denspot%rhod)
      !allocate the arrays.
-     call allocateRhoPot(iproc,Lzd%Glr,in%nspin,atoms,rxyz,denspot)
+     call allocateRhoPot(Lzd%Glr,in%nspin,atoms,rxyz,denspot)
   end if
 
   !calculate the irreductible zone for this region, if necessary.
@@ -1447,7 +1447,7 @@ subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,inf
   integer, dimension(:,:), allocatable :: load_unbalancing
   !before printing the distribution schemes, check that the two distributions contain
   !the same k-points
-  if (info == 0) call print_distribution_schemes(6,nproc,nkpts,norb_par,ncomp_par)
+  if (info == 0) call print_distribution_schemes(nproc,nkpts,norb_par,ncomp_par)
 
   do ikpt=1,nkpts
      isproc=UNINITIALIZED(1)

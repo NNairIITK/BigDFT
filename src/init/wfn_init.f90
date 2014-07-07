@@ -145,9 +145,6 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
    !!!  !if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norbu+norbd,psit,.false.)
    !!!     
    call f_free(hamovr)
-   !!!  i_all=-product(shape(norbgrp))*kind(norbgrp)
-   !!!  deallocate(norbgrp,stat=i_stat)
-   !!!  call memocc(i_stat,i_all,'norbgrp',subname)
    !!!
    !!!  if (minimal) then
    !!!     !deallocate the old psi
@@ -2712,7 +2709,7 @@ subroutine choleskyOverlap(iproc, nproc, norbtot, blocksize, psi, overlapPsi, &
    real(kind=8),dimension(1:norbtot*nspinor,1:norb,nkpts),intent(in out):: psi
 
    ! Local variables
-   integer:: ikpt, ist, info, ierr, i_stat, i_all
+   integer:: ikpt, ist, info, ierr
    real(kind=8),allocatable,dimension(:,:,:):: ovrlp
    character(len=*),parameter:: subname='choleskyOverlap'
 
