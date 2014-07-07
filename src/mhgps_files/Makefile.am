@@ -22,25 +22,13 @@ noinst_LIBRARIES = libmhgps.a
 
 libmhgps_a_SOURCES = $(mhgps_SOURCES)
 
-#dependencies
-mhgps.o : $(mhgps_objects:.f90=.o) ../modules/BigDFT_API.o
+%.o:     %.c
+	        nab -c  -g $<
 
-module_energyandforces.o : module_global_variables.o module_init.o ../modules/BigDFT_API.o
+#dependencies
+mhgps.o : $(mhgps_objects:.f90=.o) ../modules/BigDFT_API.o wrap.o
+
+module_energyandforces.o : module_global_variables.o module_init.o ../modules/BigDFT_API.o wrap.o
 module_init.o : module_global_variables.o ../modules/BigDFT_API.o 
 module_saddle.o : module_global_variables.o module_energyandforces.o ../modules/BigDFT_API.o
 module_minimizers.o : module_global_variables.o module_energyandforces.o ../modules/BigDFT_API.o 
-
-##
-##ions_mod.o matrix_mod.o options_mod.o: kind_mod.o
-##
-##charge_mod.o chgcar_mod.o bader_mod.o dipole_mod.o voronoi_mod.o : matrix_mod.o
-##
-##io_mod.o cube_mod.o : ions_mod.o charge_mod.o
-##
-##dipole_mod.o chgcar_mod.o : charge_mod.o
-##
-##bader_mod.o voronoi_mod.o dipole_mod.o: io_mod.o
-##
-##io_mod.o : chgcar_mod.o cube_mod.o
-##
-##dipole_mod.o : bader_mod.o

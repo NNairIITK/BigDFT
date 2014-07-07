@@ -50,7 +50,7 @@ real(kind=4) :: tt,builtin_rand
 real(gp),allocatable :: eval(:)
         !alanine stuff ......................START!>
         real(gp), allocatable :: rxyzdmy(:,:), fxyzdmy(:,:)
-        character(len=5) :: atomnamesdmy(:)
+        character(len=5), allocatable :: atomnamesdmy(:)
         integer :: l_sat, nfnpdb
         character(len=11) :: fnpdb
         !alanine stuff ......................END!>
@@ -107,6 +107,13 @@ real(gp),allocatable :: eval(:)
         call init_global_output(outs, atoms%astruct%nat)
         call print_logo_mhgps()
     elseif(efmethod=='AMBER')then
+        iproc=0
+        isForceField=.true.
+        write(folder,'(a,i3.3)')'input',ifolder
+        write(filename,'(a,i3.3)')'min',ifile
+        call deallocate_atomic_structure(atoms%astruct)
+        call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
+        call init_global_output(outs, atoms%astruct%nat)
         !alanine stuff ......................START!>
           l_sat=5
           allocate(rxyzdmy(3,1000),fxyzdmy(3,1000),atomnamesdmy(1000))
@@ -190,7 +197,7 @@ real(gp),allocatable :: eval(:)
                 0.to.saddle_nhistx_trans/),id='rr_trans')
     dd_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='dd_trans')
     fff_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
-                0.to.saddle_nhistx_trans/),id='fff_trans')
+                -1.to.saddle_nhistx_trans/),id='fff_trans')
     scpr_trans = f_malloc((/ 1.to.saddle_nhistx_trans/),id='scpr_trans')
     wold_trans = f_malloc((/ 1.to.nbond/),id='wold_trans')
     
