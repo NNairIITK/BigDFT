@@ -268,10 +268,12 @@ module module_types
      integer :: norbsuempty,norbsdempty
      integer :: occopt
      integer :: last_run
-     real(gp) :: frac_fluct,gnrm_sw,alphamix,Tel, alphadiis
+     real(gp) :: frac_fluct,gnrm_sw,alphamix
+     real(gp) :: Tel                 !< Electronic temperature for the mixing scheme
+     real(gp) :: alphadiis
      real(gp) :: rpnrm_cv
      real(gp) :: gnrm_startmix
-     integer :: verbosity   !< Verbosity of the output file
+     integer :: verbosity            !< Verbosity of the output file
      logical :: multipole_preserving !< Preserve multipole for ionic charge (integrated isf)
 
      !> DFT basic parameters.

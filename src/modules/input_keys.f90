@@ -97,7 +97,7 @@ module module_input_keys
   character(len = *), parameter, public :: ITRPMAX = "itrpmax"
   character(len = *), parameter, public :: RPNRM_CV = "rpnrm_cv"
   character(len = *), parameter, public :: NORBSEMPTY = "norbsempty"
-  character(len = *), parameter, public :: TEL = "Tel"
+  character(len = *), parameter, public :: TEL = "tel"
   character(len = *), parameter, public :: OCCOPT = "occopt"
   character(len = *), parameter, public :: ALPHAMIX = "alphamix"
   character(len = *), parameter, public :: ALPHADIIS = "alphadiis"
