@@ -2145,8 +2145,6 @@
    Elapsed time (s)                    :  29.22
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
- - Input file, section "lin_basis_params"; invalid key "C".
- - Input file, section "lin_basis_params"; invalid key "O".
  - Do not call check_communications in the linear scaling version!
  - support function optimization not converged
  - density optimization not converged
