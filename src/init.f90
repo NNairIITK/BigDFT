@@ -982,7 +982,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
        call compress_matrix_distributed(iproc, tmb%linmat%s, ovrlpp, tmb_old%linmat%ovrlp_%matrix_compr)
        call f_free(ovrlpp)
-       call renormalize_kernel(iproc, nproc, input%lin%order_taylor, max_inversion_error, tmb, tmb%linmat%ovrlp_, tmb_old%linmat%ovrlp_)
+       call renormalize_kernel(iproc, nproc, input%lin%order_taylor, max_inversion_error, tmb, &
+            tmb%linmat%ovrlp_, tmb_old%linmat%ovrlp_)
   else
      ! By doing an LCAO input guess
      tmb%can_use_transposed=.false.
