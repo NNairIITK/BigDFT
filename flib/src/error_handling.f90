@@ -76,10 +76,11 @@
   !!   gfortran complains on runtime (with option -Wextra) that this routine is recursive.
   recursive subroutine f_err_define(err_name,err_msg,err_id,err_action,callback,callback_data)
     implicit none
-    character(len=*), intent(in) :: err_name,err_msg
-    integer, intent(out) :: err_id
-    integer(kind=8), intent(in), optional :: callback_data
-    character(len=*), intent(in), optional :: err_action
+    character(len=*), intent(in) :: err_name               !< name of the error
+    character(len=*), intent(in) :: err_msg                !< error message
+    integer, intent(out) :: err_id                         !< code of the error
+    integer(kind=8), intent(in), optional :: callback_data !< ??? not really sure 
+    character(len=*), intent(in), optional :: err_action   !< ??? not really sure
     external :: callback
     optional :: callback
     !local variable
@@ -142,11 +143,12 @@
     use yaml_strings, only: yaml_toa
     !use yaml_output, only: yaml_dict_dump,yaml_map
     implicit none
-    logical, intent(in), optional :: condition                 !< the condition which raise the error
-    integer, intent(in), optional :: err_id                    !< the code of the error to be raised.
-                                                               !! it should already have been defined by f_err_define
-    character(len=*), intent(in), optional :: err_name,err_msg !< search for the error and add a message to it 
-    integer(kind=8), intent(in), optional :: callback_data
+    logical, intent(in), optional :: condition             !< the condition which raise the error
+    integer, intent(in), optional :: err_id                !< the code of the error to be raised.
+                                                           !! it should already have been defined by f_err_define
+    character(len=*), intent(in), optional :: err_name     !< error name
+    character(len=*), intent(in), optional :: err_msg      !< error message
+    integer(kind=8), intent(in), optional :: callback_data !< ??? not really sure
     external :: callback
     optional :: callback
     logical :: f_err_raise
@@ -204,9 +206,10 @@
     implicit none
     integer, intent(in), optional :: err_id                    !< The code of the error to be raised.
                                                                !! it should already have been defined by f_err_define
-    character(len=*), intent(in), optional :: err_name,err_msg !< Search for the error and add a message to it
-    !type(dictionary), pointer, optional :: err_dict            !< Add a dictionary instead of a message
-    integer(kind=8), intent(in), optional :: callback_data
+    character(len=*), intent(in), optional :: err_name         !< error name
+    character(len=*), intent(in), optional :: err_msg          !< error message
+    !type(dictionary), pointer, optional :: err_dict           !< Add a dictionary instead of a message
+    integer(kind=8), intent(in), optional :: callback_data     !< ??? not really sure
     external :: callback
     optional :: callback
     !local variables
