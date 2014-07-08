@@ -975,12 +975,19 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
        call f_free_ptr(tmb_old%psit_c)
        call f_free_ptr(tmb_old%psit_f)
 
-       ! Transform the old overap matrix to the new sparsity format, by going via the full format.
+       ! Transform the old overlap matrix to the new sparsity format, by going via the full format.
        ovrlpp = sparsematrix_malloc(tmb%linmat%s, iaction=DENSE_PARALLEL, id='ovrlpp')
        call uncompress_matrix_distributed(iproc, tmb_old%linmat%s, tmb_old%linmat%ovrlp_%matrix_compr, ovrlpp)
+
+       ! Allocate the matrix with the new sparsity pattern
+       call f_free_ptr(tmb_old%linmat%ovrlp_%matrix_compr)
+       tmb_old%linmat%ovrlp_%matrix_compr = f_malloc_ptr(tmb%linmat%s%nvctr,id='tmb_old%linmat%ovrlp_%matrix_compr')
+
        call compress_matrix_distributed(iproc, tmb%linmat%s, ovrlpp, tmb_old%linmat%ovrlp_%matrix_compr)
        call f_free(ovrlpp)
+       write(*,*) 'calling renormalize_kernel', iproc
        call renormalize_kernel(iproc, nproc, input%lin%order_taylor, max_inversion_error, tmb, tmb%linmat%ovrlp_, tmb_old%linmat%ovrlp_)
+       write(*,*) 'after renormalize_kernel', iproc
   else
      ! By doing an LCAO input guess
      tmb%can_use_transposed=.false.
@@ -1002,20 +1009,34 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   end if
 
 
+  write(*,*) 'after: 0', iproc
   call deallocate_orbitals_data(tmb_old%orbs, subname)
+  write(*,*) 'after: 1', iproc
   call f_free_ptr(tmb_old%psi)
+  write(*,*) 'after: 2', iproc
   call f_free_ptr(tmb_old%linmat%kernel_%matrix_compr)
+  write(*,*) 'after: 3', iproc
 
   call deallocate_sparse_matrix(tmb_old%linmat%s, subname)
+  write(*,*) 'after: 4', iproc
   call deallocate_sparse_matrix(tmb_old%linmat%m, subname)
+  write(*,*) 'after: 5', iproc
   call deallocate_sparse_matrix(tmb_old%linmat%l, subname)
+  write(*,*) 'after: 6', iproc
   call deallocate_sparse_matrix(tmb_old%linmat%ks, subname)
+  write(*,*) 'after: 7', iproc
   call deallocate_sparse_matrix(tmb_old%linmat%ks_e, subname)
+  write(*,*) 'after: 8', iproc
   call deallocate_matrices(tmb_old%linmat%ham_)
+  write(*,*) 'after: 9', iproc
   call deallocate_matrices(tmb_old%linmat%ovrlp_)
+  write(*,*) 'after: 10', iproc
   call deallocate_matrices(tmb_old%linmat%kernel_)
+  write(*,*) 'after: 11', iproc
   call deallocate_comms_linear(tmb_old%collcom)
+  write(*,*) 'after: 12', iproc
   call deallocate_local_zone_descriptors(tmb_old%lzd, subname)
+  write(*,*) 'after: 13', iproc
   
 
   !!if (iproc==0) then
@@ -1029,10 +1050,12 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   if (input%lin%scf_mode/=LINEAR_FOE .or. input%FOE_restart==RESTART_REFORMAT) then
       call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
            tmb%orbs, tmb%psi, tmb%collcom_sr)
+  write(*,*) 'after: 14', iproc
       !tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
       call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
            tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
            denspot%rhov, rho_negative)
+  write(*,*) 'after: 15', iproc
        write(*,*) 'calculated charge'
      if (rho_negative) then
          call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
