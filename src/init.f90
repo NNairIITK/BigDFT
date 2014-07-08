@@ -972,9 +972,14 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
        call f_free_ptr(tmb_old%psit_c)
        call f_free_ptr(tmb_old%psit_f)
 
-       ! Transform the old overap matrix to the new sparsity format, by going via the full format.
+       ! Transform the old overlap matrix to the new sparsity format, by going via the full format.
        ovrlpp = sparsematrix_malloc(tmb%linmat%s, iaction=DENSE_PARALLEL, id='ovrlpp')
        call uncompress_matrix_distributed(iproc, tmb_old%linmat%s, tmb_old%linmat%ovrlp_%matrix_compr, ovrlpp)
+
+       ! Allocate the matrix with the new sparsity pattern
+       call f_free_ptr(tmb_old%linmat%ovrlp_%matrix_compr)
+       tmb_old%linmat%ovrlp_%matrix_compr = f_malloc_ptr(tmb%linmat%s%nvctr,id='tmb_old%linmat%ovrlp_%matrix_compr')
+
        call compress_matrix_distributed(iproc, tmb%linmat%s, ovrlpp, tmb_old%linmat%ovrlp_%matrix_compr)
        call f_free(ovrlpp)
        call renormalize_kernel(iproc, nproc, input%lin%order_taylor, max_inversion_error, tmb, tmb%linmat%ovrlp_, tmb_old%linmat%ovrlp_)
