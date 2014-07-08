@@ -40,8 +40,8 @@ program BigDFT
 
 !call test_yaml()
 !call test_dictionaries0()
-call test_error_handling()
-call test_timing()
+!call test_error_handling()
+!call test_timing()
 
    !-finds the number of taskgroup size
    !-initializes the mpi_environment for each group
