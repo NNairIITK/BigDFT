@@ -591,17 +591,28 @@ ac_build_bin_cluster="yes"
 
 
 dnl disable different build
+dnl The Poisson solver library
+AC_ARG_ENABLE(libpsolver, AS_HELP_STRING([--disable-libpsolver], [build the PSolver library (default = yes).]), ac_build_lib_PSolver=$enableval, ac_build_lib_PSolver="yes")
 dnl The BigDFT library
 AC_ARG_ENABLE(libbigdft, AS_HELP_STRING([--disable-libbigdft], [build the BigDFT library (default = yes).]), ac_build_lib_BigDFT=$enableval, ac_build_lib_BigDFT="yes")
+if test x"$ac_build_lib_PSolver" != x"yes" -a x"$ac_build_lib_BigDFT" == x"yes" ; then
+  ac_build_lib_BigDFT="disabled"
+fi
+dnl The cluster executable
+AC_ARG_ENABLE(binaries, AS_HELP_STRING([--disable-binaries], [build the binaries (default = yes).]), ac_build_bin_cluster=$enableval, ac_build_bin_cluster="yes")
+if test x"$ac_build_lib_BigDFT" != x"yes" -a x"$ac_build_bin_cluster" == x"yes" ; then
+  ac_build_bin_cluster="disabled"
+fi
+
+AM_CONDITIONAL(BUILD_LIB_PSOLVER, test "$ac_build_lib_PSolver" = "yes")
+AC_MSG_CHECKING([for PSolver library build])
+AC_MSG_RESULT([$ac_build_lib_PSolver])
 AM_CONDITIONAL(BUILD_LIB_BIGDFT, test "$ac_build_lib_BigDFT" = "yes")
 AC_MSG_CHECKING([for BigDFT library build])
 AC_MSG_RESULT([$ac_build_lib_BigDFT])
-dnl The cluster executable
-AC_ARG_ENABLE(binaries, AS_HELP_STRING([--disable-binaries], [build the binaries (default = yes).]), ac_build_bin_cluster=$enableval, ac_build_bin_cluster="yes")
 AM_CONDITIONAL(BUILD_BINARIES, test "$ac_build_bin_cluster" = "yes")
 AC_MSG_CHECKING([for BigDFT binaries build])
 AC_MSG_RESULT([$ac_build_bin_cluster])
-
 
 dnl ---------------------------------------
 
@@ -1150,6 +1161,8 @@ Basics:
   Linked dependencies:       $LIBS_SHORT_DEPS
 
 Build:
+  Library flib:              yes
+  Library PSolver:           $ac_build_lib_PSolver
   Library BigDFT:            $ac_build_lib_BigDFT
   Main binaries (bigdft,...):$ac_build_bin_cluster
   atom and pseudo binaries:  $ac_build_bin_pseudo
