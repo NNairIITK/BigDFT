@@ -109,7 +109,7 @@ END SUBROUTINE astruct_set_displacement
 
 
 !> For bindings only, use input_dicts module for Fortran usage.
-subroutine astruct_merge_to_dict(dict, astruct)
+subroutine astruct_merge_to_dict_binding(dict, astruct)
   use module_input_dicts, only: wrapper => astruct_merge_to_dict
   use module_types, only: atomic_structure
   use dictionaries, only: dictionary
@@ -118,7 +118,7 @@ subroutine astruct_merge_to_dict(dict, astruct)
   type(atomic_structure), intent(in) :: astruct
 
   call wrapper(dict, astruct,astruct%rxyz)
-END SUBROUTINE astruct_merge_to_dict
+END SUBROUTINE astruct_merge_to_dict_binding
 
 
 !> Find extra information
