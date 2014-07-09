@@ -20,7 +20,7 @@ module copy_utils
       integer,dimension(:),pointer,intent(out) :: array_out
       character(len=*),intent(in) :: id
       ! Local variables
-      integer :: iis1, iie1
+      integer :: iis1, iie1, ncount
 
       if (associated(array_out)) then
           call f_free_ptr(array_out)
@@ -28,8 +28,13 @@ module copy_utils
       if (associated(array_in)) then
           iis1=lbound(array_in,1)
           iie1=ubound(array_in,1)
-          array_out = f_malloc_ptr(iis1.to.iie1,id=id)
-          call vcopy(iie1-iis1+1, array_in(iis1), 1, array_out(iis1), 1)
+          ncount=iie1-iis1+1
+          if (ncount>0) then
+              array_out = f_malloc_ptr(iis1.to.iie1,id=id)
+              call vcopy(ncount, array_in(iis1), 1, array_out(iis1), 1)
+          else
+              nullify(array_out)
+          end if
       end if
 
     end subroutine allocate_and_copy_i1
@@ -42,7 +47,7 @@ module copy_utils
       integer,dimension(:,:),pointer,intent(out) :: array_out
       character(len=*),intent(in) :: id
       ! Local variables
-      integer :: iis1, iie1, iis2, iie2
+      integer :: iis1, iie1, iis2, iie2, ncount
 
       if (associated(array_out)) then
           call f_free_ptr(array_out)
@@ -52,8 +57,13 @@ module copy_utils
           iie1=ubound(array_in,1)
           iis2=lbound(array_in,2)
           iie2=ubound(array_in,2)
-          array_out = f_malloc_ptr((/iis1.to.iie1,iis2.to.iie2/),id=id)
-          call vcopy((iie1-iis1+1)*(iie2-iis2+1), array_in(iis1,iis2), 1, array_out(iis1,iis2), 1)
+          ncount=(iie1-iis1+1)*(iie2-iis2+1)
+          if (ncount>0) then
+              array_out = f_malloc_ptr((/iis1.to.iie1,iis2.to.iie2/),id=id)
+              call vcopy(ncount, array_in(iis1,iis2), 1, array_out(iis1,iis2), 1)
+          else
+              nullify(array_out)
+          end if
       end if
 
     end subroutine allocate_and_copy_i2
@@ -66,7 +76,7 @@ module copy_utils
       double precision,dimension(:),pointer,intent(out) :: array_out
       character(len=*),intent(in) :: id
       ! Local variables
-      integer :: iis1, iie1
+      integer :: iis1, iie1, ncount
 
       if (associated(array_out)) then
           call f_free_ptr(array_out)
@@ -74,8 +84,13 @@ module copy_utils
       if (associated(array_in)) then
           iis1=lbound(array_in,1)
           iie1=ubound(array_in,1)
-          array_out = f_malloc_ptr(iis1.to.iie1,id=id)
-          call vcopy(iie1-iis1+1, array_in(iis1), 1, array_out(iis1), 1)
+          ncount=iie1-iis1+1
+          if (ncount>0) then
+              array_out = f_malloc_ptr(iis1.to.iie1,id=id)
+              call vcopy(ncount, array_in(iis1), 1, array_out(iis1), 1)
+          else
+              nullify(array_out)
+          end if
       end if
 
     end subroutine allocate_and_copy_d1
@@ -88,7 +103,7 @@ module copy_utils
       double precision,dimension(:,:),pointer,intent(out) :: array_out
       character(len=*),intent(in) :: id
       ! Local variables
-      integer :: iis1, iie1, iis2, iie2
+      integer :: iis1, iie1, iis2, iie2, ncount
 
       if (associated(array_out)) then
           call f_free_ptr(array_out)
@@ -98,8 +113,13 @@ module copy_utils
           iie1=ubound(array_in,1)
           iis2=lbound(array_in,2)
           iie2=ubound(array_in,2)
-          array_out = f_malloc_ptr((/iis1.to.iie1,iis2.to.iie2/),id=id)
-          call vcopy((iie1-iis1+1)*(iie2-iis2+1), array_in(iis1,iis2), 1, array_out(iis1,iis2), 1)
+          ncount=(iie1-iis1+1)*(iie2-iis2+1)
+          if (ncount>0) then
+              array_out = f_malloc_ptr((/iis1.to.iie1,iis2.to.iie2/),id=id)
+              call vcopy(ncount, array_in(iis1,iis2), 1, array_out(iis1,iis2), 1)
+          else
+              nullify(array_out)
+          end if
       end if
 
     end subroutine allocate_and_copy_d2
