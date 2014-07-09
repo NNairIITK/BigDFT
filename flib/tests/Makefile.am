@@ -21,8 +21,22 @@ else
 mpi_source = $(top_srcdir)/flib/src/MPIfake.f90
 endif
 
+if BUILD_LIB_PSOLVER
+# Static case always
+flib_libraries = $(top_builddir)/flib/src/libflib-1.a
+LIBS += @LIB_YAML_LIBS@
+else
+if BUILD_DYNAMIC_LIBS
+flib_libraries = -lflib-1
+AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/flib/src
+else
+flib_libraries = $(top_builddir)/flib/src/libflib-1.a
+LIBS += @LIB_YAML_LIBS@
+endif
+endif
+
 yaml_test_SOURCES = yaml_test.f90 errs.f90 yamlout.f90 dicts.f90 dynmem.f90 yaml_invoice.f90 $(mpi_source)
-yaml_test_LDADD = $(top_builddir)/flib/src/libflib.a @LIB_YAML_LIBS@ 
+yaml_test_LDADD = $(flib_libraries)
 
 CLEANFILES = yaml_test.out.yaml yaml_test.report.yaml
 

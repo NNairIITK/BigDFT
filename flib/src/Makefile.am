@@ -1,6 +1,31 @@
 # To be installed:
-noinst_LIBRARIES = libflib.a
-module_DATA = $(modules)
+dynlibdir        = $(libdir)
+noinst_LIBRARIES = $(flib_noinst)
+lib_LIBRARIES    = $(flib_lib)
+module_DATA      = $(modules)
+dynlib_DATA      = $(flib_dynlib)
+noinst_DATA      = $(flib_linklib)
+
+# Static or dynamic library
+flib_dynamic_library = libflib-1.so.@BIGDFT_MINOR_VERSION@.0.@BIGDFT_MICRO_VERSION@
+flib_library_soname  = libflib-1.so.@BIGDFT_MINOR_VERSION@
+
+# We install flib library only if PSolver is deactivated.
+if BUILD_LIB_PSOLVER
+flib_lib    =
+flib_dynlib =
+flib_noinst = libflib-1.a
+else
+flib_lib    = libflib-1.a
+if BUILD_DYNAMIC_LIBS
+flib_dynlib = $(flib_dynamic_library)
+flib_linklib = $(flib_library_soname)
+else
+flib_dynlib =
+flib_linklib =
+endif
+flib_noinst =
+endif
 
 # Source code.
 if HAVE_FC_FLUSH
@@ -24,7 +49,7 @@ getarg_files =
 else
 getarg_files = get_command_argument_fake.f90
 endif
-libflib_a_SOURCES = utils.c utilsadd.c \
+libflib_1_a_SOURCES = utils.c utilsadd.c \
 	yaml_strings.f90 dictionaries_base.f90 dictionaries.f90 \
 	callbacks.f90 f_malloc.f90 \
 	yaml_output.f90 mem_profiling.f90 dynamic_memory.f90 \
@@ -88,6 +113,23 @@ CLEANFILES = $(modules) *.@MODULE_EXT@ $(mpi_include)
 #AM_FCFLAGS = -I$(srcdir) $(mpi_inc) @LIBABINIT_INCLUDE@ @MPI_INCLUDE@
 AM_FCFLAGS = -I$(srcdir) $(mpi_inc) @MPI_INCLUDE@
 AM_CFLAGS = @LIB_YAML_CFLAGS@
+
+# Dynamic library building
+$(flib_dynamic_library): $(libflib_1_a_OBJECTS)
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(flib_library_soname) -o $@ $^ @LIBS_SHORT_DEPS@
+	@chmod a+x $@
+
+$(flib_library_soname): $(flib_dynamic_library)
+	ln -fs $^ $@
+	ln -fs $@ libflib-1.so
+
+install-data-hook:
+	if test -n "$(flib_dynlib)" ; then \
+	  cd $(DESTDIR)$(dynlibdir) ; \
+	  chmod a+x $(flib_dynamic_library) ; \
+	  ln -fs $(flib_dynamic_library) $(flib_library_soname) ; \
+	  ln -fs $(flib_library_soname) libflib-1.so ; \
+	fi
 
 # Dependencies
 $(modules): $(libflib_a_OBJECTS)
