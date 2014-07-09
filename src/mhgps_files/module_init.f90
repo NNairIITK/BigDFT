@@ -31,7 +31,7 @@ contains
             read(u,*)saddle_nhistx_trans, saddle_nhistx_rot
             read(u,*)saddle_fnrmtol
             if(saddle_biomode)then
-                read(u,*)saddle_alpha0_trans, saddle_alpha0_rot, saddle_alpha_stretch0
+                read(u,*)saddle_alpha0_trans, saddle_alpha0_rot, saddle_alpha_stretch0, saddle_alpha_rot_stretch0
             else
                 read(u,*)saddle_alpha0_trans, saddle_alpha0_rot
             endif
@@ -58,7 +58,7 @@ contains
             write(u,'(xi0,xi0,xa)')saddle_nhistx_trans, saddle_nhistx_rot,' #nhistx_trans, nhistx_rot'
             write(u,'(es10.3,xa)')saddle_fnrmtol,' #fnrm tolerence convergence criterion for saddle point'
             if(saddle_biomode)then
-                write(u,'(es10.3,2(xes10.3),a)')saddle_alpha0_trans, saddle_alpha0_rot, saddle_alpha_stretch0,' #alpha0_trans, alpha0_rot, alpha_stretch0'
+                write(u,'(es10.3,3(xes10.3),a)')saddle_alpha0_trans, saddle_alpha0_rot, saddle_alpha_stretch0, saddle_alpha_rot_stretch0,' #alpha0_trans, alpha0_rot, alpha_stretch0, alpha_rot_stretch0'
             else
                 write(u,'(es10.3,xes10.3,a)')saddle_alpha0_trans, saddle_alpha0_rot,' #alpha0_trans, alpha0_rot'
             endif
@@ -87,6 +87,10 @@ contains
         call yaml_map('(MHGPS) saddle_fnrmtol',saddle_fnrmtol)
         call yaml_map('(MHGPS) saddle_alpha0_trans',saddle_alpha0_trans)
         call yaml_map('(MHGPS) saddle_alpha0_rot',saddle_alpha0_rot)
+        if(saddle_biomode)then
+            call yaml_map('(MHGPS) saddle_alpha_stretch0',saddle_alpha_stretch0)
+            call yaml_map('(MHGPS) saddle_alpha_rot_stretch0',saddle_alpha_rot_stretch0)
+        endif
         call yaml_map('(MHGPS) saddle_curvgraddiff',saddle_curvgraddiff)
         call yaml_map('(MHGPS) saddle_rmsdispl0',saddle_rmsdispl0)
         call yaml_map('(MHGPS) saddle_trustr',saddle_trustr)
@@ -105,7 +109,7 @@ contains
 
         call yaml_comment('(MHGPS) Minima Hopping Guided Path Sampling',hfill='=')
         
-        call yaml_maping_open('(MHGPS) logo')
+        call yaml_mapping_open('(MHGPS) logo')
         call yaml_scalar('(MHGPS)      ___           ___           ___           ___           ___     ') 
         call yaml_scalar('(MHGPS)     /\__\         /\__\         /\  \         /\  \         /\  \    ')
         call yaml_scalar('(MHGPS)    /::|  |       /:/  /        /::\  \       /::\  \       /::\  \   ')

@@ -21,7 +21,6 @@ program mhgps
     use module_minimizers
     implicit none
     integer :: bigdft_get_number_of_atoms,bigdft_get_number_of_orbitals
-    character(len=*), parameter :: subname='mhgps'
     character(len=8) :: folder
     character(len=6) :: filename
     integer :: ifolder, ifile
@@ -65,8 +64,6 @@ real(gp),allocatable :: eval(:)
 
     call read_input()
     isForceField=.false.
-    if(efmethod=='BIGDFT')then
-        isForceField=.false.
         call bigdft_init(mpi_info,nconfig,run_id,ierr)
         iproc=mpi_info(1)
         nproc=mpi_info(2)
@@ -79,6 +76,8 @@ real(gp),allocatable :: eval(:)
             call yaml_warning('runs-file not supported for MHGPS executable')
             stop
         endif
+    if(efmethod=='BIGDFT')then
+        isForceField=.false.
         if(iproc==0) call print_logo_mhgps()
         call dict_init(user_inputs)
         write(folder,'(a,i3.3)')'input',ifolder
@@ -88,7 +87,7 @@ real(gp),allocatable :: eval(:)
         call inputs_from_dict(inputs_opt, atoms, user_inputs)
         call dict_free(user_inputs)
         call init_global_output(outs, atoms%astruct%nat)
-        call init_restart_objects(bigdft_mpi%iproc,inputs_opt,atoms,rst,subname)
+        call init_restart_objects(bigdft_mpi%iproc,inputs_opt,atoms,rst)
         call run_objects_nullify(runObj)
         call run_objects_associate(runObj, inputs_opt, atoms, rst)
 !        if(runObj%inputs%itermin<5)then
@@ -253,17 +252,20 @@ real(gp),allocatable :: eval(:)
 !!            write(*,*) 'eval ',j,eval(j)
 !!        enddo
 
-            do i=1,atoms%astruct%nat
-                minmode(1,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
-                minmode(2,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
-                minmode(3,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
-            enddo
+ !           do i=1,atoms%astruct%nat
+ !               minmode(1,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+ !               minmode(2,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+ !               minmode(3,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+ !           enddo
+!           call random_seed
+           call random_number(minmode)
+           minmode=2.d0*(minmode-0.5d0)
            ec=0.0_gp
         
            call findsad(saddle_imode,atoms%astruct%nat,atoms%astruct%cell_dim,rcov,saddle_alpha0_trans,saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_trans,&
            saddle_nit_rot,saddle_nhistx_trans,saddle_nhistx_rot,saddle_tolc,saddle_tolf,saddle_tightenfac,saddle_rmsdispl0,&
            saddle_trustr,rxyz,energy,fxyz,minmode,saddle_fnrmtol,displ,ec,&
-           converged,atoms%astruct%atomnames,nbond,iconnect,saddle_alpha_stretch0,saddle_recompIfCurvPos,saddle_maxcurvrise,saddle_cutoffratio)
+           converged,atoms%astruct%atomnames,nbond,iconnect,saddle_alpha_stretch0,saddle_recompIfCurvPos,saddle_maxcurvrise,saddle_cutoffratio,saddle_alpha_rot_stretch0)
            if (iproc == 0) then
                call write_atomic_file(currDir//'/'//currFile//'_final',&
                energy,rxyz(1,1),ixyz_int,&
@@ -317,16 +319,16 @@ real(gp),allocatable :: eval(:)
 
     !finalize (dealloctaion etc...)
     if(efmethod=='BIGDFT')then
-        call free_restart_objects(rst,subname)
+        call free_restart_objects(rst)
         call deallocate_atoms_data(atoms)
         call deallocate_global_output(outs)
         call run_objects_free_container(runObj)
         call free_input_variables(inputs_opt)
-        call bigdft_finalize(ierr)
     elseif(efmethod=='LJ')then
         call deallocate_atoms_data(atoms)
         call deallocate_global_output(outs)
     endif
+        call bigdft_finalize(ierr)
 
     call f_free(minmode)
     call f_free(rxyz)

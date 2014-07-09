@@ -29,6 +29,7 @@ module module_global_variables
     real(gp)         :: saddle_alpha0_trans        = 1.e-3_gp
     real(gp)         :: saddle_alpha0_rot          = 1.e-3_gp
     real(gp)         :: saddle_alpha_stretch0      = 4.e-4_gp
+    real(gp)         :: saddle_alpha_rot_stretch0  = 2.e-4_gp
     real(gp)         :: saddle_curvgraddiff        = 1.e-3_gp
     real(gp)         :: saddle_rmsdispl0           = 0.04_gp
     real(gp)         :: saddle_trustr              = 0.2_gp

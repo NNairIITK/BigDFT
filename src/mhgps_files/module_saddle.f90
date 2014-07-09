@@ -11,7 +11,7 @@ contains
 subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_trans,&
     nit_rot,nhistx_trans,nhistx_rot,tolc,tolf,tightenfac,rmsdispl0,&
     trustr,wpos,etot,fout,minmode,fnrmtol,displ,ener_count,&
-    converged,atomnames,nbond,iconnect,alpha_stretch0,recompIfCurvPos,maxcurvrise,cutoffratio)
+    converged,atomnames,nbond,iconnect,alpha_stretch0,recompIfCurvPos,maxcurvrise,cutoffratio,alpha_rot_stretch0)
     !imode=1 for clusters
     !imode=2 for biomolecules
     use module_base
@@ -67,6 +67,7 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_
     integer, intent(in)       :: nbond
     integer, intent(in)       :: iconnect(2,nbond)
     real(gp), intent(in)      :: alpha_stretch0
+    real(gp), intent(in)      :: alpha_rot_stretch0
     integer, intent(in)       :: recompIfCurvPos
     real(gp), intent(in)      :: maxcurvrise
     real(gp), intent(in)      :: cutoffratio
@@ -224,7 +225,6 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_
                          Is tightenfac chosen too large?')
                 endif
             endif
-            write(*,*)'tighten'
             tol=tolf
             recompute=it
             flag=.false.
@@ -251,7 +251,7 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_
             call opt_curv(imode,nat,alat,alpha0_rot,curvgraddiff,nit_rot,&
                           nhistx_rot,rxyzraw(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
                           minmode(1,1),curv,gradrot(1,1),tol,displ2,ener_count,&
-                          optCurvConv,iconnect,nbond,atomnames,2.e-4_gp,&
+                          optCurvConv,iconnect,nbond,atomnames,alpha_rot_stretch0,&
                           maxcurvrise,cutoffratio)
             inputPsiId=1
             minmode = minmode / dnrm2(3*nat,minmode(1,1),1)
@@ -873,7 +873,7 @@ subroutine opt_curv(imode,nat,alat,alpha0,curvgraddiff,nit,nhistx,rxyz_fix,&
 !        &it-1,curvp,curvold,dcurv,fnrm,alpha,alpha_stretch,ndim
 
 !!           call yaml_comment('     METHOD  COUNT  IT  CURVATURE             DIFF      FMAX      FNRM      alpha    ndim')
-if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,xes21.14,4(xes9.2),xi3.3)')'   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim
+if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,xes21.14,4(xes9.2),xi3.3,xes9.2)')'   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch
 !HIER WEITER HIER WEITER: beautify output
 
         if (dcurv.gt.maxcurvrise .and. alpha>1.e-1_gp*alpha0) then 
@@ -974,14 +974,11 @@ subroutine curvgrad(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ener_cou
     real(gp), intent(inout) :: ener_count
     real(gp), intent(in) :: alat(3)
     !internal
-    integer :: iat
     real(gp) :: diffinv, etot2
     real(gp),allocatable :: rxyz2(:,:), fxyz2(:,:)
     real(gp),allocatable :: drxyz(:,:), dfxyz(:,:)
-    real(gp) :: sx,sy,sz
     !functions
     real(gp), external :: dnrm2,ddot
-real(gp) :: fluct,fnoise,dd
 
     
 !    diff=1.e-3_gp !lennard jones
@@ -996,7 +993,6 @@ real(gp) :: fluct,fnoise,dd
 
     vec = vec / dnrm2(3*nat,vec(1,1),1)
     rxyz2 = rxyz1 + diff * vec
-
     call energyandforces(nat,alat,rxyz2(1,1),fxyz2(1,1),etot2)
 !    call energyandforces(nat, alat, rxyz2(1,1),fxyz2(1,1),etot2,'cnt_enf_forcebar_decomp')
     ener_count=ener_count+1.0_gp
@@ -1008,28 +1004,13 @@ real(gp) :: fluct,fnoise,dd
         curv  = - diffinv * ddot(3*nat,dfxyz(1,1),1,drxyz(1,1),1)
 
         rotforce = 2.0_gp*dfxyz*diffinv + 2.0_gp * curv * drxyz
-
-!        !compute noise
-!        sx=0.0_gp; sy=0.0_gp; sz=0.0_gp
-!        do iat=1,nat
-!           sx=sx+rotforce(1,iat)
-!           sy=sy+rotforce(2,iat)
-!           sz=sz+rotforce(3,iat)
-!        enddo
-!        fnoise=sqrt((sx**2+sy**2+sz**2)/real(nat,gp))
-!if(iproc==0)write(*,*)'fnoise',fnoise
-
         call elim_moment_fs(nat,rotforce(1,1))
 !!        call elim_torque_fs(nat,rxyz1(1,1),rotforce(1,1))
 !call torque(nat,rxyz1(1,1),rotforce(1,1))
         call elim_torque_reza(nat,rxyz1(1,1),rotforce(1,1))
 
-        !remove numerical noise:
-        dd=ddot(3*nat,rotforce(1,1),1,vec(1,1),1)
-        if(dd>1.e-11_gp.and.iproc==0)then
-            call yaml_warning('(MHGPS) rotforce not orthogonal on current direction '//trim(yaml_toa(dd)))
-        endif
-!write(*,*)'rotnoise',ddot(3*nat,rotforce(1,1),1,vec(1,1),1)
+
+
         rotforce = rotforce - ddot(3*nat,rotforce(1,1),1,vec(1,1),1)*vec
     else
         stop 'unknown method for curvature computation'
@@ -1796,6 +1777,8 @@ subroutine projectbond(nat,nbond,rat,fat,fstretch,iconnect,atomnames,wold,alpha_
     !functions
     real(gp) :: ddot
 
+integer :: ipiv(nbond)
+
     fstretch=0.0_gp
 
 ! set up positional overlap matrix
@@ -1834,6 +1817,8 @@ subroutine projectbond(nat,nbond,rat,fat,fstretch,iconnect,atomnames,wold,alpha_
 !     write(555,'(f5.1,a,1x,es10.3)') 100*per,' percent of bond directions did not switch sign',alpha_stretch
 
      call DPOSV('L', nbond, 1, ss, nbond, w, nbond, info )
+!call qrsolv(ss,nbond,nbond,w)
+!call DGESV( nbond, nbond, ss, nbond, IPIV, w, nbond, INFO )
      if (info.ne.0) then
         write(*,*)'info',info
         stop 'info DPOSV in minenergyforces'
@@ -2051,5 +2036,41 @@ use module_base
     enddo
     write(*,*) 'FOUND ',nbond,' BOND'
 end subroutine
+
+      SUBROUTINE qrsolv(a,n,np,b)
+      INTEGER n,np
+      REAL(8) a(np,np),b(n),c(n),d(n)
+!CU    USES rsolv
+      INTEGER i,j
+      REAL(8) sum,tau
+      do 13 j=1,n-1
+        sum=0.
+        do 11 i=j,n
+          sum=sum+a(i,j)*b(i)
+11      continue
+        tau=sum/c(j)
+        do 12 i=j,n
+          b(i)=b(i)-tau*a(i,j)
+12      continue
+13    continue
+      call rsolv(a,n,np,d,b)
+      return
+      END SUBROUTINE
+      SUBROUTINE rsolv(a,n,np,d,b)
+      INTEGER n,np
+      REAL(8) a(np,np),b(n),d(n)
+      INTEGER i,j
+      REAL(8) sum
+      b(n)=b(n)/d(n)
+      do 12 i=n-1,1,-1
+        sum=0.
+        do 11 j=i+1,n
+          sum=sum+a(i,j)*b(j)
+11      continue
+        b(i)=(b(i)-sum)/d(i)
+12    continue
+      return
+      END SUBROUTINE
+
 
 end module
