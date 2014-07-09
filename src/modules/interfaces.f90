@@ -120,8 +120,8 @@ module module_interfaces
       !! Written by Laurent K Beland 2011 UdeM
       !! For QM/MM implementation of BigDFT-ART
       subroutine initialize_atomic_file(iproc,at,rxyz)
-         use module_base
-         use module_types
+         use module_defs, only: gp
+         use module_types, only: atoms_data
          implicit none
          integer, intent(in) :: iproc
          type(atoms_data), intent(inout) :: at
@@ -174,7 +174,7 @@ module module_interfaces
         implicit none
         integer, intent(in) :: iproc
         type(input_variables), intent(inout) :: in
-        type(dictionary), pointer :: dict
+        type(dictionary), pointer, intent(in) :: dict
         type(symmetry_data), intent(in) :: sym
         character(len = 1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
         real(gp), intent(in) :: alat(3)
@@ -419,13 +419,13 @@ module module_interfaces
          logical, intent(in) :: onlywf  !if .true. finds only the WaveFunctions and return
          type(atoms_data), intent(in) :: at
          type(DFT_PSP_projectors), intent(inout) :: nlpsp
-         type(local_zone_descriptors), intent(in) :: Lzd
+         type(local_zone_descriptors), intent(inout) :: Lzd
          type(comms_cubic), intent(in) :: comms
          type(orbitals_data), intent(inout) :: orbs
          type(energy_terms), intent(inout) :: energs
          type(DFT_local_fields), intent(inout) :: denspot
          type(GPU_pointers), intent(in) :: GPU
-         type(input_variables):: input
+         type(input_variables), intent(in) :: input
          !type(symmetry_data), intent(in) :: symObj
          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
          type(gaussian_basis), intent(out) :: G !basis for davidson IG
@@ -445,7 +445,7 @@ module module_interfaces
          implicit none
          integer, intent(in) :: iproc, nproc, inputpsi,  input_wf_format
          type(input_variables), intent(in) :: in
-         type(GPU_pointers), intent(in) :: GPU
+         type(GPU_pointers), intent(inout) :: GPU
          real(gp), intent(in) :: hx_old,hy_old,hz_old
          type(atoms_data), intent(inout) :: atoms
          real(gp), dimension(3, atoms%astruct%nat), target, intent(in) :: rxyz
@@ -2910,7 +2910,7 @@ module module_interfaces
           implicit none
 
           integer:: iproc,nvctrp,norbIn, nspin, block1, ispinIn
-          type(orbitals_data):: orbs
+          type(orbitals_data), intent(in) :: orbs
           type(comms_cubic):: comms
           real(kind=8),dimension(orbs%npsidim_comp),intent(in out):: psi
           integer,dimension(nspin,0:orbs%nkpts):: ndim_ovrlp
@@ -2925,23 +2925,24 @@ module module_interfaces
           use module_types
           use communications_base, only: comms_cubic
           implicit none
-          integer, intent(in) :: iproc, nproc, nspinor,nspin
+          integer, intent(in) :: iproc, nproc,nspin
+          integer, intent(inout) ::  nspinor
           type(orthon_data), intent(in):: orthpar
           type(orbitals_data):: orbs
           type(comms_cubic), intent(in) :: comms
           integer, dimension(nspin), intent(in) :: norbArr
-          integer, dimension(nspin,0:orbs%nkpts), intent(in) :: ndim_ovrlp
+          integer, dimension(nspin,0:orbs%nkpts), intent(inout) :: ndim_ovrlp
           real(wp),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(inout):: psi
           type(paw_objects),optional,intent(inout)::paw
         end subroutine gsCHol
 
-        subroutine loewdin(iproc, norbIn, nspinor, block1, ispinIn,&
+        subroutine loewdin(iproc, norbIn, block1, ispinIn,&
           orbs, comms, nspin, psit, ovrlp, ndim_ovrlp, norbTot, paw)
           use module_base
           use module_types
           use communications_base, only: comms_cubic
           implicit none
-          integer,intent(in):: iproc,norbIn, nspinor, nspin, block1, ispinIn
+          integer,intent(in):: iproc,norbIn, nspin, block1, ispinIn
           type(orbitals_data),intent(in):: orbs
           type(comms_cubic),intent(in):: comms
           real(kind=8),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in out):: psit
@@ -2957,7 +2958,8 @@ module module_interfaces
           use module_types
           use communications_base, only: comms_cubic
           implicit none
-          integer,intent(in):: iproc, norbIn, nspin, nspinor, block1, block2, ispinIn
+          integer,intent(in):: iproc, norbIn, nspin, block1, block2, ispinIn
+          integer, intent(out) :: nspinor
           type(orbitals_data):: orbs
           type(comms_cubic), intent(in) :: comms
           type(paw_objects),optional,intent(inout)::paw
@@ -3676,7 +3678,7 @@ module module_interfaces
           integer,intent(in) :: iproc, nproc
           type(local_zone_descriptors),intent(in) :: lzd
           type(orbitals_data),intent(in) :: orbs
-          type(comms_linear),intent(in) :: collcom_sr
+          type(comms_linear),intent(inout) :: collcom_sr
           type(DFT_local_fields),intent(in) :: denspot
           type(sparse_matrix),intent(inout) :: denskern
           type(matrices),intent(inout) :: denskern_
@@ -3749,7 +3751,7 @@ module module_interfaces
           use module_types
           implicit none
           integer:: iproc, nproc
-          type(DFT_wavefunction),intent(in) :: tmb, KSwfn
+          type(DFT_wavefunction),intent(inout) :: tmb, KSwfn
           type(atoms_data), intent(inout) :: at
           real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
           type(DFT_local_fields), intent(inout) :: denspot
@@ -4127,13 +4129,6 @@ module module_interfaces
           integer, intent(out) :: nstates_max ! number of states in total if we consider all partially occupied fragment states to be fully occupied
           logical, intent(in) :: cdft
         end subroutine fragment_coeffs_to_kernel
-
-        subroutine find_extra_info(line,extra,nspacex)
-          implicit none
-          character(len=150), intent(in) :: line
-          character(len=50), intent(out) :: extra
-          integer,intent(in),optional :: nspacex
-        end subroutine find_extra_info
 
         subroutine check_accur_overlap_minus_one(iproc,nproc,norb,norbp,isorb,power,ovrlp,inv_ovrlp,&
                    smat,max_error,mean_error)

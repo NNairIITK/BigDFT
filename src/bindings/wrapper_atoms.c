@@ -436,6 +436,6 @@ gchar* bigdft_atoms_get_extra_as_label(const BigDFT_Atoms *atoms, guint iat)
 
 void bigdft_atoms_merge_to_dict(const BigDFT_Atoms *atoms, BigDFT_DictIter *iter)
 {
-  FC_FUNC_(astruct_merge_to_dict, ASTRUCT_MERGE_TO_DICT)(&iter->pointer,
+  FC_FUNC_(astruct_merge_to_dict_binding, ASTRUCT_MERGE_TO_DICT_BINDING)(&iter->pointer,
                                                          F_TYPE(atoms->astruct));
 }

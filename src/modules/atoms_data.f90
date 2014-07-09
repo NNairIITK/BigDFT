@@ -608,12 +608,12 @@ subroutine astruct_set_n_atoms(astruct, nat)
   astruct%nat = nat
 
   ! Allocate geometry related stuff.
-  astruct%iatype = f_malloc_ptr(astruct%nat+ndebug,id='astruct%iatype')
-  astruct%ifrztyp = f_malloc_ptr(astruct%nat+ndebug,id='astruct%ifrztyp')
-  astruct%input_polarization = f_malloc_ptr(astruct%nat+ndebug,id='astruct%input_polarization')
-  astruct%rxyz = f_malloc_ptr((/ 3,astruct%nat+ndebug /),id='astruct%rxyz')
-  astruct%rxyz_int = f_malloc_ptr((/ 3,astruct%nat+ndebug /),id='astruct%rxyz_int')
-  astruct%ixyz_int = f_malloc_ptr((/ 3,astruct%nat+ndebug /),id='astruct%ixyz_int')
+  astruct%iatype = f_malloc_ptr(astruct%nat,id='astruct%iatype')
+  astruct%ifrztyp = f_malloc_ptr(astruct%nat,id='astruct%ifrztyp')
+  astruct%input_polarization = f_malloc_ptr(astruct%nat,id='astruct%input_polarization')
+  astruct%rxyz = f_malloc_ptr((/ 3,astruct%nat /),id='astruct%rxyz')
+  astruct%rxyz_int = f_malloc_ptr((/ 3,astruct%nat /),id='astruct%rxyz_int')
+  astruct%ixyz_int = f_malloc_ptr((/ 3,astruct%nat /),id='astruct%ixyz_int')
 
   !this array is useful for frozen atoms, no atom is frozen by default
   astruct%ifrztyp(:)=0
@@ -641,7 +641,7 @@ subroutine astruct_set_n_types(astruct, ntypes)
   astruct%ntypes = ntypes
 
   ! Allocate geometry related stuff.
-  allocate(astruct%atomnames(astruct%ntypes+ndebug),stat=i_stat)
+  allocate(astruct%atomnames(astruct%ntypes),stat=i_stat)
   call memocc(i_stat,astruct%atomnames,'astruct%atomnames',subname)
 
   do i = 1, astruct%ntypes, 1
@@ -700,13 +700,13 @@ subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
      ! Adjust tolerance
      if (tol > 0._gp) call symmetry_set_tolerance(astruct%sym%symObj, tol, ierr)
      ! New values
-     rprimd(:,:) = 0
+     rprimd(:,:) = 0.0_gp
      rprimd(1,1) = astruct%cell_dim(1)
      rprimd(2,2) = astruct%cell_dim(2)
      if (astruct%geocode == 'S') rprimd(2,2) = 1000._gp
      rprimd(3,3) = astruct%cell_dim(3)
      call symmetry_set_lattice(astruct%sym%symObj, rprimd, ierr)
-     xRed = f_malloc((/ 3 , astruct%nat+ndebug /),id='xRed')
+     xRed = f_malloc((/ 3 , astruct%nat /),id='xRed')
      xRed(1,:) = modulo(astruct%rxyz(1, :) / rprimd(1,1), 1._gp)
      xRed(2,:) = modulo(astruct%rxyz(2, :) / rprimd(2,2), 1._gp)
      xRed(3,:) = modulo(astruct%rxyz(3, :) / rprimd(3,3), 1._gp)

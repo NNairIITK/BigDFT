@@ -746,7 +746,7 @@ contains
        end if
        if (dump_status) then
           call yaml_map('Size of the global database',dict_size(mems(ictrl)%dict_global))
-          call yaml_map('Raw version',mems(ictrl)%dict_global)
+          !call yaml_map('Raw version',mems(ictrl)%dict_global)
           call yaml_mapping_open('Status of the memory at finalization')
           !call yaml_dict_dump(dict_global)
           call dump_leaked_memory(mems(ictrl)%dict_global)

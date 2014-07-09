@@ -2163,6 +2163,8 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
               if (.not. lstat) call io_error(trim(error))
               call timing(iproc,'readtmbfiles','OF')
 
+              call timing(iproc,'tmbrestart','ON')
+
               ! DEBUG: print*,iproc,iorb,iorb+orbs%isorb,iorb_old,iorb_out
 
               !! define fragment transformation - should eventually be done automatically...

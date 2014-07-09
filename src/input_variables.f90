@@ -92,7 +92,7 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
   !in case it should be restored the bigdft_severe shoudl be called instead
   !if (mpi_env%iproc > 0) call f_err_severe_restore()
 
-  ! We put a barrier here to be sure that non master proc will be stop
+  ! We put a barrier here to be sure that non master proc will be stopped
   ! by any issue on the master proc.
   call mpi_barrier(mpi_env%mpi_comm, ierr)
 
@@ -1144,10 +1144,3 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
        & call yaml_warning('Defining a k-point path in free boundary conditions.') 
 
 END SUBROUTINE kpt_input_analyse
-
-!!$  ! linear scaling: explicitely specify localization centers
-!!$  in%explicit_locregcenters = dict//EXPLICIT_LOCREGCENTERS
-!!$  ! linear scaling: calculate Kohn-Sham residue
-!!$  in%calculate_KS_residue = dict//CALCULATE_KS_RESIDUE
-!!$  ! linear scaling: calculate intermediate forces
-!!$  in%intermediate_forces = dict//INTERMEDIATE_FORCES

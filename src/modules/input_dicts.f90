@@ -657,12 +657,13 @@ contains
     type(dictionary), pointer :: types
     character(len = max_field_length) :: str
     integer :: iat
-    character(max_field_length), dimension(:), allocatable :: keys
+    character(len=max_field_length), dimension(:), allocatable :: keys
     character(len=27) :: key
     logical :: exists
 
     ! Loop on types for atomic data.
     call astruct_dict_get_types(dict //POSINP, types)
+    if ( .not. associated(types)) return
     allocate(keys(dict_size(types)))
     keys = dict_keys(types)
     do iat = 1, dict_size(types), 1
@@ -777,7 +778,7 @@ contains
     type(dictionary), pointer :: dict
     type(atomic_structure), intent(in) :: astruct
     real(gp), dimension(3, astruct%nat), intent(in) :: rxyz
-    character(len = *), intent(in), optional :: comment
+    character(len=*), intent(in), optional :: comment
     !local variables
     type(dictionary), pointer :: pos, at
     integer :: iat,ichg,ispol
@@ -834,7 +835,7 @@ contains
     end select BC
 
     if (has_key(dict, ASTRUCT_POSITIONS)) call dict_remove(dict, ASTRUCT_POSITIONS)
-    pos => dict // ASTRUCT_POSITIONS
+    if (astruct%nat > 0) pos => dict // ASTRUCT_POSITIONS
     do iat=1,astruct%nat
        call dict_init(at)
        call add(at // astruct%atomnames(astruct%iatype(iat)), rxyz(1,iat) * factor(1))
@@ -875,6 +876,10 @@ contains
     character(len = max_field_length) :: str
     integer :: iat, ityp
 
+    if (ASTRUCT_POSITIONS .notin. dict) then
+       nullify(types)
+       return
+    end if
     call dict_init(types)
     atoms => dict // ASTRUCT_POSITIONS
     ityp = 0
@@ -996,7 +1001,8 @@ contains
     call nullify_atomic_structure(astruct)
     astruct%nat = -1
     if (present(comment)) write(comment, "(A)") " "
-    if (.not. has_key(dict, ASTRUCT_POSITIONS)) return
+
+    !if (.not. has_key(dict, ASTRUCT_POSITIONS)) return
 
     ! The units
     units = 0
@@ -1036,7 +1042,7 @@ contains
     if (units == 1) astruct%cell_dim = astruct%cell_dim / Bohr_Ang
     ! The types
     call astruct_dict_get_types(dict, types)
-    ntyp = dict_size(types)
+    ntyp = max(dict_size(types),0) !if types is nullified ntyp=-1
     call astruct_set_n_types(astruct, ntyp)
     ! astruct%atomnames = dict_keys(types)
     ityp = 1
@@ -1047,64 +1053,68 @@ contains
        at => dict_next(at)
     end do
     ! The atoms
-    pos => dict // ASTRUCT_POSITIONS
-    call astruct_set_n_atoms(astruct, dict_len(pos))
-    do iat = 1, astruct%nat
-       igspin = 0
-       igchrg = 0
-       nsgn   = 1
-       !at => pos // (iat - 1)
-       at => dict_iter(pos//(iat-1))!at%child
-       do while(associated(at))
-          str = dict_key(at)
-          if (trim(str) == "Frozen") then
-             str = dict_value(at)
-             call frozen_ftoi(str(1:4), astruct%ifrztyp(iat),ierr)
-          else if (trim(str) == "IGSpin") then
-             igspin = at
-          else if (trim(str) == "IGChg") then
-             igchrg = at
-             if (igchrg >= 0) then
-                nsgn = 1
-             else
-                nsgn = -1
+    if (ASTRUCT_POSITIONS .in. dict) then
+       pos => dict // ASTRUCT_POSITIONS
+       call astruct_set_n_atoms(astruct, dict_len(pos))
+       do iat = 1, astruct%nat
+          igspin = 0
+          igchrg = 0
+          nsgn   = 1
+          !at => pos // (iat - 1)
+          at => dict_iter(pos//(iat-1))!at%child
+          do while(associated(at))
+             str = dict_key(at)
+             if (trim(str) == "Frozen") then
+                str = dict_value(at)
+                call frozen_ftoi(str(1:4), astruct%ifrztyp(iat),ierr)
+             else if (trim(str) == "IGSpin") then
+                igspin = at
+             else if (trim(str) == "IGChg") then
+                igchrg = at
+                if (igchrg >= 0) then
+                   nsgn = 1
+                else
+                   nsgn = -1
+                end if
+             else if (trim(str) == "int_ref_atoms_1") then
+                astruct%ixyz_int(1,iat) = at
+             else if (trim(str) == "int_ref_atoms_2") then
+                astruct%ixyz_int(2,iat) = at
+             else if (trim(str) == "int_ref_atoms_3") then
+                astruct%ixyz_int(3,iat) = at
+             else if (dict_len(at) == 3) then
+                astruct%iatype(iat) = types // dict_key(at)
+                astruct%rxyz(:, iat) = at
              end if
-          else if (trim(str) == "int_ref_atoms_1") then
-             astruct%ixyz_int(1,iat) = at
-          else if (trim(str) == "int_ref_atoms_2") then
-             astruct%ixyz_int(2,iat) = at
-          else if (trim(str) == "int_ref_atoms_3") then
-             astruct%ixyz_int(3,iat) = at
-          else if (dict_len(at) == 3) then
-             astruct%iatype(iat) = types // dict_key(at)
-             astruct%rxyz(:, iat) = at
+             at => dict_next(at)
+          end do
+          astruct%input_polarization(iat) = 1000 * igchrg + nsgn * 100 + igspin
+          if (units == 1) then
+             astruct%rxyz(1,iat) = astruct%rxyz(1,iat) / Bohr_Ang
+             astruct%rxyz(2,iat) = astruct%rxyz(2,iat) / Bohr_Ang
+             astruct%rxyz(3,iat) = astruct%rxyz(3,iat) / Bohr_Ang
+          endif
+          if (units == 2) then !add treatment for reduced coordinates
+             if (astruct%cell_dim(1) > 0.) astruct%rxyz(1,iat)=&
+                  modulo(astruct%rxyz(1,iat),1.0_gp) * astruct%cell_dim(1)
+             if (astruct%cell_dim(2) > 0.) astruct%rxyz(2,iat)=&
+                  modulo(astruct%rxyz(2,iat),1.0_gp) * astruct%cell_dim(2)
+             if (astruct%cell_dim(3) > 0.) astruct%rxyz(3,iat)=&
+                  modulo(astruct%rxyz(3,iat),1.0_gp) * astruct%cell_dim(3)
+          else if (astruct%geocode == 'P') then
+             astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),astruct%cell_dim(1))
+             astruct%rxyz(2,iat)=modulo(astruct%rxyz(2,iat),astruct%cell_dim(2))
+             astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
+          else if (astruct%geocode == 'S') then
+             astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),astruct%cell_dim(1))
+             astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
+          else if (astruct%geocode == 'W') then
+             astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
           end if
-          at => dict_next(at)
        end do
-       astruct%input_polarization(iat) = 1000 * igchrg + nsgn * 100 + igspin
-       if (units == 1) then
-          astruct%rxyz(1,iat) = astruct%rxyz(1,iat) / Bohr_Ang
-          astruct%rxyz(2,iat) = astruct%rxyz(2,iat) / Bohr_Ang
-          astruct%rxyz(3,iat) = astruct%rxyz(3,iat) / Bohr_Ang
-       endif
-       if (units == 2) then !add treatment for reduced coordinates
-          if (astruct%cell_dim(1) > 0.) astruct%rxyz(1,iat)=&
-               modulo(astruct%rxyz(1,iat),1.0_gp) * astruct%cell_dim(1)
-          if (astruct%cell_dim(2) > 0.) astruct%rxyz(2,iat)=&
-               modulo(astruct%rxyz(2,iat),1.0_gp) * astruct%cell_dim(2)
-          if (astruct%cell_dim(3) > 0.) astruct%rxyz(3,iat)=&
-               modulo(astruct%rxyz(3,iat),1.0_gp) * astruct%cell_dim(3)
-       else if (astruct%geocode == 'P') then
-          astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),astruct%cell_dim(1))
-          astruct%rxyz(2,iat)=modulo(astruct%rxyz(2,iat),astruct%cell_dim(2))
-          astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
-       else if (astruct%geocode == 'S') then
-          astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),astruct%cell_dim(1))
-          astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
-       else if (astruct%geocode == 'W') then
-          astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
-       end if
-    end do
+    else
+       call astruct_set_n_atoms(astruct,0)
+    end if
 
     if (has_key(dict, ASTRUCT_PROPERTIES)) then
        pos => dict // ASTRUCT_PROPERTIES

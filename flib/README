@@ -62,7 +62,7 @@ if the variable <tt>err_one</tt> does exist in the same scope.
 
 We can test also a condition and raise the error using the function @ref f_err_raise:
 @code{.f90}
-if (f_err_raise(x>0,'X has to be strictly positive',err_name='ERROR_ONE')) return
+if (f_err_raise(x<=0,'X has to be strictly positive',err_name='ERROR_ONE')) return
 @endcode
 
 Finally, it is possible to try a call and check if an exception occured as:
