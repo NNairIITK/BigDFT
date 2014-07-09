@@ -376,7 +376,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
          write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,xa4,i3.3,xa5,a7,2(xa6,a8))') &
           ncount_bigdft,it,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct, &
           'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy9_1)),'dsplp=',trim(adjustl(cdmy9_2))
-         call yaml_open_map('Geometry')
+         call yaml_mapping_open('Geometry')
             call yaml_map('Ncount_BigDFT',ncount_bigdft)
             call yaml_map('Geometry step',it)
             call yaml_map('Geometry Method','GEOPT_SBFGS')
@@ -387,7 +387,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
             call yaml_map('fnrm',fnrm,fmt='(1pe21.14)')
             call yaml_map('beta',beta,fmt='(1pe21.14)')
             call geometry_output(fmax,fnrm,fluct)
-         call yaml_close_map()
+         call yaml_mapping_close()
       end if
 
       etot    = etotp
