@@ -626,6 +626,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
        input%gen_nkpt, input%gen_kpt, input%gen_wkpt, lorbs,.true.) !simple repartition
 
   locregCenter = f_malloc((/ 3, nlr /),id='locregCenter')
+
   
   ilr=0
   do iat=1,astruct%nat
