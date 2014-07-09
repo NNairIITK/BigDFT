@@ -1758,7 +1758,7 @@ subroutine mincurvgrad(imode,nat,alat,diff,rxyz1,fxyz1,vec,vecraw,&
 end subroutine mincurvgrad
 
 subroutine projectbond(nat,nbond,rat,fat,fstretch,iconnect,atomnames,wold,alpha_stretch0,alpha_stretch)
-    use module_base
+    use module_base, only: gp
     implicit none
     integer, intent(in) :: nat
     integer, intent(in) :: nbond
@@ -1776,8 +1776,8 @@ subroutine projectbond(nat,nbond,rat,fat,fstretch,iconnect,atomnames,wold,alpha_
     real(gp) :: per
     !functions
     real(gp) :: ddot
-
 integer :: ipiv(nbond)
+
 
     fstretch=0.0_gp
 
@@ -1792,11 +1792,13 @@ integer :: ipiv(nbond)
      enddo
      enddo
 
+     ss=0.0_gp
+     w=0.0_gp
      do ibond=1,nbond
      do jbond=1,nbond
      ss(ibond,jbond)=ddot(3*nat,vv(1,1,ibond),1,vv(1,1,jbond),1)
      enddo
-     w(ibond)=ddot(3*nat,vv(1,1,ibond),1,fat,1)
+     w(ibond)=ddot(3*nat,vv(1,1,ibond),1,fat(1,1),1)
      enddo
 
      nsame=0
@@ -1817,6 +1819,14 @@ integer :: ipiv(nbond)
 !     write(555,'(f5.1,a,1x,es10.3)') 100*per,' percent of bond directions did not switch sign',alpha_stretch
 
      call DPOSV('L', nbond, 1, ss, nbond, w, nbond, info )
+!write(*,*)ss
+!write(*,*)
+!write(*,*)w
+!write(*,*)
+!write(*,*)nbond
+!write(*,*)
+!write(*,*)
+!     call DGESV( nbond, 1, ss, nbond, IPIV, w, nbond, INFO )
 !call qrsolv(ss,nbond,nbond,w)
 !call DGESV( nbond, nbond, ss, nbond, IPIV, w, nbond, INFO )
      if (info.ne.0) then
@@ -1825,12 +1835,7 @@ integer :: ipiv(nbond)
      endif
 
 ! calculate projected force
-     do iat=1,nat
-     do l=1,3
-     fstretch(l,iat)=0.0_gp
-     enddo
-     enddo
-
+     fstretch=0.0_gp
      do ibond=1,nbond
      do iat=1,nat
      do l=1,3

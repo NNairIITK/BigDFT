@@ -23,6 +23,7 @@ program mhgps
     integer :: bigdft_get_number_of_atoms,bigdft_get_number_of_orbitals
     character(len=8) :: folder
     character(len=6) :: filename
+    character(len=6) :: comment='saddle'
     integer :: ifolder, ifile
     logical :: xyzexists,asciiexists
 
@@ -64,6 +65,8 @@ real(gp),allocatable :: eval(:)
 
     call read_input()
     isForceField=.false.
+    if(efmethod=='BIGDFT')then
+        isForceField=.false.
         call bigdft_init(mpi_info,nconfig,run_id,ierr)
         iproc=mpi_info(1)
         nproc=mpi_info(2)
@@ -76,8 +79,6 @@ real(gp),allocatable :: eval(:)
             call yaml_warning('runs-file not supported for MHGPS executable')
             stop
         endif
-    if(efmethod=='BIGDFT')then
-        isForceField=.false.
         if(iproc==0) call print_logo_mhgps()
         call dict_init(user_inputs)
         write(folder,'(a,i3.3)')'input',ifolder
@@ -173,7 +174,6 @@ real(gp),allocatable :: eval(:)
     fff_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
                 0.to.saddle_nhistx_rot/),id='fff_rot')
     scpr_rot = f_malloc((/ 1.to.saddle_nhistx_rot/),id='scpr_rot')
-    wold_rot = f_malloc((/ 1.to.nbond/),id='wold_rot')
     rxyz_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
                 0.to.saddle_nhistx_trans/),id='rxyz_trans')
     fxyz_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
@@ -198,20 +198,20 @@ real(gp),allocatable :: eval(:)
     fff_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
                 -1.to.saddle_nhistx_trans/),id='fff_trans')
     scpr_trans = f_malloc((/ 1.to.saddle_nhistx_trans/),id='scpr_trans')
-    wold_trans = f_malloc((/ 1.to.nbond/),id='wold_trans')
     
     iconnect = 0
     ixyz_int = 0
-!allocate(rxyz_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),fxyz_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),fxyzraw_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),rxyzraw_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),fstretch_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),eval_rot(saddle_nhistx_rot),res_rot(saddle_nhistx_rot),rrr_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot))
-
     call give_rcov(atoms,atoms%astruct%nat,rcov)
-
     !if in biomode, determine bonds betweens atoms once and for all (it is
     !assuemed that all conifugrations over which will be iterated have the same
     !bonds)
     if(saddle_biomode)then
         call findbonds(atoms%astruct%nat,rcov,atoms%astruct%rxyz,nbond,iconnect)
     endif
+    wold_trans = f_malloc((/ 1.to.nbond/),id='wold_trans')
+    wold_rot = f_malloc((/ 1.to.nbond/),id='wold_rot')
+!allocate(rxyz_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),fxyz_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),fxyzraw_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),rxyzraw_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),fstretch_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),eval_rot(saddle_nhistx_rot),res_rot(saddle_nhistx_rot),rrr_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot))
+
 
 
 
@@ -269,7 +269,7 @@ real(gp),allocatable :: eval(:)
            if (iproc == 0) then
                call write_atomic_file(currDir//'/'//currFile//'_final',&
                energy,rxyz(1,1),ixyz_int,&
-               atoms,'',forces=fxyz(1,1))
+               atoms,comment,forces=fxyz(1,1))
            endif
 
 !call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
@@ -324,11 +324,11 @@ real(gp),allocatable :: eval(:)
         call deallocate_global_output(outs)
         call run_objects_free_container(runObj)
         call free_input_variables(inputs_opt)
+        call bigdft_finalize(ierr)
     elseif(efmethod=='LJ')then
         call deallocate_atoms_data(atoms)
         call deallocate_global_output(outs)
     endif
-        call bigdft_finalize(ierr)
 
     call f_free(minmode)
     call f_free(rxyz)
