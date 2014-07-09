@@ -252,14 +252,11 @@ real(gp),allocatable :: eval(:)
 !!            write(*,*) 'eval ',j,eval(j)
 !!        enddo
 
- !           do i=1,atoms%astruct%nat
- !               minmode(1,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
- !               minmode(2,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
- !               minmode(3,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
- !           enddo
-!           call random_seed
-           call random_number(minmode)
-           minmode=2.d0*(minmode-0.5d0)
+            do i=1,atoms%astruct%nat
+                minmode(1,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+                minmode(2,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+                minmode(3,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+            enddo
            ec=0.0_gp
         
            call findsad(saddle_imode,atoms%astruct%nat,atoms%astruct%cell_dim,rcov,saddle_alpha0_trans,saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_trans,&
@@ -325,21 +322,21 @@ real(gp),allocatable :: eval(:)
         call run_objects_free_container(runObj)
         call free_input_variables(inputs_opt)
         call bigdft_finalize(ierr)
-    elseif(efmethod=='LJ')then
+    elseif(efmethod=='LJ'.or.efmethod=='AMBER')then
         call deallocate_atoms_data(atoms)
         call deallocate_global_output(outs)
     endif
 
+    call f_free(work)
     call f_free(minmode)
     call f_free(rxyz)
-    call f_free(fxyz)
-    call f_free(gradrot)
-    call f_free(rotforce)
-    call f_free(hess)
+    call f_free(fxyz) 
     call f_free(rcov)
     call f_free(iconnect)
     call f_free(ixyz_int)
-    call f_free(work)
+    call f_free(gradrot)
+    call f_free(rotforce)
+    call f_free(hess)
     call f_free(rxyz_rot)
     call f_free(fxyz_rot)
     call f_free(fxyzraw_rot)
@@ -348,13 +345,12 @@ real(gp),allocatable :: eval(:)
     call f_free(eval_rot)
     call f_free(res_rot)
     call f_free(rrr_rot)
-    call f_free(aa_rot) 
+    call f_free(aa_rot)
     call f_free(ff_rot)
     call f_free(rr_rot)
-    call f_free(dd_rot) 
+    call f_free(dd_rot)
     call f_free(fff_rot)
     call f_free(scpr_rot)
-    call f_free(wold_rot)
     call f_free(rxyz_trans)
     call f_free(fxyz_trans)
     call f_free(fxyzraw_trans)
@@ -363,13 +359,16 @@ real(gp),allocatable :: eval(:)
     call f_free(eval_trans)
     call f_free(res_trans)
     call f_free(rrr_trans)
-    call f_free(aa_trans) 
+    call f_free(aa_trans)
     call f_free(ff_trans)
     call f_free(rr_trans)
-    call f_free(dd_trans) 
+    call f_free(dd_trans)
     call f_free(fff_trans)
     call f_free(scpr_trans)
     call f_free(wold_trans)
+    call f_free(wold_rot)
+
+    
 
 
     if(iproc==0)call yaml_map('(MHGPS) Calls to energy and forces',nint(ef_counter))
