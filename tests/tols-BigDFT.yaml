@@ -336,7 +336,7 @@ TDDFT:
   e_virtual: 3.2e-7
   Eigenvalues and eigenstate residue: 1.2e-4
   Epot: 1.1e-10
-  Gradient Norm: 4.0e-8
+  Gradient Norm: 1.01e-4 #too big?
   L2 Norm - 1 and Rayleigh quotient (Davidson): 1.1e-6
   Excitation Energy and Oscillator Strength: 1.3e-4
   Transition energies (eV): 3.01e-4
