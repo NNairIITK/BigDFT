@@ -201,7 +201,7 @@ end subroutine test_dictionaries0
 
 subroutine test_error_handling()
   use yaml_output
-  use dictionaries
+  !use dictionaries
   implicit none
   integer :: ERR_TEST
   external :: abort_test
