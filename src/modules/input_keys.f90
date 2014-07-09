@@ -599,9 +599,11 @@ contains
 
     call f_routine(id='input_keys_fill_all')
 
-    ! Overiding the default for isolated system
-    if (.not.has_key(dict//POSINP,"Cell") .and. .not. has_key(dict//DFT_VARIABLES,DISABLE_SYM)) then
-       call set(dict // DFT_VARIABLES // DISABLE_SYM,.true.)
+    ! Overriding the default for isolated system
+    if (POSINP .in. dict) then
+       if (.not.has_key(dict//POSINP,"Cell") .and. .not. has_key(dict//DFT_VARIABLES,DISABLE_SYM)) then
+          call set(dict // DFT_VARIABLES // DISABLE_SYM,.true.)
+       end if
     end if
 
     ! Check and complete dictionary.

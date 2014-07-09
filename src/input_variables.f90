@@ -92,7 +92,7 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
   !in case it should be restored the bigdft_severe shoudl be called instead
   !if (mpi_env%iproc > 0) call f_err_severe_restore()
 
-  ! We put a barrier here to be sure that non master proc will be stop
+  ! We put a barrier here to be sure that non master proc will be stopped
   ! by any issue on the master proc.
   call mpi_barrier(mpi_env%mpi_comm, ierr)
 

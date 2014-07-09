@@ -221,7 +221,8 @@ def compare_scl(scl, ref, tols, always_fails=False):
             if tols is not None:
                 biggest_tol = max(biggest_tol, math.fabs(tols))
     if failed:
-        print 'fldiff_failure; val, ref, delta, tol, diff, bigtol', scl, ref, math.fabs(scl - ref), tols, ret_diff, biggest_tol
+        if failed_checks < 20:
+            print 'fldiff_failure; val, ref, tol, diff, bigtol', scl, ref, tols, discrepancy, biggest_tol
         failed_checks += 1
     return ret
 
@@ -242,6 +243,8 @@ def document_report(hostname, tol, biggest_disc, nchecks, leaks, nmiss, miss_it,
             failure_reason = "Yaml Standard"
         elif tol == 0 and biggest_disc == 0 and timet == 0:
             failure_reason = "Yaml Standard"
+        elif hostname == "None":
+            failure_reason = "Crash"
         else:
             failure_reason = "Difference"
     results["Platform"] = hostname
@@ -301,7 +304,7 @@ def highlight_iftty(options):
         hl.output.write(hl.input.read().encode('utf-8'))
 
 
-def fatal_error(args, reports, message='Error in reading datas, Yaml Standard violated or missing file'):
+def fatal_error(reports, message='Error in reading datas, Yaml Standard violated or missing file'):
     "Fatal Error: exit after writing the report, assume that the report file is already open)"
     global options
     print message
@@ -333,14 +336,14 @@ try:
         open(args.data, "r").read(), Loader=yaml.CLoader)]
 except Exception, e:
     reports = open(args.output, "w")
-    fatal_error(args, reports, message=str(e))
+    fatal_error(reports, message=str(e))
 
 if args.tols:
     try:
         orig_tols = yaml.load(open(args.tols, "r").read(), Loader=yaml.CLoader)
     except Exception, e:
         reports = open(args.output, "w")
-        fatal_error(args, reports, message=str(e))
+        fatal_error(reports, message=str(e))
 else:
     orig_tols = dict()
 
@@ -425,7 +428,7 @@ except:
     hostname = 'unknown'
 
 if len(references) != len(datas):
-    fatal_error(args, reports,
+    fatal_error(reports,
                 message='Error, number of documents differ between reference (%d) and data (%d)' % (len(references), len(datas)))
 
 for i in range(len(references)):
@@ -440,9 +443,12 @@ for i in range(len(references)):
     #compare(datas[i], reference, tols)
     try:
         data = datas[i]
-        compare(data, reference, tols)
+        if data is not None:
+            compare(data, reference, tols)
+        else:
+            fatal_error(reports, message='Empty document!')
     except Exception, e:
-        fatal_error(args, reports, message=str(e))
+        fatal_error(reports, message=str(e))
     try:
         doctime = data["Timings for root process"]["Elapsed time (s)"]
     except:
