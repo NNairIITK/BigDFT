@@ -2925,7 +2925,8 @@ module module_interfaces
           use module_types
           use communications_base, only: comms_cubic
           implicit none
-          integer, intent(in) :: iproc, nproc, nspinor,nspin
+          integer, intent(in) :: iproc, nproc,nspin
+          integer, intent(inout) ::  nspinor
           type(orthon_data), intent(in):: orthpar
           type(orbitals_data):: orbs
           type(comms_cubic), intent(in) :: comms
@@ -3677,7 +3678,7 @@ module module_interfaces
           integer,intent(in) :: iproc, nproc
           type(local_zone_descriptors),intent(in) :: lzd
           type(orbitals_data),intent(in) :: orbs
-          type(comms_linear),intent(in) :: collcom_sr
+          type(comms_linear),intent(inout) :: collcom_sr
           type(DFT_local_fields),intent(in) :: denspot
           type(sparse_matrix),intent(inout) :: denskern
           type(matrices),intent(inout) :: denskern_
