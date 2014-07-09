@@ -147,7 +147,7 @@ END PROGRAM BigDFT
        call yaml_mapping_close()
      call yaml_mapping_close()
      call yaml_map('ship_to','*id001')
-     call yaml_open_sequence('product')
+     call yaml_sequence_open('product')
        call yaml_sequence(advance='no')
        call yaml_map('sku','BL394D')
        call yaml_map('quantity',4)
