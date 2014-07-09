@@ -1050,7 +1050,7 @@ AC_CHECK_PROG(ac_have_doxygen, [doxygen], [yes], [no])
 AC_ARG_ENABLE(devel-doc,
               AS_HELP_STRING([--enable-devel-doc],
                              [compile documentation for developers using Doxygen.]),
-              ac_devel_doc=$withval, ac_devel_doc="no")
+              ac_devel_doc=$enableval, ac_devel_doc="no")
 AM_CONDITIONAL(BUILD_DEVDOC, test x"$ac_have_doxygen" = x"yes" -a x"$ac_devel_doc" = x"yes")
 dnl default installation directories
 AC_ARG_WITH(moduledir,
