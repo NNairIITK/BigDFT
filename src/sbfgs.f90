@@ -97,8 +97,9 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    cutoffRatio=runObj%inputs%cutoffratio
    steepthresh=runObj%inputs%steepthresh
    trustr=runObj%inputs%trustr
+
    if (iproc==0.and.verbosity > 0) then
-      call yaml_open_map('Geometry parameters')
+      call yaml_mapping_open('Geometry parameters')
          call yaml_map('Geometry Method','GEOPT_SBFGS')
          call yaml_map('nhistx',nhistx)
          call yaml_map('betax', betax,fmt='(1pe21.14)')
@@ -106,7 +107,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
          call yaml_map('cutoffRatio', cutoffRatio,fmt='(1pe21.14)')
          call yaml_map('steepthresh', steepthresh,fmt='(1pe21.14)')
          call yaml_map('trustr', trustr,fmt='(1pe21.14)')
-      call yaml_close_map()
+      call yaml_mapping_close()
    end if
 
    !init varaibles
@@ -308,8 +309,6 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
               sqrt(dot_double(3*nat,fxyz(1,1,nhist),1,fxyz(1,1,nhist),1)*&
               dot_double(3*nat,dd(1,1),1,dd(1,1),1))
 
-
-   
       if (detot.gt.maxrise .and. beta > 1.e-1_gp*betax) then !
          if (debug.and.iproc==0) write(100,'(a,i0,1x,e9.2)') "WARN: it,detot", it,detot
          if (debug.and.iproc==0) write(16,'(a,i0,4(xe9.2))') &
@@ -325,7 +324,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
             write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,xa4,i3.3,xa5,a7,2(xa6,a8))') &
              ncount_bigdft,it,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct, &
              'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy9_1)),'dsplp=',trim(adjustl(cdmy9_2))
-            call yaml_open_map('Geometry')
+            call yaml_mapping_open('Geometry')
                call yaml_map('Ncount_BigDFT',ncount_bigdft)
                call yaml_map('Geometry step',it)
                call yaml_map('Geometry Method','GEOPT_SBFGS')
@@ -336,7 +335,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
                call yaml_map('fnrm',fnrm,fmt='(1pe21.14)')
                call yaml_map('beta',beta,fmt='(1pe21.14)')
                call geometry_output(fmax,fnrm,fluct)
-            call yaml_close_map()
+            call yaml_mapping_close()
          end if
     
          if(ncount_bigdft >= nit)then!no convergence within ncount_cluster_x energy evaluations

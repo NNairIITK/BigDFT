@@ -97,8 +97,10 @@ module sparsematrix
             sparsemat%matrix_comprp(jj)=sparsemat%matrix(irow,jcol)
          end do
          !$omp end parallel do
-         call mpi_allgatherv(sparsemat%matrix_comprp, sparsemat%nvctrp, mpi_double_precision, sparsemat%matrix_compr, &
-              sparsemat%nvctr_par(:), sparsemat%isvctr_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+         if (bigdft_mpi%nproc > 1) &
+            & call mpi_allgatherv(sparsemat%matrix_comprp, sparsemat%nvctrp, &
+            &    mpi_double_precision, sparsemat%matrix_compr, sparsemat%nvctr_par(:), &
+            &    sparsemat%isvctr_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
          call f_free_ptr(sparsemat%matrix_comprp)
       end if
     
@@ -176,9 +178,10 @@ module sparsematrix
             sparsemat%matrixp(irow,jcol)=sparsemat%matrix_compr(iii)
          end do
          !$omp end parallel do
-         call mpi_allgatherv(sparsemat%matrixp, sparsemat%nfvctr*sparsemat%nfvctrp, mpi_double_precision, sparsemat%matrix, &
-              sparsemat%nfvctr*sparsemat%nfvctr_par(:), sparsemat%nfvctr*sparsemat%isfvctr_par, mpi_double_precision, &
-              bigdft_mpi%mpi_comm, ierr)
+         if (bigdft_mpi%nproc > 1) &
+            & call mpi_allgatherv(sparsemat%matrixp, sparsemat%nfvctr*sparsemat%nfvctrp, mpi_double_precision, &
+            &   sparsemat%matrix, sparsemat%nfvctr*sparsemat%nfvctr_par(:), sparsemat%nfvctr*sparsemat%isfvctr_par, &
+            &   mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
          call f_free_ptr(sparsemat%matrixp)
       end if
       sparsemat%can_use_dense=.true.  

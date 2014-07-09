@@ -10,10 +10,15 @@
 
 !>  Module which contains all information about types (data structures) and interfaces
 module BigDFT_API
+  use module_interfaces
   use module_base
   use module_types
-  use module_interfaces
   use module_xc
   use module_atoms
+  use module_input_dicts
+  use psp_projectors
+  use ao_inguess
+  use communications_base
+  use communications_init
   implicit none
 end module BigDFT_API

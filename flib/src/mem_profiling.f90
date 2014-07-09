@@ -227,16 +227,16 @@ contains
                   (memtot%peak+memloc%peak-memloc%memory)/int(1024,kind=8)
              close(unit=mallocFile)
           end if
-          call yaml_open_map('Memory Consumption Report')
+          call yaml_mapping_open('Memory Consumption Report')
           call yaml_map('Tot. No. of Allocations',memalloc)
           call yaml_map('Tot. No. of Deallocations',memdealloc)
           call yaml_map('Remaining Memory (B)',memtot%memory)
-          call yaml_open_map('Memory occupation')
+          call yaml_mapping_open('Memory occupation')
           call yaml_map('Peak Value (MB)',memtot%peak/int(1048576,kind=8))
           call yaml_map('for the array',trim(memtot%array))
           call yaml_map('in the routine',trim(memtot%routine))
-          call yaml_close_map()
-          call yaml_close_map()
+          call yaml_mapping_close()
+          call yaml_mapping_close()
 
           !here we can add a routine which open the malloc.prc file in case of some 
           !memory allocation problem, and which eliminates it for a successful run

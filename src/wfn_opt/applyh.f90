@@ -42,7 +42,7 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'
   logical :: dosome
-  integer :: i_all,i_stat,iorb,npot,ispot,ispsi,ilr,ilr_orb!,jproc,ierr
+  integer :: iorb,npot,ispot,ispsi,ilr,ilr_orb!,jproc,ierr
   real(wp) :: exctXcoeff
   real(gp) :: ekin,epot,kx,ky,kz,eSICi,eSIC_DCi !n(c) etest
   type(workarr_locham) :: wrk_lh
@@ -228,7 +228,7 @@ subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
   !local variables
   character(len=*), parameter :: subname='psi_to_vlocpsi'
   logical :: dosome
-  integer :: i_all,i_stat,iorb,npot,ispot,ispsi,ilr,ilr_orb,nbox,nvctr,ispinor
+  integer :: iorb,npot,ispot,ispsi,ilr,ilr_orb,nbox,nvctr,ispinor
   real(wp) :: exctXcoeff
   real(gp) :: epot,eSICi,eSIC_DCi,econf !n(c) etest
   type(workarr_sumrho) :: w
@@ -411,7 +411,7 @@ subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum)
   !local variables
   character(len=*), parameter :: subname='psi_to_kinpsi'
   logical :: dosome
-  integer :: i_all,i_stat,iorb,ispsi,ilr,ilr_orb
+  integer :: iorb,ispsi,ilr,ilr_orb
   real(gp) :: ekin
   type(workarr_locham) :: wrk_lh
   real(wp), dimension(:,:), allocatable :: psir
@@ -1298,7 +1298,6 @@ subroutine applyprojector_paw(ncplx,istart_c,&
   integer :: i_shell,j_shell,ilmn,jlmn,klmn,j0lmn,ispinor
   integer :: i_l,j_l,klmnc,i_m,j_m,iaux
   integer :: istart_j,icplx
-  integer :: i_stat,i_all
   real(gp)::eproj_i
   real(gp)::ddot
   real(dp), dimension(2) :: scpr

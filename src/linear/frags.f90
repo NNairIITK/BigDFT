@@ -19,7 +19,7 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
   integer, intent(out) :: nstates_max ! number of states in total if we consider all partially occupied fragment states to be fully occupied
   logical, intent(in) :: cdft
 
-  integer :: iorb, isforb, jsforb, ifrag, ifrag_ref, itmb, jtmb, iall, istat, num_extra_per_frag
+  integer :: iorb, isforb, jsforb, ifrag, ifrag_ref, itmb, jtmb, num_extra_per_frag
   integer, allocatable, dimension(:) :: ipiv
   real(gp), dimension(:,:), allocatable :: coeff_final
   !real(gp), dimension(:,:), allocatable :: ks, ksk
@@ -96,7 +96,8 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
   end if
 
   if (mod(input%norbsempty,input%frag%nfrag)/=0) then
-     if (bigdft_mpi%iproc==0) print*,'Warning, number of extra bands does not divide evenly among fragments'
+     if (bigdft_mpi%iproc==0) call yaml_warning('Number of extra bands does not divide evenly among fragments')
+     !if (bigdft_mpi%iproc==0) print*,'Warning, number of extra bands does not divide evenly among fragments'
      num_extra_per_frag=(input%norbsempty-mod(input%norbsempty,input%frag%nfrag))/input%frag%nfrag
   else
      num_extra_per_frag=input%norbsempty/input%frag%nfrag
@@ -408,13 +409,13 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
         !!write(*,'(1x,a)') '-------------------------------------------------'
         !!write(*,'(1x,a,2es24.16)') 'lowest, highest ev:',tmb%orbs%eval(1),tmb%orbs%eval(tmb%orbs%norb)
 
-        call yaml_open_sequence('TMB eigenvalues',flow=.true.)
+        call yaml_sequence_open('TMB eigenvalues',flow=.true.)
         call yaml_newline()
         do iorb=1,tmb%orbs%norb
-            call yaml_open_map(flow=.true.)
+            call yaml_mapping_open(flow=.true.)
             call yaml_map('index',iorb)
             call yaml_map('value',tmb%orbs%eval(iorb),fmt='(es20.12)')
-            call yaml_close_map()
+            call yaml_mapping_close()
             if(iorb==ksorbs%norb) then
                 !!write(*,'(3x,a,i0,a,es20.12,a)') 'eval(',iorb,')= ',tmb%orbs%eval(iorb),'  <-- last occupied orbital'
                 call yaml_comment('  <-- last occupied orbital')
@@ -426,7 +427,7 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
             end if
             call yaml_newline()
         end do
-        call yaml_close_sequence()
+        call yaml_sequence_close()
         !!write(*,'(1x,a)') '-------------------------------------------------'
         !!write(*,'(1x,a,2es24.16)') 'lowest, highest ev:',tmb%orbs%eval(1),tmb%orbs%eval(tmb%orbs%norb)
 

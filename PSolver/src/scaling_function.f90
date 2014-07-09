@@ -25,7 +25,7 @@ subroutine scaling_function(itype,nd,nrange,a,x)
   !Local variables
   character(len=*), parameter :: subname='scaling_function'
   real(kind=8), dimension(:), allocatable :: y
-  integer :: i,nt,ni,i_all,i_stat
+  integer :: i,nt,ni
   
   !Only itype=8,14,16,20,24,30,40,50,60,100
   select case(itype)
@@ -111,7 +111,7 @@ subroutine wavelet_function(itype,nd,a,x)
   !Local variables
   character(len=*), parameter :: subname='wavelet_function'
   real(kind=8), dimension(:), allocatable :: y
-  integer :: i,nt,ni,i_all,i_stat
+  integer :: i,nt,ni
 
   !Only itype=8,14,16,20,24,30,40,50,60,100
   Select case(itype)

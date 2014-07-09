@@ -28,7 +28,7 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,xc,hxh,hyh,hzh,pkernel,psir,vpsir,eSICi
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspinor), intent(out) :: vpsir
   !local variables
   character(len=*), parameter :: subname='PZ_SIC_potential' 
-  integer :: npsir,nspinn,ncomplex,i_all,i_stat,ispin,icomplex,jproc,nproc
+  integer :: npsir,nspinn,ncomplex,ispin,icomplex,jproc,nproc
   real(gp) :: spinval,hfac,fi,vexi,eexi,ehi
   integer, dimension(:,:), allocatable :: nscarr_fake
   real(dp), dimension(:,:), allocatable :: rhopoti,vSICi
@@ -208,7 +208,7 @@ subroutine NK_SIC_potential(lr,orbs,xc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_DC
   !local variables
   character(len=*), parameter :: subname='NK_SIC_potential' 
   logical :: virtual,savewxd
-  integer :: npot,i_all,i_stat,ispin,i,jspin,ierr,iorb,ispinor,i1,i2,i3,nproc
+  integer :: npot,ispin,i,jspin,ierr,iorb,ispinor,i1,i2,i3,nproc
   real(gp) :: spinval,fi,oneoh,vexi,eexi,ehi,eexu,vexu,eSIC_DCi,fac1,fac2,rnorboccp,constadd
   type(workarr_sumrho) :: w
   real(dp), dimension(:,:), allocatable :: ni,deltarho,vxci,rho,psir,wxd

@@ -707,13 +707,15 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
   type(gaussian_basis),dimension(at%astruct%ntypes),optional,intent(in)::proj_G !projectors in gaussian basis (for PAW)
   type(paw_objects),optional,intent(inout)::paw
   !local variables
-  logical, parameter :: newmethod=.true.
+  logical :: newmethod
   character(len=*), parameter :: subname='NonLocalHamiltonianApplication' 
   logical :: dosome, overlap
   integer :: ikpt,istart_ck,ispsi_k,isorb,ieorb,nspinor,iorb,iat,nwarnings
   integer :: iproj,ispsi,istart_c,ilr,ilr_skip,mproj,iatype,ispinor
   real(wp) :: hp,eproj
   real(wp), dimension(:), allocatable :: scpr
+
+  newmethod=.true.
 
   eproj_sum=0.0_gp
   !quick return if no orbitals on this task
@@ -735,6 +737,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
   nwarnings=0
 
   if(any(at%npspcode == PSPCODE_PAW)) then  
+     newmethod=.false.
      !initialize to zero in PAW case
      if(.not. present(paw) .or. .not. present(proj_G)) then
         stop 'NonLocalHamiltonianApplication: proj_G or paw are not present'
@@ -1521,11 +1524,11 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
      call check_closed_shell(wfn%orbs,lcs)
      if (lcs) then
         call yaml_newline()
-        call yaml_open_map('Energy inconsistencies')
+        call yaml_mapping_open('Energy inconsistencies')
            call yaml_map('Band Structure Energy',energs%ebs,fmt='(1pe22.14)')
            call yaml_map('Trace of the Hamiltonian',energs%trH,fmt='(1pe22.14)')
            call yaml_map('Relative inconsistency',tt,fmt='(1pe9.2)')
-        call yaml_close_map()
+        call yaml_mapping_close()
 !        write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
 !             &   'ERROR: inconsistency between gradient and energy',tt,energs%ebs,energs%trH
      end if
@@ -1601,7 +1604,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   if (wfn%orbs%nspinor == 4) then
      !only the root process has the correct array
      if(iproc==0 .and. verbose > 0) then
-        call yaml_open_sequence('Magnetic polarization per orbital')
+        call yaml_sequence_open('Magnetic polarization per orbital')
         call yaml_newline()
         !write(*,'(1x,a)')&
         !     &   'Magnetic polarization per orbital'
@@ -1609,15 +1612,15 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
 !!$             &   '  iorb    m_x       m_y       m_z'
         do iorb=1,wfn%orbs%norb
            call yaml_sequence(advance='no')
-           call yaml_open_map(flow=.true.)
+           call yaml_mapping_open(flow=.true.)
            call yaml_map('iorb',iorb,fmt='(i5)')
            call yaml_map('M',(/(mom_vec(k,iorb,1)/mom_vec(1,iorb,1),k=2,4)/),fmt='(3f10.5)')
-           call yaml_close_map()
+           call yaml_mapping_close()
            if (iorb < wfn%orbs%norb)call yaml_newline()
            !write(*,'(1x,i5,3f10.5)') &
            !     &   iorb,(mom_vec(k,iorb,1)/mom_vec(1,iorb,1),k=2,4)
         end do
-        call yaml_close_sequence()
+        call yaml_sequence_close()
      end if
      call f_free_ptr(mom_vec)
   end if
@@ -2016,7 +2019,7 @@ END SUBROUTINE last_orthon
 subroutine eigensystem_info(iproc,nproc,tolerance,nvctr,orbs,psi)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, except_this_one => eigensystem_info
   implicit none
   integer, intent(in) :: iproc,nproc,nvctr
   real(gp), intent(in) :: tolerance !< threshold to classify degenerate eigenvalues
@@ -2060,7 +2063,7 @@ end subroutine eigensystem_info
 
 !> Finds the fermi level ef for an error function distribution with a width wf
 !! eval are the Kohn Sham eigenvalues and melec is the total number of electrons
-subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
+subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
    use module_base
    use module_types
    use dictionaries, only: f_err_throw
@@ -2070,20 +2073,22 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
    logical, intent(in) :: filewrite
    integer, intent(in) :: iproc, nproc
    integer, intent(in) :: occopt      
-   real(gp), intent(in) :: wf
+   real(gp), intent(in) :: wf0   ! width of Fermi function, i.e. k*T
    type(orbitals_data), intent(inout) :: orbs
    !local variables
+   logical :: exitfermi
    real(gp), parameter :: pi=3.1415926535897932d0
    real(gp), parameter :: sqrtpi=sqrt(pi)
    real(gp), dimension(1,1,1) :: fakepsi
    integer :: ikpt,iorb,melec,ii,info_fermi
-   real(gp) :: charge, chargef
+   real(gp) :: charge, chargef,wf
    real(gp) :: ef,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff,full,res,resu,resd
    real(gp) :: a, x, xu, xd, f, df, tt
-   type(fermi_aux) :: ft
    !integer :: ierr
+   type(fermi_aux) :: ft
 
-   !write(*,*)  'ENTER Fermilevel',orbs%norbu,orbs%norbd
+   exitfermi=.false.
+   !if (iproc.lt.1)  write(1000+iproc,*)  'ENTER Fermilevel',orbs%norbu,orbs%norbd,occopt
 
    orbs%eTS=0.0_gp  
 
@@ -2121,14 +2126,14 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
       end do
    end do
    melec=nint(charge)
-   !if (iproc == 0) write(*,*) 'charge',charge,melec
-   call init_fermi_level(real(melec,gp)/full, 0.d0, ft)
+   !if (iproc == 0) write(1000+iproc,*) 'charge,wf',charge,melec,wf0
+   call init_fermi_level(real(melec,gp)/full, 0.d0, ft, ef_interpol_det=1.d-12, verbosity=1)
 
    ! Send all eigenvalues to all procs (presumably not necessary)
    call broadcast_kpt_objects(nproc, orbs%nkpts, orbs%norb, &
       &   orbs%eval, orbs%ikptproc)
    
-   if (wf > 0.0_gp) then
+   if (wf0 > 0.0_gp) then
       ii=0
       if (orbs%efermi == UNINITIALIZED(orbs%efermi)) then
          !last value as a guess
@@ -2142,17 +2147,15 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
          end do
       end if
       ef=orbs%efermi
-      factor=1.d0/(sqrt(pi)*wf)
 
       ! electrons is N_electons = sum f_i * Wieght_i
       ! dlectrons is dN_electrons/dEf =dN_electrons/darg * darg/dEf= sum df_i/darg /(-wf) , darg/dEf=-1/wf
       !  f:= occupation # for band i ,  df:=df/darg
-      loop_fermi: do
-         ii=ii+1
-         if (ii > 10000) then
-            if (iproc == 0) print *,'error Fermilevel'
-            stop
-         end if
+      wf=wf0
+      loop_fermi: do ii=1,100
+   !write(1000+iproc,*) 'iteration',ii,' -------------------------------- '
+         factor=1.d0/(sqrt(pi)*wf)
+         if (ii == 100 .and. iproc == 0) print *,'WARNING Fermilevel'
          electrons=0.d0
          dlectrons=0.d0
          do ikpt=1,orbs%nkpts
@@ -2175,37 +2178,47 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
                   f  = 0.d0
                   df = 0.d0
                end if
+               !call yaml_map('arg,f,orbs%kwgts(ikpt)',(/arg,f,orbs%kwgts(ikpt)/))
                electrons=electrons+ f  * orbs%kwgts(ikpt)  ! electrons := N_e(Ef+corr.)
-               dlectrons=dlectrons+ df * orbs%kwgts(ikpt)  ! delectrons:= dN_e/darge ( Well! later we need dN_e/dEf=-1/wf*dN_e/darg
-               !if(iproc==0) write(*,*) arg,   f , df
+               dlectrons=dlectrons+ df * orbs%kwgts(ikpt)  ! delectrons:= dN_e/darg ( Well! later we need dN_e/dEf=-1/wf*dN_e/darg
+               !if(iproc==0) write(1000,*) iorb,arg,   f , df,dlectrons
             enddo
          enddo
+         !call yaml_map('ef',ef)
+         !call yaml_map('electrons',electrons)
 
          dlectrons=dlectrons/(-wf)  ! df/dEf=df/darg * -1/wf
          diff=-real(melec,gp)/full+electrons
-         if (abs(diff) < 1.d-12) exit loop_fermi
-         if (abs(dlectrons) <= 1d-45) then
-            corr=wf
-         else
-            corr=diff/abs(dlectrons) ! for case of no-monotonic func. abs is needed
-         end if
-         !if (iproc==0) write(*,'(i5,3(1pe17.8),i4,1pe17.8)') ii,electrons,ef,dlectrons,melec,corr
-         if (corr > 1.d0*wf) corr=1.d0*wf
-         if (corr < -1.d0*wf) corr=-1.d0*wf
-         if (abs(dlectrons) < 1.d-18  .and. electrons > real(melec,gp)/full) corr=3.d0*wf
-         if (abs(dlectrons) < 1.d-18  .and. electrons < real(melec,gp)/full) corr=-3.d0*wf
+         !if (iproc.lt.1) write(1000+iproc,*) diff,full,melec,real(melec,gp)
+!         if (iproc.lt.1) flush(1000+iproc)
+         !if (iproc.lt.1) write(1000+iproc,*) diff,1.d-11*sqrt(electrons),wf
+         !if (iproc.lt.1) flush(1000+iproc)
+         !Exit criterion satiesfied, Nevertheles do one mor update of fermi level
+         if (abs(diff) < 1.d-11*sqrt(electrons) .and. wf .eq. wf0 ) exitfermi=.true.     ! Assume noise grows as sqrt(electrons)
+
+          corr=diff/abs(dlectrons) ! for case of no-monotonic func. abs is needed
+          if (abs(corr).gt.wf) then   !for such a large correction the linear approximation is not any more valid
+           if (corr > 0.d0) corr=1.d0*wf
+           if (corr < 0.d0*wf) corr=-1.d0*wf
+            if (ii.le.10) wf=2.d0*wf  ! speed up search of approximate Fermi level by using higher Temperature 
+          else
+            wf=max(wf0,.5d0*wf)
+          endif
+         ef=ef-corr  ! Ef=Ef_guess+corr.
+         !if (iproc.lt.1) write(1000+iproc,'(i5,5(1pe17.8))') ii,electrons,ef,dlectrons,abs(dlectrons),corr
+!         if (iproc.lt.1) flush(1000+iproc)
          !call determine_fermi_level(ft, electrons, ef,info_fermi)
          !if (info_fermi /= 0) then
          !   call f_err_throw('Difficulties in guessing the new Fermi energy, info='//trim(yaml_toa(info_fermi)),&
          !        err_name='BIGDFT_RUNTIME_ERROR')
          !end if
-         ef=ef-corr  ! Ef=Ef_guess+corr.
          !call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr) !debug
+         if (exitfermi) exit loop_fermi
       end do loop_fermi
 
       do ikpt=1,orbs%nkpts
-         argu=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu)-ef)/wf
-         argd=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+orbs%norbd)-ef)/wf
+         argu=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu)-ef)/wf0
+         argd=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+orbs%norbd)-ef)/wf0
          if (occopt == SMEARING_DIST_ERF) then
             !error function
             call derf_ab(resu,argu)
@@ -2233,13 +2246,14 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
               ' lastu=' // trim(yaml_toa(cutoffu,fmt='(1pe8.1)')) // &
               ' lastd=' // trim(yaml_toa(cutoffd,fmt='(1pe8.1)')))
       end if
-      !if (iproc==0) write(*,'(1x,a,1pe21.14,2(1x,e8.1))') 'Fermi level, Fermi distribution cut off at:  ',ef,cutoffu,cutoffd
+      !if (iproc.lt.1) write(1000+iproc,'(1x,a,1pe21.14,2(1x,e8.1))') 'Fermi level, Fermi distribution cut off at:  ',ef,cutoffu,cutoffd
+!      if (iproc.lt.1) flush(1000+iproc)
       orbs%efermi=ef
 
       !update the occupation number
       do ikpt=1,orbs%nkpts
          do iorb=1,orbs%norbu + orbs%norbd
-            arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
+            arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf0
             if (occopt == SMEARING_DIST_ERF) then
                call derf_ab(res,arg)
                f=.5d0*(1.d0-res)
@@ -2262,11 +2276,11 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
          do iorb=1,orbs%norbu + orbs%norbd
             if (occopt == SMEARING_DIST_ERF) then
                !error function
-               orbs%eTS=orbs%eTS+full*wf/(2._gp*sqrt(pi))*exp(-((orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf)**2)
+               orbs%eTS=orbs%eTS+full*wf0/(2._gp*sqrt(pi))*exp(-((orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf0)**2)
             else if (occopt == SMEARING_DIST_FERMI) then
                !Fermi function
                tt=orbs%occup((ikpt-1)*orbs%norb+iorb)
-               orbs%eTS=orbs%eTS-full*wf*(tt*log(tt) + (1._gp-tt)*log(1._gp-tt))
+               orbs%eTS=orbs%eTS-full*wf0*(tt*log(tt) + (1._gp-tt)*log(1._gp-tt))
             else if (occopt == SMEARING_DIST_COLD1 .or. occopt == SMEARING_DIST_COLD2 .or. &  
                  &  occopt == SMEARING_DIST_METPX ) then
                !cold 
@@ -2281,8 +2295,8 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
             chargef=chargef+orbs%kwgts(ikpt) * orbs%occup(iorb+(ikpt-1)*orbs%norb)
          end do
       end do
-      !if (abs(charge - chargef) > 1e-6)  then
-      if (abs(real(melec,gp)- chargef) > 1e-6)  then
+      if (abs(melec - chargef) > 1e-9)  then
+      !if (abs(real(melec,gp)- chargef) > 1e-6)  then
          if (orbs%nspinor /= 4) call eigensystem_info(iproc,nproc,1.e-8_gp,0,orbs,fakepsi)
          call f_err_throw('Failed to determine correctly the occupation number, expected='//yaml_toa(charge)// &
               ', found='//yaml_toa(chargef),err_name='BIGDFT_RUNTIME_ERROR')
@@ -2307,6 +2321,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs,occopt)
    end if
 
  END SUBROUTINE evaltoocc
+
 
 subroutine eFermi_nosmearing(iproc,orbs)
    use module_base
@@ -2577,14 +2592,14 @@ subroutine check_communications(iproc,nproc,orbs,lzd,comms)
       close(unit=22)
       abort = .true.
       write(filename, "(A,I0,A)") 'distscheme', iproc, '.log'
-      open(unit=22,file=trim(filename),status='unknown')
-      call print_distribution_schemes(22,nproc,orbs%nkpts,orbs%norb_par(0,1),comms%nvctr_par(0,1))
-      close(unit=22)
+      !open(unit=22,file=trim(filename),status='unknown')
+      call print_distribution_schemes(nproc,orbs%nkpts,orbs%norb_par(0,1),comms%nvctr_par(0,1))
+      !close(unit=22)
    end if
 
    call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
    if (abort) then
-      if (iproc == 0) call print_distribution_schemes(6,nproc,orbs%nkpts,orbs%norb_par(0,1),comms%nvctr_par(0,1))
+      if (iproc == 0) call print_distribution_schemes(nproc,orbs%nkpts,orbs%norb_par(0,1),comms%nvctr_par(0,1))
       call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
    end if
 

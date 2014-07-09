@@ -704,7 +704,7 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
          & ncount_bigdft,it,"GEOPT_FIRE",outs%energy,outs%energy-eprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct, &
          & "alpha=",alpha, "dt=",dt, "vnrm=",sqrt(vnrm), "nstep=",nstep,"P=",P
 
-         call yaml_open_map('Geometry')
+         call yaml_mapping_open('Geometry')
             call yaml_map('Ncount_BigDFT',ncount_bigdft)
             call yaml_map('Geometry step',it)
             call yaml_map('Geometry Method','GEOPT_FIRE')
@@ -715,7 +715,7 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
             call yaml_map('nstep',nstep, fmt='(I5)')
             call yaml_map('P',P, fmt='(es9.2)')
             call geometry_output(fmax,fnrm,fluct)
-         call yaml_close_map()
+         call yaml_mapping_close()
          !write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2), & 
          !& 2x,a6,es7.2e1,2x,a3,es7.2e1,2x,a6,es8.2,2x,a6,I5,2x,a2,es9.2)') &
          !& ncount_bigdft,it,"GEOPT_FIRE",epred,epred-eprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct, &
@@ -791,9 +791,9 @@ subroutine geometry_output(fmax,fnrm,fluct)
    real(gp), intent(in) :: fnrm    !< Norm of atomic forces
    real(gp), intent(in) :: fluct   !< Fluctuation of atomic forces
    !write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))') 'FORCES norm(Ha/Bohr): maxval=',fmax,'fnrm2=',fnrm,'fluct=', fluct
-   call yaml_open_map('FORCES norm(Ha/Bohr)',flow=.true.)
+   call yaml_mapping_open('FORCES norm(Ha/Bohr)',flow=.true.)
       call yaml_map(' maxval',fmax,fmt='(1pe14.5)')
       call yaml_map('fnrm2',fnrm,fmt='(1pe14.5)')
       call yaml_map('fluct',fluct,fmt='(1pe14.5)')
-   call yaml_close_map()
+   call yaml_mapping_close()
 end subroutine geometry_output

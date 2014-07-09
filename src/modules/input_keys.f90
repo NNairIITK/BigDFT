@@ -20,6 +20,7 @@ module module_input_keys
   character(len = *), parameter, public :: RADICAL_NAME = "radical"
   character(len = *), parameter, public :: POSINP = "posinp"
   character(len = *), parameter, public :: OCCUPATION = "occupation"
+  character(len = *), parameter, public :: IG_OCCUPATION = "ig_occupation"
   character(len = *), parameter, public :: DFT_VARIABLES = "dft"
   character(len = *), parameter, public :: HGRIDS = "hgrids"
   character(len = *), parameter, public :: RMULT = "rmult"
@@ -96,7 +97,7 @@ module module_input_keys
   character(len = *), parameter, public :: ITRPMAX = "itrpmax"
   character(len = *), parameter, public :: RPNRM_CV = "rpnrm_cv"
   character(len = *), parameter, public :: NORBSEMPTY = "norbsempty"
-  character(len = *), parameter, public :: TEL = "Tel"
+  character(len = *), parameter, public :: TEL = "tel"
   character(len = *), parameter, public :: OCCOPT = "occopt"
   character(len = *), parameter, public :: ALPHAMIX = "alphamix"
   character(len = *), parameter, public :: ALPHADIIS = "alphadiis"
@@ -253,9 +254,9 @@ contains
     implicit none
 
     call f_dump_last_error()
-    call yaml_open_map("allowed values")
+    call yaml_mapping_open("allowed values")
     call yaml_dict_dump(failed_exclusive)
-    call yaml_close_map()
+    call yaml_mapping_close()
     call f_err_severe()
   end subroutine abort_excl
 
@@ -510,6 +511,7 @@ contains
   subroutine input_keys_validate(dict)
     use dictionaries
     use yaml_output
+    use module_base, only: bigdft_mpi
     implicit none
     type(dictionary), pointer :: dict
     !local variables
@@ -533,7 +535,9 @@ contains
          .item. LIN_BASIS,&       
          .item. LIN_KERNEL,&      
          .item. LIN_BASIS_PARAMS,&
-         .item. OCCUPATION ])
+         .item. OCCUPATION,&
+         .item. IG_OCCUPATION,&
+         .item. FRAG_VARIABLES])
     
     !then the list of vaid patterns
     valid_patterns=>list_new(&
@@ -561,16 +565,19 @@ contains
     end do
 
     if (dict_len(invalid_entries) > 0) then
-       call yaml_map('Allowed keys',valid_entries)
-       call yaml_map('Allowed key patterns',valid_patterns)
-       call yaml_map('Invalid entries of the input dictionary',invalid_entries)
+       if (bigdft_mpi%iproc==0) then
+          call yaml_map('Allowed keys',valid_entries)
+          call yaml_map('Allowed key patterns',valid_patterns)
+          call yaml_map('Invalid entries of the input dictionary',invalid_entries)
+       end if
        call f_err_throw('The input dictionary contains invalid entries,'//&
             ' check above the valid entries',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
     end if
+
     call dict_free(invalid_entries)
     call dict_free(valid_entries)
     call dict_free(valid_patterns)
-         
+
   end subroutine input_keys_validate
 
   !> Fill all the input keys into dict
@@ -614,7 +621,7 @@ contains
     call input_keys_fill(dict, LIN_GENERAL)
     call input_keys_fill(dict, LIN_BASIS)
     call input_keys_fill(dict, LIN_KERNEL)
-    call input_keys_fill(dict, LIN_BASIS_PARAMS)
+    call input_keys_fill(dict, LIN_BASIS_PARAMS, check=.false.)
 
     !create a shortened dictionary which will be associated to the given run
     call input_minimal(dict,dict_minimal)
@@ -649,7 +656,7 @@ contains
     type(dictionary), pointer, intent(in) :: dict
     type(dictionary), pointer, intent(out) :: minimal
     !local variables
-    type(dictionary), pointer :: dict_tmp,min_cat
+    type(dictionary), pointer :: dict_tmp,min_cat,as_is
     character(len=max_field_length) :: category
     logical :: cat_found
 
@@ -697,10 +704,18 @@ contains
       end do
    end if
 
-   !other variables have to follow the same treatment
+   as_is=>list_new(.item. FRAG_VARIABLES,.item. IG_OCCUPATION, .item. POSINP, .item. OCCUPATION) 
+
    !fragment dictionary has to be copied as-is
-   if (FRAG_VARIABLES .in. dict) &
-        call dict_copy(minimal//FRAG_VARIABLES,dict//FRAG_VARIABLES)
+   !other variables have to follow the same treatment
+   dict_tmp => dict_iter(as_is)
+   do while(associated(dict_tmp))
+      category=dict_value(dict_tmp)
+      if (category .in. dict) &
+           call dict_copy(minimal//category,dict//category)
+      dict_tmp => dict_next(dict_tmp)
+   end do
+   call dict_free(as_is)
 
     contains
       
@@ -800,7 +815,7 @@ contains
     end subroutine input_minimal
 
 
-  subroutine input_keys_fill(dict, file)
+  subroutine input_keys_fill(dict, file,check)
     use dictionaries
     use dynamic_memory
     use yaml_output
@@ -808,14 +823,18 @@ contains
     !Arguments
     type(dictionary), pointer :: dict
     character(len = *), intent(in) :: file
+    logical, intent(in), optional :: check
     !Local variables
     !integer :: i
-    logical :: user, hasUserDef
+    logical :: user, hasUserDef,docheck
     type(dictionary), pointer :: ref,ref_iter
     !character(len=max_field_length), dimension(:), allocatable :: keys
     
+    docheck=.true.
+    if (present(check)) docheck=check
+
 !    call f_routine(id='input_keys_fill')
-    call input_keys_control(dict,file)
+    if (docheck) call input_keys_control(dict,file)
 
     ref => parameters // file
 
@@ -1128,27 +1147,27 @@ contains
 
          flow = (.not.associated(dict%child%child))
          if (.not.flow .and. trim(descr) /= "") then
-            call yaml_open_sequence(trim(dict%data%key), tag = tag, advance = "no")
+            call yaml_sequence_open(trim(dict%data%key), tag = tag, advance = "no")
             call yaml_comment(trim(descr), tabbing = 50)
          else
-            call yaml_open_sequence(trim(dict%data%key), tag = tag, flow=flow)
+            call yaml_sequence_open(trim(dict%data%key), tag = tag, flow=flow)
          end if
          do i = 0, dict_len(dict) - 1, 1
             call yaml_sequence("", advance = "no")
             call dict_dump_(dict // i)
          end do
          if (flow .and. trim(descr) /= "") then
-            call yaml_close_sequence(advance = "no")
+            call yaml_sequence_close(advance = "no")
             call yaml_comment(trim(descr), tabbing = 50)
          else
-            call yaml_close_sequence()
+            call yaml_sequence_close()
          end if
       else if (dict_size(dict) > 0) then
          ! Dictionary case
          if (userOnly_ .and. .not.userDef) return
 
          if (len_trim(dict%data%key) > 0) &
-              & call yaml_open_map(trim(dict%data%key),flow=.false.)
+              & call yaml_mapping_open(trim(dict%data%key),flow=.false.)
          iter => dict_next(dict)
          allocate(keys(dict_size(dict)))
          keys = dict_keys(dict)
@@ -1156,7 +1175,7 @@ contains
             call dict_dump_(dict // keys(i))
          end do
          deallocate(keys)
-         if (len_trim(dict%data%key) > 0) call yaml_close_map()
+         if (len_trim(dict%data%key) > 0) call yaml_mapping_close()
       else if (associated(dict)) then
          ! Leaf case.
          if (dict%data%item >= 0) then

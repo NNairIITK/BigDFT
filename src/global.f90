@@ -34,7 +34,7 @@ program MINHOP
   real(kind=8),allocatable, dimension(:,:) :: fp_arr
   real(kind=8),allocatable, dimension(:) :: fp,wfp,fphop
   real(kind=8),allocatable, dimension(:,:,:) :: pl_arr
-  integer :: iproc,nproc,iat,i_stat,i_all,ierr,infocode,nksevals,i,igroup,ngroups,natoms
+  integer :: iproc,nproc,iat,ierr,infocode,nksevals,i,igroup,ngroups,natoms
   integer :: bigdft_get_number_of_atoms,bigdft_get_number_of_orbitals
   character(len=*), parameter :: subname='global'
   character(len=41) :: filename
@@ -176,7 +176,7 @@ integer:: fcount=0
 
   inputs_opt%inputPsiId=0
 
-  call init_restart_objects(bigdft_mpi%iproc,inputs_opt,atoms,rst,subname)
+  call init_restart_objects(bigdft_mpi%iproc,inputs_opt,atoms,rst)
   call run_objects_nullify(runObj)
   call run_objects_associate(runObj, inputs_md, atoms, rst)
   call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
@@ -429,10 +429,10 @@ integer:: fcount=0
      open(unit=55,file='CPUlimit_global',status='unknown')
      read(55,*,end=555) cpulimit 
      cpulimit=cpulimit*3600
-     call yaml_open_map('(MH) CPUtime Check',flow=.true.)
+     call yaml_mapping_open('(MH) CPUtime Check',flow=.true.)
      call yaml_map(' nlmin',nlmin)
      call yaml_map(' tcpu2-tcpu1,cpulimit',(/tcpu2-tcpu1,cpulimit/))
-     call yaml_close_map(advance='yes')
+     call yaml_mapping_close(advance='yes')
      tleft=cpulimit-(tcpu2-tcpu1)
   end if
 555 continue
@@ -526,10 +526,10 @@ integer:: fcount=0
   endif
 
   if (bigdft_mpi%iproc == 0) then 
-     call yaml_open_map('(MH) GEOPT finished')
+     call yaml_mapping_open('(MH) GEOPT finished')
      call yaml_map('nlminx, nlmin',(/nlminx,nlmin/))
      call yaml_map('(MH) e_wpos, e_pos',(/outs%energy,e_pos/))
-     call yaml_close_map()
+     call yaml_mapping_close()
   endif
 
   call fingerprint(bigdft_mpi%iproc,atoms%astruct%nat,nid,atoms%astruct%rxyz,rcov,wfp, & 
@@ -577,22 +577,22 @@ integer:: fcount=0
            en_arr,ct_arr,fp_arr,pl_arr,ediff,ekinetic,dt,nrandoff,nsoften)
       if (bigdft_mpi%iproc == 0) then
          !call yaml_stream_attributes()
-        call yaml_open_map('(MH) New minimum',flow=.true.)
+        call yaml_mapping_open('(MH) New minimum',flow=.true.)
         call yaml_map('(MH) has energy',outs%energy,fmt='(e14.7)')
         !if (dmin < 1.e100_gp) 
            call yaml_map('(MH) distance',dmin,fmt='(e11.4)')
-        call yaml_close_map(advance='yes')
+        call yaml_mapping_close(advance='yes')
       endif
       nvisit=1
    else
       escape_old=escape_old+1.d0
       ekinetic=ekinetic*beta_O
       if (bigdft_mpi%iproc == 0) then
-        call yaml_open_map('(MH) Revisited:',flow=.true.)
+        call yaml_mapping_open('(MH) Revisited:',flow=.true.)
         call yaml_map('(MH) number',kid)
         call yaml_map('(MH) with energy',en_arr(kid),fmt='(e14.7)')
         call yaml_map('(MH) distance',dmin,fmt='(e11.4)')
-        call yaml_close_map(advance='yes')
+        call yaml_mapping_close(advance='yes')
       endif
       ct_arr(kid)=ct_arr(kid)+1.d0
       nvisit=int(ct_arr(kid))
@@ -642,7 +642,7 @@ integer:: fcount=0
   endif
 
      if (bigdft_mpi%iproc == 0) then
-        !call yaml_open_map('(MH) Write poscur file')
+        !call yaml_mapping_open('(MH) Write poscur file')
        call write_atomic_file('poscur'//trim(bigdft_run_id_toa()),e_pos,pos,atoms%astruct%ixyz_int,atoms,'')
        call yaml_map('(MH) poscur.xyz for  RESTART written',.true.)
 
@@ -677,7 +677,7 @@ end do hopping_loop
 !3000 continue
 
   if (bigdft_mpi%iproc == 0) then
-     call yaml_open_map('(MH) Final results')
+     call yaml_mapping_open('(MH) Final results')
      call yaml_map('(MH) Total number of minima found',nlmin)
      call yaml_map('(MH) Number of accepted minima',accepted)
      call winter(natoms,atoms,nid,nlminx,nlmin,en_delta,fp_delta, &
@@ -713,11 +713,11 @@ end do hopping_loop
      call yaml_map('(MH) ediff out',ediff)
      call yaml_map('(MH) ekinetic out',ekinetic)
      call yaml_map('(MH) dt out',dt)
-     call yaml_close_map()
+     call yaml_mapping_close()
   endif
   close(2) 
   !deallocations as in BigDFT
-  call free_restart_objects(rst,subname)
+  call free_restart_objects(rst)
   call deallocate_atoms_data(atoms)
 
   ! deallocation of global's variables
@@ -859,11 +859,11 @@ rkin=dot(3*atoms%astruct%nat,vxyz(1,1),1,vxyz(1,1),1)
        !     istep,e_rxyz,nummax,nummin
        if (iproc == 0) then
 !          write(*,'(a,i5,1x,1pe17.10,2(1x,i2))') '# (MH) MD ',istep,e_rxyz,nummax,nummin
-          call yaml_open_map('(MH) MD',flow=.true.)
+          call yaml_mapping_open('(MH) MD',flow=.true.)
             call yaml_map('Step',istep)
             call yaml_map('E (Ha)',outs%energy)
             call yaml_map('No. of Max and min',(/nummax,nummin/))
-          call yaml_close_map(advance='yes') 
+          call yaml_mapping_close(advance='yes') 
        endif
          if (nummin.ge.mdmin) then
           if (nummax.ne.nummin .and. iproc == 0) &
@@ -1007,14 +1007,14 @@ rkin=dot(3*atoms%astruct%nat,vxyz(1,1),1,vxyz(1,1),1)
             outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
       
        if(iproc==0) then
-          call yaml_open_map('(MH) soften',flow=.true.)
+          call yaml_mapping_open('(MH) soften',flow=.true.)
             call yaml_map('it',it)
             call yaml_map('curv',curv,fmt='(f12.5)')
             call yaml_map('fd2',fd2,fmt='(f12.5)')
             call yaml_map('dE',outs%energy-etot0,fmt='(f12.5)')
             call yaml_map('res',res,fmt='(f12.5)')
             call yaml_map('(MH) eps_vxyz',eps_vxyz,fmt='(f12.5)')
-          call yaml_close_map(advance='yes')
+          call yaml_mapping_close(advance='yes')
        end if
        if (curv.lt.0.d0 .or. fd2.lt.0.d0) then
           if(iproc==0) call yaml_comment('(MH) NEGATIVE CURVATURE')
@@ -1491,7 +1491,7 @@ subroutine winter(nat,at,nid,nlminx,nlmin,en_delta,fp_delta, &
   real(gp), intent(in) :: en_arr(nlminx),ct_arr(nlminx),fp_arr(nid,nlminx),pl_arr(3,nat,nlminx)
   !local variables
   integer :: k,i
-  character(len=50) :: comment
+  !character(len=50) :: comment
   character(len=5) :: fn5
 
   call yaml_map('(MH) name of idarr','idarr'//trim(bigdft_run_id_toa()))
@@ -1520,10 +1520,10 @@ subroutine winter(nat,at,nid,nlminx,nlmin,en_delta,fp_delta, &
 
   ! write poslow files
   do k=1,nlmin 
-     call yaml_open_map('(MH) Minima energies',flow=.true.)
+     call yaml_mapping_open('(MH) Minima energies',flow=.true.)
      call yaml_map('k',k)
      call yaml_map('en_arr(k)',en_arr(k))
-     call yaml_close_map(advance='yes')
+     call yaml_mapping_close(advance='yes')
      !C generate filename and open files
      write(fn5,'(i5.5)') k
      !        write(comment,'(a,1pe15.8)')'energy= ',en_arr(k)
@@ -1571,10 +1571,10 @@ END SUBROUTINE wtioput
 !!
 !!  do k=1,min(npmin,npminx)
 !!     write(*,'(a,i4,e24.17)') '#(MH) k,elocmin(k)',k,elocmin(k)
-!!     call yaml_open_map('(MH) Minima energies',flow=.true.)
+!!     call yaml_mapping_open('(MH) Minima energies',flow=.true.)
 !!     call yaml_map('k',k)
 !!     call yaml_map('elocmin(k)',elocmin(k))
-!!     call yaml_close_map(advance='yes')
+!!     call yaml_mapping_close(advance='yes')
 !!
 !!     
 !!     !C Classify the configuration in the global ranking
@@ -1596,10 +1596,10 @@ END SUBROUTINE wtioput
 !!     if (kk <= npminx) then
 !!        
 !!        write(*,'(a,i4,i4,1x,1pe21.14)') '#(MH) k,kk,elocmin(k)',k,kk,elocmin(k)
-!!        call yaml_open_map('(MH) Ranking and Energy',flow=.true.)
+!!        call yaml_mapping_open('(MH) Ranking and Energy',flow=.true.)
 !!        call yaml_map('k kk',(/k,kk/))
 !!        call yaml_map('elocmin(k)',elocmin(k))
-!!        call yaml_close_map(advance='yes')
+!!        call yaml_mapping_close(advance='yes')
 !!        
 !!        !C generate filename and open files
 !!        write(fn,'(i5.5)') kk
@@ -1669,10 +1669,10 @@ subroutine adjustrxyz(nat,alat1,alat2,alat3,rxyz)
      cent(i)=cent(i)/real(nat,gp)
   enddo
 
-!  call yaml_open_map('(MH) old CM, shift',flow=.true.)
+!  call yaml_mapping_open('(MH) old CM, shift',flow=.true.)
     call yaml_map('(MH) Old CM',(/cent(1),cent(2),cent(3)/),fmt='(1pe9.2)')
     call yaml_map('(MH) Shift',(/-cent(1)+alat1*.5_gp,-cent(2)+alat2*.5_gp,-cent(3)+alat3*.5_gp/),fmt='(1pe9.2)')
-!  call yaml_close_map(advance='yes')
+!  call yaml_mapping_close(advance='yes')
 
   do iat=1,nat
      rxyz(1,iat)=rxyz(1,iat)-cent(1)+alat1*.5_gp
@@ -1950,7 +1950,7 @@ occured=.false.
 if(nfrag.ne.1) then          !"if there is fragmentation..."
    occured=.true.
    if(iproc==0) then
-      call yaml_open_map('(MH) FIX')
+      call yaml_mapping_open('(MH) FIX')
       call yaml_map('(MH) Number of Fragments counted with option', (/nfrag,option/))
    endif
    if (option==1) then !OPTION=1, FIX FRAGMENTATION
@@ -2012,7 +2012,7 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
       call f_free(fragcount)
       if(iproc==0) then
          call yaml_comment('(MH) FIX: Fragmentation fixed! Keep on hopping...')
-         call yaml_close_map()
+         call yaml_mapping_close()
       end if
       if (iproc == 0) then
          write(444,*) nat, 'atomic '
@@ -2072,11 +2072,11 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
          endif
          if (iproc==0) then
            write(*,*) '(MH) ifrag, angle ',ifrag, angle,invert(ifrag)
-           call yaml_open_map('(MH) Frag. Info',flow=.true.)
+           call yaml_mapping_open('(MH) Frag. Info',flow=.true.)
             call yaml_map('ifrag',ifrag)
             call yaml_map('angle',angle)
             call yaml_map('ifrag inverted',invert(ifrag))
-           call yaml_close_map(advance='yes')
+           call yaml_mapping_close(advance='yes')
          endif
       enddo
       !Decompose each atomic velocity into an component parallel and perpendicular to the cm_frags  vector and inter the 
@@ -2095,9 +2095,9 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
       enddo
       if (iproc==0) then
           write(*,'(a,e14.7,3(e10.3))') '(MH) EKIN CM before invert',ekin0,vcm1,vcm2,vcm3
-!          call yaml_open_map(,flow=.true.)
+!          call yaml_mapping_open(,flow=.true.)
           call yaml_map('(MH) EKIN CM before invert',(/ekin0,vcm1,vcm2,vcm3/),fmt='(e10.3)')
-!          call yaml_close_map(advance='yes')
+!          call yaml_mapping_close(advance='yes')
       endif
       if (iproc==0) call torque(nat,pos,vel)
       !Checkend kinetic energy before inversion
@@ -2139,9 +2139,9 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
       enddo
       if (iproc==0) then
           write(*,'(a,e14.7,3(e10.3))') '(MH) EKIN CM after  invert',ekin,vcm1,vcm2,vcm3
-          !call yaml_open_map('(MH) EKIN CM after invert',flow=.true.)
+          !call yaml_mapping_open('(MH) EKIN CM after invert',flow=.true.)
           call yaml_map('(MH) EKIN CM after invert',(/ekin0,vcm1,vcm2,vcm3/),fmt='(e10.3)')
-          !call yaml_close_map(advance='yes')
+          !call yaml_mapping_close(advance='yes')
       endif
       if (iproc==0) call torque(nat,pos,vel)
       !Checkend kinetic energy after inversion
@@ -2157,10 +2157,10 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
          rnrmi=1.d0/sqrt(vel_frags(1,ifrag)**2+vel_frags(2,ifrag)**2+vel_frags(3,ifrag)**2)
          angle=angle*rnrmi
          if (iproc==0) then
-           call yaml_open_map('(MH) Frag',flow=.true.)
+           call yaml_mapping_open('(MH) Frag',flow=.true.)
             call yaml_map('ifrag',ifrag)
             call yaml_map('angle a invert',angle)
-           call yaml_close_map(advance='yes')
+           call yaml_mapping_close(advance='yes')
          endif
         
       enddo
@@ -2522,7 +2522,7 @@ subroutine print_logo_MH()
 
 call yaml_comment('Minima Hopping ....',hfill='=')
 
-call yaml_open_map('MH logo')
+call yaml_mapping_open('MH logo')
 
 call yaml_scalar(' NEW ')
 call yaml_scalar('      __  __ _ _  _ _   _  __  ___ ')
@@ -2535,7 +2535,7 @@ call yaml_scalar('')
 call print_logo()
 call yaml_scalar('----> you can grep this file for (MH) to see Minima Hopping output')
 call yaml_scalar(' (MH) NOTE: this version reads nspin, mpol from input.dat')
-call yaml_close_map()
+call yaml_mapping_close()
 call yaml_map('Reference Paper','The Journal of Chemical Physics 120 (21): 9911-7 (2004)')
 
 END SUBROUTINE print_logo_MH
@@ -2938,7 +2938,7 @@ end subroutine fingerprint
    real(gp), dimension(3,nat), intent(inout) :: pos
    !local variables
    integer, parameter :: lwork=100
-   integer :: iat,i,info,j
+   integer :: iat,info,j
    real(gp) :: haratio,p1,p2,p3
    integer, dimension(3) :: ipiv
    real(gp), dimension(3) :: pos_s,theta_e,maxt

@@ -23,18 +23,18 @@
      get_error=0
      do ierr=0,nerr-1
         !this one can be substituted by the values of the dictionary
-        jerr=dict_present_error//ierr//errid
+        jerr=dict_present_error//ierr//ERRID
         isthere=err_name .in. dict_errors//jerr
         if (isthere) then
            get_error=1 !name
            exit
         end if
      end do
+
   else if (present(err_id)) then
      get_error=0
      do ierr=0,nerr-1
-        jerr=dict_present_error//ierr//errid
-
+        jerr=dict_present_error//ierr//ERRID
         if (jerr==err_id) then
            get_error=2
            exit
