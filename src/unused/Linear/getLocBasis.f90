@@ -3467,12 +3467,12 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   if (target_function/=TARGET_FUNCTION_IS_TRACE .and. even .and. scf_mode==LINEAR_FOE) then
       if (iproc==0) then
           call yaml_sequence(advance='no')
-          call yaml_open_map(flow=.true.)
+          call yaml_mapping_open(flow=.true.)
           call yaml_map('Initial kernel purification',.true.)
       end if
       overlap_calculated=.true.
       call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, order_taylor, purification_quickreturn)
-      if (iproc==0) call yaml_close_map()
+      if (iproc==0) call yaml_mapping_close()
   end if
 
   if (itout==0) then
@@ -3491,7 +3491,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   
       if (iproc==0) then
           call yaml_sequence(advance='no')
-          call yaml_open_map(flow=.true.)
+          call yaml_mapping_open(flow=.true.)
           call yaml_comment('iter:'//yaml_toa(it,fmt='(i6)'),hfill='-')
           if (target_function==TARGET_FUNCTION_IS_TRACE) then
               call yaml_map('target function','TRACE')
@@ -3605,11 +3605,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
                    tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
               if (iproc==0) call yaml_newline()
-              if (iproc==0) call yaml_open_sequence('kernel update by FOE')
+              if (iproc==0) call yaml_sequence_open('kernel update by FOE')
               call foe(iproc, nproc, 0.d0, &
                    energs%ebs, -1, -10, order_taylor, purification_quickreturn, 0, &
                    FOE_FAST, tmb, tmb%foe_obj)
-              if (iproc==0) call yaml_close_sequence()
+              if (iproc==0) call yaml_sequence_close()
               !if (.not.associated_psitlarge_c) then
               !    call f_free_ptr(tmb%ham_descr%psit_c)
               !end if
@@ -3833,7 +3833,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           overlap_calculated=.false.
           ! print info here anyway for debugging
           if (it_tot<2*nit_basis) then ! just in case the step size is the problem
-              call yaml_close_map()
+              call yaml_mapping_close()
               call bigdft_utils_flush(unit=6)
              cycle
           else if(it_tot<3*nit_basis) then ! stop orthonormalizing the tmbs
@@ -3916,7 +3916,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
           if (iproc==0) then
               !yaml output
-              call yaml_close_map() !iteration
+              call yaml_mapping_close() !iteration
               call bigdft_utils_flush(unit=6)
           end if
 
@@ -3982,7 +3982,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       if (iproc==0) then
           !yaml output
-          call yaml_close_map() !iteration
+          call yaml_mapping_close() !iteration
           call bigdft_utils_flush(unit=6)
       end if
 
@@ -3992,7 +3992,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   ! Write the final results
   if (iproc==0) then
       call yaml_sequence(label='final_supfun'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))),advance='no')
-      call yaml_open_map(flow=.true.)
+      call yaml_mapping_open(flow=.true.)
       call yaml_comment('iter:'//yaml_toa(it,fmt='(i6)'),hfill='-')
       if (target_function==TARGET_FUNCTION_IS_TRACE) then
           call yaml_map('target function','TRACE')
@@ -4008,7 +4008,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       call yaml_map('Omega',trH,fmt='(es22.15)')
       call yaml_map('D',ediff,fmt='(es9.2)')
       call yaml_map('D best',ediff_best,fmt='(es9.2)')
-      call yaml_close_map() !iteration
+      call yaml_mapping_close() !iteration
       call bigdft_utils_flush(unit=6)
   end if
 

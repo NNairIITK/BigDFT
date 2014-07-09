@@ -1,6 +1,6 @@
 !> @file
 !! Include file used in yaml_output.f90.
-!! Body of the yaml_open_map or sequence template for arrays.
+!! Body of the yaml_mapping_open or sequence template for arrays.
 !! yaml: Yet Another Markup Language (ML for Human)
 !! @author
 !!    Copyright (C) 2013-2013 BigDFT group

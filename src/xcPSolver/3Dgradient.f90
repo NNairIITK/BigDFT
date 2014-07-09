@@ -576,7 +576,7 @@ subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nsp
  real(dp), dimension(:,:,:,:), pointer :: rhocore
  !Local variables
  character(len=*), parameter :: subname='calc_gradient'
- integer :: i1,i2,i3,j3,i_all,i_stat,ispden
+ integer :: i1,i2,i3,j3,ispden
  !filters of finite difference derivative for order 4
  real(dp), parameter :: a1=0.8d0, a2=-0.2d0
  real(dp), parameter :: a3=0.038095238095238095238d0, a4=-0.0035714285714285714286d0

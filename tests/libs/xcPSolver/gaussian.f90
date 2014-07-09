@@ -99,7 +99,7 @@ program MP_gaussian
   end do
   call yaml_map('Results',reshape(avgmaxmin,(/6,nmoms+1/)),fmt='(1pe14.5)')
 
-  call finalize_real_space_conversion('Main program')
+  call finalize_real_space_conversion()
   
   call f_free(fj_phi,fj_coll)
   call f_lib_finalize()

@@ -78,7 +78,7 @@
 ---
   #----------------------------------------------------------------------- Yaml Invoice Example
  invoice                               :  34843
- date                                  :  2014-06-15
+ date                                  :  2014-07-01
  bill-to: &id001
    given                               : Chris
    address:
@@ -103,7 +103,7 @@
   #--------------------------------------------------- Yaml Invoice Example, using dictionaries
  Retrieve the price value              :  2392.0
  invoice                               : 34843
- date                                  :  2014-06-15
+ date                                  :  2014-07-01
  bill-to:
    given                               : Chris
    family                              : Dumars
@@ -135,7 +135,7 @@
      purpose to see whether yaml module prints it
    Action:
      For this error, contact the routine developer at mail at univ dot gov
-   Callback Procedure Address          : 4209200
+   Callback Procedure Address          : 4204414
  Additional Info                       : Extra message added
   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TOTO
  Print the error ID                    :  22
@@ -147,7 +147,7 @@
      purpose to see whether yaml module prints it
    Action:
      For this error, contact the routine developer at mail at univ dot gov
-   Callback Procedure Address          : 4209200
+   Callback Procedure Address          : 4204414
  Additional Info                       : Extra message added again
   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TOTO
  Callback done, errcode                :  22
@@ -220,42 +220,42 @@
      Message                           : Allocation error
      Action:
        Control the order of the allocation or if the memory limit has been reached
-     Callback Procedure Address        : 4535568
+     Callback Procedure Address        : 4963437
  - ERR_DEALLOCATE:
      Id                                : 16
      Message                           : Deallocation error
      Action:
        Control the order of the allocation or if the memory limit has been reached
-     Callback Procedure Address        : 4535568
+     Callback Procedure Address        : 4963437
  - ERR_MEMLIMIT:
      Id                                : 17
      Message                           : Memory limit reached
      Action:
        Control the size of the arrays needed for this run with bigdft-tool program
-     Callback Procedure Address        : 4535568
+     Callback Procedure Address        : 4963437
  - ERR_INVALID_COPY:
      Id                                : 18
      Message                           : Copy not allowed
      Action:
        A f_memcpy command failed, probably invalid sizes: check sizes of arrays at runtime
-     Callback Procedure Address        : 4535568
+     Callback Procedure Address        : 4963437
  - ERR_INVALID_MALLOC:
      Id                                : 19
      Message                           : Invalid specification of f_malloc
      Action                            : Put coherent data for the memory space allocation
-     Callback Procedure Address        : 4535568
+     Callback Procedure Address        : 4963437
  - ERR_MALLOC_INTERNAL:
      Id                                : 20
      Message                           : Internal error of memory profiler
      Action:
        An invalid operation occurs, submit bug report to developers
-     Callback Procedure Address        : 4535568
+     Callback Procedure Address        : 4963437
  - TIMING_INVALID:
      Id                                : 21
      Message                           : Error in timing routines
- 
+
      Action                            : Control the running conditions of f_timing routines called
-     Callback Procedure Address        : 4782176
+     Callback Procedure Address        : 5065618
  - ERR_TOTO:
      Id                                : 22
      Message:
@@ -263,23 +263,23 @@
        purpose to see whether yaml module prints it
      Action:
        For this error, contact the routine developer at mail at univ dot gov
-     Callback Procedure Address        : 4209200
+     Callback Procedure Address        : 4204414
  - ERR_TITI:
      Id                                : 23
      Message                           : test2
-     Callback Procedure Address        : 4209248
-     Callback Procedure Data Address   : 140735025035324
+     Callback Procedure Address        : 4204538
+     Callback Procedure Data Address   : 140735714712384
  - ERR_GRAVE:
      Id                                : 24
      Message                           : test2
-     Callback Procedure Address        : 4393600
+     Callback Procedure Address        : 4389491
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ End of error list
  Additional Info                       : This is the list of the errors
  ERR_TITI:
    Id                                  : 23
    Message                             : test2
-   Callback Procedure Address          : 4209248
-   Callback Procedure Data Address     : 140735025035324
+   Callback Procedure Address          : 4204538
+   Callback Procedure Data Address     : 140735714712384
  Additional Info                       : Now TITI error has been raised
   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TITI
  Callback done                         :  Yes
@@ -288,6 +288,22 @@
  Error check code2                     :  Yes
  Error check code, name                :  No
  Error check code, name                :  Yes
+  #Test open try
+ Error check value before try          :  No
+ Number of errors(1)                   :  1
+ Number of errors(2)                   :  0
+ ID                                    :  22
+ MSG                                   : two
+ ERR_TOTO:
+   Id                                  : 22
+   Message:
+     This is the error message for the error of kind 1 and it is written extensively on 
+     purpose to see whether yaml module prints it
+   Action:
+     For this error, contact the routine developer at mail at univ dot gov
+   Callback Procedure Address          : 4204883
+ Number of errors(3)                   :  1
+ Error check value after try           :  No
 ---
   #Now we test dictionaries inside yaml.
  ival not existing, fake value         :  0
@@ -376,7 +392,7 @@
  Stack2: [1, 2, 3]
  Stack3: [4, AQ, 3g]
  Stack4                                : 12
- Values retrieved from the dict        :  [  1.00000,  2.0000,  3.0000 ]
+ Values retrieved from the dict        :  [  1.0000,  2.0000,  3.0000 ]
  Stack: [5, 4]
  Stack2: [1, 2, 3]
  Stack3: [4, AQ, 3g]
@@ -481,10 +497,10 @@
     #call yaml_sequence("5,unit=0")
     #call yaml_sequence("6,unit=0")
     #call yaml_sequence(advance="no,unit=0")
-    #call yaml_open_sequence("",flow=.true.,unit=0)
+    #call yaml_sequence_open("",flow=.true.,unit=0)
     #call yaml_sequence("55,unit=0")
     #call yaml_sequence("66,unit=0")
-    #call yaml_close_sequence(,unit=0)
+    #call yaml_sequence_close(,unit=0)
  - 5
  - 6
  - - 55
@@ -492,10 +508,10 @@
     #call yaml_sequence("5,unit=0")
     #call yaml_sequence("6,unit=0")
     #call yaml_sequence(advance="no,unit=0")
-    #call yaml_open_sequence("",flow=.true.,unit=0)
+    #call yaml_sequence_open("",flow=.true.,unit=0)
     #call yaml_sequence("55,unit=0")
     #call yaml_sequence("66,unit=0")
-    #call yaml_close_sequence(,unit=0)
+    #call yaml_sequence_close(,unit=0)
  - 5
  - 6
  -  [55, 66]
@@ -510,12 +526,12 @@
  Value of dictA                        : __list__
 ---
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Routine-Tree creation example
- Address of first element              :  256
+ Address of first element              :  26509872
  Associated                            :  [  No,  No ]
  Associated                            :  [  Yes,  Yes ]
- Address of first element              :  256
- Address of first element, explicit (1):  256
- Address of first element, explicit (2):  256
+ Address of first element              :  26510080
+ Address of first element, explicit (1):  26510080
+ Address of first element, explicit (2):  26510080
  Associated                            :  [  Yes,  No,  Yes ]
   #debug 1
   #debug 2
@@ -544,63 +560,63 @@
                                            0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
                                            0,  0,  0,  0,  0,  0,  0,  0]
  Calling sequence of Main program (routines with * are not closed yet):
- - Main program: [ 5.484E-03,  1, ~*]
+ - Main program: [ 1.596E-02,  1, ~*]
    Subroutines:
-   - PS_Check: [ 1.706E-03,  1,  31.10%*]
+   - PS_Check: [ 9.191E-03,  1,  57.59%*]
      Subroutines:
-     - Routine D: [ 1.738E-03,  1,  101.88%*]
+     - Routine D: [ 5.099E-03,  1,  55.48%*]
        Subroutines:
-       - SubCase 3: [ 7.155E-04,  1,  41.17%*]
-       - Subcase 2: [ 6.410E-04,  1,  36.88%]
+       - Subcase 2: [ 2.048E-03,  1,  40.16%]
          Subroutines:
-         - SubSubcase1: [ 6.005E-04,  1,  93.68%]
-       - SubCase 1: [ 5.538E-04,  1,  31.86%]
-     - Routine A: [ 7.596E-05,  1,  4.45%]
-     - Routine 0: [ 4.371E-05,  1,  2.56%]
+         - SubSubcase1: [ 1.924E-03,  1,  93.92%]
+       - SubCase 3: [ 1.824E-03,  1,  35.76%*]
+       - SubCase 1: [ 1.706E-03,  1,  33.46%]
+     - Routine A: [ 2.484E-04,  1,  2.70%]
+     - Routine 0: [ 1.238E-04,  1,  1.35%]
  Routine dictionary:
-   11331520:
+   26510112:
      [ weight, SubCase 3,  4,  3]
-   11341856:
+   26508880:
      [ orbital_id, SubCase 3,  28,  4]
  Global dictionary (size 4):
-   11320656:
+   26510144:
      [ density, Routine 0,  48,  1]
-   11331680:
+   26509872:
      [ potential, Routine 0,  24,  1]
    Timestamp of Profile initialization:
-     2014-06-15 23:11:50.257
+     2014-07-01 12:51:45.715
    Process Id:
      0
   #Test for debug
   #End test for debug
   #End test for debug2
  Calling sequence of Main program (routines with * are not closed yet):
- - Main program: [ 6.956E-03,  1, ~*]
+ - Main program: [ 2.000E-02,  1, ~*]
    Subroutines:
-   - PS_Check: [ 3.148E-03,  1,  45.26%*]
+   - PS_Check: [ 1.325E-02,  1,  66.26%*]
      Subroutines:
-     - Routine D: [ 2.556E-03,  1,  81.19%]
+     - Routine D: [ 7.450E-03,  1,  56.22%]
        Subroutines:
-       - SubCase 3: [ 1.289E-03,  1,  50.45%]
-       - Subcase 2: [ 6.410E-04,  1,  25.08%]
+       - SubCase 3: [ 3.474E-03,  1,  46.63%]
+       - Subcase 2: [ 2.048E-03,  1,  27.49%]
          Subroutines:
-         - SubSubcase1: [ 6.005E-04,  1,  93.68%]
-       - SubCase 1: [ 5.538E-04,  1,  21.66%]
-     - Routine F: [ 4.115E-04,  1,  13.07%*]
-     - Routine A: [ 7.596E-05,  1,  2.41%]
-     - Routine E: [ 5.561E-05,  1,  1.77%]
-     - PS_Check: [ 4.898E-05,  2,  1.56%]
-     - Routine 0: [ 4.371E-05,  1,  1.39%]
+         - SubSubcase1: [ 1.924E-03,  1,  93.92%]
+       - SubCase 1: [ 1.706E-03,  1,  22.90%]
+     - Routine F: [ 1.234E-03,  1,  9.31%*]
+     - Routine A: [ 2.484E-04,  1,  1.87%]
+     - Routine E: [ 1.585E-04,  1,  1.20%]
+     - PS_Check: [ 1.453E-04,  2,  1.10%]
+     - Routine 0: [ 1.238E-04,  1,  0.93%]
  Routine dictionary:
-   11320656:
+   26508880:
      [ xc_pot, Routine F,  48,  1]
-   11341856:
+   26508944:
      [ rhopot, Routine F,  48,  1]
  Global dictionary (size 3):
-   11331680:
+   26509872:
      [ potential, Routine 0,  24,  1]
    Timestamp of Profile initialization:
-     2014-06-15 23:11:50.257
+     2014-07-01 12:51:45.715
    Process Id:
      0
  Parsed string:
@@ -612,92 +628,76 @@
  - elem2
  - 3.d0
  Calling sequence of Main program (routines with * are not closed yet):
- - Main program: [ 8.283E-03,  1, ~*]
+ - Main program: [ 2.402E-02,  1, ~*]
    Subroutines:
-   - PS_Check: [ 4.493E-03,  1,  54.24%*]
+   - PS_Check: [ 1.729E-02,  1,  71.96%*]
      Subroutines:
-     - Routine D: [ 2.556E-03,  1,  56.89%]
+     - Routine D: [ 7.450E-03,  1,  43.09%]
        Subroutines:
-       - SubCase 3: [ 1.289E-03,  1,  50.45%]
-       - Subcase 2: [ 6.410E-04,  1,  25.08%]
+       - SubCase 3: [ 3.474E-03,  1,  46.63%]
+       - Subcase 2: [ 2.048E-03,  1,  27.49%]
          Subroutines:
-         - SubSubcase1: [ 6.005E-04,  1,  93.68%]
-       - SubCase 1: [ 5.538E-04,  1,  21.66%]
-     - Routine F: [ 1.768E-03,  1,  39.35%*]
-     - Routine A: [ 7.596E-05,  1,  1.69%]
-     - Routine E: [ 5.561E-05,  1,  1.24%]
-     - PS_Check: [ 4.898E-05,  2,  1.09%]
-     - Routine 0: [ 4.371E-05,  1,  0.97%]
+         - SubSubcase1: [ 1.924E-03,  1,  93.92%]
+       - SubCase 1: [ 1.706E-03,  1,  22.90%]
+     - Routine F: [ 5.281E-03,  1,  30.54%*]
+     - Routine A: [ 2.484E-04,  1,  1.44%]
+     - Routine E: [ 1.585E-04,  1,  0.92%]
+     - PS_Check: [ 1.453E-04,  2,  0.84%]
+     - Routine 0: [ 1.238E-04,  1,  0.72%]
  Routine dictionary:
-   11320656:
+   26508880:
      [ xc_pot, Routine F,  48,  1]
  Global dictionary (size 3):
-   11331680:
+   26509872:
      [ potential, Routine 0,  24,  1]
    Timestamp of Profile initialization:
-     2014-06-15 23:11:50.257
+     2014-07-01 12:51:45.715
    Process Id:
      0
   #---------------------------------------------------- Entering in OpenMP section if available
  Entering Thread No.                   :  0
- Address of metadata                   :  7944480
- Entering Thread No.                   :  1
- Address of metadata                   :  47749499961216
- Something to use ab                   :  200.0
- Errors found while (de)allocating ab and b:  2
- ERR_ALLOCATE:
-   Id                                  : 15
-   Message                             : Allocation error
-   Action:
-     Control the order of the allocation or if the memory limit has been reached
-   Callback Procedure Address          : 4535568
- Additional Info                       : Allocation problem, error code  151
- ERR_ALLOCATE:
-   Id                                  : 15
-   Message                             : Allocation error
-   Action:
-     Control the order of the allocation or if the memory limit has been reached
-   Callback Procedure Address          : 4535568
- Additional Info                       : Allocation problem, error code  151
+ Address of metadata                   :  5446368
+ Something to use ab                   :  100.0
+ Something to use b                    :  200.0
  Calling sequence of Main program (routines with * are not closed yet):
- - Main program: [ 1.068E-02,  1, ~*]
+ - Main program: [ 2.883E-02,  1, ~*]
    Subroutines:
-   - PS_Check: [ 6.649E-03,  1,  62.26%]
+   - PS_Check: [ 2.146E-02,  1,  74.42%]
      Subroutines:
-     - Routine F: [ 3.569E-03,  1,  53.68%]
-     - Routine D: [ 2.556E-03,  1,  38.44%]
+     - Routine F: [ 8.531E-03,  1,  39.76%]
+     - Routine D: [ 7.450E-03,  1,  34.71%]
        Subroutines:
-       - SubCase 3: [ 1.289E-03,  1,  50.45%]
-       - Subcase 2: [ 6.410E-04,  1,  25.08%]
+       - SubCase 3: [ 3.474E-03,  1,  46.63%]
+       - Subcase 2: [ 2.048E-03,  1,  27.49%]
          Subroutines:
-         - SubSubcase1: [ 6.005E-04,  1,  93.68%]
-       - SubCase 1: [ 5.538E-04,  1,  21.66%]
-     - Routine A: [ 1.531E-04,  4,  2.30%]
-     - Routine E: [ 5.561E-05,  1,  0.84%]
-     - PS_Check: [ 4.898E-05,  2,  0.74%]
-     - Routine 0: [ 4.371E-05,  1,  0.66%]
+         - SubSubcase1: [ 1.924E-03,  1,  93.92%]
+       - SubCase 1: [ 1.706E-03,  1,  22.90%]
+     - Routine A: [ 4.254E-04,  4,  1.98%]
+     - Routine E: [ 1.585E-04,  1,  0.74%]
+     - PS_Check: [ 1.453E-04,  2,  0.68%]
+     - Routine 0: [ 1.238E-04,  1,  0.58%]
  Global dictionary (size 2):
    Timestamp of Profile initialization:
-     2014-06-15 23:11:50.257
+     2014-07-01 12:51:45.715
    Process Id:
      0
  Summary:
- - Main program: [ 1.240E-02,  1, ~*]
+ - Main program: [ 3.267E-02,  1, ~*]
    Subroutines:
-   - PS_Check: [ 6.649E-03,  1,  53.62%]
+   - PS_Check: [ 2.146E-02,  1,  65.68%]
      Subroutines:
-     - Routine F: [ 3.569E-03,  1,  53.68%]
-     - Routine D: [ 2.556E-03,  1,  38.44%]
+     - Routine F: [ 8.531E-03,  1,  39.76%]
+     - Routine D: [ 7.450E-03,  1,  34.71%]
        Subroutines:
-       - SubCase 3: [ 1.289E-03,  1,  50.45%]
-       - Subcase 2: [ 6.410E-04,  1,  25.08%]
+       - SubCase 3: [ 3.474E-03,  1,  46.63%]
+       - Subcase 2: [ 2.048E-03,  1,  27.49%]
          Subroutines:
-         - SubSubcase1: [ 6.005E-04,  1,  93.68%]
-       - SubCase 1: [ 5.538E-04,  1,  21.66%]
-     - Routine A: [ 1.531E-04,  4,  2.30%]
-     - Routine E: [ 5.561E-05,  1,  0.84%]
-     - PS_Check: [ 4.898E-05,  2,  0.74%]
-     - Routine 0: [ 4.371E-05,  1,  0.66%]
+         - SubSubcase1: [ 1.924E-03,  1,  93.92%]
+       - SubCase 1: [ 1.706E-03,  1,  22.90%]
+     - Routine A: [ 4.254E-04,  4,  1.98%]
+     - Routine E: [ 1.585E-04,  1,  0.74%]
+     - PS_Check: [ 1.453E-04,  2,  0.68%]
+     - Routine 0: [ 1.238E-04,  1,  0.58%]
 ---
  test dict_copy:
    original:
@@ -768,31 +768,31 @@
  Real with format (es27.20)            :  4.99999999999999777955E-01
  Real with format (es26.19)            :  2.2204460492503130808E-16
  Real with format (es27.20)            : -2.22044604925031308085E-16
- Timings for search: {No. of items:  1, Elapsed time (ns):  0.21}
- Timings for search: {No. of items:  10001, Elapsed time (ns):  0.19}
- Timings for search: {No. of items:  20001, Elapsed time (ns):  0.20}
- Timings for search: {No. of items:  30001, Elapsed time (ns):  0.20}
- Timings for search: {No. of items:  40001, Elapsed time (ns):  0.20}
- Timings for search: {No. of items:  50001, Elapsed time (ns):  0.20}
- Timings for search: {No. of items:  60001, Elapsed time (ns):  0.20}
- Timings for search: {No. of items:  70001, Elapsed time (ns):  0.20}
- Timings for search: {No. of items:  80001, Elapsed time (ns):  0.20}
- Timings for search: {No. of items:  90001, Elapsed time (ns):  0.20}
- Timings for search: {No. of items:  100001, Elapsed time (ns):  0.21}
+ Timings for search: {No. of items:  1, Elapsed time (ns):  8.93}
+ Timings for search: {No. of items:  10001, Elapsed time (ns):  9.53}
+ Timings for search: {No. of items:  20001, Elapsed time (ns):  8.95}
+ Timings for search: {No. of items:  30001, Elapsed time (ns):  9.42}
+ Timings for search: {No. of items:  40001, Elapsed time (ns):  8.66}
+ Timings for search: {No. of items:  50001, Elapsed time (ns):  9.04}
+ Timings for search: {No. of items:  60001, Elapsed time (ns):  8.73}
+ Timings for search: {No. of items:  70001, Elapsed time (ns):  8.91}
+ Timings for search: {No. of items:  80001, Elapsed time (ns):  8.66}
+ Timings for search: {No. of items:  90001, Elapsed time (ns):  8.82}
+ Timings for search: {No. of items:  100001, Elapsed time (ns):  7.75}
  Some value                            :  1111033000
- Timings for search: {No. of items:  1, Elapsed time (mus):  3.96}
- Timings for search: {No. of items:  5001, Elapsed time (mus):  44.53}
- Timings for search: {No. of items:  10001, Elapsed time (mus):  91.14}
- Timings for search: {No. of items:  15001, Elapsed time (mus):  132.68}
- Timings for search: {No. of items:  20001, Elapsed time (mus):  183.67}
+ Timings for search: {No. of items:  1, Elapsed time (mus):  10.53}
+ Timings for search: {No. of items:  5001, Elapsed time (mus):  60.20}
+ Timings for search: {No. of items:  10001, Elapsed time (mus):  115.30}
+ Timings for search: {No. of items:  15001, Elapsed time (mus):  203.38}
+ Timings for search: {No. of items:  20001, Elapsed time (mus):  968.51}
  Other value                           :  2000000.0
  Memory Consumption Report:
-   Tot. No. of Allocations             :  89
-   Tot. No. of Deallocations           :  89
+   Tot. No. of Allocations             :  44
+   Tot. No. of Deallocations           :  44
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  0
-     for the array                     : ab
-     in the routine                    : Routine F
- Max No. of dictionaries used          :  25213 #( 154 still in use)
+     for the array                     : weight
+     in the routine                    : Routine A
+ Max No. of dictionaries used          :  25217 #( 158 still in use)
  Number of dictionary folders allocated:  3

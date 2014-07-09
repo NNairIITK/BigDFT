@@ -201,7 +201,7 @@ program test_forces
 !!$      if (inputs%inputPsiId==INPUT_PSI_LINEAR_AO .or. inputs%inputPsiId==INPUT_PSI_MEMORY_LINEAR &
 !!$          .or. inputs%inputPsiId==INPUT_PSI_DISK_LINEAR) then
 !!$          call destroy_DFT_wavefunction(rst%tmb)
-!!$          call deallocate_local_zone_descriptors(rst%tmb%lzd, subname)
+!!$          call deallocate_local_zone_descriptors(rst%tmb%lzd)
 !!$      end if
 !!$
 !!$      if(inputs%linear /= INPUT_IG_OFF .and. inputs%linear /= INPUT_IG_LIG) &

@@ -18,7 +18,7 @@ program abscalc_main
 
    implicit none
    character(len=*), parameter :: subname='abscalc_main'
-   integer :: iproc,nproc,i_stat,i_all,ierr,infocode
+   integer :: iproc,nproc,ierr,infocode
    real(gp) :: etot
 !!$   logical :: exist_list
    !input variables
@@ -97,7 +97,7 @@ program abscalc_main
       ! if (iproc == 0) call write_forces(atoms,fxyz)
 
       !De-allocations
-      call deallocate_abscalc_input(runObj%inputs, subname)
+      call deallocate_abscalc_input(runObj%inputs)
 !      call deallocate_local_zone_descriptors(rst%Lzd, subname)
 
 
@@ -145,7 +145,7 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
    !local variables
    character(len=*), parameter :: subname='call_abscalc'
    character(len=40) :: comment
-   integer :: i_stat,i_all,ierr,inputPsiId_orig,icycle
+   integer :: ierr,inputPsiId_orig,icycle
 
 !!$   !temporary interface
 !!$   interface
@@ -269,6 +269,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use communications_base, only: comms_cubic
    use communications_init, only: orbitals_communicators
    use ao_inguess, only: set_aocc_from_string
+   use gaussians, only: gaussian_basis, nullify_gaussian_basis
    use yaml_output, only: yaml_warning,yaml_toa
    implicit none
    integer, intent(in) :: nproc,iproc
@@ -298,7 +299,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    integer :: ndegree_ip,j,n1,n2,n3
 !   integer :: n3d,n3p,n3pi,i3xcsh,i3s
    integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
-   integer :: iat,i_all,i_stat,ierr,inputpsi
+   integer :: iat,ierr,inputpsi
    real :: tcpu0,tcpu1
    real(gp), dimension(3) :: shift
    real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
@@ -716,7 +717,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
       call extract_potential_for_spectra(iproc,nproc,atoms_clone,rhodsc,dpcom,&
           KSwfn%orbs,nvirt,comms,KSwfn%Lzd,hx,hy,hz,rxyz,rhopotExtra,rhocore,pot_ion,&
-          nlpsp,pkernel,pkernel,ixc,KSwfn%psi,hpsi,psit,Gvirt,&
+          nlpsp,pkernel,ixc,KSwfn%psi,Gvirt,&
           nspin, in%potshortcut, symObj, GPU,in)
       
       if( iand( in%potshortcut,32)  .gt. 0 .and. in%iabscalc_type==3 ) then
@@ -779,7 +780,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
       call extract_potential_for_spectra(iproc,nproc,atoms,rhodsc,dpcom,&
           KSwfn%orbs,nvirt,comms,KSwfn%Lzd,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
-          nlpsp,pkernel,pkernel,ixc,KSwfn%psi,hpsi,psit,Gvirt,&
+          nlpsp,pkernel,ixc,KSwfn%psi,Gvirt,&
           nspin, in%potshortcut, symObj, GPU, in)
 
       !call f_free_ptr(KSwfn%psi)
@@ -1202,13 +1203,14 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
    call deallocate_before_exiting
-!   call deallocate_local_zone_descriptors(lzd, subname)
+!   call deallocate_local_zone_descriptors(lzd)
 
    contains
 
-
    !routine which deallocate the pointers and the arrays before exiting 
    subroutine deallocate_before_exiting
+     use communications_base, only: deallocate_comms
+     implicit none
      external :: gather_timings
       !when this condition is verified we are in the middle of the SCF cycle
 
@@ -1284,22 +1286,22 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       !deallocate wavefunction for virtual orbitals
       !if it is the case
       if (in%nvirt > 0) then
-         !call deallocate_gwf(Gvirt,subname)
+         !call deallocate_gwf(Gvirt)
          call f_free_ptr(psivirt)
       end if
 
       !De-allocations
       call deallocate_bounds(atoms%astruct%geocode,KSwfn%Lzd%Glr%hybrid_on,&
-           KSwfn%Lzd%Glr%bounds,subname)
-      call deallocate_Lzd_except_Glr(KSwfn%Lzd, subname)
+           KSwfn%Lzd%Glr%bounds)
+      call deallocate_Lzd_except_Glr(KSwfn%Lzd)
 !      i_all=-product(shape(Lzd%Glr%projflg))*kind(Lzd%Glr%projflg)
 !      deallocate(Lzd%Glr%projflg,stat=i_stat)
 !      call memocc(i_stat,i_all,'Lzd%Glr%projflg',subname)  
 
-      call deallocate_comms(comms,subname)
+      call deallocate_comms(comms)
 
-      call deallocate_orbs(orbs,subname)
-      call deallocate_orbs(KSwfn%orbs,subname)
+      call deallocate_orbs(orbs)
+      call deallocate_orbs(KSwfn%orbs)
 
       call free_DFT_PSP_projectors(nlpsp)
       !call deallocate_proj_descr(nlpspd,subname)
@@ -1307,13 +1309,13 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
       call f_free(radii_cf)
 
-      call deallocate_rho_descriptors(rhodsc,subname)
+      call deallocate_rho_descriptors(rhodsc)
 
       if( in%iabscalc_type==3) then
-         call deallocate_pcproj_data(PPD,subname)
+         call deallocate_pcproj_data(PPD)
       endif
-      if(sum(atoms%paw_NofL).gt.0) then
-         call deallocate_pawproj_data(PAWD,subname)       
+      if(sum(atoms%paw_NofL) > 0) then
+         call deallocate_pawproj_data(PAWD)       
       endif
       !! this is included in deallocate_atomdatapaw
       !! call deallocate_atomdatapaw(atoms,subname)
@@ -1349,7 +1351,6 @@ subroutine abscalc_input_variables(iproc,filename,in)
   integer :: ierror,iline, i
 
   character(len=*), parameter :: subname='abscalc_input_variables'
-  integer :: i_stat
 
   ! Read the input variables.
   open(unit=iunit,file=filename,status='old')
@@ -1494,7 +1495,7 @@ subroutine scaling_function4b2B(itype,nd,nrange,a,x)
    !Local variables
    character(len=*), parameter :: subname='scaling_function4b2B'
    real(kind=8), dimension(:), allocatable :: y
-   integer :: i,nt,ni,i_all,i_stat  
+   integer :: i,nt,ni
 
    !Only itype=8,14,16,20,24,30,40,50,60,100
    select case(itype)
@@ -1573,7 +1574,7 @@ subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
    ! real(dp), dimension(n1i*n2i*n3d), intent(out) :: rho
    real(gp), pointer :: rho(:)
    !local variables
-   integer :: nl1,nl2,nl3,i_stat,i1,i2,i3,ind
+   integer :: nl1,nl2,nl3,i1,i2,i3,ind
    real(gp) :: value
    character(len=*), parameter :: subname='read_potfile4b2B'
 
@@ -1612,14 +1613,15 @@ END SUBROUTINE read_potfile4b2B
 
 subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
      orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
-     nlpsp,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
+     nlpsp,pkernel,ixc,psi,G,&
      nspin,potshortcut,symObj,GPU,input)
    use module_base
    use module_interfaces, except_this_one => extract_potential_for_spectra
    use module_types
    use module_xc
+   use gaussians, only: gaussian_basis, deallocate_gwf
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
-   use communications_base, only: comms_cubic
+   use communications_base, only: comms_cubic, deallocate_comms
    use communications_init, only: orbitals_communicators
    implicit none
    !Arguments
@@ -1641,16 +1643,16 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
    type(gaussian_basis), intent(out) :: G !basis for davidson IG
-   real(wp), dimension(:), pointer :: psi,hpsi,psit
+   real(wp), dimension(:), pointer :: psi
    real(wp), dimension(:,:,:,:), pointer :: rhocore
-   type(coulomb_operator), intent(in) :: pkernel,pkernelseq
+   type(coulomb_operator), intent(in) :: pkernel
    type(xc_info) :: xc
    integer, intent(in) ::potshortcut
 
   !local variables
   character(len=*), parameter :: subname='extract_potential_for_spectra'
   logical :: switchGPUconv,switchOCLconv
-  integer :: i_stat,i_all,nspin_ig
+  integer :: nspin_ig
   real(gp) :: hxh,hyh,hzh,eks,ehart,eexcu,vexcu
   type(orbitals_data) :: orbse
   type(comms_cubic) :: commse
@@ -1806,7 +1808,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
      GPU%OCLconv=.true.
   end if
 
-  call deallocate_orbs(orbse,subname)
+  call deallocate_orbs(orbse)
   call f_free_ptr(orbse%eval)
 
 
@@ -1823,13 +1825,13 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   
 
   !deallocate the gaussian basis descriptors
-  call deallocate_gwf(G,subname)
-  if(potshortcut<=0) call deallocate_local_zone_descriptors(Lzde, subname)  
+  call deallocate_gwf(G)
+  if(potshortcut<=0) call deallocate_local_zone_descriptors(Lzde)  
 
 
 
   call f_free_ptr(psigau)
-  call deallocate_comms(commse,subname)
+  call deallocate_comms(commse)
   call f_free(norbsc_arr)
 
 

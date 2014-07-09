@@ -164,7 +164,7 @@ input.o: base.o types.o input_keys.o
 interfaces.o: base.o types.o xc.o fragments.o diis_module.o constrained_dft.o sparsematrix_base.o foe_base.o
 gaussians.o: base.o
 op2p_module.o : base.o
-BigDFT_API.o: base.o types.o interfaces.o xc.o
+BigDFT_API.o: base.o types.o interfaces.o xc.o atoms_data.o input_dicts.o ao_inguess.o psp_projectors.o communications_base.o communications_init.o
 vdwcorrection.o: base.o types.o
 private_api.o: base.o types.o interfaces.o
 diis_module.o: base.o types.o communications.o sparsematrix_base.o sparsematrix.o

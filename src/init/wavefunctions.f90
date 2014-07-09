@@ -25,7 +25,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   integer, dimension(0:nproc-1,nkpt), intent(in), optional :: basedist !> optional argument indicating the base orbitals distribution to start from
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
-  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all,norb_base,iiorb,mpiflag
+  integer :: iorb,jproc,norb_tot,ikpt,jorb,ierr,norb_base,iiorb,mpiflag
   logical, dimension(:), allocatable :: GPU_for_orbs
   integer, dimension(:,:), allocatable :: norb_par !(with k-pts)
 
@@ -236,7 +236,7 @@ subroutine repartitionOrbitals(iproc,nproc,norb,norb_par,norbp,isorb_par,isorb,o
   integer,intent(out):: norbp, isorb
 
   ! Local variables
-  integer:: ii, kk, iiorb, iorb, ierr, jproc
+  integer:: ii, kk, iiorb, iorb, jproc
   real(8):: tt
 
   ! Determine norb_par
@@ -472,7 +472,7 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
   end if
   if (verb) then 
      call yaml_sequence(advance='no')
-     call yaml_open_map('Occupation Numbers',flow=.true.)
+     call yaml_mapping_open('Occupation Numbers',flow=.true.)
      !write(*,'(1x,a,t28,i8)') 'Total Number of Orbitals',norb
      iorb1=1
      rocc=occup(1)
@@ -498,7 +498,7 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
              adjustl(trim(yaml_toa(norb))),occup(norb),fmt='(f6.4)')
         !write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',norb,')= ',occup(norb)
      end if
-     call yaml_close_map()
+     call yaml_mapping_close()
   endif
 
   !Check if sum(occup)=nelec

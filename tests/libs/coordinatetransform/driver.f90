@@ -51,15 +51,15 @@ program carint
 
 
   if (iproc==0) then
-      call yaml_open_sequence('initial coordinates')
+      call yaml_sequence_open('initial coordinates')
       do i=1,nat
          call yaml_sequence(advance='no')
-         call yaml_open_map(flow=.true.)
+         call yaml_mapping_open(flow=.true.)
          call yaml_map('id',i)
          call yaml_map('positions',xyz_init(1:3,i),fmt='(es14.6)')
-         call yaml_close_map()
+         call yaml_mapping_close()
       end do
-      call yaml_close_sequence()
+      call yaml_sequence_close()
   end if
 
   call get_neighbors(xyz_init,nat,na,nb,nc)
@@ -69,16 +69,16 @@ program carint
   geo(2:2,1:nat) = 180.d0 - geo(2:2,1:nat)
 
   if (iproc==0) then
-      call yaml_open_sequence('internal coordinates')
+      call yaml_sequence_open('internal coordinates')
       do i=1,nat
          call yaml_sequence(advance='no')
-         call yaml_open_map(flow=.true.)
+         call yaml_mapping_open(flow=.true.)
          call yaml_map('id',i)
          call yaml_map('refs',(/na(i),nb(i),nc(i)/))
          call yaml_map('vals',geo(1:3,i),fmt='(es14.6)')
-         call yaml_close_map()
+         call yaml_mapping_close()
       end do
-      call yaml_close_sequence()
+      call yaml_sequence_close()
   end if
 
 
@@ -88,29 +88,29 @@ program carint
   call internal_to_cartesian(nat, na, nb, nc, geo, xyz)
 
   if (iproc==0) then
-      call yaml_open_sequence('final coordinates')
+      call yaml_sequence_open('final coordinates')
       do i=1,nat
          call yaml_sequence(advance='no')
-         call yaml_open_map(flow=.true.)
+         call yaml_mapping_open(flow=.true.)
          call yaml_map('id',i)
          call yaml_map('positions',xyz(1:3,i),fmt='(es14.6)')
-         call yaml_close_map()
+         call yaml_mapping_close()
       end do
-      call yaml_close_sequence()
+      call yaml_sequence_close()
   end if
 
   xyz_diff = xyz_init-xyz
 
   if (iproc==0) then
-      call yaml_open_sequence('difference')
+      call yaml_sequence_open('difference')
       do i=1,nat
          call yaml_sequence(advance='no')
-         call yaml_open_map(flow=.true.)
+         call yaml_mapping_open(flow=.true.)
          call yaml_map('id',i)
          call yaml_map('positions',xyz_diff(1:3,i),fmt='(es14.6)')
-         call yaml_close_map()
+         call yaml_mapping_close()
       end do
-      call yaml_close_sequence()
+      call yaml_sequence_close()
   end if
   xyz_diff=abs(xyz_diff)
   maxdiff=maxval(xyz_diff)

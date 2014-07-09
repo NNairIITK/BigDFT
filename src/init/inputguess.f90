@@ -31,7 +31,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    !local variables
    character(len=*), parameter :: subname='inputguess_gaussian_orbitals'
    !n(c) integer, parameter :: ngx=31
-   integer :: norbe,norbme,norbyou,i_stat,i_all,norbsc,nvirte,ikpt
+   integer :: norbe,norbme,norbyou,norbsc,nvirte,ikpt
    integer :: ispin,jproc,ist,jpst,nspinorfororbse,noncoll
    integer, dimension(:), allocatable :: iorbtolr
 
@@ -107,7 +107,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    !should be referred to another routine
    if (iproc == 0 .and. nproc > 1) then
       call yaml_newline()
-      call yaml_open_map('Inputguess Orbitals Repartition')
+      call yaml_mapping_open('Inputguess Orbitals Repartition')
       jpst=0
       do jproc=0,nproc-1
          norbme=orbse%norb_par(jproc,0)
@@ -120,7 +120,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
             jpst=jproc+1
          end if
       end do
-      call yaml_close_map()
+      call yaml_mapping_close()
       !write(*,'(3(a,i0),a)')&
          !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' inguess orbitals '
    end if
@@ -169,10 +169,10 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,norbsc_arr,locrad)
    !local variables
    !n(c) character(len=*), parameter :: subname='readAtomicOrbitals'
    !integer, parameter :: lmax=3,noccmax=2,nelecmax=32
-   character(len=2) :: symbol
-   integer :: ity,i,iatsc,iat,lsc
-   integer :: nsccode!,mxpl,mxchg
-   integer :: norbat,iorbsc_count,niasc,nlsc
+   !character(len=2) :: symbol
+   integer :: ity,iatsc,iat !,i,lsc
+   !integer :: nsccode,mxpl,mxchg
+   integer :: norbat,iorbsc_count !,niasc,nlsc
    real(gp) :: ehomo!rcov,rprb,ehomo,amu
    !integer, dimension(nmax,lmax+1) :: neleconf
    !real(kind=8), dimension(nmax,lmax+1) :: neleconf
@@ -269,9 +269,10 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    !integer, parameter :: noccmax=2,lmax=4,nelecmax=32,nmax_occ=10!actually is 24
    !integer, parameter :: nterm_max=3,nmax=7
    logical :: orbpol_nc,occeq
-   integer :: iatsc,i_all,i_stat,ispin,nsccode,iexpo,ishltmp,ngv,ngc,islcc,iiorb,jjorb
+   integer :: iatsc,i_stat,ispin,iexpo,ishltmp,ngv,ngc,islcc,iiorb,jjorb
    integer :: iorb,jorb,iat,ity,i,ictot,inl,l,m,nctot,iocc,ictotpsi,ishell,icoeff
    integer :: noncoll,ig,ispinor,icoll,ikpts,ikorb,nlo,ntypesx,ityx,jat,ng,nspin_print
+   !integer :: nsccode
    real(gp) :: ek,mx,my,mz,ma,mb,mc,md
    real(gp) :: mnorm,fac
    !logical, dimension(lmax,noccmax) :: semicore
@@ -352,7 +353,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
 
    if (iproc == 0 .and. verbose > 1) then
       call yaml_newline()
-      call yaml_open_sequence('Atomic Input Orbital Generation')
+      call yaml_sequence_open('Atomic Input Orbital Generation')
       call yaml_newline()
    end if
 
@@ -372,7 +373,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       if (ityx > ntypesx) then
          if (iproc == 0 .and. verbose > 1) then
             call yaml_sequence(advance='no')
-            call yaml_open_map(flow=.true.)
+            call yaml_mapping_open(flow=.true.)
             call yaml_map('Atom Type',trim(at%astruct%atomnames(ity)))
             call print_eleconf(nspin_print,&
                  at%aoig(iat)%aocc,at%aoig(iat)%nl_sc)
@@ -399,7 +400,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
          ntypesx=ntypesx+1
          if (iproc == 0 .and. verbose > 1) then
             !write(*,'(1x,a)')'done.'
-            call yaml_close_map()
+            call yaml_mapping_close()
          end if
       end if
 
@@ -422,7 +423,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       end if
    end do
    if (iproc == 0 .and. verbose > 1) then
-      call yaml_close_sequence()
+      call yaml_sequence_close()
       call yaml_newline()
    end if
 
@@ -1839,7 +1840,7 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,&
    !Local variables
    character(len=*), parameter :: subname='psitospi0'
    logical :: myorbital
-   integer :: i_all,i_stat,nvctr
+   integer :: nvctr
    integer :: iorb,jorb,i
    real(kind=8) :: facu,facd
    real(kind=8), dimension(:,:), allocatable :: psi_o
@@ -1995,7 +1996,7 @@ END SUBROUTINE write_fraction_string
 !!$                  string(is:is)=')'
 !!$                  is=is+1
 !!$               end if
-!!$               call yaml_open_sequence(string(iss:is))
+!!$               call yaml_sequence_open(string(iss:is))
 !!$            end if
 !!$            do ispin=1,nspin
 !!$               do m=1,2*l-1
@@ -2014,7 +2015,7 @@ END SUBROUTINE write_fraction_string
 !!$            if (inl == i) then
 !!$               string(is:is+2)=' , '
 !!$               is=is+3
-!!$               call yaml_close_sequence()
+!!$               call yaml_sequence_close()
 !!$            end if
 !!$         end do
 !!$      end do

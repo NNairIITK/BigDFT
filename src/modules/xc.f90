@@ -220,7 +220,7 @@ contains
        !write(*,"(1x,A84)") "XC functional provided by ABINIT."
     else
        call yaml_map('XC functional implementation','libXC')
-       call yaml_open_sequence('Reference Papers')
+       call yaml_sequence_open('Reference Papers')
        call yaml_sequence('"Comput. Phys. Commun. 183, 2272 (2012)"')
        do i = 1, 2
           if (xcObj%family(i) == 0) cycle
@@ -235,7 +235,7 @@ contains
              end do
           end if
        end do
-       call yaml_close_sequence()
+       call yaml_sequence_close()
     end if
   end subroutine obj_dump_
 

@@ -602,9 +602,8 @@ module overlap_point_to_point
 
 
    !> Deallocate everything for OP2P communications
-   subroutine free_OP2P_descriptors(OP2P,subname)
+   subroutine free_OP2P_descriptors(OP2P)
       implicit none
-      character(len=*), intent(in) :: subname
       type(OP2P_descriptors), intent(inout) :: OP2P
 
       !debugbprint *,'ecco5'

@@ -38,7 +38,7 @@ subroutine run_objects_free(runObj, subname)
      call dict_free(runObj%user_inputs)
   end if
   if (associated(runObj%rst)) then
-     call free_restart_objects(runObj%rst,subname)
+     call free_restart_objects(runObj%rst)
      deallocate(runObj%rst)
   end if
   if (associated(runObj%atoms)) then
@@ -153,7 +153,7 @@ subroutine run_objects_parse(runObj)
   if (runObj%rst%nat > 0 .and. runObj%rst%nat /= runObj%atoms%astruct%nat) then
      stop "nat changed"
   else if (runObj%rst%nat == 0) then
-     call restart_objects_set_nat(runObj%rst, runObj%atoms%astruct%nat, subname)
+     call restart_objects_set_nat(runObj%rst, runObj%atoms%astruct%nat)
   end if
   call restart_objects_set_mode(runObj%rst, runObj%inputs%inputpsiid)
   if (associated(runObj%rst)) then
@@ -173,6 +173,7 @@ subroutine run_objects_parse(runObj)
 END SUBROUTINE run_objects_parse
 
 
+!> Associate to the structure run_objects, the input_variable structure and the atomic positions (atoms_data)
 subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
   use module_types
   implicit none
@@ -201,6 +202,7 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
   use module_fragments
   use module_interfaces, only: system_initialization
   use psp_projectors
+  use communications_base, only: deallocate_comms
   implicit none
   type(run_objects), intent(inout) :: runObj
   integer, intent(in) :: iproc, nproc
@@ -233,9 +235,9 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
 !!$  i_all=-product(shape(rxyz))*kind(rxyz)
 !!$  deallocate(rxyz,stat=i_stat)
 !!$  call memocc(i_stat,i_all,'rxyz',subname)
-  call deallocate_Lzd_except_Glr(runObj%rst%KSwfn%Lzd, subname)
-  call deallocate_comms(runObj%rst%KSwfn%comms,subname)
-  call deallocate_orbs(runObj%rst%KSwfn%orbs,subname)
+  call deallocate_Lzd_except_Glr(runObj%rst%KSwfn%Lzd)
+  call deallocate_comms(runObj%rst%KSwfn%comms)
+  call deallocate_orbs(runObj%rst%KSwfn%orbs)
   call free_DFT_PSP_projectors(nlpsp)
   call deallocate_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
   call nullify_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
@@ -393,12 +395,12 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
         if (iproc == 0) then
            call yaml_map('Material acceleration','OpenCL',advance='no')
            call yaml_comment('iproc=0')
-           call yaml_open_map('Number of OpenCL devices per node',flow=.true.)
+           call yaml_mapping_open('Number of OpenCL devices per node',flow=.true.)
            call yaml_map('used',trim(yaml_toa(min(GPU%ndevices,nproc_node),fmt='(i0)')))
            call yaml_map('available',trim(yaml_toa(GPU%ndevices,fmt='(i0)')))
            !write(*,'(1x,a,i5,i5)') 'OpenCL support activated, No. devices per node (used, available):',&
            !     min(GPU%ndevices,nproc_node),GPU%ndevices
-           call yaml_close_map()
+           call yaml_mapping_close()
         end if
         !the number of devices is the min between the number of processes per node
         GPU%ndevices=min(GPU%ndevices,nproc_node)

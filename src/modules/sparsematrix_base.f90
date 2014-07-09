@@ -241,12 +241,11 @@ module sparsematrix_base
     end subroutine deallocate_matrices
 
 
-    subroutine deallocate_sparse_matrix(sparsemat, subname)
+    subroutine deallocate_sparse_matrix(sparsemat)
       use module_base 
       implicit none
       ! Calling arguments
       type(sparse_matrix),intent(inout):: sparsemat
-      character(len=*),intent(in):: subname
       if (associated(sparseMat%keyg)) call f_free_ptr(sparseMat%keyg)
       if (associated(sparseMat%keyv)) call f_free_ptr(sparseMat%keyv)
       if (associated(sparseMat%nsegline)) call f_free_ptr(sparseMat%nsegline)

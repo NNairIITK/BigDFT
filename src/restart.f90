@@ -23,7 +23,7 @@ subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
   !Local variables
   character(len=*), parameter :: subname='copy_old_wavefunctions'
   !real(kind=8), parameter :: eps_mach=1.d-12
-  integer :: iseg,j,ind1,iorb,i_all,i_stat,oidx,sidx !n(c) nvctrp_old
+  integer :: iseg,j,ind1,iorb,oidx,sidx !n(c) nvctrp_old
   real(kind=8) :: tt
   call f_routine(id=subname)
 
@@ -104,7 +104,7 @@ subroutine reformatmywaves(iproc,orbs,at,&
   !Local variables
   character(len=*), parameter :: subname='reformatmywaves'
   logical :: reformat,perx,pery,perz
-  integer :: iat,iorb,j,i_stat,i_all,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,nb1,nb2,nb3,nvctrcj,n1p1,np,i0jj
+  integer :: iat,iorb,j,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,nb1,nb2,nb3,nvctrcj,n1p1,np,i0jj
   real(gp) :: tx,ty,tz,displ,mindist
   real(wp), dimension(:,:,:), allocatable :: psifscf
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
@@ -151,13 +151,13 @@ subroutine reformatmywaves(iproc,orbs,at,&
      reformat=.true.
      if (iproc==0) then
         call yaml_map('Reformating wavefunctions',.true.)
-        call yaml_open_map('Reformatting for')
+        call yaml_mapping_open('Reformatting for')
         !write(*,'(1x,a)') 'The wavefunctions need reformatting because:'
         if (hx /= hx_old .or. hy /= hy_old .or. hz /= hz_old) then 
-           call yaml_open_map('hgrid modified',flow=.true.)
+           call yaml_mapping_open('hgrid modified',flow=.true.)
               call yaml_map('hgrid_old', (/ hx_old,hy_old,hz_old /),fmt='(1pe20.12)')
               call yaml_map('hgrid', (/ hx,hy,hz /), fmt='(1pe20.12)')
-           call yaml_close_map()
+           call yaml_mapping_close()
            !write(*,"(4x,a,6(1pe20.12))") 'hgrid_old /= hgrid  ',hx_old,hy_old,hz_old,hx,hy,hz
         else if (wfd_old%nvctr_c /= wfd%nvctr_c) then
            call yaml_map('nvctr_c modified', (/ wfd_old%nvctr_c,wfd%nvctr_c /))
@@ -173,7 +173,7 @@ subroutine reformatmywaves(iproc,orbs,at,&
            !write(*,"(4x,a,3(1pe19.12))") 'molecule was shifted  ' , tx,ty,tz
         endif
         !write(*,"(1x,a)",advance='NO') 'Reformatting...'
-        call yaml_close_map()
+        call yaml_mapping_close()
      end if
      !calculate the new grid values
      
@@ -335,7 +335,7 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
   !Local variables
   character(len=*), parameter :: subname='readmywaves'
   logical :: perx,pery,perz
-  integer :: ncount1,ncount_rate,ncount_max,iorb,i_stat,i_all,ncount2,nb1,nb2,nb3,iorb_out,ispinor
+  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,nb1,nb2,nb3,iorb_out,ispinor
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
   real(wp), dimension(:,:,:), allocatable :: psifscf
@@ -413,13 +413,13 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
 
 
   if (iproc == 0) then 
-     call yaml_open_sequence('Reading Waves Time')
+     call yaml_sequence_open('Reading Waves Time')
      call yaml_sequence(advance='no')
-     call yaml_open_map(flow=.true.)
+     call yaml_mapping_open(flow=.true.)
      call yaml_map('Process',iproc)
      call yaml_map('Timing',(/ real(tr1-tr0,kind=8),tel /),fmt='(1pe10.3)')
-     call yaml_close_map()
-     call yaml_close_sequence()
+     call yaml_mapping_close()
+     call yaml_sequence_close()
   end if
   !write(*,'(a,i4,2(1x,1pe10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
 END SUBROUTINE readmywaves
@@ -613,7 +613,7 @@ subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wf
   use module_types
   use module_base
   use yaml_output
-  use module_interfaces, except_this_one => writeonewave
+  use module_interfaces, except_this_one => writeonewave, except_this_one_A => writemywaves
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3,iformat
   real(gp), intent(in) :: hx,hy,hz
@@ -654,13 +654,13 @@ subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wf
      call system_clock(ncount2,ncount_rate,ncount_max)
      tel=dble(ncount2-ncount1)/dble(ncount_rate)
      if (iproc == 0) then
-        call yaml_open_sequence('Write Waves Time')
+        call yaml_sequence_open('Write Waves Time')
         call yaml_sequence(advance='no')
-        call yaml_open_map(flow=.true.)
+        call yaml_mapping_open(flow=.true.)
         call yaml_map('Process',iproc)
         call yaml_map('Timing',(/ real(tr1-tr0,kind=8),tel /),fmt='(1pe10.3)')
-        call yaml_close_map()
-        call yaml_close_sequence()
+        call yaml_mapping_close()
+        call yaml_sequence_close()
      end if
      !write(*,'(a,i4,2(1x,1pe10.3))') '- WRITE WAVES TIME',iproc,tr1-tr0,tel
      !write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
@@ -1099,7 +1099,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
 
   ! Local variables
   logical :: reformat
-  integer :: iorb,i_stat,i_all,jstart,jstart_tmp
+  integer :: iorb,jstart,jstart_tmp
   integer :: iiorb,ilr,iiat,j,iis1,iie1,i1
   integer :: ilr_tmp,iiat_tmp,ndim_tmp,ndim,norb_tmp
   integer, dimension(3) :: ns,ns_tmp,n,n_tmp
@@ -1199,12 +1199,12 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
           phigold = f_malloc((/ 0.to.n(1), 1.to.2, 0.to.n(2), 1.to.2, 0.to.n(3), 1.to.2 /),id='phigold')
 
           call psi_to_psig(n,tmb%lzd%llr(ilr)%wfd%nvctr_c,tmb%lzd%llr(ilr)%wfd%nvctr_f,&
-               tmb%lzd%llr(ilr)%wfd%nseg_c,tmb%lzd%llr(ilr)%wfd%nseg_f,&
-               tmb%lzd%llr(ilr)%wfd%keyvloc,tmb%lzd%llr(ilr)%wfd%keygloc,jstart,tmb%psi(jstart),phigold)
+               & tmb%lzd%llr(ilr)%wfd%nseg_c,tmb%lzd%llr(ilr)%wfd%nseg_f,&
+               & tmb%lzd%llr(ilr)%wfd%keyvloc,tmb%lzd%llr(ilr)%wfd%keygloc,jstart,tmb%psi(jstart),phigold)
 
           call reformat_one_supportfunction(tmb%lzd%llr(ilr_tmp),tmb%lzd%llr(ilr),tmb%lzd%llr(ilr_tmp)%geocode,&
-               tmb%lzd%hgrids,n,phigold,tmb%lzd%hgrids,n_tmp,centre_old_box,centre_new_box,da,&
-               frag_trans,psi_tmp(jstart_tmp:))
+               & tmb%lzd%hgrids,n,phigold,tmb%lzd%hgrids,n_tmp,centre_old_box,centre_new_box,da,&
+               & frag_trans,psi_tmp(jstart_tmp:))
 
           jstart_tmp=jstart_tmp+tmb%lzd%llr(ilr_tmp)%wfd%nvctr_c+7*tmb%lzd%llr(ilr_tmp)%wfd%nvctr_f
    
@@ -1229,7 +1229,8 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
 
   iis1=lbound(tmb%lzd%llr,1)
   iie1=ubound(tmb%lzd%llr,1)
-  allocate(lzd_tmp%llr(iis1:iie1), stat=i_stat)
+  allocate(lzd_tmp%llr(iis1:iie1))
+
   do i1=iis1,iie1
      call nullify_locreg_descriptors(lzd_tmp%llr(i1))
      call copy_locreg_descriptors(tmb%lzd%llr(ilr_tmp), lzd_tmp%llr(i1))
@@ -1254,7 +1255,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
        psit_c_tmp, psit_c_tmp, psit_f_tmp, psit_f_tmp, tmb%linmat%ovrlp_%matrix)
 
   call deallocate_comms_linear(collcom_tmp)
-  call deallocate_local_zone_descriptors(lzd_tmp, subname)
+  call deallocate_local_zone_descriptors(lzd_tmp)
 
   call f_free_ptr(psit_c_tmp)
   call f_free_ptr(psit_f_tmp)
@@ -1524,7 +1525,7 @@ END SUBROUTINE tmb_overlap_onsite
 !!       psit_c_tmp, psit_c_tmp, psit_f_tmp, psit_f_tmp, tmb%linmat%ovrlp%matrix)
 !!
 !!  call deallocate_comms_linear(collcom_tmp)
-!!  call deallocate_local_zone_descriptors(lzd_tmp, subname)
+!!  call deallocate_local_zone_descriptors(lzd_tmp)
 !!
 !!  i_all = -product(shape(psit_c_tmp))*kind(psit_c_tmp)
 !!  deallocate(psit_c_tmp,stat=i_stat)
@@ -1624,13 +1625,13 @@ subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,
      call system_clock(ncount2,ncount_rate,ncount_max)
      tel=dble(ncount2-ncount1)/dble(ncount_rate)
      if (iproc == 0) then
-        call yaml_open_sequence('Write Waves Time')
+        call yaml_sequence_open('Write Waves Time')
         call yaml_sequence(advance='no')
-        call yaml_open_map(flow=.true.)
+        call yaml_mapping_open(flow=.true.)
         call yaml_map('Process',iproc)
         call yaml_map('Timing',(/ real(tr1-tr0,kind=8),tel /),fmt='(1pe10.3)')
-        call yaml_close_map()
-        call yaml_close_sequence()
+        call yaml_mapping_close()
+        call yaml_sequence_close()
      end if
      !write(*,'(a,i4,2(1x,1pe10.3))') '- WRITE WAVES TIME',iproc,tr1-tr0,tel
      !write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
@@ -1671,8 +1672,8 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
   character(len=*), parameter :: subname='readonewave_linear'
   character(len = 256) :: error
   logical :: lstat,reformat
-  integer :: iorb_old,nvctr_c_old,nvctr_f_old,i_all,iiat
-  integer :: i1,i2,i3,iel,i_stat,onwhichatom_tmp
+  integer :: iorb_old,nvctr_c_old,nvctr_f_old,iiat
+  integer :: i1,i2,i3,iel,onwhichatom_tmp
   integer, dimension(3) :: ns_old,n_old
   real(gp) :: tol
   real(gp), dimension(3) :: hgrids_old, centre_old_box, centre_new_box, da
@@ -2048,7 +2049,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   integer, dimension(tmb%orbs%norb), intent(in), optional :: orblist
   !Local variables
   integer :: ncount1,ncount_rate,ncount_max,ncount2
-  integer :: iorb_out,ispinor,ilr,i_all,i_stat,iorb_old
+  integer :: iorb_out,ispinor,ilr,iorb_old
   integer :: confPotOrder,onwhichatom_tmp,unitwf
   real(gp) :: confPotprefac
 !!$ real(gp), dimension(3) :: mol_centre, mol_centre_new
@@ -2101,13 +2102,13 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   call nullify_local_zone_descriptors(lzd_old)
   call nullify_locreg_descriptors(lzd_old%glr)
   lzd_old%nlr=tmb%orbs%norb
-  allocate(lzd_old%Llr(lzd_old%nlr),stat=i_stat)
+  allocate(lzd_old%Llr(lzd_old%nlr))
   do ilr=1,lzd_old%nlr
      call nullify_locreg_descriptors(lzd_old%llr(ilr))
   end do
 
   ! has size of new orbs, will possibly point towards the same tmb multiple times
-  allocate(phi_array_old(tmb%orbs%norbp), stat=i_stat)
+  allocate(phi_array_old(tmb%orbs%norbp))
   do iorbp=1,tmb%orbs%norbp
      nullify(phi_array_old(iorbp)%psig)
   end do
@@ -2398,12 +2399,11 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
 
   do iorbp=1,tmb%orbs%norbp
      !nullify/deallocate here as appropriate, in future may keep
-     i_all = -product(shape(phi_array_old(iorbp)%psig))*kind(phi_array_old(iorbp)%psig)
      call f_free_ptr(phi_array_old(iorbp)%psig)
   end do
 
-  deallocate(phi_array_old,stat=i_stat)
-  call deallocate_local_zone_descriptors(lzd_old,subname)
+  deallocate(phi_array_old)
+  call deallocate_local_zone_descriptors(lzd_old)
 
   !! DEBUG - plot in global box - CHECK WITH REFORMAT ETC IN LRs
   !ind=1
@@ -2471,13 +2471,13 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   tel=dble(ncount2-ncount1)/dble(ncount_rate)
 
   if (iproc == 0) then
-     call yaml_open_sequence('Reading Waves Time')
+     call yaml_sequence_open('Reading Waves Time')
      call yaml_sequence(advance='no')
-     call yaml_open_map(flow=.true.)
+     call yaml_mapping_open(flow=.true.)
      call yaml_map('Process',iproc)
      call yaml_map('Timing',(/ real(tr1-tr0,kind=8),tel /),fmt='(1pe10.3)')
-     call yaml_close_map()
-     call yaml_close_sequence()
+     call yaml_mapping_close()
+     call yaml_sequence_close()
   end if
   !write(*,'(a,i4,2(1x,1pe10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
   call timing(iproc,'tmbrestart','OF')
@@ -2509,9 +2509,9 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
   character(len=*), parameter :: subname='initialize_linear_from_file'
   character(len =256) :: error
   logical :: lstat
-  integer :: ilr, ierr, iorb_old, iorb, ispinor, iorb_out, iforb, isforb, isfat, iiorb, iorbp, ifrag, ifrag_ref
+  integer :: ilr, iorb_old, iorb, ispinor, iorb_out, iforb, isforb, isfat, iiorb, iorbp, ifrag, ifrag_ref
   integer, dimension(3) :: n_old, ns_old
-  integer :: i_stat, i_all, confPotOrder, iat
+  integer :: confPotOrder, iat
   real(gp), dimension(3) :: hgrids_old
   real(kind=8) :: eval, confPotprefac
   real(gp), dimension(orbs%norb):: locrad
@@ -2612,7 +2612,7 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
   end do
   
   ! Allocate the array of localisation regions
-  allocate(lzd%Llr(lzd%nlr),stat=i_stat)
+  allocate(lzd%Llr(lzd%nlr))
   do ilr=1,lzd%nlr
      lzd%Llr(ilr)=locreg_null()
   end do
@@ -2621,9 +2621,7 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
       lzd%llr(ilr)%locregCenter=cxyz(:,ilr)
   end do
 
-  i_all = -product(shape(cxyz))*kind(cxyz)
   call f_free(cxyz)
-  i_all = -product(shape(lrad))*kind(lrad)
   call f_free(lrad)
 
 END SUBROUTINE initialize_linear_from_file
@@ -2642,9 +2640,8 @@ subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
   real(wp), dimension(:), pointer :: phi,phi_old
   !Local variables
   character(len=*), parameter :: subname='copy_old_supportfunctions'
-  integer :: iseg,j,ind1,iorb,i_stat,ii,iiorb,ilr
+  integer :: iseg,j,ind1,iorb,ii,iiorb,ilr
   real(kind=8) :: tt
-! integer :: i_all
 
   ! First copy global quantities
   call nullify_locreg_descriptors(lzd_old%glr)
@@ -2747,7 +2744,7 @@ subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
          !stop 
       end if
   end do
-!  if (iproc==0) call yaml_close_map()
+!  if (iproc==0) call yaml_mapping_close()
 
   !!!deallocation
   !!i_all=-product(shape(phi))*kind(phi)
@@ -2767,8 +2764,7 @@ subroutine copy_old_coefficients(norb_tmb, coeff, coeff_old)
 
   ! Local variables
   character(len=*),parameter:: subname='copy_old_coefficients'
-  integer:: istat
-!  integer:: iall
+!  integer:: istat,iall
 
   coeff_old = f_malloc_ptr((/ norb_tmb, norb_tmb /),id='coeff_old')
 
@@ -2791,8 +2787,7 @@ subroutine copy_old_inwhichlocreg(norb_tmb, inwhichlocreg, inwhichlocreg_old, on
 
   ! Local variables
   character(len=*),parameter:: subname='copy_old_inwhichlocreg'
-  integer :: istat
-!  integer:: iall
+  !integer :: istat, iall
 
   inwhichlocreg_old = f_malloc_ptr(norb_tmb,id='inwhichlocreg_old')
   call vcopy(norb_tmb, inwhichlocreg(1), 1, inwhichlocreg_old(1), 1)
@@ -2835,7 +2830,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
   !Local variables
   character(len=*), parameter :: subname='reformatmywaves'
   logical :: reformat
-  integer :: iorb,j,i_stat,i_all,jstart,jstart_old,iiorb,ilr,iiat
+  integer :: iorb,j,jstart,jstart_old,iiorb,ilr,iiat
   integer:: idir,jstart_old_der,ncount,ilr_old
   !!integer :: i
   integer, dimension(3) :: ns_old,ns,n_old,n
@@ -3189,7 +3184,7 @@ subroutine print_reformat_summary(iproc,nproc,reformat_reason)
   if (nproc > 1) call mpiallred(reformat_reason(0), 7, mpi_sum, bigdft_mpi%mpi_comm)
 
   if (iproc==0) then
-        call yaml_open_map('Overview of the reformatting (several categories may apply)')
+        call yaml_mapping_open('Overview of the reformatting (several categories may apply)')
         call yaml_map('No reformatting required', reformat_reason(0))
         call yaml_map('Grid spacing has changed', reformat_reason(1))
         call yaml_map('Number of coarse grid points has changed', reformat_reason(2))
@@ -3197,7 +3192,7 @@ subroutine print_reformat_summary(iproc,nproc,reformat_reason)
         call yaml_map('Box size has changed', reformat_reason(4))
         call yaml_map('Molecule was shifted', reformat_reason(5))
         call yaml_map('Molecule was rotated', reformat_reason(6))
-        call yaml_close_map()
+        call yaml_mapping_close()
   end if
 
 end subroutine print_reformat_summary
@@ -3216,7 +3211,7 @@ subroutine psi_to_psig(n,nvctr_c,nvctr_f,nseg_c,nseg_f,keyvloc,keygloc,jstart,ps
   real(wp), dimension(0:n(1),2,0:n(2),2,0:n(3),2), intent(out) :: psig
 
   ! local variables
-  integer :: iseg, jj, j0, j1, i, ii, i0, i1, i2, i3, n1p1, np
+  integer :: iseg, j0, j1, i, ii, i0, i1, i2, i3, n1p1, np
 
   call to_zero(8*(n(1)+1)*(n(2)+1)*(n(3)+1),psig(0,1,0,1,0,1))
 

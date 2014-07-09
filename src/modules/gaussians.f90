@@ -57,8 +57,44 @@ module gaussians
   public :: gaudim_check,normalize_shell,gaussian_overlap,kinetic_overlap,gauint0
   public :: initialize_real_space_conversion,finalize_real_space_conversion,scfdotf,mp_exp
 
+  public :: nullify_gaussian_basis, deallocate_gwf
+
 
 contains
+
+
+  !> Nullify the pointers of the structure gaussian_basis
+  subroutine nullify_gaussian_basis(G)
+
+    implicit none
+    !Arguments
+    type(gaussian_basis),intent(inout) :: G 
+
+    G%ncplx=1
+    nullify(G%nshell)
+    nullify(G%ndoc)
+    nullify(G%nam)
+    nullify(G%psiat)
+    nullify(G%xp)
+    nullify(G%rxyz)
+
+  END SUBROUTINE nullify_gaussian_basis
+
+
+!> De-Allocate gaussian_basis type
+  subroutine deallocate_gwf(G)
+    use module_base
+    implicit none
+    type(gaussian_basis), intent(inout) :: G
+
+    !normally positions should be deallocated outside
+    call f_free_ptr(G%ndoc)
+    call f_free_ptr(G%nam)
+    call f_free_ptr(G%nshell)
+    call f_free_ptr(G%psiat)
+    call f_free_ptr(G%xp)
+
+  END SUBROUTINE deallocate_gwf
 
 
   !> Nullify the pointers of the structure gaussian_basis_new
@@ -136,9 +172,8 @@ contains
   end subroutine gaussian_basis_convert
 
 
-  subroutine gaussian_basis_free(G,subname)
+  subroutine gaussian_basis_free(G)
     implicit none
-    character(len=*), intent(in) :: subname
     type(gaussian_basis_new), intent(inout) :: G
 
     !do not deallocate the atomic centers
@@ -184,10 +219,8 @@ contains
 
  
   !> Deallocate scf_data
-  subroutine finalize_real_space_conversion(subname)
+  subroutine finalize_real_space_conversion()
     implicit none
-    character(len=*), intent(in) :: subname
-    !local variables
 
     itype_scf=0
     n_scf=-1
@@ -301,8 +334,8 @@ contains
 
     call overlap(G,H,ovrlp)
 
-    call gaussian_basis_free(G,'gaussian_overlap')
-    call gaussian_basis_free(H,'gaussian_overlap')
+    call gaussian_basis_free(G)
+    call gaussian_basis_free(H)
 
     return
 
@@ -382,8 +415,8 @@ contains
 
     call kinetic(G,H,ovrlp)
 
-    call gaussian_basis_free(G,'gaussian_overlap')
-    call gaussian_basis_free(H,'gaussian_overlap')
+    call gaussian_basis_free(G)
+    call gaussian_basis_free(H)
 
     return
 

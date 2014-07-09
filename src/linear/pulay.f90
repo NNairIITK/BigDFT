@@ -133,15 +133,15 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
 
   if(iproc==0) then
        call yaml_comment('new Pulay correction',hfill='-')
-       call yaml_open_sequence('Pulay forces (Ha/Bohr)')
+       call yaml_sequence_open('Pulay forces (Ha/Bohr)')
           do iat=1,at%astruct%nat
              call yaml_sequence(advance='no')
-             call yaml_open_map(flow=.true.)
+             call yaml_mapping_open(flow=.true.)
              call yaml_map(trim(at%astruct%atomnames(at%astruct%iatype(iat))),fpulay(1:3,iat),fmt='(1es20.12)')
-             call yaml_close_map(advance='no')
+             call yaml_mapping_close(advance='no')
              call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
           end do
-          call yaml_close_sequence()
+          call yaml_sequence_close()
   end if
 
 
@@ -438,14 +438,9 @@ subroutine extract_boundary(tmb, phi_delta, numpoints, numpoints_tot)
       call f_free(boundaryarray)
   end do
 
-
-
 call f_release_routine()
 
 end subroutine extract_boundary
-
-
-
 
 
 subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, GPU, tmb, fpulay)
@@ -641,15 +636,15 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
        !!    write(*,'(a,i5,3es16.6)') 'iat, fpulay', jat, fpulay(1:3,jat)
        !!end do
        call yaml_comment('Pulay Correction',hfill='-')
-       call yaml_open_sequence('Pulay Forces (Ha/Bohr)')
+       call yaml_sequence_open('Pulay Forces (Ha/Bohr)')
           do jat=1,at%astruct%nat
              call yaml_sequence(advance='no')
-             call yaml_open_map(flow=.true.)
+             call yaml_mapping_open(flow=.true.)
              call yaml_map(trim(at%astruct%atomnames(at%astruct%iatype(jat))),fpulay(1:3,jat),fmt='(1es20.12)')
-             call yaml_close_map(advance='no')
+             call yaml_mapping_close(advance='no')
              call yaml_comment(trim(yaml_toa(jat,fmt='(i4.4)')))
           end do
-          call yaml_close_sequence()
+          call yaml_sequence_close()
   end if
 
 
@@ -665,8 +660,8 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
 
 
   do jdir=1,3
-     call deallocate_sparse_matrix(dovrlp(jdir),subname)
-     call deallocate_sparse_matrix(dham(jdir),subname)
+     call deallocate_sparse_matrix(dovrlp(jdir))
+     call deallocate_sparse_matrix(dham(jdir))
   end do
 
   !!if(iproc==0) write(*,'(1x,a)') 'done.'
@@ -674,4 +669,3 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   call f_release_routine()
 
 end subroutine pulay_correction
-
