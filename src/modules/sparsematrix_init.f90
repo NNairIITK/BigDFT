@@ -231,7 +231,8 @@ contains
       ! Calling arguments
       integer,intent(in) :: norb
       logical,dimension(norb),intent(in) :: lut
-      integer,intent(out) :: nseg, nvctr, nsegline
+      integer,intent(inout) :: nseg, nvctr
+      integer,intent(out) :: nsegline
 
       ! Local variables
       integer :: jorb
