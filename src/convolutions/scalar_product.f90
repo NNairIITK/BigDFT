@@ -27,7 +27,6 @@ subroutine apply_oneproj_operator(wfd_p,proj,hp,n_w,wfd_w,psi,hpsi,scpr)
   character(len=*), parameter :: subname='apply_oneproj'
   integer :: is_w,is_sw,is_p,is_sp,iw
   integer, dimension(:,:), allocatable :: psi_mask
-  integer :: proj_count, i_proj
   !routines which are optimized in separate files
   external :: wpdot_keys,wpdot_mask,waxpy_mask
 

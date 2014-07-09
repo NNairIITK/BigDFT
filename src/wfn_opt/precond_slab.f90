@@ -25,17 +25,17 @@ subroutine precong_slab(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   real(gp), intent(in) :: hx,hy,hz,cprecr
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
-  real(wp), intent(inout) ::  x(nvctr_c+7*nvctr_f)
+  real(wp), dimension(nvctr_c+7*nvctr_f), intent(inout) :: x
   ! local variables
-  real(gp)::scal(0:8)
-  real(wp)::rmr,rmr_new,alpha,beta
-  integer i,i_stat,i_all
-  real(wp),allocatable::b(:),r(:),d(:)
-  real(wp),allocatable::psifscf(:),ww(:)
+  real(gp), dimension(0:8) :: scal
+  real(wp) :: rmr,rmr_new,alpha,beta
+  integer :: i
+  real(wp), dimension(:), allocatable :: b,r,d
+  real(wp), dimension(:), allocatable :: psifscf,ww
 
   integer, parameter :: lowfil=-14,lupfil=14
-  real(gp), allocatable,dimension(:,:) :: af,bf,cf,ef
-  integer,allocatable,dimension(:)::modul1,modul3
+  real(gp), allocatable, dimension(:,:) :: af,bf,cf,ef
+  integer, allocatable, dimension(:) :: modul1,modul3
 
   call allocate_all()
 
@@ -301,7 +301,6 @@ subroutine prec_fft_slab(n1,n2,n3, &
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   real(wp), intent(inout) ::  hpsi(nvctr_c+7*nvctr_f)
   !local variables
-  integer i_stat,i_all
   real(gp), dimension(:), allocatable :: kern_k1,kern_k3
   real(wp), dimension(:,:,:), allocatable :: x_c! in and out of Fourier preconditioning
   real(wp), allocatable::z(:,:,:,:) ! work array for FFT
@@ -361,7 +360,7 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
   !     .. Scalar Arguments ..
   INTEGER :: NRHS=2
   INTEGER :: INFO, Kd, LDAB, LDB, n
-  integer :: i1,i2,i3,i,j,i_stat,i_all
+  integer :: i1,i2,i3,i,j
 
   integer,parameter :: lowfil=-14,lupfil=14
   real(gp) :: scale
@@ -404,7 +403,7 @@ subroutine segment_invert(n1,n2,n3,kern_k1,kern_k3,c,zx,hgrid)
   ! hit the fourier transform of x with the kernel
   !We avoid to use f_malloc in an omp parallel section
   !$omp parallel default(none) & 
-  !$omp private (i3,i1,i2,j,i,ct,info,i_stat,i_all) &
+  !$omp private (i3,i1,i2,j,i,ct,info) &
   !$omp shared (n1,n2,n3,zx,fil,kd,ldb,ldab,nrhs,n,c,kern_k1,kern_k3)
 
   !$omp critical
@@ -470,7 +469,7 @@ END SUBROUTINE segment_invert
 !!!   !     .. Scalar Arguments ..
 !!!   INTEGER :: NRHS=2
 !!!   INTEGER :: INFO, Kd, LDAB, LDB, n, itime,jtime
-!!!   integer :: i1,i2,i3,i,j,i_stat,i_all
+!!!   integer :: i1,i2,i3,i,j
 !!!   !$ integer :: nthread,ithread, omp_get_max_threads, omp_get_thread_num
 !!! 
 !!!   integer,parameter :: lowfil=-14,lupfil=14
@@ -518,7 +517,7 @@ END SUBROUTINE segment_invert
 !!!   ab = f_malloc((/ 1.to.ldab, 1.to.n, 0.to.nthread-1 /),id='ab')
 !!!   b = f_malloc((/ 0.to.n2, 1.to.2, 0.to.nthread-1 /),id='b')
 !!!   !$omp parallel default(none) & 
-!!!   !$omp private (i3,i1,i2,j,i,ct,info,i_stat,i_all,ithread) &
+!!!   !$omp private (i3,i1,i2,j,i,ct,info,ithread) &
 !!!   !$omp shared (ab,b,n1,n2,n3,zx,fil,kd,ldb,ldab,nrhs,n,c,kern_k1,kern_k3)
 !!!   ithread = 0
 !!!   !$ ithread = omp_get_thread_num()

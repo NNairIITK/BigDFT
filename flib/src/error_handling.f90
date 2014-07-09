@@ -18,19 +18,27 @@
 !!$  private
 !!$
 !!$  !some parameters
-!!$  character(len=*), parameter :: errid='Id'
-!!$  character(len=*), parameter :: errmsg='Message'
-!!$  character(len=*), parameter :: erract='Action'
-!!$  character(len=*), parameter :: errclbk='Callback Procedure Address'
+!!$  character(len=*), parameter :: ERRID='Id'
+!!$  character(len=*), parameter :: ERRMSG='Message'
+!!$  character(len=*), parameter :: ERRACT='Action'
+!!$  character(len=*), parameter :: ERRCLBK='Callback Procedure Address'
 !!$  character(len=*), parameter :: errclbkadd='Callback Procedure Data Address'
 !!$
-!!$  character(len=*), parameter :: errunspec='UNSPECIFIED'
-!!$  character(len=*), parameter :: errundef='UNKNOWN'
+!!$  character(len=*), parameter :: ERRUNSPEC='UNSPECIFIED'
+!!$  character(len=*), parameter :: ERRUNDEF='UNKNOWN'
 !!$
 !!$  integer :: ERR_GENERIC,ERR_SUCCESS,ERR_NOT_DEFINED
 !!$
 !!$  type(dictionary), pointer :: dict_errors=>null() !< the global dictionaries of possible errors, nullified if not initialized
 !!$  type(dictionary), pointer :: dict_present_error=>null() !< local pointer of present error, nullified if success
+!!$
+!!$  !> Stack of dict_present_error for nested try (opne and close)
+!!$  type, private :: error_stack
+!!$    type(dictionary), pointer :: current => null()   !< dict_present_error point to here.
+!!$    type(error_stack), pointer :: previous => null() !< previous error
+!!$  end type error_stack
+!!$
+!!$  type(error_stack), pointer :: error_pipelines=>null() !< Stack of errors for try clause
 !!$
 !!$  public :: f_err_initialize,f_err_finalize
 !!$  public :: f_err_define,f_err_check,f_err_raise,f_err_clean,f_get_error_dict
@@ -49,15 +57,14 @@
     implicit none
     !local variables
     call f_err_unset_callback()
-    if (associated(dict_present_error)) then
-       call f_err_clean()
-    else
-       call dict_init(dict_present_error)
+    if (associated(error_pipelines)) then
+       call error_pipelines_clean()
     end if
-    if (.not. associated(dict_errors)) then
-       call dict_init(dict_errors)
-    end if
-  end subroutine f_err_initialize
+    allocate(error_pipelines)
+    call dict_init(error_pipelines%current)
+    dict_present_error=>error_pipelines%current
+    call dict_init(dict_errors)
+  end subroutine f_err_initialize 
 
   
   !> Call at the end of the program to finalize the error module (deallocation + report)
@@ -66,8 +73,22 @@
     call f_err_unset_callback()
     call f_err_severe_restore()
     call dict_free(dict_errors)
-    call dict_free(dict_present_error)
+    call error_pipelines_clean()
   end subroutine f_err_finalize
+
+
+  !> Clean the stack of dict_present_error for nested try
+  subroutine error_pipelines_clean()
+    implicit none
+    type(error_stack), pointer :: stack
+    nullify(dict_present_error)
+    do while(associated(error_pipelines))
+      call dict_free(error_pipelines%current)
+      stack=>error_pipelines%previous
+      deallocate(error_pipelines)
+      error_pipelines=>stack
+    end do
+  end subroutine error_pipelines_clean
 
 
   !> Define a new error specification and returns the corresponding error code
@@ -98,14 +119,14 @@
 !    end if
 
     call dict_init(dict_error)
-    call set(dict_error//err_name//errid,err_id)
-    call set(dict_error//err_name//errmsg,err_msg)
+    call set(dict_error//err_name//ERRID,err_id)
+    call set(dict_error//err_name//ERRMSG,err_msg)
     if (present(err_action)) then
        if (len_trim(err_action) /=0)&
-            call set(dict_error//err_name//erract,trim(err_action))
+            call set(dict_error//err_name//ERRACT,trim(err_action))
     end if
     if (present(callback)) then
-       call set(dict_error//err_name//errclbk,f_loc(callback))
+       call set(dict_error//err_name//ERRCLBK,f_loc(callback))
        if (present(callback_data)) &
             call set(dict_error//err_name//errclbkadd,callback_data)
     end if
@@ -252,7 +273,7 @@
     !      call f_err_severe()
     !   else
     !   call add(dict_present_error,&
-    !        dict_new((/ errid .is. yaml_toa(new_errcode),ERR_ADD_INFO .is. err_dict/)))
+    !        dict_new((/ ERRID .is. yaml_toa(new_errcode),ERR_ADD_INFO .is. err_dict/)))
     !   end if
     !else
        if (present(err_msg)) then
@@ -261,7 +282,7 @@
           message(1:len(message))='UNKNOWN'
        end if
        call add(dict_present_error,&
-            dict_new((/ errid .is. yaml_toa(new_errcode),ERR_ADD_INFO .is. message/)))
+            dict_new((/ ERRID .is. yaml_toa(new_errcode),ERR_ADD_INFO .is. message/)))
     !end if
 
     !if we are in a try-catch environment, no callback has
@@ -285,7 +306,7 @@
           if (dict_size(dict_tmp) <= size(keys)) keys=dict_keys(dict_tmp)
           dict_tmp=>dict_tmp//trim(keys(1))
 
-          if (has_key(dict_tmp,errclbk)) clbk_add=dict_tmp//errclbk
+          if (has_key(dict_tmp,ERRCLBK)) clbk_add=dict_tmp//ERRCLBK
           if (has_key(dict_tmp,errclbkadd)) clbk_data_add=dict_tmp//errclbkadd
        end if
     end if
@@ -294,16 +315,26 @@
   end subroutine f_err_throw
 
 
-  function f_get_error_dict(icode)
+  !> Get the error ierror as a dictionary
+  !! use as dict=>f_get_error_dict()
+  function f_get_error_dict(ierror)
     implicit none
-    integer, intent(in) :: icode
+    integer, intent(in), optional :: ierror
     type(dictionary), pointer :: f_get_error_dict
     !local variables
+    integer :: ierr
+    if (present(ierror)) then
+       ierr=ierror
+    else
+       !Last error
+       ierr=f_get_last_error() !dict_len(dict_present_error)-1
+    end if
+    f_get_error_dict=>dict_errors//ierr
 
-    f_get_error_dict=>dict_errors//icode
   end function f_get_error_dict
 
 
+  !> Get the number of errors (public)
   function f_get_no_of_errors()
     implicit none
     integer :: f_get_no_of_errors
@@ -324,18 +355,20 @@
   end function f_get_past_error
 
 
+  !> Get the Id of the error ierr (private)
   function get_error_id(ierr)
     implicit none
     integer, intent(in) :: ierr
     integer :: get_error_id
     if (ierr >= 0) then
-       get_error_id=dict_present_error//ierr//errid
+       get_error_id=dict_present_error//ierr//ERRID
     else
        get_error_id=0
     end if
   end function get_error_id
 
 
+  !> Get the message of the error given by its number (private).
   subroutine get_error_msg(ierr,add_msg)
     implicit none
     integer, intent(in) :: ierr
@@ -349,7 +382,7 @@
   end subroutine get_error_msg
 
 
-  !> Identify id of last error occured
+  !> Identify id of last error occured (public)
   function f_get_last_error(add_msg)
     implicit none
     character(len=*), intent(out), optional :: add_msg
@@ -358,7 +391,7 @@
     integer :: ierr
     ierr=dict_len(dict_present_error)-1
     if (ierr >= 0) then
-       f_get_last_error=dict_present_error//ierr//errid
+       f_get_last_error=dict_present_error//ierr//ERRID
        if (present(add_msg)) add_msg=dict_present_error//ierr//ERR_ADD_INFO
       
     else
@@ -367,12 +400,16 @@
     end if
   end function f_get_last_error
 
+
   !> Clean the dictionary of present errors
    subroutine f_err_clean()
     implicit none
-    call dict_free(dict_present_error)
-    call dict_init(dict_present_error)
+    nullify(dict_present_error)
+    call dict_free(error_pipelines%current)
+    call dict_init(error_pipelines%current)
+    dict_present_error=>error_pipelines%current
   end subroutine f_err_clean
+
 
   !> Clean last error, if any and get message.
   function f_err_pop(err_id, err_name, add_msg)
@@ -389,36 +426,62 @@
        get_error = 3
     end if
     if (ierr >= 0 .and. get_error > 0) then
-       f_err_pop=dict_present_error//ierr//errid
+       f_err_pop=dict_present_error//ierr//ERRID
        if (present(add_msg)) add_msg=dict_present_error//ierr//ERR_ADD_INFO
        call dict_remove(dict_present_error, ierr)
-       if (.not.associated(dict_present_error)) call dict_init(dict_present_error)
+       if (.not.associated(dict_present_error)) then
+         !call dict_init(dict_present_error)
+         call dict_init(error_pipelines%current)
+         dict_present_error => error_pipelines%current
+       end if
     else
        f_err_pop=0
        if (present(add_msg)) add_msg=repeat(' ',len(add_msg))
     end if
   end function f_err_pop
 
+
   !> Activate the exception handling for all errors
   !! also the errors which have f_err_severe as callbacks
   !! multiple calls to f_err_open_try have the same effect of one call
   subroutine f_err_open_try()
     implicit none
+    type(error_stack), pointer :: stack
     !call f_err_set_callback(f_err_ignore)
     try_environment=.true.
+    allocate(stack)
+    stack%previous=>error_pipelines
+    error_pipelines=>stack
+    call dict_init(error_pipelines%current)
+    dict_present_error=>error_pipelines%current
+
   end subroutine f_err_open_try
+
 
   !> Close the try environment. At the end of the try environment
   !! the errors are cleaned. To recover an error in a try environment 
-  !! the correct behviour is to perform f_err_check before calling 
+  !! the correct behaviour is to perform f_err_check before calling 
   !! f_err_close_try
   subroutine f_err_close_try()
     implicit none
-    call f_err_clean() !no errors anymore
-    try_environment=.false.
+    type(error_stack), pointer :: stack
     !call f_err_unset_callback()
+    if (associated(error_pipelines%previous)) then
+      nullify(dict_present_error)
+      call dict_free(error_pipelines%current)
+      stack=>error_pipelines%previous
+      deallocate(error_pipelines)
+      error_pipelines=>stack
+      dict_present_error=>error_pipelines%current
+      try_environment=associated(error_pipelines%previous)
+    else
+      call f_err_clean() !no errors anymore for this stack
+      try_environment=.false.
+    end if
   end subroutine f_err_close_try
 
+
+  !> Give all define errors in a dictionary
   function f_get_error_definitions()
     implicit none
     type(dictionary), pointer :: f_get_error_definitions

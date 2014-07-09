@@ -28,7 +28,6 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   logical, intent(in), optional :: output_denspot
   !local variables
   character(len=*), parameter :: subname='createWavefunctionsDescriptors'
-  integer :: i_all,i_stat
   integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   logical :: output_denspot_
   logical, dimension(:,:,:), pointer :: logrid_c,logrid_f
@@ -110,7 +109,6 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
    logical, dimension(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), intent(in) :: logrid_c,logrid_f
    !local variables
    character(len=*), parameter :: subname='wfd_from_grids'
-   integer :: i_stat
    integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
 
    !assign the dimensions to improve (a little) readability
@@ -381,8 +379,6 @@ END SUBROUTINE createProjectorsArrays
 !!$
 !!$  integer, intent(in) :: iproc, nproc
 !!$
-!!$  integer :: i_stat
-!!$
 !!$END SUBROUTINE initRhoPot
 
 subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
@@ -403,7 +399,7 @@ subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
   real(kind=8), dimension(:), pointer :: hpsi, psit
 
   character(len = *), parameter :: subname = "input_wf_empty"
-  integer :: i_stat, i_all, nspin, n1i, n2i, n3i, ispin, ierr
+  integer :: nspin, n1i, n2i, n3i, ispin, ierr
   real(gp) :: hxh, hyh, hzh
 
   !allocate fake psit and hpsi
@@ -505,6 +501,7 @@ subroutine input_wf_cp2k(iproc, nproc, nspin, atoms, rxyz, Lzd, &
   use module_defs
   use module_types
   use yaml_output
+  use gaussians, only: deallocate_gwf
   use module_interfaces, except_this_one => input_wf_cp2k
   implicit none
 
@@ -516,7 +513,6 @@ subroutine input_wf_cp2k(iproc, nproc, nspin, atoms, rxyz, Lzd, &
   real(wp), dimension(:), pointer :: psi
 
   character(len = *), parameter :: subname = "input_wf_cp2k"
-  integer :: i_stat, i_all
   type(gaussian_basis) :: gbd
   real(wp), dimension(:,:), pointer :: gaucoeffs
 
@@ -539,7 +535,7 @@ subroutine input_wf_cp2k(iproc, nproc, nspin, atoms, rxyz, Lzd, &
   call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,gbd,gaucoeffs,psi)
 
   !deallocate gaussian structure and coefficients
-  call deallocate_gwf(gbd,subname)
+  call deallocate_gwf(gbd)
   call f_free_ptr(gaucoeffs)
   nullify(gbd%rxyz)
 
@@ -565,7 +561,7 @@ subroutine input_wf_memory_history(iproc,orbs,atoms,wfn_history,istep_history,ol
   real(wp), dimension(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: psi
   !local variables
   character(len=*), parameter :: subname='input_wf_memory_history'
-  integer :: i_stat,i_all,istep,jstep,nvctr
+  integer :: istep,jstep,nvctr
   real(wp), dimension(:,:), allocatable :: psi_tmp
   real(gp), dimension(3:9) :: kappa,alpha
   real(gp), dimension(0:9,3:9) :: c
@@ -684,7 +680,6 @@ subroutine input_wf_memory(iproc, atoms, &
   real(wp), dimension(:), pointer :: psi, psi_old
 
   character(len = *), parameter :: subname = "input_wf_memory"
-  integer :: i_stat, i_all
 
   !these parts should be reworked for the non-collinear spin case
   call reformatmywaves(iproc,orbs,atoms,hx_old,hy_old,hz_old,&
@@ -726,7 +721,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   type(system_fragment), dimension(:), intent(in) :: ref_frags
 
   ! Local variables
-  integer :: ndim_old, ndim, iorb, iiorb, ilr, i_stat, i_all, ilr_old, iiat, methTransformOverlap
+  integer :: ndim_old, ndim, iorb, iiorb, ilr, ilr_old, iiat, methTransformOverlap
   logical:: overlap_calculated
   real(wp), allocatable, dimension(:) :: norm
   type(fragment_transformation), dimension(:), pointer :: frag_trans
@@ -1005,20 +1000,20 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   end if
 
 
-  call deallocate_orbitals_data(tmb_old%orbs, subname)
+  call deallocate_orbitals_data(tmb_old%orbs)
   call f_free_ptr(tmb_old%psi)
   call f_free_ptr(tmb_old%linmat%kernel_%matrix_compr)
 
-  call deallocate_sparse_matrix(tmb_old%linmat%s, subname)
-  call deallocate_sparse_matrix(tmb_old%linmat%m, subname)
-  call deallocate_sparse_matrix(tmb_old%linmat%l, subname)
-  call deallocate_sparse_matrix(tmb_old%linmat%ks, subname)
-  call deallocate_sparse_matrix(tmb_old%linmat%ks_e, subname)
+  call deallocate_sparse_matrix(tmb_old%linmat%s)
+  call deallocate_sparse_matrix(tmb_old%linmat%m)
+  call deallocate_sparse_matrix(tmb_old%linmat%l)
+  call deallocate_sparse_matrix(tmb_old%linmat%ks)
+  call deallocate_sparse_matrix(tmb_old%linmat%ks_e)
   call deallocate_matrices(tmb_old%linmat%ham_)
   call deallocate_matrices(tmb_old%linmat%ovrlp_)
   call deallocate_matrices(tmb_old%linmat%kernel_)
   call deallocate_comms_linear(tmb_old%collcom)
-  call deallocate_local_zone_descriptors(tmb_old%lzd, subname)
+  call deallocate_local_zone_descriptors(tmb_old%lzd)
   
 
   !!if (iproc==0) then
@@ -1070,10 +1065,10 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
            energs%eexctX=0.d0 !temporary fix
            trace_old=0.d0 !initialization
            if (iproc==0) then
-               !call yaml_close_map()
+               !call yaml_mapping_close()
                call yaml_comment('Extended input guess for experimental mode',hfill='-')
-               call yaml_open_map('Extended input guess')
-               call yaml_open_sequence('support function optimization',label=&
+               call yaml_mapping_open('Extended input guess')
+               call yaml_sequence_open('support function optimization',label=&
                                                  'it_supfun'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))))
            end if
            order_taylor=input%lin%order_taylor ! since this is intent(inout)
@@ -1086,10 +1081,10 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
                can_use_ham, order_taylor, input%lin%max_inversion_error, input%kappa_conv, input%method_updatekernel,&
                input%purification_quickreturn, input%correction_co_contra)
            reduce_conf=.true.
-           call yaml_close_sequence()
-           call yaml_close_map()
+           call yaml_sequence_close()
+           call yaml_mapping_close()
            call deallocateDIIS(ldiis)
-           !call yaml_open_map()
+           !call yaml_mapping_open()
 
            ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
             call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
@@ -1228,7 +1223,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   character(len=*), parameter :: subname='input_wf_diag'
   logical :: switchGPUconv,switchOCLconv
   integer :: ii,jj
-  integer :: i_stat,i_all,nspin_ig,ncplx,irhotot_add,irho_add,ispin,ikpt
+  integer :: nspin_ig,ncplx,irhotot_add,irho_add,ispin,ikpt
   real(gp) :: hxh,hyh,hzh,etol,accurex,eks
   type(orbitals_data) :: orbse
   type(comms_cubic) :: commse
@@ -1716,8 +1711,12 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 contains
 
   subroutine deallocate_input_wfs()
+    use gaussians, only: deallocate_gwf
+    use communications_base, only: deallocate_comms
 
-    call deallocate_comms(commse,subname)
+    implicit none
+
+    call deallocate_comms(commse)
 
     call f_free(norbsc_arr)
 
@@ -1725,10 +1724,10 @@ contains
        !gaussian estimation valid only for Free BC
        if (at%astruct%geocode == 'F') then
           call yaml_newline()
-          call yaml_open_map('Accuracy estimation for this run')
+          call yaml_mapping_open('Accuracy estimation for this run')
           call yaml_map('Energy',accurex,fmt='(1pe9.2)')
           call yaml_map('Convergence Criterion',accurex/real(orbs%norb,kind=8),fmt='(1pe9.2)')
-          call yaml_close_map()
+          call yaml_mapping_close()
           !write(*,'(1x,a,1pe9.2)') 'expected accuracy in energy ',accurex
           !write(*,'(1x,a,1pe9.2)') &
           !&   'expected accuracy in energy per orbital ',accurex/real(orbs%norb,kind=8)
@@ -1748,12 +1747,12 @@ contains
     end if
 
     !here we can define the subroutine which generates the coefficients for the virtual orbitals
-    call deallocate_gwf(G,subname)
-    call deallocate_local_zone_descriptors(Lzde, subname)
+    call deallocate_gwf(G)
+    call deallocate_local_zone_descriptors(Lzde)
 
     call f_free_ptr(psigau)
 
-    call deallocate_orbs(orbse,subname)
+    call deallocate_orbs(orbse)
     call f_free_ptr(orbse%eval)
 
   end subroutine deallocate_input_wfs
@@ -1773,7 +1772,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   use constrained_dft
   use dynamic_memory
   use yaml_output
-  use gaussians, only:gaussian_basis
+  use gaussians, only: gaussian_basis, nullify_gaussian_basis
   use sparsematrix_base, only: sparse_matrix
   use communications, only: transpose_localized, untranspose_localized
   implicit none
@@ -1803,7 +1802,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   real(kind=8),dimension(3,atoms%astruct%nat),intent(in),optional :: locregcenters
   !local variables
   character(len = *), parameter :: subname = "input_wf"
-  integer :: i_stat, nspin, i_all, iat
+  integer :: nspin, iat
   type(gaussian_basis) :: Gvirt
   real(wp), allocatable, dimension(:) :: norm
   !wvl+PAW objects
@@ -1822,7 +1821,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
   !nullify paw objects:
   do iatyp=1,atoms%astruct%ntypes
-  call nullify_gaussian_basis(proj_G(iatyp))
+     call nullify_gaussian_basis(proj_G(iatyp))
   end do
   paw%usepaw=0 !Not using PAW
   call nullify_paw_objects(paw)
@@ -1891,7 +1890,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '------------------------------------------------- Empty wavefunctions initialization'
         call yaml_comment('Empty wavefunctions initialization',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
 
      call input_wf_empty(iproc, nproc,KSwfn%psi, KSwfn%hpsi, KSwfn%psit, KSwfn%orbs, &
@@ -1902,7 +1901,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '------------------------------------------------ Random wavefunctions initialization'
         call yaml_comment('Random wavefunctions Initialization',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
 
      call input_wf_random(KSwfn%psi, KSwfn%orbs)
@@ -1912,7 +1911,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write(*,'(1x,a)')&
         !     &   '--------------------------------------------------------- Import Gaussians from CP2K'
         call yaml_comment('Import Gaussians from CP2K',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
 
      call input_wf_cp2k(iproc, nproc, in%nspin, atoms, rxyz, KSwfn%Lzd, &
@@ -1923,7 +1922,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write(*,'(1x,a)')&
         !     &   '------------------------------------------------------- Input Wavefunctions Creation'
         call yaml_comment('Wavefunctions from PSP Atomic Orbitals Initialization',hfill='-')
-        call yaml_open_map('Input Hamiltonian')
+        call yaml_mapping_open('Input Hamiltonian')
      end if
      nspin=in%nspin
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
@@ -1938,7 +1937,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '-------------------------------------------------------------- Wavefunctions Restart'
         call yaml_comment('Wavefunctions Restart',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
      perx=(atoms%astruct%geocode /= 'F')
      pery=(atoms%astruct%geocode == 'P')
@@ -1986,7 +1985,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   case(INPUT_PSI_MEMORY_LINEAR)
      if (iproc == 0) then
         call yaml_comment('Support functions Restart',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
       call input_memory_linear(iproc, nproc, atoms, KSwfn, tmb, tmb_old, denspot, in, &
            rxyz_old, rxyz, denspot0, energs, nlpsp, GPU, ref_frags)
@@ -1996,7 +1995,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '---------------------------------------------------- Reading Wavefunctions from disk'
         call yaml_comment('Reading Wavefunctions from disk',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
      call input_wf_disk(iproc, nproc, input_wf_format, KSwfn%Lzd%Glr%d,&
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
@@ -2008,7 +2007,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '--------------------------------------- Quick Wavefunctions Restart (Gaussian basis)'
         call yaml_comment('Quick Wavefunctions Restart (Gaussian basis)',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
      call restart_from_gaussians(iproc,nproc,KSwfn%orbs,KSwfn%Lzd,&
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
@@ -2020,7 +2019,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '------------------------------------------- Reading Wavefunctions from gaussian file'
         call yaml_comment('Reading Wavefunctions from gaussian file',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
      call read_gaussian_information(KSwfn%orbs,KSwfn%gbd,KSwfn%gaucoeffs,&
           trim(in%dir_output)//'wavefunctions.gau')
@@ -2046,7 +2045,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write(*,'(1x,a)')&
         !     '------------------------------------------------------- Input Wavefunctions Creation'
         call yaml_comment('Input Wavefunctions Creation',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
 
      ! By doing an LCAO input guess
@@ -2066,7 +2065,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '---------------------------------------------------- Reading Wavefunctions from disk'
         call yaml_comment('Reading Wavefunctions from disk',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
 
      !if (in%lin%scf_mode==LINEAR_FOE) then
@@ -2356,8 +2355,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           KSwfn%psi,KSwfn%hpsi,KSwfn%psit,in%orthpar)
   end if
 
-  !if (iproc==0 .and. inputpsi /= INPUT_PSI_LINEAR_AO) call yaml_close_map() !input hamiltonian
-  if (iproc==0) call yaml_close_map() !input hamiltonian
+  !if (iproc==0 .and. inputpsi /= INPUT_PSI_LINEAR_AO) call yaml_mapping_close() !input hamiltonian
+  if (iproc==0) call yaml_mapping_close() !input hamiltonian
 
   if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
      inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
@@ -2492,7 +2491,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 
   !Local Variables
   character(len = *), parameter :: subname = "input_wf_memory"
-  integer :: i_stat, i_all,iorb,nbox,npsir,ist,i,l,k,i1,i2,i3,l1,l2,l3,p1,p2,p3,ii1,ii2,ii3
+  integer :: iorb,nbox,npsir,ist,i,l,k,i1,i2,i3,l1,l2,l3,p1,p2,p3,ii1,ii2,ii3
   type(workarr_sumrho) :: w
   real(wp), dimension(:,:,:), allocatable :: psir,psir_old
   real(wp) :: hhx_old,hhy_old,hhz_old,hhx,hhy,hhz,dgrid1,dgrid2,dgrid3,expfct,x,y,z,s1,s2,s3

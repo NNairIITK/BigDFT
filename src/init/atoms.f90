@@ -109,7 +109,7 @@ END SUBROUTINE astruct_set_displacement
 
 
 !> For bindings only, use input_dicts module for Fortran usage.
-subroutine astruct_merge_to_dict(dict, astruct)
+subroutine astruct_merge_to_dict_binding(dict, astruct)
   use module_input_dicts, only: wrapper => astruct_merge_to_dict
   use module_types, only: atomic_structure
   use dictionaries, only: dictionary
@@ -117,8 +117,8 @@ subroutine astruct_merge_to_dict(dict, astruct)
   type(dictionary), pointer :: dict
   type(atomic_structure), intent(in) :: astruct
 
-  call wrapper(dict, astruct, astruct%rxyz)
-END SUBROUTINE astruct_merge_to_dict
+  call wrapper(dict, astruct,astruct%rxyz)
+END SUBROUTINE astruct_merge_to_dict_binding
 
 
 !> Find extra information
@@ -664,7 +664,7 @@ subroutine wtint(iunit,energy,rxyz,atoms,comment,na,nb,nc)
   character(len=10) :: name
   character(len=11) :: units, angle
   character(len=50) :: extra
-  integer :: iat,j
+  integer :: iat
   real(gp) :: xmax,ymax,zmax,factor,factor_angle
 
 
@@ -691,7 +691,6 @@ subroutine wtint(iunit,energy,rxyz,atoms,comment,na,nb,nc)
      factor_angle=1.0_gp
      angle='radian'
   end if
-  write(*,*) '(trim(atoms%astruct%angle)), angle',(trim(atoms%astruct%angle)), angle
 
   if (energy /= 0. .and. energy /= UNINITIALIZED(energy)) then
      write(iunit,'(i6,2x,a,2x,a,2x,1pe24.17,2x,a)') atoms%astruct%nat,trim(units),&
@@ -814,21 +813,21 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,wrtforces,forces, &
   perz = .false.
   BC :select case(atoms%astruct%geocode)
   case('S')
-     call yaml_open_sequence('Cell', flow=.true., unit = iunit)
+     call yaml_sequence_open('Cell', flow=.true., unit = iunit)
        call yaml_sequence(yaml_toa(atoms%astruct%cell_dim(1)*factor), unit = iunit) !x
        call yaml_sequence('.inf', unit = iunit)             !y
        call yaml_sequence(yaml_toa(atoms%astruct%cell_dim(3)*factor), unit = iunit) !z
-     call yaml_close_sequence(unit = iunit)
+     call yaml_sequence_close(unit = iunit)
      !angdeg to be added
      perx = .true.
      pery = .false.
      perz = .true.
   case('W')
-     call yaml_open_sequence('Cell', flow=.true., unit = iunit)
+     call yaml_sequence_open('Cell', flow=.true., unit = iunit)
        call yaml_sequence('.inf', unit = iunit)             !x
        call yaml_sequence('.inf', unit = iunit)             !y
        call yaml_sequence(yaml_toa(atoms%astruct%cell_dim(3)*factor), unit = iunit) !z
-     call yaml_close_sequence(unit = iunit)
+     call yaml_sequence_close(unit = iunit)
      perx = .false.
      pery = .false.
      perz = .true.
@@ -845,11 +844,11 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,wrtforces,forces, &
   end select BC
 
   !Write atomic positions
-  call yaml_open_sequence('Positions', unit = iunit)
+  call yaml_sequence_open('Positions', unit = iunit)
   do iat=1,atoms%astruct%nat
      call yaml_sequence(advance='no', unit = iunit)
      if (extra_info(iat)) then
-        call yaml_open_map(flow=.true., unit = iunit)
+        call yaml_mapping_open(flow=.true., unit = iunit)
      end if
      xred=rxyz(:,iat)
      if (reduced) then
@@ -880,29 +879,29 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,wrtforces,forces, &
            call frozen_itof(atoms%astruct%ifrztyp(iat),frzchain)
            call yaml_map('Frozen',frzchain, unit = iunit)
         end if
-        call yaml_close_map(unit = iunit)
+        call yaml_mapping_close(unit = iunit)
      end if
   end do
-  call yaml_close_sequence(unit = iunit) !positions
+  call yaml_sequence_close(unit = iunit) !positions
 
   !Write atomic forces
   if (wrtforces) then
-     call yaml_open_sequence('Forces (Ha/Bohr)', unit = iunit)
+     call yaml_sequence_open('Forces (Ha/Bohr)', unit = iunit)
      do iat=1,atoms%astruct%nat
         call yaml_sequence(advance='no', unit = iunit)
         call yaml_map(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),forces(:,iat),fmt='(1pg25.17)', unit = iunit)
      end do
-     call yaml_close_sequence(unit = iunit) !values
+     call yaml_sequence_close(unit = iunit) !values
   end if
   if (wrtlog) then
      call yaml_map('Rigid Shift Applied (AU)',(/-shift(1),-shift(2),-shift(3)/),fmt='(1pg12.5)')
   else
-     call yaml_open_map('Properties', unit = iunit)
+     call yaml_mapping_open('Properties', unit = iunit)
      call yaml_map('Timestamp',yaml_date_and_time_toa(), unit = iunit)
      if (energy /= 0. .and. energy /= UNINITIALIZED(energy)) then
         call yaml_map("Energy (Ha)", energy, unit = iunit)
      end if
-     call yaml_close_map(unit = iunit) !properties
+     call yaml_mapping_close(unit = iunit) !properties
   end if
 
 contains
@@ -923,12 +922,12 @@ contains
     character(len=*), parameter :: fmtat='(1pg18.10)',fmtg='(F6.2)',fmti='(i4.4)'
     integer :: i
 
-    call yaml_open_sequence(atomname,flow=.true.)
+    call yaml_sequence_open(atomname,flow=.true.)
     do i=1,3
        call yaml_sequence(yaml_toa(rxyz(i),fmt=fmtat))
     end do
-    call yaml_close_sequence(advance='no')
-    call yaml_comment(trim(yaml_toa(rxyz/hgrids,fmt=fmtg))//trim(yaml_toa(id,fmt=fmti))) !we can also put tabbing=
+    call yaml_sequence_close(advance='no')
+    call yaml_comment(trim(yaml_toa(rxyz/hgrids/factor,fmt=fmtg))//trim(yaml_toa(id,fmt=fmti))) !we can also put tabbing=
 
   end subroutine print_one_atom
 
@@ -1276,6 +1275,7 @@ subroutine astruct_copy_alat(astruct, alat)
   alat(3) = astruct%cell_dim(3)
 END SUBROUTINE astruct_copy_alat
 
+
 !!$!> Module used for the input positions lines variables
 !!$module position_files
 !!$   implicit none
@@ -1307,6 +1307,7 @@ END SUBROUTINE astruct_copy_alat
 !!$      if (i_stat /= 0) eof = .true.
 !!$   END SUBROUTINE archiveGetLine
 !!$end module position_files
+
 
 !> Write an atomic file
 !! Yaml output included
@@ -1604,7 +1605,6 @@ subroutine initialize_atomic_file(iproc,atoms,rxyz)
   real(gp), dimension(:,:), pointer :: rxyz
   !local variables
   character(len=*), parameter :: subname='initialize_atomic_file'
-  integer :: i_stat
   integer :: iat,i,ierr
 
   atoms%amu = f_malloc_ptr(atoms%astruct%nat+ndebug)
@@ -1711,12 +1711,11 @@ subroutine check_atoms_positions(astruct, simplify)
         end if
      end do
   end do
+
   if (nateq /= 0) then
      if (simplify) then
         call yaml_warning('Control your posinp file, cannot proceed')
         write(*,'(1x,a)',advance='no') 'Writing tentative alternative positions in the file posinp_alt...'
-        !write(*,'(1x,a)')'Control your posinp file, cannot proceed'
-        !write(*,'(1x,a)',advance='no') 'Writing tentative alternative positions in the file posinp_alt...'
         open(unit=iunit,file='posinp_alt')
         write(iunit,'(1x,a)')' ??? atomicd0'
         write(iunit,*)
@@ -1735,10 +1734,7 @@ subroutine check_atoms_positions(astruct, simplify)
         close(unit=iunit)
         call yaml_map('Writing tentative alternative positions in the file posinp_alt',.true.)
         call yaml_warning('Replace ??? in the file heading with the actual atoms number')               
-        !write(*,'(1x,a)')' done.'
-        !write(*,'(1x,a)')' Replace ??? in the file heading with the actual atoms number'               
      end if
      stop 'check_atoms_positions'
   end if
 END SUBROUTINE check_atoms_positions
-

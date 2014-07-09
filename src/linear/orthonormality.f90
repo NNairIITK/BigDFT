@@ -104,8 +104,8 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
 end subroutine orthonormalizeLocalized
 
 
-! can still tidy this up more when tmblarge is removed
-! use sparsity of density kernel for all inverse quantities
+!> Can still tidy this up more when tmblarge is removed
+!! use sparsity of density kernel for all inverse quantities
 subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
            correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, &
            hpsit_c, hpsit_f, &
@@ -271,11 +271,11 @@ subroutine setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, ta
 end subroutine setCommsParameters
 
 
-!S^-1 exact only works for symmetric matrices
-!BOTH sparse matrices must be present together and inv_ovrlp should be nullified pointer, NOT inv_ovrlp_smat%matrix
-!when sparse matrices present, check is performed to see whether %matrix is allocated so that its allocated status remains unchanged
-!contents of %matrix not guaranteed to be correct though - inv_ovrlp_smat%can_use_dense set accordingly
-!power: -2 -> S^-1/2, 2 -> S^1/2, 1 -> S^-1
+!> S^-1 exact only works for symmetric matrices
+!! BOTH sparse matrices must be present together and inv_ovrlp should be nullified pointer, NOT inv_ovrlp_smat%matrix
+!! when sparse matrices present, check is performed to see whether %matrix is allocated so that its allocated status remains unchanged
+!! contents of %matrix not guaranteed to be correct though - inv_ovrlp_smat%can_use_dense set accordingly
+!! power: -2 -> S^-1/2, 2 -> S^1/2, 1 -> S^-1
 subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
            ovrlp_smat, inv_ovrlp_smat, ovrlp_mat, inv_ovrlp_mat, check_accur, &
            max_error, mean_error)
@@ -334,7 +334,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
 
   if (iproc==0) then
       call yaml_newline()
-      call yaml_open_sequence('overlap manipulation routine')
+      call yaml_sequence_open('overlap manipulation routine')
       if (imode==SPARSE) then
           call yaml_map('mode','sparse')
       else if (imode==DENSE) then
@@ -342,10 +342,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
       end if
       call yaml_map('power',power)
       call yaml_map('order',iorder)
-      call yaml_close_sequence()
+      call yaml_sequence_close()
   end if
-
-
 
 
   ! Perform a check of the arguments
@@ -1360,7 +1358,6 @@ subroutine overlap_plus_minus_one_half_exact(nproc,norb,blocksize,plusminus,inv_
 end subroutine overlap_plus_minus_one_half_exact
 
 
-
 subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, smat, norb, norbp, isorb, nseq, nout, &
            ivectorindex, onedimindices, amat_seq, bmatp, power, &
            max_error, mean_error, dmat_seq, cmatp)
@@ -1419,8 +1416,6 @@ subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, smat, norb, norbp,
   call f_release_routine()
 
 end subroutine check_accur_overlap_minus_one_sparse
-
-
 
 
 subroutine check_accur_overlap_minus_one(iproc,nproc,norb,norbp,isorb,power,ovrlp,inv_ovrlp,&
@@ -1575,7 +1570,6 @@ subroutine max_matrix_diff_parallel(iproc, norb, norbp, isorb, mat1, mat2, &
   call timing(iproc,'dev_from_unity','OF') 
 
 end subroutine max_matrix_diff_parallel
-
 
 
 !!subroutine deviation_from_unity(iproc, norb, ovrlp, deviation)

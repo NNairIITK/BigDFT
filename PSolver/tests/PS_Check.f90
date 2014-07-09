@@ -121,7 +121,7 @@ program PS_Check
       case('P')
          call yaml_map('Boundary Conditions','Periodic')
       end select
-      call yaml_open_map('Multiprocessor run',label='MPIrun')
+      call yaml_mapping_open('Multiprocessor run',label='MPIrun')
    end if
 
    !calculate the kernel in parallel for each processor
@@ -167,10 +167,10 @@ program PS_Check
       call H_potential('G',pkernel,rhopot,pot_ion,ehartree,offset,.false.) !optional argument
 
       if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0) then
-         call yaml_open_map('Energies',flow=.true.)
+         call yaml_mapping_open('Energies',flow=.true.)
          call yaml_map('Hartree',ehartree,fmt='(1pe20.12)')
-         call yaml_close_map()
-         call yaml_open_map('Comparison with a reference run')
+         call yaml_mapping_close()
+         call yaml_mapping_open('Comparison with a reference run')
       end if
       !write(unit=*,fmt="(1x,a,3(1pe20.12))") 'Energies:',ehartree,eexcu,vexcu
       !stop
@@ -212,19 +212,19 @@ program PS_Check
 !         density,potential,pot_ion,xc_pot,pkernel)
 !      end if
 
-      if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0) call yaml_close_map() !comparison
+      if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0) call yaml_mapping_close() !comparison
 
 
-   if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0) call yaml_close_map() !MPI
+   if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0) call yaml_mapping_close() !MPI
 
-      if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0) call yaml_open_map('Complex run')
+      if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0) call yaml_mapping_open('Complex run')
       !compare the calculations in complex
       call compare_cplx_calculations(pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,geocode,'G',n01,n02,n03,ehartree,offset,&
       density,potential,pkernel)
 
       call compare_cplx_calculations(pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,geocode,'D',n01,n02,n03,ehartree,offset,&
       density,potential,pkernel)
-      if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0)call yaml_close_map()
+      if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0)call yaml_mapping_close()
 
       call f_timing_checkpoint('Parallel',mpi_comm=MPI_COMM_WORLD,nproc=nproc,gather_routine=gather_timings)
       !call timing(MPI_COMM_WORLD,'Parallel','PR')
@@ -236,7 +236,7 @@ program PS_Check
 
    !do not do the sequential calculation if it has been already done
    if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0 .and. pkernel%mpi_env%nproc > 1 ) then
-      call yaml_open_map('Monoprocess run')
+      call yaml_mapping_open('Monoprocess run')
       rhopot=f_malloc(n01*n02*n03*2,id='rhopot')
 !!$      allocate(rhopot(n01*n02*n03*2+ndebug),stat=i_stat)
 !!$      call memocc(i_stat,rhopot,'rhopot',subname)
@@ -253,7 +253,7 @@ program PS_Check
        call pkernel_set(pkernelseq,.true.)
 
 !!$       call createKernel(0,1,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,pkernelseq,.true.)
-       call yaml_open_map('Comparison with a reference run')
+       call yaml_mapping_open('Comparison with a reference run')
 
        call compare_with_reference(1,geocode,'G',n01,n02,n03,ispden,offset,ehartree,&
          density,potential,pot_ion,pkernelseq)
@@ -262,14 +262,14 @@ program PS_Check
          density,potential,pot_ion,pkernelseq)
 
        call pkernel_free(pkernelseq,subname)
-       call yaml_close_map() !comparison
+       call yaml_mapping_close() !comparison
 
      call f_free(rhopot)
 !!$     i_all=-product(shape(rhopot))*kind(rhopot)
 !!$     deallocate(rhopot,stat=i_stat)
 !!$     call memocc(i_stat,i_all,'rhopot',subname)
 
-     call yaml_close_map()
+     call yaml_mapping_close()
    endif
 
    call f_timing_checkpoint('Serial',mpi_comm=MPI_COMM_WORLD,&
@@ -287,10 +287,10 @@ program PS_Check
    call system_clock(ncount1,ncount_rate,ncount_max)
    tel=real(ncount1-ncount0,kind=gp)/real(ncount_rate,kind=gp)
    if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0) then
-      call yaml_open_map('Timings for root process')
+      call yaml_mapping_open('Timings for root process')
         call yaml_map('CPU time (s)',tcpu1-tcpu0,fmt='(f12.2)')
         call yaml_map('Elapsed time (s)',tel,fmt='(f12.2)')
-      call yaml_close_map()
+      call yaml_mapping_close()
    end if
    !call yaml_stream_attributes()
    !&   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', pkernel%iproc,tel,tcpu1-tcpu0
@@ -339,9 +339,9 @@ program PS_Check
       if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup==0) then
          select case(distcode)
          case('D')
-            call yaml_open_map('Distributed data')
+            call yaml_mapping_open('Distributed data')
          case('G')
-            call yaml_open_map('Global data')
+            call yaml_mapping_open('Global data')
          end select
       end if
 
@@ -402,10 +402,10 @@ program PS_Check
 
 
       if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup==0) then
-         call yaml_open_map('Energy differences')
+         call yaml_mapping_open('Energy differences')
          call yaml_map('Hartree',ehref-ehartree,fmt="(1pe20.12)")
-         call yaml_close_map()
-         call yaml_close_map() !run
+         call yaml_mapping_close()
+         call yaml_mapping_close() !run
       end if
 
       ! write(unit=*,fmt="(1x,a,1pe20.12)")'Energy diff:',ehref-ehartree
@@ -484,9 +484,9 @@ program PS_Check
       if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup==0) then
          select case(distcode)
          case('D')
-            call yaml_open_map('Distributed data')
+            call yaml_mapping_open('Distributed data')
          case('G')
-            call yaml_open_map('Global data')
+            call yaml_mapping_open('Global data')
          end select
       end if
 
@@ -519,9 +519,9 @@ program PS_Check
       !!$         'ANACOMPLET '//message)
 
       if (pkernel%mpi_env%iproc + pkernel%mpi_env%igroup==0) then
-            call yaml_open_map('Energy differences')
+            call yaml_mapping_open('Energy differences')
             call yaml_map('Hartree',ehref-ehartree,fmt="(1pe20.12)")
-            call yaml_close_map()
+            call yaml_mapping_close()
          end if
 !!$         write(unit=*,fmt="(1x,a,3(1pe20.12))") &
 !!$      'Energies diff:',ehref-ehartree,excref-eexcu,vxcref-vexcu
@@ -560,10 +560,10 @@ program PS_Check
       !!$    call compare(iproc,nproc,n01,n02,nspden*n3p,1,test(istpot),&
       !!$         rhopot(1,1,i3xcsh+1,1),'COMPLETE   '//message)
       if (pkernel%mpi_env%iproc + pkernel%mpi_env%igroup==0) then
-         call yaml_open_map('Energy differences')
+         call yaml_mapping_open('Energy differences')
          call yaml_map('Hartree',ehref-ehartree,fmt="(1pe20.12)")
-         call yaml_close_map()
-         call yaml_close_map() !Run
+         call yaml_mapping_close()
+         call yaml_mapping_close() !Run
       end if
 !!$      if (iproc==0) write(unit=*,fmt="(1x,a,3(1pe20.12))") &
 !!$      'Energies diff:',ehref-ehartree,excref-eexcu,vxcref-vexcu
@@ -629,8 +629,8 @@ program PS_Check
       end if
 
       if (iproc == 0) then
-         call yaml_open_map(trim(description),flow=.false.)
-         !call yaml_open_map('Result comparison')
+         call yaml_mapping_open(trim(description),flow=.false.)
+         !call yaml_mapping_open('Result comparison')
          !call yaml_map('Run description',trim(description))
          call yaml_map('Difference in Inf. Norm',diff_par,fmt='(1pe20.12)')
          if (diff_par > 1.e-10) call yaml_warning('Calculation possibly wrong, check if the diff is meaningful')
@@ -639,7 +639,7 @@ program PS_Check
             call yaml_map('Result',density(i1_max,i2_max,i3_max),fmt='(1pe20.12)')
             call yaml_map('Original',potential(i1_max,i2_max,i3_max),fmt='(1pe20.12e3)')
          end if
-         call yaml_close_map()
+         call yaml_mapping_close()
 
 !!$         if (nproc == -1) then
 !!$            if (diff_par > 1.e-10) then

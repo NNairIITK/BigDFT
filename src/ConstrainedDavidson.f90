@@ -524,7 +524,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      ! compute maximum gradient
      !
      gnrm=0._dp
-     if(msg) call yaml_open_sequence('Squared norm of the (nvirt) gradients')
+     if(msg) call yaml_sequence_open('Squared norm of the (nvirt) gradients')
      !if(msg) write(*,'(1x,a)')"squared norm of the (nvirt) gradients"
      ! loop on kpoints
      do ikpt=1,orbsv%nkpts

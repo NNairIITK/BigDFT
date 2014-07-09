@@ -813,7 +813,7 @@ subroutine check_communication_potential(iproc,denspot,tmb)
   ! Get mean value for the sum
   sumdiff=sqrt(sumdiff)
 
-  if (bigdft_mpi%iproc==0) call yaml_open_map('Checking operations for potential communication')    
+  if (bigdft_mpi%iproc==0) call yaml_mapping_open('Checking operations for potential communication')    
   ! Print the results
   if (bigdft_mpi%iproc==0) then
       call yaml_map('Tolerance for the following test',tol_calculation_mean,fmt='(1es25.18)')
@@ -831,7 +831,7 @@ subroutine check_communication_potential(iproc,denspot,tmb)
          call yaml_map('calculation check, error max', maxdiff,fmt='(1es25.18)')
       end if
   end if
-  if (bigdft_mpi%iproc==0) call yaml_close_map()
+  if (bigdft_mpi%iproc==0) call yaml_mapping_close()
 
   call f_free_ptr(denspot%pot_work)
 
@@ -881,7 +881,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
 
   call timing(iproc,'check_sumrho','ON')
 
-  if (iproc==0) call yaml_open_map('Checking operations for sumrho')
+  if (iproc==0) call yaml_mapping_open('Checking operations for sumrho')
 
   call f_routine(id='check_communication_sumrho')
 
@@ -1231,7 +1231,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
 
   end if
 
-  if (iproc==0) call yaml_close_map()
+  if (iproc==0) call yaml_mapping_close()
 
   call timing(iproc,'check_sumrho','OF')
 

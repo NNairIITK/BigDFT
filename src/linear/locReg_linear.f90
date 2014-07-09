@@ -406,7 +406,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
      ! Now communicate the keys
      call communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, rootarr, onwhichmpi)
 
-     !call deallocate_orbitals_data(orbsder, subname)
+     !call deallocate_orbitals_data(orbsder)
      !call f_free(onwhichmpider)
   end if
   call timing(iproc,'comm_llr      ','OF')

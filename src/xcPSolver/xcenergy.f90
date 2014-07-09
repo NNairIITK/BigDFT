@@ -283,7 +283,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
   logical :: wrtmsg
   !n(c) integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
   integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3,i3s_fake,i3xcsh_fake
-  integer :: i_all,i_stat,ierr,i,j
+  integer :: ierr,i,j
   integer :: i1,i2,i3,istart,iend,iwarn,i3start,jend,jproc
   integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,ispin,istden,istglo
   integer :: ndvxc,order
@@ -571,9 +571,9 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
   !gathering the data to obtain the distribution array
   !evaluating the total ehartree,eexcu,vexcu
   if (nproc > 1) then
-     allocate(energies_mpi(2+ndebug),stat=i_stat)
-     call memocc(i_stat,energies_mpi,'energies_mpi',subname)
-     !energies_mpi = f_malloc(2,id='energies_mpi')
+     !allocate(energies_mpi(2+ndebug),stat=i_stat)
+     !call memocc(i_stat,energies_mpi,'energies_mpi',subname)
+     energies_mpi = f_malloc(2,id='energies_mpi')
 
      energies_mpi(1)=eexcuLOC
      energies_mpi(2)=vexcuLOC
@@ -595,10 +595,10 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
      wbstr=wbstr/real(n01*n02*n03,dp)
      xcstr(:)=xcstr(:)+wbstr(:)+rhocstr(:)
   end if
-     i_all=-product(shape(energies_mpi))*kind(energies_mpi)
-     deallocate(energies_mpi,stat=i_stat)
-     call memocc(i_stat,i_all,'energies_mpi',subname)
-     !call f_free(energies_mpi)  
+     !i_all=-product(shape(energies_mpi))*kind(energies_mpi)
+     !deallocate(energies_mpi,stat=i_stat)
+     !call memocc(i_stat,i_all,'energies_mpi',subname)
+     call f_free(energies_mpi)  
 
      if (datacode == 'G') then
         !building the array of the data to be sent from each process
@@ -795,7 +795,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   real(dp), dimension(:,:,:,:), allocatable :: dvxcdgr
   !real(dp), dimension(:,:,:,:,:), allocatable :: gradient
   real(dp) :: elocal,vlocal,rhov,sfactor
-  integer :: npts,i_all,offset,i_stat,ispden
+  integer :: npts,offset,ispden
   integer :: i1,i2,i3,j1,j2,j3,jp2,jppp2
   logical :: use_gradient
 
@@ -1037,7 +1037,7 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   real(dp), dimension(:,:,:,:), allocatable :: vxci,dvxci,dvxcdgr
   real(dp), dimension(:,:,:,:,:), allocatable :: gradient
   real(dp) :: elocal,vlocal,rho,potion,sfactor
-  integer :: npts,i_all,order,offset,i_stat,ispden
+  integer :: npts,order,offset,ispden
   integer :: i1,i2,i3,j1,j2,j3,jp2,jpp2,jppp2
   integer :: ndvxc,nvxcdgr,ngr2,nd2vxc
   logical :: use_gradient
@@ -1437,7 +1437,7 @@ gradient,hx,hy,hz,dvxcdgr,wb_vxc,wbstr)
   real(dp), dimension(6),intent(inout) :: wbstr
   !Local variables
   character(len=*), parameter :: subname='vxcpostprocessing'
-  integer :: i1,i2,i3,dir_i,i_all,i_stat
+  integer :: i1,i2,i3,dir_i
   real(dp) :: dnexcdgog,grad_i,rho_up,rho_down,rho_tot
   real(dp), dimension(:,:,:,:,:), allocatable :: f_i
 

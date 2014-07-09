@@ -13,6 +13,7 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt
    use module_base
    use module_types
    use module_interfaces, except_this_one => local_analysis
+   use gaussians, only: deallocate_gwf
    implicit none
    integer, intent(in) :: iproc,nproc
    real(gp), intent(in) :: hx,hy,hz
@@ -23,7 +24,7 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt
    real(wp), dimension(:), pointer :: psi,psivirt
    !local variables
    character(len=*), parameter :: subname='local_analysis'
-   integer :: i_all,i_stat,norbpv
+   integer :: norbpv
    !type(input_variables) :: inc
    !type(atoms_data) :: atc
    type(gaussian_basis) :: G
@@ -98,7 +99,7 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt
    !also partial density of states can be analysed here
    call gaussian_pdos(iproc,nproc,orbs,G,allpsigau,dualcoeffs) !n(m)
 
-   call deallocate_gwf(G,subname)
+   call deallocate_gwf(G)
    nullify(G%rxyz)
 
    call f_free(allpsigau)
@@ -134,7 +135,7 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
   !local variables
   character(len=*), parameter :: subname='mulliken_charge_population'
   character(len=11) :: shname
-  integer :: icoeff,i_all,i_stat,ierr,ishell,iexpo,iat,l,ng,iorb,isat,m,ispin,ig,nchannels
+  integer :: icoeff,ishell,iexpo,iat,l,ng,iorb,isat,m,ispin,ig,nchannels
   integer :: ispinor,i
   real(wp) :: msum,rad,radnorm,r,sumch,mnrm
   real(wp), dimension(2) :: msumiat
@@ -220,7 +221,7 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
      !write(*,'(1x,a)')'Center No. |    Shell    | Rad (AU) | Chg (up) | Chg (down) | Net Pol  |Gross Chg'
      !write(*,'(1x,a)')repeat('-',57)//' Mulliken Charge Population Analysis'
      call yaml_comment('Mulliken Charge Population Analysis',hfill='-')
-     call yaml_open_sequence('Mulliken Charge Population Analysis')
+     call yaml_sequence_open('Mulliken Charge Population Analysis')
      call yaml_newline()
 
      !if (orbs%nspinor == 4) then
@@ -252,7 +253,7 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
         call yaml_newline()
         call yaml_comment('Atom No.'//adjustl(trim(yaml_toa(iat,fmt='(i4.4)'))))
         call yaml_sequence(advance='no')
-        !     call yaml_open_map()!flow=.true.)
+        !     call yaml_mapping_open()!flow=.true.)
      end if
      msumiat(1)=0.0_wp
      msumiat(2)=0.0_wp
@@ -280,7 +281,7 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
            msumiat(1)=msumiat(1)+mchg(icoeff,1)
            msumiat(2)=msumiat(2)+mchg(icoeff,2)
            if (iproc == 0) then
-              call yaml_open_map(trim(shname))!, flow=.true.)
+              call yaml_mapping_open(trim(shname))!, flow=.true.)
              !write(*,'(1x,(i6),5x,a,2x,a,a,1x,f7.2,2x,2("|",1x,f8.5,1x),2(a,f8.5))')&
               !     iat,'|',shname,'|',rad,(mchg(icoeff,ispin),ispin=1,2),'  | ',&
               !     mchg(icoeff,1)-mchg(icoeff,2),' | ',Gocc(icoeff)-(mchg(icoeff,1)+mchg(icoeff,2))
@@ -311,7 +312,7 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
                  !write(*,'(t74,a,f8.5,a)')'| ', magn(icoeff,2),' | '
                  !write(*,'(t74,a,f8.5,a)')'| ', magn(icoeff,3),' | '
               end if
-              call yaml_close_map()
+              call yaml_mapping_close()
            end if
            sumch=sumch+Gocc(icoeff)
            icoeff=icoeff+1
@@ -356,10 +357,10 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
      end if
      msum=msum+msumiat(1)+msumiat(2)
      !if (iproc == 0) write(*,'(1x,a)')repeat('-',93)
- !    call yaml_close_map()
+ !    call yaml_mapping_close()
   end do
 
-  if (iproc==0)call yaml_close_sequence()
+  if (iproc==0)call yaml_sequence_close()
 
   if (iproc == 0) then
      call yaml_map('Total Charge considered on the centers',msum,fmt='(f21.12)')
@@ -388,7 +389,7 @@ subroutine gaussian_pdos(iproc,nproc,orbs,G,coeff,duals) !n(c) Gocc (arg:4)
    real(wp), dimension(G%ncoeff,orbs%norbp), intent(in) :: coeff,duals
    !local variables
    character(len=*), parameter :: subname='gaussian_pdos'
-   integer :: icoeff,i_all,i_stat,ierr,iorb,ikpt !n(c) ispin
+   integer :: icoeff,ierr,iorb,ikpt !n(c) ispin
    integer :: jproc!,nspin
    real(wp) :: rsum,tnorm
    integer, dimension(:), allocatable :: norb_displ

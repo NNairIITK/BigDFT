@@ -172,7 +172,6 @@ subroutine deallocate_double_1D(array)
   implicit none
 
   double precision, dimension(:), pointer :: array
-  integer :: i_all, i_stat
 
   if (associated(array)) then
      call f_free_ptr(array)
@@ -185,7 +184,6 @@ subroutine deallocate_double_2D(array)
   implicit none
 
   double precision, dimension(:,:), pointer :: array
-  integer :: i_all, i_stat
 
   if (associated(array)) then
      call f_free_ptr(array)
@@ -427,6 +425,8 @@ subroutine lzd_get_data(lzd, glr)
 
   glr => lzd%glr
 end subroutine lzd_get_data
+
+
 subroutine lzd_copy_data(lzd, nlr)
   use module_types
   implicit none
@@ -435,21 +435,27 @@ subroutine lzd_copy_data(lzd, nlr)
 
   nlr = lzd%nlr
 end subroutine lzd_copy_data
+
+
 subroutine lzd_free(lzd)
   use module_types
   implicit none
   type(local_zone_descriptors), pointer :: lzd
 
-  call deallocate_local_zone_descriptors(lzd, "lzd_free")
+  call deallocate_local_zone_descriptors(lzd)
   deallocate(lzd)
 end subroutine lzd_free
+
+
 subroutine lzd_empty(lzd)
   use module_types
   implicit none
   type(local_zone_descriptors), intent(inout) :: lzd
 
-  call deallocate_Lzd_except_Glr(lzd, "lzd_empty")
+  call deallocate_Lzd_except_Glr(lzd)
 END SUBROUTINE lzd_empty
+
+
 subroutine lzd_set_nlr(lzd, nlr, geocode)
   use locregs
   use module_types, only: local_zone_descriptors
@@ -474,6 +480,7 @@ subroutine lzd_set_nlr(lzd, nlr, geocode)
      lzd%Llr(i)%geocode = geocode
   end do
 END SUBROUTINE lzd_set_nlr
+
 
 subroutine lzd_get_hgrids(Lzd, hgrids)
   use module_base
@@ -521,7 +528,6 @@ end subroutine inputs_free
 
 subroutine inputs_set_dict(in, level, val)
 
-
   use dictionaries
   use module_types
   use yaml_output
@@ -533,9 +539,9 @@ subroutine inputs_set_dict(in, level, val)
   ! This is a patch for Intel, to be corrected properly later.
   call input_set(in, level(1:len(level)), val%child)
 END SUBROUTINE inputs_set_dict
+
+
 subroutine inputs_get_output(in, run_name, dir_output, writing_directory)
-
-
 
   use module_types
   implicit none
@@ -543,10 +549,12 @@ subroutine inputs_get_output(in, run_name, dir_output, writing_directory)
   character(len = 100), intent(out) :: dir_output, run_name
   character(len = 500), intent(out) :: writing_directory
 
-  run_name = in%run_name
-  dir_output = in%dir_output
+  run_name = trim(in%run_name)
+  dir_output = trim(in%dir_output)
   writing_directory = in%writing_directory
 END SUBROUTINE inputs_get_output
+
+
 subroutine inputs_get_dft(in, hx, hy, hz, crmult, frmult, ixc, chg, efield, nspin, mpol, &
      & gnrm, itermax, nrepmax, ncong, idsx, dispcorr, inpsi, outpsi, outgrid, &
      & rbuf, ncongt, davidson, nvirt, nplottedvirt, sym, last_run)
@@ -589,6 +597,8 @@ subroutine inputs_get_dft(in, hx, hy, hz, crmult, frmult, ixc, chg, efield, nspi
   end if
   last_run = in%last_run
 END SUBROUTINE inputs_get_dft
+
+
 subroutine inputs_get_mix(in, iscf, itrpmax, norbsempty, occopt, alphamix, rpnrm_cv, &
      & gnrm_startmix, Tel, alphadiis)
   use module_types
@@ -608,6 +618,8 @@ subroutine inputs_get_mix(in, iscf, itrpmax, norbsempty, occopt, alphamix, rpnrm
   Tel = in%Tel
   alphadiis = in%alphadiis
 END SUBROUTINE inputs_get_mix
+
+
 subroutine inputs_get_geopt(in, geopt_approach, ncount_cluster_x, frac_fluct, forcemax, &
      & randdis, betax, history, ionmov, dtion, strtarget, qmass)
   use module_types
@@ -634,6 +646,8 @@ subroutine inputs_get_geopt(in, geopt_approach, ncount_cluster_x, frac_fluct, fo
      nullify(qmass)
   end if
 END SUBROUTINE inputs_get_geopt
+
+
 subroutine inputs_get_perf(in, linear)
   use module_types
   implicit none
@@ -642,6 +656,8 @@ subroutine inputs_get_perf(in, linear)
   
   linear = in%linear
 END SUBROUTINE inputs_get_perf
+
+
 !seems not used anymore as the filling of files variables has disappeared in most of the cases
 !!$subroutine inputs_get_files(in, files)
 !!$  use module_types
@@ -651,6 +667,8 @@ END SUBROUTINE inputs_get_perf
 !!$
 !!$  files = in%files
 !!$END SUBROUTINE inputs_get_files
+
+
 subroutine inputs_get_linear(linear, inputPsiId)
   use module_types
   implicit none
@@ -660,6 +678,8 @@ subroutine inputs_get_linear(linear, inputPsiId)
   linear = 0
   if (inputPsiId == INPUT_PSI_LINEAR_AO .or. inputPsiId == INPUT_PSI_DISK_LINEAR) linear = 1
 END SUBROUTINE inputs_get_linear
+
+
 subroutine inputs_check_psi_id(inputpsi, input_wf_format, dir_output, ln, orbs, lorbs, iproc, nproc)
   use module_types
   use module_fragments
@@ -688,6 +708,8 @@ subroutine orbs_new(orbs)
 
   allocate(orbs)
 END SUBROUTINE orbs_new
+
+
 subroutine orbs_init(orbs)
   use module_types
   implicit none
@@ -695,6 +717,8 @@ subroutine orbs_init(orbs)
 
   call nullify_orbitals_data(orbs)
 END SUBROUTINE orbs_init
+
+
 subroutine orbs_free(orbs)
   use module_types
 !  use memory_profiling
@@ -703,13 +727,17 @@ subroutine orbs_free(orbs)
 
   deallocate(orbs)
 END SUBROUTINE orbs_free
+
+
 subroutine orbs_empty(orbs)
   use module_types
   implicit none
   type(orbitals_data), intent(inout) :: orbs
 
-  call deallocate_orbitals_data(orbs,"orbs_empty")
+  call deallocate_orbitals_data(orbs)
 END SUBROUTINE orbs_empty
+
+
 subroutine orbs_comm_new(comms)
   use module_base
   use module_types
@@ -721,6 +749,8 @@ subroutine orbs_comm_new(comms)
   allocate(comms)
   nullify(comms%nvctr_par)
 end subroutine orbs_comm_new
+
+
 subroutine orbs_comm_init(comms, orbs, lr, iproc, nproc)
   use module_base
   use module_types
@@ -734,6 +764,8 @@ subroutine orbs_comm_init(comms, orbs, lr, iproc, nproc)
 
   call orbitals_communicators(iproc,nproc,lr,orbs,comms)
 end subroutine orbs_comm_init
+
+
 subroutine orbs_comm_free(comms)
   use module_base
   use module_types
@@ -744,18 +776,22 @@ subroutine orbs_comm_free(comms)
 
   deallocate(comms)
 end subroutine orbs_comm_free
+
+
 subroutine orbs_comm_empty(comms)
   use module_base
   use module_types
-  use communications_base, only: comms_cubic
+  use communications_base, only: comms_cubic, deallocate_comms
 !  use module_interfaces
   implicit none
   type(comms_cubic), intent(inout) :: comms
 
   if (associated(comms%nvctr_par)) then
-     call deallocate_comms(comms,"orbs_comm_empty")
+     call deallocate_comms(comms)
   end if
 end subroutine orbs_comm_empty
+
+
 subroutine orbs_get_dimensions(orbs, norb, norbp, norbu, norbd, nspin, nspinor, npsidim, &
      & nkpts, nkptsp, isorb, iskpts)
   use module_types
@@ -776,6 +812,8 @@ subroutine orbs_get_dimensions(orbs, norb, norbp, norbu, norbd, nspin, nspinor, 
   isorb = orbs%isorb
   iskpts = orbs%iskpts
 END SUBROUTINE orbs_get_dimensions
+
+
 subroutine orbs_get_eval(orbs, eval)
   use module_types
   implicit none
@@ -784,6 +822,8 @@ subroutine orbs_get_eval(orbs, eval)
   
   eval => orbs%eval
 END SUBROUTINE orbs_get_eval
+
+
 subroutine orbs_get_occup(orbs, occup)
   use module_types
   implicit none
@@ -792,6 +832,8 @@ subroutine orbs_get_occup(orbs, occup)
   
   occup => orbs%occup
 END SUBROUTINE orbs_get_occup
+
+
 subroutine orbs_get_kpts(orbs, kpts)
   use module_types
   implicit none
@@ -800,6 +842,8 @@ subroutine orbs_get_kpts(orbs, kpts)
   
   kpts => orbs%kpts
 END SUBROUTINE orbs_get_kpts
+
+
 subroutine orbs_get_kwgts(orbs, kwgts)
   use module_types
   implicit none
@@ -808,6 +852,8 @@ subroutine orbs_get_kwgts(orbs, kwgts)
   
   kwgts => orbs%kwgts
 END SUBROUTINE orbs_get_kwgts
+
+
 subroutine orbs_get_inwhichlocreg(orbs, locreg)
   use module_types
   implicit none
@@ -816,6 +862,8 @@ subroutine orbs_get_inwhichlocreg(orbs, locreg)
   
   locreg => orbs%inwhichlocreg
 END SUBROUTINE orbs_get_inwhichlocreg
+
+
 subroutine orbs_get_onwhichatom(orbs, atom)
   use module_types
   implicit none
@@ -824,6 +872,8 @@ subroutine orbs_get_onwhichatom(orbs, atom)
   
   atom => orbs%onwhichatom
 END SUBROUTINE orbs_get_onwhichatom
+
+
 subroutine orbs_open_file(orbs, unitwf, name, ln, iformat, iorbp, ispinor)
   use module_types
   use module_interfaces, only: open_filename_of_iorb
@@ -850,6 +900,8 @@ subroutine proj_new(nlpspd)
 
   allocate(nlpspd)
 END SUBROUTINE proj_new
+
+
 subroutine proj_free(nlpspd, proj)
   use psp_projectors
   use module_types
@@ -858,13 +910,13 @@ subroutine proj_free(nlpspd, proj)
   type(DFT_PSP_projectors), pointer :: nlpspd
   real(kind=8), dimension(:), pointer :: proj
 
-  integer :: i_stat, i_all
-
   call free_DFT_PSP_projectors(nlpspd)
 !!$  i_all=-product(shape(proj))*kind(proj)
 !!$  deallocate(proj,stat=i_stat)
 !!$  call memocc(i_stat,i_all,'proj',"proj_free")
 END SUBROUTINE proj_free
+
+
 subroutine proj_get_dimensions(nlpspd, nproj, nprojel)
   use module_types
   implicit none
@@ -874,6 +926,7 @@ subroutine proj_get_dimensions(nlpspd, nproj, nprojel)
   nproj = nlpspd%nproj
   nprojel = nlpspd%nprojel
 END SUBROUTINE proj_get_dimensions
+
 
 subroutine kernel_get_comm(pkernel, igroup, ngroup, iproc_grp, &
      & nproc_grp, mpi_comm)
@@ -887,6 +940,8 @@ subroutine kernel_get_comm(pkernel, igroup, ngroup, iproc_grp, &
   nproc_grp = pkernel%mpi_env%nproc
   mpi_comm = pkernel%mpi_env%mpi_comm
 end subroutine kernel_get_comm
+
+
 subroutine localfields_new(self, denspotd, rhod, dpbox)
   use module_types
   implicit none
@@ -900,6 +955,8 @@ subroutine localfields_new(self, denspotd, rhod, dpbox)
   dpbox => denspotd%dpbox
   denspotd%c_obj = self
 END SUBROUTINE localfields_new
+
+
 subroutine localfields_get_data(denspotd, rhod, dpbox)
   use module_types
   implicit none
@@ -910,6 +967,8 @@ subroutine localfields_get_data(denspotd, rhod, dpbox)
   rhod => denspotd%rhod
   dpbox => denspotd%dpbox
 END SUBROUTINE localfields_get_data
+
+
 subroutine localfields_free(denspotd, fion, fdisp)
   use module_types
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
@@ -919,10 +978,9 @@ subroutine localfields_free(denspotd, fion, fdisp)
   real(gp), dimension(:,:), pointer :: fion, fdisp
   
   character(len = *), parameter :: subname = "localfields_free"
-  integer :: i_stat, i_all
 
-  call deallocate_rho_descriptors(denspotd%rhod, subname)
-  call dpbox_free(denspotd%dpbox, subname)
+  call deallocate_rho_descriptors(denspotd%rhod)
+  call dpbox_free(denspotd%dpbox)
   
   if (associated(denspotd%V_ext)) then
      call f_free_ptr(denspotd%V_ext)
@@ -956,6 +1014,8 @@ subroutine localfields_free(denspotd, fion, fdisp)
      call f_free_ptr(fdisp)
   end if
 END SUBROUTINE localfields_free
+
+
 subroutine localfields_copy_metadata(denspot, rhov_is, hgrid, ni, psoffset)
   use module_types
   implicit none
@@ -969,6 +1029,8 @@ subroutine localfields_copy_metadata(denspot, rhov_is, hgrid, ni, psoffset)
   ni = denspot%dpbox%ndims
   psoffset = denspot%psoffset
 END SUBROUTINE localfields_copy_metadata
+
+
 subroutine localfields_get_rhov(denspot, rhov)
   use module_types
   implicit none
@@ -977,6 +1039,8 @@ subroutine localfields_get_rhov(denspot, rhov)
 
   rhov => denspot%rhov
 END SUBROUTINE localfields_get_rhov
+
+
 subroutine localfields_get_v_ext(denspot, v_ext)
   use module_types
   implicit none
@@ -985,6 +1049,8 @@ subroutine localfields_get_v_ext(denspot, v_ext)
 
   v_ext => denspot%v_ext
 END SUBROUTINE localfields_get_v_ext
+
+
 subroutine localfields_get_v_xc(denspot, v_xc)
   use module_types
   implicit none
@@ -993,6 +1059,8 @@ subroutine localfields_get_v_xc(denspot, v_xc)
 
   v_xc => denspot%v_xc
 END SUBROUTINE localfields_get_v_xc
+
+
 subroutine localfields_get_pkernel(denspot, pkernel)
   use module_types
   implicit none
@@ -1001,6 +1069,8 @@ subroutine localfields_get_pkernel(denspot, pkernel)
 
   pkernel => denspot%pkernel
 END SUBROUTINE localfields_get_pkernel
+
+
 subroutine localfields_get_pkernelseq(denspot, pkernelseq)
   use module_types
   implicit none
@@ -1009,6 +1079,8 @@ subroutine localfields_get_pkernelseq(denspot, pkernelseq)
 
   pkernelseq => denspot%pkernelseq
 END SUBROUTINE localfields_get_pkernelseq
+
+
 subroutine localfields_get_rho_work(denspot, rho)
   use module_types
   implicit none
@@ -1017,6 +1089,8 @@ subroutine localfields_get_rho_work(denspot, rho)
 
   rho => denspot%rho_work
 END SUBROUTINE localfields_get_rho_work
+
+
 subroutine localfields_get_pot_work(denspot, pot)
   use module_types
   implicit none
@@ -1026,6 +1100,7 @@ subroutine localfields_get_pot_work(denspot, pot)
   pot => denspot%pot_work
 END SUBROUTINE localfields_get_pot_work
 
+
 subroutine gpu_new(GPU)
   use module_types
   implicit none
@@ -1033,6 +1108,8 @@ subroutine gpu_new(GPU)
 
   allocate(GPU)
 END SUBROUTINE gpu_new
+
+
 subroutine gpu_free(GPU)
   use module_types
   implicit none
@@ -1040,6 +1117,7 @@ subroutine gpu_free(GPU)
 
   deallocate(GPU)
 END SUBROUTINE gpu_free
+
 
 subroutine wf_new(self, wf, orbs, comm, lzd)
   use module_types
@@ -1060,6 +1138,8 @@ subroutine wf_new(self, wf, orbs, comm, lzd)
   comm => wf%comms
   lzd => wf%Lzd
 end subroutine wf_new
+
+
 subroutine wf_init(wf)
   use module_types
   implicit none
@@ -1071,6 +1151,8 @@ subroutine wf_init(wf)
   nullify(wf%spsi)
   nullify(wf%comms%nvctr_par)
 end subroutine wf_init
+
+
 subroutine wf_get_data(wf, orbs, comm, lzd)
   use module_types
   use communications_base, only: comms_cubic
@@ -1084,13 +1166,13 @@ subroutine wf_get_data(wf, orbs, comm, lzd)
   comm => wf%comms
   lzd => wf%Lzd
 end subroutine wf_get_data
+
+
 subroutine wf_empty(wf)
   use module_types
   use memory_profiling
   implicit none
   type(DFT_wavefunction), intent(inout) :: wf
-
-  integer :: i_all, i_stat
 
   if (associated(wf%psi)) then
      call f_free_ptr(wf%psi)
@@ -1102,6 +1184,8 @@ subroutine wf_empty(wf)
      call f_free_ptr(wf%hpsi)
   end if
 END SUBROUTINE wf_empty
+
+
 subroutine wf_free(wf)
   use module_types
   use memory_profiling
@@ -1110,9 +1194,11 @@ subroutine wf_free(wf)
 
   call orbs_comm_empty(wf%comms)
   call orbs_empty(wf%orbs)
-  call deallocate_local_zone_descriptors(wf%lzd, "wf%lzd")
+  call deallocate_local_zone_descriptors(wf%lzd)
   deallocate(wf)
 end subroutine wf_free
+
+
 subroutine wf_get_psi(wf, psi, hpsi)
   use module_types
   implicit none
@@ -1129,6 +1215,8 @@ subroutine wf_get_psi(wf, psi, hpsi)
   call inquire_address1(psi, wf%psi)
   call inquire_address1(hpsi, wf%hpsi)
 end subroutine wf_get_psi
+
+
 subroutine wf_get_psi_size(psi, psiSize)
   use module_types
   implicit none
@@ -1137,6 +1225,8 @@ subroutine wf_get_psi_size(psi, psiSize)
 
   psiSize = product(shape(psi))
 end subroutine wf_get_psi_size
+
+
 subroutine wf_iorbp_to_psi(psir, psi, lr)
   use module_types
   implicit none
@@ -1159,6 +1249,7 @@ subroutine wf_iorbp_to_psi(psir, psi, lr)
   call deallocate_work_arrays_sumrho(w)
 
 END SUBROUTINE wf_iorbp_to_psi
+
 
 subroutine orbs_get_iorbp(orbs, iorbp, isorb, iproc, ikpt, iorb, ispin, ispinor)
   use module_types
@@ -1187,6 +1278,7 @@ subroutine orbs_get_iorbp(orbs, iorbp, isorb, iproc, ikpt, iorb, ispin, ispinor)
   iproc = -1
 END SUBROUTINE orbs_get_iorbp
 
+
 subroutine global_output_new(self, outs, energs, fxyz, nat)
   use module_types
   implicit none
@@ -1205,6 +1297,8 @@ subroutine global_output_new(self, outs, energs, fxyz, nat)
   intern%energs%c_obj = self
   outs => intern
 END SUBROUTINE global_output_new
+
+
 subroutine global_output_free(outs)
   use module_types
   implicit none
@@ -1213,6 +1307,8 @@ subroutine global_output_free(outs)
   call deallocate_global_output(outs)
   deallocate(outs)
 END SUBROUTINE global_output_free
+
+
 subroutine global_output_get(outs, energs, fxyz, fdim, fnoise, pressure, strten, etot)
   use module_types
   implicit none
@@ -1234,6 +1330,8 @@ subroutine global_output_get(outs, energs, fxyz, fdim, fnoise, pressure, strten,
 
   etot = outs%energy
 END SUBROUTINE global_output_get
+
+
 subroutine energs_copy_data(energs, eh, exc, evxc, eion, edisp, ekin, epot, &
      & eproj, eexctX, ebs, eKS, trH, evsum, evsic)
   use module_types
@@ -1267,6 +1365,8 @@ subroutine optloop_new(self, optloop)
   allocate(optloop)
   optloop%c_obj = self
 END SUBROUTINE optloop_new
+
+
 subroutine optloop_free(optloop)
   use module_types
   implicit none
@@ -1274,6 +1374,8 @@ subroutine optloop_free(optloop)
 
   deallocate(optloop)
 END SUBROUTINE optloop_free
+
+
 subroutine optloop_copy_data(optloop, gnrm_cv, rpnrm_cv, gnrm_startmix, gnrm, rpnrm, &
      &  itrpmax, nrepmax, itermax, itrp, itrep, iter, iscf, infocode)
   use module_types
@@ -1297,6 +1399,8 @@ subroutine optloop_copy_data(optloop, gnrm_cv, rpnrm_cv, gnrm_startmix, gnrm, rp
   iscf = optloop%iscf 
   infocode = optloop%infocode
 END SUBROUTINE optloop_copy_data
+
+
 subroutine optloop_sync_data(optloop, gnrm_cv, rpnrm_cv, gnrm_startmix, gnrm, rpnrm, &
      &  itrpmax, nrepmax, itermax, itrp, itrep, iter, iscf, infocode)
   use module_types
@@ -1320,6 +1424,8 @@ subroutine optloop_sync_data(optloop, gnrm_cv, rpnrm_cv, gnrm_startmix, gnrm, rp
   optloop%iscf = iscf 
   optloop%infocode = infocode
 END SUBROUTINE optloop_sync_data
+
+
 subroutine optloop_emit_done(optloop, id, energs, iproc, nproc)
   use module_base
   use module_types
@@ -1330,6 +1436,8 @@ subroutine optloop_emit_done(optloop, id, energs, iproc, nproc)
 
   call optloop_emit_iter(optloop, id + OPTLOOP_N_LOOPS, energs, iproc, nproc)
 END SUBROUTINE optloop_emit_done
+
+
 subroutine optloop_emit_iter(optloop, id, energs, iproc, nproc)
   use module_base
   use module_types
@@ -1370,6 +1478,8 @@ subroutine optloop_emit_iter(optloop, id, energs, iproc, nproc)
   end if
   call timing(iproc,'energs_signals','OF')
 END SUBROUTINE optloop_emit_iter
+
+
 subroutine optloop_bcast(optloop, iproc)
   use module_base
   use module_types
@@ -1406,6 +1516,7 @@ subroutine optloop_bcast(optloop, iproc)
   end if
 END SUBROUTINE optloop_bcast
 
+
 subroutine run_objects_new(runObj)
   use module_types
   implicit none
@@ -1421,6 +1532,8 @@ subroutine run_objects_new(runObj)
   allocate(runObj%rst)
   call restart_objects_new(runObj%rst)
 END SUBROUTINE run_objects_new
+
+
 subroutine run_objects_destroy(runObj)
   use module_types
   use module_base
@@ -1432,6 +1545,8 @@ subroutine run_objects_destroy(runObj)
   call run_objects_free(runObj)
   deallocate(runObj)
 end subroutine run_objects_destroy
+
+
 subroutine run_objects_get(runObj, dict, inputs, atoms)
   use module_types
   use dictionaries
@@ -1445,6 +1560,8 @@ subroutine run_objects_get(runObj, dict, inputs, atoms)
   inputs => runObj%inputs
   atoms => runObj%atoms
 END SUBROUTINE run_objects_get
+
+
 subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly)
   use dictionaries, only: dictionary
   use module_input_keys, only: input_keys_dump
@@ -1481,6 +1598,8 @@ subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly)
 
   call yaml_set_default_stream(iunit_def, iostat)
 END SUBROUTINE run_objects_dump_to_file
+
+
 subroutine run_objects_set_dict(runObj, dict)
   use module_types, only: run_objects
   use dictionaries, only: dictionary
@@ -1492,6 +1611,8 @@ subroutine run_objects_set_dict(runObj, dict)
   ! to release this ownership without freeing dict.
   runObj%user_inputs => dict
 END SUBROUTINE run_objects_set_dict
+
+
 subroutine run_objects_nullify_dict(runObj)
   use module_types, only: run_objects
   implicit none
@@ -1499,6 +1620,8 @@ subroutine run_objects_nullify_dict(runObj)
 
   nullify(runObj%user_inputs)
 END SUBROUTINE run_objects_nullify_dict
+
+
 subroutine run_objects_nullify_volatile(runObj)
   use module_types, only: run_objects
   implicit none
@@ -1508,6 +1631,7 @@ subroutine run_objects_nullify_volatile(runObj)
   nullify(runObj%atoms)
 END SUBROUTINE run_objects_nullify_volatile
 
+
 subroutine mem_new(mem)
   use module_types, only: memory_estimation
   implicit none
@@ -1515,6 +1639,8 @@ subroutine mem_new(mem)
 
   allocate(mem)
 end subroutine mem_new
+
+
 subroutine mem_destroy(mem)
   use module_types, only: memory_estimation
   implicit none
@@ -1523,6 +1649,8 @@ subroutine mem_destroy(mem)
   deallocate(mem)
   nullify(mem)
 end subroutine mem_destroy
+
+
 subroutine mem_to_c(mem, submat, ncomponents, norb, norbp, oneorb, allpsi_mpi, &
      & psistorage, projarr, grid, workarr, kernel, density, psolver, ham, peak)
   use module_types, only: memory_estimation
@@ -1549,6 +1677,7 @@ subroutine mem_to_c(mem, submat, ncomponents, norb, norbp, oneorb, allpsi_mpi, &
   peak = mem%peak
 END SUBROUTINE mem_to_c
 
+
 subroutine dict_move_to_key(dict, exists, key)
   use dictionaries, only: dictionary, operator(//), has_key
   implicit none
@@ -1559,6 +1688,8 @@ subroutine dict_move_to_key(dict, exists, key)
   exists = has_key(dict, key(1:len(key)))
   if (exists) dict => dict // key(1:len(key))
 END SUBROUTINE dict_move_to_key
+
+
 subroutine dict_move_to_item(dict, exists, id)
   use dictionaries, only: dictionary, operator(//), dict_len
   implicit none
@@ -1569,6 +1700,8 @@ subroutine dict_move_to_item(dict, exists, id)
   exists = (id < dict_len(dict) .and. id >= 0)
   if (exists) dict => dict // id
 END SUBROUTINE dict_move_to_item
+
+
 subroutine dict_insert(dict, key)
   use dictionaries, only: dictionary, operator(//)
   implicit none
@@ -1578,6 +1711,8 @@ subroutine dict_insert(dict, key)
   ! This is a patch for Intel, to be corrected properly later.
   dict => dict // key(1:len(key))
 END SUBROUTINE dict_insert
+
+
 subroutine dict_append(dict)
   use dictionaries, only: dictionary, operator(//), dict_len
   implicit none
@@ -1585,6 +1720,8 @@ subroutine dict_append(dict)
 
   dict => dict // dict_len(dict)
 END SUBROUTINE dict_append
+
+
 subroutine dict_put(dict, val)
   use dictionaries, only: dictionary, set
   implicit none
@@ -1594,6 +1731,8 @@ subroutine dict_put(dict, val)
   ! This is a patch for Intel, to be corrected properly later.
   call set(dict, val(1:len(val)))
 END SUBROUTINE dict_put
+
+
 subroutine dict_dump(dict, unit)
   use dictionaries, only: dictionary
   use yaml_output, only: yaml_dict_dump
@@ -1607,6 +1746,8 @@ subroutine dict_dump(dict, unit)
      call yaml_dict_dump(dict, unit = unit)
   end if
 END SUBROUTINE dict_dump
+
+
 subroutine dict_dump_to_file(dict, path)
   use dictionaries, only: dictionary
   use yaml_output, only: yaml_dict_dump, yaml_set_stream, yaml_close_stream, yaml_get_default_stream
@@ -1622,6 +1763,8 @@ subroutine dict_dump_to_file(dict, path)
   call yaml_dict_dump(dict, unit = unit)
   call yaml_close_stream(unit = unit)
 END SUBROUTINE dict_dump_to_file
+
+
 subroutine dict_parse(dict, buf)
   use dictionaries, only: dictionary, operator(//), dict_len
   use yaml_parse, only: yaml_parse_from_string
@@ -1634,6 +1777,8 @@ subroutine dict_parse(dict, buf)
      dict => dict // 0
   end if
 END SUBROUTINE dict_parse
+
+
 subroutine dict_pop(dict, exists, key)
   use dictionaries, only: dictionary, has_key, dict_remove, dict_init
   implicit none
@@ -1647,6 +1792,8 @@ subroutine dict_pop(dict, exists, key)
      if (.not. associated(dict)) call dict_init(dict)
   end if
 END SUBROUTINE dict_pop
+
+
 subroutine dict_value(dict, buf)
   use dictionaries, only: dictionary, max_field_length, wrapper => dict_value
   implicit none
@@ -1655,6 +1802,8 @@ subroutine dict_value(dict, buf)
   
   buf = wrapper(dict)
 END SUBROUTINE dict_value
+
+
 subroutine dict_key(dict, buf)
   use dictionaries, only: dictionary, max_field_length, wrapper => dict_key
   implicit none
@@ -1663,6 +1812,8 @@ subroutine dict_key(dict, buf)
   
   buf = wrapper(dict)
 END SUBROUTINE dict_key
+
+
 subroutine dict_iter(dict, exists)
   use dictionaries, only: dictionary, wrapper => dict_iter
   implicit none
@@ -1675,6 +1826,8 @@ subroutine dict_iter(dict, exists)
   exists = associated(start)
   if (exists) dict => start
 END SUBROUTINE dict_iter
+
+
 subroutine dict_next(dict, exists)
   use dictionaries, only: dictionary, wrapper => dict_next
   implicit none
@@ -1688,6 +1841,7 @@ subroutine dict_next(dict, exists)
   if (exists) dict => next
 END SUBROUTINE dict_next
 
+
 subroutine dict_len(dict, ln)
   use dictionaries, only: dictionary, wrapper => dict_len
   implicit none
@@ -1696,6 +1850,7 @@ subroutine dict_len(dict, ln)
 
   ln = wrapper(dict)
 END SUBROUTINE dict_len
+
 
 subroutine dict_size(dict, ln)
   use dictionaries, only: dictionary, wrapper => dict_size
@@ -1706,6 +1861,7 @@ subroutine dict_size(dict, ln)
   ln = wrapper(dict)
 END SUBROUTINE dict_size
 
+
 subroutine dict_copy(dict, ref)
   use dictionaries, only: dictionary, wrapper => dict_copy
   implicit none
@@ -1714,6 +1870,7 @@ subroutine dict_copy(dict, ref)
   call wrapper(dict, ref)
 END SUBROUTINE dict_copy
 
+
 subroutine dict_update(dict, ref)
   use dictionaries, only: dictionary, wrapper => dict_update
   implicit none
@@ -1721,6 +1878,7 @@ subroutine dict_update(dict, ref)
 
   call wrapper(dict, ref)
 END SUBROUTINE dict_update
+
 
 subroutine dict_init(dict)
   use dictionaries, only: dictionary, wrapper => dict_init

@@ -697,13 +697,13 @@ module time_profiling
       nextra=0
       if (present(loads)) nextra=size(loads)
 
-      call yaml_open_sequence(name,flow=.true.,tabbing=tabbing,unit=unt)
+      call yaml_sequence_open(name,flow=.true.,tabbing=tabbing,unit=unt)
       call yaml_sequence(yaml_toa(pc,fmt=fmt_pc),unit=unt)
       call yaml_sequence(yaml_toa(secs,fmt=fmt_secs),unit=unt)
       do iextra=0,nextra-1
          call yaml_sequence(yaml_toa(loads(iextra),fmt=fmt_extra),unit=unt)
       end do
-      call yaml_close_sequence(unit=unt)
+      call yaml_sequence_close(unit=unt)
 
 
     end subroutine timing_dump_line
@@ -760,7 +760,7 @@ module time_profiling
       call timing_data_synthesis(nproc,ncounters,timecnt,timecnt(1,nproc))
 
       call timing_open_stream(iunit_def)
-      call yaml_open_map('SUMMARY',advance='no')
+      call yaml_mapping_open('SUMMARY',advance='no')
       call yaml_comment('     % ,  Time (s)',tabbing=tabfile)
 
       !sum all the information by counters
@@ -769,7 +769,7 @@ module time_profiling
          call timing_dump_line(trim(pcnames(i)),tabfile,pc,timecnt(i,nproc))
       end do
       call timing_dump_line('Total',tabfile,100.d0,sum(timecnt(1:ncounters,nproc)))
-      call yaml_close_map() !summary
+      call yaml_mapping_close() !summary
 
       !dump extra info dictionary
       if (associated(dict_info)) call yaml_dict_dump(dict_info)
@@ -851,7 +851,7 @@ module time_profiling
       !use yaml to write time.yaml
       call timing_open_stream(iunit_def)
 
-      call yaml_open_map(trim(message),advance='no')
+      call yaml_mapping_open(trim(message),advance='no')
       if (nproc==1) then
          call yaml_comment('     % ,  Time (s)',tabbing=tabfile)
       else if (times(ictrl)%debugmode) then
@@ -859,7 +859,7 @@ module time_profiling
       else
          call yaml_comment('     % ,  Time (s), Max, Min Load (relative) ',tabbing=tabfile)
       end if
-      call yaml_open_map('Classes')
+      call yaml_mapping_open('Classes')
       total_pc=0.d0
       do icls=1,ncls
          pc=0.0d0
@@ -874,7 +874,7 @@ module time_profiling
       end do
       call timing_dump_line('Total',tabfile,total_pc,times(ictrl)%clocks(ncat+1),&
            loads=timeall(ncat+1,0:nextra-1))
-      call yaml_open_map('Categories',advance='no')
+      call yaml_mapping_open('Categories',advance='no')
       call yaml_comment('Ordered by time consumption')
       do j=1,ncat
          i=isort(j)
@@ -885,19 +885,19 @@ module time_profiling
             if (timeall(ncat+1,nproc)/=0.d0)&
                  pc=100.d0*timeall(i,nproc)/timeall(ncat+1,nproc)
             name=dict_cat//catname
-            call yaml_open_map(trim(name))
+            call yaml_mapping_open(trim(name))
             call timing_dump_line('Data',tabfile,pc,timeall(i,nproc),&
                  loads=timeall(i,0:nextra-1))
             name=dict_cat//grpname
             call yaml_map('Class',trim(name))
             name=dict_cat//catinfo
             call yaml_map('Info',trim(name))
-            call yaml_close_map()
+            call yaml_mapping_close()
          end if
       enddo
 
-      call yaml_close_map() !categories
-      call yaml_close_map() !counter
+      call yaml_mapping_close() !categories
+      call yaml_mapping_close() !counter
       !restore the default stream
       call timing_close_stream(iunit_def)
 
@@ -988,7 +988,7 @@ module time_profiling
 !!!!!$     call timing_data_synthesis(nproc,ncounters,timecnt,timecnt(1,nproc))
 !!!!!$
 !!!!!$     call timing_open_stream(iunit_def)
-!!!!!$     call yaml_open_map('SUMMARY',advance='no')
+!!!!!$     call yaml_mapping_open('SUMMARY',advance='no')
 !!!!!$     call yaml_comment('     % ,  Time (s)',tabbing=tabfile)
 !!!!!$     
 !!!!!$     !sum all the information by counters
@@ -997,26 +997,26 @@ module time_profiling
 !!!!!$        call timing_dump_line(trim(pcnames(i)),tabfile,pc,timecnt(i,nproc))
 !!!!!$     end do
 !!!!!$     call timing_dump_line('Total',tabfile,100.d0,sum(timecnt(1:ncounters,nproc)))
-!!!!!$     call yaml_close_map() !summary
+!!!!!$     call yaml_mapping_close() !summary
 !!!
 !!!     call dict_init(dict_info)
 !!!     !here this information can be dumped by adding an extra dictionary to the routine arguments
-!!!     !call yaml_open_map('CPU parallelism')
+!!!     !call yaml_mapping_open('CPU parallelism')
 !!!     !call yaml_map('MPI_tasks',nproc)
 !!!     nthreads = 0
 !!!     !$  nthreads=omp_get_max_threads()
 !!!     !if (nthreads /= 0) call yaml_map('OMP threads',nthreads)
-!!!     !call yaml_close_map()
+!!!     !call yaml_mapping_close()
 !!!     call set(dict_info//'CPU parallelism'//'MPI tasks',nproc)
 !!!     if (nthreads /= 0) call set(dict_info//'CPU parallelism'//'OMP threads',&
 !!!          nthreads)
 !!!
 !!!     if (debugmode .and. parallel) then
-!!!        !call yaml_open_sequence('Hostnames')
+!!!        !call yaml_sequence_open('Hostnames')
 !!!        !do jproc=0,nproc-1
 !!!        !   call yaml_sequence(trim(nodename(jproc)))
 !!!        !end do
-!!!        !call yaml_close_sequence()
+!!!        !call yaml_sequence_close()
 !!!        call set(dict_info//'Hostnames',&
 !!!             list_new(.item. nodename))
 !!!     end if

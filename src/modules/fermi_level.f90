@@ -1,3 +1,14 @@
+!> @file
+!! BigDFT package performing ab initio calculation based on wavelets
+!! @author
+!!    Copyright (C) 2014-2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Determination of the Fermi level for the density matrix
 module fermi_level
   use module_base
   implicit none
@@ -157,28 +168,23 @@ module fermi_level
       ! Check whether the system behaves reasonably.
       interpolation_possible=.true.
       if (f%it_solver > 1) then
-          if (f%verbosity >= 1 .and. bigdft_mpi%iproc==0) then
-              call yaml_newline()
-              call yaml_open_map('interpol check',flow=.true.)
-              call yaml_map('D eF',ef-f%ef_old,fmt='(es13.6)')
-              call yaml_map('D Tr',sumn-f%sumn_old,fmt='(es13.6)')
+          if (ef > f%ef_old .and. sumn < f%sumn_old) then
+              interpolation_possible = .false.
+          else if (ef < f%ef_old .and. sumn > f%sumn_old) then
+              interpolation_possible = .false.
           end if
           if (abs(sumn-f%sumn_old)<1.d-10) then
               interpolation_possible = .false.
           end if
-          if (ef > f%ef_old .and. sumn < f%sumn_old) then
-              interpolation_possible = .false.
-          end if
-          if (ef < f%ef_old .and. sumn > f%sumn_old) then
-              interpolation_possible = .false.
-          end if
-          if (interpolation_possible) then
-              if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('interpol possible',.true.)
-          else
-              if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('interpol possible',.false.)
-          end if
-          if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_close_map()
-          if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_newline()
+          if (f%verbosity >= 1 .and. bigdft_mpi%iproc==0) then
+              call yaml_newline()
+              call yaml_mapping_open('interpol check',flow=.true.)
+                 call yaml_map('D eF',ef-f%ef_old,fmt='(es13.6)')
+                 call yaml_map('D Tr',sumn-f%sumn_old,fmt='(es13.6)')
+                 call yaml_map('interpol possible',interpolation_possible)
+              call yaml_mapping_close()
+              call yaml_newline()
+           end if
       end if
       if (.not.interpolation_possible) then
           ! Set the history for the interpolation to zero.
@@ -231,32 +237,30 @@ module fermi_level
                   tmp_matrix(i,3)=f%interpol_matrix(i,3)
                   tmp_matrix(i,4)=f%interpol_matrix(i,4)
               end do
-        
-              if (bigdft_mpi%iproc==0) then
+              !if (bigdft_mpi%iproc==0) then
                  !call yaml_map('matrix',tmp_matrix,fmt='(es10.3)')
                  !call yaml_map('interpol_vector',f%interpol_vector,fmt='(es12.5)')
                  !call yaml_newline()
                  !call yaml_map('solution',interpol_solution,fmt='(es10.3)')
                  !call yaml_map('determinant',determinant(bigdft_mpi%iproc,4,f%interpol_matrix),fmt='(es10.3)')
-              end if
               call dgesv(ii, 1, tmp_matrix, 4, ipiv, interpol_solution, 4, info)
               if (info/=0) then
                  if (bigdft_mpi%iproc==0) write(*,'(1x,a,i0)') 'ERROR in dgesv (FOE), info=',info
               end if
         
-              if (bigdft_mpi%iproc==0) call yaml_map('a x^3+b x^2 + c x + d',interpol_solution,fmt='(es10.3)')
+              !if (bigdft_mpi%iproc==0) call yaml_map('a x^3+b x^2 + c x + d',interpol_solution,fmt='(es10.3)')
               call get_roots_of_cubic_polynomial(interpol_solution(1), interpol_solution(2), &
                    interpol_solution(3), interpol_solution(4), ef, ef_interpol)
-              if (bigdft_mpi%iproc==0) then
-                  call yaml_newline()
-                  call yaml_map('zero of cubic polynomial',ef_interpol,fmt='(es10.3)')
-              end if
+              !if (bigdft_mpi%iproc==0) then
+              !    call yaml_newline()
+              !    call yaml_map('zero of cubic polynomial',ef_interpol,fmt='(es10.3)')
+              !end if
           end if
         
           ! Calculate the new Fermi energy.
           if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) then
               call yaml_newline()
-              call yaml_open_map('Search new eF',flow=.true.)
+              call yaml_mapping_open('Search new eF',flow=.true.)
           end if
           if (f%it_solver>=4 .and.  &
               abs(sumn-f%target_charge) < f%ef_interpol_chargediff) then
@@ -286,7 +290,7 @@ module fermi_level
           end if
           if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) then
               call yaml_map('guess for new ef',ef,fmt='(es15.8)')
-              call yaml_close_map()
+              call yaml_mapping_close()
           end if
 
 

@@ -31,7 +31,7 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
   !Local variables 
   character(len=*), parameter :: subname='Periodic_Kernel'
   real(dp), parameter :: pi=3.14159265358979323846_dp
-  integer :: i1,i2,i3,j3,i_all,i_stat,iproc1
+  integer :: i1,i2,i3,j3,iproc1
   real(dp) :: p1,p2,mu3,ker
   real(dp), dimension(:), allocatable :: fourISFx,fourISFy,fourISFz
   !metric for triclinic lattices
@@ -380,7 +380,7 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
   real(dp) :: a,b,c,d,feR,foR,foI,fR,cp,sp,pion,x,value !n(c) ,diff, feI
   integer :: n_scf,ncache,imu,ierr,ntrig
   integer :: n_range,n_cell,num_of_mus,shift,istart,iend,ireim,jreim,j2st,j2nd,nact2
-  integer :: i,i1,i2,i3,i_stat,i_all
+  integer :: i,i1,i2,i3
   integer :: j2,ind1,ind2,jnd1,ic,inzee,nfft,ipolyord,jp2
 
   !metric for monoclinic lattices
@@ -817,7 +817,7 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
   real(dp), dimension(n), intent(out) :: g_mu
   !local variables
   character(len=*), parameter :: subname='calculates_green_opt'
-  integer :: izero,ivalue,i,iend,ikern,n_iter,nrec,i_all,i_stat
+  integer :: izero,ivalue,i,iend,ikern,n_iter,nrec
   real(dp) :: f,x,filter,gleft,gright,gltmp,grtmp,fl,fr,ratio,mu0 !n(c) x0, x1
   real(dp), dimension(:), allocatable :: green,green1
 
@@ -1092,7 +1092,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  real(dp) :: a1,a2,a3,wg,k2,k3
  integer :: n_scf, nker2, nker3 !n(c) nker1
  integer :: i_gauss, n_range, n_cell
- integer :: i1, i2, i3, i_stat, i_all,iproc1
+ integer :: i1, i2, i3, iproc1
  integer :: i03, iMin, iMax
 
  !!! PSolver n1-n2 plane mpi partitioning !!!
@@ -1339,7 +1339,7 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
   !!acerioni
   real(dp), dimension(:), allocatable :: x_scf, y_scf
   real(dp), dimension(-n_range:n_range) :: fwork_tmp
-  integer :: n_points, i_stat, n_scf, nrange
+  integer :: n_points, n_scf, nrange
   real(dp) :: dx
   real(dp), dimension(-n_range:n_range) :: work
   !real(dp), dimension(-n_range:n_range) :: kernel_scf
@@ -1978,7 +1978,7 @@ subroutine Wires_Kernel(iproc,nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2
   character(len=*), parameter :: subname='Wires_Kernel'
   real(dp), parameter :: pi=3.14159265358979323846_dp
   integer, parameter :: n_gauss = 144
-  integer :: i1, i2, i3, i_all, i_stat, n_range, n_cell, k
+  integer :: i1, i2, i3, n_range, n_cell, k
   real(dp) :: mu, t0, t1
   !real(dp), dimension(:), allocatable :: fourISFx,fourISFy,fourISFz
   real(dp), dimension(:), allocatable :: fwork

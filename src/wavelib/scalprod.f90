@@ -3321,7 +3321,7 @@ subroutine wpdot(  &
   !local variables
   integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,iboff,length,i,ja0,ja1
   real(dp) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
-  integer :: iaseg0,ibsegs,ibsege
+  integer :: iaseg0!,ibsegs,ibsege
   integer, dimension(maseg_c) :: keyag_c_lin !>linear version of second indices of keyag_c
   integer, dimension(maseg_f) :: keyag_f_lin !>linear version of second indices of keyag_f
   !Variables for OpenMP
@@ -3348,7 +3348,7 @@ subroutine wpdot(  &
 !$omp shared (apsi_f,scpr) &
 !!$omp parallel default(shared) &
 !$omp private(i,jaj,iaoff,length,ja1,ja0,jb1,jb0,iboff) &
-!$omp private(jbj,ibseg,iaseg0)!!!,ithread,nthread,ibsegs,ibsege,nchunk)
+!$omp private(jbj,ibseg,iaseg0)!!!,ithread,nthread,nchunk) !,ibsegs,ibsege
 
   scpr0=0.0_dp
   scpr1=0.0_dp
