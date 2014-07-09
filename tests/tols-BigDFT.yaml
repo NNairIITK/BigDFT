@@ -95,10 +95,12 @@ SiBulk:
  # Enl: 2.1e-11
  # Epot: 1.0e-10
  # EvXC: 1.1e-10
- Last Iteration: 2.01e-11
+ Last Iteration: 7.01e-10
  Atomic Forces (Ha/Bohr): 1.3e-10
- Clean forces norm (Ha/Bohr): 8.3e-11
- Average noise forces: 4.51e-11
+ Clean forces norm (Ha/Bohr): 3.3e-10
+ Average noise forces: 9.3e-10
+ HOMO LUMO gap (AU, eV): 1.8e-10
+ PV (Ha): 1.89e-10
  Optimization of virtual orbitals: 5.56e-8
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
@@ -333,7 +335,7 @@ Davidson-SiH4:
 
 TDDFT:
   Epsilon: 1.1e-10
-  e_virtual: 3.2e-7
+  e_virtual: 6.0e-7
   Eigenvalues and eigenstate residue: 1.2e-4
   Epot: 1.1e-10
   Gradient Norm: 1.01e-4 #too big?
