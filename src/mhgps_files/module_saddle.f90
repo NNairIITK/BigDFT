@@ -2036,6 +2036,8 @@ use module_base
     integer :: iat,jat
     real(gp) :: dist2
     nbond=0
+    write(*,*)'BASTIAN',nat
+    write(*,*)rcov
     do iat=1,nat
         do jat=1,iat-1
             dist2=(pos(1,iat)-pos(1,jat))**2+(pos(2,iat)-pos(2,jat))**2+(pos(3,iat)-pos(3,jat))**2

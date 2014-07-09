@@ -66,7 +66,7 @@ if BUILD_BINARIES
 binaries_sources = bigdft memguess splsad NEB frequencies global abscalc mhgps
 local_binaries = test_forces
 scripts_sources = NEB_driver.sh bigdft-tool
-sub_dirs_bin = tools tools/bader
+sub_dirs_bin = tools ##tools/bader
 EXTRA_PROGRAMS = MDanalysis bart BigDFT2Wannier WaCo NEB_images
 else
 binaries_sources =

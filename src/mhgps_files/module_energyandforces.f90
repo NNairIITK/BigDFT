@@ -10,6 +10,9 @@ module module_energyandforces
 contains
 
 subroutine energyandforces(nat,alat,rxyz,fxyz,epot)
+    !returns energies in hartree and
+    !forces in hartree/bohr
+    !(except for LJ)
     use module_base
     use module_types
     use module_interfaces
@@ -33,11 +36,18 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,epot)
         return
     else if(trim(adjustl(efmethod))=='AMBER')then
         icc=1
-        !convert form bohr to ansgtroem
-        rxyzint=0.529177211_gp*rxyz
+        !convert from bohr to ansgtroem
+!        rxyzint=0.52917721092_gp*rxyz
+        rxyzint=rxyz
         call call_nab_gradient(rxyzint(1,1),fxyz(1,1),epot,icc)
-        !convert from gradient in kcal/mol/angstorm to force in hartree/bohr
-        fxyz(1:3,1:nat)=-fxyz(1:3,1:nat)*0.000843298_gp
+!        epot=epot*0.001593601437458137_dp !from kcal_th/mol to hartree
+                                          !(thermochemical calorie used:
+                                          !1cal_th=4.184J)
+                                          !also see:
+                                          !http://archive.ambermd.org/201009/0039.html
+        !convert from gradient in kcal_th/mol/angstrom to force in hartree/bohr
+!        fxyz(1:3,1:nat)=-fxyz(1:3,1:nat)*0.0008432975639921999_gp
+        fxyz(1:3,1:nat)=-fxyz(1:3,1:nat)
         return
     else if(trim(adjustl(efmethod))=='BIGDFT')then
         if(nat/=runObj%atoms%astruct%nat)then
