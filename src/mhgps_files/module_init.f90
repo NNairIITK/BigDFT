@@ -105,7 +105,7 @@ contains
 
         call yaml_comment('(MHGPS) Minima Hopping Guided Path Sampling',hfill='=')
         
-        call yaml_open_map('(MHGPS) logo')
+        call yaml_maping_open('(MHGPS) logo')
         call yaml_scalar('(MHGPS)      ___           ___           ___           ___           ___     ') 
         call yaml_scalar('(MHGPS)     /\__\         /\__\         /\  \         /\  \         /\  \    ')
         call yaml_scalar('(MHGPS)    /::|  |       /:/  /        /::\  \       /::\  \       /::\  \   ')
@@ -121,10 +121,10 @@ contains
         call yaml_scalar('(MHGPS)')
         call yaml_scalar('(MHGPS)')
         !call print_logo()
-        call yaml_close_map()
-        call yaml_open_map('(MHGPS) Reference Paper')
+        call yaml_mapping_close()
+        call yaml_mapping_open('(MHGPS) Reference Paper')
         call yaml_scalar('(MHGPS) The Journal of Chemical Physics 140 (21):214102 (2014)')
-        call yaml_close_map()
+        call yaml_mapping_close()
         call yaml_map('(MHGPS) Version Number',mhgps_version)
         call yaml_map('(MHGPS) Timestamp of this run',yaml_date_and_time_toa())
     end subroutine print_logo_mhgps

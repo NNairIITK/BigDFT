@@ -1264,7 +1264,7 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
    occured=.true.
 write(671,*)'fragmentation occured'
 !   if(iproc==0) then
-!      call yaml_open_map('(MH) FIX')
+!      call yaml_mapping_open('(MH) FIX')
 !      call yaml_map('(MH) Number of Fragments counted with option', (/nfrag,option/))
 !   endif
    if (option==1) then !OPTION=1, FIX FRAGMENTATION
@@ -1326,7 +1326,7 @@ write(671,*)'fragmentation occured'
       deallocate(fragcount)
 !      if(iproc==0) then
 !         call yaml_comment('(MH) FIX: Fragmentation fixed! Keep on hopping...')
-!         call yaml_close_map()
+!         call yaml_mapping_close()
 !      end if
 !      if (iproc == 0) then
 !         write(444,*) nat, 'atomic '
@@ -1384,11 +1384,11 @@ write(671,*)'fragmentation occured'
          endif
 !         if (iproc==0) then
 !           write(*,*) '(MH) ifrag, angle ',ifrag, angle,invert(ifrag)
-!           call yaml_open_map('(MH) Frag. Info',flow=.true.)
+!           call yaml_mapping_open('(MH) Frag. Info',flow=.true.)
 !            call yaml_map('ifrag',ifrag)
 !            call yaml_map('angle',angle)
 !            call yaml_map('ifrag inverted',invert(ifrag))
-!           call yaml_close_map(advance='yes')
+!           call yaml_mapping_close(advance='yes')
 !         endif
       enddo
       !Decompose each atomic velocity into an component parallel and perpendicular to the cm_frags  vector and inter the 
@@ -1407,9 +1407,9 @@ write(671,*)'fragmentation occured'
       enddo
 !      if (iproc==0) then
 !          write(*,'(a,e14.7,3(e10.3))') '(MH) EKIN CM before invert',ekin0,vcm1,vcm2,vcm3
-!!          call yaml_open_map(,flow=.true.)
+!!          call yaml_mapping_open(,flow=.true.)
 !          call yaml_map('(MH) EKIN CM before invert',(/ekin0,vcm1,vcm2,vcm3/),fmt='(e10.3)')
-!!          call yaml_close_map(advance='yes')
+!!          call yaml_mapping_close(advance='yes')
 !      endif
 !      if (iproc==0) call torque(nat,pos,vel)
       !Checkend kinetic energy before inversion
@@ -1452,9 +1452,9 @@ write(671,*)'fragmentation occured'
       enddo
 !      if (iproc==0) then
 !          write(*,'(a,e14.7,3(e10.3))') '(MH) EKIN CM after  invert',ekin,vcm1,vcm2,vcm3
-!          !call yaml_open_map('(MH) EKIN CM after invert',flow=.true.)
+!          !call yaml_mapping_open('(MH) EKIN CM after invert',flow=.true.)
 !          call yaml_map('(MH) EKIN CM after invert',(/ekin0,vcm1,vcm2,vcm3/),fmt='(e10.3)')
-!          !call yaml_close_map(advance='yes')
+!          !call yaml_mapping_close(advance='yes')
 !      endif
 !      if (iproc==0) call torque(nat,pos,vel)
       !Checkend kinetic energy after inversion
@@ -1470,10 +1470,10 @@ write(671,*)'fragmentation occured'
          rnrmi=1.0_gp/sqrt(vel_frags(1,ifrag)**2+vel_frags(2,ifrag)**2+vel_frags(3,ifrag)**2)
          angle=angle*rnrmi
 !         if (iproc==0) then
-!           call yaml_open_map('(MH) Frag',flow=.true.)
+!           call yaml_mapping_open('(MH) Frag',flow=.true.)
 !            call yaml_map('ifrag',ifrag)
 !            call yaml_map('angle a invert',angle)
-!           call yaml_close_map(advance='yes')
+!           call yaml_mapping_close(advance='yes')
 !         endif
         
       enddo
