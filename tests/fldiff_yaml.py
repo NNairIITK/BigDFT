@@ -221,7 +221,7 @@ def compare_scl(scl, ref, tols, always_fails=False):
             if tols is not None:
                 biggest_tol = max(biggest_tol, math.fabs(tols))
     if failed:
-        print 'fldiff_failure', scl, ref, tols, discrepancy, biggest_tol
+        print 'fldiff_failure; val, ref, delta, tol, diff, bigtol', scl, ref, math.fabs(scl - ref), tols, ret_diff, biggest_tol
         failed_checks += 1
     return ret
 

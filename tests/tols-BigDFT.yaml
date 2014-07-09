@@ -92,13 +92,14 @@ SiBulk:
  Residues per orbital: 8.0e-10
  maxval: 1.3e-10
  # Ekin: 2.1e-11
- # Enl: 5.1e-11
+ # Enl: 2.1e-11
  # Epot: 1.0e-10
  # EvXC: 1.1e-10
+ Last Iteration: 2.01e-11
  Atomic Forces (Ha/Bohr): 1.3e-10
  Clean forces norm (Ha/Bohr): 8.3e-11
- Average noise forces: 2.4e-11
- Optimization of virtual orbitals: 2.97e-8
+ Average noise forces: 4.51e-11
+ Optimization of virtual orbitals: 5.56e-8
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
   - Residues per orbital
@@ -332,12 +333,12 @@ Davidson-SiH4:
 
 TDDFT:
   Epsilon: 1.1e-10
-  e_virtual: 1.2e-7
-  Eigenvalues and eigenstate residue: 1.2e-5
+  e_virtual: 3.2e-7
+  Eigenvalues and eigenstate residue: 1.2e-4
   Epot: 1.1e-10
   Gradient Norm: 4.0e-8
   L2 Norm - 1 and Rayleigh quotient (Davidson): 1.1e-6
-  Excitation Energy and Oscillator Strength: 1.3e-5
+  Excitation Energy and Oscillator Strength: 1.3e-4
   Transition energies (eV): 3.01e-4
 
 BigDFT2Wannier.b2w.ref.yaml:
@@ -808,7 +809,7 @@ experimentalfoe_medium:
  Epot: 1.1e-9
  EH: 1.1e-9
  Total charge: 3.1e-11
- energy: 8.3e-11
+ energy: 1.4e-10
  Omega: 8.1e-10
  decay length of error function: 1.1e-5
 
