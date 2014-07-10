@@ -534,7 +534,7 @@ contains
 
 
       ! Allocate the matrices
-      call allocate_sparse_matrix_matrices(sparsemat, allocate_full)
+      !call allocate_sparse_matrix_matrices(sparsemat, allocate_full)
 
 
       ! Initialize the parameters for the spare matrix matrix multiplication

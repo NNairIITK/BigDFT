@@ -4078,12 +4078,13 @@ module module_interfaces
           real(kind=8),intent(out),optional :: max_error, mean_error
         end subroutine overlap_minus_one_half_serial
 
-        subroutine calculate_weight_matrix_lowdin(weight_matrix,nfrag_charged,ifrag_charged,tmb,input,ref_frags,&
+        subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_charged,ifrag_charged,tmb,input,ref_frags,&
              calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap,ovrlp_half)
           use module_types
           use module_fragments
           implicit none
           type(sparse_matrix), intent(inout) :: weight_matrix
+           type(matrices), intent(inout) :: weight_matrix_
           type(input_variables),intent(in) :: input
           type(dft_wavefunction), intent(inout) :: tmb
           logical, intent(in) :: calculate_overlap_matrix, calculate_ovrlp_half

@@ -421,27 +421,26 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   !call nullify_sparse_matrix(grad_ovrlp)
   grad_ovrlp=sparse_matrix_null()
   call sparse_copy_pattern(tmb%linmat%m, grad_ovrlp, iproc, subname)
-  grad_ovrlp%matrix_compr=f_malloc_ptr(grad_ovrlp%nvctr,id='grad_ovrlp%matrix_compr')
+  !grad_ovrlp%matrix_compr=f_malloc_ptr(grad_ovrlp%nvctr,id='grad_ovrlp%matrix_compr')
   grad_ovrlp_ = matrices_null()
   call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
        matname='grad_ovrlp_', mat=grad_ovrlp_)
 
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, hpsit_c, hpsit_c, &
        hpsit_f, hpsit_f, tmb%linmat%m, grad_ovrlp_)
-  ! This can then be deleted if the transition to the new type has been completed.
-  grad_ovrlp%matrix_compr=grad_ovrlp_%matrix_compr
+  !! This can then be deleted if the transition to the new type has been completed.
+  !grad_ovrlp%matrix_compr=grad_ovrlp_%matrix_compr
 
-  call deallocate_matrices(grad_ovrlp_)
 
   grad_coeff = f_malloc((/ tmb%orbs%norb, tmb%orbs%norb /),id='grad_coeff')
   coeff_tmp = f_malloc((/ tmb%orbs%norbp, max(tmb%orbs%norb, 1) /),id='coeff_tmp')
 
-  grad_ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='grad_ovrlp%matrix')
-  call uncompress_matrix(iproc,grad_ovrlp)
+  !grad_ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='grad_ovrlp%matrix')
+  call uncompress_matrix(iproc,grad_ovrlp,grad_ovrlp_%matrix_compr,grad_ovrlp_%matrix)
 
   ! can change this so only go up to ksorbs%norb...
   if (tmb%orbs%norbp>0) then
-     call dgemm('n', 'n', tmb%orbs%norbp, tmb%orbs%norb, tmb%orbs%norb, 1.d0, grad_ovrlp%matrix(tmb%orbs%isorb+1,1), &
+     call dgemm('n', 'n', tmb%orbs%norbp, tmb%orbs%norb, tmb%orbs%norb, 1.d0, grad_ovrlp_%matrix(tmb%orbs%isorb+1,1), &
           tmb%orbs%norb, tmb%coeff(1,1), tmb%orbs%norb, 0.d0, coeff_tmp, tmb%orbs%norbp)
      call dgemm('t', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norbp, 1.d0, tmb%coeff(tmb%orbs%isorb+1,1), &
           tmb%orbs%norb, coeff_tmp, tmb%orbs%norbp, 0.d0, grad_coeff, tmb%orbs%norb)
@@ -450,6 +449,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   end if
 
   call f_free(coeff_tmp)
+  call deallocate_matrices(grad_ovrlp_)
 
   if (nproc>1) then
       call mpiallred(grad_coeff(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
@@ -474,7 +474,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   !call calculate_kernel_and_energy(iproc,nproc,denskern,grad_coeff,ksres_sum,tmb%coeff,orbs,tmb%orbs,.true.)
   grad_ovrlp_ = matrices_null()
   call allocate_matrices(tmb%linmat%m, allocate_full=.false., matname='grad_ovrlp_', mat=grad_ovrlp_)
-  grad_ovrlp_%matrix_compr=grad_ovrlp%matrix_compr
+  !grad_ovrlp_%matrix_compr=grad_ovrlp%matrix_compr
   call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,grad_ovrlp,&
        tmb%linmat%kernel_, grad_ovrlp_, &
        ksres_sum,tmb%coeff,tmb%orbs,tmb%orbs,.false.)

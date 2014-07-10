@@ -1118,7 +1118,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
     
       ! First fill the kernel with some numbers.
       do i=1,denskern%nvctr
-          denskern%matrix_compr(i)=sine_taylor(real(denskern%nvctr-i+1,kind=8))
+          denskern_%matrix_compr(i)=sine_taylor(real(denskern%nvctr-i+1,kind=8))
       end do
     
       hxh=.5d0*lzd%hgrids(1)
@@ -1148,7 +1148,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       rho_check=f_malloc(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1),1),id='rho_check')
       !$omp parallel default (none) &
       !$omp private (i3, i2, i1, iixyz, ind, tt, i,j, ii, tti, ikernel, jj, ttj) &
-      !$omp shared (ii3s, ii3e, lzd, weight, orbital_id, denskern, rho_check) &
+      !$omp shared (ii3s, ii3e, lzd, weight, orbital_id, denskern, denskern_, rho_check) &
       !$omp shared (nxyz, factor, matrixindex_in_compressed_auxilliary)
       do i3=ii3s,ii3e
           !$omp do
@@ -1161,13 +1161,13 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
                       ii=orbital_id(i,i1,i2,i3)
                       tti=test_value_sumrho(ii,iixyz,nxyz)
                       ikernel=matrixindex_in_compressed_auxilliary(ii,ii)
-                      tt=tt+denskern%matrix_compr(ikernel)*tti*tti
+                      tt=tt+denskern_%matrix_compr(ikernel)*tti*tti
                       do j=i+1,weight(i1,i2,i3)
                           jj=orbital_id(j,i1,i2,i3)
                           ikernel=matrixindex_in_compressed_auxilliary(jj,ii)
                           if (ikernel==0) cycle
                           ttj=test_value_sumrho(jj,iixyz,nxyz)
-                          tt=tt+2.d0*denskern%matrix_compr(ikernel)*tti*ttj
+                          tt=tt+2.d0*denskern_%matrix_compr(ikernel)*tti*ttj
                       end do
                   end do
                   tt=tt*factor
@@ -1182,7 +1182,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
     
       ! Now calculate the charge density in the transposed way using the standard routine
       rho=f_malloc(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1),1),id='rho')
-      denskern_%matrix_compr = denskern%matrix_compr
+      !denskern_%matrix_compr = denskern%matrix_compr
       call sumrho_for_TMBs(iproc, nproc, lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), collcom_sr, denskern, denskern_, &
            lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3d, rho, rho_negative, .false.)
     

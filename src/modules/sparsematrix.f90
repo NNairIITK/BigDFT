@@ -38,31 +38,31 @@ module sparsematrix
       ! Calling arguments
       integer, intent(in) :: iproc
       type(sparse_matrix),intent(inout) :: sparsemat
-      real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr),target,intent(in),optional :: inmat
-      real(kind=8),dimension(sparsemat%nvctr),target,intent(out),optional :: outmat
+      real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr),target,intent(in) :: inmat
+      real(kind=8),dimension(sparsemat%nvctr),target,intent(out) :: outmat
     
       ! Local variables
       integer :: jj, irow, jcol, jjj, ierr
       real(kind=8),dimension(:,:),pointer :: inm
       real(kind=8),dimension(:),pointer :: outm
 
-      if (present(outmat)) then
-          if (sparsemat%parallel_compression/=0 .and. bigdft_mpi%nproc>1) then
-              stop 'outmat not allowed for the given options'
-          end if
+      !if (present(outmat)) then
+      !    if (sparsemat%parallel_compression/=0 .and. bigdft_mpi%nproc>1) then
+      !        stop 'outmat not allowed for the given options'
+      !    end if
           outm => outmat
-      else
-          outm => sparsemat%matrix_compr
-      end if
+      !else
+      !    outm => sparsemat%matrix_compr
+      !end if
 
-      if (present(inmat)) then
-          if (sparsemat%parallel_compression/=0 .and. bigdft_mpi%nproc>1) then
-              stop 'in not allowed for the given options'
-          end if
+      !if (present(inmat)) then
+      !    if (sparsemat%parallel_compression/=0 .and. bigdft_mpi%nproc>1) then
+      !        stop 'in not allowed for the given options'
+      !    end if
           inm => inmat
-      else
-          inm => sparsemat%matrix
-      end if
+      !else
+      !    inm => sparsemat%matrix
+      !end if
     
       call timing(iproc,'compress_uncom','ON')
     
@@ -75,33 +75,35 @@ module sparsematrix
          end do
          !$omp end parallel do
       else if (sparsemat%parallel_compression==1) then
-         call to_zero(sparsemat%nvctr, sparsemat%matrix_compr(1))
-         !$omp parallel do default(private) shared(sparsemat)
-         do jj=1,sparsemat%nvctrp
-            jjj=jj+sparsemat%isvctr
-            irow = sparsemat%orb_from_index(1,jjj)
-            jcol = sparsemat%orb_from_index(2,jjj)
-            sparsemat%matrix_compr(jjj)=sparsemat%matrix(irow,jcol)
-         end do
-         !$omp end parallel do
-         if (bigdft_mpi%nproc > 1) then
-            call mpiallred(sparsemat%matrix_compr(1), sparsemat%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
-         end if
+         stop 'this needs to be fixed'
+         !!#call to_zero(sparsemat%nvctr, sparsemat%matrix_compr(1))
+         !!#!$omp parallel do default(private) shared(sparsemat)
+         !!#do jj=1,sparsemat%nvctrp
+         !!#   jjj=jj+sparsemat%isvctr
+         !!#   irow = sparsemat%orb_from_index(1,jjj)
+         !!#   jcol = sparsemat%orb_from_index(2,jjj)
+         !!#   sparsemat%matrix_compr(jjj)=sparsemat%matrix(irow,jcol)
+         !!#end do
+         !!#!$omp end parallel do
+         !!#if (bigdft_mpi%nproc > 1) then
+         !!#   call mpiallred(sparsemat%matrix_compr(1), sparsemat%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
+         !!#end if
       else
-         sparsemat%matrix_comprp=f_malloc_ptr((sparsemat%nvctrp),id='sparsemat%matrix_comprp')
-         !$omp parallel do default(private) shared(sparsemat)
-         do jj=1,sparsemat%nvctrp
-            jjj=jj+sparsemat%isvctr
-            irow = sparsemat%orb_from_index(1,jjj)
-            jcol = sparsemat%orb_from_index(2,jjj)
-            sparsemat%matrix_comprp(jj)=sparsemat%matrix(irow,jcol)
-         end do
-         !$omp end parallel do
-         if (bigdft_mpi%nproc > 1) &
-            & call mpi_allgatherv(sparsemat%matrix_comprp, sparsemat%nvctrp, &
-            &    mpi_double_precision, sparsemat%matrix_compr, sparsemat%nvctr_par(:), &
-            &    sparsemat%isvctr_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-         call f_free_ptr(sparsemat%matrix_comprp)
+         stop 'this needs to be fixed'
+         !!#sparsemat%matrix_comprp=f_malloc_ptr((sparsemat%nvctrp),id='sparsemat%matrix_comprp')
+         !!#!$omp parallel do default(private) shared(sparsemat)
+         !!#do jj=1,sparsemat%nvctrp
+         !!#   jjj=jj+sparsemat%isvctr
+         !!#   irow = sparsemat%orb_from_index(1,jjj)
+         !!#   jcol = sparsemat%orb_from_index(2,jjj)
+         !!#   sparsemat%matrix_comprp(jj)=sparsemat%matrix(irow,jcol)
+         !!#end do
+         !!#!$omp end parallel do
+         !!#if (bigdft_mpi%nproc > 1) &
+         !!#   & call mpi_allgatherv(sparsemat%matrix_comprp, sparsemat%nvctrp, &
+         !!#   &    mpi_double_precision, sparsemat%matrix_compr, sparsemat%nvctr_par(:), &
+         !!#   &    sparsemat%isvctr_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+         !!#call f_free_ptr(sparsemat%matrix_comprp)
       end if
     
       call timing(iproc,'compress_uncom','OF')
@@ -117,31 +119,31 @@ module sparsematrix
       ! Calling arguments
       integer, intent(in) :: iproc
       type(sparse_matrix), intent(inout) :: sparsemat
-      real(kind=8),dimension(sparsemat%nvctr),target,intent(out),optional :: inmat
-      real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr),target,intent(out),optional :: outmat
+      real(kind=8),dimension(sparsemat%nvctr),target,intent(out) :: inmat
+      real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr),target,intent(out) :: outmat
       
       ! Local variables
       integer :: ii, irow, jcol, iii, ierr
       real(kind=8),dimension(:),pointer :: inm
       real(kind=8),dimension(:,:),pointer :: outm
 
-      if (present(outmat)) then
-          if (sparsemat%parallel_compression/=0 .and. bigdft_mpi%nproc>1) then
-              stop 'outmat not allowed for the given options'
-          end if
+      !!if (present(outmat)) then
+      !!    if (sparsemat%parallel_compression/=0 .and. bigdft_mpi%nproc>1) then
+      !!        stop 'outmat not allowed for the given options'
+      !!    end if
           outm => outmat
-      else
-          outm => sparsemat%matrix
-      end if
+      !!else
+      !!    outm => sparsemat%matrix
+      !!end if
 
-      if (present(inmat)) then
-          if (sparsemat%parallel_compression/=0 .and. bigdft_mpi%nproc>1) then
-              stop 'inmat not allowed for the given options'
-          end if
+      !!if (present(inmat)) then
+      !!    if (sparsemat%parallel_compression/=0 .and. bigdft_mpi%nproc>1) then
+      !!        stop 'inmat not allowed for the given options'
+      !!    end if
           inm => inmat
-      else
-          inm => sparsemat%matrix_compr
-      end if
+      !!else
+      !!    inm => sparsemat%matrix_compr
+      !!end if
     
       call timing(iproc,'compress_uncom','ON')
     
@@ -155,34 +157,36 @@ module sparsematrix
          end do
          !$omp end parallel do
       else if (sparsemat%parallel_compression==1) then
-         call to_zero(sparsemat%nfvctr**2, sparsemat%matrix(1,1))
-         !$omp parallel do default(private) shared(sparsemat)
-         do ii=1,sparsemat%nvctrp
-            iii=ii+sparsemat%isvctr
-            irow = sparsemat%orb_from_index(1,iii)
-            jcol = sparsemat%orb_from_index(2,iii)
-            sparsemat%matrix(irow,jcol)=sparsemat%matrix_compr(iii)
-         end do
-         !$omp end parallel do
-         if (bigdft_mpi%nproc > 1) then
-            call mpiallred(sparsemat%matrix(1,1), sparsemat%nfvctr**2,mpi_sum,bigdft_mpi%mpi_comm)
-         end if
+         stop 'needs to be fixed'
+         !!call to_zero(sparsemat%nfvctr**2, sparsemat%matrix(1,1))
+         !!!$omp parallel do default(private) shared(sparsemat)
+         !!do ii=1,sparsemat%nvctrp
+         !!   iii=ii+sparsemat%isvctr
+         !!   irow = sparsemat%orb_from_index(1,iii)
+         !!   jcol = sparsemat%orb_from_index(2,iii)
+         !!   sparsemat%matrix(irow,jcol)=sparsemat%matrix_compr(iii)
+         !!end do
+         !!!$omp end parallel do
+         !!if (bigdft_mpi%nproc > 1) then
+         !!   call mpiallred(sparsemat%matrix(1,1), sparsemat%nfvctr**2,mpi_sum,bigdft_mpi%mpi_comm)
+         !!end if
       else
-         sparsemat%matrixp=f_malloc_ptr((/sparsemat%nfvctr,sparsemat%nfvctrp/),id='sparsemat%matrixp')
-         call to_zero(sparsemat%nfvctr*sparsemat%nfvctrp, sparsemat%matrixp(1,1))
-         !$omp parallel do default(private) shared(sparsemat)
-         do ii=1,sparsemat%nvctrp
-            iii=ii+sparsemat%isvctr
-            irow = sparsemat%orb_from_index(1,iii)
-            jcol = sparsemat%orb_from_index(2,iii) - sparsemat%isfvctr
-            sparsemat%matrixp(irow,jcol)=sparsemat%matrix_compr(iii)
-         end do
-         !$omp end parallel do
-         if (bigdft_mpi%nproc > 1) &
-            & call mpi_allgatherv(sparsemat%matrixp, sparsemat%nfvctr*sparsemat%nfvctrp, mpi_double_precision, &
-            &   sparsemat%matrix, sparsemat%nfvctr*sparsemat%nfvctr_par(:), sparsemat%nfvctr*sparsemat%isfvctr_par, &
-            &   mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-         call f_free_ptr(sparsemat%matrixp)
+         stop 'needs to be fixed'
+         !!sparsemat%matrixp=f_malloc_ptr((/sparsemat%nfvctr,sparsemat%nfvctrp/),id='sparsemat%matrixp')
+         !!call to_zero(sparsemat%nfvctr*sparsemat%nfvctrp, sparsemat%matrixp(1,1))
+         !!!$omp parallel do default(private) shared(sparsemat)
+         !!do ii=1,sparsemat%nvctrp
+         !!   iii=ii+sparsemat%isvctr
+         !!   irow = sparsemat%orb_from_index(1,iii)
+         !!   jcol = sparsemat%orb_from_index(2,iii) - sparsemat%isfvctr
+         !!   sparsemat%matrixp(irow,jcol)=sparsemat%matrix_compr(iii)
+         !!end do
+         !!!$omp end parallel do
+         !!if (bigdft_mpi%nproc > 1) &
+         !!   & call mpi_allgatherv(sparsemat%matrixp, sparsemat%nfvctr*sparsemat%nfvctrp, mpi_double_precision, &
+         !!   &   sparsemat%matrix, sparsemat%nfvctr*sparsemat%nfvctr_par(:), sparsemat%nfvctr*sparsemat%isfvctr_par, &
+         !!   &   mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+         !!call f_free_ptr(sparsemat%matrixp)
       end if
       sparsemat%can_use_dense=.true.  
     
