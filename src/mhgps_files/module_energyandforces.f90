@@ -37,17 +37,17 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,epot)
     else if(trim(adjustl(efmethod))=='AMBER')then
         icc=1
         !convert from bohr to ansgtroem
-!        rxyzint=0.52917721092_gp*rxyz
-        rxyzint=rxyz
+        rxyzint=0.52917721092_gp*rxyz
+!        rxyzint=rxyz
         call call_nab_gradient(rxyzint(1,1),fxyz(1,1),epot,icc)
-!        epot=epot*0.001593601437458137_dp !from kcal_th/mol to hartree
+        epot=epot*0.001593601437458137_dp !from kcal_th/mol to hartree
                                           !(thermochemical calorie used:
                                           !1cal_th=4.184J)
                                           !also see:
                                           !http://archive.ambermd.org/201009/0039.html
         !convert from gradient in kcal_th/mol/angstrom to force in hartree/bohr
-!        fxyz(1:3,1:nat)=-fxyz(1:3,1:nat)*0.0008432975639921999_gp
-        fxyz(1:3,1:nat)=-fxyz(1:3,1:nat)
+        fxyz(1:3,1:nat)=-fxyz(1:3,1:nat)*0.0008432975639921999_gp
+!        fxyz(1:3,1:nat)=-fxyz(1:3,1:nat)
         return
     else if(trim(adjustl(efmethod))=='BIGDFT')then
         if(nat/=runObj%atoms%astruct%nat)then

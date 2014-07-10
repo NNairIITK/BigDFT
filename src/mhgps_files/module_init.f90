@@ -136,21 +136,21 @@ contains
 
 subroutine give_rcov(atoms,nat,rcov)
   !    use module_base
-  use module_types
+  use module_types, only: gp
   use yaml_output
   use module_global_variables, only: iproc
   implicit none
   !Arguments
   integer, intent(in) :: nat
   type(atoms_data), intent(in) :: atoms
-  real(kind=8), intent(out) :: rcov(nat)
+  real(gp), intent(out) :: rcov(nat)
   !Local variables
   integer :: iat
 
   do iat=1,nat
      if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='H') then
         rcov(iat)=0.75d0
-        rcov(iat)=0.75d0*0.529177211d0
+!        rcov(iat)=0.75d0*0.529177211d0
      else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='LJ') then
         rcov(iat)=0.56d0
      else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='He') then
@@ -163,13 +163,13 @@ subroutine give_rcov(atoms,nat,rcov)
         rcov(iat)=1.55d0
      else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='C' ) then
         rcov(iat)=1.45d0
-        rcov(iat)=1.45d0*0.529177211d0
+!        rcov(iat)=1.45d0*0.529177211d0
      else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='N' ) then
         rcov(iat)=1.42d0
-        rcov(iat)=1.42d0*0.529177211d0
+!        rcov(iat)=1.42d0*0.529177211d0
      else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='O' ) then
         rcov(iat)=1.38d0
-        rcov(iat)=1.38d0*0.529177211d0
+!        rcov(iat)=1.38d0*0.529177211d0
      else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='F' ) then
         rcov(iat)=1.35d0
      else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ne') then

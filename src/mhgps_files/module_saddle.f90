@@ -210,7 +210,7 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_
         !might be only done in a flat region, but not at the end
         !close to the transition state (may happen sometimes
         !for biomolecules)
-        if(fnrm > 5.0_gp*tightenfac*fnrmtol)then
+        if(fnrm > 2.0_gp*tightenfac*fnrmtol)then
              flag=.true.
         endif
         !determine if final tightening should be done:
@@ -243,9 +243,12 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_
                                                                 !step raises
                                                                 !stability
           .or.recompute==it)then
-            if(iproc==0.and.mhgps_verbosity>=2)call yaml_comment(&
-            '(MHGPS) METHOD COUNT  IT  CURVATURE             &
-            DIFF      FMAX      FNRM      alpha    ndim')
+            !if(iproc==0.and.mhgps_verbosity>=2)call yaml_comment(&
+            !'(MHGPS) METHOD COUNT  IT  CURVATURE             &
+            !DIFF      FMAX      FNRM      alpha    ndim')
+            if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a)')&
+            '  #(MHGPS) METHOD COUNT  IT  CURVATURE             &
+            DIFF      FMAX      FNRM      alpha    ndim'
             inputPsiId=1
              !inputPsiId=0
             call opt_curv(imode,nat,alat,alpha0_rot,curvgraddiff,nit_rot,&
@@ -267,9 +270,12 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_
             minmodeold=minmode
             displold=displ
             recompute=huge(1)
-            if(iproc==0.and.mhgps_verbosity>=2)call yaml_comment(&
-            '(MHGPS) METHOD COUNT  IT  Energy                &
-            DIFF      FMAX      FNRM      alpha    ndim')
+            !if(iproc==0.and.mhgps_verbosity>=2)call yaml_comment(&
+            !'(MHGPS) METHOD COUNT  IT  Energy                &
+            !DIFF      FMAX      FNRM      alpha    ndim')
+            if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a)')&
+            '  #(MHGPS) METHOD COUNT  IT  Energy                &
+            DIFF      FMAX      FNRM      alpha    ndim'
         endif
         !END FINDING LOWEST MODE
         
@@ -891,7 +897,6 @@ if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,xes21.14,4(xes9.2),xi
                 call yaml_warning('(MHGPS) Will use LCAO input guess&
                  from now on (until end of current minmode optimization).')
             inputPsiId=0
-            write(*,*)'bastian reset inputpsi'
             call mincurvgrad(imode,nat,alat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist-1),&
                 rxyzraw(1,1,nhist-1),fxyz(1,1,nhist-1),fstretch(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
                 curvold,1,ener_count,iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
@@ -2014,7 +2019,9 @@ use module_base
 END SUBROUTINE normalizevector
 subroutine findbonds(nat,rcov,pos,nbond,iconnect)
 !has to be called before findsad (if operating in biomolecule mode)
-use module_base
+    use module_base
+    use module_global_variables, only: iproc, mhgps_verbosity
+    use yaml_output
     implicit none
     !parameters
     integer, intent(in) :: nat
@@ -2026,8 +2033,6 @@ use module_base
     integer :: iat,jat
     real(gp) :: dist2
     nbond=0
-    write(*,*)'BASTIAN',nat
-    write(*,*)rcov
     do iat=1,nat
         do jat=1,iat-1
             dist2=(pos(1,iat)-pos(1,jat))**2+(pos(2,iat)-pos(2,jat))**2+(pos(3,iat)-pos(3,jat))**2
@@ -2039,7 +2044,7 @@ use module_base
             endif
         enddo
     enddo
-    write(*,*) 'FOUND ',nbond,' BOND'
+    if(iproc==0.and.mhgps_verbosity>=2)call yaml_scalar('(MHGPS) Found '//trim(yaml_toa(nbond))//' bonds.')
 end subroutine
 
       SUBROUTINE qrsolv(a,n,np,b)
