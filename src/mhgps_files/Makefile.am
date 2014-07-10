@@ -4,6 +4,7 @@ vpath %.h ../modules
 mhgps_objects = \
                module_global_variables.f90 \
                module_init.f90 \
+               module_io.f90 \
                module_energyandforces.f90 \
 			   module_minimizers.f90 \
                module_saddle.f90
@@ -30,5 +31,6 @@ mhgps.o : $(mhgps_objects:.f90=.o) ../modules/BigDFT_API.o wrap.o
 
 module_energyandforces.o : module_global_variables.o module_init.o ../modules/BigDFT_API.o wrap.o
 module_init.o : module_global_variables.o ../modules/BigDFT_API.o 
-module_saddle.o : module_global_variables.o module_energyandforces.o ../modules/BigDFT_API.o
-module_minimizers.o : module_global_variables.o module_energyandforces.o ../modules/BigDFT_API.o 
+module_saddle.o : module_global_variables.o module_io.o module_energyandforces.o ../modules/BigDFT_API.o
+module_minimizers.o : module_global_variables.o module_energyandforces.o ../modules/BigDFT_API.o
+module_io.o : module_global_variables.o ../modules/BigDFT_API.o 

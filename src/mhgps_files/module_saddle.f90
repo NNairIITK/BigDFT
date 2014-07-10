@@ -8,10 +8,11 @@ module module_saddle
 
 contains
 
-subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_trans,&
+subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvforcediff,nit_trans,&
     nit_rot,nhistx_trans,nhistx_rot,tolc,tolf,tightenfac,rmsdispl0,&
     trustr,wpos,etot,fout,minmode,fnrmtol,displ,ener_count,&
-    converged,atomnames,nbond,iconnect,alpha_stretch0,recompIfCurvPos,maxcurvrise,cutoffratio,alpha_rot_stretch0)
+    converged,atomnames,nbond,iconnect,alpha_stretch0,recompIfCurvPos,&
+    maxcurvrise,cutoffratio,alpha_rot_stretch0,rotforce)
     !imode=1 for clusters
     !imode=2 for biomolecules
     use module_base
@@ -45,7 +46,7 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_
     real(gp), intent(in)      :: rcov(nat)
     real(gp), intent(in)      :: alpha0_trans
     real(gp), intent(in)      :: alpha0_rot
-    real(gp), intent(in)      :: curvgraddiff
+    real(gp), intent(in)      :: curvforcediff
     integer, intent(in)       :: nit_trans
     integer, intent(in)       :: nit_rot
     integer, intent(in)       :: nhistx_trans
@@ -71,12 +72,12 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_
     integer, intent(in)       :: recompIfCurvPos
     real(gp), intent(in)      :: maxcurvrise
     real(gp), intent(in)      :: cutoffratio
+    real(gp), intent(in)      :: rotforce(3,nat)
     !internal
     real(gp), allocatable, dimension(:,:)   :: dds
     real(gp), allocatable, dimension(:,:)   :: dd0
     real(gp), allocatable, dimension(:,:)   :: delta
     real(gp), allocatable, dimension(:,:)   :: ftmp
-    real(gp), allocatable, dimension(:,:)   :: gradrot
     real(gp), allocatable, dimension(:,:)   :: minmodeold
     real(gp), allocatable, dimension(:,:)   :: minmode0
     logical  :: steep
@@ -143,17 +144,12 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_
 
     ! allocate arrays
     allocate(dds(3,nat),dd0(3,nat),delta(3,nat),ftmp(3,nat))
-    allocate(gradrot(3,nat),minmodeold(3,nat),minmode0(3,nat))
+    allocate(minmodeold(3,nat),minmode0(3,nat))
     minmode0=minmode
     minmodeold=minmode
     wold=0.0_gp
     fstretch=0.0_gp
-
-    do iat=1,nat
-        do i=1,3
-            rxyz(i,iat,0)=wpos(i,iat)
-        enddo
-    enddo
+    rxyz(:,:,0)=wpos
 
     call fixfrag_posvel(nat,rcov,rxyz(1,1,0),tnatdmy,1,fixfragmented)
 
@@ -251,9 +247,9 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvgraddiff,nit_
             DIFF      FMAX      FNRM      alpha    ndim'
             inputPsiId=1
              !inputPsiId=0
-            call opt_curv(imode,nat,alat,alpha0_rot,curvgraddiff,nit_rot,&
+            call opt_curv(imode,nat,alat,alpha0_rot,curvforcediff,nit_rot,&
                           nhistx_rot,rxyzraw(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
-                          minmode(1,1),curv,gradrot(1,1),tol,displ2,ener_count,&
+                          minmode(1,1),curv,rotforce(1,1),tol,displ2,ener_count,&
                           optCurvConv,iconnect,nbond,atomnames,alpha_rot_stretch0,&
                           maxcurvrise,cutoffratio)
             inputPsiId=1
@@ -713,7 +709,7 @@ subroutine elim_torque_fs(nat,rxyz,vxyz)
     write(100,'(a,3(e11.3))') 'WARNING REMAINING TORQUE',t
 end subroutine
 
-subroutine opt_curv(imode,nat,alat,alpha0,curvgraddiff,nit,nhistx,rxyz_fix,&
+subroutine opt_curv(imode,nat,alat,alpha0,curvforcediff,nit,nhistx,rxyz_fix,&
                     fxyz_fix,dxyzin,curv,fout,fnrmtol,displ,ener_count,&
                     converged,iconnect,nbond,atomnames,alpha_stretch0,&
                     maxcurvrise,cutoffratio)!,mode)
@@ -752,7 +748,7 @@ subroutine opt_curv(imode,nat,alat,alpha0,curvgraddiff,nit,nhistx,rxyz_fix,&
     real(gp), intent(in)       :: alat(3)
     real(gp), intent(in)       :: maxcurvrise,cutoffratio
     integer, intent(in)        :: nit,nhistx
-    real(gp), intent(in)       :: alpha0,curvgraddiff
+    real(gp), intent(in)       :: alpha0,curvforcediff
     real(gp), dimension(3,nat) :: dxyzin,fout,rxyz_fix,fxyz_fix!,mode
     logical, intent(out)       :: converged
     logical                    :: steep
@@ -785,7 +781,7 @@ subroutine opt_curv(imode,nat,alat,alpha0,curvgraddiff,nit,nhistx,rxyz_fix,&
 !    call minenergyandforces(nat,rxyz(1,1,0),rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),etot,iconnect,nbond,atomnames,wold,alpha_stretch)
 !    rxyz(:,:,0)=rxyz(:,:,0)+alpha_stretch*fstretch(:,:,0)
 !    ec=ec+1.0_gp
-     call mincurvgrad(imode,nat,alat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
+     call mincurvforce(imode,nat,alat,curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
           rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),curv,1,ener_count,&
           iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
     if(imode==2)rxyz(:,:,nhist)=rxyz(:,:,nhist)+alpha_stretch*fstretch(:,:,nhist)
@@ -851,7 +847,7 @@ subroutine opt_curv(imode,nat,alat,alpha0,curvgraddiff,nit,nhistx,rxyz_fix,&
         enddo
 !write(444,*)1,rxyz(1,1,nhist)
 
-     call mincurvgrad(imode,nat,alat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
+     call mincurvforce(imode,nat,alat,curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
           rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),&
           curvp,1,ener_count,iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
         dcurv=curvp-curvold
@@ -897,9 +893,10 @@ if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,xes21.14,4(xes9.2),xi
                 call yaml_warning('(MHGPS) Will use LCAO input guess&
                  from now on (until end of current minmode optimization).')
             inputPsiId=0
-            call mincurvgrad(imode,nat,alat,curvgraddiff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist-1),&
+            call mincurvforce(imode,nat,alat,curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist-1),&
                 rxyzraw(1,1,nhist-1),fxyz(1,1,nhist-1),fstretch(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
                 curvold,1,ener_count,iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
+if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,xes21.14,4(xes9.2),xi3.3,xes9.2)')'   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch
         endif
 
 !            if(.not.steep)then
@@ -962,7 +959,7 @@ stop 'no convergence in optcurv'
     curv=curvp
 end subroutine
 
-subroutine curvgrad(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ener_count)
+subroutine curvforce(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ener_count)
     !computes the (curvature along vec) = vec^t H vec / (vec^t*vec)
     !vec mus be normalized
     use module_base
@@ -1730,7 +1727,7 @@ subroutine minenergyandforces(imode,nat,alat,rat,rxyzraw,fat,fstretch,&
     endif
  
 end subroutine minenergyandforces
-subroutine mincurvgrad(imode,nat,alat,diff,rxyz1,fxyz1,vec,vecraw,&
+subroutine mincurvforce(imode,nat,alat,diff,rxyz1,fxyz1,vec,vecraw,&
            rotforce,rotfstretch,rotforceraw,curv,imethod,ec,&
            iconnect,nbond_,atomnames,wold,alpha_stretch0,alpha_stretch)
     use module_base
@@ -1750,7 +1747,7 @@ subroutine mincurvgrad(imode,nat,alat,diff,rxyz1,fxyz1,vec,vecraw,&
 
      vecraw=vec
 !    call energyandforces(nat,rat,fat,epot)
-     call curvgrad(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ec)
+     call curvforce(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ec)
      rxyz2 =rxyz1+diff*vec
      rotforceraw=rotforce
      rotfstretch=0.0_gp
@@ -1760,7 +1757,7 @@ subroutine mincurvgrad(imode,nat,alat,diff,rxyz1,fxyz1,vec,vecraw,&
          call projectbond(nat,nbond_,rxyz2,rotforce,rotfstretch,iconnect,atomnames,wold,alpha_stretch0,alpha_stretch)
      endif
 
-end subroutine mincurvgrad
+end subroutine mincurvforce
 
 subroutine projectbond(nat,nbond,rat,fat,fstretch,iconnect,atomnames,wold,alpha_stretch0,alpha_stretch)
     use module_base, only: gp

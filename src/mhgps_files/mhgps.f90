@@ -19,6 +19,7 @@ program mhgps
     use module_energyandforces
     use module_saddle
     use module_minimizers
+    use module_io
     implicit none
     integer :: bigdft_get_number_of_atoms,bigdft_get_number_of_orbitals
     character(len=8) :: folder
@@ -38,7 +39,6 @@ integer :: ncount_bigdft
 logical :: fail
 
 real(gp) :: curv
-real(gp), allocatable, dimension(:,:) :: gradrot
 
 !simple atomic datastructre
 integer :: nat
@@ -138,13 +138,11 @@ real(gp),allocatable :: eval(:)
     rxyz     = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),&
                 id='rxyz')
     fxyz     = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),&
-                id='rxyz')
+                id='fxyz')
     rcov     = f_malloc((/ 1.to.atoms%astruct%nat/),id='rcov')
     iconnect = f_malloc((/ 1.to.2, 1.to.1000/),id='iconnect')
     ixyz_int = f_malloc((/ 1.to.3,1.to.atoms%astruct%nat/),&
                 id='atoms%astruct%nat')
-    gradrot  = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),&
-                id='gradrot')
     rotforce = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),&
                 id='rotforce')
     hess     = f_malloc((/ 1.to.3*atoms%astruct%nat,&
@@ -250,22 +248,29 @@ real(gp),allocatable :: eval(:)
 !!        do j=1,10
 !!            write(*,*) 'eval ',j,eval(j)
 !!        enddo
-
-            do i=1,atoms%astruct%nat
-                minmode(1,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
-                minmode(2,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
-                minmode(3,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
-            enddo
-           ec=0.0_gp
+            rotforce=0.0_gp
+            if(random_minmode_guess)then
+                do i=1,atoms%astruct%nat
+                    minmode(1,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+                    minmode(2,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+                    minmode(3,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+                enddo
+                call write_mode(atoms%astruct%nat,currDir//'/'//currFile//'_mode',minmode)
+            else
+                call read_mode(atoms%astruct%nat,currDir//'/'//currFile//'_mode',minmode)
+            endif
+            ec=0.0_gp
         
            call findsad(saddle_imode,atoms%astruct%nat,atoms%astruct%cell_dim,rcov,saddle_alpha0_trans,saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_trans,&
            saddle_nit_rot,saddle_nhistx_trans,saddle_nhistx_rot,saddle_tolc,saddle_tolf,saddle_tightenfac,saddle_rmsdispl0,&
            saddle_trustr,rxyz,energy,fxyz,minmode,saddle_fnrmtol,displ,ec,&
-           converged,atoms%astruct%atomnames,nbond,iconnect,saddle_alpha_stretch0,saddle_recompIfCurvPos,saddle_maxcurvrise,saddle_cutoffratio,saddle_alpha_rot_stretch0)
+           converged,atoms%astruct%atomnames,nbond,iconnect,saddle_alpha_stretch0,saddle_recompIfCurvPos,saddle_maxcurvrise,&
+           saddle_cutoffratio,saddle_alpha_rot_stretch0,rotforce)
            if (iproc == 0) then
                call write_atomic_file(currDir//'/'//currFile//'_final',&
                energy,rxyz(1,1),ixyz_int,&
                atoms,comment,forces=fxyz(1,1))
+               call write_mode(atoms%astruct%nat,currDir//'/'//currFile//'_mode_final',minmode,rotforce)
            endif
 
 !call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
@@ -333,7 +338,6 @@ real(gp),allocatable :: eval(:)
     call f_free(rcov)
     call f_free(iconnect)
     call f_free(ixyz_int)
-    call f_free(gradrot)
     call f_free(rotforce)
     call f_free(hess)
     call f_free(rxyz_rot)
