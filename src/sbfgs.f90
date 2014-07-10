@@ -21,7 +21,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
    integer, intent(in)                    :: iproc
    type(run_objects), intent(inout)       :: runObj
    type(DFT_global_output), intent(inout) :: outsIO
-   integer, intent(out)                   :: ncount_bigdft
+   integer, intent(inout)                 :: ncount_bigdft
    logical, intent(out)                   :: fail
    !local variables
    character(len=*), parameter :: subname='sbfgs'
@@ -89,7 +89,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
    steepthresh=runObj%inputs%steepthresh
    trustr=runObj%inputs%trustr
    if (iproc==0.and.parmin%verbosity > 0) then
-      call yaml_open_map('Geometry parameters')
+      call yaml_mapping_open('Geometry parameters')
          call yaml_map('Geometry Method','GEOPT_SBFGS')
          call yaml_map('nhistx',nhistx)
          call yaml_map('betax', betax,fmt='(1pe21.14)')
@@ -97,7 +97,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
          call yaml_map('cutoffRatio', cutoffRatio,fmt='(1pe21.14)')
          call yaml_map('steepthresh', steepthresh,fmt='(1pe21.14)')
          call yaml_map('trustr', trustr,fmt='(1pe21.14)')
-      call yaml_close_map()
+      call yaml_mapping_close()
    end if
 
    !init varaibles
@@ -115,32 +115,19 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
 
    ! allocate arrays
    lwork=1000+10*nat**2
-   allocate(rxyz(3,nat,0:nhistx),stat=istat)
-   call memocc(istat,rxyz,'rxyz',subname)
-   allocate(fxyz(3,nat,0:nhistx),stat=istat)
-   call memocc(istat,fxyz,'fxyz',subname)
-   allocate(aa(nhistx,nhistx),stat=istat)
-   call memocc(istat,aa,'aa',subname)
-   allocate(eval(nhistx),stat=istat)
-   call memocc(istat,eval,'eval',subname)
-   allocate(res(nhistx),stat=istat)
-   call memocc(istat,res,'res',subname)
-   allocate(rnorm(nhistx),stat=istat)
-   call memocc(istat,rnorm,'rnorm',subname)
-   allocate(work(lwork),stat=istat)
-   call memocc(istat,work,'work',subname)
-   allocate(ff(3,nat,0:nhistx),stat=istat)
-   call memocc(istat,ff,'ff',subname)
-   allocate(rr(3,nat,0:nhistx),stat=istat)
-   call memocc(istat,rr,'rr',subname)
-   allocate(dd(3,nat),stat=istat)
-   call memocc(istat,dd,'dd',subname)
-   allocate(fff(3,nat,0:nhistx),stat=istat)
-   call memocc(istat,fff,'fff',subname)
-   allocate(rrr(3,nat,0:nhistx),stat=istat)
-   call memocc(istat,rrr,'rrr',subname)
-   allocate(scpr(nhistx),stat=istat)
-   call memocc(istat,scpr,'scpr',subname)
+   rxyz = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='rxyz')
+   fxyz = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='fxyz')
+   aa = f_malloc((/ nhistx, nhistx /),id='aa')
+   eval = f_malloc(nhistx,id='eval')
+   res = f_malloc(nhistx,id='res')
+   rnorm = f_malloc(nhistx,id='rnorm')
+   work = f_malloc(lwork,id='work')
+   ff = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='ff')
+   rr = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='rr')
+   dd = f_malloc((/ 3, nat /),id='dd')
+   fff = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='fff')
+   rrr = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='rrr')
+   scpr = f_malloc(nhistx,id='scpr')
    call init_global_output(outs, runObj%atoms%astruct%nat)
 
    !copy outs_datatype
@@ -296,7 +283,8 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
          write(fn4,'(i4.4)') ncount_bigdft
          write(comment,'(a,1pe10.3)')'SBFGS:fnrm= ',fnrm
          call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-              outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
+              outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
+              runObj%atoms,trim(comment),forces=outs%fxyz)
       endif
 
       if (fmax < 3.d-1) call updatefluctsum(outs%fnoise,fluct)
@@ -308,7 +296,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
          write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,es9.2,xa5,i4.4,xa5,es9.2,xa6,es9.2)') &
           ncount_bigdft,it,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct, &
           'beta=',beta,'ndim=',ndim,'maxd=',maxd,'displ=',displ
-         call yaml_open_map('Geometry')
+         call yaml_mapping_open('Geometry')
             call yaml_map('Ncount_BigDFT',ncount_bigdft)
             call yaml_map('Geometry step',it)
             call yaml_map('Geometry Method','GEOPT_SBFGS')
@@ -319,7 +307,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
             call yaml_map('fnrm',fnrm,fmt='(1pe21.14)')
             call yaml_map('beta',beta,fmt='(1pe21.14)')
             call geometry_output(fmax,fnrm,fluct)
-         call yaml_close_map()
+         call yaml_mapping_close()
       end if
 
    
@@ -546,44 +534,18 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
 !   enddo
 2000 continue
 !deallocations
-   iall=-product(shape(rxyz))*kind(rxyz)
-   deallocate(rxyz,stat=istat)
-   call memocc(istat,iall,'rxyz',subname)
-   iall=-product(shape(fxyz))*kind(fxyz)
-   deallocate(fxyz,stat=istat)
-   call memocc(istat,iall,'fxyz',subname)
-   iall=-product(shape(aa))*kind(aa)
-   deallocate(aa,stat=istat)
-   call memocc(istat,iall,'aa',subname)
-   iall=-product(shape(eval))*kind(eval)
-   deallocate(eval,stat=istat)
-   call memocc(istat,iall,'eval',subname)
-   iall=-product(shape(res))*kind(res)
-   deallocate(res,stat=istat)
-   call memocc(istat,iall,'res',subname)
-   iall=-product(shape(rnorm))*kind(rnorm)
-   deallocate(rnorm,stat=istat)
-   call memocc(istat,iall,'rnorm',subname)
-   iall=-product(shape(work))*kind(work)
-   deallocate(work,stat=istat)
-   call memocc(istat,iall,'work',subname)
-   iall=-product(shape(ff))*kind(ff)
-   deallocate(ff,stat=istat)
-   call memocc(istat,iall,'ff',subname)
-   iall=-product(shape(rr))*kind(rr)
-   deallocate(rr,stat=istat)
-   call memocc(istat,iall,'rr',subname)
-   iall=-product(shape(dd))*kind(dd)
-   deallocate(dd,stat=istat)
-   call memocc(istat,iall,'dd',subname)
-   iall=-product(shape(fff))*kind(fff)
-   deallocate(fff,stat=istat)
-   call memocc(istat,iall,'fff',subname)
-   iall=-product(shape(rrr))*kind(rrr)
-   deallocate(rrr,stat=istat)
-   call memocc(istat,iall,'rrr',subname)
-   iall=-product(shape(scpr))*kind(scpr)
-   deallocate(scpr,stat=istat)
-   call memocc(istat,iall,'scpr',subname)
+   call f_free(rxyz)
+   call f_free(fxyz)
+   call f_free(aa)
+   call f_free(eval)
+   call f_free(res)
+   call f_free(rnorm)
+   call f_free(work)
+   call f_free(ff)
+   call f_free(rr)
+   call f_free(dd)
+   call f_free(fff)
+   call f_free(rrr)
+   call f_free(scpr)
    call deallocate_global_output(outs)
 end

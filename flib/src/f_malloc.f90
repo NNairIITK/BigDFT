@@ -90,7 +90,7 @@ module module_f_malloc
   end type array_bounds
 
   interface operator(.to.)
-     module procedure bounds
+     module procedure f_array_bounds
   end interface
 
   interface nullify_malloc_information
@@ -163,14 +163,14 @@ module module_f_malloc
 
 contains
   
-  elemental pure function bounds(nlow,nhigh)
+  elemental pure function f_array_bounds(nlow,nhigh)
     implicit none
     integer, intent(in) :: nlow,nhigh
-    type(array_bounds) :: bounds
+    type(array_bounds) :: f_array_bounds
 
-    bounds%nlow=nlow
-    bounds%nhigh=nhigh
-  end function bounds
+    f_array_bounds%nlow=nlow
+    f_array_bounds%nhigh=nhigh
+  end function f_array_bounds
 
   pure subroutine nullify_malloc_information_all(m)
     implicit none
@@ -510,7 +510,7 @@ contains
 
   function f_malloc_ptr_i2(src,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none
-    integer, dimension(:,:), intent(in) :: src
+    integer, dimension(:,:), pointer, intent(in) :: src
     integer, dimension(:), intent(in), optional :: lbounds,ubounds
     type(malloc_information_ptr) :: m
     include 'f_malloc-base-inc.f90'

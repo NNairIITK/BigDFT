@@ -54,7 +54,7 @@ subroutine copy_convolutions_bounds(geocode,boundsin, boundsout, subname)
   character(len=*),intent(in):: subname
   
   ! Local variables
-  integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat, iall
+  integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3
   
   call copy_kinetic_bounds(geocode, boundsin%kb, boundsout%kb, subname)
   call copy_shrink_bounds(geocode, boundsin%sb, boundsout%sb, subname)
@@ -62,9 +62,7 @@ subroutine copy_convolutions_bounds(geocode,boundsin, boundsout, subname)
   
   if(geocode == 'F') then
      if(associated(boundsout%ibyyzz_r)) then
-         iall=-product(shape(boundsout%ibyyzz_r))*kind(boundsout%ibyyzz_r)
-         deallocate(boundsout%ibyyzz_r, stat=istat)
-         call memocc(istat, iall, 'boundsout%ibyyzz_r', subname)
+         call f_free_ptr(boundsout%ibyyzz_r)
      end if
   
      if(associated(boundsin%ibyyzz_r)) then
@@ -74,8 +72,7 @@ subroutine copy_convolutions_bounds(geocode,boundsin, boundsout, subname)
          iie2=ubound(boundsin%ibyyzz_r,2)
          iis3=lbound(boundsin%ibyyzz_r,3)
          iie3=ubound(boundsin%ibyyzz_r,3)
-         allocate(boundsout%ibyyzz_r(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-         call memocc(istat, boundsout%ibyyzz_r, 'boundsout%ibyyzz_r', subname)
+         boundsout%ibyyzz_r = f_malloc_ptr((/ iis1.to.iie1,iis2.to.iie2,iis3.to.iie3 /),id='boundsout%ibyyzz_r')
          do i3=iis3,iie3
              do i2=iis2,iie2
                  do i1=iis1,iie1
@@ -99,13 +96,11 @@ type(kinetic_bounds),intent(inout):: kbout
 character(len=*),intent(in):: subname
 
 ! Local variables
-integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat, iall
+integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3
 
 if(geocode == 'F') then
    if(associated(kbout%ibyz_c)) then
-       iall=-product(shape(kbout%ibyz_c))*kind(kbout%ibyz_c)
-       deallocate(kbout%ibyz_c, stat=istat)
-       call memocc(istat, iall, 'kbout%ibyz_c', subname)
+       call f_free_ptr(kbout%ibyz_c)
    end if
    if(associated(kbin%ibyz_c)) then
        iis1=lbound(kbin%ibyz_c,1)
@@ -114,8 +109,7 @@ if(geocode == 'F') then
        iie2=ubound(kbin%ibyz_c,2)
        iis3=lbound(kbin%ibyz_c,3)
        iie3=ubound(kbin%ibyz_c,3)
-       allocate(kbout%ibyz_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-       call memocc(istat, kbout%ibyz_c, 'kbout%ibyz_c', subname)
+       kbout%ibyz_c = f_malloc_ptr((/ iis1.to.iie1 , iis2.to.iie2 , iis3.to.iie3 /),id='kbout%ibyz_c')
        do i3=iis3,iie3
            do i2=iis2,iie2
                do i1=iis1,iie1
@@ -127,9 +121,7 @@ if(geocode == 'F') then
    
    
    if(associated(kbout%ibxz_c)) then
-       iall=-product(shape(kbout%ibxz_c))*kind(kbout%ibxz_c)
-       deallocate(kbout%ibxz_c, stat=istat)
-       call memocc(istat, iall, 'kbout%ibxz_c', subname)
+       call f_free_ptr(kbout%ibxz_c)
    end if
    if(associated(kbin%ibxz_c)) then
        iis1=lbound(kbin%ibxz_c,1)
@@ -138,8 +130,7 @@ if(geocode == 'F') then
        iie2=ubound(kbin%ibxz_c,2)
        iis3=lbound(kbin%ibxz_c,3)
        iie3=ubound(kbin%ibxz_c,3)
-       allocate(kbout%ibxz_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-       call memocc(istat, kbout%ibxz_c, 'kbout%ibxz_c', subname)
+       kbout%ibxz_c = f_malloc_ptr((/ iis1.to.iie1 , iis2.to.iie2 , iis3.to.iie3 /),id='kbout%ibxz_c')
        do i3=iis3,iie3
            do i2=iis2,iie2
                do i1=iis1,iie1
@@ -151,9 +142,7 @@ if(geocode == 'F') then
    
    
    if(associated(kbout%ibxy_c)) then
-       iall=-product(shape(kbout%ibxy_c))*kind(kbout%ibxy_c)
-       deallocate(kbout%ibxy_c, stat=istat)
-       call memocc(istat, iall, 'kbout%ibxy_c', subname)
+       call f_free_ptr(kbout%ibxy_c)
    end if
    if(associated(kbin%ibxy_c)) then
        iis1=lbound(kbin%ibxy_c,1)
@@ -162,8 +151,7 @@ if(geocode == 'F') then
        iie2=ubound(kbin%ibxy_c,2)
        iis3=lbound(kbin%ibxy_c,3)
        iie3=ubound(kbin%ibxy_c,3)
-       allocate(kbout%ibxy_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-       call memocc(istat, kbout%ibxy_c, 'kbout%ibxy_c', subname)
+       kbout%ibxy_c = f_malloc_ptr((/ iis1.to.iie1 , iis2.to.iie2 , iis3.to.iie3 /),id='kbout%ibxy_c')
        do i3=iis3,iie3
            do i2=iis2,iie2
                do i1=iis1,iie1
@@ -175,9 +163,7 @@ if(geocode == 'F') then
 end if
 
 if(associated(kbout%ibyz_f)) then
-    iall=-product(shape(kbout%ibyz_f))*kind(kbout%ibyz_f)
-    deallocate(kbout%ibyz_f, stat=istat)
-    call memocc(istat, iall, 'kbout%ibyz_f', subname)
+    call f_free_ptr(kbout%ibyz_f)
 end if
 if(associated(kbin%ibyz_f)) then
     iis1=lbound(kbin%ibyz_f,1)
@@ -186,8 +172,7 @@ if(associated(kbin%ibyz_f)) then
     iie2=ubound(kbin%ibyz_f,2)
     iis3=lbound(kbin%ibyz_f,3)
     iie3=ubound(kbin%ibyz_f,3)
-    allocate(kbout%ibyz_f(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-    call memocc(istat, kbout%ibyz_f, 'kbout%ibyz_f', subname)
+    kbout%ibyz_f = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='kbout%ibyz_f')
     do i3=iis3,iie3
         do i2=iis2,iie2
             do i1=iis1,iie1
@@ -199,9 +184,7 @@ end if
 
 
 if(associated(kbout%ibxz_f)) then
-    iall=-product(shape(kbout%ibxz_f))*kind(kbout%ibxz_f)
-    deallocate(kbout%ibxz_f, stat=istat)
-    call memocc(istat, iall, 'kbout%ibxz_f', subname)
+    call f_free_ptr(kbout%ibxz_f)
 end if
 if(associated(kbin%ibxz_f)) then
     iis1=lbound(kbin%ibxz_f,1)
@@ -210,8 +193,7 @@ if(associated(kbin%ibxz_f)) then
     iie2=ubound(kbin%ibxz_f,2)
     iis3=lbound(kbin%ibxz_f,3)
     iie3=ubound(kbin%ibxz_f,3)
-    allocate(kbout%ibxz_f(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-    call memocc(istat, kbout%ibxz_f, 'kbout%ibxz_f', subname)
+    kbout%ibxz_f = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='kbout%ibxz_f')
     do i3=iis3,iie3
         do i2=iis2,iie2
             do i1=iis1,iie1
@@ -223,9 +205,7 @@ end if
 
 
 if(associated(kbout%ibxy_f)) then
-    iall=-product(shape(kbout%ibxy_f))*kind(kbout%ibxy_f)
-    deallocate(kbout%ibxy_f, stat=istat)
-    call memocc(istat, iall, 'kbout%ibxy_f', subname)
+    call f_free_ptr(kbout%ibxy_f)
 end if
 if(associated(kbin%ibxy_f)) then
     iis1=lbound(kbin%ibxy_f,1)
@@ -234,8 +214,7 @@ if(associated(kbin%ibxy_f)) then
     iie2=ubound(kbin%ibxy_f,2)
     iis3=lbound(kbin%ibxy_f,3)
     iie3=ubound(kbin%ibxy_f,3)
-    allocate(kbout%ibxy_f(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-    call memocc(istat, kbout%ibxy_f, 'kbout%ibxy_f', subname)
+    kbout%ibxy_f = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='kbout%ibxy_f')
     do i3=iis3,iie3
         do i2=iis2,iie2
             do i1=iis1,iie1
@@ -263,13 +242,11 @@ type(shrink_bounds),intent(inout):: sbout
 character(len=*),intent(in):: subname
 
 ! Local variables
-integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat, iall
+integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3
 
 if(geocode == 'F') then
    if(associated(sbout%ibzzx_c)) then
-       iall=-product(shape(sbout%ibzzx_c))*kind(sbout%ibzzx_c)
-       deallocate(sbout%ibzzx_c, stat=istat)
-       call memocc(istat, iall, 'sbout%ibzzx_c', subname)
+       call f_free_ptr(sbout%ibzzx_c)
    end if
    if(associated(sbin%ibzzx_c)) then
        iis1=lbound(sbin%ibzzx_c,1)
@@ -278,8 +255,7 @@ if(geocode == 'F') then
        iie2=ubound(sbin%ibzzx_c,2)
        iis3=lbound(sbin%ibzzx_c,3)
        iie3=ubound(sbin%ibzzx_c,3)
-       allocate(sbout%ibzzx_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-       call memocc(istat, sbout%ibzzx_c, 'sbout%ibzzx_c', subname)
+       sbout%ibzzx_c = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='sbout%ibzzx_c')
        do i3=iis3,iie3
            do i2=iis2,iie2
                do i1=iis1,iie1
@@ -291,9 +267,7 @@ if(geocode == 'F') then
    
    
    if(associated(sbout%ibyyzz_c)) then
-       iall=-product(shape(sbout%ibyyzz_c))*kind(sbout%ibyyzz_c)
-       deallocate(sbout%ibyyzz_c, stat=istat)
-       call memocc(istat, iall, 'sbout%ibyyzz_c', subname)
+       call f_free_ptr(sbout%ibyyzz_c)
    end if
    if(associated(sbin%ibyyzz_c)) then
        iis1=lbound(sbin%ibyyzz_c,1)
@@ -302,8 +276,7 @@ if(geocode == 'F') then
        iie2=ubound(sbin%ibyyzz_c,2)
        iis3=lbound(sbin%ibyyzz_c,3)
        iie3=ubound(sbin%ibyyzz_c,3)
-       allocate(sbout%ibyyzz_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-       call memocc(istat, sbout%ibyyzz_c, 'sbout%ibyyzz_c', subname)
+       sbout%ibyyzz_c = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='sbout%ibyyzz_c')
        do i3=iis3,iie3
            do i2=iis2,iie2
                do i1=iis1,iie1
@@ -315,9 +288,7 @@ if(geocode == 'F') then
 end if
 
 if(associated(sbout%ibxy_ff)) then
-    iall=-product(shape(sbout%ibxy_ff))*kind(sbout%ibxy_ff)
-    deallocate(sbout%ibxy_ff, stat=istat)
-    call memocc(istat, iall, 'sbout%ibxy_ff', subname)
+    call f_free_ptr(sbout%ibxy_ff)
 end if
 if(associated(sbin%ibxy_ff)) then
     iis1=lbound(sbin%ibxy_ff,1)
@@ -326,8 +297,7 @@ if(associated(sbin%ibxy_ff)) then
     iie2=ubound(sbin%ibxy_ff,2)
     iis3=lbound(sbin%ibxy_ff,3)
     iie3=ubound(sbin%ibxy_ff,3)
-    allocate(sbout%ibxy_ff(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-    call memocc(istat, sbout%ibxy_ff, 'sbout%ibxy_ff', subname)
+    sbout%ibxy_ff = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='sbout%ibxy_ff')
     do i3=iis3,iie3
         do i2=iis2,iie2
             do i1=iis1,iie1
@@ -339,9 +309,7 @@ end if
 
 
 if(associated(sbout%ibzzx_f)) then
-    iall=-product(shape(sbout%ibzzx_f))*kind(sbout%ibzzx_f)
-    deallocate(sbout%ibzzx_f, stat=istat)
-    call memocc(istat, iall, 'sbout%ibzzx_f', subname)
+    call f_free_ptr(sbout%ibzzx_f)
 end if
 if(associated(sbin%ibzzx_f)) then
     iis1=lbound(sbin%ibzzx_f,1)
@@ -350,8 +318,7 @@ if(associated(sbin%ibzzx_f)) then
     iie2=ubound(sbin%ibzzx_f,2)
     iis3=lbound(sbin%ibzzx_f,3)
     iie3=ubound(sbin%ibzzx_f,3)
-    allocate(sbout%ibzzx_f(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-    call memocc(istat, sbout%ibzzx_f, 'sbout%ibzzx_f', subname)
+    sbout%ibzzx_f = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='sbout%ibzzx_f')
     do i3=iis3,iie3
         do i2=iis2,iie2
             do i1=iis1,iie1
@@ -363,9 +330,7 @@ end if
 
 
 if(associated(sbout%ibyyzz_f)) then
-    iall=-product(shape(sbout%ibyyzz_f))*kind(sbout%ibyyzz_f)
-    deallocate(sbout%ibyyzz_f, stat=istat)
-    call memocc(istat, iall, 'sbout%ibyyzz_f', subname)
+    call f_free_ptr(sbout%ibyyzz_f)
 end if
 if(associated(sbin%ibyyzz_f)) then
     iis1=lbound(sbin%ibyyzz_f,1)
@@ -374,8 +339,7 @@ if(associated(sbin%ibyyzz_f)) then
     iie2=ubound(sbin%ibyyzz_f,2)
     iis3=lbound(sbin%ibyyzz_f,3)
     iie3=ubound(sbin%ibyyzz_f,3)
-    allocate(sbout%ibyyzz_f(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-    call memocc(istat, sbout%ibyyzz_f, 'sbout%ibyyzz_f', subname)
+    sbout%ibyyzz_f = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='sbout%ibyyzz_f')
     do i3=iis3,iie3
         do i2=iis2,iie2
             do i1=iis1,iie1
@@ -404,13 +368,11 @@ type(grow_bounds),intent(inout):: gbout
 character(len=*),intent(in):: subname
 
 ! Local variables
-integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat, iall
+integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3
 
 if(geocode == 'F')then
    if(associated(gbout%ibzxx_c)) then
-       iall=-product(shape(gbout%ibzxx_c))*kind(gbout%ibzxx_c)
-       deallocate(gbout%ibzxx_c, stat=istat)
-       call memocc(istat, iall, 'gbout%ibzxx_c', subname)
+       call f_free_ptr(gbout%ibzxx_c)
    end if
    if(associated(gbin%ibzxx_c)) then
        iis1=lbound(gbin%ibzxx_c,1)
@@ -419,8 +381,7 @@ if(geocode == 'F')then
        iie2=ubound(gbin%ibzxx_c,2)
        iis3=lbound(gbin%ibzxx_c,3)
        iie3=ubound(gbin%ibzxx_c,3)
-       allocate(gbout%ibzxx_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-       call memocc(istat, gbout%ibzxx_c, 'gbout%ibzxx_c', subname)
+       gbout%ibzxx_c = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='gbout%ibzxx_c')
        do i3=iis3,iie3
            do i2=iis2,iie2
                do i1=iis1,iie1
@@ -432,9 +393,7 @@ if(geocode == 'F')then
        
    
    if(associated(gbout%ibxxyy_c)) then
-       iall=-product(shape(gbout%ibxxyy_c))*kind(gbout%ibxxyy_c)
-       deallocate(gbout%ibxxyy_c, stat=istat)
-       call memocc(istat, iall, 'gbout%ibxxyy_c', subname)
+       call f_free_ptr(gbout%ibxxyy_c)
    end if
    if(associated(gbin%ibxxyy_c)) then
        iis1=lbound(gbin%ibxxyy_c,1)
@@ -443,8 +402,7 @@ if(geocode == 'F')then
        iie2=ubound(gbin%ibxxyy_c,2)
        iis3=lbound(gbin%ibxxyy_c,3)
        iie3=ubound(gbin%ibxxyy_c,3)
-       allocate(gbout%ibxxyy_c(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-       call memocc(istat, gbout%ibxxyy_c, 'gbout%ibxxyy_c', subname)
+       gbout%ibxxyy_c = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='gbout%ibxxyy_c')
        do i3=iis3,iie3
            do i2=iis2,iie2
                do i1=iis1,iie1
@@ -456,9 +414,7 @@ if(geocode == 'F')then
 end if
 
 if(associated(gbout%ibyz_ff)) then
-    iall=-product(shape(gbout%ibyz_ff))*kind(gbout%ibyz_ff)
-    deallocate(gbout%ibyz_ff, stat=istat)
-    call memocc(istat, iall, 'gbout%ibyz_ff', subname)
+    call f_free_ptr(gbout%ibyz_ff)
 end if
 if(associated(gbin%ibyz_ff)) then
     iis1=lbound(gbin%ibyz_ff,1)
@@ -467,8 +423,7 @@ if(associated(gbin%ibyz_ff)) then
     iie2=ubound(gbin%ibyz_ff,2)
     iis3=lbound(gbin%ibyz_ff,3)
     iie3=ubound(gbin%ibyz_ff,3)
-    allocate(gbout%ibyz_ff(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-    call memocc(istat, gbout%ibyz_ff, 'gbout%ibyz_ff', subname)
+    gbout%ibyz_ff = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='gbout%ibyz_ff')
     do i3=iis3,iie3
         do i2=iis2,iie2
             do i1=iis1,iie1
@@ -479,9 +434,7 @@ if(associated(gbin%ibyz_ff)) then
 end if
 
 if(associated(gbout%ibzxx_f)) then
-    iall=-product(shape(gbout%ibzxx_f))*kind(gbout%ibzxx_f)
-    deallocate(gbout%ibzxx_f, stat=istat)
-    call memocc(istat, iall, 'gbout%ibzxx_f', subname)
+    call f_free_ptr(gbout%ibzxx_f)
 end if
 if(associated(gbin%ibzxx_f)) then
     iis1=lbound(gbin%ibzxx_f,1)
@@ -490,8 +443,7 @@ if(associated(gbin%ibzxx_f)) then
     iie2=ubound(gbin%ibzxx_f,2)
     iis3=lbound(gbin%ibzxx_f,3)
     iie3=ubound(gbin%ibzxx_f,3)
-    allocate(gbout%ibzxx_f(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-    call memocc(istat, gbout%ibzxx_f, 'gbout%ibzxx_f', subname)
+    gbout%ibzxx_f = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='gbout%ibzxx_f')
     do i3=iis3,iie3
         do i2=iis2,iie2
             do i1=iis1,iie1
@@ -503,9 +455,7 @@ end if
 
 
 if(associated(gbout%ibxxyy_f)) then
-    iall=-product(shape(gbout%ibxxyy_f))*kind(gbout%ibxxyy_f)
-    deallocate(gbout%ibxxyy_f, stat=istat)
-    call memocc(istat, iall, 'gbout%ibxxyy_f', subname)
+    call f_free_ptr(gbout%ibxxyy_f)
 end if
 if(associated(gbin%ibxxyy_f)) then
     iis1=lbound(gbin%ibxxyy_f,1)
@@ -514,8 +464,7 @@ if(associated(gbin%ibxxyy_f)) then
     iie2=ubound(gbin%ibxxyy_f,2)
     iis3=lbound(gbin%ibxxyy_f,3)
     iie3=ubound(gbin%ibxxyy_f,3)
-    allocate(gbout%ibxxyy_f(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
-    call memocc(istat, gbout%ibxxyy_f, 'gbout%ibxxyy_f', subname)
+    gbout%ibxxyy_f = f_malloc_ptr((/ iis1.to.iie1, iis2.to.iie2, iis3.to.iie3 /),id='gbout%ibxxyy_f')
     do i3=iis3,iie3
         do i2=iis2,iie2
             do i1=iis1,iie1
@@ -539,7 +488,7 @@ type(orbitals_data),intent(inout):: orbsout
 character(len=*),intent(in):: subname
 
 ! Local variables
-integer:: iis1, iie1, iis2, iie2, i1, i2, istat, iall
+integer:: iis1, iie1, iis2, iie2, i1, i2
 
 orbsout%norb = orbsin%norb
 orbsout%norbp = orbsin%norbp
@@ -767,7 +716,7 @@ subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
   character(len=*),intent(in):: subname
 
   ! Local variables
-  integer:: iis1, iie1, iis2, iie2, i1, i2, istat, iall
+  integer:: iis1, iie1, iis2, iie2, i1, i2
 
   call timing(iproc,'sparse_copy','ON')
 

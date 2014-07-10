@@ -467,7 +467,6 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx_w,ncplx_g,ncplx_k,&
   real(gp), intent(in) :: gau_cut
   !local variables
   character(len=*), parameter :: subname='gauss_to_daub_k'
-  integer :: i_all,i_stat
   integer :: rightx,leftx,right_t,i0,i,k,length,j,icplx
   real(gp) :: a1,a2,z0,h,x,r,coeff,r2,rk,gcut
   real(gp) :: fac(ncplx_g)
@@ -484,8 +483,7 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx_w,ncplx_g,ncplx_k,&
   a1=gau_a(1)/hgrid
   if(ncplx_g==2) then
     a2=gau_a(2)*hgrid*hgrid
-    allocate(cc(ncplx_g,0:nmax,2),stat=i_stat)
-    call memocc(i_stat,cc,'cc',subname)
+    cc = f_malloc((/ 1.to.ncplx_g, 0.to.nmax, 1.to.2 /),id='cc')
   end if
   i0=nint(gau_cen/hgrid) ! the array is centered at i0
   z0=gau_cen/hgrid-real(i0,gp)
@@ -556,9 +554,7 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx_w,ncplx_g,ncplx_k,&
      c(1,:,:)=fac(1)*cc(1,:,:)-fac(2)*cc(2,:,:)
      c(2,:,:)=fac(1)*cc(2,:,:)+fac(2)*cc(1,:,:)
  
-     i_all=-product(shape(cc))*kind(cc)
-     deallocate(cc,stat=i_stat)
-     call memocc(i_stat,i_all,'cc',subname)
+     call f_free(cc)
   end if
 
 contains

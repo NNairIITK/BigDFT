@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
-##@file
-## This script is used to wrap the @ref memguess executable  but also to perform
-## some useful manipulations of atomic position files.
-##@author
-## Copyright (C) 2012-2013 BigDFT group
-## This file is distributed under the terms of the
-## GNU General Public License, see ~/COPYING file
-## or http://www.gnu.org/copyleft/gpl.txt .
-## For the list of contributors, see ~/AUTHORS
+# @file
+# This script is used to wrap the @ref memguess executable  but also to perform
+# some useful manipulations of atomic position files.
+# @author
+# Copyright (C) 2012-2013 BigDFT group
+# This file is distributed under the terms of the
+# GNU General Public License, see ~/COPYING file
+# or http://www.gnu.org/copyleft/gpl.txt .
+# For the list of contributors, see ~/AUTHORS
 
 
 import sys
@@ -16,363 +16,430 @@ import os.path
 import os
 from optparse import OptionParser, OptionGroup
 
-#this list can be converted in a dictionary with also the extra arguments
+# This list can be converted in a dictionary with also the extra arguments
 actions = ["memory-estimation", "rotate", "convert-field",
-           "export-wf", "export-grid", "atomic-wf", "GPU-test","convert-positions","manual","wizard"]
+           "export-wf", "export-grid", "atomic-wf", "GPU-test", 
+           "convert-positions", "manual", "wizard", "transform-coordinates"]
 
+# Processed lines
 abs_srcdir = "@abs_srcdir@"
-inputvarfile= abs_srcdir+'/input_variables_definition.yaml'
+inputvarfile = abs_srcdir + '/input_variables_definition.yaml'
 abs_top_builddir = "@abs_top_builddir@"
 bindir = "@prefix@"
+# Other part of the script needs no processing.
+
 
 def toHelp(list):
-  ret = ""
-  for ele in list[:-1]:
-    ret += ele + ", "
-  ret += "or " + list[-1]
-  return ret
+    ret = ""
+    for ele in list[:-1]:
+        ret += ele + ", "
+    ret += "or " + list[-1]
+    return ret
+
 
 def parse():
-  "Parse the command line"
-  parser = OptionParser("usage: bigdft-tool -a ACTION")
-  parser.add_option("-a", "--action", default=actions[0],
-                    help="perform one of the action: %s " % toHelp(actions) +
-                    "[default: %default]. "
-                    "Possible options for each action are described below.")
-  parser.add_option("--name", type="string", default="", metavar="NAME",
-                    help="read input files using NAME as radical [default: not specified]")
+    "Parse the command line"
+    parser = OptionParser("usage: bigdft-tool -a ACTION")
+    parser.add_option("-a", "--action", default=actions[0],
+                      help="perform one of the action: %s " % toHelp(actions) +
+                      "[default: %default]. "
+                      "Possible options for each action are described below.")
+    parser.add_option("--name", type="string", default="", metavar="NAME",
+                      help="read input files using NAME as radical [default: not specified]")
 
-  # The memory estimation.
-  group = OptionGroup(parser, "bigdft-tool -a %s [options]" % actions[0],
-                      "Performing memory estimation for a run of BigDFT.")
-  group.add_option("-n", "--n-proc", type="int", default=1, metavar="N",
-                   help="provide the number of processors that should be"
-                   " tested [default: %default]")
-  parser.add_option_group(group)
-  
-  # The rotation.
-  group = OptionGroup(parser, "bigdft-tool -a %s [options]" % actions[1],
-                      "Rotate the input file to use the smallest mesh possible"
-                      " using files following NAME scheme.")
-  parser.add_option_group(group)
+    # The memory estimation.
+    group = OptionGroup(parser, "bigdft-tool -a %s [options]" % actions[0],
+                        "Performing memory estimation for a run of BigDFT.")
+    group.add_option("-n", "--n-proc", type="int", default=1, metavar="N",
+                     help="provide the number of processors that should be"
+                     " tested [default: %default]")
+    parser.add_option_group(group)
 
-  # The field converter.
-  group = OptionGroup(parser, "bigdft-tool -a %s FROM TO" % actions[2],
-                      "Convert the given scalar field to another format, files"
-                      " FROM and TO are of the form <file.{etsf,cube}>.")
-  parser.add_option_group(group)
+    # The rotation.
+    group = OptionGroup(parser, "bigdft-tool -a %s [options]" % actions[1],
+                        "Rotate the input file to use the smallest mesh possible"
+                        " using files following NAME scheme.")
+    parser.add_option_group(group)
 
-  # Wavefunction exportation.
-  group = OptionGroup(parser, "bigdft-tool -a %s FILE" % actions[3],
-                      "Export the compressed wavefunction from FILE to a scalar-field"
-                      " representation in Cube format. If FILE is in ETSF format,"
-                      " one should provide the characteristic of the orbital to export"
-                      " with the following options.")
-  group.add_option("--i-band", type="int", default=1, metavar="BAND",
-                   help="choose the orbital to export [default: %default]")
-  group.add_option("--i-kpt", type="int", default=1, metavar="KPT",
-                   help="choose the k-point to export [default: %default]")
-  group.add_option("--i-spin", type="int", default=1, metavar="SPIN",
-                   help="choose the spin orientation to export [default: %default]")
-  group.add_option("--i-complex", type="int", default=1, metavar="CPLX",
-                   help="choose the real or imaginary part to export [default: %default]")
-  parser.add_option_group(group)
+    # The field converter.
+    group = OptionGroup(parser, "bigdft-tool -a %s FROM TO" % actions[2],
+                        "Convert the given scalar field to another format, files"
+                        " FROM and TO are of the form <file.{etsf,cube}>.")
+    parser.add_option_group(group)
 
-  # Grid exportation
-  group = OptionGroup(parser, "bigdft-tool -a %s [options]" % actions[4],
-                      "Export in XYZ format the positions of all grid points.")
-  parser.add_option_group(group)
+    # Wavefunction exportation.
+    group = OptionGroup(parser, "bigdft-tool -a %s FILE" % actions[3],
+                        "Export the compressed wavefunction from FILE to a scalar-field"
+                        " representation in Cube format. If FILE is in ETSF format,"
+                        " one should provide the characteristic of the orbital to export"
+                        " with the following options.")
+    group.add_option("--i-band", type="int", default=1, metavar="BAND",
+                     help="choose the orbital to export [default: %default]")
+    group.add_option("--i-kpt", type="int", default=1, metavar="KPT",
+                     help="choose the k-point to export [default: %default]")
+    group.add_option("--i-spin", type="int", default=1, metavar="SPIN",
+                     help="choose the spin orientation to export [default: %default]")
+    group.add_option("--i-complex", type="int", default=1, metavar="CPLX",
+                     help="choose the real or imaginary part to export [default: %default]")
+    parser.add_option_group(group)
 
-  # GAtom
-  group = OptionGroup(parser, "bigdft-tool -a %s [options]" % actions[5],
-                      "Calculates the atomic wavefunctions of the first"
-                      " atom in the gatom basis.")
-  group.add_option("--n-gaussians", type="int", default=31, metavar="NUM", \
-                    help="number of gaussians used in gatom calculation"
-                   " in atomic-wf action [default: %default]")
-  parser.add_option_group(group)
+    # Grid exportation
+    group = OptionGroup(parser, "bigdft-tool -a %s [options]" % actions[4],
+                        "Export in XYZ format the positions of all grid points.")
+    parser.add_option_group(group)
 
-  # Test GPU speed
-  group = OptionGroup(parser, "bigdft-tool -a %s [options]" % actions[6],
-                      "Test the speed of 3D operators with GPU.")
-  group.add_option("--n-repeats", type="int", default=5, metavar="NUM", \
-                    help="number of repeated calculations in"
-                   " GPU-test action [default: %default]")
-  group.add_option("--n-orbs", type="int", default=0, metavar="NUM", \
-                    help="limit the number of computed orbitals in"
-                   " GPU-test action [default: %default]")
-  parser.add_option_group(group)
+    # GAtom
+    group = OptionGroup(parser, "bigdft-tool -a %s [options]" % actions[5],
+                        "Calculates the atomic wavefunctions of the first"
+                        " atom in the gatom basis.")
+    group.add_option("--n-gaussians", type="int", default=31, metavar="NUM",
+                     help="number of gaussians used in gatom calculation"
+                     " in atomic-wf action [default: %default]")
+    parser.add_option_group(group)
 
-  # Convert positions
-  group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[7],
-                    "Convert the <input> position file to the <output> format"
-                    " the allowed formats are xyz, ascii and yaml")
-  parser.add_option_group(group)
+    # Test GPU speed
+    group = OptionGroup(parser, "bigdft-tool -a %s [options]" % actions[6],
+                        "Test the speed of 3D operators with GPU.")
+    group.add_option("--n-repeats", type="int", default=5, metavar="NUM",
+                     help="number of repeated calculations in"
+                     " GPU-test action [default: %default]")
+    group.add_option("--n-orbs", type="int", default=0, metavar="NUM",
+                     help="limit the number of computed orbitals in"
+                     " GPU-test action [default: %default]")
+    parser.add_option_group(group)
 
-  # Manual
-  group = OptionGroup(parser, "bigdft-tool -a %s [options]" % actions[8],
-                      "Input file manual: helps in identifying the input variables which are interesting")
-  group.add_option("--profile", type="str", default="single-point", metavar="NAME", \
+    # Convert positions
+    group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[7],
+                        "Convert the <input> position file to the <output> format"
+                        " the allowed formats are xyz, ascii and yaml")
+    parser.add_option_group(group)
+
+    # Manual
+    group = OptionGroup(parser, "bigdft-tool -a %s [options]" % actions[8],
+                        "Input file manual: helps in identifying the input variables which are interesting")
+    group.add_option("--profile", type="str", default="single-point", metavar="NAME",
                      help="Write a input file corresponding to profile named NAME")
-  group.add_option("--find-key", type="str", default=None, metavar="NAME", \
+    group.add_option("--find-key", type="str", default=None, metavar="NAME",
                      help="Find the keys which are typographically similar to NAME")
 
-  # wizard
-  group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[9],
-                    "BigDFT wizard: help the user in finding the good input file")
-  parser.add_option_group(group)
+    # wizard
+    group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[9],
+                        "BigDFT wizard: help the user in finding the good input file")
+    parser.add_option_group(group)
 
-  return parser
+    # conversion from cartesian to internal or vice versa, plus file format conversion
+    group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[10],
+                        "conversion from cartesian to internal coordinates")
+    #group.add_option("--direction", type="str", metavar="NAME",
+    #                 help="indicates the direction of the coordinate transform (carint = cartesian to internal, intcar = internal to cartesian")
+    group.add_option("--infile", type="str", default="posinp.xyz", metavar="NAME",
+                     help="input file to read the coordinates from [default: %default]")
+    group.add_option("--outfile", type="str", default="posout.xyz", metavar="NAME",
+                     help="output file to write the coordinates to [default: %default]")
+    parser.add_option_group(group)
 
-def closest_keys(allkeys,searchfor):
-  from difflib import SequenceMatcher
-  matching_keys=[]
-  # weight the keys which matches the most
-  for k in allkeys:
-    s=SequenceMatcher(lambda x: x == " ",searchfor,k)
-    matching_keys.append([k,s.ratio()])
-    matching_keys.sort(key=lambda x: x[1])
-    matching_keys.reverse()
-  return matching_keys
+    return parser
 
-#find the fields which have this key
-def find_files(parameters,key):
-  files=[]
-  for f in parameters:
-    if key in parameters[f].keys():
-      files.append(f)
-  return files
 
+def closest_keys(allkeys, searchfor):
+    "Find the closest keys"
+    from difflib import SequenceMatcher
+    matching_keys = []
+    # weight the keys which matches the most
+    for k in allkeys:
+        s = SequenceMatcher(lambda x: x == " ", searchfor, k)
+        matching_keys.append([k, s.ratio()])
+        matching_keys.sort(key=lambda x: x[1])
+        matching_keys.reverse()
+    return matching_keys
+
+
+def find_files(parameters, key):
+    "Find the fields which have this key"
+    files = []
+    for f in parameters:
+        if key in parameters[f].keys():
+            files.append(f)
+    return files
+
+
+# Use curses module (menu in terminal)
 from time import sleep
 import curses
+
+
 MENU = "menu"
 COMMAND = "command"
 EXITMENU = "exitmenu"
 PROMPT = "prompt"
 
-# This function displays the appropriate menu and returns the option selected
-def runmenu(h,n,screen,menu, parent):
 
-  # work out what text to display as the last menu option
-  if parent is None:
-    lastoption = "Exitq (press 'Q' key)"
-  else:
-    lastoption = "Return to %s menu (press 'Q' key)" % parent['title']
+def runmenu(h, n, screen, menu, parent):
+    "This function displays the appropriate menu and returns the option selected"
+    # work out what text to display as the last menu option
+    if parent is None:
+        lastoption = "Exit (press 'Q' key)"
+    else:
+        lastoption = "Return to %s menu (press 'Q' key)" % parent['title']
 
-  optioncount = len(menu['options']) # how many options in this menu
+    optioncount = len(menu['options'])  # how many options in this menu
 
-  pos=0 #pos is the zero-based index of the hightlighted menu option. Every time runmenu is called, position returns to 0, when runmenu ends the position is returned and tells the program what opt$
-  oldpos=None # used to prevent the screen being redrawn every time
-  x = None #control for while loop, let's you scroll through options until return key is pressed then returns pos to program
+    # pos is the zero-based index of the hightlighted menu option. Every time
+    # runmenu is called, position returns to 0, when runmenu ends the position
+    # is returned and tells the program what opt$
+    pos = 0
+    oldpos = None  # used to prevent the screen being redrawn every time
+    # control for while loop, let's you scroll through options until return
+    # key is pressed then returns pos to program
+    x = None
 
-  # Loop until return key is pressed, or esc key
-  while x !=ord('\n') and x!= ord('q') and x!= ord('Q'):
-    if pos != oldpos:
-      oldpos = pos
-      screen.border(0)
-      screen.addstr(2,2, menu['title'], curses.A_STANDOUT) # Title for this menu
-      screen.addstr(4,2, menu['subtitle'], curses.A_BOLD) #Subtitle for this menu
+    # Loop until return key is pressed, or esc key
+    while x != ord('\n') and x != ord('q') and x != ord('Q'):
+        if pos != oldpos:
+            oldpos = pos
+            screen.border(0)
+            # Title for this menu
+            screen.addstr(2, 2, menu['title'], curses.A_STANDOUT)
+            iy = 4
+            if menu.has_key('strings'):
+                for chain in menu['strings'].split('\n'):
+                    screen.addstr(iy, 2, chain, curses.A_BOLD)
+                    iy += 1
+                iy += 1
+            # Subtitle for this menu
+            screen.addstr(iy, 2, menu['subtitle'], curses.A_BOLD)
+            iy += 1
 
-      # Display all the menu items, showing the 'pos' item highlighted
-      for index in range(optioncount):
-        textstyle = n
-        if pos==index:
-          textstyle = h
-        screen.addstr(5+index,4, "%d - %s" % (index+1, menu['options'][index]['title']), textstyle)
-      # Now display Exit/Return at bottom of menu
-      textstyle = n
-      if pos==optioncount:
-        textstyle = h
-      screen.addstr(5+optioncount,4, "%d - %s" % (optioncount+1, lastoption), textstyle)
-      screen.refresh()
-      # finished updating screen
+            # Display all the menu items, showing the 'pos' item highlighted
+            for index in range(optioncount):
+                textstyle = n
+                if pos == index:
+                    textstyle = h
+                screen.addstr(iy, 4, "%d - %s" % (index + 1, menu['options'][index]['title']), textstyle)
+                iy += 1
+            # Now display Exit/Return at bottom of menu
+            textstyle = n
+            if pos == optioncount:
+                textstyle = h
+            screen.addstr(iy, 4, "%d - %s" % (optioncount + 1, lastoption), textstyle)
+            screen.refresh()
+            # finished updating screen
 
-    x = screen.getch() # Gets user input
+        x = screen.getch()  # Gets user input
 
-    # What is user input?
-    #this line can be used only if optioncount is lower than 8
-    if x >= ord('1') and x <= ord(str(min(optioncount+1,9))):
-      pos = x - ord('0') - 1 # convert keypress back to a number, then subtract 1 to get index
-    elif x == 258: # down arrow
-      if pos < optioncount:
-        pos += 1
-      else: pos = 0
-    elif x == 259: # up arrow
-      if pos > 0:
-        pos += -1
-      else: pos = optioncount
-    elif x == ord('q') or x== ord('Q'): # esc key
-      pos = optioncount
-  # return index of the selected item
-  return pos
-
-#dump some information in the screen and come back to previous menu when done
-def dump_info(h,n,screen,menu,parent):
-  pos=0 
-  oldpos=None 
-  x = None 
-  strings= menu['strings']
-  infocount = len(strings)
-  lastoption = "Press Enter or 'Q' key to come back to %s menu" % parent['title']
-  # Loop until return key is pressed
-  while x !=ord('\n') and x!= ord('q') and x!= ord('Q'):
-    if pos != oldpos:
-      oldpos = pos
-      screen.border(0)
-      screen.border(0)
-      screen.addstr(2,2, menu['title'], curses.A_STANDOUT) # Title for this menu
-      screen.addstr(4,2, menu['subtitle'], curses.A_BOLD) #Subtitle for this menu
-      # Display all the menu items, showing the 'pos' item highlighted
-      for index in range(infocount):
-        textstyle = n
-        screen.addstr(5+index,4, "%s" % strings[index], textstyle)
-      # Now display Exit/Return at bottom of menu
-      textstyle = h
-      screen.addstr(5+infocount,4, " %s" % lastoption, textstyle)
-      screen.refresh()
-      # finished updating screen
-
-    x = screen.getch() # Gets user input
-
-  # return index of the selected item
-  return 0
+        # What is user input?
+        # this line can be used only if optioncount is lower than 8
+        if x >= ord('1') and x <= ord(str(min(optioncount + 1, 9))):
+            # convert keypress back to a number, then subtract 1 to get index
+            pos = x - ord('0') - 1
+        elif x == 258:  # down arrow
+            if pos < optioncount:
+                pos += 1
+            else:
+                pos = 0
+        elif x == 259:  # up arrow
+            if pos > 0:
+                pos += -1
+            else:
+                pos = optioncount
+        elif x == ord('q') or x == ord('Q'):  # esc key
+            pos = optioncount
+    # return index of the selected item
+    return pos
 
 
 
-# This function calls showmenu and then acts on the selected item
-def processmenu(h,n,screen,menu, parent=None):
-  optioncount = len(menu['options'])
-  exitmenu = False
-  while not exitmenu: #Loop until the user exits the menu
-    getin = runmenu(h,n,screen,menu, parent)
-    try:
-      whattodo=menu['options'][getin]['type']
-    except:
-      whattodo=None
-    #the last option is always needed to exit the menu
-    if getin == optioncount:
-        exitmenu = True
-    elif whattodo == COMMAND:
-      curses.def_prog_mode()    # save curent curses environment
-      os.system('reset')
-      screen.clear() #clears previous screen
-      os.system(menu['options'][getin]['command']) # run the command
-      screen.clear() #clears previous screen on key press and updates display based on pos
-      curses.reset_prog_mode()   # reset to 'current' curses environment
-      curses.curs_set(1)         # reset doesn't do this right
-      curses.curs_set(0)
-    elif whattodo == PROMPT:
-      curses.def_prog_mode()    # save curent curses environment
-      #this is not the good place, as it is specific to the usage
-      screen.clear() #clears previous screen
-      dump_info(h,n,screen,menu['options'][getin],menu)
-      screen.clear() #clears previous screen on key press and updates display based on pos
-      curses.reset_prog_mode()   # reset to 'current' curses environment
-      curses.curs_set(1)         # reset doesn't do this right
-      curses.curs_set(0)
-    elif whattodo == MENU:
-          screen.clear() #clears previous screen on key press and updates display based on pos
-          processmenu(h,n,screen,menu['options'][getin], menu) # display the submenu
-          screen.clear() #clears previous screen on key press and updates display based on pos
-    elif whattodo == EXITMENU:
-          exitmenu = True
+def dump_info(h, n, screen, menu, parent):
+    "Dump some information in the screen and come back to previous menu when done"
+    pos = 0
+    oldpos = None
+    x = None
+    strings = menu['strings']
+    infocount = len(strings)
+    lastoption = "Press Enter or 'Q' key to come back to %s menu" % parent[
+        'title']
+    # Loop until return key is pressed
+    while x != ord('\n') and x != ord('q') and x != ord('Q'):
+        if pos != oldpos:
+            oldpos = pos
+            screen.border(0)
+            screen.border(0)
+            # Title for this menu
+            screen.addstr(2, 2, menu['title'], curses.A_STANDOUT)
+            # Subtitle for this menu
+            screen.addstr(4, 2, menu['subtitle'], curses.A_BOLD)
+            # Display all the menu items, showing the 'pos' item highlighted
+            iy = 4
+            for index in range(infocount):
+                textstyle = n
+                for chain in strings[index].split('\n'):
+                    iy += 1
+                    screen.addstr(iy, 4, "%s" % chain, textstyle)
+            # Now display Exit/Return at bottom of menu
+            textstyle = h
+            screen.addstr(iy+1, 4, " %s" % lastoption, textstyle)
+            screen.refresh()
+            # finished updating screen
+        x = screen.getch()  # Gets user input
 
-    
+    # return index of the selected item
+    return 0
 
+
+def processmenu(h, n, screen, menu, parent=None):
+    "This function calls showmenu and then acts on the selected item"
+    optioncount = len(menu['options'])
+    exitmenu = False
+    while not exitmenu:  # Loop until the user exits the menu
+        getin = runmenu(h, n, screen, menu, parent)
+        try:
+            whattodo = menu['options'][getin]['type']
+        except:
+            whattodo = None
+        # the last option is always needed to exit the menu
+        if getin == optioncount:
+            exitmenu = True
+        elif whattodo == COMMAND:
+            curses.def_prog_mode()    # save current curses environment
+            os.system('reset')
+            screen.clear()  # clears previous screen
+            os.system(menu['options'][getin]['command'])  # run the command
+            # clears previous screen on key press and updates display based on
+            # pos
+            screen.clear()
+            curses.reset_prog_mode()   # reset to 'current' curses environment
+            curses.curs_set(1)         # reset doesn't do this right
+            curses.curs_set(0)
+        elif whattodo == PROMPT:
+            curses.def_prog_mode()    # save curent curses environment
+            # this is not the good place, as it is specific to the usage
+            screen.clear()  # clears previous screen
+            dump_info(h, n, screen, menu['options'][getin], menu)
+            # clears previous screen on key press and updates display based on
+            # pos
+            screen.clear()
+            curses.reset_prog_mode()   # reset to 'current' curses environment
+            curses.curs_set(1)         # reset doesn't do this right
+            curses.curs_set(0)
+        elif whattodo == MENU:
+            # clears previous screen on key press and updates display based on
+            # pos
+            screen.clear()
+            # display the submenu
+            processmenu(h, n, screen, menu['options'][getin], menu)
+            # clears previous screen on key press and updates display based on
+            # pos
+            screen.clear()
+        elif whattodo == EXITMENU:
+            exitmenu = True
+
+
+# Start the main script
 if __name__ == "__main__":
-  parser = parse()
-  (options, args) = parser.parse_args()
+    parser = parse()
+    (options, args) = parser.parse_args()
 
-  # Try to find memguess executable.
-  memguess = None
-  if os.path.isfile(os.path.join(os.path.dirname(sys.argv[0]), "memguess")):
-    memguess = os.path.join(os.path.dirname(sys.argv[0]), "memguess")
-  elif os.path.isfile("./memguess"):
-    memguess = "./memguess"
-  elif os.path.isfile(os.path.join(abs_top_builddir, "src", "memguess")):
-    memguess = os.path.join(abs_top_builddir, "src", "memguess")
-  elif os.path.isfile(os.path.join(bindir, "bin", "memguess")):
-    memguess = os.path.join(bindir, "bin", "memguess")
+    # Try to find memguess executable.
+    memguess = None
+    if os.path.isfile(os.path.join(os.path.dirname(sys.argv[0]), "memguess")):
+        memguess = os.path.join(os.path.dirname(sys.argv[0]), "memguess")
+    elif os.path.isfile("./memguess"):
+        memguess = "./memguess"
+    elif os.path.isfile(os.path.join(abs_top_builddir, "src", "memguess")):
+        memguess = os.path.join(abs_top_builddir, "src", "memguess")
+    elif os.path.isfile(os.path.join(bindir, "bin", "memguess")):
+        memguess = os.path.join(bindir, "bin", "memguess")
 
-  command=None 
-  # Run memguess
-  if options.action == actions[0]:
-    command = "%s %d %s dd" % (memguess, options.n_proc, options.name)
-  if options.action == actions[1]:
-    command = "%s 1 %s dd o" % (memguess, options.name)
-  if options.action == actions[2]:
-    if len(args) < 2:
-      parser.print_help()
-      raise ValueError("Action '%s' requires two mandatory arguments" % actions[2])
-    command = "%s 1 dd convert %s %s" % (memguess, args[0], args[1])
-  if options.action == actions[3]:
-    if len(args) < 1:
-      parser.print_help()
-      raise ValueError("Action '%s' requires one mandatory argument" % actions[3])
-    command = "%s 1 %s dd exportwf %s %d %d %d %d" % (memguess, options.name, args[0], options.i_band, options.i_spin, options.i_kpt, options.i_complex)
-  if options.action == actions[4]:
-    command = "%s 1 %s dd y" % (memguess, options.name)
-  if options.action == actions[5]:
-    command = "%s 1 %s dd atwf %d" % (memguess, options.name, options.n_gaussians)
-  if options.action == actions[6]:
-    command = "%s 1 %s dd GPUtest %d %d" % (memguess, options.name, options.n_repeats, options.n_orbs)
-  if options.action == actions[7]:
-    if len(args) < 2:
-      parser.print_help()
-      raise ValueError("Action '%s' requires two mandatory arguments" % actions[7])
-    command = "%s 1 dd convert-positions %s %s" % (memguess, args[0], args[1])
-# input manual
-  if options.action == actions[8]:
-    #to parse and document the input variables
-    import yaml
-    import pprint
-    try:
-      fulldoc = [a for a in yaml.load_all(open(inputvarfile, "r").read(), Loader = yaml.CLoader)]
-    except Exception,e:
-      print str(e)
-      print 'Error in opening input variable definition file, cannot proceed'
-      sys.exit(1)
-    params=fulldoc[0]
-    files=params.keys()
-    print 'Possible fields',files
-    pprint.pprint(files)
-    allkeys=[]
-    for f in files:
-      allkeys += params[f].keys()
-    print ' Possible keys',allkeys,len(allkeys)
-    pprint.pprint(allkeys)
-    # try to see if a key matches a expression
-    if options.find_key is not None:
-      searchfor=options.find_key
-      matching_keys=closest_keys(allkeys,searchfor)
-      print 'matching',searchfor,'in:',matching_keys
-      print 'keys wich match the most with',searchfor
-      foundkeys=[]
-      doc=[]
-      for (i,ratio) in matching_keys:
-        if ratio > 0.5 and i not in foundkeys:
-          for f in find_files(params,i):
-            dc={}
-            dc['Key found']=i
-            dc['Similarity']=ratio
-            dc['Field']=f
-            dc['Description']=params[f][i]
-            doc.append(dc)
-            foundkeys.append(i)
-      sys.stdout.write(yaml.dump(doc,default_flow_style=False,explicit_start=True))
-    infiles=fulldoc[1]
-    profs=infiles.keys()
-    print 'Possible profiles:'
-    for p in profs:
-      print '-',p,infiles[p]["COMMENT"]
-    print 'profile searched',options.profile
-    if options.profile in profs:
-      sys.stdout.write(yaml.dump(infiles[options.profile],default_flow_style=False,explicit_start=True))
-  if options.action == actions[9]:
-    #experimental mode to pretty print information with ncurses
-    #define the information for printing with ncurses
-    menu_yaml_base= \
-"""
+    command = None
+    # Run memguess
+    if options.action == actions[0]:
+        command = "%s %d %s dd" % (memguess, options.n_proc, options.name)
+    if options.action == actions[1]:
+        command = "%s 1 %s dd o" % (memguess, options.name)
+    if options.action == actions[2]:
+        if len(args) < 2:
+            parser.print_help()
+            raise ValueError(
+                "Action '%s' requires two mandatory arguments" % actions[2])
+        command = "%s 1 dd convert %s %s" % (memguess, args[0], args[1])
+    if options.action == actions[3]:
+        if len(args) < 1:
+            parser.print_help()
+            raise ValueError(
+                "Action '%s' requires one mandatory argument" % actions[3])
+        command = "%s 1 %s dd exportwf %s %d %d %d %d" % (memguess, options.name, args[
+                                                          0], options.i_band, options.i_spin, options.i_kpt, options.i_complex)
+    if options.action == actions[4]:
+        command = "%s 1 %s dd y" % (memguess, options.name)
+    if options.action == actions[5]:
+        command = "%s 1 %s dd atwf %d" % (
+            memguess, options.name, options.n_gaussians)
+    if options.action == actions[6]:
+        command = "%s 1 %s dd GPUtest %d %d" % (
+            memguess, options.name, options.n_repeats, options.n_orbs)
+    if options.action == actions[7]:
+        if len(args) < 2:
+            parser.print_help()
+            raise ValueError(
+                "Action '%s' requires two mandatory arguments" % actions[7])
+        command = "%s 1 dd convert-positions %s %s" % (
+            memguess, args[0], args[1])
+
+    # input manual
+    if options.action == actions[8]:
+        # to parse and document the input variables
+        import yaml
+        import pprint
+        try:
+            fulldoc = [a for a in yaml.load_all(
+                open(inputvarfile, "r").read(), Loader=yaml.CLoader)]
+        except Exception, e:
+            print str(e)
+            print 'Error in opening input variable definition file, cannot proceed'
+            sys.exit(1)
+        params = fulldoc[0]
+        files = params.keys()
+        print 'Possible fields', files
+        pprint.pprint(files)
+        allkeys = []
+        for f in files:
+            allkeys += params[f].keys()
+        print ' Possible keys', allkeys, len(allkeys)
+        pprint.pprint(allkeys)
+        # try to see if a key matches a expression
+        if options.find_key is not None:
+            searchfor = options.find_key
+            matching_keys = closest_keys(allkeys, searchfor)
+            print 'matching', searchfor, 'in:', matching_keys
+            print 'keys wich match the most with', searchfor
+            foundkeys = []
+            doc = []
+            for (i, ratio) in matching_keys:
+                if ratio > 0.5 and i not in foundkeys:
+                    for f in find_files(params, i):
+                        dc = {}
+                        dc['Key found'] = i
+                        dc['Similarity'] = ratio
+                        dc['Field'] = f
+                        dc['Description'] = params[f][i]
+                        doc.append(dc)
+                        foundkeys.append(i)
+            sys.stdout.write(
+                yaml.dump(doc, default_flow_style=False, explicit_start=True))
+        infiles = fulldoc[1]
+        profs = infiles.keys()
+        print 'Possible profiles:'
+        for p in profs:
+            print '-', p, infiles[p]["COMMENT"]
+        print 'profile searched', options.profile
+        if options.profile in profs:
+            sys.stdout.write(yaml.dump(
+                infiles[options.profile], default_flow_style=False, explicit_start=True))
+    if options.action == actions[9]:
+        # experimental mode to pretty print information with ncurses
+        # define the information for printing with ncurses
+        menu_yaml_base = \
+            """
 type: menu
 title: Welcome to BigDFT tool wizard!
 subtitle: Please select an action to do...
@@ -390,111 +457,149 @@ options:
   - type: input
     title: search for the key name
 """
-    import yaml
-    try:
-      fulldoc = [a for a in yaml.load_all(open(inputvarfile, "r").read(), Loader = yaml.CLoader)]
-    except Exception,e:
-      print str(e)
-      print 'Error in opening input variable definition file, cannot proceed'
-      sys.exit(1)
-    #then fill the menu of the information
-    menu=yaml.load(menu_yaml_base)
-    #processmenu(menu_data)
-    params=fulldoc[0]
-    files=params.keys()
-    files.sort()
-    print 'Possible fields',files
-    allkeys=[]
-    for f in files:
-      allkeys += params[f].keys()
-    print ' Possible keys',allkeys,len(allkeys)
-    infiles=fulldoc[1]
-    profs=infiles.keys()
-    profs.sort()
-    print 'Possible profiles:'
-    for p in profs:
-      print '-',p,infiles[p]["COMMENT"]
-    print 'profile searched',options.profile
-    if options.profile in profs:
-      sys.stdout.write(yaml.dump(infiles[options.profile],default_flow_style=False,explicit_start=True))
-    #complete the menu with the keys
-    dockey=[]
-    for f in files:
-      dict={'type': MENU,'title': f,'subtitle': 'Field type '+ str(f)}
-      dict['options']=[]
-      keysf=params[f].keys()
-      keysf.sort()
-      for k in keysf:
-        if params[f][k].has_key('DESCRIPTION'):
-          helpstr=params[f][k]['DESCRIPTION']
+        import yaml
+        try:
+            fulldoc = [a for a in yaml.load_all(
+                open(inputvarfile, "r").read(), Loader=yaml.CLoader)]
+        except Exception, e:
+            print str(e)
+            print 'Error in opening input variable definition file, cannot proceed'
+            sys.exit(1)
+        # then fill the menu of the information
+        menu = yaml.load(menu_yaml_base)
+        # processmenu(menu_data)
+        params = fulldoc[0]
+        files = params.keys()
+        files.sort()
+        print 'Possible fields', files
+        allkeys = []
+        for f in files:
+            allkeys += params[f].keys()
+        print ' Possible keys', allkeys, len(allkeys)
+        infiles = fulldoc[1]
+        profs = infiles.keys()
+        profs.sort()
+        print 'Possible profiles:'
+        for p in profs:
+            print '-', p, infiles[p]["COMMENT"]
+        print 'profile searched', options.profile
+        if options.profile in profs:
+            sys.stdout.write(yaml.dump(
+                infiles[options.profile], default_flow_style=False, explicit_start=True))
+        # complete the menu with the keys
+        dockey = []
+        for f in files:
+            dict = {
+                'type': MENU, 'title': f, 'subtitle': 'Field type ' + str(f)}
+            dict['options'] = []
+            # keep all keys
+            keysf = params[f].keys()
+            keysf.sort()
+            for k in keysf:
+                if k == 'DESCRIPTION':
+                    # Give the description of the given menu
+                    dict['strings'] = params[f][k]
+                    continue
+                if params[f][k].has_key('DESCRIPTION'):
+                    helpstr = params[f][k]['DESCRIPTION']
+                else:
+                    helpstr = 'No extended description for this key specified yet'
+                if params[f][k].has_key('COMMENT'):
+                    comment = params[f][k]['COMMENT']
+                else:
+                    comment = ''
+                dict['options'].append({'type': PROMPT, 'title': k + '     (' + str(comment) + ')',
+                                        'subtitle': 'Extended description for the input keyword: ' + str(k),
+                                        'strings': [helpstr]})
+            dockey.append(dict)
+        menu['options'][0]['options'] = dockey
+        # now the same for the input file setups
+        dockey = []
+        for f in profs:
+            inputfile = infiles[f]
+            helpstr = []
+            if infiles[f].has_key('DESCRIPTION'):
+                helpstr.append(inputfile.pop('DESCRIPTION'))
+            if infiles[f].has_key('COMMENT'):
+                comment = inputfile.pop('COMMENT')
+            else:
+                comment = ''
+            helpstr.append('Here should follow the File description')
+            helpstr.append(' ')
+            helpstr += yaml.dump(inputfile,
+                                 default_flow_style=False).split('\n')
+            dict = {'type': PROMPT, 'title': f + '     (' + str(comment) + ')',
+                    'subtitle': 'Extended description for the input file: ' + str(f),
+                    'strings': helpstr}
+            dockey.append(dict)
+        menu['options'][1]['options'] = dockey
+        sys.stdout.write(
+            yaml.dump(menu, default_flow_style=False, explicit_start=True))
+        # ertet
+        # Initializes a new window for capturing key presses
+        screen = curses.initscr()
+        # Disables automatic echoing of key presses (prevents program from
+        # input each key twice)
+        curses.noecho()
+        # Disables line buffering (runs each key as it is pressed rather than
+        # waiting for the return key to pressed)
+        curses.cbreak()
+        # Lets you use colors when highlighting selected menu option
+        curses.start_color()
+        screen.keypad(1)  # Capture input from keypad
+        screen.notimeout(1)  # Disables timeout for esc key
+        # Change this to use different colors when highlighting
+        # Sets up color pair #1, it does black text with white background
+        curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
+        # h is the coloring for a highlighted menu option
+        h = curses.color_pair(1)
+        # n is the coloring for a non highlighted menu option
+        n = curses.A_NORMAL
+
+        processmenu(h, n, screen, menu)
+        # VITAL! This closes out the menu system and returns you to the bash
+        # prompt.
+        curses.endwin()
+        os.system('clear')
+        # try to see if a key matches a expression
+        if options.find_key is not None:
+            searchfor = options.find_key
+            matching_keys = closest_keys(allkeys, searchfor)
+            print 'matching', searchfor, 'in:', matching_keys
+            print 'keys wich match the most with', searchfor
+            foundkeys = []
+            doc = []
+            for (i, ratio) in matching_keys:
+                if ratio > 0.5 and i not in foundkeys:
+                    for f in find_files(params, i):
+                        dc = {}
+                        dc['Key found'] = i
+                        dc['Similarity'] = ratio
+                        dc['Field'] = f
+                        dc['Description'] = params[f][i]
+                        doc.append(dc)
+                        foundkeys.append(i)
+            sys.stdout.write(
+                yaml.dump(doc, default_flow_style=False, explicit_start=True))
+    if options.action == actions[10]:
+        print 'calling memguess for coordinate conversion'
+        infile_names = options.infile.split(".")
+        outfile_names = options.outfile.split(".")
+        infile_extension = infile_names[len(infile_names)-1]
+        outfile_extension = outfile_names[len(outfile_names)-1]
+        in_is_car = infile_extension=='xyz' or infile_extension=='ascii' or infile_extension=='yaml'
+        in_is_int = infile_extension=='int'
+        out_is_car = outfile_extension=='xyz' or outfile_extension=='ascii' or outfile_extension=='yaml'
+        out_is_int = outfile_extension=='int'
+        if in_is_car and out_is_car:
+            direction = 'carcar'
+        elif in_is_car and out_is_int:
+            direction = 'carint'
+        elif in_is_int and out_is_car:
+            direction = 'intcar'
         else:
-          helpstr='No extended description for this key specified yet'
-        if params[f][k].has_key('COMMENT'):
-          comment=params[f][k]['COMMENT']
-        else:
-          comment=''        
-        dict['options'].append({'type': PROMPT,'title': k + '     (' +str(comment) + ')',\
-                                'subtitle': 'Extended description for the input keyword: ' + str(k), \
-                                'strings' : [helpstr]})
-      dockey.append(dict)
-    menu['options'][0]['options']=dockey
-    #now the same for the input file setups
-    dockey=[]
-    for f in profs:
-      inputfile=infiles[f]
-      helpstr=[]
-      if infiles[f].has_key('DESCRIPTION'):
-        helpstr.append(inputfile.pop('DESCRIPTION'))
-      if infiles[f].has_key('COMMENT'):
-        comment=inputfile.pop('COMMENT')
-      else:
-        comment=''        
-      helpstr.append('Here should follow the File description')
-      helpstr.append(' ')
-      helpstr += yaml.dump(inputfile,default_flow_style=False).split('\n')
-      dict={'type': PROMPT,'title': f + '     (' +str(comment) + ')',\
-                               'subtitle': 'Extended description for the input file: ' + str(f), \
-                                'strings' : helpstr}
-      dockey.append(dict)
-    menu['options'][1]['options']=dockey
-    sys.stdout.write(yaml.dump(menu,default_flow_style=False,explicit_start=True))
-    #ertet
-    screen = curses.initscr() #initializes a new window for capturing key presses
-    curses.noecho() # Disables automatic echoing of key presses (prevents program from input each key twice)
-    curses.cbreak() # Disables line buffering (runs each key as it is pressed rather than waiting for the return key to pressed)
-    curses.start_color() # Lets you use colors when highlighting selected menu option
-    screen.keypad(1) # Capture input from keypad
-    screen.notimeout(1) # Disables timeout for esc key
-    # Change this to use different colors when highlighting
-    curses.init_pair(1,curses.COLOR_BLACK, curses.COLOR_WHITE) # Sets up color pair #1, it does black text with white background
-    h = curses.color_pair(1) #h is the coloring for a highlighted menu option
-    n = curses.A_NORMAL #n is the coloring for a non highlighted menu option
-
-    processmenu(h,n,screen,menu)
-    curses.endwin() #VITAL! This closes out the menu system and returns you to the bash prompt.
-    os.system('clear')
-    # try to see if a key matches a expression
-    if options.find_key is not None:
-      searchfor=options.find_key
-      matching_keys=closest_keys(allkeys,searchfor)
-      print 'matching',searchfor,'in:',matching_keys
-      print 'keys wich match the most with',searchfor
-      foundkeys=[]
-      doc=[]
-      for (i,ratio) in matching_keys:
-        if ratio > 0.5 and i not in foundkeys:
-          for f in find_files(params,i):
-            dc={}
-            dc['Key found']=i
-            dc['Similarity']=ratio
-            dc['Field']=f
-            dc['Description']=params[f][i]
-            doc.append(dc)
-            foundkeys.append(i)
-      sys.stdout.write(yaml.dump(doc,default_flow_style=False,explicit_start=True))
-
-
-  #print command
-  #print 
-  if command is not None:
-    os.system(command)
+            direction = 'not supported'
+        command = "%s 1 %s dd transform-coordinates %s  %s %s" % (memguess, options.name, direction, options.infile, options.outfile)
+        print command
+    if command is not None:
+        os.system(command)

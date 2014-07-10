@@ -33,10 +33,8 @@ subroutine conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
   character(len=40) :: comment
 
   check=0
-  allocate(tpos(3,runObj%atoms%astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,tpos,'tpos',subname)
-  allocate(hh(3,runObj%atoms%astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,hh,'hh',subname)
+  tpos = f_malloc((/ 3, runObj%atoms%astruct%nat /),id='tpos')
+  hh = f_malloc((/ 3, runObj%atoms%astruct%nat /),id='hh')
   call init_global_output(l_outs, runObj%atoms%astruct%nat)
 
   anoise=1.e-4_gp
@@ -142,11 +140,11 @@ subroutine conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
 
            if (iproc == 0 .and. parmin%verbosity > 0) then
               write(16,'(a,i5,2(1pe20.12))') 'switching back to SD:etot,etotprev',it,outs%energy,etotprev
-              call yaml_open_map('Switching back to SD',flow=.true.)
+              call yaml_mapping_open('Switching back to SD',flow=.true.)
                  call yaml_map('It',it)
                  call yaml_map('Etot',outs%energy)
                  call yaml_map('Etotprev',etotprev)
-              call yaml_close_map()
+              call yaml_mapping_close()
            end if
            !if (iproc == 0) write(*,'(a,i5,2(1pe20.12))') ' switching back to SD:etot,etotprev',it,etot,etotprev
            do iat=1,runObj%atoms%astruct%nat
@@ -171,8 +169,10 @@ subroutine conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
         if (iproc==0) then 
            write(fn4,'(i4.4)') ncount_bigdft
            write(comment,'(a,1pe10.3)')'CONJG:fnrm= ',sqrt(fnrm)
-           call  write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-                & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
+           call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
+                & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
+                runObj%atoms,trim(comment),&
+                forces=outs%fxyz)
         endif
 
         !if (iproc == 0) write(17,'(a,i5,1x,e17.10,1x,e9.2)') 'CG ',ncount_bigdft,etot,sqrt(fnrm)
@@ -201,7 +201,7 @@ subroutine conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
 
         call fnrmandforcemax(outs%fxyz,fnrm,fmax,outs%fdim)
         if (iproc == 0) then
-           call yaml_open_map('Geometry')
+           call yaml_mapping_open('Geometry')
               if (parmin%verbosity > 0) then
                  ! write(16,'(i5,1x,e12.5,1x,e21.14,a,1x,e9.2)')it,sqrt(fnrm),etot,' GEOPT CG ',beta/runObj%inputs%betax
                  ! write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct', fnrm,fluct*runObj%inputs%frac_fluct,fluct
@@ -223,7 +223,7 @@ subroutine conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
               !write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))')&
               !     'FORCES norm(Ha/Bohr): maxval=',    fmax,'fnrm=',    fnrm   , 'fluct=',fluct
               call geometry_output(fmax,fnrm,fluct)
-           call yaml_close_map()
+           call yaml_mapping_close()
         end if
 
         call convcheck(fmax,fluct*runObj%inputs%frac_fluct,runObj%inputs%forcemax,check) !n(m)
@@ -251,11 +251,11 @@ subroutine conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
            if (iproc == 0) then
               if (parmin%verbosity > 0) write(16,*) &
                    'NO conv in CG after 500 its: switching back to SD',it,fnrm,outs%energy
-              call yaml_open_map('NO conv in CG after 500 its: switching back to SD')
+              call yaml_mapping_open('NO conv in CG after 500 its: switching back to SD')
                  call yaml_map('Iteration',it)
                  call yaml_map('fnrm',fnrm)
                  call yaml_map('Total energy',outs%energy)
-              call yaml_close_map()
+              call yaml_mapping_close()
               !write(*,*) 'NO conv in CG after 500 its: switching back to SD',it,fnrm,etot
            end if
            do iat=1,runObj%atoms%astruct%nat
@@ -311,12 +311,8 @@ contains
     implicit none
     !    Close the file
     !close(unit=16)
-    i_all=-product(shape(tpos))*kind(tpos)
-    deallocate(tpos,stat=i_stat)
-    call memocc(i_stat,i_all,'tpos',subname)
-    i_all=-product(shape(hh))*kind(hh)
-    deallocate(hh,stat=i_stat)
-    call memocc(i_stat,i_all,'hh',subname)
+    call f_free(tpos)
+    call f_free(hh)
     call deallocate_global_output(l_outs)
   END SUBROUTINE close_and_deallocate
 
@@ -330,6 +326,7 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
   use module_interfaces
   use minpar
   use yaml_output
+  use internal_coordinates, only : xyzint
   !use module_interfaces
   implicit none
   integer, intent(in) :: nproc,iproc,nitsd
@@ -348,9 +345,10 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
   real(gp), allocatable, dimension(:,:) :: tpos
   character(len=4) :: fn4
   character(len=40) :: comment
+  real(kind=8),dimension(:,:),allocatable :: geo
+  real(kind=8),parameter :: degree=1.d0
 
-  allocate(tpos(3,runObj%atoms%astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,tpos,'tpos',subname)
+  tpos = f_malloc((/ 3, runObj%atoms%astruct%nat /),id='tpos')
 
   etotprev=outs%energy
   anoise=0.e-4_gp
@@ -390,9 +388,7 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
            end if
         end if
 
-        i_all=-product(shape(tpos))*kind(tpos)
-        deallocate(tpos,stat=i_stat)
-        call memocc(i_stat,i_all,'tpos',subname)
+        call f_free(tpos)
         return
      endif
 
@@ -464,7 +460,9 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
            write(fn4,'(i4.4)') ncount_bigdft 
            write(comment,'(a,1pe10.3)')'SD:fnrm= ',sqrt(fnrm)
            call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-                & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
+                & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int, &
+                runObj%atoms,trim(comment),&
+                forces=outs%fxyz)
 
            !write(17,'(a,i5,1x,e17.10,1x,e9.2)') 'SD ',ncount_bigdft,etot,sqrt(fnrm)
         end if
@@ -475,7 +473,7 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
                    ncount_bigdft,itsd,"GEOPT_SD  ",outs%energy, outs%energy-etotprev, &
                    & fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct,& 
                    "b/b0=",beta/runObj%inputs%betax,"nsat=",nsatur
-              call yaml_open_map('Geometry')
+              call yaml_mapping_open('Geometry')
                  call yaml_map('Ncount_BigDFT',ncount_bigdft)
                  call yaml_map('Iteration',itsd)
                  call yaml_map('Geometry Method','GEOPT_SD')
@@ -484,7 +482,7 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
                  call yaml_map('b/b0', beta/runObj%inputs%betax, fmt='(1pe8.2e1)')
                  call yaml_map('nsat',nsatur)
                  call geometry_output(fmax,fnrm,fluct)
-              call yaml_close_map()
+              call yaml_mapping_close()
               !write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1,2x,a,I2)') &
               !& ncount_bigdft,itsd,"GEOPT_SD  ",etot, etot-etotprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct, & 
               !& "b/b0=",beta/runObj%inputs%betax,"nsat=",nsatur
@@ -557,6 +555,7 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
         endif
 !        if (iproc == 0 .and. parmrunObj%inputs%verbosity > 0) write(16,*) 'beta=',beta
 
+
         call vcopy(3 * runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1, tpos(1,1), 1)
         !call atomic_axpy(at,rxyz,beta,ff,rxyz)
         call axpy(3 * runObj%atoms%astruct%nat,beta,outs%fxyz(1,1),1,runObj%atoms%astruct%rxyz(1,1),1)
@@ -587,9 +586,7 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
 
   if (iproc == 0 .and. parmin%verbosity > 0) write(16,*) 'SD FINISHED',iproc
 
-  i_all=-product(shape(tpos))*kind(tpos)
-  deallocate(tpos,stat=i_stat)
-  call memocc(i_stat,i_all,'tpos',subname)
+  call f_free(tpos)
 
 END SUBROUTINE steepdes
 
@@ -621,8 +618,7 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
 
   check=0
   etotprev=outs%energy
-  allocate(posold(3,runObj%atoms%astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,posold,'posold',subname)
+  posold = f_malloc((/ 3, runObj%atoms%astruct%nat /),id='posold')
   call init_global_output(outsold, runObj%atoms%astruct%nat)
 
   !n(c) anoise=1.e-4_gp
@@ -639,14 +635,14 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
         write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1)') &
           & ncount_bigdft,itsd,"GEOPT_VSSD",outsold%energy,outsold%energy-etotprev,fmax,sqrt(fnrm), &
           & fluct*runObj%inputs%frac_fluct,fluct,"beta=",beta
-        call yaml_open_map('Geometry')
+        call yaml_mapping_open('Geometry')
            call yaml_map('Ncount_BigDFT',ncount_bigdft)
            call yaml_map('Iteration',itsd)
            call yaml_map('Geometry Method','GEOPT_VSSD')
            call yaml_map('etotold',(/ outsold%energy,outsold%energy-etotprev /),fmt='(1pe21.14)')
            call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct /), fmt='(1pe10.2)')
            call yaml_map('beta', beta, fmt='(1pe8.2e1)')
-        call yaml_close_map()
+        call yaml_mapping_close()
         !if (parmrunObj%inputs%verbosity > 0)   write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1)') &
         !&ncount_bigdft,itsd,"GEOPT_VSSD",etotold,etotold-etotprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct,"beta=",beta
      end if
@@ -658,8 +654,10 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
 
      write(fn4,'(i4.4)') ncount_bigdft
      write(comment,'(a,1pe10.3)')'Initial VSSD:fnrm= ',sqrt(fnrm)
-     call  write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-          & outsold%energy,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment),forces=outsold%fxyz)
+     call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
+          & outsold%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
+          runObj%atoms,trim(comment),&
+          forces=outsold%fxyz)
 !     if (parmin%verbosity > 0) &
 !          & write(16,'(1x,e12.5,1x,e21.14,a,e10.3)')sqrt(fnrm),etotold,' GEOPT VSSD ',beta
   end if
@@ -738,8 +736,10 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
         if (iproc == 0) then
            write(fn4,'(i4.4)') ncount_bigdft-1
            write(comment,'(a,1pe10.3)')'VSSD:fnrm= ',sqrt(fnrm)
-           call  write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-                & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
+           call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
+                & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
+                runObj%atoms,trim(comment),&
+                forces=outs%fxyz)
         endif
 
         do iat=1,runObj%atoms%astruct%nat
@@ -766,7 +766,7 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
      end if
 
      if (iproc == 0.and.parmin%verbosity > 0) then
-        call yaml_open_map('Geometry')
+        call yaml_mapping_open('Geometry')
            call yaml_map('Ncount_BigDFT',ncount_bigdft)
            call yaml_map('Iteration',itsd)
            call yaml_map('Geometry Method','GEOPT_VSSD')
@@ -775,7 +775,7 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
            call yaml_map('beta', beta, fmt='(1pe8.2e1)')
            call yaml_map('last beta', betalast, fmt='(1pe8.2e1)')
            call geometry_output(fmax,fnrm,fluct)
-        call yaml_close_map()
+        call yaml_mapping_close()
         !write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1,2x,a,1pe8.2E1)') &
         !ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct,& 
         !&"beta=",beta,"last beta=",betalast
@@ -796,7 +796,7 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
        "beta=",beta,"last beta=",betalast
 
   if (iproc == 0.and.parmin%verbosity > 0) then
-     call yaml_open_map('Geometry')
+     call yaml_mapping_open('Geometry')
         call yaml_map('Ncount_BigDFT',ncount_bigdft)
         call yaml_map('Iteration',itsd)
         call yaml_map('Geometry Method','GEOPT_VSSD')
@@ -805,7 +805,7 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
         call yaml_map('beta', beta, fmt='(1pe8.2e1)')
         call yaml_map('last beta', betalast, fmt='(1pe8.2e1)')
         call geometry_output(fmax,fnrm,fluct)
-     call yaml_close_map()
+     call yaml_mapping_close()
      !write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,1pe8.2E1,2x,a,1pe8.2E1)') &
      !&ncount_bigdft,itsd,"GEOPT_VSSD",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct,& 
      !&"beta=",beta,"last beta=",betalast
@@ -820,14 +820,14 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
      end if
      write(fn4,'(i4.4)') ncount_bigdft-1
      write(comment,'(a,1pe10.3)')'VSSD:fnrm= ',sqrt(fnrm)
-     call  write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-          & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
+     call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
+          & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
+          runObj%atoms,trim(comment),&
+          forces=outs%fxyz)
   endif
 
 
-  i_all=-product(shape(posold))*kind(posold)
-  deallocate(posold,stat=i_stat)
-  call memocc(i_stat,i_all,'posold',subname)
+  call f_free(posold)
   call deallocate_global_output(outsold)
 
 END SUBROUTINE vstepsd

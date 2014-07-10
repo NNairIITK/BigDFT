@@ -97,8 +97,10 @@ module sparsematrix
             sparsemat%matrix_comprp(jj)=sparsemat%matrix(irow,jcol)
          end do
          !$omp end parallel do
-         call mpi_allgatherv(sparsemat%matrix_comprp, sparsemat%nvctrp, mpi_double_precision, sparsemat%matrix_compr, &
-              sparsemat%nvctr_par(:), sparsemat%isvctr_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+         if (bigdft_mpi%nproc > 1) &
+            & call mpi_allgatherv(sparsemat%matrix_comprp, sparsemat%nvctrp, &
+            &    mpi_double_precision, sparsemat%matrix_compr, sparsemat%nvctr_par(:), &
+            &    sparsemat%isvctr_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
          call f_free_ptr(sparsemat%matrix_comprp)
       end if
     
@@ -176,9 +178,10 @@ module sparsematrix
             sparsemat%matrixp(irow,jcol)=sparsemat%matrix_compr(iii)
          end do
          !$omp end parallel do
-         call mpi_allgatherv(sparsemat%matrixp, sparsemat%nfvctr*sparsemat%nfvctrp, mpi_double_precision, sparsemat%matrix, &
-              sparsemat%nfvctr*sparsemat%nfvctr_par(:), sparsemat%nfvctr*sparsemat%isfvctr_par, mpi_double_precision, &
-              bigdft_mpi%mpi_comm, ierr)
+         if (bigdft_mpi%nproc > 1) &
+            & call mpi_allgatherv(sparsemat%matrixp, sparsemat%nfvctr*sparsemat%nfvctrp, mpi_double_precision, &
+            &   sparsemat%matrix, sparsemat%nfvctr*sparsemat%nfvctr_par(:), sparsemat%nfvctr*sparsemat%isfvctr_par, &
+            &   mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
          call f_free_ptr(sparsemat%matrixp)
       end if
       sparsemat%can_use_dense=.true.  
@@ -404,6 +407,7 @@ module sparsematrix
      ! Local variables
      integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb
 
+     call timing(iproc,'compress_uncom','ON')
 
      call to_zero(smat%nvctr, matrix_compr(1))
 
@@ -435,6 +439,8 @@ module sparsematrix
          call mpiallred(matrix_compr(1), smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
      end if
 
+     call timing(iproc,'compress_uncom','OF')
+
   end subroutine compress_matrix_distributed
 
 
@@ -451,6 +457,7 @@ module sparsematrix
     ! Local variables
     integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb
 
+      call timing(iproc,'compress_uncom','ON')
 
        if (smat%nfvctrp>0) then
 
@@ -475,6 +482,8 @@ module sparsematrix
            end do
            !$omp end parallel do
        end if
+
+      call timing(iproc,'compress_uncom','OF')
 
    end subroutine uncompress_matrix_distributed
 
@@ -503,6 +512,7 @@ module sparsematrix
 
    subroutine sparsemm(smat, a_seq, b, c)
      use module_base
+     use yaml_output
      implicit none
    
      !Calling Arguments
@@ -514,8 +524,8 @@ module sparsematrix
      !Local variables
      !character(len=*), parameter :: subname='sparsemm'
      integer :: i,jorb,jjorb,m,mp1
-     integer :: iorb, ii0, ii2, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6, iout
-     real(kind=8) :: tt
+     integer :: iorb, ii, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6, iout
+     real(kind=8) :: tt0, tt1, tt2, tt3, tt4, tt5, tt6
    
      call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'IR')
 
@@ -526,48 +536,54 @@ module sparsematrix
          i=smat%smmm%onedimindices(1,iout)
          iorb=smat%smmm%onedimindices(2,iout)
          ilen=smat%smmm%onedimindices(3,iout)
-         ii0=smat%smmm%onedimindices(4,iout)
-         ii2=0
-         tt=0.d0
+         ii=smat%smmm%onedimindices(4,iout)
+         tt0=0.d0
+         tt1=0.d0
+         tt2=0.d0
+         tt3=0.d0
+         tt4=0.d0
+         tt5=0.d0
+         tt6=0.d0
    
          m=mod(ilen,7)
          if (m/=0) then
              do jorb=1,m
-                jjorb=smat%smmm%ivectorindex(ii0+ii2)
-                tt = tt + b(jjorb,i)*a_seq(ii0+ii2)
-                ii2=ii2+1
+                jjorb=smat%smmm%ivectorindex(ii)
+                tt0 = tt0 + b(jjorb,i)*a_seq(ii)
+                ii=ii+1
              end do
          end if
          mp1=m+1
          do jorb=mp1,ilen,7
    
-            jjorb0=smat%smmm%ivectorindex(ii0+ii2+0)
-            tt = tt + b(jjorb0,i)*a_seq(ii0+ii2+0)
+            jjorb0=smat%smmm%ivectorindex(ii+0)
+            tt0 = tt0 + b(jjorb0,i)*a_seq(ii+0)
    
-            jjorb1=smat%smmm%ivectorindex(ii0+ii2+1)
-            tt = tt + b(jjorb1,i)*a_seq(ii0+ii2+1)
+            jjorb1=smat%smmm%ivectorindex(ii+1)
+            tt1 = tt1 + b(jjorb1,i)*a_seq(ii+1)
    
-            jjorb2=smat%smmm%ivectorindex(ii0+ii2+2)
-            tt = tt + b(jjorb2,i)*a_seq(ii0+ii2+2)
+            jjorb2=smat%smmm%ivectorindex(ii+2)
+            tt2 = tt2 + b(jjorb2,i)*a_seq(ii+2)
    
-            jjorb3=smat%smmm%ivectorindex(ii0+ii2+3)
-            tt = tt + b(jjorb3,i)*a_seq(ii0+ii2+3)
+            jjorb3=smat%smmm%ivectorindex(ii+3)
+            tt3 = tt3 + b(jjorb3,i)*a_seq(ii+3)
    
-            jjorb4=smat%smmm%ivectorindex(ii0+ii2+4)
-            tt = tt + b(jjorb4,i)*a_seq(ii0+ii2+4)
+            jjorb4=smat%smmm%ivectorindex(ii+4)
+            tt4 = tt4 + b(jjorb4,i)*a_seq(ii+4)
    
-            jjorb5=smat%smmm%ivectorindex(ii0+ii2+5)
-            tt = tt + b(jjorb5,i)*a_seq(ii0+ii2+5)
+            jjorb5=smat%smmm%ivectorindex(ii+5)
+            tt5 = tt5 + b(jjorb5,i)*a_seq(ii+5)
    
-            jjorb6=smat%smmm%ivectorindex(ii0+ii2+6)
-            tt = tt + b(jjorb6,i)*a_seq(ii0+ii2+6)
+            jjorb6=smat%smmm%ivectorindex(ii+6)
+            tt6 = tt6 + b(jjorb6,i)*a_seq(ii+6)
    
-            ii2=ii2+7
+            ii=ii+7
          end do
-         c(iorb,i)=tt
+         c(iorb,i) = tt0 + tt1 + tt2 + tt3 + tt4 + tt5 + tt6
      end do 
      !$omp end do
      !$omp end parallel
+
    
      call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'RS')
        

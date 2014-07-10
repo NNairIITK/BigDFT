@@ -755,7 +755,9 @@ subroutine sentinel(level,mode_paral,filename,funcname,lineno)
  else if (level==2) then
     msg = ' '//TRIM(my_funcname)//' >>>>> EXIT '//ch10
  else 
-    call die('Wrong level',__FILE__,__LINE__)
+    call die('Wrong level',&
+     __FILE__,&
+     __LINE__)
  end if
 
  call wrtout(std_out,msg,my_mode) 

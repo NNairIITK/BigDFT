@@ -18,7 +18,7 @@
   m%ubounds(1:m%rank)=m%lbounds(1:m%rank)+m%shape(1:m%rank)-1
   if (present(ubounds)) then
      if (size(ubounds) /= m%rank) then
-        call f_err_throw('The "ubounds" array has not conformal shape',ERR_INVALID_MALLOC)
+        call f_err_throw('The "ubounds" array has not conformal shape',err_id=ERR_INVALID_MALLOC)
      end if
      if (any(m%ubounds(1:m%rank)/=ubounds(1:m%rank))) then
         call f_err_throw('The "ubounds" and/or "lbounds arrays are not conformal'//&

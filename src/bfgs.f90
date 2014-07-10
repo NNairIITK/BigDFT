@@ -50,12 +50,9 @@ subroutine bfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft)
 
     !Allocations
     nwork=nr*nr+3*nr+3*nr*nr+3*nr
-    allocate(work(nwork),stat=i_stat)
-    call memocc(i_stat,work,'work',subname)
-    allocate(x(nr),stat=i_stat)
-    call memocc(i_stat,x,'x',subname)
-    allocate(f(nr),stat=i_stat)
-    call memocc(i_stat,f,'f',subname)
+    work = f_malloc(nwork,id='work')
+    x = f_malloc(nr,id='x')
+    f = f_malloc(nr,id='f')
 
     icall=0
     do 
@@ -84,8 +81,9 @@ subroutine bfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft)
         if (iproc == 0) then
            write(fn4,'(i4.4)') ncount_bigdft
            write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
-           call  write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-                & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
+           call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
+                & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
+                runObj%atoms,trim(comment),forces=outs%fxyz)
         endif
 
         call bfgs_reza(iproc,runObj%inputs%dir_output,nr,x,outs%energy,f,nwork,work,&
@@ -98,8 +96,9 @@ subroutine bfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft)
            if(iproc==0) then
               write(fn4,'(i4.4)') ncount_bigdft
               write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
-              call  write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-                   & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
+              call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
+                   & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
+                   runObj%atoms,trim(comment),forces=outs%fxyz)
            endif
         endif
         !if(ncount_bigdft>in%ncount_cluster_x-1)
@@ -113,17 +112,9 @@ subroutine bfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft)
     enddo
 
     !De-Allocations
-    i_all=-product(shape(work))*kind(work)
-    deallocate(work,stat=i_stat)
-    call memocc(i_stat,i_all,'work',subname)
-
-    i_all=-product(shape(x))*kind(x)
-    deallocate(x,stat=i_stat)
-    call memocc(i_stat,i_all,'x',subname)
-
-    i_all=-product(shape(f))*kind(f)
-    deallocate(f,stat=i_stat)
-    call memocc(i_stat,i_all,'f',subname)
+    call f_free(work)
+    call f_free(x)
+    call f_free(f)
 
 END SUBROUTINE bfgsdriver
 
@@ -146,8 +137,13 @@ subroutine inithess(iproc,nr,nat,rat,atoms,hess)
        if (iproc == 0) call yaml_warning('This subroutine works only for systems without fixed atoms.')
        stop
    endif
-   allocate(ita(nat),isb(10*nat,2),r0bonds(10*nat),fcbonds(10*nat))
-   allocate(evec(nr,nr),eval(nr),wa(nrsqtwo))
+   ita = f_malloc(nat,id='ita')
+   isb = f_malloc((/ 10*nat, 2 /),id='isb')
+   r0bonds = f_malloc(10*nat,id='r0bonds')
+   fcbonds = f_malloc(10*nat,id='fcbonds')
+   evec = f_malloc((/ nr, nr /),id='evec')
+   eval = f_malloc(nr,id='eval')
+   wa = f_malloc(nrsqtwo,id='wa')
    do iat=1,nat
        if(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='H') then
            ita(iat)=1
@@ -241,7 +237,13 @@ subroutine inithess(iproc,nr,nat,rat,atoms,hess)
        hess(i,j)=hess(j,i)
    enddo
    enddo
-   deallocate(ita,isb,r0bonds,fcbonds,evec,eval,wa)
+   call f_free(ita)
+   call f_free(isb)
+   call f_free(r0bonds)
+   call f_free(fcbonds)
+   call f_free(evec)
+   call f_free(eval)
+   call f_free(wa)
 end subroutine inithess
 
 
@@ -412,7 +414,7 @@ subroutine bfgs_reza(iproc,dir_output,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,nc
       !write(*,'(a10,i5,es23.15,es11.3,2es12.5,2es12.4,i3)') &
       !    'GEOPT_BFGS',parmin%iter,epot,de,fnrm,fmax,zeta,alpha,isatur
       !       '(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,I3,2x,a,1pe8.2E1)'
-      call yaml_open_map('Geometry')
+      call yaml_mapping_open('Geometry')
          call yaml_map('Ncount_BigDFT',ncount_bigdft)
          call yaml_map('Geometry step',parmin%iter)
          call yaml_map('Geometry Method','GEOPT_BFGS')
@@ -422,7 +424,7 @@ subroutine bfgs_reza(iproc,dir_output,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,nc
          call yaml_map('flt', (/ flt1, flt2 /), fmt='(es10.2)')
          call yaml_map('Alpha', alpha, fmt='(es7.2e1)')
          call yaml_map('isatur',isatur)
-      call yaml_close_map()
+      call yaml_mapping_close()
       !write(*,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a7,i3)') &
       !    ncount_bigdft,parmin%iter,'GEOPT_BFGS',epot,de,fmax,fnrm,flt1,flt2,'isatur=',isatur
       write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a7,i3)') &
@@ -441,11 +443,11 @@ subroutine bfgs_reza(iproc,dir_output,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,nc
        !parmin%converged=.true.
        parmin%iflag=0
        if(iproc==0) then
-          call yaml_open_map('BFGS FINISHED',flow=.true.)
+          call yaml_mapping_open('BFGS FINISHED',flow=.true.)
              call yaml_map('It',parmin%iter)
              call yaml_map('Etot',epot)
              call yaml_map('Forces', (/ fnrm,fmax /))
-          call yaml_close_map()
+          call yaml_mapping_close()
           !write(*,'(a,i4,es23.15,2es12.5)') &
           !    'BFGS FINISHED: itfire,epot,fnrm,fmax ',parmin%iter,epot,fnrm,fmax
        endif
@@ -647,14 +649,10 @@ subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   NDIM=nr
   NWORK=NDIM*(2*parmin%MSAVE +1)+2*parmin%MSAVE
    
-  allocate(X(NDIM),stat=i_stat)
-  call memocc(i_stat,X,'X',subname)
-  allocate(G(NDIM),stat=i_stat)
-  call memocc(i_stat,G,'G',subname)
-  allocate(DIAG(NDIM),stat=i_stat)
-  call memocc(i_stat,DIAG,'DIAG',subname)
-  allocate(W(NWORK),stat=i_stat)
-  call memocc(i_stat,W,'W',subname)
+  X = f_malloc(NDIM,id='X')
+  G = f_malloc(NDIM,id='G')
+  DIAG = f_malloc(NDIM,id='DIAG')
+  W = f_malloc(NWORK,id='W')
 
   call atomic_copymoving_forward(runObj%atoms,n,runObj%atoms%astruct%rxyz,nr,X)
 
@@ -676,8 +674,8 @@ subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      if (iproc == 0) then
         write(fn4,'(i4.4)') ncount_bigdft
         write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
-        call  write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-             & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
+        call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
+             & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,runObj%atoms,trim(comment),forces=outs%fxyz)
      endif
      parmin%IWRITE=.false.
   endif
@@ -693,7 +691,7 @@ subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail)
         & "BFGS-it=",parmin%finstep,"alpha=",parmin%alpha
   end if
   if (iproc==0.and.ICALL.ne.0.and.parmin%verbosity > 0) then
-     call yaml_open_map('Geometry')
+     call yaml_mapping_open('Geometry')
         call yaml_map('Ncount_BigDFT',ncount_bigdft)
         call yaml_map('ICALL',ICALL)
         call yaml_map('Geometry Method','GEOPT_LBFGS')
@@ -701,12 +699,12 @@ subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail)
         call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct /), fmt='(1pe10.2)')
         call yaml_map('BFGS-it',parmin%finstep)
         call yaml_map('Alpha', parmin%alpha, fmt='(1pe8.2e1)')
-        call yaml_open_map('FORCES norm(Ha/Bohr)',flow=.true.)
+        call yaml_mapping_open('FORCES norm(Ha/Bohr)',flow=.true.)
            call yaml_map(' maxval',fmax,fmt='(1pe14.5)')
            call yaml_map('fnrm2',fnrm,fmt='(1pe14.5)')
            call yaml_map('fluct',fluct,fmt='(1pe14.5)')
-        call yaml_close_map()
-     call yaml_close_map()
+        call yaml_mapping_close()
+     call yaml_mapping_close()
      !write(* ,'(I5,1x,I5,2x,a11,1x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,I3,2x,a,1pe8.2E1)')&
      !   & ncount_bigdft,ICALL,"GEOPT_LBFGS",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct&
      !   & ,"BFGS-it=",parmin%finstep,"alpha=",parmin%alpha
@@ -726,8 +724,8 @@ subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      if (iproc == 0) then
         write(fn4,'(i4.4)') ncount_bigdft
         write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
-        call  write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-             & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment),forces=outs%fxyz)
+        call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
+             & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,runObj%atoms,trim(comment),forces=outs%fxyz)
      endif
      goto 100
   endif
@@ -769,18 +767,10 @@ subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail)
        fail=.true.
 100 CONTINUE
        
-  i_all=-product(shape(X))*kind(X)
-  deallocate(X,stat=i_stat)
-  call memocc(i_stat,i_all,'X',subname)
-  i_all=-product(shape(G))*kind(G)
-  deallocate(G,stat=i_stat)
-  call memocc(i_stat,i_all,'G',subname)
-  i_all=-product(shape(DIAG))*kind(DIAG)
-  deallocate(DIAG,stat=i_stat)
-  call memocc(i_stat,i_all,'DIAG',subname)
-  i_all=-product(shape(W))*kind(W)
-  deallocate(W,stat=i_stat)
-  call memocc(i_stat,i_all,'W',subname)
+  call f_free(X)
+  call f_free(G)
+  call f_free(DIAG)
+  call f_free(W)
 
 END SUBROUTINE lbfgsdriver
 

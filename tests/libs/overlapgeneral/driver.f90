@@ -24,7 +24,7 @@ program driver
   integer,parameter :: itype=1
   character(len=1),parameter :: jobz='v', uplo='l'
   integer,parameter :: n=64
-  real(kind=8) :: val, error
+  real(kind=8) :: val, max_error, mean_error
   real(kind=8),dimension(:,:),allocatable :: ovrlp, ovrlp2
   integer :: norb, nseg, nvctr, iorb, jorb, iorder, power, blocksize, icheck, imode
 
@@ -43,8 +43,10 @@ program driver
   integer,parameter :: DENSE=2
 
   integer :: ncount1, ncount_rate, ncount_max, ncount2
+!! integer :: i, j, start
   real(kind=4) :: tr0, tr1
-  real(kind=8) :: time, time2,tt
+  real(kind=8) :: time, time2, tt
+!! real(kind=8) :: tmp
   real :: rn
   real(kind=8), external :: ddot, dnrm2
   logical, parameter :: timer_on=.false.        !time the different methods
@@ -77,11 +79,11 @@ program driver
   end if if_file_exists
 
   if (iproc==0) then
-      call yaml_open_sequence('parameters for this test')
+      call yaml_sequence_open('parameters for this test')
       call yaml_map('number of rows and columns',norb)
       call yaml_map('number of segments',nseg)
       call yaml_map('number of non-zero elements',nvctr)
-      call yaml_close_sequence
+      call yaml_sequence_close
   end if
 
 
@@ -119,6 +121,19 @@ program driver
               end if
           end do
       end do
+  !DEBUG
+  !else if (orbs%norb==984.or..true.) then
+  !    start=241
+  !    open(100)
+  !    do iorb=1,984
+  !        do jorb=1,984
+  !            read(100,*) i,j,tmp
+  !            if (iorb<orbs%norb+start.and.jorb<orbs%norb+start.and.iorb>=start.and.jorb>=start) &
+  !                 ovrlp(jorb-start+1,iorb-start+1)=tmp
+  !        end do
+  !    end do
+  !    close(100)
+  !END DEBUG
   else
       ! above approach has problems for testing larger matrices
       allocate(ovrlp2(orbs%norb,orbs%norb))
@@ -181,8 +196,9 @@ program driver
       keyg_tmp(2,iseg)=iiorb
   end do
 
-  if (ortho_check) call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norb, 0, ovrlp, error)
-  if (ortho_check.and.iproc==0) call yaml_map('deviation from unity',error)
+  if (ortho_check) call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norb, 0, ovrlp, smat_A, max_error, mean_error)
+  if (ortho_check.and.iproc==0) call yaml_map('max deviation from unity',max_error)
+  if (ortho_check.and.iproc==0) call yaml_map('mean deviation from unity',mean_error)
   if (iproc==0) call yaml_comment('starting the checks',hfill='=')
 
   do icheck=1,ncheck
@@ -209,7 +225,7 @@ program driver
           if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
           call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, &
                imode, ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, ovrlp_mat=mat_A, inv_ovrlp_mat=inv_mat_B, &
-               check_accur=.true., error=error)
+               check_accur=.true., max_error=max_error, mean_error=mean_error)
           if (timer_on) call cpu_time(tr1)
           if (timer_on) call system_clock(ncount2,ncount_rate,ncount_max)
           if (timer_on) time=real(tr1-tr0,kind=8)
@@ -222,7 +238,7 @@ program driver
           if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
           call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, &
                imode, ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, ovrlp_mat=mat_A, inv_ovrlp_mat=inv_mat_B, &
-               check_accur=.true., error=error)
+               check_accur=.true., max_error=max_error, mean_error=mean_error)
                !!foe_nseg=smat_A%nseg, foe_kernel_nsegline=smat_A%nsegline, &
                !!foe_istsegline=smat_A%istsegline, foe_keyg=smat_A%keyg)
            !if (iorder==0) call compress_matrix(iproc, smat_B)
@@ -232,7 +248,8 @@ program driver
           if (timer_on) time2=dble(ncount2-ncount1)/dble(ncount_rate)
       end if
       if (print_matrices.and.iproc==0) call write_matrix_compressed('final result', smat_B, inv_mat_B)
-      if (iproc==0) call yaml_map('error of the result',error)
+      if (iproc==0) call yaml_map('Max error of the result',max_error)
+      if (iproc==0) call yaml_map('Mean error of the result',mean_error)
       if (timer_on.and.iproc==0) call yaml_map('time taken (cpu)',time)
       if (timer_on.and.iproc==0) call yaml_map('time taken (system)',time2)
   end do
@@ -241,9 +258,9 @@ program driver
 
   call f_free(keyg_tmp)
 
-  call deallocate_orbitals_data(orbs, 'driver')
-  call deallocate_sparse_matrix(smat_A, 'driver')
-  call deallocate_sparse_matrix(smat_B, 'driver')
+  call deallocate_orbitals_data(orbs)
+  call deallocate_sparse_matrix(smat_A)
+  call deallocate_sparse_matrix(smat_B)
   call deallocate_matrices(mat_A)
   call deallocate_matrices(inv_mat_B)
 
@@ -444,7 +461,7 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
 
   call init_nonzero_arrays(norbp, isorb, smat, nnonzero, nonzero)
 
-  call deallocate_sparse_matrix(smat, 'sparse_matrix_init_fake')
+  call deallocate_sparse_matrix(smat)
   call init_sparse_matrix(iproc, nproc, norb, norbp, isorb, .false., &
              nnonzero, nonzero, nnonzero, nonzero, smat, allocate_full_=.true.)
   call f_free_ptr(nonzero)
@@ -713,8 +730,6 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
 
     end subroutine init_nonzero_arrays
 
-
-
 end subroutine sparse_matrix_init_fake
 
 
@@ -731,45 +746,45 @@ subroutine write_matrix_compressed(message, smat, mat)
   ! Local variables
   integer :: iseg, ilen, istart, iend, i, iorb, jorb
 
-  !!call yaml_open_sequence(trim(message))
+  !!call yaml_sequence_open(trim(message))
   !!do iseg=1,smat%nseg
   !!    call yaml_sequence(advance='no')
   !!    ilen=smat%keyg(2,iseg)-smat%keyg(1,iseg)+1
-  !!    call yaml_open_map(flow=.true.)
+  !!    call yaml_mapping_open(flow=.true.)
   !!    call yaml_map('segment',iseg)
   !!    istart=smat%keyv(iseg)
   !!    iend=smat%keyv(iseg)+ilen
   !!    call yaml_map('values',smat%matrix_compr(istart:iend))
-  !!    call yaml_close_map()
+  !!    call yaml_mapping_close()
   !!    call yaml_newline()
   !!end do
-  !!call yaml_close_sequence()
+  !!call yaml_sequence_close()
 
-  call yaml_open_sequence(trim(message))
+  call yaml_sequence_open(trim(message))
   do iseg=1,smat%nseg
       call yaml_sequence(advance='no')
       ilen=smat%keyg(2,iseg)-smat%keyg(1,iseg)+1
-      call yaml_open_map(flow=.true.)
+      call yaml_mapping_open(flow=.true.)
       call yaml_map('segment',iseg)
-      call yaml_open_sequence('elements')
+      call yaml_sequence_open('elements')
       istart=smat%keyv(iseg)
       iend=smat%keyv(iseg)+ilen-1
       do i=istart,iend
           call yaml_newline()
           call yaml_sequence(advance='no')
-          call yaml_open_map(flow=.true.)
+          call yaml_mapping_open(flow=.true.)
           iorb=smat%orb_from_index(1,i)
           jorb=smat%orb_from_index(2,i)
           call yaml_map('coordinates',(/jorb,iorb/))
           call yaml_map('value',mat%matrix_compr(i))
-          call yaml_close_map()
+          call yaml_mapping_close()
       end do
-      call yaml_close_sequence()
+      call yaml_sequence_close()
       !call yaml_map('values',smat%matrix_compr(istart:iend))
-      call yaml_close_map()
+      call yaml_mapping_close()
       call yaml_newline()
   end do
-  call yaml_close_sequence()
+  call yaml_sequence_close()
 
 end subroutine write_matrix_compressed
 

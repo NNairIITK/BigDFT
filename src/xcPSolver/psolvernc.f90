@@ -79,7 +79,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,xc,hx,hy,hz,&
   logical :: wrtmsg
   !n(c) integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
   integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3,i3s_fake,i3xcsh_fake
-  integer :: i_all,i_stat,ierr,ind,ind2,ind3,ind4,ind4sh,i,j
+  integer :: ierr,ind,ind2,ind3,ind4,ind4sh,i,j
   integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh,is_step,ind2nd
   integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,nlim,ispin,istden,istglo
   real(dp) :: scal,ehartreeLOC,eexcuLOC,vexcuLOC,pot,alphat,betat,gammat
@@ -154,10 +154,8 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,xc,hx,hy,hz,&
   end if
 
   !array allocations
-  allocate(zf(md1,md3,md2/nproc+ndebug),stat=i_stat)
-  call memocc(i_stat,zf,'zf',subname)
-  allocate(zfionxc(md1,md3,md2/nproc,nspin+ndebug),stat=i_stat)
-  call memocc(i_stat,zfionxc,'zfionxc',subname)
+  zf = f_malloc((/ md1, md3, md2/nproc /),id='zf')
+  zfionxc = f_malloc((/ md1, md3, md2/nproc, nspin /),id='zfionxc')
 
   !dimension for exchange-correlation (different in the global or distributed case)
   !let us calculate the dimension of the portion of the rhopot array to be passed 
@@ -185,8 +183,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,xc,hx,hy,hz,&
      i3start=istart+2-nxcl-nwbl
      if((nspin==2 .and. nproc>1) .or. i3start <=0 .or. i3start+nxt-1 > n03 ) then
         !allocation of an auxiliary array for avoiding the shift of the density
-        allocate(rhopot_g(m1*m3*nxt*2+ndebug),stat=i_stat)
-        call memocc(i_stat,rhopot_g,'rhopot_g',subname)
+        rhopot_G = f_malloc(m1*m3*nxt*2,id='rhopot_G')
         !here we should put the modulo of the results for the non-isolated GGA
         do ispin=1,nspin
            do i3=1,nxt
@@ -243,9 +240,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,xc,hx,hy,hz,&
         !!          do i1=1,m1*m3*nxt
         !!             rhopot(n01*n02*(i3start-1)+i1+n01*n02*n03)=rhopot_G(i1+m1*m3*nxt)
         !!          end do
-        i_all=-product(shape(rhopot_G))*kind(rhopot_G)
-        deallocate(rhopot_G,stat=i_stat)
-        call memocc(i_stat,i_all,'rhopot_g',subname)
+        call f_free(rhopot_G)
      else
         call xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
              xc%ixc,hx,hy,hz,rhopot(1+n01*n02*(i3start-1)),pot_ion,sumpion,zf,zfionxc,&
@@ -395,20 +390,15 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,xc,hx,hy,hz,&
   end if
   ehartreeLOC=ehartreeLOC*0.5_dp*hx*hy*hz
 
-  i_all=-product(shape(zf))*kind(zf)
-  deallocate(zf,stat=i_stat)
-  call memocc(i_stat,i_all,'zf',subname)
-  i_all=-product(shape(zfionxc))*kind(zfionxc)
-  deallocate(zfionxc,stat=i_stat)
-  call memocc(i_stat,i_all,'zfionxc',subname)
+  call f_free(zf)
+  call f_free(zfionxc)
 
   !gathering the data to obtain the distribution array
   !evaluating the total ehartree,eexcu,vexcu
   if (nproc > 1) then
 
      !this part should be passed to mpi wrapper
-     allocate(energies_mpi(6+ndebug),stat=i_stat)
-     call memocc(i_stat,energies_mpi,'energies_mpi',subname)
+     energies_mpi = f_malloc(6,id='energies_mpi')
 
      energies_mpi(1)=ehartreeLOC
      energies_mpi(2)=eexcuLOC
@@ -418,16 +408,13 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,xc,hx,hy,hz,&
      exc=energies_mpi(5)
      vxc=energies_mpi(6)
 
-     i_all=-product(shape(energies_mpi))*kind(energies_mpi)
-     deallocate(energies_mpi,stat=i_stat)
-     call memocc(i_stat,i_all,'energies_mpi',subname)
+     call f_free(energies_mpi)
 
      if (datacode == 'G') then
         !building the array of the data to be sent from each process
         !and the array of the displacement
 
-        allocate(gather_arr(0:nproc-1,2+ndebug),stat=i_stat)
-        call memocc(i_stat,gather_arr,'gather_arr',subname)
+        gather_arr = f_malloc((/ 0.to.nproc-1, 1.to.2 /),id='gather_arr')
         do jproc=0,nproc-1
            istart=min(jproc*(md2/nproc),m2-1)
            jend=max(min(md2/nproc,m2-md2/nproc*jproc),0)
@@ -464,9 +451,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,xc,hx,hy,hz,&
            end if
         end do
 
-        i_all=-product(shape(gather_arr))*kind(gather_arr)
-        deallocate(gather_arr,stat=i_stat)
-        call memocc(i_stat,i_all,'gather_arr',subname)
+        call f_free(gather_arr)
 
      end if
 
@@ -487,12 +472,12 @@ contains
      implicit none
      integer, intent(in) :: n01,n02,n03,nproc,ixc
      character(len=*), intent(in) :: code
-     call yaml_open_map('PSolver',flow=.true.)
+     call yaml_mapping_open('PSolver',flow=.true.)
         call yaml_map('Geometry',trim(code))
         call yaml_map('dim',(/ n01,n02,n03 /))
         call yaml_map('proc',nproc)
         call yaml_map('ixc',ixc)
-     call yaml_close_map()
+     call yaml_mapping_close()
   end subroutine PSolver_yaml
 
 END SUBROUTINE PSolver
@@ -562,7 +547,7 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,xc,hx,hy,hz,&
   !local variables
   character(len=*), parameter :: subname='PSolverNC'
   real(dp) :: rhon,rhos,factor
-  integer :: i_all,i_stat,i1,i2,i3,idx,offs
+  integer :: i1,i2,i3,idx,offs
   real(dp), dimension(:,:,:), allocatable :: m_norm
   real(dp), dimension(:,:,:,:), allocatable :: rho_diag
 
@@ -596,10 +581,8 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,xc,hx,hy,hz,&
   else
      !Allocate diagonal spin-density in real space
      if (n3d >0) then
-        allocate(rho_diag(n01,n02,n3d,2+ndebug),stat=i_stat)
-        call memocc(i_stat,rho_diag,'rho_diag',subname)
-        allocate(m_norm(n01,n02,n3d+ndebug),stat=i_stat)
-        call memocc(i_stat,m_norm,'m_norm',subname)
+        rho_diag = f_malloc((/ n01, n02, n3d, 2 /),id='rho_diag')
+        m_norm = f_malloc((/ n01, n02, n3d /),id='m_norm')
         !           print *,'Rho Dims',shape(rhopot),shape(rho_diag)
         idx=1
         offs=n01*n02*n3d 
@@ -619,10 +602,8 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,xc,hx,hy,hz,&
            end do
         end do
      else
-        allocate(rho_diag(1,1,1,2+ndebug),stat=i_stat)
-        call memocc(i_stat,rho_diag,'rho_diag',subname)
-        allocate(m_norm(1,1,1+ndebug),stat=i_stat)
-        call memocc(i_stat,m_norm,'m_norm',subname)
+        rho_diag = f_malloc((/ 1, 1, 1, 2 /),id='rho_diag')
+        m_norm = f_malloc((/ 1, 1, 1 /),id='m_norm')
         rho_diag=0.0_dp
         m_norm=0.0_dp
      end if
@@ -659,12 +640,8 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,xc,hx,hy,hz,&
         end do
      end do
      !close(17)
-     i_all=-product(shape(rho_diag))*kind(rho_diag)
-     deallocate(rho_diag,stat=i_stat)
-     call memocc(i_stat,i_all,'rho_diag',subname)
-     i_all=-product(shape(m_norm))*kind(m_norm)
-     deallocate(m_norm,stat=i_stat)
-     call memocc(i_stat,i_all,'m_norm',subname)
+     call f_free(rho_diag)
+     call f_free(m_norm)
 !!$  else
 !!$     call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 !!$          rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin)

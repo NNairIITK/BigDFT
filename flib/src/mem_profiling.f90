@@ -183,8 +183,8 @@ contains
     character(len=*), intent(in) :: array,routine
 
     ! Local variables
-    logical :: lmpinit
-    integer :: ierr,istat_del
+    !logical :: lmpinit
+    integer :: ierr,istat_del,impinit
     character(len=256) :: message
 
     include 'mpif.h'
@@ -196,8 +196,8 @@ contains
        call memocc_variables_init()
        if (trim(routine) /= "stop") then
           !Use MPI to have the mpi rank
-          call MPI_INITIALIZED(lmpinit,ierr)
-          if (lmpinit) then
+          call MPI_INITIALIZED(impinit,ierr)
+          if (impinit /= 0) then
              call MPI_COMM_RANK(MPI_COMM_WORLD,memproc,ierr)
           else
              !no-mpi case 
@@ -227,16 +227,16 @@ contains
                   (memtot%peak+memloc%peak-memloc%memory)/int(1024,kind=8)
              close(unit=mallocFile)
           end if
-          call yaml_open_map('Memory Consumption Report')
+          call yaml_mapping_open('Memory Consumption Report')
           call yaml_map('Tot. No. of Allocations',memalloc)
           call yaml_map('Tot. No. of Deallocations',memdealloc)
           call yaml_map('Remaining Memory (B)',memtot%memory)
-          call yaml_open_map('Memory occupation')
+          call yaml_mapping_open('Memory occupation')
           call yaml_map('Peak Value (MB)',memtot%peak/int(1048576,kind=8))
           call yaml_map('for the array',trim(memtot%array))
           call yaml_map('in the routine',trim(memtot%routine))
-          call yaml_close_map()
-          call yaml_close_map()
+          call yaml_mapping_close()
+          call yaml_mapping_close()
 
           !here we can add a routine which open the malloc.prc file in case of some 
           !memory allocation problem, and which eliminates it for a successful run

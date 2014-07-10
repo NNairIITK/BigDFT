@@ -11,7 +11,7 @@
 
 !> Handling of input guess creation from basis of atomic orbitals
 module ao_inguess
-  use module_base, only: gp,memocc,f_err_raise,ndebug,to_zero,f_err_throw,bigdft_mpi
+  use module_base, only: gp,f_err_raise,ndebug,to_zero,f_err_throw,bigdft_mpi
   use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
 
   implicit none
@@ -20,9 +20,12 @@ module ao_inguess
 
   integer, parameter :: nmax_ao=7              !< Maximum allowed value of principal quantum number for the electron configuration
   integer, parameter :: lmax_ao=3              !< Maximum value of the angular momentum for the electron configuration
-  integer, parameter :: nelecmax_ao=33         !< Size of the interesting values of the compressed atomic input polarization
   integer, parameter :: noccmax_ao=3           !< Maximum number of the occupied input guess orbitals for a given shell
-  integer, parameter, public :: nmax_occ_ao=10 !< Maximum number of total occupied orbitals for generating the ig functions
+  !> Size of the interesting values of the compressed atomic input polarization
+  !! should be able to contain all the possible configuration
+  integer, parameter :: nelecmax_ao=((lmax_ao+1)**2)*2*noccmax_ao+(lmax_ao+1) !100 in this case
+  !> Maximum number of total occupied orbitals for generating the ig functions
+  integer, parameter, public :: nmax_occ_ao=(lmax_ao+1)*noccmax_ao !12 in present case 
 
   private :: nmax_ao,lmax_ao,nelecmax_ao,noccmax_ao,at_occnums,spin_variables
 
@@ -115,6 +118,7 @@ contains
        psppar,npspcode,ngv,ngc,nlccpar,ng,&
        expo,psiat,enlargerprb,quartic_prefactor,gaenes_aux)
     use yaml_output, only: yaml_toa
+    use dynamic_memory
     implicit none
     logical, intent(in) :: enlargerprb
     integer, intent(in) :: ng,npspcode,ielpsp,izatom,ngv,ngc,nspin
@@ -132,7 +136,7 @@ contains
     real(gp), parameter :: fact=4.0_gp
     !character(len=2) :: symbol
     integer :: lpx!,nsccode,mxpl,mxchg
-    integer :: l,i,j,iocc,i_all,i_stat,iorder
+    integer :: l,i,j,iocc,iorder
     real(gp) :: alpz,alpl,rprb,rcov,rij,a,a0,a0in,tt!,ehomo,amu
     !integer, dimension(6,4) :: neleconf
     !real(kind=8), dimension(6,4) :: neleconf
@@ -157,10 +161,8 @@ contains
        end if
     end do lpx_determination
 
-    allocate(alps(lpx+1+ndebug),stat=i_stat)
-    call memocc(i_stat,alps,'alps',subname)
-    allocate(hsep(6,lpx+1+ndebug),stat=i_stat)
-    call memocc(i_stat,hsep,'hsep',subname)
+    alps = f_malloc(lpx+1,id='alps')
+    hsep = f_malloc((/ 6, lpx+1 /),id='hsep')
 
     !assignation of radii and coefficients of the local part
     alpz=psppar(0,0)
@@ -183,8 +185,7 @@ contains
        end do
 
     case(PSPCODE_HGH) !HGH case
-       allocate(ofdcoef(3,4+ndebug),stat=i_stat)
-       call memocc(i_stat,ofdcoef,'ofdcoef',subname)
+       ofdcoef = f_malloc((/ 3, 4 /),id='ofdcoef')
 
        ofdcoef(1,1)=-0.5_gp*sqrt(3._gp/5._gp) !h2
        ofdcoef(2,1)=0.5_gp*sqrt(5._gp/21._gp) !h4
@@ -211,9 +212,7 @@ contains
           hsep(5,l)=psppar(l,3)*ofdcoef(3,l)
           hsep(6,l)=psppar(l,3)
        end do
-       i_all=-product(shape(ofdcoef))*kind(ofdcoef)
-       deallocate(ofdcoef,stat=i_stat)
-       call memocc(i_stat,i_all,'ofdcoef',subname)
+       call f_free(ofdcoef)
 
     case(PSPCODE_HGH_K,PSPCODE_HGH_K_NLCC,PSPCODE_PAW)
        ! For PAW this is just the initial guess
@@ -257,14 +256,10 @@ contains
     call count_atomic_shells(nspin,occupIG,occup,nl)
 
     !allocate arrays for the gatom routine
-    allocate(vh(4*(ng+1)**2,4*(ng+1)**2+ndebug),stat=i_stat)
-    call memocc(i_stat,vh,'vh',subname)
-    allocate(psi(0:ng,noccmax_ao,lmax_ao+1+ndebug),stat=i_stat)
-    call memocc(i_stat,psi,'psi',subname)
-    allocate(xp(0:ng+ndebug),stat=i_stat)
-    call memocc(i_stat,xp,'xp',subname)
-    allocate(rmt(n_int,0:ng,0:ng,lmax_ao+1+ndebug),stat=i_stat)
-    call memocc(i_stat,rmt,'rmt',subname)
+    vh = f_malloc((/ 4*(ng+1)**2, 4*(ng+1)**2 /),id='vh')
+    psi = f_malloc((/ 0.to.ng, 1.to.noccmax_ao, 1.to.lmax_ao+1 /),id='psi')
+    xp = f_malloc(0.to.ng,id='xp')
+    rmt = f_malloc((/ 1.to.n_int, 0.to.ng, 0.to.ng, 1.to.lmax_ao+1 /),id='rmt')
 
     !can be switched on for debugging
     !if (iproc.eq.0) write(*,'(1x,a,a7,a9,i3,i3,a9,i3,f5.2)')&
@@ -323,24 +318,12 @@ contains
             trim(yaml_toa(i))//' orbitals',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
     end if
 
-    i_all=-product(shape(vh))*kind(vh)
-    deallocate(vh,stat=i_stat)
-    call memocc(i_stat,i_all,'vh',subname)
-    i_all=-product(shape(psi))*kind(psi)
-    deallocate(psi,stat=i_stat)
-    call memocc(i_stat,i_all,'psi',subname)
-    i_all=-product(shape(xp))*kind(xp)
-    deallocate(xp,stat=i_stat)
-    call memocc(i_stat,i_all,'xp',subname)
-    i_all=-product(shape(rmt))*kind(rmt)
-    deallocate(rmt,stat=i_stat)
-    call memocc(i_stat,i_all,'rmt',subname)
-    i_all=-product(shape(hsep))*kind(hsep)
-    deallocate(hsep,stat=i_stat)
-    call memocc(i_stat,i_all,'hsep',subname)
-    i_all=-product(shape(alps))*kind(alps)
-    deallocate(alps,stat=i_stat)
-    call memocc(i_stat,i_all,'alps',subname)
+    call f_free(vh)
+    call f_free(psi)
+    call f_free(xp)
+    call f_free(rmt)
+    call f_free(hsep)
+    call f_free(alps)
 
   END SUBROUTINE iguess_generator
 
@@ -798,7 +781,7 @@ contains
 !!$       end do
 !!$    end if
 
-    call yaml_open_map('Electronic configuration',flow=.true.)
+    call yaml_mapping_open('Electronic configuration',flow=.true.)
 
     !initalise string
     string=repeat(' ',len(string))
@@ -836,7 +819,7 @@ contains
                    string(is:is)=')'
                    is=is+1
                 end if
-                call yaml_open_sequence(string(iss:is))
+                call yaml_sequence_open(string(iss:is))
              end if
              do ispin=1,nspin
                 do m=1,2*l-1
@@ -855,7 +838,7 @@ contains
              if (inl == i) then
                 string(is:is+2)=' , '
                 is=is+3
-                call yaml_close_sequence()
+                call yaml_sequence_close()
              end if
           end do
        end do
@@ -863,7 +846,7 @@ contains
 
     !write(*,'(2x,a,1x,a,1x,a)',advance='no')' Elec. Configuration:',trim(string),'...'
 
-    call yaml_close_map()
+    call yaml_mapping_close()
 
   END SUBROUTINE print_eleconf
 

@@ -49,6 +49,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
   integer,dimension(:,:),pointer :: onedimindices
 
   call timing(iproc, 'chebyshev_comp', 'ON')
+  call f_routine(id='chebyshev_clean')
 
   norb = orbs%norb
   norbp = orbs%norbp
@@ -275,6 +276,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
   end if
 
   call timing(iproc, 'chebyshev_comp', 'OF')
+  call f_release_routine()
 
 end subroutine chebyshev_clean
 
@@ -390,6 +392,7 @@ subroutine chebyshev_fast(iproc, nsize_polynomial, npl, orbs, fermi, chebyshev_p
   integer :: ipl, iall
   real(kind=8),dimension(:),allocatable :: kernel_compressed
 
+  call f_routine(id='chebyshev_fast')
 
   if (nsize_polynomial>0) then
       kernel_compressed = sparsematrix_malloc(fermi, iaction=SPARSE_FULL, id='kernel_compressed')
@@ -406,5 +409,7 @@ subroutine chebyshev_fast(iproc, nsize_polynomial, npl, orbs, fermi, chebyshev_p
 
       call f_free(kernel_compressed)
   end if
+
+  call f_release_routine()
 
 end subroutine chebyshev_fast

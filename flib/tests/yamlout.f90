@@ -14,25 +14,25 @@ subroutine test_yaml_output1()
   implicit none
   !local variables
 
-  call yaml_open_map("Test")
+  call yaml_mapping_open("Test")
    call yaml_map("Short sentence",.true.)
   !      call yaml_stream_attributes(iflowlevel=i,ilevel=l,ilast=j,indent=d,flowrite=fl,indent_previous=ip,icursor=ic)
   !      print *,'iflowlevel',i,'ilevel',l,'ilast',j,'indent',d,'flowrite',fl,'indent_previous',ip,'icursor',ic
-   call yaml_open_map("Foo",flow=.true.)
+   call yaml_mapping_open("Foo",flow=.true.)
     call yaml_map("one",1)
     call yaml_map("two",2)
-   call yaml_close_map()
+   call yaml_mapping_close()
   !     call yaml_stream_attributes(iflowlevel=i,ilevel=l,ilast=j,indent=d,flowrite=fl,indent_previous=ip,icursor=ic)
   !     print *,'iflowlevel',i,'ilevel',l,'ilast',j,'indent',d,'flowrite',fl,'indent_previous',ip,'icursor',ic
   !      call yaml_stream_attributes()
   !      call yaml_scalar("1.0")
-   call yaml_open_map("toto",flow=.true.)
+   call yaml_mapping_open("toto",flow=.true.)
     call yaml_map("one",1)
     call yaml_map("two",2)
-   call yaml_close_map()
+   call yaml_mapping_close()
   !      call yaml_stream_attributes(iflowlevel=i,ilevel=l,ilast=j,indent=d)
   !      print *,'iflowlevel',i,'ilevel',l,'ilast',j,'indent',d
-  call yaml_close_map()
+  call yaml_mapping_close()
 
   !verify also other properties
   call yaml_map('Is 1.0 a real string',is_atof('1.0'))
@@ -71,18 +71,18 @@ subroutine test_yaml_output2()
   !local variables
   integer :: i
 
-  call yaml_open_map("Test")
+  call yaml_mapping_open("Test")
     call yaml_map("I have a very long sentence in order to test if yaml_output fails to print that",.true.)
-      call yaml_open_map("Foo",flow=.true.)
+      call yaml_mapping_open("Foo",flow=.true.)
       call yaml_map("one",1)
       call yaml_map("two",2)
-      call yaml_close_map()
+      call yaml_mapping_close()
       !call yaml_comment('Bug at this level!: the indentation is not correct')
       !Works if the comment is uncommented!!
-      call yaml_open_map("toto",flow=.true.)
+      call yaml_mapping_open("toto",flow=.true.)
       call yaml_map("one",1)
       call yaml_map("two",2)
-      call yaml_close_map()
+      call yaml_mapping_close()
       !another long sentence minimcking the configure output
       call yaml_map('Build Configure line','$(top_builddir)/src/flib/libflib.a '//&
            '-labinit -lxc   -lOpenCL -lm -lstdc++ -letsf_io_utils -letsf_io -lnetcdff -lnetcdf '//&
@@ -103,7 +103,7 @@ subroutine test_yaml_output2()
            '_sp1.11.339/mkl/lib/intel64/libmkl_blacs_openmpi_lp64.a '//&
            '-Wl,--end-group -openmp -lpthread -lm')
       call yaml_map('Long string array',(/('compiler',i=1,10)/))
-   call yaml_close_map()
+   call yaml_mapping_close()
 !stop
 end subroutine test_yaml_output2
 
@@ -128,15 +128,15 @@ subroutine test_yaml_output_sequences1()
    call yaml_map('Vector of characters',cv)
    call yaml_map('Vector of integers',iv)
    !call yaml_stream_attributes()
-   call yaml_open_map('Is it OK?',flow=.true.)
+   call yaml_mapping_open('Is it OK?',flow=.true.)
    call yaml_map('Maybe',.true.)
    call yaml_map('Maybe',.false.)
-   call yaml_close_map(advance='yes')
-   call yaml_open_sequence('Vector of double',flow=.true.)
+   call yaml_mapping_close(advance='yes')
+   call yaml_sequence_open('Vector of double',flow=.true.)
       do i=1,size(dv)
          call yaml_sequence(trim(yaml_toa(dv(i),fmt='(1pe12.5)')))
    end do
-   call yaml_close_sequence()
+   call yaml_sequence_close()
 
    call yaml_map('Vector of real(kind=8)',dv,fmt='(f3.0)')
 
@@ -163,14 +163,14 @@ subroutine test_yaml_output_sequences2()
   !Check a very long comment
   call yaml_comment('See if this very long comment is correctly treated:' // &
        & trim(yaml_toa(dv, fmt='(f14.10)')))
-  call yaml_open_map('Map')
+  call yaml_mapping_open('Map')
   call yaml_map('One',1)
   call yaml_comment('No blank characters'//repeat('x',500))
   !Check a message with blank characters
   call yaml_comment(repeat(' ',200))
   call yaml_comment(repeat('y',200),hfill='-')
   call yaml_comment(repeat('y',200),tabbing=9,hfill='-')
-  call yaml_close_map()
+  call yaml_mapping_close()
 
   deallocate(dv)
 end subroutine test_yaml_output_sequences2

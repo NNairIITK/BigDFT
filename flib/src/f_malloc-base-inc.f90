@@ -27,6 +27,8 @@
   if (present(id)) then
      lgt=min(len(id),f_malloc_namelen)
      m%array_id(1:lgt)=id(1:lgt)
+  else
+     m%array_id(1:len(m%array_id))='UNKNOWN_ID'
   end if
   if (present(routine_id)) then
      lgt=min(len(routine_id),f_malloc_namelen)

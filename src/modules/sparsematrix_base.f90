@@ -174,7 +174,6 @@ module sparsematrix_base
       implicit none
       type(sparse_matrix),intent(inout) :: sparsemat
       logical,intent(in) :: allocate_full
-      integer :: istat
       sparsemat%matrix_compr = f_malloc_ptr(sparsemat%nvctr,id='sparsemat%matrix_compr')
       sparsemat%matrix_comprp = f_malloc_ptr(sparsemat%nvctrp,id='sparsemat%matrix_comprp')
       if (allocate_full) sparsemat%matrix = f_malloc_ptr((/sparsemat%nfvctr,sparsemat%nfvctr/),id='sparsemat%matrix')
@@ -242,12 +241,11 @@ module sparsematrix_base
     end subroutine deallocate_matrices
 
 
-    subroutine deallocate_sparse_matrix(sparsemat, subname)
+    subroutine deallocate_sparse_matrix(sparsemat)
       use module_base 
       implicit none
       ! Calling arguments
       type(sparse_matrix),intent(inout):: sparsemat
-      character(len=*),intent(in):: subname
       if (associated(sparseMat%keyg)) call f_free_ptr(sparseMat%keyg)
       if (associated(sparseMat%keyv)) call f_free_ptr(sparseMat%keyv)
       if (associated(sparseMat%nsegline)) call f_free_ptr(sparseMat%nsegline)

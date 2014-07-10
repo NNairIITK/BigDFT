@@ -31,7 +31,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    !local variables
    character(len=*), parameter :: subname='inputguess_gaussian_orbitals'
    !n(c) integer, parameter :: ngx=31
-   integer :: norbe,norbme,norbyou,i_stat,i_all,norbsc,nvirte,ikpt
+   integer :: norbe,norbme,norbyou,norbsc,nvirte,ikpt
    integer :: ispin,jproc,ist,jpst,nspinorfororbse,noncoll
    integer, dimension(:), allocatable :: iorbtolr
 
@@ -107,7 +107,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    !should be referred to another routine
    if (iproc == 0 .and. nproc > 1) then
       call yaml_newline()
-      call yaml_open_map('Inputguess Orbitals Repartition')
+      call yaml_mapping_open('Inputguess Orbitals Repartition')
       jpst=0
       do jproc=0,nproc-1
          norbme=orbse%norb_par(jproc,0)
@@ -120,7 +120,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
             jpst=jproc+1
          end if
       end do
-      call yaml_close_map()
+      call yaml_mapping_close()
       !write(*,'(3(a,i0),a)')&
          !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' inguess orbitals '
    end if
@@ -128,10 +128,8 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
   !write(*,'(a,3i6)') 'iproc, orbse%isorb, orbse%norbp', iproc, orbse%isorb,orbse%norbp
   !write(*,'(a,3i6)') 'norbe, orbse%nspinor, orbse%isorb+orbse%norbp+ndebug', norbe, orbse%nspinor, orbse%isorb+orbse%norbp+ndebug
    !allocate the gaussian coefficients for the number of orbitals which is needed
-   allocate(psigau(norbe,orbse%nspinor,orbse%isorb+orbse%norbp+ndebug),stat=i_stat)
-   call memocc(i_stat,psigau,'psigau',subname)
-   allocate(iorbtolr(orbse%norbp+ndebug),stat=i_stat)
-   call memocc(i_stat,iorbtolr,'iorbtolr',subname)
+   psigau = f_malloc_ptr((/ norbe , orbse%nspinor , orbse%isorb+orbse%norbp+ndebug /),id='psigau')
+   iorbtolr = f_malloc(orbse%norbp,id='iorbtolr')
 
    !fill just the interesting part of the orbital
    if (present(mapping)) then
@@ -150,9 +148,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
             psigau(1,1,min(orbse%isorb+1,orbse%norb)),iorbtolr)
    end if
 
-   i_all=-product(shape(iorbtolr))*kind(iorbtolr)
-   deallocate(iorbtolr,stat=i_stat)
-   call memocc(i_stat,i_all,'iorbtolr',subname)
+   call f_free(iorbtolr)
 
 
 END SUBROUTINE inputguess_gaussian_orbitals
@@ -173,10 +169,10 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,norbsc_arr,locrad)
    !local variables
    !n(c) character(len=*), parameter :: subname='readAtomicOrbitals'
    !integer, parameter :: lmax=3,noccmax=2,nelecmax=32
-   character(len=2) :: symbol
-   integer :: ity,i,iatsc,iat,lsc
-   integer :: nsccode!,mxpl,mxchg
-   integer :: norbat,iorbsc_count,niasc,nlsc
+   !character(len=2) :: symbol
+   integer :: ity,iatsc,iat !,i,lsc
+   !integer :: nsccode,mxpl,mxchg
+   integer :: norbat,iorbsc_count !,niasc,nlsc
    real(gp) :: ehomo!rcov,rprb,ehomo,amu
    !integer, dimension(nmax,lmax+1) :: neleconf
    !real(kind=8), dimension(nmax,lmax+1) :: neleconf
@@ -273,9 +269,10 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    !integer, parameter :: noccmax=2,lmax=4,nelecmax=32,nmax_occ=10!actually is 24
    !integer, parameter :: nterm_max=3,nmax=7
    logical :: orbpol_nc,occeq
-   integer :: iatsc,i_all,i_stat,ispin,nsccode,iexpo,ishltmp,ngv,ngc,islcc,iiorb,jjorb
+   integer :: iatsc,i_stat,ispin,iexpo,ishltmp,ngv,ngc,islcc,iiorb,jjorb
    integer :: iorb,jorb,iat,ity,i,ictot,inl,l,m,nctot,iocc,ictotpsi,ishell,icoeff
    integer :: noncoll,ig,ispinor,icoll,ikpts,ikorb,nlo,ntypesx,ityx,jat,ng,nspin_print
+   !integer :: nsccode
    real(gp) :: ek,mx,my,mz,ma,mb,mc,md
    real(gp) :: mnorm,fac
    !logical, dimension(lmax,noccmax) :: semicore
@@ -299,8 +296,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    G%rxyz => rxyz
    !copy the parsed values in the gaussian structure
    !count also the total number of shells
-   allocate(G%nshell(at%astruct%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,G%nshell,'G%nshell',subname)
+   G%nshell = f_malloc_ptr(at%astruct%nat,id='G%nshell')
 
    !if non-collinear it is like nspin=1 but with the double of orbitals
    if (orbse%nspinor == 4) then
@@ -312,8 +308,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    end if
 
    !calculate the number of atom types by taking into account the occupation
-   allocate(iatypex(at%astruct%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,iatypex,'iatypex',subname)
+   iatypex = f_malloc(at%astruct%nat,id='iatypex')
 
    ntypesx=0
    G%nshltot=0
@@ -345,24 +340,20 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
 
    !print *,'ntypesx',ntypesx,iatypex
 
-   allocate(G%ndoc(G%nshltot+ndebug),stat=i_stat)
-   call memocc(i_stat,G%ndoc,'G%ndoc',subname)
-   allocate(G%nam(G%nshltot+ndebug),stat=i_stat)
-   call memocc(i_stat,G%nam,'G%nam',subname)
+   G%ndoc = f_malloc_ptr(G%nshltot,id='G%ndoc')
+   G%nam = f_malloc_ptr(G%nshltot,id='G%nam')
 
    !the default value for the gaussians is chosen to be 21
    ng=21
    !allocate arrays for the inequivalent wavefunctions
-   allocate(xp(ng,ntypesx+ndebug),stat=i_stat)
-   call memocc(i_stat,xp,'xp',subname)
-   allocate(psiat(ng,nmax_occ,ntypesx+ndebug),stat=i_stat)
-   call memocc(i_stat,psiat,'psiat',subname)
+   xp = f_malloc((/ ng, ntypesx /),id='xp')
+   psiat = f_malloc((/ ng, nmax_occ, ntypesx /),id='psiat')
 
    !print *,'atomx types',ntypesx
 
    if (iproc == 0 .and. verbose > 1) then
       call yaml_newline()
-      call yaml_open_sequence('Atomic Input Orbital Generation')
+      call yaml_sequence_open('Atomic Input Orbital Generation')
       call yaml_newline()
    end if
 
@@ -382,7 +373,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       if (ityx > ntypesx) then
          if (iproc == 0 .and. verbose > 1) then
             call yaml_sequence(advance='no')
-            call yaml_open_map(flow=.true.)
+            call yaml_mapping_open(flow=.true.)
             call yaml_map('Atom Type',trim(at%astruct%atomnames(ity)))
             call print_eleconf(nspin_print,&
                  at%aoig(iat)%aocc,at%aoig(iat)%nl_sc)
@@ -409,7 +400,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
          ntypesx=ntypesx+1
          if (iproc == 0 .and. verbose > 1) then
             !write(*,'(1x,a)')'done.'
-            call yaml_close_map()
+            call yaml_mapping_close()
          end if
       end if
 
@@ -432,7 +423,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       end if
    end do
    if (iproc == 0 .and. verbose > 1) then
-      call yaml_close_sequence()
+      call yaml_sequence_close()
       call yaml_newline()
    end if
 
@@ -447,21 +438,15 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    call to_zero(orbse%norbp*orbse%nspinor*G%ncoeff,gaucoeff)
 
    !allocate and assign the exponents and the coefficients
-   allocate(G%psiat(G%ncplx,G%nexpo+ndebug),stat=i_stat)
-   call memocc(i_stat,G%psiat,'G%psiat',subname)
-
-   allocate(G%xp(G%ncplx,G%nexpo+ndebug),stat=i_stat)
-   call memocc(i_stat,G%xp,'G%xp',subname)
-
-   allocate(psiatn(ng+ndebug),stat=i_stat)
-   call memocc(i_stat,psiatn,'psiatn',subname)
+   G%psiat = f_malloc_ptr((/ G%ncplx, G%nexpo /),id='G%psiat')
+   G%xp = f_malloc_ptr((/ G%ncplx, G%nexpo /),id='G%xp')
+   psiatn = f_malloc(ng,id='psiatn')
 
    !read the atomic moments if non-collinear
    !WARNING: units are not good for the moment
    !the moments can be inserted in the atoms_data structure
    if (orbse%nspinor == 4) then
-      allocate(atmoments(3,at%astruct%nat+ndebug),stat=i_stat)
-      call memocc(i_stat,atmoments,'atmoments',subname)
+      atmoments = f_malloc((/ 3, at%astruct%nat /),id='atmoments')
 
       open(unit=22,file='moments',form='formatted',action='read',status='old')
       !this part can be transferred on the atomic orbitals section
@@ -737,24 +722,14 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       !if (iorbv(2) /= 2*norbe) stop 'createAtomic orbitals: error (iorbv) nspin=2'
    end if
 
-   i_all=-product(shape(xp))*kind(xp)
-   deallocate(xp,stat=i_stat)
-   call memocc(i_stat,i_all,'xp',subname)
-   i_all=-product(shape(psiat))*kind(psiat)
-   deallocate(psiat,stat=i_stat)
-   call memocc(i_stat,i_all,'psiat',subname)
-   i_all=-product(shape(psiatn))*kind(psiatn)
-   deallocate(psiatn,stat=i_stat)
-   call memocc(i_stat,i_all,'psiatn',subname)
-   i_all=-product(shape(iatypex))*kind(iatypex)
-   deallocate(iatypex,stat=i_stat)
-   call memocc(i_stat,i_all,'iatypex',subname)
+   call f_free(xp)
+   call f_free(psiat)
+   call f_free(psiatn)
+   call f_free(iatypex)
 
 
    if (orbse%nspinor == 4) then
-      i_all=-product(shape(atmoments))*kind(atmoments)
-      deallocate(atmoments,stat=i_stat)
-      call memocc(i_stat,i_all,'atmoments',subname)
+      call f_free(atmoments)
    end if
 
    !  if (iproc ==0 .and. verbose > 1) then
@@ -1865,7 +1840,7 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,&
    !Local variables
    character(len=*), parameter :: subname='psitospi0'
    logical :: myorbital
-   integer :: i_all,i_stat,nvctr
+   integer :: nvctr
    integer :: iorb,jorb,i
    real(kind=8) :: facu,facd
    real(kind=8), dimension(:,:), allocatable :: psi_o
@@ -1882,8 +1857,7 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,&
    if (iproc ==0) call yaml_map('Transforming AIO to spinors',.true.)
 
    nvctr=nvctr_c+7*nvctr_f
-   allocate(psi_o(nvctr,norbep+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_o,'psi_o',subname)
+   psi_o = f_malloc((/ nvctr, norbep /),id='psi_o')
 
    do iorb=1,norbep
       do i=1,nvctr
@@ -1911,9 +1885,7 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,&
          end do
       end if
    end do
-   i_all=-product(shape(psi_o))*kind(psi_o)
-   deallocate(psi_o,stat=i_stat)
-   call memocc(i_stat,i_all,'psi_o',subname)
+   call f_free(psi_o)
 
    !if (iproc ==0) write(*,'(1x,a)')'done.'
 
@@ -2024,7 +1996,7 @@ END SUBROUTINE write_fraction_string
 !!$                  string(is:is)=')'
 !!$                  is=is+1
 !!$               end if
-!!$               call yaml_open_sequence(string(iss:is))
+!!$               call yaml_sequence_open(string(iss:is))
 !!$            end if
 !!$            do ispin=1,nspin
 !!$               do m=1,2*l-1
@@ -2043,7 +2015,7 @@ END SUBROUTINE write_fraction_string
 !!$            if (inl == i) then
 !!$               string(is:is+2)=' , '
 !!$               is=is+3
-!!$               call yaml_close_sequence()
+!!$               call yaml_sequence_close()
 !!$            end if
 !!$         end do
 !!$      end do

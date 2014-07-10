@@ -29,13 +29,20 @@ module dictionaries
      type(dictionary), pointer :: child => null()
    end type dictionary_container
 
+   type, public :: f_dict 
+      type(dictionary), pointer :: d =>null()
+   end type f_dict
+
    !> Error codes
-   integer, public :: DICT_KEY_ABSENT
-   integer, public :: DICT_VALUE_ABSENT
-   integer, public :: DICT_ITEM_NOT_VALID
-   integer, public :: DICT_CONVERSION_ERROR
-   integer, public :: DICT_INVALID_LIST
-   integer, public :: DICT_INVALID
+   integer, save, public :: DICT_KEY_ABSENT
+   integer, save, public :: DICT_VALUE_ABSENT
+   integer, save, public :: DICT_ITEM_NOT_VALID
+   integer, save, public :: DICT_CONVERSION_ERROR
+   integer, save, public :: DICT_INVALID_LIST
+   integer, save, public :: DICT_INVALID
+
+   !control the error enviromnment (see error_handling.f90)
+   logical :: try_environment=.false.
 
    interface operator(.index.)
       module procedure find_index
@@ -54,6 +61,19 @@ module dictionaries
       module procedure key_in_dictionary
    end interface operator(.in.)
 
+   interface operator(.notin.)
+      module procedure key_notin_dictionary
+   end interface operator(.notin.)
+
+   interface operator(.pop.)
+      module procedure pop_key,pop_item
+   end interface operator(.pop.)
+
+!   interface operator(.poplast.)
+!      module procedure pop_last_item
+!   end interface operator(.poplast.)
+
+
    interface operator(==)
       module procedure dicts_are_equal
    end interface
@@ -67,8 +87,8 @@ module dictionaries
       module procedure get_rvec,get_dvec,get_ilvec,get_ivec,get_lvec
    end interface
 
-   interface pop
-      module procedure pop_dict,pop_item,pop_last
+   interface dict_remove
+      module procedure remove_dict,remove_item
    end interface
 
    interface set
@@ -76,7 +96,7 @@ module dictionaries
    end interface
 
    interface add
-      module procedure add_char,add_dict,add_integer,add_real,add_double,add_long
+      module procedure add_char,add_dict,add_integer,add_real,add_double,add_long, add_log
    end interface
 
    interface list_new
@@ -91,36 +111,57 @@ module dictionaries
 
    !> Public routines
    public :: operator(//),operator(.index.),assignment(=)
-   public :: set,dict_init,dict_free,pop,append,prepend,add
-   public :: dict_copy, dict_update
+   public :: set,dict_init,dict_free,append,prepend,add
+   public :: dict_copy, dict_update,dict_remove,dict_remove_last
    !> Handle exceptions
    public :: find_key,dict_len,dict_size,dict_key,dict_item,dict_value,dict_next,dict_iter,has_key,dict_keys
    public :: dict_new,list_new
    !> Public elements of dictionary_base
-   public :: operator(.is.),operator(.item.),operator(==),operator(/=),operator(.in.)
+   public :: operator(.is.),operator(.item.)
+   public :: operator(.pop.),operator(.notin.)
+   public :: operator(==),operator(/=),operator(.in.)
    public :: dictionary,max_field_length,dict_get_num
+
 
    !> Header of error handling part
    !! Some parameters
-   character(len=*), parameter :: errid='Id'
-   character(len=*), parameter :: errmsg='Message'
-   character(len=*), parameter :: erract='Action'
-   character(len=*), parameter :: errclbk='Callback Procedure Address'
-   character(len=*), parameter :: errclbkadd='Callback Procedure Data Address'
+   character(len=*), parameter :: ERRID='Id'
+   character(len=*), parameter :: ERRMSG='Message'
+   character(len=*), parameter :: ERRACT='Action'
+   character(len=*), parameter :: ERRCLBK='Callback Procedure Address'
+   character(len=*), parameter :: ERRCLBKADD='Callback Procedure Data Address'
 
-   character(len=*), parameter :: errunspec='UNSPECIFIED'
-   character(len=*), parameter :: errundef='UNKNOWN'
+   character(len=*), parameter :: ERRUNSPEC='UNSPECIFIED'
+   character(len=*), parameter :: ERRUNDEF='UNKNOWN'
+
+   character(len=*), parameter :: ERR_ADD_INFO='Additional Info'
 
    integer :: ERR_GENERIC,ERR_SUCCESS,ERR_NOT_DEFINED
 
    type(dictionary), pointer :: dict_errors=>null()        !< the global dictionaries of possible errors, nullified if not initialized
    type(dictionary), pointer :: dict_present_error=>null() !< local pointer of present error, nullified if success
+  
+   
+   !> Stack of dict_present_error for nested try (opne and close)
+   type, private :: error_stack
+     type(dictionary), pointer :: current => null()   !< dict_present_error point to here.
+     type(error_stack), pointer :: previous => null() !< previous error
+   end type error_stack
 
-   public :: f_err_initialize,f_err_finalize,f_get_last_error,f_get_error_definitions
-   public :: f_err_define,f_err_check,f_err_raise,f_err_clean,f_err_pop,f_get_error_dict,f_err_throw
+   type(error_stack), pointer :: error_pipelines=>null() !< Stack of errors for try clause
+ 
 
-   !public variables of the callback module
-   public :: f_err_set_callback,f_err_unset_callback,f_err_open_try,f_err_close_try
+   !> Public variables of the error handling module
+   public :: f_err_initialize,f_err_finalize
+   !!@todo Change the names into f_err_xxx
+   public :: f_get_last_error,f_get_error_definitions,f_get_error_dict
+   public :: f_err_define
+   public :: f_err_check,f_err_raise,f_err_clean,f_err_pop,f_err_throw
+
+
+   ! Public variables of the callback module
+   public :: f_err_set_callback,f_err_unset_callback
+   public :: f_err_open_try,f_err_close_try
    public :: f_err_severe,f_err_severe_override,f_err_severe_restore,f_err_ignore
    public :: f_loc,f_get_past_error,f_get_no_of_errors
 
@@ -149,7 +190,7 @@ contains
           'The item of this list is not correct',DICT_ITEM_NOT_VALID,&
           err_action='Internal error, contact developers')
      call f_err_define('DICT_VALUE_ABSENT',&
-          'The value for this key is absent',DICT_VALUE_ABSENT)
+          'The value for this key/value is absent',DICT_VALUE_ABSENT)
      call f_err_define('DICT_INVALID',&
           'Dictionary is not associated',DICT_INVALID)
      call f_err_define('DICT_INVALID_LIST',&
@@ -160,15 +201,113 @@ contains
 
    end subroutine dictionaries_errors
 
+   !> Pop a subdictionary from a mother one. Returns the subdictionary.
+   !! raise an error if the subdictionary does not exists.
+   function pop_key(dict,key) result(subd)
+     implicit none
+     !> As Fortran norm says, here the intent is refererred to the 
+     !! pointer association status
+     type(dictionary), pointer, intent(in) :: dict 
+     character(len=*), intent(in) :: key
+     type(dictionary), pointer :: subd
+     !local variables
+     integer :: indx
+     !type(dictionary), pointer :: dict_item
+
+     nullify(subd)
+     indx=-1
+
+     !first, identify whether the subdictionary exists
+     if (dict_size(dict) > 0) then !popping from a hash key
+        subd=>find_key(dict,key)
+     else if (dict_len(dict) > 0) then !popping from a list value
+        indx=find_index(dict,key)
+     end if
+     
+     !if something has been found, pop
+     !!WARNING: here the usage of dict_remove is abused,
+     !!as this routine frees dict if it is the last object
+     !!therefore it changes the pointer association status of dict
+     if (associated(subd)) then
+        call dict_remove(dict,key,destroy=.false.)
+     else if (indx > -1) then
+        subd => pop_item(dict,indx)
+     else
+        call f_err_throw('Dictionary or list does not have "'//&
+             trim(key)//'", pop not possible',&
+             err_id=DICT_ITEM_NOT_VALID)
+     end if
+
+   end function pop_key
+
+   !> Pop a subdictionary from a mother one. Returns the subdictionary.
+   !! raise an error if the subdictionary does not exists.
+   function pop_item(dict,item) result(subd)
+     use yaml_strings, only: yaml_toa
+     implicit none
+     !> As Fortran norm says, here the intent is refererred to the 
+     !! pointer association status
+     type(dictionary), pointer, intent(in) :: dict 
+     integer, intent(in) :: item
+     type(dictionary), pointer :: subd
+     !local variables
+     !type(dictionary), pointer :: dict_item
+
+     nullify(subd)
+
+     !first, identify whether the subdictionary exists
+     if (dict_size(dict) > 0) then !popping from a hash key
+        call f_err_throw('Dictionary is not a list, pop of an item is not allowed',&
+             err_id=DICT_ITEM_NOT_VALID)
+        return
+     else if (item > dict_len(dict)-1 .or. item < 0) then !popping from a list value
+        call f_err_throw('Item outside range, length='//&
+             trim(yaml_toa(dict_len(dict)))//' item='//&
+             trim(yaml_toa(item)),err_id=DICT_ITEM_NOT_VALID)
+        return
+     end if
+     
+     !if something has been found, pop
+     !!WARNING: here the usage of dict_remove is abused,
+     !!as this routine frees dict if it is the last object
+     !!therefore it changes the pointer association status of dict
+     !call dict_init(dict_item)
+     !call dict_copy(dict_item,dict//item)
+     subd => dict//item
+     call dict_remove(dict,item,destroy=.false.)
+
+   end function pop_item
+
+   !> Pop last item from a list
+   function pop_last_item(dict) result(subd)
+     !> As Fortran norm says, here the intent is refererred to the 
+     !! pointer association status
+     type(dictionary), pointer, intent(in) :: dict 
+     type(dictionary), pointer :: subd
+
+     subd => pop_item(dict,dict_len(dict)-1)
+   end function pop_last_item
+
+
 
    !> Eliminate a key from a dictionary if it exists
-   subroutine pop_dict(dict,key)
+   subroutine remove_dict(dict,key,destroy)
      implicit none
-     type(dictionary), intent(inout), pointer :: dict 
+     type(dictionary), pointer :: dict 
      character(len=*), intent(in) :: key
+     logical, intent(in), optional :: destroy
+     !local variables
+     logical :: dst
 
+     dst=.true.
+     if (present(destroy)) dst=destroy
+     if (.not. associated(dict)) then
+        call f_err_throw('Cannot remove keys from nullified dictionary',&
+             err_id=DICT_INVALID)
+        return
+     end if
      !check if we are at the first level
-     call pop_dict_(dict%child,key)
+     call pop_dict_(dict%child,key,dst)
      !if it is the last the dictionary should be empty
      if (.not. associated(dict%parent) .and. .not. associated(dict%child)) then
         call dict_free(dict)
@@ -176,10 +315,11 @@ contains
 
    contains
 
-     recursive subroutine pop_dict_(dict,key)
+     recursive subroutine pop_dict_(dict,key,dst)
        implicit none
        type(dictionary), intent(inout), pointer :: dict 
        character(len=*), intent(in) :: key
+       logical, intent(in) :: dst
        !local variables
        type(dictionary), pointer :: dict_first !<in case of first occurrence
 
@@ -192,25 +332,29 @@ contains
              else
                 dict%data%nelems=dict%data%nelems-1
              end if
-             if (associated(dict%next)) then
-                call dict_free(dict%child)
-                dict_first => dict
-                !this is valid if we are not at the first element
-                if (associated(dict%previous)) then
-                   call define_brother(dict%previous,dict%next) 
-                   dict%previous%next => dict%next
-                else
-                   nullify(dict%next%previous)
-                   !the next should now become me
-                   dict => dict%next
-                end if
-                !eliminate the top of the tree
-                call dict_destroy(dict_first)
-             else
-                call dict_free(dict)
-             end if
+!!$             if (associated(dict%next)) then
+!!$                call dict_free(dict%child)
+!!$                dict_first => dict
+!!$                !this is valid if we are not at the first element
+!!$                if (associated(dict%previous)) then
+!!$                   call define_brother(dict%previous,dict%next) 
+!!$                   dict%previous%next => dict%next
+!!$                else
+!!$                   nullify(dict%next%previous)
+!!$                   !the next should now become me
+!!$                   dict => dict%next
+!!$                end if
+!!$                !eliminate the top of the tree
+!!$                !but do not follow the nexts
+!!$                call dict_destroy(dict_first)
+!!$             else
+!!$                call dict_free(dict)
+!!$             end if
+             dict_first => dict_extract(dict)
+             if (dst) call dict_free(dict_first)
+
           else if (associated(dict%next)) then
-             call pop_dict_(dict%next,key)
+             call pop_dict_(dict%next,key,dst)
           else
              call f_err_throw(err_msg='Key is '//trim(key),&
                   err_id=DICT_KEY_ABSENT)
@@ -223,8 +367,55 @@ contains
        end if
 
      end subroutine pop_dict_
-   end subroutine pop_dict
+   end subroutine remove_dict
 
+   !>extract the dictionary from its present context
+   !! in the case of a list renumber the items
+   !! return an object which is ready to be freed
+   function dict_extract(dict) result(dict_first)
+     implicit none
+     type(dictionary), pointer, intent(inout) :: dict
+     type(dictionary), pointer :: dict_first
+     !local variables
+     type(dictionary), pointer :: dict_update
+
+     !normal association initially
+     dict_first => dict
+     !then check if there are brothers which have to be linked
+     if (associated(dict%next)) then
+        !this is valid if we are not at the first element
+        if (associated(dict%previous)) then
+           call define_brother(dict%previous,dict%next) 
+           dict%previous%next => dict%next
+        else
+           nullify(dict%next%previous)
+           !the next should now become me
+           dict => dict%next
+        end if
+        !in case we were in a list, renumber the other brothers
+        ! Update data%item for all next.
+        if (dict_first%data%item >= 0) then
+           dict_update => dict_first%next
+           do while( associated(dict_update) )
+              dict_update%data%item = dict_update%data%item - 1
+              dict_update => dict_update%next
+           end do
+        end if
+     else
+        nullify(dict)
+     end if
+     !never follow the brothers, the extracted dictionary is 
+     !intended to be alone
+     nullify(dict_first%next,dict_first%previous)
+     dict_first%data%item=-1
+     !the extraction should provide the child in the case of 
+     !a dict value or otherwise a dictionary with only a value
+     !in the case of a scalar value
+     
+
+   end function dict_extract
+
+   
 
    !> Add to a list
    subroutine add_char(dict,val)
@@ -263,6 +454,12 @@ contains
      integer(kind=8), intent(in) :: val
      include 'dict_add-inc.f90'
    end subroutine add_long
+   subroutine add_log(dict,val)
+     implicit none
+     type(dictionary), pointer :: dict
+     logical, intent(in) :: val
+     include 'dict_add-inc.f90'
+   end subroutine add_log
 
 
 
@@ -480,7 +677,7 @@ contains
 
 
    !> Returns the position of the name in the dictionary
-   !! returns 0 if the dictionary is nullified or the name is absent
+   !! returns -1 if the dictionary is nullified or the name is absent
    function find_index(dict,name)
      implicit none
      type(dictionary), pointer, intent(in) :: dict
@@ -490,7 +687,7 @@ contains
      integer :: ind
      type(dictionary), pointer :: dict_tmp
 
-     find_index =0
+     find_index =-1
      ind=-1
      if (associated(dict)) then
         dict_tmp=>dict_next(dict)
@@ -507,32 +704,43 @@ contains
    end function find_index
 
 
-   subroutine pop_last(dict)
+   subroutine dict_remove_last(dict)
      implicit none
-     type(dictionary), intent(inout), pointer :: dict 
+     type(dictionary), pointer :: dict 
      !local variables
      integer :: nitems
 
      nitems=dict_len(dict)
 
-     if (f_err_raise(nitems <= 0,'Pop not allowed for this node',&
+     if (f_err_raise(nitems <= 0,'Remove not allowed for this node',&
           err_id=DICT_ITEM_NOT_VALID)) then
         return
      else
-        call pop_item(dict,nitems-1)
+        call remove_item(dict,nitems-1)
      end if
 
-   end subroutine pop_last
+   end subroutine dict_remove_last
 
 
-   subroutine pop_item(dict,item)
+   subroutine remove_item(dict,item,destroy)
      implicit none
-     type(dictionary), intent(inout), pointer :: dict 
+     type(dictionary), pointer :: dict 
      integer, intent(in) :: item
+     logical, intent(in), optional :: destroy
+     !local variables
+     logical :: dst
+
+     dst=.true.
+     if (present(destroy)) dst=destroy
+     if (.not. associated(dict)) then
+        call f_err_throw('Cannot remove item from nullified dictionary',&
+        err_id=DICT_INVALID)
+        return
+     end if
 
      !check if we are at the first level
  !!TEST   if (associated(dict%parent)) then
-        call pop_item_(dict%child,item)
+        call pop_item_(dict%child,item,dst)
         !if it is the last the dictionary should be empty
         if (.not. associated(dict%parent) .and. .not. associated(dict%child)) then
            call dict_free(dict)
@@ -543,14 +751,15 @@ contains
 !TTEST    end if
    contains
      !> Eliminate a key from a dictionary if it exists
-     recursive subroutine pop_item_(dict,item)
+     recursive subroutine pop_item_(dict,item,dst)
        use yaml_strings, only: yaml_toa
        implicit none
        type(dictionary), intent(inout), pointer :: dict 
        integer, intent(in) :: item
+       logical, intent(in) :: dst
        !local variables
        type(dictionary), pointer :: dict_first !<in case of first occurrence
-       type(dictionary), pointer :: dict_update !<dict to update data%item field
+!!$       type(dictionary), pointer :: dict_update !<dict to update data%item field
 
        if (associated(dict)) then
 !          print *,dict%data%item,trim(dict%data%key)
@@ -559,29 +768,31 @@ contains
              if (associated(dict%parent)) then
                 dict%parent%data%nitems=dict%parent%data%nitems-1
              end if
-             if (associated(dict%next)) then
-                call dict_free(dict%child)
-                dict_first => dict
-                !this is valid if we are not at the first element
-                if (associated(dict%previous)) then
-                   call define_brother(dict%previous,dict%next) 
-                   dict%previous%next => dict%next
-                else
-                   !the next should now become me
-                   dict => dict%next
-                end if
-                ! Update data%item for all next.
-                dict_update => dict_first%next
-                do while( associated(dict_update) )
-                   dict_update%data%item = dict_update%data%item - 1
-                   dict_update => dict_update%next
-                end do
-                call dict_destroy(dict_first)
-             else
-                call dict_free(dict)
-             end if
+!!$             if (associated(dict%next)) then
+!!$                call dict_free(dict%child)
+!!$                dict_first => dict
+!!$                !this is valid if we are not at the first element
+!!$                if (associated(dict%previous)) then
+!!$                   call define_brother(dict%previous,dict%next) 
+!!$                   dict%previous%next => dict%next
+!!$                else
+!!$                   !the next should now become me
+!!$                   dict => dict%next
+!!$                end if
+!!$                ! Update data%item for all next.
+!!$                dict_update => dict_first%next
+!!$                do while( associated(dict_update) )
+!!$                   dict_update%data%item = dict_update%data%item - 1
+!!$                   dict_update => dict_update%next
+!!$                end do
+!!$                call dict_destroy(dict_first)
+!!$             else
+!!$                call dict_free(dict)
+!!$             end if
+             dict_first => dict_extract(dict)
+             if (dst) call dict_free(dict_first)
           else if (associated(dict%next)) then
-             call pop_item_(dict%next,item)
+             call pop_item_(dict%next,item,dst)
           else
              if (f_err_raise(err_msg='Item No. '//trim(yaml_toa(item)),&
                   err_id=DICT_ITEM_NOT_VALID)) return
@@ -592,7 +803,7 @@ contains
        end if
 
      end subroutine pop_item_
-   end subroutine pop_item
+   end subroutine remove_item
 
 
    !> Retrieve the pointer to the dictionary which has this key.
@@ -626,7 +837,6 @@ contains
 
    end function find_key
 
-
    function dict_keys(dict)
      implicit none
      type(dictionary), intent(in) :: dict !<the dictionary must be associated
@@ -656,9 +866,22 @@ contains
      key_in_dictionary=has_key(dict,key)
    end function key_in_dictionary
 
+   function key_notin_dictionary(key,dict)
+     implicit none
+     type(dictionary), intent(in), pointer :: dict 
+     character(len=*), intent(in) :: key
+     logical :: key_notin_dictionary
+
+     key_notin_dictionary=.not. has_key(dict,key)
+   end function key_notin_dictionary
+
+
    !> Search in the dictionary if some of the child has the given
    !! If the key does not exists, search for it in the next chain 
    !! Key Must be already present 
+   !! the search in the linked list can be performed
+   !! by using the new scheme under implementation
+   !! which is not using pointer associations
    function has_key(dict,key)
      implicit none
      type(dictionary), intent(in), pointer :: dict 
@@ -711,6 +934,17 @@ contains
         call dict_free(subd)
         return
      end if
+     !here the treatment of the scalar dictionary can be 
+     !inserted (left commented for the moment)
+!!$     if (associated(subd)) then
+!!$        !if the dictionary is a scalar free it
+!!$        if (dict_len(subd) == 0 .and. dict_size(subd) == 0 .and. &
+!!$             len_trim(dict_key(subd))==0) then 
+!!$           call set(dict,dict_value(subd))
+!!$           call dict_free(subd)
+!!$           return
+!!$        end if
+!!$     end if
 
      if (f_err_raise(no_key(dict),err_id=DICT_KEY_ABSENT)) return
 
@@ -808,7 +1042,12 @@ contains
      character(len=*), intent(in) :: val
      if (f_err_raise(no_key(dict),err_id=DICT_KEY_ABSENT)) return
      !call check_key(dict)
-
+     !raise an error if not a value is put
+     if (trim(val) == NOT_A_VALUE) then
+        call f_err_throw('Invalid assignment for key "'//&
+             trim(dict%data%key)//'"',err_id=DICT_VALUE_ABSENT)
+        return
+     end if
      if (associated(dict%child)) call dict_free(dict%child)
 
      call set_field(val,dict%data%value)
@@ -965,6 +1204,7 @@ contains
      if (f_err_raise(ierror/=0 .or. .not. is_atoi(val),'Value '//val,err_id=DICT_CONVERSION_ERROR)) return    
    end subroutine get_integer
 
+
    !> Set and get routines for different types
    subroutine get_long(ival,dict)
      implicit none
@@ -1068,9 +1308,9 @@ contains
 
      !take value
      val=dict
-     if (index(trim(val),'Yes') > 0) then
+     if (any(index(trim(val),['Yes', 'yes', 'YES']) > 0) .or. any(index(trim(val),['True', 'true', 'TRUE']) > 0)) then
         ival=.true.
-     else if (index(trim(val),'No') > 0) then
+     else if (any(index(trim(val),['No', 'no', 'NO']) > 0) .or. any(index(trim(val),['False', 'false', 'FALSE']) > 0)) then
         ival=.false.
      else
         call f_err_throw('Value '//val,err_id=DICT_CONVERSION_ERROR)

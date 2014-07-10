@@ -14,24 +14,26 @@ subroutine precong_per_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nseg_c,nvctr_c
      ncong,cprecr,hx,hy,hz,x,ibyz,ibxz,ibxy)
   use module_base
   implicit none
-integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,ncong
-  integer,intent(in)::ibyz(2,0:n2,0:n3+ndebug),ibxz(2,0:n1,0:n3+ndebug),ibxy(2,0:n1,0:n2+ndebug)
-  integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
+integer , intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,ncong
+  integer ,intent(in), dimension(2,0:n2,0:n3+ndebug) :: ibyz
+  integer ,intent(in), dimension(2,0:n1,0:n3+ndebug) :: ibxz
+  integer ,intent(in), dimension(2,0:n1,0:n2+ndebug) :: ibxy
+  integer , intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
   real(gp), intent(in) :: hx,hy,hz,cprecr
-  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
-  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
-  real(wp), intent(inout) ::  x(nvctr_c+7*nvctr_f)
+  integer , dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  integer , dimension(nseg_c+nseg_f), intent(in) :: keyv
+  real(wp), dimension(nvctr_c+7*nvctr_f), intent(inout) :: x
   ! local variables
-  real(gp)::scal(0:8)
-  real(wp)::rmr,rmr_new,alpha,beta
-  integer i,i_stat,i_all
-  real(wp),allocatable::b(:),r(:),d(:)
+  real(gp), dimension(0:8) :: scal
+  real(wp) :: rmr,rmr_new,alpha,beta
+  integer :: i
+  real(wp), dimension(:), allocatable :: b,r,d
 
   ! work arrays for adaptive wavelet data structure
   ! x_c and y_c are taken from the FFT arrays
-  real(wp),allocatable::x_f(:,:,:,:)
-  real(wp),allocatable,dimension(:)::x_f1,x_f2,x_f3
-  real(wp),allocatable,dimension(:,:,:,:)::y_f
+  real(wp), allocatable, dimension(:,:,:,:) :: x_f
+  real(wp), allocatable, dimension(:) :: x_f1,x_f2,x_f3
+  real(wp), allocatable, dimension(:,:,:,:) :: y_f
 
   ! work arrays for FFT
   real(wp), dimension(:), allocatable :: kern_k1,kern_k2,kern_k3
@@ -98,116 +100,59 @@ integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,ncong
 contains
 
   subroutine allocate_all
-    allocate(b(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
-    call memocc(i_stat,b,'b','precong_per')
-    allocate(r(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
-    call memocc(i_stat,r,'r','precong_per')
-    allocate(d(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
-    call memocc(i_stat,d,'','precong_per')
-
-    allocate(kern_k1(0:n1+ndebug),stat=i_stat)
-    call memocc(i_stat,kern_k1,'kern_k1','precong_per')
-    allocate(kern_k2(0:n2+ndebug),stat=i_stat)
-    call memocc(i_stat,kern_k2,'kern_k2','precong_per')
-    allocate(kern_k3(0:n3+ndebug),stat=i_stat)
-    call memocc(i_stat,kern_k3,'kern_k3','precong_per')
-    allocate(z1(2,nd1b,nd2,nd3,2+ndebug),stat=i_stat) ! work array for fft
-    call memocc(i_stat,z1,'z1','precong_per')
-    allocate(z3(2,nd1,nd2,nd3f,2+ndebug),stat=i_stat) ! work array for fft
-    call memocc(i_stat,z3,'z3','precong_per')
-    allocate(x_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-    call memocc(i_stat,x_c,'x_c','precong_per')
-
-    allocate(x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
-    call memocc(i_stat,x_f,'x_f','precong_per')
-    allocate(x_f1(nf+ndebug),stat=i_stat)
-    call memocc(i_stat,x_f1,'x_f1','precong_per')
-    allocate(x_f2(nf+ndebug),stat=i_stat)
-    call memocc(i_stat,x_f2,'x_f2','precong_per')
-    allocate(x_f3(nf+ndebug),stat=i_stat)
-    call memocc(i_stat,x_f3,'x_f3','precong_per')
-    allocate(y_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
-    call memocc(i_stat,y_f,'y_f','precong_per')
+    b = f_malloc(nvctr_c+7*nvctr_f,id='b')
+    r = f_malloc(nvctr_c+7*nvctr_f,id='r')
+    d = f_malloc(nvctr_c+7*nvctr_f,id='d')
+    kern_k1 = f_malloc(0.to.n1,id='kern_k1')
+    kern_k2 = f_malloc(0.to.n2,id='kern_k2')
+    kern_k3 = f_malloc(0.to.n3,id='kern_k3')
+    z1 = f_malloc((/ 2, nd1b, nd2, nd3, 2 /),id='z1')
+    z3 = f_malloc((/ 2, nd1, nd2, nd3f, 2 /),id='z3')
+    x_c = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='x_c')
+    x_f = f_malloc((/ 1.to.7, nfl1.to.nfu1, nfl2.to.nfu2, nfl3.to.nfu3 /),id='x_f')
+    x_f1 = f_malloc(nf,id='x_f1')
+    x_f2 = f_malloc(nf,id='x_f2')
+    x_f3 = f_malloc(nf,id='x_f3')
+    y_f = f_malloc((/ 1.to.7, nfl1.to.nfu1, nfl2.to.nfu2, nfl3.to.nfu3 /),id='y_f')
 
   END SUBROUTINE allocate_all
 
   subroutine deallocate_all
 
-    i_all=-product(shape(b))*kind(b)
-    deallocate(b,stat=i_stat)
-    call memocc(i_stat,i_all,'b','precong_per')
-
-    i_all=-product(shape(r))*kind(r)
-    deallocate(r,stat=i_stat)
-    call memocc(i_stat,i_all,'r','precong_per')
-
-    i_all=-product(shape(d))*kind(d)
-    deallocate(d,stat=i_stat)
-    call memocc(i_stat,i_all,'d','precong_per')
-
-    i_all=-product(shape(z1))*kind(z1)
-    deallocate(z1,stat=i_stat)
-    call memocc(i_stat,i_all,'z1','prec_fft')
-
-    i_all=-product(shape(z3))*kind(z3)
-    deallocate(z3,stat=i_stat)
-    call memocc(i_stat,i_all,'z3','prec_fft')
-
-    i_all=-product(shape(kern_k1))*kind(kern_k1)
-    deallocate(kern_k1,stat=i_stat)
-    call memocc(i_stat,i_all,'kern_k1','prec_fft')
-
-    i_all=-product(shape(kern_k2))*kind(kern_k2)
-    deallocate(kern_k2,stat=i_stat)
-    call memocc(i_stat,i_all,'kern_k2','prec_fft')
-
-    i_all=-product(shape(kern_k3))*kind(kern_k3)
-    deallocate(kern_k3,stat=i_stat)
-    call memocc(i_stat,i_all,'kern_k3','prec_fft')
-
-    i_all=-product(shape(x_c))*kind(x_c)
-    deallocate(x_c,stat=i_stat)
-    call memocc(i_stat,i_all,'x_c','prec_fft')
-
-    i_all=-product(shape(x_f))*kind(x_f)
-    deallocate(x_f,stat=i_stat)
-    call memocc(i_stat,i_all,'x_f','precong_per')
-
-    i_all=-product(shape(x_f1))*kind(x_f1)
-    deallocate(x_f1,stat=i_stat)
-    call memocc(i_stat,i_all,'x_f1','precong_per')
-
-    i_all=-product(shape(x_f2))*kind(x_f2)
-    deallocate(x_f2,stat=i_stat)
-    call memocc(i_stat,i_all,'x_f2','precong_per')
-
-    i_all=-product(shape(x_f3))*kind(x_f3)
-    deallocate(x_f3,stat=i_stat)
-    call memocc(i_stat,i_all,'x_f3','precong_per')
-
-    i_all=-product(shape(y_f))*kind(y_f)
-    deallocate(y_f,stat=i_stat)
-    call memocc(i_stat,i_all,'y_f','precong_per')
+    call f_free(b)
+    call f_free(r)
+    call f_free(d)
+    call f_free(z1)
+    call f_free(z3)
+    call f_free(kern_k1)
+    call f_free(kern_k2)
+    call f_free(kern_k3)
+    call f_free(x_c)
+    call f_free(x_f)
+    call f_free(x_f1)
+    call f_free(x_f2)
+    call f_free(x_f3)
+    call f_free(y_f)
 
   END SUBROUTINE deallocate_all
 
 END SUBROUTINE precong_per_hyb
 
 
-!>   Applies the operator (KE+cprecr*I)*x=y
-!!   array x is input, array y is output
+!> Applies the operator (KE+cprecr*I)*x=y
+!! array x is input, array y is output
 subroutine apply_hp_hyb(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,x,y,x_f,x_c,x_f1,x_f2,x_f3,y_f,y_c,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,nf,ibyz,ibxz,ibxy)
   use module_base
   implicit none
-  integer, intent(in) :: n1,n2,n3
-  integer,intent(in) :: ibyz(2,0:n2,0:n3+ndebug),ibxz(2,0:n1,0:n3+ndebug),ibxy(2,0:n1,0:n2+ndebug)
-  integer,intent(in) :: nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,nf
-  integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
+  integer , intent(in) :: n1,n2,n3
+  integer ,intent(in) :: ibyz(2,0:n2,0:n3+ndebug),ibxz(2,0:n1,0:n3+ndebug),ibxy(2,0:n1,0:n2+ndebug)
+  integer ,intent(in) :: nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,nf
+  integer , intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
   real(gp), intent(in) :: hx,hy,hz,cprecr
-  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
-  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+  integer , dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  integer , dimension(nseg_c+nseg_f), intent(in) :: keyv
   real(wp), intent(in) :: x(nvctr_c+7*nvctr_f)  
   real(wp), intent(out) :: y(nvctr_c+7*nvctr_f)
   !work arrays 

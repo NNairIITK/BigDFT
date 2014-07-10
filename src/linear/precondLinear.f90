@@ -13,48 +13,53 @@
 !! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method.
 !! x is the right hand side on input and the solution on output
 subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
-     hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder)
+     hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder, &
+     work_conv, w)
 
-   use module_base
-   use module_types
+  use module_base
+  use module_types
 
-   implicit none
-   integer, intent(in) :: iproc,nproc
-   integer, intent(in) :: ncong                !> number of CG iterations
-   integer, intent(in) :: ncplx                !> real or complex??
-   integer, intent(in) :: confPotOrder         
-   real(gp), intent(in) :: hx,hy,hz            !> hgrid in x, y and z direction
-   real(gp), intent(in) :: cprecr              !> preconditioning constant
-   real(gp), intent(in) :: kx,ky,kz            !> kpoints in x, y and z direction
-   type(locreg_descriptors), intent(in) :: lr  !> Type describing the localization region
-   !> on input: the right hand side of the equation (i.e. y)
-   !! on output: the solution of the equation (i.e. x)
-   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(inout) :: x
-   real(kind=8), dimension(3), intent(in) :: rxyzParab !> the center of the confinement potential
-   type(orbitals_data), intent(in) :: orbs     !> type describing the orbitals
-   real(kind=8) :: potentialPrefac             !> prefactor for the confinement potential
+  implicit none
+  integer, intent(in) :: iproc,nproc
+  integer, intent(in) :: ncong                !> number of CG iterations
+  integer, intent(in) :: ncplx                !> real or complex??
+  integer, intent(in) :: confPotOrder         
+  real(gp), intent(in) :: hx,hy,hz            !> hgrid in x, y and z direction
+  real(gp), intent(in) :: cprecr              !> preconditioning constant
+  real(gp), intent(in) :: kx,ky,kz            !> kpoints in x, y and z direction
+  type(locreg_descriptors), intent(in) :: lr  !> Type describing the localization region
+  !> on input: the right hand side of the equation (i.e. y)
+  !! on output: the solution of the equation (i.e. x)
+  real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(inout) :: x
+  real(kind=8), dimension(3), intent(in) :: rxyzParab !> the center of the confinement potential
+  type(orbitals_data), intent(in) :: orbs     !> type describing the orbitals
+  real(kind=8) :: potentialPrefac             !> prefactor for the confinement potential
+  type(workarrays_quartic_convolutions),intent(inout):: work_conv !< workarrays for the convolutions
+  type(workarr_precond),intent(inout) :: w !< workarrays
 
-   ! Local variables
-   character(len=*), parameter :: subname='precondition_residue'
-   real(gp), dimension(0:7) :: scal
-   real(wp) :: rmr_old,rmr_new,alpha,beta
-   integer :: i_stat,i_all,icong
-   type(workarr_precond) :: w
-   real(wp), dimension(:), allocatable :: b,r,d
-   logical:: with_confpot
-   type(workarrays_quartic_convolutions):: work_conv
+  ! Local variables
+  character(len=*), parameter :: subname='precondition_residue'
+  real(gp), dimension(0:7) :: scal
+  real(wp) :: rmr_old,rmr_new,alpha,beta
+  integer :: icong
+  real(wp), dimension(:), allocatable :: b,r,d
+  logical:: with_confpot
+  !!type(workarrays_quartic_convolutions):: work_conv
 
   !arrays for the CG procedure
   b = f_malloc(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),id='b')
   r = f_malloc(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),id='r')
   d = f_malloc(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),id='d')
 
-  call allocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,lr%d,w)
+  !call allocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,lr%d,w)
 
   call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
 
   with_confpot=(potentialPrefac/=0.d0)
-  call init_local_work_arrays(lr%d%n1, lr%d%n2, lr%d%n3, &
+  !!call init_local_work_arrays(lr%d%n1, lr%d%n2, lr%d%n3, &
+  !!     lr%d%nfl1, lr%d%nfu1, lr%d%nfl2, lr%d%nfu2, lr%d%nfl3, lr%d%nfu3, &
+  !!     with_confpot, work_conv)
+  call zero_local_work_arrays(lr%d%n1, lr%d%n2, lr%d%n3, &
        lr%d%nfl1, lr%d%nfu1, lr%d%nfl2, lr%d%nfu2, lr%d%nfl3, lr%d%nfu3, &
        with_confpot, work_conv, subname)
   !!call allocate_workarrays_quartic_convolutions(lr, subname, work_conv)
@@ -99,15 +104,15 @@ subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
 
   call finalise_precond_residue(lr%geocode,lr%hybrid_on,ncplx,lr%wfd,scal,x)
 
-  call deallocate_workarrays_quartic_convolutions(lr, subname, work_conv)
+  !!call deallocate_workarrays_quartic_convolutions(work_conv)
 
   call f_free(b)
   call f_free(r)
   call f_free(d)
 
-  call timing(iproc,'deallocprec','ON') ! lr408t
-  call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
-  call timing(iproc,'deallocprec','OF') ! lr408t
+  !call timing(iproc,'deallocprec','ON') ! lr408t
+  !call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
+  !call timing(iproc,'deallocprec','OF') ! lr408t
 END SUBROUTINE solvePrecondEquation
 
 

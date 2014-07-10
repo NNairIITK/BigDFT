@@ -50,9 +50,9 @@
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  perf:
-   debug                               : No #     debug option
-   fftcache                            : 8192 #   cache size for the FFT
-   accel                               : NO #     acceleration
+   debug                               : No #     Debug option
+   fftcache                            : 8192 #   Cache size for the FFT
+   accel                               : NO #     Acceleration (hardware)
    ocl_platform                        : ~ #      Chosen OCL platform
    ocl_devices                         : ~ #      Chosen OCL devices
    blas                                : No #     CUBLAS acceleration
@@ -72,9 +72,9 @@
    signaling                           : No #     Expose calculation results on Network
    signaltimeout                       : 0 #      Time out on startup for signal connection (in seconds)
    domain                              : ~ #      Domain to add to the hostname to find the IP
-   inguess_geopt                       : 0 #      input guess to be used during the optimization
-   store_index                         : Yes #    store indices or recalculate them for linear scaling
-   verbosity                           : 3 #      verbosity of the output
+   inguess_geopt                       : 0 #      Input guess to be used during the optimization
+   store_index                         : Yes #    Store indices or recalculate them for linear scaling
+   verbosity                           : 3 #      Verbosity of the output
    outdir                              : ./ #     Writing directory
    psp_onfly                           : No #     Calculate pseudopotential projectors on the fly
    pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
@@ -114,7 +114,7 @@
    method                              : MPgrid # K-point sampling method
    ngkpt: [3, 3, 3] #                             No. of Monkhorst-Pack grid points
    shiftk: #                                      Grid shifts
-   -  [0.0000, 0.0000, 0.0000]
+   -  [0.0, 0.0, 0.0]
    bands                               : No #     For doing band structure calculation
  geopt:
    method                              : none #   Geometry optimisation method
@@ -128,10 +128,10 @@
    itrpmax                             : 10 #     maximum number of diagonalisation iterations
    rpnrm_cv                            : 0.1E-06 # stop criterion on the residue of potential or density
    norbsempty                          : 2 #      No. of additional bands
-   Tel                                 : 0.10E-03 # electronic temperature
-   occopt                              : 1 #      smearing method
-   alphamix                            : 0.950 #  Multiplying factors for the mixing
-   alphadiis                           : 0.800 #  Multiplying factors for the electronic DIIS
+   tel                                 : 1.0E-004 # Electronic temperature
+   occopt                              : 1 #      Smearing method
+   alphamix                            : 0.95 #   Multiplying factors for the mixing
+   alphadiis                           : 0.8 #    Multiplying factors for the electronic DIIS
  sic:
    sic_approach                        : none #   SIC method
    sic_alpha                           : 0. #     SIC downscaling parameter
@@ -240,9 +240,18 @@
  Atomic positions within the cell (Atomic and Grid Units):
  - Ag: {AU:  [  0.0000,  0.0000,  0.0000 ], GU:  [  0.0000,  0.0000,  0.0000 ]} # 0001
  - Ag: {AU:  [  3.8609,  3.8609,  0.0000 ], GU:  [  8.0004,  8.0004,  0.0000 ]} # 0002
- - Ag: {AU:  [  0.0000,  3.8609,  3.8609 ], GU:  [  0.0000,  8.0004,  8.0004 ]} # 0003
- - Ag: {AU:  [  3.8609,  0.0000,  3.8609 ], GU:  [  8.0004,  0.0000,  8.0004 ]} # 0004
- Rigid Shift Applied (AU)              :  [  0.0000,  0.0000,  0.0000 ]
+ - Ag: {AU:  [ -0.0000,  3.8609,  3.8609 ], GU:  [ -0.0000,  8.0004,  8.0004 ]} # 0003
+ - Ag: {AU:  [  3.8609, -0.0000,  3.8609 ], GU:  [  8.0004, -0.0000,  8.0004 ]} # 0004
+ Rigid Shift Applied (AU)              :  [ -0.0000, -0.0000, -0.0000 ]
+ Atomic structure:
+   Units                               : angstroem
+   Cell: [ 4.085999965667725,  4.085999965667725,  4.085999965667725]
+   Positions:
+   - Ag: [ 0.000000000,  0.000000000,  0.000000000] # [  0.00,  0.00,  0.00 ] 0001
+   - Ag: [ 2.043100119,  2.043100119,  0.000000000] # [  4.23,  4.23,  0.00 ] 0002
+   - Ag: [-0.000000000,  2.043100119,  2.043100119] # [ -0.00,  4.23,  4.23 ] 0003
+   - Ag: [ 2.043100119, -0.000000000,  2.043100119] # [  4.23, -0.00,  4.23 ] 0004
+   Rigid Shift Applied (AU)            :  [ -0.0000, -0.0000, -0.0000 ]
   #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4826,  0.4826,  0.4826 ]
  Sizes of the simulation domain:
@@ -1446,6 +1455,13 @@
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ - No convergence within the allowed number of minimization steps
+ - No convergence within the allowed number of minimization steps
+ - No convergence within the allowed number of minimization steps
+ - No convergence within the allowed number of minimization steps
+ - No convergence within the allowed number of minimization steps
+ - No convergence within the allowed number of minimization steps
+ - No convergence within the allowed number of minimization steps
  - Self-consistent cycle did not meet convergence criteria
  Status of the memory at finalization:
    Timestamp of Profile initialization:

@@ -4,7 +4,7 @@
 
 @details
 
-@section Intro     About the input variable iXC
+@section IXC_INTRO     About the input variable iXC
 
 In short, iXC is a six digit number to access functionals from libXC. Each functional has a certain
 three digit code, and seperate values can be specified for both, exchange and correlation, e.g.

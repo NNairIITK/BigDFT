@@ -58,7 +58,7 @@
      if (max(streams(strm)%icursor+msg_lgt+1,streams(strm)%tabref)+tmp_lgt > &
           streams(strm)%max_record_length) then
         !implement the writing explicitly per element
-        call yaml_open_sequence(mapname,flow=.true.,unit=unt)
+        call yaml_sequence_open(mapname,flow=.true.,unit=unt)
         do i=nl,nu
          call yaml_stream_attributes(icursor=icursor)
          !print *,'i,icursor',i,icursor
@@ -68,7 +68,7 @@
               call yaml_sequence(trim(yaml_toa(mapvalue(i))),unit=unt)
            end if
         end do
-        call yaml_close_sequence(unit=unt)
+        call yaml_sequence_close(unit=unt)
         return
      end if
   end if

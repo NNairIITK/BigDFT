@@ -19,7 +19,7 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
   integer, intent(out) :: nstates_max ! number of states in total if we consider all partially occupied fragment states to be fully occupied
   logical, intent(in) :: cdft
 
-  integer :: iorb, isforb, jsforb, ifrag, ifrag_ref, itmb, jtmb, iall, istat, num_extra_per_frag
+  integer :: iorb, isforb, jsforb, ifrag, ifrag_ref, itmb, jtmb, num_extra_per_frag
   integer, allocatable, dimension(:) :: ipiv
   real(gp), dimension(:,:), allocatable :: coeff_final
   !real(gp), dimension(:,:), allocatable :: ks, ksk
@@ -96,7 +96,8 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
   end if
 
   if (mod(input%norbsempty,input%frag%nfrag)/=0) then
-     if (bigdft_mpi%iproc==0) print*,'Warning, number of extra bands does not divide evenly among fragments'
+     if (bigdft_mpi%iproc==0) call yaml_warning('Number of extra bands does not divide evenly among fragments')
+     !if (bigdft_mpi%iproc==0) print*,'Warning, number of extra bands does not divide evenly among fragments'
      num_extra_per_frag=(input%norbsempty-mod(input%norbsempty,input%frag%nfrag))/input%frag%nfrag
   else
      num_extra_per_frag=input%norbsempty/input%frag%nfrag
@@ -110,21 +111,16 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
 
   ! Calculate the overlap matrix between the TMBs.
   if(.not. overlap_calculated) then
+     call timing(iproc,'kernel_init','OF')
      if(.not.tmb%can_use_transposed) then
          if(associated(tmb%psit_c)) then
-             iall=-product(shape(tmb%psit_c))*kind(tmb%psit_c)
-             deallocate(tmb%psit_c, stat=istat)
-             call memocc(istat, iall, 'tmb%psit_c', subname)
+             call f_free_ptr(tmb%psit_c)
          end if
          if(associated(tmb%psit_f)) then
-             iall=-product(shape(tmb%psit_f))*kind(tmb%psit_f)
-             deallocate(tmb%psit_f, stat=istat)
-             call memocc(istat, iall, 'tmb%psit_f', subname)
+             call f_free_ptr(tmb%psit_f)
          end if
-         allocate(tmb%psit_c(sum(tmb%collcom%nrecvcounts_c)), stat=istat)
-         call memocc(istat, tmb%psit_c, 'tmb%psit_c', subname)
-         allocate(tmb%psit_f(7*sum(tmb%collcom%nrecvcounts_f)), stat=istat)
-         call memocc(istat, tmb%psit_f, 'tmb%psit_f', subname)
+         tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
+         tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
          call transpose_localized(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
               tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
          tmb%can_use_transposed=.true.
@@ -139,6 +135,7 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
 
      !call timing(iproc,'renormCoefComp','ON')
      overlap_calculated=.true.
+     call timing(iproc,'kernel_init','ON')
   end if
 
   ! copy from coeff fragment to global coeffs - occupied states only
@@ -214,12 +211,14 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
      ! reorthonormalize the coeffs for each fragment - don't need unoccupied states here
      tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, &
                                 iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
+     call timing(iproc,'kernel_init','OF')
      call uncompress_matrix(iproc, tmb%linmat%s, &
           inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
      call reorthonormalize_coeff(bigdft_mpi%iproc, bigdft_mpi%nproc, &
           ceiling((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp), &
           tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, input%lin%order_taylor, &
           tmb%orbs, tmb%linmat%s, tmb%linmat%ks, tmb%linmat%ovrlp_, tmb%coeff, ksorbs)
+     call timing(iproc,'kernel_init','ON')
      call f_free_ptr(tmb%linmat%ovrlp_%matrix)
 
      !! debug
@@ -410,13 +409,13 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
         !!write(*,'(1x,a)') '-------------------------------------------------'
         !!write(*,'(1x,a,2es24.16)') 'lowest, highest ev:',tmb%orbs%eval(1),tmb%orbs%eval(tmb%orbs%norb)
 
-        call yaml_open_sequence('TMB eigenvalues',flow=.true.)
+        call yaml_sequence_open('TMB eigenvalues',flow=.true.)
         call yaml_newline()
         do iorb=1,tmb%orbs%norb
-            call yaml_open_map(flow=.true.)
+            call yaml_mapping_open(flow=.true.)
             call yaml_map('index',iorb)
             call yaml_map('value',tmb%orbs%eval(iorb),fmt='(es20.12)')
-            call yaml_close_map()
+            call yaml_mapping_close()
             if(iorb==ksorbs%norb) then
                 !!write(*,'(3x,a,i0,a,es20.12,a)') 'eval(',iorb,')= ',tmb%orbs%eval(iorb),'  <-- last occupied orbital'
                 call yaml_comment('  <-- last occupied orbital')
@@ -428,7 +427,7 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
             end if
             call yaml_newline()
         end do
-        call yaml_close_sequence()
+        call yaml_sequence_close()
         !!write(*,'(1x,a)') '-------------------------------------------------'
         !!write(*,'(1x,a,2es24.16)') 'lowest, highest ev:',tmb%orbs%eval(1),tmb%orbs%eval(tmb%orbs%norb)
 
