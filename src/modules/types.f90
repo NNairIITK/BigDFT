@@ -1608,10 +1608,7 @@ contains
   subroutine deallocate_lr(lr)
     use module_base
     type(locreg_descriptors) :: lr
-!    integer :: i_all,i_stat
 
-    write(0,*) "deallocate_lr : TODO, remove me"
-    
     call deallocate_wfd(lr%wfd)
 
     call deallocate_bounds(lr%geocode,lr%hybrid_on,lr%bounds)
