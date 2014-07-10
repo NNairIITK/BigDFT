@@ -790,10 +790,10 @@ subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
      end do
   end if
 
-  nullify(sparsemat_out%matrix)
-  nullify(sparsemat_out%matrix_compr)
-  nullify(sparsemat_out%matrixp)
-  nullify(sparsemat_out%matrix_comprp)
+  !!nullify(sparsemat_out%matrix)
+  !!nullify(sparsemat_out%matrix_compr)
+  !!nullify(sparsemat_out%matrixp)
+  !!nullify(sparsemat_out%matrix_comprp)
 
   if(associated(sparsemat_out%keyv)) then
      call f_free_ptr(sparsemat_out%keyv)
@@ -1053,11 +1053,11 @@ subroutine copy_sparse_matrix(smat_in, smat_out)
   call allocate_and_copy(smat_in%matrixindex_in_compressed_fortransposed, smat_out%matrixindex_in_compressed_fortransposed, &
                          id='smat_out%matrixindex_in_compressed_fortransposed')
 
-  call allocate_and_copy(smat_in%matrix_compr, smat_out%matrix_compr, id='smat_out%matrix_compr')
-  call allocate_and_copy(smat_in%matrix_comprp, smat_out%matrix_comprp, id='smat_out%matrix_comprp')
+  !!call allocate_and_copy(smat_in%matrix_compr, smat_out%matrix_compr, id='smat_out%matrix_compr')
+  !!call allocate_and_copy(smat_in%matrix_comprp, smat_out%matrix_comprp, id='smat_out%matrix_comprp')
 
-  call allocate_and_copy(smat_in%matrix, smat_out%matrix, id='smat_out%matrix')
-  call allocate_and_copy(smat_in%matrixp, smat_out%matrixp, id='smat_out%matrixp')
+  !!call allocate_and_copy(smat_in%matrix, smat_out%matrix, id='smat_out%matrix')
+  !!call allocate_and_copy(smat_in%matrixp, smat_out%matrixp, id='smat_out%matrixp')
 
 
 end subroutine copy_sparse_matrix

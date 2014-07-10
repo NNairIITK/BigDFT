@@ -361,6 +361,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   real(kind=8), dimension(:,:), pointer :: ovrlp_half
   real(kind=8) :: max_error, mean_error
   type(sparse_matrix) :: weight_matrix
+  type(matrices) :: weight_matrix_
   type(matrices) :: inv_ovrlp
   character(len=256) :: subname='coeff_weight_analysis'
 
@@ -370,8 +371,9 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
 
   !call nullify_sparse_matrix(weight_matrix)
   weight_matrix=sparse_matrix_null()
+  weight_matrix_=matrices_null()
   call sparse_copy_pattern(tmb%linmat%m, weight_matrix, iproc, subname)
-  weight_matrix%matrix_compr=f_malloc_ptr(weight_matrix%nvctr,id='weight_matrix%matrix_compr')
+  weight_matrix_%matrix_compr=f_malloc_ptr(weight_matrix%nvctr,id='weight_matrix%matrix_compr')
 
  inv_ovrlp = matrices_null()
  call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp)
@@ -391,13 +393,13 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
 
   do ifrag=1,input%frag%nfrag
      ifrag_charged(1)=ifrag
-     call calculate_weight_matrix_lowdin(weight_matrix,1,ifrag_charged,tmb,input,ref_frags,&
+     call calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,1,ifrag_charged,tmb,input,ref_frags,&
           .false.,.true.,input%lin%order_taylor,inv_ovrlp%matrix)
-     weight_matrix%matrix=f_malloc_ptr((/weight_matrix%nfvctr,weight_matrix%nfvctr/), id='weight_matrix%matrix')
-     call uncompress_matrix(iproc,weight_matrix)
+     weight_matrix_%matrix=f_malloc_ptr((/weight_matrix%nfvctr,weight_matrix%nfvctr/), id='weight_matrix%matrix')
+     call uncompress_matrix(iproc,weight_matrix,weight_matrix_%matrix_compr,weight_matrix_%matrix)
      !call calculate_coeffMatcoeff(nproc,weight_matrix%matrix,tmb%orbs,ksorbs,tmb%coeff,weight_coeff(1,1,ifrag))
-     call calculate_coeffMatcoeff_diag(weight_matrix%matrix,tmb%orbs,ksorbs,tmb%coeff,weight_coeff_diag(1,ifrag))
-     call f_free_ptr(weight_matrix%matrix)
+     call calculate_coeffMatcoeff_diag(weight_matrix_%matrix,tmb%orbs,ksorbs,tmb%coeff,weight_coeff_diag(1,ifrag))
+     call f_free_ptr(weight_matrix_%matrix)
   end do
   !call f_free_ptr(ovrlp_half)
 
@@ -423,6 +425,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   call deallocate_matrices(inv_ovrlp)
 
   call deallocate_sparse_matrix(weight_matrix)
+  call deallocate_matrices(weight_matrix_)
   call f_free(weight_coeff_diag)
   !call f_free(weight_coeff)
 

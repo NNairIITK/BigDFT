@@ -210,7 +210,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   ! CDFT: add V*w_ab to Hamiltonian here - assuming ham and weight matrix have the same sparsity...
   if (present(cdft)) then
      call timing(iproc,'constraineddft','ON')
-     call daxpy(tmb%linmat%m%nvctr,cdft%lag_mult,cdft%weight_matrix%matrix_compr,1,tmb%linmat%ham_%matrix_compr,1)
+     call daxpy(tmb%linmat%m%nvctr,cdft%lag_mult,cdft%weight_matrix_%matrix_compr,1,tmb%linmat%ham_%matrix_compr,1)
      call timing(iproc,'constraineddft','OF') 
   end if
 
@@ -274,7 +274,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   ! CDFT: subtract V*w_ab from Hamiltonian so that we are calculating the correct energy
   if (present(cdft)) then
      call timing(iproc,'constraineddft','ON')
-     call daxpy(tmb%linmat%m%nvctr,-cdft%lag_mult,cdft%weight_matrix%matrix_compr,1,tmb%linmat%ham_%matrix_compr,1)
+     call daxpy(tmb%linmat%m%nvctr,-cdft%lag_mult,cdft%weight_matrix_%matrix_compr,1,tmb%linmat%ham_%matrix_compr,1)
      call timing(iproc,'constraineddft','OF') 
   end if
 

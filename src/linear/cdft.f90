@@ -44,7 +44,7 @@ subroutine calculate_weight_matrix_lowdin_wrapper(cdft,tmb,input,ref_frags,calcu
   end if
 
   ovrlp_half=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='ovrlp_half')
-  call calculate_weight_matrix_lowdin(cdft%weight_matrix,nfrag_charged,cdft%ifrag_charged,tmb,input,&
+  call calculate_weight_matrix_lowdin(cdft%weight_matrix,cdft%weight_matrix_,nfrag_charged,cdft%ifrag_charged,tmb,input,&
        ref_frags,calculate_overlap_matrix,.true.,meth_overlap,ovrlp_half)
   call f_free_ptr(ovrlp_half)
 
@@ -53,7 +53,7 @@ subroutine calculate_weight_matrix_lowdin_wrapper(cdft,tmb,input,ref_frags,calcu
 end subroutine calculate_weight_matrix_lowdin_wrapper
 
 
-subroutine calculate_weight_matrix_lowdin(weight_matrix,nfrag_charged,ifrag_charged,tmb,input,ref_frags,&
+subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_charged,ifrag_charged,tmb,input,ref_frags,&
      calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap,ovrlp_half)
   use module_base
   use module_types
@@ -66,6 +66,7 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,nfrag_charged,ifrag_char
   use sparsematrix, only: compress_matrix, uncompress_matrix
   implicit none
   type(sparse_matrix), intent(inout) :: weight_matrix
+  type(matrices), intent(inout) :: weight_matrix_
   type(input_variables),intent(in) :: input
   type(dft_wavefunction), intent(inout) :: tmb
   logical, intent(in) :: calculate_overlap_matrix, calculate_ovrlp_half
@@ -157,17 +158,17 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,nfrag_charged,ifrag_char
           weight_matrixp(1,1), tmb%orbs%norb)
   end if
   call f_free(proj_ovrlp_half)
-  weight_matrix%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='weight_matrix%matrix')
+  weight_matrix_%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='weight_matrix_%matrix')
   if (bigdft_mpi%nproc>1) then
-     call mpi_allgatherv(weight_matrixp, tmb%orbs%norb*tmb%orbs%norbp, mpi_double_precision, weight_matrix%matrix, &
+     call mpi_allgatherv(weight_matrixp, tmb%orbs%norb*tmb%orbs%norbp, mpi_double_precision, weight_matrix_%matrix, &
           tmb%orbs%norb*tmb%orbs%norb_par(:,0), tmb%orbs%norb*tmb%orbs%isorb_par, &
           mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
   else
-     call vcopy(tmb%orbs%norb*tmb%orbs%norb,weight_matrixp(1,1),1,weight_matrix%matrix(1,1),1)
+     call vcopy(tmb%orbs%norb*tmb%orbs%norb,weight_matrixp(1,1),1,weight_matrix_%matrix(1,1),1)
   end if
   call f_free(weight_matrixp)
-  call compress_matrix(bigdft_mpi%iproc,weight_matrix)
-  call f_free_ptr(weight_matrix%matrix)
+  call compress_matrix(bigdft_mpi%iproc,weight_matrix,weight_matrix_%matrix,weight_matrix_%matrix_compr)
+  call f_free_ptr(weight_matrix_%matrix)
   call deallocate_matrices(inv_ovrlp)
   call f_release_routine()
 
@@ -255,7 +256,7 @@ subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,den
   call calculate_overlap_transposed(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%orbs,tmb%ham_descr%collcom, &
        tmb%ham_descr%psit_c,hpsit_c,tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, weight_)
   ! This can then be deleted if the transition to the new type has been completed.
-  cdft%weight_matrix%matrix_compr=weight_%matrix_compr
+  cdft%weight_matrix_%matrix_compr=weight_%matrix_compr
   call deallocate_matrices(weight_)
 
   call f_free(hpsit_c)

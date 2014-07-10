@@ -95,7 +95,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
   call f_free(psittemp_c)
   call f_free(psittemp_f)
 
-  call f_free_ptr(inv_ovrlp_half%matrix_compr)
+  !call f_free_ptr(inv_ovrlp_half%matrix_compr)
 
   call deallocate_matrices(inv_ovrlp_half_)
 
@@ -1915,7 +1915,6 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   !call sparse_copy_pattern(inv_ovrlp, inv_ovrlp_half, iproc, subname)
   !!allocate(inv_ovrlp_half%matrix_compr(inv_ovrlp_half%nvctr), stat=istat)
   !!call memocc(istat, inv_ovrlp_half%matrix_compr, 'inv_ovrlp_half%matrix_compr', subname)
-  inv_ovrlp_half%matrix_compr=f_malloc_ptr(inv_ovrlp_half%nvctr,id='inv_ovrlp_half%matrix_compr')
 
   inv_ovrlp_half_ = matrices_null()
   call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='inv_ovrlp_half_', mat=inv_ovrlp_half_)
@@ -2061,7 +2060,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
 
   call f_free(psittemp_c)
   call f_free(psittemp_f)
-  call f_free_ptr(inv_ovrlp_half%matrix_compr)
+  !!call f_free_ptr(inv_ovrlp_half%matrix_compr)
 
   call f_release_routine()
 
@@ -2110,7 +2109,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   !call sparse_copy_pattern(inv_ovrlp, inv_ovrlp_half, iproc, subname)
   !!allocate(inv_ovrlp_half%matrix_compr(inv_ovrlp_half%nvctr), stat=istat)
   !!call memocc(istat, inv_ovrlp_half%matrix_compr, 'inv_ovrlp_half%matrix_compr', subname)
-  inv_ovrlp_half%matrix_compr=f_malloc_ptr(inv_ovrlp_half%nvctr,id='inv_ovrlp_half%matrix_compr')
+  !!inv_ovrlp_half%matrix_compr=f_malloc_ptr(inv_ovrlp_half%nvctr,id='inv_ovrlp_half%matrix_compr')
 
 
   if(.not.can_use_transposed) then
@@ -2243,7 +2242,8 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
 
   ovrlp_ = matrices_null()
   call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
-  ovrlp_%matrix_compr = inv_ovrlp_half%matrix_compr
+  !@WARNING CHECK THIS
+  !!ovrlp_%matrix_compr = inv_ovrlp_half%matrix_compr
   call build_linear_combination_transposed(collcom, ovrlp, ovrlp_, &
        psittemp_c, psittemp_f, .false., psit_c, psit_f, iproc)
   call deallocate_matrices(ovrlp_)
@@ -2260,7 +2260,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
 
   call f_free(psittemp_c)
   call f_free(psittemp_f)
-  call f_free_ptr(inv_ovrlp_half%matrix_compr)
+  !!call f_free_ptr(inv_ovrlp_half%matrix_compr)
 
   call f_release_routine()
 
