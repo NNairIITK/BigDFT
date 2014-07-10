@@ -16,7 +16,7 @@ program BigDFT2Wannier
    use module_interfaces
    use yaml_output
    use module_input_dicts
-   use communications_base, only: comms_cubic
+   use communications_base, only: comms_cubic, deallocate_comms
    use communications_init, only: orbitals_communicators
    use communications, only: transpose_v, untranspose_v
    implicit none

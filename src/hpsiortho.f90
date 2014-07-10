@@ -2207,7 +2207,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
          ef=ef-corr  ! Ef=Ef_guess+corr.
          !if (iproc.lt.1) write(1000+iproc,'(i5,5(1pe17.8))') ii,electrons,ef,dlectrons,abs(dlectrons),corr
 !         if (iproc.lt.1) flush(1000+iproc)
-         call determine_fermi_level(ft, electrons, ef,info_fermi)
+         !call determine_fermi_level(ft, electrons, ef,info_fermi)
          !if (info_fermi /= 0) then
          !   call f_err_throw('Difficulties in guessing the new Fermi energy, info='//trim(yaml_toa(info_fermi)),&
          !        err_name='BIGDFT_RUNTIME_ERROR')
