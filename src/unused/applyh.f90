@@ -281,3 +281,203 @@ contains
   end function cp
 
 END SUBROUTINE apply_potential_lr
+
+subroutine realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
+  use module_base
+  implicit none
+  integer, intent(in) :: n1,n2,n3
+  integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in) :: ibyyzz_r
+  real(wp), dimension(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16), intent(in) :: pot
+  real(wp), dimension(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16), intent(inout) :: psir
+  real(wp), intent(out) :: epot
+  !local variables
+  real(wp) :: tt
+  integer :: i1,i2,i3
+
+  epot=0.0_wp
+  do i3=-14,2*n3+16
+     do i2=-14,2*n2+16
+        do i1=max(ibyyzz_r(1,i2,i3)-14,-14),min(ibyyzz_r(2,i2,i3)-14,2*n1+16)
+           tt=pot(i1,i2,i3)*psir(i1,i2,i3)
+           epot=epot+tt*psir(i1,i2,i3)
+           psir(i1,i2,i3)=tt
+        enddo
+     enddo
+  enddo
+
+END SUBROUTINE realspace
+
+
+subroutine realspace_nbuf(ibyyzz_r,pot,psir,epot,nb1,nb2,nb3,nbuf)
+  implicit none
+  !Arguments
+  integer,intent(in)::nb1,nb2,nb3,nbuf
+  integer,intent(in)::ibyyzz_r(2,-14:2*nb2+16,-14:2*nb3+16)
+  real(kind=8),intent(in)::pot(-14:2*nb1+16-4*nbuf,-14:2*nb2+16-4*nbuf,-14:2*nb3+16-4*nbuf)
+  real(kind=8),intent(inout)::psir(-14:2*nb1+16,-14:2*nb2+16,-14:2*nb3+16)
+  real(kind=8),intent(out)::epot
+  !Local variables
+  real(kind=8) :: tt
+  integer :: i1,i2,i3
+
+  epot=0.d0
+  do i3=-14,2*nb3+16
+     if (i3 >= -14+2*nbuf .and. i3 <= 2*nb3+16-2*nbuf) then
+        do i2=-14,2*nb2+16
+           if (i2 >= -14+2*nbuf .and. i2 <= 2*nb2+16-2*nbuf) then
+              do i1=-14+2*nbuf,ibyyzz_r(1,i2,i3)-14-1
+                 psir(i1,i2,i3)=0.d0
+              enddo
+              do i1=max(ibyyzz_r(1,i2,i3)-14,-14+2*nbuf),min(ibyyzz_r(2,i2,i3)-14,2*nb1+16-2*nbuf)
+                 tt=pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf)*psir(i1,i2,i3)
+                 epot=epot+tt*psir(i1,i2,i3)
+                 psir(i1,i2,i3)=tt
+              enddo
+              do i1=ibyyzz_r(2,i2,i3)-14+1,2*nb1+16-2*nbuf
+                 psir(i1,i2,i3)=0.d0
+              enddo
+           else
+              do i1=-14,2*nb1+16
+                 psir(i1,i2,i3)=0.d0
+              enddo
+           endif
+        enddo
+     else
+        do i2=-14,2*nb2+16
+           do i1=-14,2*nb1+16
+              psir(i1,i2,i3)=0.d0
+           enddo
+        enddo
+     endif
+  enddo
+
+END SUBROUTINE realspace_nbuf
+
+
+subroutine realspaceINOUT(ibyyzz_r,pot,psirIN,psirOUT,epot,n1,n2,n3)
+  implicit none
+  integer,intent(in)::n1,n2,n3
+  integer,intent(in)::ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
+
+  real(kind=8),intent(in)::pot(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
+  real(kind=8),intent(in)::psirIN(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
+ real(kind=8),intent(out)::psirOUT(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
+
+  real(kind=8),intent(out)::epot
+  real(kind=8) tt
+  integer i1,i2,i3
+
+  epot=0.d0
+  do i3=-14,2*n3+16
+     do i2=-14,2*n2+16
+        do i1=max(ibyyzz_r(1,i2,i3)-14,-14),min(ibyyzz_r(2,i2,i3)-14,2*n1+16)
+           tt=pot(i1,i2,i3)*psirIN(i1,i2,i3)
+           epot=epot+tt*psirIN(i1,i2,i3)
+           psirOUT(i1,i2,i3)=psirOUT(i1,i2,i3)+tt
+        enddo
+     enddo
+  enddo
+
+END SUBROUTINE realspaceINOUT
+
+
+subroutine realspaceINOUT_nbuf(ibyyzz_r,pot,psirIN,psirOUT,epot,nb1,nb2,nb3,nbuf)
+  implicit none
+  !Arguments
+  integer,intent(in) :: nb1,nb2,nb3,nbuf
+  integer,intent(in) :: ibyyzz_r(2,-14:2*nb2+16,-14:2*nb3+16)
+  real(kind=8),intent(in) :: pot(-14:2*nb1+16-4*nbuf,-14:2*nb2+16-4*nbuf,-14:2*nb3+16-4*nbuf)
+  real(kind=8),intent(in) :: psirIN(-14:2*nb1+16,-14:2*nb2+16,-14:2*nb3+16)
+  real(kind=8),intent(out) :: psirOUT(-14:2*nb1+16,-14:2*nb2+16,-14:2*nb3+16)
+  real(kind=8),intent(out) :: epot
+  !Local variables
+  real(kind=8) :: tt
+  integer :: i1,i2,i3
+
+  epot=0.d0
+  do i3=-14,2*nb3+16
+     if (i3.ge.-14+2*nbuf .and. i3.le.2*nb3+16-2*nbuf) then
+        do i2=-14,2*nb2+16
+           if (i2.ge.-14+2*nbuf .and. i2.le.2*nb2+16-2*nbuf) then
+              do i1=-14+2*nbuf,ibyyzz_r(1,i2,i3)-14-1
+                 psirOUT(i1,i2,i3)=0.d0
+              enddo
+              do i1=max(ibyyzz_r(1,i2,i3)-14,-14+2*nbuf),min(ibyyzz_r(2,i2,i3)-14,2*nb1+16-2*nbuf)
+                 tt=pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf)*psirIN(i1,i2,i3)
+                 epot=epot+tt*psirIN(i1,i2,i3)
+                 psirOUT(i1,i2,i3)=tt
+              enddo
+              do i1=ibyyzz_r(2,i2,i3)-14+1,2*nb1+16-2*nbuf
+                 psirOUT(i1,i2,i3)=0.d0
+              enddo
+           else
+              do i1=-14,2*nb1+16
+                 psirOUT(i1,i2,i3)=0.d0
+              enddo
+           endif
+        enddo
+     else
+        do i2=-14,2*nb2+16
+           do i1=-14,2*nb1+16
+              psirOUT(i1,i2,i3)=0.d0
+           enddo
+        enddo
+     endif
+  enddo
+
+END SUBROUTINE realspaceINOUT_nbuf
+
+
+subroutine realspaceINPLACE(ibyyzz_r,pot,psir,epot,n1,n2,n3)
+  implicit none
+  integer,intent(in)::n1,n2,n3
+  integer,intent(in)::ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
+
+  real(kind=8),intent(in)::pot(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16,4)
+  real(kind=8),intent(inout)::psir(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16,4)
+
+  real(kind=8),intent(out)::epot
+  real(kind=8) tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42
+  integer i1,i2,i3
+
+  epot=0.d0
+  do i3=-14,2*n3+16
+     do i2=-14,2*n2+16
+        do i1=max(ibyyzz_r(1,i2,i3)-14,-14),min(ibyyzz_r(2,i2,i3)-14,2*n1+16)
+           !diagonal terms
+           tt11=pot(i1,i2,i3,1)*psir(i1,i2,i3,1) !p1
+           tt22=pot(i1,i2,i3,1)*psir(i1,i2,i3,2) !p2
+           tt33=pot(i1,i2,i3,4)*psir(i1,i2,i3,3) !p3
+           tt44=pot(i1,i2,i3,4)*psir(i1,i2,i3,4) !p4
+           !Rab*Rb
+           tt13=pot(i1,i2,i3,2)*psir(i1,i2,i3,3) !p1
+           !Iab*Ib
+           tt14=pot(i1,i2,i3,3)*psir(i1,i2,i3,4) !p1
+           !Rab*Ib
+           tt23=pot(i1,i2,i3,2)*psir(i1,i2,i3,4) !p2
+           !Iab*Rb
+           tt24=pot(i1,i2,i3,3)*psir(i1,i2,i3,3) !p2
+           !Rab*Ra
+           tt31=pot(i1,i2,i3,2)*psir(i1,i2,i3,1) !p3
+           !Iab*Ia
+           tt32=pot(i1,i2,i3,3)*psir(i1,i2,i3,2) !p3
+           !Rab*Ia
+           tt41=pot(i1,i2,i3,2)*psir(i1,i2,i3,2) !p4
+           !Iab*Ra
+           tt42=pot(i1,i2,i3,3)*psir(i1,i2,i3,1) !p4
+           ! Change epot later
+           epot=epot+tt11*psir(i1,i2,i3,1)+tt22*psir(i1,i2,i3,2)+tt33*psir(i1,i2,i3,3)+tt44*psir(i1,i2,i3,4)+&
+                2.0d0*tt31*psir(i1,i2,i3,3)-2.0d0*tt42*psir(i1,i2,i3,4)+2.0d0*tt41*psir(i1,i2,i3,4)+2.0d0*tt32*psir(i1,i2,i3,3)
+!p1=h1p1+h2p3-h3p4
+!p2=h1p2+h2p4+h3p3
+!p3=h2p1+h3p2+h4p3
+!p4=h2p2-h3p1+h4p4
+           psir(i1,i2,i3,1)=tt11+tt13-tt14
+           psir(i1,i2,i3,2)=tt22+tt23+tt24
+           psir(i1,i2,i3,3)=tt33+tt31+tt32
+           psir(i1,i2,i3,4)=tt44+tt41-tt42
+        enddo
+     enddo
+  enddo
+
+END SUBROUTINE realspaceINPLACE

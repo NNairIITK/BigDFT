@@ -947,6 +947,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   call f_free(psirwork)
 
   ! Rearrange array
+  !LG: WARNING: it is bad practice to consider collcom_sr as intent(in)
+  !and collcom_sr%psit_c and intent(out) or intent(inout)!!!
   call transpose_unswitch_psirt(collcom_sr, psirtwork, collcom_sr%psit_c)
 
   ! Transposed workarray not needed anymore

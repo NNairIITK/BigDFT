@@ -1144,10 +1144,3 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
        & call yaml_warning('Defining a k-point path in free boundary conditions.') 
 
 END SUBROUTINE kpt_input_analyse
-
-!!$  ! linear scaling: explicitely specify localization centers
-!!$  in%explicit_locregcenters = dict//EXPLICIT_LOCREGCENTERS
-!!$  ! linear scaling: calculate Kohn-Sham residue
-!!$  in%calculate_KS_residue = dict//CALCULATE_KS_RESIDUE
-!!$  ! linear scaling: calculate intermediate forces
-!!$  in%intermediate_forces = dict//INTERMEDIATE_FORCES
