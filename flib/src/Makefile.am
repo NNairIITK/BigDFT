@@ -132,7 +132,7 @@ install-data-hook:
 	fi
 
 # Dependencies
-$(modules): $(libflib_a_OBJECTS)
+$(modules): $(libflib_1_a_OBJECTS)
 yaml_strings.o: $(STRINGS_INCLUDES)
 dictionaries.o: yaml_strings.o dictionaries_base.o $(DICT_INCLUDES) callbacks.o
 #mem_profiling.o : error_handling.o
