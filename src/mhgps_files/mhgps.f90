@@ -82,7 +82,7 @@ real(gp),allocatable :: eval(:)
         if(iproc==0) call print_logo_mhgps()
         call dict_init(user_inputs)
         write(folder,'(a,i3.3)')'input',ifolder
-        write(filename,'(a,i3.3)')'min',ifile
+        write(filename,'(a,i3.3)')'pos',ifile
         call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
            & folder//'/'//filename//trim(bigdft_run_id_toa()), bigdft_mpi)
         call inputs_from_dict(inputs_opt, atoms, user_inputs)
@@ -101,7 +101,7 @@ real(gp),allocatable :: eval(:)
         iproc=0
         isForceField=.true.
         write(folder,'(a,i3.3)')'input',ifolder
-        write(filename,'(a,i3.3)')'min',ifile
+        write(filename,'(a,i3.3)')'pos',ifile
         call deallocate_atomic_structure(atoms%astruct)
         call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
         call init_global_output(outs, atoms%astruct%nat)
@@ -110,7 +110,7 @@ real(gp),allocatable :: eval(:)
         iproc=0
         isForceField=.true.
         write(folder,'(a,i3.3)')'input',ifolder
-        write(filename,'(a,i3.3)')'min',ifile
+        write(filename,'(a,i3.3)')'pos',ifile
         call deallocate_atomic_structure(atoms%astruct)
         call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
         call init_global_output(outs, atoms%astruct%nat)
@@ -231,7 +231,7 @@ real(gp),allocatable :: eval(:)
         write(folder,'(a,i3.3)')'input',ifolder
         currDir=folder
         do ifile = 1,999
-            write(filename,'(a,i3.3)')'min',ifile
+            write(filename,'(a,i3.3)')'pos',ifile
             inquire(file=folder//'/'//filename//'.xyz',exist=xyzexists)
             inquire(file=folder//'/'//filename//'.ascii',exist=asciiexists)
             currFile=filename

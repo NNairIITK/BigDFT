@@ -329,6 +329,7 @@ subroutine give_rcov(atoms,nat,rcov)
      else
         call yaml_comment('(MH) no covalent radius stored for this atomtype '&
              //trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))))
+        stop
      endif
      if (iproc == 0) then
         call yaml_map('(MHGPS) RCOV:'//trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),rcov(iat))
