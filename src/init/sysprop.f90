@@ -510,6 +510,7 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
      & ixcpsp, psppar, donlcc, rcore, qcore, radii_cf, exists, pawpatch)
   use module_base
   use ao_inguess
+  use m_pawpsp, only: pawpsp_read_header_2
   implicit none
   
   character(len = *), intent(in) :: filename
@@ -523,7 +524,9 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
   character(len=20) :: skip
 
   integer :: ierror, ierror1, i, j, nn, nlterms, nprl, l, nzatom_, nelpsp_, npspcode_
-  real(dp) :: nelpsp_dp,nzatom_dp
+  integer :: lmax,lloc,mmax
+  integer:: pspversion,basis_size,lmn_size
+  real(dp) :: nelpsp_dp,nzatom_dp,r2well
   character(len=100) :: line
 
   radii_cf = UNINITIALIZED(1._gp)
@@ -542,7 +545,7 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
   read(11,*)
   read(11,*) nzatom_dp, nelpsp_dp
   nzatom=int(nzatom_dp); nelpsp=int(nelpsp_dp)
-  read(11,*) npspcode, ixcpsp
+  read(11,*) npspcode, ixcpsp, lmax, lloc, mmax, r2well
 
   psppar(:,:)=0._gp
   if (npspcode == 2) then !GTH case
@@ -566,9 +569,10 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
      if (.not.exists) stop "Implement here."
 
      ! PAW format using libPAW.
-     write(*,*) 'Reading of PAW atomic-data, under development'
-     call psp_from_file_paw()
-     
+     call pawpsp_read_header_2(11,pspversion,basis_size,lmn_size)
+     ! PAW data will not be saved in the input dictionary,
+     ! we keep their reading for later.
+     pawpatch = .true.
   else if (npspcode == 10) then !HGH-K case
      read(11,*) psppar(0,0),nn,(psppar(0,j),j=1,nn) !local PSP parameters
      read(11,*) nlterms !number of channels of the pseudo
@@ -616,146 +620,107 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
      stop
   end if
 
-  if (npspcode == 7) return !Skip the rest for PAW
-
-  !old way of calculating the radii, requires modification of the PSP files
-  read(11,'(a100)',iostat=ierror) line
-  if (ierror /=0) then
-     !if (iproc ==0) write(*,*)&
-     !     ' WARNING: last line of pseudopotential missing, put an empty line'
-     line=''
-  end if
-  read(line,*,iostat=ierror1) radii_cf(1),radii_cf(2),radii_cf(3)
-  if (ierror1 /= 0 ) then
-     read(line,*,iostat=ierror) radii_cf(1),radii_cf(2)
-     radii_cf(3)=radii_cf(2)
-     ! Open64 behaviour, if line is PAWPATCH, then radii_cf(1) = 0.
-     if (ierror /= 0) radii_cf = UNINITIALIZED(1._gp)
-  end if
-  pawpatch = (trim(line) == "PAWPATCH")
-  do
+  if (npspcode /= 7) then
+     
+     !old way of calculating the radii, requires modification of the PSP files
      read(11,'(a100)',iostat=ierror) line
-     if (ierror /= 0 .or. pawpatch) exit
+     if (ierror /=0) then
+        !if (iproc ==0) write(*,*)&
+        !     ' WARNING: last line of pseudopotential missing, put an empty line'
+        line=''
+     end if
+     read(line,*,iostat=ierror1) radii_cf(1),radii_cf(2),radii_cf(3)
+     if (ierror1 /= 0 ) then
+        read(line,*,iostat=ierror) radii_cf(1),radii_cf(2)
+        radii_cf(3)=radii_cf(2)
+        ! Open64 behaviour, if line is PAWPATCH, then radii_cf(1) = 0.
+        if (ierror /= 0) radii_cf = UNINITIALIZED(1._gp)
+     end if
      pawpatch = (trim(line) == "PAWPATCH")
-  end do
+     do
+        read(11,'(a100)',iostat=ierror) line
+        if (ierror /= 0 .or. pawpatch) exit
+        pawpatch = (trim(line) == "PAWPATCH")
+     end do
+  end if
+
   close(11)
-
-contains
-
-   subroutine psp_from_file_paw()
-     use module_base
-     use m_pawpsp, only: pawpsp_main, pawpsp_read_header, pawpsp_read_header_2
-     use defs_basis, only: tol14, fnlen
-     use m_pawrad, only: pawrad_type, pawrad_nullify, pawrad_destroy
-     use m_pawtab, only: pawtab_type, pawtab_nullify, pawtab_destroy
-     implicit none
-     integer:: icoulomb,ipsp,ixc,lnmax
-     integer:: lloc,l_size,lmax,mmax,pspcod,pspxc
-     integer:: pspversion,basis_size,lmn_size
-     integer:: mpsang,mqgrid_ff,mqgrid_vl,mqgrid_shp
-     integer:: pawxcdev,usewvl,usexcnhat,xclevel
-     integer::pspso
-     real(dp):: r2well
-     real(dp):: xc_denpos,zionpsp,znuclpsp
-     real(dp)::epsatm,xcccrc
-     character(len=fnlen):: filpsp   ! name of the psp file
-     character(len = *), parameter :: subname = "psp_from_file_paw"
-     type(pawrad_type):: pawrad
-     type(pawtab_type):: pawtab
-     integer:: comm_mpi
-   !  type(paw_setup_t),optional,intent(in) :: psxml
-   !!arrays
-    integer:: wvl_ngauss(2)
-    real(dp),allocatable:: qgrid_ff(:),qgrid_vl(:)
-    real(dp),allocatable:: ffspl(:,:,:)
-    real(dp),allocatable:: vlspl(:,:)
-    integer:: mesh_size
-
-
-     !These should be passed as arguments:
-     !Defines the number of Gaussian functions for projectors
-     !See ABINIT input files documentation
-     wvl_ngauss=[10,10]
-     icoulomb= 1 !Fake argument, this only indicates that we are inside bigdft..
-                 !do not change, even if icoulomb/=1
-     ipsp=1      !This is relevant only for XML.
-                 !This is not yet working
-     xclevel=1 ! xclevel=XC functional level (1=LDA, 2=GGA)
-               ! For the moment, it will just work for LDA
-     pspso=0 !No spin-orbit for the moment
-
-   ! Read PSP header:
-     rewind(11)
-     call pawpsp_read_header(lloc,l_size,mmax,pspcod,pspxc,r2well,zionpsp,znuclpsp)
-     call pawpsp_read_header_2(pspversion,basis_size,lmn_size)
-
-   ! Problem lnmax are unknown here,
-   ! we have to read all of the pseudo files to know it!
-   ! We should change the way this is done in ABINIT:
-   ! For the moment lnmax=basis_size
-   ! The same problem for mpsang
-     lnmax=basis_size
-     lmax=l_size
-   !  do ii=1,psps%npsp
-   !   mpsang=max(pspheads(ii)%lmax+1,mpsang)
-   !  end do
-     mpsang=lmax+1
-
-   ! These are just useful for 
-   !reciprocal space approaches (plane-waves):
-     mqgrid_shp=0; mqgrid_ff=0; mqgrid_vl=0 
-                             
-   qgrid_ff = f_malloc(mqgrid_ff,id='qgrid_ff')
-   qgrid_vl = f_malloc(mqgrid_vl,id='qgrid_vl')
-   ffspl = f_malloc((/ mqgrid_ff, 2, lnmax /),id='ffspl')
-   vlspl = f_malloc((/ mqgrid_vl, 2 /),id='vlspl')
-
-   ! Define parameters:
-     pawxcdev=1; usewvl=1 ; usexcnhat=0 !default
-     xc_denpos=tol14
-     filpsp=trim(filename)
-     comm_mpi=bigdft_mpi%mpi_comm  
-     mesh_size=mmax
-
-     call pawrad_nullify(pawrad)
-     call pawtab_nullify(pawtab)
-
-     close(11)
-
-     call pawpsp_main( &
-   & pawrad,pawtab,&
-   & filpsp,usewvl,icoulomb,ixc,xclevel,pawxcdev,usexcnhat,&
-   & qgrid_ff,qgrid_vl,ffspl,vlspl,epsatm,xcccrc,zionpsp,znuclpsp,&
-   & wvl_ngauss,comm_mpi=comm_mpi)
-
-   !Print out data to validate this test:
-     write(*,'(a)') 'PAW Gaussian projectors:'
-     write(*,'("No. of Gaussians:", i4)')pawtab%wvl%pngau
-     write(*,'("First five Gaussian complex coefficients:")')
-     write(*,'(5("(",f13.7,",",f13.7")"))')pawtab%wvl%parg(:,1:5)
-     write(*,'("First five Gaussian complex factors:")')
-     write(*,'(5("(",f13.7,",",f13.7")"))')pawtab%wvl%pfac(:,1:5)
-   !
-     write(*,'(a)') 'GTH parameters (for initial guess):'
-     write(*,'("radii_cf= ",3f10.7)')radii_cf(:)
-     write(*,'("psppar(0:1,0)= ",2f10.7)')psppar(0:1,0)
-
-   ! Destroy and deallocate objects
-     call pawrad_destroy(pawrad)
-     call pawtab_destroy(pawtab)
-
-   call f_free(qgrid_ff)
-   call f_free(qgrid_vl)
-   call f_free(ffspl)
-   call f_free(vlspl)
-
-   !PAW is not yet working!
-   !Exit here
-    stop
-
-   END SUBROUTINE psp_from_file_paw
-
 END SUBROUTINE psp_from_file
+
+subroutine paw_from_file(pawrad, pawtab, filename, nzatom, nelpsp, ixc)
+  use module_base
+  use m_pawpsp, only: pawpsp_main
+  use defs_basis, only: tol14, fnlen
+  use m_pawrad, only: pawrad_type, pawrad_nullify
+  use m_pawtab, only: pawtab_type, pawtab_nullify
+  implicit none
+
+  type(pawrad_type), intent(out) :: pawrad
+  type(pawtab_type), intent(out) :: pawtab
+  character(len = *), intent(in) :: filename
+  integer, intent(in) :: nzatom, nelpsp, ixc
+
+  integer:: icoulomb,ipsp
+  integer:: pawxcdev,usewvl,usexcnhat,xclevel
+  integer::pspso
+  real(dp):: xc_denpos
+  real(dp)::epsatm,xcccrc
+  character(len=fnlen):: filpsp   ! name of the psp file
+  !  type(paw_setup_t),optional,intent(in) :: psxml
+  !!arrays
+  integer:: wvl_ngauss(2)
+  integer, parameter :: mqgrid_ff = 0, mqgrid_vl = 0
+  real(dp):: qgrid_ff(mqgrid_ff),qgrid_vl(mqgrid_vl)
+  real(dp):: ffspl(mqgrid_ff,2,1)
+  real(dp):: vlspl(mqgrid_vl,2)
+
+  call pawrad_nullify(pawrad)
+  call pawtab_nullify(pawtab)
+
+  !These should be passed as arguments:
+  !Defines the number of Gaussian functions for projectors
+  !See ABINIT input files documentation
+  wvl_ngauss=[10,10]
+  icoulomb= 1 !Fake argument, this only indicates that we are inside bigdft..
+  !do not change, even if icoulomb/=1
+  ipsp=1      !This is relevant only for XML.
+  !This is not yet working
+  xclevel=1 ! xclevel=XC functional level (1=LDA, 2=GGA)
+  ! For the moment, it will just work for LDA
+  pspso=0 !No spin-orbit for the moment
+
+  ! Define parameters:
+  pawxcdev=1; usewvl=1 ; usexcnhat=0 !default
+  xc_denpos=tol14
+  filpsp=trim(filename)
+
+  call pawpsp_main( &
+       & pawrad,pawtab,&
+       & filpsp,usewvl,icoulomb,ixc,xclevel,pawxcdev,usexcnhat,&
+       & qgrid_ff,qgrid_vl,ffspl,vlspl,epsatm,xcccrc,real(nelpsp, dp),real(nzatom, dp),&
+       & wvl_ngauss,comm_mpi=bigdft_mpi%mpi_comm)
+
+  !Print out data to validate this test:
+  write(*,'(a)') 'PAW Gaussian projectors:'
+  write(*,'("No. of Gaussians:", i4)')pawtab%wvl%pngau
+  write(*,'("First five Gaussian complex coefficients:")')
+  write(*,'(5("(",f13.7,",",f13.7")"))')pawtab%wvl%parg(:,1:5)
+  write(*,'("First five Gaussian complex factors:")')
+  write(*,'(5("(",f13.7,",",f13.7")"))')pawtab%wvl%pfac(:,1:5)
+  !
+  !write(*,'(a)') 'GTH parameters (for initial guess):'
+  !write(*,'("radii_cf= ",3f10.7)')radii_cf(:)
+  !write(*,'("psppar(0:1,0)= ",2f10.7)')psppar(0:1,0)
+
+  ! Destroy and deallocate objects
+  !call pawrad_destroy(pawrad)
+  !call pawtab_destroy(pawtab)
+
+  !PAW is not yet working!
+  !Exit here
+  stop "PAW implementation missing"
+
+END SUBROUTINE paw_from_file
 
 
 subroutine nlcc_dim_from_file(filename, ngv, ngc, dim, read_nlcc)
