@@ -40,7 +40,7 @@ yaml_test_LDADD = $(flib_libraries)
 
 CLEANFILES = yaml_test.out.yaml yaml_test.report.yaml
 
-yaml_test.o: $(top_builddir)/flib/src/libflib.a
+yaml_test.o: $(top_builddir)/flib/src/libflib-1.a
 
 yaml_test.out.yaml: yaml_test
 	./yaml_test > yaml_test.out.yaml
