@@ -169,9 +169,9 @@ program driver
   mat_A = matrices_null()
   inv_mat_B = matrices_null()
 
-  call vcopy(orbs%norb**2, ovrlp(1,1), 1, smat_A%matrix(1,1), 1)
   call allocate_matrices(smat_A, allocate_full=.true., matname='mat_A', mat=mat_A)
-  call compress_matrix(iproc, smat_A, inmat=smat_A%matrix, outmat=mat_A%matrix_compr)
+  call vcopy(orbs%norb**2, ovrlp(1,1), 1, mat_A%matrix(1,1), 1)
+  call compress_matrix(iproc, smat_A, inmat=mat_A%matrix, outmat=mat_A%matrix_compr)
   call allocate_matrices(smat_B, allocate_full=.true., matname='inv_mat_B', mat=inv_mat_B)
   ! uncomment for sparse and dense modes to be testing the same matrix
   !call uncompress_matrix(iproc, smat_A)
@@ -232,8 +232,8 @@ program driver
           if (timer_on) time2=dble(ncount2-ncount1)/dble(ncount_rate)
           call compress_matrix(iproc, smat_B, inmat=inv_mat_B%matrix, outmat=inv_mat_B%matrix_compr)
       else if (imode==SPARSE) then
-          call vcopy(orbs%norb**2, ovrlp(1,1), 1, smat_A%matrix(1,1), 1)
-          call compress_matrix(iproc, smat_A)
+          call vcopy(orbs%norb**2, ovrlp(1,1), 1, mat_A%matrix(1,1), 1)
+          call compress_matrix(iproc, smat_A, inmat=mat_A%matrix, outmat=mat_A%matrix_compr)
           if (timer_on) call cpu_time(tr0)
           if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
           call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, &
@@ -491,8 +491,8 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
       nvctr_per_segment=f_malloc(nseg,id='nvctr_per_segment')
       smat%keyv=f_malloc_ptr(nseg,id='smat%keyv')
       smat%keyg=f_malloc_ptr((/2,nseg/),id='smat%keyg')
-      smat%matrix_compr=f_malloc_ptr(smat%nvctr,id='smat%matrix_compr')
-      smat%matrix=f_malloc_ptr((/norb,norb/),id='smat%matrix')
+      !!smat%matrix_compr=f_malloc_ptr(smat%nvctr,id='smat%matrix_compr')
+      !!smat%matrix=f_malloc_ptr((/norb,norb/),id='smat%matrix')
     end subroutine allocate_arrays
 
     function nsegline_init() result(nsegline)
