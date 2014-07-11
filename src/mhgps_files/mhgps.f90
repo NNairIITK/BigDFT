@@ -17,6 +17,7 @@ program mhgps
     use module_global_variables
     use module_init
     use module_energyandforces
+    use module_sbfgs
     use module_saddle
     use module_minimizers
     use module_io
