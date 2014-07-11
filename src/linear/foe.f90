@@ -354,6 +354,7 @@ subroutine foe(iproc, nproc, tmprtr, &
             
               call timing(iproc, 'FOE_auxiliary ', 'OF')
     
+              emergency_stop=.false.
               if (calculate_SHS) then
                   ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
                   if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','recalculated')
