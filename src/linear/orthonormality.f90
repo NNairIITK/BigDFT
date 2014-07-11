@@ -1444,10 +1444,13 @@ subroutine check_accur_overlap_minus_one(iproc,nproc,norb,norbp,isorb,power,ovrl
      if (norbp>0) then
         call dgemm('n', 'n', norb, norbp, norb, 1.d0, inv_ovrlp(1,1), &
              norb, inv_ovrlp(1,isorb+1), norb, 0.d0, tmpp(1,1), norb)
+         call max_matrix_diff_parallel(iproc, norb, norbp, isorb, tmpp, ovrlp(1,isorb+1), smat, max_error, mean_error)
+         max_error=0.5d0*max_error
+         mean_error=0.5d0*mean_error
+     else
+         max_error=0.d0
+         mean_error=0.d0
      end if
-     call max_matrix_diff_parallel(iproc, norb, norbp, isorb, tmpp, ovrlp(1,isorb+1), smat, max_error, mean_error)
-     max_error=0.5d0*max_error
-     mean_error=0.5d0*mean_error
   else if (power==-2) then
      if (norbp>0) then
         call dgemm('n', 'n', norb, norbp, norb, 1.d0, inv_ovrlp(1,1), &
