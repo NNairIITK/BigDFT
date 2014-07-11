@@ -288,6 +288,9 @@ contains
     !print *,'after', f_loc(params),f_loc(params(1)),'shape',shape(params),params_size
     !print *,'cbuf_add',cbuf_add
     call getinputdef(params)
+    !write(*,*)'here definition'
+    !write(*,'('//trim(yaml_toa(params_size))//'a)')params
+
     !call copycbuffer(params,cbuf_add,params_size)
     !print *,'there',params_size
     call yaml_parse_from_char_array(parsed_parameters,params)
