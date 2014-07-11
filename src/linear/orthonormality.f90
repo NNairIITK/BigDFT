@@ -55,7 +55,6 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
   if(.not.can_use_transposed) then
       call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
       can_use_transposed=.true.
-
   end if
 
   ovrlp_ = matrices_null()

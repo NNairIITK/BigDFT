@@ -424,7 +424,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   call to_zero(max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%psi(1))
   call gaussians_to_wavelets_new(iproc,nproc,tmb%lzd,orbs_gauss,G,&
        psigau(1,1,min(tmb%orbs%isorb+1,tmb%orbs%norb)),tmb%psi)
-
+  tmb%can_use_transposed=.false.
 
   call f_free_ptr(psigau)
 
