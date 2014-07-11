@@ -88,6 +88,7 @@ subroutine minimizer_sbfgs(runObj_,outsIO,verbosity,ncount_bigdft,fail)
    character(len=9)                        :: cdmy9_2
    character(len=9)                        :: cdmy9_3
    character(len=8)                        :: cdmy8
+   logical                                 :: subspaceSucc
 
 
    !set parameters
@@ -424,137 +425,143 @@ subroutine minimizer_sbfgs(runObj_,outsIO,verbosity,ncount_bigdft,fail)
    
       if (debug.and.iproc==0) write(100,*) 'cosangle ',cosangle,beta
 
-      ! calculate norms
-      do i=1,nhist
-           rnorm(i)=0.d0
-              do iat=1,nat
-                 do l=1,3
-                    rnorm(i)=rnorm(i) + (rxyz(l,iat,i)-rxyz(l,iat,i-1))**2
-                 enddo
-              enddo
-     rnorm(i)=1.d0/sqrt(rnorm(i))
-     !rnorm(i)=1.d0*sqrt(dble(i))/sqrt(rnorm(i))
-      !rnorm(i) =
-      !(0.5d0*(1.d0+(((dble(i)-dble(nhist))/(dble(nhist)*0.25d0))/sqrt(1.d0+((dble(i)-dble(nhist))/(dble(nhist)*0.25d0))**2))))/sqrt(rnorm(i))
-      !rnorm(i) = (0.5d0*(1.d0+(((dble(i)-0.2d0*dble(nhist))/(dble(nhist)*0.25d0))/sqrt(1.d0+((dble(i)-0.2d0*dble(nhist))/(dble(nhist)*0.25d0))**2))))/sqrt(rnorm(i))
+      call getSubSpaceEvecEval(nat,nhist,nhistx,ndim,&
+              cutoffratio,lwork,work,rxyz,fxyz,aa,rr,ff,rrr,fff,&
+              eval,res,subspaceSucc)
+      if(.not.subspaceSucc)stop'SubSpaceEvecEcal failed'
 
-      enddo
 
-   
-      !find linear dependencies via diagonalization of overlap matrix   
-      !build overlap matrix:
-      do i=1,nhist
-         do j=1,nhist
-            aa(i,j)=0.0_gp
-            do iat=1,nat
-               do l=1,3
-                  aa(i,j)=aa(i,j)&
-                  +(rxyz(l,iat,i)-rxyz(l,iat,i-1))&
-                  *(rxyz(l,iat,j)-rxyz(l,iat,j-1))
-               enddo
-            enddo
-            aa(i,j)=aa(i,j)*rnorm(i)*rnorm(j)
-         enddo
-      enddo
-   
-      !diagonalize overlap matrix:
-      call dsyev('V',"L",nhist,aa,nhistx,eval,work,lwork,info)
-      if (info.ne.0) then 
-         if (debug.and.iproc==0) write(100,*) ' Over ', info
-         stop 'info geo after first dsyev aa'
-      endif
-      if(debug.and.iproc==0)then
-         do i=1,nhist
-            write(100,*) "Overl ",i,eval(i)
-         enddo
-      endif
-      
-      do idim=1,nhist
-         do iat=1,nat
-            do l=1,3
-               rr(l,iat,idim)=0.0_gp
-               ff(l,iat,idim)=0.0_gp
-            enddo
-         enddo
-      enddo
-     
-      !generate significant orthogonal subspace 
-      ndim=0
-      do idim=1,nhist
-         !remove linear dependencies by using the overlap-matrix eigenvalues:
-         if (eval(idim)/eval(nhist).gt.cutoffRatio) then    ! HERE
-            ndim=ndim+1
-      
-            do jdim=1,nhist
-               do iat=1,nat
-                  do l=1,3
-                     rr(l,iat,ndim)=rr(l,iat,ndim)+aa(jdim,idim)*rnorm(jdim)&
-                                 *(rxyz(l,iat,jdim)-rxyz(l,iat,jdim-1))
-                     ff(l,iat,ndim)=ff(l,iat,ndim)-aa(jdim,idim)*rnorm(jdim)&
-                                 *(fxyz(l,iat,jdim)-fxyz(l,iat,jdim-1))
-                  enddo
-               enddo
-            enddo
-      
-            do iat=1,nat
-               do l=1,3
-                  rr(l,iat,ndim)=rr(l,iat,ndim)/sqrt(abs(eval(idim)))
-                  ff(l,iat,ndim)=ff(l,iat,ndim)/sqrt(abs(eval(idim)))
-               enddo
-            enddo
-         endif
-      enddo
-      if (debug.and.iproc==0) write(100,'(a,i3)') "ndim= ",ndim
-      
-      ! Hessian matrix in significant orthogonal subspace
-      do i=1,ndim
-         do j=1,ndim
-            aa(i,j)=0.0_gp
-            do iat=1,nat
-               do l=1,3
-                  aa(i,j)=aa(i,j) + .50_gp*(rr(l,iat,i)*ff(l,iat,j)&
-                                  +rr(l,iat,j)*ff(l,iat,i))
-               enddo
-            enddo
-         enddo
-      enddo
-      
-      call dsyev('V',"L",ndim,aa,nhistx,eval,work,lwork,info)
-      if (info.ne.0) then 
-         write(*,*) 'ERROR: info after 2n dsyev aa in sbfgs', info
-         stop 'info after 2nd dsyev aa in sbfgs'
-      endif
-      
-      ! calculate eigenvectors
-      do i=1,ndim
-         do iat=1,nat
-            do l=1,3
-               rrr(l,iat,i)=0.0_gp
-               fff(l,iat,i)=0.0_gp
-            enddo
-         enddo
-      enddo
-      
-      do i=1,ndim
-         tt=0.0_gp
-         do j=1,ndim
-            do iat=1,nat
-               do l=1,3
-                  rrr(l,iat,i)=rrr(l,iat,i) + aa(j,i)*rr(l,iat,j)
-                  fff(l,iat,i)=fff(l,iat,i) + aa(j,i)*ff(l,iat,j)
-               enddo
-            enddo
-         enddo
-         do iat=1,nat
-            do l=1,3
-               tt=tt+(fff(l,iat,i)-eval(i)*rrr(l,iat,i))**2
-            enddo
-         enddo
-         !residuue according to Weinstein criterion
-         res(i)=sqrt(tt)
-         if (debug.and.iproc==0) write(100,'(a,i3,e14.7,1x,e12.5,2(1x,e9.2))') 'EVAL,RES '&
-                                                             ,i,eval(i),res(i)
-      enddo
+!      ! calculate norms
+!      do i=1,nhist
+!           rnorm(i)=0.d0
+!              do iat=1,nat
+!                 do l=1,3
+!                    rnorm(i)=rnorm(i) + (rxyz(l,iat,i)-rxyz(l,iat,i-1))**2
+!                 enddo
+!              enddo
+!     rnorm(i)=1.d0/sqrt(rnorm(i))
+!     !rnorm(i)=1.d0*sqrt(dble(i))/sqrt(rnorm(i))
+!      !rnorm(i) =
+!      !(0.5d0*(1.d0+(((dble(i)-dble(nhist))/(dble(nhist)*0.25d0))/sqrt(1.d0+((dble(i)-dble(nhist))/(dble(nhist)*0.25d0))**2))))/sqrt(rnorm(i))
+!      !rnorm(i) = (0.5d0*(1.d0+(((dble(i)-0.2d0*dble(nhist))/(dble(nhist)*0.25d0))/sqrt(1.d0+((dble(i)-0.2d0*dble(nhist))/(dble(nhist)*0.25d0))**2))))/sqrt(rnorm(i))
+!
+!      enddo
+!
+!   
+!      !find linear dependencies via diagonalization of overlap matrix   
+!      !build overlap matrix:
+!      do i=1,nhist
+!         do j=1,nhist
+!            aa(i,j)=0.0_gp
+!            do iat=1,nat
+!               do l=1,3
+!                  aa(i,j)=aa(i,j)&
+!                  +(rxyz(l,iat,i)-rxyz(l,iat,i-1))&
+!                  *(rxyz(l,iat,j)-rxyz(l,iat,j-1))
+!               enddo
+!            enddo
+!            aa(i,j)=aa(i,j)*rnorm(i)*rnorm(j)
+!         enddo
+!      enddo
+!   
+!      !diagonalize overlap matrix:
+!      call dsyev('V',"L",nhist,aa,nhistx,eval,work,lwork,info)
+!      if (info.ne.0) then 
+!         if (debug.and.iproc==0) write(100,*) ' Over ', info
+!         stop 'info geo after first dsyev aa'
+!      endif
+!      if(debug.and.iproc==0)then
+!         do i=1,nhist
+!            write(100,*) "Overl ",i,eval(i)
+!         enddo
+!      endif
+!      
+!      do idim=1,nhist
+!         do iat=1,nat
+!            do l=1,3
+!               rr(l,iat,idim)=0.0_gp
+!               ff(l,iat,idim)=0.0_gp
+!            enddo
+!         enddo
+!      enddo
+!     
+!      !generate significant orthogonal subspace 
+!      ndim=0
+!      do idim=1,nhist
+!         !remove linear dependencies by using the overlap-matrix eigenvalues:
+!         if (eval(idim)/eval(nhist).gt.cutoffRatio) then    ! HERE
+!            ndim=ndim+1
+!      
+!            do jdim=1,nhist
+!               do iat=1,nat
+!                  do l=1,3
+!                     rr(l,iat,ndim)=rr(l,iat,ndim)+aa(jdim,idim)*rnorm(jdim)&
+!                                 *(rxyz(l,iat,jdim)-rxyz(l,iat,jdim-1))
+!                     ff(l,iat,ndim)=ff(l,iat,ndim)-aa(jdim,idim)*rnorm(jdim)&
+!                                 *(fxyz(l,iat,jdim)-fxyz(l,iat,jdim-1))
+!                  enddo
+!               enddo
+!            enddo
+!      
+!            do iat=1,nat
+!               do l=1,3
+!                  rr(l,iat,ndim)=rr(l,iat,ndim)/sqrt(abs(eval(idim)))
+!                  ff(l,iat,ndim)=ff(l,iat,ndim)/sqrt(abs(eval(idim)))
+!               enddo
+!            enddo
+!         endif
+!      enddo
+!      if (debug.and.iproc==0) write(100,'(a,i3)') "ndim= ",ndim
+!      
+!      ! Hessian matrix in significant orthogonal subspace
+!      do i=1,ndim
+!         do j=1,ndim
+!            aa(i,j)=0.0_gp
+!            do iat=1,nat
+!               do l=1,3
+!                  aa(i,j)=aa(i,j) + .50_gp*(rr(l,iat,i)*ff(l,iat,j)&
+!                                  +rr(l,iat,j)*ff(l,iat,i))
+!               enddo
+!            enddo
+!         enddo
+!      enddo
+!      
+!      call dsyev('V',"L",ndim,aa,nhistx,eval,work,lwork,info)
+!      if (info.ne.0) then 
+!         write(*,*) 'ERROR: info after 2n dsyev aa in sbfgs', info
+!         stop 'info after 2nd dsyev aa in sbfgs'
+!      endif
+!      
+!      ! calculate eigenvectors
+!      do i=1,ndim
+!         do iat=1,nat
+!            do l=1,3
+!               rrr(l,iat,i)=0.0_gp
+!               fff(l,iat,i)=0.0_gp
+!            enddo
+!         enddo
+!      enddo
+!      
+!      do i=1,ndim
+!         tt=0.0_gp
+!         do j=1,ndim
+!            do iat=1,nat
+!               do l=1,3
+!                  rrr(l,iat,i)=rrr(l,iat,i) + aa(j,i)*rr(l,iat,j)
+!                  fff(l,iat,i)=fff(l,iat,i) + aa(j,i)*ff(l,iat,j)
+!               enddo
+!            enddo
+!         enddo
+!         do iat=1,nat
+!            do l=1,3
+!               tt=tt+(fff(l,iat,i)-eval(i)*rrr(l,iat,i))**2
+!            enddo
+!         enddo
+!         !residuue according to Weinstein criterion
+!         res(i)=sqrt(tt)
+!         if (debug.and.iproc==0) write(100,'(a,i3,e14.7,1x,e12.5,2(1x,e9.2))') 'EVAL,RES '&
+!                                                             ,i,eval(i),res(i)
+!      enddo
    enddo!end main loop
 
 900 continue

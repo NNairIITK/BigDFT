@@ -244,12 +244,12 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvforcediff,nit
                                                                 !step raises
                                                                 !stability
           .or.recompute==it)then
-            if(iproc==0.and.mhgps_verbosity>=2)call yaml_comment(&
-            '(MHGPS) METHOD COUNT  IT  CURVATURE             &
-            DIFF      FMAX      FNRM      alpha    ndim')
-            !if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a)')&
-            !'  #(MHGPS) METHOD COUNT  IT  CURVATURE             &
-            !DIFF      FMAX      FNRM      alpha    ndim'
+            !if(iproc==0.and.mhgps_verbosity>=2)call yaml_comment(&
+            !'(MHGPS) METHOD COUNT  IT  CURVATURE             &
+            !DIFF      FMAX      FNRM      alpha    ndim')
+            if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a)')&
+            '  #(MHGPS) METHOD COUNT  IT  CURVATURE             &
+            DIFF      FMAX      FNRM      alpha    ndim'
             inputPsiId=1
              !inputPsiId=0
             call opt_curv(imode,nat,alat,alpha0_rot,curvforcediff,nit_rot,&
@@ -271,12 +271,12 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvforcediff,nit
             minmodeold=minmode
             displold=displ
             recompute=huge(1)
-            if(iproc==0.and.mhgps_verbosity>=2)call yaml_comment(&
-            '(MHGPS) METHOD COUNT  IT  Energy                &
-            DIFF      FMAX      FNRM      alpha    ndim')
-            !if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a)')&
-            !'  #(MHGPS) METHOD COUNT  IT  Energy                &
-            !DIFF      FMAX      FNRM      alpha    ndim'
+            !if(iproc==0.and.mhgps_verbosity>=2)call yaml_comment(&
+            !'(MHGPS) METHOD COUNT  IT  Energy                &
+            !DIFF      FMAX      FNRM      alpha    ndim')
+            if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a)')&
+            '  #(MHGPS) METHOD COUNT  IT  Energy                &
+            DIFF      FMAX      FNRM      alpha    ndim'
         endif
         !END FINDING LOWEST MODE
         
@@ -679,7 +679,6 @@ subroutine opt_curv(imode,nat,alat,alpha0,curvforcediff,nit,nhistx,rxyz_fix,&
 !        &'CURV  it,curv,curvold,Dcurv,fnrm,alpha,alpha_stretch,ndim',&
 !        &it-1,curvp,curvold,dcurv,fnrm,alpha,alpha_stretch,ndim
 
-!!           call yaml_comment('     METHOD  COUNT  IT  CURVATURE             DIFF      FMAX      FNRM      alpha    ndim')
 if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,xes21.14,4(xes9.2),xi3.3,xes9.2)')'   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch
 !HIER WEITER HIER WEITER: beautify output
 
