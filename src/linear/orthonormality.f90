@@ -52,11 +52,13 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
 
 
 
+  write(1000+iproc,*) lphi
   if(.not.can_use_transposed) then
       call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
       can_use_transposed=.true.
-
   end if
+  write(2000+iproc,*) psit_c
+  write(3000+iproc,*) psit_f
 
   ovrlp_ = matrices_null()
   call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)

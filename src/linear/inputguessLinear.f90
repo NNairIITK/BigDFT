@@ -424,11 +424,22 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
        psigau(1,1,min(tmb%orbs%isorb+1,tmb%orbs%norb)),tmb%psi)
 
 
+  tmb%can_use_transposed=.false.
+
+  call mpi_barrier(mpi_comm_world,istat)
+  if(iproc==0) write(*,*) 'after gaussians_to_wavelets_new'
+
   call f_free_ptr(psigau)
+  call mpi_barrier(mpi_comm_world,istat)
+  if(iproc==0) write(*,*) 'after f_free_ptr'
 
   call deallocate_gwf(G,subname)
+  call mpi_barrier(mpi_comm_world,istat)
+  if(iproc==0) write(*,*) 'after deallocate_gwf'
   ! Deallocate locrad, which is not used any longer.
   call f_free(locrad)
+  call mpi_barrier(mpi_comm_world,istat)
+  if(iproc==0) write(*,*) 'after f_free'
 
   ! Create the potential. First calculate the charge density.
   do iorb=1,tmb%orbs%norb
@@ -436,6 +447,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       !tmb%orbs%occup(iorb)=orbs_gauss%occup(iorb)
       tmb%orbs%occup(iorb)=orbs_gauss%occup(inversemapping(iorb))
   end do
+  call mpi_barrier(mpi_comm_world,istat)
+  if(iproc==0) write(*,*) 'after tmb%orbs%occup'
 
   !!call sumrho(denspot%dpbox,tmb%orbs,tmb%lzd,GPUe,at%sym,denspot%rhod,&
   !!     tmb%psi,denspot%rho_psi,inversemapping)
@@ -445,6 +458,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !Put the Density kernel to identity for now
   !call to_zero(tmb%linmat%denskern%nvctr, tmb%linmat%denskern%matrix_compr(1))
   call to_zero(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1))
+  call mpi_barrier(mpi_comm_world,istat)
+  if(iproc==0) write(*,*) 'after to_zero'
   do iorb=1,tmb%orbs%norb
      !ii=matrixindex_in_compressed(tmb%linmat%denskern,iorb,iorb)
      ii=matrixindex_in_compressed(tmb%linmat%l,iorb,iorb)
@@ -452,13 +467,19 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      !tmb%linmat%denskern%matrix_compr(ii)=1.d0*tmb%orbs%occup(iorb)
      tmb%linmat%kernel_%matrix_compr(ii)=1.d0*tmb%orbs%occup(iorb)
   end do
+  call mpi_barrier(mpi_comm_world,istat)
+  if(iproc==0) write(*,*) 'after tmb%linmat%kernel_%matrix_compr'
 
   !Calculate the density in the new scheme
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
        tmb%orbs, tmb%psi, tmb%collcom_sr)
+  call mpi_barrier(mpi_comm_world,istat)
+  if(iproc==0) write(*,*) 'after communicate_basis_for_density_collective'
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
        tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
        denspot%rhov, rho_negative)
+  call mpi_barrier(mpi_comm_world,istat)
+  if(iproc==0) write(*,*) 'after sumrho_for_TMBs'
   if (rho_negative) then
       call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
       !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
