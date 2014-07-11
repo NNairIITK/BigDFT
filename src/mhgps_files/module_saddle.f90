@@ -144,8 +144,12 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvforcediff,nit
     alpha_stretch=alpha_stretch0
 
     ! allocate arrays
-    allocate(dds(3,nat),dd0(3,nat),delta(3,nat),ftmp(3,nat))
-    allocate(minmodeold(3,nat),minmode0(3,nat))
+    dds = f_malloc((/ 1.to.3, 1.to.nat/),id='dds')
+    dd0 = f_malloc((/ 1.to.3, 1.to.nat/),id='dd0')
+    delta = f_malloc((/ 1.to.3, 1.to.nat/),id='delta')
+    ftmp = f_malloc((/ 1.to.3, 1.to.nat/),id='ftmp')
+    minmodeold = f_malloc((/ 1.to.3, 1.to.nat/),id='minmodeold')
+    minmode0 = f_malloc((/ 1.to.3, 1.to.nat/),id='minmode0')
     minmode0=minmode
     minmodeold=minmode
     wold=0.0_gp
@@ -240,12 +244,12 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvforcediff,nit
                                                                 !step raises
                                                                 !stability
           .or.recompute==it)then
-            !if(iproc==0.and.mhgps_verbosity>=2)call yaml_comment(&
-            !'(MHGPS) METHOD COUNT  IT  CURVATURE             &
-            !DIFF      FMAX      FNRM      alpha    ndim')
-            if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a)')&
-            '  #(MHGPS) METHOD COUNT  IT  CURVATURE             &
-            DIFF      FMAX      FNRM      alpha    ndim'
+            if(iproc==0.and.mhgps_verbosity>=2)call yaml_comment(&
+            '(MHGPS) METHOD COUNT  IT  CURVATURE             &
+            DIFF      FMAX      FNRM      alpha    ndim')
+            !if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a)')&
+            !'  #(MHGPS) METHOD COUNT  IT  CURVATURE             &
+            !DIFF      FMAX      FNRM      alpha    ndim'
             inputPsiId=1
              !inputPsiId=0
             call opt_curv(imode,nat,alat,alpha0_rot,curvforcediff,nit_rot,&
@@ -267,12 +271,12 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvforcediff,nit
             minmodeold=minmode
             displold=displ
             recompute=huge(1)
-            !if(iproc==0.and.mhgps_verbosity>=2)call yaml_comment(&
-            !'(MHGPS) METHOD COUNT  IT  Energy                &
-            !DIFF      FMAX      FNRM      alpha    ndim')
-            if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a)')&
-            '  #(MHGPS) METHOD COUNT  IT  Energy                &
-            DIFF      FMAX      FNRM      alpha    ndim'
+            if(iproc==0.and.mhgps_verbosity>=2)call yaml_comment(&
+            '(MHGPS) METHOD COUNT  IT  Energy                &
+            DIFF      FMAX      FNRM      alpha    ndim')
+            !if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a)')&
+            !'  #(MHGPS) METHOD COUNT  IT  Energy                &
+            !DIFF      FMAX      FNRM      alpha    ndim'
         endif
         !END FINDING LOWEST MODE
         
@@ -398,7 +402,7 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvforcediff,nit
 
   if(iproc==0)call yaml_warning('(MHGPS) No convergence in findsad')
 stop 'no convergence in findsad'
-    return
+    goto 2000
 
 1000 continue
     converged=.true.
@@ -411,6 +415,14 @@ stop 'no convergence in findsad'
             fout(i,iat)= fxyzraw(i,iat,nhist)
         enddo
     enddo
+2000 continue
+    call f_free(dds)
+    call f_free(dd0)
+    call f_free(delta)
+    call f_free(ftmp)
+    call f_free(minmodeold)
+    call f_free(minmode0)
+
   end subroutine
 
 
@@ -780,8 +792,10 @@ subroutine curvforce(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ener_co
 
     diffinv=1.0_gp/(diff)
 
-    allocate(rxyz2(3,nat),fxyz2(3,nat))
-    allocate(drxyz(3,nat),dfxyz(3,nat))
+    rxyz2 = f_malloc((/ 1.to.3, 1.to.nat/),id='rxyz2')
+    fxyz2 = f_malloc((/ 1.to.3, 1.to.nat/),id='fxyz2')
+    drxyz = f_malloc((/ 1.to.3, 1.to.nat/),id='drxyz')
+    dfxyz = f_malloc((/ 1.to.3, 1.to.nat/),id='dfxyz')
     call elim_moment_fs(nat,vec(1,1))
 !    call elim_torque_fs(nat,rxyz1(1,1),vec(1,1))
     call elim_torque_reza(nat,rxyz1(1,1),vec(1,1))
@@ -810,6 +824,10 @@ subroutine curvforce(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ener_co
     else
         stop 'unknown method for curvature computation'
     endif
+    call f_free(rxyz2)
+    call f_free(fxyz2)
+    call f_free(drxyz)
+    call f_free(dfxyz)
     
 end subroutine
 
@@ -961,6 +979,8 @@ subroutine fixfrag_posvel(nat,rcov,pos,vel,option,occured)
 !!use module_types
 !!use m_ab6_symmetry
 use module_base
+use yaml_output
+use module_global_variables, only: iproc
 implicit none
 integer, intent(in) :: nat
 !type(atoms_data), intent(in) :: at
@@ -1038,16 +1058,15 @@ end do loop_nfrag
 occured=.false.
 if(nfrag.ne.1) then          !"if there is fragmentation..."
    occured=.true.
-write(671,*)'fragmentation occured'
-!   if(iproc==0) then
-!      call yaml_mapping_open('(MH) FIX')
-!      call yaml_map('(MH) Number of Fragments counted with option', (/nfrag,option/))
-!   endif
+   if(iproc==0) then
+      call yaml_mapping_open('(MHGPS) FIX')
+      call yaml_map('(MHGPS) Number of Fragments counted with option', (/nfrag,option/))
+   endif
    if (option==1) then !OPTION=1, FIX FRAGMENTATION
       !   if(nfrag.ne.1) then          !"if there is fragmentation..."
 
       !Find out which fragment is the main cluster
-      allocate(fragcount(nfrag))
+      fragcount = f_malloc(nfrag,id='fragcount')
       fragcount=0
       do ifrag=1,nfrag
          do iat=1,nat
@@ -1099,11 +1118,11 @@ write(671,*)'fragmentation occured'
 
          endif
       enddo
-      deallocate(fragcount)
-!      if(iproc==0) then
-!         call yaml_comment('(MH) FIX: Fragmentation fixed! Keep on hopping...')
-!         call yaml_mapping_close()
-!      end if
+      call f_free(fragcount)
+      if(iproc==0) then
+         call yaml_comment('(MHGPS) FIX: Fragmentation fixed!')
+         call yaml_mapping_close()
+      end if
 !      if (iproc == 0) then
 !         write(444,*) nat, 'atomic '
 !         write(444,*) ' fixed configuration '
@@ -1117,8 +1136,11 @@ write(671,*)'fragmentation occured'
       !   if(nfrag.ne.1) then          !"if there is fragmentation..."
 !      if(iproc==0) call yaml_map('(MH) FIX: Preparing to invert velocities, option:',option)
       !Compute center of mass of all fragments and the collectiove velocity of each fragment
-      allocate(cm_frags(3,nfrag),vel_frags(3,nfrag),nat_frags(nfrag))
-      allocate(invert(nfrag))
+      cm_frags = f_malloc((/ 3, nfrag /),id='cm_frags')
+      vel_frags = f_malloc((/ 3, nfrag /),id='vel_frags')
+      nat_frags = f_malloc(nfrag,id='nat_frags')
+      invert = f_malloc(nfrag,id='invert')
+
       cm_frags(:,:)=0.0_gp
       vel_frags(:,:)=0.0_gp
       nat_frags(:)=0         !number of atoms per fragment
@@ -1256,8 +1278,10 @@ write(671,*)'fragmentation occured'
       !Checkend kinetic energy after inversion
 
 
-      deallocate(cm_frags,vel_frags,nat_frags)
-      deallocate(invert)
+      call f_free(cm_frags)
+      call f_free(vel_frags)
+      call f_free(nat_frags)
+      call f_free(invert)
       !   endif
       !else
       !   stop "Wrong option within ff-rv"
@@ -1267,235 +1291,235 @@ write(671,*)'fragmentation occured'
 endif
 end subroutine fixfrag_posvel
 
-!*****************************************************************************************
-!BELOW HERE ONLY REZAS PRECOND. ROUTINES
-subroutine preconditioner_reza(iproc,nr,nat,rat,atomnames,fat)
-use module_base
-   implicit none
-   integer :: iproc,nr,nat,nsb,nrsqtwo,i,j,k,info
-   real(gp) :: rat(3,nat),fat(nr),soft,hard
-   character(20):: atomnames(nat)
-   real(gp), allocatable::evec(:,:),eval(:),wa(:),hess(:,:)
-   real(gp) :: dx,dy,dz,r,tt, DDOT
-
-   allocate(hess(nr,nr))
-   call make_hessian(iproc,nr,nat,rat,atomnames,hess,nsb)
-
-   nrsqtwo=2*nr**2
-   allocate(evec(nr,nr),eval(nr),wa(nrsqtwo))
-   evec(1:nr,1:nr)=hess(1:nr,1:nr)
-   !if(iproc==0) write(*,*) 'HESS ',hess(:,:)
-
-   call DSYEV('V','L',nr,evec,nr,eval,wa,nrsqtwo,info)
-   if(info/=0) stop 'ERROR: DSYEV in inithess failed.'
-
-   if (iproc==0) then
-       do i=1,nr
-           write(*,'(i5,es20.10)') i,eval(i)
-       enddo
-   endif
-
-   hard=eval(nr)
-   soft=eval(nr-nsb+1)
-   write(*,*) 'SOFT in preconditioner_reza',soft,nr,nr-nsb+1
-   do k=1,nr
-       wa(k)=DDOT(nr,fat,1,evec(1,k),1)
-       !write(*,'(i5,2es20.10)') k,eval(k),wa(k)
-   enddo
-   do i=1,nr
-      tt=0.0_gp
-      do j=1,nr
-           tt=tt+(wa(j)/sqrt(eval(j)**2+ 66.0_gp**2))*evec(i,j)
-           !tt=tt+(wa(j)/sqrt(eval(j)**2+soft**2))*evec(i,j)
-      enddo
-      fat(i)=tt
-   enddo
-   deallocate(evec,eval,wa,hess)
-end subroutine preconditioner_reza
-subroutine make_hessian(iproc,nr,nat,rat,atomnames,hess,nsb)
-use module_base
-   implicit none
-   integer :: iproc,nr,nat,iat,jat,nsb,i,j,k,info
-   real(gp) :: rat(3,nat),hess(nr,nr),r0types(4,4),fctypes(4,4)
-   character(20):: atomnames(nat)
-   integer, allocatable::ita(:),isb(:,:)
-   real(gp), allocatable::r0bonds(:),fcbonds(:)
-   real(gp) :: dx,dy,dz,r,tt
-
-   if(nr/=3*nat) then
-       write(*,'(a)') 'This subroutine works only for systems without fixed atoms.'
-       stop
-   endif
-   allocate(ita(nat),isb(10*nat,2),r0bonds(10*nat),fcbonds(10*nat))
-   do iat=1,nat
-   !write(*,*) trim(atomnames(iat))
-   !stop
-       if(trim(atomnames(iat))=='H') then
-           ita(iat)=1
-       elseif(trim(atomnames(iat))=='C') then
-           ita(iat)=2
-       elseif(trim(atomnames(iat))=='N') then
-           ita(iat)=3
-       elseif(trim(atomnames(iat))=='O') then
-           ita(iat)=4
-       else
-           if(iproc==0) then
-             write(*,'(a)') 'ERROR: This PBFGS is only implemented for systems which '
-             write(*,'(a)') '       contain only organic elements, namely H,C,N,O.'
-             write(*,'(a)') '       so use BFGS instead.'
-           endif
-           stop
-       endif
-   enddo
-   call init_parameters(r0types,fctypes)
-   !r0types(1:4,1:4)=2.0_gp ; fctypes(1:4,1:4)=5.e2_gp
-   nsb=0
-   do iat=1,nat
-       do jat=iat+1,nat
-           dx=rat(1,jat)-rat(1,iat)
-           dy=rat(2,jat)-rat(2,iat)
-           dz=rat(3,jat)-rat(3,iat)
-           r=sqrt(dx**2+dy**2+dz**2)
-           !if(iat==21 .and. jat==27 .and. iproc==0) then
-           !    write(*,*) 'REZA ',r,1.35_gp*r0types(ita(iat),ita(jat))
-           !endif
-           if(r<1.35_gp*r0types(ita(iat),ita(jat))) then
-               nsb=nsb+1
-               if(nsb>10*nat) stop 'ERROR: too many stretching bonds, is everything OK?'
-               isb(nsb,1)=iat
-               isb(nsb,2)=jat
-               r0bonds(nsb)=r0types(ita(iat),ita(jat)) !CAUTION: equil. bond le >  from amber
-               !r0bonds(nsb)=r !CAUTION: current bond le >  assumed as equil. 
-               fcbonds(nsb)=fctypes(ita(iat),ita(jat))
-           endif
-       enddo
-   enddo
-   if(iproc==0) write(*,*) 'NSB ',nsb
-   !if(iproc==0) then
-   !    do i=1,nsb
-   !        write(*,'(a,i5,2f20.10,2i4,2(x,a))') 'PAR ', &
-   !            i,r0bonds(i),fcbonds(i),isb(i,1),isb(i,2), &
-   !            trim(atoms%astruct%atomnames(atoms%astruct%iatype(isb(i,1)))),trim(atoms%astruct%atomnames(atoms%astruct%iatype(isb(i,2))))
-   !    enddo
-   !endif
-   call pseudohess(nat,rat,nsb,isb(1,1),isb(1,2),fcbonds,r0bonds,hess)
-   deallocate(ita,isb,r0bonds,fcbonds)
-end subroutine make_hessian
-!*****************************************************************************************
-subroutine init_parameters(r0,fc)
-use module_base
-    implicit none
-    integer :: i,j
-    real(gp) :: r0(4,4),fc(4,4)
-    !real(gp):: units_r=1.0_gp/0.529_gp
-    real(gp):: units_r=1.0_gp
-    !real(gp):: units_k=4.48e-4_gp
-    real(gp):: units_k=1.0_gp
-    !((0.0104 / 0.239) / 27.2114) * (0.529177^2) = 0.000447802457
-    r0(1,1)=0.80_gp*units_r
-    r0(2,1)=1.09_gp*units_r ; r0(2,2)=1.51_gp*units_r
-    r0(3,1)=1.01_gp*units_r ; r0(3,2)=1.39_gp*units_r ; r0(3,3)=1.10_gp*units_r
-    r0(4,1)=0.96_gp*units_r ; r0(4,2)=1.26_gp*units_r ; r0(4,3)=1.10_gp*units_r ; r0(4,4)=1.10*units_r
-    do i=1,4
-        do j=i+1,4
-            r0(i,j)=r0(j,i)
-        enddo
-    enddo
-    fc(1,1)=1.00e3_gp*units_k
-    fc(2,1)=3.40e2_gp*units_k ; fc(2,2)=3.31e2_gp*units_k
-    fc(3,1)=4.34e2_gp*units_k ; fc(3,2)=4.13e2_gp*units_k ; fc(3,3)=4.56e3_gp*units_k
-    fc(4,1)=5.53e2_gp*units_k ; fc(4,2)=5.43e2_gp*units_k ; fc(4,3)=4.56e3_gp*units_k ; fc(4,4)=4.56e3_gp*units_k
-    do i=1,4
-        do j=i+1,4
-            fc(i,j)=fc(j,i)
-        enddo
-    enddo
-end subroutine init_parameters
-!*****************************************************************************************
-subroutine pseudohess(nat,rat,nbond,indbond1,indbond2,sprcons,xl0,hess)
-use module_base
-    implicit none
-    integer :: nat,nbond,indbond1(nbond),indbond2(nbond)
-    real(gp) :: rat(3,nat),sprcons(nbond),xl0(nbond),hess(3*nat,3*nat)
-    integer :: iat,jat,i,j,ibond
-    real(gp) :: dx,dy,dz,r2,r,rinv! n(c) r3inv
-!,rinv2,rinv4,rinv8,rinv10,rinv14,rinv16
-    real(gp) :: dxsq,dysq,dzsq,dxdy,dxdz,dydz,tt1,tt2,tt3
-    real(gp) :: h11,h22,h33,h12,h13,h23
-    do j=1,3*nat
-        do i=1,3*nat
-            hess(i,j)=0.0_gp
-        enddo
-    enddo
-    do ibond=1,nbond
-        iat=indbond1(ibond)
-        jat=indbond2(ibond)
-        dx=rat(1,iat)-rat(1,jat)
-        dy=rat(2,iat)-rat(2,jat)
-        dz=rat(3,iat)-rat(3,jat)
-        r2=dx**2+dy**2+dz**2
-        r=sqrt(r2) ; rinv=1.0_gp/r !n(c) ; r3inv=rinv**3
-        !rinv2=1.0_gp/r2
-        !rinv4=rinv2*rinv2
-        !rinv8=rinv4*rinv4
-        !rinv10=rinv8*rinv2
-        !rinv14=rinv10*rinv4
-        !rinv16=rinv8*rinv8
-        dxsq=dx*dx ; dysq=dy*dy ; dzsq=dz*dz
-        dxdy=dx*dy ; dxdz=dx*dz ; dydz=dy*dz
-        !tt1=672.0_gp*rinv16
-        !tt2=48.0_gp*rinv14
-        !tt3=192.0_gp*rinv10
-        !tt4=24.0_gp*rinv8
-        tt1=sprcons(ibond)
-        tt2=xl0(ibond)*rinv
-        tt3=tt2*rinv**2
-        !calculating the six distinct elements of 6 by 6 block
-        !h11=dxsq*tt1-tt2-dxsq*tt3+tt4
-        !h22=dysq*tt1-tt2-dysq*tt3+tt4
-        !h33=dzsq*tt1-tt2-dzsq*tt3+tt4
-        !h12=dxdy*tt1-dxdy*tt3
-        !h13=dxdz*tt1-dxdz*tt3
-        !h23=dydz*tt1-dydz*tt3
-
-        !k_b*(1-l0/l+l0*(x_i-x_j)^2/l^3)
-        h11=tt1*(1.0_gp-tt2+dxsq*tt3)
-        h22=tt1*(1.0_gp-tt2+dysq*tt3)
-        h33=tt1*(1.0_gp-tt2+dzsq*tt3)
-        h12=tt1*dxdy*tt3
-        h13=tt1*dxdz*tt3
-        h23=tt1*dydz*tt3
-        i=3*(iat-1)+1 ; j=3*(jat-1)+1
-        !filling upper-left traingle (summing-up is necessary)
-        hess(i+0,i+0)=hess(i+0,i+0)+h11
-        hess(i+0,i+1)=hess(i+0,i+1)+h12
-        hess(i+1,i+1)=hess(i+1,i+1)+h22
-        hess(i+0,i+2)=hess(i+0,i+2)+h13
-        hess(i+1,i+2)=hess(i+1,i+2)+h23
-        hess(i+2,i+2)=hess(i+2,i+2)+h33
-        !filling lower-right traingle (summing-up is necessary)
-        hess(j+0,j+0)=hess(j+0,j+0)+h11
-        hess(j+0,j+1)=hess(j+0,j+1)+h12
-        hess(j+1,j+1)=hess(j+1,j+1)+h22
-        hess(j+0,j+2)=hess(j+0,j+2)+h13
-        hess(j+1,j+2)=hess(j+1,j+2)+h23
-        hess(j+2,j+2)=hess(j+2,j+2)+h33
-        !filling 3 by 3 block
-        !summing-up is not needed but it may be necessary for PBC
-        hess(i+0,j+0)=-h11 ; hess(i+1,j+0)=-h12 ; hess(i+2,j+0)=-h13
-        hess(i+0,j+1)=-h12 ; hess(i+1,j+1)=-h22 ; hess(i+2,j+1)=-h23
-        hess(i+0,j+2)=-h13 ; hess(i+1,j+2)=-h23 ; hess(i+2,j+2)=-h33
-        !write(*,'(i3,5es20.10)') ibond,hess(i+0,i+0),tt1,tt2,tt3,xl0(ibond)
-    enddo
-    !filling the lower triangle of 3Nx3N Hessian matrix
-    do i=1,3*nat-1
-        do j =i+1,3*nat
-            hess(j,i)=hess(i,j)
-        enddo
-    enddo
-    
-end subroutine pseudohess
-!*****************************************************************************************
+!!!*****************************************************************************************
+!!!BELOW HERE ONLY REZAS PRECOND. ROUTINES
+!!subroutine preconditioner_reza(iproc,nr,nat,rat,atomnames,fat)
+!!use module_base
+!!   implicit none
+!!   integer :: iproc,nr,nat,nsb,nrsqtwo,i,j,k,info
+!!   real(gp) :: rat(3,nat),fat(nr),soft,hard
+!!   character(20):: atomnames(nat)
+!!   real(gp), allocatable::evec(:,:),eval(:),wa(:),hess(:,:)
+!!   real(gp) :: dx,dy,dz,r,tt, DDOT
+!!
+!!   allocate(hess(nr,nr))
+!!   call make_hessian(iproc,nr,nat,rat,atomnames,hess,nsb)
+!!
+!!   nrsqtwo=2*nr**2
+!!   allocate(evec(nr,nr),eval(nr),wa(nrsqtwo))
+!!   evec(1:nr,1:nr)=hess(1:nr,1:nr)
+!!   !if(iproc==0) write(*,*) 'HESS ',hess(:,:)
+!!
+!!   call DSYEV('V','L',nr,evec,nr,eval,wa,nrsqtwo,info)
+!!   if(info/=0) stop 'ERROR: DSYEV in inithess failed.'
+!!
+!!   if (iproc==0) then
+!!       do i=1,nr
+!!           write(*,'(i5,es20.10)') i,eval(i)
+!!       enddo
+!!   endif
+!!
+!!   hard=eval(nr)
+!!   soft=eval(nr-nsb+1)
+!!   write(*,*) 'SOFT in preconditioner_reza',soft,nr,nr-nsb+1
+!!   do k=1,nr
+!!       wa(k)=DDOT(nr,fat,1,evec(1,k),1)
+!!       !write(*,'(i5,2es20.10)') k,eval(k),wa(k)
+!!   enddo
+!!   do i=1,nr
+!!      tt=0.0_gp
+!!      do j=1,nr
+!!           tt=tt+(wa(j)/sqrt(eval(j)**2+ 66.0_gp**2))*evec(i,j)
+!!           !tt=tt+(wa(j)/sqrt(eval(j)**2+soft**2))*evec(i,j)
+!!      enddo
+!!      fat(i)=tt
+!!   enddo
+!!   deallocate(evec,eval,wa,hess)
+!!end subroutine preconditioner_reza
+!!subroutine make_hessian(iproc,nr,nat,rat,atomnames,hess,nsb)
+!!use module_base
+!!   implicit none
+!!   integer :: iproc,nr,nat,iat,jat,nsb,i,j,k,info
+!!   real(gp) :: rat(3,nat),hess(nr,nr),r0types(4,4),fctypes(4,4)
+!!   character(20):: atomnames(nat)
+!!   integer, allocatable::ita(:),isb(:,:)
+!!   real(gp), allocatable::r0bonds(:),fcbonds(:)
+!!   real(gp) :: dx,dy,dz,r,tt
+!!
+!!   if(nr/=3*nat) then
+!!       write(*,'(a)') 'This subroutine works only for systems without fixed atoms.'
+!!       stop
+!!   endif
+!!   allocate(ita(nat),isb(10*nat,2),r0bonds(10*nat),fcbonds(10*nat))
+!!   do iat=1,nat
+!!   !write(*,*) trim(atomnames(iat))
+!!   !stop
+!!       if(trim(atomnames(iat))=='H') then
+!!           ita(iat)=1
+!!       elseif(trim(atomnames(iat))=='C') then
+!!           ita(iat)=2
+!!       elseif(trim(atomnames(iat))=='N') then
+!!           ita(iat)=3
+!!       elseif(trim(atomnames(iat))=='O') then
+!!           ita(iat)=4
+!!       else
+!!           if(iproc==0) then
+!!             write(*,'(a)') 'ERROR: This PBFGS is only implemented for systems which '
+!!             write(*,'(a)') '       contain only organic elements, namely H,C,N,O.'
+!!             write(*,'(a)') '       so use BFGS instead.'
+!!           endif
+!!           stop
+!!       endif
+!!   enddo
+!!   call init_parameters(r0types,fctypes)
+!!   !r0types(1:4,1:4)=2.0_gp ; fctypes(1:4,1:4)=5.e2_gp
+!!   nsb=0
+!!   do iat=1,nat
+!!       do jat=iat+1,nat
+!!           dx=rat(1,jat)-rat(1,iat)
+!!           dy=rat(2,jat)-rat(2,iat)
+!!           dz=rat(3,jat)-rat(3,iat)
+!!           r=sqrt(dx**2+dy**2+dz**2)
+!!           !if(iat==21 .and. jat==27 .and. iproc==0) then
+!!           !    write(*,*) 'REZA ',r,1.35_gp*r0types(ita(iat),ita(jat))
+!!           !endif
+!!           if(r<1.35_gp*r0types(ita(iat),ita(jat))) then
+!!               nsb=nsb+1
+!!               if(nsb>10*nat) stop 'ERROR: too many stretching bonds, is everything OK?'
+!!               isb(nsb,1)=iat
+!!               isb(nsb,2)=jat
+!!               r0bonds(nsb)=r0types(ita(iat),ita(jat)) !CAUTION: equil. bond le >  from amber
+!!               !r0bonds(nsb)=r !CAUTION: current bond le >  assumed as equil. 
+!!               fcbonds(nsb)=fctypes(ita(iat),ita(jat))
+!!           endif
+!!       enddo
+!!   enddo
+!!   if(iproc==0) write(*,*) 'NSB ',nsb
+!!   !if(iproc==0) then
+!!   !    do i=1,nsb
+!!   !        write(*,'(a,i5,2f20.10,2i4,2(x,a))') 'PAR ', &
+!!   !            i,r0bonds(i),fcbonds(i),isb(i,1),isb(i,2), &
+!!   !            trim(atoms%astruct%atomnames(atoms%astruct%iatype(isb(i,1)))),trim(atoms%astruct%atomnames(atoms%astruct%iatype(isb(i,2))))
+!!   !    enddo
+!!   !endif
+!!   call pseudohess(nat,rat,nsb,isb(1,1),isb(1,2),fcbonds,r0bonds,hess)
+!!   deallocate(ita,isb,r0bonds,fcbonds)
+!!end subroutine make_hessian
+!!!*****************************************************************************************
+!!subroutine init_parameters(r0,fc)
+!!use module_base
+!!    implicit none
+!!    integer :: i,j
+!!    real(gp) :: r0(4,4),fc(4,4)
+!!    !real(gp):: units_r=1.0_gp/0.529_gp
+!!    real(gp):: units_r=1.0_gp
+!!    !real(gp):: units_k=4.48e-4_gp
+!!    real(gp):: units_k=1.0_gp
+!!    !((0.0104 / 0.239) / 27.2114) * (0.529177^2) = 0.000447802457
+!!    r0(1,1)=0.80_gp*units_r
+!!    r0(2,1)=1.09_gp*units_r ; r0(2,2)=1.51_gp*units_r
+!!    r0(3,1)=1.01_gp*units_r ; r0(3,2)=1.39_gp*units_r ; r0(3,3)=1.10_gp*units_r
+!!    r0(4,1)=0.96_gp*units_r ; r0(4,2)=1.26_gp*units_r ; r0(4,3)=1.10_gp*units_r ; r0(4,4)=1.10*units_r
+!!    do i=1,4
+!!        do j=i+1,4
+!!            r0(i,j)=r0(j,i)
+!!        enddo
+!!    enddo
+!!    fc(1,1)=1.00e3_gp*units_k
+!!    fc(2,1)=3.40e2_gp*units_k ; fc(2,2)=3.31e2_gp*units_k
+!!    fc(3,1)=4.34e2_gp*units_k ; fc(3,2)=4.13e2_gp*units_k ; fc(3,3)=4.56e3_gp*units_k
+!!    fc(4,1)=5.53e2_gp*units_k ; fc(4,2)=5.43e2_gp*units_k ; fc(4,3)=4.56e3_gp*units_k ; fc(4,4)=4.56e3_gp*units_k
+!!    do i=1,4
+!!        do j=i+1,4
+!!            fc(i,j)=fc(j,i)
+!!        enddo
+!!    enddo
+!!end subroutine init_parameters
+!!!*****************************************************************************************
+!!subroutine pseudohess(nat,rat,nbond,indbond1,indbond2,sprcons,xl0,hess)
+!!use module_base
+!!    implicit none
+!!    integer :: nat,nbond,indbond1(nbond),indbond2(nbond)
+!!    real(gp) :: rat(3,nat),sprcons(nbond),xl0(nbond),hess(3*nat,3*nat)
+!!    integer :: iat,jat,i,j,ibond
+!!    real(gp) :: dx,dy,dz,r2,r,rinv! n(c) r3inv
+!!!,rinv2,rinv4,rinv8,rinv10,rinv14,rinv16
+!!    real(gp) :: dxsq,dysq,dzsq,dxdy,dxdz,dydz,tt1,tt2,tt3
+!!    real(gp) :: h11,h22,h33,h12,h13,h23
+!!    do j=1,3*nat
+!!        do i=1,3*nat
+!!            hess(i,j)=0.0_gp
+!!        enddo
+!!    enddo
+!!    do ibond=1,nbond
+!!        iat=indbond1(ibond)
+!!        jat=indbond2(ibond)
+!!        dx=rat(1,iat)-rat(1,jat)
+!!        dy=rat(2,iat)-rat(2,jat)
+!!        dz=rat(3,iat)-rat(3,jat)
+!!        r2=dx**2+dy**2+dz**2
+!!        r=sqrt(r2) ; rinv=1.0_gp/r !n(c) ; r3inv=rinv**3
+!!        !rinv2=1.0_gp/r2
+!!        !rinv4=rinv2*rinv2
+!!        !rinv8=rinv4*rinv4
+!!        !rinv10=rinv8*rinv2
+!!        !rinv14=rinv10*rinv4
+!!        !rinv16=rinv8*rinv8
+!!        dxsq=dx*dx ; dysq=dy*dy ; dzsq=dz*dz
+!!        dxdy=dx*dy ; dxdz=dx*dz ; dydz=dy*dz
+!!        !tt1=672.0_gp*rinv16
+!!        !tt2=48.0_gp*rinv14
+!!        !tt3=192.0_gp*rinv10
+!!        !tt4=24.0_gp*rinv8
+!!        tt1=sprcons(ibond)
+!!        tt2=xl0(ibond)*rinv
+!!        tt3=tt2*rinv**2
+!!        !calculating the six distinct elements of 6 by 6 block
+!!        !h11=dxsq*tt1-tt2-dxsq*tt3+tt4
+!!        !h22=dysq*tt1-tt2-dysq*tt3+tt4
+!!        !h33=dzsq*tt1-tt2-dzsq*tt3+tt4
+!!        !h12=dxdy*tt1-dxdy*tt3
+!!        !h13=dxdz*tt1-dxdz*tt3
+!!        !h23=dydz*tt1-dydz*tt3
+!!
+!!        !k_b*(1-l0/l+l0*(x_i-x_j)^2/l^3)
+!!        h11=tt1*(1.0_gp-tt2+dxsq*tt3)
+!!        h22=tt1*(1.0_gp-tt2+dysq*tt3)
+!!        h33=tt1*(1.0_gp-tt2+dzsq*tt3)
+!!        h12=tt1*dxdy*tt3
+!!        h13=tt1*dxdz*tt3
+!!        h23=tt1*dydz*tt3
+!!        i=3*(iat-1)+1 ; j=3*(jat-1)+1
+!!        !filling upper-left traingle (summing-up is necessary)
+!!        hess(i+0,i+0)=hess(i+0,i+0)+h11
+!!        hess(i+0,i+1)=hess(i+0,i+1)+h12
+!!        hess(i+1,i+1)=hess(i+1,i+1)+h22
+!!        hess(i+0,i+2)=hess(i+0,i+2)+h13
+!!        hess(i+1,i+2)=hess(i+1,i+2)+h23
+!!        hess(i+2,i+2)=hess(i+2,i+2)+h33
+!!        !filling lower-right traingle (summing-up is necessary)
+!!        hess(j+0,j+0)=hess(j+0,j+0)+h11
+!!        hess(j+0,j+1)=hess(j+0,j+1)+h12
+!!        hess(j+1,j+1)=hess(j+1,j+1)+h22
+!!        hess(j+0,j+2)=hess(j+0,j+2)+h13
+!!        hess(j+1,j+2)=hess(j+1,j+2)+h23
+!!        hess(j+2,j+2)=hess(j+2,j+2)+h33
+!!        !filling 3 by 3 block
+!!        !summing-up is not needed but it may be necessary for PBC
+!!        hess(i+0,j+0)=-h11 ; hess(i+1,j+0)=-h12 ; hess(i+2,j+0)=-h13
+!!        hess(i+0,j+1)=-h12 ; hess(i+1,j+1)=-h22 ; hess(i+2,j+1)=-h23
+!!        hess(i+0,j+2)=-h13 ; hess(i+1,j+2)=-h23 ; hess(i+2,j+2)=-h33
+!!        !write(*,'(i3,5es20.10)') ibond,hess(i+0,i+0),tt1,tt2,tt3,xl0(ibond)
+!!    enddo
+!!    !filling the lower triangle of 3Nx3N Hessian matrix
+!!    do i=1,3*nat-1
+!!        do j =i+1,3*nat
+!!            hess(j,i)=hess(i,j)
+!!        enddo
+!!    enddo
+!!    
+!!end subroutine pseudohess
+!!!*****************************************************************************************
 
 subroutine mincurvforce(imode,nat,alat,diff,rxyz1,fxyz1,vec,vecraw,&
            rotforce,rotfstretch,rotforceraw,curv,imethod,ec,&
@@ -1559,8 +1583,7 @@ use module_base
   real(gp), dimension(:), allocatable :: amass
 real(gp) :: dnrm2
 
-  allocate(amass(nat),stat=i_stat)
-!  call memocc(i_stat,amass,'amass',subname)
+  amass = f_malloc((/1.to.nat/),id='amass')
 
   rat=rat0
   amass(1:nat)=1.0_gp
@@ -1617,8 +1640,7 @@ real(gp) :: dnrm2
      endif
   enddo
 
-  i_all=-product(shape(amass))*kind(amass)
-  deallocate(amass,stat=i_stat)
+  call f_free(amass)
 !  call memocc(i_stat,i_all,'amass',subname)
 
 END SUBROUTINE elim_torque_reza
@@ -1651,8 +1673,7 @@ use module_base
   real(gp), dimension(lwork) :: work
   real(gp), dimension(:), allocatable :: amass
 
-  allocate(amass(nat),stat=i_stat)
-!  call memocc(i_stat,amass,'amass',subname)
+  amass = f_malloc((/1.to.nat/),id='amass')
 
   !positions relative to center of geometry
   amass(1:nat)=1.0_gp
@@ -1672,9 +1693,7 @@ use module_base
   enddo
   !diagonalize inertia tensor
   call DSYEV('V','L',3,teneria,3,evaleria,work,lwork,info)
-  i_all=-product(shape(amass))*kind(amass)
-  deallocate(amass,stat=i_stat)
-!  call memocc(i_stat,i_all,'amass',subname)
+  call f_free(amass)
 
 END SUBROUTINE moment_of_inertia
 

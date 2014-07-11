@@ -117,11 +117,15 @@ real(gp),allocatable :: eval(:)
         call init_global_output(outs, atoms%astruct%nat)
         !alanine stuff ......................START!>
           l_sat=5
-          allocate(rxyzdmy(3,1000),fxyzdmy(3,1000),atomnamesdmy(1000))
+          allocate(atomnamesdmy(1000))
+          rxyzdmy = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='rxyzdmy')
+          fxyzdmy = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='fxyzdmy')
           fnpdb='ald_new.pdb'
           nfnpdb=len(trim(fnpdb));
           call nab_init(atoms%astruct%nat,rxyzdmy,fxyzdmy,trim(fnpdb),nfnpdb,l_sat,atomnamesdmy)
-          deallocate(rxyzdmy,fxyzdmy,atomnamesdmy)
+          call f_free(rxyzdmy)
+          call f_free(fxyzdmy)
+          deallocate(atomnamesdmy)
         !alanine stuff ......................END!>
 
         call print_logo_mhgps()
@@ -209,7 +213,6 @@ real(gp),allocatable :: eval(:)
     endif
     wold_trans = f_malloc((/ 1.to.nbond/),id='wold_trans')
     wold_rot = f_malloc((/ 1.to.nbond/),id='wold_rot')
-!allocate(rxyz_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),fxyz_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),fxyzraw_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),rxyzraw_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),fstretch_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot),eval_rot(saddle_nhistx_rot),res_rot(saddle_nhistx_rot),rrr_rot(3,atoms%astruct%nat,0:saddle_nhistx_rot))
 
 
 
@@ -226,7 +229,6 @@ real(gp),allocatable :: eval(:)
 
 
 !   LWORK=3*3*atoms%astruct%nat-1
-!   allocate(eval(3*atoms%astruct%nat))
 
     do ifolder = 1,999
         write(folder,'(a,i3.3)')'input',ifolder
@@ -381,6 +383,7 @@ real(gp),allocatable :: eval(:)
 end program
 
 subroutine cal_hessian_fd(iproc,nat,alat,pos,hess)
+use module_base
 use module_energyandforces
     implicit none
     integer, intent(in):: iproc, nat
@@ -395,12 +398,12 @@ use module_energyandforces
     integer :: i,j,k,lwork,info
 
     !allocate(hess(3*nat,3*nat))
-    allocate(tpos(3*nat))
-    allocate(grad(3*nat))
-    allocate(eval(3*nat))
+    tpos = f_malloc((/1.to.3*nat/),id='tpos')
+    grad = f_malloc((/1.to.3*nat/),id='grad')
+    eval = f_malloc((/1.to.3*nat/),id='eval')
 
     lwork=1000*nat
-    allocate(work(lwork))
+    work = f_malloc((/1.to.lwork/),id='work')
 
     !h=1.d-1
     !h=7.5d-2
@@ -484,4 +487,8 @@ use module_energyandforces
     work(i+1)= (pos(i+0)-cmx)
     work(i+0)=-(pos(i+1)-cmy)
     enddo
+    call f_free(tpos)
+    call f_free(grad)
+    call f_free(eval)
+    call f_free(work)
 end subroutine cal_hessian_fd
