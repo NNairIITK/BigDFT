@@ -243,14 +243,18 @@ real(gp),allocatable :: eval(:)
             call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
             call vcopy(3 * atoms%astruct%nat,atoms%astruct%rxyz(1,1),1,rxyz(1,1), 1)
             call vcopy(3 * atoms%astruct%nat,outs%fxyz(1,1),1,fxyz(1,1), 1)
-!!            call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,energy)
+            call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,energy)
+!!allocate(eval(3*atoms%astruct%nat))
 !!call cal_hessian_fd(iproc,atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,hess)
 !!        call DSYEV('V','L',3*atoms%astruct%nat,hess,3*atoms%astruct%nat,eval,WORK,LWORK,INFO)
 !!        if (info.ne.0) stop 'DSYEV'
-!!        write(*,*) '---   App. eigenvalues in exact -------------'
-!!        do j=1,10
-!!            write(*,*) 'eval ',j,eval(j)
+!!        if(iproc==0)then
+!!        write(*,*) '(hess) ---   App. eigenvalues in exact ------------- fnrm:',sqrt(sum(fxyz**2))
+!!        do j=1,3*atoms%astruct%nat
+!!            write(*,*) '(hess) eval ',j,eval(j)
 !!        enddo
+!!        endif
+!!deallocate(eval)
             rotforce=0.0_gp
             if(random_minmode_guess)then
                 do i=1,atoms%astruct%nat
@@ -409,7 +413,8 @@ use module_energyandforces
     !h=7.5d-2
     !h=5.d-2
 !    h=1.d-3
-    h=1.d-2
+!    h=1.d-2
+    h=5.d-3
     !h=2.d-2
     rlarge=1.d0*1.d4
     twelfth=-1.d0/(12.d0*h)
