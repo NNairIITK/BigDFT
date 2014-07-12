@@ -591,17 +591,28 @@ ac_build_bin_cluster="yes"
 
 
 dnl disable different build
+dnl The Poisson solver library
+AC_ARG_ENABLE(libpsolver, AS_HELP_STRING([--disable-libpsolver], [build the PSolver library (default = yes).]), ac_build_lib_PSolver=$enableval, ac_build_lib_PSolver="yes")
 dnl The BigDFT library
 AC_ARG_ENABLE(libbigdft, AS_HELP_STRING([--disable-libbigdft], [build the BigDFT library (default = yes).]), ac_build_lib_BigDFT=$enableval, ac_build_lib_BigDFT="yes")
+if test x"$ac_build_lib_PSolver" != x"yes" -a x"$ac_build_lib_BigDFT" == x"yes" ; then
+  ac_build_lib_BigDFT="disabled"
+fi
+dnl The cluster executable
+AC_ARG_ENABLE(binaries, AS_HELP_STRING([--disable-binaries], [build the binaries (default = yes).]), ac_build_bin_cluster=$enableval, ac_build_bin_cluster="yes")
+if test x"$ac_build_lib_BigDFT" != x"yes" -a x"$ac_build_bin_cluster" == x"yes" ; then
+  ac_build_bin_cluster="disabled"
+fi
+
+AM_CONDITIONAL(BUILD_LIB_PSOLVER, test "$ac_build_lib_PSolver" = "yes")
+AC_MSG_CHECKING([for PSolver library build])
+AC_MSG_RESULT([$ac_build_lib_PSolver])
 AM_CONDITIONAL(BUILD_LIB_BIGDFT, test "$ac_build_lib_BigDFT" = "yes")
 AC_MSG_CHECKING([for BigDFT library build])
 AC_MSG_RESULT([$ac_build_lib_BigDFT])
-dnl The cluster executable
-AC_ARG_ENABLE(binaries, AS_HELP_STRING([--disable-binaries], [build the binaries (default = yes).]), ac_build_bin_cluster=$enableval, ac_build_bin_cluster="yes")
 AM_CONDITIONAL(BUILD_BINARIES, test "$ac_build_bin_cluster" = "yes")
 AC_MSG_CHECKING([for BigDFT binaries build])
 AC_MSG_RESULT([$ac_build_bin_cluster])
-
 
 dnl ---------------------------------------
 
@@ -937,7 +948,7 @@ ac_build_libabinit=$ac_internal_libabinit
 if test "$ac_internal_libabinit" = "yes" ; then
   ac_build_libabinit="yes"
   ac_use_libabinit="yes"
-  AC_SUBST(LIBABINIT_INCLUDE, "-I\$(top_builddir)"/libABINIT/src)
+  ac_libabinit_incs="-I\$(top_builddir)/libABINIT/src"
   LDFLAGS="$LDFLAGS -L\$(top_builddir)/libABINIT/src"
 else
   if test -n "$ac_libabinit_dir" ; then
@@ -950,14 +961,33 @@ else
     AC_CHECK_FILE($ac_libabinit_dir/include/libxc_functionals.$ax_fc_mod_ext, libxc="yes", libxc="no")
     if test "$withlibabinit" = "yes" -a "$moldyn" = "yes" -a "$sym" = "yes" -a "$libxc" = "yes"; then
       ac_use_libabinit="yes"
-      AC_SUBST(LIBABINIT_INCLUDE, "-I"$ac_libabinit_dir/include)
+      ac_libabinit_incs="-I$ac_libabinit_dir/include"
     fi
   fi
 fi
 AM_CONDITIONAL(BUILD_LIBABINIT, test x"$ac_build_libabinit" = x"yes")
+dnl Test the libPAW library.
+ac_internal_libpaw="yes"
+AC_ARG_WITH(libpaw, AS_HELP_STRING([--with-libpaw],
+                                   [Give the path for an external libPAW library, lib and module files (default = internal).]),
+            ac_internal_libpaw=$withval, ac_internal_libpaw="yes")
+if test x"$ac_internal_libpaw" == x"yes" -o x"$ac_internal_libpaw" == x"internal" ; then
+   ac_internal_libpaw="yes"
+else
+   dnl Given path should be tested here.
+   ac_libpaw_incs="-I$ac_internal_libpaw/include"
+   LDFLAGS="$LDFLAGS -L$ac_internal_libpaw/lib"
+   LIBABINIT_LIBS="-lpaw $LIBABINIT_LIBS"
+fi
+AM_CONDITIONAL(BUILD_LIBPAW, test x"$ac_internal_libpaw" = x"yes")
 if test x"$ac_use_libabinit" = x"yes" ; then
   AC_DEFINE([HAVE_LIBABINIT], [1], [use libABINIT in BigDFT.])
-  LIBABINIT_LIBS="-labinit"
+  AC_SUBST(LIBABINIT_INCLUDE, "$ac_libpaw_incs $ac_libabinit_incs")
+  if test x"$ac_internal_libpaw" == x"yes" ; then
+    LIBABINIT_LIBS="-labinit"
+  else
+    LIBABINIT_LIBS="-lpaw -labinit"
+  fi
 fi
 
 dnl Test S_GPU library.
@@ -1009,7 +1039,9 @@ dnl Agregate all flags.
 LDFLAGS="$LDFLAGS $LDFLAGS_MIC"
 
 dnl Agregate all the optional libs.
-LIBS_SHORT_DEPS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS"
+LIBS_EXT_DEPS="$LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS"
+AC_SUBST(LIBS_EXT_DEPS, [$LIBS_EXT_DEPS])
+LIBS_SHORT_DEPS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBS_EXT_DEPS"
 AC_SUBST(LIBS_SHORT_DEPS, [$LIBS_SHORT_DEPS])
 
 dnl Test for the documentation.
@@ -1020,7 +1052,7 @@ AC_CHECK_PROG(ac_have_doxygen, [doxygen], [yes], [no])
 AC_ARG_ENABLE(devel-doc,
               AS_HELP_STRING([--enable-devel-doc],
                              [compile documentation for developers using Doxygen.]),
-              ac_devel_doc=$withval, ac_devel_doc="no")
+              ac_devel_doc=$enableval, ac_devel_doc="no")
 AM_CONDITIONAL(BUILD_DEVDOC, test x"$ac_have_doxygen" = x"yes" -a x"$ac_devel_doc" = x"yes")
 dnl default installation directories
 AC_ARG_WITH(moduledir,
@@ -1129,14 +1161,17 @@ Basics:
   Fortran77 flags:           $FFLAGS
   Linker flags:              $LDFLAGS
   Linked libraries:          $LIBS_DEPENDENCIES $LIBS
+  Linked dependencies:       $LIBS_SHORT_DEPS
 
 Build:
+  Library flib:              yes
+  Library PSolver:           $ac_build_lib_PSolver
   Library BigDFT:            $ac_build_lib_BigDFT
   Main binaries (bigdft,...):$ac_build_bin_cluster
   atom and pseudo binaries:  $ac_build_bin_pseudo
   Bindings:                  $ac_build_bindings
   User documentation:        $ac_have_pdflatex
-  Devel. documentation:      $ac_have_doxygen / $ac_devel_doc
+  Devel. documentation:      $ac_devel_doc (Doxygen: $ac_have_doxygen)
 
 Options:
   Debug version:             $ac_use_debug
@@ -1158,6 +1193,8 @@ Options:
   With libXC:                $ac_use_libxc
    | internal built:         $ac_build_libxc
    | include dir.:           $LIBXC_INCLUDE
+  With libPAW:               $ac_use_libabinit
+   | path (or internal):     $ac_internal_libpaw
   With libABINIT:            $ac_use_libabinit
    | internal built:         $ac_build_libabinit
    | include dir.:           $LIBABINIT_INCLUDE

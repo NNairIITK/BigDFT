@@ -11,6 +11,9 @@
   !local variables
   logical :: in_place
   integer :: tcat,ierr,ntot,mpi_comm
+
+  external :: MPI_ALLREDUCE
+
   ntot=count
 
   if (ntot <= 0) return
