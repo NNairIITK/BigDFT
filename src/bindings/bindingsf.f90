@@ -1794,14 +1794,14 @@ subroutine dict_pop(dict, exists, key)
 END SUBROUTINE dict_pop
 
 
-subroutine dict_value(dict, buf)
+subroutine dict_value_binding(dict, buf)
   use dictionaries, only: dictionary, max_field_length, wrapper => dict_value
   implicit none
   type(dictionary), pointer :: dict
   character(len = max_field_length), intent(out) :: buf
   
   buf = wrapper(dict)
-END SUBROUTINE dict_value
+END SUBROUTINE dict_value_binding
 
 
 subroutine dict_key(dict, buf)
@@ -1862,28 +1862,28 @@ subroutine dict_size(dict, ln)
 END SUBROUTINE dict_size
 
 
-subroutine dict_copy(dict, ref)
+subroutine dict_copy_binding(dict, ref)
   use dictionaries, only: dictionary, wrapper => dict_copy
   implicit none
   type(dictionary), pointer :: dict, ref
 
   call wrapper(dict, ref)
-END SUBROUTINE dict_copy
+END SUBROUTINE dict_copy_binding
 
 
-subroutine dict_update(dict, ref)
+subroutine dict_update_binding(dict, ref)
   use dictionaries, only: dictionary, wrapper => dict_update
   implicit none
   type(dictionary), pointer :: dict, ref
 
   call wrapper(dict, ref)
-END SUBROUTINE dict_update
+END SUBROUTINE dict_update_binding
 
 
-subroutine dict_init(dict)
+subroutine dict_init_binding(dict)
   use dictionaries, only: dictionary, wrapper => dict_init
   implicit none
   type(dictionary), pointer :: dict
 
   call wrapper(dict)
-END SUBROUTINE dict_init
+END SUBROUTINE dict_init_binding
