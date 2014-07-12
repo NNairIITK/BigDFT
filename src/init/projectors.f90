@@ -12,9 +12,10 @@
 subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
      radii_cf,logrid,at,orbs,nl,proj_G)
   use module_base
-  use module_types
+  use module_types, only: atoms_data,orbitals_data
   use gaussians, only: gaussian_basis
   use yaml_output
+  use psp_projectors
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz

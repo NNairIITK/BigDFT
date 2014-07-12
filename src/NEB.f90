@@ -569,7 +569,7 @@ MODULE NEB_routines
 
       call mpi_environment_free(neb_mpi)
       call bigdft_finalize(ierr)
-      call f_lib_initialize()
+      call f_lib_finalize()  !call f_lib_initialize() <LG: most likely it was an error?
     END SUBROUTINE deallocation
 
 END MODULE NEB_routines

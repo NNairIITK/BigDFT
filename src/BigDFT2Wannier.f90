@@ -1013,7 +1013,7 @@ END SUBROUTINE deallocate_amnk_calculation
 
 subroutine final_deallocations()
   use module_atoms, only: deallocate_atoms_data
-
+  use locregs, only: deallocate_locreg_descriptors
   call deallocate_work_arrays_sumrho(w)
   call f_free(psi_etsf)
   call f_free(psir)
@@ -1031,7 +1031,7 @@ subroutine final_deallocations()
   call f_free(kpts)
   call f_free(excb)
 
-  call deallocate_lr(lzd%Glr)
+  call deallocate_locreg_descriptors(lzd%Glr)
   call deallocate_orbs(orbs)
   call deallocate_comms(comms)
   call deallocate_orbs(orbsv)
@@ -1794,6 +1794,7 @@ END SUBROUTINE radialpart
 ! the spherical harmonic given in argument
 subroutine write_functions(w_sph, w_ang, w_rad, fn1, fn2, fn3, np, Glr, &
       &   hxh, hyh, hzh, atoms, rxyz, sph_har, func_r, ylm)
+  use module_defs, only: gp
    use module_types
    implicit none
 

@@ -2494,6 +2494,7 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
   use yaml_output
   use module_fragments
   use module_interfaces, except_this_one => initialize_linear_from_file
+  use locregs, only: locreg_null
   implicit none
   integer, intent(in) :: iproc, nproc, iformat
   type(fragmentInputParameters),intent(in) :: input_frag

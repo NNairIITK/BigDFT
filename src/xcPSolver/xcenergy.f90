@@ -11,7 +11,7 @@
 !> Calculate the array of the core density for the atom iat
 subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
      n1,n2,n3,n1i,n2i,n3i,i3s,n3d,rhocore) 
-  !n(c) use module_base
+  use module_defs, only: gp,dp,wp
   use module_types
   use yaml_output
   implicit none
@@ -29,17 +29,6 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   real(gp) :: x,y,z,r2,rhov,rhoc,chv,chc
   real(gp) :: charge_from_gaussians,spherical_gaussian_value
   real(gp) :: drhoc,drhov,drhodr2
-  !real(gp), dimension(:), allocatable :: rhovxp,rhocxp
-  !real(gp), dimension(:,:), allocatable :: rhovc,rhocc
-
-  !read the values of the gaussian for valence and core densities
-!!$  open(unit=79,file=filename,status='unknown')
-!!$  read(79,*)ngv
-!!$
-!!$  allocate(rhovxp((ngv*(ngv+1)/2)+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,rhovxp,'rhovxp',subname)
-!!$  allocate(rhovc((ngv*(ngv+1)/2),4+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,rhovc,'rhovc',subname)
 
   !find the correct position of the nlcc parameters
   call nlcc_start_position(ityp,atoms,ngv,ngc,islcc)
@@ -53,12 +42,6 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   end do
   chv=sqrt(2.0_gp*atan(1.0_gp))*chv
 
-  !read(79,*)ngc
-
-!!$  allocate(rhocxp((ngc*(ngc+1)/2)+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,rhocxp,'rhocxp',subname)
-!!$  allocate(rhocc((ngc*(ngc+1)/2),4+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,rhocc,'rhocc',subname)
   chc=0.0_gp
   do ig=1,(ngc*(ngc+1))/2
      ilcc=ilcc+1
@@ -175,19 +158,6 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
         end if
      enddo
   end if
-
-!!$  i_all=-product(shape(rhovxp))*kind(rhovxp)
-!!$  deallocate(rhovxp,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'rhovxp',subname)
-!!$  i_all=-product(shape(rhovc))*kind(rhovc)
-!!$  deallocate(rhovc,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'rhovc',subname)
-!!$  i_all=-product(shape(rhocxp))*kind(rhocxp)
-!!$  deallocate(rhocxp,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'rhocxp',subname)
-!!$  i_all=-product(shape(rhocc))*kind(rhocc)
-!!$  deallocate(rhocc,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'rhocc',subname)
   
 END SUBROUTINE calc_rhocore_iat
 

@@ -580,6 +580,7 @@ END SUBROUTINE tddft_input_variables_default
 
 !> Allocate the arrays for the input related to the fragment
 subroutine allocateInputFragArrays(input_frag)
+  use module_base
   use module_types
   implicit none
 
@@ -611,6 +612,7 @@ end subroutine allocateInputFragArrays
 
 !> Deallocate the arrays related to the input for the fragments
 subroutine deallocateInputFragArrays(input_frag)
+  use module_base
   use module_types
   implicit none
 
@@ -813,14 +815,12 @@ END SUBROUTINE frequencies_input_variables_default
 !> Cross check values of input_variables.
 !! and change if necessary
 subroutine input_analyze(in,astruct)
-  use module_types, only: input_variables
-  use module_types, only: output_denspot_FORMAT_CUBE, output_denspot_NONE, WF_FORMAT_NONE
-  use module_types, only: bigdft_mpi
-  use module_types, only: KERNELMODE_DIRMIN, KERNELMODE_DIAG, KERNELMODE_FOE, &
-                          MIXINGMODE_DENS, MIXINGMODE_POT, &
-                          LINEAR_DIRECT_MINIMIZATION, LINEAR_MIXDENS_SIMPLE, LINEAR_MIXPOT_SIMPLE, LINEAR_FOE
+  use module_types, only: input_variables,output_denspot_FORMAT_CUBE, &
+       output_denspot_NONE, WF_FORMAT_NONE, KERNELMODE_DIRMIN,&
+       KERNELMODE_DIAG, KERNELMODE_FOE, MIXINGMODE_DENS, MIXINGMODE_POT, &
+       LINEAR_DIRECT_MINIMIZATION, LINEAR_MIXDENS_SIMPLE, &
+       LINEAR_MIXPOT_SIMPLE, LINEAR_FOE
   use module_atoms, only: atomic_structure
-  use module_defs, only: gp
   use module_base
   use module_input_keys, only: input_keys_equal
   implicit none

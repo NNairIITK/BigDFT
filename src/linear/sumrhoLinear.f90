@@ -720,7 +720,7 @@ end subroutine sumrho_for_TMBs
 
 !> perform the communication needed for the potential and verify that the results is as expected
 subroutine check_communication_potential(iproc,denspot,tmb)
-  use module_base, only:dp,bigdft_mpi,mpi_sum,mpi_max,mpiallred
+  use module_base
   use module_types
   use module_interfaces
   use yaml_output

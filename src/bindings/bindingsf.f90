@@ -558,6 +558,7 @@ END SUBROUTINE inputs_get_output
 subroutine inputs_get_dft(in, hx, hy, hz, crmult, frmult, ixc, chg, efield, nspin, mpol, &
      & gnrm, itermax, nrepmax, ncong, idsx, dispcorr, inpsi, outpsi, outgrid, &
      & rbuf, ncongt, davidson, nvirt, nplottedvirt, sym, last_run)
+  use module_defs, only: gp
   use module_types
   implicit none
   type(input_variables), intent(in) :: in
@@ -601,6 +602,7 @@ END SUBROUTINE inputs_get_dft
 
 subroutine inputs_get_mix(in, iscf, itrpmax, norbsempty, occopt, alphamix, rpnrm_cv, &
      & gnrm_startmix, Tel, alphadiis)
+  use module_defs, only: gp
   use module_types
   implicit none
   type(input_variables), intent(in) :: in
@@ -622,6 +624,7 @@ END SUBROUTINE inputs_get_mix
 
 subroutine inputs_get_geopt(in, geopt_approach, ncount_cluster_x, frac_fluct, forcemax, &
      & randdis, betax, history, ionmov, dtion, strtarget, qmass)
+  use module_defs, only: gp
   use module_types
   implicit none
   type(input_variables), intent(in) :: in
@@ -815,6 +818,7 @@ END SUBROUTINE orbs_get_dimensions
 
 
 subroutine orbs_get_eval(orbs, eval)
+  use module_defs, only: wp
   use module_types
   implicit none
   type(orbitals_data) :: orbs
@@ -825,6 +829,7 @@ END SUBROUTINE orbs_get_eval
 
 
 subroutine orbs_get_occup(orbs, occup)
+  use module_defs, only: gp
   use module_types
   implicit none
   type(orbitals_data) :: orbs
@@ -835,6 +840,7 @@ END SUBROUTINE orbs_get_occup
 
 
 subroutine orbs_get_kpts(orbs, kpts)
+  use module_defs, only: gp
   use module_types
   implicit none
   type(orbitals_data) :: orbs
@@ -845,6 +851,7 @@ END SUBROUTINE orbs_get_kpts
 
 
 subroutine orbs_get_kwgts(orbs, kwgts)
+  use module_defs, only: gp
   use module_types
   implicit none
   type(orbitals_data) :: orbs
@@ -911,9 +918,6 @@ subroutine proj_free(nlpspd, proj)
   real(kind=8), dimension(:), pointer :: proj
 
   call free_DFT_PSP_projectors(nlpspd)
-!!$  i_all=-product(shape(proj))*kind(proj)
-!!$  deallocate(proj,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'proj',"proj_free")
 END SUBROUTINE proj_free
 
 
@@ -970,6 +974,7 @@ END SUBROUTINE localfields_get_data
 
 
 subroutine localfields_free(denspotd, fion, fdisp)
+  use module_base
   use module_types
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use memory_profiling
@@ -982,9 +987,7 @@ subroutine localfields_free(denspotd, fion, fdisp)
   call deallocate_rho_descriptors(denspotd%rhod)
   call dpbox_free(denspotd%dpbox)
   
-  if (associated(denspotd%V_ext)) then
-     call f_free_ptr(denspotd%V_ext)
-  end if
+  call f_free_ptr(denspotd%V_ext)
   
   if (associated(denspotd%pkernelseq%kernel,target=denspotd%pkernel%kernel)) then
      nullify(denspotd%pkernelseq%kernel)
@@ -993,30 +996,20 @@ subroutine localfields_free(denspotd, fion, fdisp)
   end if
   call pkernel_free(denspotd%pkernel,subname)
 
-  if (associated(denspotd%rhov)) then
-     call f_free_ptr(denspotd%rhov)
-  end if
-
-  if (associated(denspotd%V_XC)) then
-     call f_free_ptr(denspotd%V_XC)
-  end if
-
-  if(associated(denspotd%rho_C)) then
-     call f_free_ptr(denspotd%rho_C)
-  end if
-
+  call f_free_ptr(denspotd%rhov)
+  call f_free_ptr(denspotd%V_XC)
+  call f_free_ptr(denspotd%rho_C)
+  
   deallocate(denspotd)
 
-  if (associated(fion)) then
-     call f_free_ptr(fion)
-  end if
-  if (associated(fdisp)) then
-     call f_free_ptr(fdisp)
-  end if
+  call f_free_ptr(fion)
+  call f_free_ptr(fdisp)
+  
 END SUBROUTINE localfields_free
 
 
 subroutine localfields_copy_metadata(denspot, rhov_is, hgrid, ni, psoffset)
+  use module_defs, only: gp,dp
   use module_types
   implicit none
   type(DFT_local_fields), intent(in) :: denspot
@@ -1032,6 +1025,7 @@ END SUBROUTINE localfields_copy_metadata
 
 
 subroutine localfields_get_rhov(denspot, rhov)
+  use module_defs, only: dp
   use module_types
   implicit none
   type(DFT_local_fields), intent(in) :: denspot
@@ -1042,6 +1036,7 @@ END SUBROUTINE localfields_get_rhov
 
 
 subroutine localfields_get_v_ext(denspot, v_ext)
+  use module_defs, only: wp
   use module_types
   implicit none
   type(DFT_local_fields), intent(in) :: denspot
@@ -1052,6 +1047,7 @@ END SUBROUTINE localfields_get_v_ext
 
 
 subroutine localfields_get_v_xc(denspot, v_xc)
+  use module_defs, only: wp
   use module_types
   implicit none
   type(DFT_local_fields), intent(in) :: denspot
@@ -1082,6 +1078,7 @@ END SUBROUTINE localfields_get_pkernelseq
 
 
 subroutine localfields_get_rho_work(denspot, rho)
+  use module_defs, only: dp
   use module_types
   implicit none
   type(DFT_local_fields), intent(in) :: denspot
@@ -1092,6 +1089,7 @@ END SUBROUTINE localfields_get_rho_work
 
 
 subroutine localfields_get_pot_work(denspot, pot)
+  use module_defs, only: dp
   use module_types
   implicit none
   type(DFT_local_fields), intent(in) :: denspot
@@ -1169,20 +1167,15 @@ end subroutine wf_get_data
 
 
 subroutine wf_empty(wf)
+  use module_base, only: f_free_ptr
   use module_types
   use memory_profiling
   implicit none
   type(DFT_wavefunction), intent(inout) :: wf
 
-  if (associated(wf%psi)) then
-     call f_free_ptr(wf%psi)
-  end if
-  if (associated(wf%psit)) then
-     call f_free_ptr(wf%psit)
-  end if
-  if (associated(wf%hpsi)) then
-     call f_free_ptr(wf%hpsi)
-  end if
+  call f_free_ptr(wf%psi)
+  call f_free_ptr(wf%psit)
+  call f_free_ptr(wf%hpsi)
 END SUBROUTINE wf_empty
 
 
@@ -1218,6 +1211,7 @@ end subroutine wf_get_psi
 
 
 subroutine wf_get_psi_size(psi, psiSize)
+  use module_defs, only: wp
   use module_types
   implicit none
   real(wp), dimension(:), pointer :: psi
@@ -1228,6 +1222,7 @@ end subroutine wf_get_psi_size
 
 
 subroutine wf_iorbp_to_psi(psir, psi, lr)
+  use module_base, only: wp,to_zero
   use module_types
   implicit none
   type(locreg_descriptors), intent(in) :: lr
@@ -1280,6 +1275,7 @@ END SUBROUTINE orbs_get_iorbp
 
 
 subroutine global_output_new(self, outs, energs, fxyz, nat)
+  use module_defs, only: gp
   use module_types
   implicit none
   integer(kind = 8), intent(in) :: self
@@ -1310,6 +1306,7 @@ END SUBROUTINE global_output_free
 
 
 subroutine global_output_get(outs, energs, fxyz, fdim, fnoise, pressure, strten, etot)
+  use module_defs, only: gp
   use module_types
   implicit none
   type(DFT_global_output), intent(in), target :: outs
@@ -1334,6 +1331,7 @@ END SUBROUTINE global_output_get
 
 subroutine energs_copy_data(energs, eh, exc, evxc, eion, edisp, ekin, epot, &
      & eproj, eexctX, ebs, eKS, trH, evsum, evsic)
+  use module_defs, only: gp
   use module_types
   implicit none
   type(energy_terms), intent(in) :: energs
@@ -1378,6 +1376,7 @@ END SUBROUTINE optloop_free
 
 subroutine optloop_copy_data(optloop, gnrm_cv, rpnrm_cv, gnrm_startmix, gnrm, rpnrm, &
      &  itrpmax, nrepmax, itermax, itrp, itrep, iter, iscf, infocode)
+  use module_defs, only: gp
   use module_types
   implicit none
   type(DFT_optimization_loop), intent(in) :: optloop
@@ -1403,6 +1402,7 @@ END SUBROUTINE optloop_copy_data
 
 subroutine optloop_sync_data(optloop, gnrm_cv, rpnrm_cv, gnrm_startmix, gnrm, rpnrm, &
      &  itrpmax, nrepmax, itermax, itrp, itrep, iter, iscf, infocode)
+  use module_defs, only: gp
   use module_types
   implicit none
   type(DFT_optimization_loop), intent(inout) :: optloop

@@ -9,6 +9,8 @@
 module module_abscalc
   use module_base
   use module_types
+  use psp_projectors, only: free_DFT_PSP_projectors
+  use gaussians, only: deallocate_gwf
   implicit none
 
   !> Contains all array necessary to apply preconditioning projectors 
@@ -220,7 +222,6 @@ contains
   !> deallocate_pcproj_data
   subroutine deallocate_pcproj_data(pcproj_data)
     use module_base
-    use gaussians, only: deallocate_gwf
     implicit none
     type(pcproj_data_type), intent(inout) :: pcproj_data
     
