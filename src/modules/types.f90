@@ -1257,7 +1257,7 @@ module module_types
  public :: deallocate_wfd,deallocate_bounds,update_nlpsp
  public :: old_wavefunction_set,allocate_wfd,basis_params_set_dict
  public :: input_set,copy_locreg_descriptors,nullify_locreg_descriptors
- public :: copy_global_output,copy_locreg_descriptors,output_wf_format_help
+ public :: copy_global_output,output_wf_format_help
  public :: input_psi_help,deallocate_rho_descriptors,nullify_rholoc_objects
  public :: nullify_paw_objects,frag_from_dict,copy_grid_dimensions
  public :: cprj_to_array,init_restart_objects,deallocate_gwf_c

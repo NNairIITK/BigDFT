@@ -543,25 +543,25 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
   if (nproc > 1) then
      !allocate(energies_mpi(2+ndebug),stat=i_stat)
      !call memocc(i_stat,energies_mpi,'energies_mpi',subname)
-     energies_mpi = f_malloc(2,id='energies_mpi')
+     energies_mpi = f_malloc(4,id='energies_mpi')
 
      energies_mpi(1)=eexcuLOC
      energies_mpi(2)=vexcuLOC
-     call mpiallred(energies_mpi(1),2,MPI_SUM,mpi_comm)
-     exc=energies_mpi(1)
-     vxc=energies_mpi(2)
+     call mpiallred(energies_mpi(1), 2,MPI_SUM,mpi_comm,recvbuf=energies_mpi(3))
+     exc=energies_mpi(3)
+     vxc=energies_mpi(4)
 
 !XC-stress term
   if (geocode == 'P') then
 
         if (associated(rhocore)) then
         call calc_rhocstr(rhocstr,nxc,nxt,m1,m3,i3xcsh_fake,nspin,potxc,rhocore)
-        call mpiallred(rhocstr(1),6,MPI_SUM,mpi_comm)
+        call mpiallred(rhocstr,MPI_SUM,mpi_comm)
         rhocstr=rhocstr/real(n01*n02*n03,dp)
         end if
 
      xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/hx/hy/hz
-     call mpiallred(wbstr(1),6,MPI_SUM,mpi_comm)
+     call mpiallred(wbstr,MPI_SUM,mpi_comm)
      wbstr=wbstr/real(n01*n02*n03,dp)
      xcstr(:)=xcstr(:)+wbstr(:)+rhocstr(:)
   end if
