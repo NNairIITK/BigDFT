@@ -10,12 +10,12 @@
 
 
 subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs,npsidim_comp)
-   use module_base, only: wp, bigdft_mpi, mpi_sum, mpi_max, mpiallred
+   use module_base!, only: wp, bigdft_mpi, mpi_sum, mpi_max, mpiallred
    use module_types, only: orbitals_data, local_zone_descriptors
    use yaml_output
    use communications_base, only: comms_linear
    use communications, only: transpose_localized, untranspose_localized
-   use dynamic_memory
+   !use dynamic_memory
    implicit none
    integer, intent(in) :: iproc,nproc
    type(orbitals_data), intent(in) :: orbs
@@ -294,9 +294,6 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
  END SUBROUTINE check_communications_locreg
 
 
-
-
-
 subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
            psit_c1, psit_c2, psit_f1, psit_f2, smat, ovrlp)
   use module_base
@@ -573,6 +570,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
   call timing(iproc,'ovrlptransComm','OF') !lr408t
 
 end subroutine calculate_overlap_transposed
+
 
 
 subroutine calculate_pulay_overlap(iproc, nproc, orbs1, orbs2, collcom1, collcom2, psit_c1, psit_c2, psit_f1, psit_f2, ovrlp)
@@ -1048,7 +1046,7 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
            collcom_sr, sparsemat)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => init_matrixindex_in_compressed_fortransposed
+  !use module_interfaces, except_this_one => init_matrixindex_in_compressed_fortransposed
   use sparsematrix_base, only: sparse_matrix
   use sparsematrix_init, only: compressed_index
   implicit none
