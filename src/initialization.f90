@@ -338,6 +338,7 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
   !local variables
   integer :: iconv,iblas,initerror,ierror,useGPU,mproc,ierr,nproc_node
   logical :: noaccel
+  integer(kind=8) :: context_address
 
   noaccel = .true.
   if (matacc%iacceleration == 1) then
@@ -390,7 +391,10 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
      call init_acceleration_OCL(matacc,GPU)
      !   end if
      !end do
-     if (GPU%context /= 0.) then
+     !to avoid a representation of the address which is lower than tiny(1.d0)
+     context_address=transfer(GPU%context,context_address)
+     !if (GPU%context /= 0.) then
+     if (context_address /= int(0,kind=8)) then
         GPU%ndevices=min(GPU%ndevices,nproc_node)
         if (iproc == 0) then
            call yaml_map('Material acceleration','OpenCL',advance='no')

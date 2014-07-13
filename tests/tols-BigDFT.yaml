@@ -90,7 +90,7 @@ AgBulk:
 SiBulk:
  Wavefunctions Iterations: 4.4e-8 # 1.1e-10
  Residues per orbital: 8.0e-10
- maxval: 2.16e-10
+ maxval: 3.18e-10
  # Ekin: 2.1e-11
  # Enl: 2.1e-11
  # Epot: 1.0e-10
