@@ -182,7 +182,7 @@ end function charge_from_gaussians
 !! principal quantum number increased with a given exponent.
 !! the principal quantum numbers admitted are from 1 to 4
 function spherical_gaussian_value(r2,expo,rhoc,ider)
-  use module_base, only: gp
+  use module_base, only: gp,safe_exp
   implicit none
   integer, intent(in) :: ider
   real(gp), intent(in) :: expo,r2
@@ -192,11 +192,12 @@ function spherical_gaussian_value(r2,expo,rhoc,ider)
   real(gp) :: arg
   
   arg=r2/(expo**2)
+!added underflow to evaluation of the density to avoid fpe in ABINIT xc routines
   spherical_gaussian_value=&
-       (rhoc(1)+r2*rhoc(2)+r2**2*rhoc(3)+r2**3*rhoc(4))*exp(-0.5_gp*arg)
+       (rhoc(1)+r2*rhoc(2)+r2**2*rhoc(3)+r2**3*rhoc(4))*safe_exp(-0.5_gp*arg,underflow=1.d-50)
   if (ider ==1) then !first derivative with respect to r2
      spherical_gaussian_value=-0.5_gp*spherical_gaussian_value/(expo**2)+&
-         (rhoc(2)+2.0_gp*r2*rhoc(3)+3.0_gp*r2**2*rhoc(4))*exp(-0.5_gp*arg)           
+         (rhoc(2)+2.0_gp*r2*rhoc(3)+3.0_gp*r2**2*rhoc(4))*safe_exp(-0.5_gp*arg,underflow=1.d-50)           
      !other derivatives to be implemented
   end if
 

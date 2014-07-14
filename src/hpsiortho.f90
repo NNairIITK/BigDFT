@@ -2164,16 +2164,16 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
                if (occopt == SMEARING_DIST_ERF) then
                   call derf_ab(res,arg)
                   f =.5d0*(1.d0-res)
-                  df=-exp(-arg**2)/sqrtpi 
+                  df=-safe_exp(-arg**2)/sqrtpi 
                else if (occopt == SMEARING_DIST_FERMI) then
-                  f =1.d0/(1.d0+exp(arg)) 
-                  df=-1.d0/(2.d0+exp(arg)+exp(-arg)) 
+                  f =1.d0/(1.d0+safe_exp(arg)) 
+                  df=-1.d0/(2.d0+safe_exp(arg)+safe_exp(-arg)) 
                else if (occopt == SMEARING_DIST_COLD1 .or. occopt == SMEARING_DIST_COLD2 .or. &  
                     &  occopt == SMEARING_DIST_METPX ) then
                   x= -arg
                   call derf_ab(res,x)
-                  f =.5d0*(1.d0+res +exp(-x**2)*(-a*x**2 + .5d0*a+x)/sqrtpi)
-                  df=-exp(-x**2) * (a*x**3 -x**2 -1.5d0*a*x +1.5d0) /sqrtpi   ! df:=df/darg=-df/dx
+                  f =.5d0*(1.d0+res +safe_exp(-x**2)*(-a*x**2 + .5d0*a+x)/sqrtpi)
+                  df=-safe_exp(-x**2) * (a*x**3 -x**2 -1.5d0*a*x +1.5d0) /sqrtpi   ! df:=df/darg=-df/dx
                else
                   f  = 0.d0
                   df = 0.d0
@@ -2227,8 +2227,8 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
             cutoffd=.5d0*(1.d0-resd)
          else if (occopt == SMEARING_DIST_FERMI) then
             !Fermi function
-            cutoffu=1.d0/(1.d0+exp(argu))
-            cutoffd=1.d0/(1.d0+exp(argd))
+            cutoffu=1.d0/(1.d0+safe_exp(argu))
+            cutoffd=1.d0/(1.d0+safe_exp(argd))
          else if (occopt == SMEARING_DIST_COLD1 .or. occopt == SMEARING_DIST_COLD2 .or. &  
               &  occopt == SMEARING_DIST_METPX ) then
             !Marzari's relation with different a 
@@ -2236,8 +2236,8 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
             xd=-argd
             call derf_ab(resu,xu)
             call derf_ab(resd,xd)
-            cutoffu=.5d0*(1.d0+resu +exp(-xu**2)*(-a*xu**2 + .5d0*a+xu)/sqrtpi)
-            cutoffd=.5d0*(1.d0+resd +exp(-xd**2)*(-a*xd**2 + .5d0*a+xd)/sqrtpi)
+            cutoffu=.5d0*(1.d0+resu +safe_exp(-xu**2)*(-a*xu**2 + .5d0*a+xu)/sqrtpi)
+            cutoffd=.5d0*(1.d0+resd +safe_exp(-xd**2)*(-a*xd**2 + .5d0*a+xd)/sqrtpi)
          end if
       enddo
 

@@ -14,6 +14,7 @@
 subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,OCLconv,Glr,shift)
    use module_base
    use module_types
+   use yaml_output, only: yaml_toa
    implicit none
    type(atoms_data), intent(inout) :: atoms
    real(gp), intent(in) :: crmult,frmult
@@ -32,9 +33,13 @@ subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,OCLconv,Glr,sh
 
    !check the geometry code with the grid spacings
    if (atoms%astruct%geocode == 'F' .and. (hx/=hy .or. hx/=hz .or. hy/=hz)) then
-      write(*,'(1x,a,3(1x,F6.4))') 'ERROR: The values of the grid spacings must be equal' // &
-           & ' in the Free BC case, while hgrids = ', hx, hy, hz
-      stop
+      call f_err_throw('Grid spacings must be equal' // &
+           ' in the Free BC case, while hgrids = '//&
+           trim(yaml_toa((/ hx, hy, hz/),fmt='(f7.4)')),&
+           err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+      !write(*,'(1x,a,3(1x,F7.4))') 'ERROR: The values of the grid spacings must be equal' // &
+      !     & ' in the Free BC case, while hgrids = ', hx, hy, hz
+      return
    end if
 
    !Special case if no atoms (no posinp by error or electron gas)

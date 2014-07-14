@@ -1261,9 +1261,19 @@ module module_types
  public :: input_psi_help,deallocate_rho_descriptors,nullify_rholoc_objects
  public :: nullify_paw_objects,frag_from_dict,copy_grid_dimensions
  public :: cprj_to_array,init_restart_objects,deallocate_gwf_c
+ public :: SIC_data_null
 
 contains
 
+  pure function SIC_data_null() result(SIC)
+    implicit none
+    type(SIC_data) :: SIC
+
+    SIC%approach=repeat(' ',len(SIC%approach))
+    SIC%ixc=0
+    SIC%alpha=0.0_gp
+    SIC%fref=0.0_gp 
+  end function SIC_data_null
 
   function old_wavefunction_null() result(wfn)
     implicit none
