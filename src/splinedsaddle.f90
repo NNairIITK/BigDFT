@@ -3659,7 +3659,8 @@ end subroutine calindex
 
 
 subroutine prepdd(atoms,n,np,x,e1,e2,h,s,mp,tmax,dd)
-    use module_types
+  use module_base
+  use module_types
     implicit none
     type(atoms_data), intent(inout) :: atoms
     integer::n,np,mp,i,info,ip,j,jp
@@ -3677,13 +3678,13 @@ subroutine prepdd(atoms,n,np,x,e1,e2,h,s,mp,tmax,dd)
     integer::ixyz,iat,jxyz,jat
     integer, parameter::ndeb1=0
 
-    cd1 = f_malloc(np-1+ndeb1,id='cd1')
-    cd2 = f_malloc(np-1+ndeb1,id='cd2')
-    c = f_malloc(0.to.np+ndeb1,id='c')
-    ddt = f_malloc(np-1+ndeb1,id='ddt')
-    yi = f_malloc(0.to.np+ndeb1,id='yi')
-    yj = f_malloc(0.to.np+ndeb1,id='yj')
-    ainv = f_malloc((/ np-1, np-1+ndeb1 /),id='ainv')
+    cd1 = f_malloc(np-1,id='cd1')
+    cd2 = f_malloc(np-1,id='cd2')
+    c = f_malloc(0.to.np,id='c')
+    ddt = f_malloc(np-1,id='ddt')
+    yi = f_malloc(0.to.np,id='yi')
+    yj = f_malloc(0.to.np,id='yj')
+    ainv = f_malloc((/ np-1, np-1 /),id='ainv')
 
     ainv(1:np-1,1:np-1)=0.d0
     do ip=1,np-2
@@ -3769,8 +3770,8 @@ subroutine prepcd3cd4(np,h,mp,ainv,i,j,yi,yj,cd1,cd2)
     real(kind=8)::hip,hipp1,yip,yipp1,yipm1
     real(kind=8)::ainvdmpip,ainvdmpipp1,ainvdmpipm1,ainvdmpm1ip,ainvdmpm1ipp1,ainvdmpm1ipm1
     integer, parameter::ndeb1=0 !n(c) ndeb2=0
-    ainvd = f_malloc((/ 0.to.np, 0.to.np+ndeb1 /),id='ainvd')
-    !call dmemocc((np+1)*(np+1),(np+1)*(np+1+ndeb1),ainvd,'ainvd')
+    ainvd = f_malloc((/ 0.to.np, 0.to.np /),id='ainvd')
+    !call dmemocc((np+1)*(np+1),(np+1)*(np+1),ainvd,'ainvd')
     ainvd(0:np,0:np)=0.d0
     do jp=1,np-1
         do ip=1,np-1
@@ -3840,8 +3841,8 @@ subroutine prepcd1cd2(np,h,mp,yi,yj,cd1,cd2,ainv)
     real(kind=8)::h(np),yi(0:np),yj(0:np),cd1(np-1),cd2(np-1),ainv(np-1,np-1),t1,t2,t3,t4
     real(kind=8), allocatable::ainvd(:,:)
     integer, parameter::ndeb1=0 !n(c) ndeb2=0
-    ainvd = f_malloc((/ 0.to.np, 0.to.np+ndeb1 /),id='ainvd')
-    !call dmemocc((np+1)*(np+1),(np+1)*(np+1+ndeb1),ainvd,'ainvd')
+    ainvd = f_malloc((/ 0.to.np, 0.to.np /),id='ainvd')
+    !call dmemocc((np+1)*(np+1),(np+1)*(np+1),ainvd,'ainvd')
     ainvd(0:np,0:np)=0.d0
     do jp=1,np-1
         do ip=1,np-1
@@ -3914,8 +3915,8 @@ subroutine func(tt,epot,ett,n,np,x,pnow,mp,xt,ft,nproc,iproc,atoms,rst,ll_inputs
     integer, parameter::ndeb1=0 !n(c) ndeb2=0
     type(run_objects) :: runObj
     type(DFT_global_output) :: outs
-    tang = f_malloc(n+ndeb1,id='tang')
-    !call dmemocc(n,n+ndeb1,tang,'tang')
+    tang = f_malloc(n,id='tang')
+    !call dmemocc(n,n,tang,'tang')
     do i=1,n
         iat=(i-1)/3+1
         ixyz=mod(i-1,3)+1
@@ -4015,10 +4016,10 @@ subroutine qdq(np,s,mp,tmax,c,h,i,j,yi,yj,cd1,cd2,dd)
     real(kind=8), allocatable::sd1(:)
     real(kind=8), allocatable::sd2(:)
     integer, parameter::ndeb1=0 !n(c) ndeb2=0
-    sd1 = f_malloc(np-1+ndeb1,id='sd1')
-    !call dmemocc(np-1,np-1+ndeb1,sd1,'sd1')
-    sd2 = f_malloc(np-1+ndeb1,id='sd2')
-    !call dmemocc(np-1,np-1+ndeb1,sd2,'sd2')
+    sd1 = f_malloc(np-1,id='sd1')
+    !call dmemocc(np-1,np-1,sd1,'sd1')
+    sd2 = f_malloc(np-1,id='sd2')
+    !call dmemocc(np-1,np-1,sd2,'sd2')
     call calsd1sd2(np,mp,yi,h,sd1,sd2)
     do ip=1,np-1
         t3=(yi(mp)-yi(mp-1))*(delta(mp,ip)-delta(mp-1,ip))/h(mp)
@@ -4163,12 +4164,12 @@ subroutine initminimize(parmin)
     endif
     if(tapp3=='DIIS') then
         parmin%idsx=20
-        parmin%a = f_malloc((/ parmin%idsx+1, parmin%idsx+1, 3+ndeb1 /),id='parmin%a')
-        !call dmemocc((parmin%idsx+1)*(parmin%idsx+1)*(3),(parmin%idsx+1)*(parmin%idsx+1)*(3+ndeb1),parmin%a,'parmin%a')
-        parmin%b = f_malloc(parmin%idsx+1+ndeb1,id='parmin%b')
-        !call dmemocc(parmin%idsx+1,parmin%idsx+1+ndeb1,parmin%b,'parmin%b')
-        parmin%ipiv = f_malloc(parmin%idsx+1+ndeb1,id='parmin%ipiv')
-        !call imemocc(parmin%idsx+1,parmin%idsx+1+ndeb1,parmin%ipiv,'parmin%ipiv')
+        parmin%a = f_malloc((/ parmin%idsx+1, parmin%idsx+1, 3 /),id='parmin%a')
+        !call dmemocc((parmin%idsx+1)*(parmin%idsx+1)*(3),(parmin%idsx+1)*(parmin%idsx+1)*(3),parmin%a,'parmin%a')
+        parmin%b = f_malloc(parmin%idsx+1,id='parmin%b')
+        !call dmemocc(parmin%idsx+1,parmin%idsx+1,parmin%b,'parmin%b')
+        parmin%ipiv = f_malloc(parmin%idsx+1,id='parmin%ipiv')
+        !call imemocc(parmin%idsx+1,parmin%idsx+1,parmin%ipiv,'parmin%ipiv')
     endif
 end subroutine initminimize
 
@@ -4210,6 +4211,7 @@ end subroutine checkconvergence
 !all the shift are inserted into the box if there are periodic directions
 !if the atom are frozen they are not moved
 subroutine atomic_copycoord(atoms,xyzi,xyzo)
+  use module_defs, only: gp
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms
@@ -4608,6 +4610,7 @@ end function calnorm
 
 
 subroutine writepathway(n,np,x,filename,atoms)
+  use module_base
     use module_types
     implicit none
     integer::n,np,jp,iat
@@ -4629,20 +4632,20 @@ subroutine writepathway(n,np,x,filename,atoms)
     logical::move_this_coordinate
     integer::ixyz
     integer, parameter::ndeb1=0 !n(c) ndeb2=0
-    s = f_malloc(0.to.np+ndeb1,id='s')
-    !call dmemocc(np+1,np+1+ndeb1,s,'s')
-    h = f_malloc(np+ndeb1,id='h')
-    !call dmemocc(np,np+ndeb1,h,'h')
-    e1 = f_malloc(np-1+ndeb1,id='e1')
-    !call dmemocc(np-1,np-1+ndeb1,e1,'e1')
-    e2 = f_malloc(np-2+ndeb1,id='e2')
-    !call dmemocc(np-2,np-2+ndeb1,e2,'e2')
-    y = f_malloc(0.to.np+ndeb1,id='y')
-    !call dmemocc(np+1,np+1+ndeb1,y,'y')
-    c = f_malloc(0.to.np+ndeb1,id='c')
-    !call dmemocc(np+1,np+1+ndeb1,c,'c')
-    xt = f_malloc(n+ndeb1,id='xt')
-    !call dmemocc(n,n+ndeb1,xt,'xt')
+    s = f_malloc(0.to.np,id='s')
+    !call dmemocc(np+1,np+1,s,'s')
+    h = f_malloc(np,id='h')
+    !call dmemocc(np,np,h,'h')
+    e1 = f_malloc(np-1,id='e1')
+    !call dmemocc(np-1,np-1,e1,'e1')
+    e2 = f_malloc(np-2,id='e2')
+    !call dmemocc(np-2,np-2,e2,'e2')
+    y = f_malloc(0.to.np,id='y')
+    !call dmemocc(np+1,np+1,y,'y')
+    c = f_malloc(0.to.np,id='c')
+    !call dmemocc(np+1,np+1,c,'c')
+    xt = f_malloc(n,id='xt')
+    !call dmemocc(n,n,xt,'xt')
     !-------------------------------------------------------------------------------------------
     call equalarclengthparametrization(atoms,n,np,x,s,h)
     call factor_cubic(np,h,e1,e2)
@@ -4701,6 +4704,7 @@ end subroutine writepathway
 
 
 subroutine writeanchorpoints(n,np,x,filename,atoms)
+  use module_defs, only: gp
     use module_types
     implicit none
     integer::n,np,iat
@@ -4745,6 +4749,7 @@ end subroutine writeanchorpoints
 
 
 subroutine readanchorpoints(n,np,x,filename,atoms)
+  use module_defs, only: gp
     use module_types
     implicit none
     integer::n,np,ip,i !n(c) iat

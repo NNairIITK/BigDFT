@@ -15,9 +15,10 @@ module module_global_variables
     !input parameters for mhgps
     integer          :: mhgps_verbosity     = 3
     character(len=6) :: efmethod            = "LJ" !method/force-field for energies, stresses and forces
+    logical          :: external_mini       = .false.
     character(len=5) :: input_dir           = "input"
 
-    !input parameters for saddle_search
+    !input parameters for sbfgs saddle_search
     logical          :: saddle_biomode             = .false.
     logical          :: saddle_connect             = .false.
     logical          :: random_minmode_guess       = .true.
@@ -38,8 +39,8 @@ module module_global_variables
     real(gp)         :: saddle_tightenfac          = -1.0_gp
     real(gp)         :: saddle_maxcurvrise         = 1.e-6_gp
     real(gp)         :: saddle_cutoffratio         = 1.e-4_gp
-    real(gp)         :: saddle_steepthresh_trans   = 1.e+2_gp
-    real(gp)         :: saddle_steepthresh_rot     = 2.e+3_gp
+    real(gp)         :: saddle_steepthresh_trans   = 1._gp
+    real(gp)         :: saddle_steepthresh_rot     = 1._gp
     integer          :: saddle_recompIfCurvPos     = 5
     real(gp)         :: saddle_fnrmtol             = 1.e-3_gp
     logical          :: share_rot_history          = .false. !not available via
@@ -55,9 +56,12 @@ module module_global_variables
     logical :: internal=.true. !unse internal or external optimizers?
         !SBFGS
         integer  :: mini_nhistx
-        integer  :: mini_nit
+        integer  :: mini_ncluster_x
+        real(gp) :: mini_frac_fluct
+        real(gp) :: mini_forcemax
         real(gp) :: mini_maxrise
         real(gp) :: mini_betax
+        real(gp) :: mini_beta_stretchx
         real(gp) :: mini_cutoffRatio
         real(gp) :: mini_steepthresh
         real(gp) :: mini_trustr
@@ -79,6 +83,7 @@ module module_global_variables
     type(run_objects) :: runObj
     type(dictionary), pointer :: user_inputs
     type(DFT_global_output) :: outs
+    integer :: fdim
     type(atoms_data) :: atoms
     integer, dimension(4) :: mpi_info
     integer :: infocode
@@ -87,6 +92,7 @@ module module_global_variables
     integer :: inputPsiId=0
     integer :: iproc=0,nproc=1,igroup=0,ngroups=1
     integer :: itermin=0
+    real(gp) :: frac_fluct=0.d0
 
 
     !following variables might be packed in an own module...

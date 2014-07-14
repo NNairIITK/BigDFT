@@ -418,6 +418,7 @@ END SUBROUTINE segkeys
 
 
 subroutine export_grids(fname, atoms, rxyz, hx, hy, hz, n1, n2, n3, logrid_c, logrid_f)
+  use module_defs, only: gp
   use module_types
   implicit none
   character(len = *), intent(in) :: fname

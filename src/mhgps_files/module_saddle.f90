@@ -159,7 +159,7 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvforcediff,nit
     call fixfrag_posvel(nat,rcov,rxyz(1,1,0),tnatdmy,1,fixfragmented)
 
     inputPsiId=0
-    call minenergyandforces(imode,nat,alat,rxyz(1,1,0),rxyzraw(1,1,0),&
+    call minenergyandforces(.true.,imode,nat,alat,rxyz(1,1,0),rxyzraw(1,1,0),&
     fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),etot,iconnect,nbond,atomnames,&
     wold,alpha_stretch0,alpha_stretch)
     ener_count=ener_count+1.0_gp
@@ -321,7 +321,7 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvforcediff,nit
         !displ=displ+tt
  
         inputPsiId=1
-        call minenergyandforces(imode,nat,alat,rxyz(1,1,nhist),&
+        call minenergyandforces(.true.,imode,nat,alat,rxyz(1,1,nhist),&
                 rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),&
                 fxyzraw(1,1,nhist),etotp,iconnect,nbond,atomnames,wold,&
                 alpha_stretch0,alpha_stretch)
@@ -780,7 +780,7 @@ subroutine curvforce(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ener_co
     real(gp), intent(inout) :: ener_count
     real(gp), intent(in) :: alat(3)
     !internal
-    real(gp) :: diffinv, etot2
+    real(gp) :: diffinv, etot2,fnoise
     real(gp),allocatable :: rxyz2(:,:), fxyz2(:,:)
     real(gp),allocatable :: drxyz(:,:), dfxyz(:,:)
     !functions
@@ -801,7 +801,7 @@ subroutine curvforce(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ener_co
 
     vec = vec / dnrm2(3*nat,vec(1,1),1)
     rxyz2 = rxyz1 + diff * vec
-    call energyandforces(nat,alat,rxyz2(1,1),fxyz2(1,1),etot2)
+    call energyandforces(nat,alat,rxyz2(1,1),fxyz2(1,1),fnoise,etot2)
 !    call energyandforces(nat, alat, rxyz2(1,1),fxyz2(1,1),etot2,'cnt_enf_forcebar_decomp')
     ener_count=ener_count+1.0_gp
 

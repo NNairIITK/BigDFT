@@ -24,7 +24,7 @@ contains
         open(u,file=filename)
             read(u,*)mhgps_verbosity
             read(u,*)saddle_connect, random_minmode_guess
-            read(u,*)efmethod
+            read(u,*)efmethod,external_mini
             read(u,*)saddle_biomode
             if(saddle_biomode)saddle_imode=2
             read(u,*)saddle_nit_trans, saddle_nit_rot
@@ -42,6 +42,18 @@ contains
             read(u,*)saddle_maxcurvrise
             read(u,*)saddle_cutoffratio
             read(u,*)saddle_recompIfCurvPos
+            if(.not.external_mini)then
+                read(u,*)mini_nhistx
+                read(u,*)mini_ncluster_x 
+                read(u,*)mini_frac_fluct
+                read(u,*)mini_forcemax
+                read(u,*)mini_maxrise
+                read(u,*)mini_betax
+                read(u,*)mini_cutoffRatio
+                read(u,*)mini_steepthresh
+                read(u,*)mini_trustr
+            endif
+
         close(u)
     end subroutine
     subroutine write_input()
@@ -135,8 +147,8 @@ contains
 
 
 subroutine give_rcov(atoms,nat,rcov)
-  !    use module_base
-  use module_types, only: gp
+  use module_base, only: gp
+  use module_types
   use yaml_output
   use module_global_variables, only: iproc
   implicit none

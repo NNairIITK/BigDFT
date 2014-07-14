@@ -9,7 +9,7 @@ module module_energyandforces
 
 contains
 
-subroutine energyandforces(nat,alat,rxyz,fxyz,epot)
+subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
     !returns energies in hartree and
     !forces in hartree/bohr
     !(except for LJ)
@@ -24,15 +24,17 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,epot)
     real(gp), intent(in) :: alat(3)
     real(gp), intent(in) :: rxyz(3,nat)
     real(gp), intent(out) :: fxyz(3,nat)
+    real(gp), intent(out) :: fnoise
     real(gp), intent(out) :: epot
     !internal
     !uncomment for amber:
         integer :: icc
     real(gp) :: rxyzint(3,nat)
-
+    if(nat/=fdim)stop'nat /= fdim'
     ef_counter=ef_counter+1.d0    
     if(trim(adjustl(efmethod))=='LJ')then
         call lenjon(nat,rxyz(1,1),fxyz(1,1),epot)
+        fnoise=0.d0
         return
     else if(trim(adjustl(efmethod))=='AMBER')then
         icc=1
@@ -48,6 +50,7 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,epot)
         !convert from gradient in kcal_th/mol/angstrom to force in hartree/bohr
         fxyz(1:3,1:nat)=-fxyz(1:3,1:nat)*0.0008432975639921999_gp
 !        fxyz(1:3,1:nat)=-fxyz(1:3,1:nat)
+        fnoise=0.d0
         return
     else if(trim(adjustl(efmethod))=='BIGDFT')then
         if(nat/=runObj%atoms%astruct%nat)then
@@ -61,6 +64,7 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,epot)
         call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz(1,1), 1)
         call vcopy(3 * runObj%atoms%astruct%nat, runObj%atoms%astruct%ixyz_int(1,1), 1, ixyz_int(1,1), 1)
         epot=outs%energy
+        fnoise=outs%fnoise
         return
     endif
 end subroutine

@@ -18,7 +18,6 @@ module module_types
   use module_xc, only : xc_info
   use gaussians, only: gaussian_basis
   use Poisson_Solver, only: coulomb_operator
-  use dictionaries, only: dictionary, max_field_length
   use locregs
   use psp_projectors
   use module_atoms, only: atoms_data,symmetry_data,atomic_structure
@@ -28,29 +27,31 @@ module module_types
 
   implicit none
 
+  private
+
   !> Constants to determine between cubic version and linear version
-  integer, parameter :: CUBIC_VERSION =  0
-  integer, parameter :: LINEAR_VERSION = 100
+  integer, parameter, public :: CUBIC_VERSION =  0
+  integer, parameter, public :: LINEAR_VERSION = 100
 
   !> Error codes, to be documented little by little
-  integer, parameter :: BIGDFT_SUCCESS        = 0   !< No errors
-  integer, parameter :: BIGDFT_UNINITIALIZED  = -10 !< The quantities we want to access seem not yet defined
-  integer, parameter :: BIGDFT_INCONSISTENCY  = -11 !< Some of the quantities is not correct
-  integer, parameter :: BIGDFT_INVALID        = -12 !< Invalid entry
+  integer, parameter, public :: BIGDFT_SUCCESS        = 0   !< No errors
+  integer, parameter, public :: BIGDFT_UNINITIALIZED  = -10 !< The quantities we want to access seem not yet defined
+  integer, parameter, public :: BIGDFT_INCONSISTENCY  = -11 !< Some of the quantities is not correct
+  integer, parameter, public :: BIGDFT_INVALID        = -12 !< Invalid entry
 
   !> Input wf parameters. @relates module_types::input_variables::inputpsiid @relates inputpsiid
-  integer, parameter :: INPUT_PSI_EMPTY        = -1000  !< Input PSI to 0
-  integer, parameter :: INPUT_PSI_RANDOM       = -2     !< Input Random PSI
-  integer, parameter :: INPUT_PSI_CP2K         = -1     !< Input PSI coming from cp2k
-  integer, parameter :: INPUT_PSI_LCAO         = 0      !< Input PSI coming from Localised ATomic Orbtials
-  integer, parameter :: INPUT_PSI_MEMORY_WVL   = 1      !< Input PSI from memory
-  integer, parameter :: INPUT_PSI_DISK_WVL     = 2      !< Input PSI from disk (wavelet coefficients)
-  integer, parameter :: INPUT_PSI_LCAO_GAUSS   = 10
-  integer, parameter :: INPUT_PSI_MEMORY_GAUSS = 11
-  integer, parameter :: INPUT_PSI_DISK_GAUSS   = 12
-  integer, parameter :: INPUT_PSI_LINEAR_AO    = 100    !< Input PSI for linear from Atomic Orbital
-  integer, parameter :: INPUT_PSI_MEMORY_LINEAR= 101    !< Input PSI for linear in memory
-  integer, parameter :: INPUT_PSI_DISK_LINEAR  = 102    !< Input PSI for linear from disk
+  integer, parameter, public :: INPUT_PSI_EMPTY        = -1000  !< Input PSI to 0
+  integer, parameter, public :: INPUT_PSI_RANDOM       = -2     !< Input Random PSI
+  integer, parameter, public :: INPUT_PSI_CP2K         = -1     !< Input PSI coming from cp2k
+  integer, parameter, public :: INPUT_PSI_LCAO         = 0      !< Input PSI coming from Localised ATomic Orbtials
+  integer, parameter, public :: INPUT_PSI_MEMORY_WVL   = 1      !< Input PSI from memory
+  integer, parameter, public :: INPUT_PSI_DISK_WVL     = 2      !< Input PSI from disk (wavelet coefficients)
+  integer, parameter, public :: INPUT_PSI_LCAO_GAUSS   = 10
+  integer, parameter, public :: INPUT_PSI_MEMORY_GAUSS = 11
+  integer, parameter, public :: INPUT_PSI_DISK_GAUSS   = 12
+  integer, parameter, public :: INPUT_PSI_LINEAR_AO    = 100    !< Input PSI for linear from Atomic Orbital
+  integer, parameter, public :: INPUT_PSI_MEMORY_LINEAR= 101    !< Input PSI for linear in memory
+  integer, parameter, public :: INPUT_PSI_DISK_LINEAR  = 102    !< Input PSI for linear from disk
 
   !> All possible values of input psi (determination of the input guess)
   integer, dimension(12), parameter :: input_psi_values = &
@@ -60,11 +61,11 @@ module module_types
        INPUT_PSI_LINEAR_AO, INPUT_PSI_DISK_LINEAR, INPUT_PSI_MEMORY_LINEAR /)
 
   !> Output wf parameters.
-  integer, parameter :: WF_FORMAT_NONE   = 0
-  integer, parameter :: WF_FORMAT_PLAIN  = 1
-  integer, parameter :: WF_FORMAT_BINARY = 2
-  integer, parameter :: WF_FORMAT_ETSF   = 3
-  integer, parameter :: WF_N_FORMAT      = 4
+  integer, parameter, public :: WF_FORMAT_NONE   = 0
+  integer, parameter, public :: WF_FORMAT_PLAIN  = 1
+  integer, parameter, public :: WF_FORMAT_BINARY = 2
+  integer, parameter, public :: WF_FORMAT_ETSF   = 3
+  integer, parameter, public :: WF_N_FORMAT      = 4
   character(len = 12), dimension(0:WF_N_FORMAT-1), parameter :: wf_format_names = &
        (/ "none        ", &
           "plain text  ", &
@@ -72,32 +73,32 @@ module module_types
           "ETSF        " /)
 
   !> Output grid parameters.
-  integer, parameter :: OUTPUT_DENSPOT_NONE    = 0
-  integer, parameter :: OUTPUT_DENSPOT_DENSITY = 1
-  integer, parameter :: OUTPUT_DENSPOT_DENSPOT = 2
-  character(len = 12), dimension(0:2), parameter :: OUTPUT_DENSPOT_names = &
+  integer, parameter, public :: OUTPUT_DENSPOT_NONE    = 0
+  integer, parameter, public :: OUTPUT_DENSPOT_DENSITY = 1
+  integer, parameter, public :: OUTPUT_DENSPOT_DENSPOT = 2
+  character(len = 12), dimension(0:2), parameter, public :: OUTPUT_DENSPOT_names = &
        (/ "none        ", &
           "density     ", &
           "dens. + pot." /)
-  integer, parameter :: OUTPUT_DENSPOT_FORMAT_TEXT = 0
-  integer, parameter :: OUTPUT_DENSPOT_FORMAT_ETSF = 1
-  integer, parameter :: OUTPUT_DENSPOT_FORMAT_CUBE = 2
-  character(len = 4), dimension(0:2), parameter :: OUTPUT_DENSPOT_format_names = &
+  integer, parameter, public :: OUTPUT_DENSPOT_FORMAT_TEXT = 0
+  integer, parameter, public :: OUTPUT_DENSPOT_FORMAT_ETSF = 1
+  integer, parameter, public :: OUTPUT_DENSPOT_FORMAT_CUBE = 2
+  character(len = 4), dimension(0:2), parameter, public :: OUTPUT_DENSPOT_format_names = &
        (/ "text", &
           "ETSF", &
           "cube" /)
 
   !> SCF mixing parameters (@todo mixing parameters to be added).
-  integer, parameter :: SCF_KIND_GENERALIZED_DIRMIN = -1
-  integer, parameter :: SCF_KIND_DIRECT_MINIMIZATION = 0
+  integer, parameter, public :: SCF_KIND_GENERALIZED_DIRMIN = -1
+  integer, parameter, public :: SCF_KIND_DIRECT_MINIMIZATION = 0
 
   !> Function to determine the occupation numbers
-  integer, parameter :: SMEARING_DIST_ERF   = 1  !< Tends to 0 and 1 faster \f$1/2\left[1-erf\left(\frac{E-\mu}{\delta E}\right)\right]\f$
-  integer, parameter :: SMEARING_DIST_FERMI = 2  !< Normal Fermi distribution i.e.\f$\frac{1}{1+e^{E-\mu}/k_BT}\f$
-  integer, parameter :: SMEARING_DIST_COLD1 = 3  !< Marzari's cold smearing with a=-.5634 (bumb minimization)
-  integer, parameter :: SMEARING_DIST_COLD2 = 4  !< Marzari's cold smearing with a=-.8165 (monotonic tail)
-  integer, parameter :: SMEARING_DIST_METPX = 5  !< Methfessel and Paxton (same as COLD with a=0)
-  character(len = 11), dimension(5), parameter :: smearing_names = &
+  integer, parameter, public :: SMEARING_DIST_ERF   = 1  !< Tends to 0 and 1 faster \f$1/2\left[1-erf\left(\frac{E-\mu}{\delta E}\right)\right]\f$
+  integer, parameter, public :: SMEARING_DIST_FERMI = 2  !< Normal Fermi distribution i.e.\f$\frac{1}{1+e^{E-\mu}/k_BT}\f$
+  integer, parameter, public :: SMEARING_DIST_COLD1 = 3  !< Marzari's cold smearing with a=-.5634 (bumb minimization)
+  integer, parameter, public :: SMEARING_DIST_COLD2 = 4  !< Marzari's cold smearing with a=-.8165 (monotonic tail)
+  integer, parameter, public :: SMEARING_DIST_METPX = 5  !< Methfessel and Paxton (same as COLD with a=0)
+  character(len = 11), dimension(5), parameter, public :: smearing_names = &
        (/ "Error func.", &
           "Fermi      ", &
           "Cold (bumb)", &
@@ -105,29 +106,29 @@ module module_types
           "Meth.-Pax. " /) !< Name of the smearing methods 
 
   !> Target function for the optimization of the basis functions (linear scaling version)
-  integer, parameter :: TARGET_FUNCTION_IS_TRACE=0
-  integer, parameter :: TARGET_FUNCTION_IS_ENERGY=1
-  integer, parameter :: TARGET_FUNCTION_IS_HYBRID=2
-  !!integer, parameter :: DECREASE_LINEAR=0
-  !!integer, parameter :: DECREASE_ABRUPT=1
-  !!integer, parameter :: COMMUNICATION_COLLECTIVE=0
-  !!integer, parameter :: COMMUNICATION_P2P=1
-  integer, parameter :: LINEAR_DIRECT_MINIMIZATION=100
-  integer, parameter :: LINEAR_MIXDENS_SIMPLE=101
-  integer, parameter :: LINEAR_MIXPOT_SIMPLE=102
-  integer, parameter :: LINEAR_FOE=103
-  integer, parameter :: KERNELMODE_DIRMIN = 10
-  integer, parameter :: KERNELMODE_DIAG = 11
-  integer, parameter :: KERNELMODE_FOE = 12
-  integer, parameter :: MIXINGMODE_DENS = 20
-  integer, parameter :: MIXINGMODE_POT = 21
-  integer,parameter :: FOE_ACCURATE = 30
-  integer,parameter :: FOE_FAST = 31
+  integer, parameter, public :: TARGET_FUNCTION_IS_TRACE=0
+  integer, parameter, public :: TARGET_FUNCTION_IS_ENERGY=1
+  integer, parameter, public :: TARGET_FUNCTION_IS_HYBRID=2
+  !!integer, parameter, public :: DECREASE_LINEAR=0
+  !!integer, parameter, public :: DECREASE_ABRUPT=1
+  !!integer, parameter, public :: COMMUNICATION_COLLECTIVE=0
+  !!integer, parameter, public :: COMMUNICATION_P2P=1
+  integer, parameter, public :: LINEAR_DIRECT_MINIMIZATION=100
+  integer, parameter, public :: LINEAR_MIXDENS_SIMPLE=101
+  integer, parameter, public :: LINEAR_MIXPOT_SIMPLE=102
+  integer, parameter, public :: LINEAR_FOE=103
+  integer, parameter, public :: KERNELMODE_DIRMIN = 10
+  integer, parameter, public :: KERNELMODE_DIAG = 11
+  integer, parameter, public :: KERNELMODE_FOE = 12
+  integer, parameter, public :: MIXINGMODE_DENS = 20
+  integer, parameter, public :: MIXINGMODE_POT = 21
+  integer,parameter, public :: FOE_ACCURATE = 30
+  integer,parameter, public :: FOE_FAST = 31
 
   !> How to update the density kernel during teh support function optimization
-  integer, parameter :: UPDATE_BY_PURIFICATION = 0
-  integer, parameter :: UPDATE_BY_FOE = 1
-  integer, parameter :: UPDATE_BY_RENORMALIZATION = 2
+  integer, parameter, public :: UPDATE_BY_PURIFICATION = 0
+  integer, parameter, public :: UPDATE_BY_FOE = 1
+  integer, parameter, public :: UPDATE_BY_RENORMALIZATION = 2
   
   !> Type used for the orthogonalisation parameters
   type, public :: orthon_data
@@ -900,7 +901,7 @@ module module_types
 
 
   !> type paw_ij_objects
-  type paw_ij_objects
+  type, public :: paw_ij_objects
      !Integer scalars
      !> cplex=1 if all on-site PAW quantities are real, 2 if they are complex
      !! cplex=2 is useful for RF calculations
@@ -1046,7 +1047,7 @@ module module_types
 
   !> This is cprj_type in ABINIT,
   !! this will be obsolete with the PAW Library
-  type cprj_objects
+  type, public :: cprj_objects
     !Integer scalars
     integer :: ncpgr !< Number of gradients of cp=<p_lmn|Cnk>
     integer :: nlmn  !< Number of (l,m,n) non-local projectors
@@ -1242,6 +1243,27 @@ module module_types
  integer, dimension(ncat_bigdft), private, save :: cat_ids !< id of the categories to be converted
 
 
+ public :: gaussian_basis
+ public :: nullify_local_zone_descriptors,locreg_descriptors
+ public :: wavefunctions_descriptors,atoms_data,DFT_PSP_projectors
+ public :: grid_dimensions,p2pComms,comms_linear,sparse_matrix,matrices
+ public :: coulomb_operator,symmetry_data,atomic_structure,comms_cubic
+ public :: nullify_global_output,deallocate_global_output
+ public :: nonlocal_psp_descriptors,init_global_output,dpbox_null
+ public :: default_lzd,find_category,old_wavefunction_null
+ public :: bigdft_run_id_toa,material_acceleration_null,input_psi_names
+ public :: wf_format_names,bigdft_init_errors,bigdft_init_timing_categories
+ public :: restart_objects_set_mode,restart_objects_set_mat_acc
+ public :: restart_objects_set_nat,free_restart_objects,restart_objects_new
+ public :: deallocate_orbs,deallocate_locreg_descriptors,nullify_wfd
+ public :: deallocate_wfd,deallocate_bounds,update_nlpsp
+ public :: old_wavefunction_set,allocate_wfd,basis_params_set_dict
+ public :: input_set,copy_locreg_descriptors,nullify_locreg_descriptors
+ public :: copy_global_output,output_wf_format_help
+ public :: input_psi_help,deallocate_rho_descriptors,nullify_rholoc_objects
+ public :: nullify_paw_objects,frag_from_dict,copy_grid_dimensions
+ public :: cprj_to_array,init_restart_objects,deallocate_gwf_c
+
 contains
 
 
@@ -1372,14 +1394,14 @@ contains
   END SUBROUTINE 
 
 
-  subroutine deallocate_abscalc_input(in)
-    use module_base
-    implicit none
-    type(input_variables) :: in
-
-    call f_free_ptr(in%Gabs_coeffs)
-
-  END SUBROUTINE deallocate_abscalc_input
+!!$  subroutine deallocate_abscalc_input(in)
+!!$    use module_base
+!!$    implicit none
+!!$    type(input_variables) :: in
+!!$
+!!$    call f_free_ptr(in%Gabs_coeffs)
+!!$
+!!$  END SUBROUTINE deallocate_abscalc_input
 
 
   !> De-Allocate orbitals data structure, except eval pointer
@@ -1601,23 +1623,6 @@ contains
   end subroutine deallocate_rho_descriptors
 
 
-
-  !> Deallocate lr (obsolete)
-  !! @todo Remove this function.
-  subroutine deallocate_lr(lr)
-    use module_base
-    type(locreg_descriptors) :: lr
-!    integer :: i_all,i_stat
-
-    write(0,*) "deallocate_lr : TODO, remove me"
-    
-    call deallocate_wfd(lr%wfd)
-
-    call deallocate_bounds(lr%geocode,lr%hybrid_on,lr%bounds)
-
-  END SUBROUTINE deallocate_lr
-
-
   subroutine deallocate_Lzd(Lzd)
     use module_base
     !Arguments
@@ -1666,8 +1671,9 @@ contains
 !!$   nullify(Lzd%Gnlpspd%nboxp_f)
  
 !Now destroy the Llr
-    do ilr = 1, Lzd%nlr 
-       call deallocate_lr(Lzd%Llr(ilr))
+    do ilr = 1, Lzd%nlr
+       call deallocate_locreg_descriptors(Lzd%Llr(ilr))
+       !call deallocate_lr(Lzd%Llr(ilr))
 !       call deallocate_Lnlpspd(Lzd%Lnlpspd(ilr),subname)
     end do
      nullify(Lzd%Llr)
@@ -2058,12 +2064,8 @@ contains
     !write(std_out,*) "cprj_free ndim = ", n1dim, n2dim
     do jj=1,n2dim
       do ii=1,n1dim
-        if (associated(cprj(ii,jj)%cp))  then
-          call f_free_ptr(cprj(ii, jj)%cp)
-        end if
-        if (associated(cprj(ii,jj)%dcp))  then
-          call f_free_ptr(cprj(ii, jj)%dcp)
-        end if
+         call f_free_ptr(cprj(ii, jj)%cp)
+         call f_free_ptr(cprj(ii, jj)%dcp)
       end do
     end do
   end subroutine cprj_clean
@@ -2096,15 +2098,15 @@ contains
  
         nn=nlmn(ii)
         cprj(ii,jj)%nlmn=nn
-        cprj(ii,jj)%cp = f_malloc_ptr((/ 2 , nn /),id='cprj(ii,jj)%cp')
+        cprj(ii,jj)%cp = f_malloc0_ptr((/ 2 , nn /),id='cprj(ii,jj)%cp')
    !    XG 080820 Was needed to get rid of problems with test paral#R with four procs
-        cprj(ii,jj)%cp=0.0_dp
+        !cprj(ii,jj)%cp=0.0_dp
    !    END XG 080820
  
         cprj(ii,jj)%ncpgr=ncpgr
         if (ncpgr>0) then
-          cprj(ii,jj)%dcp = f_malloc_ptr((/ 2 , ncpgr,  nn /),id='cprj(ii,jj)%cp')
-          cprj(ii,jj)%dcp=0.0_dp
+          cprj(ii,jj)%dcp = f_malloc0_ptr((/ 2 , ncpgr,  nn /),id='cprj(ii,jj)%cp')
+          !cprj(ii,jj)%dcp=0.0_dp
         end if
       end do
     end do

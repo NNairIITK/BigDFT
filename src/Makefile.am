@@ -46,7 +46,7 @@ subs_static_library = \
 out_static_library =  \
 	$(top_builddir)/PSolver/src/libPSolver-1.a \
 	$(top_builddir)/wrappers/libwrappers.a \
-	$(top_builddir)/flib/src/libflib.a
+	$(top_builddir)/flib/src/libflib-1.a
 if BUILD_DYNAMIC_LIBS
 bigdft_dynamic_library = libbigdft-1.so.@BIGDFT_MINOR_VERSION@.0.@BIGDFT_MICRO_VERSION@
 bigdft_soname_library = libbigdft-1.so.@BIGDFT_MINOR_VERSION@
@@ -343,7 +343,7 @@ lanczos.o : lanczos_interface.o
 
 xabsorber.o init/xabsorber.o : init/xabsorber.f90
 
-geometry.o bfgs.o sdcg.o: lbfgs.o
+geometry.o bfgs.o sdcg.o sbfgs.o: lbfgs.o
 
 initAndUtils.o linear/initAndUtils.o: linear/initAndUtils.f90 cleanup.o
 

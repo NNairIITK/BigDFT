@@ -45,6 +45,7 @@ real(gp) :: curv
 integer :: nat
 real(gp),allocatable :: rxyz(:,:),fxyz(:,:),rotforce(:,:),hess(:,:)
 real(gp) :: energy
+real(gp) :: fnoise
 integer :: i,j,info
 integer :: idum=0
 real(kind=4) :: tt,builtin_rand
@@ -89,6 +90,7 @@ real(gp),allocatable :: eval(:)
         call inputs_from_dict(inputs_opt, atoms, user_inputs)
         call dict_free(user_inputs)
         call init_global_output(outs, atoms%astruct%nat)
+        fdim=outs%fdim
         call init_restart_objects(bigdft_mpi%iproc,inputs_opt,atoms,rst)
         call run_objects_nullify(runObj)
         call run_objects_associate(runObj, inputs_opt, atoms, rst)
@@ -105,7 +107,7 @@ real(gp),allocatable :: eval(:)
         write(filename,'(a,i3.3)')'pos',ifile
         call deallocate_atomic_structure(atoms%astruct)
         call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
-        call init_global_output(outs, atoms%astruct%nat)
+        fdim=atoms%astruct%nat
         call print_logo_mhgps()
     elseif(efmethod=='AMBER')then
         iproc=0
@@ -114,7 +116,7 @@ real(gp),allocatable :: eval(:)
         write(filename,'(a,i3.3)')'pos',ifile
         call deallocate_atomic_structure(atoms%astruct)
         call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
-        call init_global_output(outs, atoms%astruct%nat)
+        fdim=atoms%astruct%nat
         !alanine stuff ......................START!>
           l_sat=5
           allocate(atomnamesdmy(1000))
@@ -242,8 +244,7 @@ real(gp),allocatable :: eval(:)
             call deallocate_atomic_structure(atoms%astruct)
             call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
             call vcopy(3 * atoms%astruct%nat,atoms%astruct%rxyz(1,1),1,rxyz(1,1), 1)
-            call vcopy(3 * atoms%astruct%nat,outs%fxyz(1,1),1,fxyz(1,1), 1)
-            call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,energy)
+!!            call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy)
 !!allocate(eval(3*atoms%astruct%nat))
 !!call cal_hessian_fd(iproc,atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,hess)
 !!        call DSYEV('V','L',3*atoms%astruct%nat,hess,3*atoms%astruct%nat,eval,WORK,LWORK,INFO)
@@ -255,38 +256,36 @@ real(gp),allocatable :: eval(:)
 !!        enddo
 !!        endif
 !!deallocate(eval)
-            rotforce=0.0_gp
-            if(random_minmode_guess)then
-                do i=1,atoms%astruct%nat
-                    minmode(1,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
-                    minmode(2,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
-                    minmode(3,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
-                enddo
-                call write_mode(atoms%astruct%nat,currDir//'/'//currFile//'_mode',minmode)
-            else
-                call read_mode(atoms%astruct%nat,currDir//'/'//currFile//'_mode',minmode)
-            endif
-            ec=0.0_gp
-        
-           call findsad(saddle_imode,atoms%astruct%nat,atoms%astruct%cell_dim,rcov,saddle_alpha0_trans,saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_trans,&
-           saddle_nit_rot,saddle_nhistx_trans,saddle_nhistx_rot,saddle_tolc,saddle_tolf,saddle_tightenfac,saddle_rmsdispl0,&
-           saddle_trustr,rxyz,energy,fxyz,minmode,saddle_fnrmtol,displ,ec,&
-           converged,atoms%astruct%atomnames,nbond,iconnect,saddle_alpha_stretch0,saddle_recompIfCurvPos,saddle_maxcurvrise,&
-           saddle_cutoffratio,saddle_alpha_rot_stretch0,rotforce)
-           if (iproc == 0) then
-               call write_atomic_file(currDir//'/'//currFile//'_final',&
-               energy,rxyz(1,1),ixyz_int,&
-               atoms,comment,forces=fxyz(1,1))
-               call write_mode(atoms%astruct%nat,currDir//'/'//currFile//'_mode_final',minmode,rotforce)
-           endif
-
-!call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
-!call minimizer_sbfgs(runObj,outs,nproc,iproc,1,ncount_bigdft,fail)
-!rxyz=atoms%astruct%rxyz
-!fxyz=outs%fxyz
-!call curvgrad(atoms%astruct%nat,atoms%astruct%cell_dim,1.d-3,rxyz,fxyz,minmode,curv,rotforce,1,ec)
-!rxyz=atoms%astruct%rxyz
-!fxyz=outs%fxyz
+!!!!!            rotforce=0.0_gp
+!!!!!            if(random_minmode_guess)then
+!!!!!                do i=1,atoms%astruct%nat
+!!!!!                    minmode(1,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+!!!!!                    minmode(2,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+!!!!!                    minmode(3,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+!!!!!                enddo
+!!!!!                call write_mode(atoms%astruct%nat,currDir//'/'//currFile//'_mode',minmode)
+!!!!!            else
+!!!!!                call read_mode(atoms%astruct%nat,currDir//'/'//currFile//'_mode',minmode)
+!!!!!            endif
+!!!!!            ec=0.0_gp
+!!!!!        
+!!!!!           call findsad(saddle_imode,atoms%astruct%nat,atoms%astruct%cell_dim,rcov,saddle_alpha0_trans,saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_trans,&
+!!!!!           saddle_nit_rot,saddle_nhistx_trans,saddle_nhistx_rot,saddle_tolc,saddle_tolf,saddle_tightenfac,saddle_rmsdispl0,&
+!!!!!           saddle_trustr,rxyz,energy,fxyz,minmode,saddle_fnrmtol,displ,ec,&
+!!!!!           converged,atoms%astruct%atomnames,nbond,iconnect,saddle_alpha_stretch0,saddle_recompIfCurvPos,saddle_maxcurvrise,&
+!!!!!           saddle_cutoffratio,saddle_alpha_rot_stretch0,rotforce)
+!!!!!           if (iproc == 0) then
+!!!!!               call write_atomic_file(currDir//'/'//currFile//'_final',&
+!!!!!               energy,rxyz(1,1),ixyz_int,&
+!!!!!               atoms,comment,forces=fxyz(1,1))
+!!!!!               call write_mode(atoms%astruct%nat,currDir//'/'//currFile//'_mode_final',minmode,rotforce)
+!!!!!           endif
+ec=1.0_gp
+call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy)
+call minimizer_sbfgs(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy,ec,converged)
+if(.not.converged)stop'minimizer_sbfgs not converged'
+call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy)
+write(*,*)'count,fnrm',int(ec),sqrt(sum(fxyz**2))
         enddo
     enddo
 
@@ -302,7 +301,7 @@ real(gp),allocatable :: eval(:)
 !            call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
 !            call vcopy(3 * atoms%astruct%nat,atoms%astruct%rxyz(1,1),1,rxyz(1,1), 1)
 !            call vcopy(3 * atoms%astruct%nat,outs%fxyz(1,1),1,fxyz(1,1), 1)
-!            call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,energy)
+!            call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy)
 ! 
 !            do i=1,atoms%astruct%nat
 !                minmode(1,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
@@ -335,7 +334,6 @@ real(gp),allocatable :: eval(:)
         call bigdft_finalize(ierr)
     elseif(efmethod=='LJ'.or.efmethod=='AMBER')then
         call deallocate_atoms_data(atoms)
-        call deallocate_global_output(outs)
     endif
 
     call f_free(work)
@@ -398,7 +396,7 @@ use module_energyandforces
     real(8) :: t1,t2,t3
     !real(8), allocatable, dimension(:,:) :: hess
     real(8), allocatable, dimension(:) :: tpos,grad,eval,work
-    real(8) :: h,rlarge,twelfth,twothird,etot,cmx,cmy,cmz,shift,dm,tt,s
+    real(8) :: h,rlarge,twelfth,twothird,etot,cmx,cmy,cmz,shift,dm,tt,s,fnoise
     integer :: i,j,k,lwork,info
 
     !allocate(hess(3*nat,3*nat))
@@ -429,26 +427,26 @@ use module_energyandforces
         enddo
         !-----------------------------------------
         tpos(i)=tpos(i)-2*h
-        call energyandforces(nat,alat,tpos,grad,etot)
+        call energyandforces(nat,alat,tpos,grad,fnoise,etot)
         do j=1,3*nat
             hess(j,i)=twelfth*grad(j)
         enddo
         !if(iproc==0) write(*,*) 'ALIREZA-6',i,iat
         !-----------------------------------------
         tpos(i)=tpos(i)+h
-        call energyandforces(nat,alat,tpos,grad,etot)
+        call energyandforces(nat,alat,tpos,grad,fnoise,etot)
         do j=1,3*nat
         hess(j,i)=hess(j,i)-twothird*grad(j)
         enddo
         !-----------------------------------------
         tpos(i)=tpos(i)+2*h
-        call energyandforces(nat,alat,tpos,grad,etot)
+        call energyandforces(nat,alat,tpos,grad,fnoise,etot)
         do j=1,3*nat
         hess(j,i)=hess(j,i)+twothird*grad(j)
         enddo
         !-----------------------------------------
         tpos(i)=tpos(i)+h
-        call energyandforces(nat,alat,tpos,grad,etot)
+        call energyandforces(nat,alat,tpos,grad,fnoise,etot)
         do j=1,3*nat
         hess(j,i)=hess(j,i)-twelfth*grad(j)
         !write(*,*) 'HESS ',j,i,hess(j,i)

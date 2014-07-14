@@ -770,7 +770,7 @@ contains
 
        !Detect the last character of the message
        lend=len_trim(message(lstart:))
-       if (lend+msg_lgt > streams(strm)%max_record_length) then
+       if (lend+msg_lgt+2 > streams(strm)%max_record_length) then
           !We have an error from buffer_string so we split it!
           !-1 to be less and -2 for the character '#'
           lend=streams(strm)%max_record_length-msg_lgt-2
@@ -782,13 +782,18 @@ contains
        end if
        call buffer_string(towrite,len(towrite),message(lstart:lstart+lend-1),msg_lgt)
 
+       !print *,'there',trim(towrite),lstart,lend
+       
+
        !Check if possible to hfill
        hmax = max(streams(strm)%max_record_length-ipos-len_trim(message)-3,0)
+       !print *,'hmax',hmax,streams(strm)%max_record_length,ipos,lmsg
        if (present(hfill) .and. hmax > 0) then
           !Fill with the given character and dump
           call dump(streams(strm),repeat(hfill,hmax)//' '//towrite(1:msg_lgt),advance=adv,event=COMMENT)
        else
           !Dump the string towrite into the stream
+          !print *,'dumping here',msg_lgt,towrite(1:msg_lgt)
           call dump(streams(strm),towrite(1:msg_lgt),advance=adv,event=COMMENT)
        end if
 
@@ -1505,7 +1510,7 @@ contains
     end if
 
     !standard writing,
-    !if (change_line) print *,'change_line',change_line,'prefix',prefix_lgt,msg_lgt,shift_lgt
+    !if (change_line)  print *,'change_line',change_line,'prefix',prefix_lgt,msg_lgt,shift_lgt
     extra_line=.false.
     if (change_line) then
        !first write prefix, if needed
@@ -1526,7 +1531,7 @@ contains
        if (prefix_lgt > 0)towrite(1:prefix_lgt)=prefix(1:prefix_lgt)
        towrite_lgt=prefix_lgt+msg_lgt+shift_lgt
     end if
-    !print *,'adv',trim(adv),towrite_lgt,icursor,change_line,msg_lgt
+    !print *,'adv',trim(adv),towrite_lgt,stream%icursor,extra_line,msg_lgt,towrite_lgt
     !here we should check whether the size of the string exceeds the maximum length
     if (towrite_lgt > 0) then
        if (towrite_lgt > stream%max_record_length) then
@@ -1541,7 +1546,8 @@ contains
        else
           if (extra_line) write(stream%unit,*)
           !write(*,fmt='(a,i0,a)',advance="no") '(indent_lgt ',indent_lgt,')'
-          write(stream%unit,'(a)',advance=trim(adv))repeat(' ',max(indent_lgt,0))//towrite(1:towrite_lgt)
+          write(stream%unit,'(a)',advance=trim(adv))&
+               repeat(' ',max(indent_lgt,0))//towrite(1:towrite_lgt)
        end if
     end if
 

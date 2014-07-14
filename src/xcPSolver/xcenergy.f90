@@ -11,7 +11,7 @@
 !> Calculate the array of the core density for the atom iat
 subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
      n1,n2,n3,n1i,n2i,n3i,i3s,n3d,rhocore) 
-  !n(c) use module_base
+  use module_defs, only: gp,dp,wp
   use module_types
   use yaml_output
   implicit none
@@ -29,17 +29,6 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   real(gp) :: x,y,z,r2,rhov,rhoc,chv,chc
   real(gp) :: charge_from_gaussians,spherical_gaussian_value
   real(gp) :: drhoc,drhov,drhodr2
-  !real(gp), dimension(:), allocatable :: rhovxp,rhocxp
-  !real(gp), dimension(:,:), allocatable :: rhovc,rhocc
-
-  !read the values of the gaussian for valence and core densities
-!!$  open(unit=79,file=filename,status='unknown')
-!!$  read(79,*)ngv
-!!$
-!!$  allocate(rhovxp((ngv*(ngv+1)/2)+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,rhovxp,'rhovxp',subname)
-!!$  allocate(rhovc((ngv*(ngv+1)/2),4+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,rhovc,'rhovc',subname)
 
   !find the correct position of the nlcc parameters
   call nlcc_start_position(ityp,atoms,ngv,ngc,islcc)
@@ -53,12 +42,6 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   end do
   chv=sqrt(2.0_gp*atan(1.0_gp))*chv
 
-  !read(79,*)ngc
-
-!!$  allocate(rhocxp((ngc*(ngc+1)/2)+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,rhocxp,'rhocxp',subname)
-!!$  allocate(rhocc((ngc*(ngc+1)/2),4+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,rhocc,'rhocc',subname)
   chc=0.0_gp
   do ig=1,(ngc*(ngc+1))/2
      ilcc=ilcc+1
@@ -175,19 +158,6 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
         end if
      enddo
   end if
-
-!!$  i_all=-product(shape(rhovxp))*kind(rhovxp)
-!!$  deallocate(rhovxp,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'rhovxp',subname)
-!!$  i_all=-product(shape(rhovc))*kind(rhovc)
-!!$  deallocate(rhovc,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'rhovc',subname)
-!!$  i_all=-product(shape(rhocxp))*kind(rhocxp)
-!!$  deallocate(rhocxp,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'rhocxp',subname)
-!!$  i_all=-product(shape(rhocc))*kind(rhocc)
-!!$  deallocate(rhocc,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'rhocc',subname)
   
 END SUBROUTINE calc_rhocore_iat
 
@@ -573,25 +543,25 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
   if (nproc > 1) then
      !allocate(energies_mpi(2+ndebug),stat=i_stat)
      !call memocc(i_stat,energies_mpi,'energies_mpi',subname)
-     energies_mpi = f_malloc(2,id='energies_mpi')
+     energies_mpi = f_malloc(4,id='energies_mpi')
 
      energies_mpi(1)=eexcuLOC
      energies_mpi(2)=vexcuLOC
-     call mpiallred(energies_mpi(1),2,MPI_SUM,mpi_comm)
-     exc=energies_mpi(1)
-     vxc=energies_mpi(2)
+     call mpiallred(energies_mpi(1), 2,MPI_SUM,mpi_comm,recvbuf=energies_mpi(3))
+     exc=energies_mpi(3)
+     vxc=energies_mpi(4)
 
 !XC-stress term
   if (geocode == 'P') then
 
         if (associated(rhocore)) then
         call calc_rhocstr(rhocstr,nxc,nxt,m1,m3,i3xcsh_fake,nspin,potxc,rhocore)
-        call mpiallred(rhocstr(1),6,MPI_SUM,mpi_comm)
+        call mpiallred(rhocstr,MPI_SUM,mpi_comm)
         rhocstr=rhocstr/real(n01*n02*n03,dp)
         end if
 
      xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/hx/hy/hz
-     call mpiallred(wbstr(1),6,MPI_SUM,mpi_comm)
+     call mpiallred(wbstr,MPI_SUM,mpi_comm)
      wbstr=wbstr/real(n01*n02*n03,dp)
      xcstr(:)=xcstr(:)+wbstr(:)+rhocstr(:)
   end if
