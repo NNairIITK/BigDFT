@@ -25,19 +25,19 @@ program yaml_test
 !!$   call yaml_comment('CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC')
 !!$   call yaml_comment('DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD')
 
-   parser=yaml_cl_parse_null()
-   !set valid options
-   call yaml_cl_parse_option(parser,'test','1',&
-        'this is a valid test option','t',&
-        dict_new('Test' .is. 'long help'))
-
-   !verify the parsing
-   call yaml_cl_parse_cmd_line(parser)
-
-   call yaml_map('Parsed options',parser%options)
-   call yaml_map('Parsed info',parser%args)
-
-   call yaml_cl_parse_free(parser)
+!!$   parser=yaml_cl_parse_null()
+!!$   !set valid options
+!!$   call yaml_cl_parse_option(parser,'test','1',&
+!!$        'this is a valid test option','t',&
+!!$        dict_new('Test' .is. 'long help'))
+!!$
+!!$   !verify the parsing
+!!$   call yaml_cl_parse_cmd_line(parser)
+!!$
+!!$   call yaml_map('Parsed options',parser%options)
+!!$   call yaml_map('Parsed info',parser%args)
+!!$
+!!$   call yaml_cl_parse_free(parser)
 
 
    !call profile_dictionary_usage()
