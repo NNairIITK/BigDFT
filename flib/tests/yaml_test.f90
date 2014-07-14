@@ -41,8 +41,8 @@ program yaml_test
 
 
    !call profile_dictionary_usage()
-   call f_lib_finalize()
-   stop
+!!$   call f_lib_finalize()
+!!$   stop
 
    !First document  
    call yaml_new_document()
