@@ -1143,7 +1143,7 @@ program WaCo
      call f_free(ham)
   end if
   call f_free(wann_list)
-  call deallocate_lr(Glr)
+  call deallocate_locreg_descriptors(Glr)
   call deallocate_orbs(orbs)
   !call deallocate_atoms_scf(atoms,subname)
   call deallocate_atoms_data(atoms)
@@ -1463,6 +1463,7 @@ end subroutine read_inter_header
 
 
 subroutine read_umn(iproc,nwann,nband,seedname,umn)
+  use module_defs, only: gp
    use module_types
    use yaml_output
    implicit none
@@ -1533,6 +1534,7 @@ end subroutine read_umn
 
 
 subroutine read_centers(iproc,nwann,plotwann,natom,seedname,wann_list,cxyz,rxyz_wann,readsprd,sprd)
+  use module_defs, only :gp
    use module_types
    use yaml_output
    implicit none
@@ -1642,6 +1644,7 @@ end subroutine read_nrpts_hamiltonian
 
 
 subroutine read_hamiltonian(iproc,nrpts,nwann,seedname,ham)
+  use module_defs, only :gp
    use module_types
    use yaml_output
    implicit none
@@ -1691,6 +1694,7 @@ subroutine read_hamiltonian(iproc,nrpts,nwann,seedname,ham)
 end subroutine read_hamiltonian
 
 subroutine write_wannier_cube(ifile,filename,atoms,Glr,input,rxyz,wannr)
+  use module_defs, only: gp,dp
    use module_types
    implicit none
    character(len=*), intent(in) :: filename
@@ -2069,6 +2073,7 @@ subroutine stereographic_projection(mode,natom, rxyz, refpos, CM, rad, proj, nor
 end subroutine stereographic_projection
 
 subroutine write_stereographic_projection(unitnumb, filename, atoms, proj, NeglectPoint)
+  use module_defs, only: gp
    use module_types
    implicit none
    integer, intent(in) :: unitnumb
@@ -2101,6 +2106,7 @@ subroutine write_stereographic_projection(unitnumb, filename, atoms, proj, Negle
 end subroutine write_stereographic_projection
 
 subroutine shift_stereographic_projection(nwann,wannr,natom,rxyz)
+  use module_defs, only: gp
    use module_types
    implicit none
 
@@ -2132,6 +2138,7 @@ end subroutine shift_stereographic_projection
 
 subroutine build_stereographic_graph_facets(natoms,nsurf, mcenters,maxbond,rxyz,ncenters,Zatoms,nfacets,facets,vertex)
    use module_interfaces
+   use module_defs, only: gp,dp
    use module_types
    implicit none
    integer, intent(in) :: natoms, nsurf,mcenters
@@ -2173,6 +2180,7 @@ subroutine build_stereographic_graph_facets(natoms,nsurf, mcenters,maxbond,rxyz,
 end subroutine build_stereographic_graph_facets
 
 subroutine output_stereographic_graph(natoms,mcenters,proj,projC,nsurf,ncenters,Zatoms,npoly,poly,vertex,normal,NeglectPoint) 
+  use module_defs, only: gp,dp
    use module_types
    implicit none
    integer, intent(in) :: natoms, mcenters, nsurf, NeglectPoint
@@ -2303,6 +2311,7 @@ subroutine output_stereographic_graph(natoms,mcenters,proj,projC,nsurf,ncenters,
 end subroutine output_stereographic_graph
 
 subroutine wannier_dos(filename,nrpts,nwann,ntypes,wtypes,diag)
+  use module_defs, only :gp,dp
 use module_types
 implicit none
 character(len=*), intent(in) :: filename
@@ -2379,6 +2388,7 @@ close(unit=22)
 end subroutine wannier_dos
 
 subroutine wannier_projected_dos(filename,nrpts,nwann,norb,umn,ntypes,wtypes,eigen)
+  use module_defs, only: gp,dp
 use module_types
 implicit none
 character(len=*), intent(in) :: filename
@@ -2462,6 +2472,7 @@ close(unit=22)
 end subroutine wannier_projected_dos
 
 subroutine read_eigenvalues(filename,norb,nkpt,eigen)
+  use module_defs, only :gp
 use module_types
 implicit none
 character(len=*), intent(in) :: filename
@@ -2514,6 +2525,7 @@ close(unit=22)
 end subroutine read_amn_header
 
 subroutine read_amn(filename,amn,nproj,nband,nkpt)
+  use module_defs, only :gp
 use module_types
 use module_interfaces
 implicit none
@@ -2833,6 +2845,7 @@ END SUBROUTINE read_spread_file
 
 
 subroutine get_mindist(geocode,rxyz,cxyz,box,distw)
+  use module_defs, only :gp
    use module_types
    implicit none
    character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode

@@ -789,7 +789,8 @@ module communications
  
     subroutine start_onesided_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, recvbuf, comm, lzd)
       use module_base
-      use module_types, only: p2pComms, local_zone_descriptors
+      use module_types, only: local_zone_descriptors
+      use communications_base, only: p2pComms
       implicit none
       
       ! Calling arguments
@@ -874,7 +875,7 @@ module communications
     
     subroutine synchronize_onesided_communication(iproc, nproc, comm)
       use module_base
-      use module_types, only: p2pComms
+      use communications_base, only: p2pComms
       implicit none
       
       ! Calling arguments
@@ -1361,8 +1362,8 @@ end module communications
 
 
 subroutine switch_waves_v(nproc,orbs,nvctr,nvctr_par,psi,psiw)
-  !n(c) use module_base
-  use module_types
+  use module_defs, only: wp
+  use module_types, only: orbitals_data
   implicit none
   integer, intent(in) :: nproc,nvctr
   type(orbitals_data), intent(in) :: orbs
@@ -1449,8 +1450,8 @@ END SUBROUTINE switch_waves_v
 
 
 subroutine unswitch_waves_v(nproc,orbs,nvctr,nvctr_par,psiw,psi)
-  !n(c) use module_base
-  use module_types
+  use module_defs, only: wp
+  use module_types, only: orbitals_data
   implicit none
   integer, intent(in) :: nproc,nvctr
   type(orbitals_data), intent(in) :: orbs
@@ -1628,6 +1629,7 @@ subroutine toglobal_and_transpose(iproc,nproc,orbs,Lzd,comms,psi,&
      work,outadd) !optional
   use module_base
   use module_types
+  use communications_base, only: comms_cubic
   use communications, only: transpose_v
   implicit none
   integer, intent(in) :: iproc,nproc

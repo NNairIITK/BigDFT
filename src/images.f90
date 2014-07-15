@@ -928,6 +928,7 @@ END SUBROUTINE image_update_pos
 
 subroutine image_update_pos_from_file(img, iteration, filem1, filep1, km1, kp1, climbing, neb)
   use Minimization_routines
+  use module_base
   use module_types
   use module_images
   use module_atoms, only: set_astruct_from_file,deallocate_atomic_structure,nullify_atomic_structure
@@ -1009,6 +1010,7 @@ END SUBROUTINE image_update_pos_from_file
 
 subroutine image_calculate(img, iteration, id)
   use yaml_output
+  use module_base, only: bigdft_mpi
   use module_types
   use module_images
   use module_interfaces, only: write_atomic_file
@@ -1141,6 +1143,7 @@ END SUBROUTINE image_free
 
 subroutine image_get_attributes(img, error, F, id)
   use module_images
+  use module_defs, only: gp
   use module_types
   implicit none
 

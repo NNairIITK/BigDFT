@@ -10,7 +10,7 @@
 
 !> BFGS driver routine
 subroutine bfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft)
-    !n(c) use module_base
+  use module_base
     use module_types
     use module_interfaces
     use yaml_output
@@ -121,7 +121,7 @@ END SUBROUTINE bfgsdriver
 
 !> Initialize the Hessian for BFGS method
 subroutine inithess(iproc,nr,nat,rat,atoms,hess)
-
+  use module_base
    use module_types
    use yaml_output
    implicit none

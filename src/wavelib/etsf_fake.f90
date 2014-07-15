@@ -11,6 +11,7 @@
 !> Write a field in the ISF basis in the ETSF format
 subroutine write_etsf_density(filename,message,at,rxyz,n1i,n2i,n3i,hxh,hyh,hzh,x)
   !n(c) use module_base
+  use module_defs, only: gp,wp
   use module_types
 
   implicit none

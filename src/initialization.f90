@@ -79,6 +79,7 @@ END SUBROUTINE run_objects_free_container
 
 !> Read all input files and create the objects to run BigDFT
 subroutine run_objects_init_from_files(runObj, radical, posinp)
+  use module_base, only: bigdft_mpi,dict_init
   use module_types
   use module_input_dicts, only: user_dict_from_files
   implicit none
@@ -123,6 +124,7 @@ END SUBROUTINE run_objects_update
 
 !> Parse the input dictiionary and create all run_objects
 subroutine run_objects_parse(runObj)
+  use module_base, only: bigdft_mpi
   use module_types
   use module_interfaces, only: atoms_new, inputs_new, inputs_from_dict, create_log_file
   use dynamic_memory
@@ -162,9 +164,7 @@ subroutine run_objects_parse(runObj)
   call restart_objects_set_mat_acc(runObj%rst, bigdft_mpi%iproc, runObj%inputs%matacc)
 
   ! Generate radii
-  if (associated(runObj%radii_cf)) then
-     call f_free_ptr(runObj%radii_cf)
-  end if
+  call f_free_ptr(runObj%radii_cf)
 
   runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /), id="runObj%radii_cf")
   call read_radii_variables(runObj%atoms, runObj%radii_cf, &
@@ -175,6 +175,7 @@ END SUBROUTINE run_objects_parse
 
 !> Associate to the structure run_objects, the input_variable structure and the atomic positions (atoms_data)
 subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
+  use module_base
   use module_types
   implicit none
   type(run_objects), intent(out) :: runObj
@@ -198,6 +199,7 @@ END SUBROUTINE run_objects_associate
 
 
 subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
+  use module_base, only: gp,f_memcpy
   use module_types
   use module_fragments
   use module_interfaces, only: system_initialization
@@ -218,7 +220,8 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
   ! Copy rxyz since system_size() will shift them.
 !!$  allocate(rxyz(3,runObj%atoms%astruct%nat+ndebug),stat=i_stat)
 !!$  call memocc(i_stat,rxyz,'rxyz',subname)
-  call vcopy(3 * runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1, rxyz(1,1), 1)
+  call f_memcpy(src=runObj%atoms%astruct%rxyz,dest=rxyz)
+  !call vcopy(3 * runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1, rxyz(1,1), 1)
 
   call system_initialization(iproc, nproc, .true., inputpsi, input_wf_format, .true., &
        & runObj%inputs, runObj%atoms, rxyz, runObj%rst%GPU%OCLconv, runObj%rst%KSwfn%orbs, &
@@ -232,9 +235,6 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
        & runObj%inputs%nspin,runObj%inputs%itrpmax,runObj%inputs%iscf,mem)
 
   ! De-allocations
-!!$  i_all=-product(shape(rxyz))*kind(rxyz)
-!!$  deallocate(rxyz,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'rxyz',subname)
   call deallocate_Lzd_except_Glr(runObj%rst%KSwfn%Lzd)
   call deallocate_comms(runObj%rst%KSwfn%comms)
   call deallocate_orbs(runObj%rst%KSwfn%orbs)
@@ -338,6 +338,7 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
   !local variables
   integer :: iconv,iblas,initerror,ierror,useGPU,mproc,ierr,nproc_node
   logical :: noaccel
+  integer(kind=8) :: context_address
 
   noaccel = .true.
   if (matacc%iacceleration == 1) then
@@ -390,7 +391,10 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
      call init_acceleration_OCL(matacc,GPU)
      !   end if
      !end do
-     if (GPU%context /= 0.) then
+     !to avoid a representation of the address which is lower than tiny(1.d0)
+     context_address=transfer(GPU%context,context_address)
+     !if (GPU%context /= 0.) then
+     if (context_address /= int(0,kind=8)) then
         GPU%ndevices=min(GPU%ndevices,nproc_node)
         if (iproc == 0) then
            call yaml_map('Material acceleration','OpenCL',advance='no')

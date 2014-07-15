@@ -23,6 +23,7 @@ program memguess
    use internal_coordinates
    use gaussians, only: gaussian_basis, deallocate_gwf
    use communications_base, only: deallocate_comms
+   use psp_projectors, only: free_DFT_PSP_projectors
    implicit none
    character(len=*), parameter :: subname='memguess'
    character(len=30) :: tatonam, radical

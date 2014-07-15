@@ -292,6 +292,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
   use module_types
   use module_xc
   use ao_inguess, only: atomic_info
+  use locregs, only: locreg_null
   implicit none
 
   integer, intent(in) :: iproc,nproc,nspin
@@ -423,6 +424,7 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
   use module_types
   use module_xc
   use ao_inguess, only: atomic_info
+  use locregs, only: locreg_null
   implicit none
 
   integer, intent(in) :: iproc,nproc,nspin
@@ -668,6 +670,7 @@ subroutine lzd_init_llr(iproc, nproc, input, astruct, rxyz, orbs, lzd)
   use module_base
   use module_types
   use module_interfaces
+  use locregs, only: locreg_null
   implicit none
   
   ! Calling arguments
@@ -739,6 +742,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
   use communications_init, only: init_comms_linear, init_comms_linear_sumrho, &
                                  initialize_communication_potential
   use foe_base, only: foe_data, foe_data_null
+  use locregs, only: locreg_null
   implicit none
   
   ! Calling arguments
@@ -1905,6 +1909,7 @@ end subroutine init_sparse_matrix_wrapper
 
 !> Initializes a sparse matrix type compatible with the ditribution of the KS orbitals
 subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat, smat_extra)
+  use module_base
   use module_types
   use module_interfaces
   use sparsematrix_base, only: sparse_matrix

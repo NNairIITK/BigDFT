@@ -59,7 +59,7 @@ end subroutine copy_tmbs
 
 subroutine copy_convolutions_bounds(geocode,boundsin, boundsout, subname)
   use module_base
-  use module_types
+  use locregs
   implicit none
   
   ! Calling arguments
@@ -101,7 +101,7 @@ end subroutine copy_convolutions_bounds
 
 subroutine copy_kinetic_bounds(geocode,kbin, kbout, subname)
 use module_base
-use module_types
+use locregs
 implicit none
 
 ! Calling arguments
@@ -247,7 +247,7 @@ end subroutine copy_kinetic_bounds
 
 subroutine copy_shrink_bounds(geocode, sbin, sbout, subname)
 use module_base
-use module_types
+use locregs
 implicit none
 
 ! Calling arguments
@@ -373,7 +373,7 @@ end subroutine copy_shrink_bounds
 
 subroutine copy_grow_bounds(geocode, gbin, gbout, subname)
 use module_base
-use module_types
+use locregs
 implicit none
 
 ! Calling arguments
@@ -494,7 +494,8 @@ end subroutine copy_grow_bounds
 
 subroutine copy_orbitals_data(orbsin, orbsout, subname)
 use module_base
-use module_types
+use module_types, only: orbitals_data
+
 implicit none
 
 ! Calling arguments

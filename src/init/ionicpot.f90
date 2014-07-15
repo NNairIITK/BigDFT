@@ -524,6 +524,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
 !  use module_interfaces, except_this_one => createIonicPotential
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use psp_projectors, only: PSPCODE_PAW
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i

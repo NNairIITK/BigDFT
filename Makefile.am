@@ -16,10 +16,11 @@ SUBDIRS += yaml-0.1.4
 endif
 
 # Low level libraries provided by BigDFT team.
-SUBDIRS += \
-	flib \
-	wrappers \
-	PSolver
+SUBDIRS += flib
+
+if BUILD_LIB_PSOLVER
+SUBDIRS += wrappers PSolver
+endif
 
 if BUILD_LIB_BIGDFT
 # All BigDFT dependencies.
