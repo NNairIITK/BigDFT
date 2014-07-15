@@ -63,25 +63,25 @@ contains
         integer, parameter :: u=237
         character(17), parameter :: filename='mhgps.inp_default'
         open(u,file=filename)
-            write(u,'(xi0.0,xa)')mhgps_verbosity,' #mhgps_verbosity'
-            write(u,'(xL,xL,xa)')saddle_connect,random_minmode_guess, ' #connect, random_minmode_guess'
-            write(u,'(xa,xa)')trim(adjustl(efmethod)),' #efmethod'
-            write(u,'(xL,xa)')saddle_biomode,' #biomode'
-            write(u,'(xi0,xi0,xa)')saddle_nit_trans, saddle_nit_rot,'  #nit_trans, not_rot'
-            write(u,'(xi0,xi0,xa)')saddle_nhistx_trans, saddle_nhistx_rot,' #nhistx_trans, nhistx_rot'
-            write(u,'(es10.3,xa)')saddle_fnrmtol,' #fnrm tolerence convergence criterion for saddle point'
+            write(u,'(1x,i0.0,1x,a)')mhgps_verbosity,' #mhgps_verbosity'
+            write(u,'(1x,L,1x,L,1x,a)')saddle_connect,random_minmode_guess, ' #connect, random_minmode_guess'
+            write(u,'(1x,a,1x,a)')trim(adjustl(efmethod)),' #efmethod'
+            write(u,'(1x,L,1x,a)')saddle_biomode,' #biomode'
+            write(u,'(1x,i0,1x,i0,1x,a)')saddle_nit_trans, saddle_nit_rot,'  #nit_trans, not_rot'
+            write(u,'(1x,i0,1x,i0,1x,a)')saddle_nhistx_trans, saddle_nhistx_rot,' #nhistx_trans, nhistx_rot'
+            write(u,'(es10.3,1x,a)')saddle_fnrmtol,' #fnrm tolerence convergence criterion for saddle point'
             if(saddle_biomode)then
-                write(u,'(es10.3,3(xes10.3),a)')saddle_alpha0_trans, saddle_alpha0_rot, saddle_alpha_stretch0, saddle_alpha_rot_stretch0,' #alpha0_trans, alpha0_rot, alpha_stretch0, alpha_rot_stretch0'
+                write(u,'(es10.3,3(1x,es10.3),a)')saddle_alpha0_trans, saddle_alpha0_rot, saddle_alpha_stretch0, saddle_alpha_rot_stretch0,' #alpha0_trans, alpha0_rot, alpha_stretch0, alpha_rot_stretch0'
             else
-                write(u,'(es10.3,xes10.3,a)')saddle_alpha0_trans, saddle_alpha0_rot,' #alpha0_trans, alpha0_rot'
+                write(u,'(es10.3,1x,es10.3,a)')saddle_alpha0_trans, saddle_alpha0_rot,' #alpha0_trans, alpha0_rot'
             endif
-            write(u,'(es10.3,xa)')saddle_curvgraddiff,' #curvgraddif'
-            write(u,'(es10.3,xes10.3,xa)')saddle_rmsdispl0,saddle_trustr,' #rmsdispl0, trustr'
-            write(u,'(es10.3,xes10.3,xa)')saddle_tolc,saddle_tolf,' #tolc, tolf'
-            write(u,'(es10.3,xa)')saddle_tightenfac,' #tightenfac'
-            write(u,'(es10.3,xa)')saddle_maxcurvrise,' #maxcurvrise'
-            write(u,'(es10.3,xa)')saddle_cutoffratio,' #cutoffratio'
-            write(u,'(xi0,xa)')saddle_recompIfCurvPos,' #recompIfCurvPos'
+            write(u,'(es10.3,1x,a)')saddle_curvgraddiff,' #curvgraddif'
+            write(u,'(es10.3,1x,es10.3,1x,a)')saddle_rmsdispl0,saddle_trustr,' #rmsdispl0, trustr'
+            write(u,'(es10.3,1x.es10.3,1x,a)')saddle_tolc,saddle_tolf,' #tolc, tolf'
+            write(u,'(es10.3,1x,a)')saddle_tightenfac,' #tightenfac'
+            write(u,'(es10.3,1x,a)')saddle_maxcurvrise,' #maxcurvrise'
+            write(u,'(es10.3,1x,a)')saddle_cutoffratio,' #cutoffratio'
+            write(u,'(1x,i0,1x,a)')saddle_recompIfCurvPos,' #recompIfCurvPos'
         close(u)
     end subroutine
     subroutine print_input()

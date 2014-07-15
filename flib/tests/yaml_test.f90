@@ -35,15 +35,12 @@ program yaml_test
 !!$   call yaml_cl_parse_cmd_line(parser)
 !!$
 !!$   call yaml_map('Parsed options',parser%options)
-!!$   call yaml_map('Parsed info',parser%parse)
-!!$
-!!$   call yaml_dict_dump(parser%parse,verbatim=.true.,flow=.true.)
-!!$   call yaml_dict_dump(parser%parse,flow=.true.)
+!!$   call yaml_map('Parsed info',parser%args)
 !!$
 !!$   call yaml_cl_parse_free(parser)
-!!$
-!!$
-!!$   !call profile_dictionary_usage()
+
+
+   !call profile_dictionary_usage()
 !!$   call f_lib_finalize()
 !!$   stop
 

@@ -166,7 +166,7 @@ module dictionaries
    public :: f_loc,f_get_past_error,f_get_no_of_errors
 
    !for internal f_lib usage
-   public :: dictionaries_errors
+   public :: dictionaries_errors,TYPE_DICT,TYPE_LIST
 
 
 contains

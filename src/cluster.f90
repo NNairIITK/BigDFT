@@ -1105,6 +1105,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
         !define Local zone descriptors
         VTwfn%Lzd = KSwfn%Lzd
         VTwfn%orthpar=KSwfn%orthpar
+        VTwfn%SIC=SIC_data_null() !then fill it if needed
         allocate(VTwfn%confdatarr(VTwfn%orbs%norbp))
         call default_confinement_data(VTwfn%confdatarr,VTwfn%orbs%norbp)
 

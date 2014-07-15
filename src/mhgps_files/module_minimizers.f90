@@ -214,7 +214,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,atomnames,nbond,iconnect,rxyzio,fxyzio
        write(cdmy9_2,'(es9.2)')abs(displp)
        write(cdmy9_3,'(es9.2)')abs(beta)
 
-       write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,xa4,i3.3,xa5,a7,2(xa6,a8))') &
+       write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a8))') &
        int(energycounter),0,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*mini_frac_fluct,fluct, &
        'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy9_1)),'dsplp=',trim(adjustl(cdmy9_2))
    endif
@@ -267,8 +267,8 @@ subroutine minimizer_sbfgs(imode,nat,alat,atomnames,nbond,iconnect,rxyzio,fxyzio
       !trust radius approach: avoids too large steps due to large forces
       !only used when in steepest decent mode
       if(maxd>trustr .and. steep)then
-         if(debug.and.iproc==0)write(100,'(a,xes24.17,xi0)')'step too large',maxd,it
-         if(iproc==0)write(16,'(a,2(xes9.2))')'WARNING GEOPT_SBFGS: step too large: maxd, trustradius ',maxd,trustr
+         if(debug.and.iproc==0)write(100,'(a,1x,es24.17,1x,i0)')'step too large',maxd,it
+         if(iproc==0)write(16,'(a,2(1x,es9.2))')'WARNING GEOPT_SBFGS: step too large: maxd, trustradius ',maxd,trustr
          scl=0.50_gp*trustr/maxd
          dd=dd*scl
          tt=tt*scl
@@ -300,7 +300,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,atomnames,nbond,iconnect,rxyzio,fxyzio
       detot=etotp-etotold
       energycounter=energycounter+1.0_gp
 
-      if(debug.and.iproc==0)write(100,'(a,i6,2(1x,e21.14),1x,5(1x,e10.3),xi0)')&
+      if(debug.and.iproc==0)write(100,'(a,i6,2(1x,e21.14),1x,5(1x,e10.3),1x,i0)')&
             'SBFGS it,etot,etotold,Detot,fnrm,fnrmp/fnrm,dnrm/fnrm,beta,ndim',&
              it-1,etotp,etotold,detot,fnrm,sqrt(ts)/fnrm,sqrt(tt)/fnrm,beta,ndim
 
@@ -333,7 +333,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,atomnames,nbond,iconnect,rxyzio,fxyzio
             write(cdmy9_2,'(es9.2)')abs(displp)
             write(cdmy9_3,'(es9.2)')abs(beta)
    
-            write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,xa4,i3.3,xa5,a7,2(xa6,a8))') &
+            write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a8))') &
              int(energycounter),it,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*mini_frac_fluct,fluct, &
              'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy9_1)),'dsplp=',trim(adjustl(cdmy9_2))
             call yaml_mapping_open('Geometry')
@@ -398,7 +398,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,atomnames,nbond,iconnect,rxyzio,fxyzio
          write(cdmy9_2,'(es9.2)')abs(displp)
          write(cdmy9_3,'(es9.2)')abs(beta)
 
-         write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,xa4,i3.3,xa5,a7,2(xa6,a8))') &
+         write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a8))') &
           int(energycounter),it,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*mini_frac_fluct,fluct, &
           'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy9_1)),'dsplp=',trim(adjustl(cdmy9_2))
          call yaml_mapping_open('Geometry')
@@ -463,7 +463,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,atomnames,nbond,iconnect,rxyzio,fxyzio
 
    !if code gets here, it failed
    if(debug.and.iproc==0) write(100,*) it,etot,fnrm
-   if(iproc==0) write(16,'(a,3(xi0))') &
+   if(iproc==0) write(16,'(a,3(1x,i0))') &
        "WARNING GEOPT_SBFGS: SBFGS not converged: it,energycounter,ncount_cluster_x: ", &
        it,int(energycounter),mini_ncluster_x
 !   stop "No convergence "
@@ -472,7 +472,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,atomnames,nbond,iconnect,rxyzio,fxyzio
 
 1000 continue!converged successfully
    
-   if(iproc==0) write(16,'(2(a,xi0))') "SBFGS converged at iteration ",it,". Needed energy calls: ",int(energycounter)
+   if(iproc==0) write(16,'(2(a,1x,i0))') "SBFGS converged at iteration ",it,". Needed energy calls: ",int(energycounter)
    if(iproc==0)  call yaml_map('Iterations when SBFGS converged',it)
    converged=.true.
    

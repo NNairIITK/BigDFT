@@ -352,7 +352,7 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvforcediff,nit
                  dot_double(3*nat,dd0(1,1),1,dd0(1,1),1))
 
         if(iproc==0.and.mhgps_verbosity>=2)&
-            write(*,'(a,xi4.4,xi4.4,xes21.14,4(xes9.2),xi3.3,xes9.2)')&
+            write(*,'(a,xi4.4,xi4.4,1x,es21.14,4(1x,es9.2),xi3.3,1x,es9.2)')&
             '   (MHGPS) GEOPT ',nint(ener_count),it,etotp,detot,fmax,&
             fnrm, alpha,ndim!,maxd,
 
@@ -379,7 +379,7 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvforcediff,nit
 
             !trust radius approach
             if(maxd>trustr)then
-                if(iproc==0)write(*,'(a,es10.3,xi0,xes10.3)')&
+                if(iproc==0)write(*,'(a,es10.3,1x,i0,1x,es10.3)')&
                     '(MHGPS) hard direction step too large:maxd,it,alpha_stretch',&
                     maxd,it,alpha_stretch
                 scl=0.5_gp*trustr/maxd
@@ -685,7 +685,7 @@ subroutine opt_curv(imode,nat,alat,alpha0,curvforcediff,nit,nhistx,rxyz_fix,&
 !        &'CURV  it,curv,curvold,Dcurv,fnrm,alpha,alpha_stretch,ndim',&
 !        &it-1,curvp,curvold,dcurv,fnrm,alpha,alpha_stretch,ndim
 
-if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,xes21.14,4(xes9.2),xi3.3,xes9.2)')'   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch
+if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,1x,es21.14,4(1x,es9.2),xi3.3,1x,es9.2)')'   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch
 !HIER WEITER HIER WEITER: beautify output
 
         if (dcurv.gt.maxcurvrise .and. alpha>1.e-1_gp*alpha0) then 
@@ -706,7 +706,7 @@ if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,xes21.14,4(xes9.2),xi
             call mincurvforce(imode,nat,alat,curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist-1),&
                 rxyzraw(1,1,nhist-1),fxyz(1,1,nhist-1),fstretch(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
                 curvold,1,ener_count,iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
-if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,xes21.14,4(xes9.2),xi3.3,xes9.2)')'   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch
+if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,1x,es21.14,4(1x,es9.2),xi3.3,1x,es9.2)')'   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch
         endif
 
 !            if(.not.steep)then
@@ -873,7 +873,7 @@ use module_base
      ty=ty+(rxyz(3,iat)-cmz)*vxyz(1,iat)-(rxyz(1,iat)-cmx)*vxyz(3,iat)
      tz=tz+(rxyz(1,iat)-cmx)*vxyz(2,iat)-(rxyz(2,iat)-cmy)*vxyz(1,iat)
   enddo
-  write(*,'(a,3(xes9.2))')'torque',tx,ty,tz
+  write(*,'(a,3(1x,es9.2))')'torque',tx,ty,tz
 
 END SUBROUTINE torque
 

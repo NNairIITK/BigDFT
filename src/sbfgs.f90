@@ -264,8 +264,8 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
       !trust radius approach: avoids too large steps due to large forces
       !only used when in steepest decent mode
       if(maxd>trustr .and. steep)then
-         if(debug.and.iproc==0)write(100,'(a,xes24.17,xi0)')'step too large',maxd,it
-         if(iproc==0)write(16,'(a,2(xes9.2))')'WARNING GEOPT_SBFGS: step too large: maxd, trustradius ',maxd,trustr
+         if(debug.and.iproc==0)write(100,'(a,1x,es24.17,xi0)')'step too large',maxd,it
+         if(iproc==0)write(16,'(a,2(1x,es9.2))')'WARNING GEOPT_SBFGS: step too large: maxd, trustradius ',maxd,trustr
          scl=0.50_gp*trustr/maxd
          dd=dd*scl
          tt=tt*scl
@@ -312,7 +312,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 
       if (detot.gt.maxrise .and. beta > 1.e-1_gp*betax) then !
          if (debug.and.iproc==0) write(100,'(a,i0,1x,e9.2)') "WARN: it,detot", it,detot
-         if (debug.and.iproc==0) write(16,'(a,i0,4(xe9.2))') &
+         if (debug.and.iproc==0) write(16,'(a,i0,4(1x,e9.2))') &
              "WARNING GEOPT_SBFGS: Prevent energy to rise by more than maxrise: it,maxrise,detot,beta,1.e-1*betax ",&
              it,maxrise,detot,beta,1.e-1_gp*betax
          if (iproc==0.and.verbosity > 0) then
@@ -397,9 +397,9 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
       call copy_global_output(outs,outsIO)
 
       if(detot .gt. maxrise)then
-         if (iproc==0) write(16,'(a,i0,4(xe9.2))') &
-             "WARNING GEOPT_SBFGS: Allowed energy to rise by more than maxrise: it,maxrise,detot,beta,1.e-1*betax ",&
-             it,maxrise,detot,beta,1.e-1_gp*betax
+         if (iproc==0) write(16,'(a,i0,4(1x,e9.2))') &
+             "WARNING GEOPT_SBFGS: Allowed energy to rise by more than maxrise: it,maxrise,detot,beta,1.d-1*betax ",&
+             it,maxrise,detot,beta,1.d-1*betax
       endif
 
 
