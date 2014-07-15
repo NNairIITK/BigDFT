@@ -66,17 +66,17 @@ subroutine modify_gradient(nat,ndim,rrr,eval,res,fxyz,alpha,dd)
     enddo
 end subroutine
 
-subroutine getSubSpaceEvecEval(nat,nhist,nhistx,ndim,cutoffratio,lwork,work,rxyz,&
+subroutine getSubSpaceEvecEval(label,iproc,verbosity,nat,nhist,nhistx,ndim,cutoffratio,lwork,work,rxyz,&
                               &fxyz,aa,rr,ff,rrr,fff,eval,res,success)
     use module_base
-    use module_global_variables, only: iproc, mhgps_verbosity
     use yaml_output
     !hard-coded parameters:
     !threshold for linear dependency:
     !if (eval(idim)/eval(nhist).gt.1.e-4_gp) then
     implicit none
     !parameters
-    integer, intent(in) :: nat,nhist,nhistx,lwork
+    integer, intent(in) :: iproc,verbosity,nat,nhist,nhistx,lwork
+    character(len=*), intent(in) :: label
     integer, intent(out) :: ndim
     real(gp), intent(in) :: rxyz(3,nat,0:nhistx),fxyz(3,nat,0:nhistx)
     real(gp), intent(out) :: aa(nhistx,nhistx),eval(nhistx),work(lwork)
@@ -120,14 +120,14 @@ subroutine getSubSpaceEvecEval(nat,nhist,nhistx,ndim,cutoffratio,lwork,work,rxyz
 
     call dsyev('V',"L",nhist,aa,nhistx,eval,work,lwork,info)
     if (info.ne.0) then
-        call yaml_warning('(MHGPS) 1st DSYEV (Overlapmatrix) in getSupSpaceEvecEval failed with info: '&
+        call yaml_warning(trim(adjustl(label))//' 1st DSYEV (Overlapmatrix) in getSupSpaceEvecEval failed with info: '&
                           // trim(yaml_toa(info))//', iproc: '//trim(yaml_toa(iproc)))
         return
 !        stop 'info'
     endif
-    if(iproc==0 .and. mhgps_verbosity>=3)then
+    if(iproc==0 .and. verbosity>=3)then
         do i=1,nhist
-            call yaml_scalar('(MHGPS) Overlap eigenvalues: '//trim(yaml_toa(i))//' '//trim(yaml_toa(eval(i))))
+            call yaml_scalar(trim(adjustl(label))//' Overlap eigenvalues: '//trim(yaml_toa(i))//' '//trim(yaml_toa(eval(i))))
         enddo
     endif
 
@@ -182,7 +182,7 @@ subroutine getSubSpaceEvecEval(nat,nhist,nhistx,ndim,cutoffratio,lwork,work,rxyz
 
     call dsyev('V',"L",ndim,aa,nhistx,eval,work,lwork,info)
     if (info.ne.0) then
-        call yaml_warning('(MHGPS) 2nd DSYEV (subpsace hessian) in getSupSpaceEvecEval failed with info: '&
+        call yaml_warning(trim(adjustl(label))//' 2nd DSYEV (subpsace hessian) in getSupSpaceEvecEval failed with info: '&
                           // trim(yaml_toa(info))//', iproc:'//trim(yaml_toa(iproc)))
         return
 !        stop 'info'
@@ -215,22 +215,22 @@ subroutine getSubSpaceEvecEval(nat,nhist,nhistx,ndim,cutoffratio,lwork,work,rxyz
         enddo
         !residuue according to Weinstein criterion
         res(i)=sqrt(tt)
-        if(iproc==0 .and. mhgps_verbosity>=3)&
-            call yaml_scalar('(MHGPS) i, eigenvalue, residue: '&
+        if(iproc==0 .and. verbosity>=3)&
+            call yaml_scalar(trim(adjustl(label))//' i, eigenvalue, residue: '&
             //trim(yaml_toa(i))//' '//trim(yaml_toa(eval(i)))//&
             ' '//trim(yaml_toa(res(i))))
     enddo
     success=.true.
 end subroutine
 
-subroutine findbonds(nat,rcov,pos,nbond,iconnect)
+subroutine findbonds(label,iproc,verbosity,nat,rcov,pos,nbond,iconnect)
 !has to be called before findsad (if operating in biomolecule mode)
     use module_base
-    use module_global_variables, only: iproc, mhgps_verbosity
     use yaml_output
     implicit none
     !parameters
-    integer, intent(in) :: nat
+    integer, intent(in) :: iproc,verbosity,nat
+    character(len=*), intent(in) :: label
     real(gp), intent(in) :: rcov(nat)
     real(gp), intent(in) :: pos(3,nat)
     integer, intent(out) :: nbond
@@ -241,19 +241,24 @@ subroutine findbonds(nat,rcov,pos,nbond,iconnect)
     nbond=0
     do iat=1,nat
         do jat=1,iat-1
-            dist2=(pos(1,iat)-pos(1,jat))**2+(pos(2,iat)-pos(2,jat))**2+(pos(3,iat)-pos(3,jat))**2
+            dist2=(pos(1,iat)-pos(1,jat))**2+&
+                  (pos(2,iat)-pos(2,jat))**2+&
+                  (pos(3,iat)-pos(3,jat))**2
             if (dist2.le.(1.2_gp*(rcov(iat)+rcov(jat)))**2) then
                 nbond=nbond+1
-                if (nbond.gt.1000) stop 'nbond>1000'
+                if (nbond.gt.1000) stop 'nbond>1000, increase size of&
+                                         iconnect in routine which calls&
+                                         subroutine findbonds'
                 iconnect(1,nbond)=iat
                 iconnect(2,nbond)=jat
             endif
         enddo
     enddo
-    if(iproc==0.and.mhgps_verbosity>=2)call yaml_scalar('(MHGPS) Found'//trim(yaml_toa(nbond))//' bonds.')
+    if(iproc==0.and.verbosity>=2)call yaml_scalar(trim(adjustl(label))//&
+                                 ' Found'//trim(yaml_toa(nbond))//' bonds.')
 end subroutine
 
-subroutine projectbond(nat,nbond,rat,fat,fstretch,iconnect,atomnames,wold,alpha_stretch0,alpha_stretch)
+subroutine projectbond(nat,nbond,rat,fat,fstretch,iconnect,wold,alpha_stretch0,alpha_stretch)
     use module_base, only: gp
     implicit none
     integer, intent(in) :: nat
@@ -262,7 +267,6 @@ subroutine projectbond(nat,nbond,rat,fat,fstretch,iconnect,atomnames,wold,alpha_
     real(gp), intent(inout) :: fat(3,nat)
     real(gp), intent(inout) :: fstretch(3,nat)
     integer, intent(in) :: iconnect(2,nbond)
-    character(20), intent(in) :: atomnames(nat)
     real(gp), intent(inout) :: wold(nbond)
     real(gp), intent(in) :: alpha_stretch0
     real(gp), intent(inout) :: alpha_stretch
@@ -334,40 +338,5 @@ subroutine projectbond(nat,nbond,rat,fat,fstretch,iconnect,atomnames,wold,alpha_
 
 
 end subroutine
-subroutine minenergyandforces(eeval,imode,nat,alat,rat,rxyzraw,fat,fstretch,&
-           fxyzraw,epot,iconnect,nbond_,atomnames,wold,alpha_stretch0,alpha_stretch)
-    use module_base, only: gp
-    use module_energyandforces
-    implicit none
-    !parameter
-    integer, intent(in)           :: imode
-    integer, intent(in)           :: nat
-    integer, intent(in)           :: nbond_
-    integer, intent(in)           :: iconnect(2,nbond_)
-    character(len=20), intent(in) :: atomnames(nat)
-    real(gp), intent(in)          :: alat(3)
-    real(gp),intent(inout)           :: rat(3,nat)
-    real(gp),intent(out)          :: rxyzraw(3,nat)
-    real(gp),intent(out)          :: fxyzraw(3,nat)
-    real(gp),intent(inout)          :: fat(3,nat)
-    real(gp),intent(out)          :: fstretch(3,nat)
-    real(gp), intent(inout)       :: wold(nbond_)
-    real(gp), intent(in)          :: alpha_stretch0
-    real(gp), intent(inout)       :: alpha_stretch
-    real(gp), intent(inout)         :: epot
-    logical, intent(in)           :: eeval
-    !internal
-    real(gp) :: fnoise
-
-    rxyzraw=rat
-    if(eeval)call energyandforces(nat,alat,rat,fat,fnoise,epot)
-    fxyzraw=fat
-    fstretch=0.0_gp
-
-    if(imode==2)then
-        call projectbond(nat,nbond_,rat,fat,fstretch,iconnect,atomnames,wold,alpha_stretch0,alpha_stretch)
-    endif
-
-end subroutine minenergyandforces
 
 end module

@@ -11,7 +11,7 @@ contains
 subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvforcediff,nit_trans,&
     nit_rot,nhistx_trans,nhistx_rot,tolc,tolf,tightenfac,rmsdispl0,&
     trustr,wpos,etot,fout,minmode,fnrmtol,displ,ener_count,&
-    converged,atomnames,nbond,iconnect,alpha_stretch0,recompIfCurvPos,&
+    converged,nbond,iconnect,alpha_stretch0,recompIfCurvPos,&
     maxcurvrise,cutoffratio,alpha_rot_stretch0,rotforce)
     !imode=1 for clusters
     !imode=2 for biomolecules
@@ -65,7 +65,6 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvforcediff,nit
     real(gp), intent(inout)   :: displ
     real(gp), intent(inout)   :: ener_count
     logical, intent(out)      :: converged
-    character(20), intent(in) :: atomnames(nat)
     integer, intent(in)       :: nbond
     integer, intent(in)       :: iconnect(2,nbond)
     real(gp), intent(in)      :: alpha_stretch0
@@ -162,7 +161,7 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvforcediff,nit
 
     inputPsiId=0
     call minenergyandforces(.true.,imode,nat,alat,rxyz(1,1,0),rxyzraw(1,1,0),&
-    fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),etot,iconnect,nbond,atomnames,&
+    fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),etot,iconnect,nbond,&
     wold,alpha_stretch0,alpha_stretch)
     ener_count=ener_count+1.0_gp
     if(imode==2)rxyz(:,:,0)=rxyz(:,:,0)+alpha_stretch*fstretch(:,:,0)
@@ -257,7 +256,7 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvforcediff,nit
             call opt_curv(imode,nat,alat,alpha0_rot,curvforcediff,nit_rot,&
                           nhistx_rot,rxyzraw(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
                           minmode(1,1),curv,rotforce(1,1),tol,displ2,ener_count,&
-                          optCurvConv,iconnect,nbond,atomnames,alpha_rot_stretch0,&
+                          optCurvConv,iconnect,nbond,alpha_rot_stretch0,&
                           maxcurvrise,cutoffratio)
             inputPsiId=1
             minmode = minmode / dnrm2(3*nat,minmode(1,1),1)
@@ -327,7 +326,7 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvforcediff,nit
         inputPsiId=1
         call minenergyandforces(.true.,imode,nat,alat,rxyz(1,1,nhist),&
                 rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),&
-                fxyzraw(1,1,nhist),etotp,iconnect,nbond,atomnames,wold,&
+                fxyzraw(1,1,nhist),etotp,iconnect,nbond,wold,&
                 alpha_stretch0,alpha_stretch)
         ener_count=ener_count+1.0_gp
         detot=etotp-etotold
@@ -398,7 +397,8 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvforcediff,nit
             alpha=max(alpha*.85_gp,alpha0_trans)
         endif
 
-        call getSubSpaceEvecEval(nat,nhist,nhistx_trans,ndim,&
+        call getSubSpaceEvecEval('(MHGPS)',iproc,mhgps_verbosity,nat,&
+                nhist,nhistx_trans,ndim,&
                 cutoffratio,lwork,work,rxyz,fxyz,aa,rr,ff,rrr,fff,&
                 eval,res,subspaceSucc)
 
@@ -521,7 +521,7 @@ end subroutine
 
 subroutine opt_curv(imode,nat,alat,alpha0,curvforcediff,nit,nhistx,rxyz_fix,&
                     fxyz_fix,dxyzin,curv,fout,fnrmtol,displ,ener_count,&
-                    converged,iconnect,nbond,atomnames,alpha_stretch0,&
+                    converged,iconnect,nbond,alpha_stretch0,&
                     maxcurvrise,cutoffratio)!,mode)
     use module_base
     use yaml_output
@@ -554,7 +554,6 @@ subroutine opt_curv(imode,nat,alat,alpha0,curvforcediff,nit,nhistx,rxyz_fix,&
     integer, intent(in)        :: imode
     integer, intent(in)        :: nbond
     integer, intent(in)        :: iconnect(2,nbond)
-    character(len=20)          :: atomnames(nat)
     real(gp),intent(in)        :: alpha_stretch0
     real(gp), intent(in)       :: alat(3)
     real(gp), intent(in)       :: maxcurvrise,cutoffratio
@@ -594,7 +593,7 @@ subroutine opt_curv(imode,nat,alat,alpha0,curvforcediff,nit,nhistx,rxyz_fix,&
 !    ec=ec+1.0_gp
      call mincurvforce(imode,nat,alat,curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
           rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),curv,1,ener_count,&
-          iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
+          iconnect,nbond,wold,alpha_stretch0,alpha_stretch)
     if(imode==2)rxyz(:,:,nhist)=rxyz(:,:,nhist)+alpha_stretch*fstretch(:,:,nhist)
 !    t1=0.0_gp ; t2=0.0_gp ; t3=0.0_gp
 !    t1raw=0.0_gp ; t2raw=0.0_gp ; t3raw=0.0_gp
@@ -660,7 +659,7 @@ subroutine opt_curv(imode,nat,alat,alpha0,curvforcediff,nit,nhistx,rxyz_fix,&
 
      call mincurvforce(imode,nat,alat,curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
           rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),&
-          curvp,1,ener_count,iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
+          curvp,1,ener_count,iconnect,nbond,wold,alpha_stretch0,alpha_stretch)
         dcurv=curvp-curvold
 
 
@@ -705,7 +704,7 @@ if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,1x,es21.14,4(1x,es9.2
             inputPsiId=0
             call mincurvforce(imode,nat,alat,curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist-1),&
                 rxyzraw(1,1,nhist-1),fxyz(1,1,nhist-1),fstretch(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
-                curvold,1,ener_count,iconnect,nbond,atomnames,wold,alpha_stretch0,alpha_stretch)
+                curvold,1,ener_count,iconnect,nbond,wold,alpha_stretch0,alpha_stretch)
 if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,1x,es21.14,4(1x,es9.2),xi3.3,1x,es9.2)')'   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch
         endif
 
@@ -750,8 +749,9 @@ if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,1x,es21.14,4(1x,es9.2
         endif
 
 
-       call getSubSpaceEvecEval(nat,nhist,nhistx,ndim,cutoffratio,lwork,work,rxyz,&
-                              &fxyz,aa,rr,ff,rrr,fff,eval,res,subspaceSucc)
+       call getSubSpaceEvecEval('(MHGPS)',iproc,mhgps_verbosity,nat,nhist,&
+                              nhistx,ndim,cutoffratio,lwork,work,rxyz,&
+                              fxyz,aa,rr,ff,rrr,fff,eval,res,subspaceSucc)
        if(.not.subspaceSucc)stop 'subroutine findsad: no success in getSubSpaceEvecEval.'
         if (fnrm.le.fnrmtol) goto 1000 !has to be in this line for shared history case
     enddo
@@ -1529,7 +1529,7 @@ end subroutine fixfrag_posvel
 
 subroutine mincurvforce(imode,nat,alat,diff,rxyz1,fxyz1,vec,vecraw,&
            rotforce,rotfstretch,rotforceraw,curv,imethod,ec,&
-           iconnect,nbond_,atomnames,wold,alpha_stretch0,alpha_stretch)
+           iconnect,nbond_,wold,alpha_stretch0,alpha_stretch)
     use module_base, only: gp
     use module_sbfgs
     implicit none
@@ -1553,7 +1553,6 @@ subroutine mincurvforce(imode,nat,alat,diff,rxyz1,fxyz1,vec,vecraw,&
     real(gp), intent(in)     :: alpha_stretch0
     real(gp), intent(inout)  :: alpha_stretch
     integer,  intent(in)     :: iconnect(2,nbond_)
-    character(20), intent(in):: atomnames(nat)
     !internal
     real(gp) :: rxyz2(3,nat)
 
@@ -1565,10 +1564,47 @@ subroutine mincurvforce(imode,nat,alat,diff,rxyz1,fxyz1,vec,vecraw,&
      rotfstretch=0.0_gp
 
      if(imode==2)then
-         call projectbond(nat,nbond_,rxyz2,rotforce,rotfstretch,iconnect,atomnames,wold,alpha_stretch0,alpha_stretch)
+         call projectbond(nat,nbond_,rxyz2,rotforce,rotfstretch,iconnect,wold,alpha_stretch0,alpha_stretch)
      endif
 
 end subroutine mincurvforce
+
+subroutine minenergyandforces(eeval,imode,nat,alat,rat,rxyzraw,fat,fstretch,&
+           fxyzraw,epot,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch)
+    use module_base, only: gp
+    use module_energyandforces
+    use module_sbfgs
+    implicit none
+    !parameter
+    integer, intent(in)           :: imode
+    integer, intent(in)           :: nat
+    integer, intent(in)           :: nbond_
+    integer, intent(in)           :: iconnect(2,nbond_)
+    real(gp), intent(in)          :: alat(3)
+    real(gp),intent(inout)           :: rat(3,nat)
+    real(gp),intent(out)          :: rxyzraw(3,nat)
+    real(gp),intent(out)          :: fxyzraw(3,nat)
+    real(gp),intent(inout)          :: fat(3,nat)
+    real(gp),intent(out)          :: fstretch(3,nat)
+    real(gp), intent(inout)       :: wold(nbond_)
+    real(gp), intent(in)          :: alpha_stretch0
+    real(gp), intent(inout)       :: alpha_stretch
+    real(gp), intent(inout)         :: epot
+    logical, intent(in)           :: eeval
+    !internal
+    real(gp) :: fnoise
+
+    rxyzraw=rat
+    if(eeval)call energyandforces(nat,alat,rat,fat,fnoise,epot)
+    fxyzraw=fat
+    fstretch=0.0_gp
+
+    if(imode==2)then
+        call projectbond(nat,nbond_,rat,fat,fstretch,iconnect,&
+             wold,alpha_stretch0,alpha_stretch)
+    endif
+
+end subroutine minenergyandforces
 
 subroutine elim_torque_reza(nat,rat0,fat)
 use module_base

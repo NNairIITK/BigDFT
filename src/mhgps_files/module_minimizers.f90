@@ -12,7 +12,7 @@ contains
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 !subroutine geopt(nat,wpos,etot,fout,fnrmtol,count,count_sd,displr)
-subroutine minimizer_sbfgs(imode,nat,alat,atomnames,nbond,iconnect,rxyzio,fxyzio,fnoiseio,energyio,energycounter,converged)
+subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,energyio,energycounter,converged)
 !call_bigdft has to be run once on runObj and outs !before calling this routine
 !sbfgs will return to caller the energies and coordinates used/obtained from the last accepted iteration step
    use module_base
@@ -44,7 +44,6 @@ subroutine minimizer_sbfgs(imode,nat,alat,atomnames,nbond,iconnect,rxyzio,fxyzio
    logical, intent(out)                   :: converged
    real(gp), intent(inout)                :: rxyzio(3,nat),fxyzio(3,nat),alat(3,nat)
    real(gp), intent(inout)                :: energyio,fnoiseio
-   character(20), intent(in)              :: atomnames(nat)
    integer, intent(in)                    :: iconnect(2,nbond)
    !local variables
    character(len=*), parameter :: subname='sbfgs'
@@ -196,8 +195,8 @@ subroutine minimizer_sbfgs(imode,nat,alat,atomnames,nbond,iconnect,rxyzio,fxyzio
    etot=energyio
    fnoise=fnoiseio
    call minenergyandforces(.false.,imode,nat,alat,rxyz(1,1,0),&
-       rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),&
-       etot,iconnect,nbond,atomnames,wold,beta_stretchx,beta_stretch)
+       rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),fnoise,&
+       etot,iconnect,nbond,wold,beta_stretchx,beta_stretch)
    if(imode==2)rxyz(:,:,0)=rxyz(:,:,0)+beta_stretch*fstretch(:,:,0)
 
    call fnrmandforcemax(fxyzraw(1,1,0),fnrm,fmax,nat)
@@ -295,8 +294,8 @@ subroutine minimizer_sbfgs(imode,nat,alat,atomnames,nbond,iconnect,rxyzio,fxyzio
       inputPsiId=1
 !      call energyandforces(nat,alat,rxyz(1,1,nhist),fxyz(1,1,nhist),fnoise,etotp)
       call minenergyandforces(.true.,imode,nat,alat,rxyz(1,1,nhist),rxyzraw(1,1,nhist),&
-                             fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),&
-                             etotp,iconnect,nbond,atomnames,wold,beta_stretchx,beta_stretch)
+                             fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),fnoise,&
+                             etotp,iconnect,nbond,wold,beta_stretchx,beta_stretch)
       detot=etotp-etotold
       energycounter=energycounter+1.0_gp
 
@@ -323,7 +322,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,atomnames,nbond,iconnect,rxyzio,fxyzio
 
       if (detot.gt.maxrise .and. beta > 1.e-1_gp*betax) then !
          if (debug.and.iproc==0) write(100,'(a,i0,1x,e9.2)') "WARN: it,detot", it,detot
-         if (debug.and.iproc==0) write(16,'(a,i0,4(xe9.2))') &
+         if (debug.and.iproc==0) write(16,'(a,i0,4(1x,e9.2))') &
              "WARNING GEOPT_SBFGS: Prevent energy to rise by more than maxrise: it,maxrise,detot,beta,1.e-1*betax ",&
              it,maxrise,detot,beta,1.e-1_gp*betax
          if (iproc==0.and.mhgps_verbosity > 0) then
@@ -419,7 +418,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,atomnames,nbond,iconnect,rxyzio,fxyzio
       etotold = etot
 
       if(detot .gt. maxrise)then
-         if (iproc==0) write(16,'(a,i0,4(xe9.2))') &
+         if (iproc==0) write(16,'(a,i0,4(1x,e9.2))') &
              "WARNING GEOPT_SBFGS: Allowed energy to rise by more than maxrise: it,maxrise,detot,beta,1.e-1*betax ",&
              it,maxrise,detot,beta,1.e-1_gp*betax
       endif
@@ -453,7 +452,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,atomnames,nbond,iconnect,rxyzio,fxyzio
    
       if (debug.and.iproc==0) write(100,*) 'cosangle ',cosangle,beta
 
-      call getSubSpaceEvecEval(nat,nhist,nhistx,ndim,cutoffratio,lwork,work,rxyz,&
+      call getSubSpaceEvecEval('(MHGPS)',iproc,mhgps_verbosity,nat,nhist,nhistx,ndim,cutoffratio,lwork,work,rxyz,&
                    &fxyz,aa,rr,ff,rrr,fff,eval,res,success)
       if(.not.success)stop 'subroutine minimizer_sbfgs: no success in getSubSpaceEvecEval.'
 
@@ -499,5 +498,41 @@ subroutine minimizer_sbfgs(imode,nat,alat,atomnames,nbond,iconnect,rxyzio,fxyzio
    call f_free(rrr)
    call f_free(scpr)
 end subroutine
+subroutine minenergyandforces(eeval,imode,nat,alat,rat,rxyzraw,fat,fstretch,&
+           fxyzraw,fnoise,epot,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch)
+    use module_base, only: gp
+    use module_energyandforces
+    use module_sbfgs
+    implicit none
+    !parameter
+    integer, intent(in)           :: imode
+    integer, intent(in)           :: nat
+    integer, intent(in)           :: nbond_
+    integer, intent(in)           :: iconnect(2,nbond_)
+    real(gp), intent(in)          :: alat(3)
+    real(gp),intent(inout)           :: rat(3,nat)
+    real(gp),intent(out)          :: rxyzraw(3,nat)
+    real(gp),intent(out)          :: fxyzraw(3,nat)
+    real(gp),intent(inout)          :: fat(3,nat)
+    real(gp),intent(out)          :: fstretch(3,nat)
+    real(gp), intent(inout)       :: wold(nbond_)
+    real(gp), intent(in)          :: alpha_stretch0
+    real(gp), intent(inout)       :: alpha_stretch
+    real(gp), intent(inout)         :: epot
+    real(gp), intent(out)         :: fnoise
+    logical, intent(in)           :: eeval
+    !internal
+
+    rxyzraw=rat
+    if(eeval)call energyandforces(nat,alat,rat,fat,fnoise,epot)
+    fxyzraw=fat
+    fstretch=0.0_gp
+
+    if(imode==2)then
+        call projectbond(nat,nbond_,rat,fat,fstretch,iconnect,&
+             wold,alpha_stretch0,alpha_stretch)
+    endif
+
+end subroutine minenergyandforces
 
 end module

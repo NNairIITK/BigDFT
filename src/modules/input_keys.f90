@@ -86,6 +86,7 @@ module module_input_keys
   character(len = *), parameter, public :: NIMG = "nimg"
   !SBFGS parameters:
   character(len = *), parameter, public :: NHISTX = "nhistx"
+  character(len = *), parameter, public :: BIOMODE = "biomode"
   character(len = *), parameter, public :: MAXRISE = "maxrise"
   character(len = *), parameter, public :: CUTOFFRATIO = "cutoffratio"
   character(len = *), parameter, public :: STEEPTHRESH = "steepthresh"

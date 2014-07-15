@@ -77,7 +77,7 @@ contains
             endif
             write(u,'(es10.3,1x,a)')saddle_curvgraddiff,' #curvgraddif'
             write(u,'(es10.3,1x,es10.3,1x,a)')saddle_rmsdispl0,saddle_trustr,' #rmsdispl0, trustr'
-            write(u,'(es10.3,1x.es10.3,1x,a)')saddle_tolc,saddle_tolf,' #tolc, tolf'
+            write(u,'(es10.3,1x,es10.3,1x,a)')saddle_tolc,saddle_tolf,' #tolc, tolf'
             write(u,'(es10.3,1x,a)')saddle_tightenfac,' #tightenfac'
             write(u,'(es10.3,1x,a)')saddle_maxcurvrise,' #maxcurvrise'
             write(u,'(es10.3,1x,a)')saddle_cutoffratio,' #cutoffratio'

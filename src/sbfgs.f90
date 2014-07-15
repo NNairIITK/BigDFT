@@ -14,6 +14,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    use module_types
    use module_interfaces
    use yaml_output
+   use module_sbfgs
    implicit none
    !parameter
    integer, intent(in)                    :: nproc
@@ -35,7 +36,10 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    integer :: lwork
    integer :: it,i,iat,l,j,idim,jdim,ihist,icheck !<counter variables
    integer :: itswitch
+   integer :: imode=1
+   integer :: nbond
    type(DFT_global_output) :: outs
+   logical :: success=.false.
    logical :: debug !< set .true. for debug output to fort.100
    logical :: steep !< steepest descent flag
    real(gp) :: displr !< (non-physical) integrated path length,
@@ -48,8 +52,11 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    real(gp) :: fnrm
    real(gp) :: fmax
    real(gp) :: fluct
+   real(gp) :: fnoise
    real(gp) :: betax !< initial step size (gets not changed)
+   real(gp) :: beta_stretchx
    real(gp) :: beta  !< current step size
+   real(gp) :: beta_stretch
    real(gp) :: cosangle
    real(gp) :: ts
    real(gp) :: tt
@@ -69,7 +76,10 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    real(gp) :: trustr !< a single atoms is not allowed to be dsiplaced more than by trustr
    integer,  allocatable, dimension(:,:)   :: iconnect
    real(gp), allocatable, dimension(:,:,:) :: rxyz
+   real(gp), allocatable, dimension(:,:,:) :: rxyzraw
    real(gp), allocatable, dimension(:,:,:) :: fxyz
+   real(gp), allocatable, dimension(:,:,:) :: fxyzraw
+   real(gp), allocatable, dimension(:,:,:) :: fstretch
    real(gp), allocatable, dimension(:,:,:) :: ff
    real(gp), allocatable, dimension(:,:,:) :: rr
    real(gp), allocatable, dimension(:,:,:) :: rrr
@@ -81,6 +91,8 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    real(gp), allocatable, dimension(:)     :: res
    real(gp), allocatable, dimension(:)     :: scpr
    real(gp), allocatable, dimension(:)     :: rnorm
+   real(gp), allocatable, dimension(:)     :: wold
+   real(gp), allocatable, dimension(:)     :: rcov
    character(len=4)                        :: fn4
    character(len=40)                       :: comment
    character(len=9)                        :: cdmy9_1
@@ -98,6 +110,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    cutoffRatio=runObj%inputs%cutoffratio
    steepthresh=runObj%inputs%steepthresh
    trustr=runObj%inputs%trustr
+   if(runObj%inputs%biomode)imode=2
 
    if (iproc==0.and.verbosity > 0) then
       call yaml_mapping_open('Geometry parameters')
@@ -123,12 +136,16 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    ndim=0
    nhist=0
    beta=betax
+   beta_stretch=beta_stretchx
    maxd=0.0_gp
 
    ! allocate arrays
    lwork=1000+10*nat**2
    rxyz = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='rxyz')
+   rxyzraw = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='rxyzraw')
    fxyz = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='fxyz')
+   fxyzraw = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='fxyzraw')
+   fstretch = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='fstretch')
    aa = f_malloc((/ nhistx, nhistx /),id='aa')
    eval = f_malloc(nhistx,id='eval')
    res = f_malloc(nhistx,id='res')
@@ -140,6 +157,16 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    fff = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='fff')
    rrr = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='rrr')
    scpr = f_malloc(nhistx,id='scpr')
+   wold = f_malloc((/ 1.to.nbond/),id='wold')
+   rcov     = f_malloc((/ 1.to.runObj%atoms%astruct%nat/),id='rcov')
+   iconnect = f_malloc((/ 1.to.2, 1.to.1000/),id='iconnect')
+   call give_rcov_sbfgs(iproc,runObj%atoms,runObj%atoms%astruct%nat,rcov)
+   if(runObj%inputs%biomode)then
+        call findbonds('(SBFGS)',iproc,verbosity,runObj%atoms%astruct%nat,&
+             rcov,runObj%atoms%astruct%rxyz,nbond,iconnect)
+   endif 
+
+
    call init_global_output(outs, runObj%atoms%astruct%nat)
 
    !copy outs_datatype
@@ -157,7 +184,12 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    call vcopy(3*outs%fdim, outs%fxyz(1,1), 1, fxyz(1,1,0), 1)
    etot=outs%energy
 
-   call fnrmandforcemax(fxyz(1,1,0),fnrm,fmax,nat)
+   call minenergyandforces(iproc,nproc,.false.,imode,runObj,outs,nat,rxyz(1,1,0),&
+       rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),&
+       etot,iconnect,nbond,wold,beta_stretchx,beta_stretch)
+   if(imode==2)rxyz(:,:,0)=rxyz(:,:,0)+beta_stretch*fstretch(:,:,0)
+
+   call fnrmandforcemax(fxyzraw(1,1,0),fnrm,fmax,nat)
    fnrm=sqrt(fnrm)
    if (fmax < 3.e-1_gp) call updatefluctsum(outs%fnoise,fluct)
 
@@ -171,7 +203,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
        write(cdmy9_2,'(es9.2)')abs(displp)
        write(cdmy9_3,'(es9.2)')abs(beta)
 
-       write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,xa4,i3.3,xa5,a7,2(xa6,a8))') &
+       write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a8))') &
        ncount_bigdft,0,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct, &
        'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy9_1)),'dsplp=',trim(adjustl(cdmy9_2))
    endif
@@ -197,7 +229,10 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
             do iat=1,nat
                do l=1,3
                   rxyz(l,iat,ihist)=rxyz(l,iat,ihist+1)
+                  rxyzraw(l,iat,ihist)=rxyzraw(l,iat,ihist+1)
                   fxyz(l,iat,ihist)=fxyz(l,iat,ihist+1)
+                  fxyzraw(l,iat,ihist)=fxyzraw(l,iat,ihist+1)
+                  fstretch(l,iat,ihist)=fstretch(l,iat,ihist+1)
                enddo
             enddo
          enddo
@@ -205,50 +240,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    
       ! decompose gradient
 500 continue
-      do iat=1,nat
-         do l=1,3
-            dd(l,iat)=-fxyz(l,iat,nhist-1)
-         enddo
-      enddo
-      do i=1,ndim
-         scpr(i)=0.0_gp
-         do iat=1,nat
-            do l=1,3
-               scpr(i)=scpr(i)-fxyz(l,iat,nhist-1)*rrr(l,iat,i)
-            enddo
-         enddo
-         do iat=1,nat
-            do l=1,3
-               dd(l,iat)=dd(l,iat)-scpr(i)*rrr(l,iat,i)
-            enddo
-         enddo
-      enddo
-   
-      ts=0.0_gp
-      do iat=1,nat
-         do l=1,3
-            ts=ts+dd(l,iat)**2
-         enddo
-      enddo
-         
-      if (debug.and.iproc==0) write(100,*) 'beta=',beta
-      do iat=1,nat
-         do l=1,3
-            dd(l,iat)=dd(l,iat)*beta
-         enddo
-      enddo
-   
-      do i=1,ndim
-         !eval(i) is corrected by possible error (Weinstein criterion)
-         tt=scpr(i)/sqrt(eval(i)**2+res(i)**2)
-         if (debug.and.iproc==0) write(100,'(a,i3,3(1x,e10.3))') 'i,tt,eval,res '&
-                    ,i,1.0_gp/sqrt(eval(i)**2+res(i)**2),eval(i),res(i)
-            do iat=1,nat
-               do l=1,3
-                  dd(l,iat)=dd(l,iat)+tt*rrr(l,iat,i)
-               enddo
-            enddo
-      enddo
+    call modify_gradient(nat,ndim,rrr(1,1,1),eval(1),res(1),fxyz(1,1,nhist-1),beta,dd(1,1))
    
       tt=0.0_gp
       dt=0.0_gp
@@ -264,7 +256,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
       !trust radius approach: avoids too large steps due to large forces
       !only used when in steepest decent mode
       if(maxd>trustr .and. steep)then
-         if(debug.and.iproc==0)write(100,'(a,1x,es24.17,xi0)')'step too large',maxd,it
+         if(debug.and.iproc==0)write(100,'(a,1x,es24.17,1x,i0)')'step too large',maxd,it
          if(iproc==0)write(16,'(a,2(1x,es9.2))')'WARNING GEOPT_SBFGS: step too large: maxd, trustradius ',maxd,trustr
          scl=0.50_gp*trustr/maxd
          dd=dd*scl
@@ -281,20 +273,27 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
       enddo
    
 !      call energyandforces(nat,rxyz(1,1,nhist),fxyz(1,1,nhist),etotp)
-      call vcopy(3 * runObj%atoms%astruct%nat, rxyz(1,1,nhist), 1,runObj%atoms%astruct%rxyz(1,1), 1)
-      runObj%inputs%inputPsiId=1
-      call call_bigdft(runObj,outs,nproc,iproc,infocode)
-      ncount_bigdft=ncount_bigdft+1
-      call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz(1,1,nhist), 1)
-      etotp=outs%energy
-      detot=etotp-etotold
+!      call vcopy(3 * runObj%atoms%astruct%nat, rxyz(1,1,nhist), 1,runObj%atoms%astruct%rxyz(1,1), 1)
+!      runObj%inputs%inputPsiId=1
+!      call call_bigdft(runObj,outs,nproc,iproc,infocode)
+!      ncount_bigdft=ncount_bigdft+1
+!      call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz(1,1,nhist), 1)
+!      etotp=outs%energy
+!      detot=etotp-etotold
 
-      if(debug.and.iproc==0)write(100,'(a,i6,2(1x,e21.14),1x,5(1x,e10.3),xi0)')&
+      runObj%inputs%inputPsiId=1
+      call minenergyandforces(iproc,nproc,.true.,imode,runObj,outs,nat,rxyz(1,1,nhist),rxyzraw(1,1,nhist),&
+                             fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),&
+                             etotp,iconnect,nbond,wold,beta_stretchx,beta_stretch)
+      detot=etotp-etotold
+      ncount_bigdft=ncount_bigdft+1
+
+      if(debug.and.iproc==0)write(100,'(a,i6,2(1x,e21.14),1x,5(1x,e10.3),1x,i0)')&
             'SBFGS it,etot,etotold,Detot,fnrm,fnrmp/fnrm,dnrm/fnrm,beta,ndim',&
              it-1,etotp,etotold,detot,fnrm,sqrt(ts)/fnrm,sqrt(tt)/fnrm,beta,ndim
 
 
-      call fnrmandforcemax(fxyz(1,1,nhist),fnrm,fmax,nat)
+      call fnrmandforcemax(fxyzraw(1,1,nhist),fnrm,fmax,nat)
       fnrm=sqrt(fnrm)
 
       if (iproc == 0) then
@@ -322,7 +321,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
             write(cdmy9_2,'(es9.2)')abs(displp)
             write(cdmy9_3,'(es9.2)')abs(beta)
    
-            write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,xa4,i3.3,xa5,a7,2(xa6,a8))') &
+            write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a8))') &
              ncount_bigdft,it,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct, &
              'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy9_1)),'dsplp=',trim(adjustl(cdmy9_2))
             call yaml_mapping_open('Geometry')
@@ -356,10 +355,16 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
                rxyz(1,iat,0)=rxyz(1,iat,nhist-1)
                rxyz(2,iat,0)=rxyz(2,iat,nhist-1)
                rxyz(3,iat,0)=rxyz(3,iat,nhist-1)
+               rxyzraw(1,iat,0)=rxyzraw(1,iat,nhist-1)
+               rxyzraw(2,iat,0)=rxyzraw(2,iat,nhist-1)
+               rxyzraw(3,iat,0)=rxyzraw(3,iat,nhist-1)
    
                fxyz(1,iat,0)=fxyz(1,iat,nhist-1)
                fxyz(2,iat,0)=fxyz(2,iat,nhist-1)
                fxyz(3,iat,0)=fxyz(3,iat,nhist-1)
+               fxyzraw(1,iat,0)=fxyzraw(1,iat,nhist-1)
+               fxyzraw(2,iat,0)=fxyzraw(2,iat,nhist-1)
+               fxyzraw(3,iat,0)=fxyzraw(3,iat,nhist-1)
             enddo
             nhist=1
          endif
@@ -374,7 +379,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
          write(cdmy9_2,'(es9.2)')abs(displp)
          write(cdmy9_3,'(es9.2)')abs(beta)
 
-         write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,xa4,i3.3,xa5,a7,2(xa6,a8))') &
+         write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a8))') &
           ncount_bigdft,it,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct, &
           'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy9_1)),'dsplp=',trim(adjustl(cdmy9_2))
          call yaml_mapping_open('Geometry')
@@ -399,7 +404,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
       if(detot .gt. maxrise)then
          if (iproc==0) write(16,'(a,i0,4(1x,e9.2))') &
              "WARNING GEOPT_SBFGS: Allowed energy to rise by more than maxrise: it,maxrise,detot,beta,1.d-1*betax ",&
-             it,maxrise,detot,beta,1.d-1*betax
+             it,maxrise,detot,beta,1.e-1_gp*betax
       endif
 
 
@@ -408,6 +413,9 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
       if(icheck>5)then
          goto 1000
       endif
+     if(imode==2)rxyz(:,:,nhist)=rxyz(:,:,nhist)+beta_stretch*fstretch(:,:,nhist) !has to be after convergence check,
+                                                                       !otherwise energy will not match
+                                                                       !the true energy of rxyz(:,:,nhist)
 
       if(ncount_bigdft >= nit)then!no convergence within ncount_cluster_x energy evaluations
             goto 900  !sbfgs will return to caller the energies and coordinates used/obtained from the last accepted iteration step
@@ -421,140 +429,17 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    
       if (debug.and.iproc==0) write(100,*) 'cosangle ',cosangle,beta
 
-      ! calculate norms
-      do i=1,nhist
-           rnorm(i)=0.0_gp
-              do iat=1,nat
-                 do l=1,3
-                    rnorm(i)=rnorm(i) + (rxyz(l,iat,i)-rxyz(l,iat,i-1))**2
-                 enddo
-              enddo
-     rnorm(i)=1.0_gp/sqrt(rnorm(i))
+      call getSubSpaceEvecEval('(SBFGS)',iproc,verbosity,nat,nhist,nhistx,ndim,cutoffratio,lwork,work,rxyz,&
+                   &fxyz,aa,rr,ff,rrr,fff,eval,res,success)
+      if(.not.success)stop 'subroutine minimizer_sbfgs: no success in getSubSpaceEvecEval.'
 
-      enddo
-
-   
-      !find linear dependencies via diagonalization of overlap matrix   
-      !build overlap matrix:
-      do i=1,nhist
-         do j=1,nhist
-            aa(i,j)=0.0_gp
-            do iat=1,nat
-               do l=1,3
-                  aa(i,j)=aa(i,j)&
-                  +(rxyz(l,iat,i)-rxyz(l,iat,i-1))&
-                  *(rxyz(l,iat,j)-rxyz(l,iat,j-1))
-               enddo
-            enddo
-            aa(i,j)=aa(i,j)*rnorm(i)*rnorm(j)
-         enddo
-      enddo
-   
-      !diagonalize overlap matrix:
-      call dsyev('V',"L",nhist,aa,nhistx,eval,work,lwork,info)
-      if (info.ne.0) then 
-         if (debug.and.iproc==0) write(100,*) ' Over ', info
-         stop 'info geo after first dsyev aa'
-      endif
-      if(debug.and.iproc==0)then
-         do i=1,nhist
-            write(100,*) "Overl ",i,eval(i)
-         enddo
-      endif
-      
-      do idim=1,nhist
-         do iat=1,nat
-            do l=1,3
-               rr(l,iat,idim)=0.0_gp
-               ff(l,iat,idim)=0.0_gp
-            enddo
-         enddo
-      enddo
-     
-      !generate significant orthogonal subspace 
-      ndim=0
-      do idim=1,nhist
-         !remove linear dependencies by using the overlap-matrix eigenvalues:
-         if (eval(idim)/eval(nhist).gt.cutoffRatio) then    ! HERE
-            ndim=ndim+1
-      
-            do jdim=1,nhist
-               do iat=1,nat
-                  do l=1,3
-                     rr(l,iat,ndim)=rr(l,iat,ndim)+aa(jdim,idim)*rnorm(jdim)&
-                                 *(rxyz(l,iat,jdim)-rxyz(l,iat,jdim-1))
-                     ff(l,iat,ndim)=ff(l,iat,ndim)-aa(jdim,idim)*rnorm(jdim)&
-                                 *(fxyz(l,iat,jdim)-fxyz(l,iat,jdim-1))
-                  enddo
-               enddo
-            enddo
-      
-            do iat=1,nat
-               do l=1,3
-                  rr(l,iat,ndim)=rr(l,iat,ndim)/sqrt(abs(eval(idim)))
-                  ff(l,iat,ndim)=ff(l,iat,ndim)/sqrt(abs(eval(idim)))
-               enddo
-            enddo
-         endif
-      enddo
-      if (debug.and.iproc==0) write(100,'(a,i3)') "ndim= ",ndim
-      
-      ! Hessian matrix in significant orthogonal subspace
-      do i=1,ndim
-         do j=1,ndim
-            aa(i,j)=0.0_gp
-            do iat=1,nat
-               do l=1,3
-                  aa(i,j)=aa(i,j) + .50_gp*(rr(l,iat,i)*ff(l,iat,j)&
-                                  +rr(l,iat,j)*ff(l,iat,i))
-               enddo
-            enddo
-         enddo
-      enddo
-      
-      call dsyev('V',"L",ndim,aa,nhistx,eval,work,lwork,info)
-      if (info.ne.0) then 
-         write(*,*) 'ERROR: info after 2n dsyev aa in sbfgs', info
-         stop 'info after 2nd dsyev aa in sbfgs'
-      endif
-      
-      ! calculate eigenvectors
-      do i=1,ndim
-         do iat=1,nat
-            do l=1,3
-               rrr(l,iat,i)=0.0_gp
-               fff(l,iat,i)=0.0_gp
-            enddo
-         enddo
-      enddo
-      
-      do i=1,ndim
-         tt=0.0_gp
-         do j=1,ndim
-            do iat=1,nat
-               do l=1,3
-                  rrr(l,iat,i)=rrr(l,iat,i) + aa(j,i)*rr(l,iat,j)
-                  fff(l,iat,i)=fff(l,iat,i) + aa(j,i)*ff(l,iat,j)
-               enddo
-            enddo
-         enddo
-         do iat=1,nat
-            do l=1,3
-               tt=tt+(fff(l,iat,i)-eval(i)*rrr(l,iat,i))**2
-            enddo
-         enddo
-         !residuue according to Weinstein criterion
-         res(i)=sqrt(tt)
-         if (debug.and.iproc==0) write(100,'(a,i3,e14.7,1x,e12.5,2(1x,e9.2))') 'EVAL,RES '&
-                                                             ,i,eval(i),res(i)
-      enddo
    enddo!end main loop
 
 900 continue
 
    !if code gets here, it failed
    if(debug.and.iproc==0) write(100,*) it,etot,fnrm
-   if(iproc==0) write(16,'(a,3(xi0))') &
+   if(iproc==0) write(16,'(a,3(1x,i0))') &
        "WARNING GEOPT_SBFGS: SBFGS not converged: it,ncount_bigdft,ncount_cluster_x: ", &
        it,ncount_bigdft,runObj%inputs%ncount_cluster_x
 !   stop "No convergence "
@@ -590,4 +475,256 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    call f_free(rrr)
    call f_free(scpr)
    call deallocate_global_output(outs)
-end
+end subroutine
+subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,rxyzraw,fat,fstretch,&
+           fxyzraw,epot,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch)
+    use module_base
+    use module_types
+    use module_sbfgs
+    use module_interfaces
+    implicit none
+    !parameter
+    integer, intent(in)           :: iproc,nproc,imode
+    integer, intent(in)           :: nat
+    type(run_objects), intent(inout)       :: runObj
+    type(DFT_global_output), intent(inout) :: outs
+    integer, intent(in)           :: nbond_
+    integer, intent(in)           :: iconnect(2,nbond_)
+    real(gp),intent(inout)           :: rat(3,nat)
+    real(gp),intent(out)          :: rxyzraw(3,nat)
+    real(gp),intent(out)          :: fxyzraw(3,nat)
+    real(gp),intent(inout)          :: fat(3,nat)
+    real(gp),intent(out)          :: fstretch(3,nat)
+    real(gp), intent(inout)       :: wold(nbond_)
+    real(gp), intent(in)          :: alpha_stretch0
+    real(gp), intent(inout)       :: alpha_stretch
+    real(gp), intent(inout)         :: epot
+    logical, intent(in)           :: eeval
+    !internal
+    integer :: infocode
+
+!    rxyzraw=rat
+!    if(eeval)call energyandforces(nat,alat,rat,fat,fnoise,epot)
+!    fxyzraw=fat
+!    fstretch=0.0_gp
+
+
+    call vcopy(3 * runObj%atoms%astruct%nat, rat(1,1), 1,rxyzraw(1,1), 1)
+    if(eeval)then
+        call vcopy(3 * runObj%atoms%astruct%nat, rat(1,1), 1,runObj%atoms%astruct%rxyz(1,1), 1)
+        runObj%inputs%inputPsiId=1
+        call call_bigdft(runObj,outs,nproc,iproc,infocode)
+        call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fat(1,1), 1)
+        epot=outs%energy
+    endif
+    call vcopy(3 * outs%fdim, fat(1,1), 1,fxyzraw(1,1), 1)
+    fstretch=0.0_gp
+
+    if(imode==2)then
+        call projectbond(nat,nbond_,rat,fat,fstretch,iconnect,&
+             wold,alpha_stretch0,alpha_stretch)
+    endif
+
+end subroutine minenergyandforces
+subroutine give_rcov_sbfgs(iproc,atoms,nat,rcov)
+  use module_base, only: gp
+  use module_types
+  use yaml_output
+  implicit none
+  !Arguments
+  integer, intent(in) :: iproc,nat
+  type(atoms_data), intent(in) :: atoms
+  real(gp), intent(out) :: rcov(nat)
+  !Local variables
+  integer :: iat
+
+  do iat=1,nat
+     if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='H') then
+        rcov(iat)=0.75d0
+!        rcov(iat)=0.75d0*0.529177211d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='LJ')then
+        rcov(iat)=0.56d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='He')then
+        rcov(iat)=0.75d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Li')then
+        rcov(iat)=3.40d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Be')then
+        rcov(iat)=2.30d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='B' )then
+        rcov(iat)=1.55d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='C' )then
+        rcov(iat)=1.45d0
+!        rcov(iat)=1.45d0*0.529177211d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='N' )then
+        rcov(iat)=1.42d0
+!        rcov(iat)=1.42d0*0.529177211d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='O' )then
+        rcov(iat)=1.38d0
+!        rcov(iat)=1.38d0*0.529177211d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='F' )then
+        rcov(iat)=1.35d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ne')then
+        rcov(iat)=1.35d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Na')then
+        rcov(iat)=3.40d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Mg')then
+        rcov(iat)=2.65d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Al')then
+        rcov(iat)=2.23d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Si')then
+        rcov(iat)=2.09d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='P' )then
+        rcov(iat)=2.00d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='S' )then
+        rcov(iat)=1.92d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cl')then
+        rcov(iat)=1.87d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ar')then
+        rcov(iat)=1.80d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='K' )then
+        rcov(iat)=4.00d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ca')then
+        rcov(iat)=3.00d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sc')then
+        rcov(iat)=2.70d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ti')then
+        rcov(iat)=2.70d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='V' )then
+        rcov(iat)=2.60d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cr')then
+        rcov(iat)=2.60d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Mn')then
+        rcov(iat)=2.50d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Fe')then
+        rcov(iat)=2.50d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Co')then
+        rcov(iat)=2.40d0
+     else if(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ni')then
+        rcov(iat)=2.30d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cu')then
+        rcov(iat)=2.30d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Zn')then
+        rcov(iat)=2.30d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ga')then
+        rcov(iat)=2.10d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ge')then
+        rcov(iat)=2.40d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='As')then
+        rcov(iat)=2.30d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Se')then
+        rcov(iat)=2.30d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Br')then
+        rcov(iat)=2.20d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Kr')then
+        rcov(iat)=2.20d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Rb')then
+        rcov(iat)=4.50d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sr')then
+        rcov(iat)=3.30d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Y' )then
+        rcov(iat)=3.30d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Zr')then
+        rcov(iat)=3.00d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Nb')then
+        rcov(iat)=2.92d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Mo')then
+        rcov(iat)=2.83d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Tc')then
+        rcov(iat)=2.75d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ru')then
+        rcov(iat)=2.67d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Rh')then
+        rcov(iat)=2.58d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pd')then
+        rcov(iat)=2.50d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ag')then
+        rcov(iat)=2.50d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cd')then
+        rcov(iat)=2.50d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='In')then
+        rcov(iat)=2.30d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sn')then
+        rcov(iat)=2.66d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sb')then
+        rcov(iat)=2.66d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Te')then
+        rcov(iat)=2.53d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='I' )then
+        rcov(iat)=2.50d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Xe')then
+        rcov(iat)=2.50d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cs')then
+        rcov(iat)=4.50d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ba')then
+        rcov(iat)=4.00d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='La')then
+        rcov(iat)=3.50d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ce')then
+        rcov(iat)=3.50d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pr')then
+        rcov(iat)=3.44d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Nd')then
+        rcov(iat)=3.38d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pm')then
+        rcov(iat)=3.33d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sm')then
+        rcov(iat)=3.27d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Eu')then
+        rcov(iat)=3.21d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Gd')then
+        rcov(iat)=3.15d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Td')then
+        rcov(iat)=3.09d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Dy')then
+        rcov(iat)=3.03d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ho')then
+        rcov(iat)=2.97d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Er')then
+        rcov(iat)=2.92d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Tm')then
+        rcov(iat)=2.92d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Yb')then
+        rcov(iat)=2.80d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Lu')then
+        rcov(iat)=2.80d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Hf')then
+        rcov(iat)=2.90d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ta')then
+        rcov(iat)=2.70d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='W' )then
+        rcov(iat)=2.60d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Re')then
+        rcov(iat)=2.60d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Os')then
+        rcov(iat)=2.50d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ir')then
+        rcov(iat)=2.50d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pt')then
+        rcov(iat)=2.60d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Au')then
+        rcov(iat)=2.70d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Hg')then
+        rcov(iat)=2.80d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Tl')then
+        rcov(iat)=2.50d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pb')then
+        rcov(iat)=3.30d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Bi')then
+        rcov(iat)=2.90d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Po')then
+        rcov(iat)=2.80d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='At')then
+        rcov(iat)=2.60d0
+     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Rn')then
+        rcov(iat)=2.60d0
+     else
+        call yaml_comment('(SBFGS) no covalent radius stored for this atomtype '&
+             //trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))))
+        stop
+     endif
+     if (iproc == 0) then
+        call yaml_map('(SBFGS) RCOV:'//trim(atoms%astruct%atomnames&
+                 (atoms%astruct%iatype(iat))),rcov(iat))
+     endif
+  enddo
+end subroutine give_rcov_sbfgs

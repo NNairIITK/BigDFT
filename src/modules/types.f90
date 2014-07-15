@@ -363,6 +363,7 @@ module module_types
      type(SIC_data) :: SIC               !< Parameters for the SIC methods
      !variables for SBFGS
      integer  :: nhistx
+     logical  :: biomode
      real(gp) :: maxrise
      real(gp) :: cutoffratio
      real(gp) :: steepthresh
@@ -2807,6 +2808,8 @@ contains
           in%cutoffratio = val
        case (STEEPTHRESH)
           in%steepthresh = val
+       case (BIOMODE)
+          in%biomode = val
        case (TRUSTR)
           in%trustr = val
        case DEFAULT

@@ -211,7 +211,7 @@ real(gp),allocatable :: eval(:)
     !assuemed that all conifugrations over which will be iterated have the same
     !bonds)
     if(saddle_biomode)then
-        call findbonds(atoms%astruct%nat,rcov,atoms%astruct%rxyz,nbond,iconnect)
+        call findbonds('(MHGPS)',iproc,mhgps_verbosity,atoms%astruct%nat,rcov,atoms%astruct%rxyz,nbond,iconnect)
     endif
     wold_trans = f_malloc((/ 1.to.nbond/),id='wold_trans')
     wold_rot = f_malloc((/ 1.to.nbond/),id='wold_rot')
@@ -272,7 +272,7 @@ real(gp),allocatable :: eval(:)
 !!!!!           call findsad(imode,atoms%astruct%nat,atoms%astruct%cell_dim,rcov,saddle_alpha0_trans,saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_trans,&
 !!!!!           saddle_nit_rot,saddle_nhistx_trans,saddle_nhistx_rot,saddle_tolc,saddle_tolf,saddle_tightenfac,saddle_rmsdispl0,&
 !!!!!           saddle_trustr,rxyz,energy,fxyz,minmode,saddle_fnrmtol,displ,ec,&
-!!!!!           converged,atoms%astruct%atomnames,nbond,iconnect,saddle_alpha_stretch0,saddle_recompIfCurvPos,saddle_maxcurvrise,&
+!!!!!           converged,nbond,iconnect,saddle_alpha_stretch0,saddle_recompIfCurvPos,saddle_maxcurvrise,&
 !!!!!           saddle_cutoffratio,saddle_alpha_rot_stretch0,rotforce)
 !!!!!           if (iproc == 0) then
 !!!!!               call write_atomic_file(currDir//'/'//currFile//'_final',&
@@ -283,7 +283,7 @@ real(gp),allocatable :: eval(:)
 ec=1.0_gp
 call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy)
 !call minimizer_sbfgs(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy,ec,converged)
-call minimizer_sbfgs(imode,atoms%astruct%nat,atoms%astruct%cell_dim,atoms%astruct%atomnames,nbond,iconnect,rxyz,fxyz,fnoise,energy,ec,converged)
+call minimizer_sbfgs(imode,atoms%astruct%nat,atoms%astruct%cell_dim,nbond,iconnect,rxyz,fxyz,fnoise,energy,ec,converged)
 if(.not.converged)stop'minimizer_sbfgs not converged'
 call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy)
 write(*,*)'count,fnrm',int(ec),sqrt(sum(fxyz**2))

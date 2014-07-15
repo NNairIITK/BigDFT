@@ -355,6 +355,24 @@
        - SBFGS
      RANGE: [0, 1000]
      default: 10
+   biomode:
+     DESCRIPTION: |
+                  possible value: 1 logical
+                  Switch for Biomolecules. Choose Yes if biomolecule is to be optimized.
+     COMMENT: biomode
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - SBFGS
+     default: No
+   beta_stretchx:
+     COMMENT: Stepsize for steepest descent in stretching mode direction (only if in biomode)
+     CONDITION:
+       MASTER_KEY: biomode
+       WHEN:
+       - Yes
+     RANGE: [0., 100.]
+     default: 5e-1
    maxrise:
      COMMENT: maximum allowed rise in energy in one geopt step
      CONDITION:
