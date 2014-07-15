@@ -223,13 +223,15 @@ contains
   !> Set new_unit as the new default unit and return the old default unit.
   subroutine yaml_swap_stream(new_unit, old_unit, ierr)
     implicit none
-    integer, intent(in) :: new_unit
-    integer, intent(out) :: old_unit, ierr
+    integer, intent(in) :: new_unit  !< new unit
+    integer, intent(out) :: old_unit !< old unit
+    integer, intent(out) :: ierr     !< error code
 
     call yaml_get_default_stream(old_unit)
     call yaml_set_default_stream(new_unit, ierr)
   end subroutine yaml_swap_stream
 
+  !> Initialize the error messages
   subroutine yaml_output_errors()
     implicit none
     !initialize error messages
@@ -267,8 +269,8 @@ contains
   !! The stream has not be initialized.
   subroutine yaml_set_default_stream(unit,ierr)
     implicit none
-    integer, intent(in) :: unit
-    integer, intent(out) :: ierr
+    integer, intent(in) :: unit  !< stream unit
+    integer, intent(out) :: ierr !< error code
     !local variables
     integer :: istream
 
@@ -430,12 +432,17 @@ contains
        icursor,flowrite,itab_active,iflowlevel,ilevel,ilast,indent,indent_previous,&
        record_length)
     implicit none
-    integer, intent(in) , optional :: unit          !< File unit to display
-    integer, intent(in) , optional :: stream_unit   !< Stream Id
-    logical, intent(out), optional :: flowrite
-    integer, intent(out), optional :: icursor,itab_active
-    integer, intent(out), optional :: iflowlevel,ilevel,ilast
-    integer, intent(out), optional :: indent,indent_previous,record_length
+    integer, intent(in) , optional :: unit            !< File unit to display
+    integer, intent(in) , optional :: stream_unit     !< Stream Id
+    logical, intent(out), optional :: flowrite        !< @copydoc yaml_stream::flowrite
+    integer, intent(out), optional :: icursor         !< @copydoc yaml_stream::icursor
+    integer, intent(out), optional :: itab_active     !< @copydoc yaml_stream::itab_active
+    integer, intent(out), optional :: iflowlevel      !< @copydoc yaml_stream::iflowlevel
+    integer, intent(out), optional :: ilevel          !< @copydoc yaml_stream::ilevel
+    integer, intent(out), optional :: ilast           !< @copydoc yaml_stream::ilast
+    integer, intent(out), optional :: indent          !< @copydoc yaml_stream::indent
+    integer, intent(out), optional :: indent_previous !< @copydoc yaml_stream::indent_previous
+    integer, intent(out), optional :: record_length   !< Maximum number of columns of the stream (default @link yaml_output::yaml_stream::tot_max_record_length @endlink)
     !local variables
     logical :: dump,flowritet
     integer :: sunt,unt,strm,icursort,itab_activet
@@ -763,7 +770,7 @@ contains
 
        !Detect the last character of the message
        lend=len_trim(message(lstart:))
-       if (lend+msg_lgt > streams(strm)%max_record_length) then
+       if (lend+msg_lgt+2 > streams(strm)%max_record_length) then
           !We have an error from buffer_string so we split it!
           !-1 to be less and -2 for the character '#'
           lend=streams(strm)%max_record_length-msg_lgt-2
@@ -775,13 +782,18 @@ contains
        end if
        call buffer_string(towrite,len(towrite),message(lstart:lstart+lend-1),msg_lgt)
 
+       !print *,'there',trim(towrite),lstart,lend
+       
+
        !Check if possible to hfill
        hmax = max(streams(strm)%max_record_length-ipos-len_trim(message)-3,0)
+       !print *,'hmax',hmax,streams(strm)%max_record_length,ipos,lmsg
        if (present(hfill) .and. hmax > 0) then
           !Fill with the given character and dump
           call dump(streams(strm),repeat(hfill,hmax)//' '//towrite(1:msg_lgt),advance=adv,event=COMMENT)
        else
           !Dump the string towrite into the stream
+          !print *,'dumping here',msg_lgt,towrite(1:msg_lgt)
           call dump(streams(strm),towrite(1:msg_lgt),advance=adv,event=COMMENT)
        end if
 
@@ -799,10 +811,10 @@ contains
   !> Write a scalar variable, takes care of indentation only
   subroutine yaml_scalar(message,advance,unit,hfill)
     implicit none
-    character(len=1), optional, intent(in) :: hfill
-    character(len=*), intent(in) :: message
-    integer, optional, intent(in) :: unit
-    character(len=*), intent(in), optional :: advance
+    character(len=1), optional, intent(in) :: hfill   !< If present fill the line with the given character
+    character(len=*), intent(in) :: message           !< the message to be printed
+    integer, optional, intent(in) :: unit             !< @copydoc doc::unit
+    character(len=*), intent(in), optional :: advance !< @copydoc doc::advance
     !local variables
     integer :: unt,strm
     character(len=3) :: adv
@@ -839,6 +851,13 @@ contains
   !! @ingroup FLIB_YAML
   subroutine yaml_mapping_open(mapname,label,tag,flow,tabbing,advance,unit)
     implicit none
+    character(len=*), optional, intent(in) :: mapname !< Key of the sequence. @copydoc doc::mapname
+    character(len=*), optional, intent(in) :: label   !< @copydoc doc::label
+    character(len=*), optional, intent(in) :: tag     !< @copydoc doc::tag
+    logical, optional, intent(in) :: flow             !< @copydoc doc::flow
+    character(len=*), optional, intent(in) :: advance !< @copydoc doc::advance
+    integer, optional, intent(in) :: unit             !< @copydoc doc::unit
+    integer, optional, intent(in) :: tabbing          !< @copydoc doc::tabbing
     include 'yaml_open-inc.f90'
 !!$    integer, optional, intent(in) :: unit !< @copydoc doc::unit
 !!$    integer, optional, intent(in) :: tabbing !< @copydoc doc::tabbing
@@ -925,6 +944,13 @@ contains
   !> Open a yaml sequence
   subroutine yaml_sequence_open(mapname,label,tag,flow,tabbing,advance,unit)
     implicit none
+    character(len=*), optional, intent(in) :: mapname !< Key of the sequence. @copydoc doc::mapname
+    character(len=*), optional, intent(in) :: label   !< @copydoc doc::label
+    character(len=*), optional, intent(in) :: tag     !< @copydoc doc::tag
+    logical, optional, intent(in) :: flow             !< @copydoc doc::flow
+    character(len=*), optional, intent(in) :: advance !< @copydoc doc::advance
+    integer, optional, intent(in) :: unit             !< @copydoc doc::unit
+    integer, optional, intent(in) :: tabbing          !< @copydoc doc::tabbing
     include 'yaml_open-inc.f90'
     call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=SEQUENCE_START)
 
@@ -980,11 +1006,13 @@ contains
   end subroutine yaml_newline
 
 
-  !> Write directly a yaml sequence
+  !> Write directly a yaml sequence, i.e. en element of a list
   subroutine yaml_sequence(seqvalue,label,advance,unit)
     implicit none
-    integer, optional, intent(in) :: unit
-    character(len=*), optional, intent(in) :: label,seqvalue,advance
+    integer, optional, intent(in) :: unit               !<@copydoc doc::unit
+    character(len=*), optional, intent(in) :: label     !<@copydoc doc::label
+    character(len=*), optional, intent(in) :: seqvalue  !< what is this?
+    character(len=*), optional, intent(in) :: advance   !<@copydoc doc::advance
     !local variables
     integer :: msg_lgt,unt,strm
     character(len=3) :: adv
@@ -1482,7 +1510,7 @@ contains
     end if
 
     !standard writing,
-    !if (change_line) print *,'change_line',change_line,'prefix',prefix_lgt,msg_lgt,shift_lgt
+    !if (change_line)  print *,'change_line',change_line,'prefix',prefix_lgt,msg_lgt,shift_lgt
     extra_line=.false.
     if (change_line) then
        !first write prefix, if needed
@@ -1503,7 +1531,7 @@ contains
        if (prefix_lgt > 0)towrite(1:prefix_lgt)=prefix(1:prefix_lgt)
        towrite_lgt=prefix_lgt+msg_lgt+shift_lgt
     end if
-    !print *,'adv',trim(adv),towrite_lgt,icursor,change_line,msg_lgt
+    !print *,'adv',trim(adv),towrite_lgt,stream%icursor,extra_line,msg_lgt,towrite_lgt
     !here we should check whether the size of the string exceeds the maximum length
     if (towrite_lgt > 0) then
        if (towrite_lgt > stream%max_record_length) then
@@ -1518,7 +1546,8 @@ contains
        else
           if (extra_line) write(stream%unit,*)
           !write(*,fmt='(a,i0,a)',advance="no") '(indent_lgt ',indent_lgt,')'
-          write(stream%unit,'(a)',advance=trim(adv))repeat(' ',max(indent_lgt,0))//towrite(1:towrite_lgt)
+          write(stream%unit,'(a)',advance=trim(adv))&
+               repeat(' ',max(indent_lgt,0))//towrite(1:towrite_lgt)
        end if
     end if
 
@@ -1850,10 +1879,10 @@ contains
   !> Dump a dictionary
   subroutine yaml_dict_dump(dict,unit,flow,verbatim)
     implicit none
-    type(dictionary), pointer, intent(in) :: dict   !< Dictionary to dump
-    logical, intent(in), optional :: flow  !< @copydoc doc::flow
-    logical, intent(in), optional :: verbatim  !< if .true. print as comments the calls performed
-    integer, intent(in), optional :: unit   !< unit in which the dump has to be 
+    type(dictionary), pointer, intent(in) :: dict !< Dictionary to dump
+    logical, intent(in), optional :: flow         !< @copydoc doc::flow
+    logical, intent(in), optional :: verbatim     !< if .true. print as comments the calls performed
+    integer, intent(in), optional :: unit         !< unit in which the dump has to be 
     !local variables
     logical :: flowrite,verb,default_flow
     integer :: unt
@@ -2080,9 +2109,9 @@ contains
   subroutine yaml_dict_dump_all(dict,unit,flow,verbatim)
     implicit none
     type(dictionary), pointer, intent(in) :: dict   !< Dictionary to dump
-    logical, intent(in), optional :: flow  !< if .true. inline
-    logical, intent(in), optional :: verbatim  !< if .true. print as comments the calls performed
-    integer, intent(in), optional :: unit   !< unit in which the dump has to be 
+    logical, intent(in), optional :: flow           !< if .true. inline
+    logical, intent(in), optional :: verbatim       !< if .true. print as comments the calls performed
+    integer, intent(in), optional :: unit           !< unit in which the dump has to be 
     !local variables
     logical :: flowrite,verb
     integer :: unt,idoc

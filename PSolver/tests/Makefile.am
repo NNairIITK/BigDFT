@@ -33,14 +33,14 @@ AM_LDFLAGS = -L$(top_builddir)/PSolver/src
 
 if BUILD_LIB_BIGDFT
 psolver_libraries = $(top_builddir)/PSolver/src/libPSolver-1.a
-LIBS += $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/src/libflib.a @LINALG_LIBS@ @LIB_YAML_LIBS@ -lrt
+LIBS += $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/src/libflib-1.a @LIBS_EXT_DEPS@
 else
 if BUILD_DYNAMIC_LIBS
 psolver_libraries = -lPSolver-1
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/PSolver/src
 else
 psolver_libraries = $(top_builddir)/PSolver/src/libPSolver-1.a
-LIBS += $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/src/libflib.a @LINALG_LIBS@ @LIB_YAML_LIBS@ -lrt
+LIBS += $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/src/libflib-1.a @LIBS_EXT_DEPS@
 endif
 endif
 

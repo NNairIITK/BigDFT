@@ -2163,6 +2163,8 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
               if (.not. lstat) call io_error(trim(error))
               call timing(iproc,'readtmbfiles','OF')
 
+              call timing(iproc,'tmbrestart','ON')
+
               ! DEBUG: print*,iproc,iorb,iorb+orbs%isorb,iorb_old,iorb_out
 
               !! define fragment transformation - should eventually be done automatically...
@@ -2492,6 +2494,7 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
   use yaml_output
   use module_fragments
   use module_interfaces, except_this_one => initialize_linear_from_file
+  use locregs, only: locreg_null
   implicit none
   integer, intent(in) :: iproc, nproc, iformat
   type(fragmentInputParameters),intent(in) :: input_frag

@@ -651,7 +651,7 @@ END SUBROUTINE daub_to_isf_locham
 
 
 subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_strten)
-  !use module_base
+  use module_defs, only: gp,wp
   use module_types
   implicit none
   integer, intent(in) :: nspinor
@@ -1197,7 +1197,7 @@ END SUBROUTINE daub_to_isf
 !!  - the psir is destroyed for some BCs (slab and periodic)
 !!  - psi must already be initialized (to zero) before entering this routine
 subroutine isf_to_daub(lr,w,psir,psi)
-  !n(c) use module_base
+  use module_defs, only: wp
   use module_types
   implicit none
   type(locreg_descriptors), intent(in) :: lr

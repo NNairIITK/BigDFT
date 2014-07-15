@@ -7,6 +7,7 @@
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
 
+
 subroutine allocateBasicArraysInputLin(lin, ntypes)
   use module_base
   use module_types
@@ -17,7 +18,6 @@ subroutine allocateBasicArraysInputLin(lin, ntypes)
   integer, intent(in) :: ntypes
   
   ! Local variables
-  integer :: istat
   character(len=*), parameter :: subname='allocateBasicArrays'
 
   call f_routine(id='allocateBasicArraysInputLin')
@@ -35,6 +35,7 @@ subroutine allocateBasicArraysInputLin(lin, ntypes)
 
 end subroutine allocateBasicArraysInputLin
 
+
 subroutine allocate_extra_lin_arrays(lin,astruct)
   use module_atoms, only: atomic_structure
   use module_types, only: linearInputParameters
@@ -44,7 +45,7 @@ subroutine allocate_extra_lin_arrays(lin,astruct)
   type(linearInputParameters), intent(inout) :: lin
   !local variables
   character(len=*), parameter :: subname='allocate_extra_lin_arrays'
-  integer :: nlr,iat,itype,iiorb,iorb,istat
+  integer :: nlr,iat,itype,iiorb,iorb
   !then perform extra allocations
   nlr=0
   do iat=1,astruct%nat
@@ -83,7 +84,6 @@ subroutine deallocateBasicArraysInput(lin)
   type(linearinputParameters), intent(inout) :: lin
   
   ! Local variables
-  integer :: i_stat,i_all
   character(len=*), parameter :: subname='deallocateBasicArrays'
 
   call f_routine(id='deallocateBasicArraysInput')
@@ -171,7 +171,7 @@ subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locreg
   type(orbitals_data),optional,intent(in) :: lborbs
   
   ! Local variables
-  integer :: istat, jorb, jjorb, jlr
+  integer :: jorb, jjorb, jlr
   character(len=*), parameter :: subname='initLocregs'
   logical,dimension(:), allocatable :: calculateBounds
 
@@ -242,12 +242,9 @@ subroutine init_foe(iproc, nproc, nlr, locregcenter, astruct, input, orbs_KS, or
   real(kind=8),optional,intent(in) :: cutoff_incr
   
   ! Local variables
-  integer :: iorb, iiorb, jjorb, istat, iseg, ilr, jlr
-  integer :: iwa, jwa, itype, jtype, ierr, isegstart
-  logical :: seg_started
-  real(kind=8) :: tt, cut, incr
-  logical,dimension(:,:), allocatable :: kernel_locreg
   character(len=*), parameter :: subname='init_foe'
+  integer :: iorb
+  real(kind=8) :: incr
 
   if (present(cutoff_incr)) then
       incr=cutoff_incr
@@ -292,6 +289,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
   use module_types
   use module_xc
   use ao_inguess, only: atomic_info
+  use locregs, only: locreg_null
   implicit none
 
   integer, intent(in) :: iproc,nproc,nspin
@@ -305,7 +303,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
   character(len=*), parameter :: subname='check_linear_and_create_Lzd'
   logical :: linear
   real(gp) :: rcov
-  integer :: iat,ityp,nspin_ig,i_all,i_stat,ilr
+  integer :: iat,ityp,nspin_ig,ilr
   real(gp), dimension(:), allocatable :: locrad
   logical,dimension(:), allocatable :: calculateBounds
 
@@ -418,11 +416,13 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
 
 end subroutine check_linear_and_create_Lzd
 
+
 subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rxyz,nl,Lzd)
   use module_base
   use module_types
   use module_xc
   use ao_inguess, only: atomic_info
+  use locregs, only: locreg_null
   implicit none
 
   integer, intent(in) :: iproc,nproc,nspin
@@ -592,7 +592,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
   type(orbitals_data), intent(out) :: lorbs
   
   ! Local variables
-  integer :: norb, norbu, norbd, ityp, iat, ilr, istat, iorb, nlr
+  integer :: norb, norbu, norbd, ityp, iat, ilr, iorb, nlr
   integer, dimension(:), allocatable :: norbsPerLocreg, norbsPerAtom
   real(kind=8),dimension(:,:), allocatable :: locregCenter
   character(len=*), parameter :: subname='init_orbitals_data_for_linear'
@@ -626,6 +626,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
        input%gen_nkpt, input%gen_kpt, input%gen_wkpt, lorbs,.true.) !simple repartition
 
   locregCenter = f_malloc((/ 3, nlr /),id='locregCenter')
+
   
   ilr=0
   do iat=1,astruct%nat
@@ -667,6 +668,7 @@ subroutine lzd_init_llr(iproc, nproc, input, astruct, rxyz, orbs, lzd)
   use module_base
   use module_types
   use module_interfaces
+  use locregs, only: locreg_null
   implicit none
   
   ! Calling arguments
@@ -738,6 +740,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
   use communications_init, only: init_comms_linear, init_comms_linear_sumrho, &
                                  initialize_communication_potential
   use foe_base, only: foe_data, foe_data_null
+  use locregs, only: locreg_null
   implicit none
   
   ! Calling arguments
@@ -875,9 +878,6 @@ subroutine allocate_auxiliary_basis_function(npsidim, subname, lphi, lhphi)
   real(kind=8),dimension(:), pointer,intent(out) :: lphi, lhphi
   character(len=*), intent(in) :: subname
 
-  ! Local variables
-  integer :: istat
-
   lphi = f_malloc_ptr(npsidim,id='lphi')
   lhphi = f_malloc_ptr(npsidim,id='lhphi')
 
@@ -899,7 +899,6 @@ subroutine deallocate_auxiliary_basis_function(subname, lphi, lhphi)
   call f_free_ptr(lhphi)
 
 end subroutine deallocate_auxiliary_basis_function
-
 
 
 subroutine destroy_new_locregs(iproc, nproc, tmb)
@@ -984,11 +983,11 @@ subroutine update_wavefunctions_size(lzd,npsidim_orbs,npsidim_comp,orbs,iproc,np
   integer, intent(out) :: npsidim_orbs, npsidim_comp
 
   ! Local variables
+  character(len = *), parameter :: subname = "update_wavefunctions_size"
   integer :: npsidim, ilr, iorb
-  integer :: nvctr_tot,jproc,istat,ierr
+  integer :: nvctr_tot,jproc
   integer, allocatable, dimension(:) :: ncntt 
   integer, allocatable, dimension(:,:) :: nvctr_par
-  character(len = *), parameter :: subname = "update_wavefunctions_size"
 
   call f_routine(id='update_wavefunctions_size')
 
@@ -998,7 +997,6 @@ subroutine update_wavefunctions_size(lzd,npsidim_orbs,npsidim_comp,orbs,iproc,np
    npsidim = npsidim + lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
   end do
   npsidim_orbs=max(npsidim,1)
-
 
   nvctr_tot = 1
   do iorb=1,orbs%norbp
@@ -1602,7 +1600,7 @@ subroutine clean_rho(iproc, nproc, npt, rho)
   real(kind=8),dimension(npt), intent(inout) :: rho
 
   ! Local variables
-  integer :: ncorrection, ipt, ierr
+  integer :: ncorrection, ipt
   real(kind=8) :: charge_correction
 
   if (iproc==0) then
@@ -1694,13 +1692,13 @@ subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero
       integer, dimension(:), pointer,intent(out) :: nonzero
     
       ! Local variables
-      integer :: iorb, jorb, ioverlapMPI, ioverlaporb, ilr, jlr, ilrold
-      integer :: iiorb, ierr, ii
+      integer :: iorb, jorb, ioverlaporb, ilr, jlr, ilrold
+      integer :: iiorb, ii
       !!integer :: istat
       logical :: isoverlap
       integer :: onseg
       logical, dimension(:,:), allocatable :: overlapMatrix
-      integer, dimension(:), allocatable :: noverlapsarr, displs, op_noverlaps
+      integer, dimension(:), allocatable :: noverlapsarr
       integer, dimension(:,:), allocatable :: overlaps_op
       !character(len=*), parameter :: subname='determine_overlap_from_descriptors'
 
@@ -1903,6 +1901,7 @@ end subroutine init_sparse_matrix_wrapper
 
 !> Initializes a sparse matrix type compatible with the ditribution of the KS orbitals
 subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat, smat_extra)
+  use module_base
   use module_types
   use module_interfaces
   use sparsematrix_base, only: sparse_matrix

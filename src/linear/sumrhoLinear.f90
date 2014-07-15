@@ -720,7 +720,7 @@ end subroutine sumrho_for_TMBs
 
 !> perform the communication needed for the potential and verify that the results is as expected
 subroutine check_communication_potential(iproc,denspot,tmb)
-  use module_base, only:dp,bigdft_mpi,mpi_sum,mpi_max,mpiallred
+  use module_base
   use module_types
   use module_interfaces
   use yaml_output
@@ -947,6 +947,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   call f_free(psirwork)
 
   ! Rearrange array
+  !LG: WARNING: it is bad practice to consider collcom_sr as intent(in)
+  !and collcom_sr%psit_c and intent(out) or intent(inout)!!!
   call transpose_unswitch_psirt(collcom_sr, psirtwork, collcom_sr%psit_c)
 
   ! Transposed workarray not needed anymore

@@ -120,7 +120,11 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   ! Create linear orbs data structure.
   if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
       .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-     call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms%astruct, locregcenters, lorbs)
+     if (present(locregcenters)) then
+         call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms%astruct, locregcenters, lorbs)
+     else
+         call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms%astruct, atoms%astruct%rxyz, lorbs)
+     end if
 
      ! There are needed for the restart (at least if the atoms have moved...)
      present_inwhichlocreg_old = present(inwhichlocreg_old)
@@ -254,7 +258,12 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
          !!write(*,*) 'rxyz',rxyz
          !!write(*,*) 'locregcenters',locregcenters
-        call lzd_init_llr(iproc, nproc, in, atoms%astruct, locregcenters, lorbs, lzd_lin)
+         if (present(locregcenters)) then
+            call lzd_init_llr(iproc, nproc, in, atoms%astruct, locregcenters, lorbs, lzd_lin)
+        else
+            call lzd_init_llr(iproc, nproc, in, atoms%astruct, atoms%astruct%rxyz, lorbs, lzd_lin)
+        end if
+
      else
         call initialize_linear_from_file(iproc,nproc,in%frag,atoms%astruct,rxyz,lorbs,lzd_lin,&
              input_wf_format,in%dir_output,'minBasis',ref_frags)
@@ -850,8 +859,8 @@ END SUBROUTINE read_radii_variables
 !> Calculate the number of electrons and check the polarisation (mpol)
 subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
      & atoms, ncharge, nspin, mpol, norbsempty)
-  use module_types, only: atoms_data, f_err_throw
-  use module_defs, only: gp
+  use module_types, only: atoms_data
+  use module_base, only: gp, f_err_throw
   use yaml_output, only: yaml_toa , yaml_warning, yaml_comment
   !use ao_inguess, only : count_atomic_shells
   implicit none
@@ -1345,8 +1354,8 @@ END SUBROUTINE kpts_to_procs_via_obj
 
 
 subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par)
-  use module_base, only: gp, f_err_throw, to_zero
-  use module_types, only: BIGDFT_RUNTIME_ERROR, UNINITIALIZED
+  use module_base, only: gp, f_err_throw, to_zero,BIGDFT_RUNTIME_ERROR,&
+       UNINITIALIZED
   implicit none
   !Arguments
   integer, intent(in) :: nproc,nkpts,nvctr,norb
@@ -1880,6 +1889,7 @@ end subroutine pawpatch_from_file
 
 subroutine system_signaling(iproc, signaling, gmainloop, KSwfn, tmb, energs, denspot, optloop, &
        & ntypes, radii_cf, crmult, frmult)
+  use module_defs, only: gp, UNINITIALIZED
   use module_types
   implicit none
   integer, intent(in) :: iproc, ntypes

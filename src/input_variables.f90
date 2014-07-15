@@ -92,7 +92,7 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
   !in case it should be restored the bigdft_severe shoudl be called instead
   !if (mpi_env%iproc > 0) call f_err_severe_restore()
 
-  ! We put a barrier here to be sure that non master proc will be stop
+  ! We put a barrier here to be sure that non master proc will be stopped
   ! by any issue on the master proc.
   call mpi_barrier(mpi_env%mpi_comm, ierr)
 
@@ -580,6 +580,7 @@ END SUBROUTINE tddft_input_variables_default
 
 !> Allocate the arrays for the input related to the fragment
 subroutine allocateInputFragArrays(input_frag)
+  use module_base
   use module_types
   implicit none
 
@@ -611,6 +612,7 @@ end subroutine allocateInputFragArrays
 
 !> Deallocate the arrays related to the input for the fragments
 subroutine deallocateInputFragArrays(input_frag)
+  use module_base
   use module_types
   implicit none
 
@@ -813,14 +815,12 @@ END SUBROUTINE frequencies_input_variables_default
 !> Cross check values of input_variables.
 !! and change if necessary
 subroutine input_analyze(in,astruct)
-  use module_types, only: input_variables
-  use module_types, only: output_denspot_FORMAT_CUBE, output_denspot_NONE, WF_FORMAT_NONE
-  use module_types, only: bigdft_mpi
-  use module_types, only: KERNELMODE_DIRMIN, KERNELMODE_DIAG, KERNELMODE_FOE, &
-                          MIXINGMODE_DENS, MIXINGMODE_POT, &
-                          LINEAR_DIRECT_MINIMIZATION, LINEAR_MIXDENS_SIMPLE, LINEAR_MIXPOT_SIMPLE, LINEAR_FOE
+  use module_types, only: input_variables,output_denspot_FORMAT_CUBE, &
+       output_denspot_NONE, WF_FORMAT_NONE, KERNELMODE_DIRMIN,&
+       KERNELMODE_DIAG, KERNELMODE_FOE, MIXINGMODE_DENS, MIXINGMODE_POT, &
+       LINEAR_DIRECT_MINIMIZATION, LINEAR_MIXDENS_SIMPLE, &
+       LINEAR_MIXPOT_SIMPLE, LINEAR_FOE
   use module_atoms, only: atomic_structure
-  use module_defs, only: gp
   use module_base
   use module_input_keys, only: input_keys_equal
   implicit none
@@ -1144,10 +1144,3 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
        & call yaml_warning('Defining a k-point path in free boundary conditions.') 
 
 END SUBROUTINE kpt_input_analyse
-
-!!$  ! linear scaling: explicitely specify localization centers
-!!$  in%explicit_locregcenters = dict//EXPLICIT_LOCREGCENTERS
-!!$  ! linear scaling: calculate Kohn-Sham residue
-!!$  in%calculate_KS_residue = dict//CALCULATE_KS_RESIDUE
-!!$  ! linear scaling: calculate intermediate forces
-!!$  in%intermediate_forces = dict//INTERMEDIATE_FORCES

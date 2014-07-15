@@ -57,6 +57,7 @@ end subroutine deallocate_Lzd_except_Glr
 
 
 subroutine deallocate_orbitals_data(orbs)
+  use module_base, only: f_free_ptr
   use module_types
   implicit none
   
@@ -97,8 +98,8 @@ end subroutine deallocate_comms_cubic
 
 
 subroutine deallocate_convolutions_bounds(bounds)
-  
-  use module_types
+  use module_base, only: f_free_ptr
+  use locregs, only: convolutions_bounds
   implicit none
   
   ! Calling arguments
@@ -114,8 +115,8 @@ end subroutine deallocate_convolutions_bounds
 
 
 subroutine deallocate_kinetic_bounds(kb)
-  
-  use module_types
+  use module_base, only: f_free_ptr
+  use locregs, only: kinetic_bounds
   implicit none
  
   ! Calling arguments
@@ -132,8 +133,8 @@ end subroutine deallocate_kinetic_bounds
 
 
 subroutine deallocate_shrink_bounds(sb)
-  
-  use module_types
+  use module_base, only: f_free_ptr
+  use locregs, only: shrink_bounds
   implicit none
  
   ! Calling arguments
@@ -149,8 +150,8 @@ end subroutine deallocate_shrink_bounds
 
 
 subroutine deallocate_grow_bounds(gb)
-
-  use module_types
+  use module_base, only: f_free_ptr
+  use locregs, only: grow_bounds
   implicit none
  
   ! Calling arguments
