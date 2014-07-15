@@ -129,7 +129,7 @@
    itrpmax                             : 2 #      maximum number of diagonalisation iterations
    rpnrm_cv                            : 0.1E-06 # stop criterion on the residue of potential or density
    norbsempty                          : 4 #      No. of additional bands
-   Tel                                 : 0.10E-02 # electronic temperature
+   tel                                 : 0.10E-02 # electronic temperature
    occopt                              : 3 #      smearing method
    alphamix                            : 0.950 #  Multiplying factors for the mixing
    alphadiis                           : 2.000 #  Multiplying factors for the electronic DIIS

@@ -24,7 +24,7 @@ subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   integer, parameter :: lowfil=-14,lupfil=14
   real(gp) :: scal(0:7),fac
   real(wp) :: rmr_old,rmr_new,alpha,beta
-  integer :: i,i_stat,i_all,icong
+  integer :: i,icong
   real(wp), allocatable :: b(:),r(:),d(:)
   real(wp), allocatable :: psifscf(:),ww(:)
   integer :: nd1,nd2,nd3
@@ -233,7 +233,7 @@ subroutine prec_fft(n1,n2,n3, &
   real(wp), intent(inout) :: hpsi(nvctr_c+7*nvctr_f)
   !local variables
   character(len=*), parameter :: subname='prec_fft'
-  integer :: nd1,nd2,nd3,i_stat,i_all
+  integer :: nd1,nd2,nd3
   real(gp), dimension(:), allocatable :: kern_k1,kern_k2,kern_k3
   real(wp), dimension(:,:,:), allocatable :: x_c! in and out of Fourier preconditioning
   real(wp), dimension(:,:,:,:,:), allocatable :: z1,z3 ! work array for FFT

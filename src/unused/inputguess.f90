@@ -76,7 +76,7 @@ subroutine inputguess_gaussian_orbitals_withOnWhichAtom(iproc,nproc,at,rxyz,Glr,
   !warning: here the aim is just to calculate npsidim, should be fixed
   !call allocate_comms(nproc,orbsv,commsv,subname)
 !!$  call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
-!!$  call deallocate_comms(commsv,subname)
+!!$  call deallocate_comms(commsv)
 
   !!!orbitals descriptor for inguess orbitals
   nspinorfororbse=orbs%nspinor
@@ -312,7 +312,7 @@ subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,norb,at,rxyz,nvirt
   !warning: here the aim is just to calculate npsidim, should be fixed
   !call allocate_comms(nproc,orbsv,commsv,subname)
 !!$  call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
-!!$  call deallocate_comms(commsv,subname)
+!!$  call deallocate_comms(commsv)
 
   !!!orbitals descriptor for inguess orbitals
   nspinorfororbse=orbs%nspinor

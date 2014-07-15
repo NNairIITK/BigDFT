@@ -142,7 +142,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
   type(workarr_precond),dimension(orbs%norbp),intent(inout),optional :: linear_precond_workarrays !< workarrays for the linear case
   !local variables
   character(len=*), parameter :: subname='preconditionall2'
-  integer :: iorb,inds,ncplx,ikpt,jorb,ist,ilr,i_all,i_stat,ierr,jproc
+  integer :: iorb,inds,ncplx,ikpt,jorb,ist,ilr,ierr,jproc
   real(wp) :: cprecr,scpr,evalmax,eval_zero,gnrm_orb
   real(gp) :: kx,ky,kz
 !!$  integer :: i_stat,i_all,ispinor,nbox
@@ -405,7 +405,7 @@ subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
   character(len=*), parameter :: subname='precondition_residue'
   real(gp), dimension(0:7) :: scal
   real(wp) :: rmr_old,rmr_new,alpha,beta
-  integer :: i_stat,i_all,icong
+  integer :: icong
   type(workarr_precond) :: w
   real(wp), dimension(:), allocatable :: b,r,d
 
@@ -715,11 +715,9 @@ subroutine allocate_work_arrays(geocode,hybrid_on,ncplx,d,w)
   !local variables
   character(len=*), parameter :: subname='allocate_work_arrays'
   integer, parameter :: lowfil=-14,lupfil=14
-  integer :: i_stat
   integer :: nd1,nd2,nd3
   integer :: n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b
   integer :: nf
-
 
   if (geocode == 'F') then
 
@@ -862,7 +860,6 @@ subroutine deallocate_work_arrays(geocode,hybrid_on,ncplx,w)
   type(workarr_precond), intent(inout) :: w
   !local variables
   character(len=*), parameter :: subname='deallocate_work_arrays'
-  integer :: i_stat,i_all
 
   if (geocode == 'F') then
 
@@ -1082,7 +1079,7 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
   character(len=*), parameter :: subname='prec_diag'
   real(gp), parameter ::atomic_length=2.0_gp,fac_len=2.0_gp
   integer :: num_trans,n2_nt,nd1,nd2,nd3,iseg,jj,j0,ii,i3,i2,i
-  integer :: nn1,nn2,nn3,nnn1,nnn2,nnn3,i0,i_all,i_stat,i1,j1
+  integer :: nn1,nn2,nn3,nnn1,nnn2,nnn3,i0,i1,j1
   real(wp) :: h0,h1,h2,h3,fac_h
   real(wp), dimension(:,:,:), allocatable :: hpsip
 
@@ -1334,7 +1331,7 @@ subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   logical, parameter :: inguess_on=.true.
   !       wavelet and scaling function second derivative filters
   real(wp), parameter :: b2=24.8758460293923314_wp, a2=3.55369228991319019_wp
-  integer :: i,icong,i_stat,i_all
+  integer :: i,icong
   real(wp) :: fac_h,h0,h1,h2,h3,tt,alpha1,alpha2,alpha,beta1,beta2,beta,aa1,aa2
   real(wp), dimension(0:3) :: scal
   real(wp), dimension(:), allocatable :: rpsi,ppsi,wpsi

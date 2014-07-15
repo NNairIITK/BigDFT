@@ -53,10 +53,10 @@ subroutine f_dump_possible_errors(extra_msg)
   
   call yaml_newline()
   call yaml_comment('Error list',hfill='~')
-  call yaml_open_map('List of errors defined so far')
+  call yaml_mapping_open('List of errors defined so far')
 !  call yaml_dict_dump(f_get_error_definitions(),verbatim=.true.)
   call yaml_dict_dump(f_get_error_definitions())
-  call yaml_close_map()
+  call yaml_mapping_close()
   call yaml_comment('End of error list',hfill='~')
   if (len_trim(extra_msg) > 0) then
      call yaml_map('Additional Info',trim(extra_msg))

@@ -307,7 +307,7 @@ subroutine atom_projector_paw(ikpt,iat,idir,istart_c,iproj,nprojel,&
   real(wp), dimension(nprojel), intent(inout) :: proj
   !Local variables
   character(len=*), parameter :: subname='atom_projector_paw'
-  integer :: i_all,i_stat,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,l,m,i,i_g,i_shell,j
+  integer :: ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,l,m,i,i_g,i_shell,j
   integer :: ncplx_k,nc,jstart_c,jj
   integer :: lmax=5
   real(gp) :: kx,ky,kz
@@ -812,7 +812,7 @@ subroutine crtproj(geocode,nterm,lr, &
   logical :: perx,pery,perz !variables controlling the periodicity in x,y,z
   integer :: iterm,n_gau,ml1,ml2,ml3,mu1,mu2,mu3,i1,i2,i3
   integer :: ncplx_w,ns1,ns2,ns3,n1,n2,n3,n1p1,np,i0jj
-  integer :: i_all,i_stat,j1,i0,j0,jj,ii,i,iseg,ind_f,ind_c
+  integer :: j1,i0,j0,jj,ii,i,iseg,ind_f,ind_c
   integer :: mvctr1, mvctr2, mvctr_cf, mvctr_cf2
   !integer :: counter !test
   !real(wp) :: re_cmplx_prod,im_cmplx_prod
@@ -1307,8 +1307,10 @@ subroutine crtproj(geocode,nterm,lr, &
 !  i_all=-product(shape(work))*kind(work)
 !  deallocate(work,stat=i_stat)
 !  call memocc(i_stat,i_all,'work',subname)
-  !call finalize_real_space_conversion(subname)
+  !call finalize_real_space_conversion()
+
 contains
+
   !> Real part of the complex product
   pure function re_cmplx_prod(a,b,c)
     use module_base, only: wp

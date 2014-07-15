@@ -210,7 +210,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    !the allocation with npsidim is not necessary here since DIIS arrays
    !are always calculated in the transpsed form
    call allocate_diis_objects(in%idsx,in%alphadiis,sum(VTwfn%comms%ncntt(0:nproc-1)),&
-      &   VTwfn%orbs%nkptsp,VTwfn%orbs%nspinor,VTwfn%diis,subname)  
+      &   VTwfn%orbs%nkptsp,VTwfn%orbs%nspinor,VTwfn%diis)  
    !print *,'check',in%idsx,sum(VTwfn%comms%ncntt(0:nproc-1)),VTwfn%orbs%nkptsp
 
    energs%eKS=1.d10
@@ -226,14 +226,14 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    !previous value of idsx_actual to control if switching has appeared
    idsx_actual_before=VTwfn%diis%idsx
 
-   if (iproc == 0) call yaml_open_sequence('Optimization of virtual orbitals')
+   if (iproc == 0) call yaml_sequence_open('Optimization of virtual orbitals')
 
    wfn_loop: do iter=1,in%itermax+100
 
       if (iproc == 0 .and. verbose > 0) then 
          call yaml_comment('iter=' // trim(yaml_toa(iter)),hfill='-')
          call yaml_sequence(advance='no')
-         call yaml_open_map(flow=.true.)
+         call yaml_mapping_open(flow=.true.)
          !write( *,'(1x,a,i0)') repeat('~',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
       endif
       !control whether the minimisation iterations ended
@@ -264,7 +264,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
          if (iproc == 0) then 
             if (verbose > 1) call yaml_map('Minimization iterations required',iter)
             call write_energies(iter,0,energs,gnrm,0.d0,' ')
-            call yaml_close_map()
+            call yaml_mapping_close()
             call yaml_comment('End of Virtual Wavefunction Optimisation',hfill='-')
             if (VTwfn%diis%energy > VTwfn%diis%energy_min) then
                call yaml_warning('Found an energy value lower than the FINAL energy, delta' // &
@@ -298,12 +298,12 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
             &   psiw(1),out_add=VTwfn%psi(1))
       end if
 
-      if (iproc == 0) call yaml_close_map()
+      if (iproc == 0) call yaml_mapping_close()
 
    end do wfn_loop
 
    if (iproc == 0) then
-      call yaml_close_sequence() !wfn iterations
+      call yaml_sequence_close() !wfn iterations
       if (iter == in%itermax+100) then
          call yaml_warning('No convergence within the allowed number of minimization steps')
       else if (verbose > 1) then
@@ -316,7 +316,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
       call f_free_ptr(psirocc)
    end if
 
-   call deallocate_diis_objects(VTwfn%diis,subname)
+   call deallocate_diis_objects(VTwfn%diis)
 
    !this deallocates also hpsivirt and psitvirt
    call last_orthon(iproc,nproc,iter,VTwfn,energs%evsum)
@@ -539,7 +539,7 @@ subroutine davidson(iproc,nproc,in,at,&
    call psivirt_from_gaussians(iproc,nproc,at,orbsv,Lzd,commsv,rxyz,Lzd%hgrids(1),&
         & Lzd%hgrids(2),Lzd%hgrids(3),in%nspin,v, max(orbsv%npsidim_orbs, orbsv%npsidim_comp))
 
-   !if(iproc==0) call yaml_open_map('Orthogonality to occupied psi',flow=.true.)
+   !if(iproc==0) call yaml_mapping_open('Orthogonality to occupied psi',flow=.true.)
    !if(iproc==0)write(*,'(1x,a)',advance="no")"Orthogonality to occupied psi..."
 
    !project v such that they are orthogonal to all occupied psi
@@ -568,7 +568,7 @@ subroutine davidson(iproc,nproc,in,at,&
    ! 1st Hamilton application on psivirt
    !if(iproc==0) then
    !   call yaml_map('first','done')
-   !   call yaml_close_map()
+   !   call yaml_mapping_close()
    !end if
    !if(iproc==0)vwrite(*,'(1x,a)',advance="no")"done. first "
 
@@ -649,7 +649,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
    !if(iproc==0)write(*,'(1x,a)')"done."
    !if(iproc==0)write(*,'(1x,a)')"      1-sqnorm   Rayleigh quotient"
-   if(iproc==0) call yaml_open_sequence('L2 Norm - 1 and Rayleigh quotient (Davidson)')
+   if(iproc==0) call yaml_sequence_open('L2 Norm - 1 and Rayleigh quotient (Davidson)')
 
    do ikpt=1,orbsv%nkpts
       !if (orbsv%nkpts > 1 .and. iproc == 0) then
@@ -673,7 +673,7 @@ subroutine davidson(iproc,nproc,in,at,&
          !if(iproc==0) write(*,'(1x,i3,1x,1pe13.6,1x,1pe12.5)') iorb,1.0_gp-e(iorb,ikpt,2),e(iorb,ikpt,1)
       end do
    end do
-   if(iproc==0) call yaml_close_sequence()
+   if(iproc==0) call yaml_sequence_close()
 
    !if(msg)then
    !write(*,*)"******** transposed v,hv 1st elements"
@@ -718,7 +718,7 @@ subroutine davidson(iproc,nproc,in,at,&
    davidson_loop: do 
 
       if(iproc==0) call yaml_comment(' iter= ' // trim(yaml_toa(iter)),hfill='-')
-      if(msg) call yaml_open_sequence('squared norm of the (nvirt) gradients')
+      if(msg) call yaml_sequence_open('squared norm of the (nvirt) gradients')
       !if(iproc==0) write( *,'(1x,a,i0)') repeat('~',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
       !if(msg) write(*,'(1x,a)')"squared norm of the (nvirt) gradients"
 
@@ -758,7 +758,7 @@ subroutine davidson(iproc,nproc,in,at,&
             call yaml_comment('Kpt #' // adjustl(trim(yaml_toa(ikpt,fmt='(i4.4)'))) // ' BZ coord. = ' // &
             & trim(yaml_toa(orbs%kpts(:, ikpt),fmt='(f12.6)')))
             call yaml_sequence(advance='no')
-            call yaml_open_map('tt',flow=.true.)
+            call yaml_mapping_open('tt',flow=.true.)
          end if
          do iorb=1,orbsv%norb
             tt=real(e(iorb,ikpt,2)*orbsv%kwgts(ikpt),dp)
@@ -774,18 +774,18 @@ subroutine davidson(iproc,nproc,in,at,&
                if (iorb <= nvirt) gnrm=gnrm+tt
             end do
          end if
-         if (msg) call yaml_close_map()
+         if (msg) call yaml_mapping_close()
       end do
-      if (msg) call yaml_close_sequence()
+      if (msg) call yaml_sequence_close()
 
       !the gnrm defined should be the average of the active gnrms
       gnrm=dsqrt(gnrm/real(nvirt,dp))
 
       if (iproc == 0) then
-         call yaml_open_map('Gradient Norm',flow=.true.)
+         call yaml_mapping_open('Gradient Norm',flow=.true.)
          call yaml_map('Value',gnrm,fmt='(1pe12.5)')
          call yaml_map('Exit criterion',in%gnrm_cv,fmt='(1pe9.2)')
-         call yaml_close_map()
+         call yaml_mapping_close()
          !write(*,'(1x,a,2(1x,1pe12.5))') "|gradient|=gnrm and exit criterion ",gnrm,in%gnrm_cv
       end if
 
@@ -809,7 +809,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
       if(msg) then
          call to_zero(orbsv%norb*orbsv%nkpts,e(1,1,2))
-         call yaml_open_sequence('squared norm of all gradients after projection')
+         call yaml_sequence_open('squared norm of all gradients after projection')
          !write(*,'(1x,a)')"squared norm of all gradients after projection"
          ispsi=1
          do ikptp=1,orbsv%nkptsp
@@ -835,7 +835,7 @@ subroutine davidson(iproc,nproc,in,at,&
             call yaml_comment('Kpt #' // adjustl(trim(yaml_toa(ikpt,fmt='(i4.4)'))) // ' BZ coord. = ' // &
             & trim(yaml_toa(orbs%kpts(:, ikpt),fmt='(f12.6)')))
             call yaml_sequence(advance='no')
-            call yaml_open_map('tt',flow=.true.)
+            call yaml_mapping_open('tt',flow=.true.)
             do iorb=1,orbsv%norb
                tt=real(e(iorb,ikpt,2)*orbsv%kwgts(ikpt),dp)
                call yaml_map('Orbital No.'//trim(yaml_toa(iorb)), tt, fmt='(1pe21.14)')
@@ -850,13 +850,13 @@ subroutine davidson(iproc,nproc,in,at,&
                   gnrm=gnrm+tt
                end do
             end if
-            call yaml_close_map()
+            call yaml_mapping_close()
          end do
          gnrm=sqrt(gnrm/real(orbsv%norb,dp))
 
          call yaml_map('gnrm of all',gnrm,fmt='(1pe21.14)')
          !write(*,'(1x,a,2(1x,1pe21.14))')"gnrm of all ",gnrm
-         call yaml_close_sequence()
+         call yaml_sequence_close()
       end if
 
       !if (iproc==0) write(*,'(1x,a)',advance='no')'Preconditioning...'
@@ -1111,7 +1111,7 @@ subroutine davidson(iproc,nproc,in,at,&
          end do
 
          if(msg .or. (iproc==0 .and. ikpt == 1)) then
-            call yaml_open_sequence('Eigenvalues and eigenstate residue')
+            call yaml_sequence_open('Eigenvalues and eigenstate residue')
             !write(*,'(1x,a)')'done. Eigenvalues, gnrm'
             if (nspin ==1) then
                do iorb=1,orbsv%norb
@@ -1147,7 +1147,7 @@ subroutine davidson(iproc,nproc,in,at,&
                   !   &   iorb,e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2)),e(iorb+orbsv%norbu,ikpt,1),sqrt(e(iorb+orbsv%norbu,ikpt,2))
                end do
             end if
-            call yaml_close_sequence()
+            call yaml_sequence_close()
          end if
 
       end do
@@ -1191,8 +1191,6 @@ subroutine davidson(iproc,nproc,in,at,&
       if(iter>in%itermax+100)then !an input variable should be put
          if(iproc==0) call yaml_warning( &
             &   'No convergence within the allowed number of minimization steps (itermax + 100)')
-         !if(iproc==0)write(*,'(1x,a)')&
-         !   &   'No convergence within the allowed number of minimization steps (itermax + 100)'
          exit davidson_loop
       end if
 
@@ -1444,7 +1442,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
    use module_base
    use module_types
    use module_interfaces
-   use gaussians
+   use gaussians, only: gaussian_basis, deallocate_gwf, gaussian_overlap
    use communications_base, only: comms_cubic
    use communications, only: transpose_v
    implicit none
@@ -1565,7 +1563,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
       call dsyev('V','U',G%ncoeff,ovrlp(1,1),G%ncoeff,ev(1),work(1),nwork,info)
       if (info /= 0) then
          if (iproc == 0) then
-            write(*,*)'DSyev Error',info
+            write(*,*)'#DSyev Error',info
          end if
          stop
       end if
@@ -1602,7 +1600,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
    call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,gaucoeffs,psivirt)
 
    !deallocate the gaussian basis descriptors
-   call deallocate_gwf(G,subname)
+   call deallocate_gwf(G)
 
    !deallocate gaussian array
    call f_free(gaucoeffs)
@@ -1687,8 +1685,7 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
    real(wp), dimension(:), pointer :: psi,psivirt
    !local variables
    character(len=10) :: comment
-   character(len=11) :: orbname,denname
-   integer :: iorb,ikpt,jorb,ind,occnorb,occnorbu,occnorbd
+   integer :: iorb,ikpt,jorb,occnorb,occnorbu,occnorbd
    real(gp) :: valu,vald,val
 
    if (occorbs) then
@@ -1702,7 +1699,7 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
    end if
 
    if(iproc==0)then
-      call yaml_open_sequence('Complete list of energy eigenvalues')
+      call yaml_sequence_open('Complete list of energy eigenvalues')
       if (nspin==1) then
          !write(*,'(1x,a)')'Complete list of energy eigenvalues'
          do ikpt=1,orbsv%nkpts
@@ -1737,7 +1734,7 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
                !   &   'e_virtual(',iorb,')=',orbsv%eval(iorb+occnorb+(ikpt-1)*orbsv%norb)!e(iorb+occnorb,ikpt,1)
             end do
          end do
-         call yaml_close_sequence()
+         call yaml_sequence_close()
       else
          do ikpt=1,orbsv%nkpts
             call yaml_comment('Kpt #' // adjustl(trim(yaml_toa(ikpt,fmt='(i4.4)'))) // ' BZ coord. = ' // &
@@ -1804,7 +1801,7 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
                !   &   'e_vrt(',iorb,',u)=',orbsv%eval(iorb+(ikpt-1)*orbsv%norb),&!e(iorb,ikpt,1),&
                !   &   'e_vrt(',iorb,',d)=',orbsv%eval(jorb+(ikpt-1)*orbsv%norb)!e(jorb,ikpt,1)
             end do
-            call yaml_close_map()
+            call yaml_mapping_close()
             if (orbsv%norbu-occnorbu > orbsv%norbd-occnorbd) then
                do iorb=orbsv%norbd+1-occnorbu,orbsv%norbu-occnorbd
                   call yaml_sequence(advance='no')
@@ -1825,7 +1822,7 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
                end do
             end if
          end do
-         call yaml_close_sequence()
+         call yaml_sequence_close()
       end if
    end if
 

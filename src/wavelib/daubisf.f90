@@ -19,7 +19,7 @@ subroutine initialize_work_arrays_locham(nlr,lr,nspinor,allocate_arrays,w)
   type(workarr_locham), intent(out) :: w
   !local variables
   character(len=*), parameter :: subname='initialize_work_arrays_locham'
-  integer :: i_stat,ilr
+  integer :: ilr
   integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,nw,nww,nf
   character(len=1) :: geo
   logical :: hyb
@@ -33,9 +33,9 @@ subroutine initialize_work_arrays_locham(nlr,lr,nspinor,allocate_arrays,w)
   n1i=0
   n2i=0
   n3i=0
-  nfl1=0
-  nfl2=0
-  nfl3=0
+  nfl1=1000000000
+  nfl2=1000000000
+  nfl3=1000000000
   nfu1=0
   nfu2=0
   nfu3=0
@@ -48,9 +48,9 @@ subroutine initialize_work_arrays_locham(nlr,lr,nspinor,allocate_arrays,w)
       n1i=max(n1i,lr(ilr)%d%n1i)
       n2i=max(n2i,lr(ilr)%d%n2i)
       n3i=max(n3i,lr(ilr)%d%n3i)
-      nfl1=max(nfl1,lr(ilr)%d%nfl1)
-      nfl2=max(nfl2,lr(ilr)%d%nfl2)
-      nfl3=max(nfl3,lr(ilr)%d%nfl3)
+      nfl1=min(nfl1,lr(ilr)%d%nfl1)
+      nfl2=min(nfl2,lr(ilr)%d%nfl2)
+      nfl3=min(nfl3,lr(ilr)%d%nfl3)
       nfu1=max(nfu1,lr(ilr)%d%nfu1)
       nfu2=max(nfu2,lr(ilr)%d%nfu2)
       nfu3=max(nfu3,lr(ilr)%d%nfu3)
@@ -184,9 +184,7 @@ subroutine initialize_work_arrays_locham(nlr,lr,nspinor,allocate_arrays,w)
 
 END SUBROUTINE initialize_work_arrays_locham
 
-!>
-!!
-!!
+
 subroutine memspace_work_arrays_locham(lr,memwork) !n(c) nspinor (arg:2)
   !n(c) use module_base
   use module_types
@@ -338,10 +336,6 @@ subroutine zero_work_arrays_locham(lr,nspinor,w)
 END SUBROUTINE zero_work_arrays_locham
 
 
-
-!>
-!!
-!!
 subroutine deallocate_work_arrays_locham(w)
   use module_base
   use module_types
@@ -349,7 +343,6 @@ subroutine deallocate_work_arrays_locham(w)
   type(workarr_locham), intent(inout) :: w
   !local variables
   character(len=*), parameter :: subname='deallocate_work_arrays_locham'
-  integer :: i_stat,i_all
   
   call f_free_ptr(w%y_c)
   call f_free_ptr(w%x_c)
@@ -360,8 +353,8 @@ subroutine deallocate_work_arrays_locham(w)
   call f_free_ptr(w%x_f)
   call f_free_ptr(w%w1)
   call f_free_ptr(w%w2)
-  
 END SUBROUTINE deallocate_work_arrays_locham
+
 
 subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
   use module_base
@@ -740,6 +733,7 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   
 END SUBROUTINE daub_to_isf_locham
 
+
 subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_strten)
   !use module_base
   use module_types
@@ -1031,7 +1025,7 @@ subroutine initialize_work_arrays_sumrho(nlr,lr,allocate_arrays,w)
   type(workarr_sumrho), intent(out) :: w
   !local variables
   character(len=*), parameter :: subname='initialize_work_arrays_sumrho'
-  integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,i_stat !n(c) n1i,n2i,n3i
+  integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3!n(c) n1i,n2i,n3i
   integer :: ilr
   character(len=1) :: geo
   logical :: hyb
@@ -1043,9 +1037,9 @@ subroutine initialize_work_arrays_sumrho(nlr,lr,allocate_arrays,w)
   n1=0
   n2=0
   n3=0
-  nfl1=0
-  nfl2=0
-  nfl3=0
+  nfl1=1000000000
+  nfl2=1000000000
+  nfl3=1000000000
   nfu1=0
   nfu2=0
   nfu3=0
@@ -1055,9 +1049,9 @@ subroutine initialize_work_arrays_sumrho(nlr,lr,allocate_arrays,w)
       n1=max(n1,lr(ilr)%d%n1)
       n2=max(n2,lr(ilr)%d%n2)
       n3=max(n3,lr(ilr)%d%n3)
-      nfl1=max(nfl1,lr(ilr)%d%nfl1)
-      nfl2=max(nfl2,lr(ilr)%d%nfl2)
-      nfl3=max(nfl3,lr(ilr)%d%nfl3)
+      nfl1=min(nfl1,lr(ilr)%d%nfl1)
+      nfl2=min(nfl2,lr(ilr)%d%nfl2)
+      nfl3=min(nfl3,lr(ilr)%d%nfl3)
       nfu1=max(nfu1,lr(ilr)%d%nfu1)
       nfu2=max(nfu2,lr(ilr)%d%nfu2)
       nfu3=max(nfu3,lr(ilr)%d%nfu3)
@@ -1134,6 +1128,7 @@ subroutine initialize_work_arrays_sumrho(nlr,lr,allocate_arrays,w)
 
 END SUBROUTINE initialize_work_arrays_sumrho
 
+
 subroutine memspace_work_arrays_sumrho(lr,memwork)
   !n(c) use module_base
   use module_types
@@ -1208,7 +1203,6 @@ subroutine deallocate_work_arrays_sumrho(w)
   type(workarr_sumrho), intent(inout) :: w
   !local variables
   character(len=*), parameter :: subname='deallocate_work_arrays_sumrho'
-  integer :: i_all, i_stat
 
   call f_free_ptr(w%x_c)
   call f_free_ptr(w%x_f)
@@ -1216,6 +1210,7 @@ subroutine deallocate_work_arrays_sumrho(w)
   call f_free_ptr(w%w2)
   
 END SUBROUTINE deallocate_work_arrays_sumrho
+
 
 subroutine psig_to_psir_free(n1,n2,n3,work,psig_psir)
  implicit none
@@ -1225,12 +1220,13 @@ subroutine psig_to_psir_free(n1,n2,n3,work,psig_psir)
 
  call synthese_free_self(n1,n2,n3,psig_psir,work)
  call convolut_magic_n_free_self(2*n1+15,2*n2+15,2*n3+15,work,psig_psir)
-	
+
 end subroutine psig_to_psir_free
 
-!transform a daubechies function in compressed form to a function in real space via
-!the Magic Filter operation
-!do this for a single component (spinorial and/or complex)
+
+!> Transform a daubechies function in compressed form to a function in real space via
+!! the Magic Filter operation
+!! do this for a single component (spinorial and/or complex)
 subroutine daub_to_isf(lr,w,psi,psir)
   use module_base
   use module_types
@@ -1310,11 +1306,13 @@ subroutine daub_to_isf(lr,w,psi,psir)
 
 END SUBROUTINE daub_to_isf
 
-!>   Transforms a wavefunction written in real space basis into a 
-!!   wavefunction in Daubechies form
-!!   does the job for all supported BC
-!!   Warning: the psir is destroyed for some BCs (slab and periodic)
-!!   Warning: psi must already be initialized (to zero) before entering this routine
+
+!> Transforms a wavefunction written in real space basis into a 
+!! wavefunction in Daubechies form
+!! does the job for all supported BC
+!! @warning: 
+!!  - the psir is destroyed for some BCs (slab and periodic)
+!!  - psi must already be initialized (to zero) before entering this routine
 subroutine isf_to_daub(lr,w,psir,psi)
   !n(c) use module_base
   use module_types

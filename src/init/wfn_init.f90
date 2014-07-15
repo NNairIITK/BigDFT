@@ -33,7 +33,7 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
    character(len=*), parameter :: subname='Gaussian_DiagHam'
    !n(c) real(kind=8), parameter :: eps_mach=1.d-12
    logical :: semicore,minimal
-   integer :: i,ndim_hamovr,i_all,i_stat,norbi_max,j
+   integer :: i,ndim_hamovr,norbi_max,j
    integer :: natsceff,ndh1,ispin,nspinor !n(c) norbtot,norbsc,npsidim
    real(gp) :: tolerance
    integer, dimension(:,:), allocatable :: norbgrp
@@ -145,9 +145,6 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
    !!!  !if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norbu+norbd,psit,.false.)
    !!!     
    call f_free(hamovr)
-   !!!  i_all=-product(shape(norbgrp))*kind(norbgrp)
-   !!!  deallocate(norbgrp,stat=i_stat)
-   !!!  call memocc(i_stat,i_all,'norbgrp',subname)
    !!!
    !!!  if (minimal) then
    !!!     !deallocate the old psi
@@ -231,7 +228,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   character(len=*), parameter :: subname='LDiagHam'
   !real(kind=8), parameter :: eps_mach=1.d-12
   integer :: ikptp,ikpt,nvctrp,iorb,Gdim!,jproc
-  integer :: i,ndim_hamovr,i_all,i_stat,ierr,norbi_max,j,noncoll,ispm,ncplx,idum=0
+  integer :: i,ndim_hamovr,ierr,norbi_max,j,noncoll,ispm,ncplx,idum=0
   integer :: norbtot,natsceff,norbsc,ndh1,ispin,nvctr,npsidim,nspinor,ispsi,ispsie,ispsiv
   real(kind=4) :: tt,builtin_rand
   real(gp) :: tolerance
@@ -321,7 +318,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   !initialise hamovr
   call to_zero(nspin*ndim_hamovr*2*orbse%nkpts,hamovr(1,1,1))
 
-  if (iproc == 0 .and. verbose > 1) call yaml_open_map('Input Guess Overlap Matrices',flow=.true.)
+  if (iproc == 0 .and. verbose > 1) call yaml_mapping_open('Input Guess Overlap Matrices',flow=.true.)
   !     'Overlap Matrix...'
 
   !after having applied the hamiltonian to all the atomic orbitals
@@ -374,7 +371,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   ! There are two possibilities to generate the input guess
   differentInputGuess: if(.not. orthpar%directDiag) then
      if (iproc == 0 .and. verbose > 1) then
-        call yaml_close_map()
+        call yaml_mapping_close()
         call yaml_newline()
      end if
      if(iproc==0) write(*,'(1x,a)') 'Iterative diagonalization...'
@@ -405,7 +402,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
 
      if (iproc == 0 .and. verbose > 1) then
         call yaml_map('Diagonalized',.true.)
-        call yaml_close_map()
+        call yaml_mapping_close()
         call yaml_newline()
      end if
 
@@ -639,7 +636,7 @@ subroutine solve_eigensystem(norbi_max,ndim_hamovr,ndim_eval,&
    character(len=*), parameter :: subname='solve_eigensystem'
    !n(c) character(len=25) :: gapstring
    !n(c) character(len=64) :: message
-   integer :: iorbst,imatrst,norbi,n_lp,info,i_all,i_stat,i,ncplx !n(c) iorb, ncomp, ndegen
+   integer :: iorbst,imatrst,norbi,n_lp,info,i,ncplx !n(c) iorb, ncomp, ndegen
    integer :: norbj,jiorb,jjorb,ihs,ispin,norbij,norbu_ig !,jproc n(c) nwrtmsg
    !n(c) real(wp), dimension(2) :: preval
    real(wp), dimension(:), allocatable :: work_lp,evale,work_rp
@@ -924,7 +921,7 @@ subroutine psitospi(iproc,nproc,norbe,norbep, &
    !local variables
    character(len=*), parameter :: subname='psitospi'
    logical :: myorbital
-   integer :: i_all,i_stat,nvctr
+   integer :: nvctr
    integer :: iorb,jorb,iat,i
    real(kind=8) :: mx,my,mz,mnorm,fac
    real(kind=8), dimension(:,:), allocatable :: mom
@@ -1020,7 +1017,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
 
    ! Local variables
    integer :: i, j, iorb, jorb, ispin, ii, jj, kk, norbtot, norbtotPad, iter, ierr, itermax
-   integer :: ist, i_stat, i_all, nprocSub, ishift, jjorb
+   integer :: ist, nprocSub, ishift, jjorb
    integer :: jspin, ist2, ishift2, norb, blocksize, lwork
    integer :: norbi, norbj, iat, imatrst, imatrst2, ihs, jiorb, norbij, ncplx, ncomp
    integer :: istpsi, istpsit, nvctrp, kkSave, iiSave, jproc, ist3, ikptp2, ikpt2
@@ -2392,7 +2389,7 @@ subroutine orthonormalizePsi(iproc, nproc, norbtot, norb, norbp, norbpArr,&
 
    ! Local variables
    integer:: i, j, iorb, iblock, jblock, ii, jj, ist, jst, iter, iter2, gcd,&
-      &   blocksizeSmall, norbtotp, ierr, i_stat, i_all, getBlocksize
+      &   blocksizeSmall, norbtotp, ierr, getBlocksize
    real(kind=8),dimension(:),allocatable:: psiW, overlapPsiW, psiWTrans, overlapPsiWTrans
    integer,dimension(:),allocatable:: sendcounts, recvcounts, sdispls, rdispls
    character(len=*),parameter:: subname='orthonormalizePsi'
@@ -2619,7 +2616,7 @@ subroutine gramschmidtOverlap(iproc, nproc, norbtot, blocksize, psi, overlapPsi,
    real(kind=8),dimension(1:norbtot*nspinor,1:norb,nkpts),intent(in out):: psi
 
    ! Local arguments
-   integer:: ikpt, ist, ierr, i_stat, i_all
+   integer:: ikpt, ist, ierr
    real(kind=8),dimension(:,:),allocatable:: A
    real(kind=8),dimension(:,:,:),allocatable:: ovrlp
    character(len=*),parameter:: subname='gramschmidtOverlap'
@@ -2712,7 +2709,7 @@ subroutine choleskyOverlap(iproc, nproc, norbtot, blocksize, psi, overlapPsi, &
    real(kind=8),dimension(1:norbtot*nspinor,1:norb,nkpts),intent(in out):: psi
 
    ! Local variables
-   integer:: ikpt, ist, info, ierr, i_stat, i_all
+   integer:: ikpt, ist, info, ierr
    real(kind=8),allocatable,dimension(:,:,:):: ovrlp
    character(len=*),parameter:: subname='choleskyOverlap'
 

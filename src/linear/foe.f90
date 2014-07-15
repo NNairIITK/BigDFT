@@ -200,12 +200,12 @@ subroutine foe(iproc, nproc, tmprtr, &
           if (iproc==0) then
               !call yaml_sequence(advance='no')
               if (foe_verbosity>=1) then
-                  call yaml_open_sequence('FOE to determine density kernel',label=&
+                  call yaml_sequence_open('FOE to determine density kernel',label=&
                        'it_foe'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//&
                        trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)')))//'-'//&
                        trim(adjustl(yaml_toa(itemp,fmt='(i2.2)'))))
               else
-                  call yaml_open_sequence('FOE to determine density kernel')
+                  call yaml_sequence_open('FOE to determine density kernel')
                   if (iproc==0) call yaml_comment('FOE calculation of kernel',hfill='-')
               end if
           end if
@@ -222,7 +222,7 @@ subroutine foe(iproc, nproc, tmprtr, &
               if (iproc==0) then
                   call yaml_newline()
                   call yaml_sequence(advance='no')
-                  call yaml_open_map(flow=.true.)
+                  call yaml_mapping_open(flow=.true.)
                   if (foe_verbosity>=1) call yaml_comment('it FOE:'//yaml_toa(it,fmt='(i6)'),hfill='-')
               end if
               
@@ -354,6 +354,7 @@ subroutine foe(iproc, nproc, tmprtr, &
             
               call timing(iproc, 'FOE_auxiliary ', 'OF')
     
+              emergency_stop=.false.
               if (calculate_SHS) then
                   ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
                   if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','recalculated')
@@ -397,7 +398,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                   if (iproc==0) then
                       if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
                            (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
-                      call yaml_close_map()
+                      call yaml_mapping_close()
                       !call bigdft_utils_flush(unit=6)
                   end if
                   call f_free(cc)
@@ -428,7 +429,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                   if (iproc==0) then
                       if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
                            (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
-                      call yaml_close_map()
+                      call yaml_mapping_close()
                       !call bigdft_utils_flush(unit=6)
                   end if
                   call f_free(cc_check)
@@ -458,7 +459,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                   if (iproc==0) then
                       if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
                            (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
-                      call yaml_close_map()
+                      call yaml_mapping_close()
                   end if
                   call f_free(cc_check)
                   ! Save the new fermi energy in the foe_obj structure
@@ -486,12 +487,12 @@ subroutine foe(iproc, nproc, tmprtr, &
               end if
     
               if (iproc==0) then
-                  call yaml_close_map()
+                  call yaml_mapping_close()
                   !call bigdft_utils_flush(unit=6)
               end if
     
               if (abs(charge_diff)<charge_tolerance) then
-                  if (iproc==0) call yaml_close_sequence()
+                  if (iproc==0) call yaml_sequence_close()
                   ! experimental: calculate a second kernel with a lower
                   ! polynomial degree  and calculate the difference
                   call chebyshev_fast(iproc, nsize_polynomial, npl_check, tmb%orbs, &
@@ -591,7 +592,7 @@ subroutine foe(iproc, nproc, tmprtr, &
 
       if (.not.purification_quickreturn) then
           if (iproc==0) then
-              call yaml_open_sequence('Final kernel purification')
+              call yaml_sequence_open('Final kernel purification')
               call yaml_newline()
           end if
           overlap_calculated=.true.
@@ -603,7 +604,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           call purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, 50, &
                order_taylor, max_inversion_error, purification_quickreturn)
           if (iproc==0) then
-              call yaml_close_sequence()
+              call yaml_sequence_close()
           end if
       end if
     
@@ -845,7 +846,7 @@ subroutine foe(iproc, nproc, tmprtr, &
 !!        ! Calculate the new Fermi energy.
 !!        if (foe_verbosity>=1 .and. iproc==0) then
 !!            call yaml_newline()
-!!            call yaml_open_map('Search new eF',flow=.true.)
+!!            call yaml_mapping_open('Search new eF',flow=.true.)
 !!        end if
 !!        if (it_solver>=4 .and.  &
 !!            abs(sumn-foe_data_get_real(foe_obj,"charge"))<foe_data_get_real(foe_obj,"ef_interpol_chargediff")) then
@@ -876,7 +877,7 @@ subroutine foe(iproc, nproc, tmprtr, &
 !!            if (foe_verbosity>=1 .and. iproc==0) call yaml_map('method','bisection / secant method')
 !!        end if
 !!        if (foe_verbosity>=1 .and. iproc==0) then
-!!            call yaml_close_map()
+!!            call yaml_mapping_close()
 !!            !!call bigdft_utils_flush(unit=6)
 !!            !call yaml_newline()
 !!        end if
@@ -1362,6 +1363,7 @@ subroutine get_roots_of_cubic_polynomial(a, b, c, d, target_solution, solution)
   ! Local variables
   complex(kind=8) :: a_c, b_c, c_c, d_c, Q_c, S_c, ttp_c, ttm_c
   complex(kind=8),dimension(3) :: sol_c
+  double complex :: test
   real(kind=8) :: ttmin, tt
   integer :: i
 
@@ -1374,7 +1376,10 @@ subroutine get_roots_of_cubic_polynomial(a, b, c, d, target_solution, solution)
   S_c = ( .5d0*(Q_c+2*b_c**3-9*a_c*b_c*c_c+27*a_c**2*d_c) )**(1.d0/3.d0)
   ttp_c = cmplx(1.d0,sqrt(3.d0),kind=8)
   ttm_c = cmplx(1.d0,-sqrt(3.d0),kind=8)
-  sol_c(1) = -b_c/(3*a_c) - S_c/(3*a_c) - (b_c**2-3*a_c*c_c)/(3*a_c*S_c)
+
+  sol_c(1) = -b_c/(3*a_c) &
+       - S_c/(3*a_c) &
+       - (b_c**2-3*a_c*c_c)/(3*a_c*S_c)
   sol_c(2) = -b_c/(3*a_c) + (S_c*ttp_c)/(6*a_c) + ttm_c*(b_c**2-3*a_c*c_c)/(6*a_c*S_c)
   sol_c(3) = -b_c/(3*a_c) + (S_c*ttm_c)/(6*a_c) + ttp_c*(b_c**2-3*a_c*c_c)/(6*a_c*S_c)
   !!if (iproc==0) then
@@ -1387,10 +1392,10 @@ subroutine get_roots_of_cubic_polynomial(a, b, c, d, target_solution, solution)
   ttmin=1.d100
   do i=1,3
       if (abs(aimag(sol_c(i)))>1.d-14) cycle !complex solution
-      tt=abs(real(sol_c(i))-target_solution)
+      tt=abs(real(sol_c(i),kind=8)-target_solution)
       if (tt<ttmin) then
           ttmin=tt
-          solution=real(sol_c(i))
+          solution=real(sol_c(i),kind=8)
       end if
   end do
 

@@ -1,6 +1,6 @@
 !> @file
 !! Include file used in yaml_output.f90.
-!! Body of the yaml_open_map or sequence template for arrays.
+!! Body of the yaml_mapping_open or sequence template for arrays.
 !! yaml: Yet Another Markup Language (ML for Human)
 !! @author
 !!    Copyright (C) 2013-2013 BigDFT group
@@ -12,13 +12,17 @@
 !template:
 !subroutine yaml_open_<template>(mapname,label,tag,flow,tabbing,advance,unit)
 !implicit none
-  character(len=*), optional, intent(in) :: mapname !< Key of the sequence. @copydoc doc::mapname
-  character(len=*), optional, intent(in) :: label   !< @copydoc doc::label
-  character(len=*), optional, intent(in) :: tag     !< @copydoc doc::tag
-  logical, optional, intent(in) :: flow             !< @copydoc doc::flow
-  character(len=*), optional, intent(in) :: advance !< @copydoc doc::advance
-  integer, optional, intent(in) :: unit             !< @copydoc doc::unit
-  integer, optional, intent(in) :: tabbing          !< @copydoc doc::tabbing
+
+
+! SM: doxygen does seem to get the descrption with @copydoc if this file is used with include, therefore the arguments
+!     are now again back in the main routines.
+!!  character(len=*), optional, intent(in) :: mapname !< Key of the sequence. @copydoc doc::mapname
+!!  character(len=*), optional, intent(in) :: label   !< @copydoc doc::label
+!!  character(len=*), optional, intent(in) :: tag     !< @copydoc doc::tag
+!!  logical, optional, intent(in) :: flow             !< @copydoc doc::flow
+!!  character(len=*), optional, intent(in) :: advance !< @copydoc doc::advance
+!!  integer, optional, intent(in) :: unit             !< @copydoc doc::unit
+!!  integer, optional, intent(in) :: tabbing          !< @copydoc doc::tabbing
   !local variables
   logical :: doflow
   integer :: msg_lgt,tb,ipos

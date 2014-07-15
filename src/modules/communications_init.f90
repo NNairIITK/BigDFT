@@ -265,7 +265,6 @@ module communications_init
     end subroutine get_weights
 
 
-
     subroutine assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_tot_c, weight_tot_f, &
                istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
                weightp_c, weightp_f, nptsp_c, nptsp_f, nvalp_c, nvalp_f)
@@ -617,7 +616,7 @@ module communications_init
       integer :: iorb, iiorb, i1, i2, i3, ii, jproc, jproctarget, ierr, ilr, j0, j1, i0, i, ind, n1p1, np
       integer :: ii1, ii2, ii3, iseg, istart, iend
       integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp
-      character(len=*),parameter :: subname='determine_communication_arrays'
+      character(len=*),     parameter :: subname='determine_communication_arrays'
     
       ! Determine values for mpi_alltoallv
       ! first nsendcounts
@@ -1322,14 +1321,10 @@ module communications_init
       !$omp end sections
       !$omp end parallel
     
-    
     end subroutine get_gridpoint_start
 
 
-
-
-    ! The sumrho routines
-
+    !> The sumrho routines
     subroutine init_comms_linear_sumrho(iproc, nproc, lzd, orbs, nscatterarr, collcom_sr)
       use module_base
       use module_types
@@ -2633,12 +2628,16 @@ module communications_init
               norb_par(0,1),nvctr_par(0,1),info,lubo,lubc)
       end if
       if (info /=0) then
-         if (iproc==0) then
-            write(*,*)'ERROR for nproc,nkpts,norb,nvctr',nproc,orbs%nkpts,orbs%norb,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
-            call print_distribution_schemes(6,nproc,orbs%nkpts,norb_par(0,1),nvctr_par(0,1))
-         end if
-         call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
-         stop
+         !if (iproc==0) then
+         !   write(*,*)'ERROR for nproc,nkpts,norb,nvctr',nproc,orbs%nkpts,orbs%norb,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
+         !   call print_distribution_schemes(nproc,orbs%nkpts,norb_par(0,1),nvctr_par(0,1))
+         !end if
+         !call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
+         !stop
+         if (iproc==0) call print_distribution_schemes(nproc,orbs%nkpts,norb_par(0,1),nvctr_par(0,1))
+         call f_err_throw('ERROR for nproc,nkpts,norb,nvctr' // &
+              & trim(yaml_toa( (/ nproc,orbs%nkpts,orbs%norb,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f) /) )), &
+              & err_id=BIGDFT_RUNTIME_ERROR)
       end if
     
     !write(*,'(a,i2,3x,8i7,i10)') 'iproc, nvctr_par(jproc), sum', iproc, (nvctr_par(jproc,1), jproc=0,nproc-1), sum(nvctr_par(:,1))
@@ -2695,7 +2694,7 @@ module communications_init
       !print the distribution scheme used for this set of orbital
       !in the case of multiple k-points
       if (iproc == 0 .and. verbose > 1 .and. orbs%nkpts > 1) then
-         call print_distribution_schemes(6,nproc,orbs%nkpts,norb_par(0,1),nvctr_par(0,1))
+         call print_distribution_schemes(nproc,orbs%nkpts,norb_par(0,1),nvctr_par(0,1))
       end if
     
       !print *,iproc,orbs%nkptsp,orbs%norbp,orbs%norb,orbs%nkpts

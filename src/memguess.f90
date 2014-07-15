@@ -21,6 +21,8 @@ program memguess
    use yaml_output
    use module_atoms, only: set_astruct_from_file
    use internal_coordinates
+   use gaussians, only: gaussian_basis, deallocate_gwf
+   use communications_base, only: deallocate_comms
    implicit none
    character(len=*), parameter :: subname='memguess'
    character(len=30) :: tatonam, radical
@@ -30,7 +32,7 @@ program memguess
    character(len=50) :: posinp
    logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.
    logical :: disable_deprecation = .false.,convertpos=.false.,transform_coordinates=.false.
-   integer :: ntimes,nproc,i_stat,i_all,output_grid, i_arg,istat
+   integer :: ntimes,nproc,output_grid, i_arg,istat
    integer :: nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
    integer :: norbgpu,ng
    integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor,irad
@@ -51,9 +53,9 @@ program memguess
    character(len=3) :: in_name !lr408
    integer :: i, inputpsi, input_wf_format
    integer,parameter :: nconfig=1
-   character(len=60),dimension(nconfig) :: arr_radical,arr_posinp
-   character(len=60) :: run_id, infile, outfile
-   integer, dimension(4) :: mpi_info
+   !character(len=60),dimension(nconfig) :: arr_radical,arr_posinp
+   !character(len=60) :: run_id, infile, outfile
+   !integer, dimension(4) :: mpi_info
    !real(gp) :: tcpu0,tcpu1,tel
    !integer :: ncount0,ncount1,ncount_max,ncount_rate
    !! By Ali
@@ -294,8 +296,8 @@ program memguess
    end if
 
    if (convertpos) then
-      call set_astruct_from_file(trim(fileFrom),0,at%astruct,i_stat,fcomment,energy,fxyz)
-      if (i_stat /=0) stop 'error on input file parsing' 
+      call set_astruct_from_file(trim(fileFrom),0,at%astruct,fcomment,energy,fxyz)
+      
       !find the format of the output file
       if (index(fileTo,'.xyz') > 0) then
          irad=index(fileTo,'.xyz')
@@ -332,8 +334,7 @@ program memguess
        else
            call f_err_throw("wrong switch for coordinate transforms", err_name='BIGDFT_RUNTIME_ERROR')
        end if
-       call set_astruct_from_file(trim(fileFrom),0,at%astruct,i_stat,fcomment,energy,fxyz)
-       if (i_stat /=0) stop 'error on input file parsing' 
+       call set_astruct_from_file(trim(fileFrom),0,at%astruct,fcomment,energy,fxyz)
 
        !find the format of the output file
        if (index(fileTo,'.xyz') > 0) then
@@ -536,7 +537,7 @@ program memguess
            orbstst,nspin,runObj%inputs%ncong,runObj%inputs%ixc,&
            runObj%rst%KSwfn%Lzd,hx,hy,hz,runObj%atoms%astruct%rxyz,ntimes)
 
-      call deallocate_orbs(orbstst,subname)
+      call deallocate_orbs(orbstst)
 
 
       call f_free_ptr(orbstst%eval)
@@ -561,7 +562,7 @@ program memguess
          nullify(gbd_occ)
       end if
       !deallocate the gaussian basis descriptors
-      call deallocate_gwf(G,subname)
+      call deallocate_gwf(G)
 
       !!$  !plot the wavefunctions for the AE atom
       !!$  !not possible, the code should recognize the AE eleconf
@@ -584,7 +585,7 @@ program memguess
       !!$     nullify(gbd_occ)
       !!$  end if
       !!$  !deallocate the gaussian basis descriptors
-      !!$  call deallocate_gwf(G,subname)
+      !!$  call deallocate_gwf(G)
 
       call f_free(rhoexpo)
       call f_free_ptr(rhocoeff)
@@ -594,9 +595,9 @@ program memguess
    ! Add the comparison between cuda hamiltonian and normal one if it is the case
 
    ! De-allocations
-   call deallocate_Lzd_except_Glr(runObj%rst%KSwfn%Lzd, subname)
-   call deallocate_comms(runObj%rst%KSwfn%comms,subname)
-   call deallocate_orbs(runObj%rst%KSwfn%orbs,subname)
+   call deallocate_Lzd_except_Glr(runObj%rst%KSwfn%Lzd)
+   call deallocate_comms(runObj%rst%KSwfn%comms)
+   call deallocate_orbs(runObj%rst%KSwfn%orbs)
    call free_DFT_PSP_projectors(nlpsp)
 
    !remove the directory which has been created if it is possible
@@ -621,8 +622,8 @@ program memguess
 END PROGRAM memguess
 
 
-!>  Rotate the molecule via an orthogonal matrix in order to minimise the
-!!  volume of the cubic cell
+!> Rotate the molecule via an orthogonal matrix in order to minimise the
+!! volume of the cubic cell
 subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
    use module_base
    use module_types
@@ -633,7 +634,7 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
    real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
    !local variables
    character(len=*), parameter :: subname='optimise_volume'
-   integer :: iat,i_all,i_stat,it,i
+   integer :: iat,it,i
    real(gp) :: x,y,z,vol,tx,ty,tz,tvol,s,diag,dmax
    type(locreg_descriptors) :: Glr
    real(gp), dimension(3) :: shift
@@ -727,8 +728,8 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
 END SUBROUTINE optimise_volume
 
 
-!>  Add a shift in the periodic directions such that the system
-!!  uses as less as possible the modulo operation
+!> Add a shift in the periodic directions such that the system
+!! uses as less as possible the modulo operation
 subroutine shift_periodic_directions(at,rxyz,radii_cf)
    use module_base
    use module_types
@@ -738,7 +739,7 @@ subroutine shift_periodic_directions(at,rxyz,radii_cf)
    real(gp), dimension(3,at%astruct%nat), intent(inout) :: rxyz
    !local variables
    character(len=*), parameter :: subname='shift_periodic_directions'
-   integer :: iat,i_all,i_stat,i,ityp
+   integer :: iat,i,ityp
    real(gp) :: vol,tvol,maxsh,shiftx,shifty,shiftz
    real(gp), dimension(:,:), allocatable :: txyz
 
@@ -873,6 +874,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    use module_types
    use module_interfaces
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use gaussians, only: gaussian_basis, deallocate_gwf
    use module_xc
 
    implicit none
@@ -886,7 +888,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    !local variables
    character(len=*), parameter :: subname='compare_cpu_gpu_hamiltonian'
    logical :: rsflag
-   integer :: icoeff,i_stat,i_all,i1,i2,i3,ispin,j
+   integer :: icoeff,i1,i2,i3,ispin,j
    integer :: iorb,n3d,n3p,n3pi,i3xcsh,i3s,jproc,nrhotot,nspinn,nvctrp
    integer(kind=8) :: itsc0,itsc1
    real(kind=4) :: tt
@@ -940,7 +942,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    call f_free_ptr(gbd_occ)
 
    !deallocate the gaussian basis descriptors
-   call deallocate_gwf(G,subname)
+   call deallocate_gwf(G)
 
    !allocate and initialise the potential and the density
    pot = f_malloc((/ Lzd%Glr%d%n1i, Lzd%Glr%d%n2i, Lzd%Glr%d%n3i, nspin /),id='pot')
@@ -1321,7 +1323,7 @@ subroutine take_psi_from_file(filename,in_frag,hx,hy,hz,lr,at,rxyz,orbs,psi,iorb
    !local variables
    character(len=*), parameter :: subname='take_psi_form_file'
    logical :: perx,pery,perz
-   integer :: nb1,nb2,nb3,i_stat,i_all, ikpt, ispin, i
+   integer :: nb1,nb2,nb3,ikpt, ispin, i
    integer :: wave_format_from_filename,iformat
    real(gp) :: eval_fake
    real(wp), dimension(:,:,:), allocatable :: psifscf

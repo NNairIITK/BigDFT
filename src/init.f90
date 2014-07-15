@@ -28,7 +28,6 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   logical, intent(in), optional :: output_denspot
   !local variables
   character(len=*), parameter :: subname='createWavefunctionsDescriptors'
-  integer :: i_all,i_stat
   integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   logical :: output_denspot_
   logical, dimension(:,:,:), pointer :: logrid_c,logrid_f
@@ -110,7 +109,6 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
    logical, dimension(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), intent(in) :: logrid_c,logrid_f
    !local variables
    character(len=*), parameter :: subname='wfd_from_grids'
-   integer :: i_stat
    integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
 
    !assign the dimensions to improve (a little) readability
@@ -381,8 +379,6 @@ END SUBROUTINE createProjectorsArrays
 !!$
 !!$  integer, intent(in) :: iproc, nproc
 !!$
-!!$  integer :: i_stat
-!!$
 !!$END SUBROUTINE initRhoPot
 
 subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
@@ -403,7 +399,7 @@ subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
   real(kind=8), dimension(:), pointer :: hpsi, psit
 
   character(len = *), parameter :: subname = "input_wf_empty"
-  integer :: i_stat, i_all, nspin, n1i, n2i, n3i, ispin, ierr
+  integer :: nspin, n1i, n2i, n3i, ispin, ierr
   real(gp) :: hxh, hyh, hzh
 
   !allocate fake psit and hpsi
@@ -505,6 +501,7 @@ subroutine input_wf_cp2k(iproc, nproc, nspin, atoms, rxyz, Lzd, &
   use module_defs
   use module_types
   use yaml_output
+  use gaussians, only: deallocate_gwf
   use module_interfaces, except_this_one => input_wf_cp2k
   implicit none
 
@@ -516,7 +513,6 @@ subroutine input_wf_cp2k(iproc, nproc, nspin, atoms, rxyz, Lzd, &
   real(wp), dimension(:), pointer :: psi
 
   character(len = *), parameter :: subname = "input_wf_cp2k"
-  integer :: i_stat, i_all
   type(gaussian_basis) :: gbd
   real(wp), dimension(:,:), pointer :: gaucoeffs
 
@@ -539,7 +535,7 @@ subroutine input_wf_cp2k(iproc, nproc, nspin, atoms, rxyz, Lzd, &
   call gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,gbd,gaucoeffs,psi)
 
   !deallocate gaussian structure and coefficients
-  call deallocate_gwf(gbd,subname)
+  call deallocate_gwf(gbd)
   call f_free_ptr(gaucoeffs)
   nullify(gbd%rxyz)
 
@@ -565,7 +561,7 @@ subroutine input_wf_memory_history(iproc,orbs,atoms,wfn_history,istep_history,ol
   real(wp), dimension(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: psi
   !local variables
   character(len=*), parameter :: subname='input_wf_memory_history'
-  integer :: i_stat,i_all,istep,jstep,nvctr
+  integer :: istep,jstep,nvctr
   real(wp), dimension(:,:), allocatable :: psi_tmp
   real(gp), dimension(3:9) :: kappa,alpha
   real(gp), dimension(0:9,3:9) :: c
@@ -684,7 +680,6 @@ subroutine input_wf_memory(iproc, atoms, &
   real(wp), dimension(:), pointer :: psi, psi_old
 
   character(len = *), parameter :: subname = "input_wf_memory"
-  integer :: i_stat, i_all
 
   !these parts should be reworked for the non-collinear spin case
   call reformatmywaves(iproc,orbs,atoms,hx_old,hy_old,hz_old,&
@@ -704,7 +699,11 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   use module_interfaces, except_this_one => input_memory_linear
   use module_fragments
   use yaml_output
+  use communications_base, only: deallocate_comms_linear
   use communications, only: transpose_localized, untranspose_localized
+  use sparsematrix_base, only: sparsematrix_malloc, DENSE_PARALLEL, assignment(=), &
+                               deallocate_sparse_matrix, deallocate_matrices
+  use sparsematrix, only: compress_matrix_distributed, uncompress_matrix_distributed
   implicit none
 
   ! Calling arguments
@@ -722,13 +721,26 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   type(system_fragment), dimension(:), intent(in) :: ref_frags
 
   ! Local variables
-  integer :: ndim_old, ndim, iorb, iiorb, ilr, i_stat, i_all, ilr_old, iiat, methTransformOverlap
+  integer :: ndim_old, ndim, iorb, iiorb, ilr, ilr_old, iiat, methTransformOverlap
   logical:: overlap_calculated
   real(wp), allocatable, dimension(:) :: norm
   type(fragment_transformation), dimension(:), pointer :: frag_trans
   character(len=*),parameter:: subname='input_memory_linear'
-  real(kind=8) :: pnrm
+  real(kind=8) :: pnrm, max_inversion_error
   logical :: rho_negative
+  integer,parameter :: RESTART_AO = 0
+  integer,parameter :: RESTART_REFORMAT = 1
+  integer,parameter :: restart_FOE = RESTART_AO!REFORMAT!AO
+  real(kind=8),dimension(:,:),allocatable :: kernelp, ovrlpp
+  type(localizedDIISParameters) :: ldiis
+  logical :: ortho_on, reduce_conf, can_use_ham
+  real(kind=8) :: trace, trace_old, fnrm_tmb, ratio_deltas, ddot
+  integer :: order_taylor, info_basis_functions, iortho, iat, jj, itype, inl
+  integer,dimension(:),allocatable :: maxorbs_type, minorbs_type
+  integer,dimension(:,:),allocatable :: nl_copy
+  logical,dimension(:),allocatable :: type_covered
+  logical :: finished
+
 
   call f_routine(id='input_memory_linear')
 
@@ -747,7 +759,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
   ! Reformat the support functions if we are not using FOE. Otherwise an AO
   ! input guess wil be done below.
-  if (input%lin%scf_mode/=LINEAR_FOE) then
+  if (input%lin%scf_mode/=LINEAR_FOE .or. input%FOE_restart==RESTART_REFORMAT) then
 
      ! define fragment transformation - should eventually be done automatically...
      allocate(frag_trans(tmb%orbs%norbp))
@@ -775,10 +787,6 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
      end do
   !end if
 
-  call deallocate_local_zone_descriptors(tmb_old%lzd, subname)
-  call deallocate_orbitals_data(tmb_old%orbs, subname)
-
-  call f_free_ptr(tmb_old%psi)
 
   !!call deallocate_wfd(tmb_old%lzd%glr%wfd,subname)
   !!do ilr=1,tmb_old%lzd%nlr
@@ -788,6 +796,12 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
           ! Copy the coefficients
   if (input%lin%scf_mode/=LINEAR_FOE) then
       call vcopy(tmb%orbs%norb*tmb%orbs%norb, tmb_old%coeff(1,1), 1, tmb%coeff(1,1), 1)
+  else if (input%FOE_restart==RESTART_REFORMAT) then
+      ! Extract to a dense format, since this is independent of the sparsity pattern
+      kernelp = sparsematrix_malloc(tmb%linmat%l, iaction=DENSE_PARALLEL, id='kernelp')
+      call uncompress_matrix_distributed(iproc, tmb_old%linmat%l, tmb_old%linmat%kernel_%matrix_compr, kernelp)
+      call compress_matrix_distributed(iproc, tmb%linmat%l, kernelp, tmb%linmat%kernel_%matrix_compr)
+      call f_free(kernelp)
   end if
           !!write(*,*) 'after vcopy, iproc',iproc
 
@@ -808,9 +822,6 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   !!   call f_free_ptr(tmb_old%linmat%denskern_large%matrix_compr)
   !!end if
 
-  if (associated(tmb_old%linmat%kernel_%matrix_compr)) then
-     call f_free_ptr(tmb_old%linmat%kernel_%matrix_compr)
-  end if
 
   ! destroy it all together here - don't have all comms arrays
   !call destroy_DFT_wavefunction(tmb_old)
@@ -820,14 +831,9 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
    ! normalize tmbs - only really needs doing if we reformatted, but will need to calculate transpose after anyway
 
    ! Normalize the input guess. If FOE is used, the input guess will be generated below.
-   if (input%lin%scf_mode/=LINEAR_FOE) then
+   if (input%lin%scf_mode/=LINEAR_FOE .or. (input%FOE_restart==RESTART_REFORMAT .and. .not.input%experimental_mode)) then
        tmb%can_use_transposed=.true.
        overlap_calculated=.false.
-       !tmb%psit_c = f_malloc_ptr(tmb%collcom%ndimind_c,id='tmb%psit_c')
-       !tmb%psit_f = f_malloc_ptr(7*tmb%collcom%ndimind_f,id='tmb%psit_f')
-       !tmb%ham_descr%psit_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='tmb%ham_descr%psit_c')
-       !tmb%ham_descr%psit_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='tmb%ham_descr%psit_f')
-
 
        call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
             tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
@@ -841,6 +847,95 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
             tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
 
        call f_free(norm)
+   else if (input%FOE_restart==RESTART_REFORMAT .and. input%experimental_mode) then
+      if (.not. input%lin%iterative_orthogonalization) then
+         !!%%  ! Orthonormalize
+         !!%%  tmb%can_use_transposed=.false.
+         !!%%  methTransformOverlap=-1
+         !!%%  call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inversion_error, tmb%npsidim_orbs, &
+         !!%%       tmb%orbs, tmb%lzd, tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
+         !!%%       tmb%can_use_transposed, tmb%foe_obj)
+         !!%% ! Standard orthonomalization
+         !!%% if (iproc==0) call yaml_map('orthonormalization of input guess','standard')
+         !!%% ! CHEATING here and passing tmb%linmat%denskern instead of tmb%linmat%inv_ovrlp
+         !!%% !write(*,'(a,i4,4i8)') 'IG: iproc, lbound, ubound, minval, maxval',&
+         !!%% !iproc, lbound(tmb%linmat%inv_ovrlp%matrixindex_in_compressed_fortransposed,2),&
+         !!%% !ubound(tmb%linmat%inv_ovrlp%matrixindex_in_compressed_fortransposed,2),&
+         !!%% !minval(tmb%collcom%indexrecvorbital_c),maxval(tmb%collcom%indexrecvorbital_c)
+         !!%% !!if (iproc==0) write(*,*) 'WARNING: no ortho in inguess'
+          tmb%can_use_transposed=.false.
+          methTransformOverlap=-1
+          call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, 1.d0, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
+               tmb%linmat%s, tmb%linmat%l, &
+               tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed, &
+               tmb%foe_obj)
+                
+     else
+         ! Iterative orthonomalization
+         !!if(iproc==0) write(*,*) 'calling generalized orthonormalization'
+         if (iproc==0) call yaml_map('orthonormalization of input guess','generalized')
+         maxorbs_type = f_malloc(at%astruct%ntypes,id='maxorbs_type')
+         minorbs_type = f_malloc(at%astruct%ntypes,id='minorbs_type')
+         type_covered = f_malloc(at%astruct%ntypes,id='type_covered')
+         minorbs_type(1:at%astruct%ntypes)=0
+         nl_copy=f_malloc((/0.to.3,1.to.at%astruct%nat/),id='nl_copy')
+         do iat=1,at%astruct%nat
+            nl_copy(:,iat)=at%aoig(iat)%nl
+         end do
+    
+         iortho=0
+         ortho_loop: do
+             finished=.true.
+             type_covered=.false.
+             do iat=1,at%astruct%nat
+                 itype=at%astruct%iatype(iat)
+                 if (type_covered(itype)) cycle
+                 type_covered(itype)=.true.
+                 !jj=1*ceiling(aocc(1,iat))+3*ceiling(aocc(3,iat))+&
+                 !     5*ceiling(aocc(7,iat))+7*ceiling(aocc(13,iat))
+                 jj=nl_copy(0,iat)+3*nl_copy(1,iat)+5*nl_copy(2,iat)+7*nl_copy(3,iat)
+                 maxorbs_type(itype)=jj
+                 !should not enter in the conditional below due to the raise of the exception above
+                 if (jj<input%lin%norbsPerType(at%astruct%iatype(iat))) then
+                     finished=.false.
+                     increase_count: do inl=1,4
+                        if (nl_copy(inl,iat)==0) then
+                           nl_copy(inl,iat)=1
+                           call f_err_throw('InputguessLinear: Should not be here',&
+                                err_name='BIGDFT_RUNTIME_ERROR')
+                           exit increase_count
+                        end if
+                     end do increase_count
+    !!$                 if (ceiling(aocc(1,iat))==0) then
+    !!$                     aocc(1,iat)=1.d0
+    !!$                 else if (ceiling(aocc(3,iat))==0) then
+    !!$                     aocc(3,iat)=1.d0
+    !!$                 else if (ceiling(aocc(7,iat))==0) then
+    !!$                     aocc(7,iat)=1.d0
+    !!$                 else if (ceiling(aocc(13,iat))==0) then
+    !!$                     aocc(13,iat)=1.d0
+    !!$                 end if
+                 end if
+             end do
+             if (iortho>0) then
+                 call gramschmidt_subset(iproc, nproc, -1, tmb%npsidim_orbs, &                                  
+                      tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%s, &
+                      tmb%linmat%l, tmb%collcom, tmb%orthpar, &
+                      tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+             end if
+             call orthonormalize_subset(iproc, nproc, -1, tmb%npsidim_orbs, &                                  
+                  tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%s, &
+                  tmb%linmat%l, tmb%collcom, tmb%orthpar, &
+                  tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+             if (finished) exit ortho_loop
+             iortho=iortho+1
+             minorbs_type(1:at%astruct%ntypes)=maxorbs_type(1:at%astruct%ntypes)+1
+         end do ortho_loop
+         call f_free(maxorbs_type)
+         call f_free(minorbs_type)
+         call f_free(type_covered)
+         call f_free(nl_copy)
+     end if
    end if
 
 
@@ -854,6 +949,36 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
            tmb%orthpar%blocksize_pdgemm, KSwfn%orbs, tmb, overlap_calculated)
       !call f_free_ptr(tmb%psit_c)
       !call f_free_ptr(tmb%psit_f)
+  else if (input%FOE_restart==RESTART_REFORMAT) then
+      ! Calculate the old and the new overlap matrix
+       tmb_old%psit_c = f_malloc_ptr(tmb_old%collcom%ndimind_c,id='tmb_old%psit_c')
+       tmb_old%psit_f = f_malloc_ptr(7*tmb_old%collcom%ndimind_f,id='tmb_old%psit_f')
+       tmb%can_use_transposed=.false.
+       tmb_old%can_use_transposed=.false.
+       call transpose_localized(iproc, nproc, tmb_old%npsidim_orbs, tmb_old%orbs, tmb_old%collcom, &
+            tmb_old%psi, tmb_old%psit_c, tmb_old%psit_f, tmb_old%lzd)
+       call calculate_overlap_transposed(iproc, nproc, tmb_old%orbs, tmb_old%collcom, tmb_old%psit_c, tmb_old%psit_c, &
+            tmb_old%psit_f, tmb_old%psit_f, tmb_old%linmat%s, tmb_old%linmat%ovrlp_)
+       call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+            tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_c, &
+            tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+
+       call f_free_ptr(tmb_old%psit_c)
+       call f_free_ptr(tmb_old%psit_f)
+
+       ! Transform the old overlap matrix to the new sparsity format, by going via the full format.
+       ovrlpp = sparsematrix_malloc(tmb%linmat%s, iaction=DENSE_PARALLEL, id='ovrlpp')
+       call uncompress_matrix_distributed(iproc, tmb_old%linmat%s, tmb_old%linmat%ovrlp_%matrix_compr, ovrlpp)
+
+       ! Allocate the matrix with the new sparsity pattern
+       call f_free_ptr(tmb_old%linmat%ovrlp_%matrix_compr)
+       tmb_old%linmat%ovrlp_%matrix_compr = f_malloc_ptr(tmb%linmat%s%nvctr,id='tmb_old%linmat%ovrlp_%matrix_compr')
+
+       call compress_matrix_distributed(iproc, tmb%linmat%s, ovrlpp, tmb_old%linmat%ovrlp_%matrix_compr)
+       call f_free(ovrlpp)
+       call renormalize_kernel(iproc, nproc, input%lin%order_taylor, max_inversion_error, tmb, &
+            tmb%linmat%ovrlp_, tmb_old%linmat%ovrlp_)
   else
      ! By doing an LCAO input guess
      tmb%can_use_transposed=.false.
@@ -874,6 +999,23 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
      end if
   end if
 
+
+  call deallocate_orbitals_data(tmb_old%orbs)
+  call f_free_ptr(tmb_old%psi)
+  call f_free_ptr(tmb_old%linmat%kernel_%matrix_compr)
+
+  call deallocate_sparse_matrix(tmb_old%linmat%s)
+  call deallocate_sparse_matrix(tmb_old%linmat%m)
+  call deallocate_sparse_matrix(tmb_old%linmat%l)
+  call deallocate_sparse_matrix(tmb_old%linmat%ks)
+  call deallocate_sparse_matrix(tmb_old%linmat%ks_e)
+  call deallocate_matrices(tmb_old%linmat%ham_)
+  call deallocate_matrices(tmb_old%linmat%ovrlp_)
+  call deallocate_matrices(tmb_old%linmat%kernel_)
+  call deallocate_comms_linear(tmb_old%collcom)
+  call deallocate_local_zone_descriptors(tmb_old%lzd)
+  
+
   !!if (iproc==0) then
   !!  do i_stat=1,size(tmb%linmat%denskern%matrix_compr)
   !!    write(*,'(a,i8,es20.10)') 'i_stat, tmb%linmat%denskern%matrix_compr(i_stat)', i_stat, tmb%linmat%denskern%matrix_compr(i_stat)
@@ -882,7 +1024,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   !!end if
 
           ! Must initialize rhopotold (FOR NOW... use the trivial one)
-  if (input%lin%scf_mode/=LINEAR_FOE) then
+  if (input%lin%scf_mode/=LINEAR_FOE .or. input%FOE_restart==RESTART_REFORMAT) then
       call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
            tmb%orbs, tmb%psi, tmb%collcom_sr)
       !tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
@@ -914,6 +1056,71 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
               pnrm,denspot%dpbox%nscatterarr)
       end if
       call local_potential_dimensions(iproc,tmb%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
+       if (input%experimental_mode) then
+           ! NEW: TRACE MINIMIZATION WITH ORTHONORMALIZATION ####################################
+           ortho_on=.true.
+           call initializeDIIS(input%lin%DIIS_hist_lowaccur, tmb%lzd, tmb%orbs, ldiis)
+           ldiis%alphaSD=input%lin%alphaSD
+           ldiis%alphaDIIS=input%lin%alphaDIIS
+           energs%eexctX=0.d0 !temporary fix
+           trace_old=0.d0 !initialization
+           if (iproc==0) then
+               !call yaml_mapping_close()
+               call yaml_comment('Extended input guess for experimental mode',hfill='-')
+               call yaml_mapping_open('Extended input guess')
+               call yaml_sequence_open('support function optimization',label=&
+                                                 'it_supfun'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))))
+           end if
+           order_taylor=input%lin%order_taylor ! since this is intent(inout)
+           call getLocalizedBasis(iproc,nproc,at,tmb%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
+               info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
+               input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
+               50,&
+               ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode,input%lin%early_stop,&
+               input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
+               can_use_ham, order_taylor, input%lin%max_inversion_error, input%kappa_conv, input%method_updatekernel,&
+               input%purification_quickreturn, input%correction_co_contra)
+           reduce_conf=.true.
+           call yaml_sequence_close()
+           call yaml_mapping_close()
+           call deallocateDIIS(ldiis)
+           !call yaml_mapping_open()
+
+           ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+            call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
+                 tmb%orbs, tmb%psi, tmb%collcom_sr)
+            !tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
+            call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+                 tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+                 denspot%rhov, rho_negative)
+           if (rho_negative) then
+               call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+               !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+               !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+               !!call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+           end if
+      
+            call vcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*input%nspin, &
+                 denspot%rhov(1), 1, denspot0(1), 1)
+            if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
+               ! set the initial charge density
+               call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
+                    denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+                    at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+                    pnrm,denspot%dpbox%nscatterarr)
+            end if
+            call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+            if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+               ! set the initial potential
+               call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
+                    denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+                    at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+                    pnrm,denspot%dpbox%nscatterarr)
+            end if
+            call local_potential_dimensions(iproc,tmb%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
+
+           ! END NEW ############################################################################
+       end if
   end if
 
   ! Orthonormalize the input guess if necessary
@@ -1016,7 +1223,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   character(len=*), parameter :: subname='input_wf_diag'
   logical :: switchGPUconv,switchOCLconv
   integer :: ii,jj
-  integer :: i_stat,i_all,nspin_ig,ncplx,irhotot_add,irho_add,ispin,ikpt
+  integer :: nspin_ig,ncplx,irhotot_add,irho_add,ispin,ikpt
   real(gp) :: hxh,hyh,hzh,etol,accurex,eks
   type(orbitals_data) :: orbse
   type(comms_cubic) :: commse
@@ -1504,8 +1711,12 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 contains
 
   subroutine deallocate_input_wfs()
+    use gaussians, only: deallocate_gwf
+    use communications_base, only: deallocate_comms
 
-    call deallocate_comms(commse,subname)
+    implicit none
+
+    call deallocate_comms(commse)
 
     call f_free(norbsc_arr)
 
@@ -1513,10 +1724,10 @@ contains
        !gaussian estimation valid only for Free BC
        if (at%astruct%geocode == 'F') then
           call yaml_newline()
-          call yaml_open_map('Accuracy estimation for this run')
+          call yaml_mapping_open('Accuracy estimation for this run')
           call yaml_map('Energy',accurex,fmt='(1pe9.2)')
           call yaml_map('Convergence Criterion',accurex/real(orbs%norb,kind=8),fmt='(1pe9.2)')
-          call yaml_close_map()
+          call yaml_mapping_close()
           !write(*,'(1x,a,1pe9.2)') 'expected accuracy in energy ',accurex
           !write(*,'(1x,a,1pe9.2)') &
           !&   'expected accuracy in energy per orbital ',accurex/real(orbs%norb,kind=8)
@@ -1536,12 +1747,12 @@ contains
     end if
 
     !here we can define the subroutine which generates the coefficients for the virtual orbitals
-    call deallocate_gwf(G,subname)
-    call deallocate_local_zone_descriptors(Lzde, subname)
+    call deallocate_gwf(G)
+    call deallocate_local_zone_descriptors(Lzde)
 
     call f_free_ptr(psigau)
 
-    call deallocate_orbs(orbse,subname)
+    call deallocate_orbs(orbse)
     call f_free_ptr(orbse%eval)
 
   end subroutine deallocate_input_wfs
@@ -1561,7 +1772,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   use constrained_dft
   use dynamic_memory
   use yaml_output
-  use gaussians, only:gaussian_basis
+  use gaussians, only: gaussian_basis, nullify_gaussian_basis
   use sparsematrix_base, only: sparse_matrix
   use communications, only: transpose_localized, untranspose_localized
   implicit none
@@ -1591,7 +1802,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   real(kind=8),dimension(3,atoms%astruct%nat),intent(in),optional :: locregcenters
   !local variables
   character(len = *), parameter :: subname = "input_wf"
-  integer :: i_stat, nspin, i_all, iat
+  integer :: nspin, iat
   type(gaussian_basis) :: Gvirt
   real(wp), allocatable, dimension(:) :: norm
   !wvl+PAW objects
@@ -1610,7 +1821,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
   !nullify paw objects:
   do iatyp=1,atoms%astruct%ntypes
-  call nullify_gaussian_basis(proj_G(iatyp))
+     call nullify_gaussian_basis(proj_G(iatyp))
   end do
   paw%usepaw=0 !Not using PAW
   call nullify_paw_objects(paw)
@@ -1679,7 +1890,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '------------------------------------------------- Empty wavefunctions initialization'
         call yaml_comment('Empty wavefunctions initialization',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
 
      call input_wf_empty(iproc, nproc,KSwfn%psi, KSwfn%hpsi, KSwfn%psit, KSwfn%orbs, &
@@ -1690,7 +1901,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '------------------------------------------------ Random wavefunctions initialization'
         call yaml_comment('Random wavefunctions Initialization',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
 
      call input_wf_random(KSwfn%psi, KSwfn%orbs)
@@ -1700,7 +1911,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write(*,'(1x,a)')&
         !     &   '--------------------------------------------------------- Import Gaussians from CP2K'
         call yaml_comment('Import Gaussians from CP2K',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
 
      call input_wf_cp2k(iproc, nproc, in%nspin, atoms, rxyz, KSwfn%Lzd, &
@@ -1711,7 +1922,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write(*,'(1x,a)')&
         !     &   '------------------------------------------------------- Input Wavefunctions Creation'
         call yaml_comment('Wavefunctions from PSP Atomic Orbitals Initialization',hfill='-')
-        call yaml_open_map('Input Hamiltonian')
+        call yaml_mapping_open('Input Hamiltonian')
      end if
      nspin=in%nspin
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
@@ -1726,7 +1937,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '-------------------------------------------------------------- Wavefunctions Restart'
         call yaml_comment('Wavefunctions Restart',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
      perx=(atoms%astruct%geocode /= 'F')
      pery=(atoms%astruct%geocode == 'P')
@@ -1774,7 +1985,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   case(INPUT_PSI_MEMORY_LINEAR)
      if (iproc == 0) then
         call yaml_comment('Support functions Restart',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
       call input_memory_linear(iproc, nproc, atoms, KSwfn, tmb, tmb_old, denspot, in, &
            rxyz_old, rxyz, denspot0, energs, nlpsp, GPU, ref_frags)
@@ -1784,7 +1995,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '---------------------------------------------------- Reading Wavefunctions from disk'
         call yaml_comment('Reading Wavefunctions from disk',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
      call input_wf_disk(iproc, nproc, input_wf_format, KSwfn%Lzd%Glr%d,&
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
@@ -1796,7 +2007,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '--------------------------------------- Quick Wavefunctions Restart (Gaussian basis)'
         call yaml_comment('Quick Wavefunctions Restart (Gaussian basis)',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
      call restart_from_gaussians(iproc,nproc,KSwfn%orbs,KSwfn%Lzd,&
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
@@ -1808,7 +2019,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '------------------------------------------- Reading Wavefunctions from gaussian file'
         call yaml_comment('Reading Wavefunctions from gaussian file',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
      call read_gaussian_information(KSwfn%orbs,KSwfn%gbd,KSwfn%gaucoeffs,&
           trim(in%dir_output)//'wavefunctions.gau')
@@ -1834,7 +2045,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write(*,'(1x,a)')&
         !     '------------------------------------------------------- Input Wavefunctions Creation'
         call yaml_comment('Input Wavefunctions Creation',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
 
      ! By doing an LCAO input guess
@@ -1854,7 +2065,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !write( *,'(1x,a)')&
         !     &   '---------------------------------------------------- Reading Wavefunctions from disk'
         call yaml_comment('Reading Wavefunctions from disk',hfill='-')
-        call yaml_open_map("Input Hamiltonian")
+        call yaml_mapping_open("Input Hamiltonian")
      end if
 
      !if (in%lin%scf_mode==LINEAR_FOE) then
@@ -2144,8 +2355,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           KSwfn%psi,KSwfn%hpsi,KSwfn%psit,in%orthpar)
   end if
 
-  !if (iproc==0 .and. inputpsi /= INPUT_PSI_LINEAR_AO) call yaml_close_map() !input hamiltonian
-  if (iproc==0) call yaml_close_map() !input hamiltonian
+  !if (iproc==0 .and. inputpsi /= INPUT_PSI_LINEAR_AO) call yaml_mapping_close() !input hamiltonian
+  if (iproc==0) call yaml_mapping_close() !input hamiltonian
 
   if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
      inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
@@ -2280,7 +2491,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 
   !Local Variables
   character(len = *), parameter :: subname = "input_wf_memory"
-  integer :: i_stat, i_all,iorb,nbox,npsir,ist,i,l,k,i1,i2,i3,l1,l2,l3,p1,p2,p3,ii1,ii2,ii3
+  integer :: iorb,nbox,npsir,ist,i,l,k,i1,i2,i3,l1,l2,l3,p1,p2,p3,ii1,ii2,ii3
   type(workarr_sumrho) :: w
   real(wp), dimension(:,:,:), allocatable :: psir,psir_old
   real(wp) :: hhx_old,hhy_old,hhz_old,hhx,hhy,hhz,dgrid1,dgrid2,dgrid3,expfct,x,y,z,s1,s2,s3

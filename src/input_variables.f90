@@ -52,9 +52,9 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
 
   ! We try then radical.yaml
   if (len_trim(radical) == 0) then
-     fname = "input.yaml"
+     fname(1:len(fname)) = "input.yaml"
   else
-     fname(1:max_field_length) = trim(radical) // ".yaml"
+     fname(1:len(fname)) = trim(radical) // ".yaml"
   end if
   inquire(file = trim(fname), exist = exists_user)
   if (exists_user) call merge_input_file_to_dict(dict, trim(fname), mpi_env)
@@ -83,7 +83,7 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
      call read_neb_from_text_format(mpi_env%iproc,dict//GEOPT_VARIABLES, trim(f0))
   else
      ! We add an overloading input.perf (for automatic test purposes).
-     ! This will be changed in future when only YAML input will be allowed.
+     ! This will be changed when only YAML input will be allowed.
      call set_inputfile(f0, radical, PERF_VARIABLES)
      call read_perf_from_text_format(mpi_env%iproc,dict//PERF_VARIABLES, trim(f0))
   end if
@@ -92,7 +92,7 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
   !in case it should be restored the bigdft_severe shoudl be called instead
   !if (mpi_env%iproc > 0) call f_err_severe_restore()
 
-  ! We put a barrier here to be sure that non master proc will be stop
+  ! We put a barrier here to be sure that non master proc will be stopped
   ! by any issue on the master proc.
   call mpi_barrier(mpi_env%mpi_comm, ierr)
 
@@ -116,6 +116,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   use module_xc
   use input_old_text_format, only: dict_from_frag
   use module_atoms, only: atoms_data,atoms_data_null
+  use yaml_strings, only: f_strcpy
   implicit none
   !Arguments
   type(input_variables), intent(out) :: in
@@ -126,7 +127,12 @@ subroutine inputs_from_dict(in, atoms, dict)
   logical :: found
   integer :: ierr, ityp, nelec_up, nelec_down, norb_max, jtype
   character(len = max_field_length) :: writing_dir, output_dir, run_name, msg
+!  type(f_dict) :: dict
   type(dictionary), pointer :: dict_minimal, var
+
+!  dict => dict//key
+
+!  dict = dict//key
 
   call f_routine(id='inputs_from_dict')
 
@@ -144,24 +150,10 @@ subroutine inputs_from_dict(in, atoms, dict)
   !call yaml_map('Dictionary parsed',dict)
 
   ! Analyse the input dictionary and transfer it to in.
+  call input_keys_validate(dict)
+
   ! extract also the minimal dictionary which is necessary to do this run
   call input_keys_fill_all(dict,dict_minimal)
-  if (bigdft_mpi%iproc == 0) then
-     if (associated(dict_minimal)) then
-        call yaml_set_stream(unit=99971,filename=trim(writing_dir)//'/input_minimal.yaml',&
-             record_length=92,istat=ierr,setdefault=.false.,tabbing=0)
-        if (ierr==0) then
-           call yaml_comment('Minimal input file',hfill='-',unit=99971)
-           call yaml_comment('This file indicates the minimal set of input variables which has to be given '//&
-                'to perform the run. The code would produce the same output if this file is used as input.',unit=99971)
-           call yaml_dict_dump(dict_minimal,unit=99971)
-           call yaml_close_stream(unit=99971)
-        else
-           call yaml_warning('Failed to create input_minimal.yaml, error code='//trim(yaml_toa(ierr)))
-        end if
-     end if
-  end if
-  if (associated(dict_minimal)) call dict_free(dict_minimal)
 
   ! Transfer dict values into input_variables structure.
   var => dict_iter(dict // PERF_VARIABLES)
@@ -263,7 +255,7 @@ subroutine inputs_from_dict(in, atoms, dict)
 
   ! Update atoms with pseudo information.
   call psp_dict_analyse(dict, atoms)
-  call atomic_data_set_from_dict(dict, "Atomic occupation", atoms, in%nspin)
+  call atomic_data_set_from_dict(dict,IG_OCCUPATION, atoms, in%nspin)
 
   ! Add multipole preserving information
   atoms%multipole_preserving = in%multipole_preserving
@@ -272,7 +264,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   call read_n_orbitals(bigdft_mpi%iproc, nelec_up, nelec_down, norb_max, atoms, &
        & in%ncharge, in%nspin, in%mpol, in%norbsempty)
   if (norb_max == 0) norb_max = nelec_up + nelec_down ! electron gas case
-  call occupation_set_from_dict(dict, "occupation", &
+  call occupation_set_from_dict(dict, OCCUPATION, &
        & in%gen_norbu, in%gen_norbd, in%gen_occup, &
        & in%gen_nkpt, in%nspin, in%norbsempty, nelec_up, nelec_down, norb_max)
   in%gen_norb = in%gen_norbu + in%gen_norbd
@@ -361,14 +353,30 @@ subroutine inputs_from_dict(in, atoms, dict)
   !check whether a directory name should be associated for the data storage
   call check_for_data_writing_directory(bigdft_mpi%iproc,in)
 
-  ! Generate the description of input variables.
-  !if (bigdft_mpi%iproc == 0) then
-  !   call input_keys_dump_def(trim(in%writing_directory) // "/input_help.yaml")
-  !end if
+  if (bigdft_mpi%iproc == 0)  call print_general_parameters(in,atoms)
 
-  if (bigdft_mpi%iproc == 0) then
-     call print_general_parameters(in,atoms)
+  if (associated(dict_minimal) .and. bigdft_mpi%iproc == 0) then
+     !use run_name variable as it is not needed
+     if (RADICAL_NAME .notin. dict) then
+        call f_strcpy(src='input_minimal.yaml',dest=run_name)
+     else
+        msg=dict//RADICAL_NAME
+        call f_strcpy(src=trim(msg)//'_minimal.yaml',dest=run_name)
+     end if
+
+     call yaml_set_stream(unit=99971,filename=trim(writing_dir)//'/'//trim(run_name),&
+          record_length=92,istat=ierr,setdefault=.false.,tabbing=0,position='rewind')
+     if (ierr==0) then
+        call yaml_comment('Minimal input file',hfill='-',unit=99971)
+        call yaml_comment('This file indicates the minimal set of input variables which has to be given '//&
+             'to perform the run. The code would produce the same output if this file is used as input.',unit=99971)
+        call yaml_dict_dump(dict_minimal,unit=99971)
+        call yaml_close_stream(unit=99971)
+     else
+        call yaml_warning('Failed to create input_minimal.yaml, error code='//trim(yaml_toa(ierr)))
+     end if
   end if
+  if (associated(dict_minimal)) call dict_free(dict_minimal)
 
   call f_release_routine()
 
@@ -1136,10 +1144,3 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
        & call yaml_warning('Defining a k-point path in free boundary conditions.') 
 
 END SUBROUTINE kpt_input_analyse
-
-!!$  ! linear scaling: explicitely specify localization centers
-!!$  in%explicit_locregcenters = dict//EXPLICIT_LOCREGCENTERS
-!!$  ! linear scaling: calculate Kohn-Sham residue
-!!$  in%calculate_KS_residue = dict//CALCULATE_KS_RESIDUE
-!!$  ! linear scaling: calculate intermediate forces
-!!$  in%intermediate_forces = dict//INTERMEDIATE_FORCES

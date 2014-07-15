@@ -47,9 +47,10 @@ module wrapper_MPI
 
   !> Interface for MPITYPE routine
   interface mpitype
-     module procedure mpitype_i,mpitype_d,mpitype_r,mpitype_l
+     module procedure mpitype_i,mpitype_d,mpitype_r,mpitype_l,mpitype_c,mpitype_li
      module procedure mpitype_i1,mpitype_i2
      module procedure mpitype_d1,mpitype_d2
+     module procedure mpitype_c1
   end interface mpitype
 
   interface mpimaxdiff
@@ -70,6 +71,10 @@ module wrapper_MPI
      module procedure mpigather_i0i2,mpigather_d0d2
   end interface mpigather
 
+  interface mpibcast
+     module procedure mpibcast_i0,mpibcast_li0
+     module procedure mpibcast_c1
+  end interface mpibcast
 
   !> Interface for MPI_ALLGATHERV routine
   interface mpiallgatherv
@@ -92,7 +97,16 @@ module wrapper_MPI
   public :: mpi_environment_set
   public :: mpi_environment_set1 !to be removed
 
-  
+  !>fake type to enhance documentation
+  type, private :: doc
+     !>number of entries in buffer (integer). Useful for buffer passed by reference 
+     integer :: count
+     !> rank of mpitask executing the operation (default value is root=0)
+     integer :: root
+     !> communicator of the communication
+     integer :: comm
+  end type doc
+
 contains
 
   pure function mpi_environment_null() result(mpi)
@@ -456,14 +470,22 @@ end subroutine create_group_comm1
     implicit none
     integer, dimension(:), intent(in) :: data
     integer :: mt
-    mt=MPI_DOUBLE_PRECISION
+    mt=MPI_INTEGER
   end function mpitype_i1
   pure function mpitype_i2(data) result(mt)
     implicit none
     integer, dimension(:,:), intent(in) :: data
     integer :: mt
-    mt=MPI_DOUBLE_PRECISION
+    mt=MPI_INTEGER
   end function mpitype_i2
+
+  pure function mpitype_li(data) result(mt)
+    implicit none
+    integer(kind=8), intent(in) :: data
+    integer :: mt
+    mt=MPI_INTEGER8
+  end function mpitype_li
+
 
   pure function mpitype_r(data) result(mt)
     implicit none
@@ -495,6 +517,18 @@ end subroutine create_group_comm1
     integer :: mt
     mt=MPI_LOGICAL
   end function mpitype_l
+  pure function mpitype_c(data) result(mt)
+    implicit none
+    character, intent(in) :: data
+    integer :: mt
+    mt=MPI_CHARACTER
+  end function mpitype_c
+  pure function mpitype_c1(data) result(mt)
+    implicit none
+    character, dimension(:), intent(in) :: data
+    integer :: mt
+    mt=MPI_CHARACTER
+  end function mpitype_c1
 
   !>function giving the mpi rank id for a given communicator
   function mpirank(comm)
@@ -697,7 +731,7 @@ end subroutine create_group_comm1
 
   subroutine mpiallred_d1(sendbuf,op,comm,recvbuf)
     use dynamic_memory
-    use dictionaries, only: f_err_throw,f_err_define
+    use dictionaries, only: f_err_throw!,f_err_define
     use yaml_output, only: yaml_toa
     implicit none
     double precision, dimension(:), intent(inout) :: sendbuf
@@ -708,7 +742,7 @@ end subroutine create_group_comm1
 
   subroutine mpiallred_d2(sendbuf,op,comm,recvbuf)
     use dynamic_memory
-    use dictionaries, only: f_err_throw,f_err_define
+    use dictionaries, only: f_err_throw!,f_err_define
     use yaml_output, only: yaml_toa
     implicit none
     double precision, dimension(:,:), intent(inout) :: sendbuf
@@ -716,6 +750,31 @@ end subroutine create_group_comm1
     double precision, dimension(:,:), allocatable :: copybuf  
     include 'allreduce-arr-inc.f90'
   end subroutine mpiallred_d2
+
+  subroutine mpibcast_i0(buffer,count,root,comm)
+    use dictionaries, only: f_err_throw
+    implicit none
+    integer, intent(inout) ::  buffer 
+    include 'bcast-decl-inc.f90'
+    include 'bcast-inc.f90'
+  end subroutine mpibcast_i0
+
+  subroutine mpibcast_li0(buffer,count,root,comm)
+    use dictionaries, only: f_err_throw
+    implicit none
+    integer(kind=8), intent(inout) ::  buffer      
+    include 'bcast-decl-inc.f90'
+    include 'bcast-inc.f90'
+  end subroutine mpibcast_li0
+
+  subroutine mpibcast_c1(buffer,root,comm)
+    use dictionaries, only: f_err_throw
+    implicit none
+    character, dimension(:), intent(inout) ::  buffer      
+    include 'bcast-decl-arr-inc.f90'
+    include 'bcast-inc.f90'
+  end subroutine mpibcast_c1
+  
 
   !> detect the maximum difference between arrays all over a given communicator
   function mpimaxdiff_i0(n,array,root,comm) result(maxdiff)

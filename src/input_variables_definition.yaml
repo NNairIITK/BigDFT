@@ -571,7 +571,7 @@
      COMMENT: No. of additional bands
      RANGE: [0, 10000]
      default: 0
-   Tel:
+   tel:
      COMMENT: Electronic temperature
      RANGE: [0., 1e6]
      default: 0.
@@ -764,7 +764,7 @@
    ef_interpol_det:
      COMMENT: FOE max determinant of cubic interpolation matrix
      RANGE: [0., 1.]
-     default: 1e-20
+     default: 1.e-12
    ef_interpol_chargediff:
      COMMENT: FOE max charge difference for interpolation
      RANGE: [0., 1000.]
@@ -839,6 +839,12 @@
      COMMENT: linear scaling upper bound for the error function decay length
      default: 5.e-2
      RANGE: [1.e-2,1.0]
+   FOE_restart:
+     COMMENT: Restart method to be used for the FOE method
+     EXCLUSVE:
+       0: REFORMAT
+       1: AO
+     default: 0 
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant

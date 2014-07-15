@@ -467,7 +467,6 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx_w,ncplx_g,ncplx_k,&
   real(gp), intent(in) :: gau_cut
   !local variables
   character(len=*), parameter :: subname='gauss_to_daub_k'
-  integer :: i_all,i_stat
   integer :: rightx,leftx,right_t,i0,i,k,length,j,icplx
   real(gp) :: a1,a2,z0,h,x,r,coeff,r2,rk,gcut
   real(gp) :: fac(ncplx_g)

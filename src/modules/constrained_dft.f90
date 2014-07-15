@@ -11,7 +11,7 @@
 !> Module to perform constrained DFT calculations
 module constrained_dft
   use module_base
-  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_base, only: sparse_matrix, matrices
   !use module_types
   use dynamic_memory
   implicit none
@@ -22,6 +22,7 @@ module constrained_dft
   type, public :: cdft_data
      real(wp), dimension(:), pointer :: weight_function ! the weight function defining the constraint
      type(sparse_matrix) :: weight_matrix ! matrix elements of the weight function between tmbs
+     type(matrices) :: weight_matrix_ ! matrix elements of the weight function between tmbs
      integer :: ndim_dens ! the dimension of the weight function
      real(gp) :: charge ! defines the value of the charge which is to be constrained
      real(gp) :: lag_mult ! the Lagrange multiplier used to enforce the constraint
@@ -36,7 +37,7 @@ contains
 
 
   subroutine nullify_cdft_data(cdft)
-    use sparsematrix_base, only: sparse_matrix_null
+    use sparsematrix_base, only: sparse_matrix_null, matrices_null
     implicit none
     type(cdft_data), intent(out) :: cdft
     cdft%charge=0
@@ -44,18 +45,20 @@ contains
     cdft%ndim_dens=0
     nullify(cdft%weight_function)
     !call nullify_sparse_matrix(cdft%weight_matrix)
-    cdft%weight_matrix=sparse_matrix_null()
+    cdft%weight_matrix = sparse_matrix_null()
+    cdft%weight_matrix_ = matrices_null()
   end subroutine nullify_cdft_data
 
   subroutine cdft_data_free(cdft)
-    use sparsematrix_base, only: deallocate_sparse_matrix
+    use sparsematrix_base, only: deallocate_sparse_matrix, deallocate_matrices
     implicit none
     type(cdft_data), intent(inout) :: cdft
 
     character(len=200), parameter :: subname='cdft_data_free'
 
     !if (associated(cdft%weight_function)) call f_free_ptr(cdft%weight_function)
-    call deallocate_sparse_matrix(cdft%weight_matrix, subname)
+    call deallocate_sparse_matrix(cdft%weight_matrix)
+    call deallocate_matrices(cdft%weight_matrix_)
     call nullify_cdft_data(cdft)
   end subroutine cdft_data_free
 
@@ -73,7 +76,7 @@ contains
     !cdft%weight_matrix%matrix_compr=f_malloc_ptr(cdft%weight_matrix%nvctr,id='cdft%weight_matrix%matrix_compr')
     !!allocate(cdft%weight_matrix%matrix_compr(cdft%weight_matrix%nvctr), stat=istat)
     !!call memocc(istat, cdft%weight_matrix%matrix_compr, 'cdft%weight_matrix%matrix_compr', subname)
-    cdft%weight_matrix%matrix_compr=f_malloc_ptr(cdft%weight_matrix%nvctr,id='cdft%weight_matrix%matrix_compr')
+    cdft%weight_matrix_%matrix_compr=f_malloc_ptr(cdft%weight_matrix%nvctr,id='cdft%weight_matrix%matrix_compr')
     call f_release_routine()
 
   end subroutine cdft_data_allocate

@@ -17,7 +17,7 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   use module_interfaces, except_this_one => make_all_ib
   implicit none
   integer,intent(in)::n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-  integer :: i1,i2,i3,i_stat,i_all !n(c) m1,m2,m3
+  integer :: i1,i2,i3 !n(c) m1,m2,m3
 
   integer,intent(in):: ibyz_c(2,0:n2,0:n3),ibxy_c(2,0:n1,0:n2)
   integer,intent(in):: ibyz_f(2,0:n2,0:n3),ibxy_f(2,0:n1,0:n2)

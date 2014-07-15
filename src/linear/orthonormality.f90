@@ -55,7 +55,6 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
   if(.not.can_use_transposed) then
       call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
       can_use_transposed=.true.
-
   end if
 
   ovrlp_ = matrices_null()
@@ -95,7 +94,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
   call f_free(psittemp_c)
   call f_free(psittemp_f)
 
-  call f_free_ptr(inv_ovrlp_half%matrix_compr)
+  !call f_free_ptr(inv_ovrlp_half%matrix_compr)
 
   call deallocate_matrices(inv_ovrlp_half_)
 
@@ -104,8 +103,8 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
 end subroutine orthonormalizeLocalized
 
 
-! can still tidy this up more when tmblarge is removed
-! use sparsity of density kernel for all inverse quantities
+!> Can still tidy this up more when tmblarge is removed
+!! use sparsity of density kernel for all inverse quantities
 subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
            correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, &
            hpsit_c, hpsit_f, &
@@ -271,11 +270,11 @@ subroutine setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, ta
 end subroutine setCommsParameters
 
 
-!S^-1 exact only works for symmetric matrices
-!BOTH sparse matrices must be present together and inv_ovrlp should be nullified pointer, NOT inv_ovrlp_smat%matrix
-!when sparse matrices present, check is performed to see whether %matrix is allocated so that its allocated status remains unchanged
-!contents of %matrix not guaranteed to be correct though - inv_ovrlp_smat%can_use_dense set accordingly
-!power: -2 -> S^-1/2, 2 -> S^1/2, 1 -> S^-1
+!> S^-1 exact only works for symmetric matrices
+!! BOTH sparse matrices must be present together and inv_ovrlp should be nullified pointer, NOT inv_ovrlp_smat%matrix
+!! when sparse matrices present, check is performed to see whether %matrix is allocated so that its allocated status remains unchanged
+!! contents of %matrix not guaranteed to be correct though - inv_ovrlp_smat%can_use_dense set accordingly
+!! power: -2 -> S^-1/2, 2 -> S^1/2, 1 -> S^-1
 subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
            ovrlp_smat, inv_ovrlp_smat, ovrlp_mat, inv_ovrlp_mat, check_accur, &
            max_error, mean_error)
@@ -334,7 +333,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
 
   if (iproc==0) then
       call yaml_newline()
-      call yaml_open_sequence('overlap manipulation routine')
+      call yaml_sequence_open('overlap manipulation routine')
       if (imode==SPARSE) then
           call yaml_map('mode','sparse')
       else if (imode==DENSE) then
@@ -342,10 +341,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
       end if
       call yaml_map('power',power)
       call yaml_map('order',iorder)
-      call yaml_close_sequence()
+      call yaml_sequence_close()
   end if
-
-
 
 
   ! Perform a check of the arguments
@@ -1360,7 +1357,6 @@ subroutine overlap_plus_minus_one_half_exact(nproc,norb,blocksize,plusminus,inv_
 end subroutine overlap_plus_minus_one_half_exact
 
 
-
 subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, smat, norb, norbp, isorb, nseq, nout, &
            ivectorindex, onedimindices, amat_seq, bmatp, power, &
            max_error, mean_error, dmat_seq, cmatp)
@@ -1421,8 +1417,6 @@ subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, smat, norb, norbp,
 end subroutine check_accur_overlap_minus_one_sparse
 
 
-
-
 subroutine check_accur_overlap_minus_one(iproc,nproc,norb,norbp,isorb,power,ovrlp,inv_ovrlp,&
            smat,max_error,mean_error)
   use module_base
@@ -1450,10 +1444,13 @@ subroutine check_accur_overlap_minus_one(iproc,nproc,norb,norbp,isorb,power,ovrl
      if (norbp>0) then
         call dgemm('n', 'n', norb, norbp, norb, 1.d0, inv_ovrlp(1,1), &
              norb, inv_ovrlp(1,isorb+1), norb, 0.d0, tmpp(1,1), norb)
+         call max_matrix_diff_parallel(iproc, norb, norbp, isorb, tmpp, ovrlp(1,isorb+1), smat, max_error, mean_error)
+         max_error=0.5d0*max_error
+         mean_error=0.5d0*mean_error
+     else
+         max_error=0.d0
+         mean_error=0.d0
      end if
-     call max_matrix_diff_parallel(iproc, norb, norbp, isorb, tmpp, ovrlp(1,isorb+1), smat, max_error, mean_error)
-     max_error=0.5d0*max_error
-     mean_error=0.5d0*mean_error
   else if (power==-2) then
      if (norbp>0) then
         call dgemm('n', 'n', norb, norbp, norb, 1.d0, inv_ovrlp(1,1), &
@@ -1575,7 +1572,6 @@ subroutine max_matrix_diff_parallel(iproc, norb, norbp, isorb, mat1, mat2, &
   call timing(iproc,'dev_from_unity','OF') 
 
 end subroutine max_matrix_diff_parallel
-
 
 
 !!subroutine deviation_from_unity(iproc, norb, ovrlp, deviation)
@@ -1921,7 +1917,6 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   !call sparse_copy_pattern(inv_ovrlp, inv_ovrlp_half, iproc, subname)
   !!allocate(inv_ovrlp_half%matrix_compr(inv_ovrlp_half%nvctr), stat=istat)
   !!call memocc(istat, inv_ovrlp_half%matrix_compr, 'inv_ovrlp_half%matrix_compr', subname)
-  inv_ovrlp_half%matrix_compr=f_malloc_ptr(inv_ovrlp_half%nvctr,id='inv_ovrlp_half%matrix_compr')
 
   inv_ovrlp_half_ = matrices_null()
   call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='inv_ovrlp_half_', mat=inv_ovrlp_half_)
@@ -2067,7 +2062,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
 
   call f_free(psittemp_c)
   call f_free(psittemp_f)
-  call f_free_ptr(inv_ovrlp_half%matrix_compr)
+  !!call f_free_ptr(inv_ovrlp_half%matrix_compr)
 
   call f_release_routine()
 
@@ -2116,7 +2111,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   !call sparse_copy_pattern(inv_ovrlp, inv_ovrlp_half, iproc, subname)
   !!allocate(inv_ovrlp_half%matrix_compr(inv_ovrlp_half%nvctr), stat=istat)
   !!call memocc(istat, inv_ovrlp_half%matrix_compr, 'inv_ovrlp_half%matrix_compr', subname)
-  inv_ovrlp_half%matrix_compr=f_malloc_ptr(inv_ovrlp_half%nvctr,id='inv_ovrlp_half%matrix_compr')
+  !!inv_ovrlp_half%matrix_compr=f_malloc_ptr(inv_ovrlp_half%nvctr,id='inv_ovrlp_half%matrix_compr')
 
 
   if(.not.can_use_transposed) then
@@ -2249,7 +2244,8 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
 
   ovrlp_ = matrices_null()
   call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
-  ovrlp_%matrix_compr = inv_ovrlp_half%matrix_compr
+  !@WARNING CHECK THIS
+  !!ovrlp_%matrix_compr = inv_ovrlp_half%matrix_compr
   call build_linear_combination_transposed(collcom, ovrlp, ovrlp_, &
        psittemp_c, psittemp_f, .false., psit_c, psit_f, iproc)
   call deallocate_matrices(ovrlp_)
@@ -2266,7 +2262,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
 
   call f_free(psittemp_c)
   call f_free(psittemp_f)
-  call f_free_ptr(inv_ovrlp_half%matrix_compr)
+  !!call f_free_ptr(inv_ovrlp_half%matrix_compr)
 
   call f_release_routine()
 

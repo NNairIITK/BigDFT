@@ -1540,7 +1540,7 @@ contains
       call memocc(istat, iall, 'lhphiold', subname)
 
       ! if diisLIN%idsx==0, these arrays have already been deallocated
-      !if(diisLIN%idsx>0 .and. lin%DIISHistMax>0) call deallocate_diis_objects(diisLIN,subname)
+      !if(diisLIN%idsx>0 .and. lin%DIISHistMax>0) call deallocate_diis_objects(diisLIN)
 
     end subroutine deallocateLocalArrays
 

@@ -1,21 +1,20 @@
 !> @file
 !! Linear version: deallocations
 !! @author
-!!    Copyright (C) 2007-2011 BigDFT group
+!!    Copyright (C) 2007-2014 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
-subroutine deallocate_local_zone_descriptors(lzd, subname)
+
+subroutine deallocate_local_zone_descriptors(lzd)
   use locregs, only: deallocate_locreg_descriptors
   use module_types, only: local_zone_descriptors
   implicit none
   
   ! Calling arguments
   type(local_zone_descriptors),intent(inout):: lzd
-  character(len=*),intent(in):: subname
-  
   ! Local variables
   integer:: iis1, iie1, i1
 
@@ -34,18 +33,15 @@ subroutine deallocate_local_zone_descriptors(lzd, subname)
 end subroutine deallocate_local_zone_descriptors
 
 
-subroutine deallocate_Lzd_except_Glr(lzd, subname)
+subroutine deallocate_Lzd_except_Glr(lzd)
   use locregs, only: deallocate_locreg_descriptors
   use module_types, only: local_zone_descriptors
   implicit none
 
   ! Calling arguments
   type(local_zone_descriptors),intent(inout):: lzd
-  character(len=*),intent(in):: subname
-
   ! Local variables
   integer:: iis1, iie1, i1
-
 
   if(associated(lzd%llr)) then
      iis1=lbound(lzd%llr,1)
@@ -60,13 +56,12 @@ subroutine deallocate_Lzd_except_Glr(lzd, subname)
 end subroutine deallocate_Lzd_except_Glr
 
 
-subroutine deallocate_orbitals_data(orbs, subname)
+subroutine deallocate_orbitals_data(orbs)
   use module_types
   implicit none
   
   ! Calling arguments
   type(orbitals_data),intent(inout):: orbs
-  character(len=*),intent(in):: subname
   
   call f_free_ptr(orbs%norb_par)
   call f_free_ptr(orbs%iokpt)
@@ -84,14 +79,13 @@ subroutine deallocate_orbitals_data(orbs, subname)
 end subroutine deallocate_orbitals_data
 
 
-subroutine deallocate_comms_cubic(comms, subname)
+subroutine deallocate_comms_cubic(comms)
   use module_base
   use communications_base, only: comms_cubic
   implicit none
   
   ! Calling arguments
   type(comms_cubic),intent(inout):: comms
-  character(len=*),intent(in):: subname
   
   call f_free_ptr(comms%ncntd)
   call f_free_ptr(comms%ncntt)
@@ -102,32 +96,30 @@ subroutine deallocate_comms_cubic(comms, subname)
 end subroutine deallocate_comms_cubic
 
 
-subroutine deallocate_convolutions_bounds(bounds, subname)
+subroutine deallocate_convolutions_bounds(bounds)
   
   use module_types
   implicit none
   
   ! Calling arguments
   type(convolutions_bounds),intent(inout):: bounds
-  character(len=*),intent(in):: subname
 
   call f_free_ptr(bounds%ibyyzz_r)
 
-  call deallocate_kinetic_bounds(bounds%kb, subname)
-  call deallocate_shrink_bounds(bounds%sb, subname)
-  call deallocate_grow_bounds(bounds%gb, subname)
+  call deallocate_kinetic_bounds(bounds%kb)
+  call deallocate_shrink_bounds(bounds%sb)
+  call deallocate_grow_bounds(bounds%gb)
   
 end subroutine deallocate_convolutions_bounds
 
 
-subroutine deallocate_kinetic_bounds(kb, subname)
+subroutine deallocate_kinetic_bounds(kb)
   
   use module_types
   implicit none
  
   ! Calling arguments
   type(kinetic_bounds),intent(inout):: kb
-  character(len=*),intent(in):: subname
 
   call f_free_ptr(kb%ibyz_c)
   call f_free_ptr(kb%ibxz_c)
@@ -139,14 +131,13 @@ subroutine deallocate_kinetic_bounds(kb, subname)
 end subroutine deallocate_kinetic_bounds
 
 
-subroutine deallocate_shrink_bounds(sb, subname)
+subroutine deallocate_shrink_bounds(sb)
   
   use module_types
   implicit none
  
   ! Calling arguments
   type(shrink_bounds),intent(inout):: sb
-  character(len=*),intent(in):: subname
 
   call f_free_ptr(sb%ibzzx_c)
   call f_free_ptr(sb%ibyyzz_c)
@@ -157,14 +148,13 @@ subroutine deallocate_shrink_bounds(sb, subname)
 end subroutine deallocate_shrink_bounds
 
 
-subroutine deallocate_grow_bounds(gb, subname)
-  
+subroutine deallocate_grow_bounds(gb)
+
   use module_types
   implicit none
  
   ! Calling arguments
   type(grow_bounds),intent(inout):: gb
-  character(len=*),intent(in):: subname
 
   call f_free_ptr(gb%ibzxx_c)
   call f_free_ptr(gb%ibxxyy_c)
