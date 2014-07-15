@@ -356,10 +356,7 @@
      RANGE: [0, 1000]
      default: 10
    biomode:
-     DESCRIPTION: |
-                  possible value: 1 logical
-                  Switch for Biomolecules. Choose Yes if biomolecule is to be optimized.
-     COMMENT: biomode
+     COMMENT: Enable mode for biomolecules.
      CONDITION:
        MASTER_KEY: method
        WHEN:

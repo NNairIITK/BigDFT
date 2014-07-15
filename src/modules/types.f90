@@ -364,6 +364,7 @@ module module_types
      !variables for SBFGS
      integer  :: nhistx
      logical  :: biomode
+     real(gp) :: beta_stretchx
      real(gp) :: maxrise
      real(gp) :: cutoffratio
      real(gp) :: steepthresh
@@ -2810,6 +2811,8 @@ contains
           in%steepthresh = val
        case (BIOMODE)
           in%biomode = val
+       case (BETA_STRETCHX)
+          in%beta_stretchx = val
        case (TRUSTR)
           in%trustr = val
        case DEFAULT
