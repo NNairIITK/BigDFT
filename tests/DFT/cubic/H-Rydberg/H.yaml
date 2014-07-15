@@ -9,7 +9,7 @@ perf:
   multipole_preserving: Yes
   outdir: ./
 
-Atomic occupation:
+ig_occupation:
   H: { 1s: 1, 2p: 0, 2s: 0}
 
 posinp:

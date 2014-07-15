@@ -126,7 +126,7 @@
    correction_co_contra                : No #     linear scaling correction covariant / contravariant gradient
    fscale_lowerbound                   : 5.e-3 #  linear scaling lower bound for the error function decay length
    fscale_upperbound                   : 5.e-2 #  linear scaling upper bound for the error function decay length
- Atomic occupation:
+ ig_occupation:
    H:
      1s                                : 1
      2p                                : 0

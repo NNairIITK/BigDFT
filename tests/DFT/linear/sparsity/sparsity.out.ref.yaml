@@ -1461,11 +1461,6 @@
  -  {H: [ 1.030721914142E-01, -3.112744784974E-02, -9.538085198009E-02]} # 0043
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
- - Input file, section "lin_basis_params"; invalid key "C".
- - Input file, section "lin_basis_params"; invalid key "N".
- - Input file, section "lin_basis_params"; invalid key "O".
- - Input file, section "lin_basis_params"; invalid key "P".
- - Input file, section "lin_basis_params"; invalid key "H".
  - Do not call check_communications in the linear scaling version!
  - No orthogonalizing of the support functions
  - density optimization not converged

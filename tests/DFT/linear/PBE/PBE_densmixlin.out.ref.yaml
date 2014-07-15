@@ -1703,11 +1703,6 @@
  -  {H: [-3.456715135905E-02,  1.400171208059E-02, -7.562364857203E-03]} # 0020
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
- - Input file, section "lin_basis_params"; invalid key "S".
- - Input file, section "lin_basis_params"; invalid key "N".
- - Input file, section "lin_basis_params"; invalid key "C".
- - Input file, section "lin_basis_params"; invalid key "O".
- - Input file, section "lin_basis_params"; invalid key "H".
  - Do not call check_communications in the linear scaling version!
  - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  - Projectors too rough: Consider modifying hgrid and/or the localisation radii.

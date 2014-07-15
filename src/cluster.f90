@@ -1449,13 +1449,6 @@ contains
 
     ! Free projectors.
     call free_DFT_PSP_projectors(nlpsp)
-!!$    call deallocate_proj_descr(nlpsp,subname)
-!!$    i_all=-product(shape(proj))*kind(proj)
-!!$    deallocate(proj,stat=i_stat)
-!!$    call memocc(i_stat,i_all,'proj',subname)
-
-!       &
-!         &   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0
 
     ! Stop signals
     if (in%signaling .and. iproc == 0) then
@@ -1469,12 +1462,6 @@ contains
        call wf_free_wrapper(KSwfn%c_obj)
        call wf_free_wrapper(tmb%c_obj)
     end if
-
-!!$    if(inputpsi ==  INPUT_PSI_LINEAR) then
-!!$        i_all=-product(shape(atoms%rloc))*kind(atoms%rloc)
-!!$        deallocate(atoms%rloc,stat=i_stat)
-!!$        call memocc(i_stat,i_all,'atoms%rloc',subname)
-!!$    end if
 
      if (iproc == 0 .and. (in%inputPsiId==1 .or. in%inputPsiId==0) .and. infocode==1) then
         call yaml_warning('Self-consistent cycle did not meet convergence criteria')
@@ -1733,9 +1720,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
                     call yaml_warning('The norm of the residue is too large also with input wavefunctions.')
                  end if
               end if
-
               exit rhopot_loop
-              !return
            end if
 
            if (opt%c_obj /= 0) then

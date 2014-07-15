@@ -1057,7 +1057,7 @@ contains
     msg_lgt_ck=msg_lgt
     !print *, 'here'
     if (len_trim(mapvalue) == 0) then
-       call buffer_string(towrite,len(towrite),"~",msg_lgt,istat=ierr)
+       call buffer_string(towrite,len(towrite),"null",msg_lgt,istat=ierr)
     else
        call buffer_string(towrite,len(towrite),trim(mapvalue),msg_lgt,istat=ierr)
     end if
@@ -1870,7 +1870,7 @@ contains
     if (present(verbatim)) verb=verbatim
 
     if (.not. associated(dict)) then
-       call scalar('<nullified dictionary>')
+       call scalar('null')
     else if (associated(dict%child)) then
        call yaml_dict_dump_(dict%child)
     else
@@ -1966,7 +1966,7 @@ contains
       character(len=*), intent(in) :: key,val
       if (verb) then
          call yaml_comment('call yaml_map("'//trim(key)//'","'//trim(val)//&
-              ',unit='//trim(adjustl(yaml_toa(unt)))//'")')
+              '",unit='//trim(adjustl(yaml_toa(unt)))//'")')
       else
          call yaml_map(trim(key),trim(val),unit=unt)
       end if
@@ -2017,7 +2017,7 @@ contains
       implicit none
       if (verb) then
          call yaml_comment('call yaml_sequence_close('//&
-              ',unit='//trim(adjustl(yaml_toa(unt)))//')')
+              'unit='//trim(adjustl(yaml_toa(unt)))//')')
       else
          call yaml_sequence_close(unit=unt)
       end if
@@ -2039,7 +2039,7 @@ contains
       implicit none
       if (verb) then
          call yaml_comment('call yaml_mapping_close('//&
-              ',unit='//trim(adjustl(yaml_toa(unt)))//')')
+              'unit='//trim(adjustl(yaml_toa(unt)))//')')
       else
          call yaml_mapping_close(unit=unt)
       end if

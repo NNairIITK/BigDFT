@@ -1599,6 +1599,7 @@ contains
   end subroutine deallocate_rho_descriptors
 
 
+
   !> Deallocate lr (obsolete)
   !! @todo Remove this function.
   subroutine deallocate_lr(lr)

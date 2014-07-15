@@ -1501,11 +1501,6 @@
    Elapsed time (s)                    :  41.53
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
- - Input file, section "lin_basis_params"; invalid key "S".
- - Input file, section "lin_basis_params"; invalid key "N".
- - Input file, section "lin_basis_params"; invalid key "C".
- - Input file, section "lin_basis_params"; invalid key "O".
- - Input file, section "lin_basis_params"; invalid key "H".
  - Do not call check_communications in the linear scaling version!
  - Using same step size for all TMBs
  - Using same step size for all TMBs

@@ -17,7 +17,7 @@ module dictionaries_base
   character(len=max_field_length), parameter :: TYPE_DICT='__dict__'
   character(len=max_field_length), parameter :: TYPE_LIST='__list__'
 
-  character(len = max_field_length), parameter, private :: NOT_A_VALUE = "__not_a_value__"
+  character(len = max_field_length), parameter :: NOT_A_VALUE = "__not_a_value__"
 
   !> Global variables associated to the number of dictionaries allocated
   integer, private :: ndicts=0         !< Number of dictionaries allocated simultaneously
@@ -377,7 +377,6 @@ contains
 
   subroutine dict_free(dict)
     type(dictionary), pointer :: dict
-
     if (associated(dict)) then
        call dict_free_(dict)
 !!$       call dict_destroy(dict)
@@ -392,7 +391,6 @@ contains
       type(dictionary), pointer :: dict
       !local variables
       type(dictionary), pointer :: dict_iter,child,current
-      
       dict_iter=>dict
       do while(associated(dict_iter))
          child=>dict_iter%child
@@ -883,6 +881,9 @@ end module dictionaries_base
 
 
 !> Routines for bindings only (external of module)
+!LG: having a external routine with the same name of
+! a routine module is very dangerous! The linker does not complain and
+! a segfault might arrive due to absence of interface
 subroutine dict_free(dict)
   use dictionaries_base, mod_dict_free => dict_free
   implicit none

@@ -817,3 +817,89 @@ void $inqPt(void **pt1, void **pt2, double *start1, int *shift, int *size)
   F90_5D_POINTER_SIZE=`echo $ax_fc_run | cut -d' ' -f2`
   AC_SUBST(F90_5D_POINTER_SIZE)
 ])
+
+# Define a macro to test Fortran compiler OpenMP flags.
+#
+# Copyright (c) 2014-2014 BigDFT Group (Damien Caliste)
+# All rights reserved.
+#
+# This file is part of the BigDFT software package. For license information,
+# please see the COPYING file in the top-level directory of the BigDFT source
+# distribution.
+AC_DEFUN([AX_FC_OPENMP],
+[
+  AC_LANG_PUSH(Fortran)
+  AC_REQUIRE([AC_PROG_FC])
+  dnl We start with get_command_argument().
+  AC_MSG_CHECKING([for OpenMP flag in Fortran.])
+
+  test_flag()
+  {
+  FCFLAGS_SVG=$FCFLAGS
+  FCFLAGS=$FCFLAGS" $[1]"
+  dnl First check if flag is valid for compiler.
+  AC_COMPILE_IFELSE([
+program test
+  write(*,*) "hello"
+end program test
+  ],
+  [ax_fc_openmp="yes"], [ax_fc_openmp="no"])
+  if test x"$ax_fc_openmp" == x"yes" ; then
+    dnl Now, test if the flag see the OpenMP error in the following code.
+    AC_COMPILE_IFELSE([
+program test
+    integer :: it, nt
+!\$  integer :: ithread,omp_get_thread_num
+
+    nt = 5
+!\$omp parallel default (private) shared(nt)
+!\$  ithread = omp_get_thread_num()
+!\$omp CHOKE_ME
+!\$omp do schedule(static,1)
+    do it=1,nt,1
+      write(*,*) ithread, it, nt
+    end do
+!\$omp enddo
+
+end program test],
+    [ax_fc_openmp="no"], [ax_fc_openmp="$[1]"])
+  fi
+  FCFLAGS=$FCFLAGS_SVG
+  }
+
+  AC_ARG_WITH(openmp, AS_HELP_STRING([--with-openmp],
+              [specify the flag to be used for OpenMP parts of the code (or autodetect if empty).]),
+              ax_fc_openmp=$withval, ax_fc_openmp="auto")
+  if test x"$ax_fc_openmp" == x"auto" -o x"$ax_fc_openmp" == x"yes" ; then
+    test_flag "-openmp"
+    if test x"$ax_fc_openmp" == x"no" ; then
+      test_flag "-fopenmp"
+      if test x"$ax_fc_openmp" == x"no" ; then
+        test_flag "-qsmp=omp"
+      fi
+    fi
+    if test x"$ax_fc_openmp" == x"no" ; then
+      ax_fc_openmp=""
+      ax_fc_openmp_msg="unknown"
+    else
+      ax_fc_openmp_msg="$ax_fc_openmp"
+    fi
+    AC_MSG_RESULT([$ax_fc_openmp_msg])
+  elif test -n "$ax_fc_openmp" -a x"$ax_fc_openmp" != x"no" ; then
+    test_flag "$ax_fc_openmp"
+    ax_fc_openmp_msg="$ax_fc_openmp"
+    AC_MSG_RESULT([$ax_fc_openmp_msg])
+    if test x"$ax_fc_openmp" == x"no" ; then
+      ax_fc_openmp=""
+      AC_MSG_WARN([provided OpenMP flags are not working.])
+    fi
+  else
+    ax_fc_openmp=""
+    ax_fc_openmp_msg="not used"
+    AC_MSG_RESULT([$ax_fc_openmp_msg])
+  fi
+
+  AC_SUBST(FCFLAGS_OPENMP, $ax_fc_openmp)
+
+  AC_LANG_POP(Fortran)
+])

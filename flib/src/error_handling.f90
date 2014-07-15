@@ -470,7 +470,7 @@
       deallocate(error_pipelines)
       error_pipelines=>stack
       dict_present_error=>error_pipelines%current
-      try_environment=.true.
+      try_environment=associated(error_pipelines%previous)
     else
       call f_err_clean() !no errors anymore for this stack
       try_environment=.false.

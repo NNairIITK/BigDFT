@@ -199,8 +199,6 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,xc,nspin,lr,orbs,n3parr,
                  !write(*,*)'Exact exchange calculation: spin, orbitals:',ispin,iorb,jorb
                  call yaml_comment('Exact exchange calculation: ' // trim(yaml_toa( nint(real(ncall,gp)/ &
                  &    real(orbs%norbu*(orbs%norbu+1)/2+orbs%norbd*(orbs%norbd+1)/2,gp)*100.0_gp),fmt='(i3)')) // '%')
-                 !write(*,'(1x,a,i3,a2)')'Exact exchange calculation:',&
-                 !     nint(real(ncall,gp)/real(orbs%norbu*(orbs%norbu+1)/2+orbs%norbd*(orbs%norbd+1)/2,gp)*100.0_gp),'% '
               end if
               
               call H_potential('D',pkernel,rp_ij(1,1,1,igran),rp_ij,ehart,0.0_dp,.false.,&

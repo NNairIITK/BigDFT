@@ -2826,10 +2826,6 @@
  -  {H: [-2.889949206208E-02, -2.480289455505E-02, -1.152980831695E-02]} # 0024
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
- - Input file, section "lin_basis_params"; invalid key "C".
- - Input file, section "lin_basis_params"; invalid key "N".
- - Input file, section "lin_basis_params"; invalid key "O".
- - Input file, section "lin_basis_params"; invalid key "H".
  - Do not call check_communications in the linear scaling version!
  - target function larger than its minimal value reached so far, D= 1.154E+01
  - use a fake value for kappa
