@@ -269,7 +269,7 @@ real(gp),allocatable :: eval(:)
 !!!!!            endif
 !!!!!            ec=0.0_gp
 !!!!!        
-!!!!!           call findsad(saddle_imode,atoms%astruct%nat,atoms%astruct%cell_dim,rcov,saddle_alpha0_trans,saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_trans,&
+!!!!!           call findsad(imode,atoms%astruct%nat,atoms%astruct%cell_dim,rcov,saddle_alpha0_trans,saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_trans,&
 !!!!!           saddle_nit_rot,saddle_nhistx_trans,saddle_nhistx_rot,saddle_tolc,saddle_tolf,saddle_tightenfac,saddle_rmsdispl0,&
 !!!!!           saddle_trustr,rxyz,energy,fxyz,minmode,saddle_fnrmtol,displ,ec,&
 !!!!!           converged,atoms%astruct%atomnames,nbond,iconnect,saddle_alpha_stretch0,saddle_recompIfCurvPos,saddle_maxcurvrise,&
@@ -282,7 +282,8 @@ real(gp),allocatable :: eval(:)
 !!!!!           endif
 ec=1.0_gp
 call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy)
-call minimizer_sbfgs(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy,ec,converged)
+!call minimizer_sbfgs(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy,ec,converged)
+call minimizer_sbfgs(imode,atoms%astruct%nat,atoms%astruct%cell_dim,atoms%astruct%atomnames,nbond,iconnect,rxyz,fxyz,fnoise,energy,ec,converged)
 if(.not.converged)stop'minimizer_sbfgs not converged'
 call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy)
 write(*,*)'count,fnrm',int(ec),sqrt(sum(fxyz**2))

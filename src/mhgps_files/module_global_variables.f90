@@ -22,7 +22,7 @@ module module_global_variables
     logical          :: saddle_biomode             = .false.
     logical          :: saddle_connect             = .false.
     logical          :: random_minmode_guess       = .true.
-    integer          :: saddle_imode               = 1
+    integer          :: imode                      = 1
     integer          :: saddle_nit_trans           = 5000
     integer          :: saddle_nit_rot             = 5000
     integer          :: saddle_nhistx_trans        = 40

@@ -157,6 +157,8 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvforcediff,nit
     rxyz(:,:,0)=wpos
 
     call fixfrag_posvel(nat,rcov,rxyz(1,1,0),tnatdmy,1,fixfragmented)
+    if(fixfragmented .and. mhgps_verbosity >=2.and. iproc==0)&
+       call yaml_comment('fragmentation fixed')
 
     inputPsiId=0
     call minenergyandforces(.true.,imode,nat,alat,rxyz(1,1,0),rxyzraw(1,1,0),&
@@ -318,6 +320,8 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvforcediff,nit
         !do the move
         rxyz(:,:,nhist)=rxyz(:,:,nhist-1)-dd(:,:)
         call fixfrag_posvel(nat,rcov,rxyz(1,1,nhist),tnatdmy,1,fixfragmented)
+        if(fixfragmented .and. mhgps_verbosity >=2.and. iproc==0)&
+           call yaml_comment('fragmentation fixed')
         !displ=displ+tt
  
         inputPsiId=1
@@ -384,6 +388,8 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvforcediff,nit
             !rxyz(:,:,nhist)=rxyz(:,:,nhist)+alpha_stretch*fstretch(:,:,nhist)
             rxyz(:,:,nhist)=rxyz(:,:,nhist)+dds
             call fixfrag_posvel(nat,rcov,rxyz(1,1,nhist),tnatdmy,1,fixfragmented)
+            if(fixfragmented .and. mhgps_verbosity >=2.and. iproc==0)&
+              call yaml_comment('fragmentation fixed')
         endif
 
         if (cosangle.gt..20_gp) then
@@ -684,17 +690,17 @@ if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,xes21.14,4(xes9.2),xi
 
         if (dcurv.gt.maxcurvrise .and. alpha>1.e-1_gp*alpha0) then 
             if(iproc==0 .and. mhgps_verbosity>=3)&
-                call yaml_warning('(MHGPS) Curv. raised by more than maxcurvrise '//&
+                call yaml_comment('INFO: (MHGPS) Curv. raised by more than maxcurvrise '//&
                      trim(yaml_toa(it))//''//trim(yaml_toa(dcurv)))
             !alpha=min(.5_gp*alpha,alpha0)
             alpha=.5_gp*alpha
             if(iproc==0 .and. mhgps_verbosity>=3)&
-                call yaml_warning('(MHGPS) alpha reset (opt. curv): '//&
+                call yaml_comment('INFO: (MHGPS) alpha reset (opt. curv): '//&
                      trim(yaml_toa(alpha)))
             ndim=0
         if(.not. isForceField)then
             if(iproc==0 .and. mhgps_verbosity>=3)&
-                call yaml_warning('(MHGPS) Will use LCAO input guess&
+                call yaml_comment('INFO: (MHGPS) Will use LCAO input guess&
                  from now on (until end of current minmode optimization).')
             inputPsiId=0
             call mincurvforce(imode,nat,alat,curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist-1),&
@@ -746,6 +752,7 @@ if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,xes21.14,4(xes9.2),xi
 
        call getSubSpaceEvecEval(nat,nhist,nhistx,ndim,cutoffratio,lwork,work,rxyz,&
                               &fxyz,aa,rr,ff,rrr,fff,eval,res,subspaceSucc)
+       if(.not.subspaceSucc)stop 'subroutine findsad: no success in getSubSpaceEvecEval.'
         if (fnrm.le.fnrmtol) goto 1000 !has to be in this line for shared history case
     enddo
 

@@ -67,6 +67,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    real(gp) :: maxrise !< energy ist not allowed to rise more than maxrise in single step
    real(gp) :: steepthresh !< if fnrm is larger that steepthresh, steepest descent is used
    real(gp) :: trustr !< a single atoms is not allowed to be dsiplaced more than by trustr
+   integer,  allocatable, dimension(:,:)   :: iconnect
    real(gp), allocatable, dimension(:,:,:) :: rxyz
    real(gp), allocatable, dimension(:,:,:) :: fxyz
    real(gp), allocatable, dimension(:,:,:) :: ff

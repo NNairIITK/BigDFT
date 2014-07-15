@@ -26,7 +26,7 @@ contains
             read(u,*)saddle_connect, random_minmode_guess
             read(u,*)efmethod,external_mini
             read(u,*)saddle_biomode
-            if(saddle_biomode)saddle_imode=2
+            if(saddle_biomode)imode=2
             read(u,*)saddle_nit_trans, saddle_nit_rot
             read(u,*)saddle_nhistx_trans, saddle_nhistx_rot
             read(u,*)saddle_fnrmtol
@@ -49,6 +49,7 @@ contains
                 read(u,*)mini_forcemax
                 read(u,*)mini_maxrise
                 read(u,*)mini_betax
+                read(u,*)mini_beta_stretchx
                 read(u,*)mini_cutoffRatio
                 read(u,*)mini_steepthresh
                 read(u,*)mini_trustr

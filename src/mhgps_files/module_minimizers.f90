@@ -36,9 +36,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,atomnames,nbond,iconnect,rxyzio,fxyzio
                                       mini_steepthresh,&
                                       mini_trustr,&
                                       mini_forcemax,&
-                                      fdim,&
-                                      imode
-
+                                      fdim
    implicit none
    !parameter
    integer, intent(in)                    :: nat, nbond,imode
@@ -74,9 +72,9 @@ subroutine minimizer_sbfgs(imode,nat,alat,atomnames,nbond,iconnect,rxyzio,fxyzio
    real(gp) :: fluct
    real(gp) :: fnoise
    real(gp) :: betax !< initial step size (gets not changed)
-   real(gp) :: betastrechx
+   real(gp) :: beta_stretchx
    real(gp) :: beta  !< current step size
-   real(gp) :: betastretch  !< current step size
+   real(gp) :: beta_stretch  !< current step size
    real(gp) :: cosangle
    real(gp) :: ts
    real(gp) :: tt
@@ -110,7 +108,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,atomnames,nbond,iconnect,rxyzio,fxyzio
    real(gp), allocatable, dimension(:)     :: res
    real(gp), allocatable, dimension(:)     :: scpr
    real(gp), allocatable, dimension(:)     :: rnorm
-   real(gp), allocatable, dimension(:)     :: wold_rot
+   real(gp), allocatable, dimension(:)     :: wold
    character(len=4)                        :: fn4
    character(len=40)                       :: comment
    character(len=9)                        :: cdmy9_1
@@ -167,7 +165,10 @@ subroutine minimizer_sbfgs(imode,nat,alat,atomnames,nbond,iconnect,rxyzio,fxyzio
    ! allocate arrays
    lwork=1000+10*nat**2
    rxyz = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='rxyz')
+   rxyzraw = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='rxyzraw')
    fxyz = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='fxyz')
+   fxyzraw = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='fxyzraw')
+   fstretch = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='fstretch')
    aa = f_malloc((/ nhistx, nhistx /),id='aa')
    eval = f_malloc(nhistx,id='eval')
    res = f_malloc(nhistx,id='res')
@@ -179,6 +180,8 @@ subroutine minimizer_sbfgs(imode,nat,alat,atomnames,nbond,iconnect,rxyzio,fxyzio
    fff = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='fff')
    rrr = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='rrr')
    scpr = f_malloc(nhistx,id='scpr')
+   wold = f_malloc((/ 1.to.nbond/),id='wold')
+   
 
 
 
@@ -192,9 +195,12 @@ subroutine minimizer_sbfgs(imode,nat,alat,atomnames,nbond,iconnect,rxyzio,fxyzio
    call vcopy(3*fdim, fxyzio(1,1), 1, fxyz(1,1,0), 1)
    etot=energyio
    fnoise=fnoiseio
-   call minenergyandforces(.false.,imode,nat,alat,rxyz(1,1,0),rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),etot,iconnect,nbond,atomnames,wold,beta_stretchx,beta_stretch)
+   call minenergyandforces(.false.,imode,nat,alat,rxyz(1,1,0),&
+       rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),&
+       etot,iconnect,nbond,atomnames,wold,beta_stretchx,beta_stretch)
+   if(imode==2)rxyz(:,:,0)=rxyz(:,:,0)+beta_stretch*fstretch(:,:,0)
 
-   call fnrmandforcemax(fxyz(1,1,0),fnrm,fmax,nat)
+   call fnrmandforcemax(fxyzraw(1,1,0),fnrm,fmax,nat)
    fnrm=sqrt(fnrm)
    if (fmax < 3.e-1_gp) call updatefluctsum(fnoise,fluct)
 
@@ -209,7 +215,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,atomnames,nbond,iconnect,rxyzio,fxyzio
        write(cdmy9_3,'(es9.2)')abs(beta)
 
        write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,xa4,i3.3,xa5,a7,2(xa6,a8))') &
-       energycounter,0,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*mini_frac_fluct,fluct, &
+       int(energycounter),0,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*mini_frac_fluct,fluct, &
        'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy9_1)),'dsplp=',trim(adjustl(cdmy9_2))
    endif
 
@@ -234,7 +240,10 @@ subroutine minimizer_sbfgs(imode,nat,alat,atomnames,nbond,iconnect,rxyzio,fxyzio
             do iat=1,nat
                do l=1,3
                   rxyz(l,iat,ihist)=rxyz(l,iat,ihist+1)
+                  rxyzraw(l,iat,ihist)=rxyzraw(l,iat,ihist+1)
                   fxyz(l,iat,ihist)=fxyz(l,iat,ihist+1)
+                  fxyzraw(l,iat,ihist)=fxyzraw(l,iat,ihist+1)
+                  fstretch(l,iat,ihist)=fstretch(l,iat,ihist+1)
                enddo
             enddo
          enddo
@@ -285,8 +294,9 @@ subroutine minimizer_sbfgs(imode,nat,alat,atomnames,nbond,iconnect,rxyzio,fxyzio
 
       inputPsiId=1
 !      call energyandforces(nat,alat,rxyz(1,1,nhist),fxyz(1,1,nhist),fnoise,etotp)
-      call minenergyandforces(.true.,imode,nat,alat,rxyz(1,1,nhist),rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhsit),etotp,iconnect,nbond,atomnames,wold,beta_stretchx,beta_stretch)
-HIER WEITER HIER WEITER
+      call minenergyandforces(.true.,imode,nat,alat,rxyz(1,1,nhist),rxyzraw(1,1,nhist),&
+                             fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),&
+                             etotp,iconnect,nbond,atomnames,wold,beta_stretchx,beta_stretch)
       detot=etotp-etotold
       energycounter=energycounter+1.0_gp
 
@@ -295,7 +305,7 @@ HIER WEITER HIER WEITER
              it-1,etotp,etotold,detot,fnrm,sqrt(ts)/fnrm,sqrt(tt)/fnrm,beta,ndim
 
 
-      call fnrmandforcemax(fxyz(1,1,nhist),fnrm,fmax,nat)
+      call fnrmandforcemax(fxyzraw(1,1,nhist),fnrm,fmax,nat)
       fnrm=sqrt(fnrm)
 
       if (iproc == 0 .and. mhgps_verbosity >=4) then
@@ -340,7 +350,7 @@ HIER WEITER HIER WEITER
             call yaml_mapping_close()
          end if
     
-         if(Int(energycounter) >= nit)then!no convergence within ncount_cluster_x energy evaluations
+         if(int(energycounter) >= nit)then!no convergence within ncount_cluster_x energy evaluations
             !following copy of rxyz(1,1,nhist-1) to runObj is necessary for returning to the caller
             !the energies and coordinates used/obtained from/in the last ACCEPTED iteration step
             !(otherwise coordinates of last call to call_bigdft would be returned)
@@ -349,7 +359,7 @@ HIER WEITER HIER WEITER
             do iat=1,nat
               do l=1,3
                  rxyzio(l,iat)= rxyz(l,iat,nhist-1)
-                 fxyzio(l,iat)= fxyz(l,iat,nhist-1)
+                 fxyzio(l,iat)= fxyzraw(l,iat,nhist-1)
               enddo
            enddo
            goto 900  !sbfgs will return to caller the energies and coordinates used/obtained from the last ACCEPTED iteration step
@@ -364,10 +374,16 @@ HIER WEITER HIER WEITER
                rxyz(1,iat,0)=rxyz(1,iat,nhist-1)
                rxyz(2,iat,0)=rxyz(2,iat,nhist-1)
                rxyz(3,iat,0)=rxyz(3,iat,nhist-1)
+               rxyzraw(1,iat,0)=rxyzraw(1,iat,nhist-1)
+               rxyzraw(2,iat,0)=rxyzraw(2,iat,nhist-1)
+               rxyzraw(3,iat,0)=rxyzraw(3,iat,nhist-1)
    
                fxyz(1,iat,0)=fxyz(1,iat,nhist-1)
                fxyz(2,iat,0)=fxyz(2,iat,nhist-1)
                fxyz(3,iat,0)=fxyz(3,iat,nhist-1)
+               fxyzraw(1,iat,0)=fxyzraw(1,iat,nhist-1)
+               fxyzraw(2,iat,0)=fxyzraw(2,iat,nhist-1)
+               fxyzraw(3,iat,0)=fxyzraw(3,iat,nhist-1)
             enddo
             nhist=1
          endif
@@ -414,13 +430,16 @@ HIER WEITER HIER WEITER
       if(icheck>5)then
          goto 1000
       endif
+     if(imode==2)rxyz(:,:,nhist)=rxyz(:,:,nhist)+beta_stretch*fstretch(:,:,nhist) !has to be after convergence check,
+                                                                       !otherwise energy will not match
+                                                                       !the true energy of rxyz(:,:,nhist)
 
       if(int(energycounter) >= nit)then!no convergence within ncount_cluster_x energy evaluations
             energyio=etot
             do iat=1,nat
               do l=1,3
                  rxyzio(l,iat)= rxyz(l,iat,nhist)
-                 fxyzio(l,iat)= fxyz(l,iat,nhist)
+                 fxyzio(l,iat)= fxyzraw(l,iat,nhist)
               enddo
            enddo
             goto 900  !sbfgs will return to caller the energies and coordinates used/obtained from the last accepted iteration step
@@ -461,7 +480,7 @@ HIER WEITER HIER WEITER
    do iat=1,nat
       do l=1,3
          rxyzio(l,iat)= rxyz(l,iat,nhist)
-         fxyzio(l,iat)= fxyz(l,iat,nhist)
+         fxyzio(l,iat)= fxyzraw(l,iat,nhist)
       enddo
    enddo
 2000 continue
