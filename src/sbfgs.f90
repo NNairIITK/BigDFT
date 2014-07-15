@@ -159,7 +159,6 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    fff = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='fff')
    rrr = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='rrr')
    scpr = f_malloc(nhistx,id='scpr')
-   wold = f_malloc((/ 1.to.nbond/),id='wold')
    rcov     = f_malloc((/ 1.to.runObj%atoms%astruct%nat/),id='rcov')
    iconnect = f_malloc((/ 1.to.2, 1.to.1000/),id='iconnect')
    call give_rcov_sbfgs(iproc,runObj%atoms,runObj%atoms%astruct%nat,rcov)
@@ -167,6 +166,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
         call findbonds('(SBFGS)',iproc,verbosity,runObj%atoms%astruct%nat,&
              rcov,runObj%atoms%astruct%rxyz,nbond,iconnect)
    endif 
+   wold = f_malloc((/ 1.to.nbond/),id='wold')
 
 
    call init_global_output(outs, runObj%atoms%astruct%nat)
