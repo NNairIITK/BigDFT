@@ -1646,7 +1646,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
   real(kind=8) :: fscale, tt_ovrlp, tt_ham, diff, fscale_check
   logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS, interpolation_possible, emergency_stop
   real(kind=8),dimension(2) :: efarr, sumnarr, allredarr
-  real(kind=8),dimension(:),allocatable :: hamscal_compr, SHS, fermi_check_compr
+  real(kind=8),dimension(:),allocatable :: hamscal_compr, SHS
   real(kind=8),dimension(4,4) :: interpol_matrix
   real(kind=8),dimension(4) :: interpol_vector
   real(kind=8),parameter :: charge_tolerance=1.d-6 ! exit criterion
@@ -1717,7 +1717,6 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
 
   penalty_ev = f_malloc((/inv_ovrlp_smat%nfvctr,inv_ovrlp_smat%nfvctrp,2/),id='penalty_ev')
   SHS = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='SHS')
-  fermi_check_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='fermi_check_compr')
 
 
 !!  call timing(iproc, 'FOE_auxiliary ', 'OF')
@@ -1833,9 +1832,6 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
               if (foe_data_get_real(foe_obj,"evlow")/=evlow_old .or. foe_data_get_real(foe_obj,"evhigh")/=evhigh_old) then
                   shift_value=.5d0*(foe_data_get_real(foe_obj,"evhigh")+foe_data_get_real(foe_obj,"evlow"))
                   scale_factor=2.d0/(foe_data_get_real(foe_obj,"evhigh")-foe_data_get_real(foe_obj,"evlow"))
-                  !!shift_value=.5d0*(foe_data_get_real(foe_obj,"evhigh")+foe_data_get_real(foe_obj,"evlow"))-0.5d0
-                  !!scale_factor=1.d0/(foe_data_get_real(foe_obj,"evhigh")-foe_data_get_real(foe_obj,"evlow"))
-                  !shift_value=0.d0
                   !$omp parallel default(none) private(ii,irow,icol,iismall_ovrlp,iismall_ham,tt_ovrlp,tt_ham) &
                   !$omp shared(inv_ovrlp_smat,ovrlp_smat,hamscal_compr,ovrlp_mat,scale_factor,shift_value)
                   !$omp do
@@ -2035,7 +2031,6 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
   call f_free(penalty_ev)
   call f_free(hamscal_compr)
   call f_free(SHS)
-  call f_free(fermi_check_compr)
 
   call timing(iproc, 'FOE_auxiliary ', 'OF')
 
