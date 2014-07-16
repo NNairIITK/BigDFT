@@ -488,7 +488,7 @@ integer:: fcount=0
       close(864)
   endif
 
-!  if (atoms%astruct%geocode=='F') call  ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
+!  if (atoms%astruct%geocode=='F') call ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
 
 !  if ( .not. atoms%astruct%geocode=='F') then 
 !         write(*,*) 'Generating new input guess'
