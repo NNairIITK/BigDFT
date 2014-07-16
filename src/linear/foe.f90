@@ -1612,7 +1612,8 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
   use module_types
   use module_interfaces, except_this_one => foe
   use yaml_output
-  use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, assignment(=), &
+  use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, &
+                               sparsematrix_malloc0_ptr, assignment(=), &
                                SPARSE_FULL, DENSE_FULL, DENSE_PARALLEL, SPARSEMM_SEQ, &
                                matrices
   use sparsematrix_init, only: matrixindex_in_compressed
@@ -1706,7 +1707,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
 
   !!inv_ovrlp%matrix_compr = sparsematrix_malloc_ptr(inv_ovrlp_smat, &
   !!                         iaction=SPARSE_FULL, id='inv_ovrlp%matrix_compr')
-  inv_ovrlp_matrixp = sparsematrix_malloc_ptr(inv_ovrlp_smat, &
+  inv_ovrlp_matrixp = sparsematrix_malloc0_ptr(inv_ovrlp_smat, &
                            iaction=DENSE_PARALLEL, id='inv_ovrlp_matrixp')
 
 
@@ -1714,8 +1715,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
 
 
 
-  penalty_ev = f_malloc((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctrp,2/),id='penalty_ev')
-  fermip_check = f_malloc((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctrp/),id='fermip_check')
+  penalty_ev = f_malloc((/inv_ovrlp_smat%nfvctr,inv_ovrlp_smat%nfvctrp,2/),id='penalty_ev')
   SHS = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='SHS')
   fermi_check_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='fermi_check_compr')
 
@@ -1730,9 +1730,9 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
     
   ! Size of one Chebyshev polynomial matrix in compressed form (distributed)
   nsize_polynomial=0
-  if (ovrlp_smat%nfvctrp>0) then
+  if (inv_ovrlp_smat%nfvctrp>0) then
       isegstart=inv_ovrlp_smat%istsegline(inv_ovrlp_smat%isfvctr_par(iproc)+1)
-      if (inv_ovrlp_smat%isfvctr+ovrlp_smat%nfvctrp<ovrlp_smat%nfvctr) then
+      if (inv_ovrlp_smat%isfvctr+inv_ovrlp_smat%nfvctrp<inv_ovrlp_smat%nfvctr) then
           isegend=inv_ovrlp_smat%istsegline(inv_ovrlp_smat%isfvctr_par(iproc+1)+1)-1
       else
           isegend=inv_ovrlp_smat%nseg
@@ -1788,8 +1788,8 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
     
           !!calculate_SHS=.true.
     
-          if (ovrlp_smat%nfvctrp>0) then
-              call to_zero(ovrlp_smat%nfvctr*ovrlp_smat%nfvctrp, inv_ovrlp_matrixp(1,1))
+          if (inv_ovrlp_smat%nfvctrp>0) then
+              call to_zero(inv_ovrlp_smat%nfvctr*inv_ovrlp_smat%nfvctrp, inv_ovrlp_matrixp(1,1))
           end if
     
           if (iproc==0) then
@@ -1895,7 +1895,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
                   call f_free(chebyshev_polynomials)
                   chebyshev_polynomials = f_malloc((/nsize_polynomial,npl/),id='chebyshev_polynomials')
               end if
-    
+
     
               cc = f_malloc((/npl,3/),id='cc')
               !!cc_check = f_malloc((/npl,3/),id='cc_check')
@@ -1926,7 +1926,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
               if (calculate_SHS) then
                   ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
                   !if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','recalculated')
-                  call chebyshev_clean(iproc, nproc, npl, cc, ovrlp_smat%nfvctr, ovrlp_smat%nfvctrp, ovrlp_smat%isfvctr, ovrlp_smat%isfvctr_par, foe_obj, &
+                  call chebyshev_clean(iproc, nproc, npl, cc, inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%nfvctrp, inv_ovrlp_smat%isfvctr, inv_ovrlp_smat%isfvctr_par, foe_obj, &
                        inv_ovrlp_smat, hamscal_compr, &
                        inv_ovrlp%matrix_compr, .false., &
                        nsize_polynomial, SHS, inv_ovrlp_matrixp, penalty_ev, chebyshev_polynomials, &
@@ -1935,7 +1935,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
                   ! The Chebyshev polynomials are already available
                   !if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','from memory')
                   call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
-                       ovrlp_smat%nfvctr, ovrlp_smat%nfvctrp, ovrlp_smat%isfvctr, ovrlp_smat%isfvctr_par, &
+                       inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%nfvctrp, inv_ovrlp_smat%isfvctr, inv_ovrlp_smat%isfvctr_par, &
                        inv_ovrlp_smat, chebyshev_polynomials, cc, inv_ovrlp_matrixp)
               end if 
 
@@ -2034,7 +2034,6 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
   call f_free(chebyshev_polynomials)
   call f_free(penalty_ev)
   call f_free(hamscal_compr)
-  call f_free(fermip_check)
   call f_free(SHS)
   call f_free(fermi_check_compr)
 
@@ -2272,24 +2271,24 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
         ! The penalty function must be smaller than the noise.
         bound_low=0.d0
         bound_up=0.d0
-        if (ovrlp_smat%nfvctrp>0) then
+        if (inv_ovrlp_smat%nfvctrp>0) then
             isegstart=inv_ovrlp_smat%istsegline(inv_ovrlp_smat%isfvctr_par(iproc)+1)
-            if (inv_ovrlp_smat%isfvctr+ovrlp_smat%nfvctrp<ovrlp_smat%nfvctr) then
+            if (inv_ovrlp_smat%isfvctr+inv_ovrlp_smat%nfvctrp<inv_ovrlp_smat%nfvctr) then
                 isegend=inv_ovrlp_smat%istsegline(inv_ovrlp_smat%isfvctr_par(iproc+1)+1)-1
             else
                 isegend=inv_ovrlp_smat%nseg
             end if
             !$omp parallel default(none) &
             !$omp private(iseg, ii, jorb, iiorb, jjorb, iismall, tt) &
-            !$omp shared(isegstart, isegend, ovrlp_smat, inv_ovrlp_smat, penalty_ev, bound_low, bound_up)
+            !$omp shared(isegstart, isegend, inv_ovrlp_smat, penalty_ev, bound_low, bound_up)
             !$omp do reduction(+:bound_low,bound_up)
             do iseg=isegstart,isegend
                 ii=inv_ovrlp_smat%keyv(iseg)-1
                 do jorb=inv_ovrlp_smat%keyg(1,iseg),inv_ovrlp_smat%keyg(2,iseg)
                     ii=ii+1
-                    iiorb = (jorb-1)/ovrlp_smat%nfvctr + 1
-                    jjorb = jorb - (iiorb-1)*ovrlp_smat%nfvctr
-                    iismall = matrixindex_in_compressed(ovrlp_smat, iiorb, jjorb)
+                    iiorb = (jorb-1)/inv_ovrlp_smat%nfvctr + 1
+                    jjorb = jorb - (iiorb-1)*inv_ovrlp_smat%nfvctr
+                    iismall = matrixindex_in_compressed(inv_ovrlp_smat, iiorb, jjorb)
                     if (iismall>0) then
                         if (iiorb==jorb) then
                             tt=1.d0
