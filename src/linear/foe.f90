@@ -1607,7 +1607,7 @@ end function trace_sparse
 
 
 ! New: chebyshev expansion of the inverse overlap (Inverse Chebyshev Expansion)
-subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp_smat, ex, ovrlp_mat, inv_ovrlp)
+subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, ovrlp_mat, inv_ovrlp)
   use module_base
   use module_types
   use module_interfaces, except_this_one => foe
@@ -1625,10 +1625,9 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc,itout,it_scc
-  integer,intent(in) :: foe_verbosity
-  !type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
-  type(sparse_matrix),intent(inout) :: ovrlp_smat, inv_ovrlp_smat !for debug inout
+  integer,intent(in) :: iproc, nproc, norder_polynomial
+  type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
+  !type(sparse_matrix),intent(inout) :: ovrlp_smat, inv_ovrlp_smat !for debug inout
   integer :: ex
   type(matrices),intent(in) :: ovrlp_mat
   type(matrices),intent(out) :: inv_ovrlp
@@ -1676,16 +1675,8 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
   integer,parameter :: lwork=1000
   real(kind=8),dimension(lwork) :: work
 
-  
-  !!!!! HACK #########################
-  !!ovrlp_mat%matrix_compr=0.d0
-  !!do info=1,ovrlp_smat%nfvctr
-  !!    ovrlp_mat%matrix_compr((info-1)*ovrlp_smat%nfvctr+info)=0.9d0
-  !!end do
-  !!!!! ##############################
-
-
   call f_routine(id='ice')
+
 
 
 !@ JUST FOR THE MOMENT.... ########################
@@ -1762,35 +1753,8 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
   chebyshev_polynomials = f_malloc((/nsize_polynomial,1/),id='chebyshev_polynomials')
 
 
-!@ TO BE FIXED LATER
-!!   ! try to decrease the eigenvalue spectrum a bit
-!!   if (foe_data_get_int(foe_obj,"evbounds_isatur")>foe_data_get_int(foe_obj,"evbounds_nsatur") .and. &
-!!       foe_data_get_int(foe_obj,"evboundsshrink_isatur")<=foe_data_get_int(foe_obj,"evboundsshrink_nsatur")) then
-!!       call foe_data_set_real(foe_obj,"evlow",0.9d0*foe_data_get_real(foe_obj,"evlow"))
-!!       call foe_data_set_real(foe_obj,"evhigh",0.9d0*foe_data_get_real(foe_obj,"evhigh"))
-!!       evbounds_shrinked=.true.
-!!   else
-!!       evbounds_shrinked=.false.
-!!   end if
-
-!!  ! This is to distinguish whether the routine is called from get_coeff of
-!!  ! getLocBasis, to be improved.
-!!  if (accuracy_level==FOE_ACCURATE) then
-!!      ntemp = NTEMP_ACCURATE
-!!      degree_multiplicator = DEGREE_MULTIPLICATOR_ACCURATE
-!!      temp_multiplicator = TEMP_MULTIPLICATOR_ACCURATE
-!!  else if (accuracy_level==FOE_FAST) then
-      ntemp = NTEMP_FAST
-      !degree_multiplicator = DEGREE_MULTIPLICATOR_FAST
-      degree_multiplicator = 20.d0
+      degree_multiplicator = real(norder_polynomial,kind=8)/(foe_data_get_real(foe_obj,"evhigh")-foe_data_get_real(foe_obj,"evlow"))
       temp_multiplicator = TEMP_MULTIPLICATOR_FAST
-!!  else
-!!      stop 'wrong value of accuracy_level'
-!!  end if
-!!  degree_sufficient=.true.
-
-!!  temp_loop: do itemp=1,ntemp
-
       fscale = temp_multiplicator*foe_data_get_real(foe_obj,"fscale")
       fscale = max(fscale,FSCALE_LOWER_LIMIT)
       fscale = min(fscale,FSCALE_UPPER_LIMIT)
@@ -1913,9 +1877,6 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
               ! Determine the degree of the polynomial
               npl=nint(degree_multiplicator*(foe_data_get_real(foe_obj,"evhigh")-foe_data_get_real(foe_obj,"evlow"))/fscale)
               npl=max(npl,NPL_MIN)
-              !npl_check = nint(degree_multiplicator*(foe_data_get_real(foe_obj,"evhigh")-foe_data_get_real(foe_obj,"evlow"))/fscale_check)
-              !npl_check = max(npl_check,nint(real(npl,kind=8)/CHECK_RATIO)) ! this is necessary if npl was set to the minimal value
-              npl_check = nint(real(npl,kind=8)/CHECK_RATIO)
               npl_boundaries = nint(degree_multiplicator* &
                   (foe_data_get_real(foe_obj,"evhigh")-foe_data_get_real(foe_obj,"evlow")) &
                       /foe_data_get_real(foe_obj,"fscale_lowerbound")) ! max polynomial degree for given eigenvalue boundaries
@@ -1935,22 +1896,9 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
                   chebyshev_polynomials = f_malloc((/nsize_polynomial,npl/),id='chebyshev_polynomials')
               end if
     
-              !if (foe_verbosity>=1 .and. iproc==0) then
-              !if (iproc==0) then
-              !    if (foe_verbosity>=1) then
-              !        call yaml_map('eval bounds',&
-              !             (/foe_data_get_real(foe_obj,"evlow"),foe_data_get_real(foe_obj,"evhigh")/),fmt='(f5.2)')
-              !    else
-              !        call yaml_map('eval bounds',&
-              !             (/foe_data_get_real(foe_obj,"evlow"),foe_data_get_real(foe_obj,"evhigh")/),fmt='(f5.2)')
-              !    end if
-              !    call yaml_map('pol deg',npl,fmt='(i3)')
-              !    !!if (foe_verbosity>=1) call yaml_map('eF',foe_data_get_real(foe_obj,"ef"),fmt='(es16.9)')
-              !end if
-    
     
               cc = f_malloc((/npl,3/),id='cc')
-              cc_check = f_malloc((/npl,3/),id='cc_check')
+              !!cc_check = f_malloc((/npl,3/),id='cc_check')
     
               !!if (foe_data_get_real(foe_obj,"evlow")>=0.d0) then
               !!    stop 'ERROR: lowest eigenvalue must be negative'
@@ -1962,37 +1910,14 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
               call timing(iproc, 'FOE_auxiliary ', 'OF')
               call timing(iproc, 'chebyshev_coef', 'ON')
     
-              !write(*,*) 'evlow, evhigh, ex', foe_data_get_real(foe_obj,"evlow"), foe_data_get_real(foe_obj,"evhigh"), ex
               call cheb_exp(foe_data_get_real(foe_obj,"evlow"), foe_data_get_real(foe_obj,"evhigh"), npl, cc(1,1), ex)
               call chder(foe_data_get_real(foe_obj,"evlow"), foe_data_get_real(foe_obj,"evhigh"), cc(1,1), cc(1,2), npl)
               call chebft2(foe_data_get_real(foe_obj,"evlow"), foe_data_get_real(foe_obj,"evhigh"), npl, cc(1,3))
               call evnoise(npl, cc(1,3), foe_data_get_real(foe_obj,"evlow"), foe_data_get_real(foe_obj,"evhigh"), anoise)
 
-              !!call chebft(foe_data_get_real(foe_obj,"evlow"), foe_data_get_real(foe_obj,"evhigh"), npl_check, cc_check(1,1), &
-              !!     foe_data_get_real(foe_obj,"ef"), fscale_check, tmprtr)
-              !!call chder(foe_data_get_real(foe_obj,"evlow"), foe_data_get_real(foe_obj,"evhigh"), &
-              !!     cc_check(1,1), cc_check(1,2), npl_check)
-              !!call chebft2(foe_data_get_real(foe_obj,"evlow"), foe_data_get_real(foe_obj,"evhigh"), npl_check, cc_check(1,3))
-    
               call timing(iproc, 'chebyshev_coef', 'OF')
               call timing(iproc, 'FOE_auxiliary ', 'ON')
             
-              !!if (iproc==0) then
-              !!    call pltwght(npl,cc(1,1),cc(1,2),foe_data_get_real(foe_obj,"evlow"),foe_data_get_real(foe_obj,"evhigh"),foe_data_get_real(foe_obj,"ef"),foe_data_get_real(foe_obj,"fscale"),temperature)
-              !!    call pltexp(anoise,npl,cc(1,3),foe_data_get_real(foe_obj,"evlow"),foe_data_get_real(foe_obj,"evhigh"))
-              !!end if
-            
-            
-              !!if (tmb%orbs%nspin==1) then
-              !!    do ipl=1,npl
-              !!        cc(ipl,1)=2.d0*cc(ipl,1)
-              !!        cc(ipl,2)=2.d0*cc(ipl,2)
-              !!        cc(ipl,3)=2.d0*cc(ipl,3)
-              !!        cc_check(ipl,1)=2.d0*cc_check(ipl,1)
-              !!        cc_check(ipl,2)=2.d0*cc_check(ipl,2)
-              !!        cc_check(ipl,3)=2.d0*cc_check(ipl,3)
-              !!    end do
-              !!end if
             
             
               call timing(iproc, 'FOE_auxiliary ', 'OF')
@@ -2046,7 +1971,7 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
                   !    !call bigdft_utils_flush(unit=6)
                   !end if
                   call f_free(cc)
-                  call f_free(cc_check)
+                  !!call f_free(cc_check)
                   cycle main_loop
              end if
     
@@ -2076,7 +2001,7 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
                   !    call yaml_mapping_close()
                   !    !call bigdft_utils_flush(unit=6)
                   !end if
-                  call f_free(cc_check)
+                  !!call f_free(cc_check)
                   cycle
               end if
                   
@@ -2085,8 +2010,6 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
                   call foe_data_set_int(foe_obj,"evbounds_isatur",foe_data_get_int(foe_obj,"evbounds_isatur")+1)
               end if
             
-              !call calculate_trace_distributed(tmb%linmat%kernel_%matrixp, sumn)
-    
 
               if (all(eval_bounds_ok)) then
                   ! Print these informations already now if all entries are true.
@@ -2095,70 +2018,7 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
                   !         (/eval_bounds_ok(1),eval_bounds_ok(2)/))
                   !end if
               end if
-              !!call determine_fermi_level(f, sumn, ef, info)
-              !!bisection_bounds_ok(1) = fermilevel_get_logical(f,"bisection_bounds_ok(1)")
-              !!bisection_bounds_ok(2) = fermilevel_get_logical(f,"bisection_bounds_ok(2)")
-              !!!write(*,*) 'main: efarr', efarr
-              !!if (info<0) then
-              !!    if (iproc==0) then
-              !!        if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
-              !!             (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
-              !!        call yaml_mapping_close()
-              !!    end if
-              !!    call f_free(cc_check)
-              !!    ! Save the new fermi energy in the foe_obj structure
-              !!    call foe_data_set_real(foe_obj,"ef",ef)
-              !!    cycle
-              !!end if
-
-              !!! Save the new fermi energy and bisection_shift in the foe_obj structure
-              !!call foe_data_set_real(foe_obj,"ef",ef)
-              !!call foe_data_set_real(foe_obj,"bisection_shift",fermilevel_get_real(f,"bisection_shift"))
-
-              !!charge_diff = sumn-foe_data_get_real(foe_obj,"charge")
-    
-
-              !!ef_old=foe_data_get_real(foe_obj,"ef")
-              !!sumn_old=sumn
-
-
-    
-              !!if (iproc==0) then
-              !!    if (foe_verbosity>=1) call yaml_newline()
-              !!    if (foe_verbosity>=1) call yaml_map('iter',it)
-              !!    if (foe_verbosity>=1) call yaml_map('Tr(K)',sumn,fmt='(es16.9)')
-              !!    call yaml_map('charge diff',sumn-foe_data_get_real(foe_obj,"charge"),fmt='(es16.9)')
-              !!end if
-    
-              !if (iproc==0) then
-              !    call yaml_mapping_close()
-              !    !call bigdft_utils_flush(unit=6)
-              !end if
-    
-              !!if (abs(charge_diff)<charge_tolerance) then
-              !!    if (iproc==0) call yaml_sequence_close()
-              !!    ! experimental: calculate a second kernel with a lower
-              !!    ! polynomial degree  and calculate the difference
-              !!    call chebyshev_fast(iproc, nsize_polynomial, npl_check, tmb%orbs, &
-              !!        inv_ovrlp_smat, chebyshev_polynomials, cc_check, fermip_check)
-                  call f_free(cc_check)
-              !!    diff=0.d0
-              !!    do iorb=1,ovrlp_smat%nfvctrp
-              !!        do jorb=1,ovrlp_smat%nfvctr
-              !!            diff = diff + (tmb%linmat%kernel_%matrixp(jorb,iorb)-fermip_check(jorb,iorb))**2
-              !!        end do
-              !!    end do
-
-              !!    if (nproc > 1) then
-              !!        call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm)
-              !!    end if
-
-              !!    diff=sqrt(diff)
-              !!    if (iproc==0) call yaml_map('diff from reference kernel',diff,fmt='(es10.3)')
                   exit
-              !!end if
-
-              !!call f_free(cc_check)
     
     
           end do main_loop
@@ -2170,135 +2030,6 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
           inv_ovrlp%matrix_compr)
 
      call f_free_ptr(inv_ovrlp_matrixp)
-
-     !call yaml_map('original',reshape(ovrlp_mat%matrix_compr,(/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/)))
-     !call yaml_map('inverse',reshape(inv_ovrlp%matrix_compr,(/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/)))
-
- !!    call compress_matrix_distributed(iproc, inv_ovrlp_smat, fermip_check, fermi_check_compr)
-
-
- !!   
- !!   
- !!     ! Calculate S^-1/2 * K * S^-1/2^T
- !!     ! Since S^-1/2 is symmetric, don't use the transpose
- !!     call retransform(tmb%linmat%kernel_%matrix_compr)
-
- !!     call retransform(fermi_check_compr)
-
- !!     call calculate_trace_distributed(fermip_check, sumn_check)
- !!   
-
- !!     ! Calculate trace(KH). Since they have the same sparsity pattern and K is
- !!     ! symmetric, this is a simple ddot.
- !!     ebs=ddot(inv_ovrlp_smat%nvctr, tmb%linmat%kernel_%matrix_compr,1 , hamscal_compr, 1)
- !!     ebs=ebs/scale_factor+shift_value*sumn
-
- !!     ebs_check=ddot(inv_ovrlp_smat%nvctr, fermi_check_compr,1 , hamscal_compr, 1)
- !!     ebs_check=ebs_check/scale_factor+shift_value*sumn_check
- !!     diff=abs(ebs_check-ebs)
-
- !!     if (iproc==0) then
- !!         call yaml_map('ebs',ebs)
- !!         call yaml_map('ebs_check',ebs_check)
- !!         call yaml_map('diff',ebs_check-ebs)
- !!     end if
-
- !!     if (foe_data_get_logical(foe_obj,"adjust_FOE_temperature") .and. foe_verbosity>=1) then
- !!         if (diff<5.d-3) then
- !!             ! can decrease polynomial degree
- !!             call foe_data_set_real(foe_obj,"fscale", 1.25d0*foe_data_get_real(foe_obj,"fscale"))
- !!             if (iproc==0) call yaml_map('modify fscale','increase')
- !!             degree_sufficient=.true.
- !!         else if (diff>=5.d-3 .and. diff < 1.d-2) then
- !!             ! polynomial degree seems to be appropriate
- !!             degree_sufficient=.true.
- !!             if (iproc==0) call yaml_map('modify fscale','No')
- !!         else
- !!             ! polynomial degree too small, increase and recalculate
- !!             ! the kernel
- !!             degree_sufficient=.false.
- !!             call foe_data_set_real(foe_obj,"fscale", 0.5*foe_data_get_real(foe_obj,"fscale"))
- !!             if (iproc==0) call yaml_map('modify fscale','decrease')
- !!         end if
- !!         if (foe_data_get_real(foe_obj,"fscale")<foe_data_get_real(foe_obj,"fscale_lowerbound")) then
- !!             call foe_data_set_real(foe_obj,"fscale",foe_data_get_real(foe_obj,"fscale_lowerbound"))
- !!             if (iproc==0) call yaml_map('fscale reached lower limit; reset to',foe_data_get_real(foe_obj,"fscale_lowerbound"))
- !!             reached_limit=.true.
- !!         else if (foe_data_get_real(foe_obj,"fscale")>foe_data_get_real(foe_obj,"fscale_upperbound")) then
- !!             call foe_data_set_real(foe_obj,"fscale",foe_data_get_real(foe_obj,"fscale_upperbound"))
- !!             if (iproc==0) call yaml_map('fscale reached upper limit; reset to',foe_data_get_real(foe_obj,"fscale_upperbound"))
- !!             reached_limit=.true.
- !!         else
- !!             reached_limit=.false.
- !!         end if
- !!     end if
- !!   
-
- !!   
- !! 
- !!     ! Purify the kernel
- !!     !tmb%can_use_transposed=.true.
-
- !!     if (.not.purification_quickreturn) then
- !!         if (iproc==0) then
- !!             call yaml_sequence_open('Final kernel purification')
- !!             call yaml_newline()
- !!         end if
- !!         overlap_calculated=.true.
- !!         if (itemp==ntemp) then
- !!             it_shift=20
- !!         else
- !!             it_shift=1
- !!         end if
- !!         call purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, 50, &
- !!              order_taylor, max_inversion_error, purification_quickreturn)
- !!         if (iproc==0) then
- !!             call yaml_sequence_close()
- !!         end if
- !!     end if
- !!   
- !!   
- !!     ! Calculate trace(KS).
- !!     sumn = trace_sparse(iproc, nproc, tmb%orbs, ovrlp_smat, inv_ovrlp_smat, &
- !!            tmb%linmat%ovrlp_, tmb%linmat%kernel_)
-
-
- !!     if (iproc==0) call yaml_map('trace(KS)',sumn)
-
-
- !!     if (foe_verbosity>=1 .and. iproc==0) then
- !!         call yaml_map('need to repeat with sharper decay (new)',.not.degree_sufficient)
- !!     end if
- !!     if (degree_sufficient) exit temp_loop
- !!     if (reached_limit) then
- !!         if (iproc==0) call yaml_map('limit reached, exit loop',.true.)
- !!         exit temp_loop
- !!     end if
-
-
-    
-
- !! end do temp_loop
-
- !! degree_sufficient=.true.
-
-
- !! !!call f_free_ptr(inv_ovrlp%matrix_compr)
- !! 
-
-
- !! scale_factor=1.d0/scale_factor
- !! shift_value=-shift_value
-
-
- !! ! Calculate trace(KH). Since they have the same sparsity pattern and K is
- !! ! symmetric, this is a simple ddot.
- !! ebs=ddot(inv_ovrlp_smat%nvctr, tmb%linmat%kernel_%matrix_compr,1 , hamscal_compr, 1)
- !! ebs=ebs*scale_factor-shift_value*sumn
-
-
-  !if (iproc==0) call yaml_comment('ICE calculation finished',hfill='~')
-
 
   call f_free(chebyshev_polynomials)
   call f_free(penalty_ev)

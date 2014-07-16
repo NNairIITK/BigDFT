@@ -4203,14 +4203,13 @@ module module_interfaces
           real(kind=8),dimension(norb,norbp),intent(out) :: kernelp
         end subroutine chebyshev_fast
 
-subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp_smat, ex, ovrlp_mat, inv_ovrlp)
+subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, ovrlp_mat, inv_ovrlp)
   use module_base
   use module_types
   use yaml_output
   use sparsematrix_base, only: sparse_matrix, matrices
   implicit none
-  integer,intent(in) :: iproc, nproc,itout,it_scc
-  integer,intent(in) :: foe_verbosity
+  integer,intent(in) :: iproc, nproc, norder_polynomial
   type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
   integer :: ex
   type(matrices),intent(in) :: ovrlp_mat

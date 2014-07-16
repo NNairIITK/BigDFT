@@ -729,85 +729,89 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
           call f_free(Amat21_seq)
 
       else
-          ovrlp_large_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='ovrlp_large_compr')
-          call transform_sparse_matrix(ovrlp_smat, inv_ovrlp_smat, &
-               ovrlp_mat%matrix_compr, ovrlp_large_compr, 'small_to_large')
+          if (iorder<1000) then
+              ovrlp_large_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='ovrlp_large_compr')
+              call transform_sparse_matrix(ovrlp_smat, inv_ovrlp_smat, &
+                   ovrlp_mat%matrix_compr, ovrlp_large_compr, 'small_to_large')
 
-          if (iorder>1) then
-              ovrlpminone_sparse_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='ovrlpminone_sparse_seq')
-              ovrlpminone_sparse = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=SPARSE_FULL, id='ovrlpminone_sparse')
-              ovrlpminoneoldp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlpminoneoldp')
+              if (iorder>1) then
+                  ovrlpminone_sparse_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='ovrlpminone_sparse_seq')
+                  ovrlpminone_sparse = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=SPARSE_FULL, id='ovrlpminone_sparse')
+                  ovrlpminoneoldp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlpminoneoldp')
 
-              call matrix_minus_identity_sparse(ovrlp_smat%nfvctr, inv_ovrlp_smat, ovrlp_large_compr, ovrlpminone_sparse)
-              call sequential_acces_matrix_fast(inv_ovrlp_smat, ovrlpminone_sparse, ovrlpminone_sparse_seq)
-              call timing(iproc,'lovrlp^-1     ','OF')
-              call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, ovrlpminone_sparse, ovrlpminoneoldp)
-              call timing(iproc,'lovrlp^-1     ','ON')
+                  call matrix_minus_identity_sparse(ovrlp_smat%nfvctr, inv_ovrlp_smat, ovrlp_large_compr, ovrlpminone_sparse)
+                  call sequential_acces_matrix_fast(inv_ovrlp_smat, ovrlpminone_sparse, ovrlpminone_sparse_seq)
+                  call timing(iproc,'lovrlp^-1     ','OF')
+                  call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, ovrlpminone_sparse, ovrlpminoneoldp)
+                  call timing(iproc,'lovrlp^-1     ','ON')
 
-              call f_free_ptr(ovrlpminone_sparse)
+                  call f_free_ptr(ovrlpminone_sparse)
 
-              if (power==1) then
-                  factor=-1.0d0
-              else if (power==2) then
-                  factor=0.5d0
-              else if (power==-2) then
-                  factor=-0.5d0
+                  if (power==1) then
+                      factor=-1.0d0
+                  else if (power==2) then
+                      factor=0.5d0
+                  else if (power==-2) then
+                      factor=-0.5d0
+                  end if
               end if
-          end if
 
-          ovrlpminonep = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlpminonep')
-          invovrlpp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='invovrlpp')
+              ovrlpminonep = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlpminonep')
+              invovrlpp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='invovrlpp')
 
-          if (norbp>0) then
+              if (norbp>0) then
+                  call timing(iproc,'lovrlp^-1     ','OF')
+                  call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, ovrlp_large_compr, ovrlpminonep)
+                  call timing(iproc,'lovrlp^-1     ','ON')
+                  if (.not.check_accur) call f_free(ovrlp_large_compr)
+                  call first_order_taylor_dense(ovrlp_smat%nfvctr,isorb,norbp,power,ovrlpminonep,invovrlpp)
+              end if
+
+              do i=2,iorder
+                  call timing(iproc,'lovrlp^-1     ','OF')
+                  call sparsemm(inv_ovrlp_smat, ovrlpminone_sparse_seq, ovrlpminoneoldp, ovrlpminonep)
+                  call timing(iproc,'lovrlp^-1     ','ON')
+                  factor=newfactor(power,i,factor)
+                  call daxpy(ovrlp_smat%nfvctr*norbp,factor,ovrlpminonep,1,invovrlpp,1)
+                  if (i/=iorder.and.norbp>0) call vcopy(ovrlp_smat%nfvctr*norbp,ovrlpminonep(1,1),1,ovrlpminoneoldp(1,1),1)
+              end do
+              !!call to_zero(inv_ovrlp_smat%nvctr, inv_ovrlp_smat%matrix_compr(1))
               call timing(iproc,'lovrlp^-1     ','OF')
-              call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, ovrlp_large_compr, ovrlpminonep)
+              call compress_matrix_distributed(iproc, inv_ovrlp_smat, invovrlpp, inv_ovrlp_mat%matrix_compr)
               call timing(iproc,'lovrlp^-1     ','ON')
-              if (.not.check_accur) call f_free(ovrlp_large_compr)
-              call first_order_taylor_dense(ovrlp_smat%nfvctr,isorb,norbp,power,ovrlpminonep,invovrlpp)
+
+              if (iorder>1) then
+                  call f_free(ovrlpminone_sparse_seq)
+                  call f_free(ovrlpminoneoldp)
+                  !!if (.not.check_accur) call f_free(istindexarr)
+                  !!if (.not.check_accur) call f_free(ivectorindex)
+                  !!if (.not.check_accur) call f_free_ptr(onedimindices)
+              end if
+
+              if (.not.check_accur) call f_free(invovrlpp)
+              call f_free_ptr(ovrlpminonep)
+
+          else
+
+              ! @ NEW: ICE ##########################
+              !!select case (power)
+              !!case (-2)
+              !!    ex=-0.5d0
+              !!case (2)
+              !!    ex=0.5d0
+              !!case (1)
+              !!    ex=-1.d0
+              !!case default
+              !!    stop 'wrong power'
+              !!end select
+              call ice(iproc, nproc, iorder-1000, ovrlp_smat, inv_ovrlp_smat, power, ovrlp_mat, inv_ovrlp_mat)
+              ! #####################################
           end if
-
-          do i=2,iorder
-              call timing(iproc,'lovrlp^-1     ','OF')
-              call sparsemm(inv_ovrlp_smat, ovrlpminone_sparse_seq, ovrlpminoneoldp, ovrlpminonep)
-              call timing(iproc,'lovrlp^-1     ','ON')
-              factor=newfactor(power,i,factor)
-              call daxpy(ovrlp_smat%nfvctr*norbp,factor,ovrlpminonep,1,invovrlpp,1)
-              if (i/=iorder.and.norbp>0) call vcopy(ovrlp_smat%nfvctr*norbp,ovrlpminonep(1,1),1,ovrlpminoneoldp(1,1),1)
-          end do
-          !!call to_zero(inv_ovrlp_smat%nvctr, inv_ovrlp_smat%matrix_compr(1))
-          call timing(iproc,'lovrlp^-1     ','OF')
-          call compress_matrix_distributed(iproc, inv_ovrlp_smat, invovrlpp, inv_ovrlp_mat%matrix_compr)
-          call timing(iproc,'lovrlp^-1     ','ON')
-
-          if (iorder>1) then
-              call f_free(ovrlpminone_sparse_seq)
-              call f_free(ovrlpminoneoldp)
-              !!if (.not.check_accur) call f_free(istindexarr)
-              !!if (.not.check_accur) call f_free(ivectorindex)
-              !!if (.not.check_accur) call f_free_ptr(onedimindices)
-          end if
-
-          if (.not.check_accur) call f_free(invovrlpp)
-          call f_free_ptr(ovrlpminonep)
-
-          ! @ NEW: ICE ##########################
-          select case (power)
-          case (-2)
-              ex=-0.5d0
-          case (2)
-              ex=0.5d0
-          case (1)
-              ex=-1.d0
-          case default
-              stop 'wrong power'
-          end select
-          call ice(iproc, nproc, 0, 0, 1, ovrlp_smat, inv_ovrlp_smat, power, ovrlp_mat, inv_ovrlp_mat)
-          ! #####################################
       end if
 
       if (check_accur) then
           ! HERE STARTS LINEAR CHECK ##########################
-          if (iorder<1) then
+          if (iorder<1 .or. iorder>=1000) then
               invovrlpp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='invovrlpp')
               ovrlp_large_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='ovrlp_large_compr')
               call transform_sparse_matrix(ovrlp_smat, inv_ovrlp_smat, &
@@ -2899,6 +2903,14 @@ subroutine check_taylor_order(error, max_error, order_taylor)
   character(len=12) :: act
   integer,parameter :: max_order_positive=200
   integer,parameter :: max_order_negative=-50
+  logical :: is_ice
+
+  if (order_taylor>=1000) then
+      order_taylor=order_taylor-1000
+      is_ice=.true.
+  else
+      is_ice=.false.
+  end if
 
   if (order_taylor>0) then
       ! only do this if Taylor approximations are actually used
@@ -2927,6 +2939,10 @@ subroutine check_taylor_order(error, max_error, order_taylor)
           order_taylor=max_order_negative
           if (bigdft_mpi%iproc==0) call yaml_warning('Taylor order reached maximum')
       end if
+  end if
+
+  if (is_ice) then
+      order_taylor=order_taylor+1000
   end if
 
 end subroutine check_taylor_order
