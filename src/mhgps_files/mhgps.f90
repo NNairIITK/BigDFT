@@ -256,37 +256,37 @@ real(gp),allocatable :: eval(:)
 !!        enddo
 !!        endif
 !!deallocate(eval)
-!!!!!            rotforce=0.0_gp
-!!!!!            if(random_minmode_guess)then
-!!!!!                do i=1,atoms%astruct%nat
-!!!!!                    minmode(1,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
-!!!!!                    minmode(2,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
-!!!!!                    minmode(3,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
-!!!!!                enddo
-!!!!!                call write_mode(atoms%astruct%nat,currDir//'/'//currFile//'_mode',minmode)
-!!!!!            else
-!!!!!                call read_mode(atoms%astruct%nat,currDir//'/'//currFile//'_mode',minmode)
-!!!!!            endif
-!!!!!            ec=0.0_gp
-!!!!!        
-!!!!!           call findsad(imode,atoms%astruct%nat,atoms%astruct%cell_dim,rcov,saddle_alpha0_trans,saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_trans,&
-!!!!!           saddle_nit_rot,saddle_nhistx_trans,saddle_nhistx_rot,saddle_tolc,saddle_tolf,saddle_tightenfac,saddle_rmsdispl0,&
-!!!!!           saddle_trustr,rxyz,energy,fxyz,minmode,saddle_fnrmtol,displ,ec,&
-!!!!!           converged,nbond,iconnect,saddle_alpha_stretch0,saddle_recompIfCurvPos,saddle_maxcurvrise,&
-!!!!!           saddle_cutoffratio,saddle_alpha_rot_stretch0,rotforce)
-!!!!!           if (iproc == 0) then
-!!!!!               call write_atomic_file(currDir//'/'//currFile//'_final',&
-!!!!!               energy,rxyz(1,1),ixyz_int,&
-!!!!!               atoms,comment,forces=fxyz(1,1))
-!!!!!               call write_mode(atoms%astruct%nat,currDir//'/'//currFile//'_mode_final',minmode,rotforce)
-!!!!!           endif
+!            rotforce=0.0_gp
+!            if(random_minmode_guess)then
+!                do i=1,atoms%astruct%nat
+!                    minmode(1,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+!                    minmode(2,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+!                    minmode(3,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+!                enddo
+!                call write_mode(atoms%astruct%nat,currDir//'/'//currFile//'_mode',minmode)
+!            else
+!                call read_mode(atoms%astruct%nat,currDir//'/'//currFile//'_mode',minmode)
+!            endif
+!            ec=0.0_gp
+!        
+!           call findsad(imode,atoms%astruct%nat,atoms%astruct%cell_dim,rcov,saddle_alpha0_trans,saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_trans,&
+!           saddle_nit_rot,saddle_nhistx_trans,saddle_nhistx_rot,saddle_tolc,saddle_tolf,saddle_tightenfac,saddle_rmsdispl0,&
+!           saddle_trustr,rxyz,energy,fxyz,minmode,saddle_fnrmtol,displ,ec,&
+!           converged,nbond,iconnect,saddle_alpha_stretch0,saddle_recompIfCurvPos,saddle_maxcurvrise,&
+!           saddle_cutoffratio,saddle_alpha_rot_stretch0,rotforce)
+!           if (iproc == 0) then
+!               call write_atomic_file(currDir//'/'//currFile//'_final',&
+!               energy,rxyz(1,1),ixyz_int,&
+!               atoms,comment,forces=fxyz(1,1))
+!               call write_mode(atoms%astruct%nat,currDir//'/'//currFile//'_mode_final',minmode,rotforce)
+!           endif
 ec=1.0_gp
 call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy)
 !call minimizer_sbfgs(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy,ec,converged)
 call minimizer_sbfgs(imode,atoms%astruct%nat,atoms%astruct%cell_dim,nbond,iconnect,rxyz,fxyz,fnoise,energy,ec,converged)
 if(.not.converged)stop'minimizer_sbfgs not converged'
 call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy)
-write(*,*)'count,fnrm',int(ec),sqrt(sum(fxyz**2))
+write(*,'(a,1x,i0,1x,es9.2,1x,i0)')'count,fnrm',int(ec),sqrt(sum(fxyz**2))
         enddo
     enddo
 
@@ -380,7 +380,7 @@ write(*,*)'count,fnrm',int(ec),sqrt(sum(fxyz**2))
     
 
 
-    if(iproc==0)call yaml_map('(MHGPS) Calls to energy and forces',nint(ef_counter))
+    if(iproc==0)call yaml_map('(MHGPS) Total calls to energy and forces',nint(ef_counter))
     if(iproc==0)call yaml_map('(MHGPS) Run finished at',yaml_date_and_time_toa())
     call f_lib_finalize()
 end program
