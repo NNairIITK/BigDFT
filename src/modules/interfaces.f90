@@ -3659,7 +3659,8 @@ module module_interfaces
           real(kind=8),dimension(nsize_polynomial),intent(out) :: vector_compressed
         end subroutine compress_polynomial_vector
 
-        subroutine uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, norb, norbp, isorb, isorb_par, fermi, vector_compressed, vector)
+        subroutine uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
+                   norb, norbp, isorb, isorb_par, fermi, vector_compressed, vector)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
@@ -4190,7 +4191,8 @@ module module_interfaces
           real(kind=8),intent(out) :: delta_energy
         end subroutine estimate_energy_change
 
-        subroutine chebyshev_fast(iproc, nproc, nsize_polynomial, npl, norb, norbp, isorb, isorb_par, fermi, chebyshev_polynomials, cc, kernelp)
+        subroutine chebyshev_fast(iproc, nproc, nsize_polynomial, npl, norb, norbp, isorb, isorb_par, &
+                   fermi, chebyshev_polynomials, cc, kernelp)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix

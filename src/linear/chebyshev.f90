@@ -381,7 +381,8 @@ end subroutine axpy_kernel_vectors
 
 
 
-subroutine chebyshev_fast(iproc, nproc, nsize_polynomial, npl, norb, norbp, isorb, isorb_par, fermi, chebyshev_polynomials, cc, kernelp)
+subroutine chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
+           norb, norbp, isorb, isorb_par, fermi, chebyshev_polynomials, cc, kernelp)
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), SPARSE_FULL
@@ -412,7 +413,8 @@ subroutine chebyshev_fast(iproc, nproc, nsize_polynomial, npl, norb, norbp, isor
           call daxpy(nsize_polynomial, cc(ipl), chebyshev_polynomials(1,ipl), 1, kernel_compressed(1), 1)
       end do
 
-      call uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, norb, norbp, isorb, isorb_par, fermi, kernel_compressed, kernelp)
+      call uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
+           norb, norbp, isorb, isorb_par, fermi, kernel_compressed, kernelp)
 
       call f_free(kernel_compressed)
   end if

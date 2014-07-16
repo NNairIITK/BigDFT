@@ -358,7 +358,8 @@ subroutine foe(iproc, nproc, tmprtr, &
               if (calculate_SHS) then
                   ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
                   if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','recalculated')
-                  call chebyshev_clean(iproc, nproc, npl, cc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%orbs%isorb_par, foe_obj, &
+                  call chebyshev_clean(iproc, nproc, npl, cc, &
+                       tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%orbs%isorb_par, foe_obj, &
                        tmb%linmat%l, hamscal_compr, &
                        inv_ovrlp%matrix_compr, calculate_SHS, &
                        nsize_polynomial, SHS, tmb%linmat%kernel_%matrixp, penalty_ev, chebyshev_polynomials, &
@@ -1490,7 +1491,8 @@ end subroutine compress_polynomial_vector
 
 
 
-subroutine uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, norb, norbp, isorb, isorb_par, fermi, vector_compressed, vector)
+subroutine uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
+           norb, norbp, isorb, isorb_par, fermi, vector_compressed, vector)
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix
@@ -1561,7 +1563,7 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat)
       else
               isegend=asmat%nseg
       end if
-          !$omp parallel default(private) shared(isegstart, isegend, orbs, bsmat, asmat, amat, bmat, sumn)
+      !$omp parallel default(private) shared(isegstart, isegend, orbs, bsmat, asmat, amat, bmat, sumn)
       !$omp do reduction(+:sumn)
       do iseg=isegstart,isegend
               ii=asmat%keyv(iseg)-1
@@ -1922,7 +1924,9 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
               if (calculate_SHS) then
                   ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
                   !if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','recalculated')
-                  call chebyshev_clean(iproc, nproc, npl, cc, inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%nfvctrp, inv_ovrlp_smat%isfvctr, inv_ovrlp_smat%isfvctr_par, foe_obj, &
+                  call chebyshev_clean(iproc, nproc, npl, cc, &
+                       inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%nfvctrp, &
+                       inv_ovrlp_smat%isfvctr, inv_ovrlp_smat%isfvctr_par, foe_obj, &
                        inv_ovrlp_smat, hamscal_compr, &
                        inv_ovrlp%matrix_compr, .false., &
                        nsize_polynomial, SHS, inv_ovrlp_matrixp, penalty_ev, chebyshev_polynomials, &
