@@ -1515,10 +1515,15 @@ END SUBROUTINE winter
 subroutine wtioput(ediff,ekinetic,dt,nsoften)
   use module_base
   use module_types
-  implicit real*8 (a-h,o-z)
-  open(unit=11,file='ioput'//trim(bigdft_run_id_toa()),status='unknown')
-  write(11,'(3(1x,1pe24.17)1x,i4,a)') ediff,ekinetic,dt,nsoften,' ediff, ekinetic dt and nsoften'
-  close(11)
+  implicit none
+  !Arguments
+  real(kind=8), intent(in) :: ediff,ekinetic,dt
+  integer, intent(in) :: nsoften
+  !Local variables
+  integer, parameter :: iunit=11
+  open(unit=iunit,file='ioput'//trim(bigdft_run_id_toa()),status='unknown')
+  write(iunit,'(3(1x,1pe24.17)1x,i4,a)') ediff,ekinetic,dt,nsoften,' ediff, ekinetic dt and nsoften'
+  close(unit=iunit)
 END SUBROUTINE wtioput
 
 
