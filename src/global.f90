@@ -50,6 +50,7 @@ program MINHOP
   type(DFT_global_output) :: outs
   type(dictionary), pointer :: user_inputs
 integer:: fcount=0
+logical:: disable_hatrans
 
   call f_lib_initialize()
   call bigdft_init(mpi_info,nconfig,run_id,ierr)
@@ -136,6 +137,8 @@ integer:: fcount=0
   do i=1,nrandoff
      call random_number(ts)
   enddo
+
+  inquire(file='disable_hatrans',exist=disable_hatrans)
   
   ! open output files
   if (bigdft_mpi%iproc==0) then 
@@ -229,7 +232,7 @@ integer:: fcount=0
       close(864)
   endif
 
-!  if (atoms%astruct%geocode=='F') call ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
+  if (atoms%astruct%geocode=='F' .and. (.not. disable_hatrans)) call ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
 
 !  if ( .not. atoms%astruct%geocode=='F') then 
 !         write(*,*) 'Generating new input guess'
@@ -253,7 +256,11 @@ integer:: fcount=0
      tt=dnrm2(3*outs%fdim,outs%fxyz,1)
      fcount=fcount+1
      write(fn4,'(i4.4)')fcount
-     write(comment,'(a,1pe10.3)')'fnrm= ',tt
+     if(disable_hatrans)then
+         write(comment,'(a,1pe10.3)')'ha_trans disabled, fnrm= ',tt
+     else
+         write(comment,'(a,1pe10.3)')'ha_trans enabled, fnrm= ',tt
+     endif
      call write_atomic_file('posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
           outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
   endif
@@ -488,7 +495,7 @@ integer:: fcount=0
       close(864)
   endif
 
-!  if (atoms%astruct%geocode=='F') call ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
+  if (atoms%astruct%geocode=='F' .and. (.not. disable_hatrans)) call ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
 
 !  if ( .not. atoms%astruct%geocode=='F') then 
 !         write(*,*) 'Generating new input guess'
@@ -637,8 +644,13 @@ integer:: fcount=0
   if (bigdft_mpi%iproc == 0) then
      fcount=fcount+1
      write(fn4,'(i4.4)')fcount
+     if(disable_hatrans)then
+         write(comment,'(a)')'ha_trans disabled'
+     else
+         write(comment,'(a)')'ha_trans enabled'
+     endif
      call write_atomic_file('posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
-          e_pos,pos,atoms%astruct%ixyz_int,atoms,'')
+          e_pos,pos,atoms%astruct%ixyz_int,atoms,trim(comment))
   endif
 
      if (bigdft_mpi%iproc == 0) then

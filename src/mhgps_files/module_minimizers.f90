@@ -138,7 +138,9 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
       call yaml_mapping_open('Geometry parameters')
          call yaml_map('Geometry Method','GEOPT_SBFGS')
          call yaml_map('nhistx',nhistx)
+         call yaml_map('biomode',imode==2)
          call yaml_map('betax', betax,fmt='(1pe21.14)')
+         call yaml_map('beta_stretchx', beta_stretchx,fmt='(1pe21.14)')
          call yaml_map('maxrise', maxrise,fmt='(1pe21.14)')
          call yaml_map('cutoffRatio', cutoffRatio,fmt='(1pe21.14)')
          call yaml_map('steepthresh', steepthresh,fmt='(1pe21.14)')
@@ -180,7 +182,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
    rrr = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='rrr')
    scpr = f_malloc(nhistx,id='scpr')
    wold = f_malloc((/ 1.to.nbond/),id='wold')
-   
+   wold =0.0_gp
 
 
 
@@ -292,7 +294,6 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
 !      detot=etotp-etotold
 
       inputPsiId=1
-!      call energyandforces(nat,alat,rxyz(1,1,nhist),fxyz(1,1,nhist),fnoise,etotp)
       call minenergyandforces(.true.,imode,nat,alat,rxyz(1,1,nhist),rxyzraw(1,1,nhist),&
                              fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),fnoise,&
                              etotp,iconnect,nbond,wold,beta_stretchx,beta_stretch)

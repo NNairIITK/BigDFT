@@ -118,7 +118,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
          call yaml_map('nhistx',nhistx)
          call yaml_map('biomode',runObj%inputs%biomode)
          call yaml_map('betax', betax,fmt='(1pe21.14)')
-         call yaml_map('beta_stretchx', beta_stretchx,fmt='(1pe21.14)')
+         call yaml_map('beta_stretchx', runObj%inputs%beta_stretchx,fmt='(1pe21.14)')
          call yaml_map('maxrise', maxrise,fmt='(1pe21.14)')
          call yaml_map('cutoffRatio', cutoffRatio,fmt='(1pe21.14)')
          call yaml_map('steepthresh', steepthresh,fmt='(1pe21.14)')
@@ -138,7 +138,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    ndim=0
    nhist=0
    beta=betax
-   beta_stretch=beta_stretchx
+   beta_stretch=runObj%inputs%beta_stretchx
    maxd=0.0_gp
 
    ! allocate arrays
@@ -163,10 +163,11 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    iconnect = f_malloc((/ 1.to.2, 1.to.1000/),id='iconnect')
    call give_rcov_sbfgs(iproc,runObj%atoms,runObj%atoms%astruct%nat,rcov)
    if(runObj%inputs%biomode)then
-        call findbonds('(SBFGS)',iproc,verbosity,runObj%atoms%astruct%nat,&
+        call findbonds('(SBFGS)',iproc,10,runObj%atoms%astruct%nat,&
              rcov,runObj%atoms%astruct%rxyz,nbond,iconnect)
    endif 
    wold = f_malloc((/ 1.to.nbond/),id='wold')
+   wold =0.0_gp
 
 
    call init_global_output(outs, runObj%atoms%astruct%nat)
@@ -395,6 +396,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
             call yaml_map('fmax',fmax,fmt='(1pe21.14)')
             call yaml_map('fnrm',fnrm,fmt='(1pe21.14)')
             call yaml_map('beta',beta,fmt='(1pe21.14)')
+            call yaml_map('beta_stretch',beta_stretch,fmt='(1pe21.14)')
             call geometry_output(fmax,fnrm,fluct)
          call yaml_mapping_close()
       end if
@@ -499,15 +501,15 @@ subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,rxyzra
     type(DFT_global_output), intent(inout) :: outs
     integer, intent(in)           :: nbond_
     integer, intent(in)           :: iconnect(2,nbond_)
-    real(gp),intent(inout)           :: rat(3,nat)
+    real(gp),intent(inout)        :: rat(3,nat)
     real(gp),intent(out)          :: rxyzraw(3,nat)
     real(gp),intent(out)          :: fxyzraw(3,nat)
-    real(gp),intent(inout)          :: fat(3,nat)
+    real(gp),intent(inout)        :: fat(3,nat)
     real(gp),intent(out)          :: fstretch(3,nat)
     real(gp), intent(inout)       :: wold(nbond_)
     real(gp), intent(in)          :: alpha_stretch0
     real(gp), intent(inout)       :: alpha_stretch
-    real(gp), intent(inout)         :: epot
+    real(gp), intent(inout)       :: epot
     logical, intent(in)           :: eeval
     !internal
     integer :: infocode
@@ -523,12 +525,11 @@ subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,rxyzra
         call vcopy(3 * runObj%atoms%astruct%nat, rat(1,1), 1,runObj%atoms%astruct%rxyz(1,1), 1)
         runObj%inputs%inputPsiId=1
         call call_bigdft(runObj,outs,nproc,iproc,infocode)
-        call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fat(1,1), 1)
-        epot=outs%energy
     endif
+    call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fat(1,1), 1)
     call vcopy(3 * outs%fdim, fat(1,1), 1,fxyzraw(1,1), 1)
+    epot=outs%energy
     fstretch=0.0_gp
-
     if(imode==2)then
         call projectbond(nat,nbond_,rat,fat,fstretch,iconnect,&
              wold,alpha_stretch0,alpha_stretch)
