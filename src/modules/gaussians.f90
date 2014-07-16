@@ -59,7 +59,7 @@ module gaussians
 
   public :: nullify_gaussian_basis, deallocate_gwf, gaussian_basis_null, gaussian_basis_free
 
-  public :: gaussian_basis_from_psp, gaussian_projectors
+  public :: gaussian_basis_from_psp, gaussian_projectors, gaussian_ncoeff
 
 contains
 
@@ -200,6 +200,26 @@ contains
        end do
     end do
   end subroutine gaussian_basis_from_psp
+
+  !> Compute the number of coefficients for atom iat.
+  subroutine gaussian_ncoeff(G, iat, ncoeff)
+    implicit none
+    type(gaussian_basis_new), intent(in) :: G
+    integer, intent(in) :: iat
+    integer, intent(out) :: ncoeff
+
+    integer :: i, ishell
+
+    ishell = 0
+    do i = 1, iat - 1
+       ishell = ishell + G%nshell(i)
+    end do
+
+    ncoeff = 0
+    do i = ishell + 1, ishell + G%nshell(iat)
+       ncoeff = ncoeff + 2 * G%shid(L_, i) - 1
+    end do
+  end subroutine gaussian_ncoeff
 
   !> Create projectors from gaussian decomposition.
   subroutine gaussian_projectors(proj_G, ityp, iat, atomname, &

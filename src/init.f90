@@ -274,7 +274,7 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   logrid=f_malloc((/0.to.n1,0.to.n2,0.to.n3/),id='logrid')
 
   call localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,&
-       rxyz,radii_cf,logrid,at,orbs,nl,proj_G)
+       rxyz,radii_cf,logrid,at,orbs,nl)
 
   if (dry_run) then
      call f_free(logrid)

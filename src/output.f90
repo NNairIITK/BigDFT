@@ -1437,7 +1437,13 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
         call yaml_map('complex coefficients (1..5)', atoms%pawtab(ityp)%wvl%parg(:,1:5))
         call yaml_map('complex factors (1..5)', atoms%pawtab(ityp)%wvl%pfac(:,1:5))
      end if
-     call numb_proj(ityp,atoms%astruct%ntypes,atoms%psppar,atoms%npspcode,mproj)
+     mproj = 0
+     do l=1,4 
+        do i=1,3 
+           if (atoms%psppar(l,i,ityp) /= 0.0_gp) mproj=mproj+2*l-1
+        enddo
+     enddo
+     !call numb_proj(ityp,atoms%astruct%ntypes,atoms%psppar,atoms%npspcode,mproj)
      call yaml_map('No. of projectors',mproj)
 
      !control if the PSP is calculated with the same XC value
