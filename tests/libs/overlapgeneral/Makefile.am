@@ -1,6 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
-EXTRA_DIST = test-overlapgeneral.ref.yaml
+EXTRA_DIST = test-overlapgeneral.ref.yaml \
+	inputdata1.fake inputdata2.fake inputdata3.fake
 
 check_PROGRAMS = driver
 
