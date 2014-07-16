@@ -262,8 +262,8 @@ subroutine fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
      iproj=0
      do iat=1,at%astruct%nat
         !this routine is defined to uniformise the call for on-the-fly application
-        call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
-             lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpsp%pspd(iat)%plr,nlpsp%proj,nwarnings)
+        call atom_projector(nlpsp%proj_G,ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
+             lr,hx,hy,hz,rxyz(1,iat),at,orbs,1._gp,nlpsp%pspd(iat)%plr,nlpsp%proj,nwarnings)
      enddo
      if (iproj /= nlpsp%nproj) then
         call yaml_warning('Incorrect number of projectors created')
@@ -360,9 +360,9 @@ subroutine atom_projector_paw(ikpt,iat,idir,istart_c,iproj,nprojel,&
         !     mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
         !     plr%wfd%keyvglob,plr%wfd%keyglob,proj_tmp(1),nwarnings)
         !END DEBUG
-        call projector_paw(at%astruct%geocode,at%astruct%atomnames(ityp),iat,idir,l,i,&
-             proj_G%psiat(:,jj),proj_G%xp(:,jj),rpaw,rxyz,lr,&
-             hx,hy,hz,kx,ky,kz,proj_G%ncplx,ncplx_k,&
+        call projector(at%astruct%geocode,at%astruct%atomnames(ityp),iat,idir,l,i,&
+             proj_G%psiat(:,jj),proj_G%xp(:,jj),rpaw,rxyz,lr%ns1,lr%ns2,lr%ns3,lr%d%n1,lr%d%n2,lr%d%n3,&
+             hx,hy,hz,kx,ky,kz,ncplx_k,proj_G%ncplx,&
              mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
              plr%wfd%keyvglob,plr%wfd%keyglob,proj_tmp,nwarnings)
         proj(istart_c:istart_c+nc-1)=proj(istart_c:istart_c+nc-1)+proj_tmp(1:nc)
@@ -397,15 +397,16 @@ subroutine atom_projector_paw(ikpt,iat,idir,istart_c,iproj,nprojel,&
 
 END SUBROUTINE atom_projector_paw
 
-
-subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,nprojel,&
-     lr,hx,hy,hz,rxyz,at,orbs,plr,proj,nwarnings)
+subroutine atom_projector(proj_G,ikpt,iat,idir,istart_c,iproj,nprojel,&
+     lr,hx,hy,hz,rxyz,at,orbs,rpaw,plr,proj,nwarnings)
   use module_base
   use module_types
+  use gaussians
   implicit none
   integer, parameter :: ncplx_g=1 !this is true for NC pseudos
   integer, intent(in) :: iat,idir,ikpt,nprojel
-  real(gp), intent(in) :: hx,hy,hz
+  real(gp), intent(in) :: hx,hy,hz,rpaw
+  type(gaussian_basis_new), intent(in) :: proj_G
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: plr
@@ -416,30 +417,44 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,nprojel,&
   !Local variables
   integer :: ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,l,i,ncplx_k
   real(gp) :: kx,ky,kz,gau_a(ncplx_g)
-
+  integer :: istart_c_, iproj_
+!!$
   !features of the k-point ikpt
   kx=orbs%kpts(1,ikpt)
   ky=orbs%kpts(2,ikpt)
   kz=orbs%kpts(3,ikpt)
+  iproj_ = iproj
+  istart_c_ = istart_c
 
+  call plr_segs_and_vctrs(plr,mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
+
+  ! New method.
+  ityp=at%astruct%iatype(iat)
+  call gaussian_projectors(proj_G, ityp, iat, at%astruct%atomnames(ityp), &
+       & at%astruct%geocode, idir, hx, hy, hz, &
+       & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), rpaw, &
+       & lr%ns1,lr%ns2,lr%ns3,lr%d%n1,lr%d%n2,lr%d%n3, &
+       & mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, plr%wfd%keyglob, plr%wfd%keyvglob, &
+       & istart_c, iproj, proj, nprojel, nwarnings)
+
+  ! old method
+  iproj = iproj_
+  istart_c = istart_c_
   !evaluate the complexity of the k-point
   if (kx**2 + ky**2 + kz**2 == 0.0_gp) then
      ncplx_k=1
   else
      ncplx_k=2
   end if
-
   ityp=at%astruct%iatype(iat)
-
-  call plr_segs_and_vctrs(plr,mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
   !decide the loop bounds
   do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
      do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
         if (at%psppar(l,i,ityp) /= 0.0_gp) then
            gau_a(1)=at%psppar(l,0,ityp)
            call projector(at%astruct%geocode,at%astruct%atomnames(ityp),iat,idir,l,i,&
-                gau_a,rxyz(1),lr,&
-                hx,hy,hz,kx,ky,kz,ncplx_k,&
+                1._gp,0.5_gp/(gau_a**2),1._gp,rxyz(1),lr%ns1,lr%ns2,lr%ns3,lr%d%n1,lr%d%n2,lr%d%n3,&
+                hx,hy,hz,kx,ky,kz,ncplx_k,ncplx_g,&
                 mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                 plr%wfd%keyvglob,plr%wfd%keyglob,&
                 proj(istart_c),nwarnings)
@@ -453,44 +468,68 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,nprojel,&
 
 END SUBROUTINE atom_projector
 
-subroutine projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,lr,&
-     hx,hy,hz,kx,ky,kz,ncplx,&
+subroutine projector(geocode,atomname,iat,idir,l,i,factor,gau_a,rpaw,rxyz,&
+     ns1,ns2,ns3,n1,n2,n3,hx,hy,hz,kx,ky,kz,ncplx_k,ncplx_g,&
      mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj,nwarnings)
   use module_base
   use module_types
   implicit none
-  integer,parameter::ncplx_g=1 !this is true for NC pseudos
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   character(len=20), intent(in) :: atomname
-  integer, intent(in) :: iat,idir,l,i,mbvctr_c,mbvctr_f,mseg_c,mseg_f,ncplx
-  type(locreg_descriptors),intent(in) :: lr
-  real(gp), intent(in) :: hx,hy,hz,kx,ky,kz
-  real(gp),dimension(ncplx_g),intent(in)::gau_a
+  integer, intent(in) :: ns1,ns2,ns3,n1,n2,n3
+  integer, intent(in) :: iat,idir,l,i,mbvctr_c,mbvctr_f,mseg_c,mseg_f,ncplx_k,ncplx_g
+  real(gp), intent(in) :: hx,hy,hz,kx,ky,kz,rpaw
+  real(gp),dimension(ncplx_g),intent(in)::gau_a,factor
   !integer, dimension(2,3), intent(in) :: nboxp_c,nboxp_f
   integer, dimension(mseg_c+mseg_f), intent(in) :: keyv_p
   integer, dimension(2,mseg_c+mseg_f), intent(in) :: keyg_p
 
   real(gp), dimension(3), intent(in) :: rxyz
   integer, intent(inout) :: nwarnings
-  real(wp), dimension((mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx), intent(out) :: proj
+  real(wp), dimension((mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx_k), intent(out) :: proj
   !Local variables
   integer, parameter :: nterm_max=20 !if GTH nterm_max=4
-  real(gp),parameter :: gau_cut=1.0_gp !this is only  meaningful for PAW
   integer :: m,iterm
   !integer :: nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f
   integer :: istart_c,nterm,idir2
-  real(gp) :: fpi,factor,rx,ry,rz
+  real(gp) :: fpi,fgamma,rx,ry,rz
   real(dp) :: scpr
   integer, dimension(3) :: nterm_arr
   integer, dimension(nterm_max) :: lx,ly,lz
   integer, dimension(3,nterm_max,3) :: lxyz_arr
-  real(gp), dimension(nterm_max) :: factors
+  real(gp), dimension(ncplx_g,nterm_max) :: factors
   real(gp), dimension(nterm_max,3) :: fac_arr
+  real(gp), dimension(ncplx_g) :: gau_c
 
   !this value can also be inserted as a parameter
-  !fpi=pi^-1/4 pi^-1/2, pi^-1/4 comes from sqrt(gamma(x)) and pi^-1/2 from Ylm.
-  !fpi=(4.0_gp*atan(1.0_gp))**(-.75_gp)
-  fpi=0.42377720812375763_gp
+  if (ncplx_g == 1) then
+     !fpi=pi^-1/4 pi^-1/2, pi^-1/4 comes from sqrt(gamma(x)) and pi^-1/2 from Ylm.
+     !fpi=(4.0_gp*atan(1.0_gp))**(-.75_gp)
+     fpi=0.42377720812375763_gp
+     ! gau_a is real and given as alpha, need to convert it back as coefficient.
+     gau_c(1) = 1._gp / sqrt(2._gp * gau_a(1))
+     fgamma=sqrt(2.0_gp)*fpi/(sqrt(gau_c(1))**(2*(l-1)+4*i-1))
+  else
+     fpi=0.56418958354775628_gp
+     if(l==1) then
+        fgamma= 0.70710678118654757_gp !1.0/sqrt(2.0)
+        !1/sqrt(2.0)*fac_arr(1)=1/sqrt(2.0)* [1/sqrt(2.0)]=1/2
+        !1/2*fpi=1/2* [1/sqrt(pi)]=1/2 1/sqrt(pi) Factor for Y_00
+     elseif(l==2) then
+        fgamma= 0.8660254037844386_gp !sqrt(3)/2.0
+     elseif(l==3) then
+        fgamma= 1.3693063937629153_gp  !sqrt(3*5)/(2.0*sqrt(2))
+     elseif(l==4) then
+        fgamma= 2.5617376914898995_gp  !sqrt(7*5*3)/(4.0) 
+     else
+        write(*,'(1x,a)')'error found!'
+        write(*,'(1x,a,i4)')&
+             'gamma_factor: l should be between 1 and 3, but l= ',l
+        stop
+     end if
+     fgamma = fgamma * fpi
+     gau_c = gau_a
+  end if
 
   rx=rxyz(1) 
   ry=rxyz(2) 
@@ -498,27 +537,29 @@ subroutine projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,lr,&
 
   istart_c=1
   !start of the projectors expansion routine
-  factor=sqrt(2.0_gp)*fpi/(sqrt(gau_a(1))**(2*(l-1)+4*i-1))
   do m=1,2*l-1
     
      if (idir==0) then !normal projector calculation case
-        call calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,factors)
+        idir2=1
+        call calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,fac_arr)
         
-        factors(1:nterm)=factor*factors(1:nterm)
+        do iterm=1,nterm
+           factors(:,iterm)=factor(:)*fgamma*fac_arr(iterm,idir2)
+        end do
      else !calculation of projector derivative
         idir2=mod(idir-1,3)+1
-        call calc_coeff_derproj(l,i,m,nterm_max,gau_a(1),nterm_arr,lxyz_arr,fac_arr)
-
+        call calc_coeff_derproj(l,i,m,nterm_max,gau_c(1),nterm_arr,lxyz_arr,fac_arr)
         nterm=nterm_arr(idir2)
+
         do iterm=1,nterm
-           factors(iterm)=factor*fac_arr(iterm,idir2)
+           factors(:,iterm)=factor(:)*fgamma*fac_arr(iterm,idir2)
            lx(iterm)=lxyz_arr(1,iterm,idir2)
            ly(iterm)=lxyz_arr(2,iterm,idir2)
            lz(iterm)=lxyz_arr(3,iterm,idir2)        
 
 !       nterm=nterm_arr(idir)
 !       do iterm=1,nterm
-!          factors(iterm)=factor*fac_arr(iterm,idir)
+!          factors(iterm)=fgamma*fac_arr(iterm,idir)
 !          lx(iterm)=lxyz_arr(1,iterm,idir)
 !          ly(iterm)=lxyz_arr(2,iterm,idir)
 !          lz(iterm)=lxyz_arr(3,iterm,idir)
@@ -541,16 +582,16 @@ if (idir == 6 .or. idir == 8) lz(iterm)=lz(iterm)+1
 
         end do
      end if
-     
-     call crtproj(geocode,nterm,lr,hx,hy,hz,kx,ky,kz,&
-          ncplx_g,ncplx,&
-          gau_a(1:ncplx_g),factors,rx,ry,rz,lx,ly,lz,&
-          mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj(istart_c),gau_cut)
+
+     call crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3,&
+          hx,hy,hz,kx,ky,kz,ncplx_g,ncplx_k,&
+          gau_c,factors,rx,ry,rz,lx,ly,lz,&
+          mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj(istart_c),rpaw)
 
      ! testing
      if (idir == 0) then
      !here the norm should be done with the complex components
-     call wnrm_wrap(ncplx,mbvctr_c,mbvctr_f,proj(istart_c),scpr)
+     call wnrm_wrap(ncplx_k,mbvctr_c,mbvctr_f,proj(istart_c),scpr)
      !debug
      !write(*,*)'projector: 673 erase me'
      !write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f6.3)')&
@@ -585,149 +626,149 @@ if (idir == 6 .or. idir == 8) lz(iterm)=lz(iterm)+1
      !        iat,trim(at%astruct%atomnames(at%astruct%iatype(iat))),gau_a,lx(iterm),ly(iterm),lz(iterm)
      !enddo
      !end testing
-     istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
+     istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx_k
   enddo
 END SUBROUTINE projector
 
-subroutine projector_paw(geocode,atomname,iat,idir,l,i,&
-  factor,gau_a,rpaw,rxyz,lr,&
-  hx,hy,hz,kx,ky,kz,ncplx_g,ncplx_k,&
-  mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj,nwarnings)
-use module_base
-use module_types
-implicit none
-character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-character(len=20), intent(in) :: atomname
-integer, intent(in) :: iat,idir,l,i,mbvctr_c,mbvctr_f,mseg_c,mseg_f
-integer, intent(in) :: ncplx_k,ncplx_g
-type(locreg_descriptors),intent(in) :: lr
-real(gp), intent(in) :: hx,hy,hz,kx,ky,kz,rpaw
-!integer, dimension(2,3), intent(in) :: nboxp_c,nboxp_f
-integer, dimension(mseg_c+mseg_f), intent(in) :: keyv_p
-integer, dimension(2,mseg_c+mseg_f), intent(in) :: keyg_p
-real(gp), dimension(ncplx_g),intent(in)::gau_a,factor
-real(gp), dimension(3), intent(in) :: rxyz
-integer, intent(inout) :: nwarnings
-real(wp), dimension((mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx_k), intent(out) :: proj
-!Local variables
-integer, parameter :: nterm_max=20 !if GTH nterm_max=4
-integer :: m,iterm
-!integer :: nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f
-integer :: istart_c,nterm
-real(gp) :: fgamma,fpi,rx,ry,rz
-!real(dp) :: scpr
-integer, dimension(3) :: nterm_arr
-integer, dimension(nterm_max) :: lx,ly,lz
-integer, dimension(3,nterm_max,3) :: lxyz_arr
-real(gp), dimension(ncplx_g,nterm_max) :: factors
-real(gp), dimension(nterm_max,3) :: fac_arr
-
-!fpi= (4.0*math.atan(1.0))**(-0.75) factor in spherical harmonics
-!fpi=pi^-1/2 from Ylm.
-fpi=0.56418958354775628_gp
-!debug
-!write(*,*)'projectors_paw l1040 erase me, set fpi equal to hgh case'
-!fpi=0.42377720812375763_gp
-!fgamma=sqrt(2.0_gp)/(sqrt(gau_a(1))**(2*(l-1)+4*i-1))
-!end debug
-
-rx=rxyz(1) 
-ry=rxyz(2) 
-rz=rxyz(3)
-
-istart_c=1
-!start of the projectors expansion routine
-do m=1,2*l-1
-   !write(*,*)'projectors_paw l1052 erase me, comment out gamma_factor'
-  call gamma_factor(l,fgamma)
-  if (idir==0) then !normal projector calculation case
-     call calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,factors(1,1:nterm_max))
-     do iterm=1,nterm 
-        !factor, can be complex
-        !factors has one dimension at the begginging.
-        !Here factors, can be converted to complex
-        factors(:,iterm)=factor(:)*factors(1,iterm)*fpi*fgamma
-     end do
-  else !calculation of projector derivative
-     call calc_coeff_derproj(l,i,m,nterm_max,gau_a,nterm_arr,lxyz_arr,fac_arr)
-
-     nterm=nterm_arr(idir)
-     do iterm=1,nterm
-        factors(:,iterm)=factor(:)*fac_arr(iterm,idir)*fpi*fgamma
-        lx(iterm)=lxyz_arr(1,iterm,idir)
-        ly(iterm)=lxyz_arr(2,iterm,idir)
-        lz(iterm)=lxyz_arr(3,iterm,idir)
-        !This is done in projectors?
-        if (idir == 4 .or. idir == 9) lx(iterm)=lx(iterm)+1
-        if (idir == 5 .or. idir == 7) ly(iterm)=ly(iterm)+1
-        if (idir == 6 .or. idir == 8) lz(iterm)=lz(iterm)+1
-     end do
-  end if
-
-  call crtproj(geocode,nterm,lr,hx,hy,hz,kx,ky,kz,&
-       ncplx_g,ncplx_k,&
-       gau_a(1:ncplx_g),factors(1:ncplx_g,1:nterm),&
-       rx,ry,rz,lx(1:nterm),ly(1:nterm),lz(1:nterm),&
-       mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,&
-       proj(istart_c),rpaw)
-  !Check real projectors case:
-  !DEBUG
-  !write(*,*)'DEBUG ERASE ME, projector_paw'
-  !factors(1,1)=0.779039 ; factors(2,1)=0
-  !END_DEBUG
-  !call crtproj(geocode,nterm,lr,hx,hy,hz,kx,ky,kz,&
-  !     ncplx_g,ncplx_k,&
-  !     gau_a,factors(1:ncplx_g,1:nterm),&
-  !     rx,ry,rz,lx(1:nterm),ly(1:nterm),lz(1:nterm),&
-  !     mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,&
-  !     proj(istart_c:istart_c+(mbvctr_c+7*mbvctr_f)*ncplx_k))
-
-  ! testing
-  !if (idir == 0) then
-  !   !here the norm should be done with the complex components
-  !   call wnrm_wrap(ncplx_k,mbvctr_c,mbvctr_f,proj(istart_c),scpr)
-  !   write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f10.3)')&
-  !        'The norm of the projector for atom n=',iat,&
-  !        ' (',trim(atomname),&
-  !        ') labeled by l=',l,', m=',m,' is ',scpr
-  !end if
-  !end testing
-  istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx_k
-enddo
-contains
-
-  !Returns fgamma=sqrt(Gamma(l+3/2)) * pi^1/4 factor
-  !Gamma(3/2)=sqrt(pi)/2 ; Gamma(z+1)=z*Gamma(z)
-  !fgamma: factor which cancels out the 1/sqrt(Gamma(z)) in the
-  ! definition of the HGH pseudos. (See Eq. 10 of JPC 129,014109 (2008))
-  !Notice that the factor pi^-1/4 is not present in "factor" after the
-  ! routine calc_coeff_proj, so that we do not take it into account.
-  ! This is in the varialbe fpi in the routine projectors.
-subroutine gamma_factor(l,fgamma)
- use module_types
- implicit none
- real(gp),intent(out)::fgamma
- integer,intent(in)::l
-
- if(l==1) then
-    fgamma= 0.70710678118654757_gp !1.0/sqrt(2.0)
-    !1/sqrt(2.0)*fac_arr(1)=1/sqrt(2.0)* [1/sqrt(2.0)]=1/2
-    !1/2*fpi=1/2* [1/sqrt(pi)]=1/2 1/sqrt(pi) Factor for Y_00
- elseif(l==2) then
-    fgamma= 0.8660254037844386_gp !sqrt(3)/2.0
- elseif(l==3) then
-    fgamma= 1.3693063937629153_gp  !sqrt(3*5)/(2.0*sqrt(2))
- elseif(l==4) then
-    fgamma= 2.5617376914898995_gp  !sqrt(7*5*3)/(4.0) 
- else
-    write(*,'(1x,a)')'error found!'
-    write(*,'(1x,a,i4)')&
-         'gamma_factor: l should be between 1 and 3, but l= ',l
-    stop
- end if
-end subroutine gamma_factor
-
-END SUBROUTINE projector_paw
+!!$subroutine projector_paw(geocode,atomname,iat,idir,l,i,&
+!!$  factor,gau_a,rpaw,rxyz,lr,&
+!!$  hx,hy,hz,kx,ky,kz,ncplx_g,ncplx_k,&
+!!$  mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj,nwarnings)
+!!$use module_base
+!!$use module_types
+!!$implicit none
+!!$character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
+!!$character(len=20), intent(in) :: atomname
+!!$integer, intent(in) :: iat,idir,l,i,mbvctr_c,mbvctr_f,mseg_c,mseg_f
+!!$integer, intent(in) :: ncplx_k,ncplx_g
+!!$type(locreg_descriptors),intent(in) :: lr
+!!$real(gp), intent(in) :: hx,hy,hz,kx,ky,kz,rpaw
+!!$!integer, dimension(2,3), intent(in) :: nboxp_c,nboxp_f
+!!$integer, dimension(mseg_c+mseg_f), intent(in) :: keyv_p
+!!$integer, dimension(2,mseg_c+mseg_f), intent(in) :: keyg_p
+!!$real(gp), dimension(ncplx_g),intent(in)::gau_a,factor
+!!$real(gp), dimension(3), intent(in) :: rxyz
+!!$integer, intent(inout) :: nwarnings
+!!$real(wp), dimension((mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx_k), intent(out) :: proj
+!!$!Local variables
+!!$integer, parameter :: nterm_max=20 !if GTH nterm_max=4
+!!$integer :: m,iterm
+!!$!integer :: nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f
+!!$integer :: istart_c,nterm
+!!$real(gp) :: fgamma,fpi,rx,ry,rz
+!!$!real(dp) :: scpr
+!!$integer, dimension(3) :: nterm_arr
+!!$integer, dimension(nterm_max) :: lx,ly,lz
+!!$integer, dimension(3,nterm_max,3) :: lxyz_arr
+!!$real(gp), dimension(ncplx_g,nterm_max) :: factors
+!!$real(gp), dimension(nterm_max,3) :: fac_arr
+!!$
+!!$!fpi= (4.0*math.atan(1.0))**(-0.75) factor in spherical harmonics
+!!$!fpi=pi^-1/2 from Ylm.
+!!$fpi=0.56418958354775628_gp
+!!$!debug
+!!$!write(*,*)'projectors_paw l1040 erase me, set fpi equal to hgh case'
+!!$!fpi=0.42377720812375763_gp
+!!$!fgamma=sqrt(2.0_gp)/(sqrt(gau_a(1))**(2*(l-1)+4*i-1))
+!!$!end debug
+!!$
+!!$rx=rxyz(1) 
+!!$ry=rxyz(2) 
+!!$rz=rxyz(3)
+!!$
+!!$istart_c=1
+!!$!start of the projectors expansion routine
+!!$do m=1,2*l-1
+!!$   !write(*,*)'projectors_paw l1052 erase me, comment out gamma_factor'
+!!$  call gamma_factor(l,fgamma)
+!!$  if (idir==0) then !normal projector calculation case
+!!$     call calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,factors(1,1:nterm_max))
+!!$     do iterm=1,nterm 
+!!$        !factor, can be complex
+!!$        !factors has one dimension at the begginging.
+!!$        !Here factors, can be converted to complex
+!!$        factors(:,iterm)=factor(:)*factors(1,iterm)*fpi*fgamma
+!!$     end do
+!!$  else !calculation of projector derivative
+!!$     call calc_coeff_derproj(l,i,m,nterm_max,gau_a,nterm_arr,lxyz_arr,fac_arr)
+!!$
+!!$     nterm=nterm_arr(idir)
+!!$     do iterm=1,nterm
+!!$        factors(:,iterm)=factor(:)*fac_arr(iterm,idir)*fpi*fgamma
+!!$        lx(iterm)=lxyz_arr(1,iterm,idir)
+!!$        ly(iterm)=lxyz_arr(2,iterm,idir)
+!!$        lz(iterm)=lxyz_arr(3,iterm,idir)
+!!$        !This is done in projectors?
+!!$        if (idir == 4 .or. idir == 9) lx(iterm)=lx(iterm)+1
+!!$        if (idir == 5 .or. idir == 7) ly(iterm)=ly(iterm)+1
+!!$        if (idir == 6 .or. idir == 8) lz(iterm)=lz(iterm)+1
+!!$     end do
+!!$  end if
+!!$
+!!$  call crtproj(geocode,nterm,lr,hx,hy,hz,kx,ky,kz,&
+!!$       ncplx_g,ncplx_k,&
+!!$       gau_a(1:ncplx_g),factors(1:ncplx_g,1:nterm),&
+!!$       rx,ry,rz,lx(1:nterm),ly(1:nterm),lz(1:nterm),&
+!!$       mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,&
+!!$       proj(istart_c),rpaw)
+!!$  !Check real projectors case:
+!!$  !DEBUG
+!!$  !write(*,*)'DEBUG ERASE ME, projector_paw'
+!!$  !factors(1,1)=0.779039 ; factors(2,1)=0
+!!$  !END_DEBUG
+!!$  !call crtproj(geocode,nterm,lr,hx,hy,hz,kx,ky,kz,&
+!!$  !     ncplx_g,ncplx_k,&
+!!$  !     gau_a,factors(1:ncplx_g,1:nterm),&
+!!$  !     rx,ry,rz,lx(1:nterm),ly(1:nterm),lz(1:nterm),&
+!!$  !     mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,&
+!!$  !     proj(istart_c:istart_c+(mbvctr_c+7*mbvctr_f)*ncplx_k))
+!!$
+!!$  ! testing
+!!$  !if (idir == 0) then
+!!$  !   !here the norm should be done with the complex components
+!!$  !   call wnrm_wrap(ncplx_k,mbvctr_c,mbvctr_f,proj(istart_c),scpr)
+!!$  !   write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f10.3)')&
+!!$  !        'The norm of the projector for atom n=',iat,&
+!!$  !        ' (',trim(atomname),&
+!!$  !        ') labeled by l=',l,', m=',m,' is ',scpr
+!!$  !end if
+!!$  !end testing
+!!$  istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx_k
+!!$enddo
+!!$contains
+!!$
+!!$  !Returns fgamma=sqrt(Gamma(l+3/2)) * pi^1/4 factor
+!!$  !Gamma(3/2)=sqrt(pi)/2 ; Gamma(z+1)=z*Gamma(z)
+!!$  !fgamma: factor which cancels out the 1/sqrt(Gamma(z)) in the
+!!$  ! definition of the HGH pseudos. (See Eq. 10 of JPC 129,014109 (2008))
+!!$  !Notice that the factor pi^-1/4 is not present in "factor" after the
+!!$  ! routine calc_coeff_proj, so that we do not take it into account.
+!!$  ! This is in the varialbe fpi in the routine projectors.
+!!$subroutine gamma_factor(l,fgamma)
+!!$ use module_types
+!!$ implicit none
+!!$ real(gp),intent(out)::fgamma
+!!$ integer,intent(in)::l
+!!$
+!!$ if(l==1) then
+!!$    fgamma= 0.70710678118654757_gp !1.0/sqrt(2.0)
+!!$    !1/sqrt(2.0)*fac_arr(1)=1/sqrt(2.0)* [1/sqrt(2.0)]=1/2
+!!$    !1/2*fpi=1/2* [1/sqrt(pi)]=1/2 1/sqrt(pi) Factor for Y_00
+!!$ elseif(l==2) then
+!!$    fgamma= 0.8660254037844386_gp !sqrt(3)/2.0
+!!$ elseif(l==3) then
+!!$    fgamma= 1.3693063937629153_gp  !sqrt(3*5)/(2.0*sqrt(2))
+!!$ elseif(l==4) then
+!!$    fgamma= 2.5617376914898995_gp  !sqrt(7*5*3)/(4.0) 
+!!$ else
+!!$    write(*,'(1x,a)')'error found!'
+!!$    write(*,'(1x,a,i4)')&
+!!$         'gamma_factor: l should be between 1 and 3, but l= ',l
+!!$    stop
+!!$ end if
+!!$end subroutine gamma_factor
+!!$
+!!$END SUBROUTINE projector_paw
 
 
 !> Determines the number of projectors (valid for GTH and HGH pseudopotentials)
@@ -785,8 +826,8 @@ END SUBROUTINE numb_proj_paw_tr
 
 !> Returns the compressed form of a Gaussian projector 
 !! @f$ x^lx * y^ly * z^lz * exp (-1/(2*gau_a^2) *((x-rx)^2 + (y-ry)^2 + (z-rz)^2 )) @f$
-!! in the arrays proj_c, proj_f
-subroutine crtproj(geocode,nterm,lr, & 
+!! in the array proj.
+subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, & 
      hx,hy,hz,kx,ky,kz,ncplx_g,ncplx_k,&
      gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
      mvctr_c,mvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj,gau_cut)
@@ -796,7 +837,7 @@ subroutine crtproj(geocode,nterm,lr, &
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: nterm,mvctr_c,mvctr_f,mseg_c,mseg_f
-  integer, intent(in) :: ncplx_g,ncplx_k
+  integer, intent(in) :: ncplx_g,ncplx_k,ns1,ns2,ns3,n1,n2,n3
   real(gp), intent(in) :: hx,hy,hz,rx,ry,rz,kx,ky,kz
   real(gp),intent(in)::gau_cut
   integer, dimension(nterm), intent(in) :: lx,ly,lz
@@ -805,13 +846,12 @@ subroutine crtproj(geocode,nterm,lr, &
   integer, dimension(mseg_c+mseg_f), intent(in) :: keyv_p
   integer, dimension(2,mseg_c+mseg_f), intent(in) :: keyg_p
   real(wp), dimension((mvctr_c+7*mvctr_f)*ncplx_k), intent(out) :: proj
-  type(locreg_descriptors), intent(in) :: lr
   !Local variables
   character(len=*), parameter :: subname='crtproj'
   integer, parameter :: nw=65536
   logical :: perx,pery,perz !variables controlling the periodicity in x,y,z
   integer :: iterm,n_gau,ml1,ml2,ml3,mu1,mu2,mu3,i1,i2,i3
-  integer :: ncplx_w,ns1,ns2,ns3,n1,n2,n3,n1p1,np,i0jj
+  integer :: ncplx_w,n1p1,np,i0jj
   integer :: j1,i0,j0,jj,ii,i,iseg,ind_f,ind_c
   integer :: mvctr1, mvctr2, mvctr_cf, mvctr_cf2
   !integer :: counter !test
@@ -830,12 +870,6 @@ subroutine crtproj(geocode,nterm,lr, &
   !call initialize_real_space_conversion() !initialize the work arrays needed to integrate with isf
 
   ! rename region boundaries
-  ns1 = lr%ns1
-  ns2 = lr%ns2
-  ns3 = lr%ns3
-  n1  = lr%d%n1
-  n2  = lr%d%n2
-  n3  = lr%d%n3
   n1p1=n1+1
   np=n1p1*(n2+1)
   mvctr_cf=mvctr_c+7*mvctr_f

@@ -41,7 +41,7 @@ module gaussians
   end type gaussian_basis
 
   !> Structures of basis of gaussian functions
-  type :: gaussian_basis_new
+  type, public :: gaussian_basis_new
      integer :: nat     !< Number of centers
      integer :: ncoeff  !< Number of total basis elements
      integer :: nshltot !< Total number of shells (m quantum number ignored) 
@@ -57,8 +57,9 @@ module gaussians
   public :: gaudim_check,normalize_shell,gaussian_overlap,kinetic_overlap,gauint0
   public :: initialize_real_space_conversion,finalize_real_space_conversion,scfdotf,mp_exp
 
-  public :: nullify_gaussian_basis, deallocate_gwf
+  public :: nullify_gaussian_basis, deallocate_gwf, gaussian_basis_null, gaussian_basis_free
 
+  public :: gaussian_basis_from_psp, gaussian_projectors
 
 contains
 
@@ -98,7 +99,7 @@ contains
 
 
   !> Nullify the pointers of the structure gaussian_basis_new
-  function gaussian_basis_null() result(G)
+  pure function gaussian_basis_null() result(G)
     implicit none
     type(gaussian_basis_new) :: G
     G%nat=0
@@ -138,9 +139,137 @@ contains
     end do
 
     G%shid = f_malloc_ptr((/ NSHID_, G%nshltot /),id='G%shid')
-
   end subroutine init_gaussian_basis
 
+  subroutine gaussian_basis_from_psp(nat,iatyp,rxyz,psppar,ntyp,G)
+    implicit none
+    integer, intent(in) :: nat, ntyp
+    integer, dimension(nat) :: iatyp
+    real(gp), dimension(0:4,0:6,ntyp), intent(in) :: psppar
+    real(gp), dimension(3,nat), intent(in), target :: rxyz
+    type(gaussian_basis_new),intent(out) :: G
+    !local variables
+    integer, dimension(nat) :: nshell
+    integer :: iat, l, i, ishell, iexpo
+    
+    ! Build nshell from psppar.
+    do iat = 1, nat
+       nshell(iat) = 0
+       do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
+          do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
+             if (psppar(l,i,iatyp(iat)) /= 0.0_gp) then
+                nshell(iat) = nshell(iat) + 1
+             end if
+          end do
+       end do
+    end do
+
+    call init_gaussian_basis(nat,nshell,rxyz,G)
+
+    ! Associate values in shid.
+    ishell = 1
+    do iat = 1, nat
+       do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
+          do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
+             if (psppar(l,i,iatyp(iat)) /= 0.0_gp) then
+                G%shid(DOC_, ishell) = 1
+                G%shid(L_, ishell) = l
+                G%shid(N_, ishell) = i
+                G%nexpo=G%nexpo+1
+                G%ncoeff=G%ncoeff+2*l-1
+                ishell = ishell + 1
+             end if
+          end do
+       end do
+    end do
+
+    !allocate storage space (real exponents and coeffs for the moment)
+    G%sd = f_malloc_ptr((/ G%ncplx*NSD_, G%nexpo /),id='G%sd')
+
+    ! Associate values in sd.
+    iexpo = 1
+    do iat = 1, nat
+       do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
+          do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
+             if (psppar(l,i,iatyp(iat)) /= 0.0_gp) then
+                G%sd(EXPO_,iexpo)  = 0.5_gp/(psppar(l,0,iatyp(iat))**2)
+                G%sd(COEFF_,iexpo) = 1._gp
+                iexpo = iexpo + 1
+             end if
+          end do
+       end do
+    end do
+  end subroutine gaussian_basis_from_psp
+
+  !> Create projectors from gaussian decomposition.
+  subroutine gaussian_projectors(proj_G, ityp, iat, atomname, &
+       & geocode, idir, hx, hy, hz, kx, ky, kz, rpaw, &
+       & ns1, ns2, ns3, n1, n2, n3, &
+       & mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, keyg, keyv, &
+       & istart_c, iproj, proj, nprojel, nwarnings)
+    implicit none
+    type(gaussian_basis_new), intent(in) :: proj_G
+    integer, intent(in) :: ityp, iat
+    character(len = 1), intent(in) :: geocode
+    integer, intent(in) :: idir, ns1, ns2, ns3, n1, n2, n3
+    character(len = *), intent(in) :: atomname
+    real(gp), intent(in) :: hx, hy, hz, kx, ky, kz, rpaw
+    integer, intent(in) :: nprojel, mbvctr_c, mbvctr_f, mbseg_c, mbseg_f
+    integer, dimension(mbseg_c+mbseg_f), intent(in) :: keyv
+    integer, dimension(2,mbseg_c+mbseg_f), intent(in) :: keyg
+    real(wp), dimension(nprojel), intent(inout) :: proj
+    integer, intent(inout) :: istart_c, iproj, nwarnings
+
+    integer :: ishell, ishell_s, iexpo, nc, l, i, j, ncplx_k, lmax
+    real(wp),allocatable::proj_tmp(:)
+
+    if (kx**2 + ky**2 + kz**2 == 0.0_gp) then
+       ncplx_k=1
+    else
+       ncplx_k=2
+    end if
+
+    ! Compute offset in shell array and exposant array.
+    ishell_s = 0
+    iexpo    = 0
+    do i = 1, iat - 1
+       do j = ishell_s + 1, ishell_s + proj_G%nshell(i)
+          iexpo = iexpo + proj_G%shid(DOC_, j)
+       end do
+       ishell_s = ishell_s + proj_G%nshell(i)
+    end do
+
+    ! Maximum number of terms for every projector.
+    lmax = maxval(proj_G%shid(L_, ishell_s + 1:ishell_s + proj_G%nshell(iat)))
+    nc = (mbvctr_c+7*mbvctr_f)*(2*lmax-1)*ncplx_k
+    proj_tmp = f_malloc(nc, id = 'proj_tmp')
+
+    ! Loop on shell.
+    do ishell = ishell_s + 1, ishell_s + proj_G%nshell(iat)
+       l = proj_G%shid(L_, ishell)
+       i = proj_G%shid(N_, ishell)
+       nc = (mbvctr_c+7*mbvctr_f) * (2*l-1) * ncplx_k
+       if (istart_c + nc > nprojel+1) stop 'istart_c > nprojel+1'
+       ! Loop on contraction.
+       call to_zero(nc, proj(istart_c))
+       do j = 1, proj_G%shid(DOC_, ishell)
+          iexpo = iexpo + 1
+          call projector(geocode, atomname, iat, idir, l, i, &
+               & proj_G%sd(proj_G%ncplx * COEFF_,iexpo), &
+               & proj_G%sd(proj_G%ncplx * EXPO_,iexpo), &
+               & rpaw, proj_G%rxyz(1, iat), ns1, ns2, ns3, n1, n2, n3, &
+               & hx, hy, hz, kx, ky, kz, ncplx_k, proj_G%ncplx, &
+               & mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, keyv, keyg, &
+               & proj_tmp, nwarnings)
+          proj(istart_c:istart_c + nc - 1) = proj(istart_c:istart_c + nc - 1) + &
+               & proj_tmp(1:nc)
+       end do
+       iproj    = iproj + 2*l-1
+       istart_c = istart_c + nc
+    end do
+
+    call f_free(proj_tmp)
+  end subroutine gaussian_projectors
 
   subroutine gaussian_basis_convert(G,Gold)
     implicit none
@@ -311,7 +440,6 @@ contains
     gint = gint*dx
 
   end function scfdotf
-
 
   !> Overlap matrix between two different basis structures
   subroutine gaussian_overlap(A,B,ovrlp)

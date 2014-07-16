@@ -11,6 +11,7 @@
 !> Module defining datatypes of the projectors as well as constructors and destructors
 module psp_projectors
   use module_base
+  use gaussians
   use locregs
   implicit none
 
@@ -60,6 +61,7 @@ module psp_projectors
      logical :: on_the_fly             !< strategy for projector creation
      integer :: nproj,nprojel,natoms   !< Number of projectors and number of elements
      real(gp) :: zerovol               !< Proportion of zero components.
+     type(gaussian_basis_new) :: proj_G !< Store the projector representations is gaussians.
      real(wp), dimension(:), pointer :: proj !<storage space of the projectors in wavelet basis
      type(nonlocal_psp_descriptors), dimension(:), pointer :: pspd !<descriptor per projector, of size natom
      !>workspace for packing the wavefunctions in the case of multiple projectors
@@ -125,6 +127,7 @@ contains
     nl%nprojel=0
     nl%natoms=0
     nl%zerovol=100.0_gp
+    nl%proj_G = gaussian_basis_null()
     nullify(nl%proj)
     nullify(nl%pspd)
     nullify(nl%wpack)
@@ -173,6 +176,8 @@ contains
        deallocate(nl%pspd)
        nullify(nl%pspd)
     end if
+    nullify(nl%proj_G%rxyz)
+    call gaussian_basis_free(nl%proj_G)
     call f_free_ptr(nl%proj)
     call f_free_ptr(nl%wpack)
     call f_free_ptr(nl%scpr)

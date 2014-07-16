@@ -799,8 +799,8 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
                lr,hx,hy,hz,paw%rpaw(iatype),rxyz(1,iat),at,orbs,nlpsp%pspd(iat)%plr,nlpsp%proj,&
                nwarnings,proj_G(iatype))
         else
-          call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
-               lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpsp%pspd(iat)%plr,nlpsp%proj,nwarnings)
+          call atom_projector(nlpsp%proj_G,ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
+               lr,hx,hy,hz,rxyz(1,iat),at,orbs,1._gp,nlpsp%pspd(iat)%plr,nlpsp%proj,nwarnings)
         end if
 
         !apply the projector to all the orbitals belonging to the processor

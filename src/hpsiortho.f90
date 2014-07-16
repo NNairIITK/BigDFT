@@ -794,10 +794,10 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
                       rxyz(1,iat),at,orbs,&
                       nl%pspd(iat)%plr,nl%proj,nwarnings,proj_G(iatype))
               else
-                 call atom_projector(ikpt,iat,0,istart_c,iproj,&
+                 call atom_projector(nl%proj_G,ikpt,iat,0,istart_c,iproj,&
                       nl%nprojel,&
                       Lzd%Glr,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),rxyz(1,iat),at,orbs,&
-                      nl%pspd(iat)%plr,nl%proj,nwarnings)
+                      1._gp,nl%pspd(iat)%plr,nl%proj,nwarnings)
               end if
 
               !apply the projector to all the orbitals belonging to the processor

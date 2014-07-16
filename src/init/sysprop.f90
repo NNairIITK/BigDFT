@@ -18,7 +18,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   use module_interfaces, fake_name => system_initialization
   use module_xc
   use module_fragments
-  use gaussians, only: gaussian_basis, nullify_gaussian_basis
+  use gaussians, only: gaussian_basis, nullify_gaussian_basis, gaussian_basis_from_psp
   use vdwcorrection
   use yaml_output
   use module_atoms, only: set_symmetry_data
@@ -699,27 +699,6 @@ subroutine paw_from_file(pawrad, pawtab, filename, nzatom, nelpsp, ixc)
        & filpsp,usewvl,icoulomb,ixc,xclevel,pawxcdev,usexcnhat,&
        & qgrid_ff,qgrid_vl,ffspl,vlspl,epsatm,xcccrc,real(nelpsp, dp),real(nzatom, dp),&
        & wvl_ngauss,comm_mpi=bigdft_mpi%mpi_comm)
-
-  !Print out data to validate this test:
-  write(*,'(a)') 'PAW Gaussian projectors:'
-  write(*,'("No. of Gaussians:", i4)')pawtab%wvl%pngau
-  write(*,'("First five Gaussian complex coefficients:")')
-  write(*,'(5("(",f13.7,",",f13.7")"))')pawtab%wvl%parg(:,1:5)
-  write(*,'("First five Gaussian complex factors:")')
-  write(*,'(5("(",f13.7,",",f13.7")"))')pawtab%wvl%pfac(:,1:5)
-  !
-  !write(*,'(a)') 'GTH parameters (for initial guess):'
-  !write(*,'("radii_cf= ",3f10.7)')radii_cf(:)
-  !write(*,'("psppar(0:1,0)= ",2f10.7)')psppar(0:1,0)
-
-  ! Destroy and deallocate objects
-  !call pawrad_destroy(pawrad)
-  !call pawtab_destroy(pawtab)
-
-  !PAW is not yet working!
-  !Exit here
-  stop "PAW implementation missing"
-
 END SUBROUTINE paw_from_file
 
 

@@ -44,8 +44,9 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   type(wavefunctions_descriptors) :: wfdb
   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
   integer, dimension(:,:,:), allocatable :: ibbyz_c,ibbyz_f,ibbxz_c,ibbxz_f,ibbxy_c,ibbxy_f
-  real(kind=8), dimension(:,:), allocatable :: txyz,wrkallred
+  real(kind=8), dimension(:,:), allocatable :: wrkallred
   real(kind=8), dimension(:), allocatable :: psib,hpsib,psir
+  real(kind=8), dimension(:,:), pointer :: txyz
   integer, dimension(:), pointer :: keyv
   integer, dimension(:,:), pointer :: keyg
 
@@ -151,7 +152,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   endif
 
   ! change atom coordinates according to the enlarged box
-  txyz = f_malloc((/ 3, at%astruct%nat /),id='txyz')
+  txyz = f_malloc_ptr((/ 3, at%astruct%nat /),id='txyz')
   do iat=1,at%astruct%nat
      txyz(1,iat)=rxyz(1,iat)+real(nbuf,kind=8)*hgrid
      txyz(2,iat)=rxyz(2,iat)+real(nbuf,kind=8)*hgrid
@@ -343,6 +344,9 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   call orbitals_descriptors(0,1,1,1,0,1,1,1, &
        reshape((/0._gp,0._gp,0._gp/),(/3,1/)),(/1._gp /),orbsb,.false.)
 
+  !change positions in gaussian projectors
+  nlpsp%proj_G%rxyz => txyz
+
   do iorb=1,orbs%norbp
 
      !build the compressed wavefunction in the enlarged box
@@ -463,7 +467,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   end if
   call deallocate_orbs(orbsb)
 
-  call f_free(txyz)
+  call f_free_ptr(txyz)
   call f_free(psir)
   call f_free(psib)
   call f_free(hpsib)

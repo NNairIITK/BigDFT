@@ -1368,6 +1368,8 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
         call yaml_map('Pseudopotential type','HGH-K')
      case(PSPCODE_HGH_K_NLCC)
         call yaml_map('Pseudopotential type','HGH-K + NLCC')
+     case(PSPCODE_PAW)
+        call yaml_map('Pseudopotential type','PAW + HGH')
      end select
      if (atoms%psppar(0,0,ityp)/=0) then
         call yaml_mapping_open('Local Pseudo Potential (HGH convention)')
@@ -1428,6 +1430,12 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
            end if
         end do
         call yaml_sequence_close()
+     end if
+     ! PAW case.
+     if (atoms%npspcode(ityp) == PSPCODE_PAW) then
+        call yaml_map('No. of gaussians', atoms%pawtab(ityp)%wvl%pngau)
+        call yaml_map('complex coefficients (1..5)', atoms%pawtab(ityp)%wvl%parg(:,1:5))
+        call yaml_map('complex factors (1..5)', atoms%pawtab(ityp)%wvl%pfac(:,1:5))
      end if
      call numb_proj(ityp,atoms%astruct%ntypes,atoms%psppar,atoms%npspcode,mproj)
      call yaml_map('No. of projectors',mproj)

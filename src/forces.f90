@@ -832,16 +832,10 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
   real(gp), dimension(:,:), allocatable :: fxyz_orb
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod
   real(gp), dimension(6) :: sab
-  type(gaussian_basis),dimension(at%astruct%ntypes)::proj_G
 
   call f_routine(id=subname)
   call to_zero(6,strten(1)) 
   
-  !nullify PAW objects
-  do iatyp=1,at%astruct%ntypes
-    call nullify_gaussian_basis(proj_G(iatyp))
-  end do
-
   !quick return if no orbitals on this processor
   if (orbs%norbp == 0) return
      
@@ -921,13 +915,13 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
               ityp=at%astruct%iatype(iat)
               !calculate projectors
               istart_c=1
-              call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
-                   lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpsp%pspd(iat)%plr,&
+              call atom_projector(nlpsp%proj_G,ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
+                   lr,hx,hy,hz,rxyz(1,iat),at,orbs,1._gp,nlpsp%pspd(iat)%plr,&
                    nlpsp%proj,nwarnings)!,proj_G)
               !!do i_all=1,nlpspd%nprojel
               !!    write(850+iat,*) i_all, proj(i_all)
               !!end do
-              !print '(a,i6,i6,1pe14.6)','iat,idir,sum(proj)',iat,idir,sum(proj)
+              !print '(a,i6,i6,1pe14.6)','iat,idir,sum(proj)',iat,idir,sum(nlpsp%proj)
  
               !calculate the contribution for each orbital
               !here the nspinor contribution should be adjusted
@@ -4357,8 +4351,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                ityp=at%astruct%iatype(iat)
                   !calculate projectors
                   istart_c=1
-                  call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
-                       lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpsp%pspd(iat)%plr,&
+                  call atom_projector(nlpsp%proj_G,ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
+                       lr,hx,hy,hz,rxyz(1,iat),at,orbs,1._gp,nlpsp%pspd(iat)%plr,&
                        nlpsp%proj,nwarnings)
                    !!do i_all=1,nlpspd%nprojel
                    !!    write(800+iat,*) i_all, proj(i_all)

@@ -231,7 +231,7 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   use module_base
   use psp_projectors
   use module_types
-  use gaussians, only: gaussian_basis
+  use gaussians, only: gaussian_basis, gaussian_basis_from_psp
   implicit none
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
   type(locreg_descriptors),intent(in) :: lr
@@ -260,6 +260,10 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   do iat=1,at%astruct%nat
      nl%pspd(iat)=nonlocal_psp_descriptors_null()
   end do
+
+  ! Convert the psppar coefficients into gaussian projectors.
+  call gaussian_basis_from_psp(at%astruct%nat, at%astruct%iatype, rxyz, &
+       & at%psppar, at%astruct%ntypes, nl%proj_G)
 
   ! define the region dimensions
   n1 = lr%d%n1
