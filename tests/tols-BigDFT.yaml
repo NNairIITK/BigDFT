@@ -355,7 +355,7 @@ cleanup:
  Average noise forces: 3.1e-10
  Clean forces norm (Ha/Bohr): 1.9e-10
  Raw forces norm (Ha/Bohr): 2.6e-10
- Epot: 3.3e-9
+ Epot: 3.9e-9
  Orbitals: 4.55e-10
  EH: 2.9e-9
  EXC: 1.9e-9

@@ -715,7 +715,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   type(system_fragment), dimension(:), intent(in) :: ref_frags
 
   ! Local variables
-  integer :: ndim_old, ndim, iorb, iiorb, ilr, ilr_old, iiat, methTransformOverlap
+  integer :: ndim_old, ndim, iorb, iiorb, ilr, ilr_old, iiat, methTransformOverlap, infoCoeff
   logical:: overlap_calculated
   real(wp), allocatable, dimension(:) :: norm
   type(fragment_transformation), dimension(:), pointer :: frag_trans
@@ -734,9 +734,13 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   integer,dimension(:,:),allocatable :: nl_copy
   logical,dimension(:),allocatable :: type_covered
   logical :: finished
+  real(wp), dimension(:,:,:), pointer :: mom_vec_fake
+  reaL(gp) :: fnrm
 
 
   call f_routine(id='input_memory_linear')
+
+  nullify(mom_vec_fake)
 
   ! Determine size of phi_old and phi
   ndim_old=0
@@ -1079,6 +1083,27 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
            call yaml_mapping_close()
            call deallocateDIIS(ldiis)
            !call yaml_mapping_open()
+
+           ! @@@ calculate a new kernel
+           order_taylor=input%lin%order_taylor ! since this is intent(inout)
+           if (input%lin%scf_mode==LINEAR_FOE) then
+               call get_coeff(iproc,nproc,LINEAR_FOE,kswfn%orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
+                    input%SIC,tmb,fnrm,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
+                    input%purification_quickreturn,&
+                    input%calculate_KS_residue,input%calculate_gap)
+           else
+               call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,kswfn%orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
+                    input%SIC,tmb,fnrm,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
+                    input%purification_quickreturn,&
+                    input%calculate_KS_residue,input%calculate_gap)
+
+               call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
+               call evaltoocc(iproc,nproc,.false.,input%tel,kswfn%orbs,input%occopt)
+               if (bigdft_mpi%iproc ==0) then
+                  call write_eigenvalues_data(0.1d0,kswfn%orbs,mom_vec_fake)
+               end if
+
+           end if
 
            ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
             call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &

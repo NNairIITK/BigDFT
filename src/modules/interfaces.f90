@@ -2094,21 +2094,17 @@ module module_interfaces
        type(paw_objects),optional,intent(inout)::paw
      end subroutine FullHamiltonianApplication
 
-       subroutine init_foe(iproc, nproc, nlr, locregcenter, astruct, input, orbs_KS, orbs, foe_obj, reset, &
-                  cutoff_incr)
+       subroutine init_foe(iproc, nproc, input, orbs_KS, foe_obj, reset)
          use module_base
          use module_atoms, only: atomic_structure
          use module_types
          use foe_base, only: foe_data
          implicit none
-         integer,intent(in):: iproc, nproc, nlr
-         real(kind=8),dimension(3,nlr),intent(in) :: locregcenter
-         type(atomic_structure),intent(in) :: astruct
+         integer,intent(in):: iproc, nproc
          type(input_variables),intent(in) :: input
-         type(orbitals_data),intent(in):: orbs_KS, orbs
+         type(orbitals_data),intent(in):: orbs_KS
          type(foe_data),intent(out):: foe_obj
          logical, intent(in) :: reset
-         real(kind=8),optional,intent(in) :: cutoff_incr
        end subroutine init_foe
 
       subroutine deallocate_workarrays_quartic_convolutions(work)
@@ -3361,7 +3357,7 @@ module module_interfaces
           real(kind=8),dimension(norb,norbp),intent(out) :: b
         end subroutine copy_kernel_vectors
 
-        subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_compr, &
+        subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par, foe_obj, kernel, ham_compr, &
                    ovrlp_compr, calculate_SHS, nsize_polynomial, SHS, fermi, penalty_ev, chebyshev_polynomials, &
                    emergency_stop)
           use module_base
@@ -3369,16 +3365,16 @@ module module_interfaces
           use sparsematrix_base, only: sparse_matrix
           use foe_base, only: foe_data
           implicit none
-          integer,intent(in) :: iproc, nproc, npl, nsize_polynomial
+          integer,intent(in) :: iproc, nproc, npl, nsize_polynomial, norb, norbp, isorb
+          integer,dimension(0:nproc-1),intent(in) :: isorb_par
           real(8),dimension(npl,3),intent(in) :: cc
-          type(orbitals_data),intent(in) :: orbs
           type(foe_data),intent(in) :: foe_obj
           type(sparse_matrix), intent(in) :: kernel
           real(kind=8),dimension(kernel%nvctr),intent(in) :: ham_compr, ovrlp_compr
           logical,intent(in) :: calculate_SHS
           real(kind=8),dimension(kernel%nvctr),intent(inout) :: SHS
-          real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: fermi
-          real(kind=8),dimension(orbs%norb,orbs%norbp,2),intent(out) :: penalty_ev
+          real(kind=8),dimension(norb,norbp),intent(out) :: fermi
+          real(kind=8),dimension(norb,norbp,2),intent(out) :: penalty_ev
           real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
           logical,intent(out) :: emergency_stop
         end subroutine chebyshev_clean
@@ -3650,28 +3646,29 @@ module module_interfaces
           type(sparse_matrix), intent(inout) :: sparsemat
         end subroutine init_matrixindex_in_compressed_fortransposed
 
-        subroutine compress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, vector, vector_compressed)
+        subroutine compress_polynomial_vector(iproc, nproc, nsize_polynomial, norb, norbp, isorb, isorb_par, &
+                   fermi, vector, vector_compressed)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
           implicit none
-          integer,intent(in) :: iproc, nsize_polynomial
-          type(orbitals_data),intent(in) :: orbs
+          integer,intent(in) :: iproc, nproc, nsize_polynomial, norb, norbp, isorb
+          integer,dimension(0:nproc-1),intent(in) :: isorb_par
           type(sparse_matrix),intent(in) :: fermi
-          real(kind=8),dimension(orbs%norb,orbs%norbp),intent(in) :: vector
+          real(kind=8),dimension(norb,norbp),intent(in) :: vector
           real(kind=8),dimension(nsize_polynomial),intent(out) :: vector_compressed
         end subroutine compress_polynomial_vector
 
-        subroutine uncompress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, vector_compressed, vector)
+        subroutine uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, norb, norbp, isorb, isorb_par, fermi, vector_compressed, vector)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
           implicit none
-          integer,intent(in) :: iproc, nsize_polynomial
-          type(orbitals_data),intent(in) :: orbs
+          integer,intent(in) :: iproc, nproc, nsize_polynomial, norb, norbp, isorb
+          integer,dimension(0:nproc-1) :: isorb_par
           type(sparse_matrix),intent(in) :: fermi
           real(kind=8),dimension(nsize_polynomial),intent(in) :: vector_compressed
-          real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: vector
+          real(kind=8),dimension(norb,norbp),intent(out) :: vector
         end subroutine uncompress_polynomial_vector
 
         subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, denspot, denskern, denskern_, check_sumrho)
@@ -4192,6 +4189,42 @@ module module_interfaces
           real(kind=8),dimension(npsidim_orbs),intent(in) :: psidiff, hpsi_noprecond
           real(kind=8),intent(out) :: delta_energy
         end subroutine estimate_energy_change
+
+        subroutine chebyshev_fast(iproc, nproc, nsize_polynomial, npl, norb, norbp, isorb, isorb_par, fermi, chebyshev_polynomials, cc, kernelp)
+          use module_base
+          use module_types
+          use sparsematrix_base, only: sparse_matrix
+          implicit none
+          integer,intent(in) :: iproc, nproc, nsize_polynomial, npl, norb, norbp, isorb
+          integer,dimension(0:nproc-1),intent(in) :: isorb_par
+          type(sparse_matrix),intent(in) :: fermi
+          real(kind=8),dimension(nsize_polynomial,npl),intent(in) :: chebyshev_polynomials
+          real(kind=8),dimension(npl),intent(in) :: cc
+          real(kind=8),dimension(norb,norbp),intent(out) :: kernelp
+        end subroutine chebyshev_fast
+
+subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp_smat, ex, ovrlp_mat, inv_ovrlp)
+  use module_base
+  use module_types
+  use yaml_output
+  use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, assignment(=), &
+                               SPARSE_FULL, DENSE_FULL, DENSE_PARALLEL, SPARSEMM_SEQ, &
+                               matrices
+  use sparsematrix_init, only: matrixindex_in_compressed
+  use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, &
+                          uncompress_matrix_distributed
+  use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
+                      foe_data_set_logical, foe_data_get_logical
+  use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
+                         fermilevel_get_real, fermilevel_get_logical
+  implicit none
+  integer,intent(in) :: iproc, nproc,itout,it_scc
+  integer,intent(in) :: foe_verbosity
+  type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
+  integer :: ex
+  type(matrices),intent(in) :: ovrlp_mat
+  type(matrices),intent(out) :: inv_ovrlp
+end subroutine ice
 
   end interface
 END MODULE module_interfaces

@@ -18,7 +18,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   use module_base
   use module_interfaces, exceptThisOne => inputguessConfinement
   use module_types
-  use gaussians, only: gaussian_basis, deallocate_gwf
+  use gaussians, only: gaussian_basis, deallocate_gwf, nullify_gaussian_basis
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
@@ -72,6 +72,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   call f_routine(id=subname)
 
   call nullify_orbitals_data(orbs_gauss)
+  call nullify_gaussian_basis(G)
   nullify(mom_vec_fake)
 
   ! Allocate some arrays we need for the input guess.

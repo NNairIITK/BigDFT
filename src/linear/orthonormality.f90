@@ -323,6 +323,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
   real(kind=8),dimension(:),allocatable :: Amat21_compr, Amat12_seq, Amat21_seq
   integer,parameter :: SPARSE=1
   integer,parameter :: DENSE=2
+  real(kind=8) :: ex
 
 
   !!write(*,*) 'iorder',iorder
@@ -783,6 +784,21 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
 
           if (.not.check_accur) call f_free(invovrlpp)
           call f_free_ptr(ovrlpminonep)
+
+          ! @ NEW: ICE ##########################
+          select case (power)
+          case (-2)
+              ex=-0.5d0
+          case (2)
+              ex=0.5d0
+          case (1)
+              ex=-1.d0
+          case default
+              stop 'wrong power'
+          end select
+          call ice(iproc, nproc, 0, 0, 1, ovrlp_smat, inv_ovrlp_smat, power, ovrlp_mat, inv_ovrlp_mat)
+          !call ice(iproc, nproc, 0, 0, 1, ovrlp_smat, inv_ovrlp_smat, 1, ovrlp_mat, inv_ovrlp_mat)
+          ! #####################################
       end if
 
       if (check_accur) then
