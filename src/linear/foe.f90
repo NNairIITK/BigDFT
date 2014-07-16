@@ -1627,7 +1627,8 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
   ! Calling arguments
   integer,intent(in) :: iproc, nproc,itout,it_scc
   integer,intent(in) :: foe_verbosity
-  type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
+  !type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
+  type(sparse_matrix),intent(inout) :: ovrlp_smat, inv_ovrlp_smat !for debug inout
   integer :: ex
   type(matrices),intent(in) :: ovrlp_mat
   type(matrices),intent(out) :: inv_ovrlp
@@ -1660,7 +1661,7 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
   real(kind=8),parameter :: TEMP_MULTIPLICATOR_ACCURATE=1.d0
   real(kind=8),parameter :: TEMP_MULTIPLICATOR_FAST=1.2d0 !2.d0 !1.2d0
   real(kind=8),parameter :: CHECK_RATIO=1.25d0
-  integer,parameter :: NPL_MIN=10
+  integer,parameter :: NPL_MIN=20
   integer,parameter :: NTEMP_ACCURATE=4
   integer,parameter :: NTEMP_FAST=1
   real(kind=8) :: degree_multiplicator
@@ -1670,7 +1671,7 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
   type(fermi_aux) :: f
   type(foe_data) :: foe_obj
 
-  real(kind=8),dimension(ovrlp_smat%nfvctr*ovrlp_smat%nfvctr) :: overlap
+  real(kind=8),dimension(ovrlp_smat%nfvctr,ovrlp_smat%nfvctr) :: overlap
   real(kind=8),dimension(ovrlp_smat%nfvctr) :: eval
   integer,parameter :: lwork=1000
   real(kind=8),dimension(lwork) :: work
@@ -1684,7 +1685,7 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
   !!!!! ##############################
 
 
-  call f_routine(id='foe')
+  call f_routine(id='ice')
 
 
 !@ JUST FOR THE MOMENT.... ########################
@@ -1706,7 +1707,7 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
 !@ ################################################
 
 
-  if (iproc==0) call yaml_comment('FOE calculation of kernel',hfill='~')
+  !if (iproc==0) call yaml_comment('ICE calculation',hfill='~')
 
   !!if (accuracy_level/=FOE_ACCURATE .and. accuracy_level/=FOE_FAST) then
   !!    stop 'wrong value of accuracy_level'
@@ -1802,7 +1803,7 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
       if (iproc==0) then
           !!call yaml_map('decay length of error function',fscale,fmt='(es10.3)')
           !!call yaml_map('decay length multiplicator',temp_multiplicator,fmt='(es10.3)')
-          call yaml_map('polynomial degree multiplicator',degree_multiplicator,fmt='(es10.3)')
+          !!call yaml_map('polynomial degree multiplicator',degree_multiplicator,fmt='(es10.3)')
       end if
 
     
@@ -1830,15 +1831,15 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
           if (iproc==0) then
               !call yaml_sequence(advance='no')
               itemp=1 !just for dummy output
-              if (foe_verbosity>=1) then
-                  call yaml_sequence_open('FOE to determine density kernel',label=&
-                       'it_foe'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//&
-                       trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)')))//'-'//&
-                       trim(adjustl(yaml_toa(itemp,fmt='(i2.2)'))))
-              else
-                  call yaml_sequence_open('FOE to determine density kernel')
-                  if (iproc==0) call yaml_comment('FOE calculation of kernel',hfill='-')
-              end if
+              !!if (foe_verbosity>=1) then
+              !!    call yaml_sequence_open('ICE calculation',label=&
+              !!         'it_ice'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//&
+              !!         trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)')))//'-'//&
+              !!         trim(adjustl(yaml_toa(itemp,fmt='(i2.2)'))))
+              !!else
+              !!    call yaml_sequence_open('FOE to determine density kernel')
+              !!    if (iproc==0) call yaml_comment('ICE calculation',hfill='-')
+              !!end if
           end if
     
     
@@ -1850,12 +1851,12 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
               
               it=it+1
     
-              if (iproc==0) then
-                  call yaml_newline()
-                  call yaml_sequence(advance='no')
-                  call yaml_mapping_open(flow=.true.)
-                  if (foe_verbosity>=1) call yaml_comment('it FOE:'//yaml_toa(it,fmt='(i6)'),hfill='-')
-              end if
+              !if (iproc==0) then
+              !    call yaml_newline()
+              !    call yaml_sequence(advance='no')
+              !    call yaml_mapping_open(flow=.true.)
+              !    if (foe_verbosity>=1) call yaml_comment('it ICE:'//yaml_toa(it,fmt='(i6)'),hfill='-')
+              !end if
               
 !!              if (adjust_lower_bound) then
 !!                  call foe_data_set_real(foe_obj,"ef",efarr(1))
@@ -1887,6 +1888,7 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
                           tt_ham=ovrlp_mat%matrix_compr(iismall_ovrlp)
                       else
                           tt_ovrlp=0.d0
+                          tt_ham=0.d0
                       end if
                       hamscal_compr(ii)=scale_factor*(tt_ham-shift_value*tt_ovrlp)
                   end do
@@ -1899,12 +1901,13 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
               evlow_old=foe_data_get_real(foe_obj,"evlow")
               evhigh_old=foe_data_get_real(foe_obj,"evhigh")
 
-              overlap = ovrlp_mat%matrix_compr
-              call dsyev('v', 'l', ovrlp_smat%nfvctr, overlap, ovrlp_smat%nfvctr, eval, work, lwork, info)
-              write(*,*) 'ovrlp_mat%matrix_compr: eval',eval
-              overlap = hamscal_compr
-              call dsyev('v', 'l', ovrlp_smat%nfvctr, overlap, ovrlp_smat%nfvctr, eval, work, lwork, info)
-              write(*,*) 'hamscal_compr: eval',eval
+
+              !call uncompress_matrix(iproc,ovrlp_smat,ovrlp_mat%matrix_compr,overlap)
+              !call dsyev('v', 'l', ovrlp_smat%nfvctr, overlap, ovrlp_smat%nfvctr, eval, work, lwork, info)
+              !write(*,*) 'ovrlp_mat%matrix_compr: eval low / high',eval(1), eval(ovrlp_smat%nfvctr)
+              !call uncompress_matrix(iproc,inv_ovrlp_smat,hamscal_compr,overlap)
+              !call dsyev('v', 'l', ovrlp_smat%nfvctr, overlap, ovrlp_smat%nfvctr, eval, work, lwork, info)
+              !write(*,*) 'hamscal_compr: eval low / high',eval(1), eval(ovrlp_smat%nfvctr)
     
     
               ! Determine the degree of the polynomial
@@ -1916,7 +1919,7 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
               npl_boundaries = nint(degree_multiplicator* &
                   (foe_data_get_real(foe_obj,"evhigh")-foe_data_get_real(foe_obj,"evlow")) &
                       /foe_data_get_real(foe_obj,"fscale_lowerbound")) ! max polynomial degree for given eigenvalue boundaries
-                  write(*,*) 'npl, npl_boundaries', npl, npl_boundaries
+                  !write(*,*) 'npl, npl_boundaries', npl, npl_boundaries
               if (npl>npl_boundaries) then
                   npl=npl_boundaries
                   if (iproc==0) call yaml_warning('very sharp decay of error function, polynomial degree reached limit')
@@ -1933,17 +1936,17 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
               end if
     
               !if (foe_verbosity>=1 .and. iproc==0) then
-              if (iproc==0) then
-                  if (foe_verbosity>=1) then
-                      call yaml_map('eval bounds',&
-                           (/foe_data_get_real(foe_obj,"evlow"),foe_data_get_real(foe_obj,"evhigh")/),fmt='(f5.2)')
-                  else
-                      call yaml_map('eval bounds',&
-                           (/foe_data_get_real(foe_obj,"evlow"),foe_data_get_real(foe_obj,"evhigh")/),fmt='(f5.2)')
-                  end if
-                  call yaml_map('pol deg',npl,fmt='(i3)')
-                  !!if (foe_verbosity>=1) call yaml_map('eF',foe_data_get_real(foe_obj,"ef"),fmt='(es16.9)')
-              end if
+              !if (iproc==0) then
+              !    if (foe_verbosity>=1) then
+              !        call yaml_map('eval bounds',&
+              !             (/foe_data_get_real(foe_obj,"evlow"),foe_data_get_real(foe_obj,"evhigh")/),fmt='(f5.2)')
+              !    else
+              !        call yaml_map('eval bounds',&
+              !             (/foe_data_get_real(foe_obj,"evlow"),foe_data_get_real(foe_obj,"evhigh")/),fmt='(f5.2)')
+              !    end if
+              !    call yaml_map('pol deg',npl,fmt='(i3)')
+              !    !!if (foe_verbosity>=1) call yaml_map('eF',foe_data_get_real(foe_obj,"ef"),fmt='(es16.9)')
+              !end if
     
     
               cc = f_malloc((/npl,3/),id='cc')
@@ -1959,7 +1962,7 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
               call timing(iproc, 'FOE_auxiliary ', 'OF')
               call timing(iproc, 'chebyshev_coef', 'ON')
     
-              write(*,*) 'evlow, evhigh, ex', foe_data_get_real(foe_obj,"evlow"), foe_data_get_real(foe_obj,"evhigh"), ex
+              !write(*,*) 'evlow, evhigh, ex', foe_data_get_real(foe_obj,"evlow"), foe_data_get_real(foe_obj,"evhigh"), ex
               call cheb_exp(foe_data_get_real(foe_obj,"evlow"), foe_data_get_real(foe_obj,"evhigh"), npl, cc(1,1), ex)
               call chder(foe_data_get_real(foe_obj,"evlow"), foe_data_get_real(foe_obj,"evhigh"), cc(1,1), cc(1,2), npl)
               call chebft2(foe_data_get_real(foe_obj,"evlow"), foe_data_get_real(foe_obj,"evhigh"), npl, cc(1,3))
@@ -1997,7 +2000,7 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
               emergency_stop=.false.
               if (calculate_SHS) then
                   ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
-                  if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','recalculated')
+                  !if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','recalculated')
                   call chebyshev_clean(iproc, nproc, npl, cc, ovrlp_smat%nfvctr, ovrlp_smat%nfvctrp, ovrlp_smat%isfvctr, ovrlp_smat%isfvctr_par, foe_obj, &
                        inv_ovrlp_smat, hamscal_compr, &
                        inv_ovrlp%matrix_compr, .false., &
@@ -2005,7 +2008,7 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
                        emergency_stop)
               else
                   ! The Chebyshev polynomials are already available
-                  if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','from memory')
+                  !if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','from memory')
                   call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
                        ovrlp_smat%nfvctr, ovrlp_smat%nfvctrp, ovrlp_smat%isfvctr, ovrlp_smat%isfvctr_par, &
                        inv_ovrlp_smat, chebyshev_polynomials, cc, inv_ovrlp_matrixp)
@@ -2036,12 +2039,12 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
                   call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow")/1.2d0)
                   eval_bounds_ok(2)=.false.
                   call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh")*1.2d0)
-                  if (iproc==0) then
-                      if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
-                           (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
-                      call yaml_mapping_close()
-                      !call bigdft_utils_flush(unit=6)
-                  end if
+                  !if (iproc==0) then
+                  !    if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
+                  !         (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
+                  !    call yaml_mapping_close()
+                  !    !call bigdft_utils_flush(unit=6)
+                  !end if
                   call f_free(cc)
                   call f_free(cc_check)
                   cycle main_loop
@@ -2067,12 +2070,12 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
                       call foe_data_set_int(foe_obj,"evboundsshrink_isatur",foe_data_get_int(foe_obj,"evboundsshrink_isatur")+1)
                   end if
                   call foe_data_set_int(foe_obj,"evbounds_isatur",0)
-                  if (iproc==0) then
-                      if (foe_verbosity>=1) call yaml_map('eval bounds ok',&
-                           (/eval_bounds_ok(1),eval_bounds_ok(2)/))
-                      call yaml_mapping_close()
-                      !call bigdft_utils_flush(unit=6)
-                  end if
+                  !if (iproc==0) then
+                  !    if (foe_verbosity>=1) call yaml_map('eval bounds ok',&
+                  !         (/eval_bounds_ok(1),eval_bounds_ok(2)/))
+                  !    call yaml_mapping_close()
+                  !    !call bigdft_utils_flush(unit=6)
+                  !end if
                   call f_free(cc_check)
                   cycle
               end if
@@ -2087,10 +2090,10 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
 
               if (all(eval_bounds_ok)) then
                   ! Print these informations already now if all entries are true.
-                  if (iproc==0) then
-                      if (foe_verbosity>=1) call yaml_map('eval bounds ok',&
-                           (/eval_bounds_ok(1),eval_bounds_ok(2)/))
-                  end if
+                  !if (iproc==0) then
+                  !    if (foe_verbosity>=1) call yaml_map('eval bounds ok',&
+                  !         (/eval_bounds_ok(1),eval_bounds_ok(2)/))
+                  !end if
               end if
               !!call determine_fermi_level(f, sumn, ef, info)
               !!bisection_bounds_ok(1) = fermilevel_get_logical(f,"bisection_bounds_ok(1)")
@@ -2127,10 +2130,10 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
               !!    call yaml_map('charge diff',sumn-foe_data_get_real(foe_obj,"charge"),fmt='(es16.9)')
               !!end if
     
-              if (iproc==0) then
-                  call yaml_mapping_close()
-                  !call bigdft_utils_flush(unit=6)
-              end if
+              !if (iproc==0) then
+              !    call yaml_mapping_close()
+              !    !call bigdft_utils_flush(unit=6)
+              !end if
     
               !!if (abs(charge_diff)<charge_tolerance) then
               !!    if (iproc==0) call yaml_sequence_close()
@@ -2166,8 +2169,10 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
      call compress_matrix_distributed(iproc, inv_ovrlp_smat, inv_ovrlp_matrixp, &
           inv_ovrlp%matrix_compr)
 
-     call yaml_map('original',reshape(ovrlp_mat%matrix_compr,(/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/)))
-     call yaml_map('inverse',reshape(inv_ovrlp%matrix_compr,(/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/)))
+     call f_free_ptr(inv_ovrlp_matrixp)
+
+     !call yaml_map('original',reshape(ovrlp_mat%matrix_compr,(/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/)))
+     !call yaml_map('inverse',reshape(inv_ovrlp%matrix_compr,(/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/)))
 
  !!    call compress_matrix_distributed(iproc, inv_ovrlp_smat, fermip_check, fermi_check_compr)
 
@@ -2292,7 +2297,7 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
  !! ebs=ebs*scale_factor-shift_value*sumn
 
 
-  if (iproc==0) call yaml_comment('FOE calculation of kernel finished',hfill='~')
+  !if (iproc==0) call yaml_comment('ICE calculation finished',hfill='~')
 
 
   call f_free(chebyshev_polynomials)
@@ -2580,7 +2585,7 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
 
         allredarr=abs(allredarr) !for some crazy situations this may be negative
         anoise=100.d0*anoise
-        write(*,*) 'allredarr, anoise', allredarr, anoise
+        !write(*,*) 'allredarr, anoise', allredarr, anoise
         if (allredarr(1)>anoise) then
             eval_bounds_ok(1)=.false.
             call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow")/1.2d0)

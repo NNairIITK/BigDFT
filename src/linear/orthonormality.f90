@@ -18,6 +18,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
   use sparsematrix_base, only: sparse_matrix, matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: compress_matrix, uncompress_matrix
   use foe_base, only: foe_data
+  use yaml_output
   implicit none
 
   ! Calling arguments
@@ -71,6 +72,8 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
            imode=1, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
            ovrlp_mat=ovrlp_, inv_ovrlp_mat=inv_ovrlp_half_, &
            check_accur=.true., mean_error=mean_error, max_error=max_error)!!, &
+      if (iproc==0) call yaml_map('max error',max_error)
+      if (iproc==0) call yaml_map('mean error',mean_error)
       call check_taylor_order(mean_error, max_inversion_error, methTransformOverlap)
   end if
 
@@ -172,6 +175,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
        imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
        ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, &
        check_accur=.true., max_error=max_error, mean_error=mean_error)
+  if (iproc==0) call yaml_map('max error',max_error)
+  if (iproc==0) call yaml_map('mean error',mean_error)
   call check_taylor_order(mean_error, max_inversion_error, norder_taylor)
 
 
@@ -797,7 +802,6 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
               stop 'wrong power'
           end select
           call ice(iproc, nproc, 0, 0, 1, ovrlp_smat, inv_ovrlp_smat, power, ovrlp_mat, inv_ovrlp_mat)
-          !call ice(iproc, nproc, 0, 0, 1, ovrlp_smat, inv_ovrlp_smat, 1, ovrlp_mat, inv_ovrlp_mat)
           ! #####################################
       end if
 

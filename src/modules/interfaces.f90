@@ -4207,16 +4207,7 @@ subroutine ice(iproc, nproc, itout, it_scc, foe_verbosity, ovrlp_smat, inv_ovrlp
   use module_base
   use module_types
   use yaml_output
-  use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, assignment(=), &
-                               SPARSE_FULL, DENSE_FULL, DENSE_PARALLEL, SPARSEMM_SEQ, &
-                               matrices
-  use sparsematrix_init, only: matrixindex_in_compressed
-  use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, &
-                          uncompress_matrix_distributed
-  use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
-                      foe_data_set_logical, foe_data_get_logical
-  use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
-                         fermilevel_get_real, fermilevel_get_logical
+  use sparsematrix_base, only: sparse_matrix, matrices
   implicit none
   integer,intent(in) :: iproc, nproc,itout,it_scc
   integer,intent(in) :: foe_verbosity
