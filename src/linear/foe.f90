@@ -1612,7 +1612,7 @@ end function trace_sparse
 subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, ovrlp_mat, inv_ovrlp)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => foe
+  use module_interfaces, except_this_one => ice
   use yaml_output
   use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, &
                                sparsematrix_malloc0_ptr, assignment(=), &
