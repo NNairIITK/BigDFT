@@ -696,10 +696,10 @@ subroutine foe(iproc, nproc, tmprtr, &
                    check_accur=.true., max_error=max_error, mean_error=mean_error)
           end if
           call check_taylor_order(mean_error, max_inversion_error, order_taylor)
-          if (foe_verbosity>=1 .and. iproc==0) then
-              call yaml_map('max error of S^-1/2',max_error,fmt='(es9.2)')
-              call yaml_map('mean error of S^-1/2',mean_error,fmt='(es9.2)')
-          end if
+          !if (foe_verbosity>=1 .and. iproc==0) then
+          !    call yaml_map('max error of S^-1/2',max_error,fmt='(es9.2)')
+          !    call yaml_map('mean error of S^-1/2',mean_error,fmt='(es9.2)')
+          !end if
 
 
           if (imode==DENSE) then
@@ -1897,12 +1897,12 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
               end if
               if (iproc==0) then
                   call yaml_newline()
-                  call yaml_sequence_open('ICE')
+                  call yaml_mapping_open('ICE')
                   call yaml_map('eval bounds',&
                        (/foe_data_get_real(foe_obj,"evlow"),foe_data_get_real(foe_obj,"evhigh")/),fmt='(f5.2)')
                   call yaml_map('mult.',degree_multiplicator,fmt='(f5.2)')
                   call yaml_map('pol. deg.',npl)
-                  call yaml_sequence_close()
+                  call yaml_mapping_close()
               end if
 
     

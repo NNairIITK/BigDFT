@@ -72,8 +72,8 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
            imode=1, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
            ovrlp_mat=ovrlp_, inv_ovrlp_mat=inv_ovrlp_half_, &
            check_accur=.true., mean_error=mean_error, max_error=max_error)!!, &
-      if (iproc==0) call yaml_map('max error',max_error)
-      if (iproc==0) call yaml_map('mean error',mean_error)
+      !if (iproc==0) call yaml_map('max error',max_error)
+      !if (iproc==0) call yaml_map('mean error',mean_error)
       call check_taylor_order(mean_error, max_inversion_error, methTransformOverlap)
   end if
 
@@ -175,8 +175,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
        imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
        ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, &
        check_accur=.true., max_error=max_error, mean_error=mean_error)
-  if (iproc==0) call yaml_map('max error',max_error)
-  if (iproc==0) call yaml_map('mean error',mean_error)
+  !if (iproc==0) call yaml_map('max error',max_error)
+  !if (iproc==0) call yaml_map('mean error',mean_error)
   !if (iproc==0) call yaml_scalar('no check taylor')
   call check_taylor_order(mean_error, max_inversion_error, norder_taylor)
 
@@ -340,15 +340,24 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
 
   if (iproc==0) then
       call yaml_newline()
-      call yaml_sequence_open('overlap manipulation routine')
+      call yaml_mapping_open('calculate S^x')
       if (imode==SPARSE) then
           call yaml_map('mode','sparse')
       else if (imode==DENSE) then
           call yaml_map('mode','dense')
       end if
-      call yaml_map('power',power)
+      !call yaml_map('power',power)
+      select case (power)
+      case (-2)
+          call yaml_map('x','-1/2')
+      case (2)
+          call yaml_map('x','1/2')
+      case (1)
+          call yaml_map('x','-1')
+      case default
+          stop 'wrong power'
+      end select
       call yaml_map('order',iorder)
-      call yaml_sequence_close()
   end if
 
 
@@ -588,6 +597,10 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
       if (check_accur) then
           call check_accur_overlap_minus_one(iproc,nproc,ovrlp_smat%nfvctr,norbp,isorb,power,&
                ovrlp_mat%matrix,inv_ovrlp_mat%matrix,ovrlp_smat,max_error,mean_error)
+          if (iproc==0) then
+              call yaml_newline()
+              call yaml_map('max / mean error',(/max_error,mean_error/),fmt='(es8.2)')
+          end if
       end if
   else if (imode==SPARSE) then
       if (iorder==0) then
@@ -856,6 +869,10 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
           else
               stop 'wrong power'
           end if
+          if (iproc==0) then
+              call yaml_newline()
+              call yaml_map('max / mean error',(/max_error,mean_error/),fmt='(es8.2)')
+          end if
           call f_free(invovrlp_compr_seq)
           call f_free(ovrlp_largep)
           call f_free(invovrlpp)
@@ -864,6 +881,10 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
       end if
   end if sparse_dense
 
+  if (iproc==0) then
+      call yaml_mapping_close()
+      call yaml_newline()
+  end if
 
   call timing(iproc,'lovrlp^-1     ','OF')
   call f_release_routine()
