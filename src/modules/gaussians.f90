@@ -59,7 +59,8 @@ module gaussians
 
   public :: nullify_gaussian_basis, deallocate_gwf, gaussian_basis_null, gaussian_basis_free
 
-  public :: gaussian_basis_from_psp, gaussian_projectors, gaussian_ncoeff
+  public :: gaussian_basis_from_psp, gaussian_basis_from_paw
+  public :: gaussian_projectors, gaussian_ncoeff
 
 contains
 
@@ -201,6 +202,79 @@ contains
     end do
   end subroutine gaussian_basis_from_psp
 
+  !> Initialise the gaussian basis from PAW datas.
+  subroutine gaussian_basis_from_paw(nat, iatyp, rxyz, pawtab, ntyp, G)
+    use m_pawtab, only : pawtab_type
+    
+    implicit none
+
+    !Arguments ------------------------------------
+    integer, intent(in) :: nat, ntyp
+    integer, dimension(nat) :: iatyp
+    type(pawtab_type), dimension(ntyp), intent(in) :: pawtab
+    real(gp), dimension(3,nat), intent(in), target :: rxyz
+    type(gaussian_basis_new),intent(out) :: G
+
+    !Local variables-------------------------------
+    integer, dimension(nat) :: nshell
+    integer :: iat, i, ib, lprev, nprev, l, n, ishell, iexpo
+
+    ! Build nshell from pawtab.
+    do iat = 1, nat
+       nshell(iat) = pawtab(iatyp(iat))%basis_size
+    end do
+    call init_gaussian_basis(nat,nshell,rxyz,G)
+
+    ! Store stuff.
+    G%ncplx=2 !Complex gaussians
+
+    ! Associate values in shid.
+    ishell = 1
+    do iat = 1, nat
+       ib = 1
+       l = -1
+       n = -1
+       do i = 1, G%nshell(iat)
+          ! Look for next (l,n) tuple.
+          do
+             if (ib > pawtab(iatyp(iat))%lmn_size) stop "indlmn impl."
+             lprev = l
+             nprev = n
+             l = pawtab(iatyp(iat))%indlmn(1, ib)
+             n = pawtab(iatyp(iat))%indlmn(3, ib)
+             ib = ib + 1
+             !    write(*,*)ll,pawtab(itypat)%indlmn(2,ib),nn
+             if (l /= lprev .or. n /= nprev) exit
+             !    write(*,*)jb,pawtab(itypat)%indlmn(1:3,ib)
+          end do
+
+          G%shid(DOC_, ishell) = pawtab(iatyp(iat))%wvl%pngau(i)
+          G%shid(L_, ishell) = l + 1 ! 1 is added due to BigDFT convention
+          G%shid(N_, ishell) = 1
+          G%nexpo  = G%nexpo  + G%shid(DOC_, ishell)
+          G%ncoeff = G%ncoeff + 2*G%shid(L_, ishell)-1
+          ishell = ishell + 1
+       end do
+    end do
+    !allocate storage space (real exponents and coeffs for the moment)
+    G%sd = f_malloc_ptr((/ G%ncplx*NSD_, G%nexpo /),id='G%sd')
+    ! Copy coefficients and factors.
+    iexpo = 0
+    do iat = 1, nat
+       do i = 1, pawtab(iatyp(iat))%wvl%ptotgau
+          ! minus real part is for BigDFT convention.
+          G%sd((EXPO_ - 1) * 2 + 1,iexpo + i)  = -pawtab(iatyp(iat))%wvl%parg(1,i)
+          G%sd((EXPO_ - 1) * 2 + 2,iexpo + i)  = pawtab(iatyp(iat))%wvl%parg(2,i)
+          G%sd((COEFF_ - 1) * 2 + 1,iexpo + i) = pawtab(iatyp(iat))%wvl%pfac(1,i)
+          G%sd((COEFF_ - 1) * 2 + 2,iexpo + i) = pawtab(iatyp(iat))%wvl%pfac(2,i)
+          write(*,*) iat, iexpo, i, G%sd((EXPO_ - 1) * 2 + 1,iexpo + i), &
+               & G%sd((EXPO_ - 1) * 2 + 2,iexpo + i), G%sd((COEFF_ - 1) * 2 + 1,iexpo + i), &
+               & G%sd((COEFF_ - 1) * 2 + 2,iexpo + i)
+       end do
+       iexpo = iexpo + pawtab(iatyp(iat))%wvl%ptotgau
+    end do
+  end subroutine gaussian_basis_from_paw
+
   !> Compute the number of coefficients for atom iat.
   subroutine gaussian_ncoeff(G, iat, ncoeff)
     implicit none
@@ -275,8 +349,8 @@ contains
        do j = 1, proj_G%shid(DOC_, ishell)
           iexpo = iexpo + 1
           call projector(geocode, atomname, iat, idir, l, i, &
-               & proj_G%sd(proj_G%ncplx * COEFF_,iexpo), &
-               & proj_G%sd(proj_G%ncplx * EXPO_,iexpo), &
+               & proj_G%sd(proj_G%ncplx * (COEFF_ - 1) + 1, iexpo), &
+               & proj_G%sd(proj_G%ncplx * (EXPO_ - 1) + 1, iexpo), &
                & rpaw, proj_G%rxyz(1, iat), ns1, ns2, ns3, n1, n2, n3, &
                & hx, hy, hz, kx, ky, kz, ncplx_k, proj_G%ncplx, &
                & mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, keyv, keyg, &

@@ -18,7 +18,6 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   use module_interfaces, fake_name => system_initialization
   use module_xc
   use module_fragments
-  use gaussians, only: gaussian_basis, nullify_gaussian_basis, gaussian_basis_from_psp
   use vdwcorrection
   use yaml_output
   use module_atoms, only: set_symmetry_data
@@ -51,13 +50,8 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   logical:: present_inwhichlocreg_old, present_onwhichatom_old, output_grid_
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(kind=8), dimension(:), allocatable :: locrad
-  !Note proj_G should be filled for PAW:
-  type(gaussian_basis),dimension(atoms%astruct%ntypes)::proj_G
+
   call f_routine(id=subname)
-  !nullify dummy variables only used for PAW:
-  do iatyp=1,atoms%astruct%ntypes
-    call nullify_gaussian_basis(proj_G(iatyp))
-  end do
 
   output_grid_ = .false.
   if (present(output_grid)) output_grid_ = output_grid
@@ -279,7 +273,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call createProjectorsArrays(Lzd%Glr,rxyz,atoms,orbs,&
        radii_cf,in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
-       Lzd%hgrids(3),dry_run,nlpsp,proj_G)
+       Lzd%hgrids(3),dry_run,nlpsp)
   if (iproc == 0 .and. dump) call print_nlpsp(nlpsp)
   !the complicated part of the descriptors has not been filled
   if (dry_run) then

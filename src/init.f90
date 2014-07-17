@@ -227,11 +227,11 @@ END SUBROUTINE wfd_from_grids
 
 !> Determine localization region for all projectors, but do not yet fill the descriptor arrays
 subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
-         & radii_cf,cpmult,fpmult,hx,hy,hz,dry_run,nl,proj_G)
+         & radii_cf,cpmult,fpmult,hx,hy,hz,dry_run,nl)
   use module_base
   use psp_projectors
   use module_types
-  use gaussians, only: gaussian_basis, gaussian_basis_from_psp
+  use gaussians, only: gaussian_basis, gaussian_basis_from_psp, gaussian_basis_from_paw
   implicit none
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
   type(locreg_descriptors),intent(in) :: lr
@@ -239,7 +239,6 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
-  type(gaussian_basis),dimension(at%astruct%ntypes),intent(in) :: proj_G
   type(DFT_PSP_projectors), intent(out) :: nl
   logical, intent(in) :: dry_run !< .true. to compute the size only and don't allocate
   !local variables
@@ -261,9 +260,14 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
      nl%pspd(iat)=nonlocal_psp_descriptors_null()
   end do
 
-  ! Convert the psppar coefficients into gaussian projectors.
-  call gaussian_basis_from_psp(at%astruct%nat, at%astruct%iatype, rxyz, &
-       & at%psppar, at%astruct%ntypes, nl%proj_G)
+  ! Convert the pseudo coefficients into gaussian projectors.
+  if (all(at%npspcode == PSPCODE_PAW)) then
+     call gaussian_basis_from_paw(at%astruct%nat, at%astruct%iatype, rxyz, &
+          & at%pawtab, at%astruct%ntypes, nl%proj_G)
+  else
+     call gaussian_basis_from_psp(at%astruct%nat, at%astruct%iatype, rxyz, &
+          & at%psppar, at%astruct%ntypes, nl%proj_G)
+  end if
 
   ! define the region dimensions
   n1 = lr%d%n1
@@ -1599,7 +1603,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   real(wp), allocatable, dimension(:) :: norm
   !wvl+PAW objects
   integer :: iatyp
-  type(gaussian_basis),dimension(atoms%astruct%ntypes)::proj_G
   type(paw_objects)::paw
   logical :: overlap_calculated, perx,pery,perz, rho_negative
   real(gp) :: tx,ty,tz,displ,mindist
@@ -1612,9 +1615,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   call f_routine(id='input_wf')
 
   !nullify paw objects:
-  do iatyp=1,atoms%astruct%ntypes
-     call nullify_gaussian_basis(proj_G(iatyp))
-  end do
   paw%usepaw=0 !Not using PAW
   call nullify_paw_objects(paw)
 
