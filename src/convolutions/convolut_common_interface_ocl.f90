@@ -24,12 +24,16 @@ subroutine init_acceleration_OCL(matacc,GPU)
   implicit none
   type(material_acceleration), intent(in) :: matacc
   type(GPU_pointers), intent(out) :: GPU
+  integer(kind=8) :: context_address
 
   call ocl_create_context(GPU%context, matacc%OCL_platform, matacc%OCL_devices, matacc%iacceleration,&
                      GPU%ndevices)
   !call ocl_create_gpu_context(GPU%context,GPU%ndevices)
   !call ocl_create_command_queue(GPU%queue,GPU%context)
-  if (GPU%context /= 0.) then
+  !to avoid a representation of the address which is lower than tiny(1.d0)
+  context_address=transfer(GPU%context,context_address)
+  !if (GPU%context /= 0.) then
+  if (context_address /= int(0,kind=8)) then
      call ocl_build_programs(GPU%context)
      call ocl_create_command_queue_id(GPU%queue,GPU%context,GPU%id_proc)
      call init_event_list(GPU%context)
@@ -273,18 +277,6 @@ subroutine free_gpu_OCL(GPU,orbs,nspin)
      call f_free_ptr(GPU%hpsicf_host)
      call f_free_ptr(GPU%bprecond_host)
 
-!!$  i_all=-product(shape(GPU%ekinpot_host))*kind(GPU%ekinpot_host)
-!!$  deallocate(GPU%ekinpot_host,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'ekinpot_host',subname)
-!!$  i_all=-product(shape(GPU%psicf_host))*kind(GPU%psicf_host)
-!!$  deallocate(GPU%psicf_host,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'psicf_host',subname)
-!!$  i_all=-product(shape(GPU%hpsicf_host))*kind(GPU%hpsicf_host)
-!!$  deallocate(GPU%hpsicf_host,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'hpsicf_host',subname)
-!!$  i_all=-product(shape(GPU%bprecond_host))*kind(GPU%bprecond_host)
-!!$  deallocate(GPU%bprecond_host,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'bprecond_host',subname)
   end if
 
 
@@ -535,7 +527,7 @@ subroutine local_hamiltonian_OCL(orbs,lr,hx,hy,hz,&
      !calculate the local hamiltonian
      !WARNING: the difference between full_locham and normal locham is inside
      call ocl_fulllocham_generic_k(GPU%queue,(/lr%d%n1+1,lr%d%n2+1,lr%d%n3+1/),&
-          (/periodic(1),periodic(2),periodic(3)/),&
+          periodic,&
           hgrids,&
           (/orbs%kpts(1,orbs%iokpt(iorb)),orbs%kpts(2,orbs%iokpt(iorb)),orbs%kpts(3,orbs%iokpt(iorb))/),&
           lr%wfd%nseg_c,lr%wfd%nvctr_c,GPU%keyg_c,GPU%keyv_c,&

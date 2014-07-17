@@ -9,7 +9,7 @@
 
  
 !> Again assuming all matrices have same sparsity, still some tidying to be done
-subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_compr, &
+subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par, foe_obj, kernel, ham_compr, &
            ovrlp_compr, calculate_SHS, nsize_polynomial, SHS, fermi, penalty_ev, chebyshev_polynomials, &
            emergency_stop)
   use module_base
@@ -22,20 +22,20 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, npl, nsize_polynomial
+  integer,intent(in) :: iproc, nproc, npl, nsize_polynomial, norb, norbp, isorb
+  integer,dimension(0:nproc-1),intent(in) :: isorb_par
   real(8),dimension(npl,3),intent(in) :: cc
-  type(orbitals_data),intent(in) :: orbs
   type(foe_data),intent(in) :: foe_obj
   type(sparse_matrix), intent(in) :: kernel
   real(kind=8),dimension(kernel%nvctr),intent(in) :: ham_compr, ovrlp_compr
   logical,intent(in) :: calculate_SHS
   real(kind=8),dimension(kernel%nvctr),intent(inout) :: SHS
-  real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: fermi
-  real(kind=8),dimension(orbs%norb,orbs%norbp,2),intent(out) :: penalty_ev
+  real(kind=8),dimension(norb,norbp),intent(out) :: fermi
+  real(kind=8),dimension(norb,norbp,2),intent(out) :: penalty_ev
   real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
   logical,intent(out) :: emergency_stop
   ! Local variables
-  integer :: iorb,iiorb, jorb, ipl,norb,norbp,isorb, ierr, nseq, nmaxsegk, nmaxvalk
+  integer :: iorb,iiorb, jorb, ipl, ierr, nseq, nmaxsegk, nmaxvalk
   integer :: isegstart, isegend, iseg, ii, jjorb, nout
   character(len=*),parameter :: subname='chebyshev_clean'
   real(8), dimension(:,:,:), allocatable :: vectors
@@ -51,9 +51,9 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
   call timing(iproc, 'chebyshev_comp', 'ON')
   call f_routine(id='chebyshev_clean')
 
-  norb = orbs%norb
-  norbp = orbs%norbp
-  isorb = orbs%isorb
+  !!norb = norb
+  !!norbp = norbp
+  !!isorb = isorb
 
   if (norbp>0) then
 
@@ -70,10 +70,10 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
               call to_zero(norb*norbp, matrix(1,1))
           end if
           !write(*,*) 'WARNING CHEBYSHEV: MODIFYING MATRIX MULTIPLICATION'
-          if (orbs%norbp>0) then
-              isegstart=kernel%istsegline(orbs%isorb_par(iproc)+1)
-              if (orbs%isorb+orbs%norbp<orbs%norb) then
-                  isegend=kernel%istsegline(orbs%isorb_par(iproc+1)+1)-1
+          if (norbp>0) then
+              isegstart=kernel%istsegline(isorb_par(iproc)+1)
+              if (isorb+norbp<norb) then
+                  isegend=kernel%istsegline(isorb_par(iproc+1)+1)-1
               else
                   isegend=kernel%nseg
               end if
@@ -81,13 +81,13 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
                   ii=kernel%keyv(iseg)-1
                   do jorb=kernel%keyg(1,iseg),kernel%keyg(2,iseg)
                       ii=ii+1
-                      iiorb = (jorb-1)/orbs%norb + 1
-                      jjorb = jorb - (iiorb-1)*orbs%norb
-                      matrix(jjorb,iiorb-orbs%isorb)=ovrlp_compr(ii)
+                      iiorb = (jorb-1)/norb + 1
+                      jjorb = jorb - (iiorb-1)*norb
+                      matrix(jjorb,iiorb-isorb)=ovrlp_compr(ii)
                       !if (jjorb==iiorb) then
-                      !    matrix(jjorb,iiorb-orbs%isorb)=1.d0
+                      !    matrix(jjorb,iiorb-isorb)=1.d0
                       !else
-                      !    matrix(jjorb,iiorb-orbs%isorb)=0.d0
+                      !    matrix(jjorb,iiorb-isorb)=0.d0
                       !end if
                   end do
               end do
@@ -128,10 +128,10 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
           end if
           call to_zero(kernel%nvctr, SHS(1))
           
-          if (orbs%norbp>0) then
-              isegstart=kernel%istsegline(orbs%isorb_par(iproc)+1)
-              if (orbs%isorb+orbs%norbp<orbs%norb) then
-                  isegend=kernel%istsegline(orbs%isorb_par(iproc+1)+1)-1
+          if (norbp>0) then
+              isegstart=kernel%istsegline(isorb_par(iproc)+1)
+              if (isorb+norbp<norb) then
+                  isegend=kernel%istsegline(isorb_par(iproc+1)+1)-1
               else
                   isegend=kernel%nseg
               end if
@@ -139,9 +139,9 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
                   ii=kernel%keyv(iseg)-1
                   do jorb=kernel%keyg(1,iseg),kernel%keyg(2,iseg)
                       ii=ii+1
-                      iiorb = (jorb-1)/orbs%norb + 1
-                      jjorb = jorb - (iiorb-1)*orbs%norb
-                      SHS(ii)=matrix(jjorb,iiorb-orbs%isorb)
+                      iiorb = (jorb-1)/norb + 1
+                      jjorb = jorb - (iiorb-1)*norb
+                      SHS(ii)=matrix(jjorb,iiorb-isorb)
                   end do
               end do
           end if
@@ -149,10 +149,14 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
           if (nproc > 1) then
              call mpiallred(SHS(1), kernel%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
           end if
+
+      else
+          ! This is quick and dirty...
+          SHS = ham_compr
   
       end if
   
-      if (orbs%norbp>0) then
+      if (norbp>0) then
           !!call sequential_acces_matrix(norb, norbp, isorb, kernel%smmm%nseg, &
           !!     kernel%smmm%nsegline, kernel%smmm%istsegline, kernel%smmm%keyg, &
           !!     kernel, SHS, kernel%smmm%nseq, kernel%smmm%nmaxsegk, &
@@ -200,7 +204,8 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
           !initialize fermi
           call to_zero(norbp*norb, fermi(1,1))
           call to_zero(2*norb*norbp, penalty_ev(1,1,1))
-          call compress_polynomial_vector(iproc, nsize_polynomial, orbs, kernel, &
+          call compress_polynomial_vector(iproc, nproc, nsize_polynomial, &
+               norb, norbp, isorb, isorb_par, kernel, &
                vectors(1,1,4), chebyshev_polynomials(1,1))
           call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, &
                0.5d0*cc(1,1), vectors(1,1,4), fermi(:,1))
@@ -208,7 +213,8 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
                0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,1))
           call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, &
                0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,2))
-          call compress_polynomial_vector(iproc, nsize_polynomial, orbs, kernel, vectors(1,1,2), chebyshev_polynomials(1,2))
+          call compress_polynomial_vector(iproc, nproc, nsize_polynomial, &
+               norb, norbp, isorb, isorb_par, kernel, vectors(1,1,2), chebyshev_polynomials(1,2))
           call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, &
                cc(2,1), vectors(1,1,2), fermi(:,1))
           call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, &
@@ -229,7 +235,8 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, orbs, foe_obj, kernel, ham_com
               end if
               call axbyz_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, &
                    2.d0, vectors(1,1,2), -1.d0, vectors(1,1,4), vectors(1,1,3))
-              call compress_polynomial_vector(iproc, nsize_polynomial, orbs, kernel, vectors(1,1,3), &
+              call compress_polynomial_vector(iproc, nproc, nsize_polynomial, &
+                   norb, norbp, isorb, isorb_par, kernel, vectors(1,1,3), &
                    chebyshev_polynomials(1,ipl))
               call axpy_kernel_vectors(norbp, norb, kernel%smmm%nout, kernel%smmm%onedimindices, &
                    cc(ipl,1), vectors(1,1,3), fermi(:,1))
@@ -374,19 +381,20 @@ end subroutine axpy_kernel_vectors
 
 
 
-subroutine chebyshev_fast(iproc, nsize_polynomial, npl, orbs, fermi, chebyshev_polynomials, cc, kernelp)
+subroutine chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
+           norb, norbp, isorb, isorb_par, fermi, chebyshev_polynomials, cc, kernelp)
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), SPARSE_FULL
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nsize_polynomial, npl
-  type(orbitals_data),intent(in) :: orbs
+  integer,intent(in) :: iproc, nproc, nsize_polynomial, npl, norb, norbp, isorb
+  integer,dimension(0:nproc-1),intent(in) :: isorb_par
   type(sparse_matrix),intent(in) :: fermi
   real(kind=8),dimension(nsize_polynomial,npl),intent(in) :: chebyshev_polynomials
   real(kind=8),dimension(npl),intent(in) :: cc
-  real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: kernelp
+  real(kind=8),dimension(norb,norbp),intent(out) :: kernelp
 
   ! Local variables
   integer :: ipl, iall
@@ -405,7 +413,8 @@ subroutine chebyshev_fast(iproc, nsize_polynomial, npl, orbs, fermi, chebyshev_p
           call daxpy(nsize_polynomial, cc(ipl), chebyshev_polynomials(1,ipl), 1, kernel_compressed(1), 1)
       end do
 
-      call uncompress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, kernel_compressed, kernelp)
+      call uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
+           norb, norbp, isorb, isorb_par, fermi, kernel_compressed, kernelp)
 
       call f_free(kernel_compressed)
   end if

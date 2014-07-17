@@ -18,6 +18,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
   use sparsematrix_base, only: sparse_matrix, matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: compress_matrix, uncompress_matrix
   use foe_base, only: foe_data
+  use yaml_output
   implicit none
 
   ! Calling arguments
@@ -71,6 +72,8 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
            imode=1, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
            ovrlp_mat=ovrlp_, inv_ovrlp_mat=inv_ovrlp_half_, &
            check_accur=.true., mean_error=mean_error, max_error=max_error)!!, &
+      if (iproc==0) call yaml_map('max error',max_error)
+      if (iproc==0) call yaml_map('mean error',mean_error)
       call check_taylor_order(mean_error, max_inversion_error, methTransformOverlap)
   end if
 
@@ -172,6 +175,9 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
        imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
        ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, &
        check_accur=.true., max_error=max_error, mean_error=mean_error)
+  if (iproc==0) call yaml_map('max error',max_error)
+  if (iproc==0) call yaml_map('mean error',mean_error)
+  !if (iproc==0) call yaml_scalar('no check taylor')
   call check_taylor_order(mean_error, max_inversion_error, norder_taylor)
 
 
@@ -323,6 +329,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
   real(kind=8),dimension(:),allocatable :: Amat21_compr, Amat12_seq, Amat21_seq
   integer,parameter :: SPARSE=1
   integer,parameter :: DENSE=2
+  real(kind=8) :: ex
 
 
   !!write(*,*) 'iorder',iorder
@@ -723,71 +730,89 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
           call f_free(Amat21_seq)
 
       else
-          ovrlp_large_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='ovrlp_large_compr')
-          call transform_sparse_matrix(ovrlp_smat, inv_ovrlp_smat, &
-               ovrlp_mat%matrix_compr, ovrlp_large_compr, 'small_to_large')
+          if (iorder<1000) then
+              ovrlp_large_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='ovrlp_large_compr')
+              call transform_sparse_matrix(ovrlp_smat, inv_ovrlp_smat, &
+                   ovrlp_mat%matrix_compr, ovrlp_large_compr, 'small_to_large')
 
-          if (iorder>1) then
-              ovrlpminone_sparse_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='ovrlpminone_sparse_seq')
-              ovrlpminone_sparse = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=SPARSE_FULL, id='ovrlpminone_sparse')
-              ovrlpminoneoldp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlpminoneoldp')
+              if (iorder>1) then
+                  ovrlpminone_sparse_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='ovrlpminone_sparse_seq')
+                  ovrlpminone_sparse = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=SPARSE_FULL, id='ovrlpminone_sparse')
+                  ovrlpminoneoldp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlpminoneoldp')
 
-              call matrix_minus_identity_sparse(ovrlp_smat%nfvctr, inv_ovrlp_smat, ovrlp_large_compr, ovrlpminone_sparse)
-              call sequential_acces_matrix_fast(inv_ovrlp_smat, ovrlpminone_sparse, ovrlpminone_sparse_seq)
-              call timing(iproc,'lovrlp^-1     ','OF')
-              call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, ovrlpminone_sparse, ovrlpminoneoldp)
-              call timing(iproc,'lovrlp^-1     ','ON')
+                  call matrix_minus_identity_sparse(ovrlp_smat%nfvctr, inv_ovrlp_smat, ovrlp_large_compr, ovrlpminone_sparse)
+                  call sequential_acces_matrix_fast(inv_ovrlp_smat, ovrlpminone_sparse, ovrlpminone_sparse_seq)
+                  call timing(iproc,'lovrlp^-1     ','OF')
+                  call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, ovrlpminone_sparse, ovrlpminoneoldp)
+                  call timing(iproc,'lovrlp^-1     ','ON')
 
-              call f_free_ptr(ovrlpminone_sparse)
+                  call f_free_ptr(ovrlpminone_sparse)
 
-              if (power==1) then
-                  factor=-1.0d0
-              else if (power==2) then
-                  factor=0.5d0
-              else if (power==-2) then
-                  factor=-0.5d0
+                  if (power==1) then
+                      factor=-1.0d0
+                  else if (power==2) then
+                      factor=0.5d0
+                  else if (power==-2) then
+                      factor=-0.5d0
+                  end if
               end if
-          end if
 
-          ovrlpminonep = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlpminonep')
-          invovrlpp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='invovrlpp')
+              ovrlpminonep = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlpminonep')
+              invovrlpp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='invovrlpp')
 
-          if (norbp>0) then
+              if (norbp>0) then
+                  call timing(iproc,'lovrlp^-1     ','OF')
+                  call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, ovrlp_large_compr, ovrlpminonep)
+                  call timing(iproc,'lovrlp^-1     ','ON')
+                  if (.not.check_accur) call f_free(ovrlp_large_compr)
+                  call first_order_taylor_dense(ovrlp_smat%nfvctr,isorb,norbp,power,ovrlpminonep,invovrlpp)
+              end if
+
+              do i=2,iorder
+                  call timing(iproc,'lovrlp^-1     ','OF')
+                  call sparsemm(inv_ovrlp_smat, ovrlpminone_sparse_seq, ovrlpminoneoldp, ovrlpminonep)
+                  call timing(iproc,'lovrlp^-1     ','ON')
+                  factor=newfactor(power,i,factor)
+                  call daxpy(ovrlp_smat%nfvctr*norbp,factor,ovrlpminonep,1,invovrlpp,1)
+                  if (i/=iorder.and.norbp>0) call vcopy(ovrlp_smat%nfvctr*norbp,ovrlpminonep(1,1),1,ovrlpminoneoldp(1,1),1)
+              end do
+              !!call to_zero(inv_ovrlp_smat%nvctr, inv_ovrlp_smat%matrix_compr(1))
               call timing(iproc,'lovrlp^-1     ','OF')
-              call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, ovrlp_large_compr, ovrlpminonep)
+              call compress_matrix_distributed(iproc, inv_ovrlp_smat, invovrlpp, inv_ovrlp_mat%matrix_compr)
               call timing(iproc,'lovrlp^-1     ','ON')
-              if (.not.check_accur) call f_free(ovrlp_large_compr)
-              call first_order_taylor_dense(ovrlp_smat%nfvctr,isorb,norbp,power,ovrlpminonep,invovrlpp)
+
+              if (iorder>1) then
+                  call f_free(ovrlpminone_sparse_seq)
+                  call f_free(ovrlpminoneoldp)
+                  !!if (.not.check_accur) call f_free(istindexarr)
+                  !!if (.not.check_accur) call f_free(ivectorindex)
+                  !!if (.not.check_accur) call f_free_ptr(onedimindices)
+              end if
+
+              if (.not.check_accur) call f_free(invovrlpp)
+              call f_free_ptr(ovrlpminonep)
+
+          else
+
+              ! @ NEW: ICE ##########################
+              !!select case (power)
+              !!case (-2)
+              !!    ex=-0.5d0
+              !!case (2)
+              !!    ex=0.5d0
+              !!case (1)
+              !!    ex=-1.d0
+              !!case default
+              !!    stop 'wrong power'
+              !!end select
+              call ice(iproc, nproc, iorder-1000, ovrlp_smat, inv_ovrlp_smat, power, ovrlp_mat, inv_ovrlp_mat)
+              ! #####################################
           end if
-
-          do i=2,iorder
-              call timing(iproc,'lovrlp^-1     ','OF')
-              call sparsemm(inv_ovrlp_smat, ovrlpminone_sparse_seq, ovrlpminoneoldp, ovrlpminonep)
-              call timing(iproc,'lovrlp^-1     ','ON')
-              factor=newfactor(power,i,factor)
-              call daxpy(ovrlp_smat%nfvctr*norbp,factor,ovrlpminonep,1,invovrlpp,1)
-              if (i/=iorder.and.norbp>0) call vcopy(ovrlp_smat%nfvctr*norbp,ovrlpminonep(1,1),1,ovrlpminoneoldp(1,1),1)
-          end do
-          !!call to_zero(inv_ovrlp_smat%nvctr, inv_ovrlp_smat%matrix_compr(1))
-          call timing(iproc,'lovrlp^-1     ','OF')
-          call compress_matrix_distributed(iproc, inv_ovrlp_smat, invovrlpp, inv_ovrlp_mat%matrix_compr)
-          call timing(iproc,'lovrlp^-1     ','ON')
-
-          if (iorder>1) then
-              call f_free(ovrlpminone_sparse_seq)
-              call f_free(ovrlpminoneoldp)
-              !!if (.not.check_accur) call f_free(istindexarr)
-              !!if (.not.check_accur) call f_free(ivectorindex)
-              !!if (.not.check_accur) call f_free_ptr(onedimindices)
-          end if
-
-          if (.not.check_accur) call f_free(invovrlpp)
-          call f_free_ptr(ovrlpminonep)
       end if
 
       if (check_accur) then
           ! HERE STARTS LINEAR CHECK ##########################
-          if (iorder<1) then
+          if (iorder<1 .or. iorder>=1000) then
               invovrlpp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='invovrlpp')
               ovrlp_large_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='ovrlp_large_compr')
               call transform_sparse_matrix(ovrlp_smat, inv_ovrlp_smat, &
@@ -1392,8 +1417,8 @@ subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, smat, norb, norbp,
      !!     norb, inv_ovrlp(1,isorb+1), norb, 0.d0, tmpp(1,1), norb)
      call sparsemm(smat, amat_seq, bmatp, tmpp)
      call max_matrix_diff_parallel(iproc, norb, norbp, isorb, tmpp, cmatp, smat, max_error, mean_error)
-     max_error=0.5d0*max_error
-     mean_error=0.5d0*mean_error
+     !max_error=0.5d0*max_error
+     !mean_error=0.5d0*mean_error
   else if (power==-2) then
      if (.not.present(dmat_seq)) stop 'dmat_seq not present'
      !!call dgemm('n', 'n', norb, norbp, norb, 1.d0, inv_ovrlp(1,1), &
@@ -1404,8 +1429,8 @@ subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, smat, norb, norbp,
      !!     norb, tmpp(1,1), norb, 0.d0, tmp2p(1,1), norb)
      call sparsemm(smat, dmat_seq, tmpp, tmp2p)
      call deviation_from_unity_parallel(iproc, nproc, norb, norbp, isorb, tmp2p, smat, max_error, mean_error)
-     max_error=0.5d0*max_error
-     mean_error=0.5d0*mean_error
+     !max_error=0.5d0*max_error
+     !mean_error=0.5d0*mean_error
      call f_free(tmp2p)
   else
      stop 'Error in check_accur_overlap_minus_one_sparse'
@@ -2877,24 +2902,59 @@ subroutine check_taylor_order(error, max_error, order_taylor)
 
   ! Local variables
   character(len=12) :: act
-  integer,parameter :: max_order=100
+  integer,parameter :: max_order_positive=50
+  integer,parameter :: max_order_negative=-20
+  logical :: is_ice
 
-  if (order_taylor>0) then
-      ! only do this if Taylor approximations are actually used
-      if (error<=max_error) then
-          ! error is small enough, so do nothing
-          act=' (unchanged)'
-      else
+  if (order_taylor>=1000) then
+      order_taylor=order_taylor-1000
+      is_ice=.true.
+  else
+      is_ice=.false.
+  end if
+
+  if (order_taylor/=0) then
+      ! only do this if approximations (Taylor or "negative thing") are actually used
+      if (error<=1.d-1*max_error) then
+          !! error is very small, so decrease the order of the polynomial
+          !if (order_taylor>20) then
+          !    ! always keep a minimum of 20
+          !    act=' (decreased)'
+          !    if (order_taylor>0) then
+          !        order_taylor = floor(0.9d0*real(order_taylor,kind=8))
+          !    else
+          !        order_taylor = ceiling(0.9d0*real(order_taylor,kind=8))
+          !    end if
+          !end if
+      else if (error>max_error) then
           ! error is too big, increase the order of the Taylor series by 10%
           act=' (increased)'
-          order_taylor = ceiling(1.1d0*real(order_taylor,kind=8))
+          if (order_taylor>0) then
+              order_taylor = ceiling(max(1.1d0*real(order_taylor,kind=8),real(order_taylor+5,kind=8)))
+          else
+              order_taylor = floor(min(1.1d0*real(order_taylor,kind=8),real(order_taylor-5,kind=8)))
+          end if
+      else
+          ! error is small enough, so do nothing
+          act=' (unchanged)'
       end if
       !if (bigdft_mpi%iproc==0) call yaml_map('new Taylor order',trim(yaml_toa(order_taylor,fmt='(i0)'))//act)
   end if
 
-  if (order_taylor>max_order) then
-      order_taylor=max_order
-      if (bigdft_mpi%iproc==0) call yaml_warning('Taylor order reached maximum')
+  if (order_taylor>0) then
+      if (order_taylor>max_order_positive) then
+          order_taylor=max_order_positive
+          if (bigdft_mpi%iproc==0) call yaml_warning('Taylor order reached maximum')
+      end if
+  else
+      if (order_taylor<max_order_negative) then
+          order_taylor=max_order_negative
+          if (bigdft_mpi%iproc==0) call yaml_warning('Taylor order reached maximum')
+      end if
+  end if
+
+  if (is_ice) then
+      order_taylor=order_taylor+1000
   end if
 
 end subroutine check_taylor_order

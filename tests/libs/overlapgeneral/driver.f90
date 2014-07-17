@@ -37,7 +37,7 @@ program driver
 !!  integer :: lwork
   integer, dimension(4) :: mpi_info
   character(len=60) :: run_id
-  integer,parameter :: ncheck=30
+  integer,parameter :: ncheck=33
   integer,dimension(:,:),allocatable :: keyg_tmp
   integer,parameter :: SPARSE=1
   integer,parameter :: DENSE=2
@@ -338,6 +338,12 @@ program driver
           imode = 1 ; iorder=-1 ; power= 2 ; blocksize=-1
       case (30)
           imode = 1 ; iorder=-6 ; power= 2 ; blocksize=-1
+      case (31)
+          imode = 1 ; iorder=1025 ; power= -2 ; blocksize=-1
+      case (32)
+          imode = 1 ; iorder=1025 ; power= 2 ; blocksize=-1
+      case (33)
+          imode = 1 ; iorder=1025 ; power= 2 ; blocksize=-1
       case default
           stop 'wrong icheck'
       end select

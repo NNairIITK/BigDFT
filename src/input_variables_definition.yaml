@@ -887,7 +887,7 @@
                      * n<0 => Laura's method of order n
                      * n=0 => exact calculation
                      * n>0 => Taylor series of order n
-       RANGE: [-100,100]
+       RANGE: [-100,10000]
        default: 0
      max_inversion_error:
        COMMENT: linear scaling maximal error of the Taylor approximations to calculate the inverse of the overlap matrix

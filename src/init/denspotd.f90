@@ -365,11 +365,13 @@ subroutine denspot_emit_rhov(denspot, iter, iproc, nproc)
   real(gp), pointer :: full_dummy(:)
   interface
      subroutine denspot_full_density(denspot, rho_full, iproc, new)
+       use module_defs, only: gp
        use module_types
        implicit none
        type(DFT_local_fields), intent(in) :: denspot
        integer, intent(in) :: iproc
        integer, intent(out) :: new
+
        real(gp), dimension(:), pointer :: rho_full
      END SUBROUTINE denspot_full_density
   end interface
@@ -417,6 +419,7 @@ subroutine denspot_emit_v_ext(denspot, iproc, nproc)
   real(gp), pointer :: full_dummy(:)
   interface
      subroutine denspot_full_v_ext(denspot, pot_full, iproc, new)
+       use module_defs, only: gp
        use module_types
        implicit none
        type(DFT_local_fields), intent(in) :: denspot

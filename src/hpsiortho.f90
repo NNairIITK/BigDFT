@@ -20,7 +20,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use m_ab7_mixing
   use yaml_output
-  use gaussians, only: gaussian_basis
+  use psp_projectors, only: PSPCODE_PAW,PSP_APPLY_SKIP
   implicit none
   !Arguments
   logical, intent(in) :: scf  !< If .false. do not calculate the self-consistent potential
@@ -389,7 +389,7 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
   use module_types
   use module_interfaces, fake_name => FullHamiltonianApplication
   use module_xc
-  use gaussians, only: gaussian_basis
+  use psp_projectors, only: PSPCODE_PAW,PSP_APPLY_SKIP
   implicit none
   integer, intent(in) :: iproc,nproc
   type(atoms_data), intent(in) :: at
@@ -692,7 +692,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
   use module_types
   use yaml_output
   use module_interfaces, except_this_one => NonLocalHamiltonianApplication
-  use gaussians, only: gaussian_basis
+  use psp_projectors, only: PSPCODE_PAW,PSP_APPLY_SKIP
   implicit none
   integer, intent(in) :: iproc, npsidim_orbs
   type(atoms_data), intent(in) :: at
@@ -1642,8 +1642,8 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    use module_types
    use module_interfaces, except_this_one_A => hpsitopsi
    use yaml_output
-   use gaussians, only: gaussian_basis
    use communications, only: transpose_v, untranspose_v
+   use psp_projectors, only: PSPCODE_PAW
    implicit none
    !Arguments
    integer, intent(in) :: iproc,nproc,idsx,iter
@@ -2164,16 +2164,16 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
                if (occopt == SMEARING_DIST_ERF) then
                   call derf_ab(res,arg)
                   f =.5d0*(1.d0-res)
-                  df=-exp(-arg**2)/sqrtpi 
+                  df=-safe_exp(-arg**2)/sqrtpi 
                else if (occopt == SMEARING_DIST_FERMI) then
-                  f =1.d0/(1.d0+exp(arg)) 
-                  df=-1.d0/(2.d0+exp(arg)+exp(-arg)) 
+                  f =1.d0/(1.d0+safe_exp(arg)) 
+                  df=-1.d0/(2.d0+safe_exp(arg)+safe_exp(-arg)) 
                else if (occopt == SMEARING_DIST_COLD1 .or. occopt == SMEARING_DIST_COLD2 .or. &  
                     &  occopt == SMEARING_DIST_METPX ) then
                   x= -arg
                   call derf_ab(res,x)
-                  f =.5d0*(1.d0+res +exp(-x**2)*(-a*x**2 + .5d0*a+x)/sqrtpi)
-                  df=-exp(-x**2) * (a*x**3 -x**2 -1.5d0*a*x +1.5d0) /sqrtpi   ! df:=df/darg=-df/dx
+                  f =.5d0*(1.d0+res +safe_exp(-x**2)*(-a*x**2 + .5d0*a+x)/sqrtpi)
+                  df=-safe_exp(-x**2) * (a*x**3 -x**2 -1.5d0*a*x +1.5d0) /sqrtpi   ! df:=df/darg=-df/dx
                else
                   f  = 0.d0
                   df = 0.d0
@@ -2227,8 +2227,8 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
             cutoffd=.5d0*(1.d0-resd)
          else if (occopt == SMEARING_DIST_FERMI) then
             !Fermi function
-            cutoffu=1.d0/(1.d0+exp(argu))
-            cutoffd=1.d0/(1.d0+exp(argd))
+            cutoffu=1.d0/(1.d0+safe_exp(argu))
+            cutoffd=1.d0/(1.d0+safe_exp(argd))
          else if (occopt == SMEARING_DIST_COLD1 .or. occopt == SMEARING_DIST_COLD2 .or. &  
               &  occopt == SMEARING_DIST_METPX ) then
             !Marzari's relation with different a 
@@ -2236,8 +2236,8 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
             xd=-argd
             call derf_ab(resu,xu)
             call derf_ab(resd,xd)
-            cutoffu=.5d0*(1.d0+resu +exp(-xu**2)*(-a*xu**2 + .5d0*a+xu)/sqrtpi)
-            cutoffd=.5d0*(1.d0+resd +exp(-xd**2)*(-a*xd**2 + .5d0*a+xd)/sqrtpi)
+            cutoffu=.5d0*(1.d0+resu +safe_exp(-xu**2)*(-a*xu**2 + .5d0*a+xu)/sqrtpi)
+            cutoffd=.5d0*(1.d0+resd +safe_exp(-xd**2)*(-a*xd**2 + .5d0*a+xd)/sqrtpi)
          end if
       enddo
 

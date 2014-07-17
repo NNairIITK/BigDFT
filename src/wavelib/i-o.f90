@@ -410,8 +410,8 @@ contains
 
 
   subroutine io_gcoordToLocreg(n1, n2, n3, nvctr_c, nvctr_f, gcoord_c, gcoord_f, lr)
-    use module_defs
-    use module_types
+    use module_base
+    use locregs
 
     implicit none
     !Arguments

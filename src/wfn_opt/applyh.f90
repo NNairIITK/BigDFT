@@ -762,6 +762,7 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
   use module_types
   use yaml_output
   use gaussians, only:gaussian_basis
+  use psp_projectors, only: PSPCODE_PAW
   implicit none
   integer, intent(in) :: iproc
   real(gp), intent(in) :: hx,hy,hz

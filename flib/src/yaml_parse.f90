@@ -42,7 +42,7 @@ module yaml_parse
      !> dictionary specifying the valid options
      type(dictionary), pointer :: options
      !> parsed dictionary, filled by options which have valid default value
-     type(dictionary), pointer :: parse
+     type(dictionary), pointer :: args
   end type yaml_cl_parse
   
   public :: yaml_parse_from_file
@@ -73,7 +73,7 @@ contains
 
     call f_strcpy(src=' ',dest=parser%first_command_key)
     nullify(parser%options)
-    nullify(parser%parse)
+    nullify(parser%args)
   end subroutine nullify_yaml_cl_parse
 
   subroutine yaml_cl_parse_free(parser)
@@ -81,7 +81,7 @@ contains
     implicit none
     type(yaml_cl_parse), intent(inout) :: parser
     call dict_free(parser%options)
-    call dict_free(parser%parse)
+    call dict_free(parser%args)
     parser = yaml_cl_parse_null()
   end subroutine yaml_cl_parse_free
 
@@ -140,6 +140,12 @@ contains
 
   end subroutine yaml_cl_parse_option
 
+!  subroutine parser_help(parser)
+!    use dictionaries
+!    implicit none
+!    type(yaml_cl_parse), intent(in) :: parser
+!  end subroutine parser_help
+
   !> fill the parsed dictionary with default values
   subroutine yaml_cl_parse_init(parser)
     use dictionaries
@@ -150,14 +156,14 @@ contains
     type(dictionary), pointer :: opt_iter
     character(len=max_field_length) :: default
 
-    call dict_free(parser%parse)
-    call dict_init(parser%parse)
+    call dict_free(parser%args)
+    call dict_init(parser%args)
 
     opt_iter=> dict_iter(parser%options)
     do while(associated(opt_iter))
        default=opt_iter//OPTDEFAULT
        if (trim(default) /= 'None') then
-          call set(parser%parse//dict_key(opt_iter),default)
+          call set(parser%args//dict_key(opt_iter),default)
        end if
        opt_iter=> dict_next(opt_iter)
     end do
@@ -173,7 +179,6 @@ contains
     type(yaml_cl_parse), intent(inout) :: parser
     !local variables
     integer :: icommands,ncommands
-    character(len=max_field_length) :: key
     type(dictionary), pointer :: dict
     !fill the parser with default values
     call yaml_cl_parse_init(parser)
@@ -183,34 +188,27 @@ contains
 
     icommands=1
     do while(icommands <= ncommands)
-       call parse_command(key,dict)
+       call parse_command(dict)
        !cycle if command is unreadable
        if (f_err_check(err_id=ERROR_YAML_COMMAND_LINE_PARSER)) cycle
-       if (trim(key)=='help') then
-          !call parser_help(parser)
-       else if (trim(key)=='h') then
-          !call parser_shorthelp(parser)
-       else
-          !fill the parser with the parsed dictionary
-          call set(parser%parse//trim(key),dict//trim(key))
-          call dict_free(dict)
-       end if
+       !fill the parser with the parsed dictionary
+       call dict_update(parser%args,dict)
+       call dict_free(dict)
     end do
 
     contains
 
       !> parse the input command and returns the dictionary which is associated to it
-      subroutine parse_command(key,dict)
+      subroutine parse_command(dict)
         implicit none
         !> value of the key of the parser as it has been defined in the parser dictionary
         !! it can be 'help' or 'h' for dumping the help dictionary (in long or short version respectively)
-        character(len=*), intent(out) :: key
         !> dictionary associated to the value (nullified on output if key absent)
         type(dictionary), pointer, intent(out) :: dict
         !local variables
         logical :: found
         integer :: ipos,jpos
-        character(len=max_field_length) :: command,test
+        character(len=max_field_length) :: command,test,key
         character(len=1) :: short_key
         type(dictionary), pointer :: opt_iter
 
@@ -230,14 +228,15 @@ contains
                       err_id=ERROR_YAML_COMMAND_LINE_PARSER)
                  return
               end if
-              call f_strcpy(src='help',dest=key)
+              !call parser_help(parser)
               return
            end if
 
            !a long key has always to be specified as --key=yaml_dict
            jpos=index(command(ipos+1:),'=')
            if (jpos == 0) then
-              call f_err_throw('Command line option '//trim(command(ipos:))//' has no value given',&
+              call f_err_throw('Argument to '//trim(command(ipos:))//&
+                   ' is missing',&
                    err_id=ERROR_YAML_COMMAND_LINE_PARSER)
               return
            end if
@@ -249,10 +248,6 @@ contains
            !then parse the value as a yaml_string
            jpos=jpos+1
            dict=>yaml_a_todict(trim(command(ipos+jpos:)),key)
-           !call yaml_dict_dump(dict)
-           !call yaml_map('key',dict_key(dict))
-           !call yaml_map('size',dict_size(dict))
-           !call yaml_map('now',dict//key)
         else
            !search for short string format (one letter only)
            !example -k yaml_dict
@@ -261,7 +256,8 @@ contains
               ipos=ipos+1
               short_key=command(ipos:ipos)
               if (len_trim(command(ipos+1:)) > 0) then
-                 call f_err_throw('Short command line option '//trim(command(ipos-1:))//&
+                 call f_err_throw('Short command line option '//&
+                      trim(command(ipos-1:))//&
                       ' has to be on one letter only',&
                       err_id=ERROR_YAML_COMMAND_LINE_PARSER)
                  return
@@ -272,7 +268,7 @@ contains
                          err_id=ERROR_YAML_COMMAND_LINE_PARSER)
                     return
                  end if
-                 call f_strcpy(src='h',dest=key)
+                 !call parser_shorthelp(parser)
                  return
               end if
               !then fill the key according to the set values
@@ -314,7 +310,7 @@ contains
         end if
       end subroutine parse_command
 
-  end subroutine yaml_cl_parse_cmd_line
+    end subroutine yaml_cl_parse_cmd_line
 
   !> retrieve the command a a string
   subroutine get_cmd(icommands,command)
@@ -627,6 +623,7 @@ contains
   function yaml_a_todict(string,key) result(dict)
     use dictionaries
     use yaml_strings, only: f_strcpy
+    !use yaml_output !to be removed
     implicit none
     character(len=*), intent(in) :: string
     !> key of the parsed string. the dictionary will have this key
@@ -634,15 +631,26 @@ contains
     character(len=*), intent(in), optional :: key
     type(dictionary), pointer :: dict
     !local variables
-    type(dictionary), pointer :: loaded_string
+    type(dictionary), pointer :: loaded_string,test
     !parse from the given string
     call yaml_parse_from_string(loaded_string,string)
-    !exctract the first document
+    
+    !extract the first document
     dict => loaded_string .pop. 0
     call dict_free(loaded_string)
-    if (present(key)) then
-       !dict=>dict_iter(dict) !this reflects an anomaly
-       call f_strcpy(src=trim(key),dest=dict%data%key)
+
+    if (present(key)) then !to be defined better
+       select case(dict_value(dict))
+       case(TYPE_DICT,TYPE_LIST)
+          call dict_init(test)
+          call dict_copy(test//trim(key),dict)
+          call dict_free(dict)
+          dict=>test
+       case default
+          test=>dict_new(trim(key) .is. dict_value(dict_iter(dict)))
+          call dict_free(dict)
+          dict=>test
+       end select
     end if
     
   end function yaml_a_todict

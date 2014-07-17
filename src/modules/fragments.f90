@@ -10,7 +10,7 @@
  
 !> Module which defines some important structures and methods to manipulate embedding systems
 module module_fragments
-  use module_base, only: gp,wp
+  use module_base, only: gp,wp,bigdft_mpi,dp
   use module_types
   use dynamic_memory
   use module_atoms

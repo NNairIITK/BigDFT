@@ -63,6 +63,7 @@
 
 !> Add a displacement of atomic positions and put in the box
 subroutine astruct_set_displacement(astruct, randdis)
+  use module_defs, only: gp
   use module_types
   implicit none
   type(atomic_structure), intent(inout) :: astruct
@@ -956,6 +957,7 @@ END SUBROUTINE charge_and_spol
 
 
 subroutine atoms_write(atoms, filename, forces, energy, comment)
+  use module_defs, only: gp
   use module_types
   use module_interfaces, only: write_atomic_file
   implicit none
@@ -995,6 +997,7 @@ END SUBROUTINE atoms_set_name
 
 
 subroutine astruct_set_geometry(astruct, alat, geocode, format, units)
+  use module_defs, only: gp
   use module_types
   implicit none
   type(atomic_structure), intent(inout) :: astruct
@@ -1085,6 +1088,7 @@ END SUBROUTINE atoms_get_ifrztyp
 
 
 subroutine atoms_get_rxyz(atoms, rxyz)
+  use module_defs, only: gp
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms
@@ -1153,6 +1157,7 @@ END SUBROUTINE atoms_get_ixcpsp
 
 
 subroutine atoms_get_amu(atoms, amu)
+  use module_defs, only: gp
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms
@@ -1174,6 +1179,7 @@ END SUBROUTINE atoms_get_amu
 
 !> get radii_cf values
 subroutine atoms_get_radii_cf(atoms, radii_cf)
+  use module_defs, only: gp
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms
@@ -1184,6 +1190,7 @@ END SUBROUTINE atoms_get_radii_cf
 
 
 subroutine atoms_get_psppar(atoms, psppar)
+  use module_defs, only: gp
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms
@@ -1193,6 +1200,7 @@ subroutine atoms_get_psppar(atoms, psppar)
 END SUBROUTINE atoms_get_psppar
 
 subroutine atoms_get_nlccpar(atoms, nlccpar)
+  use module_defs, only: gp
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms
@@ -1265,6 +1273,7 @@ END SUBROUTINE astruct_copy_name
 
 
 subroutine astruct_copy_alat(astruct, alat)
+  use module_defs, only: gp
   use module_types
   implicit none
   type(atomic_structure), intent(in) :: astruct

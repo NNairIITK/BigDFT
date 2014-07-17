@@ -10,8 +10,7 @@
 
 !> Create the localisation region information for cubic code
 subroutine create_Glr(geocode,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i,wfd,bounds,Glr)
-  use module_base
-  use module_types
+  use locregs
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
@@ -267,7 +266,7 @@ END SUBROUTINE create_Glr
 
 subroutine draw_locregs(nlr,hx,hy,hz,Llr)
   use module_base
-  use module_types
+  use locregs
   implicit none
   integer, intent(in) :: nlr
   real(gp), intent(in) :: hx,hy,hz
@@ -333,7 +332,7 @@ END SUBROUTINE draw_locregs
 !> Calculates the bounds arrays needed for convolutions
 subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
   use module_base
-  use module_types
+  use locregs
   use module_interfaces, except_this_one => locreg_bounds
   implicit none
   !Arguments
@@ -392,169 +391,6 @@ subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
   call f_release_routine()
 
 END SUBROUTINE locreg_bounds
-
-
-
-
-!>   This subroutine define other wavefunctions descriptors starting from the original descriptors 
-!!   and the limits of a given localisation region
-!!   it also returns an array which is used to mask the compressed wavefunction into the new one
-!! INPUTS
-!!   @param ilocreg        localisation region to be considered
-!!   @param nlocreg        total number of localisation regions
-!!   @param n1,n2          original dimensions of the global box
-!!   @param lrlims         array of limits of the localisation regions (global system coordinates)
-!!   @param wfdg           global wavefunction descriptors structure
-!! OUTPUT
-!!   @param wfdl           local wavefunction descriptors structure in local system coordinates
-!!   @param keymask        mask array for traducing the wavefunction in compressed form
-!!                         to the wavefunction in compressed form for the local system
-!!   @param ncountlocreg   array of elements for each localisation region
-!!subroutine loc_wfd(ilocreg,nlocreg,n1,n2,lrlims,wfdg,wfdl,keymask,ncountlocreg)
-!!  use module_base
-!!  use module_types
-!!  implicit none
-!!  type(wavefunctions_descriptors), intent(in) :: wfdg
-!!  integer, intent(in) :: ilocreg,nlocreg,n1,n2
-!!  integer, dimension(2,3,nlocreg), intent(in) :: lrlims
-!!  type(wavefunctions_descriptors), intent(out) :: wfdl
-!!  integer, dimension(nlocreg), intent(out) :: ncountlocreg
-!!  integer, dimension(:), pointer :: keymask
-!!  !local variables
-!!  character(len=*), parameter :: subname='loc_wfd'
-!!  integer :: i_stat
-!!  integer :: iloc,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nvctr_c,nseg_c,nseg_f,nvctr_f,ndimkey
-!!
-!!  !calculate the number of segments of the new descriptors for each localisation region
-!!  !and the dimension of the array for the translation of the localisation regions
-!!  ndimkey=0
-!!  do iloc=1,nlocreg
-!!     if (iloc /= ilocreg) then
-!!        !coarse part
-!!        call num_segkeys_loc(n1,n2,lrlims(1,1,iloc),lrlims(2,1,iloc),&
-!!             lrlims(1,2,iloc),lrlims(2,2,iloc),lrlims(1,3,iloc),lrlims(2,3,iloc),&
-!!             wfdg%nseg_c,wfdg%nvctr_c,wfdg%keyg(1,1),wfdg%keyv(1),&
-!!             nseg_c,nvctr_c)
-!!        !fine part
-!!        call num_segkeys_loc(n1,n2,lrlims(1,1,iloc),lrlims(2,1,iloc),&
-!!             lrlims(1,2,iloc),lrlims(2,2,iloc),lrlims(1,3,iloc),lrlims(2,3,iloc),&
-!!             wfdg%nseg_f,wfdg%nvctr_f,wfdg%keyg(1,wfdg%nseg_c+min(1,wfdg%nseg_f)),&
-!!             wfdg%keyv(wfdg%nseg_c+min(1,wfdg%nseg_f)),&
-!!             nseg_f,nvctr_f)
-!!        ncountlocreg(iloc)=nvctr_c+7*nvctr_f
-!!        ndimkey=ndimkey+nseg_c+nseg_f
-!!     end if
-!!  end do
-!!
-!!  i1sc=lrlims(1,1,ilocreg)
-!!  i1ec=lrlims(2,1,ilocreg)
-!!  i2sc=lrlims(1,2,ilocreg)
-!!  i2ec=lrlims(2,2,ilocreg)
-!!  i3sc=lrlims(1,3,ilocreg)
-!!  i3ec=lrlims(2,3,ilocreg)
-!!
-!!  !coarse part
-!!  call num_segkeys_loc(n1,n2,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,&
-!!       wfdg%nseg_c,wfdg%nvctr_c,wfdg%keyg(1,1),wfdg%keyv(1),&
-!!       wfdl%nseg_c,wfdl%nvctr_c)
-!!
-!!  !fine part
-!!  call num_segkeys_loc(n1,n2,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,&
-!!       wfdg%nseg_f,wfdg%nvctr_f,wfdg%keyg(1,wfdg%nseg_c+min(1,wfdg%nseg_f)),&
-!!       wfdg%keyv(wfdg%nseg_c+min(1,wfdg%nseg_f)),&
-!!       wfdl%nseg_f,wfdl%nvctr_f)
-!!
-!!  ncountlocreg(ilocreg)=wfdl%nvctr_c+7*wfdl%nvctr_f
-!!  ndimkey=ndimkey+wfdl%nseg_c+wfdl%nseg_f
-!!
-!!  call allocate_wfd(wfdl,subname)
-!!
-!!  allocate(keymask(ndimkey+ndebug),stat=i_stat)
-!!  call memocc(i_stat,keymask,'keymask',subname)
-!!
-!!  !now fill the local wavefunction descriptors
-!!  !and define the mask array for the wavefunction
-!!  !coarse part
-!!  call segkeys_loc(n1,n2,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,& !n(m)
-!!       wfdg%nseg_c,wfdg%keyg(1,1),wfdg%keyv(1),&
-!!       wfdl%nseg_c,wfdl%nvctr_c,wfdl%keyg(1,1),wfdl%keyv(1))!,keymask(1))
-!!
-!!  !fine part
-!!  call segkeys_loc(n1,n2,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,& !n(m)
-!!       wfdg%nseg_f,wfdg%keyg(1,wfdg%nseg_c+min(1,wfdg%nseg_f)),&
-!!       wfdg%keyv(wfdg%nseg_c+min(1,wfdg%nseg_f)),&
-!!       wfdl%nseg_f,wfdl%nvctr_f,wfdl%keyg(1,wfdl%nseg_c+min(1,wfdl%nseg_f)),&
-!!       wfdl%keyv(wfdl%nseg_c+min(1,wfdl%nseg_f)))!,&
-!!       !keymask(wfdg%nseg_c+1))
-!!
-!!  !a little check on the masking array
-!!!!!  if (count(maskarr) /= wfdl%nvctr_c+7*wfdl%nvctr_f) then
-!!!!!     write(*,'(1x,a)')'ERROR : Masking problem, check maskarr'
-!!!!!     stop
-!!!!!  end if
-!!
-!!END SUBROUTINE loc_wfd
-
-
-!!subroutine build_keymask(n1,n2,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg_tot,keyg,keyv,&
-!!     nseg_loc,keymask)
-!!  implicit none
-!!  integer, intent(in) :: n1,n2,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg_tot,nseg_loc
-!!  integer, dimension(nseg_tot), intent(in) :: keyv
-!!  integer, dimension(2,nseg_tot), intent(in) :: keyg
-!!  integer, dimension(2,nseg_loc), intent(out) :: keymask
-!!  !local variables
-!!  logical :: go,lseg
-!!  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,ind,nsrt,nend
-!!
-!!  !start and end points
-!!  nsrt=0
-!!  nend=0
-!!  do iseg=1,nseg_tot
-!!     jj=keyv(iseg)
-!!     j0=keyg(1,iseg)
-!!     j1=keyg(2,iseg)
-!!     ii=j0-1
-!!     i3=ii/((n1+1)*(n2+1))
-!!     ii=ii-i3*(n1+1)*(n2+1)
-!!     i2=ii/(n1+1)
-!!     i0=ii-i2*(n1+1)
-!!     i1=i0+j1-j0
-!!     go=(i3sc <= i3 .and. i3 <= i3ec) .and. (i2sc <= i2 .and. i2 <= i2ec)
-!!     lseg=.false.
-!!     do i=i0,i1
-!!        !index of the compressed function
-!!        ind=i-i0+jj
-!!        if (go .and. (i1sc <= i .and. i <= i1ec)) then
-!!           if (.not. lseg) then
-!!              nsrt=nsrt+1
-!!              keymask(1,nsrt)=ind
-!!           end if
-!!           lseg=.true.
-!!        else
-!!           if (lseg) then
-!!              keymask(2,nend)=ind-1
-!!              nend=nend+1
-!!              lseg=.false. 
-!!           end if
-!!        end if
-!!     end do
-!!     if (lseg) then
-!!        keymask(2,nend)=ind
-!!        nend=nend+1
-!!     end if
-!!  end do
-!!
-!!  !check
-!!  if (nend /= nsrt .or. nend /= nseg_loc) then
-!!     write(*,'(1x,a,2(i6))')&
-!!          'ERROR: problem in build_keymask',&
-!!          nend,nsrt,nseg_loc
-!!     stop
-!!  end if
-!!
-!!END SUBROUTINE build_keymask
-
 
 
 
