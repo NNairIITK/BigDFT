@@ -25,7 +25,10 @@ module copy_utils
       if (associated(array_out)) then
           call f_free_ptr(array_out)
       end if
+      !array_out=f_malloc_ptr(src_ptr=array_in,id=id)
       if (associated(array_in)) then
+          !array_out=f_malloc_ptr(lbounds=lbound(array_in),ubounds=ubound(array_in),id=id)
+          !call f_memcpy(src=array_in,dest=array_out)
           iis1=lbound(array_in,1)
           iie1=ubound(array_in,1)
           ncount=iie1-iis1+1
