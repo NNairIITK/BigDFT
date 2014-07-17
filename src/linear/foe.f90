@@ -1896,10 +1896,13 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
                   chebyshev_polynomials = f_malloc((/nsize_polynomial,npl/),id='chebyshev_polynomials')
               end if
               if (iproc==0) then
+                  call yaml_newline()
+                  call yaml_sequence_open('ICE')
                   call yaml_map('eval bounds',&
                        (/foe_data_get_real(foe_obj,"evlow"),foe_data_get_real(foe_obj,"evhigh")/),fmt='(f5.2)')
-                  call yaml_map('degree multiplicator',degree_multiplicator,fmt='(f5.2)')
-                  call yaml_map('polynomial degree',npl)
+                  call yaml_map('mult.',degree_multiplicator,fmt='(f5.2)')
+                  call yaml_map('pol. deg.',npl)
+                  call yaml_sequence_close()
               end if
 
     
@@ -2119,11 +2122,11 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
             eval_bounds_ok(2)=.true.
         end if
 
-        if (restart) then
-            if (iproc==0) then
-                call yaml_scalar('restart required')
-            end if
-        end if
+        !if (restart) then
+        !    if (iproc==0) then
+        !        call yaml_scalar('restart required')
+        !    end if
+        !end if
 
       end subroutine check_eigenvalue_spectrum
 
