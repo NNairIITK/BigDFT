@@ -224,6 +224,7 @@ subroutine fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
   use module_base
   use module_types
   use yaml_output
+  use gaussians, only: gaussian_projectors
   implicit none
   integer, intent(in) :: idir
   real(gp), intent(in) :: hx,hy,hz
@@ -235,6 +236,7 @@ subroutine fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
   !Local variables
   !n(c) integer, parameter :: nterm_max=20 !if GTH nterm_max=4
   integer :: istart_c,iat,iproj,nwarnings,ikpt,iskpt,iekpt
+  integer :: mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
 
   !if (iproc.eq.0 .and. nlpspd%nproj /=0 .and. idir==0) &
        !write(*,'(1x,a)',advance='no') 'Calculating wavelets expansion of projectors...'
@@ -257,8 +259,15 @@ subroutine fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
      iproj=0
      do iat=1,at%astruct%nat
         !this routine is defined to uniformise the call for on-the-fly application
-        call atom_projector(nlpsp%proj_G,ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
-             lr,hx,hy,hz,rxyz(1,iat),at,orbs,1._gp,nlpsp%pspd(iat)%plr,nlpsp%proj,nwarnings)
+        call plr_segs_and_vctrs(nlpsp%pspd(iat)%plr,mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
+        call gaussian_projectors(nlpsp%proj_G, at%astruct%iatype(iat), iat, &
+             & at%astruct%atomnames(at%astruct%iatype(iat)), &
+             & at%astruct%geocode, idir, hx, hy, hz, &
+             & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), 1._gp, &
+             & lr%ns1,lr%ns2,lr%ns3,lr%d%n1,lr%d%n2,lr%d%n3, &
+             & mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, &
+             & nlpsp%pspd(iat)%plr%wfd%keyglob, nlpsp%pspd(iat)%plr%wfd%keyvglob, &
+             & istart_c, iproj, nlpsp%proj, nlpsp%nprojel, nwarnings)
      enddo
      if (iproj /= nlpsp%nproj) then
         call yaml_warning('Incorrect number of projectors created')
@@ -391,78 +400,6 @@ subroutine atom_projector_paw(ikpt,iat,idir,istart_c,iproj,nprojel,&
   call f_free(proj_tmp)
 
 END SUBROUTINE atom_projector_paw
-
-subroutine atom_projector(proj_G,ikpt,iat,idir,istart_c,iproj,nprojel,&
-     lr,hx,hy,hz,rxyz,at,orbs,rpaw,plr,proj,nwarnings)
-  use module_base
-  use module_types
-  use gaussians
-  implicit none
-  integer, parameter :: ncplx_g=1 !this is true for NC pseudos
-  integer, intent(in) :: iat,idir,ikpt,nprojel
-  real(gp), intent(in) :: hx,hy,hz,rpaw
-  type(gaussian_basis_new), intent(in) :: proj_G
-  type(atoms_data), intent(in) :: at
-  type(orbitals_data), intent(in) :: orbs
-  type(locreg_descriptors), intent(in) :: plr
-  type(locreg_descriptors),intent(in) :: lr
-  real(gp), dimension(3), intent(in) :: rxyz
-  integer, intent(inout) :: istart_c,iproj,nwarnings
-  real(wp), dimension(nprojel), intent(inout) :: proj
-  !Local variables
-  integer :: ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
-!!$  integer :: l,i,ncplx_k
-!!$  real(gp) :: kx,ky,kz,gau_a(ncplx_g)
-!!$  integer :: istart_c_, iproj_
-
-!!$  !features of the k-point ikpt
-!!$  kx=orbs%kpts(1,ikpt)
-!!$  ky=orbs%kpts(2,ikpt)
-!!$  kz=orbs%kpts(3,ikpt)
-!!$  iproj_ = iproj
-!!$  istart_c_ = istart_c
-
-  call plr_segs_and_vctrs(plr,mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
-
-  ! New method.
-  ityp=at%astruct%iatype(iat)
-  call gaussian_projectors(proj_G, ityp, iat, at%astruct%atomnames(ityp), &
-       & at%astruct%geocode, idir, hx, hy, hz, &
-       & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), rpaw, &
-       & lr%ns1,lr%ns2,lr%ns3,lr%d%n1,lr%d%n2,lr%d%n3, &
-       & mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, plr%wfd%keyglob, plr%wfd%keyvglob, &
-       & istart_c, iproj, proj, nprojel, nwarnings)
-
-!!$  ! old method
-!!$  iproj = iproj_
-!!$  istart_c = istart_c_
-!!$  !evaluate the complexity of the k-point
-!!$  if (kx**2 + ky**2 + kz**2 == 0.0_gp) then
-!!$     ncplx_k=1
-!!$  else
-!!$     ncplx_k=2
-!!$  end if
-!!$  ityp=at%astruct%iatype(iat)
-!!$  !decide the loop bounds
-!!$  do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
-!!$     do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
-!!$        if (at%psppar(l,i,ityp) /= 0.0_gp) then
-!!$           gau_a(1)=at%psppar(l,0,ityp)
-!!$           call projector(at%astruct%geocode,at%astruct%atomnames(ityp),iat,idir,l,i,&
-!!$                1._gp,0.5_gp/(gau_a**2),1._gp,rxyz(1),lr%ns1,lr%ns2,lr%ns3,lr%d%n1,lr%d%n2,lr%d%n3,&
-!!$                hx,hy,hz,kx,ky,kz,ncplx_k,ncplx_g,&
-!!$                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-!!$                plr%wfd%keyvglob,plr%wfd%keyglob,&
-!!$                proj(istart_c),nwarnings)
-!!$           iproj=iproj+2*l-1
-!!$           istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx_k
-!!$           !print *,'iproc,istart_c,nlpspd%nprojel',istart_c,nlpspd%nprojel,ncplx, kx, ky, kz, ikpt
-!!$           if (istart_c > nprojel+1) stop 'istart_c > nprojel+1'
-!!$        endif
-!!$     end do
-!!$  end do
-
-END SUBROUTINE atom_projector
 
 subroutine projector(geocode,atomname,iat,idir,l,i,factor,gau_a,rpaw,rxyz,&
      ns1,ns2,ns3,n1,n2,n3,hx,hy,hz,kx,ky,kz,ncplx_k,ncplx_g,&
@@ -1869,4 +1806,3 @@ subroutine plr_segs_and_vctrs(plr,nseg_c,nseg_f,nvctr_c,nvctr_f)
   nvctr_f=plr%wfd%nvctr_f
 
 end subroutine plr_segs_and_vctrs
-

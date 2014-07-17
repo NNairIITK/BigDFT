@@ -750,7 +750,7 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
   use module_base
   use module_types
   use yaml_output
-  use gaussians, only:gaussian_basis
+  use gaussians, only:gaussian_basis, gaussian_projectors
   implicit none
   integer, intent(in) :: iproc
   real(gp), intent(in) :: hx,hy,hz
@@ -769,6 +769,7 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
   integer :: iat,nwarnings,iproj,iorb
   integer :: iatype
   integer :: istart_c,idir,isorb,ieorb,ikpt,nspinor,ispsi_k,ispsi
+  integer :: mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
   
   !put idir=0, no derivative
   idir=0
@@ -794,14 +795,24 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
      do iat=1,at%astruct%nat
         iatype=at%astruct%iatype(iat)
         istart_c=1
-        if(at%npspcode(iatype) == PSPCODE_PAW) then
-          call atom_projector_paw(ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
-               lr,hx,hy,hz,paw%rpaw(iatype),rxyz(1,iat),at,orbs,nlpsp%pspd(iat)%plr,nlpsp%proj,&
-               nwarnings,proj_G(iatype))
-        else
-          call atom_projector(nlpsp%proj_G,ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
-               lr,hx,hy,hz,rxyz(1,iat),at,orbs,1._gp,nlpsp%pspd(iat)%plr,nlpsp%proj,nwarnings)
-        end if
+
+        call plr_segs_and_vctrs(nlpsp%pspd(iat)%plr,mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
+        call gaussian_projectors(nlpsp%proj_G, iatype, iat, at%astruct%atomnames(iatype), &
+             & at%astruct%geocode, idir, hx, hy, hz, &
+             & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), 1._gp, &
+             & lr%ns1,lr%ns2,lr%ns3,lr%d%n1,lr%d%n2,lr%d%n3, &
+             & mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, &
+             & nlpsp%pspd(iat)%plr%wfd%keyglob, nlpsp%pspd(iat)%plr%wfd%keyvglob, &
+             & istart_c, iproj, nlpsp%proj, nlpsp%nprojel, nwarnings)
+
+!!$        if(at%npspcode(iatype) == PSPCODE_PAW) then
+!!$          call atom_projector_paw(ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
+!!$               lr,hx,hy,hz,paw%rpaw(iatype),rxyz(1,iat),at,orbs,nlpsp%pspd(iat)%plr,nlpsp%proj,&
+!!$               nwarnings,proj_G(iatype))
+!!$        else
+!!$          call atom_projector(nlpsp%proj_G,ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
+!!$               lr,hx,hy,hz,rxyz(1,iat),at,orbs,1._gp,nlpsp%pspd(iat)%plr,nlpsp%proj,nwarnings)
+!!$        end if
 
         !apply the projector to all the orbitals belonging to the processor
         ispsi=ispsi_k

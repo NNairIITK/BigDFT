@@ -806,7 +806,7 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
      orbs,nlpsp,wfd,psi,fsep,refill,strten)
   use module_base
   use module_types
-  use gaussians, only: gaussian_basis, nullify_gaussian_basis
+  use gaussians, only: gaussian_projectors
   implicit none
   !Arguments-------------
   type(atoms_data), intent(in) :: at
@@ -915,9 +915,16 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
               ityp=at%astruct%iatype(iat)
               !calculate projectors
               istart_c=1
-              call atom_projector(nlpsp%proj_G,ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
-                   lr,hx,hy,hz,rxyz(1,iat),at,orbs,1._gp,nlpsp%pspd(iat)%plr,&
-                   nlpsp%proj,nwarnings)!,proj_G)
+!!$              call atom_projector(nlpsp%proj_G,ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
+!!$                   lr,hx,hy,hz,rxyz(1,iat),at,orbs,1._gp,nlpsp%pspd(iat)%plr,&
+!!$                   nlpsp%proj,nwarnings)!,proj_G)
+              call gaussian_projectors(nlpsp%proj_G, ityp, iat, at%astruct%atomnames(ityp), &
+                   & at%astruct%geocode, idir, hx, hy, hz, &
+                   & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), 1._gp, &
+                   & lr%ns1,lr%ns2,lr%ns3,lr%d%n1,lr%d%n2,lr%d%n3, &
+                   & mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, &
+                   & nlpsp%pspd(iat)%plr%wfd%keyglob, nlpsp%pspd(iat)%plr%wfd%keyvglob, &
+                   & istart_c, iproj, nlpsp%proj, nlpsp%nprojel, nwarnings)
               !!do i_all=1,nlpspd%nprojel
               !!    write(850+iat,*) i_all, proj(i_all)
               !!end do
@@ -4199,6 +4206,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix, matrices
+  use gaussians, only: gaussian_projectors
   implicit none
   !Arguments-------------
   type(atoms_data), intent(in) :: at
@@ -4351,9 +4359,16 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                ityp=at%astruct%iatype(iat)
                   !calculate projectors
                   istart_c=1
-                  call atom_projector(nlpsp%proj_G,ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
-                       lr,hx,hy,hz,rxyz(1,iat),at,orbs,1._gp,nlpsp%pspd(iat)%plr,&
-                       nlpsp%proj,nwarnings)
+!!$                  call atom_projector(nlpsp%proj_G,ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
+!!$                       lr,hx,hy,hz,rxyz(1,iat),at,orbs,1._gp,nlpsp%pspd(iat)%plr,&
+!!$                       nlpsp%proj,nwarnings)
+                  call gaussian_projectors(nlpsp%proj_G, ityp, iat, at%astruct%atomnames(ityp), &
+                       & at%astruct%geocode, idir, hx, hy, hz, &
+                       & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), 1._gp, &
+                       & lr%ns1,lr%ns2,lr%ns3,lr%d%n1,lr%d%n2,lr%d%n3, &
+                       & mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, &
+                       & nlpsp%pspd(iat)%plr%wfd%keyglob, nlpsp%pspd(iat)%plr%wfd%keyvglob, &
+                       & istart_c, iproj, nlpsp%proj, nlpsp%nprojel, nwarnings)
                    !!do i_all=1,nlpspd%nprojel
                    !!    write(800+iat,*) i_all, proj(i_all)
                    !!end do
