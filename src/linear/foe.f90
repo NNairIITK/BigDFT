@@ -1629,8 +1629,8 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, norder_polynomial
-  type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
-  !type(sparse_matrix),intent(inout) :: ovrlp_smat, inv_ovrlp_smat !for debug inout
+  !type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
+  type(sparse_matrix),intent(inout) :: ovrlp_smat, inv_ovrlp_smat !for debug inout
   integer :: ex
   type(matrices),intent(in) :: ovrlp_mat
   type(matrices),intent(out) :: inv_ovrlp
@@ -1663,7 +1663,8 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
   real(kind=8),parameter :: TEMP_MULTIPLICATOR_ACCURATE=1.d0
   real(kind=8),parameter :: TEMP_MULTIPLICATOR_FAST=1.2d0 !2.d0 !1.2d0
   real(kind=8),parameter :: CHECK_RATIO=1.25d0
-  integer,parameter :: NPL_MIN=20
+  integer,parameter :: NPL_MIN=5
+  real(kind=8),parameter :: DEGREE_MULTIPLICATOR_MAX=10.d0
   integer,parameter :: NTEMP_ACCURATE=4
   integer,parameter :: NTEMP_FAST=1
   real(kind=8) :: degree_multiplicator
@@ -1675,7 +1676,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
 
   real(kind=8),dimension(ovrlp_smat%nfvctr,ovrlp_smat%nfvctr) :: overlap
   real(kind=8),dimension(ovrlp_smat%nfvctr) :: eval
-  integer,parameter :: lwork=1000
+  integer,parameter :: lwork=100000
   real(kind=8),dimension(lwork) :: work
 
   call f_routine(id='ice')
@@ -1685,7 +1686,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
 !@ JUST FOR THE MOMENT.... ########################
      call foe_data_set_real(foe_obj,"ef",0.d0)
      call foe_data_set_real(foe_obj,"evlow",0.5d0)
-     call foe_data_set_real(foe_obj,"evhigh",1.5d0)
+     call foe_data_set_real(foe_obj,"evhigh",2.5d0)
      call foe_data_set_real(foe_obj,"bisection_shift",1.d-1)
      call foe_data_set_real(foe_obj,"fscale",1.d-1)
      call foe_data_set_real(foe_obj,"ef_interpol_det",0.d0)
@@ -1755,6 +1756,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
 
 
       degree_multiplicator = real(norder_polynomial,kind=8)/(foe_data_get_real(foe_obj,"evhigh")-foe_data_get_real(foe_obj,"evlow"))
+      degree_multiplicator = min(degree_multiplicator,DEGREE_MULTIPLICATOR_MAX)
       temp_multiplicator = TEMP_MULTIPLICATOR_FAST
       fscale = temp_multiplicator*foe_data_get_real(foe_obj,"fscale")
       fscale = max(fscale,FSCALE_LOWER_LIMIT)
@@ -1866,10 +1868,10 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
 
               !call uncompress_matrix(iproc,ovrlp_smat,ovrlp_mat%matrix_compr,overlap)
               !call dsyev('v', 'l', ovrlp_smat%nfvctr, overlap, ovrlp_smat%nfvctr, eval, work, lwork, info)
-              !write(*,*) 'ovrlp_mat%matrix_compr: eval low / high',eval(1), eval(ovrlp_smat%nfvctr)
+              !if (iproc==0) write(*,*) 'ovrlp_mat%matrix_compr: eval low / high',eval(1), eval(ovrlp_smat%nfvctr)
               !call uncompress_matrix(iproc,inv_ovrlp_smat,hamscal_compr,overlap)
               !call dsyev('v', 'l', ovrlp_smat%nfvctr, overlap, ovrlp_smat%nfvctr, eval, work, lwork, info)
-              !write(*,*) 'hamscal_compr: eval low / high',eval(1), eval(ovrlp_smat%nfvctr)
+              !if (iproc==0) write(*,*) 'hamscal_compr: eval low / high',eval(1), eval(ovrlp_smat%nfvctr)
     
     
               ! Determine the degree of the polynomial
@@ -1892,6 +1894,12 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
               if (calculate_SHS) then
                   call f_free(chebyshev_polynomials)
                   chebyshev_polynomials = f_malloc((/nsize_polynomial,npl/),id='chebyshev_polynomials')
+              end if
+              if (iproc==0) then
+                  call yaml_map('eval bounds',&
+                       (/foe_data_get_real(foe_obj,"evlow"),foe_data_get_real(foe_obj,"evhigh")/),fmt='(f5.2)')
+                  call yaml_map('degree multiplicator',degree_multiplicator,fmt='(f5.2)')
+                  call yaml_map('polynomial degree',npl)
               end if
 
     
@@ -2043,225 +2051,6 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
 
       contains
 
-     !!!   subroutine overlap_minus_onehalf()
-     !!!     implicit none
-     !!!     real(kind=8) :: max_error, mean_error
-
-     !!!     call f_routine(id='overlap_minus_onehalf')
-
-     !!!     ! Taylor approximation of S^-1/2 up to higher order
-     !!!     if (imode==DENSE) then
-     !!!         tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(ovrlp_smat, iaction=DENSE_FULL, &
-     !!!                                    id='tmb%linmat%ovrlp_%matrix')
-     !!!         call uncompress_matrix(iproc, ovrlp_smat, &
-     !!!              inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
-
-     !!!         inv_ovrlp%matrix=sparsematrix_malloc_ptr(inv_ovrlp_smat, &
-     !!!                                           iaction=DENSE_FULL, id='inv_ovrlp%matrix')
-     !!!         call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, &
-     !!!              imode=2, ovrlp_smat=ovrlp_smat, inv_ovrlp_smat=inv_ovrlp_smat, &
-     !!!              ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
-     !!!              check_accur=.true., max_error=max_error, mean_error=mean_error)
-     !!!         call compress_matrix(iproc, inv_ovrlp_smat, inmat=inv_ovrlp%matrix, outmat=inv_ovrlp%matrix_compr)
-     !!!     end if
-     !!!     if (imode==SPARSE) then
-     !!!         call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, &
-     !!!              imode=1, ovrlp_smat=ovrlp_smat, inv_ovrlp_smat=inv_ovrlp_smat, &
-     !!!              ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
-     !!!              check_accur=.true., max_error=max_error, mean_error=mean_error)
-     !!!     end if
-     !!!     call check_taylor_order(mean_error, max_inversion_error, order_taylor)
-     !!!     if (foe_verbosity>=1 .and. iproc==0) then
-     !!!         call yaml_map('max error of S^-1/2',max_error,fmt='(es9.2)')
-     !!!         call yaml_map('mean error of S^-1/2',mean_error,fmt='(es9.2)')
-     !!!     end if
-
-
-     !!!     if (imode==DENSE) then
-     !!!         call f_free_ptr(inv_ovrlp%matrix)
-
-     !!!         call f_free_ptr(tmb%linmat%ovrlp_%matrix)
-     !!!     end if
-
-     !!!     call f_release_routine()
-     !!! end subroutine overlap_minus_onehalf
-
-
-
-     !! subroutine retransform(matrix_compr)
-     !!     use sparsematrix, only: sequential_acces_matrix_fast, sparsemm
-     !!     ! Calling arguments
-     !!     real(kind=8),dimension(inv_ovrlp_smat%nvctr),intent(inout) :: matrix_compr
-
-     !!     ! Local variables
-     !!     real(kind=8),dimension(:,:),pointer :: inv_ovrlpp, tempp
-     !!     integer,dimension(:,:),pointer :: onedimindices
-     !!     real(kind=8),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
-     !!     integer,dimension(:),allocatable :: ivectorindex
-     !!     integer,dimension(:,:,:),allocatable :: istindexarr
-     !!     integer :: nout, nseq, nmaxsegk, nmaxvalk
-
-     !!     call f_routine(id='retransform')
-
-     !!     inv_ovrlpp = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='inv_ovrlpp')
-     !!     tempp = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='inv_ovrlpp')
-     !!     inv_ovrlp_compr_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
-     !!     kernel_compr_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
-     !!     call sequential_acces_matrix_fast(inv_ovrlp_smat, matrix_compr, kernel_compr_seq)
-     !!     call sequential_acces_matrix_fast(inv_ovrlp_smat, &
-     !!          inv_ovrlp%matrix_compr, inv_ovrlp_compr_seq)
-     !!     call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, &
-     !!          inv_ovrlp%matrix_compr, inv_ovrlpp)
-
-     !!      tempp=0.d0
-     !!     call sparsemm(inv_ovrlp_smat, kernel_compr_seq, inv_ovrlpp, tempp)
-     !!     inv_ovrlpp=0.d0
-     !!     call sparsemm(inv_ovrlp_smat, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
-
-     !!     call to_zero(inv_ovrlp_smat%nvctr, matrix_compr(1))
-     !!     call compress_matrix_distributed(iproc, inv_ovrlp_smat, inv_ovrlpp, matrix_compr)
-
-     !!     call f_free_ptr(inv_ovrlpp)
-     !!     call f_free_ptr(tempp)
-     !!     call f_free(inv_ovrlp_compr_seq)
-     !!     call f_free(kernel_compr_seq)
-
-     !!     call f_release_routine()
-
-     !! end subroutine retransform
-
-
-
-
-     !! subroutine calculate_trace_distributed(matrixp, trace)
-     !!     real(kind=8),dimension(ovrlp_smat%nfvctr,ovrlp_smat%nfvctrp),intent(in) :: matrixp
-     !!     real(kind=8),intent(out) :: trace
-
-     !!     call f_routine(id='calculate_trace_distributed')
-
-     !!     trace=0.d0
-     !!     if (ovrlp_smat%nfvctrp>0) then
-     !!         isegstart=inv_ovrlp_smat%istsegline(inv_ovrlp_smat%isfvctr_par(iproc)+1)
-     !!         if (inv_ovrlp_smat%isfvctr+ovrlp_smat%nfvctrp<ovrlp_smat%nfvctr) then
-     !!             isegend=inv_ovrlp_smat%istsegline(inv_ovrlp_smat%isfvctr_par(iproc+1)+1)-1
-     !!         else
-     !!             isegend=inv_ovrlp_smat%nseg
-     !!         end if
-     !!         !$omp parallel default(private) shared(isegstart, isegend, matrixp, tmb, trace) 
-     !!         !$omp do reduction(+:trace)
-     !!         do iseg=isegstart,isegend
-     !!             ii=inv_ovrlp_smat%keyv(iseg)-1
-     !!             do jorb=inv_ovrlp_smat%keyg(1,iseg),inv_ovrlp_smat%keyg(2,iseg)
-     !!                 ii=ii+1
-     !!                 iiorb = (jorb-1)/ovrlp_smat%nfvctr + 1
-     !!                 jjorb = jorb - (iiorb-1)*ovrlp_smat%nfvctr
-     !!                 if (jjorb==iiorb) trace = trace + matrixp(jjorb,iiorb-inv_ovrlp_smat%isfvctr)
-     !!             end do  
-     !!         end do
-     !!         !$omp end do
-     !!         !$omp end parallel
-     !!     end if
-    
-     !!     if (nproc > 1) then
-     !!         call mpiallred(trace, 1, mpi_sum, bigdft_mpi%mpi_comm)
-     !!     end if
-
-     !!     call f_release_routine()
-     !! end subroutine calculate_trace_distributed
-
-
-
-!!      subroutine determine_new_fermi_level()
-!!        implicit none
-!!        integer :: info, i
-!!        real(kind=8) :: determinant, m, b
-!!        real(kind=8),dimension(4,4) :: tmp_matrix
-!!        real(kind=8),dimension(4) :: interpol_solution
-!!        integer,dimension(4) :: ipiv
-!!
-!!        ! Shift up the old results.
-!!        if (it_solver>4) then
-!!            do i=1,4
-!!                interpol_matrix(1,i)=interpol_matrix(2,i)
-!!                interpol_matrix(2,i)=interpol_matrix(3,i)
-!!                interpol_matrix(3,i)=interpol_matrix(4,i)
-!!            end do
-!!            interpol_vector(1)=interpol_vector(2)
-!!            interpol_vector(2)=interpol_vector(3)
-!!            interpol_vector(3)=interpol_vector(4)
-!!        end if
-!!        !LG: if it_solver==0 this index comes out of bounds!
-!!        ii=max(min(it_solver,4),1)
-!!        interpol_matrix(ii,1)=foe_data_get_real(foe_obj,"ef")**3
-!!        interpol_matrix(ii,2)=foe_data_get_real(foe_obj,"ef")**2
-!!        interpol_matrix(ii,3)=foe_data_get_real(foe_obj,"ef")
-!!        interpol_matrix(ii,4)=1
-!!        interpol_vector(ii)=sumn-foe_data_get_real(foe_obj,"charge")
-!!    
-!!        ! Solve the linear system interpol_matrix*interpol_solution=interpol_vector
-!!        if (it_solver>=4) then
-!!            do i=1,ii
-!!                interpol_solution(i)=interpol_vector(i)
-!!                tmp_matrix(i,1)=interpol_matrix(i,1)
-!!                tmp_matrix(i,2)=interpol_matrix(i,2)
-!!                tmp_matrix(i,3)=interpol_matrix(i,3)
-!!                tmp_matrix(i,4)=interpol_matrix(i,4)
-!!            end do
-!!    
-!!            call dgesv(ii, 1, tmp_matrix, 4, ipiv, interpol_solution, 4, info)
-!!            if (info/=0) then
-!!               if (iproc==0) write(*,'(1x,a,i0)') 'ERROR in dgesv (FOE), info=',info
-!!            end if
-!!    
-!!    
-!!            call get_roots_of_cubic_polynomial(interpol_solution(1), interpol_solution(2), &
-!!                 interpol_solution(3), interpol_solution(4), foe_data_get_real(foe_obj,"ef"), ef_interpol)
-!!        end if
-!!    
-!!    
-!!    
-!!    
-!!        ! Calculate the new Fermi energy.
-!!        if (foe_verbosity>=1 .and. iproc==0) then
-!!            call yaml_newline()
-!!            call yaml_mapping_open('Search new eF',flow=.true.)
-!!        end if
-!!        if (it_solver>=4 .and.  &
-!!            abs(sumn-foe_data_get_real(foe_obj,"charge"))<foe_data_get_real(foe_obj,"ef_interpol_chargediff")) then
-!!            det=determinant(iproc,4,interpol_matrix)
-!!            if (foe_verbosity>=1 .and. iproc==0) then
-!!                call yaml_map('det',det,fmt='(es10.3)')
-!!                call yaml_map('limit',foe_data_get_real(foe_obj,"ef_interpol_det"),fmt='(es10.3)')
-!!            end if
-!!            if(abs(det)>foe_data_get_real(foe_obj,"ef_interpol_det")) then
-!!                call foe_data_set_real(foe_obj,"ef",ef_interpol)
-!!                if (foe_verbosity>=1 .and. iproc==0) call yaml_map('method','cubic interpolation')
-!!            else
-!!                ! linear interpolation
-!!                if (foe_verbosity>=1 .and. iproc==0) call yaml_map('method','linear interpolation')
-!!                m = (interpol_vector(4)-interpol_vector(3))/(interpol_matrix(4,3)-interpol_matrix(3,3))
-!!                b = interpol_vector(4)-m*interpol_matrix(4,3)
-!!                call foe_data_set_real(foe_obj,"ef", -b/m)
-!!            end if
-!!        else
-!!            ! Use mean value of bisection and secant method
-!!            ! Secant method solution
-!!            call foe_data_set_real(foe_obj,"ef", &
-!!                 efarr(2)-(sumnarr(2)-foe_data_get_real(foe_obj,"charge"))*(efarr(2)-efarr(1))/(sumnarr(2)-sumnarr(1)))
-!!            ! Add bisection solution
-!!            call foe_data_set_real(foe_obj,"ef", foe_data_get_real(foe_obj,"ef") + .5d0*(efarr(1)+efarr(2)))
-!!            ! Take the mean value
-!!            call foe_data_set_real(foe_obj,"ef", .5d0*foe_data_get_real(foe_obj,"ef"))
-!!            if (foe_verbosity>=1 .and. iproc==0) call yaml_map('method','bisection / secant method')
-!!        end if
-!!        if (foe_verbosity>=1 .and. iproc==0) then
-!!            call yaml_mapping_close()
-!!            !!call bigdft_utils_flush(unit=6)
-!!            !call yaml_newline()
-!!        end if
-!!
-!!      end subroutine determine_new_fermi_level
-
 
       subroutine check_eigenvalue_spectrum()
         implicit none
@@ -2330,6 +2119,12 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
             eval_bounds_ok(2)=.true.
         end if
 
+        if (restart) then
+            if (iproc==0) then
+                call yaml_scalar('restart required')
+            end if
+        end if
+
       end subroutine check_eigenvalue_spectrum
 
 end subroutine ice
@@ -2359,14 +2154,13 @@ subroutine cheb_exp(A,B,N,cc,ex)
   bma=0.5d0*(b-a)
   bpa=0.5d0*(b+a)
   fac=2.d0/n
-  !!$omp parallel default(none) shared(bma,bpa,fac,n,cf,cc,ex) &
-  !!$omp private(k,y,arg,tt)
-  !!$omp do
+  !$omp parallel default(none) shared(bma,bpa,fac,n,cf,cc,ex) &
+  !$omp private(k,y,arg,j,tt)
+  !$omp do
   do k=1,n
       y=cos(pi*(k-0.5d0)*(1.d0/n))
       arg=y*bma+bpa
-      !cf(k)=.5d0*erfcc((arg-ef)*(1.d0/fscale))
-      !write(*,*) 'arg, ex', arg, ex
+      !cf(k)=arg**ex
       select case(ex)
       case (-2)
           !ex=-0.5d0
@@ -2380,10 +2174,9 @@ subroutine cheb_exp(A,B,N,cc,ex)
       case default
           stop 'wrong power'
       end select
-      !cf(k)=arg**ex
   end do
-  !!$omp end do
-  !!$omp do
+  !$omp end do
+  !$omp do
   do j=1,n
       tt=0.d0
       do  k=1,n
@@ -2391,8 +2184,8 @@ subroutine cheb_exp(A,B,N,cc,ex)
       end do
       cc(j)=fac*tt
   end do
-  !!$omp end do
-  !!$omp end parallel
+  !$omp end do
+  !$omp end parallel
 
   call f_release_routine()
 

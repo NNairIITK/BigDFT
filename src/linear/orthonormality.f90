@@ -177,6 +177,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
        check_accur=.true., max_error=max_error, mean_error=mean_error)
   if (iproc==0) call yaml_map('max error',max_error)
   if (iproc==0) call yaml_map('mean error',mean_error)
+  !if (iproc==0) call yaml_scalar('no check taylor')
   call check_taylor_order(mean_error, max_inversion_error, norder_taylor)
 
 
@@ -1416,8 +1417,8 @@ subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, smat, norb, norbp,
      !!     norb, inv_ovrlp(1,isorb+1), norb, 0.d0, tmpp(1,1), norb)
      call sparsemm(smat, amat_seq, bmatp, tmpp)
      call max_matrix_diff_parallel(iproc, norb, norbp, isorb, tmpp, cmatp, smat, max_error, mean_error)
-     max_error=0.5d0*max_error
-     mean_error=0.5d0*mean_error
+     !max_error=0.5d0*max_error
+     !mean_error=0.5d0*mean_error
   else if (power==-2) then
      if (.not.present(dmat_seq)) stop 'dmat_seq not present'
      !!call dgemm('n', 'n', norb, norbp, norb, 1.d0, inv_ovrlp(1,1), &
@@ -1428,8 +1429,8 @@ subroutine check_accur_overlap_minus_one_sparse(iproc, nproc, smat, norb, norbp,
      !!     norb, tmpp(1,1), norb, 0.d0, tmp2p(1,1), norb)
      call sparsemm(smat, dmat_seq, tmpp, tmp2p)
      call deviation_from_unity_parallel(iproc, nproc, norb, norbp, isorb, tmp2p, smat, max_error, mean_error)
-     max_error=0.5d0*max_error
-     mean_error=0.5d0*mean_error
+     !max_error=0.5d0*max_error
+     !mean_error=0.5d0*mean_error
      call f_free(tmp2p)
   else
      stop 'Error in check_accur_overlap_minus_one_sparse'
@@ -2901,8 +2902,8 @@ subroutine check_taylor_order(error, max_error, order_taylor)
 
   ! Local variables
   character(len=12) :: act
-  integer,parameter :: max_order_positive=200
-  integer,parameter :: max_order_negative=-50
+  integer,parameter :: max_order_positive=50
+  integer,parameter :: max_order_negative=-20
   logical :: is_ice
 
   if (order_taylor>=1000) then
@@ -2912,19 +2913,30 @@ subroutine check_taylor_order(error, max_error, order_taylor)
       is_ice=.false.
   end if
 
-  if (order_taylor>0) then
-      ! only do this if Taylor approximations are actually used
-      if (error<=max_error) then
-          ! error is small enough, so do nothing
-          act=' (unchanged)'
-      else
+  if (order_taylor/=0) then
+      ! only do this if approximations (Taylor or "negative thing") are actually used
+      if (error<=1.d-1*max_error) then
+          !! error is very small, so decrease the order of the polynomial
+          !if (order_taylor>20) then
+          !    ! always keep a minimum of 20
+          !    act=' (decreased)'
+          !    if (order_taylor>0) then
+          !        order_taylor = floor(0.9d0*real(order_taylor,kind=8))
+          !    else
+          !        order_taylor = ceiling(0.9d0*real(order_taylor,kind=8))
+          !    end if
+          !end if
+      else if (error>max_error) then
           ! error is too big, increase the order of the Taylor series by 10%
           act=' (increased)'
           if (order_taylor>0) then
-              order_taylor = ceiling(1.1d0*real(order_taylor,kind=8))
+              order_taylor = ceiling(max(1.1d0*real(order_taylor,kind=8),real(order_taylor+5,kind=8)))
           else
-              order_taylor = floor(1.1d0*real(order_taylor,kind=8))
+              order_taylor = floor(min(1.1d0*real(order_taylor,kind=8),real(order_taylor-5,kind=8)))
           end if
+      else
+          ! error is small enough, so do nothing
+          act=' (unchanged)'
       end if
       !if (bigdft_mpi%iproc==0) call yaml_map('new Taylor order',trim(yaml_toa(order_taylor,fmt='(i0)'))//act)
   end if
