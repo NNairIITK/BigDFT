@@ -1693,7 +1693,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   use module_interfaces, except_this_one => reorthonormalize_coeff
   use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, &
        allocate_matrices, deallocate_matrices
-  use yaml_output, only: yaml_map
+  use yaml_output, only: yaml_newline, yaml_map
   implicit none
 
   ! Calling arguments
@@ -1829,8 +1829,9 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   end if
 
   ! should convert this to yaml (LG: easily done)
-  if (iproc==0) call yaml_map('Max deviation from unity in reorthonormalize_coeff',max_error)
-  if (iproc==0) call yaml_map('Mean deviation from unity in reorthonormalize_coeff',mean_error)
+  if (iproc==0) call yaml_newline()
+  if (iproc==0) call yaml_map('Max deviation from unity in reorthonormalize_coeff',max_error,fmt='(es8.2)')
+  if (iproc==0) call yaml_map('Mean deviation from unity in reorthonormalize_coeff',mean_error,fmt='(es8.2)')
 
   if (max_error>5.0d0.and.orbs%norb==norb) then
      if (iproc==0) print*,'Error in reorthonormalize_coeff too large, reverting to gram-schmidt orthonormalization'
@@ -2391,10 +2392,10 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
                ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=ovrlp_minusonehalf_, check_accur=.true., &
                max_error=max_error, mean_error=mean_error)
           call check_taylor_order(mean_error, max_inversion_error, order_taylor)
-          if (iproc==0) then
-              call yaml_map('max error of S^-1/2',max_error,fmt='(es9.2)')
-              call yaml_map('mean error of S^-1/2',mean_error,fmt='(es9.2)')
-          end if
+          !if (iproc==0) then
+          !    call yaml_map('max error of S^-1/2',max_error,fmt='(es9.2)')
+          !    call yaml_map('mean error of S^-1/2',mean_error,fmt='(es9.2)')
+          !end if
       end subroutine calculate_overlap_onehalf
 
 end subroutine purify_kernel
