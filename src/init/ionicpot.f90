@@ -464,7 +464,7 @@ END SUBROUTINE IonicEnergyandForces
 
 
 subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, shift, &
-     & Glr, hxh, hyh, hzh, rhopotd, pkernel, pot_ion, elecfield, psoffset,rholoc)
+     & Glr, hxh, hyh, hzh, rhopotd, pkernel, pot_ion, elecfield, psoffset)
   use module_base
   use module_types
 
@@ -482,8 +482,6 @@ subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, sh
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   type(coulomb_operator), intent(in) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
-  type(rholoc_objects),intent(in)::rholoc  !Object used for PAW+WVL
-                                           !contains the local density
 
   character(len = *), parameter :: subname = "createEffectiveIonicPotential"
   logical :: counterions
@@ -492,7 +490,7 @@ subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, sh
   ! Compute the main ionic potential.
   call createIonicPotential(atoms%astruct%geocode, iproc, nproc, verb, atoms, rxyz, hxh, hyh, hzh, &
        & elecfield, Glr%d%n1, Glr%d%n2, Glr%d%n3, rhopotd%n3pi, rhopotd%i3s + rhopotd%i3xcsh, &
-       & Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, pkernel, pot_ion, psoffset,rholoc)
+       & Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, pkernel, pot_ion, psoffset)
 
   !inquire for the counter_ion potential calculation (for the moment only xyz format)
   inquire(file='posinp_ci.xyz',exist=counterions)
@@ -517,7 +515,7 @@ END SUBROUTINE createEffectiveIonicPotential
 
 !> Create the ionic potential
 subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
-     hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset,rholoc)
+     hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
   use module_base
   use module_types
   use yaml_output
@@ -534,7 +532,6 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   type(coulomb_operator), intent(in) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
-  type(rholoc_objects),intent(in)::rholoc
 
   !local variables
   character(len=*), parameter :: subname='createIonicPotential'
@@ -631,8 +628,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 !       Calculate Ionic Density using splines, 
 !       PAW case
         else
-             
-           r2paw=rholoc%radius(ityp)**2
+           r2paw=at%pawtab(ityp)%rpaw**2
            do i3=isz,iez
               z=real(i3,kind=8)*hzh-rz
               call ind_positions(perz,i3,n3,j3,goz)
@@ -648,8 +644,11 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                     rr=sqrt(r2)
                     if(1==2) then
                       !This converges very slow                
-                      call splint(rholoc%msz(ityp),rholoc%rad(1:rholoc%msz(ityp),ityp),&
-&                      rholoc%d(1:rholoc%msz(ityp),1,ityp),rholoc%d(1:rholoc%msz(ityp),2,ityp),1,rr,raux,ierr)
+                      call splint(at%pawtab(ityp)%wvl%rholoc%msz, &
+                           & at%pawtab(ityp)%wvl%rholoc%rad, &
+                           & at%pawtab(ityp)%wvl%rholoc%d(:,1), &
+                           & at%pawtab(ityp)%wvl%rholoc%d(:,2), &
+                           & 1,rr,raux,ierr)
                     else
                       !Take the HGH form for rho_L (long range)
                       arg=r2/rloc**2
@@ -897,8 +896,11 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                                call interpol_vloc(rr,rloc,charge,raux2)
                              end if
                              !2) V^PAW from splines
-                             call splint(rholoc%msz(ityp),rholoc%rad(1:rholoc%msz(ityp),ityp),&
-&                              rholoc%d(1:rholoc%msz(ityp),3,ityp),rholoc%d(1:rholoc%msz(ityp),4,ityp),1,rr,raux,ierr)
+                             call splint(at%pawtab(ityp)%wvl%rholoc%msz, &
+                                  & at%pawtab(ityp)%wvl%rholoc%rad, &
+                                  & at%pawtab(ityp)%wvl%rholoc%d(:,3), &
+                                  & at%pawtab(ityp)%wvl%rholoc%d(:,4), &
+                                  & 1,rr,raux,ierr)
                              
                              ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
                              pot_ion(ind)=pot_ion(ind)+raux-raux2

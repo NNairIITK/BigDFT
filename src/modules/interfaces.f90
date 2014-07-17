@@ -239,10 +239,9 @@ module module_interfaces
       END SUBROUTINE createWavefunctionsDescriptors
 
       subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
-           radii_cf,cpmult,fpmult,hx,hy,hz,dry_run,nlpsp,proj_G)
+           radii_cf,cpmult,fpmult,hx,hy,hz,dry_run,nlpsp)
         !n(c) use module_base
         use module_types
-        use gaussians, only: gaussian_basis
         implicit none
         type(atoms_data), intent(in) :: at
         type(orbitals_data), intent(in) :: orbs
@@ -252,7 +251,6 @@ module module_interfaces
         real(kind=8), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
         logical, intent(in) :: dry_run
         type(DFT_PSP_projectors), intent(out) :: nlpsp
-        type(gaussian_basis),dimension(at%astruct%ntypes),intent(in) :: proj_G
       END SUBROUTINE createProjectorsArrays
 
       subroutine dpbox_set(dpbox,Lzd,xc,iproc,nproc,mpi_comm,PS_groupsize,SICapproach,geocode,nspin)
@@ -313,7 +311,7 @@ module module_interfaces
 
        subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
             hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,&
-            pot_ion,psoffset,rholoc)
+            pot_ion,psoffset)
          use module_base
          use module_types
          implicit none
@@ -326,7 +324,6 @@ module module_interfaces
          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
          type(coulomb_operator), intent(in) :: pkernel
          real(wp), dimension(*), intent(inout) :: pot_ion
-         type(rholoc_objects),intent(in)::rholoc
        END SUBROUTINE createIonicPotential
 
        subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &

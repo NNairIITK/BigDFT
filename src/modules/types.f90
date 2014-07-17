@@ -507,15 +507,6 @@ module module_types
 
 
 
-  !> Contains arguments needed for rho_local for WVL+PAW
-  type, public :: rholoc_objects
-    integer , pointer, dimension(:)    :: msz ! mesh size for local rho
-    real(gp), pointer, dimension(:,:,:) :: d! local rho and derivatives
-    real(gp), pointer, dimension(:,:)  :: rad!radial mesh for local rho
-    real(gp), pointer, dimension(:) :: radius !after this radius, rholoc is zero
-  end type rholoc_objects
-
-  
   !> Define the structure used for the atomic positions
   !> Structure to store the density / potential distribution among processors.
   type, public :: denspot_distribution
@@ -1923,33 +1914,15 @@ contains
   end subroutine nullify_diis_objects
 
 
-  subroutine nullify_rholoc_objects(rholoc)
-    implicit none
-    type(rholoc_objects),intent(inout) :: rholoc
-    
-    nullify(rholoc%msz)
-    nullify(rholoc%d)
-    nullify(rholoc%rad)
-    nullify(rholoc%radius) 
-  end subroutine nullify_rholoc_objects
-
-
-  subroutine nullify_paw_objects(paw,rholoc)
+  subroutine nullify_paw_objects(paw)
     implicit none
     type(paw_objects),intent(inout) :: paw
-    type(rholoc_objects),optional :: rholoc
     
     nullify(paw%indlmn) 
     nullify(paw%spsi) 
     nullify(paw%sij) 
     nullify(paw%rpaw)
 
-    if(present(rholoc)) then
-     nullify(rholoc%msz)
-     nullify(rholoc%d)
-     nullify(rholoc%rad)
-     nullify(rholoc%radius) 
-    end if
   end subroutine nullify_paw_objects
 
 
