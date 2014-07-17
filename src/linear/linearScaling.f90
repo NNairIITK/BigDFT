@@ -47,9 +47,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   type(system_fragment), dimension(:), pointer :: ref_frags ! for transfer integrals
   type(cdft_data), intent(inout) :: cdft
   real(kind=8),dimension(3,at%astruct%nat),intent(in) :: fdisp, fion
-  
+
+  !Local variables
   real(kind=8) :: pnrm,trace,trace_old,fnrm_tmb
-  integer :: infoCoeff,istat,it_scc,itout,info_scf,i,ierr,iorb
+  integer :: infoCoeff,istat,it_scc,itout,info_scf,i,iorb
   character(len=*), parameter :: subname='linearScaling'
   real(kind=8),dimension(:),allocatable :: rhopotold_out
   real(kind=8) :: energyold, energyDiff, energyoldout, fnrm_pulay, convCritMix
@@ -72,7 +73,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   integer :: dmin_diag_it, dmin_diag_freq, ioffset
   logical :: reorder, rho_negative
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
-  integer :: j, k, n1i, n2i, n3i, i1, i2, i3
   type(matrices) :: weight_matrix_
 
   call timing(iproc,'linscalinit','ON') !lr408t
