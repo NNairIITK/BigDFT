@@ -2628,6 +2628,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
 
       subroutine retransform()
           use sparsematrix, only: sequential_acces_matrix_fast, sparsemm
+          integer :: ncount
 
           call sequential_acces_matrix_fast(tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, kernel_compr_seq)
           call sequential_acces_matrix_fast(tmb%linmat%l, &
@@ -2635,12 +2636,13 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
           call uncompress_matrix_distributed(iproc, tmb%linmat%l, &
                inv_ovrlp%matrix_compr, inv_ovrlpp)
 
-          if (tmb%orbs%norbp>0) then
-              call to_zero(tmb%orbs%norbp*tmb%orbs%norb, tempp(1,1))
+          ncount=tmb%linmat%l%nfvctr*tmb%linmat%l%nfvctrp
+          if (ncount>0) then
+              call to_zero(ncount, tempp(1,1))
           end if
           call sparsemm(tmb%linmat%l, kernel_compr_seq, inv_ovrlpp, tempp)
-          if (tmb%orbs%norbp>0) then
-              call to_zero(tmb%orbs%norbp*tmb%orbs%norb, inv_ovrlpp(1,1))
+          if (ncount>0) then
+              call to_zero(ncount, inv_ovrlpp(1,1))
           end if
           call sparsemm(tmb%linmat%l, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
 
