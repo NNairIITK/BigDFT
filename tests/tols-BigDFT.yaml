@@ -101,7 +101,7 @@ SiBulk:
  Average noise forces: 9.3e-10
  HOMO LUMO gap (AU, eV): 1.8e-10
  PV (Ha): 1.89e-10
- Optimization of virtual orbitals: 5.56e-8
+ Optimization of virtual orbitals: 6.28e-8
  e_occupied: 1.42e-11
  Orbitals: 1.42e-11	
  # Necessary for GPU runs, to be updated...
