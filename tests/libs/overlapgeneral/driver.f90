@@ -28,7 +28,7 @@ program driver
   real(kind=8),dimension(:,:),allocatable :: ovrlp, ovrlp2
   integer :: norb, nseg, nvctr, iorb, jorb, iorder, power, blocksize, icheck, imode
 
-  logical :: file_exists, symmetric, check_symmetry, perform_check
+  logical :: file_exists, symmetric, check_symmetry, perform_check, optional_parameters
   type(orbitals_data) :: orbs
   type(sparse_matrix) :: smat_A, smat_B
   type(matrices) :: mat_A, inv_mat_B
@@ -42,7 +42,7 @@ program driver
   integer,parameter :: SPARSE=1
   integer,parameter :: DENSE=2
 
-  integer :: ncount1, ncount_rate, ncount_max, ncount2
+  integer :: ncount1, ncount_rate, ncount_max, ncount2, nn, ios
 !! integer :: i, j, start
   real(kind=4) :: tr0, tr1
   real(kind=8) :: time, time2, tt
@@ -70,10 +70,21 @@ program driver
   inquire(file=filename, exist=file_exists)
   if_file_exists: if (file_exists) then
       ! Read the basis quantities
+      optional_parameters=.true.
       open(unit=1, file=filename)
       read(1,*) norb
       read(1,*) nseg
       read(1,*) nvctr
+      ! the following lines are optional
+      read(1,*,iostat=ios) imode
+      if (ios/=0) optional_parameters=.false.
+      read(1,*,iostat=ios) iorder
+      if (ios/=0) optional_parameters=.false.
+      read(1,*,iostat=ios) power
+      if (ios/=0) optional_parameters=.false.
+      read(1,*,iostat=ios) blocksize
+      if (ios/=0) optional_parameters=.false.
+      close(unit=1)
   else
       stop 'file does not exist!'
   end if if_file_exists
@@ -201,9 +212,19 @@ program driver
   if (ortho_check.and.iproc==0) call yaml_map('mean deviation from unity',mean_error)
   if (iproc==0) call yaml_comment('starting the checks',hfill='=')
 
-  do icheck=1,ncheck
-      !if (icheck==1 .or. icheck==4 .or. icheck==10 .or. icheck==11 .or.  icheck==13 .or. icheck==14 .or. icheck==16 .or. icheck==17) cycle
-      call get_parameters()
+  if (.not.optional_parameters) then
+      ! do all checks
+      nn=ncheck
+  else
+      ! do only the check which was specified
+      nn=1
+  end if
+
+  do icheck=1,nn
+      if (.not.optional_parameters) then
+          ! get the default parameters
+          call get_parameters()
+      end if
       if (iproc==0) then
           call yaml_comment('check:'//yaml_toa(icheck,fmt='(i5)'),hfill='-')
           call yaml_map('check number',icheck)

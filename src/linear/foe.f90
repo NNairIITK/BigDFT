@@ -1629,55 +1629,42 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, norder_polynomial
-  !type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
-  type(sparse_matrix),intent(inout) :: ovrlp_smat, inv_ovrlp_smat !for debug inout
+  type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
+  !type(sparse_matrix),intent(inout) :: ovrlp_smat, inv_ovrlp_smat !for debug inout
   integer :: ex
   type(matrices),intent(in) :: ovrlp_mat
   type(matrices),intent(out) :: inv_ovrlp
 
   ! Local variables
-  integer :: npl, jorb, ipl, it, ii, iiorb, jjorb, iseg, iorb
-  integer :: isegstart, isegend, iismall, iilarge, nsize_polynomial
-  integer :: iismall_ovrlp, iismall_ham, ntemp, it_shift, npl_check, npl_boundaries
+  integer :: npl, jorb, it, ii, iseg
+  integer :: isegstart, isegend, iismall, nsize_polynomial
+  integer :: iismall_ovrlp, iismall_ham, npl_boundaries
   integer,parameter :: nplx=50000
-  real(kind=8),dimension(:,:),allocatable :: cc, chebyshev_polynomials, cc_check, fermip_check
+  real(kind=8),dimension(:,:),allocatable :: cc, chebyshev_polynomials
   real(kind=8),dimension(:,:),pointer :: inv_ovrlp_matrixp
   real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
-  real(kind=8) :: anoise, scale_factor, shift_value, sumn, sumn_check, charge_diff, ef_interpol, ddot
-  real(kind=8) :: evlow_old, evhigh_old, det, determinant, sumn_old, ef_old, tt
-  real(kind=8) :: fscale, tt_ovrlp, tt_ham, diff, fscale_check
-  logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS, interpolation_possible, emergency_stop
-  real(kind=8),dimension(2) :: efarr, sumnarr, allredarr
+  real(kind=8) :: anoise, scale_factor, shift_value
+  real(kind=8) :: evlow_old, evhigh_old, tt
+  real(kind=8) :: tt_ovrlp, tt_ham
+  logical :: restart, calculate_SHS, emergency_stop
+  real(kind=8),dimension(2) :: allredarr
   real(kind=8),dimension(:),allocatable :: hamscal_compr, SHS
-  real(kind=8),dimension(4,4) :: interpol_matrix
-  real(kind=8),dimension(4) :: interpol_vector
-  real(kind=8),parameter :: charge_tolerance=1.d-6 ! exit criterion
-  logical,dimension(2) :: eval_bounds_ok, bisection_bounds_ok
-  real(kind=8) :: trace_sparse, temp_multiplicator, ebs_check, ef
-  integer :: irow, icol, itemp, iflag,info
+  logical,dimension(2) :: eval_bounds_ok
+  integer :: irow, icol, iflag
   logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit
-  real(kind=8),parameter :: FSCALE_LOWER_LIMIT=5.d-3
-  real(kind=8),parameter :: FSCALE_UPPER_LIMIT=5.d-2
-  real(kind=8),parameter :: DEGREE_MULTIPLICATOR_ACCURATE=3.d0
-  real(kind=8),parameter :: DEGREE_MULTIPLICATOR_FAST=2.d0
-  real(kind=8),parameter :: TEMP_MULTIPLICATOR_ACCURATE=1.d0
-  real(kind=8),parameter :: TEMP_MULTIPLICATOR_FAST=1.2d0 !2.d0 !1.2d0
-  real(kind=8),parameter :: CHECK_RATIO=1.25d0
   integer,parameter :: NPL_MIN=5
   real(kind=8),parameter :: DEGREE_MULTIPLICATOR_MAX=10.d0
-  integer,parameter :: NTEMP_ACCURATE=4
-  integer,parameter :: NTEMP_FAST=1
   real(kind=8) :: degree_multiplicator
   integer,parameter :: SPARSE=1
   integer,parameter :: DENSE=2
   integer,parameter :: imode=SPARSE
-  type(fermi_aux) :: f
   type(foe_data) :: foe_obj
 
-  real(kind=8),dimension(ovrlp_smat%nfvctr,ovrlp_smat%nfvctr) :: overlap
-  real(kind=8),dimension(ovrlp_smat%nfvctr) :: eval
-  integer,parameter :: lwork=100000
-  real(kind=8),dimension(lwork) :: work
+  !!real(kind=8),dimension(ovrlp_smat%nfvctr,ovrlp_smat%nfvctr) :: overlap
+  !!real(kind=8),dimension(ovrlp_smat%nfvctr) :: eval
+  !!integer,parameter :: lwork=100000
+  !!real(kind=8),dimension(lwork) :: work
+  !!integer :: info
 
   call f_routine(id='ice')
 
@@ -1702,14 +1689,6 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
 !@ ################################################
 
 
-  !if (iproc==0) call yaml_comment('ICE calculation',hfill='~')
-
-  !!if (accuracy_level/=FOE_ACCURATE .and. accuracy_level/=FOE_FAST) then
-  !!    stop 'wrong value of accuracy_level'
-  !!end if
-
-  !!inv_ovrlp%matrix_compr = sparsematrix_malloc_ptr(inv_ovrlp_smat, &
-  !!                         iaction=SPARSE_FULL, id='inv_ovrlp%matrix_compr')
   inv_ovrlp_matrixp = sparsematrix_malloc0_ptr(inv_ovrlp_smat, &
                            iaction=DENSE_PARALLEL, id='inv_ovrlp_matrixp')
 
@@ -1720,11 +1699,6 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
 
   penalty_ev = f_malloc((/inv_ovrlp_smat%nfvctr,inv_ovrlp_smat%nfvctrp,2/),id='penalty_ev')
   SHS = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='SHS')
-
-
-!!  call timing(iproc, 'FOE_auxiliary ', 'OF')
-!!  call overlap_minus_onehalf() ! has internal timer
-!!  call timing(iproc, 'FOE_auxiliary ', 'ON')
 
 
   hamscal_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='hamscal_compr')
@@ -1757,58 +1731,17 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
 
       degree_multiplicator = real(norder_polynomial,kind=8)/(foe_data_get_real(foe_obj,"evhigh")-foe_data_get_real(foe_obj,"evlow"))
       degree_multiplicator = min(degree_multiplicator,DEGREE_MULTIPLICATOR_MAX)
-      temp_multiplicator = TEMP_MULTIPLICATOR_FAST
-      fscale = temp_multiplicator*foe_data_get_real(foe_obj,"fscale")
-      fscale = max(fscale,FSCALE_LOWER_LIMIT)
-      fscale = min(fscale,FSCALE_UPPER_LIMIT)
-      fscale=1.d0
-      !!fscale_check = CHECK_RATIO*fscale
 
       evlow_old=1.d100
       evhigh_old=-1.d100
       
-      if (iproc==0) then
-          !!call yaml_map('decay length of error function',fscale,fmt='(es10.3)')
-          !!call yaml_map('decay length multiplicator',temp_multiplicator,fmt='(es10.3)')
-          !!call yaml_map('polynomial degree multiplicator',degree_multiplicator,fmt='(es10.3)')
-      end if
 
-    
-          !!! Don't let this value become too small.
-          !!call foe_data_set_real(foe_obj,"bisection_shift",max(foe_data_get_real(foe_obj,"bisection_shift"),1.d-4))
-    
-          !!efarr(1)=foe_data_get_real(foe_obj,"ef")-foe_data_get_real(foe_obj,"bisection_shift")
-          !!efarr(2)=foe_data_get_real(foe_obj,"ef")+foe_data_get_real(foe_obj,"bisection_shift")
-          !!sumnarr(1)=0.d0
-          !!sumnarr(2)=1.d100
-          !!call init_fermi_level(foe_data_get_real(foe_obj,"charge"), foe_data_get_real(foe_obj,"ef"), f, &
-          !!     foe_data_get_real(foe_obj,"bisection_shift"), foe_data_get_real(foe_obj,"ef_interpol_chargediff"), &
-          !!     foe_data_get_real(foe_obj,"ef_interpol_det"), foe_verbosity)
-          !!call foe_data_set_real(foe_obj,"ef",efarr(1))
-    
-          !!adjust_lower_bound=.true.
-          !!adjust_upper_bound=.true.
     
           !!calculate_SHS=.true.
     
           if (inv_ovrlp_smat%nfvctrp>0) then
               call to_zero(inv_ovrlp_smat%nfvctr*inv_ovrlp_smat%nfvctrp, inv_ovrlp_matrixp(1,1))
           end if
-    
-          if (iproc==0) then
-              !call yaml_sequence(advance='no')
-              itemp=1 !just for dummy output
-              !!if (foe_verbosity>=1) then
-              !!    call yaml_sequence_open('ICE calculation',label=&
-              !!         'it_ice'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//&
-              !!         trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)')))//'-'//&
-              !!         trim(adjustl(yaml_toa(itemp,fmt='(i2.2)'))))
-              !!else
-              !!    call yaml_sequence_open('FOE to determine density kernel')
-              !!    if (iproc==0) call yaml_comment('ICE calculation',hfill='-')
-              !!end if
-          end if
-    
     
     
           it=0
@@ -1817,20 +1750,6 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
           main_loop: do 
               
               it=it+1
-    
-              !if (iproc==0) then
-              !    call yaml_newline()
-              !    call yaml_sequence(advance='no')
-              !    call yaml_mapping_open(flow=.true.)
-              !    if (foe_verbosity>=1) call yaml_comment('it ICE:'//yaml_toa(it,fmt='(i6)'),hfill='-')
-              !end if
-              
-!!              if (adjust_lower_bound) then
-!!                  call foe_data_set_real(foe_obj,"ef",efarr(1))
-!!              else if (adjust_upper_bound) then
-!!                  call foe_data_set_real(foe_obj,"ef",efarr(2))
-!!              end if
-          
     
               ! Scale the Hamiltonian such that all eigenvalues are in the intervall [0:1]
               if (foe_data_get_real(foe_obj,"evlow")/=evlow_old .or. foe_data_get_real(foe_obj,"evhigh")/=evhigh_old) then
@@ -1875,12 +1794,11 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
     
     
               ! Determine the degree of the polynomial
-              npl=nint(degree_multiplicator*(foe_data_get_real(foe_obj,"evhigh")-foe_data_get_real(foe_obj,"evlow"))/fscale)
+              npl=nint(degree_multiplicator*(foe_data_get_real(foe_obj,"evhigh")-foe_data_get_real(foe_obj,"evlow")))
               npl=max(npl,NPL_MIN)
               npl_boundaries = nint(degree_multiplicator* &
                   (foe_data_get_real(foe_obj,"evhigh")-foe_data_get_real(foe_obj,"evlow")) &
                       /foe_data_get_real(foe_obj,"fscale_lowerbound")) ! max polynomial degree for given eigenvalue boundaries
-                  !write(*,*) 'npl, npl_boundaries', npl, npl_boundaries
               if (npl>npl_boundaries) then
                   npl=npl_boundaries
                   if (iproc==0) call yaml_warning('very sharp decay of error function, polynomial degree reached limit')
@@ -1907,7 +1825,6 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
 
     
               cc = f_malloc((/npl,3/),id='cc')
-              !!cc_check = f_malloc((/npl,3/),id='cc_check')
     
               !!if (foe_data_get_real(foe_obj,"evlow")>=0.d0) then
               !!    stop 'ERROR: lowest eigenvalue must be negative'
@@ -1975,14 +1892,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
                   call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow")/1.2d0)
                   eval_bounds_ok(2)=.false.
                   call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh")*1.2d0)
-                  !if (iproc==0) then
-                  !    if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
-                  !         (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
-                  !    call yaml_mapping_close()
-                  !    !call bigdft_utils_flush(unit=6)
-                  !end if
                   call f_free(cc)
-                  !!call f_free(cc_check)
                   cycle main_loop
              end if
     
@@ -2006,13 +1916,6 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
                       call foe_data_set_int(foe_obj,"evboundsshrink_isatur",foe_data_get_int(foe_obj,"evboundsshrink_isatur")+1)
                   end if
                   call foe_data_set_int(foe_obj,"evbounds_isatur",0)
-                  !if (iproc==0) then
-                  !    if (foe_verbosity>=1) call yaml_map('eval bounds ok',&
-                  !         (/eval_bounds_ok(1),eval_bounds_ok(2)/))
-                  !    call yaml_mapping_close()
-                  !    !call bigdft_utils_flush(unit=6)
-                  !end if
-                  !!call f_free(cc_check)
                   cycle
               end if
                   
@@ -2022,18 +1925,10 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
               end if
             
 
-              if (all(eval_bounds_ok)) then
-                  ! Print these informations already now if all entries are true.
-                  !if (iproc==0) then
-                  !    if (foe_verbosity>=1) call yaml_map('eval bounds ok',&
-                  !         (/eval_bounds_ok(1),eval_bounds_ok(2)/))
-                  !end if
-              end if
-                  exit
+              exit
     
     
           end do main_loop
-    
     
     
 
@@ -2070,18 +1965,18 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
                 isegend=inv_ovrlp_smat%nseg
             end if
             !$omp parallel default(none) &
-            !$omp private(iseg, ii, jorb, iiorb, jjorb, iismall, tt) &
+            !$omp private(iseg, ii, jorb, irow, icol, iismall, tt) &
             !$omp shared(isegstart, isegend, inv_ovrlp_smat, penalty_ev, bound_low, bound_up)
             !$omp do reduction(+:bound_low,bound_up)
             do iseg=isegstart,isegend
                 ii=inv_ovrlp_smat%keyv(iseg)-1
                 do jorb=inv_ovrlp_smat%keyg(1,iseg),inv_ovrlp_smat%keyg(2,iseg)
                     ii=ii+1
-                    iiorb = (jorb-1)/inv_ovrlp_smat%nfvctr + 1
-                    jjorb = jorb - (iiorb-1)*inv_ovrlp_smat%nfvctr
-                    iismall = matrixindex_in_compressed(inv_ovrlp_smat, iiorb, jjorb)
+                    irow = (jorb-1)/inv_ovrlp_smat%nfvctr + 1
+                    icol = jorb - (irow-1)*inv_ovrlp_smat%nfvctr
+                    iismall = matrixindex_in_compressed(inv_ovrlp_smat, irow, icol)
                     if (iismall>0) then
-                        if (iiorb==jorb) then
+                        if (irow==jorb) then
                             tt=1.d0
                         else
                             tt=0.d0
@@ -2089,8 +1984,8 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
                     else
                         tt=0.d0
                     end if
-                    bound_low = bound_low + penalty_ev(jjorb,iiorb-inv_ovrlp_smat%isfvctr,2)*tt
-                    bound_up = bound_up +penalty_ev(jjorb,iiorb-inv_ovrlp_smat%isfvctr,1)*tt
+                    bound_low = bound_low + penalty_ev(icol,irow-inv_ovrlp_smat%isfvctr,2)*tt
+                    bound_up = bound_up +penalty_ev(icol,irow-inv_ovrlp_smat%isfvctr,1)*tt
                 end do  
             end do
             !$omp end do
@@ -2121,12 +2016,6 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
         else
             eval_bounds_ok(2)=.true.
         end if
-
-        !if (restart) then
-        !    if (iproc==0) then
-        !        call yaml_scalar('restart required')
-        !    end if
-        !end if
 
       end subroutine check_eigenvalue_spectrum
 
