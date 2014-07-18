@@ -353,15 +353,15 @@ cleanup:
  Enl: 8.7e-10
  Atomic Forces (Ha/Bohr): 3.2e-10
  Average noise forces: 3.1e-10
- Clean forces norm (Ha/Bohr): 1.9e-10
- Raw forces norm (Ha/Bohr): 2.6e-10
+ Clean forces norm (Ha/Bohr): 2.28e-10
+ Raw forces norm (Ha/Bohr): 3.04e-10
  Epot: 3.3e-9
- Orbitals: 4.55e-10
+ Orbitals: 4.71e-10
  EH: 2.9e-9
  EXC: 1.9e-9
  EvXC: 8.7e-10
  Enl: 9.1e-10
- Omega: 1.72e-9
+ Omega: 2.12e-9
  Pulay Forces (Ha/Bohr): 1.9e-9
  energy: 2.3e-9
 

@@ -581,7 +581,7 @@ logical:: disable_hatrans
 ! write intermediate results
       if (bigdft_mpi%iproc == 0) call yaml_comment('(MH) WINTER')
       if (bigdft_mpi%iproc == 0) call winter(natoms,atoms,nid,nlminx,nlmin,en_delta,fp_delta, &
-           en_arr,ct_arr,fp_arr,pl_arr,ediff,ekinetic,dt,nrandoff,nsoften)
+           en_arr,ct_arr,fp_arr,pl_arr,ediff,ekinetic,dt,nsoften)
       if (bigdft_mpi%iproc == 0) then
          !call yaml_stream_attributes()
         call yaml_mapping_open('(MH) New minimum',flow=.true.)
@@ -693,7 +693,7 @@ end do hopping_loop
      call yaml_map('(MH) Total number of minima found',nlmin)
      call yaml_map('(MH) Number of accepted minima',accepted)
      call winter(natoms,atoms,nid,nlminx,nlmin,en_delta,fp_delta, &
-           en_arr,ct_arr,fp_arr,pl_arr,ediff,ekinetic,dt,nrandoff,nsoften)
+           en_arr,ct_arr,fp_arr,pl_arr,ediff,ekinetic,dt,nsoften)
   endif
 
 
@@ -802,8 +802,7 @@ contains
     !!end do
 
   ! Soften previous velocity distribution
-    call soften(nsoften,ekinetic,vxyz,dt,count_md, &
-         runObj,outs,nproc,iproc)
+    call soften(nsoften,vxyz, runObj,outs,nproc,iproc)
   ! put velocities for frozen degrees of freedom to zero
        ndfree=0
        ndfroz=0
@@ -818,7 +817,7 @@ contains
   enddo
   enddo
   ! normalize velocities to target ekinetic
-    call velnorm(atoms%astruct%nat,atoms%astruct%rxyz,(ekinetic*ndfree)/(ndfree+ndfroz),vxyz)
+    call velnorm(atoms%astruct%nat,(ekinetic*ndfree)/(ndfree+ndfroz),vxyz)
     call to_zero(3*atoms%astruct%nat,gg)
 
     if(iproc==0) call torque(atoms%astruct%nat,atoms%astruct%rxyz,vxyz)
@@ -939,18 +938,21 @@ rkin=dot(3*atoms%astruct%nat,vxyz(1,1),1,vxyz(1,1),1)
   END SUBROUTINE mdescape
   
 
-  subroutine soften(nsoften,ekinetic,vxyz,dt,count_md, &
-       runObj,outs,nproc,iproc)! &
+  subroutine soften(nsoften,vxyz,runObj,outs,nproc,iproc)
     use module_base
     use module_types
     use module_interfaces
     use m_ab6_symmetry
-    implicit real*8 (a-h,o-z)
+    implicit none
+    !Arguments
+    integer, intent(in) :: nsoften,nproc,iproc
     type(run_objects), intent(inout) :: runObj
     type(DFT_global_output), intent(inout) :: outs
-    dimension vxyz(3*atoms%astruct%nat)
+    real(kind=8), dimension(3*atoms%astruct%nat) :: vxyz
     !Local variables
-    dimension pos0(3*atoms%astruct%nat)
+    real(kind=8), dimension(3*atoms%astruct%nat) :: pos0
+    real(kind=8) :: alpha,curv,curv0,eps_vxyz,etot0,fd2,res,sdf,svxyz
+    integer :: it
 
 !    eps_vxyz=1.d-1*atoms%astruct%nat
     alpha=inputs_md%betax
@@ -1157,8 +1159,8 @@ subroutine hunt_g(xx,n,x,jlo)
 END SUBROUTINE hunt_g
 
 
-!>  assigns initial velocities for the MD escape part
-subroutine velnorm(nat,rxyz,ekinetic,vxyz)
+!> Assigns initial velocities for the MD escape part
+subroutine velnorm(nat,ekinetic,vxyz)
   use module_base
 !  use module_types
 !  use m_ab6_symmetry
@@ -1167,7 +1169,6 @@ subroutine velnorm(nat,rxyz,ekinetic,vxyz)
   integer, intent(in) :: nat
   real(gp), intent(in) :: ekinetic
   !type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,nat), intent(in) :: rxyz
   real(gp), dimension(3,nat), intent(inout) :: vxyz
   !local variables
   integer :: iat
@@ -1488,15 +1489,15 @@ END SUBROUTINE elim_moment
 
 
 subroutine winter(nat,at,nid,nlminx,nlmin,en_delta,fp_delta, &
-     en_arr,ct_arr,fp_arr,pl_arr,ediff,ekinetic,dt,nrandoff,nsoften)
+     en_arr,ct_arr,fp_arr,pl_arr,ediff,ekinetic,dt,nsoften)
   use module_base
   use module_types
   use module_interfaces
   use m_ab6_symmetry
   use yaml_output
   implicit none
-  !implicit real*8 (a-h,o-z)
-  integer, intent(in) :: nlminx,nlmin,nsoften,nrandoff,nid
+  !Arguments
+  integer, intent(in) :: nlminx,nlmin,nsoften,nid
   real(gp), intent(in) :: ediff,ekinetic,dt,en_delta,fp_delta
   type(atoms_data), intent(in) :: at
   integer, intent(in) :: nat 
@@ -1551,10 +1552,15 @@ END SUBROUTINE winter
 subroutine wtioput(ediff,ekinetic,dt,nsoften)
   use module_base
   use module_types
-  implicit real*8 (a-h,o-z)
-  open(unit=11,file='ioput'//trim(bigdft_run_id_toa()),status='unknown')
-  write(11,'(3(1x,1pe24.17)1x,i4,a)') ediff,ekinetic,dt,nsoften,' ediff, ekinetic dt and nsoften'
-  close(11)
+  implicit none
+  !Arguments
+  real(kind=8), intent(in) :: ediff,ekinetic,dt
+  integer, intent(in) :: nsoften
+  !Local variables
+  integer, parameter :: iunit=11
+  open(unit=iunit,file='ioput'//trim(bigdft_run_id_toa()),status='unknown')
+  write(iunit,'(3(1x,1pe24.17)1x,i4,a)') ediff,ekinetic,dt,nsoften,' ediff, ekinetic dt and nsoften'
+  close(unit=iunit)
 END SUBROUTINE wtioput
 
 
@@ -1938,7 +1944,9 @@ loop_nfrag: do
       endif
    enddo
    if (nfragold==nfrag) exit loop_nfrag
-7000 niter=.false.
+
+7000 continue
+   niter=.false.
    do iat=1,nat                !Check if all the other atoms are part of the current cluster
       do jat=1,nat
          bondlength=rcov(iat)+rcov(jat)
@@ -2647,12 +2655,14 @@ subroutine insert(iproc,nlminx,nlmin,nid,nat,k_e_wpos,e_wpos,wfp,wpos,en_arr,ct_
   return
 end subroutine insert
 
+
+!> x is in interval [xx(jlo),xx(jlow+1)[ ; xx(0)=-Infinity ; xx(n+1) = Infinity
 subroutine hunt_orig(xx,n,x,jlo)
-  !C x is in interval [xx(jlo),xx(jlow+1)[ ; xx(0)=-Infinity ; xx(n+1) = Infinity
-  integer jlo,n
+  integer :: jlo,n
   real*8 x,xx(n)
-  integer inc,jhi,jm
-  logical ascnd
+  integer :: inc,jhi,jm
+  logical :: ascnd
+
   if (n.le.0) stop 'hunt_orig'
   if (n.eq.1) then
      if (x.ge.xx(1)) then
@@ -2663,24 +2673,28 @@ subroutine hunt_orig(xx,n,x,jlo)
      return
   endif
   ascnd=xx(n).ge.xx(1)
+
   if(jlo.le.0.or.jlo.gt.n)then
      jlo=0
      jhi=n+1
      goto 3
   endif
   inc=1
-  if(x.ge.xx(jlo).eqv.ascnd)then
-1    jhi=jlo+inc
+
+  if(x.ge.xx(jlo).eqv.ascnd) then
+1    continue
+     jhi=jlo+inc
      if(jhi.gt.n)then
         jhi=n+1
-     else if(x.ge.xx(jhi).eqv.ascnd)then
+     else if(x.ge.xx(jhi).eqv.ascnd) then
         jlo=jhi
         inc=inc+inc
         goto 1
      endif
   else
      jhi=jlo
-2    jlo=jhi-inc
+2    continue
+     jlo=jhi-inc
      if(jlo.lt.1)then
         jlo=0
      else if(x.lt.xx(jlo).eqv.ascnd)then
@@ -2689,7 +2703,9 @@ subroutine hunt_orig(xx,n,x,jlo)
         goto 2
      endif
   endif
-3 if(jhi-jlo.eq.1)then
+
+3 continue
+  if(jhi-jlo.eq.1)then
      if(x.eq.xx(n))jlo=n
      if(x.eq.xx(1))jlo=1
      return
@@ -2701,6 +2717,7 @@ subroutine hunt_orig(xx,n,x,jlo)
      jhi=jm
   endif
   goto 3
+
 END subroutine hunt_orig
 
 

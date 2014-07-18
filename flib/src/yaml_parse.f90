@@ -632,7 +632,6 @@ contains
     type(dictionary), pointer :: dict
     !local variables
     type(dictionary), pointer :: loaded_string,test
-    character(len=max_field_length) :: scalar
     !parse from the given string
     call yaml_parse_from_string(loaded_string,string)
     

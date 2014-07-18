@@ -1,6 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
-EXTRA_DIST = test-coordinatetransform.ref.yaml
+EXTRA_DIST = test-coordinatetransform.ref.yaml \
+	posinp1.xyz posinp2.xyz posinp3.xyz posinp4.xyz posinp5.xyz posinp5.fix
 
 check_PROGRAMS = driver
 

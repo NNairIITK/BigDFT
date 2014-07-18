@@ -45,11 +45,34 @@ IO-wf_plain-read.out.out: IO-wf_plain.out.out
 IO-wf_binary-read.out.out: IO-wf_binary.out.out
 IO-wf-ETSF_read.out.out: IO-wf-ETSF_write.out.out
 
-# Additional freq in.
-H2-freq.post-in: $(abs_top_builddir)/src/frequencies
+
+# Additional freq post-in to avoid a fail when the run is done again.
+H2-freq-test.post-in:
 	rm -f frequencies.res
-C6H6-freq.post-in: $(abs_top_builddir)/src/frequencies
+C6H6-freq-test.post-in: 
 	rm -f frequencies.res
+
+# Additional MINHOP in;
+MINHOP-test.post-in:
+	rm -f posloc* posimed* data/global.mon
+
+# Additional NEB in.
+NEB-test.post-in:
+	if ! test -f NEB_include.sh ; then sed "s;%%abs_top_builddir%%;$(abs_top_builddir);g" NEB_include.sh.in > NEB_include.sh ; fi
+	if ! test -L NEB_driver.sh ; then ln -fs $(abs_top_srcdir)/src/NEB_driver.sh ; fi
+	rm -f neb.NEB.restart
+NEB-test.post-clean:
+	rm -f NEB_include.sh NEB_driver.sh
+
+# Additional H2O-slab in.
+H2O-slab-test.post-in:
+	cp -f velocities.in velocities.xyz
+	chmod a+w velocities.xyz
+
+# Additional reference for geopt.mon test
+global.mon.out : test.minhop.out
+	cp -f data/global.mon $@
+
 
 # Additional outs
 H2-freq.post-out:
@@ -74,27 +97,10 @@ IO-wf-ETSF_write.out.post-out:
 NH3.out.post-out:
 	mv -f data/geopt.mon NH3.geopt.mon.out
 
-# Additional NEB in.
-NEB-test.post-in:
-	if ! test -f NEB_include.sh ; then sed "s;%%abs_top_builddir%%;$(abs_top_builddir);g" NEB_include.sh.in > NEB_include.sh ; fi
-	if ! test -L NEB_driver.sh ; then ln -fs $(abs_top_srcdir)/src/NEB_driver.sh ; fi
-NEB-test.post-clean:
-	rm -f NEB_include.sh NEB_driver.sh
-
-# Additional H2O-slab in.
-H2O-slab-test.post-in:
-	cp -f velocities.in velocities.xyz
-	chmod a+w velocities.xyz
-
-# Additional reference for geopt.mon test
-global.mon.out : test.minhop.out
-	cp -f data/global.mon $@
-
-
-# Additional run rules.
 InputGenPot.xabs.post-out:
 	mv -f local_potentialb2B.cube b2B_xanes.cube
 	cp InputGenPot.xyz b2B_xanes.xyz
+
 
 # Introduce specific targets for export-wavefunctions
 IO-wf_plain.cube: 
@@ -115,7 +121,8 @@ IO-wf_binary.cube:
 
 IO-wf_ETSF.cube: 
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
-	$(run_serial) $(abs_top_builddir)/src/bigdft-tool --name read -a export-wf data-read/wavefunction.etsf --i-band 3 --i-spin 2 --i-kpt 2 --i-complex 2 >> IO-wf-ETSF_write.out.out
+	$(run_serial) $(abs_top_builddir)/src/bigdft-tool --name read -a export-wf data-read/wavefunction.etsf \
+	--i-band 3 --i-spin 2 --i-kpt 2 --i-complex 2 >> IO-wf-ETSF_write.out.out
 	mv wavefunction-k002-DI.b0003.cube wf_etsf.cube
 	rm -f wavefunction-k002-DI.b0003_avg_*
 
@@ -137,7 +144,7 @@ IO-wf_ETSF.cube:
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
 
 %.report.yaml: %.ref.yaml
-	@export PYTHONPATH=${PYTHONPATH} ; \
+	export PYTHONPATH=${PYTHONPATH} ; \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	name2=`basename $< .xabs.ref.yaml` ; \
 	if test "$$name2" = "$<" ; then \
@@ -145,7 +152,7 @@ IO-wf_ETSF.cube:
 	else \
 	name=`basename $< .xabs.ref.yaml`  ; fi;\
 	tols=`basename $< .out.ref.yaml` ;\
-	if test -n "$$name" ; then log=log-$$name.yaml ; else log=log.yaml ; fi ;\
+	if test -n "$$name" ; then log=log-$$name.yaml ; else log=log.yaml ; fi ; \
 	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
 		-r $< -d $$log -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=$$tols -o $@ 
 
